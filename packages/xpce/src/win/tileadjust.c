@@ -86,6 +86,24 @@ getEventOffsetTileAdjuster(TileAdjuster adj, EventObj ev)
 
 
 static status
+forwardTileAdjuster(TileAdjuster adj, EventObj ev)
+{ Int offset;
+
+  if ( (offset = getEventOffsetTileAdjuster(adj, ev)) )
+  { Name dim = ( adj->orientation == NAME_horizontal
+		 ? NAME_width : NAME_height );
+
+    if ( valInt(offset) < 1 )
+      offset = ONE;
+
+    send(adj->client, dim, offset, EAV);
+  }
+
+  succeed;
+}
+
+
+static status
 eventTileAdjuster(TileAdjuster adj, EventObj ev)
 { Int offset;
 
@@ -99,17 +117,16 @@ eventTileAdjuster(TileAdjuster adj, EventObj ev)
     succeed;
   } else if ( notNil(adj->offset) )
   { if ( isDragEvent(ev) )
-    { if ( (offset = getEventOffsetTileAdjuster(adj, ev)) )
-      { Name dim = ( adj->orientation == NAME_horizontal
-		     ? NAME_width : NAME_height );
+    { DisplayObj d = getDisplayEvent(ev);
 
-	if ( valInt(offset) < 1 )
-	  offset = ONE;
+      if ( d && ws_events_queued_display(d) )
+	succeed;
 
-	send(adj->client, dim, offset, EAV);
-      }
+      forwardTileAdjuster(adj, ev);
     } else if ( isUpEvent(ev) )
-    { assign(adj, down_offset, NIL);
+    { forwardTileAdjuster(adj, ev);
+
+      assign(adj, down_offset, NIL);
     }
 
     succeed;
