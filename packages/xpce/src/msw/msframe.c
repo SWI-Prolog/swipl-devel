@@ -38,18 +38,27 @@ static void       paint_icon(FrameObj fr);
 
 static FrameObj current_frame;		/* hack for timing problem */
 
-static TCHAR *
+static const TCHAR *
+store_stringW(TCHAR *in)
+{ size_t bytes = (_tcslen(in)+1)*sizeof(TCHAR);
+  TCHAR *copy = pceMalloc(bytes);
+
+  memcpy(copy, in, bytes);
+
+  return copy;
+}
+
+
+static const TCHAR *
 WinFrameClass()
 { static WNDCLASS wndClass;
-  static TCHAR *cname = NULL;
-  Name winclassname = NULL;
+  static const TCHAR *cname = NULL;
   
   if ( !cname )
   { TCHAR buf[50];
 
     wsprintf(buf, _T("PceFrame%ld"), (unsigned long)PceHInstance);
-    winclassname = WCToName(buf, _tcslen(buf));
-    cname = nameToWC(winclassname, NULL);
+    cname = store_stringW(buf);
 
     wndClass.style		= 0;
     wndClass.lpfnWndProc	= (LPVOID) frame_wnd_proc;
@@ -69,18 +78,16 @@ WinFrameClass()
 }
 
 
-static TCHAR *
+static const TCHAR *
 WinPopupFrameClass()
-{ static TCHAR *cname = NULL;
+{ static const TCHAR *cname = NULL;
   static WNDCLASS wndClass;
-  Name winclassname;
 
   if ( !cname )
   { TCHAR buf[50];
 
     wsprintf(buf, _T("PcePopupFrame%ld"), (unsigned long)PceHInstance);
-    winclassname = WCToName(buf, _tcslen(buf));
-    cname = nameToWC(winclassname, NULL);
+    cname = store_stringW(buf);
 
     wndClass.style		= /*CS_HREDRAW|CS_VREDRAW|*/CS_SAVEBITS;
     wndClass.lpfnWndProc	= (LPVOID) frame_wnd_proc;

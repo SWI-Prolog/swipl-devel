@@ -142,6 +142,8 @@ loadTextBuffer(TextBuffer tb, IOSTREAM *fd, ClassDef def)
 
   if ( isNil(tb->syntax) )
     assign(tb, syntax, getClassVariableValueObject(tb, NAME_syntax));
+  if ( !isName(tb->encoding) )
+    assign(tb, encoding, NAME_text);
 
   assign(tb, editors, newObject(ClassChain, EAV));
   tb->size = loadWord(fd);

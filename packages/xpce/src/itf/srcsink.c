@@ -266,7 +266,7 @@ static char *T_contents[] =
 /* Instance Variables */
 
 static vardecl var_source_sink[] =
-{ SV(NAME_encoding, "{octet,iso_latin_1,utf8,unicode_be,unicode_le,wchar}",
+{ SV(NAME_encoding, "{octet,ascii,iso_latin_1,text,utf8,unicode_be,unicode_le,wchar}",
      IV_GET|IV_STORE, encodingSourceSink,
      NAME_encoding, "Encoding of the data-source"),
 };

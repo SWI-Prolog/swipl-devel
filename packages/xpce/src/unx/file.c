@@ -203,8 +203,10 @@ loadFile(FileObj f, IOSTREAM *fd, ClassDef def)
 
   if ( isNil(f->path) )
     assign(f, path, DEFAULT);		/* backward compatibility load */
-  if ( isNil(f->kind) )
+  if ( !isName(f->kind) )
     assign(f, kind, NAME_binary);	/* same */
+  if ( !isName(f->encoding) )
+    assign(f, encoding, (f->kind == NAME_binary ? NAME_octet : NAME_text));
 
   assign(f, status, NAME_closed);
   f->fd = NULL;
