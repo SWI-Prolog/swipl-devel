@@ -186,6 +186,10 @@ compile-time
 #define UNLOCKDYNDEF(def) \
 	if ( GD->thread.enabled && def->mutex ) countingMutexUnlock(def->mutex)
 
+#define LOCKMODULE(module)   countingMutexLock((module)->mutex)
+#define UNLOCKMODULE(module) countingMutexUnlock((module)->mutex)
+	
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 				Thread-local data
 
@@ -333,6 +337,8 @@ void		resumeThreads(void);
 #define UNLOCKDEF(def)
 #define LOCKDYNDEF(def)
 #define UNLOCKDYNDEF(def)
+#define LOCKMODULE(module)
+#define UNLOCKMODULE(module)
 
 #endif /*O_PLMT*/
 

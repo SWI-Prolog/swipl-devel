@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: Use a mutex per module for functor --> predicate lookup for
+    better speed of threads doing meta-calls in different modules.
+
   * ADDED: compile_predicates/1
 
   * ADDED: some more statistics on mutex usage

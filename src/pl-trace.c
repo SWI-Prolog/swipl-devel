@@ -1431,7 +1431,7 @@ word
 pl_nospy(term_t p)
 { Procedure proc;
 
-  if ( get_procedure(p, &proc, 0, GP_FIND) )
+  if ( get_procedure(p, &proc, 0, GP_FIND|GP_EXISTENCE_ERROR) )
   { Definition def = getProcDefinition(proc);
     
     if ( true(def, SPY_ME) )

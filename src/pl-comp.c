@@ -936,12 +936,12 @@ A ; B, A -> B, A -> B ; C, \+ A
     NOT is a bit tricky too.  If it succeeds (i.e. the argument fails),
     there are no variable-bindings done. Unfortunately, variables
     introduced inside the not that are set using B_ARGFIRSTVAR create
-    references to terms above the (now unwount) global stack, but the
-    GC clearUninitialisedVarsFrame() won't see any initialisation of
+    references to terms above the (now unwinded) global stack, but
+    the GC clearUninitialisedVarsFrame() won't see any initialisation of
     these variables, leaving them invalid. Same holds for the
-    source-level debugger using the same function.  Therefore we
-    explicitely reset these variables at the end of the code created
-    by \+. For optimisation-reasons however we can consider them
+    source-level debugger using the same function. Therefore we
+    explicitely reset these variables at the end of the code created by
+    \+. For optimisation-reasons however we can consider them
     uninitialised.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -1986,10 +1986,9 @@ PRED_IMPL("compile_predicates",  1, compile_predicates, PL_FA_TRANSPARENT)
   while( PL_get_list(tail, head, tail) )
   { Procedure proc;
 
-    if ( !get_procedure(head, &proc, 0, GP_NAMEARITY|GP_FINDHERE) )
+    if ( !get_procedure(head, &proc, 0,
+			GP_NAMEARITY|GP_FINDHERE|GP_EXISTENCE_ERROR) )
       fail;
-    if ( !proc || !isDefinedProcedure(proc) )
-      return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_procedure, head);
 
     if ( !setDynamicProcedure(proc, FALSE) )
       fail;
@@ -3238,7 +3237,7 @@ pl_xr_member(term_t ref, term_t term, control_t h)
     }
 
     PC = clause->codes;
-    if ( get_procedure(term, &proc, 0, GP_FINDHERE) )
+    if ( get_procedure(term, &proc, 0, GP_FINDHERE|GP_TYPE_QUIET) )
     { Definition pd = getProcDefinition(proc);
 
       while( PC < end )

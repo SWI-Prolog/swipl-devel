@@ -58,6 +58,9 @@ _lookupModule(atom_t name)
 #ifdef O_PROLOG_HOOK
   m->hook = NULL;
 #endif
+#ifdef O_PLMT
+  m->mutex = allocSimpleMutex(PL_atom_chars(m->name));
+#endif
   clearFlags(m);
   set(m, CHARESCAPE|UNKNOWN_ERROR);
 
@@ -430,8 +433,9 @@ declareModule(atom_t name, SourceFile sf)
 { GET_LD
   Module module;
 
-  module = lookupModule(name);
   LOCK();
+  module = _lookupModule(name);
+
   if ( module->file && module->file != sf)
   { UNLOCK();
     warning("module/2: module %s already loaded from file %s (abandoned)", 
@@ -491,7 +495,7 @@ pl_export_list(term_t modulename, term_t public)
     term_t list = PL_copy_term_ref(public);
     int rval = TRUE;
 
-    LOCK();
+    LOCKMODULE(module);
     for_table(module->public, s,
 	      { if ( !PL_unify_list(list, head, list) ||
 		     !PL_unify_functor(head, (functor_t)s->name) )
@@ -499,7 +503,7 @@ pl_export_list(term_t modulename, term_t public)
 		  break;
 		}
 	      })
-    UNLOCK();
+    UNLOCKMODULE(module);
     if ( rval )
       return PL_unify_nil(list);
 
@@ -527,13 +531,13 @@ pl_export(term_t pred)
     if ( (proc = isStaticSystemProcedure(fd)) )
       return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 		      ATOM_export, ATOM_built_in_procedure, proc->definition);
-
-    LOCK();
     proc = lookupProcedure(fd, module);
+
+    LOCKMODULE(module);
     addHTable(module->public,
 	      (void *)proc->definition->functor->functor,
 	      proc);
-    UNLOCK();
+    UNLOCKMODULE(module);
     succeed;
   }
 
@@ -584,7 +588,9 @@ fine.
 
 static inline void
 fixExportModule(Module m, Definition old, Definition new)
-{ for_unlocked_table(m->procedures, s,
+{ LOCKMODULE(m);
+
+  for_unlocked_table(m->procedures, s,
 		     { Procedure proc = s->value;
 
 		       if ( proc->definition == old )
@@ -593,6 +599,8 @@ fixExportModule(Module m, Definition old, Definition new)
 			 proc->definition = new;
 		       }
 		     });
+
+  UNLOCKMODULE(m);
 }
 
 
@@ -668,10 +676,10 @@ pl_import(term_t pred)
     nproc->definition = proc->definition;
     set(proc->definition, P_SHARED);
   
-    LOCK();
+    LOCKMODULE(destination);
     addHTable(destination->procedures,
 	      (void *)proc->definition->functor->functor, nproc);
-    UNLOCK();
+    UNLOCKMODULE(destination);
   }
 
   succeed;

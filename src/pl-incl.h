@@ -857,7 +857,8 @@ typedef struct
 #define GP_HOW_MASK	0x0ff
 #define GP_NAMEARITY	0x100		/* or'ed mask */
 #define GP_HIDESYSTEM	0x200		/* hide system module */
-#define GP_QUIET	0x400		/* don't throw errors */
+#define GP_TYPE_QUIET	0x400		/* don't throw errors on wrong types */
+#define GP_EXISTENCE_ERROR 0x800	/* throw error if proc is not found */
 
 
 		 /*******************************
@@ -1415,6 +1416,9 @@ struct module
   Table		public;		/* public predicates associated */
   Table		operators;	/* local operator declarations */
   Module	super;		/* Import predicates from here */
+#ifdef O_PLMT
+  counting_mutex *mutex;	/* Mutex to guard procedures */
+#endif
 #ifdef O_PROLOG_HOOK
   Procedure	hook;		/* Hooked module */
 #endif

@@ -47,7 +47,7 @@ lookupProcedure(functor_t f, Module m)
   Definition def;
   Symbol s;
   
-  LOCK();
+  LOCKMODULE(m);
   if ( (s = lookupHTable(m->procedures, (void *)f)) )
   { DEBUG(3, Sdprintf("lookupProcedure() --> %s\n", procedureName(s->value)));
     proc = s->value;
@@ -75,7 +75,7 @@ lookupProcedure(functor_t f, Module m)
     resetProcedure(proc, TRUE);
     DEBUG(3, Sdprintf("Created %s\n", procedureName(proc)));
   }
-  UNLOCK();
+  UNLOCKMODULE(m);
   
   return proc;
 }
@@ -289,7 +289,7 @@ get_functor(term_t descr, functor_t *fdef, Module *m, term_t h, int how)
 	  
     succeed;
   } else
-  { if ( how & GP_QUIET )
+  { if ( how & GP_TYPE_QUIET )
       fail;
     else
       return PL_error(NULL, 0, NULL, ERR_TYPE,
@@ -303,14 +303,14 @@ get_head_functor(term_t head, functor_t *fdef, int how ARG_LD)
 { int arity;
 
   if ( !PL_get_functor(head, fdef) )
-  { if ( how&GP_QUIET )
+  { if ( how&GP_TYPE_QUIET )
       fail;
     else
       return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, head);
   }
 
   if ( (arity=arityFunctor(*fdef)) > MAXARITY )
-  { if ( how&GP_QUIET )
+  { if ( how&GP_TYPE_QUIET )
     { fail;
     } else
     { char buf[100];
@@ -339,7 +339,8 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
   Procedure p;
 
   if ( (how&GP_NAMEARITY) )
-  { if ( !get_functor(descr, &fdef, &m, h, GF_PROCEDURE|(how&GP_QUIET)) )
+  { if ( !get_functor(descr, &fdef, &m, h,
+		      GF_PROCEDURE|(how&GP_TYPE_QUIET)) )
       fail;
   } else
   { GET_LD
@@ -363,7 +364,7 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
       { *proc = p;
         break;
       }
-      fail;
+      goto notfound;
     case GP_FIND:
       for( ; m; m = m->super )
       { if ( (p = isCurrentProcedure(fdef, m)) && isDefinedProcedure(p) )
@@ -371,26 +372,29 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
 	  goto out;
 	}
       }
-      fail;
+      goto notfound;
     case GP_DEFINE:
       if ( (p = lookupProcedureToDefine(fdef, m)) )
       { *proc = p;
         break;
       }
-      fail;
+      fail;				/* permission error */
     case GP_RESOLVE:
       if ( (p = resolveProcedure(fdef, m)) )
       { *proc = p;
         break;
       }
-      fail;
+      goto notfound;
     default:
       assert(0);
   }
-
 out:
-
   succeed;
+
+notfound:
+  if ( (how & GP_EXISTENCE_ERROR) )
+    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_procedure, descr);
+  fail;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1841,7 +1845,7 @@ static void
 attachMutexAndUnlock(Definition def)
 { if ( !def->mutex )
   { def->mutex = allocSimpleMutex(predicateName(def));
-    PL_UNLOCK(L_PREDICATE);
+    UNLOCK();
   } else
     countingMutexUnlock(def->mutex);
 }
@@ -1854,7 +1858,7 @@ detachMutexAndUnlock(Definition def)
     countingMutexUnlock(m);
     freeSimpleMutex(m);
   } else
-    PL_UNLOCK(L_PREDICATE);
+    UNLOCK();
 }
 
 #else /*O_PLMT*/
@@ -2333,7 +2337,7 @@ pl_source_file(term_t descr, term_t file, control_t h)
   
 
   if ( ForeignControl(h) == FRG_FIRST_CALL )
-  { if ( get_procedure(descr, &proc, 0, GP_FIND|GP_QUIET) )
+  { if ( get_procedure(descr, &proc, 0, GP_FIND|GP_TYPE_QUIET) )
     { if ( !proc->definition ||
 	   true(proc->definition, FOREIGN|P_THREAD_LOCAL) ||
 	   !(cref = proc->definition->definition.clauses) ||
