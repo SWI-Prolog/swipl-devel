@@ -211,10 +211,14 @@ rcadd(const char *archive, char **members)
     }
   }
 
-  if ( !rc_close_archive(rca) )
-  { error("Failed to create \"%s\": %s", archive, rc_strerror(rc_errno));
-    return 1;
+  if ( rca->modified )
+  { if ( !rc_save_archive(rca, NULL) )
+    { error("Failed to create \"%s\": %s", archive, rc_strerror(rc_errno));
+      return 1;
+    }
   }
+
+  rc_close_archive(rca);
 
   return 0;
 }
@@ -246,10 +250,14 @@ rcdel(const char *archive, char **members)
     }
   }
 
-  if ( !rc_close_archive(rca) )
-  { error("Failed to create \"%s\": %s", archive, rc_strerror(rc_errno));
-    return 1;
+  if ( rca->modified )
+  { if ( !rc_save_archive(rca, NULL) )
+    { error("Failed to create \"%s\": %s", archive, rc_strerror(rc_errno));
+      return 1;
+    }
   }
+
+  rc_close_archive(rca);
 
   return 0;
 }
@@ -270,11 +278,11 @@ main(int argc, char **argv)
     
     if ( strcmp(cmd, "l") == 0 )
       return rcls(archive, members);
-    if ( strcmp(cmd, "x") == 0 )
+    else if ( strcmp(cmd, "x") == 0 )
       return rcextract(archive, members);
-    if ( strcmp(cmd, "a") == 0 )
+    else if ( strcmp(cmd, "a") == 0 )
       return rcadd(archive, members);
-    if ( strcmp(cmd, "d") == 0 )
+    else if ( strcmp(cmd, "d") == 0 )
       return rcdel(archive, members);
   }
 

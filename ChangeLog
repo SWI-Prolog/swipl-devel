@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: plrc utility for modifying archives.  Thanks to Lourens
+    van der Meij.
+
   * FIXED: ANSI-C incompatibility, breaking compilation using AIX cc
     (Sterling Smith).
 
