@@ -167,6 +167,10 @@ seconds the stream raises an exception. Default is to wait forever (<CODE>infini
 <DT><STRONG>size</STRONG>(<VAR>-Size</VAR>)<DD>
 If provided <VAR>Size</VAR> is unified with the value of the
 <CODE>Content-Length</CODE> fields of the reply-header.
+
+<P>
+<DT><STRONG>proxy</STRONG>(<VAR>+Host, +Port</VAR>)<DD>
+Use an HTTP proxy to connect to the outside world.
 </DL>
 
 <P>Here is a simple example:
@@ -225,6 +229,10 @@ party confirms the keep-alive and closed otherwise.
 <DT><STRONG>http_version</STRONG>(<VAR>Major-Minor</VAR>)<DD>
 Indicate the HTTP protocol version used for the connection. Default is
 <CODE>1.1</CODE>.
+
+<P>
+<DT><STRONG>proxy</STRONG>(<VAR>+Host, +Port</VAR>)<DD>
+Use an HTTP proxy to connect to the outside world.
 </DL>
 
 <P>Remaining options are passed to <A NAME="idx:httpreaddata3:4"></A><A HREF="#http_read_data/3">http_read_data/3</A>.
@@ -911,12 +919,12 @@ argument list to <A NAME="idx:sformat3:32"></A><B>sformat/3</B>. The
 result is quoted and added to the output list.
 
 <P>
-<LI><I><VAR><CODE>\</CODE></VAR><VAR>List</VAR></I><BR>
+<LI><I><CODE>\</CODE><VAR>List</VAR></I><BR>
 Escape sequence to add atoms directly to the output list. This can be 
 used to embed external HTML code.
 
 <P>
-<LI><I><VAR><CODE>\</CODE></VAR><VAR>Term</VAR></I><BR>
+<LI><I><CODE>\</CODE><VAR>Term</VAR></I><BR>
 Invoke the grammar rule <VAR>Term</VAR> in the calling module. This is 
 the common mechanism to realise abstraction and modularisation in 
 generating HTML.
@@ -925,8 +933,8 @@ generating HTML.
 <LI><I><VAR>Module</VAR>:<VAR>Term</VAR></I><BR>
 Invoke the grammar rule &lt;<VAR>Module</VAR>&gt;:&lt;<VAR>Term</VAR>&gt;. 
 This is similar to
-<VAR><CODE>\</CODE></VAR><VAR>Term</VAR> but allows for invoking grammar 
-rules in external packages.
+<CODE>\</CODE><VAR>Term</VAR> but allows for invoking grammar rules in 
+external packages.
 
 <P>
 <LI><I>&amp;(Entity)</I><BR>
@@ -1005,7 +1013,7 @@ the begin-tag. Some examples:
 </TABLE>
 
 <P>This predicate provides an alternative to using the
-<VAR><CODE>\</CODE></VAR><VAR>Command</VAR> syntax in the <A NAME="idx:html1:41"></A><A HREF="#html/1">html/1</A> 
+<CODE>\</CODE><VAR>Command</VAR> syntax in the <A NAME="idx:html1:41"></A><A HREF="#html/1">html/1</A> 
 specification. The following two fragments are the same. The preferred 
 solution depends on your preferences as well as whether the 
 specification is generated or entered by the programmer.
@@ -1224,7 +1232,7 @@ able to deal with generating pages quickly and comfortably.
 
 <P>In a future version we will probably define a <A NAME="idx:goalexpansion2:55"></A><B>goal_expansion/2</B> 
 to do compile-time optimisation of the library. Quotation of known text 
-and invokation of sub-rules using the <VAR><CODE>\</CODE></VAR><VAR>RuleSet</VAR> 
+and invokation of sub-rules using the <CODE>\</CODE><VAR>RuleSet</VAR> 
 and
 &lt;<VAR>Module</VAR>&gt;:&lt;<VAR>RuleSet</VAR>&gt; operators are 
 costly operations in the analysis that can be done at compile-time.

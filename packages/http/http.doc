@@ -159,6 +159,9 @@ party confirms the keep-alive and closed otherwise.
 	\termitem{http_version}{Major-Minor}
 Indicate the HTTP protocol version used for the connection.  Default is
 \const{1.1}.
+
+	\termitem{proxy}{+Host, +Port}
+Use an HTTP proxy to connect to the outside world.
     \end{description}
 
 Remaining options are passed to http_read_data/3.
@@ -695,7 +698,7 @@ information derived from the exception.
 
 \subsection{The \pllib{http/html_write} library}	\label{sec:htmlwrite}
 
-\newcommand{\elem}[1]{\const{#1}} \newcommand{\bsl}{$\tt\backslash$}
+\newcommand{\elem}[1]{\const{#1}}
 
 Producing output for the web in the form of an HTML document is a
 requirement for many Prolog programs. Just using format/2 is

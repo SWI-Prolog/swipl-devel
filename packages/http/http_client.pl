@@ -49,15 +49,15 @@
 :- dynamic
 	connection/4.			% Host:Port, ThreadId, In, Out
 
-%	connect(+UrlParts, -Read, -Write)
+%	connect(+UrlParts, -Read, -Write, +Options)
 %	disconnect(+UrlParts)
 %
 %	Connect/disconnect on the basis of a parsed URL.
 
-connect(Parts, Read, Write) :-
+connect(Parts, Read, Write, _) :-
 	memberchk(socket(Read, Write), Parts), !.
-connect(Parts, Read, Write) :-
-	address(Parts, Address),
+connect(Parts, Read, Write, Options) :-
+	address(Parts, Address, Options),
 	with_mutex(http_client_connect, connect2(Address, Read, Write)).
 
 connect2(Address, In, Out) :-
@@ -80,7 +80,7 @@ do_connect(Address, _, _) :-
 	
 
 disconnect(Parts) :-
-	address(Parts, Address),
+	address(Parts, Address, []),
 	with_mutex(http_client_connect, disconnect2(Address)).
 
 disconnect2(Address) :-
@@ -106,7 +106,9 @@ http_disconnect(all) :-
 	;   true
 	).
 	
-address(Parts, Host:Port) :-
+address(_Parts, Host:Port, Options) :-
+	memberchk(proxy(Host, Port), Options), !.
+address(Parts, Host:Port, _Options) :-
 	memberchk(host(Host), Parts),
 	port(Parts, Port).
 
@@ -137,14 +139,17 @@ http_get(Parts, Data, Options) :-
 		  fail
 	      )), !.
 http_get(Parts, Data, Options) :-
-	address(Parts, Address),
+	address(Parts, Address, Options),
 	do_connect(Address, Read, Write),
 	call_cleanup(http_do_get([socket(Read, Write)|Parts], Data, Options),
 		     close_socket(Read, Write)).
 
 http_do_get(Parts, Data, Options) :-
-	connect(Parts, Read, Write),
-	http_location(Parts, Location),
+	connect(Parts, Read, Write, Options),
+	(   memberchk(proxy(_,_), Options)
+	->  parse_url(Location, Parts)
+	;   http_location(Parts, Location)
+	),
 	memberchk(host(Host), Parts),
 	http_write_header(Write, 'GET', Location, Host, Options, ReplyOptions),
 	format(Write, '~n', []),
@@ -315,15 +320,18 @@ http_post(Parts, In, Out, Options) :-
 		  fail
 	      )), !.
 http_post(Parts, In, Out, Options) :-
-	address(Parts, Address),
+	address(Parts, Address, Options),
 	do_connect(Address, Read, Write),
 	call_cleanup(http_do_post([socket(Read, Write)|Parts],
 				  In, Out, Options),
 		     close_socket(Read, Write)).
 
 http_do_post(Parts, In, Out, Options) :-
-	connect(Parts, Read, Write),
-	http_location(Parts, Location),
+	connect(Parts, Read, Write, Options),
+	(   memberchk(proxy(_,_), Options)
+	->  parse_url(Location, Parts)
+	;   http_location(Parts, Location)
+	),
 	memberchk(host(Host), Parts),
 	split_options(Options, PostOptions, ReplyOptions),
 	write_post_header(Write, Location, Host, In, PostOptions),
