@@ -37,12 +37,13 @@
 :- use_module(library(readutil)).
 :- use_module(library(socket)).
 
+user_agent('SWI-Prolog (http://www.swi-prolog.org)').
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This library provides a simple-minded light-weight HTTP client library
-to get the data from an URL using the GET-method. 
-
+This library provides a simple-minded   light-weight HTTP client library
+to get the data from an  URL   using  the GET-method. More advanced HTTP
+client support is provided by http_client.pl
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 
 %	http_open(+Url, -Stream, [+Options])
 %	
@@ -55,6 +56,7 @@ to get the data from an URL using the GET-method.
 %		size(-Size)		Return size of the resource
 %		timeout(+Timeout)	Raise exception on timeout
 %		proxy(+Host, +Port)	Use an HTTP proxy server
+%		user_agent(+Agent)	User agent for identifying
 
 http_open(Url, Stream, Options) :-
 	atom(Url), !,
@@ -62,35 +64,48 @@ http_open(Url, Stream, Options) :-
 	http_open(Parts, Stream, Options).
 http_open(Parts, Stream, Options) :-
 	memberchk(proxy(Host, Port), Options), !,
+	user_agent(Agent, Options),
 	parse_url(URL, Parts),
 	open_socket(Host:Port, In, Out, Options),
 	format(Out,
 	       'GET ~w HTTP/1.0~n\
 	       Host: ~w~n\
+	       User-Agent: ~w~n\
 	       Connection: close~n~n',
-	       [URL, Host]),
+	       [URL, Host, Agent]),
 	close(Out),
 					% read the reply header
 	read_header(In, Code, Comment, Lines),
 	do_open(Code, Comment, Lines, Options, Parts, In, Stream).
 http_open(Parts, Stream, Options) :-
 	memberchk(host(Host), Parts),
-	(   memberchk(port(Port), Parts)
-	->  true
-	;   Port = 80
-	),
+	option(port(Port), Parts, 80),
 	http_location(Parts, Location),
+	user_agent(Agent, Options),
 	open_socket(Host:Port, In, Out, Options),
 	format(Out,
 	       'GET ~w HTTP/1.0~n\
 	       Host: ~w~n\
+	       User-Agent: ~w~n\
 	       Connection: close~n~n',
-	       [Location, Host]),
+	       [Location, Host, Agent]),
 	close(Out),
 					% read the reply header
 	read_header(In, Code, Comment, Lines),
 	do_open(Code, Comment, Lines, Options, Parts, In, Stream).
 
+
+option(Option, List, Default) :-
+	(   memberchk(Option, List)
+	->  true
+	;   arg(1, Option, Default)
+	).
+
+user_agent(Agent, Options) :-
+	(   memberchk(user_agent(Agent), Options)
+	->  true
+	;   user_agent(Agent)
+	).
 
 do_open(200, _, Lines, Options, Parts, In, In) :- !,
 	return_size(Options, Lines),

@@ -49,6 +49,8 @@
 :- dynamic
 	connection/4.			% Host:Port, ThreadId, In, Out
 
+user_agent('SWI-Prolog (http://www.swi-prolog.org)').
+
 %	connect(+UrlParts, -Read, -Write, +Options)
 %	disconnect(+UrlParts)
 %
@@ -181,6 +183,7 @@ http_read_reply(In, _Data, _Options) :-
 %	
 %		http_version(Major-Minor)
 %		connection(Connection)
+%		user_agent(Agent)
 %
 %	Remaining options are returned in RestOptions.
 
@@ -192,12 +195,18 @@ http_write_header(Out, Method, Location, Host, Options, RestOptions) :-
 	),
 	format(Out, '~w ~w HTTP/~w.~w~n', [Method, Location, Major, Minor]),
 	format(Out, 'Host: ~w~n', [Host]),
-	(   select(connection(Connection), Options1, RestOptions)
+	(   select(connection(Connection), Options1, Options2)
 	->  true
 	;   Connection = 'Keep-Alive',
-	    RestOptions = Options1
+	    Options2 = Options1
 	),
-	format(Out, 'Connection: ~w~n', [Connection]).
+	(   select(user_agent(Agent), Options2, RestOptions)
+	->  true
+	;   user_agent(Agent),
+	    RestOptions = Options2
+	),
+	format(Out, 'User-Agent: ~w~n\
+		     Connection: ~w~n', [Agent, Connection]).
 
 
 %	http_read_data(+In, +Fields, +Data, -Options)

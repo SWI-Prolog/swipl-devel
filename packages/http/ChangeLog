@@ -1,3 +1,7 @@
+Jan 23, 2003
+
+  * ADDED: Provide User-Agent header for the client libraries
+
 Jan 8, 2003
  
   * ADDED: Support for using proxy servers Option: proxy(Host, Port).

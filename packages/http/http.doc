@@ -116,6 +116,10 @@ If provided \arg{Size} is unified with the value of the
 
 	\termitem{proxy}{+Host, +Port}
 Use an HTTP proxy to connect to the outside world.
+
+	\termitem{user_agent}{+Agent}
+Defines the value of the \const{User-Agent} field of the HTTP header.
+Default is \const{SWI-Prolog (http://www.swi-prolog.org)}.
     \end{description}
 
 Here is a simple example:
@@ -162,6 +166,10 @@ Indicate the HTTP protocol version used for the connection.  Default is
 
 	\termitem{proxy}{+Host, +Port}
 Use an HTTP proxy to connect to the outside world.
+
+	\termitem{user_agent}{+Agent}
+Defines the value of the \const{User-Agent} field of the HTTP header.
+Default is \const{SWI-Prolog (http://www.swi-prolog.org)}.
     \end{description}
 
 Remaining options are passed to http_read_data/3.
