@@ -180,7 +180,9 @@ typedef struct _dtd_error
   dtd_error_severity severity;		/* ERS_* severity */
   const char *file;			/* file (or NULL) */
   long line;				/* Related line */
+  char *plain_message;			/* Clean message */
   char *message;			/* complete message */
+					/* (Warning: file:line: <plain>) */
   char *argv[2];			/* context earguments */
 } dtd_error;
 

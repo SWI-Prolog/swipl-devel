@@ -182,11 +182,11 @@ get_parser(term_t parser, dtd_parser **p)
 
         return TRUE;
       }
-      return pl_error(ERR_EXISTENCE, "sgml_parser", parser);
+      return sgml2pl_error(ERR_EXISTENCE, "sgml_parser", parser);
     }
   }
 
-  return pl_error(ERR_TYPE, "sgml_parser", parser);
+  return sgml2pl_error(ERR_TYPE, "sgml_parser", parser);
 }
 
 
@@ -216,11 +216,11 @@ get_dtd(term_t t, dtd **dtdp)
 
         return TRUE;
       }
-      return pl_error(ERR_EXISTENCE, "dtd", t);
+      return sgml2pl_error(ERR_EXISTENCE, "dtd", t);
     }
   }
 
-  return pl_error(ERR_TYPE, "dtd", t);
+  return sgml2pl_error(ERR_TYPE, "dtd", t);
 }
 
 
@@ -250,7 +250,7 @@ pl_new_sgml_parser(term_t ref, term_t options)
     }
   }
   if ( !PL_get_nil(tail) )
-    return pl_error(ERR_TYPE, "list", tail);
+    return sgml2pl_error(ERR_TYPE, "list", tail);
 
   p = new_dtd_parser(dtd);
 
@@ -277,7 +277,7 @@ pl_new_dtd(term_t doctype, term_t ref)
   dtd *dtd;
 
   if ( !PL_get_atom_chars(doctype, &dt) )
-    return pl_error(ERR_TYPE, "atom", doctype);
+    return sgml2pl_error(ERR_TYPE, "atom", doctype);
 
   if ( !(dtd=new_dtd(dt)) )
     return FALSE;
@@ -318,21 +318,21 @@ pl_set_sgml_parser(term_t parser, term_t option)
 
     PL_get_arg(1, option, a);
     if ( !PL_get_atom_chars(a, &file) )
-      return pl_error(ERR_TYPE, "atom", a);
+      return sgml2pl_error(ERR_TYPE, "atom", a);
     set_file_dtd_parser(p, file);
   } else if ( PL_is_functor(option, FUNCTOR_line1) )
   { term_t a = PL_new_term_ref();
 
     PL_get_arg(1, option, a);
     if ( !PL_get_integer(a, &p->location.line) )
-      return pl_error(ERR_TYPE, "integer", a);
+      return sgml2pl_error(ERR_TYPE, "integer", a);
   } else if ( PL_is_functor(option, FUNCTOR_dialect1) )
   { term_t a = PL_new_term_ref();
     char *s;
 
     PL_get_arg(1, option, a);
     if ( !PL_get_atom_chars(a, &s) )
-      return pl_error(ERR_TYPE, "atom", a);
+      return sgml2pl_error(ERR_TYPE, "atom", a);
 
     if ( streq(s, "xml") )
       set_dialect_dtd(p->dtd, DL_XML);
@@ -341,9 +341,9 @@ pl_set_sgml_parser(term_t parser, term_t option)
     else if ( streq(s, "sgml") )
       set_dialect_dtd(p->dtd, DL_SGML);
     else
-      return pl_error(ERR_DOMAIN, "sgml_dialect", a);
+      return sgml2pl_error(ERR_DOMAIN, "sgml_dialect", a);
   } else
-    return pl_error(ERR_DOMAIN, "sgml_parser_option", option);
+    return sgml2pl_error(ERR_DOMAIN, "sgml_parser_option", option);
 
   return TRUE;
 }
@@ -377,8 +377,20 @@ pl_get_sgml_parser(term_t parser, term_t option)
       PL_get_arg(1, option, a);
       return PL_unify_stream(a, pd->source);
     }
+  } else if ( PL_is_functor(option, FUNCTOR_dialect1) )
+  { term_t a = PL_new_term_ref();
+
+    PL_get_arg(1, option, a);
+    switch(p->dtd->dialect)
+    { case DL_SGML:
+	return PL_unify_atom_chars(a, "sgml");
+      case DL_XML:
+	return PL_unify_atom_chars(a, "xml");
+      case DL_XMLNS:
+	return PL_unify_atom_chars(a, "xmlns");
+    }
   } else
-    return pl_error(ERR_DOMAIN, "parser_option", option);
+    return sgml2pl_error(ERR_DOMAIN, "parser_option", option);
 
   return FALSE;
 }
@@ -625,6 +637,7 @@ on_cdata(dtd_parser *p, int len, const ochar *data)
 static int
 on_error(dtd_parser *p, dtd_error *error)
 { parser_data *pd = p->closure;
+  const char *severity;
 
   if ( pd->stopped )
     return TRUE;
@@ -632,20 +645,33 @@ on_error(dtd_parser *p, dtd_error *error)
   switch(error->severity)
   { case ERS_WARNING:
       pd->warnings++;
-
-      if ( pd->warnings <= pd->max_warnings )
-	Sfprintf(Serror, "SGML2PL: %s\n", error->message);
-
+      severity = "warning";
       break;
     case ERS_ERROR:
       pd->errors++;
-
-      if ( pd->errors <= pd->max_errors )
-	Sfprintf(Serror, "SGML2PL: %s\n", error->message);
-
+      severity = "error";
       break;
   }
 
+  { fid_t fid = PL_open_foreign_frame();
+    predicate_t pred = PL_predicate("print_message", 2, "user");
+    term_t av = PL_new_term_refs(2);
+    term_t parser = PL_new_term_ref();
+
+    unify_parser(parser, p);
+    PL_put_atom_chars(av+0, severity);
+
+    PL_unify_term(av+1,
+		  PL_FUNCTOR_CHARS, "sgml", 4,
+		    PL_TERM, parser,
+		    PL_CHARS, error->file ? error->file : "[]",
+		    PL_INTEGER, error->line,
+		    PL_CHARS, error->plain_message);
+
+    PL_call_predicate(NULL, PL_Q_NODEBUG, pred, av);
+
+    PL_discard_foreign_frame(fid);
+  }
 
   return TRUE;
 }
@@ -750,10 +776,10 @@ set_callback_predicates(parser_data *pd, term_t option)
   PL_get_arg(2, option, a);
   PL_strip_module(a, &m, a);
   if ( !PL_get_atom(a, &pname) )
-    return pl_error(ERR_TYPE, "atom", a);
+    return sgml2pl_error(ERR_TYPE, "atom", a);
   PL_get_arg(1, option, a);
   if ( !PL_get_atom_chars(a, &fname) )
-    return pl_error(ERR_TYPE, "atom", a);
+    return sgml2pl_error(ERR_TYPE, "atom", a);
   
   if ( streq(fname, "begin") )
   { pp = &pd->on_begin;			/* tag, attributes, parser */
@@ -768,7 +794,7 @@ set_callback_predicates(parser_data *pd, term_t option)
   { pp = &pd->on_entity;		/* name, parser */
     arity = 2;
   } else
-    return pl_error(ERR_DOMAIN, "sgml_callback", a);
+    return sgml2pl_error(ERR_DOMAIN, "sgml_callback", a);
 
   *pp = PL_pred(PL_new_functor(pname, arity), m);
   return TRUE;
@@ -794,7 +820,7 @@ pl_sgml_parse(term_t parser, term_t options)
 
     oldpd = p->closure;
     if ( oldpd->magic != PD_MAGIC || oldpd->parser != p )
-      return pl_error(ERR_MISC, "sgml", "Parser associated with illegal data");
+      return sgml2pl_error(ERR_MISC, "sgml", "Parser associated with illegal data");
     
     pd = calloc(1, sizeof(*pd));
     *pd = *oldpd;
@@ -846,7 +872,7 @@ pl_sgml_parse(term_t parser, term_t options)
 
       PL_get_arg(1, head, a);
       if ( !PL_get_atom_chars(a, &s) )
-	return pl_error(ERR_TYPE, "atom", a);
+	return sgml2pl_error(ERR_TYPE, "atom", a);
       if ( streq(s, "element") )
 	pd->stopat = SA_ELEMENT;
       else if ( streq(s, "content") )
@@ -854,18 +880,18 @@ pl_sgml_parse(term_t parser, term_t options)
       else if ( streq(s, "file") )
 	pd->stopat = SA_FILE;
       else
-	return pl_error(ERR_DOMAIN, "parse", a);
+	return sgml2pl_error(ERR_DOMAIN, "parse", a);
     } else if ( PL_is_functor(head, FUNCTOR_max_errors1) )
     { term_t a = PL_new_term_ref();
 
       PL_get_arg(1, head, a);
       if ( !PL_get_integer(a, &pd->max_errors) )
-	return pl_error(ERR_TYPE, "integer", a);
+	return sgml2pl_error(ERR_TYPE, "integer", a);
     } else
-      return pl_error(ERR_DOMAIN, "sgml_option", head);
+      return sgml2pl_error(ERR_DOMAIN, "sgml_option", head);
   }
   if ( !PL_get_nil(tail) )
-    return pl_error(ERR_TYPE, "list", tail);
+    return sgml2pl_error(ERR_TYPE, "list", tail);
 
 					/* Parsing input from a stream */
   if ( in )
@@ -879,7 +905,7 @@ pl_sgml_parse(term_t parser, term_t options)
     { putchar_dtd_parser(p, chr);
 
       if ( pd->errors > pd->max_errors )
-	return pl_error(ERR_LIMIT, "max_errors", (long)pd->max_errors);
+	return sgml2pl_error(ERR_LIMIT, "max_errors", (long)pd->max_errors);
       if ( pd->stopped )
       { pd->stopped = FALSE;
 	goto out;
@@ -921,18 +947,19 @@ pl_sgml_parse(term_t parser, term_t options)
     rval = PL_next_solution(qid);
     PL_cut_query(qid);
     if ( rval &&
-	 Sclose(s) == 0 &&
+	 Sflush(s) == 0 &&
 	 end_document_dtd_parser(p) )
-    { PL_close_foreign_frame(fid);
+    { Sclose(s);
+      PL_close_foreign_frame(fid);
       return TRUE;
     }
     PL_discard_foreign_frame(fid);
     Sclose(s);
 
     if ( pd->errors > pd->max_errors )
-      return pl_error(ERR_LIMIT, "max_errors", (long)pd->max_errors);
+      return sgml2pl_error(ERR_LIMIT, "max_errors", (long)pd->max_errors);
 
-    return pl_error(ERR_FAIL, goal);
+    return sgml2pl_error(ERR_FAIL, goal);
   }
 
   return TRUE;
@@ -1062,7 +1089,7 @@ get_element(dtd *dtd, term_t name, dtd_element **elem)
   dtd_symbol *id;
 
   if ( !PL_get_atom_chars(name, &s) )
-    return pl_error(ERR_TYPE, "atom", name);
+    return sgml2pl_error(ERR_TYPE, "atom", name);
 
   if ( !(id=dtd_find_symbol(dtd, s)) ||
        !(e=id->element) )
@@ -1244,7 +1271,7 @@ dtd_prop_attribute(dtd *dtd, term_t ename, term_t aname,
   if ( !get_element(dtd, ename, &e) )
     return FALSE;
   if ( !PL_get_atom_chars(aname, &achars) )
-    return pl_error(ERR_TYPE, "atom", aname);
+    return sgml2pl_error(ERR_TYPE, "atom", aname);
   if ( !(asym=dtd_find_symbol(dtd, achars)) )
     return FALSE;
 
@@ -1289,7 +1316,7 @@ dtd_prop_entity(dtd *dtd, term_t ename, term_t value)
   dtd_symbol *id;
 
   if ( !PL_get_atom_chars(ename, &s) )
-    return pl_error(ERR_TYPE, "atom", ename);
+    return sgml2pl_error(ERR_TYPE, "atom", ename);
 
   if ( !(id=dtd_find_symbol(dtd, s)) ||
        !(e=id->entity)  )
@@ -1399,7 +1426,7 @@ pl_dtd_property(term_t ref, term_t property)
     }
   }
 
-  return pl_error(ERR_DOMAIN, "dtd_property", property);
+  return sgml2pl_error(ERR_DOMAIN, "dtd_property", property);
 }
 
 		 /*******************************
@@ -1412,16 +1439,16 @@ pl_sgml_register_catalog_file(term_t file, term_t where)
   catalog_location loc;
 
   if ( !PL_get_atom_chars(file, &fn) )
-    return pl_error(ERR_TYPE, "atom", file);
+    return sgml2pl_error(ERR_TYPE, "atom", file);
   if ( !PL_get_atom_chars(where, &w) )
-    return pl_error(ERR_TYPE, "atom", where);
+    return sgml2pl_error(ERR_TYPE, "atom", where);
 
   if ( streq(w, "start") )
     loc = CTL_START;
   else if ( streq(w, "end") )
     loc = CTL_END;
   else
-    return pl_error(ERR_DOMAIN, "location", where);
+    return sgml2pl_error(ERR_DOMAIN, "location", where);
   
   return register_catalog_file(fn, loc);
 }

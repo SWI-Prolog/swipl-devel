@@ -19,7 +19,7 @@
 #include <stdio.h>
 
 int
-pl_error(plerrorid id, ...)
+sgml2pl_error(plerrorid id, ...)
 { term_t except = PL_new_term_ref();
   term_t formal = PL_new_term_ref();
   term_t swi	= PL_new_term_ref();

@@ -170,7 +170,7 @@ for details.
 <H3><A NAME="sec:2.1">2.1 `Goodies' Predicates</A></H3>
 
 <P>These predicates are for basic usage of the library, converting 
-entire and self-contained files in one of the three supported <I>X</I>ML 
+entire and self-contained files in one of the three supported X ML 
 dialects into a structured term. They are all expressed in <A NAME="idx:loadstructure3:2"></A><A HREF="#load_structure/3">load_structure/3</A>.
 
 <DL>
@@ -213,13 +213,12 @@ and <A NAME="idx:loadhtmlfile2:6"></A><A HREF="#load_html_file/2">load_html_file
 <DL>
 <DT><A NAME="load_structure/3"><STRONG>load_structure</STRONG>(<VAR>+File, 
 --ListOfContent, +Options</VAR>)</A><DD>
-Load the <I>X</I>ML file <VAR>File</VAR> and return the resulting 
-structure in <VAR>ListOfContent</VAR>. <VAR>Options</VAR> is a list of 
-options controlling the conversion process.
+Load the X ML file <VAR>File</VAR> and return the resulting structure in <VAR>ListOfContent</VAR>. <VAR>Options</VAR> 
+is a list of options controlling the conversion process.
 
-<P>A proper <I>X</I>ML document contains only a single toplevel element 
-whose name matches the document type. Nevertheless, a list is returned 
-for consistency with the representation of element content. The
+<P>A proper X ML document contains only a single toplevel element whose 
+name matches the document type. Nevertheless, a list is returned for 
+consistency with the representation of element content. The
 <VAR>ListOfContent</VAR> consists of three types:
 
 <DL>
@@ -548,10 +547,23 @@ Sets the file for reporting errors and warnings. Sets the line to 1.
 <DT><STRONG>line</STRONG>(<VAR>Line</VAR>)<DD>
 Sets the current line. Useful if the stream is not at the start of the 
 (file) object for generating proper line-numbers.
-<DT><STRONG>dialect</STRONG>(<VAR>SGMLorXML</VAR>)<DD>
-Sets the markup dialect. Default is SGML, but switched automatically to 
-XML if the file starts with <CODE>&lt;?xml ...&gt;</CODE>. See <A HREF="#sec:xml">section 
-3.2</A>.
+<DT><STRONG>dialect</STRONG>(<VAR>Dialect</VAR>)<DD>
+Set the markup dialect. Known dialects:
+
+<DL>
+<DT><STRONG>sgml</STRONG><DD>
+The default dialect is to process as SGML. This implies markup is 
+case-insensitive and standard SGML abbreviation is allowed (abreviated 
+attributes and omitted tags).
+<DT><STRONG>xml</STRONG><DD>
+This dialect is selected automatically if the processing instruction
+<CODE>&lt;?xml ...&gt;</CODE> is encountered. See <A HREF="#sec:xml">section 
+3.2</A> for details.
+<DT><STRONG>xmlns</STRONG><DD>
+Process file as XML file with namespace support. See <B>section ??</B> 
+for details.
+</DL>
+
 </DL>
 
 <DT><A NAME="get_sgml_parser/2"><STRONG>get_sgml_parser</STRONG>(<VAR>+Parser, 
@@ -569,12 +581,15 @@ See <A HREF="#sec:indexaccess">section 4</A>.
 <DT><STRONG>source</STRONG>(<VAR>-Stream</VAR>)<DD>
 Prolog stream being processed. May be used in the <CODE>on_begin</CODE>, 
 etc. callbacks from <A NAME="idx:sgmlparse2:10"></A><A HREF="#sgml_parse/2">sgml_parse/2</A>.
+<DT><STRONG>dialect</STRONG>(<VAR>-Dialect</VAR>)<DD>
+Return the current dialect used by the parser (<CODE>sgml</CODE>, <CODE>xml</CODE> 
+or <CODE>xmlns</CODE>).
 </DL>
 
 <DT><A NAME="sgml_parse/2"><STRONG>sgml_parse</STRONG>(<VAR>+Parser, 
 +Options</VAR>)</A><DD>
-Parse an <I>X</I>ML file. The parser can operate in two input and two 
-output modes. Output is either a structured term as described with
+Parse an X ML file. The parser can operate in two input and two output 
+modes. Output is either a structured term as described with
 <A NAME="idx:loadstructure2:11"></A><B>load_structure/2</B> or 
 call-backs on predefined events. The first is especially suitable for 
 manipulating not-too-large documents, while the latter provides a 

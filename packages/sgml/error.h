@@ -29,6 +29,6 @@ typedef enum
   ERR_MISC				/* char *fmt, ... */
 } plerrorid;
 
-int		pl_error(plerrorid, ...);
+int		sgml2pl_error(plerrorid, ...);
 
 #endif /*H_ERROR_INCLUDED*/

@@ -232,7 +232,8 @@ DTD is returned.  See \secref{implicitdtd}.
 
     \termitem{dialect}{+Dialect}
 Specify the parsing dialect.  Supported are \const{sgml} (default),
-\const{xml} and \const{smlns}. See \secref{xml} for details on the differences.
+\const{xml} and \const{xmlns}. See \secref{xml} for details on the
+differences.
 
     \termitem{file}{+Name}
 Sets the name of the file on which errors are reported. Sets the
@@ -485,11 +486,21 @@ to 1.
     \termitem{line}{Line}
 Sets the current line.  Useful if the stream is not at the start of
 the (file) object for generating proper line-numbers.
-    \termitem{dialect}{SGMLorXML}
-Sets the markup dialect.  Default is SGML, but switched automatically
-to XML if the file starts with \verb$<?xml ...>$.  See \secref{xml}.
+    \termitem{dialect}{Dialect}
+Set the markup dialect.  Known dialects:
+    \begin{description}
+	\termitem{sgml}{}
+    The default dialect is to process as SGML.  This implies markup
+    is case-insensitive and standard SGML abbreviation is allowed
+    (abreviated attributes and omitted tags).
+        \termitem{xml}{}
+    This dialect is selected automatically if the processing instruction
+    \verb$<?xml ...>$ is encountered.  See \secref{xml} for details.
+	\termitem{xmlns}{}
+    Process file as XML file with namespace support.  See \secref{xmlns}
+    for details.
+    \end{description}
 \end{description}
-
     \predicate{get_sgml_parser}{2}{+Parser, -Option}
 Retrieve infomation on the current status of the parser.  Notably useful
 if the parser is used in the call-back mode.  Currently defined options:
@@ -503,6 +514,9 @@ See \secref{indexaccess}.
     \termitem{source}{-Stream}
 Prolog stream being processed.  May be used in the \const{on_begin},
 etc.\ callbacks from sgml_parse/2.
+    \termitem{dialect}{-Dialect}
+Return the current dialect used by the parser (\const{sgml}, \const{xml}
+or \const{xmlns}).
 \end{description}
 
     \predicate{sgml_parse}{2}{+Parser, +Options}

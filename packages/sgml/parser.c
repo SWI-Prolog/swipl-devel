@@ -2238,6 +2238,8 @@ end_document_dtd_parser(dtd_parser *p)
     { if ( p->dmode == DM_SGML )
       { sgml_environment *env;
 
+	process_cdata(p);
+
 	if ( (env=p->environments) )
 	{ dtd_element *e;
 
@@ -2680,7 +2682,7 @@ sgml_process_file(dtd_parser *p, const char *file)
     while( (chr = getc(fd)) != EOF )
       putchar_dtd_parser(p, chr);
 
-    rval = TRUE;
+    rval = end_document_dtd_parser(p);
   } else
     rval = FALSE;
 
@@ -2695,10 +2697,11 @@ sgml_process_file(dtd_parser *p, const char *file)
 		 *	       ERRORS		*
 		 *******************************/
 
-static char *
+static void
 format_message(dtd_error *e)
 { char buf[1024];
   char *s;
+  int prefix_len;
 
   switch(e->severity)
   { case ERS_ERROR:
@@ -2716,6 +2719,7 @@ format_message(dtd_error *e)
   { sprintf(s, "%s:%ld: ", e->file, e->line);
     s += strlen(s);
   }
+  prefix_len = s-buf;
 
   switch(e->id)
   { case ERC_REPRESENTATION:
@@ -2725,7 +2729,7 @@ format_message(dtd_error *e)
       sprintf(s, "Insufficient %s resources", e->argv[0]);
       break;
     case ERC_VALIDATE:
-      sprintf(s, "Document does not match DTD: %s", e->argv[0]);
+      sprintf(s, "%s", e->argv[0]);
       break;
     case ERC_SYNTAX_ERROR:
       sprintf(s, "Syntax error: %s", e->argv[0]);
@@ -2740,7 +2744,8 @@ format_message(dtd_error *e)
       ;
   }
 
-  return str2ring(buf);
+  e->message = str2ring(buf);
+  e->plain_message = e->message + prefix_len;
 }
 
 
@@ -2873,7 +2878,7 @@ gripe(dtd_error_id e, ...)
   } 
 
   error.id      = e;
-  error.message = format_message(&error);
+  format_message(&error);
 
   if ( current_parser && current_parser->on_error )
     (*current_parser->on_error)(current_parser, &error);
