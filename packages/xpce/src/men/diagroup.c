@@ -659,6 +659,8 @@ static senddecl send_diagroup[] =
      NAME_name, "Change <-name, update <-label"),
   SM(NAME_kind, 1, T_kind, kindDialogGroup,
      NAME_appearance, "Set standard default appearance"),
+  SM(NAME_reference, 1, "point", referenceGraphical,
+     NAME_layout, "Dialog item integration"),
   SM(NAME_append, 2, T_append, appendDialogGroup,
      NAME_organisation, "Append dialog_item {below,right,next_row} last"),
   SM(NAME_compute, 0, NULL, computeDialogGroup,
