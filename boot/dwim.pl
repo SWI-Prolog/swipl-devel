@@ -189,7 +189,7 @@ pack([M:T|Rest], Module, Arity, C, [Name-[H|R]|Packs]) :-
 	pack(NewRest, Module, Arity, C, Packs).
 
 pack_(Module, Arity, Name, C, List, [H|R], Rest) :-
-	select(List, M:T, R0),
+	select(M:T, List, R0),
 	pack_name(M:T, Module, Arity, Name), !,
 	$prefix_module(M, C, T, H),
 	pack_(Module, Arity, Name, C, R0, R, Rest).

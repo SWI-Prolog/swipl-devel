@@ -98,7 +98,7 @@ http_location(Parts, Location) :-
 
 
 curl(A0) -->
-	{ select(A0, protocol(Protocol), A1)
+	{ select(protocol(Protocol), A0, A1)
 	},
 	catomic(Protocol),
 	":",
@@ -162,10 +162,10 @@ parse_url(URL, BaseURL, Attributes) :-
 	->  phrase(url(Attributes), Codes)
 	;   parse_url(BaseURL, BaseA0),
 	    memberchk(protocol(Protocol), BaseA0),
-	    select(BaseA0, path(BasePath), BaseA1),
+	    select(path(BasePath), BaseA0, BaseA1),
 	    delete(BaseA1, search(_), BaseA),
 	    phrase(uri(Protocol, URIA0), Codes),
-	    select(URIA0, path(LocalPath), URIA1),
+	    select(path(LocalPath), URIA0, URIA1),
 	    globalise_path(LocalPath, BasePath, Path),
 	    append(BaseA, [path(Path)|URIA1], Attributes)
 	).

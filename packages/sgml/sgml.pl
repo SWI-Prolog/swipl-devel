@@ -233,11 +233,11 @@ option(Opt, Options) :-
 	memberchk(OptName=OptVal, Options), !.
 
 select_option(Opt, Options, Rest) :-
-	select(Options, Opt, Rest), !.
+	select(Opt, Options, Rest), !.
 select_option(Opt, Options, Rest) :-
 	functor(Opt, OptName, 1),
 	arg(1, Opt, OptVal),
-	select(Options, OptName=OptVal, Rest), !.
+	select(OptName=OptVal, Options, Rest), !.
 
 		 /*******************************
 		 *	      MESSAGES		*

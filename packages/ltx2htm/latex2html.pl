@@ -1239,7 +1239,7 @@ cmd(Cmd, Mode0, Mode, HTML) :-
 cmd(obeylines, group(Atts), group([obeylines|Atts]), []).
 cmd(Font, group(Old), group([font(Font)|Old1]), HTML) :-
 	html_font(Font, Open, _), !,
-	(   select(Old, font(OldFont), Old1),
+	(   select(font(OldFont), Old, Old1),
 	    html_font(OldFont, _, Close)
 	->  HTML = [Close,Open]
 	;   Old1 = Old,

@@ -506,10 +506,10 @@ feedback(_, _).
 
 
 option(List, Name/_Default, Value, Rest) :- % goal = Goal
-	select(List, Name=Value, Rest), !.
+	select(Name=Value, List, Rest), !.
 option(List, Name/_Default, Value, Rest) :- % goal(Goal)
 	Term =.. [Name, Value],
-	select(List, Term, Rest), !.
+	select(Term, List, Rest), !.
 option(List, _Name/Default, Default, List).
 	
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

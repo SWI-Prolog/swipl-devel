@@ -350,14 +350,14 @@ attrs(Bag) ::=
 
 do_attrs([], _) :- !.
 do_attrs([\?H|T], L0) :- !,		% optional
-	(   select(L0, X, L),
+	(   select(X, L0, L),
 	    rewrite(\H, X)
 	->  true
 	;   L = L0
 	),
 	do_attrs(T, L).
 do_attrs([H|T], L0) :-
-	select(L0, X, L),
+	select(X, L0, L),
 	rewrite(H, X), !,
 	do_attrs(T, L).
 do_attrs(C, L) :-

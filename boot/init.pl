@@ -378,19 +378,19 @@ $make_path(Dir, File, Path) :-
 %	absolute_file_name(+Term, +Args, -AbsoluteFile)
 
 absolute_file_name(Spec, Args, Path) :-
-	(   select(Args, extensions(Exts), Conditions)
+	(   select(extensions(Exts), Args, Conditions)
 	->  true
-	;   select(Args, file_type(Type), Conditions)
+	;   select(file_type(Type), Args, Conditions)
 	->  $file_type_extensions(Type, Exts)
 	;   Conditions = Args,
 	    Exts = ['']
 	),
-	(   select(Conditions, solutions(Sols), C1)
+	(   select(solutions(Sols), Conditions, C1)
 	->  true
 	;   Sols = first,
 	    C1 = Conditions
 	),
-	(   select(C1, file_errors(FileErrors), C2)
+	(   select(file_errors(FileErrors), C1, C2)
 	->  true
 	;   FileErrors = error,
 	    C2 = C1
@@ -1356,12 +1356,12 @@ append([], L, L).
 append([H|T], L, [H|R]) :-
 	append(T, L, R).
 
-%	select(?List1, ?Elem, ?List2)
+%	select(?Elem, ?List1, ?List2)
 %	Is true when List1, with Elem removed results in List2.
 
-select([X|Tail], X, Tail).
-select([Head|Tail], Elem, [Head|Rest]) :-
-	select(Tail, Elem, Rest).
+select(X, [X|Tail], Tail).
+select(Elem, [Head|Tail], [Head|Rest]) :-
+	select(Elem, Tail, Rest).
 
 
 		 /*******************************
