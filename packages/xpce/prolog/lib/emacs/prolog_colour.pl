@@ -121,7 +121,7 @@ colourise_text_buffer(TB) :-
 	    Term == end_of_file, !,
 	close(Fd).
 
-fix_operators((:-Directive)) :-
+fix_operators((:-Directive)) :- !,
 	asserta(user:message_hook(_,_,_), Ref),
 	ignore(xref_expand((:-Directive), _)),
 	erase(Ref).
@@ -274,7 +274,7 @@ colourise_dcg_subgoals([Pos|T], N, Body, TB) :-
 %	colourise_dcg_goal(+Goal, +TB, +Pos).
 
 colourise_dcg_goal(Goal, TB, TermPos) :-
-	compound(Goal),
+	compound(Goal), !,
 	Goal =.. List,
 	append(List, [_,_], List2),
 	TheGoal =.. List2,

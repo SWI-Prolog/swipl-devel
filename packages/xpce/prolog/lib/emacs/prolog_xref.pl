@@ -177,6 +177,8 @@ process_directive(module(_Module, Export), Src) :-
 
 process_directive(op(P, A, N), _) :-
 	op(P, A, N).			% should be local ...
+process_directive(style_check(-atom), _) :-
+	style_check(-atom).		% should be local ...
 process_directive(pce_expansion:push_compile_operators, _) :-
 	pce_expansion:push_compile_operators.
 process_directive(pce_expansion:pop_compile_operators, _) :-
@@ -200,8 +202,10 @@ meta_goal(forall(A, B),		[A, B]).
 meta_goal(maplist(G, _L1, _L2),	[G+2]).
 meta_goal(checklist(G, _L),	[G+1]).
 meta_goal(call(G),		[G]).
-meta_goal(call(G, _A1),		[G+1]).
-meta_goal(call(G, _A1, _A2),	[G+2]).
+meta_goal(call(G, _),		[G+1]).
+meta_goal(call(G, _, _),	[G+2]).
+meta_goal(call(G, _, _, _),	[G+3]).
+meta_goal(call(G, _, _, _, _),	[G+4]).
 meta_goal(not(G),		[G]).
 meta_goal(\+(G),		[G]).
 meta_goal(ignore(G),		[G]).
@@ -215,6 +219,8 @@ meta_goal(thread_create(A,_,_), [A]).
 meta_goal(pce_global(_, new(_)), _) :- !, fail.
 meta_goal(pce_global(_, B),     [B+1]).
 meta_goal(ifmaintainer(G),	[G]).	% used in manual
+meta_goal(listen(_, G),		[G]).	% library(broadcast)
+meta_goal(listen(_, _, G),	[G]).
 
 process_body(Var, _) :-
 	var(Var), !.
