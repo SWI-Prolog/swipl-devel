@@ -22,6 +22,8 @@ This module also can allocate from the local stack for temporary  tables
 needed by foreign language functions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define htsize(size) (sizeof(struct table) + (size - 1) * sizeof(Symbol))
+
 Table
 newHTable(int size)
 { Symbol *p;
@@ -29,8 +31,7 @@ newHTable(int size)
   Table ht;
 
   DEBUG(9, printf("Creating hash table (size=%d)\n", size));
-  ht = (Table) allocHeap(sizeof(struct table) + (size - 1) * sizeof(Symbol));
-  DEBUG(9, printf("Allocated hash table\n"));
+  ht = (Table) allocHeap(htsize(size));
   ht->size = size;
 
   for(n=0, p = &ht->entries[0]; n < size-1; n++, p++)
@@ -40,6 +41,14 @@ newHTable(int size)
   DEBUG(9, printf("Returning ht=%ld\n", ht));
   return ht;
 }
+
+
+void
+destroyHTable(Table ht)
+{ clearHTable(ht);
+  freeHeap(ht, htsize(ht->size));
+}
+
 
 Symbol
 lookupHTable(Table ht, Void name)
@@ -55,6 +64,7 @@ lookupHTable(Table ht, Void name)
   DEBUG(9, printf("Symbol = NULL\n"));
   return (Symbol) NULL;
 }
+
 
 bool
 addHTable(Table ht, Void name, Void value)

@@ -44,7 +44,7 @@ LDFLAGS= -static
 
 PLFOREIGN=foreign.pl
 
-PLVERSION=1.9.5
+PLVERSION=1.9.6
 DEFSTARTUP=.plrc
 
 PB=../boot
@@ -96,7 +96,7 @@ $(PL):		$(ALLOBJ)
 		$(CC) $(LDFLAGS) -o $(PL) $(ALLOBJ) $(LIBS) $(STATICLIBS) 
 
 
-$(STARTUPPATH):	$(PLBOOT) $(PLINIT) pl-wam.o
+$(STARTUPPATH):	$(PLBOOT) $(PLINIT) pl-wam.o pl-wic.o
 		./$(PL) -O -o $(STARTUPPATH) -b $(PLINIT) -c $(PLBOOT)
 
 

@@ -87,3 +87,6 @@
 
 /* Define if running SunOs 5.x (solaris 2.x) */
 #undef __solaris__
+
+/* Define how to invoke the linker for incremental linking (default: ld) */
+#undef LD_COMMAND

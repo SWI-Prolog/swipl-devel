@@ -1375,8 +1375,6 @@ pl_statistics(Word k, Word value)
     result = consNum(statistics.predicates);
   else if (key == ATOM_modules)				/* modules */
     result = consNum(statistics.modules);
-  else if (key == ATOM_externals)			/* externals */
-    result = consNum(statistics.externals);
   else if (key == ATOM_codes)				/* codes */
     result = consNum(statistics.codes);
   else if (key == ATOM_gctime)

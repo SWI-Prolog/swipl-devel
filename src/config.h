@@ -115,6 +115,9 @@
 /* Define to "file.h" to include additional system prototypes */
 /* #undef SYSLIB_H */
 
+/* Define how to invoke the linker for incremental linking (default: ld) */
+#define LD_COMMAND "gcc"
+
 /* Define if you have the access function.  */
 #define HAVE_ACCESS 1
 

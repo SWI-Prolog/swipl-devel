@@ -206,7 +206,6 @@ redesign of parts of the compiler.
 #define LINESIZ			1024	/* size of a data line */
 #define MAXARITY		128	/* arity of predicate */
 #define MAXVARIABLES		256	/* number of variables/clause */
-#define MAXEXTERNALS	    ((1<<15)-1)	/* external references of a clause */
 
 				/* Prolog's largest int */
 #define PLMAXINT		((1L<<(32 - MASK_BITS - LMASK_BITS - 1)) - 1)
@@ -316,61 +315,51 @@ codes.
 #define B_ARGVAR	((code)20)
 
 #define H_NIL		((code)21)		/* [] in the head */
-#define H_CONST0	((code)22)		/* H_CONST 0, etc. */
-#define H_CONST1	((code)23)
-#define H_CONST2	((code)24)
+#define H_LIST		((code)22)		/* ./2 in the head */
 
-#define H_LIST		((code)25)		/* ./2 in the head */
-#define H_FUNCTOR0	((code)26)		/* H_FUNCTOR 0, etc. */
-#define H_FUNCTOR1	((code)27)
-#define H_FUNCTOR2	((code)28)
+#define B_VAR0		((code)23)		/* B_VAR 0 */
+#define B_VAR1		((code)24)		/* B_VAR 1 */
+#define B_VAR2		((code)25)		/* B_VAR 2 */
 
-#define B_VAR0		((code)29)		/* B_VAR 0 */
-#define B_VAR1		((code)30)		/* B_VAR 1 */
-#define B_VAR2		((code)31)		/* B_VAR 2 */
-
-#define H_SINT		((code)32)		/* Small integer in the Head */
-#define B_SINT		((code)33)		/* Small integer in the Body */
-
-#define I_USERCALL	((code)34)		/* variable in body (call/1) */
-#define I_CUT		((code)35)		/* ! */
-#define I_APPLY		((code)36)		/* apply/2 */
+#define I_USERCALL	((code)26)		/* variable in body (call/1) */
+#define I_CUT		((code)27)		/* ! */
+#define I_APPLY		((code)28)		/* apply/2 */
 
 #if O_COMPILE_ARITH
-#define A_FUNC0		((code)37)		/* nullary arithmic function */
-#define A_FUNC1		((code)38)		/* unary arithmic function */
-#define A_FUNC2		((code)39)		/* binary arithmic function */
-#define A_FUNC		((code)40)		/* n-ary arithmic function */
-#define A_LT		((code)41)		/* < */
-#define A_GT		((code)42)		/* > */
-#define A_LE		((code)43)		/* =< */
-#define A_GE		((code)44)		/* >= */
-#define A_EQ		((code)45)		/* =:= */
-#define A_NE		((code)46)		/* =\= */
-#define A_IS		((code)47)		/* is */
+#define A_FUNC0		((code)29)		/* nullary arithmic function */
+#define A_FUNC1		((code)30)		/* unary arithmic function */
+#define A_FUNC2		((code)31)		/* binary arithmic function */
+#define A_FUNC		((code)32)		/* n-ary arithmic function */
+#define A_LT		((code)33)		/* < */
+#define A_GT		((code)34)		/* > */
+#define A_LE		((code)35)		/* =< */
+#define A_GE		((code)36)		/* >= */
+#define A_EQ		((code)37)		/* =:= */
+#define A_NE		((code)38)		/* =\= */
+#define A_IS		((code)39)		/* is */
 #endif /* O_COMPILE_ARITH */
 
 #if O_COMPILE_OR
-#define C_OR		((code)48)		/* In-clause backtract point */
-#define C_JMP		((code)49)		/* Jump over code */
-#define C_MARK		((code)50)		/* Sub-clause cut mark */
-#define C_CUT		((code)51)		/* cut to corresponding mark */
-#define C_IFTHENELSE	((code)52)		/* if-then-else start */
-#define C_VAR		((code)53)		/* make a variable */
-#define C_END		((code)54)		/* dummy to help decompiler */
-#define C_NOT		((code)55)		/* same as C_IFTHENELSE */
-#define C_FAIL		((code)56)		/* fail */
+#define C_OR		((code)40)		/* In-clause backtract point */
+#define C_JMP		((code)41)		/* Jump over code */
+#define C_MARK		((code)42)		/* Sub-clause cut mark */
+#define C_CUT		((code)43)		/* cut to corresponding mark */
+#define C_IFTHENELSE	((code)44)		/* if-then-else start */
+#define C_VAR		((code)45)		/* make a variable */
+#define C_END		((code)46)		/* dummy to help decompiler */
+#define C_NOT		((code)47)		/* same as C_IFTHENELSE */
+#define C_FAIL		((code)48)		/* fail */
 #endif /* O_COMPILE_OR */
 
-#define B_REAL		((code)57)		/* REAL in body */
-#define B_STRING	((code)58)		/* STRING in body */
+#define B_REAL		((code)49)		/* REAL in body */
+#define B_STRING	((code)50)		/* STRING in body */
 
 #if O_BLOCK
-#define I_CUT_BLOCK	((code)59)		/* !(block) */
-#define B_EXIT		((code)60)		/* exit(block, rval) */
+#define I_CUT_BLOCK	((code)51)		/* !(block) */
+#define B_EXIT		((code)52)		/* exit(block, rval) */
 #endif /*O_BLOCK*/
 
-#define I_HIGHEST	((code)60)		/* largest WAM code !!! */
+#define I_HIGHEST	((code)52)		/* largest WAM code !!! */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Arithmetic comparison
@@ -627,7 +616,7 @@ Common Prolog objects typedefs.
 
 typedef unsigned long		word;		/* Anonimous 4 byte object */
 typedef word *			Word;		/* a pointer to anything */
-typedef unsigned short		code;		/* bytes codes */
+typedef unsigned long		code;		/* bytes codes */
 typedef code *			Code;		/* pointer to byte codes */
 typedef int			Char;		/* char that can pass EOF */
 typedef word			(*Func)();	/* foreign functions */
@@ -896,13 +885,11 @@ struct functorDef
 struct clause
 { Procedure	procedure;	/* procedure we belong to */
   Clause	next;		/* next clause of procedure */
-  Word		externals;	/* External references */
   Code		codes;		/* byte codes of clause */
   struct index	index;		/* index key of clause */
   unsigned int	references;	/* no of. references from interpreter */
   short		code_size;	/* size of byte code array */
   short		subclauses;	/* number of subclauses in body (decompiler) */
-  code		XR_size;	/* size of external reference table */
   code		variables;	/* number of variables */
   unsigned short	line_no;	/* Source line-number */
   unsigned short	source_no;	/* Index of source-file */
@@ -912,8 +899,9 @@ struct clause
 
 struct code_info
 { char		*name;		/* name of the code */
-  char		arguments;	/* # arguments code takes */
   code		code;		/* number of the code */
+  char		arguments;	/* # arguments code takes */
+  char		externals;	/* # `external' arguments code takes */
 };
 
 struct data_mark
@@ -1263,7 +1251,6 @@ GLOBAL struct
   int		functors;		/* No. of functors defined */
   int		predicates;		/* No. of predicates defined */
   int		modules;		/* No. of modules in the system */
-  long		externals;		/* No. of clause external references */
   long		codes;			/* No. of byte codes generated */
   long		collections;		/* No. of garbage collections */
   long		global_gained;		/* No. of cells global stack gained */

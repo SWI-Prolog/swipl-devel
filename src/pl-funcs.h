@@ -492,6 +492,7 @@ word		pl_sleep(Word time);
 
 /* pl-table.c */
 Table		newHTable(int size);
+void		destroyHTable(Table ht);
 Symbol		lookupHTable(Table ht, Void name);
 bool		addHTable(Table ht, Void name, Void value);
 bool		deleteHTable(Table ht, Void name);

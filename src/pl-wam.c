@@ -102,8 +102,6 @@ pl_count()
   countArray("B_CONST", 	counting.b_const_n);  
   countArray("B_REAL",	 	counting.b_real_n);  
   countArray("B_STRING", 	counting.b_string_n);  
-  countArray("H_SINT",		counting.h_sint);
-  countArray("B_SINT",		counting.b_sint);
   countOne(  "H_NIL", 		counting.h_nil);
   countArray("H_VAR", 		counting.h_var_n);  
   countArray("B_VAR", 		counting.b_var_n);  
@@ -607,10 +605,6 @@ findBlock(LocalFrame fr, Word block)
   - PC
     Virtual machine `program counter': pointer to the next byte code  to
     interpret.
-  - XR
-    External referecence pointer.  Pointer to an  array  holding  atoms, 
-    integers,  reals,  strings functors  and  procedures  used  by  the
-    current clause.  Each entry of this array is a 4 byte entity (a `word').
   - ARGP
     Argument pointer.  Pointer to the next argument to be matched  (when
     in the clause head) or next argument to be instantiated (when in the
@@ -640,7 +634,6 @@ interpret(Module Context, word Goal, bool debug)
 { register LocalFrame FR;		/* current frame */
   register Word	      ARGP;		/* current argument pointer */
   register Code	      PC;		/* program counter */
-  Word	     XR;			/* current external ref. table */
   LocalFrame BFR;			/* last backtrack frame */
   Procedure  PROC;			/* current procedure */  
   Definition DEF;			/* definition of current procedure */
@@ -675,21 +668,11 @@ interpret(Module Context, word Goal, bool debug)
     &&B_ARGVAR_LBL,
 
     &&H_NIL_LBL,
-    &&H_CONST0_LBL,
-    &&H_CONST1_LBL,
-    &&H_CONST2_LBL,
-
     &&H_LIST_LBL,
-    &&H_FUNCTOR0_LBL,
-    &&H_FUNCTOR1_LBL,
-    &&H_FUNCTOR2_LBL,
 
     &&B_VAR0_LBL,
     &&B_VAR1_LBL,
     &&B_VAR2_LBL,
-
-    &&H_SINT_LBL,
-    &&B_SINT_LBL,
 
     &&I_USERCALL_LBL,
     &&I_CUT_LBL,
@@ -872,7 +855,6 @@ registers.
       set(FR, FR_CUT);
     CL->references++;
     PC = CL->codes;
-    XR = CL->externals;
     lTop = (LocalFrame) argFrameP(FR, CL->variables);
   }
 
@@ -895,27 +877,15 @@ next_instruction:
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 An atomic constant in the head  of  the  clause.   ARGP  points  to  the
 current  argument  to be matched.  ARGP is derefenced and unified with a
-constant from the external reference array XR.
+constant argument.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   { word c;
     register Word k;					MARK(HCONST);
 
     VMI(H_CONST,	COUNT_N(h_const_n),	("h_const %d\n", *PC))
-	c = XR[*PC++];
+	c = (word)*PC++;
 	goto common_hconst;
-    VMI(H_CONST0,	COUNT(h_const_n[0]),	("h_const 0\n"))
-	c = XR[0];
-	goto common_hconst;
-    VMI(H_CONST1,	COUNT(h_const_n[1]),	("h_const 1\n"))
-        c = XR[1];
-	goto common_hconst;
-    VMI(H_CONST2,	COUNT(h_const_n[2]),	("h_const 2\n"))
-        c = XR[2];
-        goto common_hconst;
-    VMI(H_SINT,		COUNT_N(h_sint),	("h_sint %d\n", *PC))
-        c = consNumFromCode(*PC++);
-        goto common_hconst;
     VMI(H_NIL,		COUNT(h_nil),		("h_nil\n"))
         c = (word) ATOM_nil;
 
@@ -944,11 +914,11 @@ to copy the real on the global stack as the user might retract the clause:
 
 	deRef2(ARGP++, k);
 	if (isVar(*k))
-	{ *k = globalReal(valReal(XR[*PC++]));
+	{ *k = globalReal(valReal((word)*PC++));
 	  Trail(k, FR);
 	  NEXT_INSTRUCTION;
 	}
-	if (isReal(*k) && valReal(*k) == valReal(XR[*PC++]))
+	if (isReal(*k) && valReal(*k) == valReal((word)*PC++))
 	  NEXT_INSTRUCTION;
 	CLAUSE_FAILED;
       }
@@ -963,13 +933,13 @@ String in the head. See H_REAL and H_CONST for details.
 
 	deRef2(ARGP++, k);
 	if (isVar(*k))
-	{ word str = XR[*PC++];
+	{ word str = *PC++;
 	  *k = globalString(valString(str));
 	  Trail(k, FR);
 	  NEXT_INSTRUCTION;
 	}
 	if ( isString(*k) )
-	{ word str = XR[*PC++];
+	{ word str = *PC++;
 	  if ( equalString(*k, str) )
 	    NEXT_INSTRUCTION;
 	}
@@ -984,7 +954,7 @@ therefore can just fill the argument.  Trailing is not needed as this is
 above the stack anyway.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(B_CONST, COUNT_N(b_const_n), ("b_const %d\n", *PC)) MARK(BCONST);
-      { *ARGP++ = XR[*PC++];
+      { *ARGP++ = (word)*PC++;
 	NEXT_INSTRUCTION;
       }
 
@@ -995,22 +965,15 @@ algorithms,   especially   for   the   expensive   globalReal(valReal())
 construct.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(B_REAL, COUNT_N(b_real_n), ("b_real %d\n", *PC)) MARK(BREAL);
-      { *ARGP++ = globalReal(valReal(XR[*PC++]));
+      { *ARGP++ = globalReal(valReal((word)*PC++));
 	NEXT_INSTRUCTION;
       }
 
     VMI(B_STRING, COUNT_N(b_string_n), ("b_string %d\n", *PC)) MARK(BSTRING);
-      { *ARGP++ = globalString(valString(XR[*PC++]));
+      { *ARGP++ = globalString(valString((word)*PC++));
 	NEXT_INSTRUCTION;
       }
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-A small integer in the body. As B_CONST.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(B_SINT, COUNT_N(b_sint), ("b_sint %d\n", *PC)) MARK(B_SINT);
-      { *ARGP++ = consNumFromCode(*PC++);
-	NEXT_INSTRUCTION;
-      }
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A variable in the head which is not an anonymous one and is not used for
 the first time.  Invoke general unification between the argument pointer
@@ -1139,9 +1102,8 @@ the global stack (should we check?  Saves trail! How often?).
       MARK(HFUNC);
       { register FunctorDef fdef;
 
-	fdef = (FunctorDef) XR[*PC++];
+	fdef = (FunctorDef) *PC++;
 
-	common_functor:
 	*aTop++ = ARGP + 1;
 	verifyStack(argument);
         deRef(ARGP);
@@ -1156,15 +1118,6 @@ the global stack (should we check?  Saves trail! How often?).
 	  NEXT_INSTRUCTION;
 	}
 	CLAUSE_FAILED;	    
-    VMI(H_FUNCTOR0, COUNT(h_functor_n[0]), ("h_functor 0\n")) MARK(HFUNC0);
-	fdef = (FunctorDef) XR[0];
-	goto common_functor;
-    VMI(H_FUNCTOR1, COUNT(h_functor_n[1]), ("h_functor 0\n")) MARK(HFUNC1);
-	fdef = (FunctorDef) XR[1];
-	goto common_functor;
-    VMI(H_FUNCTOR2, COUNT(h_functor_n[2]), ("h_functor 0\n")) MARK(HFUNC2);
-	fdef = (FunctorDef) XR[2];
-	goto common_functor;
     VMI(H_LIST, COUNT(h_list), ("h_list\n")) MARK(HLIST);
 	*aTop++ = ARGP + 1;
 	verifyStack(argument);
@@ -1201,7 +1154,7 @@ initialise the arguments to variables.  Allocation is done in  place  to
 avoid a function call.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(B_FUNCTOR, COUNT_N(b_functor_n), ("b_functor %d\n", *PC)) MARK(BFUNC);
-      { register FunctorDef fdef = (FunctorDef) XR[*PC++];
+      { register FunctorDef fdef = (FunctorDef) *PC++;
 
 	*ARGP = (word) gTop;
 	*aTop++ = ++ARGP;
@@ -1300,7 +1253,6 @@ exit(Block, RVal).  First does !(Block).
           environment_frame = FR;
 	  PROC = FR->procedure;
 	  DEF = PROC->definition;
-	  XR = CL->externals;
 	  lTop = (LocalFrame) argFrameP(FR, CL->variables);
 	  ARGP = argFrameP(lTop, 0);
 
@@ -1400,7 +1352,7 @@ tagged `C_'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-C_JMP skips the amount stated in the pointed XR table value.   The  PC++
+C_JMP skips the amount stated in the pointed argument.   The  PC++
 could be compiled out, but this is a bit more neath.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(C_JMP, COUNT_N(c_jmp), ("c_jmp %d\n", *PC)) MARK(C_JMP);
@@ -1891,7 +1843,7 @@ execution can continue at `next_instruction'
 	  if ( true(DEF, HIDE_CHILDS) )
 	    set(FR, FR_NODEBUG);
 
-	  PROC = FR->procedure = (Procedure) XR[*PC++];
+	  PROC = FR->procedure = (Procedure) *PC++;
 	  DEF = PROC->definition;
 
 	  copyFrameArguments(lTop, FR, PROC->functor->arity);
@@ -1904,7 +1856,7 @@ execution can continue at `next_instruction'
         next->flags = FR->flags;
 	if ( true(DEF, HIDE_CHILDS) )		/* parent has hide_childs */
 	  set(next, FR_NODEBUG);
-	PROC = next->procedure = (Procedure)XR[*PC++];
+	PROC = next->procedure = (Procedure)*PC++;
 	DEF = PROC->definition;
 	next->programPointer = PC;		/* save PC in child */
 	next->context = FR->context;
@@ -2061,7 +2013,6 @@ values  found  in  the  clause, give a referecence to the clause and set
 	if ( deterministic )
 	  set(FR, FR_CUT);
 	CL->references++;
-	XR = CL->externals;
 	PC = CL->codes;
 	lTop = (LocalFrame)(ARGP + CL->variables);
 
@@ -2169,7 +2120,6 @@ Leave the clause:
 	environment_frame = FR = FR->parent;
 	PROC = FR->procedure;
 	DEF = PROC->definition;
-	XR = CL->externals;
 	ARGP = argFrameP(lTop, 0);
 
 	NEXT_INSTRUCTION;
@@ -2286,7 +2236,6 @@ resume_frame:
 
   SetBfr(FR->backtrackFrame);
   CL->references++;
-  XR = CL->externals;
   PC = CL->codes;
   aTop = aBase;
   lTop = (LocalFrame) argFrameP(FR, CL->variables);

@@ -163,24 +163,117 @@ PL_new_float(double f)
 }
 
 functor
-PL_new_functor( atomic f,  int a)
+PL_new_functor(atomic f,  int a)
 { return (functor) lookupFunctorDef((Atom)f, a);
 }
 
 bool
-PL_unify( Word t1,  Word t2)
+PL_unify(Word t1,  Word t2)
 { return (bool) pl_unify(t1, t2);
 }
 
 bool
-PL_unify_atomic( Word t,  word w)
+PL_unify_atomic(Word t,  word w)
 { return unifyAtomic(t, w);
 }
 
 bool
-PL_unify_functor( Word t,  FunctorDef f)
+PL_unify_functor(Word t,  FunctorDef f)
 { return unifyFunctor(t, f);
 }
+
+		 /*******************************
+		 *QUINTUS STYLE WRAPPER SUPPORT *
+		 *******************************/
+
+bool
+PL_cvt_i_integer(Word p, long *c)
+{ if ( isInteger(*p) )
+  { *c = valNum(*p);
+    succeed;
+  } else
+    fail;
+}
+
+
+bool
+PL_cvt_i_float(Word p, double *c)
+{ if ( isReal(*p) )
+  { *c = valReal(*p);
+    succeed;
+  } else if ( isInteger(*p) )
+  { *c = (double) valNum(*p);
+    succeed;
+  } else
+    fail;
+}
+
+
+bool
+PL_cvt_i_single(Word p, float *c)
+{ if ( isReal(*p) )
+  { *c = valReal(*p);
+    succeed;
+  } else if ( isInteger(*p) )
+  { *c = (float) valNum(*p);
+    succeed;
+  } else
+    fail;
+}
+
+
+bool
+PL_cvt_i_string(Word p, char **c)
+{ if ( isAtom(*p) )
+  { *c = stringAtom(*p);
+    succeed;
+  } else if ( isString(*p) )
+  { *c = valString(*p);
+    succeed;
+  } else
+    fail;
+}
+
+
+bool
+PL_cvt_i_atom(Word p, atomic *c)
+{ if ( isAtom(*p) )
+  { *c = (atomic)(*p);
+    succeed;
+  } else
+    fail;
+}
+
+
+bool
+PL_cvt_o_integer(long c, Word p)
+{ return unifyAtomic(p, consNum(c));
+}
+
+
+bool
+PL_cvt_o_float(double c, Word p)
+{ return unifyAtomic(p, globalReal(c));
+}
+
+
+bool
+PL_cvt_o_single(float c, Word p)
+{ return unifyAtomic(p, globalReal(c));
+}
+
+
+bool
+PL_cvt_o_string(char *c, Word p)
+{ return unifyAtomic(p, lookupAtom(c));
+}
+
+
+bool
+PL_cvt_o_atom(atomic c, Word p)
+{ return unifyAtomic(p, c);
+}
+
 
 		/********************************
 		*   UNDETERMINISTIC FOREIGNS    *
@@ -288,6 +381,47 @@ PL_register_foreign(char *name, int arity, Func f, ...)
   return rval;
 }
 
+
+bool
+PL_load_extensions(PL_extension *ext)
+{ PL_extension *e;
+  Module m;
+
+  m = (environment_frame ? contextModule(environment_frame)
+			 : MODULE_system);
+
+  for(e = ext; e->predicate_name; e++)
+  { short flags = TRACE_ME;
+    register Definition def;
+    register Procedure proc;
+
+    if ( e->flags & PL_FA_NOTRACE )	     flags &= ~TRACE_ME;
+    if ( e->flags & PL_FA_TRANSPARENT )	     flags |= TRANSPARENT;
+    if ( e->flags & PL_FA_NONDETERMINISTIC ) flags |= NONDETERMINISTIC;
+    if ( e->flags & PL_FA_GCSAVE )	     flags |= GC_SAVE;
+
+    proc = lookupProcedure(lookupFunctorDef(lookupAtom(e->predicate_name),
+					    e->arity), 
+			   m);
+    def = proc->definition;
+    if ( true(def, LOCKED) )
+    { warning("PL_load_extensions(): Attempt to redefine system predicate: %s",
+	      procedureName(proc));
+      continue;
+    }
+    if ( def->definition.function )
+      warning("PL_load_extensions(): redefined %s", procedureName(proc));
+    if ( false(def, FOREIGN) && def->definition.clauses != (Clause) NULL )
+      abolishProcedure(proc, m);
+    set(def, FOREIGN);
+    set(def, flags);
+    def->definition.function = e->function;
+    def->indexPattern = 0;
+    def->indexCardinality = 0;
+  }    
+
+  succeed;
+}
 
 		/********************************
 		*        CALLING PROLOG         *

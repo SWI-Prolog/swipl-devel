@@ -11,7 +11,7 @@
 #define PL_INCLUDED
 
 #ifndef PLVERSION
-#define PLVERSION "1.9.1 October 1994"
+#define PLVERSION "1.9.6 January 1995"
 #endif
 
 #if __GNUC__ && !__STRICT_ANSI__
@@ -45,6 +45,15 @@ typedef foreign_t	(*function)();	/* foreign language functions */
 typedef struct
 { unsigned long context[2];
 } bktrk_buf;				/* data-backtrack buffer */
+
+typedef struct _PL_extension
+{ char 		*predicate_name;	/* Name of the predicate */
+  short		arity;			/* Arity of the predicate */
+  function	function;		/* Implementing functions */
+  short		flags;			/* Or of PL_FA_... */
+} PL_extension;
+
+extern PL_extension PL_extensions[];	/* see pl-extend.c */
 
 
 		/********************************
@@ -114,6 +123,24 @@ functor	PL_new_functor(atomic, int);	/* create a new functor */
 int	PL_unify(term, term);		/* unify two terms */
 int	PL_unify_atomic(term, atomic);  /* unify term with atomic value */
 int	PL_unify_functor(term, functor);/* unify term with functor */
+
+		 /*******************************
+		 *	   QUINTUS STYLE	*
+		 *******************************/
+
+int	PL_cvt_i_integer(term, long *);	/* input long */
+int	PL_cvt_i_float(term, double *);	/* input double */
+int	PL_cvt_i_single(term, float *);	/* input float */
+int	PL_cvt_i_string(term, char **);	/* input char * */
+int	PL_cvt_i_atom(term, atomic *);	/* input atom identifier */
+
+int	PL_cvt_o_integer(long, term);	/* output long */
+int	PL_cvt_o_float(double, term);	/* output double */
+int	PL_cvt_o_single(float, term);	/* output float */
+int	PL_cvt_o_string(char *, term);	/* output char * */
+int	PL_cvt_o_atom(atomic, term);	/* output atom identifier */
+
+int	PL_load_extensions(PL_extension *); /* load extensions */
 
 		/********************************
 		*    DETERMINISTIC CALL/RETURN  *
@@ -245,19 +272,6 @@ void	PL_on_halt(void (*)(int, void *), void *);
 #define PL_QUERY_GETC		5	/* Read character from terminal */
 
 long	PL_query(int);			/* get information from Prolog */
-
-		/********************************
-		*        STATIC LINKING		*
-		********************************/
-
-typedef struct _PL_extension
-{ char 		*predicate_name;	/* Name of the predicate */
-  short		arity;			/* Arity of the predicate */
-  function	function;		/* Implementing functions */
-  short		flags;			/* Or of PL_FA_... */
-} PL_extension;
-
-extern PL_extension PL_extensions[];	/* see pl-extend.c */
 
 #endif /* PL_INCLUDED */
 /* DO NOT WRITE BELOW THIS ENDIF */

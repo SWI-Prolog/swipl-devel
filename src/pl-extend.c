@@ -22,8 +22,9 @@ better protection) and shared between multiple copies of the program.
 
 To create a statically linked executable, perform the following steps:
 
-  1) Make the file `pl.o' containing all of SWI-Prolog using
-     `make pl.o' in the machine-directory and install it.
+  1) Make the file `.../pl/runtime/<arch>/pl.o' containing all of
+     SWI-Prolog using `make runtime' in the machine-directory
+     and install it.
   2) Make a copy of this file.  In this copy:
   3) Put the right #include directives
   4) Fill the table below.  
@@ -33,6 +34,12 @@ If there are prolog parts involved:
 
   6) Start the image; load the prolog and create a state using
      save_program/2.
+
+     OR
+
+     if save_program/2 is not supported, create a new boot file using
+
+     pl -o <my_state> -b boot/init.pl -c boot/load.pl <your-pl-files>
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 PL_extension PL_extensions [] =

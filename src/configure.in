@@ -356,8 +356,8 @@ dnl ****************************************************************
 
 case "$host" in
     *linux*)	STATICLIBS=/usr/lib/libc.a ;;
-    *sunos5*)	STATICLIBS="/usr/lib/libc.a -ldl" ;;
-    *solaris2*)	STATICLIBS="/usr/lib/libc.a -ldl" ;;
+    *sunos5*)	STATICLIBS=/usr/lib/libc.a -ldl ;;
+    *solaris2*)	STATICLIBS=/usr/lib/libc.a -ldl ;;
     *sunos4*)	LDFLAGS="$LDFLAGS -static" ;;
     *)
     AC_CHECK_PROGS(LDD, ldd, "none")
@@ -491,6 +491,7 @@ EOF
 if ${CC-cc} -c conftest-sub.c; then
 if ${CC-cc} -o conftest-sub -N -A conftest -T 10000 -lc >/dev/null 2>&1 && test -s conftest-sub>/dev/null 2>&1; then
     AC_DEFINE(HAVE_LD_A)
+    AC_DEFINE_UNQUOTED(LD_COMMAND, "$CC")
     AC_MSG_RESULT(yes)
 rm -rf conftest*
 AC_MSG_CHECKING("BSD a.out based loading")

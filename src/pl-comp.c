@@ -10,73 +10,65 @@
 #include "pl-incl.h"
 #include "pl-buffer.h"
 
-#define CODE(c, n, a)	{ n, a, c }
+#define CODE(c, n, a, e)	{ n, c, a, e }
 
 struct code_info codeTable[] = {
-  CODE(I_NOP,		"i_nop",	0),
-  CODE(I_ENTER,		"i_enter",	0),
-  CODE(I_CALL,		"i_call",	1),
-  CODE(I_DEPART,	"i_depart",	1),
-  CODE(I_EXIT,		"i_exit",	0),
-  CODE(B_FUNCTOR,	"b_functor",	1),
-  CODE(H_FUNCTOR,	"h_functor",	1),
-  CODE(I_POP,		"i_pop",	0),
-  CODE(I_POPN,		"i_popn",	1),
-  CODE(B_VAR,		"b_var",	1),
-  CODE(H_VAR,		"h_var",	1),
-  CODE(B_CONST,		"b_const",	1),
-  CODE(H_CONST,		"h_const",	1),
-  CODE(H_REAL,		"h_real",	1),
-  CODE(H_STRING,	"h_string",	1),
-  CODE(B_FIRSTVAR,	"b_firstvar",	1),
-  CODE(H_FIRSTVAR,	"h_firstvar",	1),
-  CODE(B_VOID,		"b_void",	0),
-  CODE(H_VOID,		"h_void",	0),
-  CODE(B_ARGFIRSTVAR,	"b_argfirstvar",1),
-  CODE(B_ARGVAR,	"b_argvar",	1),
-  CODE(H_NIL,		"h_nil",	0),
-  CODE(H_CONST0,	"h_const0",	0),
-  CODE(H_CONST1,	"h_const1",	0),
-  CODE(H_CONST2,	"h_const2",	0),
-  CODE(H_LIST,		"h_list",	0),
-  CODE(H_FUNCTOR0,	"h_functor0",	0),
-  CODE(H_FUNCTOR1,	"h_functor1",	0),
-  CODE(H_FUNCTOR2,	"h_functor2",	0),
-  CODE(B_VAR0,		"b_var0",	0),
-  CODE(B_VAR1,		"b_var1",	0),
-  CODE(B_VAR2,		"b_var2",	0),
-  CODE(H_SINT,		"h_sint",	1),
-  CODE(B_SINT,		"b_sint",	1),
-  CODE(I_USERCALL,	"i_usercall",	0),
-  CODE(I_CUT,		"i_cut",	0),
-  CODE(I_APPLY,		"i_apply",	0),
-  CODE(A_FUNC0,		"a_func0",	1),
-  CODE(A_FUNC1,		"a_func1",	1),
-  CODE(A_FUNC2,		"a_func2",	1),
-  CODE(A_FUNC,		"a_func",	2),
-  CODE(A_LT,		"a_lt",		0),
-  CODE(A_GT,		"a_gt",		0),
-  CODE(A_LE,		"a_le",		0),
-  CODE(A_GE,		"a_ge",		0),
-  CODE(A_EQ,		"a_eq",		0),
-  CODE(A_NE,		"a_ne",		0),
-  CODE(A_IS,		"a_is",		0),
-  CODE(C_OR,		"c_or",		1),
-  CODE(C_JMP,		"c_jmp",	1),
-  CODE(C_MARK,		"c_mark",	1),
-  CODE(C_CUT,		"c_cut",	1),
-  CODE(C_IFTHENELSE,	"c_ifthenelse",	2),
-  CODE(C_VAR,		"c_var",	1),
-  CODE(C_END,		"c_end",	0),
-  CODE(C_NOT,		"c_not",	2),
-  CODE(C_FAIL,		"c_fail",	0),
-  CODE(B_REAL,		"b_real",	1),
-  CODE(B_STRING,	"b_string",	1),
+  CODE(I_NOP,		"i_nop",	0, 0),
+  CODE(I_ENTER,		"i_enter",	0, 0),
+  CODE(I_CALL,		"i_call",	1, 1),
+  CODE(I_DEPART,	"i_depart",	1, 1),
+  CODE(I_EXIT,		"i_exit",	0, 0),
+  CODE(B_FUNCTOR,	"b_functor",	1, 1),
+  CODE(H_FUNCTOR,	"h_functor",	1, 1),
+  CODE(I_POP,		"i_pop",	0, 0),
+  CODE(I_POPN,		"i_popn",	1, 0),
+  CODE(B_VAR,		"b_var",	1, 0),
+  CODE(H_VAR,		"h_var",	1, 0),
+  CODE(B_CONST,		"b_const",	1, 1),
+  CODE(H_CONST,		"h_const",	1, 1),
+  CODE(H_REAL,		"h_real",	1, 1),
+  CODE(H_STRING,	"h_string",	1, 1),
+  CODE(B_FIRSTVAR,	"b_firstvar",	1, 0),
+  CODE(H_FIRSTVAR,	"h_firstvar",	1, 0),
+  CODE(B_VOID,		"b_void",	0, 0),
+  CODE(H_VOID,		"h_void",	0, 0),
+  CODE(B_ARGFIRSTVAR,	"b_argfirstvar",1, 0),
+  CODE(B_ARGVAR,	"b_argvar",	1, 0),
+  CODE(H_NIL,		"h_nil",	0, 0),
+  CODE(H_LIST,		"h_list",	0, 0),
+  CODE(B_VAR0,		"b_var0",	0, 0),
+  CODE(B_VAR1,		"b_var1",	0, 0),
+  CODE(B_VAR2,		"b_var2",	0, 0),
+  CODE(I_USERCALL,	"i_usercall",	0, 0),
+  CODE(I_CUT,		"i_cut",	0, 0),
+  CODE(I_APPLY,		"i_apply",	0, 0),
+  CODE(A_FUNC0,		"a_func0",	1, 0),
+  CODE(A_FUNC1,		"a_func1",	1, 0),
+  CODE(A_FUNC2,		"a_func2",	1, 0),
+  CODE(A_FUNC,		"a_func",	2, 0),
+  CODE(A_LT,		"a_lt",		0, 0),
+  CODE(A_GT,		"a_gt",		0, 0),
+  CODE(A_LE,		"a_le",		0, 0),
+  CODE(A_GE,		"a_ge",		0, 0),
+  CODE(A_EQ,		"a_eq",		0, 0),
+  CODE(A_NE,		"a_ne",		0, 0),
+  CODE(A_IS,		"a_is",		0, 0),
+  CODE(C_OR,		"c_or",		1, 0),
+  CODE(C_JMP,		"c_jmp",	1, 0),
+  CODE(C_MARK,		"c_mark",	1, 0),
+  CODE(C_CUT,		"c_cut",	1, 0),
+  CODE(C_IFTHENELSE,	"c_ifthenelse",	2, 0),
+  CODE(C_VAR,		"c_var",	1, 0),
+  CODE(C_END,		"c_end",	0, 0),
+  CODE(C_NOT,		"c_not",	2, 0),
+  CODE(C_FAIL,		"c_fail",	0, 0),
+  CODE(B_REAL,		"b_real",	1, 0),
+  CODE(B_STRING,	"b_string",	1, 0),
 #if O_BLOCK
-  CODE(I_CUT_BLOCK,	"i_cut_block",	0),
-  CODE(B_EXIT,		"b_exit",	0),
+  CODE(I_CUT_BLOCK,	"i_cut_block",	0, 0),
+  CODE(B_EXIT,		"b_exit",	0, 0),
 #endif
-  CODE(0,		NULL,		0)
+  CODE(0,		NULL,		0, 0)
 };
 
 forwards void	checkCodeTable(void);
@@ -163,10 +155,6 @@ initWamTable(void)
   }
 
   assert(wam_table[C_NOT] != wam_table[C_IFTHENELSE]);
-
-  if ( maxcoded >= (1 << (sizeof(code) * 8)) ) /* normally 64K */
-    fatalError("Cannot use direct jumps: maxcoded = %d (see pl-comp.c)",
-	       maxcoded);
   dewam_table = (char *)allocHeap((maxcoded + 1) * sizeof(char));
   
   for(n = 0; n <= I_HIGHEST; n++)
@@ -414,7 +402,6 @@ typedef struct
   int		arity;			/* arity of top-goal */
   Clause	clause;			/* clause we are constructing */
   struct vartable used_var;		/* boolean array of used variables */
-  buffer	XR;			/* scratch XR table */
   buffer	codes;			/* scratch code table */
 } compileInfo;
 
@@ -422,13 +409,8 @@ typedef struct
 Variable table operations.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define addXRtable(entry, ci)	add_xr_table((word)(entry), (ci))
-
 forwards bool	compileBody(Word, code, compileInfo *);
 forwards int	compileArgument(Word, int, compileInfo *);
-forwards int	add_xr_table(word, compileInfo *);
-forwards int	addRealXRtable(word, compileInfo *);
-forwards int	addStringXRtable(word, compileInfo *);
 forwards bool	compileSubClause(Word, code, compileInfo *);
 forwards bool	isFirstVar(struct vartable *vt, int n);
 forwards void	balanceVars(struct vartable *, struct vartable *, compileInfo *);
@@ -547,7 +529,7 @@ Allocate the clause and fill initialise the field we already know.
   clause->next = (Clause) NULL;
   clause->references = 0;
   clear(clause, ERASED);
-  clause->XR_size = clause->code_size = 0;
+  clause->code_size = 0;
   clause->subclauses = 0;
   clause->procedure = proc;
   clause->source_no = clause->line_no = 0;
@@ -571,7 +553,6 @@ Initialise the `compileInfo' structure.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   initBuffer(&ci.codes);
-  initBuffer(&ci.XR);
   ci.module = module;
   ci.clause = clause;
   ClearVarTable(&ci);
@@ -619,28 +600,12 @@ become variables again.
 Finish up the clause.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  { int entries = entriesBuffer(&ci.XR, word);
-
-    if ( entries > 0 )
-    { if ( entries > MAXEXTERNALS )
-      { warning("Compiler limit: too many (> %d) external references",
-		MAXEXTERNALS);
-	fail;
-      }
-      clause->externals = (Word) allocHeap(sizeOfBuffer(&ci.XR));
-      memcpy(clause->externals, baseBuffer(&ci.XR, word), sizeOfBuffer(&ci.XR));
-    } else
-      clause->externals = NULL;
-    clause->XR_size = entries;
-
-    clause->codes = (Code) allocHeap(sizeOfBuffer(&ci.codes));
+  { clause->codes = (Code) allocHeap(sizeOfBuffer(&ci.codes));
     memcpy(clause->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
     clause->code_size = entriesBuffer(&ci.codes, code);
 
-    discardBuffer(&ci.XR);
     discardBuffer(&ci.codes);
 
-    statistics.externals += clause->XR_size;
     statistics.codes += clause->code_size;
   }
 
@@ -828,42 +793,26 @@ be a variable, and thus cannot be removed if it is before an I_POP.
 
 
   if ( isAtomic(*arg) )
-  { int index;
-
-    if (isNil(*arg) && (where & HEAD))
+  { if (isNil(*arg) && (where & HEAD))
     { Output_0(ci, H_NIL);
       return NONVOID;
     }
 
     if ( isIndirect(*arg) )
     { if ( isReal(*arg) )
-      { Output_1(ci, where & HEAD ? H_REAL : B_REAL,
-		     addRealXRtable(*arg, ci));
+      { Output_1(ci, where & HEAD ? H_REAL : B_REAL, heapReal(valReal(*arg)));
 	return NONVOID;
       }
 #if O_STRING
       if ( isString(*arg) )
       { Output_1(ci, where & HEAD ? H_STRING : B_STRING,
-		     addStringXRtable(*arg, ci));
+		 heapString(valString(*arg)));
 	return NONVOID;
       }
 #endif /* O_STRING */
     }
 
-    if ( isInteger(*arg) )
-    { long val = valNum(*arg);
-      if ( val >= -32768L && val <= 32767L )
-      { Output_1(ci, (where & BODY) ? B_SINT : H_SINT, (code) val);
-        return NONVOID;
-      }
-    }
-
-    index = addXRtable(*arg, ci);
-    if (index < 3 && (where & HEAD))
-    { Output_0(ci, H_CONST0 + index);
-      return NONVOID;
-    }
-    Output_1(ci, (where & BODY) ? B_CONST : H_CONST, index);
+    Output_1(ci, (where & BODY) ? B_CONST : H_CONST, *arg);
     return NONVOID;
   }
     
@@ -917,12 +866,7 @@ Non-void variables. There are many cases for this.
     if ( fdef == FUNCTOR_dot2 && (where & HEAD) )
     { Output_0(ci, H_LIST);
     } else
-    { index = addXRtable(fdef, ci);
-      if (index < 3 && (where & HEAD))
-      { Output_0(ci, H_FUNCTOR0 + index);
-      } else
-      { Output_1(ci, where & BODY ? B_FUNCTOR : H_FUNCTOR, index);
-      }
+    { Output_1(ci, where & BODY ? B_FUNCTOR : H_FUNCTOR, (word)fdef);
     }
     lastnonvoid = PC(ci);
     ar = fdef->arity;
@@ -938,62 +882,12 @@ Non-void variables. There are many cases for this.
       case 1:		OpCode(ci, PC(ci)-1) = encode(I_POPN);
 			Output_a(ci, 2);
 			break;
-      case 65535L:	Output_0(ci, I_POP);	/* I_POPN 65535, I_POP... */
-			lastPopped = 0;
-			break;
       default:		OpCode(ci, PC(ci)-1)++;
     }
     lastPopped++;
     return NONVOID;
   }
 }
-
-
-static int
-add_xr_table(word entry, compileInfo *ci)
-{ int n, m = entriesBuffer(&ci->XR, word);
-  Word XR = baseBuffer(&ci->XR, word);
-
-  for(n=0; n < m; n++, XR++)
-    if ( entry == *XR )
-      return n;
-
-  addBuffer(&ci->XR, entry, word);
-
-  return m;
-}
-
-
-static int
-addRealXRtable(word entry, compileInfo *ci)
-{ int n, m = entriesBuffer(&ci->XR, word);
-  Word XR = baseBuffer(&ci->XR, word);
-
-  for(n=0; n<m; n++, XR++)
-    if (isReal(*XR) && valReal(entry) == valReal(*XR) )
-      return n;
-
-  addBuffer(&ci->XR, heapReal(valReal(entry)), word);
-
-  return m;
-}
-
-
-#if O_STRING
-static int
-addStringXRtable(word entry, compileInfo *ci)
-{ int n, m = entriesBuffer(&ci->XR, word);
-  Word XR = baseBuffer(&ci->XR, word);
-
-  for(n=0; n<m; n++, XR++)
-    if ( isString(*XR) && equalString(entry, *XR) )
-      return n;
-
-  addBuffer(&ci->XR, heapString(valString(entry)), word);
-
-  return m;
-}
-#endif /* O_STRING */
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1088,7 +982,7 @@ operator.
 	succeed;
 #endif
       }
-      Output_1(ci, call, addXRtable(proc, ci));
+      Output_1(ci, call, (code) proc);
 
       succeed;
     }
@@ -1100,9 +994,8 @@ operator.
       succeed;
     }
 
-    Output_1(ci,
-	     call,
-	     addXRtable(lookupProcedure(lookupFunctorDef((Atom)*arg, 0), tm), ci));
+    Output_1(ci, call,
+	     (code) lookupProcedure(lookupFunctorDef((Atom)*arg, 0), tm));
 
     succeed;
   }
@@ -1166,11 +1059,11 @@ compileArithArgument(register Word arg, register compileInfo *ci)
   deRef(arg);
 
   if ( isInteger(*arg) )		/* integer */
-  { Output_1(ci, B_CONST, addXRtable(*arg, ci));
+  { Output_1(ci, B_CONST, *arg);
     succeed;
   }
   if ( isReal(*arg) )			/* real */
-  { Output_1(ci, B_REAL, addRealXRtable(*arg, ci));
+  { Output_1(ci, B_REAL, heapReal(valReal(*arg)));
     succeed;
   }
 					/* variable */
@@ -1435,8 +1328,8 @@ Then we create a term, back up and fill the arguments.
 
 #undef PC
 #define PC	(di->pc)
-#define XR	(di->xr)
 #define ARGP	(di->argp)
+#define XR(c)	((word)(c))
 
 typedef struct
 { Code	pc;				/* pc for decompilation */
@@ -1461,11 +1354,11 @@ unifyVar(register Word var, register Word *vars, register int i)
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-decompileHead()  is  public  as  it  is  needed  to  update  the   index
-information  for  clauses  if this changes when the predicate is already
-defined.  Also for intermediate  code  file  loaded  clauses  the  index
-information  is  recalculated  as  the  constants in the XR table may be
-different accross runs.
+decompileHead()  is  public  as  it  is   needed  to  update  the  index
+information for clauses if this changes   when  the predicate is already
+defined.  Also for intermediate  code  file   loaded  clauses  the index
+information is recalculated as the constants   may  be different accross
+runs.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
@@ -1491,7 +1384,6 @@ decompile_head(Clause clause, Word head, register decompileInfo *di)
   }
   argp0 = argp = argTermP(*head, 0);
   PC = clause->codes;
-  XR = clause->externals;
 
   { register int m;
     register Word *p;
@@ -1509,27 +1401,15 @@ decompile_head(Clause clause, Word head, register decompileInfo *di)
 	  TRY(unifyAtomic(argp++, ATOM_nil) );
 	  continue;
       case H_REAL:
-	  TRY( unifyAtomic(argp++, globalReal(valReal(XR[*PC++]))) );
+	  TRY( unifyAtomic(argp++, globalReal(valReal(XR(*PC++)))) );
 	  continue;
 #if O_STRING
       case H_STRING:
-	  TRY( unifyAtomic(argp++, globalString(valString(XR[*PC++]))) );
+	  TRY( unifyAtomic(argp++, globalString(valString(XR(*PC++)))) );
 	  continue;
 #endif /* O_STRING */
       case H_CONST:
-	  TRY(unifyAtomic(argp++, XR[*PC++]) );
-	  continue;
-      case H_CONST0:
-	  TRY(unifyAtomic(argp++, XR[0]) );
-	  continue;
-      case H_CONST1:
-	  TRY(unifyAtomic(argp++, XR[1]) );
-	  continue;
-      case H_CONST2:
-	  TRY(unifyAtomic(argp++, XR[2]) );
-	  continue;
-      case H_SINT:
-	  TRY(unifyAtomic(argp++, consNumFromCode(*PC++)));
+	  TRY(unifyAtomic(argp++, XR(*PC++)) );
 	  continue;
       case H_FIRSTVAR:
       case H_VAR:
@@ -1543,7 +1423,7 @@ decompile_head(Clause clause, Word head, register decompileInfo *di)
 	  continue;
 	}
       case H_FUNCTOR:
-	{ register FunctorDef fdef = (FunctorDef) XR[*PC++];
+	{ register FunctorDef fdef = (FunctorDef) XR(*PC++);
 
       common_functor:
 	  TRY(unifyFunctor(argp, fdef) );
@@ -1552,9 +1432,6 @@ decompile_head(Clause clause, Word head, register decompileInfo *di)
 	  deRef(argp);
 	  argp = argTermP(*argp, 0);
 	  continue;
-      case H_FUNCTOR0:	  fdef = (FunctorDef) XR[0]; 	goto common_functor;
-      case H_FUNCTOR1:	  fdef = (FunctorDef) XR[1]; 	goto common_functor;
-      case H_FUNCTOR2:	  fdef = (FunctorDef) XR[2]; 	goto common_functor;
       case H_LIST:	  fdef = FUNCTOR_dot2;		goto common_functor;
 	}
       case I_POP:
@@ -1663,16 +1540,13 @@ decompileBody(register decompileInfo *di, code end, Code until)
   { switch(decode(*PC++))
     {   case I_NOP:	    continue;
 	case B_CONST:
-			    *ARGP++ = XR[*PC++];
+			    *ARGP++ = XR(*PC++);
 			    continue;
 	case B_REAL:
-			    *ARGP++ = globalReal(valReal(XR[*PC++]));
+			    *ARGP++ = globalReal(valReal(XR(*PC++)));
 			    continue;
 	case B_STRING:
-			    *ARGP++ = globalString(valString(XR[*PC++]));
-			    continue;
-	case B_SINT:
-			    *ARGP++ = consNumFromCode(*PC++);
+			    *ARGP++ = globalString(valString(XR(*PC++)));
 			    continue;
       { register int index;      
 
@@ -1693,7 +1567,7 @@ decompileBody(register decompileInfo *di, code end, Code until)
 			    setVar(*ARGP++);
 			    continue;
       case B_FUNCTOR:
-			    *ARGP = globalFunctor((FunctorDef)XR[*PC++]);
+			    *ARGP = globalFunctor((FunctorDef)XR(*PC++));
 			    *aTop++ = ARGP + 1;
 			    verifyStack(argument);
 			    ARGP = argTermP(*ARGP, 0);
@@ -1743,7 +1617,7 @@ decompileBody(register decompileInfo *di, code end, Code until)
 			    continue;
       case I_DEPART:
       case I_CALL:
-			    build_term(((Procedure)XR[*PC++])->functor, di);
+			    build_term(((Procedure)XR(*PC++))->functor, di);
 			    pushed++;
 			    continue;
       case I_USERCALL:
@@ -1852,7 +1726,6 @@ build_term(register FunctorDef f, register decompileInfo *di)
 }
 
 #undef PC
-#undef XR
 #undef ARGP
 
 word
@@ -2047,8 +1920,8 @@ unifyProcedure(Word t, Procedure proc)
 word
 pl_xr_member(Word ref, Word term, word h)
 { Clause clause;
-  Word XR;
-  int size, i;
+  Code PC;
+  Code end;
 
   if ( ForeignControl(h) == FRG_CUTTED )
     succeed;
@@ -2060,25 +1933,39 @@ pl_xr_member(Word ref, Word term, word h)
   if (!inCore(clause) || !isClause(clause))
     return warning("$xr_member/2: Invalid reference");
 
-  XR = clause->externals;
-  size = clause->XR_size;
+  PC  = clause->codes;
+  end = &PC[clause->code_size];
 
   if ( isVar(*term) )
-  { if ( ForeignControl(h) == FRG_FIRST_CALL)
-      i = 0;
-    else
-      i = ForeignContext(h);
+  { int an;				/* argument-n */
 
-    for(; i<size; i++)
+    if ( ForeignControl(h) == FRG_FIRST_CALL)
+    { an = 0;
+    } else
+    { long i = ForeignContext(h);
+      an = i % 4;
+      PC += i / 4;
+    }
+
+    while( PC < end )
     { bool rval;
-      word xr = XR[i];
+      code op = decode(*PC++);
+      
+      for( ; an < codeTable[op].externals; an++ )
+      { word xr = PC[an];
 
-      if ( isAtomic(xr) )         rval = unifyAtomic(term, xr);
-      else if ( isProcedure(xr) ) rval = unifyProcedure(term, (Procedure)xr);
-      else			  rval = unifyFunctor(term, (FunctorDef)xr);
+	if ( isAtomic(xr) )         rval = unifyAtomic(term, xr);
+	else if ( isProcedure(xr) ) rval = unifyProcedure(term, (Procedure)xr);
+	else			    rval = unifyFunctor(term, (FunctorDef)xr);
 
-      if ( rval )
-	ForeignRedo(i+1);
+	if ( rval )
+	{ long i = PC - clause->codes - 1; /* compensate ++ above! */
+
+	  ForeignRedo((i * 4) + an + 1);
+	}
+      }
+      PC += codeTable[op].arguments;
+      an = 0;
     }
 
     fail;
@@ -2086,24 +1973,54 @@ pl_xr_member(Word ref, Word term, word h)
   { Procedure proc;
 
     if ( isAtomic(*term) )
-    { for(i=0; i<size; i++)
-	if ( isAtomic(XR[i]) && unifyAtomic(term, XR[i]) )
-	  succeed;
+    { while( PC < end )
+      { int an = 0;
+	code op = decode(*PC++);
+
+	for( ; an < codeTable[op].externals; an++ )
+	{ word xr = PC[an];
+
+	  if ( isAtomic(xr) && unifyAtomic(term, xr) )
+	    succeed;
+	}
+
+	PC += codeTable[op].arguments;
+      }
     } else if ( (proc = findProcedure(term)) )
-    { for(i=0; i<size; i++)
-	if ( !isAtomic(XR[i]) &&
-	     isProcedure(XR[i]) &&
-	     ((Procedure)XR[i])->definition == proc->definition )
-	  succeed;
-      fail;
+    { while( PC < end )
+      { int an = 0;
+	code op = decode(*PC++);
+
+	for( ; an < codeTable[op].externals; an++ )
+	{ word xr = PC[an];
+
+	  if ( !isAtomic(xr) &&
+	       isProcedure(xr) &&
+	       ((Procedure)xr)->definition == proc->definition )
+	    succeed;
+	}
+
+	PC += codeTable[op].arguments;
+      }
     } else if ( isTerm(*term) )
     { word target = (word) functorTerm(*term);
 
-      for(i=0; i<size; i++)
-	if ( XR[i] == target )
-	  succeed;
+      while( PC < end )
+      { int an = 0;
+	code op = decode(*PC++);
+
+	for( ; an < codeTable[op].externals; an++ )
+	{ word xr = PC[an];
+
+	  if ( xr == target )
+	    succeed;
+	}
+
+	PC += codeTable[op].arguments;
+      }
     }
   }
 
   fail;
 }
+
