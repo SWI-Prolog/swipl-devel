@@ -50,18 +50,18 @@ dlopen(const char *file, int flags)
 { image_id image = load_add_on(file);
 	
   if ( image < B_OK )
-  { dl_error = image;
+  { LD->os.dl_error = image;
     return NULL;
   }
 
-  LD->dl_error = B_OK;
+  LD->os.dl_error = B_OK;
   return (void *)image;
 }
 
 
 const char *
 dlerror()
-{ return strerror(LD->dl_error);
+{ return strerror(LD->os.dl_error);
 }
 
 
@@ -69,11 +69,11 @@ void *
 dlsym(void *handle, char *symbol)
 { void *address;
 
-  LD->dl_error = get_image_symbol((image_id)handle,
-				  symbol,
-				  B_SYMBOL_TYPE_TEXT,
-				  &address);
-  if ( LD->dl_error == B_OK )
+  LD->os.dl_error = get_image_symbol((image_id)handle,
+				     symbol,
+				     B_SYMBOL_TYPE_TEXT,
+				     &address);
+  if ( LD->os.dl_error == B_OK )
     return address;
 
   return NULL;
