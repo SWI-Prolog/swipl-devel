@@ -206,22 +206,31 @@ do_format(const char *fmt, int argc, term_t argv)
 	       (s = lookupHTable(format_predicates, (Void)((long)*fmt))) )
 	  { Procedure proc = (Procedure) s->value;
 	    FunctorDef fdef = proc->definition->functor;
+	    term_t av = PL_new_term_refs(fdef->arity);
 	    char buf[BUFSIZE];
+	    int i;
 	    qid_t qid;
 
-	    argc -= fdef->arity;
+	    argc -= fdef->arity-2;
 	    NEED_ARG;
+	    argc--;
+
+	    if ( arg == DEFAULT )
+	      PL_put_atom(av+0, ATOM_default);
+	    else
+	      PL_put_integer(av+0, arg);
+	    for(i=1; i<fdef->arity; i++)
+	      PL_put_term(av+i, argv+i-1);
+	    argv += fdef->arity;
 
 	    tellString(buf, BUFSIZE);
 	    debugstatus.suspendTrace++;
-	    qid = PL_open_query(proc->definition->module, FALSE,
-				proc, argv);
+	    qid = PL_open_query(proc->definition->module, FALSE, proc, av);
 	    PL_next_solution(qid);
 	    PL_close_query(qid);
 	    debugstatus.suspendTrace--;
 	    toldString();
 	    OUTSTRING(buf);
-	    argv += fdef->arity;
 
 	    fmt++;
 	  } else

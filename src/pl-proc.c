@@ -200,7 +200,7 @@ to C.
 
 word
 pl_current_predicate(term_t name, term_t spec, word h)
-{ Atom n;
+{ atom_t n;
   FunctorDef f;
   Module m = (Module) NULL;
   Procedure proc;
@@ -215,7 +215,7 @@ pl_current_predicate(term_t name, term_t spec, word h)
 
   if ( !PL_get_atom(name, &n) )
   { if ( PL_is_variable(name) )
-      n = NULL;
+      n = NULL_ATOM;
     else
       fail;
   }
@@ -234,7 +234,7 @@ pl_current_predicate(term_t name, term_t spec, word h)
     }
     symb = firstHTable(m->procedures);
   } else
-    symb = (Symbol) ForeignContextAddress(h);
+    symb = ForeignContextPtr(h);
 
   for(; symb; symb = nextHTable(m->procedures, symb) )
   { FunctorDef fdef;
@@ -248,7 +248,7 @@ pl_current_predicate(term_t name, term_t spec, word h)
       continue;
 
     if ( (symb = nextHTable(m->procedures, symb)) )
-      ForeignRedo(symb);
+      ForeignRedoPtr(symb);
 
     succeed;
   }
@@ -683,9 +683,9 @@ trapUndefined(Definition def)
       term_t argv = PL_new_term_refs(4);
       static predicate_t pred;
       qid_t qid;
-      Atom sfn = source_file_name;	/* needs better solution! */
+      atom_t sfn = source_file_name;	/* needs better solution! */
       int  sln = source_line_no;
-      Atom answer = ATOM_nil;
+      atom_t answer = ATOM_nil;
 
       if ( !pred )
 	pred = PL_pred(FUNCTOR_undefinterc4, MODULE_system);
@@ -746,7 +746,7 @@ pl_require(term_t pred)
 word
 pl_retract(term_t term, word h)
 { if ( ForeignControl(h) == FRG_CUTTED )
-  { ClauseRef cref = ForeignContextAddress(h);
+  { ClauseRef cref = ForeignContextPtr(h);
     leaveDefinition(cref->clause->procedure->definition);
 
     succeed;
@@ -787,7 +787,7 @@ pl_retract(term_t term, word h)
       cref = def->definition.clauses;
       def->references++;			/* reference the predicate */
     } else
-    { cref = (ClauseRef) ForeignContextAddress(h);
+    { cref = ForeignContextPtr(h);
       proc = cref->clause->procedure;
       def  = proc->definition;
     }
@@ -818,7 +818,7 @@ pl_retract(term_t term, word h)
 	    succeed;
 	  }
 
-	  ForeignRedo(cref->next);
+	  ForeignRedoPtr(cref->next);
 	}
 
 	PL_discard_foreign_frame(cid);
@@ -895,7 +895,7 @@ pl_abolish(term_t atom, term_t arity)
   Procedure proc;
   Module m = (Module) NULL;
   term_t tmp = PL_new_term_ref();
-  Atom name;
+  atom_t name;
   int a;
 
   if ( !PL_strip_module(atom, &m, tmp) )
@@ -915,7 +915,7 @@ pl_abolish(term_t atom, term_t arity)
 
 
 static unsigned long
-attribute_mask(Atom key)
+attribute_mask(atom_t key)
 {
 #define TRACE_ANY (TRACE_CALL|TRACE_REDO|TRACE_EXIT|TRACE_FAIL)
 
@@ -945,7 +945,7 @@ pl_get_predicate_attribute(term_t pred,
 { Procedure proc;
   Definition def;
   FunctorDef fd;
-  Atom key;
+  atom_t key;
   Module module = (Module) NULL;
   unsigned long att;
   term_t head = PL_new_term_ref();
@@ -1002,7 +1002,7 @@ pl_set_predicate_attribute(term_t pred,
 			   term_t what, term_t value)
 { Procedure proc;
   Definition def;
-  Atom key;
+  atom_t key;
   int val;
   unsigned long att;
   int nodef;				/* does not define pred */
@@ -1148,7 +1148,7 @@ pl_index(term_t pred)
 word
 pl_get_clause_attribute(term_t ref, term_t att, term_t value)
 { Clause clause;
-  Atom a;
+  atom_t a;
 
   if ( !PL_get_pointer(ref, (void **)&clause)  ||
        !inCore(clause) || !isClause(clause) )
@@ -1178,14 +1178,14 @@ static int source_index = 0;
 static Table sourceTable = NULL;
 
 SourceFile
-lookupSourceFile(Atom name)
+lookupSourceFile(atom_t name)
 { SourceFile file;
   Symbol s;
 
   if ( !sourceTable )
     sourceTable = newHTable(32);
 
-  if ( (s=lookupHTable(sourceTable, name)) )
+  if ( (s=lookupHTable(sourceTable, (void*)name)) )
     return (SourceFile) s->value;
 
   file = (SourceFile) allocHeap(sizeof(struct sourceFile) );
@@ -1204,7 +1204,7 @@ lookupSourceFile(Atom name)
     tailSourceFileTable = file;
   }
 
-  addHTable(sourceTable, name, file);
+  addHTable(sourceTable, (void*)name, file);
 
   return file;
 }
@@ -1278,7 +1278,7 @@ pl_time_source_file(term_t file, term_t time, word h)
       fr = sourceFileTable;
       break;
     case FRG_REDO:
-      fr = (SourceFile) ForeignContextAddress(h);
+      fr = ForeignContextPtr(h);
       break;
     case FRG_CUTTED:
     default:
@@ -1291,7 +1291,7 @@ pl_time_source_file(term_t file, term_t time, word h)
     if ( PL_unify_atom(file, fr->name) &&
          unifyTime(time, fr->time) )
     { if (fr->next != (SourceFile) NULL)
-	ForeignRedo(fr->next);
+	ForeignRedoPtr(fr->next);
       else
 	succeed;
     }
@@ -1324,7 +1324,7 @@ startConsult(SourceFile f)
 
 word
 pl_start_consult(term_t file)
-{ Atom name;
+{ atom_t name;
 
   if ( PL_get_atom(file, &name) )
   { SourceFile f = lookupSourceFile(name);

@@ -2756,17 +2756,6 @@ else
     echo "$ac_t""no" 1>&6
 fi
 
-echo $ac_n "checking "for /dev/null"""... $ac_c" 1>&6
-if test ! -w /dev/null && test -w /dev/nul; then
-   cat >> confdefs.h <<\EOF
-#define DEVNULL "/dev/nul"
-EOF
-
-   echo "$ac_t"""/dev/nul"" 1>&6
-else
-   echo "$ac_t""yes" 1>&6
-fi
-
 echo $ac_n "checking "for ld -r"""... $ac_c" 1>&6
 cat > conftest1.c <<EOF
 f1(){}
@@ -2789,7 +2778,7 @@ if eval "test \"`echo '$''{'ac_cv_type_signal'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 2793 "configure"
+#line 2782 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #include <signal.h>
@@ -2829,7 +2818,7 @@ if test "$cross_compiling" = yes; then
   echo "$ac_t"""assuming Posix signals"" 1>&6
 else
 cat > conftest.$ac_ext <<EOF
-#line 2833 "configure"
+#line 2822 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -2869,7 +2858,7 @@ if test "$cross_compiling" = yes; then
   true
 else
 cat > conftest.$ac_ext <<EOF
-#line 2873 "configure"
+#line 2862 "configure"
 #include "confdefs.h"
 
 #ifdef TIME_WITH_SYS_TIME
@@ -2921,7 +2910,7 @@ if test "$GCC" = yes; then
     CFLAGS="$CFLAGS -Werror"
 fi
 cat > conftest.$ac_ext <<EOF
-#line 2925 "configure"
+#line 2914 "configure"
 #include "confdefs.h"
 
 #include <sys/wait.h>
@@ -2950,7 +2939,7 @@ if test "$GCC" = "yes"; then CFLAGS="$ac_oldcflags"; fi
 
 echo $ac_n "checking "for tagged lvalues"""... $ac_c" 1>&6
 cat > conftest.$ac_ext <<EOF
-#line 2954 "configure"
+#line 2943 "configure"
 #include "confdefs.h"
 
 
@@ -2987,28 +2976,6 @@ if test -s conftest && eval `./conftest`; then
 #define STACK_DIRECTION $STACK_DIRECTION
 EOF
 
-    if test "$DATA_AT_0X8" = "1"; then cat >> confdefs.h <<\EOF
-#define DATA_AT_0X8 1
-EOF
- fi
-    if test "$DATA_AT_0X4" = "1"; then cat >> confdefs.h <<\EOF
-#define DATA_AT_0X4 1
-EOF
- fi
-    if test "$DATA_AT_0X2" = "1"; then cat >> confdefs.h <<\EOF
-#define DATA_AT_0X2 1
-EOF
- fi
-    if test "$DATA_AT_0X1" = "1"; then cat >> confdefs.h <<\EOF
-#define DATA_AT_0X1 1
-EOF
- fi
-    if test ! -z "$VMCODE_IS_ADDRESS"; then
-	cat >> confdefs.h <<EOF
-#define VMCODE_IS_ADDRESS $VMCODE_IS_ADDRESS
-EOF
-
-    fi
     echo "$ac_t""yes" 1>&6
 else
     echo "configure: warning: "Failed to compile test/memmodel.c"" 1>&2
@@ -3083,7 +3050,7 @@ if test "$configsave" = "yes"; then
 
 echo $ac_n "checking "_data_start"""... $ac_c" 1>&6
 cat > conftest.$ac_ext <<EOF
-#line 3087 "configure"
+#line 3054 "configure"
 #include "confdefs.h"
 extern int _data_start;
 int main() { return 0; }
@@ -3107,7 +3074,7 @@ rm -f conftest*
 
 echo $ac_n "checking "_data"""... $ac_c" 1>&6
 cat > conftest.$ac_ext <<EOF
-#line 3111 "configure"
+#line 3078 "configure"
 #include "confdefs.h"
 extern int _data;
 int main() { return 0; }
@@ -3203,7 +3170,7 @@ test -n "$LDD" || LDD=""none""
 	echo $ac_n "checking "what kind of static linking is required"""... $ac_c" 1>&6
 
 cat > conftest.$ac_ext <<EOF
-#line 3207 "configure"
+#line 3174 "configure"
 #include "confdefs.h"
 
 int main() { return 0; }
@@ -3238,7 +3205,7 @@ if test "$configloadforeign" = "yes"; then
 
 echo $ac_n "checking "foreign C-interface"""... $ac_c" 1>&6
 cat > conftest.$ac_ext <<EOF
-#line 3242 "configure"
+#line 3209 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -3271,7 +3238,7 @@ rm -f conftest*
 
 if test "$ac_foreign" != "yes"; then
 cat > conftest.$ac_ext <<EOF
-#line 3275 "configure"
+#line 3242 "configure"
 #include "confdefs.h"
 
 #include <rld.h>
@@ -3326,7 +3293,7 @@ EOF
 rm -rf conftest*
 echo $ac_n "checking "BSD a.out based loading"""... $ac_c" 1>&6
 cat > conftest.$ac_ext <<EOF
-#line 3330 "configure"
+#line 3297 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>

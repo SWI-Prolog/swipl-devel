@@ -219,6 +219,8 @@ profile(int sig)
   signal(SIGPROF, profile);
 #endif
 
+  statistics.profile_ticks++;
+
   if ( gc_status.active )
   { PROCEDURE_garbage_collect0->definition->profile_ticks++;
     return;
@@ -227,7 +229,6 @@ profile(int sig)
   if (fr == (LocalFrame) NULL)
     return;
 
-  statistics.profile_ticks++;
   if (statistics.profiling == PLAIN_PROFILING)
   { fr->predicate->profile_ticks++;
     return;

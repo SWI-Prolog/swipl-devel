@@ -23,7 +23,7 @@ forwards bool	loadWicFd(char *, IOSTREAM *, int);
 forwards bool	loadPredicate(IOSTREAM *, int skip);
 forwards bool	loadImport(IOSTREAM *, int skip);
 forwards void	putString(char *, IOSTREAM *);
-forwards void	putAtom(Atom, IOSTREAM *);
+forwards void	putAtom(atom_t, IOSTREAM *);
 forwards void	putNum(long, IOSTREAM *);
 forwards void	putReal(real, IOSTREAM *);
 forwards void	saveWicClause(Clause, IOSTREAM *);
@@ -158,7 +158,7 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define VERSION 28			/* save version number */
+#define VERSION 29			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF     0			/* reference to previous */
@@ -443,15 +443,15 @@ loadXRc(int c, IOSTREAM *fd)
     }
     case XR_ATOM:
       id = ++loadedXRTableId;
-      xr = (word) lookupAtom(getString(fd));
-      DEBUG(3, Putf("XR(%d) = '%s'\n", id, stringAtom((Atom)xr)));
+      xr = lookupAtom(getString(fd));
+      DEBUG(3, Putf("XR(%d) = '%s'\n", id, stringAtom(xr)));
       break;
     case XR_FUNCTOR:
-    { Atom name;
+    { atom_t name;
       int arity;
 
       id = ++loadedXRTableId;
-      name = (Atom) loadXR(fd);
+      name = loadXR(fd);
       arity = getNum(fd);
       xr = (word) lookupFunctorDef(name, arity);
       DEBUG(3, Putf("XR(%d) = %s/%d\n", id, stringAtom(name), arity));
@@ -459,17 +459,17 @@ loadXRc(int c, IOSTREAM *fd)
     }
     case XR_PRED:
     { FunctorDef f;
-      Atom mname;
+      atom_t mname;
 
       id = ++loadedXRTableId;
       f = (FunctorDef) loadXR(fd);
-      mname = (Atom) loadXR(fd);
+      mname = loadXR(fd);
       xr = (word) lookupProcedure(f, lookupModule(mname));
       DEBUG(3, Putf("XR(%d) = proc %s\n", id, procedureName((Procedure)xr)));
       break;
     }
     case XR_INT:
-      return consNum(getNum(fd));
+      return consInt(getNum(fd));
     case XR_BIGNUM:
       return heapLong(getstdw(fd));	/* global ... */
     case XR_FLOAT:
@@ -724,7 +724,7 @@ loadStatement(int c, IOSTREAM *fd, int skip)
       Module om = modules.source;
       bool rval;
 
-      modules.source = lookupModule((Atom)mname);
+      modules.source = lookupModule(mname);
       rval = loadPredicate(fd, skip);
       modules.source = om;
 
@@ -736,10 +736,10 @@ loadStatement(int c, IOSTREAM *fd, int skip)
     case 'D':
     { fid_t       cid = PL_open_foreign_frame();
       term_t goal = PL_new_term_ref();
-      Atom osf         = source_file_name;
+      atom_t osf         = source_file_name;
       int  oln         = source_line_no;
 
-      source_file_name = (currentSource ? currentSource->name : (Atom)NULL);
+      source_file_name = (currentSource ? currentSource->name : NULL_ATOM);
       source_line_no   = getNum(fd);
       
       loadQlfTerm(goal, fd);
@@ -828,34 +828,58 @@ loadPredicate(IOSTREAM *fd, int skip)
 	while( bp < ep )
 	{ code op = getNum(fd);
 	  int n = 0;
-	  int next = codeTable[op].externals;
 	  int narg = codeTable[op].arguments;
 	  
 	  *bp++ = encode(op);
-	  switch(op)
-	  { case I_CALL:
-	    case I_DEPART:
-	    { FunctorDef f = (FunctorDef)loadXR(fd);
-	      *bp++ = (word) lookupProcedure(f, modules.source);
-
+	  switch(codeTable[op].argtype)
+	  { case CA1_PROC:
+	    { switch(op)
+	      { case I_CALL:
+		case I_DEPART:
+		{ FunctorDef f = (FunctorDef)loadXR(fd);
+		  *bp++ = (word) lookupProcedure(f, modules.source);
+		  break;
+		}
+		default:
+		  *bp++ = loadXR(fd);
+	      }
+	      n++;
 	      break;
 	    }
-	    case A_INTEGER:
-	      *bp++ = getstdw(fd);
+	    case CA1_FUNC:
+	    case CA1_DATA:
+	      *bp++ = loadXR(fd);
+	      n++;
 	      break;
-	    case A_DOUBLE:
+	    case CA1_INTEGER:
+	      *bp++ = getstdw(fd);
+	      n++;
+	      break;
+	    case CA1_FLOAT:
 	    { union { word w[2]; double f; } v;
 	      v.f = getReal(fd);
 	      *bp++ = v.w[0];
 	      *bp++ = v.w[1];
+	      n += 2;
 	      break;
 	    }
-	    default:
-	      for( ; n < next; n++ )
-		*bp++ = loadXR(fd);
-	      for( ; n < narg; n++ )
-		*bp++ = getNum(fd);
+	    case CA1_STRING:		/* <n> chars */
+	    { int l = getNum(fd);
+	      int lw = (l+sizeof(word))/sizeof(word);
+	      int pad = (lw*sizeof(word) - l);
+	      char *s = (char *)&bp[1];
+
+	      DEBUG(3, Sdprintf("String of %ld bytes\n", l));
+	      *bp = mkStrHdr(lw, pad);
+	      bp += lw;
+	      *bp++ = 0L;
+	      while(--l >= 0)
+		*s++ = Getc(fd);
+	      break;
+	    }
 	  }
+	  for( ; n < narg; n++ )
+	    *bp++ = getNum(fd);
 	}
 
 	if ( skip )
@@ -904,7 +928,7 @@ qlfLoadSource(IOSTREAM *fd)
 { char *str = getString(fd);
   long time = getstdw(fd);
   int issys = (Qgetc(fd) == 's') ? TRUE : FALSE;
-  Atom fname;
+  atom_t fname;
 
   if ( qlf_has_moved && strprefix(str, qlf_save_dir) )
   { char buf[MAXPATHLEN];
@@ -938,16 +962,16 @@ loadPart(IOSTREAM *fd, Module *module, int skip)
 
   switch(Qgetc(fd))
   { case 'M':
-    { Atom mname = (Atom)loadXR(fd);
+    { atom_t mname = loadXR(fd);
 
       switch( Qgetc(fd) )
       { case '-':
-	{ modules.source = lookupModule((Atom) mname);
+	{ modules.source = lookupModule(mname);
 					/* TBD: clear module? */
 	  break;
 	}
 	case 'F':
-	{ Atom fname;
+	{ atom_t fname;
 	  Module m;
 
 	  qlfLoadSource(fd);
@@ -1041,7 +1065,7 @@ loadInModule(IOSTREAM *fd, int skip)
 { word mname = loadXR(fd);
   Module om = modules.source;
 
-  modules.source = lookupModule((Atom) mname);
+  modules.source = lookupModule(mname);
   
   for(;;)
   { int c = Qgetc(fd);
@@ -1088,8 +1112,8 @@ putString(register char *s, IOSTREAM *fd)
 
 
 static void
-putAtom(Atom a, IOSTREAM *fd)
-{ putString(a->name, fd);
+putAtom(atom_t a, IOSTREAM *fd)
+{ putString(stringAtom(a), fd);
 }
 
 
@@ -1171,7 +1195,7 @@ saveXR(word xr, IOSTREAM *fd)
 { Symbol s;
   int id;
 
-  if ( isTaggedInt(xr) )
+  if ( isTaggedInt(xr) )		/* TBD: switch */
   { Putc(XR_INT, fd);
     putNum(valInt(xr), fd);
     return;
@@ -1179,7 +1203,7 @@ saveXR(word xr, IOSTREAM *fd)
   { Putc(XR_BIGNUM, fd);
     putstdw(valBignum(xr), fd);
     return;
-  } else if (isReal(xr) )
+  } else if ( isReal(xr) )
   { Putc(XR_FLOAT, fd);
     putReal(valReal(xr), fd);
     return;
@@ -1201,25 +1225,58 @@ saveXR(word xr, IOSTREAM *fd)
   id = ++savedXRTableId;
   addHTable(savedXRTable, (void *)xr, (void *)id);
 
-  if (isAtom(xr) )
+  if ( isAtom(xr) )
   { Putc(XR_ATOM, fd);
-    putAtom((Atom)xr, fd);
-    DEBUG(3, Putf("XR(%d) = '%s'\n", id, stringAtom((Atom)xr)));
-  } else if (((FunctorDef)xr)->type == FUNCTOR_TYPE)
-  { FunctorDef f = (FunctorDef) xr;
-
-    Putc(XR_FUNCTOR, fd);
-    saveXR((word) f->name, fd);
-    putNum(f->arity, fd);
-    DEBUG(3, Putf("XR(%d) = %s/%d\n", id, stringAtom(f->name), f->arity));
-  } else
-  { Procedure p = (Procedure) xr;
-    
-    Putc(XR_PRED, fd);
-    saveXR((word) p->definition->functor, fd);
-    saveXR((word) p->definition->module->name, fd);
-    DEBUG(3, Putf("XR(%d) = proc %s\n", id, procedureName(p)));
+    putAtom(xr, fd);
+    DEBUG(3, Putf("XR(%d) = '%s'\n", id, stringAtom(xr)));
+    return;
   }
+
+  assert(0);
+}
+
+
+static void
+saveXRFunctor(FunctorDef f, IOSTREAM *fd)
+{ Symbol s;
+  int id;
+
+  if ( (s = lookupHTable(savedXRTable, f)) )
+  { id = (int) s->value;
+    Putc(XR_REF, fd);
+    putNum(id, fd);
+    return;
+  }
+
+  id = ++savedXRTableId;
+  addHTable(savedXRTable, f, (void *)id);
+
+  Putc(XR_FUNCTOR, fd);
+  saveXR(f->name, fd);
+  putNum(f->arity, fd);
+  DEBUG(3, Putf("XR(%d) = %s/%d\n", id, stringAtom(f->name), f->arity));
+}
+
+
+static void
+saveXRProc(Procedure p, IOSTREAM *fd)
+{ Symbol s;
+  int id;
+
+  if ( (s = lookupHTable(savedXRTable, p)) )
+  { id = (int) s->value;
+    Putc(XR_REF, fd);
+    putNum(id, fd);
+    return;
+  }
+
+  id = ++savedXRTableId;
+  addHTable(savedXRTable, p, (void *)id);
+
+  Putc(XR_PRED, fd);
+  saveXRFunctor(p->definition->functor, fd);
+  saveXR(p->definition->module->name, fd);
+  DEBUG(3, Putf("XR(%d) = proc %s\n", id, procedureName(p)));
 }
 
 
@@ -1240,7 +1297,7 @@ do_save_qlf_term(Word t, IOSTREAM *fd)
       int n;
 
       Putc('t', fd);
-      saveXR((word) f, fd);
+      saveXRFunctor(f, fd);
       for(n=0; n < f->arity; n++, q++)
 	do_save_qlf_term(q, fd);
     }
@@ -1297,30 +1354,60 @@ saveWicClause(Clause clause, IOSTREAM *fd)
     int n = 0;
 
     putNum(op, fd);
-    switch(op)
-    { case I_CALL:
-      case I_DEPART:
+    switch(codeTable[op].argtype)
+    { case CA1_PROC:
       { Procedure p = (Procedure) *bp++;
-
-	saveXR((word)p->definition->functor, fd);
+	n++;
+	switch(op)
+	{ case I_CALL:
+	  case I_DEPART:
+	    saveXRFunctor(p->definition->functor, fd);
+	    break;
+	  default:
+	    saveXRProc(p, fd);
+	}
 	break;
       }
-      case A_INTEGER:
-	putstdw(*bp++, fd);
+      case CA1_FUNC:
+      { FunctorDef f = (FunctorDef) *bp++;
+	n++;
+	saveXRFunctor(f, fd);
 	break;
-      case A_DOUBLE:
+      }
+      case CA1_DATA:
+      { word xr = (word) *bp++;
+	n++;
+	saveXR(xr, fd);
+	break;
+      }
+      case CA1_INTEGER:
+      { putstdw(*bp++, fd);
+	n++;
+	break;
+      }
+      case CA1_FLOAT:
       { union { word w[2]; double f; } v;
 	v.w[0] = *bp++;
 	v.w[1] = *bp++;
+	n += 2;
 	putReal(v.f, fd);
 	break;
       }
-      default:
-	for( ; n < codeTable[op].externals; n++ )
-	  saveXR(*bp++, fd);
-        for( ; n < codeTable[op].arguments; n++ )
-	  putNum(*bp++, fd);
+      case CA1_STRING:
+      { word m = *bp;
+	char *s = (char *)++bp;
+	int wn = wsizeofInd(m);
+	int l = wn*sizeof(word) - padHdr(m);
+	bp += wn;
+
+	putNum(l, fd);
+	while(--l >= 0)
+	  Putc(*s++&0xff, fd);
+	break;
+      }
     }
+    for( ; n < codeTable[op].arguments; n++ )
+      putNum(*bp++, fd);
   }
 }
 
@@ -1487,11 +1574,14 @@ closeWic()
 }
 
 static bool
-addClauseWic(term_t term, Atom file)
+addClauseWic(term_t term, atom_t file)
 { Clause clause;
 
   if ( (clause = assert_term(term, CL_END, file)) )
   { IOSTREAM *s = wicFd;
+
+    DEBUG(3, Sdprintf("WAM code:\n");
+	     wamListClause(clause));
 
     if (clause->procedure != currentProc)
     { closeProcedureWic(s);
@@ -1499,12 +1589,12 @@ addClauseWic(term_t term, Atom file)
 
       if ( clause->procedure->definition->module != modules.source )
       { Putc('O', s);
-	saveXR((word) clause->procedure->definition->module->name, s);
+	saveXR(clause->procedure->definition->module->name, s);
       } else
       { Putc('P', s);
       }
 
-      saveXR((word) currentProc->definition->functor, s);
+      saveXRFunctor(currentProc->definition->functor, s);
     }
     saveWicClause(clause, s);
     succeed;
@@ -1530,7 +1620,7 @@ importWic(Procedure proc, IOSTREAM *fd)
 { closeProcedureWic(fd);
 
   Putc('I', fd);
-  saveXR((word) proc, fd);
+  saveXRProc(proc, fd);
 
   succeed;
 }
@@ -1685,7 +1775,7 @@ pl_qlf_info(term_t file,
 		 *******************************/
 
 static bool
-qlfOpen(Atom name)
+qlfOpen(atom_t name)
 { char *absname;
 
   wicFile = stringAtom(name);
@@ -1810,7 +1900,7 @@ qlfStartModule(Module m, IOSTREAM *fd)
   closeProcedureWic(fd);
   Putc('Q', fd);
   Putc('M', fd);
-  saveXR((word) m->name, fd);
+  saveXR(m->name, fd);
   if ( m->file )
     qlfSaveSource(m->file, fd);
   else
@@ -1820,7 +1910,7 @@ qlfStartModule(Module m, IOSTREAM *fd)
   { FunctorDef f = (FunctorDef)s->name;
 
     Putc('E', fd);
-    saveXR((word)f, fd);
+    saveXRFunctor(f, fd);
   } 
 
   Putc('X', fd);
@@ -1833,7 +1923,7 @@ static bool
 qlfStartSubModule(Module m, IOSTREAM *fd)
 { closeProcedureWic(fd);
   Putc('M', fd);
-  saveXR((word) m->name, fd);
+  saveXR(m->name, fd);
 
   succeed;
 }
@@ -1891,7 +1981,7 @@ pl_qlf_start_sub_module(term_t name)
 word
 pl_qlf_start_file(term_t name)
 { if ( wicFd )
-  { Atom a;
+  { atom_t a;
 
     if ( !PL_get_atom(name, &a) )
       return warning("qlf_start_file/1: argument must be an atom");
@@ -1915,7 +2005,7 @@ pl_qlf_end_part()
 
 word
 pl_qlf_open(term_t file)
-{ Atom a;
+{ atom_t a;
 
   if ( PL_get_atom(file, &a) )
     return qlfOpen(a);
@@ -1963,7 +2053,7 @@ pl_qlf_load(term_t file, term_t module)
 word
 pl_open_wic(term_t name, term_t options)
 { char *file;
-  Atom fname;
+  atom_t fname;
 
   if ( !(file = PL_get_filename(name, NULL, 0)) )
     fail;
@@ -2033,12 +2123,12 @@ pl_qlf_assert_clause(term_t ref)
 
       if ( clause->procedure->definition->module != modules.source )
       { Putc('O', s);
-	saveXR((word) clause->procedure->definition->module->name, s);
+	saveXR(clause->procedure->definition->module->name, s);
       } else
       { Putc('P', s);
       }
 
-      saveXR((word) currentProc->definition->functor, s);
+      saveXRFunctor(currentProc->definition->functor, s);
     }
 
     saveWicClause(clause, s);
@@ -2070,8 +2160,8 @@ tag, add one from the current source-module.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-directiveClause(term_t directive, term_t clause, char *functor)
-{ Atom name;
+directiveClause(term_t directive, term_t clause, const char *functor)
+{ atom_t name;
   int arity;
   term_t d0 = PL_new_term_ref();
   functor_t f;
@@ -2102,7 +2192,7 @@ static bool
 compileFile(char *file)
 { char *path;
   term_t f = PL_new_term_ref();
-  Atom nf;
+  atom_t nf;
 
   DEBUG(1, Sdprintf("Boot compilation of %s\n", file));
   if ( !(path = AbsoluteFile(file)) )
@@ -2122,7 +2212,7 @@ compileFile(char *file)
   { fid_t            cid = PL_open_foreign_frame();
     term_t         t = PL_new_term_ref();
     term_t directive = PL_new_term_ref();
-    Atom eof;
+    atom_t eof;
 
     DEBUG(2, Sdprintf("pl_read_clause() -> "));
     PL_put_variable(t);

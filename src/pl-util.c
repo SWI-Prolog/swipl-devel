@@ -101,7 +101,7 @@ notImplemented(char *name, int arity)
 
 word
 setBoolean(int *flag, const char *name, term_t old, term_t new)
-{ Atom n;
+{ atom_t n;
 
   if ( !PL_unify_atom(old, *flag ? ATOM_on : ATOM_off) )
     fail;
@@ -148,7 +148,7 @@ setLong(long *flag, const char *name, term_t old, term_t new)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Variable argument list:
 
-	Atom	name
+	atom_t	name
 	int	type	OPT_ATOM, OPT_STRING, OPT_BOOL, OPT_INT
 	pointer	value
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -168,7 +168,7 @@ scan_options(term_t options, int flags, OptSpec specs, ...)
   va_end(args);
 
   while ( PL_get_list(list, head, list) )
-  { Atom name;
+  { atom_t name;
     int arity;
     
     if ( PL_get_name_arity(head, &name, &arity) )
@@ -189,7 +189,7 @@ scan_options(term_t options, int flags, OptSpec specs, ...)
     { if ( s->name == name )
       { switch(s->type)
 	{ case OPT_BOOL:
-	  { Atom aval;
+	  { atom_t aval;
 
 	    if ( !PL_get_atom(val, &aval) )
 	      fail;
@@ -216,7 +216,7 @@ scan_options(term_t options, int flags, OptSpec specs, ...)
 	    break;
 	  }
 	  case OPT_ATOM:
-	  { Atom a;
+	  { atom_t a;
 
 	    if ( !PL_get_atom(val, &a) )
 	      fail;

@@ -9,8 +9,8 @@
 
 #include "pl-incl.h"
 
-forwards int	atomToOperatorType(Atom);
-forwards Atom	operatorTypeToAtom(int);
+forwards int	atomToOperatorType(atom_t);
+forwards atom_t	operatorTypeToAtom(int);
 
 static Operator operatorTable[OPERATORHASHSIZE];
 
@@ -20,11 +20,11 @@ static Operator operatorTable[OPERATORHASHSIZE];
  ** Wed Apr 20 10:34:55 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 Operator
-isCurrentOperator(register Atom name, int type)
+isCurrentOperator(atom_t name, int type)
 { register int v = pointerHashValue(name, OPERATORHASHSIZE);
   register Operator op;
 
-  for(op=operatorTable[v]; op && !isRef((word)op); op=op->next)
+  for(op=operatorTable[v]; op && !isTableRef(op); op=op->next)
   { if (op->name != name)
       continue;
     if (op->priority <= 0 )
@@ -52,7 +52,7 @@ isCurrentOperator(register Atom name, int type)
 
 
 static int
-atomToOperatorType(Atom atom)
+atomToOperatorType(atom_t atom)
 { if (atom == ATOM_fx)			return OP_FX;
   else if (atom == ATOM_fy)		return OP_FY;
   else if (atom == ATOM_xfx)		return OP_XFX;
@@ -65,7 +65,7 @@ atomToOperatorType(Atom atom)
   return -1;
 }
 
-static Atom
+static atom_t
 operatorTypeToAtom(int type)
 { switch(type)
   { case OP_FX:				return ATOM_fx;
@@ -77,23 +77,23 @@ operatorTypeToAtom(int type)
     case OP_YF:				return ATOM_yf;
     case OP_XF:				return ATOM_xf;
   }
-  return (Atom) NULL;
+  return NULL_ATOM;
 }
 
 word
 pl_current_op(term_t prec, term_t type, term_t name, word h)
 { int Prec = 0;					/* not specified */
   int Type = -1;				/* not specified */
-  Atom Name = (Atom) NULL;			/* not specified */
+  atom_t Name = NULL_ATOM;			/* not specified */
   Operator op;
-  Atom a;
+  atom_t a;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
       op = operatorTable[0];
       break;
     case FRG_REDO:
-      op = (Operator) ForeignContextAddress(h);
+      op = ForeignContextPtr(h);
       break;
     case FRG_CUTTED:
     default:
@@ -115,9 +115,9 @@ pl_current_op(term_t prec, term_t type, term_t name, word h)
     fail;
 
   for( ; op; op = op->next )
-  { while(isRef((word)op))
-    { op = *((Operator *)unRef(op));
-      if (op == (Operator) NULL)
+  { while(isTableRef(op))
+    { op = unTableRef(Operator, op);
+      if ( !op )
 	fail;
     }
     if ( Name && Name != op->name )
@@ -150,7 +150,7 @@ pl_current_op(term_t prec, term_t type, term_t name, word h)
  ** Sun Apr 17 13:25:17 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 bool
-isPrefixOperator(Atom atom, int *type, int *priority)
+isPrefixOperator(atom_t atom, int *type, int *priority)
 { register Operator op;
 
   if ((op = isCurrentOperator(atom, OP_PREFIX)) != (Operator) NULL)
@@ -166,7 +166,7 @@ isPrefixOperator(Atom atom, int *type, int *priority)
 }
 
 bool
-isPostfixOperator(Atom atom, int *type, int *priority)
+isPostfixOperator(atom_t atom, int *type, int *priority)
 { Operator op;
 
   if ((op = isCurrentOperator(atom, OP_POSTFIX)) != (Operator) NULL)
@@ -182,7 +182,7 @@ isPostfixOperator(Atom atom, int *type, int *priority)
 }
 
 bool
-isInfixOperator(Atom atom, int *type, int *priority)
+isInfixOperator(atom_t atom, int *type, int *priority)
 { Operator op;
 
   if ((op = isCurrentOperator(atom, OP_INFIX)) != (Operator) NULL)
@@ -203,7 +203,7 @@ isInfixOperator(Atom atom, int *type, int *priority)
  ** Sun Apr 17 13:24:04 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 static bool
-operator(Atom name, int type, int priority)
+operator(atom_t name, int type, int priority)
 { Operator op = (Operator) NULL;
 
   switch(type)
@@ -234,8 +234,8 @@ operator(Atom name, int type, int priority)
 
 word
 pl_op1(term_t priority, term_t type, term_t name)
-{ Atom nm;
-  Atom tp;
+{ atom_t nm;
+  atom_t tp;
   int t;
   int pri;
 
@@ -316,7 +316,7 @@ static struct operator operators[] = {
   OP(ATOM_xor,		OP_YFX,		400),		/* xor */
 /*OP(ATOM_tilde,	OP_FX,		900),*/		/* ~ */
 
-  OP((Atom)NULL,	0,		0)
+  OP(NULL_ATOM,		0,		0)
 };
 
 
@@ -326,7 +326,7 @@ initOperators(void)
     register int n;
 
     for(n=0, op=operatorTable; n < (OPERATORHASHSIZE-1); n++, op++)
-      *op = (Operator)makeRef(op+1);
+      *op = makeTableRef(op+1);
 
     *op = NULL;
   }
@@ -347,7 +347,7 @@ pl_reset_operators()
   { Operator op = operatorTable[n];
     Operator next;
 
-    for( ; op && !isRef(op); op = next )
+    for( ; op && !isTableRef(op); op = next )
     { next = op->next;
 
       freeHeap(op, sizeof(*op));

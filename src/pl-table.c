@@ -18,9 +18,6 @@ pointer,  but  a reference pointer to the next entry.  This allows us to
 enumerate  all  entries  of  the  table  with  only  one   word   status
 information.   This  is  more  efficient  and  simple to handle with the
 interface for non-deterministic C functions (current_predicate/2, ...).
-
-This module also can allocate from the local stack for temporary  tables
-needed by foreign language functions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -31,7 +28,7 @@ allocHTableEntries(Table ht)
   ht->entries = allocHeap(ht->buckets * sizeof(Symbol));
 
   for(n=0, p = &ht->entries[0]; n < ht->buckets-1; n++, p++)
-    *p = (Symbol) makeRef(p+1);
+    *p = makeTableRef(p+1);
   *p = (Symbol) NULL;
 }
 
@@ -63,7 +60,7 @@ static int lookups;
 static int cmps;
 
 void
-exitTables(void *arg)
+exitTables(int status, void *arg)
 { Sdprintf("hashstat: Anonymous tables: %d lookups using %d compares\n",
 	   lookups, cmps);
 }
@@ -79,15 +76,19 @@ initTables()
 
 Symbol
 lookupHTable(Table ht, Void name)
-{ register Symbol s = ht->entries[pointerHashValue(name, ht->buckets)];
+{ Symbol s = ht->entries[pointerHashValue(name, ht->buckets)];
 
   DEBUG(0, lookups++);
-  for(;s && !isRef((word)s); s = s->next)
+  for(;s && !isTableRef(s); s = s->next)
   { DEBUG(0, cmps++);
     if (s->name == (word)name)
+    { DEBUG(1, Sdprintf("lookupHTable(0x%x, 0x%x --> 0x%x\n",
+			ht, name, s->value));
       return s;
+    }
   }
 
+  DEBUG(1, Sdprintf("lookupHTable(0x%x, 0x%x --> FAIL\n", ht, name));
   return (Symbol) NULL;
 }
 
@@ -97,7 +98,8 @@ rehashHTable(Table ht)
 { Symbol *oldtab  = ht->entries;
   int    oldbucks = ht->buckets;
   Symbol s, n;
-  int done;
+  int done = 0;
+  int i = 0;
 
   startCritical;
   ht->buckets *= 2;
@@ -109,9 +111,10 @@ rehashHTable(Table ht)
   for(s = oldtab[0]; s; s = n)
   { int v;
 
-    while(isRef((word)s) )
-    { s = *((Symbol *)unRef(s));
-      if ( s == NULL )
+    while( isTableRef(s) )
+    { s = unTableRef(Symbol, s);
+      assert(s == oldtab[++i]);
+      if ( !s )
 	goto out;
     }
     done++;
@@ -122,7 +125,7 @@ rehashHTable(Table ht)
   }
 
 out:
-  assert(done = ht->size);
+  assert(done == ht->size);
   freeHeap(oldtab, oldbucks * sizeof(Symbol));
   endCritical;
 }
@@ -130,8 +133,8 @@ out:
 
 bool
 addHTable(Table ht, Void name, Void value)
-{ register Symbol s;
-  register int v = pointerHashValue(name, ht->buckets);
+{ Symbol s;
+  int v = pointerHashValue(name, ht->buckets);
 
   if (lookupHTable(ht, name) != (Symbol) NULL)
     fail;
@@ -141,6 +144,8 @@ addHTable(Table ht, Void name, Void value)
   s->next = ht->entries[v];
   ht->entries[v] = s;
   ht->size++;
+  DEBUG(1, Sdprintf("addHTable(0x%x, 0x%x, 0x%x) --> size = %d\n",
+		    ht, name, value, ht->size));
 
   if ( ht->buckets * 2 < ht->size && !ht->locked )
     rehashHTable(ht);
@@ -150,20 +155,20 @@ addHTable(Table ht, Void name, Void value)
 
 
 Symbol
-nextHTable(Table ht, register Symbol s)
+nextHTable(Table ht, Symbol s)
 { s = s->next;
-  while(s != (Symbol) NULL && isRef((word)s) )
-    s = *((Symbol *)unRef(s));
+  while(s != (Symbol) NULL && isTableRef(s) )
+    s = unTableRef(Symbol, s);
 
   return s;
 }
 
 Symbol
 firstHTable(Table ht)
-{ register Symbol s = ht->entries[0];
+{ Symbol s = ht->entries[0];
 
-  while(s != (Symbol) NULL && isRef((word)s) )
-    s = *((Symbol *)unRef(s));
+  while(s != (Symbol) NULL && isTableRef(s) )
+    s = unTableRef(Symbol, s);
 
   return s;
 }  
@@ -171,16 +176,18 @@ firstHTable(Table ht)
 void
 clearHTable(Table ht)
 { int n;
-  register Symbol s;
+  Symbol s;
 
   for(n=0; n < ht->buckets; n++)
   { s = ht->entries[n];
-    while(s && !isRef((word)s))
-    { register Symbol q = s->next;
+    while(s && !isTableRef(s))
+    { Symbol q = s->next;
       freeHeap(s, sizeof(struct symbol));
       s = q;
     }
     ht->entries[n] = s;
   }
+
+  ht->size = 0;
 }
 

@@ -41,16 +41,16 @@ short	ospeed;
 static int	term_initialised;	/* Extracted term info? */
 static char     *string_area_pointer;	/* Current location */
 static Table	capabilities;		/* Terminal capabilities */
-static Atom	tty_stream;		/* stream on which to do tty */
+static atom_t	tty_stream;		/* stream on which to do tty */
 
 typedef struct
-{ Atom	type;				/* type of the entry */
-  Atom  name;				/* Name of the value */
+{ atom_t type;				/* type of the entry */
+  atom_t name;				/* Name of the value */
   word  value;				/* Value of the entry */
 } entry, *Entry;
 
 forwards bool	initTerm(void);
-forwards Entry	lookupEntry(Atom, Atom);
+forwards Entry	lookupEntry(atom_t, atom_t);
 
 void
 resetTerm()
@@ -98,11 +98,11 @@ initTerm(void)
 }
 
 static Entry
-lookupEntry(Atom name, Atom type)
+lookupEntry(atom_t name, atom_t type)
 { Symbol s;
   Entry e;
 
-  if ( (s = lookupHTable(capabilities, name)) == NULL )
+  if ( (s = lookupHTable(capabilities, (void*)name)) == NULL )
   { if ( initTerm() == FALSE )
       return NULL;
 
@@ -115,24 +115,24 @@ lookupEntry(Atom name, Atom type)
     { int n;
 
       if ( (n = tgetnum(stringAtom(name))) != -1 )
-        e->value  = consNum(n);
+        e->value  = consInt(n);
     } else if ( type == ATOM_bool )
     { bool b;
     
       if ( (b = tgetflag(stringAtom(name))) != -1 )
-        e->value = (word) (b ? ATOM_on : ATOM_off);
+        e->value = (b ? ATOM_on : ATOM_off);
     } else if ( type == ATOM_string )
     { char *s;
     
       if ( (s = tgetstr(stringAtom(name), &string_area_pointer)) != NULL )
-        e->value  = (word) lookupAtom(s);
+        e->value  = lookupAtom(s);
     } else
     { warning("tgetent/3: Illegal type");
       freeHeap(e, sizeof(entry));
       return NULL;
     }
 
-    addHTable(capabilities, name, e);
+    addHTable(capabilities, (void *)name, e);
     return e;
   } else
     return (Entry) s->value;
@@ -141,7 +141,7 @@ lookupEntry(Atom name, Atom type)
 word
 pl_tty_get_capability(term_t name, term_t type, term_t value)
 { Entry e;
-  Atom n, t;
+  atom_t n, t;
 
   if ( !PL_get_atom(name, &n) || !PL_get_atom(type, &t) )
     return warning("tgetent/3: instantiation fault");
@@ -196,7 +196,7 @@ pl_tty_put(term_t a, term_t affcnt)
 
 word
 pl_set_tty(term_t old, term_t new)
-{ Atom a;
+{ atom_t a;
 
   if ( PL_unify_atom(old, tty_stream) &&
        PL_get_atom(new, &a) &&

@@ -36,6 +36,7 @@ void	growBuffer(Buffer, long);
 #define topBuffer(b, type)       ((type *) (b)->top)
 #define inBuffer(b, addr)        ((char *) (addr) >= (b)->base && \
 				  (char *) (addr)  < (b)->top)
+#define fetchBuffer(b, i, type)	 (baseBuffer(b, type)[i])
 
 #define seekBuffer(b, cnt, type) ((b)->top = sizeof(type) * (cnt) + (b)->base)
 #define sizeOfBuffer(b)          ((b)->top - (b)->base)

@@ -27,7 +27,7 @@ initFlags(void)
   register int n;
 
   for(n=0, f=flagTable; n < (FLAGHASHSIZE-1); n++, f++)
-    *f = (Flag) makeRef(f+1);
+    *f = makeTableRef(f+1);
 }
 
 static Flag
@@ -35,7 +35,7 @@ lookupFlag(word key)
 { int v = pointerHashValue(key, FLAGHASHSIZE);
   Flag f;
 
-  for(f=flagTable[v]; f && !isRef((word)f); f=f->next)
+  for(f=flagTable[v]; f && !isTableRef(f); f=f->next)
   { if (f->key == key)
       return f;
   }
@@ -43,7 +43,7 @@ lookupFlag(word key)
   f->next = flagTable[v];
   flagTable[v] = f;
   f->key = key;
-  f->value = consNum(0);
+  f->value = consInt(0);
 
   return f;
 }
@@ -71,7 +71,7 @@ pl_flag(term_t name, term_t old, term_t new)
     if ( valueExpression(new, &n) &&
 	 toIntegerNumber(&n) &&
 	 inTaggedNumRange(n.value.i) )
-    { f->value = consNum(n.value.i);
+    { f->value = consInt(n.value.i);
       succeed;
     }
   }
@@ -88,7 +88,7 @@ pl_current_flag(term_t k, term_t h)
       f = flagTable[0];
       break;
     case FRG_REDO:
-      f = (Flag) ForeignContextAddress(h);
+      f = ForeignContextPtr(h);
       break;
     case FRG_CUTTED:
     default:
@@ -96,9 +96,9 @@ pl_current_flag(term_t k, term_t h)
   }
 
   for(; f; f = f->next)
-  { while(isRef((word)f) )
-    { f = *((Flag *)unRef(f));
-      if (f == (Flag) NULL)
+  { while(isTableRef(f) )
+    { f = unTableRef(Flag, f);
+      if ( !f )
 	fail;
     }
     if ( !unifyKey(k, f->key) )

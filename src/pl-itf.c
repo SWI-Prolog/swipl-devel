@@ -108,7 +108,7 @@ term_t
 _PL_term(atomic_t a)
 { term_t t = PL_new_term_ref();
 
-  setHandle(t, (word)a);
+  setHandle(t, a);
 
   return t;
 }
@@ -116,7 +116,7 @@ _PL_term(atomic_t a)
 
 atomic_t
 _PL_new_integer(long i)
-{ return consNum(i);
+{ return consInt(i);
 }
 
 

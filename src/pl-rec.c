@@ -12,7 +12,6 @@
 
 forwards RecordList lookupRecordList(word);
 forwards RecordList isCurrentRecordList(word);
-forwards word heapFunctor(FunctorDef);
 forwards void copyTermToHeap2(Word, Record, Word);
 forwards void freeHeapTerm(Word);
 
@@ -27,7 +26,7 @@ initRecords(void)
   register int n;
 
   for(n=0, l=recordTable; n < (RECORDHASHSIZE-1); n++, l++)
-    *l = (RecordList) makeRef(l+1);
+    *l = makeTableRef(l+1);
 }
 
 static RecordList
@@ -35,7 +34,7 @@ lookupRecordList(register word key)
 { int v = pointerHashValue(key, RECORDHASHSIZE);
   register RecordList l;
 
-  for(l=recordTable[v]; l && !isRef((word)l); l = l->next)
+  for(l=recordTable[v]; l && !isTableRef(l); l = l->next)
   { if (l->key == key)
       return l;
   }
@@ -54,25 +53,11 @@ isCurrentRecordList(register word key)
 { int v = pointerHashValue(key, RECORDHASHSIZE);
   register RecordList l;
 
-  for(l=recordTable[v]; l && !isRef((word)l); l = l->next)
+  for(l=recordTable[v]; l && !isTableRef(l); l = l->next)
   { if (l->key == key)
       return l;
   }
   return (RecordList) NULL;
-}
-
-static word
-heapFunctor(FunctorDef def)
-{ Functor f;
-  register int n;
-  register Word a;
-
-  f = (Functor)allocHeap(sizeof(FunctorDef) + sizeof(word)*def->arity);
-  f->definition = def;
-  for(n=def->arity, a=argTermP(f, 0); n > 0; n--, a++)
-    setVar(*a);
-
-  return (word) f;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -92,30 +77,45 @@ when copying back to the global stack.
 
 static void
 copyTermToHeap2(register Word term, Record result, Word copy)
-{ int arity;
+{ 
+right_recursion:
+  switch(tag(*term))
+  { case TAG_VAR:
+    case TAG_ATOM:
+      *copy = *term;
+      break;
+    case TAG_INTEGER:
+      if ( storage(*term) == STG_INLINE )
+      { *copy = *term;
+        break;
+      }
+    case TAG_FLOAT:
+    case TAG_STRING:
+      *copy = heapIndirect(*term);
+      break;
+    case TAG_COMPOUND:
+    { Functor f = valueTerm(*term);
 
-  deRef(term);
+      if ( f->definition == FUNCTOR_var1->functor )
+	*copy = makeRef(result->variables + valInt(f->arguments[0]));
+      else
+      { int arity = arityFunctor(f->definition);
+	Word c = allocHeap((arity+1) * sizeof(word));
 
-  if ( isAtom(*term) || isTaggedInt(*term) )
-  { *copy = *term;
-    return;
+	*copy = consPtr(c, TAG_COMPOUND|STG_HEAP);
+	*c++ = f->definition;
+	copy = c;
+	term = f->arguments;
+	for(; --arity > 0; copy++, term++)
+	  copyTermToHeap2(term, result, copy);
+	goto right_recursion;
+      }
+      break;
+    } 
+    case TAG_REFERENCE:
+      term = unRef(*term);
+      goto right_recursion;
   }
-  if ( isIndirect(*term) )
-  { *copy = heapIndirect(*term);
-    return;
-  }
-  SECURE(if (!isTerm(*term) )
-	    sysError("Illegal type in copyTermToHeap()") );
-  if (functorTerm(*term) == FUNCTOR_var1)
-  { *copy = makeRef(result->variables + valInt(argTerm(*term, 0)));
-    return;
-  }
-  arity = functorTerm(*term)->arity;
-  *copy = heapFunctor(functorTerm(*term) );
-  copy = argTermP(*copy, 0);
-  term = argTermP(*term, 0);
-  for(; arity > 0; arity--, copy++, term++)
-    copyTermToHeap2(term, result, copy);
 }
 
 
@@ -207,18 +207,24 @@ freeHeapTerm(register Word term)
 
   if ( isAtom(*term) || isTaggedInt(*term) )
     return;
+
   if (isIndirect(*term))
   { freeHeapIndirect(*term);
     return;
   }
+
   if (isTerm(*term))
-  { arity = functorTerm(*term)->arity;
-    arg = argTermP(*term, 0);
+  { Functor f = (Functor)valPtr(*term);
+
+    arity = arityFunctor(f->definition);
+    arg = f->arguments;
     for(n = arity; n > 0; n--, arg++)
       freeHeapTerm(arg);
-    freeHeap(*term, sizeof(FunctorDef) + arity * sizeof(word));
+
+    freeHeap(f, (arity+1) * sizeof(word));
   }
 }
+
 
 bool
 freeRecord(Record record)
@@ -266,7 +272,7 @@ pl_current_key(term_t k, word h)
       l = recordTable[0];
       break;
     case FRG_REDO:
-      l = (RecordList) ForeignContextAddress(h);
+      l = ForeignContextPtr(h);
       break;
     case FRG_CUTTED:
     default:
@@ -274,9 +280,9 @@ pl_current_key(term_t k, word h)
   }
 
   for(; l; l = l->next)
-  { while(isRef((word)l) )
-    { l = *((RecordList *)unRef(l));
-      if (l == (RecordList) NULL)
+  { while(isTableRef(l) )
+    { l = unTableRef(RecordList, l);
+      if ( !l )
 	fail;
     }
     if ( l->firstRecord == NULL || unifyKey(k, l->key) == FALSE )
@@ -361,7 +367,7 @@ pl_recorded(term_t key, term_t term, term_t ref, word h)
       record = rl->firstRecord;
       break;
     case FRG_REDO:
-      record = (Record) ForeignContextAddress(h);
+      record = ForeignContextPtr(h);
       break;
     case FRG_CUTTED:
     default:
@@ -379,7 +385,7 @@ pl_recorded(term_t key, term_t term, term_t ref, word h)
       if ( !record->next )
 	succeed;
       else
-	ForeignRedo(record->next);
+	ForeignRedoPtr(record->next);
     }
   }
 

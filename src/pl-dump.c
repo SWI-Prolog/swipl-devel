@@ -19,7 +19,7 @@ static opt_spec save_options[] =
   { ATOM_init_file,  OPT_STRING },
   { ATOM_tty,	     OPT_BOOL },
   { ATOM_stand_alone,OPT_BOOL },
-  { NULL,	     0 }
+  { NULL_ATOM,	     0 }
 };
 
 

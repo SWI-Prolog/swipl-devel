@@ -74,9 +74,6 @@ static unsigned long mask_mask[] =
     MASK(2), MASK(3), MASK(4)
   };
 
-/*  Determine cardinality (= # 1's) of bit pattern.
-
- ** Sun Sep 11 13:19:41 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 int
 cardinalityPattern(register unsigned long pattern)
@@ -89,23 +86,58 @@ cardinalityPattern(register unsigned long pattern)
   return result;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Compute the index in the hash-array from   a machine word and the number
+of buckets. This used to be simple, but now that our tag bits are on the
+left side, simply masking will put most things on the same hash-entry as
+it is very common for all clauses of   a predicate to have the same type
+of object. Hence, we now use exclusive or of the real value part and the
+tag-bits.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static inline int
+hashIndex(word key, int buckets)
+{ unsigned long k = key >> LMASK_BITS;
+
+  return (key^k) & (buckets-1);
+}
+
+
+word
+indexOfWord(word w)
+{ for(;;)
+  { switch(tag(w))
+    { case TAG_VAR:
+      case TAG_STRING:
+      case TAG_FLOAT:
+	return 0L;
+      case TAG_INTEGER:
+	if ( storage(w) != STG_INLINE )
+	  return 0L;
+      case TAG_ATOM:
+	return w;
+      case TAG_COMPOUND:
+	return *valPtr(w);
+      case TAG_REFERENCE:
+	w = *unRef(w);
+	continue;
+    }
+  }
+}
+
+
 void
 getIndex(register Word argv, register unsigned long pattern, int card,
 	 struct index *index)
 { if ( pattern == 0x1L )
-  { deRef(argv);
-    if (isVar(*argv) || isIndirect(*argv) )
-    { index->key = index->varmask = 0;
-      return;
-    }
-    index->key = (isTerm(*argv) ? (word) functorTerm(*argv) : *argv);
-    index->varmask = (unsigned long) ~0L;
+  { index->key     = indexOfWord(*argv);
+    index->varmask = (index->key ? (unsigned long) ~0L : 0L);
 
     return;
   } else
-  { register Word k;
-    register word key;
-    register int a;
+  { word key;
+    int a;
 
     index->key = 0;
     index->varmask = (unsigned long) ~0L;			/* all 1s */
@@ -114,13 +146,11 @@ getIndex(register Word argv, register unsigned long pattern, int card,
     { for(;(pattern & 0x1) == 0; pattern >>= 1)
 	argv++;
 
-      deRef2(argv, k);
-      if (isVar(*k) || isIndirect(*k) )
+      key = indexOfWord(*argv);
+      if ( !key )
       { index->varmask &= varMask(card, a);
-	continue;
       }
-      key = (isTerm(*k) ? (word) functorTerm(*k) : *k);
-      key = key >> 2;
+      key = key ^ (key >> LMASK_BITS);	/* see hashIndex() */
       index->key |= ((key & Mask(card)) << Shift(card, a) );
     }
   }
@@ -143,12 +173,11 @@ findClause(ClauseRef cref, Word argv, Definition def, bool *deterministic)
 	return NULL;
     }
   } else if ( def->indexPattern == 0x1L )
-  { word key;
+  { word key = indexOfWord(*argv);
 
-    deRef(argv);
-    if (isVar(*argv) || isIndirect(*argv))
+    if ( !key )
       goto noindex;
-    key = (nonVarIsTerm(*argv) ? (word) functorTerm(*argv) : *argv);
+
     for(;cref ; cref = cref->next)
     { Clause clause = cref->clause;
 
@@ -203,17 +232,7 @@ findClause(ClauseRef cref, Word argv, Definition def, bool *deterministic)
 
 static ClauseRef
 nextClause(ClauseRef cref, bool *det, Index ctx)
-{ if ( ctx->varmask == 0x0L )		/* no indexing */
-  { for(;;cref = cref->next)
-    { if ( cref )
-      { if ( false(cref->clause, ERASED) )
-	{ *det = !cref->next;
-	  return cref;
-	}
-      } else
-	return NULL;
-    }
-  } else if ( ctx->varmask == ~0x0L )	/* first argument only */
+{ if ( ctx->varmask == ~0x0L )		/* first argument only */
   { word key = ctx->key;
 
     for(;cref ; cref = cref->next)
@@ -237,8 +256,14 @@ nextClause(ClauseRef cref, bool *det, Index ctx)
 	return result;
       }
     }
-    return NULL;
-  } else
+  } else if ( ctx->varmask == 0x0L )	/* no indexing */
+  { for(; cref; cref = cref->next)
+    { if ( false(cref->clause, ERASED) )
+      { *det = !cref->next;
+        return cref;
+      }
+    }
+  } else				/* general (multi-arg) indexing */
   { for(; cref; cref = cref->next)
     { if ( matchIndex(*ctx, cref->clause->index) &&
 	   false(cref->clause, ERASED))
@@ -257,8 +282,9 @@ nextClause(ClauseRef cref, bool *det, Index ctx)
 	return result;
       }
     }
-    return NULL;
   }
+
+  return NULL;
 }
 
 
@@ -270,27 +296,28 @@ firstClause(Word argv, Definition def, bool *det)
 
 again:
   if ( def->indexPattern == 0x0L )
-  { noindex:
-
-    cref = def->definition.clauses;
-    for(;;cref = cref->next)
-    { if ( cref )
-      { if ( false(cref->clause, ERASED) )
-	{ *det = !cref->next;
-	  return cref;
-	}
-      } else
-	return NULL;
+  {
+  noindex:
+    for(cref = def->definition.clauses; cref; cref = cref->next)
+    { if ( false(cref->clause, ERASED) )
+      { *det = !cref->next;
+        return cref;
+      }
     }
+    return NULL;
   } else if ( def->indexPattern == 0x1L )
-  { deRef(argv);
-    if (isVar(*argv) || isIndirect(*argv))
+  { word key = indexOfWord(*argv);
+
+    if ( key == 0L )
       goto noindex;
-    ctx->key     = (nonVarIsTerm(*argv) ? (word) functorTerm(*argv) : *argv);
+
+    ctx->key     = key;
     ctx->varmask = (unsigned long) ~0x0L;
     if ( def->hash_info )
-      cref = def->hash_info->entries[ctx->key & (def->hash_info->buckets-1)].head;
-    else
+    { int hi = hashIndex(key, def->hash_info->buckets);
+
+      cref = def->hash_info->entries[hi].head;
+    } else
       cref = def->definition.clauses;
   } else if ( def->indexPattern & NEED_REINDEX )
   { reindexDefinition(def);
@@ -517,7 +544,7 @@ markDirtyClauseIndex(ClauseIndex ci, Clause cl)
 { if ( cl->index.varmask == 0 )
     ci->alldirty = TRUE;
   else
-  { int hi = cl->index.key & (ci->buckets-1);
+  { int hi = hashIndex(cl->index.key, ci->buckets);
     ci->entries[hi].dirty++;
   }
 }
@@ -534,7 +561,7 @@ addClauseToIndex(Definition def, Clause cl, int where)
     for(; n; n--, ch++)
       appendClauseChain(ch, cl, where);
   } else
-  { int hi = cl->index.key & (ci->buckets-1);
+  { int hi = hashIndex(cl->index.key, ci->buckets);
     
     DEBUG(2, Sdprintf("Storing in bucket %d\n", hi));
     appendClauseChain(&ch[hi], cl, where);
@@ -558,9 +585,8 @@ delClauseFromIndex(ClauseIndex ci, Clause cl)
     for(; n; n--, ch++)
       deleteClauseChain(ch, cl);
   } else
-  { int hi = cl->index.key & (ci->buckets-1);
+  { int hi = hashIndex(cl->index.key, ci->buckets);
     
-    DEBUG(2, Sdprintf("Storing in bucket %d\n", hi));
     deleteClauseChain(&ch[hi], cl);
     ci->size--;
   }

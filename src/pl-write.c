@@ -11,7 +11,7 @@
 #include "pl-ctype.h"
 extern int Output;
 
-forwards int	priorityOperator(Atom);
+forwards int	priorityOperator(atom_t);
 forwards bool	writeTerm(term_t, int, bool, term_t);
 
 char *
@@ -38,7 +38,7 @@ varName(term_t t)
 #define AT_SPECIAL	5
 
 static int
-atomType(Atom a)
+atomType(atom_t a)
 { char *s = stringAtom(a);
 
   if ( isLower(*s) )
@@ -71,7 +71,7 @@ atomType(Atom a)
 
 
 static int
-writeAtom(Atom a, bool quote)
+writeAtom(atom_t a, bool quote)
 { if ( quote )
   { switch( atomType(a) )
     { case AT_LOWER:
@@ -107,7 +107,7 @@ static void
 writePrimitive(term_t t, bool quote)
 { double f;
   char *s;
-  Atom a;
+  atom_t a;
   int n;
 
   if ( PL_is_variable(t) )
@@ -167,7 +167,7 @@ pl_nl1(term_t stream)
 
 static bool
 display(term_t t, bool quote)
-{ Atom name;
+{ atom_t name;
   int arity;
 
   if ( PL_get_name_arity(t, &name, &arity) && arity > 0 )
@@ -218,7 +218,7 @@ pl_displayq2(term_t stream, term_t term)
 }
 
 static int
-priorityOperator(Atom atom)
+priorityOperator(atom_t atom)
 { int type, priority;
   int result = 0;
 
@@ -288,18 +288,19 @@ out:
 }
 
 
-static Atom
+static atom_t
 toAtom(term_t t)
-{ Atom a;
+{ atom_t a;
 
   if ( PL_get_atom(t, &a) )
     return a;
-  return NULL;
+
+  return NULL_ATOM;
 }
 
 
 static bool
-needSpace(Atom a1, Atom a2)
+needSpace(atom_t a1, atom_t a2)
 { if ( a1 && a2 )
   { int t1 = atomType(a1);
     int t2 = atomType(a2);
@@ -315,10 +316,10 @@ needSpace(Atom a1, Atom a2)
 
 static bool
 writeTerm(term_t t, int prec, bool style, term_t g)
-{ Atom functor;
+{ atom_t functor;
   int arity, n;
   int op_type, op_pri;
-  Atom a;
+  atom_t a;
   bool quote = (style != PLAIN);
 
   if ( !PL_is_variable(t) && style == PORTRAY && pl_call2(g, t) )

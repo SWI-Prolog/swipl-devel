@@ -270,8 +270,13 @@ CpuTime(void)
 {
 #ifdef HAVE_TIMES
   struct tms t;
-  real hz = Hz;
+  static int got_hz = FALSE;
+  static real hz;
 
+  if ( !got_hz )
+  { hz = (real) Hz;
+    got_hz++;
+  }
   times(&t);
 
   return (real) t.tms_utime / hz;
@@ -413,7 +418,7 @@ temporaries on /tmp.
 typedef struct tempfile * TempFile;
 
 static struct tempfile
-{ Atom 		name;
+{ atom_t	name;
   TempFile	next;
 } *tempfiles, *temptail;		/* chain of temporary files */
 
@@ -425,7 +430,7 @@ static struct tempfile
 #endif
 #endif
 
-Atom
+atom_t
 TemporaryFile(char *id)
 { static char temp[MAXPATHLEN];
   TempFile tf = (TempFile) allocHeap(sizeof(struct tempfile));
@@ -1658,9 +1663,9 @@ Swrite_protocol(void *handle, char *buf, int size)
 
 int
 Sread_terminal(void *handle, char *buf, int size)
-{ Atom sfn = source_file_name;		/* save over call-back */
-  int  sln = source_line_no;
-  int  fd  = (int)handle;
+{ atom_t sfn = source_file_name;		/* save over call-back */
+  int    sln = source_line_no;
+  int     fd = (int)handle;
 
   if ( prompt_next && ttymode != TTY_RAW )
   { Putf("%s", PrologPrompt());

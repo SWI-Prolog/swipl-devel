@@ -877,11 +877,6 @@ controlled  stacks.   The  only  argument  we  are  interested in is the
 address of the segmentation fault.  SUN provides this via  an  argument.
 If   your   system   does   not   provide   this  information,  set  the
 SIGNAL_HANDLER_PROVIDES_ADDRESS flag.
-
-There is one problem.  If we are  using   the  local  stack as a scratch
-area, we can get map  signals  from   allocLocal().   If  the handler is
-provided an address, there  is  no   problem.   Otherwise  we  check the
-exported variable localScratchBase (see pl-alloc.c).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef NO_SEGV_HANDLING
@@ -896,7 +891,6 @@ segv_handler(int sig)
 
 #ifndef SIGNAL_HANDLER_PROVIDES_ADDRESS
   int mapped = 0;
-  extern char *localScratchBase;	/* see pl-alloc.c */
 
   DEBUG(1, Sdprintf("Page fault.  Free room (g+l+t) = %ld+%ld+%ld\n",
 		    roomStack(global), roomStack(local), roomStack(trail)));
@@ -908,17 +902,6 @@ segv_handler(int sig)
     { DEBUG(1, Sdprintf("Mapped %s stack (free was %d)\n", stacka[i].name, r));
       mapOrOutOf(&stacka[i]);
       considerGarbageCollect(&stacka[i]);
-      mapped++;
-    }
-  }
-
-  if ( !mapped )
-  { Stack ls = (Stack)& stacks.local;
-
-    if ( (unsigned long)localScratchBase > (unsigned long)ls->top &&
-	 (unsigned long)localScratchBase < (unsigned long)ls->base +
-				           ls->maxlimit )
-    { mapOrOutOf(ls);
       mapped++;
     }
   }

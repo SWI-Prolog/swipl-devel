@@ -65,7 +65,7 @@ redoFrame(register LocalFrame fr)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-canUnifyTermWithGoal() is used to check whether the given grame satisfies
+canUnifyTermWithGoal() is used to check whether the given frame satisfies
 the /search specification.  This function cannot use the `neat' interface
 as the record is not in the proper format.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -75,24 +75,19 @@ canUnifyTermWithGoal(Word t, LocalFrame fr)
 { deRef(t);
   if ( isVar(*t) )
     succeed;
-  if ( isAtom(*t) && fr->predicate->functor->name == (Atom)*t )
+  if ( isAtom(*t) && fr->predicate->functor->name == *t )
     succeed;
-  if ( isTerm(*t) && functorTerm(*t) == fr->predicate->functor )
-  { mark m;
-    Word a, b;
+  if ( hasFunctor(*t, fr->predicate->functor) )
+  { Word a, b;
     int arity;
 
-    Mark(m);
     a = argTermP(*t, 0);
     b = argFrameP(fr, 0);
     arity = functorTerm(*t)->arity;
     while( arity > 0 )
-    { if ( !unify(a, b, environment_frame) )
-      { Undo(m);
+    { if ( !can_unify(a, b) )
         fail;
-      }
     }
-    Undo(m);
     succeed;
   }
   
@@ -655,7 +650,7 @@ traceInterception(LocalFrame frame, int port)
   { fid_t cid = PL_open_foreign_frame();
     qid_t qid;
     term_t argv = PL_new_term_refs(3);
-    Atom portname;
+    atom_t portname;
     static Procedure proc;
 
     if ( !proc )
@@ -677,7 +672,7 @@ traceInterception(LocalFrame frame, int port)
     debugstatus.suspendTrace++;
     qid = PL_open_query(MODULE_user, FALSE, proc, argv);
     if ( PL_next_solution(qid) )
-    { Atom a;
+    { atom_t a;
 
       if ( PL_get_atom(argv+2, &a) )
       { if ( a == ATOM_continue )
@@ -900,7 +895,7 @@ pl_debugging()
 
 word
 pl_skip_level(term_t old, term_t new)
-{ Atom a;
+{ atom_t a;
 
   if ( debugstatus.skiplevel == VERY_DEEP )
   { TRY(PL_unify_atom(old, ATOM_very_deep));
@@ -962,7 +957,7 @@ pl_debuglevel(term_t old, term_t new)
 word
 pl_unknown(term_t old, term_t new)
 { Module m = contextModule(environment_frame);
-  Atom a = (true(m, UNKNOWN) ? ATOM_trace : ATOM_fail);
+  atom_t a = (true(m, UNKNOWN) ? ATOM_trace : ATOM_fail);
 
   if ( !PL_unify_atom(old, a) )
     fail;
@@ -995,7 +990,7 @@ word
 pl_prolog_frame_attribute(term_t frame, term_t what,
 			  term_t value)
 { LocalFrame fr;
-  Atom key;
+  atom_t key;
   term_t result = PL_new_term_ref();
   long fri;
 

@@ -23,14 +23,14 @@ modules import from `user' (and indirect from `system').
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Module
-lookupModule(Atom name)
+lookupModule(atom_t name)
 { Symbol s;
   Module m;
 
-  if ((s = lookupHTable(moduleTable, name)) != (Symbol) NULL)
+  if ((s = lookupHTable(moduleTable, (void*)name)) != (Symbol) NULL)
     return (Module) s->value;
 
-  m = (Module) allocHeap(sizeof(struct module));
+  m = allocHeap(sizeof(struct module));
   m->name = name;
   m->file = (SourceFile) NULL;
   clearFlags(m);
@@ -53,7 +53,7 @@ lookupModule(Atom name)
   if ( name == ATOM_system || stringAtom(name)[0] == '$' )
     set(m, SYSTEM);
 
-  addHTable(moduleTable, name, m);
+  addHTable(moduleTable, (void *)name, m);
   statistics.modules++;
   
   return m;
@@ -61,13 +61,13 @@ lookupModule(Atom name)
 
 
 static Module
-isCurrentModule(Atom name)
+isCurrentModule(atom_t name)
 { Symbol s;
   
-  if ((s = lookupHTable(moduleTable, name)) != (Symbol) NULL)
+  if ( (s = lookupHTable(moduleTable, (void*)name)) )
     return (Module) s->value;
 
-  return (Module) NULL;
+  return NULL;
 }
 
 
@@ -101,13 +101,13 @@ Word
 stripModule(Word term, Module *module)
 { deRef(term);
 
-  while(isTerm(*term) && functorTerm(*term) == FUNCTOR_module2)
+  while( hasFunctor(*term, FUNCTOR_module2) )
   { Word mp;
     mp = argTermP(*term, 0);
     deRef(mp);
     if ( !isAtom(*mp) )
       break;
-    *module = lookupModule((Atom) *mp);
+    *module = lookupModule(*mp);
     term = argTermP(*term, 1);
     deRef(term);
   }
@@ -133,7 +133,7 @@ isPublicModule(Module module, Procedure proc)
 word
 pl_default_module(term_t me, term_t old, term_t new)
 { Module m, s;
-  Atom a;
+  atom_t a;
 
   if ( PL_is_variable(me) )
   { m = contextModule(environment_frame);
@@ -158,7 +158,7 @@ pl_default_module(term_t me, term_t old, term_t new)
 word
 pl_current_module(term_t module, term_t file, word h)
 { Symbol symb = firstHTable(moduleTable);
-  Atom name;
+  atom_t name;
 
   if ( ForeignControl(h) == FRG_CUTTED )
     succeed;
@@ -169,7 +169,7 @@ pl_current_module(term_t module, term_t file, word h)
     { Module m = (Module) symb->value;
 
       if ( name == m->name )
-      { Atom f = (m->file == (SourceFile) NULL ? ATOM_nil : m->file->name);
+      { atom_t f = (!m->file ? ATOM_nil : m->file->name);
 	return PL_unify_atom(file, f);
       }
     }
@@ -190,7 +190,7 @@ pl_current_module(term_t module, term_t file, word h)
   { case FRG_FIRST_CALL:
       break;
     case FRG_REDO:
-      symb = (Symbol) ForeignContextAddress(h);
+      symb = ForeignContextPtr(h);
       break;
     default:
       assert(0);
@@ -204,14 +204,14 @@ pl_current_module(term_t module, term_t file, word h)
       continue;
 
     { fid_t cid = PL_open_foreign_frame();
-      Atom f = (m->file == (SourceFile) NULL ? ATOM_nil : m->file->name);
+      atom_t f = ( !m->file ? ATOM_nil : m->file->name);
 
       if ( PL_unify_atom(module, m->name) &&
 	   PL_unify_atom(file, f) )
       { if ( !(symb = nextHTable(moduleTable, symb)) )
 	  succeed;
 
-	ForeignRedo(symb);
+	ForeignRedoPtr(symb);
       }
 
       PL_discard_foreign_frame(cid);
@@ -239,7 +239,7 @@ pl_strip_module(term_t spec, term_t module, term_t term)
 word
 pl_module(term_t old, term_t new)
 { if ( PL_unify_atom(old, modules.typein->name) )
-  { Atom name;
+  { atom_t name;
 
     if ( !PL_get_atom(new, &name) )
       return warning("module/2: argument should be an atom");
@@ -255,7 +255,7 @@ pl_module(term_t old, term_t new)
 word
 pl_set_source_module(term_t old, term_t new)
 { if ( PL_unify_atom(old, modules.source->name) )
-  { Atom name;
+  { atom_t name;
 
     if ( !PL_get_atom(new, &name) )
       return warning("$source_module/2: argument should be an atom");
@@ -275,7 +275,7 @@ in it are abolished.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-declareModule(Atom name, SourceFile sf)
+declareModule(atom_t name, SourceFile sf)
 { Module module = lookupModule(name);
   Symbol s;
 
@@ -306,7 +306,7 @@ declareModule(Atom name, SourceFile sf)
 word
 pl_declare_module(term_t name, term_t file)
 { SourceFile sf;
-  Atom mname, fname;
+  atom_t mname, fname;
 
   if ( !PL_get_atom(name, &mname) ||
        !PL_get_atom(file, &fname) )
@@ -323,7 +323,7 @@ export_list(+Module, -PublicPreds)
 word
 pl_export_list(term_t modulename, term_t public)
 { Module module;
-  Atom mname;
+  atom_t mname;
   Symbol s;
 
   if ( !PL_get_atom(modulename, &mname) )

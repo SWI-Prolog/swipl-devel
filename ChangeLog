@@ -1,8 +1,21 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.7.0
+=============
+
+  * FIXED: memory leak after assert/retract of code holding floats,
+    32-bit integers or strings (not lists of char-code).  Also
+    provides more compact code for floats and large integers
+    (both small and large integers require 2 words, doubles 3 words).
+
+  * MODIFIED: Complete rewrite of the internal datastructures.
+
+
 Version 2.6.0
 =============
+
+  * ADDED: plld and manpage for creating embedded executables.
 
   * FIXED: flush output of terminal streams while halting.
 

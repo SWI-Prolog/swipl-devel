@@ -10,7 +10,7 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 
-forwards Atom	dwimMatch(char *, char *);
+forwards atom_t	dwimMatch(char *, char *);
 forwards bool	oneTypo(char *, char *);
 forwards bool	twoTransposed(char *, char *);
 forwards bool	oneInserted(char *, char *);
@@ -30,7 +30,7 @@ the case:
   - Two `Sub-words' have been transposed	(exists_file == file_exists)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static Atom
+static atom_t
 dwimMatch(char *str1, char *str2)
 { int cl=0, l1, l2;
   register char *s1 = str1;
@@ -158,7 +158,7 @@ subwordsTransposed(char *s1, char *s2)
 word
 pl_dwim_match(term_t a1, term_t a2, term_t mm)
 { char *s1, *s2;
-  Atom type;
+  atom_t type;
 
   if ( PL_get_chars(a1, &s1, CVT_ALL|BUF_RING) &&
        PL_get_chars(a2, &s2, CVT_ALL|BUF_RING) &&
@@ -194,7 +194,7 @@ pl_dwim_predicate(term_t pred, term_t dwim, word h)
   if ( ForeignControl(h) == FRG_FIRST_CALL )
     symb = firstHTable(module->procedures);
   else
-    symb = (Symbol) ForeignContextAddress(h);
+    symb = ForeignContextPtr(h);
 
   for(; symb; symb = nextHTable(module->procedures, symb))
   { Definition def;
@@ -209,7 +209,7 @@ pl_dwim_predicate(term_t pred, term_t dwim, word h)
     { if ( !PL_unify_functor(dwim, def->functor) )
 	continue;
       if ( (symb = nextHTable(module->procedures, symb)) )
-	ForeignRedo(symb);
+	ForeignRedoPtr(symb);
 
       succeed;
     }

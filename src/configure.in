@@ -284,14 +284,6 @@ else
     AC_MSG_RESULT(no)
 fi
 
-AC_MSG_CHECKING("for /dev/null")
-if test ! -w /dev/null && test -w /dev/nul; then
-   AC_DEFINE(DEVNULL, "/dev/nul")
-   AC_MSG_RESULT("/dev/nul")
-else
-   AC_MSG_RESULT(yes)
-fi
-
 AC_MSG_CHECKING("for ld -r")
 cat > conftest1.c <<EOF
 f1(){}
@@ -410,13 +402,6 @@ cat $srcdir/test/memmodel.c >> conftest.c
 eval $ac_link
 if test -s conftest && eval `./conftest`; then
     AC_DEFINE_UNQUOTED(STACK_DIRECTION, $STACK_DIRECTION)
-    if test "$DATA_AT_0X8" = "1"; then AC_DEFINE(DATA_AT_0X8) fi
-    if test "$DATA_AT_0X4" = "1"; then AC_DEFINE(DATA_AT_0X4) fi
-    if test "$DATA_AT_0X2" = "1"; then AC_DEFINE(DATA_AT_0X2) fi
-    if test "$DATA_AT_0X1" = "1"; then AC_DEFINE(DATA_AT_0X1) fi
-    if test ! -z "$VMCODE_IS_ADDRESS"; then
-	AC_DEFINE_UNQUOTED(VMCODE_IS_ADDRESS, $VMCODE_IS_ADDRESS)
-    fi
     AC_MSG_RESULT(yes)
 else
     AC_MSG_WARN("Failed to compile test/memmodel.c")

@@ -28,7 +28,38 @@ static int	cmps;
 static void	exitAtoms(int status, void *arg);
 #endif
 
-Atom
+		 /*******************************
+		 *      BUILT-IN ATOM TABLE	*
+		 *******************************/
+
+#ifdef O_HASHTERM
+#define ATOM(s) { (Atom)NULL, 0L, s }
+#else
+#define ATOM(s) { (Atom)NULL, s }
+#endif
+
+struct atom atoms[] = {
+#include "pl-atom.ic"
+  ATOM((char *)NULL)
+};
+#undef ATOM
+
+static word
+mkAtom(Atom a)
+{ if ( (char *)a < (char *)atoms + sizeof(atoms) &&
+       a >= atoms )
+  { int i = a-atoms;
+
+    return MK_ATOM(i);
+  } else
+    return consPtr(a, TAG_ATOM|STG_HEAP);
+}
+
+		 /*******************************
+		 *	  GENERAL LOOKUP	*
+		 *******************************/
+
+word
 lookupAtom(const char *s)
 { int v0 = unboundStringHashValue(s);
   int v = v0 & (atom_buckets-1);
@@ -36,14 +67,13 @@ lookupAtom(const char *s)
 
   DEBUG(0, lookups++);
 
-  for(a = atomTable[v]; a && !isRef((word)a); a = a->next)
+  for(a = atomTable[v]; a && !isTableRef(a); a = a->next)
   { DEBUG(0, cmps++);
     if (streq(s, a->name) )
-      return a;
+      return mkAtom(a);
   }
   a = (Atom)allocHeap(sizeof(struct atom));
   a->next       = atomTable[v];
-  a->type       = ATOM_TYPE;
 #ifdef O_HASHTERM
   a->hash_value = v0;
 #endif
@@ -54,11 +84,13 @@ lookupAtom(const char *s)
   if ( atom_buckets * 2 < statistics.atoms && !atom_locked )
     rehashAtoms();
 
-  DEBUG(0, assert(isAtom((word)a) && !isInteger((word)a)));
-
-  return a;
+  return mkAtom(a);
 }
 
+
+		 /*******************************
+		 *	    REHASH TABLE	*
+		 *******************************/
 
 static void
 makeAtomRefPointers()
@@ -66,7 +98,7 @@ makeAtomRefPointers()
   int n;
 
   for(n=0, a=atomTable; n < (atom_buckets-1); n++, a++)
-    *a = (Atom) makeRef(a+1);
+    *a = makeTableRef(a+1);
   *a = NULL;
 }
 
@@ -87,8 +119,8 @@ rehashAtoms()
   for(a=oldtab[0]; a; a = n)
   { int v;
 
-    while(isRef((word)a) )
-    { a = *((Atom *)unRef(a));
+    while(isTableRef(a) )
+    { a = unTableRef(Atom, a);
       if ( a == NULL )
 	goto out;
     }
@@ -111,29 +143,11 @@ pl_atom_hashstat(term_t idx, term_t n)
   
   if ( !PL_get_integer(idx, &i) || i < 0 || i >= atom_buckets )
     fail;
-  for(m = 0, a = atomTable[i]; a && !isRef((word)a); a = a->next)
+  for(m = 0, a = atomTable[i]; a && !isTableRef(a); a = a->next)
     m++;
 
   return PL_unify_integer(n, m);
 }
-
-#ifdef O_HASHTERM
-#define ATOM(s) { (Atom)NULL, ATOM_TYPE, 0L, s }
-#else
-#define ATOM(s) { (Atom)NULL, ATOM_TYPE, s }
-#endif
-
-#ifdef COPY_ATOMS_TO_HEAP
-Atom atoms;
-#else
-#define static_atoms atoms
-#endif
-
-struct atom static_atoms[] = {
-#include "pl-atom.ic"
-  ATOM((char *)NULL)
-};
-#undef ATOM
 
 /* Note that the char * of the atoms is copied to the data segment.  This
    is done because some functions temporary change the char string associated
@@ -141,21 +155,11 @@ struct atom static_atoms[] = {
    segment.
 */
 
-#ifdef COPY_ATOMS_TO_HEAP
-static void
-copyAtomsToHeap()
-{ atoms = allocHeap(sizeof(static_atoms));
-  memcpy(atoms, static_atoms, sizeof(static_atoms));
-}
-#else
-#define copyAtomsToHeap()
-#endif
 
 void
 initAtoms(void)
 { atomTable = allocHeap(atom_buckets * sizeof(Atom));
   makeAtomRefPointers();
-  copyAtomsToHeap();
 
   { Atom a;
 
@@ -169,7 +173,6 @@ initAtoms(void)
       a->hash_value = v0;
 #endif
       atomTable[v]  = a;
-      DEBUG(0, assert(isAtom((word)a) && !isInteger((word)a)));
       statistics.atoms++;
     }
   }    
@@ -200,7 +203,7 @@ pl_current_atom(term_t a, word h)
       lockAtoms();
       break;
     case FRG_REDO:
-      atom = (Atom) ForeignContextAddress(h);
+      atom = ForeignContextPtr(h);
       break;
     case FRG_CUTTED:
     default:
@@ -209,12 +212,12 @@ pl_current_atom(term_t a, word h)
   }
 
   for(; atom; atom = atom->next)
-  { while(isRef((word)atom) )
-    { atom = *((Atom *)unRef(atom));
-      if (atom == (Atom) NULL)
+  { while(isTableRef(atom) )
+    { atom = unTableRef(Atom, atom);
+      if ( !atom )
 	goto out;
     }
-    PL_unify_atom(a, atom);
+    PL_unify_atom(a, mkAtom(atom));
 
     return_next_table(Atom, atom, unlockAtoms());
   }
@@ -230,7 +233,7 @@ out:
 
 #define ALT_SIZ 80		/* maximum length of one alternative */
 #define ALT_MAX 256		/* maximum number of alternatives */
-#define stringMatch(m)	(stringAtom((m)->name))
+#define stringMatch(m)	((m)->name->name)
 
 forwards bool 	allAlpha(char *);
 
@@ -260,20 +263,20 @@ extendAtom(char *prefix, bool *unique)
   *unique = TRUE;
 
   for(; a; a = a->next)
-  { while( isRef((word)a) )
-    { a = *((Atom *)unRef(a));
-      if ( a == (Atom)NULL)
+  { while( isTableRef(a) )
+    { a = unTableRef(Atom, a);
+      if ( !a )
 	goto out;
     }
-    if ( strprefix(stringAtom(a), prefix) )
-    { if ( strlen(stringAtom(a)) >= LINESIZ )
+    if ( strprefix(a->name, prefix) )
+    { if ( strlen(a->name) >= LINESIZ )
 	continue;
       if ( first == TRUE )
-      { strcpy(common, stringAtom(a)+lp);
+      { strcpy(common, a->name+lp);
 	first = FALSE;
       } else
       { char *s = common;
-	char *q = stringAtom(a)+lp;
+	char *q = a->name+lp;
 	while( *s && *s == *q )
 	  s++, q++;
 	*s = EOS;
@@ -322,12 +325,12 @@ extend_alternatives(char *prefix, struct match *altv, int *altn)
 
   *altn = 0;
   for(; a; a=a->next)
-  { while( a && isRef((word)a) )
-      a = *((Atom *)unRef(a));
+  { while( a && isTableRef(a) )
+      a = unTableRef(Atom, a);
     if ( a == (Atom) NULL )
       break;
     
-    as = stringAtom(a);
+    as = a->name;
     if ( strprefix(as, prefix) &&
 	 allAlpha(as) &&
 	 (l = (int)strlen(as)) < ALT_SIZ )
@@ -363,7 +366,7 @@ pl_atom_completions(term_t prefix, term_t alternatives)
   
   for(i=0; i<altn; i++)
   { if ( !PL_unify_list(alts, head, alts) ||
-	 !PL_unify_atom(head, altv[i].name) )
+	 !PL_unify_atom(head, mkAtom(altv[i].name)) )
       fail;
   }
 
@@ -386,14 +389,13 @@ PL_atom_generator(char *prefix, int state)
   { char *as;
     int l;
 
-    while( isRef((word)a) )
-    { a = *((Atom *)unRef(a));
+    while( isTableRef(a) )
+    { a = unTableRef(Atom, a);
       if ( !a )
 	return NULL;
     }
     
-    assert(a->type == ATOM_TYPE);
-    as = stringAtom(a);
+    as = a->name;
     if ( strprefix(as, prefix) &&
 	 allAlpha(as) &&
 	 (l = strlen(as)) < ALT_SIZ )

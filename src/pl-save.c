@@ -135,7 +135,7 @@ extern long _heap_end;
 #define DATA_START ((long) &etext + sizeof(long))
 #endif
 
-#ifdef __solaris__
+#if defined(__sun__) && defined(__svr4__) /* solaris */
 #define O_SAVE_STDIO 1
 #endif
 

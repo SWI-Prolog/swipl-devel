@@ -25,24 +25,38 @@ static void	  rehashFunctors();
 			      functor_buckets * 2 < statistics.functors ) \
 			   rehashFunctors()
 
+
+#define arityMask(n) (((n) < F_ARITY_MASK ? (n) : F_ARITY_MASK) << LMASK_BITS)
+
+static void
+registerFunctor(FunctorDef fd)
+{ int n = entriesBuffer(&functor_array, FunctorDef);
+    
+  fd->functor = ((n<<(LMASK_BITS+F_ARITY_BITS)) |
+		 arityMask(fd->arity) |
+		 TAG_ATOM|STG_GLOBAL);
+  addBuffer(&functor_array, fd, FunctorDef);
+}
+
+
 FunctorDef
-lookupFunctorDef(register Atom atom, register int arity)
+lookupFunctorDef(atom_t atom, int arity)
 { int v = pointerHashValue(atom, functor_buckets);
   register FunctorDef f;
 
   DEBUG(9, Sdprintf("Lookup functor %s/%d = ", stringAtom(atom), arity));
-  for(f = functorDefTable[v]; f && !isRef((word)f); f = f->next)
+  for(f = functorDefTable[v]; f && !isTableRef(f); f = f->next)
   { if (atom == f->name && f->arity == arity)
     { DEBUG(9, Sdprintf("%ld (old)\n", f));
       return f;
     }
   }
   f = (FunctorDef) allocHeap(sizeof(struct functorDef));
-  f->next = functorDefTable[v];
-  f->type = FUNCTOR_TYPE;
-  f->name = atom;
-  f->arity = arity;
-  f->flags = 0;
+  f->next    = functorDefTable[v];
+  f->functor = 0L;
+  f->name    = atom;
+  f->arity   = arity;
+  f->flags   = 0;
   functorDefTable[v] = f;
   statistics.functors++;
 
@@ -51,6 +65,7 @@ lookupFunctorDef(register Atom atom, register int arity)
   if ( functor_buckets * 2 < statistics.functors && !functor_locked )
     rehashFunctors();
 
+  registerFunctor(f);
   return f;
 }
 
@@ -72,9 +87,9 @@ rehashFunctors()
   for(f = oldtab[0]; f; f = n)
   { int v;
 
-    while(isRef((word)f) )
-    { f = *((FunctorDef *)unRef(f));
-      if ( f == NULL )
+    while(isTableRef(f) )
+    { f = unTableRef(FunctorDef, f);
+      if ( !f )
 	goto out;
     }
     n = f->next;
@@ -93,11 +108,11 @@ out:
 
 
 FunctorDef
-isCurrentFunctor(Atom atom, int arity)
+isCurrentFunctor(atom_t atom, int arity)
 { int v = pointerHashValue(atom, functor_buckets);
   FunctorDef f;
 
-  for(f = functorDefTable[v]; f && !isRef((word)f); f = f->next)
+  for(f = functorDefTable[v]; f && !isTableRef(f); f = f->next)
   { if (atom == f->name && f->arity == arity)
       return f;
   }
@@ -106,10 +121,13 @@ isCurrentFunctor(Atom atom, int arity)
 }
 
 
+#define FUNCTOR(n, a) { NULL, 0L, n, a }
 struct functorDef functors[] = {
 #include "pl-funct.ic"
-{ (FunctorDef)NULL,	FUNCTOR_TYPE,	(Atom) NULL, 0 }
+FUNCTOR(NULL_ATOM, 0)
 };
+#undef FUNCTOR
+
 
 static void
 allocFunctorTable()
@@ -119,8 +137,8 @@ allocFunctorTable()
   functorDefTable = allocHeap(functor_buckets * sizeof(FunctorDef));
 
   for(n=0, f=functorDefTable; n < (functor_buckets-1); n++, f++)
-    *f = (FunctorDef)makeRef(f+1);
-  *f = (FunctorDef) NULL;
+    *f = makeTableRef(f+1);
+  *f = NULL;
 }
 
 
@@ -135,6 +153,7 @@ initFunctors(void)
     { v = pointerHashValue(f->name, functor_buckets);
       f->next = functorDefTable[v];
       functorDefTable[v] = f;
+      registerFunctor(f);
       statistics.functors++;
     }
   }
@@ -147,20 +166,18 @@ checkFunctors()
 
   for( n=0; n < functor_buckets; n++ )
   { f = functorDefTable[n];
-    for( ;f && !isRef((word)f); f = f->next )
-    { if ( f->type != FUNCTOR_TYPE )
-        Sdprintf("[ERROR: Functor %ld has bad type: %ld]\n", f, f->type);
-      if ( f->arity < 0 || f->arity > 10 )	/* debugging only ! */
+    for( ;f && !isTableRef(f); f = f->next )
+    { if ( f->arity < 0 || f->arity > 10 )	/* debugging only ! */
         Sdprintf("[ERROR: Functor %ld has dubious arity: %d]\n", f, f->arity);
-      if ( !inCore(f->name) || f->name->type != ATOM_TYPE )
+      if ( !isArom(f->name) )
         Sdprintf("[ERROR: Functor %ld has illegal name: %ld]\n", f, f->name);
       if ( !( f->next == (FunctorDef) NULL ||
-	      isRef((word)f->next) ||
+	      isTableRef(f->next) ||
 	      inCore(f->next)) )
 	Sdprintf("[ERROR: Functor %ld has illegal next: %ld]\n", f, f->next);
     }
-    if ( (isRef((word)f) &&
-	 ((FunctorDef *) unRef((word)f) != &functorDefTable[n+1])) )
+    if ( (isTableRef(f) &&
+	 (unTableRef(FunctorDef, f) != &functorDefTable[n+1])) )
       Sdprintf("[ERROR: Bad continuation pointer (fDef, n=%d)]\n", n);
     if ( f == (FunctorDef) NULL && n != (functor_buckets-1) )
       Sdprintf("[ERROR: illegal end pointer (fDef, n=%d)]\n", n);
@@ -171,7 +188,7 @@ checkFunctors()
 word
 pl_current_functor(term_t name, term_t arity, word h)
 { FunctorDef fdef;
-  Atom nm;
+  atom_t nm;
   int  ar;
   int name_is_atom;
   mark m;
@@ -198,7 +215,7 @@ pl_current_functor(term_t name, term_t arity, word h)
       lockFunctors();
       break;
     case FRG_REDO:
-      fdef = (FunctorDef) ForeignContextAddress(h);
+      fdef = ForeignContextPtr(h);
       name_is_atom = PL_is_atom(name);
       break;
     case FRG_CUTTED:
@@ -210,15 +227,15 @@ pl_current_functor(term_t name, term_t arity, word h)
   Mark(m);
   DEBUG(9, Sdprintf("current_functor(): fdef = %ld\n", fdef));
   for(; fdef; fdef = fdef->next)
-  { if ( isRef((word)fdef) )
+  { if ( isTableRef(fdef) )
     { if ( name_is_atom )
 	goto out;
 
       do
-      { fdef = *((FunctorDef *)unRef(fdef));
-	if (fdef == (FunctorDef) NULL)
+      { fdef = unTableRef(FunctorDef, fdef);
+	if ( !fdef )
 	  goto out;
-      } while( isRef((word)fdef) );
+      } while( isTableRef(fdef) );
     }
     if ( fdef->arity == 0 )
       continue;

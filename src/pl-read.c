@@ -10,7 +10,6 @@
 #include <math.h>
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
-#include "pl-buffer.h"
 #include "pl-ctype.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -38,7 +37,7 @@ This module is considerably faster when compiled  with  GCC,  using  the
 forwards void	startRead(void);
 forwards void	stopRead(void);
 forwards void	errorWarning(char *);
-forwards void	singletonWarning(Atom *, int);
+forwards void	singletonWarning(atom_t *, int);
 forwards void	clearBuffer(void);
 forwards void	addToBuffer(int);
 forwards char *	raw_read2(void);
@@ -51,7 +50,7 @@ struct token
 { int type;			/* type of token */
   union
   { number	number;		/* int or float */
-    Atom	atom;		/* atom value */
+    atom_t	atom;		/* atom value */
     term_t	term;		/* term (list or string) */
     int		character;	/* a punctuation character (T_PUNCTUATION) */
     Variable	variable;	/* a variable record (T_VARIABLE) */
@@ -219,7 +218,7 @@ errorWarning(char *what)
 
 
 static void
-singletonWarning(Atom *vars, int nvars)
+singletonWarning(atom_t *vars, int nvars)
 { fid_t cid = PL_open_foreign_frame();
   qid_t qid;
   term_t argv      = PL_new_term_refs(3);
@@ -609,7 +608,6 @@ lookupVariable(const char *name)
   while ( var_free >= var_allocated )
   { Variable v = allocHeap(sizeof(struct variable));
     v->atom.next        = NULL;
-    v->atom.type        = ATOM_TYPE;
     v->atom.hash_value  = 0;
     v->atom.name	= uniquename;
     addBuffer(&var_buffer, v, Variable);
@@ -634,7 +632,7 @@ lookupVariable(const char *name)
 static void
 check_singletons()
 { Variable var;
-  Atom singletons[MAX_SINGLETONS];
+  atom_t singletons[MAX_SINGLETONS];
   int i=0;
 
   for(var = var_list; var; var=var->next)
@@ -678,7 +676,7 @@ bind_variables(term_t bindings)
 #define unget_token()	{ unget = TRUE; }
 
 forwards Token	get_token(bool);
-forwards void	build_term(term_t term, Atom name, int arity, term_t *args);
+forwards void	build_term(term_t term, atom_t name, int arity, term_t *args);
 forwards bool	complex_term(const char *end, term_t term);
 forwards bool	simple_term(bool, term_t term, bool *isname);
 
@@ -988,7 +986,7 @@ get_token(bool must_be_op)
 		  *here = c;
 		  token.type = (c == '(' ? T_FUNCTOR : T_NAME);
 		  DEBUG(9, Sdprintf("%s: %s\n", c == '(' ? "FUNC" : "NAME",
-				    stringAtom(token.value.prolog)));
+				    stringAtom(token.value.atom)));
 
 		  return &token;
 		}
@@ -1026,7 +1024,7 @@ get_token(bool must_be_op)
 		  token.type = (*here == '(' ? T_FUNCTOR : T_NAME);
 		  DEBUG(9, Sdprintf("%s: %s\n",
 				  *here == '(' ? "FUNC" : "NAME",
-				  stringAtom(token.value.prolog)));
+				  stringAtom(token.value.atom)));
 
 		  return &token;
 		}
@@ -1053,7 +1051,7 @@ get_token(bool must_be_op)
 		  token.type = (end == '(' ? T_FUNCTOR : T_NAME);
 		  DEBUG(9, Sdprintf("%s: %s\n",
 				    end == '(' ? "FUNC" : "NAME",
-				    stringAtom(token.value.prolog)));
+				    stringAtom(token.value.atom)));
 
 		  return &token;
 		}
@@ -1067,7 +1065,7 @@ get_token(bool must_be_op)
 			token.value.atom = (c == '[' ? ATOM_nil : ATOM_curl);
 			token.type = here[0] == '(' ? T_FUNCTOR : T_NAME;
 			DEBUG(9, Sdprintf("NAME: %s\n",
-					  stringAtom(token.value.prolog)));
+					  stringAtom(token.value.atom)));
 			return &token;
 		      }
 		  }
@@ -1124,7 +1122,9 @@ readValHandle(term_t term, Word argp)
 { word w = *valTermRef(term);
 
   if ( isVarAtom(w) )
-  { Variable var = (Variable) w;
+  { Variable var = (Variable) atomValue(w);
+
+    DEBUG(2, Sdprintf("readValHandle(): var at 0x%x\n", var));
 
     if ( !var->variable )		/* new variable */
     { var->variable = PL_new_term_ref();
@@ -1139,13 +1139,13 @@ readValHandle(term_t term, Word argp)
 
 
 static void
-build_term(term_t term, Atom atom, int arity, term_t *argv)
+build_term(term_t term, atom_t atom, int arity, term_t *argv)
 { FunctorDef functor = lookupFunctorDef(atom, arity);
   Word argp = allocGlobal(arity+1);
 
   DEBUG(9, Sdprintf("Building term %s/%d ... ", stringAtom(atom), arity));
-  setHandle(term, (word)argp);
-  *argp++ = (word)functor;
+  setHandle(term, consPtr(argp, TAG_COMPOUND|STG_GLOBAL));
+  *argp++ = functor->functor;
 
   for( ; arity-- > 0; argv++, argp++)
     readValHandle(*argv, argp);
@@ -1177,7 +1177,7 @@ simple_term() which reads everything, except for operators.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct
-{ Atom	op;
+{ atom_t op;
   int	kind;
   int	left_pri;
   int	right_pri;
@@ -1185,7 +1185,7 @@ typedef struct
 } op_entry;
 
 static bool
-isOp(Atom atom, int kind, op_entry *e)
+isOp(atom_t atom, int kind, op_entry *e)
 { Operator op = isCurrentOperator(atom, kind);
   int pri;
 
@@ -1290,7 +1290,7 @@ complex_term(const char *stop, term_t term)
     TRY( simple_term(rmo == 1, in, &isname) );
 
     if ( isname )			/* Check for operators */
-    { Atom name;
+    { atom_t name;
 
       PL_get_atom(in, &name);
 
@@ -1370,7 +1370,8 @@ simple_term(bool must_be_op, term_t term, bool *name)
       setHandle(term, 0L);		/* variable */
       succeed;
     case T_VARIABLE:
-      setHandle(term, (word)token->value.variable);
+      setHandle(term, consPtr(token->value.variable, TAG_ATOM|STG_HEAP));
+      DEBUG(2, Sdprintf("Pushed var at 0x%x\n", token->value.variable));
       succeed;
     case T_NAME:
       *name = TRUE;
@@ -1390,7 +1391,7 @@ simple_term(bool must_be_op, term_t term, bool *name)
 	{ term_t argv[MAXARITY+1];
 	  term_t *argp;
 	  int argc;
-	  Atom functor;
+	  atom_t functor;
 
 	  functor = token->value.atom;
 	  argc = 0, argp = argv;
@@ -1442,8 +1443,9 @@ term is to be written.
 
 		TRY( complex_term(",|]", tmp) );
 		argp = allocGlobal(3);
-		*unRef(*valTermRef(tail)) = (word)argp;
-		*argp++ = (word)FUNCTOR_dot2;
+		*unRef(*valTermRef(tail)) = consPtr(argp,
+						    TAG_COMPOUND|STG_GLOBAL);
+		*argp++ = FUNCTOR_dot2->functor;
 		readValHandle(tmp, argp++);
 		setVar(*argp);
 		setHandle(tail, makeRef(argp));

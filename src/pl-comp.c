@@ -8,7 +8,6 @@
 */
 
 #include "pl-incl.h"
-#include "pl-buffer.h"
 
 #define CODE(c, n, a, e)	{ n, c, a, e }
 
@@ -16,18 +15,22 @@ struct code_info codeTable[] = {
 /*     ID		name	     #args #xr */
   CODE(I_NOP,		"i_nop",	0, 0),
   CODE(I_ENTER,		"i_enter",	0, 0),
-  CODE(I_CALL,		"i_call",	1, 1),
-  CODE(I_DEPART,	"i_depart",	1, 1),
+  CODE(I_CALL,		"i_call",	1, CA1_PROC),
+  CODE(I_DEPART,	"i_depart",	1, CA1_PROC),
   CODE(I_EXIT,		"i_exit",	0, 0),
-  CODE(B_FUNCTOR,	"b_functor",	1, 1),
-  CODE(H_FUNCTOR,	"h_functor",	1, 1),
+  CODE(B_FUNCTOR,	"b_functor",	1, CA1_FUNC),
+  CODE(H_FUNCTOR,	"h_functor",	1, CA1_FUNC),
   CODE(I_POP,		"i_pop",	0, 0),
   CODE(I_POPN,		"i_popn",	1, 0),
   CODE(B_VAR,		"b_var",	1, 0),
   CODE(H_VAR,		"h_var",	1, 0),
-  CODE(B_CONST,		"b_const",	1, 1),
-  CODE(H_CONST,		"h_const",	1, 1),
-  CODE(H_INDIRECT,	"h_real",	1, 1),
+  CODE(B_CONST,		"b_const",	1, CA1_DATA),
+  CODE(H_CONST,		"h_const",	1, CA1_DATA),
+  CODE(H_INDIRECT,	"h_indirect",	1, CA1_STRING),
+  CODE(B_INTEGER,	"b_integer",	1, CA1_INTEGER),
+  CODE(H_INTEGER,	"h_integer",	1, CA1_INTEGER),
+  CODE(B_FLOAT,		"b_float",	1, CA1_FLOAT),
+  CODE(H_FLOAT,		"h_float",	1, CA1_FLOAT),
   CODE(B_FIRSTVAR,	"b_firstvar",	1, 0),
   CODE(H_FIRSTVAR,	"h_firstvar",	1, 0),
   CODE(B_VOID,		"b_void",	0, 0),
@@ -44,8 +47,8 @@ struct code_info codeTable[] = {
   CODE(I_CUT,		"i_cut",	0, 0),
   CODE(I_APPLY,		"i_apply",	0, 0),
   CODE(A_ENTER,		"a_enter",	0, 0),
-  CODE(A_INTEGER,	"a_integer",	1, 0), /* argument is long */
-  CODE(A_DOUBLE,	"a_double",	2, 0), /* double (2 longs) */
+  CODE(A_INTEGER,	"a_integer",	1, CA1_INTEGER),
+  CODE(A_DOUBLE,	"a_double",	2, CA1_FLOAT),
   CODE(A_VAR0,		"a_var0",	0, 0),
   CODE(A_VAR1,		"a_var1",	0, 0),
   CODE(A_VAR2,		"a_var2",	0, 0),
@@ -70,15 +73,15 @@ struct code_info codeTable[] = {
   CODE(C_END,		"c_end",	0, 0),
   CODE(C_NOT,		"c_not",	2, 0),
   CODE(C_FAIL,		"c_fail",	0, 0),
-  CODE(B_INDIRECT,	"b_indirect",	1, 1),
+  CODE(B_INDIRECT,	"b_indirect",	1, CA1_STRING),
 #if O_BLOCK
   CODE(I_CUT_BLOCK,	"i_cut_block",	0, 0),
   CODE(B_EXIT,		"b_exit",	0, 0),
 #endif
 #if O_INLINE_FOREIGNS
-  CODE(I_CALL_FV0,	"i_call_fv0",	1, 1),
-  CODE(I_CALL_FV1,	"i_call_fv1",	2, 1),
-  CODE(I_CALL_FV2,	"i_call_fv2",	3, 1),
+  CODE(I_CALL_FV0,	"i_call_fv0",	1, CA1_PROC),
+  CODE(I_CALL_FV1,	"i_call_fv1",	2, CA1_PROC), /* , var */
+  CODE(I_CALL_FV2,	"i_call_fv2",	3, CA1_PROC), /* , var, var */
 #endif
   CODE(I_FAIL,		"i_fail",	0, 0),
   CODE(I_TRUE,		"i_true",	0, 0),
@@ -240,14 +243,26 @@ forwards int	analyseVariables2(Word, int, int, int);
 #define A_ERROR		2
 #endif /* O_COMPILE_ARITH */
 
-static struct vardef
-{ FunctorDef	functor;		/* mimic a functor (FUNCTOR_var1) */
+typedef struct vardef *VarDef;
+struct vardef
+{ word		functor;		/* mimic a functor (FUNCTOR_var1) */
   Word		address;		/* address of the variable */
   int		times;			/* occurences */
   int		offset;			/* offset in environment frame */
-} vars[MAXVARIABLES];
+};
+
+VarDef vars;
 
 static int	filledVars;		/* vardef structures filled */
+
+static void
+initVarTable()
+{ if ( !vars )
+  { vars = allocHeap(sizeof(struct vardef) * MAXVARIABLES);
+    memset(vars, 0, sizeof(struct vardef) * MAXVARIABLES);
+    filledVars = 0;
+  }
+}
 
 #define VAROFFSET(var) ( (var) + ARGOFFSET / (int) sizeof(word) )
 
@@ -308,10 +323,11 @@ are made variables again.
 static bool
 analyse_variables(Word head, Word body, int arity, int *nv)
 { int nvars = 0;
-  register struct vardef * vd;
+  register VarDef vd;
   register int n;
   int body_voids = 0;
 
+  initVarTable();
   for(n=0, vd = vars; n<arity; n++, vd++)
     vd->address = (Word) NULL;
 
@@ -340,12 +356,10 @@ analyse_variables(Word head, Word body, int arity, int *nv)
 
 static int
 analyseVariables2(register Word head, int nvars, int arity, int argn)
-{ int ar;
+{ deRef(head);
 
-  deRef(head);
-
-  if (isVar(*head) )
-  { register struct vardef *vd;
+  if ( isVar(*head) )
+  { register VarDef vd;
     int index = ((argn >= 0 && argn < arity) ? argn : (arity + nvars++));
 
     if ( index >= MAXVARIABLES-1 )
@@ -353,29 +367,31 @@ analyseVariables2(register Word head, int nvars, int arity, int argn)
       return -1;
     }
     vd = &vars[index];
-    vd->functor = FUNCTOR_var1;
+    vd->functor = FUNCTOR_var1->functor;
     vd->address = head;
     vd->times = 1;
-    *head = (word) vd;
+    *head = consPtr(vd, TAG_COMPOUND|STG_HEAP);
 
     return nvars;
   }
 
-  if ( isAtomic(*head) )
-    return nvars;
+  if ( isTerm(*head) )
+  { Functor f = valueTerm(*head);
 
-  if (functorTerm(*head) == FUNCTOR_var1)
-  { ((struct vardef *)*head)->times++;
-    return nvars;
+    if ( f->definition == FUNCTOR_var1->functor )
+    { VarDef vd = (VarDef)f;
+      vd->times++;
+      return nvars;
+    } else
+    { int ar = arityFunctor(f->definition);
+
+      head = f->arguments;
+      argn = ( argn < 0 ? 0 : arity );
+
+      for(; ar > 0; ar--, head++, argn++)
+	nvars = analyseVariables2(head, nvars, arity, argn);
+    }
   }
-
-  ar = functorTerm(*head)->arity;
-  head = argTermP(*head, 0);
-
-  argn = ( argn < 0 ? 0 : arity );
-
-  for(; ar > 0; ar--, head++, argn++)
-    nvars = analyseVariables2(head, nvars, arity, argn);
 
   return nvars;
 }
@@ -395,7 +411,7 @@ variables in the frame AND the arity.   This  saves  us  the  frame-size
 calculation at runtime.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define isConjunction(w) (isTerm(w) && functorTerm(w) == FUNCTOR_comma2)
+#define isConjunction(w) hasFunctor(w, FUNCTOR_comma2)
 
 #define HEAD    2			/* compileArgument on head argument */
 #define HEADARG 3			/* ... on functor arg in head */
@@ -411,6 +427,7 @@ calculation at runtime.
 #define Output_a(ci, c)		addBuffer(&(ci)->codes, c, code);
 #define Output_1(ci, c, a)	BLOCK(Output_0(ci, c); Output_a(ci, a))
 #define Output_2(ci, c, a0, a1)	BLOCK(Output_1(ci, c, a0); Output_a(ci, a1))
+#define Output_n(ci, p, n)	addMultipleBuffer(&(ci)->codes, p, n, word)
 
 #define BITSPERINT (sizeof(int)*8)
 
@@ -446,9 +463,15 @@ forwards int	compileArith(Word, compileInfo *);
 forwards bool	compileArithArgument(Word, compileInfo *);
 #endif
 
-#define isIndexedVarTerm(var) ( functorTerm(var) == FUNCTOR_var1 ? \
-					((struct vardef *)var)->offset : \
-					-1)
+static inline int
+isIndexedVarTerm(word w)
+{ if ( hasFunctor(w, FUNCTOR_var1) )
+  { VarDef v = (VarDef) valPtr(w);
+    return v->offset;
+  }
+
+  return -1;
+}
 
 #define ClearVarTable(ci)	((ci)->used_var = empty_var_table)
 
@@ -505,7 +528,7 @@ setVars(register Word t, register struct vartable *vt)
     { isFirstVar(vt, index);
       return;
     }
-    arity = functorTerm(*t)->arity;
+    arity = arityTerm(*t);
     for(t = argTermP(*t, 0); arity > 0; t++, arity--)
       setVars(t, vt);
   }
@@ -528,7 +551,7 @@ clause should belong to.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   if (isAtom(*head) )
-    proc = lookupProcedureToDefine(lookupFunctorDef((Atom)*head, 0), module);
+    proc = lookupProcedureToDefine(lookupFunctorDef(*head, 0), module);
   else if (isTerm(*head) )
     proc = lookupProcedureToDefine(functorTerm(*head), module);
   else
@@ -599,7 +622,7 @@ before the I_ENTER instructions.
 Now compile the body.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  if ( body != (Word) NULL && *body != (word) ATOM_true )
+  if ( body != (Word) NULL && *body != ATOM_true )
   { Output_0(&ci, I_ENTER);
     compileBody(body, I_DEPART, &ci);
   }
@@ -610,7 +633,7 @@ Reset all variables we initialised to the variable analysis  functor  to
 become variables again.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  { register struct vardef * vd;
+  { register VarDef vd;
     register int n;
 
     for(vd=vars, n=0; n < filledVars; n++, vd++)
@@ -695,7 +718,7 @@ compileBody(register Word body, code call, register compileInfo *ci)
       setVars(argTermP(*body, 1), &valt2);
 
       deRef(a0);
-      if ( isTerm(*a0) && functorTerm(*a0) == FUNCTOR_ifthen2 ) /* A -> B ; C */
+      if ( hasFunctor(*a0, FUNCTOR_ifthen2) )	/* A -> B ; C */
       { int var = VAROFFSET(ci->clause->variables++);
 	int tc_or, tc_jmp;
 
@@ -791,7 +814,7 @@ I_ENTER or I_POP instructions.
 static int lastPopped;		/* how many contiguous pops? */
 
 static int
-compileArgument(register Word arg, register int where, register compileInfo *ci)
+compileArgument(Word arg, int where, compileInfo *ci)
 { int index;
   bool first;
 
@@ -804,38 +827,44 @@ ISVOID  is reserved for head variables only (B_VOID sets the location to
 be a variable, and thus cannot be removed if it is before an I_POP.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  if ( isVar(*arg) )
-  { if (where & BODY)
-    { Output_0(ci, B_VOID);
+  switch(tag(*arg))
+  { case TAG_VAR:
+      if (where & BODY)
+      { Output_0(ci, B_VOID);
+	return NONVOID;
+      }
+      Output_0(ci, H_VOID);
+      return ISVOID;
+    case TAG_INTEGER:
+      if ( storage(*arg) != STG_INLINE )
+      {	Output_1(ci, where & HEAD ? H_INTEGER : B_INTEGER, valBignum(*arg));
+	return NONVOID;
+      }
+      /* FALLTHROUGH for tagged integers */
+    case TAG_ATOM:
+      Output_1(ci, (where & BODY) ? B_CONST : H_CONST, *arg);
+      return NONVOID;
+    case TAG_FLOAT:
+    { Word p = valIndirectP(*arg);
+      Output_2(ci, (where & BODY) ? B_FLOAT : H_FLOAT, p[0], p[1]);
       return NONVOID;
     }
-    Output_0(ci, H_VOID);
-    return ISVOID;
+    case TAG_STRING:
+    { Word p = addressIndirect(*arg);
+
+      int n  = wsizeofInd(*p);
+      Output_0(ci, where & HEAD ? H_INDIRECT : B_INDIRECT);
+      Output_n(ci, p, n+1);
+      return NONVOID;
+    }
   }
 
-
-  if ( isAtomic(*arg) )
-  { if (isNil(*arg) && (where & HEAD))
-    { Output_0(ci, H_NIL);
-      return NONVOID;
-    }
-
-    if ( isIndirect(*arg) )
-    { Output_1(ci, where & HEAD ? H_INDIRECT : B_INDIRECT, heapIndirect(*arg));
-      return NONVOID;
-    }
-
-    Output_1(ci, (where & BODY) ? B_CONST : H_CONST, *arg);
-    return NONVOID;
-  }
+  assert(isTerm(*arg));
     
-  SECURE(				/* should be a term when here */
-	if (!isTerm(*arg))
-	  return sysError("Illegal type in compileArgument()"));
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Non-void variables. There are many cases for this.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
   if ( (index = isIndexedVarTerm(*arg)) >= 0 )
   { first = isFirstVar(&ci->used_var, index);
 
@@ -1035,14 +1064,14 @@ operator.
   }
 
   if ( isAtom(*arg) )
-  { if ( *arg == (word) ATOM_cut )
+  { if ( *arg == ATOM_cut )
     { Output_0(ci, I_CUT);
-    } else if ( *arg == (word) ATOM_true )
+    } else if ( *arg == ATOM_true )
     { Output_0(ci, I_TRUE);
-    } else if ( *arg == (word) ATOM_fail )
+    } else if ( *arg == ATOM_fail )
     { Output_0(ci, I_FAIL);
     } else
-    { FunctorDef fdef = lookupFunctorDef((Atom)*arg, 0);
+    { FunctorDef fdef = lookupFunctorDef(*arg, 0);
       code cproc = (code) lookupProcedure(fdef, tm);
 
 #ifdef O_INLINE_FOREIGNS
@@ -1170,7 +1199,7 @@ compileArithArgument(register Word arg, register compileInfo *ci)
     Word a;
 
     if ( isAtom(*arg) )
-    { fdef = lookupFunctorDef((Atom)*arg, 0);
+    { fdef = lookupFunctorDef(*arg, 0);
       ar = 0;
       a = NULL;
     } else if ( isTerm(*arg) )
@@ -1214,7 +1243,7 @@ The warnings should help explain what is going on here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Clause
-assert_term(term_t term, int where, Atom file)
+assert_term(term_t term, int where, atom_t file)
 { Clause clause;
   Procedure proc;
   Definition def;
@@ -1328,18 +1357,18 @@ mode, the predicate is still undefined and is not dynamic or multifile.
 
 word
 pl_assertz(term_t term)
-{ return assert_term(term, CL_END, (Atom)NULL) == NULL ? FALSE : TRUE;
+{ return assert_term(term, CL_END, NULL_ATOM) == NULL ? FALSE : TRUE;
 }
 
 word
 pl_asserta(term_t term)
-{ return assert_term(term, CL_START, (Atom)NULL) == NULL ? FALSE : TRUE;
+{ return assert_term(term, CL_START, NULL_ATOM) == NULL ? FALSE : TRUE;
 }
 
 
 word
 pl_assertz2(term_t term, term_t ref)
-{ Clause clause = assert_term(term, CL_END, (Atom)NULL);
+{ Clause clause = assert_term(term, CL_END, NULL_ATOM);
 
   if (clause == (Clause)NULL)
     fail;
@@ -1350,7 +1379,7 @@ pl_assertz2(term_t term, term_t ref)
 
 word
 pl_asserta2(term_t term, term_t ref)
-{ Clause clause = assert_term(term, CL_START, (Atom)NULL);
+{ Clause clause = assert_term(term, CL_START, NULL_ATOM);
 
   if (clause == (Clause)NULL)
     fail;
@@ -1362,7 +1391,7 @@ pl_asserta2(term_t term, term_t ref)
 word
 pl_record_clause(term_t term, term_t file, term_t ref)
 { Clause clause;
-  Atom f;
+  atom_t f;
 
   if ( !PL_get_atom(file, &f) )
     fail;
@@ -1437,14 +1466,18 @@ arg1Key(Clause clause, word *key)
   for(;;)
   { switch(decode(*APC++))
     { case H_FUNCTOR:
+	*key = ((FunctorDef)XR(*APC))->functor;
+        succeed;
       case H_CONST:
 	*key = XR(*APC);
 	succeed;
       case H_NIL:
-	*key = (word) ATOM_nil;
+	*key = ATOM_nil;
         succeed;
       case H_LIST:
-	*key = (word) FUNCTOR_dot2;
+	*key = FUNCTOR_dot2->functor;
+      case H_INTEGER:
+      case H_FLOAT:			/* tbd */
       case H_INDIRECT:
       case H_FIRSTVAR:
       case H_VAR:
@@ -1504,15 +1537,6 @@ next_arg_ref(term_t argp)
 }
 
 
-static int
-diff_ref(term_t t1, term_t t2)
-{ Word p1 = valTermRef(t1);
-  Word p2 = valTermRef(t2);
-
-  return unRef(*p1) - unRef(*p2);
-}
-
-
 static bool
 unifyVar(Word var, term_t *vars, int i)
 { DEBUG(3, Sdprintf("unifyVar(%d, %d, %d)\n", var, vars, i) );
@@ -1530,8 +1554,9 @@ unifyVar(Word var, term_t *vars, int i)
 static bool
 decompile_head(Clause clause, term_t head, decompileInfo *di)
 { int arity;
-  term_t argp0;
   term_t argp;
+  int argn = 0;
+  int pushed = 0;
   Definition def = clause->procedure->definition;
 
   { int m, l;
@@ -1543,15 +1568,15 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
       *p++ = PL_new_term_ref();
   }
 
-  argp0 = PL_new_term_ref();
   argp  = PL_new_term_ref();
 
   DEBUG(5, Sdprintf("Decompiling head of %s\n", predicateName(def)));
   arity = def->functor->arity;
   TRY( PL_unify_functor(head, def->functor) );
   get_arg_ref(head, argp);
-  get_arg_ref(head, argp0);
   PC = clause->codes;
+
+#define NEXTARG { next_arg_ref(argp); if ( !pushed ) argn++; }
 
   for(;;)
   { switch(decode(*PC++))
@@ -1559,28 +1584,46 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
 	  continue;
       case H_NIL:
 	  TRY(PL_unify_nil(argp));
-          next_arg_ref(argp);
+          NEXTARG;
 	  continue;
       case H_INDIRECT:
-        { word copy = globalIndirect(XR(*PC++));
+        { word copy = globalIndirectFromCode(&PC);
 	  TRY(_PL_unify_atomic(argp, copy));
-	  next_arg_ref(argp);
+	  NEXTARG;
+	  continue;
+	}
+      case H_INTEGER:
+        { word copy = globalLong(XR(*PC++));
+	  TRY(_PL_unify_atomic(argp, copy));
+	  NEXTARG;
+	  continue;
+	}
+      case H_FLOAT:
+        { Word p = allocGlobal(4);
+	  word w;
+
+	  w = consPtr(p, TAG_FLOAT|STG_GLOBAL);
+	  *p++ = mkIndHdr(2, TAG_FLOAT);
+	  *p++ = (long)XR(*PC++);
+	  *p++ = (long)XR(*PC++);
+	  *p++ = mkIndHdr(2, TAG_FLOAT);
+	  TRY(_PL_unify_atomic(argp, w));
+	  NEXTARG;
 	  continue;
 	}
       case H_CONST:
 	  TRY(_PL_unify_atomic(argp, XR(*PC++)));
-	  next_arg_ref(argp);
+          NEXTARG;
 	  continue;
       case H_FIRSTVAR:
       case H_VAR:
 	  TRY(unifyVar(valTermRef(argp), di->variables, *PC++) );
-	  next_arg_ref(argp);
+          NEXTARG;
 	  continue;
       case H_VOID:
-	{ int arg = diff_ref(argp, argp0); /* FIRSTVAR in the head */
-	  if ( arg < arity && arg >= 0)
-	    TRY(unifyVar(valTermRef(argp), di->variables, VAROFFSET(arg)) );
-	  next_arg_ref(argp);
+	{ if ( !pushed )		/* FIRSTVAR in the head */
+	    TRY(unifyVar(valTermRef(argp), di->variables, VAROFFSET(argn)) );
+	  NEXTARG;
 	  continue;
 	}
       case H_FUNCTOR:
@@ -1593,6 +1636,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
           get_arg_ref(argp, t2);
           next_arg_ref(argp);
 	  argp = t2;
+	  pushed++;
 	  continue;
       case H_LIST:
 	  fdef = FUNCTOR_dot2;
@@ -1601,17 +1645,25 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
       case I_POP:
 	  PL_reset_term_refs(argp);
           argp--;
+	  pushed--;
+	  if ( !pushed )
+	    argn++;
 	  continue;
       case I_POPN:
-	  argp -= *PC++;
+        { int n = *PC++;
+
+	  argp -= n;
+	  pushed -= n;
           PL_reset_term_refs(argp+1);
+	  if ( !pushed )
+	    argn++;
 	  continue;
+	}
       case I_EXIT:			/* fact */
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
-	{ int arg = diff_ref(argp, argp0);
-
-	  for(; arg < arity; arg++)
-	  { TRY(unifyVar(valTermRef(argp), di->variables, VAROFFSET(arg)));
+	{ assert(argn <= arity);
+	  for(; argn < arity; argn++)
+	  { TRY(unifyVar(valTermRef(argp), di->variables, VAROFFSET(argn)));
 	    next_arg_ref(argp);
 	  }
 
@@ -1622,11 +1674,13 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
 		   PC[-1], decode(PC[-1]));
 	  fail;
     }
+#undef NEXTARG
   }
 }
 
-#define isVarRef(w)	(isRef(w) && (int)unRef(w) < MAXVARIABLES \
-						? (int)unRef(w) : -1)
+#define makeVarRef(i)	((i)<<LMASK_BITS|TAG_REFERENCE)
+#define isVarRef(w)	((tag(w) == TAG_REFERENCE && \
+			  storage(w) == STG_INLINE) ? valInt(w) : -1)
 
 bool
 decompile(Clause clause, term_t term)
@@ -1719,9 +1773,11 @@ decompileBody(register decompileInfo *di, code end, Code until)
 	case B_CONST:
 			    *ARGP++ = XR(*PC++);
 			    continue;
+	case B_INTEGER:
 	case A_INTEGER:
 			    *ARGP++ = makeNum(*PC++);
 			    continue;
+	case B_FLOAT:
 	case A_DOUBLE:
 		  	  { union
 			    { unsigned long w[2];
@@ -1733,7 +1789,7 @@ decompileBody(register decompileInfo *di, code end, Code until)
 			    continue;
 			  }
 	case B_INDIRECT:
-			    *ARGP++ = globalIndirect(XR(*PC++));
+	  		    *ARGP++ = globalIndirectFromCode(&PC);
 			    continue;
       { register int index;      
 
@@ -1751,7 +1807,7 @@ decompileBody(register decompileInfo *di, code end, Code until)
 			    if ( nested )
 			      unifyVar(ARGP++, di->variables, index);
 			    else
-			      *ARGP++ = makeRef(index);
+			      *ARGP++ = makeVarRef(index);
 			    continue;
       }
       case B_VOID:
@@ -1805,13 +1861,13 @@ decompileBody(register decompileInfo *di, code end, Code until)
 			    pushed++;
 			    continue;
       }
-      case I_FAIL:	    *ARGP++ = (word) ATOM_fail;
+      case I_FAIL:	    *ARGP++ = ATOM_fail;
 			    pushed++;
 			    continue;
-      case I_TRUE:	    *ARGP++ = (word) ATOM_true;
+      case I_TRUE:	    *ARGP++ = ATOM_true;
 			    pushed++;
 			    continue;
-      case I_CUT:	    *ARGP++ = (word) ATOM_cut;
+      case I_CUT:	    *ARGP++ = ATOM_cut;
 			    pushed++;
 			    continue;
       case I_DEPART:
@@ -1833,7 +1889,7 @@ decompileBody(register decompileInfo *di, code end, Code until)
 	for(i=0; i<vars; i++)
 	{ int index = PC[i+1];		/* = B_VAR <N> (never nested!) */
 	  
-	  *ARGP++ = makeRef(index);
+	  *ARGP++ = makeVarRef(index);
 	}
 	build_term(((Procedure)XR(*PC))->definition->functor, di);
 	pushed++;
@@ -1921,7 +1977,7 @@ build_term(register FunctorDef f, register decompileInfo *di)
   register Word a;
 
   if ( f->arity == 0 )
-  { *ARGP++ = (word) f->name;
+  { *ARGP++ = f->name;
     return;
   }    
 
@@ -2045,7 +2101,7 @@ pl_clause(term_t p, term_t term, term_t ref, word h)
       def = proc->definition;
       cref = def->definition.clauses;
     } else
-    { cref = (ClauseRef) ForeignContextAddress(h);
+    { cref = ForeignContextPtr(h);
       proc = cref->clause->procedure;
       def  = proc->definition;
     }
@@ -2074,7 +2130,7 @@ pl_clause(term_t p, term_t term, term_t ref, word h)
       if ( det == TRUE )
 	succeed;
 
-      ForeignRedo(cref->next);
+      ForeignRedoPtr(cref->next);
     }
   }
 
@@ -2097,7 +2153,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, word h)
   Cref cr;
 
   if ( ForeignControl(h) == FRG_CUTTED )
-  { cr = (Cref) ForeignContextAddress(h);
+  { cr = ForeignContextPtr(h);
     def = cr->clause->clause->procedure->definition;
     leaveDefinition(def);
     freeHeap(cr, sizeof(crref));
@@ -2158,7 +2214,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, word h)
     cr->index  = 1;
     def->references++;
   } else
-  { cr = (Cref) ForeignContextAddress(h);
+  { cr = ForeignContextPtr(h);
     def = cr->clause->clause->procedure->definition;
   }
 
@@ -2172,7 +2228,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, word h)
   if ( cref )
   { cr->clause = cref;
     cr->index++;
-    ForeignRedo(cr);
+    ForeignRedoPtr(cr);
   }
 
   freeHeap(cr, sizeof(crref));
@@ -2199,38 +2255,49 @@ pl_xr_member(term_t ref, term_t term, word h)
   end = &PC[clause->code_size];
 
   if ( PL_is_variable(term) )
-  { int an;				/* argument-n */
+  { if ( ForeignControl(h) != FRG_FIRST_CALL)
+    { long i = ForeignContextInt(h);
 
-    if ( ForeignControl(h) == FRG_FIRST_CALL)
-    { an = 0;
-    } else
-    { long i = ForeignContext(h);
-      an = i % 4;
-      PC += i / 4;
+      PC += i;
     }
 
     while( PC < end )
-    { bool rval;
+    { bool rval = FALSE;
       code op = decode(*PC++);
       
-      for( ; an < codeTable[op].externals; an++ )
-      { word xr = PC[an];
-
-	if ( isAtomic(xr) )
+      switch(codeTable[op].argtype)
+      { case CA1_PROC:
+	{ Procedure proc = (Procedure) *PC;
+	  rval = unify_definition(term, proc->definition, 0);
+	  break;
+	}
+	case CA1_FUNC:
+	{ FunctorDef fd = (FunctorDef) *PC;
+	  rval = PL_unify_functor(term, fd);
+	  break;
+	}
+	case CA1_DATA:
+	{ word xr = *PC;
 	  rval = _PL_unify_atomic(term, xr);
-	else if ( isProcedure(xr) )
-	  rval = unify_definition(term, ((Procedure)xr)->definition, 0);
-	else
-	  rval = PL_unify_functor(term, (FunctorDef)xr);
-
-	if ( rval )
-	{ long i = PC - clause->codes - 1; /* compensate ++ above! */
-
-	  ForeignRedo((i * 4) + an + 1);
+	  break;
+	}
+	case CA1_INTEGER:
+	case CA1_FLOAT:
+	  break;
+	case CA1_STRING:
+	{ word m = *PC++;
+	  PC += wsizeofInd(m);
+	  break;
 	}
       }
+
       PC += codeTable[op].arguments;
-      an = 0;
+
+      if ( rval )
+      { long i = PC - clause->codes;	/* compensate ++ above! */
+
+	ForeignRedoInt(i);
+      }
     }
 
     fail;
@@ -2240,45 +2307,34 @@ pl_xr_member(term_t ref, term_t term, word h)
 
     if ( PL_is_atomic(term) )
     { while( PC < end )
-      { int an = 0;
-	code op = decode(*PC++);
+      { code op = decode(*PC++);
 
-	for( ; an < codeTable[op].externals; an++ )
-	{ word xr = PC[an];
-
-	  if ( isAtomic(xr) && _PL_unify_atomic(term, xr) )
+	if ( codeTable[op].argtype == CA1_DATA && _PL_unify_atomic(term, *PC) )
 	    succeed;
-	}
 
 	PC += codeTable[op].arguments;
       }
     } else if ( get_procedure(term, &proc, 0, GP_FIND) )
     { while( PC < end )
-      { int an = 0;
-	code op = decode(*PC++);
+      { code op = decode(*PC++);
 
-	for( ; an < codeTable[op].externals; an++ )
-	{ word xr = PC[an];
+	if ( codeTable[op].argtype == CA1_PROC )
+	{ Procedure pa = (Procedure)*PC;
 
-	  if ( !isAtomic(xr) &&
-	       isProcedure(xr) &&
-	       ((Procedure)xr)->definition == proc->definition )
+	  if ( pa->definition == proc->definition )
 	    succeed;
 	}
 
 	PC += codeTable[op].arguments;
       }
     } else if ( PL_get_functor(term, &fd) )
-    { word target = (word) fd;
+    { while( PC < end )
+      { code op = decode(*PC++);
 
-      while( PC < end )
-      { int an = 0;
-	code op = decode(*PC++);
+	if ( codeTable[op].argtype == CA1_FUNC )
+	{ FunctorDef fa = (FunctorDef)*PC;
 
-	for( ; an < codeTable[op].externals; an++ )
-	{ word xr = PC[an];
-
-	  if ( xr == target )
+	  if ( fa == fd )
 	    succeed;
 	}
 
@@ -2296,14 +2352,9 @@ pl_xr_member(term_t ref, term_t term, word h)
 
 #define VARNUM(i) ((i) - (ARGOFFSET / (int) sizeof(word)))
 
-word
-pl_wam_list(term_t ref)
-{ Clause clause;
-  Code bp, ep;
-
-  if ( !PL_get_pointer(ref, (void **)&clause) ||
-       !inCore(clause) || !isClause(clause) )
-    return warning("$wam_list/1: Invalid reference");
+void
+wamListClause(Clause clause)
+{ Code bp, ep;
 
   bp = clause->codes;
   ep = bp + clause->code_size;
@@ -2317,6 +2368,7 @@ pl_wam_list(term_t ref)
 
     switch(op)
     { case B_FIRSTVAR:
+      case H_FIRSTVAR:
       case B_ARGFIRSTVAR:
       case B_VAR:
       case B_ARGVAR:
@@ -2346,34 +2398,73 @@ pl_wam_list(term_t ref)
         break;
       }
       default:
-	for( ; n < codeTable[op].externals; n++ )
-	{ word xr = *bp++;
-
-	  Putf("%s", n == 0 ? " " : ", ");
-	  if ( isInteger(xr) )
-	    Putf("%ld", valInteger(xr));
-	  else if ( isReal(xr) )
-	    Putf("%g", valReal(xr));
-	  else if ( isString(xr) )
-	    Putf("\"%s\"", valString(xr));
-	  else if ( isAtom(xr) )
-	    Putf("'%s'", stringAtom(xr));
-	  else if ( ((FunctorDef)xr)->type == FUNCTOR_TYPE )
-	  { FunctorDef f = (FunctorDef) xr;
-	    
-	    Putf("%s/%d", stringAtom(f->name), f->arity);
-	  } else
-	  { Procedure p = (Procedure) xr;
-	    
-	    Putf("%s", procedureName(p));
+	switch(codeTable[op].argtype)
+	{ case CA1_PROC:
+	  { Procedure proc = (Procedure) *bp++;
+	    n++;
+	    Putf(" %s", procedureName(proc));
+	    break;
+	  }
+	  case CA1_FUNC:
+	  { FunctorDef f = (FunctorDef) *bp++;
+	    n++;
+	    Putf(" %s/%d", stringAtom(f->name), f->arity);
+	    break;
+	  }
+	  case CA1_DATA:
+	  { word xr = *bp++;
+	    n++;
+	    switch(tag(xr))
+	    { case TAG_ATOM:
+		Putf(" %s", stringAtom(xr));
+	        break;
+	      case TAG_INTEGER:
+		Putf(" %ld", valInteger(xr));
+	        break;
+	      case TAG_STRING:
+		Putf(" \"%s\"", valString(xr));
+	        break;
+	      default:
+		assert(0);
+	    }
+	    break;
+	  }
+	  case CA1_INTEGER:
+	  { long l = (long) *bp++;
+	    n++;
+	    Putf(" %ld", l);
+	    break;
+	  }
+	  case CA1_FLOAT:
+	  { union { word w[2];
+		    double f;
+		  } v;
+	    n += 2;
+	    v.w[0] = *bp++;
+	    v.w[1] = *bp++;
+	    Putf(" %g", v.f);
+	    break;
 	  }
 	}
-        for( ; n < codeTable[op].arguments; n++ )
+        for(; n < codeTable[op].arguments; n++ )
 	  Putf("%s%d", n == 0 ? " " : ", ", *bp++);
     }
 
     Putf("\n");
   }
+}
+
+
+word
+pl_wam_list(term_t ref)
+{ Clause clause;
+
+  if ( !PL_get_pointer(ref, (void **)&clause) ||
+       !inCore(clause) || !isClause(clause) )
+    return warning("$wam_list/1: Invalid reference");
+
+  wamListClause(clause);
 
   succeed;
 }
+

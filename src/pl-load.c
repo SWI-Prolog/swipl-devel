@@ -21,7 +21,7 @@ bool
 getSymbols(void)
 { char *symbols, *abs_symbols;
 
-  if ( loaderstatus.symbolfile != (Atom) NULL )
+  if ( loaderstatus.symbolfile != NULL_ATOM )
     succeed;
   
   if ( (symbols = Symbols()) == (char *)NULL )
@@ -34,7 +34,7 @@ getSymbols(void)
 
   loaderstatus.symbolfile = loaderstatus.orgsymbolfile
 			  = lookupAtom(abs_symbols);
-  setFeature(lookupAtom("symbol_file"), (word) loaderstatus.symbolfile);
+  setFeature(lookupAtom("symbol_file"), loaderstatus.symbolfile);
 
   succeed;
 }
@@ -776,7 +776,7 @@ resetLoader()
 
 void
 resetLoader()
-{ loaderstatus.symbolfile = loaderstatus.orgsymbolfile = NULL;
+{ loaderstatus.symbolfile = loaderstatus.orgsymbolfile = NULL_ATOM;
 }
 
 word
@@ -845,7 +845,7 @@ typedef struct dl_entry *DlEntry;
 struct dl_entry
 { int	  id;				/* Prolog's identifier */
   void   *dlhandle;			/* DL libraries identifier */
-  Atom	  file;				/* Loaded filed */
+  atom_t  file;				/* Loaded filed */
   DlEntry next;				/* Next in table */
 };
 
@@ -860,7 +860,7 @@ word
 pl_open_shared_object(term_t file, term_t plhandle,
 		      term_t flags)
 { void *dlhandle;
-  Atom afile;
+  atom_t afile;
   DlEntry e;
   int dlflags;
   int n;

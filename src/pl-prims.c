@@ -510,7 +510,7 @@ structeql(Word t1, Word t2, Buffer buf)
       t1 = p1;
       t2 = p2;
     } else if ( arity > 0 )
-    { UChoice next = allocLocal(sizeof(*next));
+    { UChoice next = alloca(sizeof(*next));
 
       next->size   = arity;
       next->alist1 = p1;
@@ -539,9 +539,7 @@ pl_structural_equal(term_t t1, term_t t2)
     succeed;
 
   initBuffer(&buf);			/* can be faster! */
-  initAllocLocal();			/* use normal alloc? */
   rval = structeql(p1, p2, &buf);
-  stopAllocLocal();
   for(r = baseBuffer(&buf, reset); r < topBuffer(&buf, reset); r++)
   { setVar(*r->v1);
     setVar(*r->v2);

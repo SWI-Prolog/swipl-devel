@@ -269,6 +269,7 @@ typedef void *			caddress;
 				/* n is 2^m !!! */
 #define ROUND(p, n)		((((p) + (n) - 1) & ~((n) - 1)))
 #define addPointer(p, n)	((Void) ((char *)(p) + (long)(n)))
+#define diffPointers(p1, p2)	((char *)(p1) - (char *)(p2))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			     LIMITS
@@ -287,7 +288,7 @@ redesign of parts of the compiler.
 #define SMALLSTACK		200 * 1024 /* GC policy */
 
 				/* Prolog's integer range */
-#define PLMINTAGGEDINT		(-(1L<<(32 - MASK_BITS - LMASK_BITS - 1)))
+#define PLMINTAGGEDINT		(-(1L<<(32 - LMASK_BITS - 1)))
 #define PLMAXTAGGEDINT		(-PLMINTAGGEDINT - 1)
 #define inTaggedNumRange(n)	(((n)&~PLMAXTAGGEDINT) == 0 || \
 				 ((n)&~PLMAXTAGGEDINT) == ~PLMAXTAGGEDINT)
@@ -325,16 +326,22 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 #define ARITHHASHSIZE		16	/* arithmetic function table */
 
 #define stringHashValue(s, n) (unboundStringHashValue(s) & ((n)-1))
-#define pointerHashValue(p, size) ((int)(((long)(p)>>2) & ((size)-1)))
+#define pointerHashValue(p, size) ((((long)(p) >> LMASK_BITS)^(long)(p)) & \
+				   ((size)-1))
+
+#define TABLE_REF_MASK		0x1L
+#define isTableRef(p)		((unsigned long)(p) & TABLE_REF_MASK)
+#define makeTableRef(p)		((void*)((unsigned long)(p) | TABLE_REF_MASK))
+#define unTableRef(s, p)	(*((s*)((unsigned long)(p) & ~TABLE_REF_MASK)))
 
 #define for_table(s, t) for(s = firstHTable(t); s; s = nextHTable(t, s))
 #define return_next_table(t, v, clean) \
-	{ for((v) = (v)->next; isRef((word)(v)) && (v); (v) = *((t *)unRef(v))) \
+	{ for((v) = (v)->next; isTableRef(v) && (v); (v) = unTableRef(t, v)) \
 	  if ( (v) == (t)NULL ) \
 	  { clean; \
 	    succeed; \
 	  } \
-	  ForeignRedo(v); \
+	  ForeignRedoPtr(v); \
 	}
 
 #define NEED_REINDEX 0x80000000L	/* defenition needs reindexing */
@@ -345,35 +352,24 @@ consistent  with  the  definitions  in  pl-fli.h, which is included with
 users foreign language code.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef AVOID_0X80000000_BIT
-#define FRG_MASK	(0x20000000L)
-#define FRG_BITS	3
-#define FRG_CUT		(0x40000000L)
-#else /*AVOID_0X80000000_BIT*/
-#ifdef DATA_AT_0X4
-#define FRG_MASK	(0x20000000L)		/* Mask to indicate redo */
-#define FRG_BITS	3
-#else
-#define FRG_MASK	(0x40000000L)		/* Mask to indicate redo */
-#define FRG_BITS	2
-#endif
-#define FRG_CUT 	(0x80000000L)		/* highest bit */
-#endif /*AVOID_0X80000000_BIT*/
-#define FRG_MASK_MASK	(FRG_CUT|FRG_MASK)
+#define FRG_CONTROL_MASK	0x00000003L
+#define FRG_CONTROL_BITS	2
 
-#define FRG_FIRST_CALL	(0)
-#define FRG_CUTTED	(1)
-#define FRG_REDO	(2)
+#define FRG_FIRST_CALL	(0)		/* Initial call */
+#define FRG_CUTTED	(1)		/* Context was cutted */
+#define FRG_REDO	(2)		/* Normal redo */
 
 #define FIRST_CALL	(0L)
 
-#define ForeignRedoVal(v) ((word) (((long)(v) & ~FRG_MASK_MASK) | FRG_MASK))
-#define ForeignRedo(v)		return ForeignRedoVal(v)
-#define ForeignControl(h)	((h) == FIRST_CALL ? FRG_FIRST_CALL : \
-				 (h) & FRG_CUT	   ? FRG_CUTTED : \
-						     FRG_REDO)
-#define ForeignContext(h)	(((long)(h) << FRG_BITS) >> FRG_BITS)
-#define ForeignContextAddress(h) ((Void)((long)(h) & ~FRG_MASK_MASK))
+#define ForeignRedoIntVal(v)	(((unsigned long)(v)<<FRG_CONTROL_BITS)|FRG_REDO)
+#define ForeignRedoPtrVal(v)	(((unsigned long)(v))|FRG_REDO)
+
+#define ForeignRedoInt(v)	return ForeignRedoIntVal(v)
+#define ForeignRedoPtr(v)	return ForeignRedoPtrVal(v)
+
+#define ForeignControl(h)	((h) & FRG_CONTROL_MASK)
+#define ForeignContextInt(h)	((long)(h)>>FRG_CONTROL_BITS)
+#define ForeignContextPtr(h)	((void*)((unsigned long)(h)&~FRG_CONTROL_MASK))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Virtual machine instruction declarations.  Prefixes:
@@ -403,77 +399,81 @@ codes.
 #define H_VAR		((code)10)
 #define B_CONST		((code)11)		/* constant (atomic) */
 #define H_CONST		((code)12)
-#define H_INDIRECT	((code)13)		/* real in the head */
+#define H_INDIRECT	((code)13)		/* indirect in the head */
+#define B_INTEGER	((code)14)		/* bignum in the head */
+#define H_INTEGER	((code)15)		/* bignum in the body */
+#define B_FLOAT		((code)16)		/* double in the head */
+#define H_FLOAT		((code)17)		/* double in the body */
 
-#define B_FIRSTVAR	((code)14)		/* first occurrence of var */
-#define H_FIRSTVAR	((code)15)
-#define B_VOID		((code)16)		/* anonimous variables */
-#define H_VOID		((code)17)
-#define B_ARGFIRSTVAR	((code)18)		/* body vars nested in functor */
-#define B_ARGVAR	((code)19)
+#define B_FIRSTVAR	((code)18)		/* first occurrence of var */
+#define H_FIRSTVAR	((code)19)
+#define B_VOID		((code)20)		/* anonimous variables */
+#define H_VOID		((code)21)
+#define B_ARGFIRSTVAR	((code)22)		/* body vars nested in functor */
+#define B_ARGVAR	((code)23)
 
-#define H_NIL		((code)20)		/* [] in the head */
-#define H_LIST		((code)21)		/* ./2 in the head */
+#define H_NIL		((code)24)		/* [] in the head */
+#define H_LIST		((code)25)		/* ./2 in the head */
 
-#define B_VAR0		((code)22)		/* B_VAR 0 */
-#define B_VAR1		((code)23)		/* B_VAR 1 */
-#define B_VAR2		((code)24)		/* B_VAR 2 */
+#define B_VAR0		((code)26)		/* B_VAR 0 */
+#define B_VAR1		((code)27)		/* B_VAR 1 */
+#define B_VAR2		((code)28)		/* B_VAR 2 */
 
-#define I_USERCALL0	((code)25)		/* variable in body (call/1) */
-#define I_USERCALLN	((code)26)		/* call/[2...] */
-#define I_CUT		((code)27)		/* ! */
-#define I_APPLY		((code)28)		/* apply/2 */
+#define I_USERCALL0	((code)29)		/* variable in body (call/1) */
+#define I_USERCALLN	((code)30)		/* call/[2...] */
+#define I_CUT		((code)31)		/* ! */
+#define I_APPLY		((code)32)		/* apply/2 */
 
 #if O_COMPILE_ARITH
-#define A_ENTER		((code)29)		/* start arithmetic sequence */
-#define A_INTEGER	((code)30)		/* 32-bit signed int */
-#define A_DOUBLE	((code)31)		/* 64-bit double */
-#define A_VAR0		((code)32)		/* variable-0 */
-#define A_VAR1		((code)33)		/* variable-1 */
-#define A_VAR2		((code)34)		/* variable-2 */
-#define A_VAR		((code)35)		/* variable-n */
-#define A_FUNC0		((code)36)		/* nullary arithmic function */
-#define A_FUNC1		((code)37)		/* unary arithmic function */
-#define A_FUNC2		((code)38)		/* binary arithmic function */
-#define A_FUNC		((code)39)		/* n-ary arithmic function */
-#define A_LT		((code)40)		/* < */
-#define A_GT		((code)41)		/* > */
-#define A_LE		((code)42)		/* =< */
-#define A_GE		((code)43)		/* >= */
-#define A_EQ		((code)44)		/* =:= */
-#define A_NE		((code)45)		/* =\= */
-#define A_IS		((code)46)		/* is */
+#define A_ENTER		((code)33)		/* start arithmetic sequence */
+#define A_INTEGER	((code)34)		/* 32-bit signed int */
+#define A_DOUBLE	((code)35)		/* 64-bit double */
+#define A_VAR0		((code)36)		/* variable-0 */
+#define A_VAR1		((code)37)		/* variable-1 */
+#define A_VAR2		((code)38)		/* variable-2 */
+#define A_VAR		((code)39)		/* variable-n */
+#define A_FUNC0		((code)40)		/* nullary arithmic function */
+#define A_FUNC1		((code)41)		/* unary arithmic function */
+#define A_FUNC2		((code)42)		/* binary arithmic function */
+#define A_FUNC		((code)43)		/* n-ary arithmic function */
+#define A_LT		((code)44)		/* < */
+#define A_GT		((code)45)		/* > */
+#define A_LE		((code)46)		/* =< */
+#define A_GE		((code)47)		/* >= */
+#define A_EQ		((code)48)		/* =:= */
+#define A_NE		((code)49)		/* =\= */
+#define A_IS		((code)50)		/* is */
 #endif /* O_COMPILE_ARITH */
 
 #if O_COMPILE_OR
-#define C_OR		((code)47)		/* In-clause backtract point */
-#define C_JMP		((code)48)		/* Jump over code */
-#define C_MARK		((code)49)		/* Sub-clause cut mark */
-#define C_CUT		((code)50)		/* cut to corresponding mark */
-#define C_IFTHENELSE	((code)51)		/* if-then-else start */
-#define C_VAR		((code)52)		/* make a variable */
-#define C_END		((code)53)		/* dummy to help decompiler */
-#define C_NOT		((code)54)		/* same as C_IFTHENELSE */
-#define C_FAIL		((code)55)		/* fail */
+#define C_OR		((code)51)		/* In-clause backtract point */
+#define C_JMP		((code)52)		/* Jump over code */
+#define C_MARK		((code)53)		/* Sub-clause cut mark */
+#define C_CUT		((code)54)		/* cut to corresponding mark */
+#define C_IFTHENELSE	((code)55)		/* if-then-else start */
+#define C_VAR		((code)56)		/* make a variable */
+#define C_END		((code)57)		/* dummy to help decompiler */
+#define C_NOT		((code)58)		/* same as C_IFTHENELSE */
+#define C_FAIL		((code)59)		/* fail */
 #endif /* O_COMPILE_OR */
 
-#define B_INDIRECT	((code)56)		/* INDIRECT in body */
+#define B_INDIRECT	((code)60)		/* INDIRECT in body */
 
 #if O_BLOCK
-#define I_CUT_BLOCK	((code)57)		/* !(block) */
-#define B_EXIT		((code)58)		/* exit(block, rval) */
+#define I_CUT_BLOCK	((code)61)		/* !(block) */
+#define B_EXIT		((code)62)		/* exit(block, rval) */
 #endif /*O_BLOCK*/
 
 #if O_INLINE_FOREIGNS
-#define I_CALL_FV0	((code)59)		/* call foreign, no args */
-#define I_CALL_FV1	((code)60)		/* call foreign, 1 var arg */
-#define I_CALL_FV2	((code)61)		/* call foreign, 2 var args */
+#define I_CALL_FV0	((code)63)		/* call foreign, no args */
+#define I_CALL_FV1	((code)64)		/* call foreign, 1 var arg */
+#define I_CALL_FV2	((code)65)		/* call foreign, 2 var args */
 #endif /*O_INLINE_FOREIGNS*/
 
-#define I_FAIL		((code)62)		/* fail */
-#define I_TRUE		((code)63)		/* true */
+#define I_FAIL		((code)66)		/* fail */
+#define I_TRUE		((code)67)		/* true */
 
-#define I_HIGHEST	((code)63)		/* largest WAM code !!! */
+#define I_HIGHEST	((code)67)		/* largest WAM code !!! */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Arithmetic comparison
@@ -541,10 +541,8 @@ difference.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define HeapMagic(n)	((n) | 0x25678000)
-#define ATOM_TYPE	HeapMagic(1)	/* an atom */
-#define FUNCTOR_TYPE	HeapMagic(2)	/* a Functor */
-#define PROCEDURE_TYPE	HeapMagic(3)	/* a procedure */
-#define RECORD_TYPE	HeapMagic(4)	/* a record list */
+#define PROCEDURE_TYPE	HeapMagic(1)	/* a procedure */
+#define RECORD_TYPE	HeapMagic(2)	/* a record list */
 #define StackMagic(n)	((n) | 0x98765000)
 #define QID_MAGIC	StackMagic(1)	/* Query frame */
 
@@ -627,136 +625,7 @@ REFERENCES
     there is one.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Masks.  Currently the top 3 bits of a word are used as  mask.   The  top
-bit  is  reserved  for  references,  which  are  represented as negative
-numbers.  At least the 68020 is faster in checking for negative  numbers
-and  turning  negative  numbers into positive ones.  This trick gives an
-overall performance increase of about 5%. The other two  bits  are  used
-for  integers, reals and strings.  Both reals and strings are `indirect'
-data types (tagged pointers to the real value).  This  has  consequences
-in  unification an similar functions.  Therefore a macro `isIndirect(w)'
-has been introduced.  If you decide to change things here make sure this
-macro  operates  oppropriately  and  is  FAST  (its  used  in   critical
-unification code).
-
-(The RT under AIX uses a somewhat irregular memory model:
-
-0x10000000 text... 0x20000000 ...data...bss...malloc... ...stack 03fffffff
-
-This conflicts with the data representation used for SUN.  So we put the
-tag bits on bits 32, 31 and 29 instead of 32, 31 and 30.   This  reduces
-the range of integers to +- 2^25.  (Macros have to be rewritten))
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifdef AVOID_0X80000000_BIT
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-WIN32/WIN32S stuff.  WIN32  allocates  memory   from  low  addresses and
-doesn't permit allocations above 0x80000000L.   WIN32S allocation starts
-at 0x80000000L.  For  indirect  datatypes,  we   use  the  REF_MASK  for
-distinquishing between reals and strings.  I think   this is ok, but the
-garbage collector needs to be tested.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define REF_MASK	0x40000000L	/* Reference */
-#define INDIRECT_MASK	0x20000000L	/* Indirect datatype */
-#define INT_MASK	0x10000000L	/* Integer mask */
-#define MARK_MASK	0x00000001L	/* GC mark */
-#define FIRST_MASK	0x00000002L	/* GC first mark */
-#define STRING_MASK	0x30000000L	/* String (indirect) */
-#define REAL_MASK	0x70000000L	/* Real (indirect) */
-
-#define MASK_MASK	(INT_MASK|REF_MASK|INDIRECT_MASK|FIRST_MASK)
-#define DATA_TAG_MASK	0x70000000L	/* Indirect data mask */
-
-#define MASK_BITS	3		/* high-word masks */
-#define LMASK_BITS	2		/* low-word masks */
-
-#define makeRef(p)	((word)(p) | REF_MASK)
-#define unRef(w)	((Word)((word)(w) & ~REF_MASK))
-#define isRef(w)	((word)(w) & REF_MASK)
-
-#define consNum(i)	fconsInt(i)
-#define valInt(i)	fvalInt(i)
-
-#else /*AVOID_0X80000000_BIT*/
-
-#define REF_MASK	0x80000000L	/* Reference (= negative) */
-#define MARK_MASK	0x00000001L	/* GC marking bit */
-
-#if O_16_BITS
-#define INDIRECT_MASK	0x40000000L	/* Indirect constant */
-#define INT_MASK	0x20000000L	/* Integer constant */
-#define MASK_BITS	4		/* high order mask bits */
-#define LMASK_BITS	1		/* low order mask bits */
-#define FIRST_MASK	0x10000000L	/* first member of relocation chain */
-#define STRING_MASK	0x60000000L	/* Header mask on global stack */
-#define REAL_MASK	0x68000000L	/* Header mask on global stack */
-#define MASK_MASK	(INT_MASK|REF_MASK|INDIRECT_MASK|FIRST_MASK)
-#define DATA_TAG_MASK	0xf8000000L	/* Indirect data type mask */
-
-#else /* !O_16_BITS */
-
-#define REAL_MASK	0x70000000L	/* Header mask on global stack */
-
-#ifdef DATA_AT_0X4
-#define INDIRECT_MASK	0x20000000L	/* Indirect constant */
-#define INT_MASK	0x10000000L	/* Integer constant */
-#define SIGN_MASK	0x40000000L     /* Sign of an integer */
-#define MASK_BITS	3		/* high order mask bits */
-#define SIGN_OFFSET     1               /* Offset of sign bit from M.S. bit */
-#define STRING_MASK	0x30000000L	/* Header mask on global stack */
-#else
-#ifdef DATA_AT_0X2
-#define INDIRECT_MASK	0x40000000L	/* Indirect constant */
-#define INT_MASK	0x10000000L	/* Integer constant */
-#define MASK_BITS	4		/* high order mask bits */
-#define STRING_MASK	0x50000000L	/* Header mask on global stack */
-#else /* 0X1 or lower */
-#define INDIRECT_MASK	0x40000000L	/* Indirect constant */
-#define INT_MASK	0x20000000L	/* Integer constant */
-#define MASK_BITS	3		/* high order mask bits */
-#define STRING_MASK	0x60000000L	/* Header mask on global stack */
-#endif /* DATA_AT_0X2 */
-#endif /* DATA_AT_0X4 */
-
-#define makeRef(p)	((word)(-(long)(p)))
-#define unRef(w)	((Word)(-(long)(w)))
-#define isRef(w)	((long)(w) < 0)
-
-#ifdef DATA_AT_0X8
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Masking schema for system which have their malloc()-area in the negative
-addresses (>= 0x80000000L).  We basically use  the same masking strategy
-as for low addresses (< 0x20000000L), but  we place the reference tag on
-0x10000000L.  NOT TESTED!!!
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#undef REF_MASK				/* redefine! */
-#undef MASK_BITS
-#undef REAL_MASK
-#undef makeRef
-#undef unRef
-#undef isRef
-
-#define REF_MASK	0x10000000L	/* put here */
-#define MASK_BITS	4
-#define REAL_MASK	0xe0000000L	/* real on indirect value */
-
-#define makeRef(p)	((word)(p) | REF_MASK)
-#define unRef(w)	((Word)((word)(w) & ~REF_MASK))
-#define isRef(w)	((word)(w) & REF_MASK)
-#endif /* DATA_AT_0X8 */
-
-#define LMASK_BITS	2		/* low order mask bits */
-#define FIRST_MASK	0x00000002L	/* first member of relocation chain */
-#define MASK_MASK	(INT_MASK|REF_MASK|INDIRECT_MASK)
-#define DATA_TAG_MASK	0xf0000000L	/* Indirect data type mask */
-
-#endif /* O_16_BITS */
-#endif /*AVOID_0X80000000_BIT*/
+#include "pl-data.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Common Prolog objects typedefs.
@@ -764,6 +633,7 @@ Common Prolog objects typedefs.
 
 typedef unsigned long		word;		/* Anonimous 4 byte object */
 typedef word *			Word;		/* a pointer to anything */
+typedef word			atom_t;		/* encoded atom */
 typedef unsigned long		code;		/* bytes codes */
 typedef code *			Code;		/* pointer to byte codes */
 typedef int			Char;		/* char that can pass EOF */
@@ -794,6 +664,7 @@ typedef struct trail_entry *	TrailEntry;	/* Entry of train stack */
 typedef struct data_mark	mark;		/* backtrack mark */
 typedef struct index *		Index;		/* clause indexing */
 typedef struct stack *		Stack;		/* machine stack */
+
 
 		 /*******************************
 		 *	    ARITHMETIC		*
@@ -927,159 +798,8 @@ Handling environment (or local stack) frames.
 			   leaveDefinition(fr->predicate); \
 		       }
 
-#define INVALID_TRAILTOP  ((void *)((char *)tBase + 1)) /* pl-gc.c/pl-wam.c */
-#define INVALID_GLOBALTOP ((void *)((char *)gBase + 1))
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Macros to turn pointers into Prolog integers and  vice-versa.   Used  to
-pass  references  for  recorda,  erase, clause/3, etc.  As AIX addresses
-range from 0x2000000, which is above the maximum integer value  for  the
-AIX  version  we  substract  this value and add it again when converting
-integers to pointers.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifdef AVOID_0X80000000_BIT
-
-#define PTR_TO_NUM_OFFSET ptr_to_num_offset
-GLOBAL unsigned long ptr_to_num_offset;
-
-#else /*__WIN32__*/
-#ifdef DATA_AT_0X8
-#define PTR_TO_NUM_OFFSET	  0x80000000L
-#else
-#  ifdef DATA_AT_0X4
-#    define PTR_TO_NUM_OFFSET	  0x40000000L
-#  else
-#    ifdef DATA_AT_0X2
-#      define PTR_TO_NUM_OFFSET	  0x20000000L
-#    else
-#      ifdef DATA_AT_0X1
-#        define PTR_TO_NUM_OFFSET 0x10000000L
-#      else
-#        define PTR_TO_NUM_OFFSET 0x0L
-#      endif
-#    endif
-#  endif
-#endif
-#endif /*__WIN32__*/
-
-#define pointerToNum(p) consNum(((unsigned long)(p)-PTR_TO_NUM_OFFSET)/sizeof(int))
-#define numToPointer(n) ((Word)(valInt(n)*sizeof(int)+PTR_TO_NUM_OFFSET))
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Macros to handle the anonymous types.  'w' implies we expect a word, 'p'
-for a pointer.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define unMask(w)		((w) & ~MASK_MASK)
-#define mask(w)			(w & MASK_MASK)
-#ifndef consNum
-#define consNum(n)		((word) (unMask((n)<<LMASK_BITS) | INT_MASK))
-#endif
-#ifndef valInt
-#ifdef DATA_AT_0X4
-#define valInt(w)               ((long) ((((w) & SIGN_MASK) << SIGN_OFFSET) | \
-				 (unMask(w) << MASK_BITS)) >> \
-				 (MASK_BITS+LMASK_BITS))
-#else
-#define valInt(w)		((long)((w)<<MASK_BITS)>>(MASK_BITS+LMASK_BITS))
-#endif
-#endif
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Indirect datatype handling. Indirect data  is   used  to  store (atomic)
-values that cannot be represented as  a   tagged  value.  At the moment,
-these are full 32-bit integers, doubles  and strings. The representation
-of the variable is a tagged pointer (using the tag INDIRECT_MASK) to the
-global stack.
-
-To facilitate generic handling  of   indirects  by  unify, term-copying,
-garbage-collection, etc, the indirect  is   enclosed  between two words,
-with the following layout:
-
-	* The top 4-bits are reserved for the tag, which is the
-	  bitwise of of the indirect and tagged-integer masks.  This
-	  tag is used by the garbage collector to determine the value
-	  is an indirect.
-
-	* The next 3 bits are reserved to indicate the type of the
-	  indirect data.
-
-	* The lower 2 bits are for the garbage collector
-	
-	* The bits 5-25 indicate the size of the indirect data (the
-	  part between the two brackets) in machine-words.
-
-	* The bits 3 and 4 indicate the padding for strings.  They may
-	  be used for other purposes on other indirect types.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define	IDT_MASK	(INDIRECT_MASK|INT_MASK)
-#define IDT_BIGNUM	0x02000000L
-#define IDT_DOUBLE	0x04000000L
-#define IDT_STRING	0x08000000L
-#define IDT_ANY		(IDT_BIGNUM|IDT_DOUBLE|IDT_STRING)
-#define IDT_MASK_MASK	(IDT_MASK|IDT_ANY)
-
-#define DMASK_BITS	6		/* # indirect word right-tag bits  */
-
-#define wSizeIndirect(m) (((m) & 0x01fffff0L) >> 4)
-#define makeIdtSizeMask(n) ((n) << 4)
-#define addressIndirect(w) ((void *)unMask(w))
-#define tagIndirect(w)	((*(Word)unMask(w)) & IDT_ANY)
-#define valIndirectP(w)	((Word)unMask(w)+1)
-
-
-#define isString(w)	(isIndirect(w) && (tagIndirect(w) & IDT_STRING))
-#define isReal(w)	(isIndirect(w) && (tagIndirect(w) & IDT_DOUBLE))
-#define isBignum(w)	(isIndirect(w) && (tagIndirect(w) & IDT_BIGNUM))
-#define isIndirectNum(w) (isIndirect(w) && \
-			  (tagIndirect(w) & (IDT_BIGNUM|IDT_DOUBLE)))
-
-#define valString(w)	((char *)valIndirectP(w))
-#define valBignum(w)	(*(long *)valIndirectP(w))
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Handling references.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define deRef(p)	{ while(isRef(*(p))) (p) = unRef(*(p)); }
-#define deRef2(p, d)	{ (d) = (p); deRef((d)); }
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Handling dereferenced arbitrary Prolog runtime objects.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define isMasked(w)	(mask(w))
-#define isIndirect(w)	((w) & INDIRECT_MASK)
-#define isTaggedInt(w)	((w) & INT_MASK)
-#define isInteger(w)	(isTaggedInt(w) || isBignum(w))
-#define isNumber(w)	(isTaggedInt(w) || isIndirectNum(w))
-#define isVar(w)	((w) == (word) NULL)
-#define nonVar(w)	((w) != (word) NULL)
-#define isPointer(w)	(nonVar(w) && !isMasked(w))
-#define pointerIsAtom(w) (((Atom)(w))->type == ATOM_TYPE)
-#define pointerIsFunctor(w) (((Functor)(w))->type == FUNCTOR_TYPE)
-#define isAtom(w)	(isPointer(w) && pointerIsAtom(w))
-#define isFunctor(w)	(isPointer(w) && pointerIsFunctor(w))
-#define stringAtom(w)	(((Atom)(w))->name)
-#define isPrimitive(w)  (isVar(w) || isAtomic(w))
-#define isAtomic(w)	(nonVar(w) && (isMasked(w) || pointerIsAtom(w)))
-#define isTerm(w)	(isPointer(w) && !pointerIsAtom(w))
-#define hasFunctor(w,f) (isPointer(w) && functorTerm(w) == (f))
-#define nonVarHasFunctor(w,f) \
-			(!isMasked(w) && functorTerm(w) == (f))
-#define isList(w)	hasFunctor(w, FUNCTOR_dot2)
-#define nonVarIsTerm(w)	(!isMasked(w) && !pointerIsAtom(w))
-#define nonVarIsList(w)	nonVarHasFunctor(w, FUNCTOR_dot2)
-#define functorTerm(w)	(((Functor)(w))->definition)
-#define argTerm(w, n)	(*argTermP((w), (n)))
-#define argTermP(w, n)	(((Word)(w)+1+(n)))
-#define isProcedure(w)	(((Procedure)(w))->type == PROCEDURE_TYPE)
-#define isRecordList(w)	(((RecordList)(w))->type == RECORD_TYPE)
-
-#define valInteger(w)	(isTaggedInt(w) ? valInt(w) : valBignum(w))
+#define INVALID_TRAILTOP  0xffffffffL
+#define INVALID_GLOBALTOP 0xfffffffeL
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Heuristics functions to determine whether an integer reference passed to
@@ -1087,6 +807,8 @@ erase and assert/2, clause/3, etc.  really points to a clause or record.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define inCore(a)	((char *)(a) >= hBase && (char *)(a) <= hTop)
+#define isProcedure(w)	(((Procedure)(w))->type == PROCEDURE_TYPE)
+#define isRecordList(w)	(((RecordList)(w))->type == RECORD_TYPE)
 #define isClause(c)	(inCore(((Clause)(c))->procedure) && \
 			  isProcedure(((Clause)(c))->procedure))
 #define isRecord(r)	(inCore(((Record)(r))->list) && \
@@ -1112,7 +834,6 @@ LIST processing macros.
     CLOSELIST(l)	Unify the tail of the list with [].
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define isNil(w)	((w) == (word) ATOM_nil)
 #define HeadList(p)	(argTermP(*(p), 0) )
 #define TailList(p)	(argTermP(*(p), 1) )
 
@@ -1129,7 +850,6 @@ Structure declarations that must be shared across multiple files.
 
 struct atom
 { Atom		next;		/* next in chain */
-  int		type;		/* ATOM_TYPE */
 #ifdef O_HASHTERM
   int		hash_value;	/* hash-key value */
 #endif
@@ -1143,8 +863,8 @@ struct index
 
 struct functorDef
 { FunctorDef	next;		/* next in chain */
-  int		type;		/* FUNCTOR_TYPE */
-  Atom		name;		/* Name of functor */
+  word		functor;	/* as apearing on the global stack */
+  word		name;		/* Name of functor */
   int		arity;		/* arity of functor */
   unsigned short	flags;	/* Flag field holding: */
 		/* INLINE_F	   Inlined foreign (system) predicate */
@@ -1169,26 +889,33 @@ struct clause_ref
   ClauseRef	next;
 };
 
+#define CA1_PROC	1	/* code arg 1 is procedure */
+#define CA1_FUNC	2	/* code arg 1 is functor */
+#define CA1_DATA	3	/* code arg 2 is prolog data */
+#define CA1_INTEGER	4	/* long value */
+#define CA1_FLOAT	5	/* next 2 are double */
+#define CA1_STRING	6	/* inlined string */
+
 struct code_info
 { char		*name;		/* name of the code */
   code		code;		/* number of the code */
   char		arguments;	/* # arguments code takes */
-  char		externals;	/* # `external' arguments code takes */
+  char		argtype;	/* # `external' arguments code takes */
 };
 
 struct data_mark
-{ TrailEntry	trailtop;	/* top of the trail stack */
-  Word		globaltop;	/* top of the global stack */
+{ word		trailtop;	/* top of the trail stack */
+  word		globaltop;	/* top of the global stack */
 };
 
 struct functor
-{ FunctorDef	definition;	/* Name/Arity */
+{ word		definition;	/* Tagged definition pointer */
   word		arguments[1];	/* arguments vector */
 };
 
 struct operator
 { Operator	next;		/* next of chain */
-  Atom		name;		/* name of operator */
+  atom_t	name;		/* name of operator */
   short		type;		/* OP_FX, ... */
   short		priority;	/* priority of operator */
 };
@@ -1310,7 +1037,7 @@ struct recordList
 };
 
 struct sourceFile
-{ Atom		name;		/* name of source file */
+{ atom_t	name;		/* name of source file */
   SourceFile	next;		/* next of chain */
   int		count;		/* number of times loaded */
   long		time;		/* load time of file */
@@ -1328,7 +1055,7 @@ struct list_cell
 
 
 struct module
-{ Atom		name;		/* name of module */
+{ word		name;		/* name of module */
   SourceFile	file;		/* file from which module is loaded */
   Table		procedures;	/* predicates associated with module */
   Table		public;		/* public predicates associated */
@@ -1339,7 +1066,7 @@ struct module
 };
 
 struct trail_entry
-{ Word		address;	/* address of the variable */
+{ word		address;	/* Tagged address of the variable */
 };
 
 struct table
@@ -1368,13 +1095,13 @@ struct symbol
 #define OPT_ALL		0x1		/* flags */
 
 typedef struct
-{ Atom		name;			/* Name of option */
+{ word		name;			/* Name of option */
   int		type;			/* Type of option */
   union
   { bool *b;				/* boolean value */
     long *i;				/* integer value */
     char **s;				/* string value */
-    Atom *a;				/* atom value */
+    word *a;				/* atom value */
     void *ptr;				/* anonymous pointer */
   } value;
 } opt_spec, *OptSpec;
@@ -1388,23 +1115,22 @@ typedef struct
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
 
 #define Undo(b)			do_undo(&b)
-#define T_VALUE_MASK		INDIRECT_MASK
-#define makeTrailValueP(p)	((Word)((unsigned long)(p) | T_VALUE_MASK))
-#define isTrailValueP(p)	((unsigned long)(p) & T_VALUE_MASK)
-#define trailValueP(p)		((Word)((unsigned long)(p) & ~T_VALUE_MASK))
 
 #else /*O_DESTRUCTIVE_ASSIGNMENT*/
 
-#define Undo(b)		{ register TrailEntry tt = tTop; \
-			  while(tt > (b).trailtop) \
-			    setVar(*(--tt)->address); \
+#define Undo(b)		{ TrailEntry tt = tTop; \
+			  TrailEntry mt = valPtr2((b).trailtop, STG_TRAIL); \
+			  while(tt > mt) \
+			  { tt--; \
+			    setVar(*valPtr(tt->address)); \
+			  } \
 			  tTop = tt; \
-			  gTop = (b).globaltop; \
+			  gTop = valPtr2((b).globaltop, STG_GLOBAL); \
 			}
 #endif /*O_DESTRUCTIVE_ASSIGNMENT*/
 
-#define Mark(b)		{ (b).trailtop = tTop; \
-			  (b).globaltop = gTop; \
+#define Mark(b)		{ (b).trailtop  = consPtr(tTop, STG_TRAIL); \
+			  (b).globaltop = consPtr(gTop, STG_GLOBAL); \
 			}
 
 
@@ -1430,6 +1156,8 @@ typedef unsigned long fid_t;		/* external foreign context-id */
 #define QueryFromQid(qid)	((QueryFrame) valTermRef(qid))
 #define QidFromQuery(f)		(consTermRef(f))
 #define QID_EXPORT_WAM_TABLE	(qid_t)(-1)
+
+#include "pl-itf.h"
 
 		/********************************
 		*             STACKS            *
@@ -1470,8 +1198,7 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 	  type		top;		/* current top of the stack */      \
 	  type		min;		/* donot shrink below this value */ \
 	  type		max;		/* allocated maximum */		    \
-	  long		limit;		/* how big it is allowed to grow */ \
-	  long		maxlimit;	/* maximum limit */                 \
+	  type		limit;		/* top the the range (base+limit) */\
 	  long		minfree;	/* minimum amount of free space */  \
 	  bool		gc;		/* Can be GC'ed? */		    \
 	  unsigned long	gced_size;	/* size after last GC */	    \
@@ -1500,10 +1227,12 @@ GLOBAL struct
 #define lBase	(stacks.local.base)
 #define lTop	(stacks.local.top)
 #define lMax	(stacks.local.max)
+#define lLimit	(stacks.local.limit)
 
 #define gBase	(stacks.global.base)
 #define gTop	(stacks.global.top)
 #define gMax	(stacks.global.max)
+#define gLimit	(stacks.global.limit)
 
 #define aBase	(stacks.argument.base)
 #define aTop	(stacks.argument.top)
@@ -1518,9 +1247,15 @@ GLOBAL char *	hBase;			/* lowest allocated heap address */
 #define onStack(name, addr) \
 	((char *)(addr) >= (char *)stacks.name.base && \
 	 (char *)(addr) <  (char *)stacks.name.top)
+#ifdef O_SHIFT_STACKS
 #define onStackArea(name, addr) \
 	((char *)(addr) >= (char *)stacks.name.base && \
 	 (char *)(addr) <  (char *)stacks.name.max)
+#else
+#define onStackArea(name, addr) \
+	((char *)(addr) >= (char *)stacks.name.base && \
+	 (char *)(addr) <  (char *)stacks.name.limit)
+#endif
 #define usedStack(name) ((char *)stacks.name.top - (char *)stacks.name.base)
 #define sizeStack(name) ((char *)stacks.name.max - (char *)stacks.name.base)
 #define roomStack(name) ((char *)stacks.name.max - (char *)stacks.name.top)
@@ -1561,12 +1296,12 @@ GLOBAL char 	 *cannot_save_program;	/* Program cannot be saved */
 GLOBAL LocalFrame environment_frame;	/* current context frame */
 GLOBAL FliFrame   fli_context;		/* current FLI frame */
 GLOBAL bool	  novice;		/* novice user */
-GLOBAL Atom	  source_file_name;	/* Current source file_name */
+GLOBAL atom_t	  source_file_name;	/* Current source file_name */
 GLOBAL int	  source_line_no;	/* Current source line_no */
 GLOBAL bool	  fileerrors;		/* Report file errors? */
-GLOBAL Atom	  float_format;		/* Default floating point format */
+GLOBAL atom_t	  float_format;		/* Default floating point format */
 
-#define ReadingSource (source_line_no > 0 && source_file_name != NULL)
+#define ReadingSource (source_line_no > 0 && source_file_name != NULL_ATOM)
 
 		/********************************
 		*        FAST DISPATCHING	*
@@ -1612,9 +1347,9 @@ GLOBAL struct
 #endif
 
 GLOBAL struct
-{ Atom		symbolfile;		/* current symbol file */
-  Atom		orgsymbolfile;		/* symbol file we started with */
-  Atom		restored_state;		/* -r/restore state restored */
+{ atom_t	symbolfile;		/* current symbol file */
+  atom_t	orgsymbolfile;		/* symbol file we started with */
+  atom_t	restored_state;		/* -r/restore state restored */
 } loaderstatus;
 
 #define NO_PROFILING		0
@@ -1770,16 +1505,13 @@ decrease).
 #include "pl-funcs.h"			/* global functions */
 #include "pl-main.h"			/* Declarations needed by pl-main.c */
 
-#ifdef COPY_ATOMS_TO_HEAP
-extern Atom atoms;
-#else
 extern struct atom atoms[];
-#endif
 extern struct functorDef functors[];
 
+#define NULL_ATOM ((atom_t)0)
+#define MK_ATOM(n) ((n)<<7|TAG_ATOM|STG_STATIC)
 #include "pl-atom.ih"
 #include "pl-funct.ih"
-#include "pl-itf.h"
 
 #ifdef O_INLINE_FLI
 

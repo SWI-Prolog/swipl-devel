@@ -32,7 +32,6 @@
 #define allocHeap(n)	alloc_heap((alloc_t) (n))
 #define freeHeap(p, n)	free_heap((char *)(p), (alloc_t)(n))
 #define allocGlobal(n)	alloc_global((int) (n))
-#define allocLocal(n)	alloc_local((alloc_t) (n))
 
 extern Void Allocate(long);
 

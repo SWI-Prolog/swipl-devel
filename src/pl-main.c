@@ -570,8 +570,14 @@ vsysError(const char *fm, va_list args)
 	    "\n[While in %ld-th garbage collection; skipping stacktrace]\n",
 	    gc_status.collections);
   }
+  if ( status.boot || !status.initialised )
+  { Sfprintf(Serror,
+	     "\n[While initialising; quitting]\n");
+    Halt(1);
+  }
+
 #if defined(O_DEBUGGER)
-  else
+  if ( !gc_status.active )
   { Sfprintf(Serror, "\n[Switched to system mode: style_check(+dollar)]\n");
     debugstatus.styleCheck |= DOLLAR_STYLE;
     Sfprintf(Serror, "PROLOG STACK:\n");

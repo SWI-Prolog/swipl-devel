@@ -79,7 +79,7 @@ PLINIT=	$(PB)/init.pl
 
 SRC=	$(OBJ:.o=.c) $(DEPOBJ:.o=.c) $(EXT:.o=.c) pl-index.c pl-alloc.c
 HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h pl-itf.h pl-main.h \
-	pl-os.h pl-save.h
+	pl-os.h pl-save.h pl-data.h
 
 all:	banner headers system startup index runtime pl-bite chpl swipl swiplbin
 
@@ -239,7 +239,9 @@ iinclude:
 			$(INSTALL_DATA) $$f $(PLBASE)/include; \
 		    fi; \
 		done
-		$(INSTALL_DATA) ../include/SWI-Prolog.h $(prefix)/include
+		if [ -d $(prefix)/include -a -w $(prefix)/include ]; then \
+		    $(INSTALL_DATA) ../include/SWI-Prolog.h $(prefix)/include; \
+		fi
 
 iman:
 		$(SED) 's/PL/$(PL)/' $(srcdir)/pl.1 > $(PLBASE)/man/$(PL).$(mansec)

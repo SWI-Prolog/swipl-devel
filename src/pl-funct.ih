@@ -34,7 +34,7 @@
 #define FUNCTOR_float_fractional_part1 (&functors[33])
 #define FUNCTOR_float_integer_part1 (&functors[34])
 #define FUNCTOR_floor1       (&functors[35])
-#define FUNCTOR_garbage_collect0 (&functors[36])
+#define FUNCTOR_dgarbage_collect1 (&functors[36])
 #define FUNCTOR_hat2         (&functors[37])
 #define FUNCTOR_ifthen2      (&functors[38])
 #define FUNCTOR_integer1     (&functors[39])

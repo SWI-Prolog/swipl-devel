@@ -84,7 +84,7 @@ A foreign		"foreign"
 A functors		"functors"
 A fx			"fx"
 A fy			"fy"
-A garbage_collect	"garbage_collect"
+A dgarbage_collect	"$garbage_collect"
 A gctime		"gctime"
 A global		"global"
 A global_shifts		"global_shifts"
@@ -284,7 +284,7 @@ F float			1
 F float_fractional_part	1
 F float_integer_part	1
 F floor			1
-F garbage_collect 	0
+F dgarbage_collect 	1
 F hat			2
 F ifthen		2
 F integer		1

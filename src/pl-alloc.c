@@ -58,7 +58,7 @@ The rest of the code uses the macro allocHeap() to access this function
 to avoid problems with 16-bit machines not supporting an ANSI compiler.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-Void
+void *
 alloc_heap(register size_t n)
 { register Chunk f;
   register alloc_t m;
@@ -107,7 +107,7 @@ alloc_heap(register size_t n)
 }
 
 void
-free_heap(register Void mem, register size_t n)
+free_heap(register void * mem, register size_t n)
 { Chunk p = (Chunk) mem;
 
   n = ALLOCROUND(n);
@@ -186,7 +186,7 @@ on 16-bit machines not supporting ANSI.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if O_SHIFT_STACKS
-Void
+void *
 alloc_global(int n)
 { Word result;
 
@@ -205,7 +205,7 @@ alloc_global(int n)
 
 #else
 
-Void
+void *
 alloc_global(int n)
 { Word result = gTop;
 
@@ -227,7 +227,7 @@ globalFunctor(register FunctorDef def)
   for(a = argTermP(f, 0); arity > 0; a++, arity--)
     setVar(*a);
 
-  return (word) f;
+  return consPtr(f, TAG_COMPOUND, STG_GLOBAL);
 }
 
 
@@ -459,53 +459,6 @@ globalIndirect(word w)
 
   return (word)h | INDIRECT_MASK;
 }
-
-
-		/********************************
-		*         LOCAL STACK           *
-		*********************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Allocation on the local stack is used by many foreign language functions
-that needs scratch memory.  The area normally is large and it  need  not
-be  deallocated  as  it  vanishes  after  quiting  the  foreign language
-function anyway.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-char *localScratchBase;			/* base for scratching */
-					/* needed in segv_handler()! */
-#if !O_DYNAMIC_STACKS
-static char *localScratchTop;
-#endif
-
-void
-initAllocLocal()
-{ if (localScratchBase == (char *)NULL)
-  { localScratchBase = (char *) lTop;
-#if !O_DYNAMIC_STACKS
-    localScratchTop  = (char *) lMax;
-#endif
-  }
-}
-
-Void
-alloc_local(register size_t n)
-{ register char *mem = localScratchBase;
-
-  localScratchBase += ROUND(n, sizeof(word));
-#if !O_DYNAMIC_STACKS
-  STACKVERIFY( if ( localScratchBase >= localScratchTop )
-		 outOf((Stack) &stacks.local) );
-#endif
-
-  return mem;
-}
-
-void
-stopAllocLocal()
-{ localScratchBase = (char *)NULL;
-}
-
 
 		/********************************
 		*            STRINGS            *

@@ -64,52 +64,6 @@ static ArithFunction arithFunctionTable[ARITHHASHSIZE];
 static code next_index;
 static ArithFunction functions;
 
-		 /*******************************
-		 *	       TAGGING		*
-		 *******************************/
-
-#ifdef AVOID_0X80000000_BIT
-
-/*#define DONOT_USE_BIT_32_FOR_INT 1*/
-
-#if DONOT_USE_BIT_32_FOR_INT
-
-word
-fconsInt(long i)
-{ return unMask(i<<LMASK_BITS) | INT_MASK;
-}
-
-long
-fvalInt(word w)
-{ return ((long)((w)<<4)>>(4+LMASK_BITS));
-}
-
-#else
-
-word
-fconsInt(long i)
-{ i = (i<<LMASK_BITS) & 0x1fffffffL;
-  i |= (i << 3) & 0x80000000L;
-  i &= 0x8fffffffL;
-  
-  return (word) (i|INT_MASK);
-}
-
-long
-fvalInt(word w)
-{ long i = w;
-
-  i &= 0xefffffffL;
-  i |= (i>>3) & 0x10000000;
-  i = (i << 3) >> (3+LMASK_BITS);
-
-  return (long) i;
-}
-
-#endif
-
-#endif /*AVOID_0X80000000_BIT*/
-
 
 		/********************************
 		*   LOGICAL INTEGER FUNCTIONS   *
@@ -138,17 +92,17 @@ pl_between(term_t low, term_t high, term_t n, word b)
 	PL_unify_integer(n, l);
 	if ( l == h )
 	  succeed;
-	ForeignRedo(l);
+	ForeignRedoInt(l);
       }
     case FRG_REDO:
-      { long next = ForeignContext(b) + 1;
+      { long next = ForeignContextInt(b) + 1;
 	long h;
 
 	PL_unify_integer(n, next);
 	PL_get_long(high, &h);
 	if ( next == h )
 	  succeed;
-	ForeignRedo(next);
+	ForeignRedoInt(next);
       }
     default:;
       succeed;
@@ -278,7 +232,7 @@ isCurrentArithFunction(register FunctorDef f, register Module m)
   int level = 30000;
 
   for(a = arithFunctionTable[pointerHashValue(f, ARITHHASHSIZE)];
-      a && !isRef((word)a); a = a->next)
+      a && !isTableRef(a); a = a->next)
   { if ( a->functor == f )
     { register Module m2;
       register int l;
@@ -368,21 +322,30 @@ int
 valueExpression(term_t t, Number r)
 { ArithFunction f;
   FunctorDef fDef;
+  Word p = valTermRef(t);
+  word w;
 
-  if ( PL_get_long(t, &r->value.i) )	/* integer value */
-  { r->type = V_INTEGER;
-    succeed;
-  }
+  deRef(p);
+  w = *p;
 
-  if ( PL_get_float(t, &r->value.f) )	/* double */
-  { r->type = V_REAL;
-    succeed;
-  }
-
-  if ( !PL_get_functor(t, &fDef) )
-  { if ( PL_is_variable(t) )
+  switch(tag(w))
+  { case TAG_INTEGER:
+      r->value.i = valInteger(w);
+      r->type = V_INTEGER;
+      succeed;
+    case TAG_FLOAT:
+      r->value.f = valReal(w);
+      r->type = V_REAL;
+      succeed;
+    case TAG_VAR:
       return warning("Unbound variable in arithmetic expression");
-    else
+    case TAG_ATOM:
+      fDef = lookupFunctorDef(w, 0);
+      break;
+    case TAG_COMPOUND:
+      fDef = functorTerm(w);
+      break;
+    default:
       return warning("Illegal data type in arithmetic expression");
   }
 
@@ -396,7 +359,7 @@ valueExpression(term_t t, Number r)
       if ( isTaggedInt(*a) )
       { a = argTermP(*p, 1);
 	deRef(a);
-	if ( *a == (word)ATOM_nil )
+	if ( *a == ATOM_nil )
 	{ r->value.i = valInt(*a);
 	  r->type = V_INTEGER;
 	  succeed;
@@ -1019,7 +982,7 @@ pl_current_arithmetic_function(term_t f, word h)
     case FRG_REDO:
       PL_strip_module(f, &m, head);
 
-      a = (ArithFunction) ForeignContextAddress(h);
+      a = ForeignContextPtr(h);
       break;
     case FRG_CUTTED:
     default:
@@ -1029,9 +992,9 @@ pl_current_arithmetic_function(term_t f, word h)
   for( ; a; a = a->next )
   { Module m2;
 
-    while( isRef((word)a) )
-    { a = *((ArithFunction *)unRef(a));
-      if ( a == (ArithFunction) NULL )
+    while( isTableRef(a) )
+    { a = unTableRef(ArithFunction, a);
+      if ( !a )
         fail;
     }
 
@@ -1123,12 +1086,12 @@ initArith(void)
     register int n;
 
     for(n=0, f = arithFunctionTable; n < (ARITHHASHSIZE-1); n++, f++)
-      *f = (ArithFunction) makeRef(f+1);
+      *f = makeTableRef(f+1);
   }
 
 					/* initialise it */
-  { register ArithFunction f;
-    register int v;
+  { ArithFunction f;
+    int v;
 
     functions = ar_functions;
 

@@ -335,7 +335,6 @@ static struct foreign {
   FRG("$tty",			0, pl_tty,			TRACE_ME),
   FRG("feature",		2, pl_feature,		   NDET|TRACE_ME),
   FRG("set_feature",		2, pl_set_feature,		TRACE_ME),
-  FRG("limit_stack",		2, pl_limit_stack,		TRACE_ME),
   FRG("trim_stacks",		0, pl_trim_stacks,		TRACE_ME),
 #if O_SHIFT_STACKS
   FRG("stack_parameter",	4, pl_stack_parameter,		TRACE_ME),
@@ -471,7 +470,7 @@ initBuildIns(void)
   }
 
   PROCEDURE_alt1 = lookupProcedure(FUNCTOR_alt1, MODULE_system);
-  PROCEDURE_garbage_collect0 = lookupProcedure(FUNCTOR_garbage_collect0,
+  PROCEDURE_garbage_collect0 = lookupProcedure(FUNCTOR_dgarbage_collect1,
 					       MODULE_system);
   PROCEDURE_block3 = lookupProcedure(FUNCTOR_block3, MODULE_system);
   PROCEDURE_true0  = lookupProcedure(FUNCTOR_true0, MODULE_system);

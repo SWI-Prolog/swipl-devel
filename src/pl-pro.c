@@ -184,7 +184,7 @@ interpreter with the toplevel goal.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-prolog(volatile Atom goal)
+prolog(volatile atom_t goal)
 { bool rval;
 
   if ( setjmp(abort_context) != 0 )
@@ -284,7 +284,7 @@ int on_heap;
   while(isRef(*p))
   { p2 = unRef(*p);
     if ( !on_heap )
-    { if (p2 > p)
+    { if ( p2 > p )
 	printk("Reference to higher address");
       if ( !onLocal(p2) && !onGlobal(p2) )
 	printk("Illegal reference pointer at 0x%x --> 0x%x", p, p2);
@@ -301,7 +301,7 @@ int on_heap;
     return *p;
 
   if ( isIndirect(*p) )
-  { if ( !on_heap && !onGlobal(unMask(*p)) )
+  { if ( storage(*p) != STG_GLOBAL )
       printk("Indirect data not on global");
     if ( isBignum(*p) )
       return (word) valBignum(*p);
@@ -310,36 +310,25 @@ int on_heap;
     if ( isString(*p) )
     { if ( sizeString(*p) != strlen(valString(*p)) )
 	printk("String has inconsistent length: 0x%x", *p);
-      return *(Word)unMask(*p);
+      return *addressIndirect(*p);
     }
     printk("Illegal indirect datatype");
   }
 
-  if ( !on_heap )
-  { if ( !onGlobal(*p) )
-    { if (((Atom)(*p))->type != ATOM_TYPE)
-	printk("Illegal atom: 0x%x", *p);
-      return *p;
-    }
-  } else
-  { if ( onStackArea(global, *p) ||
-	 onStackArea(local, *p) ||
-	 onStackArea(trail, *p) )
-      printk("Heap term from 0x%x points to stack at 0x%x", p, *p);
-
-    if ( isAtom(*p) )
-      return *p;
-  }
+  if ( isAtom(*p) )
+    return *p;
 					/* now it should be a term */
   { word key = 0L;
+    Functor f = valueTerm(*p);
 
-    if (functorTerm(*p)->type != FUNCTOR_TYPE)
+    if ( tag(f->definition) != TAG_ATOM ||
+         storage(f->definition != STG_GLOBAL) )
       printk("Illegal term: 0x%x", *p);
-    arity = functorTerm(*p)->arity;
+    arity = arityFunctor(f->definition);
     if (arity <= 0 || arity > 100)
       printk("Illegal arity");
     for(n=0; n<arity; n++)
-      key += checkData(argTermP(*p, n), on_heap);
+      key += checkData(&f->arguments[n], on_heap);
 
     return key;
   }

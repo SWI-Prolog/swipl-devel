@@ -1,18 +1,6 @@
 /* Define if BSD compatible signals (i.e. no reset when fired) */
 #undef BSD_SIGNALS
 
-/* Define if malloc()'ed data is in 0x10000000L .. 0x20000000L */
-#undef DATA_AT_0X1
-
-/* Define if malloc()'ed data is in 0x20000000L .. 0x40000000L */
-#undef DATA_AT_0X2
-
-/* Define if malloc()'ed data is in 0x40000000L .. 0x80000000L */
-#undef DATA_AT_0X4
-
-/* Define if malloc()'ed data is in 0x80000000L .. */
-#undef DATA_AT_0X8
-
 /* Define if mmap() can be used to allocate stacks */
 #undef MMAP_STACK
 
@@ -46,7 +34,7 @@
 /* Define if (type)var = value is allowed */
 #undef TAGGED_LVALUE
 
-/* Define as 0 if text addresses start above 40K */
+/* Define as 0 if it gives problems (shouldn't do anymore) */
 #undef VMCODE_IS_ADDRESS
 
 /* Define if first data symbol not is environ */
@@ -70,9 +58,6 @@
 /* Define if ld accepts -A option */
 #undef HAVE_LD_A
 
-/* Define if /dev/null is named differently */
-#undef DEVNULL
-
 /* Define if wait() uses union wait */
 #undef UNION_WAIT
 
@@ -88,20 +73,17 @@
 /* Define to "file.h" to include additional system prototypes */
 #undef SYSLIB_H
 
-/* Define if running SunOs 5.x (solaris 2.x) */
-#undef __solaris__
-
 /* Define how to invoke the linker for incremental linking (default: ld) */
 #undef LD_COMMAND
 
 /* Define to make runtime version */
 #undef O_RUNTIME
 
-/* Define if your tty library defines struct sgttyb */
+/* Define if you don't have termio(s), but struct sgttyb */
 #undef HAVE_SGTTYB
 
-/* Define if assert.h cannot be used without loading stdio.h */
+/* Define if <assert.h> requires <stdio.h> */
 #undef ASSERT_H_REQUIRES_STDIO_H
 
-/* Define to the required alignment for doubles if not same as longs */
+/* Define if doubles cannot be aligned as longs */
 #undef DOUBLE_ALIGNMENT

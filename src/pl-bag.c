@@ -78,7 +78,7 @@ pl_collect_bag(term_t bindings, term_t bag)
   
   if ( !(a = bags) )
     fail;
-  if ( argTerm(a->binding->term, 0) == (word) ATOM_mark )
+  if ( argTerm(a->binding->term, 0) == ATOM_mark )
   { freeAssoc(prev, a);
     fail;				/* trapped the mark */
   }
@@ -98,7 +98,7 @@ pl_collect_bag(term_t bindings, term_t bag)
   { for( a = next, next = a->next; next; a = next, next = a->next )
     { Word key = argTermP(a->binding->term, 0);
 
-      if ( *key == (word) ATOM_mark )
+      if ( *key == ATOM_mark )
 	break;
       _PL_put_atomic(tmp, *key);
       if ( !pl_structural_equal(var_term, tmp) )

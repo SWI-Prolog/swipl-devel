@@ -54,8 +54,8 @@ handling times must be cleaned, but that not only holds for this module.
 typedef struct plfile *	PlFile;
 
 static struct plfile
-{ Atom		name;			/* name of file */
-  Atom		stream_name;		/* stream identifier name */
+{ atom_t	name;			/* name of file */
+  atom_t	stream_name;		/* stream identifier name */
   IOSTREAM *	stream;			/* IOSTREAM package descriptor */
   int		status;			/* F_CLOSED, F_READ, F_WRITE */
   int		type;			/* ST_FILE, ST_PIPE, ST_STRING */
@@ -67,7 +67,7 @@ int	Output;				/* current output */
 ttybuf	ttytab;				/* saved terminal status on entry */
 int	ttymode;			/* Current tty mode */
 
-static Atom prompt_atom;		/* current prompt */
+static atom_t prompt_atom;		/* current prompt */
 static char *first_prompt;		/* First-line prompt */
 static int first_prompt_used;		/* flag */
 static int protocolStream = -1;		/* doing protocolling on stream <n> */
@@ -79,7 +79,7 @@ typedef struct output_context * OutputContext;
 
 static struct input_context
 { int	stream;				/* pushed input */
-  Atom	term_file;			/* old term_position file */
+  atom_t	term_file;			/* old term_position file */
   int	term_line;			/* old term_position line */
   InputContext previous;		/* previous context */
 } *input_context_stack = NULL;
@@ -156,8 +156,8 @@ without the Unix assumptions?
 	f->type	       = ST_TERMINAL;
 	break;
       default:
-	f->name        = NULL;
-        f->stream      = NULL;
+	f->name        = NULL_ATOM;
+        f->stream      = NULL_ATOM;
 	f->type        = ST_FILE;
 	f->status      = F_CLOSED;
     }
@@ -174,7 +174,7 @@ without the Unix assumptions?
   Input = 0;
   Output = 1;
 
-  if ( prompt_atom == (Atom) NULL )
+  if ( prompt_atom == NULL_ATOM )
     prompt_atom = ATOM_prompt;
 }
 
@@ -204,8 +204,8 @@ closeStream(int n)
         break;
       default:
         Sclose(f->stream);
-        f->stream = NULL;
-	f->name   = NULL;
+        f->stream = NULL_ATOM;
+	f->name   = NULL_ATOM;
 	f->status = F_CLOSED;
 	break;
     }
@@ -502,7 +502,7 @@ PL_open_stream(term_t handle, IOSTREAM *s)
   for(n=3, f=&fileTable[n]; n<maxfiles; n++, f++)
   { if ( !f->stream )
     { f->stream = s;
-      f->name   = NULL;
+      f->name   = NULL_ATOM;
       f->type   = ST_FILE;
       if ( s->flags & SIO_INPUT )
 	f->status = F_READ;
@@ -522,7 +522,7 @@ openStream(term_t file, int mode, int flags)
 { int n;
   IOSTREAM *stream;
   char cmode[3];
-  Atom name;
+  atom_t name;
   functor_t f;
   int type;
 
@@ -626,7 +626,7 @@ openStream(term_t file, int mode, int flags)
     return warning("Cannot handle more than %d open files", maxfiles);
 
   fileTable[n].name = name;
-  fileTable[n].stream_name = NULL;
+  fileTable[n].stream_name = NULL_ATOM;
   fileTable[n].type = type;
   fileTable[n].stream = stream;
   fileTable[n].status = (mode == F_APPEND ? F_WRITE : mode);
@@ -674,7 +674,7 @@ unifyStreamMode(term_t m, int n)
 
 static bool
 unifyStreamNo(term_t stream, int n)
-{ Atom name;
+{ atom_t name;
 
   switch( n )
   { case 0:
@@ -778,7 +778,7 @@ seeString(char *s)
   for(n=3, f=&fileTable[n]; n<maxfiles; n++, f++)
   { if ( !f->stream )
     { f->stream = stream;
-      f->name   = NULL;
+      f->name   = NULL_ATOM;
       f->status = F_READ;
       f->type   = ST_STRING;
 
@@ -822,7 +822,7 @@ tellString(char *s, int size)
   for(n=3, f=&fileTable[n]; n<maxfiles; n++, f++)
   { if ( !f->stream )
     { f->stream = stream;
-      f->name   = NULL;
+      f->name   = NULL_ATOM;
       f->status = F_WRITE;
       f->type   = ST_STRING;
 
@@ -855,14 +855,14 @@ toldString()
 		*        INPUT IOSTREAM NAME        *
 		*********************************/
 
-Atom
+atom_t
 currentStreamName()			/* only if a file! */
 { PlFile f = &fileTable[Input];
 
   if ( f->type == ST_FILE || f->type == ST_PIPE )
     return f->name;
 
-  return NULL;
+  return NULL_ATOM;
 }
 
 		/********************************
@@ -1081,7 +1081,7 @@ pl_protocolling(term_t file)
 
 word
 pl_prompt(term_t old, term_t new)
-{ Atom a;
+{ atom_t a;
 
   if ( PL_unify_atom(old, prompt_atom) &&
        PL_get_atom(new, &a) )
@@ -1159,7 +1159,7 @@ pl_tab2(term_t stream, term_t n)
 
 static bool
 setUnifyStreamNo(term_t stream, int n)
-{ Atom a;
+{ atom_t a;
 
   if ( PL_get_atom(stream, &a) )
   { register int i;
@@ -1182,7 +1182,7 @@ static opt_spec open4_options[] =
   { ATOM_reposition, OPT_BOOL },
   { ATOM_alias,	     OPT_ATOM },
   { ATOM_eof_action, OPT_ATOM },
-  { NULL,	     0 }
+  { NULL_ATOM,	     0 }
 };
 
 
@@ -1190,11 +1190,11 @@ word
 pl_open4(term_t file, term_t mode,
 	 term_t stream, term_t options)
 { int m = -1;
-  Atom mname;
-  Atom type       = ATOM_text;
+  atom_t mname;
+  atom_t type       = ATOM_text;
   bool reposition = FALSE;
-  Atom alias	  = NULL;
-  Atom eof_action = ATOM_eof_code;
+  atom_t alias	  = NULL_ATOM;
+  atom_t eof_action = ATOM_eof_code;
   int flags = OPEN_OPEN;
 
   if ( !scan_options(options, 0, open4_options,
@@ -1323,7 +1323,7 @@ streamNo(term_t spec, int mode)
 { int n = -1;
   
   if ( !PL_get_integer(spec, &n) )
-  { Atom name;
+  { atom_t name;
 
     if ( PL_get_atom(spec, &name) )
     {      if ( name == ATOM_user )
@@ -1397,7 +1397,7 @@ pl_current_stream(term_t file, term_t mode,
       n = 3;
       break;
     case FRG_REDO:
-      n = (int) ForeignContext(h);
+      n = ForeignContextInt(h);
       break;
     case FRG_CUTTED:
     default:
@@ -1410,7 +1410,7 @@ pl_current_stream(term_t file, term_t mode,
 	 unifyStreamNo(stream, n) == FALSE )
       continue;
     if ( ++n < maxfiles )
-      ForeignRedo(n);
+      ForeignRedoInt(n);
     succeed;
   }
   
@@ -1694,7 +1694,7 @@ word
 pl_access_file(term_t name, term_t mode)
 { char *n;
   int md;
-  Atom m;
+  atom_t m;
 
   if ( !PL_get_atom(mode, &m) ||
        !(n=PL_get_filename(name, NULL, 0)) )

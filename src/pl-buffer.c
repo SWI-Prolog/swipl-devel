@@ -8,7 +8,6 @@
 */
 
 #include "pl-incl.h"
-#include "pl-buffer.h"
 
 void
 growBuffer(Buffer b, long int minfree)
