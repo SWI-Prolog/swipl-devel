@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * IMPL: Cleanup of thread-message queue, preparing for stand-alone
+    object.
+
   * FIXED: Lost mutex and condition variable after destroying a thread.
 
   * FIXED: text-buffering rules for strings (Sebastian Sardina).

@@ -1986,8 +1986,8 @@ decrease).
 
 #include "pl-main.h"			/* Declarations needed by pl-main.c */
 #include "pl-error.h"			/* Exception generation */
-#include "pl-global.h"			/* global data */
 #include "pl-thread.h"			/* thread manipulation */
+#include "pl-global.h"			/* global data */
 #include "pl-funcs.h"			/* global functions */
 
 #ifdef __DECC				/* Dec C-compiler: avoid conflicts */

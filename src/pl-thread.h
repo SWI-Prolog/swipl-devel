@@ -51,12 +51,19 @@ typedef struct _PL_thread_info_t
 #ifdef WIN32
   unsigned long	    w32id;		/* Win32 thread HANDLE */
 #endif
-  PL_local_data_t  *thread_data;	/* The thread-local data  */
+  struct PL_local_data  *thread_data;	/* The thread-local data  */
   module_t	    module;		/* Module for starting goal */
   record_t	    goal;		/* Goal to start thread */
   record_t	    return_value;	/* Value (term) returned */
   atom_t	    name;		/* Name of the thread */
 } PL_thread_info_t;
+
+typedef struct thread_message_queue
+{ pthread_mutex_t      mutex;		/* Message queue mutex */
+  pthread_cond_t       cond_var;	/* condition variable of queue */
+  struct _thread_msg   *head;		/* Head of message queue */
+  struct _thread_msg   *tail;		/* Tail of message queue */
+} thread_message_queue;
 
 
 #define PL_THREAD_MAGIC 0x2737234f
@@ -229,9 +236,9 @@ int			attachConsole(void);
 		 *	 GLOBAL GC SUPPORT	*
 		 *******************************/
 
-void			forThreadLocalData(void (*func)(PL_local_data_t *),
-					   unsigned flags);
-void			resumeThreads(void);
+void		forThreadLocalData(void (*func)(struct PL_local_data *),
+				   unsigned flags);
+void		resumeThreads(void);
 
 #define PL_THREAD_SUSPEND_AFTER_WORK	0x1 /* forThreadLocalData() */
 

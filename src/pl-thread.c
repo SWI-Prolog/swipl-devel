@@ -201,7 +201,8 @@ DllMain(HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved)
 		 *******************************/
 
 static PL_thread_info_t *alloc_thread(void);
-static void	freeThreadMessages(PL_local_data_t *ld);
+static void	destroy_message_queue(thread_message_queue *queue);
+static void	init_message_queue(thread_message_queue *queue);
 static void	freeThreadSignals(PL_local_data_t *ld);
 static void	unaliasThread(atom_t name);
 static void	run_thread_exit_hooks();
@@ -330,8 +331,7 @@ PL_initialise_thread(PL_thread_info_t *info)
   attachThreadWindow(info->thread_data);
 #endif
 
-  pthread_mutex_init(&info->thread_data->thread.queue_mutex, NULL);
-  pthread_cond_init(&info->thread_data->thread.cond_var, NULL);
+  init_message_queue(&info->thread_data->thread.messages);
 
   LOCK();
   GD->statistics.threads_created++;
@@ -381,15 +381,15 @@ free_prolog_thread(void *data)
     destroyHTable(ld->feature.table);
   /*PL_unregister_atom(ld->prompt.current);*/
 
-  freeThreadMessages(ld);
   freeThreadSignals(ld);
 
   LOCK();
+  destroy_message_queue(&ld->thread.messages);
   GD->statistics.threads_finished++;
   GD->statistics.thread_cputime += CpuTime(CPU_USER);
+  info->thread_data = NULL;
   UNLOCK();
 
-  info->thread_data = NULL;
   mergeAllocPool(&GD->alloc_pool, &ld->alloc_pool);
   freeHeap(ld, sizeof(*ld));
 
@@ -1362,46 +1362,37 @@ typedef struct _thread_msg
 } thread_message;
 
 
-word
-pl_thread_send_message(term_t thread, term_t msg)
-{ PL_thread_info_t *info;
-  PL_local_data_t *ld;
-  thread_message *msgp;
-
-  if ( !get_thread(thread, &info, TRUE) )
-    fail;
+static void
+queue_message(thread_message_queue *queue, term_t msg)
+{ thread_message *msgp;
 
   msgp = allocHeap(sizeof(*msgp));
   msgp->next    = NULL;
   msgp->message = PL_record(msg);
-
-  pthread_mutex_lock(&info->thread_data->thread.queue_mutex);
-  ld = info->thread_data;
-  if ( !ld->thread.msg_head )
-    ld->thread.msg_head = ld->thread.msg_tail = msgp;
-  else
-  { ld->thread.msg_tail->next = msgp;
-    ld->thread.msg_tail = msgp;
+  
+  pthread_mutex_lock(&queue->mutex);
+  if ( !queue->head )
+  { queue->head = queue->tail = msgp;
+  } else
+  { queue->tail->next = msgp;
+    queue->tail = msgp;
   }
-  pthread_cond_signal(&ld->thread.cond_var);
-  pthread_mutex_unlock(&ld->thread.queue_mutex);
-
-  succeed;
+  pthread_cond_signal(&queue->cond_var);
+  pthread_mutex_unlock(&queue->mutex);
 }
 
 
-word
-pl_thread_get_message(term_t msg)
-{ PL_local_data_t *ld = LD;
-  thread_message *msgp;
+static int
+get_message(thread_message_queue *queue, term_t msg)
+{ thread_message *msgp;
   thread_message *prev = NULL;
   term_t tmp = PL_new_term_ref();
   mark m;
 
   Mark(m);
 
-  pthread_mutex_lock(&ld->thread.queue_mutex);
-  msgp = ld->thread.msg_head;
+  pthread_mutex_lock(&queue->mutex);
+  msgp = queue->head;
 
   for(;;)
   { for( ; msgp; prev = msgp, msgp = msgp->next )
@@ -1410,49 +1401,48 @@ pl_thread_get_message(term_t msg)
       if ( PL_unify(msg, tmp) )
       { if ( prev )
 	{ if ( !(prev->next = msgp->next) )
-	    ld->thread.msg_tail = prev;
+	    queue->tail = prev;
 	} else
-	{ if ( !(ld->thread.msg_head = msgp->next) )
-	    ld->thread.msg_tail = NULL;
+	{ if ( !(queue->head = msgp->next) )
+	    queue->tail = NULL;
 	}
 	PL_erase(msgp->message);
 	freeHeap(msgp, sizeof(*msgp));
-	pthread_mutex_unlock(&ld->thread.queue_mutex);
+	pthread_mutex_unlock(&queue->mutex);
 	succeed;
       }
       Undo(m);				/* reclaim term */
     }
-    pthread_cond_wait(&ld->thread.cond_var, &ld->thread.queue_mutex);
+    pthread_cond_wait(&queue->cond_var, &queue->mutex);
 
-    msgp = (prev ? prev->next : ld->thread.msg_head);
+    msgp = (prev ? prev->next : queue->head);
   }
 }
 
 
-word
-pl_thread_peek_message(term_t msg)
-{ PL_local_data_t *ld = LD;
-  thread_message *msgp;
+static int
+peek_message(thread_message_queue *queue, term_t msg)
+{ thread_message *msgp;
   term_t tmp = PL_new_term_ref();
   mark m;
 
   Mark(m);
 
-  pthread_mutex_lock(&ld->thread.queue_mutex);
-  msgp = ld->thread.msg_head;
+  pthread_mutex_lock(&queue->mutex);
+  msgp = queue->head;
 
-  for( msgp = ld->thread.msg_head; msgp; msgp = msgp->next )
+  for( msgp = queue->head; msgp; msgp = msgp->next )
   { PL_recorded(msgp->message, tmp);
 
     if ( PL_unify(msg, tmp) )
-    { pthread_mutex_unlock(&ld->thread.queue_mutex);
+    { pthread_mutex_unlock(&queue->mutex);
       succeed;
     }
 
     Undo(m);
   }
      
-  pthread_mutex_unlock(&ld->thread.queue_mutex);
+  pthread_mutex_unlock(&queue->mutex);
   fail;
 }
 
@@ -1462,20 +1452,60 @@ Deletes the contents of the message-queue as well as the queue itself.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-freeThreadMessages(PL_local_data_t *ld)
+destroy_message_queue(thread_message_queue *queue)
 { thread_message *msgp;
   thread_message *next;
 
-  for( msgp = ld->thread.msg_head; msgp; msgp = next )
+  for( msgp = queue->head; msgp; msgp = next )
   { next = msgp->next;
 
     PL_erase(msgp->message);
     freeHeap(msgp, sizeof(*msgp));
   }
-
-  pthread_mutex_destroy(&ld->thread.queue_mutex);
-  pthread_cond_destroy(&ld->thread.cond_var);
+  
+  pthread_mutex_destroy(&queue->mutex);
+  pthread_cond_destroy(&queue->cond_var);
 }
+
+
+static void
+init_message_queue(thread_message_queue *queue)
+{ memset(queue, 0, sizeof(*queue));
+  pthread_mutex_init(&queue->mutex, NULL);
+  pthread_cond_init(&queue->cond_var, NULL);
+}
+
+
+					/* Prolog predicates */
+
+word
+pl_thread_send_message(term_t thread, term_t msg)
+{ PL_thread_info_t *info;
+
+  LOCK();
+  if ( !get_thread(thread, &info, TRUE) )
+  { UNLOCK();
+    fail;
+  }
+
+  queue_message(&info->thread_data->thread.messages, msg);
+  UNLOCK();
+
+  succeed;
+}
+
+
+foreign_t
+pl_thread_get_message(term_t msg)
+{ return get_message(&LD->thread.messages, msg);
+}
+
+
+word
+pl_thread_peek_message(term_t msg)
+{ return peek_message(&LD->thread.messages, msg);
+}
+
 
 		 /*******************************
 		 *	 MUTEX PRIMITIVES	*

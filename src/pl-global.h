@@ -417,11 +417,8 @@ typedef struct PL_local_data
   { long   magic;			/* PL_THREAD_MAGIC (checking) */
     struct _PL_thread_info_t *info;	/* info structure */
     unsigned forall_flags;		/* forThreadLocalData() flags */
-					/* Message queues */
-    pthread_mutex_t      queue_mutex;	/* Message queue mutex */
-    pthread_cond_t       cond_var;	/* condition variable of queue */
-    struct _thread_msg   *msg_head;	/* Head of message queue */
-    struct _thread_msg   *msg_tail;	/* Tail of message queue */
+					/* Communication */
+    thread_message_queue messages;	/* Message queue */
     struct _thread_sig   *sig_head;	/* Head of signal queue */
     struct _thread_sig   *sig_tail;	/* Tail of signal queue */
     struct _at_exit_goal *exit_goals;	/* thread_at_exit/1 goals */
