@@ -169,6 +169,7 @@ file_filter(Tuple, tuple(Label, Pattern)) :-
 	get(Tuple, first, Label),
 	get(Tuple, second, ExtList),
 	to_pattern(ExtList, Pattern).
+file_filter(*, tuple(all_files, *)) :- !.
 file_filter(Ext0, Filter) :-
 	atom_concat('.', Ext, Ext0), !,
 	file_filter(Ext, Filter).
@@ -199,6 +200,11 @@ to_pattern(Chain, Pattern) :-
 	file_type/2.
 
 file_type(pl,	'Prolog files').
+file_type(c,	'C source files').
+file_type(cc,	'C++ source files').
+file_type(cpp,	'C++ source files').
+file_type(cxx,	'C++ source files').
+file_type(h,	'C header files').
 file_type(pd,	'PceDraw files').
 file_type(ps,	'PostScript files').
 file_type(eps,	'Encapsulated PostScript files').
@@ -214,5 +220,9 @@ file_type(html,	'HTML documents').
 file_type(htm,	'HTML documents').
 file_type(xml,	'XML documents').
 file_type(sgml,	'SGML documents').
+file_type(rdf,	'RDF files').
+file_type(rdfs,	'RDF schema files').
+file_type(tex,	'TeX or LaTeX files').
+file_type(*,	'All files').
 
 :- pce_end_class(finder).

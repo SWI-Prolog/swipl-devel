@@ -855,7 +855,7 @@ are:
   - various builtin predicates. They should be flagged some way.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define NON_RECURSIVE_UNIFY 1
+#define NON_RECURSIVE_UNIFY 0
 #if NON_RECURSIVE_UNIFY
 typedef struct uchoice *UChoice;
 

@@ -89,7 +89,7 @@ application_flags([_|Appl], Appl).
 dispatch_for_frames([]) :- !.
 dispatch_for_frames(Frames) :-
 	(   catch(send(@display, dispatch), E,
-		  (   term_to_atom(E, Msg),
+		  (   message_to_string(E, Msg),
 		      send(@display, inform, Msg),
 		      (	  E == '$aborted'
 		      ->  throw(E)

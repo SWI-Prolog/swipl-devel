@@ -540,6 +540,9 @@ to_regex(Tuple, Regex) :-
 	new(Regex, regex),
 	alt_regex(Exts, Regex),
 	send(Regex, attribute, print_name, LabelName?label_name).
+to_regex(*, Regex) :- !,
+	new(Regex, regex('.*')),
+	send(Regex, attribute, print_name, all_files?label_name).
 to_regex(Atom, Regex) :-
 	new(Regex, regex),
 	send(Regex, attribute, print_name, string('*.%s', Atom)),

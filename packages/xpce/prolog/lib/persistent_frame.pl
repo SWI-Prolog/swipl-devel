@@ -105,7 +105,8 @@ save_layout(F) :->
 	    get(F, tile, RootTile),
 	    get(RootTile, members, Members),
 	    Members \== @nil,
-	    get_tile_layout(RootTile, Layout)
+	    get_tile_layout(RootTile, Layout),
+	    Layout \== *
 	->  set_config(history/subwindow_layout/Key, Layout)
 	;   true
 	).
@@ -136,8 +137,8 @@ get_tile_layout(T, layout(Me, SubLayout)) :-
 	Members \== @nil,
 	chain_list(Members, List),
 	maplist(get_tile_layout, List, SubLayout),
-	has_specifier(layout(Me, SubLayout)), !,
-	get_this_tile_layout(T, Me).
+	get_this_tile_layout(T, Me),
+	has_specifier(layout(Me, SubLayout)), !.
 get_tile_layout(T, Me) :-
 	get_this_tile_layout(T, Me).
 
