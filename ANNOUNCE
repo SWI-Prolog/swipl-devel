@@ -1,54 +1,39 @@
-SWI-Prolog 5.2.8/XPCE 6.2.8 stable release
+SWI-Prolog 5.2.9/XPCE 6.2.9 stable release
 
 Status
 ======
   
   * Stable release integrating shared-database multi-threaded execution.
 
-Brief summary of changes since 5.2.7
+Brief summary of changes since 5.2.8
 ====================================
 
 SWI-Prolog
 ----------
 
-  * Bug in compilation of \+ inside ;.  Under complicated conditions it
-    can lead to data corruption that can crash the garbage collector and
-    source-level debugger.
-
-  * Bugfix in thread_local dynamic predicates (multi-threaded applications)
-    No real bug, but automatic indexing fails, leaving predicates unindexed.
-
-  * Some more sanity checks in module declarations.  Avoids loading a
-    module file from silently overruling a dynamically created module.
-
-  * The usual small and/or obscure stuff.
+  * Many small fixes.  None is likely to affect many users.
 
 Packages
 --------
 
-  * XPCE: Various extensions and fixes.  Notably involved are trees,
-    event-focus handling, drag-and-drop (inside the application), tooltips
-    (windows: avoid loosing focus of underlying window) and the new `unclip'
-    windows used by library(pce_toc): also focus and other coorperation
-    issues with event-handling.  Fixed RPM binary compatibility issues with
-    Mandrake Linux (dispite, I advice to recompile if you want to be sure).
+  * XPCE: Many small fixes.  The most important ones affect trees using the
+    `list' visualisation (layout and redraw problems).
 
-  * Semweb: various improvements.  rdf_db.c can now handle properties with
-    multiple super-properties and duplicate handling on delete is fixed.
-    Various patches to rdf_edit.pl (transaction and undo management).
+  * Semweb: various extensions.  Generation of MD5 digests on triple sets.
 
-  * SGML: fixed memory leak.
+  * ODBC: Some driver errors could crash the interface.  Bug in
+    odbc_free_statement/1 that could crash the interface.
 
 Development environment
 -----------------------
 
-  * Bugfix in exception handling that sometimes crashes the debugger.
+  * Various fixes and improvements to the debugger.  Notably improved 
+    redo and failure handling.
 
 INCOMPATIBILITIES
 =================
 
-  * Some issues in XPCE class tree and event-handling.  Unlikely to affect
-    applications.  For details see XPCE ChangeLog.
+  (none)
 
 Donations
 =========
