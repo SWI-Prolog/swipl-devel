@@ -1138,13 +1138,13 @@ nbio_init(const char *module)
   }
   initialised = TRUE;
 
-  hinstance = GetModuleHandle(module);
-
   FUNCTOR_module2 = PL_new_functor(PL_new_atom(":"), 2);
   FUNCTOR_ip4     = PL_new_functor(PL_new_atom("ip"), 4);
 
 #ifdef WIN32
 { WSADATA WSAData;
+
+  hinstance = GetModuleHandle(module);
 
 #if 0
   WM_SOCKET  = RegisterWindowMessage("SWI-Prolog:nonblockio:WM_SOCKET");
