@@ -1512,7 +1512,6 @@ sortTextBuffer(TextBuffer tb, Int from, Int to)
       if ( tisendsline(tb->syntax, *bp) )
       { *bp = EOS;
 	*lp++ = bp+1;
-        Cprintf("nl %-4d at %d\n", lp-lines, i);
       }
     }
 
@@ -1568,14 +1567,12 @@ count_lines_textbuffer(TextBuffer tb, int f, int t)
     for( ; f<end1; f++)
     { if ( tisendsline(syntax, b[f]) )
       { lines++;
-	Cprintf("count-nl %-4d at %d\n", lines, f);
       }
     }
     b += tb->gap_end - tb->gap_start + 1;
     for( ; f<t; f++)
     { if ( tisendsline(syntax, b[f]) )
       { lines++;
-	Cprintf("count-nl %-4d at %d\n", lines, f);
       }
     }
   } else
