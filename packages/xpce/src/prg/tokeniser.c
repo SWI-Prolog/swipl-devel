@@ -148,7 +148,7 @@ GETC(Tokeniser t)
     { CharArray ca = t->source;
       String s = &ca->data;
 
-      c = (t->caret < s->size ? str_fetch(&ca->data, t->caret) : EOF);
+      c = (t->caret < s->size ? (int)str_fetch(&ca->data, t->caret) : EOF);
       break;
     }
     case A_TEXT_BUFFER:

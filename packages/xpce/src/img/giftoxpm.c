@@ -64,7 +64,7 @@ alloc_color(int index, int r, int g, int b, void *closure)
 { XpmImage *img = closure;
   XpmColor *c;
   
-  if ( index < 0 || index >= img->ncolors )
+  if ( index < 0 || index >= (int)img->ncolors )
     return GIF_INVALID;
   c = &img->colorTable[index];
 
@@ -90,7 +90,7 @@ gif_extension(int ext, void *data, void *closure)
       DEBUG(NAME_gif, Cprintf("Using %d as transparent (ncolors=%d)\n",
 			      i, img->ncolors));
 
-      if ( i < 0 || i >= img->ncolors )
+      if ( i < 0 || i >= (int)img->ncolors )
 	return GIF_INVALID;
 
       c = &img->colorTable[(long)data];

@@ -321,7 +321,7 @@ labelWindowDecorator(WindowDecorator dw, CharArray fmt, int argc, Any *argv)
     assign(dw, label_text, NIL);
   } else
   { char buf[LINESIZE];
-    int sz = sizeof(buf);
+    unsigned int sz = sizeof(buf);
     FontObj font = getClassVariableValueObject(dw, NAME_labelFont);
 
     swritefv(buf, &sz, fmt, argc, argv);

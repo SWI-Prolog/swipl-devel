@@ -445,7 +445,7 @@ syntaxName(Name n, Name casemap, Int ws)
     size = s->size;
 
     for(i=0; i<size; i++)
-      if ( str_fetch(s, i) == syntax.word_separator )
+      if ( str_fetch(s, i) == (wchar)syntax.word_separator )
 	str_store(s, i, valInt(ws));
   }
 
