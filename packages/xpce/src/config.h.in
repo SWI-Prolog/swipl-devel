@@ -106,6 +106,9 @@
 /* Define if sigaction() supports SA_SIGINFO and passes thechild pid in info */
 #undef USE_SIGINFO
 
+/* Define to prepare for multi-threading */
+#undef _REENTRANT
+
 /* Define if you have the XInitThreads function.  */
 #undef HAVE_XINITTHREADS
 

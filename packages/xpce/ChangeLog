@@ -1,3 +1,8 @@
+* ADDED: --enable-mt configuration option to provide rudimentary support
+  for multi-threading.  Supports pceMTLock(int lockid) and
+  pceMTUnlock(int lockid).  Requires thread-safe version of the X11 libraries.
+  Used for cooperation with the multi-threaded SWI-Prolog version.
+
 VERSION 5.0.7
 =============
 

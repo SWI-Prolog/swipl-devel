@@ -78,3 +78,6 @@
 
 /* Define if your system is Unix-like, but doesn't know for itself */
 #undef __unix__
+
+/* Define to prepare for multi-threading */
+#undef _REENTRANT
