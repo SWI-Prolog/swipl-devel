@@ -1,11 +1,21 @@
 			SWI-Prolog ChangeLog
 			====================
 
-  * INTERNAL: Introduced explicit choice-points on the environment
-    stack.  The design of the VM interpreter has been simplified a
-    lot by this change.  Deterministic code is a little faster,
-    non-deterministic code a little slower and compiled ccntrol
-    structures (;, ->, \+) are a lot faster.
+  * (RE)ADDED: library(gensym) providing reset_gensym/[0,1]
+
+  * FIXED: discarding the choice-point of current_op/3 could
+    lead to an infinite loop.
+
+  * FIXED: Data alignment problem in recorded database on machines
+    with sizeof(int) != sizeof(long) (Alpha). Thanks to Christian
+    Zuckschwerdt.
+
+  * FIXED: Data inconsistency causing GC to crash.  Notably applicable
+    to 32-bit RISC machines (SPARC for example).  Thanks to Lourens
+    van der Meij.
+
+  * FIXED: clause/2 to deal properly with imported clauses (fixes
+    listing of imported predicates).
 
   * FIXED: Clauses-index handling in loading .qlf files as well as
     honouring reindex requests on running predicates.  Thanks to
@@ -15,6 +25,14 @@
 
   * FIXED: Initialisation of functorDef->flags for builtin functors.
     Symptom: reported undefined on $throw, $apply, etc.
+
+  * INTERNAL: Introduced explicit choice-points on the environment
+    stack.  The design of the VM interpreter has been simplified a
+    lot by this change.  Deterministic code is a little faster,
+    non-deterministic code a little slower and compiled ccntrol
+    structures (;, ->, \+) are a lot faster.
+
+<available as V3_3_5 from the CVS repository>
 
   * FIXED: plwin.exe ... -- file.pl.  Thanks to Lourens van der Meij.
 
