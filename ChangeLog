@@ -1,6 +1,16 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: compilation (boot and .qlf) now donot look for compiled
+    (.qlf) files.
+
+  * CHANGED: Default goal writing the banner is now in the flag
+    $banner_goal (used by XPCE as a shared library).
+
+
+Version 2.0.6
+=============
+
   * CHANGED: retractall/1 implementation is now compatible to Quintus,
     avoiding the hacky redefinition in library(quintus.pl).  The difference
     is that now the argument will only be matched against the clause-head.
