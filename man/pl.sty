@@ -142,7 +142,7 @@
 	    \definition{#1({\it #2})}}\ignorespaces}
 \def\term{}
 \renewcommand{\term}[2]{%
-	\ifthenelse{\equal{}{\protect #2}}{%
+	\ifthenelse{\equal{\protect}{\protect#2}}{%
 	    {\reffont #1}}{%
 	    {\reffont #1}({\it #2})}}
 \newcommand{\infixterm}[3]{{\it #2} #1 {\it #2}}

@@ -100,7 +100,7 @@ has an alias, the alias-name is returned.
 
     \predicate{thread_join}{2}{+Id, -Status}
 Wait for the termination of thread with given \arg{Id}.  Then unify
-the result-status (see thread_exit/1) of the thread with \arg{Status}.
+the result-status of the thread with \arg{Status}.
 After this call, \arg{Id} becomes invalid and all resources associated
 with the thread are reclaimed.  Note that threads with the attribute
 \term{detached}{true} cannot be joined.  See also current_thread/2.
@@ -108,7 +108,24 @@ with the thread are reclaimed.  Note that threads with the attribute
 A thread that has been completed without thread_join/2 being called on
 it is partly reclaimed: the Prolog stacks are released and the C-thread
 is destroyed. A small data-structure representing the exit-status of the
-thread is retained until thread_join/2 is called on the thread.
+thread is retained until thread_join/2 is called on the thread.  Defined
+values for \arg{Status} are:
+
+\begin{description}
+    \termitem{true}{}
+The goal has been proven successfully.
+
+    \termitem{false}{}
+The goal has failed.
+
+    \termitem{exception}{Term}
+The thread is terminated on an exception.  See print_message/2 to turn
+system exceptions into readable messages.
+
+    \termitem{exited}{Term}
+The thread is terminated on thread_exit/1 using the argument \arg{Term}.
+\end{description}
+
 
     \predicate{thread_detach}{1}{+Id}
 Switch thread into detached-state (see \term{detached}{Bool} option at
