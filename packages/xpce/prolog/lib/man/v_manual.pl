@@ -268,9 +268,7 @@ fill_dialog(M, D) :->
 			 @default,
 			 'XPCE/Prolog predicates'),
 	       menu_item(prolog_predicates,
-			 message(M, help_on_prolog)),
-	       menu_item(library_overview,
-			 message(M, library_overview),
+			 message(M, help_on_prolog),
 			 end_group := @on),
 	       menu_item(search),
 	       menu_item(group_overview),
@@ -553,16 +551,10 @@ changelog(_M) :->
 	send(@emacs, goto_source_location, Path).
 
 :- pce_help_file(pce_faq,     pce_help('pcefaq.hlp')).
-:- pce_help_file(pce_library, pce_help('lib/overview.hlp')).
 
 faq(_M) :->
 	"Start @helper on faq-database"::
 	send(@helper, give_help, pce_faq, main).
-
-library_overview(_M) :->
-	"Hypertext tool for library overview"::
-	send(@helper, give_help, pce_library, main).
-
 
 help_on_prolog(_M) :->
 	"Start Prolog help-system"::

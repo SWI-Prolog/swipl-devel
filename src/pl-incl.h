@@ -737,7 +737,7 @@ Common Prolog objects typedefs.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef unsigned long		term_t;		/* external term-reference */
-typedef unsigned long		word;		/* Anonimous 4 byte object */
+typedef unsigned long		word;		/* Anonymous 4 byte object */
 typedef word *			Word;		/* a pointer to anything */
 typedef word			atom_t;		/* encoded atom */
 typedef unsigned long		code;		/* bytes codes */
