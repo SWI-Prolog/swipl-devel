@@ -94,10 +94,6 @@ variable(parser,
 	 prolog,
 	 none,
 	 "Associated (DTD) parser").
-variable(auto_colourise_size_limit,
-	 int,
-	 both,
-	 "Auto-colourise if buffer is smaller then this").
 
 %	make_parser(M, Parser)
 %
