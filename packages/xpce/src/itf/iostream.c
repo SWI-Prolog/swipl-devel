@@ -248,8 +248,9 @@ Sopen_object(Any obj, const char *mode)
   { Name name = getOsNameFile(obj);
     IOSTREAM *s;
 
-    if ( (s=Sopen_file(charArrayToFN((CharArray)name), mode)) )
-    { setStreamEncodingSourceSink(obj, s);
+    if ( (s=Sopen_file(nameToFN(name), mode)) )
+    { if ( !strchr(mode, 'b') )
+	setStreamEncodingSourceSink(obj, s);
       return s;
     }
     
