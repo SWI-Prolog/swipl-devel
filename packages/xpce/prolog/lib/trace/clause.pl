@@ -169,7 +169,7 @@ unify_clause(:<-(Head, Body), (PlHead :- PlBody), TermPos0, TermPos) :- !,
 	pce_method_clause(Head, Body, PlHead, PlBody, TermPos0, TermPos).
 unify_clause(Read, Compiled1, TermPos0, TermPos) :-
 	expand_term(Read, Compiled2),
-	match_module(Compiled1, Compiled2, TermPos0, TermPos).
+	match_module(Compiled2, Compiled1, TermPos0, TermPos).
 unify_clause(_, _, _, _) :-
 	send(@nil, report, warning, 'Could not unify clause'),
 	fail.
@@ -186,7 +186,7 @@ match_module(H1, H2, Pos, Pos) :-	% deal with facts
 
 %	unify_body(+Read, +Decompiled, +Pos0, -Pos)
 %	
-%	Deal with translations implies by the compiler.  For eaxmple,
+%	Deal with translations implied by the compiler.  For eaxmple,
 %	compiling (a,b),c yields the same code as compiling a,b,c.
 %	
 %	Pos0 and Pos still include the term-position of the head.
@@ -199,26 +199,36 @@ unify_body(R, D,
 	   
 
 ubody(B, B, P, P) :- !.
-ubody((A,B,C), ((A,B),C),
-      term_position(F1,T1,FF1,TT1,
-		    [ PA,
-		      term_position(F1,T2,FF2,FT2, [PB, PC])
-		    ]),
+ubody(((A,B),C), (A,B,C),
       term_position(F1,T1,FF1,TT1,
 		    [ term_position(F1,T2,FF2,FT2, [PA, PB]),
 		      PC
-		    ])) :- !.
-ubody((A0,B0), (A,B),
-      term_position(F,T,FF,TT,
-		    [ PA0,
-		      PB0
 		    ]),
-      term_position(F,T,FF,TT,
+      term_position(F1,T1,FF1,TT1,
 		    [ PA,
-		      PB
-		    ])) :- !,
-	ubody(A0, A, PA0, PA),
-	ubody(B0, B, PB0, PB).
+		      term_position(F1,T2,FF2,FT2, [PB, PC])
+		    ])) :- !.
+ubody(((A,B),C), (A,B,C),		% {},X expansion
+      term_position(F1,T1,FF1,TT1,
+		    [ brace_term_position(F1,T2,PA),
+		      PC
+		    ]),
+      term_position(F1,T1,FF1,TT1,
+		    [ PA,
+		      term_position(F1,T2,0,0,[0-0,PC])
+		    ])) :- !.
+ubody(X0, X,
+      term_position(F,T,FF,TT,PA0),
+      term_position(F,T,FF,TT,PA)) :-
+      meta(X0), !,
+      X0 =.. [_|A0],
+      X  =.. [_|A],
+      ubody_list(A0, A, PA0, PA).
+	
+ubody_list([], [], [], []).
+ubody_list([G0|T0], [G|T], [PA0|PAT0], [PA|PAT]) :-
+	ubody(G0, G, PA0, PA),
+	ubody_list(T0, T, PAT0, PAT).
 
 
 		 /*******************************
@@ -311,7 +321,7 @@ pce_method_body(A0, A, TermPos0, TermPos) :-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 With the introduction of expand_goal, it  is increasingly hard to relate
-the clause from the database to the actual  source. For one thins, we do
+the clause from the database to the actual  source. For one thing, we do
 not know the compilation  module  of  the   clause  (unless  we  want to
 decompile it).
 
