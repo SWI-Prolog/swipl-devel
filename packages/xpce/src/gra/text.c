@@ -19,8 +19,8 @@ static status	initPositionText(TextObj);
 static status	initAreaText(TextObj);
 static status	recomputeText(TextObj t, Name what);
 static status	get_char_pos_text(TextObj t, Int chr, int *X, int *Y);
-static status	prepareEditText(TextObj t);
 static status	caretText(TextObj t, Int where);
+static status	prepareEditText(TextObj t, Name selector);
 
 #define Wrapped(t)      ((t)->wrap == NAME_wrap || \
 			 (t)->wrap == NAME_wrapFixedWidth)
@@ -739,7 +739,7 @@ borderText(TextObj t, Int border)
 status
 stringText(TextObj t, CharArray s)
 { if ( t->string != s )
-  { prepareEditText(t);
+  { prepareEditText(t, DEFAULT);
 
     valueString((StringObj) t->string, s);
     caretText(t, DEFAULT);
@@ -859,7 +859,7 @@ deleteSelectionText(TextObj t)
 
     GetSel(t->selection, &from, &to);
 
-    prepareEditText(t);
+    prepareEditText(t, DEFAULT);
     deleteString((StringObj)t->string, toInt(from), toInt(to-from));
     assign(t, selection, NIL);
     if ( valInt(t->caret) > from )
@@ -1157,12 +1157,17 @@ prepareInsertText(TextObj t)
 
 
 static status
-prepareEditText(TextObj t)
-{ if ( !instanceOfObject(t->string, ClassString) )
+prepareEditText(TextObj t, Name selector)
+{ if ( notDefault(selector) &&
+       !getSendMethodClass(ClassString, selector) )
+    fail;
+
+  if ( !instanceOfObject(t->string, ClassString) )
     assign(t, string, newObject(ClassString, name_procent_s,
 				t->string, EAV));
 
-  return selectionText(t, NIL, DEFAULT);
+  selectionText(t, NIL, DEFAULT);
+  succeed;
 }
 
 
@@ -1200,7 +1205,7 @@ backwardDeleteCharText(TextObj t, Int arg)
 
   if ( len > 0 )
   { caretText(t, toInt(from));
-    prepareEditText(t);
+    prepareEditText(t, DEFAULT);
     deleteString((StringObj) t->string, toInt(from), toInt(len));
     return recomputeText(t, NAME_area);
   }
@@ -1249,7 +1254,7 @@ killLineText(TextObj t, Int arg)
     for( n=UArg(t); end < s->size && n > 0; n--, end++ )
       end = end_of_line(s, end);
 
-  prepareEditText(t);
+  prepareEditText(t, DEFAULT);
   deleteString((StringObj) t->string, t->caret, toInt(end-caret));
   return recomputeText(t, NAME_area);
 }
@@ -1259,7 +1264,7 @@ static status
 clearText(TextObj t)
 { deselectText(t);
 
-  prepareEditText(t);
+  prepareEditText(t, DEFAULT);
   deleteString((StringObj) t->string, ZERO, DEFAULT);
   caretText(t, ZERO);
   return recomputeText(t, NAME_area);
@@ -1271,7 +1276,7 @@ insertText(TextObj t, Int where, CharArray str)
 { if ( isDefault(where) )
     where = t->caret;
 
-  prepareEditText(t);
+  prepareEditText(t, DEFAULT);
   insertString((StringObj)t->string, where, str);
   caretText(t, add(where, getSizeCharArray(str)));
 
@@ -1352,7 +1357,7 @@ gosmacsTransposeText(TextObj t)
     String s;
 
     deselectText(t);
-    prepareEditText(t);
+    prepareEditText(t, DEFAULT);
     s = &((StringObj)t->string)->data;
     tmp = str_fetch(s, caret-2);
     str_store(s, caret-2, str_fetch(s, caret-1));
@@ -1373,7 +1378,7 @@ transposeCharsText(TextObj t)
     String s;
 
     deselectText(t);
-    prepareEditText(t);
+    prepareEditText(t, DEFAULT);
     s = &((StringObj)t->string)->data;
     tmp = str_fetch(s, caret-1);
     str_store(s, caret-1, str_fetch(s, caret));
@@ -1390,7 +1395,7 @@ killWordText(TextObj t, Int arg)
 { int caret = valInt(t->caret);
 
   deselectText(t);
-  prepareEditText(t);
+  prepareEditText(t, DEFAULT);
   caret = forward_word(&t->string->data, caret, UArg(t));
   deleteString((StringObj) t->string, t->caret, sub(toInt(caret), t->caret));
   return recomputeText(t, NAME_area);
@@ -1402,7 +1407,7 @@ backwardKillWordText(TextObj t, Int arg)
 { Int caret = t->caret;
 
   deselectText(t);
-  prepareEditText(t);
+  prepareEditText(t, DEFAULT);
   caret = toInt(backward_word(&t->string->data, valInt(caret), UArg(t)));
   deleteString((StringObj) t->string, caret, sub(t->caret, caret));
   caretText(t, caret);
@@ -1514,7 +1519,8 @@ convertOldSlotText(TextObj t, Name slot, Any value)
 
 static status
 catchAllText(TextObj t, Name sel, int argc, Any* argv)
-{ if ( qadSendv(t->string, NAME_hasSendMethod, 1, (Any *)&sel) )
+{ if ( qadSendv(t->string, NAME_hasSendMethod, 1, (Any *)&sel) ||
+       prepareEditText(t, sel) )
   { status rval;
 
     if ( (rval = vm_send(t->string, sel, NULL, argc, argv)) )
@@ -1540,7 +1546,8 @@ getCatchAllText(TextObj t, Name sel, int argc, Any *argv)
 static status
 hasSendMethodText(TextObj t, Name sel)
 { if ( hasSendMethodObject(t, sel) ||
-       hasSendMethodObject(t->string, sel) )
+       hasSendMethodObject(t->string, sel) ||
+       getSendMethodClass(ClassString, sel) )
     succeed;
 
   fail;

@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Make `{text,text_item}->catch_all' accept methods associated
+  with class String, regardless of the text<-string.
+
 * ENHANCED: Performance of PceEmacs colourisation in Prolog mode by
   removing some non-determinism
 
