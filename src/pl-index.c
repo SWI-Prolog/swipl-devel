@@ -25,6 +25,15 @@
 #include "pl-incl.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Maximum number of clauses we  look  ahead   on  indexed  clauses  for an
+alternative clause. If the choice is committed   this is lost effort, it
+it reaches the end of the clause list   without  finding one the call is
+deterministic.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define MAXSEARCH 100
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Clause indexing.  Clauses store an  `index  structure',  which  provides
 summary information on the unification behaviour of the clause (e.i. its
 head  arguments.   This  structure  consists  of  two words: a key and a
@@ -202,7 +211,7 @@ nextClauseMultiIndexed(ClauseRef cref, unsigned long generation,
   { if ( matchIndex(idx, cref->clause->index) &&
 	 visibleClause(cref->clause, generation))
     { ClauseRef result = cref;
-      int maxsearch = 100;
+      int maxsearch = MAXSEARCH;
     
       for( cref = cref->next; cref; cref = cref->next )
       { if ( (matchIndex(idx, cref->clause->index) &&
@@ -235,7 +244,7 @@ nextClauseArg1(ClauseRef cref, unsigned long generation,
     if ( (key & clause->index.varmask) == clause->index.key &&
 	 visibleClause(clause, generation))
     { ClauseRef result = cref;
-      int maxsearch = 100;
+      int maxsearch = MAXSEARCH;
 
       for( cref = cref->next; cref; cref = cref->next )
       { clause = cref->clause;
