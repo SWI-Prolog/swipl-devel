@@ -551,6 +551,9 @@ status
 RedrawAreaDevice(Device dev, Area a)
 { Cell cell;
   Int ax = a->x, ay = a->y, aw = a->w, ah = a->h;
+  Point offset = dev->offset;
+  int ox = valInt(offset->x);
+  int oy = valInt(offset->y);
 
   if ( aw == ZERO || ah == ZERO )
     succeed;
@@ -560,8 +563,9 @@ RedrawAreaDevice(Device dev, Area a)
 			    valInt(a->x), valInt(a->y),
 			    valInt(a->w), valInt(a->h)));
 
-  subInt(a->x, dev->offset->x);
-  subInt(a->y, dev->offset->y);
+  assign(a, x, toInt(valInt(a->x) - ox));
+  assign(a, y, toInt(valInt(a->y) - oy));
+  r_offset(ox, oy);
 
   if ( notNil(dev->clip_area) )
   { if ( !intersectionArea(a, dev->clip_area) )
@@ -580,9 +584,10 @@ RedrawAreaDevice(Device dev, Area a)
   if ( notNil(dev->clip_area) )
     unclipDevice(dev);
 
+  r_offset(-ox, -oy);
   assign(a, x, ax);
   assign(a, y, ay);
-  assign(a, w, aw);
+  assign(a, w, aw);			/* why? should not change! */
   assign(a, h, ah);
 
   return RedrawAreaGraphical(dev, a);
@@ -591,12 +596,7 @@ RedrawAreaDevice(Device dev, Area a)
 
 static void
 clipDevice(Device dev, Area a)
-{ int ox, oy;
-
-  offsetDeviceGraphical(dev, &ox, &oy);
-  ox += valInt(dev->offset->x);
-  oy += valInt(dev->offset->y);
-  d_clip(valInt(a->x) + ox, valInt(a->y) + oy, valInt(a->w), valInt(a->h));
+{ d_clip(valInt(a->x), valInt(a->y), valInt(a->w), valInt(a->h));
 }
 
 

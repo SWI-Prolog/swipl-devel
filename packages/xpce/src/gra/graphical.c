@@ -200,39 +200,11 @@ to draw the graphical.
 status
 initialiseDeviceGraphical(Any obj, int *x, int *y, int *w, int *h)
 { Graphical gr = obj;
-  Device dev = gr->device;
-  Any c;
-
-  ComputeGraphical(obj);		/* should not be necessary: */
-					/* safety only */
-  c = gr->colour;
 
   *x = valInt(gr->area->x);
   *y = valInt(gr->area->y);
   *w = valInt(gr->area->w);
   *h = valInt(gr->area->h);
-
-  while( notNil(dev) )
-  { *x += valInt(dev->offset->x);
-    *y += valInt(dev->offset->y);
-
-    if ( isDefault(c) )
-      c = dev->colour;
-
-    if ( instanceOfObject(dev, ClassWindow) )
-      break;
-
-    dev = dev->device;
-  }
-
-  if ( gr->active == OFF )
-  { Any c2;
-
-    if ( (c2 = getResourceValueObject(gr, NAME_inactiveColour)) && notNil(c2) )
-      c = c2;
-  }
-
-  r_default_colour(c);
 
   succeed;
 }
@@ -575,15 +547,58 @@ selection_bubble(int x, int y, int w, int h, int wx, int wy)
 }
 
 
+static status
+drawGraphical(Graphical gr, Point offset, Area area)
+{ int ox = 0;
+  int oy = 0;
+
+  if ( notDefault(offset) )
+  { ox = valInt(offset->x);
+    oy = valInt(offset->y);
+  }
+
+  if ( isDefault(area) )
+  { static Area large_area = NULL;
+
+    if ( !large_area )
+      large_area = globalObject(NIL, ClassArea,
+				toInt(PCE_MIN_INT/2), toInt(PCE_MIN_INT/2),
+				toInt(PCE_MAX_INT), toInt(PCE_MAX_INT), 0);
+
+    area = large_area;
+  }
+
+  r_offset(ox, oy);
+  RedrawArea(gr, area);
+  r_offset(-ox, -oy);
+
+  succeed;
+}
+
+
 status
-RedrawArea(Any gr, Area area)
-{ Class class = classOfObject(gr);
+RedrawArea(Any obj, Area area)
+{ Class class = classOfObject(obj);
+  Graphical gr = obj;
+  Any c, oc = NULL;
   status rval;
 
-  if ( class->redrawFunction && !PCEdebugging )
-    rval = (*class->redrawFunction)(gr, area);
-  else
-    rval = qadSendv(gr, NAME_RedrawArea, 1, (Any *)&area);
+  ComputeGraphical(obj);		/* should not be necessary: */
+
+  c = gr->colour;
+  if ( gr->active == OFF )
+  { Any c2;
+
+    if ( (c2 = getResourceValueObject(gr, NAME_inactiveColour)) && notNil(c2) )
+      c = c2;
+  }
+  if ( notDefault(c) )
+    oc = r_default_colour(c);
+
+  rval = qadSendv(gr, NAME_RedrawArea, 1, (Any *)&area);
+
+  if ( oc )
+    r_default_colour(oc);
 
   return rval;
 }
@@ -2742,6 +2757,10 @@ makeClassGraphical(Class class)
   sendMethod(class, NAME_shadow, NAME_appearance, 1, "int",
 	     "Set shadow elevation",
 	     shadowGraphical);
+
+  sendMethod(class, NAME_draw, NAME_repaint, 2, "offset=[point]", "area=[area]",
+	     "Draw specified area",
+	     drawGraphical);
 
   getMethod(class, NAME_absolutePosition, NAME_area, "point", 1, "[device]",
 	    "Get position relative to device (or window)",

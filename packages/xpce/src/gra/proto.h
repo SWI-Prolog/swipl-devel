@@ -107,7 +107,7 @@ status		changedEntireImageGraphical(Any obj);
 status		redrawGraphical(Graphical gr, Area a);
 status		requestComputeGraphical(Any obj, Any val);
 status		ComputeGraphical(Any obj);
-status		RedrawArea(Any gr, Area area);
+status		RedrawArea(Any obj, Area area);
 status		RedrawAreaGraphical(Any obj, Area area);
 status		flushGraphical(Any gr);
 status		exposeGraphical(Any obj1, Any obj2);

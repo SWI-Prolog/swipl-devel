@@ -65,12 +65,63 @@ loadColour(Colour c, FILE *fd, ClassDef def)
 }
 
 
+static int
+take_hex(char *s, int digits)
+{ unsigned int v = 0;
+
+  for(; digits-- > 0; s++)
+  { if ( *s >= '0' && *s <= '9' )
+      v = v * 16 + *s - '0';
+    else if ( *s >= 'a' && *s <= 'f' )
+      v = v * 16 + *s - 'a' + 10;
+    else if ( *s >= 'A' && *s <= 'F' )
+      v = v * 16 + *s - 'A' + 10;
+    else
+      return -1;			/* error */
+  }
+
+  return v;
+}
+
+
 static Colour
 getConvertColour(Class class, Name name)
 { Colour c;
+  char *s;
 
   if ( (c = getMemberHashTable(ColourTable, name)) )
     answer(c);
+
+  if ( (s=strName(name))[0] == '#' )
+  { int r, g, b;
+    int dgs = 0;
+    int l = strlen(s);
+
+    if ( l == 7 )
+      dgs = 2;
+    else if ( l == 13 )
+      dgs = 4;
+    
+    if ( dgs )
+    { s++;				/* skip # */
+      r = take_hex(s, dgs); s+= dgs;
+      g = take_hex(s, dgs); s+= dgs;
+      b = take_hex(s, dgs);
+
+      if ( r >= 0 && g >= 0 && b >= 0 )
+      { if ( dgs == 2 )
+	{ r = r*256 + r;
+	  g = g*256 + g;
+	  b = b*256 + b;
+	} 
+
+	answer(answerObject(ClassColour, name,
+			    toInt(r), toInt(g), toInt(b), 0));
+      }
+    }
+
+    fail;
+  }
 
   answer(answerObject(ClassColour, name, 0));
 }  
