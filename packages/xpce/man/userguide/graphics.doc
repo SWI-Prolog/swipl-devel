@@ -192,7 +192,7 @@ compound graphical objects are shown in \tabref{compoundgraphics}.
 \section{Connecting graphical objects}		\label{sec:connection}
 
 \index{graph}%
-The primary application domain of \product{} is handling graphical modeling
+The primary application domain of \product{} is handling graphical modelling
 languages. Drawing in such languages often entails connecting graphical
 objects using lines. Instead of adding an instance of \class{line} to
 the graphical device at the proper place, it is much better to declare
@@ -284,7 +284,7 @@ invoke <-center_x on the changed object and ->center_x with the return
 value on the other object.  Class \class{spatial} defines more
 general geometrical constraints between graphicals.
 
-Constraints are high-level, but potentionally expensive means to specify
+Constraints are high-level, but potentially expensive means to specify
 graphical relations.  An alternative is the redefinition of the
 ->geometry method of (compound) graphical objects.  See \chapref{udc}.
 

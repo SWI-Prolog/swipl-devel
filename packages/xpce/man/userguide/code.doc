@@ -15,7 +15,7 @@ have seen examples of this in \secref{fileviewer}.
 Various methods take an executable object as a parameter to
 specify the action undertaken.  Suppose we want to remove all graphicals
 in the selection of a graphical device.  The method `device <-selection'
-returns a \class{chain} object containing all grahicals currently
+returns a \class{chain} object containing all graphicals currently
 selected on the device.  The implementation is:
 
 \begin{code}
@@ -228,7 +228,7 @@ real function.  We have seen an example of this in \secref{fileviewer}.
 
 \index{PostScript}%
 Below there is another example.  {\em Data} is assumed to be an \product{}
-\class{string} object containing a PostScript\tm\ description of a
+\class{string} object containing a PostScript\tm{} description of a
 graphical object as can be obtained using
 
 \begin{code}

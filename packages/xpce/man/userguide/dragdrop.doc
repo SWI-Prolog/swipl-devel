@@ -7,7 +7,7 @@ in a specific order. Moving files to another directory by dragging them
 to the icon of the target directory is a common example.
 
 It may also be used to specify operations on a single object, where the
-operation is represented by an icon. Dragging files to a trashbin is the
+operation is represented by an icon. Dragging files to a trash-bin is the
 most commonly found example.
 
 For the drag-and-drop interface to work, the programmer must connect

@@ -41,22 +41,22 @@ performance.
 
     \item [16-bit `high-colour']
 This schema is a low-colour-resolution version of true-colour, normally
-using 5-bit on the red and blue channals and 6 on the green channal. It
-is not very good showing perfect colours, nor showing color gradients.
+using 5-bit on the red and blue channels and 6 on the green channel. It
+is not very good showing perfect colours, nor showing colour gradients.
 
 It is as easy for the programmer as true-colour and still fairly
 efficient in terms of memory.
 
     \item [24/32 bit true-colour]
 This uses the full 8-bit resolution supported by most hardware on all
-three channals.  The 32-bit version wastes one byte for each pixel,
+three channels.  The 32-bit version wastes one byte for each pixel,
 achieving comfortable alignment.  Depending on the hardware, 32 bit
 colour is sometimes much faster.
 \end{itemlist}
 
 
 We will further discuss 8-bit colour below.  As handling this is totally
-different in X11 and MS-Windows we do this in two seperate sections.
+different in X11 and MS-Windows we do this in two separate sections.
 
 
 \subsubsection{Colour-mapped displays on MS-Windows}
@@ -78,7 +78,7 @@ colourmap will get very big and optimising its mapping to the display
 slow and poor.  In this case it is a good idea to use a fixed colourmap.
 See class \class{colour_map} for details.
 
-When using \product{} with many full-colour images it is adviced to use
+When using \product{} with many full-colour images it is advised to use
 high-colour or true-colour modes.
 
 
@@ -92,7 +92,7 @@ is to use a \idx{private colourmap}, but unlike MS-Windows the other
 applications appear in totally random colours.  \product{} does not
 support the use of private colourmaps therefore.
 
-In practice, it is strongly adviced to run X11 in 16, 24 or 32 bit mode
+In practice, it is strongly advised to run X11 in 16, 24 or 32 bit mode
 when running multiple applications presenting colourful images. For
 example \idx{Netscape} insists creating its own colourmap and starting
 Netscape after another application has consumed too many colours will

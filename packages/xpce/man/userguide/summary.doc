@@ -537,7 +537,7 @@ edit_file_dialog :-
 #class dialog_group "dialog_group(name, kind)"
 A \class{dialog_group} is a collection of \classs{dialog_item}. Dialog
 groups may be used to realise a (labeled) box around a group of
-controllers, or to combine muldtiple controllers into a compound
+controllers, or to combine multiple controllers into a compound
 one for technical or layout reasons.  See also \class{tab}.
 
 #class dialog_item "dialog_item(label)"
@@ -789,7 +789,7 @@ floating around graphical illustrations.  See \secref{docrender}.
 A \class{handle} defines a typed and named position on a graphical used
 by connections to connect to.  The positions are formulas expressed in
 the with and height of the graphical.  The following definitions are
-encountered regulary:
+encountered regularly:
 
 \begin{code}
 :- pce_global(@north_handle,
@@ -1030,7 +1030,7 @@ send(M, layout, horizontal),
 \end{code}
 
 #class menu_bar "menu_bar(label)"
-A menu-bar is a row of pulldown menus. Many applications define a single
+A menu-bar is a row of pull-down menus. Many applications define a single
 menu-bar at the top of the frame presenting the various commands in the
 application.
 
@@ -1245,7 +1245,7 @@ provides a gesture that operates popup menus.
 
 A popup consists of \classs{menu_item}, each of which normally defines
 a message to be executed if the corresponding item is activated.
-Pullright sub-menus are realised by appending a popup to a popup.
+Pull-right sub-menus are realised by appending a popup to a popup.
 
 \begin{code}
 ...,
@@ -1684,7 +1684,7 @@ has become obsolete.
 #class tile "tile(object)"
 Tiles are used to realise the `tile-layout' of windows in a
 \class{frame}.  \Secref{framelayout} explains this in detail.  Tiles
-can also be used to realise tabular layout of other resizable graphical
+can also be used to realise tabular layout of other re-sizable graphical
 objects.
 
 #class timer "timer(interval, message)"

@@ -416,7 +416,7 @@ The emit/3 predicate as described above is not intended for direct use
 though.  It is hard to imagine a good syntax for defining significant
 amounts of formatted text in a Prolog text-file.  In some cases it is
 feasible to define a suitable set of new commands and use emit/3
-direcly from Prolog.  In most cases you'll want to use tokens from an
+directly from Prolog.  In most cases you'll want to use tokens from an
 external source using an external markup language.
 
 One option to arrive at a token-list is using the XML/SGML parser

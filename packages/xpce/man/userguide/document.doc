@@ -20,7 +20,7 @@ graphical capable of displaying other graphical objects. A parbox,
 visualises a mixture of text (represented by \class{tbox} objects) with
 graphics, controlled by \class{grbox} objects. The superclass of
 \class{tbox} and \class{grbox}, called \class{hbox} represents the
-information (dimenstions) required by the \class{parbox} object to
+information (dimensions) required by the \class{parbox} object to
 format the text and graphics.  The class relations are summarised in
 \figref{fig:docclasses}.
 
@@ -118,7 +118,7 @@ may be \class{parbox} objects.
 
 \begin{description}
 \getmethod{parbox}{content}{Content:vector}
-Unlike most XPCE agregate classes, the content of a \class{parbox}
+Unlike most XPCE aggregate classes, the content of a \class{parbox}
 object is represented using a \class{vector} object.  The main reason is
 that \class{hbox} objects are in principle reusable (may occur in
 multiple \class{parbox} objects) and therefore we can not refer to a
@@ -291,7 +291,7 @@ button(Message, Content, Balloon) -->
 \end{code}
 
 \paragraph{Finding a button from an event} is accomplished by
-subclassing \class{parbox} and refining the `parbox->event' method.  The
+sub-classing \class{parbox} and refining the `parbox->event' method.  The
 procedure starts with finding the index of the \class{hbox} on which the
 event occurred, after which the environment is searched for the two
 hyper-linked \class{button_box} objects embracing the event-location.

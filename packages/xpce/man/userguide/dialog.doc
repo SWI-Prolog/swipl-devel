@@ -267,7 +267,7 @@ right of this stack and the text_item on the next row.
 
 If you try this layout, the first column will hold the device and the
 text_item and the list_browser will be placed right of this column and
-thus right of the text_item.  Using `dialog_item ->aligment: left'
+thus right of the text_item.  Using `dialog_item ->alignment: left'
 enforces the list_browser to flush left towards the device.  Now we
 enforce the layout and adjust the bottom and right sides of the
 list_browser to the device and text_item.
@@ -293,7 +293,7 @@ Modal windows are implemented using the methods `frame <-confirm' and
 `frame ->return'. `Frame <-confirm' invokes `frame ->open' if the frame
 is not visible and then starts reading events and processing them.
 `Frame ->return: value' causes `frame <-confirm' to return with the
-value passed as argumen to ->return. The following code is a very simple
+value passed as argument to ->return. The following code is a very simple
 example opening a dialog and waiting for the user to enter a name and
 press {\sc return} or the {\sf Ok} button.
 

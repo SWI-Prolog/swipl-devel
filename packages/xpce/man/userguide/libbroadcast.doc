@@ -49,7 +49,7 @@ service and knows about the age of `John' this question will be
 answered.
 
     \predicate{listen}{2}{+Template, :Goal}
-Register a \jargon{listen} channal. Whenever a term unifying
+Register a \jargon{listen} channel. Whenever a term unifying
 \arg{Template} is broadcasted, call \arg{Goal}.  The following example
 traps all broadcasted messages as a variable unifies to any message.
 It is commonly used to debug usage of the library.
@@ -63,9 +63,9 @@ Yes
 \end{code}
 
     \predicate{listen}{3}{+Listener, +Template, :Goal}
-Declare \arg{Listener} as the owner of the channal.  Unlike a channal
-opened using listen/2, channals that have an owner can terminate the
-channal.  This is commonly used if an object is listening to broadcast
+Declare \arg{Listener} as the owner of the channel.  Unlike a channel
+opened using listen/2, channels that have an owner can terminate the
+channel.  This is commonly used if an object is listening to broadcast
 messages.  In the example below we define a `name-item' displaying the
 name of an identifier represented by the predicate name_of/2.
 

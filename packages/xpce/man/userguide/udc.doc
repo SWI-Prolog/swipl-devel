@@ -438,7 +438,7 @@ definition makes it possible to resize and move instances.
 				new(move_gesture)))).
 
 event(Gr, Ev:event) :->
-	"Make the object resizeable and moveable"::
+	"Make the object re-sizeable and movable"::
 	(   send_super(Gr, event, Ev)
 	;   send(@resize_and_move_recogniser, event, Ev)
 	).

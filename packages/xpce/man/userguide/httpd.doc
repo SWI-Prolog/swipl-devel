@@ -56,7 +56,7 @@ refined to arrive at a useful application.
 \begin{description}
     \sendmethod{httpd}{initialise}{Port:[int]}
 Create a server and bind it to \arg{Port}. If \arg{Port} is omitted a
-free port is choosen. With a specified port, 8080 is a commonly used
+free port is chosen. With a specified port, 8080 is a commonly used
 alternative to the standard 80 used by web-servers.  If you have a
 web-server running on the same machine you may can generate a page
 on your website redirecting a page to this server.  The URI of this
@@ -95,7 +95,7 @@ http_version    & Version of the HTTP protocol used by the client. Normally
 \hline
 \multicolumn{2}{|c|}{\bf Other fields} \\
 \hline
-user		& If authorization data is present, this contains the
+user		& If authorisation data is present, this contains the
 		  user-name.  If this field is present, the password
 		  field is present too. \\
 password	& Contains the decoded password supplied by the user. \\

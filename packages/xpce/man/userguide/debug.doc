@@ -4,7 +4,7 @@ This section describes various tools and techniques to help finding bugs
 in \productpl{} code.  Most of the tracing is done in the hosting
 Prolog language.  \product{} provides additional tools for tracing
 the execution of certain methods, breaking on the implementation of
-a Prolog-defined method, finding and inpecting objects.
+a Prolog-defined method, finding and inspecting objects.
 
 
 \section{Object-base consistency}
@@ -79,7 +79,7 @@ The predicate notracepce/1 disables a tracepoint.
 Prolog-defined methods are all implemented using the same predicate,
 which makes it hard to use spy/1 for starting the debugger on a method.
 One way around is to stick a call to trace/0 into the method body and
-recompile the file.  For those amoung us who dislike this idea there
+recompile the file.  For those among us who dislike this idea there
 is the possibility to use spypce/1.
 
 \begin{description}

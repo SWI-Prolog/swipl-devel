@@ -16,7 +16,7 @@ visualisation (controller).
 
 Of course relations between objects can be maintained using
 instance-variables, but this process requires awareness from both
-related objects as well as sifnificant bookkeeping.
+related objects as well as significant bookkeeping.
 
 
 \subsection{Programming existence dependencies}

@@ -3,7 +3,7 @@
 Applications may consist of multiple \classs{frame}, either permanent,
 or temporary such as for opening a `settings' window. This section
 discusses how frame references can be found, as well as how frames
-can force the user to deal with this frame first, in favor of all
+can force the user to deal with this frame first, in favour of all
 the other frames of the application: \idx{modal} frames.
 
 \subsection{Class application}

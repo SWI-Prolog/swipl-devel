@@ -49,7 +49,7 @@ a small gap to separate logical groups of buttons.
 
     \sendmethod{tool_bar}{activate}{}
 Send ->activate to all member buttons, reflecting whether they are
-ready to accept commands or `greyed-out'.
+ready to accept commands or `grayed-out'.
 
     \sendmethod{tool_button}{initialise}{%
 	   Action:name{\tt|}code,

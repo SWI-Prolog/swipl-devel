@@ -65,7 +65,7 @@ representing expandable and leaf-nodes.
 Each node is assigned an \jargon{identifier}, a unique reference to the
 node. In the example below we used \class{file} and \class{directory}
 objects for this purpose. The identifier is the second argument to the
-creation of the node. When omited, the node is turned into an identifier
+creation of the node. When omitted, the node is turned into an identifier
 of itself. This distinction is used to hide the existence of graphical
 node objects for users of the basic functionality.
 

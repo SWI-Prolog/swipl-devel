@@ -63,7 +63,7 @@ window is the library \pllib{pce_image_browser}.
 
 \index{layout,manager}%
 The class \class{table} acts much the same way as class \class{format}
-in the sence that it is attached to a \class{device} and modifies the
+in the sense that it is attached to a \class{device} and modifies the
 layout management of this device.  For this purpose it uses an interface
 defined in \product{} version 5.0 and realised using the methods
 `device<->layout_manager' and `graphical<->layout_interface'.
@@ -188,7 +188,7 @@ is a \class{size} these can be specified independently.
 
     \sendmethod{table}{cell_spacing}{Spacing:int{\tt|}size}
 Defines the distance between the cells. Same rules as for ->cell_padding
-applies.  In some cases pretty effects can be achieved settin this value
+applies.  In some cases pretty effects can be achieved setting this value
 to minus the <-border.
 \end{description}
 

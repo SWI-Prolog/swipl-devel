@@ -431,7 +431,7 @@ cards containing all these words.
 If the user stops typing for more than a second, the system will parse
 the expression and display the number of matching cards.
 
-The \class{browser} window on the left contains all words occuring
+The \class{browser} window on the left contains all words occurring
 anywhere in the manual.  The window on the right is used to display the
 card summaries of all matching cards.
 

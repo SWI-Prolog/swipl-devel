@@ -175,7 +175,7 @@ The same binary version of \product{} runs on both Windows~95 and NT.
 Its functionality is very close to the Unix/X11 version, making
 applications source-code compatible between the two platforms. \ifpw{
 Quintus \fileext{qof} files are identical on Unix and Windows platforms,
-reducing the effort of porting an applicaction to relinking the
+reducing the effort of porting an application to relinking the
 \fileext{qof} files on the target platform}{}.
 
 A detailed description of the differences between the Unix/X11 version

@@ -69,7 +69,7 @@ be loaded through \class{resource} objects. The Windows API only
 provides functions to extract these objects from a single file, or
 nested as Windows resources in a \fileext{dll} or \fileext{exe} file.
 
-Right now, it is adviced to translate the images into \fileext{xpm}
+Right now, it is advised to translate the images into \fileext{xpm}
 format using the following simple command:
 
 \begin{code}

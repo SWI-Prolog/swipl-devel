@@ -1,0 +1,41 @@
+\section{Showing help-balloons}			\label{sec:balloon}
+
+\index{balloon}%
+The library \pllib{help_message} provides support for displaying
+\jargon{balloons}.  After loading this library, a \const{loc_still}
+event causes the system to look for a \class{graphical} implementing
+the <-help_message method.  If <-help_message: tag yields a string,
+the library shows a little window with the message.  Moving the pointer
+out of the area of the graphical or pressing a button causes the
+feedback window to disappear.
+
+This tenchnique is commonly used in modern interfaces to provide
+feedback on the functions behind icons.  See also \secref{toolbar}.
+
+In addition to registering the global event-handler, the library
+defines ->help_message to the classes \class{visual}, \class{graphical}
+and \class{menu}.
+
+\begin{description}
+    \sendmethod{visual}{help_message}{\{tag,summary\}, string*}
+Register \arg{string} as \const{tag} (balloon) or extensive help
+message (\const{summary}) for the receiving object.  At the moment
+\const{summary} is not used.
+
+    \getmethod{visual}{help_message}{\{tag,summary\}, event}{string}
+This message is defined to return the help-message registered using
+->help_message.  User-defined classes may consider redefining this
+method to generate the help-message on-the-fly.
+\end{description}
+
+Here is a typical usage for this library.
+
+\begin{pcecode}
+:- use_module(library(help_message)).
+resource(print, image, image('16x16/print.xpm')).
+
+	...
+	send(X, append, new(B, button(print))),
+	send(B, label, image(resource(print))),
+	send(B, help_message, tag, 'Print document'),
+\end{pcecode}

@@ -146,7 +146,7 @@ real values to the physical coordinates.  Methods:
     \sendmethod{plot_graph}{initialise}{%
 	type=[\{poly,smooth,points_only\}],
 	mark=[image]*}
-The \arg{type} argument denotes the interploation used.  Using
+The \arg{type} argument denotes the interpolation used.  Using
 \const{poly} (default), straight lines are drawn between the points.
 Using \const{smooth}, the curve is interpolated (see \class{path}
 for details) and using \const{points_only}, no lines is painted,
@@ -161,7 +161,7 @@ plotter.
 \subsection{Drawing barcharts using ``plot/barchart''}
 
 \index{barchart}%
-The \pllib{plot/barchart} library draws simple bart-charts.  It is based
+The \pllib{plot/barchart} library draws simple bar-charts.  It is based
 on the \class{plotter} and \class{plot_axis} classes, adding simple
 bars, grouped bars and stacked bars.  Below is an example from
 \pllib{plot/demo} showing all active \product{}, classes, where active
@@ -200,7 +200,7 @@ displaying bar-charts.  The \arg{orientation} indicates whether the
 bars are vertical or horizontal.  The \arg{low} and \arg{high} arguments
 are the scale arguments for the value-axis, while \arg{scale_length}
 denotes the length of the axis.  The \arg{nbars} argument determines
-the lenght of the axis on which the bars are footed.
+the length of the axis on which the bars are footed.
 
     \sendmethod{bar_chart}{append}{bar{\tt|}bar_stack}
 Append a single \class{bar}, \class{bar_stack} or \class{bar_group}

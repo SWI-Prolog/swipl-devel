@@ -66,7 +66,7 @@ If an application needs additional fonts, such fonts can be declared
 using directives. The fourth initialisation argument of class
 \class{font} determines the window-system font that will be mapped. The
 syntax for this argument depends on the window-system used. For this
-Unix/X11 version it is a string consisting of 15 `-' seperated fields. A
+Unix/X11 version it is a string consisting of 15 `-' separated fields. A
 font can be searched using \manref{xfontsel}{1} or the much better
 GNOME-project \manref{gfontsel}{1}.
 

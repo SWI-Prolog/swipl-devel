@@ -15,7 +15,7 @@ graphical functionality is build on top of this `Virtual Window System'.
 This approach guarantees full portability of applications between the
 platforms.
 
-The look-and-feel of \product{} may be tailured using the defaults file
+The look-and-feel of \product{} may be tailored using the defaults file
 located in \metafile{<pcehome>/Defaults}.
 
 
@@ -64,7 +64,7 @@ application to maintain better look-and-feel compatibility to other
 Win32 applications. Therefore the classes colour, cursor and font
 provide access to related Window resources.
 
-\strong{It is NOT adviced to use these objects in your application code
+\strong{It is NOT advised to use these objects in your application code
 directly as this will stop the application to run on the Unix/X11
 version of \product{}. We advice using these objects in the \product{}
 defaults file (\metafile{<pcehome>/Defaults}) only, or use conditional code
@@ -76,7 +76,7 @@ using `pce <-window_system'.}
 Colours may be created from their X11 names. The X11 name-table is in
 \metafile{<pcehome>/lib/rgb.txt}. In the Windows API, all colours described
 as \idx{RGB} (Red, Green, Blue) tuples. This is no problem as \product{}
-also provides RGB colors. Note however that Win32 intensity is ranged
+also provides RGB colours. Note however that Win32 intensity is ranged
 0..255, where the \product{} intensity is ranged 0..65535. This is true
 on all \product{}'s platforms.
 
@@ -84,7 +84,7 @@ To provide access to the window-system colours as they can be obtained
 using the Win32 API function GetSysColor(), \product{} binds these
 colours to named colour objects. These colour objects are normally used
 in the \product{} resource file (\metafile{<pcehome>/Defaults}) to colour
-\product{}'s controller objects acording to the user's preferences.
+\product{}'s controller objects according to the user's preferences.
 
 If the name of the Windows API colours are COLOR_SOMETHING, the \product{}
 name is \const{win_something}.  The full list is in \tabref{wincolours}.
@@ -95,7 +95,7 @@ name is \const{win_something}.  The full list is in \tabref{wincolours}.
 \hline
 \const{win_activeborder}	& Active window border.\\
 \const{win_activecaption}	& Active window caption.\\
-\const{win_appworkspace}	& Background color of (MDI) applications.\\
+\const{win_appworkspace}	& Background colour of (MDI) applications.\\
 \const{win_background}		& Desktop.\\
 \const{win_btnface}		& Face shading on push buttons.\\
 \const{win_btnshadow}		& Edge shading on push buttons.\\
@@ -169,7 +169,7 @@ In general, an attribute is specified as: \line{<name>(<value>)} <name>
 is matches case-insensitive against the name of the structure field
 without the leading `lf' string. For numeric types, the argument is
 interpreted as a decimal number (spaces are not allowed). For a boolean
-argument, the (value) part is omited. By default the boolean attributes
+argument, the (value) part is omitted. By default the boolean attributes
 are FALSE. Including the attribute name in the specification sets the
 field to TRUE. Enumerated fields are specified using their symbolic
 name. Name-matching is case-insensitive. Common parts of the API

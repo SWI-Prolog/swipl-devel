@@ -3,22 +3,27 @@
 In this chapter we document some of the libraries from the
 \metafile{<pcehome>/prolog/lib} \productpl{} library. The libraries
 described here are only the commonly used ones. For more information
-check the file \file{Overview} in the library directrory and the
+check the file \file{Overview} in the library directory and the
 source-code of the library.
 
 \begin{itemize}
 \newcommand{\secoverview}[2]{\item[\ref{sec:#1}]{\bf #2}\\}
+
     \secoverview{findfile}{Asking a filename}
 This library defines the object @finder, instance of \class{finder}. The
 finder allows for asking filenames.
+
+    \secoverview{balloon}{Show help-balloon}
+The library \pllib{help_message} registers balloon-text with graphical
+objects.
 
     \secoverview{libdia}{Dialog utilities}
 Toolbars and reporting facilities.  Includes example code for an
 application framework.
 
-    \secoverview{toc}{Table-of-content like hierachies}
+    \secoverview{toc}{Table-of-content like hierarchies}
 This library extends class \class{tree}, displaying a modern-style
-hierachy inside a window.  This library is used for displaying the
+hierarchy inside a window.  This library is used for displaying the
 VisualHierachy and ClassHierarchy tools of the \product{} manual
 toolkit.  See \chapref{online}.
 
@@ -26,7 +31,7 @@ toolkit.  See \chapref{online}.
 Primitives for dealing with tables.
 
     \secoverview{libplot}{Plotting graphs and barcharts}
-This section describes a number of libraries providing promitives for
+This section describes a number of libraries providing primitives for
 drawing graphs and barcharts.
 
     \secoverview{mlingual}{Multi-lingual applications}
@@ -53,6 +58,7 @@ architectures.
 \newcommand{\libinput}[1]{\cleardoublepage\input{#1}}
 
 \libinput{findfile.tex}
+\libinput{balloon.tex}
 \libinput{libdia.tex}
 \libinput{toc.tex}
 \libinput{tabular}

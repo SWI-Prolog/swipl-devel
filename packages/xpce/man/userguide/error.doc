@@ -73,7 +73,7 @@ be silenced using pce_catch_error/2:
 Run \arg{Goal} like once/1. It an error matching \arg{ErrorSpec} is
 raised, this error is not reported, but stored in `@pce<-last_error'.
 \arg{ErrorSpec} is the <-id of an error, a chain holding error-ids
-or @default.  The latter implies none but fatat errors are reported.
+or @default.  The latter implies none but fatal errors are reported.
 
 The example below silently ignores errors from creating a backup
 of \arg{File}.  Note that the call does fail if backup raises an
@@ -87,7 +87,7 @@ error.
 \end{description}
 
 If the <-feedback of the error is \const{throw} and the error is not
-silenced with pce_catch_error/2 it is mapped to a Prolog exeption of
+silenced with pce_catch_error/2 it is mapped to a Prolog exception of
 the form
 
 \begin{quote}
