@@ -346,10 +346,10 @@ two types of dynamic predicates. By default, a predicate declared
 \jargon{dynamic} (see dynamic/1) is shared by all threads. Each thread
 may assert, retract and run the dynamic predicate. Synchronisation
 inside Prolog guarantees the consistency of the predicate. Updates are
-\jargon{logical}: choice-points are not affected by later
-assert/retract. In many cases primitive from \secref{threadsync} should
-be used to ensure application invariants on the predicate are
-maintained.
+\jargon{logical}: visible clauses are not affected by assert/retract
+after a query started on the predicate. In many cases primitive from
+\secref{threadsync} should be used to ensure application invariants on
+the predicate are maintained.
 
 Besides shared predicates, dynamic predicates can be declared with the
 thread_local/1 directive. Such predicates share their attributes, but
@@ -380,6 +380,11 @@ empty clause-list.
 
 foo(gnat).
 \end{code}
+
+\textbf{DISCLAIMER} Whether or not this declaration is apropriate in
+the sense of the proper mechanism to reach the goal is still debated.
+If you have strong feeling in favour or against, please share them
+in the SWI-Prolog mailing list.
 \end{description}
 
 
