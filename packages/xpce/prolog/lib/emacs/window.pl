@@ -978,19 +978,16 @@ open_history(M, Impl:behaviour, Force:[bool]) :->
 close_history(M, Argv:[vector]) :->
 	"Close open history adding Argv"::
 	get(M, m_x_history, History),
-	(   Argv \== @nil, Argv \== @default
-	->  clean_argv(Argv),
-	    (	History \== @nil
-	    ->  (   get(History, find,
-			message(@prolog, same_argv, Argv, @arg1),
-			Old)
-		->	send(History, move_after, Old)
-		;	send(History, prepend, Argv)
-		)
-	    ;	send(M, m_x_history, chain(Argv))
+	(   Argv \== @default,
+	    History \== @nil
+	->  get(Argv, copy, Save),
+	    clean_argv(Save),
+	    (	get(History, find,
+		    message(@prolog, same_argv, Save, @arg1),
+		    Old)
+	    ->	send(History, move_after, Old)
+	    ;	send(History, prepend, Argv)
 	    )
-%	    send(@pce, send_vector, write_ln,
-%		 'History:', @c_method?print_name, ':', Argv)
 	;   true
 	),
 	send(M, m_x_history, @nil),
@@ -1012,8 +1009,17 @@ same_argv(V1, V2) :-
 %	risk of illegal-object references.
 
 clean_argv(Vector) :-
-	send(Vector, for_all,
-	     message(Vector, element, @arg2, @arg1?print_name)).
+	get(Vector, low_index, Low),
+	get(Vector, high_index, High),
+	(   between(Low, High, Index),
+	    get(Vector, element, Index, E),
+	    object(E),
+	    get(E, protect, @off),
+	    send(Vector, element, Index, E),
+	    fail
+	;   true
+	).
+
 
 noarg_call(M, Selector:name, Times:[int]) :->
 	"Invoke method without arguments (prompt)"::
