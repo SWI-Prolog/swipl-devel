@@ -121,6 +121,11 @@ run()
 # 
 # As run Class, but preloads libjpl.so to be able to use foreign
 # extensions to Prolog.  See the SemWeb example
+#
+# This isn't needed for installations using SWI-Prolog through
+# the libpl.$PLSOEXT shared object.  For the moment this is only
+# MacOS, which ignores LD_PRELOAD, so we'll ignore this issue for
+# the moment
 ################################################################
 
 run_preloaded()
@@ -135,6 +140,6 @@ run_preloaded()
     echo ""
 
   
-    env LD_PRELOAD=$JPLSO java $1
+    env LD_PRELOAD=$JPLSO java -Djava.library.path=$PLLIBDIR $1
   fi
 } 
