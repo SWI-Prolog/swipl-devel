@@ -136,12 +136,6 @@ typedef struct
   int	     external;			/* Allow for external storage */
 } compile_info, *CompileInfo;
 
-
-typedef struct
-{ word w[WORDS_PER_DOUBLE];
-} fword;
-
-
 #define	PL_TYPE_VARIABLE	(1)	/* variable */
 #define PL_TYPE_ATOM		(2)	/* atom */
 #define PL_TYPE_INTEGER	  	(3)	/* big integer */
