@@ -1,6 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: string_to_list(-String, +List) crash on machines with
+    signal-based stack-expansion with lists of >500,000 elements
+    (Wouter Jansweijer).
+
+  * ADDED: Borland C compatibility in the SWI-Prolog header files.
+    Additional information using SWI-Prolog with BC is in
+    http://gollem.swi.psy.uva.nl/twiki/pl/bin/view/Foreign/BorlandC
+    By Gerhard Wolfstieg.
+
   * MODIFIED: More improved classical I/O compatibility in telling/1
     and seeing/1.  Peter Dadam.
 

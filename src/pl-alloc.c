@@ -621,10 +621,13 @@ globalNString(long l, const char *s)
   Word p = allocGlobal(2 + lw);
   word r = consPtr(p, TAG_STRING|STG_GLOBAL);
   word m = mkStrHdr(lw, pad);
+  int i;
+  char *q;
 
   *p++ = m;
-  p[lw-1] = 0L;				/* write zero's for padding */
   memcpy(p, s, l);
+  for(q=(char *)p+l, i=0; i<pad; i++)
+    *q++ = EOS;
   p += lw;
   *p = m;
   
