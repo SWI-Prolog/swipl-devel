@@ -71,6 +71,9 @@
 %
 %	Define meta-predicates.  See the examples in this file for details.
 
+:- dynamic
+	prolog:called_by/2,		% +Goal, -Called
+	prolog:meta_goal/2.		% +Goal, -Pattern
 :- multifile
 	prolog:called_by/2,		% +Goal, -Called
 	prolog:meta_goal/2.		% +Goal, -Pattern
@@ -311,8 +314,38 @@ process_directive(pce_expansion:push_compile_operators, _) :-
 	pce_expansion:push_compile_operators.
 process_directive(pce_expansion:pop_compile_operators, _) :-
 	pce_expansion:pop_compile_operators.
+process_directive(meta_predicate(Meta), _) :-
+	process_meta_predicate(Meta).
 process_directive(Goal, Src) :-
 	process_body(Goal, '<directive>', Src).
+
+%	process_meta_predicate(+Decl)
+%	
+%	Create prolog:meta_goal/2 declaration from the meta-goal
+%	declaration.
+
+process_meta_predicate((A,B)) :- !,
+	process_meta_predicate(A),
+	process_meta_predicate(B).
+process_meta_predicate(Decl) :-
+	functor(Decl, Name, Arity),
+	functor(Head, Name, Arity),
+	meta_args(1, Arity, Decl, Head, Meta),
+	(   prolog:meta_goal(Head, _)
+	->  true
+	;   assert(prolog:meta_goal(Head, Meta))
+	).
+
+meta_args(I, Arity, _, _, []) :-
+	I > Arity, !.
+meta_args(I, Arity, Decl, Head, [H|T]) :-
+	arg(I, Decl, :), !,
+	arg(I, Head, H),
+	I2 is I + 1,
+	meta_args(I2, Arity, Decl, Head, T).
+meta_args(I, Arity, Decl, Head, Meta) :-
+	I2 is I + 1,
+	meta_args(I2, Arity, Decl, Head, Meta).
 
 
 	      /********************************
