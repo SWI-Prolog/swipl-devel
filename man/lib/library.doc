@@ -26,6 +26,7 @@ of the manual should be moved too and various libraries are not
 documented at all.
 \end{quote}
 
+\input{lists}
 \input{check}
 \input{debug}
 \input{readutil}

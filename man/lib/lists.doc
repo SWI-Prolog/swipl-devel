@@ -1,0 +1,116 @@
+\libdoc{lists}{List Manipulation}
+
+This library provides commonly accepted basic predicates for list
+manipulation in the Prolog community. Some additional list manipulations
+are built-in.  Their description is in \secref{builtinlist}.
+
+
+\begin{description}
+    \predicate{is_list}{1}{+Term}
+Succeeds if \arg{Term} is bound to the empty list (\exam{[]}) or a term with
+functor `\const{.}' and arity~2 and the second argument is a list.%
+	\footnote{In versions before 5.0.1, is_list/1 just checked for
+		  \const{[]} or \exam{[_|_]} and proper_list/1 had the
+		  role of the current is_list/1.  The current definition
+		  is conform the de-facto standard. Assuming proper
+		  coding standards, there should only be very few cases
+		  where a quick-and-dirty is_list/1 is a good choice.
+		  Richard O'Keefe pointed at this issue.}
+This predicate acts as if defined by the following definition:
+
+\begin{code}
+is_list(X) :-
+	var(X), !,
+	fail.
+is_list([]).
+is_list([_|T]) :-
+	is_list(T).
+\end{code}
+
+    \predicate{append}{3}{?List1, ?List2, ?List3}
+Succeeds when \arg{List3} unifies with the concatenation of \arg{List1}
+and \arg{List2}. The predicate can be used with any instantiation
+pattern (even three variables).
+
+    \predicate{member}{2}{?Elem, ?List}
+Succeeds when \arg{Elem} can be unified with one of the members of \arg{List}. The predicate can be used with any instantiation
+pattern.
+
+    \predicate{delete}{3}{+List1, ?Elem, ?List2}
+Delete all members of \arg{List1} that simultaneously unify with
+\arg{Elem} and unify the result with \arg{List2}.
+
+    \predicate{select}{3}{?Elem, ?List, ?Rest}
+Select \arg{Elem} from \arg{List} leaving \arg{Rest}.  It behaves as
+member/2, returning the remaining elements in \arg{Rest}.  Note that
+besides selecting elements from a list, it can also be used to insert
+elements.%
+    \bug{Upto SWI-Prolog 3.3.10, the definition of this predicate was
+	 not according to the de-facto standard. The first two arguments
+	 were in the wrong order.}
+
+    \predicate{nth0}{3}{?Index, ?List, ?Elem}
+Succeeds when the \arg{Index}-th element of \arg{List} unifies with
+\arg{Elem}. Counting starts at 0.
+
+    \predicate{nth1}{3}{?Index, ?List, ?Elem}
+Succeeds when the \arg{Index}-th element of \arg{List} unifies with
+\arg{Elem}. Counting starts at 1.
+
+    \predicate{last}{2}{?List, ?Elem}
+Succeeds if \arg{Elem} unifies with the last element of \arg{List}. If
+\arg{List} is a proper list last/2 is deterministic. If \arg{List} has
+an unbound tail, backtracking will cause \arg{List} to grow.%
+	\footnote{The argument order of this predicate was changed
+		  in 5.1.12 for compatibility reasons.}
+
+    \predicate{reverse}{2}{+List1, -List2}
+Reverse the order of the elements in \arg{List1} and unify the result
+with the elements of \arg{List2}.
+
+    \predicate{flatten}{2}{+List1, -List2}
+Transform \arg{List1}, possibly holding lists as elements into a `flat'
+list by replacing each list with its elements (recursively). Unify the
+resulting flat list with \arg{List2}. Example:
+\begin{code}
+?- flatten([a, [b, [c, d], e]], X).
+
+X = [a, b, c, d, e]
+\end{code}
+\end{description}
+
+
+\subsection{Set Manipulation}		\label{sec:manipset}
+
+\begin{description}
+    \predicate{is_set}{1}{+Set}
+Succeeds if \arg{Set} is a list (see is_list/1) without duplicates.
+
+    \predicate{list_to_set}{2}{+List, -Set}
+Unifies \arg{Set} with a list holding the same elements as \arg{List} in
+the same order.  If \arg{list} contains duplicates, only the first is
+retained.  See also sort/2.  Example:
+\begin{code}
+?- list_to_set([a,b,a], X)
+
+X = [a,b]
+\end{code}
+
+    \predicate{intersection}{3}{+Set1, +Set2, -Set3}
+Succeeds if \arg{Set3} unifies with the intersection of \arg{Set1} and
+\arg{Set2}. \arg{Set1} and \arg{Set2} are lists without duplicates.
+They need not be ordered.
+
+    \predicate{subtract}{3}{+Set, +Delete, -Result}
+Delete all elements of set `Delete' from `Set' and unify the resulting
+set with `Result'.
+
+    \predicate{union}{3}{+Set1, +Set2, -Set3}
+Succeeds if \arg{Set3} unifies with the union of \arg{Set1} and
+\arg{Set2}. \arg{Set1} and \arg{Set2} are lists without duplicates.
+They need not be ordered.
+
+    \predicate{subset}{2}{+Subset, +Set}
+Succeeds if all elements of \arg{Subset} are elements of \arg{Set} as well.
+\end{description}
+
