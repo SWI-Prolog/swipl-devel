@@ -262,8 +262,7 @@ callEvent(Event ev)
 
 static void
 cleanupHandler()
-{ Event ev, next;
-
+{ 
 #ifndef WIN32
   struct itimerval v;
 
@@ -271,15 +270,6 @@ cleanupHandler()
   memset(&v, 0, sizeof(v));
   setitimer(ITIMER_REAL, &v, NULL);	/* restore? */
 #endif
-
-  for(ev=first; ev; ev = next)
-  {
-#ifdef WIN32
-    uninstallEvent(ev);
-#endif
-    next = ev->next;
-    freeEvent(ev);
-  }
 
   if ( signal_function_set )
   { signal_function_set = FALSE;
@@ -294,6 +284,23 @@ installHandler()
   { signal_function = PL_signal(SIGALRM|PL_SIGSYNC, on_alarm);
     signal_function_set = TRUE;
   }
+}
+
+
+static void
+cleanup()
+{ Event ev, next;
+
+  for(ev=first; ev; ev = next)
+  {
+#ifdef WIN32
+    uninstallEvent(ev);
+#endif
+    next = ev->next;
+    freeEvent(ev);
+  }
+
+  cleanupHandler();
 }
 
 
@@ -381,7 +388,10 @@ schedule()
     if ( left.tv_sec < 0 ||
 	 (left.tv_sec == 0 && left.tv_usec == 0) )
     { DEBUG(Sdprintf("Passed\n"));
-      continue;				/* Time has passed.  Call? */
+
+      callEvent(ev);		/* Time has passed.  What about exceptions? */
+
+      continue;		
     }
 
     scheduled = ev;			/* This is the scheduled one */
@@ -713,5 +723,5 @@ install()
 
 install_t
 uninstall()
-{ cleanupHandler();
+{ cleanup();
 }
