@@ -2,7 +2,7 @@
 
 <pldoc>
 <head>
-<version>2.0.3
+<version>2.0.4
 <release-date>March 2005
 <package>sgml2pl
 </head>
@@ -1000,6 +1000,16 @@ on_begin(Tag, Attr, Parser) :-
 </code>
 
 
+<s2>Type checking</title>
+
+<definitions>
+    <pred>xml_is_dom(@Term)
+    <summary>Validate an SGML/XML DOM term.
+True if <aref/Term/ is an SGML/XML term as produced by one of the above
+predciates and acceptable by <pref>xml_write/3</pref> and friends.
+</definitions>
+
+
 <s1 name="encoding">Stream encoding issues</title>
 
 <p>
@@ -1170,6 +1180,9 @@ find the declared named character entities.
     <termitem>doctype(Doctype)
 Document type to include in the header.  When omitted it is taken from
 the outer element.
+    <termitem>header(Bool)
+If <aref/Bool/ is <c/false/, the XML header is suppressed.  Useful for
+embedding in other XML streams.
 </argdef>
     <pred>sgml_write(+Stream, +Term, +Options)
     <summary>Write an SGML document from a parser-compatible term

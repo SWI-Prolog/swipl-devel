@@ -56,7 +56,8 @@
 	    xml_quote_cdata/3,		% +In, -Quoted, +Encoding
 	    xml_quote_attribute/2,	% +In, -Quoted
 	    xml_quote_cdata/2,		% +In, -Quoted
-	    xml_name/1			% +In
+	    xml_name/1,			% +In
+	    xml_is_dom/1		% +Term
 	  ]).
 
 :- multifile user:file_search_path/2.
@@ -322,6 +323,46 @@ xml_quote_cdata(In, Quoted) :-
 
 xml_name(In) :-
 	xml_name(In, ascii).
+
+
+		 /*******************************
+		 *	   TYPE CHECKING	*
+		 *******************************/
+
+%	xml_is_dome(@Term)
+%	
+%	True  if  term  statisfies   the    structure   as  returned  by
+%	load_structure/3 and friends.
+
+xml_is_dom(0) :- !, fail.		% catch variables
+xml_is_dom([]) :- !.
+xml_is_dom([H|T]) :- !,
+	xml_is_dom(H),
+	xml_is_dom(T).
+xml_is_dom(element(Name, Attributes, Content)) :- !,
+	dom_name(Name),
+	dom_attributes(Attributes),
+	xml_is_dom(Content).
+xml_is_dom(pi(Pi)) :- !,
+	atom(Pi).
+xml_is_dom(CDATA) :-
+	atom(CDATA).
+
+dom_name(NS:Local) :-
+	atom(NS),
+	atom(Local), !.
+dom_name(Local) :-
+	atom(Local).
+
+dom_attributes(0) :- !, fail.
+dom_attributes([]).
+dom_attributes([H|T]) :-
+	dom_attribute(H),
+	dom_attributes(T).
+
+dom_attribute(Name=Value) :-
+	dom_name(Name),
+	atomic(Value).
 
 
 		 /*******************************

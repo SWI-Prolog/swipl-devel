@@ -38,6 +38,7 @@
 :- use_module(library(sgml)).
 :- use_module(library(debug)).
 :- use_module(library(assoc)).
+:- use_module(library(option)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This library provides the inverse functionality   of  the sgml.pl parser
@@ -77,7 +78,7 @@ xml_write(Stream, Data, Options) :-
 	new_state(State),
 	set_state(State, dialect, xml),
 	init_state(Options, State),
-	emit_xml_encoding(Stream),
+	emit_xml_encoding(Stream, Options),
 	emit(Data, Stream, State).
 
 
@@ -110,17 +111,20 @@ update_state(dtd(DTD), State) :- !,
 	dtd_character_entities(DTDObj, EntityMap),
 	set_state(State, entity_map, EntityMap).
 update_state(doctype(_), _) :- !.
+update_state(header(_), _) :- !.
 update_state(Option, _) :-
 	throw(error(domain_error(xml_write_option, Option), _)).
 
 
-%	emit_xml_encoding(+Stream)
+%	emit_xml_encoding(+Stream, +Options)
 %	
 %	Emit the XML fileheader with   encoding information. Setting the
 %	right encoding on the output stream  must be done before calling
 %	xml_write/3.
 
-emit_xml_encoding(Out) :-
+emit_xml_encoding(Out, Options) :-
+	option(header(Hdr), Options, true),
+	Hdr == true, !,
 	stream_property(Out, encoding(Encoding)),
 	(   Encoding == utf8
 	->  format(Out, '<?xml version="1.0" encoding="UTF-8"?>~n~n', [])
@@ -128,6 +132,7 @@ emit_xml_encoding(Out) :-
 	->  format(Out, '<?xml version="1.0" encoding="ISO-8859-1"?>~n~n', [])
 	;   throw(error(domain_error(xml_encoding, Encoding), _))
 	).
+emit_xml_encoding(_, _).
 
 
 %	emit_doctype(+Options, +Data, +Stream)

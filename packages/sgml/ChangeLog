@@ -1,3 +1,8 @@
+Mar 5, 2005
+
+  * ADDED: xml_is_dom/1.  Option header(Bool) to xml_write to suppress
+    writing the header.
+
 Mar 4, 2005
 
   * ADDED: xmlns support to xml_write/3.

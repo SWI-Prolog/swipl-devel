@@ -10,7 +10,7 @@
 <center>
 
 <h1>SWI-Prolog SGML/XML parser<br>
-<font size="+0"><em>Version 2.0.3, March 2005</em></font></h1>
+<font size="+0"><em>Version 2.0.4, March 2005</em></font></h1>
 
 <br>
 <a href="mailto:jan@science.uva.nl"><em>Jan Wielemaker</em></a><br>
@@ -59,6 +59,7 @@ DTD. The parser is designed to be small, fast and flexible.
 <ul>
 <li><a href="#sec:sec-3.6.1">Partial Parsing</a>
 </ul>
+<li><a href="#sec:sec-3.7">Type checking</a>
 </ul>
 <li><a href="#sec:encoding">Stream encoding issues</a>
 <li><a href="#sec:indexaccess">Processing Indexed Files</a>
@@ -1362,6 +1363,18 @@ on_begin(Tag, Attr, Parser) :-
 <p>
 &nbsp;
 
+<h2><a name="sec:sec-3.7">Type checking</a></h2>
+
+<dl>
+<dt>&nbsp;<br>
+<b><a name="xml_is_dom/1">xml_is_dom(<var>@Term</var>)</a></b><dd>
+True if <var>Term</var> is an SGMLXML term as produced by one of the above
+predciates and acceptable by <a href="#xml_write/3"><b>xml_write/3</b></a> and friends.
+</dl>
+
+<p>
+&nbsp;
+
 <h1><a name="sec:encoding">Stream encoding issues</a></h1>
 
 <p>
@@ -1573,6 +1586,11 @@ find the declared named character entities.
 <b>doctype(<var>Doctype</var>)</b><dd>
 Document type to include in the header.  When omitted it is taken from
 the outer element.
+    
+<dt>&nbsp;<br>
+<b>header(<var>Bool</var>)</b><dd>
+If <var>Bool</var> is <a name="const:false%3"><b><tt>false</tt></b></a>, the XML header is suppressed.  Useful for
+embedding in other XML streams.
 </dl>
 
     
@@ -1784,6 +1802,7 @@ standard.  He also made many suggestions for improving this document.
 <tr><td><a href="#sgml_parse/2"><b>sgml_parse/2</b></a></td><td>Parse the input</td></tr>
 <tr><td><a href="#sgml_register_catalog_file/2"><b>sgml_register_catalog_file/2</b></a></td><td>Register a catalog file</td></tr>
 <tr><td><a href="#sgml_write/3"><b>sgml_write/3</b></a></td><td>Write an SGML document from a parser-compatible term</td></tr>
+<tr><td><a href="#xml_is_dom/1"><b>xml_is_dom/1</b></a></td><td>Validate an SGML/XML DOM term.</td></tr>
 <tr><td><a href="#xml_name/1"><b>xml_name/1</b></a></td><td>Test atom for valid XML name</td></tr>
 <tr><td><a href="#xml_name/2"><b>xml_name/2</b></a></td><td>Test atom for valid XML name</td></tr>
 <tr><td><a href="#xml_quote_attribute/3"><b>xml_quote_attribute/3</b></a></td><td>Quote text for use as an attribute</td></tr>
@@ -1845,7 +1864,7 @@ deleted. This is not yet implemented.
 <li><a href="#const:entity"><b><tt>entity</tt></b></a>
 <li><a href="#const:error"><b><tt>error</tt></b></a>
 <li><a href="#const:explicit"><b><tt>explicit</tt></b></a>
-<li><a href="#const:false"><b><tt>false</tt></b></a> [ <a href="#const:false%2">2</a>]
+<li><a href="#const:false"><b><tt>false</tt></b></a> [ <a href="#const:false%2">2</a> <a href="#const:false%3">3</a>]
 <li><a href="#const:file"><b><tt>file</tt></b></a>
 <li><a href="#free_dtd/1"><b>free_dtd/1</b></a>
 <li><a href="#free_sgml_parser/1"><b>free_sgml_parser/1</b></a>
@@ -1901,6 +1920,7 @@ deleted. This is not yet implemented.
 <li><a href="#const:utf8"><b><tt>utf8</tt></b></a>
 <li><a href="#const:warning"><b><tt>warning</tt></b></a>
 <li><a href="#const:xml"><b><tt>xml</tt></b></a> [ <a href="#const:xml%2">2</a> <a href="#const:xml%3">3</a> <a href="#const:xml%4">4</a>]
+<li><a href="#xml_is_dom/1"><b>xml_is_dom/1</b></a>
 <li><a href="#xml_name/1"><b>xml_name/1</b></a>
 <li><a href="#xml_name/2"><b>xml_name/2</b></a>
 <li><a href="#xml_quote_attribute/3"><b>xml_quote_attribute/3</b></a> [ <a href="#xml_quote_attribute/3%2">2</a>]
