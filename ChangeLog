@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 3.4.2
+=============
+
   * PORTABILITY: Autoconf to produce suitable linking options for AIX.
     Tested on AIX 4.3.3.  Also a change in the Makefile to produce a correct
     SWI-Exports file in the include directory.
