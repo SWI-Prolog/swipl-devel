@@ -123,14 +123,18 @@ extern pthread_mutex_t _PL_mutexes[];	/* Prolog mutexes */
 #define PL_UNLOCK(id) pthread_mutex_unlock(&_PL_mutexes[id])
 #endif
 
-#if 0
-#define GET_LD    PL_local_data_t *__PL_ld = GLOBAL_LD;
-#define GLOBAL_LD ((PL_local_data_t *)pthread_getspecific(PL_ldata))
-#else
-#define GET_LD	  PL_local_data_t *__PL_ld = GLOBAL_LD;
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+If available, use GCC's __attribute((const)) to tell the compiler it may
+choose to store the result of LD is a local variable.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef __GNUC__
 #define GLOBAL_LD _LD()
 extern PL_local_data_t *_LD(void) __attribute((const));
+#else
+#define GLOBAL_LD ((PL_local_data_t *)pthread_getspecific(PL_ldata))
 #endif
+#define GET_LD    PL_local_data_t *__PL_ld = GLOBAL_LD;
 
 #define ARG1_LD   PL_local_data_t *__PL_ld
 #define ARG_LD    , ARG1_LD

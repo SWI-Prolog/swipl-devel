@@ -1867,6 +1867,12 @@ decrease).
 #include "pl-thread.h"			/* thread manipulation */
 #include "pl-funcs.h"			/* global functions */
 
+#ifdef __DECC				/* Dec C-compiler: avoid conflicts */
+#undef leave
+#undef except
+#undef try
+#endif
+
 #define NULL_ATOM ((atom_t)0)
 #define MK_ATOM(n)    		((n)<<7|TAG_ATOM|STG_STATIC)
 #include "pl-atom.ih"
