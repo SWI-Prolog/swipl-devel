@@ -146,7 +146,7 @@ goto(FB, File:'file|node', Line:int) :->
 	->  send(FB?tree, selection, Node),
 	    send(FB, normalise, Node)
 	;   send(Node, collapsed, @off),
-	    new(N, var),
+	    new(N, var(value := @nil)),
 	    (	get(Node?sons, find,
 		    and(message(@arg1, has_get_method, line),
 			if(and(@arg1?line \== @nil,
@@ -155,10 +155,11 @@ goto(FB, File:'file|node', Line:int) :->
 			   and(assign(N, @arg1, global),
 			       new(or)))),
 		    _)
-	    ->	(   get(N, '_value', @nil)
+	    ->	get(N, '_value', N2),
+	        (   N2 == @nil
 		->  send(FB?tree, selection, Node),
 		    send(FB, normalise, Node)
-		;   send(FB, goto, N, Line)
+		;   send(FB, goto, N2, Line)
 		)
 	    ;	get(Node?sons, tail, Last),
 		send(FB, goto, Last, Line)
