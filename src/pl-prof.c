@@ -22,9 +22,122 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#if defined(__WINDOWS__) || defined(__WIN32__) || defined(WIN32)
+#include <windows.h>		/* before pl-incl.h to avoid conflicts */
+#endif
+
 #include "pl-incl.h"
 
 #ifdef O_PROFILE
+
+#ifdef __WIN32__
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+MS-Windows version
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void profile(long ticks);
+
+static LARGE_INTEGER last_profile;
+static HANDLE	     mythread;
+static UINT	     timer;
+static long	     virtual_events;
+static long	     events;
+
+static long
+prof_new_ticks(HANDLE thread)
+{ FILETIME created, exit, kernel, user;
+  LARGE_INTEGER u;
+  long ticks;
+
+  if ( !GetThreadTimes(thread,
+		       &created,
+		       &exit,
+		       &kernel,
+		       &user) )
+    return -1;				/* Error condition */
+
+  u.LowPart  = user.dwLowDateTime;
+  u.HighPart = user.dwHighDateTime;
+
+  ticks = (long)((u.QuadPart - last_profile.QuadPart)/10240);
+  last_profile = u;
+
+  virtual_events += ticks;
+  events++;
+
+  return ticks;
+}
+
+static void CALLBACK
+callTimer(UINT id, UINT msg, DWORD dwuser, DWORD dw1, DWORD dw2)
+{ long newticks;
+
+  SuspendThread(mythread);		/* stop thread to avoid trouble */
+  if ( (newticks = prof_new_ticks(mythread)) )
+  { if ( newticks < 0 )			/* Windows 95/98/... */
+      newticks = 1;
+    profile(newticks);
+  }
+  ResumeThread(mythread);
+}
+
+
+static bool
+startProfiler(int how)
+{ MMRESULT rval;
+
+  DuplicateHandle(GetCurrentProcess(),
+		  GetCurrentThread(),
+		  GetCurrentProcess(),
+		  &mythread,
+		  0,
+		  FALSE,
+		  DUPLICATE_SAME_ACCESS);
+
+  if ( prof_new_ticks(mythread) < 0 )
+  { printMessage(ATOM_informational,
+		 ATOM_profile_no_cpu_time);
+  }
+  virtual_events = 0;
+  events = 0;
+
+  rval = timeSetEvent(10,
+		      5,		/* resolution (milliseconds) */
+		      callTimer,
+		      (DWORD)0,
+		      TIME_PERIODIC);
+  if ( rval )
+    timer = rval;
+  else
+    return PL_error(NULL, 0, NULL, ERR_SYSCALL, "timeSetEvent");
+
+  LD->statistics.profiling = how;
+
+  succeed;
+}
+
+
+void
+stopItimer(void)
+{ if ( timer )
+  { DEBUG(1, Sdprintf("%ld events, %ld virtual\n",
+		      events, virtual_events));
+
+    timeKillEvent(timer);
+    timer = 0;
+  }
+  if ( mythread )
+  { CloseHandle(mythread);
+    mythread = 0;
+  }
+}
+
+#else /*__WIN32__*/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+POSIX version
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef TIME_WITH_SYS_TIME
 #include <sys/time.h>
@@ -37,9 +150,8 @@
 #endif
 #endif
 
-forwards void profile(int);
-
-struct itimerval value, ovalue;		/* itimer controlling structures */
+static void profile(int sig);
+static struct itimerval value, ovalue;	/* itimer controlling structures */
 
 static bool
 startProfiler(int how)
@@ -51,7 +163,7 @@ startProfiler(int how)
   value.it_value.tv_usec = 1;
   
   if (setitimer(ITIMER_PROF, &value, &ovalue) != 0)
-    return warning("Failed to start interval timer: %s", OsError());
+    return PL_error(NULL, 0, ERR_ERRNO, ERR_SYSCALL, setitimer);
   LD->statistics.profiling = how;
 
   succeed;
@@ -72,6 +184,8 @@ stopItimer(void)
   }
 }
 
+#endif /*__WIN32__*/
+
 bool
 stopProfiler(void)
 { if ( LD->statistics.profiling == NO_PROFILING )
@@ -79,31 +193,45 @@ stopProfiler(void)
 
   stopItimer();
   LD->statistics.profiling = NO_PROFILING;
+#ifndef __WIN32__
   set_sighandler(SIGPROF, SIG_IGN);
+#endif
 
   succeed;
 }
 
 word
-pl_profile(term_t old, term_t new)
+pl_profiler(term_t old, term_t new)
 { int prof = LD->statistics.profiling;
+  const atom_t prof_names[] = { ATOM_off, ATOM_cumulative, ATOM_plain };
+  atom_t val;
 
-  TRY(setInteger(&prof, old, new));
+  if ( !PL_unify_atom(old, prof_names[prof]) )
+    fail;
+  if ( !PL_get_atom_ex(new, &val) )
+    fail;
+  for(prof=0; prof < 3; prof++)
+  { if ( prof_names[prof] == val )
+      break;
+  }
+  if ( prof == 3 )
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_profile_mode, new);
+
   if ( prof == LD->statistics.profiling )
     succeed;
   switch(prof)
   { case NO_PROFILING:
-	return stopProfiler();
+      return stopProfiler();
     case CUMULATIVE_PROFILING:
     case PLAIN_PROFILING:
-	if (LD->statistics.profiling != NO_PROFILING)
-	{ stopProfiler();
-	  pl_reset_profiler();
-	}
-	return startProfiler(prof);
+      if (LD->statistics.profiling != NO_PROFILING)
+      { stopProfiler();
+	pl_reset_profiler();
+      }
+      return startProfiler(prof);
     default:
-	warning("$profile/2: illegal second argument");
-	fail;
+      assert(0);
+      fail;
   }
 }
 	
@@ -190,8 +318,16 @@ clear the flags again.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
+#ifdef __WIN32__
+profile(long ticks)
+#else
 profile(int sig)
+#endif
 { register LocalFrame fr = environment_frame;
+
+#ifndef __WIN32__
+
+#define ticks 1
 
 #if _AIX
   if ( LD->statistics.profiling == NO_PROFILING )
@@ -201,8 +337,9 @@ profile(int sig)
 #if !defined(BSD_SIGNALS) && !defined(HAVE_SIGACTION)
   signal(SIGPROF, profile);
 #endif
+#endif /*!__WIN32__*/
 
-  LD->statistics.profile_ticks++;
+  LD->statistics.profile_ticks += ticks;
 
   if ( gc_status.active )
   { PROCEDURE_garbage_collect0->definition->profile_ticks++;
@@ -213,7 +350,7 @@ profile(int sig)
     return;
 
   if (LD->statistics.profiling == PLAIN_PROFILING)
-  { fr->predicate->profile_ticks++;
+  { fr->predicate->profile_ticks += ticks;
     return;
   }
 
@@ -221,7 +358,7 @@ profile(int sig)
   { register Definition def = fr->predicate;
     if ( false(def, PROFILE_TICKED) )
     { set(def, PROFILE_TICKED);
-      def->profile_ticks++;
+      def->profile_ticks += ticks;
     }
   }
   

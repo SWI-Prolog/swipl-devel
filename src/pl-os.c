@@ -2348,7 +2348,7 @@ System(char *cmd)
   Setenv("PROLOGCHILD", "yes");
 
   if ( (pid = vfork()) == -1 )
-  { return PL_error("shell", 2, OsError(), ERR_SYSCALL, ATOM_fork);
+  { return PL_error("shell", 2, OsError(), ERR_SYSCALL, "fork");
   } else if ( pid == 0 )		/* The child */
   { int i;
 

@@ -291,7 +291,7 @@ pl_tty_size(term_t r, term_t c)
 #endif
 
   if ( iorval != 0 )
-    return PL_error("tty_size", 2, MSG_ERRNO, ERR_SYSCALL, ATOM_ioctl);
+    return PL_error("tty_size", 2, MSG_ERRNO, ERR_SYSCALL, "ioctl");
 #else /*__unix__*/
   rows = ScreenRows();			/* old stuff refering to plterm.dll */
   cols = ScreenCols();			/* not used anyway */

@@ -505,6 +505,9 @@ A yf			"yf"
 A yfx			"yfx"
 A yfy			"yfy"
 A zero_divisor		"zero_divisor"
+A profile_no_cpu_time	"profile_no_cpu_time"
+A cumulative		"cumulative"
+A plain			"plain"
 
 F abs			1
 F acos			1

@@ -105,7 +105,7 @@ banner:
 		@echo ****************
 
 $(PLLIB):	$(OBJ) $(LOCALLIB)
-		$(LD) $(LDFLAGS) /dll /out:$(PLDLL) /implib:$@ $(OBJ) $(LOCALLIB) $(LIBS) $(DBGLIBS)
+		$(LD) $(LDFLAGS) /dll /out:$(PLDLL) /implib:$@ $(OBJ) $(LOCALLIB) $(LIBS) winmm.lib $(DBGLIBS)
 
 $(PLCON):	$(PLLIB) pl-ntcon.obj
 		$(LD) $(LDFLAGS) /subsystem:console /out:$@ pl-ntcon.obj $(PLLIB)

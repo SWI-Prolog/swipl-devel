@@ -652,7 +652,7 @@ pl_thread_join(term_t thread, term_t retcode)
 		    ERR_PERMISSION, PL_new_atom("join"), ATOM_thread, thread);
 
   if ( pthread_join(info->tid, &r) )
-    return PL_error("thread_join", 2, MSG_ERRNO, ERR_SYSCALL, ATOM_nil);
+    return PL_error("thread_join", 2, MSG_ERRNO, ERR_SYSCALL, "pthread_join");
   
   rval = unify_thread_status(retcode, info);
    

@@ -644,7 +644,7 @@ Procedure	isStaticSystemProcedure(functor_t fd);
 
 /* pl-prof.c */
 void		stopItimer(void);
-word		pl_profile(term_t old, term_t new);
+word		pl_profiler(term_t old, term_t new);
 word		pl_profile_count(term_t head, term_t calls, term_t prom);
 word		pl_profile_box(term_t head,
 			       term_t calls, term_t redos,

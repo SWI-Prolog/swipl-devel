@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: Statistical profiling to the Windows version.  Also modernised
+    the Unix profiling implementation a bit.
+
   * FIXED: string_to_list(-String, +List) crash on machines with
     signal-based stack-expansion with lists of >500,000 elements
     (Wouter Jansweijer).

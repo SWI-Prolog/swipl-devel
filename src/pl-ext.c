@@ -337,7 +337,7 @@ static const struct foreign {
   FRG("$count",			0, pl_count,			TRACE_ME),
 #endif /* COUNTING */
 
-  FRG("$profile",		2, pl_profile,			TRACE_ME),
+  FRG("profiler",		2, pl_profiler,			TRACE_ME),
   FRG("reset_profiler",		0, pl_reset_profiler,		TRACE_ME),
   FRG("profile_count",		3, pl_profile_count,	   META|TRACE_ME),
   FRG("profile_box",		5, pl_profile_box,	   META|TRACE_ME),

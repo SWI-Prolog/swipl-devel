@@ -136,7 +136,7 @@ typedef unsigned long sigset_t;		/* we don't have this */
 #define NEED_UCHAR 1
 
 /* Define if SIGPROF and setitimer() are available */
-#undef O_PROFILE
+#define O_PROFILE 1
 
 /* Define if signal handler is of the form f(sig, type, context, addr) */
 /* #undef SIGNAL_HANDLER_PROVIDES_ADDRESS */

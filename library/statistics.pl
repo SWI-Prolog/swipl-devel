@@ -32,7 +32,6 @@
 
 :- module(prolog_statistics,
 	  [ time/1,
-	    profiler/2,
 	    show_profile/1,
 	    profile/3
 	  ]).
@@ -65,23 +64,6 @@ time(Goal) :-
 	->  throw(E)
 	;   Result == yes
 	).
-
-%    profile(-Old, +New)
-%    change or query profiling status.
-
-profiler(Old, New) :-
-	'$profile'(OldInt, OldInt), 
-	map_profile(Old, OldInt), 
-	atom(New), 
-	map_profile(New, NewInt), !, 
-	'$profile'(_, NewInt).
-profiler(_, New) :-
-	throw(error(domain_error(profile_type, New), _)).
-
-
-map_profile(off, 	0).
-map_profile(cumulative, 1).
-map_profile(plain, 	2).
 
 
 %   show_profile(N)

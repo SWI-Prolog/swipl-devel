@@ -328,10 +328,10 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
       break;
     }
     case ERR_SYSCALL:
-    { atom_t op = va_arg(args, atom_t);
+    { const char *op = va_arg(args, const char *);
 
       if ( !msg )
-	msg = PL_atom_chars(op);
+	msg = op;
 
       switch(errno)
       { case ENOMEM:
