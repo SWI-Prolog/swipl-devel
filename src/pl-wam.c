@@ -2679,7 +2679,7 @@ exit(Block, RVal).  First does !(Block).
 we are in debug-mode we create a   new CHP_DEBUG frame to provide proper
 debugger output.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    i_cut:			/* from I_USERCALL0 */
+    /*i_cut:*/			/* from I_USERCALL0 */
     VMI(I_CUT)						MARK(CUT);
       { 
 #ifdef O_DEBUGGER
@@ -3154,8 +3154,8 @@ erasure as soon as the clause finishes executing.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 	if ( isAtom(goal = *a) )
-	{ if ( *a == ATOM_cut )
-	    goto i_cut;
+	{ /*if ( *a == ATOM_cut )		NOT ISO
+	    goto i_cut; */
 	  functor = lookupFunctorDef(goal, 0);
 	  arity   = 0;
 	  args    = NULL;

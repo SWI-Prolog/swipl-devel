@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 			
+  * MODIFIED: The sequence X=!, X doesn't cut any longer as this was
+    in conflict with the ISO standard
+
   * FIXED: Memory leak when an exception is thrown from the generator
     of findall/3, bagof/3 or setof/3.  Reported by Bart Demoen.
 

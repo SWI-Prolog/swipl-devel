@@ -722,21 +722,17 @@ compliant with the ISO standard.  This implies that the cut is
 transparent to \predref{;}{2}, \predref{->}{2} and \predref{*->}{2}.
 Cuts appearing in the {\em condition} part of \predref{->}{2} and
 \predref{*->}{2} as well as in \predref{\+}{1} are local to the
-condition.
-
-\index{call/1, cut in}%
-As an extension, a variable goal that is bound the the \const{!} is
-handled as a true cut. This is the only difference between call/1 and a
-variable appearing as subgoal.
+condition.%
+    \footnote{Up to version 4.0.6, the sequence X=!, X acted as a true
+	      cut.  This feature has been deleted for ISO compliance.}
 
 \begin{center}\begin{tabular}{ll}
 \exam{t1 :- (a, !, fail ; b).}          & \% cuts {a}/0 and {t1}/0 \\
 \exam{t2 :- (a -> b, ! ; c).}           & \% cuts {b}/0 and {t2}/0 \\
-\exam{t3(G) :- a, G, fail.}             & \% if `G = !' cuts {a}/0 and {t1}/1 \\
-\exam{t4(G) :- a, call(G), fail.}       & \% if `G = !' cut has no effect \\
-\exam{t5 :- call((a, !, fail ; b)).}    & \% cuts {a}/0 \\
-\exam{t6 :- \Snot (a, !, fail ; b).}    & \% cuts {a}/0 \\
+\exam{t3 :- call((a, !, fail ; b)).}    & \% cuts {a}/0 \\
+\exam{t4 :- \Snot (a, !, fail ; b).}    & \% cuts {a}/0 \\
 \end{tabular}\end{center}
+
 \infixop{,}{+Goal1}{+Goal2}
 Conjunction.  Succeeds if both `Goal1' and `Goal2' can be proved.  It is
 defined as (this definition does not lead to a loop as the second comma
@@ -750,9 +746,11 @@ The `or' predicate is defined as:
 Goal1 ; _Goal2 :- Goal1.
 _Goal1 ; Goal2 :- Goal2.
 \end{code}
+
 \infixop{|}{+Goal1}{+Goal2}
 Equivalent to \predref{;}{2}.  Retained for compatibility only.  New code
-should use \predref{;}{2}. Still nice though for grammar rules.
+should use \predref{;}{2}.
+
 \infixop{->}{+Condition}{+Action}
 If-then and If-Then-Else. The \predref{->}{2} construct commits to
 the choices made at its left-hand side, destroying choice-points created
