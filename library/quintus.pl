@@ -21,6 +21,7 @@
 	, (public)/1
 	, (meta_predicate)/1
 	, no_style_check/1
+	, retractall/1
 	]).
 
 		/********************************
@@ -44,20 +45,33 @@ file_exists( File ) :-
 	exists_file( File ).
 
 		/********************************
-		*          META CALLS           *
+		*        META PREDICATES        *
 		*********************************/
 
 :- module_transparent
 	call/2,
-	call/3.
+	call/3,
+	retractall/1.
 
 %	call( +Pred,+Argument,... )
 %	call `Pred', appending the additional arguments to the goal
 
-call( Pred,A0 ) :-
-	apply( Pred,[A0] ).
+call(Pred, A0) :-
+	apply(Pred, [A0]).
 call( Pred,A0,A1 ) :-
-	apply( Pred,[A0,A1] ).
+	apply(Pred, [A0,A1]).
+
+
+%	The quintus definition of retractall/1 retracts on the basis of
+%	*head* rather then *clause* declarations.
+
+retractall(Head) :-
+	retract(Head),
+	fail.
+retractall(Head) :-
+	retract((Head :- _)),
+	fail.
+retractall(_).
 
 
 		/********************************
