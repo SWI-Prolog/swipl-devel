@@ -2442,7 +2442,7 @@ errorObjectv(Any obj, Error e, int argc, Any *argv)
       { if ( g->flags & PCE_GF_CATCH )
 	{ g->flags |= PCE_GF_THROW;
 	  g->errcode = PCE_ERR_ERROR;
-	  g->errc1   = e;
+	  g->errc1   = e->id;
 	  g->errc2   = createCodeVectorv(argc+1, av);
 
 	  fail;

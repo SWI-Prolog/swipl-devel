@@ -20,9 +20,9 @@
 :- multifile
 	pce_message/3.
 
-pce_message(error(pce(Error, Args), _Context)) -->
+pce_message(error(pce(ErrorId, Args), _Context)) -->
 	{ Msg =.. [format|Args],
-	  get(Error, Msg, String),
+	  get(error(ErrorId), Msg, String),
 	  get(String, value, Text)
 	},
 	[Text].

@@ -36,14 +36,6 @@ and rows, deleting, inserting and sorting rows, etc. See
 \chapref{layout}.
 
 
-
-
-
-
-
-
-
-
 \chapter{Changes to Message Passing}
 
 \section{Allow for Prolog-native data}
@@ -397,7 +389,7 @@ to Prolog, the interface maps the error details onto a Prolog exception.
 This exception is of the format:
 
 \begin{quote}
-\term{error}{\term{pce}{ErrorObject, ListOfArguments}, Context}
+\term{error}{\term{pce}{ErrorId, ListOfArguments}, Context}
 \end{quote}
 
 This error can be catched using the ISO catch/3 construct:
@@ -405,7 +397,7 @@ This error can be catched using the ISO catch/3 construct:
 \begin{code}
 ?- catch(send(@pce, not_implemented), E, true).
 
-E = error(pce(@290194/error,
+E = error(pce(no_behaviour,
 	      [@pce/pce,  (->), not_implemented]),
 	  send(@pce/pce, not_implemented))
 \end{code}
@@ -415,9 +407,9 @@ This error-term can be printed using print_message/2.  The method
 \product{}-string:
 
 \begin{code}
-error_string(Error, Args, TextAsAtom) :-
+error_string(ErrorId, Args, TextAsAtom) :-
 	Msg =.. [format|Args],
-	get(Error, Msg, String),
+	get(error(ErrorId), Msg, String),
 	get(String, value, TextAsAtom).
 \end{code}
 
