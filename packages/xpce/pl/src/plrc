@@ -55,9 +55,6 @@ gui_setup_ :-
 	;   current_prolog_flag(arch, Arch),
 	    '$apropos_match'(win32, Arch)
 	), !,
-	asserta((help :- !, prolog_help)),
-	asserta((help(T) :- !, prolog_help(T))),
-	asserta((apropos(T) :- !, prolog_apropos(T))),
 	set_prolog_flag(gui, true).
 
 pce_setup_ :-
@@ -73,8 +70,7 @@ pce_setup_ :-
 	    file_base_name(Path, Base),
 	    '$apropos_match'(pce, Base)
 	), !,
-	object(@pce),			% silent autoload loading
-	use_module(library(pce)),	% import all
+	load_files(library(pce), [silent(true)]),
 	flag('$banner_goal', _, pce_welcome).
 pce_setup_.
 

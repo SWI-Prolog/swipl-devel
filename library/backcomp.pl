@@ -13,7 +13,6 @@
 	    '$argv'/1,
 	    displayq/1,
 	    displayq/2,
-	    (ed)/1,
 	    concat/3,
 	    read_variables/2,
 	    read_variables/3,
@@ -48,14 +47,6 @@ displayq(Term) :-
 	write_term(Term, [ignore_ops(true),quoted(true)]).
 displayq(Stream, Term) :-
 	write_term(Stream, Term, [ignore_ops(true),quoted(true)]).
-
-%	use edit/1
-
-ed(PredName) :-
-	atom(PredName), !,
-	edit(PredName/_Arity).
-ed(Pred) :-
-	edit(Pred).
 
 %	concat/3 is superseeded by ISO atom_concat/3
 

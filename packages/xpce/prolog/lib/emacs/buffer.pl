@@ -209,7 +209,11 @@ save(B, File:[file]) :->
 	    )
 	;   true
 	),
-	ignore(send(SaveFile, backup)),
+	(   get(@emacs_no_backup_list, find,
+		message(@arg1, match, SaveFile?name), _)
+	->  true
+	;   ignore(send(SaveFile, backup))
+	),
 	send(B, do_save, SaveFile),
 	send(B, slot, time_stamp, SaveFile?time).
 

@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * REMOVED: ed/1, also from the backward compatibility module.  Edit/1
+    is the generic editing front-end.
+
   * FIXED: writeq(a(b,c,(d,e))), reported by Joachim Katzer.
 
   * FIXED: Memory leak in expand_file_name/2.  Reported by Daniel Cote.

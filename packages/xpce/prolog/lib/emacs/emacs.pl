@@ -16,8 +16,9 @@
 :- use_module(library(emacs_extend)).
 :- require([ send_list/3
 	   ]).
-:- set_prolog_flag(character_escapes, false).
 
+:- multifile
+	no_backup/1.
 
 		/********************************
 		*         DECLARE MODES		*
@@ -115,33 +116,46 @@ pce_ifhostproperty(prolog(swi),
 :- pce_global(@emacs_comment_column, new(number(40))).
 :- pce_global(@emacs_default_mode, new(var(value := script))).
 :- pce_global(@emacs_mode_list, make_emacs_mode_list).
+:- pce_global(@emacs_no_backup_list, make_no_backup_list).
 
 make_emacs_mode_list(Sheet) :-
 	new(Sheet, sheet),
 	(   send(class(file), has_feature, case_sensitive, @off)
-	->  FixMode = send(Re, ignore_case, @on)
-	;   FixMode = true
+	->  CaseSensitive = @on
+	;   CaseSensitive = @off
 	),
 	(   default_emacs_mode(Regex, Mode),
-	       send(Sheet, value, new(Re, regex(Regex)), Mode),
-	       FixMode,
+	       send(Sheet, value, regex(Regex, CaseSensitive), Mode),
 	    fail
 	;   true
 	).
 	
-default_emacs_mode('.*\.pl~?$',   		   	prolog).
-default_emacs_mode('\.\(pl\|xpce\|pceemacs\)rc~?', 	prolog).
-default_emacs_mode('.*\.\(tex\|sty\)~?$', 		latex).
-default_emacs_mode('.*\.doc~?$',	 		latex).
-default_emacs_mode('.*\.html~?$',	 		html).
-default_emacs_mode('.*\.chml~?$',	 		html).
-default_emacs_mode('.*\.ann~?$',	 		annotate).
-default_emacs_mode('.*\.[ch]~?$', 			c).
-default_emacs_mode('.*\.C$',				cpp).
-default_emacs_mode('.*\.cc$',				cpp).
-default_emacs_mode('.*\.cpp$',				cpp).
-default_emacs_mode('.*\.idl$',				cpp).
-default_emacs_mode('[Cc]ompose\|README',		text).
+default_emacs_mode('.*\\.pl~?$',   		   	prolog).
+default_emacs_mode('\\.\\(pl\\|xpce\\|pceemacs\\)rc~?', prolog).
+default_emacs_mode('.*\\.\\(tex\\|sty\\)~?$', 		latex).
+default_emacs_mode('.*\\.doc~?$',	 		latex).
+default_emacs_mode('.*\\.html~?$',	 		html).
+default_emacs_mode('.*\\.chml~?$',	 		html).
+default_emacs_mode('.*\\.ann~?$',	 		annotate).
+default_emacs_mode('.*\\.[ch]~?$', 			c).
+default_emacs_mode('.*\\.C$',				cpp).
+default_emacs_mode('.*\\.cc$',				cpp).
+default_emacs_mode('.*\\.cpp$',				cpp).
+default_emacs_mode('.*\\.idl$',				cpp).
+default_emacs_mode('[Cc]ompose\\|README',		text).
+
+%	Do not make backup of a file matching this pattern
+
+make_no_backup_list(Ch) :-
+	new(Ch, chain),
+	(   send(class(file), has_feature, case_sensitive, @off)
+	->  CaseSensitive = @on
+	;   CaseSensitive = @off
+	),
+	no_backup(Pattern),
+	send(Ch, append, regex(Pattern, CaseSensitive)).
+
+no_backup('/tmp/.*').
 
 :- free(@loading_emacs).
 
