@@ -95,13 +95,9 @@ isCurrentModule(atom_t name)
 
 void
 initModules(void)
-{ static int done = FALSE;
-
-  LOCK();
-  if ( !done )
-  { done = TRUE;
-
-    initTables();
+{ LOCK();
+  if ( !GD->tables.modules )
+  { initTables();
     initFunctors();
 
     GD->tables.modules = newHTable(MODULEHASHSIZE);

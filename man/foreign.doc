@@ -2348,23 +2348,37 @@ A good setup in Windows is to add SWI-Prolog's \file{bin} directory
 to your \env{PATH} and either pass a module holding a saved-state, or
 \verb$"libpl.dll"$ as \verb$argv[0]$.
 
-\cfunction{int}{PL_is_initialised}{int *argc, char ***argv}
+    \cfunction{int}{PL_is_initialised}{int *argc, char ***argv}
 Test whether the Prolog engine is already initialised. Returns
 \const{FALSE} if Prolog is not initialised and \const{TRUE} otherwise.
 If the engine is initialised and \arg{argc} is not \const{NULL}, the
 argument count used with PL_initialise() is stored in \arg{argc}.  Same
 for the argument vector \arg{argv}.
 
-\cfunction{void}{PL_install_readline}{}
+    \cfunction{void}{PL_install_readline}{}
 Installs the GNU-readline line-editor.  Embedded applications that do not
 use the Prolog toplevel should normally delete this line, shrinking the
 Prolog kernel significantly.
-\cfunction{int}{PL_toplevel}{}
+
+    \cfunction{int}{PL_toplevel}{}
 Runs the goal of the \argoption{-t}{toplevel} switch (default prolog/0) and
 returns 1 if successful, 0 otherwise.
-\cfunction{void}{PL_halt}{int status}
-Cleanup the Prolog environment and calls exit() with the status
-argument.
+
+    \cfunction{void}{PL_cleanup}{int status}
+This function performs the reverse of PL_initialise(). It runs the
+PL_on_halt() and at_halt/1 handlers, closes all streams (except for the
+`standard I/O' streams which are flushed only), deallocates all memory
+and restores all signal handlers. The \arg{status} argument is passed to
+the various termination hooks and indicates the \jargon{exit-status}.
+
+This function allows deleting and restarting the Prolog system in the
+same process. Use it with care, as PL_initialise() is a costly function.
+Unix users should consider using exec() (available as part of the
+clib package\index{clib,package},\index{package,clib}).
+
+    \cfunction{void}{PL_halt}{int status}
+Cleanup the Prolog environment using PL_cleanup() and calls exit() with
+the status argument.
 \end{description}
 
 \section{Linking embedded applications using plld}

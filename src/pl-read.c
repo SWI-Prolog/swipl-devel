@@ -668,15 +668,18 @@ raw_read2(ReadData _PL_rd)
 
 static char *
 raw_read(ReadData _PL_rd)
-{ char *s;
-  ttybuf tab;
+{ if ( rb.stream->flags & SIO_ISATTY )
+  { char *s;
+    ttybuf tab;
+    
+    PushTty(rb.stream, &tab, TTY_SAVE);		/* make sure tty is sane */
+    PopTty(rb.stream, &ttytab);
+    s = raw_read2(_PL_rd);
+    PopTty(rb.stream, &tab);
 
-  PushTty(rb.stream, &tab, TTY_SAVE);		/* make sure tty is sane */
-  PopTty(rb.stream, &ttytab);
-  s = raw_read2(_PL_rd);
-  PopTty(rb.stream, &tab);
-
-  return s;
+    return s;
+  } else
+    return raw_read2(_PL_rd);
 }
 
 

@@ -199,7 +199,9 @@ typedef struct
   } procedures;
 
   struct
-  { buffer	source_files;
+  { buffer	source_files;		/* index --> file */
+    int		_source_index;		/* current index */
+    Table	_source_table;		/* file --> index */
   } files;
 } PL_global_data_t;
 

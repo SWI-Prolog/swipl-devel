@@ -494,6 +494,15 @@ initSignals(void)
 
 
 void
+cleanupSignals(void)
+{ struct signame *sn = signames;
+  
+  for( ; sn->name; sn++)
+    unprepareSignal(sn->sig);
+}
+
+
+void
 resetSignals()
 { LD->current_signal = 0;
   LD->pending_signals = 0L;

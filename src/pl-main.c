@@ -551,6 +551,9 @@ PL_initialise(int argc, char **argv)
     succeed;
   }
 
+  memset(GD, 0, sizeof(*GD));
+  memset(LD, 0, sizeof(*LD));
+
   SinitStreams();			/* before anything else */
 
   GD->cmdline.argc = argc;
@@ -642,8 +645,7 @@ properly on Linux. Don't bother with it.
     { UNLOCK();
       PL_halt(1);
     }
-    if ( Sclose(s) != 0 ||
-	 !rc_close_archive(GD->resourceDB) )
+    if ( Sclose(s) != 0 || !rc_save_archive(GD->resourceDB, NULL) )
     { 
 #if defined(__WINDOWS__) || defined(__WIN32__)
       PlMessage("Failed to save system resources: %s", rc_strerror(rc_errno));
@@ -837,6 +839,8 @@ int
 PL_cleanup(int rval)
 { OnHalt h;
 
+  LOCK();
+
   pl_notrace();				/* avoid recursive tracing */
 #ifdef O_PLMT
   exitPrologThreads();
@@ -877,8 +881,11 @@ PL_cleanup(int rval)
   }
 
   if ( GD->resourceDB )
-    rc_close_archive(GD->resourceDB);
+  { rc_close_archive(GD->resourceDB);
+    GD->resourceDB = NULL;
+  }
 
+  cleanupSignals();
   freeStacks(LD);
   freeLocalData(LD);
   cleanupSourceFiles();
@@ -886,7 +893,13 @@ PL_cleanup(int rval)
   cleanupFunctors();
   cleanupArith();
   cleanupMemAlloc();
+  cleanupInitialiseHooks();
+  cleanupExtensions();
   cleanupOs();
+  Scleanup();
+  GD->initialised = FALSE;
+
+  UNLOCK();
 
   return TRUE;
 }

@@ -42,12 +42,12 @@ rc_open_archive(const char *file, int flags)
 
   if ( rca )
   { memset(rca, 0, sizeof(*rca));
-    rca->path  = strdup(file);
+    rca->path = strdup(file);
     rca->flags = flags;
 
     if ( !(flags & RC_TRUNC) )
     { if ( !attach_archive(rca) && !(flags & RC_CREATE) )
-      { free(rca);
+      { rc_close_archive(rca);
 	return NULL;
       }
     }
@@ -63,16 +63,30 @@ rc_close_archive(RcArchive rca)
 { int rval = TRUE;
   RcMember m, next;
 
-  if ( rca->modified )
-    rval = rc_save_archive(rca, NULL);
-
   if ( rca->fd )
   { fclose(rca->fd);
     rca->fd = NULL;
   }
+#ifdef HAVE_MMAP
+  if ( rca->map_start )
+    munmap(rca->map_start, rca->map_size);
+#else
+#ifdef WIN32
+  if ( rca->map_start )
+    UnmapViewOfFile(rca->map_start);
+  if ( rca->hmap )
+    CloseHandle(rca->hmap);
+  if ( rca->hfile )
+    CloseHandle(rca->hfile);
+#endif /*WIN32*/
+#endif /*HAVE_MMAP*/
 
   for(m=rca->members; m; m=next)
   { next = m->next;
+    if ( m->name     ) free(m->name);
+    if ( m->rc_class ) free(m->rc_class);
+    if ( m->encoding ) free(m->encoding);
+    if ( m->file     ) free(m->file);
     free(m);
   }
 
@@ -85,7 +99,6 @@ rc_close_archive(RcArchive rca)
     file_tag_def = NULL;
     free(p);
   }
-
 					/* TBD: deallocate structures */
   return rval;
 }
@@ -406,8 +419,9 @@ attach_archive(RcArchive rca)
   { struct stat buf;
 
     if ( fstat(fd, &buf) == 0 )
-    { rca->size   = buf.st_size;
-      rca->offset = 0;
+    { rca->map_size = buf.st_size;
+      rca->size     = rca->map_size;
+      rca->offset   = 0;
       if ( (rca->map_start = mmap(NULL,
 				  rca->size,
 				  PROT_READ,
@@ -440,8 +454,9 @@ attach_archive(RcArchive rca)
   if ( !GetFileInformationByHandle(rca->hfile, &info) )
       goto errio;
     
-  rca->size   = info.nFileSizeLow;
-  rca->offset = 0;
+  rca->map_size = info.nFileSizeLow;
+  rca->size     = rca->map_size;
+  rca->offset   = 0;
       
   rca->hmap = CreateFileMapping(rca->hfile,
 				NULL,

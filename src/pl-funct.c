@@ -171,13 +171,9 @@ registerBuiltinFunctors()
 
 void
 initFunctors(void)
-{ static int done = FALSE;
-
-  LOCK();
-  if ( !done )
-  { done = TRUE;
-
-    initAtoms();
+{ LOCK();
+  if ( !functorDefTable )
+  { initAtoms();
     functor_buckets = FUNCTORHASHSIZE;
     initBuffer(&functor_array);
     allocFunctorTable();

@@ -608,13 +608,9 @@ exitAtoms(int status, void *arg)
 
 void
 initAtoms(void)
-{ static int done = FALSE;
-
-  LOCK();
-  if ( !done )
-  { done = TRUE;
-
-    initMemAlloc();
+{ LOCK();
+  if ( !atomTable )
+  { initMemAlloc();
     atom_buckets = ATOMHASHSIZE;
     atomTable = allocHeap(atom_buckets * sizeof(Atom));
 

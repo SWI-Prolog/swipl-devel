@@ -574,6 +574,20 @@ PL_register_extensions(const PL_extension *e)
 
 
 void
+cleanupExtensions(void)
+{ ExtensionCell c, next;
+
+  for(c=ext_head; c; c=next)
+  { next = c->next;
+    free(c);
+  }
+
+  ext_head = ext_tail = NULL;
+}
+
+
+
+void
 initBuildIns(void)
 { const struct foreign *f;
   Definition def;

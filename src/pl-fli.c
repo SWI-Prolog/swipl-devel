@@ -2514,7 +2514,9 @@ PL_initialise_hook(PL_initialise_hook_t func)
       return;				/* already there */
   }
 
-  h = (InitialiseHandle) malloc(sizeof(struct initialise_handle));
+  h = malloc(sizeof(struct initialise_handle));
+  if ( !h )
+    outOfCore();
 
   h->next = NULL;
   h->function = func;
@@ -2535,6 +2537,20 @@ initialiseForeign(int argc, char **argv)
   for(; h; h = h->next)
     (*h->function)(argc, argv);
 }
+
+
+void
+cleanupInitialiseHooks(void)
+{ InitialiseHandle h, next;
+
+  for(h=initialise_head; h; h=next)
+  { next = h->next;
+    free(h);
+  }
+
+  initialise_head = initialise_tail = NULL;
+}
+
 
 
 		 /*******************************

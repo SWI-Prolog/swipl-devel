@@ -2,7 +2,7 @@
 			====================
 
   * ADDED: PL_cleanup(): Run all cleanup hooks but do not terminate the
-    process.
+    process.  This fixed various memory leaking problems.
 
   * IMPROVED: GC policy to try a few garbage collections just before
     running out of stack.

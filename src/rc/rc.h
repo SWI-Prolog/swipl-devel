@@ -89,6 +89,7 @@ typedef struct _rc_archive
   RcMember	members_tail;
   FILE	       *fd;			/* Accessing file-stream */
   void	       *map_start;		/* Start of the map */
+  rc_size	map_size;		/* Size of the map */
   void	       *data;			/* Handle to data */
 #ifdef WIN32
   HANDLE	hfile;			/* handle to the file */

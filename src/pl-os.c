@@ -254,57 +254,6 @@ PL_clock_wait_ticks(long waited)
 }
 #endif
 
-		/********************************
-		*       MEMORY MANAGEMENT       *
-		*********************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void *Allocate(long n)
-    Allocate a memory area of `n' bytes from the operating system.   `n'
-    is a long as we need to allocate one uniform array of longs for both
-    the  local  stack  and  global  stack,  which  implies  it should be
-    possible to allocate at least a few hundred Kbytes.  If  you  cannot
-    implement  this  function  you  are in deep trouble.  You either can
-    decide to redesign large part of the data representation, or  forget
-    about  SWI-Prolog.   Memory  is never returned to the system.  As it
-    would only concern small areas,  all  over  SWI-Prolog's  memory  no
-    currently  available operating system (I'm aware of) will be able to
-    handle it anyway.  THE RETURN VALUE SHOULD BE ROUNDED TO BE A  VALID
-    POINTER FOR LONGS AND STRUCTURES AND AT LEAST A MULTIPLE OF 4.
-
-void UnallocAll()
-    Free all allocated chunks.  This is used by PL_cleanup() and should
-    be implemented if you want to be able to do PL_cleanup() such that
-    all memory allocated by Prolog is reclaimed.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-typedef struct achunk
-{ struct achunk *next;
-} *AChunk;
-
-static AChunk chunks;
-
-void *
-Allocate(long n)
-{ AChunk mem = malloc(n + sizeof(*mem));
-
-  mem->next = chunks;
-  chunks    = mem;
-
-  return (void *) (mem+1);
-}
-
-
-void
-UnallocAll(void)
-{ AChunk next, c;
-
-  for(c=chunks; c; c=next)
-  { next = c->next;
-    free(c);
-  }
-}
-
 
 		/********************************
 		*           ARITHMETIC          *

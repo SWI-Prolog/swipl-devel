@@ -129,6 +129,7 @@ typedef struct io_stream
 #define SIO_NOCLOSE     SmakeFlag(19)	/* Do not close on abort */
 #define SIO_APPEND	SmakeFlag(20)	/* opened in append-mode */
 #define SIO_UPDATE	SmakeFlag(21)	/* opened in update-mode */
+#define SIO_ISATTY	SmakeFlag(22)	/* Stream is a tty */
 
 #define	SIO_SEEK_SET	0	/* From beginning of file.  */
 #define	SIO_SEEK_CUR	1	/* From current position.  */
@@ -219,6 +220,7 @@ __pl_export_data IOSTREAM    S__iob[];		/* Libs standard streams */
 		 *******************************/
 
 __pl_export void	SinitStreams();
+__pl_export void	Scleanup(void);
 __pl_export int		S__fupdatefilepos(IOSTREAM *s, int c);
 __pl_export int		S__fillbuf(IOSTREAM *s);
 __pl_export int		Sputc(int c, IOSTREAM *s);

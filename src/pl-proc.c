@@ -1780,8 +1780,8 @@ pl_get_clause_attribute(term_t ref, term_t att, term_t value)
 		*         SOURCE FILE           *
 		*********************************/
 
-static int source_index = 0;
-static Table sourceTable = NULL;	/* atom --> SourceFile */
+#define source_index (GD->files._source_index)
+#define sourceTable  (GD->files._source_table)
 
 static void
 registerSourceFile(SourceFile f)

@@ -176,6 +176,7 @@ word		pl_dwim_predicate(term_t term, term_t dwim, word h);
 
 /* pl-ext.c */
 void		initBuildIns(void);
+void		cleanupExtensions(void);
 
 /* pl-error.c */
 
@@ -321,6 +322,7 @@ void		_PL_put_number(term_t t, Number n);
 predicate_t	_PL_predicate(const char *name, int arity, const char *module,
 			      predicate_t *bin);
 void		initialiseForeign(int argc, char **argv);
+void		cleanupInitialiseHooks(void);
 char *		buffer_string(const char *s, int flags);
 atom_t		codeToAtom(int code);
 extern record_t PL_duplicate_record(record_t r);
@@ -421,8 +423,6 @@ bool		initOs(void);
 void		cleanupOs(void);
 char *		OsError(void);
 real		CpuTime(void);
-void *		Allocate(long n);
-void		UnallocAll(void);
 long		Random(void);
 char *		canonisePath(char *path);
 char *		OsPath(const char *plpath, char *ospath);
@@ -676,6 +676,7 @@ void		unblockSignals(sigset_t *mask);
 void		unblockSignal(int sig);
 void		blockSignal(int sig);
 void		resetSignals(void);
+void		cleanupSignals(void);
 int		initPrologStacks(long local,
 				 long global,
 				 long trail,

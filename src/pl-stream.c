@@ -1404,6 +1404,7 @@ IOFUNCTIONS Sfilefunctions =
 IOSTREAM *
 Snew(void *handle, int flags, IOFUNCTIONS *functions)
 { IOSTREAM *s;
+  int fd;
 
   if ( !(s = malloc(sizeof(IOSTREAM))) )
   { errno = ENOMEM;
@@ -1423,6 +1424,8 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
   if ( !(s->mutex = newRecursiveMutex()) )
     return NULL;
 #endif
+  if ( (fd = Sfileno(s)) >= 0 && isatty(fd) )
+    s->flags |= SIO_ISATTY;
 
   return s;
 }
@@ -1534,13 +1537,20 @@ Sfileno(IOSTREAM *s)
 		      0, NULL \
 		    }
 
-IOSTREAM S__iob[] =
-{ 
-#define SIO_STDIO (SIO_FILE|SIO_STATIC|SIO_NOCLOSE)
-
-  STDIO(0, SIO_STDIO|SIO_LBUF|SIO_INPUT|SIO_NOFEOF),	/* Sinput */
-  STDIO(1, SIO_STDIO|SIO_LBUF|SIO_OUTPUT), 		/* Soutput */
+#define SIO_STDIO (SIO_FILE|SIO_STATIC|SIO_NOCLOSE|SIO_ISATTY)
+#define STDIO_STREAMS \
+  STDIO(0, SIO_STDIO|SIO_LBUF|SIO_INPUT|SIO_NOFEOF),	/* Sinput */ \
+  STDIO(1, SIO_STDIO|SIO_LBUF|SIO_OUTPUT), 		/* Soutput */ \
   STDIO(2, SIO_STDIO|SIO_NBUF|SIO_OUTPUT)		/* Serror */
+
+
+IOSTREAM S__iob[] =
+{ STDIO_STREAMS
+};
+
+
+static const IOSTREAM S__iob0[] =
+{ STDIO_STREAMS
 };
 
 
@@ -1555,6 +1565,9 @@ SinitStreams()
     S__iob[1].mutex = newRecursiveMutex();
     S__iob[2].mutex = newRecursiveMutex();
 #endif
+    if ( !isatty(0) ) S__iob[0].flags &= ~SIO_ISATTY;
+    if ( !isatty(2) ) S__iob[1].flags &= ~SIO_ISATTY;
+    if ( !isatty(3) ) S__iob[2].flags &= ~SIO_ISATTY;
   }
 }
 
@@ -1956,4 +1969,28 @@ Sclosehook(void (*hook)(IOSTREAM *s))
   close_hooks = h;
 
   return 0;
+}
+
+
+		 /*******************************
+		 *	       CLEANUP		*
+		 *******************************/
+
+void
+Scleanup(void)
+{ close_hook *p, *next;
+  int i;
+
+  for(p=close_hooks; p; p=next)
+  { next = p->next;
+    free(p);
+  }
+
+  close_hooks = NULL;
+
+  for(i=0; i<=2; i++)
+  { if ( S__iob[i].buffer )
+      free(S__iob[i].buffer);
+    S__iob[i] = S__iob0[i];
+  }
 }

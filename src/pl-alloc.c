@@ -221,7 +221,7 @@ allocate(size_t n)
     }
   }
 
-  if ( !(p = Allocate(ALLOCSIZE)) )
+  if ( !(p = allocBigHeap(ALLOCSIZE)) )
     outOfCore();
 
   spacefree = ALLOCSIZE;
@@ -261,8 +261,11 @@ initMemAlloc()
 
 void
 cleanupMemAlloc(void)
-{ UnallocAll();
-  freeAllBigHeaps();
+{ freeAllBigHeaps();
+
+  memset(freeChains, 0, sizeof(freeChains));
+  spacefree = 0;
+  spaceptr = NULL;
 }
 
 
@@ -314,6 +317,7 @@ freeAllBigHeaps(void)
   { next = h->next;
     free(h);
   }
+  big_heaps = NULL;
 }
 
 #else /*O_MYALLOC*/
