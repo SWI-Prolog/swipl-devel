@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.2.2, distributed with SWI-Prolog 5.2.2
+================================================
+		
 * FIXED: `frame->keyboard_focus' to use window rather than decorator.
   Could make dialog windows with a scrollbar insensitive to typing.
 

@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.2.2 (Jun 23, 2003)
+============================
+
   * MAYBEFIXED: Bug#68: lacking headers compiling pl-stream.c.  Lourens
     van der Meij and Djamé Seddah.
 

@@ -1,4 +1,4 @@
-SWI-Prolog 5.2.0/XPCE 6.2.0 stable release
+SWI-Prolog 5.2.2/XPCE 6.2.2 stable release
 
 Status
 ======
@@ -6,82 +6,32 @@ Status
   * Stable release integrating shared-database multi-threaded execution.
 
 
-Brief summary of changes since 5.0.10
-=====================================
+Brief summary of changes since 5.2.1
+====================================
 
 SWI-Prolog
 ----------
 
-  * Integrated portable support for multi-threading.  Threading is
-    particulary useful in server and agent systems or to exploit
-    multi-processor hardware. See chapter "Multi-threaded applications"
-    in the reference manual or
-    http://www.swi.psy.uva.nl/projects/SWI-Prolog/articles/iclp-03.pdf
+  * Fixed GC problem when activated by the autoloader.
 
-  * New libraries: added HTTP client and server library (package http),
-    timeout/alarm handling with library(time), resource limitation on
-    Unix with library(rlimit)
-
-  * Many previously built-in predicates, notably list-processing,
-    are moved to the library for compatibility.  This implies that
-    if the `unknown' flag is set to `fail' (see unknown/2) these
-    libraries must be loaded explicitely.
-
-  * Many small enhancements, bugfixes, compatibility enhancements and
-    portability patches.
+  * Fixed various installation and xpce-stub.exe problems (Windows).
 
 
 Packages
 --------
 
-  * Stable ODBC interface
+  * Semweb: Fixed giant memory leak in rdf_reachable/3 (module rdf_db).
 
-  * Updated RDF parser to latest specification
-
-  * XPCE Gui system: many small enhancements and fixes, some new Prolog
-    libraries (tabbed windows, splash-screens, etc.).
+  * XPCE GUI system: Various enhancements and fixes to the tabbed_window
+    library.  Various minor patches.
 
 
 Development environment
 -----------------------
 
-  * New execution profiler with graphical display.  Now also for Windows
-    NT/2000/XP and with some limitations on Windows 95/98/ME.
-
-  * Many patches to the source level debugger
-
-  * Allow the built-in editor to deal with Windows as well as traditional
-    Unix/Emacs style bindings.
-
 
 INCOMPATIBILITIES
 =================
-
-In general the system should be fully compatible except for the notes
-below. Of course, some new primitives were added that may lead to
-name-conflicts and many bugs are fixed that may old code relying on them
-fail now.
-
-
-  * The argument order of last/2 has changed to last(List, Elem).  I am
-    fully aware this is a difficult issue.  I'd advice to use append
-    if you want	the last argument and avoid confusing.
-    The call append(_, [Last], List) works on any Prolog system.
-
-  * The 0'x syntax now handles character escapes, so 0'\n describes the
-    ASCII linefeed code.  In older versions 0'\ described the character
-    code of the backslash.  New code must use 0'\\.  Luckily most old code
-    will generate a syntax error in the new version.  Considering recent
-    discussion here I guess `92' followed by a comment is (sadly) the
-    most portable alternative.
-
-
-Short-term Plans
-================
-
-  * RDF storage and RDFS and OWL query support.
-
-  * Incorporate JPL (Java interface) in the main development tree.
 
 
 Donations
