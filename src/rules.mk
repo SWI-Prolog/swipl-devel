@@ -30,7 +30,11 @@ PKGDOC=$(PLBASE)\doc\packages
 # Define programs.  The setup here is for standard Microsoft MSVC tools
 # on Windows-NT or Windows-2000
 
+# If you are developing, choose /incremental:yes for LD.  It is a *lot*
+# faster linking pl2xpce.dll from the XPCE package
+
 CC=cl.exe
+#LD=link.exe /nologo /incremental:yes
 LD=link.exe /nologo
 AR=lib.exe
 RSC=rc.exe
