@@ -1,3 +1,7 @@
+Aug 28, 2003
+
+  * FIXED: Complete rewrite of library(socket) for MS-Windows.
+
 Jun 2, 2003
 
   * FIXED: time:remove_alarm/1 for MS-WIndows.  Mike Elston.

@@ -271,17 +271,18 @@ doneRequest(plsocket *s)
 
 static int
 waitRequest(plsocket *s)
-{ DEBUG(2, Sdprintf("Waiting ..."));
+{ DEBUG(2, Sdprintf("[%d] (%ld): Waiting ...",
+		    PL_thread_self(), s->thread));
 
   for(;;)
   { MSG msg;
   
     if ( PL_handle_signals() < 0 )
-    { DEBUG(1, Sdprintf("Exception\n"));
+    { DEBUG(1, Sdprintf("[%d]: Exception\n", PL_thread_self()));
       return FALSE;
     }
     if ( s->done )
-    { DEBUG(2, Sdprintf("Done\n"));
+    { DEBUG(2, Sdprintf("[%d]: Done\n", PL_thread_self()));
       return TRUE;
     }
 
@@ -306,7 +307,8 @@ placeRequest(plsocket *s, tcp_request request)
   s->request = request;
 
   PostMessage(State()->hwnd, WM_REQUEST, 0, (LPARAM)s);
-  DEBUG(2, Sdprintf("Placed request %d\n", request));
+  DEBUG(2, Sdprintf("%d (%ld): Placed request %d\n",
+		    PL_thread_self(), s->thread, request));
 
   return TRUE; 
 }
@@ -376,8 +378,15 @@ doRequest(plsocket *s)
 				   s->rdata.read.buffer,
 				   s->rdata.read.size,
 				   0);
-	if ( !(s->rdata.read.bytes < 0 &&
-	       WSAGetLastError() == WSAEWOULDBLOCK) )
+	if ( s->rdata.read.bytes < 0 )
+	{ s->error = WSAGetLastError();
+
+	  if ( s->error != WSAEWOULDBLOCK )
+	  { DEBUG(1, Sdprintf("Error reading from %d: %s\n",
+			      s->socket, WinSockError(s->error)));
+	    doneRequest(s);
+	  }
+	} else
 	  doneRequest(s);
       }
       break;
@@ -386,10 +395,12 @@ doRequest(plsocket *s)
       { int n;
 	s->w32_flags &= ~FD_WRITE;
 
+	DEBUG(2, Sdprintf("send() %d bytes\n", s->rdata.write.size));
 	n = send(s->socket,
 		 s->rdata.write.buffer + s->rdata.write.written,
 		 s->rdata.write.size - s->rdata.write.written,
 		 0);
+	DEBUG(2, Sdprintf("Wrote %d bytes\n", n));
 	if ( n < 0 )
 	{ s->error = WSAGetLastError();
 	  if ( s->error == WSAEWOULDBLOCK )
@@ -616,7 +627,8 @@ lookupSocket(int socket)
   p->next   = sockets;
   sockets   = p;
 
-  DEBUG(2, Sdprintf("lookupSocket(%d): bound to %p\n", socket, p));
+  DEBUG(2, Sdprintf("[%d]: lookupSocket(%d): bound to %p\n",
+		    PL_thread_self(), socket, p));
 
   UNLOCK();
   return p;
@@ -782,6 +794,8 @@ WinSockError(unsigned long error)
     { WSAEWOULDBLOCK, "Resource temporarily unavailable" },
     { WSAEDISCON, "Graceful shutdown in progress" },
     { WSANOTINITIALISED, "Socket layer not initialised" },
+					/* WinSock 2 errors */
+    { WSAHOST_NOT_FOUND, "Host not found" },
     { 0, NULL }
   };
   char tmp[100];
@@ -859,10 +873,6 @@ tcp_error(int code, error_codes *map)
 		  CompoundArg("socket_error", 1),
 		    AtomArg(msg),
 		  PL_VARIABLE);
-
-#if defined(WIN32) && 0
-  PL_free(msg);
-#endif
 
   return PL_raise_exception(except);
 }
@@ -1312,6 +1322,8 @@ tcp_read(void *handle, char *buf, int bufSize)
     return -1;
   }
   n = s->rdata.read.bytes;
+  if ( n < 0 )
+    errno = EIO;			/* TBD: map s->error to POSIX errno */
 
 #else /*WIN32*/
 
@@ -1349,18 +1361,37 @@ tcp_write(void *handle, char *buf, int bufSize)
   char *str = buf;
 
 #ifdef WIN32
-  plsocket *s = lookupSocket(socket);
+  while( len > 0 )
+  { int n;
 
-  s->rdata.write.buffer  = buf;
-  s->rdata.write.size    = bufSize;
-  s->rdata.write.written = 0;
-  placeRequest(s, REQ_WRITE);
-  if ( !waitRequest(s) )
-  { errno = EPLEXCEPTION;
-    return -1;
+    n = send(socket, str, len, 0);
+    if ( n < 0 )
+    { int error = WSAGetLastError();
+
+      if ( error == WSAEWOULDBLOCK )
+	break;
+
+      return -1;
+    }
+
+    len -= n;
+    str += n;
   }
-  if ( s->rdata.write.bytes < 0 )
-    return -1;
+
+  if ( len > 0 )			/* operation would block */
+  { plsocket *s = lookupSocket(socket);
+
+    s->rdata.write.buffer  = str;
+    s->rdata.write.size    = len;
+    s->rdata.write.written = 0;
+    placeRequest(s, REQ_WRITE);
+    if ( !waitRequest(s) )
+    { errno = EPLEXCEPTION;
+      return -1;
+    }
+    if ( s->rdata.write.bytes < 0 )
+      return -1;
+  }
 
 #else /*WIN32*/
 
@@ -1400,7 +1431,7 @@ tcp_close_input(void *handle)
 { int socket = fdFromHandle(handle);
   plsocket *s = lookupSocket(socket);
 
-  DEBUG(2, Sdprintf("tcp_close_input(%d)\n", socket));
+  DEBUG(2, Sdprintf("[%d]: tcp_close_input(%d)\n", PL_thread_self(), socket));
   s->input = NULL;
   s->flags &= ~SOCK_INSTREAM;
 #ifdef WIN32
@@ -1424,7 +1455,7 @@ tcp_close_output(void *handle)
 { int socket = fdFromHandle(handle);
   plsocket *s = lookupSocket(socket);
 
-  DEBUG(2, Sdprintf("tcp_close_output(%d)\n", socket));
+  DEBUG(2, Sdprintf("[%d]: tcp_close_output(%d)\n", PL_thread_self(), socket));
   if ( s->output )
   { s->output = NULL;
     s->flags &= ~SOCK_OUTSTREAM;
