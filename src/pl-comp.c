@@ -1336,16 +1336,26 @@ will use the meta-call mechanism for all these types of calls.
 #endif /* O_COMPILE_ARITH */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Term, not a variable and not a module call.  Compile the  arguments  and
-generate  the  call  instruction.   Note  this  codes traps the $apply/2
-operator.
+Term, not a variable and not a module   call. First of all, we check for
+`inline calls'. This refers to a  light-weight calling mechanism applied
+to deterministic foreign predicates that are   called with simple normal
+variable arguments only. This deals with fast  calling of checks such as
+var/1 as well as  A  =  B.  If   we  are  compiling  clauses  for call/1
+(islocal), we skip this, as it   complicates the compilation process and
+the dynamic clause will be used  once   only  anyhow. Moreover, it would
+require  one  more  place  to  do    the   special  variable-linking  in
+compileArgument().
+
+For normal cases, simply compile the arguments   (push on the stack) and
+create a call-instruction. Finally, some  special   atoms  are mapped to
+special instructions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     { Procedure proc = lookupProcedure(functor, tm);
       int ar = fdef->arity;
 
 #ifdef O_INLINE_FOREIGNS
 #define MAX_FV 2
-      if ( true(fdef, INLINE_F) && ar <= MAX_FV )
+      if ( true(fdef, INLINE_F) && ar <= MAX_FV && !ci->islocal )
       { int n;
 	int vars[MAX_FV];
 

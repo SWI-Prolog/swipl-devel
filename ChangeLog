@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Problem handling `inlined' calls for the new implementation
+    of call/1.  Thanks to Lourens van der Meij.
+
   * FIXED: Printing syntax errors holding ~-characters to avoid problems
     with format-special characters.  With patch by NIDE Naoyuki.  Thanks.
 

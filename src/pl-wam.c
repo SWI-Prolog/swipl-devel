@@ -3265,7 +3265,8 @@ atom is referenced by the goal-term anyway.
 	    if ( !(cl = compileClause(NULL, a, PROCEDURE_dcall1, module)) )
 	      goto b_throw;
 
-	    DEF			 = FR->predicate;
+	    DEF			 = next->predicate;
+	    SECURE(assert(DEF == PROCEDURE_dcall1->definition));
 	    next->flags	         = FR->flags;
 	    next->parent	 = FR;
 	    next->programPointer = PC;

@@ -216,6 +216,8 @@ meta(call-7) :-
 	call((string(S), true)).
 meta(call-8) :-
 	call((foo:true, true)).
+meta(call-9) :-
+	call((A=x, B=x, A==B)).		% avoid I_CALL_FVX for dynamic call
 meta(apply-1) :-
 	apply(=, [a,a]).
 meta(apply-2) :-
