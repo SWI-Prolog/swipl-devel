@@ -79,6 +79,8 @@ activateProfiler(int active ARG_LD)
   { if ( types[i] && types[i]->activate )
       (*types[i]->activate)(active);
   }
+
+  sum_ok = FALSE;
 }
 
 
