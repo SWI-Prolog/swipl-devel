@@ -88,7 +88,7 @@ static functor_t FUNCTOR_substring1;
 static functor_t FUNCTOR_word1;
 static functor_t FUNCTOR_prefix1;
 
-static functor_t FUNCTOR_symetric1;
+static functor_t FUNCTOR_symmetric1;
 static functor_t FUNCTOR_inverse_of1;
 static functor_t FUNCTOR_transitive1;
 
@@ -105,7 +105,7 @@ static atom_t	ATOM_subPropertyOf;
 #define MATCH_EXACT 		0x1	/* exact triple match */
 #define MATCH_SUBPROPERTY	0x2	/* Use subPropertyOf relations */
 #define MATCH_SRC		0x4	/* Match source location */
-#define MATCH_INVERSE		0x8	/* use symetric match too */
+#define MATCH_INVERSE		0x8	/* use symmetric match too */
 
 static int match(int how, atom_t search, atom_t label);
 static int update_duplicates_add(triple *t);
@@ -926,7 +926,7 @@ triple_hash(triple *t, int which)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 by_inverse[] returns the index key to use   for inverse search as needed
-to realise symetric and inverse predicates.
+to realise symmetric and inverse predicates.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int by_inverse[8] =
@@ -1899,7 +1899,7 @@ inverse_partial_triple(triple *t)
     t->subject = o;
 
     if ( t->predicate )
-    { if ( i == t->predicate )		/* symetric */
+    { if ( i == t->predicate )		/* symmetric */
       { 
       } else
       { t->predicate = i;
@@ -2512,7 +2512,7 @@ rdf_set_predicate(term_t pred, term_t option)
   if ( !get_predicate(pred, &p) )
     return FALSE;
 
-  if ( PL_is_functor(option, FUNCTOR_symetric1) )
+  if ( PL_is_functor(option, FUNCTOR_symmetric1) )
   { int val;
 
     if ( !get_bool_arg_ex(1, option, &val) )
@@ -2549,7 +2549,7 @@ static functor_t predicate_key[4];
 
 static int
 unify_predicate_property(predicate *p, term_t option, functor_t f)
-{ if ( f == FUNCTOR_symetric1 )
+{ if ( f == FUNCTOR_symmetric1 )
     return PL_unify_term(option, PL_FUNCTOR, f,
 			 PL_BOOL, p->inverse_of == p ? TRUE : FALSE);
   else if ( f == FUNCTOR_inverse_of1 )
@@ -2575,7 +2575,7 @@ rdf_predicate_property(term_t pred, term_t option, control_t h)
   if ( !predicate_key[0] )
   { int i = 0;
 
-    predicate_key[i++] = FUNCTOR_symetric1;
+    predicate_key[i++] = FUNCTOR_symmetric1;
     predicate_key[i++] = FUNCTOR_inverse_of1;
     predicate_key[i++] = FUNCTOR_transitive1;
   }
@@ -3359,7 +3359,7 @@ install_rdf_db()
   MKFUNCTOR(literal, 2);
   MKFUNCTOR(searched_nodes, 1);
   MKFUNCTOR(duplicates, 1);
-  MKFUNCTOR(symetric, 1);
+  MKFUNCTOR(symmetric, 1);
   MKFUNCTOR(transitive, 1);
   MKFUNCTOR(inverse_of, 1);
 
