@@ -661,7 +661,7 @@ Sgetcode(IOSTREAM *s)
 	    Sungetc(c2, s);
 	    goto out;
 	  }
-	  code = (code<<6)+c2;
+	  code = (code<<6)+(c2&0x3f);
 	}
 	c = code;
       }
