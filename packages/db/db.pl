@@ -10,6 +10,7 @@
 :- module(db,
 	  [ db_open/4,			% +File, +Mode, -Handle, +Options
 	    db_close/1,			% +Handle
+	    db_closeall/0,		% 
 	    db_put/3,			% +DB, +Key, +Value
 	    db_del/2,			% +DB, +Key
 	    db_del/3,			% +DB, +Key, ?Value
@@ -30,3 +31,5 @@ db_delall(DB, Key, Value) :-
 	    fail
 	;   true
 	).
+
+:- at_halt(db_closeall).

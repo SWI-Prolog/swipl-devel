@@ -457,6 +457,7 @@ callForeign(LocalFrame frame, control_t ctx ARG_LD)
 { Definition def = frame->predicate;
   Func function = def->definition.function;
   int argc = def->functor->arity;
+  word context = (word)frame->clause;
   word result;
   term_t h0 = argFrameP(frame, 0) - (Word)lBase;
   fid_t cid;
@@ -467,6 +468,7 @@ retry:
 #endif
   lTop = (LocalFrame) argFrameP(frame, argc);
   exception_term = 0;
+  frame->clause = NULL;
 
 #ifdef O_DEBUGGER
   if ( debugstatus.debugging )
@@ -494,7 +496,7 @@ retry:
 
 #define F (*function)    
   if ( true(def, P_VARARG) )
-  { result = F(h0, argc, (word) frame->clause);
+  { result = F(h0, argc, context);
     if ( false(def, NONDETERMINISTIC) )
       goto ret_det;
     else
@@ -584,8 +586,7 @@ retry:
 	}
       }
     } else				/* non-deterministic */
-    { word context = (word) frame->clause;
-      FliFrame ffr;
+    { FliFrame ffr;
       mark m;
       Choice ch;
 
@@ -1362,7 +1363,7 @@ discardFrame(LocalFrame fr)
 		    predicateName(fr->predicate)));
 
   if ( true(fr->predicate, FOREIGN) )
-  { if ( true(fr->predicate, NONDETERMINISTIC) )
+  { if ( fr->clause )
       discardForeignFrame(fr);
   } else
     leaveDefinition(fr->predicate);

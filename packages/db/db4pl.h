@@ -34,7 +34,7 @@ int	db_status(int rval);
 int	db_atom_id(dbh *db, atom_t a, atomid_t *id, int flags);
 int	pl_atom_from_db(dbh *db, atomid_t id, atom_t *a);
 
-extern  DB_ENV db4pl_env;		/* Default environment */
+extern  DB_ENV *db4pl_env;		/* Default environment */
 #define db_env db4pl_env
 
 #endif /*DB4PL_H_INCLUDED*/

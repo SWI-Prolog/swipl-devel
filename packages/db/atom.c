@@ -66,7 +66,7 @@ db_atom_id(dbh *db, atom_t a, atomid_t *id, int flags)
   DBT k, v;
   DBT av;
 
-  if ( (rval = db->db->cursor(db->db, NULL, &cursor)) != 0 )
+  if ( (rval = db->db->cursor(db->db, NULL, &cursor, 0)) != 0 )
     return db_status(rval);
 
   memset(&av, 0, sizeof(av));
@@ -157,7 +157,7 @@ pl_atom_from_db(dbh *db, atomid_t id, atom_t *a)
   { DBC *cursor;
     unsigned long i = 0;
 
-    if ( (rval = db->db->cursor(db->db, NULL, &cursor)) != 0 )
+    if ( (rval = db->db->cursor(db->db, NULL, &cursor, 0)) != 0 )
       return db_status(rval);
 
     if ( (rval=cursor->c_get(cursor, &k, &v, DB_SET)) == 0 )

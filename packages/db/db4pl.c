@@ -17,6 +17,9 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
+
+#define DEBUG(g) (void)0
 
 static atom_t ATOM_read;
 static atom_t ATOM_update;
@@ -35,11 +38,12 @@ static atom_t ATOM_locking;
 static atom_t ATOM_logging;
 static atom_t ATOM_transactions;
 static atom_t ATOM_create;
+static atom_t ATOM_database;
 
 static functor_t FUNCTOR_db1;
 static functor_t FUNCTOR_type1;
 
-DB_ENV db_env;				/* default environment */
+DB_ENV *db_env;				/* default environment */
 
 #define mkfunctor(n, a) PL_new_functor(PL_new_atom(n), a)
 
@@ -63,9 +67,44 @@ initConstants()
   ATOM_logging	    = PL_new_atom("logging");
   ATOM_transactions = PL_new_atom("transactions");
   ATOM_create       = PL_new_atom("create");
+  ATOM_database     = PL_new_atom("database");
 
   FUNCTOR_db1	    = mkfunctor("$db", 1);
   FUNCTOR_type1	    = mkfunctor("type", 1);
+}
+
+static void	cleanup();
+
+typedef struct _db_list
+{ dbh	*db;
+  struct _db_list *next;
+} db_list;
+
+static db_list *dbs;			/* open DB's */
+
+static void
+register_db(dbh *db)
+{ db_list *l = calloc(1, sizeof(*l));
+  
+  l->db = db;
+  l->next = dbs;
+  dbs = l;
+}
+
+
+static void
+unregister_db(dbh *db)
+{ db_list **p = &dbs;
+
+  for(; *p; p = &(*p)->next)
+  { if ( (*p)->db == db )
+    { db_list *l = *p;
+
+      *p = l->next;
+      free(l);
+      return;
+    }
+  }
 }
 
 
@@ -176,13 +215,24 @@ get_chars_ex(term_t t, char **s)
 
 int
 db_status(int rval)
-{ if ( rval == 0 )
-    return TRUE;
+{ switch( rval )
+  { case 0:
+      return TRUE;
+    case DB_LOCK_DEADLOCK:
+      Sdprintf("Throwing deadlock exception\n");
+      return pl_error(ERR_PACKAGE_ID, "db", "deadlock", db_strerror(rval));
+    case DB_RUNRECOVERY:
+      Sdprintf("Need recovery\n");
+      return pl_error(ERR_PACKAGE_ID, "db", "run_recovery", db_strerror(rval));
+  }
 
   if ( rval < 0 )
+  { Sdprintf("DB error: %s\n", db_strerror(rval));
     return FALSE;			/* normal failure */
+  }
 
-  return pl_error(ERR_ERRNO, rval, "?"); /* system error */
+  Sdprintf("Throwing error: %s\n", db_strerror(rval));
+  return pl_error(ERR_PACKAGE_INT, "db", rval, db_strerror(rval));
 }
 
 
@@ -220,9 +270,10 @@ db_type(term_t t, int *type)
 
 
 static int
-db_options(term_t t, int type, DB_INFO *info)
+db_options(term_t t, dbh *dbh, char **subdb)
 { term_t tail = PL_copy_term_ref(t);
   term_t head = PL_new_term_ref();
+  int flags = 0;
 
   while( PL_get_list(tail, head, tail) )
   { atom_t name;
@@ -233,22 +284,36 @@ db_options(term_t t, int type, DB_INFO *info)
       { term_t a0 = PL_new_term_ref();
 
 	_PL_get_arg(1, head, a0);
-	if ( name == ATOM_duplicates && type == DB_BTREE )
+	if ( name == ATOM_duplicates )
 	{ int v;
 
 	  if ( !get_bool_ex(a0, &v) )
 	    return FALSE;
 
 	  if ( v )
-	    info->flags |= DB_DUP;
+	  { flags |= DB_DUP;
+	    dbh->duplicates = TRUE;
+	  }
+	} else if ( name == ATOM_database )
+	{ if ( !get_chars_ex(a0, subdb) )
+	    return FALSE;
 	} else
 	  return pl_error(ERR_DOMAIN, "db_option", head);
-      }
+      } else
+	return pl_error(ERR_DOMAIN, "db_option", head);
     }
   }
 
   if ( !PL_get_nil(tail) )
     return pl_error(ERR_TYPE, "list", t);
+
+  if ( flags )
+  { int rval;
+
+    if ( (rval=dbh->db->set_flags(dbh->db, flags)) )
+      return db_status(rval);
+  }
+
 
   return TRUE;
 }
@@ -260,10 +325,10 @@ pl_db_open(term_t file, term_t mode, term_t handle, term_t options)
   int flags;
   int m = 0666;
   int type = DB_BTREE;
-  DB_INFO info;
-  DB *db;
+  dbh *dbh;
   atom_t a;
   int rval;
+  char *subdb = NULL;
 
   if ( !PL_get_atom_chars(file, &fname) )
     return pl_error(ERR_TYPE, "atom", file);
@@ -277,20 +342,19 @@ pl_db_open(term_t file, term_t mode, term_t handle, term_t options)
   else
     return pl_error(ERR_DOMAIN, "io_mode", mode);
   
-  memset(&info, 0, sizeof(info));
+  dbh = calloc(1, sizeof(*dbh));
+  dbh->magic = DBH_MAGIC;
+  if ( (rval=db_create(&dbh->db, db_env, 0)) )
+    return db_status(rval);
+
+  DEBUG(Sdprintf("New DB at %p\n", dbh->db));
+
   if ( !db_type(options, &type) ||
-       !db_options(options, type, &info) )
+       !db_options(options, dbh, &subdb) )
     return FALSE;
   
-  if ( (rval=db_open(fname, type, flags, m, &db_env, &info, &db)) == 0 )
-  { dbh *dbh = calloc(1, sizeof(*dbh));
-
-    dbh->magic = DBH_MAGIC;
-    dbh->db = db;
-
-    if ( type == DB_BTREE && (info.flags & DB_DUP) )
-      dbh->duplicates = TRUE;
-
+  if ( (rval=dbh->db->open(dbh->db, fname, subdb, type, flags, m)) == 0 )
+  { register_db(dbh);
     return unify_db(handle, dbh);
   }
 
@@ -305,7 +369,9 @@ pl_db_close(term_t handle)
   if ( get_db(handle, &db) )
   { int rval;
 
+    DEBUG(Sdprintf("Close DB at %p\n", db->db));
     rval = db->db->close(db->db, 0);
+    unregister_db(db);
     db->magic = 0;
     free(db);
 
@@ -314,6 +380,30 @@ pl_db_close(term_t handle)
 
   return FALSE;
 }
+
+
+static foreign_t
+pl_db_closeall()
+{ db_list *l, *n;
+
+  for(l=dbs; l; l=n)
+  { int rval;
+
+    n = l->next;
+
+    rval = l->db->db->close(l->db->db, 0);
+    l->db->magic = 0;
+    unregister_db(l->db);
+    if ( rval )
+      return db_status(rval);
+  }
+
+  assert(dbs == NULL);
+
+  cleanup();
+  return TRUE;
+}
+
 
 		 /*******************************
 		 *	   TRANSACTIONS		*
@@ -328,24 +418,24 @@ static transaction *transaction_stack;
 
 static int
 begin_transaction()
-{ if ( db_env.tx_info )
+{ if ( db_env )
   { int rval;
     DB_TXN *pid, *tid;
     transaction *t;
-
+  
     if ( transaction_stack )
       pid = transaction_stack->tid;
     else
       pid = NULL;
-
-    if ( (rval=txn_begin(db_env.tx_info, pid, &tid)) )
+  
+    if ( (rval=txn_begin(db_env, pid, &tid, 0)) )
       return db_status(rval);
-
+  
     t = malloc(sizeof(*t));
     t->parent = transaction_stack;
     t->tid = tid;
     transaction_stack = t;
-
+  
     return TRUE;
   }
 
@@ -365,8 +455,10 @@ commit_transaction()
     transaction_stack = t->parent;
     free(t);
 
-    if ( (rval=txn_commit(tid)) )
+    if ( (rval=txn_commit(tid, 0)) )
       return db_status(rval);
+
+    return TRUE;
   }
 
   return pl_error(ERR_PACKAGE_INT, "db", 0, "No transactions");
@@ -386,6 +478,8 @@ abort_transaction()
 
     if ( (rval=txn_abort(tid)) )
       return db_status(rval);
+
+    return TRUE;
   }
 
   return pl_error(ERR_PACKAGE_INT, "db", 0, "No transactions");
@@ -404,6 +498,8 @@ current_transaction()
 static foreign_t
 pl_db_transaction(term_t goal)
 { static predicate_t call1;
+  qid_t qid;
+  int rval;
 
   if ( !call1 )
     call1 = PL_predicate("call", 1, "user");
@@ -411,13 +507,24 @@ pl_db_transaction(term_t goal)
   if ( !begin_transaction() )
     return FALSE;
 
-  if ( PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, call1, goal) )
+  qid = PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, call1, goal);
+  rval = PL_next_solution(qid);
+  if ( rval )
+  { PL_cut_query(qid);
     return commit_transaction();
+  } else
+  { term_t ex = PL_exception(qid);
 
-  if ( !abort_transaction() )
+    PL_cut_query(qid);
+
+    if ( !abort_transaction() )
+      return FALSE;
+
+    if ( ex )
+      return PL_raise_exception(ex);
+
     return FALSE;
-
-  return FALSE;
+  }
 }
 
 
@@ -495,7 +602,7 @@ pl_db_getall(term_t handle, term_t key, term_t value)
     term_t tail = PL_copy_term_ref(value);
     term_t head = PL_new_term_ref();
 
-    if ( (rval = db->db->cursor(db->db, current_transaction(), &cursor)) != 0 )
+    if ( (rval=db->db->cursor(db->db, current_transaction(), &cursor, 0)) )
       return db_status(rval);
 
     if ( (rval=cursor->c_get(cursor, &k, &v, DB_SET)) == 0 )
@@ -585,10 +692,11 @@ pl_db_getdel(term_t handle, term_t key, term_t value, control_t ctx, int del)
       { c = calloc(1, sizeof(*c));
 
 	c->db = db;
-	if ( (rval = db->db->cursor(db->db, NULL, &c->cursor)) != 0 )
+	if ( (rval=db->db->cursor(db->db, NULL, &c->cursor, 0)) )
 	{ free(c);
 	  return db_status(rval);
 	}
+	DEBUG(Sdprintf("Created cursor at %p\n", c->cursor));
 
 	c->do_enum = TRUE;
 	rval = c->cursor->c_get(c->cursor, &c->key, &c->value, DB_FIRST);
@@ -613,10 +721,11 @@ pl_db_getdel(term_t handle, term_t key, term_t value, control_t ctx, int del)
       { c = calloc(1, sizeof(*c));
 
 	c->db = db;
-	if ( (rval = db->db->cursor(db->db, NULL, &c->cursor)) != 0 )
+	if ( (rval=db->db->cursor(db->db, NULL, &c->cursor, 0)) )
 	{ free(c);
 	  return db_status(rval);
 	}
+	DEBUG(Sdprintf("Created cursor at %p\n", c->cursor));
 	get_dbt(key, &c->key);
 
 	rval = c->cursor->c_get(c->cursor, &c->key, &c->value, DB_SET);
@@ -675,8 +784,13 @@ pl_db_getdel(term_t handle, term_t key, term_t value, control_t ctx, int del)
 
 out:
   if ( c )
-  { c->cursor->c_close(c->cursor);
-    free_dbt(&c->key);
+  { if ( rval == 0 )
+      rval = c->cursor->c_close(c->cursor);
+    else
+      c->cursor->c_close(c->cursor);
+    DEBUG(Sdprintf("Destroyed cursor at %p\n", c->cursor));
+    if ( !c->do_enum )
+      free_dbt(&c->key);
     free(c);
   }
   if ( fid )
@@ -699,13 +813,14 @@ pl_db_del3(term_t handle, term_t key, term_t value, control_t ctx)
 }
 
 
-static int app_initted = FALSE;
-
 static void
 cleanup()
-{ if ( app_initted )
-  { db_appexit(&db_env);
-    app_initted = FALSE;
+{ if ( db_env )
+  { int rval;
+
+    if ( (rval=db_env->close(db_env, 0)) )
+      Sdprintf("DB: close failed: %s\n", db_strerror(rval));
+    db_env = NULL;
   }
 }
 
@@ -733,13 +848,18 @@ pl_db_init(term_t option_list)
   char *config[MAXCONFIG];
   int nconf = 0;
 
-  if ( app_initted )
+  if ( db_env )
     return pl_error(ERR_PACKAGE_INT, "db", 0, "Already initialized");
 
   config[0] = NULL;
 
-  db_env.db_errpfx = "db4pl: ";
-  db_env.db_errcall = pl_db_error;
+  if ( (rval=db_env_create(&db_env, 0)) )
+    return db_status(rval);
+
+  db_env->set_errpfx(db_env, "db4pl: ");
+  db_env->set_errcall(db_env, pl_db_error);
+
+  flags |= DB_INIT_MPOOL;		/* always needed? */
 
   while(PL_get_list(options, head, options))
   { atom_t name;
@@ -755,12 +875,12 @@ pl_db_init(term_t option_list)
       if ( name == ATOM_mp_mmapsize )	/* mp_mmapsize */
       { if ( !get_size_ex(a, &v) )
 	  return FALSE;
-	db_env.mp_mmapsize = v;
+	db_env->set_mp_mmapsize(db_env, v);
 	flags |= DB_INIT_MPOOL;
       } else if ( name == ATOM_mp_size ) /* mp_size */
       { if ( !get_size_ex(a, &v) )
 	  return FALSE;
-	db_env.mp_size = v;
+	db_env->set_cachesize(db_env, 0, v, 0);
 	flags |= DB_INIT_MPOOL;
       } else if ( name == ATOM_home )	/* db_home */
       {	if ( !get_chars_ex(a, &home) )
@@ -826,10 +946,9 @@ pl_db_init(term_t option_list)
   if ( !PL_get_nil(options) )
     return pl_error(ERR_TYPE, "list", options);
 
-  if ( (rval=db_appinit(home, config, &db_env, flags)) != 0 )
+  if ( (rval=db_env->open(db_env, home, flags, 0666)) != 0 )
     return db_status(rval);
 
-  app_initted = TRUE;
   atexit(cleanup);
 
   return TRUE;
@@ -871,6 +990,7 @@ install()
 
   PL_register_foreign("db_open",   4, pl_db_open,   0);
   PL_register_foreign("db_close",  1, pl_db_close,  0);
+  PL_register_foreign("db_closeall", 0, pl_db_closeall,  0);
   PL_register_foreign("db_put",    3, pl_db_put,    0);
   PL_register_foreign("db_del",    2, pl_db_del2,   0);
   PL_register_foreign("db_del",    3, pl_db_del3,   PL_FA_NONDETERMINISTIC);

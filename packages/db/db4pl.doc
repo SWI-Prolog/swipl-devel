@@ -78,6 +78,9 @@ we plan to link this interface transparently to a predicate.
 	\termitem{duplicates}{bool}
     Do/do not allow for duplicate values on the same key.  Default is
     not to allow for duplicates.
+	\termitem{database}{Name}
+    If \arg{File} contains multiple databases, address the named
+    database in the file.
     \end{description}
 \end{description}
 

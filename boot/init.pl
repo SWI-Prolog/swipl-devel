@@ -1376,12 +1376,14 @@ halt :-
 
 at_halt(Spec) :-
 	$strip_module(Spec, Module, Goal),
-	assert(system:$at_halt(Module:Goal)).
+	asserta(system:$at_halt(Module:Goal)).
 
 $run_at_halt :-
-	$at_halt(Goal),
-	Goal,
-	fail ; true.
+	(   $at_halt(Goal),
+	    catch(Goal, E, print_message(error, E)),
+	    fail
+	;   true
+	).
 
 
 		/********************************

@@ -1,6 +1,17 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * MODIFIED: Run at_halt/1 hooks in *reverse* order of registration.  This
+    behaviour makes scheduling hooks generally easier and is more consistent
+    to (for example) POSIX atexit().  Also properly handle exceptions from
+    at_halt/1 hooks.
+
+  * FIXED: Handling 0-bytes in sub_atom/5 and sub_string/5.  Thanks to
+    Mike Elston.
+
+  * FIXED: Added initialisation for LC_CTYPE locale used by char_type/2 and
+    code_type/2.
+
   * FIXED: Memory leaking in $write_on_string, used by swritef and sformat.
     With help from Paul Sephton, who pointed the exact problem in the C-code.
 

@@ -138,6 +138,20 @@ pl_error(plerrorid id, ...)
 		      PL_INTEGER, id);
       break;
     }
+    case ERR_PACKAGE_ID:
+    { const char *pkg = va_arg(args, const char *);
+      const char * id = va_arg(args, const char *);
+      const char *fmt = va_arg(args, const char *);
+
+      vsprintf(msgbuf, fmt, args);
+      msg = msgbuf;
+      
+      PL_unify_term(formal,
+		    PL_FUNCTOR_CHARS, "package", 2,
+		      PL_CHARS, pkg,
+		      PL_CHARS, id);
+      break;
+    }
     default:
       assert(0);
   }

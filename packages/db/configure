@@ -791,7 +791,7 @@ if test "${with_db+set}" = set; then
 			exit 1
 			;;
 		*)	CIFLAGS="-I$withval/include $CIFLAGS"
-		        LDFLAGS="-L$withval $LDFLAGS"
+		        LIBS="-L$withval/lib $LIBS"
 			;;
               esac
 	    

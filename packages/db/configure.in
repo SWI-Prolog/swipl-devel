@@ -37,7 +37,7 @@ AC_ARG_WITH(db, [  --with-db=DIR           DIR holding DB installation],
 			exit 1
 			;;
 		*)	CIFLAGS="-I$withval/include $CIFLAGS"
-		        LDFLAGS="-L$withval $LDFLAGS"
+		        LIBS="-L$withval/lib $LIBS"
 			;;
               esac
 	    ])
