@@ -374,7 +374,7 @@ stopItimer()
 }
 
 word
-pl_profile(term_t old, term_t new)
+pl_profiler(term_t old, term_t new)
 { return notImplemented("profile", 2);
 }
 
