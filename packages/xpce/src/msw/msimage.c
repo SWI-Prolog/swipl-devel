@@ -820,6 +820,10 @@ windows_bitmap_from_dib(Image image)
       assign(image, depth, toInt(GetDeviceCaps(hdc, BITSPIXEL)));
       assign(image, kind, image->depth == ONE ? NAME_bitmap : NAME_pixmap);
       ReleaseDC(NULL, hdc);
+
+      if ( !bm )
+	Cprintf("ZCreateDIBitmap(): %s\n",
+		strName(WinStrError(GetLastError())));
     }
 
     return bm;

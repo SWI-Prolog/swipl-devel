@@ -2053,13 +2053,15 @@ r_image(Image image,
 	int sx, int sy,
 	int x, int y, int w, int h,
 	Bool transparent)
-{ if ( w > 0 && h > 0 &&
+{ DEBUG(NAME_image, Cprintf("r_image(%s, %d, %d, %d+%d, %dx%d, %s)\n",
+			    pp(image), sx, sy, x, y, w, h, pp(transparent)));
+  if ( w > 0 && h > 0 &&
        image->size->w != ZERO && image->size->h != ZERO )
   { if ( image->ws_ref && ((WsImage)image->ws_ref)->msw_info &&
-	 isNil(image->mask) /*&& transparent == ON*/ )
+	 isNil(image->mask) && 0 )
     { WsImage wsi = image->ws_ref;
 
-      if ( transparent == ON /*&& image->kind == NAME_bitmap*/ )
+      if ( transparent == ON )
       { HBRUSH hbrush = ZCreateSolidBrush(context.rgb);
 	HBRUSH oldbrush = ZSelectObject(context.hdc, hbrush);
 	COLORREF oldbk = SetBkColor(context.hdc, RGB(255,255,255));
@@ -2074,7 +2076,10 @@ r_image(Image image,
 	ZSelectObject(context.hdc, oldbrush);
 	ZDeleteObject(hbrush);
       } else
-      { StretchDIBits(context.hdc, x, y, w, h, sx, sy, w, h,
+      { DEBUG(NAME_image, Cprintf("Using StretchDIBits()\n"));
+	StretchDIBits(context.hdc,
+		      x, y, w, h,
+		      sx, /*valInt(image->size->h)-*/sy, w, h,
 		      wsi->data, wsi->msw_info, DIB_RGB_COLORS, SRCCOPY);
       }
     } else
@@ -2082,6 +2087,8 @@ r_image(Image image,
       HDC mhdc = CreateCompatibleDC(context.hdc);
       HPALETTE ohpal = NULL;
   
+      DEBUG(NAME_image, Cprintf("from HBITMAP\n"));
+
       if ( context.hpal )
 	ohpal = SelectPalette(mhdc, context.hpal, FALSE);
 
@@ -2106,6 +2113,8 @@ r_image(Image image,
 	HDC chdc = CreateCompatibleDC(context.hdc);
 	HBITMAP obm = ZSelectObject(chdc, msk);
 	COLORREF oldbg, oldfg;
+
+	DEBUG(NAME_image, Cprintf("Using BitBlt\n"));
 
 	oldbg = SetBkColor(context.hdc, RGB(255,255,255));
 	oldfg = SetTextColor(context.hdc, RGB(0,0,0));
