@@ -40,14 +40,14 @@ as well as the GNU \emph{ClassPath} project) exception to deal with the
 specific nature of compiled virtual machine code in a saved state.
 
 
-\section{The SWI-Prolog kernel and foreign libraries}
+\section{The SWI-Prolog kernel and foreign libraries} \label{sec:clicense}
 
-The SWI-Prolog kernel and our foreign libraries are distributed
-under the %href(lgpl, Lesser GNU Public License), also called the
+The SWI-Prolog kernel and our foreign libraries are distributed under
+the %href(lgpl, Lesser GNU Public License), also called the
 \textbf{LGPL}. A Prolog executable consists of the combination of these
 `native' code components and Prolog virtual machine code. The SWI-Prolog
-\program{plrc} utility allows for disassembling and re-assembling
-these parts, a process satisfying article \textbf{6b} of the LGPL.
+\program{plrc} utility allows for disassembling and re-assembling these
+parts, a process satisfying article \textbf{6b} of the LGPL.
 
 Under the LGPL SWI-Prolog can be linked to code distributed under
 arbitrary licenses, provided a number of requirements are fullfilled.
@@ -90,6 +90,7 @@ code under strict GPL compliant licenses.
 
 
 \section{Software support to keep track of license conditions}
+\label{sec:softlicense}
 
 Given the above, it is possible that SWI-Prolog packages and extensions
 will rely on the GPL.%
