@@ -177,8 +177,8 @@ initialise(B) :->
 	get(Font, ex, Ex),
 	send(B, send_super, initialise, size := size(20 * Ex, 100)),
 	send(B, label, 'Stack'),
-	send(B, hor_stretch, 0),
-	send(B, hor_shrink, 0),
+	send(B, hor_stretch, 100),
+	send(B, hor_shrink, 100),
 	send(B, slot, members, new(chain_table)).
 
 clean(B) :->

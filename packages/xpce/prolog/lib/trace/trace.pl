@@ -468,46 +468,45 @@ show_bindings(Frame, Attributes) :-
 	    prolog_frame_attribute(Frame, clause, ClauseRef),
 	    debug('(clause ~w) ', [ClauseRef]),
 	    clause_info(ClauseRef, _, _, VarNames),
-	    (   setting(cluster_variables, true)
-	    ->  frame_bindings(Frame, VarNames, Bindings),
-		display_bindings(Bindings, Browser)
-	    ;   forall(frame_binding(Frame, VarNames, Name=Value),
-		       send(Browser, append_binding, [Name], Value))
-	    )
+	    frame_bindings(Frame, VarNames, Bindings),
+	    send(Browser, bindings, Bindings)
 	).
 show_bindings(_, _).
 
 show_arguments(Frame, _Attributes) :-
 	get_tracer(member(bindings), Browser),
 	send(Browser, label, 'Arguments'),
+	frame_arguments(Frame, Args),
+	send(Browser, bindings, Args).
+
+%	frame_arguments(+Frame, -Args)
+%
+%	Return arguments of the frame as [I:I=Value, ...], compatible with
+%	the normal binding list.
+
+frame_arguments(Frame, Args) :-
 	prolog_frame_attribute(Frame, goal, Goal),
-	goal_arity(Goal, Arity),
-	(   between(1, Arity, ArgN),
-	        prolog_frame_attribute(Frame, argument(ArgN), Value),
-	        send(Browser, append_binding([ArgN:ArgN], Value)),
-	    fail
-	;   true
-	).
+	(   Goal = _:Head
+	->  functor(Head, _, Arity)
+	;   functor(Goal, _, Arity)
+	),
+	frame_arguments(1, Arity, Frame, Args).
 
-goal_arity(_:Goal, Arity) :- !,
-	goal_arity(Goal, Arity).
-goal_arity(Goal, Arity) :-
-	functor(Goal, _, Arity).
+frame_arguments(I, Arity, Frame, [I:I=Value|T]) :-
+	I =< Arity, !,
+	prolog_frame_attribute(Frame, argument(I), Value),
+	NI is I + 1,
+	frame_arguments(NI, Arity, Frame, T).
+frame_arguments(_, _, _, []).
 
-display_bindings([], _).
-display_bindings([Vars=Value|BT], Browser) :-
-	send(Browser, append_binding, Vars, Value),
-	display_bindings(BT, Browser).
-
-frame_binding(Frame, VarNames, (Name:N)=Value) :-
-	arg(N, VarNames, Name),
-	Name \== '_',
-	prolog_frame_attribute(Frame, argument(N), Value).
 
 frame_bindings(Frame, VarNames, Bindings) :-
 	functor(VarNames, _, Arity),
 	frame_bindings(0, Arity, Frame, VarNames, B0),
-	cluster_bindings(B0, Bindings).
+	(   setting(cluster_variables, true)
+	->  cluster_bindings(B0, Bindings)
+	;   Bindings = B0
+	).
 
 frame_bindings(Arity, Arity, _, _, []) :- !.
 frame_bindings(N, Arity, Frame, VarNames, [(Name:I)=Value|T]) :-

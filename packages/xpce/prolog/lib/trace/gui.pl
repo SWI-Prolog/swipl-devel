@@ -540,25 +540,46 @@ button(D, Name:name, Button:button) :<-
 		 *	     VARIABLES		*
 		 *******************************/
 
-:- pce_begin_class(prolog_bindings_view, browser,
+:- pce_begin_class(prolog_bindings_view, view,
 		   "Overview of bindings of the current frame").
+
+class_variable(font,	font, 	normal, "Font for bindings").
+class_variable(size,    size,   size(40,11), "Initial size").
 
 variable(prolog_frame, int*, both, "Frame who's variables we are showing").
 
+:- pce_global(@prolog_binding_recogniser,
+	      make_prolog_binding_recogniser).
+
+make_prolog_binding_recogniser(G) :-
+	new(View, @event?window),
+	new(Index, ?(@event?receiver, index, @event)),
+	new(C1, click_gesture(left, '', single,
+			      message(View, on_click, Index))),
+	new(C2, click_gesture(left, '', double,
+			      message(View, details))),
+	new(G, handler_group(C1, C2)).
+
+
 initialise(B) :->
-	send(B, send_super, initialise, size := size(40, 11)),
+	send_super(B, initialise),
 	get(B, font, Font),
 	get(Font, ex, Ex),
 	Tab is 15 * Ex,
+	send(B, wrap, none),
+	send(B, selected_fragment_style,
+	     style(background := black, colour := white)),
 	send(B?image, tab_stops, vector(Tab)),
-	send(B, open_message, message(B, details, @arg1)),
+	send(B?image, recogniser, @prolog_binding_recogniser),
+	send(B, editable, @off),
+	send(B?text_cursor, displayed, @off),
 	send(B, ver_stretch, 0).
 
 clear(B) :->
-	send(B, send_super, clear),
+	send_super(B, clear),
 	send(B, prolog_frame, @nil).
 
-details(B, Item:[dict_item]) :->	% also handle a variable name!
+details(B, Fragment:[fragment]) :->	% also handle a variable name!
 	"View details of the binding"::
 	get(B, prolog_frame, Frame),
 	(   Frame \== @nil
@@ -566,17 +587,23 @@ details(B, Item:[dict_item]) :->	% also handle a variable name!
 	;   send(B, report, warning, 'No current frame'),
 	    fail
 	),
-	(   Item == @default
-	->  (   get(B, selection, DI)
+	(   Fragment == @default
+	->  (   get(B, selected_fragment, Frag),
+	        Frag \== @nil
 	    ->	true
 	    ;	send(B, report, warning, 'No selected variable'),
 		fail
 	    )
-	;   DI = Item
+	;   Frag = Fragment
 	),
-	get(DI, key, VarName),
-	get(DI, object, ArgN),
+	get(Frag, var_name, VarName),
+	get(Frag, argn, ArgN),
 	prolog_frame_attribute(Frame, argument(ArgN), Value),
+	(   object(Value)
+	->  manpce,
+	    send(@manual, inspect, Value)
+	;   true
+	),
 	prolog_frame_attribute(Frame, level, Level),
 	prolog_frame_attribute(Frame, goal, Goal),
 	predicate_name(Goal, PredName),
@@ -588,19 +615,47 @@ details(B, Item:[dict_item]) :->	% also handle a variable name!
 		[ VarType, VarName, Level, PredName ]),
 	view_term(Value, [comment(Label)]).
 
-append_binding(B, Names:prolog, Value:prolog) :->
+on_click(B, Index:int) :->
+	"Select fragment clicked"::
+	get(B, text_buffer, TB),
+	send(B, selection, 0, 0),
+	get(TB, find_fragment, message(@arg1, overlap, Index), Frag),
+	send(B, selected_fragment, Frag).
+
+bindings(B, Bindings:prolog) :->
+	"Display complete list of bindings"::
+	pce_open(B, write, Fd),
+	forall(member(Vars=Value, Bindings),
+	       send(B, append_binding, Vars, Value, Fd)),
+	close(Fd),
+	send(B, caret, 0).
+
+append_binding(B, Names:prolog, Value:prolog, Fd:prolog) :->
 	"Add a binding to the browser"::
 	(   var(Value),
 	    setting(show_unbound, false)
 	->  true
-	;   Names = [V0:ArgN|VT],
-	    new(S, string('%s\t = ', V0)),
-	    forall(member(V:_, VT),
-		   send(S, append, string('%s = ', V))),
-	    sformat(VS, '~p', [Value]),
-	    send(S, append, VS),
-	    send(B, append, dict_item(V0, S, ArgN))
+	;   get(B, text_buffer, TB),
+	    get(TB, size, S0),
+	    (   Names = VarName:ArgN
+	    ->	format(Fd, '~w', [VarName])
+	    ;	Names = [VarName:ArgN|_],
+	        write_varnames(Fd, Names)
+	    ),
+	    format(Fd, '\t= ', []),
+	    format(Fd, '~p~n', [Value]),
+	    flush_output(Fd),
+	    get(TB, size, S1),
+	    new(Frag, fragment(TB, S0, S1-S0, frame)),
+	    send(Frag, attribute, var_name, VarName),
+	    send(Frag, attribute, argn, ArgN)
 	).
+
+write_varnames(Fd, [N:_]) :- !,
+	format(Fd, '~w', N).
+write_varnames(Fd, [N:_|T]) :-
+	format(Fd, '~w = ', N),
+	write_varnames(Fd, T).
 
 :- pce_end_class.
 
