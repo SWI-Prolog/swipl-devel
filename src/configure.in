@@ -189,6 +189,8 @@ _EOM_
   if test "$ac_cv_lib_pthread_main" = "yes"; then
     AC_DEFINE(O_PLMT)
   fi
+  AC_CHECK_LIB(rt, sem_init)
+  AC_CHECK_FUNCS(pthread_mutexattr_setkind_np pthread_mutexattr_settype)
 fi
 
 AC_CHECK_LIB(m, main)

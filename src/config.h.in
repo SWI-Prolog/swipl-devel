@@ -188,6 +188,12 @@
 /* Define if you have the popen function.  */
 #undef HAVE_POPEN
 
+/* Define if you have the pthread_mutexattr_setkind_np function.  */
+#undef HAVE_PTHREAD_MUTEXATTR_SETKIND_NP
+
+/* Define if you have the pthread_mutexattr_settype function.  */
+#undef HAVE_PTHREAD_MUTEXATTR_SETTYPE
+
 /* Define if you have the putenv function.  */
 #undef HAVE_PUTENV
 
@@ -358,6 +364,9 @@
 
 /* Define if you have the readline library (-lreadline).  */
 #undef HAVE_LIBREADLINE
+
+/* Define if you have the rt library (-lrt).  */
+#undef HAVE_LIBRT
 
 /* Define if you have the termcap library (-ltermcap).  */
 #undef HAVE_LIBTERMCAP
