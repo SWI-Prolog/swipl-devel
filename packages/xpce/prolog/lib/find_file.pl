@@ -99,7 +99,7 @@ initialise(F) :->
 
 
 file(F, Exists:exists=[bool|{open,save}], Ext0:extension='[name|chain|tuple]',
-     Dir:directory=[directory], Default:default=[file], File:name) :<-
+     Dir:directory=[directory], Default:default=[name], File:name) :<-
  	"Get [existing] file with [extension]"::
 	get_file(F, Exists, Ext0, Dir, Default, File).
 
@@ -125,13 +125,13 @@ get_file(F, Exists, Ext, Dir, Default, File) :-
 	get(F, label, Label),
 	new(D, find_file_dialog(Mode, Label)),
 	send(D, filter, Ext),
-	(   Dir == @default
-	->  send(D, directory, F?directory)
-	;   send(D, directory, Dir)
-	),
 	(   Default \== @default
 	->  send(D, default_file, Default)
 	;   true
+	),
+	(   Dir == @default
+	->  send(D, directory, F?directory)
+	;   send(D, directory, Dir)
 	),
 	send(D, make_transient),
 	send(D, message, message(D, return, @arg1)),
