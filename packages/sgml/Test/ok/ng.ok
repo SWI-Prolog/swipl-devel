@@ -1,0 +1,2 @@
+[element(test, [or=a, and=e, seq=i], [])].
+[].

@@ -1,0 +1,10 @@
+<!DOCTYPE test
+[ <!ELEMENT test - - EMPTY>
+  <!ATTLIST test
+	or	(a|b|c)	#IMPLIED
+  	and	(d&e&f)	#IMPLIED
+	seq	(g,h,i)	#IMPLIED>
+]>
+
+<test or=a and=e seq=i>
+      
