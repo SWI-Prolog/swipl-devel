@@ -35,7 +35,7 @@ $welcome :-
 	Patch is Version mod 100,
 	$ttyformat('Welcome to SWI-Prolog (Version ~w.~w.~w)~n',
 		   [Major, Minor, Patch]),
-	$ttyformat('Copyright (c) 1993-1997 University of Amsterdam.  '),
+	$ttyformat('Copyright (c) 1993-1998 University of Amsterdam.  '),
 	$ttyformat('All rights reserved.~n~n'),
 	$ttyformat('For help, use ?- help(Topic). or ?- apropos(Word).~n~n').
 
@@ -534,14 +534,6 @@ time(Goal) :-
 $time_call(Goal, yes) :-
 	Goal, !.
 $time_call(_Goal, no).
-
-unhandled_exception(false, Term) :- !,
-        $warning('Unhandled exception'),
-	print_message(error, Term),
-	$ttyformat('~nNo~n').
-unhandled_exception(true, _Term) :-
-	$warning('Unhandled exception'),
-	$ttyformat('~nNo~n').
 
 
 		 /*******************************

@@ -115,6 +115,7 @@ suggest predicates from a keyword.
 \predicatesummary{current_op}{3}{Examine current operator declarations}
 \predicatesummary{current_output}{1}{Get the current output stream}
 \predicatesummary{current_predicate}{2}{Examine existing predicates}
+\predicatesummary{current_signal}{3}{Current software signal mapping}
 \predicatesummary{current_stream}{3}{Examine open streams}
 \predicatesummary{dde_current_connection}{2}{Win32: Examine open DDE connections}
 \predicatesummary{dde_current_service}{2}{Win32: Examine DDE services provided}
@@ -251,6 +252,7 @@ suggest predicates from a keyword.
 \predicatesummary{number}{1}{Type check for integer or float}
 \predicatesummary{number_chars}{2}{Convert between number and atom}
 \predicatesummary{numbervars}{4}{Enumerate unbound variables of a term using a given base}
+\predicatesummary{on_signal}{3}{Handle a software signal}
 \predicatesummary{once}{1}{Call a goal deterministically}
 \predicatesummary{op}{3}{Declare an operator}
 \predicatesummary{open}{3}{Open a file (creating a stream)}

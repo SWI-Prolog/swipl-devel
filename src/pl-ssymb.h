@@ -46,7 +46,6 @@
 #define pl_prolog_current_frame	Spcf
 #define pl_prolog_frame_attribute	Spfa
 #define pl_trace		Strace
-#define pl_trace_continuation	Stracecont
 #define pl_flush		Sflush
 #define pl_flush_output		Sflushout
 #define pl_format		Sfmt
@@ -128,4 +127,4 @@
 #define pl_tty_goto		Sttygoto
 
 #define PROCEDURE_garbage_collect0	Sproc_gc
-#define PROCEDURE_alt1			Sproc_alt
+#define PROCEDURE_alt0			Sproc_alt

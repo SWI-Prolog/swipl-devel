@@ -282,42 +282,6 @@ isCurrentArithFunction(functor_t f, Module m)
   return r;
 }
 
-#if HAVE_SIGNAL
-typedef void (*OsSigHandler)(int);
-
-static void
-realExceptionHandler(int sig, int type, SignalContext scp, char *addr)
-{
-#ifndef BSD_SIGNALS
-  signal(sig, (OsSigHandler)realExceptionHandler);
-#endif
-  if ( LD->in_arithmetic > 0 )
-  { warning("Floating point exception");
-#ifndef O_RUNTIME
-    Sfprintf(Serror, "[PROLOG STACK:\n");
-    backTrace(NULL, 10);
-    Sfprintf(Serror, "]\n");
-#endif
-    pl_abort();
-  } else
-  { deliverSignal(sig, type, scp, addr);
-  }
-}
-#endif
-
-#if __TURBOC__
-static int
-realExceptionHandler(e)
-struct exception *e;
-{ warning("Floating point exception");
-
-  pl_abort();
-  /*NOTREACHED*/
-  fail;				/* make tc happy */
-}
-#endif
-
-
 #if O_PROLOG_FUNCTIONS
 
 static int prologFunction(ArithFunction, term_t, Number);
@@ -1268,15 +1232,7 @@ registerBuiltinFunctions()
 
 void
 initArith(void)
-{ 
-#ifdef SIGFPE
-  pl_signal(SIGFPE, (handler_t) realExceptionHandler);
-#endif
-#if __TURBOC__
-  setmatherr(realExceptionHandler);
-#endif
-
-  initBuffer(function_array);
+{ initBuffer(function_array);
 					/* link the table to enumerate */
   { ArithFunction *f;
     int n;

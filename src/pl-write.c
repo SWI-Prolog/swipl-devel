@@ -200,14 +200,14 @@ writePrimitive(term_t t, bool quote)
   { long i;
 
     PL_get_long(t, &i);
-    PutOpenToken('0');			/* Any Alpha char will do */
+    PutOpenToken(i < 0 ? '-' : '0');	/* Any Alpha char will do */
     return Putf("%ld", i);
   }
 
   if ( PL_get_float(t, &f) )
   { char *s = NULL;
 
-    PutOpenToken('0');			/* Any Alpha char will do */
+    PutOpenToken(f < 0.0 ? '-' : '0');	/* Any Alpha char will do */
 
 #ifdef HUGE_VAL
     if ( f == HUGE_VAL )

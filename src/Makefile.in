@@ -97,7 +97,7 @@ PLINIT=	$(PB)/init.pl
 
 SRC=	$(OBJ:.o=.c) $(DEPOBJ:.o=.c) $(EXT:.o=.c) pl-index.c pl-alloc.c
 HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h pl-itf.h pl-main.h \
-	pl-os.h pl-save.h pl-data.h
+	pl-os.h pl-data.h
 
 PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/listing.pl \
 	../boot/edit.pl ../boot/sort.pl ../boot/bags.pl ../boot/apply.pl \

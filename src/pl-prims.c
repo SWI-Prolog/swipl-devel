@@ -865,7 +865,10 @@ free_variables(Word t, term_t l, int n)
     term_t v;
 
     for(i=0; i<n; i++)
-    { if ( compareStandard(valTermRef(l+i), t) == 0 )
+    { Word p2 = valTermRef(l+1);	/* see whether we got this one! */
+
+      deRef(p2);
+      if ( p2 == t )
 	return n;
     }
     v = PL_new_term_ref();

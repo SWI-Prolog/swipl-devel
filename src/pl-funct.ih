@@ -121,4 +121,5 @@
 #define FUNCTOR_resource_error1 MK_FUNCTOR(120, 1)
 #define FUNCTOR_shell2       MK_FUNCTOR(121, 2)
 #define FUNCTOR_signal1      MK_FUNCTOR(122, 1)
-#define FUNCTOR_callpred2    MK_FUNCTOR(123, 2)
+#define FUNCTOR_signal2      MK_FUNCTOR(123, 2)
+#define FUNCTOR_callpred2    MK_FUNCTOR(124, 2)

@@ -835,7 +835,8 @@ unifyStreamNo(term_t stream, int n)
     default:
       if ( fileTable[n].stream_name )
 	name = fileTable[n].stream_name;
-      return PL_unify_integer(stream, n);
+      else
+	return PL_unify_integer(stream, n);
   }
 
   return PL_unify_atom(stream, name);

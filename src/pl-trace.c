@@ -10,8 +10,6 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 
-int trace_continuation;			/* how to continue? */
-
 #define W_PRINT		1		/* print/1 for displaying goal */
 #define W_WRITE		2		/* write/1 */
 #define W_WRITEQ	3		/* writeq/1 */
@@ -820,41 +818,21 @@ hasAlternativesFrame(register LocalFrame frame)
 
   if ( true(frame, FR_CUT) )
     fail;
-  if (true(frame->predicate, FOREIGN))
+  if ( true(frame->predicate, FOREIGN) )
     succeed;
   for(cref = frame->clause; cref; cref = cref->next)
-    if ( false(cref->clause, ERASED) )
+  { if ( false(cref->clause, ERASED) )
       succeed;
-  fail;
-}
+  }
 
-word
-pl_trace_continuation(term_t what)
-{ return PL_get_integer(what, &trace_continuation);
+  fail;
 }
 
 void
 resetTracer(void)
 {
 #ifdef O_INTERRUPT
-#if defined(HAVE_SIGACTION) && defined(SA_RESTART) && defined(SA_NOMASK)
-  struct sigaction set;
-
-  memset(&set, 0, sizeof(set));
-  set.sa_handler = interruptHandler;
-  set.sa_flags   = SA_RESTART|SA_NOMASK;
-
-  sigaction(SIGINT, &set, NULL);
-#else
-#ifdef HAVE_SIGSET
-  sigset(SIGINT, interruptHandler);
-#else
-#ifndef BSD_SIGNALS
-#define REINSTATE_INTERRUPT_HANDLER
-#endif
-  pl_signal(SIGINT, interruptHandler);
-#endif
-#endif
+  PL_signal(SIGINT, interruptHandler);
 #endif
 
   debugstatus.tracing      =
@@ -891,7 +869,6 @@ static void
 interruptHandler(int sig)
 { extern int Output;
   int OldOut = Output;
-  LocalFrame oldltop = lTop;
   Char c; 
 
   if ( !GD->initialised )
@@ -900,40 +877,20 @@ interruptHandler(int sig)
   }  
 
   Output = 1;
-  gc_status.blocked++;
-#if O_SHIFT_STACKS
-  shift_status.blocked++;
-#endif
-  lTop = (LocalFrame)addPointer(lTop, sizeof(struct localFrame) +
-				      MAXARITY * sizeof(word));
+
 again:
   Putf("\nAction (h for help) ? ");
   pl_flush();
   ResetTty();                           /* clear pending input -- atoenne -- */
   c = getSingleChar();
 
-#ifdef REINSTATE_INTERRUPT_HANDLER
-#ifdef SIG_ACK
-  signal(SIGINT, SIG_ACK);
-#else
-  pl_signal(SIGINT, interruptHandler);	/* reinsert handler */
-#endif
-#endif
-
-#if defined(SIG_UNBLOCK)
-{ sigset_t set;
-
-  sigemptyset(&set);
-  sigaddset(&set, SIGINT);
-  sigprocmask(SIG_UNBLOCK, &set, NULL);
-}
-#endif
-
   switch(c)
   { case 'a':	Putf("abort\n");
-		pl_abort();
+		unblockSignal(sig);
+    		pl_abort();
 		break;
     case 'b':	Putf("break\n");
+		unblockSignal(sig);	/* into pl_break() itself */
 		pl_break();
 		goto again;		
     case 'c':	Putf("continue\n");
@@ -959,12 +916,7 @@ again:
     default:	Putf("Unknown option (h for help)\n");
 		goto again;
   }
-#if O_SHIFT_STACKS
-  shift_status.blocked--;
-#endif
-  gc_status.blocked--;
   Output = OldOut;
-  lTop = oldltop;
 }
 
 #endif /*O_INTERRUPT*/

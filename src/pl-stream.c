@@ -1340,9 +1340,9 @@ Sfdopen(int fd, const char *type)
     return NULL;
 
   if ( *type == 'r' )
-    flags = SIO_FILE|SIO_INPUT;
+    flags = SIO_FILE|SIO_INPUT|SIO_RECORDPOS;
   else
-    flags = SIO_FILE|SIO_OUTPUT;
+    flags = SIO_FILE|SIO_OUTPUT|SIO_RECORDPOS;
 
   lfd = (long)fd;
 

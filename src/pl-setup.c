@@ -222,6 +222,7 @@ initFeatures()
   CSetFeature("character_escapes", "true");
   CSetFeature("tty_control", GD->cmdline.notty ? "false" : "true");
   CSetFeature("allow_variable_name_as_functor", "false");
+  CSetIntFeature("toplevel_var_size", 1000);
 #if defined(__unix__) || defined(unix)
   CSetFeature("unix", "true");
 #endif
@@ -238,17 +239,15 @@ initFeatures()
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			   SIGNAL HANDLING
 
-SWI-Prolog catches a number of signals.  Interrupt is catched  to  allow
-the  user  to interrupt normal execution.  Floating point exceptions are
-trapped  to  generate  a  normal   error   or   arithmetic   exceptions.
-Segmentation  violations  are  trapped  on  machines  using  the  MMU to
-implement stack overflow  checks  and  stack  expansion.   These  signal
-handlers  needs  to be preserved over saved states and the system should
-allow foreign language code to handle signals without  interfering  with
-Prologs signal handlers.  For this reason a layer is wired around the OS
-signal handling.
+SWI-Prolog catches a number of signals.   Interrupt  is catched to allow
+the user to interrupt  normal   execution.  Segmentation  violations are
+trapped on machines using the MMU to implement stack overflow checks and
+stack expansion. These signal handlers needs  to be preserved over saved
+states and the system  should  allow   foreign  language  code to handle
+signals without interfering  with  Prologs   signal  handlers.  For this
+reason a layer is wired around the OS signal handling.
 
-Code in SWI-Prolog should  call  pl_signal()  rather  than  signal()  to
+Code in SWI-Prolog should  call  PL_signal()  rather  than  signal()  to
 install  signal  handlers.  SWI-Prolog assumes the handler function is a
 void function.  On some systems this gives  some  compiler  warnigns  as
 they  define  signal handlers to be int functions.  This should be fixed
@@ -263,76 +262,310 @@ some day.
 #define HAVE_SIGNALS 1
 #endif
 
-#if !O_DEBUG
-static void
-fatal_signal_handler(int sig, int type, SignalContext scp, char *addr)
-{ DEBUG(1, Sdprintf("Fatal signal %d\n", sig));
+#define PLSIG_PREPARED 0x01		/* signal is prepared */
+#define PLSIG_THROW    0x02		/* throw signal(num, name) */
 
-  deliverSignal(sig, type, scp, addr);
+static struct signame
+{ int 	      sig;
+  const char *name;
+  int	      flags;
+} signames[] = 
+{ { SIGHUP,	"hup",    0},
+  { SIGINT,	"int",    0},
+  { SIGQUIT,	"quit",   0},
+  { SIGILL,	"ill",    PLSIG_THROW},
+  { SIGABRT,	"abrt",   0},
+  { SIGFPE,	"fpe",    PLSIG_THROW},
+  { SIGKILL,	"kill",   0},
+  { SIGSEGV,	"segv",   PLSIG_THROW},
+  { SIGPIPE,	"pipe",   PLSIG_THROW},
+  { SIGALRM,	"alrm",   PLSIG_THROW},
+  { SIGTERM,	"term",   0},
+  { SIGUSR1,	"usr1",   0},
+  { SIGUSR2,	"usr2",   0},
+  { SIGCHLD,	"chld",   0},
+  { SIGCONT,	"cont",   0},
+  { SIGSTOP,	"stop",   0},
+  { SIGTSTP,	"tstp",   0},
+  { SIGTTIN,	"ttin",   0},
+  { SIGTTOU,	"ttou",   0},
+  { SIGTRAP,	"trap",   0},
+  { SIGBUS,	"bus",    PLSIG_THROW},
+#ifdef SIGSTKFLT
+  { SIGSTKFLT,	"stkflt", 0},
+#endif
+#ifdef SIGURG
+  { SIGURG,	"urg",    0},
+#endif
+#ifdef SIGIO
+  { SIGIO,	"io",     0},
+#endif
+#ifdef SIGPOLL
+  { SIGPOLL,	"poll",   0},
+#endif
+#ifdef SIGXCPU
+  { SIGXCPU,	"xcpu",   PLSIG_THROW},
+#endif
+#ifdef SIGXFSZ
+  { SIGXFSZ,	"xfsz",   PLSIG_THROW},
+#endif
+#ifdef SIGVTALRM
+  { SIGVTALRM,	"vtalrm", PLSIG_THROW},
+#endif
+#ifdef SIGPROF
+  { SIGPROF,	"prof",   0},
+#endif
+#ifdef SIGPWR
+  { SIGPWR,	"pwr",    0},
+#endif
+  { -1,		NULL,     0}
+};
+
+static const char *
+signal_name(int sig)
+{ struct signame *sn = signames;
+
+  for( ; sn->name; sn++ )
+  { if ( sn->sig == sig )
+      return sn->name;
+  }
+
+  return "unknown";
 }
-#endif
 
 
-#ifdef HAVE_SIGSETMASK
-static int defsigmask;
+static int
+signal_index(const char *name)
+{ struct signame *sn = signames;
+
+  for( ; sn->name; sn++ )
+  { if ( streq(sn->name, name) )
+      return sn->sig;
+  }
+
+  return 0;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+SWI-Prolog main signal handler. Any  signal   arrives  here first, after
+which it is dispatched to the real handler.   The task of the handler is
+to ensure it is safe to start a query.
+
+There are a few possible problems:
+
+	* The system is writing the body-arguments from the next clause.
+	In this case it is working above `lTop'.  So we raise this to the
+	maximum offset.
+
+	* The system is performing a garbage collection.  We should block
+	signals while in garbage-collection and non-blockable signals should
+	raise a fatal error.
+
+	* The system is in a `critical section'.  These are insufficiently
+	flagged at the moment.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+pl_signal_handler(int sig)
+{ SigHandler sh = &LD->sig_handlers[sig];
+  fid_t fid;
+  LocalFrame lTopSave = lTop;
+  int saved_current_signal = LD->current_signal;
+
+  if ( gc_status.active )
+  { fatalError("Received signal %d (%s) while in %ld-th garbage collection",
+	       sig, signal_name(sig), gc_status.collections);
+  }
+
+  if ( GD->critical )
+  { PL_raise(sig);			/* wait for better times! */
+    return;
+  }
+
+  blockGC();
+
+  lTop = addPointer(lTop, sizeof(struct localFrame) + MAXARITY*sizeof(word));
+  fid = PL_open_foreign_frame();
+  LD->current_signal = sig;
+
+  DEBUG(1, Sdprintf("Handling signal %d, pred = %p, handler = %p\n",
+		    sig, sh->predicate, sh->handler));
+
+  if ( sh->predicate )
+  { term_t sigterm = PL_new_term_ref();
+    term_t except;
+    qid_t qid;
+
+    PL_put_atom_chars(sigterm, signal_name(sig));
+    qid = PL_open_query(NULL,
+			PL_Q_CATCH_EXCEPTION,
+			sh->predicate,
+			sigterm);
+    if ( !PL_next_solution(qid) && (except = PL_exception(qid)) )
+    { PL_cut_query(qid);
+      unblockGC();
+      PL_throw(except);
+      return;				/* make sure! */
+    } else
+      PL_close_query(qid);
+  } else if ( true(sh, PLSIG_THROW) )
+  { char *predname;
+    int  arity;
+
+    if ( environment_frame )
+    { predname = stringAtom(environment_frame->predicate->functor->name);
+      arity    = environment_frame->predicate->functor->arity;
+    } else
+    { predname = NULL;
+      arity    = 0;
+    }
+      
+    PL_error(predname, arity, NULL, ERR_SIGNALLED, sig, signal_name(sig));
+    unblockGC();
+
+    PL_throw(exception_term);		/* throw longjmp's */
+    return;				/* make sure! */
+  } else if ( sh->handler )
+  { (*sh->handler)(sig);
+  }
+
+  LD->current_signal = saved_current_signal;
+  PL_discard_foreign_frame(fid);
+  lTop = lTopSave;
+
+  unblockGC();
+}
+
+
+#ifndef SA_RESTART
+#define SA_RESTART 0
 #endif
+
+handler_t
+set_sighandler(int sig, handler_t func)
+{
+#ifdef HAVE_SIGACTION
+  struct sigaction old;
+  struct sigaction new;
+
+  memset(&new, 0, sizeof(new));	/* deal with other fields */
+  new.sa_handler = func;
+  new.sa_flags   = SA_RESTART;
+
+  if ( sigaction(sig, &new, &old) == 0 )
+    return old.sa_handler;
+  else
+    return SIG_DFL;
+#else
+  return signal(sig, func);
+#endif
+} 
+
+
+static SigHandler
+prepareSignal(int sig)
+{ SigHandler sh = &LD->sig_handlers[sig];
+
+  if ( false(sh, PLSIG_PREPARED) )
+  { set(sh, PLSIG_PREPARED);
+    sh->saved_handler = set_sighandler(sig, pl_signal_handler);
+  }
+
+  return sh;
+}
+
+
+static void
+unprepareSignal(int sig)
+{ SigHandler sh = &LD->sig_handlers[sig];
+
+  if ( true(sh, PLSIG_PREPARED) )
+  { set_sighandler(sig, sh->saved_handler);
+    sh->flags         = 0;
+    sh->handler       = NULL;
+    sh->predicate     = NULL;
+    sh->saved_handler = NULL;
+  }
+}
+
 
 static void
 initSignals(void)
-{ int n;
+{ struct signame *sn = signames;
+  
 
-  for( n = 0; n < MAXSIGNAL; n++ )
-  { LD_sig_handler(n).os = LD_sig_handler(n).user = SIG_DFL;
-    LD_sig_handler(n).catched = FALSE;
+  for( ; sn->name; sn++)
+  { if ( sn->flags )
+    { SigHandler sh = prepareSignal(sn->sig);
+      sh->flags |= sn->flags;
+    }
   }
-
-#ifdef SIGTTOU
-  pl_signal(SIGTTOU, SIG_IGN);
-#endif
-#if !O_DEBUG && !defined(_DEBUG)	/* just crash when debugging */
-  pl_signal(SIGSEGV, (handler_t)fatal_signal_handler);
-  pl_signal(SIGILL,  (handler_t)fatal_signal_handler);
-#ifdef SIGBUS
-  pl_signal(SIGBUS,  (handler_t)fatal_signal_handler);
-#endif
-#endif
-
-#ifdef HAVE_SIGGETMASK
-  defsigmask = siggetmask();
-#else
-#ifdef HAVE_SIGBLOCK
-  defsigmask = sigblock(0);
-#endif
-#endif
 }
 
 
 void
 resetSignals()
-{
-#ifdef HAVE_SIGSETMASK			/* fixes Linux repeated ^C */
-  sigsetmask(defsigmask);
-#endif
-
+{ LD->current_signal = 0;
   signalled = 0L;
 }
 
 
+void
+blockSignals()
+{ sigset_t set;
+
+  sigfillset(&set);			/* only part? */
+  
+  sigprocmask(SIG_BLOCK, &set, NULL);
+}
+
+
+void
+unblockSignals()
+{ sigset_t set;
+
+  sigfillset(&set);			/* only part? */
+  
+  sigprocmask(SIG_UNBLOCK, &set, NULL);
+}
+
+
+void
+unblockSignal(int sig)
+{ sigset_t set;
+
+  sigemptyset(&set);
+  sigaddset(&set, sig);
+
+  sigprocmask(SIG_UNBLOCK, &set, NULL);
+  DEBUG(1, Sdprintf("Unblocked signal %d\n", sig));
+}
+
+
 handler_t
-pl_signal(int sig, handler_t func)
+PL_signal(int sig, handler_t func)
 { if ( HAVE_SIGNALS )
-  { handler_t old = signal(sig, func);
+  { handler_t old;
+    SigHandler sh;
 
-    DEBUG(1, Sdprintf("pl_signal(%d, %p) --> %p\n", sig, func, old));
+    if ( sig < 1 || sig > MAXSIGNAL )
+    { warning("PL_signal(): illegal signal number: %d", sig);
+      return SIG_DFL;
+    }
 
-#ifdef SIG_ERR
-    if ( old == SIG_ERR )
-      warning("PL_signal(%d, 0x%x) failed: %s",
-	      sig, (unsigned long)func, OsError());
-#endif
-
-    LD_sig_handler(sig).os = func;
-    LD_sig_handler(sig).catched = (func == SIG_DFL ? FALSE : TRUE);
+    sh = &LD->sig_handlers[sig];
+    if ( true(sh, PLSIG_PREPARED) )
+    { old = sh->handler;
+      if ( func == sh->saved_handler )
+	unprepareSignal(sig);
+      else
+	sh->handler = func;
+    } else
+    { sh = prepareSignal(sig);
+      old = sh->saved_handler;
+      sh->handler = func;
+    }
 
     return old;
   } else
@@ -341,48 +574,84 @@ pl_signal(int sig, handler_t func)
 
 
 void
-deliverSignal(int sig, int type, SignalContext scp, char *addr)
-{ typedef RETSIGTYPE (*uhandler_t)(int, int, void *, char *);
-    
-#ifndef BSD_SIGNALS
-  signal(sig, LD_sig_handler(sig).os);	/* ??? */
-#endif
-
-  if ( LD_sig_handler(sig).user != SIG_DFL )
-  { uhandler_t uh = (uhandler_t)LD_sig_handler(sig).user;
-
-    (*uh)(sig, type, scp, addr);
-    return;
-  }
-
-  sysError("Unexpected signal: %d\n", sig);
-}
-
-
-void
 PL_handle_signals()
-{ typedef RETSIGTYPE (*uhandler_t)(int);
-
-  while(signalled)
+{ while(!GD->critical && signalled)
   { ulong mask = 1L;
     int sig = 1;
 
     for( ; ; mask <<= 1, sig++ )
     { if ( signalled & mask )
-      { signalled &= ~mask;
-
-	if ( LD_sig_handler(sig).os == SIG_DFL )
-	{ fatalError("Unhandled signal: %d\n", sig);
-	} else if ( LD_sig_handler(sig).os != SIG_IGN )
-	{ uhandler_t uh = (uhandler_t)LD_sig_handler(sig).os;
-
-	  (*uh)(sig);
-	}				/* SIG_IGN: ignored */
-
-	break;
-      }
+	pl_signal_handler(sig);
     }
   }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+signal(+Signal, :Old, :Handler)
+	Assign Handler to be called if signal arrises.  Example:
+
+		signal(usr1, Old, handle_user_1/1).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+foreign_t
+pl_on_signal(term_t sig, term_t name, term_t old, term_t new)
+{ int sign = -1;
+  SigHandler sh;
+  char *sn;
+  atom_t a;
+  Module m = NULL;
+
+  if ( PL_get_integer(sig, &sign) && sign >= 1 && sign <= MAXSIGNAL )
+  { TRY(PL_unify_atom_chars(name, signal_name(sign)));
+  } else if ( PL_get_atom_chars(name, &sn) && (sign = signal_index(sn)) )
+  { TRY(PL_unify_integer(sig, sign));
+  } else
+    return PL_error("signal", 4, NULL, ERR_TYPE, ATOM_signal, sig);
+
+  sh = &LD->sig_handlers[sign];
+
+  if ( false(sh, PLSIG_PREPARED) )		/* not handled */
+  { TRY(PL_unify_atom(old, ATOM_default));
+  } else if ( true(sh, PLSIG_THROW) )		/* throw exception */
+  { TRY(PL_unify_atom(old, ATOM_throw));
+  } else if ( sh->predicate )			/* call predicate */
+  { Definition def = sh->predicate->definition;
+
+    if ( def->module == MODULE_user )
+    { TRY(PL_unify_atom(old, def->functor->name));
+    } else
+    { TRY(PL_unify_term(old,
+			PL_FUNCTOR, FUNCTOR_module2,
+			   PL_ATOM, def->module->name, 
+			   PL_ATOM, def->functor->name));
+    }
+  }
+
+  if ( PL_compare(old, new) == 0 )
+    succeed;					/* no change */
+
+  PL_strip_module(new, &m, new);
+
+  if ( PL_get_atom(new, &a) )
+  { if ( a == ATOM_default )
+    { unprepareSignal(sign);
+    } else if ( a == ATOM_throw )
+    { sh = prepareSignal(sign);
+      set(sh, PLSIG_THROW);
+      sh->handler   = NULL;
+      sh->predicate = NULL;
+    } else
+    { predicate_t pred = lookupProcedure(PL_new_functor(a, 1), m);
+      
+      sh = prepareSignal(sign);
+      clear(sh, PLSIG_THROW);
+      sh->predicate = pred;
+    }
+  } else
+    return PL_error("signal", 4, NULL, ERR_TYPE, ATOM_atom, sig);
+
+  succeed;
 }
 
 #endif /*HAVE_SIGNAL*/
@@ -407,8 +676,9 @@ emptyStacks()
   aTop = aBase;
 
   PL_open_foreign_frame();
-  exception_bin     = PL_new_term_ref();
-  exception_printed = PL_new_term_ref();
+  exception_bin        = PL_new_term_ref();
+  exception_printed    = PL_new_term_ref();
+  LD->exception.tmp    = PL_new_term_ref();
 }
 
 
@@ -440,6 +710,8 @@ foo :-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define STACK_SEPARATION ROUND(MAXVARIABLES*sizeof(word), size_alignment)
+#define STACK_SIGNAL	 (2 * size_alignment)
+#define STACK_RESERVE	 (1 * size_alignment)
 #define STACK_MINIMUM    (32 * 1024)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -646,14 +918,16 @@ point to the same physical memory.
 static void
 mapOrOutOf(Stack s)
 { ulong incr;
+  long  newroom;
 
   if ( s->top > s->max )
     incr = ROUND(((ulong)s->top - (ulong)s->max), size_alignment);
   else
     incr = size_alignment;
 
-  if ( (ulong)s->max + incr > (ulong)s->limit )
-    outOf(s);
+  newroom = (ulong)s->limit - ((ulong)s->max + incr);
+  if ( newroom < 0 )
+    outOfStack(s, STACK_OVERFLOW_FATAL);
 
   if ( mmap(s->max, incr,
 	    PROT_READ|PROT_WRITE, STACK_MAP_TYPE,
@@ -664,6 +938,18 @@ mapOrOutOf(Stack s)
   DEBUG(1, Sdprintf("mapped %d bytes from 0x%x to 0x%x\n",
 		    size_alignment, (unsigned) s->max, s->max + incr));
   s->max = addPointer(s->max, incr);
+
+  if ( newroom <= STACK_SIGNAL )
+  { if ( newroom <= STACK_RESERVE )
+    {
+#ifndef NO_SEGV_HANDLING
+      LD->current_signal = SIGSEGV;
+#endif
+      outOfStack(s, STACK_OVERFLOW_SIGNAL_IMMEDIATELY);
+    } else
+      outOfStack(s, STACK_OVERFLOW_SIGNAL);
+  }
+
   considerGarbageCollect(s);
 }
 
@@ -917,14 +1203,9 @@ expandStack(Stack s, caddress addr)
     fail;				/* outside this area */
 
   if ( addr <= s->max + STACK_SEPARATION*2 )
-  { if ( addr < s->limit )
-    { DEBUG(1, Sdprintf("Expanding %s stack\n", s->name));
-      mapOrOutOf(s);
+  { mapOrOutOf(s);
 
-      succeed;
-    }
-
-    outOf(s);   
+    succeed;
   }
 
   fail;
@@ -942,14 +1223,16 @@ expandStack(Stack s, caddress addr)
 static void
 mapOrOutOf(Stack s)
 { ulong incr;
+  long  newroom;
 
   if ( s->top > s->max )
     incr = ROUND(((ulong)s->top - (ulong)s->max), size_alignment);
   else
     incr = size_alignment;
 
-  if ( addPointer(s->max, incr) > s->limit )
-    outOf(s);
+  newroom = (ulong)s->limit - ((ulong)s->max + incr);
+  if ( newroom < 0 )
+    outOfStack(s, STACK_OVERFLOW_FATAL);
 
   if ( VirtualAlloc(s->max, incr,
 		    MEM_COMMIT, PAGE_READWRITE ) != s->max )
@@ -961,6 +1244,18 @@ mapOrOutOf(Stack s)
 		    (ulong) s->max + size_alignment));
 
   s->max = addPointer(s->max, incr);
+
+  if ( newroom <= STACK_SIGNAL )
+  { if ( newroom <= STACK_RESERVE )
+    {
+#ifndef NO_SEGV_HANDLING
+      LD->current_signal = SIGSEGV;
+#endif
+      outOfStack(s, STACK_OVERFLOW_SIGNAL_IMMEDIATELY);
+    } else
+      outOfStack(s, STACK_OVERFLOW_SIGNAL);
+  }
+
   considerGarbageCollect(s);
 }
 
@@ -1052,7 +1347,7 @@ initStacks(long local, long global, long trail, long argument)
   INIT_STACK(argument, "argument", argument, 1 K);
 
 #ifndef NO_SEGV_HANDLING
-  pl_signal(SIGSEGV, (handler_t) segv_handler);
+  set_sighandler(SIGSEGV, (handler_t) segv_handler);
 #endif
 }
 
@@ -1064,9 +1359,6 @@ void
 resetStacks()
 { emptyStacks();
 
-#ifndef NO_SEGV_HANDLING
-  pl_signal(SIGSEGV, (handler_t) segv_handler);
-#endif
   trimStacks();
 }
 
@@ -1107,42 +1399,29 @@ segv_handler(int sig)
   }
 
   if ( mapped )
-  {
-#ifndef BSD_SIGNALS
-    signal(SIGSEGV, (handler_t) segv_handler);
-#endif
     return;
-  }
 
 #else /*SIGNAL_HANDLER_PROVIDES_ADDRESS*/
 
-  DEBUG(1, Sdprintf("Page fault at %ld (0x%x)\n", (long) addr, (unsigned) addr));
+  DEBUG(1, Sdprintf("Page fault at %ld (%p)\n", (long) addr, addr));
   for(i=0; i<N_STACKS; i++)
-    if ( expandStack(&stacka[i], addr) )
-    {
-#ifndef BSD_SIGNALS
-      signal(sig, (handler_t) segv_handler);
-#endif
+  { if ( expandStack(&stacka[i], addr) )
       return;
-    }
+  }
 #endif /*SIGNAL_HANDLER_PROVIDES_ADDRESS*/
 
-#ifdef SIGNAL_HANDLER_PROVIDES_ADDRESS
-  deliverSignal(sig, type, scp, addr);
-#else
-  deliverSignal(sig, 0, 0, NULL);	/* for now ... */
-#endif
+  pl_signal_handler(sig);
 }
 
 #endif /*NO_SEGV_HANDLING*/
 
 static void
 init_stack(Stack s, char *name, caddress base, long limit, long minsize)
-{ s->name      = name;
-  s->base      = s->max = s->top = base;
-  s->limit     = addPointer(base, limit);
-  s->min       = (caddress)((ulong)s->base + minsize);
-  s->gced_size = 0L;			/* size after last gc */
+{ s->name       = name;
+  s->base       = s->max = s->top = base;
+  s->limit	= addPointer(base, limit);
+  s->min        = (caddress)((ulong)s->base + minsize);
+  s->gced_size  = 0L;			/* size after last gc */
   gcPolicy(s, GC_FAST_POLICY);
 #if O_SHARED_MEMORY
 #if O_SHM_ALIGN_FAR_APART
@@ -1297,7 +1576,7 @@ initStacks(long local, long global, long trail, long argument)
   assert(top == 0L || (ulong)aLimit <= top);
 
 #ifndef NO_SEGV_HANDLING
-  pl_signal(SIGSEGV, (handler_t) segv_handler);
+  set_sighandler(SIGSEGV, (handler_t) segv_handler);
 #endif
 }
 
@@ -1305,9 +1584,6 @@ void
 resetStacks()
 { emptyStacks();
 
-#ifndef NO_SEGV_HANDLING
-  pl_signal(SIGSEGV, (handler_t) segv_handler);
-#endif
   trimStacks();
 }
 
@@ -1461,7 +1737,4 @@ trimStacks()
   unmap((Stack) &LD->stacks.trail);
   unmap((Stack) &LD->stacks.argument);
 #endif /*O_DYNAMIC_STACKS*/
-
-  LD->stacks.global.gced_size = usedStack(global);
-  LD->stacks.trail.gced_size  = usedStack(trail);
 }

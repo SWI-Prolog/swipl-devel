@@ -9,7 +9,7 @@
 
 /* pl-alloc.c */
 void		free_heap(Void mem, size_t n);
-volatile void	outOf(Stack s);
+void		outOfStack(Stack s, int how);
 volatile void	outOfCore(void);
 Word		allocGlobal(int words);
 Void		alloc_heap(size_t n);
@@ -288,6 +288,8 @@ void		considerGarbageCollect(Stack s);
 void		garbageCollect(LocalFrame fr);
 word		pl_garbage_collect(term_t d);
 void		resetGC(void);
+void		blockGC(void);
+void		unblockGC(void);
 Word		findGRef(int n);
 int		growStacks(LocalFrame fr, Code PC, int l, int g, int t);
 void		clearUninitialisedVarsFrame(LocalFrame, Code);
@@ -581,16 +583,20 @@ word		pl_recorda(term_t key, term_t term, term_t ref);
 word		pl_recordz(term_t key, term_t term, term_t ref);
 word		pl_recorded(term_t key, term_t term, term_t ref, word h);
 word		pl_erase(term_t ref);
+word		pl_term_complexity(term_t t, term_t mx, term_t count);
+void		undo_while_saving_term(mark *m, Word term);
 
 /* pl-rl.c */
 void		install_rl(void);
 
 /* pl-setup.c */
 void		setupProlog(void);
-handler_t	pl_signal(int sig, handler_t func);
+foreign_t	pl_on_signal(term_t sig, term_t name, term_t old, term_t new);
+handler_t	set_sighandler(int sig, handler_t func);
+void		blockSignals(void);
+void		unblockSignals(void);
+void		unblockSignal(int sig);
 void		resetSignals(void);
-void		handleSignals(void);
-void		deliverSignal(int sig, int tp, SignalContext scp, char *addr);
 void		deallocateStacks(void);
 bool		restoreStack(Stack s);
 void		trimStacks(void);
@@ -629,7 +635,6 @@ void		initTables();
 /* pl-trace.c */
 int		tracePort(LocalFrame frame, LocalFrame bfr, int port, Code PC);
 void		backTrace(LocalFrame frame, int depth);
-word		pl_trace_continuation(term_t what);
 void		initTracer(void);
 void		resetTracer(void);
 int		tracemode(int new, int *old);

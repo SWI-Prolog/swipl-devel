@@ -14,6 +14,8 @@
 message(Term) -->
 	{var(Term)}, !,
 	[ 'Unknown exception term: ~p'-[Term] ].
+message(error(resource_error(stack), Name)) -->
+	[ 'Out of ~w stack'-[Name] ].
 message(error(ISO, SWI)) -->
 	swi_context(SWI),
 	term_message(ISO),
@@ -82,6 +84,10 @@ swi_message(shell(execute, Cmd)) -->
 	[ 'Could not execute `~w'''-[Cmd] ].
 swi_message(shell(signal(Sig), Cmd)) -->
 	[ 'Caught signal ~d on `~w'''-[Sig, Cmd] ].
+swi_message(format(Fmt, Args)) -->
+	[ Fmt-Args ].
+swi_message(signal(Name, Num)) -->
+	[ 'Caught signal ~d (~w)'-[Num, Name] ].
 
 
 swi_context(context(Name/Arity, _Msg)) -->

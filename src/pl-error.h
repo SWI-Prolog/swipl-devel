@@ -32,5 +32,6 @@
 #define ERR_AR_OVERFLOW	       22	/* void */
 #define ERR_AR_UNDERFLOW       23	/* void */
 #define ERR_UNDEFINED_PROC     24	/* Definition def */
+#define ERR_SIGNALLED	       25	/* int sig, char *name */
 
 #define MSG_ERRNO		((char *)(-1))

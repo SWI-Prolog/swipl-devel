@@ -378,6 +378,23 @@ is replaced by a bitwise or'ed \arg{flags} argument.  The values
 code using these constants compatible. Non-zero values other than
 \const{TRUE} (1) will be interpreted different.
 
+
+\section{Version 3.0 Release Notes}
+
+Complete redesign of the saved-state mechanism, providing the
+possibility of `program resources'. See resource/3, open_resource/3, and
+qsave_program/[1,2].
+
+
+\section{Version 3.1 Release Notes}
+
+Improvements on exception-handling. Allows relating software interrupts
+(signals) to exceptions, handling signals in Prolog and C (see
+on_signal/3 and PL_signal()).  Prolog stack overflows now raise
+the \const{resource_error} exception and thus can be handled in
+Prolog using catch/3.
+
+
 \section{Acknowledgements}
 
 Some small parts of the Prolog code of SWI-Prolog are modified

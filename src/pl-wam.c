@@ -210,6 +210,27 @@ PL_async_hook(unsigned int count, PL_async_hook_t hook)
 
 #endif /*O_ASYNC_HOOK*/
 
+		 /*******************************
+		 *	     SIGNALS		*
+		 *******************************/
+
+#if 0 /*def O_SAFE_SIGNALS*/
+
+static inline int
+is_signalled()
+{ sigset_t set;
+
+  sigpending(&set);
+
+  return set != 0;			/* non-portable! */
+}
+
+#else
+
+#define is_signalled() (signalled != 0)
+
+#endif
+
 
 		 /*******************************
 		 *	   STACK-LAYOUT		*
@@ -409,12 +430,11 @@ callForeign(const Definition def, LocalFrame frame)
   fid_t cid;
   SaveLocalPtr(s1, frame);
   
-#define F (*function)    
-
   lTop = (LocalFrame) argFrameP(frame, argc);
   cid  = PL_open_foreign_frame();
   exception_term = 0;
 
+#define F (*function)    
 #define A(n) (h0+n)
   if ( false(def, NONDETERMINISTIC) )	/* deterministic */
   { CALLDETFN(result, argc);
@@ -423,6 +443,7 @@ callForeign(const Definition def, LocalFrame frame)
     CALLNDETFN(result, argc, context);
   }
 #undef A
+#undef F
 
   PL_close_foreign_frame(cid);		/* invalidates exception_term! */
   RestoreLocalPtr(s1, frame);
@@ -701,7 +722,7 @@ above. See this function for comments.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-can_unify(register Word t1, register Word t2)
+can_unify(Word t1, Word t2)
 { mark m;
 
   bool rval;
@@ -746,9 +767,10 @@ findBlock(LocalFrame fr, Word block)
 
 static LocalFrame
 findCatcher(LocalFrame fr, Word catcher)
-{ for(; fr; fr = fr->parent)
-  { if ( fr->predicate == PROCEDURE_catch3->definition &&
-	 unify_ptrs(argFrameP(fr, 1), catcher) )
+{ Definition catch3 = PROCEDURE_catch3->definition;
+
+  for(; fr; fr = fr->parent)
+  { if ( fr->predicate == catch3 && unify_ptrs(argFrameP(fr, 1), catcher) )
       return fr;
   }
 
@@ -1252,6 +1274,32 @@ depart_continue() to do the normal thing or to the backtrack point.
   if ( true(QF, PL_Q_DETERMINISTIC) )	/* last one succeeded */
   { Undo(FR->mark);			/* undo */
     fail;
+  }
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Check for exceptions raised by foreign code.  PL_throw() uses longjmp()
+to get back here.  Our task is to restore the environment and throw the
+Prolog exception.
+
+setjmp()/longjmp clobbers register variables. FR   is  restored from the
+environment. BFR is volatile, and qid is an argument. These are the only
+variables used in the B_THROW instruction.
+
+Is there a way to make the compiler keep its mouth shut!?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  if ( setjmp(QF->exception_jmp_env) != 0 )
+  { FliFrame ffr = fli_context;
+
+    FR = environment_frame;
+    while(ffr && (void *)ffr > (void *)FR) /* discard foreign contexts */
+      ffr = ffr->parent;
+    fli_context = ffr;
+
+    if ( LD->current_signal ) 
+      unblockSignal(LD->current_signal);
+
+    goto b_throw;
   }
 
   BFR = QF->bfr;
@@ -1805,7 +1853,7 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
     VMI(B_THROW, COUNT(b_throw), ("b_throw")) MARK(B_THROW);
       { Word catcher;
 	word except;
-	LocalFrame catchfr, fr, fr2;
+	LocalFrame catchfr, fr, fr2, bfr;
 
 	if ( exception_term )		/* PL_throw() generated */
 	  catcher = valTermRef(exception_term);
@@ -1839,21 +1887,21 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	}
 #endif /*O_DEBUGGER*/
 
+	bfr = NULL;
 	for( ; FR && FR > catchfr; FR = FR->parent )
 	{ /* Destroy older choicepoints */
-	  for(fr = BFR; fr && fr > FR; fr = fr->backtrackFrame)
+	  for(fr = bfr; fr && fr > FR; fr = fr->backtrackFrame)
 	  { for(fr2 = fr; fr2 && fr2->clause && fr2 > FR; fr2 = fr2->parent)
 	    { DEBUG(3, Sdprintf("discard %d\n", (Word)fr2 - (Word)lBase) );
 	      leaveFrame(fr2);
 	      fr2->clause = NULL;
 	    }
 	  }
-	  SetBfr(FR->mark.trailtop != INVALID_TRAILTOP ?
-		 FR : FR->backtrackFrame);
+	  bfr = FR;
 
 #if O_DEBUGGER
 	  if ( debugstatus.debugging )
-	  { switch(tracePort(FR, BFR, EXCEPTION_PORT, PC))
+	  { switch(tracePort(FR, NULL, EXCEPTION_PORT, PC))
 	    { case ACTION_RETRY:
 		*valTermRef(exception_printed) = 0;
 		goto retry;
@@ -1866,12 +1914,17 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 
 	if ( catchfr )
 	{ code exit_instruction;
+	  Word p = argFrameP(FR, 1);
+
+	  deRef(p);
 
 	  assert(catchfr == FR);
-	  SetBfr(FR->mark.trailtop != INVALID_TRAILTOP ?
-		 FR : FR->backtrackFrame);
+	  SetBfr(FR->backtrackFrame);
 	  environment_frame = FR;
+	  undo_while_saving_term(&FR->mark, p);
 	  lTop = (LocalFrame) argFrameP(FR, 3); /* above the catch/3 */
+	  if ( LD->trim_stack_requested )
+	    trimStacks();
 	  argFrame(lTop, 0) = argFrame(FR, 2);  /* copy recover goal */
 	  *valTermRef(exception_printed) = 0;   /* consider it handled */
 	  *valTermRef(exception_bin)     = 0;
@@ -1881,16 +1934,23 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 
 	  goto i_usercall0;
 	} else
-	{ QF = QueryFromQid(qid);	/* may be shifted: recompute */
+	{ Word p;
+
+	  QF = QueryFromQid(qid);	/* may be shifted: recompute */
 	  set(QF, PL_Q_DETERMINISTIC);
 	  FR = environment_frame = &QF->frame;
-	  lTop = (LocalFrame) argFrameP(FR, 3); /* ??? */
+	  lTop = (LocalFrame) argFrameP(FR, FR->predicate->functor->arity);
 					/* needs a foreign frame? */
 	  QF->exception = PL_new_term_ref();
 	  *valTermRef(exception_printed) = 0;   /* consider it handled */
 	  *valTermRef(exception_bin)     = 0;
 
-	  *valTermRef(QF->exception) = except;
+	  p = valTermRef(QF->exception);
+	  *p = except;
+	  deRef(p);
+	  undo_while_saving_term(&QF->frame.mark, p);
+	  if ( LD->trim_stack_requested )
+	    trimStacks();
 
 	  fail;
 	}
@@ -2744,8 +2804,11 @@ The VMI for these calls are ICALL_FVN, proc, var-index ...
 	*ARGP++ = (isVar(*v) ? makeRefL(v) : *v);
 
       common_call_fv:
-	if ( signalled )
-	  PL_handle_signals();
+	if ( is_signalled() )
+	{ PL_handle_signals();
+	  if ( exception_term )
+	    goto b_throw;
+	}
 
 	{ Definition def = fproc->definition;
 	  Func f = def->definition.function;
@@ -3025,8 +3088,11 @@ Note: we are working above `lTop' here!
 	LD->statistics.inferences++;
 	Mark(FR->mark);
 
-	if ( signalled )
-	  PL_handle_signals();
+	if ( is_signalled() )
+	{ PL_handle_signals();
+	  if ( exception_term )
+	    goto b_throw;
+	}
 
 #if O_ASYNC_HOOK			/* Asynchronous hooks */
 	{ if ( async.hook &&
@@ -3036,7 +3102,7 @@ Note: we are working above `lTop' here!
 #endif
 
 #ifdef O_PROFILE
-	if (LD->statistics.profiling)
+	if ( LD->statistics.profiling )
 	  DEF->profile_calls++;
 #endif /* O_PROFILE */
 
@@ -3058,7 +3124,8 @@ Testing is suffices to find out that the predicate is defined.
 	  if ( !DEF->definition.clauses &&
 	       false(DEF, PROC_DEFINED) &&
 	       true(DEF->module, UNKNOWN) )
-	  { PL_error(NULL, 0, NULL, ERR_UNDEFINED_PROC, DEF);
+	  { FR->clause = NULL;
+	    PL_error(NULL, 0, NULL, ERR_UNDEFINED_PROC, DEF);
 	    goto b_throw;
 	  }
 	}
@@ -3110,6 +3177,11 @@ Testing is suffices to find out that the predicate is defined.
 	}
 #endif /*O_SHIFT_STACKS*/
 #endif /*O_DYNAMIC_STACKS*/
+
+	if ( LD->outofstack )
+	{ lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
+	  outOfStack(LD->outofstack, STACK_OVERFLOW_SIGNAL_IMMEDIATELY);
+	}
 
 #if O_DEBUGGER
 	if ( debugstatus.debugging )
@@ -3572,8 +3644,11 @@ as  resuming  a  frame after unification of the head failed.  If it is a
 foreign frame we have to set BFR and do data backtracking.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    if ( signalled )
-      PL_handle_signals();
+    if ( is_signalled() )
+    { PL_handle_signals();
+      if ( exception_term )
+	goto b_throw;
+    }
 
     if ( false(DEF, FOREIGN) )
       goto resume_frame;

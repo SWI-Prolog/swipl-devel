@@ -114,15 +114,18 @@ indexOfWord(word w)
 	return 0L;
       case TAG_INTEGER:
 	if ( storage(w) != STG_INLINE )
-	  return 0L;
+	  return valBignum(w);
       case TAG_ATOM:
-	return w;
+	break;				/* atom_t */
       case TAG_COMPOUND:
-	return *valPtr(w);
+	w = *valPtr(w);			/* functor_t */
+	break;
       case TAG_REFERENCE:
 	w = *unRef(w);
 	continue;
     }
+
+    return w;
   }
 }
 
@@ -264,7 +267,9 @@ nextClause(ClauseRef cref, bool *det, Index ctx)
       }
     }
   } else				/* general (multi-arg) indexing */
-  { for(; cref; cref = cref->next)
+  { DEBUG(2, Sdprintf("Multi-argument indexing on %s ...",
+		      cref ? procedureName(cref->clause->procedure) : "?"));
+    for(; cref; cref = cref->next)
     { if ( matchIndex(*ctx, cref->clause->index) &&
 	   false(cref->clause, ERASED))
       { ClauseRef result = cref;
@@ -274,14 +279,17 @@ nextClause(ClauseRef cref, bool *det, Index ctx)
 	       false(cref->clause, ERASED))
 	  { *det = FALSE;
 
+	    DEBUG(2, Sdprintf("ndet\n"));
 	    return result;
 	  }
 	}
+        DEBUG(2, Sdprintf("det\n"));
 	*det = TRUE;
 
 	return result;
       }
     }
+    DEBUG(2, Sdprintf("NULL\n"));
   }
 
   return NULL;
@@ -346,9 +354,7 @@ reindexClause(Clause clause)
   if ( pattern == 0x0 )
     succeed;
   if ( false(clause, ERASED) )
-  { fid_t fid = PL_open_foreign_frame();
-    
-    if ( pattern == 0x1 )		/* the 99.9% case.  Speedup a little */
+  { if ( pattern == 0x1 )		/* the 99.9% case.  Speedup a little */
     { word key;
 
       if ( arg1Key(clause, &key) )
@@ -359,16 +365,16 @@ reindexClause(Clause clause)
 	clause->index.varmask = 0L;
       }
     } else
-    { term_t head = PL_new_term_ref();
+    { fid_t fid = PL_open_foreign_frame();
+      term_t head = PL_new_term_ref();
 
       decompileHead(clause, head);
       getIndex(argTermP(*valTermRef(head), 0),
 	       pattern,
 	       proc->definition->indexCardinality,
 	       &clause->index);
+      PL_discard_foreign_frame(fid);
     }
-
-    PL_discard_foreign_frame(fid);
   }
 
   succeed;

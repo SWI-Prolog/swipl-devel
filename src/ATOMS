@@ -358,6 +358,8 @@ A eof			"eof"
 A current		"current"
 A seek_method		"seek_method"
 A callpred		"$callpred"
+A throw			"throw"
+A stack			"stack"
 
 F abs			1
 F acos			1
@@ -482,4 +484,5 @@ F not_implemented_error	1
 F resource_error	1
 F shell			2
 F signal		1
+F signal		2
 F callpred		2

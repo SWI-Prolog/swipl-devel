@@ -89,6 +89,7 @@ handy for it someone wants to add a data type to the system.
 #define O_DESTRUCTIVE_ASSIGNMENT 1
 #define O_HASHTERM		1
 #define O_LIMIT_DEPTH		1
+#define O_SAFE_SIGNALS		1
 
 #ifndef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
 #ifdef __i386__
@@ -265,19 +266,6 @@ typedef void *			Void;
 
 #define TermVector(name, s)	LocalArray(Word, name, s)
 
-#if HAVE_SIGNAL
-#define MAXSIGNAL		32	/* highest system signal number */
-
-typedef RETSIGTYPE (*handler_t)(int);
-typedef void *SignalContext;		/* struct sigcontext on sun */
-
-typedef struct
-{ handler_t os;				/* Os signal handler */
-  handler_t user;			/* User signal handler */
-  bool catched;				/* Prolog catches this one */
-} sig_handler;
-#endif /* HAVE_SIGNAL */
-
 #ifndef TRUE
 #define TRUE			1
 #define FALSE			0
@@ -300,7 +288,7 @@ typedef void *			caddress;
 #endif
 				/* n is 2^m !!! */
 #define ROUND(p, n)		((((p) + (n) - 1) & ~((n) - 1)))
-#define addPointer(p, n)	((Void) ((char *)(p) + (long)(n)))
+#define addPointer(p, n)	((void *) ((char *)(p) + (long)(n)))
 #define diffPointers(p1, p2)	((char *)(p1) - (char *)(p2))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1123,6 +1111,7 @@ struct queryFrame
 #endif
 #if O_CATCHTHROW
   term_t	exception;		/* Exception term */
+  jmp_buf	exception_jmp_env;	/* longjmp() buffer for exception */
 #endif
   unsigned long	flags;
   int		debugSave;		/* saved debugstatus.debugging */
@@ -1265,6 +1254,24 @@ typedef unsigned long PL_fid_t;		/* external foreign context-id */
 #include "pl-itf.h"
 
 		 /*******************************
+		 *	       SIGNALS		*
+		 *******************************/
+
+#if HAVE_SIGNAL
+#define MAXSIGNAL		32	/* highest system signal number */
+
+typedef RETSIGTYPE (*handler_t)(int);
+typedef void *SignalContext;		/* struct sigcontext on sun */
+
+typedef struct
+{ handler_t   saved_handler;		/* Original handler */
+  handler_t   handler;			/* User signal handler */
+  predicate_t predicate;		/* Prolog handler */
+  int	      flags;			/* Various flags */
+} sig_handler, *SigHandler;
+#endif /* HAVE_SIGNAL */
+
+		 /*******************************
 		 *	   OPTION LISTS		*
 		 *******************************/
 
@@ -1397,6 +1404,10 @@ typedef struct
 			 (char *)LD->stacks.name.top)
 #define narrowStack(name) (roomStack(name) < LD->stacks.name.minfree)
 
+#define STACK_OVERFLOW_SIGNAL 1
+#define STACK_OVERFLOW_SIGNAL_IMMEDIATELY 2
+#define STACK_OVERFLOW_FATAL 3
+
 #if O_DYNAMIC_STACKS
 #ifdef NO_SEGV_HANDLING
 #define requireStack(s, n) \
@@ -1411,7 +1422,7 @@ typedef struct
 #else
 #define requireStack(s, n) \
 	{ if ( roomStack(s) < (n) ) \
- 	    outOf((Stack)&LD->stacks.s); \
+ 	    outOfStack((Stack)&LD->stacks.s, STACK_OVERFLOW_FATAL); \
 	}
 #define verifyStack(s) requireStack(s, 64)
 #endif

@@ -99,3 +99,6 @@
 
 /* Define to 1 if &&label and goto *var is supported (GCC-2) */
 #undef O_LABEL_ADDRESSES
+
+/* Define to 1 not to use SIGSEGV for guarding stack-overflows */
+#undef NO_SEGV_HANDLING 

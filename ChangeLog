@@ -1,6 +1,34 @@
 
 			SWI-Prolog ChangeLog
 			====================
+VERSION 3.1.0
+=============
+
+  * FIXED: bug in the stack-shifter, introduced in 3.0.0
+
+  * FIXED: configure option --disable-mapped-stacks
+
+  * ADDED: configure option --disable-segv-handling
+
+  * ADDED: Mapping signals (software interrupts) onto Prolog predicates
+    or exceptions.  See on_signal/3.
+
+  * MODIFIED: signal-handling using PL_signal(): the handler can now
+    safely call Prolog.
+
+  * MODIFIED: PL_throw() now performs a longjmp(), instead of returning
+    failure.  PL_raise_exception() replaces the old PL_throw()
+
+  * FIXED: FreeBSD testing for rlim_t type (configure).  Thanks to
+    Colin E. Johnson.
+
+  * PERFORMANCE: Added indexing for non-tagged numbers (> 16M)
+
+  * FIXED: current_stream/3 for streams having an alias name.  Fix 
+    also affects other stream-related predicates returning an aliases
+    stream.
+
+  * FIXED: added space in write(a+ -1).
 
 VERSION 3.0.0
 =============

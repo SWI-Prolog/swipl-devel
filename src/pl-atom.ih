@@ -347,3 +347,5 @@
 #define ATOM_current      MK_ATOM(346)
 #define ATOM_seek_method  MK_ATOM(347)
 #define ATOM_callpred     MK_ATOM(348)
+#define ATOM_throw        MK_ATOM(349)
+#define ATOM_stack        MK_ATOM(350)

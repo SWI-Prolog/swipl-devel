@@ -184,9 +184,11 @@ typedef struct
 #ifdef HAVE_SIGNAL
   sig_handler sig_handlers[MAXSIGNAL];	/* How Prolog preceives signals */
 #endif  
-  ulong		pending_signals;	/* PL_signal() pending signals */
+  ulong		pending_signals;	/* PL_raise() pending signals */
+  int		current_signal;		/* Currently handled signal */
   int		aborted;		/* thread asked for abort */
-  int		outofstack;		/* thread is out of stack */
+  Stack		outofstack;		/* thread is out of stack */
+  int		trim_stack_requested;	/* perform a trim-stack */
   int		autoload;		/* do autoloading */
   int		in_arithmetic;		/* doing arithmetic */
 
@@ -203,6 +205,7 @@ typedef struct
   { term_t	term;			/* exception term */
     term_t	bin;			/* temporary handle for exception */
     term_t	printed;		/* already printed exception */
+    term_t	tmp;			/* tmp for errors */
   } exception;
 
   struct

@@ -166,7 +166,7 @@ forwards void		collect_phase(LocalFrame);
 #if O_SECURE
 forwards int		cmp_address(const void *, const void *);
 forwards void		do_check_relocation(Word, char *file, int line);
-forwards void		needsRelocation(Word);
+forwards void		needsRelocation(void *);
 forwards bool		scan_global(int marked);
 forwards void		check_mark(mark *m);
 #endif
@@ -202,7 +202,7 @@ static Word *mark_top;			/* Top of this array */
 static Table check_table = NULL;	/* relocation address table */
 
 static void
-needsRelocation(Word addr)
+needsRelocation(void *addr)
 { needs_relocation++;
 
   addHTable(check_table, addr, (Void) TRUE);
@@ -1054,6 +1054,10 @@ sweep_trail(void)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+NOTE: catch/3 and the topmost frame requires its mark to be valid!
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static LocalFrame
 sweep_environments(LocalFrame fr)
 { Code PC = NULL;
@@ -1070,9 +1074,12 @@ sweep_environments(LocalFrame fr)
     clear(fr, FR_MARKED);
 
     if ( false(fr, FR_CHOICEPT) )
-    { fr->mark.trailtop = INVALID_TRAILTOP;
-      fr->mark.globaltop = INVALID_GLOBALTOP;
-      SECURE(trailtops_marked--);
+    { if ( fr->predicate != PROCEDURE_catch3->definition &&
+	   fr->parent )
+      { fr->mark.trailtop = INVALID_TRAILTOP;
+	fr->mark.globaltop = INVALID_GLOBALTOP;
+	SECURE(trailtops_marked--);
+      }
     } else
       clear(fr, FR_CHOICEPT);
 
@@ -1574,6 +1581,7 @@ garbageCollect(LocalFrame fr)
   relocated_cells   = 0;
   local_marked	    = 0;
 
+  blockSignals();
   requireStack(global, sizeof(word));
   requireStack(trail, sizeof(struct trail_entry));
   setVar(*gTop);
@@ -1605,6 +1613,9 @@ garbageCollect(LocalFrame fr)
   t = CpuTime() - t;
   gc_status.time += t;
   trimStacks();
+  LD->stacks.global.gced_size = usedStack(global);
+  LD->stacks.trail.gced_size  = usedStack(trail);
+  unblockSignals();
 
   SECURE(if ( checkStacks(fr) != key )
 	 { Sdprintf("Stack checksum failure\n");
@@ -1658,6 +1669,23 @@ resetGC(void)
 #endif
 }
 
+
+void
+blockGC()
+{ gc_status.blocked++;
+#if O_SHIFT_STACKS
+  shift_status.blocked++;
+#endif
+}
+
+
+void
+unblockGC()
+{ gc_status.blocked--;
+#if O_SHIFT_STACKS
+  shift_status.blocked--;
+#endif
+}
 
 #if O_SHIFT_STACKS
 
@@ -1849,11 +1877,9 @@ static void
 update_foreign(long ts, long ls, long gs)
 { FliFrame fr = addPointer(fli_context, ls);
 
-  update_mark(&fr->mark, gs, ts);
-
   for( ; fr; fr = fr->parent )
-  { if ( fr->parent )
-      fr->parent = addPointer(fr->parent, ls);
+  { update_mark(&fr->mark, gs, ts);
+    update_pointer(&fr->parent, ls);
   }
 }
 
@@ -1930,27 +1956,35 @@ Void lb, gb, tb;			/* bases addresses */
   return addPointer(frame, ls);
 }
 
+
+static long
+nextStackSize(Stack s)
+{ long size  = diffPointers(s->max, s->base);
+  long grow  = ROUND(size/2, 8192);
+  long limit = diffPointers(s->limit, s->base);
+
+  if ( size + grow > limit )
+  { if ( size + grow > (limit*3)/2 )
+      outOfStack(s, STACK_OVERFLOW_SIGNAL_IMMEDIATELY);
+
+    outOfStack(s, STACK_OVERFLOW_SIGNAL);
+    grow = limit - size;
+    if ( grow < 32 * 1024 )
+      grow = 32 * 1024;
+    s->limit = addPointer(s->base, size+grow);
+  }
+
+  size += grow;
+
+  return size;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Entry point from interpret()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define GL_SEPARATION sizeof(word)
-
-static long
-nextStackSize(s)
-Stack s;
-{ long size = (char *) s->max - (char *) s->base;
-
-  if ( s->max == s->limit )
-    outOf(s);
-
-  size = ROUND((size * 3) / 2, 4096);
-  if ( addPointer(s->max, size) > s->limit )
-    size = diffPointers(s->limit, s->max);
-
-  return size;
-}
-
 
 int
 growStacks(LocalFrame fr, Code PC, int l, int g, int t)

@@ -21,7 +21,7 @@
 \pagestyle{fancyplain}
 
 \newcommand{\vmajor}{3}
-\newcommand{\vminor}{0}
+\newcommand{\vminor}{1}
 \newcommand{\vpatch}{0}
 \newcommand{\vmonth}{July}
 \newcommand{\vyear}{1998}

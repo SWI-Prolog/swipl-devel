@@ -42,6 +42,8 @@
 	, shell/2
 	, shell/1
 	, shell/0
+	, on_signal/3
+	, current_signal/3
 	, open_shared_object/2
 	, open_shared_object/3
 	, format/1
@@ -608,6 +610,26 @@ shell :-
 	shell(Shell).
 shell :-
 	shell('/bin/sh').
+
+		 /*******************************
+		 *	      SIGNALS		*
+		 *******************************/
+
+:- module_transparent
+	on_signal/3.
+
+on_signal(Signal, Old, New) :-
+	atom(Signal), !,
+	$on_signal(_Num, Signal, Old, New).
+on_signal(Signal, Old, New) :-
+	integer(Signal), !,
+	$on_signal(Signal, _Name, Old, New).
+on_signal(Signal, _Old, _New) :-
+	throw(error(type_error(signal, Signal), on_signal/3)).
+
+current_signal(Name, Id, Handler) :-
+	between(1, 32, Id),
+	$on_signal(Name, Id, Handler, Handler).
 
 
 		 /*******************************

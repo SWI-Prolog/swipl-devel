@@ -40,7 +40,7 @@ Flags almost always is TRACE_ME.  Additional common flags:
 	NONDETERMINISTIC	Predicate can be resatisfied
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define NDET NONDETERMINISTIC		/* make a bit shorter */
+#define NDET NONDETERMINISTIC	/* make a bit shorter */
 #define META METAPRED		/* same */
 
 #define FRG(n, a, f, flags) { n, f, flags, a }
@@ -97,6 +97,8 @@ static const struct foreign {
   FRG("make_fat_filemap",	1, pl_make_fat_filemap,		TRACE_ME),
 #endif
 #endif
+
+  FRG("$on_signal",		4, pl_on_signal,	   META|TRACE_ME),
 
   FRG("fileerrors",		2, pl_fileerrors,		TRACE_ME),
   FRG("$syntaxerrors",		2, pl_syntaxerrors,		TRACE_ME),
@@ -213,6 +215,7 @@ static const struct foreign {
   FRG("recordz",		3, pl_recordz,			TRACE_ME),
   FRG("recorded",		3, pl_recorded,		   NDET|TRACE_ME),
   FRG("erase",			1, pl_erase,			TRACE_ME),
+  FRG("$term_complexity",	3, pl_term_complexity,		TRACE_ME),
   FRG("assert",			1, pl_assertz,		   META|TRACE_ME),
   FRG("asserta",		1, pl_asserta,		   META|TRACE_ME),
   FRG("assertz",		1, pl_assertz,		   META|TRACE_ME),
@@ -301,7 +304,6 @@ static const struct foreign {
 
   FRG("prolog_current_frame",	1, pl_prolog_current_frame,	TRACE_ME),
   FRG("prolog_frame_attribute",	3, pl_prolog_frame_attribute,	TRACE_ME),
-  FRG("$trace_continuation",	1, pl_trace_continuation,	TRACE_ME),
   FRG("prolog_skip_level",	2, pl_skip_level,		0),
 
   FRG("$write_on_atom",		2, pl_write_on_atom,		TRACE_ME),

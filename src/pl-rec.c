@@ -377,12 +377,14 @@ copyRecordToGlobal(term_t copy, Record r)
   b.gstore = allocGlobal(r->gsize);
   
   copy_record(valTermRef(copy), &b);
-  if ( b.gstore != gTop )
+  assert(b.gstore == gTop);
+/*if ( b.gstore != gTop )
   { Sdprintf("b.gstore = %p, gTop = %p\n", b.gstore, gTop);
     Sdprintf("Term = ");
     pl_write_canonical(copy);
     Sdprintf("\n");
   }
+*/
 
   SECURE(checkData(valTermRef(copy)));
 }
@@ -787,4 +789,114 @@ pl_erase(term_t ref)
   }
 
   return warning("erase/1: Invalid reference");
+}
+
+		 /*******************************
+		 *	     COMPLEXITY		*
+		 *******************************/
+
+static int
+count_term(Word t, int left)
+{ int count = 0;
+
+right_recursion:
+  deRef(t);
+
+  if ( isTerm(*t) )
+  { int arity = arityTerm(*t);
+    int me;
+
+    count++;				/* the functor */
+    for(t = argTermP(*t, 0); arity-- > 0; count += me, t++ )
+    { if ( arity == 0 )
+	goto right_recursion;
+
+      me = count_term(t, left);
+      if ( me < 0 )
+	return me;
+      left -= me;
+      if ( left < 0 )
+	return -1;
+    }
+  }
+
+  return count+1;
+}
+
+
+word
+pl_term_complexity(term_t t, term_t mx, term_t count)
+{ int c, m;
+
+  if ( !PL_get_integer(mx, &m) )
+    m = PLMAXINT;
+
+  c = count_term(valTermRef(t), m);
+  if ( c < 0 || c > m )
+    fail;
+
+  return PL_unify_integer(count, c);
+}
+
+
+		 /*******************************
+		 *     CATCH/THROW SUPPORT	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+undo_while_saving_term(Mark m, Word term)
+
+Undo(m), but preserve `term'. Variables in  term, sharing with variables
+older then the mark should be remain sharing.
+
+The implementation exploits the  recorded   database  primitives defined
+above to perform a term-copy. It merges   the two routines. In addition,
+it uses the variable info gathered by the compiler and copier to restore
+the variable bindings. 
+
+This could also be used for a foreign implementation of findall.  Wonder
+whether that is worth the trouble?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+undo_while_saving_term(mark *m, Word term)
+{ compile_info info;
+  copy_info b;
+  int n;
+  Word *p;
+
+  initBuffer(&info.code);
+  initBuffer(&info.vars);
+  info.size = 0;
+  info.nvars = 0;
+
+  compile_term_to_heap(term, &info);
+  n = info.nvars;
+  p = (Word *)info.vars.base;
+  while(--n >= 0)
+    setVar(**p++);
+
+  assert(m->trailtop != INVALID_TRAILTOP);
+  Undo(*m);
+  
+  b.data = info.code.base;
+  if ( info.nvars > 0 )
+  { if ( !(b.vars = alloca(sizeof(Word) * info.nvars)) )
+      fatalError("alloca(%d) failed", info.nvars);
+    for(p = b.vars, n=info.nvars; --n >= 0;)
+      *p++ = 0;
+  }
+  b.gstore = allocGlobal(info.size);
+  copy_record(term, &b);
+  assert(b.gstore == gTop);
+  discardBuffer(&info.code);
+
+  for(n=0; n<info.nvars; n++)
+  { Word v = ((Word *)info.vars.base)[n];
+    
+    if ( onStack(local, v) || (v > gBase && v < m->globaltop) )
+      unify_ptrs(v, ((Word *)b.vars)[n]);
+  }
+
+  discardBuffer(&info.vars);
 }

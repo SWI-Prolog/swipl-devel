@@ -83,9 +83,15 @@ expand_answer(Bindings, Bindings) :-
 
 assert_bindings([]).
 assert_bindings([Binding|Tail]) :-
-	Binding = (Var = _),
+	Binding = (Var = Value),
 	forall(recorded('$topvar', Var = _, Ref), erase(Ref)),
-	recorda('$topvar', Binding, _),
+	(   (   feature(toplevel_var_size, Count)
+	    ->  '$term_complexity'(Value, Count, _)
+	    ;   true
+	    )
+	->  recorda('$topvar', Binding, _)
+	;   true
+	),
 	assert_bindings(Tail).
 	  
 toplevel_var(Var, Binding) :-

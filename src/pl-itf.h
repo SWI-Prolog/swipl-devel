@@ -212,7 +212,9 @@ __pl_export int		PL_call(term_t t, module_t m);
 __pl_export int		PL_call_predicate(module_t m, int debug,
 					  predicate_t pred, term_t t0);
 __pl_export term_t	PL_exception(qid_t qid);
+__pl_export int		PL_raise_exception(term_t exception);
 __pl_export int		PL_throw(term_t exception);
+
 
 		 /*******************************
 		 *        TERM-REFERENCES	*

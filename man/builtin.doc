@@ -788,6 +788,138 @@ modules defining clauses for it too.
 \end{description}
 
 
+\section{Handling signals}			\label{sec:signal}
+
+As of version 3.1.0, SWI-Prolog is capable to handle software interrupts
+(signals) in Prolog as well as in foreign (C) code (see \secref{csignal}).
+
+Signals are used to handle internal errors (execution of a non-existing
+CPU intruction, arithmetic domain errors, illegal memory access,
+resource overflow, etc.), as well as for dealing asynchronous
+inter-process communication.
+
+Signals are defined by the Posix standard and part of all Unix machines.
+The MS-Windows Win32 provides a subset of the signal handling routines,
+lacking the vital funtionality to raise a signal in another thread for
+achieving asynchronous inter-process (or inter-thread) communication
+(Unix kill() function).
+
+\begin{description}
+    \predicate{on_signal}{3}{+Signal, -Old, :New}
+Determines the reaction on \arg{Signal}.  \arg{Old} is unified with
+the old behaviour, while the behaviour is switched to \arg{New}.  As
+with similar environment-control predicates, the current value is
+retrieved using \exam{on_signal(Signal, Current, Current)}.
+
+The action description is an atom denoting the name of the predicate
+that will be called if \arg{Signal} arrives.  on_signal/3 is a meta
+predicate, which implies that <Module>:<Name> refers the <Name>/1 in
+the module <Module>.
+
+Two predicate-names have special meaning.  \const{throw} implies Prolog
+will map the signal onto a Prolog exception as described in
+\secref{exception}.  \const{default} resets the handler to the settings
+active before SWI-Prolog manipulated the handler.
+
+After receiving a signal mapped to \const{throw}, the exception raised
+has the structure
+
+\begin{quote}\tt
+error(signal(<SigName>, <SigNum>), <Context>)
+\end{quote}
+
+One possible usage of this is, for example, to limit the time spent
+on proving a goal.  This requires a little C-code for setting the
+alarm timer (see \chapref{foreign}):
+
+\begin{code}
+#include <SWI-Prolog.h>
+#include <unistd.h>
+
+foreign_t
+pl_alarm(term_t time)
+{ double t;
+
+  if ( PL_get_float(time, &t) )
+  { alarm((long)(t+0.5));
+
+    PL_succeed;
+  }
+
+  PL_fail;
+}
+
+
+install_t
+install()
+{ PL_register_foreign("alarm", 1, pl_alarm, 0);
+}
+\end{code}
+
+Next, we can define the following Prolog code:
+
+\begin{code}
+:- load_foreign_library(alarm).
+
+:- on_signal(alrm, throw).
+
+:- module_transparent
+	call_with_time_limit/2.
+
+call_with_time_limit(Goal, MaxTime) :-
+	alarm(MaxTime),
+	catch(Goal, signal(alrm, _), fail), !,
+	alarm(0).
+call_with_time_limit(_, _) :-
+	alarm(0),
+	fail.
+\end{code}
+
+The signal names are defined by the C-Posix standards as symbols of the
+form {\tt SIG_}<SIGNAME>. The Prolog name for a signal is the lowercase
+version of <SIGNAME>. The predicate current_signal/3 may be used to map
+between names and signals.
+
+Initially, some signals are mapped to \const{throw}, while all
+other signals are \const{default}.  The following signals throw
+an exception:  \const{ill}, \const{fpe}, \const{segv}, \const{pipe},
+\const{alrm}, \const{bus}, \const{xcpu}, \const{xfsz} and
+\const{vtalrm}.
+    \predicate{current_signal}{3}{?Name, ?Id, ?Handler}
+Enumerate the currently defined signal handling.  \arg{Name} is the
+signal name, \arg{Id} is the numerical identifier and \arg{Handler}
+is the currently defined handler (see on_signal/3).
+\end{description}
+
+
+\subsection{Notes on signal handling}
+
+Before deciding to deal with signals in your application, please
+consider the following:
+
+\begin{itemlist}
+    \item[Portibility]
+On MS-Windows, the signal interface is severely limited. Different Unix
+brands support different sets of signals, and the relation between
+signal name and number may vary.
+    \item[Safety]
+Signal handling is not completely safe in the current implementation,
+especially if \const{throw} is used in combination with external foreign
+code. The system will use the C longjmp() construct to direct control to
+the innermost PL_next_solution(), thus forcing an external procedure to
+be abandoned at an arbitrary moment. Most likely not all SWI-Prologs own
+foreign code is (yet) safe too.
+    \item[Garbage Collection]
+The garbage collector will block all signals that are handled by Prolog.
+While handling a signal, the garbage-collector is disabled.
+    \item[Time of delivery]
+Normally delivery is immediate (or as defined by the operating system
+used).  Signals are blocked with the garbage collector is active, and
+internally delayed if they occur will in a `critical section'.  The
+critical sections are generally very short.
+\end{itemlist}
+
+
 \section{Advanced control-structures: blocks}
 
 \index{exception-handling}

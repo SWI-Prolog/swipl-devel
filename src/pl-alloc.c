@@ -154,9 +154,8 @@ sbrk(),  but  many systems get very upset by using sbrk() in combination
 with other memory allocation functions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static
-Chunk
-allocate(register size_t n)
+static Chunk
+allocate(size_t n)
 { char *p;
 
   if (n <= spacefree)
@@ -195,14 +194,30 @@ initMemAlloc()
 		*             STACKS            *
 		*********************************/
 
-volatile void
-outOf(Stack s)
-{ LD->outofstack = TRUE;		/* will be reset by abort() */
+void
+outOfStack(Stack s, int how)
+{ LD->trim_stack_requested = TRUE;
 
-  warning("Out of %s stack", s->name);
+  switch(how)
+  { case STACK_OVERFLOW_FATAL:
+      LD->outofstack = s;
+      warning("Out of %s stack", s->name);
 
-  pl_abort();
-  exit(2);				/* should not happen */
+      pl_abort();
+      assert(0);
+    case STACK_OVERFLOW_SIGNAL_IMMEDIATELY:
+      LD->outofstack = NULL;
+      gc_status.requested = FALSE;	/* can't have that */
+      PL_unify_term(LD->exception.tmp,
+		    PL_FUNCTOR, FUNCTOR_error2,
+		      PL_FUNCTOR, FUNCTOR_resource_error1,
+		        PL_ATOM, ATOM_stack,
+		      PL_CHARS, s->name);
+      PL_throw(LD->exception.tmp);
+      assert(0);
+    case STACK_OVERFLOW_SIGNAL:
+      LD->outofstack = s;
+  }
 }
 
 
@@ -280,7 +295,7 @@ allocGlobal(int n)
   { growStacks(NULL, NULL, FALSE, TRUE, FALSE);
 
     if ( roomStack(global)/sizeof(word) < (long) n )
-      outOf((Stack) &LD->stacks.global);
+      outOfStack((Stack) &LD->stacks.global, STACK_OVERFLOW_FATAL);
   }
 
   result = gTop;

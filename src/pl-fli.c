@@ -1675,11 +1675,42 @@ PL_foreign_control(control_t h)
 }
 
 
+static QueryFrame
+find_query(LocalFrame fr)
+{ if ( fr )
+  { QueryFrame qf;
+
+    while(fr->parent)
+      fr = fr->parent;
+    
+    qf = (QueryFrame)addPointer(fr, -offsetof(struct queryFrame, frame));
+
+    return qf;
+  }
+
+  return NULL;
+}
+
+
+int
+PL_raise_exception(term_t exception)
+{ PL_put_term(exception_bin, exception);
+  exception_term = exception_bin;
+
+  fail;
+}
+
+
 int
 PL_throw(term_t exception)
-{ PL_put_term(exception_bin, exception);
+{ QueryFrame QF = find_query(environment_frame);
 
+  PL_put_term(exception_bin, exception);
   exception_term = exception_bin;
+  assert(exception_term);
+
+  if ( QF )
+    longjmp(QF->exception_jmp_env, exception_term);
 
   fail;
 }
@@ -1843,30 +1874,6 @@ PL_open_resource(Module m,
 		/********************************
 		*            SIGNALS            *
 		*********************************/
-
-#if HAVE_SIGNAL
-void
-(*PL_signal(int sig, void (*func) (int)))(int)
-{ void (*old)(int);
-
-  if ( sig < 1 || sig > MAXSIGNAL )
-  { fatalError("PL_signal(): illegal signal number: %d", sig);
-    return NULL;
-  }
-
-  if ( LD_sig_handler(sig).catched == FALSE )
-  { old = signal(sig, func);
-    LD_sig_handler(sig).os = func;
-    
-    return old;
-  }
-
-  old = LD_sig_handler(sig).user;
-  LD_sig_handler(sig).user = func;
-
-  return old;
-}
-#endif
 
 void
 PL_raise(int sig)

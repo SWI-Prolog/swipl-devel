@@ -301,6 +301,16 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
 		      PL_TERM, cmd);
       break;
     }
+    case ERR_SIGNALLED:
+    { int   sig     = va_arg(args, int);
+      char *signame = va_arg(args, char *);
+
+      PL_unify_term(formal,
+		    PL_FUNCTOR, FUNCTOR_signal2,
+			PL_CHARS,   signame,
+		        PL_INTEGER, sig);
+      break;
+    }
     default:
       assert(0);
   }
@@ -333,7 +343,7 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
 		  PL_TERM, swi);
 
 
-  return PL_throw(except);
+  return PL_raise_exception(except);
 }
 
 

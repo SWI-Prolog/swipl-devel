@@ -134,7 +134,8 @@ copy_chars(N, From, To) :-
 	get0(From, C0),
 	copy_chars(N, From, To, C0).
 
-copy_chars(0, _, _, _) :- !.
+copy_chars(N, _, _, _) :-
+	N =< 0, !.
 copy_chars(N, _, To, _) :-
 	0 =:= N mod 4096,
 	flush_output(To),

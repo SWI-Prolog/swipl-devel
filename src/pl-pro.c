@@ -153,7 +153,7 @@ pl_abort()
 
   if ( !trueFeature(READLINE_FEATURE) )
     PopTty(&ttytab);
-  LD->outofstack = FALSE;
+  LD->outofstack = NULL;
   resetRead();
   closeFiles(FALSE);
   resetReferences();
@@ -182,7 +182,10 @@ prolog(volatile atom_t goal)
 { bool rval;
 
   if ( setjmp(abort_context) != 0 )
-  { goal = ATOM_abort;
+  { if ( LD->current_signal )
+      unblockSignal(LD->current_signal);
+    
+    goal = ATOM_abort;
   } else
   { debugstatus.debugging = FALSE;
   }
@@ -212,28 +215,12 @@ prolog(volatile atom_t goal)
     { qid_t qid;
       term_t except;
 
-      *valTermRef(exception_printed) = 0;
       qid = PL_open_query(MODULE_system, PL_Q_NORMAL, p, 0);
       rval = PL_next_solution(qid);
       if ( !rval && (except = PL_exception(qid)) )
-      { Word p1 = valTermRef(exception_printed);
-	Word p2 = valTermRef(except);
-	predicate_t pred = PL_predicate("unhandled_exception", 2, "$toplevel");
-	
-	deRef(p1);
-	deRef(p2);
-
-	{ fid_t fid2 = PL_open_foreign_frame();
-	  term_t t0 = PL_new_term_refs(2);
-
-	  PL_put_atom(t0,   *p1 == *p2 ? ATOM_true : ATOM_false);
-	  PL_put_term(t0+1, except);
-
-	  PL_call_predicate(NULL, FALSE, pred, t0);
-	  PL_close_foreign_frame(fid2);
-	  pl_notrace();
-	}
-	PL_close_query(qid);
+      { PL_close_query(qid);
+	warning("Unhandled exception");
+	pl_nodebug();
 	continue;
       }
       PL_close_query(qid);
