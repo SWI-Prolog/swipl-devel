@@ -270,12 +270,15 @@ void *alloca ();
 /* prepare including BeOS types */
 #ifdef __BEOS__
 #define bool BOOL
-#ifdef HAVE_SUPPORTDEFS_H
-#include <SupportDefs.h>
+
+#include <BeBuild.h>
+#if (B_BEOS_VERSION <= B_BEOS_VERSION_5)
+# include <socket.h>      /* include socket.h to get the fd_set structure */
 #else
-#include <socket.h>			/* why do we need socket.h? */
+# include <SupportDefs.h> /* not needed for a BONE-based networking stack */
 #endif
-#include <kernel/image.h>		/* for pl-beos.c */
+#include <OS.h>
+
 #undef true
 #undef false
 #undef bool
