@@ -185,6 +185,9 @@ allocate(size_t n)
     if ( m <= (ALLOCFAST/ALIGN_SIZE) )	/* this is freeHeap(), but avoids */
     { Chunk ch = (Chunk)spaceptr;	/* recursive LOCK() */
 
+#ifdef ALLOC_DEBUG
+      memset(spaceptr, ALLOC_FREE_MAGIC, spacefree);
+#endif
       ch->next = freeChains[m];
       freeChains[m] = ch;
     }
