@@ -89,6 +89,8 @@ write_test(q-2) :-
 	term_to_atom(+(0), X), X == '+(0)'.
 write_test(q-3) :-
 	term_to_atom(+(a), X), X == '+a'.
+write_test(q-4) :-
+	term_to_atom('*/*', X), X == '\'*/*\''.
 
 
 		 /*******************************

@@ -110,12 +110,12 @@ atomType(atom_t a)
 
   if ( a == ATOM_dot )
     return AT_FULLSTOP;
-  if ( a == ATOM_comment_start )
-    return AT_QUOTE;
   
   if ( isSymbol(*s) )
   { for(++s; --len > 0 && isSymbol(*s); s++)
-      ;
+    { if ( *s == '/' && len > 0 && s[1] == '*' )
+	return AT_QUOTE;
+    }
     return len == 0 ? AT_SYMBOL : AT_QUOTE;
   }
 
