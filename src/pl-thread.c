@@ -2606,11 +2606,16 @@ static void	sync_statistics(PL_thread_info_t *info, atom_t key);
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 thread_statistics(+Thread, +Key, -Value)
     Same as statistics(+Key, -Value) but operates on another thread.
+
+statistics(heapused, X) walks along  all   threads  and  therefore locks
+L_THREAD. As it returns the same result   on  all threads we'll redirect
+this to run on our own thread.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static
 PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
 { PL_thread_info_t *info;
+  PL_local_data_t *ld;
   int rval;
 
   LOCK();
@@ -2619,27 +2624,29 @@ PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
     fail;
   }
 
-  if ( !info->thread_data )
+  if ( !(ld=info->thread_data) )
   { UNLOCK();
     return PL_error(NULL, 0, NULL,
 		    ERR_PERMISSION,
 		    ATOM_statistics, ATOM_thread, A1);
   }
 
-  if ( LD != info->thread_data )
+  if ( LD != ld )
   { atom_t k;
 
     if ( !PL_get_atom(A2, &k) )
       k = 0;
 
     sync_statistics(info, k);
-
-    rval = pl_statistics_ld(A2, A3, info->thread_data PASS_LD);
-    UNLOCK();
-  } else
-  { UNLOCK();				/* actually on my own */
-    rval = pl_statistics_ld(A2, A3, info->thread_data PASS_LD);
+    if ( k == ATOM_heapused )
+      ld = LD;
   }
+
+  if ( LD == ld )		/* self: unlock first to avoid deadlock */
+    UNLOCK();
+  rval = pl_statistics_ld(A2, A3, ld PASS_LD);
+  if ( LD != ld )
+    UNLOCK();
 
   return rval;
 }
