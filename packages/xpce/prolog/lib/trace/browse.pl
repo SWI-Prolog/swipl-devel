@@ -218,9 +218,9 @@ debug_settings(_FB) :->
 
 :- pce_group(event).
 
-event(FB, Ev:event) :->
+post_event(FB, Ev:event) :->
 	"Deal with identifying nodes"::
-	(   send_super(FB, event, Ev)
+	(   send_super(FB, post_event, Ev)
 	->  true
 	;   send(Ev, is_a, loc_move),
 	    (	get(FB, hypered, current, Node)
