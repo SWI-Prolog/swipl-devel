@@ -1382,8 +1382,10 @@ pceInitialise(int handles, int argc, char **argv)
 
   DEBUG_BOOT(Cprintf("Alloc ...\n"));
   initAlloc();
-  allocRange(&ConstantNil, sizeof(struct constant));
-  allocRange(&BoolOff,     sizeof(struct bool));
+  allocRange(&ConstantNil,     sizeof(struct constant));
+  allocRange(&ConstantDefault, sizeof(struct constant));
+  allocRange(&BoolOff,         sizeof(struct bool));
+  allocRange(&BoolOn,          sizeof(struct bool));
   initNamesPass1();
   DEBUG_BOOT(Cprintf("Types ...\n"));
   initTypes();

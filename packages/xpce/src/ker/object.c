@@ -2019,8 +2019,12 @@ check_object(Any obj, Bool recursive, HashTable done, int errs)
       { if ( isFreedObj(value) )
 	{ errorPce(obj, NAME_freedSlotValue, var, CtoName(pp(value)));
 	  errs++;
-	} else if ( recursive == ON )
-	{ Test(value);
+	} else if ( recursive == ON && isObject(value) )
+	{ if ( !isProperObject(value) )
+	  { errorPce(obj, NAME_badSlotValue, var, CtoName(pp(value)));
+	    errs++;
+	  } else
+	    Test(value);
 	}
       }
     }
@@ -2038,8 +2042,13 @@ check_object(Any obj, Bool recursive, HashTable done, int errs)
 	{ errorPce(obj, NAME_freedCellValue,
 		   toInt(i), CtoName(pp(cell->value)));
 	  errs++;
-	} else if ( recursive == ON )
-	{ Test(cell->value);
+	} else if ( recursive == ON && isObject(call->value) )
+	{ if ( !isProperObject(cell->value) )
+	  { errorPce(obj, NAME_badCellCalue,
+		     toInt(i), CtoName(pp(cell->value)));
+	    errs++;
+	  } else
+	    Test(cell->value);
 	}
       }
       i++;
@@ -2051,8 +2060,13 @@ check_object(Any obj, Bool recursive, HashTable done, int errs)
 		 { errorPce(obj, NAME_freedElementValue,
 			    toInt(_iv), CtoName(pp(value)));
 		   errs++;
-		 } else if ( recursive == ON )
-		 { Test(value);
+		 } else if ( recursive == ON && isObject(value) )
+		 { if ( !isProperObject(value) )
+		   { errorPce(obj, NAME_badElementValue,
+			      toInt(_iv), CtoName(pp(value)));
+		     errs++;
+		   } else
+		     Test(value);
 		 }
 	       });
   } else if ( instanceOfObject(obj, ClassHashTable) )
@@ -2069,8 +2083,13 @@ check_object(Any obj, Bool recursive, HashTable done, int errs)
 		       { errorPce(ht, NAME_freedKeyValue,
 				  CtoName(pp(s->name)), s->value);
 			 errs++;
-		       } else if ( recursive == ON )
-		       { Test(s->name);
+		       } else if ( recursive == ON && isObject(s->name) )
+		       { if ( !isProperObject(s->name) )
+			 { errorPce(ht, NAME_badKeyValue,
+				    CtoName(pp(s->name)), s->value);
+			   errs++;
+			 } else
+			   Test(s->name);
 		       }
 		     }
 		     if ( isObject(s->value) )
@@ -2078,8 +2097,13 @@ check_object(Any obj, Bool recursive, HashTable done, int errs)
 		       { errorPce(ht, NAME_freedValueValue,
 				  s->name, CtoName(pp(s->value)));
 			 errs++;
-		       } else if ( recursive == ON )
-		       { Test(s->value);
+		       } else if ( recursive == ON && isObject(s->value) )
+		       { if ( !isProperObject(s->value) )
+			 { errorPce(ht, NAME_badValueValue,
+				    s->name, CtoName(pp(s->value)));
+			   errs++;
+			 } else
+			   Test(s->value);
 		       }
 		     }
 		   });
