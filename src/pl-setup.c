@@ -313,7 +313,8 @@ use to the OS.
 static void
 unmap(s)
 Stack s;
-{ caddress addr = (caddress) align_size(s->top + 1);
+{ caddress top  = (s->top > s->min ? s->top : s->min);
+  caddress addr = (caddress) align_size(top + 1);
 
   if ( addr < s->max )
   { if ( munmap(addr, s->max - addr) != 0 )
@@ -612,14 +613,15 @@ long limit;
 }
 
 static void
-init_stack(s, name, base, limit)
+init_stack(s, name, base, limit, minsize)
 Stack s;
 char *name;
 caddress base;
-long limit;
-{ s->maxlimit = limit;		/* deleted this notion */
+long limit, minsize;
+{ s->maxlimit = limit;			/* deleted this notion */
   s->name     = name;
   s->base     = s->max = s->top = base;
+  s->min      = s->base + minsize;	/* No need to get below this value */
   limit_stack(s, limit);
 #if O_SHARED_MEMORY
 #if O_SHM_ALIGN_FAR_APART
@@ -639,6 +641,9 @@ long limit;
   s->segments[0].base = base;
 #endif O_SHM_ALIGN_FAR_APART
 #endif O_SHARED_MEMORY
+
+  while(s->max < s->min)
+    map(s);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -721,17 +726,18 @@ long local, global, trail, argument, lock;
 
   base += heap;
 
-#define INIT_STACK(name, print) \
+#define INIT_STACK(name, print, minsize) \
   DEBUG(1, printf("%s stack at 0x%x; size = %ld\n", print, base, name)); \
-  init_stack(&stacks.name, print, base, name); \
+  init_stack(&stacks.name, print, base, name, minsize); \
   base += name + STACK_SEPARATION; \
   base = align_base(base);
+#define K * 1024
 
-  INIT_STACK(global,   "global");
-  INIT_STACK(local,    "local");
-  INIT_STACK(trail,    "trail");
-  INIT_STACK(lock,     "lock");
-  INIT_STACK(argument, "argument");
+  INIT_STACK(global,   "global",   8 K);
+  INIT_STACK(local,    "local",    8 K);
+  INIT_STACK(trail,    "trail",    8 K);
+  INIT_STACK(lock,     "lock",     0 K);
+  INIT_STACK(argument, "argument", 1 K);
 
   pl_signal(SIGSEGV, segv_handler);
 }

@@ -1039,6 +1039,7 @@ struct lock
 #define STACK(type) \
 	{ type		base;		/* base address of the stack */     \
 	  type		top;		/* current top of the stack */      \
+	  type		min;		/* donot shrink below this value */ \
 	  type		max;		/* allocated maximum */		    \
 	  long		limit;		/* how big it is allowed to grow */ \
 	  long		maxlimit;	/* maximum limit */                 \

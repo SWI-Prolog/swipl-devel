@@ -835,13 +835,13 @@ initExpand()
   CWDdir[0] = EOS;
 
 #if unix
-  if ( cpaths = getenv("CANONICAL_PATHS") )
+  if ( (cpaths = getenv("CANONICAL_PATHS")) )
   { char buf[MAXPATHLEN];
 
     while(*cpaths)
     { char *e;
 
-      if ( e = index(cpaths, ':') )
+      if ( (e = index(cpaths, ':')) )
       { int l = e-cpaths;
 
 	strncpy(buf, cpaths, l);
@@ -855,8 +855,8 @@ initExpand()
     }
   }
 
-  if ( dir = getenv("HOME") ) canoniseDir(dir);
-  if ( dir = getenv("PWD")  ) canoniseDir(dir);
+  if ( (dir = getenv("HOME")) ) canoniseDir(dir);
+  if ( (dir = getenv("PWD"))  ) canoniseDir(dir);
 #endif
 }
 
