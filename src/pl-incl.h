@@ -1002,7 +1002,7 @@ struct functorDef
   word		functor;	/* as appearing on the global stack */
   word		name;		/* Name of functor */
   int		arity;		/* arity of functor */
-  unsigned short flags;		/* Flag field holding: */
+  unsigned      flags;		/* Flag field holding: */
 		/* INLINE_F	   Inlined foreign (system) predicate */
 };
 
