@@ -615,9 +615,21 @@ PL_EXPORT(void)		_PL_get_arg(int index, term_t t, term_t a);
 #define BUF_RING	0x0100
 #define BUF_MALLOC	0x0200
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Output   representation   for   PL_get_chars()     and    friends.   The
+prepresentation type REP_FN is for   PL_get_file_name()  and friends. On
+Windows we use UTF-8 which is translated   by the `XOS' layer to Windows
+UNICODE file functions.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #define REP_ISO_LATIN_1 0x0000		/* output representation */
 #define REP_UTF8 	0x1000
 #define REP_MB		0x2000
+#ifdef WIN32
+#define REP_FN		REP_UTF8
+#else
+#define REP_FN		REP_MB
+#endif
 
 #ifdef SIO_MAGIC			/* defined from <SWI-Stream.h> */
 		 /*******************************

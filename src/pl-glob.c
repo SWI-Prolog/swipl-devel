@@ -569,7 +569,7 @@ pl_expand_file_name(term_t f, term_t list)
   term_t head = PL_new_term_ref();
   int i;
 
-  if ( !PL_get_chars_ex(f, &s, CVT_ALL|REP_MB) )
+  if ( !PL_get_chars_ex(f, &s, CVT_ALL|REP_FN) )
     fail;
   if ( strlen(s) > sizeof(spec)-1 )
     return PL_error(NULL, 0, "File name too long",
@@ -585,7 +585,7 @@ pl_expand_file_name(term_t f, term_t list)
   { const char *e = expand_entry(&info, i);
 
     if ( !PL_unify_list(l, head, l) ||
-	 !PL_unify_chars(head, PL_ATOM|REP_MB, -1, e) )
+	 !PL_unify_chars(head, PL_ATOM|REP_FN, -1, e) )
       goto failout;
   }
 

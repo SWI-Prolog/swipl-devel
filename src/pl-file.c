@@ -2126,7 +2126,7 @@ openStream(term_t file, term_t mode, term_t options)
   }
 
   *h = EOS;
-  if ( PL_get_chars(file, &path, CVT_ATOM|CVT_STRING|CVT_INTEGER|REP_MB) )
+  if ( PL_get_chars(file, &path, CVT_ATOM|CVT_STRING|CVT_INTEGER|REP_FN) )
   { if ( !(s = Sopen_file(path, how)) )
     { PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
 	       ATOM_open, ATOM_source_sink, file);
@@ -2140,7 +2140,7 @@ openStream(term_t file, term_t mode, term_t options)
     char *cmd;
 
     PL_get_arg(1, file, a);
-    if ( !PL_get_chars(a, &cmd, CVT_ATOM|CVT_STRING|REP_MB) )
+    if ( !PL_get_chars(a, &cmd, CVT_ATOM|CVT_STRING|REP_FN) )
     { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, a);
       return NULL;
     }
@@ -3396,14 +3396,14 @@ PL_get_file_name(term_t n, char **namep, int flags)
     if ( !PL_call_predicate(NULL, cflags, pred, av) )
       fail;
     
-    return PL_get_chars_ex(av+1, namep, CVT_ATOMIC|BUF_RING|REP_MB);
+    return PL_get_chars_ex(av+1, namep, CVT_ATOMIC|BUF_RING|REP_FN);
   }
 
   if ( flags & PL_FILE_NOERRORS )
-  { if ( !PL_get_chars(n, &name, CVT_ALL|REP_MB) )
+  { if ( !PL_get_chars(n, &name, CVT_ALL|REP_FN) )
       fail;
   } else
-  { if ( !PL_get_chars_ex(n, &name, CVT_ALL|REP_MB) )
+  { if ( !PL_get_chars_ex(n, &name, CVT_ALL|REP_FN) )
       fail;
   }
 
@@ -3690,7 +3690,7 @@ pl_absolute_file_name(term_t name, term_t expanded)
 
   if ( PL_get_file_name(name, &n, 0) &&
        (n = AbsoluteFile(n, tmp)) )
-    return PL_unify_chars(expanded, PL_ATOM|REP_MB, -1, n);
+    return PL_unify_chars(expanded, PL_ATOM|REP_FN, -1, n);
 
   fail;
 }
@@ -3716,7 +3716,7 @@ pl_working_directory(term_t old, term_t new)
   if ( !(wd = PL_cwd()) )
     fail;
 
-  if ( PL_unify_chars(old, PL_ATOM|REP_MB, -1, wd) )
+  if ( PL_unify_chars(old, PL_ATOM|REP_FN, -1, wd) )
   { if ( PL_compare(old, new) != 0 )
     { char *n;
 
@@ -3745,7 +3745,7 @@ pl_file_base_name(term_t f, term_t b)
   if ( !PL_get_chars_ex(f, &n, CVT_ALL) )
     fail;
 
-  return PL_unify_chars(b, PL_ATOM|REP_MB, -1, BaseName(n));
+  return PL_unify_chars(b, PL_ATOM|REP_FN, -1, BaseName(n));
 }
 
 
@@ -3757,7 +3757,7 @@ pl_file_dir_name(term_t f, term_t b)
   if ( !PL_get_chars_ex(f, &n, CVT_ALL) )
     fail;
 
-  return PL_unify_chars(b, PL_ATOM|REP_MB, -1, DirName(n, tmp));
+  return PL_unify_chars(b, PL_ATOM|REP_FN, -1, DirName(n, tmp));
 }
 
 
@@ -3796,13 +3796,13 @@ pl_file_name_extension(term_t base, term_t ext, term_t full)
   char *b = NULL, *e = NULL, *f;
   char buf[MAXPATHLEN];
 
-  if ( PL_get_chars(full, &f, CVT_ALL|REP_MB) )
+  if ( PL_get_chars(full, &f, CVT_ALL|REP_FN) )
   { char *s = f + strlen(f);		/* ?base, ?ext, +full */
 
     while(*s != '.' && *s != '/' && s > f)
       s--;
     if ( *s == '.' )
-    { if ( PL_get_chars(ext, &e, CVT_ALL|REP_MB) )
+    { if ( PL_get_chars(ext, &e, CVT_ALL|REP_FN) )
       { if ( e[0] == '.' )
 	  e++;
 	if ( trueFeature(FILE_CASE_FEATURE) )
@@ -3811,14 +3811,14 @@ pl_file_name_extension(term_t base, term_t ext, term_t full)
 	{ TRY(strcasecmp(&s[1], e) == 0);
 	}
       } else
-      { TRY(PL_unify_chars(ext, PL_ATOM|REP_MB, -1, &s[1]));
+      { TRY(PL_unify_chars(ext, PL_ATOM|REP_FN, -1, &s[1]));
       }
       if ( s-f > MAXPATHLEN )
 	return name_too_long();
       strncpy(buf, f, s-f);
       buf[s-f] = EOS;
 
-      return PL_unify_chars(base, PL_ATOM|REP_MB, -1, buf);
+      return PL_unify_chars(base, PL_ATOM|REP_FN, -1, buf);
     }
     if ( PL_unify_atom_chars(ext, "") &&
 	 PL_unify(full, base) )
@@ -3829,8 +3829,8 @@ pl_file_name_extension(term_t base, term_t ext, term_t full)
     return PL_error("file_name_extension", 3, NULL, ERR_TYPE,
 		    ATOM_atom, full);
 
-  if ( PL_get_chars_ex(base, &b, CVT_ALL|BUF_RING|REP_MB) &&
-       PL_get_chars_ex(ext, &e, CVT_ALL|REP_MB) )
+  if ( PL_get_chars_ex(base, &b, CVT_ALL|BUF_RING|REP_FN) &&
+       PL_get_chars_ex(ext, &e, CVT_ALL|REP_FN) )
   { char *s;
 
     if ( e[0] == '.' )		/* +Base, +Extension, -full */
@@ -3844,7 +3844,7 @@ pl_file_name_extension(term_t base, term_t ext, term_t full)
     *s++ = '.';
     strcpy(s, e);
 
-    return PL_unify_chars(full, PL_ATOM|REP_MB, -1, buf);
+    return PL_unify_chars(full, PL_ATOM|REP_FN, -1, buf);
   } else
     fail;
 }
