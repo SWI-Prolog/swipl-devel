@@ -152,6 +152,9 @@
 /* Program to run the C preprocessor */
 #undef PROG_CPP
 
+/* we have fcntl() and it supports F_SETLKW */
+#undef FCNTL_LOCKS
+
 /* The number of bytes in a int.  */
 #undef SIZEOF_INT
 
@@ -181,6 +184,9 @@
 
 /* Define if you have the fchmod function.  */
 #undef HAVE_FCHMOD
+
+/* Define if you have the fcntl function.  */
+#undef HAVE_FCNTL
 
 /* Define if you have the floor function.  */
 #undef HAVE_FLOOR

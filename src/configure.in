@@ -392,7 +392,7 @@ AC_CHECK_HEADERS(floatingpoint.h)
 
 AC_CHECK_FUNCS(access fchmod chmod dossleep fstat readlink getwd getcwd)
 AC_CHECK_FUNCS(getpagesize getpwnam getrlimit gettimeofday opendir sysconf)
-AC_CHECK_FUNCS(popen putenv random remove rename select)
+AC_CHECK_FUNCS(popen putenv random remove rename select fcntl)
 AC_CHECK_FUNCS(signal sigset sigprocmask sleep usleep srand srandom stat)
 AC_CHECK_FUNCS(memmove stricmp strlwr sigaction sigsetmask siggetmask sigblock)
 AC_CHECK_FUNCS(rint aint floor ceil isnan tcsetattr cfmakeraw)
@@ -427,6 +427,22 @@ else
 fi
 rm -f frame.o
 fi
+
+if test "$ac_cv_func_fcntl" = yes; then
+  AC_MSG_CHECKING("fcntl based locking");
+  AC_TRY_COMPILE(
+[
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+],
+[ struct flock buf;
+  fcntl(0, F_SETLKW, &buf);
+], AC_DEFINE(FCNTL_LOCKS)
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+fi
+
 
 AC_MSG_CHECKING("alignment restrictions on doubles")
 AC_TRY_RUN(

@@ -141,3 +141,6 @@
 
 /* Program to run the C preprocessor */
 #undef PROG_CPP
+
+/* we have fcntl() and it supports F_SETLKW */
+#undef FCNTL_LOCKS

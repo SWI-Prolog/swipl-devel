@@ -174,6 +174,9 @@ typedef unsigned long sigset_t;		/* we don't have this */
 /* Define if you have the chmod function.  */
 #define HAVE_CHMOD 1
 
+/* we have fcntl() and it supports F_SETLKW */
+#undef FCNTL_LOCKS
+
 /* Define if you have the dlopen function.  */
 /* #undef HAVE_DLOPEN */
 

@@ -1508,7 +1508,9 @@ Sopen_file(const char *path, const char *how)
     return NULL;
 
   if ( lock )
-  { struct flock buf;
+  { 
+#ifdef FCNTL_LOCKS
+    struct flock buf;
 
     memset(&buf, 0, sizeof(buf));
     buf.l_type = (lock == lread ? F_RDLCK : F_WRLCK);
@@ -1519,6 +1521,11 @@ Sopen_file(const char *path, const char *how)
       errno = save;
       return NULL;
     }
+#else					/* we don't have locking */
+    close(fd);
+    errno = EINVAL;
+    return NULL;
+#endif
   }
 
   lfd = (long)fd;

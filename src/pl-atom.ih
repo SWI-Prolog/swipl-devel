@@ -467,3 +467,5 @@
 #define ATOM_stack_parameter MK_ATOM(466)
 #define ATOM_hash         MK_ATOM(467)
 #define ATOM_matches      MK_ATOM(468)
+#define ATOM_shared       MK_ATOM(469)
+#define ATOM_exclusive    MK_ATOM(470)
