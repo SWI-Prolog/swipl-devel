@@ -241,6 +241,7 @@ make_proto_menu(Menu, Proto, Attribute, Values) :-
 		       message(@receiver?frame, client_attribute,
 			       Attribute, @arg1))),
 	send(Menu, off_image, @nil),
+	send(Menu, border, 2),
 	send(Menu, layout, horizontal),
 	(   member(Value, Values),
 		send(Proto, Attribute, Value),
@@ -403,16 +404,15 @@ that if the window is not shown, we won't update the contents.
 client(A, Client:chain*) :->
 	"Set the graphical I'm editing"::
 	get(A, member, dialog, Dialog),
-	(   get(Dialog, displayed, @on),
-	    get(A, blocked, B), B == 0
+	(   get(A, blocked, B), B == 0
 	->  (    Client == @nil
 	    ->   send(Dialog?graphicals, for_some,
 		      message(@arg1, active, @off))
 	    ;    send(A, fill_items, Client)
-	    ),
-	    send(A, slot, client, Client)
+	    )
 	;   true
-	).
+	),
+	send(A, slot, client, Client).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

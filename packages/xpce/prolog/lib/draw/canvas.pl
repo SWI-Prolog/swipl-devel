@@ -534,12 +534,13 @@ edit_selection(Canvas) :->
 	get(Canvas, attribute_editor, Editor),
 	(    Editor == @nil    
 	->   send(Canvas, slot, attribute_editor,
-		  draw_attribute_editor(Canvas)),
-	     send(Canvas?attribute_editor, open)
-	;    send(Canvas?attribute_editor, show, @on),
-	     send(Canvas?attribute_editor, expose)
+		  new(A, draw_attribute_editor(Canvas))),
+	     send(A, open)
+	;    A = Editor,
+	     send(A, show, @on),
+	     send(A, expose)
 	),
-	send(Canvas?attribute_editor, client, Canvas?selection).
+	send(A, client, Canvas?selection).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Update  the setting   of   the attribute editor   because  either  the

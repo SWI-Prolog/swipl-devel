@@ -44,7 +44,7 @@ to file.
 		*          ICON MENU		*
 		********************************/
 
-:- pce_begin_class(draw_menu, window).
+:- pce_begin_class(draw_menu, dialog).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Variables to keep track of load/save.
@@ -68,10 +68,11 @@ NOTE:	Formats are a rather hacky solution.  There are plans to
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 initialise(M) :->
-	send(M, send_super, initialise, 'Icons', size(48, 200)),
-	send_list(M, [hor_stretch, hor_shrink], 0),
-	send(M, format, new(Fmt, format(horizontal, 1, @on))),
-	send(Fmt, row_sep, 0),
+	send(M, send_super, initialise, 'Icons'),
+	send(M, gap, size(0,0)),
+	send(M, display, new(P, menu(proto, choice, message(@arg1, activate)))),
+	send(P, layout, vertical),
+	send(P, show_label, @off),
 	send(M, modified, @off).
 
 
@@ -88,19 +89,22 @@ displayed at the bottom.
 
 proto(M, Proto:'graphical|link*', Mode:name, Cursor:cursor) :->
 	"Attach a new prototype"::
-	send(M, display, draw_icon(Proto, Mode, Cursor)),
+	get(M, member, proto, Menu),
+	send(Menu, append, draw_icon(Proto, Mode, Cursor)),
 	send(M, modified, @on).
 
 
-current(M, Icon) :<-
+current(M, Icon:draw_icon) :<-
 	"Find current icon"::
-	get(M?graphicals, find, @arg1?inverted == @on, Icon).
+	get(M, member, proto, Menu),
+	get(Menu, selection, Icon).
 
 
 activate_select(M) :->
 	"Activate icon that does select"::
-	get(M?graphicals, find, @arg1?(mode) == select, Icon),
-	send(Icon, activate).
+	get(M, member, proto, Menu),
+	get(Menu?members, find, @arg1?(mode) == select, Item),
+	send(Menu, selection, Item).
 
 
 		/********************************
@@ -137,8 +141,6 @@ create_proto(M, Graphicals:chain) :->
 	),
 	send(M, proto, Proto, draw_proto, dotbox).
 	
-
-
 
 		/********************************
 		*            DELETE		*
@@ -235,7 +237,7 @@ prototype displayed in the icon.  Using a bitmap, we have to recompute
 the contents of the bitmap.  This however is not very hard.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- pce_begin_class(draw_icon, bitmap).
+:- pce_begin_class(draw_icon, menu_item).
 
 variable(proto,		'graphical|link*',	get,
 	 "Prototype represented").
@@ -244,10 +246,11 @@ variable(mode,		name,		both,
 variable(mode_cursor,	name,		both,
 	 "Associated cursor-name").
 
-
 initialise(I, Proto:'graphical|link*', Mode:name, Cursor:cursor) :->
 	"Create an icon for a specific mode"::
-	send(I, send_super, initialise, image(@nil, 48, 32)),
+	send(I, send_super, initialise,
+	     @nil, @default, image(@nil, 48, 32)),
+	send(I, slot, value, I),	% hack, needs to be fixed!
 	send(I, mode, Mode),
 	send(I, proto, Proto),
 	send(I, slot, mode_cursor, Cursor?name).
@@ -277,9 +280,10 @@ draw the prototype  in the icon and  send `Object ->done' to the clone
 to inform PCE we have done with it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-paint_proto(I, Proto:'link|graphical*') :->
+paint_proto(MI, Proto:'link|graphical*') :->
 	"Paint a small version of the prototype"::
-	send(I, paint_outline),
+	send(MI, paint_outline),
+	get(MI, label, I),
 	(   Proto == @nil
 	->  true
 	;   send(Proto, instance_of, link)
@@ -312,9 +316,10 @@ bitmap file named `Mode.bm' in PCE's bitmap search-path.  We copy this
 image in the bitmap.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-paint_outline(I) :->
+paint_outline(MI) :->
 	"Paint the mode indicating bitmap"::
-	get(I, mode, Mode),
+	get(MI, label, I),
+	get(MI, mode, Mode),
 	concat(Mode, '.bm', Outline),
 	send(I, copy, image(Outline)).
 
@@ -348,22 +353,6 @@ attribute(I, Att:name, Val:any) :->
 		********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The event  parsing.  Currently we  only define left-click  to activate
-the icon.  Activating the  gesture is done via  the ->event method, so
-the gestures won't be saved to file.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-:- pce_global(@icon_recogniser,
-	      new(handler_group(click_gesture(left, '', single,
-					      message(@event?receiver,
-						      activate))))).
-
-
-event(_I, Ev:event) :->
-	send(@icon_recogniser, event, Ev).
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Activate an icon.   First it sets `Graphical   ->inverted' to @on  for
 only this icon in  the menu.  Note  the  use of `Device ->for_all' and
 `if'.   This is the  most efficient way to  reach our  goals,  both in
@@ -373,11 +362,9 @@ performance.
 
 activate(I) :->
 	"Select the icon; set mode and proto"::
-	send(I?device, for_all, @default,
-	     if(@arg1 == I,
-		message(@arg1, inverted, @on),
-		message(@arg1, inverted, @off))),
-	send(I?frame, mode, I?mode, I?mode_cursor),
-	send(I?frame, proto, I?proto).
+	get(I, menu, Menu),
+	send(Menu, selection, I),
+	send(Menu?frame, mode, I?mode, I?mode_cursor),
+	send(Menu?frame, proto, I?proto).
 
 :- pce_end_class.
