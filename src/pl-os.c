@@ -2307,23 +2307,16 @@ Unsetenv(char *name)
 
 #ifdef __unix__
 #define SPECIFIC_SYSTEM 1
-#if defined(HAVE_SYS_WAIT_H) || defined(UNION_WAIT)
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+According to the autoconf docs HAVE_SYS_WAIT_H   is set if sys/wait.h is
+defined *and* is POSIX.1 compliant,  which   implies  it uses int status
+argument to wait() 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef HAVE_SYS_WAIT_H
+#undef UNION_WAIT
 #include <sys/wait.h>
-#endif
-
-#ifdef UNION_WAIT
-
-#define wait_t union wait
-
-#ifndef WEXITSTATUS
-#define WEXITSTATUS(s) ((s).w_status)
-#endif
-#ifndef WTERMSIG
-#define WTERMSIG(s) ((s).w_status)
-#endif
-
-#else /*UNION_WAIT*/
-
 #define wait_t int
 
 #ifndef WEXITSTATUS
@@ -2333,7 +2326,22 @@ Unsetenv(char *name)
 # define WIFEXITED(stat_val) (((stat_val) & 255) == 0)
 #endif
 
+#else /*HAVE_SYS_WAIT_H*/
+
+#ifdef UNION_WAIT			/* Old BSD style wait */
+#include <sys/wait.h>
+#define wait_t union wait
+
+#ifndef WEXITSTATUS
+#define WEXITSTATUS(s) ((s).w_status)
+#endif
+#ifndef WTERMSIG
+#define WTERMSIG(s) ((s).w_status)
+#endif
 #endif /*UNION_WAIT*/
+
+#endif /*HAVE_SYS_WAIT_H*/
+
 
 int
 System(char *cmd)
