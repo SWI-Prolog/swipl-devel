@@ -3622,6 +3622,7 @@ file_to_dtd(const char *file, const char *doctype)
   if ( load_dtd_from_file(p, file) )
   { dtd *dtd = p->dtd;
 
+    dtd->references++;			/* avoid deletion */
     free_dtd_parser(p);
     return dtd;
   } else

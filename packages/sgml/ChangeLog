@@ -1,3 +1,6 @@
+* FIXED: file_to_dtd() not to free the created DTD.  This makes dtd2pl work
+  again. (Richard O'Keefe)
+
 * FIXED: Allow for layout before sub-models: ( (a,b)|c).  (Andrew Dadakov)
 
 * FIXED: Allow for quoted nmtoken, etc. in ATTLIST declaration.
