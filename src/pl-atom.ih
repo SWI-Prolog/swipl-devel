@@ -505,3 +505,4 @@
 #define ATOM_message_queue MK_ATOM(504)
 #define ATOM_dmessage_queue MK_ATOM(505)
 #define ATOM_thread_local MK_ATOM(506)
+#define ATOM_thread_local_procedure MK_ATOM(507)

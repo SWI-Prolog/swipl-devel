@@ -386,9 +386,9 @@ free_prolog_thread(void *data)
   /*PL_unregister_atom(ld->prompt.current);*/
 
   freeThreadSignals(ld);
+  cleanupLocalDefinitions(ld);
 
   LOCK();
-  cleanupLocalDefinitions(ld);
   destroy_message_queue(&ld->thread.messages);
   GD->statistics.threads_finished++;
   GD->statistics.thread_cputime += CpuTime(CPU_USER);
@@ -2572,7 +2572,7 @@ localiseDefinition(Definition def)
 
     This function is called from getProcDefinition() if the procedure is
     not yet `localised'.  Calling this function must be guarded by the
-    L_THREAD mutex.
+    L_PREDICATE mutex.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef offsetof
@@ -2644,8 +2644,10 @@ cleanupLocalDefinitions(PL_local_data_t *ld)
     next = ch->next;
     
     assert(true(def, P_THREAD_LOCAL));
+    PL_LOCK(L_PREDICATE);
     local = def->definition.local->thread[id];
     def->definition.local->thread[id] = NULL;
+    PL_UNLOCK(L_PREDICATE);
 
     destroyDefinition(local);
 

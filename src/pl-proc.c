@@ -811,6 +811,10 @@ abolishProcedure(Procedure proc, Module module)
   } else if ( true(def, FOREIGN) )	/* foreign: make normal */
   { def->definition.clauses = def->lastClause = NULL;
     resetProcedure(proc, TRUE);
+  } else if ( true(def, P_THREAD_LOCAL) )
+  { UNLOCK();
+    return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+		    ATOM_modify, ATOM_thread_local_procedure, def);
   } else				/* normal Prolog procedure */
   { removeClausesProcedure(proc, 0);
 
