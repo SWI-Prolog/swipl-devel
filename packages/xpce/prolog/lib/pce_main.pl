@@ -58,7 +58,7 @@
 
 pce_main_loop(Goal) :-
 	setup_runtime,
-	unix(argv(Argv)),
+	current_prolog_flag(argv, Argv),
 	application_flags(Argv, ApplArgv),
 	pce_loop(Goal, ApplArgv),
 	halt.
