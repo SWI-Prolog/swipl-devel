@@ -306,9 +306,9 @@ typedef struct
   } bags;
 
   struct
-  { VarDef *	_vardefs;		/* compiler variable analysis */
-    int		_nvardefs;
-    int		_filledVars;
+  { VarDef *	vardefs;		/* compiler variable analysis */
+    int		nvardefs;
+    int		filledVars;
   } comp;
 
   struct

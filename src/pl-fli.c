@@ -130,19 +130,13 @@ wordToTermRef(Word p)
 }
 
 
-
 		 /*******************************
 		 *	   CREATE/RESET		*
 		 *******************************/
 
-#undef PL_new_term_refs
-#undef PL_new_term_ref
-#undef PL_reset_term_refs
-
 term_t
-PL_new_term_refs(int n)
-{ GET_LD
-  Word t;
+PL_new_term_refs__LD(int n ARG_LD)
+{ Word t;
   term_t r;
 
   requireStack(local, sizeof(word)*n);
@@ -158,9 +152,8 @@ PL_new_term_refs(int n)
 
 
 term_t
-PL_new_term_ref()
-{ GET_LD
-  Word t;
+PL_new_term_ref__LD(ARG1_LD)
+{ Word t;
   term_t r;
 
   requireStack(local, sizeof(word));
@@ -175,11 +168,33 @@ PL_new_term_ref()
 }
 
 
+#undef PL_new_term_ref
+#undef PL_new_term_refs
+
+term_t
+PL_new_term_refs(int n)
+{ GET_LD
+
+  return PL_new_term_refs__LD(n PASS_LD);
+}
+
+
+term_t
+PL_new_term_ref()
+{ GET_LD
+
+  return PL_new_term_ref__LD(PASS_LD1);
+}
+
+#define PL_new_term_ref()	PL_new_term_ref__LD(PASS_LD1)
+#define PL_new_term_refs(n)	PL_new_term_refs__LD(n PASS_LD)
+
+
 void
 PL_reset_term_refs(term_t r)
 { GET_LD
 
-  lTop = (LocalFrame) valTermRef(r);
+  resetTermRefs(r);
 }
 
 
@@ -1674,7 +1689,7 @@ PL_unify_list_ncodes(term_t l, unsigned int len, const char *chars)
     }
   
     rval = PL_unify_nil(t);
-    PL_reset_term_refs(head);
+    resetTermRefs(head);
   
     return rval;
   }
@@ -1707,7 +1722,7 @@ PL_unify_list_nchars(term_t l, unsigned int len, const char *chars)
     }
   
     rval = PL_unify_nil(t);
-    PL_reset_term_refs(head);
+    resetTermRefs(head);
   
     return rval;
   }
@@ -1756,7 +1771,7 @@ PL_unify_arg(int index, term_t t, term_t a)
   { Word p = argTermP(w, index-1);
     Word p2 = valHandleP(a);
 
-    return unify_ptrs(p, p2);
+    return unify_ptrs(p, p2 PASS_LD);
   }
 
   fail;
@@ -1982,13 +1997,13 @@ cont:
       }
     }
 
-    PL_reset_term_refs(tsave);
+    resetTermRefs(tsave);
     discardBuffer(&buf);
     return TRUE;
   }
 
 failout:
-  PL_reset_term_refs(tsave);
+  resetTermRefs(tsave);
   discardBuffer(&buf);
 
   return FALSE;

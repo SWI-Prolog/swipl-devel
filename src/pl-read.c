@@ -2029,7 +2029,7 @@ read_term(?term, ReadData rd)
     variable-handling code uses terms of the type STG_GLOBAL|TAG_ATOM,
     which are not valid Prolog terms. Some of the temporary
     term-references will even be initialised to this data after
-    read has completed.  Hence the PL_reset_term_refs() in this
+    read has completed.  Hence the resetTermRefs() in this
     function, which not only saves memory, but also guarantees the
     stacks are in a sane state after read has completed.
 
@@ -2075,12 +2075,12 @@ read_term(term_t term, ReadData rd)
   if ( rd->singles && !check_singletons(rd) )
     goto failed;
 
-  PL_reset_term_refs(result);
+  resetTermRefs(result);
   unblockGC();
   succeed;
 
 failed:
-  PL_reset_term_refs(result);
+  resetTermRefs(result);
   unblockGC();
   fail;
 }

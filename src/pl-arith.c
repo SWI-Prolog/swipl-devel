@@ -453,7 +453,7 @@ valueExpression(term_t t, Number r ARG_LD)
     }
 
     rval = prologFunction(f, h0, r);
-    PL_reset_term_refs(h0);
+    resetTermRefs(h0);
     return rval;
   }
 #endif
@@ -485,7 +485,7 @@ valueExpression(term_t t, Number r ARG_LD)
 	else
 	  rval = FALSE;
 
-	PL_reset_term_refs(a);
+	resetTermRefs(a);
 	break;
       }
       case 2:
@@ -502,7 +502,7 @@ valueExpression(term_t t, Number r ARG_LD)
 	} else
 	  rval = FALSE;
 
-	PL_reset_term_refs(a);
+	resetTermRefs(a);
 	break;
       }
       default:
@@ -1084,7 +1084,9 @@ ar_random(Number n1, Number r)
     return PL_error("random", 1, NULL, ERR_AR_TYPE, ATOM_integer, n1);
 
   if ( n1->value.i < 1 )
-  { term_t i = PL_new_term_ref();
+  { GET_LD
+    term_t i = PL_new_term_ref();
+
     PL_put_integer(i, n1->value.i);
 
     return PL_error("random", 1, NULL, ERR_DOMAIN, ATOM_not_less_than_zero, i);
@@ -1149,7 +1151,8 @@ pl_is(term_t v, term_t e)
 #if O_PROLOG_FUNCTIONS
 word
 pl_arithmetic_function(term_t descr)
-{ Procedure proc;
+{ GET_LD
+  Procedure proc;
   functor_t fd;
   FunctorDef fdef;
   ArithFunction f;
@@ -1187,7 +1190,8 @@ pl_arithmetic_function(term_t descr)
 
 word
 pl_current_arithmetic_function(term_t f, word h)
-{ ArithFunction a;
+{ GET_LD
+  ArithFunction a;
   Module m = NULL;
   term_t head = PL_new_term_ref();
 

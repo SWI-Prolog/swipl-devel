@@ -1024,9 +1024,8 @@ PL_unify().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-unify_ptrs(Word t1, Word t2)
-{ GET_LD
-  mark m;
+unify_ptrs(Word t1, Word t2 ARG_LD)
+{ mark m;
   bool rval;
 
   Mark(m);
@@ -1208,9 +1207,10 @@ pl_unify_with_occurs_check(term_t t1, term_t t2)
 
 static LocalFrame
 findBlock(LocalFrame fr, Word block)
-{ for(; fr; fr = fr->parent)
+{ GET_LD
+  for(; fr; fr = fr->parent)
   { if ( fr->predicate == PROCEDURE_block3->definition &&
-	 unify_ptrs(argFrameP(fr, 0), block) )
+	 unify_ptrs(argFrameP(fr, 0), block PASS_LD) )
       return fr;
   }
 
@@ -1264,13 +1264,13 @@ Noord.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static LocalFrame
-findCatcher(LocalFrame fr, Word ex)
+findCatcher(LocalFrame fr, Word ex ARG_LD)
 { Definition catch3  = PROCEDURE_catch3->definition;
 
   for(; fr; fr = fr->parent)
   { if ( fr->predicate == catch3 &&
 	 false(fr, FR_CATCHED) &&
-	 unify_ptrs(argFrameP(fr, 1), ex) )
+	 unify_ptrs(argFrameP(fr, 1), ex PASS_LD) )
     { set(fr, FR_CATCHED);
       return fr;
     }
@@ -2597,7 +2597,7 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 
 	deRef(catcher);
 	except = *catcher;
-        catchfr = findCatcher(FR, catcher);
+        catchfr = findCatcher(FR, catcher PASS_LD);
 
 	SECURE(checkData(catcher));	/* verify all data on stacks stack */
 
@@ -2683,8 +2683,8 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	  discardChoicesAfter(FR PASS_LD);
 	  environment_frame = FR;
 	  undo_while_saving_term(&ch->mark, catcher);
-	  unify_ptrs(p, catcher);	/* undo_while_saving_term() also */
-					/* undoes unify of findCatcher() */
+	  unify_ptrs(p, catcher PASS_LD); /* undo_while_saving_term() also */
+					  /* undoes unify of findCatcher() */
 	  lTop = (LocalFrame) argFrameP(FR, 3); /* above the catch/3 */
 	  if ( LD->trim_stack_requested )
 	    trimStacks();

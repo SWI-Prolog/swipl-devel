@@ -1482,8 +1482,9 @@ typedef unsigned long PL_fid_t;		/* external foreign context-id */
 
 #define fid_t PL_fid_t			/* avoid AIX name-clash */
 
-#define consTermRef(p)	((Word)(p) - (Word)(lBase))
-#define valTermRef(r)	(&((Word)(lBase))[r])
+#define consTermRef(p)	 ((Word)(p) - (Word)(lBase))
+#define valTermRef(r)	 (&((Word)(lBase))[r])
+#define resetTermRefs(r) (lTop = (LocalFrame) valTermRef(r))
 
 #if O_SHIFT_STACKS
 #define SaveLocalPtr(s, ptr)	term_t s = consTermRef(ptr)
@@ -1898,55 +1899,5 @@ decrease).
 #define MK_ATOM(n)    		((n)<<7|TAG_ATOM|STG_STATIC)
 #include "pl-atom.ih"
 #include "pl-funct.ih"
-
-#ifdef O_INLINE_FLI
-
-#define PL_new_term_refs(n)	_PL_new_term_refs(n)
-#define PL_new_term_ref()	_PL_new_term_ref()
-#define PL_reset_term_refs(t)	_PL_reset_term_refs(t)
-
-static inline term_t
-_PL_new_term_refs(int n)
-{ GET_LD
-  Word t;
-  term_t r;
-
-  requireStack(local, sizeof(word)*n);
-  t = (Word)lTop;
-  r = consTermRef(t);
-
-  while( --n >= 0 )
-    setVar(*t++);
-
-  lTop = (LocalFrame)t
-  
-  return r;
-}
-
-
-static inline term_t
-_PL_new_term_ref()
-{ GET_LD
-  Word t;
-  term_t r;
-
-  requireStack(local, sizeof(word));
-  t = (Word)lTop;
-  r = consTermRef(t);
-  SECURE(assert(*t != QID_MAGIC));
-  setVar(*t);
-
-  lTop = (LocalFrame)(t+1);
-  
-  return r;
-}
-
-
-static inline void
-_PL_reset_term_refs(term_t r)
-{ lTop = (LocalFrame) valTermRef(r);
-}
-
-#endif /*O_INLINE_FLI*/
 
 #endif /*_PL_INCLUDE_H*/

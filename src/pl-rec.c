@@ -1637,7 +1637,7 @@ undo_while_saving_term(mark *m, Word term)
   { Word v = ((Word *)info.vars.base)[n];
     
     if ( onStack(local, v) || (v > gBase && v < m->globaltop) )
-      unify_ptrs(v, ((Word *)b.vars)[n]);
+      unify_ptrs(v, ((Word *)b.vars)[n] PASS_LD);
   }
 
   discardBuffer(&info.vars);

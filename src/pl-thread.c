@@ -979,7 +979,7 @@ run_thread_exit_hooks()
   }
 
   PL_discard_foreign_frame(fid);
-  PL_reset_term_refs(goal);
+  resetTermRefs(goal);
 }
 
 

@@ -668,7 +668,7 @@ pl_arg(term_t n, term_t term, term_t arg, word b)
       { if ( idx > 0 && idx <= arity )
 	{ Word ap = argTermP(*p, idx-1);
 	
-	  return unify_ptrs(valTermRef(arg), ap);
+	  return unify_ptrs(valTermRef(arg), ap PASS_LD);
 	}
 	if ( idx < 0 )
 	  return PL_error("arg", 3, NULL, ERR_DOMAIN,
@@ -887,7 +887,7 @@ start:
 
       for(i=1; ; i++)
       { if ( i == arity )
-	{ PL_reset_term_refs(a);
+	{ resetTermRefs(a);
 	  _PL_get_arg(i, t, t);
 	  goto start;			/* right-recursion optimisation */
 	} else
@@ -907,7 +907,7 @@ numberVars(term_t t, functor_t functor, int n)
 { term_t h2 = PL_copy_term_ref(t);
   int rval = do_number_vars(h2, functor, n);
 
-  PL_reset_term_refs(h2);
+  resetTermRefs(h2);
 
   return rval;
 }
@@ -1124,7 +1124,7 @@ pre_copy_analysis(Word t, int *index)
     if ( subvars == 0 )			/* ground term */
     { term_t h;
 
-      PL_reset_term_refs(thisterm);
+      resetTermRefs(thisterm);
       h = PL_new_term_ref();
       PL_put_integer(h, thisindex);
       *index = thisindex+1;		/* don't number in ground! */

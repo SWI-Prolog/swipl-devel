@@ -429,7 +429,7 @@ writeTerm(term_t t, int prec, write_options *options)
     rval = writeTerm2(t, prec, options);
 
   options->depth = levelSave;
-  PL_reset_term_refs(save);
+  resetTermRefs(save);
 
   return rval;
 }

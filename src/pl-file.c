@@ -713,7 +713,7 @@ closeFiles(int all)
 	  printMessage(ATOM_informational,
 		       PL_FUNCTOR, FUNCTOR_close_on_abort1,
 		         PL_TERM, t);
-	  PL_reset_term_refs(t);
+	  resetTermRefs(t);
 	}
 
 	closeStream(s2);
@@ -2654,7 +2654,7 @@ add_option(term_t options, functor_t f, atom_t val)
   PL_unify_list(options, head, options);
   PL_unify_term(head, PL_FUNCTOR, f, PL_ATOM, val);
 
-  PL_reset_term_refs(head);
+  resetTermRefs(head);
 }
 
 int

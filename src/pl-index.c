@@ -445,7 +445,8 @@ reindexClause(Clause clause)
 
 bool
 unify_index_pattern(Procedure proc, term_t value)
-{ Definition def = proc->definition;
+{ GET_LD
+  Definition def = proc->definition;
   unsigned long pattern = (def->indexPattern & ~NEED_REINDEX);
   int n, arity = def->functor->arity;
 

@@ -56,7 +56,7 @@ void *		xrealloc(void *mem, size_t size);
 
 /* pl-wam.c */
 word		pl_count(void);
-bool		unify_ptrs(Word t1, Word t2);
+bool		unify_ptrs(Word t1, Word t2 ARG_LD);
 bool		can_unify(Word t1, Word t2);
 void		TrailAssignment(Word p);
 void		DoTrail(Word p);
@@ -353,6 +353,8 @@ extern record_t PL_duplicate_record(record_t r);
 int		PL_unify_termv(term_t t, va_list args);
 term_t		wordToTermRef(Word p);
 void		_PL_get_arg__LD(int index, term_t t, term_t a ARG_LD);
+term_t		PL_new_term_ref__LD(ARG1_LD);
+term_t		PL_new_term_refs__LD(int n ARG_LD);
 int		PL_unify__LD(term_t t1, term_t t2 ARG_LD);
 void		registerForeignLicenses(void);
 

@@ -1,6 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ENHANCED: Multi-threaded performance:
+
+	- No longer use reference-counts on static code but use clause
+	  garbage collection to collect redefined static procedures.
+	- Large reduction of access to thread-local data by passing
+	  this data around and use one-fetch-per-function more widely.
+
   * ADDED: multi-threading support in the windows version based on
     pthread-win32, an Open Source emulation of POSIX threads on
     Win32.  Progress:
