@@ -75,3 +75,6 @@
 
 /* Define to prepare for multi-threading */
 #undef _REENTRANT
+
+/* Define if we can cast to va_list (say no if you are not sure) */
+#undef HAVE_CAST_VA_LIST

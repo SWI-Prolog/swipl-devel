@@ -1,3 +1,9 @@
+* FIXED: Crash, notably related to keyboard events destryoing the window
+  on which the event happened.  Reported by Lyosha.
+
+* PORT: Fixed vsscanf portability problems in src/ker/goodies.c.  Thanks to
+  Gertjan van Noord.
+
 VERSION 5.1.2
 =============
 

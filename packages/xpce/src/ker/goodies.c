@@ -635,7 +635,9 @@ scanstr(char *str, char *fmt, Any *r)
   }
 
   DEBUG(NAME_scan, Cprintf("argn = %d\n", argn));
-#ifndef HAVE_VSSCANF
+#if defined(HAVE_VSSCANF) && defined(HAVE_CAST_VA_LIST)
+  ar = vsscanf(str, fmt, (va_list) ptrs);
+#else
   switch(argn)
   { case 0:	ar = sscanf(str, fmt); break;
     case 1:	ar = sscanf(str, fmt, ptrs[0]); break;
@@ -732,9 +734,7 @@ scanstr(char *str, char *fmt, Any *r)
     default:	errorPce(NIL, NAME_tooManyArguments);
     		fail;
   }
-#else
-  ar = vsscanf(str, fmt, (va_list) ptrs);
-#endif  
+#endif /*HAVE_VSSCANF*/
 
   DEBUG(NAME_scan, Cprintf("ar = %d\n", argn));
 

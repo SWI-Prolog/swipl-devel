@@ -662,6 +662,8 @@ eventWindow(PceWindow sw, EventObj ev)
     rval = postEvent(ev, (Graphical) sw, popupGesture());
 
 out:
+  if ( isFreedObj(sw) )
+    goto destroyed;
   if ( rval == FAIL && isAEvent(ev, NAME_keyboard) )
   { if ( (rval = send(sw, NAME_typed, ev, ON, 0)) )
       goto out;
@@ -670,6 +672,7 @@ out:
   updateCursorWindow(sw);
 
   assign(sw, current_event, old_event);
+destroyed:
   delCodeReference(old_event);
 
   return rval;
