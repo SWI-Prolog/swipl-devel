@@ -14,6 +14,7 @@
 :- use_module(library(cgi)).
 :- use_module(library(sgml)).
 :- use_module(rdf).
+:- use_module(rdf_parser).
 :- use_module(rewrite).
 :- use_module(pretty_print).
 
