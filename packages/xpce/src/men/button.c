@@ -466,7 +466,10 @@ defaultButtonButton(Button b, Bool val)
 
 status
 isApplyButton(Button b)
-{ if ( instanceOfObject(b->message, ClassMessage) )
+{ if ( b->name == NAME_apply )
+    succeed;
+
+  if ( instanceOfObject(b->message, ClassMessage) )
   { Message m = (Message)b->message;
 
     if ( m->selector == NAME_apply )
