@@ -1562,7 +1562,7 @@ pl_sgml_parse(term_t parser, term_t options)
     }
 
   end:
-    if ( !recursive )
+    if ( !recursive && pd->stopat != SA_INPUT )
       end_document_dtd_parser(p);
     CHECKERROR;
 
