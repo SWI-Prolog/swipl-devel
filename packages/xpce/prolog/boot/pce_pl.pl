@@ -12,6 +12,7 @@
 	[ '$load_pce'/0
 	, strip_module/3
 	, require/1
+	, auto_call/1
 	, (meta_predicate)/1
 	, initialization/1
 	, 'pceloadc++'/1
@@ -23,7 +24,8 @@
 :- module_transparent
 	strip_module/3,
 	'$load_pce'/0,
-	require/1.
+	require/1,
+	auto_call/2.
 
 
 :- use_module(library(quintus), [(meta_predicate)/1, initialization/1]).
@@ -74,6 +76,27 @@ require(_Name/_Arity) :- !.
 require(Term) :-
 	'$warning'('require/1: malformed argument: ~w', [Term]).
 
+		 /*******************************
+		 *	   AUTO_CALL/2		*
+		 *******************************/
+
+%	auto_call(+Goal).
+%
+%	In some cases, you donot want to load the (library) module required
+%	to make some call at loadtime.  Examples in XPCE are common
+%	references to emacs/[0,1], show_key_bindings/1, the help system,
+%	etc.
+%
+%	SWI-Prolog defines autoloading and does not require this mechanism.
+%	for many Prologs, the definition
+%
+%		autoloading(Goal) :-
+%			functor(Goal, Name, Arity),
+%			require([Name/Arity]),
+%			Goal.
+
+auto_call(Goal) :-
+	Goal.
 
 		/********************************
 		*            BANNER		*
