@@ -63,11 +63,11 @@ foreign code creating global stack data (=../2, name/2, read/1, etc.).
 
 		  CONSEQUENCES FOR THE VIRTUAL MACHINE
 
-The virtual machine interpreter now should ensure the stack  frames  are
-in  a predicatable state.  For the moment, this implies that all frames,
-except for the current one (which only has its arguments filled)  should
-be  initialised fully.  I'm not yet sure whether we can't do better, but
-this is simple and safe and allows us to  debug  the  garbage  collector
+The virtual machine interpreter now should   ensure the stack frames are
+in a predictable state. For the moment,   this  implies that all frames,
+except for the current one (which only  has its arguments filled) should
+be initialised fully. I'm not yet sure   whether we can't do better, but
+this is simple and safe and  allows   us  to debug the garbage collector
 first before starting on the optimisations.
 
 
@@ -922,6 +922,15 @@ not be garbage collected during this pass. We cannot reverse marking the
 stacks and the trail-stack as one trailed   value might make another one
 non-garbage. It isn't too bad however as the   next GC will take care of
 the term.
+
+Early reset of trailed  assignments  is   another  issue.  If  a trailed
+location has not yet been  marked  it   can  only  be accessed by frames
+*after* the undo to this choicepoint took   place.  Hence, we can do the
+undo now and remove  the  cell   from  the  trailcell, saving trailstack
+space. For a trailed assignment this means   we should restore the value
+with the trailed value. Note however that  the trailed value has already
+been marked. We however can remove  this   mark  as it will be re-marked
+should it be accessible and otherwise it really is garbage. 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static GCTrailEntry
@@ -945,13 +954,25 @@ mark_choicepoints(Choice ch, GCTrailEntry te)
     for( ; te >= tm; te-- )		/* early reset of vars */
     { 
 #if O_DESTRUCTIVE_ASSIGNMENT
-      if ( ttag(te->address) == TAG_TRAILVAL )
+      if ( isTrailVal(te->address) )
       { Word tard = val_ptr(te[-1].address);
 
-	if ( is_marked(tard) )
+	if ( tard >= top )
+	{ te->address = 0;
+	  te--;
+	  te->address = 0;
+	  trailcells_deleted += 2;
+	} else if ( is_marked(tard) )
 	{ assignments++;
 	} else
-	{ setVar(*tard);
+	{ Word gp;
+	  DEBUG(3, Sdprintf("Early reset of assignment at %p (*=0x%lx)\n",
+		   tard, *tard));
+	  gp = val_ptr(te->address);
+	  assert(onGlobal(gp));
+	  *tard = *gp;
+	  unmark(tard);
+
 	  te->address = 0;
 	  te--;
 	  te->address = 0;
@@ -967,7 +988,7 @@ mark_choicepoints(Choice ch, GCTrailEntry te)
 	  trailcells_deleted++;
 	} else if ( !is_marked(tard) )	/* garbage */
 	{ setVar(*tard);
-	  DEBUG(3, Sdprintf("Early reset of %p\n", te->address));
+	  DEBUG(3, Sdprintf("Early reset at %p\n", tard));
 	  te->address = 0;
 	  trailcells_deleted++;
 	}
@@ -1033,7 +1054,7 @@ mark_trail()
     if ( ttag(te->address) == TAG_TRAILVAL )
     { gp = val_ptr(te->address);
 
-      DEBUG(2, Sdprintf("mark_trail(): trailed value from %p at %p (*=%p)\n",
+      DEBUG(3, Sdprintf("mark_trail(): trailed value from %p at %p (*=%p)\n",
 			&te->address, gp, *gp));
 
       assert(onGlobal(gp));
@@ -1042,6 +1063,7 @@ mark_trail()
 	local_marked--;
 
 	mark_variable(gp PASS_LD);
+	assert(is_marked(gp));
       }
     }
   }
@@ -1791,9 +1813,6 @@ scan_global(int marked)
 }
 
 
-static word key;
-static int checked;
-
 static void
 check_mark(mark *m)
 { GET_LD
@@ -1804,7 +1823,7 @@ check_mark(mark *m)
 
 
 static QueryFrame
-check_environments(LocalFrame fr, Code PC)
+check_environments(LocalFrame fr, Code PC, Word key)
 { GET_LD
 
   if ( fr == NULL )
@@ -1829,9 +1848,8 @@ check_environments(LocalFrame fr, Code PC)
     slots = slotsInFrame(fr, PC);
     sp = argFrameP(fr, 0);
     for( n=0; n < slots; n++ )
-    { key += checkData(&sp[n]);
+    { *key += checkData(&sp[n]);
     }
-    checked += slots;
     DEBUG(3, Sdprintf(" 0x%lx\n", key));
 
     PC = fr->programPointer;
@@ -1846,9 +1864,15 @@ check_environments(LocalFrame fr, Code PC)
 }
 
 
-static void
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Unfortunately the key returned by check_choicepoints() is not constant
+due to `early reset' optimisation.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static word
 check_choicepoints(Choice ch)
 { GET_LD
+  word key = 0L;
 
   for( ; ch; ch = ch->parent )
   { if ( !ch->parent )
@@ -1856,8 +1880,11 @@ check_choicepoints(Choice ch)
     choice_count++;
     check_mark(&ch->mark);
     check_environments(ch->frame,
-		       ch->type == CHP_JUMP ? ch->value.PC : NULL);
+		       ch->type == CHP_JUMP ? ch->value.PC : NULL,
+		       &key);
   }
+
+  return key;
 }
 
 
@@ -1913,6 +1940,7 @@ checkStacks(LocalFrame frame, Choice choice)
   LocalFrame fr;
   Choice ch;
   QueryFrame qf;
+  word key = 0L;
 
   if ( !frame )
     frame = environment_frame;
@@ -1921,15 +1949,15 @@ checkStacks(LocalFrame frame, Choice choice)
 
   local_frames = 0;
   choice_count = 0;
-  key = 0L;
 
   for( fr = frame, ch=choice;
        fr;
        fr = qf->saved_environment, ch = qf->saved_bfr )
-  { qf = check_environments(fr, NULL);
+  { qf = check_environments(fr, NULL, &key);
     assert(qf->magic == QID_MAGIC);
 
-    check_choicepoints(ch);
+    DEBUG(3, Sdprintf("%ld\n", key));
+    /*key += */check_choicepoints(ch);		/* See above */
   }
 
   SECURE(trailtops_marked = choice_count);
@@ -1940,10 +1968,12 @@ checkStacks(LocalFrame frame, Choice choice)
   assert(choice_count == 0);
 
   key += check_foreign();
+  DEBUG(3, Sdprintf("Foreign: %ld\n", key));
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
-  key += check_trail();
+  /*key +=*/ check_trail();
 #endif
 
+  DEBUG(2, Sdprintf("Final: %ld\n", key));
   return key;
 }
 
@@ -1999,6 +2029,9 @@ garbageCollect(LocalFrame fr, Choice ch)
   sigset_t mask;
   fid_t fid;
   Word *saved_bar_at;
+#ifdef O_SECURE
+  word key;
+#endif
 
   DEBUG(0, verbose = TRUE);
 
@@ -2076,7 +2109,7 @@ garbageCollect(LocalFrame fr, Choice ch)
   gc_status.active = FALSE;
 
   SECURE(if ( checkStacks(fr, ch) != key )
-	 { Sdprintf("ERROR: Stack checksum failure\n");
+	 { sysError("ERROR: Stack checksum failure\n");
 	   trap_gdb();
 	 });
 

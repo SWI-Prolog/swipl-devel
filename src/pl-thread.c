@@ -1761,6 +1761,19 @@ dispatch_cond_wait(message_queue *queue)
 
 #else /*WIN32*/
 
+#if 0
+
+static int
+dispatch_cond_wait(message_queue *queue)
+{ int rc;
+
+  rc = pthread_cond_wait(&queue->cond_var, &queue->mutex);
+
+  return rc;
+}
+
+#else
+
 static int
 dispatch_cond_wait(message_queue *queue)
 { struct timeval now;
@@ -1777,8 +1790,8 @@ dispatch_cond_wait(message_queue *queue)
     if ( LD && LD->thread.info )	/* can be absent during shutdown */
     { switch( LD->thread.info->ldata_status )
       { case LDATA_IDLE:
-	  case LDATA_ANSWERED:
-	    break;
+	case LDATA_ANSWERED:
+	  break;
 	default:
 	  Sdprintf("%d: ldata_status = %d\n",
 		   PL_thread_self(), LD->thread.info->ldata_status);
@@ -1806,6 +1819,8 @@ dispatch_cond_wait(message_queue *queue)
     }
   }
 }
+#endif
+
 
 #endif /*WIN32*/
 
