@@ -500,7 +500,7 @@ retry:
 
     lTop = (LocalFrame)argFrameP(frame, argc);
 
-    switch( tracePort(frame, LD->choicepoints, port, NULL) )
+    switch( tracePort(frame, LD->choicepoints, port, NULL PASS_LD) )
     { case ACTION_FAIL:
 	exception_term = 0;
 	fail;
@@ -587,7 +587,7 @@ retry:
     { Undo(ffr->mark);
     }
 
-    switch( tracePort(frame, LD->choicepoints, port, NULL) )
+    switch( tracePort(frame, LD->choicepoints, port, NULL PASS_LD) )
     { case ACTION_FAIL:
 	exception_term = 0;
         fail;
@@ -1753,7 +1753,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   Word ap;
 
   DEBUG(2, { FunctorDef f = proc->definition->functor;
-	     int n;
+	     unsigned int n;
 
 	     Sdprintf("PL_open_query: %s(", stringAtom(f->name));
 	     for(n=0; n < f->arity; n++)
@@ -2235,7 +2235,7 @@ arguments.
 
       lTop = (LocalFrame)argFrameP(lTop, MAXARITY);
       clearUninitialisedVarsFrame(FR, PC-1);
-      action = tracePort(FR, BFR, BREAK_PORT, PC-1);
+      action = tracePort(FR, BFR, BREAK_PORT, PC-1 PASS_LD);
       lTop = lSave;
 
       switch(action)
@@ -2692,7 +2692,7 @@ backtrack without showing the fail ports explicitely.
 #if O_DEBUGGER
 	if ( debugstatus.debugging )
 	{ clearUninitialisedVarsFrame(FR, PC);
-	  switch(tracePort(FR, BFR, UNIFY_PORT, PC))
+	  switch(tracePort(FR, BFR, UNIFY_PORT, PC PASS_LD))
 	  { case ACTION_RETRY:
 	      goto retry;
 	    case ACTION_FAIL:
@@ -2872,7 +2872,7 @@ the moment the code marked (**) handles this not very elegant
 
 	      environment_frame = FR;
 	      SECURE(checkStacks(FR, ch));
-	      switch(tracePort(FR, ch, EXCEPTION_PORT, PC))
+	      switch(tracePort(FR, ch, EXCEPTION_PORT, PC PASS_LD))
 	      { case ACTION_RETRY:
 		  *valTermRef(exception_printed) = 0;
 		  Undo(ch->mark);
@@ -3059,7 +3059,7 @@ debugger output.
 	if ( debugstatus.debugging )
 	{ Choice ch;
 
-	  switch(tracePort(FR, BFR, CUT_CALL_PORT, PC))
+	  switch(tracePort(FR, BFR, CUT_CALL_PORT, PC PASS_LD))
 	  { case ACTION_RETRY:
 	      goto retry;
 	    case ACTION_FAIL:
@@ -3073,7 +3073,7 @@ debugger output.
 	  if ( exception_term )
 	    goto b_throw;
 
-	  switch(tracePort(FR, BFR, CUT_EXIT_PORT, PC))
+	  switch(tracePort(FR, BFR, CUT_EXIT_PORT, PC PASS_LD))
 	  { case ACTION_RETRY:
 	      goto retry;
 	    case ACTION_FAIL:
@@ -4311,7 +4311,7 @@ be able to access these!
 #if O_DEBUGGER
 	if ( debugstatus.debugging )
 	{ CL = DEF->definition.clauses;
-	  switch(tracePort(FR, BFR, CALL_PORT, NULL))
+	  switch(tracePort(FR, BFR, CALL_PORT, NULL PASS_LD))
 	  { case ACTION_FAIL:	goto frame_failed;
 	    case ACTION_IGNORE: goto exit_builtin;
 	  }
@@ -4415,7 +4415,7 @@ interception. Second, there should be some room for optimisation here.
     VMI(I_EXITFACT) MARK(EXITFACT);
 #if O_DEBUGGER
 	if ( debugstatus.debugging )
-	{ switch(tracePort(FR, BFR, UNIFY_PORT, PC))
+	{ switch(tracePort(FR, BFR, UNIFY_PORT, PC PASS_LD))
 	  { case ACTION_RETRY:
 	      goto retry;
 	  }
@@ -4431,7 +4431,7 @@ bit more careful.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 #if O_DEBUGGER
 	if ( debugstatus.debugging )
-        { int action = tracePort(FR, BFR, EXIT_PORT, PC);
+        { int action = tracePort(FR, BFR, EXIT_PORT, PC PASS_LD);
 
 	  switch( action )
 	  { case ACTION_RETRY:
@@ -4648,7 +4648,7 @@ next_choice:
 	if ( sch )
 	{ Undo(sch->mark);
 
-	  switch( tracePort(FR, BFR, FAIL_PORT, NULL) )
+	  switch( tracePort(FR, BFR, FAIL_PORT, NULL PASS_LD) )
 	  { case ACTION_RETRY:
 	      environment_frame = FR;
 	      DEF = FR->predicate;
@@ -4706,7 +4706,7 @@ next_choice:
 
 #ifdef O_DEBUGGER
       if ( debugstatus.debugging && fr0 != FR )
-      { switch( tracePort(FR, BFR, REDO_PORT, NULL) )
+      { switch( tracePort(FR, BFR, REDO_PORT, NULL PASS_LD) )
 	{ case ACTION_FAIL:
 	    FRAME_FAILED;
 	  case ACTION_IGNORE:

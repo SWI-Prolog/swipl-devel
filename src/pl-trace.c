@@ -268,8 +268,11 @@ returns to the WAM interpreter how to continue the execution:
     ACTION_IGNORE:	Go to the exit port of this goal
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#undef LD
+#define LD LOCAL_LD
+
 int
-tracePort(LocalFrame frame, Choice bfr, int port, Code PC)
+tracePort(LocalFrame frame, Choice bfr, int port, Code PC ARG_LD)
 { int action = ACTION_CONTINUE;
   Definition def = frame->predicate;
   LocalFrame fr;
@@ -332,7 +335,7 @@ Give a trace on the skipped goal for a redo.
     if ( port == REDO_PORT && debugstatus.skiplevel == VERY_DEEP &&
 	 (fr = redoFrame(frame, &pc2)) != NULL )
     { debugstatus.skiplevel--;				   /* avoid a loop */
-      switch( tracePort(fr, bfr, REDO_PORT, pc2) )
+      switch( tracePort(fr, bfr, REDO_PORT, pc2 PASS_LD) )
       { case ACTION_CONTINUE:
 	  if ( debugstatus.skiplevel < levelFrame(frame) )
 	    return ACTION_CONTINUE;
@@ -422,6 +425,10 @@ again:
 
   return action;
 }
+
+
+#undef LD
+#define LD GLOBAL_LD
 
 
 static int

@@ -734,7 +734,8 @@ void		freeTableEnum(TableEnum e);
 Symbol		advanceTableEnum(TableEnum e);
 
 /* pl-trace.c */
-int		tracePort(LocalFrame frame, Choice bfr, int port, Code PC);
+int		tracePort(LocalFrame frame, Choice bfr,
+			  int port, Code PC ARG_LD);
 void		backTrace(LocalFrame frame, int depth);
 void		initTracer(void);
 void		resetTracer(void);
