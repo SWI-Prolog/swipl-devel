@@ -1,33 +1,34 @@
-SWI-Prolog 5.2.6/XPCE 6.2.6 stable release
+SWI-Prolog 5.2.7/XPCE 6.2.7 stable release
 
 Status
 ======
   
   * Stable release integrating shared-database multi-threaded execution.
 
-Brief summary of changes since 5.2.5
+Brief summary of changes since 5.2.6
 ====================================
 
 SWI-Prolog
 ----------
 
-  * Various memory management problems in threaded code, notably associated
-    with message queues and frequent creation of detached threads.
+  * Multi-threading issues: deleting named message queues, avoid deletion
+    of message queues with active waiters, abolish of imported predicates.
 
-  * Office interaction problem in Windows NT4
-
-  * Foreign code garbage collector interaction in some rare scenarios,
-    notably associated with foreign callback and the autoloader.
-
-  * Portability and other minor issues in the profiler.
+  * Portability: Cleanup of some Makefile and distribution issues.  Fixed
+    alignment problems when compiled with gcc for mk68.  The fix probably
+    applies for some other compiler/CPU combinations as well.
 
 Packages
 --------
 
-  * XPCE: Improved PostScript generation in some minor areas, added cursor
-    feedback to editable barcharts.
+  * XPCE: Various minor improvements.  Added some error checking to improve
+    debugging.
 
-  * SemWeb: Fixed and improved generation of RDF in rdf_db.pl
+  * socket: Complete rewrite of socket handling for Windows, cleaning up the
+    design and avoiding a serious bug if sockets were handed to another thread.
+    (typically using tcp_accept in one thread and pass the accepted socket to
+    a worker-crew for processing).
+
 
 Development environment
 -----------------------
@@ -37,8 +38,7 @@ Development environment
 INCOMPATIBILITIES
 =================
 
-  * New GC interaction to foreign code may give problems with incorrect
-    but previously foreign code.  Please report experiences.
+  (none)
 
 
 Donations

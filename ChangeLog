@@ -7,9 +7,11 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
-  * ADDED: Heuristic test to avoid destroying active message queues.
+VERSION 5.2.7 (Aug 29, 2003)
+============================
 
-  * FIXED: message_queue_destroy/1.
+  * FIXED: message_queue_destroy/1: deletion of the name-alias and added
+    (heuristic) test to avoid destroying active message queues.
 
   * FIXED: Alignment problem in struct clause using gcc on mk68.  Reported
     by Michael Piefel.  Debugged with help from the Debian Linux project.
@@ -18,7 +20,7 @@
     Michael Piefel.
 
   * FIXED: Mutex initialisation in abolishProcedure().  Notably affects
-    redefine_system_predicate and abolish on imported predciates.
+    redefine_system_predicate and abolish on imported predicates.
     Sergey Tikhonov.
 
   * FIXED: PL_destroy_engine().  Uwe Lesta.
