@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Hooks in class key_binding, preparing for better programmable
+  binding tables.
+
 * ADDED: PceEmacs: allow for deleting menu-items in sub-modes.  Used to cleanup
   the menus in the Prolog Mode.
 

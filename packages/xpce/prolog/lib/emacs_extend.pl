@@ -119,6 +119,7 @@ emacs_mode_bindings(Mode, Module, Bindings, Syntax) :-
 	;   new(ST, syntax_table(Mode, SuperMode))
 	),
 	make_bindings(Bindings, Module, KB, MM),
+	send(KB, apply_preferences),
 	make_syntax(Syntax, ST).
 
 make_bindings([], _, _, _).

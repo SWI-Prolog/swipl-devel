@@ -405,12 +405,16 @@ save_some_buffers(_M, Arg:[int]) :->
 
 find_file(_M, File:file) :->
 	"Find existing file or create new one"::
-	get(File, name, Name),
-	(   send(Name, suffix, '.pd')
-	->  auto_call(pcedraw(Name))
-	;   new(B, emacs_buffer(File)),
-	    send(B, open)
-	).
+	new(B, emacs_buffer(File)),
+	send(B, open).
+
+new(M, File:save_file) :->
+	"Create a new file"::
+	send(M, find_file(File)).
+
+open(M, File:file) :->
+	"Open existing file"::
+	send(M, find_file(File)).
 
 
 insert_file(M, File:file) :->
@@ -475,6 +479,7 @@ print(M) :->
 	    new(S, string(Cmd, OsName)),
 	    new(D, dialog('Print command')),
 	    send(D, append, new(TI, text_item(print_command, S))),
+	    send(TI, length, 50),
 	    send(D, append, button(print, message(D, return, TI?selection))),
 	    send(D, append, button(cancel, message(D, destroy))),
 	    send(D, default_button, print),

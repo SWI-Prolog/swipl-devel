@@ -81,6 +81,21 @@ initialise(D, E:editor) :->
 	new(_, partof_hyper(E, D, search, editor)),
 	send(new(report_dialog), below, D).
 
+:- pce_global(@editor_find_dialog_recogniser,
+	      make_recogniser).
+
+make_recogniser(G) :-
+	new(G, key_binding(editor_find_dialog)),
+	send(G, function, '\\C-g', cancel),
+	send(G, function, 'ESC', done).
+
+event(D, Ev:event) :->
+	"Handle special keys"::
+	(   send(@editor_find_dialog_recogniser, event, Ev)
+	->  true
+	;   send_super(D, event, Ev)
+	).
+
 editor(D, E:editor) :<-
 	"Get associated editor"::
 	get(D, hypered, editor, E).
@@ -90,6 +105,7 @@ open(D) :->
 	get(D, editor, E),
 	get(E, frame, Frame),
 	send(D, transient_for, Frame),
+	send(D, modal, transient),
 	get(E, display_position, point(DX, DY)),
 	get(E?area, size, size(EW, EH)),
 	CX is DX+EW//2,

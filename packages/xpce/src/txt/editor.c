@@ -3745,6 +3745,9 @@ scrollVerticalEditor(Editor e, Name dir, Name unit, Int amount)
 { TextBuffer tb = e->text_buffer;
   Int start;
 
+  endIsearchEditor(e);
+  markStatusEditor(e, NAME_inactive);
+
   if ( unit == NAME_file )
   { if ( dir == NAME_goto )
     { if ( tb->size < MAXPRECISESCROLLING &&
@@ -3906,7 +3909,7 @@ selectLineEditor(Editor e, Int line, Bool newline)
   if ( newline == ON )
     to = add(to, ONE);
 
-  selection_editor(e, from, to, NAME_highlight);
+  selection_editor(e, to, from, NAME_highlight); /* put caret at start */
   return ensureVisibleEditor(e, from, to);
 }
 

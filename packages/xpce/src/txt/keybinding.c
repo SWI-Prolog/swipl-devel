@@ -44,6 +44,8 @@ static HashTable BindingTable;		/* name --> table: @key_bindings */
 
 static status	resetKeyBinding(KeyBinding kb, Any receiver);
 static status	initPredefinedKeyBinding(KeyBinding kb);
+static status	bindResourcesKeyBinding(KeyBinding kb, Name name);
+static status	applyPreferencesKeyBinding(KeyBinding kb);
 
 static status
 initialiseKeyBinding(KeyBinding kb, Name name, int argc, KeyBinding *argv)
@@ -506,7 +508,11 @@ static senddecl send_keyBinding[] =
   SM(NAME_fillArgumentsAndExecute, 4, T_fillArgumentsAndExecute, fillArgumentsAndExecuteKeyBinding,
      NAME_event, "Collect additional arguments and ->execute"),
   SM(NAME_typed, 2, T_typed, typedKeyBinding,
-     NAME_event, "Process event-id (of keyboard event)")
+     NAME_event, "Process event-id (of keyboard event)"),
+  SM(NAME_bindResources, 1, "[name]", bindResourcesKeyBinding,
+     NAME_preferences, "Apply preferences from class-variables"),
+  SM(NAME_applyPreferences, 0, NULL, applyPreferencesKeyBinding,
+     NAME_preferences, "Apply user preferences")
 };
 
 /* Get Methods */
@@ -804,8 +810,15 @@ static kbDef editor[] =
 
 
 static status
-bindResourcesKeyBinding(KeyBinding kb)
-{ Chain ch = getClassVariableValueObject(kb, kb->name);
+bindResourcesKeyBinding(KeyBinding kb, Name name)
+{ Chain ch;
+
+  if ( isDefault(name) )
+    name = kb->name;
+  if ( !isName(name) )
+    succeed;
+
+  ch = getClassVariableValueObject(kb, name);
 
   if ( instanceOfObject(ch, ClassChain) )
   { Cell cell;
@@ -822,6 +835,13 @@ bindResourcesKeyBinding(KeyBinding kb)
 
   succeed;
 }
+
+
+static status
+applyPreferencesKeyBinding(KeyBinding kb)
+{ return bindResourcesKeyBinding(kb, kb->name);
+}
+
 
 
 static status
@@ -875,7 +895,7 @@ initPredefinedKeyBinding(KeyBinding kb)
 			 table->function);
   }
 
-  return bindResourcesKeyBinding(kb);
+  return send(kb, NAME_applyPreferences, EAV);
 }
 
 		/********************************
