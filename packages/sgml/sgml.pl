@@ -50,7 +50,10 @@
 	    get_sgml_parser/2,		% +Parser, +Options
 	    sgml_parse/2,		% +Parser, +Options
 
-	    sgml_register_catalog_file/2 % +File, +StartOrEnd
+	    sgml_register_catalog_file/2, % +File, +StartOrEnd
+
+	    xml_quote_attribute/2,	% +In, -Quoted
+	    xml_quote_cdata/2		% +In, -Quoted
 	  ]).
 
 :- multifile user:file_search_path/2.

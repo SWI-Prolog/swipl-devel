@@ -2165,6 +2165,9 @@ pl_sgml_register_catalog_file(term_t file, term_t where)
 		 /*******************************
 		 *	      INSTALL		*
 		 *******************************/
+
+extern install_t install_xml_quote(void);
+
 install_t
 install()
 { initConstants();
@@ -2183,5 +2186,7 @@ install()
 
   PL_register_foreign("$dtd_property",	  2, pl_dtd_property,
 		      PL_FA_NONDETERMINISTIC);
+
+  install_xml_quote();
 }
 
