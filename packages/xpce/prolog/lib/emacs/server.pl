@@ -33,8 +33,7 @@
 	  [ 
 	  ]).
 :- use_module(library(pce)).
-:- require([ concat/3
-	   , file_base_name/2
+:- require([ file_base_name/2
 	   , file_directory_name/2
 	   , term_to_atom/2
 	   ]).

@@ -36,7 +36,6 @@
 :- use_module(library(pce_config)).
 :- require([ absolute_file_name/3
 	   , broadcast_request/1
-	   , concat/3
 	   , file_directory_name/2
 	   ]).
 
@@ -291,7 +290,7 @@ base_name(FileName, Name) :-
 
 base_name(FileName, Dir0, Local) :-
 	get(Dir0, ensure_suffix, /, Dir),
-	concat(Dir, Local, FileName).
+	atom_concat(Dir, Local, FileName).
 base_name(_, /, _) :- !,
 	fail.
 base_name(_, '', _) :- !,

@@ -40,7 +40,6 @@
 :- use_module(library(persistent_frame)).
 :- require([ '$qlf_info'/4
 	   , append/3
-	   , concat/3
 	   , concat_atom/2
 	   , concat_atom/3
 	   , file_name_extension/3
@@ -645,7 +644,7 @@ expand(MF) :->
 		send(Entry, file_id, BrowseId),
 		send(Entry, line, Line)
 	    ;   local_predicate_name(Head, Label),
-		concat('$export$', Label, Id),
+		atom_concat('$export$', Label, Id),
 		new(Entry, toc_file(Label, Id, 'pred.xpm'))
 	    ),
 	    send(TocWindow, son, NodeId, Entry),

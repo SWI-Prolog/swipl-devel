@@ -33,8 +33,7 @@
 
 :- use_module(library(pce)).
 :- use_module(util).
-:- require([ concat/3
-	   , default/3
+:- require([ default/3
 	   , send_list/3
 	   ]).
 

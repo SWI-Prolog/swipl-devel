@@ -41,7 +41,6 @@
 :- require([ absolute_file_name/3
 	   , append/3
 	   , between/3
-	   , concat/3
 	   , term_to_atom/2
 	   ]).
 

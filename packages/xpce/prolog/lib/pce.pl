@@ -84,7 +84,7 @@ reexports the content of these files.
 		********************************/
 
 :- prolog_load_context(directory, Dir),
-   concat(Dir, '/../boot', RawBootDir),
+   atom_concat(Dir, '/../boot', RawBootDir),
    absolute_file_name(RawBootDir, BootDir),
    assert(user:file_search_path(pce_boot, BootDir)).
 

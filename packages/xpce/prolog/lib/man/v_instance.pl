@@ -33,8 +33,7 @@
 :- module(man_instance, []).
 
 :- use_module(library(pce)).
-:- require([ concat/3
-	   , send_list/3
+:- require([ send_list/3
 	   ]).
 
 :- pce_begin_class(man_instance_browser, man_frame,

@@ -35,7 +35,6 @@
 :- use_module(library(pce)).
 :- require([ apply/2
 	   , between/3
-	   , concat/3
 	   , concat_atom/2
 	   , forall/2
 	   , ignore/1

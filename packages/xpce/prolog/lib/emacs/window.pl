@@ -33,7 +33,6 @@
 :- use_module(library(pce)).
 :- use_module(prompt).
 :- require([ between/3
-	   , concat/3
 	   , concat_atom/2
 	   , default/3
 	   , forall/2
@@ -924,7 +923,7 @@ load_user_extensions(C) :->
 	(   get(C, user_extensions_loaded, @on)
 	->  true
 	;   get(C, name, Name),
-	    (   concat(emacs_, Base, Name)
+	    (   atom_concat(emacs_, Base, Name)
 	    ->	true
 	    ;	Base = Name
 	    ),
@@ -983,16 +982,16 @@ icon(_, I:image) :<-
 
 mode_name(emacs_mode, default) :- !.
 mode_name(Mode, Name) :-
-	(   concat(emacs_, M1, Mode)
+	(   atom_concat(emacs_, M1, Mode)
 	;   M1 = Mode
 	), !,
-	(   concat(Name, '_mode', M1)
+	(   concat(atom_Name, '_mode', M1)
 	;   Name = M1
 	), !.
 
 
 table_name(ClassName, TableName) :-
-	concat(TableName, '_mode', ClassName).
+	atom_concat(TableName, '_mode', ClassName).
 
 
 new_buffer(M) :->
@@ -1458,7 +1457,7 @@ key_binding_name(KB, Name) :-
 	key_binding_name(KBName, Name).
 key_binding_name(editor, editor) :- !.
 key_binding_name(X, Internal) :-
-	concat('emacs$', X, Internal).
+	atom_concat('emacs$', X, Internal).
 
 
 initialise(KB, Name:[name]*, Super:[key_binding]) :->

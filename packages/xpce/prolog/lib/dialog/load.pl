@@ -38,7 +38,6 @@
 :- use_module(proto).
 :- use_module(behaviour).
 :- require([ checklist/2
-	   , concat/3
 	   , forall/2
 	   , ignore/1
 	   , is_list/1

@@ -32,7 +32,6 @@
 :- module(pce_renew, [pce_renew/1]).
 :- use_module(library(pce)).
 :- require([ between/3
-	   , concat/3
 	   , memberchk/2
 	   ]).
 

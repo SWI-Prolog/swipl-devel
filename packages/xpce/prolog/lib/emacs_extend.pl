@@ -35,7 +35,6 @@
 	  ]).
 :- use_module(library(pce)).
 :- require([ concat_atom/2
-	   , concat/3
 	   ]).
 
 %	declare_emacs_mode(+ModeName, +FileSpec).

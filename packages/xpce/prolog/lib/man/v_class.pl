@@ -38,8 +38,7 @@
 :- use_module(library(pce)).
 :- use_module(util).
 :- use_module(v_inherit).
-:- require([ concat/3
-	   , forall/2
+:- require([ forall/2
 	   , get_chain/3
 	   , send_list/3
 	   ]).

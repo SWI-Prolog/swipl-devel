@@ -38,7 +38,6 @@
 	   , absolute_file_name/3
 	   , auto_call/1
 	   , chain_list/2
-	   , concat/3
 	   , concat_atom/2
 	   , default/3
 	   , forall/2
@@ -151,7 +150,7 @@ source_file_chain(Ch) :-
 
 user_source_file(F) :-
 	source_file(F),
-	\+ (lib_dir(D), concat(D, _, F)).
+	\+ (lib_dir(D), atom_concat(D, _, F)).
 
 ignore_paths_from(library).
 ignore_paths_from(pce_boot).

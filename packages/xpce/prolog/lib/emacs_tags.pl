@@ -40,7 +40,6 @@
 
 :- use_module(library(pce)).
 :- require([ call/2
-	   , concat/3
 	   , forall/2
 	   ]).
 

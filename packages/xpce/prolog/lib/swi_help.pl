@@ -49,7 +49,6 @@
 	   , atom_length/2
 	   , between/3
 	   , chain_list/2
-	   , concat/3
 	   , concat_atom/2
 	   , concat_atom/3
 	   , default/3
@@ -763,7 +762,7 @@ function_apropos(V, Pattern) :-
 	send(V, insert_section,
 	     string('Foreign language interface functions from "%s":', Pattern)),
 	forall(member(Name, Names),
-	       (   concat(Name, '()', Jump),
+	       (   atom_concat(Name, '()', Jump),
 		   append_apropos(V, Jump, 'Interface Function')
 	       )).
 

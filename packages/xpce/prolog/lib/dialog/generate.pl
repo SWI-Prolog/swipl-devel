@@ -36,7 +36,6 @@
 	   , between/3
 	   , chain_list/2
 	   , checklist/2
-	   , concat/3
 	   , delete/3
 	   , forall/2
 	   , genarg/3

@@ -35,7 +35,6 @@
 :- use_module(library(pce)).
 :- use_module(align).
 :- require([ between/3
-	   , concat/3
 	   , send_list/3
 	   , ignore/1
 	   ]).
@@ -1412,7 +1411,7 @@ handle(_G, Gr:graphical, Pos:point, Kind:name, Name) :<-
 
 unique_handle_name(Gr, Name) :-
 	between(1, 10000, N),
-	concat(c, N, Name),
+	atom_concat(c, N, Name),
 	\+ get(Gr, handle, Name, _), !.
 
 

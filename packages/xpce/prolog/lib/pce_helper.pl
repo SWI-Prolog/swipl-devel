@@ -40,7 +40,6 @@
 	   , term_to_atom/2
 	   , absolute_file_name/3
 	   , atom_to_term/3
-	   , concat/3
 	   , default/3
 	   , send_list/3
 	   , sformat/3
