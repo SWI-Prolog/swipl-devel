@@ -2,7 +2,10 @@
 			====================
 
 Version 1.8.6 defines phrase/[2,3] for accessing grammar rules and fixes
-name/2 for numbers outside the integer range (yielding a float).
+name/2 for numbers outside the  integer   range  (yielding  a float).  A
+predicate nth_clause/3 is added to provide access to specific clauses of
+predicates.  xmalloc(), xrealloc() are added to   fix some problems when
+linking with gnu-libraries.
 
 Version 1.8.5 contains a few fixes  for the SunOs-4/gcc-2.5 combination.
 DONOT USE GCC-2.5.[123] as the optimiser   appears broken.  gcc-2.5.4 is
