@@ -37,7 +37,8 @@ finding source files, etc.
 
 static void	resetReferencesModule(Module);
 static void	resetProcedure(Procedure proc, bool isnew);
-static void	removeClausesProcedure(Procedure proc, int sfindex);
+static void	removeClausesProcedure(Procedure proc, int sfindex,
+				       int is_marked);
 static atom_t	autoLoader(atom_t name, int arity, atom_t mname);
 static void	registerDirtyDefinition(Definition def);
 
@@ -797,7 +798,7 @@ abolishProcedure(Procedure proc, Module module)
   { def->definition.clauses = def->lastClause = NULL;
     resetProcedure(proc, TRUE);
   } else				/* normal Prolog procedure */
-  { removeClausesProcedure(proc, 0);
+  { removeClausesProcedure(proc, 0, FALSE);
     resetProcedure(proc, FALSE);
   }
   UNLOCK();
@@ -809,23 +810,31 @@ abolishProcedure(Procedure proc, Module module)
 /* MT: Must be locked by caller */
 
 static void
-removeClausesProcedure(Procedure proc, int sfindex)
+removeClausesProcedure(Procedure proc, int sfindex, int is_marked)
 { Definition def = proc->definition;
   ClauseRef c;
+  int immediate_static;
 
-  enterDefinitionNOLOCK(def);
+  immediate_static = ( is_marked &&
+		       def->references == 0 &&
+		       false(def, DYNAMIC)
+		     );
+
 #ifdef O_LOGICAL_UPDATE
   GD->generation++;
 #endif
+
+  enterDefinitionNOLOCK(def);
 
   for(c = def->definition.clauses; c; c = c->next)
   { Clause cl = c->clause;
 
     if ( (sfindex == 0 || sfindex == cl->source_no) && false(cl, ERASED) )
     { set(cl, ERASED);
-      if ( false(def, NEEDSCLAUSEGC) )
+      if ( false(def, NEEDSCLAUSEGC|DYNAMIC) )
       { set(def, NEEDSCLAUSEGC);
-	registerDirtyDefinition(def);
+	if ( !immediate_static )
+	  registerDirtyDefinition(def);
       }
 #ifdef O_LOGICAL_UPDATE
       cl->generation.erased = GD->generation;
@@ -838,6 +847,8 @@ removeClausesProcedure(Procedure proc, int sfindex)
     def->hash_info->alldirty = TRUE;
 
   leaveDefinitionNOLOCK(def);
+  if ( immediate_static )
+    gcClausesDefinition(def);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1090,7 +1101,10 @@ pl_garbage_collect_clauses(void)
 
 					/* sanity-check */
     for(c=GD->procedures.dirty; c; c=c->next)
-    { assert(c->definition->references == 0);
+    { Definition def = c->definition;
+
+      assert(false(def, DYNAMIC));
+      assert(def->references == 0);
     }
 
     markPredicatesInEnvironments(LD);
@@ -1118,7 +1132,10 @@ pl_garbage_collect_clauses(void)
 	*cell = next;
       }
     }
+
+#ifdef O_PLMT
     resumeThreads();
+#endif
 
     unblockSignals(&set);
     UNLOCK();
@@ -2219,30 +2236,75 @@ pl_time_source_file(term_t file, term_t time, control_t h)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-TBD: we can check here which procedures are active and actually remove
-the clauses of unreferences procedures immediately.
+startConsult(SourceFile sf)
+
+This function is called when starting the consult a file. Its task is to
+remove all clauses that come from this   file  if this is a *reconsult*.
+There are two options.
+
+    # Immediately remove the clauses from any non-referenced predicate.
+    This saves space, but if there are multiple threads it may cause
+    other threads to trap an undefined predicate.
+
+    # Delay until garbage_collect_clauses/0
+    This way other threads can happily keep running.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
 startConsult(SourceFile f)
 { GET_LD
 
-  if ( f->count++ > 0 )
+  if ( f->count++ > 0 )			/* This is a re-consult */
   { ListCell cell, next;
+    sigset_t set;
+    int immediate;
+
+    PL_LOCK(L_THREAD);
+    LOCK();
+    blockSignals(&set);
+
+    GD->procedures.active_marked = 0;
+    GD->procedures.reloading = f;
+    markPredicatesInEnvironments(LD);
+#ifdef O_PLMT
+    forThreadLocalData(markPredicatesInEnvironments,
+		       PL_THREAD_SUSPEND_AFTER_WORK);
+
+					/* are we alone? */
+    immediate = ((GD->statistics.threads_created -
+		  GD->statistics.threads_finished) == 1);
+#else
+    immediate = TRUE;
+#endif
+    GD->procedures.reloading = NULL;
 
     for(cell = f->procedures; cell; cell = next)
     { Procedure proc = cell->value;
+      Definition def = proc->definition;
 
       next = cell->next;
-      if ( proc->definition )
-      { LOCK();
-	removeClausesProcedure(proc, true(proc->definition, MULTIFILE)
-						? f->index : 0);
-	UNLOCK();
+      if ( def )
+      { removeClausesProcedure(proc,
+			       true(def, MULTIFILE) ? f->index : 0,
+			       immediate);
+
+	if ( false(def, DYNAMIC) && def->references )
+	{ def->references = 0;
+	  GD->procedures.active_marked--;
+	}
       }
       freeHeap(cell, sizeof(struct list_cell));
     }
+    assert(GD->procedures.active_marked == 0);
     f->procedures = NULL;
+
+#ifdef O_PLMT
+    resumeThreads();
+#endif
+
+    unblockSignals(&set);
+    UNLOCK();
+    PL_UNLOCK(L_THREAD);
   }
 
   f->current_procedure = NULL;

@@ -960,6 +960,11 @@ $load_file(File, Module, Options) :-
 		fail
 	    ),
 
+	    (	Level == 0
+	    ->	garbage_collect_clauses
+	    ;	true
+	    ),
+
 	    statistics(heapused, Heap),
 	    statistics(cputime, Time),
 	    HeapUsed is Heap - OldHeap,

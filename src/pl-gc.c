@@ -2386,6 +2386,10 @@ asynchronously, we have to be a bit careful about the first frame (if PC
 == NULL). The interpreter will  set  the   clause  field  to NULL before
 opening the frame, and we only have   to  consider the arguments. If the
 frame has a clause we must consider all variables of this clause.
+
+This  routine  is  used   by    garbage_collect_clauses/0   as  well  as
+start_consult/1. In the latter case, only  predicates in this sourcefile
+are marked.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static QueryFrame
@@ -2401,7 +2405,20 @@ mark_predicates_in_environments(PL_local_data_t *ld, LocalFrame fr)
 
     if ( true(fr->predicate, NEEDSCLAUSEGC) &&
 	 false(fr->predicate, DYNAMIC) )
-      fr->predicate->references++;
+    { if ( GD->procedures.reloading )
+      { ListCell cell;
+
+	for(cell=GD->procedures.reloading->procedures; cell; cell=cell->next)
+	{ Procedure proc = cell->value;
+	  if ( proc->definition == fr->predicate )
+	  { fr->predicate->references++;
+	    GD->procedures.active_marked++;
+	    break;
+	  }
+	}
+      } else
+	fr->predicate->references++;
+    }
 
     if ( fr->parent )
       fr = fr->parent;
