@@ -938,6 +938,45 @@ load_program(include-1) :-
 
 
 		 /*******************************
+		 *	    THREADING		*
+		 *******************************/
+
+:- dynamic
+	th_data/1,
+        at_exit_called/0.
+
+at_exit_work :-
+        thread_at_exit(assert(at_exit_called)),
+        thread_exit(true).
+
+th_do_something :-
+	forall(between(1, 5, X),
+	       assert(th_data(X))).
+th_check_done :-
+	findall(X, retract(th_data(X)), [1,2,3,4,5]).
+
+thread(join-1) :-
+	thread_create(th_do_something, Id, []),
+	thread_join(Id, Exit),
+	Exit == true,
+	th_check_done.
+thread(message-1) :-
+	thread_create(thread_send_message(main, hello), Id, []),
+	thread_get_message(hello),
+	thread_join(Id, true).
+thread(signal-1) :-
+	thread_create((repeat, fail), Id, []),
+	thread_signal(Id, throw(stopit)),
+	thread_join(Id, Exit),
+	Exit == exception(stopit).
+thread(at_exit-1) :-
+        retractall(at_exit_called),
+        thread_create(at_exit_work, Id, []),
+        thread_join(Id, exited(true)),
+	retract(at_exit_called).
+	
+
+		 /*******************************
 		 *        TEST MAIN-LOOP	*
 		 *******************************/
 
@@ -968,6 +1007,8 @@ testset(popen) :-
 testset(file).
 testset(load_program).
 testset(ctype).
+testset(thread) :-
+	current_prolog_flag(threads, true).
 testset(resource).
 
 :- dynamic
