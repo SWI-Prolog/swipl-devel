@@ -478,6 +478,7 @@ get_chr_from_text(const PL_chars_t *t, int index)
       return t->text.w[index];
     default:
       assert(0);
+    return 0;
   }
 }
 
