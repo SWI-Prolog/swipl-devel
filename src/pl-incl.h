@@ -278,6 +278,7 @@ void *alloca ();
 #undef true
 #undef false
 #undef bool
+#define EMULATE_DLOPEN 1		/* Emulated dlopen() in pl-beos.c */
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

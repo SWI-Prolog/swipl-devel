@@ -1,10 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
-  * PORT: Detect <SupportDefs.h> in recent BeOS and use it (Axel ?).
+  * PORT: Added (non-tested) support for loading shared objects in BeOS
+    (with help by Axel Dörfler)
+
+  * PORT: Detect <SupportDefs.h> in recent BeOS and use it (Axel Dörfler).
 
   * PORT: Fixed detection of ru_idrss in struct rusage (not around in BeOS,
-    reported by Axel ?).
+    reported by Axel Dörfler).
 
   * FIXED: Documentation on obsolete prolog_navigator/1 replaced by new
     prolog_ide/1.  Fixed prolog_ide(open_navigator(Dir)) (Tolga Konik).

@@ -30,17 +30,14 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog interface for runtime loading of foreign code (plugins).
 
-There  are  two  interfaces  defined  for    this  that  are  united  by
-library(shlib). The one defined here is for Unix `shared objects', while
-the implementation for Windows is in pl-nt.c (loading DLL files).
-
-It might be a  good  idea  to   integrate  these  two  interfaces at the
-C-level, making runtime checks in library(shlib) unnecessary.
-
 Currently, this interface is implemented only  for ELF systems (based on
 dlopen()) and HPUX (based on slh_load()).   Despite, this covers a large
 number of modern Unix platforms. To name a few: Solaris, Linux, freeBSD,
-IRIX, HPUX.
+IRIX, HPUX, MacOS X.
+
+For some platforms we emulate the ELF   interface and set the cpp symbol
+EMULATE_DLOPEN. You find examples in pl-nt.c   (for Win32) and pl-beos.c
+(for BeOS).
 
 Basically, 3 operations are required:
 

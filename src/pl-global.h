@@ -311,6 +311,9 @@ typedef struct
   struct
   { char *	_CWDdir;
     int		_CWDlen;
+#ifdef __BEOS__
+    status_t	dl_error;		/* dlopen() emulation in pl-beos.c */
+#endif
   } os;
 
   struct
