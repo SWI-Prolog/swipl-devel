@@ -1,0 +1,7 @@
+debug all
+system win386
+file pcewh
+option stack=8K
+option mindata=4K
+option maxdata=8K
+option quiet
