@@ -96,11 +96,31 @@ locate(FileBase, source_file(Path), [file(Path)]) :-
 	source_file(Path),
 	file_base_name(Path, File),
 	file_name_extension(FileBase, pl, File).
-locate(Name, Module:Name/Arity, Location) :-
+locate(Name, FullSpec, Location) :-
 	atom(Name),
-	locate(Module:Name/Arity, Location).
+	locate(Name/_, FullSpec, Location).
 locate(Name/Arity, Module:Name/Arity, Location) :-
 	locate(Module:Name/Arity, Location).
+locate(Name/Arity, library(File), [file(PlPath)]) :-
+	atom(Name),
+	'$autoload':load_library_index,
+	'$autoload':library_index(Head, _, Path),
+	functor(Head, Name, Arity),
+	(   absolute_file_name(library(.),
+			       [ file_type(directory),
+				 solutions(all)
+			       ],
+			       Dir),
+	    atom_concat(Dir, File0, Path),
+	    atom_concat(/, File, File0)
+	->  absolute_file_name(Path,
+			       [ file_type(prolog),
+				 access(read),
+				 file_errors(fail)
+			       ],
+			       PlPath)
+	;   fail
+	).
 locate(Module:Name, Module:Name/Arity, Location) :-
 	locate(Module:Name/Arity, Location).
 locate(Module:Head, Module:Name/Arity, Location) :-
