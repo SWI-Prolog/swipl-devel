@@ -467,10 +467,6 @@ if test -s conftest && eval `./conftest`; then
 	AC_DEFINE_UNQUOTED(POINTER_OFFSET, $POINTER_OFFSET)
 	msg="$msg POINTER_OFFSET=$POINTER_OFFSET"
     fi
-    if test ! -z "$TEXT_OFFSET"; then
-	AC_DEFINE_UNQUOTED(TEXT_OFFSET, $TEXT_OFFSET)
-	msg="$msg TEXT_OFFSET=$TEXT_OFFSET"
-    fi
     if test -z "$msg"; then msg="yes"; fi
     AC_MSG_RESULT("$msg")
 else

@@ -2719,13 +2719,6 @@ EOF
 
 	msg="$msg POINTER_OFFSET=$POINTER_OFFSET"
     fi
-    if test ! -z "$TEXT_OFFSET"; then
-	cat >> confdefs.h <<EOF
-#define TEXT_OFFSET $TEXT_OFFSET
-EOF
-
-	msg="$msg TEXT_OFFSET=$TEXT_OFFSET"
-    fi
     if test -z "$msg"; then msg="yes"; fi
     echo "$ac_t"""$msg"" 1>&6
 else
