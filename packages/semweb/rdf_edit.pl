@@ -309,10 +309,13 @@ rdfe_current_transaction(_) :-
 rdfe_commit :-
 	retract(current_transaction(TID)), !,
 	retractall(undo_marker(_, _)),
-	get_time(Time),
-	journal(commit(TID, Time)),
-	(   TID = [Id]
-	->  broadcast(rdf_transaction(Id))
+	(   rdfe_transaction_member(TID, _)
+	->  get_time(Time),		% transaction is not empty
+	    journal(commit(TID, Time)),
+	    (   TID = [Id]
+	    ->  broadcast(rdf_transaction(Id))
+	    ;   true
+	    )
 	;   true
 	).
 
