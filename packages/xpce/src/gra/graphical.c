@@ -3041,7 +3041,7 @@ drawImageGraphical(Graphical gr, Image img,
 	  isDefault(sy) ? 0 : valInt(sy),
 	  valInt(x), valInt(y),
 	  isDefault(sw) ? valInt(img->size->w) : valInt(sw),
-	  isDefault(sh) ? valInt(img->size->w) : valInt(sh),
+	  isDefault(sh) ? valInt(img->size->h) : valInt(sh),
 	  transparent);
 
   succeed;
