@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Start for `frame->status: full_screen' (work in progress).
+
 * FIXED: `frame->status: window' for the X11 version.
 
 * FIXED: `persistent_frame' to save deeply nested subwindow layout.

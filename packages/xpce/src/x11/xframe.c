@@ -1262,6 +1262,25 @@ ws_enable_modal(FrameObj fr, Bool val)
 }
 
 
+#define GNOME_HINTS 1
+#ifdef GNOME_HINTS
+
+typedef int CARD32;
+#define XA_WIN_STATE "_WIN_STATE"
+
+#define WIN_STATE_STICKY          (1<<0) /*everyone knows sticky*/
+#define WIN_STATE_MINIMIZED       (1<<1) /*Reserved - definition is unclear*/
+#define WIN_STATE_MAXIMIZED_VERT  (1<<2) /*window in maximized V state*/
+#define WIN_STATE_MAXIMIZED_HORIZ (1<<3) /*window in maximized H state*/
+#define WIN_STATE_HIDDEN          (1<<4) /*not on taskbar but window visible*/
+#define WIN_STATE_SHADED          (1<<5) /*shaded (MacOS / Afterstep style)*/
+#define WIN_STATE_HID_WORKSPACE   (1<<6) /*not on current desktop*/
+#define WIN_STATE_HID_TRANSIENT   (1<<7) /*owner of transient is hidden*/
+#define WIN_STATE_FIXED_POSITION  (1<<8) /*window is fixed in position even*/
+#define WIN_STATE_ARRANGE_IGNORE  (1<<9) /*ignore for auto arranging*/
+
+#endif
+
 void
 ws_status_frame(FrameObj fr, Name status)
 { Widget w = widgetFrame(fr);
@@ -1271,6 +1290,28 @@ ws_status_frame(FrameObj fr, Name status)
     { Arg args[1];
       XtSetArg(args[0], XtNiconic, False);
       XtSetValues(w, args, 1);
+
+#ifdef GNOME_HINTS
+      /* GNOME: http://developer.gnome.org/doc/standards/wm/x62.html */
+      if ( status == NAME_fullScreen )
+      { XClientMessageEvent xev;
+	CARD32 change = WIN_STATE_MAXIMIZED_VERT|WIN_STATE_MAXIMIZED_HORIZ;
+	CARD32 bits = (status == NAME_fullScreen ? change : 0);
+	DisplayWsXref r = (DisplayWsXref)fr->display->ws_ref;
+	XWindowAttributes atts;
+    
+	XGetWindowAttributes(r->display_xref, XtWindow(r->shell_xref), &atts);
+
+	xev.type   = ClientMessage;
+	xev.window = XtWindow(w);
+	xev.message_type = XInternAtom(r->display_xref, XA_WIN_STATE, False);
+	xev.format = 32;
+	xev.data.l[0] = change;
+	xev.data.l[1] = bits;
+	XSendEvent(r->display_xref, atts.root,
+		   False, SubstructureNotifyMask, (XEvent *)&xev);
+      }
+#endif
 
       XtPopup(w, XtGrabNone);
     }
