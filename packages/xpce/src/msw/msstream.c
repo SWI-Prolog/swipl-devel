@@ -64,15 +64,6 @@ static status
 handleInputSocket(Socket s)
 { u_long avail;
 
-/*
-  do
-  { if ( !handleInputStream((Stream)s) )
-      fail;
-
-  } while( (SOCKET)s->ws_ref != INVALID_SOCKET &&
-	   ioctlsocket((SOCKET)s->ws_ref, FIONREAD, &avail) == 0 &&
-	   avail > 0 );
-*/
   while( (SOCKET)s->ws_ref != INVALID_SOCKET &&
 	 ioctlsocket((SOCKET)s->ws_ref, FIONREAD, &avail) == 0 &&
 	 avail > 0 )
