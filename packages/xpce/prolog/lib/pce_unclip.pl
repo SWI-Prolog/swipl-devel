@@ -114,8 +114,12 @@ update(W) :->
 	send(W, clear),
 	(   get(W, hypered, mirroring, Gr)
 	->  get(Gr, clone, Clone),
-	    get(Clone, size, Size),
-	    send(W, size, Size),
+	    (   get(@pce, window_system, windows)
+	    ->  get(Clone, size, size(W0, H0)),
+		send(W, size, size(W0+1, H0+1))
+	    ;   get(Clone, size, Size),
+		send(W, size, Size)
+	    ),
 	    send(Clone, set, 0, 0),
 	    send(W, display, Clone)
 	;   true
