@@ -423,7 +423,8 @@ open_class(Mode, ClassName:name, NewWindow:[bool]) :->
 	(   get(@pce, convert, ClassName, class, Class)
 	->  (   get(Class, creator, built_in)
 	    ->	manpce(ClassName)
-	    ;	prolog_edit:locate(class(ClassName), Location),
+	    ;	ensure_loaded(library(edit)),
+	        prolog_edit:locate(class(ClassName), Location),
 		memberchk(file(File), Location),
 		memberchk(line(Line), Location),
 		send(@emacs, goto_source_location,
