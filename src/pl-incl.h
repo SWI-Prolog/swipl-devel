@@ -165,7 +165,7 @@ hard to write and maintain code that runs on both old and new compilers.
 This has worked on TURBO_C not very long ago.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if defined(_AIX) && !defined(__unix__)
+#if (defined(_AIX) || defined(__APPLE__)) && !defined(__unix__)
 #define __unix__ 1
 #endif
 
