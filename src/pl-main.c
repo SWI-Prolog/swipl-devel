@@ -405,6 +405,8 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 			break;
 	case 'b':	GD->bootsession = TRUE;
 			break;
+	case 'q':	defFeature("verbose", FT_ATOM, "silent");
+			break;
 	case 'L':
 	case 'G':
 	case 'T':
@@ -560,17 +562,23 @@ stack-parameters.
 #define MAXLINE 1024
 #endif
 #ifndef MAXARGV
-#define MAXARGV 128
+#define MAXARGV 256
 #endif
 
 #ifdef __unix__
 #include <ctype.h>
 
 static void
-break_argv(int argc, char **argv)
+script_argv(int argc, char **argv)
 { FILE *fd;
+  int i;
 
-  if ( argc == 3 &&
+  DEBUG(1,
+	{ for(i=0; i< argc; i++)
+	    Sdprintf("argv[%d] = '%s'\n", i, argv[i]);
+	});
+
+  if ( argc >= 3 &&
        strpostfix(argv[1], "-f") &&
        (fd = fopen(argv[2], "r")) )	/* ok, this is a script invocation */
   { char buf[MAXLINE];
@@ -606,12 +614,17 @@ break_argv(int argc, char **argv)
 
 	av[an] = allocHeap(o-start+1);
 	strncpy(av[an], start, o-start);
-	if ( ++an >= MAXARGV-1 )
+	if ( ++an >= MAXARGV )
 	  fatalError("Too many script arguments");
       }
     }
+    if ( an+argc-2+2 > MAXARGV )	/* skip 2, add -- and NULL */
+      fatalError("Too many script arguments");
 
-    av[an++] = argv[2];
+    av[an++] = argv[2];			/* the script file */
+    av[an++] = "--";			/* separate arguments */
+    for(i=3; i<argc; i++)
+      av[an++] = argv[i];
     GD->cmdline.argc = an;
     av[an++] = NULL;
     GD->cmdline.argv = allocHeap(sizeof(char *) * an);
@@ -649,7 +662,7 @@ PL_initialise(int argc, char **argv)
 
   SinitStreams();			/* before anything else */
 
-  break_argv(argc, argv);
+  script_argv(argc, argv);
   argc = GD->cmdline.argc;
   argv = GD->cmdline.argv;
 
