@@ -244,6 +244,15 @@ http_post_data(cgi_stream(In, Len), Out, HdrExtra) :- !,
 	phrase(reply_header(cgi_data(Size), Hdr2), Header),
 	format(Out, '~s', [Header]),
 	copy_stream_data(In, Out, Size).
+http_post_data(form(Fields), Out, HdrExtra) :- !,
+	parse_url_search(Codes, Fields),
+	length(Codes, Size),
+	http_join_headers(HdrExtra,
+			  [ content_type('application/x-www-form-urlencoded')
+			  ], Header),
+	phrase(post_header(cgi_data(Size), Header), HeaderChars),
+	format(Out, '~s', [HeaderChars]),
+	format(Out, '~s', [Codes]).
 http_post_data(List, Out, HdrExtra) :-		% multipart-mixed
 	is_list(List), !,
 	new_memory_file(MemFile),

@@ -1,3 +1,7 @@
+May 20, 2003
+
+  * ADDED: form([Name=Value, ...]) input type to http_post_data/3
+
 May 12, 2003
 
   * FIXED: problem in mime_pack/3 using Name=Value
