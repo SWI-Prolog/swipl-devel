@@ -734,7 +734,7 @@ SocketHiddenWindow()
 			   NULL, NULL, hinstance, NULL);
     assert(s->hwnd);
     DEBUG(1, Sdprintf("%d created hidden window %p\n",
-		   PL_thread_self(), s->hwnd));
+		      PL_thread_self(), s->hwnd));
   }
 
   return s->hwnd;
