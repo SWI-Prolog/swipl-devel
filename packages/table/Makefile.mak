@@ -44,8 +44,9 @@ uninstall::
 		$(MAKEINDEX)
 
 clean::
-		DEL *.obj *~
+		if exist *.obj del *.obj
+		if exist *~ del *~
 
 distclean:	clean
-		DEL $(PKGDLL).dll $(PKGDLL).lib $(PKGDLL).exp
+		-DEL $(PKGDLL).dll $(PKGDLL).lib $(PKGDLL).exp 2>nul
 

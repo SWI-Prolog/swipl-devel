@@ -40,8 +40,8 @@ uninstall::
 		$(MAKEINDEX)
 
 clean::
-		DEL *.obj *~
+		if exist *~ del *~
 
 distclean:	clean
-		DEL $(PKGDLL).dll $(PKGDLL).lib $(PKGDLL).exp
+
 

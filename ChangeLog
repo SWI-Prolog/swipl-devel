@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORT: Cleanup windows makefiles for make clean and make distclean
+
   * ADDED: PL_action(PL_ACTION_ATTACH_CONSOLE) to simplify attaching a
     console to a thread from foreign code.
 

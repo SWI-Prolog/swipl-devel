@@ -74,10 +74,10 @@ html-install::
 xpce-install::
 
 clean::
-		DEL *.obj *~
+		if exist *.obj del *.obj
+		if exist *~ del *~
 
 distclean:	clean
-		DEL socket.dll socket.lib socket.exp
-		DEL cgi.dll cgi.lib cgi.exp
-		DEL memfile.dll memfile.lib memfile.exp
+		-DEL *.dll *.lib *.exp *.dbg 2>nul
+
 

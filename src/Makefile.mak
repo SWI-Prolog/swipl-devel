@@ -321,13 +321,13 @@ clean:		clean_packages
 		chdir win32\uxnt & $(MAKE) clean
 		chdir win32\console & $(MAKE) clean
 		chdir win32\foreign & $(MAKE) clean
-		del *.obj *~ pl.res
+		-del *.obj *~ pl.res 2>nul
 
 distclean:	clean distclean_packages
-		@cd rc & $(MAKE) distclean
-		chdir win32\foreign & $(MAKE) distclean
-		del ..\library\INDEX.pl
-		del swipl swiplbin
+		@chdir rc & $(MAKE) distclean
+		@chdir win32\foreign & $(MAKE) distclean
+		-del ..\library\INDEX.pl 2>nul
+		-del swipl swiplbin 2>nul
 
 realclean:	clean
 		del $(STARTUPPATH)

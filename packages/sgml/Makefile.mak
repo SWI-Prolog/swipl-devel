@@ -58,8 +58,9 @@ html-install::
 xpce-install::
 
 clean::
-		DEL *.obj *~
+		if exist *.obj del *.obj
+		if exist *~ del *~
 
 distclean:	clean
-		DEL $(PKGDLL).dll $(PKGDLL).lib $(PKGDLL).exp
+		-DEL *.dll *.lib *.exp *.dbg 2>nul
 

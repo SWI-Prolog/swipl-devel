@@ -16,7 +16,8 @@ $(PLHOME)\bin\dlltest.dll:	dlltest.obj
 	$(LD) /dll /out:$@ $(LDFLAGS) dlltest.obj $(TERMLIB) $(PLLIB) $(LIBS)
 
 clean::
-	del *~ *.obj
+	if exist *.obj del *.obj
+	if exist *~ del *~
 
 distclean: clean
-	del $(DLLS)
+	-del *.dll *.lib *.exp *.dbg 2>nul

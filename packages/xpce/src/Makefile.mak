@@ -400,11 +400,16 @@ uninstall::
 ################################################################
 
 clean::
-		for %d in ($(MODULES)) do \
-		  $(CMD) /c "chdir %d & del *~ *.obj"
-		$(CMD) /c "chdir ..\pl\src & del *~ *.obj"
-		del *~ *.obj xpce-install.exe
+		@echo off & for %d in ($(MODULES)) do \
+		  $(CMD) /c "chdir %d & if exist *.obj del *.obj"
+		@echo off & for %d in ($(MODULES)) do \
+		  $(CMD) /c "chdir %d & if exist *~ del *~"
+		$(CMD) /c "chdir ..\pl\src & if exist *.obj del *.obj"
+		$(CMD) /c "chdir ..\pl\src & if exist *~ del *~"
+		if exist xpce-install.exe del xpce-install.exe
+		if exist *.obj del *.obj
+		if exist *~ del *~
 
 distclean:	clean
-		del pl2xpce.dll pl2xpce.lib pl2xpce.exp
+		-del *.dll *.lib *.exp *.dbg 2>nul
 		

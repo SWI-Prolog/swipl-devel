@@ -23,9 +23,10 @@ rc.lib:		$(LIBOBJ)
 # Cleanup
 ################################################################
 
-clean:
-		del *~ *.obj
+clean::
+		if exist *.obj del *.obj
+		if exist *~ del *~
 
 distclean:	clean
-		del plrc.exe rc.lib
+		-del plrc.exe rc.lib *.dbg 2>nul
 

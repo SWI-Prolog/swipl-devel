@@ -32,11 +32,14 @@ install:	all
 		copy $(OUTDBG) $(BINDIR)
 !ENDIF
 
-clean:
-		del *~ *.obj
+clean::
+		if exist *.obj del *.obj
+		if exist *~ del *~
 
 distclean:	clean
-		del $(OUTLIB) $(OUTDLL)
+		if exist $(OUTLIB) del $(OUTLIB)
+		if exist $(OUTDLL) del $(OUTDLL)
+		if exist $(OUTDBG) del $(OUTDBG)
 
 # dependencies
 

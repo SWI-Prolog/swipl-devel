@@ -29,7 +29,8 @@ html-install::
 		copy pl2cpp.html "$(PKGDOC)"
 
 clean::
-		DEL *.obj *~
+		if exist *.obj del *.obj
+		if exist *~ del *~
 
 distclean:	clean
 

@@ -22,8 +22,9 @@ $(PLHOME)\include\uxnt.h: uxnt.h
 $(PLHOME)\include\dirent.h: dirent.h
 	copy dirent.h $@
 
-clean:
-	del *~ *.obj
+clean::
+	if exist *.obj del *.obj
+	if exist *~ del *~
 
 distclean: clean
-	del uxnt.lib
+	if exist uxnt.lib del uxnt.lib
