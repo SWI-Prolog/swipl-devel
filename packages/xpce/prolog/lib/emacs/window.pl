@@ -985,7 +985,7 @@ mode_name(Mode, Name) :-
 	(   atom_concat(emacs_, M1, Mode)
 	;   M1 = Mode
 	), !,
-	(   concat(atom_Name, '_mode', M1)
+	(   atom_concat(Name, '_mode', M1)
 	;   Name = M1
 	), !.
 
