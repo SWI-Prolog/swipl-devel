@@ -200,6 +200,7 @@ pl_set_tty(term_t old, term_t new)
 
     if ( getOutputStream(new, &s) )
     { Sterm = s;
+      PL_release_stream(s);
       succeed;
     }
   }

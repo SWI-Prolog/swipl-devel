@@ -3257,7 +3257,7 @@ Change working directory to \arg{Path}.%
 systems providing POSIX threads and if the system is configured using
 the \longoption{enable-mt}{} option.  SWI-Prolog multi-theading support
 is very incomplete and for developers ONLY.  This section however does
-provide an overview of the forthcoming functionality.}
+provide an overview of forthcoming functionality.}
 
 SWI-Prolog multithreading is based on standard C-language multithreading
 support. It is not like {\em ParLog} or other paralel implementations of
@@ -3316,17 +3316,27 @@ omited, the limit of the calling thread is used. See also the
 Set the limit to which the argument stack of this thread may grow.  If
 omited, the limit of the calling thread is used. See also the
 \cmdlineoption{-A} commandline option.
+    \termitem{alias}{AliasName}
+Associate an `alias-name' with the thread.  This named may be used to
+refer to the thread and remains valid until the thread is joined
+(see thread_join/2).
 \end{description}
 
 The \arg{Goal} argument is {\em copied} to the new Prolog engine.  This
 implies further instantiation of this term in either thread does not
-have consequences for the other thread: Prolog thread do not share
+have consequences for the other thread: Prolog threads do not share
 data from their stacks.
+
+    \predicate{thread_self}{1}{-Id}
+Get the Prolog thread identifier of the running thread.  If the thread
+has an alias, the alias-name is returned.
 
     \predicate{current_thread}{2}{?Id, ?Status}
 Enumerates identifiers and status of all currently known threads.
 Calling current_thread/2 does not influence any thread.  See also
-thread_join/2. \arg{Status} is one of:
+thread_join/2.  For threads that have an alias-name, this name is
+returned in \arg{Id} instead of the numerical thread identifier.
+\arg{Status} is one of:
 
 \begin{description}
     \termitem{running}{}
@@ -3359,6 +3369,52 @@ thread is retained until thread_join/2 is called on the thread.
 Terminates the thread immediately, leaving \term{exited}{Term} as
 result-state.  The Prolog stacks and C-thread are reclaimed.
 
+\end{description}
+
+
+\subsection{Thread communication}
+
+Prolog threads can exchange data using dynamic predicates, database
+records, and other globally shared data.  In addition, they can send
+messages to each other.  If a threads needs to wait for another thread
+until that thread has produced some data, using only the database forces
+the waiting thread to poll the database continuously.  Waiting for a
+message suspends the thread execution until the message has arrived
+in its message queue.
+
+\begin{description}
+    \predicate{thread_send_message}{2}{+ThreadId, +Term}
+Place \arg{Term} in the message queue of the indicated thread (which can
+even be the message queue of itself (see thread_self/1).  Any term can
+be placed in a message queue, but note that the term is copied to to
+receiving thread and variable-bindings are thus lost.  This call returns
+immediately.
+
+    \predicate{thread_get_message}{1}{?Term}
+Examines the thread message-queue and if necessary blocks execution
+until a term that unifies to \arg{Term} arrives in the queue.  After
+a term from the queue has been unified unified to \arg{Term}, this
+term is deleted from the queue and this predicate returns.
+
+Please note that not-unifying messages remain in the queue.  After
+the following has been executed, thread 1 has the term \term{b}{gnu}
+in its queue and continues execution using \arg{A} is \const{gnat}.
+
+\begin{code}
+   <thread 1>
+   thread_get_message(a(A)),
+
+   <thread 2>
+   thread_send_message(b(gnu)),
+   thread_send_message(a(gnat)),
+\end{code}
+
+See also thread_peek_message/1.
+    \predicate{thread_peek_message}{1}{?Term}
+Examines the thread message-queue and compares the queued terms
+with \arg{Term} until one unifies or the end of the queue has been
+reached.  In the first case the call succeeds (possibly instantiating
+\arg{Term}.  If no term from the queue unifies this call fails.
 \end{description}
 
 \section{User Toplevel Manipulation}

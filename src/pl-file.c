@@ -83,9 +83,11 @@ getStreamContext(IOSTREAM *s)
 
 void
 aliasStream(IOSTREAM *s, atom_t name)
-{ stream_context *ctx = getStreamContext(s);
+{ stream_context *ctx;
   alias *a;
 
+  LOCK();
+  ctx = getStreamContext(s);
   addHTable(streamAliases, (void *)name, s);
   
   a = allocHeap(sizeof(*a));
@@ -98,8 +100,11 @@ aliasStream(IOSTREAM *s, atom_t name)
   } else
   { ctx->alias_head = ctx->alias_tail = a;
   }
+  UNLOCK();
 }
 
+/* MT: Locked by freeStream()
+*/
 
 static void
 unaliasStream(IOSTREAM *s, atom_t name)
@@ -122,7 +127,7 @@ unaliasStream(IOSTREAM *s, atom_t name)
 	    if ( tmp == ctx->alias_tail )
 	      ctx->alias_tail = NULL;
 
-	    return;
+	    break;
 	  }
 	}
       }
@@ -153,6 +158,7 @@ static void
 freeStream(IOSTREAM *s)
 { Symbol symb;
 
+  LOCK();
   unaliasStream(s, NULL_ATOM);
   if ( (symb=lookupHTable(streamContext, s)) )
   { stream_context *ctx = symb->value;
@@ -169,22 +175,27 @@ freeStream(IOSTREAM *s)
     Sdout = Serror;
   else if ( s == Sterm )
     Sterm = Soutput;
+  UNLOCK();
 }
 
 
 static void
 setFileNameStream(IOSTREAM *s, atom_t name)
-{ stream_context *ctx = getStreamContext(s);
-
-  ctx->filename = name;
+{ LOCK();
+  getStreamContext(s)->filename = name;
+  UNLOCK();
 }
 
 
-static inline atom_t
+atom_t
 fileNameStream(IOSTREAM *s)
-{ stream_context *ctx = getStreamContext(s);
+{ atom_t name;
 
-  return ctx->filename;
+  LOCK();
+  name = getStreamContext(s)->filename;
+  UNLOCK();
+
+  return name;
 }
 
 
@@ -229,6 +240,37 @@ initIO()
   GD->io_initialised = TRUE;
 }
 
+		 /*******************************
+		 *	     GET HANDLES	*
+		 *******************************/
+
+#ifdef O_PLMT
+
+static inline IOSTREAM *
+getStream(IOSTREAM *s)
+{ if ( s )
+    Slock(s);
+
+  return s;
+}
+
+static inline void
+releaseStream(IOSTREAM *s)
+{ Sunlock(s);
+}
+
+#else /*O_PLMT*/
+
+#define getStream(s) (s)
+#define releaseStream(s)
+
+#endif /*O_PLMT*/
+
+void
+PL_release_stream(IOSTREAM *s)
+{ releaseStream(s);
+}
+
 
 int
 PL_get_stream_handle(term_t t, IOSTREAM **s)
@@ -240,20 +282,27 @@ PL_get_stream_handle(term_t t, IOSTREAM **s)
 
     PL_get_arg(1, t, a);
     if ( PL_get_pointer(a, &p) )
-    { if ( ((IOSTREAM *)p)->magic == SIO_MAGIC )
-      { *s = p;
+    { LOCK();
+      if ( ((IOSTREAM *)p)->magic == SIO_MAGIC )
+      { *s = getStream(p);
+        UNLOCK();
         return TRUE;
       } else
+      { UNLOCK();
 	return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_stream, t);
+      }
     }
   } else if ( PL_get_atom(t, &alias) )
   { Symbol symb;
 
+    LOCK();
     if ( (symb=lookupHTable(streamAliases, (void *)alias)) )
-    { *s = symb->value;
+    { *s = getStream(symb->value);
       assert((*s)->magic == SIO_MAGIC);
+      UNLOCK();
       return TRUE;
     }
+    UNLOCK();
 
     return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_stream, t);
   }
@@ -265,9 +314,10 @@ PL_get_stream_handle(term_t t, IOSTREAM **s)
 int
 PL_unify_stream(term_t t, IOSTREAM *s)
 { int rval;
-  stream_context *ctx = getStreamContext(s);
+  stream_context *ctx;
 
   LOCK();
+  ctx = getStreamContext(s);
   if ( ctx->alias_head )
   { rval = PL_unify_atom(t, ctx->alias_head->name);
   } else
@@ -284,30 +334,24 @@ PL_unify_stream(term_t t, IOSTREAM *s)
 }
 
 
-bool					/* old FLI name */
+bool					/* old FLI name (compatibility) */
 PL_open_stream(term_t handle, IOSTREAM *s)
 { return PL_unify_stream(handle, s);
 }
 
 
-		 /*******************************
-		 *	  PROLOG INTERFACE	*
-		 *******************************/
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Multi-threading support (not well thought of yet)
+getInputStream(term_t t, IOSTREAM **s)
+getOutputStream(term_t t, IOSTREAM **s)
+    These functions are the basis used by all Prolog predicates to get
+    a input or output stream handle.  If t = 0, current input/output is
+    returned.  This allows us to define the standard-stream based version
+    simply by calling the explicit stream-based version with 0 for the
+    stream argument.
+
+    MT: The returned stream is always locked and should be returned
+    using releaseStream() or streamStatus().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static IOSTREAM *
-getStream(IOSTREAM *s)
-{ return s;
-}
-
-
-static void
-releaseStream(IOSTREAM *s)
-{
-}
 
 
 bool
@@ -416,18 +460,25 @@ to to avoid closing the user-streams. If a stream cannot be flushed (due
 to a write-error), an exception is  generated   and  the  stream is left
 open. This behaviour ensures proper error-handling. How to collect these
 resources??
+
+MT: We assume the stream is locked and will unlock it here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
 closeStream(IOSTREAM *s)
 { if ( s == Sinput )
   { Sclearerr(s);
+    releaseStream(s);
   } else if ( s == Soutput || s == Serror )
   { if ( Sflush(s) < 0 )
       return streamStatus(s);
+    releaseStream(s);
   } else
   { if ( Sflush(s) < 0 )
-      return streamStatus(s);
+    { streamStatus(s);
+      Sclose(s);
+      return FALSE;
+    }
     Sclose(s);
   }
 
@@ -446,10 +497,39 @@ closeFiles(int all)
   { IOSTREAM *s = symb->name;
 
     if ( all || !(s->flags & SIO_NOCLOSE) )
-      closeStream(s);
+      closeStream(getStream(s));
   }
   freeTableEnum(e);
   UNLOCK();
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Get the open OS filedescriptors, so we can close them (see System())
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+openFileDescriptors(unsigned char *buf, int size)
+{ TableEnum e;
+  Symbol symb;
+  int n = 0;
+
+  LOCK();
+  e = newTableEnum(streamContext);
+  while( (symb=advanceTableEnum(e)) )
+  { IOSTREAM *s = symb->name;
+    int fd;
+
+    if ( (fd=Sfileno(s)) >= 0 )
+    { if ( n > size )
+	break;
+      buf[n++] = fd;
+    }
+  }
+  freeTableEnum(e);
+  UNLOCK();
+
+  return n;
 }
 
 
@@ -460,7 +540,7 @@ protocol(const char *str, int n)
   if ( (s = getStream(Slog)) )
   { while( --n >= 0 )
       Sputc(*str++, s);
-    releaseStream(s);
+    releaseStream(s);			/* we don not check errors */
   }
 }
 
@@ -520,21 +600,6 @@ popOutputContext()
 }
 
 
-int
-currentLinePosition()			/* should be deleted */
-{ IOSTREAM *s;
-  int rval = 0;
-
-  if ( (s = getStream(Soutput)) )
-  { if ( s->position )
-      rval = s->position->linepos;
-    releaseStream(s);
-  }
-
-  return rval;
-}
-
-
 void
 PL_write_prompt(int dowrite)
 { IOSTREAM *s = getStream(Soutput);
@@ -564,6 +629,7 @@ getSingleChar(IOSTREAM *stream)
   ttybuf buf;
     
   debugstatus.suspendTrace++;
+  Slock(stream);
   Sflush(stream);
   if ( stream == Sinput )
     PushTty(&buf, TTY_RAW);		/* just donot prompt */
@@ -592,6 +658,7 @@ getSingleChar(IOSTREAM *stream)
   if ( stream == Sinput )
     PopTty(&buf);
   debugstatus.suspendTrace--;
+  Sunlock(stream);
 
   return c;
 }
@@ -612,6 +679,9 @@ readLine(IOSTREAM *in, IOSTREAM *out, char *buffer)
   ttybuf tbuf;
   int ttyset = FALSE;
 
+  Slock(in);
+  Slock(out);
+
   if ( !GD->cmdline.notty && in == Sinput )
   { PushTty(&tbuf, TTY_RAW);		/* just donot prompt */
     ttyset = TRUE;
@@ -627,6 +697,8 @@ readLine(IOSTREAM *in, IOSTREAM *out, char *buffer)
         *buf++ = EOS;
 	if ( ttyset )
 	  PopTty(&tbuf);
+	Sunlock(in);
+	Sunlock(out);
 
 	return c == EOF ? FALSE : TRUE;
       case '\b':
@@ -663,6 +735,9 @@ pl_dup_stream(term_t from, term_t to)
   if ( PL_get_stream_handle(from, &f) &&
        PL_get_stream_handle(to,   &t) )
   { notImplemented("dup_stream", 2);
+
+    releaseStream(f);
+    releaseStream(t);
     succeed;
   }
   
@@ -724,35 +799,13 @@ toldString()
 
   if ( s && s->functions == &Smemfunctions )
   { Sputc(EOS, s);
-    Sclose(s);
+    closeStream(s);
     popOutputContext();
   }
 
   succeed;
 }
 
-
-		/********************************
-		*        INPUT IOSTREAM NAME    *
-		*********************************/
-
-void
-setCurrentSourceLocation(IOSTREAM *s)
-{ atom_t a;
-
-  if ( s->position )
-  { source_line_no = s->position->lineno;
-    source_char_no = s->position->charno - 1; /* char just read! */
-  } else
-  { source_line_no = -1;
-    source_char_no = 0;
-  }
-
-  if ( (a = fileNameStream(s)) )
-    source_file_name = a;
-  else
-    source_file_name = NULL_ATOM;
-}
 
 		/********************************
 		*       WAITING FOR INPUT	*
@@ -788,8 +841,11 @@ pl_wait_for_input(term_t Streams, term_t Available,
     if ( !PL_get_stream_handle(head, &s) < 0 )
       fail;
     if ( (fd=Sfileno(s)) < 0 )
+    { releaseStream(s);
       return PL_error("wait_for_input", 3, NULL, ERR_DOMAIN,
 		      PL_new_atom("file_stream"), head);
+    }
+    releaseStream(s);
     streammap[fd] = PL_copy_term_ref(head);
 
     FD_SET(fd, &fds);
@@ -862,7 +918,6 @@ pl_put2(term_t stream, term_t chr)
     fail;
 
   Sputc(c, s);
-  releaseStream(s);
   
   return streamStatus(s);
 }
@@ -938,14 +993,18 @@ pl_tty()				/* $tty/0 */
 }
 
 word
-pl_get_single_char(term_t c)
+pl_get_single_char(term_t chr)
 { IOSTREAM *s = getStream(Scurin);
-  int rval;
+  int c = getSingleChar(s);
 
-  rval = PL_unify_integer(c, getSingleChar(s));
+  if ( c == EOF )
+  { PL_unify_integer(chr, -1);
+    return streamStatus(s);
+  }
+
   releaseStream(s);
 
-  return rval;
+  return PL_unify_integer(chr, c);
 }
 
 word
@@ -956,7 +1015,7 @@ pl_get02(term_t in, term_t chr)
   { int c = Sgetc(s);
 
     if ( c == EOF )
-    { TRY(PL_unify_integer(chr, -1));
+    { PL_unify_integer(chr, -1);
       return streamStatus(s);
     }
 
@@ -979,7 +1038,7 @@ pl_ttyflush()
 
   Sflush(s);
 
-  return streamStatus(Soutput);
+  return streamStatus(s);
 }
 
 
@@ -1399,9 +1458,10 @@ pl_current_stream(term_t file, term_t mode,
       { IOSTREAM *s;
 
 	if ( PL_get_stream_handle(stream, &s) )
-	{ TRY( unifyStreamName(file, s) &&
-	       unifyStreamMode(mode, s) );
-	  succeed;
+	{ int rval = ((unifyStreamName(file, s) &&
+		       unifyStreamMode(mode, s)) ? TRUE : FALSE);
+	  releaseStream(s);
+	  return rval;
 	}
 
 	fail;
@@ -1420,13 +1480,16 @@ pl_current_stream(term_t file, term_t mode,
 
   Mark(m);
   while( (symb=advanceTableEnum(e)) )
-  { IOSTREAM *s = symb->name;
+  { IOSTREAM *s = getStream(symb->name);
 
     if ( unifyStreamName(file, s) &&
 	 unifyStreamMode(mode, s) &&
 	 PL_unify_stream(stream, s) )
+    { releaseStream(s);
       ForeignRedoPtr(e);
+    }
 
+    releaseStream(s);
     Undo(m);
   }
 
@@ -1461,6 +1524,7 @@ getStreamWithPosition(term_t stream, IOSTREAM **sp)
   { if ( !s->position )
     { PL_error(NULL, 0, NULL, ERR_PERMISSION, /* non-ISO */
 	       ATOM_property, ATOM_position, stream);
+      releaseStream(s);
       return FALSE;
     }
 
@@ -1492,7 +1556,9 @@ pl_stream_position(term_t stream, term_t old, term_t new)
 		        PL_INTEGER, charno,
 		        PL_INTEGER, lineno,
 		        PL_INTEGER, linepos) )
+  { releaseStream(s);
     fail;
+  }
 
   if ( !(PL_get_functor(new, &f) && f == FUNCTOR_stream_position3) ||
        !PL_get_arg(1, new, a) ||
@@ -1501,17 +1567,23 @@ pl_stream_position(term_t stream, term_t old, term_t new)
        !PL_get_long(a, &lineno) ||
        !PL_get_arg(3, new, a) ||
        !PL_get_long(a, &linepos) )
+  { releaseStream(s);
     return PL_error("stream_position", 3, NULL,
 		    ERR_DOMAIN, ATOM_stream_position, new);
+  }
 
   if ( charno != oldcharno && Sseek(s, charno, 0) < 0 )
+  { releaseStream(s);
     return PL_error("stream_position", 3, OsError(),
 		    ERR_STREAM_OP, ATOM_position, stream);
+  }
 
   s->position->charno  = charno;
   s->position->lineno  = lineno;
   s->position->linepos = linepos;
   
+  releaseStream(s);
+
   succeed;
 }
 
@@ -1523,8 +1595,6 @@ pl_seek(term_t stream, term_t offset, term_t method, term_t newloc)
   long off, new;
   IOSTREAM *s;
 
-  if ( !PL_get_stream_handle(stream, &s) )
-    fail;
   if ( !(PL_get_atom(method, &m)) )
     goto badmethod;
 
@@ -1542,12 +1612,19 @@ pl_seek(term_t stream, term_t offset, term_t method, term_t newloc)
   if ( !PL_get_long(offset, &off) )
     return PL_error("seek", 4, NULL, ERR_DOMAIN, ATOM_integer, offset);
 
-  new = Sseek(s, off, whence);
-  if ( new == -1 )
-    return PL_error("seek", 4, OsError(), ERR_PERMISSION,
-		    ATOM_reposition, ATOM_stream, stream);
+  if ( PL_get_stream_handle(stream, &s) )
+  { if ( (new = Sseek(s, off, whence)) == -1 )
+    { PL_error("seek", 4, OsError(), ERR_PERMISSION,
+	       ATOM_reposition, ATOM_stream, stream);
+      releaseStream(s);
+      fail;
+    }
 
-  return PL_unify_integer(newloc, new);
+    releaseStream(s);
+    return PL_unify_integer(newloc, new);
+  }
+
+  fail;
 }
 
 
@@ -1588,32 +1665,47 @@ pl_current_output(term_t stream)
 { return PL_unify_stream(stream, Scurout);
 }
 
+
 word
 pl_character_count(term_t stream, term_t count)
 { IOSTREAM *s;
 
   if ( getStreamWithPosition(stream, &s) )
-    return PL_unify_integer(count, s->position->charno);
+  { long n = s->position->charno;
+
+    releaseStream(s);
+    return PL_unify_integer(count, n);
+  }
 
   fail;
 }
+
 
 word
 pl_line_count(term_t stream, term_t count)
 { IOSTREAM *s;
 
   if ( getStreamWithPosition(stream, &s) )
-    return PL_unify_integer(count, s->position->lineno);
+  { long n = s->position->lineno;
+
+    releaseStream(s);
+    return PL_unify_integer(count, n);
+  }
 
   fail;
 }
+
 
 word
 pl_line_position(term_t stream, term_t count)
 { IOSTREAM *s;
 
   if ( getStreamWithPosition(stream, &s) )
-    return PL_unify_integer(count, s->position->linepos);
+  { long n = s->position->linepos;
+
+    releaseStream(s);
+    return PL_unify_integer(count, n);
+  }
 
   fail;
 }
@@ -1639,7 +1731,11 @@ pl_at_end_of_stream1(term_t stream)
 { IOSTREAM *s;
 
   if ( getInputStream(stream, &s) )
-    return Sfeof(s) ? TRUE : FALSE;
+  { int rval = (Sfeof(s) ? TRUE : FALSE);
+    
+    releaseStream(s);
+    return rval;
+  }
 
   return FALSE;				/* exception */
 }
@@ -1663,9 +1759,10 @@ pl_peek_byte2(term_t stream, term_t chr)
   pos = s->posbuf;
   c = Sgetc(s);
   Sungetc(c, s);
+  s->posbuf = pos;
   if ( Sferror(s) )
     return streamStatus(s);
-  s->posbuf = pos;
+  releaseStream(s);
 
   return PL_unify_integer(chr, c);
 }
@@ -2133,8 +2230,8 @@ pl_copy_stream_data3(term_t in, term_t out, term_t len)
 { IOSTREAM *i, *o;
   int c;
 
-  if ( !PL_get_stream_handle(in, &i) ||
-       !PL_get_stream_handle(out, &o) )
+  if ( !getInputStream(in, &i) ||
+       !getOutputStream(out, &o) )
     return FALSE;
 
   if ( !len )

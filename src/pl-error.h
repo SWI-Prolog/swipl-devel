@@ -33,5 +33,6 @@
 #define ERR_AR_UNDERFLOW       23	/* void */
 #define ERR_UNDEFINED_PROC     24	/* Definition def */
 #define ERR_SIGNALLED	       25	/* int sig, char *name */
+#define ERR_CLOSED_STREAM      26	/* IOSTREAM * */
 
 #define MSG_ERRNO		((char *)(-1))

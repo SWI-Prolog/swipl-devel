@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: bug in filename canonisation.
+
   * The manual-helper program pl-bite, use to pick bits of the online
     manual and present them to the pager, thus protecting prolog from
     receiving a broken-pipe signal has been deleted.  The current version

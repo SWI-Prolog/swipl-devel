@@ -5582,7 +5582,7 @@ TThhee  ffeeaattuurreess  ddeessccrriibbeedd  iinn tthhi
 ssyysstteemmss pprroovviiddiinngg  PPOOSSIIXX tthhrreeaaddss aanndd iiff  tthhee ssyysstteemm iiss ccoonnffiigguurreedd  uussiinngg
 tthhee  --enable-mt ooppttiioonn..    SSWWII--PPrroolloogg  mmuullttii--tthheeaaddiinngg ssuuppppoorrtt  iiss  vveerryy
 iinnccoommpplleettee aanndd  ffoorr ddeevveellooppeerrss OONNLLYY.. TThhiiss  sseeccttiioonn hhoowweevveerr ddooeess  pprroovviiddee
-aann oovveerrvviieeww ooff tthhee ffoorrtthhccoommiinngg ffuunnccttiioonnaalliittyy..
+aann oovveerrvviieeww ooff ffoorrtthhccoommiinngg ffuunnccttiioonnaalliittyy..
 
 SWI-Prolog multithreading is  based on standard C-language  multithread-
 ing support.   It  is not like _P_a_r_L_o_g  or other paralel  implementations
@@ -5644,16 +5644,28 @@ tthhrreeaadd__ccrreeaattee((_:_G_o_a_l_, _-_I_d_, _+_O
          grow.   If omited,  the limit  of the  calling thread is  used.
          See also the -A commandline option.
 
+    aalliiaass((_A_l_i_a_s_N_a_m_e))
+         Associate an `alias-name' with  the thread.  This named  may be
+         used to refer to the thread and remains valid  until the thread
+         is joined (see thread_join/2).
+
     The _G_o_a_l argument is  _c_o_p_i_e_d to the new Prolog engine.  This implies
     further  instantiation of this term  in either thread does not  have
-    consequences for the  other thread:  Prolog thread do not share data
-    from their stacks.
+    consequences  for the  other thread:   Prolog threads  do not  share
+    data from their stacks.
+
+
+tthhrreeaadd__sseellff((_-_I_d))
+    Get  the Prolog thread  identifier of  the running thread.   If  the
+    thread has an alias, the alias-name is returned.
 
 
 ccuurrrreenntt__tthhrreeaadd((_?_I_d_, _?_S_t_a_t_u_s))
     Enumerates  identifiers and status  of all currently known  threads.
     Calling  current_thread/2 does not influence any  thread.  See  also
-    thread_join/2.  _S_t_a_t_u_s is one of:
+    thread_join/2.   For threads that  have an alias-name, this name  is
+    returned  in _I_d instead of the numerical thread identifier.   _S_t_a_t_u_s
+    is one of:
 
     rruunnnniinngg
          The  thread is  running.    This is  the  initial status  of  a
@@ -5691,6 +5703,53 @@ tthhrreeaadd__jjooiinn((_+_I_d_, _-_S_t_a_t_u_s))
 tthhrreeaadd__eexxiitt((_+_T_e_r_m))
     Terminates   the  thread   immediately,   leaving  exited(_T_e_r_m)   as
     result-state.  The Prolog stacks and C-thread are reclaimed.
+
+
+33..3366..11 TThhrreeaadd ccoommmmuunniiccaattiioonn
+
+Prolog  threads can  exchange data  using dynamic  predicates,  database
+records, and  other globally shared  data.  In  addition, they can  send
+messages to each other.   If a threads needs to wait for  another thread
+until  that thread  has  produced some  data,  using only  the  database
+forces the waiting  thread to poll the  database continuously.   Waiting
+for  a message  suspends  the thread  execution  until the  message  has
+arrived in its message queue.
+
+
+tthhrreeaadd__sseenndd__mmeessssaaggee((_+_T_h_r_e_a_d_I_d_, _+_T_e_r_m))
+    Place  _T_e_r_m in the message queue of the indicated thread  (which can
+    even  be the message queue of itself (see thread_self/1).   Any term
+    can  be placed in a message queue, but note that the term  is copied
+    to  to receiving thread and variable-bindings  are thus lost.   This
+    call returns immediately.
+
+
+tthhrreeaadd__ggeett__mmeessssaaggee((_?_T_e_r_m))
+    Examines the thread  message-queue and if necessary blocks execution
+    until  a term that unifies  to _T_e_r_m arrives in  the queue.  After  a
+    term  from the queue has been unified unified to _T_e_r_m, this  term is
+    deleted from the queue and this predicate returns.
+
+    Please  note that not-unifying messages remain in the queue.   After
+    the  following has been  executed, thread 1  has the term b(_g_n_u)  in
+    its queue and continues execution using _A is gnat.
+
+       <thread 1>
+       thread_get_message(a(A)),
+
+       <thread 2>
+       thread_send_message(b(gnu)),
+       thread_send_message(a(gnat)),
+
+    See also thread_peek_message/1.
+
+
+tthhrreeaadd__ppeeeekk__mmeessssaaggee((_?_T_e_r_m))
+    Examines  the thread  message-queue  and compares  the queued  terms
+    with   _T_e_r_m  until  one  unifies  or  the  end  of  the   queue  has
+    been  reached.    In  the first  case  the call  succeeds  (possibly
+    instantiating  _T_e_r_m.   If no term from  the queue unifies this  call
+    fails.
 
 
 33..3377 UUsseerr TToopplleevveell MMaanniippuullaattiioonn
@@ -10421,50 +10480,55 @@ suggest predicates from a keyword.
 
  thread_create/3               Create a new Prolog task
  thread_exit/1                 Terminate Prolog task with value
+ thread_get_message/1          Wait for message
  thread_join/2                 Wait for Prolog task-completion
+ thread_peek_message/1         Test for message in queue
+ thread_self/1                 Get identifier of current thread
+ thread_send_message/2         Send message to another thread
+
  throw/1                       Raise an exception (see catch/3)
  time/1                        Determine time needed to execute goal
  time_file/2                   Get last modification time of file
  tmp_file/2                    Create a temporary filename
-
  told/0                        Close current output
  trace/0                       Start the tracer
  trace/1                       Set trace-point on predicate
  trace/2                       Set/Clear trace-point on ports
+
  tracing/0                     Query status of the tracer
  trim_stacks/0                 Release unused memory resources
  true/0                        Succeed
  tty_get_capability/3          Get terminal parameter
-
  tty_goto/2                    Goto position on screen
  tty_put/2                     Write control string to terminal
  ttyflush/0                    Flush output on terminal
+
  union/3                       Union of two sets
  unix/1                        OS interaction (get command-line arguments)
  unknown/2                     Trap undefined predicates
  unload_foreign_library/1      library(shlib) Detach shared library (.so file)
-
  unsetenv/1                    Delete shell environment variable
  use_module/1                  Import a module
  use_module/2                  Import predicates from a module
  var/1                         Type check for unbound variable
+
  visible/1                     Ports that are visible in the tracer
  volatile/1                    Predicates that are not saved
  wait_for_input/3              Wait for input with optional timeout
  wildcard_match/2              Csh(1) style wildcard match
-
  win_exec/2                    Win32:  spawn Windows task
  write/1                       Write term
  write/2                       Write term to stream
+
  write_ln/1                    Write term, followed by a newline
  write_canonical/1             Write a term with quotes, ignore operators
  write_canonical/2             Write a term with quotes, ignore operators on a stream
  write_term/2                  Write term with options
-
  write_term/3                  Write term with options to stream
  writef/1                      Formatted write
  writef/2                      Formatted write on stream
  writeq/1                      Write term, insert quotes
+
  writeq/2                      Write term, insert quotes on stream
 
 
@@ -10643,4 +10707,4 @@ Bibliography
                                   New York, 1983.  Major revision  March
                                   1984.
 
-                                  760
+                                  765

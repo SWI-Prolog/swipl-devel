@@ -418,9 +418,10 @@ __pl_export void	_PL_get_arg(int index, term_t t, term_t a);
 		 *******************************/
 
 					/* Make IOSTREAM known to Prolog */
-__pl_export int PL_open_stream(term_t t, IOSTREAM *s); /* compatibility */
-__pl_export int PL_unify_stream(term_t t, IOSTREAM *s);
-__pl_export int PL_get_stream_handle(term_t t, IOSTREAM **s);
+__pl_export int  PL_open_stream(term_t t, IOSTREAM *s); /* compatibility */
+__pl_export int  PL_unify_stream(term_t t, IOSTREAM *s);
+__pl_export int  PL_get_stream_handle(term_t t, IOSTREAM **s);
+__pl_export void PL_release_stream(IOSTREAM *s);
 __pl_export IOSTREAM *PL_open_resource(module_t m,
 				       const char *name,
 				       const char *rc_class,

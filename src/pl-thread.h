@@ -92,6 +92,7 @@ extern PL_local_data_t *_LD(void) __attribute((const));
 
 extern PL_local_data_t *allocPrologLocalData(void);
 extern void		initPrologThreads(void);
+extern bool		aliasThread(int tid, atom_t name);
 extern word		pl_thread_create(term_t goal, term_t id,
 					 term_t options);
 extern word		pl_thread_self(term_t self);
@@ -99,7 +100,10 @@ extern word		pl_thread_join(term_t thread, term_t retcode);
 extern word		pl_thread_exit(term_t retcode);
 extern word		pl_current_thread(term_t id, term_t status, word h);
 extern word		pl_thread_kill(term_t thread, term_t sig);
-
+extern word		pl_thread_send_message(term_t thread, term_t msg);
+extern word		pl_thread_get_message(term_t msg);
+extern word		pl_thread_peek_message(term_t msg);
+extern int		PL_thread_self(void);
 #else /*O_PLMT*/
 
 		 /*******************************

@@ -152,9 +152,6 @@
 /* Define if you have the getcwd function.  */
 #undef HAVE_GETCWD
 
-/* Define if you have the getdtablesize function.  */
-#undef HAVE_GETDTABLESIZE
-
 /* Define if you have the getpagesize function.  */
 #undef HAVE_GETPAGESIZE
 
@@ -265,6 +262,9 @@
 
 /* Define if you have the times function.  */
 #undef HAVE_TIMES
+
+/* Define if you have the unsetenv function.  */
+#undef HAVE_UNSETENV
 
 /* Define if you have the usleep function.  */
 #undef HAVE_USLEEP

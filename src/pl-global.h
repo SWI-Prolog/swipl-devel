@@ -314,8 +314,14 @@ typedef struct
 
 #ifdef O_PLMT
   struct
-  { struct _PL_thread_info_t *info;	/* info structure */
-    long magic;
+  { long   magic;			/* PL_THREAD_MAGIC (checking) */
+    atom_t name;			/* name of the thread (if any) */
+    struct _PL_thread_info_t *info;	/* info structure */
+					/* Message queues */
+    pthread_mutex_t   queue_mutex;	/* Message queue mutex */
+    pthread_cond_t    cond_var;		/* condition variable of queue */
+    struct _thread_msg *msg_head;	/* Head of message queue */
+    struct _thread_msg *msg_tail;	/* Tail of message queue */
   } thread;
 #endif
 } PL_local_data_t;

@@ -133,6 +133,7 @@ pl_format3(term_t stream, term_t fmt, term_t Args)
   char *f;
   term_t args = PL_copy_term_ref(Args);
   IOSTREAM *out;
+  int rval;
 
   if ( !getOutputStream(stream, &out) )
     fail;
@@ -154,7 +155,10 @@ pl_format3(term_t stream, term_t fmt, term_t Args)
     PL_put_term(argv, args);
   }
   
-  return do_format(out, f, argc, argv);
+  rval = do_format(out, f, argc, argv);
+  PL_release_stream(out);
+
+  return rval;
 }
 
 
@@ -182,13 +186,18 @@ static bool
 do_format(IOSTREAM *fd, const char *fmt, int argc, term_t argv)
 { char buffer[BUFSIZE];			/* to store chars with tabs */
   int index = 0;			/* index in buffer */
-  int column = currentLinePosition();	/* current output column */
+  int column;				/* current output column */
   int tab_stop = 0;			/* padded tab stop */
   int pending_rubber = 0;		/* number of not-filled ~t's */
   struct rubber rub[MAXRUBBER];
   Symbol s;
 
   Slock(fd);				/* buffer locally */
+
+  if ( fd->position )
+    column = fd->position->linepos;
+  else
+    column = 0;
 
   while(*fmt)
   { switch(*fmt)

@@ -41,6 +41,7 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
   term_t formal = PL_new_term_ref();
   term_t swi	= PL_new_term_ref();
   va_list args;
+  int do_throw = FALSE;
 
   if ( msg == MSG_ERRNO )
     msg = OsError();
@@ -219,6 +220,12 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
 			PL_FUNCTOR, FUNCTOR_representation_error1,
 			  PL_ATOM, ATOM_max_files);
 	  break;
+#ifdef EPIPE
+	case EPIPE:
+	  if ( !msg )
+	    msg = "Broken pipe";
+	  /*FALLTHROUGH*/
+#endif
 	default:			/* what about the other cases? */
 	  PL_unify_term(formal,
 			PL_FUNCTOR, FUNCTOR_existence_error2,
@@ -311,6 +318,15 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
 		        PL_INTEGER, sig);
       break;
     }
+    case ERR_CLOSED_STREAM:
+    { IOSTREAM *s = va_arg(args, IOSTREAM *);
+
+      PL_unify_term(formal,
+		    PL_FUNCTOR, FUNCTOR_existence_error2,
+		    PL_ATOM, ATOM_stream,
+		    PL_POINTER, s);
+      do_throw = TRUE;
+    }
     default:
       assert(0);
   }
@@ -343,7 +359,10 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
 		  PL_TERM, swi);
 
 
-  return PL_raise_exception(except);
+  if ( do_throw )
+    return PL_throw(except);
+  else
+    return PL_raise_exception(except);
 }
 
 

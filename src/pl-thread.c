@@ -17,7 +17,7 @@ APPROACH
 
     * Prolog threads are C-threads
       Prolog multi-threading is based upon a C thread library.  At first,
-      we will concentrate on teh Posix pthread standard, due to its wide
+      we will concentrate on the Posix pthread standard, due to its wide
       availability especially on Unix systems.
 
       This approach has some clear advantages: clean mixing of thread-based
@@ -58,7 +58,12 @@ STEPS
 
 #include <errno.h>
 
-static PL_thread_info_t *alloc_thread(void);
+		 /*******************************
+		 *	    GLOBAL DATA		*
+		 *******************************/
+
+static Table threadAliases;		/* name --> integer-id */
+static PL_thread_info_t threads[MAX_THREADS];
 
 pthread_key_t PL_ldata;			/* key for thread PL_local_data */
 pthread_mutex_t _PL_mutexes[] =
@@ -79,6 +84,19 @@ pthread_mutex_t _PL_mutexes[] =
 
 #define LOCK()   PL_LOCK(L_THREAD)
 #define UNLOCK() PL_UNLOCK(L_THREAD)
+
+		 /*******************************
+		 *	  LOCAL PROTOTYPES	*
+		 *******************************/
+
+static PL_thread_info_t *alloc_thread(void);
+static void	freeThreadMessages(PL_local_data_t *ld);
+static void	unaliasThread(atom_t name);
+
+
+		 /*******************************
+		 *	 THREAD ALLOCATION	*
+		 *******************************/
 
 PL_local_data_t *
 allocPrologLocalData()
@@ -112,7 +130,11 @@ PL_initialise_thread(PL_thread_info_t *info)
 		   info->global_size,
 		   info->trail_size,
 		   info->argument_size);
+
   initPrologLocalData();
+
+  pthread_mutex_init(&info->thread_data->thread.queue_mutex, NULL);
+  pthread_cond_init(&info->thread_data->thread.cond_var, NULL);
 
   return TRUE;
 }
@@ -134,6 +156,8 @@ free_prolog_thread(void *data)
   discardBuffer(&ld->fli._discardable_buffer);
   for(i=0; i<BUFFER_RING_SIZE; i++)
     discardBuffer(&ld->fli._buffer_ring[i]);
+
+  freeThreadMessages(ld);
 }
 
 
@@ -147,12 +171,40 @@ initPrologThreads()
   pthread_setspecific(PL_ldata, info->thread_data);
 }
 
+		 /*******************************
+		 *	    ALIAS NAME		*
+		 *******************************/
+
+bool
+aliasThread(int tid, atom_t name)
+{ int rval;
+
+  LOCK();
+  if ( !threadAliases )
+    threadAliases = newHTable(16);
+
+  if ( (rval = addHTable(threadAliases, (void *)name, (void *)tid)) )
+    threads[tid].thread_data->thread.name = name;
+  UNLOCK();
+
+  return rval;
+}
+
+static void
+unaliasThread(atom_t name)
+{ if ( threadAliases )
+  { Symbol s;
+
+    LOCK();
+    if ( (s = lookupHTable(threadAliases, (void *)name)) )
+      deleteSymbolHTable(threadAliases, s);
+    UNLOCK();
+  }
+}
 
 		 /*******************************
 		 *	 PROLOG BINDING		*
 		 *******************************/
-
-static PL_thread_info_t threads[MAX_THREADS];
 
 static PL_thread_info_t *
 alloc_thread()
@@ -181,7 +233,7 @@ alloc_thread()
 }
 
 
-static int
+int
 PL_thread_self()
 { PL_local_data_t *ld = LD;
 
@@ -197,6 +249,7 @@ static const opt_spec make_thread_options[] =
   { ATOM_global,	OPT_INT },
   { ATOM_trail,	        OPT_INT },
   { ATOM_argument,	OPT_INT },
+  { ATOM_alias,		OPT_ATOM },
   { NULL_ATOM,		0 }
 };
 
@@ -230,13 +283,16 @@ start_thread(void *closure)
 word
 pl_thread_create(term_t goal, term_t id, term_t options)
 { PL_thread_info_t *info = alloc_thread();
+  PL_local_data_t *ldnew = info->thread_data;
+  atom_t alias = NULL_ATOM;
 
   if ( !scan_options(options, 0,
 		     ATOM_thread_option, make_thread_options,
 		     &info->local_size,
 		     &info->global_size,
 		     &info->trail_size,
-		     &info->argument_size) )
+		     &info->argument_size,
+		     &alias) )
     fail;
 
   info->local_size    *= 1024;
@@ -247,12 +303,20 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   info->goal = PL_record(goal);
   info->module = PL_context();
 
-  info->thread_data->prompt  = LD->prompt;
-  info->thread_data->modules = LD->modules;
-  info->thread_data->IO      = LD->IO;
+  if ( alias )
+    aliasThread(info->pl_tid, alias);
+
+					/* copy settings */
+
+  ldnew->prompt	       = LD->prompt;
+  ldnew->modules       = LD->modules;
+  ldnew->IO	       = LD->IO;
+  ldnew->_fileerrors   = LD->_fileerrors;
+  ldnew->_float_format = LD->_float_format;
 
   if ( pthread_create(&info->tid, NULL, start_thread, info) != 0 )
     return PL_warning("Could not create thread: %s", OsError());
+					/* TBD: exception, unallocate! */
 
   return PL_unify_integer(id, info->pl_tid);
 }
@@ -260,10 +324,20 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
 static int
 get_thread(term_t t, PL_thread_info_t **info)
-{ int i;
+{ int i = -1;
 
   if ( !PL_get_integer(t, &i) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_thread, t);
+  { atom_t name;
+
+    if ( !PL_get_atom(t, &name) )
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_thread, t);
+    if ( threadAliases )
+    { Symbol s;
+
+      if ( (s = lookupHTable(threadAliases, (void *)name)) )
+	i = (int)s->value;
+    }
+  }
   if ( i < 0 || i >= MAX_THREADS || !threads[i].tid )
     return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_thread, t);
   
@@ -275,7 +349,10 @@ get_thread(term_t t, PL_thread_info_t **info)
 
 static int
 unify_thread(term_t id, PL_thread_info_t *info)
-{ return PL_unify_integer(id, info->pl_tid);
+{ if ( info->thread_data->thread.name )
+    return PL_unify_atom(id, info->thread_data->thread.name);
+
+  return PL_unify_integer(id, info->pl_tid);
 }
 
 
@@ -336,6 +413,9 @@ pl_thread_join(term_t thread, term_t retcode)
     PL_erase(info->return_value);
   if ( info->goal )
     PL_erase(info->goal);
+
+  if ( info->thread_data->thread.name )
+    unaliasThread(info->thread_data->thread.name);
 
   freeHeap(info->thread_data, sizeof(*info->thread_data));
 
@@ -413,6 +493,133 @@ pl_current_thread(term_t id, term_t status, word h)
     case FRG_CUTTED:
     default:
       succeed;
+  }
+}
+
+
+		 /*******************************
+		 *	  MESSAGE QUEUES	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This code deals with telling other threads something.  The interface:
+
+	thread_get_message(-Message)
+	thread_send_message(+Id, +Message)
+
+Messages are send asynchronously.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct _thread_msg
+{ struct _thread_msg *next;		/* next in queue */
+  record_t            message;		/* message in queue */
+} thread_message;
+
+
+word
+pl_thread_send_message(term_t thread, term_t msg)
+{ PL_thread_info_t *info;
+  PL_local_data_t *ld;
+  thread_message *msgp;
+
+  if ( !get_thread(thread, &info) )
+    fail;
+
+  msgp = allocHeap(sizeof(*msgp));
+  msgp->next    = NULL;
+  msgp->message = PL_record(msg);
+
+  LOCK();
+  ld = info->thread_data;
+  if ( !ld->thread.msg_head )
+    ld->thread.msg_head = ld->thread.msg_tail = msgp;
+  else
+  { ld->thread.msg_tail->next = msgp;
+    ld->thread.msg_tail = msgp;
+  }
+  pthread_cond_signal(&ld->thread.cond_var);
+  UNLOCK();
+
+  succeed;
+}
+
+
+word
+pl_thread_get_message(term_t msg)
+{ PL_local_data_t *ld = LD;
+  thread_message *msgp;
+  thread_message *prev = NULL;
+  term_t tmp = PL_new_term_ref();
+  mark m;
+
+  Mark(m);
+
+  LOCK();
+  msgp = ld->thread.msg_head;
+
+  for(;;)
+  { for( ; msgp; prev = msgp, msgp = msgp->next )
+    { PL_recorded(msgp->message, tmp);
+
+      if ( PL_unify(msg, tmp) )
+      { if ( prev )
+	  prev->next = msgp->next;
+	else
+	  ld->thread.msg_head = ld->thread.msg_tail = NULL;
+	PL_erase(msgp->message);
+	freeHeap(msgp, sizeof(*msgp));
+	UNLOCK();
+	succeed;
+      }
+      Undo(m);				/* reclaim term */
+    }
+    pthread_mutex_lock(&ld->thread.queue_mutex);
+    UNLOCK();
+    pthread_cond_wait(&ld->thread.cond_var, &ld->thread.queue_mutex);
+    LOCK();
+    pthread_mutex_unlock(&ld->thread.queue_mutex);
+
+    msgp = (prev ? prev->next : ld->thread.msg_head);
+  }
+}
+
+
+word
+pl_thread_peek_message(term_t msg)
+{ PL_local_data_t *ld = LD;
+  thread_message *msgp;
+  term_t tmp = PL_new_term_ref();
+  mark m;
+
+  Mark(m);
+
+  LOCK();
+  msgp = ld->thread.msg_head;
+
+  for( msgp = ld->thread.msg_head; msgp; msgp = msgp->next )
+  { PL_recorded(msgp->message, tmp);
+
+    if ( PL_unify(msg, tmp) )
+    { UNLOCK();
+      succeed;
+    }
+  }
+     
+  UNLOCK();
+  fail;
+}
+
+
+static void
+freeThreadMessages(PL_local_data_t *ld)
+{ thread_message *msgp;
+  thread_message *next;
+
+  for( msgp = ld->thread.msg_head; msgp; msgp = next )
+  { next = msgp->next;
+
+    PL_erase(msgp->message);
+    freeHeap(msgp, sizeof(*msgp));
   }
 }
 

@@ -525,15 +525,6 @@ macros to deal with 16-bit machines, but are not  defined  as  functions
 here.   Some  more  specific things SWI-Prolog wants to know about files
 are defined here:
 
-    int  getdtablesize()
-
-    SWI-Prolog assumes it can refer to open i/o streams via  read()  and
-    write() by small integers, returned by open(). These integers should
-    be  in  the range [0, ..., getdtablesize()). If your system does not
-    do this you better redefine the Open(), Read() and Write() macros so
-    they  do  meet  this  requirement.   Prolog  allocates  a  table  of
-    structures with getdtablesize() entries.
-
     long LastModifiedFile(path)
 	 char *path;
 
@@ -581,32 +572,6 @@ are defined here:
     Mark `path' as an executable program.  Used by the intermediate code
     compiler and the creation of stand-alone executables.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifndef HAVE_GETDTABLESIZE
-int
-getdtablesize()
-{
-#ifdef OPEN_MAX
-  return OPEN_MAX;
-#else
-#ifdef _SC_OPEN_MAX			/* POSIX, USG */
-  return sysconf(_SC_OPEN_MAX);
-#else
-#ifdef HAVE_GETRLIMIT
-#ifdef HAVE_SYS_RESOURCE_H
-#include <sys/resource.h>
-#endif
-#ifdef RLIMIT_NOFILE
-  { struct rlimit rlp;
-    getrlimit(RLIMIT_NOFILE,&rlp);
-    return (rlp.rlim_cur);
-  }
-#endif /*RLIMIT_NOFILE*/
-#endif /*HAVE_GETRLIMIT*/
-#endif /*_SC_OPEN_MAX*/
-#endif /*OPEN_MAX*/
-}
-#endif /*HAVE_GETDTABLESIZE*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Size of a VM page of memory.  Most BSD machines have this function.  If not,
@@ -1169,6 +1134,8 @@ canoniseFileName(char *path)
 
   while( in[0] == '/' && in[1] == '.' && in[2] == '.' && in[3] == '/' )
     in += 3;
+  while( in[0] == '.' && in[1] == '/' )
+    in += 2;
   if ( in[0] == '/' )
     *out++ = '/';
   osave[osavep++] = out;
@@ -2071,7 +2038,14 @@ Setenv(char *name, char *value)
 
 int
 Unsetenv(char *name)
-{ return Setenv(name, "");
+{
+#ifdef HAVE_UNSETENV
+  unsetenv(name);
+
+  succeed;
+#else
+  return Setenv(name, "");
+#endif
 }
 
 static void
@@ -2266,6 +2240,8 @@ System(char *cmd)
   int rval;
   void (*old_int)();
   void (*old_stop)();
+  unsigned char fds[256];
+  int nfds = openFileDescriptors(fds, sizeof(fds));
 
   Setenv("PROLOGCHILD", "yes");
 
@@ -2273,10 +2249,13 @@ System(char *cmd)
   { return PL_error("shell", 2, OsError(), ERR_SYSCALL, ATOM_fork);
   } else if ( pid == 0 )		/* The child */
   { int i;
-    int fdmax = getdtablesize();
 
-    for(i = 3; i < fdmax; i++)
-      close(i);
+    for(i = 0; i < nfds; i++)
+    { int fd = fds[i];
+
+      if ( fd >= 3 )
+	close(fd);
+    }
     stopItimer();
 
     execl(shell, BaseName(shell), "-c", cmd, (char *)0);

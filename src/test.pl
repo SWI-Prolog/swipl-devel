@@ -385,7 +385,18 @@ popen(cat-2) :-
 	      true),
 	close(Fd),
 	catch(close(Pipe), _, true),	% ???
-	E = error(signal(pipe, _), context(copy_stream_data/2, _)).
+	(   var(E)
+	->  format(user_error, 'No exception?~n', []),
+	    fail
+					% if signalling is enabled
+	;   E = error(signal(pipe, _), context(copy_stream_data/2, _))
+	->  true
+					% otherwise
+	;   E = error(existence_error(stream, _), context(_, 'Broken pipe'))
+	->  true
+	;   format(user_error, 'Wrong exception: ~p~n', [E]),
+	    fail
+	).
 
 collect_line(Fd, String) :-
 	get0(Fd, C0),

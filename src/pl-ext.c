@@ -449,8 +449,11 @@ static const struct foreign {
   FRG("thread_self",		1, pl_thread_self,	        TRACE_ME),
   FRG("thread_join",		2, pl_thread_join,	        TRACE_ME),
   FRG("thread_exit",		1, pl_thread_exit,		TRACE_ME),
-  FRG("current_thread",		2, pl_current_thread, NDET|META|TRACE_ME),
+  FRG("current_thread",		2, pl_current_thread,      NDET|TRACE_ME),
   FRG("thread_kill",		2, pl_thread_kill,              TRACE_ME),
+  FRG("thread_send_message",	2, pl_thread_send_message,	TRACE_ME),
+  FRG("thread_get_message",	1, pl_thread_get_message,	TRACE_ME),
+  FRG("thread_peek_message",	1, pl_thread_peek_message,	TRACE_ME),
 #endif
 
   /* DO NOT ADD ENTRIES BELOW THIS ONE */

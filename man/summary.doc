@@ -386,7 +386,11 @@ suggest predicates from a keyword.
 \predicatesummary{term_to_atom}{2}{Convert between term and atom}
 \predicatesummary{thread_create}{3}{Create a new Prolog task}
 \predicatesummary{thread_exit}{1}{Terminate Prolog task with value}
+\predicatesummary{thread_get_message}{1}{Wait for message}
 \predicatesummary{thread_join}{2}{Wait for Prolog task-completion}
+\predicatesummary{thread_peek_message}{1}{Test for message in queue}
+\predicatesummary{thread_self}{1}{Get identifier of current thread}
+\predicatesummary{thread_send_message}{2}{Send message to another thread}
 \predicatesummary{throw}{1}{Raise an exception (see catch/3)}
 \predicatesummary{time}{1}{Determine time needed to execute goal}
 \predicatesummary{time_file}{2}{Get last modification time of file}

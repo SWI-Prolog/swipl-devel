@@ -72,11 +72,11 @@ static void	run_close_hooks(IOSTREAM *s);
 #define S__fupdatefilepos(s, c) S___fupdatefilepos(s, c)
 
 #ifdef O_PLMT
-#define LOCK(s)   if ( s->mutex ) pthread_mutex_lock(s->mutex)
-#define UNLOCK(s) if ( s->mutex ) pthread_mutex_unlock(s->mutex)
+#define SLOCK(s)   if ( s->mutex ) pthread_mutex_lock(s->mutex)
+#define SUNLOCK(s) if ( s->mutex ) pthread_mutex_unlock(s->mutex)
 #else
-#define LOCK(s)
-#define UNLOCK(s)
+#define SLOCK(s)
+#define SUNLOCK(s)
 #endif
 
 
@@ -133,8 +133,7 @@ S__removebuf(IOSTREAM *s)
 
 int
 Slock(IOSTREAM *s)
-{
-  LOCK(s);
+{ SLOCK(s);
 
   if ( s->locks )
     s->locks++;
@@ -149,7 +148,7 @@ Slock(IOSTREAM *s)
 
 int
 Sunlock(IOSTREAM *s)
-{ UNLOCK(s);
+{ SUNLOCK(s);
 
   if ( s->locks )
   { if ( --s->locks == 0 )
@@ -167,16 +166,22 @@ Sunlock(IOSTREAM *s)
 
 static int
 S__flushbuf(IOSTREAM *s)
-{ int size;
+{ int rval = 0;
+  int size;
 
-  if ( (size = s->bufp - s->buffer) > 0 )
-  { if ( (*s->functions->write)(s->handle, s->buffer, size) != size )
-      size = -1;
-    else
-      s->bufp = s->buffer;
+  while ( (size = s->bufp - s->buffer) > 0 )
+  { int n = (*s->functions->write)(s->handle, s->buffer, size);
+
+    if ( n >= 0 )
+    { rval += n;
+      s->bufp -= n;
+    } else
+    { s->flags |= SIO_FERR;
+      return -1;
+    }
   }
 
-  return size;
+  return rval;
 }
 
 
@@ -192,11 +197,14 @@ S__flushbufc(int c, IOSTREAM *s)
     { char chr = (char)c;
     
       if ( (*s->functions->write)(s->handle, &chr, 1) != 1 )
+      { s->flags |= SIO_FERR;
 	c = -1;
+      }
     } else
     { if ( S__setbuf(s, NULL, 0) < 0 )
+      { s->flags |= SIO_FERR;
 	c = -1;
-      else
+      } else
 	*s->bufp++ = (char)c;
     }
   }
@@ -279,11 +287,15 @@ S___fupdatefilepos(IOSTREAM *s, int c)
 { IOPOS *p;
 
 #if 1
+#include "pl-error.h"
   extern int fatalError(const char *fm, ...);
+  extern int PL_error(const char *pred,
+		      int arity, const char *msg, int id, ...);
 
   if ( s->magic != SIO_MAGIC )
   { if ( s->magic == SIO_CMAGIC )
-      sysError("Attempt to access a closed stream");
+      PL_error(NULL, 0, NULL, ERR_CLOSED_STREAM, s);
+					/* PL_error() should not return */
     fatalError("Did you load a pre-3.1.2 foreign package?"); 
   }
 #endif
@@ -608,6 +620,7 @@ Sclose(IOSTREAM *s)
     return -1;
   }
 
+  SLOCK(s);
   run_close_hooks(s);
 
   if ( s->buffer )
@@ -622,6 +635,7 @@ Sclose(IOSTREAM *s)
 
   if ( s->functions->close && (*s->functions->close)(s->handle) < 0 )
     rval = -1;
+  SUNLOCK(s);
 
 #ifdef O_PLMT
   if ( s->mutex )
@@ -749,7 +763,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
   char buf[TMPBUFSIZE];
   int tmpbuf;
 
-  LOCK(s);
+  SLOCK(s);
 
   if ( !s->buffer && (s->flags & SIO_NBUF) )
   { S__setbuf(s, buf, sizeof(buf));
@@ -926,11 +940,11 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
       goto error;
   }
 
-  UNLOCK(s);
+  SUNLOCK(s);
   return printed;
 
 error:
-  UNLOCK(s);
+  SUNLOCK(s);
   return -1;
 }
 
@@ -972,10 +986,10 @@ int
 Svdprintf(const char *fm, va_list args)
 { int rval;
 
-  LOCK(Soutput);
+  SLOCK(Soutput);
   rval = Svfprintf(Soutput, fm, args);
   Sflush(Soutput);
-  UNLOCK(Soutput);
+  SUNLOCK(Soutput);
 
   return rval;
 }

@@ -563,6 +563,9 @@ properly on Linux. Don't bother with it.
   }
 
   setupProlog();
+#ifdef O_PLMT
+  aliasThread(PL_thread_self(), PL_new_atom("main"));
+#endif
   CSetFeature("resource_database", rcpath);
   initialiseForeign(GD->cmdline.argc, /* PL_initialise_hook() functions */
 		    GD->cmdline.argv);

@@ -249,7 +249,7 @@ some day.
 #define PLSIG_THROW    0x02		/* throw signal(num, name) */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Define the signasls and  their  properties.   This  could  be nicer, but
+Define the signals and  their  properties.   This  could  be  nicer, but
 different systems provide different signals, and   above all, MS systems
 provide very few.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -275,7 +275,7 @@ static struct signame
 #endif
   { SIGSEGV,	"segv",   PLSIG_THROW},
 #ifdef SIGPIPE
-  { SIGPIPE,	"pipe",   PLSIG_THROW},
+  { SIGPIPE,	"pipe",   0},
 #endif
 #ifdef SIGALRM
   { SIGALRM,	"alrm",   PLSIG_THROW},
@@ -533,6 +533,9 @@ static void
 initSignals(void)
 { struct signame *sn = signames;
   
+#ifdef SIGPIPE
+  set_sighandler(SIGPIPE, SIG_IGN);
+#endif
 
   for( ; sn->name; sn++)
   { if ( sn->flags )

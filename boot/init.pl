@@ -970,7 +970,7 @@ $load_module(Module, Public, Import, File) :-
 	$ifcompiling($qlf_start_module(Module)),
 
 	repeat,
-	    read_clause(Clause),
+	    $read_clause(Clause),
 	    $consult_clause(Clause, File), !,
 
 	Module:$check_export,

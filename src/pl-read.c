@@ -299,6 +299,25 @@ addToBuffer(int c, ReadData _PL_rd)
 }
 
 
+static void
+setCurrentSourceLocation(IOSTREAM *s)
+{ atom_t a;
+
+  if ( s->position )
+  { source_line_no = s->position->lineno;
+    source_char_no = s->position->charno - 1; /* char just read! */
+  } else
+  { source_line_no = -1;
+    source_char_no = 0;
+  }
+
+  if ( (a = fileNameStream(s)) )
+    source_file_name = a;
+  else
+    source_file_name = NULL_ATOM;
+}
+
+
 #define getchr() Sgetc(rb.stream)
 
 #define ensure_space(c) { if ( something_read && \
@@ -1865,6 +1884,7 @@ pl_raw_read2(term_t from, term_t term)
   rval = PL_unify_atom_chars(term, s);
 
 out:
+  PL_release_stream(in);
   free_read_data(&rd);
 
   return rval;
@@ -1890,6 +1910,7 @@ pl_read2(term_t from, term_t term)
   if ( !(rval = read_term(term, &rd)) )
     rval = PL_raise_exception(rd.exception);
   free_read_data(&rd);
+  PL_release_stream(s);
 
   return rval;
 }
@@ -1915,6 +1936,7 @@ pl_read_clause2(term_t from, term_t term)
   if ( !(rval = read_term(term, &rd)) )
     rval = PL_raise_exception(rd.exception);
   free_read_data(&rd);
+  PL_release_stream(s);
 
   return rval;
 }
@@ -1949,12 +1971,15 @@ pl_read_term3(term_t from, term_t term, term_t options)
 		     &rd.singles,
 		     &tpos,
 		     &rd.subtpos) )
-    return warning("read_term/2: illegal option list");
+  { PL_release_stream(s);
+    fail;
+  }
 
   if ( rd.singles && PL_get_atom(rd.singles, &w) && w == ATOM_warning )
     rd.singles = TRUE;
 
   rval = read_term(term, &rd);
+  PL_release_stream(s);
 
   if ( rval )
   { if ( tpos && source_line_no > 0 )
