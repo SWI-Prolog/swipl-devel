@@ -1168,7 +1168,7 @@ struct queryFrame
   int		debugSave;		/* saved debugstatus.debugging */
   Word	       *aSave;			/* saved argument-stack */
   int		solutions;		/* # of solutions produced */
-  LocalFrame	bfr;			/* BacktrackFrame */
+  LocalFrame	saved_bfr;		/* Saved BacktrackFrame */
   LocalFrame	saved_environment;	/* Parent local-frame */
   struct localFrame frame;		/* The local frame */
 };

@@ -203,9 +203,10 @@ typedef struct
 		 *******************************/
 
 typedef struct
-{ LocalFrame environment;		/* Current local frame */
-  FliFrame   foreign_environment;	/* Current foreign context */
-  pl_stacks_t stacks;			/* Prolog runtime stacks */
+{ LocalFrame    environment;		/* Current local frame */
+  LocalFrame	choicepoints;		/* Choice-point chain */
+  FliFrame      foreign_environment;	/* Current foreign context */
+  pl_stacks_t   stacks;			/* Prolog runtime stacks */
   ulong		bases[STG_MASK+1];	/* area base addresses */
   ulong		pending_signals;	/* PL_raise() pending signals */
   int		current_signal;		/* Currently handled signal */

@@ -1225,6 +1225,8 @@ threadMarkAtoms(int sig)
 }
 
 
+#define SIG_MARKATOMS SIGHUP
+
 void
 threadMarkAtomsOtherThreads()
 { int i;
@@ -1238,12 +1240,12 @@ threadMarkAtomsOtherThreads()
   memset(&new, 0, sizeof(new));
   new.sa_handler = threadMarkAtoms;
   new.sa_flags   = SA_RESTART;
-  sigaction(SIGUSR1, &new, &old);
+  sigaction(SIG_MARKATOMS, &new, &old);
 
   for(i=1; i<MAX_THREADS; i++)
   { if ( threads[i].thread_data && i != me )
     { DEBUG(1, Sdprintf("Signalling %d\n", i));
-      if ( pthread_kill(threads[i].tid, SIGUSR1) == 0 )
+      if ( pthread_kill(threads[i].tid, SIG_MARKATOMS) == 0 )
       { pthread_mutex_lock(&signalled_mutex);
 	signalled_threads++;
 	pthread_mutex_unlock(&signalled_mutex);
@@ -1264,7 +1266,7 @@ threadMarkAtomsOtherThreads()
 
   DEBUG(1, Sdprintf("done!\n"));
 
-  sigaction(SIGUSR1, &old, NULL);
+  sigaction(SIG_MARKATOMS, &old, NULL);
   UNLOCK();
 }
 

@@ -1183,9 +1183,9 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   qf->magic		= QID_MAGIC;
   qf->flags		= flags;
   qf->saved_environment = environment_frame;
+  qf->saved_bfr		= LD->choicepoints;
   qf->aSave             = aTop;
   qf->solutions         = 0;
-  qf->bfr		= fr;
   qf->exception		= 0;
 
   lTop = (LocalFrame) argFrameP(fr, arity);
@@ -1246,8 +1246,9 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
     depth_limit = (unsigned long)DEPTH_NO_LIMIT;
 #endif
   }
-  fr->backtrackFrame = (LocalFrame) NULL;
-  fr->predicate = def;
+  LD->choicepoints   = NULL;
+  fr->backtrackFrame = NULL;
+  fr->predicate      = def;
 #ifdef O_LOGICAL_UPDATE
   fr->generation = GD->generation;
 #endif
@@ -1263,7 +1264,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 static void
 discard_query(QueryFrame qf)
 { LocalFrame FR  = &qf->frame;
-  LocalFrame BFR = qf->bfr;
+  LocalFrame BFR = LD->choicepoints;
   LocalFrame fr, fr2;
 
   set(FR, FR_CUT);			/* execute I_CUT */
@@ -1289,6 +1290,7 @@ restore_after_query(QueryFrame qf)
     *valTermRef(exception_printed) = 0;
 
   environment_frame = qf->saved_environment;
+  LD->choicepoints  = qf->saved_bfr;
   aTop		    = qf->aSave;
   lTop		    = (LocalFrame)qf;
   if ( true(qf, PL_Q_NODEBUG) )
@@ -1347,12 +1349,10 @@ PL_exception(qid_t qid)
 #define SAVE_REGISTERS(qid) \
 	{ QueryFrame qf = QueryFromQid(qid); \
 	  qf->registers.fr  = FR; \
-	  qf->registers.bfr = BFR; \
 	}
 #define LOAD_REGISTERS(qid) \
 	{ QueryFrame qf = QueryFromQid(qid); \
 	  FR = qf->registers.fr; \
-	  BFR = qf->registers.bfr; \
 	}
 #else /*O_SHIFT_STACKS*/
 #define SAVE_REGISTERS(qid)
@@ -1376,11 +1376,12 @@ PL_next_solution(qid_t qid)
   LocalFrame FR;			/* current frame */
   Word	     ARGP = NULL;		/* current argument pointer */
   Code	     PC;			/* program counter */
-  LocalFrame BFR = NULL;		/* last backtrack frame */
+//LocalFrame BFR = NULL;		/* last backtrack frame */
   Definition DEF = NULL;		/* definition of current procedure */
   bool	     deterministic;		/* clause found deterministically */
   Word *     aFloor = aTop;		/* don't overwrite old arguments */
 #define	     CL (FR->clause)		/* clause of current frame */
+#define	     BFR (LD->choicepoints)	/* choicepoint registration */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Get the labels of the various  virtual-machine instructions in an array.
@@ -1561,7 +1562,6 @@ Is there a way to make the compiler keep its mouth shut!?
     goto b_throw;
   }
 
-  BFR = QF->bfr;
   DEF = FR->predicate;
   if ( QF->solutions )
   { if ( true(DEF, FOREIGN) )
@@ -3681,7 +3681,6 @@ bit more careful.
 	if ( !FR->parent )		/* query exit */
 	{ QF = QueryFromQid(qid);	/* may be shifted: recompute */
 	  QF->solutions++;
-	  QF->bfr = BFR;
 
 	  assert(FR == &QF->frame);
 
