@@ -184,10 +184,13 @@ apply_tile_layout(T, Me) :-
 
 apply_this_tile_layout(_, *) :- !.
 apply_this_tile_layout(T, Size) :-
-	(   get(T?super, orientation, horizontal)
+	get(T, super, Super),
+	Super \== @nil, !,
+	(   get(Super, orientation, horizontal)
 	->  send(T, width, Size)
 	;   send(T, height, Size)
 	).
+apply_this_tile_layout(_, _).
 
 :- pce_end_class(persistent_frame).
 
