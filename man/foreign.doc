@@ -2260,6 +2260,13 @@ A good setup in Windows is to add SWI-Prolog's \file{bin} directory
 to your \env{PATH} and either pass a module holding a saved-state, or
 \verb$"libpl.dll"$ as \verb$argv[0]$.
 
+\cfunction{int}{PL_is_initialised}{int *argc, char ***argv}
+Test whether the Prolog engine is already initialised. Returns
+\const{FALSE} if Prolog is not initialised and \const{TRUE} otherwise.
+If the engine is initialised and \arg{argc} is not \const{NULL}, the
+argument count used with PL_initialise() is stored in \arg{argc}.  Same
+for the argument vector \arg{argv}.
+
 \cfunction{void}{PL_install_readline}{}
 Installs the GNU-readline line-editor.  Embedded applications that do not
 use the Prolog toplevel should normally delete this line, shrinking the
