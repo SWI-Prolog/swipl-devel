@@ -14,7 +14,8 @@ ONLINE_INDEX=	../library/helpidx.pl
 PL=		../linux/pl
 
 TEXFILES=	doc.tex intro.tex overview.tex builtin.tex module.tex \
-		foreign.tex runtime.tex hack.tex summary.tex xpce.tex
+		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
+		glossary.tex
 STYFILES=	html.sty txt.sty
 
 .SUFFIXES:

@@ -71,8 +71,7 @@ this manual.
 \section{Compliance to the ISO standard}		\label{sec:iso}
 
 SWI-Prolog 3.3.0 implements all predicates described in ``Prolog: The
-Standard'' \cite{Deransart:96}, except for char_conversion/2 and
-current_char_conversion/2.
+Standard'' \cite{Deransart:96}.
 
 Exceptions and warning are still weak. Some SWI-Prolog predicates
 silently fail on conditions where the ISO specification requires an
@@ -324,8 +323,7 @@ as lists of one-character atoms is now supported (next to character
 codes as integers). Many more exceptions have been added and printing of
 exceptions and messages is rationalised using Quintus and SICStus Prolog
 compatible print_message/2, message_hook/3 and print_message_lines/3.
-All predicates descriped in \cite{Deransart:96} except for
-char_conversion/2 and current_char_conversion/2 are now implemented.
+All predicates descriped in \cite{Deransart:96} are now implemented.
 
 As of version 3.3, SWI-Prolog adheres the ISO \jargon{logical update view}
 for dynamic predicates.  See \secref{update} for details.

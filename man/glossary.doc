@@ -1,0 +1,311 @@
+\chapter{Glossary of Terms}
+
+\newcommand{\glossitem}[1]{\item [{#1}]\mbox{}\\}
+\newcommand{\g}[1]{{\em #1}}
+
+\begin{description}
+    \glossitem{anonymous [variable]}
+The variable \verb$_$ is called the \g{anonymous} variable.  Multiple
+occurrences of \verb$_$ in a single \g{term} are not \g{shared}.
+
+    \glossitem{arguments}
+Arguments are \g{terms} that appear in a \g{compound} \g{term}. \arg{A1}
+and \arg{a2} are the first and second argument of the term
+\term{myterm}{A1, a2}.
+
+    \glossitem{arity}
+Argument count (is number of arguments) of a \g{compound} \g{term}.
+
+    \glossitem{assert}
+Add a \g{clause} to a \g{predicate}. Clauses can be added at either
+end of the clause-list of a \g{predicate}.  See assert/1 and assertz/1.
+
+    \glossitem{atom}
+Textual constant.  Used as name for \g{compound} terms, to represent
+constants or text.
+
+    \glossitem{backtracking}
+Searching process used by Prolog.  If a predicate offers multiple
+\g{clauses} to solve a \g{goal}, they are tried one-by-one until
+one \g{succeeds}.  If a subsequent part of the prove is not satisfied
+with the resulting \g{variable} \g{binding}, it may ask for
+an alternative \g{solution} (= \g{binding} of the \g{variables}),
+causing Prolog to reject the previously chosen \g{clause} and try the
+next one.
+
+    \glossitem{binding [of a variable]}
+Current value of the \g{variable}.  See also \g{backtracking} and
+\g{query}.
+
+    \glossitem{built-in [predicate]}
+Predicate that is part of the Prolog system.  Built in predicates cannot
+be redefined by the user, unless this is overruled using
+redefine_system_predicate/1.
+
+    \glossitem{body}
+Part of a \g{clause} behind the \g{neck} operator (\const{:-}).
+
+    \glossitem{clause}
+`Sentence' of a Prolog program. A \g{clause} consists of a \g{head} and
+\g{body} separated by the \g{neck} operator (\const{:-}) or it is a
+\g{fact}.  For example:
+
+\begin{code}
+parent(X) :-
+	father(X, _).
+\end{code}
+
+Expressed ``X is a parent if X is a father of someone''.  See also
+\g{variable} and \g{predicate}.
+
+    \glossitem{compile}
+Process where a Prolog \g{program} is translated to a sequence of
+instructions.  See also \g{interpreted}.  SWI-Prolog always
+compiles your program before executing it.
+
+    \glossitem{compound [term]}
+Also called \g{structure}.  It consists of a name followed by \arg{N}
+\g{arguments}, each of which are \g{terms}.  \arg{N} is called the
+\g{arity} of the term.
+
+    \glossitem{context module}
+If a \g{term} is referring to a \g{predicate} in a \g{module}, the
+\g{context module} is used to find the target module.  The context
+module of a \g{goal} is the module in which the \g{predicate} is
+defined, unless this \g{predicate} is \g{module transparent}, in
+which case the \g{context module} is inherited from the parent
+\g{goal}.  See also module_transparent/1.
+
+    \glossitem{dynamic [predicate]}
+A \g{dynamic} predicate is a predicate to which \g{clauses} may be
+\g{assert}ed and from which \g{clauses} may be \g{retract}ed while
+the program is running.  See also \g{update view}.
+
+    \glossitem{exported [predicate]}
+A \g{predicate} is said to be \g{exported} from a \g{module} if it
+appears in the \g{public list}.  This implies that the predicate
+can be \g{imported} into another module to make it visible there.
+See also use_module/[1,2].
+
+    \glossitem{fact}
+\g{Clause} without a \g{body}. This is called a fact because interpreted
+as logic, there is no condition to be satisfied. The example below
+states \const{john} is a person.
+
+\begin{code}
+person(john).
+\end{code}
+
+    \glossitem{fail}
+A \g{goal} is said to haved failed if it could not be \g{proven}.
+
+    \glossitem{float}
+Computers cripled representation of a real number.  Represented as
+`IEEE double'.
+
+    \glossitem{foreign}
+Computer code expressed in other languages than Prolog.  SWI-Prolog can
+only cooperate directly with the C and C++ computer languages.
+
+    \glossitem{functor}
+Combination of name and \g{arity} of a \g{compound} term.  The term
+\term{foo}{a, b, c} is said to be a term belonging to the functor foo/3.
+foo/0 is used to refer to the \g{atom} \const{foo}.
+
+    \glossitem{goal}
+Question stated to the Prolog engine.  A \g{goal} is either an \g{atom}
+or a \g{compound} term. A \g{goal} succeeds, in which case the
+\g{variables} in the \g{compound} terms have a \g{binding} or \g{fails}
+if Prolog fails to prove the \g{goal}.
+
+    \glossitem{hashing}
+\g{Indexing} technique used for quick lookup.
+
+    \glossitem{head}
+Part of a \g{clause} before the \g{neck} instruction.   This is an atom
+or \g{compound} term.
+
+    \glossitem{imported [predicate]}
+A \g{predicate} is said to be \g{imported} into a \g{module} if it is
+defined in another \g{module} and made available in this \g{module}.
+See also \chapref{modules}.
+
+    \glossitem{indexing}
+Indexing is a technique used to quickly select candidate \g{clauses} of
+a \g{predicate} for a specific \g{goal}. In most Prolog systems,
+including SWI-Prolog, indexing is done on the first \g{argument} of
+the \g{head}. If this argument is instantiated to an \g{atom},
+\g{integer}, \g{float} or \g{compound} term with \g{functor},
+\g{hashing} is used quickly select all \g{clauses} of which the
+first argument may \g{unify} with the first argument of the \g{goal}.
+
+    \glossitem{integer}
+Whole number. On most current machines, SWI-Prolog integers are
+represented as `32-bit signed values', ranging from -2147483648 to
+2147483647.  See also current_prolog_flag/2.
+
+    \glossitem{interpreted}
+As opposed to \g{compiled}, interpreted means the Prolog system attempts
+to prove a \g{goal} by directly reading the \g{clauses} rather than
+executing instructions from an (abstract) instruction set that is not
+or only indirectly related to Prolog.
+
+    \glossitem{meta predicate}
+A \g{predicate} that reasons about other \g{predicates}, either by
+calling them, (re)defining them or querying \g{properties}.
+
+    \glossitem{module}
+Collection of predicates.  Each module defines a name-space for
+predicates.  \g{built-in} predicates are accessible from all modules.
+Predicates can be published (\g{exported}) and \g{imported} to make
+their definition available to other modules.
+
+    \glossitem{module transparent [predicate]}
+A \g{predicate} that does not change the \g{context module}.  Sometimes
+also called a \g{meta predicate}.
+
+    \glossitem{multifile [predicate]}
+Predicate for which the definition is distributed over multiple
+source-files.  See multi_file/1.
+
+    \glossitem{neck}
+Operator (\const{:-}) separating \g{head} from \g{body} in a \g{clause}.
+
+    \glossitem{operator}
+Symbol (\g{atom}) that may be placed before its \g{operant} (prefix),
+after its \g{operant} (postfix) or between its two \g{operants} (infix).
+
+In Prolog, the expression \verb$a+b$ is exactly the same as the
+canonical term \verb$+(a,b)$.
+
+    \glossitem{operant}
+\g{Argument} of an \g{operator}.
+
+    \glossitem{precedence}
+The \g{priority} of an \g{operator}.  Operator precedence is used
+to interpret \verb$a+b*c$ as \verb$+(a, *(b,c))$.
+
+    \glossitem{predicate}
+Collection of \g{clauses} with the same \g{functor} (name/\g{arity}).
+If a \g{goal} is proved, the system looks for a \g{predicate} with the
+same functor, then used \g{indexing} to select candidate \g{clauses}
+and then tries these \g{clauses} one-by-one.  See also \g{backtracking}.
+
+    \glossitem{priority}
+In the context of \g{operators} a synonym for \g{precedence}.
+
+    \glossitem{program}
+Collection of \g{predicates}.
+
+    \glossitem{property}
+Attribute of an object.  SWI-Prolog defines various {\em *_property}
+predicates to query the status of predicates, clauses. etc.
+
+    \glossitem{prove}
+Process where Prolog attempts to prove a \g{query} using the available
+\g{predicates}.
+
+    \glossitem{public list}
+List of \g{predicates} exported from a \g{module}.
+
+    \glossitem{query}
+See \g{goal}.
+
+    \glossitem{retract}
+Remove a \g{clause} from a \g{predicate}.  See also \g{dynamic},
+\g{update view} and \g{assert}.
+
+    \glossitem{shared}
+Two \g{variables} are called \g{shared} after they are \g{unified}. This
+implies if either of them is \g{bound}, the other is bound to the same
+value:
+
+\begin{code}
+?- A = B, A = a.
+
+A = a,
+B = a
+\end{code}
+
+    \glossitem{singleton [variable]}
+\g{Variable} appearing only one time in a \g{clause}. SWI-Prolog
+normally warns for this to avoid you making spelling mistakes.  If a
+variable appears on purpose only once in a clause, write it as \verb$_$
+(see \g{anonymous}) or make sure the first character is a \verb$_$.
+See also the style_check/1 option \const{singletons}.
+
+    \glossitem{solution}
+\g{Bindings} resulting from a successfully \g{prove}n \g{goal}.
+
+    \glossitem{structure}
+Synonym for \g{compound} term.
+
+    \glossitem{string}
+Used for the following representations of text: a packed array
+(see \secref{strings}, SWI-Prolog specific), a list of character
+codes or a list of one-character \g{atoms}.
+
+    \glossitem{succeed}
+A \g{goal} is said to have \g{succeeded} if it has been \g{proven}.
+
+    \glossitem{term}
+Value in Prolog. A \g{term} is either a \g{variable}, \g{atom}, integer,
+float or \g{compound} term.  In addition, SWI-Prolog also defines the
+type \g{string}
+
+    \glossitem{transparent}
+See \g{module transparent}.
+
+    \glossitem{unify}
+Prolog process to make two terms equal by assigning variables in one
+term to values at the corresponding location of the other term.  For
+example:
+
+\begin{code}
+?- foo(a, B) = foo(A, b).
+
+A = a,
+B = b
+\end{code}
+
+Unlike assignment (which does not exist in Prolog), unification is
+not directed.
+
+    \glossitem{update view}
+How Prolog behaves when a \g{dynamic} \g{predicate} is changed while
+it is running.  There are two models.  In most older Prolog systems the
+change becomes immediately visible to the \g{goal}, in modern systems
+including SWI-Prolog, the running \g{goal} is not affected.  Only
+new \g{goals} `see' the new definition.
+
+    \glossitem{variable}
+A Prolog variable is a value that `is not yet bound'.  After \g{binding}
+a variable, it cannot be modified.  \g{Backtracking} to a point in the
+execution before the variable was bound will turn it back into a
+variable:
+
+\begin{code}
+?- A = b, A = c.
+No
+?- (A = b; true; A = c).
+A = b ;
+A = _G283 ;
+A = c ;
+No
+\end{code}
+
+See also \g{unify}.
+
+\end{description}
+
+
+
+
+
+
+
+
+
+
+
+

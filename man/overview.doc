@@ -768,12 +768,13 @@ This performs exactly the same as executing
 
 \section{Environment Control (Prolog flags)}
 
-The current system defines 2 different mechanisms to query and/or set
-properties of the environment: flag/3 and current_prolog_flag/2 as well
-as a number of special purpose predicates of which unknown/2,
-fileerrors/2 are examples. The ISO standard defines prolog_flag. It is
-likely that all these global features will be merged into a single in
-the future.
+The predicates current_prolog_flag/2 and set_prolog_flag/2 allow the
+user to examine and modify the execution environment.  It provides
+access to whether optional features are available on this version,
+operating system, foreign-code environment, command-line arguments,
+version, as well as runtime flags to control the runtime behaviour
+of certain predicates to achieve compatibility with other Prolog
+environments.
 
 \begin{description}
     \predicate{current_prolog_flag}{2}{?Key, -Value}
@@ -992,6 +993,14 @@ more conservative in destroying choice-points to simplify debugging.
 
 Disabling these optimisations can cause the system to run out of memory
 on programs that behave correctly if debug mode is off.
+    \prologflagitem{tail_recursion_optimisation}{bool}{rw}
+Determines whether or not tail-recursion optimisation is enabled.
+Normally the value of this flag is equal to the \const{debug} flag.  As
+programs may run out of stack if tail-recursion optimisation is omitted,
+it is sometimes necessary to enable it during debugging.
+    \prologflagitem{abort_with_exception}{bool}{rw}
+Determines how abort/0 is realised.  See the description of abort/0
+for details.
     \prologflagitem{debug_on_error}{bool}{rw}
 If {\tt true}, start the tracer after an error is detected.  Otherwise
 just continue execution.  The goal that raised the error will normally
