@@ -20,8 +20,7 @@
 
 :- use_module(library(pce)).	    
 :- require([ append/3
-	   , apply/2
-	   , chain_list/2
+	   , call/2
 	   , ignore/1
 	   , unix/1
 	   ]).

@@ -9,6 +9,11 @@
 
 :- module(pce_image_browser, []).
 :- use_module(library(pce)).
+:- require([ concat_atom/3
+	   , default/3
+	   , file_name_extension/3
+	   , ignore/1
+	   ]).
 
 :- pce_begin_class(image_browser, window,
 		   "Browser for image files").

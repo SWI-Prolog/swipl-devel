@@ -8,6 +8,9 @@
 */
 
 :- module(pce_graphical_browser, []).
+:- use_module(library(pce)).
+:- require([ default/3
+	   ]).
 
 :- pce_begin_class(graphical_browser, window,
 		   "List-browser for graphicals").

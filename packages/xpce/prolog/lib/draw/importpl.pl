@@ -11,6 +11,8 @@
 	  [ realise_drawing/2		% +Device, +Term
 	  ]).
 :- use_module(library(pce)).
+:- require([ maplist/3
+	   ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Support library to import drawings from   PceDraw  into applications. To

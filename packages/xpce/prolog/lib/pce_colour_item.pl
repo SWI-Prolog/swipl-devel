@@ -9,6 +9,14 @@
 
 :- module(pce_colour_item, []).
 :- use_module(library(pce)).
+:- require([ absolute_file_name/3
+	   , between/3
+	   , concat/3
+	   , default/3
+	   , forall/2
+	   , ignore/1
+	   , send_list/3
+	   ]).
 
 default_palette_colour(red).
 default_palette_colour(darkorange).

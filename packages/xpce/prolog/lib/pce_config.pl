@@ -44,10 +44,26 @@
 	edit_config(:),
 	config_attributes(:, -).
 
-:- asserta(user:library_directory(.)).	% testing
-
 :- use_module(library(pce)).
 :- use_module(library(broadcast)).
+:- require([ (\=)/2
+	   , absolute_file_name/3
+	   , call/3
+	   , chain_list/2
+	   , concat_atom/2
+	   , delete/3
+	   , expand_file_name/2
+	   , file_directory_name/2
+	   , forall/2
+	   , is_absolute_file_name/1
+	   , is_list/1
+	   , list_to_set/2
+	   , maplist/3
+	   , member/2
+	   , memberchk/2
+	   , strip_module/3
+	   ]).
+
 :- pce_autoload(pce_config_editor,	library(pce_configeditor)).
 
 :- multifile user:file_search_path/2.
@@ -57,7 +73,7 @@ user:file_search_path(config, ConfigHome) :-
 	expand_file_name(~, [Home]),
 	concat_atom([Home, /, '.xpce'], ConfigHome).
 
-version(1).				% version of the config package
+config_version(1).			% version of the config package
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Database
@@ -262,7 +278,7 @@ save_config(Spec) :-
 save_config_header(Fd, M) :-
 	get(@pce?date, value, Date),
 	get(@pce, user, User),
-	version(Version),
+	config_version(Version),
 	format(Fd, '/*  XPCE configuration file for "~w"~n', [M]),
 	format(Fd, '    Saved ~w by ~w~n', [Date, User]),
 	format(Fd, '*/~n~n', []),

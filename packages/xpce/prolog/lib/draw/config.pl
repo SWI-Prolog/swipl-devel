@@ -12,6 +12,11 @@
 	  ]).
 :- use_module(library(pce)).
 :- use_module(library(pce_config)).
+:- require([ absolute_file_name/3
+	   , broadcast_request/1
+	   , concat/3
+	   , file_directory_name/2
+	   ]).
 
 :- pce_global(@draw_default_arrow, new(arrow)).
 

@@ -9,6 +9,8 @@
 
 :- module(pce_image_item, []).
 :- use_module(library(pce)).
+:- require([ ignore/1
+	   ]).
 
 :- pce_autoload(image_browser, library(pce_image_browser)).
 

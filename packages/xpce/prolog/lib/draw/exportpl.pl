@@ -10,6 +10,18 @@
 :- module(draw_export,
 	  [ describe_drawing/2		% +Canvas, -Term
 	  ]).
+:- use_module(library(pce)).
+:- require([ atom_length/2
+	   , chain_list/2
+	   , flatten/2
+	   , get_chain/3
+	   , is_list/1
+	   , maplist/3
+	   , memberchk/2
+	   , send_list/3
+	   , sformat/3
+	   ]).
+
 :- pce_autoload(drag_and_drop_gesture, library(pce_drag_and_drop)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -9,6 +9,8 @@
 
 :- module(pce_tick_box, []).
 :- use_module(library(pce)).
+:- require([ default/3
+	   ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Class `tick_box' defines a label with a `tick-box' displayed left of the

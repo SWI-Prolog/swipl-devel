@@ -210,7 +210,7 @@ __pce_export int pceInitialise(int handles, const char *home,
 __pce_export PceObject	cToPceName(const char *);
 __pce_export PceObject	cToPceInteger(long);
 __pce_export PceObject	cToPceReal(double);
-__pce_export PceObject	cToPceString(PceName assoc, char *);
+__pce_export PceObject	cToPceString(PceName assoc, char *, int translate);
 __pce_export PceObject	cToPceAssoc(const char *);
 __pce_export PceObject	cToPceReference(unsigned long);
 __pce_export PceObject	cToPcePointer(void *ptr);

@@ -14,8 +14,13 @@
 	   , chain_list/2
 	   , default/3
 	   , forall/2
+	   , get_config/2
+	   , get_object/4
+	   , listen/3
 	   , member/2
 	   , send_list/3
+	   , set_config/2
+	   , unlisten/1
 	   ]).
 
 :- pce_autoload(font_item, library(pce_font_item)).

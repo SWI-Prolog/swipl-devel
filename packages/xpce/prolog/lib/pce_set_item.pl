@@ -9,9 +9,10 @@
 
 :- module(pce_set_item, []).
 :- use_module(library(pce)).
-:- require([ send_list/3
+:- require([ default/3
+	   , ignore/1
+	   , send_list/3
 	   ]).
-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Class  set_item  defines a  compound  dialog   object,  consisting  of a

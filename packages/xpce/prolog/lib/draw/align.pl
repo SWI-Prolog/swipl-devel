@@ -17,7 +17,10 @@
 :- require([ append/3
 	   , chain_list/2
 	   , forall/2
+	   , get_chain/3
 	   , ignore/1
+	   , last/2
+	   , maplist/3
 	   , member/2
 	   , send_list/2
 	   ]).

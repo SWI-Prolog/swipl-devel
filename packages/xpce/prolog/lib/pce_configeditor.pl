@@ -10,6 +10,14 @@
 :- module(pce_config_editor, []).
 :- use_module(library(pce)).
 :- use_module(library(pce_config)).
+:- require([ chain_list/2
+	   , default/3
+	   , forall/2
+	   , is_list/1
+	   , member/2
+	   , memberchk/2
+	   , term_to_atom/2
+	   ]).
 
 :- pce_autoload(toc_window,		library(pce_toc)).
 :- pce_autoload(font_item,		library(pce_font_item)).

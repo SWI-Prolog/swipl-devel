@@ -12,10 +12,12 @@
 
 :- use_module(library(pce)).
 :- consult(library('draw/align')).
-:- require([ chain_list/2
+:- require([ add_config/2
+	   , chain_list/2
 	   , default/3
 	   , file_name_extension/3
 	   , forall/2
+	   , get_config/2
 	   , ignore/1
 	   , pce_shell_command/1
 	   , send_list/3

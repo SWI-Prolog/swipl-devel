@@ -11,7 +11,11 @@
 	  [ pce_load_cxx/1		% +File
 	  ]).
 :- use_module(library(pce)).
-
+:- require([ absolute_file_name/3
+	   , feature/2
+	   , open_dll/2
+	   , open_shared_object/2
+	   ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 pce_load_cxx(+Spec)

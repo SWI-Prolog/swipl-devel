@@ -197,6 +197,7 @@ process_called_list([H|T]) :-
 
 process_meta(A+N) :- !,
 	nonvar(A),
+	\+ A = _:_,
 	A =.. List,
 	length(Rest, N),
 	append(List, Rest, NList),
@@ -352,7 +353,7 @@ report_name_arity(Name, Arity) :-
 	P >= 1000, !,
 	output('(~q)/~d', [Name, Arity]).
 report_name_arity(Name, Arity) :-
-	output('~q/~d', [Name, Arity]).
+	output('~q', [Name/Arity]).
 
 
 		/********************************
@@ -380,12 +381,17 @@ do_find_source_file(Spec, File) :-
 		*            OUTPUT		*
 		********************************/
 
+to_string(Prolog, string(Prolog)) :-
+	is_list(Prolog), !.
+to_string(Atomic, Atomic).
+
 output(Fmt) :-
 	output(Fmt, []).
 output(Fmt, Args) :-
 	output_to(D, _), D \== @nil, !,
 	sformat(Buf, Fmt, Args),
-	send(D, append, string(Buf)).
+	to_string(Buf, String),
+	send(D, append, String).
 output(Fmt, Args) :-
 	format(Fmt, Args).
 
@@ -395,7 +401,8 @@ message(Fmt) :-
 message(Fmt, Args) :-
 	output_to(_, Msg), Msg \== @nil, !,
 	sformat(Buf, Fmt, Args),
-	send(Msg, append, string(Buf)).
+	to_string(Buf, String),
+	send(Msg, append, String).
 message(Fmt, Args) :-
 	format(user_error, Fmt, Args),
 	format(user_error, '~n', []).

@@ -17,6 +17,9 @@
 	    broadcast/1,	% Templ
 	    broadcast_request/1	% Templ
 	  ]).
+:- use_module(library(pce)).		% actually, only for require/1
+:- require([ strip_module/3
+	   ]).
 
 :- dynamic
 	listener/4.
@@ -39,11 +42,11 @@ arguments.
 %	Open a channel for listening for events of the given `Templ'.
 
 listen(Listener, Templ, Goal) :-
-	'$strip_module'(Goal, Module, TheGoal),
+	strip_module(Goal, Module, TheGoal),
 	assert_listener(Templ, Listener, Module, TheGoal).
 
 listen(Templ, Goal) :-
-	'$strip_module'(Goal, Module, TheGoal),
+	strip_module(Goal, Module, TheGoal),
 	assert_listener(Templ, Module, Module, TheGoal).
 
 
@@ -58,7 +61,7 @@ unlisten(Listener, Templ) :-
 unlisten(Listener, Templ, Goal) :-
 	(   var(Goal)
 	->  true
-	;   '$strip_module'(Goal, Module, TheGoal)
+	;   strip_module(Goal, Module, TheGoal)
 	),
 	retract_listener(Templ, Listener, Module, TheGoal).
 

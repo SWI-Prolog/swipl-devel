@@ -17,11 +17,9 @@
 :- use_module(library(pce)).
 :- require([ feature/2
 	   , file_name_extension/3
-	   , getenv/2
 	   , is_list/1
 	   , member/2
 	   , qsave_program/2
-	   , set_feature/2
 	   ]).
 
 :- consult(library('draw/draw')).

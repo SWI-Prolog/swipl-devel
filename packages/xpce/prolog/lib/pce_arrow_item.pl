@@ -9,6 +9,9 @@
 
 :- module(pce_arrow_item, []).
 :- use_module(library(pce)).
+:- require([ forall/2
+	   , send_list/3
+	   ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Class arrow_item defines an item for editing   an arrow object. The item

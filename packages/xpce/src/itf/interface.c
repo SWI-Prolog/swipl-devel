@@ -50,10 +50,18 @@ cToPceReal(double f)
 
 
 Any
-cToPceString(Name assoc, char *s)
+cToPceString(Name assoc, char *s, int translate)
 { Any str;
   Any c = CtoScratchCharArray(s);
-  str = pceNew(assoc, ClassString, 1, &c);
+  if ( translate )
+    str = pceNew(assoc, ClassString, 1, &c);
+  else
+  { Any av[2];
+    
+    av[0] = name_procent_s;
+    av[1] = c;
+    str = pceNew(assoc, ClassString, 2, av);
+  }
   doneScratchCharArray(c);
 
   return str;
