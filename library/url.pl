@@ -114,7 +114,8 @@ http_location(?Parts, ?Location)
 %	cases deal with commonly seen and quickly to resolve cases.
 
 global_url(URL, BaseURL, Global) :-
-	(   is_absolute_url(URL)
+	(   is_absolute_url(URL),
+	    \+ sub_atom(URL, _, _, _, '%')	% may have escape, use general
 	->  Global = URL
 	;   sub_atom(URL, 0, _, _, '//')
 	->  parse_url(BaseURL, [], Attributes),
