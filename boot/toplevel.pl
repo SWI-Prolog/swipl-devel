@@ -495,24 +495,39 @@ $execute_goal(trace, []) :-
 	print_message(query, query(yes)), !,
 	fail.
 $execute_goal(Goal, Bindings) :-
-	$module(TypeIn, TypeIn), 
-	(   expand_goal(Goal, Expanded), % warn if expanded?
-	    TypeIn:Expanded,
-	    flush_output(user_output),
-	    call_expand_answer(Bindings, NewBindings),
-	    (	write_bindings(NewBindings)
-	    ->	!,
-	        notrace,
-		fail
-	    )
-	;   notrace, 
-	    print_message(query, query(no)),
-	    fail
-	).
+	$module(TypeIn, TypeIn),
+	expand_goal(Goal, Expanded), % warn if expanded?
+	$execute_goal2(TypeIn:Expanded, Bindings).
 
-write_bindings([]) :- !, 
+$execute_goal2(Goal, Bindings) :-
+	Goal,
+	flush_output(user_output),
+	deterministic(Det),
+	call_expand_answer(Bindings, NewBindings),
+	(    write_bindings(NewBindings, Det)
+	->   !,
+	     notrace,
+	     fail
+	).
+$execute_goal2(_, _) :-
+	notrace, 
+	print_message(query, query(no)),
+	fail.
+
+%	write_bindings(+Bindings, +Deterministic)
+%	
+%	Write    bindings    resulting     from      a     query.     If
+%	prompt_alternatives_no_bindings  is  true  we  also  prompt  for
+%	alternatives  if  the  query  makes  no  bindings  but  succeeds
+%	non-deterministically, so the user can   prompt  for alternative
+%	side-effects.
+
+write_bindings([], Det) :-
+	(   Det == true
+	;   \+ current_prolog_flag(prompt_alternatives_no_bindings, true)
+	), !,
 	print_message(query, query(yes)).
-write_bindings(Bindings) :-
+write_bindings(Bindings, _Det) :-
 	repeat,
 	    print_message(query, query(yes, Bindings)),
 	    get_respons(Action),

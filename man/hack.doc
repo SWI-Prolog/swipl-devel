@@ -86,9 +86,12 @@ predicate), \const{jump} (clause internal choicepoint), \const{top}
 This predicate is used for the graphical debugger to show the
 choicepoint stack.
 
-    \predicate{deterministic}{0}{}
-Succeeds if there are no choicepoints that are more recent than the
-parent frame.
+    \predicate{deterministic}{1}{-Boolean}
+Unifies its argument with \const{true} if the clause in which is appears
+has not created any choicepoints since it was started.  There are few
+realistic situations for using this predicate. It is used by the
+prolog/0 toplevel to check whether Prolog should prompt the user for
+alternatives.
 \end{description}
 
 

@@ -2924,7 +2924,7 @@ L = [gnu, gnat]
 
     \predicate{atom_length}{2}{+Atom, -Length}
 Succeeds if \arg{Atom} is an atom of \arg{Length} characters long. This
-predicate also works for strings (see \secref{string}). If the prolog
+predicate also works for strings (see \secref{strings}). If the prolog
 flag \const{iso} is \emph{not} set, it also accepts integers and floats,
 expressing the number of characters output when given to write/1 as well
 as code-lists and character-lists, expressing the length of the list.%

@@ -1,6 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: Using ?- set_prolog_flag(prompt_alternatives_no_bindings, true)
+    the system prompts for alternative answers on the toplevel if the goal
+    makes no bindings.  Requested by Paulo Moura.  Experimental.
+
+  * MODIFIED: deterministic/0 has been replaced with deterministic/1.  It
+    also is fixed and its semantics has been changed.  See manual.
+
   * FIXED: \=@=/2 (Lourens van der Meij).
 
   * ADDED: relative uri net path resolution (awkward, but needed for RDF

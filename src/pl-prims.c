@@ -128,16 +128,29 @@ PRED_IMPL("callable", 1, callable, 0)
 		 *	 META-CALL SUPPORT	*
 		 *******************************/
 
-word
-pl_deterministic(void)
-{ GET_LD
-  LocalFrame FR  = environment_frame;
+static
+PRED_IMPL("deterministic", 1, deterministic, 0)
+{ PRED_LD
+  LocalFrame FR  = environment_frame->parent;
   Choice     BFR = LD->choicepoints;
 
-  if ( (void *)BFR < (void *)FR )
-    succeed;
+  for( ; BFR; BFR = BFR->parent)
+  { switch(BFR->type)
+    { case CHP_CLAUSE:
+	if ( BFR->frame == FR )
+	  return PL_unify_atom(A1, ATOM_true);
+      case CHP_JUMP:
+      case CHP_FOREIGN:
+	if ( (void *)BFR > (void *)FR )
+	  return PL_unify_atom(A1, ATOM_false);
+        else
+	  return PL_unify_atom(A1, ATOM_true);
+      default:
+	continue;
+    }
+  }
 
-  fail;
+  return PL_unify_atom(A1, ATOM_true);
 }
 
 
@@ -2926,4 +2939,5 @@ BeginPredDefs(prims)
   PRED_DEF("statistics", 2, statistics, 0)
   PRED_DEF("$option", 3, option, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$style_check", 2, style_check, 0)
+  PRED_DEF("deterministic", 1, deterministic, 0)
 EndPredDefs

@@ -341,7 +341,7 @@ happens of the thread is waiting for (user-)input.
 
 \subsection{Threads and dynamic predicates}	\label{sec:threadlocal}
 
-Besides queues (\secref{sec:msgqueue}) threads can share and exchange
+Besides queues (\secref{msgqueue}) threads can share and exchange
 data using dynamic predicates. The multi-threaded version knows about
 two types of dynamic predicates. By default, a predicate declared
 \jargon{dynamic} (see dynamic/1) is shared by all threads. Each thread

@@ -367,7 +367,6 @@ static const PL_extension foreigns[] = {
   FRG("$atom_hashstat",		2, pl_atom_hashstat,		0),
   FRG("$current_prolog_flag",	5, pl_feature5,		     NDET),
   FRG("current_prolog_flag",	2, pl_feature,		     NDET),
-  FRG("deterministic",		0, pl_deterministic,		0),
   FRG("set_prolog_flag",	2, pl_set_feature,		0),
   FRG("trim_stacks",		0, pl_trim_stacks,		0),
 #if O_SHIFT_STACKS

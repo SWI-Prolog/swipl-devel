@@ -449,6 +449,8 @@ prolog_message(query(no)) -->
 	[ nl, 'No' ].
 prolog_message(query(yes)) -->
 	[ nl, 'Yes' ].
+prolog_message(query(yes, [])) -->
+	[ 'More? ', flush ].
 prolog_message(query(yes, Bindings)) -->
 	bindings(Bindings),
 	[ ' ', flush ].
