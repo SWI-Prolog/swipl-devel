@@ -268,6 +268,9 @@ meta(call-10) :-
 	flag(a, Old, 0),
 	forall(A, true),
 	flag(a, 3, Old).
+meta(call-11) :-
+	catch(call(1), E, true),
+	E =@= error(type_error(callable, 1), _).
 meta(apply-1) :-
 	apply(=, [a,a]).
 meta(apply-2) :-

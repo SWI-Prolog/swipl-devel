@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: call(1) exception handling (not callable).
+
+
 VERSION 5.2.9 (Oct 05, 2003)
 ============================
 	
