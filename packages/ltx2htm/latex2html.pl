@@ -1356,7 +1356,8 @@ clean_tt(Raw, Clean) :-
 	replace_all(S4, "\\bsl{}", "\\", S5),
 	delete_all(S5, "\\string", S6),
 	delete_all(S6, " ", S7),
-	atom_codes(Clean, S7).
+	replace_all(S7, "~", " ", S8),
+	atom_codes(Clean, S8).
 
 clean_specials([], []).
 clean_specials([0'\\, Special|T0], [Special|T]) :-
