@@ -905,7 +905,7 @@ dnl See which parts of the sources are there, and check the Makefiles we
 dnl need to update.  You cannot call AC_OUTPUT more then once!
 
 Makefiles="Makefile ../xpce.spec"
-Makedirs="../CXX/demo ../quintus/src ../prolog/pwboot ../sicstus/src"
+Makedirs="../CXX/demo ../quintus/src ../prolog/pwboot ../sicstus/src ../prolog/lib"
 OptionalMakefiles="../pl/src/Makefile.bin"
 for d in $Makedirs; do
     if test -r $d/Makefile.in; then

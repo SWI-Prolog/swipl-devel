@@ -6199,7 +6199,7 @@ fi
 rm -rf conftest*
 
 Makefiles="Makefile ../xpce.spec"
-Makedirs="../CXX/demo ../quintus/src ../prolog/pwboot ../sicstus/src"
+Makedirs="../CXX/demo ../quintus/src ../prolog/pwboot ../sicstus/src ../prolog/lib"
 OptionalMakefiles="../pl/src/Makefile.bin"
 for d in $Makedirs; do
     if test -r $d/Makefile.in; then
