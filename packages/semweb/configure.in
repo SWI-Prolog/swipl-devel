@@ -48,7 +48,7 @@ AC_MSG_RESULT("		PLSHARED=$PLSHARED")
 AC_MSG_RESULT("		PLSOEXT=$PLSOEXT")
 AC_CHECK_PROGS(RUNTEX, runtex, ":")
 else
-PLLD=../../$BUILDDIR/plld
+PLLD="../../$BUILDDIR/plld -pl ../../$BUILDDIR/$PL"
 RUNTEX=../../man/runtex
 fi
 

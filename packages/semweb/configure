@@ -1162,7 +1162,6 @@ ac_config_headers="$ac_config_headers config.h"
 
 
 
-
 # Check whether --enable-mt or --disable-mt was given.
 if test "${enable_mt+set}" = set; then
   enableval="$enable_mt"
@@ -1330,7 +1329,7 @@ done
 test -n "$RUNTEX" || RUNTEX="":""
 
 else
-PLLD=../../$BUILDDIR/plld
+PLLD="../../$BUILDDIR/plld -pl ../../$BUILDDIR/$PL"
 RUNTEX=../../man/runtex
 fi
 
@@ -3820,7 +3819,6 @@ s,@ETAGS@,$ETAGS,;t t
 s,@LD@,$LD,;t t
 s,@SO@,$SO,;t t
 s,@LDSOFLAGS@,$LDSOFLAGS,;t t
-s,@TARGETS@,$TARGETS,;t t
 s,@RUNTEX@,$RUNTEX,;t t
 s,@PLLD@,$PLLD,;t t
 s,@MAKE@,$MAKE,;t t
