@@ -1394,9 +1394,12 @@ expandVars(const char *pattern, char *expanded)
       case '$':
 	{ char envbuf[MAXPATHLEN];
 	  char *var = takeWord(&pattern, word);
-	  char *value = getenv3(var, envbuf, sizeof(envbuf));
+	  char *value;
 	  int l;
 
+	  if ( var[0] == EOS )
+	    goto def;
+	  value = getenv3(var, envbuf, sizeof(envbuf));
 	  if ( value == (char *) NULL )
 	  { if ( fileerrors )
 	    { term_t name = PL_new_term_ref();
@@ -1417,6 +1420,7 @@ expandVars(const char *pattern, char *expanded)
 	  continue;
 	}
       default:
+      def:
 	if ( ++size >= MAXPATHLEN )
 	  return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
 			  ATOM_max_path_length);

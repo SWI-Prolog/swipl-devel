@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#92: pathname handling on paths like \\machine\c$\more\...
+    Tolga Konik.
+
   * ADDED: Keep track of line-number where a module is defined (no public
     interface yet, available through '$module_property'(+Module, -Property).
 

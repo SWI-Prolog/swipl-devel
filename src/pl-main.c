@@ -27,7 +27,7 @@ Get the ball rolling.  The main task of  this  module  is  command  line
 option  parsing,  initialisation  and  handling  of errors and warnings.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-/*#define O_DEBUG 1*/
+#define O_DEBUG 1
 
 #include "rc/rc.h"
 #include "pl-incl.h"
@@ -731,6 +731,8 @@ PL_initialise(int argc, char **argv)
   initPrologThreads();			/* initialise thread system */
   SinitStreams();			/* before anything else */
 
+  GD->debug_level = 0;			/* 1-9: debug, also -d <level> */
+
   script_argv(argc, argv);		/* hande #! arguments */
   argc = GD->cmdline.argc;
   argv = GD->cmdline.argv;
@@ -742,9 +744,6 @@ PL_initialise(int argc, char **argv)
       Sdprintf(" %s", argv[i]);
     Sdprintf("\n");
   });
-
-      
-  GD->debug_level  = 0;			/* 1-9: debug, also -d <level> */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 FORCED_MALLOC_BASE is a debugging aid for  me   to  force  the system to
@@ -763,6 +762,7 @@ properly on Linux. Don't bother with it.
   initOs();				/* Initialise OS bindings */
   initDefaults();			/* Initialise global defaults */
   initPaths();				/* fetch some useful paths */
+
   setupGNUEmacsInferiorMode();		/* Detect running under EMACS */
 #ifdef HAVE_SIGNAL
   setFeatureMask(SIGNALS_FEATURE);	/* default: handle signals */
