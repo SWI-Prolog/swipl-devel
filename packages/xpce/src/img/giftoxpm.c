@@ -65,7 +65,7 @@ gif_extension(int ext, void *data, void *closure)
 
   switch(ext)
   { case GIFEXT_TRANSPARENT:
-    { XpmColor *c   = &img->colorTable[(int)data];
+    { XpmColor *c   = &img->colorTable[(long)data];
 
       strcpy(c->c_color, "None");	/* malloced 8 bytes, so ok. */
       break;
