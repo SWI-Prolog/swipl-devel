@@ -22,9 +22,21 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#define UNICODE 1
+#define _UNICODE 1
 #include "include.h"
 #include "mswin.h"
 #include <h/interface.h>
+#include <tchar.h>
+
+#ifdef UNICODE
+#define nameToTCHAR(nm) nameToWC((Name)(nm), NULL)
+#define TCHARToName(s)  WCToName(s, _tcslen(s))
+#else
+#define nameToTCHAR(nm) nameToMB((Name)(nm))
+#define TCHARToName(s)  MBToName(s)
+#endif
+
 
 		 /*******************************
 		 *	    DLL STUFF		*
@@ -182,7 +194,7 @@ ws_console_label(CharArray label)
 { HWND hwnd = HostConsoleHWND();
 
   if ( hwnd )
-    SetWindowText(hwnd, strName(label));
+    SetWindowText(hwnd, nameToTCHAR((Name)label));
 
   succeed;
 }
@@ -210,14 +222,14 @@ ws_getpid()
 
 char *
 ws_user()
-{ char buf[256];
-  char *user;
-  DWORD len = sizeof(buf);
+{ TCHAR buf[256];
+  Name nm;
+  DWORD len = sizeof(buf)/sizeof(TCHAR);
 
   if ( GetUserName(buf, &len) )
-    return strName(CtoName(buf));	/* force static storage */
-  else if ( (user = getenv("USER")) )
-    return user;
+    return nameToFN(TCHARToName(buf));
+  else if ( (nm = getEnvironmentVariablePce(PCE, CtoName("USER"))) )
+    return nameToFN(nm);
   else
     return NULL;
 }
@@ -257,7 +269,7 @@ ws_default_scrollbar_width()
 Name
 WinStrError(int error, ...)
 { va_list args;
-  char msg[MAXMESSAGE];
+  TCHAR msg[MAXMESSAGE];
 
   va_start(args, error);
   if ( !FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM|FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -271,17 +283,17 @@ WinStrError(int error, ...)
 #else
 		      (char **)args) )
 #endif
-  { sprintf(msg, "Unknown WINAPI error %d", error);
+  { wsprintf(msg, _T("Unknown WINAPI error %d"), error);
   }
   va_end(args);
 
-  return CtoName(msg);
+  return TCHARToName(msg);
 }
 
 
 int
 get_logical_drive_strings(int bufsize, char *buf)
-{ return GetLogicalDriveStrings(bufsize, buf);
+{ return GetLogicalDriveStringsA(bufsize, buf);
 }
 
 		 /*******************************
@@ -298,21 +310,38 @@ get_logical_drive_strings(int bufsize, char *buf)
 #define MAXPATHLEN _MAX_PATH
 #endif
 #define strapp(s, q) \
-	{ int l = strlen(q); \
-	  if ( s+l+2 > filter+sizeof(filter) ) \
+	{ int l = _tcslen(q); \
+	  if ( s+l+2 > filter+sizeof(filter)/sizeof(TCHAR) ) \
 	  { errorPce(filters, NAME_representation, NAME_nameTooLong); \
 	    fail; \
 	  } \
-	  strcpy(s, q); \
+	  _tcscpy(s, q); \
 	  s += l; \
 	}
 
 static int
-allLetter(const char *s)
-{ for(; *s && isalpha(*s); s++)
+allLetter(const TCHAR *s)
+{ for(; *s && _istalpha(*s); s++)
     ;
 
   return *s ? FALSE : TRUE;
+}
+
+
+#ifndef IsDirSep
+#define IsDirSep(c) ((c) == '/' || (c) == '\\')
+#endif
+
+static TCHAR *
+baseNameW(TCHAR *name)
+{ TCHAR *base;
+
+  for(base=name; *name; name++)
+  { if ( IsDirSep(*name) && name[1] )
+      base = name;
+  }
+
+  return base;
 }
 
 
@@ -328,8 +357,8 @@ getWinFileNameDisplay(DisplayObj d,
   HWND hwnd;
   Name rval = 0;
   EventObj ev = EVENT->value;
-  char filter[1024], *ef = filter;
-  char buffer[2048];
+  TCHAR filter[1024], *ef = filter;
+  TCHAR buffer[2048];
   BOOL tmpb;
 
   memset(&ofn, 0, sizeof(OPENFILENAME));
@@ -345,10 +374,10 @@ getWinFileNameDisplay(DisplayObj d,
 
   if ( isDefault(filters) )
   { Name nm = get((Any)NAME_allFiles, NAME_labelName, EAV);
-    strapp(ef, strName(nm));
-    *ef++ = '\0';
-    strapp(ef, "*.*");
-    *ef++ = '\0';
+    strapp(ef, nameToTCHAR(nm));
+    *ef++ = L'\0';
+    strapp(ef, _T("*.*"));
+    *ef++ = L'\0';
   } else
   { Cell cell;
   
@@ -365,45 +394,45 @@ getWinFileNameDisplay(DisplayObj d,
 	{ errorPce(s2, NAME_unexpectedType, TypeCharArray);
 	  fail;
 	}
-	strapp(ef, strName(s1));
-	*ef++ = '\0';
-	strapp(ef, strName(s2));
-	*ef++ = '\0';
+	strapp(ef, nameToTCHAR((Name)s1));
+	*ef++ = L'\0';
+	strapp(ef, nameToTCHAR((Name)s2));
+	*ef++ = L'\0';
       } else if ( instanceOfObject(cell->value, ClassCharArray) )
       { StringObj s = cell->value;
   
-	strapp(ef, strName(s));
-	*ef++ = '\0';
-	strapp(ef, strName(s));
-	*ef++ = '\0';
+	strapp(ef, nameToTCHAR((Name)s));
+	*ef++ = L'\0';
+	strapp(ef, nameToTCHAR((Name)s));
+	*ef++ = L'\0';
       } else
       { errorPce(cell->value, NAME_unexpectedType, CtoType("char_array|tuple"));
 	fail;
       }
     }
   }
-  *ef = '\0';
+  *ef = L'\0';
   ofn.lpstrFilter  = filter;
   ofn.nFilterIndex = 0;
 
   if ( isDefault(file) )
-    buffer[0] = '\0';
+    buffer[0] = L'\0';
   else
-  { const char *fn = nameToFN(file);
+  { const TCHAR *fn = nameToTCHAR(file);
 
-    if ( strlen(fn) >= sizeof(buffer) )
+    if ( _tcslen(fn) >= sizeof(buffer) )
     { errorPce(file, NAME_representation, NAME_nameTooLong);
       fail;
     }
-    strcpy(buffer, fn);
+    _tcscpy(buffer, fn);
   }
 
   ofn.lpstrFile    = buffer;
-  ofn.nMaxFile     = sizeof(buffer)-1;
+  ofn.nMaxFile     = (sizeof(buffer)/sizeof(TCHAR))-1;
   if ( notDefault(dir) )
-    ofn.lpstrInitialDir = nameToFN(dir->path);
+    ofn.lpstrInitialDir = nameToTCHAR(dir->path);
   if ( notDefault(title) )
-  ofn.lpstrTitle = strName(title);
+  ofn.lpstrTitle = nameToTCHAR(title);
 
   ofn.Flags = (OFN_HIDEREADONLY|
 	       OFN_NOCHANGEDIR);
@@ -425,32 +454,35 @@ getWinFileNameDisplay(DisplayObj d,
   }
 
   if ( buffer[0] )
-  { char *base = baseName(buffer);
+  { TCHAR *base = baseNameW(buffer);
 
-    if ( !strchr(base, '.') && ofn.nFilterIndex > 0 )
-    { char *pattern = filter;
-      char *ext;
+    if ( !_tcschr(base, '.') && ofn.nFilterIndex > 0 )
+    { TCHAR *pattern = filter;
+      TCHAR *ext;
       int n;
 	
       pattern = filter;
-      pattern += strlen(pattern)+1;	/* first pattern */
+      pattern += _tcslen(pattern)+1;	/* first pattern */
       for(n=1; n<ofn.nFilterIndex; n++)
-      { pattern += strlen(pattern)+1;
-	pattern += strlen(pattern)+1;
+      { pattern += _tcslen(pattern)+1;
+	pattern += _tcslen(pattern)+1;
       }
   
-      if ( (ext = strrchr(pattern, '.')) && allLetter(ext+1) )
-	strcat(buffer, ext);
+      if ( (ext = _tcsrchr(pattern, '.')) && allLetter(ext+1) )
+	_tcscat(buffer, ext);
     }
 
 #ifdef O_XOS				/* should always be true */
-    if ( !_xos_canonical_filename(buffer, filter, sizeof(filter), 0) )
-    { errorPce(CtoString(buffer), NAME_representation, NAME_nameTooLong);
+  { char buf[MAXPATHLEN];
+
+    if ( !_xos_canonical_filenameW(buffer, buf, sizeof(buf), 0) )
+    { errorPce(TCHARToName(buffer), NAME_representation, NAME_nameTooLong);
       fail;
     }
-    rval = CtoName(filter);
+    rval = UTF8ToName(buf);
+  }
 #else
-    rval = CtoName(buffer);
+    rval = TCHARToName(buffer);
 #endif
   }
 
