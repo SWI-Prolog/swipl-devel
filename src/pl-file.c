@@ -1739,7 +1739,10 @@ ok:
 
 word
 pl_seeing(term_t f)
-{ return pl_current_input(f);
+{ if ( Scurin == Suser_input )
+    return PL_unify_atom(f, ATOM_user);
+
+  return pl_current_input(f);
 }
 
 word
@@ -1804,7 +1807,10 @@ pl_append(term_t f)
 
 word
 pl_telling(term_t f)
-{ return pl_current_output(f);
+{ if ( Scurout == Suser_output )
+    return PL_unify_atom(f, ATOM_user);
+
+  return pl_current_output(f);
 }
 
 word

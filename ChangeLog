@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * MODIFIED: More improved classical I/O compatibility in telling/1
+    and seeing/1.  Peter Dadam.
+
   * FIXED: Source-level debugger: be aware that clauses holding floats
     that are written and read-back may not unify exactly due to float
     rounding errors.
