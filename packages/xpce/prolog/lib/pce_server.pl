@@ -14,8 +14,7 @@
 	  [ pce_server/1
 	  ]).
 
-:- meta_predicate
-	pce_server(:).
+:- meta_predicate(pce_server(:)).
 
 :- use_module(library(pce)).
 :- require([ atom_to_term/3
