@@ -21,6 +21,11 @@ word(Id, Word) :-
 	qid(word(-, +), Qid), !,
 	odbc_execute(Qid, [Word], row(Id)).
 word(Id, Word) :-
+	var(Id),
+	var(Word), !,
+	open,
+	odbc_query(wordnet, 'SELECT * from word', row(Id, Word)).
+word(Id, Word) :-
 	nonvar(Id),
 	open,
 	odbc_prepare(wordnet,
