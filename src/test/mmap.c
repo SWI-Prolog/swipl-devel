@@ -186,6 +186,16 @@ getpagesize()
 #include <sys/resource.h>
 #endif
 
+					/* __linux__ TASK_SIZE stuff */
+					/* contributed by Roman Hodek */
+#ifdef __linux__
+#include <asm/page.h>
+#include <asm/system.h>
+#include <asm/ptrace.h>
+#include <asm/segment.h>
+#include <asm/processor.h>
+#endif
+
 #ifdef RLIMIT_DATA
 ulong
 topOfHeap(ulong heap_base)
@@ -193,6 +203,14 @@ topOfHeap(ulong heap_base)
 
   if ( getrlimit(RLIMIT_DATA, &limit) == 0 )
   { ulong top = limit.rlim_cur + heap_base;
+
+#ifdef TASK_SIZE
+    if ( top < heap_base || top > TASK_SIZE )
+      return TASK_SIZE;
+#else
+    if ( top < heap_base )
+      return 0L;
+#endif
 
 #ifdef VERBOSE
     printf("Heap: %p ... %p\n", (void *)heap_base, (void *)top);

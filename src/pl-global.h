@@ -61,8 +61,8 @@ typedef struct
   int		io_initialised;		/* I/O system has been initialised */
   int		bootsession;		/* -b boot compilation */
   int		debug_level;		/* Maintenance debugging: 0..9 */
-  int		dumped;			/* Restored saved-state */
   Feature	_feature_list;		/* global features */
+  void *	resourceDB;		/* program resource database */
 
   struct
   { int		argc;			/* main(int argc, char **argv) */
@@ -72,6 +72,10 @@ typedef struct
     int		notty;			/* -tty: donot use ioctl() */
     int		optimise;		/* -O: optimised compilation */
   } cmdline;
+
+  struct
+  { char *	executable;		/* running executable */
+  } paths;
 
   struct
   { long	heap;			/* heap in use */
@@ -101,10 +105,8 @@ typedef struct
     int		buckets;		/* # buckets in char * --> atom */
     int		locked;			/* table is locked */
     Atom *	table;			/* hash-table */
-#ifdef O_DEBUG
     int		lookups;		/* # atom lookups */
     int		cmps;			/* # string compares for lookup */
-#endif
   } atoms;
 
   struct
@@ -152,7 +154,7 @@ typedef struct
   } os;
 
   struct
-  { Procedure	alt1;			/* $alt/1, see C_OR */
+  { Procedure	alt0;			/* $alt/0, see C_OR */
     Procedure	garbage_collect0;
     Procedure 	block3;
     Procedure	catch3;
@@ -164,6 +166,10 @@ typedef struct
     Procedure	prolog_trace_interception4;
     Procedure	portray;		/* portray/1 */
   } procedures;
+
+  struct
+  { buffer	source_files;
+  } files;
 } PL_global_data_t;
 
 

@@ -90,6 +90,7 @@ static const struct foreign {
   FRG("file_directory_name",	2, pl_file_dir_name,		TRACE_ME),
   FRG("file_name_extension",	3, pl_file_name_extension,	TRACE_ME),
   FRG("prolog_to_os_filename",	2, pl_prolog_to_os_filename,	TRACE_ME),
+  FRG("$mark_executable",	1, pl_mark_executable,		TRACE_ME),
 #ifdef __WIN32__
   FRG("win_exec",		2, pl_win_exec,			TRACE_ME),
 #ifdef O_XOS
@@ -109,7 +110,7 @@ static const struct foreign {
   FRG("wildcard_match",		2, pl_wildcard_match,		TRACE_ME),
   FRG("$apropos_match",		2, pl_apropos_match,		TRACE_ME),
   FRG("$argv",			1, pl_argv,			TRACE_ME),
-  FRG("$option",		3, pl_option,			TRACE_ME),
+  FRG("$option",		3, pl_option,		   NDET|TRACE_ME),
   FRG("convert_time",		8, pl_convert_time,		TRACE_ME),
   FRG("sleep",			1, pl_sleep,			TRACE_ME),
   FRG("break",			0, pl_break,			TRACE_ME),
@@ -166,12 +167,20 @@ static const struct foreign {
   FRG("free_variables",		2, pl_free_variables,		TRACE_ME),
   FRG("$e_free_variables",	2, pl_e_free_variables,		TRACE_ME),
 
-  FRG("$open_wic",		2, pl_open_wic,			TRACE_ME),
+  FRG("$open_wic",		1, pl_open_wic,			TRACE_ME),
   FRG("$close_wic",		0, pl_close_wic,		TRACE_ME),
   FRG("$add_directive_wic",	1, pl_add_directive_wic,	TRACE_ME),
   FRG("$import_wic",		2, pl_import_wic,		TRACE_ME),
 
-  FRG("$qlf_put_states",	0, pl_qlf_put_states,		TRACE_ME),
+  FRG("$rc_handle",		1, pl_rc_handle,		TRACE_ME),
+  FRG("$rc_members",		2, pl_rc_members,		TRACE_ME),
+  FRG("$rc_open",		5, pl_rc_open,			TRACE_ME),
+  FRG("$rc_open_archive",	2, pl_rc_open_archive,		TRACE_ME),
+  FRG("$rc_close_archive",	1, pl_rc_close_archive,		TRACE_ME),
+  FRG("$rc_save_archive",	2, pl_rc_save_archive,		TRACE_ME),
+  FRG("$rc_append_file",	5, pl_rc_append_file,		TRACE_ME),
+  FRG("$copy_stream",		2, pl_copy_stream,		TRACE_ME),
+
   FRG("$qlf_start_module",	1, pl_qlf_start_module,		TRACE_ME),
   FRG("$qlf_start_sub_module",	1, pl_qlf_start_sub_module,	TRACE_ME),
   FRG("$qlf_start_file",	1, pl_qlf_start_file,		TRACE_ME),
@@ -179,7 +188,7 @@ static const struct foreign {
   FRG("$qlf_open",		1, pl_qlf_open,			TRACE_ME),
   FRG("$qlf_close",		0, pl_qlf_close,		TRACE_ME),
   FRG("$qlf_load",		2, pl_qlf_load,		   META|TRACE_ME),
-  FRG("$qlf_assert_clause",	1, pl_qlf_assert_clause,	TRACE_ME),
+  FRG("$qlf_assert_clause",	2, pl_qlf_assert_clause,	TRACE_ME),
   FRG("$qlf_info",		4, pl_qlf_info,			TRACE_ME),
 
   FRG("abolish",    		1, pl_abolish1,		   META|TRACE_ME),
@@ -374,7 +383,7 @@ static const struct foreign {
   FRG("$check_definition",	1, pl_check_definition,    META|TRACE_ME),
 
 #if O_COMPILE_OR
-  FRG("$alt",			1, pl_alt,			NDET),
+  FRG("$alt",			0, pl_alt,			NDET),
 #endif /* O_COMPILE_OR */
   FRG("$atom_hashstat",		2, pl_atom_hashstat,		TRACE_ME),
   FRG("$tty",			0, pl_tty,			TRACE_ME),
@@ -396,6 +405,7 @@ static const struct foreign {
   FRG("current_stream",		3, pl_current_stream,	   NDET|TRACE_ME),
   FRG("flush_output",		1, pl_flush_output,		TRACE_ME),
   FRG("stream_position",	3, pl_stream_position,		TRACE_ME),
+  FRG("seek",			4, pl_seek,			TRACE_ME),
   FRG("set_input",		1, pl_set_input,		TRACE_ME),
   FRG("set_output",		1, pl_set_output,		TRACE_ME),
   FRG("current_input",		1, pl_current_input,		TRACE_ME),
@@ -430,6 +440,7 @@ static const struct foreign {
   FRG("wait_for_input",		3, pl_wait_for_input,		TRACE_ME),
   FRG("get_time",		1, pl_get_time,			TRACE_ME),
   FRG("size_file",		2, pl_size_file,		TRACE_ME),
+  FRG("$size_stream",		2, pl_size_stream,		TRACE_ME),
   FRG("$default_module",	3, pl_default_module,	   META|TRACE_ME),
 #if O_PROLOG_FUNCTIONS
   FRG("$arithmetic_function",   1, pl_arithmetic_function, META|TRACE_ME),
@@ -508,6 +519,7 @@ initBuildIns(void)
 { const struct foreign *f;
   Definition def;
   ExtensionCell ecell;
+  Module m = MODULE_system;
 
   for(f = &foreigns[0]; f->name; f++)
   { functor_t fdef = lookupFunctorDef(lookupAtom(f->name), f->arity);
@@ -524,15 +536,13 @@ initBuildIns(void)
       set(valueFunctor(fdef), INLINE_F);
   }
 
-  PROCEDURE_alt1	     = lookupProcedure(FUNCTOR_alt1, MODULE_system);
-  PROCEDURE_garbage_collect0 = lookupProcedure(FUNCTOR_dgarbage_collect1,
-					       MODULE_system);
-  PROCEDURE_block3	     = lookupProcedure(FUNCTOR_block3, MODULE_system);
-  PROCEDURE_catch3           = lookupProcedure(FUNCTOR_catch3, MODULE_system);
-  PROCEDURE_true0            = lookupProcedure(FUNCTOR_true0, MODULE_system);
-  PROCEDURE_fail0            = lookupProcedure(FUNCTOR_fail0, MODULE_system);
-  PROCEDURE_print_message2   = lookupProcedure(FUNCTOR_print_message2,
-					       MODULE_system);
+  PROCEDURE_alt0	     = lookupProcedure(FUNCTOR_alt0,		  m);
+  PROCEDURE_garbage_collect0 = lookupProcedure(FUNCTOR_dgarbage_collect1, m);
+  PROCEDURE_block3	     = lookupProcedure(FUNCTOR_block3, 		  m);
+  PROCEDURE_catch3           = lookupProcedure(FUNCTOR_catch3, 		  m);
+  PROCEDURE_true0            = lookupProcedure(FUNCTOR_true0, 		  m);
+  PROCEDURE_fail0            = lookupProcedure(FUNCTOR_fail0, 		  m);
+  PROCEDURE_print_message2   = lookupProcedure(FUNCTOR_print_message2, 	  m);
 
   for( ecell = ext_head; ecell; ecell = ecell->next )
     bindExtensions(ecell->extensions);

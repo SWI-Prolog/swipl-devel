@@ -978,8 +978,8 @@ MarkExecutable(const char *name)
   { term_t file = PL_new_term_ref();
 
     PL_put_atom_chars(file, name);
-    PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
-	     ATOM_stat, ATOM_file, file);
+    return PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+		    ATOM_stat, ATOM_file, file);
   }
 
   if ( (buf.st_mode & 0111) == (~um & 0111) )
@@ -990,8 +990,8 @@ MarkExecutable(const char *name)
   { term_t file = PL_new_term_ref();
 
     PL_put_atom_chars(file, name);
-    PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
-	     ATOM_chmod, ATOM_file, file);
+    return PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+		    ATOM_chmod, ATOM_file, file);
   }
 #endif /* defined(HAVE_STAT) && defined(HAVE_CHMOD) */
 
@@ -1175,17 +1175,23 @@ canoniseFileName(char *path)
     {
     again:
       if ( *in )
-      { while( in[1] == '/' )
+      { while( in[1] == '/' )		/* delete multiple / */
 	  in++;
-	if ( in[1] == '.' && (in[2] == '/' || in[2] == EOS) )
-	{ in += 2;
-	  goto again;
-	}
-	if ( in[1] == '.' && in[2] == '.' &&
-	     (in[3] == '/' || in[3] == EOS) && osavep > 0 )
-	{ out = osave[--osavep];
-	  in += 3;
-	  goto again;
+	if ( in[1] == '.' )
+	{ if ( in[2] == '/' )		/* delete /./ */
+	  { in += 2;
+	    goto again;
+	  }
+	  if ( in[2] == EOS )		/* delete trailing /. */
+	  { *out = EOS;
+	    return path;
+	  }
+	  if ( in[2] == '.' &&		/* delete /foo/../ */
+	       (in[3] == '/' || in[3] == EOS) && osavep > 0 )
+	  { out = osave[--osavep];
+	    in += 3;
+	    goto again;
+	  }
 	}
       }
       if ( *in )
@@ -1547,15 +1553,15 @@ to be implemented directly.  What about other Unixes?
 
 
 char *
-BaseName(register char *f)
-{ register char *base;
+BaseName(const char *f)
+{ const char *base;
 
   for(base = f; *f; f++)
   { if (*f == '/')
       base = f+1;
   }
 
-  return base;
+  return (char *)base;
 }
 
 
@@ -1565,10 +1571,17 @@ DirName(const char *f, char *dir)
 
   for(base = p = f; *p; p++)
   { if (*p == '/' && p[1] != EOS )
-      base = p+1;
+      base = p;
   }
-  strncpy(dir, f, base-f);
-  dir[base-f] = EOS;
+  if ( base == f )
+  { if ( *f == '/' )
+      strcpy(dir, "/");
+    else
+      strcpy(dir, ".");
+  } else
+  { strncpy(dir, f, base-f);
+    dir[base-f] = EOS;
+  }
   
   return dir;
 }
@@ -2590,11 +2603,9 @@ Which(const char *program, char *fullname)
 
   while(*path)
   { if ( *path == PATHSEP )
-    { if ( (e = okToExec(program)) != NULL)
-      { strcpy(fullname, e);
-
-        return fullname;
-      } else
+    { if ( (e = okToExec(program)) )
+	return strcpy(fullname, e);
+      else
         path++;				/* fix by Ron Hess (hess@sco.com) */
     } else
     { char tmp[MAXPATHLEN];
@@ -2606,10 +2617,9 @@ Which(const char *program, char *fullname)
       if (strlen(fullname) + strlen(program)+2 > MAXPATHLEN)
         continue;
       *dir++ = '/';
-      *dir = EOS;
       strcpy(dir, program);
-      if ( (e = okToExec(OsPath(fullname, tmp))) != NULL )
-	return e;
+      if ( (e = okToExec(OsPath(fullname, tmp))) )
+	return strcpy(fullname, e);
     }
   }
 

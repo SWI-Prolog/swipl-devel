@@ -10,6 +10,7 @@
 	[ listing/0
 	, listing/1
 	, portray_clause/1
+	, $prolog_list_goal/1
 	]).
 
 :- module_transparent
@@ -233,3 +234,12 @@ $n_times(_, _).
 
 pprint(Term) :-
 	writeq(Term).
+
+		 /*******************************
+		 *   HANDLE TRACER 'L'-COMMAND	*
+		 *******************************/
+
+$prolog_list_goal(Goal) :-
+	catch(user:prolog_list_goal(Goal), _, fail), !.
+$prolog_list_goal(Goal) :-
+	user:listing(Goal).

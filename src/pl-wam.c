@@ -120,6 +120,7 @@ pl_count()
   countOne(  "B_FUNCTOR", 	counting.b_functor_n);  
   countOne(  "I_POPF", 		counting.i_pop);
   countOne(  "I_ENTER", 	counting.i_enter);
+  countOne(  "I_CONTEXT", 	counting.i_context);
 #if O_BLOCK
   countOne(  "I_CUT_BLOCK",	counting.i_cut_block);
   countOne(  "B_EXIT",		counting.b_exit);
@@ -153,9 +154,7 @@ countHeader()
 }  
 
 static void
-countArray(s, array)
-char *s;
-int *array;
+countArray(char *s, int *array)
 { int n, m;
 
   for(n=255; array[n] == 0; n--) ;
@@ -166,9 +165,7 @@ int *array;
 }
 
 static void
-countOne(s, i)
-char *s;
-int i;
+countOne(char *s, int i)
 { Putf("%13s: %8d\n", s, i);
 }
 
@@ -182,8 +179,8 @@ int i;
 #endif /* COUNTING */
 
 
-#include "pl-index.c"
 #include "pl-alloc.c"
+#include "pl-index.c"
 
 		 /*******************************
 		 *	    ASYNC HOOKS		*
@@ -497,32 +494,14 @@ so much simpler because it is *known* that   p is either on the local or
 global stack and fr is available.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static inline void			/* used by the WAM interpreter */
-TrailLG(Word p, LocalFrame fr)
-{ if ( p >= (Word) lBase )		/* gBase < gTop < lBase  */
-  { requireStack(trail, sizeof(struct trail_entry));
-    (tTop++)->address = consPtr(p, TAG_TRAILADDR|STG_LOCAL);
-  } else if ( p <= valPtr2(fr->mark.globaltop, STG_GLOBAL) )
-  { requireStack(trail, sizeof(struct trail_entry));
-    (tTop++)->address = consPtr(p, TAG_TRAILADDR|STG_GLOBAL);
-  }
-}
-
-
 static inline void
 Trail(Word p, LocalFrame fr)
-{ int st;
-
-  if ( p >= (Word)lBase )
-  { st = TAG_TRAILADDR|STG_LOCAL;
-  } else
-  { if ( fr && p > valPtr2(fr->mark.globaltop, STG_GLOBAL) )
-      return;
-    st = TAG_TRAILADDR|STG_GLOBAL;
+{ if ( p >= (Word)lBase ||
+       !fr ||
+       p < fr->mark.globaltop )
+  { requireStack(trail, sizeof(struct trail_entry));
+    (tTop++)->address = p;
   }
-
-  requireStack(trail, sizeof(struct trail_entry));
-  (tTop++)->address = consPtr(p, st);
 }
 
 
@@ -560,44 +539,39 @@ TrailAssignment(Word p)
 
   *old = *p;				/* save the old value on the global */
   requireStack(trail, 2*sizeof(struct trail_entry));
-  (tTop++)->address = consPtr(p,   TAG_TRAILADDR|STG_GLOBAL);
-  (tTop++)->address = consPtr(old, TAG_TRAILVAL|STG_GLOBAL);
+  (tTop++)->address = p;
+  (tTop++)->address = tagTrailPtr(old);
 }
 
-#define UNDO_FUNC(name) \
-name(mark *m) \
-{ TrailEntry tt = tTop; \
-  TrailEntry mt = (TrailEntry)valPtr2(m->trailtop, STG_TRAIL); \
- \
-  SECURE(assert(m->trailtop  != INVALID_TRAILTOP); \
-	 assert(m->globaltop != INVALID_GLOBALTOP)); \
- \
-  while(tt > mt) \
-  { Word p; \
- \
-    tt--; \
-    p = valPtr(tt->address); \
-    if ( tag(tt->address) == TAG_TRAILADDR ) \
-    { setVar(*p); \
-    } else /* if ( tag(tt->address) == TAG_TRAILVAL ) */ \
-    { word val = *p; \
- \
-      tt--; \
-      *valPtr(tt->address) = val; \
-    } \
-  } \
-  tTop = tt; \
-  gTop = valPtr2(m->globaltop, STG_GLOBAL); \
-/*assert(gTop <= gMax);*/ \
+static inline void
+__do_undo(mark *m)
+{ TrailEntry tt = tTop;
+  TrailEntry mt = m->trailtop;
+
+  SECURE(assert(m->trailtop  != INVALID_TRAILTOP);
+	 assert(m->globaltop != INVALID_GLOBALTOP));
+
+  while(--tt >= mt)
+  { Word p = tt->address;
+
+    if ( isTrailVal(p) )
+    { DEBUG(2, Sdprintf("Undoing a trailed assignment\n"));
+      *(--tt)->address = trailVal(p);
+    } else
+      setVar(*p);
+  }
+
+  tTop = mt;
+  gTop = m->globaltop;
 }
 
-void UNDO_FUNC(do_undo)
-#ifdef HAVE_INLINE
-static __inline void UNDO_FUNC(__pl_do_undo)
+void
+do_undo(mark *m)
+{ __do_undo(m);
+}
+
 #undef Undo
-#define Undo(m) __pl_do_undo(&m)
-#endif
-
+#define Undo(m) __do_undo(&m)
 #endif /*O_DESTRUCTIVE_ASSIGNMENT*/
 
 		/********************************
@@ -618,7 +592,7 @@ are:
 
   - various of the virtual machine instructions
   - various macros, for example APPENDLIST and CLOSELIST
-  - unifyAtomic(), unifyFunctor(): unification of atomic data.
+  - unifyAtomic(): unification of atomic data.
   - various builtin predicates. They should be flagged some way.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -739,31 +713,11 @@ can_unify(register Word t1, register Word t2)
   return rval;  
 }
 
+		 /*******************************
+		 *   FOREIGN-LANGUAGE INTERFACE *
+		 *******************************/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-unify_atomic(p, a) is normally called through unifyAtomic(). It  unifies
-a  term,  represented  by  a pointer to it, with an atomic value.  It is
-intended for foreign language functions.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-bool
-unify_atomic(Word p, word a)
-{ deRef(p);
-
-  if ( *p == a )
-    succeed;
-
-  if ( isVar(*p) )
-  { *p = a;
-    Trail(p, environment_frame);
-    succeed;
-  }
-
-  if ( isIndirect(a) && isIndirect(*p) )
-    return equalIndirect(a, *p);
-
-  fail;
-}
+#include "pl-fli.c"
 
 #if O_BLOCK
 		/********************************
@@ -854,7 +808,7 @@ copyFrameArguments(LocalFrame from, LocalFrame to, int argc)
 
       if ( p > (Word)to )
       { if ( isVar(*p) )
-	{ *p = makeRefLG(ARGD);
+	{ *p = makeRefL(ARGD);
 	  setVar(*ARGS);
 	} else
 	  *ARGS = *p;
@@ -973,11 +927,11 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
     Word p = valTermRef(args);
 
     for( n = arity; n-- > 0; p++ )
-      *ap++ = isVar(*p) ? makeRefLG(p) : *p;
+      *ap++ = linkVal(p);
   }
 
 					/* find definition and clause */
-  if ( !(clause = def->definition.clauses) && false(def, DYNAMIC) )
+  if ( !(clause = def->definition.clauses) && false(def, PROC_DEFINED) )
   { def = trapUndefined(def);
     clause = def->definition.clauses;
   }
@@ -1131,14 +1085,22 @@ PL_exception(qid_t qid)
 #define LOAD_REGISTERS(qid)
 #endif /*O_SHIFT_STACKS*/
 
+#ifndef ASM_NOP
+#define ASM_NOP _PL_nop_counter++
+#endif
+
+#ifdef ASM_NOP
+int _PL_nop_counter;
+#endif
+
 int
 PL_next_solution(qid_t qid)
 { QueryFrame QF;			/* Query frame */
   LocalFrame FR;			/* current frame */
-  Word	     ARGP;			/* current argument pointer */
+  Word	     ARGP = NULL;		/* current argument pointer */
   Code	     PC;			/* program counter */
-  LocalFrame BFR;			/* last backtrack frame */
-  Definition DEF;			/* definition of current procedure */
+  LocalFrame BFR = NULL;		/* last backtrack frame */
+  Definition DEF = NULL;		/* definition of current procedure */
   bool	     deterministic;		/* clause found deterministically */
   Word *     aFloor = aTop;		/* don't overwrite old arguments */
 #define	     CL (FR->clause)		/* clause of current frame */
@@ -1251,6 +1213,7 @@ pl-comp.c
 #if O_CATCHTHROW
     &&B_THROW_LBL,
 #endif
+    &&I_CONTEXT_LBL,
     NULL
   };
 
@@ -1364,7 +1327,7 @@ arguments.
 	  goto retry;
       }
     }
-#ifdef O_LABEL_ADDRESSES
+#if O_LABEL_ADDRESSES
     { void *c = (void *)replacedBreak(PC-1);
       
       goto *c;
@@ -1397,7 +1360,7 @@ constant argument.
         deRef2(ARGP++, k);
         if (isVar(*k))
 	{ *k = c;
-	  TrailLG(k, FR);
+	  Trail(k, FR);
 	  NEXT_INSTRUCTION;
 	}
         if (*k == c)
@@ -1418,7 +1381,7 @@ variable, compare the numbers otherwise.
 	{ Word p = allocGlobal(3);
 
 	  *k   = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-	  TrailLG(k, FR);
+	  Trail(k, FR);
 	  *p++ = mkIndHdr(1, TAG_INTEGER);
 	  *p++ = (long)*PC++;
 	  *p++ = mkIndHdr(1, TAG_INTEGER);
@@ -1437,7 +1400,7 @@ variable, compare the numbers otherwise.
 	{ Word p = allocGlobal(4);
 
 	  *k   = consPtr(p, TAG_FLOAT|STG_GLOBAL);
-	  TrailLG(k, FR);
+	  Trail(k, FR);
 	  *p++ = mkIndHdr(2, TAG_FLOAT);
 	  *p++ = (long)*PC++;
 	  *p++ = (long)*PC++;
@@ -1463,7 +1426,7 @@ General indirect in the head.  Used for strings only at the moment.
 	deRef2(ARGP++, k);
 	if (isVar(*k))
 	{ *k = globalIndirectFromCode(&PC);
-	  TrailLG(k, FR);
+	  Trail(k, FR);
 	  NEXT_INSTRUCTION;
 	}
 	if ( isIndirect(*k) && equalIndirectFromCode(*k, &PC) )
@@ -1530,68 +1493,19 @@ XR-table might be freed due to a retract.
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A variable in the head which is not an anonymous one and is not used for
 the first time.  Invoke general unification between the argument pointer
-and the variable, whose offset is given relative to  the  frame.   Note:
-this once was done in place to avoid a function call.  It turns out that
-using a function call is faster (at least on SUN_3).
+and the variable, whose offset is given relative to  the  frame.
+
+Its doubtfull whether inlining (the simple   cases)  is worthwhile. I've
+tested this on various platforms, and   the  results vary. Simplicity is
+probably worth more than the 0.001% performance to gain.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(H_VAR, COUNT_N(h_var_n), ("h_var %d\n", *PC)) MARK(HVAR);
       { Word p1 = varFrameP(FR, *PC++);
 	Word p2 = ARGP++;
 
-	deRef(p2);
-	deRef(p1);
-
-	if ( *p1 == *p2 )
-	{ if ( isVar(*p1) )
-	  { if ( p1 < p2 )		/* always point downwards */
-	    { *p2 = makeRef(p1);
-	      TrailLG(p2, FR);
-	    }
-	    if ( p1 > p2 )
-	    { *p1 = makeRef(p2);
-	      TrailLG(p1, FR);
-	    }
-	  }
+	if ( unify(p1, p2, FR) )
 	  NEXT_INSTRUCTION;
-	}
-
-	if ( isVar(*p1) )
-	{ *p1 = *p2;
-	  TrailLG(p1, FR);
-	  NEXT_INSTRUCTION;
-	}
-	if ( isVar(*p2) )
-	{ *p2 = *p1;
-	  TrailLG(p2, FR);
-	  NEXT_INSTRUCTION;
-	}
-
-	switch(tag(*p1))
-	{ case TAG_ATOM:
-	    CLAUSE_FAILED;
-	  case TAG_INTEGER:
-	    if ( storage(*p1) != STG_INLINE &&
-		 isBignum(*p2) &&
-		 valBignum(*p1) == valBignum(*p2) )
-	      NEXT_INSTRUCTION;
-	    CLAUSE_FAILED;
-	  case TAG_STRING:
-	    if ( isString(*p2) && equalIndirect(*p1, *p2) )
-	      NEXT_INSTRUCTION;
-	    CLAUSE_FAILED;
-	  case TAG_FLOAT:
-	    if ( isReal(*p2) )
-	    { p1 = valIndirectP(*p1);
-	      p2 = valIndirectP(*p2);
-	      if ( p1[0] == p2[0] && p1[1] == p2[1] )
-		NEXT_INSTRUCTION;
-	    }
-	    CLAUSE_FAILED;
-	  default:
-	    if ( unify(p1, p2, FR) )
-	      NEXT_INSTRUCTION;
-	    CLAUSE_FAILED;
-	}
+	CLAUSE_FAILED;
       }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1600,19 +1514,21 @@ the  first  time  and is nested in a term (with B_FUNCTOR).  We now know
 that *ARGP is a variable,  so  we  either  copy  the  value  or  make  a
 reference.   The  difference between this one and B_VAR is the direction
 of the reference link in case *k turns out to be variable.
+
+ARGP is pointing into the term on the global stack we are creating.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(B_ARGVAR, COUNT_N(b_argvar_n), ("b_argvar %d\n", *PC)) MARK(BAVAR);
-      { register Word k;
+      { Word k;
 
 	deRef2(varFrameP(FR, *PC++), k);	
-	if (isVar(*k))
-	{ if (ARGP < k)
+	if ( isVar(*k) )
+	{ if ( ARGP < k )
 	  { setVar(*ARGP);
-	    *k = makeRefLG(ARGP++);
-	    TrailLG(k, FR);
+	    *k = makeRefG(ARGP++);
+	    Trail(k, FR);
 	    NEXT_INSTRUCTION;
 	  }
-	  *ARGP++ = makeRefLG(k);		/* both on global stack! */
+	  *ARGP++ = makeRefG(k);	/* both on global stack! */
 	  NEXT_INSTRUCTION;	  
 	}
 	*ARGP++ = *k;
@@ -1626,9 +1542,7 @@ the value or make a reference.  Trailing is not needed as we are writing
 above the stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define BODY_VAR(n)   { register Word k; \
-			deRef2(varFrameP(FR, (n)), k); \
-			*ARGP++ = (isVar(*k) ? makeRefLG(k) : *k); \
+#define BODY_VAR(n)   { *ARGP++ = linkVal(varFrameP(FR, (n))); \
 			NEXT_INSTRUCTION; \
 		      }
     VMI(B_VAR, COUNT_N(b_var_n), ("b_var %d\n", *PC)) MARK(BVARN);
@@ -1641,15 +1555,16 @@ above the stack.
       BODY_VAR(2 + ARGOFFSET / sizeof(word));
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-A variable in the head, which is not anonymous, but encountered for  the
-first  time.  So we know that the variable is still a variable.  Copy or
-make a reference.  Trailing is not needed as  we  are  writing  in  this
-frame.
+A variable in the head, which is  not anonymous, but encountered for the
+first time. So we know that the variable   is  still a variable. Copy or
+make a reference. Trailing is  not  needed   as  we  are writing in this
+frame. As ARGP is pointing in the  argument   list,  it  is on the local
+stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(H_FIRSTVAR, COUNT_N(h_firstvar_n), ("h_firstvar %d\n", *PC))
       MARK(HFVAR);
-      { varFrame(FR, *PC++) = (isVar(*ARGP) ? makeRefLG(ARGP++)
-					       : *ARGP++);
+      { varFrame(FR, *PC++) = (isVar(*ARGP) ? makeRef(ARGP) : *ARGP);
+	ARGP++;
 	NEXT_INSTRUCTION;
       }
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1661,7 +1576,7 @@ therefore go from k to ARGP.
     VMI(B_ARGFIRSTVAR, COUNT_N(b_argfirstvar_n), ("b_argfirstvar %d\n", *PC))
       MARK(BAFVAR);
       { setVar(*ARGP);
-	varFrame(FR, *PC++) = makeRefLG(ARGP++);
+	varFrame(FR, *PC++) = makeRefG(ARGP++);
 	NEXT_INSTRUCTION;
       }
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1672,10 +1587,10 @@ needed as we are writing in this and the next frame.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(B_FIRSTVAR, COUNT_N(b_firstvar_n), ("b_firstvar %d\n", *PC))
       MARK(BFVAR);
-      { register Word k = varFrameP(FR, *PC++);
+      { Word k = varFrameP(FR, *PC++);
 
 	setVar(*k);
-	*ARGP++ = makeRefLG(k);
+	*ARGP++ = makeRefL(k);
 	NEXT_INSTRUCTION;
       }
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1728,7 +1643,7 @@ the global stack (should we check?  Saves trail! How often?).
 
 	  ap = gTop;
 	  *ARGP = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
-	  TrailLG(ARGP, FR);
+	  Trail(ARGP, FR);
 	  *ap++ = f;
 	  ARGP = ap;
 	  while(arity-- > 0)
@@ -1757,7 +1672,7 @@ the global stack (should we check?  Saves trail! How often?).
 	  requireStack(global, 3*sizeof(word));
 #endif
 	  *ARGP = consPtr(gTop, TAG_COMPOUND|STG_GLOBAL);
-	  TrailLG(ARGP, FR);
+	  Trail(ARGP, FR);
 	  *gTop++ = FUNCTOR_dot2;
 	  ARGP = gTop;
 	  setVar(*gTop++);
@@ -1857,6 +1772,20 @@ backtrack without showing the fail ports explicitely.
 
 	ARGP = argFrameP(lTop, 0);
         NEXT_INSTRUCTION;
+      }
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+I_CONTEXT is used by  non-meta  predicates   that  are  compiled  into a
+different  module  using  <module>:<head>  :-    <body>.  The  I_CONTEXT
+instruction immediately follows the I_ENTER. The argument is the module.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+    VMI(I_CONTEXT, COUNT(i_context), ("context \n")) MARK(CONTEXT);
+      { Module m = (Module)*PC++;
+
+	FR->context = m;
+
+	NEXT_INSTRUCTION;
       }
 
 #if O_CATCHTHROW
@@ -2240,7 +2169,7 @@ and control will not reach C again.
     VMI(C_SOFTCUT, COUNT_N(c_softcut), ("c_softcut %d\n", *PC)) MARK(CSOFTCUT);
       { LocalFrame altfr = (LocalFrame) varFrame(FR, *PC);
 
-	assert(altfr->predicate == PROCEDURE_alt1->definition);
+	assert(altfr->predicate == PROCEDURE_alt0->definition);
 	PC++;
 	set(altfr, FR_CUT);
 	NEXT_INSTRUCTION;
@@ -2485,7 +2414,7 @@ the result (a word) and the number holding the result.  For example:
 
 	if ( isVar(*k) )
 	{ Mark(lTop->mark);
-	  TrailLG(k, lTop);
+	  Trail(k, lTop);
 	  if ( intNumber(n) )
 	  { if ( inTaggedNumRange(n->value.i) )
 	      *k = consInt(n->value.i);
@@ -2597,7 +2526,7 @@ arity and a pointer to the argument vector of the goal.
 	      { Word a1 = unRef(a[i]);
 	    
 		if ( a1 >= a && a1 < a+arity )
-		  a[i+shift] = makeRefLG(a1+shift);
+		  a[i+shift] = makeRef(a1+shift);
 		else
 		  a[i+shift] = a[i];
 	      } else
@@ -2609,7 +2538,7 @@ arity and a pointer to the argument vector of the goal.
 	      { Word a1 = unRef(a[i]);
 		
 		if ( a1 >= a && a1 < a+arity )
-		  a[i+shift] = makeRefLG(a1+shift);
+		  a[i+shift] = makeRef(a1+shift);
 		else
 		  a[i+shift] = a[i];
 	      } else
@@ -2631,11 +2560,7 @@ frame.
 	{ ARGP = argFrameP(next, 0);
 
 	  for(; arity-- > 0; ARGP++, args++)
-	  { Word a;
-
-	    deRef2(args, a);
-	    *ARGP = (isVar(*a) ? makeRefLG(a) : *a);
-	  }
+	    *ARGP = linkVal(args);
 	}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2720,10 +2645,10 @@ same *functionality*, but a *different* address.  If your machine does't
 like nop, define the macro ASM_NOP in  your md-file to do something that
 1) has *no effect* and 2) is *not optimised* away by the compiler.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(C_NOT, {}, ("c_not %d\n", *PC))
+    VMI(C_NOT, {}, ("c_not %d\n", *PC)) MARK(C_NOT)
 #if VMCODE_IS_ADDRESS
 #ifdef ASM_NOP
-      ASM_NOP
+      ASM_NOP;
 #else
       asm("nop");
 #endif
@@ -2756,36 +2681,29 @@ the first call of $alt/1 simply succeeds.
     VMI(C_OR, COUNT_N(c_or), ("c_or %d\n", *PC)) MARK(C_OR);
     c_or:
       { int skip = *PC++;
-	Word a;
 
 	*ARGP++ = consInt(skip);	/* push amount to skip (as B_CONST) */
 	DEBUG(9, Sdprintf("$alt(%d)\n", skip));
 	next = lTop;
 	next->flags = FR->flags;
-	next->predicate = PROCEDURE_alt1->definition;
+	next->predicate = PROCEDURE_alt0->definition;
 	next->programPointer = PC;
 	next->context = MODULE_system;
 
-#if NO_INLINE_C_OR			/* old code.  keep for debugging */
-        DEF  = next->predicate;
-	goto normal_call;
-#else
-        requireStack(local, (int)argFrameP((LocalFrame)NULL, 1));
+        requireStack(local, (int)argFrameP((LocalFrame)NULL, 0));
 	next->backtrackFrame = BFR;
 	next->parent = FR;
 	incLevel(next);
 	clear(next, FR_CUT|FR_SKIPPED);
 	LD->statistics.inferences++;
 	Mark(next->mark);
-	a = argFrameP(next, 0);		/* see callForeign() */
-	lTop = (LocalFrame)argFrameP(a, 1);
+	lTop = (LocalFrame)argFrameP(next, 0);
 					/* callForeign() here */
 	next->clause = (ClauseRef) (ForeignRedoIntVal(skip)|FRG_REDO);
 	SetBfr(next);
 	ARGP = argFrameP(lTop, 0);
 
 	NEXT_INSTRUCTION;
-#endif /*NO_INLINE_C_OR*/
       }
 #endif /* O_COMPILE_OR */
 
@@ -2813,7 +2731,7 @@ The VMI for these calls are ICALL_FVN, proc, var-index ...
       { fproc = (Procedure) *PC++;
 	nvars = 1;
 	v = varFrameP(FR, *PC++);
-	*ARGP++ = (isVar(*v) ? makeRefLG(v) : *v);
+	*ARGP++ = (isVar(*v) ? makeRefL(v) : *v);
 	goto common_call_fv;
       }
 
@@ -2821,9 +2739,9 @@ The VMI for these calls are ICALL_FVN, proc, var-index ...
       { fproc = (Procedure) *PC++;
 	nvars = 2;
 	v = varFrameP(FR, *PC++);
-	*ARGP++ = (isVar(*v) ? makeRefLG(v) : *v);
+	*ARGP++ = (isVar(*v) ? makeRefL(v) : *v);
 	v = varFrameP(FR, *PC++);
-	*ARGP++ = (isVar(*v) ? makeRefLG(v) : *v);
+	*ARGP++ = (isVar(*v) ? makeRefL(v) : *v);
 
       common_call_fv:
 	if ( signalled )
@@ -2971,9 +2889,7 @@ the arguments of this term in the frame.
 	  arity   = fd->arity;
 	  args    = f->arguments;
 	  for(n=0; n<arity; n++, ARGP++, args++)
-	  { deRef2(args, a);
-	    *ARGP = (isVar(*a) ? makeRefLG(a) : *a);
-	  }
+	    *ARGP = linkVal(args);
 	} else
 	{ warning("apply/2: Illegal goal");
 	  FRAME_FAILED;
@@ -2986,15 +2902,14 @@ Scan the list and add the elements to the argument vector of the frame.
 	  { warning("apply/2: Illegal argument list");
 	    FRAME_FAILED;
 	  }
-	  args = argTermP(list, 0);
-	  deRef(args);
-	  *ARGP++ = (isVar(*args) ? makeRefLG(args) : *args);
+	  args = argTermP(list, 0);	/* i.e. the head */
+	  *ARGP++ = linkVal(args);
 	  arity++;
 	  if (arity > MAXARITY)
 	  { warning("apply/2: arity too high");
 	    FRAME_FAILED;
 	  }
-	  args = argTermP(list, 1);
+	  args = argTermP(list, 1);	/* i.e. the tail */
 	  deRef(args);
 	  list = *args;
 	}
@@ -3135,13 +3050,13 @@ Note that DEF->definition is  a  union  of  the clause  or C-function.
 Testing is suffices to find out that the predicate is defined.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-	if ( !DEF->definition.clauses && false(DEF, DYNAMIC) )	
+	if ( !DEF->definition.clauses && false(DEF, PROC_DEFINED) )	
 	{ lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
 
 	  FR->predicate = DEF = trapUndefined(DEF);
 
 	  if ( !DEF->definition.clauses &&
-	       false(DEF, DYNAMIC) &&
+	       false(DEF, PROC_DEFINED) &&
 	       true(DEF->module, UNKNOWN) )
 	  { PL_error(NULL, 0, NULL, ERR_UNDEFINED_PROC, DEF);
 	    goto b_throw;
@@ -3670,26 +3585,22 @@ foreign frame we have to set BFR and do data backtracking.
   }
 } /* end of interpret() */
 
-
 #if O_COMPILE_OR
 word
-pl_alt(term_t skip, word h)
+pl_alt(word h)
 { switch( ForeignControl(h) )
-  { case FRG_FIRST_CALL:
-    { int i;
-
-      PL_get_integer(skip, &i);
-      ForeignRedoInt(i);
-    }
-    case FRG_REDO:
+  { case FRG_REDO:
     { int skip = ForeignContextInt(h);
       DEBUG(9, Sdprintf("$alt/1: skipping %ld codes\n", ForeignContextInt(h)));
       environment_frame->programPointer += skip;
+    case FRG_CUTTED:
       succeed;
     }
-    case FRG_CUTTED:
+
+    case FRG_FIRST_CALL:
     default:
-      succeed;
+      assert(0);
+      fail;
   }
 }
 #endif /* O_COMPILE_OR */

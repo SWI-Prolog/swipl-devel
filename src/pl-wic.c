@@ -16,32 +16,31 @@
 #include <unistd.h>
 #endif
 
-forwards char *	getString(IOSTREAM *);
-forwards long	getNum(IOSTREAM *);
-forwards real	getReal(IOSTREAM *);
-forwards bool	loadWicFd(char *, IOSTREAM *, int);
-forwards bool	loadPredicate(IOSTREAM *, int skip);
-forwards bool	loadImport(IOSTREAM *, int skip);
-forwards void	putString(char *, IOSTREAM *);
-forwards void	putAtom(atom_t, IOSTREAM *);
-forwards void	putNum(long, IOSTREAM *);
-forwards void	putReal(real, IOSTREAM *);
-forwards void	saveWicClause(Clause, IOSTREAM *);
-forwards void	closeProcedureWic(IOSTREAM *);
-forwards bool	closeWic(void);
-forwards bool	addDirectiveWic(term_t, IOSTREAM *fd);
-forwards bool	importWic(Procedure, IOSTREAM *fd);
-forwards bool	compileFile(char *);
-forwards bool	putStates(IOSTREAM *);
-forwards word	loadXR(IOSTREAM *);
-forwards word   loadXRc(int c, IOSTREAM *fd);
-forwards void	putstdw(word w, IOSTREAM *fd);
-forwards word	getstdw(IOSTREAM *fd);
+static char *	getString(IOSTREAM *);
+static long	getNum(IOSTREAM *);
+static real	getReal(IOSTREAM *);
+static bool	loadWicFd(IOSTREAM *);
+static bool	loadPredicate(IOSTREAM *, int skip);
+static bool	loadImport(IOSTREAM *, int skip);
+static void	putString(char *, IOSTREAM *);
+static void	putAtom(atom_t, IOSTREAM *);
+static void	putNum(long, IOSTREAM *);
+static void	putReal(real, IOSTREAM *);
+static void	saveWicClause(Clause, IOSTREAM *);
+static void	closeProcedureWic(IOSTREAM *);
+static bool	addDirectiveWic(term_t, IOSTREAM *fd);
+static bool	importWic(Procedure, IOSTREAM *fd);
+static bool	compileFile(char *);
+static word	loadXR(IOSTREAM *);
+static word	loadXRc(int c, IOSTREAM *fd);
+static void	putstdw(word w, IOSTREAM *fd);
+static word	getstdw(IOSTREAM *fd);
 static bool	loadStatement(int c, IOSTREAM *fd, int skip);
 static bool	loadPart(IOSTREAM *fd, Module *module, int skip);
 static bool	loadInModule(IOSTREAM *fd, int skip);
 static int	qlfVersion(IOSTREAM *s);
-static bool	appendState(const char *name);
+static void	openProcedureWic(Procedure proc, IOSTREAM *fd, atom_t sclass);
+
 
 #define Qgetc(s) Snpgetc(s)		/* ignore position recording */
 
@@ -70,22 +69,11 @@ BE READ, PLEASE DO NOT FORGET TO INCREMENT THE VERSION NUMBER!
 
 Below is an informal description of the format of a `.qlf' file:
 
-<wic-file>	::=	#!<path>
-			<magic code>
+<wic-file>	::=	<magic code>
 			<version number>
-			<localSize>			% a <word>
-			<globalSize>			% a <word>
-			<trailSize>			% a <word>
-			<argumentSize>			% a <word>
-			<heapSize>			% a <word>
-			<goal>				% a <string>
-			<topLevel>			% a <string>
-			<initFile>			% a <string>
 			<home>				% a <string>
 			{<statement>}
 			'T'
-			<size>				% a stdword
-			<QLFMAGICNUM>			% a stdword
 ----------------------------------------------------------------
 <qlf-file>	::=	<qlf-magic>
 			<version-number>
@@ -109,10 +97,12 @@ Below is an informal description of the format of a `.qlf' file:
 <magic code>	::=	<string>			% normally #!<path>
 <version number>::=	<num>
 <statement>	::=	'W' <string>			% include wic file
-		      | 'P' <XR/functor>
-			    {<clause>} <pattern>	% predicate
-		      |	'O' <XR/modulename>
-			    <XR/functor>		% pred out of module
+		      | 'P' <XR/functor> 		% predicate
+			    <flags>
+			    {<clause>} <pattern>
+		      |	'O' <XR/modulename>		% pred out of module
+			    <XR/functor>
+			    <flags>
 			    {<clause>} <pattern>
 		      | 'D' 
 		        <lineno>			% source line number
@@ -123,6 +113,7 @@ Below is an informal description of the format of a `.qlf' file:
 		      | 'M' <XR/modulename>		% load-in-module
 		            {<statement>}
 			    'X'
+<flags>		::=	<num>				% Bitwise or of PRED_*
 <clause>	::=	'C' <line_no> <# var>
 			    <#n subclause> <#codes> <codes>
 		      | 'X' 				% end of list
@@ -130,10 +121,13 @@ Below is an informal description of the format of a `.qlf' file:
 			XR_ATOM    <string>		% atom
 			XR_INT     <num>		% number
 			XR_BIGNUM  <word>		% big-number
-			XR_FLOAT   <word>		% real (float)
+			XR_FLOAT   <word><word>		% real (double)
 			XR_STRING  <string>		% string
 			XR_FUNCTOR <XR/name> <num>	% functor
 			XR_PRED    <XR/fdef> <XR/module>% predicate
+			XR_MODULE  <XR/name>		% module
+			XR_FILE	   's'|'u' <XR/atom> <time>
+				   '-'
 <term>		::=	<num>				% # variables in term
 			<theterm>
 <theterm>	::=	<XR/atomic>			% atomic data
@@ -159,8 +153,8 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOADVERSION 30			/* load all versions later >= 30 */
-#define VERSION 31			/* save version number */
+#define LOADVERSION 33			/* load all versions later >= 30 */
+#define VERSION 33			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF     0			/* reference to previous */
@@ -171,6 +165,11 @@ bits) as well as machines with different byte order.
 #define XR_BIGNUM  5			/* 32-bit integer */
 #define XR_FLOAT   6			/* float */
 #define XR_STRING  7			/* string */
+#define XR_FILE	   8			/* source file */
+#define XR_MODULE  9			/* a module */
+
+#define PRED_SYSTEM	 0x01		/* system predicate */
+#define PRED_HIDE_CHILDS 0x02		/* hide my childs */
 
 static char saveMagic[] = "SWI-Prolog (c) 1990 Jan Wielemaker\n";
 static char qlfMagic[]  = "SWI-Prolog .qlf file\n";
@@ -314,6 +313,7 @@ storeXrId(long id, word value)
 static int	qlf_has_moved;		/* file has moved: be careful */
 static char *   qlf_save_dir;		/* dir of saved .qlf file */
 static char *	qlf_load_dir;		/* dir of .qlf file now */
+static int	qlf_saved_version;	/* version used for save */
 
 static bool
 qlfLoadError(IOSTREAM *fd, char *ctx)
@@ -375,20 +375,42 @@ getNum(IOSTREAM *fd)
 { long first = Getc(fd);
   int bytes, shift, b;
 
-  if ( !(first & 0xc0) )
-    return (first << 26) >> 26;		/* 99% of them: speed up a bit */    
+  if ( !(first & 0xc0) )		/* 99% of them: speed up a bit */    
+  { first <<= (LONGBITSIZE-6);
+    first >>= (LONGBITSIZE-6);
+
+    DEBUG(4, Sdprintf("getNum() --> %ld\n", first));
+    return first;
+  }
 
   bytes = (int) ((first >> 6) & 0x3);
   first &= 0x3f;
 
-  for( b = 0; b < bytes; b++ )
-  { first <<= 8;
-    first |= Getc(fd) & 0xff;
+  if ( bytes <= 2 )
+  { for( b = 0; b < bytes; b++ )
+    { first <<= 8;
+      first |= Getc(fd) & 0xff;
+    }
+
+    shift = (sizeof(long)-1-bytes)*8 + 2;
+  } else
+  { int m;
+
+    bytes = first;
+    first = 0L;
+
+    for(m=0; m<bytes; m++)
+    { first <<= 8;
+      first |= Getc(fd);
+    }
+    shift = (sizeof(long)-bytes)*8;
   }
 
-  shift = (3-bytes)*8 + 2;
-
-  return (first << shift) >> shift;
+  first <<= shift;
+  first >>= shift;
+  
+  DEBUG(4, Sdprintf("getNum() --> %ld\n", first));
+  return first;
 }
 
 
@@ -440,7 +462,10 @@ loadXRc(int c, IOSTREAM *fd)
 
   switch( c )
   { case XR_REF:
-    { return lookupXrId(getNum(fd));
+    { long xr  = getNum(fd);
+      word val = lookupXrId(xr);
+
+      return val;
     }
     case XR_ATOM:
       id = ++loadedXRTableId;
@@ -460,13 +485,21 @@ loadXRc(int c, IOSTREAM *fd)
     }
     case XR_PRED:
     { functor_t f;
-      atom_t mname;
+      Module m;
 
       id = ++loadedXRTableId;
       f = (functor_t) loadXR(fd);
-      mname = loadXR(fd);
-      xr = (word) lookupProcedure(f, lookupModule(mname));
+      m = (Module) loadXR(fd);
+      xr = (word) lookupProcedure(f, m);
       DEBUG(3, Putf("XR(%d) = proc %s\n", id, procedureName((Procedure)xr)));
+      break;
+    }
+    case XR_MODULE:
+    { atom_t name;
+      id = ++loadedXRTableId;
+      name = loadXR(fd);
+      xr = (word) lookupModule(name);
+      DEBUG(3, Putf("XR(%d) = module %s\n", id, stringAtom(name)));
       break;
     }
     case XR_INT:
@@ -479,6 +512,35 @@ loadXRc(int c, IOSTREAM *fd)
     case XR_STRING:
       return globalString(getString(fd));
 #endif
+    case XR_FILE:
+    { int c;
+
+      id = ++loadedXRTableId;
+
+      switch( (c=Qgetc(fd)) )
+      { case 'u':
+	case 's':
+	{ atom_t name = loadXR(fd);
+	  word   time = getstdw(fd);
+	  
+	  SourceFile sf = lookupSourceFile(name);
+	  if ( !sf->time )
+	  { sf->time   = time;
+	    sf->system = (c == 's' ? TRUE : FALSE);
+	  }
+	  xr = (word)sf;
+	  break;
+	}
+	case '-':
+	  xr = 0;
+	  break;
+	default:
+	  xr = 0;			/* make gcc happy */
+	  fatalError("Illegal XR file index %d: %c", Stell(fd)-1, c);
+      }
+
+      break;
+    }
     default:
     { xr = 0;				/* make gcc happy */
       fatalError("Illegal XR entry at index %d: %c", Stell(fd)-1, c);
@@ -533,6 +595,12 @@ loadQlfTerm(term_t term, IOSTREAM *fd)
   Word vars;
 
   DEBUG(3, Putf("Loading from %d ...", Stell(fd)));
+
+if ( Stell(fd) == 170152 )
+{ GD->debug_level = 4;
+  trap_gdb();
+}
+
   if ( (nvars = getNum(fd)) )
   { term_t *v;
     int n;
@@ -550,134 +618,56 @@ loadQlfTerm(term_t term, IOSTREAM *fd)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Load a complete `wic' file.  `toplevel' tells  us  whether  we  are  the
-toplevel  file  opened,  and thus should include other `wic' files or we
-should ignore the include statements.  `load_options' tells us  to  only
-load the options of the toplevel file.
-
-All wic files loaded are appended in the  right  order  to  a  chain  of
-`states'.  They are written to a new toplevel wic file by openWic().
+Load intermediate code state from the specified stream.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-loadWicFile(char *file, int flags)
-{ IOSTREAM *fd;
-  bool rval = TRUE;
-  bool tablealloced = FALSE;
-  char *owf = wicFile;
-
-  if ((fd = Sopen_file(file, "rbr")) == (IOSTREAM *) NULL)
-  { if ( flags & QLF_EXESTATE )
-      rval = -1;
-    else
-      fatalError("Can't open %s: %s", file, OsError());
-    rval = FALSE;
-    goto out;
-  }
-
-  if ( flags & QLF_EXESTATE )
-  { if ( Sseek(fd, -2 * (long)sizeof(long), SIO_SEEK_END) > 0 )
-    { long size, magic;
-
-      size = getstdw(fd);
-      magic = getstdw(fd);
-      if ( magic == QLFMAGICNUM )
-	Sseek(fd, -2 * (long)sizeof(long) - size, SIO_SEEK_END);
-      else
-	rval = -1;
-    } else
-      rval = -1;
-  }
-
-  if ( rval < 0 )
-    goto out;
-
-  wicFile = file;
-  notifyLoad(file);
-
-  if ( (flags & QLF_TOPLEVEL) && !(flags & QLF_OPTIONS) )
-  { pushXrIdTable();
-    tablealloced    = TRUE;
-  }
-
-  if ( loadWicFd(file, fd, flags) == FALSE )
-  { rval = FALSE;
-    goto out;
-  }
-  if ( (flags & QLF_TOPLEVEL) && !(flags & QLF_OPTIONS) )
-  { if (appendState(file) == FALSE)
-    { rval = FALSE;
-      goto out;
-    }
-  }
-
-out:
-  if (fd != (IOSTREAM *) NULL)
-    Sclose(fd);
-  if ( tablealloced )
+loadWicFromStream(IOSTREAM *fd)
+{ pushXrIdTable();
+  if ( !loadWicFd(fd) )
   { popXrIdTable();
+    return FALSE;
+  }
+  popXrIdTable();
+
+  return TRUE;
+}
+
+
+static int
+loadWicFile(const char *file)
+{ IOSTREAM *fd;
+  int rval;
+
+  if ( !(fd = Sopen_file(file, "rbr")) )
+  { warning("Cannot open Quick Load File %s: %s", file, OsError());
+    return FALSE;
   }
 
-  wicFile = owf;
-  notifyLoaded();
+  rval = loadWicFromStream(fd);
+  Sclose(fd);
 
   return rval;
 }
 
+
 #define QLF_MAX_HEADER_LINES 100
 
 static bool
-loadWicFd(char *file, IOSTREAM *fd, int flags)
+loadWicFd(IOSTREAM *fd)
 { char *s;
   Char c;
-  int n;
   char mbuf[100];
   char *savedhome;
 
-  for(n=0; n<QLF_MAX_HEADER_LINES; n++)
-  { char line[256];
-
-    if ( Sfgets(line, sizeof(line), fd) == 0 )
-      return fatalError("%s is not a SWI-Prolog intermediate code file", file);
-    if ( streq(line, "# End Header\n") )
-      break;
-  }
-  if ( n >= QLF_MAX_HEADER_LINES )
-    return fatalError("%s: header script too long (> 100 lines)", file);
-
   s = getMagicString(fd, mbuf, sizeof(mbuf));
   if ( !s || !streq(s, saveMagic) )
-    return fatalError("%s is not a SWI-Prolog intermediate code file", file);
+    return fatalError("Not a SWI-Prolog intermediate code file");
 
-  if ( getNum(fd) < LOADVERSION )
-  { fatalError("Intermediate code file %s has incompatible save version",
-	       file);
+  if ( (qlf_saved_version=getNum(fd)) < LOADVERSION )
+  { fatalError("Intermediate code file has incompatible save version");
     fail;
   }
-
-  if ( (flags & QLF_OPTIONS) && (flags & QLF_TOPLEVEL) )
-  { GD->options.localSize    = getNum(fd);
-    GD->options.globalSize   = getNum(fd);
-    GD->options.trailSize    = getNum(fd);
-    GD->options.argumentSize = getNum(fd);
-    GD->options.heapSize	 = getNum(fd);
-    DEBUG(2,
-	  Sdprintf("local=%ld, global=%ld, trail=%ld, arg=%ld, heap=%ld\n",
-		   GD->options.localSize, GD->options.globalSize,
-		   GD->options.trailSize, GD->options.argumentSize,
-		   GD->options.heapSize
-		  ));
-    GD->options.goal         = store_string(getString(fd) );
-    GD->options.topLevel     = store_string(getString(fd) );
-    GD->options.initFile     = store_string(getString(fd) );
-
-    succeed;
-  } else
-  { int n;
-    for(n=0; n<5; n++)   getNum(fd);
-    for(n=0; n<3; n++)   getString(fd);
-  }
-
 					/* fix paths for changed home */
   savedhome = getString(fd);
   if ( !systemDefaults.home || streq(savedhome, systemDefaults.home) )
@@ -696,15 +686,9 @@ loadWicFd(char *file, IOSTREAM *fd, int flags)
       case 'T':				/* trailer */
 	succeed;
       case 'W':
-	{ char *name;
+	{ char *name = store_string(getString(fd) );
 
-	  name = store_string(getString(fd) );
-	  if ( (flags & QLF_TOPLEVEL) )
-	  { appendState(name);
-	    pushXrIdTable();		/* has it's own id table! */
-	    loadWicFile(name, 0);
-	    popXrIdTable();
-	  }
+	  loadWicFile(name);
 	  continue;
 	}
       case 'X':
@@ -739,10 +723,10 @@ loadStatement(int c, IOSTREAM *fd, int skip)
       return loadImport(fd, skip);
 
     case 'D':
-    { fid_t       cid = PL_open_foreign_frame();
+    { fid_t   cid = PL_open_foreign_frame();
       term_t goal = PL_new_term_ref();
-      atom_t osf         = source_file_name;
-      int  oln         = source_line_no;
+      atom_t  osf = source_file_name;
+      int     oln = source_line_no;
 
       source_file_name = (currentSource ? currentSource->name : NULL_ATOM);
       source_line_no   = getNum(fd);
@@ -780,6 +764,27 @@ loadStatement(int c, IOSTREAM *fd, int skip)
 }
 
 
+static void
+loadPredicateFlags(Definition def, IOSTREAM *fd, int skip)
+{ if ( qlf_saved_version <= 31 )
+  { if ( !skip && SYSTEM_MODE )
+      set(def, SYSTEM|HIDE_CHILDS|LOCKED);
+  } else
+  { int	flags = getNum(fd);
+
+    if ( !skip )
+    { unsigned long lflags = 0L;
+
+      if ( flags & PRED_SYSTEM )
+	lflags |= SYSTEM;
+      if ( flags & PRED_HIDE_CHILDS )
+	lflags |= HIDE_CHILDS;
+    
+      set(def, lflags);
+    }
+  }
+}
+
 
 static bool
 loadPredicate(IOSTREAM *fd, int skip)
@@ -793,13 +798,9 @@ loadPredicate(IOSTREAM *fd, int skip)
   DEBUG(3, Putf("Loading %s ", procedureName(proc)));
   def = proc->definition;
   def->indexPattern |= NEED_REINDEX;
-  if ( !skip )
-  { if ( SYSTEM_MODE )
-    { set(def, SYSTEM|HIDE_CHILDS|LOCKED);
-    }
-    if ( currentSource )
-      addProcedureSourceFile(currentSource, proc);
-  }
+  loadPredicateFlags(def, fd, skip);
+  if ( !skip && currentSource )
+    addProcedureSourceFile(currentSource, proc);
 
   for(;;)
   { switch(Getc(fd) )
@@ -817,13 +818,20 @@ loadPredicate(IOSTREAM *fd, int skip)
 	DEBUG(3, Sdprintf("."));
 	clause = (Clause) allocHeap(sizeof(struct clause));
 	clause->line_no = (unsigned short) getNum(fd);
+	if ( qlf_saved_version < 32 )
+	  clause->source_no = (currentSource ? currentSource->index : 0);
+	else
+	{ SourceFile sf = (void *) loadXR(fd);
+	  int sno = (sf ? sf->index : 0);
+
+	  clause->source_no = sno;
+	}
 	clearFlags(clause);
 	clause->prolog_vars = (short) getNum(fd);
 	clause->variables = (short) getNum(fd);
 	if ( getNum(fd) == 0 )		/* 0: fact */
 	  set(clause, UNIT_CLAUSE);
 	clause->procedure = proc;
-	clause->source_no = (currentSource ? currentSource->index : 0);
 	clause->code_size = (short) getNum(fd);
 	GD->statistics.codes += clause->code_size;
 	clause->codes = (Code) allocHeap(clause->code_size * sizeof(code));
@@ -839,21 +847,16 @@ loadPredicate(IOSTREAM *fd, int skip)
 	  *bp++ = encode(op);
 	  switch(codeTable[op].argtype)
 	  { case CA1_PROC:
-	    { switch(op)
-	      { case I_CALL:
-		case I_DEPART:
-		{ functor_t f = (functor_t)loadXR(fd);
-		  *bp++ = (word) lookupProcedure(f, LD->modules.source);
-		  break;
-		}
-		default:
-		  *bp++ = loadXR(fd);
-	      }
+	    { *bp++ = loadXR(fd);
 	      n++;
 	      break;
 	    }
 	    case CA1_FUNC:
 	    case CA1_DATA:
+	      *bp++ = loadXR(fd);
+	      n++;
+	      break;
+	    case CA1_MODULE:
 	      *bp++ = loadXR(fd);
 	      n++;
 	      break;
@@ -1106,7 +1109,7 @@ static Table savedXRTable;		/* saved XR entries */
 static long  savedXRTableId;		/* next id */
 
 static void
-putString(register char *s, IOSTREAM *fd)
+putString(char *s, IOSTREAM *fd)
 { while(*s)
   { Putc(*s, fd);
     s++;
@@ -1125,35 +1128,54 @@ putAtom(atom_t a, IOSTREAM *fd)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Number encoding:
 
-	0 <= n <= 2^6	Direct storage in byte
-	
+First byte:  bits 8&7  bits 1-6 (low order)
 
-
+		0	6-bits signed value
+		1      14-bits signed value
+		2      22-bits signed value
+		3      number of bytes following
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define PLMINLONG   ((long)(1L<<(LONGBITSIZE-1)))
+
 static void
-putNum(long int n, IOSTREAM *fd)
-{ if ( n > (1L << 28) || n < -((1L << 28) - 1) )
-    sysError("Argument to putNum() out of range: %ld", n);
+putNum(long n, IOSTREAM *fd)
+{ int m;
 
-  n &= ~0xc0000000;
+  if ( n != PLMINLONG )
+  { long absn = (n >= 0 ? n : -n);
 
-  if ( n < (1L << 5) )
-  { Putc((char) (n & 0x3f), fd);
-  } else if ( n < (1L << 13) )
-  { Putc((char) (((n >> 8) & 0x3f) | (1 << 6)), fd);
-    Putc((char) (n & 0xff), fd);
-  } else if ( n < (1L << 21) )
-  { Putc((char) (((n >> 16) & 0x3f) | (2 << 6)), fd);
-    Putc((char) ((n >> 8) & 0xff), fd);
-    Putc((char) (n & 0xff), fd);
-  } else
-  { Putc((char) (((n >> 24) & 0x3f) | (3 << 6)), fd);
-    Putc((char) ((n >> 16) & 0xff), fd);
-    Putc((char) ((n >> 8) & 0xff), fd);
-    Putc((char) (n & 0xff), fd);
-    return;
+    if ( absn < (1L << 5) )
+    { Sputc((n & 0x3f), fd);
+      return;
+    } else if ( absn < (1L << 13) )
+    { Sputc((((n >> 8) & 0x3f) | (1 << 6)), fd);
+      Sputc((n & 0xff), fd);
+      return;
+    } else if ( absn < (1L << 21) )
+    { Sputc((((n >> 16) & 0x3f) | (2 << 6)), fd);
+      Sputc(((n >> 8) & 0xff), fd);
+      Sputc((n & 0xff), fd);
+      return;
+    }
   }
+
+  for(m = sizeof(n); ; m--)
+  { int b = (n >> ((m-1)*8)) & 0xff;
+
+    if ( b == 0 || b == 0xff )
+      continue;
+    break;
+  }
+
+  Sputc(m | (3 << 6), fd);
+
+  for( ; m >= 0; m--)
+  { int b = (n >> ((m-1)*8)) & 0xff;
+    
+    Sputc(b, fd);
+  }
+
 }
 
 
@@ -1195,12 +1217,29 @@ putReal(real f, IOSTREAM *fd)
 }
 
 
-static void
-saveXR(word xr, IOSTREAM *fd)
+static int
+savedXR(void *xr, IOSTREAM *fd)
 { Symbol s;
   long id;
 
-  if ( isTaggedInt(xr) )		/* TBD: switch */
+  if ( (s = lookupHTable(savedXRTable, xr)) )
+  { id = (int) s->value;
+    Putc(XR_REF, fd);
+    putNum(id, fd);
+    
+    succeed;
+  } else
+  { id = ++savedXRTableId;
+    addHTable(savedXRTable, xr, (void *)id);
+  }
+
+  fail;
+}
+
+
+static void
+saveXR(word xr, IOSTREAM *fd)
+{ if ( isTaggedInt(xr) )		/* TBD: switch */
   { Putc(XR_INT, fd);
     putNum(valInt(xr), fd);
     return;
@@ -1220,20 +1259,13 @@ saveXR(word xr, IOSTREAM *fd)
 #endif /* O_STRING */
   }
 
-  if ( (s = lookupHTable(savedXRTable, (void *)xr)) )
-  { id = (int) s->value;
-    Putc(XR_REF, fd);
-    putNum(id, fd);
+  if ( savedXR((void *)xr, fd) )
     return;
-  }
-
-  id = ++savedXRTableId;
-  addHTable(savedXRTable, (void *)xr, (void *)id);
 
   if ( isAtom(xr) )
-  { Putc(XR_ATOM, fd);
+  { DEBUG(3, Putf("XR(%d) = '%s'\n", savedXRTableId, stringAtom(xr)));
+    Putc(XR_ATOM, fd);
     putAtom(xr, fd);
-    DEBUG(3, Putf("XR(%d) = '%s'\n", id, stringAtom(xr)));
     return;
   }
 
@@ -1242,49 +1274,63 @@ saveXR(word xr, IOSTREAM *fd)
 
 
 static void
-saveXRFunctor(functor_t f, IOSTREAM *fd)
-{ Symbol s;
-  long id;
-  FunctorDef fdef;
-
-  if ( (s = lookupHTable(savedXRTable, (void *)f)) )
-  { id = (int) s->value;
-    Putc(XR_REF, fd);
-    putNum(id, fd);
+saveXRModule(Module m, IOSTREAM *fd)
+{ if ( savedXR((void *)m, fd) )
     return;
-  }
 
-  id = ++savedXRTableId;
-  addHTable(savedXRTable, (void *)f, (void *)id);
+  Putc(XR_MODULE, fd);
+  DEBUG(3, Putf("XR(%d) = module %s\n", savedXRTableId, stringAtom(m->name)));
+  saveXR(m->name, fd);
+}
+
+
+static void
+saveXRFunctor(functor_t f, IOSTREAM *fd)
+{ FunctorDef fdef;
+
+  if ( savedXR((void *)f, fd) )
+    return;
+
   fdef = valueFunctor(f);
 
+  DEBUG(3, Putf("XR(%d) = %s/%d\n",
+		savedXRTableId, stringAtom(fdef->name), fdef->arity));
   Putc(XR_FUNCTOR, fd);
   saveXR(fdef->name, fd);
   putNum(fdef->arity, fd);
-  DEBUG(3, Putf("XR(%d) = %s/%d\n", id, stringAtom(fdef->name), fdef->arity));
 }
 
 
 static void
 saveXRProc(Procedure p, IOSTREAM *fd)
-{ Symbol s;
-  long id;
-
-  if ( (s = lookupHTable(savedXRTable, p)) )
-  { id = (int) s->value;
-    Putc(XR_REF, fd);
-    putNum(id, fd);
+{ if ( savedXR(p, fd) )
     return;
-  }
 
-  id = ++savedXRTableId;
-  addHTable(savedXRTable, p, (void *)id);
-
+  DEBUG(3, Putf("XR(%d) = proc %s\n", savedXRTableId, procedureName(p)));
   Putc(XR_PRED, fd);
   saveXRFunctor(p->definition->functor->functor, fd);
-  saveXR(p->definition->module->name, fd);
-  DEBUG(3, Putf("XR(%d) = proc %s\n", id, procedureName(p)));
+  saveXRModule(p->definition->module, fd);
 }
+
+
+static void
+saveXRSourceFile(SourceFile f, IOSTREAM *fd)
+{ if ( savedXR(f, fd) )
+    return;
+
+  Putc(XR_FILE, fd);
+
+  if ( f )
+  { DEBUG(3, Putf("XR(%d) = file %s\n", savedXRTableId, stringAtom(f->name)));
+    Putc(f->system ? 's' : 'u', fd);
+    saveXR(f->name, fd);
+    putstdw(f->time, fd);
+  } else
+  { DEBUG(3, Putf("XR(%d) = <no file>\n", savedXRTableId));
+    Putc('-', fd);  
+  }
+}
+
 
 
 static void
@@ -1348,6 +1394,7 @@ saveWicClause(Clause clause, IOSTREAM *fd)
 
   Putc('C', fd);
   putNum(clause->line_no, fd);
+  saveXRSourceFile(indexToSourceFile(clause->source_no), fd);
   putNum(clause->prolog_vars, fd);
   putNum(clause->variables, fd);
   putNum(true(clause, UNIT_CLAUSE) ? 0 : 1, fd);
@@ -1365,14 +1412,13 @@ saveWicClause(Clause clause, IOSTREAM *fd)
     { case CA1_PROC:
       { Procedure p = (Procedure) *bp++;
 	n++;
-	switch(op)
-	{ case I_CALL:
-	  case I_DEPART:
-	    saveXRFunctor(p->definition->functor->functor, fd);
-	    break;
-	  default:
-	    saveXRProc(p, fd);
-	}
+	saveXRProc(p, fd);
+	break;
+      }
+      case CA1_MODULE:
+      { Module m = (Module) *bp++;
+	n++;
+	saveXRModule(m, fd);
 	break;
       }
       case CA1_FUNC:
@@ -1424,8 +1470,6 @@ saveWicClause(Clause clause, IOSTREAM *fd)
 		*         COMPILATION           *
 		*********************************/
 
-static long emulator_size;
-
 static void
 closeProcedureWic(IOSTREAM *fd)
 { if ( currentProc != (Procedure) NULL )
@@ -1437,129 +1481,56 @@ closeProcedureWic(IOSTREAM *fd)
 
 
 static int
-copyEmulator(IOSTREAM *out, IOSTREAM *in)
-{ long emsize = -1;
-  long sizepos;
-  int n = 0, c;
-
-  if ( (sizepos = Sseek(in, -2 * (long)sizeof(long), SIO_SEEK_END)) >= 0 )
-  { long size, magic;
-
-    size = getstdw(in);
-    magic = getstdw(in);
-    if ( magic == QLFMAGICNUM )
-      emsize = sizepos - size;
-    Sseek(in, 0, SIO_SEEK_SET);
+predicateFlags(Definition def, atom_t sclass)
+{ int flags = 0;
+  
+  if ( sclass == ATOM_kernel )
+  { if ( true(def, SYSTEM) && false(def, HIDE_CHILDS) )
+      return PRED_SYSTEM;
+    return (PRED_SYSTEM|PRED_HIDE_CHILDS);
   }
 
-  while((c=Sgetc(in)) != EOF && n++ != emsize)
-    Sputc(c, out);
-
-  emulator_size = n;
-
-  succeed;
+  if ( true(def, SYSTEM) )
+    flags |= PRED_SYSTEM;
+  if ( true(def, HIDE_CHILDS) )
+    flags |= PRED_HIDE_CHILDS;
+  
+  return flags;
 }
 
-static const opt_spec save_options[] = 
-{ { ATOM_local,      OPT_INT },
-  { ATOM_global,     OPT_INT },
-  { ATOM_trail,	     OPT_INT },
-  { ATOM_argument,   OPT_INT },
-  { ATOM_goal,       OPT_STRING },
-  { ATOM_toplevel,   OPT_STRING },
-  { ATOM_init_file,  OPT_STRING },
-  { ATOM_tty,	     OPT_BOOL },
-  { ATOM_stand_alone,OPT_BOOL },
-  { NULL_ATOM,	     0 }
-};
+
+static void
+openProcedureWic(Procedure proc, IOSTREAM *fd, atom_t sclass)
+{ if ( proc != currentProc)
+  { Definition def = proc->definition;
+    int mode = predicateFlags(def, sclass);
+
+    closeProcedureWic(fd);
+    currentProc = proc;
+
+    if ( def->module != LD->modules.source )
+    { Putc('O', fd);
+      saveXR(def->module->name, fd);
+    } else
+    { Putc('P', fd);
+    }
+
+    saveXRFunctor(def->functor->functor, fd);
+    putNum(mode, fd);
+  }
+}
 
 
 static bool
-openWic(const char *file, term_t args)
-{ char *exec;
-  char tmp[MAXPATHLEN];
+writeWicHeader(IOSTREAM *fd)
+{ wicFd = fd;
 
-  int   localSize    = GD->options.localSize;
-  int   globalSize   = GD->options.globalSize;
-  int   trailSize    = GD->options.trailSize;
-  int   argumentSize = GD->options.argumentSize;
-  int	heapSize     = GD->options.heapSize;
-  char *goal         = GD->options.goal;
-  char *topLevel     = GD->options.topLevel;
-  char *initFile     = GD->options.initFile;
-  bool  standalone   = FALSE;
-
-  if ( args )
-  { TRY(scan_options(args, 0, ATOM_save_option, save_options,
-		     &localSize,
-		     &globalSize,
-		     &trailSize,
-		     &argumentSize,
-		     &goal,
-		     &topLevel,
-		     &initFile,
-		     NULL,
-		     &standalone));
-  }
-
-  wicFile = (char *) file;
-
-  DEBUG(1, Sdprintf("Open compiler output file %s\n", file));
-  if ( (wicFd = Sopen_file(file, "wbr")) == (IOSTREAM *)NULL )
-    return warning("Can not open %s: %s", file, OsError());
-  mkWicFile = wicFile;
-  DEBUG(1, Sdprintf("Searching for executable\n"));
-  if ( loaderstatus.restored_state )
-  { exec = stringAtom(loaderstatus.restored_state);
-  } else
-  { TRY( getSymbols() );
-    exec = stringAtom(loaderstatus.orgsymbolfile);
-  }
-  DEBUG(1, Sdprintf("Executable = %s\n", exec));
-  if ( !(exec = OsPath(AbsoluteFile(exec, tmp), tmp)) )
-    fail;
-  emulator_size = 0;
-  if ( standalone )
-  { IOSTREAM *exefd;
-
-    DEBUG(1, Sdprintf("Including executable\n", exec));
-    if ( (exefd = Sopen_file(exec, "rbr")) != NULL )
-    { copyEmulator(wicFd, exefd);
-    } else
-      warning("Can not read emulator %s --- ignoring stand_alone(on)", exec);
-  }      
-
-  DEBUG(1, Sdprintf("Expanded executable = %s\n", exec));
-/*Sfprintf(wicFd, "#!%s -x\n", exec);*/
-#if OS2
-  Sfprintf(wicFd, "/* Compiled SWI-Prolog Program */\r\n'@ECHO OFF'\r\nparse source . . name\r\n\"%s -x \" name arg(1)\r\nexit\r\n", exec);
-#else
-  Sfprintf(wicFd, "#!/bin/sh\n");
-  Sfprintf(wicFd, "# SWI-Prolog version: %d.%d.%d\n",
-	   PLVERSION/10000,
-	   (PLVERSION/100)%100,
-	   PLVERSION%100);
-  Sfprintf(wicFd, "# SWI-Prolog save-version: %d\n", VERSION);
-  Sfprintf(wicFd, "exec ${SWIPL-%s} -x $0 \"$@\"\n", exec);
-  Sfprintf(wicFd, "# End Header\n");
-#endif /* OS2 */
-  DEBUG(2, Sdprintf("Magic  ...\n"));
-  putString( saveMagic,            wicFd);
-  DEBUG(2, Sdprintf("Numeric options ...\n"));
-  putNum(   VERSION,              wicFd);
-  putNum(   localSize,    	  wicFd);
-  putNum(   globalSize,   	  wicFd);
-  putNum(   trailSize,    	  wicFd);
-  putNum(   argumentSize, 	  wicFd);
-  putNum(   heapSize,		  wicFd);
-  DEBUG(2, Sdprintf("String options ...\n"));
-  putString(goal,          	  wicFd);
-  putString(topLevel,      	  wicFd);
-  putString(initFile, 	   	  wicFd);
+  putString(saveMagic, fd);
+  putNum(VERSION, fd);
   if ( systemDefaults.home )
-    putString(systemDefaults.home,  wicFd);
+    putString(systemDefaults.home,  fd);
   else
-    putString("<no home>",  wicFd);
+    putString("<no home>",  fd);
 
   currentProc    = (Procedure) NULL;
   currentSource  = (SourceFile) NULL;
@@ -1571,36 +1542,21 @@ openWic(const char *file, term_t args)
 }  
 
 
-static void
-writeTrailer(IOSTREAM *fd)
-{ long size = Stell(fd) - emulator_size;
-
-  Putc('T', fd);
-  putstdw(size, fd);
-  putstdw(QLFMAGICNUM, fd);
-}
-
-
 static bool
-closeWic()
-{ bool rval;
-
-  if (wicFd == (IOSTREAM *) NULL)
+writeWicTrailer(IOSTREAM *fd)
+{ if ( !fd )
     fail;
 
-  closeProcedureWic(wicFd);
-  Putc('X', wicFd);
+  closeProcedureWic(fd);
+  Putc('X', fd);
   destroyHTable(savedXRTable);
   savedXRTable = NULL;
-  writeTrailer(wicFd);
-  Sclose(wicFd);
-  rval = MarkExecutable(wicFile);
+  Putc('T', fd);
 
   wicFd = NULL;
   wicFile = NULL;
-  mkWicFile = NULL;
 
-  return rval;
+  succeed;
 }
 
 static bool
@@ -1617,20 +1573,9 @@ addClauseWic(term_t term, atom_t file)
     DEBUG(3, Sdprintf("WAM code:\n");
 	     wamListClause(clause));
 
-    if (clause->procedure != currentProc)
-    { closeProcedureWic(s);
-      currentProc = clause->procedure;
-
-      if ( clause->procedure->definition->module != LD->modules.source )
-      { Putc('O', s);
-	saveXR(clause->procedure->definition->module->name, s);
-      } else
-      { Putc('P', s);
-      }
-
-      saveXRFunctor(currentProc->definition->functor->functor, s);
-    }
+    openProcedureWic(clause->procedure, s, ATOM_development);
     saveWicClause(clause, s);
+
     succeed;
   }
 
@@ -1892,6 +1837,7 @@ qlfLoad(char *file, Module *module)
     fail;
   }
 
+  qlf_saved_version = lversion;
   abssavename = getString(fd);
   if ( streq(absloadname, abssavename) )
   { qlf_has_moved = FALSE;
@@ -2088,29 +2034,32 @@ pl_qlf_load(term_t file, term_t module)
 		*********************************/
 
 word
-pl_open_wic(term_t name, term_t options)
-{ char *file;
-  atom_t fname;
+pl_open_wic(term_t to)
+{ IOSTREAM *fd;
 
-  if ( !(file = PL_get_filename(name, NULL, 0)) )
-    fail;
-  fname = lookupAtom(file);	/* ensure persistency */
+  if ( PL_get_stream_handle(to, &fd) )
+  { wicFd = fd;
+    writeWicHeader(fd);
+    succeed;
+  }
 
-  return openWic(stringAtom(fname), options);
+  fail;					/* PL_get_stream_handle() */
+					/* throws exception */
 }
-
-word
-pl_qlf_put_states()
-{ if ( wicFd )
-    putStates(wicFd);
-
-  succeed;
-}
-
 
 word
 pl_close_wic()
-{ return closeWic();
+{ IOSTREAM *fd = wicFd;
+
+  if ( fd )
+  { writeWicTrailer(fd);
+    Sclose(fd);
+
+    wicFd = NULL;
+    succeed;
+  }
+
+  fail;
 }
 
 
@@ -2145,29 +2094,21 @@ pl_import_wic(term_t module, term_t head)
 
 
 word
-pl_qlf_assert_clause(term_t ref)
+pl_qlf_assert_clause(term_t ref, term_t saveclass)
 { if ( wicFd )
   { Clause clause;
     IOSTREAM *s = wicFd;
+    atom_t sclass;
 
     if ( !PL_get_pointer(ref, (void **)&clause) ||
 	 !inCore(clause) || !isClause(clause) )
-      return warning("$qlf_assert_clause/1: Invalid clause reference");
+      return PL_error("qlf_assert_clause", 2, NULL,
+		      ERR_DOMAIN, ATOM_clause_reference, 1);
+    if ( !PL_get_atom(saveclass, &sclass) )
+      return PL_error("qlf_assert_clause", 2, NULL,
+		      ERR_DOMAIN, ATOM_save_class, 2);
 
-    if ( clause->procedure != currentProc )
-    { closeProcedureWic(s);
-      currentProc = clause->procedure;
-
-      if ( clause->procedure->definition->module != LD->modules.source )
-      { Putc('O', s);
-	saveXR(clause->procedure->definition->module->name, s);
-      } else
-      { Putc('P', s);
-      }
-
-      saveXRFunctor(currentProc->definition->functor->functor, s);
-    }
-
+    openProcedureWic(clause->procedure, s, sclass);
     saveWicClause(clause, s);
   }
 
@@ -2247,7 +2188,7 @@ compileFile(char *file)
   qlfStartFile(lookupSourceFile(nf), wicFd);
   
   for(;;)
-  { fid_t            cid = PL_open_foreign_frame();
+  { fid_t	 cid = PL_open_foreign_frame();
     term_t         t = PL_new_term_ref();
     term_t directive = PL_new_term_ref();
     atom_t eof;
@@ -2281,14 +2222,15 @@ compileFile(char *file)
 }
 
 bool
-compileFileList(char *out, int argc, char **argv)
+compileFileList(IOSTREAM *fd, int argc, char **argv)
 { newOp("$:-", OP_FX, 1200);
-  TRY(openWic(out, 0) );
+  TRY(writeWicHeader(fd));
   
   systemMode(TRUE);
+  LD->autoload = FALSE;
 
   for(;argc > 0; argc--, argv++)
-  { if (streq(argv[0], "-c") )
+  { if ( streq(argv[0], "-c" ) )
       break;
     compileFile(argv[0]);
   }
@@ -2301,53 +2243,6 @@ compileFileList(char *out, int argc, char **argv)
     PL_call_predicate(MODULE_user, TRUE, pred, 0);
   }
 
-  return closeWic();
+  return writeWicTrailer(fd);
 }
 
-
-		/********************************
-		*         STATE LISTS           *
-		*********************************/
-
-/*  Add a new state to the chain of states this Prolog session is build
-    from. The file name is made absolute to avoid directory problems
-    with incremental loading.
-*/
-
-static bool
-appendState(const char *name)
-{ State state, st;
-  char *absolute;
-  char tmp[MAXPATHLEN];
-
-  if ((absolute = AbsoluteFile(name, tmp)) == (char *) NULL)
-    return warning("invalid file specification: %s", name);
-
-  state = (State) allocHeap(sizeof(struct state) );
-  state->next = (State) NULL;
-  state->name = store_string(absolute);
-
-  if ( !GD->stateList )
-  { GD->stateList = state;
-    succeed;
-  }
-  for(st = GD->stateList; st->next; st = st->next) ;
-  st->next = state;
-
-  succeed;
-}
-
-/*  Add 'W' statements to the WIC file for each file in the state list.
-*/
-
-static bool
-putStates(IOSTREAM *fd)
-{ State st;
-
-  for(st = GD->stateList; st; st = st->next)
-  { Putc('W', fd);
-    putString(st->name, fd);
-  }
-
-  succeed;
-}

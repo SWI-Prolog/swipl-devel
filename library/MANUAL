@@ -3302,7 +3302,22 @@ ssttrreeaamm__ppoossiittiioonn((_+_S_t_r_e_a_m_, _-_O_
     It is only  possible to change the position parameters if the stream
     is  connected to  a disk  file.   If  the position  is changed,  the
     _C_h_a_r_N_o  field determines the new position  in the file.  The  _L_i_n_e_N_o
-    and _L_i_n_e_P_o_s are copied in the stream administration.
+    and  _L_i_n_e_P_o_s are  copied in  the stream  administration.   See  also
+    sseeeekk//44.
+
+
+sseeeekk((_+_S_t_r_e_a_m_, _+_O_f_f_s_e_t_, _+_M_e_t_h_o_d_, _-_N_e_w_L_o_c_a_t_i_o_n))
+    Reposition the current point  of the given _S_t_r_e_a_m.  _M_e_t_h_o_d is one of
+    bof,  _c_u_r_r_e_n_t or _e_o_f, indicating positioning relative to  the start,
+    current  point or  end of  the underlying  object.   _N_e_w_L_o_c_a_t_i_o_n  is
+    unified with the new offset, relative to the start of the stream.
+
+    If  the seek  modifies the  current  location, the  line number  and
+    character position in the line are set to 0.
+
+    If  the stream cannot be repostioned, a reposition error  is raised.
+    Seeeekk//44 is compatible  to Quintus Prolog, though the error conditions
+    and signalling is ISO compliant.  See also ssttrreeaamm__ppoossiittiioonn//33.
 
 
 33..1144..33 SSwwiittcchhiinngg BBeettwweeeenn IImmpplliicciitt aanndd EExxpplliicciitt II//OO
@@ -7137,7 +7152,7 @@ atoms, each on a line:
 foreign_t
 pl_write_atoms(term_t l)
 { term_t head = PL_new_term_ref();      /* variable for the elements */
-  term_t list = PL_copy_term_ref();     /* copy as we need to write */
+  term_t list = PL_copy_term_ref(l);    /* copy as we need to write */
 
   while( PL_get_list(list, head, list) )
   { char *s;
@@ -7307,6 +7322,13 @@ _v_o_i_d PPLL__ccoonnss__ffuunnccttoorr((_t_e_r_m___t 
     other purposes.
 
 
+_v_o_i_d PPLL__ccoonnss__ffuunnccttoorr__vv((_t_e_r_m___t _-_h_, _f_u_n_c_t_o_r___t _f_, _t_e_r_m___t _a_0))
+    Creates  a compound term like  PPLL__ccoonnss__ffuunnccttoorr(()),  but _a_0 is an  array
+    of  term references as returned by PPLL__nneeww__tteerrmm__rreeffss(()).  The  length of
+    this  array should  match the  number of arguments  required by  the
+    functor.
+
+
 _v_o_i_d PPLL__ccoonnss__lliisstt((_t_e_r_m___t _-_l_, _t_e_r_m___t _+_h_, _t_e_r_m___t _+_t))
     Create  a list (cons-) cell in _l from  the head and tail.   The code
     below  creates a list of  atoms from a char **.   The list is  built
@@ -7320,9 +7342,13 @@ _v_o_i_d PPLL__ccoonnss__lliisstt((_t_e_r_m___t _-_l_,
       PL_put_nil(l);
       while( --n >= 0 )
       { PL_put_atom_chars(a, words[n]);
-        PL_put_list(l, a, l);
+        PL_cons_list(l, a, l);
       }
     }
+
+    Note  that _l can  be redefined  within a PL_cons_list call as  shown
+    here because operationally  its old value is consumed before its new
+    value is set.
 
 
 55..66..55 UUnniiffyyiinngg ddaattaa
@@ -8447,69 +8473,60 @@ This  chapter  describes  the  features  of  SWI-Prolog  for  delivering
 applications that can run without the development version  of the system
 installed.
 
-A SWI-Prolog  built application  consists of  at least two  parts:   the
-emulator  and the  compiled application.    The latter  is  in the  same
-format  as a  SWI-Prolog  boot-file  and SWI-Prolog  pre-compiled  (QLF)
-file.   This  format is  fast loadable  and abstracted  just far  enough
-to  be machine  independent.    This  implies an  application  delivered
-in  binary format  can run  on any  computer for  which  an emulator  is
-available without modification.
+A SWI-Prolog runtime executable is a file consisting of two  parts.  The
+first part  is the  _e_m_u_l_a_t_o_r, which is  machine dependent.   The  second
+part is the _r_e_s_o_u_r_c_e  _a_r_c_h_i_v_e, which contains the compiled program  in a
+machine-independent format,  startup options  and possibly  user-defined
+_r_e_s_o_u_r_c_e_s, see rreessoouurrccee//33 and ooppeenn__rreessoouurrccee//33.
+
+These two parts  can be connected in various  different ways.  The  most
+common way  for distributed runtime applications  is to _c_o_n_c_a_t_e_n_a_t_e  the
+two parts.   This can be achieved  using external commands (Unix:   cat,
+Windows:   copy),  or using  the stand_alone option  to qqssaavvee__pprrooggrraamm//22.
+The  second option  is  to  attach a  startup  script  in front  of  the
+resource that  starts the  emulator with the  proper options.   This  is
+the default  under Unix.   Finally,  an emulator  can be told  to use  a
+specified resource file using the -x commandline switch.
 
 
 qqssaavvee__pprrooggrraamm((_+_F_i_l_e_, _+_L_i_s_t_O_f_O_p_t_i_o_n_s))
-    Saves  the current  state of  the program  to the  file _F_i_l_e.    The
-    result is an  executable shell-script, that will start the emulator.
+    Saves   the  current  state  of  the  program  to  the   file  _F_i_l_e.
+    The  result  is a  resource archive  containing  a saved-state  that
+    expresses  all  Prolog   data  from  the  running  program  and  all
+    user-defined  resources.   Depending on the stand_alone option,  the
+    resource is headed by the emulator, a Unix shell-script or nothing.
+
     _L_i_s_t_O_f_O_p_t_i_o_n_s  is a  list of  <_K_e_y>=<_V_a_l_u_e> or  <_K_e_y>(<_V_a_l_u_e>)  pairs.
     The available keys are described in table 6.1.
- _______________________________________________________________________
- |__KKeeyy________________||OOppttiioonn__||________TTyyppee__________||DDeessccrriippttiioonn______________________________________________||__
- || local      | --LL   ||   K-bytes    |Size (Limit) of local stack       |
- | global     | --GG   ||   K-bytes    |Size (Limit) of global stack      |
- | trail      | --TT   ||   K-bytes    |Size (Limit) of trail stack       |
- | argument   | --AA   ||   K-bytes    |Size (Limit) of argument stack    |
+_________________________________________________________________________
+|__KKeeyy________________||OOppttiioonn__||________TTyyppee____________||DDeessccrriippttiioonn__________________________________________________||
+|| local      | --LL   ||    K-bytes    |Size (Limit) of local stack         |
+| global     | --GG   ||    K-bytes    |Size (Limit) of global stack        |
+| trail      | --TT   ||    K-bytes    |Size (Limit) of trail stack         |
 
- | goal       | --gg   ||     atom     |Initialisation goal               |
- | toplevel   | --tt   ||     atom     |Prolog toplevel goal              |
- |_init_file___|--ff___||_____atom_____|Personal_initialisation_file______|_
- | autoload   |      |     bool     |If true, run aauuttoollooaadd//00 first     |
- | map        |      |     atom     |File containing info on dump      |
- | op         |      |save/standard |Save operator declarations?       |
- |_stand_alone_|_____|_____bool_____|Include_the_emulator_in_the_state_|_
+| argument   | --AA   ||    K-bytes    |Size (Limit) of argument stack      |
+| goal       | --gg   ||     atom      |Initialisation goal                 |
+| toplevel   | --tt   ||     atom      |Prolog toplevel goal                |
+|_init_file___|--ff___||_____atom______|Personal_initialisation_file________||||||
+| class      |      |     atom      |If  runtime,  only  read  resources |
+|            |      |               |from  the  state  (default).     If |
+
+|            |      |               |kernel,  lock  all   predicates  as |
+|            |      |               |system predicates  If  development, |
+|            |      |               |change  the  predicates  in   their |
+|            |      |               |current  state  and  keep   reading |
+|            |      |               |resources  from  their  source  (if |
+|            |      |               |present).  See also rreessoouurrccee//33.     |
+| autoload   |      |     bool      |If true, run aauuttoollooaadd//00 first       |
+| map        |      |     file      |File to write info on dump          |
+| op         |      | save/standard |Save operator declarations?         |
+
+| stand_alone |     |     bool      |Include the emulator in the state   |
+| emulator   |      |     file      |Emulator attached  to  the  (stand- |
+|            |      |               |alone) executable.  Default  is the |
+|____________|______|_______________|running_emulator.___________________|
 
           Table 6.1:  <_K_e_y> = <_V_a_l_u_e> pairs for qqssaavvee__pprrooggrraamm//22
-
-    The /bin/sh script contains the following data:
-
-     1.  The _s_h_e_l_l _s_c_r_i_p_t _h_e_a_d_e_r starts as:
-
-         #!/bin/sh
-         #SAVE-VERSION=<num>
-         #PROLOG-VERSION=<num>
-         exec ${SWIPL-/path-to-emulator} -x $0 "$@"
-
-     2.  The  _s_e_t_t_i_n_g_s  _s_e_c_t_i_o_n contains  the  default  values  for  the
-         various command line options.
-
-     3.  The  _p_r_e_d_i_c_a_t_e_s  _s_e_c_t_i_o_n  contains  all  predicates   from  the
-         currently running  system.   Clauses of  predicates defined  as
-         _v_o_l_a_t_i_l_e (see vvoollaattiillee//11) are  nnoott saved.  Neither  are foreign
-         predicates (see also below).
-
-     4.  The _r_e_c_o_r_d  _s_e_c_t_i_o_n contains  the database  records saved  with
-         rreeccoorrddaa//33  and friends.    The  current version  saves  records
-         using directives.
-
-     5.  The _f_l_a_g  _s_e_c_t_i_o_n contains  the  global flags  saved using  the
-         ffllaagg//33 predicate.  Flags are saved as directives.
-
-     6.  The  _f_e_a_t_u_r_e  _s_e_c_t_i_o_n   contains  all  features  that  do   not
-         originate from the emulator itself.  See sseett__ffeeaattuurree//22.
-
-     7.  The _i_m_p_o_r_t  _s_e_c_t_i_o_n contains  the imports  as far  as they  are
-         not handled  by the  auto-import system.   That  is, an  import
-         is stored  if the module  is user or  the module user  contains
-         a  different definition  as  the  one imported  in  the  target
-         module.'
 
     Before   writing  the  data   to  file,   qqssaavvee__pprrooggrraamm//22 will   run
     aauuttoollooaadd//00  to all  required  autoloading the  system can  discover.
@@ -8520,15 +8537,14 @@ qqssaavvee__pprrooggrraamm((_+_F_i_l_e_, _+_L_i_s_t_O_
     SWI-Prolog development  environment required is the emulator itself.
     The  emulator may  be built in  two flavours.   The  default is  the
     _d_e_v_e_l_o_p_m_e_n_t  _e_m_u_l_a_t_o_r.  The  _r_u_n_t_i_m_e _e_m_u_l_a_t_o_r is similar, but  lacks
-    the  tracer.  The stand-alone program cchhppll((1)) may be used  to change
-    the default path to the emulator.
+    the tracer.
 
-    If the  option stand_alone(on)is present,  the emulator is prepended
-    for  the  state.    If  the emulator  is  started  and no  state  is
-    specified  using  the -x  flag,  it will  test whether  a  boot-file
-    (state)  is attached  to the  emulator itself and  load this  state.
-    Provided  the application  has all libraries  loaded, the  resulting
-    file may be started anywhere.
+    If the  option stand_alone(on)is present, the  emulator is the first
+    part of the state.   If the emulator is started it will test whether
+    a  boot-file (state)  is attached  to the emulator  itself and  load
+    this  state.   Provided  the application has  all libraries  loaded,
+    the  resulting executable is  completely independent of the  runtime
+    environment or location where it was build.
 
 
 qqssaavvee__pprrooggrraamm((_+_F_i_l_e))
@@ -8595,7 +8611,7 @@ qqssaavvee__pprrooggrraamm//[[11,,22]].
     or  loading files  (consult,  etc.), the  directive may  need to  be
     prefixed with iinniittiiaalliizzaattiioonn//11.
 
-  o `Database references as  returned by ccllaauussee//33, rreeccoorrddeedd//33, etc.  are
+  o Database  references as returned by ccllaauussee//33, rreeccoorrddeedd//33, etc.   are
     not preserved and may thus not be part of the database when saved.
 
 
@@ -8611,29 +8627,22 @@ foreign code:
   o _U_s_i_n_g _t_h_e _l_i_b_r_a_r_y_(_s_h_l_i_b_) _p_r_e_d_i_c_a_t_e_s
     This  is the preferred way of dealing  with foreign code.   It loads
     quickly and ensures  an acceptable level of independence between the
-    versions  of the emulator  and the  foreign code loaded.   It  works
-    on  Unix machines supporting shared libraries and  library functions
-    to  load them.   Most modern  Unixes satisfy this  constraint..   It
-    also  works on the Win32 platform:  Windows-NT, '95 and  Windows 3.1
-    running win32s.
+    versions  of the emulator and the foreign code loaded.  It  works on
+    Unix  machines supporting shared libraries and library  functions to
+    load  them.  Most  modern Unixes, as  well as Win32 (Windows  95/NT)
+    satisfy this constraint.
 
   o _S_t_a_t_i_c _l_i_n_k_i_n_g
     This  mechanism works on  all machines,  but generally requires  the
     same  C-compiler and linker to be  used for the external code as  is
-    used  to build SWI-Prolog itself.   This mechanism is the  preferred
-    way if shared libraries are not supported.
-
-  o _U_s_i_n_g llooaadd__ffoorreeiiggnn//[[22,,55]]
-    Basically  only works  on Unix  system supporting  the a.out  format
-    executables.   This mechanism is  slow and non-portable.  It  should
-    be avoided whenever possible.
+    used to build SWI-Prolog itself.
 
 To make  a runtime  executable that  can run on  multiple platforms  one
 must make runtime  checks to find the correct  way of linking.   Suppose
 we have  a source-file  myextension defining  the installation  function
 iinnssttaallll(()).
 
-If  this file  is compiled  to a  shared library,  llooaadd__ffoorreeiiggnn__lliibbrraarryy//11
+If this  file is compiled  into a shared  library, llooaadd__ffoorreeiiggnn__lliibbrraarryy//11
 will load this library and call the installation  function to initialise
 the  foreign code.    If it  is  loaded as  a static  extension,  define
 iinnssttaallll(()) as the predicate iinnssttaallll//00:
@@ -8668,7 +8677,106 @@ it  searches  the  directories <_h_o_m_e>/lib/<_a_r_c_h> and  <_h_o_m
 application can specify additional rules for ffiillee__sseeaarrcchh__ppaatthh//22.
 
 
-66..33 FFiinnddiinngg AApppplliiccaattiioonn ffiilleess
+66..33 UUssiinngg PPrrooggrraamm RReessoouurrcceess
+
+A  _r_e_s_o_u_r_c_e is  very  similar to  a  file.    Resources however  can  be
+represented in two different formats:  on files, as well  as part of the
+resource _a_r_c_h_i_v_e of a saved-state (see qqssaavvee__pprrooggrraamm//22).
+
+A resource has a _n_a_m_e  and a _c_l_a_s_s.  The _s_o_u_r_c_e data of the  resource is
+a file.   Resources are declared by declaring the  predicate rreessoouurrccee//33.
+They are accessed using the predicate ooppeenn__rreessoouurrccee//33.
+
+Before  going into  details,  let  us start  with  an  example.    Short
+texts  can easily  be expressed  in Prolog  sourcecode,  but long  texts
+are cumbersome.   Assume our application  defines a command `help'  that
+prints a  helptext to the screen.   We put  the content of the  helptext
+into a  file called help.txt.   The following  code implements our  help
+command such that help.txt is incorperated into the runtime executable.
+
+resource(help, text, 'help.txt').
+
+help :-
+        open_resource(help, text, In),
+        copy_stream(In, user_output),
+        close(In).
+
+copy_stream(In, Out) :-
+        get0(In, C),
+        copy_stream(C, In, Out).
+
+copy_stream(-1, _, _) :- !.
+        copy_stream(C, In, Out) :-
+        put(Out, C),
+        get0(In, C2),
+        copy_stream(C2, In, Out).
+
+The predicate  hheellpp//00 opens  the resource  as a Prolog  stream.   If  we
+are executing this from the development environment,  this will actually
+return  a stream  to  the  gelp.txt itself.     When executed  from  the
+saved-state, the stream will actually be a stream  opened on the program
+resource file, taking care of the offset and length of the resource.
+
+
+66..33..11 PPrreeddiiccaatteess DDeeffiinniittiioonnss
+
+
+rreessoouurrccee((_+_N_a_m_e_, _+_C_l_a_s_s_, _+_F_i_l_e_S_p_e_c))
+    This  predicate is  defined  as a  dynamic predicate  in the  module
+    user.    Clauses for  it may  be  defined in  any module,  including
+    the  user module.    _N_a_m_e is  the name  of the  resource (an  atom).
+    A  resource name  may contain all  characters, except  for $ and  :,
+    which  are  reserved for  internal usage  by  the resource  library.
+    _C_l_a_s_s  describes  the  what kind  of  object  we are  dealing  with.
+    In  the  current implementation,  it  is just  an  atom.    _F_i_l_e_S_p_e_c
+    is  a  file specification  that may  exploit ffiillee__sseeaarrcchh__ppaatthh//22 (see
+    aabbssoolluuttee__ffiillee__nnaammee//22).
+
+    Normally,  resources are  defined as unit  clauses (facts), but  the
+    definition  of this  predicate can  also imply  rules.   For  proper
+    generation  of the saved  state generation, it  must be possible  to
+    enumerate  the available  resources by calling  this predicate  with
+    all its arguments unbound.
+
+    Dynamic  rules  can  be  useful  to turn  all  files  in  a  certain
+    directory  into resources, without  specifying a resources for  each
+    file.     For example,  assume  the  ffiillee__sseeaarrcchh__ppaatthh//22icons  refers
+    to  the resource directory  containing (XPM) icons.   The  following
+    definition makes all these images available as resources:
+
+    resource(Name, image, icons(XpmName)) :-
+            atom(Name), !,
+            file_name_extension(Name, xpm, XpmName).
+    resource(Name, image, XpmFile) :-
+            var(Name),
+            absolute_file_name(icons(.), [type(directory)], Dir)
+            concat(Dir, '/*.xpm', Pattern),
+            expand_file_name(Pattern, XpmFiles),
+            member(XpmFile, XpmFiles).
+
+
+ooppeenn__rreessoouurrccee((_+_N_a_m_e_, _?_C_l_a_s_s_, _-_S_t_r_e_a_m))
+    Opens  the resource specified by _N_a_m_e and  _C_l_a_s_s.  If the  latter is
+    a  variable, it will be unified  to the class of the  first resource
+    found  that has tehe specified _N_a_m_e.  If successful,  _S_t_r_e_a_m becomes
+    a  handle to a binary input stream, providing access to  the content
+    of the resource.
+
+    The  predicate  ooppeenn__rreessoouurrccee//33  first  checks  rreessoouurrccee//33.     When
+    succesful   it  will   open  the   returned  resource   source-file.
+    Otherwise  it will  look in the  programs resource  database.   When
+    creating  a  saved-state,  the system  normally saves  the  resource
+    contents  into the resource archive, but does not save  the resource
+    clauses.
+
+    This   way,  the  development   environment  uses  the  files   (and
+    modifications   to   the   rreessoouurrccee//33  declarations   and/or   files
+    containing  resource   info  thus  immediately  affect  the  running
+    environment,  while the runtime  system quickly accesses the  system
+    resources.
+
+
+66..44 FFiinnddiinngg AApppplliiccaattiioonn ffiilleess
 
 If your application  uses files that are  not part of the saved  program
 such as database  files, configuration files, etc., the  runtime version
@@ -8691,16 +8799,16 @@ configuration.  Then use the code below to load this file:
 
 configure_gnat :-
         (   absolute_file_name(gnatdir('config.pl'), ConfigFile)
-        ->  consult(ConfigFile)
-        ;   format(user_error, 'gnat: Cannot locate config.pl~n'),
+            ->  consult(ConfigFile)
+            ;   format(user_error, 'gnat: Cannot locate config.pl~n'),
             halt(1)
-        ).
+            ).
 
 
-66..44 UUssiinngg cchhppll ffoorr CCoonnffiigguurraattiioonn IInnffoorrmmaattiioonn
+66..55 UUssiinngg cchhppll ffoorr CCoonnffiigguurraattiioonn IInnffoorrmmaattiioonn
 
 
-66..44..11 CChhaannggiinngg tthhee eemmuullaattoorr ooff aa rruunnttiimmee aapppplliiccaattiioonn
+66..55..11 CChhaannggiinngg tthhee eemmuullaattoorr ooff aa rruunnttiimmee aapppplliiccaattiioonn
 
 The program chpl, may  be used to manipulate the header of  a SWI-Prolog
 bootfile or state created with qqssaavvee__pprrooggrraamm//[[11,,22]].
@@ -8720,7 +8828,7 @@ Now,  gnat may  be  installed in  any public  or private  directory  for
 binaries.
 
 
-66..44..22 PPaassssiinngg aa ppaatthh ttoo tthhee aapppplliiccaattiioonn
+66..55..22 PPaassssiinngg aa ppaatthh ttoo tthhee aapppplliiccaattiioonn
 
 Suppose   the  system   administrator  has   installed  the   SWI-Prolog
 runtime  environment  in  /usr/local/lib/rt-pl-2.1.4.     A  user  wants
@@ -8756,13 +8864,13 @@ The header may be changed to the following to install gnat properly:
 # SWI-Prolog version: 2.1.4
 # SWI-Prolog save-version: 25
 exec ${SWIPL-/usr/local/lib/rt-pl-2.1.4/bin/pl} -x $0 \
-     -p gnatdir=/users/bob/lib/gnat "$@"
+-p gnatdir=/users/bob/lib/gnat "$@"
 
 
-66..55 TThhee RRuunnttiimmee EEnnvviirroonnmmeenntt
+66..66 TThhee RRuunnttiimmee EEnnvviirroonnmmeenntt
 
 
-66..55..11 TThhee RRuunnttiimmee EEmmuullaattoorr
+66..66..11 TThhee RRuunnttiimmee EEmmuullaattoorr
 
 The sources  may be  used to built  two versions  of the emulator.    By
 default,  the _d_e_v_e_l_o_p_m_e_n_t _e_m_u_l_a_t_o_r  is built.    This emulator  contains
@@ -8953,6 +9061,14 @@ pprroolloogg__sskkiipp__lleevveell((_-_O_l_d_, _+_N_e_
     implement  the trace options  `skip' (sets skip  level to the  level
     of  the frame) and `up' (sets skip level to the level of  the parent
     frame (i.e. the level of this frame minus 1).
+
+
+uusseerr::pprroolloogg__lliisstt__ggooaall((_:_G_o_a_l))
+    Hook, normally not defined.   This hook is called by the 'L' command
+    of  the tracer to  list the currently called  predicate.  This  hook
+    may  be  defined to  list  only relevant  clauses of  the  indicated
+    _G_o_a_l  and/or show the  actual source-code  in an editor.   See  also
+    ppoorrttrraayy//11 and mmuullttiiffiillee//11.
 
 
 77..33 EExxcceeppttiioonn HHaannddlliinngg
@@ -9299,22 +9415,23 @@ suggest predicates from a keyword.
  open_dde_conversation/3       Win32:  Open DDE channel
 
  open_null_stream/1            Open a stream to discard output
+ open_resource/3               Open a program resource as a stream
  open_shared_object/2          UNIX: Open shared library (.so file)
  open_shared_object/3          UNIX: Open shared library (.so file)
  peek_byte/1                   Read character without removing
  peek_byte/2                   Read character without removing
  phrase/2                      Activate grammar-rule set
  phrase/3                      Activate grammar-rule set (returning rest)
- please/3                      Query/change environment parameters
 
+ please/3                      Query/change environment parameters
  plus/3                        Logical integer addition
  portray/1                     (hook) Modify behaviour of pprriinntt//11
  portray_clause/1              Pretty print a clause
  predicate_property/2          Query predicate attributes
  predsort/3                    Sort, using a predicate to determine the order
  preprocessor/2                Install a preprocessor before the compiler
- print/1                       Print a term
 
+ print/1                       Print a term
  print/2                       Print a term on a stream
  print_message/2               Print message from (exception) term
  profile/3                     Obtain execution statistics
@@ -9322,156 +9439,160 @@ suggest predicates from a keyword.
  profiler/2                    Obtain/change status of the profiler
  prolog/0                      Run interactive toplevel
  prolog_current_frame/1        Reference to goal's environment stack
- prolog_frame_attribute/3      Obtain information on a goal environment
 
+ prolog_frame_attribute/3      Obtain information on a goal environment
+ prolog_list_goal/1            Hook.  Intercept tracer 'L' command
  prolog_load_context/2         Context information for directives
  prolog_skip_level/2           Indicate deepest recursion to trace
  prolog_to_os_filename/2       Convert between Prolog and OS filenames
  prolog_trace_interception/4   library(user) Intercept the Prolog tracer
  prompt1/1                     Change prompt for 1 line
+
  prompt/2                      Change the prompt used by rreeaadd//11
  proper_list/1                 Type check for list
-
  protocol/1                    Make a log of the user interaction
  protocola/1                   Append log of the user interaction to file
  protocolling/1                On what file is user interaction logged
  put/1                         Write a character
  put/2                         Write a character on a stream
  qcompile/1                    Compile source to Quick Load File
+
  qload/1                       Load Quick Load File as ccoonnssuulltt//11
  qsave_program/1               Create runtime application
-
  qsave_program/2               Create runtime application
  read/1                        Read Prolog term
  read/2                        Read Prolog term from stream
  read_clause/1                 Read clause
  read_clause/2                 Read clause from stream
+
  read_history/6                Read using history substitution
  read_link/3                   Read a symbolic link
-
  read_term/2                   Read term with options
  read_term/3                   Read term with options from stream
  read_variables/2              Read clause including variable names
  read_variables/3              Read clause including variable names from stream
  recorda/2                     Record term in the database (first)
  recorda/3                     Record term in the database (first)
+
  recorded/2                    Obtain term from the database
  recorded/3                    Obtain term from the database
-
  recordz/2                     Record term in the database (last)
  recordz/3                     Record term in the database (last)
  redefine_system_predicate/1   Abolish system definition
  rename_file/2                 Change name of file
  repeat/0                      Succeed, leaving infinite backtrack points
+
  require/1                     This file requires these predicates
  reset_profiler/0              Clear statistics obtained by the profiler
-
+ resource/3                    Declare a program resource
  restore/1                     Restore saved-state (ssaavvee//11, ssaavvee__pprrooggrraamm//11)
  retract/1                     Remove clause from the database
  retractall/1                  Remove unifying clauses from the database
  reverse/2                     Inverse the order of the elements in a list
  same_file/2                   Succeeds if arguments refer to same file
+
  save/1                        Save program including current goal
  save/2                        Save program including current goal
  save_program/1                Save the current program on a file
-
  save_program/2                Save the current program on a file
  see/1                         Change the current input stream
  seeing/1                      Query the current input stream
+ seek/4                        Modify the current position in a stream
+
  seen/0                        Close the current input stream
  select/3                      Select element of a list
  set_feature/2                 Define a system feature
  set_input/1                   Set current input stream from a stream
-
  set_output/1                  Set current output stream from a stream
  set_tty/2                     Set `tty' stream
  setarg/3                      Destructive assignment on term
  setenv/2                      Set shell environment variable
+
  setof/3                       Find all unique solutions to a goal
  sformat/2                     Format on a string
  sformat/3                     Format on a string
  shell/0                       Execute interactive subshell
-
  shell/1                       Execute OS command
  shell/2                       Execute OS command
  show_profile/1                Show results of the profiler
+
  size_file/2                   Get size of a file in characters
  skip/1                        Skip to character in current input
  skip/2                        Skip to character on stream
  rl_add_history/1              Add line to readline(3) history
-
  rl_read_init_file/1           Read readline(3) init file
  sleep/1                       Suspend execution for specified time
  sort/2                        Sort elements in a list
  source_file/1                 Examine currently loaded source files
+
  source_file/2                 Obtain source file of predicate
  source_location/2             Location of last read term
  spy/1                         Force tracer on specified predicate
  stack_parameter/4             Some systems:  Query/Set runtime stack parameter
-
  statistics/0                  Show execution statistics
  statistics/2                  Obtain collected statistics
  stream_position/3             Get/seek to position in file
+
  string/1                      Type check for string
  string_concat/3               ccoonnccaatt//33 for strings (non-deterministic)
  string_length/2               Determine length of a string
  string_to_atom/2              Conversion between string and atom
-
  string_to_list/2              Conversion between string and list of ASCII
  style_check/1                 Change level of warnings
  sublist/3                     Determine elements that meet condition
  subset/2                      Generate/check subset relation
+
  substring/4                   Get part of a string
  subtract/3                    Delete elements that do not meet condition
  succ/2                        Logical integer successor relation
  swritef/2                     Formatted write on a string
-
  swritef/3                     Formatted write on a string
  tab/1                         Output number of spaces
  tab/2                         Output number of spaces on a stream
+
  tell/1                        Change current output stream
  telling/1                     Query current output stream
  term_expansion/2              (hook) Convert term before compilation
  term_to_atom/2                Convert between term and atom
-
  throw/1                       Raise an exception (see ccaattcchh//33)
  time/1                        Determine time needed to execute goal
  time_file/2                   Get last modification time of file
  tmp_file/2                    Create a temporary filename
+
  told/0                        Close current output
  trace/0                       Start the tracer
  trace/1                       Set trace-point on predicate
  trace/2                       Set/Clear trace-point on ports
-
  tracing/0                     Query status of the tracer
  trim_stacks/0                 Release unused memory resources
  true/0                        Succeed
+
  tty_get_capability/3          Get terminal parameter
  tty_goto/2                    Goto position on screen
  tty_put/2                     Write control string to terminal
  ttyflush/0                    Flush output on terminal
-
  union/3                       Union of two sets
  unknown/2                     Trap undefined predicates
  unload_foreign_library/1      library(shlib) Detach shared library (.so file)
  unsetenv/1                    Delete shell environment variable
+
  use_module/1                  Import a module
  use_module/2                  Import predicates from a module
  var/1                         Type check for unbound variable
  visible/1                     Ports that are visible in the tracer
-
  volatile/1                    Predicates that are not saved
  wait_for_input/3              Wait for input with optional timeout
  wildcard_match/2              Csh(1) style wildcard match
+
  win_exec/2                    Win32:  spawn Windows task
  write/1                       Write term
  write/2                       Write term to stream
  write_ln/1                    Write term, followed by a newline
-
  write_canonical/1             Write a term with quotes, ignore operators
  write_canonical/2             Write a term with quotes, ignore operators on a stream
  write_term/2                  Write term with options
  write_term/3                  Write term with options to stream
+
  writef/1                      Formatted write
  writef/2                      Formatted write on stream
  writeq/1                      Write term, insert quotes
@@ -9653,4 +9774,4 @@ Bibliography
                                   New York, 1983.  Major revision  March
                                   1984.
 
-                                  722
+                                  729

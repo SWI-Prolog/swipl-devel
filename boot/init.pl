@@ -404,8 +404,8 @@ $predicate_name(Goal, String) :-
 :- dynamic user:file_search_path/2.
 :- multifile user:file_search_path/2.
 
-user:file_search_path(library, Dir) :-
-	library_directory(Dir).
+user:(file_search_path(library, Dir) :-
+	library_directory(Dir)).
 user:file_search_path(swi, Home) :-
 	feature(home, Home).
 user:file_search_path(foreign, swi(ArchLib)) :-
@@ -745,7 +745,7 @@ $load_file(Spec, Options) :-
 	(   once($chk_file(File, ['.pl', ''], exists, FullFile)),
 	    $noload(If, FullFile)
 	->  (   $current_module(LoadModule, FullFile)
-	    ->  $import_list(Module, LoadModule, all)
+	    ->  $import_list(Module, LoadModule, Import)
 	    ;   (   Module == user
 		->  true
 		;   $load_file(Spec, [if(true)|Options])
@@ -1033,10 +1033,10 @@ $store_clause((_:-B), _) :-
 	$warning('Clause not closed by `.''? (attempt to call :-/2)').
 $store_clause($source_location(File, Line):Term, _) :-
 	$record_clause(Term, File:Line, Ref),
-        $ifcompiling($qlf_assert_clause(Ref)).
+        $ifcompiling($qlf_assert_clause(Ref, development)).
 $store_clause(Term, File) :-
 	$record_clause(Term, File, Ref),
-        $ifcompiling($qlf_assert_clause(Ref)).
+        $ifcompiling($qlf_assert_clause(Ref, development)).
 
 		 /*******************************
 		 *	 FOREIGN INTERFACE	*
@@ -1174,28 +1174,31 @@ phrase(RuleSet, Input, Rest) :-
 $compile_wic :-
 	$argv(Argv),			% gets main() argv as a list of atoms
 	$get_files_argv(Argv, Files),
-	$get_wic_argv(Argv, Wic),
-	$compile_wic(Files, Wic).
-
-$compile_wic(FileList, Wic) :-
-	$open_wic(Wic, []),
-	$qlf_put_states,		% `W state' directives
-	flag($compiling, Old, wic),
-	    $style_check(Style, Style),
-	    $execute_directive($style_check(_, Style)),
-	    user:consult(FileList),
-	flag($compiling, _, Old),
-	$close_wic.
+	$translate_options(Argv, Options),
+	$option(compileout, Out, Out),
+        user:consult(Files),
+	user:qsave_program(Out, Options).
 
 $get_files_argv([], []) :- !.
 $get_files_argv(['-c'|Files], Files) :- !.
 $get_files_argv([_|Rest], Files) :-
 	$get_files_argv(Rest, Files).
 
-$get_wic_argv([], 'a.out').
-$get_wic_argv(['-o', Wic|_], Wic) :- !.
-$get_wic_argv([_|Rest], Wic) :-
-	$get_wic_argv(Rest, Wic).
+$translate_options([], []).
+$translate_options([O|T0], [Opt|T]) :-
+	atom_chars(O, [0'-,0'-|Rest]),
+	$split(Rest, "=", Head, Tail), !,
+	atom_chars(Name, Head),
+	name(Value, Tail),
+	Opt =.. [Name, Value],
+	$translate_options(T0, T).
+$translate_options([_|T0], T) :-
+	$translate_options(T0, T).
+
+$split(List, Split, [], Tail) :-
+	append(Split, Tail, List), !.
+$split([H|T0], Split, [H|T], Tail) :-
+	$split(T0, Split, T, Tail).
 
 
 		/********************************

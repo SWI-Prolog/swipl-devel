@@ -70,7 +70,7 @@ pl_flag(term_t name, term_t old, term_t new)
       TRY(PL_unify_integer(old, f->value.i));
       break;
     case FLG_REAL:
-    {
+    { 
 #ifdef DOUBLE_ALIGNMENT
       double v;
       doublecpy(&v, &f->value.f);

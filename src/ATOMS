@@ -348,10 +348,20 @@ A close_on_abort	"close_on_abort"
 A buffer		"buffer"
 A line			"line"
 A full			"full"
+A runtime		"runtime"
+A kernel		"kernel"
+A development		"development"
+A save_class		"save_class"
+A clause_reference	"clause_reference"
+A bof			"bof"
+A eof			"eof"
+A current		"current"
+A seek_method		"seek_method"
+A callpred		"$callpred"
 
 F abs			1
 F acos			1
-F alt			1
+F alt			0
 F and			2
 F apply			2
 F ar_equals		2
@@ -465,9 +475,11 @@ F var			1
 F warning		3
 F xor			2
 F xpceref		1
+F xpceref		2
 F alias			1
 F io_error		2
 F not_implemented_error	1
 F resource_error	1
 F shell			2
 F signal		1
+F callpred		2

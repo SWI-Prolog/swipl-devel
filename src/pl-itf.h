@@ -28,7 +28,7 @@ before loading this file.  See end of this file.
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
 
 #ifndef PLVERSION
-#define PLVERSION 20911
+#define PLVERSION 30000
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -279,6 +279,7 @@ __pl_export void	PL_put_term(term_t t1, term_t t2);
 
 			/* construct a functor or list-cell */
 __pl_export void	PL_cons_functor(term_t h, functor_t f, ...);
+__pl_export void	PL_cons_functor_v(term_t h, functor_t fd, term_t a0);
 __pl_export void	PL_cons_list(term_t l, term_t h, term_t t);
 
 			/* Unify term-references */
@@ -377,6 +378,11 @@ __pl_export void	_PL_copy_atomic(term_t t, atomic_t a);
 
 					/* Make IOSTREAM known to Prolog */
 __pl_export int PL_open_stream(term_t t, IOSTREAM *s);
+__pl_export int PL_get_stream_handle(term_t t, IOSTREAM **s);
+__pl_export IOSTREAM *PL_open_resource(module_t m,
+				       const char *name,
+				       const char *rc_class,
+				       const char *mode);
 #endif
 
 
@@ -496,10 +502,10 @@ typedef struct
   } value;
 } xpceref_t;
 
-__pl_export int		_PL_get_xpce_reference(term_t t, xpceref_t *ref);
-__pl_export int		_PL_unify_xpce_reference(term_t t, xpceref_t *ref);
-__pl_export void	_PL_put_xpce_reference_i(term_t t, unsigned long r);
-__pl_export void	_PL_put_xpce_reference_a(term_t t, atom_t name);
+__pl_export int	 _PL_get_xpce_reference(term_t t, xpceref_t *ref, atom_t *q);
+__pl_export int  _PL_unify_xpce_reference(term_t t, xpceref_t *ref);
+__pl_export void _PL_put_xpce_reference_i(term_t t, unsigned long r);
+__pl_export void _PL_put_xpce_reference_a(term_t t, atom_t name);
 
 		 /*******************************
 		 *        COMPATIBILITY		*

@@ -4,7 +4,6 @@ AC_INIT(pl-wam.c)
 
 AC_CONFIG_HEADER(config.h)
 AC_SUBST(PLBASE)
-AC_SUBST(STATICLIBS)
 AC_SUBST(COFLAGS)
 AC_SUBST(CWFLAGS)
 AC_SUBST(CMFLAGS)
@@ -12,7 +11,6 @@ AC_SUBST(CIFLAGS)
 AC_SUBST(AR)
 AC_SUBST(ETAGS)
 AC_SUBST(LDFLAGS)
-AC_SUBST(STATICLIBS)
 AC_SUBST(ARCH)
 AC_SUBST(PLFOREIGN)
 AC_SUBST(PL)
@@ -60,6 +58,13 @@ AC_ARG_ENABLE(runtime, [  --enable-runtime	  Runtime system only],
 		   *)  ;;
 	       esac])
 
+AC_ARG_ENABLE(readline, [  --disable-readline	  Do NOT include GNU readline],
+	      configreadline="$enableval",
+	      configreadline=yes)
+
+AC_ARG_ENABLE(mmappedstacks, [  --disable-mapped-stacks Do not use mmap for stacks],
+	      configmmappedstacks="$enableval",
+	      configmmappedstacks=yes)
 
 dnl ****************************************************************
 dnl Checking for GNU make vpath construct
@@ -97,7 +102,7 @@ if test "$GCC" = "yes"; then
     else
 	CWFLAGS=
     fi
-    CMFLAGS=-funsigned-char
+    CMFLAGS=
 else
     COFLAGS=-O
     CWFLAGS=
@@ -132,7 +137,7 @@ fi
 if test "$checkucb" = "yes"; then
     AC_CHECK_LIB(ucb, rindex)
 fi
-if test ! "$runtime" = "yes"; then
+if test ! "$runtime" = "yes" -a "$configreadline" = "yes"; then
   AC_CHECK_LIB(readline, main)
   if test ! "$ac_cv_lib_readline_main" = "yes"; then
     AC_CHECK_LIB(ncurses, main)
@@ -146,21 +151,19 @@ if test ! "$runtime" = "yes"; then
     fi
   fi
 fi
+
 AC_ARG_ENABLE(shared, [  --disable-shared	  No shared-lib interface],
 	      configshared="$enableval",
 	      configshared=yes)
-AC_ARG_ENABLE(save, [  --enable-save		  Provide save/1 and friends],
-	      configsave="$enableval",
-	      configsave=no)
 
-if test "$configsave" = "yes"; then
-    AC_CHECK_LIB(elf, main)
-fi
 if test "$configshared" = "yes"; then
   AC_CHECK_LIB(dl, dlopen)
-  AC_CHECK_LIB(dld, shl_load)
-  AC_CHECK_FUNCS(dlopen)
-  AC_CHECK_FUNCS(shl_load)
+  if test "$ac_cv_lib_dl_dlopen" = "yes"; then
+    AC_CHECK_FUNCS(dlopen)
+  else
+    AC_CHECK_LIB(dld, shl_load)
+    AC_CHECK_FUNCS(shl_load)
+  fi
 fi
 
 if test "$ac_cv_func_dlopen" = "yes" || \
@@ -232,7 +235,7 @@ echo "	LIBS=$LIBS"
 
 AC_CHECK_HEADERS(unistd.h string.h memory.h sys/time.h sys/stat.h pwd.h)
 AC_CHECK_HEADERS(sys/select.h sys/param.h sys/file.h sys/resource.h malloc.h)
-AC_CHECK_HEADERS(sys/termios.h sys/termio.h bstring.h)
+AC_CHECK_HEADERS(sys/termios.h sys/termio.h bstring.h sys/mman.h)
 AC_CHECK_HEADERS(mach-o/rld.h)
 
 AC_CHECK_FUNCS(access chmod dossleep fstat readlink getwd getcwd getdtablesize)
@@ -241,6 +244,7 @@ AC_CHECK_FUNCS(popen putenv random remove rename rl_insert_close select)
 AC_CHECK_FUNCS(signal sigset sleep srand srandom stat strerror tgetent times)
 AC_CHECK_FUNCS(memmove stricmp strlwr sigaction sigsetmask siggetmask sigblock)
 AC_CHECK_FUNCS(rint aint floor ceil isnan tcsetattr cfmakeraw)
+AC_CHECK_FUNCS(mmap)
 AC_HEADER_TIME
 AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
@@ -271,7 +275,7 @@ if test "$ac_cv_func_getrlimit" = "yes"; then
 AC_MSG_CHECKING("type rlim_t")
 AC_TRY_COMPILE(
 [
-#include <sys/types.h>
+#include <sys/time.h>
 #include <sys/resource.h>
 ],
 [ rlim_t datasize;
@@ -439,6 +443,32 @@ AC_TRY_COMPILE(
    AC_MSG_RESULT(yes),
    AC_MSG_RESULT(no))
 
+AC_MSG_CHECKING("for label addresses")
+AC_TRY_COMPILE(
+[ 
+],
+[ int x=0;
+  void *addr;
+
+  addr = &&label2;
+  goto *addr;
+
+  label1:
+	x = 1;
+	goto label3;
+  label2:
+	x = 2;
+  
+  label3:
+	if ( x == 2 )
+  	  exit(0);
+
+        exit(1);
+], AC_DEFINE(O_LABEL_ADDRESSES)
+   AC_MSG_RESULT(yes),
+   AC_DEFINE(O_LABEL_ADDRESSES, 0)
+   AC_MSG_RESULT(no))
+
 
 dnl ****************************************************************
 dnl Very specific SWI-Prolog tests.  First of all, we'll try to determine
@@ -476,6 +506,7 @@ fi
 rm -fr conftest*
 
 
+if test "$ac_cv_func_mmap" = "yes" -a "$configmmappedstacks" = "yes"; then
 dnl ****************************************************************
 dnl More tricky stuff.  Try to find out whether or not we can use mmap()
 dnl to implement dynamic stacks.  This requires mmap(), support for
@@ -515,88 +546,7 @@ else
     AC_MSG_RESULT("could not compile mmap test");
 fi
 rm -fr conftest*
-
-if test "$configsave" = "yes"; then
-
-dnl ****************************************************************
-dnl The real thing.  See whether we can use save/1 and friends.  The
-dnl hardest part is to find the start of the data segment.
-dnl ****************************************************************
-
-AC_MSG_CHECKING("_data_start")
-AC_TRY_LINK([extern int _data_start;],
-	    [ { int *x = &_data_start; }
-	    ],
-	    AC_DEFINE(FIRST_DATA_SYMBOL, _data_start)
-	    AC_MSG_RESULT(yes),
-	    AC_MSG_RESULT(no))
-AC_MSG_CHECKING("_data")
-AC_TRY_LINK([extern int _data;],
-	    [ { int *x = &_data; }
-	    ],
-	    AC_DEFINE(FIRST_DATA_SYMBOL, _data)
-	    AC_MSG_RESULT(yes),
-	    AC_MSG_RESULT(no))
-
-AC_MSG_CHECKING("whether we can get save/1 to work")
-echo '#include "confdefs.h"' > conftest.c
-echo '#define CONFTEST 1' >> conftest.c
-echo '#define TEST 1' >> conftest.c
-cat $srcdir/pl-save.c >> conftest.c
-ac_oldcflags="$CFLAGS"
-CFLAGS="-I$srcdir $CFLAGS"
-(eval $ac_link) 2>&5
-CFLAGS="$ac_oldcflags"
-if test -s conftest && ./conftest -s conftest.save >/dev/null && ./conftest.save > /dev/null; then
-    AC_DEFINE(O_SAVE)
-    O_SAVE=yes
-    AC_MSG_RESULT(yes)
-else
-    AC_MSG_RESULT(no)
-fi
-rm -fr conftest*
-
-if test "$O_SAVE" = "yes"; then
-dnl ****************************************************************
-dnl Configuring libraries/linking
-dnl Fixed by Horst von Brand <vonbrand@inf.utfsm.cl>
-dnl ****************************************************************
-
-case "$host" in
-    *linux*)	STATICLIBS="/usr/lib/libc.a" ;;
-    *sunos5*)	STATICLIBS="/usr/lib/libc.a -ldl" ;;
-    *solaris2*)	STATICLIBS="/usr/lib/libc.a -ldl" ;;
-    *sunos4*)	if test "$ac_cv_func_dlopen" = "yes"; then
-		   STATICLIBS="/usr/lib/libc.a"
-		else
-		   LDFLAGS="$LDFLAGS -static"
-		fi ;;
-    *)
-    AC_CHECK_PROGS(LDD, ldd, "none")
-    if test "$LDD" = "ldd"; then
-	ac_old_libs="$LIBS"
-	ac_old_ldflags="$LDFLAGS"
-	LDFLAGS="$LDFLAGS -static"
-	AC_MSG_CHECKING("what kind of static linking is required")
-
-AC_TRY_LINK(
-[],
-[
-#ifdef HAVE_DLOPEN
-  dlopen();
-#endif
-], ldstatic=yes)
-
-	if test "$ldstatic" != "yes"; then
-	    LDFLAGS="$ac_old_ldflags"
-	    STATICLIBS=/usr/lib/libc.a
-	    AC_MSG_RESULT("LDFLAGS=$LDFLAGS and STATICLIBS=$STATICLIBS")
-        fi
-        AC_MSG_RESULT("LDFLAGS=$LDFLAGS")
-    fi ;;
-esac
-fi					# O_SAVE's fi
-fi					# "$configsave" = "yes"
+fi # mmap
 
 if test "$configloadforeign" = "yes"; then
 
@@ -676,4 +626,4 @@ fi
 rm -rf conftest*
 fi # configloadforeign
 
-AC_OUTPUT(Makefile README.bin pl.1)
+AC_OUTPUT(Makefile README.bin pl.1 rc/Makefile)

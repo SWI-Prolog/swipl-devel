@@ -181,18 +181,16 @@ allocate(register size_t n)
 
 void
 initMemAlloc()
-{ assert(ALIGN_SIZE >= ALLOC_MIN);
+{ void *hbase;
+  assert(ALIGN_SIZE >= ALLOC_MIN);
 
-  if ( !GD->dumped )
-  { hBase = (char *)(~0L);
-    hTop  = (char *)NULL;
-  }
-  { void *hbase = allocHeap(sizeof(word));
-
-    heap_base = (ulong)hbase & ~0x007fffffL; /* 8MB */
-    freeHeap(hbase, sizeof(word));
-  }
+  hBase = (char *)(~0L);
+  hTop  = (char *)NULL;
+  hbase = allocHeap(sizeof(word));
+  heap_base = (ulong)hbase & ~0x007fffffL; /* 8MB */
+  freeHeap(hbase, sizeof(word));
 }
+
 		/********************************
 		*             STACKS            *
 		*********************************/
@@ -220,6 +218,8 @@ outOfCore()
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 __consPtr() is inlined for this module (including pl-wam.c), but external
 for the other modules, where it is far less fime-critical.
+
+Actually, for normal operation, consPtr() is a macro from pl-data.h
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if !defined(consPtr) || defined(SECURE_GC)
@@ -242,44 +242,38 @@ consPtr(void *p, int ts)
 #define consPtr(p, s) __consPtr(p, s)
 #endif
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-makeRef() and makeRefLG(). Make  a   reference  pointer. The makeRefLG()
-version is used by the WAM-interpreter to  exploit the fact that we know
-the pointer is either to the local or global stack.
+#define makeRefL(p) consPtr(p, TAG_REFERENCE|STG_LOCAL)
+#define makeRefG(p) consPtr(p, TAG_REFERENCE|STG_GLOBAL)
 
-This was designed while terms could  also   live  on the permanent heap.
-This is no longer the case, but  we   still  keep  makeRef() as a public
-function, rather then an inlined function.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static inline word
-makeRefLG(Word p)
+inline word
+__makeRef(Word p)
 { if ( p >= (Word) lBase )
-    return consPtr(p, TAG_REFERENCE|STG_LOCAL);
+    return makeRefL(p);
   else
-    return consPtr(p, TAG_REFERENCE|STG_GLOBAL);
+    return makeRefG(p);
 }
 
 
 word
 makeRef(Word p)
-{ return makeRefLG(p);			/* public version */
+{ return __makeRef(p);			/* public version */
 }
+
+#define makeRef(p)  __makeRef(p)
+
 
 		/********************************
 		*        GLOBAL STACK           *
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-alloc_global() allocates on the global stack.  Many  functions  do  this
-inline  as  it is simple and usualy very time critical.  The rest of the
-system should call the macro allocGlobal() to ensure the type  is  right
-on 16-bit machines not supporting ANSI.
+allocGlobal() allocates on the global stack.  Many  functions  do  this
+inline  as  it is simple and usualy very time critical.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if O_SHIFT_STACKS
-void *
-alloc_global(int n)
+Word
+allocGlobal(int n)
 { Word result;
 
   if ( roomStack(global)/sizeof(word) < (long) n )
@@ -297,8 +291,8 @@ alloc_global(int n)
 
 #else
 
-void *
-alloc_global(int n)
+inline Word
+__allocGlobal(int n)
 { Word result = gTop;
 
   requireStack(global, n * sizeof(word));
@@ -307,17 +301,23 @@ alloc_global(int n)
   return result;
 }
 
+Word allocGlobal(int n)
+{ return __allocGlobal(n);
+}
+
+#define allocGlobal(n) __allocGlobal(n)
+
 #endif
 
 word
 globalFunctor(functor_t f)
 { int arity = arityFunctor(f);
-  Functor t = allocGlobal(1 + arity);
-  Word a;
+  Word a = allocGlobal(1 + arity);
+  Word t = a;
 
-  t->definition = f;
-  for(a = &t->arguments[0]; arity > 0; a++, arity--)
-    setVar(*a);
+  *a = f;
+  while( --arity >= 0 )
+    setVar(*++a);
 
   return consPtr(t, TAG_COMPOUND|STG_GLOBAL);
 }

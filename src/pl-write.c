@@ -120,7 +120,7 @@ writeAtom(atom_t a, bool quote)
 	TRY(Put('\''));
 	while( (c = *s++) != EOS )
 	{ if ( trueFeature(CHARESCAPE_FEATURE) )
-	  { if ( c >= ' ' && c != 127 )
+	  { if ( c >= ' ' && c != 127 && c != '\'' )
 	    { TRY(Put(c));
 	    } else
 	    { char esc[4];
@@ -151,6 +151,9 @@ writeAtom(atom_t a, bool quote)
 		  break;
 		case '\\':
 		  esc[0] = '\\';
+		  break;
+		case '\'':
+		  esc[0] = '\'';
 		  break;
 		default:
 		  Ssprintf(esc, "%03o", c);

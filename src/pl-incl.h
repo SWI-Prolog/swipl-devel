@@ -546,7 +546,9 @@ codes.
 #define B_THROW		((code)77)		/* throw(Exception) */
 #endif
 
-#define I_HIGHEST	((code)77)		/* largest WAM code !!! */
+#define I_CONTEXT	((code)78)		/* Push context module */
+
+#define I_HIGHEST	((code)78)		/* largest WAM code !!! */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Arithmetic comparison
@@ -739,7 +741,8 @@ typedef struct symbol *		Symbol;		/* symbol of hash table */
 typedef struct localFrame *	LocalFrame;	/* environment frame */
 typedef struct queryFrame *	QueryFrame;     /* toplevel query frame */
 typedef struct fliFrame *	FliFrame; 	/* FLI interface frame */
-typedef struct trail_entry *	TrailEntry;	/* Entry of train stack */
+typedef struct trail_entry *	TrailEntry;	/* Entry of trail stack */
+typedef struct gc_trail_entry *	GCTrailEntry;	/* Entry of trail stack (GC) */
 typedef struct data_mark	mark;		/* backtrack mark */
 typedef struct index *		Index;		/* clause indexing */
 typedef struct stack *		Stack;		/* machine stack */
@@ -831,6 +834,7 @@ with one operation, it turns out to be faster as well.
 #define NEEDSCLAUSEGC		(0x00080000L) /* predicate */
 #define NEEDSREHASH		(0x00100000L) /* predicate */
 #define ISCASE			(0x00200000L) /* predicate */
+#define PROC_DEFINED		(DYNAMIC|FOREIGN|MULTIFILE|DISCONTIGUOUS)
 
 #define ERASED			(0x0001) /* clause */
 #define UNIT_CLAUSE		(0x0002) /* clause */
@@ -910,8 +914,8 @@ Handling environment (or local stack) frames.
 		       }
 #endif /*O_DEBUGGER*/
 
-#define INVALID_TRAILTOP  ((word)~0L)
-#define INVALID_GLOBALTOP ((word)~1L)
+#define INVALID_TRAILTOP  ((TrailEntry)~0L)
+#define INVALID_GLOBALTOP ((Word)~1L)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Heuristics functions to determine whether an integer reference passed to
@@ -999,6 +1003,7 @@ struct clause_ref
 #define CA1_INTEGER	4	/* long value */
 #define CA1_FLOAT	5	/* next 2 are double */
 #define CA1_STRING	6	/* inlined string */
+#define CA1_MODULE	7	/* a module */
 
 typedef struct
 { char		*name;		/* name of the code */
@@ -1008,8 +1013,8 @@ typedef struct
 } code_info;
 
 struct data_mark
-{ word		trailtop;	/* top of the trail stack */
-  word		globaltop;	/* top of the global stack */
+{ TrailEntry	trailtop;	/* top of the trail stack */
+  Word		globaltop;	/* top of the global stack */
 };
 
 struct functor
@@ -1157,7 +1162,6 @@ struct recordList
 
 struct sourceFile
 { atom_t	name;		/* name of source file */
-  SourceFile	next;		/* next of chain */
   int		count;		/* number of times loaded */
   long		time;		/* load time of file */
   ListCell	procedures;	/* List of associated procedures */
@@ -1185,7 +1189,11 @@ struct module
 };
 
 struct trail_entry
-{ word		address;	/* Tagged address of the variable */
+{ Word		address;	/* address of the variable */
+};
+
+struct gc_trail_entry
+{ word		address;	/* address of the variable */
 };
 
 struct table
@@ -1215,18 +1223,18 @@ struct symbol
 #else /*O_DESTRUCTIVE_ASSIGNMENT*/
 
 #define Undo(b)		{ TrailEntry tt = tTop; \
-			  TrailEntry mt = valPtr2((b).trailtop, STG_TRAIL); \
+			  TrailEntry mt = (b).trailtop; \
 			  while(tt > mt) \
 			  { tt--; \
-			    setVar(*valPtr(tt->address)); \
+			    setVar(*tt->address); \
 			  } \
 			  tTop = tt; \
-			  gTop = valPtr2((b).globaltop, STG_GLOBAL); \
+			  gTop = (b).globaltop; \
 			}
 #endif /*O_DESTRUCTIVE_ASSIGNMENT*/
 
-#define Mark(b)		{ (b).trailtop  = consPtr(tTop, STG_TRAIL); \
-			  (b).globaltop = consPtr(gTop, STG_GLOBAL); \
+#define Mark(b)		{ (b).trailtop  = tTop; \
+			  (b).globaltop = gTop; \
 			}
 
 
@@ -1477,7 +1485,7 @@ typedef struct
 		*         PREDICATES            *
 		*********************************/
 
-#define PROCEDURE_alt1			(GD->procedures.alt1)
+#define PROCEDURE_alt0			(GD->procedures.alt0)
 #define PROCEDURE_garbage_collect0	(GD->procedures.garbage_collect0)
 #define PROCEDURE_block3		(GD->procedures.block3)
 #define PROCEDURE_catch3		(GD->procedures.catch3)

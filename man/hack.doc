@@ -116,6 +116,13 @@ recursion levels deeper than the level of the variable.  Used to
 implement the trace options `skip' (sets skip level to the level of the
 frame) and `up' (sets skip level to the level of the parent frame (i.e.\
 the level of this frame minus 1).
+
+    \predicate{user:prolog_list_goal}{1}{:Goal}
+Hook, normally not defined. This hook is called by the 'L' command of
+the tracer to list the currently called predicate. This hook may be
+defined to list only relevant clauses of the indicated \arg{Goal} and/or
+show the actual source-code in an editor. See also portray/1 and
+multifile/1.
 \end{description}
 
 \section{Exception Handling}

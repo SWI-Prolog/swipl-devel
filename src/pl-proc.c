@@ -17,10 +17,7 @@ finding source files, etc.
 
 forwards void		resetReferencesModule(Module);
 forwards void		resetProcedure(Procedure proc);
-forwards SourceFile	indexToSourceFile(int index);
 
-SourceFile 	sourceFileTable = (SourceFile) NULL;
-SourceFile 	tailSourceFileTable = (SourceFile) NULL;
 static void	removeClausesProcedure(Procedure proc, int sfindex);
 
 Procedure
@@ -67,7 +64,7 @@ should be retained. Bug found by Paulo Moura, LogTalk developer.
 
 static void
 resetProcedure(Procedure proc)
-{ register Definition def = proc->definition;
+{ Definition def = proc->definition;
 
   def->flags ^= def->flags & ~(SPY_ME|NEEDSCLAUSEGC);
   set(def, TRACE_ME);
@@ -100,10 +97,10 @@ bool
 isDefinedProcedure(Procedure proc)
 { Definition def = proc->definition;
 
-  if ( true(def, DYNAMIC|FOREIGN) )
+  if ( true(def, PROC_DEFINED) )
     succeed;
 
-  if ( def->definition.clauses && false(def, FOREIGN) )
+  if ( def->definition.clauses )
   { ClauseRef c;
 
     if ( false(def, NEEDSCLAUSEGC) )
@@ -223,6 +220,24 @@ get_functor(term_t descr, functor_t *fdef, Module *m, term_t h, int how)
 }
 
       
+int
+get_head_functor(term_t head, functor_t *fdef)
+{ int arity;
+
+  if ( !PL_get_functor(head, fdef) )
+    return warning("Illegal predicate specification");
+  if ( (arity=arityFunctor(*fdef)) > MAXARITY )
+  { char buf[100];
+    return PL_error(NULL, 0,
+		    tostr(buf, "limit is %d, request = %d",
+			  MAXARITY, arity),
+		    ERR_REPRESENTATION, ATOM_max_arity);
+  }
+
+  succeed;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Get the specified procedure from a   Prolog  argument.  This argument is
 either a head or a term of the form module:head.  If `create' is TRUE, a
@@ -241,23 +256,14 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
       fail;
   } else
   { term_t head = PL_new_term_ref();
-    int arity;
 
-    if ( !PL_strip_module(descr, &m, head) )
-      fail;
+    PL_strip_module(descr, &m, head);
 
     if ( h )
       PL_put_term(h, head);
 
-    if ( !PL_get_functor(head, &fdef) )
-      return warning("Illegal predicate specification");
-    if ( (arity=arityFunctor(fdef)) > MAXARITY )
-    { char buf[100];
-      return PL_error(NULL, 0,
-			  tostr(buf, "limit is %d, request = %d",
-				MAXARITY, arity),
-			  ERR_REPRESENTATION, ATOM_max_arity);
-    }
+    if ( !get_head_functor(head, &fdef) )
+      fail;
   }
   
   switch( how & GP_HOW_MASK )
@@ -272,7 +278,7 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
       fail;
     case GP_FIND:
       for( ; m; m = m->super )
-      { if ( (p = isCurrentProcedure(fdef, m)) )
+      { if ( (p = isCurrentProcedure(fdef, m)) && isDefinedProcedure(p) )
 	{ *proc = p;
 	  goto out;
 	}
@@ -440,22 +446,25 @@ assertProcedure(Procedure proc, Clause clause, int where)
 
 bool
 abolishProcedure(Procedure proc, Module module)
-{ register Definition def = proc->definition;
+{ Definition def = proc->definition;
 
   if ( def->module != module )		/* imported predicate; remove link */
   { Definition ndef	     = allocHeap(sizeof(struct definition));
 
     proc->definition         = ndef;
-    ndef->functor            = def->functor;
-    ndef->module             = module;
+    ndef->functor            = def->functor; /* should be merged with */
+    ndef->module             = module;	     /* lookupProcedure()!! */
     ndef->definition.clauses = NULL;
     ndef->lastClause         = NULL;
+    ndef->hash_info	     = NULL;
 #ifdef O_PROFILE
     ndef->profile_ticks      = 0;
     ndef->profile_calls      = 0;
     ndef->profile_redos      = 0;
     ndef->profile_fails      = 0;
 #endif /* O_PROFILE */
+    clearFlags(ndef);
+    ndef->references         = 0;
     resetProcedure(proc);
 
     succeed;
@@ -798,7 +807,7 @@ trapUndefined(Definition def)
   if ( (newdef = autoImport(functor->functor, module)) )
     return newdef;
 					/* Pred/Module does not want to trap */
-  if ( true(def, DYNAMIC|MULTIFILE|DISCONTIGUOUS) || false(module, UNKNOWN) )
+  if ( true(def, PROC_DEFINED) || false(module, UNKNOWN) )
     return def;
 
   DEBUG(5, Sdprintf("trapUndefined(%s)\n", predicateName(def)));
@@ -892,11 +901,8 @@ pl_retract(term_t term, word h)
     term_t head = PL_new_term_ref();
     term_t body = PL_new_term_ref();
 
-    if ( !PL_strip_module(term, &m, cl) )
-      fail;
- 
-    if ( !get_head_and_body_clause(cl, head, body, NULL) )
-      return warning("retract/1: illegal clause");
+    PL_strip_module(term, &m, cl);
+    get_head_and_body_clause(cl, head, body, NULL);
 
     if ( ForeignControl(h) == FRG_FIRST_CALL )
     { functor_t fd;
@@ -1355,7 +1361,18 @@ pl_get_clause_attribute(term_t ref, term_t att, term_t value)
 		*********************************/
 
 static int source_index = 0;
-static Table sourceTable = NULL;
+static Table sourceTable = NULL;	/* atom --> SourceFile */
+
+static void
+registerSourceFile(SourceFile f)
+{ if ( !GD->files.source_files.base )
+    initBuffer(&GD->files.source_files);
+
+  f->index = entriesBuffer(&GD->files.source_files, SourceFile) + 1;
+    
+  addBuffer(&GD->files.source_files, f, SourceFile);
+}
+
 
 SourceFile
 lookupSourceFile(atom_t name)
@@ -1375,14 +1392,8 @@ lookupSourceFile(atom_t name)
   file->index = ++source_index;
   file->system = GD->bootsession;
   file->procedures = NULL;
-  file->next = NULL;
 
-  if ( sourceFileTable == NULL )
-  { sourceFileTable = tailSourceFileTable = file;
-  } else
-  { tailSourceFileTable->next = file;
-    tailSourceFileTable = file;
-  }
+  registerSourceFile(file);
 
   addHTable(sourceTable, (void*)name, file);
 
@@ -1390,15 +1401,14 @@ lookupSourceFile(atom_t name)
 }
 
 
-static SourceFile
+SourceFile
 indexToSourceFile(int index)
-{ SourceFile file;
+{ int n = entriesBuffer(&GD->files.source_files, SourceFile);
 
-  for(file=sourceFileTable; file; file=file->next)
-  { if (file->index == index)
-      return file;
-  }
-
+  index--;
+  if ( index >= 0 && index < n )
+    return fetchBuffer(&GD->files.source_files, index, SourceFile);
+      
   return NULL;
 }
 
@@ -1409,8 +1419,9 @@ addProcedureSourceFile(SourceFile sf, Procedure proc)
 
   if ( true(proc->definition, FILE_ASSIGNED) )
   { for(cell=sf->procedures; cell; cell = cell->next)
-      if ( cell->value == proc )
+    { if ( cell->value == proc )
 	return;
+    }
   }
 
   startCritical;
@@ -1425,10 +1436,14 @@ addProcedureSourceFile(SourceFile sf, Procedure proc)
 
 word
 pl_make_system_source_files(void)
-{ SourceFile file;
+{ int i, n = entriesBuffer(&GD->files.source_files, SourceFile);
 
-  for(file=sourceFileTable; file; file=file->next)
-    file->system = TRUE;
+
+  for(i=0; i<n; i++)
+  { SourceFile f = fetchBuffer(&GD->files.source_files, i, SourceFile);
+
+    f->system = TRUE;
+  }
 
   succeed;
 }
@@ -1497,29 +1512,27 @@ pl_source_file(term_t descr, term_t file, control_t h)
 
 word
 pl_time_source_file(term_t file, term_t time, control_t h)
-{ SourceFile fr;
+{ int index;
+  int mx = entriesBuffer(&GD->files.source_files, SourceFile);
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
-      fr = sourceFileTable;
+      index = 0;
       break;
     case FRG_REDO:
-      fr = ForeignContextPtr(h);
+      index = ForeignContextInt(h);
       break;
     case FRG_CUTTED:
     default:
       succeed;
   }
 
-  for(;fr != (SourceFile) NULL; fr = fr->next)
-  { if ( fr->system == TRUE )
-      continue;
-    if ( PL_unify_atom(file, fr->name) &&
-         unifyTime(time, fr->time) )
-    { if (fr->next != (SourceFile) NULL)
-	ForeignRedoPtr(fr->next);
-      else
-	succeed;
+  for(; index < mx; index++)
+  { SourceFile f = fetchBuffer(&GD->files.source_files, index, SourceFile);
+
+    if ( !f->system )
+    { if ( PL_unify_atom(file, f->name) && unifyTime(time, f->time) )
+	ForeignRedoInt(index+1);
     }
   }
 

@@ -121,9 +121,16 @@ pipeHandler(int sig)
 static void
 brokenPipe(int n, atom_t rw)
 { term_t stream = PL_new_term_ref();
+  IOSTREAM *s;
+
+  if ( (s = fileTable[n].stream) )
+    s->bufp = s->buffer;		/* avoid flush on close! */
+
   unifyStreamNo(stream, n);
+
   if ( rw == ATOM_write && n == Output )
     Output = 1;
+
   PL_error(NULL, 0, "Broken pipe", ERR_STREAM_OP, rw, stream);
 }
 
@@ -399,6 +406,9 @@ getSingleChar(void)
     } else
       c = Get0();
   }
+
+  if ( c == 4 || c == 26 )		/* should ask the terminal! */
+    c = -1;
 
   PopTty(&buf);
   debugstatus.suspendTrace--;
@@ -1115,17 +1125,12 @@ pl_put(term_t c)
   char *s;
 
   if ( PL_get_integer(c, &chr) )
-  { if (chr < 0 || chr > 255)
-      goto err;
-    Put(chr);
+  { if ( chr >= 0 && chr <= 255 )
+      return Put(chr);
   } else if ( PL_get_chars(c, &s, CVT_ATOM|CVT_LIST|CVT_STRING) )
-  { Puts(s);
-  } else
-  { err:
-    return PL_error("put", 1, NULL, ERR_TYPE, ATOM_character, c);
-  }
+    return Puts(s);
 
-  succeed;
+  return PL_error("put", 1, NULL, ERR_TYPE, ATOM_character, c);
 }
 
 word
@@ -1585,21 +1590,25 @@ word
 pl_close(term_t stream)
 { int n;
   int isread;
+  int rval;
 
   if ( (n = streamNo(stream, F_ANY)) < 0 )
     fail;
   isread = (fileTable[n].status == F_READ);
 
-  TRY( closeStream(n) );
   if ( isread )
+  { rval = closeStream(n);
     popInputContext();
+  } else
+  { TRYPIPE(n, ATOM_write, rval = closeStream(n), rval = FALSE);
+  }
   
   if ( n == Output )
     Output = 1;
   if ( n == Input )
     Input = 0;
 
-  succeed;
+  return rval;
 }
 
 word
@@ -1714,6 +1723,41 @@ pl_stream_position(term_t stream, term_t old, term_t new)
   s->position->linepos = linepos;
   
   succeed;
+}
+
+
+word
+pl_seek(term_t stream, term_t offset, term_t method, term_t newloc)
+{ int n;
+  atom_t m;
+  int whence = -1;
+  long off, new;
+
+  if ( (n = streamNo(stream, F_ANY)) < 0 )
+    fail;
+  if ( !(PL_get_atom(method, &m)) )
+    goto badmethod;
+
+  if ( m == ATOM_bof )
+    whence = SIO_SEEK_SET;
+  else if ( m == ATOM_current )
+    whence = SIO_SEEK_CUR;
+  else if ( m == ATOM_eof )
+    whence = SIO_SEEK_END;
+  else
+  { badmethod:
+    return PL_error("seek", 4, NULL, ERR_DOMAIN, ATOM_seek_method, method);
+  }
+  
+  if ( !PL_get_long(offset, &off) )
+    return PL_error("seek", 4, NULL, ERR_DOMAIN, ATOM_integer, offset);
+
+  new = Sseek(fileTable[n].stream, off, whence);
+  if ( new == -1 )
+    return PL_error("seek", 4, OsError(), ERR_PERMISSION,
+		    ATOM_reposition, ATOM_stream, stream);
+
+  return PL_unify_integer(newloc, new);
 }
 
 
@@ -1894,6 +1938,36 @@ PL_get_filename(term_t n, char *buf, unsigned int size)
 }
 
 
+int
+PL_get_stream_handle(term_t spec, IOSTREAM **stream)
+{ int n = streamNo(spec, F_ANY);
+
+  if ( n >= 0 )
+  { *stream = fileTable[n].stream;
+    succeed;
+  }
+
+  fail;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This should not exists (actually, the  integer stream handles should not
+exists). Used in PL_open_resource() to  get   rid  of the Prolog stream,
+while maintaining the IOSTREAM handle.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+release_stream_handle(term_t spec)
+{ int n = streamNo(spec, F_ANY);
+  PlFile f = &fileTable[n];
+
+  f->stream = NULL_ATOM;
+  f->name   = NULL_ATOM;
+  f->status = F_CLOSED;
+}
+
+
 word
 pl_time_file(term_t name, term_t t)
 { char *fn;
@@ -1926,6 +2000,17 @@ pl_size_file(term_t name, term_t len)
   }
 
   fail;
+}
+
+
+word
+pl_size_stream(term_t stream, term_t len)
+{ int n;
+
+  if ( (n = streamNo(stream, F_ANY)) < 0 )
+    fail;
+
+  return PL_unify_integer(len, Ssize(fileTable[n].stream));
 }
 
 
@@ -2254,6 +2339,17 @@ pl_prolog_to_os_filename(term_t pl, term_t os)
 #else /*O_XOS*/
   return PL_unify(pl, os);
 #endif /*O_XOS*/
+}
+
+
+foreign_t
+pl_mark_executable(term_t path)
+{ char name[MAXPATHLEN];
+
+  if ( !PL_get_filename(path, name, sizeof(name)) )
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_source_sink, path);
+
+  return MarkExecutable(name);
 }
 
 

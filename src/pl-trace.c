@@ -56,7 +56,7 @@ forwards void		helpInterrupt(void);
 #endif
 forwards bool		hasAlternativesFrame(LocalFrame);
 forwards void		alternatives(LocalFrame);
-forwards void		listProcedure(Definition);
+forwards void		listGoal(LocalFrame frame);
 forwards int		traceInterception(LocalFrame, LocalFrame, int, Code);
 forwards void		writeFrameGoal(LocalFrame frame, int how);
 forwards void		interruptHandler(int sig);
@@ -279,17 +279,26 @@ again:
     pl_flush();
     if ( GD->cmdline.notty )
     { buf[0] = EOS;
-      readLine(buf);
+      if ( !readLine(buf) )
+      { Puts("EOF: exit\n");
+	Halt(0);
+      }
     } else
-    { buf[0] = getSingleChar();
+    { int c = getSingleChar();
+
+      if ( c == EOF )
+      { Puts("EOF: exit\n");
+	Halt(0);
+      }
+      buf[0] = c;
       buf[1] = EOS;
       if ( isDigit(buf[0]) || buf[0] == '/' )
       { Putf(buf);
 	readLine(buf);
       }
     }
-    if ((action = traceAction(buf, port, frame, GD->cmdline.notty ? FALSE : TRUE))
-							== ACTION_AGAIN)
+    action = traceAction(buf, port, frame, GD->cmdline.notty ? FALSE : TRUE);
+    if ( action == ACTION_AGAIN )
       goto again;
   } else
     Put('\n');
@@ -488,7 +497,7 @@ traceAction(char *cmd, int port, LocalFrame frame, bool interactive)
 		}
 		return ACTION_AGAIN;
     case 'L':	FeedBack("Listing");
-		listProcedure(frame->predicate);
+		listGoal(frame);
 		return ACTION_AGAIN;
     case '+':	FeedBack("spy\n");
 		set(frame->predicate, SPY_ME);
@@ -527,6 +536,38 @@ helpTrace(void)
 #endif
 }
 
+
+static void
+put_frame_goal(term_t goal, LocalFrame frame)
+{ Definition def = frame->predicate;
+  int argc = def->functor->arity;
+  Word argv = argFrameP(frame, 0);
+
+  PL_unify_functor(goal, def->functor->functor);
+  if ( argc > 0 )
+  { Word argp = valTermRef(goal);
+    int i;
+
+    deRef(argp);
+    argp = argTermP(*argp, 0);
+
+    for(i=0; i<argc; i++)
+    { Word a;
+
+      deRef2(argv+i, a);
+      *argp++ = (isVar(*a) ? makeRef(a) : *a);
+    }
+  }
+  if ( def->module != MODULE_user &&
+       (false(def->module, SYSTEM) || SYSTEM_MODE))
+  { term_t a = PL_new_term_ref();
+
+    PL_put_atom(a, def->module->name);
+    PL_cons_functor(goal, FUNCTOR_module2, a, goal);
+  }
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Write goal of stack frame.  First a term representing the  goal  of  the
 frame  is  constructed.  Trail and global stack are marked and undone to
@@ -551,34 +592,13 @@ than normal unification, etc.
 
 static void
 writeFrameGoal(LocalFrame frame, int how)
-{ Definition def = frame->predicate;
-  Word argv = argFrameP(frame, 0);
-  int argc = def->functor->arity;
-  int debugSave = debugstatus.debugging;
+{ int debugSave = debugstatus.debugging;
   fid_t cid = PL_open_foreign_frame();
   term_t goal = PL_new_term_ref();
 
   if ( debugstatus.showContext )
     Putf("[%s] ", stringAtom(contextModule(frame)->name));
-  if ( def->module != MODULE_user &&
-       (false(def->module, SYSTEM) || SYSTEM_MODE))
-    Putf("%s:", stringAtom(def->module->name));
-
-  PL_unify_functor(goal, def->functor->functor);
-  if ( argc > 0 )
-  { Word argp = valTermRef(goal);
-    int i;
-
-    deRef(argp);
-    argp = argTermP(*argp, 0);
-
-    for(i=0; i<argc; i++)
-    { Word a;
-
-      deRef2(argv+i, a);
-      *argp++ = (isVar(*a) ? makeRef(a) : *a);
-    }
-  }
+  put_frame_goal(goal, frame);
   
   switch(how)
   { case W_PRINT:
@@ -621,20 +641,17 @@ alternatives(LocalFrame frame)
 
 
 static void
-listProcedure(Definition def)
+listGoal(LocalFrame frame)
 { fid_t cid = PL_open_foreign_frame();
-  qid_t qid;
+  term_t goal = PL_new_term_ref();
+  predicate_t pred = PL_predicate("$prolog_list_goal", 1, "system");
   extern int Output;
   int OldOut = Output;
-  term_t argv = PL_new_term_refs(1);
-  Procedure proc = lookupProcedure(FUNCTOR_listing1, MODULE_system);
 
-  unify_definition(argv, def, 0, 0);	/* module:name(args) */
-  Output = 1;
-  qid = PL_open_query(MODULE_user, PL_Q_NODEBUG, proc, argv);
-  PL_next_solution(qid);
-  PL_close_query(qid);
+  put_frame_goal(goal, frame);
+  PL_call_predicate(MODULE_system, PL_Q_NODEBUG, pred, goal);
   Output = OldOut;
+
   PL_discard_foreign_frame(cid);
 }
 

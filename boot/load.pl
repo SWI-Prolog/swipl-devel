@@ -21,5 +21,6 @@
 	, parms
 	, autoload
 	, qlf
+	, rc
 	, user:topvars
 	].

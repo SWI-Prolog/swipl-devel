@@ -27,50 +27,172 @@ qsave_program(File) :-
 	qsave_program(File, []).
 
 qsave_program(FileSpec, Options0) :-
+	check_options(Options0),
 	'$strip_module'(FileSpec, Module, File),
-	option(Options0, autoload/true, Autoload, Options1),
-	option(Options1, map/[],        Map,      Options2),
-	option(Options2, goal/[],       GoalTerm, Options3),
-	option(Options3, op/save,	SaveOps,  Options4),
+	option(Options0, autoload/true, Autoload,  Options1),
+	option(Options1, map/[],        Map,       Options2),
+	option(Options2, goal/[],       GoalTerm,  Options3),
+	option(Options3, op/save,	SaveOps,   Options4),
+	option(Options4, class/runtime, SaveClass, Options5),
 	(   GoalTerm == []
-	->  Options = Options4
+	->  Options = Options5
 	;   term_to_atom(Module:GoalTerm, GoalAtom),
 	    term_to_atom(GT, GoalAtom),
 	    define_predicate(user:GT),
-	    Options = [goal=GoalAtom|Options4]
+	    Options = [goal=GoalAtom|Options5]
 	),
 	(   Autoload == true
 	->  save_autoload
 	;   true
 	),
-	(   Map == []
-	->  retractall(verbose(_))
-	;   open(Map, write, Fd),
-	    asserta(qsave:verbose(Fd))
-	),
+	open_map(Map),
 	set_feature(saved_program, true),
-	$open_wic(File, Options),
+	$rc_open_archive(File, RC),
+	make_header(RC, SaveClass, Options),
+	save_options(RC, [class(SaveClass)|Options]),
+	save_resources(RC, SaveClass),
+	$rc_open(RC, $state, $prolog, write, StateFd),
+	$open_wic(StateFd),
 	system_mode(on),		% generate system modules too
-	save_modules,
+	save_modules(SaveClass),
 	save_records,
 	save_flags,
 	save_imports,
 	save_features,
-	(   SaveOps == save
-	->  save_operators
-	;   true
-	),
+	save_operators(SaveOps),
 %	save_foreign_libraries,
 	system_mode(off),
 	$close_wic,
-	(   nonvar(Fd)
-	->  close(Fd)
+	close(StateFd),
+	$rc_close_archive(RC),
+	$mark_executable(File),
+	close_map.
+
+		 /*******************************
+		 *	     HEADER		*
+		 *******************************/
+
+make_header(RC, _, Options) :-
+	option(Options, emulator/(-), OptVal, _),
+	OptVal \== -, !,
+	absolute_file_name(OptVal, [access(read)], Emulator),
+	$rc_append_file(RC, $header, $rc, none, Emulator).
+make_header(RC, _, Options) :-
+	option(Options, stand_alone/false, OptVal, _),
+	OptVal == true, !,
+	feature(symbol_file, Executable),
+	$rc_append_file(RC, $header, $rc, none, Executable).
+make_header(RC, SaveClass, _Options) :-
+	feature(unix, true),
+	feature(symbol_file, Executable),
+	$rc_open(RC, $header, $rc, write, Fd),
+	format(Fd, '#!/bin/sh~n', []),
+	format(Fd, '# SWI-Prolog saved state~n', []),
+	(   SaveClass == runtime
+	->  ArgSep = ' -- '
+	;   ArgSep = ' '
+	),
+	format(Fd, 'exec ${SWIPL-~w} -x "$0"~w"$@"~n~n', [Executable, ArgSep]),
+	close(Fd).
+make_header(_, _, _).
+
+
+		 /*******************************
+		 *	     OPTIONS		*
+		 *******************************/
+
+min_stack(local,    8192).
+min_stack(global,   8192).
+min_stack(trail,    8192).
+min_stack(argument, 4096).
+min_stack(heap,     204800).
+
+convert_option(Stack, Val, NewVal) :-
+	min_stack(Stack, Min), !,
+	NewVal is max(Min, Val*1024).
+convert_option(_, Val, Val).
+
+save_options(RC, Options) :-
+	$rc_open(RC, $options, $prolog, write, Fd),
+	(   $option(OptionName, OptionVal0, _),
+	        option(Options, OptionName/_, OptionVal1, _),
+	        (   var(OptionVal1)	% used the default
+		->  OptionVal = OptionVal0
+		;   convert_option(OptionName, OptionVal1, OptionVal)
+		),
+	        format(Fd, '~w=~w~n', [OptionName, OptionVal]),
+	    fail
+	;   true
+	),
+	close(Fd).
+
+		 /*******************************
+		 *	     RESOURCES		*
+		 *******************************/
+
+save_resources(_RC, development) :- !.
+save_resources(RC, _SaveClass) :-
+	feedback('~nRESOURCES~n~n', []),
+	copy_resources(RC),
+	(   current_predicate(_, M:resource(_,_,_)),
+	    forall(M:resource(Name, Class, FileSpec),
+		   (   mkrcname(M, Name, RcName),
+		       save_resource(RC, RcName, Class, FileSpec)
+		   )),
+	    fail
 	;   true
 	).
 
-save_modules :-
-	forall(special_module(X), save_module(X)),
-	forall((current_module(X), \+ special_module(X)), save_module(X)).
+mkrcname(user, Name, Name) :- !.
+mkrcname(M, Name, RcName) :-
+	concat_atom([M, :, Name], RcName).
+
+save_resource(RC, Name, Class, FileSpec) :-
+	absolute_file_name(FileSpec, [access(read)], File), !,
+	feedback('~t~8|~w~t~32|~w~t~48|~w~n',
+		 [Name, Class, File]),
+	$rc_append_file(RC, Name, Class, none, File).
+save_resource(RC, Name, Class, _) :-
+	$rc_handle(SystemRC),
+	copy_resource(SystemRC, RC, Name, Class), !.
+save_resource(_, Name, Class, FileSpec) :-
+	$warning('Could not find resource ~w/~w on ~w or system resources',
+		 [Name, Class, FileSpec]).
+
+copy_resources(ToRC) :-
+	$rc_handle(FromRC),
+	$rc_members(FromRC, List),
+	(   member(rc(Name, Class), List),
+	    \+ user:resource(Name, Class, _),
+	    \+ reserved_resource(Name, Class),
+	    copy_resource(FromRC, ToRC, Name, Class),
+	    fail
+	;   true
+	).
+
+reserved_resource($header,	$rc).
+reserved_resource($state,	$prolog).
+reserved_resource($options,	$prolog).
+
+copy_resource(FromRC, ToRC, Name, Class) :-
+	$rc_open(FromRC, Name, Class, read, FdIn),
+	$rc_open(ToRC,	 Name, Class, write, FdOut),
+	feedback('~t~8|~w~t~24|~w~t~40|~w~n',
+		 [Name, Class, '<Copied from running state>']),
+	$copy_stream(FdIn, FdOut),
+	close(FdOut),
+	close(FdIn).
+
+
+		 /*******************************
+		 *	      MODULES		*
+		 *******************************/
+
+save_modules(SaveClass) :-
+	forall(special_module(X),
+	       save_module(X, SaveClass)),
+	forall((current_module(X), \+ special_module(X)),
+	       save_module(X, SaveClass)).
 
 special_module(system).
 special_module(user).
@@ -94,7 +216,11 @@ save_autoload :-
 		 *	       MODULES		*
 		 *******************************/
 
-save_module(M) :-
+%	save_module(+Module, +SaveClass)
+%
+%	Saves a module
+
+save_module(M, SaveClass) :-
 	$qlf_start_module(M),
 	feedback('~n~nMODULE ~w~n', [M]),
 	(   P = (M:H),
@@ -103,11 +229,21 @@ save_module(M) :-
 	    \+ predicate_property(P, foreign),
 	    functor(H, F, A),
 	    feedback('~nsaving ~w/~d ', [F, A]),
+	    (	H = resource(_,_,_),
+		SaveClass \== development
+	    ->	save_attribute(P, (dynamic)),
+		(   M == user
+		->  save_attribute(P, (multifile))
+		),
+		feedback('(Skipped clauses)', []),
+		fail
+	    ;	true
+	    ),
 	    save_attributes(P),
 	    \+ predicate_property(P, (volatile)),
 	    nth_clause(P, _, Ref),
 	    feedback('.', []),
-	    $qlf_assert_clause(Ref),
+	    $qlf_assert_clause(Ref, SaveClass),
 	    fail
 	;   $qlf_end_part,
 	    feedback('~n', [])
@@ -123,9 +259,12 @@ pred_attrib(show_childs,   P, $set_predicate_attribute(P, hide_childs,   0)).
 pred_attrib(indexed(Term), P, M:index(Term)) :-
 	$strip_module(P, M, _).
 
-save_attributes(P) :-
+predicate_attribute(P, Attribute) :-
+	pred_attrib(Attribute, P, _),
+	predicate_property(P, Attribute).
+
+save_attribute(P, Attribute) :-
 	pred_attrib(Attribute, P, D),
-	predicate_property(P, Attribute),
 	(   Attribute = indexed(Term)
 	->  \+(( arg(1, Term, 1),
 	         functor(Term, _, Arity),
@@ -133,9 +272,15 @@ save_attributes(P) :-
 	;   true
 	),
 	$add_directive_wic(D),
-	feedback('(~w) ', [Attribute]), 
-	fail.
-save_attributes(_).
+	feedback('(~w) ', [Attribute]).
+
+save_attributes(P) :-
+	(   predicate_attribute(P, Attribute),
+	    save_attribute(P, Attribute),
+	    fail
+	;   true
+	).
+	    
 
 		 /*******************************
 		 *	      RECORDS		*
@@ -206,37 +351,39 @@ save_features :-
 	fail.
 save_features.
 
-c_feature(symbol_file).
-c_feature(compiled_at).
-c_feature(min_integer).
-c_feature(max_integer).
-c_feature(min_tagged_integer).
-c_feature(max_tagged_integer).
-c_feature(pipe).
-c_feature(readline).
-c_feature(dynamic_stacks).
-c_feature(open_shared_object).
-c_feature(save_program).
-c_feature(save).
-c_feature(c_ldflags).
-c_feature(c_cc).
-c_feature(c_staticlibs).
-c_feature(c_libs).
-c_feature(home).
-c_feature(version).
 c_feature(arch).
 c_feature(boot_file).
-c_feature(unix).
-c_feature(windows).
-c_feature(max_arity).
-c_feature(integer_rounding_function).
 c_feature(bounded).
+c_feature(c_cc).
+c_feature(c_ldflags).
+c_feature(c_libs).
+c_feature(c_staticlibs).
+c_feature(compiled_at).
+c_feature(dynamic_stacks).
+c_feature(home).
+c_feature(integer_rounding_function).
+c_feature(max_arity).
+c_feature(max_integer).
+c_feature(max_tagged_integer).
+c_feature(min_integer).
+c_feature(min_tagged_integer).
+c_feature(open_shared_object).
+c_feature(pipe).
+c_feature(readline).
+c_feature(resource_database).
+c_feature(save).
+c_feature(save_program).
+c_feature(symbol_file).
+c_feature(tty_control).
+c_feature(unix).
+c_feature(version).
+c_feature(windows).
 
 		 /*******************************
 		 *	     OPERATORS		*
 		 *******************************/
 
-save_operators :-
+save_operators(true) :- !,
 	feedback('~nOPERATORS~n', []),
 	findall(op(P, T, N), current_op(P, T, N), Ops),
 	$reset_operators,
@@ -247,6 +394,7 @@ save_operators :-
 	       (   feedback('~n~t~8|~w ', [O]),
 		   $add_directive_wic(O),
 		   O)).
+save_operators(_).
 
 make_operators([], []).
 make_operators([Op|L0], [Op|L]) :-
@@ -290,6 +438,17 @@ save_foreign_libraries.
 		 *	       UTIL		*
 		 *******************************/
 
+open_map([]) :- !,
+	retractall(verbose(_)).
+open_map(File) :-
+	open(File, write, Fd),
+	asserta(verbose(Fd)).
+
+close_map :-
+	retract(verbose(Fd)),
+	close(Fd), !.
+close_map.
+
 feedback(Fmt, Args) :-
 	verbose(Fd), !,
 	format(Fd, Fmt, Args).
@@ -303,4 +462,54 @@ option(List, Name/_Default, Value, Rest) :- % goal(Goal)
 	Term =.. [Name, Value],
 	select(List, Term, Rest), !.
 option(List, _Name/Default, Default, List).
+	
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Option checking and exception generation.  This should be in a library!
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+option_type(Name,	 integer) :- min_stack(Name, _MinValue).
+option_type(class,	 atom([runtime,kernel,development])).
+option_type(autoload,	 bool).
+option_type(map,	 atom).
+option_type(op,		 atom([save, standard])).
+option_type(stand_alone, bool).
+option_type(goal, 	 callable).
+option_type(toplevel, 	 callable).
+option_type(initfile, 	 atom).
+option_type(emulator, 	 ground).
+
+check_options([]).
+check_options([Var|_]) :-
+	var(Var),
+	throw(error(domain_error(save_options, Var), _)).
+check_options([Name=Value|T]) :-
+	(   option_type(Name, Type)
+	->  (   check_type(Type, Value)
+	    ->  check_options(T)
+	    ;	throw(error(domain_error(Type, Value), _))
+	    )
+	;   throw(error(domain_error(save_option, Name), _))
+	).
+check_options([Term|T]) :-
+	Term =.. [Name,Arg],
+	check_options([Name=Arg|T]).
+check_options([Var|_]) :-
+	var(Var),
+	throw(error(domain_error(save_options, Var), _)).
+
+check_type(integer, V) :-
+	integer(V).
+check_type(atom(List), V) :-
+	atom(V),
+	memberchk(V, List), !.
+check_type(atom, V) :-
+	atom(V).
+check_type(callable, V) :-
+	atom(V).
+check_type(callable, V) :-
+	compound(V).
+check_type(ground, V) :-
+	ground(V).
+check_type(bool, true).
+check_type(bool, false).
 	

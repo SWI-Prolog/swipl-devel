@@ -60,10 +60,10 @@ INSTALL_DATA=${INSTALL} -m 644
 
 COFLAGS=-O2
 CWFLAGS=-Wall
-CIFLAGS=
+CIFLAGS=-I../../rc
 CMFLAGS=-funsigned-char
 CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS)
-LDFLAGS=-export-dynamic 
+LDFLAGS=-export-dynamic	-L../../rc
 
 PLFOREIGN=
 
@@ -82,8 +82,8 @@ RUNTIME=$(RUNTIMEDIR)/$(PLLIB)
 LIBRARYDIR=${PLBASE}/library
 
 
-OBJ=	pl-atom.o pl-wam.o pl-save.o pl-stream.o pl-error.o \
-	pl-arith.o pl-bag.o pl-comp.o \
+OBJ=	pl-atom.o pl-wam.o pl-stream.o pl-error.o \
+	pl-arith.o pl-bag.o pl-comp.o pl-rc.o \
 	pl-dwim.o pl-ext.o pl-file.o pl-flag.o pl-fli.o pl-fmt.o pl-funct.o \
 	pl-gc.o pl-glob.o pl-itf.o pl-list.o pl-load.o \
 	pl-modul.o pl-op.o pl-os.o pl-prims.o pl-pro.o pl-proc.o \
@@ -128,7 +128,7 @@ banner:
 
 
 $(PL):		$(ALLOBJ)
-		$(CC) $(LDFLAGS) -o $(PL) $(ALLOBJ) $(LIBS) $(STATICLIBS) 
+		$(CC) $(LDFLAGS) -o $(PL) $(ALLOBJ) -lrc $(LIBS) $(STATICLIBS) 
 
 
 $(STARTUPPATH):	$(PLINIT) $(PLSRC) pl-wam.o pl-wic.o

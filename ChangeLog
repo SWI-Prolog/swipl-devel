@@ -2,16 +2,85 @@
 			SWI-Prolog ChangeLog
 			====================
 
-VERSION 2.9.11
-==============
+VERSION 3.0.0
+=============
 
-  * UPDATED: dlldemo directory for Win32 version (Changed to > 2.5.0
-    foreign interface, updated makefiles and readme's).
+  * FIXED: Actually test for GCC-2 feature to handle label-addresses.
+    Should fix compilation on Rapsody, where cc says it is gcc-2, but
+    the gcc extensions are not enabled (by default).
 
-  * FIXED: Handling Control-C in Win32 plwin.exe (bug introduced in
-    2.9.10).
+  * FIXED: Detection of topOfHeap() on m68k linux (and other linux brands),
+    using a patch contributed by Roman Hodek.
+    
+  * FIXED: Garbage collection error, resulting in a false `early reset'
+    in a specific combination on call-back from C to Prolog and 
+    choicepoints.  With thanks to Lourens van der Meij for reporting
+    and localising the problem.
 
-  * FIXED: help/1 avoids printing the whole manual under some circumstances.
+  * ADDED: PL_cons_functor_v() to create a functor from a vector of
+    term-references.
+
+  * FIXED: discontiguous and multifile cause the predicate to be considered
+    `defined'.  Thanks to Paulo Moura.
+
+  * ADDED: prolog_list_goal/1 hook to intercept the 'L' command from the
+    debugger.
+
+  * FIXED: configure detection of type rlim_t on some platforms.  Thanks to
+    Volker Stolz.
+
+  * MODIFIED: <module>:<head> :- <body> is now compiled differently from
+    <module>:(<head> :- <body>).  The clause is added to <module>:<head>,
+    but <body> is executed in the context of the definition module.  This
+    behaviour is compliant with Quintus and SICStus Prolog, and required
+    to deal with the XPCE 5.0 class-compiler.  In most cases, this just
+    allows to remove now redundant module specifiers.  In the rare cases
+    the old behaviour is required, just but enclose the close in braces.
+
+  * FIXED: abolish/[1,2] on an imported predicate.
+
+  * ADDED: Putting `resources' into a saved state.  Especially for dealing
+    with XPCE (graphics) resources.  See resource/3, qsave_program/[1,2],
+    open_resource/[3,4], plrc(1), PL_open_resource().
+
+  * FIXED: Sfread() and Sfwrite() to return proper value on short read/write.
+
+  * FIXED: Copy-problem in Which() (pl-os.c).  Made the problem below
+    appearant.
+
+  * FIXED: Symbols() to deal with x-only executables (Unix).  Thanks to
+    Gernot Salzer (caused a crash).
+
+  * FIXED: Docs for PL_cons_list().  Thanks to Ivan Karski.
+
+  * ADDED: PL_cons_functor() the first argument may now also appear in
+    the argument list.
+
+  * FIXED: putNum()/getNum() format to deal with any value that can
+    be represented in a long.  Fixes an assertion failure while booting
+    on some platforms.
+
+  * FIXED: Quoted write in feature(character_escape, true) is effective
+    to write the atoms such that they can be read back.  Spotted by
+    Bernd Werner.
+
+  * ADDED: Seek/4, Quintus compatible implementation for seeking to an
+    indicated position in a stream.
+
+  * FIXED: Various traceports to make Prolog exit on reading end-of-file,
+    rather then entering an endless loop.
+
+  * FIXED: put/[1,2] to raise an exception on IO errors.  Patched
+    SIGPIPE handling to clear the buffer of the offending stream,
+    so a subsequent close() on the stream will not cause another
+    SIGPIPE.
+
+  * MODIFIED: file_directory_name/2 output never contains a trailing
+    /.  If no directory is present, the result is '.'.
+
+  * DELETED: -B command-line switch
+
+  * DELETED: old save/restore facilities.  
 
 VERSION 2.9.10
 ==============

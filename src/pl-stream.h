@@ -64,12 +64,14 @@ typedef int   (*Sread_function)(void *handle, char *buf, int bufsize);
 typedef int   (*Swrite_function)(void *handle, char*buf, int bufsize);
 typedef long  (*Sseek_function)(void *handle, long pos, int whence);
 typedef int   (*Sclose_function)(void *handle);
+typedef int   (*Scontrol_function)(void *handle, int action, void *arg);
 
 typedef struct io_functions
 { Sread_function	read;		/* fill the buffer */
   Swrite_function	write;		/* empty the buffer */
   Sseek_function	seek;		/* seek to position */
   Sclose_function	close;		/* close stream */
+  Scontrol_function	control;	/* Info/control */
 } IOFUNCTIONS;
 
 typedef struct io_position
@@ -140,6 +142,8 @@ __pl_export_data IOSTREAM    S__iob[];		/* Libs standard streams */
 #define Snpgetc(s) ((s)->bufp < (s)->limitp ? (int)(*(s)->bufp++)&0xff \
 					    : S__fillbuf(s))
 #define Sgetc(s) S__updatefilepos((s), Snpgetc(s))
+
+#define SIO_GETSIZE	(1)		/* get size of underlying object */
 
 #if IOSTREAM_REPLACES_STDIO
 
@@ -214,6 +218,7 @@ __pl_export int		Sfpasteof(IOSTREAM *s);
 __pl_export int		Sferror(IOSTREAM *s);
 __pl_export void	Sclearerr(IOSTREAM *s);
 __pl_export int		Sflush(IOSTREAM *s);
+__pl_export long	Ssize(IOSTREAM *s);
 __pl_export long	Sseek(IOSTREAM *s, long pos, int whence);
 __pl_export long	Stell(IOSTREAM *s);
 __pl_export int		Sclose(IOSTREAM *s);
@@ -232,12 +237,12 @@ __pl_export int		Sdprintf(const char *fm, ...);
 __pl_export int		Slock(IOSTREAM *s);
 __pl_export int		Sunlock(IOSTREAM *s);
 __pl_export IOSTREAM *	Snew(void *handle, int flags, IOFUNCTIONS *functions);
-__pl_export IOSTREAM *	Sopen_file(const char *path, char *how);
-__pl_export IOSTREAM *	Sfdopen(int fd, char *type);
+__pl_export IOSTREAM *	Sopen_file(const char *path, const char *how);
+__pl_export IOSTREAM *	Sfdopen(int fd, const char *type);
 __pl_export int	   	Sfileno(IOSTREAM *s);
 __pl_export IOSTREAM *	Sopen_pipe(const char *command, const char *type);
 __pl_export IOSTREAM *	Sopenmem(char **buffer, int *sizep, const char *mode);
-__pl_export IOSTREAM *	Sopen_string(IOSTREAM *s, char *buf, int sz, char *m);
+__pl_export IOSTREAM *	Sopen_string(IOSTREAM *s, char *buf, int sz, const char *m);
 
 #ifdef __cplusplus
 }

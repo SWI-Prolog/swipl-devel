@@ -4,24 +4,38 @@ This chapter describes the features of SWI-Prolog for delivering
 applications that can run without the development version of the
 system installed.
 
-A SWI-Prolog built application consists of at least two parts: the
-emulator and the compiled application. The latter is in the same format
-as a SWI-Prolog boot-file and SWI-Prolog pre-compiled (QLF) file. This
-format is fast loadable and abstracted just far enough to be machine
-independent. This implies an application delivered in binary format
-can run on any computer for which an emulator is available without
-modification.
+A SWI-Prolog runtime executable is a file consisting of two parts.  The
+first part is the \jargon{emulator}, which is machine dependent. The
+second part is the \jargon{resource archive}, which contains the
+compiled program in a machine-independent format, startup options
+and possibly user-defined \jargon{resources}, see resource/3 and
+open_resource/3.
+
+These two parts can be connected in various different ways. The most
+common way for distributed runtime applications is to \emph{concatenate}
+the two parts. This can be achieved using external commands (Unix:
+\program{cat}, Windows: \program{copy}), or using the
+\const{stand_alone} option to qsave_program/2. The second option is to
+attach a startup script in front of the resource that starts the
+emulator with the proper options. This is the default under Unix.
+Finally, an emulator can be told to use a specified resource file
+using the \cmdlineoption{-x}{} commandline switch.
+
 
 \begin{description}
     \predicate{qsave_program}{2}{+File, +ListOfOptions}
-Saves the current state of the program to the file \arg{File}. The
-result is an executable shell-script, that will start the emulator.
+Saves the current state of the program to the file \arg{File}.  The
+result is a resource archive containing a saved-state that expresses
+all Prolog data from the running program and all user-defined resources.
+Depending on the \const{stand_alone} option, the resource is headed by
+the emulator, a Unix shell-script or nothing.
+
 \arg{ListOfOptions} is a list of $<Key> = <Value>$ or $<Key>(<Value>)$
 pairs. The available keys are described in \tabref{qsave-options}.
 
 \begin{table}
 \begin{center}
-\begin{tabular}{|l|c|c|l|}
+\begin{tabular}{|l|c|c|p{3in}|}
 \hline
 \bf Key & \bf Option    & \bf Type      & \bf Description \\
 \hline
@@ -33,10 +47,22 @@ goal     & \bf -g       & atom          & Initialisation goal \\
 toplevel & \bf -t       & atom          & Prolog toplevel goal \\
 init_file& \bf -f       & atom          & Personal initialisation file \\
 \hline
+class	 &		& atom		& If \const{runtime}, only read
+					  resources from the state (default).
+					  If \const{kernel}, lock all
+					  predicates as system predicates
+					  If \const{development}, change the
+					  predicates in their current state
+					  and keep reading resources from
+					  their source (if present).
+					  See also resource/3. \\
 autoload &              & bool          & If true, run autoload/0 first \\
-map      &              & atom          & File containing info on dump \\
+map      &              & file          & File to write info on dump \\
 op       &              & \tt save/standard & Save operator declarations? \\
 stand_alone &           & bool          & Include the emulator in the state \\
+emulator &		& file		& Emulator attached to the
+					  (stand-alone) executable.  Default
+					  is the running emulator. \\
 \hline
 \end{tabular}
 \end{center}
@@ -45,36 +71,6 @@ stand_alone &           & bool          & Include the emulator in the state \\
     \label{tab:qsave-options}
 \end{table}
 
-The \program{/bin/sh} script contains the following data:
-
-\begin{enumerate}
-    \item The \jargon{shell script header} starts as:
-\begin{code}
-#!/bin/sh
-#SAVE-VERSION=<num>
-#PROLOG-VERSION=<num>
-exec ${SWIPL-/path-to-emulator} -x $0 "$@"
-\end{code}
-    \item The \jargon{settings section} contains the default values
-          for the various command line options.
-    \item The \jargon{predicates section} contains all predicates from
-          the currently running system. Clauses of predicates defined as
-          \jargon{volatile} (see volatile/1) are \strong{not} saved.  Neither
-          are foreign predicates (see also below).
-    \item The \jargon{record section} contains the database records saved
-          with recorda/3 and friends.  The current version saves records
-          using directives.
-    \item The \jargon{flag section} contains the global flags saved using
-          the flag/3 predicate.  Flags are saved as directives.
-    \item The \jargon{feature section} contains all features that do not
-          originate from the emulator itself.  See set_feature/2.
-    \item The \jargon{import section} contains the imports as far as they
-          are not handled by the auto-import system.  That is, an import
-          is stored if the module is \const{user} or the module
-	  \const{user} contains a different definition as the one
-	  imported in the target module.'
-\end{enumerate}
-
 Before writing the data to file, qsave_program/2 will run autoload/0 to
 all required autoloading the system can discover.  See autoload/0.
 
@@ -82,16 +78,14 @@ Provided the application does not require any of the Prolog libraries to
 be loaded at runtime, the only file from the SWI-Prolog development
 environment required is the emulator itself.  The emulator may be built
 in two flavours.  The default is the \jargon{development emulator}.  The 
-\jargon{runtime emulator} is similar, but lacks the tracer. The stand-alone
-program \manref{chpl}{1} may be used to change the default path
-to the emulator.
+\jargon{runtime emulator} is similar, but lacks the tracer.
 
-If the option \exam{stand_alone(on)} is present, the emulator is
-prepended for the state. If the emulator is started and no state is
-specified using the \cmdlineoption{-x}{} flag, it will test whether a
-boot-file (state) is attached to the emulator itself and load this
+If the option \exam{stand_alone(on)} is present, the emulator is the
+first part of the state. If the emulator is started it will test whether
+a boot-file (state) is attached to the emulator itself and load this
 state. Provided the application has all libraries loaded, the resulting
-file may be started anywhere.
+executable is completely independent of the runtime environment or
+location where it was build.
 
     \predicate{qsave_program}{1}{+File}
 Equivalent to \exam{qsave_program(File, [])}.
@@ -163,7 +157,7 @@ etc.) or loading files (consult, etc.), the directive may need to be
 prefixed with initialization/1.
 
     \item
-`Database references as returned by clause/3, recorded/3, etc.
+Database references as returned by clause/3, recorded/3, etc.
 are not preserved and may thus not be part of the database when saved.
 \end{itemize}
 
@@ -184,19 +178,11 @@ This is the preferred way of dealing with foreign code. It loads quickly
 and ensures an acceptable level of independence between the versions of
 the emulator and the foreign code loaded.  It works on Unix machines
 supporting shared libraries and library functions to load them.  Most
-modern Unixes satisfy this constraint.%
-    \footnote{Linux with the old a.out format does \strong{not}}.
-It also works on the Win32 platform: Windows-NT, '95 and Windows 3.1
-running win32s.
+modern Unixes, as well as Win32 (Windows 95/NT) satisfy this constraint.
     \item [Static linking]
 This mechanism works on all machines, but generally requires the same
 C-compiler and linker to be used for the external code as is used to
-build SWI-Prolog itself.  This mechanism is the preferred way if shared
-libraries are not supported.
-    \item [Using {load_foreign/[2,5]}]
-Basically only works on Unix system supporting the a.out format
-executables.  This mechanism is slow and non-portable.  It should be
-avoided whenever possible.
+build SWI-Prolog itself.
 \end{itemlist}
 
 To make a runtime executable that can run on multiple platforms one
@@ -204,7 +190,7 @@ must make runtime checks to find the correct way of linking.  Suppose
 we have a source-file {\tt myextension} defining the installation
 function \funcref{install}{}.
 
-If this file is compiled to a shared library, load_foreign_library/1
+If this file is compiled into a shared library, load_foreign_library/1
 will load this library and call the installation function to initialise
 the foreign code. If it is loaded as a static extension, define
 \funcref{install}{} as the predicate install/0:
@@ -244,6 +230,108 @@ default it searches the directories \file{<home>/lib/<arch>} and
 file_search_path/2.
 
 
+\section{Using Program Resources}
+
+A \jargon{resource} is very similar to a file.  Resources however can
+be represented in two different formats: on files, as well as part of
+the resource \jargon{archive} of a saved-state (see qsave_program/2).
+
+A resource has a \jargon{name} and a \jargon{class}. The \jargon{source}
+data of the resource is a file. Resources are declared by declaring the
+predicate resource/3. They are accessed using the predicate
+open_resource/3.
+
+Before going into details, let us start with an example.  Short texts
+can easily be expressed in Prolog sourcecode, but long texts are
+cumbersome.  Assume our application defines a command `help' that
+prints a helptext to the screen.  We put the content of the helptext
+into a file called \file{help.txt}.  The following code implements
+our help command such that help.txt is incorperated into the runtime
+executable.
+
+\begin{code}
+resource(help, text, 'help.txt').
+
+help :-
+	open_resource(help, text, In),
+	copy_stream(In, user_output),
+	close(In).
+
+copy_stream(In, Out) :-
+	get0(In, C),
+	copy_stream(C, In, Out).
+
+copy_stream(-1, _, _) :- !.
+	copy_stream(C, In, Out) :-
+	put(Out, C),
+	get0(In, C2),
+	copy_stream(C2, In, Out).
+\end{code}
+
+The predicate help/0 opens the resource as a Prolog stream.  If we are
+executing this from the development environment, this will actually
+return a stream to the \file{gelp.txt} itself.  When executed from the
+saved-state, the stream will actually be a stream opened on the program
+resource file, taking care of the offset and length of the resource.
+
+\subsection{Predicates Definitions}
+
+\begin{description}
+    \predicate{resource}{3}{+Name, +Class, +FileSpec}
+This predicate is defined as a dynamic predicate in the module
+\const{user}. Clauses for it may be defined in any module, including the
+user module. \arg{Name} is the name of the resource (an atom). A
+resource name may contain all characters, except for \$ and :, which are
+reserved for internal usage by the resource library. \arg{Class}
+describes the what kind of object we are dealing with. In the current
+implementation, it is just an atom. \arg{FileSpec} is a file
+specification that may exploit file_search_path/2 (see
+absolute_file_name/2).
+
+Normally, resources are defined as unit clauses (facts), but the
+definition of this predicate can also imply rules. For proper generation
+of the saved state generation, it must be possible to enumerate the
+available resources by calling this predicate with all its arguments
+unbound.
+
+Dynamic rules can be useful to turn all files in a certain directory
+into resources, without specifying a resources for each file.  For
+example, assume the file_search_path/2 \const{icons} refers to the
+resource directory containing (XPM) icons.  The following definition
+makes all these images available as resources:
+
+\begin{code}
+resource(Name, image, icons(XpmName)) :-
+	atom(Name), !,
+	file_name_extension(Name, xpm, XpmName).
+resource(Name, image, XpmFile) :-
+	var(Name),
+	absolute_file_name(icons(.), [type(directory)], Dir)
+	concat(Dir, '/*.xpm', Pattern),
+	expand_file_name(Pattern, XpmFiles),
+	member(XpmFile, XpmFiles).
+\end{code}
+
+    \predicate{open_resource}{3}{+Name, ?Class, -Stream}
+Opens the resource specified by \arg{Name} and \arg{Class}.  If the
+latter is a variable, it will be unified to the class of the first
+resource found that has tehe specified \arg{Name}.  If successful,
+\arg{Stream} becomes a handle to a binary input stream, providing
+access to the content of the resource.
+
+The predicate open_resource/3 first checks resource/3.  When succesful
+it will open the returned resource source-file.  Otherwise it will look
+in the programs resource database.  When creating a saved-state, the
+system normally saves the resource contents into the resource archive,
+but does not save the resource clauses.
+
+This way, the development environment uses the files (and modifications
+to the resource/3 declarations and/or files containing resource info
+thus immediately affect the running environment, while the runtime
+system quickly accesses the system resources.
+\end{description}
+
+			    
 \section{Finding Application files}
 
 If your application uses files that are not part of the saved program
@@ -253,11 +341,11 @@ in combination with the \cmdlineoption{-p}{alias} command-line argument
 is the preferred way to locate runtime files. The first step is to
 define an alias for the toplevel directory of your application. We will
 call this directory \file{gnatdir} in our examples.
-
+			    
 A good place for storing data associated with SWI-Prolog runtime systems
-is below the emulator's home-directory.  \const{swi} is a predefined alias
-for this directory.  The following is a useful default definition for
-the search path.
+is below the emulator's home-directory. \const{swi} is a predefined
+alias for this directory. The following is a useful default definition
+for the search path.
 
 \begin{code}
 user:file_search_path(gnatdir, swi(gnat)).
@@ -269,11 +357,11 @@ configuration.  Then use the code below to load this file:
 
 \begin{code}
 configure_gnat :-
-        (   absolute_file_name(gnatdir('config.pl'), ConfigFile)
-        ->  consult(ConfigFile)
-        ;   format(user_error, 'gnat: Cannot locate config.pl~n'),
-            halt(1)
-        ).
+	(   absolute_file_name(gnatdir('config.pl'), ConfigFile)
+	    ->  consult(ConfigFile)
+	    ;   format(user_error, 'gnat: Cannot locate config.pl~n'),
+	    halt(1)
+	    ).
 \end{code}
 
 \section{Using chpl for Configuration Information}
@@ -327,8 +415,8 @@ holding
 gnat is a simple \program{/bin/sh} script.  After this line, the file is
 binary and may contain long lines.  Most editors are not capable of
 editing such files.%
-    \footnote{If you use GNU-Emacs, make sure \const{require-final-newline}
-	      is set to \const{nil}}
+\footnote{If you use GNU-Emacs, make sure \const{require-final-newline}
+	  is set to \const{nil}}
 Instead of editing the file directly, the program \manref{chpl}{1} may be
 used to extract and replace the header of \file{gnat}.  The following
 editing sequence will work with any editor capable of editing ASCII
@@ -347,7 +435,7 @@ The header may be changed to the following to install gnat properly:
 # SWI-Prolog version: 2.1.4
 # SWI-Prolog save-version: 25
 exec ${SWIPL-/usr/local/lib/rt-pl-2.1.4/bin/pl} -x $0 \
-     -p gnatdir=/users/bob/lib/gnat "$@"
+-p gnatdir=/users/bob/lib/gnat "$@"
 \end{code}
 
 
@@ -364,22 +452,22 @@ applications. If the system is configured using
 the development version, except for the following features:
 
 \begin{itemlist}
-    \item [No input editing]
+\item [No input editing]
 The GNU library \clib{-lreadline} that provides EMACS compatible editing
 of input lines will not be linked to the system.
-    \item [No tracer]
+\item [No tracer]
 The tracer and all its options are removed, making the system a little
 faster too.
-    \item [No profiler]
+\item [No profiler]
 profile/3 and friends are not supported.  This saves some space and
 provides better performance.
-    \item [No interrupt]
+\item [No interrupt]
 Keyboard interrupt (Control-C normally) is not rebound and will normally
 terminate the application.
-    \item [feature(runtime, true) succeeds]
+\item [feature(runtime, true) succeeds]
 This may be used to verify your application is running in the runtime
 environment rather than the development environment.
-    \item [clause/[2,3] do not work on static predicates]
+\item [clause/[2,3] do not work on static predicates]
 This feature inhibits listing your program.  It is only a very limited
 protection however.
 \end{itemlist}
@@ -400,22 +488,23 @@ large number of applications.
 
 The runtime directory contains the components listed below. This
 directory may be tar'ed and shipped with your application.
-
-\begin{center}
-\begin{tabular}{|l|l|}
-\hline
-\file{README.RT}        & Info on the runtime environment \\
-\hline
-\file{bin/pl}           & The emulator itself \\
-\file{bin/chpl}         & The utility to change the runtime \\
-\hline
-\file{man/chpl.1}       & Manual page for chpl \\
-\file{man/pl.1}         & Manual page for pl \\
-\hline
-\file{swipl}            & pointer to the home directory (.) \\
-\hline
-\file{lib/}             & directory for shared libraries \\
-\file{lib/<arch>/}     & machine-specific shared libraries \\
-\hline
-\end{tabular}
-\end{center}
+			    
+			    \begin{center}
+			    \begin{tabular}{|l|l|}
+			    \hline
+			    \file{README.RT}        & Info on the runtime environment \\
+			    \hline
+			    \file{bin/pl}           & The emulator itself \\
+			    \file{bin/chpl}         & The utility to change the runtime \\
+			    \hline
+			    \file{man/chpl.1}       & Manual page for chpl \\
+			    \file{man/pl.1}         & Manual page for pl \\
+			    \hline
+			    \file{swipl}            & pointer to the home directory (.) \\
+			    \hline
+			    \file{lib/}             & directory for shared libraries \\
+			    \file{lib/<arch>/}     & machine-specific shared libraries \\
+			    \hline
+			    \end{tabular}
+			    \end{center}
+			    

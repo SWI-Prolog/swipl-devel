@@ -99,6 +99,7 @@ const code_info codeTable[] = {
 #if O_CATCHTHROW
   CODE(B_THROW,		"b_throw",	0, 0),
 #endif
+  CODE(I_CONTEXT,	"i_context",	1, CA1_MODULE),
 /*List terminator */
   CODE(0,		NULL,		0, 0)
 };
@@ -298,33 +299,28 @@ getVarDef(int i)
 
 #define VAROFFSET(var) ( (var) + ARGOFFSET / (int) sizeof(word) )
 
-int
+void
 get_head_and_body_clause(term_t clause,
 			 term_t head, term_t body, Module *m)
-{ term_t tmp = PL_new_term_ref();
-  Module m0 = NULL;
+{ Module m0;
 
-  if ( m )
-    m0 = *m;
-  TRY(PL_strip_module(clause, &m0, tmp));
+  if ( !m )
+  { m0 = NULL;
+    m = &m0;
+  }
 
-  if ( PL_is_functor(tmp, FUNCTOR_prove2) )
-  { PL_get_arg(1, tmp, head);
-    PL_get_arg(2, tmp, body);
-    PL_strip_module(head, &m0, head);
+  if ( PL_is_functor(clause, FUNCTOR_prove2) )
+  { PL_get_arg(1, clause, head);
+    PL_get_arg(2, clause, body);
+    PL_strip_module(head, m, head);
   } else
-  { PL_put_term(head, tmp);		/* facts */
+  { PL_put_term(head, clause);		/* facts */
     PL_put_atom(body, ATOM_true);
   }
   
   DEBUG(9, pl_write(clause); Sdprintf(" --->\n\t");
 	   Sdprintf("%s:", stringAtom(m0->name));
 	   pl_write(head); Sdprintf(" :- "); pl_write(body); Sdprintf("\n"));
-
-  if ( m )
-    *m = m0;
-
-  succeed;
 }
 
 
@@ -430,7 +426,7 @@ arguments  of  the  head  and  the subclauses are compiled.  Finally the
 bindings made by analyseVariables() are undone and the clause  is  saved
 in the heap.
 
-compile() maintains an array of `used_var' (used variables).  This is to
+compile() maintains an array of `used_var' (used variables).  This is to(
 determine when a variable is used for the first time and thus a FIRSTVAR
 instruction is to be generated instead of a VAR one.
 
@@ -493,7 +489,6 @@ forwards bool	isFirstVar(VarTable vt, int n);
 forwards void	balanceVars(VarTable, VarTable, compileInfo *);
 forwards void	orVars(VarTable, VarTable);
 forwards void	setVars(Word t, VarTable);
-forwards Clause	compile(Word, Word, Module);
 #if O_COMPILE_ARITH
 forwards int	compileArith(Word, compileInfo *);
 forwards bool	compileArithArgument(Word, compileInfo *);
@@ -595,61 +590,29 @@ copyVarTable(VarTable to, VarTable from)
 }
 
 
-static Clause
-compile(Word head, Word body, Module module)
-{ compileInfo ci;			/* data base for the compiler */
-  Procedure proc;
-  Clause clause;
-  int nvars;
-
-  deRef(head);
-  deRef(body);
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Split the clause into its head and body and determine the procedure  the
-clause should belong to.
+Note: `head' and `body' are dereferenced!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  if (isAtom(*head) )
-    proc = lookupProcedureToDefine(lookupFunctorDef(*head, 0), module);
-  else if (isTerm(*head) )
-    proc = lookupProcedureToDefine(functorTerm(*head), module);
-  else
-  { warning("compiler: illegal clause head");
-    return (Clause) NULL;
-  }
-  if ( !proc )
-    return NULL;
-
-  if ( (ci.arity = proc->definition->functor->arity) > MAXARITY )
-  { warning("Compiler: arity too high (%d)\n", ci.arity);
-    return (Clause) NULL;
-  }
-
-  DEBUG(9, Sdprintf("Splitted and found proc\n"));
+static Clause
+compile(Word head, Word body, Procedure proc, Module module)
+{ compileInfo ci;			/* data base for the compiler */
+  Clause clause;
+  int nvars;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Allocate the clause and fill initialise the field we already know.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+  ci.arity = proc->definition->functor->arity;
+
   clause = (Clause) allocHeap(sizeof(struct clause));
+  clause->procedure  = proc;
   clause->flags      = 0;
   clause->code_size  = 0;
-  clause->procedure  = proc;
   clause->source_no  = clause->line_no = 0;
 
   DEBUG(9, Sdprintf("clause struct initialised\n"));
-
-  { register Definition def = proc->definition;
-
-    if ( def->indexPattern && !(def->indexPattern & NEED_REINDEX) )
-      getIndex(argTermP(*head, 0),
-	       def->indexPattern, 
-	       def->indexCardinality,
-	       &clause->index);
-    else
-      clause->index.key = clause->index.varmask = 0L;
-  }
 
   TRY( analyse_variables(head, body, ci.arity, &nvars) );
   clause->prolog_vars = clause->variables = nvars + ci.arity;
@@ -684,11 +647,20 @@ before the I_ENTER instructions.
   }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Now compile the body.
+Now compile the body. After the  I_ENTER,   we  check whether we need to
+insert an I_CONTEXT instruction to change the context. This is the case,
+for predicates for which the body is  defined from another module as the
+head and the predicate is not a   meta-predicate. In principle, we could
+delay this until we decided there may be a meta-call, but this will harm
+automatic update if a predicate is later defined as meta-predicate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   if ( body && *body != ATOM_true )
   { Output_0(&ci, I_ENTER);
+    if ( ci.module != proc->definition->module &&
+	 false(proc->definition, METAPRED) )
+    { Output_1(&ci, I_CONTEXT, (code)ci.module);
+    }
     compileBody(body, I_DEPART, &ci);
     Output_0(&ci, I_EXIT);
   } else
@@ -1353,22 +1325,38 @@ assert_term(term_t term, int where, SourceLoc loc)
   Definition def;
   Module source_module = (loc ? LD->modules.source : (Module) NULL);
   Module module = source_module;
+  Module mhead;
   term_t tmp  = PL_new_term_ref();
   term_t head = PL_new_term_ref();
   term_t body = PL_new_term_ref();
+  Word h, b;
+  functor_t fdef;
 
-  if ( !PL_strip_module(term, &module, tmp) ||
-       !get_head_and_body_clause(tmp, head, body, &module) )
-  { warning("compiler: illegal clause");
-    return (Clause) NULL;
-  }
+  PL_strip_module(term, &module, tmp);
+  mhead = module;
+  get_head_and_body_clause(tmp, head, body, &mhead);
+  if ( !get_head_functor(head, &fdef) )
+    return NULL;			/* not callable, arity too high */
+  if ( !(proc = lookupProcedureToDefine(fdef, mhead)) )
+    return NULL;			/* redefine a system predicate */
+  h = valTermRef(head);
+  b = valTermRef(body);
+  deRef(h);
+  deRef(b);
 
   DEBUG(9, Sdprintf("compiling "); pl_write(term); Sdprintf(" ... "););
-  if ( !(clause = compile(valTermRef(head), valTermRef(body), module)) )
+  if ( !(clause = compile(h, b, proc, module)) )
     return NULL;
   DEBUG(9, Sdprintf("ok\n"));
-  proc = clause->procedure;
   def = proc->definition;
+
+  if ( def->indexPattern && !(def->indexPattern & NEED_REINDEX) )
+    getIndex(argTermP(*h, 0),
+	     def->indexPattern, 
+	     def->indexCardinality,
+	     &clause->index);
+  else
+    clause->index.key = clause->index.varmask = 0L;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 If loc is defined, we are called from record_clause/2.  This code takes
@@ -1382,7 +1370,7 @@ care of reconsult, redefinition, etc.
     clause->line_no   = loc->line;
     clause->source_no = sf->index;
 
-    if ( def->module != module )
+    if ( def->module != mhead )
     { if ( true(def->module, SYSTEM) )
         warning("Attempt to redefine a system predicate: %s", 
 		procedureName(proc));
@@ -1399,15 +1387,8 @@ care of reconsult, redefinition, etc.
       return assertProcedure(proc, clause, where) ? clause : NULL;
 
     if ( def->definition.clauses )	/* i.e. is defined */
-    { if ( true(def, LOCKED) && !SYSTEM_MODE && false(def, DYNAMIC|MULTIFILE) )
-      { warning("Attempt to redefine a system predicate: %s",
-		procedureName(proc));
-	freeClause(clause);
-	return NULL;
-      }
-
-      if ( true(def, FOREIGN) )
-      { abolishProcedure(proc, module);
+    { if ( true(def, FOREIGN) )
+      { abolishProcedure(proc, mhead);
 	warning("Redefined: foreign predicate %s", procedureName(proc));
       }
 
@@ -1423,7 +1404,7 @@ care of reconsult, redefinition, etc.
 	    warning("Clauses of %s are not together in the source file", 
 		    procedureName(proc));
 	} else
-	{ abolishProcedure(proc, module);
+	{ abolishProcedure(proc, mhead);
 	  warning("Redefined: %s", procedureName(proc));
 	}
       }
@@ -1449,7 +1430,7 @@ mode, the predicate is still undefined and is not dynamic or multifile.
 
   /* assert[az]/1 */
 
-  if ( def->module != module && false(def, DYNAMIC) )
+  if ( def->module != mhead && false(def, DYNAMIC) )
   { warning("Attempt to redefine an imported predicate %s", 
 			      procedureName(proc) );
     freeClause(clause);
@@ -1923,7 +1904,7 @@ area is not in use during decompilation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
-decompileBody(register decompileInfo *di, code end, Code until)
+decompileBody(decompileInfo *di, code end, Code until)
 { int nested = 0;		/* nesting in FUNCTOR ... POP */
   int pushed = 0;		/* Subclauses pushed on the stack */
   code op;
@@ -2066,6 +2047,8 @@ decompileBody(register decompileInfo *di, code end, Code until)
       case I_CUT:	    *ARGP++ = ATOM_cut;
 			    pushed++;
 			    continue;
+      case I_CONTEXT:	    PC++;	/* what to do?? */
+      			    continue;
       case I_DEPART:
       case I_CALL:        { Procedure proc = (Procedure)XR(*PC++);
 			    build_term(proc->definition->functor->functor, di);
@@ -2506,7 +2489,7 @@ wouldBindToDefinition(Definition from, Definition to)
 	succeed;
 
       if ( def->definition.clauses ||	/* defined and not the same */
-	   true(def, DYNAMIC|MULTIFILE|DISCONTIGUOUS) ||
+	   true(def, PROC_DEFINED) ||
 	   false(def->module, UNKNOWN) )
 	fail;
     }
@@ -2549,10 +2532,8 @@ pl_xr_member(term_t ref, term_t term, word h)
     { bool rval = FALSE;
       code op = decode(*PC++);
       
-#ifdef O_DEBUGGER
       if ( op == D_BREAK )
 	op = decode(replacedBreak(PC-1));
-#endif
 
       switch(codeTable[op].argtype)
       { case CA1_PROC:
@@ -2568,6 +2549,11 @@ pl_xr_member(term_t ref, term_t term, word h)
 	case CA1_DATA:
 	{ word xr = *PC;
 	  rval = _PL_unify_atomic(term, xr);
+	  break;
+	}
+	case CA1_MODULE:
+	{ Module xr = (Module)*PC;
+	  rval = _PL_unify_atomic(term, xr->name);
 	  break;
 	}
 	case CA1_INTEGER:
@@ -2718,6 +2704,12 @@ wamListClause(Clause clause)
 	  { Procedure proc = (Procedure) *bp++;
 	    n++;
 	    Putf(" %s", procedureName(proc));
+	    break;
+	  }
+	  case CA1_MODULE:
+	  { Module m = (Module)*bp++;
+	    n++;
+	    Putf(" %s", stringAtom(m->name));
 	    break;
 	  }
 	  case CA1_FUNC:

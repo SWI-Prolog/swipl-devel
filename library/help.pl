@@ -31,14 +31,24 @@ help :-
 	help(help/1).
 
 %	help(+Subject)
-%	Display online help on specified subject.
+%
+%	Display online help on specified subject.  First clause detects
+%	presence of XPCE gui and redirects to the graphical help system.
+%	We use indirection through call/1 to fool check/0 that the
+%	predicate might not be true.
 
+help(What) :-
+	feature(gui, true), !,
+	call(prolog_help(What)).
 help(What) :-
 	give_help(What).
 
 %	apropos(Pattern)
 %	Give a list of subjects that might be appropriate.
 
+apropos(What) :-
+	feature(gui, true), !,
+	call(prolog_apropos(What)).
 apropos(What) :-
 	give_apropos(What).
 

@@ -15,22 +15,26 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 /*#define O_DEBUG 1*/
 
 #include "pl-incl.h"
-#include "pl-save.h"
 #include "pl-ctype.h"
+#include "rc/rc.h"
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
 
-forwards void	usage(void);
-static void	version(void);
-static void	arch(void);
-static void	runtime_vars(void);
+#ifdef FORCED_MALLOC_BASE
+#include "morecore.c"
+#endif
+
+static int	usage(void);
+static int	giveVersionInfo(const char *a);
 static bool	vsysError(const char *fm, va_list args);
 
 #define	optionString(s) { if (argc > 1) \
 			  { s = argv[1]; argc--; argv++; \
 			  } else \
-			    usage(); \
+			  { usage(); \
+			    exit(1); \
+			  } \
 			}
 #define K * 1024L
 
@@ -60,7 +64,7 @@ findHome(char *symbols)
 { char *home = NULL;
   char envbuf[MAXPATHLEN];
   char plp[MAXPATHLEN];
-  const char *val = exec_var("homevar");
+  const char *val;
   
   if ( (val  = exec_var("homevar")) &&
        (home = getenv3(val, envbuf, sizeof(envbuf))) &&
@@ -149,112 +153,6 @@ findHome(char *symbols)
 #define IS_DIR_SEPARATOR(c) ((c) == '/')
 #endif
 
-static char *
-proposeStartupFile(char *symbols)
-{ char state[MAXPATHLEN];
-  char buf[MAXPATHLEN];
-
-  if ( !symbols && (symbols = Symbols(state)) )
-    symbols = DeRefLink(symbols, buf);
-
-  if ( symbols )
-  { char *s, *dot = NULL;
-
-    strcpy(state, symbols);
-    for(s=state; *s; s++)
-    { if ( *s == '.' )
-	dot = s;
-      if ( IS_DIR_SEPARATOR(*s) )
-	dot = NULL;
-    }
-    if ( dot )
-      *dot = EOS;
-
-    strcat(state, ".qlf");
-
-    return store_string(state);
-  }
-
-  if ( systemDefaults.home )
-  { Ssprintf(state, "%s/startup/startup.%s",
-	     systemDefaults.home, systemDefaults.arch);
-    return store_string(AbsoluteFile(state, buf));
-  } else
-    return store_string("pl.qlf");
-}
-
-
-static char *
-findState(char *symbols)
-{ char state[MAXPATHLEN];
-  char *full;
-
-  full = proposeStartupFile(symbols);
-  if ( AccessFile(full, ACCESS_READ) )
-    return full;
-
-  if ( systemDefaults.home )
-  { char tmp[MAXPATHLEN];
-
-    Ssprintf(state, "%s/startup/startup.%s",
-	     systemDefaults.home, systemDefaults.arch);
-    if ( AccessFile(state, ACCESS_READ) )
-      return store_string(AbsoluteFile(state, tmp));
-
-    Ssprintf(state, "%s/startup/startup", systemDefaults.home);
-    if ( AccessFile(state, ACCESS_READ) )
-      return store_string(AbsoluteFile(state, tmp));
-  }
-
-  return NULL;
-}
-
-
-#ifndef O_RUNTIME
-static void
-warnNoFile(char *file)
-{ AccessFile(file, ACCESS_READ);	/* just to set errno */
-
-  Sfprintf(Serror, "    no `%s': %s\n", file, OsError());
-}
-#endif
-
-static void
-warnNoState()
-{
-#ifdef O_RUNTIME
-  Sfprintf(Serror, "[FATAL ERROR: Runtime system: can not find a state to run\n");
-  Sfprintf(Serror, "\tUsage: %s -x state\n", GD->cmdline.argv[0]);
-  Sfprintf(Serror, "\t\twhere <state> is created using qsave_program/[1,2]\n");
-  Sfprintf(Serror, "\t\tin the development system]\n");
-#else
-  char state[MAXPATHLEN];
-  char *full;
-
-  Sfprintf(Serror, "[FATAL ERROR: Failed to find startup file\n");
-  full = proposeStartupFile(NULL);
-  if ( full )
-    warnNoFile(full);
-  if ( systemDefaults.home )
-  { char tmp[MAXPATHLEN];
-    Ssprintf(state, "%s/startup/startup.%s",
-	     systemDefaults.home, systemDefaults.arch);
-    warnNoFile(AbsoluteFile(state, tmp));
-
-    Ssprintf(state, "%s/startup/startup", systemDefaults.home);
-    warnNoFile(AbsoluteFile(state, tmp));
-  } else
-    Sfprintf(Serror, "    No home directory!\n");
-
-  Sfprintf(Serror,
-	  "\nUse\n\t`%s -O -o startup-file -b boot/init.pl'\n",
-	  GD->cmdline.argv[0]);
-  Sfprintf(Serror, "\nto create one]\n");
-#endif
-
-  Halt(1);
-}
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The default name of the system init file `base.rc' is determined from the
 basename of the running program, taking all the leading alnum characters.
@@ -304,198 +202,182 @@ memarea_limit(const char *s)
 }
 
 
-#if O_LINK_PCE
-foreign_t
-pl_pce_init()
-{ prolog_pce_init(GD->cmdline.argc, GD->cmdline.argv);
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+When detected to run under a  GNU-Emacs   shell  or using M-x run-prolog
+from GNU-Emacs, don't pretend we can manipulate the TTY settings.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  succeed;
-}
-#endif
-
-int
-startProlog(int argc, char **argv)
-{ char *s;
-  int n;
-  char *state = NULL, *symbols = NULL;
-  bool compile;
-  bool explicit_state = FALSE;
-  bool explicit_compile_out = FALSE;
-  int loadflags = QLF_TOPLEVEL;
-
-  GD->cmdline.argc = argc;
-  GD->cmdline.argv = argv;
-
-  DEBUG(1, Sdprintf("System compiled at %s %s\n", __TIME__, __DATE__));
-
-#if O_MALLOC_DEBUG
-  malloc_debug(O_MALLOC_DEBUG);
-#endif
-
-  GD->debug_level = 0;
-  DEBUG(1, Sdprintf("OS ...\n"));
-  initOs();				/* initialise OS bindings */
-
-  if ( GD->dumped == FALSE )
-  { char plp[MAXPATHLEN];
-
-    if ( (symbols = Symbols(plp)) &&
-	 (symbols = DeRefLink(symbols, plp)) )
-      symbols = store_string(symbols);
-    else
-      symbols = argv[0];		/* may not be fatal */
-
-    systemDefaults.arch        = ARCH;
-    systemDefaults.home	       = findHome(symbols);
-
-#ifdef O_XOS
-    if ( systemDefaults.home )
-    { char buf[MAXPATHLEN];
-      _xos_limited_os_filename(systemDefaults.home, buf);
-      systemDefaults.home = store_string(buf);
-    }
-#endif
-
-    systemDefaults.startup     = store_string(PrologPath(DEFSTARTUP, plp));
-    systemDefaults.local       = DEFLOCAL;
-    systemDefaults.global      = DEFGLOBAL;
-    systemDefaults.trail       = DEFTRAIL;
-    systemDefaults.argument    = DEFARGUMENT;
-    systemDefaults.heap	       = DEFHEAP;
-    systemDefaults.goal	       = "'$welcome'";
-    systemDefaults.toplevel    = "prolog";
-#ifndef NOTTYCONTROL
-#define NOTTYCONTROL FALSE
-#endif
-    systemDefaults.notty       = NOTTYCONTROL;
-  } else
-  { DEBUG(1, Sdprintf("Restarting from dumped state\n"));
-  }
-
-  compile			= FALSE;
-  GD->io_initialised		= FALSE;
-  GD->initialised		= FALSE;
-  GD->cmdline.notty		= systemDefaults.notty;
-  GD->bootsession		= FALSE;
-  LD->autoload			= TRUE;
-
-  argc--; argv++;
-
-					/* EMACS inferior processes */
-					/* PceEmacs inferior processes */
+static void
+setupGNUEmacsInferiorMode()
 { char envbuf[4];
+  char *s;
 
   if ( ((s = getenv3("EMACS", envbuf, sizeof(envbuf))) && streq(s, "t")) ||
        ((s = getenv3("INFERIOR", envbuf, sizeof(envbuf))) && streq(s, "yes")) )
     GD->cmdline.notty = TRUE;
 }
 
-  for(n=0; n<argc; n++)			/* need to check this first */
-  { DEBUG(2, Sdprintf("argv[%d] = %s\n", n, argv[n]));
-    if (streq(argv[n], "-b") )
-      GD->bootsession = TRUE;
-  }
 
-  DEBUG(1, {if (GD->bootsession) Sdprintf("Boot session\n");});
+static void
+initPaths()
+{ char plp[MAXPATHLEN];
+  char *symbols = NULL;			/* The executable */
 
-  if ( argc >= 2 && streq(argv[0], "-r") )
-  { char tmp[MAXPATHLEN];
-    loaderstatus.restored_state = lookupAtom(AbsoluteFile(argv[1], tmp));
-    argc -= 2, argv += 2;		/* recover; we've done this! */
-  }
+  if ( !(symbols = Symbols(plp)) ||
+       !(symbols = DeRefLink(symbols, plp)) )
+    symbols = GD->cmdline.argv[0];
 
-  if ( argc >= 2 && streq(argv[0], "-x") )
-  { state = argv[1];
-    argc -= 2, argv += 2;
-    explicit_state = TRUE;
-    DEBUG(1, Sdprintf("Startup file = %s\n", state));
-#ifdef ASSOCIATE_STATE
-  } else if ( argc == 1 && stripostfix(argv[0], ASSOCIATE_STATE) )
-  { state = argv[0];
-    argc--, argv++;
-    explicit_state = TRUE;
-    DEBUG(1, Sdprintf("Startup file = %s\n", state));
-#endif /*ASSOCIATE_STATE*/
-  }
-  
-  if ( argc >= 1 )
-  { if ( streq(argv[0], "-help") )
-      usage();
-    if ( streq(argv[0], "-arch") )
-      arch();
-    if ( streq(argv[0], "-v") )
-      version();
-    if ( streq(argv[0], "-dump-runtime-variables") )
-      runtime_vars();
-  }
-
+  GD->paths.executable	     = store_string(symbols);
+  systemDefaults.home	     = findHome(symbols);
+  systemDefaults.startup     = store_string(PrologPath(DEFSTARTUP, plp));
   GD->options.systemInitFile = defaultSystemInitFile(GD->cmdline.argv[0]);
 
-  if ( !GD->bootsession && GD->dumped == FALSE )
-  { int state_loaded = FALSE;
-
-    if ( !explicit_state )
-    { if ( loadWicFile(symbols, loadflags|QLF_OPTIONS|QLF_EXESTATE) == TRUE )
-      { systemDefaults.state = state = symbols;
-	state_loaded++;
-	loadflags |= QLF_EXESTATE;
-      } else
-      { systemDefaults.state = state = findState(symbols);
-	if ( state == NULL )
-	  warnNoState();
-      }
-    }
-
-    if ( !state_loaded && loadWicFile(state, loadflags|QLF_OPTIONS) != TRUE )
-      Halt(1);
-
-    DEBUG(2, Sdprintf("options.localSize    = %ld\n", GD->options.localSize));
-    DEBUG(2, Sdprintf("options.globalSize   = %ld\n", GD->options.globalSize));
-    DEBUG(2, Sdprintf("options.trailSize    = %ld\n", GD->options.trailSize));
-    DEBUG(2, Sdprintf("options.argumentSize = %ld\n", GD->options.argumentSize));
-    DEBUG(2, Sdprintf("options.goal         = %s\n",  GD->options.goal));
-    DEBUG(2, Sdprintf("options.topLevel     = %s\n",  GD->options.topLevel));
-    DEBUG(2, Sdprintf("options.initFile     = %s\n",  GD->options.initFile));
-  } else
-  { if ( !explicit_state )
-      systemDefaults.state = state = findState(symbols);
-
-    GD->options.compileOut	  = "a.out";
-    GD->options.localSize	  = systemDefaults.local    K;
-    GD->options.globalSize	  = systemDefaults.global   K;
-    GD->options.trailSize	  = systemDefaults.trail    K;
-    GD->options.argumentSize  = systemDefaults.argument K;
-    GD->options.heapSize	  = systemDefaults.heap	    K;
-    GD->options.goal	  = systemDefaults.goal;
-    GD->options.topLevel	  = systemDefaults.toplevel;
-    GD->options.initFile      = systemDefaults.startup;
+#ifdef O_XOS
+  if ( systemDefaults.home )
+  { char buf[MAXPATHLEN];
+    _xos_limited_os_filename(systemDefaults.home, buf);
+    systemDefaults.home = store_string(buf);
   }
+#endif
+}
+
+
+static void
+initDefaults()
+{ systemDefaults.arch	     = ARCH;
+  systemDefaults.local       = DEFLOCAL;
+  systemDefaults.global      = DEFGLOBAL;
+  systemDefaults.trail       = DEFTRAIL;
+  systemDefaults.argument    = DEFARGUMENT;
+  systemDefaults.heap	     = DEFHEAP;
+  systemDefaults.goal	     = "'$welcome'";
+  systemDefaults.toplevel    = "prolog";
+  systemDefaults.notty       = NOTTYCONTROL;
+
+  GD->io_initialised	     = FALSE;
+  GD->initialised	     = FALSE;
+  GD->cmdline.notty	     = systemDefaults.notty;
+  GD->bootsession	     = FALSE;
+  LD->autoload		     = TRUE;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Initialise the default values  for  the   various  options.  First,  the
+options are initialised from the  code.  Next,   if  this  is not a boot
+session, the resource $system:options is opened, which contains lines of
+the format
+
+	<name>=<value>
+
+This  file  is  parsed,  and  the    values  are  interpreted.  See  the
+if-then-else below for the defined values.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define MAXVARNAME 256
+#define MAXVARVAL  1024
+
+static int
+getVarFromStream(IOSTREAM *s, char *name, char *value)
+{ char *q;
+  int l;
+  int c;
+
+again:
+  for(l=MAXVARNAME, q=name; --l > 0; )
+  { switch(c = Sgetc(s))
+    { case EOF:
+	return FALSE;
+      case '=':
+	*q = EOS;
+        goto do_value;
+      case '\n':
+	goto again;
+      default:
+	*q++ = c;
+    }
+  }
+  return FALSE;
+
+do_value:
+  for(l=MAXVARVAL, q=value; --l > 0; )
+  { switch(c = Sgetc(s))
+    { case EOF:
+      case '\n':
+	*q = EOS;
+        return TRUE;
+      default:
+	*q++ = c;
+    }
+  }
+  return FALSE;
+}
+
+
+static void
+initDefaultOptions()
+{ GD->options.compileOut    = "a.out";
+  GD->options.localSize     = systemDefaults.local    K;
+  GD->options.globalSize    = systemDefaults.global   K;
+  GD->options.trailSize     = systemDefaults.trail    K;
+  GD->options.argumentSize  = systemDefaults.argument K;
+  GD->options.heapSize      = systemDefaults.heap     K;
+  GD->options.goal	    = systemDefaults.goal;
+  GD->options.topLevel      = systemDefaults.toplevel;
+  GD->options.initFile      = systemDefaults.startup;
+  GD->options.saveclass	    = "none";
+
+  if ( !GD->bootsession && GD->resourceDB )
+  { IOSTREAM *op = SopenRC(GD->resourceDB, "$options", "$prolog", RC_RDONLY);
+
+    if ( op )
+    { char name[MAXVARNAME];
+      char val[MAXVARVAL];
+
+      while( getVarFromStream(op, name, val) )
+	set_pl_option(name, val);
+
+      Sclose(op);
+    }
+  }
+}
+
+
+static int
+parseCommandLineOptions(int argc0, char **argv, int *compile)
+{ int argc = argc0;
 
   for( ; argc > 0 && (argv[0][0] == '-' || argv[0][0] == '+'); argc--, argv++ )
-  { if ( streq(&argv[0][1], "tty") )
-    { GD->cmdline.notty = (argv[0][0] == '-');
-      continue;
-    }
-    if ( streq(&argv[0][1], "-" ) )	/* pl <plargs> -- <app-args> */
+  { char *s = &argv[0][1];
+
+    if ( streq(s, "-" ) )		/* pl <plargs> -- <app-args> */
       break;
 
-    s = &argv[0][1];
+    if ( streq(s, "tty") )	/* +/-tty */
+    { GD->cmdline.notty = (s[-1] == '-');
+      continue;
+    }
+
     while(*s)
     { switch(*s)
       { case 'd':	if (argc > 1)
 			{ GD->debug_level = atoi(argv[1]);
 			  argc--, argv++;
 			} else
-			  usage();
+			{ usage();
+			  exit(1);
+			}
 			break;
 	case 'p':	if (!argc)	/* handled in Prolog */
-			  usage();
+			{ usage();
+			  exit(1);
+			}
 			argc--, argv++;
 			break;
 	case 'O':	GD->cmdline.optimise = TRUE;
 			break;
+	case 'x':
   	case 'o':	optionString(GD->options.compileOut);
-			explicit_compile_out = TRUE;
 			break;
 	case 'f':	optionString(GD->options.initFile);
 			break;
@@ -505,18 +387,10 @@ startProlog(int argc, char **argv)
 			break;
 	case 't':	optionString(GD->options.topLevel);
 			break;
-	case 'c':	compile = TRUE;
+	case 'c':	*compile = TRUE;
 			break;
 	case 'b':	GD->bootsession = TRUE;
 			break;
-	case 'B':
-#if !O_DYNAMIC_STACKS
-			GD->options.localSize    = 32 K;
-			GD->options.globalSize   = 8 K;
-			GD->options.trailSize    = 8 K;
-			GD->options.argumentSize = 1 K;
-#endif
-			goto next;
 	case 'L':
 	case 'G':
 	case 'T':
@@ -525,7 +399,9 @@ startProlog(int argc, char **argv)
         { unsigned long size = memarea_limit(&s[1]);
 	  
 	  if ( size == MEMAREA_INVALID_SIZE )
-	    usage();
+	  { usage();
+	    exit(1);
+	  }
 
 	  switch(*s)
 	  { case 'L':	GD->options.localSize    = size; goto next;
@@ -540,54 +416,207 @@ startProlog(int argc, char **argv)
     }
     next:;
   }
-#undef K
+
+  return argc0-argc;
+}
+
+
+void
+replace_extension(char *path, const char *ext)
+{ char *s = path + strlen(path);
+
+  for( ; s > path; s-- )
+  { if ( s[-1] == '.' )
+    { strcpy(s, ext);
+      return;
+    }
+    if ( s[-1] == '/' )
+      break;
+  }
+
+  s += strlen(s);
+  *s++ = '.';
+  strcpy(s, ext);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Find the resource database.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+RcArchive
+openResourceDB(int argc, char **argv)
+{ RcArchive rc;
+  char *xfile = NULL;
+  int flags = (GD->bootsession ? RC_WRONLY|RC_CREATE|RC_TRUNC : RC_RDONLY);
+  char tmp[MAXPATHLEN];
+  int n;
+
+  if ( !GD->bootsession && 
+       (rc = rc_open_archive(GD->paths.executable, flags)) )
+    return rc;
   
-  DEBUG(1, Sdprintf("Command line options parsed\n"));
+  for(n=0; n<argc-1; n++)
+  { if ( argv[n][0] == '-' && argv[n][2] == EOS ) /* -? */
+    { if ( GD->bootsession )
+      { if ( argv[n][1] == 'o' )
+	{ xfile = argv[n+1];
+	  break; 
+	}
+      } else
+      { if ( argv[n][1] == 'x' )
+	{ xfile = argv[n+1];
+	  break; 
+	}
+      }
+    }
+  }
+
+  if ( xfile )
+  { if ( !(rc = rc_open_archive(xfile, flags)) )
+      fatalError("Could not open resource database \"%s\": %s",
+		 xfile, OsError());
+
+    return rc;
+  }
+
+  strcpy(tmp, GD->paths.executable);
+  replace_extension(tmp, "prc");
+
+  if ( (rc=rc_open_archive(tmp, flags)) )
+    return rc;
+
+  if ( systemDefaults.home )
+  { strcpy(tmp, systemDefaults.home);
+    strcat(tmp, "/boot.prc");
+
+    return rc_open_archive(tmp, flags);
+  }
+
+  return NULL;
+}
+
+
+int
+PL_initialise(int argc, char **argv)
+{ int n;
+  bool compile = FALSE;
+  const char *rcpath = "<none>";
+
+  GD->cmdline.argc = argc;
+  GD->cmdline.argv = argv;
+  GD->debug_level  = 0;			/* 1-9: debug, also -d <level> */
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+FORCED_MALLOC_BASE is a debugging aid for  me   to  force  the system to
+allocate memory starting from a specific   address.  Probably only works
+properly on Linux. Don't bother with it.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef FORCED_MALLOC_BASE
+  start_memory((void *)FORCED_MALLOC_BASE);
+  Sdprintf("FORCED_MALLOC_BASE at 0x%08x\n", FORCED_MALLOC_BASE);
+#endif
+#if O_MALLOC_DEBUG
+  malloc_debug(O_MALLOC_DEBUG);
+#endif
+
+  initOs();				/* Initialise OS bindings */
+  initDefaults();			/* Initialise global defaults */
+  initPaths();				/* fetch some useful paths */
+  setupGNUEmacsInferiorMode();		/* Detect running under EMACS */
+
+  
+  if ( (GD->resourceDB = rc_open_archive(GD->paths.executable, RC_RDONLY)) )
+  { rcpath = ((RcArchive)GD->resourceDB)->path;
+    initDefaultOptions();
+  }
+
+  if ( !GD->resourceDB ||
+       !streq(GD->options.saveclass, "runtime") )
+  { argc--; argv++;
+
+    if ( argc == 1 && giveVersionInfo(argv[0]) ) /* -help, -v, etc */
+      exit(0);
+
+    for(n=0; n<argc; n++)		/* need to check this first */
+    { if ( streq(argv[n], "--" ) )	/* --: terminates argument list */
+	break;
+      if ( streq(argv[n], "-b" ) )	/* -b: boot compilation */
+      { GD->bootsession = TRUE;
+	break;
+      }
+    }
+
+    DEBUG(1, if (GD->bootsession) Sdprintf("Boot session\n"););
+
+    if ( !GD->resourceDB )
+    { int done;
+
+      if ( !(GD->resourceDB = openResourceDB(argc, argv)) )
+	fatalError("Could not find system resources");
+      rcpath = ((RcArchive)GD->resourceDB)->path;
+
+      initDefaultOptions();
+      done = parseCommandLineOptions(argc, argv, &compile);
+      argc -= done;
+      argv += done;
+    }
+  }
 
   setupProlog();
-  initialiseForeign(argc, argv);	/* PL_initialise_hook() functions */
-
+  CSetFeature("resource_database", rcpath);
+  initialiseForeign(GD->cmdline.argc, /* PL_initialise_hook() functions */
+		    GD->cmdline.argv);
   systemMode(TRUE);
 
   if ( GD->bootsession )
-  { if ( !explicit_compile_out )
-      GD->options.compileOut = proposeStartupFile(NULL);
+  { IOSTREAM *s = SopenRC(GD->resourceDB, "$state", "$prolog", RC_WRONLY);
+    char *rcpathcopy = store_string(rcpath); /* rcpath is destroyed on close */
 
-    LD->autoload = FALSE;
-    if ( compileFileList(GD->options.compileOut, argc, argv) == TRUE )
-    {
-#if defined(__WINDOWS__) || defined(__WIN32__)
-      PlMessage("Boot compilation has created %s", GD->options.compileOut);
-#else
-      if ( !explicit_compile_out )
-	Sfprintf(Serror, "Result stored in %s\n", GD->options.compileOut);
-#endif
-      Halt(0);
-    }
-
-    Halt(1);
-  }
-
-  if ( state != NULL )
-  { GD->bootsession = TRUE;
-    if ( loadWicFile(state, loadflags) != TRUE )
+    if ( !compileFileList(s, argc, argv) )
       Halt(1);
-    GD->bootsession = FALSE;
-    CSetFeature("boot_file", state);
+    if ( Sclose(s) != 0 ||
+	 !rc_close_archive(GD->resourceDB) )
+    { 
+#if defined(__WINDOWS__) || defined(__WIN32__)
+      PlMessage("Failed to save system resources: %s", rc_strerror(rc_errno));
+#else
+      Sfprintf(Serror,
+	       "[ERROR: Failed to save system resources %s]\n",
+	       rc_strerror(rc_errno));
+#endif
+      Halt(1);
+    }
+#if defined(__WINDOWS__) || defined(__WIN32__)
+    PlMessage("Boot compilation has created %s", rcpathcopy);
+#else
+    Sfprintf(Serror,
+	     "Boot compilation has created %s\n", rcpathcopy);
+#endif
+    Halt(0);
+  } else
+  { IOSTREAM *statefd = SopenRC(GD->resourceDB, "$state", "$prolog", RC_RDONLY);
+
+    if ( statefd )
+    { GD->bootsession = TRUE;
+      if ( !loadWicFromStream(statefd) )
+	Halt(1);
+      GD->bootsession = FALSE;
+
+      Sclose(statefd);
+    } else
+      fatalError("Resource database \"%s\" does not contain a saved state",
+		 rcpath);
   }
 
   debugstatus.styleCheck = (LONGATOM_CHECK|
 			    SINGLETON_CHECK|
 			    DISCONTIGUOUS_STYLE);
   systemMode(FALSE);
-  GD->dumped = TRUE;
   GD->initialised = TRUE;
 
-#if O_LINK_PCE
-  PL_register_foreign("$pce_init", 0, pl_pce_init, PL_FA_TRANSPARENT, 0);
-#endif
-
-  DEBUG(1, Sdprintf("Starting Prolog Engine\n"));
+  DEBUG(1, Sdprintf("Starting Prolog Part of initialisation\n"));
 
   if ( compile )
   { Halt(prolog(lookupAtom("$compile")) ? 0 : 1);
@@ -598,7 +627,7 @@ startProlog(int argc, char **argv)
 
 typedef const char *cline;
 
-static void
+static int
 usage()
 { static const cline lines[] = {
     "%s: Usage:\n",
@@ -613,7 +642,6 @@ usage()
     "Options:\n",
     "    -x state         Start from state (must be first)\n",
     "    -[LGTAH]size[KM] Specify {Local,Global,Trail,Argument,Heap} limits\n",
-    "    -B               Small stack sizes to prepare for boot\n",
     "    -t toplevel      Toplevel goal\n",
     "    -g goal          Initialisation goal\n",
     "    -f file          Initialisation file\n",
@@ -627,10 +655,10 @@ usage()
   for(lp = lines; *lp; lp++)
     Sfprintf(Serror, *lp, BaseName(GD->cmdline.argv[0]));
 
-  Halt(1);
+  return TRUE;
 }
 
-static void
+static int
 version()
 { Sprintf("SWI-Prolog version %d.%d.%d for %s\n",
 	  PLVERSION / 10000,
@@ -638,19 +666,19 @@ version()
 	  PLVERSION % 100,
 	  ARCH);
 
-  Halt(0);
+  return TRUE;
 }
 
 
-static void
+static int
 arch()
 { Sprintf("%s\n", ARCH);
 
-  Halt(0);
+  return TRUE;
 }
 
 
-static void
+static int
 runtime_vars()
 { Sprintf("CC=\"%s\";\n"
 	  "PLBASE=\"%s\";\n"
@@ -670,8 +698,24 @@ runtime_vars()
 	  C_LDFLAGS,
 	  PLVERSION);
 
-  Halt(0);
+  return TRUE;
 }
+
+
+static int
+giveVersionInfo(const char *a)
+{ if ( streq(a, "-help") )
+    return usage();
+  if ( streq(a, "-arch") )
+    return arch();
+  if ( streq(a, "-v") )
+    return version();
+  if ( streq(a, "-dump-runtime-variables") )
+    return runtime_vars();
+
+  return FALSE;
+}
+
 
 #include <stdarg.h>
 
@@ -743,6 +787,8 @@ action:
   { case 'a':
       pl_abort();
       break;
+    case EOF:
+      Sprintf("EOF: exit\n");
     case 'e':
       Halt(3);
       break;

@@ -248,7 +248,7 @@ $toplevel :-
 	$ttyformat('[halt]~n', []).		
 
 $runtoplevel :-
-	$option(top_level, TopLevelAtom, TopLevelAtom), 
+	$option(toplevel, TopLevelAtom, TopLevelAtom), 
 	term_to_atom(TopLevel, TopLevelAtom), 
 	user:TopLevel.
 
@@ -479,13 +479,16 @@ answer_respons(Char, redo) :-
 	trace,
 	$format_if_tty('; [trace]~n').
 answer_respons(Char, continue) :-
-	memberchk(Char, [0'c, 0' , 10, 13, 0'y, 0'Y]), !.
+	memberchk(Char, [0'c, 0'a, 0' , 10, 13, 0'y, 0'Y]), !.
 answer_respons(0'b, show_again) :- !,
 	break.
 answer_respons(Char, show_again) :-
 	print_predicate(Char, Pred), !,
 	$format_if_tty('~w~n', [Pred]),
 	flag($toplevel_print_predicate, _, Pred).
+answer_respons(-1, show_again) :- !,
+	$format_if_tty('EOF: exit~n'),
+	halt(0).
 answer_respons(_, again) :-
 	$ttyformat('~nUnknown action (h for help)~nAction? '),
 	ttyflush.
@@ -496,10 +499,10 @@ print_predicate(0'p, print).
 
 show_toplevel_usage :-
 	$ttyformat('~nActions:~n'),
-	$ttyformat('; (n, r):     redo    t:               trace & redo~n'),
-	$ttyformat('b:            break   c (ret, space):  continue~n'),
-	$ttyformat('d:            display p                print~n'),
-	$ttyformat('w:            write   h (?):           help~n').
+	$ttyformat('; (n, r):     redo    t:                 trace & redo~n'),
+	$ttyformat('b:            break   c (a, RET, space): continue~n'),
+	$ttyformat('d:            display p                  print~n'),
+	$ttyformat('w:            write   h (?):             help~n').
 
 $format_if_tty(Fmt) :-
 	$format_if_tty(Fmt, []).

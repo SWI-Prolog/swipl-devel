@@ -96,3 +96,6 @@
 
 /* Define if the type rlim_t is defined by <sys/resource.h> */
 #undef HAVE_RLIM_T
+
+/* Define to 1 if &&label and goto *var is supported (GCC-2) */
+#undef O_LABEL_ADDRESSES

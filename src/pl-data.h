@@ -100,9 +100,13 @@ Indirect data
 #define TAG_REFERENCE	0x00000007L	/* Reference pointer */
 
 					/* Trail tag-bits */
-#define TAG_TRAILMASK	0x00000000L	/* mask for tag */
+#define TAG_TRAILMASK	0x00000001L	/* mask for tag */
 #define TAG_TRAILADDR	0x00000000L	/* Trail-only: address */
 #define TAG_TRAILVAL	0x00000001L	/* Trail-only: value */
+#define tagTrailPtr(p)	((Word)((ulong)(p)|TAG_TRAILVAL))
+#define isTrailVal(p)	((ulong)(p)&TAG_TRAILVAL)
+#define trailValP(p)	((Word)((ulong)(p)&~TAG_TRAILMASK))
+#define trailVal(p)	(*trailValP(p))
 
 #define STG_MASK	(0x3<<3)
 #define STG_STATIC	(0x0<<3)	/* storage masks */
@@ -161,7 +165,7 @@ extern const unsigned int tagtypeex[];
 
 #define functorTerm(w)	valueTerm(w)->definition
 #define arityTerm(w)	arityFunctor(valueTerm(w)->definition)
-#define valueTerm(w)	((Functor)valPtr(w))
+#define valueTerm(w)	((Functor)valPtr2(w, STG_GLOBAL))
 #define hasFunctor(w,f) (isTerm(w) && valueTerm(w)->definition == (f))
 #define argTerm(w, n)	(((Functor)valPtr(w))->arguments[n])
 #define argTermP(w, n)	(&argTerm(w, n))

@@ -83,12 +83,6 @@
 /* Define if (type)var = value is allowed */
 #undef TAGGED_LVALUE
 
-/* Define if first data symbol not is environ */
-#undef FIRST_DATA_SYMBOL
-
-/* Define if pl-save.c works */
-#undef O_SAVE
-
 /* Define if symbolic links are supported by the OS */
 #undef HAVE_SYMLINKS
 
@@ -139,6 +133,9 @@
 
 /* Define if the type rlim_t is defined by <sys/resource.h> */
 #undef HAVE_RLIM_T
+
+/* Define to 1 if &&label and goto *var is supported (GCC-2) */
+#undef O_LABEL_ADDRESSES
 
 /* Define if you have the access function.  */
 #undef HAVE_ACCESS
@@ -193,6 +190,9 @@
 
 /* Define if you have the memmove function.  */
 #undef HAVE_MEMMOVE
+
+/* Define if you have the mmap function.  */
+#undef HAVE_MMAP
 
 /* Define if you have the opendir function.  */
 #undef HAVE_OPENDIR
@@ -308,6 +308,9 @@
 /* Define if you have the <sys/file.h> header file.  */
 #undef HAVE_SYS_FILE_H
 
+/* Define if you have the <sys/mman.h> header file.  */
+#undef HAVE_SYS_MMAN_H
+
 /* Define if you have the <sys/ndir.h> header file.  */
 #undef HAVE_SYS_NDIR_H
 
@@ -343,9 +346,6 @@
 
 /* Define if you have the dld library (-ldld).  */
 #undef HAVE_LIBDLD
-
-/* Define if you have the elf library (-lelf).  */
-#undef HAVE_LIBELF
 
 /* Define if you have the m library (-lm).  */
 #undef HAVE_LIBM

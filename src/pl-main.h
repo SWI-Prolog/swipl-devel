@@ -37,6 +37,7 @@ typedef struct
   char *	initFile;		/* -f initialisation file */
   char *	systemInitFile;		/* -F initialisation file */
   char *	compileOut;		/* file to store compiler output */
+  char *	saveclass;		/* Type of saved state */
 } pl_options_t;
 
 
@@ -49,6 +50,9 @@ typedef struct
 #endif
 #ifndef SYSTEMHOME
 #define SYSTEMHOME "/usr/local/lib/pl"
+#endif
+#ifndef NOTTYCONTROL
+#define NOTTYCONTROL FALSE
 #endif
 
 #ifndef ARCH

@@ -920,7 +920,8 @@ dobind_vars(Word t, atom_t constant)
 { deRef(t);
 
   if ( isVar(*t) )
-  { unifyAtomic(t, constant);
+  { *t = constant;
+    DoTrail(t);
     return;
   }
   if ( isTerm(*t) )
@@ -1926,7 +1927,7 @@ pl_depth_limit_true(term_t limit, term_t olimit, term_t oreached,
 	  fail;
     
 	if ( environment_frame->backtrackFrame->predicate ==
-	     PROCEDURE_alt1->definition &&
+	     PROCEDURE_alt0->definition &&
 	     environment_frame->parent ==
 	     environment_frame->backtrackFrame->parent )
 	{ return PL_unify_atom(cut, ATOM_cut);
@@ -2289,35 +2290,159 @@ pl_feature(term_t key, term_t value, word h)
 		*            OPTIONS            *
 		*********************************/
 
-/*   Obtain those options we need in the Prolog code from the option
-     structure.
-*/
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+pl_option() realises $option/3, providing access to the option structure
+from Prolog. This is halfway a generic  structure package ... Anyway, it
+is better then direct coded access, as   the indirect approach allows us
+to enumerate the options and generalise   the option processing from the
+saved-states.
+
+See also pl-main.c, which exploits set_pl_option()  to parse the options
+resource  member.  Please  note  this   code   doesn't   use   atoms  as
+set_pl_option() is called before the Prolog system is initialised.
+
+This code should be moved into another file.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct
+{ const char   *name;
+  int   	type;
+  void	       *address;
+} optdef, *OptDef;
+
+#define CMDOPT_LONG   0
+#define CMDOPT_STRING 1
+
+static const optdef optdefs[] =
+{ { "local",		CMDOPT_LONG,	&GD->options.localSize },
+  { "global",		CMDOPT_LONG,	&GD->options.globalSize },
+  { "trail",		CMDOPT_LONG,	&GD->options.trailSize },
+  { "argument",		CMDOPT_LONG,	&GD->options.argumentSize },
+  { "heap",		CMDOPT_LONG,	&GD->options.heapSize },
+
+  { "goal",		CMDOPT_STRING,	&GD->options.goal },
+  { "toplevel",		CMDOPT_STRING,	&GD->options.topLevel },
+  { "init_file",	CMDOPT_STRING,	&GD->options.initFile },
+  { "system_init_file",	CMDOPT_STRING,	&GD->options.systemInitFile },
+  { "compileout",	CMDOPT_STRING,	&GD->options.compileOut },
+  { "class",		CMDOPT_STRING,  &GD->options.saveclass },
+
+  { NULL,		0,		NULL }
+};
 
 word
-pl_option(term_t key, term_t old, term_t new)
-{ char *result, *n;
-  atom_t k;
+pl_option(term_t key, term_t old, term_t new, control_t h)
+{ char *k;
 
-  if ( !PL_get_atom(key, &k) )
-    fail;
+  switch( ForeignControl(h) )
+  { int index;
 
-  if (     k == ATOM_goal)	       result = GD->options.goal;
-  else if (k == ATOM_top_level)	       result = GD->options.topLevel;
-  else if (k == ATOM_init_file)        result = GD->options.initFile;
-  else if (k == ATOM_system_init_file) result = GD->options.systemInitFile;
-  else fail;
+    case FRG_FIRST_CALL:
+      if ( PL_is_variable(key) )
+      { index = 0;
+	
+      next:
+	for( ; optdefs[index].name; index++ )
+	{ switch( optdefs[index].type )
+	  { case CMDOPT_LONG:
+	    { long *val = optdefs[index].address;
 
-  if ( !PL_unify_atom_chars(old, result) ||
-       !PL_get_atom_chars(new, &n) )
-    fail;
+	      if ( !PL_unify_integer(old, *val) )
+		continue;
+	      break;
+	    }
+	    case CMDOPT_STRING:
+	    { char **val = optdefs[index].address;
+	      
+	      if ( !PL_unify_atom_chars(old, *val) )
+		continue;
+	      break;
+	    }
+	  }
+	  PL_unify_atom_chars(key, optdefs[index].name);
+	  ForeignRedoInt(index+1);
+	}
 
-  if (     k == ATOM_goal)		   GD->options.goal     = n;
-  else if (k == ATOM_top_level)		   GD->options.topLevel = n;
-  else if (k == ATOM_init_file) 	   GD->options.initFile = n;
-  else /*if (k == ATOM_system_init_file)*/ GD->options.systemInitFile = n;
+	fail;
+      }
+      break;
+    case FRG_REDO:
+      index = ForeignContextInt(h);
+      goto next;
+    case FRG_CUTTED:
+      succeed;
+  }
 
-  succeed;
+  if ( PL_get_atom_chars(key, &k) )
+  { OptDef d = (OptDef)optdefs;
+
+    for( ; d->name; d++ )
+    { if ( streq(k, d->name) )
+      { switch(d->type)
+	{ case CMDOPT_LONG:
+	  { long *val = d->address;
+	    long newval;
+
+	    if ( !PL_unify_integer(old, *val) ||
+		 !PL_get_long(new, &newval) )
+	      fail;
+	    *val = newval;
+
+	    succeed;
+	  }
+	  case CMDOPT_STRING:
+	  { char **val = d->address;
+	    char *newval;
+
+	    if ( !PL_unify_atom_chars(old, *val) ||
+		 !PL_get_atom_chars(new, &newval) )
+	      fail;
+	    *val = newval;
+
+	    succeed;
+	  }
+	}
+      }
+    }
+  }
+
+  fail;
 }
+
+
+int
+set_pl_option(const char *name, const char *value)
+{ OptDef d = (OptDef)optdefs;
+
+  for( ; d->name; d++ )
+  { if ( streq(name, d->name) )
+    { switch(d->type)
+      { case CMDOPT_LONG:
+	{ long *val = d->address;
+	  number n;
+	  unsigned char *q;
+
+	  if ( get_number((unsigned char *)value, &q, &n) &&
+	       *q == EOS &&
+	       intNumber(&n) )
+	  { *val = n.value.i;
+	    succeed;
+	  }
+	  fail;
+	}
+	case CMDOPT_STRING:
+	{ char **val = d->address;
+	  
+	  *val = store_string(value);
+	  succeed;
+	}
+      }
+    }
+  }
+
+  fail;
+}
+
 
 
 word

@@ -84,10 +84,12 @@ write_manual :-
 list(Name, Arity) :-
 	functor(Head, Name, Arity),
 	format(out, '%   Predicate ~w/~w~n~n', [Name, Arity]),
+	set_feature(character_escapes, false),
 	Head,
 	    format(out, '~q.~n', Head),
 	fail.
 list(_, _) :-
+	set_feature(character_escapes, true),
 	format(out, '~n~n', []).
 
 %	read_index/0
@@ -210,6 +212,7 @@ skipall(Line, Line, []).
 %	Identify line as describing a predicate
 
 predicate_line(Name, Arity) -->
+	optional_module,
 	optional_directive,
 	atom(Name),
 	arguments(Arity), !,
@@ -252,6 +255,12 @@ optional_directive -->
 	starts(":- "), !,
 	skip_blanks.
 optional_directive -->
+	{ true }.
+
+optional_module -->
+	atom(_),
+	":", !.
+optional_module -->
 	{ true }.
 
 atom(Name) -->

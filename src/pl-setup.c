@@ -89,37 +89,30 @@ setupProlog(void)
 #endif
 
   emptyStacks();
-
-  if ( !GD->dumped )
-  { DEBUG(1, Sdprintf("Atoms ...\n"));
-    initAtoms();
-    DEBUG(1, Sdprintf("Features ...\n"));
-    initFeatures();
-    DEBUG(1, Sdprintf("Functors ...\n"));
-    initFunctors();
-    DEBUG(1, Sdprintf("Modules ...\n"));
-    initTables();
-    initModules();
-    DEBUG(1, Sdprintf("Records ...\n"));
-    initRecords();
-    DEBUG(1, Sdprintf("Flags ...\n"));
-    initFlags();
-    DEBUG(1, Sdprintf("Foreign Predicates ...\n"));
-    initBuildIns();
-    DEBUG(1, Sdprintf("Operators ...\n"));
-    initOperators();
-    DEBUG(1, Sdprintf("Arithmetic ...\n"));
-    initArith();
-    DEBUG(1, Sdprintf("Tracer ...\n"));
-    initTracer();
-    debugstatus.styleCheck = SINGLETON_CHECK;
-    DEBUG(1, Sdprintf("wam_table ...\n"));
-    initWamTable();
-  } else
-  { resetReferences();
-    resetGC();				/* reset garbage collector */
-    GD->stateList = (State) NULL;	/* all states are already in core */
-  }
+  DEBUG(1, Sdprintf("Atoms ...\n"));
+  initAtoms();
+  DEBUG(1, Sdprintf("Features ...\n"));
+  initFeatures();
+  DEBUG(1, Sdprintf("Functors ...\n"));
+  initFunctors();
+  DEBUG(1, Sdprintf("Modules ...\n"));
+  initTables();
+  initModules();
+  DEBUG(1, Sdprintf("Records ...\n"));
+  initRecords();
+  DEBUG(1, Sdprintf("Flags ...\n"));
+  initFlags();
+  DEBUG(1, Sdprintf("Foreign Predicates ...\n"));
+  initBuildIns();
+  DEBUG(1, Sdprintf("Operators ...\n"));
+  initOperators();
+  DEBUG(1, Sdprintf("Arithmetic ...\n"));
+  initArith();
+  DEBUG(1, Sdprintf("Tracer ...\n"));
+  initTracer();
+  debugstatus.styleCheck = SINGLETON_CHECK;
+  DEBUG(1, Sdprintf("wam_table ...\n"));
+  initWamTable();
   DEBUG(1, Sdprintf("IO ...\n"));
   initIO();
   DEBUG(1, Sdprintf("Loader ...\n"));
@@ -153,12 +146,12 @@ Feature interface
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-CSetFeature(char *name, char *value)
+CSetFeature(const char *name, const char *value)
 { setFeature(lookupAtom(name), FT_ATOM, lookupAtom(value));
 }
 
 static void
-CSetIntFeature(char *name, long value)
+CSetIntFeature(const char *name, long value)
 { setFeature(lookupAtom(name), FT_INTEGER, value);
 }
 
@@ -174,7 +167,6 @@ initFeatures()
   if ( systemDefaults.home )
     CSetFeature("home",		systemDefaults.home);
   CSetFeature("c_libs",		C_LIBS);
-  CSetFeature("c_staticlibs",	C_STATICLIBS);
   CSetFeature("c_cc",		C_CC);
   CSetFeature("c_ldflags",	C_LDFLAGS);
   CSetFeature("gc",		"true");
@@ -289,27 +281,21 @@ static void
 initSignals(void)
 { int n;
 
-  if ( !GD->dumped )
-  { for( n = 0; n < MAXSIGNAL; n++ )
-    { LD_sig_handler(n).os = LD_sig_handler(n).user = SIG_DFL;
-      LD_sig_handler(n).catched = FALSE;
-    }
+  for( n = 0; n < MAXSIGNAL; n++ )
+  { LD_sig_handler(n).os = LD_sig_handler(n).user = SIG_DFL;
+    LD_sig_handler(n).catched = FALSE;
+  }
 
 #ifdef SIGTTOU
-    pl_signal(SIGTTOU, SIG_IGN);
+  pl_signal(SIGTTOU, SIG_IGN);
 #endif
 #if !O_DEBUG && !defined(_DEBUG)	/* just crash when debugging */
-    pl_signal(SIGSEGV, (handler_t)fatal_signal_handler);
-    pl_signal(SIGILL,  (handler_t)fatal_signal_handler);
+  pl_signal(SIGSEGV, (handler_t)fatal_signal_handler);
+  pl_signal(SIGILL,  (handler_t)fatal_signal_handler);
 #ifdef SIGBUS
-    pl_signal(SIGBUS,  (handler_t)fatal_signal_handler);
+  pl_signal(SIGBUS,  (handler_t)fatal_signal_handler);
 #endif
 #endif
-  } else
-  { for( n = 0; n < MAXSIGNAL; n++ )
-      if ( LD_sig_handler(n).os != SIG_DFL )
-        signal(n, LD_sig_handler(n).os);
-  }
 
 #ifdef HAVE_SIGGETMASK
   defsigmask = siggetmask();
@@ -613,12 +599,30 @@ dataLimit()
 #ifdef TOPOFHEAP
 #define topOfHeap() TOPOFHEAP
 #else /*TOPOFHEAP*/
+					/* __linux__ TASK_SIZE stuff */
+					/* contributed by Roman Hodek */
+#ifdef __linux__
+#include <asm/page.h>
+#include <asm/system.h>
+#include <asm/ptrace.h>
+#include <asm/segment.h>
+#include <asm/processor.h>
+#endif
+
 ulong
 topOfHeap()
 { ulong data = dataLimit();
 
   if ( data )
   { ulong top = heap_base + data;
+
+#ifdef TASK_SIZE
+    if ( top < heap_base || top > TASK_SIZE )
+      top = TASK_SIZE;
+#else
+    if ( top < heap_base )
+      return 0L;
+#endif
 
     DEBUG(1, Sdprintf("Heap: %p ... %p\n", (void *)heap_base, (void *)top));
     return top;
@@ -1413,18 +1417,6 @@ init_stack(Stack s, char *name, long size, long limit, long minfree)
   s->small     = (s->gc ? SMALLSTACK : 0);
 }
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-On tos, malloc() returns a 2 byte  aligned  pointer.   We  need  4  byte
-aligned  pointers.   Allocate() is patched for that and dumped states do
-not exist.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#if tos
-#define MALLOC(p, n)    Allocate(n)
-#else
-#define MALLOC(p, n)	(!GD->dumped ? malloc(n) : realloc(p, n))
-#endif
-
 static void
 initStacks(long local, long global, long trail, long arg)
 { long old_heap = GD->statistics.heap;
@@ -1438,12 +1430,12 @@ initStacks(long local, long global, long trail, long arg)
   long ilocal  = local;
 #endif
 
-  gBase = (Word) MALLOC(gBase, iglobal + sizeof(word) +
-			       ilocal + sizeof(struct localFrame) +
-			       MAXARITY * sizeof(word));
+  gBase = (Word) malloc(iglobal + sizeof(word) +
+			ilocal + sizeof(struct localFrame) +
+			MAXARITY * sizeof(word));
   lBase = (LocalFrame)	addPointer(gBase, iglobal+sizeof(word));
-  tBase = (TrailEntry)	MALLOC(tBase, itrail);
-  aBase = (Word *)	MALLOC(aBase, arg);
+  tBase = (TrailEntry)	malloc(itrail);
+  aBase = (Word *)	malloc(arg);
 
   init_stack((Stack)&LD->stacks.global,	  "global",   iglobal, global, 100 K);
   init_stack((Stack)&LD->stacks.local,    "local",    ilocal,  local,   16 K);

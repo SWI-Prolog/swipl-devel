@@ -10,6 +10,7 @@
 /*#define O_SECURE 1*/
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include <errno.h>
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog  new-style  foreign-language  interface.   This  new  foreign
@@ -62,6 +63,53 @@ valHandle(term_t r)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Deduce the value to store a copy of the  contents of p. This is a *very*
+frequent operation. There  are  a  couple   of  options  to  realise it.
+Basically, we can choose between simple  dereferencing and returning the
+value or create a new reference.  In the latter case, we are a bit unlucky,
+as we could also have returned the last reference.
+
+Second, we can opt  for  inlining  or   not.  Especially  in  the latter
+variation, which is a bit longer, a function might actually be faster.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static word
+linkVal(Word p)
+{ 
+#if 0
+  deRef(p);
+  return isVar(*p) ? makeRef(p) : *p;
+#else
+#if 1
+  word w = *p;
+
+  if ( isVar(w) )
+    return makeRef(p);
+
+  while( isRef(w) )
+  { p = unRef(w);
+    if ( isVar(*p) )
+      return w;
+    w = *p;
+  }
+
+  return w;
+#else
+  word w = 0;
+
+  while(isRef(*p))
+  { w = *p;
+    p = unRef(w);
+  }
+  if ( isVar(*p) )
+    return w ? w : makeRef(p);
+  return *p;
+#endif
+#endif
+}
+
+
 		 /*******************************
 		 *	   CREATE/RESET		*
 		 *******************************/
@@ -78,10 +126,8 @@ PL_new_term_refs(int n)
   lTop = (LocalFrame)(t+n);
   verifyStack(local);
 
-  while(n-- > 0)
-  { SECURE(assert(*t != QID_MAGIC));
+  while( --n >= 0 )
     setVar(*t++);
-  }
   
   return r;
 }
@@ -115,12 +161,45 @@ PL_copy_term_ref(term_t from)
 
   lTop = (LocalFrame)(t+1);
   verifyStack(local);
-  deRef(p2);
-  *t = isVar(*p2) ? makeRef(p2) : *p2;
+  *t = linkVal(p2);
   
   return r;
 }
 
+		 /*******************************
+		 *	    UNIFICATION		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+unifyAtomic(p, a) unifies a term, represented by  a pointer to it, with
+an atomic value. It is intended for foreign language functions.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static bool
+unifyAtomic(term_t t, word w)
+{ Word p = valHandleP(t);
+
+  for(;;)
+  { if ( isVar(*p) )
+    { *p = w;
+      Trail(p, environment_frame);  
+      succeed;
+    }
+
+    if ( isRef(*p) )
+    { p = unRef(*p);
+      continue;
+    }
+
+    if ( *p == w )
+      succeed;
+
+    if ( isIndirect(w) && isIndirect(*p) )
+      return equalIndirect(w, *p);
+
+    fail;
+  }
+}
 
 		 /*******************************
 		 *	       ATOMS		*
@@ -244,13 +323,22 @@ PL_compare(term_t t1, term_t t2)
 		 *	      INTEGERS		*
 		 *******************************/
 
-word
-makeNum(long i)
-{ if ( inTaggedNumRange(i) )
-    return consInt(i);
+inline word
+__makeNum(long i)
+{ word w = consInt(i);
+
+  if ( valInt(w) == i )
+    return w;
 
   return globalLong(i);
 }
+
+word
+makeNum(long i)
+{ return __makeNum(i);
+}
+
+#define makeNum(i) __makeNum(i)
 
 
 		 /*******************************
@@ -265,19 +353,38 @@ PL_cons_functor(term_t h, functor_t fd, ...)
   { setHandle(h, nameFunctor(fd));
   } else
   { Word a = allocGlobal(1 + arity);
+    Word t = a;
     va_list args;
 
     va_start(args, fd);
-    setHandle(h, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
     *a++ = fd;
     while(arity-- > 0)
     { term_t r = va_arg(args, term_t);
       Word p = valHandleP(r);
 
-      deRef(p);
-      *a++ = (isVar(*p) ? makeRef(p) : *p);
+      *a++ = linkVal(p);
     }
+    setHandle(h, consPtr(t, TAG_COMPOUND|STG_GLOBAL));
     va_end(args);
+  }
+}
+
+
+void
+PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
+{ int arity = arityFunctor(fd);
+
+  if ( arity == 0 )
+  { setHandle(h, nameFunctor(fd));
+  } else
+  { Word a  = allocGlobal(1 + arity);
+    Word ai = valHandleP(a0);
+
+    setHandle(h, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
+
+    *a = fd;
+    while ( --arity >= 0 )
+      *++a = linkVal(ai++);
   }
 }
 
@@ -285,15 +392,10 @@ PL_cons_functor(term_t h, functor_t fd, ...)
 void
 PL_cons_list(term_t l, term_t head, term_t tail)
 { Word a = allocGlobal(3);
-  Word p;
   
   a[0] = FUNCTOR_dot2;
-  p = valHandleP(head);
-  deRef(p);
-  a[1] = (isVar(*p) ? makeRef(p) : *p);
-  p = valHandleP(tail);
-  deRef(p);
-  a[2] = (isVar(*p) ? makeRef(p) : *p);
+  a[1] = linkVal(valHandleP(head));
+  a[2] = linkVal(valHandleP(tail));
 
   setHandle(l, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
 }
@@ -310,9 +412,9 @@ it is divided by 4 and the low 2   bits  are placed at the top (they are
 normally 0). longToPointer() does the inverse operation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static ulong
+static inline ulong
 pointerToLong(void *ptr)
-{ ulong p = (ulong) ptr;
+{ ulong p   = (ulong) ptr;
   ulong low = p & 0x3L;
 
   p -= heap_base;
@@ -323,7 +425,7 @@ pointerToLong(void *ptr)
 }
 
 
-static void *
+static inline void *
 longToPointer(ulong p)
 { ulong low = p >> (sizeof(ulong)*8-2);
 
@@ -689,14 +791,7 @@ _PL_get_arg(int index, term_t t, term_t a)
   Functor f = (Functor)valPtr(w);
   Word p = &f->arguments[index-1];
 
-  deRef(p);
-
-  if ( isVar(*p) )
-    w = consPtr(p, TAG_REFERENCE|storage(w)); /* makeRef() */
-  else
-    w = *p;
-
-  setHandle(a, w);
+  setHandle(a, linkVal(p));
 }
 
 
@@ -711,14 +806,7 @@ PL_get_arg(int index, term_t t, term_t a)
     if ( --index < arity )
     { Word p = &f->arguments[index];
 
-      deRef(p);
-
-      if ( isVar(*p) )
-	w = makeRef(p);
-      else
-	w = *p;
-
-      setHandle(a, w);
+      setHandle(a, linkVal(p));
       succeed;
     }
   }
@@ -732,16 +820,14 @@ PL_get_list(term_t l, term_t h, term_t t)
 { word w = valHandle(l);
 
   if ( isList(w) )
-  { Word p1, p2;
-    
-    p1 = argTermP(w, 0);
-    p2 = argTermP(w, 1);
-    deRef(p1);
-    deRef(p2);
-    setHandle(h, isVar(*p1) ? makeRef(p1) : *p1);
-    setHandle(t, isVar(*p2) ? makeRef(p2) : *p2);
+  { Word a = argTermP(w, 0);
+
+    setHandle(h, linkVal(a++));
+    setHandle(t, linkVal(a));
+
     succeed;
   }
+
   fail;
 }
 
@@ -751,13 +837,11 @@ PL_get_head(term_t l, term_t h)
 { word w = valHandle(l);
 
   if ( isList(w) )
-  { Word p;
-    
-    p = argTermP(w, 0);
-    deRef(p);
-    setHandle(h, *p ? *p : makeRef(p));
+  { Word a = argTermP(w, 0);
+    setHandle(h, linkVal(a));
     succeed;
   }
+
   fail;
 }
 
@@ -767,11 +851,8 @@ PL_get_tail(term_t l, term_t t)
 { word w = valHandle(l);
 
   if ( isList(w) )
-  { Word p;
-    
-    p = argTermP(w, 1);
-    deRef(p);
-    setHandle(t, *p ? *p : makeRef(p));
+  { Word a = argTermP(w, 1);
+    setHandle(t, linkVal(a));
     succeed;
   }
   fail;
@@ -790,10 +871,16 @@ PL_get_nil(term_t l)
 
 
 int
-_PL_get_xpce_reference(term_t t, xpceref_t *ref)
+_PL_get_xpce_reference(term_t t, xpceref_t *ref, atom_t *qual)
 { word w = valHandle(t);
+  functor_t fd;
 
-  if ( hasFunctor(w, FUNCTOR_xpceref1) )
+  if ( !isTerm(w) )
+    fail;
+
+  fd = valueTerm(w)->definition;
+  if ( fd == FUNCTOR_xpceref1 ||	/* @ref */
+       fd == FUNCTOR_xpceref2 )		/* @ref, class */
   { Word p = argTermP(w, 0);
 
     do
@@ -801,23 +888,34 @@ _PL_get_xpce_reference(term_t t, xpceref_t *ref)
       { ref->type    = PL_INTEGER;
 	ref->value.i = valInt(*p);
 
-	succeed;
+	goto ok;
       } 
       if ( isAtom(*p) )
       { ref->type    = PL_ATOM;
 	ref->value.a = (atom_t) *p;
 
-	succeed;
+	goto ok;
       }
       if ( isBignum(*p) )
       { ref->type    = PL_INTEGER;
 	ref->value.i = valBignum(*p);
 
-	succeed;
+	goto ok;
       }
     } while(isRef(*p) && (p = unRef(*p)));
 
     return -1;				/* error! */
+
+  ok:
+    if ( qual && fd == FUNCTOR_xpceref2 )
+    { Word p = argTermP(w, 1);
+      deRef(p);
+      if ( isAtom(*p) )
+	*qual = *p;
+      else
+	return -1;			/* error */
+    }
+    succeed;
   }
 
   fail;
@@ -914,17 +1012,15 @@ PL_is_string(term_t t)
 int
 PL_unify_string_chars(term_t t, const char *s)
 { word str = globalString((char *)s);
-  Word p = valHandleP(t);
 
-  return unifyAtomic(p, str);
+  return unifyAtomic(t, str);
 }
 
 int
 PL_unify_string_nchars(term_t t, int len, const char *s)
 { word str = globalNString(len, (char *)s);
-  Word p = valHandleP(t);
 
-  return unifyAtomic(p, str);
+  return unifyAtomic(t, str);
 }
 
 #endif
@@ -938,7 +1034,7 @@ PL_put_variable(term_t t)
 { Word p = allocGlobal(1);
 
   setVar(*p);
-  setHandle(t, makeRef(p));
+  setHandle(t, consPtr(p, TAG_REFERENCE|STG_GLOBAL)); /* = makeRef */
 }
 
 
@@ -1046,8 +1142,7 @@ void
 PL_put_term(term_t t1, term_t t2)
 { Word p2 = valHandleP(t2);
 
-  deRef(p2);
-  setHandle(t1, isVar(*p2) ? makeRef(p2) : *p2);
+  setHandle(t1, linkVal(p2));
 }
 
 
@@ -1077,9 +1172,7 @@ _PL_put_xpce_reference_a(term_t t, atom_t name)
 
 int
 PL_unify_atom(term_t t, atom_t a)
-{ Word p = valHandleP(t);
-
-  return unifyAtomic(p, a);
+{ return unifyAtomic(t, a);
 }
 
 
@@ -1132,9 +1225,7 @@ PL_unify_functor(term_t t, functor_t f)
 
 int
 PL_unify_atom_chars(term_t t, const char *chars)
-{ Word p = valHandleP(t);
-
-  return unifyAtomic(p, lookupAtom((char *)chars));
+{ return unifyAtomic(t, lookupAtom((char *)chars));
 }
 
 
@@ -1159,9 +1250,7 @@ PL_unify_list_chars(term_t l, const char *chars)
 
 int
 PL_unify_integer(term_t t, long i)
-{ Word p = valHandleP(t);
-
-  return unifyAtomic(p, makeNum(i));
+{ return unifyAtomic(t, makeNum(i));
 }
 
 
@@ -1176,16 +1265,17 @@ _PL_unify_number(term_t t, Number n)
 
 int
 PL_unify_pointer(term_t t, void *ptr)
-{ return PL_unify_integer(t, pointerToLong(ptr));
+{ word w = makeNum(pointerToLong(ptr));
+
+  return unifyAtomic(t, w);
 }
 
 
 int
 PL_unify_float(term_t t, double f)
 { word w = globalReal(f);
-  Word p = valHandleP(t);
 
-  return unifyAtomic(p, w);
+  return unifyAtomic(t, w);
 }
 
 
@@ -1220,9 +1310,7 @@ PL_unify_list(term_t l, term_t h, term_t t)
 
 int
 PL_unify_nil(term_t l)
-{ Word p = valHandleP(l);
-
-  return unifyAtomic(p, ATOM_nil);
+{ return unifyAtomic(l, ATOM_nil);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1343,7 +1431,7 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
     { Word a = allocGlobal(2);
   
       *p = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
-      DoTrail(p);
+      Trail(p, environment_frame);
       *a++ = FUNCTOR_xpceref1;
       if ( ref->type == PL_INTEGER )
 	*a++ = makeNum(ref->value.i);
@@ -1358,9 +1446,18 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
 					: ref->value.a);
   
       deRef(a);
-      return unifyAtomic(a, v);
+      if ( *a == v )
+	succeed;
+      if ( isVar(*a) )
+      { *a = v;
+        Trail(a, environment_frame);
+	succeed;
+      }
+      if ( isIndirect(v) )
+	return equalIndirect(v, *a);
+      fail;
     }
-  } while ( isRef(*p) && (p = unRef(*p)));
+  } while ( isRef(*p) && (p = unRef(*p)) );
 
   fail;
 }
@@ -1378,9 +1475,7 @@ _PL_get_atomic(term_t t)
 
 int
 _PL_unify_atomic(term_t t, atomic_t a)
-{ Word p = valHandleP(t);
-
-  return unifyAtomic(p, a);
+{ return unifyAtomic(t, a);
 }
 
 
@@ -1433,13 +1528,14 @@ PL_unify(term_t t1, term_t t2)
 { Word p1 = valHandleP(t1);
   Word p2 = valHandleP(t2);
   mark m;
-  int rval;
 
   Mark(m);
-  if ( !(rval = unify(p1, p2, environment_frame)) )
-    Undo(m);
+  if ( !unify(p1, p2, environment_frame) )
+  { Undo(m);
+    fail;
+  }
 
-  return rval;  
+  succeed;
 }
 
 
@@ -1450,19 +1546,11 @@ PL_unify(term_t t1, term_t t2)
 int
 PL_strip_module(term_t raw, module_t *m, term_t plain)
 { Word r = valHandleP(raw);
-  Word p;
+  Word p = stripModule(r, m);
 
-  if ( (p = stripModule(r, m)) )
-  { setHandle(plain, isVar(*p) ? makeRef(p) : *p);
-    succeed;
-  }
-
-  fail;
+  setHandle(plain, linkVal(p));
+  succeed;
 }
-
-		/********************************
-		*            MODULES            *
-		*********************************/
 
 module_t
 PL_context()
@@ -1516,15 +1604,18 @@ _PL_predicate(const char *name, int arity, const char *module,
 int
 PL_predicate_info(predicate_t pred, atom_t *name, int *arity, module_t *m)
 { if ( pred->type == PROCEDURE_TYPE )
-  { *name  = pred->definition->functor->name;
-    *arity = pred->definition->functor->arity;
-    *m     = pred->definition->module;
+  { Definition def = pred->definition;
+
+    *name  = def->functor->name;
+    *arity = def->functor->arity;
+    *m     = def->module;
 
     succeed;
   }
 
   fail;
 }
+
 
 		 /*******************************
 		 *	       CALLING		*
@@ -1709,6 +1800,43 @@ PL_toplevel(void)
 void
 PL_halt(int status)
 { Halt(status);
+}
+
+
+		 /*******************************
+		 *	    RESOURCES		*
+		 *******************************/
+
+
+IOSTREAM *
+PL_open_resource(Module m,
+		 const char *name, const char *rc_class,
+		 const char *mode)
+{ IOSTREAM *s = NULL;
+  fid_t fid = PL_open_foreign_frame();
+  static predicate_t MTOK_pred;
+  term_t t0 = PL_new_term_refs(4);
+
+  if ( !m )
+    m = MODULE_user;
+
+  if ( !MTOK_pred )
+    MTOK_pred = PL_predicate("open_resource", 4, "system");
+
+  PL_put_atom_chars(t0+0, name);
+
+  if ( rc_class )
+    PL_put_atom_chars(t0+1, rc_class);
+  PL_put_atom_chars(t0+2, mode[0] == 'r' ? "read" : "write");
+  
+  if ( PL_call_predicate(m, PL_Q_NORMAL, MTOK_pred, t0) &&
+       PL_get_stream_handle(t0+3, &s) )
+  { release_stream_handle(t0+3);	/* see pl-file.c */
+    errno = ENOENT;
+  }
+
+  PL_discard_foreign_frame(fid);
+  return s;
 }
 
 

@@ -7,13 +7,11 @@
     Copyright (C) 1994 University of Amsterdam. All rights reserved.
 */
 
-#define unifyAtomic(p, w)	unify_atomic(p, (word)(w))
-
 /* pl-alloc.c */
 void		free_heap(Void mem, size_t n);
 volatile void	outOf(Stack s);
 volatile void	outOfCore(void);
-Void		alloc_global(int n);
+Word		allocGlobal(int words);
 Void		alloc_heap(size_t n);
 void		initMemAlloc(void);
 word		globalFunctor(functor_t def);
@@ -43,8 +41,7 @@ word		pl_count(void);
 bool		unify(Word t1, Word t2, LocalFrame env);
 bool		unify_ptrs(Word t1, Word t2);
 bool		can_unify(Word t1, Word t2);
-bool		unify_atomic(Word p, word a);
-word		pl_alt(term_t skip, word h);
+word		pl_alt(word h);
 void		TrailAssignment(Word p);
 void		DoTrail(Word p);
 void		do_undo(mark *m);
@@ -88,7 +85,7 @@ word		pl_collect_bag(term_t bindings, term_t bag);
 
 /* pl-comp.c */
 void		initWamTable(void);
-int		get_head_and_body_clause(term_t clause,
+void		get_head_and_body_clause(term_t clause,
 					 term_t head, term_t body, Module *m);
 Clause		assert_term(term_t term, int where, SourceLoc loc);
 word		pl_assertz(term_t term);
@@ -216,9 +213,12 @@ word		pl_open(term_t file, term_t mode, term_t stream);
 word		pl_open_null_stream(term_t stream);
 int		streamNo(term_t spec, int mode);
 word		pl_close(term_t stream);
+void		release_stream_handle(term_t spec);
 word		pl_current_stream(term_t file, term_t mode, term_t s, word h);
 word		pl_flush_output(term_t stream);
 word		pl_stream_position(term_t stream, term_t old, term_t new);
+word		pl_seek(term_t stream,
+			term_t offset, term_t method, term_t newloc);
 word		pl_set_input(term_t stream);
 word		pl_set_output(term_t stream);
 word		pl_current_input(term_t stream);
@@ -234,6 +234,7 @@ word		pl_peek_byte1(term_t chr);
 bool		unifyTime(term_t t, long time);
 word		pl_time_file(term_t name, term_t t);
 word		pl_size_file(term_t name, term_t len);
+word		pl_size_stream(term_t stream, term_t len);
 word		pl_access_file(term_t name, term_t mode);
 word		pl_read_link(term_t file, term_t link, term_t to);
 word		pl_exists_file(term_t name);
@@ -250,6 +251,7 @@ word		pl_file_base_name(term_t f, term_t b);
 word		pl_file_dir_name(term_t f, term_t b);
 word		pl_file_name_extension(term_t base, term_t ext, term_t full);
 word		pl_prolog_to_os_filename(term_t pl, term_t os);
+foreign_t	pl_mark_executable(term_t path);
 #ifdef __WIN32__
 word		pl_make_fat_filemap(term_t dir);
 #endif
@@ -375,7 +377,7 @@ char *		ExpandOneFile(const char *spec, char *file);
 char *		getwd(char *buf);
 char *		AbsoluteFile(const char *spec, char *path);
 int		IsAbsolutePath(const char *spec);
-char *		BaseName(char *f);
+char *		BaseName(const char *f);
 char *		DirName(const char *f, char *buf);
 char *		ReadLink(const char *f, char *buf);
 char *		DeRefLink(const char *link, char *buf);
@@ -468,10 +470,11 @@ word		pl_true(void);
 word		pl_halt(term_t code);
 word		pl_statistics(term_t k, term_t value);
 int		setFeature(atom_t name, int type, ...);
-void		CSetFeature(char *name, char *value);
+void		CSetFeature(const char *name, const char *value);
 word		pl_feature(term_t key, term_t value, word h);
 word		pl_set_feature(term_t key, term_t value);
-word		pl_option(term_t key, term_t old, term_t new);
+word		pl_option(term_t key, term_t old, term_t new, control_t h);
+int		set_pl_option(const char *name, const char *value);
 word		pl_please(term_t key, term_t old, term_t new);
 word		pl_style_check(term_t old, term_t new);
 word		pl_novice(term_t old, term_t new);
@@ -501,6 +504,7 @@ Procedure	lookupProcedure(functor_t f, Module m);
 Procedure	isCurrentProcedure(functor_t f, Module m);
 Procedure	lookupProcedureToDefine(functor_t def, Module m);
 bool		isDefinedProcedure(Procedure proc);
+int		get_head_functor(term_t head, functor_t *fdef);
 int		get_procedure(term_t descr, Procedure *proc, term_t he, int f);
 word		pl_current_predicate(term_t name, term_t functor, word h);
 bool		assertProcedure(Procedure proc, Clause clause, int where);
@@ -524,6 +528,7 @@ void		reindexDefinition(Definition def);
 void		startConsult(SourceFile f);
 word		pl_index(term_t pred);
 SourceFile	lookupSourceFile(atom_t name);
+SourceFile	indexToSourceFile(int index);
 void		addProcedureSourceFile(SourceFile sf, Procedure proc);
 word		pl_make_system_source_files(void);
 word		pl_source_file(term_t descr, term_t file, control_t h);
@@ -669,12 +674,12 @@ char *		strlwr(char *s);
 #endif
 
 /* pl-wic.c */
-bool		loadWicFile(char *file, int flags);
-word		pl_open_wic(term_t name, term_t options);
+bool		loadWicFromStream(IOSTREAM *fd);
+word		pl_open_wic(term_t name);
 word		pl_close_wic(void);
 word		pl_add_directive_wic(term_t term);
 word		pl_import_wic(term_t module, term_t head);
-bool		compileFileList(char *out, int argc, char **argv);
+bool		compileFileList(IOSTREAM *out, int argc, char **argv);
 void		qlfCleanup(void);
 
 word		pl_qlf_put_states(void);
@@ -685,7 +690,7 @@ word		pl_qlf_end_part(void);
 word		pl_qlf_open(term_t file);
 word		pl_qlf_close(void);
 word		pl_qlf_load(term_t file, term_t module);
-word		pl_qlf_assert_clause(term_t ref);
+word		pl_qlf_assert_clause(term_t ref, term_t saveclass);
 word		pl_qlf_info(term_t file, term_t cvers, term_t fvers, term_t i);
 
 /* pl-write.c */
@@ -738,3 +743,19 @@ word		pl_call_dll_function(term_t handle, term_t funcname);
 void		PlMessage(const char *buf, ...);
 word		pl_window_title(term_t old, term_t new);
 word		pl_win_exec(term_t command, term_t show);
+
+/* pl-rc.c */
+IOSTREAM *      SopenRC(void *rca,
+			const char *name, const char *rcclass, int flags);
+foreign_t	pl_rc_handle(term_t h);
+foreign_t       pl_rc_open(term_t rc_h,
+			   term_t name, term_t class,
+			   term_t rw, term_t handle);
+foreign_t       pl_rc_open_archive(term_t file, term_t handle);
+foreign_t       pl_rc_close_archive(term_t rc_h);
+foreign_t       pl_rc_save_archive(term_t rc_h, term_t to);
+foreign_t       pl_rc_append_file(term_t rc_h,
+				  term_t name, term_t class, term_t encoding,
+				  term_t file);
+foreign_t	pl_rc_members(term_t rc_h, term_t members);
+foreign_t	pl_copy_stream(term_t in, term_t out);

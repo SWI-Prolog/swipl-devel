@@ -806,7 +806,7 @@ atoms, each on a line:
 foreign_t
 pl_write_atoms(term_t l)
 { term_t head = PL_new_term_ref();      /* variable for the elements */
-  term_t list = PL_copy_term_ref();     /* copy as we need to write */
+  term_t list = PL_copy_term_ref(l);    /* copy as we need to write */
 
   while( PL_get_list(list, head, list) )
   { char *s;
@@ -953,6 +953,11 @@ To create the term \exam{animal(gnu, 50)}, use:
 
 After this sequence, the term-references \arg{a1} and \arg{a2} may
 be used for other purposes.
+\cfunction{void}{PL_cons_functor_v}{term_t -h, functor_t f, term_t a0}
+Creates a compound term like PL_cons_functor(), but \arg{a0} is an
+array of term references as returned by PL_new_term_refs().  The length
+of this array should match the number of arguments required by the
+functor.
 \cfunction{void}{PL_cons_list}{term_t -l, term_t +h, term_t +t}
 Create a list (cons-) cell in \arg{l} from the head and tail.  The
 code below creates a list of atoms from a \ctype{char **}.  The list
@@ -967,10 +972,13 @@ put_list(term_t l, int n, char **words)
   PL_put_nil(l);
   while( --n >= 0 )
   { PL_put_atom_chars(a, words[n]);
-    PL_put_list(l, a, l);
+    PL_cons_list(l, a, l);
   }
 }
 \end{code}
+Note that \arg{l} can be redefined within a {\tt PL_cons_list} call as
+shown here because operationally its old value is consumed before its
+new value is set.
 \end{description}
 
 
@@ -1519,6 +1527,7 @@ for \manref{printf}{2}. Always returns \const{FALSE}.
 \end{description}
 
 \subsection{Environment Control from Foreign Code}
+
 \begin{description}
 \cfunction{int}{PL_action}{int, C_type}
 Perform some action on the Prolog system. \arg{int} describes the

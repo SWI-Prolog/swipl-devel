@@ -257,6 +257,7 @@ suggest predicates from a keyword.
 \predicatesummary{open}{4}{Open a file (creating a stream)}
 \predicatesummary{open_dde_conversation}{3}{Win32: Open DDE channel}
 \predicatesummary{open_null_stream}{1}{Open a stream to discard output}
+\predicatesummary{open_resource}{3}{Open a program resource as a stream}
 \predicatesummary{open_shared_object}{2}{UNIX: Open shared library (.so file)}
 \predicatesummary{open_shared_object}{3}{UNIX: Open shared library (.so file)}
 \predicatesummary{peek_byte}{1}{Read character without removing}
@@ -279,6 +280,7 @@ suggest predicates from a keyword.
 \predicatesummary{prolog}{0}{Run interactive toplevel}
 \predicatesummary{prolog_current_frame}{1}{Reference to goal's environment stack}
 \predicatesummary{prolog_frame_attribute}{3}{Obtain information on a goal environment}
+\predicatesummary{prolog_list_goal}{1}{Hook.  Intercept tracer 'L' command}
 \predicatesummary{prolog_load_context}{2}{Context information for directives}
 \predicatesummary{prolog_skip_level}{2}{Indicate deepest recursion to trace}
 \predicatesummary{prolog_to_os_filename}{2}{Convert between Prolog and OS filenames}
@@ -316,6 +318,7 @@ suggest predicates from a keyword.
 \predicatesummary{repeat}{0}{Succeed, leaving infinite backtrack points}
 \predicatesummary{require}{1}{This file requires these predicates}
 \predicatesummary{reset_profiler}{0}{Clear statistics obtained by the profiler}
+\predicatesummary{resource}{3}{Declare a program resource}
 \predicatesummary{restore}{1}{Restore saved-state (save/1, save_program/1)}
 \predicatesummary{retract}{1}{Remove clause from the database}
 \predicatesummary{retractall}{1}{Remove unifying clauses from the database}
@@ -327,6 +330,7 @@ suggest predicates from a keyword.
 \predicatesummary{save_program}{2}{Save the current program on a file}
 \predicatesummary{see}{1}{Change the current input stream}
 \predicatesummary{seeing}{1}{Query the current input stream}
+\predicatesummary{seek}{4}{Modify the current position in a stream}
 \predicatesummary{seen}{0}{Close the current input stream}
 \predicatesummary{select}{3}{Select element of a list}
 \predicatesummary{set_feature}{2}{Define a system feature}

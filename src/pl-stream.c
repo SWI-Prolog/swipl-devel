@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <ctype.h>
+#include <sys/stat.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -138,10 +139,11 @@ static int
 S__flushbuf(IOSTREAM *s)
 { int size = s->bufp - s->buffer;
 
-  if ( (*s->functions->write)(s->handle, s->buffer, size) != size )
-    return -1;
-
-  s->bufp = s->buffer;
+  if ( size > 0 )
+  { if ( (*s->functions->write)(s->handle, s->buffer, size) != size )
+      return -1;
+    s->bufp = s->buffer;
+  }
 
   return size;
 }
@@ -208,8 +210,11 @@ S__fillbuf(IOSTREAM *s)
       s->limitp = &s->buffer[n];
       return char_to_int(*s->bufp++);
     } else
-    { s->bufp = s->buffer;		/* empty the buffer */
+    {
+#if 0
+      s->bufp = s->buffer;		/* empty the buffer */
       s->limitp = s->buffer;
+#endif
 
       if ( n == 0 )
       { if ( !(s->flags & SIO_NOFEOF) )
@@ -357,7 +362,7 @@ Sfread(void *data, int size, int elms, IOSTREAM *s)
     *buf++ = c & 0xff;
   }
   
-  return chars ? elms : (elms - (chars+size-1)/size);
+  return (size*elms - chars)/size;
 }
 
 
@@ -367,10 +372,11 @@ Sfwrite(void *data, int size, int elms, IOSTREAM *s)
   char *buf = data;
 
   for( ; chars > 0; chars-- )
-    if ( Sputc(*buf++, s) < 0 )
+  { if ( Sputc(*buf++, s) < 0 )
       break;
+  }
   
-  return chars ? elms : (elms - (chars+size-1)/size);
+  return (size*elms - chars)/size;
 }
 
 
@@ -419,13 +425,67 @@ Sflush(IOSTREAM *s)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Return the size of the underlying data object.  Should be optimized;
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+long
+Ssize(IOSTREAM *s)
+{ if ( s->functions->control )
+  { long size;
+
+    if ( (*s->functions->control)(s->handle, SIO_GETSIZE, (void *)&size) == 0 )
+      return size;
+  }
+  if ( s->functions->seek )
+  { long here = Stell(s);
+    long end  = Sseek(s, 0, SIO_SEEK_END);
+
+    Sseek(s, here, SIO_SEEK_SET);
+
+    return end;
+  }
+
+  errno = ESPIPE;
+  return -1;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Maybe we should optimise this to become block-aligned?  Or can we leave
 this to read/write?
+
+The first part checks whether repositioning   the  read/write pointer in
+the buffer suffices to achieve the seek.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 long
 Sseek(IOSTREAM *s, long pos, int whence)
-{ if ( !s->functions->seek )
+{ if ( s->limitp > s->buffer )		/* something there */
+  { long now = Stell(s);
+
+    if ( now != -1 )
+    { long rval;
+      char *nbufp = (char *)-1;
+    
+      if ( whence == SIO_SEEK_CUR )
+      { nbufp = s->bufp + pos;
+	rval = now + pos;
+      } else if ( whence == SIO_SEEK_SET )
+      { nbufp = s->bufp + (pos - now);
+	rval = pos;
+      } else
+	rval = -1;			/* should not happen */
+
+      if ( nbufp >= s->buffer && nbufp < s->limitp )
+      { s->bufp = nbufp;
+
+	pos = rval;
+	goto update;
+      }
+    }
+  }
+
+  if ( !s->functions->seek )
   { errno = ESPIPE;
     return -1;
   }
@@ -434,13 +494,15 @@ Sseek(IOSTREAM *s, long pos, int whence)
     
   s->bufp   = s->buffer;
   s->limitp = s->buffer;
-  s->flags &= ~SIO_FEOF;		/* not on eof of file anymore */
 
   if ( whence == SIO_SEEK_CUR )
   { pos += Stell(s);
     whence = SIO_SEEK_SET;
   }
   pos = (*s->functions->seek)(s->handle, pos, whence);
+
+update:
+  s->flags &= ~SIO_FEOF;		/* not on eof of file anymore */
 
   if ( s->position )
   { s->flags |= (SIO_NOLINENO|SIO_NOLINEPOS); /* no update this */
@@ -1159,11 +1221,34 @@ Sclose_file(void *handle)
 }
 
 
+static int
+Scontrol_file(void *handle, int action, void *arg)
+{ long h = (long) handle;
+  int fd = (int)h;
+
+  switch(action)
+  { case SIO_GETSIZE:
+    { long *rval = arg;
+      struct stat buf;
+
+      if ( fstat(fd, &buf) == 0 )
+      {	*rval = buf.st_size;
+        return 0;
+      }
+      return -1;
+    }
+    default:
+      return -1;
+  }
+}
+
+
 IOFUNCTIONS Sfilefunctions =
 { Sread_file,
   Swrite_file,
   Sseek_file,
-  Sclose_file
+  Sclose_file,
+  Scontrol_file
 };
 
 
@@ -1195,7 +1280,7 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
 #endif
 
 IOSTREAM *
-Sopen_file(const char *path, char *how)
+Sopen_file(const char *path, const char *how)
 { int fd;
   int oflags = 0, flags = SIO_FILE|SIO_TEXT|SIO_RECORDPOS;
   int op = *how++;
@@ -1247,7 +1332,7 @@ Sopen_file(const char *path, char *how)
 
 
 IOSTREAM *
-Sfdopen(int fd, char *type)
+Sfdopen(int fd, const char *type)
 { int flags;
   long lfd;
 
@@ -1586,7 +1671,7 @@ IOFUNCTIONS Sstringfunctions =
 
 
 IOSTREAM *
-Sopen_string(IOSTREAM *s, char *buf, int size, char *mode)
+Sopen_string(IOSTREAM *s, char *buf, int size, const char *mode)
 { int flags = SIO_FBUF|SIO_USERBUF;
 
   if ( !s )
