@@ -1068,7 +1068,7 @@ PL_get_nchars(term_t l, unsigned int *length, char **s, unsigned flags)
   if ( !PL_get_text(l, &text, flags) )
     return FALSE;
 
-  if ( PL_demote_text(&text) )
+  if ( PL_mb_text(&text, flags) )
   { PL_save_text(&text, flags);
 
     if ( length )

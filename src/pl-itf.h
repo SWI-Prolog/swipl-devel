@@ -613,6 +613,10 @@ PL_EXPORT(void)		_PL_get_arg(int index, term_t t, term_t a);
 #define BUF_RING	0x0100
 #define BUF_MALLOC	0x0200
 
+#define REP_ISO_LATIN_1 0x0000		/* output representation */
+#define REP_UTF8 	0x1000
+#define REP_MB		0x2000
+
 #ifdef SIO_MAGIC			/* defined from <SWI-Stream.h> */
 		 /*******************************
 		 *	  STREAM SUPPORT	*

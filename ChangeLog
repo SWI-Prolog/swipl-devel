@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Multibyte encodings for PL_get_filename().
+
   * ADDED: Support for default locale multibyte I/O using encoding 'text'.
 
   * ENHANCED: library url www_form_encode/2 not to encode _, and :.  Needed

@@ -3396,14 +3396,14 @@ PL_get_file_name(term_t n, char **namep, int flags)
     if ( !PL_call_predicate(NULL, cflags, pred, av) )
       fail;
     
-    return PL_get_chars(av+1, namep, CVT_ATOMIC|BUF_RING);
+    return PL_get_chars(av+1, namep, CVT_ATOMIC|BUF_RING|REP_MB);
   }
 
   if ( flags & PL_FILE_NOERRORS )
-  { if ( !PL_get_chars(n, &name, CVT_ALL) )
+  { if ( !PL_get_chars(n, &name, CVT_ALL|REP_MB) )
       fail;
   } else
-  { if ( !PL_get_chars_ex(n, &name, CVT_ALL) )
+  { if ( !PL_get_chars_ex(n, &name, CVT_ALL|REP_MB) )
       fail;
   }
 

@@ -488,6 +488,123 @@ can_demote(PL_chars_t *text)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Convert text to 8-bit according to flags.   May hold REP_UTF8 to convert
+to UTF-8, REP_MB to convert to locale 8-bit representation or nothing to
+convert to ISO Latin-1. This predicate can   fail  of the text cannot be
+represented.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+wctobuffer(wchar_t c, mbstate_t *mbs, Buffer buf)
+{ char b[MB_LEN_MAX];
+  int n;
+
+  if ( (n=wcrtomb(b, c, mbs)) > 0 )
+  { int i;
+
+    for(i=0; i<n; i++)
+      addBuffer(buf, b[i], char);
+
+    return TRUE;
+  }
+
+  return FALSE;				/* cannot represent */
+}
+
+
+static void
+utf8tobuffer(wchar_t c, Buffer buf)
+{ if ( c <= 0x7f )
+  { addBuffer(buf, c, char);
+  } else
+  { char b[6];
+    char *e = b;
+    const char *s;
+    
+    utf8_put_char(e, c);
+    for(s=b; s<e; s++)
+      addBuffer(buf, *s, char);
+  }
+}
+
+
+int
+PL_mb_text(PL_chars_t *text, int flags)
+{ IOENC target = ((flags&REP_UTF8) ? ENC_UTF8 :
+		  (flags&REP_MB)   ? ENC_ANSI : ENC_ISO_LATIN_1);
+
+  if ( text->encoding != target )
+  { Buffer b = findBuffer(BUF_RING);
+    
+    switch(text->encoding)
+    { case ENC_ISO_LATIN_1:
+      { const unsigned char *s = (const unsigned char*)text->text.t;
+	const unsigned char *e = &s[text->length];
+
+	if ( target == ENC_UTF8 )
+	{ for( ; s<e; s++)
+	  { utf8tobuffer(*s, b);
+	  }
+	  addBuffer(b, 0, char);
+	} else /* if ( target == ENC_MB ) */
+	{ mbstate_t mbs;
+
+	  memset(&mbs, 0, sizeof(mbs));
+	  for( ; s<e; s++)
+	  { if ( !wctobuffer(*s, &mbs, b) )
+	    { unfindBuffer(BUF_RING);
+	      fail;
+	    }
+	  }
+	  wctobuffer(0, &mbs, b);
+	}
+
+        break;
+      }
+      case ENC_WCHAR:
+      { if ( target == ENC_ISO_LATIN_1 )
+	{ return PL_demote_text(text);
+	} else
+	{ const pl_wchar_t *w = (const pl_wchar_t*)text->text.w;
+	  const pl_wchar_t *e = &w[text->length];
+
+	  if ( target == ENC_UTF8 )
+	  { for( ; w<e; w++)
+	    { utf8tobuffer(*w, b);
+	    }
+	    addBuffer(b, 0, char);
+	  } else /* if ( target == ENC_MB ) */
+	  { mbstate_t mbs;
+	    
+	    memset(&mbs, 0, sizeof(mbs));
+	    for( ; w<e; w++)
+	    { if ( !wctobuffer(*w, &mbs, b) )
+	      { unfindBuffer(BUF_RING);
+		fail;
+	      }
+	    }
+	    wctobuffer(0, &mbs, b);
+	  }
+	}
+	break;
+      }
+      default:
+      { assert(0);
+	fail;
+      }
+    }
+
+    text->length   = sizeOfBuffer(b)-1;
+    text->text.t   = baseBuffer(b, char);
+    text->encoding = target;
+    text->storage  = PL_CHARS_RING;
+  }
+
+  succeed;
+}
+
+
 int
 PL_canonise_text(PL_chars_t *text)
 { if ( !text->canonical )
