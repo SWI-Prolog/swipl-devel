@@ -2056,6 +2056,11 @@ cont:
     case PL_ATOM:
       rval = PL_unify_atom(t, va_arg(args, atom_t));
       break;
+    case PL_BOOL:
+    { int v = va_arg(args, int);
+      rval = PL_unify_atom(t, v ? ATOM_true : ATOM_false);
+      break;
+    }
     case PL_SHORT:
     case PL_INT:
       rval = PL_unify_integer(t, va_arg(args, int));

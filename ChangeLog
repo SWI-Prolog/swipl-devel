@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: PL_unify_term: handle (PL_BOOL, int) to unify boolean
+    values as true or false.
+
   * FIXED: peek_code/2 and friends on end-of-file.  Steve Moyle.
 
 
