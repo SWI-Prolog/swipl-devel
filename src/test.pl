@@ -914,6 +914,30 @@ ctype(code_type-5) :-
 	W == 0.
 
 		 /*******************************
+		 *	      CONSULT		*
+		 *******************************/
+
+mk_include :-
+	open('test_included.pl', write, Out1),
+	format(Out1, ':- dynamic foo/1.\n', []),
+	close(Out1),
+
+	open('test_include.pl', write, Out2),
+	format(Out2, ':- include(test_included).\n', []),
+	format(Out2, 'foo(a).\n', []),
+	close(Out2).
+
+load_program(include-1) :-
+	mk_include,
+	abolish(foo, 1),
+	load_files(test_include, [silent(true)]),
+	assert(foo(b)),
+	findall(X, retract(foo(X)), [a,b]),
+	delete_file('test_included.pl'),
+	delete_file('test_include.pl').
+
+
+		 /*******************************
 		 *        TEST MAIN-LOOP	*
 		 *******************************/
 
@@ -942,6 +966,7 @@ testset(io).
 testset(popen) :-
 	current_prolog_flag(pipe, true).
 testset(file).
+testset(load_program).
 testset(ctype).
 testset(resource).
 

@@ -482,7 +482,6 @@ static PL_thread_info_t *
 alloc_thread()
 { int i;
 
-  LOCK();
   for(i=1; i<MAX_THREADS; i++)
   { if ( threads[i].status == PL_THREAD_UNUSED )
     { PL_local_data_t *ld = allocHeap(sizeof(PL_local_data_t));
@@ -494,11 +493,9 @@ alloc_thread()
       ld->thread.info = &threads[i];
       ld->thread.magic = PL_THREAD_MAGIC;
 
-      UNLOCK();
       return &threads[i];
     }
   }
-  UNLOCK();
 
   return NULL;				/* out of threads */
 }
@@ -662,7 +659,11 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
   if ( !(PL_is_compound(goal) || PL_is_atom(goal)) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, goal);
-  if ( !(info = alloc_thread()) )
+
+  LOCK();
+  info = alloc_thread();
+  UNLOCK();
+  if ( !info )
     return PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_threads);
 
   ldnew = info->thread_data;
@@ -676,7 +677,9 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 		     &alias,
 		     &stack,
 		     &info->detached) )
-    fail;				/* FIXME: free stuff */
+  { free_thread_info(info);
+    fail;
+  }
 
   info->local_size    *= 1024;
   info->global_size   *= 1024;
@@ -713,7 +716,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   if ( stack )
     pthread_attr_setstacksize(&attr, stack);
   if ( pthread_create(&info->tid, &attr, start_thread, info) != 0 )
-  { pthread_attr_destroy(&attr);
+  { free_thread_info(info);
+    pthread_attr_destroy(&attr);
     return PL_error(NULL, 0, OsError(),
 		    ERR_SYSCALL, "pthread_create");
   }
@@ -805,7 +809,9 @@ pl_thread_self(term_t self)
 
 static void
 free_thread_info(PL_thread_info_t *info)
-{ if ( info->return_value )
+{ if ( info->thread_data )
+    free_prolog_thread(info->thread_data);
+  if ( info->return_value )
     PL_erase(info->return_value);
   if ( info->goal )
     PL_erase(info->goal);
@@ -1661,7 +1667,10 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   if ( LD )
     LD->thread.info->open_count++;
 
-  if ( !(info = alloc_thread()) )
+  LOCK();
+  info = alloc_thread();
+  UNLOCK();
+  if ( !info )
     return -1;				/* out of threads */
 
   ldmain = threads[1].thread_data;
