@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * DOCUMENTATION: Typo in term_expansion/2 docs.  Márcio Mazza.
+
   * INTERNAL: changed tag schema freeing up an entry for attributed
     variables.
 
