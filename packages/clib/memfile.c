@@ -27,6 +27,7 @@ open_memory_file(+Handle, +Mode, -Stream)
 size_memory_file(+Handle, -Size)
 memory_file_to_codes(+Handle, -Codes)
 memory_file_to_atom(+Handle, -Atom)
+atom_to_memory_file(+Atom, -Handle)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static functor_t FUNCTOR_memory_file1;
@@ -37,6 +38,7 @@ typedef struct
   char *data;				/* data of the file */
   int   size;				/* length of the file */
   IOSTREAM *stream;			/* Stream hanging onto it */
+  atom_t atom;				/* Created from atom */
 } memfile;
 
 
@@ -94,7 +96,9 @@ free_memory_file(term_t handle)
   if ( get_memfile(handle, &m) )
   { if ( m->stream )
       Sclose(m->stream);
-    if ( m->data )
+    if ( m->atom )
+      PL_unregister_atom(m->atom);
+    else if ( m->data )
       free(m->data);
     m->magic = 0;
     free(m);
@@ -137,8 +141,11 @@ open_memory_file(term_t handle, term_t mode, term_t stream)
 		    mode, "io_mode");
 
   if ( streq(s, "write") )
-    x = "w";
-  else if ( streq(s, "read") )
+  { x = "w";
+    if ( m->atom )
+      return pl_error("open_memory_file", 3, NULL, ERR_PERMISSION,
+		      handle, "write", "memory_file");
+  } else if ( streq(s, "read") )
     x = "r";
   else
     return pl_error("open_memory_file", 3, NULL, ERR_DOMAIN,
@@ -161,7 +168,7 @@ size_memory_file(term_t handle, term_t size)
 { memfile *m;
 
   if ( get_memfile(handle, &m) )
-  { if ( m->stream )
+  { if ( m->stream && !m->atom )
       return alreadyOpen(handle, "size");
     if ( m->data )
     { return PL_unify_integer(size, m->size);
@@ -169,6 +176,31 @@ size_memory_file(term_t handle, term_t size)
   }
 
   return FALSE;
+}
+
+
+static foreign_t
+atom_to_memory_file(term_t atom, term_t handle)
+{ char *s;
+  unsigned int len;
+
+  if ( !PL_get_atom_nchars(atom, &len, &s) )
+    return pl_error(NULL, 0, NULL, ERR_ARGTYPE, 1,
+		    atom, "atom");
+  else
+  { memfile *m = calloc(1, sizeof(*m));
+
+    if ( !m )
+      return FALSE;
+
+    PL_get_atom(atom, &m->atom);
+    PL_register_atom(m->atom);
+    m->magic = MEMFILE_MAGIC;
+    m->data = s;
+    m->size = len;
+
+    return unify_memfile(handle, m);
+  }
 }
 
 
@@ -217,6 +249,7 @@ install_memfile()
   PL_register_foreign("free_memory_file",     1, free_memory_file,     0);
   PL_register_foreign("size_memory_file",     2, size_memory_file,     0);
   PL_register_foreign("open_memory_file",     3, open_memory_file,     0);
+  PL_register_foreign("atom_to_memory_file",  2, atom_to_memory_file,  0);
   PL_register_foreign("memory_file_to_atom",  2, memory_file_to_atom,  0);
   PL_register_foreign("memory_file_to_codes", 2, memory_file_to_codes, 0);
 }

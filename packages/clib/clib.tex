@@ -441,6 +441,11 @@ using \index{close/1}\predref{close}{1}.
 Return the content-length of the memory-file it \arg{Bytes}.  The
 file should be closed and contain data.
 
+    \predicate{atom_to_memory_file}{+Atom, -Handle}
+Turn an atom into a read-only memory-file containing the (shared)
+characters of the atom.  Opening this memory-file in mode \const{write}
+yields a permission error.
+
     \predicate{memory_file_to_atom}{+Handle, -Atom}
 Return the content of the memory-file in \arg{Atom}.
 
