@@ -1956,19 +1956,121 @@ make_pline_map(TextImage ti, PLine lines, int *size)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Find filled line starting <lines> screenlines before <here>
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static status
+backwards_filled_line(TextImage ti, TextLine l, long here, int lines)
+{ while(here > 0)
+  { int i;
+    long idx, idx0;
+
+    idx0 = paragraph_start(ti, here-1);
+
+    for(i=0, idx=idx0; ;)
+    { idx = do_fill_line(ti, l, idx);
+      i++;
+      if ( l->end >= here )
+	break;
+    }
+
+    if ( i == lines && i == 1)		/* common case */
+    { succeed;
+    } else if ( i >= lines )
+    { int n = i+1-lines;
+
+      for(idx=idx0; n-- > 0; )
+	idx = do_fill_line(ti, l, idx);
+
+      succeed;
+    } else 
+    { lines -= i;
+      here = idx0;
+    }
+  }
+
+  do_fill_line(ti, l, 0);
+  fail;
+}
+
+
+static status
+backwards_filled_line_from_dy(TextImage ti, TextLine l, long here, int dy)
+{ while(here > 0)
+  { int sy;
+    long idx, idx0;
+
+    idx0 = paragraph_start(ti, here-1);
+
+    for(sy=0, idx=idx0; ;)		/* Heigth of the paragraph */
+    { idx = do_fill_line(ti, l, idx);
+      sy += l->h;
+      if ( l->end >= here )
+	break;
+    }
+
+    if ( sy >= dy )			/* somewhere here */
+    { int skip = sy-dy;
+
+      for(idx=idx0; skip > 0; )
+      { idx = do_fill_line(ti, l, idx);
+	skip -= l->h;
+      }
+
+      succeed;
+    } else 
+    { dy -= sy;
+      here = idx0;
+    }
+  }
+
+  do_fill_line(ti, l, 0);
+  fail;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Ensure there is enough to see.  We assume 1/3-th of the screen or 1 line
+for very small screens will suffice.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static long
+ensure_enough_visible(TextImage ti, long here)
+{ int minv = (ti->h-2*TXT_Y_MARGIN)/3;
+  TextLine l = tmpLine();
+  int v = 0;
+  long idx = here;
+
+  for(;;)
+  { idx = do_fill_line(ti, l, idx);
+    v += l->h;
+
+    if ( v >= minv )
+      return here;
+
+    if ( l->ends_because & END_EOF )
+    { long end = l->start + l->length;
+      
+      backwards_filled_line_from_dy(ti, l, end, minv);
+      return l->start;
+    }
+  }
+}
+
+
 Int
 getScrollStartTextImage(TextImage ti, Name dir, Name unit, Int amount)
-{ struct pline lines[MAXPLINES];
-  int count = MAXPLINES;
-  int l = -1;
-
-  if ( !make_pline_map(ti, lines, &count) )
-    fail;
-
-  if ( unit == NAME_file )
+{ if ( unit == NAME_file )
   { if ( dir == NAME_goto )
-    { int h  = lines[count].y;
-      int wh = ti->h - 2*TXT_Y_MARGIN;
+    { struct pline lines[MAXPLINES];
+      int count = MAXPLINES;
+      int l;
+      int h, wh = ti->h - 2*TXT_Y_MARGIN;
+
+      if ( !make_pline_map(ti, lines, &count) )
+	fail;
+      h  = lines[count].y;
 
       if ( h>wh )
       { int yt = ((h-wh) * valInt(amount))/1000;
@@ -1981,48 +2083,59 @@ getScrollStartTextImage(TextImage ti, Name dir, Name unit, Int amount)
 		valInt(amount), h, wh, yt, l);*/
       } else
 	return ZERO;
+
+      answer(toInt(lines[l].start));
     }
   } else
-  { int start = valInt(ti->start);
-    int n = valInt(amount);
-    int mxline;
-    int h = lines[count].y;
+  { long idx;
 
-    for(mxline=count-1;
-	h - lines[mxline].y < (ti->h*3)/4 && mxline > 0;
-	mxline--)
-      ;
-
-    if ( dir == NAME_backwards )
-      n = -n;
-
-    for(l=0; l<count; l++)
-    { if ( lines[l].start >= start )
-	break;
-    }
-	
-    if ( unit == NAME_page )
-    { int y0 = lines[l].y;
-      int yt = y0+n*(ti->h - 2*TXT_Y_MARGIN - 20);
-
-      if ( yt > y0 )
-      { while(l<mxline && lines[l].y < yt)
-	  l++;
-      } else
-      { while(l>0 && lines[l].y > yt)
-	  l--;
+    if ( unit == NAME_line )
+    { if ( dir == NAME_forwards )
+      { int n = valInt(amount);
+	TextLine l = tmpLine();
+	idx = valInt(ti->start);
+  
+	for( ; n-- > 0; )
+	{ idx = do_fill_line(ti, l, idx);
+	  if ( l->ends_because & END_EOF )
+	    break;
+	}
+      } else				/* scrolling up */
+      { int n = valInt(amount);
+	TextLine l = tmpLine();
+  
+	backwards_filled_line(ti, l, valInt(ti->start), n);
+	idx = l->start;
       }
-    } else if ( unit == NAME_line )
-    { l += n;
-      if ( l>mxline )
-	l = mxline;
-      else if ( l < 0 )
-	l = 0;
-    }
-  }
+    } else /* if ( unit	== NAME_page ) */
+    { int dy = ((ti->h-2*TXT_Y_MARGIN) * valInt(amount))/1000;
+      TextLine l = tmpLine();
 
-  if ( l >= 0 )
-    answer(toInt(lines[l].start));
+      idx = valInt(ti->start);
+  
+      if ( dir == NAME_forwards )
+      { for( ; dy > 0 ; )
+	{ long next = do_fill_line(ti, l, idx);
+	  if ( l->ends_because & END_EOF )
+	    break;
+	  dy -= l->h;
+	  if ( dy <= 0 && idx != valInt(ti->start) )
+	    break;
+	  idx = next;
+	}
+      } else
+      { backwards_filled_line_from_dy(ti, l, idx, dy);
+	idx = l->start;
+      }
+    }
+
+    if ( idx < 0 )
+      idx = 0;
+    else
+      idx = ensure_enough_visible(ti, idx);
+
+    answer(toInt(idx));
+  }
 
   fail;
 }

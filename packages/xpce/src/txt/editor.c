@@ -2097,18 +2097,19 @@ killLineEditor(Editor e, Int arg)
   MustBeEditable(e);
   if ( notDefault(arg) )
     lines = arg;
-  else if ( e->image->wrap == NAME_word &&
-	    (end = getEndOfLineCursorTextImage(e->image, e->caret)) )
-  { int i = valInt(end);
-    TextBuffer tb = e->text_buffer;
-
-    while(i<tb->size && Fetch(e, i) == ' ')
-      i++;
-    return killEditor(e, e->caret, toInt(i));
-  } else
+  else
   { if ( tisendsline(e->text_buffer->syntax, Fetch(e, valInt(e->caret))) )
       return killEditor(e, e->caret, add(e->caret, ONE));
-    else
+
+    if ( e->image->wrap == NAME_word &&
+	 (end = getEndOfLineCursorTextImage(e->image, e->caret)) )
+    { int i = valInt(end);
+      TextBuffer tb = e->text_buffer;
+
+      while(i<tb->size && Fetch(e, i) == ' ')
+	i++;
+      return killEditor(e, e->caret, toInt(i));
+    } else
       lines = ZERO;
   }
 
@@ -3509,19 +3510,27 @@ centerWindowEditor(Editor e, Int pos)
 
 static status
 scrollDownEditor(Editor e, Int arg)
-{ if ( isDefault(arg) )
-    return send(e, NAME_scrollVertical, NAME_backwards, NAME_page, ONE, 0);
-  else
-    return send(e, NAME_scrollVertical, NAME_backwards, NAME_line, arg, 0);
+{ Name unit = NAME_line;
+
+  if ( isDefault(arg) )
+  { arg = toInt(SCROLL_PAGE_PROM);
+    unit = NAME_page;
+  }
+
+  return send(e, NAME_scrollVertical, NAME_backwards, unit, arg, 0);
 }
 
 
 static status
 scrollUpEditor(Editor e, Int arg)
-{ if ( isDefault(arg) )
-    return send(e, NAME_scrollVertical, NAME_forwards, NAME_page, ONE, 0);
-  else
-    return send(e, NAME_scrollVertical, NAME_forwards, NAME_line, arg, 0);
+{ Name unit = NAME_line;
+  
+  if ( isDefault(arg) )
+  { arg = toInt(SCROLL_PAGE_PROM);
+    unit = NAME_page;
+  }
+
+  return send(e, NAME_scrollVertical, NAME_forwards, unit, arg, 0);
 }
 
 
@@ -3560,16 +3569,14 @@ scrollVerticalEditor(Editor e, Name dir, Name unit, Int amount)
 { TextBuffer tb = e->text_buffer;
   Int start;
 
-  if ( tb->size < MAXPRECISESCROLLING &&
-       (start = getScrollStartTextImage(e->image, dir, unit, amount)) )
-  { startTextImage(e->image, start, ZERO);
-
-    return ensureCaretInWindowEditor(e);
-  }
-
   if ( unit == NAME_file )
   { if ( dir == NAME_goto )
-    { if ( tb->size < MAXLINEBASEDSCROLLING ) /* do it line-based */
+    { if ( tb->size < MAXPRECISESCROLLING &&
+	   (start = getScrollStartTextImage(e->image, dir, unit, amount)) )
+      { startTextImage(e->image, start, ZERO);
+	
+	return ensureCaretInWindowEditor(e);
+      } else if ( tb->size < MAXLINEBASEDSCROLLING )
       { int size = valInt(countLinesEditor(e, ZERO, toInt(tb->size)));
 	int view = valInt(getLinesTextImage(e->image));
 	int target = ((size-view)*valInt(amount))/1000;
@@ -3587,21 +3594,12 @@ scrollVerticalEditor(Editor e, Name dir, Name unit, Int amount)
 	scrollToEditor(e, toInt(h));
       }
     }
-  } else if ( unit == NAME_page )
-  { int d = (valInt(getLinesTextImage(e->image)) * valInt(amount)) / 1000;
-
-    if ( d < 1 )
-      d = 1;
-
-    if ( dir == NAME_forwards )
-      scrollUpEditor(e, toInt(d));
-    else
-      scrollDownEditor(e, toInt(d));
-  } else if ( unit == NAME_line )
-  { if ( dir == NAME_forwards )
-      scrollUpEditor(e, amount);
-    else
-      scrollDownEditor(e, amount);
+  } else 
+  { if ( (start = getScrollStartTextImage(e->image, dir, unit, amount)) )
+    { startTextImage(e->image, start, ZERO);
+	
+      return ensureCaretInWindowEditor(e);
+    }
   }
 
   succeed;
