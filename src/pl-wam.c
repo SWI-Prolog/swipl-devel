@@ -693,7 +693,8 @@ enum finished
 { FINISH_EXIT = 0,
   FINISH_FAIL,
   FINISH_CUT,
-  FINISH_EXCEPT
+  FINISH_EXCEPT,
+  FINISH_EXITCLEANUP
 };
 
 
@@ -705,7 +706,8 @@ unify_finished(term_t catcher, enum finished reason)
   { ATOM_exit,
     ATOM_fail,
     ATOM_cut,
-    ATOM_exception
+    ATOM_exception,
+    ATOM_exit
   };
 
   if ( reason == FINISH_EXCEPT )
@@ -714,6 +716,8 @@ unify_finished(term_t catcher, enum finished reason)
     return PL_unify_term(catcher,
 			 PL_FUNCTOR, FUNCTOR_exception1,
 			   PL_TERM, exception_bin);
+  } else if ( reason == FINISH_EXIT )
+  { fail;
   } else
   { return PL_unify_atom(catcher, reasons[reason]);
   }
@@ -2465,6 +2469,13 @@ call the 1-st argument.  See also I_CATCH.
 	goto i_usercall0;
       }
       
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+I_EXITCLEANUP is at the end of call_cleanup/3. If there is no
+choice-point created this is the final exit.  If this frame has no
+parent (it is the entry of PL_next_solution()), 
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
     VMI(I_EXITCLEANUP)
       { if ( BFR->frame == FR && BFR == (Choice)argFrameP(FR, 3) )
 	{ assert(BFR->type == CHP_CATCH);
@@ -2472,7 +2483,7 @@ call the 1-st argument.  See also I_CATCH.
 	  DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(BFR->parent)));
 	  BFR = BFR->parent;
 
-	  frameFinished(FR, FINISH_EXIT PASS_LD);
+	  frameFinished(FR, FINISH_EXITCLEANUP PASS_LD);
 	}
 
 	NEXT_INSTRUCTION;		/* goto i_exit? */

@@ -22,7 +22,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#define O_DEBUG 1
+/*#define O_DEBUG 1*/
 #ifdef WIN32
 #include <windows.h>
 #endif
@@ -458,7 +458,7 @@ alloc_thread()
 
   LOCK();
   for(i=1; i<MAX_THREADS; i++)
-  { if ( threads[i].thread_data == 0 )
+  { if ( threads[i].status == PL_THREAD_UNUSED )
     { PL_local_data_t *ld = allocHeap(sizeof(PL_local_data_t));
       memset(ld, 0, sizeof(PL_local_data_t));
 
@@ -682,8 +682,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
   if ( pthread_create(&info->tid, &attr, start_thread, info) != 0 )
   { pthread_attr_destroy(&attr);
-    return PL_warning("Could not create thread: %s", OsError());
-					/* FIXME: exception, info! */
+    return PL_error(NULL, 0, OsError(),
+		    ERR_SYSCALL, "pthread_create");
   }
   pthread_attr_destroy(&attr);
 
@@ -708,7 +708,7 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
     }
   }
 
-  if ( i < 0 || i >= MAX_THREADS || !threads[i].thread_data )
+  if ( i < 0 || i >= MAX_THREADS || threads[i].status == PL_THREAD_UNUSED )
   { if ( warn )
       return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_thread, t);
     else
@@ -781,7 +781,7 @@ free_thread_info(PL_thread_info_t *info)
   if ( info->name )
     unaliasThread(info->name);
 
-  memset(info, 0, sizeof(*info));
+  memset(info, 0, sizeof(*info));	/* sets status to PL_THREAD_UNUSED */
 }
 
 
@@ -812,10 +812,10 @@ word
 pl_thread_exit(term_t retcode)
 { PL_thread_info_t *info = LD->thread.info;
 
-    LOCK();
+  LOCK();
   info->status = PL_THREAD_EXITED;
   info->return_value = PL_record(retcode);
-    UNLOCK();
+  UNLOCK();
 
   pthread_exit(NULL);
   fail;					/* should not happen */
@@ -1778,13 +1778,11 @@ static void (*ldata_function)(PL_local_data_t *data);
 
 #define SIG_FORALL SIGHUP
 #define SIG_RESUME SIG_FORALL
+//#define SIG_RESUME SIGINT
 
 static void
 wait_resume(PL_thread_info_t *t)
 { sigset_t signal_set;
-  int me = PL_thread_self();
-
-  DEBUG(1, Sdprintf("Done work on %d; suspending\n", me));
 
   sigfillset(&signal_set);
   sigdelset(&signal_set, SIG_RESUME);
@@ -1793,7 +1791,7 @@ wait_resume(PL_thread_info_t *t)
   } while(t->status != PL_THREAD_RESUMING);
   t->status = PL_THREAD_RUNNING;
 
-  DEBUG(1, Sdprintf("Resuming %d\n", me));
+  DEBUG(1, Sdprintf("Resuming %d\n", t-threads));
 }
 
 
@@ -1863,10 +1861,15 @@ doThreadLocalData(int sig)
 
       if ( ld->thread.forall_flags & PL_THREAD_SUSPEND_AFTER_WORK )
       { t->status = PL_THREAD_SUSPENDED;
+
+	DEBUG(1, Sdprintf("\n\tDone work on %d; suspending ...", t-threads));
+
 	sem_post(&sem_mark);
 	wait_resume(t);
       } else
+      {	DEBUG(1, Sdprintf("\n\tDone work on %d", t-threads));
 	sem_post(&sem_mark);
+      }
 
       break;
     }
@@ -1910,12 +1913,13 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
 
   while(signalled)
   { sem_wait(&sem_mark);
+    DEBUG(1, Sdprintf(" (ok)"));
     signalled--;
   }
 
   sem_destroy(&sem_mark);
 
-  DEBUG(1, Sdprintf("done!\n"));
+  DEBUG(1, Sdprintf(" All done!\n"));
 
   sigaction(SIG_FORALL, &old, NULL);
 

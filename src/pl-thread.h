@@ -60,15 +60,16 @@ typedef struct _PL_thread_info_t
 
 #define PL_THREAD_MAGIC 0x2737234f
 
-#define PL_THREAD_RUNNING	1
-#define PL_THREAD_EXITED	2
-#define PL_THREAD_SUCCEEDED	3
-#define PL_THREAD_FAILED	4
-#define PL_THREAD_EXCEPTION	5
-#define PL_THREAD_CANCELED	6
-#define	PL_THREAD_CREATED	7
-#define	PL_THREAD_SUSPENDED	8
-#define PL_THREAD_RESUMING	9
+#define PL_THREAD_UNUSED	0	/* no thread on this slot */
+#define PL_THREAD_RUNNING	1	/* a normally running one */
+#define PL_THREAD_EXITED	2	/* died with thread_exit/1 */
+#define PL_THREAD_SUCCEEDED	3	/* finished with Yes */
+#define PL_THREAD_FAILED	4	/* finished with No */
+#define PL_THREAD_EXCEPTION	5	/* finished with exception */
+#define PL_THREAD_CANCELED	6	/* canceled */
+#define	PL_THREAD_CREATED	7	/* just created */
+#define	PL_THREAD_SUSPENDED	8	/* suspended */
+#define PL_THREAD_RESUMING	9	/* about to resume */
 
 extern simpleMutex _PL_mutexes[];	/* Prolog mutexes */
 

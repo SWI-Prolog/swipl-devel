@@ -49,7 +49,7 @@ lookupProcedure(functor_t f, Module m)
   
   LOCK();
   if ( (s = lookupHTable(m->procedures, (void *)f)) )
-  { DEBUG(1, Sdprintf("lookupProcedure() --> %s\n", procedureName(s->value)));
+  { DEBUG(3, Sdprintf("lookupProcedure() --> %s\n", procedureName(s->value)));
     proc = s->value;
   } else
   { GET_LD
@@ -76,7 +76,7 @@ lookupProcedure(functor_t f, Module m)
     def->references = 0;
     def->erased_clauses = 0;
     resetProcedure(proc, TRUE);
-    DEBUG(1, Sdprintf("Created %s\n", procedureName(proc)));
+    DEBUG(3, Sdprintf("Created %s\n", procedureName(proc)));
   }
   UNLOCK();
   
@@ -744,7 +744,7 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
   if ( def->hash_info )
   { assert(!(def->indexPattern & NEED_REINDEX));
 
-    DEBUG(1,
+    DEBUG(3,
 	  if ( !clause->index.varmask )
 	    Sdprintf("Adding non-indexed clause to %s\n", predicateName(def));
 	 );
@@ -961,7 +961,7 @@ gcClausesDefinition(Definition def)
   int left = 0, removed = 0;
 #endif
 
-  DEBUG(1, Sdprintf("gcClausesDefinition(%s) --> ", predicateName(def)));
+  DEBUG(2, Sdprintf("gcClausesDefinition(%s) --> ", predicateName(def)));
 
   cref = def->definition.clauses;
 
@@ -990,7 +990,7 @@ gcClausesDefinition(Definition def)
 	  def->lastClause = prev;
       }
 
-      DEBUG(0, removed++);
+      DEBUG(2, removed++);
 #if O_DEBUGGER
       if ( PROCEDURE_event_hook1 && def != PROCEDURE_event_hook1->definition )
       { def->references++;		/* prevent recursion */
@@ -1004,17 +1004,17 @@ gcClausesDefinition(Definition def)
     } else
     { prev = cref;
       cref = cref->next;
-      DEBUG(0, left++);
+      DEBUG(2, left++);
     }
   }
 
-  DEBUG(0, if ( def->erased_clauses != 0 )
+  DEBUG(2, if ( def->erased_clauses != 0 )
 	     Sdprintf("*** %s has %d erased claused\n",
 		      predicateName(def), def->erased_clauses));
 
   assert(def->erased_clauses == 0);
 
-  DEBUG(1, Sdprintf("removed %d, left %d\n", removed, left));
+  DEBUG(2, Sdprintf("removed %d, left %d\n", removed, left));
 
   if ( rehash )
     hashDefinition(def, rehash);
@@ -1098,6 +1098,8 @@ pl_garbage_collect_clauses(void)
     forThreadLocalData(markPredicatesInEnvironments,
 		       PL_THREAD_SUSPEND_AFTER_WORK);
 #endif
+
+    DEBUG(1, Sdprintf("Marking complete; cleaning predicates\n"));
 
     for( cell = &GD->procedures.dirty; *cell; )
     { Definition def = (*cell)->definition;
@@ -1870,7 +1872,7 @@ reindexDefinition(Definition def)
   leaveDefinition(def);
 
   if ( do_hash )
-  { DEBUG(1,
+  { DEBUG(3,
 	  if ( def->definition.clauses )
 	  { Procedure proc = def->definition.clauses->clause->procedure;
 
