@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: edit/0 to edit the default script- (-s file) or associated file.
+
   * LIBRARY: make read_line_to_codes return the atom end_of_file upon reaching
     the end of file.
 
