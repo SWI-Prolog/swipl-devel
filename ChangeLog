@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: plwin.exe: add menu item to edit the `associated' file.
+
   * FIXED: Various GUI-Tracer problems concerning source-location in DCG
     rules.
 

@@ -189,7 +189,14 @@ $make_alias(Chars, Alias) :-
 		 *   LOADING ASSIOCIATED FILES	*
 		 *******************************/
 
-$load_associated_file :-
+%	set_associated_file/0
+%	
+%	If SWI-Prolog is started as <exe> <file>.<ext>, where <ext> is
+%	the extension registered for associated files, set the Prolog
+%	flag associated_file, switch to the directory holding the file
+%	and -if possible- adjust the window title.
+
+set_associated_file :-
 	$set_prolog_file_extension,
 	current_prolog_flag(associate, Ext),
 	current_prolog_flag(argv, Argv),
@@ -200,11 +207,17 @@ $load_associated_file :-
 	access_file(File, read),
 	file_directory_name(File, Dir),
 	working_directory(_, Dir),
-	consult(user:File), !,
+	set_prolog_flag(associated_file, File),
 	atom_concat('SWI-Prolog -- ', File, Title),
-	catch(user:window_title(_, Title), _, true),
-	nl.				% why?
+	catch(user:window_title(_, Title), _, true).
+set_associated_file.
+
+
+$load_associated_file :-
+	current_prolog_flag(associated_file, File),
+	consult(user:File).
 $load_associated_file.
+
 
 hkey('HKEY_CURRENT_USER/Software/SWI/Prolog').
 hkey('HKEY_LOCAL_MACHINE/Software/SWI/Prolog').
@@ -236,6 +249,7 @@ $initialise :-
 
 initialise_prolog :-
 	$clean_history,
+	set_associated_file,
 	$set_file_search_paths,
 	set_prolog_flag(toplevel_print_options,
 			[quoted(true), portray(true), max_depth(10)]),

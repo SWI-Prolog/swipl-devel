@@ -107,9 +107,17 @@ init_win_menus :-
 	    ;	true
 	    ),
 	    fail
-	;   true
+	;   insert_associated_file
 	).
 		   
+insert_associated_file :-
+	current_prolog_flag(associated_file, File),
+	file_base_name(File, Base),
+	atom_concat('Edit &', Base, Label),
+	win_insert_menu_item('&File', Label, '&New ...', edit(file(File))).
+insert_associated_file.
+
+
 :- initialization init_win_menus.
 
 		 /*******************************
