@@ -163,7 +163,7 @@ find_predicate1(Name, Arity) :-
 remove_double_slashes(Atom, Atom1) :-
 	name(Atom, L),
 	remove_double_slashes_list(L, L1),
-	name(Atom1, L).
+	name(Atom1, L1).
 
 remove_double_slashes_list([], []).
 remove_double_slashes_list([0'/, 0'/|T], L) :- !,
