@@ -6,6 +6,10 @@
     Copyright (C) 1994 University of Amsterdam. All rights reserved.
 */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <signal.h>
 #include <sys/mman.h>
@@ -95,7 +99,9 @@ segv_handler(int s, int type, void *scp, char *sigaddr)
   if ( sigaddr != wraddr )
     provides_address = 0;
 
-  if ( mmap((void *) addr, pagsiz, PROT_READ|PROT_WRITE, STACK_MAP_TYPE|MAP_FIXED,
+  if ( mmap((void *) addr, pagsiz,
+	    PROT_READ|PROT_WRITE,
+	    STACK_MAP_TYPE|MAP_FIXED,
 	    mapfd, 0L) != (void *)addr )
   { perror("mmap");
     exit(1);
@@ -116,7 +122,7 @@ test_map(int *low)
   int n;
 
 #ifdef VERBOSE
-  printf("write-test from 0x%08xL\n", (ulong)low);
+  printf("write-test from %p\n", low);
 #endif
   for(n=0; n<size; n++)
   { wraddr = &low[n];
@@ -163,36 +169,36 @@ getpagesize()
 
 int
 main(int argc, char **argv)
-{ ulong thelow  = 0xffffffff;
+{ ulong thelow  = ~0;
   ulong thehigh = 0;
-  ulong step    = 1 M;
+  ulong step    = (sizeof(void *) == 4 ? 4 M : 100 M);
   ulong low, high;
   ulong addr;
-  ulong seghigh;
 
   pagsiz = getpagesize();
   mapfd  = get_map_fd();
   low    = RoundUp((ulong)malloc(1) + 100 K, step);
-  high   = min(RoundUp((ulong)&argc - 10 M, step), 0x80000000L);
+  high   = RoundDown((ulong)&argc - 32 M, step);
   
-  if ( low & 0xf0000000L )
-  { if ( (low & 0xf0000000L) == 0x10000000L )
-      seghigh = 0x20000000L;
-    else if ( (low & 0xf0000000L) == 0x20000000L )
-      seghigh = 0x40000000L;
-    else if ( (low & 0xf0000000L) == 0x40000000L )
-      seghigh = 0x50000000L;
-  } else
-    seghigh = 0x20000000L;
+  if ( high < low )
+    high = low + 80*step;
+  else if ( low + 80*step < high )
+    high = low + 80*step;
 
-  if ( high > seghigh )
-    high = seghigh;
+#ifdef VERBOSE
+  printf("pagesize = %ld, low = %p, high = %p\n",
+	 pagsiz, (void *)low, (void *)high);
+#endif
 
   for(addr=low; addr<=high; addr += step)
   { if ( (ulong) mmap((void *) addr, pagsiz,
 		      PROT_READ|PROT_WRITE, STACK_MAP_TYPE,
 		      mapfd, 0L) == addr )
-    { if ( addr < thelow )
+    {
+#ifdef VERBOSE
+      printf("."); fflush(stdout);
+#endif
+      if ( addr < thelow )
 	thelow = addr;
       if ( addr > thehigh )
 	thehigh = addr;
@@ -206,8 +212,13 @@ main(int argc, char **argv)
     }
   }
 
+#ifdef VERBOSE
+  printf("\nMap range is %p ... %p\n", (void *)thelow, (void *)thehigh);
+#endif
+
   if ( thelow < thehigh )
   { signal(SIGSEGV, (handler_t) segv_handler);
+    
     test_map((void *)thelow);
 
     printf("MMAP_STACK=1;\n");

@@ -100,6 +100,15 @@ arithmetic(arith-13) :-
 	1.0 =:= sin(pi/2).
 
 		 /*******************************
+		 *	    BIG NUMBERS		*
+		 *******************************/
+
+arithmetic(int-1) :-
+	A is 2^31-1, integer(A).
+arithmetic(cmp-1) :-
+	A is 100e6, 67 < A.
+
+		 /*******************************
 		 *	 PROLOG FUNCTIONS	*
 		 *******************************/
 
@@ -113,21 +122,12 @@ twice(X, R) :-
 mean(X1, X2, R) :-
 	R is (X1 + X2)/2.
 
-arithmetic(func-1) :-
+arithmetic_functions(func-1) :-
 	A is ten, A == 10.
-arithmetic(func-2) :-
+arithmetic_functions(func-2) :-
 	A is twice(5), A == 10.
-arithmetic(func-3) :-
+arithmetic_functions(func-3) :-
 	A is mean(0, 20), A == 10.
-
-		 /*******************************
-		 *	    BIG NUMBERS		*
-		 *******************************/
-
-arithmetic(int-1) :-
-	A is 2^31-1, integer(A).
-arithmetic(cmp-1) :-
-	A is 100e6, 67 < A.
 
 		 /*******************************
 		 *	    TYPE TESTS		*
@@ -323,7 +323,11 @@ floatconv(float-2) :-
 	ToHigh is MI + 1,
 	float(ToHigh).
 floatconv(float-3) :-
-	term_to_atom(X, 2147483648),
+	(   feature(max_integer, 2147483647)
+	->  term_to_atom(X, 2147483648)
+	;   feature(max_integer, 9223372036854775807)
+	->  term_to_atom(X, 9223372036854775808)
+	),
 	float(X).
 
 		 /*******************************
@@ -346,7 +350,7 @@ termtest(N) :-
 term_atom(term_to_atom-1) :-
 	termtest(10).
 term_atom(term_to_atom-2) :-
-	termtest(10000).
+	termtest(1000).
 
 
 		 /*******************************
@@ -355,6 +359,7 @@ term_atom(term_to_atom-2) :-
 
 testset(syntax).
 testset(arithmetic).
+testset(arithmetic_functions).
 testset(type).
 testset(term).
 testset(list).

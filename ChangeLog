@@ -5,6 +5,11 @@
 VERSION 2.8.1
 =============
 
+  * FIXED: DEC Alpha (64-bit): reading integers	> 2**31-1.  Configuration
+    of mmap based sparse stack allocation to deal with the Alpha.  Various
+    warnings removed.  Fixed test.pl to be aware of the Alpha where
+    necessary (float-3 test).
+
   * FIXED: Garbage collection problem, occurring with a specific
     combination of call-back from C and choicepoint organisation
     in the callback environment.

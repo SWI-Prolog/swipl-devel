@@ -737,8 +737,8 @@ forwards bool	simple_term(bool, term_t term, bool *isname, term_t positions);
 int
 scan_number(char **s, int b, Number n)
 { int d;
-  unsigned int maxi = PLMAXINT/b;	/* cache? */
-  unsigned int t = 0;
+  unsigned long maxi = PLMAXINT/b;	/* cache? */
+  unsigned long t = 0;
 
   while((d = digitValue(b, **s)) >= 0)
   { (*s)++;
