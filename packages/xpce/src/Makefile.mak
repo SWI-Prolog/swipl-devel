@@ -313,6 +313,7 @@ IDIRS=	appl-help \
 	prolog\lib\math \
 	prolog\lib\plot \
 	prolog\lib\xref \
+	prolog\lib\swi \
 	prolog\lib\trace \
 	prolog\lib\trace\icons \
 	prolog\lib\trace\icons\16x16
