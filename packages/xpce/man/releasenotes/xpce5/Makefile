@@ -2,13 +2,13 @@
 
 PCEHOME=../../..
 PDF=relnotes-5.pdf
+PS=relnotes-5.ps
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PCEHOME)/bin/pl2tex
 CORRECTINDEX=$(PCEHOME)/bin/correctindex
 MAKEINDEX=makeindex -s $(PCEHOME)/TeX/makeindex.ist
 DOC=doc
 DVI=$(DOC).dvi
-PS=relnotes-5.ps
 LOG=$(DOC).log
 RERUN="Rerun to get cross-references right"
 
@@ -16,6 +16,7 @@ TEX=	$(DOC).tex body.tex tree.tex showdir.tex
 
 all:	$(DVI)
 pdf:	$(PDF)
+ps:	$(PS)
 
 $(DVI):	$(TEX)
 	@TEXINPUTS=.:$(PCEHOME)/TeX:$$TEXINPUTS; \
