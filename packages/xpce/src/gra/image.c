@@ -287,9 +287,9 @@ loadImage(Image image, SourceSink file, CharArray path)
 
 
 static status
-saveImage(Image image, FileObj file, Name fmt)
+saveImage(Image image, SourceSink file, Name fmt)
 { if ( isDefault(file) )
-    file = (FileObj) image->file;
+    file = image->file;
   if ( isDefault(fmt) )
     fmt = NAME_xbm;
 
@@ -958,7 +958,7 @@ static char *T_initialise[] =
 static char *T_image_atADpointD[] =
         { "image", "at=[point]" };
 static char *T_save[] =
-        { "in=[file]", "format=[{xbm,xpm,pnm,pbm,pgm,ppm,jpeg}]" };
+        { "in=[source_sink]", "format=[{xbm,xpm,pnm,pbm,pgm,ppm,jpeg}]" };
 static char *T_postscript[] =
         { "landscape=[bool]", "maximum_area=[area]" };
 static char *T_resize[] =

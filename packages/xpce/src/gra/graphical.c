@@ -126,6 +126,11 @@ DeviceGraphical(Any obj, Device dev)
   return qadSendv(obj, NAME_device, 1, (Any *) &dev);
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+We do a bit of checking here as this code is often called bypassing the
+message-passing checking and we want more graceful crashes of something
+bad happens.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 status
 deviceGraphical(Any obj, Device dev)
@@ -133,6 +138,8 @@ deviceGraphical(Any obj, Device dev)
 
   if ( isNil(dev->graphicals) )
     return errorPce(dev, NAME_notInitialised);
+  if ( !isObject(obj) || isFreedObj(obj) )
+    return errorPce(PCE, NAME_freedObject, obj);
 
   if ( notNil(gr->device) )
     eraseDevice(gr->device, gr);
@@ -1484,6 +1491,9 @@ assignDialogItem(Graphical gr, Name slot, Any value)
 { Variable var;
   Graphical gr2;
 
+  DEBUG(NAME_left, Cprintf("assignDialogItem(%s, %s, %s)\n",
+			   pp(gr), pp(slot), pp(value)));
+
   if ( (var = getInstanceVariableClass(classOfObject(gr), slot)) )
     return sendVariable(var, gr, value);
 
@@ -1542,6 +1552,7 @@ status
 rightGraphical(Graphical gr1, Graphical gr2)
 { Graphical gr;
 
+  DEBUG(NAME_left, Cprintf("rightGraphical(%s,%s)\n", pp(gr1), pp(gr2)));
   TRY(same_device(gr1, gr2));
 
   if ( notNil(gr2) )
@@ -1561,6 +1572,7 @@ status
 leftGraphical(Graphical gr1, Graphical gr2)
 { Graphical gr;
 
+  DEBUG(NAME_left, Cprintf("leftGraphical(%s,%s)\n", pp(gr1), pp(gr2)));
   TRY(same_device(gr1, gr2));
 
   if ( notNil(gr2) )
