@@ -50,7 +50,7 @@ xml_objects(Objects, Base0) ::=
 xml_objects(Objects, Base) ::=
 	element((\rdf('RDF'), !),
 		_,
-		\rdf_objects(Objects, Base)),
+		\nodeElementList(Objects, Base)),
 	!.
 xml_objects(Objects, Base) ::=
 	element(_, _, \xml_content_objects(Objects, Base)).
@@ -63,21 +63,25 @@ xml_content_objects([H|T], Base) ::=
 	].
 
 
-rdf_objects([], _Base) ::=
+nodeElementList([], _Base) ::=
 	[], !.
-rdf_objects([H|T], Base) ::=
-	[ \rdf_object_or_error(H, Base)
-	| \rdf_objects(T, Base)
+nodeElementList(L, Base) ::=
+	[ (\ws, !)
+	| \nodeElementList(L, Base)
+	].
+nodeElementList([H|T], Base) ::=
+	[ \nodeElementOrError(H, Base)
+	| \nodeElementList(T, Base)
 	].
 
-rdf_object_or_error(H, Base) ::=
-	\rdf_object(H, Base), !.
-rdf_object_or_error(_, unparsed(Data)) ::=
+nodeElementOrError(H, Base) ::=
+	\nodeElement(H, Base), !.
+nodeElementOrError(_, unparsed(Data)) ::=
 	Data.
 
-rdf_object(container(Type, Id, Elements), Base) ::=
+nodeElement(container(Type, Id, Elements), Base) ::=
 	\container(Type, Id, Elements, Base), !. % compatibility
-rdf_object(description(Type, About, BagID, Properties), Base) ::=
+nodeElement(description(Type, About, BagID, Properties), Base) ::=
 	\description(Type, About, BagID, Properties, Base).
 
 
@@ -124,7 +128,7 @@ propAttr(Name = literal(Value), _) ::=
 propertyElts([], _) ::=
 	[], !.
 propertyElts(Elts, Base) ::=
-	[ (\blank, !)
+	[ (\ws, !)
 	| \propertyElts(Elts, Base)
 	].
 propertyElts([H|T], Base) ::=
@@ -242,18 +246,18 @@ idRefAttr(about(URI), Base) ::=
 %	happens.
 
 an_rdf_object(Object, Base) ::=
-	[ \rdf_object(Object, Base)
+	[ \nodeElement(Object, Base)
 	], !.
 an_rdf_object(Object, Base) ::=
-	[ \rdf_object(Object, Base),
-	  \blank
-	], !.
-an_rdf_object(Object, Base) ::=
-	[ \blank
+	[ (\ws, !)
 	| \an_rdf_object(Object, Base)
 	].
+an_rdf_object(Object, Base) ::=
+	[ \nodeElement(Object, Base),
+	  \ws
+	], !.
 
-blank ::=
+ws ::=
 	A,
 	{ atom(A),
 	  atom_chars(A, Chars),

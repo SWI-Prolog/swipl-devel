@@ -18,6 +18,10 @@
 	    show/1,			% RDF diagram for File
 	    run_test/1			% run a single test
 	  ]).
+
+					% get libraries locally
+:- asserta(user:file_search_path(library, '.')).
+
 :- use_module(rdf).			% our RDF parser
 :- use_module(rdf_nt).			% read .nt files
 :- use_module(library(pce)).
@@ -39,7 +43,7 @@ set_verbose :-
 	rdf/3.
 
 ns(test,
-   'http://www.w3.org/2000/10/rdf-tests/rdfcore/testSchema/').
+   'http://www.w3.org/2000/10/rdf-tests/rdfcore/testSchema#').
 
 local('http://www.w3.org/2000/10/rdf-tests/rdfcore/',
       'W3Ctests/').
