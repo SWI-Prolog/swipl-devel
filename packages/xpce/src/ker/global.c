@@ -74,7 +74,7 @@ struct global
   { NAME_eventTree,		NAME_event },
   { NAME_fonts,			NAME_font },
   { NAME_images,		NAME_image },
-  { NAME_GrabbedWindows,	NAME_window },
+  { NAME_grabbedWindows,	NAME_window },
   { NAME_whiteImage,		NAME_image },
   { NAME_grey12Image,		NAME_image },
   { NAME_grey25Image,		NAME_image },

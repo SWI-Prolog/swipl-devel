@@ -4,6 +4,9 @@
 VERSION 6.2.8, distributed with SWI-Prolog 5.2.8
 ================================================
 
+* PORT/MODIFIED: `window->grab_pointer' maintains @grabbed_windows on all
+  platform (used to be called @_grabbed_windows and only on X11).
+
 * MODIFIED: `node->delete_tree' now calls ->destroy on the deleted nodes,
   providing guaranteed destruction of the node's <-image.  Application that
   which to preserve the images should detach them from the tree before

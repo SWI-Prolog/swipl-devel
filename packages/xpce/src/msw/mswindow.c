@@ -673,8 +673,8 @@ ws_grab_keyboard_window(PceWindow sw, Bool val)
 }
 
 
-void
-ws_grab_pointer_window(PceWindow sw, Bool val)
+static void
+do_grab_pointer_window(PceWindow sw, Bool val)
 { HWND win;
 
   if ( (win = getHwndWindow(sw)) )
@@ -691,8 +691,29 @@ ws_grab_pointer_window(PceWindow sw, Bool val)
 
 
 void
+ws_grab_pointer_window(PceWindow sw, Bool val)
+{ if (  getHwndWindow(sw) )
+  { if ( val == ON )
+    { if ( getHeadChain(grabbedWindows) != sw )
+      { do_grab_window(sw, ON);
+	prependChain(grabbedWindows, sw);
+      }
+    } else
+    { do_grab_window(sw, OFF);
+      deleteChain(grabbedWindows, sw);
+      if ( notNil(grabbedWindows->head) )
+        do_grab_window(grabbedWindows->head->value, ON);
+    }
+  }
+}
+
+
+void
 ws_ungrab_all(void)
-{ ReleaseCapture();
+{ if ( grabbedWindows )
+    clearChain(grabbedWindows);
+  
+  ReleaseCapture();
 }
 
 

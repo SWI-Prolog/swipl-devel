@@ -740,7 +740,14 @@ postNamedEvent(EventObj ev, Graphical obj, Recogniser rec, Name method)
   DEBUG(NAME_post,
 	if ( ev->id != NAME_locMove &&
 	     !isDragEvent(ev) )
-	  Cprintf("Posting %s to %s\n", pp(ev->id), pp(obj)));
+	{ if ( isDefault(rec) )
+	    Cprintf("Posting %s to %s->%s\n",
+		    pp(ev->id), pp(obj), pp(method));
+	  else
+	    Cprintf("Posting %s to %s->%s (focus on %s)\n",
+		    pp(ev->id), pp(obj), pp(method), pp(rec));
+	});
+		    
 
   withLocalVars({ assignVar(EVENT, ev, NAME_local);
 		  assign(ev, receiver, obj);

@@ -1060,6 +1060,7 @@ GLOBAL  HashTable WindowTable;		/* X-Window --> PceWindow|FrameObj */
 GLOBAL  Class ClassImage;		/* @image_class */
 
 GLOBAL  EventTreeObj  EventTree;	/* @event_tree */
+GLOBAL  Chain grabbedWindows;		/* @grabbed_windows */
 
 		 /*******************************
 		 *     MENU LAYER CONSTANTS	*

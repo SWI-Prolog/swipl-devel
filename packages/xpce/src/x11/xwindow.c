@@ -30,8 +30,6 @@
 #include "xdnd.h"
 #endif
 
-static Chain grabbedWindows = NIL;
-
 static void event_window(Widget w, XtPointer xsw, XtPointer xevent);
 static void expose_window(Widget w, XtPointer xsw, XtPointer xregion);
 static void resize_window(Widget w, XtPointer xsw, XtPointer data);
@@ -69,7 +67,7 @@ void
 ws_uncreate_window(PceWindow sw)
 { Widget w;
 
-  if ( notNil(grabbedWindows) )
+  if ( grabbedWindows )
     deleteChain(grabbedWindows, sw);
 
   if ( (w=widgetWindow(sw)) )
@@ -360,10 +358,7 @@ ws_window_thread(PceWindow sw)
 
 void
 ws_grab_pointer_window(PceWindow sw, Bool val)
-{ if ( isNil(grabbedWindows) )
-    grabbedWindows = globalObject(NAME_GrabbedWindows, ClassChain, EAV);
-
-  if ( widgetWindow(sw) != NULL )
+{ if ( widgetWindow(sw) != NULL )
   { if ( val == ON )
     { XGrabPointer(getDisplayGraphical((Graphical)sw)->displayXref,
 		   XtWindow(widgetWindow(sw)),
@@ -457,10 +452,7 @@ do_grab_window(PceWindow sw)
 
 void
 ws_grab_pointer_window(PceWindow sw, Bool val)
-{ if ( isNil(grabbedWindows) )
-    grabbedWindows = globalObject(NAME_GrabbedWindows, ClassChain, EAV);
-
-  if ( widgetWindow(sw) != NULL )
+{ if ( widgetWindow(sw) != NULL )
   { if ( val == ON )
     { if ( getHeadChain(grabbedWindows) != sw )
       { do_grab_window(sw);
@@ -495,7 +487,7 @@ ws_grab_keyboard_window(PceWindow sw, Bool val)
 
 void
 ws_ungrab_all()
-{ if ( notNil(grabbedWindows) )
+{ if ( grabbedWindows )
   { if ( notNil(grabbedWindows->tail) )
     { PceWindow sw = grabbedWindows->tail->value;
 

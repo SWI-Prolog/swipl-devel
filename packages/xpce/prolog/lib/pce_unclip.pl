@@ -126,9 +126,11 @@ event(W, Ev:event) :->
 	->  get(W, hypered, mirroring, Gr),
 	    get(Gr, window, W2),
 	    get(Ev, position, W2, point(X,Y)),
+	    get(W2, slot, scroll_offset, point(OX, OY)),
+	    AX is X+OX, AY is Y+OY,
 	    get(Ev, id, Id),
 	    send(W, detach),
-	    send(event(Id, W2, X, Y), post, W2)
+	    send(event(Id, W2, AX, AY), post, W2)
 	;   \+ send(Ev, is_a, area),
 	    get(W, hypered, mirroring, Gr),
 	    catch(send(Ev, post, Gr), E,

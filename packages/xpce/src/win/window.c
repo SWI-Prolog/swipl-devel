@@ -2354,6 +2354,7 @@ makeClassWindow(Class class)
   setRedrawFunctionClass(class, redrawAreaWindow);
 
   WindowTable = createHashTable(toInt(32), NAME_none);
+  grabbedWindows = globalObject(NAME_grabbedWindows, ClassChain, EAV);
 
   succeed;
 }
