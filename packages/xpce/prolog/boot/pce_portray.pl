@@ -46,8 +46,8 @@ class-name and the goal to the implementation of methods more readable
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 user:portray(Obj) :-
-	object(Obj),
-	Obj = @Ref, !,
+	Obj = @Ref,
+	object(Obj), !,
 	(   send(Obj, '_instance_of', var)
 	->  get(Obj, '_value', Value),
 	    format('@~w(= ~p)', [Ref, Value])
