@@ -1,4 +1,4 @@
-\chapter{Generating Runtime Applications}
+\chapter{Generating Runtime Applications}	\label{sec:runtime}
 
 This chapter describes the features of SWI-Prolog for delivering
 applications that can run without the development version of the
@@ -193,7 +193,7 @@ This mechanism works on all machines, but generally requires the same
 C-compiler and linker to be used for the external code as is used to
 build SWI-Prolog itself.  This mechanism is the preferred way if shared
 libraries are not supported.
-    \item [Using load_foreign/2,5]]
+    \item [Using {load_foreign/[2,5]}]
 Basically only works on Unix system supporting the a.out format
 executables.  This mechanism is slow and non-portable.  It should be
 avoided whenever possible.

@@ -368,7 +368,11 @@ typedef struct
 
 static extdef extdefs[] =
 { { EXT_OBJ,	&ofiles },
+#ifdef WIN32
+  { "lib",	&libs },
+#else
   { "a",	&ofiles },
+#endif
   { "c",	&cfiles },
   { "cpp",	&cppfiles },
   { "cxx",	&cppfiles },

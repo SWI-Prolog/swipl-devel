@@ -246,7 +246,7 @@ described later in this chapter:
 
 extern foreign_t pl_lowercase(term, term);
 
-PL_extension PL_extensions [] =
+PL_extension predicates[] =
 {
 /*{ "name",      arity,  function,      PL_FA_<flags> },*/
 
@@ -256,8 +256,10 @@ PL_extension PL_extensions [] =
 
 
 int
-main(int argc, char **argv, char **env)
-{ if ( !PL_initialise(argc, argv, env) )
+main(int argc, char **argv)
+{ PL_register_extensions(predicates);
+
+  if ( !PL_initialise(argc, argv) )
     PL_halt(1);
 
   PL_install_readline();                /* delete if not required */
@@ -1616,10 +1618,10 @@ Register foreign predicates from a table of structures.	 The type
 
 \begin{code}
 typedef struct _PL_extension
-{ char 		*predicate_name;	/* Name of the predicate */
-  short		arity;			/* Arity of the predicate */
-  pl_function_t	function;		/* Implementing functions */
-  short		flags;			/* Or of PL_FA_... */
+{ char 		*predicate_name; /* Name of the predicate */
+  short		arity;		 /* Arity of the predicate */
+  pl_function_t	function;	 /* Implementing functions */
+  short		flags;		 /* Or of PL_FA_... */
 } PL_extension;
 \end{code}
 
@@ -1703,8 +1705,8 @@ program:
 
 \begin{code}
 int
-main(int argc, char **argv, char **env)
-{ if ( !PL_initialise(argc, argv, env) )
+main(int argc, char **argv)
+{ if ( !PL_initialise(argc, argv) )
     PL_halt(1);
 
   PL_install_readline();        /* delete if you don't want readline */
@@ -1850,7 +1852,7 @@ PL_extension PL_extensions [] =
 #define MAXLINE 1024
 
 int
-main(int argc, char **argv, char **env)
+main(int argc, char **argv)
 { char expression[MAXLINE];
   char *e = expression;
   char *program = argv[0];
@@ -1873,7 +1875,7 @@ main(int argc, char **argv, char **env)
 
   /* initialise Prolog */
 
-  if ( !PL_initialise(1, plav, env) )
+  if ( !PL_initialise(1, plav) )
     PL_halt(1);
 
   /* Lookup calc/1 and make the arguments and call */

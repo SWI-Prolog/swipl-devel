@@ -666,7 +666,7 @@ with Steve Moyle \email{smoyle@ermine.ox.ac.uk}.
 \end{description}
 
 
-\section{ISO compliant Exception handling}
+\section{ISO compliant Exception handling}   \label{sec:exception}
 
 SWI-Prolog defines the predicates catch/3 and throw/1 for ISO compliant
 raising and catching of exceptions. In the current implementation

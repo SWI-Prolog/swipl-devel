@@ -31,7 +31,14 @@ word to store the size of the memory segment.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct chunk *	Chunk;
-typedef long		align_type;
+#ifndef ALIGN_SIZE
+#if defined(__sgi) && !defined(__GNUC__)
+#define ALIGN_SIZE sizeof(double)
+#else
+#define ALIGN_SIZE sizeof(long)
+#endif
+#endif
+#define ALLOC_MIN  sizeof(Chunk)
 
 struct chunk
 { Chunk		next;		/* next of chain */
@@ -44,8 +51,7 @@ static alloc_t spacefree;	/* number of free bytes left */
 
 static Chunk  freeChains[ALLOCFAST/sizeof(Chunk)+1];
 
-#define ALLOCROUND(n) ( (n) < sizeof(struct chunk) ? sizeof(struct chunk) \
-						   : ROUND(n, sizeof(align_type)) )
+#define ALLOCROUND(n) ROUND(n, ALIGN_SIZE)
 			   
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Allocate n bytes from the heap.  The amount returned is n rounded up to
@@ -59,16 +65,19 @@ to avoid problems with 16-bit machines not supporting an ANSI compiler.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void *
-alloc_heap(register size_t n)
+alloc_heap(size_t n)
 { register Chunk f;
   register alloc_t m;
   
+  if ( n == 0 )
+    return NULL;
+
   DEBUG(9, Sdprintf("allocated %ld bytes at ", (unsigned long)n));
   n = ALLOCROUND(n);
   GD->statistics.heap += n;
 
   if (n <= ALLOCFAST)
-  { m = n / (int) sizeof(align_type);
+  { m = n / (int) ALIGN_SIZE;
     if ((f = freeChains[m]) != NULL)
     { freeChains[m] = f->next;
       f->next = (Chunk) NULL;
@@ -112,8 +121,11 @@ alloc_heap(register size_t n)
 }
 
 void
-free_heap(register void * mem, register size_t n)
+free_heap(void *mem, size_t n)
 { Chunk p = (Chunk) mem;
+
+  if ( mem == NULL )
+    return;
 
   n = ALLOCROUND(n);
 #if ALLOC_DEBUG
@@ -124,7 +136,7 @@ free_heap(register void * mem, register size_t n)
 		    (unsigned long)n, (unsigned long)p));
 
   if (n <= ALLOCFAST)
-  { n /= sizeof(align_type);
+  { n /= ALIGN_SIZE;
     p->next = freeChains[n];
     freeChains[n] = p;
   } else
@@ -155,7 +167,7 @@ allocate(register size_t n)
   }
 
   if ( spacefree >= sizeof(struct chunk) )
-    freeHeap(spaceptr, (alloc_t) (spacefree/sizeof(align_type))*sizeof(align_type));
+    freeHeap(spaceptr, (alloc_t) (spacefree/ALIGN_SIZE)*ALIGN_SIZE);
 
   if ((p = (char *) Allocate(ALLOCSIZE)) <= (char *)NULL)
     outOfCore();
@@ -167,6 +179,20 @@ allocate(register size_t n)
   return (Chunk) p;
 }
 
+void
+initAlloc()
+{ assert(ALIGN_SIZE >= ALLOC_MIN);
+
+  if ( !GD->dumped )
+  { hBase = (char *)(~0L);
+    hTop  = (char *)NULL;
+  }
+  { void *hbase = allocHeap(sizeof(word));
+
+    heap_base = (ulong)hbase & ~0x007fffffL; /* 8MB */
+    freeHeap(hbase, sizeof(word));
+  }
+}
 		/********************************
 		*             STACKS            *
 		*********************************/

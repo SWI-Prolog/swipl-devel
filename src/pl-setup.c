@@ -55,19 +55,11 @@ setupProlog(void)
   signalled = 0;
 
   startCritical;
+  initAlloc();
 #if HAVE_SIGNAL
   DEBUG(1, Sdprintf("Prolog Signal Handling ...\n"));
   initSignals();
 #endif
-  if ( !GD->dumped )
-  { hBase = (char *)(~0L);
-    hTop  = (char *)NULL;
-  }
-  { void *hbase = allocHeap(sizeof(word));
-
-    heap_base = (ulong)hbase & ~0x007fffffL; /* 8MB */
-    freeHeap(hbase, sizeof(word));
-  }
   DEBUG(1, Sdprintf("Stacks ...\n"));
   initStacks(GD->options.localSize, 
 	     GD->options.globalSize, 

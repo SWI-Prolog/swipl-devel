@@ -76,8 +76,8 @@ high as possible. This option only applies to machines using the
 Compile files into an `intermediate code file'. See \secref{compilation}.
 
     \cmdlineoptionitem{-o}{output}
-Used in combination with \cmdlineoption{-c} or \cmdlineoption{-b} to determine output file
-for compilation.
+Used in combination with \cmdlineoption{-c} or \cmdlineoption{-b} to
+determine output file for compilation.
 
     \cmdlineoptionitem{-O}{}
 Optimised compilation. See please/3.
@@ -381,18 +381,22 @@ Trail  stack :    4,096,000        8,192          432 Bytes
 
 \section{Overview of the Debugger}
 
-SWI-Prolog has a standard 4-port tracer \cite{Clocksin:87} with an
-optional fifth port. This fifth port, called \arg{unify} allows the user
-to inspect the result after unification of the head. The ports are
-called \const{call}, \const{exit}, \const{redo}, \const{fail} and
-\const{unify}. The tracer is started by the trace/0 command, when a spy
-point is reached and the system is in debugging mode (see spy/1 and
-debug/0) or when an error is detected at run time. Note that in the
-interactive toplevel goal trace/0 means ``trace the next query''. The
-tracer shows the port, displaying the port name, the current depth of
-the recursion and the goal. The goal is printed using the Prolog
+SWI-Prolog has a 6-port tracer, extending the standard 4-port tracer
+\cite{Clocksin:87} with two additional ports. The optional \arg{unify}
+port allows the user to inspect the result after unification of the
+head.  The \arg{exception} port shows exceptions raised by throw/1
+or one of the built-in predicates.  See \secref{exception}.
+
+The standard ports are called \const{call}, \const{exit}, \const{redo},
+\const{fail} and \const{unify}. The tracer is started by the trace/0
+command, when a spy point is reached and the system is in debugging mode
+(see spy/1 and debug/0) or when an exception is raised.
+
+The interactive toplevel goal trace/0 means ``trace the next query''.
+The tracer shows the port, displaying the port name, the current depth
+of the recursion and the goal. The goal is printed using the Prolog
 predicate print/1 (default), write/1 or display/1. An example using all
-five ports is shown in \figref{tracer}.
+ports is shown in \figref{tracer}.
 
 \begin{figure}
 \begin{code}
@@ -421,8 +425,8 @@ Yes
 On {\em leashed ports} (set with the predicate leash/1, default are
 \const{call}, \const{exit}, \const{redo} and \const{fail}) the user is
 prompted for an action. All actions are single character commands which
-are executed {\bf without} waiting for a return (Unix `cbreak' mode),
-unless the command line option \cmdlineoption{-tty} is active. Tracer options:
+are executed {\bf without} waiting for a return, unless the command line
+option \cmdlineoption{-tty} is active. Tracer options:
 
 \begin{description}
     \traceoption{+}{Spy}{
@@ -501,17 +505,107 @@ code optimisation removes part of the choice- and exit points.
 Backtrack points are not shown if either the goal succeeded
 deterministically or its alternatives were removed using the cut.  When
 running in debug mode (debug/0) choice points are only destroyed when
-removed by the cut.  In debug mode tail recursion optimisation is
+removed by the cut.  In debug mode, tail recursion optimisation is
 switched off.%
     \footnote{This implies the system can run out of local stack in debug
               mode, while no problems arise when running in non-debug mode.}
 
+
 \section{Compilation}			\label{sec:compilation}
 
-Collections of SWI-Prolog source files can be compiled into an
-\jargon{intermediate code file}. An intermediate code file is a data
-file from which SWI-Prolog can be started. The command to compile a
-bundle of source files is:
+\subsection{During program development}
+
+During program development, programs are normally loaded using
+consult/1, or the list abreviation. It is common practice to organise a
+project as a collection of source-files and a \jargon{load-file}, a
+Prolog file containing only use_module/[1,2] or ensure_loaded/1
+directives, possibly with a definition of the \jargon{entry-point} of
+the program, the predicate that is normally used to start the program.
+This file is often called \file{load.pl}.  If the entry-point is called
+{\em go}, a typical session starts as:
+
+\begin{code}
+% pl
+<banner>
+
+1 ?- [load].
+<compilation messages>
+
+Yes
+2 ?- go.
+<program interaction>
+\end{code}
+
+When using Windows, the user may open \file{load.pl} from the Windows
+explorer, which will cause \program{plwin.exe} to be started in the
+directory holding \file{load.pl}.  Prolog loads \file{load.pl} before
+entering the toplevel.
+
+
+\subsection{For running the result}
+
+There are various options if you want to make your program ready
+for real usage.  The best choice depends on whether the program
+is to be used only on machines holding the SWI-Prolog development
+system, the size of the program and the operating system (Unix
+vs.\ Windows).
+
+
+\subsubsection{Creating a shell-script}
+
+Especially on Unix systems and not-too-large applications, writing
+a shell-script that simply loads your application and calls the
+entry-point is often a good choice.  A skeleton for the script is
+given below, followed by the Prolog code to obtain the program
+arguments.
+
+\begin{code}
+#!/bin/sh
+
+base=<absolute-path-to-source>
+PL=pl
+
+exec $PL -f none -g "load_files(['$base/load'],[silent(true)])" -t go -- $*
+\end{code}
+
+\begin{code}
+go :-
+	unix(argv(Arguments)),
+	append(_SytemArgs, [--|Args], Arguments), !,
+	go(Arguments).
+
+go(Arguments) :-
+	...
+\end{code}
+
+On Windows systems, similar behaviour can be achieved by creating a 
+shortcut to Prolog, passing the proper options or writing a \fileext{bat}
+file.
+
+
+\subsubsection{Creating a saved-state}
+
+For larger programs, as well as for programs that are required run on
+systems that do not have the SWI-Prolog development system installed,
+creating a saved state is the best solution. A saved state is created
+using qsave_program/[1,2] or using the linker plld(1). A saved state is
+a file containing machine-independent intermediate code in a format
+dedicated for fast loading. Optionally, the emulator may be integrated
+in the saved state, creating a single-file, but machine-dependent,
+exectable.  This process is descriped in \chapref{runtime}.
+
+
+\subsubsection{Compililation using the -c commandline option}
+
+This mechanism is mostly for backward compatibility. It creates files in
+the same format as saved-states created using qsave_program/[1,2], but
+the resulting file is a translation of the source-files read, rather
+than a translation of the state of the machine.   Unlike saved states,
+programs created using \argoption{-c}{file} do not include the Prolog
+part of the development system.  The result is very dependent on the
+local SWI-Prolog installation.
+
+The command below is used to compile one or more source-files.
 
 \begin{code}
 pl [options] [-o output] -c file ...
@@ -522,7 +616,7 @@ list notation, consult/1, ensure_loaded/1 and use_module/[1,2]. When the
 \argoption{-o}{file} option is omitted a file named \file{a.out} is
 created that holds the intermediate code file.
 
-Intermediate code files start with the BSD Unix magic code \const{#!}
+Intermediate code files start with the Unix magic code \const{#!}
 and are executable. This implies they can be started as a command:
 
 \begin{code}
@@ -726,148 +820,7 @@ Define a new feature or change its value. Both arguments must be atoms.
 \end{description}
 
 
-\section{Saved States}
-
-
-\subsection{Types of Saved States and Portability}
-
-On some architectures, SWI-Prolog allows for the creation of saved
-states.  Currently, the C-sources define two alternative
-implementations for them.  The old implementation%
-  \footnote{This implementation is based on GNU's unexec() function,
-            creating a new executable from the running process.  It
-            is selected using the \const{O_STORE_PROGRAM} option in the
-            machine-description file.}
-creates an entirely self-contained executable.  It supports only the
-save_program/[1,2] predicates.  The new implementation%
-  \footnote{This implementation is selected by the O_SAVE option in
-            the machine-description file.}
-creates a file that is read by the `base' program.  This file contains
-the data-area of the SWI-Prolog process and optionally the Prolog-
-and C stacks.  This implementation supports save_program/[1,2],
-save/[1,2] and restore/1.  The state-file depends entirely on {\em
-exactly} the Unix program-file used to create it.
-
-
-\subsection{Save Predicates}
-
-\begin{description}
-\predicate{save_program}{2}{+NewProgram, +ListOfOptions}
-Create a new executable which will be named \arg{NewProgram}.
-\arg{ListOfOptions} is a list of \mbox{\arg{Key} = \arg{Value}} pairs that
-specify the default command line options that will be saved into the new
-program. If a default is not specified the default compiled into the
-currently running Prolog executable is used.%
-    \footnote{These are NOT the defaults compiled into an intermediate
-              code file created with pl -c ...}
-The available keys are given in \tabref{save-options}
-
-\begin{table}
-\begin{center}
-\begin{tabular}{|l|c|c|l|}
-\hline
-\bf Key & \bf Option    & \bf Type      & \bf Description \\
-\hline
-local   & \bf -L        & K-bytes       & Size (Limit) of local stack \\
-global  & \bf -G        & K-bytes       & Size (Limit) of global stack \\
-trail   & \bf -T        & K-bytes       & Size (Limit) of trail stack \\
-argument& \bf -A        & K-bytes       & Size (Limit) of argument stack \\
-goal    & \bf -g        & atom          & Initialisation goal \\
-toplevel& \bf -t        & atom          & Prolog toplevel goal \\
-init_file& \bf -f       & atom          & Personal initialisation file \\
-tty     & \bf +/--tty   & on/off        & Use ioctl(2) calls \\
-\hline
-\end{tabular}
-\end{center}
-
-    \caption{Key = Value pairs for save_program/2}
-    \label{tab:save-options}
-\end{table}
-
-As the entire data image of the current process will be saved on the new
-executable it is desirable to keep this small.  Notably the Prolog
-machine stacks should be kept small.  The best way to do this is first
-to compile the program using the \cmdlineoption{-c} option.  If this is not
-possible try to find the smallest possible stack sizes to compile the
-program.  On machines with dynamic stack allocation the stacks are {\bf
-not} written to file and so their size does not matter.
-\Figref{create-stand} shows a possible session.  Note the use of
-`initialise', which is supposed to be a predicate of the application
-doing time consuming initialisation.
-
-\begin{figure}
-\begin{code}
-sun% pl -c load
-foreign file dbase loaded 0.066667 seconds, 1578 bytes.
-setup consulted, 0.500000 seconds, 5091 bytes.
-main consulted, 0.333333 seconds, 3352 bytes.
-load consulted, 1.000000 seconds, 9867 bytes.
-sun% a.out -f none -L10 -G10 -T5
-foreign file dbase loaded 0.066667 seconds, 1578 bytes.
-Welcome to SWI-Prolog (Version \plversion)
-Copyright (c) 1993-1996 University of Amsterdam.  All rights reserved.
-
-For help, use ?- help(Topic). or ?- apropos(Word).
-
-1 ?- initialise.
-
-Yes
-2 ?- save_program(my_program,
-        [ local     = 500
-        , goal      = go
-        , init_file = none
-        ]).
-Running executable: /usr/local/bin/pl
-Saving to my_program; text: 204800 ... data: 357000 ... symbols ... done.
-Yes
-2 ?- halt.
-sun%
-\end{code}
-    \caption{Create a stand-alone executable}
-    \label{fig:create-stand}
-\end{figure}
-
-The resulting program can be used for incremental compilation using
-\cmdlineoption{-c} or another save_program/2.
-
-    \predicate{save_program}{1}{+NewProgram}
-Equivalent to `\verb$save_program(NewProgram, [])$'.
-
-    \predicate{save}{1}{+State}
-Writes the current status on the program, Prolog- and C-stacks to
-the file \arg{State}.  When this file is restored, save/1 succeeds
-in the restored state and execution continues as illustrated by the
-following example:
-
-\begin{code}
-1 ?- save(state), format('Hello World~n').
-Hello World
-
-Yes
-2 ?- halt.
-machine% ./state
-Hello World
-
-Yes
-2 ?- h.
-    1   save(state), format('Hello World~n').
-2 ?- 
-\end{code}
-
-The save/1 predicate is normally used for debugging purposes.
-save_program/[1,2] is the preferred way to create a new program.
-
-    \predicate{save}{2}{+State, -Rval}
-Like save/1, but unifies \arg{Rval} with 0 when save/2 returns from a
-real save and with 1 when save/2 returns from a restore.
-
-    \predicate{restore}{1}{+State}
-Equivalent to restarting \arg{State}.
-\end{description}
-
-
-\section{Automatic loading of libraries}
-\label{sec:autoload}
+\section{Automatic loading of libraries}	\label{sec:autoload}
 
 If ---at runtime--- an undefined predicate is trapped the system will
 first try to import the predicate from the module's default module.

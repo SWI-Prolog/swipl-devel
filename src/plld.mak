@@ -30,6 +30,7 @@ NULL=nul
 !ENDIF 
 ################################################################################
 # Begin Project
+# PROP Target_Last_Scanned "plld - Win32 Debug"
 CPP=cl.exe
 RSC=rc.exe
 
@@ -185,6 +186,20 @@ LINK32_OBJS= \
 # Begin Source File
 
 SOURCE=.\plld.c
+
+!IF  "$(CFG)" == "plld - Win32 Release"
+
+DEP_CPP_PLLD_=\
+	".\pl-incl.h"\
+	{$(INCLUDE)}"\sys\stat.h"\
+	{$(INCLUDE)}"\sys\types.h"\
+	
+
+"$(INTDIR)\plld.obj" : $(SOURCE) $(DEP_CPP_PLLD_) "$(INTDIR)"
+
+
+!ELSEIF  "$(CFG)" == "plld - Win32 Debug"
+
 DEP_CPP_PLLD_=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
@@ -205,6 +220,8 @@ DEP_CPP_PLLD_=\
 
 "$(INTDIR)\plld.obj" : $(SOURCE) $(DEP_CPP_PLLD_) "$(INTDIR)"
 
+
+!ENDIF 
 
 # End Source File
 # End Target
