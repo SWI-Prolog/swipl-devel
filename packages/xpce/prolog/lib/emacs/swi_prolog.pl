@@ -14,26 +14,7 @@
 	   ]).
 
 :- multifile
-	user:edit_source/1,
 	user:message_hook/3.
-
-		 /*******************************
-		 *       EDITOR INTERFACE	*
-		 *******************************/
-
-user:edit_source(File:_Line:Name/Arity) :-
-	start_emacs,
-	new(X, emacs_buffer(File)),
-	send(X, open),
-	get(X?editors, head, Editor),
-	send(Editor, locate, Name, Arity).
-user:edit_source(File) :-
-	\+ File = _:_,
-	start_emacs,
-	new(X, emacs_buffer(File)),
-	send(X, open).
-user:edit_source(Spec) :-
-	format('Failed to start PCE/Emacs from ~w~n', [Spec]).
 
 
 		 /*******************************
