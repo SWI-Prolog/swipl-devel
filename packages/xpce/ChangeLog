@@ -1,14 +1,20 @@
 			   XPCE ChangeLog
 			   ==============
 
-* ENHANCED: JPEG bitmap loading to use a more direct approach through
-  DIB.  
+* ENHANCED: Subwindow layout adjustment if actual resizing the windows is
+  slow.
+
+* ENHANCED: Windows: JPEG bitmap loading to use a more direct
+  approach through DIB.  A similar approach was already in the X11 version
+  for some time.
 
 * MODIFIED: Windows: by default we now use the Netscape 216 colour
   colour-cupe as read-only colour-map on 8-bit displays.  This provides
   better reproducable and generally better results.
 
-* ADDED: `image<-rotate' now accepts a real rather then an integer.
+* ADDED: `image<-rotate' now accepts a float rather then an integer (conversion
+  ensures compatibility, though fractional arguments are no longer rounded to
+  the nearest integer.
 
 * COMPAT: re-added `finder->directory' (Bob Wielinga).
 
