@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: `object <-get_hyper' got into a loop when accessing the hyper
+  backwards.
+
 * ADDED/MODIFIED: Instance variables that allow for @default, but not for
   @nil have initial value @default without explicit specification.
   Instance-variables that have an associated class-variable are now always

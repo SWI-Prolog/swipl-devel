@@ -1851,7 +1851,7 @@ getHyperObject(Any obj, Name hname, Name selector, int argc, Any *argv)
 		    answer(rval);
 		} else
 		{ if ( (hname == h->backward_name || isDefault(hname)) &&
-		       (rval = getv(h->to, selector, argc, argv)) )
+		       (rval = getv(h->from, selector, argc, argv)) )
 		    answer(rval);
 		}
 	      });
