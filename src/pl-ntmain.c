@@ -241,6 +241,8 @@ process_console_options(rlc_console_attr *attr, term_t options)
   }
   if ( !PL_get_nil(tail) )
     return type_error(tail, "list");
+
+  return TRUE;
 }
 
 

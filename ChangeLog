@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: Some MSVC6 issues (Radoslaw Scislo).
+
   * FIXED: Reading 'xxx\<NL> y'.
 
 VERSION 5.2.0 (May 22, 2003)

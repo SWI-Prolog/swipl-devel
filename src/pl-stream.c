@@ -338,7 +338,11 @@ S__fillbuf(IOSTREAM *s)
       time.tv_sec  = s->timeout / 1000;
       time.tv_usec = (s->timeout % 1000) * 1000;
       FD_ZERO(&wait);
+#ifdef WIN32
+      FD_SET((SOCKET)fd, &wait);
+#else
       FD_SET(fd, &wait);
+#endif
 
       for(;;)
       { rc = select(fd+1, &wait, NULL, NULL, &time);

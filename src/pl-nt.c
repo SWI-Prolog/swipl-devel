@@ -381,8 +381,8 @@ pl_shell_execute(term_t op, term_t file)
 
 
 char *
-getenv3(const char *name, char *buf, int len)
-{ if ( GetEnvironmentVariable(name, buf, len) )
+getenv3(const char *name, char *buf, unsigned int len)
+{ if ( GetEnvironmentVariable(name, buf, (DWORD)len) )
     return buf;
   
   return NULL;
