@@ -774,6 +774,11 @@ multiple arguments passed to a foreign predicate to C-strings.  If
 BUF_MALLOC is used, the data must be freed using PL_free() when not
 needed any longer.
 
+With the introduction of wide-characters (see \secref{encoding}), not
+all atoms can be converted into a \ctype{char*}.  This function fails
+if \arg{t} is of the wrong type, but also if the text cannot be
+represented.  See the \const{REP_*} flags below for details.
+
 \begin{tabular}{|p{\tableft}|p{3.5in}|}
 \hline
 \const{CVT_ATOM}    & Convert if term is an atom \\
@@ -798,7 +803,16 @@ needed any longer.
 		      \manref{PL_malloc}{3}.  When no longer needed
 		      the user must call PL_free() on the data. \\
 \hline
+\const{REP_ISO_LATIN_1}	& (0, default).  Text is in ISO Latin-1 encoding
+		      and the call fails if text cannot be represented. \\
+\const{REP_UTF8}	& Convert the text to a UTF-8 string.  This works
+		      for all text. \\
+\const{REP_MB}		& Convert to default locale-defined 8-bit string.
+		      Success depends on the locale.  Conversion is done
+		      using the wcrtomb() C-library function. \\
+\hline
 \end{tabular}
+
 \cfunction{int}{PL_get_list_chars}{+term_t l, char **s, unsigned flags}
 Same as \exam{PL_get_chars(\arg{l}, \arg{s}, CVT_LIST|\arg{flags})},
 provided \arg{flags} contains no of the {\tt CVT_*} flags.
@@ -2085,10 +2099,11 @@ file-properties, search, naming conventions etc.\ from foreign code.
 
 \begin{description}
     \cfunction{int}{PL_get_file_name}{term_t spec, char **name, int flags}
-Translate a Prolog term into a file name.  The name is stored in the
+Translate a Prolog term into a file name. The name is stored in the
 static buffer ring described with PL_get_chars() option
-\const{BUF_RING}.  \arg{flags} is a bit-mask controlling the conversion
-process.  Options are:
+\const{BUF_RING}. Conversion from the internal UNICODE encoding is done
+using standard C library functions. \arg{flags} is a bit-mask
+controlling the conversion process. Options are:
 
 \begin{description}
     \definition{\const{PL_FILE_ABSOLUTE}}

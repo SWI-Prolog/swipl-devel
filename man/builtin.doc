@@ -2678,9 +2678,10 @@ is only available on buffered input stream (unbuffered input streams
 are rarely used, see open/4).
 
     \predicate{copy_stream_data}{3}{+StreamIn, +StreamOut, +Len}
-Copy \arg{Len} bytes from stream \arg{StreamIn} to \arg{StreamOut}.
-Note that the copy is done byte-by-byte and therefore encoding of
-the streams is ignored.
+Copy \arg{Len} codes from stream \arg{StreamIn} to \arg{StreamOut}.
+Note that the copy is done using the semantics of get_code/2 and
+put_code/2, taking care of possibly recoding that needs take place
+between two textfiles.  See \secref{encoding}.
 
     \predicate{copy_stream_data}{2}{+StreamIn, +StreamOut}
 Copy data all (remaining) data from stream \arg{StreamIn} to
