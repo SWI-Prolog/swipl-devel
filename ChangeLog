@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 5.0.8 (Jul 7, 2002)
+===========================
+
   * FIXED: quoted write of negative floats could write as integer.
 
   * FIXED: registry_get_key/[2,3] (undefined predicate).  Also prepared

@@ -11,6 +11,7 @@
 
 PKG=	clib \
 	cpp \
+	odbc \
 	table \
 	sgml \
 	sgml/RDF \

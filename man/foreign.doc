@@ -839,17 +839,28 @@ signatures of these functions.  For full documentation consult the
 
 \begin{description}
     \cfunction{int}{PL_get_atom_nchars}{term_t t, unsigned int len, char **s}
+See PL_get_atom_chars().
     \cfunction{int}{PL_get_list_nchars}{term_t t, unsigned int len, char **s}
+See PL_get_list_chars().
     \cfunction{int}{PL_get_nchars}{term_t t, unsigned int *len, char **s,
 				   unsigned int flags}
+See PL_get_chars().
     \cfunction{int}{PL_put_atom_nchars}{term_t t, unsigned int len, const char *s}
+See PL_put_atom_chars().
     \cfunction{int}{PL_put_string_nchars}{term_t t, unsigned int len, const char *s}
+See PL_put_string_chars().
     \cfunction{int}{PL_put_list_ncodes}{term_t t, unsigned int len, const char *s}
+See PL_put_list_codes().
     \cfunction{int}{PL_put_list_nchars}{term_t t, unsigned int len, const char *s}
+See PL_put_list_chars().
     \cfunction{int}{PL_unify_atom_nchars}{term_t t, unsigned int len, const char *s}
+See PL_unify_atom_chars().
     \cfunction{int}{PL_unify_string_nchars}{term_t t, unsigned int len, const char *s}
+See PL_unify_string_chars().
     \cfunction{int}{PL_unify_list_ncodes}{term_t t, unsigned int len, const char *s}
+See PL_unify_codes().
     \cfunction{int}{PL_unify_list_nchars}{term_t t, unsigned int len, const char *s}
+See PL_unify_list_chars().
 \end{description}
 
 In addition, the following functions are available for creating and

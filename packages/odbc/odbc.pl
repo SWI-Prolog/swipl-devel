@@ -61,7 +61,7 @@
 	  ]).
 
 :- initialization
-   load_foreign_library(odbc4pl).
+   load_foreign_library(foreign(odbc4pl)).
 
 %	odbc_query(+Connection, +SQL, -Row)
 %	
