@@ -18,7 +18,7 @@
 \linkimage{next}{next.gif}
 \linkimage{summary}{info.gif}
 
-%\includeonly{foreign}
+%\includeonly{ide}
 
 \usepackage{times}
 \usepackage{fancyheadings}
@@ -36,10 +36,10 @@
 \pagestyle{fancyplain}
 
 \newcommand{\vmajor}{4}
-\newcommand{\vminor}{0}
-\newcommand{\vpatch}{11}
-\newcommand{\vmonth}{December}
-\newcommand{\vyear}{2001}
+\newcommand{\vminor}{1}
+\newcommand{\vpatch}{0}
+\newcommand{\vmonth}{January}
+\newcommand{\vyear}{2002}
 
 \newcommand{\versionshort}{\vmajor.\vminor}
 \newcommand{\versionlong}{\vmajor.\vminor.\vpatch, \vmonth~\vyear}
@@ -159,6 +159,7 @@ Copyright \copyright\ 1990--\vyear, University of Amsterdam
 
 \include{intro}
 \include{overview}
+\include{ide}
 \include{builtin}
 \include{module}
 \include{foreign}

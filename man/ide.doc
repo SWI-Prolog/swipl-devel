@@ -23,15 +23,15 @@ work with one directory holding a couple of files and some files to
 link it all together.  Even bigger projects will be organised in
 sub-projects each using their own directory.	
 
-\subsection{File Names}
+\subsection{File Names and Locations}
 
-\subsubsection{Extensions}			\label{fileext}
+\subsubsection{File Name Extensions}		\label{fileext}
 
 \index{.pl}\index{.pro}%
 The first consideration is what extension to use for the source-files.
-Tradition calls for \filext{pl}, but conflicts with Perl force the use
+Tradition calls for \fileext{pl}, but conflicts with Perl force the use
 of another extension on systems where extensions have global meaning,
-such as MS-Windows. On such systems \filext{pro} is the common
+such as MS-Windows. On such systems \fileext{pro} is the common
 alternative.%
     \footnote{On MS-Windows, the alternative extension is stored in
 	      the registry-key
@@ -39,7 +39,7 @@ alternative.%
 	      or
 	      \const{HKEY_LOCAL_MACHINE/Software/SWI/Prolog/fileExtension}}
 
-All versions of SWI-Prolog load files with the extension \filext{pl} as
+All versions of SWI-Prolog load files with the extension \fileext{pl} as
 well as with the registered alternative extension without explicitly
 specifying the extension. For portability reasons we propose the
 following convention:
@@ -47,15 +47,15 @@ following convention:
 \begin{description}
     \item [If there is no conflict] because you do not use a conflicting
 application or the system does not force a unique relation between
-extension and application, use \filext{pl}.
+extension and application, use \fileext{pl}.
 
-    \item [With a conflict] choose \filext{pro} and use this extension
+    \item [With a conflict] choose \fileext{pro} and use this extension
 for the files you want to load through your file-manager. Use
-\filext{pl} for all other files for maximal portability.
+\fileext{pl} for all other files for maximal portability.
 \end{description}
 
 
-\subsubsection{Directories}
+\subsubsection{Project Directories}
 
 \index{/}\index{\chr{\}}%
 Large projects are generally composed of sub-projects, each using their
@@ -67,7 +67,7 @@ To improve portability, SWI-Prolog uses the POSIX notation for
 filenames, which uses the forward slash (\const{/}) to separate
 directories.  Just before hitting the file-system it uses
 prolog_to_os_filename/2 to convert the filename to the conventions
-used by the hosting operating system.  It is \emph{strongly} adviced
+used by the hosting operating system.  It is \emph{strongly} advised
 to write paths using the \const{/}, especially on systems using the
 \chr{\} for this purpose (MS-Windows).  Using \chr{\} violates the
 portability rules and requires you to \emph{double} the \chr{\} due
@@ -78,24 +78,41 @@ paths into system-paths when constructing commands for shell/1 and
 friends.
 
 
-\subsubsection{Using search-paths}
+\subsubsection{Sub-projects using search-paths}
 
-Thanks to Quintus, Prolog addapted an extensible mechanism for searching
+Thanks to Quintus, Prolog adapted an extensible mechanism for searching
 files using file_search_path/2.  This mechanism allows for comfortable
 and readable specifications.
 
 Suppose you have extensive library packages on graph-algorithms,
 set-operations and ui-primitives. These sub-projects are likely
-candicates for re-use in future projects. A good choice is to create a
+candidates for re-use in future projects. A good choice is to create a
 directory with sub-directories for each of these sub-projects.  
 
+Next, there are three options.  One is to add the sub-projects to the
+directory-hierarchy of the current project. Another is to use a
+completely dislocated directory and finally the sub-project can
+be added to the SWI-Prolog hierarchy.  Using local installation,
+a typical file_search_path/2 is:
 
-[ types of sub-dirs: define one coherent project or various stand-alone
-  modules
-]
+\begin{code}
+:- prolog_load_context(directory, Dir),
+   asserta(user:file_search_path(myapp, Dir)).
+
+user:file_search_path(graph, myapp(graph)).
+user:file_search_path(ui,    myapp(ui)).
+\end{code}
+
+For using sub-projects in the SWI-Prolog hierarchy one should use
+the path-alias \const{swi} as basis.  For a system-wide installation
+use an absolute-path.
+
+Extensive sub-projects with a small well-defined API should define a
+load-file using use_module/1 calls to import the various
+library-components and export the API.
 
 
-\subsection{Special files}
+\subsection{Project Special Files}
 
 There are a number of tasks you typically carry out on your project,
 such as loading it, creating a saved-state, debugging it, etc.  Good
@@ -109,7 +126,7 @@ these tasks.  Here is a tentative list.
     \item [\file{load.pl}]
 Use this file to set up the environment (prolog flags and file search
 paths) and load the sources.  Quite commonly this file also provides
-conveniant predicates to parse commandline options and start the
+convenient predicates to parse command-line options and start the
 application.
 
     \item [\file{run.pl}]
@@ -132,14 +149,14 @@ environment.  It may start some of these tools.
 
 \section{Using modules}				\label{sec:usingmodules}
 
-Modules have been debated fiersomly in the Prolog world.  Despite all
+Modules have been debated fiercely in the Prolog world.  Despite all
 counter-arguments we feel they are extremely useful because
 
 \begin{itemlist}
     \item [They hide local predicates]
-This is the reason they hve been invented in the first place. Hiding
+This is the reason they have been invented in the first place. Hiding
 provides two features.  They allow for short predicate names without
-worrying about conflicts.  Given the flat namespace introduced
+worrying about conflicts.  Given the flat name-space introduced
 by modules, they still require meaningful module names as well as
 meaningful names for exported predicates.
 
@@ -165,7 +182,7 @@ a module is required.  Here is a typical example from \pllib{readutil}.
 
 \begin{code}
 :- module(read_util,
-          [ read_line_to_codes/2,       % +Fd, -Codes (without trailing \n)
+          [ read_line_to_codes/2,       % +Fd, -Codes
             read_line_to_codes/3,       % +Fd, -Codes, ?Tail
             read_stream_to_codes/2,     % +Fd, -Codes
             read_stream_to_codes/3,     % +Fd, -Codes, ?Tail
@@ -175,7 +192,7 @@ a module is required.  Here is a typical example from \pllib{readutil}.
 \end{code}
 
 
-\section{PceEmacs: the builtin editor}
+\section{The test-edit-reload cycle}
 
 SWI-Prolog does not enforce the use of a particular editor for writing
 down Prolog source code.  Editors are complicated programs that must be
@@ -183,14 +200,14 @@ mastered in detail for real productive programming and if you are
 familiar with a specific editor you should not be forced to change.  You
 may specify your favourite editor using the environment variable
 \env{EDITOR} or by defining rules for prolog_edit:edit_source/1 (see
-\secref{listing}.
+\secref{listing}).
 
 The use of a built-in editor however has advantages. The XPCE
 \class{editor} object around which the built-in PceEmacs is built
 can be opened as a Prolog stream allowing analysis of your source
 by the real Prolog system.
 
-\subsection{Locating places}
+\subsection{Locating things to edit}
 
 \index{TAB,completion}\index{completion,TAB}%
 The central predicate for editing something is edit/1, an extensible
@@ -204,8 +221,8 @@ way to edit objects:
 ?- edit(country).
 Please select item to edit:
 
-  1 chat:country/10             '/staff/jan/lib/prolog/chat/countr.pl':16
-  2 chat:country/1              '/staff/jan/lib/prolog/chat/world0.pl':72
+  1 chat:country/10	 '/staff/jan/lib/prolog/chat/countr.pl':16
+  2 chat:country/1       '/staff/jan/lib/prolog/chat/world0.pl':72
 
 Your choice? 
 \end{code}
@@ -232,7 +249,7 @@ reveals there is something wrong with prove/3, you do:
 ?- edit(prove).
 \end{code}
 
-Now edit the source, possibly swithing to other files and making
+Now edit the source, possibly switching to other files and making
 multiple changes.  After finishing invoke make/0, either through
 the editor UI (\menu{Compile/Make}{Control-C Control-M}) or on
 the toplevel and watch the files being reloaded.%
@@ -247,9 +264,9 @@ the toplevel and watch the files being reloaded.%
 \end{code}
 
 
-\subsection{Using the PceEmacs built-in editor}
+\section{Using the PceEmacs built-in editor}
 
-\subsubsection{Activating PceEmacs}
+\subsection{Activating PceEmacs}
 
 Initially edit/1 uses the editor specified in the \env{EDITOR}
 environment variable.  There are two ways to force it to use
@@ -265,9 +282,9 @@ a source-file from the PceEmacs library that installs hooks which
 \end{itemize}
 
 
-\subsubsection{Bluffing through PceEmacs} 	\label{sec:emacsbluff}
+\subsection{Bluffing through PceEmacs} 	\label{sec:emacsbluff}
 
-PceEmacs closely mimics Richard Stallmans GNU-Emacs commands, adding
+PceEmacs closely mimics Richard Stallman's GNU-Emacs commands, adding
 features from modern window-based editors to make it more acceptable for
 beginners.%
     \footnote{Decent merging with MS-Windows control-key conventions is
@@ -281,10 +298,12 @@ their key-binding, presented in the menu-bar above each editor window.
 A complete overview of the bindings for the current \jargon{mode} is
 provided through \menu{Help/Show key bindings}{Control-h Control-b}.
 
-\paragraph{Modes} are the heart of (Pce)Emacs.  Modes define dedicated
-editing support for a particular kind of (source-)text.  For our purpose
-we want \jargon{Prolog mode}.  Their are various ways to make PceEmacs
-use Prolog mode for a file.
+\subsubsection{Edit modes}
+
+Modes are the heart of (Pce)Emacs. Modes define dedicated editing
+support for a particular kind of (source-)text. For our purpose we want
+\jargon{Prolog mode}. Their are various ways to make PceEmacs use Prolog
+mode for a file.
 
 \begin{itemlist}
     \item [Using the proper extension]
@@ -293,10 +312,10 @@ If the file ends in \fileext{pl} or the selected alternative
 
     \item [Using \exam{\#!/path/to/pl}]
 If the file is a \jargon{Prolog Script} file, starting with the line
-\exam{#!/path/to/pl options -s}, Prolog mode is selected regardless
+\exam{\#!/path/to/pl options -s}, Prolog mode is selected regardless
 of the extension
 
-    \item [Using \exam{-*- Prolog -*-}
+    \item [Using \exam{-*- Prolog -*-}]
 If the above sequence appears in the first line of the file (inside a
 Prolog comment) Prolog mode is sequence
 
@@ -305,8 +324,9 @@ Finally, using \menu{File/Mode/Prolog} you can switch to Prolog mode
 explicitly.
 \end{itemlist}
 
-\paragraph{Frequently used commands}  Below we list a few important
-commands and how to activate them.
+\subsubsection{Frequently used editor commands}
+
+Below we list a few important commands and how to activate them.
 
 \begin{itemlist}
     \item [Cut/Copy/Paste]
@@ -388,7 +408,7 @@ These were the most commonly used commands. In section
 with Prolog source code.
 
 
-\subsubsection{Prolog Mode}		\label{sec:emacsbluff:
+\subsection{Prolog Mode}		\label{sec:emacsbluff}
 
 In the previous section (\secref{emacsbluff}) we explained the basics of
 PceEmacs. Here we continue with Prolog specific functionality. Possibly
@@ -409,11 +429,11 @@ this file. If it fails, the syntax error is displayed in the status line
 and the clause is not coloured.
 
     \item [After the command \key{Control-c Control-s}]
-Acronym for {\bf C}check {\bf S}yntax} it performs the same checks as
-above for the clause surrounding the caret.  On a syntax error however,
-the caret is moved to the expected location of the error.%
-    \footnote{In most cases the location where the parser cannot proceed
-	      is further down the file than the actual error-location.}
+Acronym for \textbf{C}check \textbf{S}yntax it performs the same
+checks as above for the clause surrounding the caret. On a syntax error
+however, the caret is moved to the expected location of the error.%
+\footnote{In most cases the location where the parser cannot proceed is
+further down the file than the actual error-location.}
 
     \item [After pausing for two seconds]
 After a short pause (2 seconds), PceEmacs opens the edit-buffer and
@@ -440,17 +460,23 @@ intuitive conventions.  See \tabref{plcolour}.
 \begin{center}
 \begin{tabular}{|l|l|}
 \hline
-Blue bold	& Clause-head of an exported predicate \\
-Red bold	& Clause-head of a predicate that is not called \\
-Black Bold	& Clause-head of remaining predicates \\
+\multicolumn{2}{|c|}{Clauses} \\
 \hline
-Dark green	& Comment \\
-Dark blue	& Quoted atom or string \\
-Brown		& Variable \\
+Blue bold	& Head of an exported predicate \\
+Red bold	& Head of a predicate that is not called \\
+Black Bold	& Head of remaining predicates \\
+\hline
+\multicolumn{2}{|c|}{Calls in the clause-body} \\
 \hline
 Blue		& Call to built-in or imported predicate \\
 Red		& Call to not-defined predicate \\
 Purple		& Call to dynamic predicate \\
+\hline
+\multicolumn{2}{|c|}{Other entities} \\
+\hline
+Dark green	& Comment \\
+Dark blue	& Quoted atom or string \\
+Brown		& Variable \\
 \hline
 \end{tabular}
 \end{center}
@@ -508,10 +534,10 @@ PceEmacs uses the same conventions as GNU-Emacs. The \key{TAB} key
 indents the current line according to the syntax rules.  \key{Alt-q}
 indents all lines of the current clause.  It provides support for head,
 calls (indented 1 tab), if-then-else, disjunction and argument-lists
-broken accross multiple lines as illustrated above.
+broken across multiple lines as illustrated above.
 
 
-\paragraph{Finding your way around}
+\subsubsection{Finding your way around}
 
 The command \key{Alt-.} extracts name and arity from the caret location
 and jumps (after conformation or edit) to the definition of the
@@ -532,9 +558,9 @@ debugger. The window-based debugger requires XPCE installed. It operates
 based on the prolog_trace_interception/4 hook and other low-level
 functionality described in \chapref{hack}.
 
-Window-based tracing provides much better overview due to the eminant 
+Window-based tracing provides much better overview due to the eminent 
 relation to your source-code, a clear list of named variables and their
-bindings as well as a graphical overview of the call and choicepoint
+bindings as well as a graphical overview of the call and choice-point
 stack. There are some drawbacks though. Using a textual trace on the
 console one can scroll back and examine the past, while the graphical
 debugger just presents a (much better) overview of the current state.
@@ -578,7 +604,7 @@ Ensure the navigator exists and the indicated location is shown.
 
 \section{Summary of the iDE}
 
-The SWI-Prolog development environment conists of a number of
+The SWI-Prolog development environment consists of a number of
 interrelated but not (yet) integrated tools.  Here is a list of the most
 important features and tips.
 
@@ -606,7 +632,7 @@ initialisation-file to pre-select the usage of the built-in editor.
 Using make/0, all files you have edited are re-loaded.
 
     \item [PceEmacs]
-Offers syntax-highlighing and checking based on realtime parsing of
+Offers syntax-highlighting and checking based on real-time parsing of
 the editor's buffer, layout-support and navigation support.
 
     \item [Using the graphical debugger]
