@@ -405,14 +405,29 @@ set_base_uri(element(Name, Attrs0, Content), Base0,
 	emacs_prolog_colours:term_colours/2,
 	emacs_prolog_colours:goal_classification/2.
 
-emacs_prolog_colours:term_colours((_ ::= _, {_}),
-				  rewrite - [ head,
-					      curl - [ body ]
-					    ]).
-emacs_prolog_colours:term_colours(_ ::= _,
-				  rewrite - [ head, % head+1
-					      match
-					    ]).
+expand(c(X), _, X) :- !.
+expand(In,   Pattern, Colours) :-
+	compound(In), !,
+	In =.. [F|Args],
+	expand_list(Args, PatternArgs, ColourArgs),
+	Pattern =.. [F|PatternArgs],
+	Colours = functor(F) - ColourArgs.
+expand(X, X, classify).
+
+expand_list([], [], []).
+expand_list([H|T], [PH|PT], [CH|CT]) :-
+	expand(H, PH, CH),
+	expand_list(T, PT, CT).
+
+:- discontiguous
+	term_expansion/2.
+
+term_expansion(term_colours(C),
+	       emacs_prolog_colours:term_colours(Pattern, Colours)) :-
+	expand(C, Pattern, Colours).
+
+term_colours((c(head(+(1))) ::= c(match), {c(body)})).
+term_colours((c(head(+(1))) ::= c(match))).
 
 emacs_prolog_colours:goal_classification(\_, expanded).
 
