@@ -119,15 +119,28 @@ rdfs_subclass_of(Class, Super) :-
 %	Generate resources belonging to a class or classes a resource
 %	belongs to.  We assume everything at the `object' end of a 
 %	triple is a class.  A validator should confirm this property.
+%	
+%	There are a few hacks:
+%	
+%		* Any resource is an individual of rdfs:Resource
+%		* literal(_) is an individual of rdfs:Literal
 
 rdfs_individual_of(Resource, Class) :-
 	nonvar(Resource), !,
-	rdf_has(Resource, rdf:type, MyClass),
-	rdfs_subclass_of(MyClass, Class).
+	(   Resource = literal(_)
+	->  rdfs_subclass_of(Class, rdfs:'Literal')
+	;   rdf_equal(Class, rdfs:'Resource')
+	->  true
+	;   rdf_has(Resource, rdf:type, MyClass),
+	    rdfs_subclass_of(MyClass, Class)
+	).
 rdfs_individual_of(Resource, Class) :-
 	nonvar(Class), !,
-	rdfs_subclass_of(SubClass, Class),
-	rdf_has(Resource, rdf:type, SubClass).
+	(   rdf_equal(Class, rdfs:'Resource')
+	->  rdf_subject(Resource)
+	;   rdfs_subclass_of(SubClass, Class),
+	    rdf_has(Resource, rdf:type, SubClass)
+	).
 rdfs_individual_of(_Resource, _Class) :-
 	throw(error(instantiation_error, _)).
 

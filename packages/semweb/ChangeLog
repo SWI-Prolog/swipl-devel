@@ -1,3 +1,8 @@
+Oct 6, 2003
+
+  * MODIFIED: rdfs_individual_of(Resource, Class) implicitely assumes all
+    resources belong to rdfs:Resource and literal(_) belongs to rdfs:Literal.
+
 Oct 1, 2003
 
   * MODIFIED: XSD namespace declaration in rdf_db.pl to 
