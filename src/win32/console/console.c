@@ -9,9 +9,9 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This file defines a console for porting (unix) stream-based applications
 to MS-Windows. It has been developed for  SWI-Prolog. The main source is
-part of SWI-Prolog, but unlike the  base   system  which is not free for
-commercial usage, the console code  is   distributed  under  the GNU GPL
-version 2 licence terms.
+part of SWI-Prolog, but unlike  the   base  system  which is distributed
+under the GPL, the console code is  distributed under the LGPL, and thus
+allows for embedding in proprietary software.
 
 The SWI-Prolog source is at http://swi.psy.uva.nl/projects/SWI-Prolog/
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -35,6 +35,28 @@ is to be read, rlc_read() posts  a   WM_RLC_FLUSH,  and then waits while
 dispatching events, for the display-thread to   fill the buffer and send
 WM_RLC_INPUT (which is just sent  to   make  GetMessage()  in rlc_read()
 return).
+
+Towards an MT version on Windows
+--------------------------------
+
+If we want to move towards a  multi-threaded version for MS-Windows, the
+console code needs to be changed significantly, as we need to be able to
+create multiple consoles to support thread_attach_console/0.
+
+The most logical solution seems to   be to reverse the thread-structure,
+Prolog starting and running in the   main-thread  and creating a console
+creates a new thread for this console. There  are two ways to keep track
+of the console to use. Cleanest might be to add an argument denoting the
+allocated console and alternatively we could   use thread-local data. We
+can also combine the two: add an  additional argument, but allow passing
+NULL to use the default console for this thread.
+
+Menus
+-----
+
+Another important improvement would be  to   add  a  menu-bar for common
+operations, such as showing the common File and Edit operations, as well
+as an extensible menu with callbacks to Prolog.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef _DEBUG

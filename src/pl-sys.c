@@ -12,10 +12,6 @@
 
 #include "pl-incl.h"
 
-#ifdef HAVE_FTIME
-#include <sys/timeb.h>
-#endif
-
 #ifndef MAXVARNAME
 #define MAXVARNAME 1024
 #endif
