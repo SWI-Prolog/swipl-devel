@@ -214,7 +214,7 @@ static int
 Sread_readline(void *handle, char *buf, int size)
 { long h = (long)handle;
   int fd = (int) h;
-  int ttymode = PL_ttymode(fd);
+  int ttymode = PL_ttymode(Suser_input); /* Not so nice */
   int rval;
 #ifdef HAVE_CLOCK
   long oldclock = clock();
