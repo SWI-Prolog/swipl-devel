@@ -1,7 +1,11 @@
 <?xml version="1.0"?>
+<!DOCTYPE test [
+  <!ENTITY ok CDATA "&#10003">
+]>
 <test>
   <li>Some cyrillic chars: &#1080;&#1081;</li>
   <li>This a an sizzors symbol: &#9988;</li>
-  <a att="Cirle with 1: &#10112;"/>
+  <li>OK, entered via entity: &ok;</li>
+  <a att="Cirle with 1: &#10112;" ok="&ok;"/>
 </test>
 
