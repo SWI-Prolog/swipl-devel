@@ -887,6 +887,7 @@ struct update_area
 { iarea		area;			/* Concerned area */
   int		clear;			/* needs to be cleared */
   int		deleted;		/* area is deleted */
+  int		size;			/* width * height */
   UpdateArea    next;			/* next in chain */
 };
 

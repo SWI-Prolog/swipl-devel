@@ -825,33 +825,27 @@ computeWindow(PceWindow sw)
 
 static void
 union_iarea(IArea c, IArea a, IArea b)
-{ if ( b->w != 0 && b->h != 0 )
-  { int cx, cy, cw, ch;
+{ int cx, cy, cw, ch;
 
-    cx = min(a->x, b->x);
-    cy = min(a->y, b->y);
-    cw = max(a->x+a->w, b->x+b->w) - cx;
-    ch = max(a->y+a->h, b->y+b->h) - cy;
+  cx = min(a->x, b->x);
+  cy = min(a->y, b->y);
+  cw = max(a->x+a->w, b->x+b->w) - cx;
+  ch = max(a->y+a->h, b->y+b->h) - cy;
 
-    c->x = cx; c->y = cy; c->w = cw; c->h = ch;
-  }
+  c->x = cx; c->y = cy; c->w = cw; c->h = ch;
 }
 
 
 static status
 inside_iarea(IArea a, IArea b)
-{ if ( b->w != 0 && b->h != 0 )
-  { if ( b->x >= a->x && b->x + b->w <= a->x + a->w &&
-	 b->y >= a->y && b->y + b->h <= a->y + a->h )
-      succeed;
+{ if ( b->x >= a->x && b->x + b->w <= a->x + a->w &&
+       b->y >= a->y && b->y + b->h <= a->y + a->h )
+    succeed;
 
-    fail;
-  }
-
-  succeed;
+  fail;
 }
 
-
+#define CHDEBUG(s, g)
 
 void
 changed_window(PceWindow sw, int x, int y, int w, int h, int clear)
@@ -862,21 +856,42 @@ changed_window(PceWindow sw, int x, int y, int w, int h, int clear)
   int ok = 10;				/* max badness */
 
   NormaliseArea(x, y, w, h);
+  if ( w == 0 || h == 0 )
+    return;
+  CHDEBUG(NAME_changesData,
+	Cprintf("changed_window(%s, %d, %d, %d, %d, %sclear)\n",
+		pp(sw), x, y, w, h, clear ? "" : "no "));
   new.x = x; new.y = y; new.w = w; new.h = h;
   na = new.w * new.h;
 
   for(a=sw->changes_data; a; a = a->next)
-  { if ( inside_iarea(&a->area, &new) && a->clear == clear )
-    { return;				/* perfect */
+  { CHDEBUG(NAME_changesData,
+	  { iarea *A = &a->area;
+	    Cprintf("\tChecking with %d %d %d %d %sclear\n",
+		    A->x, A->y, A->w, A->h, a->clear ? "" : "no ");
+	  });
+
+    if ( inside_iarea(&a->area, &new) )
+    { CHDEBUG(NAME_changesData,
+	    Cprintf("\t\tInside changed area; discarded\n"));
+      return;				/* perfect */
+    } else if ( inside_iarea(&new, &a->area) )
+    { a->area  = new;
+      a->clear = clear;
+      a->size  = na;
+
+      CHDEBUG(NAME_changesData,
+	    Cprintf("\t\tOutside changed area; replaced\n"));
+      return;
     } else if ( clear == a->clear )
     { iarea u;
       int ua, aa;
       int nok;
 
       union_iarea(&u, &a->area, &new);
-      ua = u.w * u.h;
-      aa = a->area.w * a->area.h;
-      nok = (10 * (ua - (aa + na))) / ua;
+      ua  = u.w * u.h;
+      aa  = a->size;
+      nok = (10 * (ua - (aa + na))) / (aa+na);
       if ( nok < ok )
       { ok = nok;
 	best = a;
@@ -885,16 +900,27 @@ changed_window(PceWindow sw, int x, int y, int w, int h, int clear)
   }
 
   if ( best )
-  { union_iarea(&best->area, &best->area, &new);
+  { CHDEBUG(NAME_changesData,
+	  { iarea *a = &best->area;
+	    Cprintf("\tCombined with %d %d %d %d --> ",
+		    a->x, a->y, a->w, a->h);
+	  });
+
+    union_iarea(&best->area, &best->area, &new);
+    CHDEBUG(NAME_changesData,
+	  { iarea *a = &best->area;
+	    Cprintf("%d %d %d %d\n", a->x, a->y, a->w, a->h);
+	  });
     if ( clear )
       best->clear = clear;
   } else
   { a =	alloc(sizeof(struct update_area));
 
-    a->area = new;
-    a->clear = clear;
+    a->area    = new;
+    a->clear   = clear;
     a->deleted = FALSE;
-    a->next = sw->changes_data;
+    a->size    = na;
+    a->next    = sw->changes_data;
     sw->changes_data = a;
   }
 }

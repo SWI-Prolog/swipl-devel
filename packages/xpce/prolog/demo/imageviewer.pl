@@ -89,9 +89,6 @@ make_image_recogniser(R) :-
 					  'Remove %s', BitmapName),
 				  message(@prolog, remove, Bitmap)),
 			      @default, @on)
-%		  , menu_item(rename,
-%			      message(@prolog, rename, Bitmap),
-%			      @default, @on)
 		  ]).
 
 
@@ -116,10 +113,6 @@ edit_image(Bitmap) :-
 	get(Bitmap?file, name, File),
 	concat_atom(['bitmap ', File, ' &'], Cmd),
 	shell(Cmd).
-
-
-rename(Bitmap) :-
-	get(Bitmap, file, _File).
 
 
 resize(Bitmap) :-

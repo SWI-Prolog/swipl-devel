@@ -389,8 +389,3 @@ make_create_sheet_message(M) :-
 				  create(attribute, user,     User),
 				  create(attribute, ftp_user, FtpUser),
 				  create(attribute, date,     Date))))).
-		      
-to_date(Date, Month, Day, Hour, Minute, Second, Year) :-
-	new(Date, date),
-	send(Date, convert, string('%s %s %d:%d:%d %d',
-				   Month, Day, Hour, Minute, Second, Year)).

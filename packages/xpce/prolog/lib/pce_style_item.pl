@@ -148,14 +148,3 @@ apply(SI, _Always:[bool]) :->
 
 
 :- pce_end_class.
-
-		 /*******************************
-		 *               TEST		*
-		 *******************************/
-
-test :-
-	new(D, dialog),
-	send(D, append,
-	     new(@s, style_item(style, style(font := @helvetica_roman_12,
-					     icon := 'pce.bm')))),
-	send(D, open).
