@@ -35,7 +35,9 @@ $(DOC).html:	$(DOC).sgml
 		./doc2html $<
 
 clean:		
-		rm -f $(DOC).aux $(DOC).tex $(DOC).ilg $(DOC).log *~
+		rm -f *~ a.out core
+		rm -f $(DOC).aux $(DOC).tex $(DOC).ilg $(DOC).log
+		rm -f $(DOC).idx $(DOC).ind $(DOC).toc
 
 distclean:	clean
 		rm -f $(DOC).pdf $(DOC).ps $(DOC.html)
