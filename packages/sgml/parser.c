@@ -2695,6 +2695,9 @@ get_attribute_value(dtd_parser *p, const ichar *decl, sgml_attribute *att)
 	break;
       }
     }
+
+    if ( !dtd->case_sensitive && att->definition->type != AT_CDATA )
+      istrlower(buf);
   }
 
   att->value.cdata  = NULL;
