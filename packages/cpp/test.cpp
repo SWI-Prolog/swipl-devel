@@ -44,7 +44,8 @@ PREDICATE(average, 3)			/* average(+Templ, :Goal, -Average) */
 { long sum = 0;
   long n = 0;
 
-  PlQuery q("call", PlTermv(A2));
+  PlTermv av(A2);			/* could be inlined in next call */
+  PlQuery q("call", av);		/* but MSVC has a bug here */
   while( q.next_solution() )
   { sum += (long)A1;
     n++;

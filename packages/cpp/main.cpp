@@ -1,4 +1,4 @@
-#include "cppapi.h"
+#include "SWI-cpp.h"
 #include <iostream.h>
 
 int
