@@ -1,0 +1,22 @@
+			SWI-Prolog Library CLIB
+			=======================
+
+Author:		Jan Wielemaker
+Copyright:	May be used with SWI-Prolog under the license conditions
+		thereof.  Usage with other versions of Prolog is subject
+		to the GNU-Public licence (GPL).
+
+This library contains SWI-Prolog foreign-libraries  to deal with various
+mostly OS-dependent stuff from SWI-Prolog.
+
+Currently provided:
+
+	# library(unix)
+	Unix process management and other Unix-specific extensions:
+	fork/1, exec/1, pipe/2, etc.
+
+	# library(socket)
+	General purpose inet tcp socket library. Loosely based on a TCP
+	library from Gordon Streeter.
+	
+

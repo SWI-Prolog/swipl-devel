@@ -1,0 +1,417 @@
+\documentclass[11pt]{article}
+\usepackage{pl}
+\usepackage{html}
+
+\onefile
+\htmloutput{html}				% Output directory
+\htmlmainfile{index}				% Main document file
+\bodycolor{white}				% Page colour
+
+\renewcommand{\runningtitle}{SWI-Prolog C-library}
+
+\begin{document}
+
+\title{SWI-Prolog C-library}
+\author{Jan Wielemaker \\
+	SWI, \\
+	University of Amsterdam \\
+	The Netherlands \\
+	E-mail: \email{jan@swi.psy.uva.nl}}
+
+\maketitle
+
+\begin{abstract}
+This document describes commonly used foreign language extensions to
+\url[SWI-Prolog]{http://www.swi.psy.uva.nl/projects/SWI-Prolog}
+distributed as a package known under the name {\em clib}
+\end{abstract}
+
+\vfill
+
+\tableofcontents
+
+\vfill
+\vfill
+
+\newpage
+
+\section{Introduction}
+
+Many useful facilities offered by one or more of the operating systems
+supported by SWI-Prolog are not supported by the SWI-Prolog kernel
+distribution.  Including these would enlarge the {\em footprint} and
+complicate portability matters while supporting only a limited part of
+the user-community.
+
+This document describes \pllib{unix} to deal with the Unix process API,
+\pllib{socket} to deal with inet-domain stream-sockets, \pllib{cgi} to
+deal with getting CGI form-data if SWI-Prolog is used as a CGI scripting
+language and \pllib{crypt} to provide access to Unix password
+encryption.
+
+
+\section{Unix Process manipulation library}
+
+The \pllib{unix} library provides the commonly used Unix primitives to
+deal with process management. These primitives are useful for many
+tasks, including server management, parallel computation, exploiting and
+controlling other processes, etc.
+
+The predicatea are modelled closely after their native Unix
+counterparts. Higher-level primitives, especially to make this library
+portable to non-Unix systems are desirable. Using these primitives and
+considering that process manipulation is not a very time-critical
+operation we anticipate these libraries to be developed in Prolog.
+
+\begin{description}
+    \predicate{fork}{1}{-Pid}
+Clone the current process into two branches. In the child, \arg{Pid} is
+unified to \const{child}. In the original process, \arg{Pid} is unified
+to the process identifier of the created child.  Both parent and child
+are fully functional Prolog processes running the same program.  The
+processes share open I/O streams that refer to Unix native streams, such
+as files, sockets and pipes. Data is not shared, though on most Unix
+systems data is initially shared and duplicated only if one of the
+programs attempts to modify the data.
+
+Unix \funcref{fork}{} is the only way to create new processes and fork/2
+is a simple direct interface to it.
+
+    \predicate{exec}{1}{+Command(...Args...)}
+Replace the running program by starting \arg{Command} using the given
+commandline arguments. Each command-line argument must be atomic and is
+converted to a string before passed to the Unix call \funcref{execvp}{}.
+
+Unix \funcref{exec}{} is the only way to start an executable file
+executing.  It is commonly used together with fork/1.  For example to
+start \program{netscape} on an URL in the background, do:
+
+\begin{code}
+run_netscape(URL) :-
+	(    fork(child),
+	     exec(netscape(URL))
+	;    true
+	).
+\end{code}
+
+Using this code, netscape remains part of the process-group of the
+invoking Prolog process and Prolog does not wait for netscape to
+terminate.  The predicate wait/2 allows waiting for a child, while
+detach_IO/0 disconnects the child as a deamon process.
+
+    \predicate{wait}{2}{-Pid, -Status}
+Wait for a child to change status. Then report the child that changed
+status as well as the reason. \arg{Status} is unified with
+\term{exited}{ExitCode} if the child with pid \arg{Pid} was terminated
+by calling \funcref{exit}{} (Prolog halt/[0,1]). \arg{ExitCode} is the
+return=status. \arg{Status} is unified with \term{signaled}{Signal} if
+the child died due to a software interrupt (see kill/2). \arg{Signal}
+contains the signal number. Finally, if the process suspended execution
+due to a signal, \arg{Status} is unified with \term{stopped}{Signal}.
+
+    \predicate{kill}{2}{+Pid, +Signal}
+Deliver a software interrupt to the process with identifier \arg{Pid}
+using software-interrupt number \arg{Signal}.  See also on_signal/2.
+The meaning of the signal numbers can be found in the Unix manual.%
+\footnote{kill/2 should support interrupt-names as well}.
+
+    \predicate{pipe}{2}{-InSream, -OutStream}
+Create a communication-pipe. This is normally used to make a child
+communicate to its parent. After pipe/2, the process is cloned and,
+depending on the desired direction, both processes close the end of the
+pipe they do not use. Then they use the remaining stream to communicate.
+Here is a simple example:
+
+\begin{code}
+pipe_demo(Result) :-
+	pipe(Read, Write),
+	fork(Pid),
+	(   Pid == child
+	->  close(Read),
+	    format(Write, '~w.~n', [hello(world)]),
+	    halt
+	;   close(Write),
+	    read(Read, Result),
+	    close(Read)
+	).
+\end{code}
+
+    \predicate{dup}{2}{+FromStream, +ToStream}
+Interface to Unix dup2(), copying the underlying filedescriptor and thus
+making both streams point to the same underlying object. This is
+normally used together with fork/1 and pipe/2 to talk to an external
+program that is designed to communicate using standard I/O.
+
+    \predicate{detach_IO}{0}{}
+This predicate is intended to create Unix deamon-processes. It preforms
+two actions.  First of all, the I/O streams \const{user_input}, 
+\const{user_output} and \const{user_error} are closed and rebound to
+a Prolog stream that returns end-of-file on any attempt to read and
+starts writing to a file named \file{/tmp/pl-out.<pid>} on any attempt
+to write.  This file is opened only if there is data available.  This is
+intended for debugging purposes.%
+    \footnote{More subtle handling of I/O, especially for debugging is
+	      required: communicate with the syslog deamon and
+	      optionally start a debugging dialog on a newly created
+	      (X-)terminal should be considered.}
+Finally, the process is detached from the current process-group and its
+controlling terminal.
+\end{description}
+
+
+\section{Socket library}
+
+The \pllib(socket) library provides TCP inet-domain sockets from
+SWI-Prolog, both client and server-side communication. The interface of
+this library is very close to the Unix socket interface, also supported
+by the MS-Windows {\em winsock} API.
+
+In the future we hope to provide a more high-level socket interface
+defined in Prolog and based on these primitives.
+
+\begin{description}
+    \predicate{tcp_socket}{1}{-SocketId}
+Creates an \const{INET}-domain stream-socket and unifies an identifier
+to it with \arg{SocketId}. On MS-Windows, if the socket library is not
+yet initialised, this will also initialise the library.
+
+    \predicate{tcp_close_socket}{1}{+SocketId}
+Closes the indicated socket, making \arg{SocketId} invalid.  Normally,
+sockets are closed by closing both stream handles returned by
+open_socket/3.  There are two cases where close_socket/1 is used
+because there are no stream-handles:
+
+\begin{itemize}
+    \item After tcp_accept/3, the server does a fork/1 to handle the client
+	  in a sub-process. In this case the accepted socket is not
+	  longer needed from the main server and must be discarded
+	  using tcp_close_socket/1.
+    \item If, after discovering the connecting client with tcp_accept/3,
+          the server does not want to accept the connection, it should
+	  discard the accepted socket immediately using tcp_close_socket/1.
+\end{itemize}
+
+    \predicate{tcp_open_socket}{3}{+SocketId, -InStream, -OutStream}
+Open two SWI-Prolog I/O-streams, one to deal with input from the socket
+and one with output to the socket.  If tcp_bind/2 has been called on the
+socket. \arg{OutSream} is useless and will not be created. After closing
+both \arg{InStream} and \arg{OutSream}, the socket itself is discarded.
+
+    \predicate{tcp_bind}{2}{+Socket, +Port}
+Bind the socket to \arg{Port} on the current machine.  This operation,
+together with tcp_listen/2 and tcp_accept/3 implement the {\em server}-side of
+the socket interface.
+
+    \predicate{tcp_listen}{2}{+Socket, +Backlog}
+Tells, after tcp_bind/2, the socket to listen for incomming requests for
+connections.  \arg{Backlog} indicates how many pending connection
+requests are allowed.  Pending requests are requests that are not yet
+acknowledged using tcp_accept/3.  If the indicated number is exceeded, the
+requesting client will be signalled that the service is currently not
+available.  A suggested default value is 5.
+
+    \predicate{tcp_accept}{3}{+Socket, -Slave, -Peer}
+This predicate waits on a server socket for a connection request by
+a client.  On success, it creates a new socket for the client and
+binds the identifier to \arg{Slave}.   \arg{Peer} is bound to the
+IP-address of the client.
+
+    \predicate{tcp_connect}{+Socket. +Host:+Port}
+Client-interface to connect a socket to a given \arg{Port} on a given
+\arg{Host}.  After successfull completion, tcp_open_socket/3 can be used to
+create I/O-Streams to the remote socket.
+
+    \predicate{tcp_fcntl}{3}{+Stream, +Action, ?Argument}
+Interface to the Unix \funcref{fcntl}{} call.  Currently only suitable
+to deal switch stream to non-blocking mode using:
+
+\begin{code}
+	...
+	tcp_fcntlStream, setfl. nonblock),
+	...
+\end{code}
+
+As of SWI-Prolog 3.2.4, handling of non-blocking stream is supported. An
+attempt to read from a non-blocking stream returns -1 (or
+\const{end_of_file} for read/1), but at_end_of_stream/1 fails. On actual
+end-of-input, at_end_of_stream/1 succeeds.
+
+    \predicate{tcp_host_to_address}{2}{?HostName, ?Address}
+Translate between a machines host-name and it's (IP-)address. If
+\arg{HostName} is an atom, it is resolved using
+\funcref{gethostbyname}{} and the IP-number is unified to \arg{Address}
+using a term of the format \term{ip}{Byte1, Byte2, Byte3, Byte4}.
+Otherwise, if \arg{Address} is bound to a \functor{ip}{4} term, it
+is resolved by \funcref{gethostbyaddr}{} and the canonical hostname
+is unified with \arg{HostName}.
+\end{description}
+
+
+\subsection{Server applications}
+
+The typical sequence for generating a server application is defined
+below:
+
+\begin{code}
+create_server(Port) :-
+	tcp_socket(Socket),
+	tcp_bind(Socket, Port),
+	tcp_listen(Socket, 5),
+	tcp_open_socket(Socket, AcceptFd, _),
+	<dispatch>
+\end{code}
+
+There are various options for <dispatch>. One is to keep track of active
+clients and server-sockets using wait_for_input/3. If input arrives at a
+server socket, use tcp_accept/3 and add the new connection to the active
+clients. Otherwise deal with the input from the client.  Another is
+to use (Unix) fork/1 to deal with the client in a separate process.
+
+Using fork/1, <dispatch> may be implemented as:
+
+\begin{code}
+dispatch(AcceptFd) :-
+	tcp_accept(AcceptFd, Socket, _Peer),
+	fork(Pid)
+	(   Pid == child
+	->  tcp_open_socket(Socket, In, Out),
+	    handle_service(In, Out),
+	    close(In),
+	    close(Out),
+	    halt
+	;   close_socket(Socket)
+	),
+	dispatch(AcceptFd).
+\end{code}
+
+
+\subsection{Client applications}
+
+The skeleton for client-communication is given below.
+
+\begin{code}
+create_client(Host, Port) :-
+	tcp_socket(Socket),
+	tcp_connect(Socket, Host:Port),
+	tcp_open_socket(Socket, ReadFd, WriteFd),
+	<handle I/O using the two streams>
+	close(ReadFd),
+	close(WriteFd).
+\end{code}
+
+To deal with timeouts and multiple connections, wait_for_input/3 and/or
+non-blocking streams (see tcp_fcntl/3) can be used.
+
+\section{CGI Support library}
+
+This is currently a very simple library, providing support for obtaining
+the form-data for a CGI script:
+
+\begin{description}
+    \predicate{cgi_get_form}{1}{-Form}
+Decodes standard input and the environment variables to obtain a list
+of arguments passed to the CGI script.  This predicate both deals with
+the CGI {\bf GET} method as well as the {\bf POST} method.  If the
+data cannot be obtained, an \const{existence_error} exception is
+raised.
+\end{description}
+
+Below is a very simple CGI script that prints the passed parameters.
+To test it, compile this program using the command below, copy it to
+your cgi-bin directory (or make it otherwise known as a CGI-script) and
+make the query \verb$http://myhost.mydomain/cgi-bin/cgidemo?hello=world$
+
+\begin{code}
+% pl -o cgidemo --goal=main --toplevel=halt -c cgidemo.pl
+\end{code}
+
+\begin{code}
+:- use_module(library(cgi)).
+
+main :-
+	cgi_get_form(Arguments),
+	format('Content-type: text/html~n~n', []),
+	format('<HTML>~n', []),
+	format('<HEAD>~n', []),
+	format('<TITLE>Simple SWI-Prolog CGI script</TITLE>~n', []),
+	format('</HEAD>~n~n', []),
+	format('<BODY>~n', []),
+	format('<P>', []),
+	print_args(Arguments),
+	format('<BODY>~n</HTML>~n', []).
+
+print_args([]).
+print_args([A0|T]) :-
+	A0 =.. [Name, Value],
+	format('<B>~w</B>=<EM>~w</EM><BR>~n', [Name, Value]),
+	print_args(T).
+\end{code}
+
+\subsection{Some considerations}
+
+Printing an HTML document using format/2 is not really a neat way
+of producing HTML.  We are considering two alternatives.  One is to
+define a library that provides for macro-expansion as well as keeping
+track of open environments.  This makes the code more robust and allows
+for writing generic infrastructure to finish a page in a neat way should
+anything go wrong during its construction.  We have used this in some
+internal projects with a certain degree of success.  The above code
+would look like this:
+
+\begin{verbatim}
+main :-
+	cgi_get_form(Arguments),
+	#open_document('text/html'),
+	#head([#title('Simple SWI-Prolog CGI script output')]),
+	...
+\end{verbatim}
+
+Recently, we are considering to represent the HTML document as a
+complex Prolog term and provide a library for decent printing thereof.
+
+
+\section{Unix password encryption library}
+
+The \pllib{crypt} library defines crypt/2 for encrypting and testing
+Unix passwords:
+
+\begin{description}
+    \predicate{crypt}{2}{+Plain, ?Encrypted}
+This predicate can be used in three modes.  If \arg{Encrypted} is
+unbound, it will be unified to a string (list of character-codes)
+holding a random encryption of \arg{Plain}.  If \arg{Encrypted}
+is bound to a list holding 2 characters and an unbound tail, these
+two character are used for the \jargon{salt} of the encryption. Finally,
+if \arg{Encrypted} is instantiated to an encrypted password the
+predicate succeeds iff \arg{Encrypted} is a valid encryption of
+\arg{Plain}.
+
+\arg{Plain} is either an atom, SWI-Prolog string, list of characters
+or list of character-codes.  It is not adviced to use atoms, as this
+implies the password will be available from the Prolog heap as a
+defined atom.
+\end{description}
+
+\section{Installation}
+
+\subsection{Unix systems}
+
+Installation on Unix system uses the commonly found {\em configure},
+{\em make} and {\em make install} sequence. SWI-Prolog should be
+installed before building this package. If SWI-Prolog is not installed
+as \program{pl}, the environment variable \env{PL} must be set to the
+name of the SWI-Prolog executable. Installation is now accomplished
+using:
+
+\begin{code}
+% ./configure
+% make
+% make install
+\end{code}
+
+This installs the foreign libraries in \file{\$PLBASE/lib/\$PLARCH} and
+the Prolog library files in \file{\$PLBASE/library}, where
+\file{\$PLBASE} refers to the SWI-Prolog `home-directory'.
+
+\end{document}
+

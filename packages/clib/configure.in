@@ -1,0 +1,126 @@
+dnl Process this file with autoconf to produce a configure script.
+
+AC_INIT(install-sh)
+AC_CONFIG_HEADER(config.h)
+
+AC_SUBST(NETLIBS)
+AC_SUBST(PL)
+AC_SUBST(PLLIBS)
+AC_SUBST(PLBASE)
+AC_SUBST(PLARCH)
+AC_SUBST(BOOTPL)
+AC_SUBST(PLINCLUDE)
+AC_SUBST(COFLAGS)
+AC_SUBST(CWFLAGS)
+AC_SUBST(CMFLAGS)
+AC_SUBST(ETAGS)
+AC_SUBST(LD)
+AC_SUBST(SO)
+AC_SUBST(LDSOFLAGS)
+AC_SUBST(SONAMEFLAG)
+AC_SUBST(SOWHOLEARCHIVE)
+
+AC_ARG_ENABLE(mt, [  --enable-mt		  Enable Multi-threading],
+	      [case "$enableval" in
+		   yes) AC_DEFINE(_REENTRANT)
+			;;
+		   *)  ;;
+	       esac])
+
+LD=ld
+AC_PROG_CC
+
+plcandidates="pl swipl swi-prolog"
+AC_CHECK_PROGS(PL, $plcandidates, "none")
+if test $PL = "none"; then
+   AC_ERROR("Cannot find SWI-Prolog. SWI-Prolog must be installed first")
+else
+   AC_CHECKING("Running $PL -dump-runtime-variables")
+   eval `$PL -dump-runtime-variables`
+fi
+if test "$PLSHARED" = "yes"; then
+   MAKE_SHARED_OBJECT=yes
+fi
+AC_MSG_RESULT("		PLBASE=$PLBASE")
+AC_MSG_RESULT("		PLARCH=$PLARCH")
+AC_MSG_RESULT("		PLLIBS=$PLLIBS")
+AC_MSG_RESULT("		PLLDFLAGS=$PLLDFLAGS")
+AC_MSG_RESULT("		MAKE_SHARED_OBJECT=$MAKE_SHARED_OBJECT")
+
+case "$PLARCH" in
+    *)			LDFLAGS="$PLLDFLAGS" ;;
+esac
+
+if test "$MAKE_SHARED_OBJECT" = "yes"; then
+  if test ! -z "$GCC"; then
+    CMFLAGS="$CMFLAGS -fpic"
+  fi
+
+  SO="so"				 # Default shared object extension
+  LD="gcc"				 # Default linking through gcc
+  LDSOFLAGS="-shared"			 # Create a shared object
+  SONAMEFLAG='-Wl,-soname,$(LIBXPCESOM)' # Set the internal name
+  SOWHOLEARCHIVE="-Wl,-whole-archive"	 # Link the whole archive
+  PLTARGET=soall			 # Link XPCE dynamically to prolog
+
+  case "$OS" in
+    *solaris* | *sunos5*)	LD=/usr/ccs/bin/ld
+				LDSOFLAGS="-G"
+    				;;
+    *sunos*)			LD=ld
+				LDSOFLAGS="-assert nodefinitions"
+				;;
+    *linux*)                    ;;
+    *irix*)			;;
+    *osf*)			if test -z "$GCC"; then
+				  LD=ld
+				  LDSOFLAGS="-shared -expect_unresolved \*"
+				  CMFLAGS="$CMFLAGS -std"
+				fi
+				;;
+    *aix*)			SO="o"
+				LDSOFLAGS="-bI:$PLBASE/include/SWI-Exports"
+				AC_DEFINE(__unix__)
+				;;
+    *hpux*)			SO="sl"
+				LDSOFLAGS="-b"
+				;;
+    *)				;;
+  esac
+else
+  SHLIB=""
+fi
+
+AC_CHECK_PROGS(MAKE, gmake make, "make")
+AC_CHECK_PROGS(ETAGS, etags ctags, ":")
+AC_PROG_INSTALL
+AC_PROG_CPP
+AC_ISC_POSIX
+AC_HEADER_STDC
+if test ! -z "$GCC"; then
+    COFLAGS=-O2
+    CWFLAGS=-Wall
+else
+    COFLAGS=-O
+    CWFLAGS=
+fi
+CFLAGS="$CMFLAGS"
+AC_FUNC_ALLOCA
+AC_C_BIGENDIAN
+
+AC_CHECK_LIB(socket, socket,
+	     [NETLIBS="$NETLIBS -lsocket"; LIBS="$LIBS -lsocket"]
+	     AC_DEFINE(HAVE_LIBSOCKET))
+AC_CHECK_LIB(nsl, t_bind,
+	     [NETLIBS="$NETLIBS -lnsl"]
+	     AC_DEFINE(HAVE_LIBNSL))
+AC_CHECK_LIB(crypt, crypt)
+
+AC_CHECK_HEADERS(malloc.h unistd.h sys/time.h fcntl.h)
+AC_CHECK_FUNCS(setsid strerror)
+
+AC_OUTPUT(Makefile)
+
+
+
+

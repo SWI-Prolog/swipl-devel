@@ -1,0 +1,10 @@
+30/06/1999
+
+ * ADDED: cgi.pl, cgi.c and form.[ch] providing cgi_get_form/1 to get the
+   Form-data if SWI-Prolog is installed as a CGI script.
+
+06/04/1999
+
+ * Renamed the predicates from the socket package to tcp_<their-old-name>.
+   These predicates are meant as low-level primitives and their normal name
+   is too general.

@@ -1,0 +1,478 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog C-library</TITLE>
+</HEAD>
+<BODY BGCOLOR="white">
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<CENTER>
+
+<H1>SWI-Prolog C-library</H1>
+
+</CENTER>
+<HR>
+<CENTER>
+<I>Jan Wielemaker <BR>
+SWI, <BR>
+University of Amsterdam <BR>
+The Netherlands <BR>
+E-mail: <A HREF="mailto:jan@swi.psy.uva.nl">jan@swi.psy.uva.nl</A></I>
+</CENTER>
+<HR>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+<CENTER><H3>Abstract</H3></Center>
+<TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>
+This document describes commonly used foreign language extensions to
+<A HREF="http://www.swi.psy.uva.nl/projects/SWI-Prolog">SWI-Prolog</A> 
+distributed as a package known under the name <EM>clib</EM>
+</TABLE>
+
+<H1><A NAME="document-contents">Table of Contents</A></H1>
+
+<UL>
+<UL>
+<LI><A HREF="#sec:1"><B>1 Introduction</B></A>
+<LI><A HREF="#sec:2"><B>2 Unix Process manipulation library</B></A>
+<LI><A HREF="#sec:3"><B>3 Socket library</B></A>
+<UL>
+<LI><A HREF="#sec:3.1">3.1 Server applications</A>
+<LI><A HREF="#sec:3.2">3.2 Client applications</A>
+</UL>
+<LI><A HREF="#sec:4"><B>4 CGI Support library</B></A>
+<UL>
+<LI><A HREF="#sec:4.1">4.1 Some considerations</A>
+</UL>
+<LI><A HREF="#sec:5"><B>5 Unix password encryption library</B></A>
+<LI><A HREF="#sec:6"><B>6 Installation</B></A>
+<UL>
+<LI><A HREF="#sec:6.1">6.1 Unix systems</A>
+</UL>
+</UL>
+</UL>
+
+<P>
+
+<H2><A NAME="sec:1">1 Introduction</A></H2>
+
+<P>Many useful facilities offered by one or more of the operating 
+systems supported by SWI-Prolog are not supported by the SWI-Prolog 
+kernel distribution. Including these would enlarge the <EM>footprint</EM> 
+and complicate portability matters while supporting only a limited part 
+of the user-community.
+
+<P>This document describes <CODE>library(unix)</CODE> to deal with the 
+Unix process API,
+<CODE>library(socket)</CODE> to deal with inet-domain stream-sockets, <CODE>library(cgi)</CODE> 
+to deal with getting CGI form-data if SWI-Prolog is used as a CGI 
+scripting language and <CODE>library(crypt)</CODE> to provide access to 
+Unix password encryption.
+
+<H2><A NAME="sec:2">2 Unix Process manipulation library</A></H2>
+
+<P>The <CODE>library(unix)</CODE> library provides the commonly used 
+Unix primitives to deal with process management. These primitives are 
+useful for many tasks, including server management, parallel 
+computation, exploiting and controlling other processes, etc.
+
+<P>The predicatea are modelled closely after their native Unix 
+counterparts. Higher-level primitives, especially to make this library 
+portable to non-Unix systems are desirable. Using these primitives and 
+considering that process manipulation is not a very time-critical 
+operation we anticipate these libraries to be developed in Prolog.
+
+<DL>
+<DT><A NAME="fork/1"><STRONG>fork</STRONG>(<VAR>-Pid</VAR>)</A><DD>
+Clone the current process into two branches. In the child, <VAR>Pid</VAR> 
+is unified to <CODE>child</CODE>. In the original process, <VAR>Pid</VAR> 
+is unified to the process identifier of the created child. Both parent 
+and child are fully functional Prolog processes running the same 
+program. The processes share open I/O streams that refer to Unix native 
+streams, such as files, sockets and pipes. Data is not shared, though on 
+most Unix systems data is initially shared and duplicated only if one of 
+the programs attempts to modify the data.
+
+<P>Unix <B>fork()</B> is the only way to create new processes and <A NAME="idx:fork2:1"></A><B>fork/2</B> 
+is a simple direct interface to it.
+<DT><A NAME="exec/1"><STRONG>exec</STRONG>(<VAR>+Command(...Args...)</VAR>)</A><DD>
+Replace the running program by starting <VAR>Command</VAR> using the 
+given commandline arguments. Each command-line argument must be atomic 
+and is converted to a string before passed to the Unix call <B>execvp()</B>.
+
+<P>Unix <B>exec()</B> is the only way to start an executable file 
+executing. It is commonly used together with <A NAME="idx:fork1:2"></A><A HREF="#fork/1">fork/1</A>. 
+For example to start <B>netscape</B> on an URL in the background, do:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+run_netscape(URL) :-
+        (    fork(child),
+             exec(netscape(URL))
+        ;    true
+        ).
+</PRE>
+</TABLE>
+
+<P>Using this code, netscape remains part of the process-group of the 
+invoking Prolog process and Prolog does not wait for netscape to 
+terminate. The predicate <A NAME="idx:wait2:3"></A><A HREF="#wait/2">wait/2</A> 
+allows waiting for a child, while
+<A NAME="idx:detachIO0:4"></A><A HREF="#detach_IO/0">detach_IO/0</A> 
+disconnects the child as a deamon process.
+<DT><A NAME="wait/2"><STRONG>wait</STRONG>(<VAR>-Pid, -Status</VAR>)</A><DD>
+Wait for a child to change status. Then report the child that changed 
+status as well as the reason. <VAR>Status</VAR> is unified with
+<CODE>exited(ExitCode)</CODE> if the child with pid <VAR>Pid</VAR> was 
+terminated by calling <B>exit()</B> (Prolog <A NAME="idx:halt01:5"></A><B>halt/[0,1]</B>). <VAR>ExitCode</VAR> 
+is the return=status. <VAR>Status</VAR> is unified with <CODE>signaled(Signal)</CODE> 
+if the child died due to a software interrupt (see <A NAME="idx:kill2:6"></A><A HREF="#kill/2">kill/2</A>). <VAR>Signal</VAR> 
+contains the signal number. Finally, if the process suspended execution 
+due to a signal, <VAR>Status</VAR> is unified with <CODE>stopped(Signal)</CODE>.
+<DT><A NAME="kill/2"><STRONG>kill</STRONG>(<VAR>+Pid, +Signal</VAR>)</A><DD>
+Deliver a software interrupt to the process with identifier <VAR>Pid</VAR> 
+using software-interrupt number <VAR>Signal</VAR>. See also <A NAME="idx:onsignal2:7"></A><B>on_signal/2</B>. 
+The meaning of the signal numbers can be found in the Unix manual.<A NAME=back-to-note-1 HREF="index.html#note-1"> (1)</A>.
+<DT><A NAME="pipe/2"><STRONG>pipe</STRONG>(<VAR>-InSream, -OutStream</VAR>)</A><DD>
+Create a communication-pipe. This is normally used to make a child 
+communicate to its parent. After <A NAME="idx:pipe2:8"></A><A HREF="#pipe/2">pipe/2</A>, 
+the process is cloned and, depending on the desired direction, both 
+processes close the end of the pipe they do not use. Then they use the 
+remaining stream to communicate. Here is a simple example:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+pipe_demo(Result) :-
+        pipe(Read, Write),
+        fork(Pid),
+        (   Pid == child
+        -&gt;  close(Read),
+            format(Write, '~w.~n', [hello(world)]),
+            halt
+        ;   close(Write),
+            read(Read, Result),
+            close(Read)
+        ).
+</PRE>
+</TABLE>
+
+<DT><A NAME="dup/2"><STRONG>dup</STRONG>(<VAR>+FromStream, +ToStream</VAR>)</A><DD>
+Interface to Unix dup2(), copying the underlying filedescriptor and thus 
+making both streams point to the same underlying object. This is 
+normally used together with <A NAME="idx:fork1:9"></A><A HREF="#fork/1">fork/1</A> 
+and <A NAME="idx:pipe2:10"></A><A HREF="#pipe/2">pipe/2</A> to talk to 
+an external program that is designed to communicate using standard I/O.
+<DT><A NAME="detach_IO/0"><STRONG>detach_IO</STRONG></A><DD>
+This predicate is intended to create Unix deamon-processes. It preforms 
+two actions. First of all, the I/O streams <CODE>user_input</CODE>,
+<CODE>user_output</CODE> and <CODE>user_error</CODE> are closed and 
+rebound to a Prolog stream that returns end-of-file on any attempt to 
+read and starts writing to a file named <CODE>/tmp/pl-out.\bnfmeta{pid}</CODE> 
+on any attempt to write. This file is opened only if there is data 
+available. This is intended for debugging purposes.<A NAME=back-to-note-2 HREF="index.html#note-2"> (2)</A> 
+Finally, the process is detached from the current process-group and its 
+controlling terminal.
+</DL>
+
+<H2><A NAME="sec:3">3 Socket library</A></H2>
+
+<P>The <CODE>library(Socket library)</CODE>socket) library provides TCP 
+inet-domain sockets from SWI-Prolog, both client and server-side 
+communication. The interface of this library is very close to the Unix 
+socket interface, also supported by the MS-Windows <EM>winsock</EM> API.
+
+<P>In the future we hope to provide a more high-level socket interface 
+defined in Prolog and based on these primitives.
+
+<DL>
+<DT><A NAME="tcp_socket/1"><STRONG>tcp_socket</STRONG>(<VAR>-SocketId</VAR>)</A><DD>
+Creates an <CODE>INET</CODE>-domain stream-socket and unifies an 
+identifier to it with <VAR>SocketId</VAR>. On MS-Windows, if the socket 
+library is not yet initialised, this will also initialise the library.
+<DT><A NAME="tcp_close_socket/1"><STRONG>tcp_close_socket</STRONG>(<VAR>+SocketId</VAR>)</A><DD>
+Closes the indicated socket, making <VAR>SocketId</VAR> invalid. 
+Normally, sockets are closed by closing both stream handles returned by
+<A NAME="idx:opensocket3:11"></A><B>open_socket/3</B>. There are two 
+cases where <A NAME="idx:closesocket1:12"></A><B>close_socket/1</B> is 
+used because there are no stream-handles:
+
+<P>
+<UL>
+<LI>After <A NAME="idx:tcpaccept3:13"></A><A HREF="#tcp_accept/3">tcp_accept/3</A>, 
+the server does a <A NAME="idx:fork1:14"></A><A HREF="#fork/1">fork/1</A> 
+to handle the client in a sub-process. In this case the accepted socket 
+is not longer needed from the main server and must be discarded using <A NAME="idx:tcpclosesocket1:15"></A><A HREF="#tcp_close_socket/1">tcp_close_socket/1</A>.
+<LI>If, after discovering the connecting client with <A NAME="idx:tcpaccept3:16"></A><A HREF="#tcp_accept/3">tcp_accept/3</A>, 
+the server does not want to accept the connection, it should discard the 
+accepted socket immediately using <A NAME="idx:tcpclosesocket1:17"></A><A HREF="#tcp_close_socket/1">tcp_close_socket/1</A>.
+</UL>
+<DT><A NAME="tcp_open_socket/3"><STRONG>tcp_open_socket</STRONG>(<VAR>+SocketId, 
+-InStream, -OutStream</VAR>)</A><DD>
+Open two SWI-Prolog I/O-streams, one to deal with input from the socket 
+and one with output to the socket. If <A NAME="idx:tcpbind2:18"></A><A HREF="#tcp_bind/2">tcp_bind/2</A> 
+has been called on the socket. <VAR>OutSream</VAR> is useless and will 
+not be created. After closing both <VAR>InStream</VAR> and <VAR>OutSream</VAR>, 
+the socket itself is discarded.
+<DT><A NAME="tcp_bind/2"><STRONG>tcp_bind</STRONG>(<VAR>+Socket, +Port</VAR>)</A><DD>
+Bind the socket to <VAR>Port</VAR> on the current machine. This 
+operation, together with <A NAME="idx:tcplisten2:19"></A><A HREF="#tcp_listen/2">tcp_listen/2</A> 
+and <A NAME="idx:tcpaccept3:20"></A><A HREF="#tcp_accept/3">tcp_accept/3</A> 
+implement the <EM>server</EM>-side of the socket interface.
+<DT><A NAME="tcp_listen/2"><STRONG>tcp_listen</STRONG>(<VAR>+Socket, 
++Backlog</VAR>)</A><DD>
+Tells, after <A NAME="idx:tcpbind2:21"></A><A HREF="#tcp_bind/2">tcp_bind/2</A>, 
+the socket to listen for incomming requests for connections. <VAR>Backlog</VAR> 
+indicates how many pending connection requests are allowed. Pending 
+requests are requests that are not yet acknowledged using <A NAME="idx:tcpaccept3:22"></A><A HREF="#tcp_accept/3">tcp_accept/3</A>. 
+If the indicated number is exceeded, the requesting client will be 
+signalled that the service is currently not available. A suggested 
+default value is 5.
+<DT><A NAME="tcp_accept/3"><STRONG>tcp_accept</STRONG>(<VAR>+Socket, 
+-Slave, -Peer</VAR>)</A><DD>
+This predicate waits on a server socket for a connection request by a 
+client. On success, it creates a new socket for the client and binds the 
+identifier to <VAR>Slave</VAR>. <VAR>Peer</VAR> is bound to the 
+IP-address of the client.
+<DT><A NAME="tcp_connect/+Socket. +Host:+Port"><STRONG>tcp_connect</STRONG>(<VAR>+Socket. 
++Host:+Port</VAR>)</A><DD>
+lient-interface to connect a socket to a given <VAR>Port</VAR> on a 
+given
+<VAR>Host</VAR>. After successfull completion, <A NAME="idx:tcpopensocket3:23"></A><A HREF="#tcp_open_socket/3">tcp_open_socket/3</A> 
+can be used to create I/O-Streams to the remote socket.
+<DT><A NAME="tcp_fcntl/3"><STRONG>tcp_fcntl</STRONG>(<VAR>+Stream, 
++Action, ?Argument</VAR>)</A><DD>
+Interface to the Unix <B>fcntl()</B> call. Currently only suitable to 
+deal switch stream to non-blocking mode using:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+        ...
+        tcp_fcntlStream, setfl. nonblock),
+        ...
+</PRE>
+</TABLE>
+
+<P>As of SWI-Prolog 3.2.4, handling of non-blocking stream is supported. 
+An attempt to read from a non-blocking stream returns -1 (or
+<CODE>end_of_file</CODE> for <A NAME="idx:read1:24"></A><B>read/1</B>), 
+but <A NAME="idx:atendofstream1:25"></A><B>at_end_of_stream/1</B> fails. 
+On actual end-of-input, <A NAME="idx:atendofstream1:26"></A><B>at_end_of_stream/1</B> 
+succeeds.
+<DT><A NAME="tcp_host_to_address/2"><STRONG>tcp_host_to_address</STRONG>(<VAR>?HostName, 
+?Address</VAR>)</A><DD>
+Translate between a machines host-name and it's (IP-)address. If
+<VAR>HostName</VAR> is an atom, it is resolved using
+<B>gethostbyname()</B> and the IP-number is unified to <VAR>Address</VAR> 
+using a term of the format <CODE>ip(Byte1, Byte2, Byte3, Byte4)</CODE>. 
+Otherwise, if <VAR>Address</VAR> is bound to a ip/4 term, it is resolved 
+by <B>gethostbyaddr()</B> and the canonical hostname is unified with <VAR>HostName</VAR>.
+</DL>
+
+<H3><A NAME="sec:3.1">3.1 Server applications</A></H3>
+
+<P>The typical sequence for generating a server application is defined 
+below:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+create_server(Port) :-
+        tcp_socket(Socket),
+        tcp_bind(Socket, Port),
+        tcp_listen(Socket, 5),
+        tcp_open_socket(Socket, AcceptFd, _),
+        &lt;dispatch&gt;
+</PRE>
+</TABLE>
+
+<P>There are various options for &lt;<VAR>dispatch</VAR>&gt;. One is to 
+keep track of active clients and server-sockets using <A NAME="idx:waitforinput3:27"></A><B>wait_for_input/3</B>. 
+If input arrives at a server socket, use <A NAME="idx:tcpaccept3:28"></A><A HREF="#tcp_accept/3">tcp_accept/3</A> 
+and add the new connection to the active clients. Otherwise deal with 
+the input from the client. Another is to use (Unix) <A NAME="idx:fork1:29"></A><A HREF="#fork/1">fork/1</A> 
+to deal with the client in a separate process.
+
+<P>Using <A NAME="idx:fork1:30"></A><A HREF="#fork/1">fork/1</A>, &lt;<VAR>dispatch</VAR>&gt; 
+may be implemented as:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+dispatch(AcceptFd) :-
+        tcp_accept(AcceptFd, Socket, _Peer),
+        fork(Pid)
+        (   Pid == child
+        -&gt;  tcp_open_socket(Socket, In, Out),
+            handle_service(In, Out),
+            close(In),
+            close(Out),
+            halt
+        ;   close_socket(Socket)
+        ),
+        dispatch(AcceptFd).
+</PRE>
+</TABLE>
+
+<H3><A NAME="sec:3.2">3.2 Client applications</A></H3>
+
+<P>The skeleton for client-communication is given below.
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+create_client(Host, Port) :-
+        tcp_socket(Socket),
+        tcp_connect(Socket, Host:Port),
+        tcp_open_socket(Socket, ReadFd, WriteFd),
+        &lt;handle I/O using the two streams&gt;
+        close(ReadFd),
+        close(WriteFd).
+</PRE>
+</TABLE>
+
+<P>To deal with timeouts and multiple connections, <A NAME="idx:waitforinput3:31"></A><B>wait_for_input/3</B> 
+and/or non-blocking streams (see <A NAME="idx:tcpfcntl3:32"></A><A HREF="#tcp_fcntl/3">tcp_fcntl/3</A>) 
+can be used.
+
+<H2><A NAME="sec:4">4 CGI Support library</A></H2>
+
+<P>This is currently a very simple library, providing support for 
+obtaining the form-data for a CGI script:
+
+<DL>
+<DT><A NAME="cgi_get_form/1"><STRONG>cgi_get_form</STRONG>(<VAR>-Form</VAR>)</A><DD>
+Decodes standard input and the environment variables to obtain a list of 
+arguments passed to the CGI script. This predicate both deals with the 
+CGI <B>GET</B> method as well as the <B>POST</B> method. If the data 
+cannot be obtained, an <CODE>existence_error</CODE> exception is raised.
+</DL>
+
+<P>Below is a very simple CGI script that prints the passed parameters. 
+To test it, compile this program using the command below, copy it to 
+your cgi-bin directory (or make it otherwise known as a CGI-script) and 
+make the query <CODE>http://myhost.mydomain/cgi-bin/cgidemo?hello=world</CODE>
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+% pl -o cgidemo --goal=main --toplevel=halt -c cgidemo.pl
+</PRE>
+</TABLE>
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+:- use_module(library(cgi)).
+
+main :-
+        cgi_get_form(Arguments),
+        format('Content-type: text/html~n~n', []),
+        format('&lt;HTML&gt;~n', []),
+        format('&lt;HEAD&gt;~n', []),
+        format('&lt;TITLE&gt;Simple SWI-Prolog CGI script&lt;/TITLE&gt;~n', []),
+        format('&lt;/HEAD&gt;~n~n', []),
+        format('&lt;BODY&gt;~n', []),
+        format('&lt;P&gt;', []),
+        print_args(Arguments),
+        format('&lt;BODY&gt;~n&lt;/HTML&gt;~n', []).
+
+print_args([]).
+print_args([A0|T]) :-
+        A0 =.. [Name, Value],
+        format('&lt;B&gt;~w&lt;/B&gt;=&lt;EM&gt;~w&lt;/EM&gt;&lt;BR&gt;~n', [Name, Value]),
+        print_args(T).
+</PRE>
+</TABLE>
+
+<H3><A NAME="sec:4.1">4.1 Some considerations</A></H3>
+
+<P>Printing an HTML document using <A NAME="idx:format2:33"></A><B>format/2</B> 
+is not really a neat way of producing HTML. We are considering two 
+alternatives. One is to define a library that provides for 
+macro-expansion as well as keeping track of open environments. This 
+makes the code more robust and allows for writing generic infrastructure 
+to finish a page in a neat way should anything go wrong during its 
+construction. We have used this in some internal projects with a certain 
+degree of success. The above code would look like this:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+main :-
+        cgi_get_form(Arguments),
+        #open_document('text/html'),
+        #head([#title('Simple SWI-Prolog CGI script output')]),
+        ...
+</PRE>
+</TABLE>
+
+<P>Recently, we are considering to represent the HTML document as a 
+complex Prolog term and provide a library for decent printing thereof.
+
+<H2><A NAME="sec:5">5 Unix password encryption library</A></H2>
+
+<P>The <CODE>library(crypt)</CODE> library defines <A NAME="idx:crypt2:34"></A><A HREF="#crypt/2">crypt/2</A> 
+for encrypting and testing Unix passwords:
+
+<DL>
+<DT><A NAME="crypt/2"><STRONG>crypt</STRONG>(<VAR>+Plain, ?Encrypted</VAR>)</A><DD>
+This predicate can be used in three modes. If <VAR>Encrypted</VAR> is 
+unbound, it will be unified to a string (list of character-codes) 
+holding a random encryption of <VAR>Plain</VAR>. If <VAR>Encrypted</VAR> 
+is bound to a list holding 2 characters and an unbound tail, these two 
+character are used for the <EM>salt</EM> of the encryption. Finally, if <VAR>Encrypted</VAR> 
+is instantiated to an encrypted password the predicate succeeds iff <VAR>Encrypted</VAR> 
+is a valid encryption of
+<VAR>Plain</VAR>.
+
+<P><VAR>Plain</VAR> is either an atom, SWI-Prolog string, list of 
+characters or list of character-codes. It is not adviced to use atoms, 
+as this implies the password will be available from the Prolog heap as a 
+defined atom.
+</DL>
+
+<H2><A NAME="sec:6">6 Installation</A></H2>
+
+<H3><A NAME="sec:6.1">6.1 Unix systems</A></H3>
+
+<P>Installation on Unix system uses the commonly found <EM>configure</EM>,
+<EM>make</EM> and <EM>make install</EM> sequence. SWI-Prolog should be 
+installed before building this package. If SWI-Prolog is not installed 
+as <B>pl</B>, the environment variable <CODE>PL</CODE> must be set to 
+the name of the SWI-Prolog executable. Installation is now accomplished 
+using:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+% ./configure
+% make
+% make install
+</PRE>
+</TABLE>
+
+<P>This installs the foreign libraries in <CODE>\$PLBASE/lib/\$PLARCH</CODE> 
+and the Prolog library files in <CODE>\$PLBASE/library</CODE>, where
+<CODE>\$PLBASE</CODE> refers to the SWI-Prolog `home-directory'.
+
+<H1><A NAME="document-notes">Footnotes</A></H1>
+
+<DL>
+<DT><A NAME=note-1 HREF="index.html#back-to-note-1">note-1</A><DD>
+<A NAME="idx:kill2:35"></A><A HREF="#kill/2">kill/2</A> should support 
+interrupt-names as well
+<DT><A NAME=note-2 HREF="index.html#back-to-note-2">note-2</A><DD>
+More subtle handling of I/O, especially for debugging is required: 
+communicate with the syslog deamon and optionally start a debugging 
+dialog on a newly created (X-)terminal should be considered.
+</DL>
+
+</BODY></HTML>
