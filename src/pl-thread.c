@@ -22,6 +22,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#define O_DEBUG 1
 #ifdef WIN32
 #include <windows.h>
 #endif
@@ -282,16 +283,8 @@ PL_initialise_thread(PL_thread_info_t *info)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 free_prolog_thread()
-    Called to free thread-specific data.  Please note that LD (obtained
-    through pthread_getspecific() is no longer accessible! 
-
-    We try to call the exit hooks from here by temporary reinstalling
-    the thread local-data.
-
-NEW:
-    We no longer use the free function associated with the thread.
-    Instead, we use cleanup handlers.  This seems cleaner, while it
-    also allows us to use Windows native thread-local data.
+    Called from a cleanup-handler to release all resources associated
+    with a thread.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -302,12 +295,9 @@ free_prolog_thread(void *data)
   if ( threads_exited )
     return;				/* Post-mortem */
 
-  DEBUG(1, Sdprintf("Freeing prolog thread %u\n", pthread_self()));
+  DEBUG(1, Sdprintf("Freeing prolog thread %d\n", PL_thread_self()));
 
   info = ld->thread.info;
-#if 0					/* see NEW above */
-  TLD_set(PL_ldata, data);		/* put it back */
-#endif
   run_thread_exit_hooks();
   
   freeStacks(ld);
@@ -319,10 +309,6 @@ free_prolog_thread(void *data)
 
   freeThreadMessages(ld);
   freeThreadSignals(ld);
-					/* give memory back */
-  mergeAllocPool(&GD->alloc_pool, &ld->alloc_pool);
-
-  TLD_set(PL_ldata, NULL);		/* to NULL (avoid recursion) */
 
   LOCK();
   GD->statistics.threads_finished++;
@@ -335,6 +321,8 @@ free_prolog_thread(void *data)
 
   if ( info->detached )
     free_thread_info(info);
+					/* give memory back */
+  mergeAllocPool(&GD->alloc_pool, &ld->alloc_pool);
 }
 
 
@@ -638,15 +626,15 @@ start_thread(void *closure)
 
 word
 pl_thread_create(term_t goal, term_t id, term_t options)
-{ PL_thread_info_t *info = alloc_thread();
+{ PL_thread_info_t *info;
   PL_local_data_t *ldnew;
   atom_t alias = NULL_ATOM;
   pthread_attr_t attr;
 
-  if ( !info )
-    return PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_threads);
   if ( !(PL_is_compound(goal) || PL_is_atom(goal)) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, goal);
+  if ( !(info = alloc_thread()) )
+    return PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_threads);
 
   ldnew = info->thread_data;
 
@@ -658,7 +646,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 		     &info->argument_size,
 		     &alias,
 		     &info->detached) )
-    fail;
+    fail;				/* FIXME: free stuff */
 
   info->local_size    *= 1024;
   info->global_size   *= 1024;
@@ -692,9 +680,11 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   if ( info->detached )
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
   if ( pthread_create(&info->tid, &attr, start_thread, info) != 0 )
+  { pthread_attr_destroy(&attr);
     return PL_warning("Could not create thread: %s", OsError());
+					/* FIXME: exception, info! */
+  }
   pthread_attr_destroy(&attr);
-					/* TBD: exception, unallocate! */
 
   return PL_unify_integer(id, info->pl_tid);
 }
@@ -1741,19 +1731,43 @@ activity in the POSIX based code.
 #ifdef WIN32
 
 void					/* For comments, see above */
-forThreadLocalData(void (*func)(PL_local_data_t *))
+forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
 { int i;
   int me = PL_thread_self();
 
-  for(i=1; i<MAX_THREADS; i++)
+  for(i=0; i<MAX_THREADS; i++)
   { if ( threads[i].thread_data && i != me &&
 	 threads[i].status == PL_THREAD_RUNNING )
     { HANDLE win_thread = pthread_getw32threadhandle_np(threads[i].tid);
 
       if ( SuspendThread(win_thread) != -1L )
       { (*func)(threads[i].thread_data);
-	ResumeThread(win_thread);
+        if ( (flags & PL_THREAD_SUSPEND_AFTER_WORK) )
+	  threads[i].status = PL_THREAD_SUSPENDED;
+	else
+	  ResumeThread(win_thread);
       }
+    }
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Resume all suspended threads.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+resumeThreads(void)
+{ int i;
+  int me = PL_thread_self();
+
+  for(i=0; i<MAX_THREADS; i++)
+  { if ( threads[i].thread_data && i != me &&
+	 threads[i].status == PL_THREAD_SUSPENDED )
+    { HANDLE win_thread = pthread_getw32threadhandle_np(threads[i].tid);
+
+      ResumeThread(win_thread);
+      threads[i].status = PL_THREAD_RUNNING;
     }
   }
 }
@@ -1768,11 +1782,73 @@ forThreadLocalData(void (*func)(PL_local_data_t *))
 
 static void (*ldata_function)(PL_local_data_t *data);
 
-#define SIG_MARKATOMS SIGHUP
+#define SIG_FORALL SIGHUP
+#define SIG_RESUME SIG_FORALL
+
+static void
+wait_resume(PL_thread_info_t *t)
+{ sigset_t signal_set;
+  int me = PL_thread_self();
+
+  DEBUG(1, Sdprintf("Done work on %d; suspending\n", me));
+
+  sigfillset(&signal_set);
+  sigdelset(&signal_set, SIG_RESUME);
+  do
+  { sigsuspend(&signal_set);
+  } while(t->status != PL_THREAD_RESUMING);
+  t->status = PL_THREAD_RUNNING;
+
+  DEBUG(1, Sdprintf("Resuming %d\n", me));
+}
+
+
+static void
+resume_handler(int sig)
+{ sem_post(&sem_mark);
+}
+
+
+void
+resumeThreads(void)
+{ struct sigaction old;
+  struct sigaction new;
+  int i;
+  PL_thread_info_t *t;
+  int signalled = 0;
+
+  memset(&new, 0, sizeof(new));
+  new.sa_handler = resume_handler;
+  new.sa_flags   = SA_RESTART;
+  sigaction(SIG_RESUME, &new, &old);
+
+  sem_init(&sem_mark, USYNC_THREAD, 0);
+
+  for(t = threads, i=0; i<MAX_THREADS; i++, t++)
+  { if ( t->status == PL_THREAD_SUSPENDED )
+    { t->status = PL_THREAD_RESUMING;
+
+      DEBUG(1, Sdprintf("Sending SIG_RESUME to %d\n", i));
+      if ( pthread_kill(t->tid, SIG_RESUME) == 0 )
+	signalled++;
+      else
+	Sdprintf("Failed to signal %d: %s\n", i, OsError());
+    }
+  }
+
+  while(signalled)
+  { sem_wait(&sem_mark);
+    signalled--;
+  }
+  sem_destroy(&sem_mark);
+
+  sigaction(SIG_RESUME, &old, NULL);
+}
+
 
 static void
 doThreadLocalData(int sig)
-{
+{ PL_thread_info_t *t;
 #ifdef __linux__
   pid_t me = getpid();
 #else
@@ -1780,29 +1856,37 @@ doThreadLocalData(int sig)
 #endif
   int i;
 
-  for(i=0; i<MAX_THREADS; i++)
+  for(t=threads, i=0; i<MAX_THREADS; i++, t++)
   {
 #ifdef __linux__
-    if ( threads[i].pid == me )
+    if ( t->pid == me )
 #else
-    if ( threads[i].tid == me )
+    if ( t->tid == me )
 #endif
-    { (*ldata_function)(threads[i].thread_data);
+    { PL_local_data_t *ld = t->thread_data;
+
+      (*ldata_function)(ld);
+      sem_post(&sem_mark);
+
+      if ( ld->thread.forall_flags & PL_THREAD_SUSPEND_AFTER_WORK )
+      { t->status = PL_THREAD_SUSPENDED;
+	wait_resume(t);
+      }
       break;
     }
   }
-
-  sem_post(&sem_mark);
 }
 
 
 void
-forThreadLocalData(void (*func)(PL_local_data_t *))
+forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
 { int i;
   struct sigaction old;
   struct sigaction new;
   int me = PL_thread_self();
   int signalled = 0;
+
+  DEBUG(1, Sdprintf("Calling forThreadLocalData()\n"));
 
   assert(ldata_function == NULL);
   ldata_function = func;
@@ -1812,13 +1896,14 @@ forThreadLocalData(void (*func)(PL_local_data_t *))
   memset(&new, 0, sizeof(new));
   new.sa_handler = doThreadLocalData;
   new.sa_flags   = SA_RESTART;
-  sigaction(SIG_MARKATOMS, &new, &old);
+  sigaction(SIG_FORALL, &new, &old);
 
   for(i=1; i<MAX_THREADS; i++)
   { if ( threads[i].thread_data && i != me &&
 	 threads[i].status == PL_THREAD_RUNNING )
     { DEBUG(1, Sdprintf("Signalling %d\n", i));
-      if ( pthread_kill(threads[i].tid, SIG_MARKATOMS) == 0 )
+      threads[i].thread_data->thread.forall_flags = flags;
+      if ( pthread_kill(threads[i].tid, SIG_FORALL) == 0 )
       { signalled++;
       } else if ( errno != ESRCH )
 	Sdprintf("Failed to signal: %s\n", OsError());
@@ -1836,24 +1921,13 @@ forThreadLocalData(void (*func)(PL_local_data_t *))
 
   DEBUG(1, Sdprintf("done!\n"));
 
-  sigaction(SIG_MARKATOMS, &old, NULL);
+  sigaction(SIG_FORALL, &old, NULL);
 
   assert(ldata_function == func);
   ldata_function = NULL;
 }
 
 #endif /*WIN32*/
-
-void
-threadMarkAtomsOtherThreads(void)
-{ forThreadLocalData(markAtomsOnStacks);
-}
-
-
-void
-markPredicatesOtherThreads(void)
-{ forThreadLocalData(markPredicatesInEnvironments);
-}
 
 
 		 /*******************************

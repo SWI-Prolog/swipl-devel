@@ -148,10 +148,14 @@ freeHeap__LD(void *mem, size_t n ARG_LD)
   if ( n <= ALLOCFAST )
   {
 #ifdef O_PLMT
-    freeToPool(&LD->alloc_pool, mem, n);
-#else
-    freeToPool(&GD->alloc_pool, mem, n);
+    if ( LD )				/* LD might be gone already */
+      freeToPool(&LD->alloc_pool, mem, n);
+    else
 #endif
+    { LOCK();
+      freeToPool(&GD->alloc_pool, mem, n);
+      UNLOCK();
+    }
   } else
   { LOCK();
     freeBigHeap(mem);
@@ -337,6 +341,7 @@ mergeAllocPool(AllocPool to, AllocPool from)
 { Chunk *t, *f;
   int i;
 
+  assert(to == &GD->alloc_pool);	/* for now */
   leftoverToChains(from);
 
   LOCK();

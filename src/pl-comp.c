@@ -3301,6 +3301,10 @@ wamListInstruction(IOSTREAM *out, Clause clause, Code bp)
 	  n += 2;
 	  cpDoubleData(p, bp);
 	  Sfprintf(out, " %g", v.f);
+#if 0					/* used to discover GDB problem */
+	  Sfprintf(out, " [0x%08x 0x%8x]", bp[-2], bp[-1]);
+	  Sfprintf(out, " [0x%08x 0x%8x]", v.w[0], v.w[1]);
+#endif
 	  break;
 	}
 	case CA1_STRING:

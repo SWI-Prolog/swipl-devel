@@ -66,6 +66,8 @@ typedef struct _PL_thread_info_t
 #define PL_THREAD_EXCEPTION	5
 #define PL_THREAD_CANCELED	6
 #define	PL_THREAD_CREATED	7
+#define	PL_THREAD_SUSPENDED	8
+#define PL_THREAD_RESUMING	9
 
 extern simpleMutex _PL_mutexes[];	/* Prolog mutexes */
 
@@ -203,9 +205,22 @@ extern foreign_t	pl_current_mutex(term_t mutex,
 const char *		threadName(int id);
 void			executeThreadSignals(int sig);
 foreign_t		pl_attach_xterm(term_t in, term_t out);
-void			threadMarkAtomsOtherThreads(void);
-void			markPredicatesOtherThreads(void);
 long			threadLocalHeapUsed(void);
+
+
+		 /*******************************
+		 *	 GLOBAL GC SUPPORT	*
+		 *******************************/
+
+void			forThreadLocalData(void (*func)(PL_local_data_t *),
+					   unsigned flags);
+void			resumeThreads(void);
+
+#define PL_THREAD_SUSPEND_AFTER_WORK	0x1 /* forThreadLocalData() */
+
+		 /*******************************
+		 *	   ATOMIC COUNTERS	*
+		 *******************************/
 
 void			PL_atomic_inc(int *addr);
 void			PL_atomic_dec(int *addr);

@@ -1093,7 +1093,8 @@ pl_garbage_collect_clauses(void)
 
     markPredicatesInEnvironments(LD);
 #ifdef O_PLMT
-    markPredicatesOtherThreads();
+    forThreadLocalData(markPredicatesInEnvironments,
+		       PL_THREAD_SUSPEND_AFTER_WORK);
 #endif
 
     for( cell = &GD->procedures.dirty; *cell; )
@@ -1106,13 +1107,14 @@ pl_garbage_collect_clauses(void)
       { DefinitionChain next = (*cell)->next;
 
 	def->references = 0;
-	Sdprintf("gcClausesDefinition(%s)\n", predicateName(def));
+	DEBUG(2, Sdprintf("gcClausesDefinition(%s)\n", predicateName(def)));
 	gcClausesDefinition(def);
 	freeHeap(*cell, sizeof(**cell));
 
 	*cell = next;
       }
     }
+    resumeThreads();
 
     unblockSignals(&set);
     UNLOCK();

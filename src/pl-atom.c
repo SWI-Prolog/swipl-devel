@@ -515,7 +515,7 @@ pl_garbage_collect_atoms()
   t = CpuTime(CPU_USER);
   markAtomsOnStacks(LD);
 #ifdef O_PLMT
-  threadMarkAtomsOtherThreads();
+  forThreadLocalData(markAtomsOnStacks, 0);
 #endif
   collectAtoms();
   GD->atoms.non_garbage = GD->statistics.atoms;

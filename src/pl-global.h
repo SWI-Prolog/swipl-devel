@@ -393,6 +393,7 @@ typedef struct PL_local_data
   { long   magic;			/* PL_THREAD_MAGIC (checking) */
     atom_t name;			/* name of the thread (if any) */
     struct _PL_thread_info_t *info;	/* info structure */
+    unsigned forall_flags;		/* forThreadLocalData() flags */
 					/* Message queues */
     pthread_mutex_t      queue_mutex;	/* Message queue mutex */
     pthread_cond_t       cond_var;	/* condition variable of queue */
