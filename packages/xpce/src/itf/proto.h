@@ -113,8 +113,8 @@ int		Stub__HostActionv(int action, va_list args);
 int		Stub__HostQuery(int what, PceCValue *value);
 int		Stub__HostSend(PceObject prolog, PceName sel, int argc, PceObject *argv);
 PceObject	Stub__HostGet(PceObject prolog, PceName sel, int argc, PceObject *argv);
-int		Stub__HostCallProc(PceObject handle, PceObject rec, int argc, PceObject *argv);
-PceObject	Stub__HostCallFunc(PceObject handle, PceObject rec, int argc, PceObject *argv);
+int		Stub__HostCallProc(PceObject handle, PceObject rec, PceObject sel, int argc, PceObject *argv);
+PceObject	Stub__HostCallFunc(PceObject handle, PceObject rec, PceObject sel, int argc, PceObject *argv);
 
 /* xmalloc.c */
 void *		xmalloc(size_t nbytes);

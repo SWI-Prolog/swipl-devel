@@ -102,7 +102,8 @@ Stub__HostGet(PceObject prolog, PceName sel, int argc, PceObject *argv)
 
 
 int
-Stub__HostCallProc(PceObject handle, PceObject rec, int argc, PceObject *argv)
+Stub__HostCallProc(PceObject handle,
+		   PceObject rec, PceObject sel, int argc, PceObject *argv)
 { Cprintf("hostCallProc() not implemented\n");
 
   return PCE_FAIL;
@@ -110,7 +111,8 @@ Stub__HostCallProc(PceObject handle, PceObject rec, int argc, PceObject *argv)
 
 
 PceObject
-Stub__HostCallFunc(PceObject handle, PceObject rec, int argc, PceObject *argv)
+Stub__HostCallFunc(PceObject handle,
+		   PceObject rec, PceObject sel, int argc, PceObject *argv)
 { Cprintf("hostCallFunc() not implemented\n");
 
   return PCE_FAIL;
