@@ -1,3 +1,5 @@
+* FIXED: Properly expand UTF-8 values in CDATA attributes
+
 * FIXED: Properly handle unquoted attributes at the end of an empty element
   in XML mode <foo bar=10/>
 

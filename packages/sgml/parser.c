@@ -2956,6 +2956,11 @@ get_attribute_value(dtd_parser *p, ichar const *decl, sgml_attribute *att)
 	} else if (*d == ero)
 	{ hasent = TRUE;	/* notice char/entity references */
 	}
+#ifdef UTF8
+	  else if ( p->utf8_decode && ISUTF8_MB(*d) )
+	{ hasent = TRUE;
+	}
+#endif
       }
       *q = '\0';
       if (hasent)

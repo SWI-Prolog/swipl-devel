@@ -37,6 +37,9 @@ rdf_name_space('http://www.w3.org/TR/REC-rdf-syntax').
 %	if `BaseURI' == [], local URI's are not globalised.
 
 
+xml_to_plrdf(Element, Base0, RDF) :-
+	set_base_uri(Element, Base0, E, Base), !,
+	xml_to_plrdf(E, Base, RDF).
 xml_to_plrdf(element(_:'RDF', _, Objects), BaseURI, RDF) :- !,
 	rewrite(\rdf_objects(RDF, BaseURI), Objects).
 xml_to_plrdf(Objects, BaseURI, RDF) :-
@@ -45,7 +48,7 @@ xml_to_plrdf(Objects, BaseURI, RDF) :-
 	;   rewrite(\rdf_object(RDF, BaseURI), Objects)
 	).
 
-rdf_objects(_, []) ::=
+rdf_objects([], _Base) ::=
 	[], !.
 rdf_objects([H|T], Base) ::=
 	[ \rdf_object_or_error(H, Base)
@@ -67,6 +70,11 @@ rdf_object(description(Type, About, BagID, Properties), Base) ::=
 		 *	    DESCRIPTION		*
 		 *******************************/
 
+description(Type, About, BagID, Properties, Base0) ::=
+	E0,
+	{ set_base_uri(E0, Base0, E, Base), !,
+	  rewrite(\description(Type, About, BagID, Properties, Base), E)
+	}.
 description(description, About, BagID, Properties, Base) ::=
 	element(\rdf('Description'),
 		\attrs([ \?idAboutAttr(About, Base),
@@ -116,6 +124,11 @@ mkprop(NS:Local, Value, rdf:Local = Value) :-
 mkprop(Name, Value, Name = Value).
 
 
+propertyElt(Id, Name, Value, Base0) ::=
+	E0,
+	{ set_base_uri(E0, Base0, E, Base), !,
+	  rewrite(\propertyElt(Id, Name, Value, Base), E)
+	}.
 propertyElt(Id, Name, literal(Value), Base) ::=
 	element(Name,
 		\attrs([ \parseLiteral,
@@ -249,6 +262,11 @@ globalid(Id, Base) ::=
 		 *	     CONTAINERS		*
 		 *******************************/
 
+container(Type, Id, Elements, Base0) ::=
+	E0,
+	{ set_base_uri(E0, Base0, E, Base), !,
+	  rewrite(\container(Type, Id, Elements, Base), E)
+	}.
 container(Type, Id, Elements, Base) ::=
 	element(\containertype(Type),
 		\attrs([ \?idAttr(Id, Base)
@@ -282,11 +300,21 @@ memberElt(LI, Base) ::=
 memberElt(LI, Base) ::=
 	\inlineItem(LI, Base).
 
+referencedItem(LI, Base0) ::=
+	E0,
+	{ set_base_uri(E0, Base0, E, Base), !,
+	  rewrite(\referencedItem(LI, Base), E)
+	}.
 referencedItem(LI, Base) ::=
 	element(\rdf_or_unqualified(li),
 		[ \resourceAttr(LI, Base) ],
 		[]).
 
+inlineItem(Item, Base0) ::=
+	E0,
+	{ set_base_uri(E0, Base0, E, Base), !,
+	  rewrite(\inlineItem(Item, Base), E)
+	}.
 inlineItem(literal(LI), _Base) ::=
 	element(\rdf_or_unqualified(li),
 		[ \parseLiteral ],
@@ -358,3 +386,14 @@ do_attrs([H|T], L0) :-
 	do_attrs(T, L).
 do_attrs(C, L) :-
 	rewrite(C, L).
+
+%	set_base_uri(+Element0, +Base0, -Element, -Base)
+%	
+%	If Element0 contains xml:base = Base1, strip it from the
+%	attributes list and recalculate the new base-uri
+
+set_base_uri(element(Name, Attrs0, Content), Base0,
+	     element(Name, Attrs, Content),  Base) :-
+	select(xml:base=Base1, Attrs0, Attrs), !,
+	canonical_uri(Base1, Base0, Base).
+
