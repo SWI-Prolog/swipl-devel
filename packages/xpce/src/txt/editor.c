@@ -3044,14 +3044,9 @@ insertSelfFillEditor(Editor e, Int times, Int chr)
   s->size = 1;
   insert_textbuffer(e->text_buffer, Caret(e), valInt(times), s);
   le = getScanTextBuffer(tb, e->caret, NAME_line, ZERO, NAME_end);
+
   if ( valInt(getColumnEditor(e, le)) > valInt(e->right_margin) )
-  { Int from = getScanTextBuffer(tb, e->caret, NAME_line, ZERO, NAME_start);
-    Int to = getScanTextBuffer(tb, sub(e->caret, ONE), NAME_paragraph,
-			       ZERO, NAME_end);
-    Int lm = getIndentationEditor(e, from, DEFAULT);
-	
-    fillEditor(e, from, to, lm, DEFAULT, OFF);
-  }
+    send(e, NAME_autoFill, EAV);
 
   if ( tisclosebrace(e->text_buffer->syntax, c) &&
        getClassVariableValueObject(e, NAME_showOpenBracket) == ON )
@@ -3059,6 +3054,26 @@ insertSelfFillEditor(Editor e, Int times, Int chr)
 
   succeed;
 }
+
+
+static status
+autoFillEditor(Editor e, Int caret)
+{ TextBuffer tb = e->text_buffer;
+  Int from, to, lm;
+  
+  if ( isDefault(caret) )
+    caret = e->caret;
+
+  from = getScanTextBuffer(tb, e->caret, NAME_line, ZERO, NAME_start);
+  to = getScanTextBuffer(tb, sub(e->caret, ONE), NAME_paragraph,
+			 ZERO, NAME_end);
+  lm = getIndentationEditor(e, from, DEFAULT);
+
+  fillEditor(e, from, to, lm, DEFAULT, OFF);
+
+  succeed;
+}
+
 
 		/********************************
 		*           SEARCHING		*
@@ -4694,6 +4709,8 @@ static senddecl send_editor[] =
      NAME_insert, "Insert typed character n times"),
   SM(NAME_insertSelfFill, 2, T_timesADintD_characterADcharD, insertSelfEditor,
      NAME_insert, "Insert char n times; adjust margins"),
+  SM(NAME_autoFill, 1, "from=[int]", autoFillEditor,
+     NAME_insert, "Fill after ->insert_self_fill detected a long line"),
   SM(NAME_newline, 1, "[int]", newlineEditor,
      NAME_insert, "Insert newlines"),
   SM(NAME_openLine, 1, "[int]", openLineEditor,

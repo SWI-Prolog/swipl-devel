@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: `editor->auto_fill', doing the fill-part of ->insert_self_fill,
+  so filling can easily be specialised in subclasses.
+
 * ADDED: emacs_language_mode->fill_comment_paragraph to fill/justify
   regions commented using the line-comment character.
   `emacs_prolog_mode->fill_paragraph' now dynamically distinguishes
