@@ -4,6 +4,9 @@
 VERSION 3.2.9
 =============
 
+  * FIXED: Changed default C++ compiler for Windows to cl.exe.  After
+    a bug-report from Peter Tselios.
+
   * FIXED: config.{sub,guess} for openbsd.  Contributed by Kamo Hiroyasu.
 
   * FIXED: Documentation of mod/2 and rem/2 (arithmetic).  Spotted by
