@@ -222,7 +222,36 @@ rdfe_commit :-
 rdfe_rollback :-
 	retract(current_transaction(TID)), !,
 	journal(rollback(TID)),
-	undo(TID).
+	rollback(TID).
+
+%	rollback(+TID)
+%	
+%	This is the same as undo/1, but it must not record the undone
+%	actions as rollbacks cannot be `redone'.  Somehow there should
+%	be a cleaner way to distinguish between transactional operations
+%	and plain operations.
+
+rollback(TID) :-
+	append(TID, _, Id),
+	(   retract(undo_log(Id, Action, Subject, Predicate, Object)),
+	    (	rollback(Action, Subject, Predicate, Object)
+	    ->	fail
+	    ;	print_message(error,
+			      rdf_undo_failed(undo(Action, Subject,
+						   Predicate, Object))),
+		fail
+	    )
+	;   true
+	).
+	
+rollback(assert(PayLoad), Subject, Predicate, Object) :- !,
+	rdfe_retractall(Subject, Predicate, Object, PayLoad).
+rollback(retract(PayLoad), Subject, Predicate, Object) :- !,
+	rdfe_assert(Subject, Predicate, Object, PayLoad).
+rollback(Action, Subject, Predicate, Object) :-
+	action(Action), !,
+	rdfe_update(Subject, Predicate, Object, Action).
+
 
 assert_action(TID, Action, Subject, Predicate, Object) :-
 	asserta(undo_log(TID, Action, Subject, Predicate, Object)).

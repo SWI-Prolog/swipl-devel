@@ -1,3 +1,7 @@
+Sep 8, 2003
+
+  * FIXED: rollback in failed transactions.
+
 Sep 4, 2003
 
   * FIXED: add goal-expaction to rdfe_retractall/3
