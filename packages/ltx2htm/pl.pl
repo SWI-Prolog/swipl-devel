@@ -93,6 +93,8 @@ cmd(funcref({RawName}, {Args}),
 	sformat(RefName, '~w()', [Name]).
 cmd(definition({Tag}),
     #defitem(+Tag)).
+cmd('DCG'(A,B,C), X) :-
+	cmd(predicate(A,B,C), X).
 cmd(predicate({RawName}, {'0'}, {_}),
     #defitem(#label(RefName, #strong(Name)))) :-
 	clean_name(RawName, Name),
@@ -315,6 +317,7 @@ special('BB', \\).
 special('Stilde', ~).
 special('Spercent', '%').
 special('Shash', #).
+special(backslash, \).
 
 clean_name([\Special], Out) :-
 	special(Special, Out), !.

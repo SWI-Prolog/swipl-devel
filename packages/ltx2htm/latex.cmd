@@ -190,6 +190,7 @@
 \leq
 \geq
 \neq
+\pm
 \sin{+}
 \cos{+}
 \tan{+}

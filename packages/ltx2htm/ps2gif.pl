@@ -78,10 +78,10 @@ ps2gif(In, Out, Options) :-
 ppm2gif(Tmp, Out, Options) :-
 	(   get_option(Options, margin(B))
 	->  aformat(Cmd,
-		    'pnmcrop < ~w | pnmmargin ~w | pnmmargin -black 1 | ppmtogif > ~w',
+		    'pnmcrop < ~w | pnmmargin ~w | pnmmargin -black 1 | ppmquant 192 | ppmtogif > ~w',
 		    [Tmp, B, Out])
-	;   aformat(Cmd, '~w < ~w | ~w > ~w',
-		    [pnmcrop, Tmp, ppmtogif, Out])
+	;   aformat(Cmd, 'pnmcrop < ~w | ppmquant 192 | ppmtogif > ~w',
+		    [Tmp, Out])
 	),
 	shell(Cmd).
 

@@ -4,6 +4,7 @@
 
 \definition{+}=item		1 0
 \predicate{+}{-}{+}=item	1 0
+\DCG{+}{-}{+}=item		1 0
 \directive{+}{-}{-}=item	1 0
 \infixop{+}{+}{+}=item		1 0
 \prefixop{+}{-}=item		1 0
@@ -181,6 +182,7 @@
 \Stilde
 \Spercent
 \Shash
+\backslash
 
 % These are hacks to get the index right
 
