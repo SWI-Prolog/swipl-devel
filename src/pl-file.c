@@ -953,7 +953,7 @@ pl_set_stream(term_t stream, term_t attr)
 
       _PL_get_arg(1, attr, a);
 
-      if ( aname == ATOM_alias )
+      if ( aname == ATOM_alias )	/* alias(name) */
       { atom_t alias;
 	Symbol symb;
 	int i;
@@ -974,7 +974,7 @@ pl_set_stream(term_t stream, term_t attr)
 	aliasStream(s, alias);
 	UNLOCK();
 	succeed;
-      } else if ( aname == ATOM_buffer )
+      } else if ( aname == ATOM_buffer ) /* buffer(Buffering) */
       { atom_t b;
 
 #define SIO_ABUF (SIO_FBUF|SIO_LBUF|SIO_NBUF)
@@ -993,6 +993,24 @@ pl_set_stream(term_t stream, term_t attr)
 	} else
 	  return PL_error("set_stream", 2, NULL, ERR_DOMAIN,
 			  ATOM_buffer, a);
+	succeed;
+      } else if ( aname == ATOM_eof_action )
+      { atom_t action;
+
+	if ( !PL_get_atom_ex(a, &action) )
+	  fail;
+	if ( action == ATOM_eof_code )
+	{ s->flags &= ~(SIO_NOFEOF|SIO_FEOF2ERR);
+	} else if ( action == ATOM_reset )
+	{ s->flags &= ~SIO_FEOF2ERR;
+	  s->flags |= SIO_NOFEOF;
+	} else if ( action == ATOM_error )
+	{ s->flags &= ~SIO_NOFEOF;
+	  s->flags |= SIO_FEOF2ERR;
+	} else
+	  return PL_error("set_stream", 2, NULL, ERR_DOMAIN,
+			  ATOM_eof_action, a);
+
 	succeed;
       }
     }
