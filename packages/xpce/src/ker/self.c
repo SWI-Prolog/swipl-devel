@@ -576,9 +576,9 @@ bannerPce(Pce pce)
 { Name host = get(HostObject(), NAME_system, 0);
 
 #ifdef __WIN32__
-  writef("PCE %s (%s for %I%IWin32: NT and '9x%I%I)\n",
+  writef("XPCE %s (%s for %I%IWin32: NT and '9x%I%I)\n",
 #else
-  writef("PCE %s (%s for %s-%s and X%dR%d)\n",
+  writef("XPCE %s (%s for %s-%s and X%dR%d)\n",
 #endif
 	 CtoString(getIsRuntimeSystemPce(pce) == ON
 		   	? "Runtime system"
