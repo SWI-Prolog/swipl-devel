@@ -401,7 +401,7 @@ getNum(IOSTREAM *fd)
 
     for(m=0; m<bytes; m++)
     { first <<= 8;
-      first |= Getc(fd);
+      first |= Getc(fd) & 0xff;
     }
     shift = (sizeof(long)-bytes)*8;
   }
@@ -1141,11 +1141,12 @@ First byte:  bits 8&7  bits 1-6 (low order)
 static void
 putNum(long n, IOSTREAM *fd)
 { int m;
+  long absn = (n >= 0 ? n : -n);
+
+  DEBUG(8, Sdprintf("0x%x at %ld\n", (unsigned long)n, Stell(fd)));
 
   if ( n != PLMINLONG )
-  { long absn = (n >= 0 ? n : -n);
-
-    if ( absn < (1L << 5) )
+  { if ( absn < (1L << 5) )
     { Sputc((n & 0x3f), fd);
       return;
     } else if ( absn < (1L << 13) )
@@ -1161,21 +1162,20 @@ putNum(long n, IOSTREAM *fd)
   }
 
   for(m = sizeof(n); ; m--)
-  { int b = (n >> ((m-1)*8)) & 0xff;
+  { int b = (absn >> (((m-1)*8)-1)) & 0x1ff;
 
-    if ( b == 0 || b == 0xff )
+    if ( b == 0 )
       continue;
     break;
   }
 
   Sputc(m | (3 << 6), fd);
 
-  for( ; m >= 0; m--)
+  for( ; m > 0; m--)
   { int b = (n >> ((m-1)*8)) & 0xff;
     
     Sputc(b, fd);
   }
-
 }
 
 
