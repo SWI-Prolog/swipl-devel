@@ -532,15 +532,13 @@ swritefv(int (*out)(void*, wint_t), void *closure,
 	      { int pad = abs(arg) - a.size;
 		int i;
 
-		if ( pad > 0 )
+		if ( arg > 0 )
 		{ for(i=0; i<pad; i++)
 		    Put(' ');
 		  if ( !put_string(out, closure, &a) )
 		    return FALSE;
 		} else
-		{ pad = -pad;
-
-		  if ( !put_string(out, closure, &a) )
+		{ if ( !put_string(out, closure, &a) )
 		    return FALSE;
 		  for(i=0; i<pad; i++)
 		    Put(' ');

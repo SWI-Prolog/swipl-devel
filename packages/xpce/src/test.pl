@@ -67,7 +67,7 @@ fmt(fmt-4) :-
 fmt(fmt-5) :-
 	get(string('|%8s|', hello), value, X),
 	X == '|   hello|'.
-fmt(fmt-5) :-
+fmt(fmt-6) :-
 	get(string('|%-8s|', hello), value, X),
 	X == '|hello   |'.
 
