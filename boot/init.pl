@@ -693,8 +693,14 @@ load_files(Files, Options) :-
 
 $load_files([], _, _) :- !.
 $load_files([H|T], Module, Options) :- !,
-	$load_file(Module:H, Options),
+	$load_files(H, Module, Options),
 	$load_files(T, Module, Options).
+$load_files(Spec, Module, Options) :-
+	atom(Spec),
+	$get_option(expand(Expand), Options, true),
+	Expand == true, !,
+	expand_file_name(Spec, Files),
+	$load_files(Files, Module, [expand(false)|Options]).
 $load_files(File, Module, Options) :-
 	$load_file(Module:File, Options).
 
