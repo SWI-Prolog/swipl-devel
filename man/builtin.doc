@@ -1789,109 +1789,32 @@ it is referenced.
 
 \section{Input and output}		\label{sec:IO}
 
-SWI-Prolog provides two different packages for input and output.  One
-confirms to the Edinburgh standard.  This package has a notion of
-`current-input' and `current-output'.  The reading and writing
-predicates implicitly refer to these streams.  In the second package,
-streams are opened explicitly and the resulting handle is used as
-an argument to the reading and writing predicate to specify the source
-or destination.  Both packages are fully integrated; the user may
-switch freely between them.
+SWI-Prolog provides two different packages for input and output.  The
+native I/O system is based on the ISO standard predicates open/3,
+close/1 and friends.%
+	\footnote{Actually based on Quintus Prolog, providing this interface
+		  before the ISO standard existed.}
+Being more widely portable and equiped with a clearer and more robust
+specification, new code is encouraged to use these predicates for
+manipulation of I/O streams.
 
-\subsection{Input and output using implicit source and destination}
-
-The package for implicit input and output destination is upwards
-compatible to DEC-10 and C-Prolog.  The reading and writing predicates
-refer to resp.  the current input- and output stream.  Initially these
-streams are connected to the terminal.  The current output stream is
-changed using tell/1 or append/1.  The current input stream is changed
-using see/1.  The streams current value can be obtained using telling/1
-for output- and seeing/1 for input streams.  The table below shows the
-valid stream specifications.  The reserved names \const{user_input},
-\const{user_output} and \const{user_error} are for neat integration with
-the explicit streams.
-
-\begin{center}
-\begin{tabular}{|l|p{3in}|}
-\hline
-\const{user}         & This reserved name refers to the terminal \\
-\const{user_input}   & Input from the terminal \\
-\const{user_output}  & Output to the terminal \\
-\const{user_error}   & Unix error stream (output only) \\
-<Atom>               & Name of a Unix file \\
-\const{pipe(<Atom>)} & Name of a Unix command \\
-\hline
-\end{tabular}
-\end{center}
-
-Source and destination are either a file, one of the reserved words
-above, or a term `pipe(\arg{Command})'.  In the predicate descriptions
-below we will call the source/destination argument `\arg{SrcDest}'.
-Below are some examples of source/destination specifications.
-
-\begin{center}\begin{tabular}{ll}
-\exam{?- see(data).}        & \% Start reading from file `data'. \\
-\exam{?- tell(user_error).} & \% Start writing on the error stream. \\
-\exam{?- tell(pipe(lpr)).}  & \% Start writing to the printer.
-\end{tabular}\end{center}
-
-Another example of using the \functor{pipe}{1} construct is shown below.
-Note that the \functor{pipe}{1} construct is not part of Prolog's
-standard I/O repertoire.
-
-\begin{code}
-getwd(Wd) :-
-        seeing(Old), see(pipe(pwd)), 
-        collect_wd(String), 
-        seen, see(Old), 
-        atom_codes(Wd, String).
-
-collect_wd([C|R]) :-
-        get0(C), C \== -1, !, 
-        collect_wd(R).
-collect_wd([]).
-\end{code}
-
-\begin{description}
-    \predicate{see}{1}{+SrcDest}
-Make \arg{SrcDest} the current input stream. If \arg{SrcDest} was
-already opened for reading with see/1 and has not been closed since,
-reading will be resumed. Otherwise \arg{SrcDest} will be opened and the
-file pointer is positioned at the start of the file.
-
-    \predicate{tell}{1}{+SrcDest}
-Make \arg{SrcDest} the current output stream. If \arg{SrcDest} was
-already opened for writing with tell/1 or append/1 and has not been
-closed since, writing will be resumed. Otherwise the file is created
-or---when existing---truncated. See also append/1.
-
-    \predicate{append}{1}{+File}
-Similar to tell/1, but positions the file pointer at the end of \arg{File}
-rather than truncating an existing file. The pipe construct is not
-accepted by this predicate.
-
-    \predicate{seeing}{1}{?SrcDest}
-Unify the name of the current input stream with \arg{SrcDest}.
-    \predicate{telling}{1}{?SrcDest}
-Unify the name of the current output stream with \arg{SrcDest}.
-
-    \predicate{seen}{0}{}
-Close the current input stream. The new input stream becomes
-\arg{user}.
-
-    \predicate{told}{0}{}
-Close the current output stream. The new output stream becomes
-\arg{user}.
-\end{description}
+\Secref{edinburghIO} describes tell/1, see/1 and friends, providing I/O
+in the spirit of the outdated Edinburgh standard. These predicates are
+layered on top of the ISO predicates. Both packages are fully
+integrated; the user may switch freely between them.
 
 
-\subsection{Explicit Input and Output Streams}
+\subsection{ISO Input and Output Streams}
 
-The predicates below are part of the Quintus compatible stream-based
-I/O package.  In this package streams are explicitly created using the
-predicate open/3.  The resulting stream identifier is then passed as a
-parameter to the reading and writing predicates to specify the source
-or destination of the data.
+The predicates described in this section provide ISO compliant I/O,
+where streams are explicitly created using the predicate open/3. The
+resulting stream identifier is then passed as a parameter to the reading
+and writing predicates to specify the source or destination of the data.
+
+This schema is not vulnerable to filename and stream ambiguities as
+well as changes to the working directory.  New code is adviced to use
+these predicates to manage input and output streams.
+
 
 \begin{description}
     \predicate{open}{4}{+SrcDest, +Mode, -Stream, +Options}
@@ -2113,7 +2036,130 @@ for example, through a network service.
 \end{description}
 \end{description}
 
-\subsection{Switching Between Implicit and Explicit I/O}
+\subsection{Edinburgh-style I/O}	\label{sec:edinburghIO}
+
+The package for implicit input and output destination is (almost) 
+compatible to Edinburgh DEC-10 and C-Prolog. The reading and writing
+predicates refer to resp. the \emph{current} input- and output stream.
+Initially these streams are connected to the terminal. The current
+output stream is changed using tell/1 or append/1. The current input
+stream is changed using see/1. The streams current value can be obtained
+using telling/1 for output- and seeing/1 for input streams. The table
+below shows the valid stream specifications. The reserved names
+\const{user_input}, \const{user_output} and \const{user_error} are for
+integration with the explicit streams.
+
+\begin{center}
+\begin{tabular}{|l|p{3in}|}
+\hline
+\const{user}         & This reserved name refers to the terminal \\
+\const{user_input}   & Input from the terminal \\
+\const{user_output}  & Output to the terminal \\
+\const{user_error}   & Unix error stream (output only) \\
+<Atom>               & Name of a Unix file \\
+\const{pipe(<Atom>)} & Name of a Unix command \\
+\hline
+\end{tabular}
+\end{center}
+
+Source and destination are either a file, one of the reserved words
+above, or a term `pipe(\arg{Command})'.  In the predicate descriptions
+below we will call the source/destination argument `\arg{SrcDest}'.
+Below are some examples of source/destination specifications.
+
+\begin{center}\begin{tabular}{ll}
+\exam{?- see(data).}        & \% Start reading from file `data'. \\
+\exam{?- tell(user_error).} & \% Start writing on the error stream. \\
+\exam{?- tell(pipe(lpr)).}  & \% Start writing to the printer.
+\end{tabular}\end{center}
+
+Another example of using the \functor{pipe}{1} construct is shown below.
+Note that the \functor{pipe}{1} construct is not part of Prolog's
+standard I/O repertoire.
+
+\begin{code}
+getwd(Wd) :-
+        seeing(Old), see(pipe(pwd)), 
+        collect_wd(String), 
+        seen, see(Old), 
+        atom_codes(Wd, String).
+
+collect_wd([C|R]) :-
+        get0(C), C \== -1, !, 
+        collect_wd(R).
+collect_wd([]).
+\end{code}
+
+
+\subsubsection*{Compatibility notes}
+
+Unlike Edinburgh Prolog systems, telling/1 and seeing/1 do not return
+the filename of the current input/output, but the stream-identifier and
+tell/1 and see/1 just switch output if the argument is a stream and
+\emph{always} open the source or destination file otherwise.  This
+implies sequence below, which should end with the file \file{x} holding
+two lines ends with this file just holding the second line in SWI-Prolog.
+
+\begin{code}
+	...,
+	tell(x),
+	writeln('line 1'),
+	tell(y),
+	...,
+	tell(x),
+	writeln('line 2'),
+	told.
+\end{code}
+
+The most common design pattern with these predicates however works
+flawlessly:
+
+\begin{code}
+	...,
+	telling(Old), tell(x),
+	...,
+	told, tell(Old),
+	...,
+\end{code}
+
+
+\begin{description}
+    \predicate{see}{1}{+SrcDest}
+Open \arg{SrcDest} for reading and make it the current input (see
+set_input/1). If \arg{SrcDest} is a stream-handle, just makes this
+stream the current input. See the introduction of \secref{edinburghIO}
+for details.
+
+    \predicate{tell}{1}{+SrcDest}
+Open \arg{SrcDest} for writing and make it the current output (see
+set_output/1).  If \arg{SrcDest} is a stream-handle, just makes this
+stream the current output. See the introduction of \secref{edinburghIO}
+for details.
+
+    \predicate{append}{1}{+File}
+Similar to tell/1, but positions the file pointer at the end of \arg{File}
+rather than truncating an existing file. The pipe construct is not
+accepted by this predicate.
+
+    \predicate{seeing}{1}{?SrcDest}
+Same as current_input/1.  See the introduction of \secref{edinburghIO}
+for details.
+
+    \predicate{telling}{1}{?SrcDest}
+Same as current_output/1.  See the introduction of \secref{edinburghIO}
+for details.
+
+    \predicate{seen}{0}{}
+Close the current input stream. The new input stream becomes
+\arg{user_input}.
+
+    \predicate{told}{0}{}
+Close the current output stream. The new output stream becomes
+\arg{user_output}.
+\end{description}
+
+
+\subsection{Switching Between Edinburgh and ISO I/O}
 
 The predicates below can be used for switching between the implicit-
 and the explicit stream based I/O predicates.
@@ -2178,7 +2224,12 @@ set to \arg{New}.%
     \footnote{Note that Edinburgh Prolog defines fileerrors/0 and
               nofileerrors/0.  As this does not allow you to switch back
               to the old mode I think this definition is better.}
+
+With the introduction of exception-handling, it is adviced to use
+catch/3 to catch possibly file-errors and act accordingly.  Note that
+if \emph{fileerrors} is \const{off}, \emph{no} exception is generated.
 \end{description}
+
 
 \section{Primitive character I/O}		\label{sec:chario}
 
@@ -2189,89 +2240,121 @@ representations.
     \predicate{nl}{0}{}
 Write a newline character to the current output stream.  On Unix systems
 nl/0 is equivalent to \exam{put(10)}.
+
     \predicate{nl}{1}{+Stream}
 Write a newline to \arg{Stream}.
+
     \predicate{put}{1}{+Char}
 Write \arg{Char} to the current output stream, \arg{Char} is either an
-integer-expression evaluating to an ASCII value
+integer-expression evaluating to a  character code
 ($0 \leq \arg{Char} \leq 255$) or an atom of one character.
+
     \predicate{put}{2}{+Stream, +Char}
 Write \arg{Char} to \arg{Stream}.
+
     \predicate{put_byte}{1}{+Byte}
 Alias for put/1.
+
     \predicate{put_byte}{2}{+Stream, +Byte}
 Alias for put/2
+
     \predicate{put_char}{1}{+Char}
-Alias for put_char/1.
+Alias for put/1.
+
     \predicate{put}{2}{+Stream, +Char}
 Alias for put/2
+
     \predicate{put_code}{1}{+Code}
 Alias for put/1.
+
     \predicate{put_code}{2}{+Stream, +Code}
 Alias for put/2
+
     \predicate{tab}{1}{+Amount}
 Writes \arg{Amount} spaces on the current output stream.  \arg{Amount}
 should be an expression that evaluates to a positive integer (see
 \secref{arith}).
+
     \predicate{tab}{2}{+Stream, +Amount}
 Writes \arg{Amount} spaces to \arg{Stream}.
+
     \predicate{flush_output}{0}{}
 Flush pending output on current output stream. flush_output/0 is
 automatically generated by read/1 and derivatives if the current input
 stream is \const{user} and the cursor is not at the left margin.
+
     \predicate{flush_output}{1}{+Stream}
 Flush output on the specified stream.  The stream must be open for
 writing.
+
     \predicate{ttyflush}{0}{}
 Flush pending output on stream \arg{user}. See also flush_output/[0,1].
     \predicate{get_byte}{1}{-Byte}
 Read the current input stream and unify the next byte with \arg{Byte}
 (an integer between 0 and 255. \arg{Byte} is unified with -1 on end of
 file.
+
     \predicate{get_byte}{2}{+Stream, -Byte}
 Read the next byte from \arg{Stream}.
+
     \predicate{get_code}{1}{-Code}
 Read the current input stream and unify \arg{Code} with the character
 code of the next character.  \arg{Char} is unified with -1 on end of file.
 See also get_char/1.
+
     \predicate{get_code}{2}{+Stream, -Code}
 Read the next character-code from \arg{Stream}.
+
     \predicate{get_char}{1}{-Char}
 Read the current input stream and unify \arg{Char} with the next
 character as a one-character-atom.  See also atom_chars/2.
 On end-of-file, \arg{Char} is unified to the atom \const{end_of_file}.
+
     \predicate{get_char}{2}{+Stream, -Char}
 Unify \arg{Char} with the next character from \arg{Stream} as a
 one-character-atom.  See also get_char/2, get_byte/2 and get_code/2.
+
     \predicate{get0}{1}{-Char}
 Edinburgh version of the ISO get_byte/1 predicate.
+
     \predicate{get0}{2}{+Stream, -Char}
 Edinburgh version of the ISO get_byte/2 predicate.
+
     \predicate{get}{1}{-Char}
 Read the current input stream and unify the next non-blank character
 with \arg{Char}. \arg{Char} is unified with -1 on end of file.
+
     \predicate{get}{2}{+Stream, -Char}
 Read the next non-blank character from \arg{Stream}.
+
     \predicate{peek_byte}{1}{-Byte}
 Reads the next input byte like get_byte/1, but does not remove it
 from the input stream.
+
     \predicate{peek_byte}{2}{+Stream, -Byte} Reads the next input byte
 like get_byte/2, but does not remove it from the stream.
+
     \predicate{peek_code}{1}{-Code}
 Reads the next input code like get_code/1, but does not remove it
 from the input stream.
+
     \predicate{peek_code}{2}{+Stream, -Code} Reads the next input code
 like get_code/2, but does not remove it from the stream.
+
     \predicate{peek_char}{1}{-Char}
 Reads the next input character like get_char/1, but does not remove it
 from the input stream.
+
     \predicate{peek_char}{2}{+Stream, -Char} Reads the next input
 character like get_char/2, but does not remove it from the stream.
+
     \predicate{skip}{1}{+Char}
 Read the input until \arg{Char} or the end of the file is encountered.
 A subsequent call to get0/1 will read the first character after \arg{Char}.
+
     \predicate{skip}{2}{+Stream, +Char}
 Skip input (as skip/1) on \arg{Stream}.
+
     \predicate{get_single_char}{1}{-Char}
 Get a single character from input stream `user' (regardless of the
 current input stream). Unlike get0/1 this predicate does not wait for a
@@ -2281,16 +2364,20 @@ started with the \cmdlineoption{-tty} option this predicate reads an entire
 line of input and returns the first non-blank character on this line, or
 the ASCII code of the newline (10) if the entire line consisted of blank
 characters.
+
     \predicate{at_end_of_stream}{0}{}
 Succeeds after the last character of the current input stream has
 been read.  Also succeeds if there is no valid current input stream.
+
     \predicate{at_end_of_stream}{1}{+Stream}
 Succeeds after the last character of the named stream is read, or
 \arg{Stream} is not a valid input stream.  The end-of-stream test
 is only available on buffered input stream (unbuffered input streams
 are rarely used, see open/4).
+
     \predicate{copy_stream_data}{3}{+StreamIn, +StreamOut, +Len}
 Copy \arg{Len} bytes from stream \arg{StreamIn} to \arg{StreamOut}.
+
     \predicate{copy_stream_data}{2}{+StreamIn, +StreamOut}
 Copy data all (remaining) data from stream \arg{StreamIn} to
 \arg{StreamOut}.

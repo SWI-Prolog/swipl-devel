@@ -426,10 +426,27 @@ Some useful tricks in the integrated environment:
     \item [Register the GUI tracer]
 Using a call to guitracer/0, hooks are installed that replace the normal
 command-line driven tracer with a graphical forntend.
+
     \item [Register PceEmacs for editing files]
 From your initialisation file. you can load \pllib{emacs/swi_prolog} that
 cause edit/1 to use the built-in PceEmacs editor.
 \end{itemlist}
+
+
+\subsection{Version 5.0 Release Notes} \label{sec:rel-5.0}
+
+Version 5.0 marks a breakpoint in the phylosophy, where SWI-Prolog moves
+from a dual GPL/proprietary to a uniform LGPL (Lesser GNU Public
+Licence) schema, providing a widely usable free Prolog implementation.
+
+On the technical site the development environment, consisting of
+source-level debugger, integrated editor and various analysis and
+navigation tools progress steadily towards a mature set of tools.
+
+Many portability issues have been improved, including a port to
+MacOS X (Darwin).
+
+For details, please visit the new website at \url{www.swi-prolog.org}
 
 
 \section{Acknowledgements}	\label{sec:acknowledge}
