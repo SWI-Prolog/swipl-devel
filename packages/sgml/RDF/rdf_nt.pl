@@ -77,8 +77,10 @@ line(Triples, Tail) -->
 	).
 
 comment -->
-	"#",
+	"#", !,
 	skip_rest.
+comment -->
+	end_of_input.
 
 triple(rdf(Subject, Predicate, Object)) -->
 	subject(Subject), ws, wss,
@@ -258,6 +260,9 @@ ws -->
 	[C],
 	{ code_type(C, white)
 	}.
+
+end_of_input([], []).
+	
 
 wss -->
 	ws, !,

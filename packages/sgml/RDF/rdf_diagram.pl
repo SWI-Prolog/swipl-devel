@@ -16,10 +16,24 @@
 :- use_module(library(pce)).
 :- use_module(library(pce_tagged_connection)).
 :- use_module(library(autowin)).
+:- use_module(library(print_graphics)).
 :- use_module(rdf_parser).		% get access to declared namespaces
 
 :- pce_begin_class(rdf_diagram, auto_sized_picture,
 		   "Show set of RDF triples in a window").
+:- use_class_template(print_graphics).
+
+initialise(D, Label:[name]) :->
+	send_super(D, initialise, Label),
+	send(D, fill_popup).
+
+fill_popup(D) :->
+	send(D, popup, new(P, popup)),
+	send_list(P, append,
+		  [ menu_item(layout, message(D, layout)),
+		    gap,
+		    menu_item(print, message(D, print))
+		  ]).
 
 append(D, Triple:prolog) :->
 	"Append and rdf(Subject, Predicate, Object) triple"::
@@ -59,6 +73,10 @@ literal(D, Value:prolog, Gr:rdf_literal) :<-
 
 :- pce_end_class(rdf_diagram).
 
+
+		 /*******************************
+		 *	       SHAPES		*
+		 *******************************/
 
 :- pce_begin_class(rdf_any, figure,
 		   "Represent an RDF resource or literal").

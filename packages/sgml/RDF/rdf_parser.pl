@@ -170,18 +170,14 @@ propertyElt(Id, Name,
 		       | \propAttrs(Properties, Base)
 		       ]),
 		[]),
-	{ !,
-	  writeln(rule-3)
-	}.
+	!.
 propertyElt(_, Name, description(description, Id, _, Properties), Base) ::=
 	element(Name,
 		\attrs([ \parseResource,
 			 \?idAboutAttr(Id, Base)
 		       ]),
 		\propertyElts(Properties, Base)),
-	{ !,
-	  writeln(rule-4)
-	}.
+	!.
 propertyElt(Id, Name, literal(Value), Base) ::=
 	element(Name,
 		\attrs([ \parseLiteral,

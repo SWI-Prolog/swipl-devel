@@ -93,23 +93,17 @@ triples(container(Type, Id, Elements), Id) --> !,
 	[ rdf(Id, rdf:type, rdf:Type)
 	],
 	container(Elements, 1, Id).
-triples(description(Type, IdAbout, BagId, Props), Id) -->
-	{ nonvar(BagId), !,
-	  phrase(triples(description(Type, IdAbout, _, Props), Id), Triples)
-	},
-	list(Triples),
-	reinify(Triples, BagId).
-triples(description(description, IdAbout, _, Props), Subject) --> !,
+triples(description(description, IdAbout, BagId, Props), Subject) --> !,
 	{ description_id(IdAbout, Subject)
 	},
-	properties(Props, 1, Subject).
-triples(description(Type, IdAbout, _, Props), Subject) -->
+	properties(Props, BagId, Subject).
+triples(description(Type, IdAbout, BagId, Props), Subject) -->
 	{ description_id(IdAbout, Subject),
 	  name_to_type_uri(Type, TypeURI)
 	},
-	[ rdf(Subject, rdf:type, TypeURI)
-	],
-	properties(Props, 1, Subject).
+	properties([ rdf:type = TypeURI
+		   | Props
+		   ], BagId, Subject).
 triples(unparsed(Data), Id) -->
 	{ gensym('Error__', Id),
 	  print_message(error, rdf(unparsed(Data)))
@@ -167,11 +161,33 @@ description_id(id(Id), Id).
 description_id(each(Id), each(Id)).
 description_id(prefix(Id), prefix(Id)).
 
-properties([], _, _) -->
+properties(PlRDF, BagId, Subject) -->
+	{ nonvar(BagId)
+	}, !,
+	[ rdf(BagId, rdf:type, rdf:'Bag')
+	],
+	properties(PlRDF, 1, Statements, [], Subject),
+	fill_bag(Statements, 1, BagId).
+properties(PlRDF, _BagId, Subject) -->
+	properties(PlRDF, 1, [], [], Subject).
+
+
+fill_bag([], _, _) -->
 	[].
-properties([H0|T0], N, Subject) -->
-	property(H0, N, NN, Subject),
-	properties(T0, NN, Subject).
+fill_bag([H|T], N, BagId) -->
+	{ NN is N + 1,
+	  atom_concat('_', N, ElemId)
+	},
+	[ rdf(BagId, rdf:ElemId, H)
+	],
+	fill_bag(T, NN, BagId).
+
+
+properties([], _, Bag, Bag, _) -->
+	[].
+properties([H0|T0], N, Bag0, Bag, Subject) -->
+	property(H0, N, NN, Bag0, Bag1, Subject),
+	properties(T0, NN, Bag1, Bag, Subject).
 
 %	property(Pred = Object, N, NN, Subject)
 %	property(id(Id, Pred = Object), N, NN, Subject)
@@ -180,46 +196,52 @@ properties([H0|T0], N, Subject) -->
 %	form, reinify the statement.  Also generates triples for Object
 %	if necessary.
 
-property(Pred0 = Object, N, NN, Subject) --> % inlined object
+property(Pred0 = Object, N, NN, BagH, BagT, Subject) --> % inlined object
 	triples(Object, Id), !,
 	{ li_pred(Pred0, Pred, N, NN)
 	},
-	[ rdf(Subject, Pred, Id)
-	].
-property(Pred0 = Object, N, NN, Subject) --> !,
+	statement(Subject, Pred, Id, _, BagH, BagT).
+property(Pred0 = Object, N, NN, BagH, BagT, Subject) --> !,
 	{ li_pred(Pred0, Pred, N, NN)
 	},
-	[ rdf(Subject, Pred, Object)
-	].
-%property(id(Id, Pred0 = Object), N, NN, Subject) -->
-%	{ phrase(triples(Object, ObjectId), ObjectTriples), !,
-%	  li_pred(Pred0, Pred, N, NN)
-%	},
-%	list(ObjectTriples),
-%	[ rdf(Subject, Pred, ObjectId)
-%	],
-%	reinify(ObjectTriples, Id),
-%	[ rdf(Subject, Pred, Id)
-%	].
-property(id(Id, Pred0 = Object), N, NN, Subject) -->
+	statement(Subject, Pred, Object, _Id, BagH, BagT).
+property(id(Id, Pred0 = Object), N, NN, BagH, BagT, Subject) -->
 	triples(Object, ObjectId), !,
 	{ li_pred(Pred0, Pred, N, NN)
 	},
-	[ rdf(Subject, Pred, ObjectId),
-	  rdf(Id, rdf:type, rdf:'Statement'),
-	  rdf(Id, rdf:subject, Subject),
-	  rdf(Id, rdf:predicate, Pred),
-	  rdf(Id, rdf:object, ObjectId)
-	].
-property(id(Id, Pred0 = Object), N, NN, Subject) -->
+	statement(Subject, Pred, ObjectId, Id, BagH, BagT).
+property(id(Id, Pred0 = Object), N, NN, BagH, BagT, Subject) -->
 	{ li_pred(Pred0, Pred, N, NN)
 	},
-	[ rdf(Subject, Pred, Object),
-	  rdf(Id, rdf:type, rdf:'Statement'),
-	  rdf(Id, rdf:subject, Subject),
-	  rdf(Id, rdf:predicate, Pred),
-	  rdf(Id, rdf:object, Object)
-	].
+	statement(Subject, Pred, Object, Id, BagH, BagT).
+
+%	statement(+Subject, +Pred, +Object, +Id, +BagH, -BagT)
+%	
+%	Add a statement to the model. If nonvar(Id), we reinify the
+%	statement using the given Id.
+
+statement(Subject, Pred, Object, Id, BagH, BagT) -->
+	[ rdf(Subject, Pred, Object)
+	],
+	{   BagH = [Id|BagT]
+	->  statement_id(Id)
+	;   BagT = BagH
+	},
+	(   { nonvar(Id)
+	    }
+	->  [ rdf(Id, rdf:type, rdf:'Statement'),
+	      rdf(Id, rdf:subject, Subject),
+	      rdf(Id, rdf:predicate, Pred),
+	      rdf(Id, rdf:object, Object)
+	    ]
+	;   []
+	).
+
+
+statement_id(Id) :-
+	nonvar(Id), !.
+statement_id(Id) :-
+	gensym('Statement__', Id).
 
 %	li_pred(+Pred, -Pred, +Nth, -NextNth)
 %	
@@ -230,47 +252,6 @@ li_pred(rdf:li, rdf:Pred, N, NN) :- !,
 	atom_concat('_', N, Pred).
 li_pred(Pred, Pred, N, N).
 	
-
-		 /*******************************
-		 *	   REINIFICATION	*
-		 *******************************/
-
-reinify(Triples, BagId) -->
-	{ container_id('Bag', BagId)
-	},
-	[ rdf(BagId, rdf:type, rdf:'Bag')
-	],
-	reinify_elements(Triples, 1, BagId).
-
-reinify_elements([], _, _) -->
-	[].
-reinify_elements([rdf(Subject, Pred, Object)|T], N, BagId) -->
-	{ statement_id(Id),
-	  atom_concat('_', N, ElAttr),
-	  NN is N + 1
-	},
-	[ rdf(Id, rdf:type, rdf:'Statement'),
-	  rdf(Id, rdf:subject, Subject),
-	  rdf(Id, rdf:predicate, Pred),
-	  rdf(Id, rdf:object, Object),
-	  rdf(BagId, rdf:ElAttr, Id)
-	],
-	reinify_elements(T, NN, BagId).
-
-
-statement_id(Id) :-
-	nonvar(Id), !.
-statement_id(Id) :-
-	gensym('Statement__', Id).
-
-
-		 /*******************************
-		 *	     DCG BASICS		*
-		 *******************************/
-
-list(Elms, List, Tail) :-
-	append(Elms, Tail, List).
-
 
 		 /*******************************
 		 *	       UTIL		*

@@ -15,7 +15,8 @@
 	    process_manifest/1,
 	    run_tests/0,		% run all tests
 	    run/0,			% run selected test
-	    show/1			% +File
+	    show/1,			% RDF diagram for File
+	    run_test/1			% run a single test
 	  ]).
 :- use_module(rdf).			% our RDF parser
 :- use_module(rdf_nt).			% read .nt files
@@ -61,6 +62,7 @@ run_tests :-
 	start_tests,
 	(   rdf(About, rdf:type, test:Type),
 	    test_type(Type),
+%	    once(run_test(About)),		% Should not be needed
 	    run_test(About),
 	    fail
 	;   true
@@ -235,12 +237,19 @@ make_rdf_test_gui(Ref) :-
 	send(new(Ref, w3c_rdf_test_gui), open).
 
 
+:- dynamic
+	verbose/0.
+
+verbose.
+
 test_result(Result, Test, Our, Norm) :-
 	send(@rdf_test_gui, test_result, Result, Test, Our, Norm),
-	(   Result == fail
-	->  format('~N** Our Triples~n'),
+	(   Result == fail, verbose
+	->  length(Our, OurLength),
+	    format('~N** Our Triples (~w)~n', OurLength),
 	    pp(Our),
-	    format('~N** Normative Triples~n'),
+	    length(Norm, NormLength),
+	    format('~N** Normative Triples (~w)~n', NormLength),
 	    pp(Norm)
 	;   true
 	).
