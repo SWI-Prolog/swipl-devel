@@ -1,46 +1,24 @@
-SWI-Prolog 5.4.2/XPCE 6.4.0 stable release
+SWI-Prolog 5.5.0/XPCE 6.4.0 development release
 
-Although there are still various issues  with the current development it
-is decided to call it 5.4.0. This   version  is more stable than 5.2.13,
-the remaining issues do not  involve  core   components  and  we  do not
-anticipate incompatible changes while resolving them.
-
-
-New features in 5.4.x relative to 5.2.x and their status
+New features in 5.5.x relative to 5.4.x and their status
 ========================================================
 
-  * Attributed variables.
+  * Wide character support
 
-  * Coroutining.
-
-  * Global variables
-
-  * Infinite terms (cyclic terms)
-    Incomplete but useable.
-
-    Supported: =/2, ==/2, @>/2 (and friends), copy_term/2, =../2,
-               duplicate_term/2, ground/2, dif/2, when/2, term_variables/2,
-	       numbervars/3, hash_term/3, findall/3, bagof/3, setof/3,
-	       recorded database.
-
-  * CHR constraint language support
-
-  * integer bounds constraint library (clp/bounds.pl) (a subset if CLP(fd)).
-
-  * JPL: Integrated Java/Prolog interface package
-    Does not yet support MacOS and various (notably COFF based) systems.
+  * More constraint libraries
 
 
-Patches in 5.4.2 relative to 5.4.1
+Patches in 5.5.0 relative to 5.4.3
 ==================================
 
-  * Bug in garbage collector handling `trailed assignments' used by setarg/3,
-    attributed variables and backtrackable global variables.  Causes
-    incorrect results rather than crashes.
+  * Provide support for wide-character atoms and string objects.
 
-  * Bug in parser reading */* (interpreted as comment)
+  * Provide encoding/decoding for UTF-8 and UNICODE (LE/BE) for
+    streams
 
-  * Added strip_module/3 as built-in.
+  * Provide a UNICODE enabled version of plterm.dll, doing the
+    window for plwin.exe
+
 
 
 Packages
