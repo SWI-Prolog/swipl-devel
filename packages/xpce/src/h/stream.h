@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        jan@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2005, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -26,6 +26,7 @@
 #define _PL_STREAM_H
 
 #include <stdarg.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -97,6 +98,7 @@ stuff.
 typedef int   (*Sread_function)(void *handle, char *buf, int bufsize);
 typedef int   (*Swrite_function)(void *handle, char*buf, int bufsize);
 typedef long  (*Sseek_function)(void *handle, long pos, int whence);
+typedef long  (*Sseek64_function)(void *handle, int64_t pos, int whence);
 typedef int   (*Sclose_function)(void *handle);
 typedef int   (*Scontrol_function)(void *handle, int action, void *arg);
 
@@ -113,10 +115,11 @@ typedef struct io_functions
   Sseek_function	seek;		/* seek to position */
   Sclose_function	close;		/* close stream */
   Scontrol_function	control;	/* Info/control */
+  Sseek64_function	seek64;		/* seek to position (long files) */
 } IOFUNCTIONS;
 
 typedef struct io_position
-{ long			charno;		/* character position in file */
+{ int64_t		charno;		/* character position in file */
   int			lineno;		/* lineno in file */
   int			linepos;	/* position in line */
 } IOPOS;
