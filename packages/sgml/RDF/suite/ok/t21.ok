@@ -1,7 +1,7 @@
-rdf('Bag__1', rdf:type, rdf:'Bag').
-rdf('Bag__1', rdf:'_1', 'http://mycollege.edu/students/Amy').
-rdf('Bag__1', rdf:'_2', 'http://mycollege.edu/students/Tim').
-rdf('Bag__1', rdf:'_3', 'http://mycollege.edu/students/John').
-rdf('Bag__1', rdf:'_4', 'http://mycollege.edu/students/Mary').
-rdf('Bag__1', rdf:'_5', 'http://mycollege.edu/students/Sue').
-rdf('http://mycollege.edu/courses/6.001', 'http://description.org/schema/':students, 'Bag__1').
+rdf('__Bag1', rdf:type, rdf:'Bag').
+rdf('__Bag1', rdf:'_1', 'http://mycollege.edu/students/Amy').
+rdf('__Bag1', rdf:'_2', 'http://mycollege.edu/students/Tim').
+rdf('__Bag1', rdf:'_3', 'http://mycollege.edu/students/John').
+rdf('__Bag1', rdf:'_4', 'http://mycollege.edu/students/Mary').
+rdf('__Bag1', rdf:'_5', 'http://mycollege.edu/students/Sue').
+rdf('http://mycollege.edu/courses/6.001', 'http://description.org/schema/':students, '__Bag1').

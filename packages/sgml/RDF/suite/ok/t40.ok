@@ -1,4 +1,4 @@
-rdf('Description__1', rdf:type, 'http://www.mytypes.org/schema/Bicycle').
-rdf('Description__1', wheels, literal('2')).
-rdf('Description__2', rdf:type, 'http://www.mytypes.org/schema/Bicycle').
-rdf('Description__2', 'http://www.mytypes.org/schema/':wheels, literal('2')).
+rdf('__Description1', rdf:type, 'http://www.mytypes.org/schema/Bicycle').
+rdf('__Description1', wheels, literal('2')).
+rdf('__Description2', rdf:type, 'http://www.mytypes.org/schema/Bicycle').
+rdf('__Description2', 'http://www.mytypes.org/schema/':wheels, literal('2')).

@@ -1,4 +1,4 @@
 rdf('John_Smith', a1, literal('John')).
-rdf('Description__1', v, literal('200')).
-rdf('Description__1', t, literal(pounds)).
-rdf('John_Smith', a1, 'Description__1').
+rdf('__Description1', v, literal('200')).
+rdf('__Description1', t, literal(pounds)).
+rdf('John_Smith', a1, '__Description1').

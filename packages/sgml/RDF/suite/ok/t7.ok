@@ -1,5 +1,5 @@
-rdf('Bag__1', rdf:type, rdf:'Bag').
-rdf('Description__1', name, literal('Jan Wielemaker')).
-rdf('Description__1', employed_at, literal('SWI')).
-rdf('Bag__1', rdf:'_1', 'Description__1').
-rdf('http://www.swi.psy.uva.nl/projects/xpce/', 'http://description.org/schema/':'Creator', 'Bag__1').
+rdf('__Bag1', rdf:type, rdf:'Bag').
+rdf('__Description1', name, literal('Jan Wielemaker')).
+rdf('__Description1', employed_at, literal('SWI')).
+rdf('__Bag1', rdf:'_1', '__Description1').
+rdf('http://www.swi.psy.uva.nl/projects/xpce/', 'http://description.org/schema/':'Creator', '__Bag1').

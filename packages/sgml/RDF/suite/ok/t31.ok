@@ -1,17 +1,17 @@
 rdf('http://www.dlib.org/dlib/may98/05contents.html', 'http://purl.org/metadata/dublin_core#':'Title', literal('DLIB Magazine - The Magazine for Digital Library Research\n      - May 1998')).
 rdf('http://www.dlib.org/dlib/may98/05contents.html', 'http://purl.org/metadata/dublin_core#':'Description', literal('D-LIB magazine is a monthly compilation of\n     contributed stories, commentary, and briefings.')).
-rdf('Description__1', 'http://purl.org/metadata/dublin_core_qualifiers#':'AgentType', 'http://purl.org/metadata/dublin_core_qualifiers#Editor').
-rdf('Description__1', rdf:value, literal('Amy Friedlander')).
-rdf('http://www.dlib.org/dlib/may98/05contents.html', 'http://purl.org/metadata/dublin_core#':'Contributor', 'Description__1').
+rdf('__Description1', 'http://purl.org/metadata/dublin_core_qualifiers#':'AgentType', 'http://purl.org/metadata/dublin_core_qualifiers#Editor').
+rdf('__Description1', rdf:value, literal('Amy Friedlander')).
+rdf('http://www.dlib.org/dlib/may98/05contents.html', 'http://purl.org/metadata/dublin_core#':'Contributor', '__Description1').
 rdf('http://www.dlib.org/dlib/may98/05contents.html', 'http://purl.org/metadata/dublin_core#':'Publisher', literal('Corporation for National Research Initiatives')).
 rdf('http://www.dlib.org/dlib/may98/05contents.html', 'http://purl.org/metadata/dublin_core#':'Date', literal('1998-01-05')).
 rdf('http://www.dlib.org/dlib/may98/05contents.html', 'http://purl.org/metadata/dublin_core#':'Type', literal('electronic journal')).
-rdf('Bag__1', rdf:type, rdf:'Bag').
-rdf('Bag__1', rdf:'_1', literal('library use studies')).
-rdf('Bag__1', rdf:'_2', literal('magazines and newspapers')).
-rdf('http://www.dlib.org/dlib/may98/05contents.html', 'http://purl.org/metadata/dublin_core#':'Subject', 'Bag__1').
+rdf('__Bag1', rdf:type, rdf:'Bag').
+rdf('__Bag1', rdf:'_1', literal('library use studies')).
+rdf('__Bag1', rdf:'_2', literal('magazines and newspapers')).
+rdf('http://www.dlib.org/dlib/may98/05contents.html', 'http://purl.org/metadata/dublin_core#':'Subject', '__Bag1').
 rdf('http://www.dlib.org/dlib/may98/05contents.html', 'http://purl.org/metadata/dublin_core#':'Format', literal('text/html')).
 rdf('http://www.dlib.org/dlib/may98/05contents.html', 'http://purl.org/metadata/dublin_core#':'Identifier', literal('urn:issn:1082-9873')).
-rdf('Description__2', 'http://purl.org/metadata/dublin_core_qualifiers#':'RelationType', 'http://purl.org/metadata/dublin_core_qualifiers#IsPartOf').
-rdf('Description__2', rdf:value, 'http://www.dlib.org').
-rdf('http://www.dlib.org/dlib/may98/05contents.html', 'http://purl.org/metadata/dublin_core#':'Relation', 'Description__2').
+rdf('__Description2', 'http://purl.org/metadata/dublin_core_qualifiers#':'RelationType', 'http://purl.org/metadata/dublin_core_qualifiers#IsPartOf').
+rdf('__Description2', rdf:value, 'http://www.dlib.org').
+rdf('http://www.dlib.org/dlib/may98/05contents.html', 'http://purl.org/metadata/dublin_core#':'Relation', '__Description2').

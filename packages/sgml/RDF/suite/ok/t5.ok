@@ -1,7 +1,7 @@
-rdf('Description__1', name, literal('Jan Wielemaker')).
-rdf('Description__1', works_at, literal('SWI')).
-rdf('http://www.swi.psy.uva.nl/projects/SWI-Prolog/', 'http://description.org/schema/':'Creator', 'Description__1').
+rdf('__Description1', name, literal('Jan Wielemaker')).
+rdf('__Description1', works_at, literal('SWI')).
+rdf('http://www.swi.psy.uva.nl/projects/SWI-Prolog/', 'http://description.org/schema/':'Creator', '__Description1').
 rdf('JW', rdf:type, rdf:'Statement').
 rdf('JW', rdf:subject, 'http://www.swi.psy.uva.nl/projects/SWI-Prolog/').
 rdf('JW', rdf:predicate, 'http://description.org/schema/':'Creator').
-rdf('JW', rdf:object, 'Description__1').
+rdf('JW', rdf:object, '__Description1').

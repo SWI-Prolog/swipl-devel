@@ -1,5 +1,5 @@
-rdf('Alt__1', rdf:type, rdf:'Alt').
-rdf('Alt__1', rdf:'_1', 'ftp://ftp.x.org').
-rdf('Alt__1', rdf:'_2', 'ftp://ftp.cs.purdue.edu').
-rdf('Alt__1', rdf:'_3', 'ftp://ftp.eu.net').
-rdf('http://x.org/packages/X11', 'http://description.org/schema/':'DistributionSite', 'Alt__1').
+rdf('__Alt1', rdf:type, rdf:'Alt').
+rdf('__Alt1', rdf:'_1', 'ftp://ftp.x.org').
+rdf('__Alt1', rdf:'_2', 'ftp://ftp.cs.purdue.edu').
+rdf('__Alt1', rdf:'_3', 'ftp://ftp.eu.net').
+rdf('http://x.org/packages/X11', 'http://description.org/schema/':'DistributionSite', '__Alt1').

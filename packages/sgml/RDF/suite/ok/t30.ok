@@ -2,11 +2,11 @@ rdf('http://www.dlib.org', 'http://purl.org/metadata/dublin_core#':'Title', lite
 rdf('http://www.dlib.org', 'http://purl.org/metadata/dublin_core#':'Description', literal('The D-Lib program supports the community of people\n     with research interests in digital libraries and electronic\n     publishing.')).
 rdf('http://www.dlib.org', 'http://purl.org/metadata/dublin_core#':'Publisher', literal('Corporation For National Research Initiatives')).
 rdf('http://www.dlib.org', 'http://purl.org/metadata/dublin_core#':'Date', literal('1995-01-07')).
-rdf('Bag__1', rdf:type, rdf:'Bag').
-rdf('Bag__1', rdf:'_1', literal('Research; statistical methods')).
-rdf('Bag__1', rdf:'_2', literal('Education, research, related topics')).
-rdf('Bag__1', rdf:'_3', literal('Library use Studies')).
-rdf('http://www.dlib.org', 'http://purl.org/metadata/dublin_core#':'Subject', 'Bag__1').
+rdf('__Bag1', rdf:type, rdf:'Bag').
+rdf('__Bag1', rdf:'_1', literal('Research; statistical methods')).
+rdf('__Bag1', rdf:'_2', literal('Education, research, related topics')).
+rdf('__Bag1', rdf:'_3', literal('Library use Studies')).
+rdf('http://www.dlib.org', 'http://purl.org/metadata/dublin_core#':'Subject', '__Bag1').
 rdf('http://www.dlib.org', 'http://purl.org/metadata/dublin_core#':'Type', literal('World Wide Web Home Page')).
 rdf('http://www.dlib.org', 'http://purl.org/metadata/dublin_core#':'Format', literal('text/html')).
 rdf('http://www.dlib.org', 'http://purl.org/metadata/dublin_core#':'Language', literal(en)).
