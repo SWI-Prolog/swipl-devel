@@ -105,16 +105,38 @@ Quintus  Prolog  gnu-emacs  interface    with   an   additional   file
 swi-prolog.el that redefines and adds some things.
 
 
-NOTES
-=====
+PROBLEMS BUILDING SWI
+=====================
 
 SunOs 3.x
+---------
 
 Ancient  users of   SunOs 3.x  should set  the  corresponding  flag in
 md-sun3.h. Dynamic stacks are not provided under SunOs 3.x.
 
+SunOs 4
+-------
+
+This is the development platform.  Should compile ok, but SWI-Prolog
+does *not* compile with the System-V environment.
+
+AIX (RS6000)
+------------
+
+Saved states are not very robust. It has been reported that the states
+restore ok until the system is rebooted. The trouble is that it appears
+impossible to force *static linking* with AIX.
+
+SGI
+---
+
+While compiling pl-load.c, some architectures report an error regarding
+the symbol N_TXTOFF. If this happens, drop O_FOREIGN to 0 in md-sgi.h
+and recompile.
+
 
 MODIFYING SWI-Prolog
+====================
 
 You are free to modify SWI-Prolog under the licence terms specified in
 the  file LICENCE.  You  may  wish the  other    users can share  your
