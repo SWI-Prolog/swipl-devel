@@ -471,6 +471,10 @@ All matching is performed case-insensitive.  Defines methods are:
 	\termitem{prefix}{}
 	    \arg{Text} start with \arg{Search}.
     \end{description}
+
+    \predicate{rdf_reset_db}{0}{}
+Erase all triples from the database and reset all counts and statistics
+information.
 \end{description}
 
 

@@ -27,6 +27,7 @@
 	    rdf_save_db/1,		% +File
 	    rdf_save_db/2,		% +File, +DB
 	    rdf_load_db/1,		% +File
+	    rdf_reset_db/0,
 
 	    rdf_node/1,			% -Id
 
@@ -484,6 +485,20 @@ load_triples_from_stream(rdf(S,P,O,DB), In) :- !,
 	load_triples_from_stream(T, In).
 load_triples_from_stream(T, _) :-
 	throw(error(type_error(rdf_triple, T), _)).
+
+
+		 /*******************************
+		 *	       RESET		*
+		 *******************************/
+
+%	rdf_reset_db
+%	
+%	Remove all triples from the RDF database and reset all its
+%	statistics.
+
+rdf_reset_db :-
+	rdf_reset_db_,
+	retractall(rdf_source(_,_)).
 
 
 		 /*******************************

@@ -15,6 +15,8 @@
 	    rdfe_register_ns/2,		% +Id, +URI
 	    rdfe_unregister_ns/2,	% +Id, +URI
 
+	    rdfe_reset/0,		% clear everything
+
 	    rdfe_transaction/1,		% :Goal
 	    rdfe_transaction/2,		% :Goal, +Name
 	    rdfe_transaction_member/2,	% +Transactions, -Action
@@ -210,6 +212,16 @@ rdfe_load(File) :-
 			   triples(Loaded)
 			 ])).
 
+
+		 /*******************************
+		 *	NAMESPACE HANDLING	*
+		 *******************************/
+
+:- dynamic
+	system_ns/2.
+:- volatile
+	system_ns/2.
+
 %	rdfe_register_ns(Id, URI)
 %	
 %	Encapsulation of rdf_register_ns(Id, URI)
@@ -217,6 +229,7 @@ rdfe_load(File) :-
 rdfe_register_ns(Id, URI) :-
 	rdf_db:ns(Id, URI), !.
 rdfe_register_ns(Id, URI) :-
+	save_system_ns,
 	rdfe_current_transaction(TID),
 	rdf_register_ns(Id, URI),
 	broadcast(rdf_ns(register(Id, URI))),
@@ -224,11 +237,29 @@ rdfe_register_ns(Id, URI) :-
 	journal(ns(TID, register(Id, URI))).
 
 rdfe_unregister_ns(Id, URI) :-
+	save_system_ns,
 	rdfe_current_transaction(TID),
 	retractall(rdf_db:ns(Id, URI)),
 	broadcast(rdf_ns(unregister(Id, URI))),
 	assert_action(TID, ns(unregister(Id, URI)), -, -, -),
 	journal(ns(TID, unregister(Id, URI))).
+
+%	rdfe_register_ns/0
+%	
+%	Reset namespaces to the state they where before usage of the
+%	rdf_edit layer.
+
+rdfe_reset_ns :-
+	(   system_ns(_, _)
+	->  retractall(rdf_db:ns(Id, URI)),
+	    forall(system_ns(Id, URI), assert(rdb_db:ns(Id, URI)))
+	;   true
+	).
+
+save_system_ns :-
+	system_ns(_, _), !.		% already done
+save_system_ns :-
+	forall(rdf_db:ns(Id, URI), assert(system_ns(Id, URI))).
 
 
 		 /*******************************
@@ -499,6 +530,35 @@ rdfe_is_modified(File) :-
 
 rdfe_clear_modified(File) :-
 	retractall(modified(File)).
+
+
+		 /*******************************
+		 *	       RESET		*
+		 *******************************/
+
+%	rdfe_reset/0
+%	
+%	Clear database, undo, namespaces and journalling info.
+
+rdfe_reset :-
+	rdfe_reset_journal,
+	rdfe_reset_ns,
+	rdfe_reset_undo,
+	rdf_reset_db,
+	broadcast(rdf_reset).
+
+rdfe_reset_journal :-
+	(   rdfe_current_journal(_)
+	->  rdfe_close_journal
+	;   true
+	).
+
+rdfe_reset_undo :-
+	retractall(undo_log(_,_,_,_,_)),
+	retractall(current_transaction(_)),
+	retractall(transaction_name(_,_)),
+	retractall(undo_marker(_,_)),
+	retractall(modified(_)).
 
 
 		 /*******************************

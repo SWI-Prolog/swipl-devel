@@ -141,6 +141,28 @@ domain_error(term_t actual, const char *expected)
 
 
 static int
+permission_error(const char *type, const char *op, const char *obj,
+		 const char *msg)
+{ term_t ex = PL_new_term_ref();
+  term_t ctx = PL_new_term_ref();
+
+  if ( msg )
+    PL_unify_term(ctx, PL_FUNCTOR_CHARS, "context", 2,
+		         PL_VARIABLE,
+		         PL_CHARS, msg);
+
+  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
+		      PL_FUNCTOR_CHARS, "permission_error", 3,
+		        PL_CHARS, type,
+		        PL_CHARS, op,
+		        PL_CHARS, obj,
+		      PL_TERM, ctx);
+
+  return PL_raise_exception(ex);
+}
+
+
+static int
 get_atom_ex(term_t t, atom_t *a)
 { if ( PL_get_atom(t, a) )
     return TRUE;
@@ -872,12 +894,13 @@ update_hash()
 static int
 update_hash()
 { if ( need_update )
-  { if ( active_queries )
-    { Sdprintf("Problem: %d active queries\n", active_queries);
-      return FALSE;
+  { LOCK();
+
+    if ( active_queries )
+    { UNLOCK();
+      return permission_error("rdf_db", "update", "db", "Active queries");
     }
 
-    LOCK();
     if ( need_update )			/* check again */
     { if ( organise_predicates() )
       { Sdprintf("Re-hash ...");
@@ -1373,6 +1396,12 @@ static void
 lock_atoms(triple *t)
 { PL_register_atom(t->subject);
   PL_register_atom(t->object);
+}
+
+static void
+unlock_atoms(triple *t)
+{ PL_unregister_atom(t->subject);
+  PL_unregister_atom(t->object);
 }
 
 
@@ -2488,6 +2517,85 @@ rdf_generation(term_t t)
 
 
 		 /*******************************
+		 *	       RESET		*
+		 *******************************/
+
+static void
+erase_triples()
+{ triple *t, *n;
+  int i;
+
+  for(t=by_none; t; t=n)
+  { n = t->next[BY_NONE];
+
+    unlock_atoms(t);
+    PL_free(t);
+  }
+  by_none = by_none_tail = NULL;
+
+  for(i=BY_S; i<=BY_OP; i++)
+  { if ( table[i] )
+    { int bytes = sizeof(triple*)*table_size[i];
+      
+      memset(table[i], 0, bytes);
+      memset(tail[i], 0, bytes);
+    }
+  }
+
+  created = 0;
+  erased = 0;
+  subjects = 0;
+  memset(indexed, 0, sizeof(indexed));
+  duplicates = 0;
+  generation = 0;
+}
+
+
+static void				/* TBD: get rid of virtual roots */
+erase_predicates()
+{ predicate **ht;
+  int i;
+
+  for(i=0,ht = pred_table; i<pred_table_size; i++, ht++)
+  { predicate *p, *n;
+
+    for( p = *ht; p; p = n )
+    { n = p->next;
+
+      free_list(&p->siblings);
+      free_list(&p->subPropertyOf);
+
+      PL_free(p);
+    }
+
+    *ht = NULL;
+  }
+
+  pred_count = 0;
+}
+
+
+static foreign_t
+rdf_reset_db()
+{ LOCK();
+  if ( active_queries )
+  { UNLOCK();
+
+    return permission_error("rdf_db", "update", "db", "Active queries");
+  }
+
+  erase_triples();
+  erase_predicates();
+  need_update = FALSE;
+  agenda_created = 0;
+
+  UNLOCK();
+
+  return TRUE;
+}
+
+
+		 /*******************************
 		 *	       MATCH		*
 		 *******************************/
 
@@ -2734,6 +2842,7 @@ install_rdf_db()
   PL_register_foreign("rdf_save_db_",   2, rdf_save_db,     0);
   PL_register_foreign("rdf_load_db_",   1, rdf_load_db,     0);
   PL_register_foreign("rdf_reachable",  3, rdf_reachable,   NDET);
+  PL_register_foreign("rdf_reset_db_",  0, rdf_reset_db,    0);
 #ifdef O_DEBUG
   PL_register_foreign("rdf_debug",      1, rdf_debug,       0);
 #endif

@@ -1,3 +1,7 @@
+Sep 22, 2003
+
+  * ADDED: rdf_reset_db/0 to clear the entire database.
+
 Sep 21, 2003
 
   * ADDED: rdf_edit.pl: rdfe_register_ns/2 encapsulation of rdf_register_ns/2.
