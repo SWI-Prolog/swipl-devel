@@ -128,11 +128,14 @@ append_attribute(DE, A:'name|tuple') :->
 	    ;	TheMethod = Method
 	    ),
 	    get(TheMethod, argument_type, 1, Type)
-	->  make_item(Attr, Type, Client, Item),
-	    send(DE, append, Item),
-	    (	nonvar(Cond)
-	    ->	send(Item, attribute, attribute(condition, Cond))
-	    ;	true
+	->  (   make_item(Attr, Type, Client, Item)
+	    ->  send(DE, append, Item),
+		(   nonvar(Cond)
+		->  send(Item, attribute, attribute(condition, Cond))
+		;   true
+		)
+	    ;	send(DE, report, error, 'Failed to make item for %N<->%N (type %N)',
+		     Client, Attr, Type)
 	    )
 	;   send(DE, report, error, 'No method for %s', Attr)
 	).

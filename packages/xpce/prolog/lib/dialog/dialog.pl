@@ -315,20 +315,6 @@ members(M, Items:chain) :->
 	send(M, clear),
 	send(Items, for_all, message(M, append, @arg1)).
 
-feedback(M, Feedback:{box,invert,image}) :->
-	"Limit available feedbacks"::
-	(   Feedback == image
-	->  send(M, on_image,  ?(M, class_variable_value, on_image)),
-	    send(M, off_image, ?(M, class_variable_value, off_image))
-	;   send(M, on_image,  @nil),
-	    send(M, off_image, @nil)
-	),
-	(   Feedback == box
-	->  send(M, pen, 1)
-	;   send(M, pen, 0)
-	),
-	send(M, send_super, feedback, Feedback).
-
 :- pce_end_class.
 
 :- pce_begin_class(dia_proto_menu_item, menu_item,

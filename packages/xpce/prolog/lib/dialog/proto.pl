@@ -185,10 +185,8 @@ attribute(create, menu, members).
 attribute(create, menu, name).
 attribute(create, menu, label).
 attribute(create, menu, multiple_selection(@arg1?kind \== cycle)).
-attribute(create, menu, feedback(@arg1?kind \== cycle)).
 attribute(create, menu, off_image(@arg1?feedback == image)).
 attribute(create, menu, on_image(@arg1?feedback == image)).
-attribute(create, menu, pen(@arg1?feedback == box)).
 attribute(create, menu, border).
 attribute(create, menu, format).
 attribute(create, menu, value_font).
@@ -240,7 +238,6 @@ dependency(cycle,  F, T) :- !, dependency(menu, F, T).
 dependency(_,		name,		label).
 dependency(menu,	feedback,	off_image).
 dependency(menu,	feedback,	on_image).
-dependency(menu,	feedback,	pen).
 dependency(dialog,	name,		frame_label).
 dependency(_,		reference_x,	fixed_reference).
 dependency(_,		reference_y,	fixed_reference).
