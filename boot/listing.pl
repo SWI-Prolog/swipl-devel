@@ -134,7 +134,7 @@ $portray_clause(Fact) :-
 	$portray_clause((Fact :- true)).
 
 $portray_head(Head) :-
-	print(Head).
+	pprint(Head).
 
 $portray_body(!, _, _) :- !, 
 	write(' !').
@@ -158,7 +158,7 @@ $portray_body(Meta, Indent, _) :-
 	$meta_call(Meta, N), !, 
 	$portray_meta(Meta, N, Indent).
 $portray_body(Clause, _, _) :-
-	print(Clause).
+	pprint(Clause).
 
 $portray_or((If -> Then ; Else), Indent) :- !, 
 	succ(Indent, NestIndent), 
@@ -207,7 +207,7 @@ $portray_meta(Term, N, Indent) :-
 	nl, $portray_indent(CallIndent), 
 	write('))').	
 $portray_meta(Term, _, _) :-
-	print(Term).	
+	pprint(Term).	
 
 $portray_indent(N) :-
 	Tab is N // 2, 
@@ -220,3 +220,6 @@ $n_times(N, Goal) :-
 	Goal, 
 	fail.
 $n_times(_, _).	
+
+pprint(Term) :-
+	$print(Term, $portray_variable).

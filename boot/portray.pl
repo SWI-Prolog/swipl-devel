@@ -6,18 +6,22 @@
     Purpose: portray/1 connection to print/1
 */
 
-:- module($portray, [$portray/1]).
+:- module($portray, [$portray/1, $portray_variable/1]).
 
 :- user:dynamic(portray/1).
 :- user:multifile(portray/1).
 
 %   $portray is called from C through print/1.
 
-$portray($$VAR(N)) :- !, 
-	$varname(N, Name), 
-	format('~s', [Name]).
+$portray(Var) :-
+	$portray_variable(Var), !.
 $portray(Term) :-
 	user:portray(Term), !.
+
+
+$portray_variable($$VAR(N)) :-
+	$varname(N, Name), 
+	format('~s', [Name]).
 
 $varname(N, [C]) :-
 	N < 26, !, 

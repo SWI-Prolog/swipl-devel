@@ -746,7 +746,7 @@ $export_list(Module, [Term|Rest]) :-
 
 $consult_clause(end_of_file, _) :- !.
 $consult_clause(Clause, File) :-
-	$term_expansion(Clause, Expanded),
+	expand_term(Clause, Expanded),
 	$store_clause(Expanded, File), !,
 	fail.
 
@@ -813,11 +813,11 @@ $load_goal(use_module(_, _)).
 :- user:dynamic(term_expansion/2).
 :- user:multifile(term_expansion/2).
 
-$term_expansion(Term, Expanded) :-
+expand_term(Term, Expanded) :-
 	user:term_expansion(Term, Expanded), !.
-$term_expansion(Term, Expanded) :-
+expand_term(Term, Expanded) :-
 	$translate_rule(Term, Expanded), !.
-$term_expansion(Term, Term).
+expand_term(Term, Term).
 
 $store_clause([], _) :- !.
 $store_clause([C|T], F) :- !,
@@ -847,9 +847,6 @@ $store_clause(Term, File) :-
 
  ** Thu Sep  1 15:57:59 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
-/* $translate_rule((LP-->Empty), H) :-
-	Empty == [], !,
-	$t_head(LP, S, S, H). */
 $translate_rule((LP-->List), H) :-
 	nonvar(List),
 	(  List = []
