@@ -2443,14 +2443,18 @@ IOFUNCTIONS Spipefunctions =
 
 IOSTREAM *
 Sopen_pipe(const char *command, const char *type)
-{ FILE *fd = popen(command, type);	/* HACK for now */
+{ char mode[2];
+  FILE *fd;
 
 #if 0
   Sdprintf("Opening \"%s\", mode \"%s\" --> %p (%d)\n",
 	   command, type, fd, errno);
 #endif
 
-  if ( fd )
+  mode[0] = type[0];
+  mode[1] = '\0';
+
+  if ( (fd = popen(command, mode)) )
   { int flags;
 
     if ( *type == 'r' )
