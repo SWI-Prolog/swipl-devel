@@ -211,16 +211,16 @@ status		makeClassImage(Class class);
 /* gra/joint.c */
 status		initialiseJoint(Joint jt, Int x, Int y, Int w, Int h, Name arrows);
 status		copyJoint(Joint jt1, Joint jt2);
-status		setArrowsJoint(Joint jt, Arrow first, Arrow second);
+status		setArrowsJoint(Joint jt, Graphical first, Graphical second);
 status		makeClassJoint(Class class);
 
 /* gra/line.c */
 status		initialiseLine(Line ln, Int xa, Int ya, Int xb, Int yb, Name arrows);
+status		adjustFirstArrowLine(Line ln);
+status		adjustSecondArrowLine(Line ln);
+status		computeLine(Line ln);
 status		copyLine(Line l1, Line l2);
-Int		getStartXLine(Line ln);
-Int		getStartYLine(Line ln);
-Int		getEndXLine(Line ln);
-Int		getEndYLine(Line ln);
+status		paintSelectedLine(Line ln);
 status		pointsLine(Line ln, Int sx, Int sy, Int ex, Int ey);
 Point		getIntersectionLine(Line l1, Line l2);
 Real		getAngleLine(Line ln, Point p);
@@ -253,6 +253,8 @@ Node		getFindNodeNode(Node n, Graphical gr);
 status		makeClassNode(Class class);
 
 /* gra/path.c */
+status		adjustFirstArrowPath(Path p);
+status		adjustSecondArrowPath(Path p);
 status		makeClassPath(Class class);
 
 /* gra/postscript.c */

@@ -19,11 +19,11 @@ static status	unlinkObject(Any obj);
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			  CREATING OBJECTS	
 
-PCE objects are created by C-functions.   Some objects  are  used as a
-temporary   argument    to  a   method  (e.g.    send(@box,   move,
-point(30,30)).   Others  are created   as  an `end-point' object (e.g.
-new(@box,  box(50,50)))  and yet others  are stored as an attribute to
-other objects (e.g.  send(@sheet, size, size(50,50))).
+PCE objects are created by  C-functions.  Some   objects  are  used as a
+temporary argument to a  method   (e.g.  send(@box, move, point(30,30)).
+Others are created as an `end-point' object (e.g. new(@box, box(50,50)))
+and yet others are  stored  as  an   attribute  to  other  objects (e.g.
+send(@sheet, size, size(50,50))).
  
 To deal with this problem, the following schemas may be used:
 

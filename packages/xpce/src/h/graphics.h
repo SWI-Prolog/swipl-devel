@@ -77,11 +77,15 @@ typedef struct colour_context *ColourContext; /* for selection/inactive */
 
 #define ABSTRACT_JOINT \
   ABSTRACT_GRAPHICAL \
-  Arrow     first_arrow;		/* arrow on start point */ \
-  Arrow     second_arrow;		/* arrow on end point */
+  Graphical	first_arrow;		/* arrow on start point */ \
+  Graphical	second_arrow;		/* arrow on end point */
 
 #define ABSTRACT_LINE \
-  ABSTRACT_JOINT
+  ABSTRACT_JOINT \
+  Int		start_x;		/* X-start point */ \
+  Int		start_y;		/* Y-start point */ \
+  Int		end_x;			/* X-end point */ \
+  Int		end_y;			/* Y-end point */
 
 
 		/********************************

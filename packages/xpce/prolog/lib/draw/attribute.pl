@@ -55,7 +55,9 @@ variable(blocked,	int := 0,	get,
 
 attribute(pen,		pen).
 attribute(dash,		texture).
-attribute(arrows,	arrows).
+attribute(arrow_1,	first_arrow).
+attribute(arrow_2,	second_arrow).
+%attribute(arrows,	arrows).
 attribute(fill,		fill_pattern).
 attribute(colour,	colour).
 attribute(font,		font).
@@ -101,7 +103,8 @@ fill_dialog(A) :->
 
 	make_line_menu(Pen,	pen,	 [0,1,2,3,4,5]),
 	make_line_menu(Texture, texture, [none, dotted, dashed, dashdot]),
-	make_line_menu(Arrows,	arrows,  [none, second, first, both]),
+	make_arrow_menu(Arrows1, Draw, first_arrow),
+	make_arrow_menu(Arrows2, Draw, second_arrow),
 	make_fill_pattern_menu(Draw, FillPattern),
 	make_colour_menu(Draw, Colour),
 	make_font_menu(Font),
@@ -118,8 +121,15 @@ fill_dialog(A) :->
 	send_list([Interpolation, Shadow], alignment, right),
         send_list([Y, W, H], alignment, left),
 
-	send_list(D, append,
-		  [Pen, Texture, Arrows, FillPattern, Colour, Radius]),
+	send_list(D, append, [Pen, Texture]),
+	send(D, append, Arrows1),
+	(   get(Arrows1, width, WArrows1),
+	    WArrows1 > 200
+	->  send(D, append, Arrows2)
+	;   send(Arrows2, alignment, left),
+	    send(D, append, Arrows2, right)
+	),
+	send_list(D, append, [FillPattern, Colour, Radius]),
 	send(D, append, Shadow, right),
 	send(D, append, Closed),
 	send(D, append, Interpolation, right),
@@ -150,6 +160,12 @@ make_line_menu(Menu, Attribute, Values) :-
 	new(Proto, line(2, 8, 28, 8)),
 	make_proto_menu(Menu, Proto, Attribute, Values),
 	send(Proto, done).
+
+
+make_arrow_menu(Menu, Draw, Attribute) :-
+	get(Draw, resource_value, draw_arrows, Arrows),
+	chain_list(Arrows, List),
+	make_line_menu(Menu, Attribute, List).
 
 
 make_fill_pattern_menu(Draw, Menu) :-

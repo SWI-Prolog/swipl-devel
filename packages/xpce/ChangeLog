@@ -1,3 +1,31 @@
+[VERSION 4.9.5]
+
+* FIXED: Win32 box with rounded corners with radius > min(w,h)/2 was
+  displayed as an ellipse.  Now displays as box with radius min(w,h)/2.
+
+* GENERALISED: Arrow handling in class joint and its subclasses.  Any
+  graphical can now play the role of an arrow-head, provided it implements
+  the ->points method compatible with `arrow->points'.
+
+* FIXED/MODIFIED: Changed first `term_name' of class window from `label'
+  to `name'.  This fixes object/2 for windows that have no frame (and
+  thus no implementation for <-label).
+
+* FIXED: Area handling of thick lines (partial, handling of large arrows
+  still needs to be fixed).
+
+* FIXED: Painting arrows with non-nil fill_pattern and defined pen.
+
+* ADDED: Various hooks to PceDraw.
+
+* ADDED: support for user-redefinition of `graphical ->in_event_area'.
+
+* FIXED: PostScript generation for text objects with border > 0 and
+  alignment not left.
+
+* FIXED: PostScript generation for lines with pen=0 and text objects
+  holding no text.
+
 [VERSION 4.9.4]
 
 * FIXED: Adding windows to open frames.

@@ -18,6 +18,11 @@ forwards int	relateConnection(Connection c, Graphical from, Graphical to);
 static int	distanceLineToPoint(int x1, int y1, int x2, int y2,
 				    int px, int py);
 
+#define getStartXLine(ln) (ln)->start_x
+#define getStartYLine(ln) (ln)->start_y
+#define getEndXLine(ln)   (ln)->end_x
+#define getEndYLine(ln)   (ln)->end_y
+
 static status
 initialiseConnection(Connection c, Graphical from, Graphical to,
 		     Link link, Name from_handle, Name to_handle)
@@ -282,8 +287,6 @@ computeConnection(Connection c)
     Graphical to = c->to;
     Device dev = c->device;
 
-    assign(c, request_compute, NIL);
-
     if ( getIsDisplayedGraphical(from, dev) == ON &&
 	 getIsDisplayedGraphical(to, dev) == ON )
     { int x1, y1, x2, y2;
@@ -293,12 +296,17 @@ computeConnection(Connection c)
 	  updateLineConnection(c, toInt(x1), toInt(y1), toInt(x2), toInt(y2));
 	  /*FALLTHROUGH*/
 	case SAME_POINTS:
-	  return DisplayedGraphical(c, ON);
+	  computeLine((Line)c);
+	  DisplayedGraphical(c, ON);
+	  assign(c, request_compute, NIL);
+
+	  succeed;
 	case NO_POINTS:
 	  break;
       }
     }
 
+    assign(c, request_compute, NIL);
     return DisplayedGraphical(c, OFF);
   }
 

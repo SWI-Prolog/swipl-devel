@@ -11,6 +11,7 @@
 :- module(draw_gesture, []).
 
 :- use_module(library(pce)).
+:- use_module(align).
 :- require([ between/3
 	   , concat/3
 	   , send_list/3
@@ -471,8 +472,9 @@ drag(G, Ev:event) :->
 	get(G, side, Side),
 	send(Line, Side, ?(Ev, position, Line?device)).
 
-terminate(G, Ev:event) :->
-	send(G, drag, Ev),
+terminate(_, Ev:event) :->
+	get(Ev, receiver, Line),
+        send(Line?window, auto_align, Line, resize),
 	get(Ev, window, Canvas),
 	send(Canvas, close_undo_group).
 
@@ -521,8 +523,14 @@ event(G, Ev:event) :->
 	;   get(G, path, Path), Path \== @nil,
 	    (   send(Ev, is_a, loc_move)
 	    ->  send(G, move, Ev)
-	    ;   (send(Ev, is_a, 27) ; send(Ev, is_a, button))	% terminate
+	    ;   (   send(Ev, is_a, 27)
+		;   send(Ev, is_a, button)
+		)
 	    ->  send(Ev?window, focus, @nil),
+		(   send(Ev, has_modifier, c) % control-something: close
+		->  send(G?path, closed, @on)
+		;   true
+		),
 	        send(G, terminate_path)
 	    )
 	).
@@ -579,8 +587,13 @@ terminate(G, Ev:event) :->
 	send(G, move),
 	(   get(G, path, Path),
 	    Path \== @nil
-	->  send(Path, append_at_create, G?line?end),
-	    send(G?line, start, G?line?end),
+	->  get(G?line, end, point(X0, Y0)),
+	    (	get(Path?window, auto_align_mode, @on)
+	    ->	align_path_point(Path, point(X0,Y0), point(X,Y))
+	    ;	X=X0, Y=Y0
+	    ),
+	    send(Path, append_at_create, point(X, Y)),
+	    send(G?line, start, point(X, Y)),
 	    send(Ev?window, focus, Ev?receiver, G, G?cursor, @nil)
 	).
 
@@ -622,6 +635,9 @@ variable(point,		point*,		both,	"Point to move").
 verify(G, Ev:event) :->
 	"Start if event is close to point"::
 	get(Ev, receiver, Path),
+	\+ ( send(Path, has_get_method, editable),
+	     get(Path, editable, @off)
+	   ),
 	(   get(G, button, left)
 	->  get(Path, selected, @on)
 	;   true
@@ -680,12 +696,20 @@ make_draw_edit_path_gesture(G) :-
 	     new(C1, click_gesture(left, c, single,
 				   message(@receiver, delete,
 					   ?(@receiver, point, @event, 3))))),
-	send(C1, condition, ?(@event?receiver, point, @event, 3)),
+	new(Path, @event?receiver),
+	new(Editable, if(message(Path, has_get_method, editable),
+			 Path?editable == @on)),
+	    
+	send(C1, condition, and(Editable,
+				?(Path, point, @event, 3))),
 	send(G, append,
-	     click_gesture(left, c, single,
-			   message(@receiver, insert,
-				   ?(@event, position, @receiver?device),
-				   ?(@receiver, segment, @event)))).
+	     new(C2, click_gesture(left, c, single,
+				   message(@receiver, insert,
+					   ?(@event, position,
+					     @receiver?device),
+					   ?(@receiver, segment, @event))))),
+	send(C2, condition, Editable).
+	     
 
 
 
@@ -748,12 +772,17 @@ make_draw_edit_text_recogniser(R) :-
 				   message(Canvas, keyboard_focus, Text)),
 			     Canvas?(mode) == draw_edit)).
 
-make_draw_compound_draw_text_recogniser(R) :-
+make_draw_compound_draw_text_recogniser(G) :-
 	new(Compound, @event?receiver),
 	new(Canvas, Compound?window),
 	new(R, click_gesture(left, '', single,
 			     message(Compound, start_text, @event),
-			     Canvas?(mode) == draw_edit)).
+			     Canvas?(mode) == draw_edit)),
+	new(K, handler(obtain_keyboard_focus,
+		       message(@receiver, start_text, @event))),
+	new(G, handler_group(R, K)).
+				
+
 	
 make_draw_text_paste_recogniser(G) :-
 	new(G, click_gesture(middle, '', single,
@@ -952,7 +981,7 @@ terminate(G, Ev:event) :->
 	     message(@arg1, resize, Xfactor, Yfactor, point(X0, Y0))),
 	(   get(Selection, size, 1)
 	->  get(Selection, head, Shape),
-	    send(Shape?device, auto_align, Shape, resize)
+	    send(Shape?window, auto_align, Shape, resize)
 	;   true
 	),
 	send(G, selection, @nil),
@@ -991,6 +1020,14 @@ y_resize(A0, A1, Y0, Yfactor) :-
 
 
 :- pce_begin_class(draw_resize_gesture, resize_outline_gesture).
+
+verify(G, Ev:event) :->
+	"Verify target is editable"::
+	send(G, send_super, verify),
+	get(Ev, receiver, Shape),
+	\+ ( send(Shape, has_get_method, editable),
+	     get(Shape, editable, @off)
+	   ).
 
 terminate(G, Ev:event) :->
 	"Invoke auto_align"::

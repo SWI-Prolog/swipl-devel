@@ -91,10 +91,16 @@ modified(M, Value:[bool]) :->
 Attach   a new prototype. 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-proto(M, Proto:'graphical|link*', Mode:name, Cursor:cursor) :->
+proto(M, Proto:proto='graphical|link*', Mode:mode=name,
+      Cursor:cursor=cursor, Icon:icon=[image], Tag:tag=[name]) :->
 	"Attach a new prototype"::
 	get(M, member, proto, Menu),
-	send(Menu, append, draw_icon(Proto, Mode, Cursor)),
+	send(Menu, append, new(I, draw_icon(Proto, Mode, Cursor, Icon))),
+	(   Tag \== @default,
+	    send(I, has_send_method, help_message) % help message package
+	->  send(I, help_message, tag, Tag) 	   % loaded
+	;   true
+	),
 	send(M, adjust),
 	send(M, modified, @on).
 
@@ -122,6 +128,13 @@ current(M, Icon:draw_icon) :<-
 	"Find current icon"::
 	get(M, member, proto, Menu),
 	get(Menu, selection, Icon).
+
+
+find_icon(M, Cond:code, Icon:draw_icon) :<-
+	"Find icon from condition"::
+	get(M, member, proto, Menu),
+	get(Menu?members, map, @arg1?value, Icons),
+	get(Icons, find, Cond, Icon).
 
 
 activate_select(M) :->
@@ -185,16 +198,19 @@ can_delete(M) :->
 	send(Icon, can_delete).
 
 
-delete(M) :->
+delete(M, Icon0:[draw_icon]) :->
 	"Delete current prototype"::
-	get(M, current, Icon),
-	(   send(Icon, can_delete)
-	->  send(M, activate_select),
-	    send(Icon, free),
-	    send(M, modified, @on)
-	;   send(@display, inform, 'Can''t delete this prototype'),
-	    fail
-	).
+	(   Icon0 == @default
+	->  get(M, current, Icon),
+	    (	send(Icon, can_delete)
+	    ->	send(M, activate_select)
+	    ;	send(@display, inform, 'Can''t delete this prototype'),
+		fail
+	    )
+	;   Icon = Icon0
+	),
+	send(Icon, free),
+	send(M, modified, @on).
 
 
 		/********************************
@@ -239,12 +255,34 @@ load(M, File:[file]) :->
 	),
 	send(M, clear),
 	get(LoadFile, object, Chain),
+	fix_compound_version(Chain),
 	send(Chain, for_all, message(M, display, @arg1)),
 	send(M, activate_select),
 	send(M, adjust),
 	send(M, modified, @off).
 	
 :- pce_end_class.
+
+fix_compound_version(Menus) :-
+	send(Menus, for_all,
+	     message(@prolog, fix_compound_version_menu, @arg1)).
+fix_compound_version_menu(Menu) :-
+	send(Menu?members, for_some,
+	     message(@prolog, fix_compound_version_proto, @arg1?proto)).
+fix_compound_version_proto(Proto) :-
+	send(Proto, instance_of, device),
+	get(Proto, find, @default,
+	    if(message(@arg1, instance_of, draw_compound),
+	       and(if(@arg1?radius == @nil,
+		      and(message(@arg1, slot, status, all_active),
+			  message(@arg1, slot, radius, 0),
+			  message(@arg1, slot, border, 0),
+			  message(@arg1, slot, pen,    0))),
+		   new(or)),
+	       new(or)),
+	    _), !.
+fix_compound_version_proto(_).
+
 
 
 		/********************************
@@ -273,21 +311,26 @@ the contents of the bitmap.  This however is not very hard.
 
 :- pce_begin_class(draw_icon, menu_item).
 
-variable(proto,		'graphical|link*',	get,
+variable(proto,		'graphical|link*', none,
 	 "Prototype represented").
 variable(mode,		name,		both,
 	 "Mode initiated by the icon").
 variable(mode_cursor,	name,		both,
 	 "Associated cursor-name").
 
-initialise(I, Proto:'graphical|link*', Mode:name, Cursor:cursor) :->
+initialise(I, Proto:'graphical|link*', Mode:name,
+	   Cursor:cursor, Image:[image]) :->
 	"Create an icon for a specific mode"::
 	send(I, send_super, initialise,
 	     @nil, @default, image(@nil, 48, 32)),
 	send(I, slot, value, I),	% hack, needs to be fixed!
 	send(I, mode, Mode),
-	send(I, proto, Proto),
+	send(I, proto, Proto, Image),
 	send(I, slot, mode_cursor, Cursor?name).
+
+proto(I, Proto:'graphical|link') :<-
+	get(I, slot, proto, Proto),
+	Proto \== @nil.
 
 
 can_delete(I) :->
@@ -299,10 +342,14 @@ can_delete(I) :->
 		*           PROTOTYPES		*
 		********************************/
 
-proto(I, Proto:'graphical|link*') :->
+proto(I, Proto:'graphical|link*', Image:[image]) :->
 	"Set the prototype"::
 	send(I, slot, proto, Proto),
-	send(I, paint_proto, Proto).
+	(   Image == @default
+	->  send(I, paint_proto, Proto)
+	;   get(I, label, Img),
+	    send(Img, copy, Image)
+	).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -398,9 +445,9 @@ has_attribute(I, Att:name) :->
 	send(I?proto, has_attribute, Att).
 
 
-attribute(I, Att:name, Val:any) :->
+draw_attribute(I, Att:name, Val:any) :->
 	"Set attribute of prototype"::
-	send(I?proto, Att, Val),
+	send(I?proto, draw_attribute, Att, Val),
 	send(I, repaint_proto),
 	send(I?window, modified, @on).
 
@@ -422,6 +469,9 @@ activate(I) :->
 	get(I, menu, Menu),
 	send(Menu, selection, I),
 	send(Menu?frame, mode, I?mode, I?mode_cursor),
-	send(Menu?frame, proto, I?proto).
+	(   get(I, proto, Proto)
+	->  send(Menu?frame, proto, Proto)
+	;   send(Menu?frame, proto, @nil)
+	).
 
 :- pce_end_class.

@@ -115,6 +115,16 @@ part_attribute(Class, Attribute:name, Part:name) :->
 	),
 	send(Mapping, value, Attribute, Part).
 
+:- pce_group(handle).
+
+delete_all_handles(Class) :->
+	"Delete all registered handles"::
+	(   get(Class, handles, Chain),
+	    Chain \== @nil
+	->  send(Chain, clear)
+	;   true
+	).
+
 :- pce_group(event).
 
 recogniser(Class, Recogniser:recogniser) :->
@@ -150,7 +160,7 @@ rather then the default
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 associate_recognisers(Recognisers) :-
-	(   send(@class, has_send_method, draw_shape_template)
+	(   get(@class, send_method, draw_shape_template, _)
 	->  true
 	;   use_class_template(draw_shape)
 	),
@@ -411,10 +421,11 @@ handle(w/2, h,   link, south).
 handle(0,   h/2, link, west).
 handle(w,   h/2, link, east).
 
-initialise(T, String:string, Format:[name], Font:[font]) :->
+initialise(T, String:[string], Format:[name], Font:[font]) :->
+	default(String, '',			     Str),
 	default(Format, center, 		     Fmt),
 	default(Font,   font(helvetica, roman, 14),  Fnt),
-	send(T, send_super, initialise, String, Fmt, Fnt).
+	send(T, send_super, initialise, Str, Fmt, Fnt).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -711,7 +722,7 @@ devices, compounds define distribution of  keyboard  events  to one of
 the text objects inside it and resizing the device.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- draw_begin_shape(draw_compound, device, "PceDraw editable device",
+:- draw_begin_shape(draw_compound, figure, "PceDraw editable device",
 		    [@draw_compound_recogniser]).
 
 handle(w/2, 0,   link, north).
@@ -826,6 +837,12 @@ start_text(C, Ev:[event]) :->
 	send(Texts, done).
 
 
+'_wants_keyboard_focus'(C) :->
+	"Test if I contain editable components"::
+	get(C?graphicals, find,
+	    message(@arg1, '_wants_keyboard_focus'),
+	    _).
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The  code below illustrates  another reason for  not communicating the
 attribute setting using ->x,  ->pen, etc.  For a  compound, the x,  y,
@@ -862,10 +879,10 @@ draw_attribute(C, Att:name, Val:any) :->
 	;   get(C?class, part_attributes, Sheet),  Sheet \== @nil,
 	    get(Sheet, value, Att, PartName)
 	->  get(C, member, PartName, Part),
-	    send(Part, attribute, Att, Val)
+	    send(Part, draw_attribute, Att, Val)
 	;   send(C?graphicals, for_some,
 		 if(@is_draw_shape,
-		    message(@arg1, attribute, Att, Val),
+		    message(@arg1, draw_attribute, Att, Val),
 		    and(message(@arg1, has_send_method, Att),
 			message(@arg1, Att, Val),
 			message(C, modified))))
@@ -877,7 +894,7 @@ draw_attribute(C, Att:name, Val) :<-
 	;   get(C?class, part_attributes, Sheet),  Sheet \== @nil,
 	    get(Sheet, value, Att, PartName)
 	->  get(C, member, PartName, Part),
-	    get(Part, attribute, Att, Val)
+	    get(Part, draw_attribute, Att, Val)
 	;   get(C?graphicals, find,
 		if(@is_draw_shape,
 		   message(@arg1, has_attribute, Att),

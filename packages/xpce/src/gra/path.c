@@ -43,6 +43,58 @@ initialisePath(Path p, Name kind, Int radius_or_interval)
   succeed;
 }
 
+		 /*******************************
+		 *	      ARROWS		*
+		 *******************************/
+
+status
+adjustFirstArrowPath(Path p)
+{ if ( notNil(p->first_arrow) )
+  { Chain points = (p->kind == NAME_smooth ? p->interpolation : p->points);
+
+    if ( valInt(getSizeChain(points)) >= 2 )
+    { Any av[4];
+      Point tip = getHeadChain(points);
+      Point ref = getNth1Chain(points, TWO);
+
+      av[0] = add(tip->x, p->offset->x);
+      av[1] = add(tip->y, p->offset->y);
+      av[2] = add(ref->x, p->offset->x);
+      av[3] = add(ref->y, p->offset->y);
+
+      if ( qadSendv(p->first_arrow, NAME_points, 4, av) )
+	return ComputeGraphical(p->first_arrow);
+    }
+  }
+
+  fail;
+}
+
+
+status
+adjustSecondArrowPath(Path p)
+{ if ( notNil(p->second_arrow) )
+  { Chain points = (p->kind == NAME_smooth ? p->interpolation : p->points);
+    int size;
+
+    if ( (size=valInt(getSizeChain(points))) >= 2 )
+    { Any av[4];
+      Point tip = getTailChain(points);
+      Point ref = getNth1Chain(points, toInt(size-1));
+
+      av[0] = add(tip->x, p->offset->x);
+      av[1] = add(tip->y, p->offset->y);
+      av[2] = add(ref->x, p->offset->x);
+      av[3] = add(ref->y, p->offset->y);
+
+      if ( qadSendv(p->second_arrow, NAME_points, 4, av) )
+	return ComputeGraphical(p->second_arrow);
+    }
+  }
+
+  fail;
+}
+
 
 		/********************************
 		*             REDRAW		*
@@ -88,22 +140,10 @@ RedrawAreaPath(Path p, Area a)
       }
     }
 
-    if ( notNil(p->first_arrow) )
-    { Point tip = getHeadChain(points);
-      Point ref = getNth1Chain(points, TWO);
-
-      paintArrow(p->first_arrow,
-		 add(tip->x, p->offset->x), add(tip->y, p->offset->y),
-		 add(ref->x, p->offset->x), add(ref->y, p->offset->y));
-    }
-    if ( notNil(p->second_arrow) )
-    { Point tip = getTailChain(points);
-      Point ref = getNth1Chain(points, sub(getSizeChain(points), ONE));
-
-      paintArrow(p->second_arrow,
-		 add(tip->x, p->offset->x), add(tip->y, p->offset->y),
-		 add(ref->x, p->offset->x), add(ref->y, p->offset->y));
-    }
+    if ( adjustFirstArrowPath(p) )
+      RedrawArea(p->first_arrow, a);
+    if ( adjustSecondArrowPath(p) )
+      RedrawArea(p->second_arrow, a);
   }
 
   return RedrawAreaGraphical(p, a);
@@ -174,9 +214,17 @@ computeBoundingBoxPath(Path p)
     if ( py > maxy ) maxy = py;
   }
   
-  if ( notNil(p->mark) )
-  { int mw = valInt(p->mark->size->w);
-    int mh = valInt(p->mark->size->h);
+  if ( notNil(p->mark) || p->selected == ON )
+  { int mw=0, mh=0;
+
+    if ( notNil(p->mark) )
+    { mw = valInt(p->mark->size->w);
+      mh = valInt(p->mark->size->h);
+    }
+    if ( p->selected == ON )		/* selection bubbles */
+    { mw = max(mw, 5);
+      mh = max(mh, 5);
+    }
 
     minx -= (mw+1)/2;
     maxx += (mw+1)/2;
@@ -197,6 +245,11 @@ computeBoundingBoxPath(Path p)
     assign(p->area, h, toInt(maxy - miny));
   } else
     clearArea(p->area);
+
+  if ( adjustFirstArrowPath(p) )
+    unionNormalisedArea(p->area, p->first_arrow->area);
+  if ( adjustSecondArrowPath(p) )
+    unionNormalisedArea(p->area, p->second_arrow->area);
 
   succeed;
 }

@@ -427,10 +427,8 @@ drawInImage(Image image, Graphical gr, Point pos)
     h = ih - y;
 
 					/* HACKS ... changedAreaGraphical() */
-  if ( instanceOfObject(gr, ClassJoint) )
-  { x -= 5; y -= 5; w += 10; h += 10;
-  } else if ( instanceOfObject(gr, ClassText) ||
-	      instanceOfObject(gr, ClassTextItem) )
+  if ( instanceOfObject(gr, ClassText) ||
+       instanceOfObject(gr, ClassTextItem) )
   { x -= 5; y -= 0; w += 10; h += 5;
   }
 					/* end hacks! */

@@ -60,27 +60,23 @@ points_arc(Arc a, int *sx, int *sy, int *ex, int *ey)
 static status
 RedrawAreaArc(Arc a, Area area)
 { int x, y, w, h;
-  int ox, oy;
   int aw = valInt(a->size->w);
   int ah = valInt(a->size->h);
   int sx, sy, ex, ey;
   int cx, cy;
 
   initialiseDeviceGraphical(a, &x, &y, &w, &h);
-  ox = x - valInt(a->area->x);
-  oy = y - valInt(a->area->y);
 
   points_arc(a, &sx, &sy, &ex, &ey);
-  sx += ox; sy += oy; ex += ox, ey += oy;
-  cx = ox + valInt(a->position->x);
-  cy = oy + valInt(a->position->y);
+  cx = valInt(a->position->x);
+  cy = valInt(a->position->y);
 
   r_thickness(valInt(a->pen));
   r_dash(a->texture);
 
 #if !defined(__WINDOWS__) && !defined(__WIN32__)
   r_arcmode(a->close == NAME_none ? NAME_pieSlice : a->close);
-  r_arc(valInt(a->position->x) + ox - aw, valInt(a->position->y) + oy - ah,
+  r_arc(valInt(a->position->x) - aw, valInt(a->position->y) - ah,
 	2*aw, 2*ah,
 	rfloat(valReal(a->start_angle)*64.0), rfloat(valReal(a->size_angle)*64.0),
 	a->fill_pattern);
@@ -104,7 +100,7 @@ RedrawAreaArc(Arc a, Area area)
   { ax = ex, ay = ey, bx = sx, by = sy;
   }
 
-  r_msarc(valInt(a->position->x) + ox - aw, valInt(a->position->y) + oy - ah,
+  r_msarc(valInt(a->position->x) - aw, valInt(a->position->y) - ah,
 	  2*aw, 2*ah,
 	  ax, ay, bx, by,
 	  a->close, a->fill_pattern);
@@ -113,20 +109,42 @@ RedrawAreaArc(Arc a, Area area)
 #endif /* __WIN32__ */
 
   if (notNil(a->first_arrow))
-  { if ( valReal(a->size_angle) >= 0.0 )
-      paintArrow(a->first_arrow, toInt(sx), toInt(sy),
-		 toInt(sx+(sy-cy)), toInt(sy-(sx-cx)));
-    else
-      paintArrow(a->first_arrow, toInt(sx), toInt(sy),
-		 toInt(sx-(sy-cy)), toInt(sy+(sx-cx)));
+  { Any av[4];
+
+    av[0] = toInt(sx);
+    av[1] = toInt(sy);
+
+    if ( valReal(a->size_angle) >= 0.0 )
+    { av[2] = toInt(sx+(sy-cy));
+      av[3] = toInt(sy-(sx-cx));
+    } else
+    { av[2] = toInt(sx-(sy-cy));
+      av[3] = toInt(sy+(sx-cx));
+    }
+      
+    if ( qadSendv(a->first_arrow, NAME_points, 4, av) )
+    { ComputeGraphical(a->first_arrow);
+      RedrawArea(a->first_arrow, area);
+    }
   }
   if (notNil(a->second_arrow))
-  { if ( valReal(a->size_angle) >= 0.0 )
-      paintArrow(a->second_arrow, toInt(ex), toInt(ey),
-	       toInt(ex-(ey-cy)), toInt(ey+(ex-cx)));
-    else
-      paintArrow(a->second_arrow, toInt(ex), toInt(ey),
-	       toInt(ex+(ey-cy)), toInt(ey-(ex-cx)));
+  { Any av[4];
+
+    av[0] = toInt(ex);
+    av[1] = toInt(ey);
+
+    if ( valReal(a->size_angle) >= 0.0 )
+    { av[2] = toInt(ex-(ey-cy));
+      av[3] = toInt(ey+(ex-cx));
+    } else
+    { av[2] = toInt(ex+(ey-cy));
+      av[3] = toInt(ey-(ex-cx));
+    }
+
+    if ( qadSendv(a->second_arrow, NAME_points, 4, av) )
+    { ComputeGraphical(a->second_arrow);
+      RedrawArea(a->second_arrow, area);
+    }
   }
 
   return RedrawAreaGraphical(a, area);
@@ -151,6 +169,55 @@ angleInArc(Arc a, int angle)
     succeed;
 
   fail;
+}
+
+
+static void
+includeArrowsInAreaArc(Arc a)
+{ if ( notNil(a->first_arrow) || notNil(a->second_arrow) )
+  { int sx, sy, ex, ey;
+    int cx, cy;
+    Any av[4];
+
+    points_arc(a, &sx, &sy, &ex, &ey);
+    cx = valInt(a->position->x);
+    cy = valInt(a->position->y);
+
+    if ( notNil(a->first_arrow) )
+    { av[0] = toInt(sx);
+      av[1] = toInt(sy);
+
+      if ( valReal(a->size_angle) >= 0.0 )
+      { av[2] = toInt(sx+(sy-cy));
+	av[3] = toInt(sy-(sx-cx));
+      } else
+      { av[2] =	toInt(sx-(sy-cy));
+	av[3] = toInt(sy+(sx-cx));
+      }
+
+      if ( qadSendv(a->first_arrow, NAME_points, 4, av) )
+      { ComputeGraphical(a->first_arrow);
+	unionNormalisedArea(a->area, a->first_arrow->area);
+      }
+    }
+    if ( notNil(a->second_arrow) )
+    { av[0] = toInt(ex);
+      av[1] = toInt(ey);
+
+      if ( valReal(a->size_angle) >= 0.0 )
+      { av[2] = toInt(ex-(ey-cy));
+	av[3] = toInt(ey+(ex-cx));
+      } else
+      { av[2] = toInt(ex+(ey-cy));
+	av[3] = toInt(ey-(ex-cx));
+      }
+
+      if ( qadSendv(a->second_arrow, NAME_points, 4, av) )
+      { ComputeGraphical(a->second_arrow);
+	unionNormalisedArea(a->area, a->second_arrow->area);
+      }
+    }
+  }
 }
 
 
@@ -192,9 +259,17 @@ computeArc(Arc a)
     maxy++;
     maxx++;
 
+    if ( a->selected == ON )		/* account for selection blobs */
+    { minx -= 3;
+      miny -= 3;
+      maxx += 3;
+      maxy += 3;
+    }
+
     CHANGING_GRAPHICAL(a,
 		       { setArea(a->area, toInt(minx), toInt(miny),
 			       	          toInt(maxx-minx), toInt(maxy-miny));
+			 includeArrowsInAreaArc(a);
 		         changedEntireImageGraphical(a);
 		       });
 

@@ -22,36 +22,155 @@
 #define INFINITE HUGE
 #endif
 
-#define points_area(x1, y1, x2, y2)	{ x = x1;			\
-					  y = y1;			\
-					  w = x2-x1;			\
-					  w += (w>=0 ? 1 : -1);		\
-					  h = y2-y1;			\
-					  h += (h>=0 ? 1 : -1);		\
-					}
-
-#define area_points(x, y, w, h)		{ x1 = x;			\
-					  y1 = y;			\
-					  x2 = x+w;			\
-					  x2 += (w>=0 ? -1 : 1);	\
-					  y2 = y+h;			\
-					  y2 += (h>=0 ? -1 : 1);	\
-					}
 
 status
 initialiseLine(Line ln, Int xa, Int ya, Int xb, Int yb, Name arrows)
-{ int x, y, w, h;
-  int x1, y1, x2, y2;
-  
-  if ( isDefault(xa) )	xa = ZERO;
+{ if ( isDefault(xa) )	xa = ZERO;
   if ( isDefault(ya) )	ya = ZERO;
   if ( isDefault(xb) )	xb = ZERO;
   if ( isDefault(yb) )	yb = ZERO;
 
-  x1 = valInt(xa), y1 = valInt(ya), x2 = valInt(xb), y2=valInt(yb);
+  assign(ln, start_x, xa);
+  assign(ln, start_y, ya);
+  assign(ln, end_x,   xb);
+  assign(ln, end_y,   yb);
 
-  points_area(x1, y1, x2, y2);
-  initialiseJoint((Joint) ln, toInt(x), toInt(y), toInt(w), toInt(h), arrows);
+  initialiseJoint((Joint) ln, ZERO, ZERO, ZERO, ZERO, arrows);
+
+  return requestComputeGraphical(ln, DEFAULT);
+}
+
+
+#define area_points(x, y, w, h)         { x1 = x;                       \
+                                          y1 = y;                       \
+                                          x2 = x+w;                     \
+                                          x2 += (w>=0 ? -1 : 1);        \
+                                          y2 = y+h;                     \
+                                          y2 += (h>=0 ? -1 : 1);        \
+                                        }
+
+static status
+loadLine(Line ln, FILE *fd, ClassDef def)
+{ TRY(loadSlotsObject(ln, fd, def));
+
+  if ( isNil(ln->start_x) )		/* convert old (pre-4.9.4) line */
+  { Area a = ln->area;			/* representation */
+    int x = valInt(a->x);
+    int y = valInt(a->y);
+    int w = valInt(a->w);
+    int h = valInt(a->h);
+    int x1, y1, x2, y2;
+
+    area_points(x, y, w, h);
+    assign(ln, start_x, toInt(x1));
+    assign(ln, start_y, toInt(y1));
+    assign(ln, end_x,   toInt(x2));
+    assign(ln, end_y,   toInt(y2));
+  }
+
+  succeed;
+}
+
+
+status
+adjustFirstArrowLine(Line ln)
+{ if ( notNil(ln->first_arrow) )
+  { Any av[4];
+
+    av[0] = ln->start_x;
+    av[1] = ln->start_y;
+    av[2] = ln->end_x;
+    av[3] = ln->end_y;
+
+    if ( qadSendv(ln->first_arrow, NAME_points, 4, av) )
+      return ComputeGraphical(ln->first_arrow);
+  }
+
+  fail;
+}
+
+
+status
+adjustSecondArrowLine(Line ln)
+{ if ( notNil(ln->second_arrow) )
+  { Any av[4];
+
+    av[0] = ln->end_x;
+    av[1] = ln->end_y;
+    av[2] = ln->start_x;
+    av[3] = ln->start_y;
+
+    if ( qadSendv(ln->second_arrow, NAME_points, 4, av) )
+      return ComputeGraphical(ln->second_arrow);
+  }
+
+  fail;
+}
+
+
+status
+computeLine(Line ln)
+{ if ( notNil(ln->request_compute) )
+  { int x1  = valInt(ln->start_x);
+    int x2  = valInt(ln->end_x);
+    int y1  = valInt(ln->start_y);
+    int y2  = valInt(ln->end_y);
+    int pen = valInt(ln->pen);
+    int x, y, w, h;
+    Area a = ln->area;
+  
+    if ( x1 < x2 )
+    { x = x1;
+      w = x2-x1;
+    } else
+    { x = x2;
+      w = x1-x2;
+    }
+    if ( y1 < y2 )
+    { y = y1;
+      h = y2-y1;
+    } else
+    { y = y2;
+      h = y1-y2;
+    }
+  
+    if ( pen ==	1 )
+    { w++;
+      h++;
+    } else if ( pen > 1 )
+    { int ex = (pen*h)/(w+h);
+      int ey = (pen*w)/(w+h);
+      int hx = ex/2;
+      int hy = ey/2;
+
+      x -= hx;
+      w += ex;
+      y -= hy;
+      h += ey;
+    }
+
+    if ( ln->selected == ON )
+    { x -= 3;
+      y -= 3;
+      w += 6;
+      h += 6;
+    }
+
+    CHANGING_GRAPHICAL(ln,
+		       assign(a, x, toInt(x));
+		       assign(a, y, toInt(y));
+		       assign(a, w, toInt(w));
+		       assign(a, h, toInt(h));
+
+		       if ( adjustFirstArrowLine(ln) )
+			 unionNormalisedArea(a, ln->first_arrow->area);
+		       if ( adjustSecondArrowLine(ln) )
+			 unionNormalisedArea(a, ln->second_arrow->area);
+
+		       changedEntireImageGraphical(ln));
+
+    assign(ln, request_compute, NIL);
+  }
 
   succeed;
 }
@@ -61,17 +180,25 @@ status
 copyLine(Line l1, Line l2)
 { copyJoint((Joint) l1, (Joint) l2);
 
+  assign(l1, start_x, l2->start_x);
+  assign(l1, start_y, l2->start_y);
+  assign(l1, end_x,   l2->end_x);
+  assign(l1, end_y,   l2->end_y);
+
   succeed;
 }
 
 
 static status
 RedrawAreaLine(Line ln, Area a)
-{ int x1, y1, x2, y2, x, y, w, h, pen;
+{ int x, y, w, h;
+  int x1 = valInt(ln->start_x);
+  int x2 = valInt(ln->end_x);
+  int y1 = valInt(ln->start_y);
+  int y2 = valInt(ln->end_y);
+  int pen = valInt(ln->pen);
 
   initialiseDeviceGraphical(ln, &x, &y, &w, &h);
-  area_points(x, y, w, h);
-  pen = valInt(ln->pen);
 
   if ( pen != 0 )
   { r_thickness(pen);
@@ -79,12 +206,61 @@ RedrawAreaLine(Line ln, Area a)
     r_line(x1, y1, x2, y2);
   }
 
-  if (notNil(ln->first_arrow))
-    paintArrow(ln->first_arrow, toInt(x1), toInt(y1), toInt(x2), toInt(y2));
-  if (notNil(ln->second_arrow))
-    paintArrow(ln->second_arrow, toInt(x2), toInt(y2), toInt(x1), toInt(y1));
+  if ( adjustFirstArrowLine(ln) )
+    RedrawArea(ln->first_arrow, a);
+  if ( adjustSecondArrowLine(ln) )
+    RedrawArea(ln->second_arrow, a);
 
   return RedrawAreaGraphical(ln, a);
+}
+
+
+status
+paintSelectedLine(Line ln)		/* assumes device is initialised! */
+{ r_complement(valInt(ln->start_x)-2, valInt(ln->start_y)-2, 5, 5);
+  r_complement(valInt(ln->end_x)-2,   valInt(ln->end_y)-2,   5, 5);
+
+  succeed;
+}
+
+
+static status
+geometryLine(Line ln, Int x, Int y, Int w, Int h)
+{ int needcompute = FALSE;
+  Int dx = ZERO, dy = ZERO;
+
+  if ( notDefault(w) )
+  { assign(ln, end_x, add(ln->start_x, w));
+    needcompute++;
+  }
+  if ( notDefault(h) )
+  { assign(ln, end_y, add(ln->start_y, h));
+    needcompute++;
+  }
+
+  if ( notDefault(x) )
+  { dx = sub(x, ln->area->x);
+    assign(ln, start_x, add(ln->start_x, dx));
+    assign(ln, end_x, add(ln->end_x, dx));
+  }
+  if ( notDefault(y) )
+  { dy = sub(y, ln->area->y);
+    assign(ln, start_y, add(ln->start_y, dy));
+    assign(ln, end_y, add(ln->end_y, dy));
+  } 
+    
+  CHANGING_GRAPHICAL(ln,
+		     if ( needcompute )
+		       requestComputeGraphical(ln, DEFAULT);
+		     else
+		     { Area a = ln->area;
+		       
+		       assign(a, x, add(a->x, dx));
+		       assign(a, y, add(a->y, dy));
+		       changedEntireImageGraphical(ln);
+		     });
+		       
+  succeed;
 }
 
 
@@ -126,74 +302,24 @@ endYLine(Line ln, Int y)
 
 static Point
 getStartLine(Line ln)
-{ answer(answerObject(ClassPoint, ln->area->x, ln->area->y, 0));
-}
-
-
-Int
-getStartXLine(Line ln)
-{ answer(ln->area->x);
-}
-
-
-Int
-getStartYLine(Line ln)
-{ answer(ln->area->y);
+{ answer(answerObject(ClassPoint, ln->start_x, ln->start_y, 0));
 }
 
 
 static Point
 getEndLine(Line ln)
-{ Area a = ln->area;
-  int x1, y1, x2, y2;
-
-  area_points(valInt(a->x), valInt(a->y), valInt(a->w), valInt(a->h));
-
-  answer(answerObject(ClassPoint, toInt(x2), toInt(y2), 0));
-}
-
-
-Int
-getEndXLine(Line ln)
-{ Area a = ln->area;
-  int x1, y1, x2, y2;
-
-  area_points(valInt(a->x), valInt(a->y), valInt(a->w), valInt(a->h));
-
-  answer(toInt(x2));
-}
-
-
-Int
-getEndYLine(Line ln)
-{ Area a = ln->area;
-  int x1, y1, x2, y2;
-
-  area_points(valInt(a->x), valInt(a->y), valInt(a->w), valInt(a->h));
-
-  answer(toInt(y2));
+{ answer(answerObject(ClassPoint, ln->end_x, ln->end_y, 0));
 }
 
 
 status
 pointsLine(Line ln, Int sx, Int sy, Int ex, Int ey)
-{ Area a = ln->area;
-  int x1, y1, x2, y2;
-  int x3, y3, x4, y4;
-  int x, y, w, h;
+{ if ( !isDefault(sx) ) assign(ln, start_x, sx);
+  if ( !isDefault(sy) ) assign(ln, start_y, sy);
+  if ( !isDefault(ex) ) assign(ln, end_x,   ex);
+  if ( !isDefault(ey) ) assign(ln, end_y,   ey);
 
-  area_points(valInt(a->x), valInt(a->y), valInt(a->w), valInt(a->h));
-
-  x3 = (isDefault(sx) ? x1 : valInt(sx));
-  x4 = (isDefault(ex) ? x2 : valInt(ex));
-  y3 = (isDefault(sy) ? y1 : valInt(sy));
-  y4 = (isDefault(ey) ? y2 : valInt(ey));
-
-  if (x1==x3 && y1==y3 && x2==x4 && y2==y4)
-    succeed;
-  
-  points_area(x3, y3, x4, y4);
-  return setGraphical(ln, toInt(x), toInt(y), toInt(w), toInt(h));
+  return requestComputeGraphical(ln, DEFAULT);
 }
 
 
@@ -206,17 +332,18 @@ resizeLine(Line ln, Real xfactor, Real yfactor, Point origin)
   init_resize_graphical(ln, xfactor, yfactor, origin, &xf, &yf, &ox, &oy);
   if ( xf != 1.0 || yf != 1.0 )
   { int x1, y1, x2, y2;
-    int x, y, w, h;
-    Area a = ln->area;
 
-    area_points(valInt(a->x), valInt(a->y), valInt(a->w), valInt(a->h));
-    x1 = ox + rfloat((float) (x1-ox) * xf);
-    x2 = ox + rfloat((float) (x2-ox) * xf);
-    y1 = oy + rfloat((float) (y1-oy) * yf);
-    y2 = oy + rfloat((float) (y2-oy) * yf);
+    x1 = ox + rfloat((float) (valInt(ln->start_x)-ox) * xf);
+    x2 = ox + rfloat((float) (valInt(ln->end_x)-ox)   * xf);
+    y1 = oy + rfloat((float) (valInt(ln->start_y)-oy) * yf);
+    y2 = oy + rfloat((float) (valInt(ln->end_y)-oy)   * yf);
     
-    points_area(x1, y1, x2, y2);
-    setGraphical(ln, toInt(x), toInt(y), toInt(w), toInt(h));
+    assign(ln, start_x, toInt(x1));
+    assign(ln, start_y, toInt(y1));
+    assign(ln, end_x,   toInt(x2));
+    assign(ln, end_y,   toInt(y2));
+
+    return requestComputeGraphical(ln, DEFAULT);
   }
   
   succeed;
@@ -244,9 +371,7 @@ distanceLineToPoint(int x1, int y1, int x2, int y2, int px, int py)
 
 static status
 inEventAreaLine(Line ln, Int x, Int y)
-{ Area a = ln->area;
-  int x1, y1, x2, y2;
-  int d;
+{ int d;
   static evtol = -1;
 
   if ( evtol < 0 )
@@ -254,8 +379,9 @@ inEventAreaLine(Line ln, Int x, Int y)
     evtol = (v ? valInt(v) : 5);
   }
 
-  area_points(valInt(a->x), valInt(a->y), valInt(a->w), valInt(a->h));
-  d = distanceLineToPoint(x1, y1, x2, y2, valInt(x), valInt(y));
+  d = distanceLineToPoint(valInt(ln->start_x), valInt(ln->start_y),
+			  valInt(ln->end_x), valInt(ln->end_y),
+			  valInt(x), valInt(y));
   if ( d < evtol )
     succeed;
   
@@ -267,11 +393,9 @@ static Int
 getDistanceLine(Line ln, Any obj)
 { if ( instanceOfObject(obj, ClassPoint) )
   { Point pt = obj;
-    Area a = ln->area;
-    int x1, y1, x2, y2;
 
-    area_points(valInt(a->x), valInt(a->y), valInt(a->w), valInt(a->h));
-    answer(toInt(distanceLineToPoint(x1, y1, x2, y2,
+    answer(toInt(distanceLineToPoint(valInt(ln->start_x), valInt(ln->start_y),
+				     valInt(ln->end_x), valInt(ln->end_y),
 				     valInt(pt->x), valInt(pt->y))));
   } else
   { Graphical gr2 = obj;
@@ -284,22 +408,20 @@ getDistanceLine(Line ln, Any obj)
 
 static Int
 getLengthLine(Line ln)
-{ Area a = ln->area;
-  int x1, y1, x2, y2;
+{ int dx = valInt(ln->end_x) - valInt(ln->start_x);
+  int dy = valInt(ln->end_y) - valInt(ln->start_y);
 
-  area_points(valInt(a->x), valInt(a->y), valInt(a->w), valInt(a->h));
-
-  answer(toInt(isqrt((x1-x2) * (x1-x2) + (y1-y2) * (y1-y2))));
+  answer(toInt(isqrt(dx*dx + dy*dy)));
 }
 
 
 static void
 parms_line(Line ln, int *a, float *b)			/* y = a + bx */
-{ Area area = ln->area;
-  int x1, y1, x2, y2;
+{ int x1 = valInt(ln->start_x);
+  int x2 = valInt(ln->end_x);
+  int y1 = valInt(ln->start_y);
+  int y2 = valInt(ln->end_y);
 
-  area_points(valInt(area->x), valInt(area->y),
-	      valInt(area->w), valInt(area->h));
   if ( x1 == x2 )
   { *b = INFINITE;			/* vertical */
     *a = 0;
@@ -326,10 +448,10 @@ getIntersectionLine(Line l1, Line l2)
   if ( b1 == b2 )
     fail;				/* parallel */
   if ( b1 == INFINITE )			/* l1 is vertical */
-  { xx = (float) valInt(getEndXLine(l1));
+  { xx = (float) valInt(l1->end_x);
     xy = a2 + rfloat(b2 * xx);
   } else if ( b2 == INFINITE )		/* l2 is vertical */
-  { xx = (float) valInt(getEndXLine(l2));
+  { xx = (float) valInt(l2->end_x);
     xy = a1 + rfloat(b1 * xx);
   } else
   { xx = (float)(a2 - a1) / (b1 - b2);
@@ -342,13 +464,12 @@ getIntersectionLine(Line l1, Line l2)
 
 Real
 getAngleLine(Line ln, Point p)
-{ Area area = ln->area;
-  int x1, y1, x2, y2;
+{ int x1 = valInt(ln->start_x);
+  int x2 = valInt(ln->end_x);
+  int y1 = valInt(ln->start_y);
+  int y2 = valInt(ln->end_y);
   float angle;
   int rte = 0;				/* relative-to-end */
-  
-  area_points(valInt(area->x), valInt(area->y),
-	      valInt(area->w), valInt(area->h));
 
   if ( notDefault(p) &&
        get_distance_point(p, x2, y2) < get_distance_point(p, x1, y1) )
@@ -379,6 +500,18 @@ orientationLine(Line ln, Name o)
 }
 
 
+static status
+penLine(Line ln, Int pen)
+{ if ( ln->pen != pen )
+  { assign(ln, pen, pen);
+
+    return requestComputeGraphical(ln, DEFAULT);
+  }
+
+  succeed;
+}
+
+
 		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/
@@ -391,15 +524,22 @@ static char *T_initialise[] =
         { "start_x=[int]", "start_y=[int]", "end_x=[int]", "end_y=[int]", "arrows=[{none,first,second,both}]" };
 static char *T_resize[] =
 	{ "factor_x=real", "factor_y=[real]", "origin=[point]" };
+static char *T_geometry[] =
+	{ "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 
 /* Instance Variables */
 
-#define var_line NULL
-/*
 vardecl var_line[] =
-{ 
+{ SV(NAME_startX, "int", IV_GET|IV_STORE, startXLine,
+     NAME_tip, "X of start-point"),
+  SV(NAME_startY, "int", IV_GET|IV_STORE, startYLine,
+     NAME_tip, "Y of start-point"),
+  SV(NAME_endX,   "int", IV_GET|IV_STORE, endXLine,
+     NAME_tip, "X of end-point"),
+  SV(NAME_endY,   "int", IV_GET|IV_STORE, endYLine,
+     NAME_tip, "Y of end-point")
 };
-*/
+
 
 /* Send Methods */
 
@@ -410,26 +550,24 @@ static senddecl send_line[] =
      DEFAULT, "Redefined from graphical: no-op"),
   SM(NAME_orientation, 1, "{north_west,south_west,north_east,south_east}", orientationLine,
      DEFAULT, "Redefined from graphical: no-op"),
+  SM(NAME_compute, 0, NULL, computeLine,
+     NAME_update, "Update <-area of the line"),
+  SM(NAME_geometry, 4, T_geometry, geometryLine,
+     NAME_resize, "Define start and vector"),
   SM(NAME_copy, 1, "line", copyLine,
      NAME_copy, "Copy attributes from other line"),
   SM(NAME_DrawPostScript, 0, NULL, drawPostScriptLine,
      NAME_postscript, "Create PostScript"),
   SM(NAME_end, 1, "point", endLine,
      NAME_tip, "Set end-point of line segment"),
-  SM(NAME_endX, 1, "int", endXLine,
-     NAME_tip, "Set X of end-point"),
-  SM(NAME_endY, 1, "int", endYLine,
-     NAME_tip, "Set Y of end-point"),
   SM(NAME_points, 4, T_points, pointsLine,
      NAME_tip, "Reconfigure line (X1,Y1) - (X2,Y2)"),
   SM(NAME_start, 1, "point", startLine,
      NAME_tip, "Set start-point of line segment"),
-  SM(NAME_startX, 1, "int", startXLine,
-     NAME_tip, "Set X of start-point"),
-  SM(NAME_startY, 1, "int", startYLine,
-     NAME_tip, "Set Y of start-point"),
   SM(NAME_resize, 3, T_resize, resizeLine,
-     NAME_area, "Resize line with specified factor")
+     NAME_area, "Resize line with specified factor"),
+  SM(NAME_pen, 1, "0..", penLine,
+     NAME_appearance, "Thickness of drawing pen")
 };
 
 /* Get Methods */
@@ -445,16 +583,8 @@ static getdecl get_line[] =
      NAME_calculate, "Distance between areas or to point"),
   GM(NAME_end, 0, "point", NULL, getEndLine,
      NAME_tip, "New point representing end-point"),
-  GM(NAME_endX, 0, "int", NULL, getEndXLine,
-     NAME_tip, "X of end-point"),
-  GM(NAME_endY, 0, "int", NULL, getEndYLine,
-     NAME_tip, "Y of end-point"),
   GM(NAME_start, 0, "point", NULL, getStartLine,
-     NAME_tip, "New point representing start-point"),
-  GM(NAME_startX, 0, "int", NULL, getStartXLine,
-     NAME_tip, "X of start-point"),
-  GM(NAME_startY, 0, "int", NULL, getStartYLine,
-     NAME_tip, "Y of start-point")
+     NAME_tip, "New point representing start-point")
 };
 
 /* Resources */
@@ -481,6 +611,7 @@ makeClassLine(Class class)
 
   setRedrawFunctionClass(class, RedrawAreaLine);
   setInEventAreaFunctionClass(class, inEventAreaLine);
+  setLoadStoreFunctionClass(class, loadLine, NULL);
 
   succeed;
 }

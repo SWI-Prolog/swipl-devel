@@ -2174,7 +2174,7 @@ static resourcedecl rc_window[] =
 
 /* Class Declaration */
 
-static Name window_termnames[] = { NAME_label, NAME_size, NAME_display };
+static Name window_termnames[] = { NAME_name, NAME_size, NAME_display };
 
 ClassDecl(window_decls,
           var_window, send_window, get_window, rc_window,

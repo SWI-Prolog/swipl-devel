@@ -431,11 +431,8 @@ changedAreaGraphical(Any obj, Int x, Int y, Int w, Int h)
 	cx += offx; cy += offy;
 
 					/* HACKS ... */
-	if ( instanceOfObject(gr, ClassJoint) )
-	{ ox -= 5; oy -= 5; ow += 10; oh += 10;
-	  cx -= 5; cy -= 5; cw += 10; ch += 10;
-	} else if ( instanceOfObject(gr, ClassText) ||
-		    instanceOfObject(gr, ClassTextItem) )
+	if ( instanceOfObject(gr, ClassText) ||
+	     instanceOfObject(gr, ClassTextItem) )
 	{ ox -= 5; oy -= 0; ow += 10; oh += 5;
 	  cx -= 5; cy -= 0; cw += 10; ch += 5;
 	}
@@ -489,10 +486,8 @@ changedImageGraphical(Any obj, Int x, Int y, Int w, Int h)
 	cx += ox;
 	cy += oy;
 
-	if ( instanceOfObject(gr, ClassJoint) ) /* HACK (for arrows) */
-	{ cx -= 5; cy -= 5; cw += 10; ch += 10;
-	} else if ( instanceOfObject(gr, ClassText) ||
-		    instanceOfObject(gr, ClassTextItem) )
+	if ( instanceOfObject(gr, ClassText) ||
+	     instanceOfObject(gr, ClassTextItem) )
 	{ cx -= 5; cy -= 0; cw += 10; ch += 5;
 	} else if ( instanceOfObject(gr, ClassDialogItem) )
 	{ cx -= 6; cy -= 6; cw += 12; ch += 12;
@@ -724,17 +719,7 @@ paintSelectedGraphical(Graphical gr)
 	selection_bubble(x, y, w, h, 1, 2);
 	selection_bubble(x, y, w, h, 2, 1);
       } else if ( which == NAME_line )
-      { int lw = valInt(gr->area->w);
-	int lh = valInt(gr->area->h);
-
-	NormaliseArea(x, y, w, h);
-	if ( (lw >= 0 && lh >= 0) || (lw < 0 && lh < 0) )
-	{ r_complement(x-2,   y-2,   5, 5);
-	  r_complement(x+w-3, y+h-3, 5, 5);
-	} else
-	{ r_complement(x+w-3, y-2,   5, 5);
-	  r_complement(x-2,   y+h-3, 5, 5);
-	}
+      { paintSelectedLine((Line)gr);
       } else if ( which == NAME_cornersAndSides )
       { selection_bubble(x, y, w, h, 0, 0);
 	selection_bubble(x, y, w, h, 0, 2);
@@ -2438,9 +2423,16 @@ inEventAreaGraphical(Graphical gr, Int xc, Int yc)
        y >= ay && y <= ay + ah )
   { Class class = classOfObject(gr);
 
-    if ( class->in_event_area_function != NULL )
-    { if ( !(*class->in_event_area_function)(gr, xc, yc) )
-	fail;
+    if ( class->in_event_area_function )
+    { if ( class->in_event_area_function == INVOKE_FUNC )
+      { Any av[2];
+	
+	av[0] = xc;
+	av[1] = yc;
+
+	return sendv(gr, NAME_inEventArea, 2, av);
+      } else
+	return (*class->in_event_area_function)(gr, xc, yc);
     }
 
     succeed;

@@ -513,6 +513,8 @@ installClass(Class class)
       if ( cl == ClassFunction )
 	break;
     }
+  } else if ( ClassGraphical && isAClass(class, ClassGraphical) )
+  { bindMethod(class, NAME_send, NAME_inEventArea);
   }
 
   succeed;
@@ -606,6 +608,7 @@ initialiseClass(Class class, Name name, Class super)
   assign(class, no_created, ZERO);
   assign(class, no_freed,   ZERO);
   numberTreeClass(ClassObject, 0);
+/*installClass(class);*/
   createdObject(class, NAME_new);
 
   succeed;
@@ -831,6 +834,8 @@ fixSubClassSendMethodsClass(Class class, Method m)
       assign(class, initialise_method, DEFAULT);
     else if ( m->name == NAME_catchAll )
       assign(class, send_catch_all, DEFAULT);
+    else if ( m->name == NAME_inEventArea )
+      class->in_event_area_function = INVOKE_FUNC;
   }
 }
 

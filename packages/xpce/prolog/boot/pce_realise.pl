@@ -95,14 +95,23 @@ pce_realise_class(ClassName) :-
 	Module:class(ClassName, MetaClassName, SuperName, _, _, _),
 	MetaClassName \== -,
 	create_class(ClassName, MetaClassName, SuperName, Class), !,
-	get(Class, realised, Realised),
 	resolve_method_message(Msg),
 	send(Class, resolve_method_message, Msg),
 	attach_class_attributes(ClassName, _Module),
-	(   Realised == @on
+	(   cache_table(TableName),
+	    get(Class, slot, TableName, Table),
+	    get(Table, size, Size),
+	    Size > 0
 	->  delete_prolog_methods(Class, Module)
 	;   true
-	).
+	),
+%	delete_prolog_methods(Class, Module),
+	ignore(get(Class, send_method, in_event_area, _)). % HACK!
+
+cache_table(send_table).
+cache_table(get_table).
+cache_table(send_methods).
+cache_table(get_methods).
 
 attach_class_attributes(ClassName, Module) :-
 	get(@classes, member, ClassName, Class),

@@ -47,7 +47,7 @@ pce_loop(Goal) :-
 	pce_loop(Goal, []).
 pce_loop(Goal, Argv) :-
 	get(@display?frames, find_all, @arg1?kind == toplevel, FramesOld),
-	apply(Goal, Argv),
+	call(Goal, Argv),
 	get(@display?frames, find_all, @arg1?kind == toplevel, FramesNew),
 	get(FramesNew, copy, FrameChain),
 	send(FrameChain, subtract, FramesOld),

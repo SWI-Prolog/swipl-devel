@@ -10,6 +10,7 @@
 :- module(draw_align,
 	  [ align_graphical/2
 	  , adjust_graphical/2
+	  , align_path_point/3
 	  ]).
 
 :- use_module(library(pce)).
@@ -297,7 +298,7 @@ adjust_graphical(Gr, Grs) :-
 
 
 adjust_requests(Gr, Grs, Requests) :-
-	findall(Request, (member(Gr2, Grs),
+	findall(Request, (member(Gr2, [@nil|Grs]),
 			  adjust_request(Gr, Gr2, Request)), Requests).
 
 adjust_request(Gr, Gr2, Request) :-
@@ -311,6 +312,12 @@ adjust_request(Gr, Gr2, Request) :-
 	).
 	
 
+w_adjust_dimension(Line, @nil, 0, 0) :- !,	% almost vertical line
+	send(Line, instance_of, line),
+	get(Line, start, Start),
+	get(Line, end, End),
+	get(End, minus, Start, point(DX, DY)),
+	abs(DX) * 10 < abs(DY).
 w_adjust_dimension(Gr, Gr2, W2, Ha) :-
 	get(Gr, width, W),
 	get(Gr2, width, W2),
@@ -322,6 +329,12 @@ w_adjust_dimension(Gr, Gr2, W2, Ha) :-
 	adjust_correct_handicap(distance,     Gr, Gr2, H3, Ha).
 
 	
+h_adjust_dimension(Line, @nil, 0, 0) :- !,
+	send(Line, instance_of, line),
+	get(Line, start, Start),
+	get(Line, end, End),
+	get(End, minus, Start, point(DX, DY)),
+	abs(DY) * 10 < abs(DX).
 h_adjust_dimension(Gr, Gr2, H2, Ha) :-
 	get(Gr, height, H),
 	get(Gr2, height, H2),
@@ -389,3 +402,115 @@ portray_request(R) :-
 	\+ \+ (ignore(X = -), ignore(Y = -),
 	       format('~t~8|~2f: ~p (~w,~w)~n', [H, D, X, Y])).
 	
+
+		 /*******************************
+		 *	 PATH/LINE POINTS	*
+		 *******************************/
+
+align_path_point(Path, PR, P) :-
+	findall(PC, candidate_path_point(Path, PR, PC), PCS),
+	closest_point(PCS, PR, P), !.
+align_path_point(_, P, P).
+
+closest_point([P0|T], PR, P) :-
+	distance_points(P0, PR, D),
+	closest_point(T, PR, D, P0, P).
+
+closest_point([], _, _, P, P).
+closest_point([P0|T], PR, D0, _, P) :-
+	distance_points(P0, PR, D1),
+	D1 < D0, !,
+	closest_point(T, PR, D1, P0, P).
+closest_point([_|T], PR, D0, P0, P) :-
+	closest_point(T, PR, D0, P0, P).
+
+
+candidate_path_point(Path, point(X0,Y0), point(X,Y)) :-
+	get_chain(Path, points, PointObjects),
+	maplist(object, PointObjects, Points),
+	(   (   last(point(LX,LY), Points),
+		VX0 is X0-LX,
+		VY0 is Y0-LY,
+		align_path_vector(Points, v(VX0,VY0), v(VX,VY))
+	    ->  X is LX+VX,
+		Y is LY+VY
+	    )
+	;   align_to_path_point(Points, point(X0,Y0), point(X,Y))
+	;   align_mid(Points, point(X0,Y0), point(X,Y))
+	).
+
+align_path_vector(Points, V0, V) :-
+	align_path_vector(Points, V0, 1000, v, V),
+	V \== v.
+align_path_vector(_, v(DX, DY), v(0, DY)) :-
+	abs(DX)*10 < abs(DY), !.
+align_path_vector(_, v(DX, DY), v(DX, 0)) :-
+	abs(DY)*10 < abs(DX), !.
+	
+align_path_vector([],  _, _, V, V) :- !.
+align_path_vector([_], _, _, V, V) :- !.
+align_path_vector([P1,P2|T], V0, H, _, V) :-
+	make_vector(P1, P2, Va),
+	diff_vector(Va, V0, Vb, D),
+	D < H, !,
+	align_path_vector([P2|T], V0, D, Vb, V).
+align_path_vector([_|T], V0, H, V1, V) :-
+	align_path_vector(T, V0, H, V1, V).
+	
+
+make_vector(point(X0,Y0), point(X1,Y1), v(DX, DY)) :-
+	DX is X1-X0,
+	DY is Y1-Y0.
+
+msign(1).
+msign(-1).
+
+diff_vector(v(VX0, VY0), v(VX1, VY1), v(VX, VY), H) :-
+	msign(MX),
+	msign(MY),
+	VX is VX0*MX,
+	VY is VY0*MY,
+	D is sqrt((VX1-VX)**2 + (VY1-VY)**2),
+	satisfies(displacement, D),
+	L0 is sqrt(VX0**2 + VY0**2),
+	H is D/max(1,L0).
+
+%	align_to_path_point(+Points, +P0, -P)
+%
+%	Try to align to one of the existing points.
+
+align_to_path_point(Points, P0, P) :-
+	align_to_path_point(Points, P0, 1000, p, P),
+	P \== p.
+
+align_to_path_point([], _, _, P, P).
+align_to_path_point([P0|T], PR, D, _, P) :-
+	distance_points(P0, PR, H),
+	satisfies(displacement, H),
+	H < D, !,
+	align_to_path_point(T, PR, H, P0, P).
+align_to_path_point([_|T], PR, D, P0, P) :-
+	align_to_path_point(T, PR, D, P0, P).
+	
+distance_points(point(X0,Y0), point(X1,Y1), D) :-
+	D is sqrt((X1-X0)**2 + (Y1-Y0)**2).
+
+
+align_mid(Points, PR, P) :-
+	findall(MP, mid_point(Points, PR, MP), MPS),
+	sort(MPS, [_-P]).
+
+mid_point(Points, point(X, Y), D-point(X, MY)) :-
+	member(point(PX, PY1), Points),
+	member(point(PX, PY2), Points),
+	abs(PY1-PY2) > 10,
+	MY is (PY1+PY2+1)//2,
+	D is abs(MY-Y),
+	satisfies(displacement, D).
+mid_point(Points, point(X, Y), D-point(MX, Y)) :-
+	member(point(PX1, PY), Points),
+	member(point(PX2, PY), Points),
+	abs(PX1-PX2) > 10,
+	MX is (PX1+PX2+1)//2,
+	D is abs(MX-X),
+	satisfies(displacement, D).

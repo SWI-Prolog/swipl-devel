@@ -13,7 +13,7 @@
 	, draw/1				  % Start editing file
 	]).
 
-draw_version(3.1).
+draw_version(3.2).
 
 		/********************************
 		*      LINKING OTHER FILES	*
@@ -35,6 +35,7 @@ as SWI-Prolog will  inherit the PCE system  predicates from the module
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- use_module(library(pce)).
+:- ensure_loaded(library(help_message)).
 :- require([ concat/3
 	   , pce_help_file/2
 	   , send_list/3
@@ -132,6 +133,11 @@ class.  If  there is  no particular PCE  class  to inherit  from, this
 should be class `object', the root of the PCE class hierarchy.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+variable(title,		name,	get, "Base-name of the program").
+variable(version,	real,   get, "Current version").
+
+:- pce_global(@draw_default_arrow, new(arrow)).
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The term  resource/4 is expanded  by  the PCE/Prolog class  loader.  A
 resource provides  access to  the   X-window resource  database.   The
@@ -165,6 +171,11 @@ resource(draw_colours,			chain,
 	 , yellow
 	 ],
 	 "List of colours that can be used").
+resource(draw_arrows,			chain,
+	 [ @nil,
+	   @draw_default_arrow
+	 ],
+	 "List of predefined arrow heads").
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 If  the initialisation of an instance  of  this class differs from the
@@ -202,8 +213,12 @@ shorter but -more important- it attaches the canvas immediately to the
 frame, making the frame responsible for its destruction.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-initialise(Draw) :->
-	send(Draw, send_super, initialise, 'PceDraw'),
+initialise(Draw, Title:[name]) :->
+	default(Title, 'PceDraw', TheTitle),
+	send(Draw, send_super, initialise, TheTitle),
+	send(Draw, slot, title, TheTitle),
+	draw_version(Version),
+	send(Draw, slot, version, Version),
 	send(Draw, done_message, message(Draw, quit)),
 	send(Draw, append, new(Canvas, draw_canvas)),
 	send(new(Menu, draw_menu), left, Canvas),
@@ -496,15 +511,24 @@ that should be displayed in this mode.
 fill_menu(Draw) :->
 	"Fill <-menu with standard prototypes"::
 	get(Draw, menu, M),
-	send(M, proto, @nil,		   select,	   top_left_arrow),
-	send(M, proto, @nil,		   draw_edit,	   xterm),
-	send(M, proto, draw_text(''),	   draw_text,	   xterm),
-	send(M, proto, draw_box(0,0), 	   draw_resize,    crosshair),
-	send(M, proto, draw_ellipse(0,0),  draw_resize,    crosshair),
-	send(M, proto, draw_line(0,0,0,0), draw_line,      crosshair),
-	send(M, proto, new(draw_path),	   draw_path,      cross),
-	send(M, proto, link(link),	   draw_connect,   plus),
-	send(M, proto, link(unique),	   draw_cconnect,  plus),
+	send(M, proto, @nil,
+	     select, top_left_arrow, tag:='Select mode'),
+%	send(M, proto, @nil,
+%	     draw_edit, xterm, tag:='Modify text'),
+	send(M, proto, draw_text(''),
+	     draw_text, xterm, tag:='Add text'),
+	send(M, proto, draw_box(0,0),
+	     draw_resize, crosshair, tag:='Add box'),
+	send(M, proto, draw_ellipse(0,0),
+	     draw_resize, crosshair, tag:='Add ellipse'),
+	send(M, proto, draw_line(0,0,0,0),
+	     draw_line, crosshair, tag:='Add line'),
+	send(M, proto, new(draw_path),
+	     draw_path, cross, tag:='Add multi-part/smooth line'),
+	send(M, proto, link(link),
+	     draw_connect, plus, tag:='Link two objects'),
+	send(M, proto, link(unique),
+	     draw_cconnect, plus, tag:='Link at choosen position'),
 	send(M, modified, @off).
 
 

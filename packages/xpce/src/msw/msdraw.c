@@ -1160,7 +1160,11 @@ r_translate(int x, int y, int *ox, int *oy)
 
 void
 r_box(int x, int y, int w, int h, int r, Any fill)
-{ if ( context.thickness > 0 || notNil(fill) )
+{ int maxr = min(abs(w), abs(h))/2;
+
+  r = min(r, maxr);
+
+  if ( context.thickness > 0 || notNil(fill) )
   { if ( context.thickness > 0 || r > 1 )
     { int da = context.thickness / 2;
       int db = max(0, (context.thickness - 1) / 2);

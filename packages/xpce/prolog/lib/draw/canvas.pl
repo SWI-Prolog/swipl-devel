@@ -110,6 +110,10 @@ initialise(Canvas) :->
 	send(Canvas, mode, select, @nil),
 	send(Canvas, recogniser, @draw_canvas_recogniser).
 
+		 /*******************************
+		 *        EVENT HANDLING	*
+		 *******************************/
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The recogniser itself is  a  reusable object  (which   implies   other
 instances of draw_canvas can use the same instance of the recogniser).
@@ -160,6 +164,7 @@ canvas_keybinding('\C-e', expose_selection).
 canvas_keybinding('\C-c', copy_selection).
 canvas_keybinding('\C-_', simple_undo).
 canvas_keybinding('\C-s', save).
+canvas_keybinding('TAB',  start_typing).
 
 make_draw_canvas_keybinding(B) :-
 	new(B, key_binding),
@@ -171,6 +176,7 @@ make_draw_canvas_keybinding(B) :-
 
 make_draw_canvas_recogniser(G) :-
 	new(KBFocus, @event?window?keyboard_focus),
+	new(ST, handler(keyboard, message(@receiver, start_typing, @event))),
 	new(G, handler_group(@draw_create_resize_gesture,
 			     @draw_create_line_gesture,
 			     @draw_create_path_gesture,
@@ -180,8 +186,27 @@ make_draw_canvas_recogniser(G) :-
 			     @draw_canvas_keybinding,
 			     new(P, click_gesture(middle, '', single,
 						  message(KBFocus, paste))),
-			     popup_gesture(@draw_canvas_popup))),
+			     popup_gesture(@draw_canvas_popup),
+			     ST)),
 	send(P, condition, KBFocus \== @nil).
+
+
+start_typing(C, Id:event_id) :->
+	"Start typing if the selection wants the keyboard"::
+	get(C, keyboard_focus, @nil),
+	(   get(C, selection, Selection),
+	    get(Selection, size, 1),
+	    get(Selection, head, Obj),
+	    send(Obj, '_wants_keyboard_focus')
+	->  send(C, selection, @nil),
+	    send(C, keyboard_focus, Obj),
+	    (   Id \== 9
+	    ->  send(Selection?head, generate_event, Id)
+	    ;   true
+	    )
+	;   Id == 9
+	->  send(C, advance)
+	).
 
 
 		/********************************
@@ -263,6 +288,7 @@ attached.
 selection(C, Sel:'graphical|chain*') :->
 	"Set the selection shape or chain"::
 	send(C, send_super, selection, Sel),
+	send(C, keyboard_focus, @nil),
 	send(C, update_attribute_editor).
 
 
@@ -753,7 +779,9 @@ save(Canvas, File:[file]) :->
 	),
 	send(SaveFile, backup),
 	send(Canvas, keyboard_focus, @nil),
-	new(Sheet, sheet(attribute(graphicals, Canvas?graphicals))),
+	get(Canvas?frame, version, Version),
+	new(Sheet, sheet(attribute(graphicals, Canvas?graphicals),
+			 attribute(version, Version))),
 	send(Sheet, save_in_file, SaveFile),
 	send(Canvas, slot, modified, @off),
 	send(Canvas, report, status, 'Saved %s', SaveFile?base_name),
@@ -793,6 +821,11 @@ load(Canvas, File:file, Clear:[bool]) :->
 	->  send(Canvas, file, File)
 	;   true
 	),
+	(   get(Sheet, value, version, SaveVersion)
+	->  true
+	;   SaveVersion = @nil
+	),
+	send(Canvas, convert_old_drawing, SaveVersion),
 	send(Canvas, report, status, 'Loaded %s', File?base_name),
 	send(Sheet, done).
 
@@ -800,12 +833,41 @@ load(Canvas, File:file, Clear:[bool]) :->
 file(Canvas, File:file*) :->
 	"Set file attribute"::
 	send(Canvas, slot, file, File),
+        get(Canvas, frame, Draw),
+        get(Draw, title, Title),
 	(   File \== @nil
-	->  send(Canvas?frame, label,
-		 string('PceDraw: %s', File?name),
-		 string('PceDraw: %s', File?base_name))
-	;   send(Canvas?frame, label, 'PceDraw')
+	->  send(Draw, label,
+		 string('%s: %s', Title, File?name),
+		 string('%s: %s', Title, File?base_name))
+	;   send(Draw, label, Title)
 	).
+
+
+		 /*******************************
+		 *	       VERSION		*
+		 *******************************/
+
+convert_old_drawing(Canvas, SaveVersion:real*) :->
+	ignore(convert_old_drawing(SaveVersion, Canvas)).
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Before versions were attached to saved  figures, class draw_compound was
+a subclass of class device. Now, it is   a subclass of class figure. The
+code below turns the draw_compounds into valid figures.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+convert_old_drawing(@nil, Canvas) :- !,
+	ignore(get(Canvas, find, @default,
+		   if(message(@arg1, instance_of, draw_compound),
+		      and(if(@arg1?radius == @nil,
+			     and(message(@arg1, slot, status, all_active),
+				 message(@arg1, slot, radius, 0),
+				 message(@arg1, slot, border, 0),
+				 message(@arg1, slot, pen,    0))),
+			  new(or)),
+		      new(or)),
+		   _)).
 
 
 		/********************************

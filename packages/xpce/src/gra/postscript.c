@@ -19,8 +19,6 @@ static int	header(Any, Area, Bool);
 static int	macros(void);
 static int	footer(void);
 static status	fill(Any, Name);
-static status	paintPostscriptArrow(Arrow a, Any fr,
-				     Int x1, Int y1, Int x2, Int y2);
 static void	ps_colour(Colour c, int grey);
 
 struct
@@ -558,22 +556,6 @@ status
 postscriptGraphical(Any obj)
 { ps_output("\n%%Object: ~O\n", obj);
 
-/*
-  if ( instanceOfObject(obj, ClassGraphical) )
-  { Graphical gr = obj;
-    PceWindow sw;
-
-    if ( notDefault(gr->colour) && 
-	 (sw = getWindowGraphical(gr)) &&
-	 equalColour(sw->background, gr->colour) )
-    { ps_output("gsave 100 setgray\n");
-      send(obj, NAME_DrawPostScript, 0);
-      ps_output("grestore\n");
-      succeed;
-    }
-  }
-*/
-
   return send(obj, NAME_DrawPostScript, 0);
 }
 
@@ -747,7 +729,7 @@ drawPostScriptPath(Path p)
       ps_output("\n");
 
       fill(p, NAME_fillPattern);
-      ps_output("draw grestore\n");
+      ps_output("draw\n");
     } else				/* poly-path */
     { Cell cell;
       int i = -1;			/* skip first */
@@ -770,61 +752,38 @@ drawPostScriptPath(Path p)
       ps_output("\n");
       
       fill(p, NAME_fillPattern);
-      ps_output("draw grestore\n");
+      ps_output("draw\n");
     }
 
-					/* Paint the arrows */
-    if ( notNil(p->first_arrow) )
-    { Point tip = getHeadChain(points);
-      Point ref = getNth1Chain(points, TWO);
+    if ( adjustFirstArrowPath(p) )
+      postscriptGraphical(p->first_arrow);
+    if ( adjustSecondArrowPath(p) )
+      postscriptGraphical(p->second_arrow);
 
-      paintPostscriptArrow(p->first_arrow, p,
-			   add(tip->x,p->offset->x),
-			   add(tip->y,p->offset->y),
-			   add(ref->x,p->offset->x),
-			   add(ref->y,p->offset->y));
-    }
-    if ( notNil(p->second_arrow) )
-    { Point tip = getTailChain(points);
-      Point ref = getNth1Chain(points, sub(getSizeChain(points), ONE));
-
-      paintPostscriptArrow(p->second_arrow, p,
-			   add(tip->x,p->offset->x),
-			   add(tip->y,p->offset->y),
-			   add(ref->x,p->offset->x),
-			   add(ref->y,p->offset->y));
-    }
+    ps_output("grestore\n");
   }
+
   succeed;
 }
 
 
-#define points_line(ln, x1, y1, x2, y2) \
-  { x1 = valInt(ln->area->x); \
-    y1 = valInt(ln->area->y); \
-    x2 = x1+valInt(ln->area->w); \
-    x2 += (valInt(ln->area->w)>=0 ? -1 : 1); \
-    y2 = y1+valInt(ln->area->h); \
-    y2 += (valInt(ln->area->h)>=0 ? -1 : 1); \
-  }
-
-
 status
 drawPostScriptLine(Line ln)
-{ int x1, y1, x2, y2;
+{ int x1 = valInt(ln->start_x);
+  int x2 = valInt(ln->end_x);
+  int y1 = valInt(ln->start_y);
+  int y2 = valInt(ln->end_y);
 
-  points_line(ln, x1, y1, x2, y2);
-
+  ps_output("gsave ~C\n", ln);
   if ( ln->pen != ZERO )
-    ps_output("gsave ~C ~T ~p ~D ~D ~D ~D linepath draw\n",
-	      ln, ln, ln, x1, y1, x2-x1, y2-y1);
+    ps_output("~T ~p ~D ~D ~D ~D linepath draw\n",
+	      ln, ln, x1, y1, x2-x1, y2-y1);
 
-  if ( notNil(ln->first_arrow) )
-    paintPostscriptArrow(ln->first_arrow, ln,
-			 toInt(x1), toInt(y1), toInt(x2), toInt(y2));
-  if ( notNil(ln->second_arrow) )
-    paintPostscriptArrow(ln->second_arrow, ln,
-			 toInt(x2), toInt(y2), toInt(x1), toInt(y1));
+  if ( adjustFirstArrowLine(ln) )
+    postscriptGraphical(ln->first_arrow);
+  if ( adjustSecondArrowLine(ln) )
+    postscriptGraphical(ln->second_arrow);
+
   ps_output("grestore\n");
 
   succeed;
@@ -842,29 +801,12 @@ drawPostScriptArrow(Arrow a)
   if ( a->style == NAME_closed || notNil(a->fill_pattern) )
     ps_output(" closepath ");
 
-  if ( isNil(a->fill_pattern) )
-    ps_output(" ~T draw\n", a);
-  else
+  if ( notNil(a->fill_pattern) )
     fill(a, NAME_fillPattern);
+  if ( a->pen != ZERO )
+    ps_output(" ~T draw\n", a);
 
   ps_output(" grestore\n");
-
-  succeed;
-}
-
-
-static status
-paintPostscriptArrow(Arrow a, Any f, Int x1, Int y1, Int x2, Int y2)
-{ Colour c;
-
-  pointsArrow(a, x1, y1, x2, y2);
-  computeArrow(a);
-  if ( isDefault(a->colour) && (c = get(f, NAME_displayColour, 0)) )
-  { assign(a, colour, c);
-    drawPostScriptArrow(a);
-    assign(a, colour, DEFAULT);
-  } else
-    drawPostScriptArrow(a);
 
   succeed;
 }
@@ -880,7 +822,7 @@ drawPostScriptArc(Arc a)
 	    valReal(a->start_angle), valReal(a->size_angle));
 
   fill(a, NAME_fillPattern);
-  ps_output("draw grestore\n");
+  ps_output("draw\n");
 
   if ( notNil(a->first_arrow) ||  notNil(a->second_arrow) )
   { int sx, sy, cx, cy, ex, ey;
@@ -889,23 +831,47 @@ drawPostScriptArc(Arc a)
     cx = valInt(a->position->x);
     cy = valInt(a->position->y);
 
-    if ( notNil(a->first_arrow) )
-    { if ( valReal(a->size_angle) >= 0.0 )
-	paintPostscriptArrow(a->first_arrow, a, toInt(sx), toInt(sy),
-			     toInt(sx+(sy-cy)), toInt(sy-(sx-cx)));
-      else
-	paintPostscriptArrow(a->first_arrow, a, toInt(sx), toInt(sy),
-			     toInt(sx-(sy-cy)), toInt(sy+(sx-cx)));
+    if (notNil(a->first_arrow))		/* should be merged from arc.c */
+    { Any av[4];
+  
+      av[0] = toInt(sx);
+      av[1] = toInt(sy);
+  
+      if ( valReal(a->size_angle) >= 0.0 )
+      { av[2] = toInt(sx+(sy-cy));
+	av[3] = toInt(sy-(sx-cx));
+      } else
+      { av[2] = toInt(sx-(sy-cy));
+	av[3] = toInt(sy+(sx-cx));
+      }
+	
+      if ( qadSendv(a->first_arrow, NAME_points, 4, av) )
+      { ComputeGraphical(a->first_arrow);
+	postscriptGraphical(a->first_arrow);
+      }
     }
-    if ( notNil(a->second_arrow) )
-    { if ( valReal(a->size_angle) >= 0.0 )
-	paintPostscriptArrow(a->second_arrow, a, toInt(ex), toInt(ey),
-			     toInt(ex-(ey-cy)), toInt(ey+(ex-cx)));
-      else
-	paintPostscriptArrow(a->second_arrow, a, toInt(ex), toInt(ey),
-			     toInt(ex+(ey-cy)), toInt(ey-(ex-cx)));
+    if (notNil(a->second_arrow))
+    { Any av[4];
+  
+      av[0] = toInt(ex);
+      av[1] = toInt(ey);
+  
+      if ( valReal(a->size_angle) >= 0.0 )
+      { av[2] = toInt(ex-(ey-cy));
+	av[3] = toInt(ey+(ex-cx));
+      } else
+      { av[2] = toInt(ex+(ey-cy));
+	av[3] = toInt(ey-(ex-cx));
+      }
+  
+      if ( qadSendv(a->second_arrow, NAME_points, 4, av) )
+      { ComputeGraphical(a->second_arrow);
+	postscriptGraphical(a->second_arrow);
+      }
     }
   }
+
+  ps_output("grestore\n");
 
   succeed;
 }
@@ -936,42 +902,42 @@ drawPostScriptImage(Image image)
 status
 drawPostScriptText(TextObj t)
 { String s = &t->string->data;
-  int x, y, w;
 
-  x = valInt(t->area->x);
-  y = valInt(t->area->y);
-  w = valInt(t->area->w);
-
-  if ( isDefault(t->background) )
-    ps_output("~x ~y ~w ~h clear\n", t, t, t, t);
-
-  ps_output("gsave ~C", t);
-
-  if ( t->pen != ZERO || notNil(t->background) )
-  { ps_output("~T ~p ~x ~y ~w ~h 0 boxpath\n",
-	      t, t, t, t, t, t);
-    fill(t, NAME_background);
-    if ( t->pen != ZERO )
-      ps_output("draw\n");
-  }
-  
   if ( s[0].size > 0 )			/* i.e. non-empty */
-  { int b = valInt(t->border);
+  { int x, y, w;
+    int b = valInt(t->border);
 
+    x = valInt(t->area->x);
+    y = valInt(t->area->y);
+    w = valInt(t->area->w);
+
+    if ( isDefault(t->background) )
+      ps_output("~x ~y ~w ~h clear\n", t, t, t, t);
+
+    ps_output("gsave ~C", t);
+
+    if ( t->pen != ZERO || notNil(t->background) )
+    { ps_output("~T ~p ~x ~y ~w ~h 0 boxpath\n",
+		t, t, t, t, t, t);
+      fill(t, NAME_background);
+      if ( t->pen != ZERO )
+	ps_output("draw\n");
+    }
+  
     if ( t->wrap == NAME_wrap )
     { LocalString(buf, s, s->size + MAX_WRAP_LINES);
     
       str_format(buf, s, valInt(t->margin), t->font);
-      ps_string(buf, t->font, x+b, y+b, w, t->format);
+      ps_string(buf, t->font, x+b, y+b, w-2*b, t->format);
     } else if ( t->wrap == NAME_clip )
     { ps_output("gsave 0 ~x ~y ~w ~h 0 boxpath clip\n", t, t, t, t);
-      ps_string(s, t->font, x+b+valInt(t->x_offset), y+b, w, t->format);
+      ps_string(s, t->font, x+b+valInt(t->x_offset), y+b, w-2*b, t->format);
       ps_output("grestore\n");
     } else
-      ps_string(s, t->font, x+b, y+b, w, t->format);
-  }
+      ps_string(s, t->font, x+b, y+b, w-2*b, t->format);
 
-  ps_output("grestore\n", t);
+    ps_output("grestore\n", t);
+  }
 
   succeed;
 }

@@ -49,6 +49,8 @@ initialiseArrow(Arrow a, Int length, Int wing)
   assign(a, fill_pattern, DEFAULT);
   assign(a, style, DEFAULT);
   obtainResourcesObject(a);
+  if ( notNil(a->fill_pattern) )
+    assign(a, pen, ZERO);
 
   requestComputeGraphical(a, DEFAULT);
 
@@ -155,7 +157,9 @@ drawArrow(int x1, int y1, int x2, int y2, int x3, int y3,
   
     r_fillpattern(fill, NAME_foreground);
     r_fill_polygon(pts, 3);
-  } else
+  }
+
+  if ( pen > 0 )
   { r_dash(texture);
     r_thickness(pen);
     r_line(x1, y1, x2, y2);

@@ -237,6 +237,8 @@ typedef struct dCell 	      **DelegateList;   /* See msg-passing.c */
 
 #include "types.h"
 
+#define INVOKE_FUNC ((SendFunc)~0L)
+
 		/********************************
 		*	    POINTERS	 	*
 		********************************/

@@ -35,14 +35,14 @@ copyJoint(Joint jt1, Joint jt2)
 		*            ARROWS		*
 		********************************/
 
-static Arrow
+static Graphical
 getDefaultArrowJoint(Joint jt)
 { answer(newObject(ClassArrow, 0));
 }
 
 
 status
-setArrowsJoint(Joint jt, Arrow first, Arrow second)
+setArrowsJoint(Joint jt, Graphical first, Graphical second)
 { if ( isDefault(first)  ) first  = jt->first_arrow;
   if ( isDefault(second) ) second = jt->second_arrow;
 
@@ -50,27 +50,28 @@ setArrowsJoint(Joint jt, Arrow first, Arrow second)
     succeed;
 
   CHANGING_GRAPHICAL(jt,
-	assign(jt, first_arrow, first);
-	assign(jt, second_arrow, second);
-	changedEntireImageGraphical(jt));
+		     assign(jt, first_arrow, first);
+		     assign(jt, second_arrow, second);
+		     requestComputeGraphical(jt, DEFAULT);
+		     changedEntireImageGraphical(jt));
 
   succeed;
 }
 
 
 static status
-firstArrowJoint(Joint jt, Arrow arrow)
+firstArrowJoint(Joint jt, Graphical arrow)
 { return setArrowsJoint(jt, arrow, DEFAULT);
 }
 
 
 static status
-secondArrowJoint(Joint jt, Arrow arrow)
+secondArrowJoint(Joint jt, Graphical arrow)
 { return setArrowsJoint(jt, DEFAULT, arrow);
 }
 
 
-static Arrow
+static Graphical
 initArrowJoint(Joint jt)
 { Any rval;
 
@@ -83,7 +84,7 @@ initArrowJoint(Joint jt)
 
 static status
 arrowsJoint(Joint jt, Name arrows)
-{ Arrow first, second;
+{ Graphical first, second;
 
   if ( equalName(arrows, NAME_none) )
   { first  = NIL;
@@ -121,6 +122,26 @@ getArrowsJoint(Joint jt)
   }
 }
 
+		 /*******************************
+		 *	      SELECTED		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The selection blobs of joints often exceed the area.  Enlarge it.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static status
+selectedJoint(Joint jt, Bool selected)
+{ if ( jt->selected != selected )
+  { CHANGING_GRAPHICAL(jt,
+		       assign(jt, selected, selected);
+		       requestComputeGraphical(jt, DEFAULT);
+		       changedEntireImageGraphical(jt));
+  }
+
+  succeed;
+}
+
 
 		 /*******************************
 		 *	 CLASS DECLARATION	*
@@ -135,9 +156,9 @@ static char *T_initialise[] =
 /* Instance Variables */
 
 static vardecl var_joint[] =
-{ SV(NAME_firstArrow, "arrow*", IV_GET|IV_STORE, firstArrowJoint,
+{ SV(NAME_firstArrow, "graphical*", IV_GET|IV_STORE, firstArrowJoint,
      NAME_appearance, "Arrow on start-point"),
-  SV(NAME_secondArrow, "arrow*", IV_GET|IV_STORE, secondArrowJoint,
+  SV(NAME_secondArrow, "graphical*", IV_GET|IV_STORE, secondArrowJoint,
      NAME_appearance, "Arrow on end-point")
 };
 
@@ -147,7 +168,9 @@ static senddecl send_joint[] =
 { SM(NAME_initialise, 5, T_initialise, initialiseJoint,
      DEFAULT, "Create joint with bounding-box and arrows"),
   SM(NAME_arrows, 1, "arrows={none,first,second,both}", arrowsJoint,
-     NAME_appearance, "Default arrows on {none,first,second,both}")
+     NAME_appearance, "Default arrows on {none,first,second,both}"),
+  SM(NAME_selected, 1, "bool", selectedJoint,
+     NAME_selection, "If @on, I'm selected")
 };
 
 /* Get Methods */
@@ -155,7 +178,7 @@ static senddecl send_joint[] =
 static getdecl get_joint[] =
 { GM(NAME_arrows, 0, "arrows={none,first,second,both}", NULL, getArrowsJoint,
      NAME_appearance, "Which arrows are defined"),
-  GM(NAME_defaultArrow, 0, "arrow", NULL, getDefaultArrowJoint,
+  GM(NAME_defaultArrow, 0, "graphical", NULL, getDefaultArrowJoint,
      NAME_appearance, "Create default arrow for ->arrows")
 };
 
