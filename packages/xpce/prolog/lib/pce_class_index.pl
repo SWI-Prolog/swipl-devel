@@ -47,7 +47,7 @@ pce_update_library_index :-
 			       ], 
 			       AbsFile),
 	    file_directory_name(AbsFile, Dir),
-	    pce_info(pce(update_library_index(Dir))),
+	    print_message(informational, pce(update_library_index(Dir))),
 	    pce_update_library_index(Dir),
 	    fail
 	;   true
