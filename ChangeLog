@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Win32 version generation of the runtime kernel. Radoslaw Scislo.  
+
   * PORT: Updated MSVC project files (*.dsp and *.dsw) from MSVC 5 to
     MSVC 6 and fixed to reflect the current build-system.  Contributed
     by Radoslaw Scislo.
