@@ -10,6 +10,12 @@ PL=@PL@
 PLBASE=@PLBASE@
 PCEHOME=/staff/jan/src/xpce
 
+CGISCRIPT=rdf-parser
+CGIDIR=/etc/httpd/cgi-bin
+CGIURL=http://gollem.swi.psy.uva.nl/cgi-bin
+WEBPAGE=~www/projects/SWI-Prolog/packages/sgml/online.html
+CGIGRP=www
+
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PCEHOME)/bin/pl2tex
 LATEX=latex
@@ -35,6 +41,26 @@ install:	$(LIBPL)
 uninstall:
 		(cd $(PLBASE)/library && rm -f $(LIBPL))
 		$(PL) -f none -g make -t halt
+
+################################################################
+# CGI INSTALL
+################################################################
+
+cgi-install:	$(CGIDIR)/$(CGISCRIPT) \
+		Online-requests \
+		$(WEBPAGE)
+
+Online-requests:
+		mkdir $@
+		chmod 775 $@
+		chgrp $(CGIGRP) $@
+
+$(WEBPAGE):	online.html
+		sed 's!@ACTION@!$(CGIURL)/$(CGISCRIPT)!' online.html > $@
+
+$(CGIDIR)/$(CGISCRIPT): rdf-parser
+		sed "s!@BASEDIR@!`pwd`!" rdf-parser > $@
+		chmod 755 $@
 
 ################################################################
 # Documentation

@@ -6,7 +6,7 @@
 #
 # The RDF parser itself is just a Prolog library.  See rdf2pl.{html,pdf}.
 
-base=/projects/rdf/pl/packages/sgml/RDF
+base=@BASEDIR@
 tmp=/tmp/rdf-parser-$$
 export ERROR_FILE=$tmp
 
@@ -25,7 +25,7 @@ _EOM_
 }
 
 cd $base > $tmp 2>&1
-/staff/jan/bin/pl -f none -F none -t halt \
+/usr/bin/pl -f none -F none -t halt \
 	  -g "load_files(online,[silent(true)]),go" 2>$tmp
 
 case $? in
