@@ -220,11 +220,13 @@ fill_menu_bar(F) :->
 	send_list(Edit, append,
 		  [ menu_item(breakpoints,
 			      message(F, breakpoints),
-			      end_group := @on)
+			      end_group := @on),
+		    menu_item(toggle_edit_mode,
+			      message(F, edit))
 		  ]),
 	send_list(Comp, append,
 		  [ menu_item(make,
-			      message(@prolog, make),
+			      message(F, make),
 			      end_group := @on)
 		  ]),
 	send_list(Help, append,
@@ -329,7 +331,7 @@ selected_frame(F, Frame:int) :<-
 :- pce_group(actions).
 
 edit(F) :->
-	"Edit current source_location"::
+	"(Toggle) Edit-mode of source-window"::
 	send(F?source, edit).
 
 breakpoints(F) :->
@@ -339,6 +341,14 @@ breakpoints(F) :->
 	send(D, transient_for, F),
 	get(F, window_pos_for_button, breakpoints, Pos),
 	send(D, open, Pos).
+
+make(_) :->
+	"Run Prolog make"::
+	(   object(@emacs)
+	->  send(@emacs, save_some_buffers)
+	;   true
+	),
+	make.
 
 goal(F, Goal:prolog) :<-
 	"Return qualitied term for selected frame"::
