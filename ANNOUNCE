@@ -56,21 +56,26 @@ Planned features in 5.5.x relative to 5.4.x and their status
 Patches in 5.5.6 relative to 5.5.5
 ==================================
 
-  * ADDED: 64-bit integers for 32-bit platforms.  Relies in C99
-    <stdint.h>, except MS-Windows where we use __int64.
+  * Binary files be default use the new encoding 'octet'.
 
-  * ADDED: library(unicode/unicode_data) to read official UNICODE
-    code properties.  See fileheader.
+  * Additions to library ordsets for better compatibility.
 
-  * Various minor patches.
+  * Various minor patches
+
 
 Packages
 ========
 
-  * XPCE: missing close loading text in editors (broken while introducing
-    wide character support).
+  * CLP(R): module issues, extended library ordsets to fully support it.
 
-  * TABLE: Added support for hexadecimal columns.
+  * XPCE: Fixed various issues in handling objects as streams, making
+    the PceEmacs Prolog mode fully functional again.  Also fixes colour
+    handling in sgml/xml modes.  Fixed PceEmacs issues to allow putting
+    it into a saved state.  Improved xpce-stub.exe debugging.
+
+  * SGML: Cleanup stream encoding issues.  Documented with the package
+    documentation.  
+
 
 Incompatible changes
 ====================
