@@ -233,7 +233,7 @@ static classvardecl rc_view[] =
 
 /* Class Declaration */
 
-static Name view_termnames[] = { NAME_label, NAME_displaySize, NAME_display, NAME_editor };
+static Name view_termnames[] = { NAME_name };
 
 ClassDecl(view_decls,
           var_view, send_view, get_view, rc_view,

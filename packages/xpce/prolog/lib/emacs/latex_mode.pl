@@ -128,7 +128,7 @@ what_environment(E) :->
 		 *******************************/
 
 insert_self(M, Times:[int], Id:[char]) :->
-	"Insert, but donot warn on mismatched bracket"::
+	"Insert, but do not warn on mismatched bracket"::
 	pce_catch_error(chain(no_matching_bracket, mismatched_bracket),
 			send(M?editor, insert_self, Times, Id)).
 
@@ -169,6 +169,21 @@ insert_quote(M) :->
 
 verbatim(verbatim).
 verbatim(code).
+
+
+		 /*******************************
+		 *	       TABS		*
+		 *******************************/
+
+expand_tabs_region(M) :->
+	"Expand tab-stops in region"::
+	get(M, line_region, tuple(Start, End)),
+	get(M, tab_distance, N),
+	get(M, text_buffer, TB),
+	get(TB, contents, Start, End-Start, String),
+	send(String, untabify, N),
+	send(TB, delete, Start, End-Start),
+	send(TB, insert, Start, String).
 
 
 		 /*******************************

@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Term-description of class view.
+
 * FIXED: Cursor up/down in list-browser.  Anjo Anjewierden.
 
 * FIXED: default-button and modified-item handling in nested dialog-groups.
@@ -8,6 +10,7 @@
 
 * FIXED: Make `window->background' work with images on Windows.  Used to be
   supported on the X11 version only.
+
 
 VERSION 6.1.10, distributed with SWI-Prolog 5.1.10
 ==================================================
