@@ -133,7 +133,12 @@
 \scriptsize
 \cal
 
+% Modern LaTeX font commands
+
 \emph{+}
+\texttt{+}
+\textbf{+}
+\textit{+}
 
 % BibTeX support
 

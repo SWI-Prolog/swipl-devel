@@ -979,7 +979,10 @@ cmd(bibliography({_}), HTML) :-			% \bibliography
 cmd(bibliographystyle(_), []).			% \bibliographystyle
 cmd(',', []).					% \,
 
-cmd(emph({Tex}), #em(+Tex)).			% \emph{text}
+cmd(emph({Tex}),   #em(+Tex)).			% \emph{text}
+cmd(texttt({Tex}), #tt(+Tex)).			% \texttt{text}
+cmd(textbf({Tex}), #b(+Tex)).			% \textbf{text}
+cmd(textit({Tex}), #i(+Tex)).			% \textit{text}
 
 cmd(year,	Year) :-			% \year
 	get_time(Time),
