@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.2.0 (May 22, 2003)
+============================
+
   * ADDED: portray_clause/2 (compatibility and consistency).
 
   * FIXED: Bug #52: write/1 to write SWI-Prolog string objects with
