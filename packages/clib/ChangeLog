@@ -1,3 +1,12 @@
+Mar 14, 2003
+
+  * ADDED: Code to make sockets cooperate with signals, so
+    call_with_time_limit/2 works on blocking socket operations.
+
+  * FIXED: Error handling on sockets (Windows)
+
+  * FIXED: call_with_time_limit/2 module problem
+
 Feb 2, 2003
 
   * FIXED: call_with_time_limit/2 if the argument goal fails.  Wouter

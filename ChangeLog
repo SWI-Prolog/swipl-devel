@@ -10,6 +10,10 @@
 VERSION 5.1.10 (Mar 14, 2003)
 =============================
 
+  * ENHANCED: Implementation of thread_signal() and friends on Windows.
+    Avoid using a window and allow exceptions to be raised in blocking
+    calls.
+
   * ADDED: Separating Prolog engines from threads.
 
   * ADDED: -embed-shared option to plld
