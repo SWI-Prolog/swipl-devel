@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: missing ports in the tracer when the choicepoint is pruned by
+    a cut.
+
   * FIXED: reference-counting problem in exit(Block, Return).  Thanks
     to Robert van Engelen.
 
