@@ -311,8 +311,9 @@ prologToplevel(volatile atom_t goal)
       
       tracemode(FALSE, NULL);
       debugmode(DBG_OFF, NULL);
+      setFeatureMask(TAILRECURSION_FEATURE);
       if ( PL_get_atom(except, &a) && a == ATOM_aborted )
-      { printMessage(ATOM_informational, PL_ATOM, ATOM_aborted);
+      { aborted = TRUE;
       } else if ( !PL_is_functor(except, FUNCTOR_error2) )
       { printMessage(ATOM_error,
 		     PL_FUNCTOR_CHARS, "unhandled_exception", 1,
