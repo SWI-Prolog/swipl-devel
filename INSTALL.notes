@@ -78,9 +78,28 @@ still doesn't solve the problem,   use  --disable-mapped-stacks. If that
 doesn't fix the problem  you  found   something  new.  Please  report to
 prolog-bugs@swi.psy.uva.nl.
 
+Sofar, automatic configuration is known to   generate  a working version
+using mmap() based stacks on SunOS   4.1.x, Solaris 2.x, Linux (anything
+not truly antique) and SCO OpenServer.
 
 # Assembler warnings
 
 If you get assembler warnings compiling pl-wam.c, try #define NO_ASM_NOP
 1 in config.h. Should be  determined   automatically  by test/nop.c, but
 sometimes appears to fail.
+
+
+Platform specific notes
+=======================
+
+SCO OpenServer
+--------------
+
+According to Tamas Laufer, best  results   are  obtained  if you install
+gcc-2.8.1 (latest version at time of   writing) from the original source
+at prep.ai.mit.edu/pub/gnu or  one  of   its  mirrors.  Using  GNU-make.
+installation is reported to work flawlessly.
+
+Compilation using SCO `cc' is  possible   too,  though  requires special
+attention to get alloca() and dlopen() working.  The result is about 20%
+slower then the gcc-compiled executable.

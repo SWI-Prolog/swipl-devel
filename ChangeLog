@@ -1,10 +1,37 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORT: Fixes to configure to deal with alloca() and dlopen() on
+    SCO-Unix, both for gcc and native SCO cc.  Thanks to Tamas Laufer.  
+
+  * ADDED: user:prolog_file_type/2 hook.  This can be used to define the
+    meaning of filename extensions to Prolog.  All extension handling is
+    based on this predicate.
+
+  * MODIFIED: absolute_file_name/3 default for file_errors option is
+    now `error'.  Used to be fail.  file_errors(error) now throws an
+    existence_error exception.  This behaviour is compatible to Quintus
+    and SICStus.
+
+  * FIXED: absolute_file_name/3 using solutions(all) option.
+
+  * FIXED: PL_handle_signels(): avoid a loop and remove dispatched signels.
+    This fixes Control-C handling in the Windows version.  Thanks to
+    Bob Wielinga.
+
+  * FIXED: Quote program-name when registering the Prolog Source type under
+    Windows.
+
+  * FIXED: proper timing for blocking signals (Unix version), so they
+    are delayed during garbage collection.
+
+  * FIXED: Various issues in the GUI tracer, most related to the new
+    xpce-5 class-compiler.
+
   * MODIFIED: Deleted please/3 and added the functionality to feature/2.
 
-  * FIXED: Some compiler warning is plld.c and pl-stream.c.  Might have
-    caused problems when using characters > 128, but quite unlikely. Reported
+  * FIXED: Some compiler warning in plld.c and pl-stream.c.  Might have
+    caused problems when using characters >= 128, but quite unlikely. Reported
     by Peter Ludeman. 
 
   * FIXED: 8-bit transparency of console window.
