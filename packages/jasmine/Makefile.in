@@ -39,7 +39,7 @@ INSTALL_DATA=@INSTALL_DATA@
 LIBPL=		jasmine.pl
 TARGETS=	jasmine.so
 
-JASOBJ=		jasmine.o error.o
+JASOBJ=		jasmine.o util.o
 
 all:		$(TARGETS)
 
