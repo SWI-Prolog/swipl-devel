@@ -79,6 +79,7 @@ typedef wchar_t pl_wchar_t;
 #include <string.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <ctype.h>
 #include <sys/stat.h>
@@ -1025,13 +1026,13 @@ The first part checks whether repositioning   the  read/write pointer in
 the buffer suffices to achieve the seek.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-long
-Sseek(IOSTREAM *s, long pos, int whence)
+int64_t
+Sseek64(IOSTREAM *s, int64_t pos, int whence)
 { if ( s->limitp > s->buffer )		/* something there */
-  { long now = Stell(s);
+  { int64_t now = Stell64(s);
 
     if ( now != -1 )
-    { long rval;
+    { int64_t rval;
       char *nbufp = (char *)-1;
     
       if ( whence == SIO_SEEK_CUR )
@@ -1052,7 +1053,7 @@ Sseek(IOSTREAM *s, long pos, int whence)
     }
   }
 
-  if ( !s->functions->seek )
+  if ( !s->functions->seek && !s->functions->seek64 )
   { errno = ESPIPE;
     return -1;
   }
@@ -1063,10 +1064,18 @@ Sseek(IOSTREAM *s, long pos, int whence)
   s->limitp = s->buffer;
 
   if ( whence == SIO_SEEK_CUR )
-  { pos += Stell(s);
+  { pos += Stell64(s);
     whence = SIO_SEEK_SET;
   }
-  pos = (*s->functions->seek)(s->handle, pos, whence);
+  
+  if ( s->functions->seek64 )
+    pos = (*s->functions->seek64)(s->handle, pos, whence);
+  else if ( pos <= LONG_MAX )
+    pos = (*s->functions->seek)(s->handle, (long)pos, whence);
+  else
+  { errno = EINVAL;
+    return -1;
+  }
 
 update:
   s->flags &= ~SIO_FEOF;		/* not on eof of file anymore */
@@ -1081,11 +1090,29 @@ update:
 
 
 long
-Stell(IOSTREAM *s)
+Sseek(IOSTREAM *s, long pos, int whence)
+{ int64_t p2 = Sseek64(s, pos, whence);
+
+  if ( p2 <= LONG_MAX )
+    return (long) p2;
+
+  errno = EINVAL;
+  return -1;
+}
+
+
+
+int64_t
+Stell64(IOSTREAM *s)
 { if ( s->position )
   { return s->position->charno;
-  } else if ( s->functions->seek )
-  { long pos = (*s->functions->seek)(s->handle, 0L, SIO_SEEK_CUR);
+  } else if ( s->functions->seek || s->functions->seek64 )
+  { int64_t pos;
+
+    if ( s->functions->seek64 )
+      pos = (*s->functions->seek64)(s->handle, 0L, SIO_SEEK_CUR);
+    else
+      pos = (*s->functions->seek)(s->handle, 0L, SIO_SEEK_CUR);
 
     if ( s->buffer )			/* open */
     { if ( s->flags & SIO_INPUT )
@@ -1101,6 +1128,18 @@ Stell(IOSTREAM *s)
   { errno = EINVAL;
     return -1;
   }
+}
+
+
+long
+Stell(IOSTREAM *s)
+{ int64_t pos = Stell64(s);
+
+  if ( pos <= LONG_MAX )
+    return (long) pos;
+
+  errno = EINVAL;
+  return -1;
 }
 
 
@@ -1883,6 +1922,15 @@ Sseek_file(void *handle, long pos, int whence)
 }
 
 
+static int64_t
+Sseek_file64(void *handle, int64_t pos, int whence)
+{ long h = (long) handle;
+
+					/* cannot do EINTR according to man */
+  return lseek((int)h, pos, whence);
+}
+
+
 static int
 Sclose_file(void *handle)
 { long h = (long) handle;
@@ -1923,7 +1971,8 @@ IOFUNCTIONS Sfilefunctions =
   Swrite_file,
   Sseek_file,
   Sclose_file,
-  Scontrol_file
+  Scontrol_file,
+  Sseek_file64
 };
 
 

@@ -2915,7 +2915,7 @@ word
 pl_set_stream_position(term_t stream, term_t pos)
 { GET_LD
   IOSTREAM *s;
-  long charno, linepos, lineno;
+  int64_t charno, linepos, lineno;
   term_t a = PL_new_term_ref();
 
   if ( !(getRepositionableStream(stream, &s)) )
@@ -2923,17 +2923,17 @@ pl_set_stream_position(term_t stream, term_t pos)
 
   if ( !PL_is_functor(pos, FUNCTOR_stream_position3) ||
        !PL_get_arg(1, pos, a) ||
-       !PL_get_long(a, &charno) ||
+       !PL_get_int64(a, &charno) ||
        !PL_get_arg(2, pos, a) ||
-       !PL_get_long(a, &lineno) ||
+       !PL_get_int64(a, &lineno) ||
        !PL_get_arg(3, pos, a) ||
-       !PL_get_long(a, &linepos) )
+       !PL_get_int64(a, &linepos) )
   { releaseStream(s);
     return PL_error("stream_position", 3, NULL,
 		    ERR_DOMAIN, ATOM_stream_position, pos);
   }
 
-  if ( Sseek(s, charno, SIO_SEEK_SET) != charno )
+  if ( Sseek64(s, charno, SIO_SEEK_SET) != charno )
     return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 		    ATOM_reposition, ATOM_stream, stream);
 
@@ -2952,7 +2952,7 @@ pl_seek(term_t stream, term_t offset, term_t method, term_t newloc)
 { GET_LD
   atom_t m;
   int whence = -1;
-  long off, new;
+  int64_t off, new;
   IOSTREAM *s;
 
   if ( !(PL_get_atom(method, &m)) )
@@ -2969,11 +2969,11 @@ pl_seek(term_t stream, term_t offset, term_t method, term_t newloc)
     return PL_error("seek", 4, NULL, ERR_DOMAIN, ATOM_seek_method, method);
   }
   
-  if ( !PL_get_long(offset, &off) )
+  if ( !PL_get_int64(offset, &off) )
     return PL_error("seek", 4, NULL, ERR_DOMAIN, ATOM_integer, offset);
 
   if ( PL_get_stream_handle(stream, &s) )
-  { if ( (new = Sseek(s, off, whence)) == -1 )
+  { if ( (new = Sseek64(s, off, whence)) < 0 )
     { PL_error("seek", 4, OsError(), ERR_PERMISSION,
 	       ATOM_reposition, ATOM_stream, stream);
       releaseStream(s);
