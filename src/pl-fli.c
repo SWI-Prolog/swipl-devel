@@ -2358,7 +2358,7 @@ PL_load_extensions(const PL_extension *ext)
       continue;
     }
     if ( def->definition.function )
-      warning("PL_load_extensions(): redefined %s", procedureName(proc));
+      warning("PL_load_ex<tensions(): redefined %s", procedureName(proc));
     if ( false(def, FOREIGN) && def->definition.clauses != NULL )
       abolishProcedure(proc, m);
     set(def, FOREIGN);

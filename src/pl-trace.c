@@ -1300,18 +1300,18 @@ pl_nospy(term_t p)
 
 word
 pl_leash(term_t old, term_t new)
-{ return setInteger(&debugstatus.leashing, "$leash", old, new);
+{ return setInteger(&debugstatus.leashing, old, new);
 }
 
 word
 pl_visible(term_t old, term_t new)
-{ return setInteger(&debugstatus.visible, "$visible", old, new);
+{ return setInteger(&debugstatus.visible, old, new);
 }
 
 
 word
 pl_debuglevel(term_t old, term_t new)
-{ return setInteger(&GD->debug_level, "$debuglevel", old, new);
+{ return setInteger(&GD->debug_level, old, new);
 }
 
 

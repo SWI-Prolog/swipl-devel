@@ -515,6 +515,15 @@ PL_get_long_ex(term_t t, long *i)
 
 
 int
+PL_get_bool_ex(term_t t, int *i)
+{ if ( PL_get_bool(t, i) )
+    succeed;
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_bool, t);
+}
+
+
+int
 PL_unify_list_ex(term_t l, term_t h, term_t t)
 { if ( PL_unify_list(l, h, t) )
     succeed;

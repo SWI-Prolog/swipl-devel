@@ -99,50 +99,40 @@ isUserSystemPredicate(Definition def)
   fail;
 }
 
+
 word
 notImplemented(char *name, int arity)
 { return warning("%s/%d is not implemented in this version", name, arity);
 }
 
-word
-setBoolean(int *flag, const char *name, term_t old, term_t new)
-{ atom_t n;
-
-  if ( !PL_unify_atom(old, *flag ? ATOM_on : ATOM_off) )
-    fail;
-
-  if ( PL_get_atom(new, &n) )
-  { if ( n == ATOM_on )
-    { *flag = TRUE;
-      succeed;
-    } else if ( n == ATOM_off )
-    { *flag = FALSE;
-      succeed;
-    }
-  }
-
-  return warning("%s/2: instantiation fault", name);
-}
 
 word
-setInteger(int *flag, const char *name, term_t old, term_t new)
-{ if ( !PL_unify_integer(old, *flag) )
+setBoolean(int *flag, term_t old, term_t new)
+{ if ( !PL_unify_bool_ex(old, *flag) ||
+       !PL_get_bool_ex(new, flag) )
     fail;
-  if ( PL_get_integer(new, flag) )
-    succeed;
 
-  return warning("%s/2: instantiation fault", name);
+  succeed;
 }
 
 
 word
-setLong(long *flag, const char *name, term_t old, term_t new)
-{ if ( !PL_unify_integer(old, *flag) )
+setInteger(int *flag, term_t old, term_t new)
+{ if ( !PL_unify_integer(old, *flag) ||
+       !PL_get_integer_ex(new, flag) )
     fail;
-  if ( PL_get_long(new, flag) )
-    succeed;
 
-  return warning("%s: instantiation fault", name);
+  succeed;
+}
+
+
+word
+setLong(long *flag, term_t old, term_t new)
+{ if ( !PL_unify_integer(old, *flag) ||
+       !PL_get_long_ex(new, flag) )
+    fail;
+
+  succeed;
 }
 
 

@@ -2681,7 +2681,7 @@ pl_rename_file(term_t old, term_t new)
 
 word
 pl_fileerrors(term_t old, term_t new)
-{ return setBoolean(&fileerrors, "fileerrors", old, new);
+{ return setBoolean(&fileerrors, old, new);
 }
 
 

@@ -76,7 +76,7 @@ word
 pl_profile(term_t old, term_t new)
 { int prof = LD->statistics.profiling;
 
-  TRY(setInteger(&prof, "profile", old, new));
+  TRY(setInteger(&prof, old, new));
   if ( prof == LD->statistics.profiling )
     succeed;
   LD->statistics.profiling = prof;

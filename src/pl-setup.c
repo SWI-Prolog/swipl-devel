@@ -1477,7 +1477,7 @@ pl_stack_parameter(term_t name, term_t key, term_t old, term_t new)
   if ( !value )
     return warning("stack_parameter/4: unknown key");
 
-  return setLong(value, "stack_parameter/4", old, new);
+  return setLong(value, old, new);
 }
 
 
