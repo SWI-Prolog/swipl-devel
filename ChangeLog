@@ -1,6 +1,17 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 3.4.0
+=============
+
+  * FIXED/MODIFIED: argument order of select/3 to be according to the
+    de-facto standard: select(Elem, List, Rest).  Please check your code,
+    this change is INCOMPATIBLE and does not raise a runtime error.
+
+  * UPDATED: README (home page and GNU-Emacs section), manual (GNU-Emacs)
+    and man/Makefile (some comments on building the documentation).  Thanks
+    to Sam Steels.
+
   * IMPROVED: Path presentation of edit/1.
 
   * FIXED: Win32 notion of `home' to use <currentdrive>:/ instead of just

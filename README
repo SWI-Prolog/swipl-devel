@@ -1,6 +1,6 @@
 		    SWI-Prolog Distribution Directory
 
-** Last update: Thu Nov 11 1999 (3.3.0)
+** Last update: Thu Sep 28 2000 (Version 3.3.10)
 
 AUTHOR
 ======
@@ -11,6 +11,16 @@ AUTHOR
 	1018 WB  Amsterdam
 	The Netherlands
 	E-mail: jan@swi.psy.uva.nl
+
+WEB-HOME
+========
+
+Please find the up-to-date information on  SWI-Prolog at the link below.
+You will find the latest sources (also   accessible through CVS), a FAQ,
+mailinglist archive, various additional packages, etc.
+
+	http://www.swi.psy.uva.nl/projects/SWI-Prolog/
+
 
 DIRECTORIES
 ===========
@@ -67,11 +77,28 @@ distribution to arrive at a properly configured system.
 GNU-EMACS INTERFACE
 ===================
 
-The Prolog-mode of GNU-Emacs is  rather  poor.   Once  there  was a much
-better mode developed for  Quintus  which   was  addapted  for  use with
-SWI-Prolog by me. Unfortunately  this  died   in  Emacs-19.  If you have
-pointers to a properly  working  and   usable  Prolog  interface, please
-inform us.
+The Prolog-mode of GNU-Emacs is rather poor. Personally, I use XPCE (see
+Prolog WWW home). For those whishing a proper Prolog mode for GNU-Emacs,
+I got the following pointers from Sam Steel:
+
+``Fortunately there seems to be such an  interface: though I suspect you
+know it and know of some problem I  have missed. Though I have only used
+it for a short while, it seems to work  for me. The only problem is that
+the interaction between it  and  the  pager   for  the  online  help  is
+imperfect.
+
+It is the prolog.el mode for Emacs-20 at
+
+   http://www.freesoft.cz/~pdm/software/emacs/prolog-mode/
+
+There is also apparently a version for Emacs-19 at
+
+   http://w1.858.telia.com/~u85810764/Prolog-mode/index.html
+
+but I have not used this.
+
+Both appear to be freely redistributable.  SWI Prolog is one of the
+flavours of Prolog explicitly handled.''
 
 
 MODIFYING SWI-Prolog
@@ -82,11 +109,19 @@ licenses for use with proprietary software,   your  changes will only be
 integrated into the base system if you grant us the copyright.
 
 
-PROLOG PROGRAMS
-===============
+CONTRIBUTING
+============
 
-Additions to the library and other stand alone Prolog programs have less
-strick conditions.  Add comments such that   other  users can understand
-the program or library module and   ensure  the files provide sufficient
-documentation on its origin, waranty  and distribution conditions.  Such
-contributions are copied verbatim and not maintained by me.
+There are a number of ways in which you can contribute to the success of
+SWI-Prolog. If you encounter problems or   have suggestions, please send
+them to prolog-bugs@swi.psy.uva.nl. If you   write  applications, please
+acknowledge  the  use  of  SWI-Prolog  in   your  application.  If  your
+application has a web-page, please link to the SWI-Prolog home page (see
+the top of  this  file).  If   you  write  reusable  libraries, consider
+providing them to the SWI-Prolog user community   as  a package (see the
+SWI-Prolog home page).
+
+Finally, if you use SWI-Prolog for  commercial purposes, consider buying
+a commercial license. It allows  you  to   use  the  system  without the
+restrictions imposed by the GPL and helps   us to find the resources for
+maintaining and improving SWI-Prolog.
