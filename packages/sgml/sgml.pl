@@ -11,19 +11,21 @@
 */
 
 :- module(sgml,
-	  [ new_dtd/2,			% +Doctype, -DTD
-	    free_dtd/1,			% +DTD
-	    new_sgml_parser/2,		% -Parser, +Options
-	    free_sgml_parser/1,		% +Parser
+	  [ load_sgml_file/2,		% +File, -ListOfContent
+	    load_xml_file/2,		% +File, -ListOfContent
+	    load_html_file/2,		% +File, -Document
 
-	    sgml_open/3,		% +DTD|Parser, +Options, -OutStream
-	    
+	    load_structure/3,		% +File, -Term, +Options
+
 	    load_dtd/2,			% +DTD, +File
 	    dtd/2,			% +Type, -DTD
 	    dtd_property/2,		% +DTD, ?Property
 
-	    load_structure/3,		% +File, -Term, +Options
-	    load_html_file/2		% +File, -Document
+	    new_dtd/2,			% +Doctype, -DTD
+	    free_dtd/1,			% +DTD
+	    new_sgml_parser/2,		% -Parser, +Options
+	    free_sgml_parser/1,		% +Parser
+	    sgml_open/3			% +DTD|Parser, +Options, -OutStream
 	  ]).
 
 :- multifile user:file_search_path/2.
@@ -125,20 +127,24 @@ set_parser_options(_, Options, Options).
 
 load_structure(File, Term, Options) :-
 	open(File, read, In, [type(binary)]),
-	(   select_option(dtd(DTD), Options, Options1)
+	(   select_option(offset(Offset), Options, Options1)
+	->  seek(In, Offset, bof, _)
+	;   Options1 = Options
+	),
+	(   select_option(dtd(DTD), Options1, Options2)
 	->  ExplicitDTD = true
 	;   ExplicitDTD = false,
-	    Options1 = Options
+	    Options2 = Options1
 	),
 	new_sgml_parser(Parser,
 			[ dtd(DTD)
 			]),
 	set_sgml_parser(Parser, file(File)),
-	set_parser_options(Parser, Options1, Options2),
+	set_parser_options(Parser, Options2, Options3),
 	sgml_open(Parser,
 		  [ document(Term),
 		    goal(copy_stream_data(In, Out))
-		  | Options2
+		  | Options3
 		  ],
 		  Out),
 	close(In),
@@ -154,8 +160,14 @@ load_structure(File, Term, Options) :-
 
 
 		 /*******************************
-		 *	 HTML (UTILITIES)	*
+		 *	     UTILITIES		*
 		 *******************************/
+
+load_sgml_file(File, Term) :-
+	load_structure(File, Term, [dialect(sgml)]).
+
+load_xml_file(File, Term) :-
+	load_structure(File, Term, [dialect(xml)]).
 
 load_html_file(File, Term) :-
 	dtd(html, DTD),

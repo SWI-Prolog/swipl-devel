@@ -47,6 +47,7 @@ static functor_t FUNCTOR_opt1;
 static functor_t FUNCTOR_plus1;
 static functor_t FUNCTOR_rep1;
 static functor_t FUNCTOR_sgml_parser1;
+static functor_t FUNCTOR_parse1;
 
 static atom_t ATOM_sgml;
 static atom_t ATOM_dtd;
@@ -84,6 +85,7 @@ initConstants()
   FUNCTOR_line1        = mkfunctor("line", 1);
   FUNCTOR_dialect1     = mkfunctor("dialect", 1);
   FUNCTOR_max_errors1  = mkfunctor("max_errors", 1);
+  FUNCTOR_parse1       = mkfunctor("parse", 1);
 
   ATOM_dtd  = PL_new_atom("dtd");
   ATOM_sgml = PL_new_atom("sgml");
@@ -284,6 +286,11 @@ pl_set_sgml_parser(term_t parser, term_t option)
 		 *	       STREAM		*
 		 *******************************/
 
+typedef enum
+{ SA_FILE = 0,				/* Stop at end-of-file */
+  SA_ELEMENT				/* Stop after first element */
+} stopat;
+
 typedef struct _env
 { term_t	tail;
   struct _env *parent;
@@ -296,6 +303,9 @@ typedef struct _parser_data
   int	      errors;			/* #errors seen */
   int	      max_errors;		/* error limit */
   int	      max_warnings;		/* warning limit */
+
+  stopat      stopat;			/* Where to stop */
+  int	      stopped;			/* Environment is complete */
 
   term_t      list;			/* output term (if any) */
   term_t      tail;			/* tail of the list */
@@ -346,7 +356,7 @@ static int
 print_open(dtd_parser *p, dtd_element *e, int argc, sgml_attribute *argv)
 { parser_data *pd = p->closure;
 
-  if ( pd->tail )
+  if ( pd->tail && !pd->stopped )
   { term_t content = PL_new_term_ref();	/* element content */
     term_t alist   = PL_new_term_ref();	/* attribute list */
     term_t et	   = PL_new_term_ref();	/* element structure */
@@ -381,7 +391,7 @@ print_close(dtd_parser *p, dtd_element *e)
 { parser_data *pd = p->closure;
   int rval = FALSE;
 
-  if ( pd->tail )
+  if ( pd->tail && !pd->stopped )
   { rval = PL_unify_nil(pd->tail);
     PL_reset_term_refs(pd->tail);	/* ? */
 
@@ -391,6 +401,9 @@ print_close(dtd_parser *p, dtd_element *e)
       pd->tail = pd->stack->tail;
       free(pd->stack);
       pd->stack = parent;
+
+      if ( !parent && pd->stopat == SA_ELEMENT )
+	pd->stopped = TRUE;
     }
   }
 
@@ -402,7 +415,7 @@ static int
 print_entity(dtd_parser *p, dtd_entity *e, int chr)
 { parser_data *pd = p->closure;
 
-  if ( pd->tail )
+  if ( pd->tail && !pd->stopped )
   { term_t h = PL_new_term_ref();
     int ok;
 
@@ -432,7 +445,7 @@ static int
 print_cdata(dtd_parser *p, int len, const ochar *data)
 { parser_data *pd = p->closure;
 
-  if ( pd->tail )
+  if ( pd->tail && !pd->stopped )
   { term_t h = PL_new_term_ref();
 
     if ( PL_unify_list(pd->tail, h, pd->tail) &&
@@ -449,6 +462,9 @@ print_cdata(dtd_parser *p, int len, const ochar *data)
 static int
 sgml_error(dtd_parser *p, dtd_error *error)
 { parser_data *pd = p->closure;
+
+  if ( pd->stopped )
+    return TRUE;
 
   switch(error->severity)
   { case ERS_WARNING:
@@ -483,7 +499,7 @@ write_parser(void *h, char *buf, int len)
     return -1;
   }
   
-  if ( pd->errors > pd->max_errors )
+  if ( pd->errors > pd->max_errors || pd->stopped )
   { errno = EIO;
     return -1;
   }
@@ -559,7 +575,6 @@ pl_open_dtd(term_t ref, term_t options, term_t stream)
 }
 
 
-
 static foreign_t
 pl_sgml_open(term_t parser, term_t options, term_t stream)
 { dtd_parser *p;
@@ -604,6 +619,19 @@ pl_sgml_open(term_t parser, term_t options, term_t stream)
     { goal = PL_new_term_ref();
 
       PL_get_arg(1, head, goal);
+    } else if ( PL_is_functor(head, FUNCTOR_parse1) )
+    { term_t a = PL_new_term_ref();
+      char *s;
+
+      PL_get_arg(1, head, a);
+      if ( !PL_get_atom_chars(a, &s) )
+	return pl_error(ERR_TYPE, "atom", a);
+      if ( streq(s, "element") )
+	pd->stopat = SA_ELEMENT;
+      else if ( streq(s, "file") )
+	pd->stopat = SA_FILE;
+      else
+	return pl_error(ERR_DOMAIN, "parse", a);
     } else if ( PL_is_functor(head, FUNCTOR_max_errors1) )
     { term_t a = PL_new_term_ref();
 
@@ -632,11 +660,17 @@ pl_sgml_open(term_t parser, term_t options, term_t stream)
     { PL_close_foreign_frame(fid);
       return TRUE;
     }
-    PL_discard_foreign_frame(fid);
 
     if ( pd->errors > pd->max_errors )
+    { PL_discard_foreign_frame(fid);
       return pl_error(ERR_LIMIT, "max_errors", (long)pd->max_errors);
+    }
+    if ( pd->stopped )
+    { PL_close_foreign_frame(fid);
+      return TRUE;
+    }
 
+    PL_discard_foreign_frame(fid);
     return pl_error(ERR_FAIL, goal);
   }
 

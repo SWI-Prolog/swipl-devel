@@ -9,6 +9,9 @@
 
 \renewcommand{\runningtitle}{SWI-Prolog SGML/XML parser}
 
+\newcommand{\anyml}{$\cal X$ML}
+\newcommand{\elem}[1]{{\tt\string<#1\string>}}
+
 \begin{document}
 
 \title{SWI-Prolog SGML/XML parser}
@@ -132,7 +135,152 @@ Content}. Entities (e.g.\ \verb$&lt$) are returned as part of
 for details.
 
 
-\section{Defined predicates}
+\subsection{`Goodies' Predicates}
+
+These predicates are for basic usage of the library, converting entire
+and self-contained files in one of the three supported \anyml{} dialects
+into a structured term.  They are all expressed in load_structure/3.
+
+\begin{description}
+    \predicate{load_sgml_file}{2}{+File, -ListOfContent}
+Same as \term{load_structure}{File, ListOfContent, [dialect(sgml)]}.
+    \predicate{load_xml_file}{2}{+File, -ListOfContent}
+Same as \term{load_structure}{File, ListOfContent, [dialect(xml)]}.
+    \predicate{load_html_file}{2}{+File, -Content}
+Load \arg{File} and parse as HTML.  Implemented as:
+
+\begin{code}
+load_html_file(File, Term) :-
+	dtd(html, DTD),
+	load_sgml_file(File, Term, DTD).
+\end{code}
+\end{description}
+
+
+\section{Predicate Reference}
+
+\subsection{Loading Structured Documents}
+
+SGML or XML files are loaded through the common predicate
+load_structure/3. This is a predicate with many options. For simplicity
+a number of commonly used shorthands are provided: load_sgml_file/2,
+load_xml_file/2, and load_html_file/2.
+
+\begin{description}
+    \predicate{load_structure}{3}{+File, --ListOfContent, +Options}
+Load the \anyml{} file \arg{File} and return the resulting structure
+in \arg{ListOfContent}. \arg{Options} is a list of options controlling the
+conversion process.
+
+A proper \anyml{} document contains only a single toplevel element whose
+name matches the document type.  Nevertheless, a list is returned for
+consistency with the representation of element content. The
+\arg{ListOfContent} consists of three types:
+
+\begin{description}
+    \termitem{\arg{Atom}}{}
+Atoms are used to represent \const{CDATA}.  Note this is possible
+in SWI-Prolog, as there is no length-limit on atoms and atom garbage
+collection is provided.
+
+    \termitem{element}{Name, ListAttributes, ListOfContent}
+\arg{Name} is the name of the element. Using SGML, which is
+case-insensitive, all element names are returned as lowercase atoms.
+
+\arg{ListOfAttributes} is a list of \arg{Name}=\arg{Value} pairs for
+attributes that appeared in the source. No information is returned on
+other attributes, such as \const{fixed} or \const{default} attributes.
+See dtd_property/2 for accessing the DTD for this information.
+Attributes of type \const{CDATA} are returned literal. Attributes of
+type \const{NUMBER} are returned as a Prolog integer. All other
+attribute values are returned as lowercase atoms.%
+	\bug{List-valued attributes are returned as a single atom.}
+
+\arg{ListOfContent} defines the content for the element.
+
+    \termitem{entity}{Code}
+If a character-entity (e.g. \verb$&#913;$) is encoutered that cannot
+be represented in the Prolog character set, this term is returned,
+representing the referred character code.
+
+    \termitem{entity}{Name}
+If an entity refers to a character-entity holding a single character,
+but this character cannot be represented in the Prolog character set,
+this term is returned. For example, the HTML input text
+\verb$&Alpha; &lt &Beta;$ is returned as below.  Please note the
+conversion to lowercase because SGML is case-insensitive.
+
+\begin{code}
+[ entity(alpha), ' < ', entity(beta) ]
+\end{code}
+
+This is a special case of \term{entity}{Code}, intended to handle
+special symbols by their name rather then character code.
+\end{description}
+
+The \arg{Options} list controls the conversion process.  Currently
+defined options are:
+
+\begin{description}
+    \termitem{dtd}{?DTD}
+Reference to a DTT object.  If specified, the \verb$<!DOCTYPE ...>$
+declaration is ignored and the document is parsed and validated against
+the provided DTD.  If provided as a variable, the implicitly created
+DTD is returned.  See \secref{implicitdtd}.
+
+    \termitem{dialect}{+Dialect}
+Specify the parsing dialect.  Supported are \const{sgml} (default)
+and \arg{xml}. See \secref{xml} for details on the differences.
+
+    \termitem{file}{+Name}
+Sets the name of the file on which errors are reported. Sets the
+linenumber to 1.
+
+    \termitem{line}{+Line}
+Sets the starting line-number for reporting errors.
+
+    \termitem{max_errors}{+Max}
+Sets the maximum number of errors.  If this number is reached, an
+exception of the format below is raised.  The default is 50.
+
+\begin{quote}
+\term{error}{\term{limit_exceeded}{max_errors, Max}, _}
+\end{quote}
+\end{description}
+\end{description}
+
+\subsection{XML documents}			\label{sec:xml}
+
+The parser can operate in two modes: \const{sgml} mode and \const{xml}
+mode, as defined by the \term{dialect}{Dialect} option. Regardless of
+this option, if the first line of the document reads as below, the
+parser is switched automatically into XML mode.
+
+\begin{code}
+<?xml ... ?>
+\end{code}
+
+Currently switching to XML mode implies:
+
+\begin{itemlist}
+    \item [XML empty elements]
+The construct \verb$<element [attribute...] />$ is recognised as an
+empty element.
+    \item [Predefined entities]
+The following entitities are predefined:
+\const{lt} (\verb$<$),
+\const{gt} (\verb$>$),
+\const{amp} (\verb$&$),
+\const{apos} (\verb$'$) and
+\const{quot} (\verb$"$).
+    \item [Case sensitivity]
+In XML mode, names are treated case-sensitive, except for the DTD
+reserved names (i.e. \const{ELEMENT}, etc.).
+    \item [Character classes]
+In XML mode, underscores (\verb$_$) and colon (\verb$:$) are allowed in
+names.
+\end{itemlist}
+
 
 \subsection{DTD-Handling}
 
@@ -249,102 +397,39 @@ defined entities.
 \end{description}
 
 
-\subsection{Loading SGML Documents}
+\subsection{Extracting a DTD}		\label{sec:implicitdtd}
 
-SGML documents are handled through an object called
-\jargon{sgml_parser}. A parser can be created with or without a supplied
-DTD.  The parser itself can, like the DTD, be created, freed and opened
-as a Prolog stream.  First we explain the easy-to-use toplevel predicate
-load_sgml_file/[2,3]:
-
-\begin{description}
-    \predicate{load_sgml_file}{2}{+File, -ListOfContent}
-Parse the SGML instance from \arg{File}, returning a list of elements.
-A proper SGML document contains only a single toplevel element whose
-name matches the document type.  Nevertheless, a list is returned for
-consistency with the representation of element content. The
-\arg{ListOfContent} consists of three types:
-
-\begin{description}
-    \termitem{\arg{Atom}}{}
-Atoms are used to represent \const{CDATA}.  Note this is possible
-in SWI-Prolog, as there is no length-limit on atoms and atom garbage
-collection is provided.
-
-    \termitem{element}{Name, ListAttributes, ListOfContent}
-\arg{Name} is the name of the element. Using SGML, which is
-case-insensitive, all element names are returned as lowercase atoms.
-
-\arg{ListOfAttributes} is a list of \arg{Name}=\arg{Value} pairs for
-attributes that appeared in the source. No information is returned on
-other attributes, such as \const{fixed} or \const{default} attributes.
-See dtd_property/2 for accessing the DTD for this information.
-Attributes of type \const{CDATA} are returned literal. Attributes of
-type \const{NUMBER} are returned as a Prolog integer. All other
-attribute values are returned as lowercase atoms.%
-	\bug{List-valued attributes are returned as a single atom.}
-
-\arg{ListOfContent} defines the content for the element.
-
-    \termitem{entity}{Code}
-If a character-entity (e.g. \verb$&#913;$) is encoutered that cannot
-be represented in the Prolog character set, this term is returned,
-representing the referred character code.
-
-    \termitem{entity}{Name}
-If an entity refers to a character-entity holding a single character,
-but this character cannot be represented in the Prolog character set,
-this term is returned. For example, the HTML input text
-\verb$&Alpha; &lt &Beta;$ is returned as below.  Please note the
-conversion to lowercase because SGML is case-insensitive.
+Some documents have no DTD.  One of the neat facilities of this library
+is that is builds a DTD while parsing a document with an
+\jargon{implicit} DTD.  The resulting DTD contains all elements
+encountered in the document.  For each element the content model is a
+disjunction of elements and possibly \verb$#PCDATA$ that can be
+repeated.  Thus, if in element \elem{x} whe found element \elem{y}
+and CDATA, the model is:
 
 \begin{code}
-[ entity(alpha), ' < ', entity(beta) ]
+<!ELEMENT x - - (y|#PCDATA)*>
 \end{code}
 
-This is a special case of \term{entity}{Code}, intended to handle
-special symbols by their name rather then character code.
-\end{description}
+Any encountered attribute is added to the attribute list with the
+type \const{CDATA} and default \const{\#IMPLIED}.
 
-    \predicate{load_sgml_file}{3}{+File, -ListOfContent, ?DTD}
-As load_sgml_file/3. If \arg{DTD} is specified, the \verb$<!DOCTYPE ...$
-declaration is ignored and the document is parsed using the given DTD.
-If \arg{DTD} is unbound, the document declaration is loaded from the
-\verb$<!DOCTYPE ...$ specification and the created DTD is returned in
-\arg{DTD}.  The DTD may be inspected using dtd_property/2 and freed
-using free_dtd/1.
-\end{description}
+The example below extracts the elements used in an unknown XML document.
 
-The predicates above are implemented in \pllib{sgml} based on the
-following low-level primitives. These primitives are useful if documents
-need to be loaded from sources others than files, such as SWI-Prolog
-\jargon{resources} or directly from the network.
+\begin{code}
+elements_in_xml_document(File, Elements) :-
+	load_structure(File, _,
+		       [ dialect(xml),
+			 dtd(DTD)
+		       ]),
+	dtd_property(DTD, elements(Elements)),
+	free_dtd(DTD).
+\end{code}
+
+
+\subsection{Primitives}
 
 \begin{description}
-    \predicate{new_sgml_parser}{2}{-Parser, +Options}
-Create a new SGML parser from the provided options.  Currently the only
-option defined is:
-    \begin{description}
-        \termitem{dtd}{DTD}
-    Provide a DTD or get a reference to the implicitely created DTD.
-    \end{description}
-
-    \predicate{free_sgml_parser}{1}{+Parser}
-Destroy the indicated parser.  Note that this does not destroy the DTD.
-
-    \predicate{set_sgml_parser}{2}{+Parser, +Option}
-Set options on the SGML parser.  The following options are defined:
-    \begin{description}
-	\termitem{file}{File}
-Set the filename associated with the parser.  This name is used for
-generating error messages.  This option sets the line option to 1.
-	\termitem{line}{Line}
-Set the line-number on the input file.    
-	\termitem{dialect}{Dialect}
-Select the \jargon{dialect} to use.  The initial is \const{sgml}.
-The other allowed value is \const{xml}.  See \secref{xml}.
-    \end{description}
-
     \predicate{sgml_open}{2}{+DTDOrParser, +Options, -OutStream}
 Open either a DTD or an SGML parser as an output stream.  For a DTD,
 the option-list is currently empty.
@@ -384,55 +469,6 @@ Set the maximum number of errors.  If this number is exceeded further
 writes to the stream will yield an I/O error exception.  Printing of
 errors is suppressed after reaching this value.  The default is 100.
 \end{description}
-\end{description}
-
-
-\subsection{XML documents}			\label{sec:xml}
-
-The parser can operate in two modes: \const{sgml} mode and \const{xml}
-mode.  If the first line of the document reads as below, the parser is
-switched automatically into XML mode.
-
-\begin{code}
-<?xml ... ?>
-\end{code}
-
-Currently switching to XML mode implies:
-
-\begin{itemlist}
-    \item [XML empty elements]
-The construct \verb$<element [attribute...] />$ is recognised as an
-empty element.
-    \item [Predefined entities]
-The following entitities are predefined:
-\const{lt} (\verb$<$),
-\const{gt} (\verb$>$),
-\const{amp} (\verb$&$),
-\const{apos} (\verb$'$) and
-\const{quot} (\verb$"$).
-    \item [Case sensitivity]
-In XML mode, names are treated case-sensitive, except for the DTD
-reserved names (i.e. \const{ELEMENT}, etc.).
-    \item [Character classes]
-In XML mode, underscores (\verb$_$) and colon (\verb$:$) are allowed in
-names.
-\end{itemlist}
-
-
-\subsection{HTML Documents}
-
-HTML documents are normal SGML documents to this package.  The W3C DTD
-for HTML 4.0 is provided and used by load_html_file/2.
-
-\begin{description}
-    \predicate{load_html_file}{2}{+File, -Content}
-Load \arg{File} and parse as HTML.  Implemented as:
-
-\begin{code}
-load_html_file(File, Term) :-
-	dtd(html, DTD),
-	load_sgml_file(File, Term, DTD).
-\end{code}
 \end{description}
 
 

@@ -2197,7 +2197,9 @@ end_document_dtd_parser(dtd_parser *p)
 
 int
 begin_document_dtd_parser(dtd_parser *p)
-{ dtd *dtd = p->dtd;
+{
+#ifdef UTF8
+  dtd *dtd = p->dtd;
 
   if ( dtd->encoding == ENC_UTF8 &&
        p->encoding   == ENC_ISO_LATIN1 )
@@ -2205,6 +2207,7 @@ begin_document_dtd_parser(dtd_parser *p)
     fprintf(stderr, "Converting UTF-8 to ISO-Latin-1\n");
   } else
     p->utf8_decode = FALSE;
+#endif
 
   return TRUE;
 }
@@ -2214,6 +2217,7 @@ begin_document_dtd_parser(dtd_parser *p)
 Set the UTF-8 state
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef UTF8
 static void
 process_utf8(dtd_parser *p, int chr)
 { int bytes;
@@ -2228,6 +2232,7 @@ process_utf8(dtd_parser *p, int chr)
   p->utf8_char = chr & mask;
   p->utf8_left = bytes;
 }
+#endif
 
 
 /* We discovered illegal markup and now process it as normal CDATA
