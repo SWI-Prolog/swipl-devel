@@ -110,6 +110,7 @@ idle(M) :->
 
 new_buffer(M) :->
 	"A new buffer is attached"::
+	send(M, slot, coloured_generation, -1),
 	send(M, auto_colourise_buffer).
 
 
