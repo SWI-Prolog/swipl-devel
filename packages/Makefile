@@ -4,14 +4,10 @@
 
 PKG=	clib \
 	table \
-	sgml
+	sgml \
+	sgml/RDF
 
 CONFIG=	./configure --enable-mt
-
-all:
-	for p in $(PKG); do \
-	    ( cd $$p && make distclean && $(CONFIG) && make && make install ) \
-        done
 
 all:	configure objects
 	
@@ -33,5 +29,10 @@ configure:
 distclean:
 	for p in $(PKG); do \
 	    ( cd $$p && $(MAKE) distclean ) \
+        done
+
+clean:
+	for p in $(PKG); do \
+	    ( cd $$p && $(MAKE) clean ) \
         done
 

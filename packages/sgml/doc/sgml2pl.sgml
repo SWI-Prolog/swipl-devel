@@ -766,6 +766,7 @@ highlighting.  Defined values are:
 	The current event is caused by the expansion of a
 	<jargon/shortref/. This allows for highlighting shortref strings
 	in the source-text.
+    </argdef>
 
     <termitem>doctype(-Element)
 Return the defined document-type (= toplevel element).  See also
@@ -811,7 +812,6 @@ with loaded DTD, an input stream and a start-location.
 feed(In, Len, Parser) :-
 	copy_stream_data(In, Parser, Len).
 </code>
-    </argdef>
 </argdef>
 
 <p>

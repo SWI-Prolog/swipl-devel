@@ -282,11 +282,8 @@ Handling attributes of the types <a name="const:NUMBER"><b><tt>NUMBER</tt></b></
 the setting of the <code>number(+NumberMode)</code> attribute through
 <a href="#set_sgml_parser/2"><b>set_sgml_parser/2</b></a> or <a href="#load_structure/3"><b>load_structure/3</b></a>.  By
 default they are returned as atoms, but automatic conversion to Prolog
-integers is supported.
-
-
-<p>
-<var>ListOfContent</var> defines the content for the element.
+integers is supported. <var>ListOfContent</var> defines the content for the
+element.
     
 <dt>&nbsp;<br>
 <b>entity(<var>Code</var>)</b><dd>
@@ -350,8 +347,8 @@ defined options are:
 <b>dtd(<var>?DTD</var>)</b><dd>
 Reference to a DTD object. If specified, the <code>&lt;!DOCTYPE ...&gt;</code>
 declaration is ignored and the document is parsed and validated against 
-the provided DTD. If provided as a variable, the implicitly created DTD 
-is returned. See <a href="#sec:implicitdtd">implicitdtd</a>.
+the provided DTD. If provided as a variable, the created DTD is
+returned. See <a href="#sec:implicitdtd">implicitdtd</a>.
     
 <dt>&nbsp;<br>
 <b>dialect(<var>+Dialect</var>)</b><dd>
@@ -1042,6 +1039,9 @@ The current event (<a name="const:begin"><b><tt>begin</tt></b></a> or <a name="c
 The current event is caused by the expansion of a
 	<b><em>shortref</em></b>. This allows for highlighting shortref strings
 	in the source-text.
+    
+</dl>
+
 
     
 <dt>&nbsp;<br>
@@ -1103,9 +1103,6 @@ feed(In, Len, Parser) :-
 </pre>
 </td></tr>
 </table>
-
-    
-</dl>
 </dl>
 
 
