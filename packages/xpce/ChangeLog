@@ -1,6 +1,11 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.0.3, distributed with SWI-Prolog 5.0.3
+================================================
+
+* FIXED: WSAEWOULDBLOCK problems in windows socket layer.
+
 * INSTALL: Properly install swipl.rc in the MacOS version to bind XPCE
   to the normal Prolog executable swipl.
 
