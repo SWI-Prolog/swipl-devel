@@ -672,7 +672,7 @@ DVLIBDIRS=	lib lib/compatibility lib/dialog lib/draw lib/emacs lib/man \
 DVIMGDIRS=	lib/dialog/bitmaps lib/trace/icons lib/trace/icons/16x16
 DVBOOTDIRS=	boot
 DVMISCFILES=	ChangeLog 
-RTMISC=		Defaults COPYING README
+RTMISC=		Defaults Defaults.user COPYING README
 
 install:	dv-install
 

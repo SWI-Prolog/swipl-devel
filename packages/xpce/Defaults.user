@@ -1,0 +1,31 @@
+! Skeleton preferences file for XPCE.  This file is loaded from pce(Defaults).
+!
+! Format:
+!
+!	* Comment
+!	Line-comment is started by the ! (exclamation mark)
+!
+!	* Default
+!	<class>.<class-variable>: <value>
+!
+!	* Values
+!	Values are in standard term-representation.  Chains may be written
+!	as a Prolog list.  Values spanning multiple lines use \<NL> to continue
+!	on the next line
+
+! Basic style for keyboard accelerators.  On Windows the default is `cua'.
+! (Common User Access), on Unix the default is `emacs'.  You can overrule
+! the default here.
+
+!key_binding.style:	cua
+
+! By default, the editors are case-insensitive in search and replace.  Set to
+! @on to use case-sensitive search and replace
+
+!editor.exact_case:	@on
+
+! Spelling program options for the ispell demo and checker for PceEmacs.
+! Ispell is available on most Unix installations.
+
+!ispell.spell_program:	'ispell -d british -t -l'
+

@@ -320,6 +320,7 @@ MANINDEX=$(IBASE)\man\reference\index.obj
 
 README=	ChangeLog \
 	Defaults \
+	Defaults.user \
 	INFO \
 	README \
 	VERSION

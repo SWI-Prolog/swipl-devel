@@ -87,6 +87,11 @@ default_preferences(prolog, File) :-
 			   [ access(read),
 			     file_errors(fail)
 			   ], File), !.
+default_preferences(xpce_user, File) :-
+	absolute_file_name(pce('Defaults.user'),
+			   [ access(read),
+			     file_errors(fail)
+			   ], File), !.
 
 
 ensure_xpce_config_dir(Dir) :-

@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Skeleton file for ~/.xpce/Defaults.
+
 * ADDED: First version of system-dependent and hot-switchable key-bindings
   (accelerators).  Provides the important CUA (Common User Access, used
   in Windows) key-bindings by default on Windows and Emacs bindings on

@@ -31,14 +31,6 @@ display.system_fonts:	[ normal    := font(helvetica, roman,   12), \
 
 ! editor.exact_case:	@on
 
-!Use the following resources if you prefer the X11 (xterm) scrollbars
-
-!scroll_bar.look:		x
-!scroll_bar.distance:	- @_win_pen
-!scroll_bar.elevation:	when(@colour_display, \
-!			     1, \
-!			     elevation(@nil, 1, @grey50_image))
-
 ! Finally, parse the user's defaults file.
 
 #include ~/.xpce/Defaults
