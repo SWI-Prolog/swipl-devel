@@ -273,6 +273,10 @@ module(TF, Module:name) :<-
 
 module_of_path(Path, Module) :-
 	open(Path, read, Fd),
+	(   peek_char(Fd, '#')		% skip !# line
+	->  skip(Fd, 10)
+	;   true
+	),
 	read(Fd, Term),
 	close(Fd),
 	Term = (:- module(Module, _Public)).

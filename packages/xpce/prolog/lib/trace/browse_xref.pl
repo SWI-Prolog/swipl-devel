@@ -147,6 +147,10 @@ x_browse_analyse(File) :-
 	clean,				% play safe
 	x_browse_free(File),
 	open(File, read, Fd),
+	(   peek_char(Fd, #)		% Deal with #! script
+	->  skip(Fd, 10)
+	;   true
+	),
 	asserta(current_id(File), Ref),
 	'$style_check'(Old, Old),
 	style_check(+dollar),
