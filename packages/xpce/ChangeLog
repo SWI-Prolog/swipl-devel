@@ -1,3 +1,8 @@
+* FIXED: Win32: Various issues in colour-handling.  Properly distinguish
+  between palette usage and direct RGB, fixing colour distortion on
+  high- and true-colour displays and added proper colormap support to
+  the windows port of XPM 3.4k.
+
 VERSION 5.1.0
 =============
 
