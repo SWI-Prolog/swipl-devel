@@ -841,6 +841,7 @@ termToObject(Term t, Atom assoc, int new)
 	   argv[0] == PROLOG &&
 	   (name == NAME_message || name == NAME_obtain) )
       { Atom a2;
+	Module dm = DefaultModule;
 
 	GetArg(2, t, a);
 					/* message(@prolog, call, ...) */
@@ -849,13 +850,13 @@ termToObject(Term t, Atom assoc, int new)
 	  GetArg(3, t, a);
 	}
 
-	StripModuleTag(a, &DefaultModule, a);
-	if ( GetAtom(a, &a2) && DefaultModule )
+	StripModuleTag(a, &dm, a);
+	if ( GetAtom(a, &a2) && dm )
 	{ char tmp[MAXMODULENAME];
 	  char *s;
 	  char *d = tmp;
 	      
-	  for(s = (char *)AtomCharp(ModuleName(DefaultModule)); *d++ = *s++; );
+	  for(s = (char *)AtomCharp(ModuleName(dm)); *d++ = *s++; );
 	  d[-1] = ':';
 
 	  s = (char *)AtomCharp(a2);
@@ -1049,18 +1050,29 @@ unifyObject(Term t, PceObject obj, int top)
 		 *	  VMI FUNCTIONS		*
 		 *******************************/
 
+static __inline Module
+PushDefaultModule()
+{ Module odm = DefaultModule;
+
+  DefaultModule = 0;
+  return odm;
+}
+
+#define PopDefaultModule(o)	(DefaultModule = (o))
+
 					/* NEW */
 foreign_t
 pl_new(Term assoc, Term descr)
 { AnswerMark mark;
   PceObject obj;
   Term d = NewTerm();
+  Module odm = PushDefaultModule();
 
-  DefaultModule = 0;
   StripModuleTag(descr, &DefaultModule, d);
   markAnswerStack(mark);
   obj = do_new(assoc, d);
   rewindAnswerStack(mark, obj);
+  PopDefaultModule(odm);
 
   return obj ? TRUE : FALSE;
 }
@@ -1072,12 +1084,14 @@ pl_send0(Term rec, Term sel)
   AnswerMark mark;
   PceObject receiver;
   PceName selector;
+  Module odm = PushDefaultModule();
 
   markAnswerStack(mark);
   rval = ((receiver = termToObject(rec, NULLATOM, FALSE)) &&
 	  (selector = GetSelector(sel, &DefaultModule)) &&
 	  pceSend(receiver, selector, 0, NULLATOM));
   rewindAnswerStack(mark, NIL);
+  PopDefaultModule(odm);
 
   return rval ? TRUE : FALSE;
 } 
@@ -1090,6 +1104,7 @@ pl_send1(Term rec, Term sel, Term arg)
   PceObject receiver;
   PceName selector;
   PceObject pcearg1;
+  Module odm = PushDefaultModule();
 
   markAnswerStack(mark);
   rval = ((receiver = termToObject(rec, NULLATOM, FALSE)) &&
@@ -1097,6 +1112,7 @@ pl_send1(Term rec, Term sel, Term arg)
 	  (pcearg1  = termToObject(arg, NULLATOM, FALSE)) &&
 	  pceSend(receiver, selector, 1, &pcearg1));
   rewindAnswerStack(mark, NIL);
+  PopDefaultModule(odm);
 
   return rval;
 } 
@@ -1109,6 +1125,7 @@ pl_send2(Term rec, Term sel, Term a1, Term a2)
   PceObject receiver;
   PceName selector;
   PceObject pa[2];
+  Module odm = PushDefaultModule();
 
   markAnswerStack(mark);
   rval = ((receiver = termToObject(rec, NULLATOM, FALSE)) &&
@@ -1117,6 +1134,7 @@ pl_send2(Term rec, Term sel, Term a1, Term a2)
 	  (pa[1]    = termToObject(a2, NULLATOM, FALSE)) &&
 	  pceSend(receiver, selector, 2, pa));
   rewindAnswerStack(mark, NIL);
+  PopDefaultModule(odm);
 
   return rval;
 } 
@@ -1129,6 +1147,7 @@ pl_send3(Term rec, Term sel, Term a1, Term a2, Term a3)
   PceObject receiver;
   PceName selector;
   PceObject pa[3];
+  Module odm = PushDefaultModule();
 
   markAnswerStack(mark);
   rval = ((receiver = termToObject(rec, NULLATOM, FALSE)) &&
@@ -1138,6 +1157,7 @@ pl_send3(Term rec, Term sel, Term a1, Term a2, Term a3)
 	  (pa[2]    = termToObject(a3, NULLATOM, FALSE)) &&
 	  pceSend(receiver, selector, 3, pa));
   rewindAnswerStack(mark, NIL);
+  PopDefaultModule(odm);
 
   return rval;
 } 
@@ -1153,6 +1173,7 @@ pl_sendn(Term rec, Term sel, Term args)
   AnswerMark mark;
   PceObject receiver;
   PceName selector;
+  Module odm = PushDefaultModule();
 
   markAnswerStack(mark);
   if ( !(receiver = termToObject(rec, NULLATOM, FALSE)) ||
@@ -1181,6 +1202,7 @@ pl_sendn(Term rec, Term sel, Term args)
 
 out:
   rewindAnswerStack(mark, NIL);
+  PopDefaultModule(odm);
 
   return rval;
 } 
@@ -1191,6 +1213,7 @@ pl_get0(Term rec, Term sel, Term ret)
 { AnswerMark mark;
   PceObject receiver, rval;
   PceName selector;
+  Module odm = PushDefaultModule();
 
   markAnswerStack(mark);
   rval = (((receiver = termToObject(rec, NULLATOM, FALSE)) &&
@@ -1198,6 +1221,7 @@ pl_get0(Term rec, Term sel, Term ret)
 	      ? pceGet(receiver, selector, 0, NULLATOM)
 	      : (PceObject)PCE_FAIL);
   rewindAnswerStack(mark, rval);
+  PopDefaultModule(odm);
 
   return rval ? unifyObject(ret, rval, FALSE) : FALSE;
 }
@@ -1209,6 +1233,7 @@ pl_get1(Term rec, Term sel, Term a1, Term ret)
   PceObject receiver, rval;
   PceName selector;
   PceObject av[1];
+  Module odm = PushDefaultModule();
 
   markAnswerStack(mark);
   rval = (((receiver = termToObject(rec, NULLATOM, FALSE)) &&
@@ -1217,6 +1242,7 @@ pl_get1(Term rec, Term sel, Term a1, Term ret)
 	   	? pceGet(receiver, selector, 1, av)
 	        : (PceObject)PCE_FAIL);
   rewindAnswerStack(mark, rval);
+  PopDefaultModule(odm);
 
   return rval ? unifyObject(ret, rval, FALSE) : FALSE;
 }
@@ -1228,6 +1254,7 @@ pl_get2(Term rec, Term sel, Term a1, Term a2, Term ret)
   PceObject receiver, rval;
   PceName selector;
   PceObject av[2];
+  Module odm = PushDefaultModule();
 
   markAnswerStack(mark);
   rval = (((receiver = termToObject(rec, NULLATOM, FALSE)) &&
@@ -1237,6 +1264,7 @@ pl_get2(Term rec, Term sel, Term a1, Term a2, Term ret)
 		? pceGet(receiver, selector, 2, av)
 	  	: (PceObject)PCE_FAIL);
   rewindAnswerStack(mark, rval);
+  PopDefaultModule(odm);
 
   return rval ? unifyObject(ret, rval, FALSE) : FALSE;
 }
@@ -1248,6 +1276,7 @@ pl_get3(Term rec, Term sel, Term a1, Term a2, Term a3, Term ret)
   PceObject receiver, rval;
   PceName selector;
   PceObject av[3];
+  Module odm = PushDefaultModule();
 
   markAnswerStack(mark);
   rval = (((receiver = termToObject(rec, NULLATOM, FALSE)) &&
@@ -1258,6 +1287,7 @@ pl_get3(Term rec, Term sel, Term a1, Term a2, Term a3, Term ret)
 		? pceGet(receiver, selector, 3, av)
 	  	: (PceObject)PCE_FAIL);
   rewindAnswerStack(mark, rval);
+  PopDefaultModule(odm);
 
   return rval ? unifyObject(ret, rval, FALSE) : FALSE;
 }
@@ -1270,7 +1300,7 @@ pl_getn(Term rec, Term sel, Term args, Term ret)
   AnswerMark mark;
   PceObject receiver;
   PceName selector;
-
+  Module odm = PushDefaultModule();
 
   markAnswerStack(mark);
   if ( !(receiver = termToObject(rec, NULLATOM, FALSE)) ||
@@ -1302,6 +1332,7 @@ pl_getn(Term rec, Term sel, Term args, Term ret)
 
 out:
   rewindAnswerStack(mark, rval);
+  PopDefaultModule(odm);
 
   return plrval ? unifyObject(ret, rval, FALSE) : FALSE;
 }

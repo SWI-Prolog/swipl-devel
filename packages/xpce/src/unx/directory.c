@@ -687,9 +687,12 @@ expandFileName(char *pattern)
   char c;
 
   if ( *pattern == '~' )
-  { static char fred[20];
+  {
+#ifdef HAVE_GETPWNAM
+    static char fred[20];
     static char fredLogin[MAXPATHLEN];
     extern struct passwd *getpwnam(const char *);
+#endif
     char *user;
     char *value;
     int l;
@@ -698,10 +701,28 @@ expandFileName(char *pattern)
     if ( (user = takeWord(&pattern)) == NULL )
       return NULL;
 
-    if ( user[0] != EOS || (value = GETENV("HOME")) == (char *) NULL )
+    if ( user[0] == EOS )		/* ~/bla */
     {
-#if HAVE_PWD_H
-      struct passwd *pwent;
+#ifdef O_XOS
+      value = _xos_home();
+#else /*O_XOS*/
+      static char myhome[MAXPATHLEN];
+
+      if ( myhome[0] == EOS )
+      { char plp[MAXPATHLEN];
+
+	if ( (value = getenv("HOME")) )
+	{ strcpy(myhome, value);
+	}
+	if ( myhome[0] == EOS )
+	  strcpy(myhome, "/");
+      }
+	
+      value = myhome;
+#endif /*O_XOS*/
+    } else				/* ~fred */
+#ifdef HAVE_GETPWNAM
+    { struct passwd *pwent;
 
       if ( !streq(fred, user) )
       { if ( (pwent = getpwnam(user)) == (struct passwd *) NULL )
@@ -712,15 +733,13 @@ expandFileName(char *pattern)
 	strcpy(fredLogin, pwent->pw_dir);
       }
       value = fredLogin;
-#else
-#if __WIN32__
-      value = "/";			/* ~/bla --> /bla */
-#else
-      ExpandProblem = CtoName("Unknown user");
-      return NULL;
-#endif
-#endif /*HAVE_PWD_H*/
     }	  
+#else
+    { ExpandProblem = CtoName("Unknown user");
+      return NULL;
+    }
+#endif
+
     size += (l = (int) strlen(value));
     if ( size >= MAXPATHLEN )
     { ExpandProblem = CtoName("Name too long");

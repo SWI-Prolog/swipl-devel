@@ -21,7 +21,14 @@
 		      prototype_mark	= key('\C-cRET'),
 		      add_prototype	= key('\C-c\C-p'),
 		      insert_NAME_	= key('\C-c\C-n'),
-		      gdb		= button(gdb)
+		      run_gdb		= button(gdb),
+		      break_at_line	= button(gdb),
+		      break_at_function = button(gdb),
+		      gdb_go		= button(gdb) + key('\C-c\C-g'),
+		      gdb_step		= button(gdb) + key('\C-c\C-s'),
+		      gdb_next		= button(gdb) + key('\C-c\C-n') +
+		      			  key('\C-z'),
+		      gdb_print		= button(gdb) + key('\C-c\C-p')
 		    ],
 		    [ '"'  = string_quote(\),
 		      '''' = string_quote(\),
@@ -186,6 +193,61 @@ add_prototype(E) :->
 	send(E, caret, End).
 	
 	
+		 /*******************************
+		 *	    GDB SUPPORT		*
+		 *******************************/
+
+run_gdb(M, Cmd:file) :->
+	"Run GDB on program (same as ->gdb)"::
+	send(M, gdb, Cmd).
+
+tell_gdb(M, Fmt:char_array, Args:any ...) :->
+	"Send a command to gdb"::
+	get(@emacs?buffers, find_all,
+	    and(message(@arg1, instance_of, emacs_gdb_buffer),
+		@arg1?process?status == running),
+	    ActiveGdbBuffers),
+	(   get(ActiveGdbBuffers, size, 1)
+	->  get(ActiveGdbBuffers, head, Buffer),
+	    send(Buffer, send_vector, format_data, Fmt, Args)
+	;   send(M, report, warning, 'No or multiple GDB buffers')
+	).
+
+break_at_line(M) :->
+	"Set GDB break point at line of caret"::
+	get(M, line_number, M?caret, CaretLine),
+	get(M?text_buffer, file, File),
+	get(File, base_name, Base),
+	send(M, tell_gdb, 'break %s:%d\n', Base, CaretLine).
+
+break_at_function(M, Function:[name]) :->
+	"Set GDB breakpoint at function"::
+	get(M, expand_tag, Function, TheFunction),
+	send(M, tell_gdb, 'break %s\n', TheFunction).
+
+gdb_go(M) :->
+	"Send `run' to GDB"::
+	send(M, tell_gdb, "run\n").
+
+gdb_step(M, Times:[int]) :->
+	"Send `run' to GDB"::
+	(   Times == @default
+	->  send(M, tell_gdb, "step\n")
+	;   send(M, tell_gdb, "step %d\n", Times)
+	).
+
+gdb_next(M, Times:[int]) :->
+	"Send `run' to GDB"::
+	(   Times == @default
+	->  send(M, tell_gdb, "next\n")
+	;   send(M, tell_gdb, "next %d\n", Times)
+	).
+
+gdb_print(M, Expression:expresion=string) :->
+	"Print value of expression"::
+	send(M, tell_gdb, "print %s\n", Expression).
+
+
 		 /*******************************
 		 *         XPCE THINGS		*
 		 *******************************/

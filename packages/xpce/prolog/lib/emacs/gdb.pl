@@ -13,6 +13,8 @@
 
 :- pce_begin_class(emacs_gdb_buffer, emacs_process_buffer).
 
+variable(gdb_command,	string*,	get,	"Collected gdb command").
+
 initialise(B, Target:file) :->
 	"Create GBD buffer for name"::
 	new(P, process(gdb, '-fullname', Target?name)),
@@ -25,20 +27,43 @@ initialise(B, Target:file) :->
 :- pce_global(@gdb_at_regex,
 	      new(regex('at \([^:]\):\(\sd+\)'))).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+->insert_process_input is a little complicated.  As both the application
+and gdb can issue various  prompts,  we   cannot  break  the  input into
+records, but we have to  collect   the  gdb source-referencing commands.
+Therefore, if the input contains ^Z^Z,   we start building <-gdb_command
+until that string contains the newline. We   then handle the command and
+send the remainder of the input to the buffer.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 insert_process_input(B, Input:string) :->
 	"Trap input from gdb"::
-%	send(@pce, write_ln, insert, Input),
-%	trace, true,
-	(   get(Input, index, 26, I0),
-	    send(@gdb_fullname_regex, match, Input, I0),
-	    send(B, show_match, @gdb_fullname_regex, Input)
-	->  get(@gdb_fullname_regex, register_end, 0, End),
-	    send(Input, delete, I0, End + 1 - I0)
-%	;   send(@gdb_at_regex, search, Input),
-%	    send(B, show_match, @gdb_at_regex, Input)
+	get(B, gdb_command, CmdString),
+	(   CmdString \== @nil
+	->  send(CmdString, append, Input),
+	    (	get(CmdString, index, 10, EOL)
+	    ->	get(CmdString, sub, 0, EOL, CmdLine),
+		get(CmdString, sub, EOL, RestInput),
+		send(B, gdb_command, CmdLine),
+		send(B, slot, gdb_command, @nil),
+		send(B, insert_process_input, RestInput)
+	    ;	true
+	    )
+	;   get(Input, index, 26, SOC)
+	->  get(Input, sub, 0, SOC, PreInput),
+	    send(B, send_super, insert_process_input, PreInput),
+	    get(Input, sub, SOC, CmdLine),
+	    send(B, slot, gdb_command, CmdLine),
+	    send(B, insert_process_input, string(''))
+	;   send(B, send_super, insert_process_input, Input)
+	).
+	    
+gdb_command(B, CmdLine:string) :->
+	(   send(@gdb_fullname_regex, match, CmdLine),
+	    send(B, show_match, @gdb_fullname_regex, CmdLine)
+	->  true
 	;   true
-	),
-	send(B, send_super, insert_process_input, Input).
+	).
 
 
 show_match(B, Re:regex, Input) :->

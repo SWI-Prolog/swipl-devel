@@ -178,7 +178,7 @@ check_licence(M) :->
 
 
 fill_dialog(M, D) :->
-	send(D, append, new(MB, menu_bar(options))),
+	send(D, append, new(MB, menu_bar)),
 	send(MB, append, new(F, popup(file))),
 	send(MB, append, new(V, popup(browsers,
 				      message(M, start_tool, @arg1)))),
@@ -490,7 +490,7 @@ library_overview(_M) :->
 		********************************/
 
 about('XPCE version %s'+[@pce?version], boldhuge).
-about('Copyright 1992-1995, University of Amsterdam', normal).
+about('Copyright 1992-1996, University of Amsterdam', normal).
 about('xpce-request@swi.psy.uva.nl', bold).
 about('Jan Wielemaker\nAnjo Anjewierden', italic).
 about('SWI\nUniversity of Amsterdam\nRoetersstraat 15\n1018 WB  Amsterdam\nThe Netherlands', normal).

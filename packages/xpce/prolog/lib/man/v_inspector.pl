@@ -714,7 +714,7 @@ initialise(F, Manual:man_manual) :->
 			       and(message(Inspector, inspect_atom, @arg1),
 				   message(@receiver, clear)))),
 	     right),
-	send(TI, length, 15),
+	send(TI, length, 25),
 
 	send(@display, inspect_handler,
 	     new(H, handler('M-\C-i', message(F, inspect, @arg1)))),

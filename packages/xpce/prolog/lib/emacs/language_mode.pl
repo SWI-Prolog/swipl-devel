@@ -193,8 +193,8 @@ visit_tag_table(M, Table:'tag_file=file') :->
 	send(M, report, status, 'Loaded TAG table %s', TagFileName).
 
 
-find_tag(M, Tag:[name], Editor:editor) :<-
-	"Jump to indicated tag entry"::
+expand_tag(M, Tag:[name], TheTag:name) :<-
+	"Expand tag using tag-table"::
 	(   auto_call(emacs_tag_file(_))
 	->  true
 	;   get(M, directory, Dir),
@@ -209,7 +209,12 @@ find_tag(M, Tag:[name], Editor:editor) :<-
 	    new(I, emacs_tag_item('Find tag', DefTag)),
 	    get(M, prompt_using, I, TheTag)
 	;   TheTag = Tag
-	),
+	).
+
+
+find_tag(M, Tag:[name], Editor:editor) :<-
+	"Jump to indicated tag entry"::
+	get(M, expand_tag, Tag, TheTag),
 	(   auto_call(emacs_tag(TheTag, File, Line)),
 	    new(B, emacs_buffer(File)),
 	    send(B, open),

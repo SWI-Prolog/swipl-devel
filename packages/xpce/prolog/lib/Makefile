@@ -42,4 +42,4 @@ emacs/emacs.qlf:	.pwd emacs/emacs.pl emacs/window.pl emacs/buffer.pl \
 			emacs/outline_mode.pl
 
 .pl.qlf:	
-	$(PL) -g "qcompile('$*')" -t halt -- -nopce
+	$(PL) -O -g "qcompile('$*')" -t halt -- -nopce

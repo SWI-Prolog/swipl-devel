@@ -19,7 +19,7 @@
 
 static void	xEventFrame(Widget, FrameObj, XEvent *);
 static void	destroyFrame(Widget, FrameObj, XtPointer);
-static status   updateAreaFrame(FrameObj fr);
+static status   updateAreaFrame(FrameObj fr, Int border);
 
 #define MainWindow(fr)	     ( isNil(fr->members->head) ? (Any) fr : \
 			       fr->members->head->value )
@@ -310,13 +310,7 @@ xEventFrame(Widget w, FrameObj fr, XEvent *event)
       return;
     }
     case ConfigureNotify:
-    { Area a = fr->area;
-      Int ow = a->w, oh = a->h;
-
-      updateAreaFrame(fr);
-      assign(fr, border, toInt(event->xconfigure.border_width));
-      if ( a->w != ow || a->h != oh )
-	resizeFrame(fr);
+    { updateAreaFrame(fr, toInt(event->xconfigure.border_width));
       return;
     }
     case PropertyNotify:
@@ -331,6 +325,7 @@ xEventFrame(Widget w, FrameObj fr, XEvent *event)
 
       for_cell(cell, fr->members)
 	send(cell->value, NAME_displayed, ON, 0);
+      updateAreaFrame(fr, DEFAULT);
       send(fr, NAME_mapped, ON, 0);
       assign(fr, status, NAME_open);
       return;
@@ -439,7 +434,7 @@ ws_grab_frame_pointer(FrameObj fr, Bool grab, CursorObj cursor)
 		 *******************************/
 
 static status
-updateAreaFrame(FrameObj fr)
+updateAreaFrame(FrameObj fr, Int border)
 { Widget wdg;
 
   if ( (wdg = widgetFrame(fr)) )
@@ -450,14 +445,21 @@ updateAreaFrame(FrameObj fr)
     unsigned int w, h, bw, depth;
     
     if ( (me = XtWindow(wdg)) )
-    { XGetGeometry(d, me, &root, &x, &y, &w, &h, &bw, &depth);
+    { Area a = fr->area;
+      Int ow = a->w, oh = a->h;
+    
+      XGetGeometry(d, me, &root, &x, &y, &w, &h, &bw, &depth);
       XTranslateCoordinates(d, me, root, 0, 0, &x, &y, &child);
 
-      assign(fr->area, x, toInt(x));
-      assign(fr->area, y, toInt(y));
-      assign(fr->area, w, toInt(w));
-      assign(fr->area, h, toInt(h));
-    /*assign(fr, border, toInt(bw));*/
+      assign(a, x, toInt(x));
+      assign(a, y, toInt(y));
+      assign(a, w, toInt(w));
+      assign(a, h, toInt(h));
+      if ( notDefault(border) )
+	assign(fr, border, border);
+
+      if ( a->w != ow || a->h != oh )
+	resizeFrame(fr);
     }
 
     succeed;

@@ -202,6 +202,11 @@ format_data(B, Fmt:char_array, Args:any...) :->
 	new(S, string),
 	send(S, send_vector, format, Fmt, Args),
 	send(B, append, S),
+	get(B, size, Size),
+	send(B?editors, for_some, message(@arg1, caret, Size)),
+	get(B, process_fragment, Fragment),
+	send(Fragment, start, Size),
+	send(Fragment, length, 0),
 	send(B?process, append, S).
 
 
