@@ -1796,7 +1796,7 @@ recursiveMutexInit(recursiveMutex *m)
 #ifdef NEED_RECURSIVE_MUTEX_DELETE
 
 int
-RecursiveMutexDelete(recursiveMutex *m)
+recursiveMutexDelete(recursiveMutex *m)
 { if ( m->owner != 0 )
     return EBUSY;
 
