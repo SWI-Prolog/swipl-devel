@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Draw the label of tab objects that are not `on top'.
+
 * PORT: MacOS X.  Changed:
 	- Fixed xpm header detection if not in default path
 	- Added __unix__ to config.h
