@@ -72,8 +72,15 @@ atomType(atom_t a)
   }
 
 					/* % should be quoted! */
-  if ( (isSolo(*s) || *s == ',') && len == 1 && s[0] != '%' )
-    return AT_SOLO;
+  if ( len == 1 && *s != '%' )
+  { if ( isSolo(*s) )
+      return AT_SOLO;
+    switch( *s )
+    { case ',':
+      case '|':
+	return AT_SOLO;
+    }
+  }
 
   if ( a == ATOM_nil || a == ATOM_curl )
     return AT_SPECIAL;
@@ -119,7 +126,7 @@ PutOpenToken(int c, IOSTREAM *s)
   } else if ( s->lastc != EOF &&
 	      ((isAlpha(s->lastc) && isAlpha(c)) ||
 	       (isSymbol(s->lastc) && isSymbol(c)) ||
-	       c == '(') )
+	       (s->lastc != '(' && c == '(')) )
   { return Putc(' ', s);
   }
 

@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: writeq to handle | as a solo-char and avoid extra space
+    between multiple '('.
+
   * FIXED: code_type(97, to_lower(97)) failed.  Reported by Joachim Katzer.
     Also fixed code_type(L, lower(U)), to non-deterministically generate
     pairs of upper- and lowercase charactercodes.
