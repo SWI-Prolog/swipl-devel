@@ -756,6 +756,13 @@ pl_write_canonical(term_t term)
 { return pl_write_canonical2(0, term);
 }
 
+word					/* for debugging purposes! */
+pl_writeln(term_t term)
+{ if ( pl_write2(0, term) && pl_nl() )
+    succeed;
+
+  fail;
+}
 
 
 

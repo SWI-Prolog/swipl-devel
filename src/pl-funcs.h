@@ -806,6 +806,7 @@ word		pl_write_term(term_t term, term_t options);
 word		pl_write_term3(term_t stream,
 			       term_t term, term_t options);
 word		pl_write(term_t term);
+word		pl_writeln(term_t term);
 word		pl_writeq(term_t term);
 word		pl_print(term_t term);
 word		pl_write2(term_t stream, term_t term);

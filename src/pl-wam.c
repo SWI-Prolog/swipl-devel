@@ -1692,6 +1692,8 @@ dbg_discardChoicesAfter(LocalFrame fr ARG_LD)
 
   if ( exception_term )
   { Word p = valTermRef(exception_term);
+    DEBUG(1, Sdprintf("dbg_discardChoicesAfter(): saving exception: ");
+	     pl_writeln(exception_term));
     exception_term = 0;
     discardChoicesAfter(fr PASS_LD);
     *valTermRef(exception_bin) = *p;
@@ -2875,7 +2877,7 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 #endif /*O_DEBUGGER*/
 	{ for( ; FR && FR > catchfr; FR = FR->parent )
 	  { SECURE(checkData(catcher));
-	    discardChoicesAfter(FR PASS_LD);
+	    dbg_discardChoicesAfter(FR PASS_LD);
 	    SECURE(checkData(catcher));
 	    discardFrame(FR, FINISH_EXCEPT PASS_LD);
 	    SECURE(checkData(catcher));

@@ -179,7 +179,10 @@ pl_except_bag(term_t ex)
 { GET_LD
   Assoc a, next;
 
-  DEBUG(1, Sdprintf("EXCEPTION\n"));
+  DEBUG(1,
+	{ Sdprintf("EXCEPTION:");
+	  pl_writeln(ex);
+	});
 
   for( a=alist; a; a = next )
   { if ( a->record )
