@@ -10,7 +10,7 @@
     Copyright (C) 1990-2000 SWI, University of Amsterdam. All rights reserved.
 */
 
-#define O_DEBUG 1
+/*#define O_DEBUG 1*/
 
 #define GLOBAL				/* allocate global variables here */
 #include "pl-incl.h"
