@@ -11,7 +11,8 @@
 */
 
 :- module(pce_meta,
-	  [ isa_class/2,		% ?SubClassName, ?SuperClassName
+	  [ pce_to_method/2,		% +Spec, -BehaviourObject
+	    isa_class/2,		% ?SubClassName, ?SuperClassName
 	    current_class/2,		% ?ClassName, ?ClassObject
 	    to_class_name/2,		% +NameOrClass, -ClassName
 	    implements/2,		% ?Class, ?SendOrGet(?Name)
@@ -25,6 +26,41 @@
 	   , get_chain/3
 	   , maplist/3
 	   ]).
+
+
+		 /*******************************
+		 *	INTERACTION SUPPORT	*
+		 *******************************/
+
+pce_to_method(->(Receiver, Selector), Method) :- !,
+	(   atom(Receiver)
+	->  get(@pce, convert, Receiver, class, Class),
+	    get(Class, send_method, Selector, Method)
+	;   object(Receiver)
+	->  get(Receiver, send_method, Selector, tuple(_, Method))
+	).
+pce_to_method(<-(Receiver, Selector), Method) :- !,
+	(   atom(Receiver)
+	->  get(@pce, convert, Receiver, class, Class),
+	    get(Class, get_method, Selector, Method)
+	;   object(Receiver)
+	->  get(Receiver, get_method, Selector, tuple(_, Method))
+	).
+pce_to_method((Receiver-Selector), Method) :- !,
+	(   atom(Receiver)
+	->  get(@pce, convert, Receiver, class, Class),
+	    get(Class, instance_variable, Selector, Method)
+	;   get(Receiver, attribute, Method)
+	->  true
+	;   get(Receiver, class, Class),
+	    get(Class, instance_variable, Selector, Method)
+	).
+pce_to_method(ClassName, Class) :-
+	atom(ClassName),
+	get(@pce, convert, ClassName, class, Class), !.
+pce_to_method(Method, Method) :-
+	object(Method).
+
 
 
 		 /*******************************

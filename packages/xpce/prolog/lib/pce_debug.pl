@@ -27,9 +27,12 @@
 
 
 :- use_module(library(pce)).
-:- require([ append/3
-	   , between/3
+:- require([ checklist/2
 	   , forall/2
+	   , pce_to_method/2
+	   , append/3
+	   , between/3
+	   , genarg/3
 	   ]).
 
 :- op(100, xfx, user:(<-)).
@@ -92,31 +95,8 @@ nospypce(Spec) :-
 	send(Method, break, full, @off),
 	trace_feedback('Stopped spying', Method).
 
-method(->(Receiver, Selector), Method) :- !,
-	(   atom(Receiver)
-	->  get(@pce, convert, Receiver, class, Class),
-	    get(Class, send_method, Selector, Method)
-	;   object(Receiver)
-	->  get(Receiver, send_method, Selector, tuple(_, Method))
-	).
-method(<-(Receiver, Selector), Method) :- !,
-	(   atom(Receiver)
-	->  get(@pce, convert, Receiver, class, Class),
-	    get(Class, get_method, Selector, Method)
-	;   object(Receiver)
-	->  get(Receiver, get_method, Selector, tuple(_, Method))
-	).
-method((Receiver-Selector), Method) :- !,
-	(   atom(Receiver)
-	->  get(@pce, convert, Receiver, class, Class),
-	    get(Class, instance_variable, Selector, Method)
-	;   get(Receiver, attribute, Method)
-	->  true
-	;   get(Receiver, class, Class),
-	    get(Class, instance_variable, Selector, Method)
-	).
-method(Method, Method) :-
-	object(Method),
+method(Spec, Method) :-
+	pce_to_method(Spec, Method),
 	send(Method, instance_of, behaviour).
 
 
@@ -173,7 +153,6 @@ checkpce :-
 	test(check_classes, Status),
 	test(check_redefined_methods, Status),
 	Status = yes.
-
 
 check_classes :-
 	(   pce_expansion:compiling(_, _)
@@ -311,42 +290,6 @@ pcerefer(Obj, From, Type, Where, All) :-
 	       [Type, Where, From, ClassName, Obj]).
 pcerefer(_, _, _, _, _).
 
-		/********************************
-		*         PRINTING CALLS	*
-		********************************/
-
-%	pcecalls(+Class)
-%
-%	Prints the  number of calls to each  method that is in `Class'
-%	or a subclass thereof.  The  methods are sorted to the  number
-%	of calls.
-
-pcecalls(Class) :-
-	get(@pce, convert, Class, class, Cl),
-	new(Ch, chain),
-	add_methods(Cl, Ch),
-	get(Ch, find_all, @arg1?calls > 0, Ch2),
-	send(Ch2, sort, @arg1?calls > @arg2?calls),
-	send(Ch2, for_all, message(@prolog, pce_display_call, @arg1)),
-	send(Ch2, done),
-	send(Ch, done).
-
-add_methods(Class, Methods) :-
-	send(Methods, merge, Class?send_methods),
-	send(Methods, merge, Class?get_methods),
-	send(Class?sub_classes, for_all,
-	     message(@prolog, add_methods, @arg1, Methods)).
-
-pce_display_call(M) :-
-	get(M?context, name, Class),
-	get(M, name, Selector),
-	(   send(M?class, is_a, send_method)
-	->  Arrow = '->'
-	;   Arrow = '<-'
-	),
-	get(M, calls, Calls),
-	format('~w~t~8|~w ~w~w~n', [Calls, Class, Arrow, Selector]).
-	
 
 		/********************************
 		*           UTILITIES		*
