@@ -4244,8 +4244,8 @@ reprocess:
 	p->state = S_ENT;
       } else
       { add_cdata(p, f[CF_ERO]);
-	add_cdata(p, chr);
 	p->state = p->cdata_state;
+	goto reprocess;
       }
 
       return;

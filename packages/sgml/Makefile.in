@@ -62,7 +62,7 @@ install-dtd:
 		done
 
 check:
-		@echo "No check provided yet"
+		cd Test && $(PL) -f test.pl -g test,halt.
 
 uninstall:
 		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))

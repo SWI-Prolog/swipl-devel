@@ -1,0 +1,1 @@
+[element('tiny-htm', [], [element(p, [], ['This demonstrates the problem:']), element(pre, [], ['  ', element(var, [], [status]), ' = DOM_', element(var, [], [operation]), ', &', element(var, [], [result]), ');']), element(p, [], ['I hope this helps.'])])].

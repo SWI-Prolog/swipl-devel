@@ -18,6 +18,11 @@
 	    test/0
 	  ]).
 
+:- asserta(user:file_search_path(library, '..')).
+:- asserta(user:file_search_path(foreign, '..')).
+:- use_module(library(sgml)).
+
+
 test :-
 	testdir(.).
 

@@ -1,0 +1,14 @@
+<!DOCTYPE tiny-htm [
+  <!ELEMENT tiny-htm  - - (p|pre)+>
+  <!ELEMENT p         - O (#PCDATA|i|b|var)*>
+  <!ELEMENT pre       - O (#PCDATA|i|b|var)*>
+  <!ELEMENT (i|b|var) - - (#PCDATA|i|b|var)*>
+ ]>
+<tiny-htm>
+<p>This demonstrates the problem:
+<pre>
+  <var>status</var> = DOM_<var>operation</var
+>, &<var>result</var>);
+</pre>
+<p>I hope this helps.
+</tiny-htm>
