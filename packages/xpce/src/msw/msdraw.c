@@ -274,7 +274,10 @@ r_offset(int x, int y)
 
 static void
 d_set_filloffset()
-{ Cprintf("d_set_filloffset() not yet implemented\n");
+{ int tsx = context.fill_offset_x - context.cache_x;
+  int tsy = context.fill_offset_y - context.cache_y;
+
+  SetBrushOrgEx(context.hdc, tsx, tsy, NULL);
 }
 
 
@@ -386,8 +389,8 @@ d_mswindow(PceWindow sw, IArea a, int clear)
 	context.ohpal = SelectPalette(context.hdc, hpal, FALSE);
 
       r_default_background(sw->background);
-      SetBrushOrgEx(context.hdc, -context.cache_x, -context.cache_y, NULL);
       SetViewportOrg(context.hdc, -context.cache_x, -context.cache_y);
+      SetBrushOrgEx(context.hdc, -context.cache_x, -context.cache_y, NULL);
 
       r_clear(context.cache_x, context.cache_y,
 	      context.cache_w, context.cache_h);
@@ -397,7 +400,9 @@ d_mswindow(PceWindow sw, IArea a, int clear)
 				context.cache_x, context.cache_y,
 				context.cache_w, context.cache_h));
     } else
-    { r_default_background(sw->background);
+    { context.cache_x = 0;
+      context.cache_y = 0;
+      r_default_background(sw->background);
       if ( clear )
 	r_clear(a->x, a->y, a->w, a->h);
     }
