@@ -374,16 +374,12 @@ pl_atom_completions(term_t prefix, term_t alternatives)
 } 
 
 
-#define savestring(x) strcpy(xmalloc(1 + strlen(x)), (x))
-
 char *
 PL_atom_generator(char *prefix, int state)
 { static Atom a;
 
   if ( !state )
-  { assert(!a);
     a = atomTable[0];
-  } 
 
   for(; a; a=a->next)
   { char *as;
@@ -400,7 +396,7 @@ PL_atom_generator(char *prefix, int state)
 	 allAlpha(as) &&
 	 (l = strlen(as)) < ALT_SIZ )
     { a = a->next;
-      return savestring(as);
+      return as;
     }
   }
 

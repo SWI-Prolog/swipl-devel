@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include "pl-itf.h"
 #include "pl-stream.h"
+#include <ctype.h>
 #include <console.h>
 #include <signal.h>
 
@@ -19,8 +20,8 @@ Main program for running SWI-Prolog from   a window. The window provides
 X11-xterm like features: scrollback for a   predefined  number of lines,
 cut/paste and the GNU readline library for command-line editing.
 
-Basically, this module  combines   libpl.dll,  console.dll, readline.lib
-with some glue to produce the final executable plwin.exe.
+Basically, this module combines libpl.dll and console.dll with some glue
+to produce the final executable plwin.exe.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
@@ -35,7 +36,20 @@ streams.
 
 static int
 Srlc_read(void *handle, char *buffer, int size)
-{ return rlc_read(buffer, size);
+{ int fd = (int) handle;
+  int ttymode = PL_ttymode(fd);
+
+  if ( ttymode == PL_RAWTTY )
+  { int chr = getkey();
+      
+    if ( chr == 04 || chr == 26 )
+      return 0;			/* EOF */
+
+    buffer[0] = chr & 0xff;
+    return 1;
+  }
+
+  return rlc_read(buffer, size);
 }
 
 
@@ -58,6 +72,96 @@ rlc_bind_terminal()
   Serror->functions  = &funcs;
 }
 
+
+#ifndef HAVE_LIBREADLINE
+
+static foreign_t
+pl_rl_add_history(term_t text)
+{ char *s;
+
+  if ( PL_get_chars(text, &s, CVT_ALL) )
+  { rlc_add_history(s);
+
+    PL_succeed;
+  }
+
+  return PL_warning("rl_add_history/1: instantation fault");
+}
+
+
+static foreign_t
+pl_rl_read_init_file(term_t file)
+{ PL_succeed;
+}
+
+
+		 /*******************************
+		 *	    COMPLETION		*
+		 *******************************/
+
+static RlcCompleteFunc file_completer;
+
+static int
+prolog_complete(RlcCompleteData data)
+{ Line ln = data->line;
+
+  switch(data->call_type)
+  { case COMPLETE_INIT:
+    { int start = ln->point;
+      int c;
+
+      while(start > 0 && (isalnum((c=ln->data[start-1])) || c == '_') )
+	start--;
+      if ( start > 0 )
+      { int cs = ln->data[start-1];
+	
+	if ( strchr("'/\\.~", cs) )
+	  return FALSE;			/* treat as a filename */
+      }
+      if ( islower(ln->data[start]) )	/* Lower, Aplha ...: an atom */
+      { int patlen = ln->point - start;
+	char *s;
+
+	memcpy(data->buf_handle, &ln->data[start], patlen);
+	data->buf_handle[patlen] = '\0';
+	
+	if ( (s = PL_atom_generator(data->buf_handle, FALSE)) )
+	{ strcpy(data->candidate, s);
+	  data->replace_from = start;
+	  data->function = prolog_complete;
+	  return TRUE;
+	}
+      }
+
+      return FALSE;
+    }
+    case COMPLETE_ENUMERATE:
+    { char *s = PL_atom_generator(data->buf_handle, TRUE);
+      if ( s )
+      { strcpy(data->candidate, s);
+	return TRUE;
+      }
+      return FALSE;
+    }
+    case COMPLETE_CLOSE:
+      return TRUE;
+    default:
+      return FALSE;
+  }
+}
+
+
+static int
+do_complete(RlcCompleteData data)
+{ if ( prolog_complete(data) )
+    return TRUE;
+
+  if ( file_completer )
+    return (*file_completer)(data);
+}
+
+
+#endif /*HAVE_LIBREADLINE*/
 
 		 /*******************************
 		 *	   CONSOLE STUFF	*
@@ -149,7 +253,19 @@ the main for the application.
 
 static void
 install_readline(int argc, char **argv)
-{ PL_install_readline();
+{ 
+#ifdef HAVE_LIBREADLINE
+  PL_install_readline();
+#else /*HAVE_LIBREADLINE*/  
+  rlc_init_history(FALSE, 50);
+  file_completer = rlc_complete_hook(do_complete);
+
+  PL_register_foreign("rl_add_history",    1, pl_rl_add_history,    0);
+  PL_register_foreign("rl_read_init_file", 1, pl_rl_read_init_file, 0);
+
+  PL_set_feature("tty_control", PL_ATOM, "true");
+  PL_set_feature("readline",    PL_ATOM, "true");
+#endif /*HAVE_LIBREADLINE*/
 }
 
 

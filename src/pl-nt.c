@@ -146,9 +146,12 @@ Symbols()
   int n;
 
   if ( (n = GetModuleFileName(NULL, buf, sizeof(buf))) > 0 )
-  { buf[n] = EOS;
+  { char buf2[1024];
 
-    return store_string(buf);
+    buf[n] = EOS;
+    _xos_long_file_name(buf, buf2);
+
+    return store_string(buf2);
   } else
   { PrologPath(mainArgv[0], buf);
 

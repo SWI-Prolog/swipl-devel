@@ -199,6 +199,17 @@ prolog_complete(int ignore, int key)
 }
 
 
+static char *
+atom_generator(char *prefix, int state)
+{ char *s = PL_atom_generator(prefix, state);
+  
+  if ( s )
+    return strcpy(xmalloc(1 + strlen(s)), s);
+
+  return s;
+}
+
+
 static char **
 prolog_completion(char *text, int start, int end)
 { char **matches = NULL;
@@ -210,7 +221,7 @@ prolog_completion(char *text, int start, int end)
     matches = completion_matches(text,
 				 (Function *) filename_completion_function);
   else
-    matches = completion_matches(text, PL_atom_generator);
+    matches = completion_matches(text, atom_generator);
 
   return matches;
 }
