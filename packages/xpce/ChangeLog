@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: `text_item->clear' to set the item to modified, so <-selection
+  indeed returns ''.
+
 * ADDED: Default binding of Control-Z to undo in editor.
 
 * FIXED: Memory leak in class code_vector.
