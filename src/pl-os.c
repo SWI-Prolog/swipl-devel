@@ -1268,7 +1268,7 @@ char *spec;
 
 
 #if unix
-#if O_GETCWD || SGU
+#if O_GETCWD || SGU && !_AIX
 char	*getcwd P((char *, size_t));
 
 char *
@@ -1642,6 +1642,7 @@ GetChar()
   } else
   { if ( !line )
     { ttybuf buf;
+      extern Function *rl_event_hook;
       rl_event_hook = (PL_dispatch_events ? (Function *) event_hook
 					  : (Function *) NULL);
 

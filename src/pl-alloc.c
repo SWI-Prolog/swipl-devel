@@ -152,6 +152,7 @@ Stack s;
 { warning("Out of %s stack", s->name);
 
   pl_abort();
+  exit(2);				/* should not happen */
 }
 
 		/********************************

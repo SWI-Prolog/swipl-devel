@@ -200,6 +200,7 @@ pl-funct.o:	pl-funct.ih
 pl-atom.o:	pl-funct.ih
 pl-dump.o:	gnu/getpagesize.h $(UNEXEC)
 pl-main.o:	Makefile pl-itf.h
+pl-wam.o:	pl-alloc.c pl-index.c
 
 pl-funct.ih:	ATOMS
 		$(AWK) -f defatom.awk < ATOMS

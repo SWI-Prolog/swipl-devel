@@ -26,9 +26,9 @@ Thanks to Olle Ollson at SICS for giving me access to their hardware.
 #define M_CC			gcc
 /*#define M_OPTIMIZE		-g -DO_DEBUG*/
 #define M_OPTIMIZE		-O2
-#define M_LDFLAGS		-static
-#define M_CFLAGS		
-#define M_LIBS		        -lreadline -lm -ltermcap -lbsd
+#define M_LDFLAGS		-static -L/home/anat/janw/lib
+#define M_CFLAGS		-I/home/anat/janw/include
+#define M_LIBS		        -lreadline -lm -ltermcap
 
 			/* prolog part */
 
@@ -40,7 +40,8 @@ Thanks to Olle Ollson at SICS for giving me access to their hardware.
 #endif
 #define etext _etext
 #define unix			1
-#define _BSD			1	/* BSD compatibility mode */
+/* #define _BSD			1	/* BSD compatibility mode */
+#define SGU			1
 #define ANSI			1
 #define PROTO			1
 #define O_NO_LEFT_CAST		1
@@ -56,7 +57,7 @@ Thanks to Olle Ollson at SICS for giving me access to their hardware.
 #define O_DATA_AT_0X2		1 /* data space at 0x20000000 - 0x2fffffff */
 #define O_VMCODE_IS_ADDRESS	0
 #define O_PROFILE		1
-#define O_SIG_AUTO_RESET	0
+#define O_SIG_AUTO_RESET	1
 #define O_AIX_FOREIGN		1
 #define O_SAVE			1
 #define TEXT_START		0x10000000
@@ -64,6 +65,7 @@ Thanks to Olle Ollson at SICS for giving me access to their hardware.
 #define DEFAULT_PATH		":/usr/ucb:/bin:/usr/bin:/usr/local/bin:.:";
 #define SRANDOM(t)		srandom((long)t)
 #define RANDOM()		random()
+#define DESCRIPTOR_TABLE_SIZE	64	/* hack: actually 2000 */
 
 #define vfork			fork
 

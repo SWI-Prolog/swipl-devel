@@ -184,10 +184,14 @@ extern real	  CpuTime P((void));
 		********************************/
 
 #ifndef FD_ZERO
+#if _AIX
+#include <sys/select.h>
+#else
 /* typedef ulong fd_set;		prior SunOs 4.0 compatibility */
 #define FD_ZERO(s)	{ *((ulong *)(s)) = (0L); }
 #define FD_SET(fd, s)	{ *((ulong *)(s)) |= (1L << (fd)); }
 #define FD_ISSET(fd, s) ( (*((ulong *)(s)) & (1L << (fd))) != 0 )
+#endif
 #endif
 
 		/********************************
