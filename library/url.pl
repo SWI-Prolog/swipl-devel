@@ -33,6 +33,7 @@
 	  [ parse_url/2,		% +URL, -Parts | -URL +Parts
 	    parse_url/3,		% +URL|URI, +BaseURL, -Parts
 	    				% -URL, +BaseURL, +Parts
+	    is_absolute_url/1,		% +URL
 	    global_url/3,		% +Local, +Base, -Global
 	    http_location/2,		% ?Parts, ?Location
 	    www_form_encode/2,		% Value <-> Encoded
@@ -132,10 +133,17 @@ global_url(URL, BaseURL, Global) :-
 	    atom_codes(Global, Chars)
 	).
 
+%	is_absolute_url(+URL)
+%	
+%	Test whether a URL is absolute or relative.  We assume it is
+%	absolute if it starts with a protocol.
+
 is_absolute_url(URL) :-
 	sub_atom(URL, 0, _, _, 'http://'), !.
 is_absolute_url(URL) :-
 	sub_atom(URL, 0, _, _, 'ftp://'), !.
+is_absolute_url(URL) :-
+	sub_atom(URL, 0, _, _, 'file:'), !.
 is_absolute_url(URL) :-
 	atom_codes(URL, Codes),
 	phrase(absolute_url, Codes, _), !.

@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: library(url): is_global_url/1
+
   * ADDED/FIXED: Various problems and enhancements to check/0 reporting
     undefined predicates.  Moved make/0 to library(make) and added a
     call to list_undefined/0 to report on undefined predicates after
