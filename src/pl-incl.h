@@ -270,7 +270,11 @@ void *alloca ();
 /* prepare including BeOS types */
 #ifdef __BEOS__
 #define bool BOOL
+#ifdef HAVE_SUPPORTDEFS_H
+#include <SupportDefs.h>
+#else
 #include <socket.h>			/* why do we need socket.h? */
+#endif
 #undef true
 #undef false
 #undef bool

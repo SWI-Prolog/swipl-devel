@@ -5289,7 +5289,7 @@ EOF
 fi
 done
 
-for ac_header in floatingpoint.h
+for ac_header in floatingpoint.h SupportDefs.h
 do
 as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
 echo "$as_me:5295: checking for $ac_header" >&5

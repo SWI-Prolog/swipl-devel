@@ -451,6 +451,9 @@
 /* Define if you have the `strlwr' function. */
 #undef HAVE_STRLWR
 
+/* Define if you have the <SupportDefs.h> header file. */
+#undef HAVE_SUPPORTDEFS_H
+
 /* Define if you have the `sysconf' function. */
 #undef HAVE_SYSCONF
 

@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORT: Detect <SupportDefs.h> in recent BeOS and use it (Axel ?).
+
   * PORT: Fixed detection of ru_idrss in struct rusage (not around in BeOS,
     reported by Axel ?).
 
