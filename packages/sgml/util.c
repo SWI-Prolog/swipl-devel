@@ -111,6 +111,17 @@ istrupper(ichar *s)
 }
 
 
+ichar *
+istrlower(ichar *s)
+{ ichar *r = s;
+
+  for( ; *s; s++)
+    *s = tolower(*s);
+
+  return r;
+}
+
+
 int
 istrhash(const ichar *t, int tsize)
 { unsigned int value = 0;

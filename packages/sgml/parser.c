@@ -1612,6 +1612,8 @@ get_attribute_value(dtd_parser *p, const ichar *decl, sgml_attribute *att)
     case AT_NMTOKEN:			/* name-token */
     case AT_NOTATION:			/* notation-name */
     case AT_NUTOKEN:			/* number token */
+      if ( !dtd->case_sensitive )
+	istrlower(buf);
       att->value.text = istrdup(buf);	/* TBD: more validation */
       return end;
     case AT_NAMES:			/* list of names */
@@ -1620,6 +1622,8 @@ get_attribute_value(dtd_parser *p, const ichar *decl, sgml_attribute *att)
     case AT_NUTOKENS:
     case AT_IDREFS:			/* list of identifier references */
     case AT_ENTITIES:			/* entity-name list */
+      if ( !dtd->case_sensitive )
+	istrlower(buf);
       att->value.text = istrdup(buf);	/* TBD: break-up */
       return end;
   }
