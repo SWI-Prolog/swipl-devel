@@ -65,6 +65,9 @@ html-install::
 
 xpce-install::
 
+check::
+		cd Test && "$(PLCON)" -f test.pl -g test,halt.
+
 clean::
 		if exist *.obj del *.obj
 		if exist *~ del *~
