@@ -72,14 +72,21 @@ typedef enum
   S_EMSC2,				/* Seen ]] in marked section */
   S_PI,					/* Seen <? */
   S_PI2,				/* Seen <?...? */
+  S_DECL0,				/* Seen < */
   S_DECL,				/* inside a declaration */
+  S_MDECL0,				/* Seen <! */
   S_STRING,				/* inside a "string" or 'string' */
-  S_COMMENT,				/* inside a --comment-- */
-  S_COMMENTDECL,			/* inside <!-- */
-  S_COMMENTDECL1,			/* Seen <!--...-- */
+  S_DECLCMT0,				/* Seen <...- */
+  S_DECLCMT,				/* Seen <...-- */
+  S_DECLCMTE0,				/* Seen <...--..- */
+  S_CMTO,				/* Seen <!- */
+  S_CMT,				/* Seen <!--... */
+  S_CMTE0,				/* Seem <!--...- */
+  S_CMTE1,				/* Seem <!--...-- */
   S_GROUP,				/* inside [...] */
   S_PENT,				/* Seen % */
-  S_ENT,				/* Seen & */
+  S_ENT0,				/* Seen & */
+  S_ENT,				/* Seen &(#|\w) */
   S_SHORTTAG_CDATA			/* Seen <tag/ */
 } dtdstate;
 
@@ -143,7 +150,6 @@ typedef struct _dtd_parser
   const ichar *etag;			/* name of end-tag in CDATA */
   int	   etaglen;			/* length of end-tag */
   int	   grouplevel;			/* [..] level in declaration */
-  int      previous_char;		/* previous character */
   int	   saved;			/* saved character */
   dtd_char_encoding encoding;		/* CDATA output character-set */
   dtd_shortref *map;			/* SHORTREF map */

@@ -1,3 +1,11 @@
+* FIXED: Allow <!USEMAP before <!SHORTREF
+
+* FIXED: handling the #empty map (SGML SHORTREF).
+
+* MODIFIED: state-engine for <>, using a new state S_DECL0 after seeing <
+  to decide whether this is a non-escaped < in CDATA or a real tag.  Also
+  changed comment-handling to avoid the need for parser->previous_char.
+
 * ADDED: sgml utility allow for parsing stdin.
 
 * PERFORMANCE: Improved expand_[p]entities(), providing about 10%

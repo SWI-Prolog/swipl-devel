@@ -359,6 +359,7 @@ typedef struct _dtd_map
 typedef struct _dtd_shortref
 { dtd_symbol	*name;			/* name of SHORTREF map */
   dtd_map	*map;			/* implemented map */
+  int		defined;		/* has been defined */
   struct _dtd_shortref *next;		/* next declared shortref */
 } dtd_shortref;
 

@@ -136,9 +136,9 @@ inc_location(dtd_srcloc *l, int chr)
 { if ( chr == '\n' )
   { l->linepos = 0;
     l->line++;
-  } else
-  { l->linepos++;
   }
+
+  l->linepos++;
   l->charpos++;
 }
 
@@ -146,11 +146,10 @@ inc_location(dtd_srcloc *l, int chr)
 static void
 dec_location(dtd_srcloc *l, int chr)
 { if ( chr == '\n' )
-  { l->linepos = 0;			/* not good! */
+  { l->linepos = 2;			/* not good! */
     l->line--;
-  } else
-  { l->linepos--;
   }
+  l->linepos--;
   l->charpos--;
 }
 
@@ -1362,55 +1361,77 @@ shortref_add_map(dtd *dtd, const ichar *decl, dtd_shortref *sr)
 }
 
 
+static dtd_shortref *
+def_shortref(dtd_parser *p, dtd_symbol *name)
+{ dtd *dtd = p->dtd;
+  dtd_shortref *sr, **pr;
+
+  for(pr=&dtd->shortrefs; *pr; pr = &(*pr)->next)
+  { dtd_shortref *r = *pr;
+
+    if ( r->name == name )
+      return r;
+  }
+  
+  sr = sgml_calloc(1, sizeof(*sr));
+  sr->name = name;
+  *pr = sr;
+
+  return sr;
+}
+
+
 static int
 process_shortref_declaration(dtd_parser *p, const ichar *decl)
 { dtd *dtd = p->dtd;
   ichar buf[MAXDECL];
-  dtd_shortref *sr = sgml_calloc(1, sizeof(*sr));
-  dtd_shortref **pr;
+  dtd_shortref *sr;
+  dtd_symbol *name;
   const ichar *s;
 
   if ( !expand_pentities(p, decl, buf, sizeof(buf)) )
     return FALSE;
   decl = buf;
 
-  if ( !(s=itake_name(dtd, decl, &sr->name)) )
+  if ( !(s=itake_name(dtd, decl, &name)) )
     return gripe(ERC_SYNTAX_ERROR, "Name expected", decl);
   decl = s;
+
+  sr = def_shortref(p, name);
+  if ( sr->defined )
+  { gripe(ERC_REDEFINED, "shortref", name);
+
+    free_maps(sr->map);
+    sr->map = NULL;
+  } else
+    sr->defined = TRUE;
+
   while( *decl && (s=shortref_add_map(dtd, decl, sr)) )
     decl = s;
 
   if ( *decl )
     return gripe(ERC_SYNTAX_ERROR, "Map expected", decl);
   
-  for(pr=&dtd->shortrefs; *pr; pr = &(*pr)->next)
-  { dtd_shortref *r = *pr;
-
-    if ( r->name == sr->name )
-    { gripe(ERC_REDEFINED, "shortref", r->name->name);
-
-      free_maps(r->map);
-      r->map = sr->map;
-      sgml_free(sr);
-      return TRUE;
-    }
-  }
-
-  *pr = sr;
-
   return TRUE;
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Find named name.  The name NULL stands for the #empty map
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static dtd_shortref *
 find_map(dtd *dtd, dtd_symbol *name)
 { dtd_shortref *sr;
-  static dtd_shortref *empty;
 
-  if ( istrcaseeq(name->name, "#empty") )
-  { if ( !empty )
+  if ( !name )
+  { static dtd_shortref *empty;
+
+    if ( !empty )
     { empty = sgml_calloc(1, sizeof(*empty));
       empty->name = dtd_add_symbol(dtd, "#EMPTY");
+      empty->defined = TRUE;
     }
 
     return empty;
@@ -1418,10 +1439,13 @@ find_map(dtd *dtd, dtd_symbol *name)
 
   for( sr = dtd->shortrefs; sr; sr = sr->next )
   { if ( sr->name == name )
+    { if ( !sr->defined )
+	break;
+
       return sr;
+    }
   }
        
-  gripe(ERC_EXISTENCE, "map", name->name);
   return NULL;
 }
 
@@ -1442,9 +1466,15 @@ process_usemap_declaration(dtd_parser *p, const ichar *decl)
   dtd_shortref *map;
 
   if ( !(s=itake_name(dtd, decl, &name)) )
-    return gripe(ERC_SYNTAX_ERROR, "map-name expected", decl);
+  { if ( (s=isee_identifier(dtd, decl, "#empty")) )
+      name = NULL;
+    else
+      return gripe(ERC_SYNTAX_ERROR, "map-name expected", decl);
+  }
+
   decl = s;
-  map = find_map(dtd, name);
+  if ( !(map = find_map(dtd, name)) )
+    map = def_shortref(p, name);	/* make undefined map */
 
   if ( isee_func(dtd, decl, CF_GRPO) )	/* ( */
   { dtd_model *model;
@@ -1457,10 +1487,13 @@ process_usemap_declaration(dtd_parser *p, const ichar *decl)
       return FALSE;
   } else if ( (s=itake_name(dtd, decl, &ename)) )
   { e = find_element(dtd, ename);
-    e->map = find_map(dtd, name);
+    e->map = map;
     decl = s;
   } else if ( p->environments )
-  { p->environments->map = find_map(dtd, name);
+  { if ( !map->defined )
+      gripe(ERC_EXISTENCE, "map", name->name);
+
+    p->environments->map = map;
     p->map = p->environments->map;
   } else
     return gripe(ERC_SYNTAX_ERROR, "element-name expected", decl);
@@ -3565,18 +3598,27 @@ end_document_dtd_parser(dtd_parser *p)
     case S_RCDATA:
       return gripe(ERC_SYNTAX_ERROR,
 		   "Unexpected end-of-file in CDATA/RCDATA element", "");
+    case S_CMT:
+    case S_CMTE0:
+    case S_CMTE1:
+    case S_DECLCMT0:
+    case S_DECLCMT:
+    case S_DECLCMTE0:
+      return gripe(ERC_SYNTAX_ERROR,
+		   "Unexpected end-of-file in comment", "");
     case S_ECDATA1:
     case S_ECDATA2:
     case S_EMSC1:
     case S_EMSC2:
+    case S_DECL0:
     case S_DECL:
+    case S_MDECL0:
     case S_STRING:
-    case S_COMMENT:
-    case S_COMMENTDECL:
-    case S_COMMENTDECL1:
+    case S_CMTO:
     case S_GROUP:
     case S_PENT:
     case S_ENT:
+    case S_ENT0:
       return gripe(ERC_SYNTAX_ERROR,
 		   "Unexpected end-of-file", "");
 #ifdef UTF8
@@ -3632,7 +3674,6 @@ reset_document_dtd_parser(dtd_parser *p)
 
   p->mark_state	   = MS_INCLUDE;
   p->state	   = S_PCDATA;
-  p->previous_char = EOF;
   p->grouplevel	   = 0;
   p->blank_cdata   = TRUE;
   p->event_class   = EV_EXPLICIT;
@@ -3674,6 +3715,11 @@ static void
 add_cdata(dtd_parser *p, int chr, int verbatim)
 { if ( p->mark_state == MS_INCLUDE )
   { ocharbuf *buf = p->cdata;
+
+    if ( p->blank_cdata == TRUE && !HasClass(p->dtd, chr, CH_BLANK) )
+    { p->cdata_must_be_empty = !open_element(p, CDATA_ELEMENT, FALSE);
+      p->blank_cdata = FALSE;
+    }
 
     if ( chr == '\n' && buf->size > 0 )
     { if ( p->map && buf->data[buf->size-1] != '\r' && !verbatim )
@@ -3739,24 +3785,22 @@ void
 putchar_dtd_parser(dtd_parser *p, int chr)
 { dtd *dtd = p->dtd;
   const ichar *f = dtd->charfunc->func;
-  ichar prev = p->previous_char;
   dtd_srcloc old = p->location;
-
-  p->previous_char = chr;
 
   if ( f[CF_RS] == chr )
   { p->location.line++;
     p->location.linepos = 0;
-  }
+  } 
   p->location.linepos++;
   p->location.charpos++;
 
   switch(p->state)
   { case S_PCDATA:
+    s_pcdata:
     { if ( f[CF_MDO1] == chr )		/* < */
       { sgml_cplocation(&p->startloc, &old);
-	p->state = S_DECL;
-	empty_icharbuf(p->buffer);	/* make sure */
+	p->state = S_DECL0;
+	empty_icharbuf(p->buffer);
 	return;
       }
       if ( p->dmode == DM_DTD )
@@ -3768,8 +3812,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
       } else
       { if ( f[CF_ERO] == chr )		/* & */
 	{ sgml_cplocation(&p->startloc, &old);
-	  p->state = S_ENT;
-	  p->saved = chr;		/* for recovery */
+	  p->state = S_ENT0;
 	  return;
 	}
       }
@@ -3781,10 +3824,6 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	return;
       }
 					/* Real character data */
-      if ( p->blank_cdata == TRUE && !HasClass(dtd, chr, CH_BLANK) )
-      { p->cdata_must_be_empty = !open_element(p, CDATA_ELEMENT, FALSE);
-	p->blank_cdata = FALSE;
-      }
 #ifdef UTF8
       if ( p->utf8_decode && ISUTF8_MB(chr) )
       { process_utf8(p, chr);
@@ -3905,26 +3944,65 @@ putchar_dtd_parser(dtd_parser *p, int chr)
       gripe(ERC_SYNTAX_ERROR, "Illegal parameter entity", p->buffer->data);
       break;
     }
-    case S_ENT:				/* &entity; */
-    { if ( f[CF_ERC] == chr )		/* ; */
-      { p->state = S_PCDATA;
-	terminate_icharbuf(p->buffer);
-	if ( p->mark_state == MS_INCLUDE )
-	{ WITH_PARSER(p, process_entity(p, p->buffer->data));
-	}
-	empty_icharbuf(p->buffer);
-	return;
+    case S_ENT0:			/* Seen & */
+    { if ( chr == '#' || HasClass(dtd, chr, CH_NAME) )
+      { empty_icharbuf(p->buffer);
+	add_icharbuf(p->buffer, chr);
+	p->state = S_ENT;
+      } else
+      { add_cdata(p, f[CF_ERO], FALSE);
+	add_cdata(p, chr,       FALSE);
+	p->state = S_PCDATA;
       }
-      if ( HasClass(dtd, chr, CH_NAME) || chr == '#' ) /* TBD: abstract name */
+
+      return;
+    }    
+    case S_ENT:				/* &entity; */
+    { if ( HasClass(dtd, chr, CH_NAME) )
       { add_icharbuf(p->buffer, chr);
 	return;
       }
 
-      recover_parser(p);
-      gripe(ERC_SYNTAX_WARNING,
-	    "Non-terminated (;) entity reference", p->buffer->data);
+      terminate_icharbuf(p->buffer);
+      if ( p->mark_state == MS_INCLUDE )
+      { WITH_PARSER(p, process_entity(p, p->buffer->data));
+      }
       empty_icharbuf(p->buffer);
+      
+      p->state = S_PCDATA;
+      if ( f[CF_ERC] != chr )
+	goto s_pcdata;
+
       break;
+    }
+    case S_DECL0:			/* Seen < */
+    { if ( f[CF_ETAGO2] == chr )	/* </ */
+      { add_icharbuf(p->buffer, chr);
+	p->state = S_DECL;
+      } else if ( HasClass(dtd, chr, CH_NAME) ) /* <letter */
+      { add_icharbuf(p->buffer, chr);
+	p->state = S_DECL;
+      } else if ( f[CF_MDO2] == chr )	/* <! */
+      { p->state = S_MDECL0;
+      } else if ( f[CF_PRO2] == chr )	/* <? */
+      { p->state = S_PI;
+      } else				/* recover */
+      { add_cdata(p, f[CF_MDO1], FALSE);
+	add_cdata(p, chr, FALSE);
+	p->state = S_PCDATA;
+      }
+
+      return;
+    }
+    case S_MDECL0:			/* Seen <! */
+    { if ( f[CF_CMT] == chr )		/* <!- */
+      { p->state = S_CMTO;
+	return;
+      }
+      add_icharbuf(p->buffer, f[CF_MDO2]);
+      add_icharbuf(p->buffer, chr);
+      p->state = S_DECL;
+      return;
     }
     case S_DECL:			/* <...> */
     { if ( f[CF_MDC] == chr )		/* > */
@@ -3949,43 +4027,47 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	p->state = S_SHORTTAG_CDATA;
 	return;
       }
+
+      add_icharbuf(p->buffer, chr);
+
       if ( f[CF_LIT] == chr )
-      { add_icharbuf(p->buffer, chr);
-	p->state = S_STRING;
+      { p->state = S_STRING;
+	p->saved = chr;
+      } else if ( f[CF_LITA] == chr )
+      { p->state = S_STRING;
 	p->saved = chr;
 	return;
-      }
-      if ( f[CF_LITA] == chr )
-      { add_icharbuf(p->buffer, chr);
-	p->state = S_STRING;
-	p->saved = chr;
-	return;
-      }
-      if ( f[CF_CMT] == chr && prev == chr )
-      { const ichar *s;
-
-	del_icharbuf(p->buffer);
-	terminate_icharbuf(p->buffer);
-
-	if ( (s=isee_func(dtd, p->buffer->data, CF_MDO2)) && !s[0] )
-	  p->state = S_COMMENTDECL;	/* <!-- */
-	else
-	  p->state = S_COMMENT;
-	return;
-      }
-      if ( f[CF_DSO] == chr )		/* [: marked section */
-      { add_icharbuf(p->buffer, chr);
-	terminate_icharbuf(p->buffer);
+      } else if ( f[CF_CMT] == chr )
+      { p->state = S_DECLCMT0;
+      } else if ( f[CF_DSO] == chr )		/* [: marked section */
+      { terminate_icharbuf(p->buffer);
 
 	process_marked_section(p);
-	return;
       }
-      if ( p->buffer->size == 0 && f[CF_PRO2] == chr ) /* <? ... */
-      { p->state = S_PI;
-	return;
+
+      break;
+    }
+    case S_DECLCMT0:			/* <...- */
+    { if ( f[CF_CMT] == chr )
+      { p->buffer->size--;
+	p->state = S_DECLCMT;
+      } else
+      { add_icharbuf(p->buffer, chr);
+	p->state = S_DECL;
       }
-      add_icharbuf(p->buffer, chr);
-      return;
+      break;
+    }
+    case S_DECLCMT:			/* <...--.. */
+    { if ( f[CF_CMT] == chr )
+	p->state = S_DECLCMTE0;
+      break;
+    }
+    case S_DECLCMTE0:			/* <...--..- */
+    { if ( f[CF_CMT] == chr )
+	p->state = S_DECL;
+      else
+	p->state = S_DECLCMT;
+      break;
     }
     case S_SHORTTAG_CDATA:
     { if ( f[CF_ETAGO2] == chr )	/* / */
@@ -4029,25 +4111,38 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	p->state = S_DECL;
       break;
     }
-    case S_COMMENT:
-    { if ( f[CF_CMT] == chr && prev == chr )
-	p->state = S_DECL;
+    case S_CMTO:			/* Seen <!- */
+    { if ( f[CF_CMT] == chr )		/* - */
+      { p->state = S_CMT;
+	return;
+      } else
+      { add_cdata(p, f[CF_MDO1], FALSE);
+	add_cdata(p, f[CF_MDO2], FALSE);
+	add_cdata(p, f[CF_CMT],  FALSE);
+	add_cdata(p, chr,        FALSE);
+	p->state = S_PCDATA;
+	return;
+      }
+    }
+    case S_CMT:
+    { if ( f[CF_CMT] == chr )
+	p->state = S_CMTE0;		/* <!--...- */
       break;
     }
-    case S_COMMENTDECL:			/* <!--... seen */
-    { if ( f[CF_CMT] == chr && prev == chr )
-	p->state = S_COMMENTDECL1;
+    case S_CMTE0:			/* <!--... -- */
+    { if ( f[CF_CMT] == chr )
+	p->state = S_CMTE1;
+      else
+	p->state = S_CMT;
       break;
     }
-    case S_COMMENTDECL1:		/* <!--...-- seen */
-    { if ( f[CF_MDC] == chr )
+    case S_CMTE1:			/* <!--...-- seen */
+    { if ( f[CF_MDC] == chr )		/* > */
       { if ( p->on_decl )
 	  (*p->on_decl)(p, "");
 	p->state = S_PCDATA;
-      } else if ( !HasClass(dtd, chr, CH_BLANK) )
-      { gripe(ERC_SYNTAX_WARNING, "Illegal comment", "");
-	p->state = S_COMMENTDECL;
-      }
+      } else
+	p->state = S_CMT;
       break;
     }
     case S_GROUP:
