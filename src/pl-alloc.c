@@ -12,7 +12,9 @@
 
 #include "pl-incl.h"
 
+#ifndef O_MYALLOC
 #define O_MYALLOC 1
+#endif
 
 #ifndef ALLOC_DEBUG
 #define ALLOC_DEBUG 0
@@ -21,7 +23,7 @@
 #define ALLOC_FREE_MAGIC 0x5f
 #define ALLOC_VIRGIN_MAGIC 0x7f
 
-#ifdef O_MYALLOC
+#if O_MYALLOC
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module defines memory allocation for the heap (the  program  space)
