@@ -3361,6 +3361,7 @@ init_c_args()
 { if ( c_argc == -1 )
   { GET_LD
     int i;
+    int opts = 1;
     int argc    = GD->cmdline.argc;
     char **argv = GD->cmdline.argv;
 
@@ -3369,7 +3370,7 @@ init_c_args()
     c_argc = 1;
 
     for(i=1; i<argc; i++)
-    { if ( argv[i][0] == '-' )
+    { if ( opts && argv[i][0] == '-' )
       { switch(argv[i][1])
 	{ case 'x':
 	  case 'g':
@@ -3387,6 +3388,11 @@ init_c_args()
 	  case 'A':
 	  case 'q':
 	    continue;
+         case '-':
+	   if (!argv[i][2])
+	   { opts = 0;
+	     continue;
+	   }
 	}
       }
       c_argv[c_argc++] = argv[i];

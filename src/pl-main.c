@@ -745,6 +745,7 @@ PL_initialise(int argc, char **argv)
   script_argv(argc, argv);		/* hande #! arguments */
   argc = GD->cmdline.argc;
   argv = GD->cmdline.argv;
+  GD->cmdline._c_argc = -1;
   DEBUG(1,
   { int i;
     

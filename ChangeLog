@@ -8,6 +8,8 @@
 					--------------------------------------
 
 
+  * FIXED: PL_query(PL_QUERY_ARGC).  With patch from Salvador Fandiño.
+
   * MODIFIED: incremented external record version format.  Unfortunately this
     makes old BerkeleyDB databases loading Prolog terms unusable.  The only
     work-around is to dump the database using an older version and rebuild
