@@ -85,6 +85,7 @@ the all resources associated to the thread. If \const{true}, the system
 will reclaim all associated resources automatically after the thread
 finishes. Please note that thread identifiers are freed for reuse after
 a detached thread finishes or a normal thread has been joined.
+See also thread_join/2 and thread_detach/1.
 \end{description}
 
 The \arg{Goal} argument is \emph{copied} to the new Prolog engine.
@@ -107,6 +108,18 @@ A thread that has been completed without thread_join/2 being called on
 it is partly reclaimed: the Prolog stacks are released and the C-thread
 is destroyed. A small data-structure representing the exit-status of the
 thread is retained until thread_join/2 is called on the thread.
+
+    \predicate{thread_detach}{1}{+Id}
+Switch thread into detached-state (see \term{detached}{Bool} option at
+thread_create/3) at runtime.  \arg{Id} is the identifier of the thread
+placed in detached state.  This may be the result of PL_thread_self/1.
+
+One of the possible applications is to simplify debugging. Threads that
+are created as \jargon{detached} leave no traces if they crash. For
+not-detached threads the status can be inspected using current_thread/2.
+Threads nobody is waiting for may be created normally and detach
+themselves just before completion.  This way they leave no traces on
+normal completion and their reason for failure can be inspected.
 
     \predicate{thread_exit}{1}{+Term}
 Terminates the thread immediately, leaving \term{exited}{Term} as

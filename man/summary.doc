@@ -440,6 +440,7 @@ suggest predicates from a keyword.
 \predicatesummary{term_to_atom}{2}{Convert between term and atom}
 \predicatesummary{thread_at_exit}{1}{Register goal to be called at exit}
 \predicatesummary{thread_create}{3}{Create a new Prolog task}
+\predicatesummary{thread_detach}{1}{Make thread cleanup after completion}
 \predicatesummary{thread_exit}{1}{Terminate Prolog task with value}
 \predicatesummary{thread_get_message}{1}{Wait for message}
 \predicatesummary{thread_get_message}{2}{Wait for message in a queue}
