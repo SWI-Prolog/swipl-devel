@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: library(splash_screen) to provide nice startup screens.
+
 * ADDED/FIXED: Allow a frame to delete its only window (frame->delete).
   Added code to library(tabbed) window to disconnect a window from its
   frame before adding to the tab.  Steve Moyle.
