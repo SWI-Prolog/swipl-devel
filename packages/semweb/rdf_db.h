@@ -235,11 +235,11 @@ typedef struct rdf_db
   int			waiting_writers;
   int			waiting_upgrade;
   int		       *read_by_thread;
+  int			allow_readers;
+  int			lock_level;	/* recursive locks */
 #endif
   int			writer;
-  int			allow_readers;
   int			readers;
-  int			lock_level;	/* recursive locks */
 } rdf_db;
 
 #endif /*RDFDB_H_INCLUDED*/
