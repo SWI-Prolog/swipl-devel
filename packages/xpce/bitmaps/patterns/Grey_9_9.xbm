@@ -1,4 +1,0 @@
-#define gray9_width 3
-#define gray9_height 3
-static char gray9_bits[] = {
-   0xff, 0xff, 0xff};
