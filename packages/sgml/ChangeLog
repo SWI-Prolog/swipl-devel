@@ -1,3 +1,8 @@
+* ADDED: Test for legal value in attributes with type NAMEOF (a|b)
+
+* FIXED: Handle (a,b), (a&b) and (a|b) as equivalent in ATTLIST type
+  declaration.
+
 * FIXED: option shorttag was spelled shortag.
 
 * FIXED: Ensure the output is properly closed, even if the parser encounters

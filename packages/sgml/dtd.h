@@ -64,6 +64,7 @@ typedef enum
   CF_RS,				/* \n */
   CF_RE,				/* \r */
   CF_CMT,				/* - */
+  CF_NG,				/* , or & or | */
   CF_ENDTABLE				/* to find size */
 } charfunc;				/* function of characters */
 

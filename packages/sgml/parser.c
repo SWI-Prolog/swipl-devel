@@ -1979,6 +1979,34 @@ process_model(dtd *dtd, dtd_edef *e, const ichar *decl)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+See a name-group separator.  As long as we haven't decided, this can be
+CF_NG.  If we have decided they must all be the same.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static const ichar *
+isee_ngsep(dtd *dtd, const ichar *decl, charfunc *sep)
+{ const ichar *s;
+
+  if ( (s=isee_func(dtd, decl, *sep)) )
+    return iskip_layout(dtd, s);
+  if ( *sep == CF_NG )			/* undecided */
+  { static const charfunc ng[] = { CF_SEQ, CF_OR, CF_AND };
+    int n;
+
+    for(n=0; n<3; n++)
+    { if ( (s=isee_func(dtd, decl, ng[n])) )
+      { *sep = ng[n];
+        return iskip_layout(dtd, s);
+      }
+    }
+  }
+
+  return NULL;
+}
+
+
+
 static const ichar *
 itake_namegroup(dtd *dtd, charfunc sep, const ichar *decl,
 		dtd_symbol **names, int *n)
@@ -2244,9 +2272,11 @@ process_attlist_declaraction(dtd_parser *p, const ichar *decl)
 
 					/* (name1|name2|...) type */
     if ( (s=isee_func(dtd, decl, CF_GRPO)) )
-    { at->type = AT_NAMEOF;
+    { charfunc ngs = CF_NG;
 
+      at->type = AT_NAMEOF;
       decl=s;
+
       for(;;)
       { dtd_symbol *nm;
 
@@ -2254,7 +2284,7 @@ process_attlist_declaraction(dtd_parser *p, const ichar *decl)
 	  return gripe(ERC_SYNTAX_ERROR, "Name expected", decl);
 	decl = s;
 	add_name_list(&at->typeex.nameof, nm);
-	if ( (s=isee_func(dtd, decl, CF_OR)) )
+	if ( (s=isee_ngsep(dtd, decl, &ngs)) )
 	{ decl = s;
 	  continue;
 	}
@@ -2949,6 +2979,15 @@ get_attribute_value(dtd_parser *p, ichar const *decl, sgml_attribute *att)
     case AT_NMTOKEN:		/* name-token */
       if (token == YET_EMPTY || (token & ANY_OTHER) != 0)
 	gripe(ERC_SYNTAX_WARNING, "NMTOKEN expected", decl);
+      if ( att->definition->type == AT_NAMEOF )
+      { dtd_name_list *nl;
+
+	for(nl=att->definition->typeex.nameof; nl; nl = nl->next)
+	{ if ( istreq(nl->value->name, buf) )
+	    goto passed;
+	}
+	gripe(ERC_SYNTAX_WARNING, "unexpected value", decl);
+      }
       break;
     case AT_NUTOKEN:		/* number token */
       if ((token & (NAM_FIRST | ANY_OTHER)) != 0)
@@ -2984,6 +3023,7 @@ get_attribute_value(dtd_parser *p, ichar const *decl, sgml_attribute *att)
       return NULL;
   }
 
+passed:
   att->value.text = istrdup(buf);	/* TBD: more validation */
   return end;
 }
