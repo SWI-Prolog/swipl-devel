@@ -83,6 +83,24 @@ prof_direct(N) :-
 	;   true
 	).
 
+all_lemmas_1(Words) :-
+	odbc_query(wordnet,
+		   'select (wordno) from word',
+		   Words,
+		   [ findall(Word, row(Word)),
+		     types([integer])
+		   ]).
+all_lemmas_2(Words) :-
+	findall(Word,
+		odbc_query(wordnet,
+			   'select (wordno) from word',
+			   row(Word),
+			   [ types([integer])
+			   ]),
+		Words).
+
+
+
 
 		 /*******************************
 		 *	      PROFILE		*
