@@ -4244,7 +4244,7 @@ else
     int i;
 
     for(i=0; i<sizeof(long); i++)
-    { p = (long *)l+i;
+    { p = (long *)(l+i);
       *p = 42;
     }
 
