@@ -444,48 +444,88 @@ compileTermToHeap(term_t t, int flags)
 		 *	 EXTERNAL RECORDS	*
 		 *******************************/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-TBD: Encode terms holding just an atom or int more efficiently:
+#define	REC_32	    0x01		/* word is 32-bits	*/
+#define	REC_64	    0x02		/* word is 64-bits	*/
+#define	REC_INT	    0x04		/* Record just contains	int  */
+#define	REC_ATOM    0x08		/* Record just contains	atom */
+#define	REC_GROUND  0x10		/* Record just contains	atom */
+#define	REC_VMASK   0xe0		/* Version mask */
+#define	REC_VERSION 0x00		/* Version id */
 
-	Code Long
-	Code AtomChars
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+#define REC_SZMASK  (REC_32|REC_64)	/* SIZE_MASK */
 
+#if SIZEOF_LONG == 8
+#define REC_SZ REC_64
+#else
+#define REC_SZ REC_32
+#endif
 
-#define VERSION 0x10			/* generic version ID */
-#define MAGIC   (VERSION|sizeof(long))	/* first byte */
+#define REC_COMPAT(m)	(((m)&(REC_VMASK|REC_SZMASK)) == (REC_VERSION|REC_SZ))
 
 char *
 PL_record_external(term_t t, unsigned int *len)
 { GET_LD
   compile_info info;
-  Word *p;
+  Word p, *vp;
   int n;
   tmp_buffer hdr;
   int scode, shdr;
   char *rec;
+  int first = REC_SZ|REC_VERSION;
 
   SECURE(checkData(valTermRef(t)));
+  p = valTermRef(t);
+  deRef(p);
 
   initBuffer(&info.code);
+
+  if ( isInteger(*p) )			/* integer-only record */
+  { long v;
+
+    if ( isTaggedInt(*p) )
+      v = valInt(*p);
+    else
+      v = valBignum(*p);
+    
+    first |= (REC_INT|REC_GROUND);
+    addOpCode(&info, first);
+    addLong(&info, v);
+
+  ret_primitive:
+    scode = sizeOfBuffer(&info.code);
+    rec = allocHeap(scode);
+    memcpy(rec, info.code.base, scode);
+    discardBuffer(&info.code);
+    *len = scode;
+    return rec;
+  } else if ( isAtom(*p) )
+  { first |= (REC_ATOM|REC_GROUND);
+    addOpCode(&info, first);
+    addAtomValue(&info, *p);
+    goto ret_primitive;
+  }
+
   initBuffer(&info.vars);
   info.size = 0;
   info.nvars = 0;
   info.external = TRUE;
 
-  compile_term_to_heap(valTermRef(t), &info);
+  compile_term_to_heap(p, &info);
   n = info.nvars;
-  p = (Word *)info.vars.base;
+  vp = (Word *)info.vars.base;
   while(--n >= 0)
-    setVar(**p++);
+    setVar(**vp++);
   discardBuffer(&info.vars);
   scode = sizeOfBuffer(&info.code);
+  if ( info.nvars == 0 )
+    first |= REC_GROUND;
 
   initBuffer(&hdr);
-  addBuffer(&hdr, MAGIC, uchar);		/* magic code */
+  addBuffer(&hdr, first, uchar);		/* magic code */
   addUintBuffer((Buffer)&hdr, scode);		/* code size */
   addUintBuffer((Buffer)&hdr, info.size);	/* size on stack */
-  addUintBuffer((Buffer)&hdr, info.nvars);	/* Number of variables */
+  if ( info.nvars > 0 )
+    addUintBuffer((Buffer)&hdr, info.nvars);	/* Number of variables */
   shdr = sizeOfBuffer(&hdr);
   
   rec = allocHeap(shdr + scode);
@@ -1096,24 +1136,39 @@ PL_recorded_external(const char *rec, term_t t)
 { GET_LD
   copy_info b;
   uint gsize;
-  uint nvars;
-  Word *p;
-  int n;
   uchar m;
 
   b.base = b.data = rec;
   fetchBuf(&b, &m, uchar);
-  if ( m != MAGIC )
-    return FALSE;
+
+  if ( !REC_COMPAT(m) )
+    fail;
+
+  if ( m & (REC_INT|REC_ATOM) )		/* primitive cases */
+  { if ( m & REC_INT )
+    { long v = fetchLong(&b);
+      
+      return PL_unify_integer(t, v);
+    } else
+    { atom_t a;
+
+      fetchAtom(&b, &a);
+      return PL_unify_atom(t, a);
+    }
+  }
+
   skipSizeInt(&b);			/* code-size */
   gsize = fetchSizeInt(&b);
-  nvars = fetchSizeInt(&b);
+  if ( !(m & REC_GROUND) )
+  { uint nvars = fetchSizeInt(&b);
+    Word *p;
+    int n;
 
-  if ( nvars > 0 )
-  { if ( !(b.vars = alloca(sizeof(Word) * nvars)) )
-      fatalError("alloca() failed");
-    for(p = b.vars, n=nvars; --n >= 0;)
-      *p++ = 0;
+    { if ( !(b.vars = alloca(sizeof(Word) * nvars)) )
+	fatalError("alloca() failed");
+      for(p = b.vars, n=nvars; --n >= 0;)
+	*p++ = 0;
+    }
   }
   b.gstore = allocGlobal(gsize);
   copy_record(valTermRef(t), &b);
@@ -1133,12 +1188,20 @@ PL_erase_external(char *rec)
 
   b.base = b.data = rec;
   fetchBuf(&b, &m, uchar);
-  if ( m != MAGIC )
-    return FALSE;
-  scode = fetchSizeInt(&b);
-  skipSizeInt(&b);			/* gsize */
-  skipSizeInt(&b);			/* nvars */
-  b.data += scode;
+  if ( !REC_COMPAT(m) )
+    fail;
+  if (  m & (REC_INT|REC_ATOM) )
+  { if (  m & REC_INT )
+      skipLong(&b);
+    else
+      skipAtom(&b);
+  } else
+  { scode = fetchSizeInt(&b);
+    skipSizeInt(&b);			/* gsize */
+    if ( !(m & REC_GROUND) )
+      skipSizeInt(&b);			/* nvars */
+    b.data += scode;
+  }
 
   freeHeap(rec, b.data-b.base);
   return TRUE;
