@@ -2567,7 +2567,8 @@ digits above 9.
     \fmtchar{R}
 Same as {\bf r}, but uses upper case letters for digits above 9.
     \fmtchar{s}
-Output a string of ASCII characters from the next argument.
+Output a string of ASCII characters or a string (see string/1 and
+\secref{strings}) from the next argument.
     \fmtchar{t}
 All remaining space between 2 tabs tops is distributed equally over
 \fmtseq{~t} statements between the tabs tops. This space is padded
