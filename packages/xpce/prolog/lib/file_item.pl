@@ -57,6 +57,7 @@ convert(_, Name:name, SaveFile:save_file) :<-
 		   "text_item with file-name completion").
 
 variable(exists,	bool := @off,	both, "File must exist").
+variable(directory,	directory*,	both, "Relative to").
 
 initialise(FI, Name:[name], Def:[any|function], Msg:[code]*) :->
 	clean_file_name(Def, Clean),
@@ -83,15 +84,27 @@ selected_completion(FI, Component:char_array, _Apply:[bool]) :->
 	).
 
 
-completions(_FI, Tuple:tuple, Matches:chain) :<-
+local_path(FI, In:string, Out:string) :<-
+	(   get(FI, directory, Dir),
+	    Dir \== @nil
+	->  new(Out, string('%s/%s', Dir?path, In))
+	;   Out = In
+	).
+
+
+completions(FI, Tuple:tuple, Matches:chain) :<-
 	"Chain with completions of FileName in DirName"::
-	get(Tuple, first, DirName),
+	get(Tuple, first, DirName0),
 	get(Tuple, second, FileName),
 	new(Matches, chain),
 	new(Re, regex((string('^%s', FileName)))),
 	(   send(class(file), has_feature, case_sensitive, @off)
 	->  send(Re, ignore_case, @on)
 	;   true
+	),
+	(   is_absolute_file_name(DirName0)
+	->  DirName = DirName0
+	;   get(FI, local_path, DirName0, DirName)
 	),
 	send(directory(DirName), scan, Matches, Matches, Re),
 	send(Matches, delete_all, '.'),
@@ -101,7 +114,7 @@ completions(_FI, Tuple:tuple, Matches:chain) :<-
 split_completion(_FI, Value, Tuple:tuple) :<-
 	"Split the current entry"::
 	new(S, string('%s', Value)),
-						% delete ...// or ...~
+						% delete ...// or .../~
 	get(S, size, L),
 	(   get(regex('//\\|~\\|\\w:[/\\]'), search, S, L, 0, Start)
 	->  send(S, delete, 0, Start),
@@ -118,12 +131,13 @@ split_completion(_FI, Value, Tuple:tuple) :<-
 	;   new(F, file(S)),
 	    get(F, directory_name, DirName),
 	    get(F, base_name, BaseName),
-	    path(DirName, Path)
+	    make_path(DirName, Path)
 	),
 	new(Tuple, tuple(Path, BaseName)).
 
-path('', '') :- !.
-path(Path, WithSlash) :-
+make_path('', '') :- !.
+make_path('.', '') :- !.
+make_path(Path, WithSlash) :-
 	get(Path, ensure_suffix, /, WithSlash).
 
 
@@ -138,16 +152,17 @@ selection(FI, FileName:name) :<-
 	"Get the current selection"::
 	get_super(FI, selection, RawName),
 	get(RawName, size, L),
-	(   get(regex('//\\|~'), search, RawName, L, 0, Start)
+	(   get(regex('//\\|/~'), search, RawName, L, 0, Start)
 	->  new(S, string('%s', RawName)),
 	    send(S, delete, 0, Start),
 	    (	send(S, prefix, '//')
 	    ->  send(S, delete, 0, 1)
 	    ;   true
  	    ),
-	    get(S, value, FileName)
-	;   get(RawName, value, FileName)
+	    get(S, value, FileName0)
+	;   get(RawName, value, FileName0)
 	),
+	get(FI, local_path, FileName0, FileName),
 	(   get(FI, exists, @on)
 	->  (   send(file(FileName), exists)
 	    ->	true
