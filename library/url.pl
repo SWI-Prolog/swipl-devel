@@ -108,11 +108,22 @@ http_location(?Parts, ?Location)
 		 *	      GLOBALISE		*
 		 *******************************/
 
+%	global_url(+URL, +Base, -Global)
+%	
+%	Translate a relative URL into an absolute one.  The first three
+%	cases deal with commonly seen and quickly to resolve cases.
+
 global_url(URL, BaseURL, Global) :-
 	(   sub_atom(URL, 0, _, _, 'http://') % speed up common cases
 	->  Global = URL
 	;   sub_atom(URL, 0, _, _, 'ftp://')
 	->  Global = URL
+	;   sub_atom(URL, 0, _, _, #)
+	->  (   sub_atom(BaseURL, _, _, 0, #)
+	    ->	sub_atom(URL, 1, _, 0, NoHash),
+		atom_concat(BaseURL, NoHash, Global)
+	    ;	atom_concat(BaseURL, URL, Global)
+	    )
 	;   parse_url(URL, BaseURL, Attributes),
 	    phrase(curl(Attributes), Chars),
 	    atom_codes(Global, Chars)
