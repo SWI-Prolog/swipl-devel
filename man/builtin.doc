@@ -1860,15 +1860,17 @@ or destination of the data.
     \predicate{open}{4}{+SrcDest, +Mode, -Stream, +Options}
 ISO compliant predicate to open a stream. \arg{SrcDes} is either an
 atom, specifying a Unix file, or a term `\exam{pipe(\arg{Command})}',
-just like see/1 and tell/1. \arg{Mode} is one of \const{read},
-\const{write}, \const{append} or \const{update}. Mode \const{append}
-opens the file for writing, positioning the file-pointer at the end.
-Mode \const{update} opens the file for writing, positioning the
-file-pointer at the beginning of the file without truncating the file.
-See also stream_position/3. \arg{Stream} is either a variable, in which
-case it is bound to an integer identifying the stream, or an atom, in
-which case this atom will be the stream identifier. The \arg{Options}
-list can contain the following options:
+like see/1 and tell/1. \arg{Mode} is one of \const{read}, \const{write},
+\const{append} or \const{update}. Mode \const{append} opens the file for
+writing, positioning the file-pointer at the end. Mode \const{update}
+opens the file for writing, positioning the file-pointer at the
+beginning of the file without truncating the file. \arg{Stream} is
+either a variable, in which case it is bound to an integer identifying
+the stream, or an atom, in which case this atom will be the stream
+identifier.%
+    \footnote{New code should use the \term{alias}{Alias}
+	      option for compatibility to the ISO standard}
+The \arg{Options} list can contain the following options:
 
 \begin{description}
     \termitem{type}{Type}
@@ -1955,38 +1957,48 @@ output buffer) are ignored.
 ISO compatible predicate for querying status of open I/O streams.  
 \arg{StreamProperty} is one of:
 \begin{description}
+
     \termitem{file_name}{Atom}
 If \arg{Stream} is associated to a file, unify \arg{Atom} to the
 name of this file.
+
     \termitem{mode}{IOMode}
 Unify \arg{IOMode} to the mode given to open/4 for opening the stream.
 Values are: \const{read}, \const{write}, \const{append} and the
 SWI-Prolog extension \const{update}.
+
     \termitem{input}{}
 True if \arg{Stream} has mode \const{read}.
+
     \termitem{output}{}
 True if \arg{Stream} has mode \const{write}, \const{append} or
 \const{update}.
+
     \termitem{alias}{Atom}
 If \arg{Atom} is bound, test of the stream has the specified alias.
 Otherwise unify \arg{Atom} with the first alias of the stream.%
 	\bug{Backtracking does not give other aliases.}
+
     \termitem{position}{Term}
 Unify \arg{Term} with the current stream-position.  A stream-position
 is a term of format \term{\$stream_position}{CharIndex, LineNo,
-LinePos}.  See also term_position/3.
+LinePos}.  See also set_stream_position/3.
+
     \termitem{end_of_stream}{E}
 If \arg{Stream} is an input stream, unify \arg{E} with one of the
 atoms \const{not}, \const{at} or \const{past}. See also
 at_end_of_stream/[0,1].
+
     \termitem{eof_action}{A}
 Unify \arg{A} with one of \const{eof_code}, \const{reset} or
 \const{error}.  See open/4 for details.
+
     \termitem{reposition}{Bool}
 Unify \arg{Bool} with \arg{true} if the position of the stream can
 be set (see seek/4).  It is assumed the position can be set if the
 stream has a \jargon{seek-function} and is not based on a POSIX
 file-descriptor that is not associated to a regular file.
+
     \termitem{type}{T}
 Unify \arg{Bool} with \const{text} or \const{binary}.
 
@@ -2012,6 +2024,7 @@ stream or the atom \const{[]} if the stream refers to some other object.
 Set the current position of \arg{Stream} to \arg{Pos}.  \arg{Pos} is
 a term as returned by stream_property/2 using the \term{position}{Pos}
 property.  See also seek/4.
+
     \predicate{seek}{4}{+Stream, +Offset, +Method, -NewLocation}
 Reposition the current point of the given \arg{Stream}.  \arg{Method}
 is one of \const{bof}, \arg{current} or \arg{eof}, indicating
@@ -2025,7 +2038,8 @@ position in the line are set to 0.
 If the stream cannot be repostioned, a \const{reposition} error is
 raised. The predicate seek/4 is compatible to Quintus Prolog, though the
 error conditions and signalling is ISO compliant. See also
-stream_position/3.
+stream_property/2 and set_stream_position/3.
+
     \predicate{set_stream}{2}{+Stream, +Attribute}
 Modify an attribute of an existing stream. \arg{Attribute} specifies
 the stream property to set.  See also stream_property/2 and open/4.
@@ -2401,7 +2415,7 @@ Defines how to read "\ldots" strings. See the prolog-flags
 
     \termitem{term_position}{Pos}
 Unifies \arg{Pos} with the starting position of the term read.  \arg{Pos}
-if of the same format as use by stream_position/3.
+if of the same format as use by stream_property/3.
 
     \termitem{subterm_positions}{TermPos}
 Describes the detailed layout of the term. The formats for the various
