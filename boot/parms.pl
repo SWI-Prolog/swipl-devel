@@ -9,11 +9,11 @@
 :- user:assert(library_directory('.')).
 :- user:assert(library_directory(lib)).
 :- user:assert(library_directory('~/lib/prolog')).
+:- user:assert(library_directory('/usr/local/lib/pl/library')).
 :- user:assert((
 	library_directory(Lib) :-
 		'$home'(Home),
 		concat(Home, '/library', Lib))).
-:- user:assert(library_directory('/usr/local/lib/pl/library')).
 
 
 $default_editor(vi).
