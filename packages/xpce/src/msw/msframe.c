@@ -272,7 +272,7 @@ do_frame_wnd_proc(FrameObj fr,
       { paint_icon(fr);
 	return 0;
       } else
-        goto repaint;
+        goto win_default;
       
     case WM_KEYDOWN:			/* Named keys */
     case WM_SYSCHAR:			/* ALT-commands */
@@ -379,6 +379,7 @@ do_frame_wnd_proc(FrameObj fr,
 repaint:
   RedrawDisplayManager(TheDisplayManager());
 
+win_default:
   return DefWindowProc(hwnd, message, wParam, lParam);
 }
 
@@ -587,23 +588,24 @@ icon_image must be set to @nil.
 status
 ws_create_frame(FrameObj fr)
 { HWND ref;
-  DWORD style, exstyle = 0;
+  DWORD style = WS_CLIPCHILDREN; 
+  DWORD exstyle = 0;
   int x, y, w, h;
 
   if ( fr->kind == NAME_popup )
-  { style = WS_POPUP;
+  { style |= WS_POPUP;
     if ( fr->border != ZERO )
       style |= WS_BORDER;
     exstyle |= WS_EX_TOOLWINDOW;
   } else
   { if ( fr->kind == NAME_toplevel )
-    { style = WS_OVERLAPPEDWINDOW;
+    { style |= WS_OVERLAPPEDWINDOW;
     } else if ( fr->kind == NAME_transient )
     { style = WS_POPUP;
       if ( getClassVariableValueObject(fr, NAME_decorateTransient) == ON )
       { Image deficon = getClassVariableValueClass(ClassFrame, NAME_iconImage);
 
-	style    = WS_POPUPWINDOW|WS_CAPTION;
+	style	|= WS_POPUPWINDOW|WS_CAPTION;
 	exstyle |= WS_EX_DLGMODALFRAME;
       } else
 	style |= WS_DLGFRAME;
