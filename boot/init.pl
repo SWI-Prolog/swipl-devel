@@ -575,18 +575,21 @@ $ifcompiling(G) :-
 preprocessor(Old, New) :-
 	flag($preprocessor, Old, New).
 
-$open_source(File, Goal) :-
-	preprocessor(none, none), !,
-	seeing(Old), see(File),
-	$open_source_call(File, Goal, True),
-	seen, see(Old),
+$open_source(user, user_input, Goal) :- !,
+	$open_source_call(user, Goal, True),
 	True == yes.
-$open_source(File, Goal) :-
+$open_source(File, In, Goal) :-
+	preprocessor(none, none), !,
+	open(File, read, In),
+	$open_source_call(File, Goal, True),
+	close(In),
+	True == yes.
+$open_source(File, In, Goal) :-
 	preprocessor(Pre, Pre),
 	(   $substitute_atom('%f', File, Pre, Command)
-	->  seeing(Old), see(pipe(Command)),
+	->  open(pipe(Command), read, In),
 	    $open_source_call(File, Goal, True),
-	    seen, see(Old), !,
+	    close(In),
 	    True == yes
 	;   throw(error(domain_error(preprocessor, Pre), _))
 	).
@@ -835,9 +838,9 @@ $consult_file_2(Absolute, Module, Import, IsModule, What, LM) :-
 	$assert_load_context_module(Absolute, OldModule),
 
 	$style_check(OldStyle, OldStyle),	% Save style parameters
-	$open_source(Absolute, (		% Load the file
-	    read_clause(First),
-	    $load_file(First, Absolute, Import, IsModule, LM))),
+	$open_source(Absolute, In, (		% Load the file
+	    read_clause(In, First),
+	    $load_file(First, In, Absolute, Import, IsModule, LM))),
 	$style_check(_, OldStyle),		% Restore old style
 	$set_source_module(_, OldModule).	% Restore old module
 
@@ -866,37 +869,37 @@ $assert_load_context_module(File, Module) :-
 %   $load_file5 does the actual loading. The first term has already been
 %   read as this may be the module declaraction.
 
-$load_file((?- module(Module, Public)), File, all, _, Module) :- !,
-	$load_module(Module, Public, all, File).
-$load_file((:- module(Module, Public)), File, all, _, Module) :- !,
-	$load_module(Module, Public, all, File).
-$load_file((?- module(Module, Public)), File, Import, _, Module) :- !,
-	$load_module(Module, Public, Import, File).
-$load_file((:- module(Module, Public)), File, Import, _, Module) :- !,
-	$load_module(Module, Public, Import, File).
-$load_file(_, File, _, true, _) :- !,
+$load_file((?- module(Module, Public)), In, File, all, _, Module) :- !,
+	$load_module(Module, Public, all, In, File).
+$load_file((:- module(Module, Public)), In, File, all, _, Module) :- !,
+	$load_module(Module, Public, all, In, File).
+$load_file((?- module(Module, Public)), In, File, Import, _, Module) :- !,
+	$load_module(Module, Public, Import, In, File).
+$load_file((:- module(Module, Public)), In, File, Import, _, Module) :- !,
+	$load_module(Module, Public, Import, In, File).
+$load_file(_, _, File, _, true, _) :- !,
 	throw(error(domain_error(module_file, File), _)).
-$load_file(end_of_file, _, _, _, Module) :- !,		% empty file
+$load_file(end_of_file, _, _, _, _, Module) :- !, 	% empty file
 	$set_source_module(Module, Module).
-$load_file(FirstClause, File, _, false, Module) :- !,
+$load_file(FirstClause, In, File, _, false, Module) :- !,
 	$set_source_module(Module, Module),
 	$ifcompiling($qlf_start_file(File)),
 	ignore($consult_clause(FirstClause, File)),
-	$consult_clauses(File),
+	$consult_clauses(In, File),
 	$ifcompiling($qlf_end_part).
 
 $reserved_module(system).
 $reserved_module(user).
 
-$load_module(Reserved, _, _, _) :-
+$load_module(Reserved, _, _, _, _) :-
 	$reserved_module(Reserved), !,
 	throw(error(permission_error(load, module, Reserved), _)).
-$load_module(Module, Public, Import, File) :-
+$load_module(Module, Public, Import, In, File) :-
 	$set_source_module(OldModule, OldModule),
 	$declare_module(Module, File),
 	$export_list(Module, Public),
 	$ifcompiling($qlf_start_module(Module)),
-	$consult_clauses(File),
+	$consult_clauses(In, File),
 	Module:$check_export,
 	$ifcompiling($qlf_end_part),
 	$import_list(OldModule, Module, Import).
@@ -933,18 +936,18 @@ $export_list(Module, [Term|Rest]) :-
 %
 %	Read and record all clauses until the rest of the file.
 
-$consult_clauses(File) :-
+$consult_clauses(In, File) :-
 	repeat,
-	catch($consult_clauses2(File),
+	catch($consult_clauses2(In, File),
 	      E,
 	      (	  print_message(error, E),
 		  fail
 	      )), !.
 
 	      
-$consult_clauses2(File) :-
+$consult_clauses2(In, File) :-
 	repeat,
-	    read_clause(Clause),
+	    read_clause(In, Clause),
 	    expand_term(Clause, Expanded),
 	    $store_clause(Expanded, File),
 	    Clause == end_of_file, !.
@@ -1081,16 +1084,16 @@ $expand_include(File, FileInto) :-
 			   [ file_type(prolog),
 			     access(read)
 			   ], Path),
-	seeing(Old), see(Path),
-	read_clause(Term0),
-	$read_include_file(Term0, Terms),
-	seen, see(Old),
+	open(Path, read, In),
+	read_clause(In, Term0),
+	$read_include_file(Term0, In, Terms),
+	close(In),
 	$consult_clauses(Terms, FileInto).
 
-$read_include_file(end_of_file, []) :- !.
-$read_include_file(T0, [T0|T]) :-
-	read_clause(T1),
-	$read_include_file(T1, T).
+$read_include_file(end_of_file, _, []) :- !.
+$read_include_file(T0, In, [T0|T]) :-
+	read_clause(In, T1),
+	$read_include_file(T1, In, T).
 
 $consult_clauses([], _).
 $consult_clauses([H|T], File) :-
