@@ -214,6 +214,7 @@ ilib:
 iinclude:       
 		$(INSTALL_DATA) $(PLHOME)\include\SWI-Prolog.h "$(PLBASE)\include"
 		$(INSTALL_DATA) $(PLHOME)\include\SWI-Stream.h "$(PLBASE)\include"
+		$(INSTALL_DATA) $(PLHOME)\include\console.h "$(PLBASE)\include\plterm.h"
 
 install-readme::
 		$(INSTALL_DATA) ..\README "$(PLBASE)\README.TXT"
