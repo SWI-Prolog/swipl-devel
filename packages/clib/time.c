@@ -682,13 +682,14 @@ remove_alarm(term_t alarm)
 
   if ( TheSchedule()->scheduled == ev )
   { ev->flags |= EV_DONE;
-#ifdef WIN32
-    uninstallEvent(ev);
-#else
+#ifndef WIN32
     re_schedule();
 #endif
   }
 
+#ifdef WIN32
+  uninstallEvent(ev);
+#endif
   freeEvent(ev);
 
   return TRUE;

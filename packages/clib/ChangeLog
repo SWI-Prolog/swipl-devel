@@ -1,3 +1,7 @@
+Jun 2, 2003
+
+  * FIXED: time:remove_alarm/1 for MS-WIndows.  Mike Elston.
+
 Mar 14, 2003
 
   * ADDED: Code to make sockets cooperate with signals, so
