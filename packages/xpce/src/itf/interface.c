@@ -391,7 +391,7 @@ pceCharArrayToC(Any val, unsigned int *len)
 { if ( instanceOfObject(val, ClassCharArray) )
   { CharArray ca = val;
 
-    if ( *len )
+    if ( len )
       *len = (unsigned int)str_datasize(&ca->data);
 
     return strName(ca);
