@@ -4,7 +4,7 @@
 		    The default is "/usr/local/lib/pl"
 */
 
-#define M_SYSTEMHOME "/staff/jan/exp/pl3"
+#define M_SYSTEMHOME "/staff/jan/src/pl"
 
 /*
   M_BINDIR          The real path to the-SWI Prolog binaries.
