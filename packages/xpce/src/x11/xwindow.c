@@ -230,6 +230,9 @@ event_window(Widget w, XtPointer xsw, XtPointer xevent)
   XEvent *event = (XEvent *)xevent;
   FrameObj bfr;
 
+  DEBUG(NAME_event, Cprintf("event_window(): X-event %d on %s\n",
+			    event->xany.type, pp(sw)));
+
   if ( isFreeingObj(sw) || isFreedObj(sw) || sw->sensitive == OFF )
     return;
 

@@ -578,6 +578,9 @@ static void
 x_event_frame(Widget w, FrameObj fr, XEvent *event)
 { 
 
+  DEBUG(NAME_event, Cprintf("x_event_frame(): X-event %d on %s\n",
+			    event->xany.type, pp(fr)));
+
 #ifdef O_XDND
   if ( dndEventFrame(fr, event) )
     return;
