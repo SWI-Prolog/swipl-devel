@@ -309,7 +309,7 @@ fac(N, V) :-
 
 depth_limit(depth-1) :-
 	call_with_depth_limit(dl_det(1), 10, 1),
-	deterministic.
+	deterministic(true).
 depth_limit(depth-2) :-
 	call_with_depth_limit(dl_det(10), 10, 10).
 depth_limit(depth-3) :-

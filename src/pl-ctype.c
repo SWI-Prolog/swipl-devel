@@ -441,14 +441,31 @@ pl_downcase_atom(term_t in, term_t out)
   unsigned int len;
 
   if ( PL_get_nchars_ex(in, &len, &s, CVT_ATOMIC) )
-  { char *tmp = alloca(len);
-    char *i, *o;
-    int n;
+  { int l2;
+    char *s2;
 
-    for(i=s, o=tmp, n=len; n-- > 0; o++, i++)
-      *o = tolower(*i);
+    if ( PL_get_nchars(out, &l2, &s2, CVT_ATOMIC) )
+    { if ( l2 == len )
+      { char *i, *o;
+	int n;
 
-    return PL_unify_atom_nchars(out, len, tmp);
+	for(i=s, o=s2, n=len; n-- > 0; o++, i++)
+	{ if ( *o != tolower(*i) )
+	    fail;
+	}
+
+	succeed;
+      }
+    } else
+    { char *tmp = alloca(len);
+      char *i, *o;
+      int n;
+      
+      for(i=s, o=tmp, n=len; n-- > 0; o++, i++)
+	*o = tolower(*i);
+
+      return PL_unify_atom_nchars(out, len, tmp);
+    }
   }
 
   fail;
@@ -461,14 +478,31 @@ pl_upcase_atom(term_t in, term_t out)
   unsigned int len;
 
   if ( PL_get_nchars_ex(in, &len, &s, CVT_ATOMIC) )
-  { char *tmp = alloca(len);
-    char *i, *o;
-    int n;
+  { int l2;
+    char *s2;
 
-    for(i=s, o=tmp, n=len; n-- > 0; o++, i++)
-      *o = toupper(*i);
+    if ( PL_get_nchars(out, &l2, &s2, CVT_ATOMIC) )
+    { if ( l2 == len )
+      { char *i, *o;
+	int n;
 
-    return PL_unify_atom_nchars(out, len, tmp);
+	for(i=s, o=s2, n=len; n-- > 0; o++, i++)
+	{ if ( *o != toupper(*i) )
+	    fail;
+	}
+
+	succeed;
+      }
+    } else
+    { char *tmp = alloca(len);
+      char *i, *o;
+      int n;
+      
+      for(i=s, o=tmp, n=len; n-- > 0; o++, i++)
+	*o = toupper(*i);
+
+      return PL_unify_atom_nchars(out, len, tmp);
+    }
   }
 
   fail;
