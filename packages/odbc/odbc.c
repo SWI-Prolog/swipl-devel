@@ -167,7 +167,7 @@ static functor_t FUNCTOR_fetch1;
 #define SQL_PL_DATE	7		/* return as date/3 structure */
 #define SQL_PL_TIMESTAMP 8		/* return as timestamp/7 structure */
 
-#define PARAM_BUFSIZE sizeof(double)
+#define PARAM_BUFSIZE (SQLLEN)sizeof(double)
 
 typedef unsigned long code;
 
@@ -780,7 +780,7 @@ compile_arg(compile_info *info, term_t t)
       if ( true(info, CTX_PERSISTENT) )
       { if ( tt == PL_FLOAT )
 	{ u_double v;
-	  int i;
+	  unsigned int i;
 
 	  PL_get_float(t, &v.asdouble);
 	  ADDCODE(info, PL_FLOAT);
@@ -941,7 +941,7 @@ build_term(context *ctxt, code *PC, term_t result)
     }
     case PL_FLOAT:
     { u_double v;
-      int i;
+      unsigned int i;
 
       for(i=0; i<sizeof(double)/sizeof(code); i++)
 	v.ascode[i] = *PC++;
@@ -1081,10 +1081,12 @@ get_connection(term_t tdsn, connection **cn)
 
   if ( PL_is_functor(tdsn, FUNCTOR_odbc_connection1) )
   { term_t a = PL_new_term_ref();
+    void *ptr;
 
     PL_get_arg(1, tdsn, a);
-    if ( !PL_get_pointer(a, (void **)&c) )
+    if ( !PL_get_pointer(a, &ptr) )
       return type_error(tdsn, "odbc_connection");
+    c = ptr;
 
     if ( !c->magic == CON_MAGIC )
       return existence_error(tdsn, "odbc_connection");
@@ -2707,7 +2709,8 @@ bind_parameters(context *ctxt, term_t parms)
         break;
       case SQL_C_CHAR:
       case SQL_C_BINARY:
-      { unsigned int len;
+      { SQLLEN len;
+	unsigned int l;
 	unsigned int flags = CVT_ATOM|CVT_STRING;
 	const char *expected = "text";
 	char *s;
@@ -2739,8 +2742,9 @@ bind_parameters(context *ctxt, term_t parms)
 	    assert(0);
 	}
 
-	if ( !PL_get_nchars(head, &len, &s, flags) )
+	if ( !PL_get_nchars(head, &l, &s, flags) )
 	  return type_error(head, expected);
+	len = l;
 
 	if ( len > prm->length_ind )
 	  return representation_error(head, "column_width");
@@ -3240,7 +3244,7 @@ pl_put_column(context *c, int nth, term_t col)
       { /* Don't know what to do here */
 	return PL_warning("No support for SQL_NO_TOTAL.\n"
 			  "Please report to bugs@swi-prolog.org");
-      } else if ( len >= sizeof(buf) )
+      } else if ( len >= (SDWORD)sizeof(buf) )
       { SDWORD len2;
 
 	data = odbc_malloc(len+1);
