@@ -764,16 +764,23 @@ r_fillpattern(Any fill, Name which)	/* image or colour */
 
   if ( fill != context.gcs->fill )
   { XGCValues values;
-    unsigned long mask;
+    unsigned long mask = 0L;
 
     DEBUG(NAME_fillPattern, Cprintf("Changing\n"));
 
     if ( instanceOfObject(fill, ClassImage) )
     { Image i = fill;
-      Pixmap pm = (Pixmap) getXrefObject(fill, context.pceDisplay);
+      Pixmap pm;
 
-      if ( context.kind != NAME_bitmap && i->kind == NAME_bitmap )
-      { values.stipple    = pm;
+      if ( context.kind == i->kind )
+      { pm = (Pixmap)getXrefObject(fill, context.pceDisplay);
+	values.tile       = pm;
+	values.fill_style = FillTiled;
+	mask		  = (GCTile|GCFillStyle);
+      } else if ( context.kind != NAME_bitmap && i->kind == NAME_bitmap )
+      {					/* bitmap pattern in colour context */
+	pm = (Pixmap)getXrefObject(fill, context.pceDisplay);
+	values.stipple    = pm;
 	values.fill_style = FillOpaqueStippled;
 	values.foreground = context.gcs->foreground_pixel;
 	values.background = context.gcs->background_pixel;
@@ -781,10 +788,21 @@ r_fillpattern(Any fill, Name which)	/* image or colour */
 					context.gcs->foreground_pixel,
 					context.gcs->background_pixel));
 	mask 		  = (GCStipple|GCFillStyle|GCForeground|GCBackground);
-      } else
-      { values.tile       = pm;
-	values.fill_style = FillTiled;
-	mask		  = (GCTile|GCFillStyle);
+      } else				/* colour pattern in bitmap context */
+      { Image mono;
+
+	if ( !(mono = getAttributeObject(fill, NAME_monochrome)) )
+	{ if ( (mono = get(fill, NAME_monochrome, EAV)) )
+	    attributeObject(fill, NAME_monochrome, mono);
+	}
+
+	if ( mono &&
+	     (pm = (Pixmap) getXrefObject(mono, context.pceDisplay)) )
+	{ 
+	  values.tile       = pm;
+	  values.fill_style = FillTiled;
+	  mask		    = (GCTile|GCFillStyle);
+	}
       }
     } else				/* solid colour */
     { mask = GCForeground|GCFillStyle;
@@ -792,7 +810,8 @@ r_fillpattern(Any fill, Name which)	/* image or colour */
       values.fill_style = FillSolid;
     }
 
-    XChangeGC(context.display, context.gcs->fillGC, mask, &values);
+    if ( mask )
+      XChangeGC(context.display, context.gcs->fillGC, mask, &values);
 
 					/* maintain a reference to */
     delRefObj(context.gcs->fill);	/* avoid drop-out */
