@@ -301,10 +301,8 @@ computeMenu(Menu m)
     int ix, iy, iw, ih;
     int aw, ah;
 
-    if ( m->request_compute == NAME_assignAccelerators &&
-	 hasSendMethodObject(m, NAME_assignAccelerators) )
+    if ( m->request_compute == NAME_assignAccelerators )
       send(m, NAME_assignAccelerators, 0);
-
     if ( m->multiple_selection == OFF )
       ensureSingleSelectionMenu(m);
 
@@ -330,6 +328,7 @@ computeMenu(Menu m)
     if ( m->feedback == NAME_showSelectionOnly )
     { iw = valInt(m->item_size->w);
       ih = valInt(m->item_size->h);
+      iw = max(iw, valInt(m->value_width));
     } else
     { int rows, cols;
       int pen = valInt(m->pen);
@@ -780,6 +779,8 @@ RedrawAreaMenu(Menu m, Area a)
   if ( m->feedback == NAME_showSelectionOnly )
   { MenuItem mi = getItemSelectionMenu(m);
     Any ci = getClassVariableValueObject(m, NAME_cycleIndicator);
+
+    iw = max(iw, valInt(m->value_width));
 
     if ( (Name)ci == NAME_comboBox )
     { int flags = TEXTFIELD_COMBO;
@@ -1733,21 +1734,14 @@ valueFontMenu(Menu m, FontObj font)
 
 static status
 valueWidthMenu(Menu m, Int w)
-{ if ( m->feedback != NAME_showSelectionOnly )
-    assignGraphical(m, NAME_valueWidth, w);
-
-  succeed;
+{ return assignGraphical(m, NAME_valueWidth, w);
 }
 
 
 static Int
 getValueWidthMenu(Menu m)
-{ if ( m->feedback != NAME_showSelectionOnly )
-  { computeMenu(m);
-    answer(m->item_size->w);
-  }
-   
-  fail;
+{ ComputeGraphical(m);
+  answer(m->item_size->w);
 }
 
 

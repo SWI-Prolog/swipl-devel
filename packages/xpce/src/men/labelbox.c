@@ -140,16 +140,19 @@ computeLabelBox(LabelBox lb)
       y = valInt(a->y) -     valInt(border->h);
       w = valInt(a->w) + 2 * valInt(border->w);
       h = valInt(a->h) + 2 * valInt(border->h);
+
+      w += lw;
+      x -= lw;
     } else				/* explicit size */
     { x = valInt(lb->offset->x);
       y = valInt(lb->offset->y);
       w = valInt(lb->size->w);
       h = valInt(lb->size->h);
+      x -= lw;
     }
 
-    h  = max(h, lh);
-    w += lw;
-    x -= lw;
+    h = max(h, lh);
+    w = max(w, lw);
 
     CHANGING_GRAPHICAL(lb,
 	assign(a, x, toInt(x));
@@ -162,6 +165,48 @@ computeLabelBox(LabelBox lb)
 
   succeed;
 }
+
+		 /*******************************
+		 *	       GEOMETRY		*
+		 *******************************/
+
+static status
+geometryLabelBox(LabelBox lb, Int x, Int y, Int w, Int h)
+{ if ( notDefault(w) || notDefault(h) )
+  { Any size;
+    int lw, lh;
+
+    compute_label(lb, &lw, &lh, NULL);
+
+    if ( isDefault(w) )
+      w = getWidthGraphical((Graphical) lb);
+    if ( isDefault(h) )
+      h = getHeightGraphical((Graphical) lb);
+
+    size = newObject(ClassSize, w, h, 0);
+    qadSendv(lb, NAME_size, 1, &size);
+    doneObject(size);
+  }
+
+  return geometryDevice((Device) lb, x, y, w, h);
+}
+
+
+static status
+layoutDialogLabelBox(LabelBox lb)
+{ int lw, lh;
+
+  obtainClassVariablesObject(lb);
+  compute_label(lb, &lw, &lh, NULL);
+
+  lb->size->w = toInt(valInt(lb->size->w) - lw);
+  layoutDialogDevice((Device)lb, lb->gap, lb->size, lb->border);
+  lb->size->w = toInt(valInt(lb->size->w) + lw);
+
+  succeed;
+}
+
+
 
 		 /*******************************
 		 *	       REDRAW		*
@@ -284,6 +329,8 @@ static char *T_initialise[] =
         { "name=[name]", "message=[code]*" };
 static char *T_modifiedItem[] =
         { "item=graphical", "modified=bool" };
+static char *T_geometry[] =
+        { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 
 /* Instance Variables */
 
@@ -308,10 +355,14 @@ static vardecl var_label_box[] =
 static senddecl send_label_box[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseLabelBox,
      DEFAULT, "Create a label_box"),
+  SM(NAME_geometry, 4, T_geometry, geometryLabelBox,
+     DEFAULT, "Move/resize label box"),
   SM(NAME_compute, 0, NULL, computeLabelBox,
      NAME_update, "Recompute area"),
   SM(NAME_labelWidth, 1, "[int]", labelWidthLabelBox,
      NAME_layout, "Specify width of the label"),
+  SM(NAME_layoutDialog, 0, NULL, layoutDialogLabelBox,
+     NAME_layout, "(Re)compute layout of dialog_items"),
   SM(NAME_modified, 1, "bool", modifiedLabelBox,
      NAME_apply, "Forward to all <-graphicals"),
   SM(NAME_default, 1, "any|function", defaultLabelBox,

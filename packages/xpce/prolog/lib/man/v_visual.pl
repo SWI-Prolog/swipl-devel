@@ -153,7 +153,7 @@ visualise(V, Visual:visual) :->
 	->  V->>selection(Node)
 	;   (   make_path(V, Visual)
 	    ->	true
-	    ;	V->report(warning, '%O is not displayed', Visual)
+	    ;	V->>report(warning, '%O is not displayed', Visual)
 	    )
 	).
 

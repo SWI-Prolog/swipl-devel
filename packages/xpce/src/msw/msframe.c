@@ -824,33 +824,45 @@ ws_busy_cursor_frame(FrameObj fr, CursorObj c)
 { WsFrame r = fr->ws_ref;
 
   if ( r )
-  { if ( isNil(c) )
-    { POINT pt;
-      HWND hwnd;
-      PceWindow win;
-      WsWindow ref;
+  { POINT pt;
+    HWND hwnd;
+    Any obj;
+    int setcursor;
 
-      GetCursorPos(&pt);
-      if ( (hwnd = WindowFromPoint(pt)) &&
-	   (win = getObjectFromHWND(hwnd)) &&
-	   isProperObject(win) &&
-	   instanceOfObject(win, ClassWindow) &&
-	   (ref = win->ws_ref) &&
-	   ref->hcursor )
-      { ZSetCursor(ref->hcursor);
-      } else
-	ZSetCursor(LoadCursor(NULL, IDC_ARROW));
+    GetCursorPos(&pt);
+    if ( (hwnd = WindowFromPoint(pt)) &&
+	 (obj = getObjectFromHWND(hwnd)) &&
+	 isProperObject(obj) &&
+	 hasGetMethodObject(obj, NAME_frame) &&
+	 (fr == qadGetv(obj, NAME_frame, 0, NULL)) )
+      setcursor = TRUE;
+    else
+    { obj = NULL;
+      setcursor = FALSE;
+    }
+
+    if ( isNil(c) )
+    { if ( setcursor )
+      { WsWindow ref;
+
+	if ( obj && instanceOfObject(obj, ClassWindow) &&
+	     (ref = ((PceWindow)obj)->ws_ref) &&
+	     ref->hcursor )
+	{ ZSetCursor(ref->hcursor);
+	} else
+	  ZSetCursor(LoadCursor(NULL, IDC_ARROW));
+      }
 
       r->hbusy_cursor = NULL;
-      
     } else
     { if ( isDefault(c) )
 	c = getClassVariableValueObject(fr, NAME_busyCursor);
 
       if ( c )
-      { r->hbusy_cursor = (HCURSOR)getXrefObject(c, fr->display);
-
-	ZSetCursor(r->hbusy_cursor);
+      { if ( setcursor )
+	{ r->hbusy_cursor = (HCURSOR)getXrefObject(c, fr->display);
+	  ZSetCursor(r->hbusy_cursor);
+	}
       }
     }
   }

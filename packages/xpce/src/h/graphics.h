@@ -701,6 +701,7 @@ NewClass(displayobj)
   Image		cache;			/* Graphics cache */
   Name		window_manager;		/* name of the window manager */
   DisplayManager display_manager;	/* Global display manager */
+  Int		busy_locks;		/* Lock count of ->busy_cursor */
   WsRef		ws_ref;			/* Window System Reference */
 End;
   

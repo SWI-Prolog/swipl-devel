@@ -32,6 +32,7 @@ initialiseDisplay(DisplayObj d, Name address)
   assign(d, cache,	 	NIL);
   assign(d, colour_map,		DEFAULT);
   assign(d, display_manager,	dm);
+  assign(d, busy_locks,		ZERO);
 
   ws_init_display(d);
   appendDisplayManager(dm, d);
@@ -757,14 +758,31 @@ reportDisplay(DisplayObj d, Name kind, CharArray fmt, int argc, Any *argv)
 
 status
 busyCursorDisplay(DisplayObj d, CursorObj c, Bool block_events)
-{ if ( instanceOfObject(d, ClassDisplay) )
-  { Cell cell;
+{ if ( !instanceOfObject(d, ClassDisplay) )
+    succeed;
 
-    for_cell(cell, d->frames)
-      busyCursorFrame(cell->value, c, block_events);
+  if ( notNil(c) )
+  { assign(d, busy_locks, add(d->busy_locks, ONE));
+    
+    if ( d->busy_locks == ONE )
+    { Cell cell;
 
-    if ( notNil(c) )
+      for_cell(cell, d->frames)
+	busyCursorFrame(cell->value, c, block_events);
       flushDisplay(d);
+    }
+  } else
+  { assign(d, busy_locks, sub(d->busy_locks, ONE));
+
+    if ( valInt(d->busy_locks) < 0 )
+      assign(d, busy_locks, ZERO);
+
+    if ( d->busy_locks == ZERO )
+    { Cell cell;
+
+      for_cell(cell, d->frames)
+	busyCursorFrame(cell->value, c, block_events);
+    }
   }
 
   succeed;
@@ -818,6 +836,11 @@ resetDisplay(DisplayObj d)
 
   if ( (sw = getAttributeObject(d, NAME_confirmer)) )
     send(sw, NAME_show, OFF, 0);
+
+  if ( d->busy_locks != ZERO )
+  { assign(d, busy_locks, ONE);
+    busyCursorDisplay(d, NIL, DEFAULT);
+  }
 
   return resetVisual((VisualObj) d);
 }
@@ -1013,6 +1036,8 @@ static vardecl var_display[] =
      NAME_windowManager, "Window manager running on this display"),
   IV(NAME_displayManager, "display_manager", IV_GET,
      NAME_organisation, "The global display manager (@display_manager)"),
+  IV(NAME_busyLocks, "0..", IV_NONE,
+     NAME_event, "Lock count for ->busy_cursor"),
   IV(NAME_wsRef, "alien:WsRef", IV_NONE,
      NAME_windowSystem, "Window-System reference")
 };

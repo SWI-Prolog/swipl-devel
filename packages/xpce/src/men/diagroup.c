@@ -638,7 +638,7 @@ static senddecl send_diagroup[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseDialogGroup,
      DEFAULT, "Create a new group of dialog items"),
   SM(NAME_geometry, 4, T_geometry, geometryDialogGroup,
-     DEFAULT, "Move/resize tab"),
+     DEFAULT, "Move/resize dialog group"),
   SM(NAME_position, 1, "point", positionGraphical,
      NAME_area, "Top-left corner of tab"),
   SM(NAME_x, 1, "int", xGraphical,

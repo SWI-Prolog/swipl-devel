@@ -31,23 +31,49 @@ Hosting languages
 =================
 
 	SWI-Prolog	http://swi.psy.uva.nl/usr/jan/SWI-Prolog/
-	Quintus Prolog	http://www.sics.se/
+	Quintus Prolog	http://www.sics.se/quintus/
 	SICStus Prolog  http://www.sics.se/ (foreseen shortly)
 	
 Documentation
 =============
 
-	Programming in XPCE/Prolog
-	Course Notes
-	Reference Manual
+	# Programming in XPCE/Prolog
+	Userguide to get you started.  Explains the interface, object
+	model as well as creating new classes.  Provides `technique'
+	sections, explaining how commonly encountered problems may
+	be solved using XPCE.
+
+	# Course Notes
+	Document explaining roughly the same material as ``Programming
+	in XPCE/Prolog'' in a condensed form.
+
+	# Reference Manual
+	Available using the built-in online help-system.  Includes
+	various fully dynamic viewpoints to the reference material.
+
 
 Licenses and Versions
 =====================
 
 	* Free option
-	XPCE/SWI-Prolog for PC/Linux
-	
-	* Evaluation
-	XPCE/SWI-Prolog for Windows 95/98/NT, runs for 20 minutes
+	XPCE/SWI-Prolog for PC/Linux.  Fully functioning version
+	distributed free of charge.  Binary only.  For personal
+	and evaluation purposed only.
 
-	* Academic versions
+	* Evaluation
+	XPCE/SWI-Prolog for Windows 95/98/NT, runs for 20 minutes.
+
+	* Academic Unix license
+	Complete version, distributed as source.  Compiles on most
+	Unix platforms.  Binaries for SPARC/solaris are available
+	as well.
+
+	* Academic Windows license
+	Complete version, distributed as binary only.
+
+	* Commercial license
+	Includes access to the full source (including the Windows
+	binding and setup for Microsoft Visual C 5.0) and grands
+	the right to distribute runtime applications free of charge.
+	
+	

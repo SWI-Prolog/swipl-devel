@@ -41,7 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "..\..\objects\release\pl2xpce"
 # PROP Ignore_Export_Lib 0
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FR /YX /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /Ob2 /I "E:\pl\include" /I "..\..\src" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "SWI" /D "HAVE_MALLOC_H" /YX /FD /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /Ob2 /I "..\..\..\pl\include" /I "..\..\src" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "SWI" /D "HAVE_MALLOC_H" /YX /FD /c
 # SUBTRACT CPP /Fr
 # ADD BASE MTL /nologo /D "NDEBUG" /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -52,7 +52,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386
-# ADD LINK32 libpl.lib xpce.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386 /out:"..\..\..\pl\bin/pl2xpce.dll" /implib:"E:\pl\lib/pl2xpce.lib"
+# ADD LINK32 ..\..\..\pl\lib\libpl.lib ..\..\..\pl\lib\xpce.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386 /out:"..\..\..\pl\bin/pl2xpce.dll" /implib:"E:\pl\lib/pl2xpce.lib"
 # SUBTRACT LINK32 /pdb:none
 
 !ELSEIF  "$(CFG)" == "pl2xpce - Win32 Debug"
@@ -67,7 +67,7 @@ LINK32=link.exe
 # PROP Intermediate_Dir "..\..\objects\debug\pl2xpce"
 # PROP Ignore_Export_Lib 0
 # ADD BASE CPP /nologo /MT /W3 /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /c
-# ADD CPP /nologo /MTd /W3 /Gm /GX /Zi /Od /I "E:\pl\include" /I "..\..\src" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "SWI" /D "HAVE_MALLOC_H" /YX /FD /c
+# ADD CPP /nologo /MTd /W3 /Gm /GX /Zi /Od /I "..\..\..\pl\include" /I "..\..\src" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "SWI" /D "HAVE_MALLOC_H" /YX /FD /c
 # SUBTRACT CPP /Fr
 # ADD BASE MTL /nologo /D "_DEBUG" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
@@ -78,7 +78,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /debug /machine:I386
-# ADD LINK32 libpl.lib xpce.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /debug /machine:I386 /out:"..\..\..\pl\bin/pl2xpce.dll" /implib:"E:\pl\lib/pl2xpceD.lib"
+# ADD LINK32 ..\..\..\pl\lib\libpl.lib ..\..\..\pl\lib\xpce.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /debug /machine:I386 /out:"..\..\..\pl\bin/pl2xpce.dll" /implib:"E:\pl\lib/pl2xpceD.lib"
 # SUBTRACT LINK32 /pdb:none
 
 !ENDIF 
