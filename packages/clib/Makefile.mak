@@ -17,6 +17,8 @@ CGIOBJ=		error.obj form.obj cgi.obj
 MEMOBJ=		error.obj memfile.obj
 MIMEOBJ=	error.obj mime.obj
 MIMELIBS=	rfc2045.lib rfc822.lib
+TIMEOBJ=	error.obj time.obj
+TIMELIBS=	winmm.lib
 
 all:		socket.dll cgi.dll memfile.dll mime.dll
 
@@ -28,6 +30,8 @@ memfile.dll:	$(MEMOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(MEMOBJ) $(PLLIB) $(LIBS)
 mime.dll:	$(MIMEOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(MIMEOBJ) $(PLLIB) $(LIBS) $(MIMELIBS)
+time.dll:	$(TIMEOBJ)
+		$(LD) /dll /out:$@ $(LDFLAGS) $(TIMEOBJ) $(PLLIB) $(LIBS) $(TIMELIBS)
 
 !IF "$(CFG)" == "rt"
 install:	idll
