@@ -138,6 +138,7 @@ goto_source_location(_Emacs,
 	    Line \== @nil
 	->  get(B?editors, find,
 		message(@arg1, instance_of, emacs_editor), E),
+	    send(E, mark_status, inactive),
 	    send(E?mode, select_line, Line)
 	;   true
 	).
