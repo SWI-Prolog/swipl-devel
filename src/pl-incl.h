@@ -1320,8 +1320,8 @@ struct queryFrame
   } registers;
 #endif
 #ifdef O_LIMIT_DEPTH
-  long		saved_depth_limit;	/* saved values of these */
-  long		saved_depth_reached;
+  unsigned long saved_depth_limit;	/* saved values of these */
+  unsigned long saved_depth_reached;
 #endif
 #if O_CATCHTHROW
   term_t	exception;		/* Exception term */

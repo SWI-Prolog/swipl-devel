@@ -69,7 +69,7 @@ HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h pl-itf.h pl-main.h \
 
 PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/license.pl \
 	../boot/make.pl ../boot/sort.pl ../boot/bags.pl ../boot/apply.pl \
-	../boot/list.pl ../boot/writef.pl ../boot/history.pl \
+	../boot/writef.pl ../boot/history.pl \
 	../boot/profile.pl ../boot/dwim.pl ../boot/rc.pl \
 	../boot/parms.pl ../boot/autoload.pl ../boot/qlf.pl \
 	../boot/topvars.pl ../boot/messages.pl ../boot/load.pl ../boot/menu.pl
@@ -80,7 +80,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
 	bim.pl quintus.pl edinburgh.pl ctypes.pl files.pl \
 	edit.pl emacs_interface.pl shell.pl check.pl \
 	tty.pl readln.pl readutil.pl \
-	am_match.pl oset.pl ordsets.pl occurs.pl \
+	am_match.pl oset.pl ordsets.pl occurs.pl lists.pl \
 	netscape.pl url.pl win_menu.pl \
 	qpforeign.pl \
 	$(PLWINLIBS)

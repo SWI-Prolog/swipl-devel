@@ -10,15 +10,15 @@
 # copy the result to wherever you want.
 
 # prefix=C:\Program Files
-HOME=$(USERPROFILE)\My Documents
-prefix=$(USERPROFILE)\installed
+HOME=E:\jan
+prefix=$(HOME)\installed
 PLBASE=$(prefix)\pl
 BINDIR=$(PLBASE)\bin
 LIBDIR=$(PLBASE)\lib
 INCDIR=$(PLBASE)\include
 PLCUSTOM=$(PLBASE)\custom
 # We get pthreadVC.dll from here
-WINDIR="C:\winnt\system32"
+WINDIR="$(windir)\system32"
 
 # Setup the environment.  Use this to additional libraries and include
 # files to the path.  In particular provide access to the jpeg and xpm
@@ -111,7 +111,7 @@ CFLAGS=/DO_PLMT /D_REENTRANT $(CFLAGS)
 # packages
 ################################################################
 
-MAKEINDEX=chdir $(PLBASE) & del library\INDEX.pl & bin\plcon.exe \
+MAKEINDEX=chdir "$(PLBASE)" & del library\INDEX.pl & bin\plcon.exe \
 			-f none -F none \
 			-g make_library_index(library) \
 			-t halt
