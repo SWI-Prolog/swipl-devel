@@ -1,8 +1,16 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.7.8
+=============
+
+  * Some fixes to the Makefile.  No functional change.
+
 Version 2.7.7
 =============
+
+  * DOC: Added documentation for PL_unify_term(), making its specs
+    `official'.
 
   * ADDED: PL_query(PL_QUERY_VERSION) to find the version of Prolog
     running.  Used by plwin.exe to display the correct version in the

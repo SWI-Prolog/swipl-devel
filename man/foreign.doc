@@ -1055,6 +1055,74 @@ Unifys {\em l} with the atom {\tt []}.
 .F int PL_unify_arg 3 int index, term_t ?t, term_t ?a
 Unifies the {\em index-th} argument (1-based) of {\em t} with
 {\em a}.
+.F int PL_unify_term 2 term_t ?t, ...
+Unify {\em t} with a (normally) compound term.  The remaining arguments
+is a sequence of a type identifier, followed by the required
+arguments. This predicate is an extension to the Quintus and SICStus
+foreign interface from which the SWI-Prolog foreign interface has been
+derived, but has proved to be a powerful and comfortable way to create
+compound terms from C.  Due to the vararg packing/unpacking and the
+required type-switching this interface is slightly slower than using
+the primitives.  Please note that some bad C-compilers have fairly
+low limits on the number of arguments that may be passed to a function.
+
+The type indentifiers are:
+
+\begin{description}
+\newcommand{\atype}[2]{\item[\tt #1 \em #2]\mbox{}\\}
+   \atype{PL_VARIABLE}{none}
+No op.  Used in arguments of {\tt PL_FUNCTOR}.
+   \atype{PL_ATOM}{atom_t}
+Unify the argument with an atom, as in PL_unify_atom().
+   \atype{PL_INTEGER}{long}
+Unify the argument with an integer, as in PL_unify_integer().
+   \atype{PL_FLOAT}{double}
+Unify the argument with a float, as in PL_unify_float().  Note that,
+as the argument is passed using the C vararg conventions, a float must
+be casted to a double explicitly.
+   \atype{PL_STRING}{const char *}
+Unify the argumet with a string object, as in PL_unify_string_chars().
+   \atype{PL_TERM}{term_t}
+Unify a subterm.  Note this may the return value of a PL_new_term_ref()
+call to get access to a variable.
+   \atype{PL_CHARS}{const char *}
+Unify the argument with an atom, constructed from the C {\tt char *},
+as in PL_unify_atom_chars().
+   \atype{PL_FUNCTOR}{functor_t, ...}
+Unify the argument with a compound term.  This specification should be
+followed by exactly as many specifications as the number of arguments of
+the compound term.
+   \atype{PL_LIST}{int length, ...}
+Create a list of the indicated length.  The following arguments contain
+the elements of the list.
+\end{description}
+
+For example, to unify an argument with the term {\tt language(dutch)},
+the following skeleton may be used:
+
+\begin{boxed}
+\begin{code}
+static functor_t FUNCTOR_language1;
+
+static void
+init_constants()
+{ FUNCTOR_language1 = PL_new_functor(PL_new_atom("language"), 1);
+}
+
+foreign_t
+pl_get_lang(term_t r)
+{ return PL_unify_term(r,
+		       PL_FUNCTOR, FUNCTOR_language1,
+		           PL_CHARS, "dutch");
+}
+
+install_t
+install()
+{ PL_register_foreign("get_lang", 1, pl_get_lang, 0);
+  init_constants();
+}
+\end{code}
+\end{boxed}
 .EF
 
 
@@ -1362,6 +1430,11 @@ information is wanted. The  options are given in table~\ref{tab:query}.
 			  value represented by Prolog's tagged integers. \\
 \tt PL_MIN_INTEGER	& Return a long, represented the minimal integer
 			  value. \\
+\tt PL_QUERY_VERSION	& Return a long, representing the version as
+			  $10,000 \times M + 100 \times m + p$, where
+			  $M$ is the major, $m$ the minor version number
+			  and $p$ the patch-level.  For example, the
+			  current version yields {\tt 207070}. \\
 \hline
 \end{tabular}\end{quote}
 

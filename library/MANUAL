@@ -827,8 +827,8 @@ active. Tracer options:
                             name solve
        /c solve(a, _)       Search for a call to solve/2 whose first argu-
                             ment is a variable or the atom a
-       /a member(_, _)      Search for any port on member/2.  This is
-                            equivalent to setting a spy point on member/2.
+       /a member(_, _)      Search for any port on member/2. This is equi-
+                            valent to setting a spy point on member/2.
 
 .    Repeat find            all
      Repeat the last find command (see `/')
@@ -1489,20 +1489,20 @@ SWI-Prolog.
                                           sion optimisation).
     -G        4M       global stack       The  global  stack  is  used  to
                                           store  terms  created  during
-                                          Prolog's execution.  Terms on
-                                          this  stack  will  be  reclaimed
-                                          by  backtracking  to  a  point
-                                          before the term was created
-                                          or by garbage collection (pro-
-                                          vided the term is no longer
+                                          Prolog's  execution.    Terms
+                                          on  this  stack  will  be  re-
+                                          claimed by backtracking to a
+                                          point before the term was cre-
+                                          ated or by garbage collection
+                                          (provided the term is no longer
                                           referenced).
-    -T        4M       trail stack        The  trail  stack  is  used  to
-                                          store assignments during exe-
-                                          cution.  Entries on this stack
-                                          remain alive until backtrack-
-                                          ing before the point of creation
-                                          or the garbage collector deter-
-                                          mines they are nor needed any
+    -T        4M       trail stack        The trail stack is used to store
+                                          assignments during execution.
+                                          Entries on this stack remain
+                                          alive  until  backtracking  be-
+                                          fore the point of creation or
+                                          the garbage collector determ-
+                                          ines they are nor needed any
                                           longer.
     -A        1M       argument stack     The  argument  stack  is  used
                                           to store one of the intermedi-
@@ -4249,7 +4249,7 @@ format(+Format, +Arguments)
          centering, distributing, etc. See also ~| and ~+ to set tab
          stops. A tabstop is assumed at the start of each line.
 
-        __Set a tabstop on the current position. If an argument is
+        |Set a tabstop on the current position. If an argument is
          supplied set a tabstop on the position of that argument. This
          will cause all ~t's to be distributed between the previous and
          this tabstop.
@@ -5637,7 +5637,8 @@ meta_predicate/1 as available from the `quintus' library package.
             Figure 4.2: Definition of meta_predicate/1
 
 The discussion above about the problems with the transparent
-mechanism
+mechanism show the two cases in which this simple transformation does
+not work.
 
 
 Chapter  5
@@ -6754,6 +6755,79 @@ int PL_unify_arg(int index, term_t ?t, term_t ?a)
     Unifies the index-th argument (1-based) of t with a.
 
 
+int PL_unify_term(term_t ?t, ...)
+    Unify t with a (normally) compound term. The remaining
+    arguments is a sequence of a type identifier, followed by the
+    required arguments. This predicate is an extension to the Quintus
+    and SICStus foreign interface from which the SWI-Prolog foreign
+    interface has been derived, but has proved to be a powerful and
+    comfortable way to create compound terms from C. Due to the
+    vararg packing/unpacking and the required type-switching this
+    interface is slightly slower than using the primitives. Please note
+    that some bad C-compilers have fairly low limits on the number of
+    arguments that may be passed to a function.
+
+    The type indentifiers are:
+
+    PL_VARIABLE none
+        No op. Used in arguments of PL_FUNCTOR.
+
+    PL_ATOM atom_t
+        Unify the argument with an atom, as in PL_unify_atom().
+
+    PL_INTEGER long
+        Unify the argument with an integer, as in PL_unify_integer().
+
+    PL_FLOAT double
+        Unify the argument with a float, as in PL_unify_float(). Note
+        that, as the argument is passed using the C vararg
+        conventions, a float must be casted to a double explicitly.
+
+    PL_STRING const char *
+        Unify the argumet with a string object, as in
+        PL_unify_string_chars().
+
+    PL_TERM term_t
+        Unify a subterm. Note this may the return value of a
+        PL_new_term_ref() call to get access to a variable.
+
+    PL_CHARS const char *
+        Unify the argument with an atom, constructed from the C
+        char *, as in PL_unify_atom_chars().
+
+    PL_FUNCTOR functor_t, ...
+        Unify the argument with a compound term. This specification
+        should be followed by exactly as many specifications as the
+        number of arguments of the compound term.
+
+    PL_LIST int length, ...
+        Create a list of the indicated length. The following arguments
+        contain the elements of the list.
+
+    For example, to unify an argument with the term
+    language(dutch), the following skeleton may be used:
+
+        static functor_t FUNCTOR_language1;
+
+        static void
+        init_constants()
+        { FUNCTOR_language1 = PL_new_functor(PL_new_atom("language"), 1);
+        }
+
+        foreign_t
+        pl_get_lang(term_t r)
+        { return PL_unify_term(r,
+                                  PL_FUNCTOR, FUNCTOR_language1,
+                                      PL_CHARS, "dutch");
+        }
+
+        install_t
+        install()
+        { PL_register_foreign("get_lang", 1, pl_get_lang, 0);
+           init_constants();
+        }
+
+
 5.6.6  Calling Prolog from C
 
 The Prolog engine can be called from C. There are to interfaces for this.
@@ -7051,6 +7125,11 @@ C_type  PL_query(int)
          PL_MAX_INTEGER               Return a long, representing the maximal integer value
                                       represented by Prolog's tagged integers.
          PL_MIN_INTEGER               Return a long, represented the minimal integer value.
+         PL_QUERY_VERSION             Return         a         long,           represent-
+                                      ing the version as 10; 000Mtimes + 100mtimes + p,
+                                      where M is the major, m the minor version number
+                                      and p the patch-level. For example, the current version
+                                      yields 207070.
 
                       Table 5.2: PL_query() options
 

@@ -112,6 +112,11 @@ banner:
 		@echo "Home (libraries) in $(PLBASE)"
 		@echo "****************"
 
+# Considered the following in the link phase, but it doesn't really
+# appear to help.
+#		LD_RUN_PATH="$(prefix)/lib:$$LD_RUN_PATH"; \
+#		export LD_RUN_PATH; \
+
 $(PL):		$(ALLOBJ)
 		$(CC) $(LDFLAGS) -o $(PL) $(ALLOBJ) $(LIBS) $(STATICLIBS) 
 
@@ -213,7 +218,7 @@ install-arch:	idirs iruntime
 		done
 		$(INSTALL_PROGRAM) $(srcdir)/plld $(PLBASE)/bin/$(ARCH)
 
-install-libs:	idirs iboot ilib iruntime iman
+install-libs:	idirs iboot ilib iruntime iinclude iman
 		$(INSTALL_DATA) $(STARTUPPATH) $(PLBASE)/startup/startup
 		$(INSTALL_DATA) swipl $(PLBASE)
 		$(INSTALL_DATA) swiplbin $(PLBASE)/bin/swipl
