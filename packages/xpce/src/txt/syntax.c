@@ -12,12 +12,12 @@
 
 static HashTable SyntaxTables;		/* @syntax_tables */
 
-#define FLAGS_SIZE(t)   (sizeof(ushort) * valInt(t->size))
+#define FLAGS_SIZE(t)   (sizeof(unsigned short) * valInt(t->size))
 #define CONTEXT_SIZE(t) (sizeof(char)  * valInt(t->size))
 
 static status
 initialiseSyntaxTable(SyntaxTable t, Name name, SyntaxTable def)
-{ ushort *flags;
+{ unsigned short *flags;
   char *context;
 
   if ( isDefault(name) )
@@ -147,7 +147,7 @@ copySyntaxTable(SyntaxTable t1, SyntaxTable t2)
 }
 
 
-static ushort
+static unsigned short
 nameToCode(Name name)
 { if (      name == NAME_uppercaseLetter ) return UC;
   else if ( name == NAME_lowercaseLetter ) return LC;
@@ -435,7 +435,7 @@ makeClassSyntaxTable(Class class)
 		********************************/
 
 
-ushort syntax_spec_code[] = {
+unsigned short syntax_spec_code[] = {
 /* ^@  ^A  ^B  ^C  ^D  ^E  ^F  ^G  ^H  ^I  ^J  ^K  ^L  ^M  ^N  ^O    0-15 */
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
 /* ^P  ^Q  ^R  ^S  ^T  ^U  ^V  ^W  ^X  ^Y  ^Z  ^[  ^\  ^]  ^^  ^_   16-31 */
@@ -467,7 +467,7 @@ BL|EL,  0, QT,  0,  0,  0,  0,  0, OB, CB,  0,  0,  0, SY, PU,  0,
 #define XL (UC|XD)
 #define xl (LC|XD)
 
-ushort char_flags[] = {
+unsigned short char_flags[] = {
 /* ^@  ^A  ^B  ^C  ^D  ^E  ^F  ^G  ^H  ^I  ^J  ^K  ^L  ^M  ^N  ^O    0-15 */
    EB, CT, CT, CT, CT, CT, CT, CT, CT, BL, EL, CT, BL, BL, CT, CT, 
 /* ^P  ^Q  ^R  ^S  ^T  ^U  ^V  ^W  ^X  ^Y  ^Z  ^[  ^\  ^]  ^^  ^_   16-31 */

@@ -369,7 +369,7 @@ getCutBufferDisplay(DisplayObj d, Int n)
 
 static Real
 getSelectionTimeoutDisplay(DisplayObj d)
-{ ulong time = ws_get_selection_timeout();
+{ unsigned long time = ws_get_selection_timeout();
 
   answer(CtoReal((float)time/1000.0));
 }
@@ -377,7 +377,7 @@ getSelectionTimeoutDisplay(DisplayObj d)
 
 static status
 selectionTimeoutDisplay(DisplayObj d, Real time)
-{ ws_set_selection_timeout((ulong)(valReal(time) * 1000.0));
+{ ws_set_selection_timeout((unsigned long)(valReal(time) * 1000.0));
 
   succeed;
 }

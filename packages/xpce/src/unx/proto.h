@@ -22,7 +22,7 @@ Name		getBaseNameFile(FileObj f);
 status		reportErrorFile(FileObj f);
 status		checkErrorFile(FileObj f);
 status		storeCharFile(FileObj f, int c);
-void		putstdw(ulong w, FILE *fd);
+void		putstdw(unsigned long w, FILE *fd);
 status		storeWordFile(FileObj f, Any w);
 status		storeCharpFile(FileObj f, char *s);
 status		storeNameFile(FileObj f, Name n);

@@ -599,7 +599,7 @@ invertImage(Image image)
 static Any
 getPixelImage(Image image, Int x, Int y)
 { if ( inImage(image, x, y) )
-  { ulong pixel;
+  { unsigned long pixel;
     d_image(image, 0, 0, valInt(image->size->w), valInt(image->size->h));
     pixel = r_get_pixel(valInt(x), valInt(y));
     d_done();

@@ -151,9 +151,9 @@ ensure_lines_screen(TextScreen s, int lines)
 
     lines = Round(lines, 8);
     new = alloc(lines * sizeof(struct text_line));
-    DEBUG(NAME_allocated, Cprintf("Lines at %ld, %ld bytes\n",
-				  (ulong) new,
-				  (ulong) lines * sizeof(struct text_line)));
+    DEBUG(NAME_allocated, Cprintf("Lines at %p, %ld bytes\n",
+				  new,
+				  (unsigned long) lines * sizeof(struct text_line)));
 
     for(n = 0; n < s->allocated; n++)	/* copy old lines */
       new[n] = s->lines[n];
@@ -223,7 +223,7 @@ reinitTextImage(TextImage ti)
 
   if ( !ti->seek || !ti->scan || !ti->fetch )
     return errorPce(ti, NAME_noFetchFunction, obj);
-  DEBUG(NAME_SeekFunction, Cprintf("ti->seek = 0x%lx\n", (ulong) ti->seek));
+  DEBUG(NAME_SeekFunction, Cprintf("ti->seek = %p\n", ti->seek));
 
   ti->map                  = alloc(sizeof(struct text_screen));
   ti->map->allocated       = ti->map->length = ti->map->skip = 0;
@@ -893,8 +893,8 @@ paint_line(TextImage ti, Area a, TextLine l, int from, int to)
   int pen = valInt(ti->pen);
   int rmargin = ti->w - TXT_X_MARGIN;
 
-  DEBUG(NAME_text, Cprintf("painting line 0x%lx from %d to %d\n",
-			   (ulong)l, from, to));
+  DEBUG(NAME_text, Cprintf("painting line %p from %d to %d\n",
+			   l, from, to));
 
   cx = (from == 0 ? pen : l->chars[from].x);
   cw = (to >= l->length ? rmargin : l->chars[to].x) - cx;

@@ -2183,7 +2183,7 @@ getFeatureClass(Class class, Name name)
 
 static Bool
 getLazyBindingClass(Class class, Name which)
-{ ulong mask = (which == NAME_send ? DC_LAZY_SEND : DC_LAZY_GET);
+{ unsigned long mask = (which == NAME_send ? DC_LAZY_SEND : DC_LAZY_GET);
 
   answer(onDFlag(class, mask) ? ON : OFF);
 }
@@ -2191,7 +2191,7 @@ getLazyBindingClass(Class class, Name which)
 
 static status
 lazyBindingClass(Class class, Name which, Bool val)
-{ ulong mask = (which == NAME_send ? DC_LAZY_SEND : DC_LAZY_GET);
+{ unsigned long mask = (which == NAME_send ? DC_LAZY_SEND : DC_LAZY_GET);
 
   DEBUG(NAME_lazyBinding,
 	Cprintf("lazyBindingClass(%s, %s, %s)\n",

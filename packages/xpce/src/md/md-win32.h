@@ -82,12 +82,6 @@
 /* Define if you can safely include both <sys/time.h> and <time.h>.  */
 #undef TIME_WITH_SYS_TIME
 
-/* Define if the type ulong is not in <sys/types.h> */
-#define NEED_ULONG 1
-
-/* Define if the type ushort is not in <sys/types.h> */
-#define NEED_USHORT 1
-
 /* Define if you have BSD signals (i.e. signal handler does *not* reset */
 #undef BSD_SIGNALS
 

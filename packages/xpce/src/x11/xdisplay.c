@@ -229,7 +229,7 @@ new_draw_context(DisplayObj d, Drawable drawable, Name kind)
   DisplayWsXref r = d->ws_ref;
   Display *display = r->display_xref;
   XGCValues values;
-  ulong black, white;
+  unsigned long black, white;
   Name vclass = ws_get_visual_type_display(d);
 
 # define GCALL (GCFunction|GCForeground|GCBackground|GCGraphicsExposures)
@@ -467,14 +467,14 @@ atomToSelectionName(DisplayObj d, Atom a)
 }
 
 
-ulong
+unsigned long
 ws_get_selection_timeout()
 { return XtAppGetSelectionTimeout(pceXtAppContext(NULL));
 }
 
 
 void
-ws_set_selection_timeout(ulong time)
+ws_set_selection_timeout(unsigned long time)
 { XtAppSetSelectionTimeout(pceXtAppContext(NULL), time);
 }
 

@@ -571,9 +571,10 @@ WSTOBJS=	xcolour.o xcursor.o xdisplay.o xdraw.o xevent.o xfont.o \
 X11OBJS=	$(XCOMMOBJS) $(WSTOBJS)
 
 XCOMMSRC=	$(addprefix $(srcdir)/x11/, $(XCOMMOBJS:.o=.c))
-WSTSRC=		$(addprefix $(srcdir)/x11/, $(WSTOBJS:.o=.c)) gra/graphstate.c
+WSTSRC=		$(addprefix $(srcdir)/x11/, $(WSTOBJS:.o=.c)) \
+		$(srcdir)/gra/graphstate.c
 
-x11/wstproto.h:	$(WSTSRC)
+$(srcdir)/x11/wstproto.h: $(WSTSRC)
 		$(MKPROTO) $(WSTSRC) | $(CLPROTO) | grep -v '^XImage' > $@
 
 $(srcdir)/x11/proto.h:	$(XCOMMSRC)

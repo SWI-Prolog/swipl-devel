@@ -117,7 +117,7 @@ pceObjectFromName(PceName name)
 
 
 Any
-cToPceReference(ulong val)
+cToPceReference(unsigned long val)
 { Instance rval = longToPointer(val);
 
   if ( rval &&
@@ -130,7 +130,7 @@ cToPceReference(ulong val)
 
 
 int
-pceExistsReference(ulong ref)
+pceExistsReference(unsigned long ref)
 { Any addr = longToPointer(ref);
 
   if ( !isProperObject(addr) || isFreedObj(addr) )

@@ -270,7 +270,7 @@ static VarBinding
 appendVarEnvironment(VarEnvironment ev, Var v)
 { VarBinding b;
 
-  DEBUG(NAME_var, Cprintf("Appending %s to env 0x%lx\n", pp(v), (ulong) ev));
+  DEBUG(NAME_var, Cprintf("Appending %s to env %p\n", pp(v), ev));
 
   if ( ev->size < BINDINGBLOCKSIZE )
     b = &ev->bindings[ev->size++];

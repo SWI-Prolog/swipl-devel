@@ -34,7 +34,7 @@ dlopen(char *path, int mode)
 
 void *
 dlsym(void *handle, char *symbol)
-{ Cprintf("dlsym(0x%lx, %s)\n", (ulong) handle, symbol);
+{ Cprintf("dlsym(%p, %s)\n", handle, symbol);
 
   return NULL;
 }
@@ -42,7 +42,7 @@ dlsym(void *handle, char *symbol)
 
 void *
 dlclose(void *handle)
-{ Cprintf("dlclose (0x%lx)\n", (ulong) handle);
+{ Cprintf("dlclose (%p)\n", handle);
 
   return NULL;
 }

@@ -7,6 +7,8 @@
     Copyright (C) 1992 University of Amsterdam. All rights reserved.
 */
 
+#define _XOPEN_SOURCE			/* GNU glibc grantpt() prototypes */
+
 #include <h/kernel.h>
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -513,17 +515,14 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 	if ( grantpt(master) < 0 ||
 	     unlockpt(master) < 0 ||
 	     (line = ptsname(master)) == NULL ||
-	     (slave = open(line, O_RDWR)) < 0 ||
-	     ioctl(slave, I_PUSH, "ptem") < 0 ||
-	     ioctl(slave, I_PUSH, "ldterm") < 0
-#ifdef HAVE_TTCOMPAT
-	  || ioctl(slave, I_PUSH, "ttcompat") < 0
-#endif
-	   )
+	     (slave = open(line, O_RDWR)) < 0 )
 	{ Cprintf("[PCE: failed to get slave pty: %s]\n", strName(OsError()));
 	  exit(1);
 	}
-#endif
+	ioctl(slave, I_PUSH, "ptem");	/* don't worry it these fail */
+	ioctl(slave, I_PUSH, "ldterm");
+	ioctl(slave, I_PUSH, "ttcompat");
+#endif /*USE_GRANTPT*/
 
 	DEBUG(NAME_process, Cprintf("Slave %s at %d\n", line, slave));
 	if ( !copyTty(p, line, slave) )

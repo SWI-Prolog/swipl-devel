@@ -46,12 +46,6 @@
    byte first (like Motorola and SPARC, unlike Intel and VAX).  */
 #undef WORDS_BIGENDIAN
 
-/* Define if the type ulong is not in <sys/types.h> */
-#undef NEED_ULONG
-
-/* Define if the type ushort is not in <sys/types.h> */
-#undef NEED_USHORT
-
 /* Define if you have BSD signals (i.e. signal handler does *not* reset */
 #undef BSD_SIGNALS
 

@@ -47,9 +47,9 @@ typedef struct _string
 #define str_store8(s, i, c)	(s->s_text8[(i)] = (char8)(c))
 #define str_store16(s, i, c)	(s->s_text16[(i)] = (char16)(c))
 
-#define str_cphdr(t, f) do { *(ulong *)(t) = *(ulong *)(f); \
+#define str_cphdr(t, f) do { *(unsigned long *)(t) = *(unsigned long *)(f); \
 			   } while(0)
-#define str_inithdr(s, e) do { *(ulong *)(s) = 0L; \
+#define str_inithdr(s, e) do { *(unsigned long *)(s) = 0L; \
 			       (s)->encoding = (e); \
 			       (s)->b16	     = ((e) == ENC_UNICODE ? 1 : 0); \
 			     } while(0)

@@ -233,8 +233,8 @@ initialiseSocket(Socket s, Any address, Name domain)
 
 static void
 registerSocket(Socket s)		/* do not influence GC */
-{ ulong flags = s->flags;
-  ulong refs  = s->references;
+{ unsigned long flags = s->flags;
+  unsigned long refs  = s->references;
   
   appendChain(SocketChain, s);
   s->flags      = flags;
@@ -244,8 +244,8 @@ registerSocket(Socket s)		/* do not influence GC */
 
 static void
 unregisterSocket(Socket s)
-{ ulong flags = s->flags;
-  ulong refs  = s->references;
+{ unsigned long flags = s->flags;
+  unsigned long refs  = s->references;
   
   addCodeReference(s);			/* avoid drop-out */
   deleteChain(SocketChain, s);

@@ -103,7 +103,7 @@ ws_realise_frame() sends ->geometry to all windows.
 		       isDefault(parent) ? widgetFrame(sw->frame)
 		       			 : widgetWindow(parent),
 		       args, n);
-    DEBUG(NAME_create, Cprintf("Widget = %ld\n", (ulong) w));
+    DEBUG(NAME_create, Cprintf("Widget = %p\n", w));
   }
 
   if ( !w )

@@ -1264,7 +1264,7 @@ struct clone_field
 { Any		instance;
   Any	       *field;
   Any		old_value;
-  ulong		flags;
+  unsigned long flags;
   CloneField	next;
 };
 
@@ -1272,7 +1272,7 @@ static	HashTable	CloneTable;
 static  CloneField     	CloneFields;
 
 static void
-addCloneField(Any obj, ulong flags, Any *field, Any old)
+addCloneField(Any obj, unsigned long flags, Any *field, Any old)
 { CloneField kf = alloc(sizeof(struct clone_field));
 
   kf->instance  = obj;

@@ -467,7 +467,7 @@ messageToEvent(HWND hwnd, UINT message, UINT wParam, LONG lParam)
   }
 
   if ( notNil(id) )
-  { setLastEventTime((ulong) GetTickCount());
+  { setLastEventTime((unsigned long) GetTickCount());
 
     DEBUG(NAME_event, Cprintf("\t--> %s at %s,%s on %s\n",
 			      pp(id), pp(x), pp(y), pp(window)));

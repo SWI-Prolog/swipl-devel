@@ -436,26 +436,6 @@ AC_TRY_COMPILE(
    AC_MSG_RESULT("no"))
 fi
 
-AC_MSG_CHECKING("for type ulong")
-AC_TRY_COMPILE(
-[
-#include <sys/types.h>
-typedef unsigned char ulong;
-],
-[;], AC_DEFINE(NEED_ULONG)
-     AC_MSG_RESULT("need typedef ulong"),
-     AC_MSG_RESULT("ulong predefined"))
-
-AC_MSG_CHECKING("for type ushort")
-AC_TRY_COMPILE(
-[
-#include <sys/types.h>
-typedef unsigned char ushort;
-],
-[;], AC_DEFINE(NEED_USHORT)
-     AC_MSG_RESULT("need typedef ushort"),
-     AC_MSG_RESULT("ushort predefined"))
-
 AC_TYPE_SIGNAL
 AC_MSG_CHECKING("for BSD signal handlers")
 AC_TRY_RUN(

@@ -173,9 +173,9 @@ __pce_export XPCE_Object XPCE_fetch(XPCE_Object in,
 				    XPCE_Variable var);
 
 #if O_CPLUSPLUS
-#define CPLUSPLUS_MASK 01L		/* mask for function-pointers */
-#define isCppFunctionPointer(p)		(((ulong)(p)) & CPLUSPLUS_MASK)
-#define valCppFunctionPointer(p)	((void*)((ulong)(p) & ~CPLUSPLUS_MASK))
+#define CPLUSPLUS_MASK 01L	 /* mask for function-pointers */
+#define isCppFunctionPointer(p)	 (((unsigned long)(p)) & CPLUSPLUS_MASK)
+#define valCppFunctionPointer(p) ((void*)((unsigned long)(p) & ~CPLUSPLUS_MASK))
 #endif
 
 		 /*******************************

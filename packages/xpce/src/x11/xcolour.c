@@ -109,7 +109,7 @@ ws_colour_name(DisplayObj d, Name name)
 
 
 Colour
-ws_pixel_to_colour(DisplayObj d, ulong pixel)
+ws_pixel_to_colour(DisplayObj d, unsigned long pixel)
 { for_hash_table(ColourTable, s,
 		 { Colour c = s->value;
 		   XColor *color = (XColor *) getExistingXrefObject(c, d);

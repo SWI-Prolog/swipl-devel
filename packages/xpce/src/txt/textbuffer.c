@@ -2195,7 +2195,7 @@ room(TextBuffer tb, int where, int grow)
 
 #define endFragment(f) ((f)->start + (f)->length)
 
-void
+static void
 forCharsInTextBuffer(TextBuffer tb, TextEventFunction f, text_event *ev)
 { Fragment *open_fragments = alloca(sizeof(Fragment) * 4);
   Fragment current_fragment, next_close_fragment = NULL;

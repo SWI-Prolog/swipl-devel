@@ -24,7 +24,7 @@ static Int 	 last_buttons     = TOINT(ZERO); /* defaults for next event */
 static Any	 last_window      = NIL;
 static Int	 last_x		  = TOINT(ZERO);
 static Int	 last_y		  = TOINT(ZERO);
-static ulong	 last_time	  = 0L;
+static unsigned long last_time	  = 0L;
 
 static Int	         last_down_bts    = ZERO;
 static int	         last_down_x      = -1000; /* multiclick detection */
@@ -34,12 +34,12 @@ static unsigned int	 multi_click_time = 400;
 static int	         multi_click_diff = 4;
 static int	         last_click_type  = CLICK_TYPE_triple;
 static int		 loc_still_posted = TRUE;
-static ulong		 host_last_time   = 0;
+static unsigned long	 host_last_time   = 0;
 
 static status
 initialiseEvent(EventObj e, Name id, Any window,
 		Int x, Int y, Int bts, Int time)
-{ ulong t = valInt(time);
+{ unsigned long t = valInt(time);
 
   initialiseProgramObject(e);
 
@@ -198,14 +198,14 @@ getConvertEvent(Class class, Any def)
 		*        TIME MANAGEMENT	*
 		********************************/
 
-ulong					/* time-stamp of last event */
+unsigned long				/* time-stamp of last event */
 LastEventTime(void)
 { return last_time;
 }
 
 
 void
-setLastEventTime(ulong time)
+setLastEventTime(unsigned long time)
 { last_time = time;
 }
 

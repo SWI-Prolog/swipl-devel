@@ -156,6 +156,8 @@ void		at_pce_exit(atexit_function f, int flags);
 void		run_pce_exit_hooks(int rval);
 
 /* ../src/ker/passing.c */
+void		pceMTLock(int lock);
+void		pceMTUnlock(int lock);
 status		vm_send(Any receiver, Name selector, Class class, int argc, const Any argv []);
 Any		vm_get(Any receiver, Name selector, Class class, int argc, const Any argv []);
 status		sendSendMethod(SendMethod sm, Any receiver, int argc, const Any argv []);
@@ -274,8 +276,8 @@ status		makeClassObject(Class class);
 /* ../src/ker/programobject.c */
 status		initialiseProgramObject(Any obj);
 status		initialiseNewSlotProgramObject(ProgramObject obj, Variable var);
-void		setDFlagProgramObject(Any obj, ulong mask);
-void		clearDFlagProgramObject(Any obj, ulong mask);
+void		setDFlagProgramObject(Any obj, unsigned long mask);
+void		clearDFlagProgramObject(Any obj, unsigned long mask);
 status		makeClassProgramObject(Class class);
 
 /* ../src/ker/save.c */

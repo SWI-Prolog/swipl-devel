@@ -121,8 +121,8 @@ struct draw_context
   cwidth      * char_widths;		/* array with widths of characters */
   Any		colour;			/* Current colour */
   Any		background;		/* Current background colour */
-  ulong		foreground_pixel;	/* X pixel value of foreground */
-  ulong		background_pixel;	/* X pixel value of background */
+  unsigned long foreground_pixel;	/* X pixel value of foreground */
+  unsigned long background_pixel;	/* X pixel value of background */
   Bool		subwindow_mode;		/* Draw in subwindows too */
   Bool		invert_mode;		/* Just invert */
   Elevation	elevation;		/* 3-d elevation GC's */
@@ -143,7 +143,7 @@ char *		FrameAtomToString(FrameObj fr, Atom a);
 Atom		WmProtocols(FrameObj fr);
 XtAppContext	pceXtAppContext(XtAppContext ctx);
 EventObj	CtoEvent(Any window, XEvent *event);
-ulong		getPixelColour(Colour c, DisplayObj d);
+unsigned long   getPixelColour(Colour c, DisplayObj d);
 Window		getWMFrameFrame(FrameObj fr);
 void		setXImageImage(Image image, XImage *i);
 status		postscriptXImage(XImage *im,

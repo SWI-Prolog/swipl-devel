@@ -240,14 +240,6 @@ cpdata(to, from, type, n)
 		 *	    BASIC TYPES		*
 		 *******************************/
 
-#if NEED_ULONG
-typedef unsigned long		ulong;
-#endif
-
-#ifdef NEED_USHORT
-typedef unsigned short		ushort;
-#endif
-
 typedef int			status;		/* FAIL, SUCCEED */
 typedef void *			Any;		/* Arbitrary object */
 
@@ -281,7 +273,7 @@ GLOBAL unsigned long pce_data_pointer_offset;
 #endif
 #endif
 
-#define PointerToCInt(p) (((ulong)(p) - POINTER_OFFSET)/sizeof(int))
+#define PointerToCInt(p) (((unsigned long)(p) - POINTER_OFFSET)/sizeof(int))
 #define PointerToInt(p)	 toInt(PointerToCInt(p))
 #define longToPointer(i) ((Any) (i * sizeof(int) + POINTER_OFFSET))
 #define IntToPointer(i)  longToPointer(valInt(i))
@@ -295,8 +287,8 @@ GLOBAL unsigned long pce_data_pointer_offset;
 #define MASK_MASK	0x00000001	/* 11 Mask Mask */
 #define TAG_BITS	1		/* number of mask bits for INT */
 
-#define MaskOf(obj)		((ulong)(obj) & MASK_MASK)
-#define UnMask(obj)		((ulong)(obj) & ~MASK_MASK)
+#define MaskOf(obj)		((unsigned long)(obj) & MASK_MASK)
+#define UnMask(obj)		((unsigned long)(obj) & ~MASK_MASK)
 
 
 		/********************************
@@ -338,7 +330,7 @@ test, conversion and computation macro's are provided.
 #define max(a, b)	((a) > (b) ? (a) : (b))
 #define min(a, b)	((a) < (b) ? (a) : (b))
 
-#define isInteger(i)	((ulong)(i) & INT_MASK)
+#define isInteger(i)	((unsigned long)(i) & INT_MASK)
 #define toInt(i)	((Int)(((long)(i)<<TAG_BITS)|INT_MASK))
 #define valInt(i)	(((long)(i))>>TAG_BITS)
 #define incrInt(i)	((i) = toInt(valInt(i)+1))
@@ -374,8 +366,8 @@ test, conversion and computation macro's are provided.
 #define makeDFlag(n)		(1L << ((n) - 1 + TAG_BITS))
 #define DFlags(obj)		(((ProgramObject)(obj))->dflags)
 #ifndef TAGGED_LVALUE
-void	setDFlagProgramObject(Any, ulong);
-void	clearDFlagProgramObject(Any, ulong);
+void	setDFlagProgramObject(Any, unsigned long);
+void	clearDFlagProgramObject(Any, unsigned long);
 #define setDFlag(obj, mask)     setDFlagProgramObject((obj), (mask))
 #define clearDFlag(obj, mask)	clearDFlagProgramObject((obj), (mask))
 #else
@@ -584,9 +576,10 @@ extern struct name builtin_names[];	/* object-array of built-in's */
 		*         CAREFUL CHECKERS	*
 		********************************/
 
-#define validAddress(a)	((ulong)(a) >= allocBase && \
-			 (ulong)(a) < allocTop)
-#define isAddress(a)	(validAddress(a) && !((ulong)(a) & (sizeof(Any)-1)))
+#define validAddress(a)	((unsigned long)(a) >= allocBase && \
+			 (unsigned long)(a) < allocTop)
+#define isAddress(a)	(validAddress(a) && \
+			 !((unsigned long)(a) & (sizeof(Any)-1)))
 #define validPceDatum(x) (isInteger(x) || isProperObject(x))
 
 
@@ -612,14 +605,14 @@ extern struct name builtin_names[];	/* object-array of built-in's */
 		********************************/
 
 #define OBJECT_HEADER \
-  ulong		flags;			/* general flag field */ \
-  ulong		references;		/* reference count */ \
+  unsigned long flags;			/* general flag field */ \
+  unsigned long references;		/* reference count */ \
   Class		class;			/* Associated class */
 
 #define ABSTRACT_OBJECT
 
 #define ABSTRACT_PROGRAM_OBJECT \
-  ulong		dflags;			/* Debugging flags */
+  unsigned long dflags;			/* Debugging flags */
 
 #define ABSTRACT_RECOGNISER \
   Bool		active;			/* Does accept events? */
@@ -1565,8 +1558,8 @@ GLOBAL int	restoreVersion;		/* Version of save file */
 GLOBAL SourceSink LoadFile;		/* Current file for <-object */
 GLOBAL char    *SaveMagic;		/* Magic string for saved objects */
 GLOBAL int	inBoot;			/* is the system in the boot cycle? */
-GLOBAL ulong	allocBase;		/* lowest allocated memory */
-GLOBAL ulong 	allocTop;		/* highest allocated memory */
+GLOBAL unsigned long allocBase;		/* lowest allocated memory */
+GLOBAL unsigned long allocTop;		/* highest allocated memory */
 #ifndef O_RUNTIME
 GLOBAL int	PCEdebugging;		/* PCE->debugging == ON */
 GLOBAL int	PCEdebugBoot;		/* Debug booting phase? */
@@ -1765,9 +1758,9 @@ GLOBAL int hash_resizes;		/* # resizes done */
 
 
 #if USE_PRIMES
-#define hashKey(name, buckets) ((((ulong)(name)) >> 2) % (buckets))
+#define hashKey(name, buckets) ((((unsigned long)(name)) >> 2) % (buckets))
 #else
-#define hashKey(name, buckets) ((((ulong)(name)) >> 2) & ((buckets)-1))
+#define hashKey(name, buckets) ((((unsigned long)(name)) >> 2) & ((buckets)-1))
 #endif
 
 

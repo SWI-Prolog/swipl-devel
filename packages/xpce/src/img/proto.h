@@ -7,7 +7,6 @@ int 		METHODDEF(void);
 int 		GLOBAL(void);
 
 /* ../src/img/jpegtoxpm.c */
-int		convert_colourmap(int ncolors, JSAMPARRAY colourmap, XpmImage *img);
 int		readJPEGtoXpmImage(IOSTREAM *fd, XpmImage *img);
 
 /* ../src/img/gifread.c */

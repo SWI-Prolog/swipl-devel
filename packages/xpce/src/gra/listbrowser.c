@@ -598,8 +598,8 @@ rewind_list_browser(Any obj)
 
 static SeekFunction
 getSeekFunctionListBrowser(ListBrowser lb)
-{ DEBUG(NAME_SeekFunction, Cprintf("seek_list_browser = 0x%lx\n",
-				   (ulong) seek_list_browser));
+{ DEBUG(NAME_SeekFunction,
+	Cprintf("seek_list_browser = 0x%p\n", seek_list_browser));
   answer(seek_list_browser);
 }
 

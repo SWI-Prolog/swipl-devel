@@ -30,7 +30,7 @@ createMethod(Method m, Name name, Vector types, StringObj doc, Func action)
 #ifndef O_RUNTIME
   m->source	 = NIL;
 #endif
-  m->dflags      = (ulong) ZERO;
+  m->dflags      = (unsigned long) ZERO;
 
   initialiseMethod(m, name, types, NIL, doc, NIL, DEFAULT);
   createdObject(m, NAME_new);

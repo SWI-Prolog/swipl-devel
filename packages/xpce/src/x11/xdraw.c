@@ -670,7 +670,7 @@ r_fillpattern(Any fill, Name which)	/* image or colour */
 
   if ( fill != context.gcs->fill )
   { XGCValues values;
-    ulong mask;
+    unsigned long mask;
 
     DEBUG(NAME_fillPattern, Cprintf("Changing\n"));
 
@@ -730,7 +730,7 @@ r_andpattern(Image i)
   if ( i != context.gcs->and_pattern &&
        (image = (Pixmap) getXrefObject(i, context.pceDisplay)) != 0 )
   { XGCValues values;
-    ulong mask;
+    unsigned long mask;
     
     if ( context.kind != NAME_bitmap && i->kind == NAME_bitmap )
     { values.stipple    = image;
@@ -804,10 +804,10 @@ r_colour(Any c)
   if ( c != context.gcs->colour )
   { if ( context.gcs->kind != NAME_bitmap )
     { XGCValues values;
-      ulong mask;
+      unsigned long mask;
 
       if ( instanceOfObject(c, ClassColour) )
-      { ulong pixel = getPixelColour(c, context.pceDisplay);
+      { unsigned long pixel = getPixelColour(c, context.pceDisplay);
 	
 	values.foreground = pixel;
 	values.fill_style = FillSolid;
@@ -845,13 +845,13 @@ r_background(Any c)
   if ( c != context.gcs->background )
   { if ( context.gcs->kind != NAME_bitmap )
     { XGCValues values;
-      ulong mask;
+      unsigned long mask;
 
       DEBUG(NAME_background, Cprintf("Setting clearGC of %s context to %s\n",
 				     pp(context.gcs->kind), pp(c)));
 
       if ( instanceOfObject(c, ClassColour) )
-      { ulong pixel = getPixelColour(c, context.pceDisplay);
+      { unsigned long pixel = getPixelColour(c, context.pceDisplay);
 	
 	values.foreground = pixel;
 	values.fill_style = FillSolid;
@@ -1975,8 +1975,8 @@ r_image(Image image,
 	  XFreeGC(context.display, GCtmp);
 	}
       } else				/* pixmap on bitmap */
-      { ulong fpixel, bpixel;
-	ulong plane = 1L;
+      { unsigned long fpixel, bpixel;
+	unsigned long plane = 1L;
 	int i;
 	
 	if ( isDefault(image->foreground) )
@@ -1988,7 +1988,7 @@ r_image(Image image,
 	bpixel = getPixelColour(image->background, context.pceDisplay);
 
 	if ( fpixel != bpixel )
-	{ for(i=1; i++ <= (sizeof(ulong) * 8); plane <<= 1)
+	{ for(i=1; i++ <= (sizeof(unsigned long) * 8); plane <<= 1)
 	  { if ( (fpixel & plane) != (bpixel & plane) )
 	      break;
 	  }

@@ -48,9 +48,6 @@ used in saved object (object ->save_in_file).
 #define roundup(v, n)		((((v)+(n)-1)/(n))*(n))
 #define rescale(v, o, n)	((v) * (n) / (o))
 
-#undef ulong
-#define ulong unsigned long
-
 #ifndef TRUE
 #define TRUE 1
 #define FALSE 0
@@ -71,8 +68,8 @@ typedef struct symbol *Symbol;
 typedef struct table  *Table;
 
 struct symbol
-{ ulong		name;
-  ulong		value;
+{ unsigned long name;
+  unsigned long value;
   Symbol	next;
 };
 
@@ -117,7 +114,7 @@ freeTable(Table t)
 
 
 static void
-addTable(Table t, ulong name, ulong value)
+addTable(Table t, unsigned long name, unsigned long value)
 { Symbol *l = &t->symbols[hashvalue(t->size, name)];
   Symbol s = (Symbol)pceMalloc(sizeof(struct symbol));
 
@@ -128,8 +125,8 @@ addTable(Table t, ulong name, ulong value)
 }
 
 
-static ulong
-memberTable(Table t, ulong name)
+static unsigned long
+memberTable(Table t, unsigned long name)
 { Symbol s = t->symbols[hashvalue(t->size, name)];
 
   for(; s; s = s->next)
@@ -145,11 +142,11 @@ memberTable(Table t, ulong name)
 		 *	   COLOUR PIXELS	*
 		 *******************************/
 
-static ulong
+static unsigned long
 colourPixel(Display *disp, int depth, Colormap cmap,
 	    Table t, int r, int g, int b)
-{ ulong pixel;
-  ulong direct = (r << 16) + (g << 8) + b;
+{ unsigned long pixel;
+  unsigned long direct = (r << 16) + (g << 8) + b;
   XColor c;
 
   if ( (pixel = memberTable(t, direct)) != NOPIXEL )
@@ -292,7 +289,7 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, FILE *fd)
 	  for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
 	    { int g = getNum(fd);
-	      ulong pixel;
+	      unsigned long pixel;
   
 	      if ( g < 0 || g > scale )
 		goto errout;
@@ -315,7 +312,7 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, FILE *fd)
 	    { int r = getNum(fd);
 	      int g = getNum(fd);
 	      int b = getNum(fd);
-	      ulong pixel;
+	      unsigned long pixel;
   
 	      if ( r < 0 || r > scale ||
 		   g < 0 || g > scale ||
@@ -367,7 +364,7 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, FILE *fd)
 	  for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
 	    { unsigned int g;
-	      ulong pixel;
+	      unsigned long pixel;
   
 	      if ( feof(fd) || (g=getc(fd)) > scale )
 		goto errout;
@@ -388,7 +385,7 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, FILE *fd)
 	  for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
 	    { unsigned int r, g, b;
-	      ulong pixel;
+	      unsigned long pixel;
   
 	      if ( feof(fd) ||
 		   (r=getc(fd)) > scale ||
@@ -417,7 +414,7 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, FILE *fd)
     }
     case PNM_RUNLEN:
     { int rlen = 0;
-      ulong cpixel = NOPIXEL;
+      unsigned long cpixel = NOPIXEL;
 
       switch(fmt)
       { case PNM_PGM:
@@ -707,7 +704,7 @@ write_pnm_file(FILE *fd, XImage *img,
     }
     case PNM_RUNLEN:
     { int rlen=-1;
-      ulong cpixel = NOPIXEL;
+      unsigned long cpixel = NOPIXEL;
 
       switch(fmt)
       { case PNM_PGM:
@@ -715,7 +712,7 @@ write_pnm_file(FILE *fd, XImage *img,
   
 	  for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
-	    { ulong pixel = XGetPixel(img, x, y);
+	    { unsigned long pixel = XGetPixel(img, x, y);
 
 	      if ( pixel == cpixel && rlen < 255 )
 		rlen++;
@@ -742,7 +739,7 @@ write_pnm_file(FILE *fd, XImage *img,
 	case PNM_PPM:
 	{ for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
-	    { ulong pixel = XGetPixel(img, x, y);
+	    { unsigned long pixel = XGetPixel(img, x, y);
 
 	      if ( pixel == cpixel && rlen < 255 )
 		rlen++;

@@ -247,7 +247,7 @@ storeObject(Any obj, FileObj file)
   assert(isObject(obj));
 
   if ( instanceOfObject(obj, ClassVar) )
-  { int a = (ulong)obj - (ulong)Arg(0);
+  { int a = (unsigned long)obj - (unsigned long)Arg(0);
 
     if ( a >= 1 && a <= 9 )
       return storeCharFile(file, '0' + (int) a);
@@ -489,7 +489,7 @@ loadWord(IOSTREAM *fd)
 {
 #ifndef WORDS_BIGENDIAN
   union
-  { ulong         l;
+  { unsigned long l;
     unsigned char c[4];
   } cvrt;
   long rval;

@@ -260,7 +260,7 @@ initAlloc(void)
 
 void
 allocRange(void *low, int size)
-{ ulong l = (ulong)low;
+{ unsigned long l = (unsigned long)low;
 
   if ( l < allocBase )
     allocBase = l;
@@ -296,7 +296,7 @@ listWastedCorePce(Pce pce, Bool ppcells)
   Cprintf("Wasted core:\n");
   for(n=0; n <= ALLOCFAST/sizeof(Zone); n++)
   { if ( freeChains[n] != NULL )
-    { ulong size = (ulong) n*sizeof(Zone);
+    { unsigned long size = (unsigned long) n*sizeof(Zone);
 
       if ( ppcells == ON )
       { Cprintf("    Size = %ld:\n", size);

@@ -323,7 +323,7 @@ ws_uncreate_colour(Colour c, DisplayObj d)
 
 
 Colour
-ws_pixel_to_colour(DisplayObj d, ulong pixel)
+ws_pixel_to_colour(DisplayObj d, unsigned long pixel)
 { fail;
 }
 

@@ -468,7 +468,7 @@ static vardecl var_directory[] =
      NAME_name, "Name of the directory"),
   IV(NAME_path, "name", IV_GET,
      NAME_name, "Full path name"),
-  IV(NAME_modified, "alien:ulong", IV_NONE,
+  IV(NAME_modified, "alien:long", IV_NONE,
      NAME_time, "Time stamp for ->changed")
 };
 

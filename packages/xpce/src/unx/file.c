@@ -895,14 +895,14 @@ storeCharFile(FileObj f, int c)
 
 
 void
-putstdw(ulong w, FILE *fd)
+putstdw(unsigned long w, FILE *fd)
 {
 #ifndef WORDS_BIGENDIAN
   union
-  { ulong         l;
+  { unsigned long         l;
     unsigned char c[4];
   } cvrt;
-  ulong rval;
+  unsigned long rval;
 
   cvrt.l = w;
   rval = (cvrt.c[0] << 24) |
@@ -918,7 +918,7 @@ putstdw(ulong w, FILE *fd)
 
 status
 storeWordFile(FileObj f, Any w)
-{ putstdw((ulong) w, f->fd);
+{ putstdw((unsigned long) w, f->fd);
 
   return checkErrorFile(f);
 }

@@ -1,9 +1,3 @@
-/* Define if the type ulong is not in <sys/types.h> */
-#undef NEED_ULONG
-
-/* Define if the type ushort is not in <sys/types.h> */
-#undef NEED_USHORT
-
 /* If your compiler supports an 8-byte integer, define this to the type */
 #undef LONGLONG
 

@@ -287,7 +287,7 @@ intensityXColor(XColor *c)
 }
 
 
-ulong
+unsigned long
 getPixelColour(Colour c, DisplayObj d)
 { XColor *color = (XColor *) getXrefObject(c, d);
 
@@ -298,11 +298,11 @@ getPixelColour(Colour c, DisplayObj d)
 void
 x11_set_gc_foreground(DisplayObj d, Any fg, int gcs, GC *gc)
 { XGCValues values;
-  ulong mask;
+  unsigned long mask;
   DisplayWsXref r = d->ws_ref;
 
   if ( instanceOfObject(fg, ClassColour) )
-  { ulong pixel = getPixelColour(fg, d);
+  { unsigned long pixel = getPixelColour(fg, d);
 	
     values.foreground = pixel;
     values.fill_style = FillSolid;
@@ -426,7 +426,7 @@ makeSparceCInfo(Display *disp, Colormap cmap, XImage *img, int *ncolours)
       
   for(y=0; y<height; y++)
   { for(x=0; x<width; x++)
-    { ulong pixel = XGetPixel(img, x, y);
+    { unsigned long pixel = XGetPixel(img, x, y);
 
       if ( pixel > entries )
       { Cprintf("PNM: Illegal pixel value at %d,%d: %d\n", x, y, pixel);

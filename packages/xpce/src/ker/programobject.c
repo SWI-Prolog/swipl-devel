@@ -14,7 +14,7 @@ status
 initialiseProgramObject(Any obj)
 { ProgramObject o = obj;
 
-  o->dflags = (ulong) ZERO | D_SYSTEM;
+  o->dflags = (unsigned long) ZERO | D_SYSTEM;
 
   succeed;
 }
@@ -23,14 +23,14 @@ initialiseProgramObject(Any obj)
 status
 initialiseNewSlotProgramObject(ProgramObject obj, Variable var)
 { if ( var->name == NAME_dflags )
-    obj->dflags = (ulong) ZERO;
+    obj->dflags = (unsigned long) ZERO;
 
   succeed;
 }
 
 
 #ifndef O_RUNTIME
-static ulong
+static unsigned long
 nameToTraceFlag(Name name)
 { if ( name == NAME_enter )
     return D_TRACE_ENTER;
@@ -43,7 +43,7 @@ nameToTraceFlag(Name name)
 }
 
 
-static ulong
+static unsigned long
 nameToBreakFlag(Name name)
 { if ( name == NAME_enter )
     return D_BREAK_ENTER;
@@ -58,7 +58,7 @@ nameToBreakFlag(Name name)
 
 static status
 traceProgramObject(ProgramObject obj, Name what, Bool val)
-{ ulong flag = nameToTraceFlag(what);
+{ unsigned long flag = nameToTraceFlag(what);
 
   if ( val != OFF )
   { setDFlag(obj, flag);
@@ -72,7 +72,7 @@ traceProgramObject(ProgramObject obj, Name what, Bool val)
 
 static Bool
 getTraceProgramObject(ProgramObject obj, Name what)
-{ ulong flag = nameToTraceFlag(what);
+{ unsigned long flag = nameToTraceFlag(what);
 
   answer(onDFlag(obj, flag) ? ON : OFF);
 }
@@ -80,7 +80,7 @@ getTraceProgramObject(ProgramObject obj, Name what)
 
 static status
 breakProgramObject(ProgramObject obj, Name what, Bool val)
-{ ulong flag = nameToBreakFlag(what);
+{ unsigned long flag = nameToBreakFlag(what);
 
   if ( val != OFF )
   { setDFlag(obj, flag);
@@ -94,7 +94,7 @@ breakProgramObject(ProgramObject obj, Name what, Bool val)
 
 static Bool
 getBreakProgramObject(ProgramObject obj, Name what)
-{ ulong flag = nameToBreakFlag(what);
+{ unsigned long flag = nameToBreakFlag(what);
 
   answer(onDFlag(obj, flag) ? ON : OFF);
 }
@@ -120,7 +120,7 @@ getSystemProgramObject(ProgramObject obj)
 
 #ifndef TAGGED_LVALUE
 void
-setDFlagProgramObject(Any obj, ulong mask)
+setDFlagProgramObject(Any obj, unsigned long mask)
 { ProgramObject po = obj;
 
   po->dflags |= mask;
@@ -128,7 +128,7 @@ setDFlagProgramObject(Any obj, ulong mask)
 
 
 void
-clearDFlagProgramObject(Any obj, ulong mask)
+clearDFlagProgramObject(Any obj, unsigned long mask)
 { ProgramObject po = obj;
 
   po->dflags &= ~mask;

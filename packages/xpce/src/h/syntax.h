@@ -16,7 +16,7 @@ NewClass(syntax_table)
   Int		size;			/* Size of the table (256) */
   Regex		sentence_end;		/* End-Of-Sentence */
   Regex		paragraph_end;		/* End-Of-Pargraph */
-  ushort       *table;			/* Type-flags */
+  unsigned short       *table;			/* Type-flags */
   char	       *context;		/* Context info */
 End;
 
@@ -57,8 +57,8 @@ End;
 #define Meta(x)    (x + META_OFFSET)
 
 GLOBAL SyntaxTable DefaultSyntaxTable;	/* Systems default table */
-extern ushort char_flags[];		/* Initial flags table */
-extern ushort syntax_spec_code[];	/* Char --> syntax (for \sC regex) */
+extern unsigned short char_flags[];	/* Initial flags table */
+extern unsigned short syntax_spec_code[]; /* Char --> syntax (for \sC regex) */
 extern char  char_context[];		/* Initial context table */
 
 #define Is8char(c)		((unsigned int)(c) < 256)

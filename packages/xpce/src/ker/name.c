@@ -26,7 +26,7 @@ static status	registerName(Name n);
 #define BUILTIN_NAME(s) { 0L, 0L, NULL, 0, s },
 
 NewClass(bname)
-  ulong str_header;
+  unsigned long str_header;
   char *text;
 End;
 

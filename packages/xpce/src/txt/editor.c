@@ -704,7 +704,7 @@ struct fragment_cache
 { FragmentCell	active;			/* list of active fragments */
   Fragment	current;		/* current fragment */
   long		index;			/* current index */
-  ulong		attributes;		/* Current (fragment) attributes */
+  unsigned long		attributes;		/* Current (fragment) attributes */
   FontObj	font;			/* current (fragment) font */
   Colour	colour;			/* current (fragment) colour */
   Any		background;		/* curremt (fragment) background */
@@ -814,7 +814,7 @@ indexFragmentCache(FragmentCache fc, Editor e, long int i)
     long cl   = 0;
     int lm    = 0;
     int rm    = 0;			/* margins */
-    ulong attributes = 0L;
+    unsigned long attributes = 0L;
 
     for( cell = fc->active; cell; cell = cell->next )
     { Style s = cell->style;

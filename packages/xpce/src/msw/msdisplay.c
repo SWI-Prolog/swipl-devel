@@ -511,14 +511,14 @@ ws_get_cutbuffer(DisplayObj d, int n)
 }
 
 
-ulong
+unsigned long
 ws_get_selection_timeout(void)
 { return 0L;
 }
 
 
 void
-ws_set_selection_timeout(ulong time)
+ws_set_selection_timeout(unsigned long time)
 {
 }
 
