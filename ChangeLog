@@ -1,6 +1,22 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 3.2.6
+=============
+
+  * FIXED/PORTABILITY: Modified implementation of stack-allocation based
+    in mmap() (Many Unix systems).  This makes the configuration work on
+    the Linux 2.2 kernels, but most likely fixes problems on many other
+    systems.  It also avoids potentional conflicts in the stack management
+    with foreign code using mmap().
+
+  * FIXED: retract((p:-true)) is equivalent to retract(p).  Reported
+    by Juan Cires Martinez.
+
+  * DOCUMENTATION: Thanks to Xavier Noria, a large number of spelling
+    and consistency problems have been removed from chapters 1 and 2
+    of the manual.  Keep up the good work!
+
   * FIXED: Avoid reentrence of the GNU readline library, as this upsets
     the readline signal handling.
 
