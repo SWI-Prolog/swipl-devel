@@ -36,7 +36,7 @@ LIBFILES=	lib/library.tex lib/readutil.tex lib/netscape.tex \
 		lib/registry.tex lib/check.tex lib/url.tex
 TEXFILES=	doc.tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
-		glossary.tex ide.tex $(LIBFILES)
+		glossary.tex ide.tex license.tex $(LIBFILES)
 STYFILES=	html.sty txt.sty
 
 .SUFFIXES:

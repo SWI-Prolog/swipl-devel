@@ -177,6 +177,7 @@ Copyright \copyright\ 1990--\vyear, University of Amsterdam
 \include{lib/library}
 \include{hack}
 \include{glossary}
+\include{license}
 \include{summary}
 
 \bibliographystyle{name}

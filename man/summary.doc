@@ -155,6 +155,7 @@ suggest predicates from a keyword.
 \predicatesummary{edit}{1}{Edit a file}
 \predicatesummary{ensure_loaded}{1}{Consult a file if that has not yet been done}
 \predicatesummary{erase}{1}{Erase a database record or clause}
+\predicatesummary{eval_license}{0}{Evaluate licenses of loaded modules}
 \predicatesummary{exception}{3}{\hook{user} Handle runtime exceptions}
 \predicatesummary{exists_directory}{1}{Check existence of directory}
 \predicatesummary{exists_file}{1}{Check existence of file}
@@ -234,6 +235,8 @@ suggest predicates from a keyword.
 \predicatesummary{leash}{1}{Change ports visited by the tracer}
 \predicatesummary{length}{2}{Length of a list}
 \predicatesummary{library_directory}{1}{\hook{user} Directories holding Prolog libraries}
+\predicatesummary{license}{1}{Define license for current file}
+\predicatesummary{license}{2}{Define license for named module}
 \predicatesummary{limit_stack}{2}{Limit stack expansion}
 \predicatesummary{line_count}{2}{Line number on stream}
 \predicatesummary{line_position}{2}{Character position in line on stream}

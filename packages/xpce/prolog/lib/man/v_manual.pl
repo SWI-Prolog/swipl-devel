@@ -190,7 +190,7 @@ check_licence(M) :->
 
 
 fill_dialog(M, D) :->
-	send(D, gap, size(5, 8)),
+	send(D, gap, size(5, 5)),
 	send(D, append, new(MB, menu_bar)),
 	send(MB, append, new(F, popup(file))),
 	send(MB, append, new(V, popup(browsers,
