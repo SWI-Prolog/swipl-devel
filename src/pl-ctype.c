@@ -422,6 +422,22 @@ pl_code_type(term_t chr, term_t class, word h)
 { return do_char_type(chr, class, h, CODE_MODE);
 }
 
+#if defined(HAVE_LOCALE_H) && defined(HAVE_SETLOCALE)
+#include <locale.h>
+
+static void
+initLocale()
+{ if ( !setlocale(LC_CTYPE, "") )	/* this is all we use */
+    Sdprintf("Failed to set locale\n");
+}
+
+#else
+
+#define initLocale()
+
+#endif
+
+
 		 /*******************************
 		 *	PROLOG CHARACTERS	*
 		 *******************************/
@@ -466,6 +482,8 @@ initCharTypes()
     else if ( ispunct(i) )
       _PL_char_types[i] = SY;
   }
+
+  initLocale();
 }
 
 

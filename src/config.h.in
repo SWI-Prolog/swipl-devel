@@ -242,6 +242,9 @@
 /* Define if you have the sema_init function.  */
 #undef HAVE_SEMA_INIT
 
+/* Define if you have the setlocale function.  */
+#undef HAVE_SETLOCALE
+
 /* Define if you have the shl_load function.  */
 #undef HAVE_SHL_LOAD
 
@@ -310,6 +313,9 @@
 
 /* Define if you have the <dirent.h> header file.  */
 #undef HAVE_DIRENT_H
+
+/* Define if you have the <locale.h> header file.  */
+#undef HAVE_LOCALE_H
 
 /* Define if you have the <mach-o/rld.h> header file.  */
 #undef HAVE_MACH_O_RLD_H
