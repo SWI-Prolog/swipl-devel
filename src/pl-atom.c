@@ -327,7 +327,8 @@ _PL_debug_unregister_atom(atom_t a,
 
 Atom
 _PL_debug_atom_value(atom_t a)
-{ int i = indexAtom(a);
+{ GET_LD
+  int i = indexAtom(a);
   Atom atom = fetchBuffer(&atom_array, i, Atom);
 
   if ( !atom )

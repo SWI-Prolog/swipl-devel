@@ -2235,7 +2235,8 @@ extern IOSTREAM * atomLogFd;		/* for error messages */
 
 static long
 loffset(void *p)
-{ if ( p == NULL )
+{ GET_LD
+  if ( p == NULL )
     return 0;
 
   assert((long)p % sizeof(word) == 0);
@@ -2357,7 +2358,7 @@ markAtomsInEnvironments(PL_local_data_t *ld)
 #ifdef O_DEBUG_ATOMGC
       if ( atomLogFd )
 	Sfprintf(atomLogFd, "Marking atoms from choicepoint #%ld on %s\n",
-		 local(ch), predicateName(ch->frame->predicate));
+		 loffset(ch), predicateName(ch->frame->predicate));
 #endif
       mark_atoms_in_environments(ld, ch->frame);
     }
