@@ -236,17 +236,18 @@ a complete \elem{rdf:RDF} element, a list of RDF-objects
 (container or description) or a single description of container.
     \predicate{process_rdf}{3}{+File, +BaseURI, :OnTriples}
 Exploits the call-back interface of {\bf sgml2pl}, calling
-\arg{OnTriples} with the list of triples resulting from a single
-top level RDF object for each RDF element in the file.  This predicate
-can be used to process arbitrary large RDF files as the file is
-processed object-by-object.  The example below simply asserts all
+\term{\arg{OnTriples}}{Triples, File:Line} with the list of triples
+resulting from a single top level RDF object for each RDF element in the
+file as well as the source-location where the description started. This
+predicate can be used to process arbitrary large RDF files as the file
+is processed object-by-object. The example below simply asserts all
 triples into the database:
 
 \begin{code}
-assert_list([]).
-assert_list([H|T]) :-
+assert_list([], _).
+assert_list([H|T], Source) :-
 	assert(H),
-	assert_list(T).
+	assert_list(T, Source).
 
 ?- process_rdf('structure,rdf', [], assert_list).
 \end{code}

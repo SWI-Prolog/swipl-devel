@@ -29,12 +29,13 @@ E-mail: <A HREF="mailto:jan@swi.psy.uva.nl">jan@swi.psy.uva.nl</A></I>
 </BLOCKQUOTE>
 <CENTER><H3>Abstract</H3></Center>
 <TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>
-RDF (<B>R</B>esource <B>D</B>escription <B>F</B>ormat) is a W3C standard 
-for expressing meta-data about web-resources. It has three 
-representations providing the same semantics. RDF documents are normally 
-transferred as XML documents using the RDF-XML syntax. This format is 
-very unsuitable for processing. The parser defined here converts an 
-RDF-XML document into the triple notation.
+<A HREF="http://www.w3.org/RDF/">RDF</A> (<B>R</B>esource <B>D</B>escription <B>F</B>ormat) 
+is a <A HREF="http://www.w3.org/">W3C</A> standard for expressing 
+meta-data about web-resources. It has three representations providing 
+the same semantics. RDF documents are normally transferred as XML 
+documents using the RDF-XML syntax. This format is unsuitable for 
+processing. The parser defined here converts an RDF-XML document into 
+the <EM>triple</EM> notation.
 </TABLE>
 
 <H1><A NAME="document-contents">Table of Contents</A></H1>
@@ -61,34 +62,36 @@ RDF-XML document into the triple notation.
 <H2><A NAME="sec:1">1 Introduction</A></H2>
 
 <P>RDF is a promising standard for representing meta-data about 
-documents on the web as well as exchanging ontologies. RDF is often 
-associated with `semantics on the web'. It consists of a formal 
-data-model defined in terms of <EM>triples</EM>. In addition, a <EM>graph</EM> 
-model is defined for visualisation and an XML application is defined for 
-exchange.
+documents on the web as well as exchanging frame-based data (e.g. ontologies). 
+RDF is often associated with `semantics on the web'. It consists of a 
+formal data-model defined in terms of <EM>triples</EM>. In addition, a
+<EM>graph</EM> model is defined for visualisation and an XML application 
+is defined for exchange.
 
-<P>`Semantics on the web' is often associated with the Prolog 
-programming language. It is assumed that Prolog is a suitable vehicle to 
-reason with the data expressed in RDF models. Most of the related 
-web-infra structure (e.g. XML parsers, DOM implementations) are defined 
-in Java, Perl, C or C++.
+<P>`Semantics on the web' is also associated with the Prolog programming 
+language. It is assumed that Prolog is a suitable vehicle to reason with 
+the data expressed in RDF models. Most of the related web-infra 
+structure (e.g. XML parsers, DOM implementations) are defined in Java, 
+Perl, C or C++.
 
 <P>Various routes are available to the Prolog user. Low-level XML 
 parsing is due to its nature best done in C or C++. These languages 
-produce fast code. As XML/SGML are the basis of most of the other 
-web-related formats we will benefit most here. XML and SGML being very 
-stable specifications make this even more attractive.
+produce fast code. As XML/SGML are at the basis of most of the other 
+web-related formats we will benefit most here. XML and SGML, being very 
+stable specifications, make fast compiled languages even more 
+attractive.
 
 <P>But what about RDF? RDF-XML is defined in XML, and provided with a 
 Prolog term representing the XML document processing it according to the 
 RDF syntax is quick and easy in Prolog. The alternative, getting yet 
 another library and language attached to the system, is getting less 
-attractive.
+attractive. In this document we explore the suitability of Prolog for 
+processing XML documents in general and into RDF in particular.
 
 <H2><A NAME="sec:2">2 Parsing RDF in Prolog</A></H2>
 
-<P>To demonstrate this, we realised an RDF compiler in Prolog on top of 
-the sgml2pl package (providing a name-space sensitive XML parser). The 
+<P>We realised an RDF compiler in Prolog on top of the <B>sgml2pl</B> 
+package (providing a name-space sensitive XML parser). The 
 transformation is realised in two passes.
 
 <P>The first pass rewrites the XML term into a Prolog term conveying the 
@@ -98,7 +101,7 @@ Prolog with properties similar to DCG (Definite Clause Grammar).
 
 <P>The source of this translation is very close to the BNF notation used 
 by the <A HREF="http://www.w3.org/TR/REC-rdf-syntax/">specification</A>, 
-so correctness is `obvious'. Below is a part of the definition of RDF 
+so correctness is `obvious'. Below is a part of the definition for RDF 
 containers. Note that XML elements are represented using a term of the 
 format:
 <BLOCKQUOTE>
@@ -175,7 +178,7 @@ description(description, About, BagID, Properties) ::=
 
 <H2><A NAME="sec:3">3 Predicates</A></H2>
 
-<P>The parser is designed to operate on various environments and 
+<P>The parser is designed to operate in various environments and 
 therefore provides interfaces at various levels. First we describe the 
 top level defined in <CODE>library(rdf)</CODE>, simply parsing a PDF-XML 
 file into a list of triples. Please note these are <EM>not</EM> asserted 
@@ -185,8 +188,12 @@ deal with multiple RDF documents. Some options are using global URI's in
 one pool, in Prolog modules or using an additional argument.
 
 <DL>
+
+<P>
 <DT><A NAME="load_rdf/2"><STRONG>load_rdf</STRONG>(<VAR>+File, -Triples</VAR>)</A><DD>
 Same as <CODE>load_rdf(File, Triples,)</CODE>.
+
+<P>
 <DT><A NAME="load_rdf/3"><STRONG>load_rdf</STRONG>(<VAR>+File, -Triples, 
 +Options</VAR>)</A><DD>
 Read the RDF-XML file <VAR>File</VAR> and return a list of <VAR>Triples</VAR>.
@@ -194,6 +201,8 @@ Read the RDF-XML file <VAR>File</VAR> and return a list of <VAR>Triples</VAR>.
 defined options are:
 
 <DL>
+
+<P>
 <DT><STRONG>base_uri</STRONG>(<VAR>BaseURI</VAR>)<DD>
 If provided local identifiers and identifier-references are globalised 
 using this URI. If omited or the atom <CODE>[]</CODE>, local identifiers 
@@ -217,7 +226,7 @@ elements).
 
 <P>XML name spaces are identified using a URI. Unfortunately various 
 URI's are in common use to refer to RDF. The <CODE>rdf_parser.pl</CODE> 
-module therefore defined the namespace as a <A NAME="idx:multifile1:1"></A><B>multifile/1</B> 
+module therefore defines the namespace as a <A NAME="idx:multifile1:1"></A><B>multifile/1</B> 
 predicate, that can be extended by the user. For example, to parse the <A HREF="http://www.mozilla.org/rdf/doc/inference.html">Netscape 
 OpenDirectory</A>
 <CODE>structure.rdf</CODE> file, the following declarations are used:
@@ -248,16 +257,18 @@ rdf_name_space('http://www.w3.org/TR/REC-rdf-syntax').
 
 <P>The above defined <A NAME="idx:loadrdf23:2"></A><A HREF="#load_rdf/2">load_rdf/[2,3]</A> 
 is not always suitable. For example, it cannot deal with documents where 
-the RDF statement is embedded an XML document. It also cannot deal with 
-really big documents (e.g. the Netscape OpenDirectory project), without 
-huge amounts of memory.
+the RDF statement is embedded in an XML document. It also cannot deal 
+with really large documents (e.g. the Netscape OpenDirectory project, 
+currently about 90 MBytes), without huge amounts of memory.
 
-<P>For really big documents, the <B>sgml2pl</B> parser can be programmed 
-to handle the content of a specific element (i.e. <TT>&lt;rdf:RDF&gt;</TT>) 
+<P>For really large documents, the <B>sgml2pl</B> parser can be 
+programmed to handle the content of a specific element (i.e. <TT>&lt;rdf:RDF&gt;</TT>) 
 element-by-element. The parsing primitives defined in this section can 
 be used to process these one-by-one.
 
 <DL>
+
+<P>
 <DT><A NAME="xml_to_rdf/3"><STRONG>xml_to_rdf</STRONG>(<VAR>+XML, 
 +BaseURI, -Triples</VAR>)</A><DD>
 Process an XML term produced by <A NAME="idx:loadstructure3:3"></A><B>load_structure/3</B> 
@@ -265,22 +276,25 @@ using the
 <CODE>dialect(xmlns)</CODE> output option. <VAR>XML</VAR> is either a 
 complete <TT>&lt;rdf:RDF&gt;</TT> element, a list of RDF-objects 
 (container or description) or a single description of container.
+
+<P>
 <DT><A NAME="process_rdf/3"><STRONG>process_rdf</STRONG>(<VAR>+File, 
 +BaseURI, :OnTriples</VAR>)</A><DD>
 Exploits the call-back interface of <B>sgml2pl</B>, calling
-<VAR>OnTriples</VAR> with the list of triples resulting from a single 
-top level RDF object for each RDF element in the file. This predicate 
-can be used to process arbitrary large RDF files as the file is 
-processed object-by-object. The example below simply asserts all triples 
-into the database:
+<CODE><VAR>OnTriples</VAR>(Triples, File:Line)</CODE> with the list of 
+triples resulting from a single top level RDF object for each RDF 
+element in the file as well as the source-location where the description 
+started. This predicate can be used to process arbitrary large RDF files 
+as the file is processed object-by-object. The example below simply 
+asserts all triples into the database:
 
 <P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
 <PRE>
 
-assert_list([]).
-assert_list([H|T]) :-
+assert_list([], _).
+assert_list([H|T], Source) :-
         assert(H),
-        assert_list(T).
+        assert_list(T, Source).
 
 ?- process_rdf('structure,rdf', [], assert_list).
 </PRE>
@@ -298,13 +312,19 @@ in the distribution directory. The test files are in the directory
 Predicates provided by <CODE>rdf_test.pl</CODE>:
 
 <DL>
+
+<P>
 <DT><A NAME="suite/1"><STRONG>suite</STRONG>(<VAR>+N</VAR>)</A><DD>
 Run test <VAR>N</VAR> using the file <CODE>suite/tN.rdf</CODE> and 
 display the RDF source, the intermediate Prolog representation and the 
 resulting triples.
+
+<P>
 <DT><A NAME="passed/1"><STRONG>passed</STRONG>(<VAR>+N</VAR>)</A><DD>
 Process <CODE>suite/tN.rdf</CODE> and store the resulting triples in
 <CODE>suite/ok/tN.pl</CODE> for later validation by <A NAME="idx:test0:4"></A><A HREF="#test/0">test/0</A>.
+
+<P>
 <DT><A NAME="test/0"><STRONG>test</STRONG></A><DD>
 Run all tests and classify the result.
 </DL>
