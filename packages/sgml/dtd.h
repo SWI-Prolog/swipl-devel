@@ -317,6 +317,7 @@ extern dtd_charclass *new_charclass(void); /* default classification */
 extern dtd_charmap  *new_charmap(void);	   /* identity map */
 
 extern dtd_symbol*	dtd_find_symbol(dtd *dtd, const ichar *name);
+extern dtd_symbol*	dtd_add_symbol(dtd *dtd, const ichar *name);
 
 
 		 /*******************************

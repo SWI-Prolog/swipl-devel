@@ -30,6 +30,8 @@
 #define UTF8 1				/* Include UTF-8 decoding */
 #endif
 
+#define XMLNS 1				/* support XML namespaces */
+
 		 /*******************************
 		 *    INPUT/OUTPUT CHARACTERS	*
 		 *******************************/

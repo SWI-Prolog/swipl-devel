@@ -6,27 +6,22 @@ TODO LIST:
 	* Check ID/IDREF
 	* Handle memory-allocation errors
 	* Parsing of processing instructions to end at ?> instead of just >
-	* Proper abort on exceeding error limit
 
-SEARCHING AND INDEXING
+XML NameSpaces
 
-sgml_open(Parser,
-	  [ document(Term),
-	    goal(copy_stream_data(In, Out)),
-	    element(_, [id=foobar], _)
-	  ], Out).
+	* Each name is a local-name + URL
+	* Mapping to Prolog:
 
-Index:
-	element, attributes, file-offset
+		element(NS:Name,
+			[ NS1:Name = Value,
+			  ...
+			],
+			Content)
 
-load_element_at_offset(File, Offset, Term) :-
-	open(File, read, Fd),
-	seek(Fd, Offset, bof, _),
-	sgml_open(Parser,
-		  [ document(Term),
-		    goal(copy_stream_data(Fd, Out)),
-		  ],
-		  Out),
-	close(Fd),
-	close(Out).
-	
+	* Of
+
+		NS:element(Name,
+			   [ NS1:Name(Value),
+			     ...
+			   ],
+			   Content)

@@ -31,6 +31,7 @@ ichar *         istrdup(const ichar *s);
 ichar *		istrcpy(ichar *d, const ichar *s);
 ichar *		istrupper(ichar *s);
 ichar *		istrlower(ichar *s);
+int             istrprefix(const ichar *pref, const ichar *s);
 int             istreq(const ichar *s1, const ichar *s2);
 int             istrcaseeq(const ichar *s1, const ichar *s2);
 int		istrncaseeq(const ichar *s1, const ichar *s2, int len);

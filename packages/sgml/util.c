@@ -100,6 +100,18 @@ istrncaseeq(const ichar *s1, const ichar *s2, int len)
 }
 
 
+int
+istrprefix(const ichar *pref, const ichar *s)
+{ while(*pref && *pref == *s)
+    pref++, s++;
+  
+  if ( *pref == 0 )
+    return TRUE;
+  
+  return FALSE;
+}
+
+
 ichar *
 istrupper(ichar *s)
 { ichar *r = s;

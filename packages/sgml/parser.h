@@ -96,7 +96,7 @@ typedef struct _sgml_environment
 { dtd_element *element;			/* element that opened the env */
   struct _dtd_state *state;		/* State we are in */
 #ifdef XMLNS
-  xmlns *namespace;			/* XML namespace */
+  struct _xmlns *xmlns;			/* XML namespace */
 #endif
   struct _sgml_environment *parent;	/* Parent environment */
 } sgml_environment;
@@ -143,5 +143,9 @@ typedef struct _dtd_parser
   sgml_error_f		on_error;	/* handle error */
 } dtd_parser;
 
+
+#ifdef XMLNS
+#include "xmlns.h"
+#endif
 
 #endif /*SGML_PARSER_H_INCLUDED*/

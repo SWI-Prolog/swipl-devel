@@ -35,7 +35,7 @@ INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
-LIBOBJ=		parser.o util.o charmap.o catalog.o model.o utf8.o
+LIBOBJ=		parser.o util.o charmap.o catalog.o model.o xmlns.o utf8.o
 PLOBJ=		$(LIBOBJ) error.o sgml2pl.o
 SGMLOBJ=	$(LIBOBJ) sgml.o
 DTD2PLOBJ=	$(LIBOBJ) dtd2pl.o prolog.o
