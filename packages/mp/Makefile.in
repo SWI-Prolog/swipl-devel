@@ -1,0 +1,63 @@
+################################################################
+#
+################################################################
+
+.SUFFIXES: .tex .dvi .doc .pl
+
+PL=@PL@
+PLBASE=@PLBASE@
+PLARCH=@PLARCH@
+
+CC=@CC@
+COFLAGS=@COFLAGS@
+CWFLAGS=@CWFLAGS@
+CMFLAGS=@CMFLAGS@
+CIFLAGS=@CIFLAGS@ -I. -I$(PLBASE)/include
+CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@
+LOCALLIB=@LOCALLIB@
+LIBS=@LIBS@
+
+LD=@LD@
+LDFLAGS=@LDSOFLAGS@
+
+INSTALL=@INSTALL@
+INSTALL_PROGRAM=@INSTALL_PROGRAM@
+INSTALL_DATA=@INSTALL_DATA@
+
+LIBPL=		mp.pl
+TARGETS=	mp.so
+
+MPOBJ=		mp.o main.o
+
+all:		$(TARGETS)
+
+mp.so:		$(MPOBJ)
+		$(LD) $(LDFLAGS) $(LOCALLIB) -o $@ $(MPOBJ) $(LIBS)
+
+plmp:		$(LIBPL) $(MPOBJ)
+		plld -o $@ $(CIFLAGS) $(LIBPL) $(MPOBJ) $(LOCALLIB) $(LIBS)
+
+pl:		$(LIBPL) $(MPOBJ)
+		plld -nostate -o $@ $(CIFLAGS) $(LIBPL) $(MPOBJ) $(LOCALLIB) $(LIBS)
+
+install:	$(TARGETS) $(LIBPL)
+		mkdir -p $(PLBASE)/lib/$(PLARCH)
+		for f in $(TARGETS); do \
+		  $(INSTALL) -m 755 $$f $(PLBASE)/lib/$(PLARCH); \
+		done
+		for f in $(LIBPL); do \
+		  $(INSTALL) -m 644 $$f $(PLBASE)/library; \
+		done
+		$(PL) -f none -g make -t halt
+
+uninstall:
+		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))
+		(cd $(PLBASE)/library && rm -f $(LIBPL))
+		$(PL) -f none -g make -t halt
+
+clean:
+		rm -f $(OBJ) *~ *.o *% a.out core config.log
+
+distclean:	clean
+		rm -f $(TARGETS) config.cache config.h config.status Makefile
+		rm -f pl plmp
