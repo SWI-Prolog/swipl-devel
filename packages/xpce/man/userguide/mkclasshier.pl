@@ -1,3 +1,4 @@
+
 /*  $Id$
 
     Part of XPCE
@@ -7,11 +8,16 @@
     Copyright (C) 2001 University of Amsterdam. All rights reserved.
 */
 
-mkhierarchy :-
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Build PostScript version for the class-hierarchy holding all (built-in)
+classes.  Called from the documentation Makefile.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+mkhierarchy(Out) :-
 	new(T, tree(new(R, node(text(object))))),
 	expand_node(R),
 	send(T, compute),
-	postscript(T, pceclasshierarchy).
+	postscript(T, Out).
 
 expand_node(N) :-
 	get(N?string, value, Name),
@@ -24,5 +30,5 @@ expand_node(N) :-
 	       )).
 expand_node(_).
 
-:- mkhierarchy.
+
 	

@@ -99,7 +99,7 @@ The methods below are used for general querying and manipulation of the
 hierarchy.
 
 \begin{description}
-    \getmethod{toc_window}{selection}{ChainOfNodes}
+    \getmethod{toc_window}{selection}{}{ChainOfNodes}
 Returns a \class{chain} holding the \class{node} objects that are
 currently selected.
 

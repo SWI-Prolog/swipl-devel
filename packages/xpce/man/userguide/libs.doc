@@ -28,6 +28,11 @@ Discusses support for multi-lingual applications.
     \secoverview{dragdrop}{Drag and Drop Interface}
 This library allows for drapping objects within one \product{}
 application.
+
+    \secoverview{httpd}{Playing WEB (HTTP) server}
+Class \class{httpd} is a subclass of \class{socket} that deals with
+the HTTP protocol.  It allows \product{} to act as a web-server.
+
 \end{itemize}
 
 \input{findfile.tex}
@@ -35,5 +40,5 @@ application.
 \input{toc.tex}
 \input{mlingual.tex}
 \input{dragdrop.tex}
-
+\input{httpd}
 

@@ -21,15 +21,17 @@ COMMON=	intro.tex starting.tex globalarch.tex online.tex debug.tex \
 	dialog.tex wysiwyg.tex frame.tex error.tex application.tex \
 	resource.tex images.tex summary.tex body.tex \
 	mswin.tex \
-	libs.tex findfile.tex toc.tex libdia.tex mlingual.tex 
+	libs.tex findfile.tex toc.tex libdia.tex mlingual.tex \
+	httpd.tex httpd-ex.tex
 
 XPCETEX=	xpceusg.tex $(COMMON)
 PWTEX=		pwusg.tex pwinfo.tex $(COMMON)
 
 LOGO=	figs/uva.eps figs/swi.eps
 
-all:	$(DVI)
+all:	$(PDF)
 pdf:	$(PDF)
+dvi:	$(DVI)
 ps:	$(PS)
 
 epsimages=	$(shell find . -name '*.eps')
@@ -94,7 +96,7 @@ figs/class:
 	mkdir -p $@
 
 $(CLHIER):
-	xpce -f mkclasshier.pl -t halt
+	xpce -f none -g "[mkclasshier],mkhierarchy('$@'),halt" -t 'halt(1)'
 
 $(TEX):	$(DOCTOTEX)
 
