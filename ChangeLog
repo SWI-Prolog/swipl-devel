@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: library(qpforeign) to load Quintus foreign code.
+
 VERSION 4.0.8
 =============
 

@@ -14,6 +14,8 @@
 	    make_foreign_wrapper_file/1,	% +OutBase
 	    make_foreign_wrapper_file/2		% +OFiles, +OutBase
 	  ]).
+:- use_module(shlib).
+:- use_module(gensym).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module defines a  Quintus   compatible  foreign  language interface
@@ -251,7 +253,7 @@ make_C_input_conversions(Out, Head) :-
 	    (	member(N-T, IArgs),
 		(IArgs \= [N-T|_] -> format(Out, ' ||~n       ', []) ; true),
 		arg_name(N, AName),
-		concat(i, AName, IName),
+		atom_concat(i, AName, IName),
 		format(Out, '!PL_cvt_i_~w(~w, &~w)', [T, AName, IName]),
 		fail
 	    ;	true
@@ -302,7 +304,7 @@ make_C_output_conversions(Out, Head) :-
 		    arg(RN, Head, [-_]),
 		    arg_name(RN, AName)
 		;   arg_name(N, AName),
-		    concat(o, AName, OName)
+		    atom_concat(o, AName, OName)
 		),
 		(OArgs = [N-T|_] -> true ; format(Out, ' ||~n       ', [])),
 		format(Out, '!PL_cvt_o_~w(~w, ~w)', [T, OName, AName]),
@@ -336,7 +338,7 @@ make_C_init(Out, InstallFunc, Preds) :-
 	    get_foreign_head(Pred, _Func, Head),
 	    functor(Head, Name, Arity),
 	    wrapper_name(Head, Wrapper),
-	    strip_module(Head, M, H),
+	    '$strip_module'(Head, M, H),
 	    foreign_attributes(M:H, Atts),
 	    format(Out, '  { "~w", ~d, ~w, ~w },~n',
 		   [Name, Arity, Wrapper, Atts]),
@@ -351,11 +353,7 @@ make_C_init(Out, InstallFunc, Preds) :-
 
 foreign_attributes(Head, Atts) :-
 	findall(A, foreign_attribute(Head, A), A0),
-	(   A0 == []
-	->  Atts = '0'
-	;   insert_separator(A0, '|', A1),
-	    concat_atom(A1, Atts)
-	).
+	concat_atom(A0, '|', Atts).
 
 insert_separator([], _, []).
 insert_separator([H], _, [H]).

@@ -38,9 +38,14 @@
 	  numbervars/3,
 	  simple/1,
 %	  statistics/2,			% Please access as quintus:statistics/2
+	  prolog_flag/2,
 
 	  current_stream/3,		% ?File, ?Mode, ?Stream
 	  stream_position/3,		% +Stream, -Old, +New
+	  skip_line/0,
+	  skip_line/1,			% +Stream
+
+	  compile/1,			% +File(s)
 
 	  atom_char/2
 	]).
@@ -133,6 +138,29 @@ random(Min, Max, Value) :-
 
 genarg(N, T, A) :-			% SWI-Prolog arg/3 is generic
 	arg(N, T, A).
+
+
+		 /*******************************
+		 *	      FLAGS		*
+		 *******************************/
+
+%	prolog_flag(?Flag, ?Value)
+%
+%	Should map relevant Quintus flag identifiers.
+
+prolog_flag(version, Version) :- !,
+	current_prolog_flag(version, N),
+	current_prolog_flag(arch, Arch),
+	current_prolog_flag(compiled_at, Compiled),
+	Major is N // 10000,
+	Minor is N // 100 mod 100,
+	Patch is N mod 100,
+	concat_atom(['SWI-Prolog ',
+		     Major, '.', Minor, '.', Patch,
+		     ' (', Arch, '): ', Compiled], Version).
+prolog_flag(Flag, Value) :-
+	current_prolog_flag(Flag, Value).
+
 
 		 /*******************************
 		 *	    STATISTICS		*
@@ -265,6 +293,24 @@ stream_position(Stream, Old, New) :-
 	set_stream_position(Stream, New).
 
 
+%	skip_line(Stream)
+
+skip_line :-
+	skip(10).
+skip_line(Stream) :-
+	skip(Stream, 10).
+
+
+		 /*******************************
+		 *	   COMPILATION		*
+		 *******************************/
+
+:- meta_predicate
+	compile(:).
+
+compile(Files) :-
+	consult(Files).
+
 		 /*******************************
 		 *	   ATOM-HANDLING	*
 		 *******************************/
@@ -273,5 +319,9 @@ stream_position(Stream, Old, New) :-
 
 atom_char(Char, Code) :-
 	char_code(Char, Code).
+
+
+
+
 
 
