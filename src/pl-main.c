@@ -834,6 +834,7 @@ properly on Linux. Don't bother with it.
 			    DISCONTIGUOUS_STYLE);
   systemMode(FALSE);
   GD->initialised = TRUE;
+  registerForeignLicenses();
 
   DEBUG(1, Sdprintf("Starting Prolog Part of initialisation\n"));
 

@@ -394,6 +394,7 @@ PL_install_readline()
   PL_set_feature("readline",    PL_BOOL, TRUE);
   PL_set_feature("tty_control", PL_BOOL, TRUE);
   PL_abort_hook(reset_readline);
+  PL_license("gpl", "GNU Readline library");
 }
 
 #else /*HAVE_LIBREADLINE*/

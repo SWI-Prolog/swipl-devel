@@ -2955,3 +2955,58 @@ PL_query(int query)
 }
 
 
+		 /*******************************
+		 *	      LICENSE		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Register the current module using the license restrictions that apply for
+it.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static struct license
+{ char *license_id;
+  char *module_id;
+  struct license *next;
+} *pre_registered;
+
+
+void
+PL_license(const char *license, const char *module)
+{ if ( GD->initialised )
+  { fid_t fid = PL_open_foreign_frame();
+    predicate_t pred = PL_predicate("license", 2, "system");
+    term_t av = PL_new_term_refs(2);
+
+    PL_put_atom_chars(av+0, license);
+    PL_put_atom_chars(av+1, module);
+
+    PL_call_predicate(NULL, PL_Q_NORMAL, pred, av);
+    
+    PL_discard_foreign_frame(fid);
+  } else
+  { struct license *l = allocHeap(sizeof(*l));
+
+    l->license_id = store_string(license);
+    l->module_id  = store_string(module);
+    l->next = pre_registered;
+    pre_registered = l;
+  }
+}
+
+
+void
+registerForeignLicenses(void)
+{ struct license *l, *next;
+
+  for(l=pre_registered; l; l=next)
+  { next = l->next;
+
+    PL_license(l->license_id, l->module_id);
+    remove_string(l->license_id);
+    remove_string(l->module_id);
+    freeHeap(l, sizeof(*l));
+  }
+
+  pre_registered = NULL;
+}

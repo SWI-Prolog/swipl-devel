@@ -212,6 +212,12 @@ __pl_export int		PL_register_foreign(const char *name, int arity,
 					    pl_function_t func, int flags);
 
 
+		 /*******************************
+		 *	      LICENSE		*
+		 *******************************/
+
+void			PL_license(const char *license, const char *module);
+
 		/********************************
 		*            MODULES            *
 		*********************************/

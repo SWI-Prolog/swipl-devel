@@ -112,7 +112,7 @@ SRC=	$(OBJ:.o=.c) $(DEPOBJ:.o=.c) $(EXT:.o=.c) $(INCSRC)
 HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h pl-itf.h pl-main.h \
 	pl-os.h pl-data.h
 
-PLSRC=	../boot/syspred.pl ../boot/toplevel.pl \
+PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/license.pl \
 	../boot/make.pl ../boot/sort.pl ../boot/bags.pl ../boot/apply.pl \
 	../boot/list.pl ../boot/writef.pl ../boot/history.pl \
 	../boot/profile.pl ../boot/dwim.pl ../boot/rc.pl \

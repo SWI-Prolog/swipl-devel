@@ -10,7 +10,8 @@
     Copyright (C) 1990-2002 SWI, University of Amsterdam. All rights reserved.
 */
 
-:- consult([ syspred,
+:- consult([ license,
+	     syspred,
 	     messages,
 	     toplevel,
 	     make,

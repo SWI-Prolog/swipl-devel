@@ -333,6 +333,7 @@ extern record_t PL_duplicate_record(record_t r);
 int		PL_unify_termv(term_t t, va_list args);
 term_t		wordToTermRef(Word p);
 void		_PL_get_arg_ld(int index, term_t t, term_t a ARG_LD);
+void		registerForeignLicenses(void);
 
 /* pl-fmt.c */
 word		pl_format_predicate(term_t chr, term_t descr);

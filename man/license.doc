@@ -1,0 +1,57 @@
+\chapter{SWI-Prolog license policies}
+
+\begin{description}
+    \predicate{eval_license}{0}{}
+Evaluate the license conditions of all loaded components.  If the system
+contains one or more components that are licenced under GPL-like
+restrictions the system indicates this program may only be distributed
+under the \const{GPL} license as well as which components prohibit the
+use of other license conditions.
+
+    \predicate{license}{2}{+LicenseId, +Component}
+Register the fact that \arg{Component} is distributed under a license
+identified by \arg{LicenseId}. The most important \arg{LicenseId}'s are:
+
+    \begin{description}
+	\termitem{swipl}
+Indicates this module is distributed under the GNU General Public
+License (GPL) with the SWI-Prolog exception:%
+    \footnote{This exception is a straight re-phrasing of the license
+	      used for \file{libgcc}, the GNU-C runtime library facing
+	      similar technical issues.}
+
+\begin{quote}\it
+As a special exception, if you link this library with other files,
+compiled with SWI-Prolog, to produce an executable, this library does
+not by itself cause the resulting executable to be covered by the GNU
+General Public License. This exception does not however invalidate any
+other reasons why the executable file might be covered by the GNU
+General Public License.
+\end{quote}
+
+This should be the default for software contributed to the SWI-Prolog
+project as it allows the community to prosper both in the free and
+non-free world.  Still, people using SWI-Prolog to create non-free
+applications must contribute sources to improvements they make to
+the community.
+
+	\termitem{lgpl}
+This is the default license for foreign-libraries linked with
+SWI-Prolog. Use PL_license() to register the condition from foreign
+code.
+
+	\termitem{gpl}
+Indicates this module is strictly Free Software, which implies it cannot
+be used together with any module that is incompatible to the GPL. Please
+only use these conditions when forced by other code used in the
+component.
+    \end{description}
+
+    \predicate{license}{1}{+LicenseId}
+Intented as a directive in Prolog source files.  It takes the current
+filename and calls license/2.
+
+    \cfunction{void}{PL_license}{const char *LicenseId, const char *Component}
+Intended for the install() procedure of foreign libraries. This call can
+be made \emph{before} PL_initialise().
+\end{description}
