@@ -814,8 +814,9 @@ unbound.
 Returns a list holding the names of all <a name="const:NOTATION"><b><tt>NOTATION</tt></b></a> declarations. 
     
 <dt>&nbsp;<br>
-<b>notation(<var>Name, File</var>)</b><dd>
-Yields the declared file for from a <a name="const:NOTATION%2"><b><tt>NOTATION</tt></b></a> declaration. 
+<b>notation(<var>Name, Decl</var>)</b><dd>
+Unify <var>Decl</var> with a list if <code>system(+File)</code> and/or
+<code>public(+PublicId)</code>.
 </dl>
 </dl>
 
@@ -1688,7 +1689,7 @@ deleted. This is not yet implemented.
 <li><a href="#const:DOCTYPE"><b><tt>DOCTYPE</tt></b></a> [ <a href="#const:DOCTYPE%2">2</a> <a href="#const:DOCTYPE%3">3</a>]
 <li><a href="#const:NAMES"><b><tt>NAMES</tt></b></a>
 <li><a href="#const:NDATA"><b><tt>NDATA</tt></b></a>
-<li><a href="#const:NOTATION"><b><tt>NOTATION</tt></b></a> [ <a href="#const:NOTATION%2">2</a>]
+<li><a href="#const:NOTATION"><b><tt>NOTATION</tt></b></a>
 <li><a href="#const:NUMBER"><b><tt>NUMBER</tt></b></a> [ <a href="#const:NUMBER%2">2</a>]
 <li><a href="#const:NUMBERS"><b><tt>NUMBERS</tt></b></a> [ <a href="#const:NUMBERS%2">2</a>]
 <li><a href="#const:PUBLIC"><b><tt>PUBLIC</tt></b></a> [ <a href="#const:PUBLIC%2">2</a>]
