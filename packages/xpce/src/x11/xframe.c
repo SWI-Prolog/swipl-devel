@@ -1268,7 +1268,12 @@ ws_status_frame(FrameObj fr, Name status)
 
   if ( status == NAME_window || status == NAME_fullScreen )
   { if ( w )
+    { Arg args[1];
+      XtSetArg(args[0], XtNiconic, False);
+      XtSetValues(w, args, 1);
+
       XtPopup(w, XtGrabNone);
+    }
     ws_enable_modal(fr, OFF);
   } else
   { if ( status == NAME_iconic )
