@@ -177,7 +177,6 @@ suggest predicates from a keyword.
 \predicatesummary{flush_output}{0}{Output pending characters on current stream}
 \predicatesummary{flush_output}{1}{Output pending characters on specified stream}
 \predicatesummary{forall}{2}{Prove goal for all solutions of another goal}
-\predicatesummary{foreign_file}{1}{Examine loaded foreign files}
 \predicatesummary{format}{1}{Formatted output}
 \predicatesummary{format}{2}{Formatted output with arguments}
 \predicatesummary{format}{3}{Formatted output on a stream}

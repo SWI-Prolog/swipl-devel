@@ -2550,6 +2550,10 @@ primitives.
     \termitem{digit}{Weigth}
 \arg{Char} is a digit with value \arg{Weigth}. I.e.\ \exam{char_type(X,
 digit(6)} yields \arg{X} = \exam{'6'}.  Useful for parsing numbers.
+    \termitem{xdigit}{Weigth}
+\arg{Char} is a haxe-decimal digit with value \arg{Weigth}. I.e.\
+\exam{char_type(a, xdigit(X)} yields \arg{X} = \exam{'10'}. Useful for
+parsing numbers.
     \termitem{graph}{}
 \arg{Char} produces a visible mark on a page when printed. Note that
 the space is not included!
