@@ -1,0 +1,53 @@
+Summary:	SWI-Prolog - Edinburgh compatible Prolog compiler
+Name:		pl
+Version:	@PLVERSION@
+Release:	1
+Copyright:	Distributable, free for non-commercial use
+Source:		ftp://swi.psy.uva.nl/pub/SWI-Prolog/pl-@PLVERSION@.tar.gz
+Vendor:		Jan Wielemaker <jan@swi.psy.uva.nl>
+Url:		http://www.swi.psy.uva.nl/usr/jan/SWI-Prolog.html
+Packager:	Tony Nugent <Tony.Nugent@usq.edu.au>
+Group:		Development/Languages
+BuildRoot:	/var/tmp/pl
+
+%description
+Edinburgh-style Prolog compiler including modules, autoload,
+libraries, Garbage-collector, stack-expandor, C-interface,
+GNU-readline and GNU-Emacs interface, very fast compiler,
+X11 interface using XPCE (http://swi.psy.uva.nl/projects/xpce/home.html)
+
+%prep
+%setup
+%patch -p1
+
+%build
+cd src
+env CFLAGS="$RPM_OPT_FLAGS" \
+  ./configure --prefix=/usr
+make
+
+%install
+mkdir -p /var/tmp/pl/usr
+cd src
+make install prefix=$RPM_BUILD_ROOT/usr
+cp README.bin ..
+
+
+%files
+%doc ChangeLog INSTALL INSTALL.notes LICENSE LSM PORTING
+%doc README README.bin README.graphics README.linux README.sysv
+%doc STAMP VERSION
+%attr(-,root,root)/usr/lib/pl-@PLVERSION@/bin/*
+%attr(-,root,root)/usr/lib/pl-@PLVERSION@/boot/*
+%attr(-,root,root)/usr/lib/pl-@PLVERSION@/include/*
+%attr(-,root,root)/usr/lib/pl-@PLVERSION@/lib/*
+%attr(-,root,root)/usr/lib/pl-@PLVERSION@/library/*
+%attr(-,root,root)/usr/lib/pl-@PLVERSION@/man/*
+%attr(-,root,root)/usr/lib/pl-@PLVERSION@/runtime/*
+%attr(-,root,root)/usr/lib/pl-@PLVERSION@/swipl
+%attr(-,root,root)/usr/lib/pl-@PLVERSION@/boot.prc
+%attr(-,root,root)/usr/man/man1/*
+%attr(-,root,root)/usr/bin/*
+
+%clean
+rm -rf $RPM_BUILD_ROOT

@@ -1594,7 +1594,7 @@ IOFUNCTIONS Smemfunctions =
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Sopenmem(char **buffer, int *size, char* mode)
+Sopenmem(char **buffer, int *size, const char* mode)
     Open an memory area as a stream.  Output streams will automatically
     resized using realloc() if *size = 0 or the stream is opened with mode
     "wa".

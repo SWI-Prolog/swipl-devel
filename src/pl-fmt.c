@@ -158,7 +158,9 @@ pl_format(term_t fmt, term_t Args)
 
 word
 pl_format3(term_t stream, term_t fmt, term_t args)
-{ streamOutput(stream, pl_format(fmt, args));
+{ word rval;
+  streamOutput(stream, rval = pl_format(fmt, args));
+  return rval;
 }
 
 #if O_C_FORMAT

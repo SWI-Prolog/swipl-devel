@@ -1,6 +1,44 @@
 			SWI-Prolog ChangeLog
 			====================
  
+VERSION 3.1.3
+=============
+
+  * ADDED: Win32 version: exported _PL_get_arg() (non-checking PL_get_arg()).
+
+  * FIXED: more patches to PL_Q_PASS_EXCEPTION handling of PL_open_query()
+    and PL_call_predicate().
+
+  * FIXED: avoid a debugger trap of an exception if the exception is catched
+    in an outer-context and passed over the intermediate foreign-call using
+    PL_Q_PASS_EXCEPTION.  Required for XPCE-5.
+
+  * FIXED: PL_cons_*() to make references in the proper direction.  Notably
+    caused problems when constructing a term holding variables for PL_throw().
+
+  * ADDED: PL_record(), PL_recorded(), PL_erase()
+
+  * ADDED: edit(Name) now also finds system-predicates.
+
+  * FIXED: toplevel spy, listing, etc. no longer trigger the tracer
+    if the predicate doesn't exists.
+
+  * ADDED: pl.spec, RPM specification-file.  Contributed by Tony Nugent.
+    Thanks!
+
+  * INSTALL: use mkdir -p if available (detected by configure).
+
+  * FIXED: meta_predicate/1 emulation in library(quintus) to deal with
+    :- meta_predicate Module:Head.
+
+  * ADDED: goal_expansion/2 and expand_goal/2 to deal with expansion of
+    individual goals.
+
+  * MODIFIED: _PL_get_xpce_reference() dropped object-qualifier
+    argument, which was needed for Alpha XPCE 5.0.0, but will not
+    be required by subsequent XPCE versions.
+
+
 VERSION 3.1.2
 ============= 
 

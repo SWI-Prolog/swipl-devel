@@ -257,7 +257,9 @@ pl_nl()
 
 word
 pl_nl1(term_t stream)
-{ streamOutput(stream, pl_nl());
+{ word rval;
+  streamOutput(stream, rval=pl_nl());
+  return rval;
 }
 
 
@@ -275,15 +277,6 @@ priorityOperator(atom_t atom)
 
   return result;
 }
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Write_term flags.  
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define WRT_QUOTED	1		/* quote atoms */
-#define WRT_IGNOREOPS	2		/* ignore list/operators */
-#define WRT_NUMBERVARS	4		/* print $VAR(N) as a variable */
-#define WRT_PORTRAY	8		/* call portray */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Call user:portray/1 if defined.
@@ -324,9 +317,9 @@ writeTerm2(term_t t, int prec, bool style)
   int arity, n;
   int op_type, op_pri;
   atom_t a;
-  bool quote = (style & WRT_QUOTED);
+  bool quote = (style & PL_WRT_QUOTED);
 
-  if ( !PL_is_variable(t) && (style & WRT_PORTRAY) && callPortray(t) )
+  if ( !PL_is_variable(t) && (style & PL_WRT_PORTRAY) && callPortray(t) )
     succeed;
 
   if ( PL_get_atom(t, &a) )
@@ -342,7 +335,7 @@ writeTerm2(term_t t, int prec, bool style)
   if ( !PL_get_name_arity(t, &functor, &arity) )
   { return writePrimitive(t, quote);
   } else
-  { if ( !(style & WRT_IGNOREOPS) )
+  { if ( !(style & PL_WRT_IGNOREOPS) )
     { term_t arg = PL_new_term_ref();
 
       if ( arity == 1 )
@@ -496,17 +489,39 @@ pl_write_term(term_t term, term_t options)
 		     &quoted, &ignore_ops, &numbervars, &portray) )
     fail;
 
-  if ( quoted )     mask |= WRT_QUOTED;
-  if ( ignore_ops ) mask |= WRT_IGNOREOPS;
-  if ( numbervars ) mask |= WRT_NUMBERVARS;
-  if ( portray )    mask |= WRT_PORTRAY;
+  if ( quoted )     mask |= PL_WRT_QUOTED;
+  if ( ignore_ops ) mask |= PL_WRT_IGNOREOPS;
+  if ( numbervars ) mask |= PL_WRT_NUMBERVARS;
+  if ( portray )    mask |= PL_WRT_PORTRAY;
     
   return writeTerm(term, 1200, mask);
 }
 
+
+int
+PL_write_term(IOSTREAM *s, term_t term, int precedence, int flags)
+{ int rval;
+  term_t fd = PL_new_term_ref();
+
+  if ( PL_open_stream(fd, s) )
+  { int rv;
+    streamOutput(fd, rv=writeTerm(term, precedence, flags));
+    release_stream_handle(fd);
+    rval = (rv ? 0 : -1);
+  } else
+    rval = -1;
+
+  PL_reset_term_refs(fd);
+
+  return rval;
+}
+
+
 word
 pl_write_term3(term_t stream, term_t term, term_t options)
-{ streamOutput(stream, pl_write_term(term, options));
+{ word rval;
+  streamOutput(stream, rval=pl_write_term(term, options));
+  return rval;
 }
 
 
@@ -517,19 +532,21 @@ pl_write(term_t term)
 
 word
 pl_writeq(term_t term)
-{ return writeTerm(term, 1200, WRT_QUOTED);
+{ return writeTerm(term, 1200, PL_WRT_QUOTED);
 }
 
 word
 pl_print(term_t term)
-{ return writeTerm(term, 1200, WRT_PORTRAY|WRT_QUOTED);
+{ return writeTerm(term, 1200, PL_WRT_PORTRAY|PL_WRT_QUOTED);
 }
 
 
 static word
 writeStreamTerm(term_t stream, term_t term,
 		int prec, int style)
-{ streamOutput(stream, writeTerm(term, prec, style));
+{ word rval;
+  streamOutput(stream, rval=writeTerm(term, prec, style));
+  return rval;
 }
 
 word
@@ -539,21 +556,21 @@ pl_write2(term_t stream, term_t term)
 
 word
 pl_writeq2(term_t stream, term_t term)
-{ return writeStreamTerm(stream, term, 1200, WRT_QUOTED);
+{ return writeStreamTerm(stream, term, 1200, PL_WRT_QUOTED);
 }
 
 word
 pl_print2(term_t stream, term_t term)
-{ return writeStreamTerm(stream, term, 1200, WRT_QUOTED|WRT_PORTRAY);
+{ return writeStreamTerm(stream, term, 1200, PL_WRT_QUOTED|PL_WRT_PORTRAY);
 }
 
 word
 pl_write_canonical(term_t term)
-{ return writeTerm(term, 1200, WRT_QUOTED|WRT_IGNOREOPS);
+{ return writeTerm(term, 1200, PL_WRT_QUOTED|PL_WRT_IGNOREOPS);
 }
 
 word
 pl_write_canonical2(term_t stream, term_t term)
-{ return writeStreamTerm(stream, term, 1200, WRT_QUOTED|WRT_IGNOREOPS);
+{ return writeStreamTerm(stream, term, 1200, PL_WRT_QUOTED|PL_WRT_IGNOREOPS);
 }
 

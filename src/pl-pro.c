@@ -304,7 +304,11 @@ checkData(Word p)
     return *p;
 
   if ( isIndirect(*p) )
-  { if ( storage(*p) != STG_GLOBAL )
+  { Word a = addressIndirect(*p);
+
+    if ( !onGlobal(a) )
+      printk("Indirect at %p not on global stack", a);
+    if ( storage(*p) != STG_GLOBAL )
       printk("Indirect data not on global");
     if ( isBignum(*p) )
       return (word) valBignum(*p);

@@ -131,7 +131,7 @@ $find_predicate(Spec, List) :-
 		       functor(Head, Name, Arity)), List),
 	List \== [], !.
 $find_predicate(Spec, _) :-
-	$warning('No predicates for `~w''', [Spec]),
+	print_message(error, no_predicates_for(Spec)),
 	fail.
 	
 find_predicate(Module, C, Name, Arity, VList) :-

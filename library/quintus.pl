@@ -188,22 +188,22 @@ numbervars(Term, From, To) :-
 :- initialization op(1150, fx, (meta_predicate)).
 
 :- module_transparent
-	(meta_predicate)/1, 
-	(meta_predicate1)/1.
+	(meta_predicate)/1.
 
 meta_predicate((Head, More)) :- !, 
-	meta_predicate1(Head), 
+	meta_predicate(Head), 
 	meta_predicate(More).
-meta_predicate(Head) :-
-	meta_predicate1(Head).
+meta_predicate(Spec) :-
+	'$strip_module'(Spec, M, Head),
+	meta_predicate(M, Head).
 
-meta_predicate1(Head) :-
+meta_predicate(M, Head) :-
 	Head =.. [Name|Arguments], 
 	member(Arg, Arguments), 
 	module_expansion_argument(Arg), !, 
 	functor(Head, Name, Arity), 
-	module_transparent(Name/Arity).
-meta_predicate1(_).		% just a mode declaration
+	module_transparent(M:Name/Arity).
+meta_predicate1(_, _).		% just a mode declaration
 
 module_expansion_argument(:).
 module_expansion_argument(N) :- integer(N).

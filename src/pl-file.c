@@ -1136,7 +1136,9 @@ pl_put(term_t c)
 
 word
 pl_put2(term_t stream, term_t chr)
-{ streamOutput(stream, pl_put(chr));
+{ word rval;
+  streamOutput(stream, rval = pl_put(chr));
+  return rval;
 }
 
 word
@@ -1325,7 +1327,9 @@ PrologPrompt()
 
 word
 pl_tab2(term_t stream, term_t n)
-{ streamOutput(stream, pl_tab(n)); /* TBD */
+{ word rval;
+  streamOutput(stream, rval=pl_tab(n)); /* TBD */
+  return rval;
 }
 
 		/********************************

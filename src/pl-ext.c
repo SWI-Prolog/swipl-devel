@@ -324,6 +324,7 @@ static const struct foreign {
   FRG("$module",		2, pl_module,			TRACE_ME),
   FRG("$set_source_module",	2, pl_set_source_module,	TRACE_ME),
   FRG("$term_expansion_module",	1, pl_term_expansion_module,NDET|TRACE_ME),
+  FRG("$goal_expansion_module",	1, pl_goal_expansion_module,NDET|TRACE_ME),
   FRG("$declare_module",	2, pl_declare_module,		TRACE_ME),
   FRG("context_module",		1, pl_context_module,	   META|TRACE_ME),
   FRG("$strip_module",		3, pl_strip_module,	   META|TRACE_ME),

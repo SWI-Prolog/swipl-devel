@@ -1009,13 +1009,18 @@ $load_goal(use_module(_, _)) :- flag($compiling, wic, wic).
 
 :- user:dynamic(term_expansion/2).
 :- user:multifile(term_expansion/2).
+:- user:dynamic(goal_expansion/2).
+:- user:multifile(goal_expansion/2).
 
 expand_term(Term, Expanded) :-		% local term-expansion
 	$term_expansion_module(Module),
-	Module:term_expansion(Term, Expanded), !.
+	Module:term_expansion(Term, Expanded0), !,
+	$expand_clauses(Expanded0, Expanded).
 expand_term(Term, Expanded) :-
-	$translate_rule(Term, Expanded), !.
-expand_term(Term, Term).
+	$translate_rule(Term, Expanded0), !,
+	$expand_clauses(Expanded0, Expanded).
+expand_term(Term0, Term) :-
+	$expand_clauses(Term0, Term).
 
 $store_clause([], _) :- !.
 $store_clause([C|T], F) :- !,
@@ -1028,10 +1033,7 @@ $store_clause((?- Goal), _) :- !,
 	$execute_directive(Goal).
 $store_clause((_, _), _) :- !,
 	$warning('Full stop in clause body? (attempt to define ,/2)').
-$store_clause((_:-B), _) :-
-	nonvar(B), B = (_:-_), !,
-	$warning('Clause not closed by `.''? (attempt to call :-/2)').
-$store_clause($source_location(File, Line):Term, _) :-
+$store_clause($source_location(File, Line):Term, _) :- !,
 	$record_clause(Term, File:Line, Ref),
         $ifcompiling($qlf_assert_clause(Ref, development)).
 $store_clause(Term, File) :-
@@ -1048,6 +1050,85 @@ $store_clause(Term, File) :-
 
 :- dynamic
 	$foreign_registered/2.
+
+
+		 /*******************************
+		 *   GOAL_EXPANSION/2 SUPPORT	*
+		 *******************************/
+
+$expand_clauses(X, X) :-
+	\+ $goal_expansion_module(_), !.
+$expand_clauses(X, X) :-
+	var(X), !.
+$expand_clauses([H0|T0], [H|T]) :- !,
+	$expand_clauses(H0, H),
+	$expand_clauses(T0, T).
+$expand_clauses((Head :- Body), (Head :- ExpandedBody)) :-
+	nonvar(Body), !,
+	expand_goal(Body,  ExpandedBody).
+$expand_clauses(Head, Head).
+
+expand_goal(A, B) :-
+        $do_expand_body(A, B0),
+	$tidy_body(B0, B).
+
+$do_expand_body(G, G) :-
+        var(G), !.
+$do_expand_body((A,B), (EA,EB)) :- !,
+        $do_expand_body(A, EA),
+        $do_expand_body(B, EB).
+$do_expand_body((A;B), (EA;EB)) :- !,
+        $do_expand_body(A, EA),
+        $do_expand_body(B, EB).
+$do_expand_body((A->B), (EA->EB)) :- !,
+        $do_expand_body(A, EA),
+        $do_expand_body(B, EB).
+$do_expand_body((A*->B), (EA*->EB)) :- !,
+        $do_expand_body(A, EA),
+        $do_expand_body(B, EB).
+$do_expand_body((\+A), (\+EA)) :- !,
+        $do_expand_body(A, EA).
+$do_expand_body(not(A), not(EA)) :- !,
+        $do_expand_body(A, EA).
+$do_expand_body(call(A), call(EA)) :- !,
+        $do_expand_body(A, EA).
+$do_expand_body(once(A), once(EA)) :- !,
+        $do_expand_body(A, EA).
+$do_expand_body(ignore(A), ignore(EA)) :- !,
+        $do_expand_body(A, EA).
+$do_expand_body(forall(A, B), forall(EA, EB)) :- !,
+        $do_expand_body(A, EA),
+        $do_expand_body(B, EB).
+$do_expand_body(A, B) :-
+        $goal_expansion_module(M),
+        M:goal_expansion(A, B0), !,
+	$do_expand_body(B0, B).
+$do_expand_body(A, A).
+
+$tidy_body(A, A) :-
+        var(A), !.
+$tidy_body((A,B), (A, TB)) :-
+        var(A), !,
+        $tidy_body(B, TB).
+$tidy_body((A,B), (TA, B)) :-
+        var(B), !,
+        $tidy_body(A, TA).
+$tidy_body(((A,B),C), R) :- !,
+	$tidy_body((A,B,C), R).
+$tidy_body((true,A), R) :- !,
+        $tidy_body(A, R).
+$tidy_body((A,true), R) :- !,
+        $tidy_body(A, R).
+$tidy_body((A,B), (TA, TB)) :- !,
+        $tidy_body(A, TA),
+        $tidy_body(B, TB).
+$tidy_body((A;B), (TA; TB)) :- !,
+        $tidy_body(A, TA),
+        $tidy_body(B, TB).
+$tidy_body((A->B), (TA->TB)) :- !,
+        $tidy_body(A, TA),
+        $tidy_body(B, TB).
+$tidy_body(A, A).
 
 
 		/********************************

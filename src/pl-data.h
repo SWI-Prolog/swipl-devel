@@ -167,7 +167,7 @@ extern const unsigned int tagtypeex[];
 #define arityTerm(w)	arityFunctor(valueTerm(w)->definition)
 #define valueTerm(w)	((Functor)valPtr2(w, STG_GLOBAL))
 #define hasFunctor(w,f) (isTerm(w) && valueTerm(w)->definition == (f))
-#define argTerm(w, n)	(((Functor)valPtr(w))->arguments[n])
+#define argTerm(w, n)	(valueTerm(w)->arguments[n])
 #define argTermP(w, n)	(&argTerm(w, n))
 
 #define isList(w)	hasFunctor(w, FUNCTOR_dot2)

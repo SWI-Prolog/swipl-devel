@@ -120,6 +120,8 @@ prolog:message(initialization_exception(Goal, E)) -->
 prolog:message(initialization_exception(E)) -->
 	[ 'Prolog initialisation failed:', nl ],
 	translate_message(E).
+prolog:message(no_predicates_for(Spec)) -->
+	[ 'No predicates for `~w'''-[Spec] ].
 
 %	print_message(+Kind, +Term)
 %

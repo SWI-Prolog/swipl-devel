@@ -278,8 +278,8 @@ this predicate does not generate modules for which there is a definition
 that has no clauses. The predicate would fail anyhow.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-word
-pl_term_expansion_module(term_t name, word h)
+static word
+expansion_module(term_t name, functor_t func, word h)
 { Module m = LD->modules.source;
   Procedure proc;
 
@@ -295,7 +295,7 @@ pl_term_expansion_module(term_t name, word h)
   }
 
   while(1)
-  { if ( (proc = isCurrentProcedure(FUNCTOR_term_expansion2, m)) &&
+  { if ( (proc = isCurrentProcedure(func, m)) &&
 	 proc->definition->definition.clauses &&
 	 PL_unify_atom(name, LD->modules.source->name) )
     { if ( m == MODULE_user )
@@ -310,6 +310,18 @@ pl_term_expansion_module(term_t name, word h)
   }
 
   PL_fail;				/* should not get here */
+}
+
+
+word
+pl_term_expansion_module(term_t name, word h)
+{ return expansion_module(name, FUNCTOR_term_expansion2, h);
+}
+
+
+word
+pl_goal_expansion_module(term_t name, word h)
+{ return expansion_module(name, FUNCTOR_goal_expansion2, h);
 }
 
 

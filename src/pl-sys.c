@@ -103,7 +103,7 @@ pl_convert_time(term_t time, term_t year, term_t month,
 		term_t second, term_t usec)
 { double tf;
 
-  if ( PL_get_float(time, &tf) && tf < PLMAXINT && tf > PLMININT )
+  if ( PL_get_float(time, &tf) && tf <= PLMAXINT && tf >= PLMININT )
   { long t    = (long) tf;
     long us   = (long)((tf - (double) t) * 1000.0);
     struct tm *tm = LocalTime(&t);
@@ -127,7 +127,7 @@ word
 pl_convert_time2(term_t time, term_t string)
 { double tf;
 
-  if ( PL_get_float(time, &tf) && tf < PLMAXINT && tf > PLMININT )
+  if ( PL_get_float(time, &tf) && tf <= PLMAXINT && tf >= PLMININT )
   { long t  = (long) tf;
     char *s = ctime(&t);
 

@@ -28,7 +28,7 @@ before loading this file.  See end of this file.
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
 
 #ifndef PLVERSION
-#define PLVERSION 30102
+#define PLVERSION 30103
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -67,10 +67,12 @@ _declspec(dllexport) is used by MSVC++ 2.0 to declare exports from DLL's.
 #ifdef _PL_INCLUDE_H
 typedef Module		module_t;	/* a module */
 typedef Procedure	predicate_t;	/* a predicate handle */
+typedef Record		record_t;	/* handle to a recorded term */
 #else
 typedef	unsigned long	atom_t;		/* Prolog atom */
 typedef void *		module_t;	/* Prolog module */
 typedef void *		predicate_t;	/* Prolog procedure */
+typedef void *		record_t;	/* Prolog recorded term */
 typedef unsigned long	term_t;		/* opaque term handle */
 typedef unsigned long	qid_t;		/* opaque query handle */
 typedef unsigned long	PL_fid_t;	/* opaque foreign context handle */
@@ -86,6 +88,18 @@ typedef foreign_t	(*pl_function_t)(); /* foreign language functions */
 #endif
 
 #define fid_t PL_fid_t			/* avoid AIX name-clash */
+
+					/* values for PL_get_term_value() */
+typedef union
+{ long   i;				/* PL_INTEGER */
+  double f;				/* PL_FLOAT */
+  char * s;				/* PL_STRING */
+  atom_t a;				/* PL_ATOM */
+  struct				/* PL_TERM */
+  { atom_t name;
+    int    arity;
+  } t;
+} term_value_t;
 
 #ifndef TRUE
 #define TRUE	(1)
@@ -251,6 +265,7 @@ __pl_export int		PL_get_list(term_t l, term_t h, term_t t);
 __pl_export int		PL_get_head(term_t l, term_t h);
 __pl_export int		PL_get_tail(term_t l, term_t t);
 __pl_export int		PL_get_nil(term_t l);
+__pl_export int		PL_get_term_value(term_t t, term_value_t *v);
 
 			/* Verify types */
 __pl_export int		PL_term_type(term_t t);
@@ -342,6 +357,15 @@ __pl_export int		PL_warning(const char *fmt, ...);
 __pl_export void	PL_fatal_error(const char *fmt, ...);
 
 		 /*******************************
+		 *      RECORDED DATABASE	*
+		 *******************************/
+
+__pl_export record_t	PL_record(term_t term);
+__pl_export void	PL_recorded(record_t record, term_t term);
+__pl_export void	PL_erase(record_t record);
+
+
+		 /*******************************
 		 *	      FEATURES		*
 		 *******************************/
 
@@ -356,7 +380,7 @@ __pl_export void	_PL_put_atomic(term_t t, atomic_t a);
 __pl_export int		_PL_unify_atomic(term_t t, atomic_t a);
 __pl_export void	_PL_copy_atomic(term_t t, atomic_t a);
 	    int		_PL_get_name_arity(term_t t, atom_t *name, int *arity);
-	    void	_PL_get_arg(int index, term_t t, term_t a);
+__pl_export void	_PL_get_arg(int index, term_t t, term_t a);
 
 
 		 /*******************************
@@ -389,6 +413,17 @@ __pl_export IOSTREAM *PL_open_resource(module_t m,
 				       const char *name,
 				       const char *rc_class,
 				       const char *mode);
+
+#define PL_WRT_QUOTED		0x1	/* quote atoms */
+#define PL_WRT_IGNOREOPS	0x2	/* ignore list/operators */
+#define PL_WRT_NUMBERVARS	0x4	/* print $VAR(N) as a variable */
+#define PL_WRT_PORTRAY		0x8	/* call portray */
+
+__pl_export int PL_write_term(IOSTREAM *s,
+			      term_t term,
+			      int precedence,
+			      int flags);
+
 #endif
 
 
@@ -508,7 +543,7 @@ typedef struct
   } value;
 } xpceref_t;
 
-__pl_export int	 _PL_get_xpce_reference(term_t t, xpceref_t *ref, atom_t *q);
+__pl_export int	 _PL_get_xpce_reference(term_t t, xpceref_t *ref);
 __pl_export int  _PL_unify_xpce_reference(term_t t, xpceref_t *ref);
 __pl_export void _PL_put_xpce_reference_i(term_t t, unsigned long r);
 __pl_export void _PL_put_xpce_reference_a(term_t t, atom_t name);

@@ -147,6 +147,7 @@ suggest predicates from a keyword.
 \predicatesummary{expand_answer}{2}{Expand answer of query}
 \predicatesummary{expand_file_name}{2}{Wildcard expansion of file names}
 \predicatesummary{expand_file_search_path}{2}{Wildcard expansion of file paths}
+\predicatesummary{expand_goal}{2}{Compiler: expand goal in clause-body}
 \predicatesummary{expand_query}{4}{Expanded entered query}
 \predicatesummary{expand_term}{2}{Compiler: expand read term into clause(s)}
 \predicatesummary{explain}{1}{\pllib{explain} Explain argument}
@@ -184,6 +185,7 @@ suggest predicates from a keyword.
 \predicatesummary{get_single_char}{1}{Read next character from the terminal}
 \predicatesummary{get_time}{1}{Get current time}
 \predicatesummary{getenv}{2}{Get shell environment variable}
+\predicatesummary{goal_expansion}{2}{Hook for macro-expanding goals}
 \predicatesummary{ground}{1}{Verify term holds no unbound variables}
 \predicatesummary{halt}{0}{Exit from Prolog}
 \predicatesummary{halt}{1}{Exit from Prolog with status}

@@ -614,6 +614,8 @@ PL_signal(int sig, handler_t func)
       old = sh->saved_handler;
       sh->handler = func;
     }
+    if ( func != SIG_DFL )
+      clear(sh, PLSIG_THROW);		/* we have a user handler now */
 
     return old;
   } else

@@ -204,12 +204,14 @@ Determine loading context.  The following keys are defined:
 \end{tabular}
 \end{center}
 Quintus compatibility predicate.  See also source_location/2.
-\predicate{source_location}{2}{-File, -Line}
+
+    \predicate{source_location}{2}{-File, -Line}
 If the last term has been read from a physical file (i.e.\ not from the
 file \const{user} or a string), unify \arg{File} with an absolute path to
 the file and \arg{Line} with the line-number in the file. New code
 should use prolog_load_context/2.
-\predicate{term_expansion}{2}{+Term1, -Term2}
+
+    \predicate{term_expansion}{2}{+Term1, -Term2}
 Dynamic predicate, normally not defined.  When defined by the user all
 terms read during consulting that are given to this predicate.  If the
 predicate succeeds Prolog will assert \arg{Term2} in the database rather
@@ -228,18 +230,41 @@ compiled to allow for term-expansion rules that are local to a module.
 If there is no local definition, or the local definition fails to
 translate the term, expand_term/2 will try user:term_expansion/2. For
 compatibility with SICStus and Quintus Prolog, this feature should not
-be used. See also expand_term/2.
-\predicate{expand_term}{2}{+Term1, -Term2}
+be used. See also expand_term/2, goal_expansion/2 and expand_goal/2.
+
+    \predicate{expand_term}{2}{+Term1, -Term2}
 This predicate is normally called by the compiler to perform preprocessing.
 First it calls term_expansion/2.  If this predicate fails it performs
 a grammar-rule translation.  If this fails it returns the first argument.
-\predicate{at_initialization}{1}{+Goal}
+
+    \predicate{goal_expansion}{2}{+Goal1, -Goal2}
+Like term_expansion/2, goal_expansion/2 provides for macro-expansion
+of Prolog source-code. Between term_expand/2 and the actual compilation,
+the body of clauses analysed and the goals are handed to expand_goal/2,
+which uses the goal_expansion/2 hook to do user-defined expansion.
+
+The predicate goal_expansion/2 is first called in the module that is
+being compiled, and then on the \const{user} module.
+
+Only goals apearing in the body of clauses when reading a source-file
+are expanded using mechanism, and only if they appear literally in the
+clause, or as an argument to the meta-predicates not/1, call/1 or
+forall/2. A real predicate definition is required to deal with
+dynamically constructed calls.
+
+    \predicate{expand_goal}{2}{+Goal1, -Goal2}
+This predicate is normally called by the compiler to perform
+preprocessing. First it calls goal_expansion/2. If this fails it returns
+the first argument.
+
+    \predicate{at_initialization}{1}{+Goal}
 Register \arg{Goal} to be ran when the system initialises.
 Initialisation takes place after reloading a .qlf (formerly .wic) file
 as well as after reloading a saved-state.  The hooks are run in the
 order they were registered.  A warning message is issued if \arg{Goal}
 fails, but execution continues.  See also at_halt/1
-\predicate{at_halt}{1}{+Goal}
+
+    \predicate{at_halt}{1}{+Goal}
 Register \arg{Goal} to be ran when the system halts. The hooks are run
 in the order they were registered.  Success or failure executing a hook
 is ignored.  These hooks may not call halt/[0,1].
@@ -249,7 +274,8 @@ that do other things that creating clauses, records, flags or setting
 predicate attributes should normally be written using this tag to
 ensure the initialisation is executed when a saved system starts.
 See also qsave_program/[1,2].
-\predicate{compiling}{0}{}
+
+    \predicate{compiling}{0}{}
 Succeeds if the system is compiling source files with the \cmdlineoption{-c}
 option into an intermediate code file.  Can be used to perform code
 optimisations in expand_term/2 under this condition.

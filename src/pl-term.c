@@ -174,7 +174,8 @@ pl_tty_goto(term_t x, term_t y)
     fail;
 
   PL_put_atom(ttys, tty_stream);
-  streamOutput(ttys, (tputs(s, 1, Put), TRUE));
+  streamOutput(ttys, tputs(s, 1, Put));
+  succeed;
 }
 
 word
@@ -187,7 +188,8 @@ pl_tty_put(term_t a, term_t affcnt)
   { term_t ttys = PL_new_term_ref();
     PL_put_atom(ttys, tty_stream);
 
-    streamOutput(ttys, (tputs(s, n, Put), TRUE));
+    streamOutput(ttys, tputs(s, n, Put));
+    succeed;
   }
 
   return warning("tty_put: instantiation fault");

@@ -420,7 +420,6 @@ given as `backtrack control'.
   }
 
 
-
 static inline bool
 callForeign(const Definition def, LocalFrame frame)
 { Func function = def->definition.function;
@@ -450,16 +449,14 @@ callForeign(const Definition def, LocalFrame frame)
 
   if ( result <= 1 )			/* FALSE || TRUE */
   { frame->clause = NULL;
-    if ( result == 1 )
+
+    if ( exception_term && result == 1 ) /* False alarm */
       exception_term = 0;
+
     return (bool) result;
   } else
   { if ( true(def, NONDETERMINISTIC) )
-    { if ( !result & FRG_CONTROL_MASK )
-      { warning("Illegal return value from foreign predicate %s: 0x%x",
-		predicateName(def), result);
-	fail;
-      }
+    { assert(result & FRG_CONTROL_MASK);
       frame->clause = (ClauseRef) result;
       succeed;
     }
@@ -724,7 +721,6 @@ above. See this function for comments.
 bool
 can_unify(Word t1, Word t2)
 { mark m;
-
   bool rval;
 
   Mark(m);
@@ -776,6 +772,42 @@ findCatcher(LocalFrame fr, Word catcher)
 
   return NULL;
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+See whether some outer  environment  will   catch  this  exception. I.e.
+catch(Goal, ...), where Goal calls C, calls   Prolog  and then raises an
+exception somewhere.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifndef offset
+#define offset(s, f) ((int)(&((struct s *)NULL)->f))
+#endif
+
+static int
+isCatchedInOuterQuery(QueryFrame qf, Word catcher)
+{ Definition catch3 = PROCEDURE_catch3->definition;
+
+  while( qf && true(qf, PL_Q_PASS_EXCEPTION) )
+  { LocalFrame fr = qf->saved_environment;
+
+    while( fr )
+    { if ( fr->predicate == catch3 && can_unify(argFrameP(fr, 1), catcher) )
+	succeed;
+
+      if ( fr->parent )
+	fr = fr->parent;
+      else
+      { qf = (QueryFrame)addPointer(fr, -offset(queryFrame, frame));
+	break;
+      }
+    }
+
+  }
+
+  fail;
+}
+
 
 #endif /*O_CATCHTHROW*/
 
@@ -1859,6 +1891,9 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	  catcher = valTermRef(exception_term);
 	else				/* throw/1 generated */
 	  catcher = argFrameP(lTop, 0);
+
+	SECURE(checkData(catcher));
+
 	deRef(catcher);
 	except = *catcher;
         catchfr = findCatcher(FR, catcher);
@@ -1871,8 +1906,9 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	     *valTermRef(exception_printed) != except )
 	{ QF = QueryFromQid(qid);	/* reload for relocation */
 
-	  if ( false(QF, PL_Q_CATCH_EXCEPTION|PL_Q_PASS_EXCEPTION) &&
-	       trueFeature(DEBUG_ON_ERROR_FEATURE) )
+	  if ( trueFeature(DEBUG_ON_ERROR_FEATURE) &&
+	       false(QF, PL_Q_CATCH_EXCEPTION) &&
+	       !isCatchedInOuterQuery(QF, catcher) )
 	  { fid_t fid = PL_open_foreign_frame();
 	    term_t t0 = PL_new_term_refs(2);
 	    
@@ -1939,20 +1975,28 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	} else
 	{ Word p;
 
+	  *valTermRef(exception_printed) = 0; /* consider it handled */
+
 	  QF = QueryFromQid(qid);	/* may be shifted: recompute */
 	  set(QF, PL_Q_DETERMINISTIC);
 	  FR = environment_frame = &QF->frame;
 	  lTop = (LocalFrame) argFrameP(FR, FR->predicate->functor->arity);
+
 					/* needs a foreign frame? */
 	  QF->exception = PL_new_term_ref();
-	  *valTermRef(exception_printed) = 0;   /* consider it handled */
-	  *valTermRef(exception_bin)     = 0;
-	  exception_term		 = 0;
-
 	  p = valTermRef(QF->exception);
 	  *p = except;
 	  deRef(p);
+
 	  undo_while_saving_term(&QF->frame.mark, p);
+	  if ( false(QF, PL_Q_PASS_EXCEPTION) )
+	  { *valTermRef(exception_bin)     = 0;
+	    exception_term		   = 0;
+	  } else
+	  { *valTermRef(exception_bin)     = *p;
+	    exception_term		   = exception_bin;
+	  }
+
 	  if ( LD->trim_stack_requested )
 	    trimStacks();
 

@@ -101,6 +101,7 @@ locate(Module:Name/Arity, [file(File), line(Line)]) :-
 	),
 	current_predicate(Name, Module:Head),
 	\+ (   NonImport == true,
+	       Module \== system,
 	       predicate_property(Module:Head, imported_from(_))
 	   ),
 	functor(Head, Name, Arity),	% bind arity

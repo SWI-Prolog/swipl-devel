@@ -903,6 +903,7 @@ RenameFile(const char *old, const char *new)
   osnew = OsPath(new, newbuf);
 
 #ifdef HAVE_RENAME
+  remove(osnew);			/* assume we have this too */
   return rename(osold, osnew) == 0 ? TRUE : FALSE;
 #else
 { int rval;
