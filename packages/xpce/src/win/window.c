@@ -661,8 +661,14 @@ eventWindow(PceWindow sw, EventObj ev)
   }
 
   if ( !rval )
-  { ScrollBar sb = get(sw, NAME_verticalScrollbar, EAV);
-    Any obj = (sb && notNil(sb->object) ? sb->object : (Any)sw);
+  { ScrollBar sb;
+    Any obj;
+
+    if ( hasGetMethodObject(sw, NAME_verticalScrollbar) &&
+	 (sb = get(sw, NAME_verticalScrollbar, EAV)) )
+      obj = sb->object;
+    else
+      obj = sw;
       
     rval = mapWheelMouseEvent(ev, obj);
   }
