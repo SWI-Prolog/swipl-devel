@@ -14,6 +14,9 @@
 #include <h/graphics.h>
 #include "include.h"
 #include "canvas.h"
+#ifdef O_XDND
+#include "xdnd.h"
+#endif
 
 static Chain grabbedWindows = NIL;
 
@@ -218,6 +221,13 @@ event_window(Widget w, XtPointer xsw, XtPointer xevent)
 
     return;
   }
+
+#ifdef O_XDND
+  if ( event->xany.type == MapNotify )
+  { if ( hasSendMethodObject(sw, NAME_dropFiles) )
+      setDndAwareFrame(fr);
+  }
+#endif /*O_XDND*/
 
   ServiceMode(is_service_window(sw),
 	      { AnswerMark mark;

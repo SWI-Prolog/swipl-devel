@@ -13,6 +13,8 @@
 #ifndef _PCE_X11_INCLUDED
 #define _PCE_X11_INCLUDED
 
+#define O_XDND 1			/* include Gnome/KDE drag-and-drop */
+
 #ifdef HAVE_XMISMOTIFWMRUNNING
 #define O_MOTIF 1
 #endif
@@ -51,6 +53,11 @@
 error XPCE cannot be build for X version 10.  Sorry.
 #endif
 
+#ifdef O_XDND
+#include "xdnd.h"
+#endif
+
+
 		 /*******************************
 		 *	      FRAME		*
 		 *******************************/
@@ -77,6 +84,9 @@ typedef struct
   unsigned long foreground_pixel;	/* foreground pixel */
   unsigned long background_pixel;	/* background pixel */
   Colormap	colour_map;		/* Colourmap of the display */
+#ifdef O_XDND
+  DndClass     *dnd;			/* The DND handler */
+#endif
 } display_ws_ref, *DisplayWsXref;
 
 #define display_x11_ref(d, field) (((DisplayWsXref)((d)->ws_ref))->field)
@@ -158,6 +168,9 @@ XColor **	makeSparceCInfo(Display *disp, Colormap cmap,
 void		greySparceCInfo(XColor **cinfo, int depth);
 void		freeSparceCInfo(XColor **table, int depth);
 void		x11_set_gc_foreground(DisplayObj d, Any fg, int gcs, GC *gc);
+#ifdef O_XDND
+status		setDndAwareFrame(FrameObj fr);
+#endif
 
 /* x11-conversion.c */
 XImage *	readImageFile(Image image, IOSTREAM *fd);

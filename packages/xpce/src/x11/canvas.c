@@ -46,7 +46,8 @@ static XtActionsRec actions[] =
 };
 
 static char translations[] =
-" <Key>:	event()	\n\
+" <Message>:	event() \n\
+  <Key>:	event()	\n\
   <BtnDown>:	event()	\n\
   <BtnUp>:	event()	\n\
   <Motion>:	event()	\n\
@@ -54,6 +55,7 @@ static char translations[] =
   <Leave>:	event() \n\
   <FocusIn>:	event() \n\
   <FocusOut>:	event() \n\
+  <Map>:	event() \n\
 ";
 
 

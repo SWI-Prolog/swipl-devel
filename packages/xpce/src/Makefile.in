@@ -20,13 +20,9 @@
 #		FAX: (+31) 20 5256896
 #		Phone: (+31) 20 5256121
 #
-# XPCE is *NOT* free software.  If you have a copy of XPCE and
-# no licence, please
+# XPCE is licenced under GPL-2.  See the file COPYING or www.gnu.org.
 #
-#	+ If you want a licence, contact xpce-request@swi.psy.uva.nl
-#	+ Please inform us where you found the illegal copy.
-#
-# Copyright (C) 1999, University of Amsterdam
+# Copyright (C) 1993-2001, University of Amsterdam
 ################################################################
 
 .EXPORT_ALL_VARIABLES:
@@ -583,7 +579,8 @@ $(srcdir)/img/proto.h:	$(IMGSRC)
 
 XCOMMOBJS=	canvas.o fshell.o xcommon.o xconvert.o x11-compat.o xppm.o
 WSTOBJS=	xcolour.o xcursor.o xdisplay.o xdraw.o xevent.o xfont.o \
-		xframe.o ximage.o xstream.o xtimer.o xwindow.o x11.o xmenu.o
+		xframe.o ximage.o xstream.o xtimer.o xwindow.o x11.o xmenu.o \
+		xdnd.o
 X11OBJS=	$(XCOMMOBJS) $(WSTOBJS)
 
 XCOMMSRC=	$(addprefix $(srcdir)/x11/, $(XCOMMOBJS:.o=.c))

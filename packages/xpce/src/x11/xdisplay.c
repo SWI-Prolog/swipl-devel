@@ -120,15 +120,9 @@ void
 ws_init_display(DisplayObj d)
 { DisplayWsXref ref = alloc(sizeof(display_ws_ref));
 
-  ref->display_xref     = NULL;
-  ref->shell_xref       = NULL;
-  ref->root_bitmap      = 0;
+  memset(ref, 0, sizeof(*ref));
   ref->depth	        = 1;
-  ref->white_pixel      = 0L;
   ref->black_pixel      = 1L;
-  ref->colour_map       = 0;
-  ref->pixmap_context   = NULL;
-  ref->bitmap_context   = NULL;
   ref->foreground_pixel = ref->black_pixel;
   ref->background_pixel = ref->white_pixel;
 
