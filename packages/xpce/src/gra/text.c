@@ -158,7 +158,10 @@ str_format(String out, const String in, const int width, const FontObj font)
     { *o++ = *s;
 
       if ( s == e )
-      { out->size = o - out->s_text8 - 1;
+      { int n = o - out->s_text8 - 1;
+
+	assert(n <= out->size);
+	out->size = n;
 	return;
       }
 
@@ -302,8 +305,10 @@ repaintText(TextObj t, int x, int y, int w, int h)
   }
 
   if ( Wrapped(t) )
-  { LocalString(buf, s, s->size);
+  { LocalString(buf, s, s->size+1);
 
+    DEBUG(NAME_text,
+	  Cprintf("RedrawAreaText(%s): \"%s\"\n", pp(t), s->s_text8));
     str_format(buf, s, valInt(t->margin), t->font);
     if ( notNil(t->selection) )
       str_selected_string(buf, t->font, sf, st, style,
@@ -311,11 +316,11 @@ repaintText(TextObj t, int x, int y, int w, int h)
 			  t->format, NAME_top);
     else
       str_string(buf, t->font,  
-	       x+valInt(t->x_offset), y, w, h,
-	       t->format, NAME_top, flags);
+		 x+valInt(t->x_offset), y, w, h,
+		 t->format, NAME_top, flags);
   } else
   { if ( t->wrap == NAME_clip )
-    { LocalString(buf, s, s->size);
+    { LocalString(buf, s, s->size+1);
 
       str_one_line(buf, s);
       s = buf;
@@ -388,7 +393,7 @@ initAreaText(TextObj t)
       tw = valInt(t->margin);
   } else
   { if ( t->wrap == NAME_clip )
-    { LocalString(buf, s, s->size);
+    { LocalString(buf, s, s->size + 1);
       
       str_one_line(buf, s);
       s = buf;
@@ -439,7 +444,7 @@ initPositionText(TextObj t)
       tw = valInt(t->margin);
   } else
   { if ( t->wrap == NAME_clip )
-    { LocalString(buf, s, s->size);
+    { LocalString(buf, s, s->size + 1);
 
       str_one_line(buf, s);
       s = buf;
@@ -573,7 +578,7 @@ get_char_pos_text(TextObj t, Int chr, int *X, int *Y)
     str_format(buf, s, valInt(t->margin), t->font);
     s = buf;
   } else if ( t->wrap == NAME_clip )
-  { LocalString(buf, s, s->size);
+  { LocalString(buf, s, s->size + 1);
 
     str_one_line(buf, s);
     s = buf;
