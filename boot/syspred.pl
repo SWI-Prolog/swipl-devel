@@ -602,7 +602,7 @@ open_shared_object(File, Flags, Handle) :-
 	$open_shared_object(File, Handle, Mask).
 
 open_shared_object(File, Handle) :-
-	open_shared_object(File, Handle, [global]). % use pl-load.c defaults
+	open_shared_object(File, [global], Handle). % use pl-load.c defaults
 
 
 		/********************************
