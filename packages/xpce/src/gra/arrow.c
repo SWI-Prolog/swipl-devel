@@ -411,7 +411,7 @@ static classvardecl rc_arrow[] =
      "Distance tip to base (10)"),
   RC(NAME_style, "{open,closed}", "closed",
      "Whether or not the wing is closed"),
-  RC(NAME_selectionHandles, RC_REFINE, "corner_handles",
+  RC(NAME_selectionHandles, RC_REFINE, "sides",
      NULL),
   RC(NAME_wing, "int", "7",
      "Width of wing (7)")
