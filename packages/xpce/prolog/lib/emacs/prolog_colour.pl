@@ -211,13 +211,13 @@ colourise_term((Head :- Body), TB,
 	colour_item(clause,	    TB,	F-T),
 	colour_item(neck(clause),   TB,	FF-FT),
 	colourise_clause_head(Head, TB,	HP),
-	colourise_body(Body,	    TB,	BP).
+	colourise_body(Body, Head,  TB,	BP).
 colourise_term((Head --> Body), TB,			% TBD: expansion!
 	       term_position(F,T,FF,FT,[HP,BP])) :- !,
 	colour_item(grammar_rule,	TB, F-T),
 	colour_item(neck(grammar_rule),	TB, FF-FT),
 	colourise_dcg_head(Head,	TB, HP),
-	colourise_dcg(Body,		TB, BP).
+	colourise_dcg(Body, Head,	TB, BP).
 colourise_term(:->(Head, Body), TB,
 	       term_position(F,T,FF,FT,[HP,BP])) :- !,
 	colour_item(method,		TB, F-T),
@@ -293,89 +293,92 @@ functor_position(Pos, Pos, []).
 %	Breaks down to colourise_goal/3.
 
 colourise_body(Body, TB, Pos) :-
-	colour_item(body, TB, Pos),
-	colourise_goals(Body, TB, Pos).
+	colourise_body(Body, [], TB, Pos).
 
-colourise_goals(Body, TB, term_position(_,_,_,_,ArgPos)) :-
+colourise_body(Body, Origin, TB, Pos) :-
+	colour_item(body, TB, Pos),
+	colourise_goals(Body, Origin, TB, Pos).
+
+colourise_goals(Body, Origin, TB, term_position(_,_,_,_,ArgPos)) :-
 	body_compiled(Body), !,
-	colourise_subgoals(ArgPos, 1, Body, TB).
-colourise_goals(::(_Comment, Body), TB,	% XPCE <Comment>::Body construct
+	colourise_subgoals(ArgPos, 1, Body, Origin, TB).
+colourise_goals(::(_Comment, Body), Origin, TB,% XPCE <Comment>::Body construct
 	       term_position(_,_,_,_,[CommentPos, BodyPos])) :- !,
 	colour_item(pce(comment), TB, CommentPos),
-	colourise_goals(Body, TB, BodyPos).
-colourise_goals(Goal, TB, Pos) :-
-	colourise_goal(Goal, TB, Pos).
+	colourise_goals(Body, Origin, TB, BodyPos).
+colourise_goals(Goal, Origin, TB, Pos) :-
+	colourise_goal(Goal, Origin, TB, Pos).
 
-colourise_subgoals([], _, _, _).
-colourise_subgoals([Pos|T], N, Body, TB) :-
+colourise_subgoals([], _, _, _, _).
+colourise_subgoals([Pos|T], N, Body, Origin, TB) :-
 	arg(N, Body, Arg),
-	colourise_goals(Arg, TB, Pos),
+	colourise_goals(Arg, Origin, TB, Pos),
 	NN is N + 1,
-	colourise_subgoals(T, NN, Body, TB).
+	colourise_subgoals(T, NN, Body, Origin, TB).
 
-%	colourise_dcg(+Body, +TB, +Pos)
+%	colourise_dcg(+Body, +Head, +TB, +Pos)
 %	
 %	Breaks down to colourise_dcg_goal/3.
 
-colourise_dcg(Body, TB, Pos) :-
+colourise_dcg(Body, Head, TB, Pos) :-
 	colour_item(dcg, TB, Pos),
-	colourise_dcg_goals(Body, TB, Pos).
+	dcg_extend(Head, Origin),
+	colourise_dcg_goals(Body, Origin, TB, Pos).
 
-colourise_dcg_goals({Body}, TB,	brace_term_position(F,T,Arg)) :- !,
+colourise_dcg_goals(Var, _, TB, Pos) :-
+	var(Var), !,
+	colour_item(goal(meta,Var), TB, Pos).
+colourise_dcg_goals({Body}, Origin, TB,	brace_term_position(F,T,Arg)) :- !,
 	colour_item(dcg(plain), TB, F-T),
-	colourise_goals(Body, TB, Arg).
-colourise_dcg_goals(List, TB, Pos) :-
-	is_list(List), !,
+	colourise_goals(Body, Origin, TB, Arg).
+colourise_dcg_goals([], _, TB, Pos) :- !,
+	colour_item(dcg(list), TB, Pos).
+colourise_dcg_goals(List, _, TB, Pos) :-
+	List = [_|_], !,
 	colour_item(dcg(list), TB, Pos),
 	colourise_term_args(List, TB, Pos).
-colourise_dcg_goals(Body, TB, term_position(_,_,_,_,ArgPos)) :-
+colourise_dcg_goals(Body, Origin, TB, term_position(_,_,_,_,ArgPos)) :-
 	body_compiled(Body), !,
-	colourise_dcg_subgoals(ArgPos, 1, Body, TB).
-colourise_dcg_goals(Goal, TB, Pos) :-
-	colourise_dcg_goal(Goal, TB, Pos),
+	colourise_dcg_subgoals(ArgPos, 1, Body, Origin, TB).
+colourise_dcg_goals(Goal, Origin, TB, Pos) :-
+	colourise_dcg_goal(Goal, Origin, TB, Pos),
 	colourise_term_args(Goal, TB, Pos).
 
-colourise_dcg_subgoals([], _, _, _).
-colourise_dcg_subgoals([Pos|T], N, Body, TB) :-
+colourise_dcg_subgoals([], _, _, _, _).
+colourise_dcg_subgoals([Pos|T], N, Body, Origin, TB) :-
 	arg(N, Body, Arg),
-	colourise_dcg_goals(Arg, TB, Pos),
+	colourise_dcg_goals(Arg, Origin, TB, Pos),
 	NN is N + 1,
-	colourise_dcg_subgoals(T, NN, Body, TB).
+	colourise_dcg_subgoals(T, NN, Body, Origin, TB).
 
-%	colourise_dcg_goal(+Goal, +TB, +Pos).
-
-colourise_dcg_goal(Goal, TB, TermPos) :-
-	compound(Goal), !,
-	Goal =.. List,
+dcg_extend(Term, Goal) :-
+	callable(Term),
+	Term =.. List,
 	append(List, [_,_], List2),
-	TheGoal =.. List2,
-	colourise_goal(TheGoal, TB, TermPos).
-colourise_dcg_goal(Goal, TB, Pos) :-
+	Goal =.. List2.
+
+%	colourise_dcg_goal(+Goal, +Origin, +TB, +Pos).
+
+colourise_dcg_goal(Goal, Origin, TB, TermPos) :-
+	dcg_extend(Goal, TheGoal), !,
+	colourise_goal(TheGoal, Origin, TB, TermPos).
+colourise_dcg_goal(Goal, _, TB, Pos) :-
 	colourise_term_args(Goal, TB, Pos).
 
 
-%	colourise_goal(+Goal, +TB, +Pos)
+%	colourise_goal(+Goal, +Origin, +TB, +Pos)
 
-colourise_goal(Goal, TB, Pos) :-
-	colourise_goal(Goal, Goal, TB, Pos).
-
-%	colourise_goal(+Goal, +MetaExpanded, +TB, +Pos)
-%	
-%	Colourise a goal, using MetaExpanded for classifying and
-%	labeling the goal. The latter is used to deal with goals from
-%	meta-predicates such as maplist/2.
-
-colourise_goal(Goal, _Meta, TB, Pos) :-
+colourise_goal(Goal, Origin, TB, Pos) :-
 	nonvar(Goal),
 	goal_colours(Goal, ClassSpec-ArgSpecs), !, % specified
 	functor_position(Pos, FPos, ArgPos),
 	(   ClassSpec == classify
-	->  goal_classification(TB, Goal, Class)
+	->  goal_classification(TB, Goal, Origin, Class)
 	;   Class = ClassSpec
 	),
 	colour_item(goal(Class, Goal), TB, FPos),
 	specified_items(ArgSpecs, Goal, TB, ArgPos).
-colourise_goal(Module:Goal, _, TB, term_position(_,_,_,_,[PM,PG])) :- !,
+colourise_goal(Module:Goal, _Origin, TB, term_position(_,_,_,_,[PM,PG])) :- !,
 	colour_item(module(Module), TB, PM),
 	(   PG = term_position(_,_,FF,FT,_)
 	->  FP = FF-FT
@@ -383,13 +386,13 @@ colourise_goal(Module:Goal, _, TB, term_position(_,_,_,_,[PM,PG])) :- !,
 	),
 	colour_item(goal(extern(Module), Goal), TB, FP),
 	colourise_goal_args(Goal, TB, PG).
-colourise_goal(Goal, Meta, TB, Pos) :-
-	goal_classification(TB, Meta, Class),
+colourise_goal(Goal, Origin, TB, Pos) :-
+	goal_classification(TB, Goal, Origin, Class),
 	(   Pos = term_position(_,_,FF,FT,_ArgPos)
 	->  FPos = FF-FT
 	;   FPos = Pos
 	),
-	colour_item(goal(Class, Meta), TB, FPos),
+	colour_item(goal(Class, Goal), TB, FPos),
 	colourise_goal_args(Goal, TB, Pos).
 
 %	colourise_goal_args(+Goal, +TB, +Pos)
@@ -408,7 +411,7 @@ colourise_meta_args(N, Goal, MetaArgs, TB, [P0|PT]) :-
 	arg(N, Goal, Arg),
 	arg(N, MetaArgs, MetaSpec),
 	(   expand_meta(MetaSpec, Arg, Expanded)
-	->  colourise_goal(Arg, Expanded, TB, P0)
+	->  colourise_goal(Expanded, [], TB, P0) % TBD: recursion
 	;   colourise_term_arg(Arg, TB, P0)
 	),
 	NN is N + 1,
@@ -578,7 +581,7 @@ colourise_declaration($(Name)/Arity, TB, Pos) :-
 colourise_declaration(Name/Arity, TB, Pos) :-
 	atom(Name), integer(Arity), !,
 	functor(Goal, Name, Arity),
-	goal_classification(TB, Goal, Class),
+	goal_classification(TB, Goal, [], Class),
 	colour_item(goal(Class, Goal), TB, Pos).
 colourise_declaration(Module:Name/Arity, TB,
 		      term_position(_,_,_,_,[PM,PG])) :-
@@ -721,7 +724,9 @@ goal_documentation(_, Goal:emacs_prolog_mode_goal) :->
 message(file(Path), F) :- !,
 	send(F, message, Path),		% popup-message
 	send(F, popup, @prolog_mode_file_popup).
-message(class(_, Class), F) :- !,
+message(class(Type, Class), F) :-
+	atom(Class), !,
+	send(F, message, string('%s XPCE class "%s"', Type?capitalise, Class)),
 	send(F, context, Class),
 	send(F, popup, @prolog_mode_class_popup).
 message(goal(Class, Goal), F) :-
@@ -735,15 +740,18 @@ message(goal(Class, Goal), F) :-
 	->  send(G, module, Module)
 	;   true			% (Still) unbound module
 	),
-	send(F, popup, @prolog_mode_goal_popup).
+	send(F, popup, @prolog_mode_goal_popup),
+	send(F, message, ClassName).
 message(type_error(Type), F) :- !,
 	send(F, message, string('Type error: argument must be a %s', Type)).
 message(module(M), F) :-
 	atom(M),
 	current_module(M, Path), !,
-	send(F, message, Path),
+	send(F, message, string('Module %s from file %s', M, Path)),
 	send(F, popup, @prolog_mode_file_popup).	
-message(_, _).
+message(Class, F) :-
+	functor(Class, Name, _),
+	send(F, message, Name).
 
 
 		 /*******************************
@@ -760,15 +768,30 @@ body_compiled((_*->_)).
 body_compiled((_;_)).
 body_compiled(\+_).
 
-goal_classification(TB, Goal, How) :-
+%	goal_classification(+TB, +Goal, +Origin, -Class)
+%	
+%	Classify Goal appearing in TB and called from a clause with head
+%	Origin.
+
+goal_classification(_, Goal, _, meta) :-
+	var(Goal), !.
+goal_classification(_, Goal, Origin, recursion) :-
+	callable(Goal),
+	functor(Goal, Name, Arity),
+	functor(Origin, Name, Arity), !.
+goal_classification(TB, Goal, _, How) :-
 	xref_defined(TB, Goal, How), !.
-goal_classification(_TB, Goal, Class) :-
+goal_classification(_TB, Goal, _, Class) :-
 	goal_classification(Goal, Class), !.
-goal_classification(_TB, _Goal, undefined).
+goal_classification(_TB, _Goal, _, undefined).
+
+%	goal_classification(+Goal, -Class)
+%	
+%	Multifile hookable classification for non-local goals.
 
 goal_classification(Goal, built_in) :-
 	built_in_predicate(Goal), !.
-goal_classification(Goal, autoload) :-			% SWI-Prolog
+goal_classification(Goal, autoload) :-	% SWI-Prolog
 	functor(Goal, Name, Arity),
 	'$in_library'(Name, Arity), !.
 goal_classification(Goal, global) :-	% SWI-Prolog
@@ -865,6 +888,8 @@ style(goal(expanded,_),	  style(colour	   := blue,
 				underline  := @on)).
 style(goal(extern(_),_),  style(colour	   := blue,
 				underline  := @on)).
+style(goal(recursion,_),  style(underline  := @on)).
+style(goal(meta,_),	  style(colour	   := red4)). % same as var
 style(goal(local(_),_),	  @default).
 
 style(head(exported),	  style(bold	   := @on, colour := blue)).
