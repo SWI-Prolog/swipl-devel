@@ -22,6 +22,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#define O_DEBUG 1
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 History
 =======
@@ -83,7 +85,7 @@ leave the details to this function.
 #include <sys/types.h>
 #ifdef WIN32
 #include <io.h>
-#include <winsock.h>
+#include <winsock2.h>
 #else
 #include <sys/types.h>
 #ifdef HAVE_SYS_TIME_H
@@ -108,6 +110,12 @@ extern int h_errno;
 #include <assert.h>
 #include <string.h>
 
+#ifndef SD_SEND
+#define SD_RECEIVE 0			/* shutdown() parameters */
+#define SD_SEND    1
+#define SD_BOTH    2
+#endif
+
 #ifdef _REENTRANT
 #include <pthread.h>
 
@@ -130,6 +138,7 @@ static atom_t ATOM_dispatch;		/* "dispatch" */
 #define SOCK_ACCEPT	0x20		/* Set on accepted sockets */
 #define SOCK_NONBLOCK	0x40		/* Set to non-blocking mode */
 #define SOCK_DISPATCH   0x80		/* do not dispatch events */
+#define SOCK_CLOSE_SEEN	0x100		/* FD_CLOSE seen */
 
 #define set(s, f)   ((s)->flags |= (f))
 #define clear(s, f) ((s)->flags &= ~(f))
@@ -147,11 +156,14 @@ typedef struct _plsocket
 
 static plsocket *lookupSocket(int socket);
 #ifdef WIN32
-static plsocket *lookupExistingSocket(int socket);
+static plsocket   *lookupExistingSocket(int socket);
+static const char *WinSockError(unsigned long eno);
+static void	   waitMsg(plsocket *s, int flags);
 #endif
 
-#if 0
-#define DEBUG(g) g
+#ifdef O_DEBUG
+static int debugging;
+#define DEBUG(g) if ( debugging) g
 #else
 #define DEBUG(g) (void)0
 #endif
@@ -218,8 +230,13 @@ socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	  break;
 	case FD_CLOSE:
 	  evtname = "FD_CLOSE";
-	  if ( !s )
-	    closesocket(sock);
+	  if ( s )
+	  { set(s, SOCK_CLOSE_SEEN);
+	  } else
+	  { if ( closesocket(sock) == SOCKET_ERROR )
+	      Sdprintf("FD_CLOSE: closesocket(%d) failed: %s\n",
+		       sock, WinSockError(WSAGetLastError()));
+	  }
 	  break;
 	case FD_WRITE:
 	  evtname = "FD_WRITE";
@@ -370,6 +387,13 @@ freeSocket(int socket)
 
   DEBUG(Sdprintf("Closing %d\n", socket));
 
+#ifdef WIN32
+  { plsocket *s = lookupSocket(socket);
+    if ( false(s, SOCK_CLOSE_SEEN) )
+      waitMsg(s, FD_CLOSE);
+  }
+#endif
+
   LOCK();
   p = &sockets;
 
@@ -384,11 +408,11 @@ freeSocket(int socket)
   }
   UNLOCK();
 
-#ifdef WIN32
-  WSAAsyncSelect(socket, SocketHiddenWindow(), 0, 0);
-#endif
-
-  closesocket(socket);
+  if ( closesocket(socket) == SOCKET_ERROR )
+  { Sdprintf("closesocket(%d) failed: %s\n",
+	     socket,
+	     WinSockError(WSAGetLastError()));
+  }
 }
 
 
@@ -439,7 +463,7 @@ right code, but it doesn't work, so we do it by hand.
 
 #ifdef BILLY_GETS_BETTER
 
-static char *
+static const char *
 WinSockError(unsigned long eno)
 { char buf[1024];
   static HMODULE netmsg = 0;
@@ -477,7 +501,7 @@ WinSockError(unsigned long eno)
 #else /*BILLY_GETS_BETTER*/
 
 static const char *
-WinSockError(int error)
+WinSockError(unsigned long error)
 { struct
   { int index;
     const char *string;
@@ -517,15 +541,18 @@ WinSockError(int error)
     { WSAETIMEDOUT, "Connection timed out" },
     { WSAEWOULDBLOCK, "Resource temporarily unavailable" },
     { WSAEDISCON, "Graceful shutdown in progress" },
+    { WSANOTINITIALISED, "Socket layer not initialised" },
     { 0, NULL }
   };
+  char tmp[100];
 
   for(ep=edefs; ep->string; ep++)
-  { if ( ep->index == error )
+  { if ( ep->index == (int)error )
       return ep->string;
   }
 
-  return "Unknown error";
+  sprintf(tmp, "Unknown error %ld", error);
+  return strdup(tmp);
 }
 
 #endif /*BILLY_GETS_BETTER*/
@@ -616,28 +643,11 @@ tcp_init()
 
 #ifdef WIN32
 { WSADATA WSAData;
-  int optionValue = SO_SYNCHRONOUS_NONALERT;
 
-  if ( WSAStartup(MAKEWORD(1,1), &WSAData) )
+  if ( WSAStartup(MAKEWORD(2,0), &WSAData) )
   { UNLOCK();
     return PL_warning("tcp_init() - WSAStartup failed.");
   }
-
-#if 0
-  {  int err;
-     err = setsockopt(INVALID_SOCKET, 
-		      SOL_SOCKET, 
-		      SO_OPENTYPE, 
-		      (char *)&optionValue, 
-		      sizeof(optionValue));
-
-     if ( err != NO_ERROR )
-     { UNLOCK();
-       return PL_warning("tcp_winsock_init - setsockopt failed.");
-     
-     }
-  }
-#endif
 }
 #endif /*WIN32*/
 
@@ -872,9 +882,11 @@ waitMsg(plsocket *s, int flags)
   else
     hwnd = sockwin;
 
+  DEBUG(Sdprintf("["));
   for(;;)
   { if ( (s->w32_flags & flags) )
     { s->w32_flags &= ~flags;
+      DEBUG(Sdprintf("]"));
       return;
     }
     if ( GetMessage(&msg, hwnd, 0, 0) )
@@ -1088,9 +1100,13 @@ tcp_seek_null(void *handle, long offset, int whence)
 static int
 tcp_close_input(void *handle)
 { int socket = fdFromHandle(handle);
-
   plsocket *s = lookupSocket(socket);
+
+  DEBUG(Sdprintf("tcp_close_input(%d)\n", socket));
   s->flags &= ~SOCK_INSTREAM;
+  if ( shutdown(socket, SD_RECEIVE) == SOCKET_ERROR )
+    Sdprintf("shutdown(%d, SD_RECEIVE) failed: %s\n",
+		       socket, WinSockError(WSAGetLastError()));
 
   if ( !(s->flags & (SOCK_INSTREAM|SOCK_OUTSTREAM)) )
     freeSocket(socket);
@@ -1102,9 +1118,13 @@ tcp_close_input(void *handle)
 static int
 tcp_close_output(void *handle)
 { int socket = fdFromHandle(handle);
-
   plsocket *s = lookupSocket(socket);
+
+  DEBUG(Sdprintf("tcp_close_output(%d)\n", socket));
   s->flags &= ~SOCK_OUTSTREAM;
+  if ( shutdown(socket, SD_SEND) == SOCKET_ERROR )
+    Sdprintf("shutdown(%d, SD_SEND) failed: %s\n",
+	     socket, WinSockError(WSAGetLastError()));
 
   if ( !(s->flags & (SOCK_INSTREAM|SOCK_OUTSTREAM)) )
     freeSocket(socket);
@@ -1209,6 +1229,13 @@ pl_gethostname(term_t name)
 }
 
 
+#ifdef O_DEBUG
+static foreign_t
+tcp_debug(term_t val)
+{ return PL_get_integer(val, &debugging);
+}
+#endif
+
 install_t
 install_socket()
 { ATOM_reuseaddr  = PL_new_atom("reuseaddr");
@@ -1218,6 +1245,9 @@ install_socket()
   FUNCTOR_module2 = PL_new_functor(PL_new_atom(":"), 2);
   FUNCTOR_ip4     = PL_new_functor(PL_new_atom("ip"), 4);
   
+#ifdef O_DEBUG
+  PL_register_foreign("user:tcp_debug",	      1, tcp_debug,	      0);
+#endif
   PL_register_foreign("tcp_accept",           3, tcp_accept,          0);
   PL_register_foreign("tcp_bind",             2, tcp_bind,            0);
   PL_register_foreign("tcp_connect",          2, tcp_connect,         0);
