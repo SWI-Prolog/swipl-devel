@@ -1502,7 +1502,7 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
       return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_natural, arg);
 
     if ( true(fr->predicate, FOREIGN) || !fr->clause )
-    { if ( argn > fr->predicate->functor->arity )
+    { if ( argn > (int)fr->predicate->functor->arity )
 	fail;
     } else
     { if ( argn > fr->clause->clause->prolog_vars )

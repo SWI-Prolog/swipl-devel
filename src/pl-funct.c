@@ -56,7 +56,7 @@ registerFunctor(FunctorDef fd)
 
 
 functor_t
-lookupFunctorDef(atom_t atom, int arity)
+lookupFunctorDef(atom_t atom, unsigned int arity)
 { int v;
   FunctorDef f;
 
@@ -121,7 +121,7 @@ rehashFunctors()
 
 
 functor_t
-isCurrentFunctor(atom_t atom, int arity)
+isCurrentFunctor(atom_t atom, unsigned int arity)
 { int v;
   FunctorDef f;
 

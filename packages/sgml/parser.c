@@ -354,7 +354,12 @@ entity_file(dtd *dtd, dtd_entity *e)
     case ET_PUBLIC:
     { char *f;
 
-      if ( (f=find_in_catalog("PUBLIC", e->extid)) )
+					/* TBD */
+      if ( (f=find_in_catalogue(CAT_ENTITY,
+				e->name->name,
+				e->extid,
+				e->exturl,
+				dtd->dialect != DL_SGML)) )
 	return f;
       if ( e->exturl )
 	goto et_system;

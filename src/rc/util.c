@@ -78,7 +78,7 @@ rc_strerror(int e)
     return strerror(e);
 
   e -= RCE_ERRBASE;
-  if ( e > sizeof(rc_errlist)/sizeof(char *) )
+  if ( (unsigned) e > sizeof(rc_errlist)/sizeof(char *) )
     return "Unknown error";
 
   return rc_errlist[e];

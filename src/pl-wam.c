@@ -2084,13 +2084,24 @@ pl-comp.c
     NULL
   };
 
-#define VMI(Name)	Name ## _LBL: count(Name, PC);
+#ifdef O_PROF_PENTIUM
+#include "prof.h"
+#else
+#define START_PROF(Name)
+#define END_PROF()
+#endif
+
+#define VMI(Name)		Name ## _LBL: \
+				  count(Name, PC); \
+				  START_PROF(Name);
 #if VMCODE_IS_ADDRESS
 #define NEXT_INSTRUCTION	{ DbgPrintInstruction(FR, PC); \
+				  END_PROF(); \
 				  goto *(void *)((long)(*PC++)); \
 				}
 #else
 #define NEXT_INSTRUCTION	{ DbgPrintInstruction(FR, PC); \
+				  END_PROF(); \
 				  goto *jmp_table[*PC++]; \
 				}
 #endif
@@ -2099,8 +2110,11 @@ pl-comp.c
 
 code thiscode;
 
-#define VMI(Name)		case Name: count(Name, PC);
+#define VMI(Name)		case Name: \
+				  count(Name, PC); \
+				  START_PROF(Name);
 #define NEXT_INSTRUCTION	{ DbgPrintInstruction(FR, PC); \
+				  END_PROF(); \
                                   goto next_instruction; \
 				}
 

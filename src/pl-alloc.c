@@ -217,7 +217,7 @@ which normally calls malloc().
 static void
 leftoverToChains(AllocPool pool)
 { if ( pool->free >= sizeof(struct chunk) )
-  { int m = pool->free/ALIGN_SIZE;
+  { unsigned m = pool->free/ALIGN_SIZE;
     Chunk ch = (Chunk)pool->space;
 
     assert(m <= ALLOCFAST/ALIGN_SIZE);
@@ -390,7 +390,7 @@ mergeAllocPool(to, from)
 void
 mergeAllocPool(AllocPool to, AllocPool from)
 { Chunk *t, *f;
-  int i;
+  unsigned int i;
 
   assert(to == &GD->alloc_pool);	/* for now */
   DEBUG(2, Sdprintf("Free pool has %d bytes\n", from->free));

@@ -483,7 +483,7 @@ Patterns: ?Name/?Arity
 typedef struct
 { functor_t	functor;		/* Functor we are looking for */
   atom_t	name;			/* Name of target pred */
-  int		arity;			/* arity of target pred */
+  unsigned int	arity;			/* arity of target pred */
   Module	module;			/* Module to search in */
   Module	super;			/* Walking along super-chain */
   TableEnum	epred;			/* Predicate enumerator */
@@ -937,7 +937,7 @@ retractClauseProcedure(Procedure proc, Clause clause ARG_LD)
       markDirtyClauseIndex(def->hash_info, clause);
     def->number_of_clauses--;
     def->erased_clauses++;
-    if ( def->erased_clauses > (def->number_of_clauses>>4) )
+    if ( def->erased_clauses > def->number_of_clauses/(unsigned)16 )
     { set(def, NEEDSCLAUSEGC);
     }
 #ifdef O_LOGICAL_UPDATE

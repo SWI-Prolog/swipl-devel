@@ -929,7 +929,7 @@ MarkExecutable(const char *name)
 {
 #if (defined(HAVE_STAT) && defined(HAVE_CHMOD)) || defined(__unix__)
   struct stat buf;
-  int um;
+  mode_t um;
 
   um = umask(0777);
   umask(um);
@@ -2101,7 +2101,7 @@ requested via getenv/2 from Prolog.  Functions
 
 #ifndef __WIN32__
 char *
-getenv3(const char *name, char *buf, int len)
+getenv3(const char *name, char *buf, unsigned int len)
 { char *s = getenv(name);
 
   if ( s && strlen(s) < len )

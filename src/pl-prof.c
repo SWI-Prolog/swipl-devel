@@ -934,6 +934,16 @@ PRED_IMPL("$prof_statistics", 4, prof_statistics, 0)
 
 #endif /* O_PROFILE */
 
+#ifdef O_PROF_PENTIUM
+#include "prof.c"
+
+PRED_IMPL("show_pentium_profile", 0, show_pentium_profile, 0)
+{ prof_report();
+
+  succeed;
+}
+#endif
+
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
@@ -946,4 +956,7 @@ BeginPredDefs(profile)
   PRED_DEF("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
   PRED_DEF("$prof_statistics", 4, prof_statistics, 0)
+#ifdef O_PROF_PENTIUM
+  PRED_DEF("show_pentium_profile", 0, show_pentium_profile, 0)
+#endif
 EndPredDefs

@@ -906,7 +906,7 @@ PL_get_nchars(term_t l, unsigned int *length, char **s, unsigned flags)
   }
     
   DEBUG(7, Sdprintf("--> %s\n", r));
-  if ( len == ~0 )
+  if ( len == ~(unsigned int)0 )
     len = strlen(r);
   if ( length )
     *length = len;

@@ -198,7 +198,7 @@ NOTE:	If the assert() fails, look at pl-wam.c: VMI(C_NOT, ... for
 void
 initWamTable(void)
 { GET_LD
-  int n;
+  unsigned int n;
   code maxcoded, mincoded;
 
   if ( interpreter_jmp_table == NULL )
@@ -626,7 +626,7 @@ balanceVars(VarTable valt1, VarTable valt2, compileInfo *ci)
   { register int m = (~(*p1) & *p2);
 
     if ( m )
-    { register int i;
+    { unsigned int i;
 
       for(i = 0; i < BITSPERINT; i++)
 	if ( m & (1 << i) )

@@ -253,7 +253,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 	    char buf[BUFSIZE];
 	    char *str = buf;
 	    int bufsize = BUFSIZE;
-	    int i;
+	    unsigned int i;
 	    qid_t qid;
 
 	    if ( arg == DEFAULT )

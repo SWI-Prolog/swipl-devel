@@ -441,7 +441,7 @@ pl_downcase_atom(term_t in, term_t out)
   unsigned int len;
 
   if ( PL_get_nchars_ex(in, &len, &s, CVT_ATOMIC) )
-  { int l2;
+  { unsigned int l2;
     char *s2;
 
     if ( PL_get_nchars(out, &l2, &s2, CVT_ATOMIC) )
@@ -478,7 +478,7 @@ pl_upcase_atom(term_t in, term_t out)
   unsigned int len;
 
   if ( PL_get_nchars_ex(in, &len, &s, CVT_ATOMIC) )
-  { int l2;
+  { unsigned int l2;
     char *s2;
 
     if ( PL_get_nchars(out, &l2, &s2, CVT_ATOMIC) )

@@ -254,7 +254,7 @@ static inline void
 addFloat(CompileInfo info, void *val)
 { if ( info->external )
   { unsigned char *cl = val;
-    int i;
+    unsigned int i;
 
     addOpCode(info, PL_TYPE_EXT_FLOAT);
     for(i=0; i<sizeof(double); i++)
@@ -670,7 +670,7 @@ fetchFloat(CopyInfo b, void *f)
 static void
 fetchExtFloat(CopyInfo b, void *f)
 { unsigned char *dst = f;
-  int i;
+  unsigned int i;
 
   for(i=0; i<sizeof(double); i++)
     dst[double_byte_order[i]] = *b->data++;
@@ -1052,7 +1052,7 @@ unref_cont:
 	long arity = fetchSizeInt(info);
 	atom_t name;
 
-	if ( arity != fd->arity )
+	if ( (unsigned)arity != fd->arity )
 	  fail;
 	fetchAtom((CopyInfo)info, &name);	/* TBD: optimise */
 	if ( name != fd->name )

@@ -339,7 +339,7 @@ getAtom(IOSTREAM *fd ARG_LD)
   int i;
   atom_t a;
 
-  if ( len < sizeof(buf) )
+  if ( len < (int)sizeof(buf) )
     tmp = buf;
   else
     tmp = allocHeap(len);
@@ -433,7 +433,7 @@ static real
 getReal(IOSTREAM *fd)
 { real f;
   unsigned char *cl = (unsigned char *)&f;
-  int i;
+  unsigned int i;
 
   for(i=0; i<BYTES_PER_DOUBLE; i++)
   { int c = Sgetc(fd);
@@ -1241,7 +1241,7 @@ putNum(long n, IOSTREAM *fd)
 static void
 putReal(real f, IOSTREAM *fd)
 { unsigned char *cl = (unsigned char *)&f;
-  int i;
+  unsigned int i;
 
   DEBUG(3, Sdprintf("putReal(%f)\n", f));
 

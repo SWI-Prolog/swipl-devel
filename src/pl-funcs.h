@@ -376,8 +376,8 @@ word		pl_format(term_t fmt, term_t args);
 word		pl_format3(term_t s, term_t fmt, term_t args);
 
 /* pl-funct.c */
-functor_t	lookupFunctorDef(atom_t atom, int arity);
-functor_t	isCurrentFunctor(atom_t atom, int arity);
+functor_t	lookupFunctorDef(atom_t atom, unsigned int arity);
+functor_t	isCurrentFunctor(atom_t atom, unsigned int arity);
 void		initFunctors(void);
 void		cleanupFunctors(void);
 int 		checkFunctors(void);
@@ -487,7 +487,7 @@ atom_t		TemporaryFile(const char *id);
 int		hasConsole(void);
 struct tm *	LocalTime(long int *t);
 Char		GetChar(void);
-char *		getenv3(const char *, char *buf, int buflen);
+char *		getenv3(const char *, char *buf, unsigned int buflen);
 int		getenvl(const char *);
 int		Setenv(char *name, char *value);
 int		Unsetenv(char *name);

@@ -524,7 +524,7 @@ Sungetc(int c, IOSTREAM *s)
 int
 Sputw(int w, IOSTREAM *s)
 { unsigned char *q = (unsigned char *)&w;
-  int n;
+  unsigned int n;
 
   for(n=0; n<sizeof(w); n++)
   { if ( Sputc(*q++, s) < 0 )
@@ -539,7 +539,7 @@ int
 Sgetw(IOSTREAM *s)
 { int w;
   unsigned char *q = (unsigned char *)&w;
-  int n;
+  unsigned int n;
 
   for(n=0; n<sizeof(w); n++)
   { int c;

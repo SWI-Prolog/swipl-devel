@@ -1120,7 +1120,7 @@ struct functorDef
 { FunctorDef	next;		/* next in chain */
   word		functor;	/* as appearing on the global stack */
   word		name;		/* Name of functor */
-  int		arity;		/* arity of functor */
+  unsigned	arity;		/* arity of functor */
   unsigned      flags;		/* Flag field holding: */
 		/* INLINE_F	   Inlined foreign (system) predicate */
 };
@@ -1330,7 +1330,7 @@ struct choice
 #define	QF_INTERACTIVE		0x0004	/* interactive goal (prolog()) */
 
 struct queryFrame
-{ long		magic;			/* Magic code for security */
+{ unsigned long magic;			/* Magic code for security */
 #if O_SHIFT_STACKS
   struct				/* Interpreter registers */
   { LocalFrame  fr;
