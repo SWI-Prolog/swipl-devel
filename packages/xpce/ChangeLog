@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: `file<-read_line' to fail on end-of-file as advertised (but
+  no longer working after a recent patch to this code to deal with
+  unlimited-length lines).
+
 * FIXED: A few problems in the configuration-editor.
 
 * ADDED: @prolog_ide->thread_monitor to monitor active threads.
