@@ -2950,12 +2950,19 @@ get_clause_ptr_ex(term_t ref, Clause *cl)
 
 #if O_DEBUGGER				/* to the end of the file */
 
-static Code
-stepPC(Code PC)
-{ code op = decode(*PC++);
+static code
+fetchop(Code PC)
+{ code op = decode(*PC);
 
   if ( op == D_BREAK )
-    op = decode(replacedBreak(PC-1));
+    op = decode(replacedBreak(PC));
+
+  return op;
+}
+
+static Code
+stepPC(Code PC)
+{ code op = fetchop(PC++);
 
   if ( codeTable[op].argtype == CA1_STRING )
   { word m = *PC++;
@@ -3020,11 +3027,8 @@ pl_xr_member(term_t ref, term_t term, word h)
 
     while( PC < end )
     { bool rval = FALSE;
-      code op = decode(*PC++);
+      code op = fetchop(PC++);
       
-      if ( op == D_BREAK )
-	op = decode(replacedBreak(PC-1));
-
       switch(codeTable[op].argtype)
       { case CA1_PROC:
 	{ Procedure proc = (Procedure) *PC;
@@ -3072,10 +3076,7 @@ pl_xr_member(term_t ref, term_t term, word h)
 
     if ( PL_is_atomic(term) )
     { while( PC < end )
-      { code op = decode(*PC);
-
-	if ( op == D_BREAK )
-	  op = decode(replacedBreak(PC));
+      { code op = fetchop(PC);
 
 	if ( codeTable[op].argtype == CA1_DATA &&
 	     _PL_unify_atomic(term, PC[1]) )
@@ -3085,10 +3086,7 @@ pl_xr_member(term_t ref, term_t term, word h)
       }
     } else if ( PL_get_functor(term, &fd) && fd != FUNCTOR_module2 )
     { while( PC < end )
-      { code op = decode(*PC);
-
-	if ( op == D_BREAK )
-	  op = decode(replacedBreak(PC));
+      { code op = fetchop(PC);
 
 	if ( codeTable[op].argtype == CA1_FUNC )
 	{ functor_t fa = (functor_t)PC[1];
@@ -3111,10 +3109,7 @@ pl_xr_member(term_t ref, term_t term, word h)
       }
     } else if ( get_procedure(term, &proc, 0, GP_FIND) )
     { while( PC < end )
-      { code op = decode(*PC);
-
-	if ( op == D_BREAK )
-	  op = decode(replacedBreak(PC));
+      { code op = fetchop(PC);
 
 	if ( codeTable[op].argtype == CA1_PROC )
 	{ Procedure pa = (Procedure)PC[1];
@@ -3322,9 +3317,7 @@ pl_fetch_vm(term_t ref, term_t offset, term_t noffset, term_t instruction)
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_program_counter, offset);
 
   PC = clause->codes + pcoffset;
-  op = decode(*PC);
-  if ( op == D_BREAK )
-    op = decode(replacedBreak(PC));
+  op = fetchop(PC);
   ci = &codeTable[op];
   
   pcoffset = pcoffset + 1 + ci->arguments;
@@ -3342,13 +3335,15 @@ pl_fetch_vm(term_t ref, term_t offset, term_t noffset, term_t instruction)
 		 *     SOURCE LEVEL DEBUGGER	*
 		 *******************************/
 
+#if 0
+#undef DEBUG
+#define DEBUG(l, g) g
+#endif
+
 static Code
 find_code1(Code PC, code fop, code ctx)
 { for(;;)
-  { code op = decode(*PC++);
-
-    if ( op == D_BREAK )
-      op = decode(replacedBreak(PC-1));
+  { code op = fetchop(PC++);
 
     if ( fop == op && ctx == *PC )
       return &PC[-1];
@@ -3362,10 +3357,8 @@ find_code1(Code PC, code fop, code ctx)
 static Code
 find_code0(Code PC, code fop)
 { for(;;)
-  { code op = decode(*PC++);
+  { code op = fetchop(PC++);
 
-    if ( op == D_BREAK )
-      op = decode(replacedBreak(PC-1));
     if ( fop == op )
       return &PC[-1];
     assert(op != I_EXIT);
@@ -3381,11 +3374,6 @@ $clause_term_position(+ClauseRef, +PCoffset, -TermPos)
 	The term-position is a list of argument-numbers one has to use from
 	the clause-term to find the subterm that sets up the goal.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-/*
-#undef DEBUG
-#define DEBUG(l, g) g
-*/
 
 static int
 add_node(term_t tail, int n)
@@ -3403,7 +3391,7 @@ add_node(term_t tail, int n)
 
 static void
 add_1_if_not_at_end(Code PC, Code end, term_t tail)
-{ while(PC < end && decode(*PC) == C_VAR )
+{ while(PC < end && fetchop(PC) == C_VAR )
     PC += 2;
 
   if ( PC != end )
@@ -3428,16 +3416,15 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
   PC = clause->codes;
   loc = &PC[pcoffset];
   end = &PC[clause->code_size - 1];	/* forget the final I_EXIT */
+  DEBUG(0, assert(fetchop(end) == I_EXIT || fetchop(end) == I_EXITFACT));
 
   if ( true(clause, GOAL_CLAUSE) )
     add_node(tail, 2);			/* $call :- <Body> */
 
   while( PC < loc )
-  { code op = decode(*PC++);
+  { code op = fetchop(PC++);
     const code_info *ci;
 
-    if ( op == D_BREAK )
-      op = decode(replacedBreak(PC-1));
     ci = &codeTable[op];
 
     switch(op)
@@ -3549,8 +3536,11 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
 	
 	endloc = find_code0(cutloc+2, C_END);
 
+	DEBUG(1, Sdprintf("cut = %d, end = %d\n",
+			  cutloc - clause->codes, endloc - clause->codes));
+
 	if ( loc <= endloc )
-	{ add_1_if_not_at_end(endloc, end, tail);
+	{ add_1_if_not_at_end(endloc+1, end, tail);
 
 	  if ( loc <= cutloc )		/* a */
 	  { add_node(tail, 1);
@@ -3630,11 +3620,9 @@ pl_break_pc(term_t ref, term_t pc, term_t nextpc, control_t h)
   end = clause->codes + clause->code_size;
 
   while( PC < end )
-  { code op = decode(*PC);
+  { code op = fetchop(PC);
     Code next;
 
-    if ( op == D_BREAK )
-      op = decode(replacedBreak(PC));
     next = PC + 1 + codeTable[op].arguments;
 
     switch(op)
