@@ -36,6 +36,13 @@ Version 1.6.11 includes   various fixes suggested  by Dave   Sherratt,
 (ads@compsci.liverpool.ac.uk)
 
 Integrated O_FOREIGN support sent to me by Dave	Sherratt.
+
+NOTE:	I've been informedby Irek Karkowski (irek@donau.et.tudelft.nl)
+	that there are trouble compiling on hp9000s800 running hpux
+	8.02, both compiled on cc and gcc.  The trouble is in the hpux
+	library function vsprintf().
+	He successfully compiled on a hp9000s700 running hpux 8.07.
+	The resulting binary runs on both machines.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define MACHINE			"hp"

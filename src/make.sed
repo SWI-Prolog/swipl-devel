@@ -1,6 +1,7 @@
 s/^#[ 	]*include[ 	]/&/
 s/^#[ 	]*if[ 	]/&/
 s/^#[ 	]*ifdef[ 	]/&/
+s/^#[ 	]*ifndef[ 	]/&/
 s/^#[ 	]*else/&/
 s/^#[ 	]*elif[ 	]/&/
 s/^#[ 	]*endif/&/

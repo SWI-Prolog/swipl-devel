@@ -109,6 +109,7 @@ int		currentInputLine P((void));
 int		currentLinePosition P((void));
 Atom		currentStreamName P((void));
 bool		put_character P((Char));
+char *		PrologPrompt P((void));
 #if AIX
 word		Putf();
 #else 

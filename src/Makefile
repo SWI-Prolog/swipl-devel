@@ -1,4 +1,4 @@
-# /* SWI-Prolog 1.6        Toplevel Makefile                            */
+# /* SWI-Prolog 1.7        Toplevel Makefile                            */
 
 # /* This is the toplevel makefile for SWI Prolog.                      */
 # /* This makefile is almost independent of your operating system!      */
@@ -9,6 +9,8 @@
 # /* Setup your configuration in the following files                    */
 # /* ../config.h     system information like paths (global!)            */
 # /* md.h            machine dependent information                      */
+
+SHELL=/bin/sh
 
 # Change cc to gcc in the line below if necessary
 CPP=cc -E
@@ -41,6 +43,10 @@ DUMP=cmd /C .\dump.cmd
 DUMP=./dump
 #endif
 
+#ifndef MACHINE_ID
+#define MACHINE_ID MACHINE
+#endif
+
 SYSTEMHOME=M_SYSTEMHOME
 SYSTEMDIR=M_SYSTEMDIR
 DEFSTARTUP=M_DEFSTARTUP
@@ -51,10 +57,10 @@ SYS=M_SYS
 
 STARTUPDIR=$(SYSTEMHOME)/startup
 OS-STARTUPDIR=$(SYSTEMDIR)$(SEP)startup
-STARTUPPATH=$(STARTUPDIR)$/startup.MACHINE
-OS-STARTUPPATH=$(OS-STARTUPDIR)$(SEP)startup.MACHINE
-RUNTIMEDIR=$(SYSTEMHOME)/runtime/MACHINE
-OS-RUNTIMEDIR=$(SYSTEMDIR)$(SEP)runtime$(SEP)MACHINE
+STARTUPPATH=$(STARTUPDIR)$/startup.MACHINE_ID
+OS-STARTUPPATH=$(OS-STARTUPDIR)$(SEP)startup.MACHINE_ID
+RUNTIMEDIR=$(SYSTEMHOME)/runtime/MACHINE_ID
+OS-RUNTIMEDIR=$(SYSTEMDIR)$(SEP)runtime$(SEP)MACHINE_ID
 RUNTIME=$(RUNTIMEDIR)$(SEP)pl.o
 LIBRARYDIR=$(SYSTEMHOME)/library
 OS-LIBRARYDIR=$(SYSTEMDIR)$(SEP)library
@@ -232,7 +238,7 @@ clean:		xmakefile
 		make -f xmakefile xclean
 
 xclean:
-		rm -f *.o a.out core pl-bite
+		rm -f *.o a.out core pl-bite *~ #*
 		rm -f $(SYS)
 .c.s:
 		$(CC) -S $(CFLAGS) $*.c
@@ -242,12 +248,3 @@ xclean:
 
 saber_src:
 		#load $(OBJ) $(DEPOBJ) $(LIBS)
-
-
-
-
-
-
-
-
-

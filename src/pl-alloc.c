@@ -323,7 +323,7 @@ real f;
   verifyStack(global);
   pack_real((double) f, p);
 
-  DEBUG(4, printf("Put REAL on global stack at 0x%x\n", b));
+  DEBUG(4, printf("Put REAL on global stack at 0x%x\n", p));
   return (word)p | INDIRECT_MASK;
 }
 

@@ -7,6 +7,7 @@
     Purpose: Create saved state
 */
 
+/*#define O_DEBUG 1*/
 #include "pl-incl.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -66,6 +67,15 @@ PORTABILITY/OPTIONS
     argc  of main()  depending  on  O_C_STACK_GROWS_UP down/up  to   a
     multiple of this value (default: 64 Kbytes).  This generally finds
     the stack's base address.
+
+  O_SAVE_STDIO
+    When set,  the stdin, stdout and stderr  structures are saved over
+    the restore  action.  I'm  not that  sure about  this option.   It
+    appears to  be necessary on Solaris  as appearantly the structures
+    are inside  the saved area  and the  buffers  are not.  Using  the
+    stored buffers might  yield  invalid pointers.  Nice advantage  is
+    that possible pending io is gone  too.  Maybe we should check this
+    at runtime?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if OS2 && EMX
@@ -194,7 +204,7 @@ saveVersion()
     
     if ( step <= 0 )
       step = 10;
-    DEBUG(1, printf("Computing saveVersion in 0x%x .. 0x%x\n", start, end));
+    DEBUG(2, printf("Computing saveVersion in 0x%x .. 0x%x\n", start, end));
 
     for(; start < end; start += step)
       save_version ^= *start;
@@ -334,7 +344,7 @@ int (*allocf) P((SaveSection));
       break;
     }
   }
-  DEBUG(1, printf("header_offset = %d\n", header_offset));
+  DEBUG(2, printf("header_offset = %d\n", header_offset));
   if ( header_offset == 0 )
     return warning("restore/1: %s is not a saved state", file);
 
@@ -345,20 +355,26 @@ int (*allocf) P((SaveSection));
     return warning("restore/1: %s is not a saved state", file);
   if ( header.save_version != saveVersion() )
     return warning("restore/1: %s has incompatible save version", file);
-  
+
   if ( brk(header.brk) )
     return warning("restore/1: failed to set the break: %s", OsError());
 
   { jmp_buf restore_ctx;	/* Will be destroyed */
 
     memcpy(restore_ctx, ret_main_ctx, sizeof(restore_ctx));
+#if O_SAVE_STDIO
+  { FILE restore_iob[3];
+    restore_iob[0] = *stdin;
+    restore_iob[1] = *stdout;
+    restore_iob[2] = *stderr;
+#endif
 
     for(n = 0; n < header.nsections; n++)
     { struct save_section section_header;
 
       trySeek(fd, header_offset+SectionOffset(n));
       tryRead(fd, &section_header, sizeof(section_header));
-      DEBUG(1, printf("Restoring # %d (0x%x-0x%x) offset = %ld)\n",
+      DEBUG(2, printf("Restoring # %d (0x%x-0x%x) offset = %ld)\n",
 		      n, (unsigned) section_header.start,
 		      (unsigned) section_header.start + section_header.length,
 		      header_offset+section_header.offset));
@@ -372,6 +388,12 @@ int (*allocf) P((SaveSection));
       }
     }
 
+#if O_SAVE_STDIO
+    *stdin = restore_iob[0];
+    *stdout = restore_iob[1];
+    *stderr = restore_iob[2];
+  }
+#endif
     memcpy(ret_main_ctx, restore_ctx, sizeof(restore_ctx));
 
     resetIO();
@@ -384,11 +406,99 @@ int (*allocf) P((SaveSection));
 		*            SAVE		*
 		********************************/
 
+#if O_ELF
+
+#include <libelf.h>
+
+#define ElfError(id) do { warning("%s: %s\n", \
+				  id, elf_errmsg(elf_errno())); \
+			  fail; \
+			} while(0)
+
+int
+fill_c_data_sections(interpreter, nsects, sections)
+char *interpreter;
+int *nsects;
+SaveSection sections;
+{ Elf *elf;
+  Elf32_Ehdr *ehdr;
+  Elf_Scn *scn = 0;
+  int fd;
+  int ndx;
+
+  *nsects = 0;
+
+  if ( elf_version(EV_CURRENT) == EV_NONE )
+    ElfError("can't initialise elf version");
+  if ( (fd = open(interpreter, O_RDONLY)) < 0 )
+    return warning("save/2: can't open %s: %s", interpreter, OsError());
+  if ( !(elf = elf_begin(fd, ELF_C_READ, NULL)) )
+    ElfError("can't begin elf library");
+  if ((ehdr = elf32_getehdr(elf)) == 0)
+    ElfError("can't get elf header");
+  ndx = ehdr->e_shstrndx;
+  
+  while ((scn = elf_nextscn(elf, scn)) != 0)
+  { Elf32_Shdr *hdr = elf32_getshdr(scn);
+    char *name = elf_strptr(elf, ndx, (size_t)hdr->sh_name);
+
+    if ( streq(name, ".data") ||
+	 streq(name, ".data1") )
+    { assert(hdr->sh_type == SHT_PROGBITS);
+      sections->start  = (caddr) hdr->sh_addr;
+      sections->length = hdr->sh_size;
+      sections->type   = S_DATA;
+      sections->flags  = 0;
+
+      (*nsects)++;
+      sections++;
+    } else if ( streq(name, ".bss") )
+    { assert(hdr->sh_type == SHT_NOBITS);
+      sections->start  = (caddr) hdr->sh_addr;
+      sections->length = (ulong) sbrk(0) - (ulong) sections->start;
+      sections->type   = S_DATA;
+      sections->flags  = 0;
+
+      (*nsects)++;
+      sections++;
+    } 
+  }
+
+  elf_end(elf);
+  close(fd);;
+
+  succeed;
+}
+
+#else /* O_ELF */
+
 #ifdef HEAP_START
 #define C_DATA_SECTIONS 2		/* heap separate from data  */
 #else
 #define C_DATA_SECTIONS 1
 #endif
+
+int
+fill_c_data_sections(interpreter, nsects, sections)
+char *interpreter;
+int *nsects;
+SaveSection sections;
+{ sections[0].start	= (caddr) DATA_START;
+  sections[0].length	= (long) DATA_END - (long) sections[0].start;
+  sections[0].type	= S_DATA;
+  sections[0].flags	= 0;
+  *nsects = 1;
+#ifdef HEAP_START
+  sections[1].start     = HEAP_START;
+  sections[1].length    = (long) sbrk(0) - (long) sections[1].start;
+  sections[1].type      = S_DATA;
+  sections[1].flags     = 0;
+  *nsects = 2;
+#endif /* HEAP_START */
+
+  succeed;
+}
+#endif /* ELF */
 
 int
 save(file, interpreter, kind, nsections, sections)
@@ -403,11 +513,12 @@ SaveSection sections;
   long header_offset;
   volatile long section_offset;		/* volatile to keep gcc happy */
   struct save_header header;
-  int nsects = nsections + C_DATA_SECTIONS;
-  int sects_size;
+  int csects, nsects, sects_size;
   int n;
   SaveSection sect;
 
+  fill_c_data_sections(interpreter, &csects, sects);
+  nsects = csects + nsections;
   if ( kind == RET_RETURN )
     nsects++;				/* C-stack section  */
   sects_size = sizeof(struct save_section) * nsects;
@@ -418,7 +529,7 @@ SaveSection sections;
 #if OS2
   sprintf(buf, "/* Self-starting SWI-Prolog state */\r\n'@ECHO OFF'\r\nparse source . . name\r\n\"%s -r \" name arg(1)\r\nexit\r\n\032", OsPath(interpreter));
 #else
-  sprintf(buf, "#!/bin/sh\nexec %s -r $0 $*\n", OsPath(interpreter));
+  sprintf(buf, "#!/bin/sh\nexec %s -r $0 $@\n", OsPath(interpreter));
 #endif
   header_offset = strlen(buf) + 1; /* +1 to write the EOS too */
   DEBUG(1, printf("header_offset = %d\n", header_offset));
@@ -431,22 +542,11 @@ SaveSection sections;
     
   section_offset = sizeof(header) + sects_size;
 
-  sects[0].start	= (caddr) DATA_START;
-  sects[0].length	= (long) DATA_END - (long) sects[0].start;
-  sects[0].type		= S_DATA;
-  sects[0].flags	= 0;
-#ifdef HEAP_START
-  sects[1].start        = HEAP_START;
-  sects[1].length       = (long) sbrk(0) - (long) sects[1].start;
-  sects[1].type         = S_DATA;
-  sects[1].flags        = 0;
-#endif /* HEAP_START */
-
-  memcpy(&sects[C_DATA_SECTIONS], sections,
+  memcpy(&sects[csects], sections,
 	 nsections * sizeof(struct save_section));
 
   if ( kind == RET_RETURN )
-  { SaveSection stack_sect = &sects[nsections+C_DATA_SECTIONS];
+  { SaveSection stack_sect = &sects[nsections+csects];
 
     if ( setjmp(ret_return_ctx) )
     { DEBUG(1, printf("Yipie, returning from state\n"));
@@ -505,7 +605,13 @@ char **env;
     environ = env;
     rval = startProlog(argc, argv, env);
   } else
-  { if ( argc >= 3 && streq(argv[1], "-r") )
+  { char **av;
+
+    for(av=argv; *av; av++)
+      if ( streq(*av, "-d") && av[1] )
+	status.debugLevel = atoi(av[1]);
+
+    if ( argc >= 3 && streq(argv[1], "-r") )
 #if O_DYNAMIC_STACKS
     { extern int allocateSection P((SaveSection));
 

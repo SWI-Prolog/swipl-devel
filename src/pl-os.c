@@ -529,6 +529,20 @@ GetDTableSize()
 #endif
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Size of a VM page of memory.  Most BSD machines have this function.  If not,
+here are several alternatives ...
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if solaris
+int
+getpagesize()
+{ return sysconf(_SC_PAGESIZE);
+}
+#endif
+
+
 /* ********************************************************************
    Design Note -- atoenne@mpi-sb.mpg.de --
 
@@ -1577,7 +1591,10 @@ GetChar()
 	}
       }
     } else
-      c = getchar();
+    { char chr;				/* don't use getchar(); I/O buffer */
+					/* might not be empty after save() */
+      c = (read(0, &chr, 1) == 0 ? EOF : chr);
+    }
   } else
   { if ( !line )
     { rl_event_hook = (PL_dispatch_events ? (Function *) event_hook

@@ -12,6 +12,8 @@ Get the ball rolling.  The main task of  this  module  is  command  line
 option  parsing,  initialisation  and  handling  of errors and warnings.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/*#define O_DEBUG 1*/
+
 #include "pl-incl.h"
 #include "pl-itf.h"
 #include "pl-save.h"
@@ -120,8 +122,12 @@ char **env;
 
  /* status.debugLevel = 9; */
 
+#ifndef MACHINE_ID
+#define MACHINE_ID MACHINE
+#endif
+
   if ( status.dumped == FALSE )
-  { systemDefaults.machine	    = MACHINE;
+  { systemDefaults.machine	    = MACHINE_ID;
     systemDefaults.home		    = findHome(store_string(PrologPath(SYSTEMHOME)));
     systemDefaults.state	    = findState("startup");
     systemDefaults.startup	    = store_string(PrologPath(DEFSTARTUP));
