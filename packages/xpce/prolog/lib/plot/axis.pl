@@ -64,6 +64,8 @@ variable(length,	int,		get,  "Total length").
 variable(type,		{x,y},		get,  "Horizontal/vertical").
 variable(value_format,	[name],		get,  "Value format specification").
 variable(label,		graphical*,	get,  "Label along the axis").
+variable(lines,		{none,normal,all} := normal,
+				      	get,  "Draw support lines").
 :- pce_group(internal).
 variable(support,	chain,		none, "Supporting graphicals").
 
@@ -146,6 +148,16 @@ value_from_coordinate(A, Loc:int, Val:'int|real') :<-
 	"Translate location into value"::
 	loc(A, Val, Loc).
        
+pixel_range(A, Tuple:tuple) :<-
+	"Pixel range covered"::
+	get(A, length, L),
+	get(A, origin, point(OX, OY)),
+	(   get(A, type, x)
+	->  Min is OX, Max is OX + L
+	;   Min is OY, Max is OY - L
+	),
+	new(Tuple, tuple(Min,Max)).
+
 
 		 /*******************************
 		 *	    SLOT CHANGES        *
@@ -187,6 +199,9 @@ type(A, T:{x,y}) :->
 
 format(A, Fmt:[name]) :->
 	set(A, format, Fmt).
+
+lines(A, Lines:{none,normal,all}) :->
+	set(A, lines, Lines).
 
 set(A, Slot, Value) :-
 	get(A, Slot, Value), !.
@@ -277,28 +292,52 @@ format(A, Fmt:[char_array]) :<-
 compute_small_steps(A) :->
 	get(A, small_step, SmallStep),
 	(   SmallStep \== @nil
-	->  
-	get(A, low, Low),
+	->  get(A, low, Low),
 	    get(A, high, High),
 	    get(A, step, Step),
 	    get(A, device, Dev),
 	    get(A, origin, point(OX, OY)),
 	    get(A, slot, support, Support),
+
+	    lines_extend(A, small, LStart, LEnd),
+
 	    (   get(A, type, x)
-	    ->  forall(tick(Low, High, SmallStep, TV),
-		       (   A is TV / Step, integer(A)
-		       ->  true
-		       ;   loc(A, TV, TX),
-			   send(Dev, display, new(L, line(TX, OY, TX, OY+3))),
-			   send(Support, append, L)
-		       ))
-	    ;   forall(tick(Low, High, SmallStep, TV),
-		       (   A is TV / Step, integer(A)
-		       ->  true
-		       ;   loc(A, TV, TY),
-			   send(Dev, display, new(L, line(OX-3, TY, OX, TY))),
-			   send(Support, append, L)
-		       ))
+	    ->  (   tick(Low, High, SmallStep, TV),
+		    (   Val is TV / Step, integer(Val)
+		    ->  true
+		    ;   loc(A, TV, TX),
+			send(Dev, display, new(L, line(TX, OY, TX, OY+3))),
+			send(Support, append, L),
+			(   LStart \== LEnd
+			->  send(Dev, display,
+				 new(SL, line(TX, LStart, TX, LEnd))),
+			    send(SL, texture, dotted),
+			    send(SL, colour, grey50),
+			    send(Support, append, SL)
+			;   true 
+			)
+		    ),
+		    fail
+		;   true
+		)
+	    ;   (   tick(Low, High, SmallStep, TV),
+		    (   Val is TV / Step, integer(Val)
+		    ->  true
+		    ;   loc(A, TV, TY),
+			send(Dev, display, new(L, line(OX-3, TY, OX, TY))),
+			send(Support, append, L),
+			(   LStart \== LEnd
+			->  send(Dev, display,
+				 new(SL, line(LStart, TY, LEnd, TY))),
+			    send(SL, texture, dotted),
+			    send(SL, colour, grey50),
+			    send(Support, append, SL)
+			;   true 
+			)
+		    ),
+		    fail
+		;   true
+		)
 	    )
 	;   true
 	).
@@ -313,6 +352,23 @@ place_label(Dev, Label, Dir, X, Y) :-
 	send(Dev, display, Label).
 
 
+lines_extend(A, Which, Min, Max) :-
+	get(A, lines, Lines),
+	(   (   Which == normal, Lines \= none
+	    ->	true
+	    ;	Which == small, Lines == all
+	    ),
+	    get(A, device, Dev),
+	    (	get(A, type, y)
+	    ->	get(Dev, pixel_range, x, tuple(Min, Max))
+	    ;	get(Dev, pixel_range, y, tuple(Min, Max))
+	    )
+	->  true
+	;   Min = 0,
+	    Max = 0
+	).
+
+	
 compute(A) :->
 	send(A, slot, request_compute, computing),
 	get(A, low, Low),
@@ -326,38 +382,63 @@ compute(A) :->
 	send(Support, for_all, message(@arg1, free)),
 	send(Support, clear),
 
+	lines_extend(A, normal, LStart, LEnd),
+
+	send(A, compute_small_steps),
+
 	loc(A, Low, Start),
 	loc(A, High, End),
 	get(A, device, Dev),
 	(   get(A, type, x)
 	->  send(A, points, Start, OY, End, OY),
+	    OY5 is OY+5,
 	    place_label(Dev, Label, x, End, OY),
-	    forall(tick(Low, High, Step, TV),
-		   (   loc(A, TV, TX),
-		       send(Dev, display,
-			    new(L, line(TX, OY, TX, OY+5))),
-		       send(Dev, display,
-			    new(T, text(string(Fmt, TV), font := Font)),
-			    point(TX-3, OY+5)),
-		       send(Support, append, L),
-		       send(Support, append, T)
-		   ))
+	    (	tick(Low, High, Step, TV),
+		(   loc(A, TV, TX),
+		    send(Dev, display,
+			 new(L, line(TX, OY, TX, OY5))),
+		    send(Dev, display,
+			 new(T, text(string(Fmt, TV), font := Font)),
+			 point(TX-3, OY5)),
+		    (	LStart \== LEnd
+		    ->	send(Dev, display,
+			     new(SL, line(TX, LStart, TX, LEnd))),
+			send(SL, texture, dotted),
+			send(Support, append, SL)
+		    ;	true
+		    ),
+		    send(Support, append, L),
+		    send(Support, append, T)
+		),
+		fail
+	    ;	true
+	    )
 	;   send(A, points, OX, Start, OX, End),
+	    OX5 is OX-5,
 	    place_label(Dev, Label, y, OX, End),
-	    forall(tick(Low, High, Step, TV),
-		   (   loc(A, TV, TY),
-		       send(Dev, display,
-			    new(L, line(OX-5, TY, OX, TY))),
-		       new(T, text(string(Fmt, TV), font := Font)),
-		       get(T, width, TW),
-		       get(T, height, TH),
-		       send(T, set, OX-5-TW, TY-TH+3),
-		       send(Dev, display, T),
-		       send(Support, append, L),
-		       send(Support, append, T)
-		   ))
+	    (   tick(Low, High, Step, TV),
+		(   loc(A, TV, TY),
+		    send(Dev, display,
+			 new(L, line(OX5, TY, OX, TY))),
+		    new(T, text(string(Fmt, TV), font := Font)),
+		    get(T, width, TW),
+		    get(T, height, TH),
+		    TxtX is OX5-TW, TxtY is TY -TH + 3,
+		    send(T, set, TxtX, TxtY),
+		    send(Dev, display, T),
+		    (	LStart \== LEnd
+		    ->	send(Dev, display,
+			     new(SL, line(LStart, TY, LEnd, TY))),
+			send(SL, texture, dotted),
+			send(Support, append, SL)
+		    ;	true
+		    ),
+		    send(Support, append, L),
+		    send(Support, append, T)
+		), fail
+	    ;	true
+	    )
 	),
-	send(A, compute_small_steps),
 	(   send(Dev, has_send_method, modified_plot_axis)
 	->  send(Dev, modified_plot_axis, A)
 	;   true

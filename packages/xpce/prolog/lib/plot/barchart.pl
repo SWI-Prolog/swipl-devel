@@ -284,6 +284,11 @@ orientation(BS, Orientation:{horizontal,vertical}) :->
 	send(BS?graphicals, for_all,
 	     message(@arg1, orientation, Orientation)).
 
+thickness(BS, Thickness:'0..') :->
+	"Change the thickness of member bars"::
+	send(BS?graphicals, for_all,
+	     message(@arg1, thickness, Thickness)).
+
 compute(BS) :->
 	send(BS, place_bars),
 	send_super(BS, compute).
@@ -542,20 +547,22 @@ variable(value_format,name,		     both,"Format displayed values").
 initialise(BC,
 	   Orientation:orientation={horizontal,vertical},
 	   Low:low=real, High:high=real, ScaleLength:'scale_length=[0..]',
-	   NBars:'nbars=[0..]') :->
+	   NBars:'nbars=[0..]',
+	   BarWidth:'bar_width=[0..]',
+	   BarGap:'bar_gap=[0..]') :->
 	default(ScaleLength, 200, SL),
 	default(NBars, 5, NB),
+	default(BarWidth, 20, BW),
+	default(BarGap, 10, BG),
 	send_super(BC, initialise),
 	send(BC, slot, orientation, Orientation),
 	send(BC, slot, bars, new(chain)),
-	send(BC, slot, bar_width, 20),
-	send(BC, slot, bar_gap, 10),
+	send(BC, slot, bar_width, BW),
+	send(BC, slot, bar_gap, BG),
 	send(BC, slot, low, Low),
 	send(BC, slot, high, High),
 	determine_format(Low, High, Fmt),
 	send(BC, slot, value_format, Fmt),
-	get(BC, bar_width, BW),
-	get(BC, bar_gap, BG),
 	BL is NB * (BW+BG) + BG,
 	(   Orientation == vertical
 	->  send(BC, axis,
@@ -592,7 +599,29 @@ nbars(BC, NBars:[int]) :->
 	(   get(BC, orientation, vertical)
 	->  send(L, end_x, BL)
 	;   send(L, start_y, -BL)
+	),
+	(   get(BC, x_axis, Xaxis)
+	->  send(Xaxis, request_compute)
+	;   true
+	),
+	(   get(BC, y_axis, Yaxis)
+	->  send(Yaxis, request_compute)
+	;   true
 	).
+
+pixel_range(BC, Dir:{x,y}, Range:tuple) :<-
+	(   get_super(BC, pixel_range, Dir, Range)
+	->  true
+	;   get(BC, member, bar_base, Line),
+	    (	Dir == x
+	    ->	get(Line, start_x, Min),
+		get(Line, end_x, Max)
+	    ;	get(Line, start_y, Min),
+		get(Line, end_y, Max)
+	    ),
+	    new(Range, tuple(Min, Max))
+	).
+	    
 
 :- pce_group(contents).
 
@@ -616,6 +645,7 @@ append(BC, Bar:'bar|bar_stack') :->
 	    get(XAxis, y, Y0),
 	    BarY is Y0-NBars*BW - NBars*BG
 	),
+	send(Bar, thickness, BW),
 	send(BC, display, Bar, point(BarX, BarY)),
 	(   get(BC, show_labels, @on)
 	->  new(_, bar_label(Bar))

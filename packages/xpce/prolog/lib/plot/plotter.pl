@@ -56,6 +56,14 @@ y_axis(P, Axe:plot_axis) :<-
 	"Find the Y-axis"::
 	get(P, member, y, Axe).
 
+pixel_range(P, Dir:{x,y}, Range:tuple) :<-
+	"Pixels covered in a direction"::
+	(   Dir == x
+	->  get(P, x_axis, Axis)
+	;   get(P, y_axis, Axis)
+	),
+	get(Axis, pixel_range, Range).
+
 translate(P, X:'int|real', Y:'int|real', Point) :<-
 	"Translate a coordinate"::
 	get(P, member, x, XAxe),
