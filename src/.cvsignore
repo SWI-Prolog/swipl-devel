@@ -2,3 +2,7 @@ parms.h
 README.bin
 clock
 BUGS
+*.00[0-9]
+pl.ncb
+pl.opt
+*.plg
