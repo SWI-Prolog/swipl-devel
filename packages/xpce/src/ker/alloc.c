@@ -109,11 +109,8 @@ allocate(int size)
 #endif
   }
 
-  if ( !(p = pceMalloc(ALLOCSIZE)) )
-  { Cprintf("[PCE FATAL ERROR: malloc(%d) failed.  Swap space full?]\n",
-	    ALLOCSIZE);
-    exit(1);
-  }
+  p = pceMalloc(ALLOCSIZE);
+
 #if ALLOC_DEBUG
   memset(p, ALLOC_MAGIC_BYTE, ALLOCSIZE);
 #endif

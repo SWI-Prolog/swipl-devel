@@ -677,6 +677,36 @@ pceWriteErrorGoal(void)
 		 *	    DLL CALLBACK	*
 		 *******************************/
 
+static void
+outOfMemory()
+{ Cprintf("Out of memory: ");
+  Cprintf("%s", strName(getOsErrorPce(PCE)));
+  hostAction(HOST_RECOVER_FROM_FATAL_ERROR);
+}
+
+
+static void *
+pce_malloc(size_t bytes)
+{ void *mem;
+
+  if ( !(mem = malloc(bytes)) )
+    outOfMemory();
+  
+  return mem;
+}
+
+
+static void *
+pce_realloc(void *old, size_t bytes)
+{ void *mem;
+
+  if ( !(mem = realloc(old, bytes)) )
+    outOfMemory();
+
+  return mem;
+}
+
+
 pce_callback_functions TheCallbackFunctions =
 { Stub__HostSend,			/* hostSend() */
   Stub__HostGet,			/* hostGet() */
@@ -687,8 +717,8 @@ pce_callback_functions TheCallbackFunctions =
   Stub__Cputchar,			/* print single character */
   Stub__Cflush,				/* flush console output */
   Stub__Cgetline,			/* read line from console */
-  malloc,				/* malloc */
-  realloc,				/* realloc */
+  pce_malloc,				/* malloc */
+  pce_realloc,				/* realloc */
   free					/* free */
 };
 
