@@ -492,6 +492,14 @@ display_slots(OS, PrimCode) :-
 display_slots(OS, PrimCode) :-
 	send(PrimCode, '_instance_of', ?), !,
 	display_slots_v(OS, PrimCode, [receiver, selector]).
+display_slots(OS, String) :-
+	send(String, '_instance_of', char_array), !,
+	get(String, value, Text),
+	send(OS, display_value, value, Text),
+	class_slot_names(char_array, StringSlots),
+	slot_names(String, Names),
+	subtract(Names, StringSlots, ExtraSlots),
+	display_slots(OS, String, ExtraSlots).
 display_slots(OS, Object) :-
 	slot_names(Object, Names),
 	display_slots(OS, Object, Names).
