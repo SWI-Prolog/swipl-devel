@@ -63,7 +63,7 @@ pl_record_bag(term_t t)
   if ( PL_is_atom(t) )
     a->binding = NULL;
   else
-    a->binding = compileTermToHeap(t);
+    a->binding = compileTermToHeap(t, 0);
   a->next    = alist;
   alist      = a;
 

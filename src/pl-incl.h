@@ -829,7 +829,7 @@ with one operation, it turns out to be faster as well.
 #define P_VARARG		(0x00200000L) /* predicate */
 #define PROC_DEFINED		(DYNAMIC|FOREIGN|MULTIFILE|DISCONTIGUOUS)
 
-#define ERASED			(0x0001) /* clause */
+#define ERASED			(0x0001) /* clause, record */
 #define UNIT_CLAUSE		(0x0002) /* clause */
 #define HAS_BREAKPOINTS		(0x0004) /* clause */
 
@@ -845,6 +845,7 @@ with one operation, it turns out to be faster as well.
 #define INLINE_F		(0x0001) /* functor */
 
 #define R_DIRTY			(0x0001) /* recordlist */
+#define R_EXTERNAL		(0x0002) /* record */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Handling environment (or local stack) frames.
@@ -1214,7 +1215,9 @@ struct record
   int		nvars;			/* # variables in the term */
   int		gsize;			/* Stack space required (words) */
   int		size;			/* # bytes of the record */
-  int		erased;			/* record has been erased */
+  unsigned	flags;			/* Flags, holding */
+					/* ERASED */
+					/* R_EXTERNAL */
   int		references;		/* PL_duplicate_record() support */
 #if SIZEOF_LONG != SIZEOF_INT		/* ensure long-aligned buffer */
   int		pad;

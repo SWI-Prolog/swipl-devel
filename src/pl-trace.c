@@ -419,7 +419,7 @@ setupFind(char *buf)
     { find->type = TRACE_FIND_NAME;
     } else if ( PL_get_functor(t, &find->goal.term.functor) )
     { find->type = TRACE_FIND_TERM;
-      find->goal.term.term    = compileTermToHeap(t);
+      find->goal.term.term = compileTermToHeap(t, 0);
     } else
     { Sfputs("[Illegal goal specification]\n", Sdout);
       fail;

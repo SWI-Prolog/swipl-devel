@@ -180,6 +180,7 @@ static int
 update_column(int col, int c)
 { switch(c)
   { case '\n':	return 0;
+    case '\r':  return 0;
     case '\t':	return (col + 1) | 0x7;
     case '\b':	return (col <= 0 ? 0 : col - 1);
     default:	return col + 1;

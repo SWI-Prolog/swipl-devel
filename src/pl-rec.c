@@ -78,7 +78,7 @@ cleanRecordList(RecordList rl)
   Record r;
 
   for(p = &rl->firstRecord; (r=*p); )
-  { if ( r->erased )
+  { if ( true(r, ERASED) )
     { *p = r->next;
       freeRecord(r);
     } else
@@ -96,6 +96,9 @@ cleanRecordList(RecordList rl)
 #ifndef offsetof
 #define offsetof(structure, field) ((int) &(((structure *)NULL)->field))
 #endif
+#ifndef roundup
+#define roundup(p, n) (((p)+(n)-1 / (n)) * (n))
+#endif
 
 #define SIZERECORD  offsetof(struct record, buffer[0])
 
@@ -104,6 +107,7 @@ typedef struct
   tmp_buffer vars;			/* variable pointers */
   int	     size;			/* size on global stack */
   int	     nvars;			/* # variables */
+  int	     external;			/* Allow for external storage */
 } compile_info, *CompileInfo;
 
 
@@ -118,6 +122,19 @@ typedef struct
 #define PL_TYPE_FLOAT	  	(5)	/* double */
 #define PL_TYPE_STRING	  	(6)	/* string */
 #define PL_TYPE_COMPOUND	(7)	/* compound term */
+
+#define PL_TYPE_EXT_ATOM	(8)	/* External (inlined) atom */
+#define PL_TYPE_EXT_COMPOUND	(9)	/* External (inlined) functor */
+
+static void
+addAtomValue(Buffer b, atom_t name)
+{ Atom a = atomValue(name);
+  unsigned int padded = roundup(a->length, sizeof(word));
+
+  addBuffer(b, a->length, long);
+  addMultipleBuffer(b, a->name, padded, char);
+}
+
 
 static void
 compile_term_to_heap(Word p, CompileInfo info)
@@ -144,6 +161,9 @@ right_recursion:
 
 	addBuffer(&info->code, PL_TYPE_VARIABLE, long);
 	addBuffer(&info->code, n, long);
+      } else if ( info->external )
+      { addBuffer(&info->code, PL_TYPE_EXT_ATOM, long);
+	addAtomValue((Buffer)&info->code, w);
       } else
       { addBuffer(&info->code, PL_TYPE_ATOM, long);
 	addBuffer(&info->code, w, atom_t);
@@ -194,8 +214,16 @@ right_recursion:
       int arity = arityFunctor(f->definition);
 
       info->size += arity+1;
-      addBuffer(&info->code, PL_TYPE_COMPOUND, long);
-      addBuffer(&info->code, f->definition, word);
+      if ( info->external )
+      { FunctorDef fd = valueFunctor(f->definition);
+
+	addBuffer(&info->code, PL_TYPE_EXT_COMPOUND, long);
+	addBuffer(&info->code, fd->arity, long);
+	addAtomValue((Buffer)&info->code, fd->name);
+      } else
+      { addBuffer(&info->code, PL_TYPE_COMPOUND, long);
+	addBuffer(&info->code, f->definition, word);
+      }
       p = f->arguments;
       for(; --arity > 0; p++)
       { compile_term_to_heap(p, info);
@@ -213,7 +241,7 @@ right_recursion:
 
 
 Record
-compileTermToHeap(term_t t)
+compileTermToHeap(term_t t, int flags)
 { GET_LD
   compile_info info;
   Record record;
@@ -226,6 +254,7 @@ compileTermToHeap(term_t t)
   initBuffer(&info.vars);
   info.size = 0;
   info.nvars = 0;
+  info.external = (flags & R_EXTERNAL);
 
   compile_term_to_heap(valTermRef(t), &info);
   n = info.nvars;
@@ -241,10 +270,13 @@ compileTermToHeap(term_t t)
   record->gsize = info.size;
   record->nvars = info.nvars;
   record->size  = size;
-  record->erased = FALSE;
+  record->flags = 0;
   record->references = 1;
   memcpy(record->buffer, info.code.base, sizeOfBuffer(&info.code));
   discardBuffer(&info.code);
+
+  if ( info.external )
+    set(record, R_EXTERNAL);
 
   return record;
 }
@@ -272,6 +304,19 @@ typedef struct
 		} while(0)
 #define skipBuf(b, type) \
 		((b)->data += sizeof(type))
+
+
+static void
+fetchAtom(CopyInfo b, atom_t *a)
+{ long len;
+  long padded;
+
+  fetchBuf(b, &len, long);
+  padded = roundup(len, sizeof(word));
+  *a = lookupAtom(b->data, (unsigned int)len);
+
+  (b)->data += padded;
+}
 
 
 static void
@@ -304,6 +349,10 @@ right_recursion:
     case PL_TYPE_ATOM:
     { fetchBuf(b, p, word);
 
+      return;
+    }
+    case PL_TYPE_EXT_ATOM:
+    { fetchAtom(b, p);
       return;
     }
     case PL_TYPE_TAGGED_INTEGER:
@@ -348,13 +397,14 @@ right_recursion:
 
       return;
     }
+  { word fdef;
+    long arity;
     case PL_TYPE_COMPOUND:
-    { word fdef;
-      int arity;
 
       fetchBuf(b, &fdef, word);
       arity = arityFunctor(fdef);
 
+    compound:
       *p = consPtr(b->gstore, TAG_COMPOUND|STG_GLOBAL);
       *b->gstore++ = fdef;
       p = b->gstore;
@@ -362,7 +412,16 @@ right_recursion:
       for(; --arity > 0; p++)
 	copy_record(p, b);
       goto right_recursion;
+    case PL_TYPE_EXT_COMPOUND:
+    { atom_t name;
+
+      fetchBuf(b, &arity, long);
+      fetchAtom(b, &name);
+      fdef = lookupFunctorDef(name, arity);
+
+      goto compound;
     }
+  }
     default:
       assert(0);
   }
@@ -402,6 +461,15 @@ recursion.   Other   options:   combine     into    copyRecordToGlobal()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
+skipAtom(CopyInfo b)
+{ long len;
+
+  fetchBuf(b, &len, long);
+  b->data += roundup(len, sizeof(word));
+}
+
+
+static void
 unregisterAtomsRecord(CopyInfo b)
 { long tag;
 
@@ -417,6 +485,10 @@ right_recursion:
 
       fetchBuf(b, &val, atom_t);
       PL_unregister_atom(val);
+      return;
+    }
+    case PL_TYPE_EXT_ATOM:
+    { skipAtom(b);
       return;
     }
     case PL_TYPE_TAGGED_INTEGER:
@@ -447,6 +519,15 @@ right_recursion:
 	unregisterAtomsRecord(b);
       goto right_recursion;
     }
+    case PL_TYPE_EXT_COMPOUND:
+    { long arity;
+
+      fetchBuf(b, &arity, word);
+      skipAtom(b);
+      while(--arity > 0)
+	unregisterAtomsRecord(b);
+      goto right_recursion;
+    }
     default:
       assert(0);
   }
@@ -460,7 +541,7 @@ right_recursion:
 		 *******************************/
 
 typedef struct
-{ char *data;
+{ char *data;				/* must align with copy_info! */
   tmp_buffer vars;
 } se_info, *SeInfo;
 
@@ -505,6 +586,12 @@ unref_cont:
       { atom_t val;
 
 	fetchBuf(info, &val, atom_t);
+	if ( val == w )
+	  succeed;
+      } else if ( stag == PL_TYPE_EXT_ATOM )
+      { atom_t val;
+
+	fetchAtom((CopyInfo)info, &val);		/* TBD: Optimise! */
 	if ( val == w )
 	  succeed;
       }
@@ -578,6 +665,25 @@ unref_cont:
 	  }
 	  goto right_recursion;
 	}
+      } else if ( stag == PL_TYPE_EXT_COMPOUND )
+      { Functor f = valueTerm(w);
+	FunctorDef fd = valueFunctor(f->definition);
+	long arity;
+	atom_t name;
+
+	fetchBuf(info, &arity, long);
+	if ( arity != fd->arity )
+	  fail;
+	fetchAtom((CopyInfo)info, &name);	/* TBD: optimise */
+	if ( name != fd->name )
+	  fail;
+	
+	p = f->arguments;
+	for(; --arity > 0; p++)
+	{ if ( !se_record(p, info PASS_LD) )
+	    fail;
+	}
+        goto right_recursion;
       }
 
       fail;
@@ -596,9 +702,19 @@ structuralEqualArg1OfRecord(term_t t, Record r ARG_LD)
 { se_info info;
   int n, rval;
   Word *p;
+  long stag;
 
   initBuffer(&info.vars);
-  info.data = r->buffer + sizeof(long) + sizeof(word);
+  info.data = r->buffer;
+  fetchBuf(&info, &stag, long);
+  if ( stag == PL_TYPE_COMPOUND )
+    skipBuf(&info, word);
+  else if ( stag == PL_TYPE_EXT_COMPOUND )
+  { skipBuf(&info, long);		/* arity */
+    skipAtom((CopyInfo)&info);		/* name */
+  } else
+    assert(0);
+
 					/* skip PL_TYPE_COMPOUND <functor> */
   rval = se_record(valTermRef(t), &info PASS_LD);
   n = entriesBuffer(&info.vars, Word);
@@ -616,11 +732,13 @@ freeRecord(Record record)
 { if ( --record->references == 0 )
   {
 #ifdef O_ATOMGC
-    copy_info ci;
+    if ( false(record, R_EXTERNAL) )
+    { copy_info ci;
 
-    ci.data = record->buffer;
-    unregisterAtomsRecord(&ci);
-    assert(ci.data == (record->buffer + record->size - SIZERECORD));
+      ci.data = record->buffer;
+      unregisterAtomsRecord(&ci);
+      assert(ci.data == (record->buffer + record->size - SIZERECORD));
+    }
 #endif
     freeHeap(record, record->size);
   }
@@ -713,7 +831,7 @@ record(term_t key, term_t term, term_t ref, int az)
   if ( !PL_is_variable(ref) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_variable, ref);
 
-  copy = compileTermToHeap(term);
+  copy = compileTermToHeap(term, 0);
   PL_unify_pointer(ref, copy);
 
   LOCK();
@@ -812,7 +930,7 @@ pl_recorded(term_t key, term_t term, term_t ref, word h)
   for( ; record; record = record->next )
   { mark m;
 
-    if ( record->erased )
+    if ( true(record, ERASED) )
       continue;
 
     Mark(m);
@@ -871,7 +989,7 @@ pl_erase(term_t ref)
 
     l = record->list;
     if ( l->references )		/* a recorded has choicepoints */
-    { record->erased = TRUE;
+    { set(record, ERASED);
       set(l, R_DIRTY);
     } else if ( record == l->firstRecord )
     { if ( !record->next )

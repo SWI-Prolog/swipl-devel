@@ -636,7 +636,7 @@ foreign_t	pl_current_char_conversion(term_t in, term_t out, word h);
 
 /* pl-rec.c */
 void		initRecords(void);
-Record		compileTermToHeap(term_t term);
+Record		compileTermToHeap(term_t term, int flags);
 void		copyRecordToGlobal(term_t copy, Record term ARG_LD);
 int		structuralEqualArg1OfRecord(term_t t, Record r ARG_LD);
 bool		freeRecord(Record record);

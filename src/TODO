@@ -101,3 +101,12 @@ Affected:
 	* pl-comp.c (?)
 	* pl-gc.c
 	* pl-trace.c
+
+STEPS:
+------
+
+Database design:
+
+	* Symbol-table
+	* Adapted compiler
+	* Clause Index

@@ -406,6 +406,7 @@ __pl_export void	PL_fatal_error(const char *fmt, ...);
 		 *******************************/
 
 __pl_export record_t	PL_record(term_t term);
+__pl_export record_t	PL_record_external(term_t t, unsigned int *size);
 __pl_export void	PL_recorded(record_t record, term_t term);
 __pl_export void	PL_erase(record_t record);
 

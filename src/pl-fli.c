@@ -2616,7 +2616,17 @@ PL_dispatch(int fd, int wait)
 
 record_t
 PL_record(term_t t)
-{ return compileTermToHeap(t);
+{ return compileTermToHeap(t, 0);
+}
+
+
+record_t
+PL_record_external(term_t t, unsigned int *size)
+{ Record r = compileTermToHeap(t, R_EXTERNAL);
+
+  *size = r->size;
+
+  return r;
 }
 
 
@@ -2632,6 +2642,7 @@ void
 PL_erase(record_t r)
 { freeRecord(r);
 }
+
 
 record_t
 PL_duplicate_record(record_t r)

@@ -121,7 +121,7 @@ Below is an informal description of the format of a `.qlf' file:
 			    <#n subclause> <#codes> <codes>
 		      | 'X' 				% end of list
 <XR>		::=	XR_REF     <num>		% XR id from table
-			XR_ATOM    <string>		% atom
+			XR_ATOM    <len><chars>		% atom
 			XR_INT     <num>		% number
 			XR_FLOAT   <word>*		% real (double)
 			XR_STRING  <string>		% string
