@@ -779,11 +779,12 @@ link_triple_hash(triple *t)
 }
 
 
+/* MT: must be locked by caller */
+
 static void
 link_triple(triple *t)
 { triple *one;
 
-  LOCK();
   if ( by_none_tail )
     by_none_tail->next[BY_NONE] = t;
   else
@@ -813,8 +814,6 @@ link_triple(triple *t)
 
 ok:
   created++;
-
-  UNLOCK();
 }
 
 
@@ -869,10 +868,11 @@ update_hash()
 }
 
 
+/* MT: Must be locked */
+
 static void
 erase_triple(triple *t)
-{ LOCK();
-  if ( !t->erased )
+{ if ( !t->erased )
   { t->erased = TRUE;
 
     update_duplicates_del(t);
@@ -895,7 +895,6 @@ erase_triple(triple *t)
     }
     erased++;
   }
-  UNLOCK();
 }
 
 
@@ -1272,7 +1271,9 @@ load_triple(IOSTREAM *in, ld_context *ctx)
   t->object = load_atom(in, ctx);
   t->source = load_atom(in, ctx);
   t->line   = load_int(in);
+  LOCK();
   link_triple(t);
+  UNLOCK();
 
   return TRUE;
 }
@@ -1678,8 +1679,10 @@ rdf_assert4(term_t subject, term_t predicate, term_t object, term_t src)
   }
 
   lock_atoms(t);
+  LOCK();
   link_triple(t);
   generation++;
+  LOCK();
 
   return TRUE;
 }
@@ -1815,9 +1818,21 @@ rdf_has(term_t subject, term_t predicate, term_t object,
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+rdf_update(+Subject, +Predicate, +Object, +Action)
+
+Update a triple. Please note this is actually erase+assert as the triple
+needs to be updated in  the  linked   lists  while  erase simply flags a
+triple as `erases' without deleting it   to support queries which active
+choicepoints.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 update_triple(term_t action, triple *t)
 { term_t a = PL_new_term_ref();
+  triple tmp = *t;
+  triple *new;
+  int i;
 
   if ( !PL_get_arg(1, action, a) )
     return type_error(action, "rdf_action");
@@ -1827,31 +1842,44 @@ update_triple(term_t action, triple *t)
 
     if ( !get_atom_ex(a, &s) )
       return FALSE;
-    if ( t->subject != s )
-    { t->subject = s;
-      generation++;
-    }
+    if ( tmp.subject == s )
+      return TRUE;			/* no change */
+
+    tmp.subject = s;
   } else if ( PL_is_functor(action, FUNCTOR_predicate1) )
   { predicate *p;
 
     if ( !get_predicate(a, &p) )
       return FALSE;
-    if ( t->predicate != p )
-    { t->predicate = p;
-      generation++;
-    }
+    if ( tmp.predicate == p )
+      return TRUE;			/* no change */
+
+    tmp.predicate = p;
   } else if ( PL_is_functor(action, FUNCTOR_object1) )
   { triple t2;
 
     if ( !get_object(a, &t2) )
       return FALSE;
-    if ( t2.object != t->object || t2.objtype != t->objtype )
-    { t->objtype = t2.objtype;
-      t->object = t2.object;
-      generation++;
-    }
+    if ( t2.object == tmp.object && t2.objtype == tmp.objtype )
+      return TRUE;
+
+    tmp.objtype = t2.objtype;
+    tmp.object = t2.object;
   } else
     return domain_error(action, "rdf_action");
+
+  for(i=0; i<INDEX_TABLES; i++)
+    tmp.next[i] = NULL;
+
+  LOCK();
+  erase_triple(t);
+  new = PL_malloc(sizeof(*new));
+  *new = tmp;
+
+  lock_atoms(new);
+  link_triple(new);
+  generation++;
+  UNLOCK();
 
   return TRUE;
 }
@@ -1862,6 +1890,7 @@ static foreign_t
 rdf_update(term_t subject, term_t predicate, term_t object, term_t action)
 { triple t, *p;
   int indexed = BY_SP;
+  int done = 0;
     
   memset(&t, 0, sizeof(t));
   if ( !get_triple(subject, predicate, object, &t) )
@@ -1872,11 +1901,12 @@ rdf_update(term_t subject, term_t predicate, term_t object, term_t action)
   for( ; p; p = p->next[indexed])
   { if ( match_triples(p, &t, MATCH_EXACT) )
     { if ( !update_triple(action, p) )
-	return FALSE;
+	return FALSE;			/* type errors */
+      done++;
     }
   }
 
-  return TRUE;
+  return done ? TRUE : FALSE;
 }
 
 
@@ -1893,8 +1923,10 @@ rdf_retractall4(term_t subject, term_t predicate, term_t object, term_t src)
   p = table[t.indexed][triple_hash(&t, t.indexed)];
   for( ; p; p = p->next[t.indexed])
   { if ( match_triples(p, &t, MATCH_EXACT|MATCH_SRC) )
-    { erase_triple(p);
+    { LOCK();
+      erase_triple(p);
       erased++;
+      UNLOCK();
     }
   }
 

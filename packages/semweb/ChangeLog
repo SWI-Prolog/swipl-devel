@@ -1,3 +1,7 @@
+Sep 19, 2003
+
+  * FIXED: rdf_update() to properly update the hash-table.
+
 Sep 18, 2003
 
   * ADDED: timestamps to transaction journal commit operations.
