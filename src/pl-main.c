@@ -122,7 +122,7 @@ findHome(char *symbols)
 
 #if O_XOS
       { char buf2[MAXPATHLEN];
-	_xos_canonical_filename(buf, buf2, MAXPATHLEN);
+	_xos_canonical_filename(buf, buf2, MAXPATHLEN, 0);
 	strcpy(buf, buf2);
       }
 #endif
@@ -653,7 +653,7 @@ script_argv(int argc, char **argv)
     { char tmp[MAXPATHLEN];
       char dir[MAXPATHLEN];
 
-      _xos_canonical_filename(argv[1], tmp, MAXPATHLEN);
+      _xos_canonical_filename(argv[1], tmp, MAXPATHLEN, 0);
       if ( IsAbsolutePath(tmp) )
 	chdir(DirName(tmp, dir));
     }

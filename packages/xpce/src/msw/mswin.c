@@ -398,7 +398,7 @@ getWinFileNameDisplay(DisplayObj d,
     buffer[0] = '\0';
   else
   { if ( strlen(strName(file)) >= sizeof(buffer) )
-    { errorPce(file, NAME_representation, CtoString("name too long"));
+    { errorPce(file, NAME_representation, CtoString("name_too_long"));
       fail;
     }
     strcpy(buffer, strName(file));
@@ -413,7 +413,12 @@ getWinFileNameDisplay(DisplayObj d,
     char *s;
   
     if ( (s = expandFileName(strName(dir->path), tmp)) )
-      ofn.lpstrInitialDir =_xos_os_filename(s, cwdbin);
+    { if ( !(_xos_os_filename(s, cwdbin, sizeof(cwdbin))) )
+      { errorPce(file, NAME_representation, CtoString("name_too_long"));
+	fail;
+      }
+      ofn.lpstrInitialDir = cwdbin;
+    }
 #else
     ofn.lpstrInitialDir = expandFileName(strName(dir->path), cwdbin);
 #endif
@@ -462,7 +467,11 @@ getWinFileNameDisplay(DisplayObj d,
     }
 
 #ifdef O_XOS				/* should always be true */
-    rval = CtoName(_xos_canonical_filename(buffer, filter));
+    if ( !_xos_canonical_filename(buffer, filter, sizeof(filter), 0) )
+    { errorPce(CtoString(buffer), NAME_representation, CtoName("name_too_long"));
+      fail;
+    }
+    rval = CtoName(filter);
 #else
     rval = CtoName(buffer);
 #endif

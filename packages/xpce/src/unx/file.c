@@ -130,9 +130,12 @@ initialiseFile(FileObj f, Name name, Name encoding)
   { char buf[MAXPATHLEN];
     char lng[MAXPATHLEN];
     
-    _xos_long_file_name(strName(name), lng);
-    _xos_canonical_filename(lng, buf);
-    assign(f, name, CtoName(buf));
+    if ( _xos_long_file_name(strName(name), lng) &&
+	 _xos_canonical_filename(lng, buf, sizeof(buf), 0) )
+    { assign(f, name, CtoName(buf));
+    } else
+    { return errorPce(f, NAME_representation, CtoName("name_too_long"));
+    }    
   }
 #else
   assign(f, name, name);

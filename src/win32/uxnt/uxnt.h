@@ -109,6 +109,8 @@ _export wchar_t*_xos_long_file_nameW(const wchar_t *n8and3,
 				     wchar_t *name, size_t len);
 _export char*	_xos_long_file_name_toA(const wchar_t *n8and3,
 					char *name, size_t len);
+_export char *  _xos_long_file_name(const char *file, char *longname,
+				    size_t len);
 _export int	_xos_same_file(const char *p1, const char *p2);
 _export int	_xos_open(const char *path, int access, ...);
 _export FILE*	_xos_fopen(const char *path, const char *mode);

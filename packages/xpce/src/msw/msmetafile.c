@@ -424,7 +424,8 @@ getMhfWinMF(WinMF mf)
 
 #if O_XOS
       char fn[MAXPATHLEN];
-      _xos_os_filename(rawfn, fn);
+      if ( !_xos_os_filename(rawfn, fn, sizeof(fn)) )
+	return errorPce(mf, NAME_representation, CtoName("name_too_long"));
 #else
       char *fn = rawfn;
 #endif
@@ -698,7 +699,8 @@ saveWinMF(WinMF mf, FileObj file, Name format)
 { char *rawfn = strName(getOsNameFile(file));
 #if O_XOS
   char fn[MAXPATHLEN];
-  _xos_os_filename(rawfn, fn);
+  if ( !_xos_os_filename(rawfn, fn, sizeof(fn)) )
+    return errorPce(mf, NAME_representation, CtoName("name_too_long"));
 #else
   char *fn = rawfn;
 #endif

@@ -111,7 +111,7 @@ initialiseDirectory(Directory d, Name name)
 
 #ifdef O_XOS
   { char buf[MAXPATHLEN];
-    expanded = _xos_canonical_filename(expanded, buf);
+    expanded = _xos_canonical_filename(expanded, buf, sizeof(buf), 0);
     if ( isalpha(expanded[0]) && expanded[1] == ':' && expanded[2] == EOS )
     { expanded[2] = '/';
       expanded[3] = EOS;
@@ -354,8 +354,10 @@ getRootsDirectory(Directory dir)
 
     while(*s)
     { char buf2[1024];
+      char *cnfn;
 
-      appendChain(ch, CtoName(_xos_canonical_filename(s, buf2)));
+      if ( (cnfn=_xos_canonical_filename(s, buf2, sizeof(buf2), 0)) )
+	appendChain(ch, cnfn);
       s += strlen(s)+1;
     }
   }

@@ -300,7 +300,7 @@ _xos_canonical_filenameW(const wchar_t *spec,
     if ( c == '\\' )
     { c = '/';
     } else if ( (flags&XOS_DOWNCASE) )
-    { c = towlower(c);
+    { c = towlower((wchar_t)c);
     }
 
     if ( p+6 >= e )
@@ -422,6 +422,21 @@ _xos_long_file_name_toA(const wchar_t *file, char *longname, size_t len)
     return NULL;
 
   return wcstoutf8(longname, buf, len);
+}
+
+
+char *
+_xos_long_file_name(const char *file, char *longname, size_t len)
+{ TCHAR in[PATH_MAX];
+  TCHAR out[PATH_MAX];
+
+  if ( !utf8towcs(in, file, PATH_MAX) )
+    return NULL;
+
+  if ( !_xos_long_file_nameW(in, out, PATH_MAX) )
+    return NULL;
+
+  return wcstoutf8(longname, out, len);
 }
 
 
