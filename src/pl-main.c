@@ -717,6 +717,11 @@ PL_initialise(int argc, char **argv)
 		 0);
 #endif
 
+#if defined(HAVE_MTRACE) && define(O_MAINTENANCE)
+  if ( getenv("MALLOC_TRACE") )		/* glibc malloc tracer */
+    mtrace();
+#endif
+
   if ( GD->initialised )
   { succeed;
   }

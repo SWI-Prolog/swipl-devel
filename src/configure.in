@@ -456,7 +456,7 @@ AC_CHECK_FUNCS(signal sigset sigprocmask sleep usleep srand srandom stat)
 AC_CHECK_FUNCS(memmove stricmp strlwr sigaction sigsetmask siggetmask sigblock)
 AC_CHECK_FUNCS(rint aint floor ceil isnan tcsetattr cfmakeraw getpid)
 AC_CHECK_FUNCS(strerror tgetent times unsetenv grantpt nanosleep)
-AC_CHECK_FUNCS(setlocale fpgetmask fpresetsticky)
+AC_CHECK_FUNCS(setlocale fpgetmask fpresetsticky mtrace)
 AC_CHECK_FUNCS(mmap)
 AC_HEADER_TIME
 AC_HEADER_DIRENT
