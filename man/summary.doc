@@ -50,7 +50,6 @@ suggest predicates from a keyword.
 \predicatesummary{absolute_file_name}{3}{Get absolute path name with options}
 \predicatesummary{access_file}{2}{Check access permissions of a file}
 \predicatesummary{append}{1}{Append to a file}
-\predicatesummary{append}{3}{Concatenate lists}
 \predicatesummary{apply}{2}{Call goal with additional arguments}
 \predicatesummary{apropos}{1}{\pllib{online_help} Search manual}
 \predicatesummary{arg}{3}{Access argument of a term}
@@ -150,7 +149,6 @@ suggest predicates from a keyword.
 \predicatesummary{debugging}{0}{Show debugger status}
 \predicatesummary{debugging}{1}{Test where we are debugging topic}
 \predicatesummary{default_module}{2}{Get the default modules of a module}
-\predicatesummary{delete}{3}{Delete all matching members from a list}
 \predicatesummary{delete_directory}{1}{Remove a folder from the file system}
 \predicatesummary{delete_file}{1}{Remove a file from the file system}
 \predicatesummary{deterministic}{1}{Test deterministicy of current clause}
@@ -262,7 +260,6 @@ suggest predicates from a keyword.
 \predicatesummary{make_library_index}{1}{Create autoload file INDEX.pl}
 \predicatesummary{make_library_index}{2}{Create selective autoload file INDEX.pl}
 \predicatesummary{maplist}{3}{Transform all elements of a list}
-\predicatesummary{member}{2}{Element is member of a list}
 \predicatesummary{memberchk}{2}{Deterministic member/2}
 \predicatesummary{merge}{3}{Merge two sorted lists}
 \predicatesummary{merge_set}{3}{Merge two sorted sets}
@@ -296,8 +293,6 @@ suggest predicates from a keyword.
 \oppredsummary{not}{1}{fy}{900}{Negation by failure (argument not provable). Same as \predref{\+}{1}}
 \predicatesummary{notrace}{0}{Stop tracing}
 \predicatesummary{notrace}{1}{Do not debug argument goal}
-\predicatesummary{nth0}{3}{N-th element of a list (0-based)}
-\predicatesummary{nth1}{3}{N-th element of a list (1-based)}
 \predicatesummary{nth_clause}{3}{N-th clause of a predicate}
 \predicatesummary{number}{1}{Type check for integer or float}
 \predicatesummary{number_chars}{2}{Convert between number and one-char atoms}
@@ -401,7 +396,6 @@ suggest predicates from a keyword.
 \predicatesummary{seeing}{1}{Query the current input stream}
 \predicatesummary{seek}{4}{Modify the current position in a stream}
 \predicatesummary{seen}{0}{Close the current input stream}
-\predicatesummary{select}{3}{Select element of a list}
 \predicatesummary{set_input}{1}{Set current input stream from a stream}
 \predicatesummary{set_output}{1}{Set current output stream from a stream}
 \predicatesummary{set_prolog_flag}{2}{Define a system feature}

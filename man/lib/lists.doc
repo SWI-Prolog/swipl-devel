@@ -6,27 +6,6 @@ are built-in.  Their description is in \secref{builtinlist}.
 
 
 \begin{description}
-    \predicate{is_list}{1}{+Term}
-Succeeds if \arg{Term} is bound to the empty list (\exam{[]}) or a term with
-functor `\const{.}' and arity~2 and the second argument is a list.%
-	\footnote{In versions before 5.0.1, is_list/1 just checked for
-		  \const{[]} or \exam{[_|_]} and proper_list/1 had the
-		  role of the current is_list/1.  The current definition
-		  is conform the de-facto standard. Assuming proper
-		  coding standards, there should only be very few cases
-		  where a quick-and-dirty is_list/1 is a good choice.
-		  Richard O'Keefe pointed at this issue.}
-This predicate acts as if defined by the following definition:
-
-\begin{code}
-is_list(X) :-
-	var(X), !,
-	fail.
-is_list([]).
-is_list([_|T]) :-
-	is_list(T).
-\end{code}
-
     \predicate{append}{3}{?List1, ?List2, ?List3}
 Succeeds when \arg{List3} unifies with the concatenation of \arg{List1}
 and \arg{List2}. The predicate can be used with any instantiation
@@ -35,6 +14,9 @@ pattern (even three variables).
     \predicate{member}{2}{?Elem, ?List}
 Succeeds when \arg{Elem} can be unified with one of the members of \arg{List}. The predicate can be used with any instantiation
 pattern.
+
+    \predicate{nextto}{3}{?X, ?Y, ?List}
+Succeeds when \arg{Y} follows \arg{X} in \arg{List}.
 
     \predicate{delete}{3}{+List1, ?Elem, ?List2}
 Delete all members of \arg{List1} that simultaneously unify with
@@ -68,6 +50,12 @@ an unbound tail, backtracking will cause \arg{List} to grow.%
 Reverse the order of the elements in \arg{List1} and unify the result
 with the elements of \arg{List2}.
 
+    \predicate{permutation}{2}{?List1, ?List2}
+Permuation is true when \arg{List1} is a permutation of \arg{List2}. The
+implementation can solve for \arg{List2} given \arg{List1} or
+\arg{List1} given \arg{List2}, or even enumerate \arg{List1} and
+\arg{List2} together.
+
     \predicate{flatten}{2}{+List1, -List2}
 Transform \arg{List1}, possibly holding lists as elements into a `flat'
 list by replacing each list with its elements (recursively). Unify the
@@ -77,6 +65,16 @@ resulting flat list with \arg{List2}. Example:
 
 X = [a, b, c, d, e]
 \end{code}
+
+    \predicate{sumlist}{2}{+List, -Sum}
+Unify \arg{Sum} to the result of adding all elements in \arg{List}.
+\arg{List} must be a proper list holding numbers.  See number/1 and
+is/2. for details on arithmetic.
+
+    \predicate{numlist}{3}{+Low, +High, -List}
+If \arg{Low} and \arg{High} are integers with $Low \le High$, unify
+\arg{List} to a list [$Low$, $Low+1$, \ldots $High$].  See also
+between/3.
 \end{description}
 
 

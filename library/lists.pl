@@ -2,7 +2,7 @@
 
     Part of SWI-Prolog
 
-    Author:        Jan Wielemaker
+    Author:        Jan Wielemaker and Richard O'Keefe
     E-mail:        jan@swi.psy.uva.nl
     WWW:           http://www.swi-prolog.org
     Copyright (C): 1985-2002, University of Amsterdam
@@ -33,20 +33,30 @@
 	[ member/2,
 	  append/3,
 	  select/3,
+	  nextto/3,			% ?X, ?Y, ?List
 	  delete/3,
 	  nth0/3,
 	  nth1/3,
-	  last/2,
-	  reverse/2,
-	  flatten/2,
-	  is_set/1,
-	  list_to_set/2,
+	  last/2,			% +List, -Element
+	  reverse/2,			% +List, -Reversed
+	  permutation/2,		% ?List, ?Permutation
+	  flatten/2,			% +Nested, -Flat
+	  sumlist/2,			% +List, -Sum
+	  numlist/3,			% +Low, +High, -List
+
+	  is_set/1,			% set manipulation
+	  list_to_set/2,		% +List, -Set
 	  intersection/3,
 	  union/3,
 	  subset/2,
 	  subtract/3
 	]).
 %:- system_module.			% hide details
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Some of these predicates are copied from   "The  Craft of Prolog" and/or
+the DEC-10 Prolog library (LISTRO.PL). Contributed by Richard O'Keefe.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 %	member(?Elem, ?List)
 %	
@@ -65,6 +75,7 @@ append([H|T], L, [H|R]) :-
 	append(T, L, R).
 
 %	select(?Elem, ?List1, ?List2)
+%
 %	Is true when List1, with Elem removed results in List2.
 
 select(X, [X|Tail], Tail).
@@ -72,7 +83,16 @@ select(Elem, [Head|Tail], [Head|Rest]) :-
 	select(Elem, Tail, Rest).
 
 
+%	nextto(?X, ?Y, ?List)
+%	
+%	True of Y follows X in List.
+
+nextto(X, Y, [X,Y|_]).
+nextto(X, Y, [_|Zs]) :-
+	nextto(X, Y, Zs).
+
 %	delete(?List1, ?Elem, ?List2)
+%
 %	Is true when Lis1, with all occurences of Elem deleted results in
 %	List2.
 
@@ -126,6 +146,7 @@ nth1(Index, List, Elem) :-
         var(Index), !,
         nth_gen(List, Elem, 1, Index).  %% match
 
+
 %	last(?List, ?Elem)
 %
 %	Succeeds if `Last' unifies with the last element of `List'.
@@ -137,19 +158,36 @@ last_([], Last, Last).
 last_([X|Xs], _, Last) :-
     last_(Xs, X, Last).
 
+
 %	reverse(?List1, ?List2)
 %
 %	Is true when the elements of List2 are in reverse order compared to
 %	List1.
 
-reverse(L1, L2) :-
-	reverse(L1, [], L2).
+reverse(Xs, Ys) :-
+    reverse(Xs, [], Ys, Ys).
 
-reverse([], List, List).
-reverse([Head|List1], List2, List3) :-
-	reverse(List1, [Head|List2], List3).
+reverse([], Ys, Ys, []).
+reverse([X|Xs], Rs, Ys, [_|Bound]) :-
+    reverse(Xs, [X|Rs], Ys, Bound).
+
+
+%	premutation(?Xs, ?Ys)
+%	
+%	permutation(Xs, Ys) is true when Xs is a permutation of Ys. This
+%	can solve for Ys given Xs or Xs given Ys, or even enumerate Xs
+%	and Ys together.
+
+permutation(Xs, Ys) :-
+	permutation(Xs, Ys, Ys).
+
+permutation([], [], []).
+permutation([X|Xs], Ys1, [_|Bound]) :-
+	permutation(Xs, Ys, Bound),
+	select(X, Ys1, Ys).
 
 %	flatten(+List1, ?List2)
+%
 %	Is true when Lis2 is a non nested version of List1.
 
 flatten(List, FlatList) :-
@@ -163,6 +201,34 @@ flatten([Hd|Tl], Tail, List) :-
 	flatten(Hd, FlatHeadTail, List), 
 	flatten(Tl, Tail, FlatHeadTail).
 flatten(Atom, Tl, [Atom|Tl]).
+
+%	sumlist(+List, -Sum)
+%	
+%	Sum is the result of adding all numbers in List.
+
+sumlist(Xs, Sum) :-
+	sumlist(Xs, 0, Sum).
+
+sumlist([], Sum, Sum).
+sumlist([X|Xs], Sum0, Sum) :-
+	Sum1 is Sum0 + X,
+	sumlist(Xs, Sum1, Sum).
+
+
+%	numlist(+Low, +High, -List)
+%	
+%	List is a list [Low, Low+1, ... High]
+
+numlist(L, U, Ns) :-
+    integer(L), integer(U), L =< U,
+    numlist_(L, U, Ns).
+
+numlist_(L, U, [L|Ns]) :-
+    (   L =:= U
+    ->  Ns = []
+    ;   M is L + 1,
+	numlist_(M, U, Ns)
+    ).
 
 
 		/********************************
@@ -181,7 +247,9 @@ is_set([_|T]) :-
 	is_set(T).
 
 %	list_to_set(+List, ?Set)
-%	is true when Set has the same element as List in the same order
+%
+%	Is true when Set has the same element as List in the same order.
+%	The left-most copy of the duplicate is retained.
 
 list_to_set(List, Set) :-
 	list_to_set_(List, Set0),
@@ -197,7 +265,9 @@ close_list([]) :- !.
 close_list([_|T]) :-
 	close_list(T).
 
+
 %	intersection(+Set1, +Set2, -Set3)
+%
 %	Succeeds if Set3 unifies with the intersection of Set1 and Set2
 
 intersection([], _, []) :- !.
@@ -207,6 +277,7 @@ intersection([X|T], L, Intersect) :-
 	intersection(T, L, R).
 intersection([_|T], L, R) :-
 	intersection(T, L, R).
+
 
 %	union(+Set1, +Set2, -Set3)
 %	Succeeds if Set3 unifies with the union of Set1 and Set2
@@ -218,15 +289,19 @@ union([H|T], L, R) :-
 union([H|T], L, [H|R]) :-
 	union(T, L, R).
 
+
 %	subset(+SubSet, +Set)
 %	Succeeds if all elements of SubSet belong to Set as well.
+%
 
 subset([], _) :- !.
 subset([E|R], Set) :-
 	memberchk(E, Set), 
 	subset(R, Set).
 
+
 %	subtract(+Set, +Delete, -Result)
+%
 %	Delete all elements from `Set' that occur in `Delete' (a set) and
 %	unify the result with `Result'.
 

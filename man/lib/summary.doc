@@ -1,6 +1,29 @@
 \pagebreak
 \section{Library predicates}		\label{sec:library}
 
+\subsection{\pllib{lists}}
+
+\begin{summarylist}{ll}
+\predicatesummary{append}{3}{Concatenate lists}
+\predicatesummary{delete}{3}{Delete all matching members from a list}
+\predicatesummary{flatten}{2}{Transform nested list into flat list}
+\predicatesummary{intersection}{3}{Set intersection}
+\predicatesummary{is_set}{1}{Type check for a set}
+\predicatesummary{list_to_set}{2}{Remove duplicates}
+\predicatesummary{member}{2}{Element is member of a list}
+\predicatesummary{nextto}{3}{Y follows X in List} 
+\predicatesummary{nth0}{3}{N-th element of a list (0-based)}
+\predicatesummary{nth1}{3}{N-th element of a list (1-based)}
+\predicatesummary{numlist}{3}{Create list of integers in interval}
+\predicatesummary{permutation}{2}{Test/generate permutations of a list}
+\predicatesummary{reverse}{2}{Inverse the order of the elements in a list}
+\predicatesummary{select}{3}{Select element of a list}
+\predicatesummary{subset}{2}{Check subset relation for unordered sets}
+\predicatesummary{subtract}{3}{Delete elements that do not satisfy condition}
+\predicatesummary{sumlist}{2}{Add all numbers in a list}
+\predicatesummary{union}{3}{Union of two sets}
+\end{summarylist}
+
 \subsection{\pllib{check}}
 
 \begin{summarylist}{ll}
