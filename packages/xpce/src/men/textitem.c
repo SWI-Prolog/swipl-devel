@@ -89,19 +89,26 @@ RedrawAreaTextItem(TextItem ti, Area a)
   tw = valInt(vt->area->w);
   th = valInt(vt->area->h);
 
-  if ( z && notNil(z) )
-    r_3d_box(tx, ty, tw, th, z, TRUE);
+  if ( z && notNil(z) && ti->look == NAME_motif )
+    r_3d_box(tx, ty, tw, th, 0, z, TRUE);
 
   repaintText(vt, tx, ty, tw, th);
 
-  if ( !z && ti->pen != ZERO )
-  { int pen = valInt(ti->pen);
-    int ly = y+am+1+pen/2;
-    
-    r_dash(ti->texture);
-    r_thickness(valInt(ti->pen));
+  if ( ti->look != NAME_motif )
+  { if ( z && notNil(z) )
+    { int zh = abs(valInt(z->height));
+      int ly = y+am+zh+valInt(getDescentFont(vt->font));
 
-    r_line(x+lw, ly, x+w-pen, ly);
+      r_3d_line(x+lw, ly, x+w-1, ly, z, TRUE);
+    } else if ( ti->pen != ZERO )
+    { int pen = valInt(ti->pen);
+      int ly = y+am+1+pen/2;
+    
+      r_dash(ti->texture);
+      r_thickness(valInt(ti->pen));
+
+      r_line(x+lw, ly, x+w-pen, ly);
+    }
   }
 
   return RedrawAreaGraphical(ti, a);
@@ -802,6 +809,7 @@ WantsKeyboardFocusTextItem(TextItem ti)
        ti->active == ON &&
        ti->editable == ON &&
        notNil(ti->device) )
+
     succeed;
 
   fail;

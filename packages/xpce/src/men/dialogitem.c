@@ -397,7 +397,7 @@ makeClassDialogItem(Class class)
 		  "Visual feedback of <->selected");
   attach_resource(class, "background", "colour|pixmap*", "@nil",
 		  "Background of the item");
-  attach_resource(class, "elevation", "elevation", "0",
+  attach_resource(class, "elevation", "elevation*", "@nil",
 		  "3-D elevation");
 
   succeed;

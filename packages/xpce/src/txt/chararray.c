@@ -176,6 +176,9 @@ getLabelNameCharArray(CharArray n)
   int size = s->size;
   int i, l = 0, u = 0;
 
+  if ( size == 0 )
+    return n;
+
   for(i=0; i < size; i++)
   { l |= isupper(str_fetch(s, i));
     u |= islower(str_fetch(s, i));

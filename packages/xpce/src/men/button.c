@@ -35,15 +35,15 @@ RedrawAreaButton(Button b, Area a)
 { int x, y, w, h;
   int defb = (getDefaultButtonButton(b) == ON);
   int rm = 0;				/* right-margin */
+  Elevation z = getResourceValueObject(b, NAME_elevation);
 
   initialiseDeviceGraphical(b, &x, &y, &w, &h);
   NormaliseArea(x, y, w, h);
   
-  if ( b->look == NAME_motif )		/* 3-d style */
+  if ( z && notNil(z) )			/* 3-d style */
   { int up      = (b->status == NAME_inactive || b->status == NAME_active);
-    Elevation z = getResourceValueObject(b, NAME_elevation);
    
-    r_3d_box(x, y, w, h, z, up);
+    r_3d_box(x, y, w, h, valInt(b->radius), z, up);
 
     if ( notNil(b->popup) )
     { int th = 8;

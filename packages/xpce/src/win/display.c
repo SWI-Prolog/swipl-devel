@@ -724,7 +724,9 @@ getContainedInDisplay(DisplayObj d)
 
 status
 makeClassDisplay(Class class)
-{ sourceClass(class, makeClassDisplay, __FILE__, "$Revision$");
+{ DisplayObj TheDisplay;
+
+  sourceClass(class, makeClassDisplay, __FILE__, "$Revision$");
 
   localClass(class, NAME_size, NAME_dimension, "size*", NAME_none,
 	     "Size (width, height) of display");
@@ -894,7 +896,11 @@ makeClassDisplay(Class class)
 
   initClass(class);
 					/* set up the displays */
-  globalObject(NAME_display, ClassDisplay, 0);
+  TheDisplay = globalObject(NAME_display, ClassDisplay, 0);
+
+  globalObject(NAME_colourDisplay, ClassGreater,
+	       newObject(ClassObtain, TheDisplay, NAME_depth, 0),
+	       ONE, 0);
 
   attach_resource(class, "label_font",	   "font",    "@helvetica_bold_14",
 		  "Label font for confirm/inform");
@@ -920,6 +926,7 @@ makeClassDisplay(Class class)
   attach_resource(class, "wh_mouse_dll", "name*", "pcewh.dll",
 		  "DLL to generate area_enter/area_exit events");
 #endif
+
 
   succeed;
 }

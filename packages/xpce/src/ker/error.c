@@ -320,6 +320,8 @@ static struct error_def errors[] =
     "%N: No argument named %s" },
   { NAME_unboundAfterBoundArgument, 0,
     "%N: un-named arguments cannot appear after named arguments" },
+  { NAME_inconsistentArguments, 0,
+    "%N: Inconsistent arguments" },
   { NAME_typeLoop,		0,
     "%N: Type translation loop for %O" },
   { NAME_noTypeKind,		0,

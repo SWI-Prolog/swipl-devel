@@ -85,20 +85,26 @@ XopenColour(Colour c, DisplayObj d)
 Colour
 getHiliteColour(Colour c)
 { Colour c2;
-  Int r, g, b;
+  int r, g, b;
   Name n2;
+  Real h = getResourceValueObject(c, NAME_hiliteFactor);
+  float hf = h ? h->value : 0.5;
 
   if ( (c2 = getAttributeObject(c, NAME_hilite)) )
     answer(c2);
   if ( isDefault(c->green) )
     getXrefObject(c2, CurrentDisplay(NIL));
   
-  r = toInt(min(65535, (valInt(c->red)   * 3)/2)); /* resource? */
-  g = toInt(min(65535, (valInt(c->green) * 3)/2));
-  b = toInt(min(65535, (valInt(c->blue)  * 3)/2));
+  r = valInt(c->red);
+  g = valInt(c->green);
+  b = valInt(c->blue);
 
+  r = r + (int)((float)(65535 - r) * hf);
+  g = g + (int)((float)(65535 - g) * hf);
+  b = b + (int)((float)(65535 - b) * hf);
+  
   n2 = getAppendName(CtoName("hilited_"), c->name);
-  c2 = newObject(ClassColour, n2, r, g, b, 0);
+  c2 = newObject(ClassColour, n2, toInt(r), toInt(g), toInt(b), 0);
   attributeObject(c, newObject(ClassAttribute, NAME_hilite, c2, 0));
 
   answer(c2);
@@ -108,20 +114,26 @@ getHiliteColour(Colour c)
 Colour
 getReduceColour(Colour c)
 { Colour c2;
-  Int r, g, b;
+  int r, g, b;
   Name n2;
+  Real rfactor = getResourceValueObject(c, NAME_reduceFactor);
+  float rf = rfactor ? rfactor->value : 0.5;
 
   if ( (c2 = getAttributeObject(c, NAME_reduce)) )
     answer(c2);
   if ( isDefault(c->green) )
     getXrefObject(c2, CurrentDisplay(NIL));
   
-  r = toInt(max(0, (valInt(c->red)   * 2)/3)); /* resource? */
-  g = toInt(max(0, (valInt(c->green) * 2)/3));
-  b = toInt(max(0, (valInt(c->blue)  * 2)/3));
+  r = valInt(c->red);
+  g = valInt(c->green);
+  b = valInt(c->blue);
+
+  r = (int)((float)r * rf);
+  g = (int)((float)g * rf);
+  b = (int)((float)b * rf);
 
   n2 = getAppendName(CtoName("reduced_"), c->name);
-  c2 = newObject(ClassColour, n2, r, g, b, 0);
+  c2 = newObject(ClassColour, n2, toInt(r), toInt(g), toInt(b), 0);
   attributeObject(c, newObject(ClassAttribute, NAME_reduce, c2, 0));
 
   answer(c2);
@@ -169,6 +181,11 @@ makeClassColour(Class class)
 	    getReduceColour);
 
   ColourTable = globalObject(NAME_colours, ClassHashTable, toInt(32), 0);
+
+  attach_resource(class, "reduce_factor", "real", "0.5",
+		  "Factor for <-reduce'd colour");
+  attach_resource(class, "hilite_factor", "real", "0.5",
+		  "Factor for <-hilite'd colour");
 
   succeed;
 }

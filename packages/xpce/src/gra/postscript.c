@@ -558,7 +558,9 @@ drawPostScriptFigure(Figure f)
 
 status
 drawPostScriptBox(Box b)
-{ if ( b->shadow != ZERO )
+{ 
+/*
+  if ( b->shadow != ZERO )
   { Area a = b->area;
     Int s = b->shadow;
 
@@ -574,6 +576,7 @@ drawPostScriptBox(Box b)
       ps_output("gsave 1.0 setgray fill grestore\n");
     ps_output("draw grestore\n");
   } else
+*/
   { ps_output("gsave ~T ~p ~x ~y ~w ~h ~d boxpath\n",
 	   b, b, b, b, b, b, b->radius);
     fill(b, NAME_fillPattern);

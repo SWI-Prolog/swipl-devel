@@ -40,7 +40,7 @@ initialiseParserv(Parser p, Tokeniser t, int nops, Any *ops)
 
 static status
 operatorParser(Parser p, Operator op)
-{ appendChainTable(p->operators, op, ON);
+{ appendChainTable(p->operators, op->name, op);
   symbolTokeniser(p->tokeniser, op->name);
 
   succeed;
@@ -229,7 +229,7 @@ reduce(Parser p, Stack out, Stack side, int pri)
       av[1] = popStack(out);
       av[0] = o2->name;
 
-      TRY(t = qadGetv(p, NAME_buildTerm, 3, av));
+      TRY(t = getv(p, NAME_buildTerm, 3, av));
       pushStack(out, t);
     } else				/* pre- or postfix */
     { Any t, av[2];
@@ -237,7 +237,7 @@ reduce(Parser p, Stack out, Stack side, int pri)
       av[1] = popStack(out);
       av[0] = o2->name;
 
-      TRY(t = qadGetv(p, NAME_buildTerm, 2, av));
+      TRY(t = getv(p, NAME_buildTerm, 2, av));
       pushStack(out, t);
     }
   }
@@ -266,7 +266,7 @@ modify(Parser p, int rmo, Stack out, Stack side, int pri)
 
       av[1] = popStack(out);
       av[0] = o2->name;
-      t = qadGetv(p, NAME_buildTerm, 2, av);
+      t = getv(p, NAME_buildTerm, 2, av);
 
       rmo++;
       pushStack(out, t);

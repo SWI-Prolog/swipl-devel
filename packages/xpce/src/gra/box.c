@@ -13,8 +13,8 @@
 static status
 initialiseBox(Box b, Int w, Int h)
 { initialiseGraphical(b, ZERO, ZERO, w, h);
-  assign(b, radius,	 ZERO);
-  assign(b, shadow,	 ZERO);
+  assign(b, radius,	  ZERO);
+  assign(b, elevation,	  NIL);
   assign(b, fill_pattern, NIL);
 
   succeed;
@@ -29,8 +29,10 @@ RedrawAreaBox(Box b, Area a)
 
   r_thickness(valInt(b->pen));
   r_dash(b->texture);
-  r_shadow_box(x, y, w, h, valInt(b->radius),
-	       valInt(b->shadow), b->fill_pattern);
+  if ( notNil(b->elevation) )
+    r_3d_box(x, y, w, h, valInt(b->radius), b->elevation, TRUE);
+  else
+    r_box(x, y, w, h, valInt(b->radius), b->fill_pattern);
 
   return RedrawAreaGraphical(b, a);
 }
@@ -55,8 +57,8 @@ makeClassBox(Class class)
 
   localClass(class, NAME_radius, NAME_appearance, "int", NAME_get,
 	     "Rounding radius for corners");
-  localClass(class, NAME_shadow, NAME_appearance, "int", NAME_get,
-	     "Shadow below/right of box");
+  localClass(class, NAME_elevation, NAME_appearance, "elevation*", NAME_get,
+	     "How/if the box is raised from the surface");
   localClass(class, NAME_fillPattern, NAME_appearance,
 	     "image|colour*", NAME_get,
 	     "Fill pattern for internals");
@@ -67,7 +69,7 @@ makeClassBox(Class class)
 
   storeMethod(class, NAME_fillPattern, fillPatternGraphical);
   storeMethod(class, NAME_radius,      radiusBox);
-  storeMethod(class, NAME_shadow,      shadowGraphical);
+  storeMethod(class, NAME_elevation,   elevationGraphical);
 
   sendMethod(class, NAME_initialise, DEFAULT, 2, "width=[int]", "height=[int]",
 	     "Create box from width and height",

@@ -24,6 +24,19 @@ initialiseResource(Resource r, Name name, Name class, Type type, StringObj def, 
   if ( isDefault(doc) )
     doc = NIL;
 
+  if ( (isDefault(type) || isDefault(doc)) &&
+       instanceOfObject(context, ClassClass))
+  { Class class = context;
+    Variable var = getInstanceVariableClass(class, name);
+
+    if ( var )
+    { if ( isDefault(type) )
+	type = var->type;
+      if ( isDefault(doc) )
+	doc = var->summary;
+    }
+  }
+
   assign(r, name,          name);
   assign(r, r_class,       class);
   assign(r, r_type,        type);
@@ -31,6 +44,9 @@ initialiseResource(Resource r, Name name, Name class, Type type, StringObj def, 
   assign(r, context,       context);
   assign(r, value,         NotObtained);
   assign(r, summary,	   doc);
+
+  if ( isDefault(type) )
+    return errorPce(r, NAME_inconsistentArguments);
 
   succeed;
 }
@@ -65,13 +81,38 @@ convertFunctionRequiresName(Type t)
 }
 
 
+static struct TAGop
+{ char *name;
+  int  priority;
+  Name kind;
+} operators[] = 
+{ { "?", 150, NAME_yfx},
+  { ":=", 990, NAME_xfx},
+  { "*", 400, NAME_yfx},
+  { "/", 400, NAME_yfx},
+  { "<", 700, NAME_xfx},
+  { "=", 700, NAME_xfx},
+  { "=<", 700, NAME_xfx},
+  { ">=", 700, NAME_xfx},
+  { "==", 700, NAME_xfx},
+  { ">", 700, NAME_xfx},
+  { "-", 500, NAME_yfx},
+  { "-", 500, NAME_fx},
+  { "\\==", 700, NAME_xfx},
+  { "+", 500, NAME_yfx},
+  { "+", 500, NAME_fx},
+  { NULL, 0, NULL }
+};
+
+
 static Parser
 TheResourceParser()
 { static Parser p;
 
   if ( !p )
-  { SyntaxTable st = newObject(ClassSyntaxTable, 0);
-    Tokeniser    t = newObject(ClassTokeniser, st, 0);
+  { SyntaxTable  st = newObject(ClassSyntaxTable, 0);
+    Tokeniser     t = newObject(ClassTokeniser, st, 0);
+    struct TAGop *o = operators;
  
     p = globalObject(NAME_resourceParser, ClassParser, t, 0);
     
@@ -92,6 +133,11 @@ TheResourceParser()
 		   CtoString("Just fail on syntax-error"),
 		   0),
 	 0);
+
+    for( ; o->name; o++)
+      send(p, NAME_operator,
+	   newObject(ClassOperator,
+		     CtoName(o->name), toInt(o->priority), o->kind, 0), 0);
   }
 
   return p;
@@ -101,6 +147,9 @@ TheResourceParser()
 static Any
 getConvertStringResource(Resource r, CharArray value)
 { Any val;
+
+  if ( r->r_type->fullname == NAME_geometry )
+    return checkType(value, r->r_type, r->context);
 
   if ( (val = qadGetv(TheResourceParser(), NAME_parse, 1, (Any *)&value)) )
     answer(checkType(val, r->r_type, r->context));
@@ -347,9 +396,10 @@ getResourceValueClass(Class cl, Name name)
 status
 attach_resource(Class cl, char *name, char *type, char *def, char *doc)
 { Resource r;
-  StringObj s = (strlen(doc) > 0 ? CtoString(doc) : NIL);
+  StringObj s = (doc && strlen(doc) > 0 ? CtoString(doc) : DEFAULT);
+  Name tp = (type ? CtoName(type) : DEFAULT);
 
-  TRY( r = newObject(ClassResource, CtoName(name), DEFAULT, CtoName(type),
+  TRY( r = newObject(ClassResource, CtoName(name), DEFAULT, tp,
 		     CtoString(def), cl, s, 0) );
 
   return resourceClass(cl, r);
@@ -476,7 +526,7 @@ makeClassResource(Class class)
   cloneStyleVariableClass(class, NAME_value,   NAME_reference);
 
   sendMethod(class, NAME_initialise, DEFAULT, 6,
-	     "name=name", "class=[name]", "type=type", "default=string",
+	     "name=name", "class=[name]", "type=[type]", "default=string",
 	     "context=[object]*", "summary=[string]*",
 	     "Create from name, class, type, default and context",
 	     initialiseResource);

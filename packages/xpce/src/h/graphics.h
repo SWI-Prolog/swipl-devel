@@ -191,7 +191,7 @@ End;
 NewClass(box)
   ABSTRACT_GRAPHICAL
   Int        radius;			/* if displayed as a rounded box */
-  Int	     shadow;			/* shadow displayed around box */
+  Elevation  elevation;			/* shadow displayed around box */
   Image	     fill_pattern;		/* fill box with this */
 End;
 
@@ -289,9 +289,9 @@ End;
 
 NewClass(slider)
   ABSTRACT_DIALOGITEM
-  Int	     selection;			/* Current value (selection) */
-  Int	     default_value;		/* Default valur (or function) */
-  Int	     displayed_value;		/* Currently displayed value */
+  Any	     selection;			/* Current value (selection) */
+  Any	     default_value;		/* Default valur (or function) */
+  Any	     displayed_value;		/* Currently displayed value */
   FontObj    label_font;		/* Font of the label */
   FontObj    value_font;		/* Font of the value */
   Bool	     show_label;		/* Display the label */
@@ -591,6 +591,7 @@ NewClass(elevation)
   Any		colour;			/* Colour of the top */
   Any		relief;			/* Relief colour/pixmap */
   Any		shadow;			/* Shadow colour/pixmap */
+  Name		kind;			/* How elevation is painted */
 End;
 
 

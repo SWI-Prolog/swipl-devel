@@ -39,8 +39,8 @@ RedrawAreaLabel(Label lb, Area a)
 
   initialiseDeviceGraphical(lb, &x, &y, &w, &h);
 
-  if ( z )
-    r_3d_box(x, y, w, h, z, !preview);
+  if ( z && notNil(z) )
+    r_3d_box(x, y, w, h, 0, z, !preview);
 
   x += valInt(lb->border);
   y += valInt(lb->border);

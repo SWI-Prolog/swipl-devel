@@ -201,7 +201,11 @@ status
 initialiseDeviceGraphical(Any obj, int *x, int *y, int *w, int *h)
 { Graphical gr = obj;
   Device dev = gr->device;
-  Any c = gr->colour;
+  Any c;
+
+  ComputeGraphical(obj);		/* should not be necessary: */
+					/* safety only */
+  c = gr->colour;
 
   *x = valInt(gr->area->x);
   *y = valInt(gr->area->y);
@@ -574,11 +578,14 @@ selection_bubble(int x, int y, int w, int h, int wx, int wy)
 status
 RedrawArea(Any gr, Area area)
 { Class class = classOfObject(gr);
+  status rval;
 
-  if ( class->redrawFunction )
-    return (*class->redrawFunction)(gr, area);
+  if ( class->redrawFunction && !PCEdebugging )
+    rval = (*class->redrawFunction)(gr, area);
   else
-    return qadSendv(gr, NAME_RedrawArea, 1, (Any *)&area);
+    rval = qadSendv(gr, NAME_RedrawArea, 1, (Any *)&area);
+
+  return rval;
 }
 
 
@@ -1450,7 +1457,33 @@ penGraphical(Graphical gr, Int pen)
 
 status
 shadowGraphical(Graphical gr, Int s)
-{ return assignGraphical(gr, NAME_shadow, s);
+{ if ( s == ZERO )
+    return send(gr, NAME_elevation, NIL, 0);
+  else
+    return send(gr, NAME_elevation,
+		newObject(ClassElevation, s, s,
+			  DEFAULT, DEFAULT, DEFAULT,
+			  NAME_shadow,
+			  0),
+		0);
+}
+
+
+static Int
+getShadowGraphical(Graphical gr)
+{ Elevation e;
+
+  TRY(e = getSlotObject(gr, NAME_elevation));
+  if ( e->kind == NAME_shadow )
+    answer(e->height);
+
+  answer(ZERO);
+}
+
+
+status
+elevationGraphical(Graphical gr, Elevation e)
+{ return assignGraphical(gr, NAME_elevation, e);
 }
 
 
@@ -2088,10 +2121,8 @@ layoutGraphical(Graphical gr, Real argC1, Real argC2, Real argC3, Int argC4, Int
 
 
 static int
-distance_area(int ax, int ay, register int aw, register int ah, register int bx, register int by, register int bw, register int bh)	/* NORMALISED ??? */
-           
-                                    
-{ bx -= ax;		/* normalise on (ax,ay) == (0,0) */
+distance_area(int ax, int ay, int aw, int ah, int bx, int by, int bw, int bh)
+{ bx -= ax;				/* normalise on (ax,ay) == (0,0) */
   by -= ay;
 
   if (ah < by)					/* a above b */
@@ -2708,6 +2739,9 @@ makeClassGraphical(Class class)
   sendMethod(class, NAME_restore, NAME_apply, 0,
 	     "Virtual method",
 	     virtualObject);
+  sendMethod(class, NAME_shadow, NAME_appearance, 1, "int",
+	     "Set shadow elevation",
+	     shadowGraphical);
 
   getMethod(class, NAME_absolutePosition, NAME_area, "point", 1, "[device]",
 	    "Get position relative to device (or window)",
@@ -2871,6 +2905,9 @@ makeClassGraphical(Class class)
   getMethod(class, NAME_below, NAME_layout, "graphical", 0,
 	    "Dialog_item integration; fails",
 	    getFailObject);
+  getMethod(class, NAME_shadow, NAME_appearance, "int", 0,
+	    "Amount of shadow",
+	    getShadowGraphical);
 
   attach_resource(class, "visual_bell", "bool", "@on",
 		  "@on: flash; @off: ring bell on ->alert");

@@ -498,7 +498,7 @@ initClassDefs()
 
 static struct type_alias
 { char *alias;				/* alias-name */
-  char *description;			/* syntax for the real ting */
+  char *description;			/* syntax for the real thing */
 } type_aliases[] =
 { { "button_name",	"{left,middle,right}" },
   { "texture_name",     "{none,dotted,dashed,dashdot,dashdotted,longdash}" },

@@ -136,6 +136,7 @@ status		rightGraphical(Graphical gr1, Graphical gr2);
 status		leftGraphical(Graphical gr1, Graphical gr2);
 status		penGraphical(Graphical gr, Int pen);
 status		shadowGraphical(Graphical gr, Int s);
+status		elevationGraphical(Graphical gr, Elevation e);
 status		fillPatternGraphical(Graphical gr, Image pattern);
 status		colourGraphical(Graphical gr, Any c);
 Any		getDisplayColourGraphical(Graphical gr);

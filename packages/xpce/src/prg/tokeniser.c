@@ -52,8 +52,8 @@ static status
 cloneTokeniser(Tokeniser t, Tokeniser clone)
 { clonePceSlots(t, clone);
   assign(clone, source, NIL);
-  t->access = A_NONE;
-  t->line = t->caret = 0;
+  clone->access = A_NONE;
+  clone->line = clone->caret = 0;
   
   succeed;
 }
@@ -216,6 +216,7 @@ symbolTokeniser(Tokeniser t, Name symb)	/* only need 2++ characters!? */
       { string s2;
 
 	str_cphdr(&s2, s);
+	s2.s_text = s->s_text;
 	for(i=1; i<=size; i++)
 	{ s2.size = i;
 	  appendHashTable(t->symbols, StringToName(&s2), ON);
@@ -465,7 +466,7 @@ nonum:
     *q = EOS;
     UNGETC(t, c);
 
-    return CtoName(buf);
+    return CtoKeyword(buf);		/* uppercase conversion! */
   } else				/* singleton */
   { char buf[LINESIZE];
     char *s = buf;
@@ -480,12 +481,13 @@ nonum:
     
     do
     { symbol = symb;
+      c = GETC(t);
       *s++ = c;
       *s   = EOS;
-      c = GETC(t);
       if ( !tischtype(t->syntax, c, PU) )
 	break;
       symb = CtoName(buf);
+      DEBUG(NAME_token, printf("trying symbol %s\n", pp(symb)));
     } while( getMemberHashTable(t->symbols, symb) );
 
     UNGETC(t, c);

@@ -1031,6 +1031,10 @@ setCloneFunctionClass(Class class, SendFunc function)
 status
 setRedrawFunctionClass(Class class, SendFunc function)
 { class->redrawFunction = function;
+
+  sendMethod(class, NAME_RedrawArea, NAME_repaint, 1, "area",
+	     "Repaint the argument area",
+	     function);
   succeed;
 }
 

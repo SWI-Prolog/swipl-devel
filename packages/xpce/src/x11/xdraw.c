@@ -71,7 +71,6 @@ s_string(s, f, x, y, w, h, had, vad)
 
 static void	clip_area P((int *, int *, int *, int *));
 static void	r_andpattern(Image i);
-static void	r_background(Any c);
 
 		/********************************
 		*       DEVICE FUNCTIONS	*
@@ -416,6 +415,8 @@ d_clip(int x, int y, int w, int h)
 				    1, Unsorted)
   CLIP(context.gcs->workGC);
   CLIP(context.gcs->fillGC);
+  CLIP(context.gcs->shadowGC);
+  CLIP(context.gcs->reliefGC);
 }
 
 
@@ -458,6 +459,8 @@ d_clip_done(void)
 
     CLIP(context.gcs->workGC);
     CLIP(context.gcs->fillGC);
+    CLIP(context.gcs->shadowGC);
+    CLIP(context.gcs->reliefGC);
   } 
 
 #   undef CLIP
@@ -612,9 +615,16 @@ r_dash(Name name)
 
 void
 r_fillpattern(Any fill)		/* image or colour */
-{ if ( fill != context.gcs->fill )
+{ DEBUG(NAME_fillPattern, printf("r_fillpattern(%s) ", pp(fill)));
+
+  if ( fill != context.gcs->fill )
   { XGCValues values;
     ulong mask;
+
+    if ( isDefault(fill) )
+      fill = context.gcs->background;
+
+    DEBUG(NAME_fillPattern, printf("Changing\n"));
 
     if ( instanceOfObject(fill, ClassImage) )
     { Image i = fill;
@@ -625,6 +635,9 @@ r_fillpattern(Any fill)		/* image or colour */
 	values.fill_style = FillOpaqueStippled;
 	values.foreground = context.gcs->foreground_pixel;
 	values.background = context.gcs->background_pixel;
+	DEBUG(NAME_fillPattern, printf("fg = %ld, bg = %ld\n",
+				       context.gcs->foreground_pixel,
+				       context.gcs->background_pixel));
 	mask 		  = (GCStipple|GCFillStyle|GCForeground|GCBackground);
       } else
       { values.tile       = pm;
@@ -639,6 +652,8 @@ r_fillpattern(Any fill)		/* image or colour */
 
     XChangeGC(context.display, context.gcs->fillGC, mask, &values);
     context.gcs->fill = fill;
+  } else
+  { DEBUG(NAME_fillPattern, printf("Not changed\n"));
   }
 }
 
@@ -722,7 +737,8 @@ r_colour(Any c)
 
       context.gcs->colour = c;
       XChangeGC(context.display, context.gcs->workGC, mask, &values);
-      if ( instanceOfObject(context.gcs->fill, ClassImage) && instanceOfObject(c, ClassColour))
+      if ( instanceOfObject(context.gcs->fill, ClassImage) &&
+	   instanceOfObject(c, ClassColour))
 	XChangeGC(context.display, context.gcs->fillGC, GCForeground, &values);
     } 
     context.gcs->colour = c;
@@ -732,9 +748,11 @@ r_colour(Any c)
 }
 
 
-static void
+Any
 r_background(Any c)
-{ if ( isDefault(c) )
+{ Any ob = context.gcs->background;
+
+  if ( isDefault(c) )
     c = context.default_background;
 
   if ( c != context.gcs->background )
@@ -777,6 +795,8 @@ r_background(Any c)
       XChangeGC(context.display, context.gcs->clearGC, mask, &values);
     }
   }
+
+  return ob;
 }
 
 
@@ -1033,19 +1053,87 @@ r_elevation(Elevation e)
 
 
 void
-r_3d_box(int x, int y, int w, int h, Elevation e, int up)
-{ XSegment s[MAX_SHADOW * 2];
-  int i;
+r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
+{ int i;
   int pen = 1;
   int os;
   GC TopLeftGC, BottomRightGC;
   int xt, yt;
   int shadow = valInt(e->height);
 
+  if ( e->kind == NAME_shadow )
+  { XSegment s[2 * MAX_SHADOW];
+    int is = 0;				/* # segments */
+
+    r_elevation(e);
+
+    shadow = abs(shadow);
+    shadow = min(shadow, min(w, h));
+    if ( shadow > MAX_SHADOW )
+      shadow = MAX_SHADOW;
+    r_box(x, y, w-shadow, h-shadow, radius, e->colour);
+    
+    xt = x, yt = y;
+    Translate(xt, yt);
+
+    if ( radius > 0 )
+    { int  r = radius;
+      int wh = 2 * r;
+      XArc as[MAX_SHADOW * 6];
+      int  ns = 0;
+
+      w--, h--;
+      for( os=0; os < shadow; os++ )
+      { s[is].x1 = xt+w-os;		s[is].y1 = yt+r-shadow+os;
+	s[is].x2 = xt+w-os;		s[is].y2 = yt+h-r-os;
+	is++;
+	s[is].x1 = xt+r-shadow+os;	s[is].y1 = yt+h-os;
+	s[is].x2 = xt+w-r-os;		s[is].y2 = yt+h-os;
+	is++;
+
+	if ( os == 0 )
+	{ as[ns].x = xt+w-wh;		as[ns].y = yt+h-wh;	/* bot-right */
+	  as[ns].width = wh;		as[ns].height = wh;
+	  as[ns].angle1 = 270*64;	as[ns].angle2 = 90*64;
+	  ns++;
+	} else
+	{ as[ns].x = -(os-1)+xt+w-wh;	as[ns].y = -os+yt+h-wh;
+	  as[ns].width = wh;		as[ns].height = wh;
+	  as[ns].angle1 = 270*64;	as[ns].angle2 = 90*64;
+	  ns++;
+	  as[ns].x = -os+xt+w-wh;	as[ns].y = -(os-1)+yt+h-wh;
+	  as[ns].width = wh;		as[ns].height = wh;
+	  as[ns].angle1 = 270*64;	as[ns].angle2 = 90*64;
+	  ns++;
+	}
+      }
+
+      XDrawArcs(context.display, context.drawable,
+		context.gcs->shadowGC, as, ns);
+    } else
+    { w -= shadow;
+      h -= shadow;
+
+      for( os=0; os < shadow; os++ )
+      { s[is].x1 = xt+w+os;	s[is].y1 = yt+shadow;
+	s[is].x2 = xt+w+os;	s[is].y2 = yt+h+os;
+	is++;
+	s[is].x1 = xt+shadow;	s[is].y1 = yt+h+os;
+	s[is].x2 = xt+w+os;	s[is].y2 = yt+h+os;
+	is++;
+      }
+    }
+
+    XDrawSegments(context.display, context.drawable,
+		  context.gcs->shadowGC, s, is);
+
+    return;
+  }
+  
   if ( !up  )
     shadow = -shadow;
 
-  if ( shadow != 0 )
+  if ( shadow )
   { r_elevation(e);
 
     if ( shadow > 0 )
@@ -1063,57 +1151,122 @@ r_3d_box(int x, int y, int w, int h, Elevation e, int up)
     xt = x, yt = y;
     Translate(xt, yt);
   
-    for(i=0, os=0; os < shadow; os += pen)
-    { s[i].x1 = xt+os;		s[i].y1 = yt+os;	/* top-side */
-      s[i].x2 = xt+w-1-os;	s[i].y2 = yt+os;
-      i++;
-      s[i].x1 = xt+os;		s[i].y1 = yt+os;	/* left-side */
-      s[i].x2 = xt+os;		s[i].y2 = yt+h-1-os;
-      i++;
-    }
-    XDrawSegments(context.display, context.drawable, TopLeftGC, s, i);
-    
-    for(i=0, os=0; os < shadow; os += pen)
-    { s[i].x1 = xt+os;		s[i].y1 = yt+h-1-os;	/* bottom-side */
-      s[i].x2 = xt+w-1-os;	s[i].y2 = yt+h-1-os;
-      i++;
-      s[i].x1 = xt+w-1-os;	s[i].y1 = yt+os;	/* right-side */
-      s[i].x2 = xt+w-1-os;	s[i].y2 = yt+h-1-os;
-      i++;
-    }
-    XDrawSegments(context.display, context.drawable, BottomRightGC, s, i);
-  }
+    if ( radius > 0 )
+    { XSegment sr[MAX_SHADOW * 2];	/* top, left */
+      XArc     ar[MAX_SHADOW * 3];	/* idem */
+      XSegment ss[MAX_SHADOW * 2];	/* bottom, right */
+      XArc     as[MAX_SHADOW * 3];	/* item */
+      int      is=0, ir=0, ns=0, nr=0;	/* # items */
+      int      os;
   
+      w--, h--;
+
+      for(os=0; os<shadow; os++)
+      { int r     = radius-os;
+	short wh  = r*2;
+  
+	sr[ir].x1 = os+xt+r;	sr[ir].y1 = os+yt;	/* top */
+	sr[ir].x2 = -os+xt+w-r;	sr[ir].y2 = os+yt;
+	ir++;
+	sr[ir].x1 = os+xt;	sr[ir].y1 = os+yt+r;	/* left */
+	sr[ir].x2 = os+xt;	sr[ir].y2 = -os+yt+h-r;
+	ir++;
+
+	ss[is].x1 = -os+xt+w;   ss[is].y1 = os+yt+r;	/* right */
+	ss[is].x2 = -os+xt+w;   ss[is].y2 = -os+yt+h-r;
+	is++;
+	ss[is].x1 = os+xt+r;   ss[is].y1 = -os+yt+h;	/* bottom */
+	ss[is].x2 = os+xt+w-r;  ss[is].y2 = -os+yt+h;
+	is++;
+
+	ar[nr].x = os+xt;	ar[nr].y = os+yt; 	/* top-left */
+	ar[nr].width = wh;	ar[nr].height = wh;
+        ar[nr].angle1 = 90*64;  ar[nr].angle2 = 90*64;
+	nr++;
+	ar[nr].x = -os+xt+w-wh;	ar[nr].y = os+yt; 	/* top-right */
+	ar[nr].width = wh;	ar[nr].height = wh;
+        ar[nr].angle1 = 45*64;   ar[nr].angle2 = 45*64;
+	nr++;
+	ar[nr].x = os+xt;	ar[nr].y = -os+yt+h-wh;	/* bottom-left */
+	ar[nr].width = wh;	ar[nr].height = wh;
+        ar[nr].angle1 = 180*64; ar[nr].angle2 = 45*64;
+	nr++;
+
+	as[ns].x = -os+xt+w-wh;	as[ns].y = -os+yt+h-wh;	/* bottom-right */
+	as[ns].width = wh;	as[ns].height = wh;
+        as[ns].angle1 = 270*64;	as[ns].angle2 = 90*64;
+	ns++;
+	as[ns].x = -os+xt+w-wh;	as[ns].y = os+yt; 	/* top-right */
+	as[ns].width = wh;	as[ns].height = wh;
+        as[ns].angle1 = 0*64;  as[ns].angle2 = 45*64;
+	ns++;
+	as[ns].x = os+xt;	as[ns].y = -os+yt+h-wh;	/* bottom-left */
+	as[ns].width = wh;	as[ns].height = wh;
+        as[ns].angle1 = 225*64; as[ns].angle2 = 45*64;
+	ns++;
+      }
+
+      r_arcmode(NAME_pieSlice);
+      XDrawSegments(context.display, context.drawable, TopLeftGC,     sr, ir);
+      XDrawSegments(context.display, context.drawable, BottomRightGC, ss, is);
+      XDrawArcs(    context.display, context.drawable, TopLeftGC,     ar, nr);
+      XDrawArcs(    context.display, context.drawable, BottomRightGC, as, ns);
+    } else				/* no radius */
+    { XSegment s[2 * MAX_SHADOW];
+
+      for(i=0, os=0; os < shadow; os += pen)
+      { s[i].x1 = xt+os;	s[i].y1 = yt+os; 	/* top-side */
+	s[i].x2 = xt+w-1-os;	s[i].y2 = yt+os;
+	i++;
+	s[i].x1 = xt+os;	s[i].y1 = yt+os;	/* left-side */
+	s[i].x2 = xt+os;	s[i].y2 = yt+h-1-os;
+	i++;
+      }
+      XDrawSegments(context.display, context.drawable, TopLeftGC, s, i);
+      
+      for(i=0, os=0; os < shadow; os += pen)
+      { s[i].x1 = xt+os;	s[i].y1 = yt+h-1-os;	/* bottom-side */
+	s[i].x2 = xt+w-1-os;	s[i].y2 = yt+h-1-os;
+	i++;
+	s[i].x1 = xt+w-1-os;	s[i].y1 = yt+os;	/* right-side */
+	s[i].x2 = xt+w-1-os;	s[i].y2 = yt+h-1-os;
+	i++;
+      }
+      XDrawSegments(context.display, context.drawable, BottomRightGC, s, i);
+    }
+  }  
+
   if ( notDefault(e->colour) )
     r_fill(x+shadow, y+shadow, w-2*shadow, h-2*shadow, e->colour);
 }
 
 
 void
-r_3d_line(int x1, int y1, int x2, int y2, Elevation e)
+r_3d_line(int x1, int y1, int x2, int y2, Elevation e, int up)
 { XSegment s[MAX_SHADOW];
   int i;
-  int pen = valInt(e->height);
+  int z = valInt(e->height);
 
   Translate(x1, y1);
   Translate(x2, y2);
 
-  pen /= 2;
-  if ( pen == 0 )
-    pen = valInt(e->height);
-
   r_elevation(e);
 
-  if ( pen > MAX_SHADOW )
-    pen = MAX_SHADOW;
+  if ( z < 0 )
+  { z = -z;
+    up = !up;
+  }
+
+  if ( z > MAX_SHADOW )
+    z = MAX_SHADOW;
 
   if ( y1 == y2 )
-  { y1 -= pen; y2 -= pen;
+  { y1 -= z; y2 -= z;
   } else
-  { x1 -= pen; x2 -= pen;
+  { x1 -= z; x2 -= z;
   }
 
-  for(i=0; i<pen; i++)
+  for(i=0; i<z; i++)
   { s[i].x1 = x1, s[i].x2 = x2, s[i].y1 = y1, s[i].y2 = y2;
     if ( y1 == y2 )
       y1++, y2++;
@@ -1121,8 +1274,8 @@ r_3d_line(int x1, int y1, int x2, int y2, Elevation e)
       x1++, x2++;
   }
   XDrawSegments(context.display, context.drawable,
-		context.gcs->shadowGC, s, i);
-  for(i=0; i<pen; i++)
+		up ? context.gcs->reliefGC : context.gcs->shadowGC, s, i);
+  for(i=0; i<z; i++)
   { s[i].x1 = x1, s[i].x2 = x2, s[i].y1 = y1, s[i].y2 = y2;
     if ( y1 == y2 )
       y1++, y2++;
@@ -1130,7 +1283,7 @@ r_3d_line(int x1, int y1, int x2, int y2, Elevation e)
       x1++, x2++;
   }
   XDrawSegments(context.display, context.drawable,
-		context.gcs->reliefGC, s, i);
+		up ? context.gcs->shadowGC : context.gcs->reliefGC, s, i);
 }
 
 

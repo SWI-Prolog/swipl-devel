@@ -52,6 +52,7 @@ initialiseScrollBar(ScrollBar s, Any obj, Name orientation, Message msg)
   assign(s, look,	   DEFAULT);
   assign(s, placement,	   DEFAULT);
   assign(s, distance,	   DEFAULT);
+  assign(s, pen,	   DEFAULT);
   
   assign(s, view,	   ZERO);	/* length of view */
   assign(s, start,	   ZERO);	/* position in object */
@@ -70,8 +71,6 @@ initialiseScrollBar(ScrollBar s, Any obj, Name orientation, Message msg)
   assign(s, status,	   NAME_inactive);
 
   obtainResourcesObject(s);
-  if ( s->look == NAME_x )
-    setFlag(s, F_SOLID);
   if ( orientation == NAME_horizontal )
     orientationScrollBar(s, orientation);
 
@@ -296,26 +295,26 @@ RedrawAreaScrollBar(ScrollBar s, Area a)
 {
 #define d 2
   Elevation z = getResourceValueObject(s, NAME_elevation);
-  Any bg      = getResourceValueObject(s, NAME_background);
+  Any obg, bg = getResourceValueObject(s, NAME_background);
 
   initialiseDeviceGraphical(s, &x, &y, &w, &h);
   NormaliseArea(x, y, w, h);
 
   compute_bubble(s, &bi, 0, MIN_BUBBLE, FALSE);
+  obg = r_background(bg);
   r_thickness(p);
   r_dash(s->texture);
 
   if ( equalName(s->orientation, NAME_vertical) )
-  { r_fill(x+p, y, w-2*p, bi.start, bg);
-    r_3d_box(x+d, y+bi.start, w-2*d, bi.length, z, TRUE);
-    r_fill(x+p, y+bi.start+bi.length, w-2*p, h-bi.start-bi.length, bg);
+  { r_clear(x+p, y, w-2*p, h);
+    r_3d_box(x+d, y+bi.start, w-2*d, bi.length, 0, z, TRUE);
   } else /* if ( equalName(s->orientation, NAME_horizontal) ) */
-  { r_fill(x, y+p, bi.start, h-2*p, bg);
-    r_3d_box(x+bi.start, y+d, bi.length, h-2*d, z, TRUE);
-    r_fill(x+bi.start+bi.length, y+p, w-bi.start-bi.length, h-2*p, bg);
+  { r_clear(x, y+p, w, h-2*p);
+    r_3d_box(x+bi.start, y+d, bi.length, h-2*d, 0, z, TRUE);
   }
 
   r_box(x, y, w, h, 0, NIL);
+  r_background(obg);
 #undef d
 }
 
@@ -783,13 +782,9 @@ bubbleScrollBar(ScrollBar sb, Int l, Int s, Int v)
 static status
 lookScrollBar(ScrollBar s, Name look)
 { CHANGING_GRAPHICAL(s,
-	assign(s, look, look);
-	assign(s, distance, look == NAME_x ? -1 : 1);
-		     if ( look == NAME_x )
-		       setFlag(s, F_SOLID);
-		     else
-		       clearFlag(s, F_SOLID);
-	changedEntireImageGraphical(s));
+		     assign(s, look, look);
+		     assign(s, distance, look == NAME_x ? -1 : 1);
+		     changedEntireImageGraphical(s));
 
   succeed;
 }
@@ -879,6 +874,8 @@ makeClassScrollBar(Class class)
 		  "Relative placement");
   attach_resource(class, "distance", "int", "-1",
 		  "Distance to graphical");
+  attach_resource(class, "pen", "int", "1",
+		  "Thickness of surrounding box");
   attach_resource(class, "repeat_delay", "real", "0.35",
 		  "OpenLook: time to wait until start of repeat");
   attach_resource(class, "repeat_interval", "real", "0.08",

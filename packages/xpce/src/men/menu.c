@@ -17,6 +17,12 @@ static status	ensureSingleSelectionMenu(Menu m);
 static status	multipleSelectionMenu(Menu m, Bool val);
 static status	restoreMenu(Menu m);
 
+#define CYCLE_DROP_WIDTH 16
+#define CYCLE_DROP_HEIGHT 16
+#define CYCLE_TRIANGLE_WIDTH 9
+#define CYCLE_TRIANGLE_HEIGHT 8
+#define CYCLE_DROP_DISTANCE 5
+
 status
 initialiseMenu(Menu m, Name name, Name kind, Code msg)
 { createDialogItem(m, name);
@@ -144,7 +150,10 @@ area_menu_item(Menu m, MenuItem mi, int *x, int *y, int *w, int *h)
 
 static status
 computeLabelMenu(Menu m)
-{ if ( isDefault(m->show_label) )
+{ int iox;				/* item_offset <- x */
+  int ioy;				/* item_offset <- y */
+
+  if ( isDefault(m->show_label) )
     assign(m, show_label, getResourceValueObject(m, NAME_showLabel));
 
   if ( m->show_label == ON )
@@ -161,22 +170,35 @@ computeLabelMenu(Menu m)
     setArea(m->label_area, DEFAULT, DEFAULT, toInt(w), toInt(h));
     
     if ( m->layout == NAME_vertical )
-    { assign(m->item_offset, x, ZERO);
-      assign(m->item_offset, y, toInt(h));
+    { iox = 0;
+      ioy = h;
     } else
-    { assign(m->item_offset, x, toInt(w));
-      assign(m->item_offset, y, ZERO);
+    { iox = w;
+      ioy = 0;
     }
   } else
   { assign(m, label_area, NIL);
-    assign(m->item_offset, x, ZERO);
-    assign(m->item_offset, y, ZERO);
+    iox = ioy = 0;
   }
   
   if ( notDefault(m->label_width) &&
        m->layout == NAME_horizontal &&
-       valInt(m->label_width) > valInt(m->item_offset->x) )
-    assign(m->item_offset, x, m->label_width);
+       valInt(m->label_width) > iox )
+    iox = valInt(m->label_width);
+
+  if ( m->feedback == NAME_showSelectionOnly )
+  { Any ci = getResourceValueObject(m, NAME_cycleIndicator);
+    
+    if ( instanceOfObject(ci, ClassElevation) )
+      iox += CYCLE_DROP_WIDTH + CYCLE_DROP_DISTANCE;
+    else /* if ( instanceOfObject(ci, ClassImage) ) */
+    { Image i = ci;
+      iox += valInt(i->size->w) + CYCLE_DROP_DISTANCE;
+    }
+  }
+
+  assign(m->item_offset, x, toInt(iox));
+  assign(m->item_offset, y, toInt(ioy));
 
   succeed;
 }
@@ -297,14 +319,15 @@ computeMenu(Menu m)
       ih = valInt(m->item_size->h);
     } else
     { int rows, cols;
+      int pen = valInt(m->pen);
 
       rows_and_cols(m, &rows, &cols);
       if ( m->layout == NAME_horizontal )
-      { iw = rows * (valInt(m->item_size->w) + x_gap(m)) + valInt(m->pen);
-	ih = cols * (valInt(m->item_size->h) + y_gap(m)) + valInt(m->pen);
+      { iw = rows * (valInt(m->item_size->w) + x_gap(m)) + pen;
+	ih = cols * (valInt(m->item_size->h) + y_gap(m)) + pen;
       } else
-      { iw = cols * (valInt(m->item_size->w) + x_gap(m)) + valInt(m->pen);
-	ih = rows * (valInt(m->item_size->h) + y_gap(m)) + valInt(m->pen);
+      { iw = cols * (valInt(m->item_size->w) + x_gap(m)) + pen;
+	ih = rows * (valInt(m->item_size->h) + y_gap(m)) + pen;
       }
     }
 
@@ -357,6 +380,20 @@ ChangedItemMenu(Menu m, MenuItem mi)
 		*            REDRAW		*
 		********************************/
 
+static void
+draw_cycle_blob(int x, int y, Elevation z, int up)
+{ int w = CYCLE_DROP_WIDTH;
+  int h = CYCLE_DROP_HEIGHT;
+  int tw = CYCLE_TRIANGLE_WIDTH;
+  int th = CYCLE_TRIANGLE_HEIGHT;
+  int tx = x + (w - tw)/2;
+  int ty = y + (h - th)/2;
+
+  r_3d_box(x, y, w, h, 0, z, up);
+  r_3d_triangle(tx + tw/2, ty+th, tx, ty, tx+tw, ty, z, up);
+}
+
+
 static status
 RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation z)
 { int b = valInt(m->border);
@@ -385,16 +422,22 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation z)
     leftmark = m->off_image;
 
   if ( m->look == NAME_motif )
-  { int up = (mi->selected == OFF || m->preview == mi);
+  { int up = TRUE;
 
-    if ( pen > 0 || m->preview == mi )
-      r_3d_box(x, y, w, h, z, up);
+    if ( m->preview == mi )
+    { z = getResourceValueObject(m, NAME_previewElevation);
+    } else if ( mi->selected == ON )
+      up = FALSE;
+
+    r_3d_box(x, y, w, h, 0, z, up);
 
     if ( mi->end_group == ON )
-    { if ( m->layout == NAME_vertical )
-	r_3d_line(x, y+h, x+w, y+h, z);
+    { Elevation mz = getResourceValueObject(m, NAME_elevation);
+
+      if ( m->layout == NAME_vertical )
+	r_3d_line(x, y+h, x+w, y+h, mz, FALSE);
       else
-	r_3d_line(x+w, y, x+w, y+h, z);
+	r_3d_line(x+w, y, x+w, y+h, mz, FALSE);
     }
 
     if ( notNil(mi->popup) )
@@ -455,7 +498,7 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation z)
     }
   }
 
-  if ( notNil(leftmark) )
+  if ( instanceOfObject(leftmark, ClassImage) )
   { int bw, bh, by;
     
     bw = valInt(leftmark->size->w);
@@ -464,7 +507,7 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation z)
 	  m->vertical_format == NAME_center ? y + (h-bh)/2 :
 					      y + h - bh);
     r_image(leftmark, 0, 0, x+b, by, bw, bh, ON);
-  }
+  } 
 
   if ( notNil(m->accelerator_font) && notNil(mi->accelerator) )
   { FontObj f = m->accelerator_font;
@@ -474,7 +517,7 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation z)
 	       NAME_right, m->vertical_format);
   }
 
-  ix = x + valInt(m->left_offset) + valInt(m->border);
+  ix = x + lm + b;
   iw = w - (lm + 2*b + rm);
   iy = y + b;
   ih = h - 2*b;
@@ -549,7 +592,29 @@ RedrawAreaMenu(Menu m, Area a)
   
   if ( m->feedback == NAME_showSelectionOnly )
   { MenuItem mi = getItemSelectionMenu(m);
+    Any ci = getResourceValueObject(m, NAME_cycleIndicator);
+
+    if ( instanceOfObject(ci, ClassElevation) )
+    { int bw = CYCLE_DROP_WIDTH;
+      int bh = CYCLE_DROP_HEIGHT;
+      int by;
     
+      by = (m->vertical_format == NAME_top    ? cy :
+	    m->vertical_format == NAME_center ? cy + (ih-bh)/2 :
+					        cy + (ih-bh));
+      draw_cycle_blob(cx-(bw+CYCLE_DROP_DISTANCE), by, ci, TRUE);
+    } else /*if ( instanceOfObject(ci, ClassImage) )*/
+    { Image i = ci;
+      int bw = valInt(i->size->w);
+      int bh = valInt(i->size->h);
+      int by;
+    
+      by = (m->vertical_format == NAME_top    ? cy :
+	    m->vertical_format == NAME_center ? cy + (ih-bh)/2 :
+					        cy + (ih-bh));
+      r_image(i, 0, 0, cx-(bw+CYCLE_DROP_DISTANCE), by, bw, bh, ON);
+    }
+
     if ( mi != FAIL )
       RedrawMenuItem(m, mi, cx, cy, iw, ih, iz);
   } else
@@ -565,16 +630,16 @@ RedrawAreaMenu(Menu m, Area a)
     rows_and_cols(m, &rows, &cols);
     
     if ( z )
-      r_3d_box(cx, cy, w-(cx-x), h-(cy-y), z, TRUE);
+      r_3d_box(cx, cy, w-(cx-x), h-(cy-y), 0, z, TRUE);
     cx += valInt(m->margin);
 
-    if ( m->pen != ZERO )
+    if ( m->look == NAME_motif )
+    { iw += gx; ih += gy;
+      gx = gy = 0;
+    } else if ( m->pen != ZERO )
     { iw += gx + 1; ih += gy + 1;
       gx = gy = -1;
-
-      if ( m->look == NAME_motif )
-	iw--, ih--, gx++, gy++;		/* don't overlap! */
-    }
+    } 
 
     for_cell(cell, m->members)
     { MenuItem mi = cell->value;
@@ -1212,8 +1277,8 @@ kindMenu(Menu m, Name kind)
       { assign(m, on_image, NIL);
 	assign(m, off_image, NIL);
 	assign(m, feedback, NAME_box);
-	assign(m, pen, m->look == NAME_motif ? TWO : ONE);
-	assign(m, border, TWO);
+	assign(m, pen, m->look == NAME_motif ? ZERO : ONE);
+	assign(m, border, m->look == NAME_motif ? toInt(3) : TWO);
 	assign(m, multiple_selection, kind == NAME_toggle ? ON : OFF);
 
 	assign(m, kind, kind);
@@ -1224,7 +1289,8 @@ kindMenu(Menu m, Name kind)
     }
 
     if ( equalName(kind, NAME_cycle) )
-    { assign(m, on_image, getResourceValueObject(m, NAME_cycleImage));
+    { assign(m, on_image, NIL);
+      assign(m, off_image, NIL);
       assign(m, feedback, NAME_showSelectionOnly);
       assign(m, layout,   NAME_horizontal);
       assign(m, accelerator_font, NIL);
@@ -1789,7 +1855,7 @@ makeClassMenu(Class class)
 		  "Default font for label");
   attach_resource(class, "value_font", "font",    "@helvetica_roman_14",
 		  "Default font for menu items");
-  attach_resource(class, "value_width","int",     "0",
+  attach_resource(class, "value_width", "int",     "0",
 		  "Mimimum width for popup menu");
   attach_resource(class, "layout",     "name",	  "horizontal",
 		  "Layout of the menu: {horizontal,vertical}");
@@ -1805,14 +1871,16 @@ makeClassMenu(Class class)
 		  "Marker for items in selection");
   attach_resource(class, "off_image",  "image*",  "@nomark_image",
 		  "Marker for items not in selection");
-  attach_resource(class, "popup_image","image*",  "@nil",
+  attach_resource(class, "popup_image", "image*",  "@nil",
 		  "Marker for items with popup");
-  attach_resource(class, "cycle_image","image*",  "@cycle_image",
-		  "Indication of a kind:cycle menu");
+  attach_resource(class, "cycle_indicator", "image|elevation", "@cycle_image",
+		  "Indication of a ->kind: cycle menu");
   attach_resource(class, "margin", "0..",  "0",
 		  "Margin to the left and right");
   attach_resource(class, "item_elevation", "elevation",  "0",
 		  "Elevation of items in the menu");
+  attach_resource(class, "preview_elevation", "elevation",  "0",
+		  "Elevation of item in preview mode");
 
   succeed;
 }

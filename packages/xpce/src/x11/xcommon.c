@@ -301,6 +301,8 @@ keycode_to_name(XEvent *event)
     case XK_Down:	return NAME_cursorDown;
   }
 
+  DEBUG(NAME_keysym, printf("sym = 0x%X\n", (unsigned int)sym));
+
   fail;
 }
 

@@ -44,21 +44,38 @@ initialiseSlider(Slider s, Name name, Int low, Int high, Int def, Message msg)
 }
 
 
+static float
+convert_value(Any val)
+{ return isInteger(val) ? (float)valInt(val) : ((Real)(val))->value;
+}
+
+
+static void
+format_value(char *buf, Any val)
+{ if ( isInteger(val) )
+    sprintf(buf, "%ld", valInt(val));
+  else
+    sprintf(buf, "%f", ((Real)val)->value);
+}
+
+
 static status
 RedrawAreaSlider(Slider s, Area a)
 { int x, y, w, h;
   int ny, vx, vy, lx, ly, sx, sy, hx, hy;
   int vv;
-  int bw = (s->look == NAME_openLook ? OL_BOX_WIDTH : BAR_WIDTH);
-  int lv = valInt(s->low), hv = valInt(s->high);
-  int dv = valInt(s->displayed_value);
+  int bw = (s->look == NAME_x ? BAR_WIDTH : OL_BOX_WIDTH);
+  float lv = convert_value(s->low);
+  float hv = convert_value(s->high);
+  float dv = convert_value(s->displayed_value);
+
   if ( dv < lv )
     dv = lv;
   else if ( dv > hv )
     dv = hv;
 
   if ( hv > lv )
-    vv = ((valInt(s->width) - bw) * (dv - lv)) / (hv - lv);
+    vv = rfloat(((float) (valInt(s->width) - bw) * (dv - lv)) / (hv - lv));
   else
     vv = 0;
 
@@ -77,7 +94,15 @@ RedrawAreaSlider(Slider s, Area a)
 	       s->label_format, NAME_top);
   }
       
-  if ( s->look == NAME_openLook )
+  if ( s->look == NAME_motif )
+  { int by = y+sy+(SLIDER_HEIGHT-OL_BAR_HEIGHT)/2;
+    int ex  = x + sx + valInt(s->width);
+    Elevation z = getResourceValueObject(s, NAME_elevation);
+
+    r_3d_box(x+sx, by, vv, OL_BAR_HEIGHT, 0, z, FALSE);
+    r_3d_box(x+sx+vv+bw, by, ex-(x+sx+vv+bw), OL_BAR_HEIGHT, 0, z, FALSE);
+    r_3d_box(x+sx+vv, y+sy, bw, SLIDER_HEIGHT, 0, z, TRUE);
+  } else if ( s->look == NAME_openLook )
   { int by = y+sy+(SLIDER_HEIGHT-OL_BAR_HEIGHT)/2;
     int ly2 = by+OL_BAR_HEIGHT-1;
     int ex  = x + sx + valInt(s->width);
@@ -98,13 +123,15 @@ RedrawAreaSlider(Slider s, Area a)
   { char buf[100];
     string str;
 
-    sprintf(buf,  "[%ld]", valInt(s->displayed_value));
+    buf[0] = '[';
+    format_value(&buf[1], s->displayed_value);
+    strcat(buf, "]");
     str_set_ascii(&str, buf);
     str_string(&str, s->value_font, x+vx, y+vy, 0, 0, NAME_left, NAME_top);
-    sprintf(buf,  "%ld",   valInt(s->low));
+    format_value(buf, s->low);
     str_set_ascii(&str, buf);
     str_string(&str, s->value_font, x+lx, y+ly, 0, 0, NAME_left, NAME_top);
-    sprintf(buf,  "%ld",   valInt(s->high));
+    format_value(buf, s->high);
     str_set_ascii(&str, buf);
     str_string(&str, s->value_font, x+hx, y+hy, 0, 0, NAME_left, NAME_top);
   }
@@ -143,13 +170,15 @@ compute_slider(Slider s, int *ny, int *vx, int *vy, int *lx, int *ly, int *sx, i
     char buf[100];
     string str;
 
-    sprintf(buf, "[%ld]", valInt(s->high));
+    buf[0] = '[';
+    format_value(&buf[1], s->high);
+    strcat(buf, "]");
     str_set_ascii(&str, buf);
     str_size(&str, s->value_font, &shw, &sh);
-    sprintf(buf, "%ld", valInt(s->low));
+    format_value(buf, s->low);
     str_set_ascii(&str, buf);
     str_size(&str, s->value_font, &slw, &sh);
-    if ( valInt(s->low) < 0 &&
+    if ( convert_value(s->low) < 0.0 &&
 	 (tw = (c_width('-', s->value_font) + slw)) > shw )
       shw = tw;
 
@@ -269,14 +298,22 @@ eventSlider(Slider s, EventObj ev)
     se = sx + valInt(s->width);
 
     if ( ex > sx - 10 && ex < se + 10 )
-    { int val;
+    { Any val;
 
       if ( ex < sx ) ex = sx;
       if ( ex > se ) ex = se;
-      val = ((ex - sx) * (valInt(s->high) - valInt(s->low)) /
-	     (se - sx)) + valInt(s->low);
 
-      send(s, NAME_displayedValue, toInt(val), 0);
+      if ( isInteger(s->low) && isInteger(s->high) )
+      { val = toInt(((ex - sx) * (valInt(s->high) - valInt(s->low)) /
+		     (se - sx)) + valInt(s->low));
+      } else
+      { float l = convert_value(s->low);
+	float h = convert_value(s->high);
+	
+	val = CtoReal(((float)(ex - sx) * (h - l) / (float) (se - sx)) + l);
+      }
+
+      send(s, NAME_displayedValue, val, 0);
       if ( isUpEvent(ev) && !send(s->device, NAME_modifiedItem, s, ON, 0) )
 	applySlider(s, ON);		/* TBD: or ->modified_item! */
       else if ( s->drag == ON && instanceOfObject(s->message, ClassCode) )
@@ -440,9 +477,9 @@ makeClassSlider(Class class)
 	     "Whether label is shown");
   localClass(class, NAME_showValue, NAME_appearance, "bool", NAME_get,
 	     "Whether selection is shown");
-  localClass(class, NAME_low, NAME_selection, "int", NAME_get,
+  localClass(class, NAME_low, NAME_selection, "int|real", NAME_get,
 	     "Minimum of range");
-  localClass(class, NAME_high, NAME_selection, "int", NAME_get,
+  localClass(class, NAME_high, NAME_selection, "int|real", NAME_get,
 	     "Maximum of range");
   localClass(class, NAME_width, NAME_area, "int", NAME_none,
 	     "Length of the bar");
@@ -463,8 +500,8 @@ makeClassSlider(Class class)
   storeMethod(class, NAME_width,     	  widthSlider);
   storeMethod(class, NAME_displayedValue, displayedValueSlider);
 
-  sendMethod(class, NAME_initialise, DEFAULT,
-	     5, "name", "low=int", "high=int", "value=int|function",
+  sendMethod(class, NAME_initialise, DEFAULT, 5,
+	     "name","low=int|real", "high=int|real", "value=int|real|function",
 	     "message=[code]*",
 	     "Create from label, low, high, default and message",
 	     initialiseSlider);
@@ -480,7 +517,7 @@ makeClassSlider(Class class)
   sendMethod(class, NAME_restore, NAME_apply, 0,
 	     "Set ->selection to <-default",
 	     restoreSlider);
-  sendMethod(class, NAME_default, NAME_apply, 1, "value=int|function",
+  sendMethod(class, NAME_default, NAME_apply, 1, "value=int|real|function",
 	     "Set variable -default and ->selection",
 	     defaultSlider);
   sendMethod(class, NAME_apply, NAME_apply, 1, "always=[bool]",
@@ -496,13 +533,13 @@ makeClassSlider(Class class)
   getMethod(class, NAME_width, NAME_area, "int", 0,
 	    "Get width of bar",
 	    getWidthSlider);
-  getMethod(class, NAME_selection, NAME_selection, "int", 0,
+  getMethod(class, NAME_selection, NAME_selection, "int|real", 0,
 	    "Current value of the selection",
 	    getSelectionSlider);
   getMethod(class, NAME_modified, NAME_apply, "bool", 0,
 	    "If @on, slider has been modified",
 	    getModifiedSlider);
-  getMethod(class, NAME_default, NAME_apply, "int", 0,
+  getMethod(class, NAME_default, NAME_apply, "int|real", 0,
 	    "Current default value",
 	    getDefaultSlider);
   getMethod(class, NAME_reference, DEFAULT, "point", 0,
