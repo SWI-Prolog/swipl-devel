@@ -352,7 +352,7 @@ user:file_search_path(user_profile, '.').
 user:file_search_path(user_profile, UserHome) :-
 	catch(expand_file_name(~, [UserHome]), _, fail).
 user:file_search_path(user_profile, SwiHome) :-
-	current_prolog_flag(unix, false),
+	current_prolog_flag(windows, true), 		% single user machine
 	current_prolog_flag(home, SwiHome).
 
 expand_file_search_path(Spec, Expanded) :-
