@@ -109,10 +109,15 @@ string_attribute(char *s, char *string, int len)
   
   if ( *q++ != '(' )
     return -1;
-  while(isletter(*q) && len-- > 0)
+  while(isspace(*q))
+    q++;				/* kill leading blanks */
+  while(*q && *q != ')' && len-- > 0)
     *r++ = *q++;
   if ( *q++ == ')' )
-  { *r = EOS;
+  { while(r>string && isspace(r[-1]))
+      r--;				/* kill trailing blanks */
+
+    *r = EOS;
     return q-s;
   }
 
