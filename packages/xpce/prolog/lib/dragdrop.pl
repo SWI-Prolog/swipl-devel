@@ -294,19 +294,27 @@ select_command(G, Commands:chain, Cmd:name) :<-
 	send(@display, busy_cursor, @nil),
 	new(P, popup(command)),
 	send(P, members, Commands),
+	send_list(P, append, 
+		  [ gap,
+		    cancel
+		  ]),
 	get(@event, receiver, Gr),
 	get(@event, position, Gr, Pos),
 	send(P, open, Gr, Pos),
 	send(G, slot, select_popup, P),
+%	get(P, window, Window),
+%	send(Window, grab_pointer, @on),
 	repeat,
 	    send(@display, dispatch),
 	    get(P, displayed, @off), !,
+%	    send(Window, grab_pointer, @off),
 	(   get(P, selected_item, SI),
 	    SI \== @nil
 	->  get(SI, value, Cmd)
 	;   Cmd = @nil
 	),
 	send(G, slot, select_popup, @nil),
-	Cmd \== @nil.
+	Cmd \== @nil,
+	Cmd \== cancel.
 
 :- pce_end_class.
