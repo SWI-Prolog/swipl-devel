@@ -297,9 +297,9 @@ pce_ifhostproperty(prolog(swi),
 pce_ifhostproperty(need_extern_declaration,
 		   (:- extern('_bind_lazy'(+term, +term, +term, +term)))).
 
-'_bind_lazy'(_Class, Type, Class, Selector) :-
-%	format('bind_lazy(~p, ~p, ~p)~n', [Type, Class, Selector]),
-	notrace(do_bind_lazy(Type, Class, Selector)).
+'_bind_lazy'(Type, _Class, ClassName, Selector) :-
+%	format('bind_lazy(~p, ~p, ~p)~n', [Type, ClassName, Selector]),
+	notrace(do_bind_lazy(Type, ClassName, Selector)).
 
 do_bind_lazy(send, ClassName, @default) :- !,
 	get(@pce, convert, ClassName, class, Class),

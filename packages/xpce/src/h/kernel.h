@@ -1647,7 +1647,7 @@ GLOBAL int	qsortReverse;		/* used by qsortCompareObjects() */
 #endif
 
 #ifndef O_RUNTIME
-#define O_COUNT 1
+#define O_COUNT 0			/* we've had that */
 #else
 #define O_COUNT 0
 #endif

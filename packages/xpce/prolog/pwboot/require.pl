@@ -61,6 +61,8 @@ require(Module, Name/Arity) :-		% load from library
 	functor(Head, Name, Arity),
 	library_index(Head, _, File),
 	Module:use_module(library(File), [Name/Arity]).
+require(_Module, Name/Arity) :-
+	print_message(error, required_predicate_not_found(Name,Arity)).
 
 te_require_list(Specs, UseModules) :-
 	load_library_index,
@@ -105,9 +107,20 @@ load_library_index :-
 	library_index(_, _, _), !.		% loaded
 load_library_index :-
 	absolute_file_name(library('QPINDEX.pl'),
-			   [access(read), file_errors(fail)], Index),
+			   [ access(read),
+			     file_errors(fail)
+			   ], Index),
 	!,
-        read_index(Index).
+        read_index(Index),
+	(   absolute_file_name(library('INDEX.pl'),
+			       [ access(read),
+				 file_errors(fail),
+				 solutions(all)
+			       ], LibIndex),
+	    read_index(LibIndex),
+	    fail
+	;   true
+	).
 load_library_index :-
 	print_message(warning, index_not_found(library('QPINDEX.pl'))).
 
@@ -120,7 +133,8 @@ read_index(Index) :-
 	    ;   assert_index(Term, Index),
 	        fail
 	    ),
-	seen, see(Old).
+	seen, see(Old),
+	print_message(informational, loaded_library_index(Index)).
 
 assert_index(index(Name, Arity, Module, File), _Index) :- !,
 	functor(Head, Name, Arity),

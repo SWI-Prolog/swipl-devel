@@ -77,6 +77,7 @@ status		freedClass(Class class, Any instance);
 status		isAClass(Class class, Class super);
 int		numberTreeClass(Class class, int n);
 status		featureClass(Class class, Name name, Any value);
+Any		getFeatureClass(Class class, Name name);
 Chain		getSendMethodsClass(Class class);
 status		makeClassClass(Class class);
 

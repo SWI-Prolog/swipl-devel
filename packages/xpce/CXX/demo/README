@@ -3,12 +3,8 @@
 
 Auther:		Jan Wielemaker, SWI, University of Amsterdam
 
-Last updated:	Sep 24, 1995
-		Updated for gcc 2.7.0 and dynamically loaded shared
-		objects.
-
-Bugs:		gcc-2.7.0 crashes on some files.  2.6.3 had the same
-		problem.  2.5.8 was able to compile all these demos.
+Last updated:	Marh 25, 1997
+		Tested in fixed for Solaris 2.5, gcc 2.7.2
 
 This directory contains demos for the   XPCE/C++ interface.  These demos
 have been developed to test  and   illustrate  the  functionality of the
@@ -16,37 +12,83 @@ interface; not to be pretty  looking   programs.   Please try the Prolog
 demos to get an overview of the functionality of XPCE.
 
 This  is  an  alpha   version   of    the   C++   interface.   See  also
-$PCEHOME/README.C++ and the LaTeX documentation in $PCEHOME/man/C++/
+$PCEHOME/README.CXX and the LaTeX documentation in $PCEHOME/man/CXX/
 
 
-Shared libraries
-================
+Compiling stand-alone executables
+=================================
 
-This version has been updated and   tested  using PC/Linux 2.1.3 running
-the ELF binary format.  It is  fully   based  on shared libraries.  Both
-XPCE/Prolog and XPCE/C++ objects now share the same XPCE shared library:
-libXPCE.so.4.<minor>.<patch>
+The file view.C defines a simple application that can be started as
+	
+	% ./view file ...
+
+and creates an XPCE view object for   each  argument file. It dies after
+the user closes the last view.
+
+To compile it, run `make so'  in   the  ../../<arch> directory where you
+have built XPCE. Now, do (use absolute paths   if  you want to start the
+applications from another directory):
+
+	% export LD_LIBRARY_PATH=../../<arch>
+	% export PCEHOME=../..
+	% make view.o
+	% make view
+
+Stand-alone executables need to be linked  to -lXPCE and -lXPCEmain. The
+latter  provides  a  main()  wrapper  around  pceInitApplication()  that
+initialises XPCE. The environment variable $PCEHOME   should  be set. It
+you   donot   want    to    use     -lXPCEmain,    copy    and    modify
+$PCEHOME/src/itf/main.c to suit your needs.
 
 
-Compiling to shared objects and loading in SWI-Prolog
+Loading XPCE/C++ defined classes in XPCE/(SWI-)Prolog
 =====================================================
 
-Programs may be loaded on top of   Prolog  by linking them together with
-pcerc.o and -lXPCE to a shared object.  See Makefile for details.  After
-the shared object has been created, just do:
+Preparation of XPCE/SWI-Prolog
+------------------------------
 
-	?- load_foreign_library(mylib).
+The installation process of XPCE/SWI-Prolog should include:
 
-to attach the shared object to  Prolog   and  call the entry-point.  The
-entry-point will be passed the command-line options from Prolog.
+	% make xpce
+	% make so
+	% make so-intall
+	% make pl-itf
+	% make dv-install
 
+to arrive at a situation  where   SWI-Prolog  talks to pl2xpce.so, which
+just contains the  plain  Prolog   <->XPCE  interface.  pl2xpce.so  uses
+libXPCE.so, which is also used by the extension. Verify the installation
+by running it, and using ldd to check the dependencies.
 
-Creating a stand-alone version of the XPCE/C++ Program
-======================================================
+Compiling the demo
+------------------
 
-Just link the program to  -lXPCEmain   and  -lXPCE.  -lXPCEmain provides
-main(): XPCE is initialised, the applications  entry-point is called and
-then the system enters an endless event-loop.
+bnode.C defines the XPCE class b_node from C++.  Compile it using:
 
+	% make pcerc.o
+	% make bnode.so
 
+pcerc.o is a  small  wrapper  to  make   the  .so  file  compliant  with
+SWI-Prolog's load_foreign_library/1 predicate.  Now, run:
 
+	% xpce
+	?- load_foreign_library(bnode).
+	?- manpce(b_node).
+
+to verify the existence of the new class.
+
+Problems and remarks
+--------------------
+
+    1) Linking. Global C++ constructors should work, and therefore, g++
+       based shared objects need to be linked using:
+
+	% g++ -shared file.o ... -o file.so -lXPCE
+
+    2) __builtin_new undefined
+       Trying all the above on Solaris 2.5/g++ 2.7.2, all went well upto
+       starting the manual, which actually starts querying the new
+       class.  In this case the symbol __builtin_new was reported
+       undefined.  This symbol is in -lgcc.  The only way I managed to
+       get it to work is by relinking SWI-Prolog after adding
+       `-u __builtin_new' to the LDFLAGS.

@@ -10,6 +10,10 @@
 #ifdef __WIN32__
 #define HAVE_MALLOC_H 1
 #define HAVE_SIGNAL_H 1
+#else
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 #endif
 
 #include <stdio.h>
@@ -135,6 +139,7 @@ static Atom ATOM_slash;			/* "/" */
 static Atom ATOM_read;			/* "read" */
 static Atom ATOM_write;			/* "write" */
 static Atom ATOM_append;		/* "append" */
+static Atom ATOM_true;			/* "true" */
 
 static Module MODULE_user;		/* Handle for user-module */
 
@@ -160,6 +165,7 @@ initPrologConstants()
   ATOM_read			= AtomFromString("read");
   ATOM_write			= AtomFromString("write");
   ATOM_append			= AtomFromString("append");
+  ATOM_true			= AtomFromString("true");
 
   MODULE_user			= ModuleFromAtom(ATOM_user);
 }
@@ -254,6 +260,19 @@ GetChars(Term t, char **s)
 }
 
 
+#ifdef SWI
+static void
+StripModuleTag(Term t, Atom *module, Term p)
+{ module_t m = 0;
+
+  if ( PL_strip_module(t, &m, p) && m )
+    *module = PL_module_name(m);
+  else
+    PutTerm(p, t);
+}
+
+#else /*SWI*/
+
 static void
 StripModuleTag(Term t, Atom *module, Term p)
 { Atom name;
@@ -275,6 +294,7 @@ StripModuleTag(Term t, Atom *module, Term p)
   }
 }
 
+#endif /*SWI*/
 
 static PceName
 GetSelector(Term t, Module *m)
@@ -350,6 +370,9 @@ static PL_dispatch_hook_t	old_dispatch_hook;
 #define PutInteger(t, i)	PL_put_integer((t), (i))
 #define PutFloat(t, f)		PL_put_float((t), (f))
 #define Unify(t1, t2)		PL_unify((t1), (t2))
+#define UnifyAtom(t, a)		PL_unify_atom((t), (a))
+#define UnifyFloat(t, a)	PL_unify_float((t), (a))
+#define UnifyInteger(t, a)	PL_unify_integer((t), (a))
 #define PutAtom(t, a)		PL_put_atom((t), (a))
 #define StripModuleTag(t, m, p)	PL_strip_module((t), (m), (p))
 #define FindPredicate(n, a, m)	PL_pred(PL_new_functor(n, a), m)
@@ -508,20 +531,7 @@ PceObject referenceToObject(Term a)
 	an error.  This function too caches using the 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static PceName
-atomToName(Atom a)
-{ PceITFSymbol symbol;
-  PceName name;
-  hostHandle handle = (hostHandle)a;
-
-  if ( (symbol = pceLookupHandle(0, handle)) && symbol->name )
-    return symbol->name;
-
-  name = cToPceName(AtomCharp(a));
-  pceRegisterName(0, handle, name);
-  return name;
-}
-
+#include "table.c"
 
 static Atom
 nameToAtom(PceName name)
@@ -530,10 +540,7 @@ nameToAtom(PceName name)
   if ( pceToC(name, &value) == PCE_NAME )
   { PceITFSymbol symbol = value.itf_symbol;
 
-    if ( symbol->handle[0] != NULL )
-      return (Atom)symbol->handle[0];
-    else				/* register? */
-      return AtomFromString(pceCharArrayToC(symbol->name));
+    return AtomFromString(pceCharArrayToC(symbol->name));
   }
   
   return (Atom)0;
@@ -578,14 +585,9 @@ refToObject(Term arg)
 	  return PCE_FAIL;
 	}
       } else
-      { hostHandle handle = (hostHandle) r.value.a;
-	PceITFSymbol symbol = pceLookupHandle(0, handle);
+      { PceName assoc = atomToName(r.value.a);
 
-	if ( symbol && symbol->object )
-	  obj = symbol->object;
-	else if ( (obj = cToPceAssoc(AtomCharp(r.value.a))) )
-	  pceRegisterAssoc(0, handle, obj);
-	else
+	if ( !(obj = pceObjectFromName(assoc)) )
 	{ PceException(ATOM_unknownReference, 1, arg);
 
 	  return PCE_FAIL;
@@ -627,14 +629,7 @@ referenceToObject(Term arg)
       return PCE_FAIL;
     }
   } else if ( GetAtom(arg, &name) )
-  { hostHandle handle = (hostHandle) name;
-    PceITFSymbol symbol = pceLookupHandle(0, handle);
-
-    if ( symbol && symbol->object )
-      obj = symbol->object;
-    else if ( (obj = cToPceAssoc(AtomCharp(name))) )
-      pceRegisterAssoc(0, handle, obj);
-    else
+  { if ( !(obj = pceObjectFromName(atomToName(name))) )
     { PceException(ATOM_unknownReference, 1, arg);
 
       return PCE_FAIL;
@@ -662,12 +657,8 @@ unifyReferenceArg(Term t, int type, PceCValue value)
   { PutInteger(t2, value.integer);
   } else
   { PceITFSymbol symbol = value.itf_symbol;
-    Atom a = (Atom) symbol->handle[0];
 
-    if ( a )
-      PutAtom(t2, a);
-    else
-      PutCharp(t2, pceCharArrayToC(symbol->name));
+    PutAtom(t2, CachedNameToAtom(symbol->name));
   }
 
   return Unify(t, t2);
@@ -687,10 +678,7 @@ unifyReference(Term t, int type, PceCValue value)
   { PceITFSymbol symbol = value.itf_symbol;
 
     r.type = PL_ATOM;
-    if ( symbol->handle[0] )
-      r.value.a = (Atom)symbol->handle[0];
-    else
-      r.value.a = AtomFromString(pceCharArrayToC(symbol->name));
+    r.value.a = CachedNameToAtom(symbol->name);
   }
   return _PL_unify_xpce_reference(t, &r);
 
@@ -704,10 +692,7 @@ unifyReference(Term t, int type, PceCValue value)
   } else
   { PceITFSymbol symbol = value.itf_symbol;
 
-    if ( symbol->handle[0] )
-      PutAtom(t2, (Atom)symbol->handle[0]);
-    else
-      PutCharp(t2, pceCharArrayToC(symbol->name));
+    PutAtom(t2, CachedNameToAtom(symbol->name));
   }
   ConsFunctor(r, FUNCTOR_ref1, t2);
 
@@ -929,17 +914,6 @@ termToObject(Term t, Atom assoc, int new)
 		 *	  OBJECT-TO-TERM	*
 		 *******************************/
 
-static __inline int
-atomIsName(Atom a, PceCValue value)
-{ PceITFSymbol symbol = value.itf_symbol;
-
-  if ( symbol->handle[0] != NULL )
-    return a == (Atom)symbol->handle[0];
-  else
-    return strcmp(AtomCharp(a), pceCharArrayToC(symbol->name)) == 0;
-}
-
-
 static int
 unifyObject(Term t, PceObject obj, int top)
 { PceCValue value;
@@ -949,23 +923,13 @@ unifyObject(Term t, PceObject obj, int top)
 
   switch( (pcetype = pceToC(obj, &value)) )
   { case PCE_INTEGER:			/* integer */
-      tmpt = NewTerm();
-      PutInteger(tmpt, value.integer);
-      return Unify(t, tmpt);
+      return UnifyInteger(t, value.integer);
     case PCE_REAL:			/* float (real object) */
-      tmpt = NewTerm();
-      PutFloat(tmpt, value.real);
-      return Unify(t, tmpt);
+      return UnifyFloat(t, value.real);
     case PCE_NAME:			/* name */
     { PceITFSymbol symbol = value.itf_symbol;
 
-      tmpt = NewTerm();
-      if ( symbol->handle[0] != NULL )
-	PutAtom(tmpt, (Atom)symbol->handle[0]);
-      else
-	PutCharp(tmpt, pceCharArrayToC(symbol->name));
-
-      return Unify(t, tmpt);
+      return UnifyAtom(t, nameToAtom(symbol->name));
     }
     case PCE_REFERENCE:
     case PCE_ASSOC:
@@ -1690,10 +1654,7 @@ pushObject(Term *pt, PceObject obj)
     case PCE_ASSOC:
     { PceITFSymbol symbol = value.itf_symbol;
 
-      if ( symbol->handle[0] != NULL )
-	avalue = (Atom) symbol->handle[0];
-      else
-	avalue = AtomFromString(pceCharArrayToC(symbol->name));
+      avalue = CachedNameToAtom(symbol->name);
 
 #ifdef HAVE_XPCEREF
       _PL_put_xpce_reference_a(t, avalue);
@@ -1713,10 +1674,7 @@ pushObject(Term *pt, PceObject obj)
     case PCE_NAME:
       { PceITFSymbol symbol = value.itf_symbol;
 
-	if ( symbol->handle[0] != NULL )
-	  avalue = (Atom) symbol->handle[0];
-	else
-	  avalue = AtomFromString(pceCharArrayToC(symbol->name));
+	avalue = nameToAtom(symbol->name);
       }
       PutAtom(t, avalue);
 
@@ -1753,7 +1711,7 @@ PrologCallProc(PceObject handle,
     qid_t qid;
 
 #ifdef PREDICATE_PER_CLASS
-    pushObject(ap++, sel);
+    PutAtom(ap++, CachedNameToAtom(sel));
 #endif
     pushObject(ap++, rec);
     for(i=argc; i > 0; i--)
@@ -1778,7 +1736,7 @@ PrologCallProc(PceObject handle,
     }
 
 #ifdef PREDICATE_PER_CLASS
-    pushObject(ap++, sel);
+    PutAtom(ap++, CachedNameToAtom(sel));
 #endif
     pushObject(ap++, rec);
     for(i=argc; i > 0; i--)
@@ -2279,6 +2237,9 @@ init_pce_callbacks()
 { pceRegisterCallbacks(&callbackfunction);
 }
 
+#ifdef NEWITF
+#include "new.c"
+#endif
 
 static void
 registerPredicates()
@@ -2298,6 +2259,10 @@ registerPredicates()
   InstallPredicate("pce_predicate_reference", 2,
 					   pl_pce_predicate_reference, META);
   InstallPredicate("pce_open",		3, pl_pce_open, 0);
+
+#ifdef NEWITF
+  InstallPredicate("nsend",		3, pl_pce_send,	META);
+#endif
 }
 
 
@@ -2350,7 +2315,8 @@ pl_pce_init(Term a)
     PROLOG_ITF_INIT();
 
     pceRegisterCallbacks(&callbackfunction);
-    if ( !pceInitialise(1, home, argc, argv) )
+    initNameAtomTable();
+    if ( !pceInitialise(0, home, argc, argv) )
     { PceException(ATOM_initialisation, 0);
       return FALSE;
     }

@@ -8,7 +8,7 @@
 #
 # READ-THIS READ-THIS READ-THIS READ-THIS
 #
-# This Makefile skeleton is tested for gnu-make and SunOs 4.1.3 /bin/make
+# This Makefile tested on Solaris 2.5
 #
 # Optimization note: using -O takes hardly longer than no optimization and
 # reduces the size of the executable a *lot*.  -O is therefore the
@@ -23,20 +23,21 @@ PCEARCH=solaris
 CC=gcc
 CXX=g++
 SO=so
-LD=/usr/ccs/bin/ld
+LD=g++
 LIBDIR=../../solaris
-LDSOFLAGS=-G -L$(LIBDIR)
+LDSOFLAGS=-shared -L$(LIBDIR)
+COFLAGS=-O
+CMFLAGS= -fPIC -funsigned-char
 
 all:		pcerc.o
 		@echo "This Makefile only provides default rules"
 
-CXXFLAGS=	-I$(PCEHOME)/include -O
-CFLAGS=		-O
+CFLAGS=		-I$(PCEHOME)/include $(CMFLAGS) $(COFLAGS)
 PCELIBS=	-lXPCEmain -lXPCE
 LDFLAGS=	-L$(LIBDIR) $(PCELIBS)
 
 clean:
-		rm -f *.o core a.out *~ *%
+		rm -f *.o *.so core a.out *~ *%
 
 pcerc.o:	pcerc.c
 		$(CC) $(CFLAGS) -o $@ -c $*.c
@@ -44,7 +45,7 @@ pcerc.o:	pcerc.c
 # default rules for non GNU-make
 
 .C.o:
-		$(CXX) -c $(CXXFLAGS) $*.C
+		$(CXX) -c $(CFLAGS) $*.C
 
 .o.so:		
 		$(LD) $(LDSOFLAGS) -o $@ -lXPCE pcerc.o $*.o

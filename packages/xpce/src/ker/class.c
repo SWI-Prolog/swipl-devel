@@ -1676,7 +1676,7 @@ bindMethod(Class class, Name code, Name selector)
       av[0] = class->name;
       av[1] = selector;
 
-      rval = hostCallProc(c, code, class, 2, av);
+      rval = hostCallProc(c, class, code, 2, av);
     }
   }
 
@@ -2156,7 +2156,7 @@ hasFeatureClass(Class class, Name name, Any value)
 }
 
 
-static Any
+Any
 getFeatureClass(Class class, Name name)
 { realiseClass(class);
 

@@ -172,7 +172,7 @@ getIgnoreCaseRegex(Regex re)
 }
 
 
-static status
+status
 ignoreCaseRegex(Regex re, Bool val)
 { if ( getIgnoreCaseRegex(re) != val )
   { re->compiled->translate = (val == OFF ? NULL : upcase);

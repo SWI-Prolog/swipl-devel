@@ -202,6 +202,11 @@ scanDirectory(Directory d, Chain files, Chain dirs, Regex pattern, Bool all)
 { DIR *dirp;
   struct dirent *dp;
 
+  if ( notDefault(pattern) )
+  { if ( getFeatureClass(ClassFile, NAME_caseSensitive) == OFF )
+      ignoreCaseRegex(pattern, ON);
+  } 
+
   if ( files != dirs )
   { TRY(pushDirectory(d));
     if ( !(dirp = opendir(".")) )

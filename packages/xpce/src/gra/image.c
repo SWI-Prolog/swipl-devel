@@ -382,6 +382,9 @@ static status
 drawInImage(Image image, Graphical gr, Point pos)
 { Int oldx, oldy;
   Device dev;
+  int x, y, w, h;
+  int iw = valInt(image->size->w);
+  int ih = valInt(image->size->h);
 
   TRY(verifyAccessImage(image, NAME_drawIn));
 
@@ -397,14 +400,51 @@ drawInImage(Image image, Graphical gr, Point pos)
   }
 
   ComputeGraphical(gr);
+  x = valInt(gr->area->x);
+  y = valInt(gr->area->y);
+  w = valInt(gr->area->w);
+  h = valInt(gr->area->h);
+  NormaliseArea(x,y,w,h);
+
+  if ( x < 0 )				/* clip and normalise the area */
+  { w += x;
+    x = 0;
+  } else if ( x > iw )
+    goto out;
+
+  if ( y < 0 )
+  { h += y;
+    y = 0;
+  } else if ( y > ih )
+    goto out;
+
+  if ( w < 0 || h < 0 )
+    goto out;
+
+  if ( x+w > iw )
+    w = iw - x;
+  if ( y+h > ih )
+    h = ih - y;
+
+					/* HACKS ... changedAreaGraphical() */
+  if ( instanceOfObject(gr, ClassJoint) )
+  { x -= 5; y -= 5; w += 10; h += 10;
+  } else if ( instanceOfObject(gr, ClassText) ||
+	      instanceOfObject(gr, ClassTextItem) )
+  { x -= 5; y -= 0; w += 10; h += 5;
+  }
+					/* end hacks! */
 
   CHANGING_IMAGE(image,
-    d_image(image, 0, 0, valInt(image->size->w), valInt(image->size->h));
+    d_image(image, x, y, w, h);
     d_modify();
     RedrawArea(gr, gr->area);
     d_done();
-    changedEntireImageImage(image););
+    if ( notNil(image->bitmap) )
+      changedImageGraphical(image->bitmap,
+			    toInt(x), toInt(y), toInt(w), toInt(h)););
 
+out:
   if ( notDefault(oldx) )
   { setGraphical(gr, oldx, oldy, DEFAULT, DEFAULT);
     gr->device = dev;

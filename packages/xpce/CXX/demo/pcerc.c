@@ -24,7 +24,7 @@ with the symbols loaded from this session.
 
 typedef void (*func_ptr) ();		/* for the ctor handling */
 
-#if defined(__sun__) && defined(__GNUC__)
+#if defined(__sun__) && !defined(__svr4__) && defined(__GNUC__)
 #define GCC_DOTORS
 #endif
 

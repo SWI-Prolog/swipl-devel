@@ -158,6 +158,8 @@ resolveSendMethodObject(Any obj, Class class, Name sel,
 
 	  if ( (dm = getSendMethodClass(class, dvar->wrapper)) )
 	    appendDList(dlist, dm, obj);
+	  else
+	    fail;
 	}
       }
 

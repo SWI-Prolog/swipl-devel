@@ -149,6 +149,8 @@ head_arg(_, A) :-
 
 :- multifile user:pce_pre_expansion_hook/2.
 :- dynamic user:pce_pre_expansion_hook/2.
+:- multifile user:pce_post_expansion_hook/2.
+:- dynamic user:pce_post_expansion_hook/2.
 
 pce_pre_expand(X, Y) :-
 	user:pce_pre_expansion_hook(X, X1), !,
@@ -173,12 +175,31 @@ do_pce_pre_expand((:- ClassDirective), D) :-
 	functor(ClassDirective, send, _),
 	arg(1, ClassDirective, @class), !,
 	D = (:- pce_class_directive(ClassDirective)).
+do_pce_pre_expand(pce_ifhostproperty(Prop, Clause), TheClause) :-
+	(   pce_host:property(Prop)
+	->  TheClause = Clause
+	;   TheClause = []
+	).
+do_pce_pre_expand(pce_ifhostproperty(Prop, If, Else), Clause) :-
+	(   pce_host:property(Prop)
+	->  Clause = If
+	;   Clause = Else
+	).
 do_pce_pre_expand(X, X).
 
 
 %	pce_post_expand(In, Out)
 
-pce_post_expand(X, X).
+pce_post_expand([], []).
+pce_post_expand([H0|T0], [H|T]) :-
+	user:pce_post_expansion_hook(H0, H), !,
+	pce_post_expand(T0, T).
+pce_post_expand([H|T0], [H|T]) :-
+	pce_post_expand(T0, T).
+pce_post_expand(T0, T) :-
+	user:pce_post_expansion_hook(T0, T), !.
+pce_post_expand(T, T).
+
 
 %	pce_expandable(+Term)
 %	Quick test whether we can expand this.
@@ -339,44 +360,44 @@ term_expand(T0, T0).
 %	may thus be minimised.
 
 method_clauses(ClassName, Clauses) :-
-	findall(C, retract(attribute(ClassName, method_clause, C)), C0),
-	sort(C0, C1),
+	findall(C, keyed_method_clause(ClassName, C), C0),
+	keysort(C0, C1),
 	make_extern(C1, Clauses).
 
-pce_ifhostproperty(need_extern_declaration,
-(make_extern(Clauses, ExternClauses) :-
-	make_extern_decls(Clauses, Extern),
-	append(Extern, Clauses, ExternClauses)),
-make_extern(Clauses, Clauses)).
+keyed_method_clause(ClassName, NameArity-C) :-
+	retract(attribute(ClassName, method_clause, C)),
+	predicate_name_and_arity(C, NameArity).
 
-make_extern_decls([], []).
-make_extern_decls([H|T], [E0|E]) :-
-	predicate_name_and_arity(H, NA),
-	extern_decl(NA, E0),
-	delete_other_clauses(T, NA, T1),
-	make_extern_decls(T1, E).
+make_extern([], []).
+make_extern([NA-C|T0], [C|T]) :-
+	make_extern(NA, T0, T).
 
-delete_other_clauses([H|T], NA, L) :-
-	predicate_name_and_arity(H, NA), !,
-	delete_other_clauses(T, NA, L).
-delete_other_clauses(L, _, L).
-	
+make_extern(NA, [NA-C|T0], [C|T]) :- !,
+	make_extern(NA, T0, T).
+make_extern(NA, T0, [E|T]) :-
+	extern_decl(NA, E),
+	make_extern(T0, T).
+
+predicate_name_and_arity('$source_location'(_,_):Term, NameArity) :- !,
+	predicate_name_and_arity(Term, NameArity).
 predicate_name_and_arity((H:-_), N/A) :- !,
 	functor(H, N, A).
 predicate_name_and_arity(H, N/A) :-
 	functor(H, N, A).
 	
-extern_decl(Name/Arity, (:-extern(EH))) :-
+pce_ifhostproperty(need_extern_declaration, [
+(   extern_decl(Name/Arity, (:-extern(EH))) :-
 	functor(EH, Name, Arity),
-	extern_arg(0, Arity, EH).
+	extern_arg(0, Arity, EH)),
 
-extern_arg(N, N, _) :- !.
-extern_arg(N, A, T) :-
+(   extern_arg(N, N, _) :- !),
+(   extern_arg(N, A, T) :-
 	NN is N + 1,
 	arg(NN, T, +term),
-	extern_arg(NN, A, T).
-	
+	extern_arg(NN, A, T))], 
+extern_decl(_, [])).
 
+	
 strip_defaults([@default|T0], T) :- !,
 	strip_defaults(T0, T).
 strip_defaults(L, LV) :-
@@ -405,13 +426,13 @@ dynamic_declaration([Head|_], []) :-
 	declared(Name, Arity), !.
 pce_ifhostproperty(no_discontiguous,
 (   dynamic_declaration([Head|_],
-		    [ (:- multifile(Name/Arity)),
-		      (:- dynamic(Name/Arity))
+		    [ (:- multifile(Name/Arity))%,
+%		      (:- dynamic(Name/Arity))
 		    ]) :-
 	functor(Head, Name, Arity)),
 (   dynamic_declaration([Head|_],
 		    [ (:- multifile(Name/Arity)),
-		      (:- dynamic(Name/Arity)),
+%		      (:- dynamic(Name/Arity)),
 		      (:- discontiguous(Name/Arity))
 		    ]) :-
 	functor(Head, Name, Arity))).

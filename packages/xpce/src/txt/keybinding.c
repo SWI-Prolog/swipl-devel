@@ -311,7 +311,7 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
       assign(kb, status, NIL);
 
     if ( cmd != NAME_prefix )
-      assign(kb, prefix, CtoName(""));
+      assign(kb, prefix, NAME_);
 
     return rval;
   }

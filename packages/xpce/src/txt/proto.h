@@ -51,6 +51,7 @@ KeyBinding	KeyBindingTextItem(void);
 KeyBinding	KeyBindingTextItemView(void);
 
 /* txt/regex.c */
+status		ignoreCaseRegex(Regex re, Bool val);
 status		compileRegex(Regex re, Bool optimize);
 status		search_regex(Regex re, char *str1, int size1, char *str2, int size2, int start, int end);
 status		searchRegex(Regex re, Any obj, Int start, Int end);

@@ -153,6 +153,9 @@ __pce_export int	pceSend(PceObject, PceName, int, PceObject *);
 __pce_export PceObject	pceGet(PceObject, PceName, int, PceObject *);
 
 
+__pce_export void *	pceResolveSend(PceObject receiver, PceName selector,
+				       int *argc, PceObject **types);
+
 		/********************************
 		*          PCE CALLING C	*
 		********************************/
@@ -219,6 +222,7 @@ __pce_export void	donePceTmpCharArray(PceObject);
 __pce_export int	pceExistsReference(unsigned long);
 __pce_export char *	pcePPReference(PceObject ref);
 __pce_export int	pceExistsAssoc(PceName assoc);
+__pce_export PceObject  pceObjectFromName(PceName assoc);
 
 __pce_export int	pceInstanceOf(PceObject obj, PceObject class);
 
@@ -265,6 +269,10 @@ __pce_export void *	pceMalloc(int size);
 __pce_export void *	pceRealloc(void *ptr, int size);
 __pce_export void	pceFree(void);
 #endif
+
+__pce_export void *	pceAlloc(int bytes);
+__pce_export void	pceUnAlloc(int bytes, void *p);
+
 
 		 /*******************************
 		 *	   STREAM INTERFACE	*

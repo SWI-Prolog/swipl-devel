@@ -30,10 +30,12 @@ libXPCE=	../../$(builddir)/libXPCE.a
 LIBDIR=		../../$(builddir)
 BINDIR=		../../$(builddir)
 OBJDIR=		../../$(builddir)/pl
+CONFIG=		../../$(builddir)/config.h
 
 CPLIFLAGS=	-I$(PLINCLUDE) -I../../$(builddir) -I../../src
 PL=     	pl
 ITFOBJ= 	$(addprefix $(OBJDIR)/, interface.o link.o)
+ITFSRC=		interface.c new.c table.c
 SOITF=		$(OBJDIR)/so-interface.o
 OBJ=		$(ITFOBJ) -L$(PLRUNTIME) -lpl
 XPCE=		$(BINDIR)/xpce
@@ -41,8 +43,9 @@ QLF=    	$(BINDIR)/xpce.qlf
 #XLIBS=		-lXt -lX11
 XPCESO= 	$(LIBDIR)/pl2xpce.$(SO)
 SOEXTR=		$(addprefix $(OBJDIR)/, $(SOEXTRAOBJ))
+CITFFLAGS=	-DSWI -DHAVE_CONFIG_H
 
-CFLAGS= 	$(COFLAGS) $(CMFLAGS) $(CPLIFLAGS)
+CFLAGS= 	$(COFLAGS) $(CMFLAGS) $(CPLIFLAGS) $(CITFFLAGS)
 
 PCEPLS=		pce_expand.pl ../lib/english/pce_messages.pl pce_pl.pl \
 		pce_principal.pl pce_error.pl pce_autoload.pl pce_global.pl \
@@ -68,8 +71,8 @@ rt-nosoall:	$(XPCE)
 # Objects for $(OBJDIR)
 ################################################################
 
-$(OBJDIR)/interface.o:	interface.c
-		$(CC) -c $(CFLAGS) -DSWI $< -o $@
+$(OBJDIR)/interface.o:	$(ITFSRC)
+		$(CC) -c $(CFLAGS) $< -o $@
 $(OBJDIR)/link.o:	link.c
 		$(CC) -c $(CFLAGS) $< -o $@
 
@@ -91,8 +94,8 @@ $(QLF):		$(XPCE)
 # Creating pl2xpce.so
 ################################################################
 
-$(SOITF):	interface.c
-		$(CC) -DO_SHAREDLIBRARY $(CFLAGS) -DSWI -c $< -o $@
+$(SOITF):	$(ITFSRC)
+		$(CC) -DO_SHAREDLIBRARY $(CFLAGS) -c $< -o $@
 		
 $(OBJDIR)/Initialize.o:	
 		ar x $(XLIB)/libXt.a $@

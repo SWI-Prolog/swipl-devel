@@ -90,6 +90,8 @@ pce_message(required_predicate_not_found(Name,Arity)) -->
 	['required predicate ~w/~d not found'-[Name,Arity],nl].
 pce_message(illegal_term_in_index(Term,Index)) -->
 	['illegal term ~w in index file ~w'-[Term,Index],nl].
+pce_message(loaded_library_index(File)) -->
+	['Loaded require index ~w'-[File],nl].
 
 pce_message(no_pw3_predicate(P/N)) -->
 	['XPCE/Prolog predicate ~w/~d not part of ProWindows'-[P,N],nl].

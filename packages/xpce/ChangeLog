@@ -1,3 +1,25 @@
+[VERSION 4.9.3]
+
+* MODIFIED: `directory->scan' to send ->ignore_case to the pattern if the
+  class feature `case_sensitive' on class file yields @off.  Fixes
+  compatibility problems.
+
+* INTERFACE: Various minor modifications to the SWI-Prolog/XPCE interface,
+  mainly aiming at reduced memory usage and faster data conversion in the
+  interface.  Saves a some 10% on the interface speed.
+
+* PW3: fixed require/1 for reporting non-existing predicates (the predicate,
+  not the expansion form of require/1, which was ok).  Added support for
+  index files in other library directories, so you can expand the predicates
+  handled by require/1.  Added an informational message, telling which
+  library index databases are loaded.
+
+* ADDED: user:pce_post_expansion_hook/2, next to pce_pre_expansion_hook/2.
+
+* IMPROVED: `Image ->draw_in' to provide for efficient update of the display
+  if small graphicals are painted in big images.
+
+
 [VERSION 4.9.2]
 
 * ADDED: Win32: save image as XPM file.

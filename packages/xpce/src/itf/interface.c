@@ -96,6 +96,12 @@ cToPceAssoc(const char *s)
 }
 
 
+PceObject
+pceObjectFromName(PceName name)
+{ return findGlobal(name);
+}
+
+
 Any
 cToPceReference(ulong val)
 { Instance rval = longToPointer(val);
@@ -349,6 +355,28 @@ pceNew(Name assoc, Any class, int argc, Any *argv)
          pushAnswerObject(rval));
 
   return rval;
+}
+
+		 /*******************************
+		 *     PROLOG OBJECT SUPPORT	*
+		 *******************************/
+
+void *
+pceResolveSend(PceObject receiver, PceName selector,
+	       int *argc, PceObject **types)
+{ SendMethod impl;
+  
+  if ( (impl = getSendMethodClass(classOfObject(receiver), selector)) &&
+       instanceOfObject(impl, ClassSendMethod) &&
+       instanceOfObject(impl->message, ClassCPointer) )
+  { CPointer ptr = (CPointer)impl->message;
+    *types = impl->types->elements;
+    *argc  = valInt(impl->types);
+
+    return ptr->pointer;
+  }
+
+  return NULL;
 }
 
 
@@ -648,4 +676,19 @@ pceRealloc(void *ptr, int size)
 void
 pceFree(void *ptr)
 { (*TheCallbackFunctions.free)(ptr);
+}
+
+		 /*******************************
+		 *	 INTERFACE ALLOC	*
+		 *******************************/
+
+void *
+pceAlloc(int bytes)
+{ return alloc(bytes);
+}
+
+
+void
+pceUnAlloc(int bytes, void *p)
+{ unalloc(bytes, p);
 }
