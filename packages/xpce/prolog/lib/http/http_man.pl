@@ -42,9 +42,8 @@
 :- pce_autoload(man_inheritance_tree, library('man/v_inherit')).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Demo for the XPCE HTTP Deamon. This  demo   simply  lists a table of all
-classes and allows  for  browsing   through  the  instance-variables  of
-classes. Maybe one day this will be expanded to a full manual server. 
+Demo for the XPCE HTTP Deamon. This demo provides a extensive tranlation
+of the XPCE class hierarchy and class documentation to HTML.
 
 To test it, do:
 
@@ -54,11 +53,8 @@ To test it, do:
 Then run your browser and start at the url http://localhost:8080/
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-url(pcehome, 'http://www.swi.psy.uva.nl/projects/xpce/').
-url(pceusg,  URL) :-
-	url(pcehome, Home),
-	atom_concat(Home, 'UserGuide/', URL).
-
+url(pcehome, 'http://www.swi-prolog.org/xpce/').
+url(pceusg,  'http://www.swi.psy.uva.nl/projects/xpce/UserGuide').
 
 pce_http_man(Port) :-			% start on anonymous port
 	var(Port), !,
