@@ -32,7 +32,7 @@ INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
-LIBPL=		rdf.pl rdf_parser.pl rdf_triple.pl rewrite.pl uri.pl
+LIBPL=		rdf.pl rdf_parser.pl rdf_triple.pl rewrite.pl
 
 all:		
 		@echo "Nothing to do for this package"
