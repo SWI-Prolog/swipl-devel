@@ -339,6 +339,16 @@ getVisualTypeDisplay(DisplayObj d)
   answer(ws_get_visual_type_display(d));
 }
 
+static Size
+getDotsPerInchDisplay(DisplayObj d)
+{ int rx, ry;
+
+  if ( ws_resolution_display(d, &rx, &ry) )
+    answer(answerObject(ClassSize, toInt(rx), toInt(ry), 0));
+
+  fail;
+}
+
 		/********************************
 		*          CUT BUFFERS		*
 		********************************/
@@ -1145,6 +1155,8 @@ static getdecl get_display[] =
      NAME_dimension, "Size of the display"),
   GM(NAME_width, 0, "int", NULL, getWidthDisplay,
      NAME_dimension, "Width of the display in pixels"),
+  GM(NAME_dotsPerInch, 0, "size", NULL, getDotsPerInchDisplay,
+     NAME_dimension, "Resolution in dots per inch"),
   GM(NAME_fontAlias, 1, "font", "name=name", getFontAliasDisplay,
      NAME_font, "Lookup logical name"),
   GM(NAME_connectionFd, 0, "int", NULL, getConnectionFdDisplay,

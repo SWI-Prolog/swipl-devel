@@ -49,6 +49,7 @@ void		ws_synchronous(DisplayObj d);
 void		ws_asynchronous(DisplayObj d);
 status		ws_postscript_display(DisplayObj d);
 Image		ws_grab_image_display(DisplayObj d, int x, int y, int width, int height);
+int		ws_resolution_display(DisplayObj d, int *rx, int *ry);
 
 /* ../src/x11/xdraw.c */
 void		resetDraw(void);

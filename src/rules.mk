@@ -46,8 +46,8 @@ PKGDOC=$(PLBASE)\doc\packages
 # faster linking pl2xpce.dll from the XPCE package
 
 CC=cl.exe
-#LD=link.exe /nologo /incremental:yes
-LD=link.exe /nologo
+LD=link.exe /nologo /incremental:yes
+#LD=link.exe /nologo
 AR=lib.exe
 RSC=rc.exe
 CMD=cmd.exe

@@ -1087,15 +1087,19 @@ print_canvas(Canvas) :-
 	new(Prt, win_printer(Job)),
 	send(Prt, setup, Canvas),
 	send(Prt, open),
-	get(Canvas, bounding_box, area(_X,_Y, W, H)),
-	get(Prt, size, size(PW, PH)),
+	get(Canvas, bounding_box, area(X, Y, W, H)),
+	get(Prt, size, size(PW0, PH0)),
+	get(Prt, offset, size(OX, OY)),
+	PW is PW0 - 2 * OX,
+	PH is PH0 - 2 * OY,
 	(   W/PW > H/PH			% width is the problem
 	->  VRes is round(W*PH/PW)
 	;   VRes is H
 	),
-	TheVRes is min(1000, VRes),
+	TheVRes is max(1000, VRes),
+	format('Resolution = ~w~n', [VRes]),
 	send(Prt, resolution, TheVRes),
-	send(Prt, origin, point(0,0)),
+	send(Prt, origin, point(X,Y)),
 	send(Prt, draw_in, Canvas?graphicals),
 	send(Prt, close),
 	free(Prt).

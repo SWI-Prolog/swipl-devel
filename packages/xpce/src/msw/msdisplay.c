@@ -77,6 +77,19 @@ ws_depth_display(DisplayObj d)
 }
 
 
+int
+ws_resolution_display(DisplayObj d, int *rx, int *ry)
+{ HDC hdc = GetDC(NULL);
+  
+  *rx = GetDeviceCaps(hdc, LOGPIXELSX);
+  *ry = GetDeviceCaps(hdc, LOGPIXELSY);
+
+  ReleaseDC(NULL, hdc);
+
+  succeed;
+}
+
+
 void
 ws_activate_screen_saver(DisplayObj d)
 {

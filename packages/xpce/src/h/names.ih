@@ -2334,3 +2334,5 @@
 #define NAME_setsockopt (&builtin_names[2333])
 #define NAME_printFileFilter (&builtin_names[2334])
 #define NAME_printFile (&builtin_names[2335])
+#define NAME_dotsPerInch (&builtin_names[2336])
+#define NAME_viewport (&builtin_names[2337])

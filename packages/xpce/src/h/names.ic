@@ -2334,3 +2334,5 @@
   BUILTIN_NAME("setsockopt")
   BUILTIN_NAME("print_file_filter")
   BUILTIN_NAME("print_file")
+  BUILTIN_NAME("dots_per_inch")
+  BUILTIN_NAME("viewport")

@@ -204,7 +204,7 @@ setupWinPrinter(WinPrinter prt, FrameObj fr)
   }
 
 
-#ifdef USE_PRINTDLG
+#ifndef USE_PRINTDLG
   if ( psd->hDevMode )
   { DEVMODE *dmode = GlobalLock(psd->hDevMode);
     prt->ws_ref->hdc = CreateDC("WINSPOOL", /* NT, NULL for Windows-95 */
@@ -222,8 +222,13 @@ setupWinPrinter(WinPrinter prt, FrameObj fr)
     fail;
   }
 
+  SetBkMode(prt->ws_ref->hdc, TRANSPARENT);
+
   if ( (mm = mapModeToName(GetMapMode(prt->ws_ref->hdc))) )
     assign(prt, map_mode, mm);
+
+  DEBUG(NAME_print, Cprintf("Got MM %s from HDC=%p\n",
+			    pp(mm), prt->ws_ref->hdc));
 
   succeed;
 }
@@ -330,37 +335,74 @@ closeWinPrinter(WinPrinter prt)
 		 *	  SET DIMENSIONS	*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+A long search has resulted  in  these   magical  formulas  to relate the
+Physical (Dx/Dy) and Logical (Lx/Ly) properly.
+
+Dx = (Lx - xWO) * xVE/xWE + xVO
+Dy = (Ly - yWO) * yVE/yWE + yVO
+Lx = (Dx - xVO) * xWE/xVE + xWO
+Ly = (Dy - yVO) * yWE/yVE + yWO
+
+If the resolution is @default, ->resolution   sets the scaling such that
+the physical dimensions on the screen are the same as on the paper based
+on the information on printer- and screen resolution.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static status
 resolutionWinPrinter(WinPrinter prt, Any resolution)
 { if ( prt->resolution != resolution )
   { assign(prt, resolution, resolution);
 
-    if ( isDefault(resolution) )
-      return mapModeWinPrinter(prt, NAME_text);
-    else if ( isInteger(resolution) )
+    if ( isDefault(resolution) || isInteger(resolution) )
       mapModeWinPrinter(prt, NAME_isotropic);
     else
       mapModeWinPrinter(prt, NAME_anisotropic);
 
     if ( prt->ws_ref->hdc )
     { int w, h;
+      HDC hdc = prt->ws_ref->hdc;
+      HDC shdc = GetDC(NULL);
+      int rx  = GetDeviceCaps(hdc, LOGPIXELSX);
+      int ry  = GetDeviceCaps(hdc, LOGPIXELSY);
+      int srx = GetDeviceCaps(shdc, LOGPIXELSX);
+      int sry = GetDeviceCaps(shdc, LOGPIXELSY);
+      int ox = valInt(prt->origin->x);
+      int oy = valInt(prt->origin->y);
 
-      if ( isInteger(resolution) )
-      { int pw = GetDeviceCaps(prt->ws_ref->hdc, PHYSICALWIDTH);
-	int ph = GetDeviceCaps(prt->ws_ref->hdc, PHYSICALHEIGHT);
-      
-	h = valInt(resolution);
-	w = (h*pw)/ph;
+      ReleaseDC(NULL, shdc);
+
+      DEBUG(NAME_print, 
+	    Cprintf("Resolution = %d x %d, Screen = %d x %d\n",
+		    rx, ry, srx, sry));
+
+      SetWindowOrgEx(hdc, ox, oy, NULL);
+	
+      if ( isDefault(resolution) )
+      { SetViewportOrgEx(hdc, 0, 0, NULL);
+	SetWindowExtEx(hdc, srx, sry, NULL);
+	SetViewportExtEx(hdc, rx, ry, NULL);
       } else
-      { Size sz = resolution;
+      { int pw = GetDeviceCaps(hdc, PHYSICALWIDTH);
+	int ph = GetDeviceCaps(hdc, PHYSICALHEIGHT);
 
-	h = valInt(sz->h);
-	w = valInt(sz->w);
-      }
+	if ( isInteger(resolution) )
+	{ int pw = GetDeviceCaps(hdc, PHYSICALWIDTH);
+	  int ph = GetDeviceCaps(hdc, PHYSICALHEIGHT);
+	  
+	  h = valInt(resolution);
+	  w = (h*pw)/ph;
+  
+	} else
+	{ Size sz = resolution;
+  
+	  h = valInt(sz->h);
+	  w = valInt(sz->w);
+	}
 
-      if ( !SetWindowExtEx(prt->ws_ref->hdc, w, -h, NULL) )
-      { Cprintf("Failed to open Printer DC: %s\n", WinError());
-	fail;
+	SetViewportOrgEx(hdc, 0, 0, NULL);
+	SetWindowExtEx(hdc, w, h, NULL);
+	SetViewportExtEx(hdc, pw, ph, NULL);
       }
     }
   }
@@ -377,14 +419,55 @@ originWinPrinter(WinPrinter prt, Point origin)
     if ( prt->ws_ref->hdc )
     { int x = valInt(prt->origin->x);
       int y = valInt(prt->origin->y);
+      HDC hdc = prt->ws_ref->hdc;
 
-      SetViewportExtEx(prt->ws_ref->hdc, x, y, NULL);
+      SetWindowOrgEx(hdc, x, y, NULL);
+      SetViewportOrgEx(hdc, 0, 0, NULL); /* needed? */
     }
   }
 
   succeed;
 }
 
+
+static status
+viewportWinPrinter(WinPrinter prt, Area vp)
+{ HDC hdc = prt->ws_ref->hdc;
+
+  if ( hdc )
+  { int x = valInt(vp->x);
+    int y = valInt(vp->y);
+    int w = valInt(vp->w);
+    int h = valInt(vp->h);
+    
+    SetViewportOrgEx(hdc, x, y, NULL);
+    SetViewportExtEx(hdc, w, h, NULL);
+
+    succeed;
+  }
+
+  fail;
+}
+
+
+static status
+windowWinPrinter(WinPrinter prt, Area ww)
+{ HDC hdc = prt->ws_ref->hdc;
+
+  if ( hdc )
+  { int x = valInt(ww->x);
+    int y = valInt(ww->y);
+    int w = valInt(ww->w);
+    int h = valInt(ww->h);
+    
+    SetWindowOrgEx(hdc, x, y, NULL);
+    SetWindowExtEx(hdc, w, h, NULL);
+
+    succeed;
+  }
+
+  fail;
+}
 
 		 /*******************************
 		 *	       INFO		*
@@ -410,6 +493,19 @@ getOffsetWinPrinter(WinPrinter prt)
     int y = GetDeviceCaps(prt->ws_ref->hdc, PHYSICALOFFSETY);
 
     answer(answerObject(ClassPoint, toInt(x), toInt(y), 0));
+  }
+
+  fail;
+}
+
+
+static Size
+getDotsPerInchWinPrinter(WinPrinter prt)
+{ if ( prt->ws_ref->hdc )
+  { int x = GetDeviceCaps(prt->ws_ref->hdc, LOGPIXELSX);
+    int y = GetDeviceCaps(prt->ws_ref->hdc, LOGPIXELSY);
+
+    answer(answerObject(ClassSize, toInt(x), toInt(y), 0));
   }
 
   fail;
@@ -595,6 +691,10 @@ static senddecl send_winprinter[] =
      DEFAULT, "Remove from @win_printers"),
   SM(NAME_setup, 1, "frame=[frame]", setupWinPrinter,
      NAME_property, "Query properties using standard dialog"),
+  SM(NAME_viewport, 1, "area", viewportWinPrinter,
+     NAME_dimension, "Set the physical area"),
+  SM(NAME_window, 1, "area", windowWinPrinter,
+     NAME_dimension, "Set the logical area"),
   SM(NAME_open, 0, NULL, openWinPrinter,
      NAME_open, "Start a document"),
   SM(NAME_close, 0, NULL, closeWinPrinter,
@@ -611,16 +711,19 @@ static getdecl get_winprinter[] =
 { GM(NAME_size, 0, "size", NULL, getSizeWinPrinter,
      NAME_dimension, "Size of page in device units"),
   GM(NAME_offset, 0, "point", NULL, getOffsetWinPrinter,
-     NAME_dimension, "Top-left-most position that can be printed")
+     NAME_dimension, "Top-left-most position that can be printed"),
+  GM(NAME_dotsPerInch, 0, "size", NULL, getDotsPerInchWinPrinter,
+     NAME_dimension, "Resolution in dots per inch")
 };
 
 /* Resources */
 
+#define rc_winprinter NULL
+/*
 static classvardecl rc_winprinter[] =
-{ RC(NAME_path, "string",
-     "\".:prt:~/lib/prt:$PCEHOME/prt:\"",
-     "Search path for loading Windows metafiles")
+{ 
 };
+*/
 
 /* Class Declaration */
 
