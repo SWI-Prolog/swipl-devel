@@ -191,7 +191,7 @@ prolog:message(check(pass(N, Comment))) -->
 prolog:message(check(find_references(Preds))) -->
 	{ length(Preds, N)
 	},
-	[ 'Scanning references for ~D undefined predicates'-[N] ].
+	[ 'Scanning references for ~D possibly undefined predicates'-[N] ].
 prolog:message(check(undefined_predicates)) -->
 	[ 'The predicates below are not defined. If these are defined', nl,
 	  'at runtime using assert/1, use :- dynamic Name/Arity.', nl, nl
