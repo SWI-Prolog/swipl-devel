@@ -122,6 +122,9 @@
 /* Define to include support for multi-threading */
 #undef O_PLMT
 
+/* Define to the extension of shared objects (.so normally) */
+#undef SO_EXT
+
 /* Define if you have the access function.  */
 #undef HAVE_ACCESS
 

@@ -105,3 +105,6 @@
 
 /* Define to include support for multi-threading */
 #undef O_PLMT
+
+/* Define to the extension of shared objects (.so normally) */
+#undef SO_EXT

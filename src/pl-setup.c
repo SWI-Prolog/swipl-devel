@@ -764,9 +764,6 @@ removed on exit.
 #ifndef MAP_FAILED
 #define MAP_FAILED ((void *)-1)
 #endif
-#ifndef MAP_ANON
-#define MAP_ANON 0
-#endif
 
 #ifdef HAVE_MAP_ANON
 #if !defined(MAP_ANON) && defined(MAP_ANONYMOUS)

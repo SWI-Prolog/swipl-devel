@@ -947,11 +947,7 @@ pl_wait_for_input(term_t Streams, term_t Available,
   } else
     to = NULL;
 
-#ifdef hpux
-  select(max+1, (int*) &fds, NULL, NULL, to);
-#else
   select(max+1, &fds, NULL, NULL, to);
-#endif
 
   for(n=0; n <= max; n++)
   { if ( FD_ISSET(n, &fds) )
