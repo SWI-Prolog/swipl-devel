@@ -269,6 +269,8 @@ __pl_export int		PL_functor_arity(functor_t f);
 __pl_export int		PL_get_atom(term_t t, atom_t *a);
 __pl_export int		PL_get_bool(term_t t, int *value);
 __pl_export int		PL_get_atom_chars(term_t t, char **a);
+#define PL_get_string_chars(t, s, l) PL_get_string(t,s,l)
+					/* PL_get_string() is depreciated */
 __pl_export int		PL_get_string(term_t t, char **s, int *len);
 __pl_export int		PL_get_chars(term_t t, char **s, unsigned int flags);
 __pl_export int		PL_get_list_chars(term_t l, char **s,
