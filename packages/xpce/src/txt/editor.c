@@ -488,8 +488,6 @@ marginWidthEditor(Editor e, Int width)
 { if ( getMarginWidthEditor(e) != width )
   { if ( isNil(e->margin) )
     { assign(e, margin, newObject(ClassTextMargin, e, width, e->area->h, 0));
-      send(e->margin, NAME_set,
-	   add(e->scroll_bar->area->w, e->image->area->w), 0);
       displayDevice(e, e->margin, DEFAULT);
     } else
       setGraphical(e->margin, DEFAULT, DEFAULT, width, DEFAULT);
