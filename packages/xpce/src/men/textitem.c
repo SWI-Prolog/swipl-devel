@@ -947,6 +947,15 @@ eventTextItem(TextItem ti, EventObj ev)
     return postEvent(ev, (Graphical)c, DEFAULT);
   }
 
+  if ( ti->status != NAME_inactive )
+  { if ( isAEvent(ev, NAME_keyboard) )
+    { return send(ti, NAME_typed, ev, EAV);
+    } else
+    { if ( isAEvent(ev, NAME_msMiddleUp) )
+	return pasteTextItem(ti, DEFAULT);
+    }
+  }
+
   if ( eventDialogItem(ti, ev) )
     succeed;
 
@@ -1010,15 +1019,6 @@ eventTextItem(TextItem ti, EventObj ev)
     }
 
     return updateShowCaretTextItem(ti);
-  }
-
-  if ( ti->status != NAME_inactive )
-  { if ( isAEvent(ev, NAME_keyboard) )
-    { return send(ti, NAME_typed, ev, EAV);
-    } else
-    { if ( isAEvent(ev, NAME_msMiddleUp) )
-	return pasteTextItem(ti, DEFAULT);
-    }
   }
 
   fail;

@@ -205,11 +205,31 @@ labelFormatDialogItem(DialogItem di, Name format)
 		*        EVENT_HANDLING		*
 		********************************/
 
+static status
+advanceEventDialogItem(Any obj, EventObj ev)
+{ if ( (ev->id == toInt(9) ||
+	ev->id == NAME_cursorRight ||
+	ev->id == NAME_cursorLeft) &&
+       getKeyboardFocusGraphical(obj) == ON )
+  { Name dir = (ev->id == NAME_cursorLeft ? NAME_backwards : NAME_forwards);
+    Device dev = ((Graphical)obj)->device;
+  
+    send(dev, NAME_advance, obj, DEFAULT, dir, EAV);
+
+    succeed;
+  }
+
+  fail;
+}
+
+
 status
 eventDialogItem(Any obj, EventObj ev)
 { DialogItem di = obj;
   
   if ( eventGraphical(di, ev) )
+    succeed;
+  if ( advanceEventDialogItem(obj, ev) )
     succeed;
 
   if ( di->active == ON && notNil(di->popup) && isDownEvent(ev) &&

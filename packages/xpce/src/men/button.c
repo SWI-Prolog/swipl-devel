@@ -398,20 +398,13 @@ WantsKeyboardFocusButton(Button b)
 
 static status
 eventButton(Button b, EventObj ev)
-{ int infocus;
-
-  if ( eventDialogItem(b, ev) )
+{ if ( eventDialogItem(b, ev) )
     succeed;
-
-  infocus = (getKeyboardFocusGraphical((Graphical) b) == ON);
-
-  if ( ev->id == toInt(9) && infocus )
-  { send(b->device, NAME_advance, b, EAV);
-    succeed;
-  }
 
   if ( b->active == ON )
-  { makeButtonGesture();
+  { int infocus = (getKeyboardFocusGraphical((Graphical) b) == ON);
+
+    makeButtonGesture();
 
     if ( ev->id == toInt(13) && infocus ) /* RETURN */
     { send(b, NAME_execute, EAV);

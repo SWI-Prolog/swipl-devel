@@ -237,7 +237,7 @@ show_line_number(F, Line:'int|{too_expensive}*') :->
 
 initialise(D) :->
 	send_super(D, initialise),
-	send(D, gap, size(0,3)),
+	send(D, gap, size(0,0)),
 	send(D, pen, 0),
 	send(D, append, new(emacs_menu_bar)).
 

@@ -953,6 +953,8 @@ initialise(F, Data:'[file|hlp_buffer|hlp_editor]') :->
 	send(F, slot, editor, E),
 	send(new(D, dialog), above, V),
 	send(D, append, new(MB, menu_bar)),
+	send(D, gap, size(0,0)),
+	send(D, append, graphical(0,0,20,1), right),
 	send(D, append, label(reporter), right),
 	new(CV, F?current_view),
 	new(CanEdit, condition := (CV?editable == @on)),

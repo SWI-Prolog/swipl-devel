@@ -355,40 +355,94 @@ getDefaultButtonDevice(Device d)
 }
 
 
+static Int
+getWantsKeyboardFocusGraphical(Graphical gr)
+{ if ( qadSendv(gr, NAME_WantsKeyboardFocus, 0, NULL) )
+  { if ( instanceOfObject(gr, ClassTextItem) )
+      return toInt(10);
+    if ( instanceOfObject(gr, ClassButton) &&
+	 ((Button)gr)->default_button == ON )
+      return toInt(5);
+
+    return toInt(1);
+  }
+
+  fail;
+}
+
+
 status
-advanceDevice(Device dev, Graphical gr, Bool propagate)
+advanceDevice(Device dev, Graphical gr, Bool propagate, Name direction)
 { Cell cell;
-  int skip = TRUE;
+  int skip = TRUE;			/* before gr */
   Graphical first = NIL;
+  Graphical last = NIL;
   PceWindow sw;
+
+  TRY( sw = getWindowGraphical((Graphical) dev) );
 
   if ( isDefault(gr) )
     gr = NIL;
 
-  TRY( sw = getWindowGraphical((Graphical) dev) );
+					/* Find initial focus */
+  if ( isNil(gr) )
+  { Graphical focus = NIL;
+    int best = -1;
 
-  for_cell(cell, dev->graphicals)
-  { if ( skip )
-    { if ( isNil(first) &&
-	   send(cell->value, NAME_WantsKeyboardFocus, EAV) )
-	first = cell->value;
-      if ( cell->value == gr )
-        skip = FALSE;
+    for_cell(cell, dev->graphicals)
+    { Int v;
 
-      continue;
+      if ( (v = getWantsKeyboardFocusGraphical(cell->value)) &&
+	   valInt(v) > best )
+      { best = valInt(v);
+	focus = cell->value;
+      }
     }
-      
-    if ( send(cell->value, NAME_WantsKeyboardFocus, EAV) )
-    { keyboardFocusWindow(sw, cell->value);
-      succeed;
-    }
-  }
+
+    if ( notNil(best) )
+      return keyboardFocusWindow(sw, focus);
+  } else
+  { if ( isDefault(direction) )
+      direction = NAME_forwards;
+
+    for_cell(cell, dev->graphicals)
+    { if ( skip )
+      { if ( isNil(first) &&
+	     qadSendv(cell->value, NAME_WantsKeyboardFocus, 0, NULL) )
+	  first = cell->value;
   
-  if ( isDefault(propagate) )
-    propagate = ((Device) sw != dev && !(isNil(gr) && notNil(first))) ? ON
-								      : OFF;
+	if ( direction == NAME_backwards )
+	{ if ( cell->value == gr )
+	  { if ( notNil(last) )
+	      return keyboardFocusWindow(sw, last);
+	  } else
+	  { if ( qadSendv(cell->value, NAME_WantsKeyboardFocus, 0, NULL) )
+	      last = cell->value;
+	  }
+	}
+  
+	if ( cell->value == gr )
+	  skip = FALSE;
+  
+	continue;
+      }
+	
+      if ( send(cell->value, NAME_WantsKeyboardFocus, EAV) )
+      { if ( direction == NAME_forwards )
+	  return keyboardFocusWindow(sw, cell->value);
+	else
+	  last = cell->value;
+      }
+    }
+    
+    if ( last && direction == NAME_backwards )
+      return keyboardFocusWindow(sw, last);
+  }
 
-  if ( propagate == ON )
+  if ( isDefault(propagate) )
+    propagate = ((Device) sw != dev ? ON : OFF);
+
+  if ( propagate == ON && notNil(dev->device) )
     send(dev->device, NAME_advance, dev, EAV);
   else
     keyboardFocusWindow(sw, first);	/* may be NIL */
@@ -2142,7 +2196,10 @@ static char *T_resize[] =
 static char *T_flash[] =
 	{ "area=[area]", "time=[int]" };
 static char *T_advance[] =
-	{ "from=[graphical]*", "propagate=[bool]" };
+	{ "from=[graphical]*", 
+	  "propagate=[bool]",
+	  "direction=[{forwards,backwards}]"
+	};
 
 /* Instance Variables */
 
@@ -2201,7 +2258,7 @@ static senddecl send_device[] =
      NAME_event, "Process an event"),
   SM(NAME_updatePointed, 1, "event", updatePointedDevice,
      NAME_event, "Update <-pointed, sending area_enter and area_exit events"),
-  SM(NAME_advance, 2, T_advance, advanceDevice,
+  SM(NAME_advance, 3, T_advance, advanceDevice,
      NAME_focus, "Advance keyboard focus to next item"),
   SM(NAME_flash, 2, T_flash, flashDevice,
      NAME_report, "Alert visual by temporary inverting"),

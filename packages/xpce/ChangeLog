@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Bind cursor left/right to ->advance in dialog items.
+  `device->advance' has a new `direction' argument.
+
 * MODIFIED: Unix/X11 version look-and-feel aspects of the classes button,
   menu_bar: including `gtk' look and feel.
 
