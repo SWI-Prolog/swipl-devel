@@ -79,7 +79,7 @@ foreign(xt_create_app_context, c,
 foreign(pce_xt_appcontext, c,
 	pce_appcontext(+integer, [-integer])).
 foreign(setup_input, c,
-	setup_input(+integer, +integer, [-integer])).
+	setup_input(+integer, +integer, +integer, [-integer])).
 foreign(qp_pce_reset, c, 
 	pce_reset).
 foreign(qp_pce_exit, c,
@@ -271,13 +271,16 @@ user:(:- extern(call(+term))).
 add_input_callback :-
 	get(@pce, window_system, windows), !.
 add_input_callback :-
-	predicate_property(qui:'QP_GetQuiAppContext', _), !,
-	call(qui:'QP_GetQuiAppContext'(XtAppContext)),
-	pce_appcontext(XtAppContext, XtAppContext).
+	predicate_property(qui:'QP_GetQuiAppContext'(_), _), !,
+	qui:'QP_GetQuiAppContext'(XtAppContext),
+        pce_appcontext(XtAppContext, XtAppContext),
+	send(@display, open),
+	get(@display, connection_fd, FD),
+	setup_input(FD, 0, 1, 0).
 add_input_callback :-
 	send(@display, open),
 	get(@display, connection_fd, FD),
-	setup_input(FD, 0, 0).
+	setup_input(FD, 0, 0, 0).
 
 :- dynamic pw_version_done/0.
 
@@ -289,7 +292,7 @@ prowindows_version :-
 	    List = [ 'Quintus ProWindows ', PwVersion,
 		     ' (XPCE ', PceVersion, ') Interface',
 		     NL,
-		     'Copyright (C) 1996, ',
+		     'Copyright (C) 1997, ',
 		     'AIIL / University of Amsterdam. All Rights Reserved.'],
 	    get(@pce, version, PceVersion),
 	    concat_chars(List, VersionChars),
