@@ -426,6 +426,7 @@ lookupSocket(int socket)
   p->flags  = SOCK_DISPATCH;		/* by default, dispatch */
 #ifdef WIN32
   p->w32_flags = 0;
+  p->hwnd = 0;
 #endif
   p->input = p->output = (IOSTREAM*)NULL;
   p->next   = sockets;
@@ -1093,7 +1094,7 @@ tcp_accept(term_t Master, term_t Slave, term_t Peer)
 { int master, slave;
   struct sockaddr_in addr;
   int addrlen = sizeof(addr);
-  plsocket *m;
+  plsocket *m, *s;
 	
   if ( !tcp_get_socket(Master, &master) )
     return FALSE;
@@ -1115,7 +1116,11 @@ again:
     return tcp_error(errno, NULL);
   }
 
-  lookupSocket(slave)->flags |= SOCK_ACCEPT;
+  s = lookupSocket(slave);
+#ifdef WIN32
+  s->flags |= SOCK_ACCEPT;
+  s->hwnd = m->hwnd;			/* is this inherited? */
+#endif
   
   if ( tcp_unify_ip(Peer, &addr.sin_addr, TRUE) &&
        tcp_unify_socket(Slave, slave) )
@@ -1298,7 +1303,7 @@ static IOFUNCTIONS writeFunctions =
 
 
 foreign_t
-tcp_open_socket(term_t Socket, term_t Read, term_t Write)
+<tcp_open_socket(term_t Socket, term_t Read, term_t Write)
 { IOSTREAM *in, *out;
   int socket;
   plsocket *pls;
