@@ -681,6 +681,8 @@ ws_create_frame(FrameObj fr)
   }
     
   outer_frame_area(fr, &x, &y, &w, &h, TRUE);
+  DEBUG(NAME_frame, Cprintf("Creating %s area(%d,%d,%d,%d)\n", 
+			    pp(fr), x, y, w, h));
 
   current_frame = fr;
   ref = CreateWindowEx(exstyle,
@@ -956,10 +958,10 @@ ws_geometry_frame(FrameObj fr, Int px, Int py, Int pw, Int ph)
 
     if ( isDefault(pw) && isDefault(ph) )
       flags |= SWP_NOSIZE;
-    else
-      f->placed = TRUE;
     if ( isDefault(px) && isDefault(py) )
       flags |= SWP_NOMOVE;
+    else
+      f->placed = TRUE;
 
     SetWindowPos(f->hwnd,
 		 HWND_TOP,		/* ignored */
