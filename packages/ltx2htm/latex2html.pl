@@ -1818,9 +1818,9 @@ translate_table(Format, Body, HTML) :-
 	->  Border = 0
 	;   Border = 2
 	),
-%	sformat(Head, '<TABLE BORDER=~d COLS=~d FRAME=~w RULES=group>',
+%	sformat(Head, '<TABLE BORDER=~d COLS=~d FRAME=~w RULES=groups>',
 %		[Border, Ncols, FrameAttributes]).
-	sformat(Head, '<TABLE BORDER=~d FRAME=~w RULES=group>',
+	sformat(Head, '<TABLE BORDER=~d FRAME=~w RULES=groups>',
 		[Border, FrameAttributes]).
 
 %	expand_table_commands(+BodyIn, -BodyOut)
@@ -1879,7 +1879,7 @@ h_table_frame(Body0, HFr, Body) :-
 
 table_frame(X, void, X) :- !.
 table_frame(void, X, X) :- !.
-table_frame(vsides, hsides, border) :- !.
+table_frame(vsides, hsides, box) :- !.
 table_frame(X, Y, border) :-
 	format(user_error,
 	       'Cannot combine ~w and ~w for table border~n', [X, Y]).
