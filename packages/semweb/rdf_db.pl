@@ -508,10 +508,11 @@ rdf_make :-
 %	
 %	Deduce the name of the file used to cache the triples.
 
-cache_dir('_cache') :-
-	current_prolog_flag(windows, true).
-cache_dir('.cache').
-	
+cache_dir(CacheDir) :-
+	(   current_prolog_flag(windows, true)
+	->  CacheDir = '_cache'
+	;   CacheDir = '.cache'
+	).
 
 cache_file(Base, Cache) :-
 	file_directory_name(Base, BaseDir),
