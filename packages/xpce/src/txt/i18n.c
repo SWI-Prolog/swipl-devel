@@ -259,7 +259,7 @@ nameToUTF8(Name nm)
 }
 
 
-char *
+wchar_t *
 nameToWC(Name nm, size_t *len)
 { return charArrayToWC((CharArray)nm, len);
 }

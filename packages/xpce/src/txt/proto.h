@@ -219,7 +219,7 @@ COMMON(char *)	charArrayToUTF8(CharArray ca);
 COMMON(char *)	charArrayToMB(CharArray ca);
 COMMON(char *)	nameToMB(Name nm);
 COMMON(char *)	nameToUTF8(Name nm);
-COMMON(char *)	nameToWC(Name nm, size_t *len);
+COMMON(wchar_t *) nameToWC(Name nm, size_t *len);
 COMMON(Name)	UTF8ToName(const char *utf8);
 COMMON(Name)	MBToName(const char *mb);
 COMMON(Name)	WCToName(const wchar_t *wc, size_t len);
