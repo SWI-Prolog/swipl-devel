@@ -18,14 +18,16 @@ the terminal interface does not operate properly.
 #define M_CC			cc
 #define M_OPTIMIZE		-O	/* O2 hardly helps */
 #define M_LDFLAGS		-Bstatic
-#define M_CFLAGS		""
+#define M_CFLAGS		
+#include <alloca.h>
 #else					/* gcc (preferred) */
 #define M_CC			gcc
-/*#define M_OPTIMIZE		-g -DO_DEBUG*/
 #define M_OPTIMIZE	        -O2
 #define M_LDFLAGS		-static
 #define M_CFLAGS		-Wall
 #endif
+
+/*#define M_OPTIMIZE		-g -DO_DEBUG*/
 
 #define M_LIBS			-lm -ltermcap
 
