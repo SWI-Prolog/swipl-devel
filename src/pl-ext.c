@@ -399,6 +399,13 @@ static const struct foreign {
   FRG("stack_parameter",	4, pl_stack_parameter,		TRACE_ME),
 #endif
   FRG("$garbage_collect",	1, pl_garbage_collect,		TRACE_ME),
+#ifdef O_ATOMGC
+  FRG("garbage_collect_atoms",	0, pl_garbage_collect_atoms,	TRACE_ME),
+  FRG("current_atom",		2, pl_current_atom2,	   NDET|TRACE_ME),
+#ifdef O_DEBUG_ATOMGC
+  FRG("track_atom",		1, pl_track_atom,		TRACE_ME),
+#endif
+#endif
   FRG("copy_term",		2, pl_copy_term,		TRACE_ME),
   FRG("current_key",		1, pl_current_key,	   NDET|TRACE_ME),
   FRG("current_flag",		1, pl_current_flag,	   NDET|TRACE_ME),

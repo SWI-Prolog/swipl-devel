@@ -35,6 +35,7 @@ initFlags(void)
 { flagTable = newHTable(FLAGHASHSIZE);
 }
 
+
 static Flag
 lookupFlag(word key)
 { Symbol symb;
@@ -51,6 +52,14 @@ lookupFlag(word key)
 
   return f;
 }
+
+
+static void
+freeFlagValue(Flag f)
+{ if ( f->type == FLG_ATOM )
+    PL_unregister_atom(f->value.a);
+}
+
 
 word
 pl_flag(term_t name, term_t old, term_t new)
@@ -94,16 +103,19 @@ pl_flag(term_t name, term_t old, term_t new)
 
   rval = TRUE;
   if ( PL_get_atom(new, &a) )
-  { f->type = FLG_ATOM;
+  { freeFlagValue(f);
+    f->type = FLG_ATOM;
     f->value.a = a;
+    PL_register_atom(a);
   } else if ( valueExpression(new, &n) )
   { canoniseNumber(&n);
 
     if ( n.type == V_INTEGER )
-    { f->type = FLG_INTEGER;
+    { freeFlagValue(f);
+      f->type = FLG_INTEGER;
       f->value.i = n.value.i;
     } else
-    { 
+    { freeFlagValue(f);
       f->type = FLG_REAL;
 #ifdef DOUBLE_ALIGNMENT
       doublecpy(&f->value.f, &n.value.f);
@@ -119,6 +131,7 @@ out:
 
   return rval;
 }
+
 
 word
 pl_current_flag(term_t k, term_t h)

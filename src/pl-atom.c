@@ -88,6 +88,51 @@ In an advanced form, the hash-table could be shrunk, but it is debatable
 whether this is worth the trouble. So, alltogether the system will waist
 an average 1.5 machine word per reclaimed  atom, which will be reused as
 the atom-space grows again.
+
+
+Status
+------
+
+Some prelimary parts of atom garbage   collection  have been implemented
+and flagged using #ifdef O_ATOMGC  ...   #endif.  The foreign code hooks
+have been defined as well.
+
+
+Atom GC and multi-threading
+---------------------------
+
+This is a hard problem. I think the   best  solution is to add something
+like PL_thread_signal_async(int tid, void (*f)(void)) and call this from
+the invoking thread on all other threads.   These  thread will then scan
+their stacks and mark any references from their. Next they can carry on,
+as long as the invoking thread keeps   the  atom mutex locked during the
+whole atom garbage collection process. This   implies  the thread cannot
+create any atoms as long as the collection is going on.
+
+We do have to define some mechanism to   know  all threads are done with
+their marking.
+
+Don't know yet about Windows.  They   can't  do anything asynchronously.
+Maybe they have ways to ensure  all   other  threads  are sleeping for a
+while, so we can control the whole  process from the invoking thread. If
+this is the case we could also do this in Unix:
+
+	thread_kill(<thread>, SIG_STOP);
+	<mark from thread>;
+	thread_kill(<thread>, SIG_CONT);
+
+Might be wise  to  design  the  marking   routine  suitable  to  take  a
+PL_local_data term as argument, so it can be called from any thread.
+
+All this will only work if we can call the atom garbage synchronously!!!
+
+Measures to allow for asynchronous atom GC
+------------------------------------------
+
+	* lookupAtom() returns a referenced atom
+	If not, it can be collected right-away!  Actually this might be
+	a good idea anyway to avoid foreign-code that caches atoms from
+	having to be updated.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void	rehashAtoms();
@@ -116,10 +161,31 @@ static const ccharp atoms[] = {
 };
 #undef ATOM
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+It might be wise to  provide  for   an  option  that does not reallocate
+atoms. In that case accessing a GC'ed   atom  causes a crash rather then
+another atom.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 registerAtom(Atom a)
 { int n = entriesBuffer(&atom_array, Atom);
-    
+#ifdef O_ATOMGC				/* try to find a hole! */
+  Atom *ap = baseBuffer(&atom_array, Atom);
+  Atom *ep = ap+n;
+  Atom *p;
+
+  for(p = &ap[GD->atoms.no_hole_before]; p < ep; p++)
+  { if ( *p == NULL )
+    { n = p - ap;
+      *p = a;
+      a->atom = (n<<LMASK_BITS)|TAG_ATOM;
+      GD->atoms.no_hole_before = n+1;
+
+      return;
+    }
+  }
+#endif
   a->atom = (n<<LMASK_BITS)|TAG_ATOM;
 
   addBuffer(&atom_array, a, Atom);
@@ -141,21 +207,33 @@ lookupAtom(const char *s)
 
   for(a = atomTable[v]; a; a = a->next)
   { DEBUG(0, cmps++);
-    if (streq(s, a->name) )
-    { UNLOCK();
+    if ( streq(s, a->name) )
+    { 
+#ifdef O_ATOMGC
+      a->references++;
+#endif
+      UNLOCK();
       return a->atom;
     }
   }
-  a = (Atom)allocHeap(sizeof(struct atom));
-  a->name       = store_string(s);
+  a = allocHeap(sizeof(struct atom));
+  a->name = store_string(s);
 #ifdef O_HASHTERM
   a->hash_value = v0;
+#endif
+#ifdef O_ATOMGC
+  a->references = 1;
 #endif
   registerAtom(a);
   a->next       = atomTable[v];
   atomTable[v]  = a;
   GD->statistics.atoms++;
 
+#ifdef O_ATOMGC
+  if ( GD->statistics.atoms == GD->atoms.request_at )
+    LD->pending_signals |= (1L << (SIG_ATOM_GC-1));
+#endif
+    
   if ( atom_buckets * 2 < GD->statistics.atoms )
     rehashAtoms();
   UNLOCK();
@@ -163,6 +241,195 @@ lookupAtom(const char *s)
   return a->atom;
 }
 
+		 /*******************************
+		 *	      ATOM-GC		*
+		 *******************************/
+
+#ifdef O_ATOMGC
+
+#ifdef O_DEBUG_ATOMGC
+static char *tracking;
+
+void
+_PL_debug_register_atom(atom_t a,
+			const char *file, int line, const char *func)
+{ int i = indexAtom(a);
+  int mx = entriesBuffer(&atom_array, Atom);
+  Atom atom;
+
+  assert(i>=0 && i<mx);
+  atom = fetchBuffer(&atom_array, i, Atom);
+
+  atom->references++;
+  if ( tracking && streq(tracking, atom->name) )
+    Sdprintf("%s:%d: %s(): ++ (%d) for `%s'\n",
+	     file, line, func, atom->references, atom->name);
+}
+
+
+void
+_PL_debug_unregister_atom(atom_t a,
+			  const char *file, int line, const char *func)
+{ int i = indexAtom(a);
+  int mx = entriesBuffer(&atom_array, Atom);
+  Atom atom;
+
+  assert(i>=0 && i<mx);
+  atom = fetchBuffer(&atom_array, i, Atom);
+
+  assert(atom->references >= 1);
+  atom->references--;
+  if ( tracking && streq(tracking, atom->name) )
+    Sdprintf("%s:%d: %s(): -- (%d) for `%s'\n",
+	     file, line, func, atom->references, atom->name);
+}
+
+
+word
+pl_track_atom(term_t which)
+{ char *s;
+
+  if ( !PL_get_chars(which, &s, CVT_LIST) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, which);
+
+  if ( tracking )
+    remove_string(tracking);
+  tracking = store_string(s);
+
+  succeed;
+}
+#endif /*O_DEBUG_ATOMGC*/
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+lockAtoms() discards all currently defined atoms for garbage collection.
+To be used after loading the program,   so we won't traverse the program
+atoms each pass.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+lockAtoms()
+{ GD->atoms.builtin    = entriesBuffer(&atom_array, Atom);
+  GD->atoms.request_at = GD->atoms.builtin + GD->atoms.margin;
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Mark an atom from the stacks.  We must be prepared to handle fake-atoms!
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+markAtom(atom_t a)
+{ int i = indexAtom(a);
+  Atom ap;
+
+  if ( i < 0 || i >= entriesBuffer(&atom_array, Atom) )
+    return;				/* not an atom */
+
+  ap = fetchBuffer(&atom_array, i, Atom);
+
+  if ( ap )
+  { DEBUG(1, Sdprintf("Marked `%s'\n", ap->name));
+    ap->references |= ATOM_MARKED_REFERENCE;
+  }
+}
+
+
+void
+collectAtoms()
+{ int n = GD->atoms.builtin;
+  Atom *ap = &baseBuffer(&atom_array, Atom)[n];
+  int mx = entriesBuffer(&atom_array, Atom);
+  int holes = 0;
+
+  for( ; n < mx; ap++, n++)
+  { Atom a = *ap;
+
+    if ( !a )
+    { if ( holes++ == 0 )
+	GD->atoms.no_hole_before = n;
+      continue;
+    }
+
+    if ( a->references == 0 )
+    { Atom *ap2 = &atomTable[a->hash_value & (atom_buckets-1)];
+
+					/* delete from hash-table */
+      for( ; ; ap2 = &(*ap2)->next )
+      { assert(*ap2);
+	
+	if ( *ap2 == a )
+	{ *ap2 = a->next;
+	  break;
+	}
+      }
+      
+      *ap = NULL;			/* delete from index array */
+      GD->atoms.collected++;
+      GD->statistics.atoms--;
+      if ( holes++ == 0 )
+	GD->atoms.no_hole_before = n;
+      Sdprintf("atom-gc: deleted `%s'\n", a->name);
+      remove_string(a->name);
+      freeHeap(a, sizeof(*a));
+    }
+
+    a->references &= ~ATOM_MARKED_REFERENCE;
+  }
+}
+
+
+word
+pl_garbage_collect_atoms()
+{ int verbose = trueFeature(TRACE_GC_FEATURE);
+  long oldcollected = GD->atoms.collected;
+
+  if ( verbose )
+    printMessage(ATOM_informational,
+		 PL_FUNCTOR_CHARS, "atom_gc", 1,
+		   PL_CHARS, "start");
+  LOCK();
+  markAtomsOnStacks(LD);
+  collectAtoms();
+  GD->atoms.request_at = GD->atoms.margin + GD->statistics.atoms;
+  UNLOCK();
+  if ( verbose )
+    printMessage(ATOM_informational,
+		 PL_FUNCTOR_CHARS, "atom_gc", 1,
+		   PL_FUNCTOR_CHARS, "done", 2,
+		     GD->atoms.collected - oldcollected,
+		     GD->statistics.atoms);
+
+  succeed;
+}
+
+
+#endif /*O_ATOMGC*/
+
+#undef PL_register_atom
+#undef PL_unregister_atom
+
+void
+PL_register_atom(atom_t a)
+{
+#ifdef O_ATOMGC
+  atomValue(a)->references++;
+#endif
+}
+
+
+void
+PL_unregister_atom(atom_t a)
+{
+#ifdef O_ATOMGC
+  Atom p = atomValue(a);
+
+  assert(p->references > 0);
+  p->references--;
+#endif
+}
+
+#define PL_register_atom error		/* prevent using them after this */
+#define PL_unregister_atom error
 
 		 /*******************************
 		 *	    REHASH TABLE	*
@@ -255,6 +522,10 @@ initAtoms(void)
     memset(atomTable, 0, atom_buckets * sizeof(Atom));
     initBuffer(&atom_array);
     registerBuiltinAtoms();
+#ifdef O_ATOMGC
+    GD->atoms.margin     = 10000;
+    lockAtoms();
+#endif
 
     DEBUG(0, PL_on_halt(exitAtoms, NULL));
   }
@@ -263,15 +534,25 @@ initAtoms(void)
 
 
 word
-pl_current_atom(term_t a, word h)
+pl_current_atom2(term_t a, term_t refs, word h)
 { unsigned int i;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
       if ( PL_is_atom(a) )
+      {
+#ifdef O_ATOMGC
+	if ( refs )
+	{ Atom ap = atomValue(a);
+
+	  return PL_unify_integer(refs,
+				  ap->references & ~ATOM_MARKED_REFERENCE);
+	}
+#endif
 	succeed;
+      }
       if ( !PL_is_variable(a) )
-	return PL_error("current_atom", 1, NULL, ERR_DOMAIN, ATOM_atom, a);
+	return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_atom, a);
 
       i = 0;
       break;
@@ -287,13 +568,26 @@ pl_current_atom(term_t a, word h)
   { Atom atom;
 
     if ( (atom = baseBuffer(&atom_array, Atom)[i]) )
+    { 
+#ifdef O_ATOMGC
+      if ( refs &&
+	   !PL_unify_integer(refs, atom->references & ~ATOM_MARKED_REFERENCE) )
+	continue;
+#endif
       PL_unify_atom(a, atom->atom);
-
-    ForeignRedoInt(i+1);
+      ForeignRedoInt(i+1);
+    }
   }
 
   fail;
 }
+
+
+word
+pl_current_atom(term_t a, word h)
+{ return pl_current_atom2(a, 0, h);
+}
+
 
 		 /*******************************
 		 *	 ATOM COMPLETION	*

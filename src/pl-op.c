@@ -27,9 +27,6 @@ Proposal:
 	* Directives outside any module (or explicitly in user) manipulate
 	  the global operator table.
 
-	* Any thread has an operator-table.  op/3 calls issued by a thread
-	  modify the thread's local operator table.
-
 To find the  current  definition  of   some  operator,  first  check the
 thread's table, then the module-table and finally the global table. 
 
@@ -79,6 +76,7 @@ static void
 freeOperatorSymbol(Symbol s)
 { operator *op = s->value;
 
+  PL_unregister_atom((atom_t) s->name);
   freeHeap(op, sizeof(*op));
 }
 
@@ -109,6 +107,12 @@ defOperator(Module m, atom_t name, int type, int priority)
   operator *op;
   int t = (type & OP_MASK);		/* OP_PREFIX, ... */
 
+  DEBUG(7, Sdprintf(":- op(%d, %s, %s) in module %s\n",
+		    priority,
+		    PL_atom_chars(operatorTypeToAtom(type)),
+		    PL_atom_chars(name),
+		    PL_atom_chars(m->name)));
+
   assert(t>=OP_PREFIX && t<=OP_POSTFIX);
 
   LOCK();
@@ -131,7 +135,9 @@ defOperator(Module m, atom_t name, int type, int priority)
   op->priority[t] = priority;
   op->type[t]     = (priority > 0 ? type : 0);
   if ( !s )
+  { PL_register_atom(name);
     addHTable(m->operators, (void *)name, op);
+  }
   UNLOCK();
 }
 

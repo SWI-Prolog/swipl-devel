@@ -488,7 +488,7 @@ TemporaryFile(const char *id)
   tmpnam(temp);
 #endif
 
-  tf->name = lookupAtom(temp);
+  tf->name = lookupAtom(temp);		/* locked: ok! */
   tf->next = NULL;
   
   startCritical;

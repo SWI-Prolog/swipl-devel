@@ -254,6 +254,10 @@ __pl_export void	PL_reset_term_refs(term_t r);
 			/* Constants */
 __pl_export atom_t	PL_new_atom(const char *s);
 __pl_export const char *PL_atom_chars(atom_t a);
+#ifndef O_DEBUG_ATOMGC
+__pl_export void	PL_register_atom(atom_t a);
+__pl_export void	PL_unregister_atom(atom_t a);
+#endif
 __pl_export functor_t	PL_new_functor(atom_t f, int a);
 __pl_export atom_t	PL_functor_name(functor_t f);
 __pl_export int		PL_functor_arity(functor_t f);
@@ -555,6 +559,25 @@ __pl_export void PL_on_halt(void (*)(int, void *), void *);
 #define PL_QUERY_VERSION        10	/* 207006 = 2.7.6 */
 
 __pl_export long	PL_query(int);	/* get information from Prolog */
+
+
+		 /*******************************
+		 *	  PROLOG THREADS	*
+		 *******************************/
+
+typedef struct
+{ unsigned long	    local_size;		/* Stack sizes */
+  unsigned long	    global_size;
+  unsigned long	    trail_size;
+  unsigned long	    argument_size;
+  char *	    alias;		/* alias name */
+} PL_thread_attr_t;
+
+
+__pl_export int	PL_thread_self(void);	/* Prolog thread id (-1 if none) */
+__pl_export int PL_thread_attach_engine(PL_thread_attr_t *attr);
+__pl_export int PL_thread_destroy_engine(void);
+
 
 		 /*******************************
 		 *       FAST XPCE SUPPORT	*

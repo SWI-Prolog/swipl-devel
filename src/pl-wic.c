@@ -859,9 +859,13 @@ loadPredicate(IOSTREAM *fd, int skip)
 	    }
 	    case CA1_FUNC:
 	    case CA1_DATA:
-	      *bp++ = loadXR(fd);
+	    { word w = loadXR(fd);
+	      if ( isAtom(w) )
+		PL_register_atom(w);
+	      *bp++ = w;
 	      n++;
 	      break;
+	    }
 	    case CA1_MODULE:
 	      *bp++ = loadXR(fd);
 	      n++;

@@ -1210,7 +1210,10 @@ PL_put_atom(term_t t, atom_t a)
 void
 PL_put_atom_chars(term_t t, const char *s)
 { GET_LD
-  setHandle(t, lookupAtom(s));
+  atom_t a = lookupAtom(s);
+
+  setHandle(t, a);
+  PL_unregister_atom(a);
 }
 
 
@@ -1433,7 +1436,12 @@ PL_unify_functor(term_t t, functor_t f)
 
 int
 PL_unify_atom_chars(term_t t, const char *chars)
-{ return unifyAtomic(t, lookupAtom((char *)chars));
+{ atom_t a = lookupAtom(chars);
+
+  int rval = unifyAtomic(t, a);
+  PL_unregister_atom(a);
+
+  return rval;
 }
 
 
@@ -1448,7 +1456,7 @@ PL_unify_atom_nchars(term_t t, unsigned int len, const char *chars)
   strncpy(tmp, chars, len);
   tmp[len] = EOS;
 
-  return unifyAtomic(t, lookupAtom(tmp));
+  return PL_unify_atom_chars(t, tmp);
 }
 
 
@@ -1924,8 +1932,18 @@ PL_pred(functor_t functor, module_t module)
 
 predicate_t
 PL_predicate(const char *name, int arity, const char *module)
-{ Module m = module ? lookupModule(lookupAtom(module)) : PL_context();
-  functor_t f = lookupFunctorDef(lookupAtom(name), arity);
+{ Module m;
+  atom_t a    = lookupAtom(name);
+  functor_t f = lookupFunctorDef(a, arity);
+
+  PL_unregister_atom(a);
+
+  if ( module )
+  { a = lookupAtom(module);
+    m = lookupModule(a);
+    PL_unregister_atom(a);
+  } else
+    m = PL_context();
 
   return PL_pred(f, m);
 }
@@ -2155,15 +2173,17 @@ PL_load_extensions(PL_extension *ext)
   { short flags = TRACE_ME;
     Definition def;
     Procedure proc;
+    atom_t a = lookupAtom(e->predicate_name);
+    functor_t fd = lookupFunctorDef(a, e->arity);
+
+    PL_unregister_atom(a);
 
     if ( e->flags & PL_FA_NOTRACE )	     flags &= ~TRACE_ME;
     if ( e->flags & PL_FA_TRANSPARENT )	     flags |= METAPRED;
     if ( e->flags & PL_FA_NONDETERMINISTIC ) flags |= NONDETERMINISTIC;
     if ( e->flags & PL_FA_VARARGS )	     flags |= P_VARARG;
 
-    proc = lookupProcedure(lookupFunctorDef(lookupAtom(e->predicate_name),
-					    e->arity), 
-			   m);
+    proc = lookupProcedure(fd, m);
     def = proc->definition;
     if ( true(def, LOCKED) )
     { warning("PL_load_extensions(): Attempt to redefine system predicate: %s",
@@ -2192,7 +2212,12 @@ PL_load_extensions(PL_extension *ext)
 
 int
 PL_toplevel(void)
-{ return prologToplevel(lookupAtom("$toplevel"));
+{ atom_t a = lookupAtom("$toplevel");
+  int rval = prologToplevel(a);
+
+  PL_unregister_atom(a);
+
+  return rval;
 }
 
 

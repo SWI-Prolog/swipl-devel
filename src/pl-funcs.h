@@ -52,9 +52,22 @@ word		pl_unify_with_occurs_check(term_t t1, term_t t2);
 word		lookupAtom(const char *s);
 word		pl_atom_hashstat(term_t i, term_t n);
 void		initAtoms(void);
+word		pl_current_atom2(term_t a, term_t refs, word h);
 word		pl_current_atom(term_t a, word h);
 word		pl_complete_atom(term_t prefix, term_t common, term_t unique);
 word		pl_atom_completions(term_t prefix, term_t alts);
+void		markAtom(atom_t a);
+foreign_t	pl_garbage_collect_atoms(void);
+#ifdef O_DEBUG_ATOMGC
+word		pl_track_atom(term_t which);
+void		_PL_debug_register_atom(atom_t a,
+					const char *file, int line,
+					const char *func);
+void		_PL_debug_unregister_atom(atom_t a,
+					  const char *file, int line,
+					  const char *func);
+#endif
+
 
 /* pl-arith.c */
 
@@ -90,6 +103,7 @@ void		initWamTable(void);
 void		get_head_and_body_clause(term_t clause,
 					 term_t head, term_t body, Module *m);
 Clause		assert_term(term_t term, int where, SourceLoc loc);
+void		unregisterAtomsClause(Clause clause);
 word		pl_assertz(term_t term);
 word		pl_asserta(term_t term);
 word		pl_assertz2(term_t term, term_t ref);
@@ -309,7 +323,7 @@ Word		findGRef(int n);
 int		growStacks(LocalFrame fr, Code PC, int l, int g, int t);
 void		clearUninitialisedVarsFrame(LocalFrame, Code);
 word		check_foreign(void);	/* O_SECURE stuff */
-
+void		markAtomsOnStacks(PL_local_data_t *ld);
 
 /* pl-glob.c */
 word		pl_wildcard_match(term_t pattern, term_t string);

@@ -116,6 +116,13 @@ typedef struct
     Atom *	table;			/* hash-table */
     int		lookups;		/* # atom lookups */
     int		cmps;			/* # string compares for lookup */
+#ifdef O_ATOMGC
+    int		builtin;		/* Locked atoms (atom-gc) */
+    int		no_hole_before;		/* You won't find a hole before here */
+    int		collected;		/* # collected atoms */
+    int		margin;			/* # atoms to grow before collect */
+    int		request_at;		/* # atoms for next request */
+#endif
     atom_t	for_code[256];		/* code --> one-char-atom */
   } atoms;
 

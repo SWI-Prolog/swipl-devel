@@ -240,6 +240,7 @@ singletonWarning(atom_t *vars, int nvars)
   for(n=0; n<nvars; n++)
   { PL_unify_list(a, h, a);
     PL_unify_atom(h, vars[n]);
+    PL_unregister_atom(vars[n]);
   }
   PL_unify_nil(a);
 
@@ -1077,6 +1078,7 @@ get_token(bool must_be_op, ReadData _PL_rd)
 		      { rdhere++;
 			cur_token.value.atom = (c == '[' ? ATOM_nil : ATOM_curl);
 			cur_token.type = rdhere[0] == '(' ? T_FUNCTOR : T_NAME;
+			PL_register_atom(cur_token.value.atom);
 			DEBUG(9, Sdprintf("NAME: %s\n",
 					  stringAtom(cur_token.value.atom)));
 			goto out;
@@ -1593,6 +1595,7 @@ simple_term(bool must_be_op, term_t term, bool *name,
     case T_NAME:
       *name = TRUE;
       PL_put_atom(term, token->value.atom);
+      PL_unregister_atom(token->value.atom);
       goto atomic_out;
     case T_NUMBER:
       _PL_put_number(term, &token->value.number);
@@ -1617,6 +1620,7 @@ simple_term(bool must_be_op, term_t term, bool *name,
       { if ( must_be_op )
 	{ *name = TRUE;
 	  PL_put_atom(term, token->value.atom);
+	  PL_unregister_atom(token->value.atom);
 	} else
 	{ term_t av[16];
 	  int avn = 16;
@@ -1667,6 +1671,7 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	  }
 
 	  build_term(term, functor, argc, argv, _PL_rd);
+	  PL_unregister_atom(functor);
 	}
 	succeed;
       }

@@ -129,7 +129,7 @@ defFeature(const char *name, int flags, ...)
     case FT_ATOM:
     { const char *text = va_arg(args, const char *);
 
-      f->value.a = PL_new_atom(text);
+      f->value.a = PL_new_atom(text);	/* registered: ok */
       break;
     }
     case FT_TERM:
@@ -252,6 +252,7 @@ pl_set_feature(term_t key, term_t value)
       else
 	f->flags = FT_ATOM;
       f->value.a = a;
+      PL_register_atom(a);
     } else if ( PL_get_long(value, &i) )
     { f->flags = FT_INTEGER;
       f->value.i = i;
@@ -309,10 +310,13 @@ pl_set_feature(term_t key, term_t value)
 
       if ( !PL_get_atom(value, &a) )
 	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, value);
+      PL_unregister_atom(f->value.a);
       f->value.a = a;
+      PL_register_atom(a);
       if ( k == ATOM_float_format )
+      { PL_register_atom(a);		/* so it will never be lost! */
 	LD->float_format = PL_atom_chars(a);
-      else if ( k == ATOM_double_quotes )
+      } else if ( k == ATOM_double_quotes )
       { Module m = MODULE_parse;
 
 	if ( !setDoubleQuotes(a, &m->flags) )
@@ -328,6 +332,10 @@ pl_set_feature(term_t key, term_t value)
       if ( !PL_get_long(value, &i) )
 	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, value);
       f->value.i = i;
+#ifdef O_ATOMGC
+      if ( k == ATOM_agc_margin )
+	GD->atoms.margin = i;
+#endif
       break;
     }
     case FT_TERM:
@@ -565,6 +573,9 @@ initFeatures()
   defFeature("c_ldflags", FT_ATOM|FF_READONLY, C_LDFLAGS);
   defFeature("gc",	  FT_BOOL,	       TRUE,  GC_FEATURE);
   defFeature("trace_gc",  FT_BOOL,	       FALSE, TRACE_GC_FEATURE);
+#ifdef O_ATOMGC
+  defFeature("agc_margin",FT_INTEGER,	       GD->atoms.margin);
+#endif
 #if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
   defFeature("open_shared_object",	FT_BOOL|FF_READONLY, TRUE, 0);
   defFeature("shared_object_extension",	FT_ATOM|FF_READONLY, SO_EXT);

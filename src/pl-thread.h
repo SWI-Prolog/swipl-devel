@@ -20,10 +20,11 @@ typedef struct _PL_thread_info_t
   ulong		    global_size;
   ulong		    trail_size;
   ulong		    argument_size;
+  int		    open_count;		/* for PL_thread_detach_engine() */
   bool		    detached;		/* detached thread */
-  PL_local_data_t  *thread_data;	/* The thread-local data  */
-  pthread_t	    tid;		/* Thread identifier */
   int		    status;		/* PL_THREAD_* */
+  pthread_t	    tid;		/* Thread identifier */
+  PL_local_data_t  *thread_data;	/* The thread-local data  */
   module_t	    module;		/* Module for starting goal */
   record_t	    goal;		/* Goal to start thread */
   record_t	    return_value;	/* Value (term) returned */
@@ -36,8 +37,6 @@ typedef struct _PL_thread_info_t
 #define PL_THREAD_SUCCEEDED	3
 #define PL_THREAD_FAILED	4
 #define PL_THREAD_EXCEPTION	5
-
-#define SIG_THREAD_SIGNAL SIGUSR1
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 				Thread-local data

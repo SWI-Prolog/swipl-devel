@@ -128,7 +128,8 @@ aliasStream(IOSTREAM *s, atom_t name)
 
   ctx = getStreamContext(s);
   addHTable(streamAliases, (void *)name, s);
-  
+  PL_register_atom(name);
+
   a = allocHeap(sizeof(*a));
   a->next = NULL;
   a->name = name;
@@ -169,6 +170,8 @@ unaliasStream(IOSTREAM *s, atom_t name)
 	  }
 	}
       }
+
+      PL_unregister_atom(name);
     }
   } else				/* delete them all */
   { if ( (symb=lookupHTable(streamContext, s)) )
@@ -181,7 +184,9 @@ unaliasStream(IOSTREAM *s, atom_t name)
 	n = a->next;
 
 	if ( (s2 = lookupHTable(streamAliases, (void *)a->name)) )
-	  deleteSymbolHTable(streamAliases, s2);
+	{ deleteSymbolHTable(streamAliases, s2);
+	  PL_unregister_atom(a->name);
+	}
 
 	freeHeap(a, sizeof(*a));
       }
@@ -275,6 +280,7 @@ initIO()
   ttymode = TTY_COOKED;
   PushTty(Sinput, &ttytab, TTY_SAVE);
   LD->prompt.current = ATOM_prompt;
+  PL_register_atom(ATOM_prompt);
 
   Suser_input  = Sinput;
   Suser_output = Soutput;
@@ -324,8 +330,8 @@ PL_release_stream(IOSTREAM *s)
 }
 
 
-int
-PL_get_stream_handle(term_t t, IOSTREAM **s)
+static int
+get_stream_handle(term_t t, IOSTREAM **s, int errors)
 { atom_t alias;
 
   if ( PL_is_functor(t, FUNCTOR_dstream1) )
@@ -341,7 +347,9 @@ PL_get_stream_handle(term_t t, IOSTREAM **s)
         return TRUE;
       } else
       { UNLOCK();
-	return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_stream, t);
+	if ( errors )
+	  return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_stream, t);
+	fail;
       }
     }
   } else if ( PL_get_atom(t, &alias) )
@@ -366,10 +374,21 @@ PL_get_stream_handle(term_t t, IOSTREAM **s)
     }
     UNLOCK();
 
-    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_stream, t);
+    if ( errors )
+      return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_stream, t);
+    fail;
   }
       
-  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_stream, t);
+  if ( errors )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_stream, t);
+
+  fail;
+}
+
+
+int
+PL_get_stream_handle(term_t t, IOSTREAM **s)
+{ return get_stream_handle(t, s, TRUE);
 }
 
 
@@ -1207,7 +1226,10 @@ pl_prompt(term_t old, term_t new)
 
   if ( PL_unify_atom(old, LD->prompt.current) &&
        PL_get_atom(new, &a) )
-  { LD->prompt.current = a;
+  { if ( LD->prompt.current )
+      PL_unregister_atom(LD->prompt.current);
+    LD->prompt.current = a;
+    PL_register_atom(a);
     succeed;
   }
 
@@ -1419,17 +1441,27 @@ pl_open(term_t file, term_t mode, term_t stream)
 
 word
 pl_see(term_t f)
-{ if ( !pl_set_input(f) )
-  { IOSTREAM *s;
-    term_t mode = PL_new_term_ref();
+{ IOSTREAM *s;
+  atom_t a;
+  term_t mode;
 
-    PL_put_atom(mode, ATOM_read);
-    if ( !(s = openStream(f, mode, 0)) )
-      fail;
-
-    pushInputContext();
-    Scurin = s;
+  if ( get_stream_handle(f, &s, FALSE) )
+  { Scurin = s;
+    releaseStream(s);
+    succeed;
   }
+  if ( PL_get_atom(f, &a) && a == ATOM_user )
+  { Scurin = Suser_input;
+    succeed;
+  }
+
+  mode = PL_new_term_ref();
+  PL_put_atom(mode, ATOM_read);
+  if ( !(s = openStream(f, mode, 0)) )
+    fail;
+
+  pushInputContext();
+  Scurin = s;
 
   succeed;
 }
@@ -1453,17 +1485,27 @@ pl_seen()
 
 static word
 do_tell(term_t f, atom_t m)
-{ if ( !pl_set_output(f) )
-  { IOSTREAM *s;
-    term_t mode = PL_new_term_ref();
+{ IOSTREAM *s;
+  atom_t a;
+  term_t mode;
 
-    PL_put_atom(mode, m);
-    if ( !(s = openStream(f, mode, 0)) )
-      fail;
-
-    pushOutputContext();
-    Scurout = s;
+  if ( get_stream_handle(f, &s, FALSE) )
+  { Scurout = s;
+    releaseStream(s);
+    succeed;
   }
+  if ( PL_get_atom(f, &a) && a == ATOM_user )
+  { Scurout = Suser_output;
+    succeed;
+  }
+
+  mode = PL_new_term_ref();
+  PL_put_atom(mode, m);
+  if ( !(s = openStream(f, mode, 0)) )
+    fail;
+
+  pushOutputContext();
+  Scurout = s;
 
   succeed;
 }
@@ -2002,7 +2044,7 @@ pl_set_stream_position(term_t stream, term_t pos)
   if ( !(getStreamWithPosition(stream, &s)) )
     fail;
 
-  if ( Sseek(s, charno, SIO_SEEK_SET) != 0 )
+  if ( Sseek(s, charno, SIO_SEEK_SET) != charno )
     return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 		    ATOM_position, ATOM_stream, stream);
 
@@ -2062,6 +2104,7 @@ pl_set_input(term_t stream)
 
   if ( getInputStream(stream, &s) )
   { Scurin = s;
+    releaseStream(s);
     return TRUE;
   }
 
@@ -2075,6 +2118,7 @@ pl_set_output(term_t stream)
 
   if ( getOutputStream(stream, &s) )
   { Scurout = s;
+    releaseStream(s);
     return TRUE;
   }
 

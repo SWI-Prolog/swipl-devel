@@ -1,6 +1,6 @@
 Begin2
 Title        = SWI-Prolog
-Version      = 3.2.0
+Version      = 3.3.0
 Desc1        = Edinburgh-style Prolog compiler including modules, autoload,
 Desc2        = libraries, Garbage-collector, stack-expandor, C-interface,
 Desc3        = GNU-readline and GNU-Emacs interface, very fast compiler,
@@ -11,7 +11,7 @@ Maintainer   = Jan Wielemaker
 MaintEmail   = jan@swi.psy.uva.nl
 Site1        = swi.psy.uva.nl
 Path1        = /pub/SWI-Prolog
-File1        = pl-3.2.0.tar.gz
+File1        = pl-3.3.0.tar.gz
 FileSize1    = 894316
 Site2        = sunsite.unc.edu
 Path2        = /pub/Linux/devel/prolog

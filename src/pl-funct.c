@@ -66,6 +66,7 @@ lookupFunctorDef(atom_t atom, int arity)
   functorDefTable[v] = f;
   registerFunctor(f);
   GD->statistics.functors++;
+  PL_register_atom(atom);
 
   DEBUG(9, Sdprintf("%p (new)\n", f));
 

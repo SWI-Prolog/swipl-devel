@@ -542,8 +542,13 @@ PL_handle_signals()
 #ifdef O_PLMT
         if ( sig == SIG_THREAD_SIGNAL )
 	  executeThreadSignals(sig);
+	else
 #endif
-
+#ifdef O_ATOMGC
+	if ( sig == SIG_ATOM_GC )
+	  pl_garbage_collect_atoms();
+	else
+#endif
 	pl_signal_handler(sig);
       }
     }

@@ -41,6 +41,8 @@ lookupRecordList(word key)
   { if (l->key == key)
       return l;
   }
+  if ( isAtom(key) )			/* can also be functor_t */
+    PL_register_atom(key);
   l = (RecordList) allocHeap(sizeof(struct recordList));
   l->key = key;
   l->firstRecord = l->lastRecord = NULL;
@@ -141,6 +143,7 @@ right_recursion:
       } else
       { addBuffer(&info->code, PL_TYPE_ATOM, char);
 	addUnalignedBuffer(&info->code, w, atom_t);
+	PL_register_atom(w);
       }
       return;
     }
@@ -261,6 +264,8 @@ typedef struct
 		  memcpy(var, (b)->data, _n); \
 		  (b)->data += _n; \
 		} while(0)
+#define skipBuf(b, type) \
+		((b)->data += sizeof(type))
 
 
 #ifndef WORDS_PER_DOUBLE
@@ -392,6 +397,68 @@ copyRecordToGlobal(term_t copy, Record r)
 
   SECURE(checkData(valTermRef(copy)));
 }
+
+
+#ifdef O_ATOMGC
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+We could consider some  optimisation  here,   notably  as  this stuff in
+inderlying findall() and friends.  I  guess  we   can  get  rid  of  the
+recursion.   Other   options:   combine     into    copyRecordToGlobal()
+(recorded+erase), add a list of atoms as a separate entity.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+unregisterAtomsRecord(CopyInfo b)
+{ int tag;
+
+right_recursion:
+  fetchBuf(b, &tag, char);
+  switch(tag)
+  { case PL_TYPE_VARIABLE:
+    { skipBuf(b, int);
+      return;
+    }
+    case PL_TYPE_ATOM:
+    { atom_t val;
+
+      fetchUnalignedBuf(b, &val, atom_t);
+      PL_unregister_atom(val);
+      return;
+    }
+    case PL_TYPE_TAGGED_INTEGER:
+    case PL_TYPE_INTEGER:
+    { skipBuf(b, long);
+      return;
+    }
+    case PL_TYPE_FLOAT:
+    { skipBuf(b, double);
+      return;
+    }
+    case PL_TYPE_STRING:
+    { int len, lw;
+
+      fetchUnalignedBuf(b, &len, int);
+      lw = (len+sizeof(word))/sizeof(word); /* see globalNString() */
+      b->data += lw * sizeof(word);
+
+      return;
+    }
+    case PL_TYPE_COMPOUND:
+    { word fdef;
+      int arity;
+
+      fetchUnalignedBuf(b, &fdef, word);
+      arity = arityFunctor(fdef);
+      while(--arity > 0)
+	unregisterAtomsRecord(b);
+      goto right_recursion;
+    }
+  }
+}
+
+#endif /*O_ATOMGC*/
+
 
 		 /*******************************
 		 *     STRUCTURAL EQUIVALENCE	*
@@ -551,7 +618,15 @@ structuralEqualArg1OfRecord(term_t t, Record r)
 bool
 freeRecord(Record record)
 { if ( --record->references == 0 )
+  {
+#ifdef O_ATOMGC
+    copy_info ci;
+
+    ci.data = record->buffer;
+    unregisterAtomsRecord(&ci);
+#endif
     freeHeap(record, record->size);
+  }
 
   succeed;
 }

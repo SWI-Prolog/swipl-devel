@@ -206,6 +206,7 @@ suggest predicates from a keyword.
 \predicatesummary{help}{1}{Give help on predicates and show parts of manual}
 \predicatesummary{ignore}{1}{Call the argument, but always succeed}
 \predicatesummary{import}{1}{Import a predicate from a module}
+\predicatesummary{include}{1}{Include a file with declarations}
 \predicatesummary{index}{1}{Change clause indexing}
 \predicatesummary{initialization}{1}{Initialization directive}
 \predicatesummary{int_to_atom}{2}{Convert from integer to atom}

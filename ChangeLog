@@ -1,6 +1,14 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: locking problem in set_input/1, set_output/1, see/1 and
+    tell/1 (Multi-threaded version).
+
+  * ADDED: C interface for accessing an embedded Prolog engine
+    from multiple threads.
+
+  * FIXED: incorrect instantiation-errors from sub_atom/5.
+
 VERSION 3.3.0 (release-3)
 =========================
 

@@ -882,14 +882,16 @@ be a variable, and thus cannot be removed if it is before an I_POPF.
       {	Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, valBignum(*arg));
 	return NONVOID;
       }
-      /* FALLTHROUGH for tagged integers */
+      Output_1(ci, (where & A_BODY) ? B_CONST : H_CONST, *arg);
+      return NONVOID;
     case TAG_ATOM:
       if ( tagex(*arg) == (TAG_ATOM|STG_GLOBAL) )
 	goto isvar;
       if ( isNil(*arg) )
       {	Output_0(ci, (where & A_BODY) ? B_NIL : H_NIL);
       } else
-      { Output_1(ci, (where & A_BODY) ? B_CONST : H_CONST, *arg);
+      { PL_register_atom(*arg);
+	Output_1(ci, (where & A_BODY) ? B_CONST : H_CONST, *arg);
       }
       return NONVOID;
     case TAG_FLOAT:
@@ -1320,6 +1322,50 @@ compileArithArgument(Word arg, compileInfo *ci)
 #endif /* O_COMPILE_ARITH */
 
 
+		 /*******************************
+		 *	     ATOM-GC		*
+		 *******************************/
+
+#ifdef O_ATOMGC
+
+void
+unregisterAtomsClause(Clause clause)
+{ Code PC, ep;
+  int c;
+
+  PC = clause->codes;
+  ep = PC + clause->code_size;
+
+  for( ; PC < ep; PC += (codeTable[c].arguments + 1) )
+  { c = decode(*PC);
+
+  again:
+    switch(c)
+    {
+#if O_DEBUGGER
+      case D_BREAK:
+	c = decode(replacedBreak(PC));
+        goto again;
+#endif
+      case H_INDIRECT:		/* only skip the size of the */
+      case B_INDIRECT:		/* string + header */
+      { word m = PC[1];
+	PC += wsizeofInd(m)+1;
+	break;
+      }
+      case H_CONST:
+      case B_CONST:
+      { word w = PC[1];
+
+	if ( isAtom(w) )
+	  PL_unregister_atom(w);
+      }
+    }
+  }
+}
+
+#endif /*O_ATOMGC*/
+
 		/********************************
 		*  PROLOG DATA BASE MANAGEMENT  *
 		*********************************/
@@ -1388,7 +1434,7 @@ care of reconsult, redefinition, etc.
     if ( def->module != mhead )
     { if ( true(def->module, SYSTEM) )
 	PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-		 ATOM_redefine, PL_new_atom("built_in_procedure"), def);
+		 ATOM_redefine, ATOM_built_in_procedure, def);
       else
 	warning("%s/%d already imported from module %s", 
 		stringAtom(def->functor->name), 
@@ -1421,7 +1467,7 @@ mode, the predicate is still undefined and is not dynamic or multifile.
 
   if ( def->module != mhead && false(def, DYNAMIC) )
   { PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-	     ATOM_modify, PL_new_atom("static_procedure"), def);
+	     ATOM_modify, ATOM_static_procedure, def);
     freeClause(clause);
     return (Clause) NULL;
   }

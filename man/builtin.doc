@@ -1,4 +1,4 @@
-\chapter{Built-In Predicates}
+\chapter{Built-in predicates}
 
 \section{Notation of Predicate Descriptions}
 
@@ -69,29 +69,59 @@ prolog-flag \const{double_quotes} (see current_prolog_flag/2) controls
 how text between double-quotes is interpreted.
 
 
-\section{Consulting Prolog Source files}	\label{sec:consulting}
+\section{Loading Prolog source files}	\label{sec:consulting}
 
-SWI-Prolog source files normally have a suffix `\fileext{pl}'.
-Specifying the suffix is optional. All predicates that handle source
-files first check whether a file with suffix `\fileext{pl}' exists. If
-not the plain file name is checked for existence. Library files are
-specified by embedding the file name using the functor
-\functor{library}{1}. Thus `\file{foo}' refers to `\file{foo.pl}' or
-`\file{foo}' in the current directory, `\file{library(foo)}' refers to
-`\file{foo.pl}' or `\file{foo}' in one of the library directories
-specified by the dynamic predicate library_directory/1. The user may
-specify other `aliases' than \file{library} using the predicate
-file_search_path/2. This is strongly encouraged for managing complex
-applications. See also absolute_file_name/[2,3].
+This section deals with loading Prolog source-files. A Prolog source
+file is a text-file (often referred to as \jargon{ASCII-file})
+containing a Prolog program or part thereof.  Prolog source files
+come in three flavours:
 
-SWI-Prolog recognises grammar rules as defined in \cite{Clocksin:87}.
-The user may define additional compilation of the source file by
-defining the dynamic predicate term_expansion/2. Transformations by this
-predicate overrule the systems grammar rule transformations. It is not
-allowed to use assert/1, retract/1 or any other database predicate in
-term_expansion/2 other than for local computational purposes.%
-\footnote{ It does work for consult, but makes it impossible to compile
-programs into a stand alone executable (see \secref{compilation})}
+\begin{description}
+    \item [ A traditional ] Prolog source file contains a Prolog
+clauses and directives, but no \jargon{module-declaration}.  They
+are normally loaded using consult/1 or ensure_loaded/1.
+    \item [ A module ] Prolog source file starts with a module
+declaration.  The subsequent Prolog code is loaded into the
+specified module and only the \jargon{public} predicates are
+made available to the context loading the module.  Module files
+are normally loaded using use_module/[1,2].  See \chapref{modules}
+for details.
+    \item [ A include ] Prolog source file is loaded using
+the include/1 directive and normally contains only directives.
+\end{description}
+
+Prolog source-files are located using absolute_file_name/3 with
+the following options:
+
+\begin{code}
+locate_prolog_file(Spec, Path) :-
+	absolute_file_name(Spec,
+			   [ file_type(prolog),
+			     access(read)
+			   ],
+			   Path).
+\end{code}
+
+The \term{file_type}{prolog} option is used to determine the extension
+of the file using prolog_file_type/2. The default extension is
+\fileext{pl}.  \arg{Spec} allows for the \jargon{path-alias} construct
+defined by absolute_file_name/3.  The most commonly used path-alias
+is \term{library}{LibraryFile}.  The example below loads the library
+file \file{oset.pl} (containing predicates for manipulating ordered
+sets).
+
+\begin{code}
+:- use_module(library(oset)).
+\end{code}
+
+SWI-Prolog recognises grammar rules (\idx(DCG)) as defined in
+\cite{Clocksin:87}. The user may define additional compilation of the
+source file by defining the dynamic predicate term_expansion/2.
+Transformations by this predicate overrule the systems grammar rule
+transformations. It is not allowed to use assert/1, retract/1 or any
+other database predicate in term_expansion/2 other than for local
+computational purposes.%
+    \footnote{It does work for normal loading, but not for qcompile/1.}
 
 Directives may be placed anywhere in a source file, invoking any
 predicate.  They are executed when encountered.  If the directive fails,
@@ -103,7 +133,7 @@ is implied automatically by the fact that a file is consulted which is
 already loaded.
 
 \begin{description}
-\predicate{load_files}{2}{+Files, +Options}
+    \predicate{load_files}{2}{+Files, +Options}
 The predicate load_files/2 is the parent of all the other loading
 predicates. It currently supports a subset of the options of Quintus
 load_files/2. \arg{Files} is either specifies a single, or a list of
@@ -136,7 +166,7 @@ value is the default for all files loaded as a result of loading the
 specified files.
 \end{description}
 
-\predicate{consult}{1}{+File}
+    \predicate{consult}{1}{+File}
 Read \arg{File} as a Prolog source file. \arg{File} may be a list of
 files, in which case all members are consulted in turn. \arg{File} may
 start with the csh(1) special sequences \file{~}, \file{~<user>} and
@@ -150,7 +180,7 @@ abbreviated by just typing a number of file names in a list. Examples:
 \exam{?- [library(quintus)]}.   & \% load Quintus compatibility library \\
 \end{tabular}\end{center}
 Equivalent to load_files(Files, []).
-\predicate{ensure_loaded}{1}{+File}
+    \predicate{ensure_loaded}{1}{+File}
 If the file is not already loaded, this is equivalent to consult/1.
 Otherwise, if the file defines a module, import all public predicates.
 Finally, if the file is already loaded, is not a module file and the
@@ -162,7 +192,13 @@ semantics without the presence of a module system.  Applications using
 modules should consider using use_module/[1,2].  
 
 Equivalent to load_files(Files, [if(changed)]).
-\predicate{require}{1}{+ListOfNameAndArity}
+    \predicate{include}{1}{+File}
+Pretend the terms in \arg{File} are in the source-file in which
+\exam{:- include(File)} appears.  The include construct is only
+honnoured if it appears as a directive in a source-file.  Normally
+\arg{File} contains a sequence of directives.
+
+    \predicate{require}{1}{+ListOfNameAndArity}
 Declare that this file/module requires the specified predicates to be
 defined ``with their commonly accepted definition''.  This predicate
 originates from the Prolog portability layer for XPCE.  It is intended
@@ -177,22 +213,17 @@ SWI-Prolog, having autoloading, does {\bf not} load the library. Instead
 it creates a procedure header for the predicate if this does not exist.
 This will flag the predicate as `undefined'.  See also check/0 and
 autoload/0.
-\predicate{make}{0}{}
+
+    \predicate{make}{0}{}
 Consult all source files that have been changed since they were
 consulted.  It checks \arg{all} loaded source files: files loaded into a
 compiled state using \exam{pl -c \ldots} and files loaded using consult
-or one of its derivatives. make/0 is normally invoked by the edit/[0,1]
-and ed/[0,1] predicates. make/0 can be combined with the compiler to
-speed up the development of large packages. In this case compile the
-package using
+or one of its derivatives. The predicate make/0 is called after
+edit/1, automatically reloading all modified files.  It the user uses
+an external editor (in a separate window), make/0 is normally used to
+update the program after editing.
 
-\begin{code}
-sun% pl -g make -o my_program -c file ...
-\end{code}
-
-If `my_program' is started it will first reconsult all source files
-that have changed since the compilation.
-\predicate{library_directory}{1}{?Atom}
+    \predicate{library_directory}{1}{?Atom}
 Dynamic predicate used to specify library directories.  Default
 \file{./lib}, \file{~/lib/prolog} and the system's library
 (in this order) are defined.  The user may add library directories
@@ -203,12 +234,12 @@ Dynamic predicate used to specify `path-aliases'.  This feature is
 best described using an example.  Given the definition
 
 \begin{code}
-file_search_path(demo, '~/demo').
+file_search_path(demo, '/usr/lib/prolog/demo').
 \end{code}
 
 the file specification \file{demo(myfile)} will be expanded to
-\file{~/demo/myfile}.  The second argument of file_search_path/2 may
-be another alias.
+\file{/usr/lib/prolog/demo/myfile}. The second argument of
+file_search_path/2 may be another alias.
 
 Below is the initial definition of the file search path.  This path
 implies \file{swi(<Path>)} refers to a file in the SWI-Prolog home
@@ -248,10 +279,8 @@ user:prolog_file_type(Ext,	prolog) :-
 	current_prolog_flag(associate, Ext),
 	Ext \== pl.
 user:prolog_file_type(qlf,	qlf).
-user:prolog_file_type(so,	executable) :-
-	current_prolog_flag(open_shared_object, true).
-user:prolog_file_type(dll,	executable) :-
-	current_prolog_flag(dll, true).
+user:prolog_file_type(Ext,	executable) :-
+	current_prolog_flag(shared_object_extension, Ext).
 \end{code}
 
 Users may wish to change the extension used for Prolog source files
@@ -260,22 +289,21 @@ be compatible with some specific implementation. The preferred
 alternative extension is \fileext{pro}.
 
     \predicate{source_file}{1}{?File}
-Succeeds if \arg{File} was loaded using consult/1 or ensure_loaded/1.
-\arg{File} refers to the full path name of the file (see
-expand_file_name/2). The predicate source_file/1 backtracks over all
-loaded source files.
-\predicate{source_file}{2}{?Pred, ?File}
+Succeeds if \arg{File} is a loaded Prolog source file.  \arg{File} is
+the absolute and canonical path to the source-file.
+
+    \predicate{source_file}{2}{?Pred, ?File}
 Is true if the predicate specified by \arg{Pred} was loaded from file
 \arg{File}, where \arg{File} is an absolute path name (see
-expand_file_name/2).  Can be used with any instantiation pattern, but the
-database only maintains the source file for each predicate.  Predicates
-declared \const{multifile} (see multifile/1) cannot be found this way.
-\predicate{prolog_load_context}{2}{?Key, ?Value}
+absolute_file_name/2). Can be used with any instantiation pattern,
+but the database only maintains the source file for each predicate.
+See also clause_property/2.
+    \predicate{prolog_load_context}{2}{?Key, ?Value}
 Determine loading context.  The following keys are defined:
 \begin{center}
 \begin{tabular}{|l|p{4in}|}
 \hline
-\bf Key         & \bf Description \\
+\bf Key               & \bf Description \\
 \hline
 \const{module}        & Module into which file is loaded \\
 \const{file}          & File loaded \\
@@ -352,7 +380,7 @@ fails, but execution continues.  See also at_halt/1
 Register \arg{Goal} to be ran when the system halts. The hooks are run
 in the order they were registered.  Success or failure executing a hook
 is ignored.  These hooks may not call halt/[0,1].
-\predicate{initialization}{1}{+Goal}
+    \predicate{initialization}{1}{+Goal}
 Call \arg{Goal} and register it using at_initialization/1.  Directives
 that do other things that creating clauses, records, flags or setting
 predicate attributes should normally be written using this tag to
@@ -363,7 +391,7 @@ See also qsave_program/[1,2].
 Succeeds if the system is compiling source files with the \cmdlineoption{-c}
 option into an intermediate code file.  Can be used to perform code
 optimisations in expand_term/2 under this condition.
-\predicate{preprocessor}{2}{-Old, +New}
+    \predicate{preprocessor}{2}{-Old, +New}
 Read the input file via a Unix process that acts as preprocessor. A
 preprocessor is specified as an atom. The first occurrence of the string
 `\const{\%f}' is replaced by the name of the file to be loaded. The
@@ -378,15 +406,14 @@ Old = none
 \end{code}
 \end{description}
 
-\subsection{Quick Load Files}
+\subsection{Quick load files}
 
 The features described in this section should be regarded {\bf alpha}.
 
 As of version 2.0.0, SWI-Prolog supports compilation of individual
 or multiple Prolog sourcefiles into `Quick Load Files'.  A `Quick
 Load Files' (\fileext{qlf} file) stores the contents of the file in
-a precompiled format very similar to compiled files created using
-the \cmdlineoption{-b} and \cmdlineoption{-c} flags (see \secref{compilation}).
+a precompiled format.
 
 These files load considerably faster than sourcefiles and are normally
 more compact.  They are machine independent and may thus be loaded
@@ -402,7 +429,7 @@ will load the file. When no extension is specified, it will load the
 \fileext{qlf} file when present and the fileext{pl} file otherwise.
 
 \begin{description}
-\predicate{qcompile}{1}{+File}
+    \predicate{qcompile}{1}{+File}
 Takes a single file specification like consult/1 (i.e. accepts
 constructs like \file{library(LibFile)} and creates a Quick Load
 File from \arg{File}.  The file-extension of this file is \fileext{qlf}.
@@ -532,40 +559,40 @@ List specified predicates (when an atom is given all predicates with
 this name will be listed).  The listing is produced on the basis of the
 internal representation, thus loosing user's layout and variable name
 information.  See also portray_clause/1.
-\predicate{listing}{0}{}
+    \predicate{listing}{0}{}
 List all predicates of the database using listing/1.
 
     \predicate{portray_clause}{1}{+Clause}
-Pretty print a clause as good as we can.  A clause should be specified
-as a term `\exam{<Head> :- <Body>}' (put brackets around it to avoid operator
-precedence problems).  Facts are represented as `\exam{<Head> :- true}'.
+Pretty print a clause. A clause should be specified as a term
+`\exam{<Head> :- <Body>}'. Facts are represented as `\exam{<Head> :-
+true}'.
 \end{description}
 
 
 \section{Verify Type of a Term}
 
 \begin{description}
-\predicate{var}{1}{+Term}
+    \predicate{var}{1}{+Term}
 Succeeds if \arg{Term} currently is a free variable.
-\predicate{nonvar}{1}{+Term}
+    \predicate{nonvar}{1}{+Term}
 Succeeds if \arg{Term} currently is not a free variable.
-\predicate{integer}{1}{+Term}
+    \predicate{integer}{1}{+Term}
 Succeeds if \arg{Term} is bound to an integer.
-\predicate{float}{1}{+Term}
+    \predicate{float}{1}{+Term}
 Succeeds if \arg{Term} is bound to a floating point number.
-\predicate{number}{1}{+Term}
+    \predicate{number}{1}{+Term}
 Succeeds if \arg{Term} is bound to an integer or a floating point number.
-\predicate{atom}{1}{+Term}
+    \predicate{atom}{1}{+Term}
 Succeeds if \arg{Term} is bound to an atom.
-\predicate{string}{1}{+Term}
+    \predicate{string}{1}{+Term}
 Succeeds if \arg{Term} is bound to a string.
-\predicate{atomic}{1}{+Term}
+    \predicate{atomic}{1}{+Term}
 Succeeds if \arg{Term} is bound to an atom, string, integer or floating
 point number.
-\predicate{compound}{1}{+Term}
+    \predicate{compound}{1}{+Term}
 Succeeds if \arg{Term} is bound to a compound term.  See also functor/3
 and =../2.
-\predicate{ground}{1}{+Term}
+    \predicate{ground}{1}{+Term}
 Succeeds if \arg{Term} holds no free variables.
 \end{description}
 
@@ -607,7 +634,7 @@ identical to a sharing variable.
 Equivalent to \exam{\Snot Term1 == Term2}.
 \infixop{=}{+Term1}{+Term2}
 Unify \arg{Term1} with \arg{Term2}. Succeeds if the unification succeeds.
-\predicate{unify_with_occurs_check}{2}{+Term1, +Term2}
+    \predicate{unify_with_occurs_check}{2}{+Term1, +Term2}
 As \predref{=}{2}, but using \jargon{sound-unification}. That is, a
 variable only unifies to a term if this term does not contain the
 variable itself.  To illustrate this, consider the two goals below:
@@ -655,7 +682,7 @@ Succeeds if \arg{Term1} is after \arg{Term2} in the standard order of terms.
 \infixop{@>=}{+Term1}{+Term2}
 Succeeds if both terms are equal (\predref{==}{2}) or \arg{Term1} is after \arg{Term2} in
 the standard order of terms.
-\predicate{compare}{3}{?Order, +Term1, +Term2}
+    \predicate{compare}{3}{?Order, +Term1, +Term2}
 Determine or test the \arg{Order} between two terms in the standard
 order of terms. \arg{Order} is one of \const{<}, \const{>} or \const{=},
 with the obvious meaning.
@@ -677,15 +704,15 @@ one_character_atoms(As) :-
 \end{code}
 
 \begin{description}
-\predicate{fail}{0}{}
+    \predicate{fail}{0}{}
 Always fail.  The predicate fail/0 is translated into a single virtual
 machine instruction.
-\predicate{true}{0}{}
+    \predicate{true}{0}{}
 Always succeed. The predicate true/0 is translated into a single virtual
 machine instruction.
-\predicate{repeat}{0}{}
+    \predicate{repeat}{0}{}
 Always succeed, provide an infinite number of choice points.
-\predicate{!}{0}{}
+    \predicate{!}{0}{}
 Cut. Discard choice points of parent frame and frames created after the
 parent frame. Note that the control structures \predref{;}{2},
 \predref{|}{2}, \predref{->}{2} and \predref{\+}{1} are
@@ -761,11 +788,11 @@ involves actually searching the database at runtime for the predicate,
 while for normal calls this search is done at compile time.
 
 \begin{description}
-\predicate{call}{1}{+Goal}
+    \predicate{call}{1}{+Goal}
 Invoke \arg{Goal} as a goal. Note that clauses may have variables as
 subclauses, which is identical to call/1, except when the argument is
 bound to the cut. See \predref{!}{0}.
-\predicate{call}{2}{+Goal, +ExtraArg1, \ldots}		% 2..
+    \predicate{call}{2}{+Goal, +ExtraArg1, \ldots}		% 2..
 Append \arg{ExtraArg1, ExtraArg2, \ldots} to the argument list of
 \arg{Goal} and call the result. For example, \exam{call(plus(1), 2, X)}
 will call plus/3, binding \arg{X} to 3.
@@ -774,7 +801,7 @@ The call/[2..] construct is handled by the compiler, which implies that
 redefinition as a predicate has no effect.  The predicates call/[2-6]
 are defined as true predicates, so they can be handled by interpreted
 code.
-\predicate{apply}{2}{+Term, +List}
+    \predicate{apply}{2}{+Term, +List}
 Append the members of \arg{List} to the arguments of \arg{Term} and call
 the resulting term. For example: \exam{apply(plus(1), [2, X])} will
 call \exam{plus(1, 2, X)}. apply/2 is incorporated in the virtual
@@ -782,10 +809,10 @@ machine of SWI-Prolog. This implies that the overhead can be compared to
 the overhead of call/1. New code should use call/[2..] if the length of
 \arg{List} is fixed, which is more widely supported and faster because
 there is no need to build and examine the argument list.
-\predicate{not}{1}{+Goal}
+    \predicate{not}{1}{+Goal}
 Succeeds when \arg{Goal} cannot be proven.  Retained for compatibility
 only. New code should use \predref{\+}{1}.
-\predicate{once}{1}{+Goal}
+    \predicate{once}{1}{+Goal}
 Defined as:
 \begin{code}
 once(Goal) :-
@@ -798,7 +825,7 @@ are identical:
 1) a :- once((b, c)), d.
 2) a :- b, c -> d.
 \end{code}
-\predicate{ignore}{1}{+Goal}
+    \predicate{ignore}{1}{+Goal}
 Calls \arg{Goal} as once/1, but succeeds, regardless of whether
 \arg{Goal} succeeded or not. Defined as:
 
@@ -807,7 +834,7 @@ ignore(Goal) :-
         Goal, !.
 ignore(_).
 \end{code}
-\predicate{call_with_depth_limit}{3}{+Goal, +Limit, -Result}
+    \predicate{call_with_depth_limit}{3}{+Goal, +Limit, -Result}
 If \arg{Goal} can be proven without recursion deeper than \arg{Limit}
 levels, call_with_depth_limit/3 succeeds, binding \arg{Result} to the
 deepest recursion level used during the proof.  Otherwise, \arg{Result}
@@ -1132,72 +1159,96 @@ critical sections are generally very short.
 \end{itemlist}
 
 
-\section{Advanced control-structures: blocks}
+\section{The `block' control-structure}
 
-\index{exception-handling}
-The predicates of this section form a tightly related set for
-realising premature successful or failing exits from a \arg{block}.
-These predicates are first of all useful for error-recovery.  They
-were primarily implemented for compatibility reasons.
+The block/3 predicate and friends have been introduced before ISO
+compatible catch/3 exception handling for compatibility with some
+Prolog implementation.  The only feature not covered by catch/3
+and throw/1 is the posibility to execute global cuts.  New code
+should use catch/3 and throw/1 to deal with exceptions.
 
 \begin{description}
-\predicate{block}{3}{+Label, +Goal, -ExitValue}
-Execute \arg{Goal} in a \arg{block}.  \arg{Label} is the name of the
+    \predicate{block}{3}{+Label, +Goal, -ExitValue}
+Execute \arg{Goal} in a \jargon{block}.  \arg{Label} is the name of the
 block.  \arg{Label} is normally an atom, but the system imposes
 no type constraints and may even be a variable.  \arg{ExitValue}
 is normally unified to the second argument of an exit/2 call
 invoked by \arg{Goal}.
-\predicate{exit}{2}{+Label, +Value}
+    \predicate{exit}{2}{+Label, +Value}
 Calling exit/2 makes the innermost \arg{block} which \arg{Label} unifies
 exit. The block's \arg{ExitValue} is unified with \arg{Value}. If this
 unification fails the block fails.
-\predicate{fail}{1}{+Label}
+    \predicate{fail}{1}{+Label}
 Calling fail/1 makes the innermost \arg{block} which \arg{Label}
 unifies fail immediately.  Implemented as
 \begin{code}
 fail(Label) :- !(Label), fail.
 \end{code}
-\predicate{!}{1}{+Label}
+    \predicate{!}{1}{+Label}
 Cut all choice-points created since the entry of the innermost
 \arg{block} which \arg{Label} unifies.
 \end{description}
 
-The example below illustrate these constructs to immediately report a
-syntax-error from a `deep-down' procedure to the outside world without
-passing it as an argument `all-over-the-place'.
+\section{DCG Grammar rules}
+
+\index{DCG}%
+Grammar rules form a comfortable interface to \jargon{difference-lists}.
+They are designed both to support writing parsers that build a parse-tree
+from a list as for generating a flat list from a term.  Unfortunately,
+Definite Clause Grammar (DCG) handling is not part of the Prolog
+standard.  Most Prolog engines implement DCG, but the details differ
+slightly.
+
+Grammar rules look like ordinary clauses using \funcref{-->}{2} for
+separating the head and body rather then \funcref{:-}{2}. Expanding
+grammar rules is done by expand_term/2, which adds two additional
+argument to each term for representing the difference list. We will
+illustrate the behaviour by defining a rule-set for parsing an integer.
 
 \begin{code}
-parse(RuleSet, InputList, Rest) :-
-        block(syntaxerror, phrase(RuleSet, InputList, Rest), Error),
-        (   var(Error)
-        ->  true
-        ;   format('Syntax-error: ~w~n', Error),
-            fail
-        ).
+integer(I) -->
+	digit(D0),
+	digits(D),
+	{ number_chars(I, [D0|D])
+	}.
 
-integer(N) -->
-        digit(D1), !, digits(Ds),
-        { name(N, [D1|Ds]) }.
+digits([D|T]) -->
+	digit(D), !,
+	digits(T).
+digits([]) -->
+	[].
 
-digits([D|R]) --> digit(D), digits(R).
-digits(_) --> letter(_), !, { exit(syntaxerror, 'Illegal number') }.
-digits([]) --> [].
-
-digit(D, [D|R], R)  :- between(0'0, 0'9, D).
-letter(D, [D|R], R) :- between(0'a, 0'z, D).
+digit(D) -->
+	[D],
+	{ code_type(D, digit)
+	}.
 \end{code}
 
-\section{Grammar rule interface (phrase)}
+The body of a grammar rule can contain three types of terms.  A compound
+term interpreted as a reference to a grammar-rule.  Code between
+\{\ldots\} is interpreted as a reference to ordinary Prolog code and
+finally, a list is interpreted as a sequence of literals.  The Prolog
+control-constructs (\funcref{\+}{1}, \funcref{->}{2}, \funcref{;}/2,
+\funcref{,}{2} and \funcref{!}{0}) can be used in grammar rules.
 
-The predicates below may be called to activate a grammar-rule set:
+Grammar rule-sets are called using the builtin predicates phrase/2
+and phrase/3:
 
 \begin{description}
-\predicate{phrase}{2}{+RuleSet, +InputList}
+    \predicate{phrase}{2}{+RuleSet, +InputList}
 Equivalent to \exam{phrase(\arg{RuleSet}, \arg{InputList}, [])}.
-\predicate{phrase}{3}{+RuleSet, +InputList, -Rest}
+    \predicate{phrase}{3}{+RuleSet, +InputList, -Rest}
 Activate the rule-set with given name.  `InputList' is the list of tokens
 to parse, `Rest' is unified with the remaining tokens if the sentence is
-parsed correctly.
+parsed correctly.  The example below calls the rule-set `integer' defined
+above.
+
+\begin{code}
+?- phrase(integer(X), "42 times", Rest).
+
+X = 42
+Rest = [32, 116, 105, 109, 101, 115]
+\end{code}
 \end{description}
 
 
@@ -1231,11 +1282,11 @@ information like counters, etc.
 \begin{description}
     \predicate{abolish}{1}{:PredicateIndicator}
 Removes all clauses of a predicate with functor \arg{Functor} and arity
-\arg{Arity} from the database.  Unlike version 1.2, all predicate attributes
-(dynamic, multifile, index, etc.) are reset to their defaults.  Abolishing
-an imported predicate only removes the import link; the predicate
-will keep its old definition in its definition module.  For `cleanup' of
-the dynamic database, one should use retractall/1 rather than abolish/2.
+\arg{Arity} from the database. All predicate attributes (dynamic,
+multifile, index, etc.) are reset to their defaults. Abolishing an
+imported predicate only removes the import link; the predicate will keep
+its old definition in its definition module. For `cleanup' of the
+dynamic database, one should use retractall/1 rather than abolish/2.
     \predicate{abolish}{2}{+Name, +Arity}
 Same as \exam{abolish(Name/Arity)}.  The predicate abolish/2 conforms to
 the Edinburgh standard, while abolish/1 is ISO compliant.
@@ -1248,48 +1299,46 @@ to the module.  The system definition remains in the module \const{system}.
 
 Redefining system predicate facilitates the definition of compatibility
 packages.  Use in other context is discouraged.
-\predicate{retract}{1}{+Term}
+    \predicate{retract}{1}{+Term}
 When \arg{Term} is an atom or a term it is unified with the first unifying fact
 or clause in the database. The fact or clause is removed from the database.
-\predicate{retractall}{1}{+Head}
+    \predicate{retractall}{1}{+Head}
 All facts or clauses in the database for which the \arg{head}
-unifies with \arg{Head} are removed.%
-    \footnote{Note that the definition has changed since version 2.0.6.
-              See release notes.}
-\predicate{assert}{1}{+Term}
+unifies with \arg{Head} are removed.
+    \predicate{assert}{1}{+Term}
 Assert a fact or clause in the database. \arg{Term} is asserted as the last
 fact or clause of the corresponding predicate.
-\predicate{asserta}{1}{+Term}
+    \predicate{asserta}{1}{+Term}
 Equivalent to assert/1, but \arg{Term} is asserted as first clause or fact
 of the predicate.
-\predicate{assertz}{1}{+Term}
+    \predicate{assertz}{1}{+Term}
 Equivalent to assert/1.
-\predicate{assert}{2}{+Term, -Reference}
+    \predicate{assert}{2}{+Term, -Reference}
 Equivalent to assert/1, but \arg{Reference} is unified with a unique
 reference to the asserted clause. This key can later be used with
 clause/3 or erase/1.
-\predicate{asserta}{2}{+Term, -Reference}
+    \predicate{asserta}{2}{+Term, -Reference}
 Equivalent to assert/2, but \arg{Term} is asserted as first clause or fact
 of the predicate.
-\predicate{assertz}{2}{+Term, -Reference}
+    \predicate{assertz}{2}{+Term, -Reference}
 Equivalent to assert/2.
-\predicate{recorda}{3}{+Key, +Term, -Reference}
+    \predicate{recorda}{3}{+Key, +Term, -Reference}
 Assert \arg{Term} in the recorded database under key \arg{Key}. \arg{Key} is an
 integer, atom or term. \arg{Reference} is unified with a unique reference
 to the record (see erase/1).
-\predicate{recorda}{2}{+Key, +Term}
+    \predicate{recorda}{2}{+Key, +Term}
 Equivalent to \exam{recorda(\arg{Key}, \arg{Value}, _)}.
-\predicate{recordz}{3}{+Key, +Term, -Reference}
+    \predicate{recordz}{3}{+Key, +Term, -Reference}
 Equivalent to recorda/3, but puts the \arg{Term} at the tail of the terms
 recorded under \arg{Key}.
-\predicate{recordz}{2}{+Key, +Term}
+    \predicate{recordz}{2}{+Key, +Term}
 Equivalent to \exam{recordz(\arg{Key}, \arg{Value}, _)}.
-\predicate{recorded}{3}{+Key, -Value, -Reference}
+    \predicate{recorded}{3}{+Key, -Value, -Reference}
 Unify \arg{Value} with the first term recorded under \arg{Key} which does
 unify. \arg{Reference} is unified with the memory location of the record.
-\predicate{recorded}{2}{+Key, -Value}
+    \predicate{recorded}{2}{+Key, -Value}
 Equivalent to \exam{recorded(\arg{Key}, \arg{Value}, _)}.
-\predicate{erase}{1}{+Reference}
+    \predicate{erase}{1}{+Reference}
 Erase a record or clause from the database.  \arg{Reference} is an
 integer returned by recorda/3 or recorded/3, clause/3, assert/2,
 asserta/2 or assertz/2.  Other integers might conflict with the internal
@@ -1299,21 +1348,24 @@ of the system.%
 \bug{The system should have a special type for pointers, thus avoiding
 the Prolog user having to worry about consistency matters. Currently some
 simple heuristics are used to determine whether a reference is valid.}
-\predicate{flag}{3}{+Key, -Old, +New}
+    \predicate{flag}{3}{+Key, -Old, +New}
 \arg{Key} is an atom, integer or term. Unify \arg{Old} with the old
 value associated with \arg{Key}. If the key is used for the first time
 \arg{Old} is unified with the integer 0. Then store the value of
 \arg{New}, which should be an integer, float, atom or arithmetic
 expression, under \arg{Key}. flag/3 is a very fast mechanism for storing
 simple facts in the database. Example:
+
 \begin{code}
 :- module_transparent succeeds_n_times/2.
 
 succeeds_n_times(Goal, Times) :-
-        flag(succeeds_n_times, Old, 0),
-        Goal,
-        flag(succeeds_n_times, N, N+1),
-        fail ; flag(succeeds_n_times, Times, Old).
+        (   flag(succeeds_n_times, Old, 0),
+	    Goal,
+	       flag(succeeds_n_times, N, N+1),
+	    fail
+	;   flag(succeeds_n_times, Times, Old)
+	).
 \end{code}
 \end{description}
 
@@ -1352,7 +1404,7 @@ on other and multiple arguments using the declaration index/1.
 For advanced database indexing, it defines hash_term/2:
 
 \begin{description}
-\predicate{hash_term}{2}{+Term, -HashKey}
+    \predicate{hash_term}{2}{+Term, -HashKey}
 If \arg{Term} is a ground term (see ground/1), \arg{HashKey} is
 unified with a positive integer value that may be used as a hash-key
 to the value.  If \arg{Term} is not ground, the predicate succeeds
@@ -1367,7 +1419,7 @@ SWI-Prolog.
 \end{description}
 
 
-\section{Declaring Properties of Predicates}	\label{ch:dynamic}
+\section{Declaring predicates properties}	\label{ch:dynamic}
 \label{sec:declare}
 
 This section describes directives which manipulate attributes of
@@ -1387,20 +1439,20 @@ they can also be called by a program.  Do not rely on this feature if
 you want to maintain portability to other Prolog implementations.
 
 \begin{description}
-\prefixop{dynamic}{+Functor/+Arity, \ldots}
+    \prefixop{dynamic}{+Functor/+Arity, \ldots}
 Informs the interpreter that the definition of the predicate(s) may change
 during execution (using assert/1 and/or retract/1).  Currently dynamic/1
 only stops the interpreter from complaining about undefined predicates (see
 unknown/2).  Future releases might prohibit assert/1 and retract/1 for
 not-dynamic declared procedures.
-\prefixop{multifile}{+Functor/+Arity, \ldots}
+    \prefixop{multifile}{+Functor/+Arity, \ldots}
 Informs the system that the specified predicate(s) may be defined over
 more than one file. This stops consult/1 from redefining a predicate
 when a new definition is found.
-\prefixop{discontiguous}{+Functor/+Arity, \ldots}
+    \prefixop{discontiguous}{+Functor/+Arity, \ldots}
 Informs the system that the clauses of the specified predicate(s) might
 not be together in the source file.  See also style_check/1.
-\predicate{index}{1}{+Head}
+    \predicate{index}{1}{+Head}
 Index the clauses of the predicate with the same name and arity as
 \arg{Head} on the specified arguments. \arg{Head} is a term of which all
 arguments are either `1' (denoting `index this argument') or `0'
@@ -1437,29 +1489,29 @@ sub_type(horse, animal).
 \end{code}
 \end{description}
 
-\section{Examining the Program}
+\section{Examining the program}
 
 \begin{description}
-\predicate{current_atom}{1}{-Atom}
+    \predicate{current_atom}{1}{-Atom}
 Successively unifies \arg{Atom} with all atoms known to the system.
 Note that current_atom/1 always succeeds if \arg{Atom} is instantiated to
 an atom.
-\predicate{current_functor}{2}{?Name, ?Arity}
+    \predicate{current_functor}{2}{?Name, ?Arity}
 Successively unifies \arg{Name} with the name and \arg{Arity} with the
 arity of functors known to the system.
-\predicate{current_flag}{1}{-FlagKey}
+    \predicate{current_flag}{1}{-FlagKey}
 Successively unifies \arg{FlagKey} with all keys used for flags (see
 flag/3).
-\predicate{current_key}{1}{-Key}
+    \predicate{current_key}{1}{-Key}
 Successively unifies \arg{Key} with all keys used for records (see
 recorda/3, etc.).
-\predicate{current_predicate}{2}{?Name, ?Head}
+    \predicate{current_predicate}{2}{?Name, ?Head}
 Successively unifies \arg{Name} with the name of predicates currently
 defined and \arg{Head} with the most general term built from \arg{Name}
 and the arity of the predicate. This predicate succeeds for all
 predicates defined in the specified module, imported to it, or in one of
 the modules from which the predicate will be imported if it is called.
-\predicate{predicate_property}{2}{?Head, ?Property}
+    \predicate{predicate_property}{2}{?Head, ?Property}
 Succeeds if \arg{Head} refers to a predicate that has property
 \arg{Property}. Can be used to test whether a predicate has a certain
 property, obtain all properties known for \arg{Head}, find all
@@ -1513,7 +1565,7 @@ also source_file/2.
 Unify \arg{ClauseCount} to the number of clauses associated with the
 predicate.  Fails for foreign predicates.
 \end{description}
-\predicate{dwim_predicate}{2}{+Term, -Dwim}
+    \predicate{dwim_predicate}{2}{+Term, -Dwim}
 `Do What I Mean' (`dwim') support predicate. \arg{Term} is a term, 
 which name and arity are used as a predicate specification.  \arg{Dwim}
 is instantiated with the most general term built from \arg{Name} and the
@@ -1522,17 +1574,17 @@ arity of a defined predicate that matches the predicate specified by
 What I Mean' string matching.  Internal system predicates are
 not generated, unless \exam{style_check(+dollar)} is active.  Backtracking
 provides all alternative matches.
-\predicate{clause}{2}{?Head, ?Body}
+    \predicate{clause}{2}{?Head, ?Body}
 Succeeds when \arg{Head} can be unified with a clause head and \arg{Body} with the corresponding clause body.  Gives alternative clauses on
 backtracking.  For facts \arg{Body} is unified with the atom \arg{true}.
 Normally clause/2 is used to find clause definitions for a predicate, but it
 can also be used to find clause heads for some body template.
-\predicate{clause}{3}{?Head, ?Body, ?Reference}
+    \predicate{clause}{3}{?Head, ?Body, ?Reference}
 Equivalent to clause/2, but unifies \arg{Reference} with a unique reference to
 the clause (see also assert/2, erase/1). If \arg{Reference} is instantiated
 to a reference the clause's head and body will be unified with \arg{
 Head} and \arg{Body}.
-\predicate{nth_clause}{3}{?Pred, ?Index, ?Reference}
+    \predicate{nth_clause}{3}{?Pred, ?Index, ?Reference}
 Provides access to the clauses of a predicate using their index number.
 Counting starts at 1.  If \arg{Reference} is specified it unifies \arg{Pred}
 with the most general term with the same name/arity as the predicate and
@@ -1550,7 +1602,7 @@ Ref = 160088
 Head = system : member(G575, [G578|G579]) 
 Body = member(G575, G579)
 \end{code}
-\predicate{clause_property}{2}{+ClauseRef, -Property}
+    \predicate{clause_property}{2}{+ClauseRef, -Property}
 Queries properties of a clause.  \arg{ClauseRef} is a reference to a
 clause as produced by clause/3, nth_clause/3 or prolog_frame_attribute/3.
 \arg{Property} is one of the following:
@@ -1569,7 +1621,7 @@ it is referenced.
 \end{description}
 \end{description}
 
-\section{Input and Output}
+\section{Input and output}
 
 SWI-Prolog provides two different packages for input and output.  One
 confirms to the Edinburgh standard.  This package has a notion of
@@ -1580,7 +1632,7 @@ an argument to the reading and writing predicate to specify the source
 or destination.  Both packages are fully integrated; the user may
 switch freely between them.
 
-\subsection{Input and Output Using Implicit Source and Destination}
+\subsection{Input and output using implicit source and destination}
 
 The package for implicit input and output destination is upwards
 compatible to DEC-10 and C-Prolog.  The reading and writing predicates
@@ -1612,9 +1664,9 @@ below we will call the source/destination argument `\arg{SrcDest}'.
 Below are some examples of source/destination specifications.
 
 \begin{center}\begin{tabular}{ll}
-\exam{?- see(data).}       & \% Start reading from file `data'. \\
-\exam{?- tell(stderr).}    & \% Start writing on the error stream. \\
-\exam{?- tell(pipe(lpr)).} & \% Start writing to the printer.
+\exam{?- see(data).}        & \% Start reading from file `data'. \\
+\exam{?- tell(user_error).} & \% Start writing on the error stream. \\
+\exam{?- tell(pipe(lpr)).}  & \% Start writing to the printer.
 \end{tabular}\end{center}
 
 Another example of using the \functor{pipe}{1} construct is shown below.
@@ -1635,31 +1687,37 @@ collect_wd([]).
 \end{code}
 
 \begin{description}
-\predicate{see}{1}{+SrcDest}
-Make \arg{SrcDest} the current input stream.  If \arg{SrcDest} was already opened for
-reading with see/1 and has not been closed since, reading will be
-resumed.  Otherwise \arg{SrcDest} will be opened and the file pointer is
-positioned at the start of the file.
-\predicate{tell}{1}{+SrcDest}
-Make \arg{SrcDest} the current output stream.  If \arg{SrcDest} was already opened for
-writing with tell/1 or append/1 and has not been closed since, writing
-will be resumed.  Otherwise the file is created or---when
-existing---truncated. See also append/1.
-\predicate{append}{1}{+File}
+    \predicate{see}{1}{+SrcDest}
+Make \arg{SrcDest} the current input stream. If \arg{SrcDest} was
+already opened for reading with see/1 and has not been closed since,
+reading will be resumed. Otherwise \arg{SrcDest} will be opened and the
+file pointer is positioned at the start of the file.
+
+    \predicate{tell}{1}{+SrcDest}
+Make \arg{SrcDest} the current output stream. If \arg{SrcDest} was
+already opened for writing with tell/1 or append/1 and has not been
+closed since, writing will be resumed. Otherwise the file is created
+or---when existing---truncated. See also append/1.
+
+    \predicate{append}{1}{+File}
 Similar to tell/1, but positions the file pointer at the end of \arg{File}
 rather than truncating an existing file. The pipe construct is not
 accepted by this predicate.
-\predicate{seeing}{1}{?SrcDest}
+
+    \predicate{seeing}{1}{?SrcDest}
 Unify the name of the current input stream with \arg{SrcDest}.
-\predicate{telling}{1}{?SrcDest}
+    \predicate{telling}{1}{?SrcDest}
 Unify the name of the current output stream with \arg{SrcDest}.
-\predicate{seen}{0}{}
+
+    \predicate{seen}{0}{}
 Close the current input stream. The new input stream becomes
 \arg{user}.
-\predicate{told}{0}{}
+
+    \predicate{told}{0}{}
 Close the current output stream. The new output stream becomes
 \arg{user}.
 \end{description}
+
 
 \subsection{Explicit Input and Output Streams}
 
@@ -1725,12 +1783,13 @@ stream is associated to a process (using the \functor{pipe}{1}
 construct).
 \end{description}
 
-
 The option \const{reposition} is not supported in SWI-Prolog.  All streams
 connected to a file may be repositioned.
-\predicate{open}{3}{+SrcDest, +Mode, ?Stream}
+
+    \predicate{open}{3}{+SrcDest, +Mode, ?Stream}
 Equivalent to open/4 with an empty option-list.
-\predicate{open_null_stream}{1}{?Stream}
+
+    \predicate{open_null_stream}{1}{?Stream}
 Open a stream that produces no output.  All counting functions are
 enabled on such a stream.  An attempt to read from a null-stream will
 immediately signal end-of-file.  Similar to Unix \file{/dev/null}.
@@ -1831,19 +1890,19 @@ The predicates below can be used for switching between the implicit-
 and the explicit stream based I/O predicates.
 
 \begin{description}
-\predicate{set_input}{1}{+Stream}
+    \predicate{set_input}{1}{+Stream}
 Set the current input stream to become \arg{Stream}.  Thus, open(file,
 read, Stream), set_input(Stream) is equivalent to see(file).
-\predicate{set_output}{1}{+Stream}
+    \predicate{set_output}{1}{+Stream}
 Set the current output stream to become \arg{Stream}.
-\predicate{current_input}{1}{-Stream}
+    \predicate{current_input}{1}{-Stream}
 Get the current input stream.  Useful to get access to the status
 predicates associated with streams.
-\predicate{current_output}{1}{-Stream}
+    \predicate{current_output}{1}{-Stream}
 Get the current output stream.
 \end{description}
 
-\section{Status of Input and Output Streams}
+\section{Status of streams}
 
 \begin{description}
     \predicate{wait_for_input}{3}{+ListOfStreams, -ReadyList, +TimeOut}
@@ -1866,7 +1925,7 @@ explicitly opened second terminal.  On return, \arg{Inputs} may hold
 Unify \arg{Count} with the current character index.  For input streams
 this is the number of characters read since the open, for output
 streams this is the number of characters written. Counting starts at 0.
-\predicate{line_count}{2}{+Stream, -Count}
+    \predicate{line_count}{2}{+Stream, -Count}
 Unify \arg{Count} with the number of lines read or written.  Counting
 starts at 1.
     \predicate{line_position}{2}{+Stream, -Count}
@@ -1884,7 +1943,7 @@ set to \arg{New}.%
               to the old mode I think this definition is better.}
 \end{description}
 
-\section{Primitive Character Input and Output}
+\section{Primitive character I/O}
 
 See \secref{chars} for an overview of supported character
 representations.
@@ -1948,7 +2007,7 @@ Unify \arg{Char} with the next character from \arg{Stream} as a
 one-character-atom.  See also get_char/2, get_byte/2 and get_code/2.
     \predicate{get0}{1}{-Char}
 Edinburgh version of the ISO get_byte/1 predicate.
-\predicate{get0}{2}{+Stream, -Char}
+    \predicate{get0}{2}{+Stream, -Char}
 Edinburgh version of the ISO get_byte/2 predicate.
     \predicate{get}{1}{-Char}
 Read the current input stream and unify the next non-blank character
@@ -1973,7 +2032,7 @@ character like get_char/2, but does not remove it from the stream.
     \predicate{skip}{1}{+Char}
 Read the input until \arg{Char} or the end of the file is encountered.
 A subsequent call to get0/1 will read the first character after \arg{Char}.
-\predicate{skip}{2}{+Stream, +Char}
+    \predicate{skip}{2}{+Stream, +Char}
 Skip input (as skip/1) on \arg{Stream}.
     \predicate{get_single_char}{1}{-Char}
 Get a single character from input stream `user' (regardless of the
@@ -1997,12 +2056,12 @@ Copy data all (remaining) data from stream \arg{StreamIn} to
 \arg{StreamOut}.
 \end{description}
 
-\section{Term Reading and Writing}
+\section{Term reading and writing}
 
 This section describes the basic term reading and writing predicates.
-The predicates term_to_atom/2 and atom_to_term/3 provide means for
-translating atoms and strings to terms.  The predicates format/[1,2]
-and writef/2 provide formatted output.
+The predicates term_to_atom/2, atom_to_term/3 and sformat/3 provide
+means for translating atoms and strings to terms. The predicates
+format/[1,2] and writef/2 provide formatted output.
 
 There are two ways to manipulate the output format.  The predicate
 print/[1,2] may be programmed using portray/1.  The format of floating
@@ -2073,47 +2132,47 @@ Equivalent to write_term/2 using the options \const{ignore_ops} and
 \const{quoted}.
     \predicate{write_canonical}{2}{+Stream, +Term}
 Write \arg{Term} in canonical form on \arg{Stream}.
-\predicate{write}{1}{+Term}
+    \predicate{write}{1}{+Term}
 Write \arg{Term} to the current output, using brackets and operators where
 appropriate.   See current_prolog_flag/2 for controlling floating point output format.
-\predicate{write}{2}{+Stream, +Term}
+    \predicate{write}{2}{+Stream, +Term}
 Write \arg{Term} to \arg{Stream}.
-\predicate{writeq}{1}{+Term}
+    \predicate{writeq}{1}{+Term}
 Write \arg{Term} to the current output, using brackets and operators where
 appropriate. Atoms that need quotes are quoted. Terms written with this
 predicate can be read back with read/1 provided the currently active
 operator declarations are identical.
-\predicate{writeq}{2}{+Stream, +Term}
+    \predicate{writeq}{2}{+Stream, +Term}
 Write \arg{Term} to \arg{Stream}, inserting quotes.
-\predicate{print}{1}{+Term}
+    \predicate{print}{1}{+Term}
 Prints \arg{Term} on the current output stream similar to write/1, 
 but for each (sub)term of \arg{Term} first the dynamic predicate
 portray/1 is called.  If this predicate succeeds \arg{print} assumes the
 (sub)term has been written.  This allows for user defined term writing.
-\predicate{print}{2}{+Stream, +Term}
+    \predicate{print}{2}{+Stream, +Term}
 Print \arg{Term} to \arg{Stream}.
-\predicate{portray}{1}{+Term}
+    \predicate{portray}{1}{+Term}
 A dynamic predicate, which can be defined by the user to change the
 behaviour of print/1 on (sub)terms.  For each subterm encountered that
 is not a variable print/1 first calls portray/1 using the term as
 argument.  For lists only the list as a whole is given to portray/1.  If
 portray succeeds print/1 assumes the term has been written.
-\predicate{read}{1}{-Term}
+    \predicate{read}{1}{-Term}
 Read the next Prolog term from the current input stream and unify it
 with \arg{Term}.  On a syntax error read/1 displays an error message, 
 attempts to skip the erroneous term and fails.  On reaching end-of-file
 \arg{Term} is unified with the atom \const{end_of_file}.
-\predicate{read}{2}{+Stream, -Term}
+    \predicate{read}{2}{+Stream, -Term}
 Read \arg{Term} from \arg{Stream}.
-\predicate{read_clause}{1}{-Term}
+    \predicate{read_clause}{1}{-Term}
 Equivalent to read/1, but warns the user for variables only occurring
 once in a term (singleton variables) which do not start with an
 underscore if \exam{style_check(singleton)} is active (default).
 Used to read Prolog source files (see consult/1).  New code should
 use read_term/2 with the option \exam{singletons(warning)}.
-\predicate{read_clause}{2}{+Stream, -Term}
+    \predicate{read_clause}{2}{+Stream, -Term}
 Read a clause from \arg{Stream}.  See read_clause/1.
-\predicate{read_term}{2}{-Term, +Options}
+    \predicate{read_term}{2}{-Term, +Options}
 Read a term from the current input stream and unify the term with
 \arg{Term}. The reading is controlled by options from the list of
 \arg{Options}. If this list is empty, the behaviour is the same as for
@@ -2215,7 +2274,7 @@ be read using the prompt defined by prompt/2.
 \section{Analysing and Constructing Terms}
 
 \begin{description}
-\predicate{functor}{3}{?Term, ?Functor, ?Arity}
+    \predicate{functor}{3}{?Term, ?Functor, ?Arity}
 Succeeds if \arg{Term} is a term with functor \arg{Functor} and arity
 \arg{Arity}.  If \arg{Term} is a variable it is unified with a new term
 holding only variables.  functor/3 silently fails on instantiation
@@ -2225,7 +2284,7 @@ faults%
               need to catch illegal instantiations first.}
 If \arg{Term} is an atom or number, \arg{Functor} will be unified with
 \arg{Term} and arity will be unified with the integer 0 (zero).
-\predicate{arg}{3}{?Arg, ?Term, ?Value}
+    \predicate{arg}{3}{?Arg, ?Term, ?Value}
 \arg{Term} should be instantiated to a term, \arg{Arg} to an integer
 between 1 and the arity of \arg{Term}. \arg{Value} is unified with the
 \arg{Arg}-th argument of \arg{Term}.  \arg{Arg} may also be unbound.
@@ -2239,7 +2298,7 @@ $\arg{Arg} > \mbox{\em arity}$ and raises the exception
 \errorterm{domain_error}{not_less_then_zero, \arg{Arg}} if $\arg{Arg} <
 0$.
 
-\predicate{setarg}{3}{+Arg, +Term, +Value}
+    \predicate{setarg}{3}{+Arg, +Term, +Value}
 Extra-logical predicate.  Assigns the \arg{Arg}-th argument of the
 compound term \arg{Term} with the given \arg{Value}.  The assignment
 is undone if backtracking brings the state back into a position before
@@ -2261,7 +2320,7 @@ List = [foo, hello, X]
 
 Term = baz(foo(1))
 \end{code}
-\predicate{numbervars}{4}{+Term, +Functor, +Start, -End}
+    \predicate{numbervars}{4}{+Term, +Functor, +Start, -End}
 Unify the free variables of \arg{Term} with a term constructed from the
 atom \arg{Functor} with one argument.  The argument is the number of the
 variable.  Counting starts at \arg{Start}.  \arg{End} is unified with
@@ -2275,7 +2334,7 @@ End = 2
 \end{code}
 In Edinburgh Prolog the second argument is missing.  It is fixed to be
 \const{\$VAR}.
-\predicate{free_variables}{2}{+Term, -List}
+    \predicate{free_variables}{2}{+Term, -List}
 Unify \arg{List} with a list of variables, each sharing with a unique variable
 of \arg{Term}. For example:
 \begin{code}
@@ -2286,7 +2345,7 @@ X = G367
 Y = G366
 Z = G371
 \end{code}
-\predicate{copy_term}{2}{+In, -Out}
+    \predicate{copy_term}{2}{+In, -Out}
 Make a copy of term \arg{In} and unify the result with \arg{Out}.
 Ground parts of \arg{In} are shared by \arg{Out}.  Provided \arg{In} and
 \arg{Out} have no sharing variables before this call they will have no
@@ -2300,7 +2359,7 @@ copy_term(In, Out) :-
 \end{code}
 \end{description}
 
-\section{Analysing and Constructing Atoms}
+\section{Analysing and constructing atoms}
 
 These predicates convert between Prolog constants and lists of ASCII
 values. The predicates atom_codes/2, number_codes/2 and name/2 behave
@@ -2373,7 +2432,7 @@ int_to_atom(56, 10, A) & $\longrightarrow$ & $A = 56$ \\
 
     \predicate{int_to_atom}{2}{+Int, -Atom}
 Equivalent to \exam{int_to_atom(Int, 10, Atom)}.
-\predicate{term_to_atom}{2}{?Term, ?Atom}
+    \predicate{term_to_atom}{2}{?Term, ?Atom}
 Succeeds if \arg{Atom} describes a term that unifies with \arg{Term}. When
 \arg{Atom} is instantiated \arg{Atom} is converted and then unified with
 \arg{Term}.  If \arg{Atom} has no valid syntax, a \except{syntax_error}
@@ -2399,7 +2458,7 @@ polutes the atom-database.  See also string_concat/3.
 if \arg{Atom} can be unified with the concatenated elements of \arg{List}. If
 \arg{List} has exactly 2 elements it is equivalent to atom_concat/3,
 allowing for variables in the list.
-\predicate{concat_atom}{3}{+List, +Separator, -Atom}
+    \predicate{concat_atom}{3}{+List, +Separator, -Atom}
 Creates an atom just like concat_atom/2, but inserts \arg{Separator}
 between each pair of atoms.  For example:
 \begin{code}
@@ -2524,44 +2583,33 @@ depending of the version used. See also the prolog-flag
 \end{description}
 
 
-\section{Representing Text in Strings}		\label{sec:strings}
+\section{Representing text in strings}		\label{sec:strings}
 
-SWI-Prolog supports the data type \arg{string}.  Strings are a time
-and space efficient mechanism to handle text in Prolog.  Atoms are
-under some circumstances not suitable because garbage collection on
-them is next to impossible (Although it is possible: BIM_prolog does
-it).  Representing text as a list of ASCII values is, from the logical
-point of view, the cleanest solution.  It however has two drawbacks:
-1) they cannot be distinguished from a list of (small) integers; and
-2) they consume (in SWI-Prolog) 12 bytes for each character stored.
+SWI-Prolog supports the data type \arg{string}. Strings are a time and
+space efficient mechanism to handle text text in Prolog. Strings are
+stores as a byte array on the global (term) stack and thus destroyed on
+backtracking and reclaimed by the garbage collector.
 
-Within strings each character only requires 1 byte storage. Strings
-live on the global stack and their storage is thus reclaimed on
-backtracking.  Garbage collection can easily deal with strings.
+Strings as defined here will be made obsolete if SWI-Prolog gets an atom
+garbage collector. Atoms are equally space-efficient and if garbage
+collection is defined they can be used to for storing temporary data.
 
-The ISO standard proposes \exam{" \ldots "} is transformed into a string
-object by read/1 and derivatives. This poses problems as in the old
-convention \exam{" \ldots "} is transformed into a list of {\sc ascii}
-characters. For this reason the style check option `\const{string}' is
-available (see style_check/1).
+See also the prolog-flag \const{double_quotes}.
 
-The set of predicates associated with strings is incomplete and
-tentative.  Names and definitions might change in the future to
-confirm to the emerging standard.
 
 \begin{description}
-\predicate{string_to_atom}{2}{?String, ?Atom}
+    \predicate{string_to_atom}{2}{?String, ?Atom}
 Logical conversion between a string and an atom. At least one of the
 two arguments must be instantiated. \arg{Atom} can also be an integer
 or floating point number.
-\predicate{string_to_list}{2}{?String, ?List}
+    \predicate{string_to_list}{2}{?String, ?List}
 Logical conversion between a string and a list of ASCII characters. At
 least one of the two arguments must be instantiated.
-\predicate{string_length}{2}{+String, -Length}
+    \predicate{string_length}{2}{+String, -Length}
 Unify \arg{Length} with the number of characters in \arg{String}. This
 predicate is functionally equivalent to atom_length/2 and also accepts
 atoms, integers and floats as its first argument.
-\predicate{string_concat}{3}{?String1, ?String2, ?String3}
+    \predicate{string_concat}{3}{?String1, ?String2, ?String3}
 Similar to atom_concat/3, but the unbound argument will be unified with
 a string object rather than an atom. Also, if both \arg{String1} and
 \arg{String2} are unbound and \arg{String3} is bound to text, it breaks
@@ -2570,7 +2618,7 @@ a string object rather than an atom. Also, if both \arg{String1} and
 particularly fast on long strings as for each redo the system has to
 create two entirely new strings, while the list equivalent only creates
 a single new list-cell and moves some pointers around.
-\predicate{substring}{4}{+String, +Start, +Length, -Sub} Create a
+    \predicate{substring}{4}{+String, +Start, +Length, -Sub} Create a
 substring of \arg{String} that starts at character \arg{Start} (1 base)
 and has \arg{Length} characters. Unify this substring with \arg{Sub}.%
     \footnote{Future versions probably will provide a more logical
@@ -2609,7 +2657,7 @@ it from acting as an operator.  To stop an atom acting as an operator,
 enclose it in braces like this: (myop).
 
 \begin{description}
-\predicate{op}{3}{+Precedence, +Type, :Name}
+    \predicate{op}{3}{+Precedence, +Type, :Name}
 Declare \arg{Name} to be an operator of type \arg{Type} with precedence
 \arg{Precedence}. \arg{Name} can also be a list of names, in which case
 all elements of the list are declared to be identical operators.
@@ -2659,7 +2707,7 @@ all operators can be redefined by the user.
     \label{tab:operators}
 \end{table}
 
-\predicate{current_op}{3}{?Precedence, ?Type, ?:Name}
+    \predicate{current_op}{3}{?Precedence, ?Type, ?:Name}
 Succeeds when \arg{Name} is currently defined as an operator of type \arg{Type}
 with precedence \arg{Precedence}. See also op/3.
 \end{description}
@@ -2684,15 +2732,15 @@ of a function are expressions.  The functions are described in
 \secref{functions}.
 
 \begin{description}
-\predicate{between}{3}{+Low, +High, ?Value}
+    \predicate{between}{3}{+Low, +High, ?Value}
 \arg{Low} and \arg{High} are integers, $\arg{High} \geq \arg{Low}$. If
 \arg{Value} is an integer, $\arg{Low} \leq \arg{Value} \leq \arg{High}$.
 When \arg{Value} is a variable it is successively bound to all integers
 between \arg{Low} and \arg{High}.
-\predicate{succ}{2}{?Int1, ?Int2}
+    \predicate{succ}{2}{?Int1, ?Int2}
 Succeeds if $\arg{Int2} = \arg{Int1} + 1$. At least one of the arguments
 must be instantiated to an integer.
-\predicate{plus}{3}{?Int1, ?Int2, ?Int3}
+    \predicate{plus}{3}{?Int1, ?Int2, ?Int3}
 Succeeds if $\arg{Int3} = \arg{Int1} + \arg{Int2}$. At least two of the
 three arguments must be instantiated to integers.
 \infixop{>}{+Expr1}{+Expr2}
@@ -2791,50 +2839,50 @@ Remainder of division:
 \infixop{//}{+IntExpr1}{+IntExpr2}
 Integer division:
 \mbox{\arg{Result} = truncate(\arg{Expr1}/\arg{Expr2})}
-\predicate{abs}{1}{+Expr}
+    \predicate{abs}{1}{+Expr}
 Evaluate \arg{Expr} and return the absolute value of it.
-\predicate{sign}{1}{+Expr}
+    \predicate{sign}{1}{+Expr}
 Evaluate to -1 if $\arg{Expr} < 0$, 1 if $\arg{Expr} > 0$ and 0 if
 $\arg{Expr} = 0$.
-\predicate{max}{2}{+Expr1, +Expr2}
+    \predicate{max}{2}{+Expr1, +Expr2}
 Evaluates to the largest of both \arg{Expr1} and \arg{Expr2}.
-\predicate{min}{2}{+Expr1, +Expr2}
+    \predicate{min}{2}{+Expr1, +Expr2}
 Evaluates to the smallest of both \arg{Expr1} and \arg{Expr2}.
-\predicate{.}{2}{+Int, []}
+    \predicate{.}{2}{+Int, []}
 A list of one element evaluates to the element.  This implies \exam{"a"}
 evaluates to the ASCII value of the letter `a' (97). This option is
 available for compatibility only.  It will not work if
 `\exam{style_check(+string)}' is active as \exam{"a"} will then be transformed
 into a string object. The recommended way to specify the ASCII value of
 the letter `a' is \exam{0'a}.
-\predicate{random}{1}{+Int}
+    \predicate{random}{1}{+Int}
 Evaluates to a random integer \arg{i} for which $0 \leq i < \arg{Int}$.
 The seed of this random generator is determined by the system clock when
 SWI-Prolog was started.
-\predicate{round}{1}{+Expr}
+    \predicate{round}{1}{+Expr}
 Evaluates \arg{Expr} and rounds the result to the nearest integer.
-\predicate{integer}{1}{+Expr}
+    \predicate{integer}{1}{+Expr}
 Same as round/1 (backward compatibility).
-\predicate{float}{1}{+Expr}
+    \predicate{float}{1}{+Expr}
 Translate the result to a floating point number.  Normally, Prolog will
 use integers whenever possible.  When used around the 2nd argument of 
 is/2, the result will be returned as a floating point number.  In other
 contexts, the operation has no effect.
-\predicate{float_fractional_part}{1}{+Expr}
+    \predicate{float_fractional_part}{1}{+Expr}
 Fractional part of a floating-point number.  Negative if \arg{Expr} is
 negative, 0 if \arg{Expr} is integer.
-\predicate{float_integer_part}{1}{+Expr}
+    \predicate{float_integer_part}{1}{+Expr}
 Integer part of floating-point number. Negative if \arg{Expr} is
 negative, \arg{Expr} if \arg{Expr} is integer.
-\predicate{truncate}{1}{+Expr}
+    \predicate{truncate}{1}{+Expr}
 Truncate \arg{Expr} to an integer.  Same as float_integer_part/1.
-\predicate{floor}{1}{+Expr}
+    \predicate{floor}{1}{+Expr}
 Evaluates \arg{Expr} and returns the largest integer smaller or equal
 to the result of the evaluation.
-\predicate{ceiling}{1}{+Expr}
+    \predicate{ceiling}{1}{+Expr}
 Evaluates \arg{Expr} and returns the smallest integer larger or equal
 to the result of the evaluation.
-\predicate{ceil}{1}{+Expr}
+    \predicate{ceil}{1}{+Expr}
 Same as ceiling/1 (backward compatibility).
 \infixop{>>}{+IntExpr}{+IntExpr}
 Bitwise shift \arg{IntExpr1} by \arg{IntExpr2} bits to the right.
@@ -2848,39 +2896,39 @@ Bitwise `and' \arg{IntExpr1} and \arg{IntExpr2}.
 Bitwise `exclusive or' \arg{IntExpr1} and \arg{IntExpr2}.
 \prefixop{\}{+IntExpr}
 Bitwise negation.
-\predicate{sqrt}{1}{+Expr}
+    \predicate{sqrt}{1}{+Expr}
 $\arg{Result} = \sqrt{\arg{Expr}}$
-\predicate{sin}{1}{+Expr}
+    \predicate{sin}{1}{+Expr}
 $\arg{Result} = \sin{\arg{Expr}}$. \arg{Expr} is the angle in radians.
-\predicate{cos}{1}{+Expr}
+    \predicate{cos}{1}{+Expr}
 $\arg{Result} = \cos{\arg{Expr}}$. \arg{Expr} is the angle in radians.
-\predicate{tan}{1}{+Expr}
+    \predicate{tan}{1}{+Expr}
 $\arg{Result} = \tan{\arg{Expr}}$. \arg{Expr} is the angle in radians.
-\predicate{asin}{1}{+Expr}
+    \predicate{asin}{1}{+Expr}
 $\arg{Result} = \arcsin{\arg{Expr}}$. \arg{Result} is the angle in radians.
-\predicate{acos}{1}{+Expr}
+    \predicate{acos}{1}{+Expr}
 $\arg{Result} = \arccos{\arg{Expr}}$. \arg{Result} is the angle in radians.
-\predicate{atan}{1}{+Expr}
+    \predicate{atan}{1}{+Expr}
 $\arg{Result} = \arctan{\arg{Expr}}$. \arg{Result} is the angle in radians.
-\predicate{atan}{2}{+YExpr, +XExpr}
+    \predicate{atan}{2}{+YExpr, +XExpr}
 $\arg{Result} = \arctan{\frac{\arg{YExpr}}{\arg{XExpr}}}$. \arg{Result} is the
 angle in radians.  The return value is in the range $[-\pi\ldots\pi]$.
 Used to convert between rectangular and polar coordinate system.
-\predicate{log}{1}{+Expr}
+    \predicate{log}{1}{+Expr}
 $\arg{Result} = \ln{\arg{Expr}}$
-\predicate{log10}{1}{+Expr}
+    \predicate{log10}{1}{+Expr}
 $\arg{Result} = \lg{\arg{Expr}}$
-\predicate{exp}{1}{+Expr}
+    \predicate{exp}{1}{+Expr}
 $\arg{Result} = \pow{e}{\arg{Expr}}$
 \infixop{**}{+Expr1}{+Expr2}
 $\arg{Result} = \pow{\arg{Expr1}}{\arg{Expr2}}$
 \infixop{^}{+Expr1}{+Expr2}
 Same as **/2.  (backward compatibility).
-\predicate{pi}{0}{}
+    \predicate{pi}{0}{}
 Evaluates to the mathematical constant $\pi$ (3.141593).
-\predicate{e}{0}{}
+    \predicate{e}{0}{}
 Evaluates to the mathematical constant $e$ (2.718282).
-\predicate{cputime}{0}{}
+    \predicate{cputime}{0}{}
 Evaluates to a floating point number expressing the {\sc cpu} time (in seconds)
 used by Prolog up till now. See also statistics/2 and time/1.
 \end{description}
@@ -2899,7 +2947,7 @@ modules.  The builtin functions described above can be redefined as
 well.
 
 \begin{description}
-\predicate{arithmetic_function}{1}{+Head}
+    \predicate{arithmetic_function}{1}{+Head}
 Register a Prolog predicate as an arithmetic function (see is/2,
 \predref{>}{2}, etc.). The Prolog predicate should have one more
 argument than specified by \arg{Head}, which it either a term \arg{Name/Arity}, an atom or a complex term. This last argument is an unbound
@@ -2922,7 +2970,7 @@ Yes
 
 A = 4.500000
 \end{code}
-\predicate{current_arithmetic_function}{1}{?Head}
+    \predicate{current_arithmetic_function}{1}{?Head}
 Successively unifies all arithmetic functions that are visible from
 the context module with \arg{Head}.
 \end{description}
@@ -2931,46 +2979,46 @@ the context module with \arg{Head}.
 \section{List Manipulation}
 
 \begin{description}
-\predicate{is_list}{1}{+Term}
+    \predicate{is_list}{1}{+Term}
 Succeeds if \arg{Term} is bound to the empty list (\exam{[]}) or a term with
 functor `\const{.}' and arity~2.
-\predicate{proper_list}{1}{+Term}
+    \predicate{proper_list}{1}{+Term}
 Equivalent to is_list/1, but also requires the tail of the list to be
 a list (recursively). Examples:
 \begin{code}
 is_list([x|A])          % true
 proper_list([x|A])      % false
 \end{code}
-\predicate{append}{3}{?List1, ?List2, ?List3}
+    \predicate{append}{3}{?List1, ?List2, ?List3}
 Succeeds when \arg{List3} unifies with the concatenation of \arg{List1}
 and \arg{List2}. The predicate can be used with any instantiation
 pattern (even three variables).
-\predicate{member}{2}{?Elem, ?List}
+    \predicate{member}{2}{?Elem, ?List}
 Succeeds when \arg{Elem} can be unified with one of the members of \arg{List}. The predicate can be used with any instantiation
 pattern.
-\predicate{memberchk}{2}{?Elem, +List}
+    \predicate{memberchk}{2}{?Elem, +List}
 Equivalent to member/2, but leaves no choice point.
-\predicate{delete}{3}{+List1, ?Elem, ?List2}
+    \predicate{delete}{3}{+List1, ?Elem, ?List2}
 Delete all members of \arg{List1} that simultaneously unify with \arg{Elem} and unify the result with \arg{List2}.
-\predicate{select}{3}{?List1, ?Elem, ?List2}
+    \predicate{select}{3}{?List1, ?Elem, ?List2}
 Select an element of \arg{List1} that unifies with \arg{Elem}. \arg{List2} is unified with the list remaining from \arg{List1} after
 deleting the selected element. Normally used with the instantiation
 pattern \arg{+List1, -Elem, -List2}, but can also be used to insert an
 element in a list using \arg{-List1, +Elem, +List2}.
-\predicate{nth0}{3}{?Index, ?List, ?Elem}
+    \predicate{nth0}{3}{?Index, ?List, ?Elem}
 Succeeds when the \arg{Index}-th element of \arg{List} unifies with
 \arg{Elem}. Counting starts at 0.
-\predicate{nth1}{3}{?Index, ?List, ?Elem}
+    \predicate{nth1}{3}{?Index, ?List, ?Elem}
 Succeeds when the \arg{Index}-th element of \arg{List} unifies with
 \arg{Elem}. Counting starts at 1.
-\predicate{last}{2}{?Elem, ?List}
+    \predicate{last}{2}{?Elem, ?List}
 Succeeds if \arg{Elem} unifies with the last element of \arg{List}. If
 \arg{List} is a proper list last/2 is deterministic. If \arg{List} has
 an unbound tail, backtracking will cause \arg{List} to grow.
-\predicate{reverse}{2}{+List1, -List2}
+    \predicate{reverse}{2}{+List1, -List2}
 Reverse the order of the elements in \arg{List1} and unify the result
 with the elements of \arg{List2}.
-\predicate{flatten}{2}{+List1, -List2}
+    \predicate{flatten}{2}{+List1, -List2}
 Transform \arg{List1}, possibly holding lists as elements into a `flat'
 list by replacing each list with its elements (recursively). Unify the
 resulting flat list with \arg{List2}. Example:
@@ -2979,9 +3027,9 @@ resulting flat list with \arg{List2}. Example:
 
 X = [a, b, c, d, e]
 \end{code}
-\predicate{length}{2}{?List, ?Int}
+    \predicate{length}{2}{?List, ?Int}
 Succeeds if \arg{Int} represents the number of elements of list \arg{List}. Can be used to create a list holding only variables.
-\predicate{merge}{3}{+List1, +List2, -List3}
+    \predicate{merge}{3}{+List1, +List2, -List3}
 \arg{List1} and \arg{List2} are lists, sorted to the standard order of
 terms (see \secref{compare}).  \arg{List3} will be unified with an
 ordered list holding both the elements of \arg{List1} and \arg{List2}.
@@ -2991,9 +3039,9 @@ Duplicates are {\bf not} removed.
 \section{Set Manipulation}
 
 \begin{description}
-\predicate{is_set}{1}{+Set}
+    \predicate{is_set}{1}{+Set}
 Succeeds if \arg{Set} is a proper list (see proper_list/1) without duplicates.
-\predicate{list_to_set}{2}{+List, -Set}
+    \predicate{list_to_set}{2}{+List, -Set}
 Unifies \arg{Set} with a list holding the same elements as \arg{List} in
 the same order.  If \arg{list} contains duplicates, only the first is
 retained.  See also sort/2.  Example:
@@ -3002,20 +3050,20 @@ retained.  See also sort/2.  Example:
 
 X = [a,b]
 \end{code}
-\predicate{intersection}{3}{+Set1, +Set2, -Set3}
+    \predicate{intersection}{3}{+Set1, +Set2, -Set3}
 Succeeds if \arg{Set3} unifies with the intersection of \arg{Set1} and
 \arg{Set2}. \arg{Set1} and \arg{Set2} are lists without duplicates.
 They need not be ordered.
-\predicate{subtract}{3}{+Set, +Delete, -Result}
+    \predicate{subtract}{3}{+Set, +Delete, -Result}
 Delete all elements of set `Delete' from `Set' and unify the resulting
 set with `Result'.
-\predicate{union}{3}{+Set1, +Set2, -Set3}
+    \predicate{union}{3}{+Set1, +Set2, -Set3}
 Succeeds if \arg{Set3} unifies with the union of \arg{Set1} and
 \arg{Set2}. \arg{Set1} and \arg{Set2} are lists without duplicates.
 They need not be ordered.
-\predicate{subset}{2}{+Subset, +Set}
+    \predicate{subset}{2}{+Subset, +Set}
 Succeeds if all elements of \arg{Subset} are elements of \arg{Set} as well.
-\predicate{merge_set}{3}{+Set1, +Set2, -Set3}
+    \predicate{merge_set}{3}{+Set1, +Set2, -Set3}
 \arg{Set1} and \arg{Set2} are lists without duplicates, sorted to the
 standard order of terms.  \arg{Set3} is unified with an ordered
 list without duplicates holding the union of the elements of \arg{Set1}
@@ -3025,16 +3073,16 @@ and \arg{Set2}.
 \section{Sorting Lists}
 
 \begin{description}
-\predicate{sort}{2}{+List, -Sorted}
+    \predicate{sort}{2}{+List, -Sorted}
 Succeeds if \arg{Sorted} can be unified with a list holding the
 elements of \arg{List}, sorted to the standard order of terms (see
 \secref{compare}).  Duplicates are removed.  Implemented by translating
 the input list into a temporary array, calling the C-library function
 \manref{qsort}{3} using \funcref{PL_compare}{} for comparing the elements,
 after which the result is translated into the result list.
-\predicate{msort}{2}{+List, -Sorted}
+    \predicate{msort}{2}{+List, -Sorted}
 Equivalent to sort/2, but does not remove duplicates.
-\predicate{keysort}{2}{+List, -Sorted}
+    \predicate{keysort}{2}{+List, -Sorted}
 \arg{List} is a list of \exam{\arg{Key}-\arg{Value}} pairs (e.g.\ terms
 of the functor `\const{-}' with arity~2). keysort/2 sorts \arg{List}
 like msort/2, but only compares the keys. Can be used to sort terms not
@@ -3043,7 +3091,7 @@ multi-dimensional scale. Sorting on more than one criterion can be done
 using terms as keys, putting the first criterion as argument 1, the
 second as argument 2, etc. The order of multiple elements that have the
 same \arg{Key} is not changed.
-\predicate{predsort}{3}{+Pred, +List, -Sorted}
+    \predicate{predsort}{3}{+Pred, +List, -Sorted}
 Sorts similar to sort/2, but determines the order of two terms by
 calling \mbox{\arg{Pred}(-\arg{Delta}, +\arg{E1}, +\arg{E2})}.  This
 call must unify \arg{Delta} with one of \const{<}, const{>} or
@@ -3056,14 +3104,14 @@ the same as sort/2.  See also keysort/2.%
 \section{Finding all Solutions to a Goal}
 
 \begin{description}
-\predicate{findall}{3}{+Var, +Goal, -Bag}
+    \predicate{findall}{3}{+Var, +Goal, -Bag}
 Creates a list of the instantiations \arg{Var} gets successively on
 backtracking over \arg{Goal} and unifies the result with \arg{Bag}.
 Succeeds with an empty list if \arg{Goal} has no solutions. findall/3 is
 equivalent to bagof/3 with all free variables bound with the existence
 operator (\op{^}), except that bagof/3 fails when goal has no
 solutions.
-\predicate{bagof}{3}{+Var, +Goal, -Bag}
+    \predicate{bagof}{3}{+Var, +Goal, -Bag}
 Unify \arg{Bag} with the alternatives of \arg{Var}, if \arg{Goal} has
 free variables besides the one sharing with \arg{Var} bagof will
 backtrack over the alternatives of these free variables, unifying \arg{Bag} with the corresponding alternatives of \arg{Var}. The construct
@@ -3097,7 +3145,7 @@ A = G324, B = c, C = G326, Cs = [e, f, g] ;
 No
 5 ?-
 \end{code}
-\predicate{setof}{3}{+Var, +Goal, -Set}
+    \predicate{setof}{3}{+Var, +Goal, -Set}
 Equivalent to bagof/3, but sorts the result using sort/2 to get a sorted
 list of alternatives without duplicates.
 \end{description}
@@ -3118,15 +3166,15 @@ X = [1, 2, 3]
 we will phrase this as ``\arg{Predicate} is applied on \ldots''
 
 \begin{description}
-\predicate{checklist}{2}{+Pred, +List}
+    \predicate{checklist}{2}{+Pred, +List}
 \arg{Pred} is applied successively on each element of \arg{List} until
 the end of the list or \arg{Pred} fails. In the latter case the
 checklist/2 fails.
-\predicate{maplist}{3}{+Pred, ?List1, ?List2}
+    \predicate{maplist}{3}{+Pred, ?List1, ?List2}
 Apply \arg{Pred} on all successive pairs of elements from \arg{List1}
 and \arg{List2}. Fails if \arg{Pred} can not be applied to a pair. See
 the example above.
-\predicate{sublist}{3}{+Pred, +List1, ?List2}
+    \predicate{sublist}{3}{+Pred, +List1, ?List2}
 Unify \arg{List2} with a list of all elements of \arg{List1} to which
 \arg{Pred} applies.
 \end{description}
@@ -3134,7 +3182,7 @@ Unify \arg{List2} with a list of all elements of \arg{List1} to which
 \section{Forall}
 
 \begin{description}
-\predicate{forall}{2}{+Cond, +Action}
+    \predicate{forall}{2}{+Cond, +Action}
 For all alternative bindings of \arg{Cond} \arg{Action} can be proven.
 The example verifies that all arithmetic statements in the list \arg{L}
 are correct. It does not say which is wrong if one proves wrong.
@@ -3157,11 +3205,11 @@ compatibility reasons might tell you which predicate to use.
 \subsection{Writef}
 
 \begin{description}
-\predicate{write_ln}{1}{+Term}
+    \predicate{write_ln}{1}{+Term}
 Equivalent to \exam{write(Term), nl.}
-\predicate{writef}{1}{+Atom}
+    \predicate{writef}{1}{+Atom}
 Equivalent to \exam{writef(Atom, []).}
-\predicate{writef}{2}{+Format, +Arguments}
+    \predicate{writef}{2}{+Format, +Arguments}
 Formatted write.  \arg{Format} is an atom whose characters will be printed.
 \arg{Format} may contain certain special character sequences which specify
 certain formatting and substitution actions.  \arg{Arguments} then provides
@@ -3216,7 +3264,7 @@ Escape sequences to include arguments from \arg{Arguments}. Each time a
 \hline
 \end{tabular} 
 \end{center}
-\predicate{swritef}{3}{-String, +Format, +Arguments}
+    \predicate{swritef}{3}{-String, +Format, +Arguments}
 Equivalent to writef/2, but ``writes'' the result on \arg{String} instead
 of the current output stream. Example:
 \begin{code}
@@ -3224,16 +3272,16 @@ of the current output stream. Example:
 
 S = "Hello          World"
 \end{code}
-\predicate{swritef}{2}{-String, +Format}
+    \predicate{swritef}{2}{-String, +Format}
 Equivalent to \exam{swritef(String, Format, []).}
 \end{description}
 
 \subsection{Format}
 
 \begin{description}
-\predicate{format}{1}{+Format}
+    \predicate{format}{1}{+Format}
 Defined as `\exam{format(Format) :- format(Format, []).}'
-\predicate{format}{2}{+Format, +Arguments}
+    \predicate{format}{2}{+Format, +Arguments}
 \arg{Format} is an atom, list of ASCII values, or a Prolog string.
 \arg{Arguments} provides the arguments required by the format
 specification.  If only one argument is required and this is not a list
@@ -3347,7 +3395,7 @@ Runtime: .................. 3.45  Inferences: .......... 60,345
 \end{code}
     \predicate{format}{3}{+Stream, +Format, +Arguments}
 As format/2, but write the output on the given \arg{Stream}.
-\predicate{sformat}{3}{-String, +Format, +Arguments}
+    \predicate{sformat}{3}{-String, +Format, +Arguments}
 Equivalent to format/2, but ``writes'' the result on \arg{String}
 instead of the current output stream. Example:
 \begin{code}
@@ -3355,14 +3403,14 @@ instead of the current output stream. Example:
 
 S = "Hello          World"
 \end{code}
-\predicate{sformat}{2}{-String, +Format}
+    \predicate{sformat}{2}{-String, +Format}
 Equivalent to `\exam{sformat(String, Format, []).}'
 \end{description}
 
 \subsection{Programming Format}
 
 \begin{description}
-\predicate{format_predicate}{2}{+Char, +Head}
+    \predicate{format_predicate}{2}{+Char, +Head}
 If a sequence \fmtseq{~c} (tilde, followed by some character) is
 found, the format derivatives will first check whether the user has
 defined a predicate to handle the format. If not, the built in
@@ -3382,7 +3430,7 @@ followed by linefeed (so a (Grr.) DOS machine is happy with the output).
 dos_newline(Arg) :-
         between(1, Ar, _), put(13), put(10), fail ; true.
 \end{code}
-\predicate{current_format_predicate}{2}{?Code, ?:Head}
+    \predicate{current_format_predicate}{2}{?Code, ?:Head}
     Enumerates all user-defined format predicates. \arg{Code} is the
     character code of the format character.  \arg{Head} is unified with
     a term with the same name and arity as the predicate. If the
@@ -3398,7 +3446,7 @@ predicates are only available on Unix machines.  The SWI-Prolog Windows
 consoles accepts the ANSI escape sequences.
 
 \begin{description}
-\predicate{tty_get_capability}{3}{+Name, +Type, -Result}
+    \predicate{tty_get_capability}{3}{+Name, +Type, -Result}
 Get the capability named \arg{Name} from the termcap library.  See
 termcap(5) for the capability names. \arg{Type} specifies the type of
 the expected result, and is one of \const{string}, \const{number} or
@@ -3407,17 +3455,17 @@ an integer and bool results as the atom \const{on} or \const{off}.  If
 an option cannot be found this predicate fails silently.  The
 results are only computed once. Successive queries on the same
 capability are fast. 
-\predicate{tty_goto}{2}{+X, +Y}
+    \predicate{tty_goto}{2}{+X, +Y}
 Goto position \mbox{(\arg{X}, \arg{Y})} on the screen.  Note that the predicates
 line_count/2 and line_position/2 will not have a well defined
 behaviour while using this predicate.
-\predicate{tty_put}{2}{+Atom, +Lines}
+    \predicate{tty_put}{2}{+Atom, +Lines}
 Put an atom via the termcap library function tputs().  This function
 decodes padding information in the strings returned by tty_get_capability/3
 and should be used to output these strings. \arg{Lines} is the
 number of lines affected by the operation, or 1 if not applicable (as
 in almost all cases).
-\predicate{set_tty}{2}{-OldStream, +NewStream}
+    \predicate{set_tty}{2}{-OldStream, +NewStream}
 Set the output stream, used by tty_put/2 and tty_goto/2 to a
 specific stream. Default is user_output.
 \end{description}
@@ -3425,7 +3473,7 @@ specific stream. Default is user_output.
 \section{Operating System Interaction}
 
 \begin{description}
-\predicate{shell}{2}{+Command, -Status}
+    \predicate{shell}{2}{+Command, -Status}
 Execute \arg{Command} on the operating system. \arg{Command} is given to the
 Bourne shell (/bin/sh). \arg{Status} is unified with the exit status of
 the command.
@@ -3435,27 +3483,27 @@ CreateProcess() API and waits for the command to terminate. If the
 command ends with a \chr{\&} sign, the command is handed to the
 WinExec() API, which does not wait for the new task to terminate. See
 also win_exec/2.
-\predicate{shell}{1}{+Command}
+    \predicate{shell}{1}{+Command}
 Equivalent to `\exam{shell(Command, 0)}'.
-\predicate{shell}{0}{}
+    \predicate{shell}{0}{}
 Start an interactive Unix shell.  Default is \file{/bin/sh}, the
 environment variable \env{SHELL} overrides this default.  Not available
 for Win32 platforms.
-\predicate{win_exec}{2}{+Command, +Show}
+    \predicate{win_exec}{2}{+Command, +Show}
 Win32 systems only. Spawns a Windows task without waiting for its
 completion.  \arg{Show} is either \const{iconic} or \const{normal} and
 dictates the initial status of the window.  The \const{iconic} option
 is notably handy to start (DDE) servers.
-\predicate{getenv}{2}{+Name, -Value}
+    \predicate{getenv}{2}{+Name, -Value}
 Get environment variable. Fails silently if the variable does not exist.
 Please note that environment variable names are case-sensitive on Unix
 systems and case-insensitive on Windows.
-\predicate{setenv}{2}{+Name, +Value}
+    \predicate{setenv}{2}{+Name, +Value}
 Set environment variable.  \arg{Name} and \arg{Value} should be
 instantiated to atoms or integers.  The environment variable will be
 passed to shell/[0-2] and can be requested using getenv/2.  They also
 influence expand_file_name/2.
-\predicate{unsetenv}{1}{+Name}
+    \predicate{unsetenv}{1}{+Name}
 Remove environment variable from the environment.
     \predicate{unix}{1}{+Command}
 This predicate comes from the Quintus compatibility library and provides
@@ -3496,18 +3544,18 @@ main :-
 
 \end{description}
 
-\predicate{get_time}{1}{-Time}
+    \predicate{get_time}{1}{-Time}
 Return the number of seconds that elapsed since the epoch of Unix,
 1 January 1970, 0 hours.  \arg{Time} is a floating point number. Its
 granularity is system dependent.  On {\sc sun}, this is 1/60 of a second.
-\predicate{convert_time}{8}{+Time, -Year, -Month, -Day, -Hour, -Minute, -Second, -MilliSeconds}
+    \predicate{convert_time}{8}{+Time, -Year, -Month, -Day, -Hour, -Minute, -Second, -MilliSeconds}
 Convert a time stamp, provided by get_time/1, time_file/2, etc.  \arg{Year} is unified with the year, \arg{Month} with the month number
 (January is 1), \arg{Day} with the day of the month (starting with 1),
 \arg{Hour} with the hour of the day (0--23), \arg{Minute} with the
 minute (0--59). \arg{Second} with the second (0--59) and \arg{MilliSecond} with the milliseconds (0--999).  Note that the latter
 might not be accurate or might always be 0, depending on the timing
 capabilities of the system.  See also convert_time/2.
-\predicate{convert_time}{2}{+Time, -String}
+    \predicate{convert_time}{2}{+Time, -String}
 Convert a time-stamp as obtained though get_time/1 into a textual
 representation using the C-library function \funcref{ctime}{}.  The
 value is returned as a SWI-Prolog string object (see \secref{strings}).
@@ -3517,7 +3565,7 @@ See also convert_time/8.
 \section{File System Interaction}
 
 \begin{description}
-\predicate{access_file}{2}{+File, +Mode}
+    \predicate{access_file}{2}{+File, +Mode}
 Succeeds if \arg{File} exists and can be accessed by this prolog
 process under mode \arg{Mode}.  \arg{Mode} is one of the atoms
 \const{read}, \const{write}, \const{append}, \const{exist}, \const{none} or
@@ -3528,43 +3576,43 @@ without testing anything.
 If `Mode' is \const{write} or \const{append}, this predicate also succeeds
 if the file does not exist and the user has write-access to the
 directory of the specified location.
-\predicate{exists_file}{1}{+File}
+    \predicate{exists_file}{1}{+File}
 Succeeds when \arg{File} exists. This does not imply the user has read
 and/or write permission for the file.
-\predicate{file_directory_name}{2}{+File, -Directory}
+    \predicate{file_directory_name}{2}{+File, -Directory}
 Extracts the directory-part of \arg{File}. The resulting \arg{Directory}
 name ends with the directory separator character \chr{/}. If \arg{File}
 is an atom that does not contain any directory separator characters, the
 empty atom \const{''} is returned.  See also file_base_name/2.
-\predicate{file_base_name}{2}{+File, -BaseName}
+    \predicate{file_base_name}{2}{+File, -BaseName}
 Extracts the filename part from a path specification. If \arg{File} does
 not contain any directory separators, \arg{File} is returned.
-\predicate{same_file}{2}{+File1, +File2}
+    \predicate{same_file}{2}{+File1, +File2}
 Succeeds if both filenames refer to the same physical file.  That is,
 if \arg{File1} and \arg{File2} are the same string or both names exist
 and point to the same file (due to hard or symbolic links and/or
 relative vs. absolute paths).
-\predicate{exists_directory}{1}{+Directory}
+    \predicate{exists_directory}{1}{+Directory}
 Succeeds if \arg{Directory} exists. This does not imply the user has read,
 search and or write permission for the directory.
-\predicate{delete_file}{1}{+File}
+    \predicate{delete_file}{1}{+File}
 Unlink \arg{File} from the Unix file system.
-\predicate{rename_file}{2}{+File1, +File2}
+    \predicate{rename_file}{2}{+File1, +File2}
 Rename \arg{File1} into \arg{File2}. Currently files cannot be moved
 across devices.
-\predicate{size_file}{2}{+File, -Size}
+    \predicate{size_file}{2}{+File, -Size}
 Unify \arg{Size} with the size of \arg{File} in characters.
-\predicate{time_file}{2}{+File, -Time}
+    \predicate{time_file}{2}{+File, -Time}
 Unify the last modification time of \arg{File} with \arg{Time}. \arg{Time} is a floating point number expressing the seconds elapsed since
 Jan~1, 1970.
-\predicate{absolute_file_name}{2}{+File, -Absolute}
+    \predicate{absolute_file_name}{2}{+File, -Absolute}
 Expand Unix file specification into an absolute path. User home
 directory expansion (\file{~} and \file{~<user>}) and
 variable expansion is done. The absolute path is canonised: references
 to \file{.} and \file{..} are deleted. SWI-Prolog uses absolute file names to
 register source files independent of the current working directory. See
 also absolute_file_name/3.
-\predicate{absolute_file_name}{3}{+Spec, +Options, -Absolute}
+    \predicate{absolute_file_name}{3}{+Spec, +Options, -Absolute}
 Converts the given file specification into an absolute path.
 \arg{Option} is a list of options to guide the conversion:
 
@@ -3606,7 +3654,7 @@ main reason for its introduction is to deal with different filename
 properties in a portable manner.  If the file system is case-insensitive,
 testing for an extension will be done case-insensitive too. \arg{Extension} may be specified with or without a leading dot (\chr{.}).
 If an \arg{Extension} is generated, it will not have a leading dot.
-\predicate{expand_file_name}{2}{+WildCard, -List}
+    \predicate{expand_file_name}{2}{+WildCard, -List}
 Unify \arg{List} with a sorted list of files or directories matching
 \arg{WildCard}. The normal Unix wildcard constructs `\const{?}',
 `\const{*}', `\const{[\ldots]}' and `\const{\{\ldots\}}' are recognised.
@@ -3972,7 +4020,7 @@ not-thread-safe code in builtin-predicates.
 \section{User Toplevel Manipulation}
 
 \begin{description}
-\predicate{break}{0}{}
+    \predicate{break}{0}{}
 Recursively start a new Prolog top level. This Prolog top level has its
 own stacks, but shares the heap with all break environments and the top
 level. Debugging is switched off on entering a break and restored on
@@ -3981,7 +4029,7 @@ leaving one. The break environment is terminated by typing the system's
 \argoption{-t}{toplevel} command line option is given this goal is
 started instead of entering the default interactive top level
 (prolog/0).
-\predicate{abort}{0}{}
+    \predicate{abort}{0}{}
 Abort the Prolog execution and start a new top level.  If the
 \argoption{-t}{toplevel} command line options is given this goal is started
 instead of entering the default interactive top level.  Break
@@ -4002,16 +4050,16 @@ multi-threaded version implements abort/0 by generation an exception
 unhealthy state, but required to ensure consistency of the other threads
 as well as mutexes.
 
-\predicate{halt}{0}{}
+    \predicate{halt}{0}{}
 Terminate Prolog execution.  Open files are closed and if the command
 line option \cmdlineoption{-tty} is not active the terminal status (see Unix
 stty(1)) is restored.  Hooks may be registered both in Prolog and in
 foreign code.  Prolog hooks are registered using at_halt/1.  halt/0
 is equivalent to \exam{halt(0)}.
-\predicate{halt}{1}{+Status}
+    \predicate{halt}{1}{+Status}
 Terminate Prolog execution with given status.  Status is an integer.
 See also halt/0.
-\predicate{prolog}{0}{}
+    \predicate{prolog}{0}{}
 This goal starts the default interactive top level. Queries are read
 from the stream \const{user_input}. See also the \const{history}
 prolog_flag (current_prolog_flag/2). The prolog/0 predicate is
@@ -4024,7 +4072,7 @@ result of a query.  These hooks are used by the toplevel variable
 expansion mechanism described in \secref{topvars}.
 
 \begin{description}
-\predicate{expand_query}{4}{+Query, -Expanded, +Bindings, -ExpandedBindings}
+    \predicate{expand_query}{4}{+Query, -Expanded, +Bindings, -ExpandedBindings}
 Hook in module \const{user}, normally not defined.  \arg{Query} and
 \arg{Bindings} represents the query read from the user and the names
 of the free variables as obtained using read_term/3.  If this predicate
@@ -4033,7 +4081,7 @@ the query and bindings to be executed by the toplevel.  This predicate
 is used by the toplevel (prolog/0).  See also expand_answer/2 and
 term_expansion/2.
 
-\predicate{expand_answer}{2}{+Bindings, -ExpandedBindings} Hook in
+    \predicate{expand_answer}{2}{+Bindings, -ExpandedBindings} Hook in
 module \const{user}, normally not defined. Expand the result of a
 successfully executed toplevel query. \arg{Bindings} is the query
 $<Name>=<Value>$ binding list from the query. \arg{ExpandedBindings}
@@ -4050,16 +4098,16 @@ All Prolog interaction, including warnings and tracer output, are written
 on the protocol file.
 
 \begin{description}
-\predicate{protocol}{1}{+File}
+    \predicate{protocol}{1}{+File}
 Start protocolling on file \arg{File}. If there is already a protocol
 file open then close it first. If \arg{File} exists it is truncated.
-\predicate{protocola}{1}{+File}
+    \predicate{protocola}{1}{+File}
 Equivalent to protocol/1, but does not truncate the \arg{File} if it
 exists.
-\predicate{noprotocol}{0}{}
+    \predicate{noprotocol}{0}{}
 Stop making a protocol of the user interaction.  Pending output is
 flushed on the file.
-\predicate{protocolling}{1}{-File}
+    \predicate{protocolling}{1}{-File}
 Succeeds if a protocol was started with protocol/1 or protocola/1 and
 unifies \arg{File} with the current protocol output file.
 \end{description}
@@ -4067,17 +4115,17 @@ unifies \arg{File} with the current protocol output file.
 \section{Debugging and Tracing Programs}	\label{sec:debugger}
 
 \begin{description}
-\predicate{trace}{0}{}
+    \predicate{trace}{0}{}
 Start the tracer. trace/0 itself cannot be seen in the tracer.  Note that
 the Prolog toplevel treats trace/0 special; it means `trace the next goal'.
-\predicate{tracing}{0}{}
+    \predicate{tracing}{0}{}
 Succeeds when the tracer is currently switched on.  tracing/0 itself can
 not be seen in the tracer.
-\predicate{notrace}{0}{}
+    \predicate{notrace}{0}{}
 Stop the tracer. notrace/0 itself cannot be seen in the tracer.
-\predicate{trace}{1}{+Pred}
+    \predicate{trace}{1}{+Pred}
 Equivalent to \exam{trace(\arg{Pred}, +all)}.
-\predicate{trace}{2}{+Pred, +Ports}
+    \predicate{trace}{2}{+Pred, +Ports}
 Put a trace-point on all predicates satisfying the predicate specification
 \arg{Pred}. \arg{Ports} is a list of portnames (\const{call},
 \const{redo}, \const{exit}, \const{fail}). The atom \const{all} refers
@@ -4100,26 +4148,26 @@ is continued without asking for further information.  Examples:
 \end{center}
 
 The predicate debugging/0 shows all currently defined trace-points.
-\predicate{notrace}{1}{+Goal}
+    \predicate{notrace}{1}{+Goal}
 Call \arg{Goal}, but suspend the debugger while \arg{Goal} is executing.
 The current implementation cuts the choicepoints of \arg{Goal} after
 successful completion. See once/1.  Later implementations may have the
 same semantics as call/1.
-\predicate{debug}{0}{}
+    \predicate{debug}{0}{}
 Start debugger (stop at spy points).
-\predicate{nodebug}{0}{}
+    \predicate{nodebug}{0}{}
 Stop debugger (do not trace, nor stop at spy points).
-\predicate{debugging}{0}{}
+    \predicate{debugging}{0}{}
 Print debug status and spy points on current output stream.
-\predicate{spy}{1}{+Pred}
+    \predicate{spy}{1}{+Pred}
 Put a spy point on all predicates meeting the predicate specification
 \arg{Pred}. See \secref{listing}.
-\predicate{nospy}{1}{+Pred}
+    \predicate{nospy}{1}{+Pred}
 Remove spy point from all predicates meeting the predicate specification
 \arg{Pred}.
-\predicate{nospyall}{0}{}
+    \predicate{nospyall}{0}{}
 Remove all spy points from the entire program.
-\predicate{leash}{1}{?Ports}
+    \predicate{leash}{1}{?Ports}
 Set/query leashing (ports which allow for user interaction). \arg{Ports} is
 one of \arg{+Name}, \arg{-Name}, \arg{?Name} or a list of these.
 \arg{+Name} enables leashing on that port, \arg{-Name} disables it and
@@ -4129,10 +4177,10 @@ Recognised ports are: \const{call}, \const{redo}, \const{exit}, \const{fail} and
 \const{full} refers to all ports except for the unify port (default).
 \const{half} refers to the \const{call}, \const{redo} and \const{fail}
 port.
-\predicate{visible}{1}{+Ports}
+    \predicate{visible}{1}{+Ports}
 Set the ports shown by the debugger. See leash/1 for a description of
 the port specification. Default is \const{full}.
-\predicate{unknown}{2}{-Old, +New}
+    \predicate{unknown}{2}{-Old, +New}
 Unify \arg{Old} with the current value of the unknown system flag.  On
 success \arg{New} will be used to specify the new value. \arg{New} should be
 instantiated to either \const{fail} or \const{trace} and determines the
@@ -4147,7 +4195,7 @@ any module.  Note that if the unknown flag for a module equals \const
 {fail} the system will not call exception/3 and will {\bf not} try
 to resolve the predicate via the dynamic library system.  The system
 will still try to import the predicate from the public module.
-\predicate{style_check}{1}{+Spec}
+    \predicate{style_check}{1}{+Spec}
 Set style checking options.  \arg{Spec} is either \mbox{\tt +<option>}, 
 \mbox{\tt -<option>}, \mbox{\tt ?<option>} or a list of such options.
 \mbox{\tt +<option>} sets a style checking option, \mbox{\tt -<option>} clears
@@ -4188,7 +4236,7 @@ Name & Default & Description \\
 \section{Obtaining Runtime Statistics}
 
 \begin{description}
-\predicate{statistics}{2}{+Key, -Value}
+    \predicate{statistics}{2}{+Key, -Value}
 Unify system statistics determined by \arg{Key} with \arg{Value}. The
 possible keys are given in the \tabref{statistics}.
 
@@ -4226,9 +4274,9 @@ threads_cputime & MT-version: seconds CPU time used by finished threads \\
     \label{tab:statistics}
 \end{table}
 
-\predicate{statistics}{0}{}
+    \predicate{statistics}{0}{}
 Display a table of system statistics on the current output stream.
-\predicate{time}{1}{+Goal}
+    \predicate{time}{1}{+Goal}
 Execute \arg{Goal} just like once/1 (i.e. leaving no choice points),
 but print used time, number of logical inferences and the average
 number of \arg{lips} (logical inferences per second).  Note that
@@ -4257,7 +4305,7 @@ counts.  Typically a minute runtime will suffice to get a rough overview
 of the most expensive procedures.
 
 \begin{description}
-\predicate{profile}{3}{+Goal, +Style, +Number}
+    \predicate{profile}{3}{+Goal, +Style, +Number}
 Execute \arg{Goal} just like time/1. Collect profiling statistics
 according to style (see profiler/2) and show the top \arg{Number}
 procedures on the current output stream (see show_profile/1). The
@@ -4265,13 +4313,13 @@ results are kept in the database until reset_profiler/0 or profile/3
 is called and can be displayed again with show_profile/1. profile/3
 is the normal way to invoke the profiler. The predicates below
 are low-level predicates that can be used for special cases.
-\predicate{show_profile}{1}{+Number}
+    \predicate{show_profile}{1}{+Number}
 Show the collected results of the profiler. Stops the profiler first to
 avoid interference from show_profile/1. It shows the top \arg{Number}
 predicates according the percentage {\sc cpu}-time used.%
     \footnote{show_profile/1 is defined in Prolog and takes a
               considerable amount of memory.}
-\predicate{profiler}{2}{-Old, +New}
+    \predicate{profiler}{2}{-Old, +New}
 Query or change the status of the profiler. The status is one of
 \const{off}, \const{plain} or \const{cumulative}. \const{plain} implies the
 time used by children of a predicate is not added to the time of the
@@ -4285,9 +4333,9 @@ remove the necessary parent environments.  Switching status from
 \const{plain} to \const{cumulative} resets the profiler.  Switching to and
 from status \const{off} does not reset the collected statistics, thus
 allowing to suspend profiling for certain parts of the program.
-\predicate{reset_profiler}{0}{}
+    \predicate{reset_profiler}{0}{}
 Switches the profiler to \const{off} and clears all collected statistics.
-\predicate{profile_count}{3}{+Head, -Calls, -Promilage}
+    \predicate{profile_count}{3}{+Head, -Calls, -Promilage}
 Obtain profile statistics of the predicate specified by \arg{Head}.
 \arg{Head} is an atom for predicates with arity 0 or a term with the
 same name and arity as the predicate required (see
@@ -4406,16 +4454,16 @@ scripts in Prolog.
 
 
 \begin{description}
-\predicate{open_dde_conversation}{3}{+Service, +Topic, -Handle}
+    \predicate{open_dde_conversation}{3}{+Service, +Topic, -Handle}
 Open a conversation with a server supporting the given service name and
 topic (atoms).  If successful, \arg{Handle} may be used to send
 transactions to the server.  If no willing server is found this
 predicate fails silently.
-\predicate{close_dde_conversation}{1}{+Handle}
+    \predicate{close_dde_conversation}{1}{+Handle}
 Close the conversation associated with \arg{Handle}.  All opened
 conversations should be closed when they're no longer needed, although
 the system will close any that remain open on process termination.
-\predicate{dde_request}{3}{+Handle, +Item, -Value}
+    \predicate{dde_request}{3}{+Handle, +Item, -Value}
 Request a value from the server.  \arg{Item} is an atom that identifies
 the requested data, and \arg{Value} will be a string (\const{CF_TEXT} data
 in DDE parlance) representing that data, if the request is successful.
@@ -4424,10 +4472,10 @@ If unsuccessful, \arg{Value} will be unified with a term of form
 SWI-Prolog string objects to return the value rather then atoms to
 reduce the load on the atom-space.  See \secref{strings} for
 a discussion on this data type.
-\predicate{dde_execute}{2}{+Handle, +Command}
+    \predicate{dde_execute}{2}{+Handle, +Command}
 Request the DDE server to execute the given command-string.  Succeeds
 if the command could be executed and fails with error message otherwise.
-\predicate{dde_poke}{4}{+Handle, +Item, +Command}
+    \predicate{dde_poke}{4}{+Handle, +Item, +Command}
 Issue a \const{POKE} command to the server on the specified \arg{Item}.
 Command is passed as data of type \const{CF_TEXT}.
 \end{description}
@@ -4443,7 +4491,7 @@ not provided by this interface, please study \file{library(dde)}.
 
 
 \begin{description}
-\predicate{dde_register_service}{2}{+Template, +Goal}
+    \predicate{dde_register_service}{2}{+Template, +Goal}
 Register a server to handle DDE request or DDE execute requests from
 other applications. To register a service for a DDE request, \arg{Template} is of the form:
 \begin{quote}
@@ -4480,12 +4528,12 @@ template is of the form:
 Passing a \arg{Value} argument is not needed as execute requests either
 succeed or fail.  If \arg{Goal} fails, a `not processed' is passed back
 to the caller of the DDE request.
-\predicate{dde_unregister_service}{1}{+Service}
+    \predicate{dde_unregister_service}{1}{+Service}
 Stop responding to \arg{Service}. If Prolog is halted, it will
 automatically call this on all open services.
-\predicate{dde_current_service}{2}{-Service, -Topic}
+    \predicate{dde_current_service}{2}{-Service, -Topic}
 Find currently registered services and the topics served on them.
-\predicate{dde_current_connection}{2}{-Service, -Topic}
+    \predicate{dde_current_connection}{2}{-Service, -Topic}
 Find currently open conversations.
 \end{description}
 
@@ -4493,7 +4541,7 @@ Find currently open conversations.
 \section{Miscellaneous}
 
 \begin{description}
-\predicate{dwim_match}{2}{+Atom1, +Atom2}
+    \predicate{dwim_match}{2}{+Atom1, +Atom2}
 Succeeds if \arg{Atom1} matches \arg{Atom2} in `Do What I Mean' sense.
 Both \arg{Atom1} and \arg{Atom2} may also be integers or floats.
 The two atoms match if:
@@ -4505,28 +4553,32 @@ The two atoms match if:
     \item `Sub-words' are glued differently (existsfile $\equiv$ existsFile $\equiv$ exists_file)
     \item Two adjacent sub words are transposed (existsFile $\equiv$ fileExists)
 \end{shortlist}
-\predicate{dwim_match}{3}{+Atom1, +Atom2, -Difference}
+    \predicate{dwim_match}{3}{+Atom1, +Atom2, -Difference}
 Equivalent to dwim_match/2, but unifies \arg{Difference} with an atom
 identifying the the difference between \arg{Atom1} and \arg{Atom2}.  The
 return values are (in the same order as above): \const{equal},
 \const{mismatched_char}, \const{inserted_char}, \const{transposed_char},
 \const{separated} and \const{transposed_word}.
-\predicate{wildcard_match}{2}{+Pattern, +String}
-Succeeds if \arg{String} matches the wildcard pattern \arg{Pattern}. \arg{Pattern} is very similar the the Unix csh pattern matcher.  The patterns
-are given below:
+    \predicate{wildcard_match}{2}{+Pattern, +String}
+Succeeds if \arg{String} matches the wildcard pattern \arg{Pattern}.
+\arg{Pattern} is very similar the the Unix csh pattern matcher. The
+patterns are given below:
+
 \begin{center}\begin{tabular}{ll}
 \const{?}         & Matches one arbitrary character. \\
 \const{*}         & Matches any number of arbitrary characters. \\
-\const{[\ldots]}   & Matches one of the characters specified between the
+\const{[\ldots]}  & Matches one of the characters specified between the
 		    brackets. \mbox{\tt <char1>-<char2>} indicates a range. \\
 \const{\{\ldots\}} & Matches any of the patterns of the comma separated
 list between the braces.
 \end{tabular}\end{center}
+
 Example:
+
 \begin{code}
 ?- wildcard_match('[a-z]*.{pro,pl}[%~]', 'a_hello.pl%').
 
-Yes.
+Yes
 \end{code}
 
     \predicate{gensym}{2}{+Base, -Unique}
@@ -4544,3 +4596,4 @@ timer granularity. A negative time causes the timer to return
 immediately. On most non-realtime operating systems we can only ensure
 execution is suspended for {\bf at least} \arg{Time} seconds.
 \end{description}
+

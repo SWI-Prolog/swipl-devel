@@ -523,14 +523,12 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
 	  c = decode(replacedBreak(PC));
 	  goto again;
 #endif
-#if O_STRING
 	case H_INDIRECT:		/* only skip the size of the */
 	case B_INDIRECT:		/* string + header */
 	{ word m = PC[1];
 	  PC += wsizeofInd(m)+1;
 	  break;
 	}
-#endif
 	case I_EXIT:
 	case I_EXITFACT:
 	  return;
@@ -1494,8 +1492,7 @@ check_foreign()
 
 
 word
-checkStacks(frame)
-LocalFrame frame;
+checkStacks(LocalFrame frame)
 { LocalFrame fr, fr2;
   QueryFrame qf;
 
@@ -1669,6 +1666,40 @@ unblockGC()
 #endif
 }
 
+
+#if O_SHIFT_STACKS || O_ATOMGC
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Clear the FR_MARKED flags left after traversing all reachable frames.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static LocalFrame
+unmark_environments(LocalFrame fr)
+{ if ( fr == NULL )
+    return NULL;
+
+  for(;;)
+  { if ( false(fr, FR_MARKED) )
+      return NULL;
+    clear(fr, FR_MARKED);
+    local_frames--;
+    
+    if ( fr->parent )
+      fr = fr->parent;
+    else				/* Prolog --> C --> Prolog calls */
+      return parentFrame(fr);
+  }
+}
+
+
+static void
+unmark_choicepoints(LocalFrame bfr)
+{ for( ; bfr; bfr = bfr->backtrackFrame )
+    unmark_environments(bfr);
+}
+
+#endif /*O_SHIFT_STACKS || O_SHIFT_STACKS*/
+
 #if O_SHIFT_STACKS
 
 		 /*******************************
@@ -1778,36 +1809,6 @@ update_choicepoints(LocalFrame bfr, long ls, long gs, long ts)
 		      bfr, levelFrame(bfr), predicateName(bfr->predicate)));
     update_environments(bfr, NULL, ls, gs, ts);
   }
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Clear the marks set by update_environments().
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static LocalFrame
-unmark_environments(LocalFrame fr)
-{ if ( fr == NULL )
-    return NULL;
-
-  for(;;)
-  { if ( false(fr, FR_MARKED) )
-      return NULL;
-    clear(fr, FR_MARKED);
-    local_frames--;
-    
-    if ( fr->parent )
-      fr = fr->parent;
-    else				/* Prolog --> C --> Prolog calls */
-      return parentFrame(fr);
-  }
-}
-
-
-static void
-unmark_choicepoints(LocalFrame bfr)
-{ for( ; bfr; bfr = bfr->backtrackFrame )
-    unmark_environments(bfr);
 }
 
 
@@ -2078,3 +2079,138 @@ growStacks(LocalFrame fr, Code PC, int l, int g, int t)
 }
 
 #endif /*O_SHIFT_STACKS*/
+
+#ifdef O_ATOMGC
+
+		 /*******************************
+		 *	      ATOM-GC		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The  routine  markAtomsOnStacks(PL_local_data_t  *ld)  marks  all  atoms
+reachable  from  the  global  stack,    environments,  choicepoints  and
+term-references  using  markAtom().  It  is    designed   to  allow  for
+asynchronous calling, even from different   threads (hence the argument,
+although the thread examined should be stopped). 
+
+Asynchronous calling is in general not  possible,   but  here we make an
+exception. markAtom() is supposed  to  test   for  and  silently  ignore
+non-atoms. Basically, this implies we can   mark a few atoms incorrectly
+from the interrupted frame, but in   the context of multi-threading this
+is a small price to pay.
+
+Otherwise  this  routine  is  fairly  trivial.   It  is  modelled  after
+checkStacks(), a simple routine for  checking stack-consistency that has
+to walk along all reachable data as well.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+markAtomsOnGlobalStack(PL_local_data_t *ld)
+{ Word gbase = ld->stacks.global.base;
+  Word gtop  = ld->stacks.global.top;
+  Word current;
+
+  for(current = gbase; current < gtop; current += (offset_cell(current)+1) )
+  { if ( isAtom(*current) )
+      markAtom(*current);
+  }
+}
+
+
+static QueryFrame
+mark_atoms_in_environments(LocalFrame fr)
+{ Code PC = NULL;
+
+  if ( fr == NULL )
+    return NULL;
+
+  for(;;)
+  { int slots, n;
+    Word sp;
+
+    if ( true(fr, FR_MARKED) )
+      return NULL;			/* from choicepoints only */
+    set(fr, FR_MARKED);
+    DEBUG(2, Sdprintf("Marking atoms from [%d] %s\n",
+		      levelFrame(fr),
+		      predicateName(fr->predicate)));
+    local_frames++;
+    clearUninitialisedVarsFrame(fr, PC);
+
+    slots = slotsFrame(fr);
+    sp = argFrameP(fr, 0);
+    for( n=0; n < slots; n++, sp++ )
+    { if ( isAtom(*sp) )
+	markAtom(*sp);
+    }
+
+    PC = fr->programPointer;
+    if ( fr->parent )
+      fr = fr->parent;
+    else
+    { QueryFrame qf = (QueryFrame)addPointer(fr, -offset(queryFrame, frame));
+      return qf;
+    }
+  }
+}
+
+
+static void
+markAtomsInTermReferences(PL_local_data_t *ld)
+{ FliFrame   ff = ld->foreign_environment;
+  LocalFrame fr = ld->environment;
+  
+					/* see finish_foreign_frame() */
+  if ( (void *)fr < (void *)ff )
+  { Word ltop = (Word)ld->stacks.local.top;
+    
+    ff->size = ltop - (Word)addPointer(ff, sizeof(struct fliFrame));
+  }
+  
+  for(; ff; ff = ff->parent )
+  { Word sp = refFliP(ff, 0);
+    int n = ff->size;
+
+    for(n=0 ; n < ff->size; n++ )
+    { if ( isAtom(sp[n]) )
+	markAtom(sp[n]);
+    }
+  }
+}
+
+
+static void
+markAtomsInEnvironments(LocalFrame frame)
+{ QueryFrame qf;
+  LocalFrame fr, fr2;
+
+  local_frames = 0;
+
+  for( fr = frame; fr; fr = qf->saved_environment )
+  { LocalFrame bfr;
+
+    qf = mark_atoms_in_environments(fr);
+    assert(qf->magic == QID_MAGIC);
+
+    for(bfr = fr->backtrackFrame; bfr; bfr = bfr->backtrackFrame)
+      mark_atoms_in_environments(bfr);
+  }
+
+  for( fr = frame; fr; fr = fr2 )
+  { fr2 = unmark_environments(fr);
+
+    unmark_choicepoints(fr->backtrackFrame);
+  }
+
+  assert(local_frames == 0);
+}
+
+
+void
+markAtomsOnStacks(PL_local_data_t *ld)
+{ markAtomsOnGlobalStack(ld);
+  markAtomsInEnvironments(ld->environment);
+  markAtomsInTermReferences(ld);
+}
+
+#endif /*O_ATOMGC*/

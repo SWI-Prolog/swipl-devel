@@ -614,6 +614,9 @@ freeClause(Clause c)
 #endif
 
   GD->statistics.codes -= c->code_size;
+#ifdef O_ATOMGC
+  unregisterAtomsClause(c);
+#endif
   freeHeap(c->codes, sizeof(code) * c->code_size);
   freeHeap(c, sizeof(struct clause));
 }
@@ -1480,6 +1483,8 @@ lookupSourceFile(atom_t name)
   file->index = ++source_index;
   file->system = GD->bootsession;
   file->procedures = NULL;
+
+  PL_register_atom(file->name);
 
   registerSourceFile(file);
 

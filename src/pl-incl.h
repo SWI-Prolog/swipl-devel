@@ -62,7 +62,7 @@ handy for it someone wants to add a data type to the system.
   O_COMPILE_ARITH
       Include arithmetic compiler (compiles is/2, >/2, etc. into WAM).
   O_PROLOG_FUNCTIONS
-      Include evaluatable Prolog functions into the arithmetic module.
+      Include evaluable Prolog functions into the arithmetic module.
   O_BLOCK
       Include support for block/3, !/1, fail/1 and exit/2 in the VM.
   O_LABEL_ADDRESSES
@@ -969,8 +969,24 @@ struct atom
 #ifdef O_HASHTERM
   int		hash_value;	/* hash-key value */
 #endif
+#ifdef O_ATOMGC
+  unsigned int	references;	/* reference-count */
+#endif
   char *	name;		/* name associated with atom */
 };
+
+#ifdef O_ATOMGC
+#define ATOM_MARKED_REFERENCE (0x1<<(INTBITSIZE-1))
+#ifdef O_DEBUG_ATOMGC
+#define PL_register_atom(a) \
+	_PL_debug_register_atom(a, __FILE__, __LINE__, __PRETTY_FUNCTION__)
+#define PL_unregister_atom(a) \
+	_PL_debug_unregister_atom(a, __FILE__, __LINE__, __PRETTY_FUNCTION__)
+#endif
+#else
+#define PL_register_atom(a)
+#define PL_unregister_atom(a)
+#endif
 
 struct index
 { unsigned long key;		/* key of index */
@@ -982,7 +998,7 @@ struct functorDef
   word		functor;	/* as appearing on the global stack */
   word		name;		/* Name of functor */
   int		arity;		/* arity of functor */
-  unsigned short	flags;	/* Flag field holding: */
+  unsigned short flags;		/* Flag field holding: */
 		/* INLINE_F	   Inlined foreign (system) predicate */
 };
 
@@ -1043,13 +1059,6 @@ struct data_mark
 struct functor
 { word		definition;	/* Tagged definition pointer */
   word		arguments[1];	/* arguments vector */
-};
-
-struct operator
-{ Operator	next;		/* next of chain */
-  atom_t	name;		/* name of operator */
-  short		type;		/* OP_FX, ... */
-  short		priority;	/* priority of operator */
 };
 
 struct procedure
@@ -1323,6 +1332,9 @@ typedef struct
   int	      flags;			/* Various flags */
 } sig_handler, *SigHandler;
 #endif /* HAVE_SIGNAL */
+
+#define SIG_ATOM_GC	  30		/* `safe' and reserved signals */
+#define SIG_THREAD_SIGNAL 31
 
 		 /*******************************
 		 *	   OPTION LISTS		*

@@ -141,8 +141,15 @@ extern const unsigned int tagtypeex[];
 		 *	 BASIC TYPE TESTS	*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+For atom, we use tagex() to avoid detecting functor_t on stacks. This is
+only important for the  atom-garbage  collector   that  must  make  this
+distinction while scanning the global stack   as well as for record-keys
+and while loading .wic files.  It comes at no price.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #define isVar(w)	((w) == 0L)	/* variable */
-#define isAtom(w)	(tag(w) == TAG_ATOM)
+#define isAtom(w)	(tagex(w) == TAG_ATOM)
 #define isInteger(w)	(tag(w) == TAG_INTEGER)
 #define isReal(w)	(tag(w) == TAG_FLOAT)
 #define isString(w)	(tag(w) == TAG_STRING)

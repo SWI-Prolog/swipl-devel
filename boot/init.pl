@@ -600,15 +600,13 @@ $open_source_call(File, Goal, Status) :-
 	flag($compilation_level, _, Level).
 
 
-$substitute_atom(Old, New, Org, Result) :-
-	name(Old, OS),
-	name(New, NS),
-	name(Org, OrgS),
-	append(Before, Rest, OrgS),
-	append(OS, After, Rest), !,
-	append(Before, NS, R1),
-	append(R1, After, R2), !,
-	name(Result, R2).
+%	$substitute_atom(+From, +To, +In, -Out)
+
+$substitute_atom(From, To, In, Out) :-
+	sub_atom(In, B, _, A, From),
+	sub_atom(In, 0, B, _, Before),
+	sub_atom(In, _, A, 0, After),
+	concat_atom([Before, To, After], Out).
 
 
 		/********************************
@@ -799,8 +797,7 @@ $load_file(Spec, Options) :-
 $print_message(Level, Term) :-
 	$current_module('$messages', _), !,
 	print_message(Level, Term).
-$print_message(_Level, _Term) :-
-	true.
+$print_message(_Level, _Term).
 
 $read_clause(Clause) :-				% get the first non-syntax
 	repeat,					% error
@@ -938,7 +935,9 @@ $consult_clause(Clause, File) :-
 	;   fail
 	).
 
-$execute_directive(Goal) :-
+$execute_directive(include(File), F) :- !,
+	$expand_include(File, F).
+$execute_directive(Goal, _) :-
 	compiling, !,
 	$add_directive_wic2(Goal, Type),
 	(   Type == call		% suspend compiling into .qlf file
@@ -950,7 +949,7 @@ $execute_directive(Goal) :-
 	    )
 	;   $execute_directive2(Goal)
 	).
-$execute_directive(Goal) :-
+$execute_directive(Goal, _) :-
 	$execute_directive2(Goal).
 
 $execute_directive2(Goal) :-
@@ -1030,10 +1029,10 @@ $store_clause([C|T], F) :- !,
 	$store_clause(C, F),
 	$store_clause(T, F).
 $store_clause(end_of_file, _) :- !.
-$store_clause((:- Goal), _) :- !,
-	$execute_directive(Goal).
-$store_clause((?- Goal), _) :- !,
-	$execute_directive(Goal).
+$store_clause((:- Goal), F) :- !,
+	$execute_directive(Goal, F).
+$store_clause((?- Goal), F) :- !,
+	$execute_directive(Goal, F).
 $store_clause((_, _), _) :- !,
 	print_message(error, cannot_redefine_comma),
 	fail.
@@ -1047,6 +1046,33 @@ $store_clause(Term, File) :-
 	      E,
 	      $print_message_fail(E)),
         $ifcompiling($qlf_assert_clause(Ref, development)).
+
+
+		 /*******************************
+		 *	     INCLUDE		*
+		 *******************************/
+
+$expand_include(File, FileInto) :-
+	absolute_file_name(File,
+			   [ file_type(prolog),
+			     access(read)
+			   ], Path),
+	seeing(Old), see(Path),
+	$read_clause(Term0),
+	$read_include_file(Term0, Terms),
+	seen, see(Old),
+	$consult_clauses(Terms, FileInto).
+
+$read_include_file(end_of_file, []) :- !.
+$read_include_file(T0, [T0|T]) :-
+	$read_clause(T1),
+	$read_include_file(T1, T).
+
+$consult_clauses([], _).
+$consult_clauses([H|T], File) :-
+	$consult_clause(H, File),
+	$consult_clauses(T, File).
+
 
 		 /*******************************
 		 *	 FOREIGN INTERFACE	*
@@ -1261,12 +1287,11 @@ phrase(RuleSet, Input, Rest) :-
 		*     WIC CODE COMPILER         *
 		*********************************/
 
-/*  This  entry  point  is  called  from  pl-main.c  if  the  -c  option
-    (intermediate  code  compilation) is given.  It's job is simple: get
-    the output file  and  input  files,  open  the  output  file,  setup
-    intermediate  code  compilation  flag  and  finally just compile the
-    input files.
-*/
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This entry point is called from pl-main.c  if the -c option (compile) is
+given. It compiles all files and finally calls qsave_program to create a
+saved state.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 $compile_wic :-
 	current_prolog_flag(argv, Argv),
@@ -1350,12 +1375,12 @@ $run_at_halt :-
 	$load_additional_boot_files/0.
 
 $load_wic_files(Module, Files) :-
-	$execute_directive($set_source_module(OldM, Module)),
+	$execute_directive($set_source_module(OldM, Module), []),
 	$style_check(OldS, 2'1111),
 	flag($compiling, OldC, wic),
 	consult(Files),
-	$execute_directive($set_source_module(_, OldM)),
-	$execute_directive($style_check(_, OldS)),
+	$execute_directive($set_source_module(_, OldM), []),
+	$execute_directive($style_check(_, OldS), []),
 	flag($compiling, _, OldC).
 
 
@@ -1376,6 +1401,6 @@ $load_additional_boot_files :-
        $load_wic_files(system, [LoadFile]),
        format('SWI-Prolog boot files loaded~n', []),
        flag($compiling, OldC, wic),
-       $execute_directive($set_source_module(_, user)),
+       $execute_directive($set_source_module(_, user), []),
        flag($compiling, _, OldC)
       )).

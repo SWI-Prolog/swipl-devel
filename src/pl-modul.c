@@ -58,6 +58,7 @@ _lookupModule(atom_t name)
 
   addHTable(GD->tables.modules, (void *)name, m);
   GD->statistics.modules++;
+  PL_register_atom(name);
   
   return m;
 }

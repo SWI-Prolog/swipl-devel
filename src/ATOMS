@@ -434,6 +434,10 @@ A yf			"yf"
 A yfx			"yfx"
 A yfy			"yfy"
 A zero_divisor		"zero_divisor"
+A built_in_procedure	"built_in_procedure"
+A close_option		"close_option"
+A force			"force"
+A agc_margin		"agc_margin"
 
 F abs			1
 F acos			1

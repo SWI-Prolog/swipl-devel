@@ -7,6 +7,7 @@
 */
 
 #include "pl-incl.h"
+#include <stdio.h>
 #ifdef O_PLMT
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -48,12 +49,6 @@ APPROACH
 	  locate it through the thread-id using a function.  Any function
 	  requiring frequent access can fetch this pointer once at
 	  start-up.  Coperating functions can pass this pointer.
-
-STEPS
-=====
-
-    * Realise PL_initialise_thread() to set up a Prolog engine in the
-      current thread.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include <errno.h>
@@ -115,14 +110,7 @@ allocPrologLocalData()
 
 int
 PL_initialise_thread(PL_thread_info_t *info)
-{ if ( !info )
-    info = alloc_thread();
-
-  if ( !info->thread_data )
-  { info->thread_data = allocHeap(sizeof(PL_local_data_t));
-    memset(info->thread_data, 0, sizeof(PL_local_data_t));
-    info->thread_data->thread.info = info;
-  }
+{ assert(info->thread_data);
 
   pthread_setspecific(PL_ldata, info->thread_data);
 
@@ -158,6 +146,7 @@ free_prolog_thread()
 static void
 free_prolog_thread(void *data)
 { PL_local_data_t *ld = data;
+  PL_thread_info_t *info = ld->thread.info;
   int i;
 
   freeStacks(ld);
@@ -176,6 +165,9 @@ free_prolog_thread(void *data)
   GD->statistics.threads_finished++;
   GD->statistics.thread_cputime += CpuTime();
   UNLOCK();
+
+  if ( info->detached )
+    free_thread_info(info);
 }
 
 
@@ -204,7 +196,9 @@ aliasThread(int tid, atom_t name)
     threadAliases = newHTable(16);
 
   if ( (rval = addHTable(threadAliases, (void *)name, (void *)tid)) )
+  { PL_register_atom(name);
     threads[tid].thread_data->thread.name = name;
+  }
   UNLOCK();
 
   return rval;
@@ -217,7 +211,9 @@ unaliasThread(atom_t name)
 
     LOCK();
     if ( (s = lookupHTable(threadAliases, (void *)name)) )
+    { PL_unregister_atom(name);
       deleteSymbolHTable(threadAliases, s);
+    }
     UNLOCK();
   }
 }
@@ -232,11 +228,10 @@ alloc_thread()
 
   LOCK();
   for(i=1; i<MAX_THREADS; i++)
-  { if ( threads[i].tid == 0 )
+  { if ( threads[i].thread_data == 0 )
     { PL_local_data_t *ld = allocHeap(sizeof(PL_local_data_t));
       memset(ld, 0, sizeof(PL_local_data_t));
 
-      memset(&threads[i], 0, sizeof(PL_thread_info_t));
       threads[i].pl_tid = i;
       threads[i].thread_data = ld;
       threads[i].status = PL_THREAD_RUNNING;
@@ -308,8 +303,6 @@ start_thread(void *closure)
     }
   }    
   run_thread_exit_hooks();
-  if ( info->detached )
-    free_thread_info(info);
 
   return (void *)TRUE;
 }
@@ -459,8 +452,7 @@ free_thread_info(PL_thread_info_t *info)
     unaliasThread(info->thread_data->thread.name);
 
   freeHeap(info->thread_data, sizeof(*info->thread_data));
-
-  info->tid = 0;
+  memset(info, 0, sizeof(*info));
 }
 
 
@@ -1136,6 +1128,78 @@ pl_current_mutex(term_t mutex, term_t owner, term_t count, word h)
 
 
 		 /*******************************
+		 *	FOREIGN INTERFACE	*
+		 *******************************/
+
+int
+PL_thread_attach_engine(PL_thread_attr_t *attr)
+{ PL_thread_info_t *info;
+  PL_local_data_t *ldnew;
+  PL_local_data_t *ldmain;
+
+  if ( LD )
+    LD->thread.info->open_count++;
+
+  if ( !(info = alloc_thread()) )
+    return -1;				/* out of threads */
+
+  ldmain = threads[1].thread_data;
+  ldnew = info->thread_data;
+
+  if ( attr )
+  { if ( attr->local_size )	info->local_size    = attr->local_size;
+    if ( attr->global_size )	info->global_size   = attr->global_size;
+    if ( attr->trail_size )	info->trail_size    = attr->trail_size;
+    if ( attr->argument_size )	info->argument_size = attr->argument_size;
+    if ( attr->alias )
+      aliasThread(info->pl_tid, PL_new_atom(attr->alias));
+  }
+  
+  info->goal       = NULL;
+  info->module     = MODULE_user;
+  info->detached   = TRUE;		/* C-side should join me */
+  info->status     = PL_THREAD_RUNNING;
+  info->open_count = 1;
+
+  ldnew->prompt			 = ldmain->prompt;
+  ldnew->modules		 = ldmain->modules;
+  ldnew->IO			 = ldmain->IO;
+  ldnew->_fileerrors		 = ldmain->_fileerrors;
+  ldnew->float_format		 = ldmain->float_format;
+  ldnew->_debugstatus		 = ldmain->_debugstatus;
+  ldnew->_debugstatus.retryFrame = NULL;
+  ldnew->feature.mask		 = ldmain->feature.mask;
+  if ( ldmain->feature.table )
+  { PL_LOCK(L_FEATURE);
+    ldnew->feature.table	 = copyHTable(ldmain->feature.table);
+    PL_UNLOCK(L_FEATURE);
+  }
+
+  PL_initialise_thread(info); 
+  info->tid = pthread_self();		/* we are complete now */
+
+  return info->pl_tid;
+}
+
+
+int
+PL_thread_destroy_engine()
+{ PL_local_data_t *ld = LD;
+
+  if ( ld )
+  { if ( --ld->thread.info->open_count == 0 )
+    { free_prolog_thread(ld);
+      pthread_setspecific(PL_ldata, NULL);
+    }
+
+    return TRUE;
+  }
+
+  return FALSE;				/* we had no thread */
+}
+
+
+		 /*******************************
 		 *	  DEBUGGING AIDS	*
 		 *******************************/
 
@@ -1156,10 +1220,42 @@ lBase()
 { return (LD->stacks.local.base);
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This is from implements the function called from GNU <assert.h>, so we can
+print which thread caused the problem.  If the thread is not the main one,
+we could try to recover!
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+__assert_fail(const char *assertion,
+	      const char *file,
+	      unsigned int line,
+	      const char *function)
+{ Sdprintf("[Thread %d] %s:%d: %s: Assertion failed: %s\n",
+	   PL_thread_self(),
+	   file, line, function, assertion);
+  abort();
+}
+
 #else /*O_PLMT*/
 
 #define pl_mutex_lock(mutex)
 #define pl_mutex_unlock(mutex)
+
+int
+PL_thread_self()
+{ return -2;
+}
+
+int
+PL_thread_attach_engine(PL_thread_attr_t *attr)
+{ return -2;
+}
+
+int
+PL_thread_destroy_engine()
+{ return FALSE;
+}
 
 #endif  /*O_PLMT*/
 

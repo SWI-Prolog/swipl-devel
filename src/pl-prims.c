@@ -1730,6 +1730,27 @@ typedef struct
 } sub_state;
 
 
+static int
+get_positive_integer_or_unbound(term_t t, int *v)
+{ int i;
+
+  if ( PL_get_integer(t, &i) )
+  { if ( i < 0 )
+      PL_error(NULL, 0, NULL, ERR_DOMAIN,
+	       ATOM_not_less_than_zero, t);
+    *v = i;
+
+    return TRUE;
+  }
+
+  if ( PL_is_variable(t) )
+    return TRUE;
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
+}
+
+
+
 foreign_t
 pl_sub_atom(term_t atom, term_t before, term_t len, term_t after, term_t sub,
 	    word h)
@@ -1746,27 +1767,11 @@ pl_sub_atom(term_t atom, term_t before, term_t len, term_t after, term_t sub,
 
       la = strlen(aa);
 
-      if ( !PL_get_integer(before, &b) )
-      { if ( !PL_is_variable(before) )
-	  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, before);
-	if ( b < 0 )
-	  return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-			  ATOM_not_less_than_zero, before);
-      }
-      if ( !PL_get_integer(len, &l) )
-      { if ( !PL_is_variable(len) )
-	  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, len);
-	if ( l < 0 )
-	  return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-			  ATOM_not_less_than_zero, len);
-      }
-      if ( !PL_get_integer(after, &a) )
-      { if ( !PL_is_variable(after) )
-	  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, after);
-	if ( a < 0 )
-	  return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-			  ATOM_not_less_than_zero, after);
-      }
+      if ( !get_positive_integer_or_unbound(before, &b) ||
+	   !get_positive_integer_or_unbound(len, &l) ||
+	   !get_positive_integer_or_unbound(after, &a) )
+	fail;
+
       if ( !PL_get_chars(sub, &s, CVT_ATOMIC) )
       { if ( !PL_is_variable(sub) )
 	  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, sub);
