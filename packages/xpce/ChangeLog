@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: pce_identifier_item.pl: declare the used error (not filled).
+
 * FIXED: Avoid text_image (used by editor and list_browser) to draw selection
   over scrollbar.
 

@@ -105,3 +105,6 @@ canonise_blanks(_, Name, Name).
 
 :- pce_end_class(identifier_item).
 
+
+:- initialization
+   new(_, error(item_not_filled, '%I%s: No value', error, report)).
