@@ -221,6 +221,7 @@ static RlcRenderAllHook _rlc_render_all_hook;
 static RlcInterruptHook _rlc_interrupt_hook;
 static RlcResizeHook    _rlc_resize_hook;
 static RlcMenuHook	_rlc_menu_hook;
+static RlcMessageHook	_rlc_message_hook;
 static int _rlc_copy_output_to_debug_output=0;	/* != 0: copy to debugger */
 static int	emulate_three_buttons;
 static HWND	emu_hwnd;		/* Emulating for this window */
@@ -1295,12 +1296,26 @@ rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
   return DefWindowProc(hwnd, message, wParam, lParam);
 }
 
+static int
+rlc_get_message(MSG *msg, HWND hwnd, UINT low, UINT high)
+{ int rc;
+again:
+  if ( (rc=GetMessage(msg, hwnd, low, high)) )
+  { if ( _rlc_message_hook &&
+	 (*_rlc_message_hook)(msg->hwnd, msg->message,
+			      msg->wParam, msg->lParam) )
+      goto again;
+  }
+
+  return rc;
+}
+
 
 static void
 rlc_dispatch(RlcData b)
 { MSG msg;
 
-  if ( GetMessage(&msg, NULL, 0, 0) && msg.message != WM_RLC_CLOSEWIN )
+  if ( rlc_get_message(&msg, NULL, 0, 0) && msg.message != WM_RLC_CLOSEWIN )
   { /* DEBUG(Dprintf("Thread %x got message 0x%04x\n",
 		     GetCurrentThreadId(), msg.message));
     */
@@ -2781,7 +2796,7 @@ window_loop(LPVOID arg)
       case IMODE_RAW:
       { MSG msg;
       
-	if ( GetMessage(&msg, NULL, 0, 0) )
+	if ( rlc_get_message(&msg, NULL, 0, 0) )
 	{ TranslateMessage(&msg);
 	  DispatchMessage(&msg);
 	  rlc_flush_output(b);
@@ -2802,7 +2817,7 @@ window_loop(LPVOID arg)
       
     rlc_write(b, waiting, strlen(waiting));
 
-    while ( b->closing <= 2 && GetMessage(&msg, NULL, 0, 0) )
+    while ( b->closing <= 2 && rlc_get_message(&msg, NULL, 0, 0) )
     { TranslateMessage(&msg);
       DispatchMessage(&msg);
       rlc_flush_output(b);
@@ -2836,7 +2851,7 @@ getch(rlc_console c)
     if ( !fromcon )
     { MSG msg;
 
-      if ( GetMessage(&msg, NULL, 0, 0) )
+      if ( rlc_get_message(&msg, NULL, 0, 0) )
       { TranslateMessage(&msg);
 	DispatchMessage(&msg);
       } else
@@ -3044,7 +3059,7 @@ rlc_read(rlc_console c, char *buf, unsigned int count)
     }
 
     while(!d->lhead)
-    { if ( GetMessage(&msg, NULL, 0, 0) )
+    { if ( rlc_get_message(&msg, NULL, 0, 0) )
       { TranslateMessage(&msg);
 	DispatchMessage(&msg);
       } else
@@ -3367,6 +3382,15 @@ rlc_menu_hook(RlcMenuHook new)
 { RlcMenuHook old = _rlc_menu_hook;
 
   _rlc_menu_hook = new;
+  return old;
+}
+
+
+RlcMessageHook
+rlc_message_hook(RlcMessageHook new)
+{ RlcMessageHook old = _rlc_message_hook;
+
+  _rlc_message_hook = new;
   return old;
 }
 

@@ -760,6 +760,8 @@ PL_handle_signals()
     }
   }
 
+  if ( exception_term )
+    return -1;
   return done;
 }
 

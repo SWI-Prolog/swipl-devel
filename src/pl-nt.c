@@ -424,6 +424,28 @@ pl_win_module_file(term_t module, term_t file)
   fail;
 }
 
+		 /*******************************
+		 *	  WINDOWS MESSAGES	*
+		 *******************************/
+
+int
+PL_win_message_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
+{
+#ifdef O_PLMT
+  if ( hwnd == NULL &&
+       message == WM_SIGNALLED &&
+       wParam == 0 &&			/* or another constant? */
+       lParam == 0 )
+  { if ( PL_handle_signals() < 0 )
+      return PL_MSG_EXCEPTION_RAISED;
+
+    return PL_MSG_HANDLED;
+  }
+#endif
+
+  return PL_MSG_IGNORED;
+}
+
 
 		 /*******************************
 		 *	DLOPEN AND FRIENDS	*

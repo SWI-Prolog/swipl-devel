@@ -803,6 +803,15 @@ menu_select(rlc_console c, const char *name)
   }
 }
 
+static int
+message_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
+{ switch( PL_win_message_proc(hwnd, message, wParam, lParam) )
+  { case PL_MSG_HANDLED:
+      return TRUE;
+    default:
+      return FALSE;
+  }
+}
 
 		 /*******************************
 		 *	       MAIN		*
@@ -889,6 +898,7 @@ win32main(rlc_console c, int argc, char **argv)
   PL_set_feature("hwnd", PL_INTEGER, (long)rlc_hwnd(c));
   rlc_interrupt_hook(interrupt);
   rlc_menu_hook(menu_select);
+  rlc_message_hook(message_proc);
   PL_set_feature("console_menu", PL_BOOL, TRUE);
 #ifdef O_PLMT
   rlc_insert_menu_item(c, "&Run", "&New thread", NULL);

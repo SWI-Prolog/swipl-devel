@@ -223,9 +223,6 @@ static void	cleanupLocalDefinitions(PL_local_data_t *ld);
 static int	unify_thread(term_t id, PL_thread_info_t *info);
 static pl_mutex *mutexCreate(atom_t name);
 
-#ifdef WIN32
-static void	attachThreadWindow(PL_local_data_t *ld);
-#endif
 
 		 /*******************************
 		 *	LOW-LEVEL UTILIIES	*
@@ -342,9 +339,6 @@ initialise_thread(PL_thread_info_t *info)
     fail;
 
   initPrologLocalData();
-#ifdef WIN32				/* For signals.  Do this always? */
-  attachThreadWindow(info->thread_data);
-#endif
   info->thread_data->magic = LD_MAGIC;
 
   LOCK();
@@ -375,15 +369,6 @@ free_prolog_thread(void *data)
     info->status = PL_THREAD_EXITED;	/* foreign pthread_exit() */
   acknowlege = (info->status == PL_THREAD_CANCELED);
   DEBUG(1, Sdprintf("Freeing prolog thread %d\n", info-threads));
-
-#ifdef WIN32
-  if ( ld->thread.hwnd )
-  { HWND hwnd = ld->thread.hwnd;
-
-    ld->thread.hwnd = NULL;
-    DestroyWindow(hwnd);
-  }
-#endif
 
   run_thread_exit_hooks();
   
@@ -439,7 +424,6 @@ initPrologThreads()
   PL_local_data.thread.magic = PL_THREAD_MAGIC;
 #ifdef WIN32
   info->w32id = GetCurrentThreadId();
-  attachThreadWindow(info->thread_data);
 #endif
   set_system_thread_id(info);
 
@@ -660,7 +644,12 @@ PL_w32thread_raise(DWORD id, int sig)
   for(i = 0, info = threads; i < MAX_THREADS; i++, info++)
   { if ( info->w32id == id && info->thread_data )
     { info->thread_data->pending_signals |= (1L << (sig-1));
+#ifdef WIN32
+      if ( info->w32id )
+	PostThreadMessage(info->w32id, WM_SIGNALLED, 0, 0L);
+#endif
       UNLOCK();
+      DEBUG(1, Sdprintf("Signalled %d to thread %d\n", sig, i));
       return TRUE;
     }
   }
@@ -679,14 +668,23 @@ Prolog.
 
 int
 PL_thread_raise(int tid, int sig)
-{ LOCK();
-  if ( tid < 0 || tid >= MAX_THREADS ||
-       threads[tid].status == PL_THREAD_UNUSED )
-  { UNLOCK();
+{ PL_thread_info_t *info;
+
+  LOCK();
+  if ( tid < 0 || tid >= MAX_THREADS )
+  { error:
+    UNLOCK();
     return FALSE;
   }
+  info = &threads[tid];
+  if ( info->status == PL_THREAD_UNUSED )
+    goto error;
 
-  threads[tid].thread_data->pending_signals |= (1L << (sig-1));
+  info->thread_data->pending_signals |= (1L << (sig-1));
+#ifdef WIN32
+  if ( info->w32id )
+    PostThreadMessage(info->w32id, WM_SIGNALLED, 0, 0L);
+#endif
   UNLOCK();
 
   return TRUE;
@@ -1324,64 +1322,6 @@ run_thread_exit_hooks()
 		 *	   THREAD SIGNALS	*
 		 *******************************/
 
-#ifdef WIN32
-#define WM_SIGNALLED (WM_USER+1)
-#define WM_MENU	     (WM_USER+2)
-
-static WINAPI
-thread_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
-{ switch(message)
-  { case WM_SIGNALLED:
-      PL_handle_signals();
-      return 0;
-  }
-
-  return DefWindowProc(hwnd, message, wParam, lParam);
-}
-
-
-static char *
-ThreadWindowClass()
-{ static char winclassname[40];
-  static WNDCLASS wndClass;
-
-  if ( !winclassname[0] )
-  { sprintf(winclassname,
-	    "SWI-Prolog-thread-window-%d",
-	    GD->thread.instance);
-
-    wndClass.style		= 0;
-    wndClass.lpfnWndProc	= (LPVOID)thread_wnd_proc;
-    wndClass.cbClsExtra		= 0;
-    wndClass.cbWndExtra		= 0;
-    wndClass.hInstance		= GD->thread.instance;
-    wndClass.hIcon		= NULL;
-    wndClass.hCursor		= NULL;
-    wndClass.hbrBackground	= GetStockObject(WHITE_BRUSH);
-    wndClass.lpszMenuName	= NULL;
-    wndClass.lpszClassName	= winclassname;
-
-    RegisterClass(&wndClass);
-  }
-
-  return winclassname;
-}
-
-static void
-attachThreadWindow(PL_local_data_t *ld)
-{ HWND hwnd;
-
-  hwnd = CreateWindow(ThreadWindowClass(),
-		      "SWI-Prolog thread window",
-		      0,
-		      0, 0, 32, 32,
-		      NULL, NULL, GD->thread.instance, NULL);
-
-  ld->thread.hwnd = hwnd;
-}
-
-#endif /*WIN32*/
-
 typedef struct _thread_sig
 { struct _thread_sig *next;		/* Next in queue */
   Module   module;			/* Module for running goal */
@@ -1416,8 +1356,8 @@ pl_thread_signal(term_t thread, term_t goal)
   ld->pending_signals |= (1L << (SIG_THREAD_SIGNAL-1));
 
 #ifdef WIN32
-  if ( ld->thread.hwnd )
-    PostMessage(ld->thread.hwnd, WM_SIGNALLED, 0, 0L);
+  if ( ld->thread.info->w32id )
+    PostThreadMessage(ld->thread.info->w32id, WM_SIGNALLED, 0, 0L);
 #endif
 
   UNLOCK();

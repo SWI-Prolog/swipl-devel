@@ -102,6 +102,11 @@ _export int	rlc_main(HANDLE hI, HANDLE hPrevI,
 			 LPSTR cmd, int show, RlcMain main, HICON icon);
 _export void	rlc_icon(rlc_console c, HICON icon);	/* Change icon */
 _export COLORREF rlc_color(rlc_console c, int which, COLORREF color);
+
+typedef int	(*RlcMessageHook)(HWND hwnd, UINT message,
+				  UINT wParam, LONG lParam);
+_export RlcMessageHook  rlc_message_hook(RlcMessageHook hook);
+
 #endif /*_WINDOWS_*/
 
 _export RlcUpdateHook	rlc_update_hook(RlcUpdateHook updatehook);

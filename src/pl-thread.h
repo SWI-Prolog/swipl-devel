@@ -206,6 +206,12 @@ extern TLD_KEY PL_ldata;		/* key to local data */
 #define LOCAL_LD  __PL_ld
 #define LD	  GLOBAL_LD
 
+		 /*******************************
+		 *	       WINDOWS		*
+		 *******************************/
+
+#define WM_SIGNALLED (WM_USER+4201)	/* how to select a good number!? */
+
 
 		 /*******************************
 		 *	    FUNCTIONS		*

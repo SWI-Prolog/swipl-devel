@@ -157,6 +157,7 @@ typedef struct _plsocket
   IOSTREAM *	    input;		/* input stream */
   IOSTREAM *	    output;		/* output stream */
 #ifdef WIN32
+  int		    error;		/* Error code */
   int		    w32_flags;		/* FD_* */
   HWND		    hwnd;		/* associated window */
 #endif
@@ -166,7 +167,7 @@ static plsocket *lookupSocket(int socket);
 #ifdef WIN32
 static plsocket   *lookupExistingSocket(int socket);
 static const char *WinSockError(unsigned long eno);
-static void	   waitMsg(plsocket *s, int flags);
+static int	   waitMsg(plsocket *s, int flags);
 #endif
 
 #ifdef O_DEBUG
@@ -257,8 +258,9 @@ socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       char *evtname;
 
       if ( s )
-	s->w32_flags |= evt;
-      else
+      { s->w32_flags |= evt;
+	s->error = err;
+      } else
 	DEBUG(Sdprintf("Socket %d is gone\n", sock));
 
       switch(evt)
@@ -285,10 +287,19 @@ socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	  evtname = "FD_WRITE";
 	  break;
 	default:
-	  evtname = "???";
+	  evtname = NULL;
       }
-      DEBUG(Sdprintf("[thread %d, hwnd=%p]%s (0x%x) on %d; %p->w32_flags=0x%x\n",
-		     PL_thread_self(), hwnd, evtname, evt, sock,
+
+      if ( !s && evtname )
+      { if ( closesocket(sock) == SOCKET_ERROR )
+	{ DEBUG(Sdprintf("%s: closesocket(%d) failed: %s\n",
+			 evtname, sock, WinSockError(WSAGetLastError())));
+	}
+      }
+
+      DEBUG(Sdprintf("[thread %d, hwnd=%p]"
+		     "%s (0x%x;err=0x%x) on %d; %p->w32_flags=0x%x\n",
+		     PL_thread_self(), hwnd, evtname, evt, err, sock,
 		     s, s ? s->w32_flags : 0));
     }
   }
@@ -429,6 +440,7 @@ lookupSocket(int socket)
 #ifdef WIN32
   p->w32_flags = 0;
   p->hwnd = 0;
+  p->error = 0;
 #endif
   p->input = p->output = (IOSTREAM*)NULL;
   p->next   = sockets;
@@ -451,7 +463,7 @@ freeSocket(int socket)
 #ifdef WIN32
   { plsocket *s = lookupSocket(socket);
 
-    if ( false(s, SOCK_LISTEN) )
+    if ( true(s, SOCK_CONNECT) )
     { if ( false(s, SOCK_CLOSE_SEEN) )
 	waitMsg(s, FD_CLOSE);
 
@@ -803,7 +815,8 @@ tcp_close_socket(term_t Socket)
   } else
   {
 #ifdef WIN32
-    if ( false(lookupSocket(socket), SOCK_LISTEN) )
+  
+    if ( true(s, SOCK_CONNECT) )
       shutdown(socket, SD_SEND);
 #endif
 
@@ -1016,12 +1029,15 @@ waitMsg(plsocket *s, int flags)
     if ( (s->w32_flags & flags) )
     { s->w32_flags &= ~flags;
       DEBUG(Sdprintf("]"));
-      succeed;
+      return TRUE;
     }
+    if ( s->error )
+      return tcp_error(s->error, NULL);
     if ( PL_handle_signals() < 0 )
-      fail;
+      return FALSE;
     if ( GetMessage(&msg, hwnd, 0, 0) )
-    { TranslateMessage(&msg);
+    { DEBUG(Sdprintf(" (msg=%d)", msg.message));
+      TranslateMessage(&msg);
       DispatchMessage(&msg);
     } else
     { ExitProcess(0);			/* WM_QUIT received */

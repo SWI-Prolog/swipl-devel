@@ -717,6 +717,22 @@ PL_EXPORT(int)		PL_destroy_engine(PL_engine_t engine);
 
 
 		 /*******************************
+		 *	 WINDOWS MESSAGES	*
+		 *******************************/
+
+#ifdef _WINDOWS_			/* <windows.h> is included */
+#define PL_MSG_EXCEPTION_RAISED -1
+#define PL_MSG_IGNORED 0
+#define PL_MSG_HANDLED 1
+
+PL_EXPORT(int)		PL_win_message_proc(HWND hwnd,
+					    UINT message,
+					    UINT wParam,
+					    LONG lParam);
+#endif /*_WINDOWS_*/
+
+
+		 /*******************************
 		 *       FAST XPCE SUPPORT	*
 		 *******************************/
 
