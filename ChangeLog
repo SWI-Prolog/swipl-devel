@@ -1,6 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 4.0.9
+=============
+
+  * ADDED: 0.5 second delay after printing an ERROR: line, making error
+    recovery on fast-scrolling messages easier.
+
+  * FIXED: Memory management problems in Windows version introduced
+    in 4.0.8.
+
   * ADDED: PL_get_char() to accept a 1-character string, so put(" ")
     writes a space.
 
