@@ -1,9 +1,9 @@
-SWI-Prolog 5.1.7/XPCE 6.1.7 Summary of changes
+SWI-Prolog 5.1.9/XPCE 6.1.9 Summary of changes
 
 Status
 ======
   
-  * 9th beta-release.  Considering feedback, the 5.1.x series probably becomes
+  * 10th beta-release.  Considering feedback, the 5.1.x series probably becomes
     mainstream not too far from here.
 
     Remaining issues are exploiting the multi-threaded version in a
@@ -13,26 +13,30 @@ Status
 SWI-Prolog
 ==========
 
-  * FIXED Various threading issues: atom-garbage collection bugs, clean exit,
-    SPARC alignment problem (bus error), execution profiling in Windows.
+  * FIXED: Fixed a couple of threading errors.  Most serious one is a race
+    condition is messages queues waited for by multiple threads.
 
-  * FIXED: atom_number/1 parsing floats.
+  * MODIFIED: succ/2 now only handles natural numbers (>= 0)
 
-  * ADDED: Allow reading the Prolog state if it is attached to a DLL.  This
-    allows for single-file DLL's that embed Prolog.  See -dll option to
-    plld.
-
-  * PORT: configure problem for MT version if gcc doesn't understand -pthread.
+  * MODIFIED: make/0 has been moved to the library.  After completion,
+    make/0 performs a quick checks for undefined predicates.  Let me know
+    whether you like this.
 
 Packages
 ========
 
-  * XPCE: a few minor issues
+  * XPCE: Some cleanup to the `document rendering' library.  Enchanced
+    the `xml_browser' and added to the demo programs.  Show windows in
+    tables.  Some fixes to the Prolog library.
+    
+  * RDF: Allow prefixing anonymous resources (with the base-URL).
 
 Development environment
 =======================
 
-  * Make PceEmacs cross-referencer pick up :- meta_predicate/1 declarations.
+  * Avoid re-colouring errors while showing a popup.
+
+  * Comment XPCE comments.
 
 Short-term Plans
 ================
