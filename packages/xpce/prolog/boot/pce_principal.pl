@@ -123,6 +123,7 @@ pce_ifhostproperty(prolog(sicstus), [
 	      get_implementation/4,
 	      send_class/3,
 	      get_class/4,
+	      new/2,
 	      send/2,
 	      get/3)).
 

@@ -411,7 +411,7 @@ getManSummaryVariable(Variable v)
   { strcat(buf, "\t");
     strcat(buf, strName(v->summary));
   }
-  if ( send(v, NAME_manDocumented, EAV) != FAIL )
+  if ( send(v, NAME_hasHelp, EAV) )
     strcat(buf, " (+)");
 
   answer(CtoString(buf));

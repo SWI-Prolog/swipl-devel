@@ -2111,7 +2111,7 @@ getManSummaryClass(Class cl)
   { strcat(buf, "\t");
     strcat(buf, strName(cl->summary));
   }
-  if ( send(cl, NAME_manDocumented, EAV) != FAIL )
+  if ( send(cl, NAME_hasHelp, EAV) )
     strcat(buf, " (+)");
 
   answer(CtoString(buf));

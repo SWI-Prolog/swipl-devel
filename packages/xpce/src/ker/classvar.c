@@ -485,7 +485,7 @@ getManSummaryClassVariable(ClassVariable cv)
   { strcat(buf, "\t");
     strcat(buf, strName(tmp));
   }
-  if ( send(cv, NAME_manDocumented, EAV) )
+  if ( send(cv, NAME_hasHelp, EAV) )
     strcat(buf, " (+)");
 
   answer(CtoString(buf));

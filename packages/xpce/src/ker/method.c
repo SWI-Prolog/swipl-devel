@@ -370,7 +370,7 @@ getManSummaryMethod(Method m)
   { strcat(buf, "\t");
     strcat(buf, strName(s));
   }
-  if ( send(m, NAME_manDocumented, EAV) )
+  if ( send(m, NAME_hasHelp, EAV) )
     strcat(buf, " (+)");
 
   answer(CtoString(buf));
