@@ -1,3 +1,15 @@
+* FIXED: `image->draw_in' for selected graphicals.  Reported by Frank
+  Cornelissen.
+
+* FIXED: `editor->sort_lines_in_region': memory handling problem (sometimes
+  crached).
+
+* FIXED: `image->save', opening file in wrong mode.  Patch by Frank
+  Cornelissen.  Thanks.
+
+* FIXED: `editor->save_buffer' caused crash if an error occurred during
+  writing the file.
+
 * FIXED: `file<-read' on Windows for not-so-large files and Unix for
   truely large files.  Also a lot faster now.  Reported by Bob Wielinga.
 
