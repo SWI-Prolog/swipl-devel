@@ -67,7 +67,7 @@ rm -f "$abs_to"
 # Now, all can be in vain due to other symbolic links.  If this is the case,
 # link absolute after all.
 
-if (cd `dirname $abs_to` && test -f $relf); then
+if (cd `dirname $abs_to` && test -e $relf); then
    ln -s "$relf" "$abs_to"
 else
    echo "`basename $0`: Making abolute link to $abs_from"

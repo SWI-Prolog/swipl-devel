@@ -48,9 +48,10 @@ vpath %.cxx @srcdir@
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 mansec=1
-mandir=$(prefix)/man/man$(mansec)
-libdir=$(prefix)/lib
-bindir=$(exec_prefix)/bin
+mandir=@mandir@
+smandir=$(mandir)/man$(mansec)
+libdir=@libdir@
+bindir=@bindir@
 
 PCEHOME=@PCEHOME@
 XINCLUDES=@XINCLUDES@
@@ -810,8 +811,8 @@ dv-online:	manindex
 dv-man:
 		for f in xpce-client xpce; do \
 		    $(INSTALL_DATA) ../man/$$f.1 $(DVHOME)/man; \
-		    if test -w $(mandir); then \
-		        $(INSTALL_DATA) ../man/$$f.1 $(mandir)/$$f.$(mansec); \
+		    if test -w $(smandir); then \
+		        $(INSTALL_DATA) ../man/$$f.1 $(smandir)/$$f.$(mansec); \
 		    fi; \
 	        done
 
@@ -835,9 +836,9 @@ dv-qlf:
 
 dv-bins:
 		(cd $(bindir); \
-		 rm -f xpce; ln -s $(PLBINDIR)/xpce xpce)
+		 rm -f xpce; $(REL_LN) $(PLBINDIR)/xpce $(bindir)/xpce)
 		(cd $(bindir); \
-		 rm -f xpce-client; ln -s $(RTBINDIR)/xpce-client xpce-client)
+		 rm -f xpce-client; $(REL_LN) $(RTBINDIR)/xpce-client $(bindir)/xpce-client)
 
 pdf-install::
 html-install::
