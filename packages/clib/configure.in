@@ -130,7 +130,8 @@ AC_CHECK_HEADERS(malloc.h alloca.h unistd.h sys/time.h fcntl.h)
 AC_CHECK_HEADERS(execinfo.h)
 AC_CHECK_FUNCS(setsid strerror setitimer)
 
-AC_ARG_WITH(time, [  --with-time		  Include alarm library],
+with_time=yes
+AC_ARG_WITH(time, [  --without-time		  Exclude alarm library],
 	    [case "$withval" in
 		yes)	with_time=yes ;;
 		no)     with_time=no ;;
