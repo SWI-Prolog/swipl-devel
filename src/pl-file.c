@@ -1998,7 +1998,7 @@ static struct encname
   { ENC_OCTET,       ATOM_octet },
   { ENC_ASCII,       ATOM_ascii },
   { ENC_ISO_LATIN_1, ATOM_iso_latin_1 },
-  { ENC_ANSI,	     ATOM_ansi },
+  { ENC_ANSI,	     ATOM_text },
   { ENC_UTF8,        ATOM_utf8 },
   { ENC_UNICODE_BE,  ATOM_unicode_be },
   { ENC_UNICODE_LE,  ATOM_unicode_le },
@@ -3938,8 +3938,8 @@ pl_copy_stream_data3(term_t in, term_t out, term_t len)
   }
 
   if ( !len )
-  { while ( (c = Sgetc(i)) != EOF )
-    { if ( Sputc(c, o) < 0 )
+  { while ( (c = Sgetcode(i)) != EOF )
+    { if ( Sputcode(c, o) < 0 )
       { releaseStream(i);
 	return streamStatus(o);
       }
@@ -3950,8 +3950,8 @@ pl_copy_stream_data3(term_t in, term_t out, term_t len)
     if ( !PL_get_long_ex(len, &n) )
       fail;
     
-    while ( n-- > 0 && (c = Sgetc(i)) != EOF )
-    { if ( Sputc(c, o) < 0 )
+    while ( n-- > 0 && (c = Sgetcode(i)) != EOF )
+    { if ( Sputcode(c, o) < 0 )
       { releaseStream(i);
 	return streamStatus(o);
       }

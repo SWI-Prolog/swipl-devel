@@ -13,6 +13,7 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- Added encoding property on streams, allowing for
 
 		- ISO Latin-1
+		- C-library default multibyte encoding
 		- UTF-8
 		- UNICODE (LE/BE)
 
@@ -29,7 +30,6 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- Incomplete support in packages
 		- ODBC
 		- Filenames, window titles, etc. in XPCE
-	- Clear vision on handling non-iso-latin-1 8-bit codepages
 
   * More constraint libraries
 

@@ -1690,12 +1690,16 @@ well as all the other text I/O predicates.
 The default encoding for files is derived from the Prolog flag
 \const{encoding}, which is initialised from the environment.  If the
 environment variable \const{LANG} ends in "UTF-8", this encoding is
-assumed.  Otherwise the default is ISO Latin-1.  The encoding can
-be specified explicitely in load_files/2 for loading Prolog source
-with an alternative encoding, open/4 when opening files or using
-set_stream/2 on any open stream.  For Prolog sourcefiles we also
+assumed. Otherwise the default is \const{text} and the translation
+is left to the wide-character functions of the C-library.
+	\footnote{The Prolog native UTF-8 mode is considerably faster
+		  than the generic mbrtowc() one.}
+The encoding can be specified explicitely in load_files/2 for loading
+Prolog source with an alternative encoding, open/4 when opening files or
+using set_stream/2 on any open stream. For Prolog sourcefiles we also
 provide the encoding/1 directive that can be used to switch between
-UTF-8 and ISO Latin-1 inside the file.
+encodings that are compatible to US-ASCII (\const{ascii},
+\const{iso_latin_1}, \const{utf8} and many locales).
 
 SWI-Prolog currently defines and supports the following encodings:
 
@@ -1712,6 +1716,13 @@ but generates errors and warnings on encountering values above
     \termitem{iso_latin_1}{}
 8-bit encoding supporting many western languages.  This causes
 the stream to be read and written fully untranslated.
+
+    \termitem{text}
+C-library default locale encoding for textfiles.  Files are read and
+written using the C-library functions mbrtowc() and wcrtomb().  This
+maye be the same as one of the other locales, notably it may be the
+same as \const{iso_latin_1} for western languages and \const{utf8}
+in a UTF-8 context.
 
     \termitem{utf8}{}
 Multi-byte encoding of full UCS, compatible to \const{ascii}.

@@ -638,7 +638,7 @@ initEncoding()
   { if ( !LD->encoding )
     { char *enc = getenv("LANG");
 
-      LD->encoding = ENC_ISO_LATIN_1;
+      LD->encoding = ENC_ANSI;		/* text encoding */
 
       if ( enc )
       { int l = strlen(enc);

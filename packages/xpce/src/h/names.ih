@@ -2392,3 +2392,4 @@
 #define NAME_yref (&builtin_names[2391])
 #define NAME_yrefVar (&builtin_names[2392])
 #define NAME_zoom (&builtin_names[2393])
+#define NAME_octet (&builtin_names[2394])

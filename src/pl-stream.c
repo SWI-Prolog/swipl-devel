@@ -817,6 +817,17 @@ out:
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) For ENC_ANSI there is  a  problem   as  this  deals with multi-modal
+streams, streams that  may  hold  escape   sequences  to  move  from one
+character set to another: ascii  ...   <esc1>  japanese <esc2> ascii ...
+Suppose now we have two characters   [ascii, japanese]. When reading the
+japanese character the  first  time,  the   system  will  translate  the
+<esc><japanese> and the mode will be   japanese. When pushing back, only
+the japanese character will be put back,   not the escape sequence. What
+to do?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 Sungetcode(int c, IOSTREAM *s)
 { switch(s->encoding)
@@ -834,7 +845,7 @@ Sungetcode(int c, IOSTREAM *s)
       if ( c >= 128 )
 	return -1;			/* illegal */
       goto simple;
-    case ENC_ANSI:
+    case ENC_ANSI:			/* (*) See above */
     { char b[MB_CUR_MAX];
       int n;
 
@@ -845,11 +856,11 @@ Sungetcode(int c, IOSTREAM *s)
       }
 
       if ( (n = wcrtomb(b, c, s->mbstate)) > 0  &&
-	   ( s->bufp - s->unbuffer >= n ) )
+	   s->bufp - s->unbuffer >= n )
       { int i;
 
 	for(i=n-1; i>=0; i--)
-	{ *--s->bufp = b[n];
+	{ *--s->bufp = b[i];
 	}
 
         return c;

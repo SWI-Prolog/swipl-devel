@@ -64,8 +64,10 @@ typedef struct encname
 
 
 static const encname enc_names[] = 
-{ { NAME_binary,	ENC_OCTET },
+{ { NAME_octet,		ENC_OCTET },
+  { NAME_ascii,		ENC_ASCII },
   { NAME_iso_latin_1,   ENC_ISO_LATIN_1 },
+  { NAME_text,   	ENC_ANSI },
   { NAME_utf8,		ENC_UTF8 },
   { NAME_unicodeBe,	ENC_UNICODE_BE },
   { NAME_unicodeLe,	ENC_UNICODE_LE },

@@ -379,6 +379,13 @@ typedef int mode_t;
 /* Format for int64_t */
 #define INT64_FORMAT "%I64d"
 
+/* Define to 1 if you have the <locale.h> header file. */
+#define HAVE_LOCALE_H 1
+
+/* Define to 1 if you have the `setlocale' function. */
+#define HAVE_SETLOCALE 1
+
+
 		 /*******************************
 		 *	     FUNCTIONS		*
 		 *******************************/
