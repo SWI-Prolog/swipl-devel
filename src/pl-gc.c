@@ -609,23 +609,32 @@ variables as defined  in  pl-gvar.c.  We   cannot  mark  and  sweep  the
 hash-table itself as the  reversed   pointers  cannot  address arbitrary
 addresses returned by allocHeap(). Therefore we   turn all references to
 the global stack  into  term-references  and   reply  on  the  available
-mark-and-sweep for foreign references. If none   of  the global variable
-refers to the global stack we  can   `unfreeze'  the  global stack right
-away.
+mark-and-sweep for foreign references.
+
+If none of the global  variable  refers   to  the  global stack we could
+`unfreeze' the global stack, except  we   may  have used nb_setarg/3. We
+could enhance on this by introducing  a   `melt-bar'  set  to the lowest
+location which we assigned using nb_setarg/3.   If backtracking takes us
+before  that  point  we  safely  know  there  are  no  terms  left  with
+nb_setarg/3  assignments.  As  the  merged   backtrackable  global  vars
+implementation also causes freezing of the  stacks it it uncertain there
+is much to gain with this approach.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static fid_t
 gvars_to_term_refs(Word **saved_bar_at)
 { GET_LD
+  fid_t fid;
+  Word *sb;
 
   *saved_bar_at = NULL;
 
-  if ( LD->gvar.nb_vars )
-  { fid_t fid = PL_open_foreign_frame();
-    TableEnum e = newTableEnum(LD->gvar.nb_vars);
+  if ( LD->gvar.nb_vars && LD->gvar.grefs > 0 )
+  { TableEnum e = newTableEnum(LD->gvar.nb_vars);
     int found = 0;
     Symbol s;
 
+    fid = PL_open_foreign_frame();
     while( (s=advanceTableEnum(e)) )
     { Word p = (Word)&s->value;
 
@@ -638,27 +647,21 @@ gvars_to_term_refs(Word **saved_bar_at)
     }
 
     freeTableEnum(e);
+    assert(LD->gvar.grefs == found);
 
-    if ( found )
-    { Word *sb = (Word*)lTop;
+    DEBUG(0, Sdprintf("Found %d global vars on global stack. "
+		      "stored in frame %p\n", found, fli_context));
+  } else
+    fid = 0;
 
-      DEBUG(0, Sdprintf("Found %d global vars on global stack. "
-			"stored in frame %p\n", found, fli_context));
-      
-      lTop = (LocalFrame)(sb+1);
-      *sb = LD->frozen_bar;
-      *saved_bar_at = sb;
+  if ( LD->frozen_bar )
+  { sb = (Word*)lTop;
+    lTop = (LocalFrame)(sb+1);
+    *sb = LD->frozen_bar;
+    *saved_bar_at = sb;
+  }
 
-      return fid;
-    } else
-    { LD->frozen_bar = 0;		/* unless used elsewhere */
-      PL_close_foreign_frame(fid);
-      return 0;
-    }
-  } else			/* other use is nb_setarg/3, but */
-    LD->frozen_bar = 0;		/* term is always accessible otherwise */
-
-  return 0;
+  return fid;
 }
 
 

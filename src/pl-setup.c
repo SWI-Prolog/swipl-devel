@@ -947,7 +947,6 @@ emptyStacks()
   LD->attvar.tail       = PL_new_term_ref();
 #endif
 #ifdef O_GVAR
-  LD->gvar.b_vars	= PL_new_term_ref();
   destroyGlobalVars();
 #endif
 

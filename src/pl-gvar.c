@@ -29,173 +29,6 @@
 #undef LD
 #define LD LOCAL_LD
 
-#define MERGED_GVARS 1
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Two implementations of backtrackable global   variables are supported by
-this module. Initially, backtrackable   and  non-backtrackable variables
-were  different  entities  using  different   tables.  Using  the  macro
-MERGED_GVARS, backtrackable and non-backtrackable   global variables are
-the same and it  is  only  the   _assignment_  that  is  different. I.e.
-nb_getval/2  and  b_getval/2  are  synonyms,    but  the  assignment  of
-b_setval/2  is  reversed  on  backtracking,   while  the  assignment  by
-nb_setval/2 is kept. The latter model is fully compatibel to hProlog.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifndef MERGED_GVARS
-
-		 /*******************************
-		 *  BACKTRACKABLE GLOBAL VARS	*
-		 *******************************/
-
-#ifndef GVAR_HASHSIZE
-#define GVAR_HASHSIZE 256
-#endif
-
-static int
-find_var(Word l, atom_t name, Word *vp ARG_LD)
-{ for(;;)
-  { deRef(l);
-    
-    if ( isNil(*l) )
-    { *vp = l;
-      fail;
-    } else if ( isTerm(*l) )
-    { Functor f = valueTerm(*l);
-
-      if ( f->definition == FUNCTOR_att3 )
-      { Word n;
-
-	deRef2(&f->arguments[0], n);
-	if ( *n == name )
-	{ *vp = &f->arguments[1];
-
-	  succeed;
-	} else
-	{ l = &f->arguments[2];
-	}
-      } else
-      { *vp = NULL;			/* bad attribute list */
-	fail;
-      }
-    } else
-    { *vp = NULL;			/* bad attribute list */
-      fail;
-    }
-  }
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-b_setval(+VarName, +Value)
-
-Assign a backtrackable global variable. We must  be a bit careful as the
-assigned value might be a variable living on the local stack, so we must
-make the reference point the right way just as with unify().
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static
-PRED_IMPL("b_setval", 2, b_setval, 0)
-{ PRED_LD
-  atom_t name;
-  Word t;
-
-  if ( !PL_get_atom_ex(A1, &name) )
-    fail;
-
-  t = valTermRef(LD->gvar.b_vars);
-  deRef(t);
-  
-  if ( isVar(*t) )			/* first global variable */
-  { Word table = allocGlobal(GVAR_HASHSIZE+1);
-    int i;
-
-    table[0] = PL_new_functor(ATOM_gvar, GVAR_HASHSIZE);
-    for(i=1; i<=GVAR_HASHSIZE; i++)
-      table[i] = ATOM_nil;
-	
-    t = valTermRef(LD->gvar.b_vars);
-    deRef(t);
-    *t = consPtr(table, TAG_COMPOUND|STG_GLOBAL);
-    Trail(t);
-  }
-
-  requireStack(global, 4*sizeof(word));
-
-  if ( isTerm(*t) )
-  { Functor f = valueTerm(*t);
-    int arity = arityFunctor(f->definition);
-    unsigned int key = (unsigned int)atomValue(name)->hash_value % arity;
-    Word l = &f->arguments[key];
-    Word vp, v, xp;
-
-    v = valTermRef(A2);			/* the value */
-    deRef(v);
-
-    if ( find_var(l, name, &vp PASS_LD) )
-    { TrailAssignment(vp);
-      setVar(*vp);
-      xp = vp;
-    } else if ( vp )
-    { Word at = allocGlobalNoShift(4);
-
-      at[0] = FUNCTOR_att3;
-      at[1] = name;
-      setVar(at[2]);
-      at[3] = ATOM_nil;
-      xp = &at[2];
-
-      TrailAssignment(vp);
-      *vp = consPtr(at, TAG_COMPOUND|STG_GLOBAL);
-    } else
-    { assert(0);
-    }
-
-    if ( isVar(*v) )
-    { if ( xp < v )
-	*v = makeRef(xp);
-      else
-	*xp = makeRef(v);
-    } else
-      *xp = needsRef(*v) ? makeRef(v) : *v;
-
-    succeed;
-  }
-
-  assert(0);
-  fail;
-}
-
-
-static
-PRED_IMPL("b_getval", 2, b_getval, 0)
-{ PRED_LD
-  atom_t name;
-  Word t;
-
-  if ( !PL_get_atom_ex(A1, &name) )
-    fail;
-  
-  t = valTermRef(LD->gvar.b_vars);
-  deRef(t);
-
-  if ( isTerm(*t) )
-  { Functor f = valueTerm(*t);
-    int arity = arityFunctor(f->definition);
-    unsigned int key = (unsigned int)atomValue(name)->hash_value % arity;
-    Word l = &f->arguments[key];
-    Word vp;
-
-    if ( find_var(l, name, &vp PASS_LD) )
-      return unify_ptrs(valTermRef(A2), vp PASS_LD);
-  }
-
-  return PL_error("b_getval", 2, NULL, ERR_EXISTENCE,
-		  ATOM_variable, A1);
-}
-
-#endif /*MERGED_GVARS*/
-
 
 		 /*******************************
 		 * NON-BACKTRACKABLE GLOBAL VARS*
@@ -218,7 +51,8 @@ destroyGlobalVars()
     LD->gvar.nb_vars = NULL;
   }
 
-  LD->frozen_bar = NULL;		/* unless used otherwise! */
+  LD->gvar.grefs = 0;
+  LD->frozen_bar = NULL;
 }
 
 
@@ -228,6 +62,10 @@ free_nb_linkval_symbol(Symbol s)
 
   if ( isAtom(w) )
     PL_unregister_atom(w);
+  else if ( storage(w) == STG_GLOBAL )
+  { GET_LD
+    LD->gvar.grefs--;
+  }
 
   PL_unregister_atom((atom_t)s->name);
 }
@@ -292,18 +130,24 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
     { Word p = allocGlobal(1);
       *p = old;
       freezeGlobal(PASS_LD1);
+      if ( storage(old) != STG_GLOBAL )
+	LD->gvar.grefs++;
       s->value = (void*)makeRefG(p);
       TrailAssignment(p);
       *p = w;
     }
   } else
-  { s->value = (void *)w;
-  }
+  { if ( storage(old) == STG_GLOBAL )
+      LD->gvar.grefs--;
 
-  if ( storage(w) == STG_GLOBAL )
-    freezeGlobal(PASS_LD1);
-  else if ( isAtom(w) )
-    PL_register_atom(w);
+    s->value = (void *)w;
+
+    if ( storage(w) == STG_GLOBAL )
+    { freezeGlobal(PASS_LD1);
+      LD->gvar.grefs++;
+    } else if ( isAtom(w) )
+      PL_register_atom(w);
+  }
 
   succeed;
 }
@@ -347,8 +191,6 @@ PRED_IMPL("nb_getval", 2, nb_getval, 0)
 }
 
 
-#ifdef MERGED_GVARS
-
 static
 PRED_IMPL("b_setval", 2, b_setval, 0)
 { PRED_LD
@@ -362,8 +204,6 @@ PRED_IMPL("b_getval", 2, b_getval, 0)
   
   return getval(A1, A2 PASS_LD);
 }
-
-#endif /*MERGED_GVARS*/
 
 
 static

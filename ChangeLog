@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: nb_setarg/3 using compound terms.
+
   * FIXED: Attributes should influence the standard order of terms for
     variables.
 
