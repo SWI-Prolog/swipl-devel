@@ -132,6 +132,7 @@ typedef struct xpce_font_info *XpceFontInfo;
 struct xpce_font_info
 { XFontStruct  *info;			/* the X info structure */
   cwidth       *widths;			/* array of ints for the widths */
+  int		maxchar;		/* maximum char value */
 };
 
 		/********************************
@@ -160,6 +161,7 @@ struct draw_context
   Image		and_pattern;		/* Current andpattern */
   FontObj	font;			/* Current font */
   XFontStruct * font_info;		/* X-font for this display */
+  wint_t	maxchar;		/* max char value for font */
   cwidth      * char_widths;		/* array with widths of characters */
   Any		colour;			/* Current colour */
   Any		background;		/* Current background colour */

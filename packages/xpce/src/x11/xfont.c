@@ -105,16 +105,19 @@ ws_create_font(FontObj f, DisplayObj d)
 { XFontStruct *info;
   XpceFontInfo xref;
   DisplayWsXref r = d->ws_ref;
+  int iswide;
 
   if ( !instanceOfObject(f->x_name, ClassCharArray) )
     fail;
 
   if ( (info = XLoadQueryFont(r->display_xref, strName(f->x_name))) == NULL )
     return replaceFont(f, d);
-
-  xref = alloc(sizeof(struct xpce_font_info));
-  xref->info = info;
-  xref->widths = make_font_char_widths(info);
+  iswide = (info->min_byte1 != 0 || info->max_byte1 != 0);
+  
+  xref = alloc(sizeof(*xref));
+  xref->info    = info;
+  xref->widths  = make_font_char_widths(info);
+  xref->maxchar = iswide ? 0xffff : 0xff;
 
   if ( info->per_char != NULL )
   { int oi = 'i' - info->min_char_or_byte2;
@@ -128,12 +131,7 @@ ws_create_font(FontObj f, DisplayObj d)
   } else
     assign(f, fixed_width, ON);
 
-					/* 16-bit: use max-bounds */
-  if ( info->min_byte1 != 0 || info->max_byte1 != 0 )
-  { assign(f, ex, toInt(info->max_bounds.width));
-    assign(f, iswide, ON);
-  } else
-    assign(f, iswide, OFF);
+  assign(f, iswide, iswide ? ON : OFF);
 
   return registerXrefObject(f, d, xref);
 }

@@ -505,10 +505,43 @@ getDeleteSuffixName(Name n, Name suffix)
 static int str_eq_failed;
 #endif
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Note that the encoding of a name   is canonical. I.e. iff all characters
+are < 256, it is an  ISO  Latin-1   string  and  otherwise  it is a wide
+character string.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 Name
 StringToName(String s)
 { int hashkey = stringHashValue(s);
   Name *namep;
+  string s2;
+  void *do_free = NULL;
+  Name name;
+
+  if ( s->iswide )
+  { const charW *txt = s->s_textW;
+    const charW *end = &txt[s->size];
+    charA *p;
+
+    for( ; txt < end; txt++ )
+    { if ( *txt > 0xff )
+	goto canonical;
+    }
+
+    str_inithdr(&s2, ENC_ISOL1);
+    if ( !(s2.s_textA = alloca(s->size)) )
+    { s2.s_textA = pceMalloc(s->size);
+      do_free = s2.s_textA;
+    }
+    for(txt = s->s_textW, p = s2.s_textA; txt < end; )
+      *p++ = *txt++;
+
+    s = &s2;
+  }
+
+canonical:
 
   for( namep = &name_table[hashkey]; *namep; )
   { if ( str_eq(&(*namep)->data, s) )
@@ -525,7 +558,7 @@ StringToName(String s)
   }
 
   if ( inBoot )
-  { Name name = alloc(sizeof(struct name));
+  { name = alloc(sizeof(struct name));
     initHeaderObj(name, ClassName);
 
     str_cphdr(&name->data, s);
@@ -533,17 +566,18 @@ StringToName(String s)
     str_ncpy(&name->data, 0, s, 0, s->size);
     registerName(name);
     createdObject(name, (Name)NAME_new);
-
-    answer(name);
   } else
   { CharArray scratch = StringToScratchCharArray(s);
-    Name name;
 
     ServiceMode(PCE_EXEC_SERVICE, name = newObject(ClassName, scratch, EAV));
 
     doneScratchCharArray(scratch);
-    return name;
   }
+
+  if ( do_free )
+    pceFree(do_free);
+
+  answer(name);
 }
 
 

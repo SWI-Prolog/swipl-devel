@@ -2499,8 +2499,9 @@ s_font(FontObj f)
     context.gcs->font = f;
 
     info = (XpceFontInfo) getXrefObject(f, context.pceDisplay);
-    context.gcs->font_info = info->info;
+    context.gcs->font_info   = info->info;
     context.gcs->char_widths = info->widths;
+    context.gcs->maxchar     = info->maxchar;
 
     XSetFont(context.display, context.gcs->workGC,
 	     context.gcs->font_info->fid);
@@ -2594,7 +2595,7 @@ s_width_(String s, int from, int to)
   { return context.gcs->font_info->max_bounds.width * (to-from);
   } else
   { cwidth *widths = context.gcs->char_widths;
-    int width;
+    int width = 0;
     int n = to-from;
 
     if ( from >= to )
@@ -2603,27 +2604,20 @@ s_width_(String s, int from, int to)
     if ( isstrA(s) )
     { charA *q = &s->s_textA[from];
 
-      width = lbearing(*q, context.gcs->font_info);
-#if 0
-      for(; n-- > 1; q++)
-	width += widths[*q];
-      width += rbearing(*q, context.gcs->font_info);
-#else
       for(; n-- > 0; q++)
 	width += widths[*q];
-#endif
     } else
     { charW *q = &s->s_textW[from];
+      wint_t maxchr = context.gcs->maxchar;
 
-      width = lbearing(*q, context.gcs->font_info);
-#if 0
-      for(; n-- > 1; q++)
-	width += widths[*q];
-      width += rbearing(*q, context.gcs->font_info);
-#else
       for(; n-- > 0; q++)
-	width += widths[*q];
-#endif
+      { wint_t c = *q;
+
+	if ( c > maxchr )
+	  c = ' ';
+
+	width += widths[c];
+      }
     }
 
     return width;
@@ -2633,25 +2627,7 @@ s_width_(String s, int from, int to)
 
 int
 str_width(String s, int from, int to, FontObj f)
-{ string s2;
-
-  s_font(f);
-
-  if ( f->iswide == ON && isstrA(s) )
-  { s2 = *s;
-    s2.iswide = TRUE;
-    s2.size /= 2;
-    from /= 2;
-    to /= 2;
-    s = &s2;
-  } else if ( f->iswide != ON && !isstrA(s) )
-  { s2 = *s;
-    s2.iswide = FALSE;
-    s2.size *= 2;
-    from *= 2;
-    to *= 2;
-    s = &s2;
-  }
+{ s_font(f);
 
   if ( from < 0 )
     from = 0;
@@ -2660,7 +2636,14 @@ str_width(String s, int from, int to, FontObj f)
   if ( to > s->size )
     to = s->size;
 
-  return s_width_(s, from, to);
+  if ( to > from )
+  { int w = lbearing(str_fetch(s,0), context.gcs->font_info);
+
+    w += s_width_(s, from, to);
+    return w;
+  }
+
+  return 0;
 }
 
 
@@ -2669,27 +2652,17 @@ str_advance(String s, int from, int to, FontObj f)
 { if ( f ) 
     s_font(f);
 
-  if ( !context.gcs->char_widths )
-  { return context.gcs->font_info->max_bounds.width * (to-from);
-  } else
-  { cwidth *widths = context.gcs->char_widths;
-    int width = 0;
-    int n = to-from;
+  if ( from < 0 )
+    from = 0;
+  if ( from >= s->size || to <= from )
+    return 0;
+  if ( to > s->size )
+    to = s->size;
 
-    if ( isstrA(s) )
-    { charA *q = &s->s_textA[from];
+  if ( to > from )
+    return s_width_(s, from, to);
 
-      for(; n-- > 0; q++)
-	width += widths[*q];
-    } else
-    { charW *q = &s->s_textW[from];
-
-      for(; n-- > 0; q++)
-	width += widths[*q];
-    }
-
-    return width;
-  }
+  return 0;
 }
 
 
@@ -2707,10 +2680,19 @@ s_print8(charA *s, int l, int x, int y, FontObj f)
 void
 s_print16(charW *s, int l, int x, int y, FontObj f)
 { if ( l > 0 )
-  { Translate(x, y);
+  { XChar2b *ws = alloca(l*sizeof(XChar2b));
+    int i;
+
+    Translate(x, y);
     s_font(f);
+
+    for(i=0; i<l; i++)
+    { ws[i].byte1 = (s[i]>>8) & 0xff;
+      ws[i].byte2 = s[i] & 0xff;
+    }
+
     XDrawString16(context.display, context.drawable, context.gcs->workGC,
-		  x, y, (XChar2b *)s, l);
+		  x, y, ws, l);
   }
 }
 
@@ -2739,10 +2721,66 @@ s_print_aligned(String s, int x, int y, FontObj f)
 
 
 static void
+str_draw_text(String s, int offset, int len, int x, int y)
+{ if ( s->size > 0 )
+  { if ( context.gcs->font->iswide == ON )
+    { XChar2b *ws = alloca(s->size * sizeof(XChar2b));
+
+      if ( isstrA(s) )
+      { const charA *f = s->s_textA;
+	int i;
+
+	for(i=0; i<s->size; i++)
+	{ ws[i].byte1 = 0;
+	  ws[i].byte2 = f[i];
+	}
+      } else
+      { const charW *f = s->s_textW;
+	int i;
+
+	for(i=0; i<s->size; i++)
+	{ ws[i].byte1 = (f[i]>>8) & 0xff;
+	  ws[i].byte2 = f[i]&0xff;
+	}
+      }
+      XDrawString16(context.display, context.drawable, context.gcs->workGC,
+		    x, y, ws, s->size);
+    } else
+    { charA *txt;
+
+      if ( isstrA(s) )
+      { txt = s->s_textA;
+      } else
+      { const charW *f = s->s_textW;
+	int i;
+
+	Cprintf("Drawing wide character text with 8-bit font\n");
+
+	txt = alloca(s->size);
+	for(i=0; i<s->size; i++)
+	  txt[i] = f[i] & 0xff;
+      }
+      XDrawString(context.display, context.drawable, context.gcs->workGC,
+		  x, y, txt, s->size);
+    }
+  }
+}
+
+
+static void
+str_text(String s, int x, int y)
+{ if ( s->size > 0 )
+  { x += lbearing(str_fetch(s, 0), context.gcs->font_info);
+
+    str_draw_text(s, 0, s->size, x, y);
+  }
+}
+
+
+static void
 str_stext(String s, int f, int len, int x, int y, Style style)
 { if ( len > 0 )
-  { string s2;
-    Any ofg = NULL;
+  { Any ofg = NULL;
     int w = 0;				/* make compiler happy */
 
     if ( notNil(style) )
@@ -2760,29 +2798,7 @@ str_stext(String s, int f, int len, int x, int y, Style style)
 	ofg = r_colour(style->colour);
     }
 
-    if ( context.gcs->font->iswide == ON )
-    { if ( isstrA(s) )
-      { s2 = *s;
-	s2.size /= 2;
-	s2.iswide = TRUE;
-	s = &s2;
-	len /= 2;
-	f /= 2;
-      }
-      XDrawString16(context.display, context.drawable, context.gcs->workGC,
-		    x, y, (XChar2b *)s->s_textW+f, len);
-    } else
-    { if ( isstrW(s) )
-      { s2 = *s;
-	s2.size *= 2;
-	s2.iswide = FALSE;
-	s = &s2;
-	len *= 2;
-	f *= 2;
-      }
-      XDrawString(context.display, context.drawable, context.gcs->workGC,
-		  x, y, s->s_textA+f, len);
-    }
+    str_draw_text(s, f, len, x, y);
 
     if (  notNil(style) && style->attributes & TXT_UNDERLINED )
       XDrawLine(context.display, context.drawable, context.gcs->workGC,
@@ -2790,36 +2806,6 @@ str_stext(String s, int f, int len, int x, int y, Style style)
 
     if ( ofg )
       r_colour(ofg);
-  }
-}
-
-
-static void
-str_text(String s, int x, int y)
-{ if ( s->size > 0 )
-  { string s2;
-
-    if ( context.gcs->font->iswide == ON )
-    { if ( isstrA(s) )
-      { s2 = *s;
-	s2.size /= 2;
-	s2.iswide = TRUE;
-	s = &s2;
-      }
-      x += lbearing(str_fetch(s, 0), context.gcs->font_info);
-      XDrawString16(context.display, context.drawable, context.gcs->workGC,
-		    x, y, (XChar2b *)s->s_textW, s->size);
-    } else
-    { if ( isstrW(s) )
-      { s2 = *s;
-	s2.size *= 2;
-	s2.iswide = FALSE;
-	s = &s2;
-      }
-      x += lbearing(str_fetch(s, 0), context.gcs->font_info);
-      XDrawString(context.display, context.drawable, context.gcs->workGC,
-		  x, y, s->s_textA, s->size);
-    }
   }
 }
 
@@ -2932,10 +2918,15 @@ str_size(String s, FontObj font, int *width, int *height)
 
   str_break_into_lines(s, lines, &nlines);
   for(n = 0, line = lines; n++ < nlines; line++)
-  { int lw = s_width_(&line->text, 0, line->text.size);
+  { if ( line->text.size > 0 )
+    { int lw;
+
+      lw = lbearing(str_fetch(&line->text, 0), context.gcs->font_info);
+      lw += s_width_(&line->text, 0, line->text.size);
     
-    if ( w < lw )
-      w = lw;
+      if ( w < lw )
+	w = lw;
+    }
   }
   
   *width  = w;
