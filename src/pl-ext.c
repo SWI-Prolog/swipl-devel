@@ -403,6 +403,7 @@ static const struct foreign {
   FRG("$atom_hashstat",		2, pl_atom_hashstat,		TRACE_ME),
   FRG("$current_prolog_flag",	5, pl_feature5,		   NDET|TRACE_ME),
   FRG("current_prolog_flag",	2, pl_feature,		   NDET|TRACE_ME),
+  FRG("deterministic",		0, pl_deterministic,		TRACE_ME),
   FRG("set_prolog_flag",	2, pl_set_feature,		TRACE_ME),
   FRG("trim_stacks",		0, pl_trim_stacks,		TRACE_ME),
 #if O_SHIFT_STACKS

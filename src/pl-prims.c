@@ -103,6 +103,22 @@ pl_callable(term_t k)
   fail;
 }
 
+		 /*******************************
+		 *	 META-CALL SUPPORT	*
+		 *******************************/
+
+word
+pl_deterministic(void)
+{ LocalFrame FR  = environment_frame;
+  Choice     BFR = LD->choicepoints;
+
+  if ( (void *)BFR < (void *)FR )
+    succeed;
+
+  fail;
+}
+
+
 #ifdef O_HASHTERM
 		 /*******************************
 		 *	    HASH-TERM		*

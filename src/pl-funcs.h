@@ -479,6 +479,7 @@ word		pl_atomic(term_t k);
 word		pl_ground(term_t term);
 word		pl_compound(term_t term);
 word		pl_callable(term_t term);
+word		pl_deterministic(void);
 #ifdef O_HASHTERM
 word		pl_hash_term(term_t term, term_t hval);
 #endif
