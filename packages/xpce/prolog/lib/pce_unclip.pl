@@ -142,7 +142,10 @@ detach(W) :->
 
 unclipped_event(W, Ev:event) :->
 	(   send(Ev, is_a, loc_move),
-	    \+ send(Ev, inside, W)
+	    (	\+ send(Ev, inside, W)
+	    ;	get(W, hypered, mirroring, Gr),
+		\+ send(Ev, inside, Gr?window)
+	    )
 	->  send(W, detach)
 	;   (   send(Ev, is_a, button)
 	    ;	send(Ev, is_a, keyboard)

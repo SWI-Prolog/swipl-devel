@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* MODIFIED: library(pce_unclip) to detach if the pointer leaves the original
+  window.  Avoids event processing problems.
+
 * PORT: Socket library tests for IRIX 6.5.  Rob Myers.
 
 * FIXED: Demo ispell file-open (Kip Rugger).
