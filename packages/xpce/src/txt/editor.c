@@ -1467,6 +1467,9 @@ cuaKeyAsPrefixEditor(Editor e, EventObj ev)
   if ( !HasSelection(e) )
     succeed;
   
+  if ( ws_wait_for_key(250) )
+    succeed;
+
   fail;
 }
 

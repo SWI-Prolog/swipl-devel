@@ -221,10 +221,6 @@ cuaKeyAsPrefixKeyBinding(KeyBinding kb, EventObj ev, Graphical receiver)
        send(receiver, NAME_cuaKeyAsPrefix, ev, EAV) )
     succeed;
     
-  if ( ws_wait_for_key(250) )
-  { succeed;
-  }
-
   fail;
 }
 
