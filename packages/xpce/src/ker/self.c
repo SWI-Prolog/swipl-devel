@@ -1053,6 +1053,42 @@ renameReferencePce(Pce pce, Name old, Name new)
 }
 
 
+static Any
+getVersionPce(Pce pce, Name how)
+{ if ( isDefault(how) || how == NAME_string )
+    answer(pce->version);
+  if ( how == NAME_name )
+  { char *s = strName(pce->version);
+    char *q = s;
+    char v[100];
+    int n;
+
+    for(n=0; n<3; n++)
+    { while(*q && isdigit(*q))
+	q++;
+      if ( *q == '.' )
+	q++;
+    }
+    if ( q > s && q[-1] == '.' )
+      q--;
+    assert(q+1-s < sizeof(v));
+    strncpy(v, s, q-s);
+    v[q-s] = EOS;
+
+    answer(CtoName(v));
+  } else /* if ( how == NAME_number ) */
+  { int major, minor, patchlevel;
+    char *s = strName(pce->version);
+
+    if ( sscanf(s, "%d.%d.%d", &major, &minor, &patchlevel) == 3 )
+    { answer(toInt(major*10000+minor*100+patchlevel));
+    }
+
+    assert(0);
+  }
+}
+
+
 status
 makeClassPce(Class class)
 { sourceClass(class, makeClassPce, __FILE__, "$Revision$");
@@ -1079,7 +1115,7 @@ makeClassPce(Class class)
   localClass(class, NAME_home, NAME_environment, "name", NAME_both,
 	     "PCE's home directory");
 
-  localClass(class, NAME_version, NAME_version, "name", NAME_get,
+  localClass(class, NAME_version, NAME_version, "name", NAME_none,
 	     "Version indication");
   localClass(class, NAME_machine, NAME_version, "name", NAME_get,
 	     "Name of this machine/architecture");
@@ -1252,6 +1288,10 @@ makeClassPce(Class class)
   getMethod(class, NAME_methodCalls, NAME_statistics, "calls=int", 0,
 	    "Number of methods called",
 	    getMethodCallsPce);
+  getMethod(class, NAME_version, NAME_version, "name|int", 1,
+	    "how=[{string,name,number}]",
+	    "Representation of the version number",
+	    getVersionPce);
 
   getMethod(class, NAME_date, NAME_time, "string", 0,
 	    "Unix's standard time string for now",

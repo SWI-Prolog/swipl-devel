@@ -13,6 +13,7 @@
 
 static status	recordInstancesClass(Class class, Bool keep, Bool recursive);
 static status	fill_slots_class(Class class, Class super);
+static Variable	getLocaliseInstanceVariableClass(Class class, Name name);
 
 #ifndef O_RUNTIME
 #define CLASS_PCE_SLOTS 43
@@ -677,6 +678,28 @@ fixSubClassVariableClass(Class class, Variable old, Variable new)
 }
 
 
+static Variable
+getLocaliseInstanceVariableClass(Class class, Name name)
+{ Variable var;
+
+  realiseClass(class);
+  if ( (var = getInstanceVariableClass(class, name)) )
+  { if ( var->context != class )
+    { Variable var2 = getCloneObject(var);
+      assign(var2, context, class);
+      fixSubClassVariableClass(class, var, var2);
+
+      if ( ClassDelegateVariable &&
+	   instanceOfObject(var2, ClassDelegateVariable) )
+	delegateClass(class, var2->name);
+    
+      answer(var2);
+    }
+  }
+
+  answer(var);
+}
+
 status
 instanceVariableClass(Class class, Variable var)
 { Variable old;
@@ -690,12 +713,7 @@ instanceVariableClass(Class class, Variable var)
   { if ( old->context != class )
       errorPce(class, NAME_cannotRefineVariable, var->name);
 
-#ifndef O_RUNTIME
     offset = old->offset;
-#else
-    errorPce(getMethodFromFunction(sendMethodClass), NAME_runtimeVersion);
-    fail;
-#endif
   } else
   { if ( !inBoot )
     { if ( class->no_created != class->no_freed )
@@ -1139,9 +1157,9 @@ cloneStyleClass(Class class, Name style)
 
 status
 cloneStyleVariableClass(Class class, Name slot, Name style)
-{ Variable var = getInstanceVariableClass(class, slot);
+{ Variable var;
 
-  if ( var != FAIL )
+  if ( (var = getLocaliseInstanceVariableClass(class, slot)) )
     return cloneStyleVariable(var, style);
 
   fail;
@@ -1150,9 +1168,9 @@ cloneStyleVariableClass(Class class, Name slot, Name style)
 
 status
 saveStyleVariableClass(Class class, Name slot, Name style)
-{ Variable var = getInstanceVariableClass(class, slot);
+{ Variable var;
 
-  if ( var != FAIL )
+  if ( (var = getLocaliseInstanceVariableClass(class, slot)) )
     return saveStyleVariable(var, style);
 
   fail;
@@ -1346,6 +1364,52 @@ getInstanceVariableClass(Class class, Any which)
 	     });
 
   fail;					/* no such variable */
+}
+
+
+static status
+boundSendMethodClass(Class class, Name name)
+{ if ( class->realised == ON )
+  { Cell cell;
+
+    for_cell(cell, class->send_methods)
+    { SendMethod m = cell->value;
+    
+      if ( m->name == name )
+	succeed;
+    }
+    for_vector(class->instance_variables, Variable var,
+	       { if ( var->name == name &&
+		      sendAccessVariable(var) &&
+		      var->context == class )
+		   succeed;
+	       });
+  }
+
+  fail;
+}
+
+
+static status
+boundGetMethodClass(Class class, Name name)
+{ if ( class->realised == ON )
+  { Cell cell;
+
+    for_cell(cell, class->get_methods)
+    { SendMethod m = cell->value;
+    
+      if ( m->name == name )
+	succeed;
+    }
+    for_vector(class->instance_variables, Variable var,
+	       { if ( var->name == name &&
+		      getAccessVariable(var) &&
+		      var->context == class )
+		   succeed;
+	       });
+  }
+
+  fail;
 }
 
 
@@ -1971,6 +2035,12 @@ makeClassClass(Class class)
 	     "Dummy method",
 	     rtSourceClass);
 #endif
+  sendMethod(class, NAME_boundSendMethod, NAME_cache, 1, "name",
+	     "Test if class defines send_method `name'",
+	     boundSendMethodClass);
+  sendMethod(class, NAME_boundGetMethod, NAME_cache, 1, "name",
+	     "Test if class defines get_method `name'",
+	     boundGetMethodClass);
 
   getMethod(class, NAME_subClass, NAME_oms, "class", 1, "name",
 	    "Create a class below this one (or return existing)",
