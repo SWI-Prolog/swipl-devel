@@ -913,7 +913,11 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
       case EXIT_PORT:	   portname = ATOM_exit;         break;
       case FAIL_PORT:	   portname = ATOM_fail;         break;
       case UNIFY_PORT:	   portname = ATOM_unify;	 break;
-      case EXCEPTION_PORT: portname = ATOM_exception; 	 break;
+      case EXCEPTION_PORT:
+        PL_unify_term(argv,
+		      PL_FUNCTOR, FUNCTOR_exception1,
+		        PL_TERM, LD->exception.pending);
+	break;
       case BREAK_PORT:     portfunc = FUNCTOR_break1;	 break;
       case CUT_CALL_PORT:  portfunc = FUNCTOR_cut_call1; break;
       case CUT_EXIT_PORT:  portfunc = FUNCTOR_cut_exit1; break;
@@ -924,7 +928,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 
     if ( portname )
       PL_put_atom(argv, portname);
-    else
+    else if ( portfunc )
     { int pcn;
 
       if ( PC && false(frame->predicate, FOREIGN) && frame->clause )
