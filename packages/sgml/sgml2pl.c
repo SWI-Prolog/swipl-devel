@@ -1535,48 +1535,44 @@ pl_sgml_parse(term_t parser, term_t options)
       if ( pd->errors > pd->max_errors && pd->max_errors >= 0 ) \
 	return sgml2pl_error(ERR_LIMIT, "max_errors", (long)pd->max_errors);
 
+  if ( pd->stopat == SA_CONTENT && p->empty_element )
+    goto out;
+
   if ( in )
-  { int p0, p1;
+  { int eof = FALSE;
 
     if ( !recursive )
     { pd->source = in;
       begin_document_dtd_parser(p);
     }
 
-    if ( content_length-- == 0 || (p0 = Sgetc(in)) == EOF )
-      goto out;
-    if ( content_length-- == 0 || (p1 = Sgetc(in)) == EOF )
-    { putchar_dtd_parser(p, p0);
-      goto end;
-    }
+    while(!eof)
+    { int c = Sgetc(in);
 
-    for(;;)				/* perform newline handling */
-    { int p2;
+      if ( content_length-- == 0 || Sfeof(in) )
+      { eof = TRUE;
+	if ( c == LF )			/* file ends in LF */
+	  c = CR;
+	else if ( c != CR )		/* file ends in normal char */
+	{ putchar_dtd_parser(p, c);
+	  CHECKERROR;
+	  if ( pd->stopped )
+	    goto stopped;
+	  c = CR;
+	}
+      }
 
-      if ( content_length-- == 0 || (p2 = Sgetc(in)) == EOF )
-      { putchar_dtd_parser(p, p0);
-	if ( p1 != LF )
-	  putchar_dtd_parser(p, p1);
-	else if ( p0 != CR )
-	  putchar_dtd_parser(p, CR);
-
-	break;
-      } 
-  
-      putchar_dtd_parser(p, p0);
+      putchar_dtd_parser(p, c);
       CHECKERROR;
       if ( pd->stopped )
-      { pd->stopped = FALSE;
-	reset_document_dtd_parser(p);	/* ensure a clean start */
-	Sungetc(p2, in);
-	Sungetc(p1, in);
+      { stopped:
+	pd->stopped = FALSE;
+	if ( pd->stopat != SA_CONTENT )
+	  reset_document_dtd_parser(p);	/* ensure a clean start */
 	goto out;
       }
-      p0 = p1;
-      p1 = p2;
     }
 
-  end:
     if ( !recursive && pd->stopat != SA_INPUT )
       end_document_dtd_parser(p);
     CHECKERROR;

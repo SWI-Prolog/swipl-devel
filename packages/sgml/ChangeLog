@@ -1,3 +1,6 @@
+* FIXED: parse(content) option to the parser (multiple bugs) required for
+  process_rdf/3 (Girish Padmalayam).
+
 * FIXED: dtd2pl: printing of NAMEOF and NMTOKEN attributes
   (Joseph Wayne Norton).
 

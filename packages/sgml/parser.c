@@ -3283,17 +3283,24 @@ process_begin_element(dtd_parser *p, const ichar *decl)
     if ( !(p->flags & SGML_PARSER_NODEFS) )
       natts = add_default_attributes(p, e, natts, atts);
 
-    if ( p->on_begin_element )
-      (*p->on_begin_element)(p, e, natts, atts);
-
-    free_attribute_values(natts, atts);
-
     if ( empty ||
 	 (dtd->dialect == DL_SGML &&
 	  e->structure &&
 	  e->structure->type == C_EMPTY &&
 	  !e->undefined) )
+      p->empty_element = e;
+    else
+      p->empty_element = NULL;
+
+    if ( p->on_begin_element )
+      (*p->on_begin_element)(p, e, natts, atts);
+
+    free_attribute_values(natts, atts);
+
+    if ( p->empty_element )
+    { p->empty_element = NULL;
       close_element(p, e, conref);
+    }
 
     return TRUE;
   }
@@ -4364,8 +4371,13 @@ putchar_dtd_parser(dtd_parser *p, int chr)
   if ( f[CF_RS] == chr )
   { p->location.line++;
     p->location.linepos = 0;
-  } 
-  p->location.linepos++;
+  } else
+  { if ( f[CF_RE] == chr )
+      p->location.linepos = 0;
+    else
+      p->location.linepos++;
+  }
+
   p->location.charpos++;
 
 reprocess:

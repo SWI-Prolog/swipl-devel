@@ -166,6 +166,7 @@ typedef struct _dtd_parser
   dtdstate cdata_state;			/* S_CDATA/S_RCDATA */
   dtd_marked *marked;			/* marked section stack */
   marktype mark_state;			/* processing mode */
+  dtd_element *empty_element;		/* empty of <tag/> seen */
   sgml_environment *environments;	/* Open environments */
   data_mode dmode;			/* How to handle characters */
   int	   first;			/* Just seen <tag> */
