@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: 'F' (fail) option to graphical debugger (Feature #51, Holger
+    Kanwischer).
+
   * FIXED: Bug #50: Handle \c<blank*> with character escapes.  Mike Elston.
 
 VERSION 5.1.13 (May 19, 2003)

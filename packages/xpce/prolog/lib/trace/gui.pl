@@ -478,6 +478,7 @@ button(gap,	       -,     -,		     -).
 button(nodebug,	       "n",   'nodebug.xpm',	     'Continue without debugging').
 button(+query,	       "b",   'break.xpm',	     'Enter a query').
 button(abort,	       "a",   'abort.xpm',	     'Abort to the Prolog toplevel').
+button(fail,	       "F",   'fail.xpm',	     'Force query to fail').
 button(gap,	       -,     -,		     -).
 button(+up,	       "u",   'up.xpm',		     'Select child frame').
 button(+down,	       "d",   'down.xpm',	     'Select parent frame').
