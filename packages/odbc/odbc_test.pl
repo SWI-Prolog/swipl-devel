@@ -337,6 +337,16 @@ tmark :-
 	write(X),
 	fail.
 
+prepfoo :-
+	open_db,
+	odbc_prepare(test,
+		     'select name from foo where mark=?',
+		     [default],
+		     S,
+		     []),
+	writeln(S).
+
+
 		 /*******************************
 		 *	     FEEDBACK		*
 		 *******************************/

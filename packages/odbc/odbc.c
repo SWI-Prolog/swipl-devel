@@ -2205,10 +2205,14 @@ declare_parameters(context *ctxt, term_t parms)
   term_t tail = PL_copy_term_ref(parms);
   term_t head = PL_new_term_ref();
   parameter *params;
+  SWORD npar;
   int pn;
 
+  TRY(ctxt, SQLNumParams(ctxt->hstmt, &npar));
   if ( (nparams=list_length(parms)) < 0 )
     return FALSE;
+  if ( npar != nparams )
+    return domain_error(parms, "length"); /* TBD: What error to raise?? */
 
   ctxt->NumParams = nparams;
   if ( nparams == 0 )

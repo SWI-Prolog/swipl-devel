@@ -1,3 +1,8 @@
+Jul 17, 2002
+
+* ADDED: consistency check betweem declared and used parameters in
+  odbc_prepare/5 based on SQLNumParams().
+
 Jul 16, 2002
 
 * Fixed problem with pre-fetching if rows are partially instantiated.
