@@ -70,6 +70,8 @@ static void		for_elements_in_model(dtd_model *m,
 void			putchar_dtd_parser(dtd_parser *p, int chr);
 int			load_dtd_from_file(dtd_parser *p, const char *file);
 void			free_dtd_parser(dtd_parser *p);
+static const ichar *	isee_character_entity(dtd *dtd, const ichar *in,
+					      int *chr);
 
 
 		 /*******************************
@@ -363,6 +365,7 @@ static int
 expand_pentities(dtd_parser *p, const ichar *in, ichar *out, int len)
 { dtd *dtd = p->dtd;
   int pero = dtd->charfunc->func[CF_PERO]; /* % */
+  int ero = dtd->charfunc->func[CF_ERO]; /* & */
   const ichar *s;
 
   while(*in)
@@ -398,6 +401,18 @@ expand_pentities(dtd_parser *p, const ichar *in, ichar *out, int len)
     { gripe(ERC_REPRESENTATION, "Declaration too long");
       return FALSE;
     }
+
+    if ( *in == ero && in[1] == '#' )	/* &# */
+    { int chr;
+
+      if ( (s=isee_character_entity(dtd, in, &chr)) &&
+	   chr > 0 && chr < OUTPUT_CHARSET_SIZE )
+      { *out++ = chr;
+        in = s;
+        continue;
+      }
+    }
+
     *out++ = *in++;
   }
 
@@ -444,18 +459,18 @@ isee_character_entity(dtd *dtd, const ichar *in, int *chr)
   if ( (s=isee_func(dtd, in, CF_ERO)) && *s == '#' )
   { ichar e[32];
     ichar *o = e;
+    int v;
 
     *o++ = *s++;
     while(o < e+sizeof(e)-1 && HasClass(dtd, *s, CH_NAME))
       *o++ = *s++;
-    if ( *s == '\0' || (s=isee_func(dtd, s, CF_ERC)) )
-    { int v;
+    if ( isee_func(dtd, s, CF_ERC))	/* skip ; */
+      s++;
 
-      *o = '\0';
-      if ( (v=char_entity_value(e)) >= 0 )
-      { *chr = v;
-        return s;
-      }
+    *o = '\0';
+    if ( (v=char_entity_value(e)) >= 0 )
+    { *chr = v;
+      return s;
     }
   }
 
@@ -479,24 +494,23 @@ expand_entities(dtd_parser *p, const ichar *in, ochar *out, int len)
     { const ichar *estart = in;		/* for recovery */
       int chr;
 
-      s = in+1;
-
-      if ( (in=isee_character_entity(dtd, in, &chr)) )
+      if ( (s=isee_character_entity(dtd, in, &chr)) )
       { if ( chr <= 0 || chr >= OUTPUT_CHARSET_SIZE )
 	  gripe(ERC_REPRESENTATION, "character");
 	if ( --len <= 0 )
 	  return gripe(ERC_REPRESENTATION, "CDATA string too long");
 	*out++ = chr;
+	in = s;
 	continue;
       }
 
-      if ( HasClass(dtd, *s, CH_NMSTART) )
+      if ( HasClass(dtd, in[1], CH_NMSTART) )
       { dtd_symbol *id;
 	dtd_entity *e;
 	const ichar *eval;
 	int l;
 	
-	in = itake_name(dtd, s, &id);
+	in = itake_name(dtd, in+1, &id);
 	if ( isee_func(dtd, in, CF_ERC) || *in == '\n' )
 	  in++;
   
@@ -1092,38 +1106,44 @@ process_entity_value_declaration(dtd_parser *p,
 { dtd *dtd = p->dtd;
   const ichar *s;
 
-  switch ( e->type )
-  { case ET_SYSTEM:
-    { if ( (s=itake_url(dtd, decl, &e->exturl)) )
-      { e->baseurl = baseurl(p);
-	return s;
-      }
+  if ( e->type == ET_SYSTEM )
+  { if ( (s=itake_url(dtd, decl, &e->exturl)) )
+    { e->baseurl = baseurl(p);
+      return s;
+    }
 
+    goto string_expected;
+  } else
+  { ichar buf[MAXSTRINGLEN];
+    ichar val[MAXSTRINGLEN];
+
+    if ( !(s = itake_string(dtd, decl, buf, sizeof(buf))) )
       goto string_expected;
-    }
-    case ET_PUBLIC:
-    { if ( !(s = itake_dubbed_string(dtd, decl, &e->extid)) )
-	goto string_expected;
-      decl = s;
-      if ( isee_func(dtd, decl, CF_LIT) ||
-	   isee_func(dtd, decl, CF_LITA) )
-      { if ( (s=itake_url(dtd, decl, &e->exturl)) )
-	{ e->baseurl = baseurl(p);
-	  decl = s;
+    decl = s;
+
+    expand_pentities(p, buf, val, sizeof(val));
+
+    switch ( e->type )
+    { case ET_PUBLIC:
+      { e->extid = istrdup(val);
+	if ( isee_func(dtd, decl, CF_LIT) ||
+	     isee_func(dtd, decl, CF_LITA) )
+	{ if ( (s=itake_url(dtd, decl, &e->exturl)) )
+	  { e->baseurl = baseurl(p);
+	    decl = s;
+	  }
 	}
+	return decl;
       }
-      return decl;
+      case ET_LITERAL:
+      { e->value = istrdup(val);
+	e->length = strlen(e->value);
+	return decl;
+      }
+      default:
+	assert(0);
+	return NULL;
     }
-    case ET_LITERAL:
-    { if ( !(s = itake_dubbed_string(dtd, decl, &e->value)) )
-	goto string_expected;
-      e->length = strlen(e->value);
-      decl=s;
-      return decl;
-    }
-    default:
-      assert(0);
-      return NULL;
   }
 
 string_expected:
@@ -1390,13 +1410,7 @@ shortref_add_map(dtd *dtd, const ichar *decl, dtd_shortref *sr)
   end = s;
 
   for(decl=buf; *decl;)
-  { int c;
-    const ichar *s;
-
-    if ( (s=isee_character_entity(dtd, decl, &c)) )
-    { *f++ = c;
-      decl = s;
-    } else if ( *decl == 'B' )		/* blank */
+  { if ( *decl == 'B' )		/* blank */
     { if ( decl[1] == 'B' )
       { *f++ = CHR_DBLANK;
 	decl += 2;
@@ -3260,6 +3274,12 @@ process_pi(dtd_parser *p, const ichar *decl)
 
 
 static int
+process_sgml_declaration(dtd_parser *p, const ichar *decl)
+{ return gripe(ERC_SYNTAX_WARNING, "Ignored <!SGML ...> declaration", NULL);
+}
+
+
+static int
 process_declaration(dtd_parser *p, const ichar *decl)
 { const ichar *s;
   dtd *dtd = p->dtd;
@@ -3290,6 +3310,8 @@ process_declaration(dtd_parser *p, const ichar *decl)
       process_shortref_declaration(p, s);
     else if ( (s = isee_identifier(dtd, decl, "usemap")) )
       process_usemap_declaration(p, s);
+    else if ( (s = isee_identifier(dtd, decl, "sgml")) )
+      process_sgml_declaration(p, s);
     else if ( (s = isee_identifier(dtd, decl, "doctype")) )
     { if ( p->dmode != DM_DTD )
 	process_doctype(p, s, decl-1);
@@ -3784,16 +3806,18 @@ process_entity(dtd_parser *p, const ichar *name)
 	  for(s=text; *s; s++)
 	    putchar_dtd_parser(p, *s);
 	  pop_location(p, &oldloc);
-	  break;
-	} else
-	{ ochar cdata[MAXSTRINGLEN];
-	  const ochar *o;
+	} else if ( *text )
+	{ const ochar *o;
 
-	  expand_entities(p, text, cdata, MAXSTRINGLEN);
-	  for(o=cdata; *o; o++)
+	  if ( p->blank_cdata == TRUE )
+	  { p->cdata_must_be_empty = !open_element(p, CDATA_ELEMENT, FALSE);
+	    p->blank_cdata = FALSE;
+	  }
+
+	  for(o=(const ochar *)text; *o; o++)
 	    add_ocharbuf(p->cdata, *o);
-	  break;
 	}
+	break;
       case EC_SDATA:
       case EC_NDATA:
 	process_cdata(p, FALSE);
