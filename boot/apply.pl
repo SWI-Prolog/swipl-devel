@@ -64,3 +64,8 @@ sublist(Goal, [_|T], R) :-
 
 forall(Cond, Action) :-
 	\+ (Cond, \+ Action).
+
+%	call_cleanup(:Goal, :Cleanup)
+%
+%	Calls Goal as call/1 and executes Cleanup whenever Goal finishes
+%	due to deterministic success, failure, exception or cut.
