@@ -147,7 +147,9 @@ destroy_dtds :-
 	;   true
 	).
 
-:- thread_at_exit(destroy_dtds).
+%	catch for if we do not have threads
+
+:- catch(thread_at_exit(destroy_dtds), _, true).
 
 
 		 /*******************************
