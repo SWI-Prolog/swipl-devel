@@ -8,7 +8,7 @@
 */
 
 #include <h/kernel.h>
-#define QUICK_AND_DIRTY
+#define QUICK_AND_DIRTY 1
 
 		 /*******************************
 		 *	 PUBLIC INTERFACE	*
@@ -80,10 +80,15 @@ freeHostData(HostData hd)
 
 static status
 initialiseHostData(HostData hd, void *h)
-{ hd->handle = h;
+{
+#ifdef QUICK_AND_DIRTY
+  return errorPce(classOfObject(hd), NAME_cannotCreateInstances);
+#else
+  hd->handle = h;
   setFlag(hd, F_ISHOSTDATA);
 
   succeed;
+#endif
 }
 
 
