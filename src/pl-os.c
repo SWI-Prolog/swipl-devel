@@ -652,7 +652,7 @@ OsPath(const char *p)
 long
 LastModifiedFile(char *f)
 {
-#if HAVE_STAT
+#if defined(HAVE_STAT) || defined(__unix__)
   struct stat buf;
 
   if ( stat(OsPath(f), &buf) < 0 )
@@ -706,7 +706,7 @@ ExistsFile(char *path)
     succeed;
   fail;
 #else
-#ifdef HAVE_STAT
+#if defined(HAVE_STAT) || defined(__unix__)
   struct stat buf;
 
   if ( stat(OsPath(path), &buf) == -1 || (buf.st_mode & S_IFMT) != S_IFREG )
@@ -761,7 +761,7 @@ AccessFile(char *path, int mode)
 bool
 ExistsDirectory(char *path)
 { char *ospath = OsPath(path);
-#ifdef HAVE_STAT
+#if defined(HAVE_STAT) || defined(__unix__)
   struct stat buf;
 
   if ( stat(ospath, &buf) < 0 )
@@ -789,7 +789,7 @@ ExistsDirectory(char *path)
 long
 SizeFile(char *path)
 { struct stat buf;
-#ifdef HAVE_STAT
+#if defined(HAVE_STAT) || defined(__unix__)
   if ( stat(OsPath(path), &buf) == -1 )
     return -1;
 #endif
@@ -870,7 +870,7 @@ SameFile(char *f1, char *f2)
 bool
 OpenStream(int fd)
 {
-#ifdef HAVE_FSTAT
+#if defined(HAVE_FSTAT) || defined(__linux)
   struct stat buf;
 
   return fstat(fd, &buf) == 0 ? TRUE : FALSE;
@@ -883,7 +883,7 @@ OpenStream(int fd)
 bool
 MarkExecutable(char *name)
 {
-#if defined(HAVE_STAT) && defined(HAVE_CHMOD)
+#if (defined(HAVE_STAT) && defined(HAVE_CHMOD)) || defined(__unix__)
   struct stat buf;
   int um;
 
@@ -927,7 +927,7 @@ MarkExecutable(char *name)
     Return the directory name for a file having path `path'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if defined(HAVE_SYMLINKS) && defined(HAVE_STAT)
+#if defined(HAVE_SYMLINKS) && (defined(HAVE_STAT) || defined(__unix__))
 #define O_CANONISE_DIRS
 
 typedef struct canonical_dir *CanonicalDir;
@@ -1623,9 +1623,9 @@ event_hook(void)
 { ttybuf tab;
   int rval;
 
-  PushTty(&tab, TTY_OUTPUT);
+/*PushTty(&tab, TTY_OUTPUT);*/
   rval = (*PL_dispatch_events)();
-  PopTty(&tab);
+/*PopTty(&tab);*/
 
   return rval;
 }

@@ -7,7 +7,7 @@
     Purpose: atom management
 */
 
-#define O_DEBUG 1
+/*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-ctype.h"
 
@@ -141,9 +141,7 @@ exitAtoms(void *arg)
 
 void
 initAtoms(void)
-{ register int n;
-
-  atomTable = allocHeap(atom_buckets * sizeof(Atom));
+{ atomTable = allocHeap(atom_buckets * sizeof(Atom));
   makeAtomRefPointers();
 
   { Atom a;
@@ -196,11 +194,12 @@ pl_current_atom(Word a, word h)
     if (unifyAtomic(a, atom) == FALSE)
       continue;
 
-    return_next_table(Atom, atom);
+    return_next_table(Atom, atom, unlockAtoms());
   }
 
 out:
   unlockAtoms();
+  fail;
 }
 
 		 /*******************************

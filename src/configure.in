@@ -54,7 +54,7 @@ dnl ****************************************************************
 
 AC_CHECK_PROGS(MAKE, make gmake, "make")
 AC_MSG_CHECKING("whether make is GNU-make")
-if $MAKE -v | grep -s GNU; then
+if $MAKE -v | grep GNU > /dev/null; then
     AC_MSG_RESULT(yes)
     VPATH="vpath %.c"
 else
@@ -112,20 +112,24 @@ if test "$checkucb" = "yes"; then
     AC_CHECK_LIB(ucb, rindex))
 fi
 AC_CHECK_LIB(elf, main)
-AC_ARG_ENABLE(shared, [  --enable-shared	  Provide shared-lib interface],
-	      if test "$enableval" = "yes"; then
-	          configshared=yes
-	      fi)
-AC_ARG_ENABLE(dlopen, [  --enable-dlopen	  Provide shared-lib interface (old)],
-	      if test "$enableval" = "yes"; then
-		  configshared=yes
-	      fi)
+AC_ARG_ENABLE(shared, [  --disable-shared	  No shared-lib interface],
+	      configshared="$enableval",
+	      configshared=yes)
+AC_ARG_ENABLE(save, [  --enable-save		  Provide save/1 and friends],
+	      configsave="$enableval",
+	      configsave=no)
 
 if test "$configshared" = "yes"; then
   AC_CHECK_LIB(dl, dlopen)
   AC_CHECK_LIB(dld, shl_load)
   AC_CHECK_FUNCS(dlopen)
   AC_CHECK_FUNCS(shl_load)
+fi
+
+if test "$ac_cv_func_dlopen" = "yes" || test "$ac_cv_func_shl_load" = "yes"; then
+    configloadforeign=no
+else
+    configloadforeign=yes
 fi
 
 echo "	LIBS=$LIBS"
@@ -400,6 +404,8 @@ else
 fi
 rm -fr conftest*
 
+if test "$configsave" = "yes"; then
+
 dnl ****************************************************************
 dnl The real thing.  See whether we can use save/1 and friends.  The
 dnl hardest part is to find the start of the data segment.
@@ -478,6 +484,9 @@ AC_TRY_LINK(
     fi ;;
 esac
 fi					# O_SAVE's fi
+fi					# "$configsave" = "yes"
+
+if test "$configloadforeign" = "yes"; then
 
 dnl ****************************************************************
 dnl Foreign language interface
@@ -553,5 +562,6 @@ fi
 fi
 fi
 rm -rf conftest*
+fi # configloadforeign
 
 AC_OUTPUT(Makefile README.bin)

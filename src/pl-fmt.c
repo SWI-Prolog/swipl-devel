@@ -82,7 +82,7 @@ pl_format_predicate(Word chr, Word descr)
     return warning("format_predicate/2: predicate must have at least 1 argument");
 
   if ( format_predicates == NULL )
-    format_predicates = newHTable(64);
+    format_predicates = newHTable(8);
   
   if ( (s = lookupHTable(format_predicates, (Void)c)) != NULL )
     s->value = (word) proc;

@@ -97,7 +97,7 @@ pl_current_flag(Word k, word h)
     if ( unifyKey(k, f->key) == FALSE )
       continue;
 
-    return_next_table(Flag, f);
+    return_next_table(Flag, f, ;);
   }
 
   fail;

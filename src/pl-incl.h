@@ -21,7 +21,7 @@
 #define C_CC	     "msvc++ 2.0"
 #define C_LDFLAGS    ""
 #else
-#include "parms.h"
+#include <parms.h>			/* pick from the working dir */
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -289,23 +289,25 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 
 #define ATOMHASHSIZE		1024	/* global atom table */
 #define FUNCTORHASHSIZE		512	/* global functor table */
-#define PROCEDUREHASHSIZE	512	/* predicates in module user */
-#define MODULEPROCEDUREHASHSIZE 128	/* predicates in other modules */
-#define RECORDHASHSIZE		512	/* global recorda/recordz table */
-#define MODULEHASHSIZE		64	/* global module table */
-#define PUBLICHASHSIZE		32	/* Module export table */
-#define OPERATORHASHSIZE	256	/* global operator table */
-#define FLAGHASHSIZE		256	/* global flag/3 table */
-#define ARITHHASHSIZE		64	/* arithmetic function table */
+#define PROCEDUREHASHSIZE	256	/* predicates in module user */
+#define MODULEPROCEDUREHASHSIZE 16	/* predicates in other modules */
+#define RECORDHASHSIZE		16	/* global recorda/recordz table */
+#define MODULEHASHSIZE		16	/* global module table */
+#define PUBLICHASHSIZE		8	/* Module export table */
+#define OPERATORHASHSIZE	32	/* global operator table */
+#define FLAGHASHSIZE		16	/* global flag/3 table */
+#define ARITHHASHSIZE		16	/* arithmetic function table */
 
 #define stringHashValue(s, n) (unboundStringHashValue(s) & ((n)-1))
 #define pointerHashValue(p, size) ((int)(((long)(p)>>2) & ((size)-1)))
 
 #define for_table(s, t) for(s = firstHTable(t); s; s = nextHTable(t, s))
-#define return_next_table(t, v) \
+#define return_next_table(t, v, clean) \
 	{ for((v) = (v)->next; isRef((word)(v)) && (v); (v) = *((t *)unRef(v))) \
 	  if ( (v) == (t)NULL ) \
+	  { clean; \
 	    succeed; \
+	  } \
 	  ForeignRedo(v); \
 	}
 
@@ -1164,8 +1166,10 @@ struct trail_entry
 };
 
 struct table
-{ int		size;		/* size of hash table */
-  Symbol	entries[1];	/* array of hash symbols */
+{ int		buckets;	/* size of hash table */
+  int		size;		/* # symbols in the table */
+  int		locked;		/* locked for resize */
+  Symbol	*entries;	/* array of hash symbols */
 };
 
 struct symbol

@@ -378,7 +378,7 @@ expand(char *f, char **argv, int *argc)
 }
 
 #ifdef O_EXPANDS_TESTS_EXISTS
-#ifdef HAVE_STAT
+#if defined(HAVE_STAT) || defined(__unix__)
 static bool
 Exists(char *path)
 { struct stat buf;

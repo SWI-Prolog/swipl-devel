@@ -243,7 +243,8 @@ prolog :-
 		call_expand_query(Goal, ExpandedGoal,
 				  Bindings, ExpandedBindings)
 	    ->  $execute(ExpandedGoal, ExpandedBindings)
-	    ), !.
+	    ), !,
+	$ttyformat('[halt]~n', []).
 
 		/********************************
 		*            PROMPTING		*

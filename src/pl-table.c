@@ -7,6 +7,7 @@
     Purpose: generic support for (numeric) hashTables
 */
 
+/*#define O_DEBUG 1*/
 #include "pl-incl.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -22,23 +23,29 @@ This module also can allocate from the local stack for temporary  tables
 needed by foreign language functions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define htsize(size) (sizeof(struct table) + (size - 1) * sizeof(Symbol))
+static void
+allocHTableEntries(Table ht)
+{ int n;
+  Symbol *p;
 
-Table
-newHTable(int size)
-{ Symbol *p;
-  int n;
-  Table ht;
+  ht->entries = allocHeap(ht->buckets * sizeof(Symbol));
 
-  DEBUG(9, Sdprintf("Creating hash table (size=%d)\n", size));
-  ht = (Table) allocHeap(htsize(size));
-  ht->size = size;
-
-  for(n=0, p = &ht->entries[0]; n < size-1; n++, p++)
+  for(n=0, p = &ht->entries[0]; n < ht->buckets-1; n++, p++)
     *p = (Symbol) makeRef(p+1);
   *p = (Symbol) NULL;
+}
 
-  DEBUG(9, Sdprintf("Returning ht=%ld\n", ht));
+
+Table
+newHTable(int buckets)
+{ Table ht;
+
+  ht = (Table) allocHeap(sizeof(struct table));
+  ht->buckets = buckets;
+  ht->size    = 0;
+  ht->locked  = 0;
+
+  allocHTableEntries(ht);
   return ht;
 }
 
@@ -46,32 +53,86 @@ newHTable(int size)
 void
 destroyHTable(Table ht)
 { clearHTable(ht);
-  freeHeap(ht, htsize(ht->size));
+  freeHeap(ht, sizeof(struct table));
+  freeHeap(ht->entries, ht->buckets * sizeof(Symbol));
+}
+
+
+#if O_DEBUG
+static int lookups;
+static int cmps;
+
+void
+exitTables(void *arg)
+{ Sdprintf("hashstat: Anonymous tables: %d lookups using %d compares\n",
+	   lookups, cmps);
+}
+#endif /*O_DEBUG*/
+
+
+void
+initTables()
+{
+  DEBUG(0, PL_on_halt(exitTables, NULL));
 }
 
 
 Symbol
 lookupHTable(Table ht, Void name)
-{ register Symbol s = ht->entries[pointerHashValue(name, ht->size)];
+{ register Symbol s = ht->entries[pointerHashValue(name, ht->buckets)];
 
-  DEBUG(9, Sdprintf("lookupHTable(%ld, %ld) --> ", ht, name));
+  DEBUG(0, lookups++);
   for(;s && !isRef((word)s); s = s->next)
+  { DEBUG(0, cmps++);
     if (s->name == (word)name)
-    { DEBUG(9, Sdprintf("Symbol=%ld, value=%ld\n", s, s->value));
       return s;
-    }
+  }
 
-  DEBUG(9, Sdprintf("Symbol = NULL\n"));
   return (Symbol) NULL;
+}
+
+
+static void
+rehashHTable(Table ht)
+{ Symbol *oldtab  = ht->entries;
+  int    oldbucks = ht->buckets;
+  Symbol s, n;
+  int done;
+
+  startCritical;
+  ht->buckets *= 2;
+  allocHTableEntries(ht);
+
+  DEBUG(0, Sdprintf("Rehashing table 0x%x to %d entries\n",
+		    ht, ht->buckets));
+
+  for(s = oldtab[0]; s; s = n)
+  { int v;
+
+    while(isRef((word)s) )
+    { s = *((Symbol *)unRef(s));
+      if ( s == NULL )
+	goto out;
+    }
+    done++;
+    n = s->next;
+    v = pointerHashValue(s->name, ht->buckets);
+    s->next = ht->entries[v];
+    ht->entries[v] = s;
+  }
+
+out:
+  assert(done = ht->size);
+  freeHeap(oldtab, oldbucks * sizeof(Symbol));
+  endCritical;
 }
 
 
 bool
 addHTable(Table ht, Void name, Void value)
 { register Symbol s;
-  register int v = pointerHashValue(name, ht->size);
+  register int v = pointerHashValue(name, ht->buckets);
 
-  DEBUG(9, Sdprintf("addHTable(%ld, %ld, %ld) ... ", ht, name, value));
   if (lookupHTable(ht, name) != (Symbol) NULL)
     fail;
   s = (Symbol) allocHeap(sizeof(struct symbol));
@@ -79,14 +140,18 @@ addHTable(Table ht, Void name, Void value)
   s->value = (word)value;
   s->next = ht->entries[v];
   ht->entries[v] = s;
+  ht->size++;
 
-  DEBUG(9, Sdprintf("ok\n"));
+  if ( ht->buckets * 2 < ht->size && !ht->locked )
+    rehashHTable(ht);
+
   succeed;
 }  
 
+
 bool
 deleteHTable(Table ht, Void name)
-{ register int v = pointerHashValue(name, ht->size);
+{ register int v = pointerHashValue(name, ht->buckets);
   register Symbol *s = &ht->entries[v];
   Symbol symb = *s;
 
@@ -101,6 +166,7 @@ deleteHTable(Table ht, Void name)
 
   fail;
 }
+
 
 Symbol
 nextHTable(Table ht, register Symbol s)
@@ -126,7 +192,7 @@ clearHTable(Table ht)
 { int n;
   register Symbol s;
 
-  for(n=0; n < ht->size; n++)
+  for(n=0; n < ht->buckets; n++)
   { s = ht->entries[n];
     while(s && !isRef((word)s))
     { register Symbol q = s->next;
@@ -142,15 +208,17 @@ clearHTable(Table ht)
 		*********************************/
 
 Table
-newLocalTable(int size)
+newLocalTable(int buckets)
 { Symbol *p;
   int n;
   Table ht;
 
-  ht = (Table) allocLocal(sizeof(struct table) + (size - 1) * sizeof(Symbol));
-  ht->size = size;
+  ht = (Table) allocLocal(sizeof(struct table));
+  ht->buckets = buckets;
+  ht->locked  = 0;
+  ht->entries = allocLocal(buckets * sizeof(Symbol));
 
-  for(n=0, p = &ht->entries[0]; n < size; n++, p++)
+  for(n=0, p = &ht->entries[0]; n < buckets; n++, p++)
     *p = (Symbol) NULL;
 
   return ht;
@@ -158,7 +226,7 @@ newLocalTable(int size)
 
 Symbol
 lookupLocalTable(Table ht, Void name)
-{ register Symbol s = ht->entries[pointerHashValue(name, ht->size)];
+{ register Symbol s = ht->entries[pointerHashValue(name, ht->buckets)];
 
   for( ; s; s = s->next )
     if ( s->name == (word)name )
@@ -170,7 +238,7 @@ lookupLocalTable(Table ht, Void name)
 bool
 addLocalTable(Table ht, Void name, Void value)
 { register Symbol s;
-  register int v = pointerHashValue(name, ht->size);
+  register int v = pointerHashValue(name, ht->buckets);
 
   if (lookupLocalTable(ht, name) != (Symbol) NULL)
     fail;

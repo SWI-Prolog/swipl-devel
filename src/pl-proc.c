@@ -1090,7 +1090,7 @@ lookupSourceFile(Atom name)
   Symbol s;
 
   if ( !sourceTable )
-    sourceTable = newHTable(64);
+    sourceTable = newHTable(32);
 
   if ( (s=lookupHTable(sourceTable, name)) )
     return (SourceFile) s->value;

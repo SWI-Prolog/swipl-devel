@@ -137,7 +137,7 @@ pl_current_op(Word prec, Word type, Word name, word h)
     if (Name != (Atom) NULL && Type >=0)
       succeed;
 
-    return_next_table(Operator, op);
+    return_next_table(Operator, op, ;);
   }
 
   fail;

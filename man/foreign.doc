@@ -72,13 +72,6 @@ If this succeeds the system provides the open_shared_object/2 and
 related predicates that allow for handling Unix shared object files
 based on the Unix library functions dlopen() and friends. See
 section~\ref{sec:shlib}.
-
-Note that, as this feature conflicts with save/[1,2] and
-save_program/[1,2], it is not enabled by default.  To enable it, the
-system should be configured using:
-\begin{code}
-% sh configure --enable-dlopen
-\end{code}
     \tick{feature(dll, true)}
 If this succeeds the system provides an interface for loading \tty{.DLL}
 files by means of open_dll/2 and friends. See section~\ref{sec:shlib}.
@@ -284,13 +277,10 @@ foreign file.
 
 The interface defined in this section allows the user to load shared
 libraries (.so files on most Unix systems).  This interface is portable
-to all machines providing the function dlopen(), normally from the
-library -ldl.  To enable it, SWI-Prolog must be configured using
-\begin{code}
-% sh configure --enable-dlopen
-\end{code}
-These functions provide the basic interface layer.  It is adviced to
-use the predicates from section~\ref{sec:shlib} in your application.
+to all machines providing the function dlopen() or an equivalent,
+normally from the library -ldl.  These functions provide the basic
+interface layer.  It is adviced to use the predicates from
+section~\ref{sec:shlib} in your application.
 
 
 .BD

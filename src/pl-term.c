@@ -55,7 +55,7 @@ forwards Entry	lookupEntry(Atom, Atom);
 void
 resetTerm()
 { if ( capabilities == NULL )
-  { capabilities = newHTable(32);
+  { capabilities = newHTable(16);
   } else
   { Symbol s;
 

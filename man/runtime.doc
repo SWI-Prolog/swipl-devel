@@ -382,7 +382,7 @@ large number of applications.
 % cd pl-2.1.4
 % mkdir runtime
 % cd runtime
-% ../src/configure --enable-runtime --enable-shared --prefix=$HOME
+% ../src/configure --enable-runtime --prefix=$HOME
 % make
 % make rt-install
 \end{code}

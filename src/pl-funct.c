@@ -225,7 +225,7 @@ pl_current_functor(Word name, Word arity, word h)
       continue;
     DEBUG(9, Sdprintf("Returning backtrack point %ld\n", fdef->next));
 
-    return_next_table(FunctorDef, fdef);
+    return_next_table(FunctorDef, fdef, unlockFunctors());
   }
 
 out:

@@ -16,9 +16,9 @@ ac_help="$ac_help
 ac_help="$ac_help
   --enable-runtime	  Runtime system only"
 ac_help="$ac_help
-  --enable-shared	  Provide shared-lib interface"
+  --disable-shared	  No shared-lib interface"
 ac_help="$ac_help
-  --enable-dlopen	  Provide shared-lib interface (old)"
+  --enable-save		  Provide save/1 and friends"
 
 # Initialize some variables set by options.
 # The variables have the same names as the options, with
@@ -619,7 +619,7 @@ done
 test -n "$MAKE" || MAKE=""make""
 
 echo $ac_n "checking "whether make is GNU-make"""... $ac_c" 1>&6
-if $MAKE -v | grep -s GNU; then
+if $MAKE -v | grep GNU > /dev/null; then
     echo "$ac_t""yes" 1>&6
     VPATH="vpath %.c"
 else
@@ -1297,17 +1297,17 @@ fi
 # Check whether --enable-shared or --disable-shared was given.
 enableval="$enable_shared"
 if test -n "$enableval"; then
-  if test "$enableval" = "yes"; then
-	          configshared=yes
-	      fi
+  configshared="$enableval"
+else
+  configshared=yes
 fi
 
-# Check whether --enable-dlopen or --disable-dlopen was given.
-enableval="$enable_dlopen"
+# Check whether --enable-save or --disable-save was given.
+enableval="$enable_save"
 if test -n "$enableval"; then
-  if test "$enableval" = "yes"; then
-		  configshared=yes
-	      fi
+  configsave="$enableval"
+else
+  configsave=no
 fi
 
 
@@ -1494,6 +1494,12 @@ done
 
 fi
 
+if test "$ac_cv_func_dlopen" = "yes" || test "$ac_cv_func_shl_load" = "yes"; then
+    configloadforeign=no
+else
+    configloadforeign=yes
+fi
+
 echo "	LIBS=$LIBS"
 
 for ac_hdr in unistd.h string.h memory.h sys/time.h sys/stat.h pwd.h
@@ -1504,7 +1510,7 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 1508 "configure"
+#line 1514 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
@@ -1540,7 +1546,7 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 1544 "configure"
+#line 1550 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
@@ -1576,7 +1582,7 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 1580 "configure"
+#line 1586 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
@@ -1612,7 +1618,7 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 1616 "configure"
+#line 1622 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
@@ -1648,7 +1654,7 @@ if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 1652 "configure"
+#line 1658 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -1699,7 +1705,7 @@ if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 1703 "configure"
+#line 1709 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -1750,7 +1756,7 @@ if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 1754 "configure"
+#line 1760 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -1801,7 +1807,7 @@ if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 1805 "configure"
+#line 1811 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -1852,7 +1858,7 @@ if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 1856 "configure"
+#line 1862 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -1901,7 +1907,7 @@ if eval "test \"`echo '$''{'ac_cv_header_time'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 1905 "configure"
+#line 1911 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #include <sys/time.h>
@@ -1938,7 +1944,7 @@ if eval "test \"`echo '$''{'ac_cv_header_dirent_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 1942 "configure"
+#line 1948 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #include <$ac_hdr>
@@ -1977,7 +1983,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-ldir  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 1981 "configure"
+#line 1987 "configure"
 #include "confdefs.h"
 
 int main() { return 0; }
@@ -2011,7 +2017,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lx  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 2015 "configure"
+#line 2021 "configure"
 #include "confdefs.h"
 
 int main() { return 0; }
@@ -2044,7 +2050,7 @@ if eval "test \"`echo '$''{'ac_cv_header_sys_wait_h'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 2048 "configure"
+#line 2054 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -2084,7 +2090,7 @@ if eval "test \"`echo '$''{'ac_cv_type_pid_t'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 2088 "configure"
+#line 2094 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #if STDC_HEADERS
@@ -2116,7 +2122,7 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 2120 "configure"
+#line 2126 "configure"
 #include "confdefs.h"
 #include <vfork.h>
 EOF
@@ -2150,7 +2156,7 @@ else
   ac_cv_func_vfork=no
 else
 cat > conftest.$ac_ext <<EOF
-#line 2154 "configure"
+#line 2160 "configure"
 #include "confdefs.h"
 /* Thanks to Paul Eggert for this test.  */
 #include <stdio.h>
@@ -2267,7 +2273,7 @@ if test "$GCC" = "yes"; then
     CFLAGS="$CFLAGS -Werror"
 fi
 cat > conftest.$ac_ext <<EOF
-#line 2271 "configure"
+#line 2277 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -2298,7 +2304,7 @@ if test "$GCC" = "yes"; then CFLAGS="$ac_oldcflags"; fi
 if test -z "$ac_cv_header_sys_termio_h" -a -z "$ac_cv_header_sys_termios_h"; then
 echo $ac_n "checking "struct sgttyb"""... $ac_c" 1>&6
 cat > conftest.$ac_ext <<EOF
-#line 2302 "configure"
+#line 2308 "configure"
 #include "confdefs.h"
 
 #include <sys/types.h>
@@ -2329,7 +2335,7 @@ fi
 
 echo $ac_n "checking "for type uchar"""... $ac_c" 1>&6
 cat > conftest.$ac_ext <<EOF
-#line 2333 "configure"
+#line 2339 "configure"
 #include "confdefs.h"
 
 #include <sys/types.h>
@@ -2356,7 +2362,7 @@ rm -f conftest*
 
 echo $ac_n "checking "whether we need extern int errno"""... $ac_c" 1>&6
 cat > conftest.$ac_ext <<EOF
-#line 2360 "configure"
+#line 2366 "configure"
 #include "confdefs.h"
 
 #include <sys/types.h>
@@ -2427,7 +2433,7 @@ if eval "test \"`echo '$''{'ac_cv_type_signal'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 2431 "configure"
+#line 2437 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #include <signal.h>
@@ -2464,7 +2470,7 @@ if test "$cross_compiling" = yes; then
   echo "$ac_t"""assuming Posix signals"" 1>&6
 else
 cat > conftest.$ac_ext <<EOF
-#line 2468 "configure"
+#line 2474 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -2504,7 +2510,7 @@ if test "$cross_compiling" = yes; then
   true
 else
 cat > conftest.$ac_ext <<EOF
-#line 2508 "configure"
+#line 2514 "configure"
 #include "confdefs.h"
 
 #ifdef TIME_WITH_SYS_TIME
@@ -2556,7 +2562,7 @@ if test "$GCC" = yes; then
     CFLAGS="$CFLAGS -Werror"
 fi
 cat > conftest.$ac_ext <<EOF
-#line 2560 "configure"
+#line 2566 "configure"
 #include "confdefs.h"
 
 #include <sys/wait.h>
@@ -2585,7 +2591,7 @@ if test "$GCC" = "yes"; then CFLAGS="$ac_oldcflags"; fi
 
 echo $ac_n "checking "for tagged lvalues"""... $ac_c" 1>&6
 cat > conftest.$ac_ext <<EOF
-#line 2589 "configure"
+#line 2595 "configure"
 #include "confdefs.h"
 
 
@@ -2713,10 +2719,12 @@ else
 fi
 rm -fr conftest*
 
+if test "$configsave" = "yes"; then
+
 
 echo $ac_n "checking "_data_start"""... $ac_c" 1>&6
 cat > conftest.$ac_ext <<EOF
-#line 2720 "configure"
+#line 2728 "configure"
 #include "confdefs.h"
 extern int _data_start;
 int main() { return 0; }
@@ -2740,7 +2748,7 @@ rm -f conftest*
 
 echo $ac_n "checking "_data"""... $ac_c" 1>&6
 cat > conftest.$ac_ext <<EOF
-#line 2744 "configure"
+#line 2752 "configure"
 #include "confdefs.h"
 extern int _data;
 int main() { return 0; }
@@ -2836,7 +2844,7 @@ test -n "$LDD" || LDD=""none""
 	echo $ac_n "checking "what kind of static linking is required"""... $ac_c" 1>&6
 
 cat > conftest.$ac_ext <<EOF
-#line 2840 "configure"
+#line 2848 "configure"
 #include "confdefs.h"
 
 int main() { return 0; }
@@ -2864,11 +2872,14 @@ rm -f conftest*
     fi ;;
 esac
 fi					# O_SAVE's fi
+fi					# "$configsave" = "yes"
+
+if test "$configloadforeign" = "yes"; then
 
 
 echo $ac_n "checking "foreign C-interface"""... $ac_c" 1>&6
 cat > conftest.$ac_ext <<EOF
-#line 2872 "configure"
+#line 2883 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -2901,7 +2912,7 @@ rm -f conftest*
 
 if test "$ac_foreign" != "yes"; then
 cat > conftest.$ac_ext <<EOF
-#line 2905 "configure"
+#line 2916 "configure"
 #include "confdefs.h"
 
 #include <rld.h>
@@ -2956,7 +2967,7 @@ EOF
 rm -rf conftest*
 echo $ac_n "checking "BSD a.out based loading"""... $ac_c" 1>&6
 cat > conftest.$ac_ext <<EOF
-#line 2960 "configure"
+#line 2971 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -2989,6 +3000,7 @@ fi
 fi
 fi
 rm -rf conftest*
+fi # configloadforeign
 
 trap '' 1 2 15
 cat > confcache <<\EOF

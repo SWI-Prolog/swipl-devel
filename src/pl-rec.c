@@ -305,7 +305,7 @@ pl_current_key(Word k, word h)
     if ( l->firstRecord == NULL || unifyKey(k, l->key) == FALSE )
       continue;
 
-    return_next_table(RecordList, l);
+    return_next_table(RecordList, l, ;);
   }
 
   fail;

@@ -910,6 +910,12 @@ registers.
     DoMark(FR->mark);
     environment_frame = FR;
 
+
+#ifdef O_PROFILE
+    if (statistics.profiling)
+      DEF->profile_calls++;
+#endif /* O_PROFILE */
+
 #if O_DEBUGGER
     if ( debugstatus.debugging )
     { LocalFrame lTopSave = lTop;
@@ -2090,8 +2096,6 @@ increase lTop too to prepare for asynchronous interrupts.
 	      next->context = fproc->definition->module;
 #ifdef O_PROFILE
 	    next->procedure = fproc;
-#endif
-#ifdef O_PROFILE
 	    if (statistics.profiling)
 	      fproc->definition->profile_calls++;
 #endif /* O_PROFILE */

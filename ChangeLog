@@ -1,6 +1,23 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.1.5
+=============
+
+  * INSTALL: Changed various things to the configure options and detection,
+    to the defaults make more sence.
+
+  * PORT: Fixed various things for the Linux/ELF port.  Tested on
+    Linux 1.2.13 running libc-5.0.9.  Compiled with gcc-2.7.0.
+
+  * PERFORMANCE: Implemented automatic rehashing of all (previously)
+    fixed-size hash-tables.  Prevents performance degradation on very
+    large programs.
+
+  * FIXED: profile/3 problem (leading to crashes).
+
+  * FIXED: pl -O bug: trailing of is/2 was not handled properly.
+
 Version 2.1.4
 =============
 

@@ -68,6 +68,7 @@ setupProlog(void)
     DEBUG(1, Sdprintf("Functors ...\n"));
     initFunctors();
     DEBUG(1, Sdprintf("Modules ...\n"));
+    initTables();
     initModules();
     DEBUG(1, Sdprintf("Records ...\n"));
     initRecords();

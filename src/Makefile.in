@@ -199,7 +199,7 @@ iruntime:
 			$(INSTALL_DATA) ../runtime/$(ARCH)/$(PL).o \
 					$(PLBASE)/runtime/$(ARCH); \
 		fi
-		$(INSTALL_DATA) pl-extend.c $(PLBASE)/runtime
+		$(INSTALL_DATA) $(srcdir)/pl-extend.c $(PLBASE)/runtime
 
 idirs:
 		-mkdir $(PLBASE)

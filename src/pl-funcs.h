@@ -541,6 +541,7 @@ void		clearHTable(Table ht);
 Table		newLocalTable(int size);
 Symbol		lookupLocalTable(Table ht, Void name);
 bool		addLocalTable(Table ht, Void name, Void value);
+void		initTables();
 
 /* pl-trace.c */
 int		tracePort(LocalFrame frame, int port);

@@ -795,7 +795,13 @@ resetLoader()
 word
 pl_load_foreign(file, entry, options, libraries, size)
 Word file, entry, options, libraries, size;
-{ warning("Foreign language loader not (yet) available for this machine");
+{
+#if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(O_DLL)
+  warning("load_foreign/[2,5] are not available for this machine\n"
+	  "\thowever, the predicates from `library(shlib)' are available");
+#else
+  warning("load_foreign/[2,5] are not available for this machine");
+#endif
 
   fail;
 }

@@ -55,9 +55,10 @@ Some things may need attention:
 # GNU readline library
 
 When present, SWI-Prolog will  automatically   include  the GNU readline
-library.  It is *strongly*  adviced  to   install  this  library on your
-system.  It provides editing of previously entered commands (history) as
-well as completion on Prolog atoms and filenames (for consult, etc.).
+library. It is *strongly*  adviced  to   install  this  library  on your
+system. It provides editing of previously  entered commands (history) as
+well as completion on Prolog  atoms   and  filenames (for consult, etc.)
+much like the bash and tcsh shells do.
 
 SWI-Prolog has been linked  with  versions  1.1,   1.2  and  2.0  of the
 readline library.
@@ -67,30 +68,23 @@ readline library.
 Incremental linking may be based on several mechanisms provided by the
 operating system:
 
-	1) AIX load() and friends
-	2) MACH rld_load() and friends
-	3) BSD Unix `ld -A' combined with reading BSD a.out file
-	4) dlopen() and friends.
-	5) Win32 (Windows-NT, '95 and win32s) .DLL interface
+	1) dlopen() and friends.
+	2) HPUX shl_load() and friends.
+	3) Win32 (Windows-NT, '95 and win32s) .DLL interface
+	4) AIX load() and friends
+	5) MACH rld_load() and friends
+	6) BSD Unix `ld -A' combined with reading BSD a.out file
 
-By default, SWI-Prolog will  guess  whether  it   can  use  any  of 1-3.
-Detection of 1) and 2) is quite  safe.    It  might detect 3), while the
-actuall compilation of pl-load.c fails.  In   this case #undef O_FOREIGN
-in config.h and report the problem (please with a fix :-).
+By default, SWI-Prolog will guess whether  it   can  use  any of 1-3. to
+support the library(shlib) predicates. On failure, it will try to detect
+the others, supporting the load_foreign/[2,5]   dynamic  loader. On some
+machines, using 1-3 will conflict with using 4-6.  If you want on of 4-6
+anyway (this would only be for  obscure backward compatibility reasons),
+you may configure using:
 
-4) (dlopen()) sometimes conflicts with 3).    Because  older versions of
-SWI-Prolog provided 3) on these machines, 4) is not included by default.
-If you want dlopen() and friends, configure using
-
-	./configure --enable-shared
+	./configure --disable-shared
 
 # Saved states (save/[1,2], save_program/[1,2])
-
-Configure will try to compile and  run   pl-save.c  using -Dtest.  If it
-fails this test, please look at  the   header  of pl-save.c for possible
-fixes.  Many systems will need special  declarations to inform save() of
-the active program data-area (which it assumes to range from &environ to
-sbrk(0)).  Please report misbehaviour (with patch would be great).
 
 save/[1,2] and save_program/[1,2] are getting  out   of  fashion  as the
 schema proves difficult to port to modern machines using shared libaries
@@ -99,6 +93,14 @@ which make it very hard to gather the process state.
 New releases (as of  2.1.4)   provide  qsave_program/[1,2]  which create
 portable saved states  that  may  be   loaded  on  emulators  running on
 different hardware.
+
+The default save mechanism is qsave_program/[1,2],  which is portable to
+all platforms. The old-fashioned core-dump based mechanism might work on
+some bsd `a.out' format based Unix  machines   and  a few others. If you
+want  the  system  to  configure    save/[1,2]  and  save_program/[1,2],
+configure using
+
+	./configure --enable-save
 
 # Memory mapped stacks
 
@@ -109,4 +111,5 @@ test/mmap.c
 # Assembler warnings
 
 If you get assembler warnings compiling pl-wam.c, try #define NO_ASM_NOP
-1 in config.h.  Should be determined automatically by test/nop.c
+1 in config.h. Should be  determined   automatically  by test/nop.c, but
+sometimes appears to fail.

@@ -368,7 +368,7 @@ struct exec *hdr;
 word
 pl_save(state, rval)
 Word state, rval;
-{ return warning("save/2: not ported to this machine");
+{ return warning("save/2: not ported to this machine.  See qsave_program/[1,2]");
 }
 
 
@@ -388,7 +388,7 @@ Word new;
 word
 pl_save_program(old, new)
 Word old, new;
-{ return warning("store_program/2: not ported to this machine");
+{ return warning("store_program/2: not ported to this machine.  See qsave_program/[1,2]");
 }
 
 #endif /* O_STORE_PROGRAM || O_SAVE */

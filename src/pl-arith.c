@@ -1024,7 +1024,7 @@ pl_current_arithmetic_function(Word f, word h)
     for(m2 = m; m2; m2 = m2->super)
     { if ( m2 == a->module && a == isCurrentArithFunction(a->functor, m) )
       { if ( unifyFunctor(f, a->functor) == TRUE )
-	{ return_next_table(ArithFunction, a);
+	{ return_next_table(ArithFunction, a, ;);
 	}
       }
     }
