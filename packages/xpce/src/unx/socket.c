@@ -267,6 +267,8 @@ registerClientSocket(Socket s, Socket client)
   assign(client, master, s);
   s->flags      = flags;
   s->references = refs;
+
+  succeed;
 }
 
 
@@ -275,10 +277,14 @@ unregisterClientSocket(Socket s, Socket client)
 { unsigned long flags = s->flags;
   unsigned long refs  = s->references;
 
-  appendChain(s->clients, client);
-  assign(client, master, s);
+  addCodeReference(s);			/* avoid drop-out */
+  if ( notNil(s->clients) )
+    deleteChain(s->clients, client);
+  assign(client, master, NIL);
   s->flags      = flags;
   s->references = refs;
+
+  succeed;
 }
 
 
@@ -532,8 +538,7 @@ acceptSocket(Socket s)
 #endif
   assign(s2, input_message, s->input_message);
   assign(s2, status, NAME_accepted);
-  assign(s2, master, s);
-  appendChain(s->clients, s2);
+  registerClientSocket(s, s2);
 
   if ( notNil(s->accept_message) )
     forwardReceiverCode(s->accept_message, s, s2, 0);
@@ -706,13 +711,7 @@ closeSocket(Socket s)
   }
 
   if ( notNil(s->master) )		/* delete client <->master link */
-  { if ( notNil(s->master->clients) )
-    { addCodeReference(s);
-      deleteChain(s->master->clients, s);
-      delCodeReference(s);
-    }
-    assign(s, master, NIL);
-  }
+    unregisterClientSocket(s->master, s);
 
   if ( s->domain == NAME_unix &&	/* remove from file-system */
        s->status == NAME_listen )
