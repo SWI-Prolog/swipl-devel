@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: X11 version: avoid endless loop in ws_synchronise_display().
+
 * FIXED: Inpector Tool: possible crash on ->clear.
 
 * ADDED: Inpector Tool: `find_references' option to display the cards
