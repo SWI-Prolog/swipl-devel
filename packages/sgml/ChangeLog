@@ -1,3 +1,5 @@
+* FIXED: handling of (a) +(b) element declaraction (Richard O'Keefe)
+
 * ADDED: Warning when redefining (parameter) entities.
 
 * ENHANCED/FIXED: Process entities refering to files directly.  This
