@@ -1316,6 +1316,10 @@ stretchRows(Matrix m, int bbh)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 adjustDialogItem() is as doSetGraphical, but returns 0 if there was no
 change and 1 if there was a change.
+
+We need a special hack here  to   deal  with  windows. Actually, we need
+something to tell an object to have a certain geometry in pixels and not
+negotiate, but deal properly with containers/decorations, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -1326,11 +1330,16 @@ adjustDialogItem(Any obj, Int x, Int y, Int w, Int h)
 	Cprintf("%s --> %s %s %s %s\n",
 		pp(obj), pp(x), pp(y), pp(w), pp(h)));
 
+  if ( instanceOfObject(gr, ClassWindow) && 		/* HACK */
+       notNil(((PceWindow)gr)->decoration) )
+    gr = (Graphical)((PceWindow)gr)->decoration;
+
 #define Changed(a) (gr->area->a != a && notDefault(a))
   if ( Changed(x) || Changed(y) || Changed(w) || Changed(h) )
   { Int av[4];
 
     av[0] = x; av[1] = y; av[2] = w; av[3] = h;
+
     qadSendv(gr, NAME_geometry, 4, av);
     return 1;
   }
@@ -1724,8 +1733,9 @@ appendDialogItemDevice(Device d, Graphical item, Name where)
       di = left;
     where = NAME_below;
   }
-
-  return send(item, where, di, 0);
+					/* Do not use the implementation of */
+					/* class window */
+  return vm_send(item, where, ClassGraphical, 1, (Any *)&di);
 }
 
 

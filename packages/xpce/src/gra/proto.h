@@ -1,22 +1,22 @@
 
-/* gra/arc.c */
+/* ../src/gra/arc.c */
 void		points_arc(Arc a, int *sx, int *sy, int *ex, int *ey);
 status		makeClassArc(Class class);
 
-/* gra/arrow.c */
+/* ../src/gra/arrow.c */
 status		makeClassArrow(Class class);
 
-/* gra/bitmap.c */
+/* ../src/gra/bitmap.c */
 status		updateSolidBitmap(BitmapObj bm);
 status		makeClassBitmap(Class class);
 
-/* gra/box.c */
+/* ../src/gra/box.c */
 status		makeClassBox(Class class);
 
-/* gra/circle.c */
+/* ../src/gra/circle.c */
 status		makeClassCircle(Class class);
 
-/* gra/colour.c */
+/* ../src/gra/colour.c */
 Int		getRedColour(Colour c);
 Int		getGreenColour(Colour c);
 Int		getBlueColour(Colour c);
@@ -24,15 +24,15 @@ Colour		getHiliteColour(Colour c);
 Colour		getReduceColour(Colour c);
 status		makeClassColour(Class class);
 
-/* gra/connection.c */
+/* ../src/gra/connection.c */
 status		updateHideExposeConnection(Connection c);
 status		updateDeviceConnection(Connection c);
 status		makeClassConnection(Class class);
 
-/* gra/cursor.c */
+/* ../src/gra/cursor.c */
 status		makeClassCursor(Class class);
 
-/* gra/device.c */
+/* ../src/gra/device.c */
 status		initialiseDevice(Device dev);
 status		unlinkDevice(Device dev);
 CursorObj	getDisplayedCursorDevice(Device dev);
@@ -64,15 +64,15 @@ Graphical	getMemberDevice(Device dev, Name name);
 status		geometryDevice(Device dev, Int x, Int y, Int w, Int h);
 status		makeClassDevice(Class class);
 
-/* gra/ellipse.c */
+/* ../src/gra/ellipse.c */
 status		makeClassEllipse(Class class);
 
-/* gra/figure.c */
+/* ../src/gra/figure.c */
 status		initialiseFigure(Figure f);
 Any		RedrawBoxFigure(Figure f, Area area);
 status		makeClassFigure(Class class);
 
-/* gra/font.c */
+/* ../src/gra/font.c */
 status		replaceFont(FontObj f, DisplayObj d);
 status		makeBuiltinFonts(void);
 Int		getWidthFont(FontObj f, CharArray txt);
@@ -84,10 +84,10 @@ Bool		getFixedWidthFont(FontObj f);
 Bool		getB16Font(FontObj f);
 status		makeClassFont(Class class);
 
-/* gra/format.c */
+/* ../src/gra/format.c */
 status		makeClassFormat(Class class);
 
-/* gra/graphical.c */
+/* ../src/gra/graphical.c */
 status		initialiseGraphical(Any obj, Int x, Int y, Int w, Int h);
 status		unlinkGraphical(Graphical gr);
 status		copyGraphical(Any obj1, Any obj2);
@@ -184,13 +184,13 @@ status		clipGraphical(Graphical gr, Area a);
 status		unclipGraphical(Graphical gr);
 status		makeClassGraphical(Class class);
 
-/* gra/handle.c */
+/* ../src/gra/handle.c */
 status		getXYHandle(Handle h, Graphical gr, Device dev, Int *X, Int *Y);
 Int		getXHandle(Handle h, Graphical gr, Device dev);
 Int		getYHandle(Handle h, Graphical gr, Device dev);
 status		makeClassHandle(Class class);
 
-/* gra/image.c */
+/* ../src/gra/image.c */
 status		initialiseImage(Image image, SourceSink data, Int w, Int h, Name kind);
 Image		getConvertImage(Class class, Any obj);
 status		XopenImage(Image image, DisplayObj d);
@@ -200,13 +200,13 @@ status		fillImage(Image image, Any pattern, Area area);
 Image		getMonochromeImage(Image image);
 status		makeClassImage(Class class);
 
-/* gra/joint.c */
+/* ../src/gra/joint.c */
 status		initialiseJoint(Joint jt, Int x, Int y, Int w, Int h, Name arrows);
 status		copyJoint(Joint jt1, Joint jt2);
 status		setArrowsJoint(Joint jt, Graphical first, Graphical second);
 status		makeClassJoint(Class class);
 
-/* gra/line.c */
+/* ../src/gra/line.c */
 status		initialiseLine(Line ln, Int xa, Int ya, Int xb, Int yb, Name arrows);
 status		adjustFirstArrowLine(Line ln);
 status		adjustSecondArrowLine(Line ln);
@@ -218,10 +218,10 @@ Point		getIntersectionLine(Line l1, Line l2);
 Real		getAngleLine(Line ln, Point p);
 status		makeClassLine(Class class);
 
-/* gra/link.c */
+/* ../src/gra/link.c */
 status		makeClassLink(Class class);
 
-/* gra/listbrowser.c */
+/* ../src/gra/listbrowser.c */
 status		requestGeometryListBrowser(ListBrowser lb, Int x, Int y, Int w, Int h);
 Size		getSizeListBrowser(ListBrowser lb);
 status		executeSearchListBrowser(ListBrowser lb);
@@ -235,7 +235,7 @@ DictItem	getMemberListBrowser(ListBrowser lb, Any key);
 Chain		getContainsListBrowser(ListBrowser lb);
 status		makeClassListBrowser(Class class);
 
-/* gra/node.c */
+/* ../src/gra/node.c */
 status		updateDisplayedTree(Tree t);
 status		relateImageNode(Node n, Node n2);
 status		forAllNode(Node n, Code msg);
@@ -243,12 +243,12 @@ status		forSomeNode(Node n, Code msg);
 Node		getFindNodeNode(Node n, Graphical gr);
 status		makeClassNode(Class class);
 
-/* gra/path.c */
+/* ../src/gra/path.c */
 status		adjustFirstArrowPath(Path p);
 status		adjustSecondArrowPath(Path p);
 status		makeClassPath(Class class);
 
-/* gra/postscript.c */
+/* ../src/gra/postscript.c */
 StringObj	getPostscriptObject(Any obj, Bool ls, Area a);
 void		ps_put_char(int c);
 void		ps_output(char *fm, ...);
@@ -272,13 +272,13 @@ status		drawPostScriptText(TextObj t);
 status		postscriptFrame(FrameObj fr);
 status		postscriptDisplay(DisplayObj d);
 
-/* gra/scrollbar.c */
+/* ../src/gra/scrollbar.c */
 Int		getMarginScrollBar(ScrollBar sb);
 status		placeScrollBar(ScrollBar sb, Graphical gr);
 status		bubbleScrollBar(ScrollBar sb, Int l, Int s, Int v);
 status		makeClassScrollBar(Class class);
 
-/* gra/text.c */
+/* ../src/gra/text.c */
 void		str_format(String out, const String in, const int width, const FontObj font);
 status		repaintText(TextObj t, int x, int y, int w, int h);
 Int		get_pointed_text(TextObj t, int x, int y);
@@ -292,14 +292,14 @@ status		lengthText(TextObj t, Int l);
 status		marginText(TextObj t, Int width, Name wrap);
 status		makeClassText(Class class);
 
-/* gra/tree.c */
+/* ../src/gra/tree.c */
 status		requestComputeTree(Tree t);
 status		displayTree(Tree t, Node n);
 status		unzoomTree(Tree t);
 status		zoomTree(Tree t, Node n);
 status		makeClassTree(Class class);
 
-/* gra/visual.c */
+/* ../src/gra/visual.c */
 status		resetVisual(VisualObj v);
 status		destroyVisual(VisualObj v);
 Any		getReportToVisual(VisualObj v);
@@ -307,19 +307,19 @@ status		reportVisual(VisualObj v, Name kind, CharArray fmt, int argc, Any *argv)
 status		alertReporteeVisual(Any v);
 status		makeClassVisual(Class class);
 
-/* gra/pixmap.c */
+/* ../src/gra/pixmap.c */
 Colour		getReplacementColourPixmap(PixmapObj pm);
 status		makeClassPixmap(Class class);
 
-/* gra/elevation.c */
+/* ../src/gra/elevation.c */
 Elevation	getModifyElevation(Elevation e, Name att, Any val);
 status		makeClassElevation(Class class);
 
-/* gra/pen.c */
+/* ../src/gra/pen.c */
 status		makeClassPen(Class class);
 
-/* gra/draw.c */
+/* ../src/gra/draw.c */
 void		r_3d_rectangular_polygon(int n, IPoint pts, Elevation e, int flags);
 
-/* gra/colourmap.c */
+/* ../src/gra/colourmap.c */
 status		makeClassColourMap(Class class);

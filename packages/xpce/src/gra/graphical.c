@@ -432,9 +432,9 @@ changedAreaGraphical(Any obj, Int x, Int y, Int w, Int h)
 
 					/* HACKS ... */
 	if ( instanceOfObject(gr, ClassText) ||
-	     instanceOfObject(gr, ClassTextItem) )
-	{ ox -= 5; oy -= 0; ow += 10; oh += 5;
-	  cx -= 5; cy -= 0; cw += 10; ch += 5;
+	     instanceOfObject(gr, ClassDialogItem) )
+	{ ox -= 5; oy -= 5; ow += 10; oh += 10;
+	  cx -= 5; cy -= 5; cw += 10; ch += 10;
 	}
 					/* end hacks! */
 
@@ -495,10 +495,8 @@ changedImageGraphical(Any obj, Int x, Int y, Int w, Int h)
       cy += oy;
 
       if ( instanceOfObject(gr, ClassText) ||
-	   instanceOfObject(gr, ClassTextItem) )
-      { cx -= 5; cy -= 0; cw += 10; ch += 5;
-      } else if ( instanceOfObject(gr, ClassDialogItem) )
-      { cx -= 6; cy -= 6; cw += 12; ch += 12;
+	   instanceOfObject(gr, ClassDialogItem) )
+      { cx -= 5; cy -= 5; cw += 10; ch += 10;
       }				/* Motif hack */
 
       DEBUG(NAME_changesData,

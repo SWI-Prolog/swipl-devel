@@ -193,7 +193,7 @@ showLabelListBrowser(ListBrowser lb, Bool val)
 { if ( isNil(lb->label_text) )
   { if ( val == ON )
     { assign(lb, label_text,
-	     newObject(ClassText, getLabelNameName(lb->name), NAME_left,
+	     newObject(ClassText, GetLabelNameName(lb->name), NAME_left,
 		       getClassVariableValueObject(lb, NAME_labelFont), 0));
       marginText(lb->label_text, lb->area->w, NAME_clip);
       displayDevice(lb, lb->label_text, DEFAULT);
