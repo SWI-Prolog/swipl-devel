@@ -294,16 +294,21 @@ fill_dialog(M, D) :->
 	     [ statistics,
 	       visual_hierarchy,
 	       inspector,
+	       gap,
 	       menu_item(event_viewer,
-			 message(M, event_viewer),
-			 end_group := @on),
+			 message(M, event_viewer)),
+	       gap,
 	       menu_item(prolog_graphical_tracer,
 			 message(M, guitracer)),
 	       menu_item(prolog_navigator,
 			 message(M, prolog_navigator)),
+	       menu_item(prolog_thread_monitor,
+			 message(M, thread_monitor),
+			 condition :=
+			 ?(@prolog, current_prolog_flag, threads) == true),
 	       menu_item(emacs,
-			 message(M, start_emacs),
-			 end_group := @on),
+			 message(M, start_emacs)),
+	       gap,
 	       menu_item(dialog_editor,
 			 message(M, dialog_editor)),
 	       menu_item(check_object_base,
@@ -645,6 +650,10 @@ guitracer(M) :->
 prolog_navigator(_M) :->
 	"Start the source-code navigator"::
 	prolog_ide(open_navigator).
+
+thread_monitor(_M) :->
+	"Start the thread monitor"::
+	prolog_ide(thread_monitor).
 
 start_emacs(_M) :->
 	"Start PceEmacs (*scratch* buffer)"::

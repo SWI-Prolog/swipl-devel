@@ -26,6 +26,9 @@
 #include <h/graphics.h>
 #include "include.h"
 
+static void	trapTimer(XtPointer xtm, XtIntervalId *id);
+
+
 static XtIntervalId
 getIdTimer(Timer tm)
 { return (XtIntervalId) tm->ws_ref;
@@ -39,6 +42,28 @@ setIdTimer(Timer tm, XtIntervalId id)
 
 
 static void
+doTrapTimer(Timer tm)
+{ setIdTimer(tm, 0);
+
+  executeTimer(tm);
+
+  if ( tm->status == NAME_repeat )
+  { long msec = (long) (valReal(tm->interval) * 1000.0);
+    XtIntervalId id;
+
+    id = XtAppAddTimeOut(pceXtAppContext(NULL),
+			 msec,
+			 trapTimer,
+			 (XtPointer) tm);
+    setIdTimer(tm, id);
+    DEBUG(NAME_timer, Cprintf("\tre-registered %s with id=%p\n",
+			      pp(tm), id));
+  } else if ( tm->status == NAME_once )
+    assign(tm, status, NAME_idle);
+}
+
+
+static void
 trapTimer(XtPointer xtm, XtIntervalId *id)
 { Timer tm = (Timer) xtm;
 
@@ -47,23 +72,10 @@ trapTimer(XtPointer xtm, XtIntervalId *id)
 			    pp(tm), *id, getIdTimer(tm)));
 
   if ( getIdTimer(tm) == *id )
-  { setIdTimer(tm, 0);
-
-    executeTimer(tm);
-
-    if ( tm->status == NAME_repeat )
-    { long msec = (long) (valReal(tm->interval) * 1000.0);
-      XtIntervalId id;
-
-      id = XtAppAddTimeOut(pceXtAppContext(NULL),
-			   msec,
-			   trapTimer,
-			   (XtPointer) tm);
-      setIdTimer(tm, id);
-      DEBUG(NAME_timer, Cprintf("\tre-registered %s with id=%p\n",
-				pp(tm), id));
-    } else if ( tm->status == NAME_once )
-      assign(tm, status, NAME_idle);
+  { if ( tm->service == ON )
+    { ServiceMode(PCE_EXEC_SERVICE, doTrapTimer(tm));
+    } else
+      doTrapTimer(tm);
   }
   pceMTUnlock(LOCK_PCE);
 }

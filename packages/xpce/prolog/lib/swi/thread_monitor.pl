@@ -30,7 +30,7 @@
 */
 
 :- module(pce_thread_monitor,
-	  [ thread_monitor/0
+	  [ 
 	  ]).
 :- use_module(library(pce)).
 :- use_module(library(toolbar)).
@@ -41,15 +41,10 @@
 :- pce_autoload(float_item,   library(pce_float_item)).
 :- pce_autoload(tick_box,     library(pce_tick_box)).
 
-:- pce_global(@thread_monitor, new(thread_monitor)).
-	      
-%	thread_monitor/0
-%	
-%	Open a monitorwindow to examine the status of threads.
-
-thread_monitor :-
-	send(@thread_monitor, open).
-
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This library defines  the  class   prolog_thread_monitor,  a  frame that
+displays the status of threads.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 resource(running,   image, library('trace/icons/mini-run.xpm')).
 resource(true,	    image, image('16x16/ok.xpm')).
@@ -439,7 +434,7 @@ axis_length(Win, Size:size) :<-
 	"Axis length for diagram"::
 	get(Win, size, size(W, H)),
 	DW is W-50,
-	DH is H-30,
+	DH is H-40,
 	new(Size, size(DW, DH)).
 
 resize(Win) :->
@@ -469,7 +464,7 @@ graphs(Win, Graphs:chain) :->
 :- pce_end_class(thread_window).
 
 
-:- pce_begin_class(thread_monitor, frame,
+:- pce_begin_class(prolog_thread_monitor, frame,
 		   "Monitor thread-activity").
 
 variable(timer,	  	  timer*,     get, "Update timer").
@@ -526,6 +521,7 @@ update_interval(TM, Interval:'int|real*') :->
 	->  true
 	;   send(TM, slot, timer,
 		 new(T, timer(Interval, message(TM, update)))),
+	    send(T, service, @on),	% hide from debugger
 	    send(T, start)
 	).
 
@@ -552,7 +548,7 @@ settings(TM) :->
 	"Edit settings"::
 	send(new(thread_settings_dialog(TM)), open_centered, TM?area?center).
 
-:- pce_end_class(thread_monitor).
+:- pce_end_class(prolog_thread_monitor).
 
 
 :- pce_begin_class(thread_settings_dialog, dialog,

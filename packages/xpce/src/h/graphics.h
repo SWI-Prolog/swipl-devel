@@ -878,6 +878,7 @@ NewClass(timer)
   Real		interval;		/* interval as a real value */
   Code		message;		/* message when timer fires */
   Name		status;			/* {idle,interval,once} */
+  Bool		service;		/* Operating in service mode? */
   WsRef		ws_ref;			/* Window System Reference */
 End;
 

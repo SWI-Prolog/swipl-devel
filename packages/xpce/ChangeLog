@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: @prolog_ide->thread_monitor to monitor active threads.
+
+* ADDED: `timer->service' to execute timers in `service mode'.
+
 * FIXED: MT: not releasing XPCE mutex in event_window() if the window
   was destroyed while processing the event (leads to lockup after using
   a popup).

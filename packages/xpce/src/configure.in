@@ -508,7 +508,6 @@ if test ! -z "$GCC"; then
     else
 	CWFLAGS=
     fi
-    CMFLAGS="$CMFLAGS -funsigned-char"
 else
     COFLAGS=-O
     CWFLAGS=

@@ -39,6 +39,20 @@ setIdTimer(Timer tm, UINT id)
 }
 
 
+static void
+do_timer_proc(Timer tm, UINT id)
+{ if ( tm->status != NAME_repeat )
+  { KillTimer(NULL, id);
+    deleteHashTable(TimerTable, toInt(id));
+    assign(tm, status, NAME_idle);
+  }
+
+  executeTimer(tm);
+  
+  RedrawDisplayManager(TheDisplayManager());
+}
+
+
 VOID CALLBACK
 timer_proc(HWND hwnd, UINT msg, UINT id, DWORD now)
 { DEBUG(NAME_timer, Cprintf("Firing timer %d\n", id));
@@ -48,15 +62,11 @@ timer_proc(HWND hwnd, UINT msg, UINT id, DWORD now)
 
     pceMTLock(LOCK_PCE);
     if ( (tm = getMemberHashTable(TimerTable, toInt(id))) )
-    { if ( tm->status != NAME_repeat )
-      { KillTimer(NULL, id);
-	deleteHashTable(TimerTable, toInt(id));
-	assign(tm, status, NAME_idle);
-      }
+    { if ( tm->service == ON )
+      { ServiceMode(PCE_EXEC_SERVICE, do_timer_proc(tm, id));
+      } else
+	do_timer_proc(tm, id);
 
-      executeTimer(tm);
-
-      RedrawDisplayManager(TheDisplayManager());
       pceMTUnlock(LOCK_PCE);
 
       return;

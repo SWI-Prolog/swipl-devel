@@ -46,10 +46,10 @@ the IDE components to the autoloading of one single predicate.
 
 :- pce_image_directory(library('trace/icons')).
 
-:- pce_autoload(prolog_debug_status, library('trace/status')).
-:- pce_autoload(prolog_navigator,    library('trace/browse')).
-:- pce_autoload(prolog_query_frame,  library('trace/query')).
-
+:- pce_autoload(prolog_debug_status,   library('trace/status')).
+:- pce_autoload(prolog_navigator,      library('trace/browse')).
+:- pce_autoload(prolog_query_frame,    library('trace/query')).
+:- pce_autoload(prolog_thread_monitor, library('swi/thread_monitor')).
 
 
 		 /*******************************
@@ -123,5 +123,19 @@ open_query_window(IDE) :->
 	    send(QF, application, IDE)
 	),
 	send(QF, expose).
+
+thread_monitor(IDE) :->
+	"Open a monitor for running threads"::
+	(   current_prolog_flag(threads, true)
+	->  (   get(IDE, member, prolog_thread_monitor, Monitor)
+	    ->	true
+	    ;	new(Monitor, prolog_thread_monitor),
+		send(Monitor, application, IDE)
+	    ),
+	    send(Monitor, open)
+	;   send(@display, report, error,
+		 'This version of SWI-Prolog is not built\n\
+		  with thread-support')
+	).
 
 :- pce_end_class(prolog_ide).

@@ -38,6 +38,7 @@ initialiseTimer(Timer tm, Real interval, Code msg)
   assign(tm, interval, CtoReal(0.0));
   assign(tm, message,  msg);
   assign(tm, status,   NAME_idle);
+  assign(tm, service,  OFF);
 
   intervalTimer(tm, interval);
 
@@ -137,6 +138,8 @@ static vardecl var_timer[] =
      NAME_action, "Code executed each time"),
   SV(NAME_status, "{idle,repeat,once}", IV_GET|IV_STORE, statusTimer,
      NAME_status, "Status of timer"),
+  IV(NAME_service, "bool", IV_BOTH,
+     NAME_debugging, "If @on, execution cannot be debugged"),
   IV(NAME_wsRef, "alien:WsRef", IV_GET,
      NAME_internal, "Window System Reference")
 };
