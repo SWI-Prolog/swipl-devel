@@ -176,10 +176,10 @@ size(T, Size:size) :->
 
 status(T, Status:{on_top,hidden}) :->
 	send_super(T, status, Status),
+	get(T, window, Window),
 	(   Status == on_top,
 	    get(T, frame, Frame)
-	->  get(T, window, Window),
-	    send(Window, resize),
+	->  send(Window, resize),
 	    send(Frame, keyboard_focus, Window)
 	;   true
 	).
