@@ -70,10 +70,22 @@ getConvertFont(Class class, Name name)
 
     answer(getMemberHashTable(FontTable, ref_name));
   } else
-  { Sheet sh = get(CurrentDisplay(NIL), NAME_fontTable, 0);
-    
-    if ( sh != FAIL )
-      answer(get(sh, NAME_value, CtoKeyword(s), 0));
+  { DisplayObj d = CurrentDisplay(NIL);
+    Sheet sh;
+    FontObj f;
+    Name fn = CtoKeyword(s);
+
+    if ( d && hasGetMethodObject(d, NAME_fontTable) &&
+	 (sh = get(CurrentDisplay(NIL), NAME_fontTable, 0)) &&
+	 (f = get(sh, NAME_value, fn)) )
+      answer(f);
+    else
+    { for_hash_table(FontTable, sy,
+		     { FontObj f = sy->value;
+		       if ( f->x_name == fn ) /* case? */
+			 answer(f);
+		     })
+    }
   }
 
   fail;
@@ -429,6 +441,11 @@ makeClassFont(Class class)
 	    getDomainFont);
 
   FontTable = globalObject(NAME_fonts, ClassHashTable, toInt(101), 0);
+
+#ifdef __WINDOWS__
+  attach_resource(class, "scale", "real", "1.4",
+                "Multiplication factor for all fonts");
+#endif
 
   succeed;
 }

@@ -596,7 +596,6 @@ makeClassProcess(Class class)
 	    getEnvironmentProcess);
 
   ProcessChain = globalObject(NAME_runningProcesses, ClassChain, 0);
-  featurePce(PCE, NAME_process);
 
   succeed;
 }

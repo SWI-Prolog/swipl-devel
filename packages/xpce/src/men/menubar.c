@@ -12,8 +12,6 @@
 
 static status	currentMenuBar(MenuBar mb, PopupObj p);
 
-#define X_GAP 15
-
 static status
 initialiseMenuBar(MenuBar mb, Name name)
 { createDialogItem(mb, name);
@@ -270,7 +268,9 @@ appendMenuBar(MenuBar mb, PopupObj p)
     appendChain(mb->buttons, b=newObject(ClassButton, p->label, NIL, 0));
     assign(b, popup, p);
     if ( mb->look != NAME_openLook )
-    { assign(b, font, mb->label_font);
+    { obtainResourcesObject(mb);
+
+      assign(b, label_font, mb->label_font);
       assign(b, pen, mb->pen);
       assign(b, radius, mb->radius);
     }

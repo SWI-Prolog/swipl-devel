@@ -4284,8 +4284,7 @@ appendKill(CharArray ca)
   if ( isNil(old) )
     elementVector(ring, ZERO, ca);
   else
-    elementVector(ring, ZERO,
-		  newObject(ClassString, CtoName("%s%s"), old, ca, 0));
+    elementVector(ring, ZERO, getAppendCharArray(old, ca));
 
   succeed;
 }
@@ -4299,8 +4298,7 @@ prependKill(CharArray ca)
   if ( isNil(old) )
     elementVector(ring, ZERO, ca);
   else
-    elementVector(ring, ZERO,
-		  newObject(ClassString, CtoName("%s%s"), ca, old, 0));
+    elementVector(ring, ZERO, getAppendCharArray(ca, old));
 
   succeed;
 }

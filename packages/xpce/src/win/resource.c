@@ -170,7 +170,9 @@ getConvertStringResource(Resource r, CharArray value)
     value = (CharArray) CtoKeyword(strName(value));
 
   if ( (val = checkType(value, r->r_type, r->context)) )
-  { errorPce(r, NAME_oldResourceFormat, value);
+  { if ( !includesType(r->r_type, nameToType(NAME_font)) )
+      errorPce(r, NAME_oldResourceFormat, value);
+
     answer(val);
   }
 

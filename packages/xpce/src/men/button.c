@@ -18,7 +18,7 @@ initialiseButton(Button b, Name name, Message msg, Name acc)
 
   assign(b, pen,          DEFAULT);	/* resources */
   assign(b, radius,       DEFAULT);
-  assign(b, font,         DEFAULT);
+  assign(b, label_font,   DEFAULT);
   assign(b, shadow,       DEFAULT);
   assign(b, popup_image,  DEFAULT);
 
@@ -57,7 +57,7 @@ RedrawAreaButton(Button b, Area a)
       r_3d_triangle(tx+tw/2, ty+th, tx, ty, tx+tw, ty, z, up);
     }
 
-    str_string(&b->label->data, b->font, x, y, w-rm, h,
+    str_string(&b->label->data, b->label_font, x, y, w-rm, h,
 	       NAME_center, NAME_center);
   } else				/* x, open_look */
   { int swapc  = 0;
@@ -94,7 +94,7 @@ RedrawAreaButton(Button b, Area a)
       r_image(b->popup_image, 0, 0, x+w-rm, y + (h-ih)/2, iw, ih, ON);
     }
 
-    str_string(&b->label->data, b->font, x, y, w-rm, h,
+    str_string(&b->label->data, b->label_font, x, y, w-rm, h,
 	       NAME_center, NAME_center);
 
     if ( swapc )
@@ -113,7 +113,7 @@ computeButton(Button b)
 
     TRY(obtainResourcesObject(b));
 
-    str_size(&b->label->data, b->font, &w, &h);
+    str_size(&b->label->data, b->label_font, &w, &h);
     h += 6; w += 10;
     if ( notNil(b->popup) )
     { if ( notNil(b->popup->popup_image) )
@@ -143,7 +143,7 @@ getReferenceButton(Button b)
   if ( !(ref = getReferenceDialogItem(b)) )
     ref = answerObject(ClassPoint,
 		       ZERO,
-		       add(toInt(3), getAscentFont(b->font)),
+		       add(toInt(3), getAscentFont(b->label_font)),
 		       0);
   
   answer(ref);
@@ -281,8 +281,8 @@ getPopupButton(Button b, Bool create)
 
 
 static status
-fontButton(Button b, FontObj font)
-{ return assignGraphical(b, NAME_font, font);
+labelFontButton(Button b, FontObj font)
+{ return assignGraphical(b, NAME_labelFont, font);
 }
 
 
@@ -312,7 +312,7 @@ makeClassButton(Class class)
 	     "Rounding radius for corners");
   localClass(class, NAME_shadow, NAME_appearance, "int", NAME_get,
 	     "Shadow shown around the box");
-  localClass(class, NAME_font, NAME_appearance, "font", NAME_get,
+  localClass(class, NAME_labelFont, NAME_appearance, "font", NAME_get,
 	     "Font of command text");
   localClass(class, NAME_accelerator, NAME_accelerator, "key=name*", NAME_both,
 	     "Activate when ->key: name is received");
@@ -324,7 +324,7 @@ makeClassButton(Class class)
 
   storeMethod(class, NAME_status,      statusButton);
   storeMethod(class, NAME_radius,      radiusButton);
-  storeMethod(class, NAME_font,        fontButton);
+  storeMethod(class, NAME_labelFont,   labelFontButton);
   storeMethod(class, NAME_popup,       popupButton);
   storeMethod(class, NAME_shadow,      shadowButton);
   storeMethod(class, NAME_popupImage,  popupImageButton);
@@ -333,6 +333,9 @@ makeClassButton(Class class)
 	     3, "name=name", "message=[code]*", "label=[name]",
 	     "Create from name and command",
 	     initialiseButton);
+  sendMethod(class, NAME_font, NAME_appearance, 1, "font",
+	     "same as ->label_font",
+	     labelFontButton);
   sendMethod(class, NAME_compute, DEFAULT, 0,
 	     "Compute desired size (from command)",
 	     computeButton);
@@ -366,8 +369,8 @@ makeClassButton(Class class)
 	    getReferenceButton);
 
 
-  attach_resource(class, "font", "font", "@helvetica_bold_14",
-		  "Default font for text");
+  attach_resource(class, "label_font", "font", "@helvetica_bold_14",
+		  "Default font for label text");
   attach_resource(class, "size", "size", "size(80,20)",
 		  "Mimimum size in pixels");
   attach_resource(class, "pen", "int", "2",

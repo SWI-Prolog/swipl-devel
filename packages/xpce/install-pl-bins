@@ -44,10 +44,10 @@ echo ""
 
 filesa="bin/xpce.base bin/xpce-client src/XPCE.a pl/src/pl-crt0.o"
 filesb="INSTALL install README* INFO include pl/load.pl pl/xpce.pl"
-filesc="C++/demo/Makefile C++/demo/README C++/demo/*.C C++/demo/*.bm"
+filesc="CXX/demo/Makefile CXX/demo/README CXX/demo/*.C CXX/demo/*.bm"
 filesd="STAMP VERSION ChangeLog licence/licence.tex"
 filese="src/unx/client.c src/h/interface.h"
-filesf="Pce bitmaps postscript man/reference"
+filesf="Pce bitmaps postscript man/reference man/faq"
 filesg="prolog/boot prolog/lib pl/library pl/boot pl/include"
 allfiles="$filesa $filesb $filesc $filesd $filese $filesf $filesg"
 

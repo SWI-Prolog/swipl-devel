@@ -306,10 +306,16 @@ RedrawAreaScrollBar(ScrollBar s, Area a)
 
     if ( equalName(s->orientation, NAME_vertical) )
     { r_clear(x+p, y, w-2*p, h);
-      r_3d_box(x+d, y+bi.start, w-2*d, bi.length, 0, z, TRUE);
+      if ( instanceOfObject(z, ClassElevation) )
+	r_3d_box(x+d, y+bi.start, w-2*d, bi.length, 0, z, TRUE);
+      else
+	r_fill(x+d, y+bi.start, w-2*d, bi.length, GREY50_IMAGE);
     } else /* if ( equalName(s->orientation, NAME_horizontal) ) */
     { r_clear(x, y+p, w, h-2*p);
-      r_3d_box(x+bi.start, y+d, bi.length, h-2*d, 0, z, TRUE);
+      if ( instanceOfObject(z, ClassElevation) )
+	r_3d_box(x+bi.start, y+d, bi.length, h-2*d, 0, z, TRUE);
+      else
+	r_fill(x+bi.start, y+d, bi.length, h-2*d, GREY50_IMAGE);
     }
 
     r_box(x, y, w, h, 0, NIL);

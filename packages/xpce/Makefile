@@ -73,7 +73,7 @@ ARFLAGS=ru
 ETAGS=etags
 SED=sed
 
-VERSION=4.8.3, Nov 1994
+VERSION=4.8.4, Nov 1994
 ARCH=sparc
 OS=sunos4.1.3
 RESOURCE_CLASS=Pce

@@ -447,7 +447,6 @@ makeClassSocket(Class class)
 	     eofSocket);
 
   SocketChain = globalObject(NAME_openSockets, ClassChain, 0);
-  featurePce(PCE, NAME_socket);
 
   succeed;
 }

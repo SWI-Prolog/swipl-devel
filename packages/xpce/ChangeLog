@@ -1,5 +1,12 @@
 [VERSION 4.8.4]
 
+* FIXED: Class menu_bar and class scroll_bar look-and-feel for non-open-look
+  styles.
+
+* MODIFIED: `Button <->font' renamed to `Button <->label_font'.  Ensures
+  more consistent handling of resources.  `Button ->font' is added to handle
+  compatibility.
+
 * ADDED: `@pce->has_feature' to test for certain features supported in this
   version.
 

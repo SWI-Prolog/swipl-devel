@@ -266,7 +266,7 @@ NewClass(button)
   ABSTRACT_DIALOGITEM
   Int	     radius;			/* Rounding radius */
   Int	     shadow;			/* shadow around button */
-  FontObj    font;			/* Font of the button */
+  FontObj    label_font;		/* Font of the button */
   Name	     accelerator;		/* activate on this key */
   Image	     popup_image;		/* Image to indicate popup */
 End;

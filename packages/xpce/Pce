@@ -20,12 +20,6 @@ Pce.*.font:			@screen_roman_13
 Pce.*.value_font:		@helvetica_roman_12
 Pce.*.label_font:		@helvetica_bold_12
 
-! These are factors used to compute shadow and hilited colours for the
-! 3-D effect.
-
-Pce.Colour.reduce_factor:	0.5
-Pce.Colour.hilite_factor:	0.9
-
 ! Dialog Item definitions.
 
 Pce.DialogItem.look:		open_look
@@ -42,7 +36,7 @@ Pce.MenuBar.gap:		10
 
 Pce.Button.radius:		when(@colour_display, 8, 12)
 Pce.Button.size:		size(50,20)
-Pce.Button.font:		@helvetica_roman_12
+Pce.Button.label_font:		@helvetica_roman_12
 Pce.Button.alignment:		center
 Pce.Button.elevation:		when(@colour_display, 1, @nil)
 Pce.Button.shadow:		when(@colour_display, 0, 1)

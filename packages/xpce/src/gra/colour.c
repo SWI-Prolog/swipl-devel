@@ -264,7 +264,7 @@ makeClassColour(Class class)
 
   attach_resource(class, "reduce_factor", "real", "0.5",
 		  "Factor for <-reduce'd colour");
-  attach_resource(class, "hilite_factor", "real", "0.5",
+  attach_resource(class, "hilite_factor", "real", "0.9",
 		  "Factor for <-hilite'd colour");
 
   succeed;

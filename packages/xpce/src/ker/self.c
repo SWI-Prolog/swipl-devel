@@ -1554,6 +1554,15 @@ pceInitialise(int handles, int argc, char **argv)
   realiseClass(ClassConstant);		/* @default, @nil */
   realiseClass(ClassBool);		/* @on, @off */
 
+  DEBUG_BOOT(printf("Defining features\n"));
+
+#ifdef HAVE_FORK
+  featurePce(PCE, NAME_process);
+#endif
+#ifdef HAVE_SOCKET
+  featurePce(PCE, NAME_socket);
+#endif
+
   DEBUG_BOOT(printf("C++ global objects\n"));
 #if O_CPLUSPLUS
   initCPlusPlusGlobals();
