@@ -232,13 +232,43 @@ $(XPCE2PL):	$(PLOBJ)
 IBASE=	$(PLBASE)\xpce
 IDIRS=	$(IBASE)\appl-help \
 	$(IBASE)\bitmaps \
+	$(IBASE)\bitmaps\16x16 \
+	$(IBASE)\bitmaps\32x32 \
+	$(IBASE)\bitmaps\patterns \
+	$(IBASE)\bitmaps \
 	$(IBASE)\man \
 	$(IBASE)\prolog \
 	$(IBASE)\prolog\boot \
 	$(IBASE)\prolog\contrib \
+	$(IBASE)\prolog\contrib\rubik \
 	$(IBASE)\prolog\demo \
-	$(IBASE)\prolog\lib
+	$(IBASE)\prolog\lib \
+	$(IBASE)\prolog\lib\compatibility \
+	$(IBASE)\prolog\lib\dialog \
+	$(IBASE)\prolog\lib\bitmaps \
+	$(IBASE)\prolog\lib\bitmaps \
+	$(IBASE)\prolog\lib\doc \
+	$(IBASE)\prolog\lib\doc\DTD \
+	$(IBASE)\prolog\lib\doc\icons \
+	$(IBASE)\prolog\lib\draw \
+	$(IBASE)\prolog\lib\emacs \
+	$(IBASE)\prolog\lib\english \
+	$(IBASE)\prolog\lib\http \
+	$(IBASE)\prolog\lib\man \
+	$(IBASE)\prolog\lib\math \
+	$(IBASE)\prolog\lib\xref
 
-install::
-	copy $(XPCE2PL) $(PLBASE)\bin
-	
+$(IDIRS):
+	mkdir "$@"
+
+INSTALL=xpce-install
+
+install:	idirs idll
+		
+idirs:		$(IDIRS)
+idll::
+		$(INSTALL) $(XPCE2PL) $(PLBASE)\bin
+
+ilib::
+		$(INSTALL) -n ..\prolog\lib\*.pl $(IBASE)\prolog\lib
+		$(INSTALL) -n ..\prolog\lib\*.pl $(IBASE)\prolog\lib

@@ -16,6 +16,10 @@ Simple install replacement  to  be  used   for  XPCE  installation.  The
 configure install.sh script is very slow,   while  all operating systems
 appear to be using different versions of install. This should solve this
 problem.
+
+This installer is also used to install the system under windows to avoid
+the limitiations and  portability  issues   around  the  Windows command
+interpreter and copy command.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef HAVE_CONFIG_H
@@ -32,6 +36,7 @@ problem.
 #endif
 #include <fcntl.h>
 #include <errno.h>
+#include <time.h>
 
 #ifndef MAXPATHLEN
 #define MAXPATHLEN 1024
@@ -51,6 +56,14 @@ problem.
 #define O_BINARY 0
 #endif
 
+#ifdef WIN32
+#define IsDirSep(c) ((c) == '/' || (c) == '\\')
+#define DIRSEP '\\'
+#else
+#define IsDirSep(c) ((c) == '/')
+#define DIRSEP '/'
+#endif
+
 		 /*******************************
 		 *	       SETTINGS		*
 		 *******************************/
@@ -63,6 +76,7 @@ int	 verbose=0;
 bool	 makedirs;
 bool	 strippath = -1;		/* i.e. use basename() */
 bool	 installdirs = FALSE;		/* -d */
+bool	 newer_only = FALSE;
 
 static int
 get_mode(const char *s, unsigned short *m)
@@ -107,12 +121,24 @@ get_file_mode(const char *name, int fd, mode_t *m)
 }
 
 
+static int
+last_modified(const char *name, time_t *t)
+{ struct stat buf;
+
+  if ( stat(name, &buf) == 0 )
+  { *t = buf.st_mtime;
+    return 0;
+  } else
+    return -1;
+}
+
+
 const char *
 basename(const char *path)
 { const char *base;
 
   for(base=path; *path; path++)
-  { if ( *path == '/' )
+  { if ( IsDirSep(*path) )
       base = path+1;
   }
 
@@ -125,7 +151,7 @@ dirname(const char *path)		/* returns malloced directory name */
 { const char *base = basename(path);
   char *rval;
 
-  while(base > path && base[-1] == '/' )
+  while(base > path && IsDirSep(base[-1]) )
     base--;
   
   if ( !(rval = malloc(base-path+1)) )
@@ -189,6 +215,25 @@ install_file(const char *from, const char *to)
   int n;
   mode_t m;
 
+  if ( newer_only )
+  { time_t to_time;
+
+    if ( last_modified(to, &to_time) == 0 )
+    { time_t from_time;
+
+      if ( !last_modified(from, &from_time) == 0 )
+      { perror(from);
+	return FALSE;
+      }
+
+      if ( difftime(from_time, to_time) < 0.0 )
+      { if ( verbose )
+	  fprintf(stderr, "Skipped %s (not modified)\n", to);
+	return TRUE;
+      }
+    }
+  }
+
   if ( (fdfrom = open(from, O_RDONLY|O_BINARY)) < 0 )
   { perror(from);
     return FALSE;
@@ -246,11 +291,11 @@ strip_path(const char *path, int strip)
   { const char *base = path;
 
     while(strip-- > 0)
-    { while(*base == '/')
+    { while( IsDirSep(*base) )
 	base++;
-      while(*base && *base != '/')
+      while( *base && !IsDirSep(*base) )
 	base++;
-      while(*base == '/')
+      while( IsDirSep(*base) )
 	base++;
     }
 
@@ -265,7 +310,7 @@ install_file_in_dir(const char *file, const char *dir)
   const char *base = strip_path(file, strippath);
   int rval;
 
-  sprintf(path, "%s/%s", dir, base);
+  sprintf(path, "%s%c%s", dir, DIRSEP, base);
 
   if ( (rval = install_file(file, path)) && verbose )
     printf("%s\n", base);
@@ -279,7 +324,7 @@ usage()
 { fprintf(stderr, "  Usage: %s options file ... directory\n", program);
   fprintf(stderr, "     or: %s options from to\n", program);
   fprintf(stderr, "     or: %s [-C dir] -d dir ...\n", program);
-  fprintf(stderr, "options: [-v[N]] [-c] [-p[N]] [-C dir] [-m mode]\n");
+  fprintf(stderr, "options: [-v[N]] [-n] [-c] [-p[N]] [-C dir] [-m mode]\n");
   exit(1);
 }
 
@@ -310,6 +355,9 @@ main(int argc, char **argv)
 	  break;
 	case 'd':
 	  installdirs = TRUE;
+	  break;
+	case 'n':
+	  newer_only = TRUE;
 	  break;
 	case 'v':
 	  verbose++;
