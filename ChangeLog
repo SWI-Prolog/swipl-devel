@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: memory stream-size if no output was written.  Fixes sformat
+    and swrite calls not producing output.  Thanks to Daniel Cote.
+
   * FIXED: MT version: deadlock in append/1 and tell/1.  Thanks to
     Andrew Diatchkov.
 

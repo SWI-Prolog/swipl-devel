@@ -1834,6 +1834,8 @@ Sopenmem(char **buffer, int *sizep, const char *mode)
 	mf->malloced = TRUE;
       if ( *buffer )
 	*buffer[0] = '\0';
+      if ( sizep )
+	*sizep = mf->size;
       break;
     default:
       free(mf);
