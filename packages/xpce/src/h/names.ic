@@ -848,6 +848,7 @@
   BUILTIN_NAME("forward_char")
   BUILTIN_NAME("forward_name")
   BUILTIN_NAME("forward_paragraph")
+  BUILTIN_NAME("forward_receiver")
   BUILTIN_NAME("forward_sentence")
   BUILTIN_NAME("forward_term")
   BUILTIN_NAME("forward_vars")

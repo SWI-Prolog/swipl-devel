@@ -94,23 +94,33 @@ forwardVarsCodev(Code c, int argc, Assignment *argv)
 
 The test of `if ( RECEIVER->value != receiver )' is dubious: we should
 check whether the message actually is send to @receiver
+
+TBD: Seems we can throw away all the sendSuperObject() and related stuff
+using the XPCE 5 message  passing  code   and  only  keep  @receiver for
+messages in dialog items.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+status
+userForwardReceiverCodev(Code c, Any receiver, int argc, const Any argv[])
+{ Any receiver_save = RECEIVER->value;
+  Any receiver_class_save = RECEIVER_CLASS->value;
+  status rval;
+
+  RECEIVER->value = receiver;
+  RECEIVER_CLASS->value = classOfObject(receiver);
+  rval = forwardCodev(c, argc, argv);
+  RECEIVER_CLASS->value = receiver_class_save;
+  RECEIVER->value = receiver_save;
+
+  return rval;
+}
+
 
 status
 forwardReceiverCodev(Code c, Any receiver, int argc, const Any argv[])
 { if ( RECEIVER->value != receiver )
-  { Any receiver_save = RECEIVER->value;
-    Any receiver_class_save = RECEIVER_CLASS->value;
-    status rval;
-
-    RECEIVER->value = receiver;
-    RECEIVER_CLASS->value = classOfObject(receiver);
-    rval = forwardCodev(c, argc, argv);
-    RECEIVER_CLASS->value = receiver_class_save;
-    RECEIVER->value = receiver_save;
-
-    return rval;
-  } else
+    return userForwardReceiverCodev(c, receiver, argc, argv);
+  else
     return forwardCodev(c, argc, argv);
 }
 
@@ -361,6 +371,9 @@ makeClassCodeVector(Class class)
 
 /* Type declarations */
 
+static char *T_fwdrec[] =
+	{ "receiver=any", "any ..."
+	};
 
 /* Instance Variables */
 
@@ -382,6 +395,8 @@ static senddecl send_code[] =
      NAME_execute, "Push vars and execute"),
   SM(NAME_forwardVector, 1, "any ...", forwardVectorCodev,
      NAME_execute, "Push @arg1, ... from a vector and execute"),
+  SM(NAME_forwardReceiver, 2, T_fwdrec, userForwardReceiverCodev,
+     NAME_execute, "Push @receiver, @arg1, ... and execute"),
   SM(NAME_Execute, 0, NULL, ExecuteCode,
      NAME_internal, "Execute the code object (redefined)"),
   SM(NAME_debugClass, 1, "{user,service}", debugClassCode,
