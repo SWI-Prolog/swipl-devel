@@ -1,0 +1,16 @@
+/* XPM */
+static char * hadjusttile_xpm[] = {
+"9 9 4 1",
+" 	c grey95",
+".	c grey80",
+"X	c grey60",
+"o	c black",
+"         ",
+" .......X",
+" ..o.o..X",
+" .oo.oo.X",
+" ooo.oooX",
+" .oo.oo.X",
+" ..o.o..X",
+" .......X",
+"XXXXXXXXX"};

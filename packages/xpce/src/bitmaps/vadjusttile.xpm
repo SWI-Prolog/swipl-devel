@@ -1,0 +1,16 @@
+/* XPM */
+static char * vadjusttile_xpm[] = {
+"9 9 4 1",
+" 	c grey95",
+".	c grey80",
+"X	c black",
+"o	c grey60",
+"         ",
+" ...X...o",
+" ..XXX..o",
+" .XXXXX.o",
+" .......o",
+" .XXXXX.o",
+" ..XXX..o",
+" ...X...o",
+"ooooooooo"};
