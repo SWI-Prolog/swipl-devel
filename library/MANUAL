@@ -39,7 +39,7 @@ primitives.
 This  document gives an overview of the features, system limits
 and built-in predicates.
 
-Copyright Oc 1990--2003, University of Amsterdam
+Copyright Oc 1990{2003,University of Amsterdam
 
 
 CChhaapptteerr 11..  IINNTTRROODDUUCCTTIIOONN
@@ -7585,10 +7585,10 @@ ffiillee__nnaammee__eexxtteennssiioonn((_?_B_a_s_e_, _
 eexxppaanndd__ffiillee__nnaammee((_+_W_i_l_d_C_a_r_d_, _-_L_i_s_t))
     Unify  _L_i_s_t with  a  sorted list  of files  or directories  matching
     _W_i_l_d_C_a_r_d.   The  normal Unix wildcard  constructs `?', `*',  `[...]'
-    and  `{...}'  are recognised.    The  interpretation  of `{...}'  is
+    and  `{...}'  are  recognised.    The interpretation  of  `{...}'  is
     interpreted  slightly different  from  the C  shell (csh(1)).    The
     comma  separated  argument  can  be  arbitrary  patterns,  including
-    `{...}'  patterns.  The empty pattern is legal as  well:  `\{.pl,\}'
+    `{...}'  patterns.  The empty pattern is  legal as well:  `\{.pl,\}'
     matches either `.pl' or the empty string.
 
     If  the pattern  does contains  wildcard  characters, only  existing
@@ -12076,9 +12076,11 @@ void PPLL__cclleeaannuupp(_i_n_t _s_t_a_t_u_s)
     part of the clib package,).
 
 
-void PPLL__hhaalltt(_i_n_t _s_t_a_t_u_s)
+int PPLL__hhaalltt(_i_n_t _s_t_a_t_u_s)
     Cleanup  the Prolog environment using PL_cleanup() and calls  exit()
-    with the status argument.
+    with  the  status argument.    As  PL_cleanup() can only  be  called
+    from  the main thread, this function returns FALSE when  called from
+    another thread as the main one.
 
 
 77..66..1188..11 TThhrreeaaddiinngg,, SSiiggnnaallss aanndd eemmbbeeddddeedd PPrroolloogg
