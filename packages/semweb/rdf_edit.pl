@@ -23,7 +23,7 @@
 	    rdfe_replay_journal/1,	% +File
 	    rdfe_current_journal/1	% -Path
 	  ]).
-:- use_module(library(rdf_db)).
+:- use_module(rdf_db).
 :- use_module(library(broadcast)).
 
 :- meta_predicate
