@@ -40,6 +40,10 @@
 user:file_search_path(dtd, '.').
 user:file_search_path(dtd, swi('library/DTD')).
 
+sgml_register_catalog_file(File, Location) :-
+	prolog_to_os_filename(File, OsFile),
+	'_sgml_register_catalog_file'(OsFile, Location).
+
 load_foreign :-
 	current_predicate(_, _:sgml_parse(_,_)), !.
 load_foreign :-
@@ -53,7 +57,7 @@ init :-
 				 file_errors(fail)
 			       ],
 			       SocFile)
-	->  sgml_register_catalog_file(SocFile)
+	->  sgml_register_catalog_file(SocFile, end)
 	;   true
 	).
 

@@ -687,9 +687,23 @@ data.  External entities can only be loaded from a file and the mapping
 between the entity names and the file is done using a \jargon{catalog}
 file in a format compatible to that used by James Clark's SP Parser.
 
-Catalog files are found by inspecting the environment variable
-\env{SGML_CATALOG_FILES}, which contains a colon (:) separated list
-of catalog files.  Two types of lines are using by this package. 
+Catalog files can be specified using two primitives: the predicate
+sgml_register_catalog_file/2 or the environment variable
+\env{SGML_CATALOG_FILES} (compatible to the SP package).
+
+\begin{description}
+    \predicate{sgml_register_catalog_file}{2}{+File, +Location}
+Register the indicated \arg{File} as a catalog file.  \arg{Location}
+is either \const{start} or \const{end} and defines whether the catalog
+is considered first or last.  This predicate has no effect if \arg{File}
+is already part of the catalog.
+
+If no files are registered using this predicate, the first query on the
+catalog examines \env{SGML_CATALOG_FILES} and fills the catalog with all
+files in this path.
+\end{description}
+
+Two types of lines are used by this package. 
 
 \begin{quote}
 \const{DOCTYPE} \arg{doctype} \arg{file}\\

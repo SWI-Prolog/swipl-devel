@@ -1396,7 +1396,7 @@ install()
   PL_register_foreign("open_dtd",         3, pl_open_dtd,	  0);
   PL_register_foreign("sgml_parse",       2, pl_sgml_parse,
 		      PL_FA_TRANSPARENT);
-  PL_register_foreign("sgml_register_catalog_file", 2,
+  PL_register_foreign("_sgml_register_catalog_file", 2,
 		      pl_sgml_register_catalog_file, 0);
 
   PL_register_foreign("$dtd_property",	  2, pl_dtd_property,
