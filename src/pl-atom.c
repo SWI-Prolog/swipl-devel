@@ -842,7 +842,7 @@ so multiple Prolog threads can use this routine.
 #define is_signalled() (LD->pending_signals != 0)
 
 char *
-PL_atom_generator(char *prefix, int state)
+PL_atom_generator(const char *prefix, int state)
 { long i, mx = entriesBuffer(&atom_array, Atom);
 
   if ( !state )

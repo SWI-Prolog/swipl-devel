@@ -61,12 +61,25 @@ extern int rl_delete_text(int from, int to);
 #include <stdio.h>			/* readline needs it */
 #define savestring(x)			/* avoid definition there */
 #include <readline/readline.h>
+#ifdef HAVE_READLINE_HISTORY_H
+#include <readline/history.h>
+#else
 extern void add_history(char *);	/* should be in readline.h */
+#endif
+					/* missing prototypes in older */
+					/* readline.h versions */
 extern int rl_begin_undo_group(void);	/* delete when conflict arrises! */
 extern int rl_end_undo_group(void);
 extern Function *rl_event_hook;
-extern char *filename_completion_function(char *, int);
+extern char *filename_completion_function(const char *, int);
 
+#ifndef HAVE_RL_COMPLETION_MATCHES
+#define rl_completion_matches completion_matches
+#endif
+#ifndef HAVE_RL_READLINE_STATE
+static int rl_readline_state = 0;
+#define RL_STATE_INITIALIZED 0
+#endif
 
 static foreign_t
 pl_rl_read_init_file(term_t file)
@@ -103,9 +116,21 @@ pl_rl_add_history(term_t text)
 
 
 static int
-event_hook()
-{ return PL_dispatch(0, PL_DISPATCH_WAIT);
+input_on_fd(int fd)
+{ fd_set rfds;
+  struct timeval tv;
+
+  FD_ZERO(&rfds);
+  FD_SET(fd, &rfds);
+  tv.tv_sec = 0;
+  tv.tv_usec = 1;
+
+  return select(fd+1, &rfds, NULL, NULL, &tv) != 0;
 }
+
+
+static char *my_prompt   = NULL;
+static int   in_readline = 0;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The GNU-readline library is not reentrant (or does not appear to be so).
@@ -113,11 +138,37 @@ Therefore we will detect this and simply   call  the default function if
 reentrant access is tried.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int in_readline = 0;
+static int
+event_hook()
+{ if ( Sinput && Sinput->position )
+  { long c0 = Sinput->position->charno;
+
+    while( !input_on_fd(0) )
+    { PL_dispatch(0, PL_DISPATCH_NOWAIT);
+      if ( Sinput->position->charno != c0 )
+      { if ( my_prompt )
+	  rl_set_prompt(my_prompt);
+	rl_forced_update_display();
+	c0 = Sinput->position->charno;
+	rl_done = FALSE;
+      }
+    }
+  } else
+    PL_dispatch(0, PL_DISPATCH_WAIT);
+
+  return TRUE;
+}
+
 
 static void
 reset_readline()
-{ in_readline = 0;
+{ if ( in_readline )
+    rl_cleanup_after_signal();
+
+  if ( my_prompt )
+    remove_string(my_prompt);
+  my_prompt = NULL;
+  in_readline = 0;
 }
 
 
@@ -146,7 +197,9 @@ Sread_readline(void *handle, char *buf, int size)
     }
 #endif
     case PL_NOTTY:			/* -tty */
+#ifdef RL_NO_REENTRANT
     notty:
+#endif
     { PL_dispatch(fd, PL_DISPATCH_WAIT);
       rval = read(fd, buf, size);
       if ( rval > 0 && buf[rval-1] == '\n' )
@@ -159,11 +212,13 @@ Sread_readline(void *handle, char *buf, int size)
     { char *line;
       char *prompt;
 
+#ifdef RL_NO_REENTRANT
       if ( in_readline )
       { Sprintf("[readline disabled] ");
 	PL_write_prompt(TRUE);
 	goto notty;			/* avoid reentrance */
       }
+#endif
 
       if ( PL_dispatch(0, PL_DISPATCH_INSTALLED) )
 	rl_event_hook = event_hook;
@@ -174,9 +229,27 @@ Sread_readline(void *handle, char *buf, int size)
       if ( prompt )
 	PL_add_to_protocol(prompt, strlen(prompt));
 
-      in_readline++;
-      line = readline(prompt);
-      in_readline--;
+      { char *oldp = my_prompt;
+
+	my_prompt = prompt ? store_string(prompt) : (char *)NULL;
+  
+	if ( in_readline++ )
+	{ int state = rl_readline_state;
+  
+	  rl_clear_pending_input();
+	  rl_deprep_terminal();
+	  rl_readline_state = (RL_STATE_INITIALIZED);
+	  line = readline(prompt);
+	  rl_prep_terminal(FALSE);
+	  rl_readline_state = state;
+	} else
+	  line = readline(prompt);
+	in_readline--;
+
+	if ( my_prompt )
+	  remove_string(my_prompt);
+	my_prompt = oldp;
+      }
 
       if ( line )
       { char *s;
@@ -235,7 +308,7 @@ prolog_complete(int ignore, int key)
 
 
 static char *
-atom_generator(char *prefix, int state)
+atom_generator(const char *prefix, int state)
 { char *s = PL_atom_generator(prefix, state);
   
   if ( s )
@@ -246,17 +319,18 @@ atom_generator(char *prefix, int state)
 
 
 static char **
-prolog_completion(char *text, int start, int end)
+prolog_completion(const char *text, int start, int end)
 { char **matches = NULL;
 
   if ( (start == 1 && rl_line_buffer[0] == '[') )	/* [file */
-    matches = completion_matches(text,
-				 (void *) filename_completion_function);
+    matches = rl_completion_matches(text,
+				    (void *) filename_completion_function);
   else if (start == 2 && strncmp(rl_line_buffer, "['", 2))
-    matches = completion_matches(text,
-				 (void *) filename_completion_function);
+    matches = rl_completion_matches(text,
+				    (void *) filename_completion_function);
   else
-    matches = completion_matches(text, atom_generator);
+    matches = rl_completion_matches(text,
+				    atom_generator);
 
   return matches;
 }

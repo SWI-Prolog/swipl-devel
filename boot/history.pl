@@ -105,6 +105,7 @@ prompt_history(Prompt) :-
 %   save_event(+Event)
 %   Save Event in the history system. Remove possibly outdated events.
 
+save_history_line(end_of_file) :- !.
 save_history_line(Line) :-
 	current_prolog_flag(readline, true),
 	string_concat(Line, '.', CompleteLine),

@@ -525,7 +525,7 @@ __pl_export void	PL_add_to_protocol(const char *buf, int count);
 __pl_export char *	PL_prompt_string(int fd);
 __pl_export void	PL_write_prompt(int dowrite);
 __pl_export void	PL_prompt_next(int fd);
-__pl_export char *	PL_atom_generator(char *prefix, int state);
+__pl_export char *	PL_atom_generator(const char *prefix, int state);
 __pl_export void	PL_clock_wait_ticks(long waited);
 
 

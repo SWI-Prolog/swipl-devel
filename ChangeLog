@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORT: Compile cleanly with readline-4.2.
+
   * PORT: Many C-compiler warnings, making the native IRIX cc compile
     SWI-Prolog silently.  Improved detection of wait() variations.
     Thanks to Jean Wang for providing me with access to their machine.

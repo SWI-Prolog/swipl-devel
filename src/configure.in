@@ -262,6 +262,9 @@ if test ! "$runtime" = "yes" -a "$configreadline" = "yes"; then
   fi
 
   if test "$ac_cv_lib_readline_main" = "yes"; then
+    dnl rl_readline_state is a variable!
+    AC_CHECK_HEADERS(readline/history.h)
+    AC_CHECK_FUNCS(rl_completion_matches rl_insert_close rl_readline_state)
     AC_MSG_CHECKING(whether to install readline.3)
     INSTALLRLMAN=install_rlman
     if test -z "$MANPATH"; then MANPATH=/usr/man; fi
@@ -338,7 +341,7 @@ AC_CHECK_HEADERS(mach-o/rld.h locale.h)
 
 AC_CHECK_FUNCS(access chmod dossleep fstat readlink getwd getcwd)
 AC_CHECK_FUNCS(getpagesize getpwnam getrlimit gettimeofday opendir sysconf)
-AC_CHECK_FUNCS(popen putenv random remove rename rl_insert_close select)
+AC_CHECK_FUNCS(popen putenv random remove rename select)
 AC_CHECK_FUNCS(signal sigset sigprocmask sleep usleep srand srandom stat)
 AC_CHECK_FUNCS(memmove stricmp strlwr sigaction sigsetmask siggetmask sigblock)
 AC_CHECK_FUNCS(rint aint floor ceil isnan tcsetattr cfmakeraw)
