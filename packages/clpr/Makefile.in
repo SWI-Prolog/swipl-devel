@@ -1,0 +1,70 @@
+################################################################
+# SWI-Prolog CHR package
+# Author:    Jan Wielemaker. jan@swi.psy.uva.nl
+# Copyright: LGPL (see COPYING or www.gnu.org
+################################################################
+
+.SUFFIXES: .tex .dvi .doc .pl
+
+SHELL=@SHELL@
+PLBASE=@PLBASE@
+PLARCH=@PLARCH@
+PL=@PL@
+XPCEBASE=$(PLBASE)/xpce
+PKGDOC=$(PLBASE)/doc/packages
+PCEHOME=../../xpce
+LIBDIR=$(PLBASE)/library
+CLPDIR=$(LIBDIR)/clp
+CLPRDIR=$(CLPDIR)/clpr
+EXDIR=$(PKGDOC)/examples/clpr
+
+INSTALL=@INSTALL@
+INSTALL_PROGRAM=@INSTALL_PROGRAM@
+INSTALL_DATA=@INSTALL_DATA@
+
+CLPRPRIV=	arith_r.pl bb.pl bv.pl class.pl dump.pl fourmotz.pl \
+		geler.pl ineq.pl itf3.pl nf.pl nfr.pl ordering.pl \
+		project.pl redund.pl store.pl ugraphs.pl
+LIBPL=		clpr.pl
+EXAMPLES=	
+
+all::
+		echo "Nothing to be done for this package"
+
+install:	$(CLPRDIR) $(LIBPL)
+		$(INSTALL_DATA) $(LIBPL) $(CLPDIR)
+		(cd clpr && $(INSTALL_DATA) $(CLPRPRIV) $(CLPRDIR))
+		$(INSTALL_DATA) README $(CLPRDIR)
+
+$(CLPRDIR):
+		mkdir -p $@
+
+rpm-install:	install
+
+pdf-install:	install-examples
+
+html-install:	install-examples
+
+install-examples::
+#		mkdir -p $(EXDIR)
+#		(cd Examples && $(INSTALL_DATA) $(EXAMPLES) $(EXDIR))
+
+uninstall:
+		(cd $(CLPDIR) && rm -f $(LIBPL))
+		rm -rf $(CLPRDIR)
+
+check::
+#		$(PL) -q -f clpr_test.pl -g test,halt -t 'halt(1)'
+
+
+################################################################
+# Clean
+################################################################
+
+clean:
+		rm -f *~ *% config.log
+
+distclean:	clean
+		rm -f config.h config.cache config.status Makefile
+		rm -rf autom4te.cache
+
