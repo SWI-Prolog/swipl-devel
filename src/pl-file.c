@@ -379,7 +379,7 @@ get_stream_handle(term_t t, IOSTREAM **s, int errors)
   }
       
   if ( errors )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_stream, t);
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_stream_or_alias, t);
 
   fail;
 }
@@ -439,34 +439,56 @@ getOutputStream(term_t t, IOSTREAM **s)
 
 
 bool
-getOutputStream(term_t t, IOSTREAM **s)
+getOutputStream(term_t t, IOSTREAM **stream)
 { atom_t a;
+  IOSTREAM *s;
 
   if ( t == 0 )
-  { *s = getStream(Scurout);
+  { *stream = getStream(Scurout);
     return TRUE;
   } else if ( PL_get_atom(t, &a) && a == ATOM_user )
-  { *s = getStream(Suser_output);
+  { *stream = getStream(Suser_output);
     return TRUE;
   }
 
-  return PL_get_stream_handle(t, s);
+  if ( !PL_get_stream_handle(t, &s) )
+    fail;
+  
+  if ( !(s->flags &SIO_OUTPUT) )
+  { releaseStream(s);
+    return PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		    ATOM_output, ATOM_stream, t);
+  }
+
+  *stream = s;
+  succeed;
 }
 
 
 bool
-getInputStream(term_t t, IOSTREAM **s)
+getInputStream(term_t t, IOSTREAM **stream)
 { atom_t a;
+  IOSTREAM *s;
 
   if ( t == 0 )
-  { *s = getStream(Scurin);
+  { *stream = getStream(Scurin);
     return TRUE;
   } else if ( PL_get_atom(t, &a) && a == ATOM_user )
-  { *s = getStream(Suser_input);
+  { *stream = getStream(Suser_input);
     return TRUE;
   }
 
-  return PL_get_stream_handle(t, s);
+  if ( !PL_get_stream_handle(t, &s) )
+    fail;
+
+  if ( !(s->flags &SIO_INPUT) )
+  { releaseStream(s);
+    return PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		    ATOM_input, ATOM_stream, t);
+  }
+
+  *stream = s;
+  succeed;
 }
 
 
@@ -2009,7 +2031,7 @@ pl_stream_property(term_t stream, term_t property, word h)
 
 
 word
-pl_flush_output(term_t out)
+pl_flush_output1(term_t out)
 { IOSTREAM *s;
 
   if ( getOutputStream(out, &s) )
@@ -2022,8 +2044,8 @@ pl_flush_output(term_t out)
 
 
 word
-pl_flush()
-{ return pl_flush_output(0);
+pl_flush_output()
+{ return pl_flush_output1(0);
 }
 
 

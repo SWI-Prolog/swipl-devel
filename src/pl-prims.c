@@ -1240,9 +1240,23 @@ word
 pl_atom_length(term_t w, term_t n)
 { char *s;
   int len;
+  int flags;
 
-  if ( PL_get_nchars_ex(w, &len, &s, CVT_ALL) )
-    return PL_unify_integer(n, len);
+  if ( trueFeature(ISO_FEATURE) )
+    flags = CVT_ATOM|CVT_STRING;	/* strings are not known to ISO */
+  else
+    flags = CVT_ALL;
+
+  if ( PL_get_nchars_ex(w, &len, &s, flags) )
+  { int nval;
+
+    if ( PL_is_variable(n) )
+      return PL_unify_integer(n, len);
+    else if ( PL_get_integer(n, &nval) )
+      return nval == len ? TRUE	: FALSE;
+    else
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, n);
+  }
 
   fail;
 }
@@ -1402,51 +1416,62 @@ static word
 x_chars(const char *pred, term_t atom, term_t string, int how)
 { char *s;
   unsigned int len;
+  int arg1;
 
-  if ( PL_get_nchars(atom, &len, &s, CVT_ATOMIC) ) /* atomic --> "list" */
-  { if ( how & X_CHARS )
-      return PL_unify_list_nchars(string, len, s);
+  if ( (how & X_NUMBER) )
+    arg1 = PL_get_nchars(atom, &len, &s, CVT_NUMBER);
+  else
+    arg1 = PL_get_nchars(atom, &len, &s, CVT_ATOMIC);
+
+  if ( arg1 )
+  { int ok;
+
+    if ( how & X_CHARS )
+      ok = PL_unify_list_nchars(string, len, s);
     else
-      return PL_unify_list_ncodes(string, len, s);
+      ok = PL_unify_list_ncodes(string, len, s);
+
+    if ( ok || !(how & X_NUMBER) )
+      return ok;
+  } else if ( !PL_is_variable(atom) )
+  { return PL_error(pred, 2, NULL, ERR_TYPE,
+		    (how & X_NUMBER) ? ATOM_number : ATOM_atom,
+		    atom);
   }
 
-  if ( PL_is_variable(atom) )
-  { if ( !PL_get_list_nchars(string, &len, &s, 0) )
-    { if ( !PL_is_list(string) )
-	return PL_error(pred, 2, NULL,
-			ERR_TYPE, ATOM_list, string);
-      else
-	return PL_error(pred, 2, NULL,
-			ERR_REPRESENTATION,
-			ATOM_character_code);
-    }
+  if ( !PL_get_list_nchars(string, &len, &s, 0) )
+  { if ( !PL_is_list(string) )
+      return PL_error(pred, 2, NULL,
+		      ERR_TYPE, ATOM_list, string);
+    else
+      return PL_error(pred, 2, NULL,
+		      ERR_REPRESENTATION,
+		      ATOM_character_code);
+  }
 
-    how &= X_MASK;
+  how &= X_MASK;
 
-    switch(how)
-    { case X_ATOM:
-	return PL_unify_atom_nchars(atom, len, s);
-      case X_AUTO:
-      case X_NUMBER:
-      default:
-      { number n;
-	unsigned char *q;
+  switch(how)
+  { case X_ATOM:
+      return PL_unify_atom_nchars(atom, len, s);
+    case X_AUTO:
+    case X_NUMBER:
+    default:
+    { number n;
+      unsigned char *q;
 
-	if ( get_number((unsigned char *)s, &q, &n) && *q == EOS )
-	{ if ( intNumber(&n) )
-	    return PL_unify_integer(atom, n.value.i);
-	  else
-	    return PL_unify_float(atom, n.value.f);
-	}
-	if ( how == X_AUTO )
-	  return PL_unify_atom_nchars(atom, len, s);
+      if ( get_number((unsigned char *)s, &q, &n) && *q == EOS )
+      { if ( intNumber(&n) )
+	  return PL_unify_integer(atom, n.value.i);
 	else
-	  return PL_error(pred, 2, NULL, ERR_REPRESENTATION, ATOM_number);
+	  return PL_unify_float(atom, n.value.f);
       }
+      if ( how == X_AUTO )
+	return PL_unify_atom_nchars(atom, len, s);
+      else
+	return PL_error(pred, 2, NULL, ERR_REPRESENTATION, ATOM_number);
     }
   }
-
-  return PL_error(pred, 2, NULL, ERR_TYPE, ATOM_atom, atom);
 }
 
 
@@ -1497,7 +1522,7 @@ pl_char_code(term_t atom, term_t chr)
 		    ATOM_character_code);
   }
 
-  return PL_error("char_code", 2, NULL, ERR_INSTANTIATION);
+  return PL_error("char_code", 2, NULL, ERR_TYPE, ATOM_character, atom);
 }
 
 
@@ -1532,6 +1557,9 @@ concat(const char *pred,
 { char *s1 = NULL, *s2 = NULL, *s3 = NULL;
   unsigned int l1, l2, l3;
   char *tmp;
+
+  if ( ForeignControl(ctx) == FRG_CUTTED )
+    succeed;
 
   PL_get_nchars(a1, &l1, &s1, CVT_ATOMIC|BUF_RING);
   PL_get_nchars(a2, &l2, &s2, CVT_ATOMIC|BUF_RING);

@@ -505,7 +505,7 @@ traceAction(char *cmd, int port, LocalFrame frame, bool interactive)
 		pl_break();
 		return ACTION_AGAIN;
     case '/': 	FeedBack("/");
-    		pl_flush();
+    		Sflush(Suser_output);
     		if ( setupFind(&s[1]) )
 		{ clear(frame, FR_SKIPPED);
 		  return ACTION_CONTINUE;
@@ -751,7 +751,7 @@ exceptionDetails()
 { term_t except = LD->exception.pending;
   fid_t cid = PL_open_foreign_frame();
 
-  pl_flush();
+  Sflush(Suser_output);			/* make sure to stay `in sync' */
   Sfputs("\n\n\tException term: ", Sdout);
   PL_write_term(Sdout, except, 1200, PL_WRT_QUOTED);
   Sfprintf(Sdout, "\n\t       Message: %s\n", messageToString(except));

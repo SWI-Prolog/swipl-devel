@@ -45,8 +45,6 @@
 #define pl_prolog_current_frame	Spcf
 #define pl_prolog_frame_attribute	Spfa
 #define pl_trace		Strace
-#define pl_flush		Sflush
-#define pl_flush_output		Sflushout
 #define pl_format		Sfmt
 #define pl_format3		Sfmt3
 #define pl_format_number	Sfmtnumber

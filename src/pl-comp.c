@@ -429,9 +429,9 @@ arguments  of  the  head  and  the subclauses are compiled.  Finally the
 bindings made by analyseVariables() are undone and the clause  is  saved
 in the heap.
 
-compile() maintains an array of `used_var' (used variables).  This is to(
-determine when a variable is used for the first time and thus a FIRSTVAR
-instruction is to be generated instead of a VAR one.
+compileClause() maintains an array of  `used_var' (used variables). This
+is to( determine when a variable is used   for the first time and thus a
+FIRSTVAR instruction is to be generated instead of a VAR one.
 
 Note that the `variables' field of a clause is filled with the number of
 variables in the frame AND the arity.   This  saves  us  the  frame-size
@@ -615,8 +615,8 @@ resetVars()
 Note: `head' and `body' are dereferenced!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static Clause
-compile(Word head, Word body, Procedure proc, Module module)
+Clause
+compileClause(Word head, Word body, Procedure proc, Module module)
 { compileInfo ci;			/* data base for the compiler */
   Clause clause;
   int nvars;
@@ -1425,7 +1425,7 @@ assert_term(term_t term, int where, SourceLoc loc)
   deRef(b);
 
   DEBUG(9, Sdprintf("compiling "); pl_write(term); Sdprintf(" ... "););
-  if ( !(clause = compile(h, b, proc, module)) )
+  if ( !(clause = compileClause(h, b, proc, module)) )
     return NULL;
   DEBUG(9, Sdprintf("ok\n"));
   def = proc->definition;
@@ -1485,7 +1485,7 @@ mode, the predicate is still undefined and is not dynamic or multifile.
 
   /* assert[az]/1 */
 
-  if ( def->module != mhead && false(def, DYNAMIC) )
+  if ( false(def, DYNAMIC) && isDefinedProcedure(proc) )
   { PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 	     ATOM_modify, ATOM_static_procedure, def);
     freeClause(clause);

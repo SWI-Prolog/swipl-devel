@@ -101,6 +101,8 @@ word		pl_collect_bag(term_t bindings, term_t bag);
 void		initWamTable(void);
 void		get_head_and_body_clause(term_t clause,
 					 term_t head, term_t body, Module *m);
+Clause		compileClause(Word head, Word body,
+			      Procedure proc, Module module);
 Clause		assert_term(term_t term, int where, SourceLoc loc);
 void		unregisterAtomsClause(Clause clause);
 word		pl_assertz(term_t term);
@@ -194,7 +196,7 @@ bool		UnlockStream(void);
 IOSTREAM *	PL_current_input(void);
 IOSTREAM *	PL_current_output(void);
 word		pl_told(void);
-word		pl_flush(void);
+word		pl_flush_output(void);
 word		pl_see(term_t f);
 word		pl_seen(void);
 word		pl_noprotocol(void);
@@ -237,7 +239,7 @@ word		pl_close(term_t stream);
 word		pl_close2(term_t stream, term_t options);
 void		release_stream_handle(term_t spec);
 foreign_t	pl_stream_property(term_t stream, term_t property, word h);
-word		pl_flush_output(term_t stream);
+word		pl_flush_output1(term_t stream);
 word		pl_set_stream_position(term_t stream, term_t pos);
 word		pl_seek(term_t stream,
 			term_t offset, term_t method, term_t newloc);

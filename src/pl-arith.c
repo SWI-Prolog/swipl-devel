@@ -574,9 +574,13 @@ ar_add(Number n1, Number n2, Number r)
 
     r->type = V_INTEGER;
     succeed;
-  } 
 
 overflow:
+    if ( trueFeature(ISO_FEATURE) )
+      return PL_error("+", 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
+  }
+
+  
   promoteToRealNumber(n1);
   promoteToRealNumber(n2);
   r->value.f = n1->value.f + n2->value.f; 
@@ -598,9 +602,12 @@ ar_minus(Number n1, Number n2, Number r)
 
     r->type = V_INTEGER;
     succeed;
-  } 
 
 overflow:
+    if ( trueFeature(ISO_FEATURE) )
+      return PL_error("-", 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
+  } 
+
   promoteToRealNumber(n1);
   promoteToRealNumber(n2);
   r->value.f = n1->value.f - n2->value.f; 
@@ -609,6 +616,22 @@ overflow:
   succeed;
 }
 
+static int
+ar_mod(Number n1, Number n2, Number r)
+{ if ( !toIntegerNumber(n1) )
+    return PL_error("mod", 2, NULL, ERR_AR_TYPE, ATOM_integer, n1);
+
+  if ( !toIntegerNumber(n2) )
+    return PL_error("mod", 2, NULL, ERR_AR_TYPE, ATOM_integer, n2);
+
+  if ( n2->value.i == 0 )
+    return PL_error("mod", 2, NULL, ERR_DIV_BY_ZERO);
+
+  r->value.i = n1->value.i % n2->value.i;
+  r->type = V_INTEGER;
+
+  succeed;
+}
 
 /* Unary functions requiring double argument */
 
@@ -654,7 +677,6 @@ UNAIRY_FLOAT_FUNCTION(ar_exp, exp)
 BINAIRY_FLOAT_FUNCTION(ar_atan2, atan2)
 BINAIRY_FLOAT_FUNCTION(ar_pow, pow)
 
-BINAIRY_INT_FUNCTION(ar_mod, "mod", %)
 BINAIRY_INT_FUNCTION(ar_disjunct, "\\/", |)
 BINAIRY_INT_FUNCTION(ar_conjunct, "/\\", &)
 BINAIRY_INT_FUNCTION(ar_shift_right, ">>", >>)
@@ -761,7 +783,7 @@ ar_rem(Number n1, Number n2, Number r)
 
 static int
 ar_divide(Number n1, Number n2, Number r)
-{ if ( intNumber(n1) && intNumber(n2) )
+{ if ( !trueFeature(ISO_FEATURE) && (intNumber(n1) && intNumber(n2)) )
   { if ( n2->value.i == 0 )
       return PL_error("/", 2, NULL, ERR_DIV_BY_ZERO);
 
@@ -923,6 +945,8 @@ ar_floor(Number n1, Number r)
 #ifdef HAVE_FLOOR
     r->value.f = floor(n1->value.f);
     r->type = V_REAL;
+    if ( !toIntegerNumber(r) )
+      return PL_error("floor", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
 #else
     r->value.i = (long)n1->value.f;
     if ( n1->value.f < 0 && (real)r->value.i != n1->value.f )
@@ -943,6 +967,8 @@ ar_ceil(Number n1, Number r)
 #ifdef HAVE_CEIL
     r->value.f = ceil(n1->value.f);
     r->type = V_REAL;
+    if ( !toIntegerNumber(r) )
+      return PL_error("floor", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
 #else
     r->value.i = (long)n1->value.f;
     if ( (real)r->value.i < n1->value.f )

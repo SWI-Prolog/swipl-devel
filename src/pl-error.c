@@ -22,16 +22,11 @@ throw(error(<Formal>, <SWI-Prolog>))
 static void
 put_name_arity(term_t t, functor_t f)
 { FunctorDef fdef = valueFunctor(f);
+  term_t a = PL_new_term_refs(2);
 
-  if ( fdef->arity == 0 )
-    PL_put_atom(t, fdef->name);
-  else
-  { term_t a = PL_new_term_refs(2);
-
-    PL_put_atom(a+0, fdef->name);
-    PL_put_integer(a+1, fdef->arity);
-    PL_cons_functor(t, FUNCTOR_divide2, a+0, a+1);
-  }
+  PL_put_atom(a+0, fdef->name);
+  PL_put_integer(a+1, fdef->arity);
+  PL_cons_functor(t, FUNCTOR_divide2, a+0, a+1);
 }
 
 
@@ -445,8 +440,10 @@ PL_get_nchars_ex(term_t t, unsigned int *len, char **s, unsigned int flags)
 
   if ( flags & CVT_LIST )
     expected = ATOM_text;
-  else
+  else if ( flags & CVT_NUMBER )
     expected = ATOM_atomic;
+  else
+    expected = ATOM_atom;
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, expected, t);
 }

@@ -557,6 +557,7 @@ void
 initFeatures()
 { GD->feature.table = newHTable(32);
 
+  defFeature("iso",  FT_BOOL, TRUE, ISO_FEATURE);
   defFeature("arch", FT_ATOM|FF_READONLY, ARCH);
 #if __WIN32__
   if ( iswin32s() )

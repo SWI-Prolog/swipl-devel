@@ -1,6 +1,27 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ISO: renamed misnamed close2/2 to close/2.
+
+  * ISO: Renamed flush/0 to flush_output/0.  Added backward compatibility
+    flush/0 to library(backcomp).
+
+  * ISO: Enforced number for arg1 in number_chars/2 and number_codes/2.
+    Succeed on number_codes(15, "0xf") and similar cases (i.e. if both
+    arguments are instantiated, convert the string and match the number
+    as there are multiple representations of numbers.
+
+  * ISO: raising permission-error when reading from an output stream
+    or writing to an input stream.
+
+  * FIXED: Put `iso' feature back in place (was lost in rewrite of
+    prolog-flag handling.
+
+  * ISO: fixed exceptions thrown on atomic non-evaluable term (i.e.
+    A is foo).
+
+  * FIXED: atom_concat/3 on backtracking.
+
   * FIXED: Problems with non-deterministic foreign predicates raising
     exceptions on the first call for which the cleanup made assuptions
     on the returned context.  Thanks to Frank Cornelissen.

@@ -2852,8 +2852,7 @@ BUG: have to find out how to proceed in case of failure (I am afraid the
 	deRef(a);			/* variable */
 
 	module = NULL;
-	if ((a = stripModule(a, &module)) == (Word) NULL)
-	  FRAME_FAILED;
+	a = stripModule(a, &module);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Determine the functor definition associated with the goal as well as the
