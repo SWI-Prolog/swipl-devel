@@ -191,25 +191,21 @@ control system.
 1.5 Portability
 
 The table below shows which machine dependent features have been ported to
-which architectures.  Some of the minus signs could be taken away by
-spending more effort to the port, others are due to fundamental omisions
-or bugs in the operating system.  Note that the column `C-interface'
-implies object code can be linked dynamically from a running Prolog
-environment.  For systems that have a minus here C-code can still be added
-by relinking SWI-Prolog itself together with the C-extensions to form an
-extended version of SWI-Prolog.
+which architectures.  `+' means ported; `--' not ported and probably not
+portable; `--?'  not ported, but probably feasible.
 
- Machine         OS          Dynamic      C        Saved   Profile
-                             Stacks    Interface  States
- SUN-3 and 4     SunOs 4        +         +         +         +
- HP 9000s300     HP-UX 8.0     --         +         +         +
- DEC MIPS        Ultrix 3.1    --         --        +         +
- Gould PN        UTX-2.1        +         --        --        +
- IBM PS2         AIX 2.0       --         --        +         +
- IBM RISC-6000   AIX 3.1       --         +         +         +
- VAX             Ultrix        --         +         +         +
- ATARI           TOS 1.3       --         --        --       --
- PC              LINUX         --         --        --       --
+  Machine        OS           Dynamic  Dynamic   Saved    Profile
+                              Stacks   Linking   States
+  ATARI          TOS 1.3        --       --?       --       --?
+  DEC MIPS       Ultrix 3.1     --       --?       +         +
+  Gould PN       UTX-2.1        +        --?      --?        +
+  HP 9000s300    HP-UX 8.0      --       --?      --?        +
+  IBM PS2        AIX 2.0        --       --?       +         +
+  IBM RISC-6000  AIX 3.1       --?        +        +         +
+  IBM-PC         LINUX          --        --       --       --?
+  NeXT           MACH          --?        +       --?        +
+  SUN-3 and 4    SunOs 4        +         +        +         +
+  VAX            Ultrix         --        +        +         +
 
 
 1.6 Acknowledgements
@@ -318,6 +314,10 @@ The full set of command line options is given below:
         Boot from bootfile instead of the system's default boot
         file.  A bootfile is a file resulting from a Prolog
         compilation using the -b or -c option.
+    -r restorefile
+        Restore a state created by save_program/[1,2] or save/[1,2]
+        using the new-style saved-states.  Equivalent to
+        restore(restorefile) from Prolog.
 
 The following options are for system maintenance.  They are given for
 reference only.
@@ -694,12 +694,23 @@ please(+Key, -Old, +New)
         come from?).
 
 
-2.8 Stand Alone Executables (Saved States)
+2.8 Saved States
+
 
-The introduction of a foreign language interface raised the problem of
-incorporating the compiled foreign code into SWI-Prolog to create a new
-stand alone executable.  The current also allows one to create
-applications that do not need any of the SWI-Prolog system files.
+2.8.1 Types of Saved States and Portability
+
+On some architectures, SWI-Prolog allows for the creation of saved states.
+Currently, the C-sources define two alternative implementations for them.
+The old implementation creates an entirely self-contained executable.  It
+supports only the save_program/[1,2] predicates.  The new implementation
+creates a file that is read by the `base' program.  This file contains the
+data-area of the SWI-Prolog process and optionally the Prolog- and C
+stacks.  This implementation supports save_program/[1,2], save/[1,2] and
+restore/1.  The state-file depends entirely on exactly the Unix
+program-file used to create it.
+
+
+2.8.2 Save Predicates
 
 
 save_program(+NewProgram, +ListOfOptions)
@@ -764,7 +775,36 @@ save_program(+NewProgram, +ListOfOptions)
 
 
 save_program(+NewProgram)
-    Equivalent to `save_program(NewProgram, [])'.
+    Equivalent to `save_program(NewProgram, [])'.  .C save/1 +State
+    Writes the current status on the program, Prolog- and C-stacks to the
+    file State.  When this file is restored, save/1 succeeds in the
+    restored state and execution continues as illustrated by the
+    following example:
+
+        1 ?- save(state), format('Hello World~n').
+        Hello World
+
+        Yes
+        2 ?- halt.
+        machine% ./state
+        Hello World
+
+        Yes
+        2 ?- h.
+           1   save(state), format('Hello World~n').
+        2 ?-
+
+    The save/1 predicate is normally used for debugging purposes.
+    save_program/[1,2] is the preferred way to create a new program.
+
+
+save(+State, -Rval)
+    Like save/1, but unifies Rval with 0 when save/2 returns from a real
+    save and with 1 when save/2 returns from a restore.
+
+
+restore(+State)
+    Equivalent to restarting State.
 
 
 2.9 Automatic loading of libraries
@@ -793,15 +833,11 @@ The predicate make/0 scans the autoload libraries and updates the index if
 it exists, is writable and out-of-date.  It is adviced to create an empty
 file called INDEX.plin a library directory meant for auto loading before
 doing anything else.  This index file can then be updated by running the
-prolog predicate make/0 (`%' is the Unix prompt):
+prolog make_library_index/1 (`%' is the Unix prompt):
 
     % mkdir ~/lib/prolog
     % cd !$
-    % touch INDEX.pl
-    %     <create library files>
-    % pl -g true -t make
-     index for library . ... ok.
-    %
+    % pl -g true -t 'make_library_index(.)'
 
 If there are more than one library files containing the desired predicate
 the following search schema is followed:
@@ -812,6 +848,12 @@ the following search schema is followed:
  2. Otherwise library files are considered in the order they appear in
     the library_directory/1 predicate and within the directory
     alphabetically.
+
+
+make_library_index(+Directory)
+    Create an index for this directory.  The index is written to the file
+    'INDEX.pl' in the specified directory.  Fails with a warning if the
+    directory does not exist or is write protected.
 
 
 2.9.1 Notes on Automatic Loading
@@ -972,7 +1014,7 @@ Chapter  3
 
 Built-In  Predicates
 
-                                33
+                                38
 
 
 3.1 Notation of Predicate Descriptions
@@ -1075,7 +1117,14 @@ term_expansion(+Term1, -Term2)
     rather then the read term (Term1).  Term2 may be a term of a the form
     `?- Goal' or `:- Goal'.  Goal is then treated as a directive.  Term2
     may also be a list, in which case all terms of the list are stored in
-    the database or called (for directives).
+    the database or called (for directives).  See also expand_term/2.
+
+
+expand_term(+Term1, -Term2)
+    This predicate is normally called by the compiler to perform
+    preprocessing.  First it calls term_expansion/2.  If this predicate
+    fails it performs a grammar-rule translation.  If this fails it
+    returns the first argument.
 
 
 compiling
@@ -3290,7 +3339,7 @@ size_file(+File, -Size)
 
 time_file(+File, -Time)
     Unify the last modification time of File with Time.  Time is a
-    floating point number expressing the seconds ellapsed since Jan 1,
+    floating point number expressing the seconds elapsed since Jan 1,
     1970.
 
 
@@ -3353,7 +3402,7 @@ prolog
     terminated (succeeds) by typing control-D.
 
 
-3.33 Creating a Protocol of the Unser Interaction
+3.33 Creating a Protocol of the User Interaction
 
 SWI-Prolog offers the possibility to log the interaction with the user on
 a file.  All Prolog interaction, including warnings and tracer output, are
@@ -3396,6 +3445,33 @@ tracing
 
 notrace
     Stop the tracer.  notrace/0 itself cannot be seen in the tracer.
+
+
+trace(+Pred)
+    Equivalent to trace(Pred, +all).
+
+
+trace(+Pred, +Ports)
+    Put a trace-point on all predicates meeting the predicate
+    specification Pred.  Ports is a list of portnames (call, redo, exit,
+    fail).  The atom all refers to all ports.  If the port is predeced by
+    a `-' sign the trace-point is cleared for the port.  If it is
+    predeced by a `+' the trace-point is set.
+
+    The predicate trace/2 activates debug mode (see debug/0).  Each time
+    a port (of the 4-port model) is passed that has a trace-point set the
+    goal is printed as with trace/0.  Unlike trace/0 however, the
+    execution is continued without asking for further information.
+    Examples:
+
+       ?- trace(hello).       Trace all ports of hello with any
+                              arity in any module.
+
+       ?- trace(foo/2, +fail) Trace failures of foo/2 in any
+                              module.
+       ?- trace(bar/1, -all)  Stop tracing bar/1.
+
+    The predicate debugging/0 shows all currently defined trace-points.
 
 
 debug
@@ -3592,7 +3668,7 @@ profiler(-Old, +New)
     Cummulative profiling implies the stack is scanned upto the top on
     each time slice to find all active predicates.  This implies the
     overhead grows with the number of active frames on the stack.
-    Cummulative profiling starts debuggin mode to disable tail recursion
+    Cummulative profiling starts debugging mode to disable tail recursion
     optimisation, which would otherwise remove the necessary parent
     environments.  Switching status from plain to cummulativeresets the
     profiler.  Switching to and from status off does not reset the
@@ -3601,7 +3677,7 @@ profiler(-Old, +New)
 
 
 reset_profiler
-    Swiches the profiler to off and clears all collected statistics.
+    Switches the profiler to off and clears all collected statistics.
 
 
 profile_count(+Head, -Calls, -Promilage)
@@ -3659,6 +3735,19 @@ trim_stacks
     resources after every user query.
 
 
+stack_parameter(+Stack, +Key, -Old, +New)
+    Query/set a parameter for the runtime stacks.  Stack is one of local,
+    global, trail, argument or lock.  The table below describes the
+    Key/Value pairs.  Old is first unified with the current value.
+
+        limit      Maximum size of the stack in bytes
+        min_free   Minimum free space at entry of foreign predicate
+
+    This predicate is currently only available on versions that use the
+    stack-shifter to enlarge the runtime stacks when necessary.  It's
+    definition is subject to change.
+
+
 3.38 Miscellaneous
 
 
@@ -3689,8 +3778,8 @@ dwim_match(+Atom1, +Atom2, -Difference)
 
 
 wildcard_match(+Pattern, +String)
-    Succeeds if String matches the wildcart pattern Pattern.  Pattern is
-    very simular the the Unix csh pattern matcher.  The patterns are
+    Succeeds if String matches the wildcard pattern Pattern.  Pattern is
+    very similar the the Unix csh pattern matcher.  The patterns are
     given below:
 
       ?       Matches one arbitrary character
@@ -3710,8 +3799,8 @@ wildcard_match(+Pattern, +String)
 gensym(+Base, -Unique)
     Generate a unique atom from base Base and unify it with Unique.  Base
     should be an atom.  The first call will return <base>1, the next
-    <base>2, etc.  Note that this is no warant that the atom is unique in
-    the system.
+    <base>2, etc.  Note that this is no warrant that the atom is unique
+    in the system.
 
     BUG: I plan to supply a real gensym/2 which does give this warrant
     for future versions.
@@ -3730,7 +3819,7 @@ Chapter  4
 
 Using  Modules
 
-                                384
+                                393
 
 
 4.1 Why Using Modules?
@@ -3978,7 +4067,7 @@ can easily be implemented:
            Class:Goal.
 
 The construct `Module:Goal' explicitely calls Goal in module Module.  It
-is discussed in more detail in section ??.
+is discussed in more detail in section 3.7.
 
 
 4.6 Meta-Predicates in Modules
@@ -4075,19 +4164,19 @@ Dynamic modules can easily be created.  Any built-in predicate that tries
 to locate a predicate in a specific module will create this module as a
 side-effect if it did not yet exist.  Example:
 
-    ?- assert(world_1, consistent),
-       world_1:unkown(_, fail).
+    ?- assert(world_a, consistent),
+       world_a:unkown(_, fail).
 
-These calls create a module called world and make the call
-`world:consistent' succeed.  Undefined predicates will not start the
+These calls create a module called `world_a' and make the call
+`world_a:consistent' succeed.  Undefined predicates will not start the
 tracer or autoloader for this module (see unknown/2).
 
 Import and export from dynamically created world is arranged via the
 predicates import/1 and export/1:
 
-    ?- world_5:export(solve(_,_)).         % exports solve/2 from
-    world_5
-    ?- world_3:import(world_5:solve(_,_)).  % and import it to world_3
+    ?- world_b:export(solve(_,_)).         % exports solve/2 from
+    world_b
+    ?- world_c:import(world_b:solve(_,_)).  % and import it to world_c
 
 
 4.8 Module Handling Predicates
@@ -4120,6 +4209,12 @@ export(+Head)
     module is imported with use_module/[1,2].  Note that predicates are
     normally exported using the directive module/2.  export/1 is meant to
     handle export from dynamically created modules.
+
+
+export_list(+Module, -Exports)
+    Unifies Exports with a list of terms.  Each term has the name and
+    arity of a public predicate of Module.  The order of the terms in
+    Exports is not defined.  See also predicate_property/2.
 
 
 4.9 Compatibility of the Module System
@@ -4236,22 +4331,12 @@ trade-off the user is responsible for type checking and should be careful
 not to violate consistency rules as Prolog provides access to its internal
 data structures.
 
-                                406
+                                416
 
 
-5.1 Portability of the Foreign Interface
+5.1 Overview of the Interface
 
-The foreign language interface is highly system dependent.  It can easily
-be ported to machines for which the C linker allows you to link an object
-file using the symbol table of a (running) executable and use BSD Unix
-format a.out files.  On many Unix systems such an object file can be
-created using the -A option of ld(1).  See the introduction section for a
-list of systems to which the foreign interface is available.
-
-
-5.2 Overview of the Interface
-
-A special include file called ``SWI-prolog.h'' should be included with
+A special include file called ``SWI-Prolog.h'' should be included with
 each C-source file that is to be loaded via the foreign interface.  This
 C-header file defines various data types, macros and functions that can be
 used to communicate with SWI-Prolog.  Functions and macros can be divided
@@ -4265,6 +4350,8 @@ into the following categories:
 
     Registering foreign predicates with Prolog
 
+    Registering variables with the garbage collector
+
     Calling Prolog from C
 
     Communicating about modules
@@ -4274,21 +4361,98 @@ into the following categories:
     Global actions on Prolog (halt, break, abort, etc.)
 
     Querying the status of Prolog
-
-A C-file to be included normally defines a number of functions that
-implement foreign language Prolog predicates, private support functions
-and an installation function.  The user should compile this file into a
-`.o' file using `cc -c file ...', after which Prolog can be asked to load
-the file using the simplified load_foreign/2 predicate or the more
-flexible load_foreign/5 predicate.  Prolog will call the Unix loader ld(1)
-to create an executable.  It will then determine the actual size of the
-executable, allocate memory for it and call the loader again to create an
-executable that can be loaded in the allocated memory.  After the
-executable is loaded the entry point of the new executable is called.
-This function should register all defined foreign predicates with Prolog.
 
 
-5.3 Loading Foreign Modules
+5.2 Linking Foreign Modules
+
+Foreign modules may be linked to Prolog in two ways.  Using static
+linking, the extensions, a small description file and the basic SWI-Prolog
+object file are linked together to form a new executable.  Using dynamic
+linking, the extensions are linked into the running Prolog process.
+
+Both approaches have their advantages and disadvantages.  Static linking
+is portable and allows for symbolic debuggers to be used.  It also ensures
+that the text of the extensions is part of the text-segment of the
+process, providing protection and sharing on operating systems that offer
+these features (Unix).  Dynamic linking does not require rebuilding the
+entire Prolog system.  C-code is loaded while Prolog is running.  A new
+executable may be created using save_program/1.  Unfortunately dynamic
+linking is non-portable and puts the incrementally loaded code in the
+data-segment of the process.
+
+In general, we advice static loading for large extensions and dynamic
+loading when an application needs to load only a few C-defined predicates.
+
+
+5.2.1 Static Linking
+
+To prepare SWI-Prolog for static linking, invoke `make runtime' in the
+object-directory of SWI-Prolog.  Afterwards, the following files should be
+present (.../pl refers to the SWI-Prolog installation directory):
+
+      .../pl/runtime/<arch>/pl.o Main object-file
+      .../pl/include/SWI-Prolog.hInclude file
+      .../pl/include/SWI-Exports Export declarations (AIX only)
+      .../pl/include/stub.c      Extension stub
+
+The definition of the foreign predicates is the same as for dynamic
+linking.  Unlike with dynamic linking however, there is no initialisation
+function.  Instead, the file .../pl/include/stub.c is copied to your
+project and modified to define the foreign extensions.  Below is stub.c,
+modified to link the lowercase example described later in this chapter:
+
+    /*  Copyright (c) 1991 Jan Wielemaker. All rights reserved.
+        jan@swi.psy.uva.nl
+
+        Purpose: Skeleton for extensions
+    */
+
+    #include <stdio.h>
+    #include <SWI-Prolog.h>
+
+    extern foreign_t pl_lowercase P((term, term));
+
+    PL_extension PL_extensions [] =
+    {
+    /*{ "name",      arity,  function,      PL_FA_<flags> },*/
+
+      { "lowercase", 2       pl_lowercase,  0 },
+      { NULL,       0,      NULL,         0 }     /* terminating line
+    */
+    };
+
+Now, a new executable may be created using:
+
+    sun% gcc -static .../pl/runtime/<arch>/pl.o lowercase.c stub.c -lm
+    -ltermcap
+
+The resulting a.out file will load the standard prolog bootstrap file.
+Normally, your extensions partly be written in Prolog.  In this case,
+start a.out, load the prolog extensions and use save_program/1 to create a
+saved state.
+
+Many modern Unix systems use `dynamic libraries'.  Dynamic libraries
+cannot be combined with saved states as created by save_program/[1,2].
+This implies that ---when save_program/[1,2] is available--- static
+linking must used.  The option to use for this is compiler dependant.  See
+M_LDFLAGSin the md- file or consult the manual of the C-compiler used.
+
+It is advised to use the C-compiler used to compile SWI-Prolog for
+including statically linked extensions.
+
+
+5.2.2 Dynamic Linking
+
+
+5.2.2.1 Portability Note
+
+The incremental linker is highly system dependent.  It can easily be
+ported to machines for which the C linker allows you to link an object
+file using the symbol table of a (running) executable and use BSD Unix
+format a.out files.  On many Unix systems such an object file can be
+created using the -A option of ld(1).  Some operating systems offer
+primitives for dynamic loading (AIX, MACH). See the introduction section
+for a list of systems to which the foreign interface is available.
 
 
 load_foreign(+File, +Entry)
@@ -4300,13 +4464,8 @@ load_foreign(+File, +Entry)
     and `basics.o' in one of the library directories.  To simplify
     maintenance of packages in heterogeneous networks the system first
     tries whether the object file is available from a subdirectory whose
-    name depends on the system used.  The names of the subdirectories is
-    shown below.
-
-                  Directory   Machine
-                  sun4        Sparc Station 1 and SUN-4
-                  sun3        SUN-3
-                  hpux        HP9000 running HPUX
+    name is defined by the MACHINE macro in md- file used to build
+    SWI-Prolog.
 
     Entry defines the entry point of the resulting executable.  The entry
     point will be called by Prolog to install the foreign predicates.
@@ -4337,7 +4496,7 @@ foreign_file(?File)
     file.
 
 
-5.4 Interface Data types
+5.3 Interface Data types
 
 The interface functions can be divided into two groups.  The first group
 are functions to obtain data from Prolog or pass data to Prolog.  These
@@ -4378,10 +4537,10 @@ moduleA module is a unique handle to a Prolog module.  Modules are used
     only to call predicates in a specific module.
 
 
-5.5 The Foreign Include File
+5.4 The Foreign Include File
 
 
-5.5.1 Argument Passing and Control
+5.4.1 Argument Passing and Control
 
 If Prolog encounters a foreign predicate at run time it will call a
 function specified in the predicate definition of the foreign predicate.
@@ -4400,7 +4559,7 @@ void PL_fail
      FALSE''.
 
 
-5.5.1.1 Non-deterministic Foreign Predicates
+5.4.1.1 Non-deterministic Foreign Predicates
 
 By default foreign predicates are deterministic.  Using the
 PL_FA_NONDETERMINISTIC attribute (see PL_register_foreign()) it is
@@ -4504,7 +4663,7 @@ predicate definition.
       Figure 5.1:  Skeleton for non-deterministic foreign functions
 
 
-5.5.2 Analysing Terms via the Foreign Interface
+5.4.2 Analysing Terms via the Foreign Interface
 
 Each argument of a foreign function (except for the control argument) is
 of type term.  To analyse a term one should first obtain the type of the
@@ -4534,6 +4693,35 @@ int PL_type(term)
 
       PL_TERM                A compound term.  Note that a list is a
                              compound term with name `.'  and arity 2.
+
+
+The functions PL_is_<type> allow form an alternative to PL_type.  The
+test ``PL_is_var(term)'' is equivalent to ``PL_type(term) ==
+PL_VARIABLE'', but the first is considerably faster.
+
+
+int PL_is_var(term)
+    Returns non-zero if term is a variable.
+
+
+int PL_is_atom(term)
+    Returns non-zero if term is an atom.
+
+
+int PL_is_string(term)
+    Returns non-zero if term is a string.
+
+
+int PL_is_int(term)
+    Returns non-zero if term is an integer.
+
+
+int PL_is_float(term)
+    Returns non-zero if term is a float.
+
+
+int PL_is_term(term)
+    Returns non-zero if term is a compound term.
 
 
 atomic PL_atomic(term)
@@ -4647,7 +4835,7 @@ functions.
              Figure 5.2:  Foreign definition of display/1
 
 
-5.5.3 Instantiating and Constructing Terms
+5.4.3 Instantiating and Constructing Terms
 
 Terms are instantiated as in Prolog itself by unification.  Variables can
 be unified with atomic data, with a functor and with other terms.  New
@@ -4686,29 +4874,84 @@ functor PL_new_functor(atomic, int)
         is used internally, but none of the interface functions use it.
 
 
-bool PL_unify(term, term)
-     Unify two terms.  Return value is TRUE or FALSE.
+int PL_unify(term, term)
+    Unify two terms.  Return value is TRUE or FALSE.
 
 
-bool PL_unify_atomic(term, atomic)
-     Unify a term with an atomic value.
+int PL_unify_atomic(term, atomic)
+    Unify a term with an atomic value.
 
 
-bool PL_unify_functor(term, functor)
-     Unify a term with a functor.  The unification simply succeeds if term
-     is already instantiated to a term with functor functor.  If term is
-     variable it will be instantiated to the most general term of functor
-     (e.g.  a term with all arguments unbound variables).  Otherwise FALSE
-     is returned.
+int PL_unify_functor(term, functor)
+    Unify a term with a functor.  The unification simply succeeds if term
+    is already instantiated to a term with functor functor.  If term is
+    variable it will be instantiated to the most general term of functor
+    (e.g.  a term with all arguments unbound variables).  Otherwise FALSE
+    is returned.
 
-     If this call succeeds the arguments can be further instantiated by
-     calling PL_arg() and recursively unifying the returned terms.
+    If this call succeeds the arguments can be further instantiated by
+    calling PL_arg() and recursively unifying the returned terms.
 
 
 An example of using these functions is shown in figure 5.3.
 
 
-5.5.4 Calling Prolog from C
+5.4.4 Interaction with the garbage collector and stack-shifter
+
+C-functions that manipulate Prolog terms manipulate pointers to the Prolog
+runtime stacks.  Prolog implements two mechanisms for avoiding stack
+overflow:  garbage collection and stack expansion.  On machines that allow
+for it, Prolog will use virtual memory management to detect stack overflow
+and expand the runtime stacks.  On other machines Prolog will reallocate
+the stacks and update all pointers to them.  To do so, Prolog needs to
+know which variables of active C-functions contain references to Prolog
+data.
+
+C-variables may be registered with the Prolog engine using the macro
+PL_lock() and unregistered using PL_unlock().  These macros should be
+perfectly balanced and any term locked in a C-function needs to be
+unlocked before control is passed back to Prolog.
+
+A C-variable that is registered must hold valid Prolog data or `0'.
+
+
+void PL_lock(term)
+     Register the named C-variable with the Prolog engine.  The variable
+     should hold a valid Prolog term.  The value of the variable may be
+     changed while it remains locked.  Each locked variable must be
+     unlocked using PL_unlock().  Locking and unlocking must be balanced.
+
+
+void PL_unlock(term)
+     Unlock a locked variable.  If the named variable is not the most
+     recently locked variable an error message is printed.  If a foreign
+     function leaves variables unlocked an error message is issued as
+     well.
+
+
+5.4.4.1 When is locking necessary
+
+Stacks shifts or garbage collections may be forced if there is
+insufficient space on the stacks.  Data is pushed on the stacks by most of
+the term construction functions and if the Prolog engine is called using
+PL_call().
+
+By default the Prolog engine ensures the stacks have a minimum of
+`min_free' (see stack_parameter/4) space when a foreign predicate is
+activated.  If this is insufficient, Prolog checks whether a garbage
+collection may be performed or the stacks may be enlarged.  By default
+Prolog assumes it is not save to shift the stacks or perform a garbage
+collection when foreign code is active.
+
+Simple C-defined predicates that do not call Prolog and do not use the
+term-construction functions intensively do not need to use PL_lock() and
+PL_unlock().  C-defined predicates that perform call-back on Prolog or use
+the term construction primitives to (potentially) create large data
+structures should protect their variables and should defined the
+PL_FA_GCSAVE attribute (see PL_register_foreign()).
+
+
+5.4.5 Calling Prolog from C
 
 The Prolog system can be called back from C. This is done by constructing
 a term with the functions described above and then calling PL_call().
@@ -4718,15 +4961,15 @@ the Prolog predicate.  If alternatives are wanted call findall/3 and read
 the result from the third argument.
 
 
-bool PL_call(term, module)
-     Call term just like the Prolog predicate once/1.  Term is called in
-     the specified module, or in the context module if module = NULL.
-     Returns TRUE if the call succeeds, FALSE otherwise.  Figure 5.3 shows
-     an example to obtain the number of defined atoms.  All checks are
-     omitted to improve readability.
+int PL_call(term, module)
+    Call term just like the Prolog predicate once/1.  Term is called in
+    the specified module, or in the context module if module = NULL.
+    Returns TRUE if the call succeeds, FALSE otherwise.  Figure 5.3 shows
+    an example to obtain the number of defined atoms.  All checks are
+    omitted to improve readability.
 
 
-5.5.5 Discarding Data
+5.4.6 Discarding Data
 
 The Prolog data created during setting up the call and calling Prolog can
 in most cases be discarded right after the call.  See figure 5.3 for an
@@ -4760,7 +5003,7 @@ allowed to call PL_bktrk(b2) after this sequence.
       PL_unify_functor(t, PL_new_functor(PL_new_atom("statistics"), 2));
       PL_unify_atomic(PL_arg(t,1), PL_new_atom("atoms"));
 
-      PL_call(t);              /* call it */
+      PL_call(t, NULL);        /* call it in current module */
 
                              /* extract the value from the 2nd arg */
       atoms = PL_integer_value(PL_atomic(PL_arg(t, 2)));
@@ -4773,7 +5016,7 @@ allowed to call PL_bktrk(b2) after this sequence.
                      Figure 5.3:  Calling Prolog
 
 
-5.5.6 Foreign Code and Modules
+5.4.7 Foreign Code and Modules
 
 Modules are identified via a unique handle.  The following functions are
 available to query and manipulate modules.
@@ -4811,7 +5054,7 @@ module PL_new_module(atomic)
        atom atomic.
 
 
-5.5.7 Catching Unix Signals
+5.4.8 Catching Unix Signals
 
 SWI-Prolog catches the Unix signals SIGINT, SIGFPE and SIGSEGV. To avoid
 problems with foreign code attempting to catch these signals foreign code
@@ -4828,17 +5071,17 @@ void (*PL_signal(sig, func))()
      signal handlers if a state created with save_program/1 is restarted.
 
 
-5.5.8 Errors and warnings
+5.4.9 Errors and warnings
 
 Two standard functions are available to print standard Prolog errors to
 the standard error stream.
 
 
-bool PL_warning(format, a1, ...)
-     Print an error message starting with `[WARNING:', followed by the
-     output from format, followed by a `]' and a newline.  Then start the
-     tracer.  format and the arguments are the same as for printf(2).  No
-     more than 10 arguments can be provided.
+int PL_warning(format, a1, ...)
+    Print an error message starting with `[WARNING:', followed by the
+    output from format, followed by a `]' and a newline.  Then start the
+    tracer.  format and the arguments are the same as for printf(2).
+    Always returns FALSE.
 
 
 void PL_fatal_error(format, a1, ...)
@@ -4846,40 +5089,42 @@ void PL_fatal_error(format, a1, ...)
      and then exits Prolog.
 
 
-5.5.9 Environment Control from Foreign Code
+5.4.10 Environment Control from Foreign Code
 
 
-bool PL_action(int, C_type)
-     Perform some action on the Prolog system.  int describes the action,
-     C_type provides the argument if necessary.  The actions are listed in
-     table 5.1.
+int PL_action(int, C_type)
+    Perform some action on the Prolog system.  int describes the action,
+    C_type provides the argument if necessary.  The actions are listed in
+    table 5.1.
 
-      PL_ACTION_TRACE        Start Prolog tracer
+     PL_ACTION_TRACE        Start Prolog tracer
 
-      PL_ACTION_DEBUG        Switch on Prolog debug mode
+     PL_ACTION_DEBUG        Switch on Prolog debug mode
 
-      PL_ACTION_BACKTRACE    Print backtrace on current output stream
+     PL_ACTION_BACKTRACE    Print backtrace on current output stream.
+                            The argument (an int) is the number of
+                            frames printed.
 
-      PL_ACTION_HALT         Halt Prolog execution.  This action should
-                             be called rather than Unix exit() to give
-                             Prolog the opportunity to clean up.  This
-                             call does not return.
-      PL_ACTION_ABORT        Generate a Prolog abort.  This call does not
-                             return.
-      PL_ACTION_BREAK        Create a standard Prolog break environment.
-                             Returns after the user types control-D.
+     PL_ACTION_HALT         Halt Prolog execution.  This action should
+                            be called rather than Unix exit() to give
+                            Prolog the opportunity to clean up.  This
+                            call does not return.
+     PL_ACTION_ABORT        Generate a Prolog abort.  This call does not
+                            return.
+     PL_ACTION_BREAK        Create a standard Prolog break environment.
+                            Returns after the user types control-D.
 
-      PL_ACTION_SYMBOLFILE   The argument (a char *) is considered to be
-                             hold the symbolfile for further incremental
-                             loading.  Should be called by user
-                             applications that perform incremental
-                             loading as well and want to inform Prolog of
-                             the new symbol table.
+     PL_ACTION_SYMBOLFILE   The argument (a char *) is considered to be
+                            hold the symbolfile for further incremental
+                            loading.  Should be called by user
+                            applications that perform incremental
+                            loading as well and want to inform Prolog of
+                            the new symbol table.
 
-                    Table 5.1:  PL_action() options
+                   Table 5.1:  PL_action() options
 
 
-5.5.10 Querying Prolog
+5.4.11 Querying Prolog
 
 
 C_type PL_query(int)
@@ -4906,47 +5151,50 @@ C_type PL_query(int)
                        Table 5.2:  PL_query() options
 
 
-5.5.11 Registering Foreign Predicates
+5.4.12 Registering Foreign Predicates
 
 
-bool PL_register_foreign(name, arity, function, [...option...]  0)
-     Register a C-function to implement a Prolog predicate.  After this
-     call returns successfully a predicate with name name (a char *) and
-     arity arity (a C int) is created.  When called in Prolog, Prolog will
-     call function.  [...option...]  forms a 0-terminated list of options
-     for the installation.  These are:
+int PL_register_foreign(name, arity, function, [...option...]  0)
+    Register a C-function to implement a Prolog predicate.  After this
+    call returns successfully a predicate with name name (a char *) and
+    arity arity (a C int) is created.  When called in Prolog, Prolog will
+    call function.  [...option...]  forms a 0-terminated list of options
+    for the installation.  These are:
 
-          PL_FA_NOTRACE           Predicate cannot be seen in the
-                                  tracer
-          PL_FA_TRANSPARENT       Predicate is module transparent
+         PL_FA_NOTRACE           Predicate cannot be seen in the tracer
 
-          PL_FA_NONDETERMINISTIC  Predicate is non-deterministic.  This
-                                  attribute is currently ignored, but
-                                  will probably be used in future
-                                  versions.
+         PL_FA_TRANSPARENT       Predicate is module transparent
+
+         PL_FA_NONDETERMINISTIC  Predicate is non-deterministic.  This
+                                 attribute is currently ignored, but will
+                                 probably be used in future versions.
+
+         PL_FA_GCSAVE            The C-implementation properly uses PL_lock()
+                                 and PL_unlock() to protect variables from
+                                 the garbage collector and stack-shifter
 
 
-5.6 Example of Using the Foreign Interface
+5.5 Example of Using the Foreign Interface
 
 Below is an example showing all stages of the declaration of a foreign
 predicate that transforms atoms possibly holding uppercase letters into an
 atom only holding lower case letters.  Figure 5.4 shows the C-source file.
 
 
-5.6.1 C-Source file (lowercase.c)
+5.5.1 C-Source file (lowercase.c)
 
     /*  Include file depends on local installation */
-    #include "/usr/local/lib/pl/library/SWI-prolog.h"
+    #include <SWI-prolog.h>
     #include <ctype.h>
 
-    long
+    foreign_t
     pl_lowercase(u, l)
     term u, l;
     { char *copy;
       char *s, *q;
       atomic la;
 
-      if ( PL_type(u) != PL_ATOM )
+      if ( !PL_is_atom(u) )
         return PL_warning("lowercase/2: instantiation fault");
       s = PL_atom_value(PL_atomic(u));
       copy = (char *) malloc(strlen(s)+1);
@@ -4968,9 +5216,9 @@ atom only holding lower case letters.  Figure 5.4 shows the C-source file.
                   Figure 5.4:  Lowercase source file
 
 
-5.6.2 Compiling and Loading Foreign Code
+5.5.2 Compiling and Loading Foreign Code
 
-    sun% cc -O -c lowercase.c
+    sun% cc -I/usr/local/lib/pl/include -O -c lowercase.c
     sun% pl
     /staff/jan/.plrc consulted, 0.166667 seconds, 2256 bytes.
     Welcome to SWI-Prolog (version 1.5.0, August 1990)
@@ -4987,10 +5235,10 @@ atom only holding lower case letters.  Figure 5.4 shows the C-source file.
     Yes
 
 
-5.7 Notes on Using Foreign Code
+5.6 Notes on Using Foreign Code
 
 
-5.7.1 Garbage Collection and Foreign Code
+5.6.1 Garbage Collection and Foreign Code
 
 Currently no interface between foreign code and the garbage collector has
 been defined.  The garbage collector is disabled during execution of
@@ -4999,7 +5247,7 @@ probably will introduce incompatible changes to the current interface
 definition.
 
 
-5.7.2 Memory Allocation
+5.6.2 Memory Allocation
 
 SWI-Prolog's memory allocation is based on the malloc() library routines.
 Foreign applications can savely use malloc(), realloc() and free().
@@ -5007,7 +5255,7 @@ Memory allocation using brk() or sbrk() is not allowed as these calls
 conflict with malloc().
 
 
-5.7.3 Debugging Foreign Code
+5.6.3 Debugging Foreign Code
 
 NOTE: this section is highly machine dependent.  The tricks described here
 are tested on SUN-3 and SUN-4.  They might work on other BSD variants of
@@ -5052,7 +5300,7 @@ initialisation function:
     PL_register_foreign("dbx", 0, pl_dbx, 0);
 
 
-5.7.4 Name Conflicts in C modules
+5.6.4 Name Conflicts in C modules
 
 In the current version of the system all public C functions of SWI-Prolog
 are in the symbol table.  This can lead to name clashes with foreign code.
@@ -5066,7 +5314,7 @@ macro should fix the problem.
     #define warning warning_
 
 
-5.7.5 Compatibility of the Foreign Interface
+5.6.5 Compatibility of the Foreign Interface
 
 As far as I' aware of, there is no standard for foreign language
 interfaces in Prolog.  The SWI-Prolog interface is no attempt to propose
@@ -5095,7 +5343,7 @@ debugging tools for Prolog.  The predicates described here should be
 handled with some care as it is easy to corrupt the consistency of the
 Prolog system by misusing them.
 
-                                477
+                                500
 
 
 6.1 Examining the Environment Stack
@@ -5355,7 +5603,9 @@ exists_directory/1           Check existence of Unix directory
 exists_file/1                Check existence of Unix file
 exp/1                       Arithmetic:  exponent (base e)
 expand_file_name/2           Wildcard expansion of file names
+expand_term/2                Compiler:  expand read term into clause(s)
 export/1                    Export a predicate from a module
+export_list/2                List of public predicates of a module
 fail/0                      Always false
 fileerrors/2                Do/Don't warn on file errors
 findall/3                   Find all solutions to a goal
@@ -5414,6 +5664,7 @@ load_foreign/5               Load foreign (C) module
 log/1                       Arithmetic:  natural logarithm
 log10/1                     Arithmetic:  10 base logarithm
 make/0                      Reconsult all changed source files
+make_library_index/1         Create autoload file INDEX.pl
 maplist/3                   Transform all elements of a list
 max/2                       Arithmetic:  Maximum of two numbers
 member/2                    Element is member of a list
@@ -5485,10 +5736,13 @@ recordz/3                   Record term in the database (last)
 rename_file/2                Change name of Unix file
 repeat/0                    Succeed, leaving infinite backtrackpoints
 reset_profiler/0             Clear statistics obtained by the profiler
+restore/1                   Restore saved-state (save/1, save_program/1)
 retract/1                   Remove clause from the database
 retractall/1                Remove unifying clauses from the database
 reverse/2                   Inverse the order of the elements in a list
 same_file/2                 Succeeds if arguments refer to same file
+save/1                      Save program including current goal
+save/2                      Save program including current goal
 save_program/1               Save the current program on a file
 save_program/2               Save the current program on a file
 see/1                       Change the current input stream
@@ -5514,6 +5768,7 @@ source_file/1                Examine currently loaded source files
 source_file/2                Obtain source file of predicate
 spy/1                       Force tracer on specified predicate
 sqrt/1                      Arithmetic:  square root
+stack_parameter/4            Query/Set runtime stack parameter
 statistics/0                Show execution statistics
 statistics/2                Obtain collected statistics
 stream_position/3            Get/seek to position in file
@@ -5540,6 +5795,8 @@ time/1                      Determine time needed to execute goal
 time_file/2                 Get last modification time of file
 told/0                      Close current output
 trace/0                     Start the tracer
+trace/1                     Set trace-point on predicate
+trace/2                     Set/Clear trace-point on ports
 tracing/0                   Query status of the tracer
 trim_stacks/0                Release unused memory resources
 true/0                      Succeed
@@ -5567,4 +5824,4 @@ writeq/2                    Write term, insert quotes on stream
 xor/2                       Arithmetic:  exclusive or
 |/2                         Disjunction of goals
 
-                                486
+                                509
