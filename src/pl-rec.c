@@ -236,9 +236,11 @@ compileTermToHeap(term_t t)
   
   size = SIZERECORD + sizeOfBuffer(&info.code);
   record = allocHeap(size);
+  record->list  = NULL;			/* ensure initialised memory */
+  record->next  = NULL;			/* idem */
   record->gsize = info.size;
   record->nvars = info.nvars;
-  record->size = size;
+  record->size  = size;
   record->erased = FALSE;
   record->references = 1;
   memcpy(record->buffer, info.code.base, sizeOfBuffer(&info.code));
