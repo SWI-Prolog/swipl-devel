@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<!DOCTYPE rdf:RDF [
+	 <!ENTITY rdfs 'http://www.w3.org/TR/1999/PR-rdf-schema-19990303#'>
+	 <!ENTITY rdf  'http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
+]>
+
+<rdf:RDF xmlns:rdfs="&rdfs;" xmlns:rdf="&rdf;">
+
+<rdfs:Class rdf:ID="&rdfs;Resource">
+  <rdfs:label>Resource</rdfs:label>
+  <rdfs:comment>The most general class</rdfs:comment>
+</rdfs:Class>
+
+<rdf:Property about="&rdf;type">
+  <rdfs:label>type</rdfs:label>
+  <rdfs:comment>Indicates membership of a class</rdfs:comment>
+  <rdfs:range rdf:resource="&rdfs;Class"/>
+</rdf:Property>
+
+<rdf:Property ID="&rdfs;comment">
+  <rdfs:label>comment</rdfs:label>
+  <rdfs:domain rdf:resource="&rdfs;Resource"/>
+  <rdfs:comment>Use this for descriptions</rdfs:comment>
+  <rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+
+<rdf:Property ID="&rdfs;label">
+ <rdf:type resource="&rdf;Property"/>
+ <rdfs:label>label</rdfs:label>
+ <rdfs:domain rdf:resource="&rdfs;Resource"/>
+ <rdfs:comment>Provides a human-readable version of a resource name.</rdfs:comment>
+ <rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+
+<rdfs:Class rdf:ID="&rdfs;Class">
+  <rdfs:label>Class</rdfs:label>
+  <rdfs:comment>The concept of Class</rdfs:comment>
+  <rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+
+<rdf:Property ID="&rdfs;subClassOf">
+  <rdfs:label>subClassOf</rdfs:label>
+  <rdfs:comment>Indicates membership of a class</rdfs:comment>
+  <rdfs:range rdf:resource="&rdfs;Class"/>
+  <rdfs:domain rdf:resource="&rdfs;Class"/>
+</rdf:Property>
+
+<rdf:Property ID="&rdfs;subPropertyOf">
+  <rdfs:label>subPropertyOf</rdfs:label>
+  <rdfs:comment>Indicates specialization of properties</rdfs:comment>
+  <rdfs:range rdf:resource="&rdf;Property"/>
+  <rdfs:domain rdf:resource="&rdf;Property"/>
+</rdf:Property>
+
+<rdf:Property ID="&rdfs;seeAlso">
+  <rdfs:label>seeAlso</rdfs:label>
+  <rdfs:comment>Indicates a resource that provides information about the subject resource.</rdfs:comment>
+  <rdfs:range rdf:resource="&rdfs;Resource"/>
+  <rdfs:domain rdf:resource="&rdfs;Resource"/>
+</rdf:Property>
+
+<rdf:Property ID="&rdfs;isDefinedBy">
+  <rdf:type resource="&rdf;Property"/>
+  <rdfs:subPropertyOf rdf:resource="&rdfs;seeAlso"/>
+  <rdfs:label>isDefinedBy</rdfs:label>
+  <rdfs:comment>Indicates a resource containing and defining the subject resource.</rdfs:comment>
+  <rdfs:range rdf:resource="&rdfs;Resource"/>
+  <rdfs:domain rdf:resource="&rdfs;Resource"/>
+</rdf:Property>
+
+<rdfs:Class rdf:ID="&rdfs;ConstraintResource">
+  <rdfs:label>ConstraintResource</rdfs:label>
+  <rdf:type resource="&rdfs;Class"/>
+  <rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+  <rdfs:comment>Resources used to express RDF Schema constraints.</rdfs:comment>
+</rdfs:Class>
+
+<rdfs:Class rdf:ID="&rdfs;ConstraintProperty">
+  <rdfs:label>ConstraintProperty</rdfs:label>
+  <rdfs:subClassOf rdf:resource="&rdf;Property"/>
+  <rdfs:subClassOf rdf:resource="&rdfs;ConstraintResource"/>
+  <rdfs:comment>Properties used to express RDF Schema constraints.</rdfs:comment>
+</rdfs:Class>
+
+<rdfs:ConstraintProperty rdf:ID="&rdfs;domain">
+  <rdfs:label>domain</rdfs:label>
+  <rdfs:comment>This is how we associate a class with
+  properties that its instances can have</rdfs:comment>
+</rdfs:ConstraintProperty>
+
+<rdfs:ConstraintProperty rdf:ID="&rdfs;range">
+  <rdfs:label>range</rdfs:label>
+  <rdfs:comment>Properties that can be used in a
+  schema to provide constraints</rdfs:comment>
+  <rdfs:range rdf:resource="&rdfs;Class"/>
+  <rdfs:domain rdf:resource="&rdf;Property"/>
+</rdfs:ConstraintProperty>
+
+<rdfs:Class rdf:about="&rdf;Property">
+  <rdfs:label>Property</rdfs:label>
+  <rdfs:comment>The concept of a property.</rdfs:comment>
+  <rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+
+<rdfs:Class rdf:ID="&rdfs;Literal">
+  <rdfs:label>Literal</rdfs:label>
+  <rdf:type resource="&rdfs;Class"/>
+  <rdfs:comment>This represents the set of atomic values, eg. textual strings.</rdfs:comment>
+</rdfs:Class>
+
+<rdfs:Class rdf:about="&rdf;Statement">
+  <rdfs:label>Statement</rdfs:label>
+  <rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+  <rdfs:comment>This represents the set of reified statements.</rdfs:comment>
+</rdfs:Class>
+
+<rdf:Property about="&rdf;subject">
+  <rdfs:label>subject</rdfs:label>
+  <rdfs:domain rdf:resource="&rdf;Statement"/>
+  <rdfs:range rdf:resource="&rdfs;Resource"/>
+</rdf:Property>
+
+<rdf:Property about="&rdf;predicate">
+  <rdfs:label>predicate</rdfs:label>
+  <rdf:type resource="&rdf;Property"/>
+  <rdfs:domain rdf:resource="&rdf;Statement"/>
+  <rdfs:range rdf:resource="&rdf;Property"/>
+</rdf:Property>
+
+<rdf:Property about="&rdf;object">
+  <rdfs:label>object</rdfs:label>
+  <rdfs:domain rdf:resource="&rdf;Statement"/>
+</rdf:Property>
+
+<rdfs:Class rdf:ID="&rdfs;Container">
+  <rdfs:label>Container</rdfs:label>
+  <rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+  <rdfs:comment>This represents the set Containers.</rdfs:comment>
+</rdfs:Class>
+
+<rdfs:Class rdf:about="&rdf;Bag">
+  <rdfs:label>Bag</rdfs:label>
+  <rdfs:subClassOf rdf:resource="&rdfs;Container"/>
+</rdfs:Class>
+
+<rdfs:Class rdf:about="&rdf;Seq">
+  <rdfs:label>Sequence</rdfs:label>
+  <rdfs:subClassOf rdf:resource="&rdfs;Container"/>
+</rdfs:Class>
+
+<rdfs:Class rdf:about="&rdf;Alt">
+  <rdfs:label>Alt</rdfs:label>
+  <rdfs:subClassOf rdf:resource="&rdfs;Container"/>
+</rdfs:Class>
+
+<rdfs:Class rdf:ID="&rdfs;ContainerMembershipProperty">
+  <rdfs:label>ContainerMembershipProperty</rdfs:label>
+  <rdfs:subClassOf rdf:resource="&rdf;Property"/>
+</rdfs:Class>
+
+<rdf:Property rdf:about="&rdf;value">
+  <rdfs:label>object</rdfs:label>
+</rdf:Property>
+
+</rdf:RDF>
