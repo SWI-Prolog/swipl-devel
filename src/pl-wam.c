@@ -196,6 +196,7 @@ register LocalFrame frame;
   word result;
   Word argv[10];
   Func function;
+  Lock top = pTop;
 
   { register Word a, *ap;
     register int n;
@@ -262,6 +263,17 @@ register LocalFrame frame;
   for(n=0;n<argc; n++)
     checkData(argv[n]);
   );
+
+  if ( top != pTop )
+  { if ( pTop > top )
+    { warning("%s: left %d foreign data marks",
+	      procedureName(proc), pTop - top);
+      pTop = top;
+    } else
+    { warning("%s: popped %d foreign data marks too many",
+	      procedureName(proc), top - pTop);
+    }
+  }
 
   if ( result == FALSE )
   { frame->clause = NULL;
@@ -535,7 +547,7 @@ registers.
     FR->procedure = PROC;
     FR->clause = (Clause) NULL;
     SetBfr(FR);
-    Mark(FR->mark);
+    DoMark(FR->mark);
     environment_frame = FR;
 
     if ( (CL = DEF->definition.clauses) == (Clause) NULL )
@@ -1529,7 +1541,7 @@ Note: we are working above `lTop' here!
 	clear(FR, FR_CUT|FR_SKIPPED);
 
 	statistics.inferences++;
-	Mark(FR->mark);
+	DoMark(FR->mark);
 
 #if O_PROFILE
 	if (statistics.profiling)
@@ -1568,8 +1580,8 @@ Testing is suffices to find out that the predicate is defined.
 	  garbageCollect(FR);
 	  FR = growStacks(FR,
 			   ((long)lMax - (long)lTop) < 8192L,
-			   (gMax - gTop) * 2 > (gTop - gBase),
-			   (tMax - tTop) * 2 > (tTop - tBase));
+			   (gMax - gTop) * 2 < (gTop - gBase),
+			   (tMax - tTop) * 2 < (tTop - tBase));
 	} else if ( ((long)lMax - (long)lTop) < 8192L )
 	  FR = growStacks(FR, TRUE, FALSE, FALSE);
 #else
@@ -1739,7 +1751,7 @@ detailed study!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 retry:					MARK(RETRY);
-  Undo(FR->mark);
+  DoUndo(FR->mark);
   SetBfr(FR);
   clear(FR, FR_CUT);
   if (debugstatus.debugging)
@@ -1821,7 +1833,7 @@ the entire frame has failed, so we cab continue at `frame_failed'.
 
 resume_frame:
   ARGP = argFrameP(FR, 0);
-  Undo(FR->mark);		/* backtrack before clause indexing */
+  DoUndo(FR->mark);		/* backtrack before clause indexing */
 
   if ( (CL = findClause(CL, ARGP, DEF, &deterministic)) == NULL )
     goto frame_failed;
@@ -1919,7 +1931,7 @@ resume_from_body:
     }
 
     if ( debugstatus.debugging )
-    { Undo(FR->mark);			/* data backtracking to get nice */
+    { DoUndo(FR->mark);			/* data backtracking to get nice */
 					/* tracer output */
 
       switch( tracePort(FR, REDO_PORT) )
@@ -1949,7 +1961,7 @@ foreign frame we have to set BFR and do data backtracking.
     }
 
     SetBfr(FR->backtrackFrame);
-    Undo(FR->mark);
+    DoUndo(FR->mark);
 
     goto call_builtin;
   }

@@ -25,7 +25,8 @@ save_program/1 and included dynamic stacks.  Versions:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define M_CC			gcc
-#define M_OPTIMIZE	        -O2 -fomit-frame-pointer
+/*#define M_OPTIMIZE	        -O2 -fomit-frame-pointer*/
+#define M_OPTIMIZE		-g
 #define M_LDFLAGS		
 #define M_CFLAGS		
 #define M_LIBS			-lm -ltermcap
@@ -64,10 +65,10 @@ save_program/1 and included dynamic stacks.  Versions:
 #define O_MAP_TAB_ON_ESC	1
 #define O_FOLD 		 	0
 			/* Interfaces */
-#define O_PCE 			0
+#define O_PCE 			1
 
-#define MACHINE			"Intel-386"
-#define OPERATING_SYSTEM  	"Linux"
+#define MACHINE			"i386"
+#define OPERATING_SYSTEM  	"linux"
 
 
 		/********************************

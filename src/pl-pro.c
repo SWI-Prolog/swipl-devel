@@ -72,6 +72,7 @@ Module module;
 word goal;
 bool debug;
 { LocalFrame lSave   = lTop;
+  Lock	     pSave   = pTop;		/* TMP */
   LocalFrame envSave = environment_frame;
   mark       m;
   Word *     aSave = aTop;
@@ -84,12 +85,11 @@ bool debug;
   varFrame(lTop, -1) = (word) environment_frame;
 
   Mark(m);
-/*  lockMark(&m); */
   gc_status.blocked++;
   rval = interpret(module, goal, debug);
   gc_status.blocked--;
   Undo(m);
-/*  unlockMark(&m); */
+  assert(pSave == pTop);
   lTop = lSave;
   aTop = aSave;
   environment_frame = envSave;

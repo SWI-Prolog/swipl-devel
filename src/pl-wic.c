@@ -7,6 +7,7 @@
     Purpose: load and save intermediate code files
 */
 
+/*#define O_DEBUG 1*/
 #include "pl-incl.h"
 
 forwards char *	getString P((FILE *));
@@ -984,10 +985,8 @@ char *functor;
 static bool
 compileFile(file)
 char *file;
-{ word term;
-  char *path;
+{ char *path;
   word f;
-  word directive;
 
   DEBUG(1, printf("Boot compilation of %s\n", file));
   if ((path = AbsoluteFile(file)) == (char *) NULL)
@@ -1002,7 +1001,11 @@ char *file;
   pl_start_consult(&f);
   
   for(;;)
-  { setVar(term);
+  { word term, directive;
+    mark m;
+    
+    Mark(m);
+    setVar(term);
     DEBUG(2, printf("pl_read_clause() -> "));
     if (pl_read_clause(&term) == FALSE)
       continue;
@@ -1020,6 +1023,7 @@ char *file;
       callGoal(MODULE_user, directive, FALSE);
     } else
       addClauseWic(&term, (Atom)f);
+    Undo(m);
   }
   pl_seen();
 

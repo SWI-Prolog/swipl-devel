@@ -657,9 +657,10 @@ word h;
       if (decompile(clause, term) == TRUE)
       { next = clause->next;
 	retractClauseProcedure(clause->procedure, clause);
-/*	set(clause->procedure->definition, DYNAMIC); */
 	if ( det == TRUE )
+	{ unlockMark(&m);
 	  succeed;
+	}
 	next->references++;	/* avoid the next beeing deleted */
 
 	ForeignRedo(next);

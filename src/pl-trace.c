@@ -180,7 +180,7 @@ again:
   { case CALL_PORT:	Putf(" Call:  ");	break;
     case REDO_PORT:	Putf(" Redo:  ");	break;
     case FAIL_PORT:	Putf(" Fail:  ");
-			Undo(frame->mark);	break;
+			DoUndo(frame->mark);	break;
     case EXIT_PORT:	Putf(" Exit:  ");	break;
     case UNIFY_PORT:	Putf(" Unify: ");	break;
   }

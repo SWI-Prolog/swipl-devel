@@ -385,7 +385,9 @@ word h;
 	  TRY( unifyKey(key, record->list->key) );
 	  return pl_unify(term, &copy);
 	} else
+	{ Undo(m);
 	  fail;
+	}
       }
       if ((k = getKey(key)) == (word) NULL)
 	return warning("recorded/3: illegal key");
@@ -416,6 +418,7 @@ word h;
     }
   }
 
+  Undo(m);
   fail;
 }
 

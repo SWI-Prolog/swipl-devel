@@ -364,7 +364,7 @@ Number r;
       case V_REAL:	*ap++ = globalReal(num.f);
       			break;
       case V_ERROR:
-      default:
+      default:		unlockMark(&m);
       			return V_ERROR;
     }
   }
@@ -379,6 +379,7 @@ Number r;
   lTop = fr;
   if ( rval == FALSE )
   { warning("Arithmetic function %s failed", procedureName(f->proc));
+    unlockMark(&m);
     return V_ERROR;
   }
 
@@ -394,7 +395,8 @@ Number r;
     Undo(m);
     return V_REAL;
   } else
-  { warning("Arithmetic function %s did not bind return value to a number",
+  { unlockMark(&m);
+    warning("Arithmetic function %s did not bind return value to a number",
 	    					procedureName(f->proc));
     fail;
   }

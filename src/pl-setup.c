@@ -7,6 +7,8 @@
     Purpose: Initialise the system
 */
 
+/*#define O_DEBUG 1*/
+
 #define GLOBAL				/* allocate global variables here */
 #include "pl-incl.h"
 #include <sys/stat.h>
@@ -146,10 +148,12 @@ initSignals()
 #ifdef SIGTTOU
     pl_signal(SIGTTOU, SIG_IGN);
 #endif
+#if !O_DEBUG				/* just crash when debugging */
     pl_signal(SIGSEGV, fatal_signal_handler);
     pl_signal(SIGILL,  fatal_signal_handler);
 #ifdef SIGBUS
     pl_signal(SIGBUS,  fatal_signal_handler);
+#endif
 #endif
   } else
   { for( n = 0; n < MAXSIGNAL; n++ )

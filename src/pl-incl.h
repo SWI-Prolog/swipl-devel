@@ -843,14 +843,20 @@ a snap shot of the runtime environment and backtrack back to it.
 #define Trail(p)	{ (tTop++)->address = (p); \
 			  verifyStack(trail); \
 			}
-#define Mark(b)		{ (b).trailtop = tTop; \
+#define DoMark(b)	{ (b).trailtop = tTop; \
 			  (b).globaltop = gTop; \
 			}
-#define Undo(b)		{ register TrailEntry tt = tTop; \
+#define DoUndo(b)	{ register TrailEntry tt = tTop; \
 			  while(tt > (b).trailtop) \
 			    setVar(*(--tt)->address); \
 			  tTop = tt; \
 			  gTop = (b).globaltop; \
+			}
+#define Mark(b)		{ DoMark(b); \
+			  lockMark(&b); \
+			}
+#define Undo(b)		{ DoUndo(b); \
+			  unlockMark(&b); \
 			}
 
 

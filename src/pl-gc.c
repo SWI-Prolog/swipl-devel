@@ -532,11 +532,24 @@ LocalFrame fr;
 }
 
 #if O_DEBUG
+#ifdef __STDC__
+static int
+cmp_address(vp1, vp2)
+const void *vp1, *vp2;
+{ Word p1 = *((Word *)vp1);
+  Word p2 = *((Word *)vp2);
+
+  return p1 > p2 ? 1 : p1 == p2 ? 0 : -1;
+}
+
+#else
+
 static int
 cmp_address(p1, p2)
 Word *p1, *p2;
 { return *p1 > *p2 ? 1 : *p1 == *p2 ? 0 : -1;
 }
+#endif
 #endif
 
 static void
@@ -1274,7 +1287,9 @@ Word *p;
 void
 unlockMark(m)
 mark *m;
-{ if ( ((--pTop)->value << 2) != (unsigned)m )
+{ if ( pTop == pBase )
+    warning("Lock stack underflow");
+  else if ( ((--pTop)->value << 2) != (unsigned)m )
     sysError("Mismatch in lock()/unlock()\n");
 }
 
@@ -1309,7 +1324,8 @@ static void
 update_mark(m, gs, ts)
 mark *m;
 long gs, ts;
-{ m->trailtop  = addPointer(m->trailtop,  ts);
+{ DEBUG(3, printf("Updating mark\n"));
+  m->trailtop  = addPointer(m->trailtop,  ts);
   m->globaltop = addPointer(m->globaltop, gs);
 }
 
@@ -1343,6 +1359,8 @@ long ls, gs;
 		 *	   LOCAL STACK		*
 		 *******************************/
 
+static int local_frames;		/* count for debugging */
+
 static LocalFrame
 update_environments(fr, ls, gs, ts)
 LocalFrame fr;
@@ -1359,9 +1377,12 @@ long ls, gs, ts;
     if ( true(fr, FR_MARKED) )
       return NULL;			/* from choicepoints only */
     set(fr, FR_MARKED);
+    local_frames++;
     
-    DEBUG(2, printf("Shifting frame [%ld] %s\n",
-		    levelFrame(fr), procedureName(fr->procedure)));
+    DEBUG(2,
+	  printf("Shifting frame [%ld] %s ... ",
+		 levelFrame(fr), procedureName(fr->procedure));
+	  fflush(stdout));
 
     if ( ls )				/* update frame pointers */
     { if ( fr->parent )
@@ -1381,14 +1402,18 @@ long ls, gs, ts;
 	update_variable(sp, ls, gs);
     }
 
+    DEBUG(2, printf("ok\n"));
+
     PC = fr->programPointer;
-    if ( fr->parent )			/* TBD: +/- ls */
+    if ( fr->parent )
       fr = fr->parent;
     else				/* Prolog --> C --> Prolog calls */
     { LocalFrame parent = (LocalFrame) varFrame(fr, -1);
 
       if ( parent )
-	varFrame(fr, -1) = (word) addPointer(parent, ls);
+      { parent = addPointer(parent, ls);
+	varFrame(fr, -1) = (word) parent;
+      }
 
       return parent;
     }
@@ -1397,10 +1422,11 @@ long ls, gs, ts;
 
 
 static void
-update_choicepoints(bfr)
+update_choicepoints(bfr, ls, gs, ts)
 LocalFrame bfr;
+long ls, gs, ts;
 { for( ; bfr; bfr = bfr->backtrackFrame )
-    update_environments(bfr);
+    update_environments(bfr, ls, gs, ts);
 }
 
 
@@ -1418,6 +1444,7 @@ LocalFrame fr;
   { if ( false(fr, FR_MARKED) )
       return NULL;
     clear(fr, FR_MARKED);
+    local_frames--;
     
     if ( fr->parent )
       fr = fr->parent;
@@ -1471,6 +1498,36 @@ long ts, ls, gs;			/* trail-, local- and global offsets */
   }
 }
 
+		/********************************
+		*           LOCK STACK		*
+		********************************/
+
+static void
+update_locks(ls, gs, ts)
+long ls, gs, ts;
+{ Lock l = pBase;
+  int w=0, p=0, m=0;
+
+  DEBUG(1, printf("Locked references ...", pTop - pBase); fflush(stdout));
+
+  for(l = pBase; l < pTop; l++)
+  { switch(l->type)
+    { case L_WORD:
+	w++;
+	break;
+      case L_POINTER:
+	p++;
+	break;
+      case L_MARK:
+	m++;
+	update_mark((mark *)(l->value << 2), gs, ts);
+	break;
+    }
+  }
+
+  DEBUG(1, printf("w+p+m = %d %d %d (ok)\n", w, p, m));
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Entry-point.   Update the  stacks to  reflect  their current  positions.
@@ -1497,23 +1554,33 @@ Void lb, gb, tb;			/* bases addresses */
   gs = (long) gb - (long) gBase;
   ts = (long) tb - (long) tBase;
 
+  DEBUG(2, printf("ls+gs+ts = %ld %ld %ld ... ", ls, gs, ts); fflush(stdout));
+
   if ( ls || gs || ts )
-  { for(fr = frame; fr; fr = fr2)
+  { local_frames = 0;
+
+    for(fr = frame; fr; fr = fr2)
     { fr2 = update_environments(fr, ls, gs, ts);
 
-      update_choicepoints(fr->backtrackFrame);
+      update_choicepoints(fr->backtrackFrame, ls, gs, ts);
+      DEBUG(1, if ( fr2 ) printf("Update frames of C-parent\n"));
     }
+
+    DEBUG(2, printf("%d frames ...", local_frames); fflush(stdout));
 
     for(fr = frame; fr; fr = fr2)
     { fr2 = unmark_environments(fr, ls, gs, ts);
 
       unmark_choicepoints(fr->backtrackFrame);
     }
+    assert(local_frames == 0);
 
     if ( gs )
     { update_global(gs);
       update_trail(ts, ls, gs);
     }
+
+    update_locks(ls, gs, ts);
 
     updateStackHeader(local,  ls);
     updateStackHeader(global, gs);
@@ -1527,7 +1594,7 @@ Void lb, gb, tb;			/* bases addresses */
 Entry point from interpret()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define sizeStack(name) ((long)stacks.name.top - (long)stacks.name.base)
+#define sizeStack(name) ((long)stacks.name.max - (long)stacks.name.base)
 
 LocalFrame
 growStacks(fr, l, g, t)
@@ -1540,13 +1607,21 @@ int l, g, t;
   long gsize = sizeStack(global);
   long tsize = sizeStack(trail);
 
+  DEBUG(1, printf("growStacks(0x%x, %c%c%c) l+g+t = %ld %ld %ld\n",
+		  fr,
+		  l ? 'l' : '-',
+		  g ? 'g' : '-',
+		  t ? 't' : '-',
+		  lsize, gsize, tsize));
+
   if ( t )
   { tsize += tsize / 2;
     tb = realloc(tb, tsize);
   }
 
   if ( g || l )
-  { assert(lb == addPointer(gb, gsize));
+  { long loffset = gsize + sizeof(word); /* TBD: def macro! */
+    assert(lb == addPointer(gb, loffset));	
 
     if ( g )
       gsize += gsize / 2;
@@ -1554,14 +1629,21 @@ int l, g, t;
       lsize += lsize / 2;
 
     gb = realloc(gb, lsize + gsize);
-    lb = addPointer(gb, gsize);
+    lb = addPointer(gb, gsize + sizeof(word));
+    if ( g )				/* global enlarged; move local */
+      bcopy(addPointer(gb, loffset), lb, lsize);
   }
       
+  DEBUG(1,
+	printf("(l+g+t = %ld %ld %ld) Updating stacks ... ",
+	       lsize, gsize, tsize);
+	fflush(stdout));
   fr = updateStacks(fr, lb, gb, tb);
+  DEBUG(1, printf("ok\n"));
 
-  stacks.local.top  = addPointer(stacks.local.base,  lsize);
-  stacks.global.top = addPointer(stacks.global.base, gsize);
-  stacks.trail.top  = addPointer(stacks.trail.base,  tsize);
+  stacks.local.max  = addPointer(stacks.local.base,  lsize);
+  stacks.global.max = addPointer(stacks.global.base, gsize);
+  stacks.trail.max  = addPointer(stacks.trail.base,  tsize);
 
   return fr;
 }

@@ -124,9 +124,9 @@ pl_unify(t1, t2)			/* =/2 */
 register Word t1, t2;
 { mark m;
 
-  Mark(m);
+  DoMark(m);
   if (unify(t1, t2) == FALSE)
-  { Undo(m);
+  { DoUndo(m);
     fail;
   }
 
@@ -139,9 +139,9 @@ register Word t1, t2;
 { bool rval;
   mark m;
   
-  Mark(m);
+  DoMark(m);
   rval = unify(t1, t2);
-  Undo(m);
+  DoUndo(m);
 
   if (rval == TRUE)
     fail;
@@ -438,9 +438,9 @@ Word t1, t2;
 { mark m;
   bool rval;
 
-  Mark(m);
+  DoMark(m);
   rval = pl_se(t1, t2, 1);
-  Undo(m);
+  DoUndo(m);
 
   return rval == FALSE ? FALSE : TRUE;
 }
