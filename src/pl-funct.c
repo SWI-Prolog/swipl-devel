@@ -182,7 +182,8 @@ registerControlFunctors()
     FUNCTOR_bar2,
     FUNCTOR_ifthen2,
     FUNCTOR_softcut2,
-    FUNCTOR_not_provable1
+    FUNCTOR_not_provable1,
+	(functor_t) 0
   };
   functor_t *f;
   

@@ -310,6 +310,9 @@ ws_load_windows_ico_file(Image image)
       int destroyicon = TRUE;
       int iscolor = TRUE;
 
+      if ( isNil(image->display) )
+	assign(image, display, CurrentDisplay(NIL));
+
       if ( !info.fIcon )
 	assign(image, hot_spot, newObject(ClassPoint,
 					  toInt(info.xHotspot),

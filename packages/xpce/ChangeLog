@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: load .ICO files.  Possibly caused by recent delay in opening the
+  display. (Spotted by Fabien Todescato).
+
 * ENHANCED: PceEmacs LaTeX mode to handle `"' normally in verbatim and
   code environment.
 
