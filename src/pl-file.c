@@ -1185,8 +1185,7 @@ toldString()
   IOSTREAM *s = getStream(Scurout);
 
   if ( s && s->functions == &Smemfunctions )
-  { Sputc(EOS, s);
-    closeStream(s);
+  { closeStream(s);
     popOutputContext();
   } else
     releaseStream(s);

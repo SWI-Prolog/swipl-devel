@@ -10,6 +10,9 @@
 VERSION 5.2.0 (May 22, 2003)
 ============================
 
+  * FIXED: Bug #56: various issues with 0-bytes in format/3 and friends.
+    Mike Elston.
+
   * PORT: Semaphore handling needed by the multi-threading version to
     MacOS X (Darwin).
 

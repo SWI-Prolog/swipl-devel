@@ -47,8 +47,8 @@ source should also use format() to produce error messages, etc.
 			  Sunlock(fd); \
 			  return warning(tp, a); \
 			}
-#define OUTSTRING(s)	{ char *q = s; \
-			  for(; *q; q++) OUTCHR(*q); \
+#define OUTSTRING(s, n)	{ int _i; char *q = s; \
+			  for(_i=0; _i++<(int)(n); q++) OUTCHR(*q); \
 			}
 #define OUTCHR(c)	{ if ( pending_rubber ) \
 			    buffer[index++] = (c); \
@@ -273,7 +273,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 	    PL_next_solution(qid);
 	    PL_close_query(qid);
 	    toldString();
-	    OUTSTRING(str);
+	    OUTSTRING(str, bufsize);
 	    if ( str != buf )
 	      free(str);
 
@@ -282,12 +282,13 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 	  { switch(*fmt)		/* Build in formatting */
 	    { case 'a':			/* atomic */
 		{ char *s;
+		  unsigned int len;
 
 		  NEED_ARG;
-		  if ( !PL_get_chars(argv, &s, CVT_ATOMIC) )
+		  if ( !PL_get_nchars(argv, &len, &s, CVT_ATOMIC) )
 		    FMT_ERROR("illegal argument to ~a");
 		  SHIFT;
-		  OUTSTRING(s);
+		  OUTSTRING(s, len);
 		  fmt++;
 		  break;
 		}
@@ -322,7 +323,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		  SHIFT;
 		  Ssprintf(tmp, "%%.%d%c", arg == DEFAULT ? 6 : arg, *fmt);
 		  Ssprintf(buf, tmp, f);
-		  OUTSTRING(buf);
+		  OUTSTRING(buf, strlen(buf));
 		  fmt++;
 		  break;
 		}
@@ -343,17 +344,18 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		    formatInteger(*fmt == 'D', arg, 10, TRUE, i, tmp);
 		  else
 		    formatInteger(FALSE, 0, arg, *fmt == 'r', i, tmp);
-		  OUTSTRING(tmp);			
+		  OUTSTRING(tmp, strlen(tmp));			
 		  fmt++;
 		  break;
 		}
 	      case 's':			/* string */
 		{ char *s;
+		  unsigned int len;
 
 		  NEED_ARG;
-		  if ( !PL_get_chars(argv, &s, CVT_LIST|CVT_STRING) )
+		  if ( !PL_get_nchars(argv, &len, &s, CVT_LIST|CVT_STRING) )
 		    FMT_ERROR("illegal argument to ~s");
-		  OUTSTRING(s);
+		  OUTSTRING(s, len);
 		  SHIFT;
 		  fmt++;
 		  break;
@@ -389,7 +391,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		    tellString(&str, &bufsize);
 		    (*f)(argv);
 		    toldString();
-		    OUTSTRING(str);
+		    OUTSTRING(str, bufsize);
 		    if ( str != buf )
 		      free(str);
 		  } else
@@ -408,7 +410,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		      tellString(&str, &bufsize);
 		      (*f)(argv);
 		      toldString();
-		      OUTSTRING(str);
+		      OUTSTRING(str, bufsize);
 		      if ( str != buf )
 			free(str);
 		    }
@@ -431,7 +433,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		    tellString(&str, &bufsize);
 		    pl_write_term(argv, argv+1);
 		    toldString();
-		    OUTSTRING(str);
+		    OUTSTRING(str, bufsize);
 		    if ( str != buf )
 		      free(str);
 		  } else
@@ -450,7 +452,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		      tellString(&str, &bufsize);
 		      pl_write_term(argv, argv+1);
 		      toldString();
-		      OUTSTRING(str);
+		      OUTSTRING(str, bufsize);
 		      if ( str != buf )
 			free(str);
 		    }
