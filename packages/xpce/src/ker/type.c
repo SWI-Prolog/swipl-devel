@@ -210,7 +210,14 @@ realiseClassType(Type t)
 }
 
 
-/* t1 is specialised regarding to t2 */
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+specialisedType()
+
+	t1 is more specialised than t2.  E.g 
+
+	specialisedType(box, graphical) --> true
+	specialisedType(0..4, int)      --> true
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 status
 specialisedType(Type t1, Type t2)
@@ -1610,9 +1617,14 @@ from the host directly back into the   host because the method called is
 defined in the host-language.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-/* t is included in super.  I.e. any object satisfying type t will also
-   satisfy type super
-*/
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+pceIncludesType(t, super)
+
+	super is more specialised than t.  E.g 
+
+	pceIncludesType(graphical, box) --> true
+	pceIncludesType(int, 0..4)      --> true
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
 pceIncludesType(PceType t, PceType super)

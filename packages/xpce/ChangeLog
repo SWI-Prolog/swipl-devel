@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* MODIFIED: termToObject() translates Prolog floats that happen to be
+  integer into an XPCE real object.  Petter Egesund.
+
+
 VERSION 6.0.11, distributed with SWI-Prolog 5.0.11
 ==================================================
 

@@ -148,6 +148,7 @@ static void		put_trace_info(term_t id, prolog_call_data *pm);
 static Module		pceContextModule();
 static void		makeClassProlog();
 static Term		getTermHandle(PceObject hd);
+static PceType		cToPceType(const char *name);
 
 
 		 /*******************************
@@ -261,8 +262,11 @@ static PceObject	DEFAULT;	/* @default */
 static PceObject	PROLOG;		/* @prolog */
 static PceClass		ClassBinding;	/* class(:=) */
 static PceClass		ClassProlog;	/* class(prolog_term, host_data) */
+static PceType		ClassType;	/* class(type) */
 static PceType		TypeProlog;	/* prolog_term|atomic */
 static PceType		TypePrologTerm;	/* type representing above */
+static PceType		TypeInt;	/* Int type */
+static PceType		TypeReal;	/* real type */
 static PceName		NAME_functor;	/* "functor" */
 static PceName		NAME_Arity;	/* "_arity" */
 static PceName		NAME_Arg;	/* "_arg" */
@@ -287,10 +291,27 @@ initPceConstants()
   DEFAULT	  = cToPceAssoc("default");
   PROLOG	  = cToPceAssoc("host");
   
-  ClassBinding    = cToPceAssoc(":=_class"); /* not so nice! */
+  ClassBinding    = cToPceAssoc(":=_class");	/* not so nice! */
+  ClassType       = cToPceAssoc("type_class"); 	/* not so nice! */
   assert(ClassBinding);
 
+  TypeInt	  = cToPceType("int");
+  TypeReal	  = cToPceType("real");
+
   makeClassProlog();
+}
+
+
+static PceType
+cToPceType(const char *name)
+{ PceObject av[1];
+  PceType t;
+
+  av[0] = cToPceName(name);
+  t = pceNew(NIL, ClassType, 1, av);
+  assert(t);
+
+  return t;
 }
 
 
@@ -1476,9 +1497,10 @@ termToObject(Term t, PceType type, Atom assoc, int new)
   } else				/* not a term */
   { double f;
     long r;
-
     
-    if ( GetInteger(t, &r) )
+					/* PL_get_integer() translates */
+					/* `whole' floats to integers */
+    if ( PL_is_integer(t) && GetInteger(t, &r) )
       return cToPceInteger(r);
 
 #ifdef O_STRING
