@@ -4,6 +4,11 @@
 Version 2.7.4
 =============
 
+  * FIXED: handling of floating-point conversion to integers on machines
+    raising SIGPFE on l = (long)f when f is out of the long range.  Thanks
+    to Sven.Hader@Informatik.TU-Chemnitz.DE (Sven Hader).  The problem
+    appears at least on Linux running on a Pentium.
+
   * MODIFIED: Added -F file flag to select from multiple initialisation
     scripts, just like -f file.  Old versions only loaded plrc.   The
     new version by default loads <program>.rc.  -F none stops loading
