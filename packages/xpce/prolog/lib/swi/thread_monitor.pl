@@ -35,6 +35,7 @@
 :- use_module(library(pce)).
 :- use_module(library(toolbar)).
 :- use_module(library(pce_report)).
+:- use_module(library(persistent_frame)).
 
 :- pce_autoload(plotter,      library('plot/plotter')).
 :- pce_autoload(partof_hyper, library(hyper)).
@@ -189,6 +190,10 @@ initialise(TB) :->
 	send(TB, style, exception, style(icon := resource(exception))),
 	send(TB, style, exited, style(icon := resource(exited))),
 	send(TB, select_message, message(TB, details, @arg1)),
+	send(TB?image, recogniser,
+	     handler(ms_right_down,
+		     and(message(TB, selection, ?(TB, dict_item, @event)),
+			 new(or)))),
 	send(TB, popup, new(P, popup)),
 	new(IsRunning, @arg1?style == running),
 	send_list(P, append,
@@ -196,16 +201,19 @@ initialise(TB) :->
 			      message(@arg1, join),
 			      condition := @arg1?style \== running),
 		    gap,
-		    menu_item(graphical_debugger,
-			      message(@arg1, gtrace),
+		    menu_item(attach_console,
+			      message(@arg1, signal, attach_console),
 			      condition := IsRunning),
 		    menu_item(trace,
 			      message(@arg1, trace),
 			      condition := IsRunning),
-		    menu_item(debug,
+		    menu_item(graphical_debugger,
+			      message(@arg1, gtrace),
+			      condition := IsRunning),
+		    menu_item(debug_mode,
 			      message(@arg1, signal, debug),
 			      condition := IsRunning),
-		    menu_item(nodebug,
+		    menu_item(nodebug_mode,
 			      message(@arg1, signal, nodebug),
 			      condition := IsRunning),
 		    gap,
@@ -485,7 +493,7 @@ graphs(Win, Graphs:chain) :->
 :- pce_end_class(thread_window).
 
 
-:- pce_begin_class(prolog_thread_monitor, frame,
+:- pce_begin_class(prolog_thread_monitor, persistent_frame,
 		   "Monitor thread-activity").
 
 variable(timer,	  	  timer*,     get, "Update timer").

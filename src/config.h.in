@@ -277,6 +277,9 @@
 /* Define if you have the `dld' library (-ldld). */
 #undef HAVE_LIBDLD
 
+/* Define if you have the `exc' library (-lexc). */
+#undef HAVE_LIBEXC
+
 /* Define if you have the `m' library (-lm). */
 #undef HAVE_LIBM
 
@@ -327,6 +330,9 @@
 
 /* Define if you have the `popen' function. */
 #undef HAVE_POPEN
+
+/* Define if you have the `pthread_kill' function. */
+#undef HAVE_PTHREAD_KILL
 
 /* Define if you have the `pthread_mutexattr_setkind_np' function. */
 #undef HAVE_PTHREAD_MUTEXATTR_SETKIND_NP

@@ -214,6 +214,7 @@ static void	set_system_thread_id(PL_thread_info_t *info);
 static int	get_message_queue(term_t t, message_queue **queue,
 				  int create);
 static void	cleanupLocalDefinitions(PL_local_data_t *ld);
+static int	unify_thread(term_t id, PL_thread_info_t *info);
 
 #ifdef WIN32
 static void	attachThreadWindow(PL_local_data_t *ld);
@@ -833,7 +834,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 		    ERR_SYSCALL, "pthread_create");
   }
 
-  return PL_unify_integer(id, info->pl_tid);
+  return unify_thread(id, info);
 }
 
 
@@ -1012,6 +1013,31 @@ pl_thread_kill(term_t t, term_t sig)
 #endif
 }
 
+
+static
+PRED_IMPL("thread_detach", 1, thread_detach, 0)
+{ PL_thread_info_t *info;
+
+  LOCK();
+  if ( !get_thread(A1, &info, TRUE) )
+  { UNLOCK();
+    fail;
+  }
+
+  if ( !info->detached )
+  { int rc;
+
+    if ( (rc=pthread_detach(info->tid)) )
+    { assert(rc == ESRCH);
+
+      free_thread_info(info);
+    } else
+      info->detached = TRUE;
+  }
+
+  UNLOCK();
+  succeed;
+}
 
 
 word
@@ -2770,6 +2796,7 @@ pl_with_mutex(term_t mutex, term_t goal)
 
 BeginPredDefs(thread)
 #ifdef O_PLMT
+  PRED_DEF("thread_detach", 1, thread_detach, 0)
   PRED_DEF("thread_statistics", 3, thread_statistics, 0)
   PRED_DEF("message_queue_create", 1, message_queue_create, 0)
   PRED_DEF("thread_get_message", 2, thread_get_message, 0)

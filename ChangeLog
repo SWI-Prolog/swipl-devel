@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: thread_detach/1.
+
+  * MODIFIED: thread_create/3 returns alias-name for id if an alias is
+    specified.
+
   * FIXED: Make Unix I/O restart after an interrupt.
 
   * ADDED: backquoted_string(Bool) option to read_term and write_term

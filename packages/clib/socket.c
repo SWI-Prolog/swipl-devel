@@ -1276,16 +1276,24 @@ tcp_close_output(void *handle)
   plsocket *s = lookupSocket(socket);
 
   DEBUG(Sdprintf("tcp_close_output(%d)\n", socket));
-  s->output = NULL;
-  s->flags &= ~SOCK_OUTSTREAM;
-  if ( shutdown(socket, SD_SEND) == SOCKET_ERROR )
-    Sdprintf("shutdown(%d, SD_SEND) failed: %s\n",
-	     socket,
+  if ( s->output )
+  { s->output = NULL;
+    s->flags &= ~SOCK_OUTSTREAM;
+    if ( shutdown(socket, SD_SEND) == SOCKET_ERROR )
+    {
+#ifdef O_DEBUG
+      if ( debugging )
+      { char *msg;
 #ifdef WIN32
-	     WinSockError(WSAGetLastError()));
+	msg = WinSockError(WSAGetLastError());
 #else
-	     strerror(errno));
+        msg = strerror(errno);
 #endif
+        Sdprintf("shutdown(%d, SD_SEND) failed: %s\n", socket, msg);
+      }
+#endif
+    }
+  }
 
   if ( !(s->flags & (SOCK_INSTREAM|SOCK_OUTSTREAM)) )
     return freeSocket(socket);

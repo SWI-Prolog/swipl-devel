@@ -259,6 +259,7 @@ AC_TRY_LINK([
 	AC_CHECK_FUNCS(sema_init)
   fi
   AC_CHECK_FUNCS(pthread_mutexattr_setkind_np pthread_mutexattr_settype)
+  AC_CHECK_FUNCS(pthread_kill)
   AC_MSG_CHECKING("wether mutex support recursive locking")
   echo '#include "confdefs.h"' > conftest.c
   cat $srcdir/test/recmutex.c >> conftest.c
