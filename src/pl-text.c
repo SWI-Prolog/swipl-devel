@@ -75,7 +75,15 @@ PL_save_text(PL_chars_t *text, int flags)
     memcpy(new, text->text.t, bl);
     text->text.t = new;
     text->storage = PL_CHARS_MALLOC;
-  }  
+  } else if ( text->storage == PL_CHARS_LOCAL )
+  { Buffer b = findBuffer(BUF_RING);
+    int bl = bufsize_text(text, text->length+1);
+
+    addMultipleBuffer(b, text->text.t, bl, char);
+    text->text.t = baseBuffer(b, char);
+    
+    text->storage = PL_CHARS_RING;
+  }
 }
 
 
