@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#129: determinism in bagof/setof.  Holger Kanwischer.
+
   * FIXED: Bug#130: writeq('/*').  Holger Kanwischer.
 
   * FIXED: win_shell/2.  Added win_shell/3.  Dmitry.
