@@ -36,10 +36,6 @@
 #endif
 #endif
 
-#define ALLOC_MAGIC 0xbf
-#define ALLOC_FREE_MAGIC 0x5f
-#define ALLOC_VIRGIN_MAGIC 0x7f
-
 #define LOCK()   PL_LOCK(L_ALLOC)
 #define UNLOCK() PL_UNLOCK(L_ALLOC)
 #undef LD
@@ -118,6 +114,49 @@ static void  freeAllBigHeaps(void);
 			   
 
 		 /*******************************
+		 *	DEBUG ENCAPSULATION	*
+		 *******************************/
+
+#if ALLOC_DEBUG
+
+#define INUSE_MAGIC 0x42424242
+#define ALLOC_FREE_MAGIC 0x5f
+#define ALLOC_MAGIC 0xbf
+#define ALLOC_VIRGIN_MAGIC 0x7f
+
+void core_freeHeap__LD(void *mem, size_t n ARG_LD);
+void *core_allocHeap__LD(size_t n ARG_LD);
+
+void
+freeHeap__LD(void *mem, size_t n ARG_LD)
+{ long *p = mem;
+
+  assert(p[-1] == n);
+  assert(p[-2] == INUSE_MAGIC);
+  memset(mem, ALLOC_FREE_MAGIC, n);
+
+  core_freeHeap__LD(p-3, n+3*sizeof(long) PASS_LD);
+}
+
+
+void *
+allocHeap__LD(size_t n ARG_LD)
+{ long *p = core_allocHeap__LD(n+3*sizeof(long) PASS_LD);
+
+  p += 3;
+  p[-1] = n;
+  p[-2] = INUSE_MAGIC;
+  memset(p, ALLOC_MAGIC, n);
+  
+  return p;
+}
+
+#define freeHeap__LD core_freeHeap__LD
+#define allocHeap__LD core_allocHeap__LD
+
+#endif /*ALLOC_DEBUG*/
+
+		 /*******************************
 		 *	       FREE		*
 		 *******************************/
 
@@ -141,10 +180,6 @@ freeHeap__LD(void *mem, size_t n ARG_LD)
     return;
   n = ALLOCROUND(n);
   
-#if ALLOC_DEBUG
-  memset((char *) mem, ALLOC_FREE_MAGIC, n);
-#endif
-
   if ( n <= ALLOCFAST )
   {
 #ifdef O_PLMT
@@ -183,10 +218,7 @@ leftoverToChains(AllocPool pool)
   { int m = pool->free/ALIGN_SIZE;
     Chunk ch = (Chunk)pool->space;
 
-#if ALLOC_DEBUG
     assert(m <= ALLOCFAST/ALIGN_SIZE);
-    memset(ch, ALLOC_FREE_MAGIC, pool->free);
-#endif
 
     ch->next = pool->free_chains[m];
     pool->free_chains[m] = ch;
@@ -202,16 +234,6 @@ allocate(AllocPool pool, size_t n)
 
   if ( n <= pool->free )
   { p = pool->space;
-#if ALLOC_DEBUG
-    { int i;
-      char *s = p;
-
-      for(i=0; i<(int)n; i++)
-	assert(s[i] == ALLOC_VIRGIN_MAGIC);
-
-      memset(p, ALLOC_MAGIC, n);
-    }
-#endif
     pool->space += n;
     pool->free -= n;
     pool->allocated += n;
@@ -237,9 +259,6 @@ allocate(AllocPool pool, size_t n)
 	  pool->free_chains[m] = c;
 	}
 
-#ifdef ALLOC_DEBUG
-	memset(ch, ALLOC_MAGIC, n);
-#endif
 	return ch;
       }
     }
@@ -252,11 +271,6 @@ allocate(AllocPool pool, size_t n)
   pool->space = p + n;
   pool->free  = ALLOCSIZE - n;
   pool->allocated += n;
-
-#if ALLOC_DEBUG
-  memset(pool->space, ALLOC_VIRGIN_MAGIC, pool->free);
-  memset(p, ALLOC_MAGIC, n);
-#endif
 
   return p;
 }
@@ -273,17 +287,6 @@ allocFromPool(AllocPool pool, size_t m)
   if ( (f = pool->free_chains[m]) )
   { pool->free_chains[m] = f->next;
     DEBUG(9, Sdprintf("(r) %p\n", f));
-#if ALLOC_DEBUG
-    { int i;
-      char *s = (char *) f;
-      int n = m * ALIGN_SIZE;
-
-      for(i=sizeof(struct chunk); i<(int)n; i++)
-	assert(s[i] == ALLOC_FREE_MAGIC);
-
-      memset(f, ALLOC_MAGIC, n);
-    }
-#endif
     pool->allocated += m*ALIGN_SIZE;
 
     return f;
@@ -328,10 +331,6 @@ allocHeap__LD(size_t n ARG_LD)
     GD->statistics.heap += n;
     UNLOCK();
   }
-
-#if ALLOC_DEBUG
-  memset((char *)mem, ALLOC_MAGIC, n);
-#endif
 
   return mem;
 }
@@ -442,10 +441,6 @@ allocBigHeap(size_t size)
     SetHTop((char *)h + size);
   }
 
-#if ALLOC_DEBUG
-  memset(h, ALLOC_MAGIC, size);
-#endif
-
   return (void *)h;
 }
 
@@ -476,6 +471,11 @@ freeAllBigHeaps(void)
   }
   big_heaps = NULL;
 }
+
+#if ALLOC_DEBUG
+#undef freeHeap__LD
+#undef allocHeap__LD
+#endif /*ALLOC_DEBUG*/
 
 #else /*O_MYALLOC*/
 
