@@ -129,8 +129,9 @@ Below is an informal description of the format of a `.qlf' file:
 		            {<statement>}
 			    'X'
 <flags>		::=	<num>				% Bitwise or of PRED_*
-<clause>	::=	'C' <line_no> <# var>
-			    <#n subclause> <#codes> <codes>
+<clause>	::=	'C' <#codes>
+			    <line_no> <# var>
+			    <#n subclause> <codes>
 		      | 'X' 				% end of list
 <XR>		::=	XR_REF     <num>		% XR id from table
 			XR_ATOM    <len><chars>		% atom
@@ -167,8 +168,8 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOADVERSION 36			/* load all versions later >= X */
-#define VERSION 36			/* save version number */
+#define LOADVERSION 37			/* load all versions later >= X */
+#define VERSION 37			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF     0			/* reference to previous */
@@ -861,9 +862,11 @@ loadPredicate(IOSTREAM *fd, int skip)
       }
       case 'C':
       { Code bp, ep;
+	int ncodes = getNum(fd);
 
 	DEBUG(3, Sdprintf("."));
-	clause = (Clause) allocHeap(sizeof(struct clause));
+	clause = (Clause) allocHeap(sizeofClause(ncodes));
+	clause->code_size = (unsigned short) ncodes;
 	clause->line_no = (unsigned short) getNum(fd);
 	if ( qlf_saved_version < 32 )
 	  clause->source_no = (currentSource ? currentSource->index : 0);
@@ -874,17 +877,15 @@ loadPredicate(IOSTREAM *fd, int skip)
 	  clause->source_no = sno;
 	}
 	clearFlags(clause);
-	clause->prolog_vars = (short) getNum(fd);
-	clause->variables = (short) getNum(fd);
+	clause->prolog_vars = (unsigned short) getNum(fd);
+	clause->variables   = (unsigned short) getNum(fd);
 #ifdef O_SHIFT_STACKS
 	clause->marks = clause->variables - clause->prolog_vars;
 #endif
 	if ( getNum(fd) == 0 )		/* 0: fact */
 	  set(clause, UNIT_CLAUSE);
 	clause->procedure = proc;
-	clause->code_size = (short) getNum(fd);
 	GD->statistics.codes += clause->code_size;
-	clause->codes = (Code) allocHeap(clause->code_size * sizeof(code));
 
 	bp = clause->codes;
 	ep = bp + clause->code_size;
@@ -1462,12 +1463,12 @@ saveWicClause(Clause clause, IOSTREAM *fd)
 { Code bp, ep;
 
   Sputc('C', fd);
+  putNum(clause->code_size, fd);
   putNum(clause->line_no, fd);
   saveXRSourceFile(indexToSourceFile(clause->source_no), fd);
   putNum(clause->prolog_vars, fd);
   putNum(clause->variables, fd);
   putNum(true(clause, UNIT_CLAUSE) ? 0 : 1, fd);
-  putNum(clause->code_size, fd);
 
   bp = clause->codes;
   ep = bp + clause->code_size;

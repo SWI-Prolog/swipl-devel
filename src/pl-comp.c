@@ -722,7 +722,7 @@ compileClause(Word head, Word body, Procedure proc, Module module)
     ci.subclausearg = 0;
     ci.arity        = proc->definition->functor->arity;
     ci.argvars      = 0;
-    clause          = allocHeap(sizeof(struct clause));
+    clause          = &local_clause;
     clause->flags   = 0;
   } else
   { Word g = varFrameP(lTop, VAROFFSET(1));
@@ -823,31 +823,35 @@ Finish up the clause.
   clause->code_size = entriesBuffer(&ci.codes, code);
 
   if ( head )
-  { clause->codes = (Code) allocHeap(sizeOfBuffer(&ci.codes));
+  { int size  = sizeofClause(clause->code_size);
+    Clause cl = allocHeap(size);
+
+    memcpy(cl,       clause, sizeofClause(0));
+    clause = cl;
 
     GD->statistics.codes += clause->code_size;
   } else
-  { int size = sizeOfBuffer(&ci.codes);
-    LocalFrame fr = lTop;
+  { LocalFrame fr = lTop;
     Word p0 = argFrameP(fr, clause->variables);
     Word p = p0;
+    Clause cl;
     ClauseRef cref;
 
     DEBUG(1, Sdprintf("%d argvars; %d prolog vars; %d vars",
 		      ci.argvars, clause->prolog_vars, clause->variables));
     assert(ci.argvars == ci.argvar);
-    requireStack(local, (clause->variables * sizeof(word) +
-			 sizeof(*clause) + sizeof(*cref)));
+    requireStack(local,
+		 clause->variables*sizeof(word) +
+		 sizeofClause(clause->code_size) +
+		 sizeof(*cref));
 
-    clause->codes = (Code) p;
-    p = addPointer(p, size);
-    clause = (Clause)p;
-    memcpy(clause, &local_clause, sizeof(*clause));
-    p = addPointer(p, sizeof(*clause));
     cref = (ClauseRef)p;
     p = addPointer(p, sizeof(*cref));
     cref->next = NULL;
-    cref->clause = clause;
+    cref->clause = cl = (Clause)p;
+    memcpy(cl, clause, sizeofClause(0));
+    clause = cl;
+    p = addPointer(p, sizeofClause(cl->code_size));
     clause->variables += p-p0;
 
     fr->clause = cref;

@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ENHANCED: allocate clause as one chunck, reducing allocations and
+    memory-requirements and improving locality.
+
   * ENHANCED: Multi-threaded performance:
 
 	- No longer use reference-counts on static code but use clause

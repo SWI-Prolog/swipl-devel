@@ -927,8 +927,7 @@ freeClause(Clause c)
 #ifdef O_ATOMGC
   unregisterAtomsClause(c);
 #endif
-  freeHeap(c->codes, sizeof(code) * c->code_size);
-  freeHeap(c, sizeof(struct clause));
+  freeHeap(c, sizeofClause(c->code_size));
 }
 
 

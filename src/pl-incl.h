@@ -1134,9 +1134,10 @@ struct functorDef
 #endif
 
 
+#define sizeofClause(n) ((int)&((Clause)NULL)->codes[n])
+
 struct clause
 { Procedure	procedure;		/* procedure we belong to */
-  Code		codes;			/* VM codes of clause */
   struct index	index;			/* index key of clause */
 #ifdef O_LOGICAL_UPDATE
   struct
@@ -1157,6 +1158,7 @@ struct clause
 		/* UNIT_CLAUSE     Clause has no body */
 		/* HAS_BREAKPOINTS Break-instructions in the clause */
 		/* GOAL_CLAUSE	   Temporary 'islocal' clause (no head) */
+  code		codes[1];		/* VM codes of clause */
 };
 
 struct clause_ref
