@@ -166,6 +166,8 @@ Section "Constraint Handling Rules"
   File pl\library\chr\chr_hashtable_store.pl
   File pl\library\chr\clean_code.pl
   File pl\library\chr\find.pl
+  File pl\library\chr\listmap.pl
+  File pl\library\chr\guard_entailment.pl
   File pl\library\chr\README.TXT
   SetOutPath $INSTDIR\doc\packages\examples
   File /r pl\doc\packages\examples\chr
