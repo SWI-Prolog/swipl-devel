@@ -1343,7 +1343,7 @@ expandVars(const char *pattern, char *expanded)
     }	  
 #else
     { if ( fileerrors )
-	PL_error(NULL, 0, NULL, ERR_NOTIMPLEMENTED, PL_new_atom("user_info"));
+	PL_error(NULL, 0, NULL, ERR_NOT_IMPLEMENTED_FEATURE, "user_info");
 
       fail;
     }

@@ -114,7 +114,7 @@ isUserSystemPredicate(Definition def)
 
 word
 notImplemented(char *name, int arity)
-{ return warning("%s/%d is not implemented in this version", name, arity);
+{ return PL_error(NULL, 0, NULL, ERR_NOT_IMPLEMENTED_PROC, name, arity);
 }
 
 

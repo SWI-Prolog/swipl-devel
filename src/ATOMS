@@ -10,7 +10,6 @@
 # awk you can propagate the changes by hand, but be careful!
 
 
-
 A abort			"abort"
 A aborted		"$aborted"
 A abs			"abs"
@@ -140,6 +139,8 @@ A directory		"directory"
 A discontiguous		"discontiguous"
 A div			"//"
 A divide		"/"
+A dload			"$load"
+A dmessage_queue	"$message_queue"
 A dmutex		"$mutex"
 A domain_error		"domain_error"
 A dot			"."
@@ -236,6 +237,7 @@ A imported		"imported"
 A index			"index"
 A indexed		"indexed"
 A inferences		"inferences"
+A infinite		"infinite"
 A informational		"informational"
 A init_file    		"init_file"
 A initialization	"initialization"
@@ -250,6 +252,7 @@ A ioctl			"ioctl"
 A is			"is"
 A iso			"iso"
 A isovar		"$VAR"
+A join			"join"
 A jump			"jump"
 A kernel		"kernel"
 A key			"key"
@@ -287,6 +290,8 @@ A max_variable_length	"max_variable_length"
 A memory		"memory"
 A message		"message"
 A message_lines		"message_lines"
+A message_queue		"message_queue"
+A meta_predicate	"meta_predicate"
 A min			"min"
 A min_free		"min_free"
 A minus			"-"
@@ -308,7 +313,7 @@ A none			"none"
 A not			"not"
 A not_empty_list	"not_empty_list"
 A not_equals		"\\="
-A not_implemented_error "not_implemented_error"
+A not_implemented	"not_implemented"
 A not_less_than_zero	"not_less_than_zero"
 A not_provable		"\\+"
 A not_strickt_equals	"\\=="
@@ -414,8 +419,8 @@ A stacks		"stacks"
 A stand_alone		"stand_alone"
 A star			"*"
 A stat			"stat"
-A statistics		"statistics"
 A static_procedure	"static_procedure"
+A statistics		"statistics"
 A stderr		"stderr"
 A stream		"stream"
 A stream_option		"stream_option"
@@ -442,6 +447,8 @@ A terminal_capability	"terminal_capability"
 A text			"text"
 A thread		"thread"
 A thread_cputime	"thread_cputime"
+A thread_local		"thread_local"
+A thread_local_procedure "thread_local_procedure"
 A thread_option		"thread_option"
 A threads		"threads"
 A threads_created	"threads_created"
@@ -449,6 +456,8 @@ A throw			"throw"
 A tilde			"~"
 A time			"$time"
 A time_stamp		"time_stamp"
+A timeout		"timeout"
+A timeout_error		"timeout_error"
 A to_lower		"to_lower"
 A to_upper		"to_upper"
 A top			"top"
@@ -511,18 +520,9 @@ A yf			"yf"
 A yfx			"yfx"
 A yfy			"yfy"
 A zero_divisor		"zero_divisor"
-A infinite		"infinite"
-A timeout		"timeout"
-A timeout_error		"timeout_error"
-A join			"join"
-A message_queue		"message_queue"
-A dmessage_queue	"$message_queue"
-A thread_local		"thread_local"
-A thread_local_procedure "thread_local_procedure"
-A dload			"$load"
-A meta_predicate	"meta_predicate"
 
 F abs			1
+F access		1
 F acos			1
 F alias			1
 F and			2
@@ -549,6 +549,7 @@ F catch			3
 F ceil			1
 F ceiling		1
 F close_on_abort	1
+F colon			2
 F comma			2
 F context		2
 F cos			1
@@ -565,6 +566,7 @@ F dforeign_registered   2
 F dgarbage_collect 	1
 F div			2
 F divide		2
+F dmessage_queue	1
 F dmutex		1
 F domain_error		2
 F dot			2
@@ -616,8 +618,7 @@ F minus			1
 F minus			2
 F mod			2
 F mode			1
-F colon			2
-F not_implemented_error	1
+F not_implemented	2
 F not_provable		1
 F obtain		2
 F or			2
@@ -666,6 +667,7 @@ F tan			1
 F term_expansion	2
 F term_position		5
 F time			2
+F timeout_error		2
 F trace			1
 F traceinterc		3
 F tracing		1
@@ -678,6 +680,3 @@ F var			1
 F warning		3
 F xor			2
 F xpceref		1
-F access		1
-F timeout_error		2
-F dmessage_queue	1

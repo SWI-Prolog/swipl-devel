@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: features not available in some port are not reported with the
+    exception not_implemented(Category, Description).  Lourens van der Meij.
+
   * FIXED: Bug #25: compilation on Solaris 8
 
   * ADDED: op(1150, fx, meta_predicate) to avoid syntax errors if library

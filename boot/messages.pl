@@ -195,7 +195,8 @@ swi_message(failure_error(Goal)) -->
 	[ 'Goal failed: ~p'-[Goal] ].
 swi_message(timeout_error(Op, Stream)) -->
 	[ 'Timeout in ~w from ~p'-[Op, Stream] ].
-
+swi_message(not_implemented(Type, What)) -->
+	[ '~w `~p\' is not implemented in this version'-[Type, What] ].
 
 swi_context(X) -->
 	{ var(X)

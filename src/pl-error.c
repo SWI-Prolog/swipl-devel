@@ -170,6 +170,18 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
 		    PL_TERM, pred);
       break;
     }
+    case ERR_NOT_IMPLEMENTED_PROC:
+    { const char *name = va_arg(args, const char *);
+      int arity = va_arg(args, int);
+
+      PL_unify_term(formal,
+		    PL_FUNCTOR, FUNCTOR_not_implemented2,
+		      PL_ATOM, ATOM_procedure,
+		      PL_FUNCTOR, FUNCTOR_divide2,
+		        PL_CHARS, name,
+		        PL_INTEGER, arity);
+      break;
+    }
     case ERR_FAILED:
     { term_t goal = va_arg(args, term_t);
 
@@ -305,12 +317,13 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
 		      PL_CHARS, err);
       break;
     }
-    case ERR_NOTIMPLEMENTED:		/* non-ISO */
-    { atom_t what = va_arg(args, atom_t);
+    case ERR_NOT_IMPLEMENTED_FEATURE:		/* non-ISO */
+    { const char *what = va_arg(args, const char *);
 
       PL_unify_term(formal,
-			PL_FUNCTOR, FUNCTOR_not_implemented_error1,
-			  PL_ATOM, what);
+			PL_FUNCTOR, FUNCTOR_not_implemented2,
+		          PL_ATOM, ATOM_feature,
+			  PL_CHARS, what);
       break;
     }
     case ERR_RESOURCE:
