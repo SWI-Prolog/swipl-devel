@@ -20,7 +20,7 @@
 %           These routines are provided as is, with no guarantees.
 %           They have undergone minimal testing.
 
- :- module(oset, [  oset_is/1,
+:- module(oset, [  oset_is/1,
                     oset_union/3,
                     oset_int/3,
                     oset_diff/3,

@@ -14,10 +14,11 @@ interactive application simply by starting the program:
 
 \begin{code}
 machine% pl
-% /staff/jan/.plrc compiled 0.00 sec, 1,260 bytes
-Welcome to SWI-Prolog (Version 4.0.3)
-Copyright (c) 1990-2000 University of Amsterdam. 
-Copy policy: GPL-2 (see www.gnu.org)
+Welcome to SWI-Prolog (Version 5.0.0)
+Copyright (c) 1990-2002 University of Amsterdam.
+SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software,
+and you are welcome to redistribute it under certain conditions.
+Please visit http://www.swi-prolog.org for details.
 
 For help, use ?- help(Topic). or ?- apropos(Word).
 

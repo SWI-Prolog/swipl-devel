@@ -94,6 +94,7 @@ Examples:
 	    readln/2,			% -Line, +EOL
 	    readln/5			% See above
 	  ]).
+:- license(swipl).
 
 readln(Read) :-			% the default is read up to EOL
 	rl_readln(Line, LastCh, [10], "_0123456789", uppercase),

@@ -1,6 +1,6 @@
 		    SWI-Prolog Distribution Directory
 
-** Last update: Feb  6 2001 (Version 4.0.0)
+** Last update: Feb  1 2002 (Version 5.0.0)
 
 AUTHOR
 ======
@@ -19,7 +19,7 @@ Please find the up-to-date information on  SWI-Prolog at the link below.
 You will find the latest sources (also   accessible through CVS), a FAQ,
 mailinglist archive, various additional packages, etc.
 
-	http://www.swi.psy.uva.nl/projects/SWI-Prolog/
+	http://www.swi-prolog.org
 
 
 DOCUMENTATION
@@ -27,7 +27,7 @@ DOCUMENTATION
 
 Documentation is available  on-line  using   the  help/1  and  apropos/1
 commands. HTML and PDF versions of  the   manual  are available from the
-SWI-Prolog  home  page.  The  add-on  packages  are  documented  in  the
+SWI-Prolog download page. The add-on  packages   are  documented  in the
 doc/packages directory of the installed system.
 
 
@@ -58,7 +58,10 @@ Unix
 
 SWI-Prolog configuration under  Unix  is   driven  by  the  GNU-autoconf
 package. Please check INSTALL for the   generic installation options and
-INSTALL.notes for some SWI-Prolog specific things.
+INSTALL.notes  for  some  SWI-Prolog  specific  things.  An  interactive
+web-page for discussing portability issues is at
+
+	http://gollem.swi.psy.uva.nl/twiki/pl/bin/view/Porting/WebHome
 
 SWI-Prolog should compile using any Unix-type   system with 32 or larger
 (64) word-length and an ANSI-compliant C-compiler.
@@ -75,6 +78,12 @@ management.
 	./configure --disable-mapped-stacks
 
 Run `make clean && make' to recompile after reconfiguration.
+
+Just getting the Prolog part of the  system compiled is generally a good
+test that the system functions properly.   A  more exhaustive test-suite
+can be activated using
+
+	make check
 
 After installing the basic system (SWI-Prolog/lite)  you can install the
 add-ons. To do this, go to the  packages directory. Edit in Makefile the
@@ -102,7 +111,7 @@ Otherwise, get yourself the following tools and resources
 
 	* Windows-NT or Windows-2000 (Makefiles require CMD.EXE)
 	* MSVC 5.0 or later
-	* JPEG and XPM libraries.  You find precompiled versions in
+	* MIME, JPEG and XPM libraries. You find precompiled versions in
 
 		ftp://ftp.swi.psy.uva.nl/pub/Windows/libs
 
@@ -156,9 +165,8 @@ flavours of Prolog explicitly handled.''
 MODIFYING SWI-Prolog
 ====================
 
-You are free to modify SWI-Prolog under   the  GPL-2. As we also provide
-licenses for use with proprietary software,   your  changes will only be
-integrated into the base system if you grant us the copyright.
+You are free to modify the  SWI-Prolog   kernel  under  the LGPL and the
+Prolog sources under the GPL.
 
 
 CONTRIBUTING
@@ -173,7 +181,21 @@ the top of  this  file).  If   you  write  reusable  libraries, consider
 providing them to the SWI-Prolog user community   as  a package (see the
 SWI-Prolog home page).
 
-Finally, if you use SWI-Prolog for  commercial purposes, consider buying
-a commercial license. It allows  you  to   use  the  system  without the
-restrictions imposed by the GPL and helps   us to find the resources for
-maintaining and improving SWI-Prolog.
+
+COMMERCIAL USAGE
+================
+
+SWI-Prolog licensing aims at a large  audience, combining ideas from the
+Free Software Foundation and the less  principal Open Source Initiative.
+The license aims at:
+
+    * Make SWI-Prolog itself and its libraries are `As free as possible'.
+    * Allow for easy integration of contributions.
+    * Free software can build on SWI-Prolog without limitations.
+    * Non-free (open or proprietary) software can be produced using
+      SWI-Prolog, although contributed pure GPL components cannot be
+      used.
+
+Please check www.swi-prolog.org for details on   commercial usage of the
+system as well as for SUPPORT and SPONSORING options.
+
