@@ -31,6 +31,7 @@
 
 :- module(pce_toc, []).
 :- use_module(library(pce)).
+:- use_module(library(pce_unclip)).
 :- require([ default/3
 	   , ignore/1
 	   ]).
@@ -533,20 +534,12 @@ event(TF, Ev:event) :->
 
 entered(TF, Val:bool) :->
 	(   Val == @on,
-	    get(TF, window, Window),
-	    get(Window, visible, Visible),
-	    get(TF, absolute_position, Window, point(X,Y)),
-	    get(TF, area, area(_,_,W,H)),
-	    (	send(Visible, inside, area(X,Y,W,H))
-	    ->	true
-	    ;	send(TF, show_invisible)
+	    (	send(TF, clipped_by_window)
+	    ->	send(@unclip_window, attach, TF)
+	    ;	true
 	    )
 	;   true
 	).
-
-show_invisible(TF) :->
-	"Show image in window because part is obscured"::
-	send(@toc_invisible_window, attach, TF).
 
 :- pce_group(drop).
 
@@ -651,70 +644,3 @@ son(TF, _Son:toc_node) :->
 	fail.
 
 :- pce_end_class.
-
-
-		 /*******************************
-		 *	     INVISIBLE		*
-		 *******************************/
-
-:- pce_global(@toc_invisible_window,
-	      new(toc_invisible_window)).
-
-:- pce_begin_class(toc_invisible_window, window).
-
-class_variable(background, colour, azure).
-
-initialise(W) :->
-	send_super(W, initialise),
-	get(W, frame, Fr),
-	send(Fr, kind, popup),
-	send(Fr?tile, border, 0).
-
-attach(W, To:graphical) :->
-	"Attach to graphical"::
-	send(W, delete_hypers, mirroring),
-	new(_, hyper(To, W, mirror, mirroring)),
-	send(W, update),
-	get(To, display_position, point(X,Y)),
-	Border = 1,
-	send(W, open, point(X-Border,Y-Border)),
-	send(W, expose),
-	send(W, grab_pointer, @on).
-
-update(W) :->
-	"Update for changed receiver"::
-	send(W, clear),
-	(   get(W, hypered, mirroring, Gr)
-	->  get(Gr, clone, Clone),
-	    get(Clone, size, Size),
-	    send(W, size, Size),
-	    send(Clone, set, 0, 0),
-	    send(W, display, Clone)
-	;   true
-	).
-
-
-detach(W) :->
-	"Detach and hide"::
-	(   get(W, hypered, mirroring, _)
-	->  send(W, grab_pointer, @off),
-	    send(W, delete_hypers, mirroring),
-	    send(W, clear),
-	    send(W, show, @off)
-	;   true
-	).
-
-event(W, Ev:event) :->
-	(   send(Ev, is_a, loc_move),
-	    \+ send(Ev, inside, W)
-	->  send(W, detach)
-	;   \+ send(Ev, is_a, area),
-	    get(W, hypered, mirroring, Gr),
-	    catch(send(Ev, post, Gr), E,
-		  (   print_message(error, E),
-		      send(W, detach)
-		  )),
-	    send(W, update)
-	).
-
-:- pce_end_class(toc_invisible_window).
