@@ -50,7 +50,7 @@ struct update_areaupdate_area819,27820
 #define OverlapArea(834,28114
 #define GLOBAL 843,28348
 
-h/interface.h,1419
+h/interface.h,1685
 #define PCE_VERSION 15,368
 #define OS_VERSION 19,435
 #define MACHINE 23,488
@@ -95,289 +95,299 @@ struct pceITFSymbolpceITFSymbol84,2060
 #define HOST_ONEXIT	164,4577
 #define PCE_DISPATCH_INPUT	201,5610
 #define PCE_DISPATCH_TIMEOUT	202,5641
+#define PCE_OPEN_MAX	224,6284
+#define PCE_RDONLY	234,6633
+#define	PCE_WRONLY	235,6656
+#define	PCE_RDWR	236,6679
+#define	PCE_APPEND	237,6732
+#define	PCE_TRUNC	238,6755
+#define PCE_SEEK_SET	240,6778
+#define PCE_SEEK_CUR	241,6801
+#define PCE_SEEK_END	242,6824
 
-h/kernel.h,8658
+h/kernel.h,8692
 #define PCE_INCLUDED29,486
 #define GLOBAL 32,523
 #define getdtablesize 44,780
 #define PCE_MAX_RECURSION	51,927
 #define VA_PCE_MAX_ARGS	52,989
-#define FWD_PCE_MAX_ARGS	53,1036
-#define SCAN_MAX_ARGS 54,1087
-#define PCE_MAX_INT	55,1146
-#define PCE_MIN_INT	56,1200
-#define LINESIZE	58,1241
-#define FORMATSIZE	59,1295
-#define BROWSER_LINE_WIDTH	60,1356
-#define SIGNAL_HANDLER_TYPE 67,1594
-#define SAVEMAGIC 74,1736
-#define SAVEVERSION 75,1774
-#define assert(83,1928
-#define assert(85,1965
-#define O_INLINE 99,2278
-#define O_CONST_FUNCTION 100,2297
-#define Promote(102,2331
-#define Promote(104,2363
-#define inline108,2412
-#define constf 112,2456
-#define constf114,2483
-#define forwards	117,2506
-#define LocalArray(120,2587
-#define LocalArray(122,2628
-#define ArgVector(125,2699
-#define CharBuf(126,2751
-#define NOTREACHED	129,2817
-#define unix 140,3088
-#define sun 144,3149
-#define StrTod(152,3284
-#define	CtoInt(159,3428
-#define	pp(160,3473
-#define get 161,3525
-#define send 162,3598
-#define toString	163,3649
-typedef unsigned long		ulong;ulong170,3822
-typedef unsigned short		ushort;ushort174,3879
-typedef int			status;status177,3919
-typedef void *			Any;Any178,3962
-typedef Any			Int;Int180,4009
-typedef Any			(*Func)Func181,4050
-typedef Any			(*GetFunc)GetFunc182,4104
-typedef status			(*SendFunc)SendFunc183,4163
-typedef void			(*VoidFunc)VoidFunc184,4227
-typedef void *			WsRef;WsRef186,4258
-typedef struct xref *		Xref;Xref187,4313
-typedef struct classdef        *ClassDef;ClassDef189,4368
-typedef struct dCell 	      **DelegateList;DelegateList190,4432
-#define POINTER_OFFSET 199,4640
-#define TEXT_OFFSET 203,4696
-#define TEXT_PTR_ALIGNMENT 207,4756
-#define PointerToInt(210,4803
-#define longToPointer(211,4876
-#define IntToPointer(212,4944
-#define TextPointerToInt(214,4994
-#define IntToTextPointer(216,5085
-#define INT_MASK	224,5279
-#define MASK_MASK	225,5340
-#define TAG_BITS	226,5388
-#define MaskOf(228,5443
-#define UnMask(229,5491
-#define EQI(236,5641
-#define EQ(237,5686
-#define ARGC_UNKNOWN	244,5817
-#define isFunction(251,5946
-#define max(268,6580
-#define min(269,6622
-#define isInteger(271,6665
-#define toInt(272,6710
-#define valInt(273,6767
-#define incrInt(274,6809
-#define decrInt(275,6855
-#define addInt(276,6901
-#define subInt(277,6959
-#define maxInt(278,7017
-#define neg(280,7072
-#define add(281,7108
-#define sub(282,7157
-#define div(283,7206
-#define mul(284,7255
-#define avg(285,7304
-#define mid(286,7357
-#define dif(287,7410
-#define inc(288,7463
-#define dec(289,7502
-#define minInt(290,7541
-#define ZERO	292,7580
-#define ONE	293,7619
-#define TWO	294,7657
-#define makeDFlag(302,7800
-#define DFlags(303,7851
-#define setDFlag(307,8009
-#define clearDFlag(308,8078
-#define setDFlag(310,8153
-#define clearDFlag(311,8205
-#define onDFlag(313,8267
-#define offDFlag(314,8317
-#define D_TRACE_ENTER	317,8395
-#define D_TRACE_EXIT	318,8466
-#define D_TRACE_FAIL	319,8535
-#define D_TRACE	320,8604
-#define D_TRACE_INHERIT	321,8666
-#define D_TRACE_CONDITION 322,8736
-#define D_BREAK_ENTER	324,8810
-#define D_BREAK_EXIT	325,8881
-#define D_BREAK_FAIL	326,8950
-#define D_BREAK	327,9019
-#define D_BREAK_INHERIT	328,9081
-#define D_BREAK_CONDITION 329,9151
-#define D_SYSTEM	331,9223
-#define D_SAVE_NORMAL	334,9323
-#define D_SAVE_NIL	335,9382
-#define D_SAVE 336,9436
-#define D_DELEGATE_SIDE_EFFECTS 337,9483
-#define D_CLONE_RECURSIVE 339,9564
-#define D_CLONE_REFERENCE 340,9636
-#define D_CLONE_NIL	341,9706
-#define D_CLONE_VALUE	342,9770
-#define D_CLONE_ALIEN	343,9841
-#define D_CLONE	344,9905
-#define D_ALIEN	347,10013
-#define D_TYPENOWARN	349,10072
-#define LocalString(359,10339
-#define isName(370,10766
-#define notName(371,10832
-#define equalName(372,10870
-#define strName(373,10907
-#define getAppendName(375,10963
-#define assign(382,11157
-#define makeFlag(386,11260
-#define setFlag(387,11299
-#define clearFlag(388,11363
-#define onFlag(389,11430
-#define offFlag(390,11492
-#define	F_LOCKED	392,11541
-#define	F_CREATING	393,11571
-#define	F_FREED	394,11603
-#define	F_FREEING	395,11633
-#define	F_PROTECTED	396,11664
-#define	F_ANSWER	397,11697
-#define F_INSPECT	398,11727
-#define F_ACTIVE	399,11758
-#define F_CONSTRAINT	400,11809
-#define F_ATTRIBUTE	401,11866
-#define F_SENDMETHOD	402,11921
-#define F_GETMETHOD	403,11979
-#define F_HYPER	404,12035
-#define F_RECOGNISER	405,12083
-#define F_ASSOC	406,12140
-#define F_ITFNAME	407,12192
-#define F_SOLID	408,12254
-#define F_RESOURCES_OBTAINED	409,12314
-#define F_TEMPLATE_METHOD	410,12386
-#define F_ISBINDING	411,12460
-#define F_ISNAME	412,12528
-#define initHeaderObj(414,12591
-#define classOfObject(420,12726
-#define	setProtectedObj(422,12781
-#define	clearProtectedObj(423,12836
-#define	isProtectedObj(424,12895
-#define	setCreatingObj(425,12948
-#define	clearCreatingObj(426,13001
-#define	isCreatingObj(427,13058
-#define	setAnswerObj(428,13109
-#define	clearAnswerObj(429,13158
-#define	isAnswerObj(430,13211
-#define ONE_CODE_REF	432,13259
-#define refsObject(434,13291
-#define codeRefsObject(435,13361
-#define noRefsObj(436,13434
-#define addRefObj(437,13494
-#define delRefObj(438,13550
-#define addCodeReference(439,13606
-#define delCodeReference(440,13682
-#define lockObj(442,13790
-#define unlockObj(443,13835
-#define lockedObj(444,13884
-#define setFreedObj(445,13930
-#define isFreedObj(446,13977
-#define setFreeingObj(447,14023
-#define isFreeingObj(448,14074
-#define isVirginObj(449,14123
-#define freeableObj(451,14214
-#define GcProtect(454,14285
-#define NIL	465,14497
-#define DEFAULT	466,14532
-#define ON	467,14575
-#define OFF	468,14597
-#define isOn(470,14622
-#define isOff(471,14660
-#define isBoolean(472,14700
-#define isNil(474,14766
-#define notNil(475,14806
-#define isDefault(476,14847
-#define notDefault(477,14895
-#define TrueOrFalse(479,14945
-#define nonObject(481,14994
-#define isObject(482,15067
-#define isAddress(488,15212
-#define validPceDatum(491,15331
-#define TRUE	495,15407
-#define FALSE	496,15449
-#define FAIL	499,15500
-#define SUCCEED	500,15537
-#define fail	502,15592
-#define succeed	503,15618
-#define answer(504,15650
-#define DONE(506,15680
-#define TRY(509,15760
-#define EXISTS(512,15833
-#define OBJECT_HEADER 521,16005
-#define ABSTRACT_OBJECT526,16162
-#define ABSTRACT_PROGRAM_OBJECT 528,16187
-#define ABSTRACT_RECOGNISER 531,16263
-#define ABSTRACT_CODE 534,16338
-#define ABSTRACT_FUNCTION 537,16389
-#define ABSTRACT_BINARY_EXPRESSION 540,16437
-#define ABSTRACT_BINARY_CONDITION 545,16585
-#define ABSTRACT_VISUAL550,16728
-#define NewClass(557,17007
-#define End 561,17082
-struct instanceinstance564,17101
-NewClass(569,17201
-#define ABSTRACT_BEHAVIOUR 599,17728
-#define ABSTRACT_VARIABLE 604,17884
-#define ABSTRACT_METHOD 615,18302
-#define ABSTRACT_METHOD 626,18686
-#define ABSTRACT_CLASS_STUB 693,20315
-#define ABSTRACT_GESTURE 835,25304
-#define ABSTRACT_HASH_TABLE 860,25940
-#define ABSTRACT_CHAR_ARRAY 891,26658
-#define ABSTRACT_HOST 941,27857
-#define ABSTRACT_SHEET 975,28570
-struct cellcell1013,29410
-struct symbolsymbol1019,29506
-#define ABSTRACT_CONSTANT 1024,29615
-NewClass(1028,29737
-#define ABSTRACT_AND 1048,30026
-struct class_definitionclass_definition1147,32187
-#define Arg(1160,32549
-#define	setVar(1161,32581
-} var_binding, *VarBinding;VarBinding1166,32669
-#define BINDINGBLOCKSIZE 1168,32698
-typedef struct var_environment * VarEnvironment;VarEnvironment1170,32726
-typedef struct var_extension * VarExtension;VarExtension1171,32775
-struct var_environmentvar_environment1175,32860
-struct var_extensionvar_extension1183,32998
-#define withLocalVars(1189,33086
-#define withArgs(1203,33341
-typedef struct to_cell *ToCell;ToCell1217,33608
-struct to_cellto_cell1219,33668
-typedef long	AnswerMark;AnswerMark1228,33931
-#define markAnswerStack(1230,33957
-#define rewindAnswerStack(1231,34018
-#define CTE_OK	1299,36305
-#define CTE_OBTAINER_FAILED	1300,36348
-#define PCEdebugging 1315,37063
-#define copyArgs(1337,37987
-#define for_chain(1340,38075
-#define for_vector(1356,38482
-#define for_hash_table(1365,38662
-#define for_cell(1376,38903
-#define for_cell_save(1377,38967
-#define LEFTHAND(1384,39189
-#define RIGHTHAND(1385,39239
-#define OrientationArea(1403,39612
-#define OrientateArea(1409,39780
-#define NormaliseArea(1429,40421
-#define DEBUG(1432,40509
-#define DEBUG_BOOT(1439,40671
-#define DEBUG(1444,40772
-#define DEBUG_BOOT(1445,40801
-#define O_COUNT 1449,40852
-#define O_COUNT 1451,40876
-#define COUNT(1455,40914
-#define COUNT(1461,41101
-#define hashKey(1478,41368
-#define hashKey(1480,41442
+#define METHOD_MAX_ARGS	53,1036
+#define FWD_PCE_MAX_ARGS	54,1098
+#define SCAN_MAX_ARGS 55,1149
+#define PCE_MAX_INT	56,1208
+#define PCE_MIN_INT	57,1262
+#define LINESIZE	59,1303
+#define FORMATSIZE	60,1357
+#define BROWSER_LINE_WIDTH	61,1418
+#define SIGNAL_HANDLER_TYPE 68,1656
+#define SAVEMAGIC 75,1798
+#define SAVEVERSION 76,1836
+#define assert(84,1990
+#define assert(86,2027
+#define O_INLINE 100,2340
+#define O_CONST_FUNCTION 101,2359
+#define Promote(103,2393
+#define Promote(105,2425
+#define inline109,2474
+#define constf 113,2518
+#define constf115,2545
+#define forwards	118,2568
+#define LocalArray(121,2649
+#define LocalArray(123,2690
+#define ArgVector(126,2761
+#define CharBuf(127,2813
+#define NOTREACHED	130,2879
+#define unix 141,3150
+#define sun 145,3211
+#define StrTod(153,3346
+#define	CtoInt(160,3490
+#define	pp(161,3535
+#define get 162,3587
+#define send 163,3660
+#define toString	164,3711
+typedef unsigned long		ulong;ulong171,3884
+typedef unsigned short		ushort;ushort175,3941
+typedef int			status;status178,3981
+typedef void *			Any;Any179,4024
+typedef Any			Int;Int181,4071
+typedef Any			(*Func)Func182,4112
+typedef Any			(*GetFunc)GetFunc183,4166
+typedef status			(*SendFunc)SendFunc184,4225
+typedef void			(*VoidFunc)VoidFunc185,4289
+typedef void *			WsRef;WsRef187,4320
+typedef struct xref *		Xref;Xref188,4375
+typedef struct classdef        *ClassDef;ClassDef190,4430
+typedef struct dCell 	      **DelegateList;DelegateList191,4494
+#define POINTER_OFFSET 200,4702
+#define TEXT_OFFSET 204,4758
+#define TEXT_PTR_ALIGNMENT 208,4818
+#define PointerToInt(211,4865
+#define longToPointer(212,4938
+#define IntToPointer(213,5006
+#define TextPointerToInt(215,5056
+#define IntToTextPointer(217,5147
+#define INT_MASK	225,5341
+#define MASK_MASK	226,5402
+#define TAG_BITS	227,5450
+#define MaskOf(229,5505
+#define UnMask(230,5553
+#define EQI(237,5703
+#define EQ(238,5748
+#define ARGC_UNKNOWN	245,5879
+#define isFunction(252,6008
+#define max(269,6642
+#define min(270,6684
+#define isInteger(272,6727
+#define toInt(273,6772
+#define valInt(274,6829
+#define incrInt(275,6871
+#define decrInt(276,6917
+#define addInt(277,6963
+#define subInt(278,7021
+#define maxInt(279,7079
+#define neg(281,7134
+#define add(282,7170
+#define sub(283,7219
+#define div(284,7268
+#define mul(285,7317
+#define avg(286,7366
+#define mid(287,7419
+#define dif(288,7472
+#define inc(289,7525
+#define dec(290,7564
+#define minInt(291,7603
+#define ZERO	293,7642
+#define ONE	294,7681
+#define TWO	295,7719
+#define makeDFlag(303,7862
+#define DFlags(304,7913
+#define setDFlag(308,8071
+#define clearDFlag(309,8140
+#define setDFlag(311,8215
+#define clearDFlag(312,8267
+#define onDFlag(314,8329
+#define offDFlag(315,8379
+#define D_TRACE_ENTER	318,8457
+#define D_TRACE_EXIT	319,8528
+#define D_TRACE_FAIL	320,8597
+#define D_TRACE	321,8666
+#define D_TRACE_INHERIT	322,8728
+#define D_TRACE_CONDITION 323,8798
+#define D_BREAK_ENTER	325,8872
+#define D_BREAK_EXIT	326,8943
+#define D_BREAK_FAIL	327,9012
+#define D_BREAK	328,9081
+#define D_BREAK_INHERIT	329,9143
+#define D_BREAK_CONDITION 330,9213
+#define D_SYSTEM	332,9285
+#define D_SAVE_NORMAL	335,9385
+#define D_SAVE_NIL	336,9444
+#define D_SAVE 337,9498
+#define D_DELEGATE_SIDE_EFFECTS 338,9545
+#define D_CLONE_RECURSIVE 340,9626
+#define D_CLONE_REFERENCE 341,9698
+#define D_CLONE_NIL	342,9768
+#define D_CLONE_VALUE	343,9832
+#define D_CLONE_ALIEN	344,9903
+#define D_CLONE	345,9967
+#define D_ALIEN	348,10075
+#define D_TYPENOWARN	350,10134
+#define LocalString(360,10401
+#define isName(371,10828
+#define notName(372,10894
+#define equalName(373,10932
+#define strName(374,10969
+#define getAppendName(376,11025
+#define assign(383,11219
+#define makeFlag(387,11322
+#define setFlag(388,11361
+#define clearFlag(389,11425
+#define onFlag(390,11492
+#define offFlag(391,11554
+#define	F_LOCKED	393,11603
+#define	F_CREATING	394,11633
+#define	F_FREED	395,11665
+#define	F_FREEING	396,11695
+#define	F_PROTECTED	397,11726
+#define	F_ANSWER	398,11759
+#define F_INSPECT	399,11789
+#define F_ACTIVE	400,11820
+#define F_CONSTRAINT	401,11871
+#define F_ATTRIBUTE	402,11928
+#define F_SENDMETHOD	403,11983
+#define F_GETMETHOD	404,12041
+#define F_HYPER	405,12097
+#define F_RECOGNISER	406,12145
+#define F_ASSOC	407,12202
+#define F_ITFNAME	408,12254
+#define F_SOLID	409,12316
+#define F_RESOURCES_OBTAINED	410,12376
+#define F_TEMPLATE_METHOD	411,12448
+#define F_ISBINDING	412,12522
+#define F_ISNAME	413,12590
+#define initHeaderObj(415,12653
+#define classOfObject(421,12788
+#define	setProtectedObj(423,12843
+#define	clearProtectedObj(424,12898
+#define	isProtectedObj(425,12957
+#define	setCreatingObj(426,13010
+#define	clearCreatingObj(427,13063
+#define	isCreatingObj(428,13120
+#define	setAnswerObj(429,13171
+#define	clearAnswerObj(430,13220
+#define	isAnswerObj(431,13273
+#define ONE_CODE_REF	433,13321
+#define refsObject(435,13353
+#define codeRefsObject(436,13423
+#define noRefsObj(437,13496
+#define addRefObj(438,13556
+#define delRefObj(439,13612
+#define addCodeReference(440,13668
+#define delCodeReference(441,13744
+#define lockObj(443,13852
+#define unlockObj(444,13897
+#define lockedObj(445,13946
+#define setFreedObj(446,13992
+#define isFreedObj(447,14039
+#define setFreeingObj(448,14085
+#define isFreeingObj(449,14136
+#define isVirginObj(450,14185
+#define freeableObj(452,14276
+#define GcProtect(455,14347
+#define NIL	466,14559
+#define DEFAULT	467,14594
+#define ON	468,14637
+#define OFF	469,14659
+#define isOn(471,14684
+#define isOff(472,14722
+#define isBoolean(473,14762
+#define isNil(475,14828
+#define notNil(476,14868
+#define isDefault(477,14909
+#define notDefault(478,14957
+#define TrueOrFalse(480,15007
+#define nonObject(482,15056
+#define isObject(483,15129
+#define isAddress(489,15274
+#define validPceDatum(492,15393
+#define TRUE	496,15469
+#define FALSE	497,15511
+#define FAIL	500,15562
+#define SUCCEED	501,15599
+#define fail	503,15654
+#define succeed	504,15680
+#define answer(505,15712
+#define DONE(507,15742
+#define TRY(510,15822
+#define EXISTS(513,15895
+#define OBJECT_HEADER 522,16067
+#define ABSTRACT_OBJECT527,16224
+#define ABSTRACT_PROGRAM_OBJECT 529,16249
+#define ABSTRACT_RECOGNISER 532,16325
+#define ABSTRACT_CODE 535,16400
+#define ABSTRACT_FUNCTION 538,16451
+#define ABSTRACT_BINARY_EXPRESSION 541,16499
+#define ABSTRACT_BINARY_CONDITION 546,16647
+#define ABSTRACT_VISUAL551,16790
+#define NewClass(558,17069
+#define End 562,17144
+struct instanceinstance565,17163
+NewClass(570,17263
+#define ABSTRACT_BEHAVIOUR 600,17790
+#define ABSTRACT_VARIABLE 605,17946
+#define ABSTRACT_METHOD 616,18364
+#define ABSTRACT_METHOD 627,18748
+#define ABSTRACT_CLASS_STUB 694,20377
+#define ABSTRACT_GESTURE 836,25366
+#define ABSTRACT_HASH_TABLE 861,26002
+#define ABSTRACT_CHAR_ARRAY 892,26720
+#define ABSTRACT_HOST 942,27919
+#define ABSTRACT_SHEET 976,28632
+struct cellcell1014,29472
+struct symbolsymbol1020,29568
+#define ABSTRACT_CONSTANT 1025,29677
+NewClass(1029,29799
+#define ABSTRACT_AND 1049,30088
+struct class_definitionclass_definition1148,32249
+#define Arg(1161,32611
+#define	setVar(1162,32643
+} var_binding, *VarBinding;VarBinding1167,32731
+#define BINDINGBLOCKSIZE 1169,32760
+typedef struct var_environment * VarEnvironment;VarEnvironment1171,32788
+typedef struct var_extension * VarExtension;VarExtension1172,32837
+struct var_environmentvar_environment1176,32922
+struct var_extensionvar_extension1184,33060
+#define withLocalVars(1190,33148
+#define withArgs(1204,33403
+typedef struct to_cell *ToCell;ToCell1218,33670
+struct to_cellto_cell1220,33730
+typedef long	AnswerMark;AnswerMark1229,33993
+#define markAnswerStack(1231,34019
+#define rewindAnswerStack(1232,34080
+#define CTE_OK	1300,36367
+#define CTE_OBTAINER_FAILED	1301,36410
+#define PCEdebugging 1316,37125
+#define copyArgs(1338,38049
+#define for_chain(1341,38137
+#define for_vector(1357,38544
+#define for_hash_table(1366,38724
+#define for_cell(1377,38965
+#define for_cell_save(1378,39029
+#define LEFTHAND(1385,39251
+#define RIGHTHAND(1386,39301
+#define OrientationArea(1404,39674
+#define OrientateArea(1410,39842
+#define NormaliseArea(1430,40483
+#define DEBUG(1433,40571
+#define DEBUG_BOOT(1440,40733
+#define DEBUG(1445,40834
+#define DEBUG_BOOT(1446,40863
+#define O_COUNT 1450,40914
+#define O_COUNT 1452,40938
+#define COUNT(1456,40976
+#define COUNT(1462,41163
+#define hashKey(1479,41430
+#define hashKey(1481,41504
 
 h/lang.h,174
 typedef struct tokeniser *		Tokeniser;Tokeniser10,243
@@ -410,6 +420,8 @@ typedef struct _string_string19,498
 #define TRUE 56,1713
 } str8_encoding, *Str8Encoding;Str8Encoding67,1900
 } str16_encoding, *Str16Encoding;Str16Encoding76,2041
+
+h/sunlib.h,0
 
 h/syntax.h,1955
 #define GLOBAL 11,260
@@ -517,9 +529,9 @@ typedef long (*ScanFunction)ScanFunction146,5361
 typedef long (*FetchFunction)FetchFunction147,5424
 typedef void (*MarginFunction)MarginFunction148,5470
 struct text_chartext_char150,5521
-struct text_linetext_line160,5890
-struct text_screentext_screen174,6422
-NewClass(182,6658
+struct text_linetext_line164,6002
+struct text_screentext_screen178,6534
+NewClass(186,6770
 
 h/trace.h,788
 #define PCE_TRACE_H11,264
@@ -2471,54 +2483,54 @@ find_cell_dict(422,11196
 seek_list_browser(436,11406
 scan_list_browser(464,12041
 fetch_list_browser(478,12401
-getSeekFunctionListBrowser(517,13426
-getScanFunctionListBrowser(525,13631
-getFetchFunctionListBrowser(531,13736
-getMarginFunctionListBrowser(537,13843
-computeListBrowser(547,14038
-normalise_index(573,14660
-getExtendPrefixDict(591,15020
-extendPrefixListBrowser(628,15861
-extendToCurrentListBrowser(648,16281
-cancelSearchListBrowser(664,16636
-executeSearchListBrowser(680,16987
-repeatSearchListBrowser(703,17534
-backwardDeleteCharListBrowser(720,17869
-insertSelfListBrowser(739,18204
-enterListBrowser(790,19426
-typedListBrowser(810,19821
-getDictItemListBrowser(816,19949
-eventListBrowser(828,20191
-forwardListBrowser(891,21990
-setSelectionListBrowser(917,22600
-toggleSelectionListBrowser(927,22776
-openListBrowser(939,23005
-selectedListBrowser(956,23420
-deselectListBrowser(968,23671
-selectListBrowser(982,24027
-clearSelectionListBrowser(1001,24424
-selectionListBrowser(1015,24743
-getSelectionListBrowser(1032,25063
-scrollToListBrowser(1044,25279
-normaliseListBrowser(1055,25576
-scrollUpListBrowser(1076,26120
-scrollDownListBrowser(1084,26320
-scrollVerticalListBrowser(1092,26522
-dictListBrowser(1127,27413
-fontListBrowser(1147,27852
-styleListBrowser(1159,28089
-multipleSelectionListBrowser(1168,28245
-DeleteItemListBrowser(1203,29057
-InsertItemListBrowser(1218,29546
-ClearListBrowser(1227,29788
-ChangeItemListBrowser(1248,30262
-ChangedListBrowser(1257,30493
-tabStopsListBrowser(1269,30764
-clearListBrowser(1277,30918
-getMemberListBrowser(1286,31037
-getContainsListBrowser(1299,31269
-getMasterListBrowser(1308,31409
-makeClassListBrowser(1317,31548
+getSeekFunctionListBrowser(518,13478
+getScanFunctionListBrowser(526,13683
+getFetchFunctionListBrowser(532,13788
+getMarginFunctionListBrowser(538,13895
+computeListBrowser(548,14090
+normalise_index(574,14712
+getExtendPrefixDict(592,15072
+extendPrefixListBrowser(629,15913
+extendToCurrentListBrowser(649,16333
+cancelSearchListBrowser(665,16688
+executeSearchListBrowser(681,17039
+repeatSearchListBrowser(704,17586
+backwardDeleteCharListBrowser(721,17921
+insertSelfListBrowser(740,18256
+enterListBrowser(791,19478
+typedListBrowser(811,19873
+getDictItemListBrowser(817,20001
+eventListBrowser(829,20243
+forwardListBrowser(892,22042
+setSelectionListBrowser(918,22652
+toggleSelectionListBrowser(928,22828
+openListBrowser(940,23057
+selectedListBrowser(957,23472
+deselectListBrowser(969,23723
+selectListBrowser(983,24079
+clearSelectionListBrowser(1002,24476
+selectionListBrowser(1016,24795
+getSelectionListBrowser(1033,25115
+scrollToListBrowser(1045,25331
+normaliseListBrowser(1056,25628
+scrollUpListBrowser(1077,26172
+scrollDownListBrowser(1085,26372
+scrollVerticalListBrowser(1093,26574
+dictListBrowser(1128,27465
+fontListBrowser(1148,27904
+styleListBrowser(1160,28141
+multipleSelectionListBrowser(1169,28297
+DeleteItemListBrowser(1204,29109
+InsertItemListBrowser(1219,29598
+ClearListBrowser(1228,29840
+ChangeItemListBrowser(1249,30314
+ChangedListBrowser(1258,30545
+tabStopsListBrowser(1270,30816
+clearListBrowser(1278,30970
+getMemberListBrowser(1287,31089
+getContainsListBrowser(1300,31321
+getMasterListBrowser(1309,31461
+makeClassListBrowser(1318,31600
 
 gra/node.c,1067
 initialiseNode(28,853
@@ -2809,6 +2821,17 @@ main(164,3063
 xmalloc(187,3511
 xrealloc(200,3676
 
+itf/asfile.c,251
+typedef struct pce_file_handle * PceFileHandle;PceFileHandle16,287
+struct pce_file_handlepce_file_handle18,336
+allocFileHandle(38,936
+pceOpen(74,1600
+pceClose(122,2463
+pceWrite(140,2782
+pceSeek(178,3517
+pceRead(220,4354
+pceOsError(253,5002
+
 itf/c.c,1568
 typedef struct c_obj* CObj;CObj13,282
 NewClass(15,311
@@ -3058,86 +3081,86 @@ initialiseBehaviour(13,282
 makeClassBehaviour(27,481
 
 ker/class.c,2250
-#define CLASS_PCE_SLOTS 17,439
-#define CLASS_PCE_SLOTS 19,472
-#define InstanceSize(22,530
-#define SlotsClass(23,608
-resetSlotsClass(27,725
-typeClass(53,1339
-nameToTypeClass(64,1501
-linkSubClass(92,1994
-defineClass(119,2513
-defineClasses(155,3473
-call_make_function(172,3824
-realiseClass(189,4103
-realiseBootClass(213,4571
-fill_slots_class(224,4792
-_bootClass(328,9009
-bootClass(379,10340
-_lookupBootClass(393,10617
-lookupBootClass(416,11182
-getConvertClass(426,11349
-installClass(461,12054
-initClass(498,12888
-prepareClass(518,13235
-makeBuiltInClasses(535,13571
-initialiseClass(555,14097
-getLookupClass(591,14939
-unlinkClass(612,15452
-instanceVariableClass(623,15731
-codeExecuteCode(675,17160
-fixReservedSendMethodClass(681,17264
-codeGetExecuteCode(706,17892
-fixReservedGetMethodClass(712,17998
-fixSubClassSendMethodsClass(739,18626
-sendMethodClass(753,18919
-fixSubClassGetMethodsClass(789,19678
-getMethodClass(802,19967
-setChangedFunctionClass(840,20771
-setTraceFunctionClass(849,20897
-setInEventAreaFunctionClass(857,21008
-isPceSlot(865,21127
-allPceSlotsClass(873,21283
-_termClass(893,21853
-termClass(919,22431
-_sendMethod(929,22602
-sendMethod(976,23716
-storeMethod(989,23931
-_getMethod(1011,24545
-getMethod(1059,25803
-cloneStyleClass(1076,26140
-cloneStyleVariableClass(1085,26263
-saveStyleVariableClass(1096,26464
-saveStyleClass(1107,26663
-setCloneFunctionClass(1116,26784
-setRedrawFunctionClass(1123,26895
-setLoadStoreFunctionClass(1134,27123
-handleClass(1142,27283
-solidClass(1154,27510
-sourceClass(1163,27619
-rtSourceClass(1189,28145
-localClass(1196,28219
-superClass(1218,28701
-delegateClass(1238,29197
-prependDelegateClass(1253,29462
-getInstanceClassv(1268,29739
-getInstanceVariableClass(1274,29848
-getResolveSendMethodClass(1297,30343
-getResolveGetMethodClass(1329,31010
-getNoCreatedClass(1361,31670
-getNoFreedClass(1374,31903
-createdClass(1391,32317
-freedClass(1412,32799
-recordInstancesClass(1434,33294
-changedMessageClass(1454,33783
-createdMessageClass(1467,34045
-freedMessageClass(1480,34307
-getSuperClassNameClass(1493,34559
-getManHeaderClass(1507,34824
-getManSummaryClass(1535,35288
-isAClass(1574,35974
-numberTreeClass(1581,36122
-makeClassClass(1598,36525
+#define CLASS_PCE_SLOTS 17,440
+#define CLASS_PCE_SLOTS 19,473
+#define InstanceSize(22,531
+#define SlotsClass(23,609
+resetSlotsClass(27,726
+typeClass(53,1340
+nameToTypeClass(64,1502
+linkSubClass(92,1995
+defineClass(119,2514
+defineClasses(155,3474
+call_make_function(172,3825
+realiseClass(189,4104
+realiseBootClass(213,4572
+fill_slots_class(224,4793
+_bootClass(328,9010
+bootClass(379,10341
+_lookupBootClass(393,10618
+lookupBootClass(416,11183
+getConvertClass(426,11350
+installClass(461,12055
+initClass(498,12889
+prepareClass(518,13236
+makeBuiltInClasses(535,13572
+initialiseClass(555,14098
+getLookupClass(591,14940
+unlinkClass(612,15453
+instanceVariableClass(623,15732
+codeExecuteCode(675,17161
+fixReservedSendMethodClass(681,17265
+codeGetExecuteCode(706,17893
+fixReservedGetMethodClass(712,17999
+fixSubClassSendMethodsClass(739,18627
+sendMethodClass(753,18920
+fixSubClassGetMethodsClass(789,19679
+getMethodClass(802,19968
+setChangedFunctionClass(840,20772
+setTraceFunctionClass(849,20898
+setInEventAreaFunctionClass(857,21009
+isPceSlot(865,21128
+allPceSlotsClass(873,21284
+_termClass(893,21854
+termClass(919,22432
+_sendMethod(929,22603
+sendMethod(977,23750
+storeMethod(990,23965
+_getMethod(1012,24579
+getMethod(1061,25868
+cloneStyleClass(1078,26205
+cloneStyleVariableClass(1087,26328
+saveStyleVariableClass(1098,26529
+saveStyleClass(1109,26728
+setCloneFunctionClass(1118,26849
+setRedrawFunctionClass(1125,26960
+setLoadStoreFunctionClass(1136,27188
+handleClass(1144,27348
+solidClass(1156,27575
+sourceClass(1165,27684
+rtSourceClass(1191,28210
+localClass(1198,28284
+superClass(1220,28766
+delegateClass(1240,29262
+prependDelegateClass(1255,29527
+getInstanceClassv(1270,29804
+getInstanceVariableClass(1276,29913
+getResolveSendMethodClass(1299,30408
+getResolveGetMethodClass(1331,31075
+getNoCreatedClass(1363,31735
+getNoFreedClass(1376,31968
+createdClass(1393,32382
+freedClass(1414,32864
+recordInstancesClass(1436,33359
+changedMessageClass(1456,33848
+createdMessageClass(1469,34110
+freedMessageClass(1482,34372
+getSuperClassNameClass(1495,34624
+getManHeaderClass(1509,34889
+getManSummaryClass(1537,35353
+isAClass(1576,36039
+numberTreeClass(1583,36187
+makeClassClass(1600,36590
 
 ker/classstub.c,290
 initialiseClassStub(13,285
@@ -3302,20 +3325,20 @@ getArgumentCountMethod(121,2465
 getArgumentTypeMethod(132,2658
 #define isBinding(146,2876
 invokeMethod(149,2948
-traceMethod(371,8328
-printTraceMessageMethod(381,8557
-getInheritedFromMethod(408,9073
-getGroupMethod(430,9478
-getContextNameMethod(470,10314
-getAccessArrowMethod(482,10499
-getSummaryMethod(491,10658
-getManIdMethod(517,11199
-getManIndicatorMethod(530,11429
-getManSummaryMethod(536,11506
-rtSourceMethod(586,12445
-getMethodFromFunction(594,12534
-getPrintNameMethod(619,13008
-makeClassMethod(631,13217
+traceMethod(371,8331
+printTraceMessageMethod(381,8560
+getInheritedFromMethod(408,9076
+getGroupMethod(430,9481
+getContextNameMethod(470,10317
+getAccessArrowMethod(482,10502
+getSummaryMethod(491,10661
+getManIdMethod(517,11202
+getManIndicatorMethod(530,11432
+getManSummaryMethod(536,11509
+rtSourceMethod(586,12448
+getMethodFromFunction(594,12537
+getPrintNameMethod(619,13011
+makeClassMethod(631,13220
 
 ker/name.c,884
 #define NO_BUILT_IN_DECL10,243
@@ -4354,49 +4377,49 @@ createSpatial(134,3635
 makeClassSpatial(142,3773
 
 txt/chararray.c,1174
-initialiseCharArray(18,381
-unlinkCharArray(28,593
-cloneCharArray(36,677
-storeCharArray(47,913
-loadCharArray(54,1078
-getConvertCharArray(73,1412
-getValueCharArray(82,1531
-equalCharArray(92,1705
-prefixCharArray(101,1826
-suffixCharArray(110,1970
-largerCharArray(119,2092
-smallerCharArray(127,2218
-subCharArray(135,2345
-getModifyCharArray(152,2690
-ModifiedCharArray(158,2806
-getCopyCharArray(177,3232
-getCapitaliseCharArray(183,3318
-getLabelNameCharArray(211,3850
-getDowncaseCharArray(249,4578
-getUpcaseCharArray(264,4848
-getAppendCharArray(279,5109
-getAppendCharArrayv(294,5474
-getDeleteSuffixCharArray(332,6342
-getEnsureSuffixCharArray(348,6617
-getDeletePrefixCharArray(357,6765
-getSubCharArray(376,7153
-getSizeCharArray(402,7665
-getCharacterCharArray(410,7755
-getIndexCharArray(421,7927
-getRindexCharArray(434,8153
-getLineNoCharArray(447,8409
-getScanCharArray(455,8589
-getCompareCharArray(471,8942
-#define SCRATCH_CHAR_ARRAYS	495,9428
-initCharArrays(500,9535
-CtoScratchCharArray(515,9835
-StringToScratchCharArray(534,10214
-doneScratchCharArray(551,10521
-CtoCharArray(557,10594
-stringToCharArray(567,10779
-makeClassCharArray(577,10972
+initialiseCharArray(19,401
+unlinkCharArray(29,613
+cloneCharArray(37,697
+storeCharArray(48,933
+loadCharArray(55,1098
+getConvertCharArray(74,1432
+getValueCharArray(83,1551
+equalCharArray(93,1725
+prefixCharArray(102,1846
+suffixCharArray(111,1990
+largerCharArray(120,2112
+smallerCharArray(128,2238
+subCharArray(136,2365
+getModifyCharArray(153,2710
+ModifiedCharArray(159,2826
+getCopyCharArray(178,3252
+getCapitaliseCharArray(184,3338
+getLabelNameCharArray(212,3870
+getDowncaseCharArray(250,4598
+getUpcaseCharArray(265,4868
+getAppendCharArray(280,5129
+getAppendCharArrayv(295,5494
+getDeleteSuffixCharArray(333,6362
+getEnsureSuffixCharArray(349,6637
+getDeletePrefixCharArray(358,6785
+getSubCharArray(377,7173
+getSizeCharArray(403,7685
+getCharacterCharArray(411,7775
+getIndexCharArray(422,7947
+getRindexCharArray(435,8173
+getLineNoCharArray(448,8429
+getScanCharArray(456,8609
+getCompareCharArray(472,8962
+#define SCRATCH_CHAR_ARRAYS	496,9448
+initCharArrays(501,9555
+CtoScratchCharArray(516,9855
+StringToScratchCharArray(535,10234
+doneScratchCharArray(552,10541
+CtoCharArray(558,10614
+stringToCharArray(568,10799
+makeClassCharArray(578,10992
 
-txt/editor.c,7083
+txt/editor.c,7118
 #define Caret(57,2195
 #define Round(58,2229
 #define Before(59,2281
@@ -4437,201 +4460,202 @@ indexFragmentCache(567,14526
 #define InRegion(673,17149
 seek_editor(677,17257
 scan_editor(683,17362
-fetch_editor(733,18436
-margin_editor(783,19682
-getSeekFunctionEditor(792,19842
-getScanFunctionEditor(798,19930
-getFetchFunctionEditor(804,20018
-getMarginFunctionEditor(810,20108
-getFetchEditor(816,20200
-computeEditor(825,20393
-normalise_index(846,20837
-where_editor(857,21037
-ensureVisibleEditor(876,21489
-normaliseEditor(926,22986
-ensureCaretInWindowEditor(932,23113
-getFirstEditor(953,23580
-countLinesEditor(961,23719
-getLinesVisibleEditor(976,24003
-Receiver(991,24358
-reportEditor(1000,24501
-forwardModifiedEditor(1023,25010
-getKeyBindingEditor(1037,25287
-keyBindingEditor(1043,25395
-typedEditor(1053,25619
-event_editor(1066,25874
-eventEditor(1153,28382
-#define UArg(1170,28785
-#define MustBeEditable(1171,28840
-verify_editable_editor(1175,28915
-insertSelfEditor(1186,29093
-showMatchingBracketEditor(1222,29919
-quotedInsertEditor(1254,31058
-QuotedInsertEditor(1262,31165
-newlineEditor(1274,31438
-openLineEditor(1282,31614
-caretEditor(1293,31870
-forwardCharEditor(1303,32046
-backwardCharEditor(1309,32155
-forwardWordEditor(1315,32265
-backwardWordEditor(1324,32460
-beginningOfLineEditor(1334,32688
-endOfLineEditor(1343,32889
-forwardSentenceEditor(1352,33082
-backwardSentenceEditor(1362,33284
-forwardParagraphEditor(1372,33489
-backwardParagraphEditor(1382,33693
-forwardTermEditor(1392,33900
-backwardTermEditor(1402,34092
-skipBlanksEditor(1412,34288
-pointToTopOfFileEditor(1423,34602
-pointToBottomOfFileEditor(1429,34710
-pointToTopOfWindowEditor(1438,34924
-pointToBottomOfWindowEditor(1444,35045
-nextLineEditor(1453,35214
-previousLineEditor(1468,35530
-deleteCharEditor(1474,35653
-backwardDeleteCharEditor(1481,35793
-yankEditor(1492,36044
-killEditor(1512,36376
-grabEditor(1537,36851
-killWordEditor(1552,37151
-backwardKillWordEditor(1562,37371
-killLineEditor(1572,37610
-killSentenceEditor(1594,38050
-killParagraphEditor(1606,38304
-killTermEditor(1618,38560
-killOrGrabRegionEditor(1630,38804
-undefinedEditor(1648,39240
-keyboardQuitEditor(1656,39359
-undoEditor(1666,39566
-setMarkEditor(1680,39816
-switchCaseModeEditor(1692,40048
-pointToMarkEditor(1706,40389
-exchangePointAndMarkEditor(1712,40469
-transposeWordEditor(1727,40722
-transposeLinesEditor(1744,41154
-transposeTermsEditor(1763,41609
-deleteHorizontalSpaceEditor(1787,42325
-justOneSpaceEditor(1810,42954
-deleteBlankLinesEditor(1816,43047
-gosmacsTransposeEditor(1837,43488
-transposeCharsEditor(1857,43853
-saveBufferEditor(1880,44308
-downcaseRegionEditor(1911,45127
-upcaseRegionEditor(1925,45367
-capitaliseRegionEditor(1939,45603
-downcasePreviousWordEditor(1953,45847
-upcasePreviousWordEditor(1963,46120
-capitalisePreviousWordEditor(1973,46389
-downcaseWordEditor(1983,46666
-upcaseWordEditor(1994,46952
-capitaliseWordEditor(2005,47234
-toggleCharCaseEditor(2016,47524
-start_of_line(2044,48058
-end_of_line(2056,48306
-get_region_editor(2068,48550
-blankLineEditor(2076,48717
-getIndentationEditor(2093,49021
-alignEditor(2128,49719
-alignOneLineEditor(2171,50894
-alignLineEditor(2197,51524
-alignRegionEditor(2205,51722
-indentOneLineEditor(2222,52085
-indentLineEditor(2231,52313
-undentLineEditor(2240,52505
-indentRegionEditor(2246,52608
-undentRegionEditor(2263,52973
-newlineAndIndentEditor(2271,53156
-autoFillModeEditor(2296,53743
-setFillColumnEditor(2310,54076
-fillEditor(2325,54410
-fillRegionEditor(2385,56375
-fillParagraphEditor(2398,56647
-justifyParagraphEditor(2410,56985
-justifyRegionEditor(2422,57325
-insertSelfFillEditor(2435,57599
-findCutBufferEditor(2481,58871
-isisearchingEditor(2517,59841
-StartIsearchEditor(2527,60002
-beginIsearchEditor(2540,60322
-abortIsearchEditor(2553,60714
-endIsearchEditor(2563,60886
-isearchForwardEditor(2578,61199
-isearchBackwardEditor(2584,61294
-extendSearchStringToWordEditor(2590,61391
-backwardDeleteCharSearchStringEditor(2607,61917
-executeSearchEditor(2622,62218
-IsearchEditor(2677,63695
-get_dabbrev_target(2739,65273
-dabbrevExpandEditor(2760,65809
-get_dabbrev_hit_editor(2783,66414
-get_case_pattern(2800,66764
-fix_case_and_insert(2816,67057
-DabbrevExpandEditor(2842,67659
-scrollToEditor(2933,70041
-centerWindowEditor(2943,70239
-scrollUpEditor(2953,70425
-scrollDownEditor(2973,70929
-scrollOneLineUpEditor(2987,71239
-scrollOneLineDownEditor(2993,71344
-lineToTopOfWindowEditor(2999,71453
-recenterEditor(3008,71639
-scrollVerticalEditor(3017,71792
-selectionOriginEditor(3049,72564
-selectionExtendEditor(3058,72729
-selection_editor(3095,73625
-selectLineEditor(3117,74216
-selectionEditor(3136,74701
-getSelectionEditor(3146,74924
-getSelectionStartEditor(3160,75130
-getSelectionEndEditor(3169,75268
-getSelectedEditor(3178,75408
-#define SelectionRegion(3194,75728
-deleteSelectionEditor(3205,76034
-indentSelectionEditor(3215,76218
-undentSelectionEditor(3231,76581
-fillSelectionEditor(3237,76694
-selectionToCutBufferEditor(3253,77072
-insertCutBufferEditor(3271,77506
-appendEditor(3299,78146
-insertEditor(3312,78447
-formatEditor(3318,78559
-appendfEditor(3330,78777
-printEditor(3343,79009
-clearEditor(3353,79151
-deleteEditor(3364,79331
-deleteLineEditor(3371,79474
-replaceLineEditor(3383,79810
-sortEditor(3397,80210
-getWordEditor(3403,80321
-getLineEditor(3419,80717
-getReadLineEditor(3435,81113
-getFirstLineEditor(3450,81447
-getColumnEditor(3458,81584
-columnEditor(3481,82059
-lineNumberEditor(3506,82594
-getLineNumberEditor(3514,82765
-loadEditor(3528,83066
-saveEditor(3545,83400
-fontEditor(3567,83799
-tabDistanceEditor(3580,84039
-tabStopsEditor(3592,84266
-getTabStopsEditor(3598,84387
-update_index_on_insert(3608,84574
-update_caret_on_insert(3620,84799
-InsertEditor(3632,85020
-ChangedRegionEditor(3658,85651
-ChangedFragmentListEditor(3669,85864
-ChangedEditor(3686,86254
-getContainsEditor(3697,86456
-getMasterEditor(3703,86507
-makeClassEditor(3712,86629
-TextKillRing(4318,114171
-appendKill(4331,114393
-prependKill(4345,114651
-newKill(4359,114910
-killRegister(4370,115057
+#define GRAPHICS_START 732,18424
+fetch_editor(735,18473
+margin_editor(802,20171
+getSeekFunctionEditor(811,20331
+getScanFunctionEditor(817,20419
+getFetchFunctionEditor(823,20507
+getMarginFunctionEditor(829,20597
+getFetchEditor(835,20689
+computeEditor(844,20882
+normalise_index(865,21326
+where_editor(876,21526
+ensureVisibleEditor(895,21978
+normaliseEditor(945,23475
+ensureCaretInWindowEditor(951,23602
+getFirstEditor(972,24069
+countLinesEditor(980,24208
+getLinesVisibleEditor(995,24492
+Receiver(1010,24847
+reportEditor(1019,24990
+forwardModifiedEditor(1042,25499
+getKeyBindingEditor(1056,25776
+keyBindingEditor(1062,25884
+typedEditor(1072,26108
+event_editor(1085,26363
+eventEditor(1172,28871
+#define UArg(1189,29274
+#define MustBeEditable(1190,29329
+verify_editable_editor(1194,29404
+insertSelfEditor(1205,29582
+showMatchingBracketEditor(1241,30408
+quotedInsertEditor(1273,31547
+QuotedInsertEditor(1281,31654
+newlineEditor(1293,31927
+openLineEditor(1301,32103
+caretEditor(1312,32359
+forwardCharEditor(1322,32535
+backwardCharEditor(1328,32644
+forwardWordEditor(1334,32754
+backwardWordEditor(1343,32949
+beginningOfLineEditor(1353,33177
+endOfLineEditor(1362,33378
+forwardSentenceEditor(1371,33571
+backwardSentenceEditor(1381,33773
+forwardParagraphEditor(1391,33978
+backwardParagraphEditor(1401,34182
+forwardTermEditor(1411,34389
+backwardTermEditor(1421,34581
+skipBlanksEditor(1431,34777
+pointToTopOfFileEditor(1442,35091
+pointToBottomOfFileEditor(1448,35199
+pointToTopOfWindowEditor(1457,35413
+pointToBottomOfWindowEditor(1463,35534
+nextLineEditor(1472,35703
+previousLineEditor(1487,36019
+deleteCharEditor(1493,36142
+backwardDeleteCharEditor(1500,36282
+yankEditor(1511,36533
+killEditor(1531,36865
+grabEditor(1556,37340
+killWordEditor(1571,37640
+backwardKillWordEditor(1581,37860
+killLineEditor(1591,38099
+killSentenceEditor(1613,38539
+killParagraphEditor(1625,38793
+killTermEditor(1637,39049
+killOrGrabRegionEditor(1649,39293
+undefinedEditor(1667,39729
+keyboardQuitEditor(1675,39848
+undoEditor(1685,40055
+setMarkEditor(1699,40305
+switchCaseModeEditor(1711,40537
+pointToMarkEditor(1725,40878
+exchangePointAndMarkEditor(1731,40958
+transposeWordEditor(1746,41211
+transposeLinesEditor(1763,41643
+transposeTermsEditor(1782,42098
+deleteHorizontalSpaceEditor(1806,42814
+justOneSpaceEditor(1829,43443
+deleteBlankLinesEditor(1835,43536
+gosmacsTransposeEditor(1856,43977
+transposeCharsEditor(1876,44342
+saveBufferEditor(1899,44797
+downcaseRegionEditor(1930,45616
+upcaseRegionEditor(1944,45856
+capitaliseRegionEditor(1958,46092
+downcasePreviousWordEditor(1972,46336
+upcasePreviousWordEditor(1982,46609
+capitalisePreviousWordEditor(1992,46878
+downcaseWordEditor(2002,47155
+upcaseWordEditor(2013,47441
+capitaliseWordEditor(2024,47723
+toggleCharCaseEditor(2035,48013
+start_of_line(2063,48547
+end_of_line(2075,48795
+get_region_editor(2087,49039
+blankLineEditor(2095,49206
+getIndentationEditor(2112,49510
+alignEditor(2147,50208
+alignOneLineEditor(2190,51383
+alignLineEditor(2216,52013
+alignRegionEditor(2224,52211
+indentOneLineEditor(2241,52574
+indentLineEditor(2250,52802
+undentLineEditor(2259,52994
+indentRegionEditor(2265,53097
+undentRegionEditor(2282,53462
+newlineAndIndentEditor(2290,53645
+autoFillModeEditor(2315,54232
+setFillColumnEditor(2329,54565
+fillEditor(2344,54899
+fillRegionEditor(2404,56864
+fillParagraphEditor(2417,57136
+justifyParagraphEditor(2429,57474
+justifyRegionEditor(2441,57814
+insertSelfFillEditor(2454,58088
+findCutBufferEditor(2500,59360
+isisearchingEditor(2536,60330
+StartIsearchEditor(2546,60491
+beginIsearchEditor(2559,60811
+abortIsearchEditor(2572,61203
+endIsearchEditor(2582,61375
+isearchForwardEditor(2597,61688
+isearchBackwardEditor(2603,61783
+extendSearchStringToWordEditor(2609,61880
+backwardDeleteCharSearchStringEditor(2626,62406
+executeSearchEditor(2641,62707
+IsearchEditor(2696,64184
+get_dabbrev_target(2758,65762
+dabbrevExpandEditor(2779,66298
+get_dabbrev_hit_editor(2802,66903
+get_case_pattern(2819,67253
+fix_case_and_insert(2835,67546
+DabbrevExpandEditor(2861,68148
+scrollToEditor(2952,70530
+centerWindowEditor(2962,70728
+scrollUpEditor(2972,70914
+scrollDownEditor(2992,71418
+scrollOneLineUpEditor(3006,71728
+scrollOneLineDownEditor(3012,71833
+lineToTopOfWindowEditor(3018,71942
+recenterEditor(3027,72128
+scrollVerticalEditor(3036,72281
+selectionOriginEditor(3068,73053
+selectionExtendEditor(3077,73218
+selection_editor(3114,74114
+selectLineEditor(3136,74705
+selectionEditor(3155,75190
+getSelectionEditor(3165,75413
+getSelectionStartEditor(3179,75619
+getSelectionEndEditor(3188,75757
+getSelectedEditor(3197,75897
+#define SelectionRegion(3213,76217
+deleteSelectionEditor(3224,76523
+indentSelectionEditor(3234,76707
+undentSelectionEditor(3250,77070
+fillSelectionEditor(3256,77183
+selectionToCutBufferEditor(3272,77561
+insertCutBufferEditor(3290,77995
+appendEditor(3318,78635
+insertEditor(3331,78936
+formatEditor(3337,79048
+appendfEditor(3349,79266
+printEditor(3362,79498
+clearEditor(3372,79640
+deleteEditor(3383,79820
+deleteLineEditor(3390,79963
+replaceLineEditor(3402,80299
+sortEditor(3416,80699
+getWordEditor(3422,80810
+getLineEditor(3438,81206
+getReadLineEditor(3454,81602
+getFirstLineEditor(3469,81936
+getColumnEditor(3477,82073
+columnEditor(3500,82548
+lineNumberEditor(3525,83083
+getLineNumberEditor(3533,83254
+loadEditor(3547,83555
+saveEditor(3564,83889
+fontEditor(3586,84288
+tabDistanceEditor(3599,84528
+tabStopsEditor(3611,84755
+getTabStopsEditor(3617,84876
+update_index_on_insert(3627,85063
+update_caret_on_insert(3639,85288
+InsertEditor(3651,85509
+ChangedRegionEditor(3677,86140
+ChangedFragmentListEditor(3688,86353
+ChangedEditor(3705,86743
+getContainsEditor(3716,86945
+getMasterEditor(3722,86996
+makeClassEditor(3731,87118
+TextKillRing(4337,114660
+appendKill(4350,114882
+prependKill(4364,115140
+newKill(4378,115399
+killRegister(4389,115546
 
 txt/fragment.c,673
 #define normalize_tb(18,430
@@ -4801,21 +4825,21 @@ makeClassString(531,10326
 
 txt/style.c,379
 initialiseStyle(20,506
-storeStyle(48,1319
-loadStyle(57,1456
-attribute_style(70,1729
-highlightStyle(86,1993
-underlineStyle(92,2094
-greyStyle(98,2194
-boldStyle(104,2278
-hiddenStyle(110,2369
-get_attribute_style(116,2460
-getHighlightStyle(122,2568
-getUnderlineStyle(128,2661
-getGreyStyle(134,2753
-getBoldStyle(140,2836
-getHiddenStyle(146,2919
-makeClassStyle(152,2999
+storeStyle(46,1318
+loadStyle(55,1455
+attribute_style(68,1728
+highlightStyle(84,1992
+underlineStyle(90,2093
+greyStyle(96,2193
+boldStyle(102,2277
+hiddenStyle(108,2368
+get_attribute_style(114,2459
+getHighlightStyle(120,2567
+getUnderlineStyle(126,2660
+getGreyStyle(132,2752
+getBoldStyle(138,2835
+getHiddenStyle(144,2918
+makeClassStyle(150,2998
 
 txt/syntax.c,650
 #define FLAGS_SIZE(15,342
@@ -4937,70 +4961,73 @@ styleTextCursor(131,3364
 imageTextCursor(152,3822
 makeClassTextCursor(164,4049
 
-txt/textimage.c,1709
+txt/textimage.c,1806
 #define INFINITE 61,2539
 #define Round(62,2568
 #define END_CUT 68,2723
 #define END_WRAP 69,2780
 #define END_EOF 70,2831
 #define END_NL	71,2891
-initialiseTextImage(87,3391
-unalloc_textline(101,3803
-unalloc_screen(110,3963
-unlinkTextImage(126,4253
-ensure_lines_screen(139,4425
-ensure_chars_line(173,5317
-storeTextImage(196,5824
-reinitTextImage(202,5922
-loadTextImage(230,6877
-cloneTextImage(238,7015
-update_insert(251,7244
-InsertTextImage(264,7438
-ChangedRegionTextImage(298,8215
-ChangedEntireTextImage(310,8481
-tab(320,8695
-fill_dimensions_line(348,9098
-do_fill_line(377,9835
-#define equal_text_char(488,12152
-fill_line(496,12422
-updateMapTextImage(564,13879
-dump_map(612,15067
-dumpMapTextImage(659,16196
-t_underline(671,16380
-t_invert(685,16603
-t_grey(703,16911
-paint_attributes(729,17525
-#define PutBuf(749,18059
-paint_line(758,18246
-paint_area(871,20807
-line_from_y(909,21712
-char_from_x(939,22393
-get_xy_pos(975,23298
-get_character_box_textimage(1019,24144
-get_index_text_image(1037,24518
-getLinesTextImage(1069,25130
-getLineTextImage(1077,25236
-getIndexTextImage(1091,25466
-RedrawAreaTextImage(1103,25740
-computeTextImage(1146,26838
-startTextImage(1194,27835
-locate_screen_line(1228,28462
-copy_line_attributes(1242,28703
-copy_line_chars(1252,28896
-copy_line(1263,29106
-paragraph_start(1270,29226
-shift_lines_down(1281,29418
-center_from_screen(1303,29904
-centerTextImage(1331,30517
-getStartTextImage(1377,31687
-wrapTextImage(1433,33046
-tabDistanceTextImage(1444,33198
-tabStopsTextImage(1455,33369
-geometryTextImage(1477,33770
-getWidthTextImage(1498,34295
-getHeightTextImage(1504,34366
-getViewTextImage(1510,34431
-makeClassTextImage(1516,34508
+initialiseTextImage(88,3461
+unalloc_textline(102,3873
+unalloc_screen(111,4033
+unlinkTextImage(127,4323
+ensure_lines_screen(140,4495
+ensure_chars_line(174,5387
+storeTextImage(197,5894
+reinitTextImage(203,5992
+loadTextImage(231,6947
+cloneTextImage(239,7085
+update_insert(252,7314
+InsertTextImage(265,7508
+ChangedRegionTextImage(299,8285
+ChangedEntireTextImage(311,8551
+tab(321,8765
+fill_dimensions_line(349,9168
+do_fill_line(386,10078
+#define equal_text_char(503,12588
+fill_line(511,12870
+updateMapTextImage(579,14345
+dump_map(627,15533
+dumpMapTextImage(674,16674
+t_underline(686,16858
+t_invert(700,17081
+t_grey(718,17389
+ascent_and_descent_graphical(740,17800
+paint_graphical(755,18136
+paint_attributes(788,19058
+#define PutBuf(808,19592
+paint_line(817,19779
+paint_area(942,22573
+line_from_y(980,23489
+char_from_x(1014,24247
+get_xy_pos(1050,25152
+get_character_box_textimage(1094,25998
+get_index_text_image(1112,26372
+getLinesTextImage(1144,26984
+getLineTextImage(1152,27090
+getIndexTextImage(1166,27320
+eventTextImage(1175,27497
+RedrawAreaTextImage(1248,29307
+computeTextImage(1291,30408
+startTextImage(1347,31509
+locate_screen_line(1381,32136
+copy_line_attributes(1395,32377
+copy_line_chars(1405,32570
+copy_line(1416,32780
+paragraph_start(1423,32900
+shift_lines_down(1434,33092
+center_from_screen(1456,33578
+centerTextImage(1484,34191
+getStartTextImage(1530,35361
+wrapTextImage(1586,36720
+tabDistanceTextImage(1597,36872
+tabStopsTextImage(1608,37043
+geometryTextImage(1630,37444
+getWidthTextImage(1651,37969
+getHeightTextImage(1657,38040
+getViewTextImage(1663,38105
+makeClassTextImage(1669,38182
 
 txt/textmargin.c,300
 #define X_MARGIN 14,318
@@ -5059,21 +5086,21 @@ copy_undo(409,10406
 register_delete_textbuffer(425,10713
 register_change_textbuffer(466,12013
 
-unx/client.c,300
-#define MAX_UN_ADDRESS_LEN 22,478
-#define CPSIZE 24,510
-#define EOS	30,628
-#define streq(31,646
-#define max(32,686
-#define FALSE 35,743
-#define TRUE 36,759
-connectPce(46,939
-copy_block(99,2100
-copy2(119,2367
-#define SHIFT 154,2996
-#define NEXT_ARG(156,3026
-main(164,3125
-usage(227,4000
+unx/client.c,301
+#define MAX_UN_ADDRESS_LEN 26,520
+#define CPSIZE 28,552
+#define EOS	34,670
+#define streq(35,688
+#define max(36,728
+#define FALSE 39,785
+#define TRUE 40,801
+connectPce(50,981
+copy_block(103,2142
+copy2(123,2409
+#define SHIFT 158,3038
+#define NEXT_ARG(160,3068
+main(168,3167
+usage(231,4042
 
 unx/directory.c,845
 # define NAMLEN(23,473

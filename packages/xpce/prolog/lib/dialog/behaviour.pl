@@ -29,7 +29,7 @@
 
 :- pce_autoload(editable_text, library(pce_editable_text)).
 :- pce_autoload(tagged_connection, library(pce_tagged_connection)).
-:- use_module(library(prompter)).
+:- use_module(library('dialog/lib/prompter')).
 :- use_module(proto).
 :- use_module(generate, [new_term/2]).
 :- use_module(meta).

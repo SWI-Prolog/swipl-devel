@@ -18,4 +18,4 @@ proto.h:	$(GRASRC)
 		$(MKPROTO) $(GRASRC) | $(CLPROTO) > proto.h
 
 clean:
-		rm -f *~ a.out core $(GRAOBJS) addlib
+		$(RM) -f *~ a.out core $(GRAOBJS) addlib

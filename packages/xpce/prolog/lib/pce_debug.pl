@@ -174,6 +174,9 @@ non_object_reference('_handle_to_itf_table').
 %	reference documentation of `Object ->_check' for details.
 
 checkpce :-
+	get(@pce, is_runtime_system, @on), !,
+	send(checkpce, error, runtime_version).
+checkpce :-
 	test(check_pce_database, Status),
 	test(check_pce_types, Status),
 	Status = yes.

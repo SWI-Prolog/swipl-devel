@@ -463,7 +463,7 @@ faq(_M) :->
 
 about(_M) :->
 	send(@display, inform,
-	     'PCE version %s\n\nCopyright 1992-1994, University of Amsterdam\n\ninfo: jan@swi.psy.uva.nl\n\n',
+	     'XPCE version %s\n\nCopyright 1992-1995, University of Amsterdam\n\ninfo: jan@swi.psy.uva.nl\n\n',
 	     @pce?version).
 
 

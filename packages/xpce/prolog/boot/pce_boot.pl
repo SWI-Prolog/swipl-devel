@@ -85,6 +85,7 @@ pce_ifhostproperty(repeat_meta_declaraction,
 		********************************/
 
 pce_load_init_file :-
+	get(@pce, is_runtime_system, @off),
 	InitFile = '~/.xpcerc',
 	unix(access(InitFile, 0)),
 	user:ensure_loaded(InitFile), !.

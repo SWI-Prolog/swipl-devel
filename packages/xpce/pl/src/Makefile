@@ -10,9 +10,10 @@
 
 XPCEOBJ=$(PCEHOME)/src/XPCE.a
 
-OBJ=	$(PLRUNTIME)/pl.o interface.o link.o $(XPCEOBJ)
+OBJ=	$(PLRUNTIME)/$(PLOBJ) interface.o link.o $(XPCEOBJ)
 BINOBJ= ../../pl/runtime/$(ARCH)/pl.o interface.o link.o $(XPCEOBJ)
 TARGET=	xpce
+BASE=xpce$(RTSUFFIX).base
 
 CFLAGS= 	$(COFLAGS) -I$(PLINCLUDE) -I$(PCEHOME)/src
 ITF=		../../prolog/c/interface.c ../../prolog/c/interface.h
@@ -21,15 +22,15 @@ all:		$(TARGET) pl-crt0.o
 
 interface.o:	$(ITF) interface.c
 
-xpce.base:	$(OBJ)
+$(BASE):	$(OBJ)
 		$(CC) $(LDFLAGS) -o $@ $(OBJ) $(LIBS)
 
 printcmd:
 		@echo $(CC) $(LDFLAGS) -o xpce.base \
 			$(BINOBJ) $(LIBS) $(STATICLIBS)
 
-$(TARGET):	xpce.base domangle
-		./dump ./xpce.base $@
+$(TARGET):	$(BASE) domangle
+		./dump ./$(BASE) $@
 
 mangle:		mangle.c
 		$(CC) -O -o mangle mangle.c
@@ -39,8 +40,8 @@ domangle:	mangle mlist xpce.base
 		touch domangle
 
 clean:		
-		rm -f *.o core a.out *~
+		$(RM) -f *.o core a.out *~
 
 realclean:	clean
-		rm -f xpce.base mangle domangle ctr0.o
+		$(RM) -f xpce$(RTSUFFIX).base mangle domangle ctr0.o
 		

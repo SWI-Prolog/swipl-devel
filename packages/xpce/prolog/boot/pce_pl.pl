@@ -39,7 +39,9 @@
 
 property(prolog(swi)).			% this is SWI-Prolog
 property(file_extensions([pl])).	% list of file extensions
-
+property(runtime) :-
+	get(@(pce), is_runtime_system, @(on)).
+	
 
 		/********************************
 		*         STRIP_MODULE		*
@@ -120,7 +122,7 @@ pce_banner :-
 	(   get(@(pce), is_runtime_system, @(off))
 	->  format('~nFor HELP on prolog, please type help. or apropos(topic).~n'),
 	    format('         on xpce, please type manpce.~n~n')
-	;   true
+	;   format('~n', [])
 	).
 
 
@@ -162,7 +164,7 @@ pce_error(Fmt, Args) :-
 
 '$load_pce' :-
 	current_predicate('$pce_init', '$pce_init'), !,
-	feature(xpce, true),
+	set_feature(xpce, true),
 	pce_principal:'$pce_init'.
 
 

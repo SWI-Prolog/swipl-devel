@@ -1803,6 +1803,8 @@ makeClassWindow(Class class)
   delegateClass(class, NAME_tile);
   delegateClass(class, NAME_decoration); /* label, scrollbars */
   cloneStyleClass(class, NAME_none);
+  saveStyleVariableClass(class, NAME_currentEvent, NAME_nil);
+  saveStyleVariableClass(class, NAME_focusEvent, NAME_nil);
   setRedrawFunctionClass(class, RedrawAreaWindowAsGraphical);
 
   storeMethod(class, NAME_resizeMessage, resizeMessageWindow);

@@ -53,10 +53,13 @@ call_atom(Socket, Command) :-
 	(   CommandAtom == ''
 	->  send(Socket, format, '\n%s', Prompt)
 	;   (   atom_to_term(CommandAtom, Term, Bindings)
-	    ->  (   call(Module:Term)
-		->  write_bindings(Bindings, Socket),
-		    send(Socket, format, 'yes\n%s', Prompt)
-		;   send(Socket, format, 'no\n%s', Prompt)
+	    ->  (   Term == exit
+		->  send(Socket, free)
+		;   (   call(Module:Term)
+		    ->  write_bindings(Bindings, Socket),
+			send(Socket, format, 'yes\n%s', Prompt)
+		    ;   send(Socket, format, 'no\n%s', Prompt)
+		    )
 		)
 	    ;   send(Socket, format, 'Syntax error\n%s', Prompt)
 	    )

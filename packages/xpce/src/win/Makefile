@@ -21,4 +21,4 @@ rclass.h:	../../Makefile
 display.o:	rclass.h
 
 clean:
-		rm -f *~ a.out core $(WINOBJS) addlib
+		$(RM) -f *~ a.out core $(WINOBJS) addlib

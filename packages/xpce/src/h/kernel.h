@@ -278,6 +278,7 @@ provided.
 #define subInt(i, j)	((i) = toInt(valInt(i) - valInt(j)))
 #define maxInt(i, j)	toInt(max(valInt(i), valInt(j)))
 
+#undef div
 #define neg(i)		(toInt(-valInt(i)))
 #define add(i, j)	(toInt(valInt(i) + valInt(j)))
 #define sub(i, j)	(toInt(valInt(i) - valInt(j)))
@@ -1076,7 +1077,7 @@ NewClass(obtain)
   Vector	arguments;		/* argument vector of the message */
 End;
 
-NewClass(create)
+NewClass(create_obj)
   ABSTRACT_FUNCTION
   Class		c_class;		/* Class to create instance from */
   Vector	arguments;		/* Initialisation arguments */

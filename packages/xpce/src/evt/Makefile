@@ -17,4 +17,4 @@ proto.h:	$(EVTSRC)
 		$(MKPROTO) $(EVTSRC) | $(CLPROTO) > proto.h
 
 clean:
-		rm -f *~ a.out core $(EVTOBJS) addlib
+		$(RM) -f *~ a.out core $(EVTOBJS) addlib

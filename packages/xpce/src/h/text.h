@@ -47,13 +47,17 @@ End;
 #define tb_buffer8  buffer.text_union.text8
 #define tb_buffer16 buffer.text_union.text16
 
+#define FRAG_INCLUDES_START	0x1	/* <-start is included */
+#define FRAG_INCLUDES_END	0x2	/* <-end is included */
+
 NewClass(fragment)
-  TextBuffer	textbuffer;	/* text buffer fragment is associated with */
-  Fragment	next;		/* next fragment */
-  Fragment  	prev;		/* previous fragment */
-  Name	 	style;		/* style of fragment (indirect via editor) */
-  long   	start;		/* start of fragment */
-  long  	length;		/* length of fragment (> 0) */
+  TextBuffer	textbuffer;		/* text buffer fragment associated */
+  Fragment	next;			/* next fragment */
+  Fragment  	prev;			/* previous fragment */
+  Name	 	style;			/* style of fragment (via editor) */
+  long   	start;			/* start of fragment */
+  long  	length;			/* length of fragment (> 0) */
+  long		attributes;		/* FRAG_... */
 End;
 
 NewClass(style)
@@ -148,13 +152,17 @@ typedef long (*FetchFunction)(Any, TextChar);
 typedef void (*MarginFunction)(Any, int *, int*);
 
 struct text_char
-{ int		c;			/* The character at this position */
+{ union
+  { int		c;			/* character at pos */
+    Graphical	graphical;		/* graphical at pos */
+  } value;
   FontObj	font;			/* Font of this character */
   Colour	colour;			/* Colour of this character */
   Any		background;		/* Background for the characters */
   long		index;			/* Index in line (relative) */
   short		x;			/* X-position in line (pixels) */
   unsigned char attributes;		/* Its attributes */
+  unsigned 	is_graphical : 1;	/* graphical character */
 };
 
 struct text_line

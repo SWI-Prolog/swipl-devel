@@ -217,3 +217,26 @@ void		pceTraceBack __P((int depth)); /* dump PCE message stack */
 void		pceWriteCurrentGoal __P((void)); /* dump top of PCE stack */
 
 
+		 /*******************************
+		 *	   STREAM INTERFACE	*
+		 *******************************/
+
+#define PCE_OPEN_MAX	64		/* statically allocated max open */
+
+int		pceOpen(PceObject obj, int flags);
+int		pceClose(int handle);
+int		pceWrite(int handle, const char *buf, int size);
+int		pceRead(int handle, char *buf, int size);
+long		pceSeek(int handle, long offset, int whence);
+const char *	pceOsError();
+
+					/* flags for pceOpen() (or'ed) */
+#define PCE_RDONLY	0x1
+#define	PCE_WRONLY	0x2
+#define	PCE_RDWR	0x3		/* == PCE_RDONLY|PCE_WRONLY */
+#define	PCE_APPEND	0x4
+#define	PCE_TRUNC	0x8
+
+#define PCE_SEEK_SET	0
+#define PCE_SEEK_CUR	1
+#define PCE_SEEK_END	2

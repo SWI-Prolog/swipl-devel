@@ -1,5 +1,8 @@
 				XPCE ToDo List
 
+*) Merge device <->bad_bouding_box and <->bad_format into request_compute 
+   member.
+
 [ Bugs ]
 
 *) OpenWindows: completer() window properties!
@@ -21,8 +24,6 @@ Issue list:
 *) Communication with the outside world.
 
 *) Regex and 16-bit units?
-
-*) str_spc(), str_nl(), etc.: 16-bit versions!
 
 *) text_buffer->sort for 16-bit version
 

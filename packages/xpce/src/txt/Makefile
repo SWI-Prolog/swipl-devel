@@ -16,4 +16,4 @@ proto.h:	$(TXTSRC)
 		$(MKPROTO) $(TXTSRC) | $(CLPROTO) > proto.h
 
 clean:
-		rm -f *~ a.out core $(TXTOBJS) addlib
+		$(RM) -f *~ a.out core $(TXTOBJS) addlib

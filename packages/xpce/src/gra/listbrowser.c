@@ -483,19 +483,20 @@ fetch_list_browser(ListBrowser lb, TextChar tc)
   { int len = current_name->size;
 
     if ( pos < len )
-      tc->c = str_fetch(current_name, pos);
+      tc->value.c = str_fetch(current_name, pos);
     else if ( pos == len )
-    { tc->c = '\n';
+    { tc->value.c = '\n';
       current_index = ((index / BROWSER_LINE_WIDTH) + 1) * BROWSER_LINE_WIDTH;
     }
   } else
-    tc->c = EOB;
+    tc->value.c = EOB;
 
-  tc->font       = current_font;
-  tc->attributes = current_atts;
-  tc->colour	 = current_colour;
-  tc->background = current_background;
-  tc->index      = index;
+  tc->is_graphical = 0;
+  tc->font         = current_font;
+  tc->attributes   = current_atts;
+  tc->colour	   = current_colour;
+  tc->background   = current_background;
+  tc->index        = index;
 
   if ( pos < current_search )
   { Style s = getResourceValueObject(lb, NAME_isearchStyle);

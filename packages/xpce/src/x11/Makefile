@@ -27,7 +27,7 @@ proto.h:	$(COMMSRC)
 		$(MKPROTO) $(COMMSRC) | $(CLPROTO) > proto.h
 
 clean:
-		rm -f *~ a.out core $(X11OBJS) xversion.h addlib
+		$(RM) -f *~ a.out core $(X11OBJS) xversion.h addlib
 
 .c.o:
 		$(CC) -c $(CFLAGS) -I$(XINCLUDES) $*.c

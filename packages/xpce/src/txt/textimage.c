@@ -77,6 +77,7 @@ forwards status reinitTextImage(TextImage ti);
 static int	char_from_x(TextLine tl, int x);
 static void	copy_line_attributes(TextLine from, TextLine to);
 static void	copy_line_chars(TextLine from, int start, TextLine to);
+static void	ascent_and_descent_graphical(Graphical gr, int *, int *);
 
 
 		/********************************
@@ -346,19 +347,27 @@ tab(TextImage ti, int x)
 
 static void
 fill_dimensions_line(TextLine l)
-{ int i;
-  FontObj f = NULL;
+{ FontObj f = NULL;
   int ascent = 0, descent = 0;
+  TextChar tc, te;
 
-  for(i=0; i<l->length; i++)
-  { if ( l->chars[i].font != f )
-    { f = l->chars[i].font;
+  for(tc=l->chars, te=&l->chars[l->length]; tc<te; tc++)
+  { int a, d;
+
+    if ( tc->is_graphical )
+    { ascent_and_descent_graphical(tc->value.graphical, &a, &d);
+      ascent  = max(ascent, a);
+      descent = max(descent, d);
+    } else
+    { if ( tc->font != f )
+      { f = tc->font;
       
-      if ( f != NULL )
-      { ascent  = max(ascent, valInt(getAscentFont(f)));
-	descent = max(descent, valInt(getDescentFont(f)));
-      } else
-	printf("Font is NULL???\n");
+	assert(f);
+	a = valInt(getAscentFont(f));
+	d = valInt(getDescentFont(f));
+	ascent  = max(ascent, a);
+	descent = max(descent, d);
+      }
     }
   }
   
@@ -403,41 +412,46 @@ do_fill_line(TextImage ti, TextLine l, long int index)
     }
 
     index = (*ti->fetch)(ti->text, tc);
-    assert(index > 0);
     tc->index -= start;
     tc->x = x;
 
-    switch(tc->c)
-    { case EOB:
-      case '\n':
-	x = ti->w - TXT_X_MARGIN;
-	l->ends_because |= END_NL;
-	l->length = ++i;
-	l->end = index;
-	if ( tc->c == EOB )
-	{ index--;
-	  l->ends_because |= END_EOF;
-	}
-	l->w = x;
-	ensure_chars_line(l, i+1);
-	tc = &l->chars[i];
-	tc->x = x;
-	fill_dimensions_line(l);
-	return index;
-      case '\t':
-        x = tab(ti, x);
-	if ( ++last_is_space == 1 )
-	  last_break = i;
-	break;
-      case ' ':
-	x += c_width(tc->c, tc->font);
-	if ( ++last_is_space == 1 )
-	  last_break = i;
-	break;
-      default:
-	x += c_width(tc->c, tc->font);
-	last_is_space = FALSE;
-	break;
+    if ( tc->is_graphical )
+    { ComputeGraphical(tc->value.graphical);
+
+      x += valInt(tc->value.graphical->area->w);
+    } else
+    { switch(tc->value.c)
+      { case EOB:
+	case '\n':
+	  x = ti->w - TXT_X_MARGIN;
+	  l->ends_because |= END_NL;
+	  l->length = ++i;
+	  l->end = index;
+	  if ( tc->value.c == EOB )
+	  { index--;
+	    l->ends_because |= END_EOF;
+	  }
+	  l->w = x;
+	  ensure_chars_line(l, i+1);
+	  tc = &l->chars[i];
+	  tc->x = x;
+	  fill_dimensions_line(l);
+	  return index;
+	case '\t':
+	  x = tab(ti, x);
+	  if ( ++last_is_space == 1 )
+	    last_break = i;
+	  break;
+	case ' ':
+	  x += c_width(tc->value.c, tc->font);
+	  if ( ++last_is_space == 1 )
+	    last_break = i;
+	  break;
+	default:
+	  x += c_width(tc->value.c, tc->font);
+	  last_is_space = FALSE;
+	  break;
+      }
     }
     
     if ( x >= right_margin )
@@ -486,7 +500,7 @@ do_fill_line(TextImage ti, TextLine l, long int index)
 }
 
 
-#define equal_text_char(c1, c2) ( (c1)->c == (c2)->c && \
+#define equal_text_char(c1, c2) ( (c1)->value.c == (c2)->value.c && \
 				  (c1)->font == (c2)->font && \
 				  (c1)->colour == (c2)->colour && \
 				  (c1)->background == (c2)->background && \
@@ -553,6 +567,8 @@ fill_line(TextImage ti, int line, long int index, short int y)
       { l->changed = i;
 	copy_line_chars(&tmp, i, l);
       } 
+      if ( tmp.length < l->length )
+	l->changed = tmp.length;
       l->length = tmp.length;
 
       return idx;
@@ -633,7 +649,7 @@ dump_map(TextScreen map)
     putchar((l->ends_because & END_NL)   ? 'L' : '-');
     printf(": \"");
     for(n=0; n < 5 && n < l->length; n++)
-    { if ( (c = l->chars[n].c) == '\n' )
+    { if ( (c = l->chars[n].value.c) == '\n' )
 	printf("\\n");
       else if ( c == EOB )
 	printf("\\$");
@@ -645,7 +661,7 @@ dump_map(TextScreen map)
       n = l->length - 5;
     }
     for( ; n < l->length; n++ )
-    { if ( (c = l->chars[n].c) == '\n' )
+    { if ( (c = l->chars[n].value.c) == '\n' )
 	printf("\\n");
       else if ( c == EOB )
 	printf("\\$");
@@ -718,6 +734,50 @@ t_grey(int x, int y, int w, int h)
 }
 
 
+		 /*******************************
+		 *	GRAPHICS PAINTING	*
+		 *******************************/
+
+static void
+ascent_and_descent_graphical(Graphical gr, int *ascent, int *descent)
+{ if ( instanceOfObject(gr, ClassDevice) )
+  { Device dev = (Device)gr;
+
+    *ascent  = valInt(dev->offset->y) - valInt(dev->area->h);
+    *descent = valInt(dev->area->h) - *ascent;
+
+  } else
+  { *ascent  = valInt(gr->area->h);
+    *descent = 0;
+  }
+}
+
+
+static void
+paint_graphical(TextImage ti, Area a, Graphical gr, int x, int base)
+{ int dx, dy;
+
+  if ( instanceOfObject(gr, ClassDevice) )
+  { Device dev = (Device)gr;
+
+    dx = x    - (valInt(dev->offset->x) + valInt(dev->area->x));
+    dy = base - (valInt(dev->offset->y));
+  } else
+  { dx = x - valInt(gr->area->x);
+    dy = base - (valInt(gr->area->y) + valInt(gr->area->h));
+  }
+
+  r_offset(dx, dy);
+  assign(a, x, toInt(valInt(a->x) - dx));
+  assign(a, y, toInt(valInt(a->y) - dy));
+  RedrawArea(gr, a);
+  assign(a, x, toInt(valInt(a->x) + dx));
+  assign(a, y, toInt(valInt(a->y) + dy));
+  r_offset(-dx, -dy);
+}
+
+
+
 		/********************************
 		*            PAINTING		*
 		********************************/
@@ -756,7 +816,7 @@ paint_attributes(TextImage ti, TextLine l, int from, int to)
 		   }
 
 static void
-paint_line(TextImage ti, TextLine l, int from, int to)
+paint_line(TextImage ti, Area a, TextLine l, int from, int to)
 { char buf[1000];
   char *out;
   int b16, n, s = from, e;
@@ -776,13 +836,25 @@ paint_line(TextImage ti, TextLine l, int from, int to)
 
   { TextChar last = &l->chars[to-1];
 
-    if ( last->c == EOB )
+    if ( last->value.c == EOB )
       to--;
   }
 
   for( s = from; s < to; s = e )
   { int prt;
+    int chr = l->chars[s].value.c;
+
     e = s;
+
+    if ( l->chars[e].is_graphical )
+    { paint_graphical(ti, a,
+		      l->chars[e].value.graphical, 
+		      l->chars[e].x,
+		      l->y + l->base);
+      e++;
+      continue;
+    }
+
     n = 0;
     f      = l->chars[e].font;
     b16    = (f->b16 == ON);
@@ -791,18 +863,18 @@ paint_line(TextImage ti, TextLine l, int from, int to)
     bg     = l->chars[e].background;
     out    = buf;
 
-    PutBuf(l->chars[e].c);
+    PutBuf(chr);
 
-    if ( l->chars[e].c == '\t' )	/* print tabs */
+    if ( chr == '\t' )			/* print tabs */
     { prt = FALSE;
 
       for(n++, e++; e < to; n++, e++)
       { if ( l->chars[e].attributes != atts ||
 	     l->chars[e].background != bg ||
-	     l->chars[e].c != '\t' )
+	     l->chars[e].value.c != '\t' )
 	  break;
       }
-    } else if ( l->chars[e].c == '\n' )	/* newline */
+    } else if ( chr == '\n' )		/* newline */
     { prt = FALSE;
 
       e++;
@@ -814,11 +886,11 @@ paint_line(TextImage ti, TextLine l, int from, int to)
 	     l->chars[e].colour != c ||
 	     l->chars[e].background != bg ||
 	     l->chars[e].attributes != atts ||
-	     l->chars[e].c == '\t' ||
-	     l->chars[e].c == '\n' )
+	     l->chars[e].value.c == '\t' ||
+	     l->chars[e].value.c == '\n' )
 	  break;
 	
-	PutBuf(l->chars[e].c);
+	PutBuf(l->chars[e].value.c);
       }
     }
 
@@ -869,7 +941,7 @@ paint_line(TextImage ti, TextLine l, int from, int to)
 
 
 static void
-paint_area(TextImage ti, int x, int y, int w, int h)
+paint_area(TextImage ti, Area a, int x, int y, int w, int h)
 { int p = valInt(ti->pen);
 
   if ( x < ti->w - TXT_X_MARGIN && x+w >= TXT_X_MARGIN &&
@@ -888,7 +960,7 @@ paint_area(TextImage ti, int x, int y, int w, int h)
 	f = char_from_x(ml, x);
 	t = char_from_x(ml, x+w);
   
-	paint_line(ti, ml, f, t+1);	/* TBD: get correct boundaries */
+	paint_line(ti, a, ml, f, t+1);	/* TBD: get correct boundaries */
 	ly = ml->y + ml->h;
       }
     }  
@@ -908,27 +980,31 @@ paint_area(TextImage ti, int x, int y, int w, int h)
 
 static TextLine
 line_from_y(TextImage ti, int y)
-{ int l = ti->map->skip;
-  int h = ti->map->length - 1;
-  int m;
-  TextLine tl;
+{ if ( ti->map && ti->map->lines )
+  { int l = ti->map->skip;
+    int h = ti->map->length - 1;
+    int m;
+    TextLine tl;
 
-  if ( y < ti->map->lines[l].y )
-    return &ti->map->lines[l];
-  if ( y >= ti->map->lines[h].y + ti->map->lines[h].h )
-    return &ti->map->lines[h];
+    if ( y < ti->map->lines[l].y )
+      return &ti->map->lines[l];
+    if ( y >= ti->map->lines[h].y + ti->map->lines[h].h )
+      return &ti->map->lines[h];
 
-  for(;;)
-  { m = (l+h) / 2;
-    tl = &ti->map->lines[m];
+    for(;;)
+    { m = (l+h) / 2;
+      tl = &ti->map->lines[m];
 
-    if ( y >= tl->y )
-    { if ( y < tl->y + tl->h )
-	return tl;
-      l = (l == m ? l+1 : m);
-    } else
-      h = m;
+      if ( y >= tl->y )
+      { if ( y < tl->y + tl->h )
+	  return tl;
+	l = (l == m ? l+1 : m);
+      } else
+	h = m;
+    }
   }
+
+  return NULL;
 }
 
 
@@ -1097,6 +1173,75 @@ getIndexTextImage(TextImage ti, EventObj ev)
 }
 
 
+static status
+eventTextImage(TextImage ti, EventObj ev)
+{ if ( eventGraphical(ti, ev) )
+  { succeed;
+  } else
+  { Int x, y;
+    TextLine tl;
+    TextChar tc;
+
+    get_xy_event(ev, ti, ON, &x, &y);
+    if ( (tl = line_from_y(ti, valInt(y))) &&
+	 (tc = &tl->chars[char_from_x(tl, valInt(x))]) &&
+	 tc->is_graphical )
+    { Graphical gr = tc->value.graphical;
+      status rval;
+      PceWindow sw;
+      Area a = gr->area;
+      Int ow = a->w, oh = a->h;
+
+      if ( instanceOfObject(gr, ClassDevice) )
+      { printf("Should move %s\n", pp(gr));
+      } else
+      { setGraphical(gr,
+		     toInt(valInt(ti->area->x) + tc->x),
+		     toInt(valInt(ti->area->y) +
+			   tl->y + tl->base - valInt(gr->area->h)),
+		     DEFAULT,
+		     DEFAULT);
+      }
+      DeviceGraphical(gr, ti->device);
+      DisplayedGraphical(gr, ON);
+      rval = postEvent(ev, gr, DEFAULT);
+      if ( (sw = getWindowGraphical((Graphical) ti->device)) &&
+	   (sw->focus == gr) )
+      { DisplayObj d = getDisplayGraphical((Graphical) sw);
+
+	while( !onFlag(sw, F_FREED|F_FREEING) && sw->focus == gr )
+	{ if ( dispatchDisplay(d) )
+	  { char buf[LINESIZE];
+
+	    printf("Focus on graphical in editor; discarding input ... ");
+	    fflush(stdout);
+	    read(fileno(stdin), buf, LINESIZE);
+	    printf("ok\n");
+	  }
+	}
+      }
+      if ( !onFlag(gr, F_FREED|F_FREEING) &&
+	   !onFlag(ti, F_FREED|F_FREEING) )
+      { DeviceGraphical(gr, NIL);
+	a = gr->area;
+
+	if ( ow != a->w || oh != a->h )
+	{ int where = tl->start + tc->index;
+
+	  DEBUG(NAME_diagram, printf("%s: Changed %d\n", pp(ti), where));
+	  ChangedRegionTextImage(ti, toInt(where), toInt(where+1));
+	}
+      }
+
+      return rval;
+    }
+  }
+
+  fail;
+}
+
+
+
 		/********************************
 		*            REDRAW		*
 		********************************/
@@ -1122,7 +1267,7 @@ RedrawAreaTextImage(TextImage ti, Area a)
 
   obg = r_background(ti->background);
   r_offset(ox, oy);
-  paint_area(ti, sx, sy, w, h);
+  paint_area(ti, a, sx, sy, w, h);
   r_offset(-ox, -oy);
   r_background(obg);
 
@@ -1174,7 +1319,10 @@ computeTextImage(TextImage ti)
 	} else
 	  ty = cy;
 
-	cx = ml->chars[ml->changed].x;
+	if ( ml->changed == 0 )
+	  cx = TXT_X_MARGIN;
+	else
+	  cx = ml->chars[ml->changed].x;
 	if ( cx < fx )
 	  fx = cx;
 
@@ -1597,6 +1745,9 @@ makeClassTextImage(Class class)
 	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
 	     "Change image geometry",
 	     geometryTextImage);
+  sendMethod(class, NAME_event, DEFAULT, 1, "event",
+	     "Forward event to included graphicals",
+	     eventTextImage);
   sendMethod(class, NAME_start, NAME_scroll, 2,
 	     "start=[int]", "skip_lines=[int]",
 	     "Set start of screen and screenlines to skip",

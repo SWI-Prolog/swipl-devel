@@ -16,4 +16,4 @@ xpce-client:	client.o
 		$(CC) $(COFLAGS) $(CIFLAGS) -o $@ client.o $(NETLIBS)
 
 clean:
-		rm -f *~ a.out core $(UNXOBJS) addlib client.o 
+		$(RM) -f *~ a.out core $(UNXOBJS) addlib client.o 

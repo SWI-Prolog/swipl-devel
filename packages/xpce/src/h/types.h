@@ -121,7 +121,7 @@ typedef struct vmi *			Vmi;
 typedef struct visual * 		VisualObj;
 typedef struct when *			When;
 typedef struct while_obj *		While;
-typedef struct create *			Create;
+typedef struct create_obj *		Create;
 
 
 		/********************************

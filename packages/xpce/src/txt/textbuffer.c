@@ -142,6 +142,22 @@ loadTextBuffer(TextBuffer tb, FILE *fd, ClassDef def)
   succeed;
 }
 
+
+static status
+cloneTextBuffer(TextBuffer tb, TextBuffer clone)
+{ clonePceSlots(tb, clone);
+
+  clone->undo_buffer = NULL;
+  clone->tb_buffer8 = malloc(clone->allocated);
+  memcpy(clone->tb_buffer8, tb->tb_buffer8, clone->allocated);
+  clone->changed_start = clone->size;
+  clone->changed_end = 0;
+  assign(clone, editors, newObject(ClassChain, 0));
+
+  succeed;
+}
+
+
 		 /*******************************
 		 *	      EDITOR		*
 		 *******************************/
@@ -1708,14 +1724,17 @@ shift_fragments(TextBuffer tb, long int from, long int shift)
   DEBUG(NAME_shift, printf("Start shift: from = %ld, shift = %ld\n",
 			   from, shift));
 
-  if ( shift > 0 )				/* insert */
-    for(f=tb->first_fragment; notNil(f); f = f->next)
-    { if ( f->start > from )
+  if ( shift > 0 )			/* insert */
+  { for(f=tb->first_fragment; notNil(f); f = f->next)
+    { if ( from < f->start ||
+	   (from == f->start && !(f->attributes & FRAG_INCLUDES_START)) )
 	f->start += shift;
-      else if ( f->start + f->length > from )
+      else if ( from < f->start + f->length ||
+		(from == f->start + f->length &&
+		 (f->attributes & FRAG_INCLUDES_END)) )
 	f->length += shift;
     }
-  else						/* delete */
+  } else				/* delete */
   { int to = from - shift;
     Fragment next;
 
@@ -1856,6 +1875,8 @@ makeClassTextBuffer(Class class)
   termClass(class, "text_buffer", 0, NAME_string);
   setLoadStoreFunctionClass(class, loadTextBuffer, storeTextBuffer);
   saveStyleVariableClass(class, NAME_editors, NAME_nil);
+  setCloneFunctionClass(class, cloneTextBuffer);
+  cloneStyleVariableClass(class, NAME_editors, NAME_nil);
 
   storeMethod(class, NAME_undoBufferSize, undoBufferSizeTextBuffer);
   storeMethod(class, NAME_modified, modifiedTextBuffer);

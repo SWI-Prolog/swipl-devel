@@ -168,7 +168,7 @@ int utime ();
 #endif /* not STDC_HEADERS and not HAVE_STRING_H */
 
 #include <errno.h>
-#ifdef __STDC__
+#if defined(USG) || defined(STDC_HEADERS)
 #include <stdlib.h>
 #else
 char *getenv ();

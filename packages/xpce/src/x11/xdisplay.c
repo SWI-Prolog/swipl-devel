@@ -13,6 +13,7 @@
 
 #define X11LastEventTime() ((Time)LastEventTime())
 
+
 static XrmOptionDescRec opTable[] =
 { {"-xrm",	NULL,	XrmoptionResArg, NULL }
 };
@@ -105,9 +106,8 @@ ws_deactivate_screen_saver(DisplayObj d)
 
 void
 ws_init_display(DisplayObj d)
-{ DisplayWsXref ref;
+{ DisplayWsXref ref = alloc(sizeof(display_ws_ref));
 
-  ref = (DisplayWsXref) d->ws_ref = alloc(sizeof(display_ws_ref));
   ref->display_xref     = NULL;
   ref->shell_xref       = NULL;
   ref->root_bitmap      = 0;
@@ -119,6 +119,8 @@ ws_init_display(DisplayObj d)
   ref->bitmap_context   = NULL;
   ref->foreground_pixel = ref->black_pixel;
   ref->background_pixel = ref->white_pixel;
+
+  d->ws_ref = ref;
 }
 
 

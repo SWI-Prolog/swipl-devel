@@ -1080,20 +1080,3 @@ makeClassFile(Class class)
 
   succeed;
 }
-
-#if hpux
-#include <sys/time.h>
-#include <sys/resource.h>
-
-int
-getdtablesize()
-{ struct rlimit rlp;
-
-  if ( getrlimit(RLIMIT_NOFILE, &rlp) == 0 )
-    return rlp.rlim_cur;
-
-  errorPce(PCE, NAME_noLimit, CtoName("RLIMIT_NOFILE"), getOsErrorPce(PCE));
-  return 32;				/* Old *ixes */
-}
-
-#endif

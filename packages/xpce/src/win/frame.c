@@ -702,7 +702,7 @@ borderFrame(FrameObj fr, Int width)
 { if ( fr->border != width )
   { assign(fr, border, width);
 
-    if ( ws_created_frame )
+    if ( ws_created_frame(fr) )
       ws_border_frame(fr, valInt(width));
   }
 

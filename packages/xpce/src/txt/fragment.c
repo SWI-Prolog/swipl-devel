@@ -26,8 +26,9 @@ initialiseFragment(Fragment f, TextBuffer tb, Int s, Int l, Name style)
 { assign(f, textbuffer, tb);
   assign(f, style, style);
 
-  f->start  = valInt(s);
-  f->length = valInt(l);
+  f->start      = valInt(s);
+  f->length     = valInt(l);
+  f->attributes = 0L;
 
   normaliseFragment(f);
   link_fragment(f);
@@ -119,10 +120,11 @@ unlink_fragment(Fragment f)
 }
 
 
-/*  Link the fragment in the double linked fragment chain of the
-    textbuffer. Note that this chain should always be kept sorted to the
-    start index of the fragment.
-*/
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Link a fragment in the double-linked fragment list.  Fragments are ordered
+to their start-index to speedup repaint management.  If the start index is
+equal, the largest fragment is first to ensure optimal `nesting'.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 link_fragment(Fragment f)
@@ -130,7 +132,7 @@ link_fragment(Fragment f)
   TextBuffer tb = f->textbuffer;
 
   if ( notNil(b = tb->first_fragment) )
-  { if ( f->start >= tb->last_fragment->start )
+  { if ( f->start > tb->last_fragment->start )
     { b = tb->last_fragment;		/* at the end  */
       assign(b, next, f);
       assign(f, prev, b);
@@ -148,8 +150,10 @@ link_fragment(Fragment f)
     }
 
     for( ; notNil(b->next); b = b->next)
-    { if ( b->next->start < f->start )
+    { if ( b->next->start < f->start ||
+	   (b->next->start == f->start && b->next->length > f->length) )
 	continue;
+
 
       assign(f, next, b->next);		/* somewere in the middle */
       assign(f, prev, b);
@@ -201,19 +205,83 @@ normaliseFragment(Fragment f)
   succeed;
 }
 
+		 /*******************************
+		 *	    ATTRIBUTES		*
+		 *******************************/
+
+static status
+includeFragment(Fragment f, Name what, Bool val)
+{ long mask;
+
+  if ( what == NAME_start )
+    mask = FRAG_INCLUDES_START;
+  else if ( what == NAME_end )
+    mask = FRAG_INCLUDES_END;
+  else
+    mask = FRAG_INCLUDES_START|FRAG_INCLUDES_END;
+
+  if ( val == OFF )
+    f->attributes &= ~mask;
+  else
+    f->attributes |= mask;
+
+  succeed;
+}
+
+
+static status
+doesIncludeFragment(Fragment f, Name what)
+{ int rval;
+
+  if ( what == NAME_start )
+    rval = (f->attributes & FRAG_INCLUDES_START);
+  else
+    rval = (f->attributes & FRAG_INCLUDES_END);
+
+  return rval ? SUCCEED : FAIL;
+}
+
+
 		/********************************
 		*             METHODS           *
 		*********************************/
 
+#if 0					/* better? */
 static status
-startFragment(Fragment f, Int start)
+setFragment(Fragment f, Int start, Int length)
+{ if ( valInt(start) != f->start || valInt(length) != f->length )
+  { int os = f->start;
+    int ol = f->length;
+
+    f->start  = valInt(start);
+    f->length = valInt(length);
+    normaliseFragment(f);
+    ChangedRegionTextBuffer(f->textbuffer,
+			    min(os, f->start),
+			    max(os+ol, f->start + f->length));
+  }
+
+  succeed;
+}
+#endif
+
+static status
+startFragment(Fragment f, Int start, Bool moveend)
 { if ( valInt(start) != f->start )
-  { Int oldstart = toInt(f->start);
+  { int oldstart = f->start;
+    int chend;
 
     f->start = valInt(start);
+
+    if ( moveend == OFF )
+    { f->length -= f->start - oldstart;
+      chend = f->start;
+    } else
+      chend = f->start + f->length;
+
     normaliseFragment(f);
     relink_fragment(f);
-    ChangedRegionTextBuffer(f->textbuffer, oldstart, toInt(f->start+f->length));
+    ChangedRegionTextBuffer(f->textbuffer, toInt(oldstart), toInt(chend));
   }
 
   succeed;
@@ -367,12 +435,14 @@ getSubFragment(Fragment f, Int start, Int end)
 static status
 stringFragment(Fragment f, CharArray ca)
 { TextBuffer tb = f->textbuffer;
-  Int start = toInt(f->start);
+  int start = f->start;
+  int len = f->length;
+  int calen = ca->data.size;
 
-  deleteTextBuffer(tb, start, toInt(f->length));
-  insertTextBuffer(tb, start, ca, ONE);
-  startFragment(f, start);		/* TBD */
-  lengthFragment(f, getSizeCharArray(ca));
+  insertTextBuffer(tb, toInt(start), ca, ONE);
+  startFragment(f, toInt(start), OFF);		/* TBD */
+  lengthFragment(f, toInt(calen));
+  deleteTextBuffer(tb, toInt(start + calen), toInt(len));
 
   succeed;
 }
@@ -382,13 +452,15 @@ static status
 insertFragment(Fragment f, Int idx, CharArray txt)
 { int where = (isDefault(idx) ? f->length : valInt(idx));
   int l = f->length;
+  int start = f->start;
 
   if ( where < 0 )
     where = 0;
   else if ( where > l )
     where = l;
 
-  insertTextBuffer(f->textbuffer, toInt(f->start + where), txt, ONE);
+  insertTextBuffer(f->textbuffer, toInt(start + where), txt, ONE);
+  f->start = start;			/* moves otherwise! */
   f->length = l + valInt(getSizeCharArray(txt));
 
   succeed;
@@ -432,6 +504,8 @@ makeClassFragment(Class class)
 	     "Start index (0-based)");
   localClass(class, NAME_length, NAME_dimension, "alien:long", NAME_none,
 	     "Length in characters");
+  localClass(class, NAME_attributes, NAME_internal, "alien:long", NAME_none,
+	     "Various packed attributes");
 
   termClass(class, "fragment", 4, NAME_textBuffer, NAME_start,
 			          NAME_length, NAME_style);
@@ -449,7 +523,7 @@ makeClassFragment(Class class)
   sendMethod(class, NAME_overlap, NAME_compare, 1, "int|fragment|point",
 	     "Test if overlap with argument",
 	     overlapFragment);
-  sendMethod(class, NAME_start, NAME_dimension, 1, "int",
+  sendMethod(class, NAME_start, NAME_dimension, 2, "int", "move_end=[bool]",
 	     "Start index (0-based)",
 	     startFragment);
   sendMethod(class, NAME_length, NAME_dimension, 1, "int",
@@ -474,6 +548,14 @@ makeClassFragment(Class class)
   sendMethod(class, NAME_emptied, NAME_virtual, 0,
 	     "Called if text is killed/deleted",
 	     succeedObject);
+  sendMethod(class, NAME_include, NAME_update, 2,
+	     "what=[{start,end,both}]", "include=[bool]",
+	     "Define whether start and end are included",
+	     includeFragment);
+  sendMethod(class, NAME_doesInclude, NAME_update, 1,
+	     "what={start,end}",
+	     "Test whether start or end is included",
+	     doesIncludeFragment);
 
   getMethod(class, NAME_string, NAME_contents, "string", 0,
 	    "New string with contents",

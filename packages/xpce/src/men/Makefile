@@ -14,4 +14,4 @@ proto.h:	$(MENSRC)
 		$(MKPROTO) $(MENSRC) | $(CLPROTO) > proto.h
 
 clean:
-		rm -f *~ a.out core $(MENOBJS) addlib
+		$(RM) -f *~ a.out core $(MENOBJS) addlib

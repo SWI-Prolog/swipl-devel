@@ -13,6 +13,7 @@
 #include "fshell.h"
 
 #if O_MOTIF
+#define XMSTRINGDEFINES
 #include <Xm/Xm.h>
 #endif
 
@@ -180,7 +181,7 @@ ws_realise_frame(FrameObj fr)
   }
 #if O_MOTIF
   else
-  { XDeleteProperty(ws_ref->display_xref,
+  { XDeleteProperty(r->display_xref,
 		    XtWindow(w),
 		    XA_WM_TRANSIENT_FOR);
   }
@@ -226,7 +227,9 @@ ws_raise_frame(FrameObj fr)
   DisplayWsXref r = fr->display->ws_ref;
 
   if ( w )
+  { XMapWindow(r->display_xref, XtWindow(w));
     XRaiseWindow(r->display_xref, XtWindow(w));
+  }
 }
 
 

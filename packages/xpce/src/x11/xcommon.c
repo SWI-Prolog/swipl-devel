@@ -89,8 +89,8 @@ setXImageImage(Image image, XImage *i)
 
 #if O_MOTIF
 #include <Xm/Xm.h>
-#include <X11/AtomMgr.h>
-#include <X11/Protocols.h>
+#include <Xm/AtomMgr.h>			/* was X11? */
+#include <Xm/Protocols.h>		/* idem */
 
 #define XInternAtom(d, nm, v) XmInternAtom(d, nm, v)
 #define XGetAtomName(d, atom) XmAtomToName(d, atom)

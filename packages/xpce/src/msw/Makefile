@@ -14,4 +14,4 @@ proto.h:	$(MSWSRC)
 		$(MKPROTO) $(MSWSRC) | $(CLPROTO) > proto.h
 
 clean:
-		rm -f *~ a.out core $(MSWOBJS) addlib
+		$(RM) -f *~ a.out core $(MSWOBJS) addlib

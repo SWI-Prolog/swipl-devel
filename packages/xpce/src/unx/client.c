@@ -19,6 +19,10 @@
 #include <errno.h>
 #include <string.h>
 
+#ifdef SYSLIB_H
+#include SYSLIB_H
+#endif
+
 #define MAX_UN_ADDRESS_LEN 108
 
 #define CPSIZE 4096			/* IO copy buffer  */
@@ -116,8 +120,8 @@ int f, t;
 
 
 void
-copy2(f1, t1, f2, t2)
-int f1, t1, f2, t2;
+copy2(f1, t1, f2, t2, block)
+int f1, t1, f2, t2, block;
 { int eof = FALSE;
 
   for( ; !eof; )
@@ -135,7 +139,10 @@ int f1, t1, f2, t2;
       { eof = (copy_block(f1, t1) == 0);
 	FD_CLR(f1, &fds);
       } else if ( FD_ISSET(f2, &fds) )
-      { eof = (copy_block(f2, t2) == 0);
+      { if ( !block )
+	  eof = (copy_block(f2, t2) == 0);
+	else
+	  copy_block(f2, t2);
 	FD_CLR(f2, &fds);
       } else
       { fprintf(stderr, "Input from unselected fd???\n");
@@ -217,7 +224,7 @@ char **argv;
     }
     fclose(fd);
   } else
-  { copy2(id, 1, 0, id);
+  { copy2(id, 1, 0, id, block);
   }
 
   exit(0);				/* TBD  */

@@ -18,7 +18,7 @@ standard XPCE library directory.
 
 :- module(dia_dialog, []).
 :- use_module(library(pce)).
-:- use_module(library(prompter)).
+:- use_module(library('dialog/lib/prompter')).
 :- use_module(proto).
 :- use_module(layout).
 :- use_module(generate).

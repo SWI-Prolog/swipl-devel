@@ -13,4 +13,4 @@ proto.h:	$(PRGSRC)
 		$(MKPROTO) $(PRGSRC) | $(CLPROTO) > proto.h
 
 clean:
-		rm -f *~ a.out core $(PRGOBJS) addlib
+		$(RM) -f *~ a.out core $(PRGOBJS) addlib

@@ -16,4 +16,4 @@ proto.h:	$(MSGSRC)
 		$(MKPROTO) $(MSGSRC) | $(CLPROTO) > proto.h
 
 clean:
-		rm -f *~ a.out core $(MSGOBJS) addlib
+		$(RM) -f *~ a.out core $(MSGOBJS) addlib

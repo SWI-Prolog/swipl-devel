@@ -33,4 +33,4 @@ name.o:		../h/names.ih
 glob.o:		../h/kernel.h ../h/types.h ../h/graphics.h ../h/lang.h
 
 clean:
-		rm -f *~ a.out core $(KEROBJS) addlib
+		$(RM) -f *~ a.out core $(KEROBJS) addlib

@@ -11,6 +11,7 @@
 #define MODULE	1			/* Tag selector with module */
 
 #include <SWI-Prolog.h>			/* SWI-Prolog <-> C interface */
+#include <SWI-Stream.h>			/* SWI-Prolog streams */
 #include "../../prolog/c/interface.h"	/* generic Prolog <->PCE part */
 
 #define pl_get0		pce_get0	/* avoid name-conflicts */
@@ -19,11 +20,16 @@
 typedef term	Term;			/* generic Prolog term */
 typedef void (*OnExitFunction)(int, void *);
 
+static foreign_t pl_pce_open(Term t, Term mode, Term plhandle);
+
 static atomic	ATOM_call;		/* call */
 static atomic	FUNCTOR_ref1;		/* @/1 */
 static atomic	FUNCTOR_new1;		/* new/1 */
 static atomic	FUNCTOR_new2;		/* new/2 */
 static atomic	FUNCTOR_string1;	/* string/1 */
+static atomic	ATOM_read;		/* read */
+static atomic	ATOM_write;		/* write */
+static atomic	ATOM_append;		/* append */
 static module   MODULE_user;		/* Global module */
 
 
@@ -148,8 +154,6 @@ va_list args;
   exit(1);
 }
 
-#ifdef __STDC__
-
 static bool
 Warning(char *fm, ...)
 { va_list args;
@@ -171,35 +175,6 @@ FatalError(char *fm, ...)
   va_end(args);
 }
 
-#else /*__STDC__*/
-
-static bool
-Warning(va_alist)
-va_dcl
-{ va_list args;
-  char *fm;
-
-  va_start(args);
-  fm = va_arg(args, char *);
-  _Warning(fm, args);
-  va_end(args);
-
-  fail;
-}
-
-static void
-FatalError(va_alist)
-va_dcl
-{ va_list args;
-  char *fm;
-
-  va_start(args);
-  fm = va_arg(args, char *);
-  _FatalError(fm, args);
-  va_end(args);
-}
-
-#endif /*__STDC__*/
 
 static void
 GetCompound(t, n, a)
@@ -243,6 +218,9 @@ char **m;
 static void
 InitPrologConstants()
 { ATOM_call		= PL_new_atom("call");
+  ATOM_read		= PL_new_atom("read");
+  ATOM_write		= PL_new_atom("write");
+  ATOM_append		= PL_new_atom("append");
 
   FUNCTOR_ref1		= PL_new_functor(PL_new_atom("@"), 1);
   FUNCTOR_new1		= PL_new_functor(PL_new_atom("new"), 1);
@@ -250,6 +228,8 @@ InitPrologConstants()
   FUNCTOR_string1	= PL_new_functor(PL_new_atom("string"), 1);
 
   MODULE_user		= PL_new_module(PL_new_atom("user"));
+
+  PL_register_foreign("pce_open", 3, pl_pce_open, 0);
 }
 
 
@@ -364,3 +344,72 @@ PceObject argv[];
 }
 
 
+		 /*******************************
+		 *	 STREAM CONNECTION	*
+		 *******************************/
+
+static int
+Swrite_pce(void *handle, char *buf, int size)
+{ return pceWrite((int)handle, buf, size);
+}
+
+
+static int
+Sread_pce(void *handle, char *buf, int size)
+{ return pceRead((int)handle, buf, size);
+}
+
+
+static long
+Sseek_pce(void *handle, long offset, int whence)
+{ return pceSeek((int)handle, offset, whence);
+}
+
+
+static int
+Sclose_pce(void *handle)
+{ return pceClose((int)handle);
+}
+
+
+IOFUNCTIONS pceFunctions =
+{ Sread_pce,
+  Swrite_pce,
+  Sseek_pce,
+  Sclose_pce
+};
+
+
+static foreign_t
+pl_pce_open(Term t, Term mode, Term plhandle)
+{ PceObject obj;
+
+  if ( (obj = termToObject(t, NULL, FALSE)) )
+  { int flags, sflags = SIO_FBUF|SIO_RECORDPOS;
+    int handle;
+
+    if ( PL_atomic(mode) == ATOM_read )
+    { flags = PCE_RDONLY;
+      sflags |= SIO_INPUT;
+    } else if ( PL_atomic(mode) == ATOM_write )
+    { flags = PCE_WRONLY|PCE_TRUNC;
+      sflags |= SIO_OUTPUT;
+    } else if ( PL_atomic(mode) == ATOM_append )
+    { flags = PCE_WRONLY|PCE_APPEND;
+      sflags |= SIO_OUTPUT;
+    } else
+    { PL_warning("pce_open/3: illegal mode");
+      PL_fail;
+    }
+
+    if ( (handle = pceOpen(obj, flags)) >= 0 )
+    { IOSTREAM *s = Snew((void *)handle, sflags, &pceFunctions);
+
+      return PL_open_stream(s, plhandle);
+    }
+    PL_warning("pce_open/3: could not open: %s", pceOsError());
+  } else
+  { PL_warning("pce_open/3: bad object");
+    PL_fail;
+  }
+}

@@ -15,8 +15,8 @@
 #define LINESIZE 256
 #define EOS '\0'
 
-#ifdef O_EXTRA_SYSTEM_TYPES
-#include O_EXTRA_SYSTEM_TYPES
+#ifdef SYSLIB_H
+#include SYSLIB_H
 #endif
 
 void

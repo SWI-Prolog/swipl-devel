@@ -15,4 +15,4 @@ proto.h:	$(ADTSRC)
 		$(MKPROTO) $(ADTSRC:.o=.c) | $(CLPROTO) > proto.h
 
 clean:
-		rm -f *~ core a.out $(ADTOBJS) addlib
+		$(RM) -f *~ core a.out $(ADTOBJS) addlib

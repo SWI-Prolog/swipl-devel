@@ -15,9 +15,13 @@
 :- user:retract(library_directory('/usr/local/lib/pl/library')) ; true.
 
 :- ['../prolog/boot/pce_expand',
-    '../prolog/boot/pce_pl',
-    '../prolog/lib/pce'
+    '../prolog/boot/pce_pl'
    ].
+
+:- absolute_file_name('../prolog/boot', Dir),
+   assert(library_directory(Dir), Ref),
+   consult('../prolog/lib/pce'),
+   erase(Ref).
 
 
 :- feature(version, PlVersion),

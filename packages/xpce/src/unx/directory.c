@@ -287,22 +287,33 @@ getParentDirectory(Directory d)
 
 static FileObj
 getFileDirectory(Directory d, Name name)
-{ char buf[MAXPATHLEN];
+{ char *fn = strName(name);
 
-  sprintf(buf, "%s/%s", strName(d->path), strName(name));
+  if ( fn[0] == '/' || fn[0] == '~' )
+    answer(answerObject(ClassFile, name, 0));
+  else
+  { char buf[MAXPATHLEN];
 
-  answer(answerObject(ClassFile, CtoName(buf), 0));
+    sprintf(buf, "%s/%s", strName(d->path), fn);
+
+    answer(answerObject(ClassFile, CtoName(buf), 0));
+  }
 }
 
 
 static Directory
 getDirectoryDirectory(Directory d, Name name)
-{ if ( streq(strName(name), "..") )
+{ char *dn = strName(name);
+
+  if ( dn[0] == '/' || dn[0] == '~' )
+    answer(answerObject(ClassDirectory, name, 0));
+
+  if ( streq(dn, "..") )
     return getParentDirectory(d);
   else
   { char buf[MAXPATHLEN];
 
-    sprintf(buf, "%s/%s", strName(d->path), strName(name));
+    sprintf(buf, "%s/%s", strName(d->path), dn);
 
     answer(answerObject(ClassDirectory, CtoName(buf), 0));
   }

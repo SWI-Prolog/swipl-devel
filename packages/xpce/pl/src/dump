@@ -14,7 +14,10 @@ retractall(library_directory('/usr/local/lib/pl/library')).
 
 ['../../prolog/boot/pce_expand'].
 use_module('../../prolog/boot/pce_pl').
-use_module('../../prolog/lib/pce').
+absolute_file_name('../../prolog/lib', Dir),
+assert(library_directory(Dir), Ref),
+use_module('../../prolog/lib/pce'),
+erase(Ref).
 
 feature(version, PlVersion),
 send(@pce, catch_error_signals, @on),
@@ -33,7 +36,6 @@ assert((library_directory(PceLib) :-
 	get(@pce, home, Home),
 	concat(Home, '/prolog/lib', PceLib))).
 
-'\$autoload':clear_library_index.
 use_module(library(pce_manual)).
 
 

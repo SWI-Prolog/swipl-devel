@@ -349,7 +349,7 @@ match_regex(Regex re, char *str1, int size1, char *str2, int size2, int start, i
       switch( (n = re_match_2(re->compiled,
 			      (unsigned char *)str1, size1,
 			      (unsigned char *)str2, size2,
-			      s, re->registers, start+1)) )
+			      s, re->registers, start)) )
       { case -1:
 	  continue;
 	case -2:
@@ -357,7 +357,7 @@ match_regex(Regex re, char *str1, int size1, char *str2, int size2, int start, i
 	    fail;
 	  }
 	default:
-	  if ( s + n == start + 1 )
+	  if ( s + n == start )
 	    return toInt(n);
       }
     }
@@ -424,7 +424,7 @@ getMatchRegex(Regex re, Any obj, Int start, Int end)
       }
     }
 
-    answer(toInt(valInt(rval) - frag->start));
+    answer(rval);
   }
    
   fail;
@@ -437,11 +437,16 @@ matchRegex(Regex re, Any obj, Int start, Int end)
 }
 
 
+#define validRegister(re, n) ((n) >= 0 && \
+			      re->registers && \
+			      re->registers->start[(n)] >= 0)
+
+
 static Int
 getRegisterStartRegex(Regex re, Int which)
 { int n = isDefault(which) ? 0 : valInt(which);
 
-  if ( n < 0 || re->registers->start[n] < 0 )
+  if ( !validRegister(re, n) )
     fail;
 
   answer(toInt(re->registers->start[n]));
@@ -452,7 +457,7 @@ Int
 getRegisterEndRegex(Regex re, Int which)
 { int n = isDefault(which) ? 0 : valInt(which);
 
-  if ( n < 0 || re->registers->start[n] < 0 )
+  if ( !validRegister(re, n) )
     fail;
 
   answer(toInt(re->registers->end[n]));
@@ -463,12 +468,11 @@ static Int
 getRegisterSizeRegex(Regex re, Int which)
 { int n = isDefault(which) ? 0 : valInt(which);
 
-  if ( n < 0 || re->registers->start[n] < 0 )
+  if ( !validRegister(re, n) )
     fail;
 
   answer(toInt(re->registers->end[n] - re->registers->start[n]));
 }
-
 
 
 static CharArray
@@ -477,7 +481,7 @@ getRegisterValueRegex(Regex re, Any obj, Int which, Type type)
   Any argv[2];
   Any rval;
 
-  if ( n < 0 || re->registers->start[n] < 0 )
+  if ( !validRegister(re, n) )
     fail;
 
   argv[0] = toInt(re->registers->start[n]);
@@ -495,12 +499,14 @@ static status
 registerValueRegex(Regex re, Any obj, CharArray value, Int which)
 { int n = isDefault(which) ? 0 : valInt(which);
   Any argv[2];
-  int start = re->registers->start[n];
-  int len = re->registers->end[n] - start;
-  int shift = valInt(getSizeCharArray(value)) - len;
+  int start, len, shift;
 
-  if ( n < 0 || start < 0 )
+  if ( !validRegister(re, n) )
     fail;
+
+  start = re->registers->start[n];
+  len   = re->registers->end[n] - start;
+  shift = valInt(getSizeCharArray(value)) - len;
 
   argv[0] = toInt(start);
   argv[1] = toInt(len);
@@ -511,7 +517,7 @@ registerValueRegex(Regex re, Any obj, CharArray value, Int which)
   { for(n=0; re->registers->start[n] >= 0; n++)
     { if ( re->registers->start[n] > start )
 	re->registers->start[n] += shift;
-      if ( re->registers->end[n] > start )
+      if ( re->registers->end[n] >= start )
 	re->registers->end[n] += shift;
     }
     
@@ -576,9 +582,16 @@ forAllRegex(Regex re, Any obj, Code code, Int from, Int to)
     from = ZERO;
 
   while( searchRegex(re, obj, from, to) )
-  { TRY(forwardCode(code, re, obj, 0));
+  { int oe = re->registers->end[0];
+    int ne;
 
-    from = getRegisterEndRegex(re, ZERO);
+    TRY(forwardCode(code, re, obj, 0));
+
+    ne = re->registers->end[0];
+    if ( ne == valInt(from) && oe == valInt(from) )
+      from = toInt(ne+1);
+    else
+      from = toInt(ne);
   }
 
   succeed;

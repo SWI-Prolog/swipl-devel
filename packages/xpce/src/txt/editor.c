@@ -729,17 +729,34 @@ out:
 }
 
 
+#define GRAPHICS_START 01		/* ^A */
+
 static long
 fetch_editor(Editor e, TextChar tc)
 { FragmentCache fc = e->fragment_cache;
   long index = fc->index;
 
-  tc->c          = Fetch(e, index);
-  tc->font       = fc->font;
-  tc->colour     = fc->colour;
-  tc->background = fc->background;
-  tc->attributes = fc->attributes;
-  tc->index	 = fc->index;
+  tc->value.c      = Fetch(e, index);
+  tc->is_graphical = 0;
+  tc->font         = fc->font;
+  tc->colour       = fc->colour;
+  tc->background   = fc->background;
+  tc->attributes   = fc->attributes;
+  tc->index	   = index;
+
+  if ( tc->value.c == GRAPHICS_START &&
+       Fetch(e, index+2) == GRAPHICS_START )
+  { int grindex = Fetch(e, index+1);
+    Graphical gr = get(e, NAME_diagram, toInt(grindex), 0);
+
+    if ( gr )
+    { tc->value.graphical = gr;
+      tc->is_graphical    = TRUE;
+    
+      indexFragmentCache(e->fragment_cache, e, index+3);
+      return fc->index;
+    }
+  }
 
   if ( InRegion(index, e->selection_start, e->selection_end) )
   { Style s = (isisearchingEditor(e)
@@ -3607,7 +3624,7 @@ getTabStopsEditor(Editor e)
 		********************************/
 
 static inline long
-update_index_on_insert(long int i, long int w, long int a)
+update_index_on_insert(long i, long w, long a)
 { if ( a > 0 )				/* insert */
     return i > w ? i+a : i;
 
@@ -3619,7 +3636,7 @@ update_index_on_insert(long int i, long int w, long int a)
 
 
 static inline long
-update_caret_on_insert(long int i, long int w, long int a)
+update_caret_on_insert(long i, long w, long a)
 { if ( a > 0 )				/* insert */
     return i >= w ? i+a : i;
 
@@ -3645,7 +3662,6 @@ InsertEditor(Editor e, Int where, Int amount)
   UPDATE_C_INDEX(e, selection_end);
   UPDATE_C_INDEX(e, internal_mark);
 
-#undef UPDATE_INDEX
 #undef UPDATE_C_INDEX
 
   InsertTextImage(e->image, where, amount);

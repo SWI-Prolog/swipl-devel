@@ -13,4 +13,4 @@ proto.h:	$(ARISRC)
 		$(MKPROTO) $(ARISRC) | $(CLPROTO) > proto.h
 
 clean:
-		rm -f *~ a.out core $(ARIOBJS) addlib
+		$(RM) -f *~ a.out core $(ARIOBJS) addlib

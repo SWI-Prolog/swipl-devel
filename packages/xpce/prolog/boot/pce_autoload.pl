@@ -24,23 +24,34 @@
 %	file `FileSpec'.  This will actually be done if either the class
 %	is actually needed by PCE or pce_autoload_all/0 is called.
 
-pce_autoload(Class, library(Library)) :-
+pce_autoload(Class, library(Library)) :- !,
 	retractall(autoload(Class, _)),
 	assert(autoload(Class, library(Library))).
-pce_ifhostproperty(prolog(sicstus),
-(   pce_autoload(Class, File) :-
+pce_autoload(Class, Abs) :-
+	concat('/', _, Abs), !,
 	retractall(autoload(Class, _)),
-	absolute_file_name(File, Path),
-	assert(autoload(Class, Path))),
-(   pce_autoload(Class, File) :-
+	assert(autoload(Class, Abs)).
+pce_autoload(Class, Abs) :-
+	concat('$', _, Abs), !,
 	retractall(autoload(Class, _)),
+	assert(autoload(Class, Abs)).
+pce_autoload(Class, Local) :-
+	prolog_load_context(directory, Dir),
 	pce_host:property(file_extensions(Exts)),
-	absolute_file_name(File,
-			   [ extensions(Exts),
-			     access(read)
-			   ],
-			   Path),
-	assert(autoload(Class, Path)))).
+	member(E, Exts),
+	ensure_extension(Local, E, Extended),
+	concat_atom([Dir, /, Extended], File),
+	exists_file(File), !,
+	absolute_file_name(File, Abs),
+	retractall(autoload(Class, _)),
+	assert(autoload(Class, Abs)).
+	
+ensure_extension(File, Ext, Extended) :-
+	concat('.', Ext, E),
+	(   concat(_, E, File)
+	->  Extended = File
+	;   concat(File, E, Extended)
+	).
 
 
 %	pce_autoload_all/0

@@ -14,4 +14,4 @@ proto.h:	$(RELSRC)
 		$(MKPROTO) $(RELSRC) | $(CLPROTO) > proto.h
 
 clean:
-		rm -f *~ a.out core $(RELOBJS) addlib
+		$(RM) -f *~ a.out core $(RELOBJS) addlib

@@ -367,7 +367,8 @@ exceptionPce(Pce pce, Name kind, ...)
 		*           STATISTICS		*
 		********************************/
 
-#if defined(HAVE_SYS_RESOURCE_H) && !defined(HAVE_GETDTABLESIZE)
+#ifndef HAVE_GETDTABLESIZE
+#ifdef(HAVE_SYS_RESOURCE_H)
 #include <sys/resource.h>
 #if defined(__sun__) && !defined(STDC_HEADERS)
 extern int getrlimit(int resource, struct rlimit *rlp);
@@ -381,7 +382,15 @@ getdtablesize(void)
   return (rlp.rlim_cur);
 }
 
-#endif
+#else
+
+int
+getdtablesize(void)
+{ return 32;				/* old *nix systems */
+}
+
+#endif /*HAVE_SYS_RESOURCE_H*/
+#endif /*HAVE_GETDTABLESIZE*/
 
 static Int
 getFdPce(Pce pce)

@@ -9,7 +9,7 @@
 
 :- module(emacs_fundamental_mode, []).
 :- use_module(library(pce)).
-:- initialization ensure_loaded(library(pce_selection)).
+:- use_module(library(pce_selection)).
 :- require([ manpce/0
 	   , auto_call/1
 	   , between/3
