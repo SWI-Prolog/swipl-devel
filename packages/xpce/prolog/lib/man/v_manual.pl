@@ -546,9 +546,9 @@ help_on_prolog(_M) :->
 		********************************/
 
 about([ 'XPCE version %s'+[@pce?version]-boldhuge,
-	'Copyright 1992-2002, University of Amsterdam',
+	'Copyright 1992-2003, University of Amsterdam',
 	'XPCE comes with ABSOLUTELY NO WARRANTY.',
-	'This is free software, and you are welcome to',
+	'This is free software (LGPL), and you are welcome to',
 	'redistribute it under certain conditions.',
 	url('http://www.swi-prolog.org/packages/xpce/'),
 	'Jan Wielemaker\nAnjo Anjewierden'-italic,
