@@ -181,7 +181,7 @@ getComputeSizeNode(Node n, Int l)
 
   sons_size = 0;
   for_cell(cell, n->sons)
-  { if ( sons_size > 0 )				/* not first */
+  { if ( cell != n->sons->head )				/* not first */
       sons_size += valInt(n->tree->neighbourGap);
     sons_size += valInt(getComputeSizeNode(cell->value, nextLevel));
   }
@@ -189,8 +189,11 @@ getComputeSizeNode(Node n, Int l)
   assign(n, sons_size, toInt(sons_size));
   
   if ( n->tree->direction == NAME_list )
-    answer(add(add(n->sons_size, n->my_size), n->tree->neighbourGap));
-  else
+  { if ( notNil(n->sons->head) )
+      answer(add(add(n->sons_size, n->my_size), n->tree->neighbourGap));
+    else
+      answer(n->my_size);
+  } else
     answer(maxInt(n->sons_size, n->my_size));
 }
 
@@ -264,9 +267,14 @@ computeLayoutNode(Node n, Int l, Int x, Int y)
     if ( son->level == nextLevel && son->computed != NAME_layout )
     { computeLayoutNode(son, nextLevel, x2, y2);
       if ( list )
-      { y2 = toInt(valInt(y2) +
-		   valInt(son->sons_size) + valInt(son->my_size) +
-		   valInt(t->neighbourGap));
+      { if ( notNil(son->sons->head) )
+	  y2 = toInt(valInt(y2) +
+		     valInt(son->sons_size) + valInt(son->my_size) +
+		     valInt(t->neighbourGap));
+	else
+	  y2 = add(y2, son->my_size);
+
+	y2 = add(y2, t->neighbourGap);
       } else
       { size = maxInt(son->my_size, son->sons_size);
 	if ( hor )
