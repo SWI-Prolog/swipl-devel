@@ -83,7 +83,12 @@ createdWindow(PceWindow sw)
 
 static status
 uncreateWindow(PceWindow sw)
-{ ws_uncreate_window(sw);
+{ DEBUG(NAME_window, Cprintf("uncreateWindow(%s)\n", pp(sw)));
+
+  deleteChain(ChangedWindows, sw);
+  assign(sw, displayed, OFF);
+  
+  ws_uncreate_window(sw);
 
   succeed;
 }
@@ -189,6 +194,8 @@ createWindow(PceWindow sw, PceWindow parent)
 { if ( createdWindow(sw) )		/* already done */
     succeed;
 
+  DEBUG(NAME_window, Cprintf("createWindow(%s, %s)\n", pp(sw), pp(parent)));
+
   if ( isDefault(parent) )		/* do my manager first */
   { if ( notNil(sw->decoration) )
     { if ( !createdWindow(sw->decoration) )
@@ -200,6 +207,9 @@ createWindow(PceWindow sw, PceWindow parent)
       if ( !createdFrame(sw->frame) )
 	return send(sw->frame, NAME_create, 0);
     }
+  } else
+  { if ( !createdWindow(parent) )
+      send(parent, NAME_create, 0);
   }
 
 					/* fix the default colours */
@@ -887,10 +897,13 @@ redrawWindow(PceWindow sw, Area a)
 
 status
 RedrawWindow(PceWindow sw)
-{ DEBUG(NAME_redraw, Cprintf("Redrawing %s\n", pp(sw)));
+{ DEBUG(NAME_window, Cprintf("Redrawing %s\n", pp(sw)));
 
-  if ( sw->displayed == ON )
+  if ( sw->displayed == ON && createdWindow(sw) )
   { UpdateArea a, b;
+    AnswerMark mark;
+
+    markAnswerStack(mark);
 
     ComputeGraphical(sw);
     combine_changes_window(sw);
@@ -916,6 +929,8 @@ RedrawWindow(PceWindow sw)
       }
       unalloc(sizeof(struct update_area), a);
     }
+
+    rewindAnswerStack(mark, NIL);
   }
 
   deleteChain(ChangedWindows, sw);
@@ -934,6 +949,9 @@ RedrawAreaWindow(PceWindow sw, IArea a, int clear)
   if ( a->w != 0 && a->h != 0 )
   { Cell cell;
     int ox, oy, dw, dh;
+    AnswerMark mark;
+
+    markAnswerStack(mark);
 
     if ( !oa )
     { oa = newObject(ClassArea, 0);
@@ -960,6 +978,7 @@ RedrawAreaWindow(PceWindow sw, IArea a, int clear)
     }
 
     d_done();
+    rewindAnswerStack(mark, NIL);
   }
 
   succeed;

@@ -1,37 +1,72 @@
-Installation of binary XPCE/SWI-Prolog image
+****************************************************************
+* Installation of dynamic library based versions of XPCE.
+****************************************************************
 
-1) Get the images.  To install the binary distribution you need:
+Preliminaries:
+==============
 
-	xpce.<machine>.tgz
-	xpcelib.tgz
+Install SWI-Prolog 2.0.10 or later.  The sources may be obtained from
 
-2) Unpack the images:
+	ftp://swi.psy.uva.nl/pub/SWI-Prolog/pl-2.1.0.tar.gz
 
-	% gunzip < xpce.<machine>.tgz | tar xf -
-	% gunzip < xpcelib.tgz | tar xf -
+Binaries for various architectures are   in  subdirecties indicating the
+machine.
+
+Unpacking:
+==========
+
+	% cd <to SWI-Prolog main directory (/usr/local/lib/pl-<plversion>)>
+	% gunzip xpcebin-<version>-for-<machine>.tgz | tar xf -
+	% gunzip xpcelib-<version> | tar xf -
+
+Will create xpce-<version> directory in the prolog home directory
+
+Installation:
+=============
+
+	% ln -s xpce-<version> xpce
+	% cp xpce/pl/src/plrc .
+	% cd <public binary directory>
+	% ln -s pl xpce
+
+Notes for various machines:
+===========================
+
+	* Sparc-sunos-4.1.3:
+	  ==================
+
+	Dynamic linked version has the following dynamic dependencies
 	
-Produces a directory ./xpce-4.8.0 (about 7.5 MB)
+	-lXt.4 => /usr/lib/libXt.so.4.10
+        -lX11.4 => /usr/lib/libX11.so.4.10
+        -ldl.1 => /usr/lib/libdl.so.1.0
+        -lc.1 => /usr/lib/libc.so.1.8
 
-3) Installation
+	The X11 libraries are from the MIT X11R5 distribution.  If you
+	are using another version of these libraries, you may wish to
+	grab ../X11R5-sparc-sunos-4.1.3.tgz, containing
 
-	% cd xpce-4.8.0
-	% ./install [executable]
+	-rw-r--r-- root/staff   294912 Dec 12 17:58 1991 lib/libXt.so.4.10
+	-rw-r--r-- root/staff   442368 Dec 12 17:57 1991 lib/libX11.so.4.10
 
-Which will start  bin/xpce.base,  load  the   XPCE  library  and  dump a
-SWI-Prolog saved state  of  the  system   to  `executable'  (default  in
-bin/xpce).  To make  the  system  public,   link  or  move  bin/xpce and
-bin/xpce-client to the  system  binary   directory.   For  example:  (as
-super-user, from the xpce installation directory)
+	These files must be installed in one of the directories searched
+	by ld.so (/usr/lib or a directory of the LD_LIBRARY_PATH variable).
 
-	% set here=$cwd
-	% cd /usr/local/bin
-	% ln -s $here/bin/xpce .
-	% ln -s $here/bin/xpce-client .
+	* Sparc-sunos-5.4:
+	  ================
 
-4) Pce resource file
+	Dynamic linked version of xpce4pl.so has the following dependencies:
 
-The X11 resources for  XPCE  are  in   the  file  Pce.   XPCE pushes the
-environment variable $XAPPLRESDIR before opening the X11 connection.  It
-is   therefore   no   longer   needed    to     copy    this   file   to
-/usr/lib/X11/app-defaults.
-
+	ldd pl/sparc-solaris2.4/xpce4pl.so
+        libXt.so.4 =>    /usr/openwin/lib/libXt.so.4
+        libX11.so.4 =>   /usr/openwin/lib/libX11.so.4
+        libucb.so.1 =>   /usr/ucblib/libucb.so.1
+        libresolv.so.1 =>        /usr/lib/libresolv.so.1
+        libsocket.so.1 =>        /usr/lib/libsocket.so.1
+        libnsl.so.1 =>   /usr/lib/libnsl.so.1
+        libelf.so.1 =>   /usr/lib/libelf.so.1
+        libXext.so.0 =>  /usr/openwin/lib/libXext.so.0
+        libc.so.1 =>     /usr/lib/libc.so.1
+        libdl.so.1 =>    /usr/lib/libdl.so.1
+        libw.so.1 =>     /usr/lib/libw.so.1
+        libintl.so.1 =>  /usr/lib/libintl.so.1

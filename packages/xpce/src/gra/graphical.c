@@ -407,6 +407,12 @@ changedAreaGraphical(Any obj, Int x, Int y, Int w, Int h)
 	int cx = valInt(a->x), cy = valInt(a->y),
             cw = valInt(a->w), ch = valInt(a->h);
 
+	if ( !createdWindow(sw) )
+	{ DEBUG(NAME_window, Cprintf("%s: Change on non-displayed window\n",
+				     pp(sw)));
+	  break;
+	}
+
 	NormaliseArea(ox, oy, ow, oh);
 	NormaliseArea(cx, cy, cw, ch);
 	ox += offx; oy += offy;
@@ -717,6 +723,7 @@ flushGraphical(Any gr)
 status
 synchroniseGraphical(Graphical gr, Bool always)
 { DisplayObj d;
+#ifdef HAVE_GETTIMEOFDAY
   static struct timeval last;
 
   if ( always != ON )
@@ -727,7 +734,8 @@ synchroniseGraphical(Graphical gr, Bool always)
 	  (now.tv_usec - last.tv_usec) / 1000) < 200 )
       succeed;
     last = now;
-  } 
+  }
+#endif /*HAVE_GETTIMEOFDAY*/ 
 
   if ( (d = getDisplayGraphical(gr)) )
     synchroniseDisplay(d);
@@ -1835,9 +1843,10 @@ updateHideExposeConnectionsGraphical(Graphical gr)
 
 status
 connectGraphical(Graphical gr, Graphical gr2, Link link, Name from, Name to)
-{ TRY(newObject(ClassConnection, gr, gr2, link, from, to, 0));
+{ if ( get(link, NAME_connection, gr, gr2, from, to, 0) )
+    succeed;
 
-  succeed;
+  fail;
 }
 
 

@@ -54,7 +54,7 @@ call_atom(Socket, Command) :-
 	->  send(Socket, format, '\n%s', Prompt)
 	;   (   atom_to_term(CommandAtom, Term, Bindings)
 	    ->  (   Term == exit
-		->  send(Socket, free)
+		->  send(Socket, close)
 		;   (   call(Module:Term)
 		    ->  write_bindings(Bindings, Socket),
 			send(Socket, format, 'yes\n%s', Prompt)

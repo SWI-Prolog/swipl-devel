@@ -392,11 +392,21 @@ bindSocket(Socket s)
     int len;
     TRY( inet_address_socket(s, &address, &len) );
     if ( (rval = bind(SocketHandle(s), (struct sockaddr *) &address, len))==0 )
-    { if ( s->address == ZERO )
-	assign(s, address, toInt(address.sin_port));
-      else if ( instanceOfObject(s->address, ClassTuple) &&
-		((Tuple)s->address)->second == ZERO )
-	assign((Tuple)s->address, second, toInt(address.sin_port));
+    { if ( s->address == ZERO ||
+	   (instanceOfObject(s->address, ClassTuple) &&
+	    ((Tuple)s->address)->second == ZERO) )
+      { struct sockaddr_in addr;
+	int len = sizeof(addr);
+
+	if ( getsockname(SocketHandle(s), (struct sockaddr *) &addr, &len) )
+	{ return errorPce(s, NAME_socket, NAME_getsockname, SockError());
+	} else
+	{ if ( s->address == ZERO )
+	    assign(s, address, toInt(addr.sin_port));
+	  else
+	    assign((Tuple)s->address, second, toInt(address.sin_port));
+	}
+      }
     }
   }
 

@@ -94,12 +94,14 @@ void		initDraw(void);
 void		exitDraw(void);
 void *		ws_image_bits(Image image);
 void *		ws_image_bits_for_cursor(Image image, Name kind, int w, int h);
+void		ws_create_image_from_x11_data(Image image, unsigned char *data,
+					      int w, int h);
 PceWindow	get_window_holding_point(FrameObj fr, POINT *pt);
 status		move_big_cursor(void);
 status		exit_big_cursor(void);
 status		start_big_cursor(CursorObj c);
-void	PceWhDeleteWindow(HWND win);
-void	PceEventInWindow(HWND win);
+void		PceWhDeleteWindow(HWND win);
+void		PceEventInWindow(HWND win);
 
 		 /*******************************
 		 *	  DEBUGGING MACROS	*

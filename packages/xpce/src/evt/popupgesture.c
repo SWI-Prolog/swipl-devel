@@ -158,6 +158,9 @@ terminatePopupGesture(PopupGesture g, EventObj ev)
     { assign(g, context, NIL);
       assign(g, current, NIL);
 
+      grabPointerWindow(ev->window, OFF);
+      focusWindow(ev->window, NIL, NIL, NIL, NIL);
+
       send(current, NAME_execute, context, 0);
     }
   }

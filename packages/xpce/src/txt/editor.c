@@ -1137,6 +1137,9 @@ event_editor(Editor e, EventObj ev)
     Modifier select_modifier = getResourceValueObject(e, NAME_selectModifier);
     Modifier caret_modifier = getResourceValueObject(e, NAME_caretModifier);
 
+    if ( !where )
+      fail;
+
 /*  endIsearchEditor(e); */
 
     if ( isDownEvent(ev) )
@@ -1165,7 +1168,7 @@ event_editor(Editor e, EventObj ev)
 
       if ( isAEvent(ev, NAME_msRightDown) &&
 	   hasModifierEvent(ev, select_modifier) )
-	return selectionExtendEditor(e, getIndexTextImage(e->image, ev));
+	return selectionExtendEditor(e, where);
     } else
     { if ( isAEvent(ev, NAME_msMiddleUp) &&
 	   hasModifierEvent(ev, select_modifier) )
@@ -1179,7 +1182,7 @@ event_editor(Editor e, EventObj ev)
 
     if ( hasModifierEvent(ev, select_modifier) &&
 	 (isAEvent(ev, NAME_msLeftDrag) || isAEvent(ev, NAME_msRightDrag)) )
-      return selectionExtendEditor(e, getIndexTextImage(e->image, ev));
+      return selectionExtendEditor(e, where);
   }
 
   fail;

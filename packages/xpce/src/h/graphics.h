@@ -163,9 +163,10 @@ NewClass(connection)
 End;
 
 NewClass(link)
-  Line	  line;				/* line to connect objects with */
-  Name	  from;				/* handle kind 'from' */
-  Name	  to;				/* handle kind 'to' */
+  Line		line;			/* line to connect objects with */
+  Name		from;			/* handle kind 'from' */
+  Name		to;			/* handle kind 'to' */
+  Class		connection_class;	/* Class to create connection from */
 End;
 
 		/********************************

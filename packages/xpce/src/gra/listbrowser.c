@@ -28,7 +28,6 @@ static status scrollUpListBrowser(ListBrowser, Int);
 static status scrollDownListBrowser(ListBrowser, Int);
 static status extendPrefixListBrowser(ListBrowser);
 
-#define dictItemName(di) (isDefault(di->label) ? di->key : di->label)
 
 		/********************************
 		*            CREATE		*
@@ -374,11 +373,11 @@ static void
 compute_current(ListBrowser lb)
 { if ( notNil(current_cell) )
   { DictItem di = (DictItem) current_cell->value;
-    Name label = dictItemName(di);
+    CharArray label = getLabelDictItem(di);
     Style style;
 
     assert(valInt(di->index) == current_item);
-    current_name = &label->data;
+    current_name = (label ? &label->data : (String) NULL);
 
     if ( notDefault(di->style) &&
 	 (style = getValueSheet(lb->styles, di->style)) )
@@ -607,8 +606,13 @@ getExtendPrefixDict(Dict dict, CharArray pref, Bool ign_case)
 
   for_cell(cell, dict->members)
   { DictItem di = cell->value;
-    String name = &dictItemName(di)->data;
+    CharArray c = getLabelDictItem(di);
+    String name;
 
+    if ( !c )
+      continue;
+
+    name = &c->data;
     if ( name->size > LINESIZE || name->encoding != common->encoding )
       continue;
       
@@ -661,7 +665,7 @@ extendToCurrentListBrowser(ListBrowser lb)
 
     if ( notNil(lb->dict) && (di=getFindIndexDict(lb->dict, lb->search_hit)) )
     { assign(lb, search_string,
-	     newObject(ClassString, name_procent_s, dictItemName(di), 0));
+	     newObject(ClassString, name_procent_s, getLabelDictItem(di), 0));
       return executeSearchListBrowser(lb);
     }
   }
@@ -826,7 +830,7 @@ static DictItem
 getDictItemListBrowser(ListBrowser lb, EventObj ev)
 { Int where = getIndexTextImage(lb->image, ev);
 
-  if ( notNil(lb->dict) )
+  if ( where && notNil(lb->dict) )
     answer(getFindIndexDict(lb->dict,
 			    toInt(valInt(where)/BROWSER_LINE_WIDTH)));
 
@@ -1430,7 +1434,7 @@ makeClassListBrowser(Class class)
 	     "Set tab-stops (pixels)",
 	     tabStopsListBrowser);
   sendMethod(class, NAME_style, NAME_appearance, 2,
-	     "dict_item=name", "style=style",
+	     "style_name=name", "style=style",
 	     "Set style associated with name",
 	     styleListBrowser);
   sendMethod(class, NAME_clear, NAME_edit, 0,
@@ -1521,7 +1525,7 @@ makeClassListBrowser(Class class)
   getMethod(class, NAME_contains, DEFAULT, "chain", 0,
 	    "Dict visualised",
 	    getContainsListBrowser);
-  getMethod(class, NAME_member, NAME_member, "dict_item", 1, "name",
+  getMethod(class, NAME_member, NAME_member, "dict_item", 1, "any",
 	    "DictItem with given key",
 	    getMemberListBrowser);
   getMethod(class, NAME_dictItem, NAME_event, "dict_item", 1, "event",

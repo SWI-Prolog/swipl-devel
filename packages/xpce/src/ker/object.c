@@ -274,7 +274,8 @@ createObjectv(Name assoc, Class class, int argc, const Any argv[])
 out:
   traceAnswer(g, rval);
   popGoal();
-  delCodeReference(rval);
+  if ( rval )
+    delCodeReference(rval);
 
   answer(rval);
 }

@@ -12,9 +12,12 @@
 #include <h/text.h>
 
 static status
-initialiseDictItem(DictItem di, Name key, Name str, Any obj, Name style)
-{ assign(di, key, key);
-  assign(di, label, str);
+initialiseDictItem(DictItem di, Any key, CharArray lbl, Any obj, Name style)
+{ if ( instanceOfObject(key, ClassCharArray) && !isName(key) )
+    key = toName(key);
+
+  assign(di, key, key);
+  assign(di, label, lbl);
   assign(di, index, ZERO);
   assign(di, object, (isDefault(obj) ? NIL : obj));
   assign(di, dict, NIL);
@@ -34,13 +37,13 @@ unlinkDictItem(DictItem di)
 
 
 static DictItem
-getConvertDictItem(Class class, Name name)
-{ answer(newObject(ClassDictItem, name, 0));
+getConvertDictItem(Class class, Any key)
+{ answer(newObject(ClassDictItem, key, 0));
 }
 
 
 static status
-labelDictItem(DictItem di, Name str)
+labelDictItem(DictItem di, CharArray str)
 { assign(di, label, str);
 
   if (notNil(di->dict) && notNil(di->dict->browser))
@@ -50,14 +53,26 @@ labelDictItem(DictItem di, Name str)
 }
 
 
-static Name
+CharArray
 getLabelDictItem(DictItem di)
-{ answer(isDefault(di->label) ? di->key : di->label);
+{ if ( isDefault(di->label) )
+  { if ( instanceOfObject(di->key, ClassCharArray) )
+      answer(di->key);
+    else if ( isInteger(di->key) )	/* not an object! */
+    { string s;
+
+      toString(di->key, &s);
+
+      return (CharArray) StringToString(&s);
+    } else
+      answer(qadGetv(di->key, NAME_printName, 0, NULL));
+  } else
+    answer(di->label);
 }
 
 
 static status
-keyDictItem(DictItem di, Name key)
+keyDictItem(DictItem di, Any key)
 { if ( notNil(di->dict) && notNil(di->dict->table) )
   { deleteHashTable(di->dict->table, di->key);
     assign(di, key, key);
@@ -149,9 +164,9 @@ status
 makeClassDictItem(Class class)
 { sourceClass(class, makeClassDictItem, __FILE__, "$Revision$");
 
-  localClass(class, NAME_key, NAME_value, "name", NAME_get,
+  localClass(class, NAME_key, NAME_value, "any", NAME_get,
 	     "Key used to index from dict");
-  localClass(class, NAME_label, NAME_appearance, "[name]", NAME_none,
+  localClass(class, NAME_label, NAME_appearance, "[char_array]", NAME_none,
 	     "Label used to display in browser");
   localClass(class, NAME_object, NAME_delegate, "any", NAME_both,
 	     "Associated data");
@@ -171,15 +186,15 @@ makeClassDictItem(Class class)
   storeMethod(class, NAME_dict,  dictDictItem);
 
   sendMethod(class, NAME_initialise, DEFAULT,
-	     4, "key=name", "label=[name]", "object=[any]*", "style=[name]",
+	     4, "key=any", "label=[char_array]","object=[any]*","style=[name]",
 	     "Create from key, label, object and style",
 	     initialiseDictItem);
   sendMethod(class, NAME_unlink, DEFAULT, 0,
 	     "Delete from dict",
 	     unlinkDictItem);
 
-  getMethod(class, NAME_label, DEFAULT, "name", 0,
-	    "<-label or <-key if <-label == @default",
+  getMethod(class, NAME_label, DEFAULT, "char_array", 0,
+	    "<-label<-print_name or <-key if <-label == @default",
 	    getLabelDictItem);
   getMethod(class, NAME_image, NAME_popup, "list_browser", 0,
 	    "<-browser of the <-dict (for popup menu's)",
@@ -190,8 +205,8 @@ makeClassDictItem(Class class)
   getMethod(class, NAME_containedIn, DEFAULT, "dict", 0,
 	    "dict object I'm contained in",
 	    getContainedInDictItem);
-  getMethod(class, NAME_convert, DEFAULT, "dict_item", 1, "name",
-	    "Convert name to dict_item",
+  getMethod(class, NAME_convert, DEFAULT, "dict_item", 1, "any",
+	    "Convert <-key to dict_item",
 	    getConvertDictItem);
 
   succeed;

@@ -10,7 +10,6 @@
 #include <h/kernel.h>
 #include <h/graphics.h>
 
-#define displayDI(di) ( isDefault((di)->label) ? (di)->key : (di)->label )
 #define HASH_DICT_THRESHOLD 50
 
 static status
@@ -92,9 +91,7 @@ renumberDict(Dict dict)
 
 DictItem
 getMemberDict(Dict dict, Any obj)
-{ Name name;
-
-  if ( instanceOfObject(obj, ClassDictItem) )
+{ if ( instanceOfObject(obj, ClassDictItem) )
   { DictItem di = obj;
 
     if ( di->dict == dict )
@@ -103,23 +100,24 @@ getMemberDict(Dict dict, Any obj)
     fail;
   }
 
-  if ( (name = checkType(obj, TypeName, dict)) )
-  { if ( notNil(dict->table) )
-      answer(getMemberHashTable(dict->table, name));
-    else if ( valInt(dict->members->size) > HASH_DICT_THRESHOLD )
-      answer(getMemberHashTable(getTableDict(dict), name));
-    else
-    { Cell cell;
+  if ( instanceOfObject(obj, ClassCharArray) )
+    obj = toName(obj);
 
-      for_cell(cell, dict->members)
-      { DictItem di = cell->value;
-	
-	if ( di->key == name )
-	  answer(di);
-      }
+  if ( notNil(dict->table) )
+    answer(getMemberHashTable(dict->table, obj));
+  else if ( valInt(dict->members->size) > HASH_DICT_THRESHOLD )
+    answer(getMemberHashTable(getTableDict(dict), obj));
+  else
+  { Cell cell;
 
-      fail;
+    for_cell(cell, dict->members)
+    { DictItem di = cell->value;
+      
+      if ( di->key == obj )
+	answer(di);
     }
+
+    fail;
   }
 
   fail;
@@ -250,14 +248,16 @@ getFindPrefixDict(Dict dict, StringObj str, Int from, Bool ign_case)
   TRY(cell = getNth0CellChain(dict->members, isDefault(from) ? ZERO : from));
   for( ; notNil(cell); cell = cell->next )
   { DictItem di = cell->value;
-    CharArray label = (CharArray) displayDI(di);
+    CharArray label = getLabelDictItem(di);
 
-    if ( ign_case == OFF )
-    { if ( str_prefix(&label->data, &str->data) )
-	answer(di);
-    } else
-    { if ( str_icase_prefix(&label->data, &str->data) )
-    	answer(di);
+    if ( label )
+    { if ( ign_case == OFF )
+      { if ( str_prefix(&label->data, &str->data) )
+	  answer(di);
+      } else
+      { if ( str_icase_prefix(&label->data, &str->data) )
+	  answer(di);
+      }
     }
   }
      
@@ -274,28 +274,35 @@ static int	sort_ignore_blanks = FALSE;
 
 static int
 compare_dict_items(const void *d1, const void *d2)
-{ String s1 = &displayDI(*(DictItem *)d1)->data;
-  String s2 = &displayDI(*(DictItem *)d2)->data;
+{ CharArray c1 = getLabelDictItem(*(DictItem *)d1);
+  CharArray c2 = getLabelDictItem(*(DictItem *)d2);
 
-  if ( sort_ignore_blanks )
-  { LocalString(t1, s1, s1->size);
-    LocalString(t2, s2, s2->size);
+  if ( c1 && c2 )
+  { String s1 = &c1->data;
+    String s2 = &c2->data;
 
-    str_cpy(t1, s1);
-    str_cpy(t2, s2);
-    str_strip(t1);
-    str_strip(t2);
-
-    if ( sort_ignore_case == TRUE )
-      return str_icase_cmp(t1, t2);
-    else
-      return str_cmp(t1, t2);
-  } else
-  { if ( sort_ignore_case == TRUE )
-      return str_icase_cmp(s1, s2);
-    else
-      return str_cmp(s1, s2);
+    if ( sort_ignore_blanks )
+    { LocalString(t1, s1, s1->size);
+      LocalString(t2, s2, s2->size);
+  
+      str_cpy(t1, s1);
+      str_cpy(t2, s2);
+      str_strip(t1);
+      str_strip(t2);
+  
+      if ( sort_ignore_case == TRUE )
+	return str_icase_cmp(t1, t2);
+      else
+	return str_cmp(t1, t2);
+    } else
+    { if ( sort_ignore_case == TRUE )
+	return str_icase_cmp(s1, s2);
+      else
+	return str_cmp(s1, s2);
+    }
   }
+
+  fail;
 }
 
 
@@ -360,7 +367,7 @@ sortDict(Dict dict, Any code_or_ign_case, Bool ign_blanks, Bool reverse)
 
 
 static Chain
-getMatchDict(Dict dict, Name name)
+getMatchDict(Dict dict, CharArray name)
 { Cell cell;
   Chain matching;
 
@@ -368,9 +375,9 @@ getMatchDict(Dict dict, Name name)
 
   for_cell(cell, dict->members)
   { DictItem di = cell->value;
-    CharArray label = (CharArray) displayDI(di);
+    CharArray label = getLabelDictItem(di);
     
-    if ( str_sub(&label->data, &name->data) )
+    if ( label && str_sub(&label->data, &name->data) )
       appendChain(matching, di);
   }
 
@@ -476,16 +483,16 @@ makeClassDict(Class class)
 	     "Append dict_item at the end",
 	     appendDict);
   sendMethod(class, NAME_insertAfter, NAME_add, 2,
-	     "after=dict_item", "item=name|dict_item*",
+	     "after=dict_item", "item=any|dict_item*",
 	     "Insert item after 2nd (or prepend)",
 	     insertAfterDict);
-  sendMethod(class, NAME_delete, NAME_delete, 1, "name|dict_item",
+  sendMethod(class, NAME_delete, NAME_delete, 1, "any|dict_item",
 	     "Delete dict_item or name",
 	     deleteDict);
   sendMethod(class, NAME_members, NAME_set, 1, "chain",
 	     "->clear and ->append elements of chain",
 	     membersDict);
-  sendMethod(class, NAME_member, NAME_set, 1, "name|dict_item",
+  sendMethod(class, NAME_member, NAME_set, 1, "any|dict_item",
 	     "Test if dict_item or name is member",
 	     memberDict);
   sendMethod(class, NAME_sort, NAME_order, 3,
@@ -503,11 +510,11 @@ makeClassDict(Class class)
 	     "Run code on all dict_items ([safe])",
 	     forSomeDict);
 
-  getMethod(class, NAME_match, NAME_search, "chain", 1, "name",
+  getMethod(class, NAME_match, NAME_search, "chain", 1, "char_array",
 	    "New chain with items that match argument",
 	    getMatchDict);
-  getMethod(class, NAME_member, NAME_lookup, "dict_item", 1, "dict_item|name",
-	    "Find dict_item from name",
+  getMethod(class, NAME_member, NAME_lookup, "dict_item", 1, "any|dict_item",
+	    "Find dict_item from <-key",
 	    getMemberDict);
   getMethod(class, NAME_findPrefix, NAME_search, "dict_item", 3,
 	    "for=string", "from=[int]", "no_exact_case=[bool]",

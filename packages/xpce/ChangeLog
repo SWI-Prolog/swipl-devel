@@ -1,5 +1,32 @@
 [VERSION 4.8.10]
 
+* FIXED: Redraw problem when displaying windows in windows.
+
+* FIXED: socket <-address now yields valid address (port) after the sequence
+  new(S, socket(0)), send(S, listen, message(...)).  Killing the pce_server/1
+  using the exit command now works properly as well.
+
+* FIXED: editor repaint problem for word-wrapped long lines holding hidden
+  fragments.
+
+* FIXED: popup_gesture->terminate: ensure to release focus when activating
+  `popup ->execute'.  Fixes event-focus problem with stayup-popup style.
+
+* ADDED: Indirection over `link <-connection' for handling
+  `graphical->connect'.  Allows for easier to modify the connection
+  behaviour of class connect_gesture.
+
+* FIXED: browser/OpenLook Scrollbar: middle click in scrollbar activated
+  the browser's <-open_message.
+
+* FIXED: library(pce_drag_and_drop_dict_item) now uses <-label to be dragged
+  rather than <-key.
+
+* MODIFIED: dict_item <-key may now be any object.  dict_item<-label may
+  be any char_array object (normally either string or name).  Improves the
+  flexibility of dicts and saves space on the name-table.  Notable, some
+  applications may wish to use integers as keys.
+
 * ADDED: Generation of coloured PostScript for all graphical, except for
   pixmaps. (will follow later).
 

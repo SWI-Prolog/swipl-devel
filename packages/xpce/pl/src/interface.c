@@ -27,7 +27,8 @@
 #define pl_get0		pce_get0	/* avoid name-conflicts */
 #define pl_get2		pce_get2
 
-typedef term_t	Term;			/* generic Prolog term */
+typedef term_t		Term;		/* generic Prolog term */
+typedef atomic_t	Atom;		/* Atom handle */
 
 static foreign_t	pl_pce_open(Term t, Term mode, Term plhandle);
 static foreign_t	pl_pce_predicate_reference(term_t pred, term_t ref);
@@ -93,6 +94,8 @@ static module_t  MODULE_user;		/* Global module */
 #define IsCompound(t)		(PL_is_term(t))
 #define IsString(t)		(PL_is_string(t))
 
+#define Atomic(t)		PL_atomic(t)
+#define AtomCharp(a)		PL_atom_value(a)
 #define AtomHandle(t)		((hostHandle) PL_atomic(t))
 #define IsAtomCall(t)		(PL_atomic(t) == ATOM_call)
 

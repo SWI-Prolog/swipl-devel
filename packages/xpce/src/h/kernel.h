@@ -446,8 +446,8 @@ extern struct name builtin_names[];	/* object-array of built-in's */
 #define F_ISNAME		makeFlag(21) /* instanceOf(x, ClassName) */
 #define F_ISREAL		makeFlag(22) /* instanceOf(x, ClassReal) */
 
-#define OBJ_MAGIC		(0x95L << 24)
-#define OBJ_MAGIC_MASK		(0xffL << 24)
+#define OBJ_MAGIC		((unsigned long)(0x95L << 24))
+#define OBJ_MAGIC_MASK		((unsigned long)(0xffL << 24))
 
 #define hasObjectMagic(obj)	((((Instance)(obj))->flags&OBJ_MAGIC_MASK) == \
 					OBJ_MAGIC)
@@ -849,8 +849,8 @@ End;
 
 NewClass(dictitem)
   ABSTRACT_VISUAL
-  Name		key;			/* key (often same as string) */
-  Name		label;			/* label displayed in browser */
+  Any		key;			/* key (often same as label) */
+  CharArray	label;			/* label displayed in browser */
   Any		object;			/* associated object (often a sheet) */
   Name		style;			/* Display style */
   Int		index;			/* index number (0 upwards) */
@@ -1336,7 +1336,7 @@ __pce_export char *	Cgetline(char *line, int size);
 
 					/* interface prototypes */
 CPointer	CtoCPointer(void *);
-Any		cToPceName(const char *text);
+__pce_export Any	cToPceName(const char *text);
 status		makeClassC(Class class);
 status		makeClassCPointer(Class class);
 status		initialiseHost(Host h, Name which);

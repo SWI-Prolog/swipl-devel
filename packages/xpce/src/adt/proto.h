@@ -93,6 +93,7 @@ Any		getBrowserDict(Dict d);
 status		makeClassDict(Class class);
 
 /* dictitem.c */
+CharArray	getLabelDictItem(DictItem di);
 status		makeClassDictItem(Class class);
 
 /* hashtable.c */

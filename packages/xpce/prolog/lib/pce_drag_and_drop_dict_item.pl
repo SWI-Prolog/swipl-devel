@@ -33,9 +33,9 @@ set_source(G, Ev:event) :->
 cursor(G, LB:list_browser, Ev:event, Cursor:cursor) :<-
 	"Make cursor for the dict_item"::
 	get(LB, dict_item, Ev, DI),
-	get(DI, key, Key),
+	get(DI, label, Label),
 	font(DI, Font),
-	new(T, text(Key, left, Font)),
+	new(T, text(Label, left, Font)),
 	get(T, size, size(W, H)),
 	new(BM, image(@nil, W, H)),
 	send(BM, draw_in, T),

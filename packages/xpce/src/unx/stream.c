@@ -137,6 +137,9 @@ handleInputStream(Stream s)
 { char buf[BLOCKSIZE+1];
   int n;
 
+  if ( isFreedObj(s) )
+    fail;
+
   if ( (n = ws_read_stream_data(s, buf, BLOCKSIZE)) > 0 )
   { if ( isNil(s->record_separator) )
     { string q;

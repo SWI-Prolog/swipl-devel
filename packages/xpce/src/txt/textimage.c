@@ -479,8 +479,8 @@ do_fill_line(TextImage ti, TextLine l, long int index)
 	{ int eof;
 
 	  l->length = i = last_break;
-	  index = l->start + i;
-	  l->w = l->chars[last_break].x;
+	  l->w = l->chars[i].x;
+	  index = l->start + l->chars[i].index;
 
 	  (*ti->seek)(ti->text, index);
 	  index = (*ti->scan)(ti->text, index, 1, TEXT_SKIP_OVER, BL, &eof);
@@ -1166,10 +1166,17 @@ getLineTextImage(TextImage ti, Int pos)
 
 Int
 getIndexTextImage(TextImage ti, EventObj ev)
-{ Int x, y;
+{ Int X, Y;
+  int x, y;
+  
+  get_xy_event(ev, ti, ON, &X, &Y);
+  x = valInt(X);
+  y = valInt(Y);
 
-  get_xy_event(ev, ti, ON, &x, &y);
-  answer(toInt(get_index_text_image(ti, valInt(x), valInt(y))));
+  if ( x < 0 || x > ti->w || y < 0 || y > ti->h )
+    fail;
+
+  answer(toInt(get_index_text_image(ti, x, y)));
 }
 
 

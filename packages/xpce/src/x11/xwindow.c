@@ -51,12 +51,9 @@ void
 ws_uncreate_window(PceWindow sw)
 { Widget w;
 
-  DEBUG(NAME_window, Cprintf("uncreateWindow(%s)\n", pp(sw)));
-
   if ( notNil(grabbedWindows) )
     deleteChain(grabbedWindows, sw);
-  deleteChain(ChangedWindows, sw);
-  
+
   if ( (w=widgetWindow(sw)) )
   { XtRemoveAllCallbacks(w, XtNeventCallback);
     XtRemoveAllCallbacks(w, XtNexposeCallback);

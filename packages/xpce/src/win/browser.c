@@ -187,7 +187,7 @@ makeClassBrowser(Class class)
   getMethod(class, NAME_popup, NAME_menu, "popup*", 0,
 	    "Get popup menu of the list_browser",
 	    getPopupBrowser);
-  getMethod(class, NAME_member, NAME_lookup, "dict_item", 1, "name",
+  getMethod(class, NAME_member, NAME_lookup, "dict_item", 1, "any",
 	    "Dict_item with given key value",
 	    getMemberBrowser);
   getMethod(class, NAME_contains, DEFAULT, "chain", 0,
