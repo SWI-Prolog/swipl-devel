@@ -1,3 +1,6 @@
+* FIXED: Removed limits on # rows/columns of devices with a format object
+  attached (used to be 1024x1024).
+
 * ADDED: Class variable text_item.combo_box_heigth to define the maximum
   height of completer/combox box windows (default 6).
 
