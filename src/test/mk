@@ -1,12 +1,23 @@
 #!/bin/sh
 
-arch="$1"
+EXTRA=-DVERBOSE
+
+if [ x"$1" = "x-q" ]; then
+  EXTRA=
+  shift
+fi
+if [ x"$1" = "x-segv" ]; then
+  EXTRA="$EXTRA -DNO_SEGV_HANDLING"
+  shift
+fi
+
+arch="src"
 
 if [ ! -d ../../$arch ]; then
    echo "Usage: `basename $0`: architecture"
 fi
 
-gcc -I../../$arch $CFLAGS -DHAVE_CONFIG_H -DVERBOSE -o mmap mmap.c
+cc -I../../$arch $CFLAGS -DHAVE_CONFIG_H $EXTRA -o mmap mmap.c
 
 if [ -x mmap ]; then
   echo "Running mmap test"

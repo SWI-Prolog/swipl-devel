@@ -787,7 +787,8 @@ echo '#include "confdefs.h"' > conftest.c
 cat $srcdir/test/mmap.c >> conftest.c
 (eval $ac_link) 2>&5
 if test -s conftest; then
-    if eval `./conftest`; then
+    res=`./conftest`
+    if test "$?" = 0 && eval $res; then
 	if test "$MMAP_STACK" = "1"; then
 	    if test "$HAVE_MAP_ANON" = "1"; then
 		AC_DEFINE(HAVE_MAP_ANON)
@@ -817,6 +818,7 @@ if test ! "$MMAP_STACK" = "1" -a "$mmap_tried" = "segv"; then
     mmap_tried=nosegv
     AC_DEFINE(NO_SEGV_HANDLING)
     AC_MSG_CHECKING("Retrying without handling SEGV")
+    AC_MSG_RESULT("")
 else
     mmap_tried=stop
 fi

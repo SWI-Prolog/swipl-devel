@@ -74,6 +74,7 @@ int	pagsiz;				/* pagesize */
 void *  wraddr;				/* current address */
 int	provides_address = 1;		/* assume */
 char *  top;				/* currently assigned top */
+int	faults;				/* # faults detected */
 
 #define ulong unsigned long		/* avoid redefinition */
 
@@ -179,6 +180,8 @@ segv_handler(int s, siginfo_t *info, void *extra)
 segv_handler(int s)
 #endif
 { ulong addr = RoundDown((ulong)wraddr, pagsiz);
+
+  faults++;
 
 #ifdef HAVE_SIGINFO
   if ( !info || info->si_addr != wraddr )
@@ -309,6 +312,8 @@ ok()
 #endif
   if ( mapfd == -1 )
     printf("HAVE_MAP_ANON=1;\n");
+
+  exit(0);
 }
 
 
@@ -318,6 +323,14 @@ main(int argc, char **argv)
 { char *base;
   ulong size;
   ulong truncto;
+
+#ifdef VERBOSE
+#ifdef SEGV_HANDLING
+  printf("Trying to catch SEGV\n");
+#else
+  printf("Trying without SEGV handling\n");
+#endif
+#endif
 
   if ( argc == 2 )
     size = atol(argv[1]) MB;
@@ -339,6 +352,17 @@ main(int argc, char **argv)
 
   if ( !test_map(base, size) )
     exit(1);
+
+					/* PROT_NONE doesn't work, so */
+					/* we down get SEGV */
+#ifdef SEGV_HANDLING
+  if ( faults != size/pagsiz )
+    exit(1);
+
+#ifdef VERBOSE
+  printf("%d faults\n");
+#endif
+#endif
 
 #ifdef MAP_FIXED
 #ifdef VERBOSE
