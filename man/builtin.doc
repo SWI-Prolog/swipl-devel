@@ -769,11 +769,22 @@ const{error}, \const{help} or \const{silent}.  Currently only
 term described in \secref{exceptterm}.  A human-readable message
 is printed to the stream \const{user_error}.
 
+This predicate first obtains the `human translation' of \arg{Term} and
+then calls message_hook/3.  If this fails the message is printed to
+the stream \const{user_error}.
+
 The print_message/2 predicate and its rules are in the file
 \file{<plhome>/boot/messages.pl}, which may be inspected for more
 information on the error messages and related error terms.
+    \predicate{message_hook}{3}{+Term, +Kind, +Message}
+Hook predicate that may be define in the module \const{user} to
+intercept messages from print_message/2. \arg{Term} and \arg{Kind} are
+the same as passed to print_message/2. \arg{Message} is a string
+containing the human readable translation of the message. If this
+predicate succeeds, print_message/2 considers the message printed.
 
-
+This predicate should be defined dynamic and multifile to allow other
+modules defining clauses for it too.
 \end{description}
 
 

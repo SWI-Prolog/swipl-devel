@@ -14,7 +14,7 @@
 
                         RReeffeerreennccee MMaannuuaall
 
-            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _2_._9_._5_, _O_c_t_o_b_e_r _1_9_9_7
+            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _2_._9_._6_, _N_o_v_e_m_b_e_r _1_9_9_7
 
                          _J_a_n _W_i_e_l_e_m_a_k_e_r
 
@@ -2589,9 +2589,24 @@ pprriinntt__mmeessssaaggee((_+_K_i_n_d_, _+_T_e_r_m))
     eerrrroorr((_2)) term described  in section 3.8.2.  A human-readable message
     is printed to the stream user_error.
 
+    This  predicate first  obtains the `human  translation' of _T_e_r_m  and
+    then  calls mmeessssaaggee__hhooookk//33.  If this fails the message  is printed to
+    the stream user_error.
+
     The  pprriinntt__mmeessssaaggee//22  predicate  and  its  rules  are  in  the  file
     <_p_l_h_o_m_e>/boot/messages.pl,   which  may   be   inspected  for   more
     information on the error messages and related error terms.
+
+
+mmeessssaaggee__hhooookk((_+_T_e_r_m_, _+_K_i_n_d_, _+_M_e_s_s_a_g_e))
+    Hook  predicate that may be define  in the module user to  intercept
+    messages  from  pprriinntt__mmeessssaaggee//22.    _T_e_r_m  and _K_i_n_d  are the  same  as
+    passed  to  pprriinntt__mmeessssaaggee//22.    _M_e_s_s_a_g_e is  a  string containing  the
+    human  readable  translation of  the  message.   If  this  predicate
+    succeeds, pprriinntt__mmeessssaaggee//22 considers the message printed.
+
+    This  predicate should  be defined  dynamic and  multifile to  allow
+    other modules defining clauses for it too.
 
 
 33..99 AAddvvaanncceedd ccoonnttrrooll--ssttrruuccttuurreess::  bblloocckkss
@@ -9158,6 +9173,7 @@ suggest predicates from a keyword.
  merge/3                       Merge two sorted lists
  merge_set/3                   Merge two sorted sets
 
+ message_hook/3                Intercept pprriinntt__mmeessssaaggee//22
  meta_predicate/1              Quintus compatibility
  module/1                      Query/set current type-in module
  module/2                      Declare a module
@@ -9165,16 +9181,16 @@ suggest predicates from a keyword.
  msort/2                       Sort, do not remove duplicates
  multifile/1                   Indicate distributed definition of predicate
  name/2                        Convert between atom and list of ASCII characters
- nl/0                          Generate a newline
 
+ nl/0                          Generate a newline
  nl/1                          Generate a newline on a stream
  nodebug/0                     Disable debugging
  nonvar/1                      Type check for bound term
  noprotocol/0                  Disable logging of user interaction
  nospy/1                       Remove spy point
  nospyall/0                    Remove all spy points
- not/1                         Negation by failure (argument not provable).  Same as \+//11
 
+ not/1                         Negation by failure (argument not provable).  Same as \+//11
  notrace/0                     Stop tracing
  notrace/1                     Do not debug argument goal
  nth0/3                        N-th element of a list (0-based)
@@ -9182,16 +9198,16 @@ suggest predicates from a keyword.
  nth_clause/3                  N-th clause of a predicate
  number/1                      Type check for integer or float
  number_chars/2                Convert between number and atom
- numbervars/4                  Enumerate unbound variables of a term using a given base
 
+ numbervars/4                  Enumerate unbound variables of a term using a given base
  once/1                        Call a goal deterministically
  op/3                          Declare an operator
  open/3                        Open a file (creating a stream)
  open/4                        Open a file (creating a stream)
  open_dde_conversation/3       Win32:  Open DDE channel
  open_null_stream/1            Open a stream to discard output
- open_shared_object/2          UNIX: Open shared library (.so file)
 
+ open_shared_object/2          UNIX: Open shared library (.so file)
  open_shared_object/3          UNIX: Open shared library (.so file)
  peek_byte/1                   Read character without removing
  peek_byte/2                   Read character without removing
@@ -9199,16 +9215,16 @@ suggest predicates from a keyword.
  phrase/3                      Activate grammar-rule set (returning rest)
  please/3                      Query/change environment parameters
  plus/3                        Logical integer addition
- portray/1                     (hook) Modify behaviour of pprriinntt//11
 
+ portray/1                     (hook) Modify behaviour of pprriinntt//11
  portray_clause/1              Pretty print a clause
  predicate_property/2          Query predicate attributes
  predsort/3                    Sort, using a predicate to determine the order
  preprocessor/2                Install a preprocessor before the compiler
  print/1                       Print a term
  print/2                       Print a term on a stream
- print_message/2               Print message from (exception) term
 
+ print_message/2               Print message from (exception) term
  profile/3                     Obtain execution statistics
  profile_count/3               Obtain profile results on a predicate
  profiler/2                    Obtain/change status of the profiler
@@ -9216,16 +9232,16 @@ suggest predicates from a keyword.
  prolog_current_frame/1        Reference to goal's environment stack
  prolog_frame_attribute/3      Obtain information on a goal environment
  prolog_load_context/2         Context information for directives
- prolog_skip_level/2           Indicate deepest recursion to trace
 
+ prolog_skip_level/2           Indicate deepest recursion to trace
  prolog_to_os_filename/2       Convert between Prolog and OS filenames
  prolog_trace_interception/4   library(user) Intercept the Prolog tracer
  prompt1/1                     Change prompt for 1 line
  prompt/2                      Change the prompt used by rreeaadd//11
  proper_list/1                 Type check for list
  protocol/1                    Make a log of the user interaction
- protocola/1                   Append log of the user interaction to file
 
+ protocola/1                   Append log of the user interaction to file
  protocolling/1                On what file is user interaction logged
  put/1                         Write a character
  put/2                         Write a character on a stream
@@ -9233,16 +9249,16 @@ suggest predicates from a keyword.
  qload/1                       Load Quick Load File as ccoonnssuulltt//11
  qsave_program/1               Create runtime application
  qsave_program/2               Create runtime application
- read/1                        Read Prolog term
 
+ read/1                        Read Prolog term
  read/2                        Read Prolog term from stream
  read_clause/1                 Read clause
  read_clause/2                 Read clause from stream
  read_history/6                Read using history substitution
  read_link/3                   Read a symbolic link
  read_term/2                   Read term with options
- read_term/3                   Read term with options from stream
 
+ read_term/3                   Read term with options from stream
  read_variables/2              Read clause including variable names
  read_variables/3              Read clause including variable names from stream
  recorda/2                     Record term in the database (first)
@@ -9250,16 +9266,16 @@ suggest predicates from a keyword.
  recorded/2                    Obtain term from the database
  recorded/3                    Obtain term from the database
  recordz/2                     Record term in the database (last)
- recordz/3                     Record term in the database (last)
 
+ recordz/3                     Record term in the database (last)
  redefine_system_predicate/1   Abolish system definition
  rename_file/2                 Change name of file
  repeat/0                      Succeed, leaving infinite backtrack points
  require/1                     This file requires these predicates
  reset_profiler/0              Clear statistics obtained by the profiler
  restore/1                     Restore saved-state (ssaavvee//11, ssaavvee__pprrooggrraamm//11)
- retract/1                     Remove clause from the database
 
+ retract/1                     Remove clause from the database
  retractall/1                  Remove unifying clauses from the database
  reverse/2                     Inverse the order of the elements in a list
  same_file/2                   Succeeds if arguments refer to same file
@@ -9267,16 +9283,16 @@ suggest predicates from a keyword.
  save/2                        Save program including current goal
  save_program/1                Save the current program on a file
  save_program/2                Save the current program on a file
- see/1                         Change the current input stream
 
+ see/1                         Change the current input stream
  seeing/1                      Query the current input stream
  seen/0                        Close the current input stream
  select/3                      Select element of a list
  set_feature/2                 Define a system feature
  set_input/1                   Set current input stream from a stream
  set_output/1                  Set current output stream from a stream
- set_tty/2                     Set `tty' stream
 
+ set_tty/2                     Set `tty' stream
  setarg/3                      Destructive assignment on term
  setenv/2                      Set shell environment variable
  setof/3                       Find all unique solutions to a goal
@@ -9284,16 +9300,16 @@ suggest predicates from a keyword.
  sformat/3                     Format on a string
  shell/0                       Execute interactive subshell
  shell/1                       Execute OS command
- shell/2                       Execute OS command
 
+ shell/2                       Execute OS command
  show_profile/1                Show results of the profiler
  size_file/2                   Get size of a file in characters
  skip/1                        Skip to character in current input
  skip/2                        Skip to character on stream
  rl_add_history/1              Add line to readline(3) history
  rl_read_init_file/1           Read readline(3) init file
- sleep/1                       Suspend execution for specified time
 
+ sleep/1                       Suspend execution for specified time
  sort/2                        Sort elements in a list
  source_file/1                 Examine currently loaded source files
  source_file/2                 Obtain source file of predicate
@@ -9301,16 +9317,16 @@ suggest predicates from a keyword.
  spy/1                         Force tracer on specified predicate
  stack_parameter/4             Some systems:  Query/Set runtime stack parameter
  statistics/0                  Show execution statistics
- statistics/2                  Obtain collected statistics
 
+ statistics/2                  Obtain collected statistics
  stream_position/3             Get/seek to position in file
  string/1                      Type check for string
  string_concat/3               ccoonnccaatt//33 for strings (non-deterministic)
  string_length/2               Determine length of a string
  string_to_atom/2              Conversion between string and atom
  string_to_list/2              Conversion between string and list of ASCII
- style_check/1                 Change level of warnings
 
+ style_check/1                 Change level of warnings
  sublist/3                     Determine elements that meet condition
  subset/2                      Generate/check subset relation
  substring/4                   Get part of a string
@@ -9318,16 +9334,16 @@ suggest predicates from a keyword.
  succ/2                        Logical integer successor relation
  swritef/2                     Formatted write on a string
  swritef/3                     Formatted write on a string
- tab/1                         Output number of spaces
 
+ tab/1                         Output number of spaces
  tab/2                         Output number of spaces on a stream
  tell/1                        Change current output stream
  telling/1                     Query current output stream
  term_expansion/2              (hook) Convert term before compilation
  term_to_atom/2                Convert between term and atom
  throw/1                       Raise an exception (see ccaattcchh//33)
- time/1                        Determine time needed to execute goal
 
+ time/1                        Determine time needed to execute goal
  time_file/2                   Get last modification time of file
  tmp_file/2                    Create a temporary filename
  told/0                        Close current output
@@ -9335,16 +9351,16 @@ suggest predicates from a keyword.
  trace/1                       Set trace-point on predicate
  trace/2                       Set/Clear trace-point on ports
  tracing/0                     Query status of the tracer
- trim_stacks/0                 Release unused memory resources
 
+ trim_stacks/0                 Release unused memory resources
  true/0                        Succeed
  tty_get_capability/3          Get terminal parameter
  tty_goto/2                    Goto position on screen
  tty_put/2                     Write control string to terminal
  ttyflush/0                    Flush output on terminal
  union/3                       Union of two sets
- unknown/2                     Trap undefined predicates
 
+ unknown/2                     Trap undefined predicates
  unload_foreign_library/1      library(shlib) Detach shared library (.so file)
  unsetenv/1                    Delete shell environment variable
  use_module/1                  Import a module
@@ -9352,16 +9368,16 @@ suggest predicates from a keyword.
  var/1                         Type check for unbound variable
  visible/1                     Ports that are visible in the tracer
  volatile/1                    Predicates that are not saved
- wait_for_input/3              Wait for input with optional timeout
 
+ wait_for_input/3              Wait for input with optional timeout
  wildcard_match/2              Csh(1) style wildcard match
  win_exec/2                    Win32:  spawn Windows task
  write/1                       Write term
  write/2                       Write term to stream
  write_ln/1                    Write term, followed by a newline
  write_canonical/1             Write a term with quotes, ignore operators
- write_canonical/2             Write a term with quotes, ignore operators on a stream
 
+ write_canonical/2             Write a term with quotes, ignore operators on a stream
  write_term/2                  Write term with options
  write_term/3                  Write term with options to stream
  writef/1                      Formatted write
@@ -9545,4 +9561,4 @@ Bibliography
                                   New York, 1983.  Major revision  March
                                   1984.
 
-                                  720
+                                  721

@@ -341,7 +341,8 @@ pl_current_predicate(term_t name, term_t spec, word h)
 
   if ( ForeignControl(h) == FRG_FIRST_CALL)
   { if ( f ) 
-    { if ( (proc = isCurrentProcedure(f, m)) )
+    { if ( (proc = isCurrentProcedure(f, m)) &&
+	   isDefinedProcedure(proc) )
 	return PL_unify_atom(name, nameFunctor(f));
       fail;
     }
@@ -356,6 +357,7 @@ pl_current_predicate(term_t name, term_t spec, word h)
     fdef = proc->definition->functor;
 
     if ( ( n && n != fdef->name) ||
+	 !isDefinedProcedure(proc) ||
 	 !PL_unify_atom(name, fdef->name) ||
 	 !PL_unify_functor(functor, fdef->functor) )
       continue;

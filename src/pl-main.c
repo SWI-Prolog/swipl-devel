@@ -508,6 +508,8 @@ startProlog(int argc, char **argv)
   DEBUG(1, Sdprintf("Command line options parsed\n"));
 
   setupProlog();
+  initialiseForeign(argc, argv);	/* PL_initialise_hook() functions */
+
   systemMode(TRUE);
 
   if ( GD->bootsession )
@@ -537,7 +539,6 @@ startProlog(int argc, char **argv)
     CSetFeature("boot_file", state);
   }
 
-  initialiseForeign(argc, argv);	/* PL_initialise_hook() functions */
   debugstatus.styleCheck = (LONGATOM_CHECK|
 			    SINGLETON_CHECK|
 			    DISCONTIGUOUS_STYLE);
