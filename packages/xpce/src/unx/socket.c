@@ -259,6 +259,30 @@ unregisterSocket(Socket s)
 
 
 static status
+registerClientSocket(Socket s, Socket client)
+{ unsigned long flags = s->flags;
+  unsigned long refs  = s->references;
+
+  appendChain(s->clients, client);
+  assign(client, master, s);
+  s->flags      = flags;
+  s->references = refs;
+}
+
+
+static status
+unregisterClientSocket(Socket s, Socket client)
+{ unsigned long flags = s->flags;
+  unsigned long refs  = s->references;
+
+  appendChain(s->clients, client);
+  assign(client, master, s);
+  s->flags      = flags;
+  s->references = refs;
+}
+
+
+static status
 unlinkSocket(Socket s)
 { return closeSocket(s);
 }
@@ -659,7 +683,7 @@ getPeerNameSocket(Socket s)
 static status
 eofSocket(Socket s)
 { if ( s->status == NAME_accepted )
-    doneObject(s);
+    freeObject(s);
 
   succeed;
 }

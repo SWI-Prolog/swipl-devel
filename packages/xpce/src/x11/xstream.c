@@ -10,6 +10,11 @@
     Copyright (C) 1990-2001 SWI, University of Amsterdam. All rights reserved.
 */
 
+#include <md.h>				/* get HAVE_'s */
+#if defined(HAVE_SOCKET) && defined(HAVE_SHUTDOWN)
+#include <sys/socket.h>			/* avoid send() conflict */
+#endif
+
 #include <h/kernel.h>
 #include <h/unix.h>
 #include "include.h"
@@ -37,6 +42,11 @@ setXtInputIdStream(Stream s, XtInputId id)
 }
 
 
+#ifndef SHUT_RD
+#define SHUT_RD 0
+#define SHUT_WR 1
+#endif
+
 void
 ws_close_input_stream(Stream s)
 { XtInputId id;
@@ -47,7 +57,13 @@ ws_close_input_stream(Stream s)
   }
 
   if ( s->rdfd >= 0 )
-  { close(s->rdfd);
+  {
+#ifdef HAVE_SHUTDOWN
+    if ( instanceOfObject(s, ClassSocket) )
+      shutdown(s->rdfd, SHUT_RD);
+    else
+#endif
+      close(s->rdfd);
     s->rdfd = -1;
   }
 
@@ -61,7 +77,13 @@ ws_close_input_stream(Stream s)
 void
 ws_close_output_stream(Stream s)
 { if ( s->wrfd >= 0 )
-  { close(s->wrfd);
+  {
+#ifdef HAVE_SHUTDOWN
+    if ( instanceOfObject(s, ClassSocket) )
+      shutdown(s->wrfd, SHUT_WR);
+    else
+#endif
+      close(s->wrfd);
     s->wrfd = -1;
   }
 }
