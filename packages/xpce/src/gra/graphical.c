@@ -1297,6 +1297,7 @@ get_absolute_xy_graphical(Graphical gr, Device *dev, Int *X, Int *Y)
   y = valInt(gr->area->y);
 
   while( !instanceOfObject(gr->device, ClassWindow) &&
+	 !isNil(gr->device) &&
 	 gr->device != *dev )
   { Point offset = gr->device->offset;
 

@@ -41,15 +41,15 @@ initialisePixmap(PixmapObj pm, Any from, Colour fg, Colour bg, Int w, Int h)
   if ( instanceOfObject(from, ClassFile) )
   { FileObj f = from;
 
-    assign(pm, name,       f->name);
+    assign(pm, name,	   f->name);
     assign(pm, background, fg);
     assign(pm, foreground, bg);
+    assign(pm, kind,	   NAME_pixmap);
+    assign(pm, file,	   f);
+    assign(pm, access,	   NAME_read);
+    assign(pm, depth,	   DEFAULT);
+    assign(pm, size,	   newObject(ClassSize,	0));
     ws_init_image((Image) pm);
-    assign(pm, kind,	  NAME_pixmap);
-    assign(pm, file,	  f);
-    assign(pm, access, NAME_read);
-    assign(pm, depth,  DEFAULT);
-    assign(pm, size,	  newObject(ClassSize, 0));
     TRY(loadImage((Image) pm, DEFAULT, DEFAULT));
     protectObject(pm);
     appendHashTable(ImageTable, f->name, pm);
@@ -87,13 +87,40 @@ getLookupPixmap(Any receiver, Image i, Colour fg, Colour bg)
 
 
 static PixmapObj
-getConvertPixmap(Any receiver, Image i)
+getConvertPixmap(Class class, Any obj)
 { PixmapObj pm;
 
-  if ( !(pm = getLookupPixmap(receiver, i, DEFAULT, DEFAULT)) )
-    pm = answerObject(ClassPixmap, i, 0);
+  if ( (pm = getLookupPixmap(class, obj, DEFAULT, DEFAULT)) )
+    answer(pm);
 
-  answer(pm);
+  if ( (pm = getConvertObject(class, obj)) )
+  { if ( instanceOfObject(pm, ClassPixmap) )
+      answer(pm);
+
+    obj = pm;
+  }
+
+  if ( instanceOfObject(obj, ClassBitmap) )
+  { pm = (PixmapObj)((BitmapObj)obj)->image;
+
+    if ( instanceOfObject(pm, ClassPixmap) )
+      answer(pm);
+  }
+  
+  if ( instanceOfObject(obj, ClassGraphical) )
+  { Graphical gr = obj;
+    
+    ComputeGraphical(gr);
+    if ( (pm = newObject(ClassPixmap, NIL,
+			  DEFAULT, DEFAULT, /* fg, bg */
+			  gr->area->w, gr->area->h,
+			  0)) )
+    { send(pm, NAME_drawIn, gr, answerObject(ClassPoint, 0), 0);
+      answer(pm);
+    }
+  }
+
+  return answerObject(ClassPixmap, obj, 0);
 }
 
 
@@ -171,8 +198,8 @@ static senddecl send_pixmap[] =
 /* Get Methods */
 
 static getdecl get_pixmap[] =
-{ GM(NAME_convert, 1, "pixmap", "source=image", getConvertPixmap,
-     NAME_oms, "Lookup already made conversion"),
+{ GM(NAME_convert, 1, "pixmap", "name|image|graphical|file", getConvertPixmap,
+     NAME_oms, "Convert @name, image, graphical or file-data"),
   GM(NAME_lookup, 3, "pixmap", T_lookup, getLookupPixmap,
      NAME_oms, "Lookup already made conversion"),
   GM(NAME_source, 0, "image|file*", NULL, getSourcePixmap,
