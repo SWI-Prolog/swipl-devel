@@ -308,13 +308,13 @@ save_attributes(P) :-
 	;   true
 	).
 	    
-%	Save status of the unknown/2 flag
+%	Save status of the unknown flag
 
 save_unknown(M) :-
-	M:unknown(Status, Status),
-	(   Status == trace
+	current_prolog_flag(M:unknown, Unknown),
+	(   Unknown == error
 	->  true
-	;   $add_directive_wic(M:unknown(_, Status))
+	;   $add_directive_wic(set_prolog_flag(M:unknown, Unknown))
 	).
 
 		 /*******************************
