@@ -3440,15 +3440,18 @@ BUG: have to find out how to proceed in case of failure (I am afraid the
     VMI(I_USERCALL0) MARK(USRCL0);
       { word goal;
 	int arity;
-	Word args;
+	Word args, a;
 	int n;
-	LocalFrame next = lTop;
-	volatile Word a = argFrameP(next, 0);	/* get the goal */
-	Module module = NULL;
+	LocalFrame next;
+	Module module;
 	functor_t functor;
 	int callargs;
 
+	module = NULL;
+	next = lTop;
+	a = argFrameP(next, 0);		/* get the goal */
 	a = stripModule(a, &module PASS_LD);
+	
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Determine the functor definition associated with the goal as well as the
@@ -3937,7 +3940,7 @@ the arguments of this term in the frame.
 	  }
 	} else
 	{ PL_error("apply", 2, NULL, ERR_TYPE,
-		   ATOM_callable, wordToTermRef(a));
+		   ATOM_callable, wordToTermRef(gp));
 	  goto b_throw;
 	}
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

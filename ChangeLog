@@ -7,6 +7,11 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: (Maybe ...) Make compile using SunSoft C-compiler.  Michel Sall. 
+
+  * FIXED: Bug#37 writeq(`hello`) with backquoted_string set to true. 
+    Holger Kanwischer
+
   * ADDED: very first start for multiple engines in single-threaded version
     for benchmarking.
 
