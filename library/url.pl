@@ -114,9 +114,7 @@ http_location(?Parts, ?Location)
 %	cases deal with commonly seen and quickly to resolve cases.
 
 global_url(URL, BaseURL, Global) :-
-	(   sub_atom(URL, 0, _, _, 'http://') % speed up common cases
-	->  Global = URL
-	;   sub_atom(URL, 0, _, _, 'ftp://')
+	(   is_absolute_url(URL)
 	->  Global = URL
 	;   sub_atom(URL, 0, _, _, #)
 	->  (   sub_atom(BaseURL, _, _, 0, #)
@@ -128,6 +126,14 @@ global_url(URL, BaseURL, Global) :-
 	    phrase(curl(Attributes), Chars),
 	    atom_codes(Global, Chars)
 	).
+
+is_absolute_url(URL) :-
+	sub_atom(URL, 0, _, _, 'http://'), !.
+is_absolute_url(URL) :-
+	sub_atom(URL, 0, _, _, 'ftp://'), !.
+is_absolute_url(URL) :-
+	atom_codes(URL, Codes),
+	phrase(absolute_url, Codes, _), !.
 
 
 		 /*******************************
