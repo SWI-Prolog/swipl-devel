@@ -162,6 +162,11 @@ trace(TS) :->
 	get(TS, key, TID),
 	catch(thread_signal(TID, (attach_console, trace)), _, fail).
 
+signal(TS, Signal:prolog) :->
+	"Send a signal to the thread"::
+	get(TS, key, TID),
+	catch(thread_signal(TID, Signal), _, fail).
+
 gtrace(TS) :->
 	"Prepare tread for graphical debugging"::
 	get(TS, key, TID),
@@ -196,6 +201,12 @@ initialise(TB) :->
 			      condition := IsRunning),
 		    menu_item(trace,
 			      message(@arg1, trace),
+			      condition := IsRunning),
+		    menu_item(debug,
+			      message(@arg1, signal, debug),
+			      condition := IsRunning),
+		    menu_item(nodebug,
+			      message(@arg1, signal, nodebug),
 			      condition := IsRunning),
 		    gap,
 		    menu_item(abort,
@@ -564,7 +575,7 @@ settings(TM) :->
 :- pce_begin_class(thread_settings_dialog, dialog,
 		   "Settings for the thread-monitor").
 
-initialise(D, TM:thread_monitor) :->
+initialise(D, TM:prolog_thread_monitor) :->
 	send_super(D, initialise, 'Thread Monitor Settings'),
 	send(D, append,
 	     new(FI, float_item(update_interval,
