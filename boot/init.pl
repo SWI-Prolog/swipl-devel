@@ -198,8 +198,8 @@ fail(Label) :-
 %	ISO compliant exception handling.  $throw/1 is compiled to
 %	the virtual instruction B_THROW.  See pl-wam.c for details.
 
-catch(Goal, _Catcher, _Recover) :-
-	Goal.
+catch(_Goal, _Catcher, _Recover) :-
+	$catch.
 
 throw(Exception) :-
 	$throw(Exception).

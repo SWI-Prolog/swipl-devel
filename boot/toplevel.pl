@@ -194,7 +194,6 @@ $set_prolog_file_extension.
 		*********************************/
 
 :- flag($banner_goal, _, $welcome).
-:- flag($qid, _, 1).
 
 $initialise :-
 	catch(initialise_prolog, E,
