@@ -1266,7 +1266,8 @@ variable, compare the numbers otherwise.
 	if (isVar(*k))
 	{ Word p = allocGlobal(3);
 
-	  *k = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+	  *k   = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+	  TrailLG(k, FR);
 	  *p++ = mkIndHdr(1, TAG_INTEGER);
 	  *p++ = (long)*PC++;
 	  *p++ = mkIndHdr(1, TAG_INTEGER);
@@ -1284,7 +1285,8 @@ variable, compare the numbers otherwise.
 	if (isVar(*k))
 	{ Word p = allocGlobal(4);
 
-	  *k++ = consPtr(p, TAG_FLOAT|STG_GLOBAL);
+	  *k   = consPtr(p, TAG_FLOAT|STG_GLOBAL);
+	  TrailLG(k, FR);
 	  *p++ = mkIndHdr(2, TAG_FLOAT);
 	  *p++ = (long)*PC++;
 	  *p++ = (long)*PC++;

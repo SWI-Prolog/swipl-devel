@@ -1,6 +1,21 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.7.7
+=============
+
+  * MODIFIED: Changed directory structure of make rt-install to be
+    the same as normal installation.
+
+  * FIXED: Installation on Pentium Pro: bad detection of canonical
+    system type by autoconf's config.sub.  Updated configure.in to
+    use autoconf 2.10.
+
+  * FIXED: Backtracking on floats and large integers appearing in the head.
+    The VM instructions H_FLOAT and H_INTEGERS handling these didn't
+    trail the argument.  Bug introduced in 2.7.0.  Thanks to Peter
+    Terptra for reporting.
+
 Version 2.7.6
 =============
 

@@ -27,13 +27,13 @@
 #	  based on SWI-Prolog.  Contact prolog-request@swi.psy.uva.nl.
 ################################################################
 
-PLVERSION=2.7.5
+PLVERSION=2.7.6
 
 PL=pl
-prefix=/usr/local
+prefix=/staff/jan/i386
 exec_prefix=${prefix}
-srcdir=.
-vpath %.c .
+srcdir=../src
+vpath %.c ../src
 bindir=$(exec_prefix)/bin
 PLBASE=$(prefix)/lib/pl-$(PLVERSION)
 mansec=1
@@ -42,13 +42,13 @@ lmansec=3
 lmandir=$(prefix)/man/man$(lmansec)
 
 CC=gcc
-LIBS=-ldl -lelf -lreadline -ltermcap -lm 
+LIBS=-ldl -ltermcap -lm 
 STATICLIBS=
 AWK=nawk
 SED=sed
 ETAGS=etags
 RANLIB=ranlib
-ARCH=sparc-solaris2.5
+ARCH=
 INSTALL=/usr/gnu/bin/install -c
 INSTALL_PROGRAM=${INSTALL}
 INSTALL_DATA=${INSTALL} -m 644
@@ -58,7 +58,7 @@ CWFLAGS=-Wall
 CIFLAGS=
 CMFLAGS=-funsigned-char
 CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS)
-LDFLAGS=
+LDFLAGS=-rdynamic 
 
 PLFOREIGN=
 

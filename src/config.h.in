@@ -314,6 +314,9 @@
 /* Define if you have the <unistd.h> header file.  */
 #undef HAVE_UNISTD_H
 
+/* Define if you have the curses library (-lcurses).  */
+#undef HAVE_LIBCURSES
+
 /* Define if you have the dl library (-ldl).  */
 #undef HAVE_LIBDL
 
@@ -325,6 +328,9 @@
 
 /* Define if you have the m library (-lm).  */
 #undef HAVE_LIBM
+
+/* Define if you have the ncurses library (-lncurses).  */
+#undef HAVE_LIBNCURSES
 
 /* Define if you have the readline library (-lreadline).  */
 #undef HAVE_LIBREADLINE

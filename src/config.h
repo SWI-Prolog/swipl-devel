@@ -67,7 +67,7 @@
 /* #undef MMAP_MIN_ADDRESS */
 
 /* Define if MAP_ANON is defined and works ok */
-/* #undef HAVE_MAP_ANON */
+#define HAVE_MAP_ANON 1
 
 /* Define if you can't use asm("nop") to separate two labels */
 /* #undef NO_ASM_NOP */
@@ -130,7 +130,7 @@
 /* #undef ASSERT_H_REQUIRES_STDIO_H */
 
 /* Define if doubles cannot be aligned as longs */
-#define DOUBLE_ALIGNMENT sizeof(double)
+/* #undef DOUBLE_ALIGNMENT */
 
 /* Define if you have the access function.  */
 #define HAVE_ACCESS 1
@@ -315,6 +315,9 @@
 /* Define if you have the <unistd.h> header file.  */
 #define HAVE_UNISTD_H 1
 
+/* Define if you have the curses library (-lcurses).  */
+/* #undef HAVE_LIBCURSES */
+
 /* Define if you have the dl library (-ldl).  */
 #define HAVE_LIBDL 1
 
@@ -322,13 +325,16 @@
 /* #undef HAVE_LIBDLD */
 
 /* Define if you have the elf library (-lelf).  */
-#define HAVE_LIBELF 1
+/* #undef HAVE_LIBELF */
 
 /* Define if you have the m library (-lm).  */
 #define HAVE_LIBM 1
 
+/* Define if you have the ncurses library (-lncurses).  */
+/* #undef HAVE_LIBNCURSES */
+
 /* Define if you have the readline library (-lreadline).  */
-#define HAVE_LIBREADLINE 1
+/* #undef HAVE_LIBREADLINE */
 
 /* Define if you have the termcap library (-ltermcap).  */
 #define HAVE_LIBTERMCAP 1

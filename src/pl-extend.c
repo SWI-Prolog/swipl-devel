@@ -24,16 +24,21 @@ In the latter case, proceed as follows:
      the main arguments or your own argument (using the systems
      conventions).  Make sure to pass the name of the program as
      first argument.
-  4) Link your application with this file and libpl.a
+  4) Normally #undef READLINE (above), unless your embedded version
+     provided access to the Prolog toplevel for which you want to
+     use readline.
+  5) Use plld(1) to link this file, and possible Prolog sources to
+     a single executable:
 
-If there are prolog parts involved:
+	plld -o myprog myprog.c myprog.pl
 
-  5) Start the image; load the prolog and create a state using
-     qsave_program/2.
+     See main plld and/or the SWI-Prolog manuals for further details.
 
-     OR
+NOTE:
 
-     pl -o <my_state> -b boot/init.pl -c <your-pl-files>
+     Passing the 3-th argument (env) is only necessary if your system
+     does not provide the environment using the global variable `environ'.
+     So, on almost any modern system you can pass NULL.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 PL_extension PL_extensions [] =

@@ -195,6 +195,9 @@ pl-funcs.h:	$(SRC)
 		mkproto -p $(SRC) > $@
 
 install:	install-libs
+		if [ -r $(bindir)/$(PL) ]; then \
+		    mv $(bindir)/$(PL) $(bindir)/$(PL).old; \
+		fi
 		for f in $(PL) pl-bite chpl plld; do \
 		    ( cd $(bindir); rm -f $$f; ln -s $(PLBASE)/bin/$(ARCH)/$$f . ); \
 		done
@@ -205,9 +208,6 @@ install-libs:	idirs iboot ilib iinclude iruntime iman
 		$(INSTALL_DATA) swiplbin $(PLBASE)/bin/swipl
 		$(INSTALL_DATA) README.bin $(PLBASE)
 		$(INSTALL_DATA) ../LICENCE $(PLBASE)
-		if [ -r $(bindir)/$(PL) ]; then \
-		    mv $(bindir)/$(PL) $(bindir)/$(PL).old; \
-		fi
 		for f in $(PL) pl-bite chpl; do \
 		    $(INSTALL_PROGRAM) $$f $(PLBASE)/bin/$(ARCH); \
 		done
@@ -274,7 +274,7 @@ iman:
 
 RTHOME=		$(prefix)/lib/rt-pl-$(PLVERSION)
 RTDIRS=		$(RTHOME) $(RTHOME)/bin $(RTHOME)/lib $(RTHOME)/lib/$(ARCH) \
-		$(RTHOME)/man
+		$(RTHOME)/man $(RTHOME)/bin/$(ARCH)
 
 rt-install:
 		@echo "****************"
@@ -286,12 +286,12 @@ rt-install:
 			mkdir $$d; \
 		    fi; \
 		done
-		$(INSTALL_PROGRAM) $(PL) $(RTHOME)/bin/pl
-		$(INSTALL_PROGRAM) chpl $(RTHOME)/bin/chpl
+		$(INSTALL_PROGRAM) $(PL) $(RTHOME)/bin/$(ARCH)/pl
+		$(INSTALL_PROGRAM) chpl $(RTHOME)/bin/$(ARCH)chpl
 		$(INSTALL_DATA) $(srcdir)/pl.1 $(RTHOME)/man/pl.1
 		$(INSTALL_DATA) $(srcdir)/chpl.1 $(RTHOME)/man/chpl.1
-		@-echo . > swipl
 		$(INSTALL_DATA) swipl $(RTHOME)/swipl
+		$(INSTALL_DATA) swiplbin $(RTHOME)/bin/swipl
 		$(INSTALL_DATA) $(srcdir)/README.RT $(RTHOME)
 
 #
