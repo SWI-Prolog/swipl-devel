@@ -26,6 +26,10 @@
 #include <config.h>
 #endif
 
+#ifdef WIN32
+#define HAVE_MALLOC_H 1
+#endif
+
 #include <SWI-Stream.h>
 #include <SWI-Prolog.h>
 #include <rfc2045.h>

@@ -925,7 +925,7 @@ getPrologOptions()
     pclose(fd);
 
 #ifdef WIN32
-    sprintf(buf, "%s/bin/%s", plbase, PROLOG);
+    sprintf(buf, "%s/bin/%s", plbase, PROG_PL);
 #else
     sprintf(buf, "%s/bin/%s/%s", plbase, plarch, PROG_PL);
 #endif
