@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: PceEmacs: allow for deleting menu-items in sub-modes.  Used to cleanup
+  the menus in the Prolog Mode.
+
 * MODIFIED: Editor selection management, unifying the `region' and `selection',
   which is now defined by <-mark and <-caret.  This is a first step towards
   better compatibility to GNU-Emacs as well as MS-Windows editing commands.

@@ -646,14 +646,12 @@ static kbDef emacs_edit_basics[] =
   { "backspace",	NAME_cutOrBackwardDeleteChar },
   { "\\C-d", 		NAME_deleteChar },
   { "DEL",		NAME_cutOrDeleteChar },
-  { "\\C-h", 		NAME_backwardDeleteChar },
   { "\\C-t", 		NAME_transposeChars },
   { "\\C-k", 		NAME_killLine },
   { "\\C-o", 		NAME_openLine },
 
   { "\\ed",		NAME_killWord },
   { "\\ebackspace",	NAME_backwardKillWord },
-  { "\\e\\C-h",		NAME_backwardKillWord },
 
   { NULL,		NULL }
 };

@@ -133,6 +133,8 @@ make_syntax([S|Rest], ST) :-
 
 bind(key(Key), Selector, _, KB, _) :-
 	send(KB, function, Key, Selector).
+bind(-button(Button), Selector, _, _, MM) :-
+	send(MM, delete, Button, Selector).
 bind(button(Button), Selector, _, _, MM) :-
 	send(MM, append, Button, Selector).
 bind(button(Button, Func), Selector, Module, _, MM) :-

@@ -1414,6 +1414,14 @@ append(MM, Name:name, Action:'name|menu_item', Before:[name]) :->
 	    )
 	).
 
+delete(MM, Menu:name, Action:name) :->
+	"Delete item from inherited menu"::
+	(   get(MM, value, Menu, Chain),
+	    send(Chain, delete, Action)
+	->  true
+	;   true
+	).
+
 :- pce_end_class.
 
 

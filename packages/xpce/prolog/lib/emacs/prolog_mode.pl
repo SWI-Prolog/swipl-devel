@@ -59,6 +59,7 @@ resource(breakpoint,   image, image('16x16/stop.xpm')).
 					% BINDINGS
 	[ insert_if_then_else	       = key('(') + key(';') + key('>'),
 
+	  manual_entry		       = -button(help),
 	  prolog_manual		       = button(help),
 	  (spy)			       = button(prolog),
 	  trace			       = button(prolog),
@@ -68,8 +69,10 @@ resource(breakpoint,   image, image('16x16/stop.xpm')).
 	  -			       = button(prolog),
 	  check_clause		       = key('\\C-c\\C-s') + button(prolog),
 	  insert_full_stop	       = key(.),
+	  find_tag		       = -button(browse),
 	  find_definition	       = key('\\e.') + button(browse),
 	  -			       = button(prolog),
+	  compile		       = -button(compile),
 	  make			       = key('\\C-c\\C-m') + button(compile),
 	  compile_buffer	       = key('\\C-c\\C-b') + button(compile),
 	  consult_selection	       = button(compile) + button(compile),
@@ -940,7 +943,7 @@ replace_singletons(M, P) :-
 
 cancel_replace_singletons(M) :-
 	send(M, focus_function, @nil),
-	send(M, selection, 0, 0),
+	send(M, mark_status, inactive),
 	send(M, delete_attribute, singletons),
 	send(M, report, status, '').
 
@@ -949,8 +952,7 @@ prepare_replace_singletons(M) :-
 	get(Frags, head, F0),
 	get(F0, start, S),
 	get(F0, end, E),
-	send(M, selection, S, E),
-	send(M, caret, E),
+	send(M, selection, S, E, highlight),
 	send(M, report, status,
 	     'Replace singleton? (''y'' --> _Name, ''_'' --> _, ''n'')').
 
