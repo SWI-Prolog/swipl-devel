@@ -1,3 +1,13 @@
+* FIXED: BoundingBox calculation by class table using negative cell_spacing.
+
+* FIXED: Win32: Repainting windows after removing transient windows sometimes
+  failed.  Caused by frames not setting WS_CLIPCHILDREN.
+
+* FIXED: Win32: returning absolute path for file('~/xxx') on Windows 95
+  and Windows 98 (patched in the SWI-Prolog uxnt.lib library).
+
+* FIXED: PceEmacs Prolog colouring to close the text-buffer input stream.
+
 * FIXED: (Finally) saving the PceEmacs bookmarks on exit
 
 * FIXED: modal transient windows not honoured if there is a focus.
