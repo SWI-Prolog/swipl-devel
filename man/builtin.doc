@@ -5096,8 +5096,12 @@ future versions.}
     \predicate{sleep}{1}{+Time}
 Suspend execution \arg{Time} seconds. \arg{Time} is either a floating
 point number or an integer. Granularity is dependent on the system's
-timer granularity. A negative time causes the timer to return
+timer granularity.  A negative time causes the timer to return
 immediately. On most non-realtime operating systems we can only ensure
 execution is suspended for {\bf at least} \arg{Time} seconds.
+
+On Unix systems the sleep/1 predicate is realised ---in order of
+preference--- by nanosleep(), usleep(), select() if the time is below 1
+minute or sleep().  On Windows systems Sleep() is used.
 \end{description}
 
