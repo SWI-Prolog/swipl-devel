@@ -445,7 +445,7 @@ attach_archive(RcArchive rca)
   return FALSE;
 #else /*HAVE_MMAP*/
 #ifdef WIN32
-  BY_HANDLE_FILE_INFORMATION info;
+  DWORD fsize;
 
   rca->hfile = CreateFile(rca->path,
 			  GENERIC_READ,
@@ -457,10 +457,10 @@ attach_archive(RcArchive rca)
   if ( !rca->hfile )
     goto errio;
 
-  if ( !GetFileInformationByHandle(rca->hfile, &info) )
-      goto errio;
+  if ( (fsize = GetFileSize(rca->hfile, NULL)) == (DWORD)~0L )
+    goto errio;
     
-  rca->map_size = info.nFileSizeLow;
+  rca->map_size = fsize;
   rca->size     = rca->map_size;
   rca->offset   = 0;
       
