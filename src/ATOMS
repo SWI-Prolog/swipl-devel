@@ -465,6 +465,7 @@ A xdigit		"xdigit"
 A canceled		"canceled"
 A time_stamp		"time_stamp"
 A dcatch		"$catch"
+A delete		"delete"
 
 F abs			1
 F acos			1

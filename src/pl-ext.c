@@ -76,6 +76,8 @@ static const struct foreign {
   FRG("tab",			1, pl_tab,			TRACE_ME),
   FRG("tmp_file",		2, pl_tmp_file,			TRACE_ME),
   FRG("delete_file",		1, pl_delete_file,		TRACE_ME),
+  FRG("delete_directory",	1, pl_delete_directory,		TRACE_ME),
+  FRG("make_directory",		1, pl_make_directory,		TRACE_ME),
   FRG("access_file",		2, pl_access_file,		TRACE_ME),
   FRG("read_link",		3, pl_read_link,		TRACE_ME),
   FRG("exists_file",		1, pl_exists_file,		TRACE_ME),

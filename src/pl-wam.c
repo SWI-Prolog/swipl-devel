@@ -3868,6 +3868,10 @@ values found in the clause,  give  a   reference  to  the clause and set
 	lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
 	if ( !(CL = firstClause(ARGP, FR, DEF, &next PASS_LD)) )
 	{ DEBUG(9, Sdprintf("No clause matching index.\n"));
+	  if ( debugstatus.debugging )
+	  { Choice ch = newChoice(CHP_DEBUG, FR PASS_LD);
+	    Mark(ch->mark);
+	  }
 	  FRAME_FAILED;
 	}
 	DEBUG(9, Sdprintf("Clauses found.\n"));
@@ -4104,8 +4108,13 @@ next_choice:
 
 	  switch( tracePort(FR, BFR, FAIL_PORT, NULL) )
 	  { case ACTION_RETRY:
-	      debugstatus.retryFrame = FR;
-	    goto retry;
+	      environment_frame = FR;
+	      DEF = FR->predicate;
+#ifdef O_LOGICAL_UPDATE
+	      if ( false(DEF, DYNAMIC) )
+		FR->generation = GD->generation;
+#endif
+	      goto retry_continue;
 	  }
 	}
       }
@@ -4146,7 +4155,7 @@ next_choice:
       ARGP = argFrameP(FR, 0);
       BFR = ch->parent;
       if ( !(CL = findClause(ch->value.clause, ARGP, FR, DEF, &next)) )
-	goto next_choice;
+	goto next_choice;		/* should not happen */
 
 #ifdef O_DEBUGGER
       if ( debugstatus.debugging && fr0 != FR )

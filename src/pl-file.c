@@ -2595,6 +2595,36 @@ pl_delete_file(term_t name)
 
 
 word
+pl_delete_directory(term_t name)
+{ char *n;
+
+  if ( !(n = PL_get_filename(name, NULL, 0)) )
+    fail;
+  
+  if ( rmdir(n) == 0 )
+    succeed;
+  else
+    return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
+		    ATOM_delete, ATOM_directory, name);
+}
+
+
+word
+pl_make_directory(term_t name)
+{ char *n;
+
+  if ( !(n = PL_get_filename(name, NULL, 0)) )
+    fail;
+  
+  if ( mkdir(n, 0777) == 0 )
+    succeed;
+  else
+    return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
+		    ATOM_create, ATOM_directory, name);
+}
+
+
+word
 pl_same_file(term_t file1, term_t file2)
 { char *n1, *n2;
   char name1[MAXPATHLEN];

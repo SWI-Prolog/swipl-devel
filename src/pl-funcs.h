@@ -279,6 +279,8 @@ word		pl_exists_file(term_t name);
 word		pl_exists_directory(term_t name);
 word		pl_tmp_file(term_t base, term_t name);
 word		pl_delete_file(term_t name);
+word		pl_delete_directory(term_t name);
+word		pl_make_directory(term_t name);
 word		pl_same_file(term_t file1, term_t file2);
 word		pl_rename_file(term_t old, term_t new);
 word		pl_fileerrors(term_t old, term_t new);
