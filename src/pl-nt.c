@@ -180,51 +180,11 @@ win_exec(const char *cmd, const char *how)
 }
 
 
-static int shell_finished;
-static int shell_rval;
-
-static void
-waitthread(void *handle)
-{ 
-#if 0
-					/* works fine, but how to get */
-					/* exit status? */
-  WaitForSingleObject(handle, INFINITE);
-  shell_rval = 0;
-#else
-  if ( _cwait(&shell_rval, (int)handle, _WAIT_CHILD) < 0 )
-    warning("_cwait() failed: %s\n", OsError());
-#endif
-  shell_finished = TRUE;
-}
-
-
 int
 System(char *command)
 { STARTUPINFO sinfo;
   PROCESS_INFORMATION pinfo;
-  char *e = command + strlen(command);
-
-  while(e > command && isBlank(e[-1]))
-    e--;
-
-  if ( e > command && e[-1] == '&' )	/* notepad & */
-  { char *tmp = alloca(e-command);
-    char *msg;
-    memcpy(tmp, command, e-command);
-
-    e = tmp + (e-command-1);
-    while(e > tmp && isBlank(e[-1]))
-      e--;
-    *e = EOS;
-
-    if ( (msg = win_exec(tmp, "normal")) )
-    { warning("shell('%s') failed: %s", command, msg);
-      return -1;
-    }
-
-    return 0;
-  }
+  int shell_rval;
 
   memset(&sinfo, 0, sizeof(sinfo));
   sinfo.cb = sizeof(sinfo);
@@ -239,32 +199,29 @@ System(char *command)
 		     NULL,			/* CWD */
 		     &sinfo,			/* startup info */
 		     &pinfo) )			/* process into */
-  { CloseHandle(pinfo.hThread);			/* don't need this */
-      
-    shell_finished = FALSE;
-    if ( _beginthread(waitthread, 10240, pinfo.hProcess) < 0 )
-    { warning("Failed to create wait-thread: %s", OsError());
-      return -1;
-    }
-    while ( !shell_finished )
-    {
-#if !defined(MAKE_PL_DLL)
-      rlc_dispatch(NULL);		/* TBD */
-#else
-       MSG msg;
-       if ( GetMessage(&msg, NULL, 0, 0) )
-       { TranslateMessage(&msg);
-	 DispatchMessage(&msg);
-       }
-#endif
-    }
-    CloseHandle(pinfo.hProcess);
+  { BOOL rval;
+    DWORD code;
 
-    return shell_rval;
+    CloseHandle(pinfo.hThread);			/* don't need this */
+      
+    do
+    { MSG msg;
+
+      if ( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) )
+      { TranslateMessage(&msg);
+	DispatchMessage(&msg);
+      } else
+	Sleep(50);
+
+      rval = GetExitCodeProcess(pinfo.hProcess, &code);
+    } while(rval == TRUE && code == STILL_ACTIVE);
+
+    shell_rval = (rval == TRUE ? code : -1);
+    CloseHandle(pinfo.hProcess);
   } else
-  { warning("shell('%s') failed: %s\n", command, WinError());
-    return -1;
-  }
+    return shell_rval = -1;
+
+  return shell_rval;
 }
 
 

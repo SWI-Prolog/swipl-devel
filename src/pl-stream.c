@@ -198,6 +198,7 @@ S__fillbuf(IOSTREAM *s)
     if ( !s->buffer )
     { if ( S__setbuf(s, NULL, 0) < 0 )
 	return -1;
+      s->limitp = s->buffer;
     }
 
     if ( (n=(*ReadF(s))(s->handle, s->buffer, s->bufsize)) > 0 )

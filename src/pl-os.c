@@ -1260,7 +1260,7 @@ expandVars(char *pattern, char *expanded)
       if ( !streq(fred, user) )
       { if ( (pwent = getpwnam(user)) == (struct passwd *) NULL )
 	{ if ( fileerrors )
-	    warning("%s: Unknown user");
+	    warning("%s: Unknown user", user);
 	  fail;
 	}
 	strcpy(fred, user);
@@ -1270,7 +1270,7 @@ expandVars(char *pattern, char *expanded)
     }	  
 #else
     { if ( fileerrors )
-	warning("~%s: No user information");
+	warning("~%s: No user information", user);
       fail;
     }
 #endif
