@@ -655,6 +655,16 @@ tcp_fcntl(term_t Socket, term_t Cmd, term_t Arg)
 }
 
 
+static foreign_t
+pl_gethostname(term_t name)
+{ char buf[256];
+
+  if ( gethostname(buf, sizeof(buf)) == 0 )
+    return PL_unify_atom_chars(name, buf);
+
+  return pl_error(NULL, 0, NULL, ERR_ERRNO, errno);
+}
+
 install_t
 install_socket()
 { FUNCTOR_socket1 = PL_new_functor(PL_new_atom("$socket"), 1);
@@ -670,6 +680,9 @@ install_socket()
   PL_register_foreign("tcp_close_socket",     1, tcp_close_socket,    0);
   PL_register_foreign("tcp_fcntl",            3, tcp_fcntl,           0);
   PL_register_foreign("tcp_host_to_address",  2, tcp_host_to_address, 0);
+  PL_register_foreign("gettcp_host_to_address",  2, tcp_host_to_address, 0);
+  PL_register_foreign("gethostname",          1, pl_gethostname,      0);
 }
+
 
 

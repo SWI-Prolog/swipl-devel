@@ -15,8 +15,10 @@ PKGDLL=socket
 SOCKOBJ=	socket.obj error.obj
 CGIOBJ=		error.obj form.obj cgi.obj
 MEMOBJ=		error.obj memfile.obj
+MIMEOBJ=	error.obj mime.obj
+MIMELIBS=	rfc2045.lib rfc822.lib
 
-all:		socket.dll cgi.dll memfile.dll
+all:		socket.dll cgi.dll memfile.dll mime.dll
 
 socket.dll:	$(SOCKOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(SOCKOBJ) $(PLLIB) $(LIBS)
@@ -24,6 +26,8 @@ cgi.dll:	$(CGIOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(CGIOBJ) $(PLLIB) $(LIBS)
 memfile.dll:	$(MEMOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(MEMOBJ) $(PLLIB) $(LIBS)
+mime.dll:	$(MIMEOBJ)
+		$(LD) /dll /out:$@ $(LDFLAGS) $(MIMEOBJ) $(PLLIB) $(LIBS) $(MIMELIBS)
 
 !IF "$(CFG)" == "rt"
 install:	idll
@@ -39,15 +43,18 @@ ilib::
 		copy socket.pl $(PLBASE)\library
 		copy cgi.pl $(PLBASE)\library
 		copy memfile.pl $(PLBASE)\library
+		copy mime.pl $(PLBASE)\library
 		$(MAKEINDEX)
 
 uninstall::
 		del $(BINDIR)\socket.dll
 		del $(BINDIR)\cgi.dll
 		del $(BINDIR)\memfile.dll
+		del $(BINDIR)\mime.dll
 		del $(PLBASE)\library\socket.pl
 		del $(PLBASE)\library\cgi.pl
 		del $(PLBASE)\library\memfile.pl
+		del $(PLBASE)\library\mime.pl
 		$(MAKEINDEX)
 
 html-install::
