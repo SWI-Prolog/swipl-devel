@@ -136,6 +136,8 @@ getStreamContext(IOSTREAM *s)
   { GET_LD
     stream_context *ctx = allocHeap(sizeof(*ctx));
 
+    DEBUG(1, Sdprintf("Created ctx=%p for stream %p\n", ctx, s));
+
     ctx->alias_head = ctx->alias_tail = NULL;
     ctx->filename = NULL_ATOM;
     ctx->flags = 0;
@@ -232,6 +234,8 @@ freeStream(IOSTREAM *s)
   Symbol symb;
   int i;
   IOSTREAM **sp;
+
+  DEBUG(1, Sdprintf("freeStream(%p)\n", s));
 
   LOCK();
   unaliasStream(s, NULL_ATOM);
