@@ -21,4 +21,8 @@ else
 fi
 export @DLLIBVAR@
 
-$bdir/plld -pl $bdir/$PL "$@"
+if [ "x$1" = "x-E" ]; then
+  $bdir/plld "$@"
+else
+  $bdir/plld -pl $bdir/$PL "$@"
+fi
