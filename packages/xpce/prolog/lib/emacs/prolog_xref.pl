@@ -28,6 +28,25 @@
 	source/1.
 
 		 /*******************************
+		 *	      HOOKS		*
+		 *******************************/
+
+%	prolog:called_by(+Goal, -ListOfCalled)
+%
+%	If this succeeds, the cross-referencer assumes Goal may call any
+%	of the goals in ListOfCalled. If this call fails, default
+%	meta-goal analysis is used to determine additional called goals.
+
+%	prolog:meta_goal(+Goal, -Pattern)
+%
+%	Define meta-predicates.  See the examples in this file for details.
+
+:- multifile
+	prolog:called_by/2,		% +Goal, -Called
+	prolog:meta_goal/2.		% +Goal, -Pattern
+
+
+		 /*******************************
 		 *	     BUILT-INS		*
 		 *******************************/
 
@@ -46,7 +65,7 @@ system_predicate(Head) :-
 :- dynamic
 	verbose/0.
 
-%verbose.
+verbose.
 
 xref_source(Source) :-
 	verbose, !,				% do not suppress messages
@@ -191,6 +210,9 @@ process_directive(Goal, Src) :-
 	      *             BODY	      *
 	      ********************************/
 
+meta_goal(G, Meta) :-			% call user extensions
+	prolog:meta_goal(G, Meta).
+
 meta_goal((A, B), 		[A, B]).
 meta_goal((A; B), 		[A, B]).
 meta_goal((A| B), 		[A, B]).
@@ -225,6 +247,12 @@ meta_goal(listen(_, _, G),	[G]).
 process_body(Var, _) :-
 	var(Var), !.
 process_body(Goal, Src) :-
+	prolog:called_by(Goal, Called), !,
+	assert_called(Src, Goal),
+	process_called_list(Called, Src).
+process_body(Goal, Src) :-
+	process_xpce_goal(Goal, Src), !.
+process_body(Goal, Src) :-
 	meta_goal(Goal, Metas), !,
 	assert_called(Src, Goal),
 	process_called_list(Metas, Src).
@@ -246,6 +274,41 @@ process_meta(A+N, Src) :-
 	process_body(Term, Src).
 process_meta(G, Src) :-
 	process_body(G, Src).
+
+
+		 /*******************************
+		 *	    XPCE STUFF		*
+		 *******************************/
+
+pce_goal(send(_,_)).
+pce_goal(get(_,_,_)).
+
+process_xpce_goal(G, Src) :-
+	pce_goal(G), !,
+	assert_called(G, Src),
+	(   term_member(Term, G),
+	    compound(Term),
+	    arg(1, Term, Prolog),
+	    Prolog == @prolog,
+	    (	Term =.. [message, _, Selector | T],
+		atom(Selector)
+	    ->	Called =.. [Selector|T],
+		process_body(Called, Src)
+	    ;	Term =.. [?, _, Selector | T],
+		atom(Selector)
+	    ->	append(T, [_R], T2),
+	        Called =.. [Selector|T2],
+		process_body(Called, Src)
+	    ),
+	    fail
+	;   true
+	).
+
+term_member(X, X).
+term_member(X, T) :-
+	compound(T),
+	arg(_, T, A),
+	term_member(X, A).
 
 
 		/********************************
@@ -344,9 +407,7 @@ find_source_file(Plain, File, Src) :-
 find_source_file(Spec, File, _) :-
 	do_find_source_file(Spec, File), !.
 find_source_file(Spec, _, _) :-
-	term_to_atom(Spec, Atom),
-	send(@pce, report, warning, 'Cannot find file from %s\n', Atom),
-	fail.
+	print_message(warning, error(existence_error(file, Spec), _)).
 
 do_find_source_file(Spec, File) :-
 	absolute_file_name(Spec,

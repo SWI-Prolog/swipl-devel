@@ -417,3 +417,24 @@ group_summary(Group, Summary) :-
 	get(Module?id_table, member, Group, GroupCard),
 	get(GroupCard, summary, Summary),
 	Summary \== @nil.
+
+
+		 /*******************************
+		 *	    HELP X-REF		*
+		 *******************************/
+
+:- multifile
+	prolog:called_by/2.
+
+prolog:called_by(substitute(_, []), []) :- !.
+prolog:called_by(substitute(S, [_,call(Head)|Rest]), [H|T]) :-
+	catch(Head =.. L, _, fail), !,
+	append(L, [_,_], L2),
+	H =.. L2,
+	prolog:called_by(substitute(S, Rest), T).
+prolog:called_by(substitute(S, [_,_|Rest]), Called) :-
+	prolog:called_by(substitute(S, Rest), Called).
+
+
+
+

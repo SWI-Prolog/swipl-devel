@@ -7,15 +7,6 @@
     Copyright (C) 1999 University of Amsterdam. All rights reserved.
 */
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-TODO:
-	* Term-expanded stuff:
-		- Colourisation (grammar-rules)
-		- Detection of directives and other term-expanded stuff
-		  (such as XPCE's class-declarations)
-	* Arguments of meta-predicates
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 
 :- module(emacs_prolog_colours, []).
 :- use_module(library(pce)).
@@ -388,15 +379,13 @@ built_in_predicate(Goal) :-
 	predicate_property(system:Goal, built_in), !.
 built_in_predicate(module(_, _)).
 
-:- discontiguous
-	style_name/2,			% +Pattern, -StyleName
-	style_object/2.			% +Name, -Style
+		 /*******************************
+		 *	       STYLES		*
+		 *******************************/
 
-term_expansion(style(Pattern, Style),
-	       [ style_name(Pattern, Name),
-		 style_object(Name, Style)
-	       ]) :-
-	gensym(syntax_style_, Name).
+%	style(+Pattern, -Style)
+%
+%	Define the style used for the given pattern.
 
 style(goal(built_in),	  style(colour	   := blue)).
 style(goal(imported),	  style(colour	   := blue)).
@@ -404,7 +393,7 @@ style(goal(autoload),	  style(colour	   := blue)).
 style(goal(undefined),	  style(colour	   := red)).
 style(goal(dynamic),	  style(colour	   := purple)).
 style(goal(expanded),	  style(colour	   := blue,
-				underline := @on)).
+				underline  := @on)).
 
 style(head(exported),	  style(bold	   := @on, colour := blue)).
 style(head(local),	  style(bold	   := @on)).
@@ -422,8 +411,29 @@ style(string,		  style(colour	   := blue4)).
 
 style(identifier,	  style(bold       := @on)).
 style(expanded,		  style(colour	   := blue,
-				underline := @on)).
+				underline  := @on)).
 style(error,		  style(background := orange)).
+
+:- dynamic
+	style_name_cache/2.
+
+style_name(Class, Name) :-
+	style_name_cache(Class, Name), !.
+style_name(Class, Name) :-
+	style(Class, _),
+	copy_term(Class, Copy),
+	numbervars(Copy, 0, _),
+	term_to_atom(Copy, Name),
+	assert(style_name_cache(Class, Name)).
+
+%	style_object(-Name, -Style)
+%
+%	Enumerate the registered styled.
+
+style_object(Name, Style) :-
+	style(Class, Style),
+	style_name(Class, Name).
+
 
 %	term_colours(+Term, -FunctorColour, -ArgColours)
 %
