@@ -399,7 +399,7 @@ Minimum scale of the type.
 Maximum scale of the type.
 \end{description}
 
-    \predicate{odbc_data_source}{?DSN, ?Description}
+    \predicate{odbc_data_source}{2}{?DSN, ?Description}
 Query the defined data sources.  It is not required to have any open
 connections before calling this predicate. \arg{DSN} is the name
 of the data source as required by odbc_connect/3. \arg{Description} is
@@ -541,6 +541,10 @@ The SWI-Prolog ODBC interface was developed using
 
 
 \subsubsection{Using Microsoft ODBC}
+
+On MS-Windows, the ODBC interface is a standard package, linked against
+\file{odbc32.lib}.  
+
 
 \subsection{Remaining issues}
 
