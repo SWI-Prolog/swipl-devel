@@ -316,7 +316,7 @@ colourise_goal_args(Goal, TB, Pos) :-
 colourise_files(List, TB, list_position(_,_,Elms,_)) :- !,
 	colourise_file_list(List, TB, Elms).
 colourise_files(Spec, TB, Pos) :-
-	(   xref_source_file(Spec, Path, TB)
+	(   catch(xref_source_file(Spec, Path, TB), _, fail)
 	->  colour_item(file(Path), TB, Pos)
 	;   colour_item(nofile, TB, Pos)
 	).
@@ -484,6 +484,7 @@ style(syntax_error,	  style(background := red)).
 style(method(_),	  style(bold       := @on)).
 
 style(var,		  style(colour	   := red4)).
+style(unbound,		  style(bold	   := @on, colour := red)).
 style(quoted_atom,        style(colour	   := blue4)).
 style(string,		  style(colour	   := blue4)).
 style(nofile,		  style(colour	   := red)).

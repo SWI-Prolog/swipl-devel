@@ -397,7 +397,7 @@ GRAOBJS=	arc.o arrow.o bitmap.o box.o circle.o colour.o \
 		joint.o line.o link.o listbrowser.o node.o path.o \
 		postscript.o scrollbar.o text.o tree.o visual.o \
 		pixmap.o elevation.o pen.o draw.o colourmap.o \
-		bezier.o
+		bezier.o hsv.o
 GRASRC=		$(addprefix $(srcdir)/gra/, $(GRAOBJS:.o=.c))
 
 $(srcdir)/gra/proto.h:	$(GRASRC)

@@ -15,11 +15,39 @@
 
 static status XCloseColour(Colour c, DisplayObj d);
 
+static status
+toRBG(Int *r, Int *g, Int *b, Name model)
+{ if ( isDefault(*r) || isDefault(*g) || isDefault(*b) )
+    fail;
+
+  if ( model == NAME_hsv )
+  { int	ih = valInt(*r) % 360;
+    int is = valInt(*g);
+    int iv = valInt(*b);
+    float R,G,B;
+
+    if ( is > 100 )
+      return errorPce(*g, NAME_unexpectedType, CtoType("0..100"));
+    if ( iv > 100 )
+      return errorPce(*g, NAME_unexpectedType, CtoType("0..100"));
+
+    if ( ih < 0 )
+      ih += 360;
+
+    HSVToRGB((float)ih/360.0, (float)is/100.0, (float)iv/100.0,
+	     &R, &G, &B);
+    *r = toInt((int)(R*65535));
+    *g = toInt((int)(G*65535));
+    *b = toInt((int)(B*65535));
+  }
+
+  succeed;
+}
+
+
 static Name
 defcolourname(Int r, Int g, Int b)
-{ if ( isInteger(r) &&
-       isInteger(g) &&
-       isInteger(b) )
+{ if ( notDefault(r) && notDefault(g) && notDefault(b) )
   { char buf[50];
 
     sprintf(buf, "#%02x%02x%02x",
@@ -35,7 +63,7 @@ defcolourname(Int r, Int g, Int b)
 
 
 static status
-initialiseColour(Colour c, Name name, Int r, Int g, Int b)
+initialiseColour(Colour c, Name name, Int r, Int g, Int b, Name model)
 { if ( notDefault(name) )
     assign(c, name, name);
 
@@ -48,6 +76,10 @@ initialiseColour(Colour c, Name name, Int r, Int g, Int b)
     assign(c, kind, NAME_named);
   } else if ( notDefault(r) && notDefault(g) && notDefault(b) )
   { assign(c, kind, NAME_rgb);
+
+    if ( !toRBG(&r, &g, &b, model) )
+      fail;
+
     if ( isDefault(name) )
     { name = defcolourname(r, g, b);
       assign(c, name, name);
@@ -76,9 +108,13 @@ unlinkColour(Colour c)
 
 
 static Colour
-getLookupColour(Class class, Name name, Int r, Int g, Int b)
-{ if ( isDefault(name) )
+getLookupColour(Class class, Name name, Int r, Int g, Int b, Name model)
+{ if ( isDefault(name) && notDefault(r) && notDefault(g) && notDefault(b) )
+  { if ( !toRBG(&r, &g, &b, model) )
+      fail;
+
     name = defcolourname(r, g, b);
+  }
 
   if ( name )
     answer(getMemberHashTable(ColourTable, name));
@@ -243,6 +279,51 @@ getBlueColour(Colour c)
 }
 
 
+static status
+get_hsv_colour(Colour c, float *h, float *s, float *v)
+{ if ( isDefault(c->red) )
+  { TRY(getXrefObject(c, CurrentDisplay(NIL)));
+  }
+  
+  RGBToHSV((float)valInt(c->red)/65535.0,
+	   (float)valInt(c->green)/65535.0,
+	   (float)valInt(c->blue)/65535.0,
+	   h, s, v);
+
+  succeed;
+}
+
+
+static Int
+getHueColour(Colour c)
+{ float h, s, v;
+
+  TRY(get_hsv_colour(c, &h, &s, &v));
+
+  return toInt((int)(h*360.0));
+}
+
+
+static Int
+getSaturationColour(Colour c)
+{ float h, s, v;
+
+  TRY(get_hsv_colour(c, &h, &s, &v));
+
+  return toInt((int)(s*100.0));
+}
+
+
+static Int
+getValueColour(Colour c)
+{ float h, s, v;
+
+  TRY(get_hsv_colour(c, &h, &s, &v));
+
+  return toInt((int)(v*100.0));
+}
+
+
 Colour
 getHiliteColour(Colour c)
 { Colour c2;
@@ -327,10 +408,12 @@ getIntensityColour(Colour c)
 
 static char *T_lookup[] =
         { "[name|int]",
-	  "red=[0..65535]", "green=[0..65535]", "blue=[0..65535]" };
+	  "red=[0..65535]", "green=[0..65535]", "blue=[0..65535]",
+	  "model=[{rgb,hsv}]" };
 static char *T_initialise[] =
         { "name=[name]",
-	  "red=[0..65535]", "green=[0..65535]", "blue=[0..65535]" };
+	  "red=[0..65535]", "green=[0..65535]", "blue=[0..65535]",
+	  "model=[{rgb,hsv}]" };
 
 /* Instance Variables */
 
@@ -350,7 +433,7 @@ static vardecl var_colour[] =
 /* Send Methods */
 
 static senddecl send_colour[] =
-{ SM(NAME_initialise, 4, T_initialise, initialiseColour,
+{ SM(NAME_initialise, 5, T_initialise, initialiseColour,
      DEFAULT, "Create from name and optional rgb"),
   SM(NAME_unlink, 0, NULL, unlinkColour,
      DEFAULT, "Deallocate the colour object"),
@@ -375,8 +458,14 @@ static getdecl get_colour[] =
      NAME_file, "Description name for ->save_in_file"),
   GM(NAME_intensity, 0, "0..65535", NULL, getIntensityColour,
      NAME_grey, "Total light intensity of the colour"),
-  GM(NAME_lookup, 4, "colour", T_lookup, getLookupColour,
-     NAME_oms, "Lookup in @colours table")
+  GM(NAME_lookup, 5, "colour", T_lookup, getLookupColour,
+     NAME_oms, "Lookup in @colours table"),
+  GM(NAME_hue, 0, "0..360", NULL, getHueColour,
+     NAME_colour, "Hue from the HSV-model"),
+  GM(NAME_saturnation, 0, "0..100", NULL, getSaturationColour,
+     NAME_colour, "Saturnation from the HSV-model"),
+  GM(NAME_value, 0, "0..100", NULL, getValueColour,
+     NAME_colour, "Value from the HSV-model")
 };
 
 /* Resources */

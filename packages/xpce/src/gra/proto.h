@@ -20,7 +20,6 @@ status		makeClassCircle(Class class);
 Int		getRedColour(Colour c);
 Int		getGreenColour(Colour c);
 Int		getBlueColour(Colour c);
-Colour		getHiliteColour(Colour c);
 Colour		getReduceColour(Colour c);
 status		makeClassColour(Class class);
 
@@ -336,3 +335,7 @@ status		makeClassColourMap(Class class);
 status		adjustFirstArrowBezier(Bezier b);
 status		adjustSecondArrowBezier(Bezier b);
 status		makeClassBezier(Class class);
+
+/* ../src/gra/hsv.c */
+void		RGBToHSV(float r, float g, float b, float *H, float *S, float *V);
+void		HSVToRGB(float hue, float sat, float V, float *R, float *G, float *B);

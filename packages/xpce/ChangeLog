@@ -1,3 +1,5 @@
+* ADDED: Handling of HSV colour model.  See `colour->initialise'.
+
 * FIXED: Allow .bm (old X11 bitmaps) the contain CRLF rather than plain
   LF for correct loading on Windows/Unix corrupted files.
 

@@ -91,7 +91,7 @@ GRAOBJS=	gra\arc.obj gra\arrow.obj gra\bitmap.obj gra\box.obj \
 		gra\postscript.obj gra\scrollbar.obj gra\text.obj \
 		gra\tree.obj gra\visual.obj gra\pixmap.obj \
 		gra\elevation.obj gra\pen.obj gra\draw.obj \
-		gra\colourmap.obj gra\bezier.obj
+		gra\colourmap.obj gra\bezier.obj gra\hsv.obj
 
 ################################################################
 # ITF 		--- Host Interface Layer

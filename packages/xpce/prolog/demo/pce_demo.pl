@@ -139,6 +139,11 @@ demo('Colours',
      demo(colour),
      colour_browser).
 
+demo('HSV Colours',
+     'Colour browser using Hue-Saturnation-Value',
+     demo(hsvcolour),
+     hsv_browser).
+
 demo('ImageViewer',
      'Examine image files in a directory',
      demo(imageviewer),
