@@ -1219,7 +1219,7 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
 	nr++;
 	ar[nr].x = -os+xt+w-wh;	ar[nr].y = os+yt; 	/* top-right */
 	ar[nr].width = wh;	ar[nr].height = wh;
-        ar[nr].angle1 = 45*64;   ar[nr].angle2 = 45*64;
+        ar[nr].angle1 = 45*64;  ar[nr].angle2 = 45*64;
 	nr++;
 	ar[nr].x = os+xt;	ar[nr].y = -os+yt+h-wh;	/* bottom-left */
 	ar[nr].width = wh;	ar[nr].height = wh;
@@ -1232,7 +1232,7 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
 	ns++;
 	as[ns].x = -os+xt+w-wh;	as[ns].y = os+yt; 	/* top-right */
 	as[ns].width = wh;	as[ns].height = wh;
-        as[ns].angle1 = 0*64;  as[ns].angle2 = 45*64;
+        as[ns].angle1 = 0*64;   as[ns].angle2 = 45*64;
 	ns++;
 	as[ns].x = os+xt;	as[ns].y = -os+yt+h-wh;	/* bottom-left */
 	as[ns].width = wh;	as[ns].height = wh;

@@ -193,7 +193,7 @@ pce_home(_) :-
 	fail.
 
 '$load_pce' :-
-	'$c_current_predicate'('$pce_init', user:'$pce_init'), !,
+	'$c_current_predicate'('$pce_init', user:'$pce_init'(_)), !,
 	absolute_file_name(pce(.), [file_type(directory)], PceHome),
 	pce_principal:'$pce_init'(PceHome),
 	set_feature(xpce, true).

@@ -218,14 +218,14 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
   } else
     errorPce(kb, NAME_noReceiver);
 
+  key = getAppendName(kb->prefix, characterName(id));
+  DEBUG(NAME_keyBinding, writef("Key = %s\n", key));
+    
   if ( kb->status == NAME_quotedInsert )
   { cmd = NAME_insertQuoted;
     reset |= RESET_STATUS;
   } else
-  { key = getAppendName(kb->prefix, characterName(id));
-    DEBUG(NAME_keyBinding, writef("Key = %s\n", key));
-
-    cmd = get(kb, NAME_function, key, 0);
+  { cmd = get(kb, NAME_function, key, 0);
   }
 
   if ( cmd )

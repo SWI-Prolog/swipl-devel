@@ -637,6 +637,12 @@ postEvent(EventObj ev, Graphical obj, Recogniser rec)
   if ( !isFreedObj(ev) )
     delCodeReference(ev);
 
+  DEBUG(NAME_post,
+	if ( ev->id != NAME_locMove &&
+	     !isDragEvent(ev) )
+	  Cprintf("--> post of %s to %s %s\n",
+		  pp(ev->id), pp(obj), rval ? "succeeded" : "failed"));
+
   return rval;
 }
 

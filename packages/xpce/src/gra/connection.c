@@ -458,10 +458,12 @@ distanceLineToPoint(int x1, int y1, int x2, int y2, int px, int py)
 { static int atable[ENTRIES+1];
   static int done = FALSE;
   int a, d;
+  int dx = x2-x1;
+  int dy = y2-y1;
 
-  if (y1 == y2)
+  if ( y1 == y2 || abs(dy) * 16 < abs(dx) )
     return abs(y1 - py);
-  if (x1 == x2)
+  if ( x1 == x2 || abs(dx) * 16 < abs(dy) )
     return abs(x1 - px);
 
   if ( !done )
@@ -473,7 +475,7 @@ distanceLineToPoint(int x1, int y1, int x2, int y2, int px, int py)
     done = TRUE;
   }
 
-  a = (ENTRIES*(y2-y1)) / (x2-x1);
+  a = (ENTRIES*(dy)) / dx;
   if ( a < -EMS )
   { a = -EMS;
   } else

@@ -96,7 +96,7 @@ event(DI, Ev:event) :->
 help_ui(DI) :->
 	"Provide simple help"::
 	send(DI, report, status,
-	     'Use double-left-click to edit; middle to drag').
+	     'Use double-left-click to edit; left-drag to move or copy').
 
 
 behaviour_model(DI, Model:object) :<-
@@ -703,7 +703,7 @@ make_dia_proto_icon_recogniser(G) :-
 	send(D, get_source, @arg1?prototype),
 	new(H, click_gesture(left, '', single,
 			     message(@event?receiver, report, status,
-				     'Use middle button to drag object to dialog'))),
+				     'Use left button to drag object to dialog'))),
 	new(G, handler_group(I, O, D, H)).
 
 event(I, Ev:event) :->

@@ -292,7 +292,7 @@ AC_CHECK_HEADERS(frame.h sys/timeb.h sys/times.h)
 AC_CHECK_FUNCS(vsscanf on_exit memmove select popen strerror timelocal)
 AC_CHECK_FUNCS(getdtablesize socket fork ftime getpid select getlogin)
 AC_CHECK_FUNCS(getcwd setsid grantpt gethostname fstat gettimeofday)
-AC_CHECK_FUNCS(atexit on_exit tmpnam)
+AC_CHECK_FUNCS(atexit on_exit tmpnam sysinfo)
 AC_HEADER_TIME
 AC_HEADER_DIRENT
 AC_C_CHAR_UNSIGNED
@@ -463,8 +463,4 @@ else
 fi
 rm -rf conftest*
 
-if test -r ../quintus/src/Makefile.in; then
-  AC_OUTPUT(Makefile ../CXX/demo/Makefile ../quintus/src/Makefile)
-else
-  AC_OUTPUT(Makefile ../CXX/demo/Makefile)
-fi
+AC_OUTPUT(Makefile ../CXX/demo/Makefile)

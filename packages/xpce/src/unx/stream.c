@@ -132,6 +132,25 @@ inputStream(Stream s, Int fd)
 
 #define Round(n, r) ((((n) + (r) - 1)/(r)) * (r))
 
+void
+add_data_stream(Stream s, char *data, int len)
+{ char *q;
+
+  if ( !s->input_buffer )
+  { s->input_allocated = Round(len+1, ALLOCSIZE);
+    s->input_buffer = malloc(s->input_allocated);
+    s->input_p = 0;
+  } else if ( s->input_p + len >= s->input_allocated )
+  { s->input_allocated = Round(s->input_p + len + 1, ALLOCSIZE);
+    s->input_buffer = realloc(s->input_buffer, s->input_allocated);
+  }
+
+  q = &s->input_buffer[s->input_p];
+  strncpy(q, data, len);
+  s->input_p += len;
+}
+
+
 status
 handleInputStream(Stream s)
 { char buf[BLOCKSIZE+1];
@@ -158,24 +177,13 @@ handleInputStream(Stream s)
 
       rewindAnswerStack(mark, NIL);
     } else
-    { char *q;
-
-      if ( !s->input_buffer )
-      { s->input_allocated = Round(n+1, ALLOCSIZE);
-	s->input_buffer = malloc(s->input_allocated);
-	s->input_p = 0;
-      } else if ( s->input_p + n >= s->input_allocated )
-      { s->input_allocated = Round(s->input_p + n + 1, ALLOCSIZE);
-	s->input_buffer = realloc(s->input_buffer, s->input_allocated);
-      }
-
-      q = &s->input_buffer[s->input_p];
-      strncpy(q, buf, n);
-      s->input_p += n;
+    { add_data_stream(s, buf, n);
 
       DEBUG(NAME_stream,
 	    { s->input_buffer[s->input_p] = EOS;
-	      Cprintf("Read (%d chars): `%s'\n", n, q);
+	      Cprintf("Read (%d chars): `%s'\n",
+		      n,
+		      &s->input_buffer[s->input_p-n]);
 	    });
 
       while ( !onFlag(s, F_FREED|F_FREEING) && /* may drop out! */
@@ -275,40 +283,10 @@ waitStream(Stream s)
 		 *	  INPUT HANDLING	*
 		 *******************************/
 
-#ifndef HAVE_WINSOCK
 static StringObj
 getReadLineStream(Stream s, Int timeout)
-{ if ( s->rdfd >= 0 )
-  { char buf[LINESIZE];
-
-    if ( !s->rdstream )
-      s->rdstream = fdopen(s->rdfd, "r");
-
-    if ( notDefault(timeout) )
-    { fd_set readfds;
-      struct timeval to;
-
-      to.tv_sec = valInt(timeout) / 1000;
-      to.tv_usec = (valInt(timeout) % 1000) * 1000;
-
-      FD_ZERO(&readfds);
-      FD_SET(fileno(s->rdstream), &readfds);
-      if ( select(32, &readfds, NULL, NULL, &to) == 0 )
-	fail;
-    }
-
-    if (fgets(buf, LINESIZE, s->rdstream) == NULL)	/* eof */
-    { closeInputStream(s);
-      fail;
-    }
-
-    answer(CtoString(buf));
-  }
-
-  errorPce(s, NAME_notOpen);
-  fail;
+{ return ws_read_line_stream(s, timeout);
 }
-#endif
 
 
 static status
@@ -343,14 +321,14 @@ makeClassStream(Class class)
 	     "File-handle to read from stream");
   localClass(class, NAME_rdstream, NAME_internal, "alien:FILE *", NAME_none,
 	     "Stream used for <-read_line");
+  localClass(class, NAME_wsRef, NAME_internal, "alien:WsRef", NAME_none,
+	     "Window system synchornisation");
   localClass(class, NAME_inputBuffer, NAME_internal, "alien:char *", NAME_none,
 	     "Buffer for collecting input-data");
   localClass(class, NAME_inputAllocated, NAME_internal, "alien:int", NAME_none,
 	     "Allocated size of input_buffer");
   localClass(class, NAME_inputP, NAME_internal, "alien:int", NAME_none,
 	     "Number of characters in input_buffer");
-  localClass(class, NAME_wsRef, NAME_internal, "alien:WsRef", NAME_none,
-	     "Window system synchornisation");
 
   termClass(class, "stream", 0);
 
@@ -395,11 +373,9 @@ makeClassStream(Class class)
 	     "Send when end-of-file is reached",
 	     endOfFileStream);
 
-#ifndef HAVE_WINSOCK
   getMethod(class, NAME_readLine, NAME_input, "string", 1, "[int]",
 	    "Read line with optional timeout (milliseconds)",
 	    getReadLineStream);
-#endif
 
   succeed;
 }

@@ -771,7 +771,7 @@ do_init_resources(DisplayObj d)
 { char file[MAXPATHLEN];
   Name home   = get(PCE, NAME_home, 0);
   Name cl     = get(d, NAME_resourceClass, 0);
-  char *uhome = getenv("HOME");
+  char *xdef;
 
   if ( !ResourceTable )
     ResourceTable = globalObject(NAME_resourceTable, ClassChainTable, 0);
@@ -780,8 +780,10 @@ do_init_resources(DisplayObj d)
 
   sprintf(file, "%s/%s", strName(home), strName(cl));
   load_resource_file(file);
-  if ( uhome )
-  { sprintf(file, "%s/%s", uhome, "_Xdefaults");
+  if ( xdef = expandFileName("~/.Xdefaults"))
+  { DEBUG(NAME_resource, Cprintf("Personal resource file is '%s'\n", xdef));
+
+    strcpy(file, xdef);
     load_resource_file(file);
   }
 }

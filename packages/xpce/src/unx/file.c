@@ -218,6 +218,21 @@ getAbsolutePathFile(FileObj f)
 }
 
 
+static status
+isAbsoluteFile(FileObj f)
+{ char *name = expandFileName(strName(f->name));
+
+#ifdef __WIN32__
+  if ( isletter(name[0]) && name[1] == ':' )
+    succeed;
+#endif
+  if ( name[0] == '/' )
+    succeed;
+
+  fail;
+}
+
+
 #define CPBUFSIZE 4096
 
 static status
@@ -1009,6 +1024,9 @@ makeClassFile(Class class)
   sendMethod(class, NAME_absolutePath, NAME_path, 0,
 	     "Convert <-name to an absolute path",
 	     absolutePathFile);
+  sendMethod(class, NAME_isAbsolute, NAME_path, 0,
+	     "Test if <-name specifies an absolute path",
+	     isAbsoluteFile);
   sendMethod(class, NAME_access, NAME_test, 1,
 	     "mode={read,write,append,execute}",
 	     "Test if file has access",

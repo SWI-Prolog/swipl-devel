@@ -364,6 +364,7 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, FILE *fd)
 	      bit--;
 	      XPutPixel(img, x, y, (byte & (1<<bit)) ? 1 : 0);
 	    }
+	    bit = 0;			/* scanlines are byte-aligned */
 	  }
 	  break;
 	}
@@ -657,6 +658,12 @@ write_pnm_file(FILE *fd, XImage *img,
 		bit = 7;
 		byte = 0;
 	      }
+	    }
+	    if ( bit != 7 )		/* flush after finishing scanline */
+	    { if ( putc(byte, fd) == EOF )
+		return -1;
+	      bit = 7;
+	      byte = 0;
 	    }
 	  }
   

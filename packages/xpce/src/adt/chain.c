@@ -475,14 +475,47 @@ getCurrentChain(Chain ch)
 
 
 static Any
-getNextChain(Chain ch)
-{ Any result;
+getNextChain(Chain ch, Any val)
+{ if ( isDefault(val) )			/* old code */
+  { Any result;
 
-  EXISTS(ch->current);
-  result = ch->current->value;
-  ch->current = ch->current->next;
+    EXISTS(ch->current);
+    result = ch->current->value;
+    ch->current = ch->current->next;
 
-  answer(result);
+    answer(result);
+  } else
+  { Cell cell;
+
+    for_cell(cell, ch)
+    { if ( cell->value == val )
+      { if ( notNil(cell->next) )
+	  answer(cell->next->value);
+	break;
+      }
+    }
+
+    fail;
+  }
+}
+
+
+static Any
+getPreviousChain(Chain ch, Any val)
+{ Cell cell;
+  Cell prev = NULL;
+
+  for_cell(cell, ch)
+  { if ( cell->value == val )
+    { if ( prev )
+	answer(prev->value);
+      fail;
+    }
+
+    prev = cell;
+  }
+
+  fail;
 }
 
 
@@ -1427,9 +1460,12 @@ makeClassChain(Class class)
   getMethod(class, NAME_merge, NAME_list, "chain", 1, "chain",
 	    "New chain holding concatenation",
 	    getMergeChain);
-  getMethod(class, NAME_next, NAME_current, "any", 0,
-	    "Get current and make current the next",
+  getMethod(class, NAME_next, NAME_index, "any", 1, "[any]",
+	    "Element after given value",
 	    getNextChain);
+  getMethod(class, NAME_previous, NAME_index, "any", 1, "[any]",
+	    "Element before given value",
+	    getPreviousChain);
   getMethod(class, NAME_nextCell, NAME_cell, "cell_reference=int",
 	    1, "cell_reference=int",
 	    "Reference to next cell at reference",

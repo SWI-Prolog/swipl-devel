@@ -411,7 +411,9 @@ eventPopup(PopupObj p, EventObj ev)
 	  return send(p, NAME_drag, ev, 0);
 	}
       }
-    } else if ( isUpEvent(ev) && getButtonEvent(ev) == p->pullright->button )
+    } else if ( isUpEvent(ev) &&
+		getButtonEvent(ev) == p->pullright->button &&
+		isNil(p->pullright->pullright) )
     { if ( notNil(p->pullright->selected_item) )
     	assign(p, selected_item, p->pullright);
       else

@@ -77,6 +77,10 @@
 
 :- pce_begin_class(emacs_fundamental_mode, emacs_mode).
 
+resource(grep_command,	string, 'grep -n %s /dev/null',
+	 "Command of M-x grep").
+resource(shell_command,	chain*, ['/bin/sh', '-c'],
+	 "Command for running grep, make, etc.").
 
 		 /*******************************
 		 *	GLOBAL UTILITIES	*
@@ -393,7 +397,7 @@ command_names(M, Names:chain) :<-
    ).
 
 execute_extended_command(M,
-			 CmdName:'command=emacs_mode_command',
+			 CmdName:command=emacs_mode_command,
 			 Times:[int]) :->
 	"Prompt for interactive command"::
 	get(M, send_method, CmdName, tuple(_, Impl)),
@@ -430,9 +434,14 @@ result(_, no).
 		 *	     COMPILE		*
 		 *******************************/
 
-:- pce_global(@emacs_grep_command, new(string('grep -n %%s /dev/null'))).
+split_command_string(String, List) :-
+	new(Ch, chain),
+	new(Re, regex('[^ ]+')),
+	send(Re, for_all, String,
+	     message(Ch, append, ?(@arg1, register_value, @arg2, 0, name))),
+	chain_list(Ch, List).
 
-compile(M, Command:string, Label:[name], Pool:[name]) :->
+compile(M, Command:shell_command=string, Label:[name], Pool:[name]) :->
 	"Run Unix (compilation) process in buffer"::
 	send(M, save_some_buffers),
 	send(M, has_processes),
@@ -454,7 +463,15 @@ compile(M, Command:string, Label:[name], Pool:[name]) :->
 	    Status == ok
 	;   true
 	),
-	new(P, process('/bin/sh', '-c', Command)),
+	get(M, resource_value, shell_command, ShellCommandChain),
+	(   ShellCommandChain \== @nil
+	->  chain_list(ShellCommandChain, List),
+	    append(List, [Command], ArgList),
+	    Process =.. [process|ArgList]
+	;   split_command_string(Command, Args),
+	    Process =.. [process|Args]
+	),
+	new(P, Process),
 	default(Pool, compile, ThePool),
 	send(B, pool, ThePool),
 	send(P, directory, Dir),
@@ -470,12 +487,13 @@ compile(M, Command:string, Label:[name], Pool:[name]) :->
 		 message(@arg1, caret, @default))).
 
 
-grep(M, GrepArgs:'grep_arguments=string') :->
+grep(M, GrepArgs:grep_arguments=string) :->
 	"Run Unix grep in compilation buffer"::
 	send(@emacs, save_some_buffers),
 	send(M, has_processes),
+	get(M, resource_value, grep_command, GrepCommad),
 	send(M, compile,
-	     string(@emacs_grep_command, GrepArgs),
+	     string(GrepCommad, GrepArgs),
 	     string('grep %s', GrepArgs),
 	     grep).
 

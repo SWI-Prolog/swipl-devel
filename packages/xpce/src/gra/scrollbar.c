@@ -10,6 +10,10 @@
 #include <h/kernel.h>
 #include <h/graphics.h>
 
+#ifdef __WIN32__			/* timer broken in Win95 */
+#define SCROLLTIMER_USE_SLEEP 1
+#endif
+
 #define OPENLOOK 1
 #define O_MOTIF 1
 
@@ -602,15 +606,21 @@ repeatScrollBar(ScrollBar s)
     synchroniseGraphical((Graphical) s, ON);
     if ( Repeating(s) )		/* synchroniseGraphical() can handle up */
     { Real t = getResourceValueObject(s, NAME_repeatInterval);
-      float ct = t->value - (float)(mclock() - clk) / 1000.0;
+      int ct = (int)(t->value * 1000.0) - (float)(mclock() - clk);
 
       assign(s, status, NAME_repeat);
 
-      if ( ct > 0.005 )
-      { Timer tmr = scrollBarRepeatTimer();
+      if ( ct > 5 )
+      {
+#ifdef SCROLLTIMER_USE_SLEEP
+	msleep(ct);
+	goto again;
+#else
+        Timer tmr = scrollBarRepeatTimer();
 
 	intervalTimer(tmr, CtoReal(ct));
 	statusTimer(tmr, NAME_once);
+#endif
       } else
 	goto again;
     }

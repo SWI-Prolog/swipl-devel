@@ -59,9 +59,9 @@ NOTE:	Should we  define  the  type  of the attribute_editor   to  be
 	communication?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- pce_begin_class(draw_canvas, picture).
+:- pce_begin_class(draw_canvas, picture, "Drawing plane of PceDraw").
 
-resource(size, size, 'size(500,500)',	'Default size of drawing area').
+resource(size, size, size(500,500), "Default size of drawing area").
 
 variable(mode,		   name,			get,
 	 "Current mode of operation").
@@ -148,6 +148,19 @@ make_draw_canvas_popup(P) :-
 		  ]).
 
 
+:- pce_global(@draw_canvas_keybinding, make_draw_canvas_keybinding).
+
+canvas_keybinding('DEL',  cut_selection).
+canvas_keybinding('\C-h', hide_selection).
+canvas_keybinding('\C-e', expose_selection).
+canvas_keybinding('\C-c', copy_selection).
+
+make_draw_canvas_keybinding(B) :-
+	new(B, key_binding),
+	forall(canvas_keybinding(Key, Method),
+	       send(B, function, Key, Method)).
+
+
 :- pce_global(@draw_canvas_recogniser, make_draw_canvas_recogniser).
 
 make_draw_canvas_recogniser(G) :-
@@ -158,6 +171,7 @@ make_draw_canvas_recogniser(G) :-
 			     @draw_create_text_recogniser,
 			     @draw_create_proto_recogniser,
 			     @draw_warp_select_gesture,
+			     @draw_canvas_keybinding,
 			     new(P, click_gesture(middle, '', single,
 						  message(KBFocus, paste))),
 			     popup_gesture(@draw_canvas_popup))),
@@ -226,6 +240,9 @@ toggle_select(C, Shape:graphical) :->
 	send(Shape, toggle_selected),
 	send(C, update_attribute_editor).
 	
+select_all(C) :->
+	"Select all displayed objects"::
+	send(C, selection, C?graphicals).
 
 
 		/********************************
@@ -325,12 +342,12 @@ edit(Canvas, Msg, Grs:'[graphical|chain]') :->
 
 expose_selection(Canvas, Grs:'[graphical|chain]') :->
 	"Expose selected graphicals"::
-	send(Canvas, edit, message(@arg1, expose), Grs).
+	send(Canvas, edit, message(@arg1, restack, 1), Grs).
 
 
 hide_selection(Canvas, Grs:'[graphical|chain]') :->
 	"Hide selected graphicals"::
-	send(Canvas, edit, message(@arg1, hide), Grs).
+	send(Canvas, edit, message(@arg1, restack, -1), Grs).
 
 
 cut_selection(Canvas, Grs:[graphical|chain]) :->

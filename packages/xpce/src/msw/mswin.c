@@ -118,3 +118,26 @@ ws_default_scrollbar_width()
 
   return toInt(w);
 }
+
+
+#define MAXMESSAGE 1024
+
+Name
+WinStrError(int error, ...)
+{ va_list args;
+  char msg[MAXMESSAGE];
+
+  va_start(args, error);
+  if ( !FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM|FORMAT_MESSAGE_IGNORE_INSERTS,
+		      NULL,
+		      error,
+		      GetUserDefaultLangID(),
+		      msg,
+		      sizeof(msg),
+		      (char **)args) )
+  { sprintf(msg, "Unknown WINAPI error %d", error);
+  }
+  va_end(args);
+
+  return CtoName(msg);
+}

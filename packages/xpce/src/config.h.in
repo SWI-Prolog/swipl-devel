@@ -150,6 +150,9 @@
 /* Define if you have the strerror function.  */
 #undef HAVE_STRERROR
 
+/* Define if you have the sysinfo function.  */
+#undef HAVE_SYSINFO
+
 /* Define if you have the timelocal function.  */
 #undef HAVE_TIMELOCAL
 

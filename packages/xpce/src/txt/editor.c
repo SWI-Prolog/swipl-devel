@@ -197,6 +197,22 @@ RedrawAreaEditor(Editor e, Area a)
 { Any obg = r_background(getResourceValueObject(e, NAME_background));
 
   RedrawAreaDevice((Device)e, a);
+  if ( e->pen != ZERO )
+  { int p = valInt(e->pen);
+    int x, y, w, h;
+
+    initialiseDeviceGraphical(e, &x, &y, &w, &h);
+
+					/* test for overlap with border */
+    if ( valInt(a->x) < p || valInt(a->y) < p ||
+	 valInt(a->x) + valInt(a->w) > w - p ||
+	 valInt(a->y) + valInt(a->h) > h - p )
+    { r_thickness(p);
+      r_dash(e->texture);
+
+      r_box(x, y, w, h, 0, NIL);
+    }
+  }
 
   r_background(obg);
 
@@ -803,6 +819,8 @@ fetch_editor(Any obj, TextChar tc)
     { tc->attributes |= s->attributes;
       if ( notDefault(s->font) )
 	tc->font = s->font;
+      if ( notDefault(s->colour) )
+	tc->colour = s->colour;
       if ( notDefault(s->background) )
 	tc->background = s->background;
     }

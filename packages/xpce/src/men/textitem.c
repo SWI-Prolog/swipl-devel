@@ -53,6 +53,7 @@ initialiseTextItem(TextItem ti, Name name, Any val, Code msg)
   assign(ti, default_value, val);
   assign(ti, selection,     getDefaultTextItem(ti));
   assign(ti, type,	    getSelectionTypeTextItem(ti));
+  assign(ti, auto_value_align,	 OFF);
 
   if ( (str = get(ti, NAME_printNameOfValue, val, 0)) )
     valueString(ti->print_name, str);
@@ -812,6 +813,7 @@ valueWidthTextItem(TextItem ti, Int val)
     
     assign(ti, length, toInt(chars));
   }
+  requestComputeGraphical(ti, DEFAULT);
 
   succeed;
 }
@@ -824,7 +826,6 @@ geometryTextItem(TextItem ti, Int x, Int y, Int w, Int h)
 
     compute_label_text_item(ti, &lw, &lh);
     valueWidthTextItem(ti, toInt(valInt(w) - lw));
-    requestComputeGraphical(ti, DEFAULT);
   }
 
   return geometryGraphical(ti, x, y, w, DEFAULT);
@@ -998,6 +999,9 @@ makeClassTextItem(Class class)
 	     3, "program_object", "text", "unchecked ...",
 	     "Delegate to <-value_text and update",
 	     delegateTextItem);
+  sendMethod(class, NAME_valueWidth, NAME_area, 1, "int",
+	     "Set width of value-part in pixels",
+	     valueWidthTextItem);
 
   getMethod(class, NAME_labelWidth, NAME_layout, "int", 0,
 	    "Width required to display label",

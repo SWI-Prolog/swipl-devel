@@ -73,7 +73,6 @@ extern char **environ;
 #include <stropts.h>
 #endif
 
-static status	closeInputProcess(Process);
 static status	killProcess(Process p, Any sig);
 
 #define OsError() getOsErrorPce(PCE)
@@ -192,7 +191,11 @@ initialiseProcess(Process p, CharArray cmd, int argc, CharArray *argv)
   assign(p, name, cmd);
   assign(p, arguments, newObjectv(ClassVector, argc, (Any *)argv));
   assign(p, status, NAME_inactive);
+#ifdef HAVE_PTYS
   assign(p, use_tty, ON);
+#else
+  assign(p, use_tty, OFF);
+#endif
   assign(p, directory, DEFAULT);
 
   succeed;
@@ -224,6 +227,17 @@ pidProcess(Process p, Int pid)
 
 
 static status
+doneProcess(Process p)
+{ ws_done_process(p);
+
+  deleteChain(ProcessChain, p);
+  assign(p, pid, NIL);
+
+  succeed;
+}
+
+
+status
 closeInputProcess(Process p)
 { closeInputStream((Stream) p);
   closeOutputStream((Stream) p);
@@ -513,7 +527,7 @@ killProcess(Process p, Any sig)
 #ifdef HAVE_KILL
   kill(valInt(p->pid), n);
 #else
-  Cprintf("kill(%d, %d) not yet implemented\n", valInt(p->pid), n);
+  ws_kill_process(p, n);
 #endif
 
   succeed;
@@ -538,8 +552,7 @@ killedProcess(Process p, Name sig)
   assign(p, status, NAME_killed);
   assign(p, code, sig);
   addCodeReference(p);
-  deleteChain(ProcessChain, p);
-  assign(p, pid, NIL);
+  doneProcess(p);
   if ( notNil(p->terminate_message) )
     forwardReceiverCodev(p->terminate_message, p, 1, (Any *)&sig);
   delCodeReference(p);
@@ -558,8 +571,7 @@ exitedProcess(Process p, Int stat)
 
     assign(p, status, NAME_exited);
     assign(p, code, stat);
-    deleteChain(ProcessChain, p);
-    assign(p, pid, NIL);
+    doneProcess(p);
 
 #ifdef CHILD_NOPTY
     if ( stat == toInt(CHILD_NOPTY) )
@@ -570,7 +582,7 @@ exitedProcess(Process p, Int stat)
 #ifdef CHILD_NOEXEC
     if ( stat == toInt(CHILD_NOEXEC) )
     { closeInputProcess(p);
-      errorPce(p, NAME_execError);
+      errorPce(p, NAME_execError, CtoName(""));
     } else
 #endif
     if ( stat != ZERO )

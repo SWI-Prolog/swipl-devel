@@ -31,7 +31,7 @@
 #define MK_FP32(x) x
 #else /*__WIN32__*/
 
-#include "..\..\..\readline\console.h"
+#include <console.h>
 #define WinAPI		long FAR PASCAL _export
 #endif /*__WIN32__*/
 
@@ -45,6 +45,8 @@
 #include <h/graphics.h>
 #undef Arc
 #undef Ellipse
+
+#define APIError() WinStrError(GetLastError())
 
 typedef char	cwidth;			/* width of a character */
 

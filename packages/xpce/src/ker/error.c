@@ -215,7 +215,7 @@ static struct error_def errors[] =
   { NAME_ptyError,		EF_REPORT,
     "%N: Could not get pseudo terminal" },
   { NAME_execError,		EF_REPORT,
-    "%N: Failed to execute" },
+    "%N: Failed to execute: %s" },
 
 					/* C-symbols */
   { NAME_notEnoughMemory,	ET_WARNING|EF_REPORT,

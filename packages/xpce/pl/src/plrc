@@ -48,6 +48,8 @@ file_search_path(foreign, pce(ArchLib)) :-
 	concat('lib/', Arch, ArchLib).
 file_search_path(foreign, pce(lib)).
 
+:- initialization set_feature(character_escapes, false).
+
 :-  initialization
     (   \+ feature(xpce, true),
 	pcehome_(PceHome),

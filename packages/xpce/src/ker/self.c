@@ -699,16 +699,25 @@ _emu_getlogin()
 #endif /*HAVE_GETLOGIN*/
 
 #ifndef HAVE_GETHOSTNAME
+#undef gethostname
 #define gethostname _emu_gethostname
+#ifdef HAVE_SYSINFO			/* solaris */
+#include <sys/systeminfo.h>
+#endif
 
 static int
 _emu_gethostname(char *buf, int len)
-{ char *s;
+{
+#ifdef HAVE_SYSINFO
+  return sysinfo(SI_HOSTNAME, buf, len);
+#else
+  char *s;
   
   if ( (s = getenv("HOSTNAME")) != NULL )
     strcpy(buf, s);
   else
     strcpy(buf, "doshost");
+#endif
 
   return 0;
 }
@@ -1690,8 +1699,12 @@ pceInitialise(int handles, char *home, int argc, char **argv)
 
   DEBUG_BOOT(Cprintf("Defining features\n"));
 
-#ifdef HAVE_FORK
+#ifdef __unix__
   featurePce(PCE, NAME_process);
+#endif
+#ifdef __WIN32__
+  if ( !iswin32s() )
+    featurePce(PCE, NAME_process);
 #endif
 #if defined(HAVE_SOCKET) || defined(HAVE_WINSOCK)
   featurePce(PCE, NAME_socket);

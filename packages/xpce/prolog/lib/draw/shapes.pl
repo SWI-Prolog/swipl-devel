@@ -260,6 +260,23 @@ draw_shape_template(_) :->
 	"Test for this method to see if template is associated"::
 	true.
 
+:- pce_group(edit).
+
+restack(Gr, How:'{hide,expose}|int') :->
+	"Hide one step or to background"::
+	(   integer(How)
+	->  get(Gr?device, graphicals, Grs),
+	    get(Grs, index, Gr, Idx),
+	    I is Idx + How,
+	    (	get(Grs, nth1, I, Before)
+	    ->  (   How < 0
+		->  send(Gr, hide, Before)
+		;   send(Gr, expose, Before)
+		)
+	    )
+	;   send(Gr, How)		% hide, expose
+	).
+
 :- pce_end_class.
 
 

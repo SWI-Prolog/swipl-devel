@@ -35,6 +35,7 @@ status		makeClassFile(Class class);
 /* unx/process.c */
 void		killAllProcesses(void);
 status		pidProcess(Process p, Int pid);
+status		closeInputProcess(Process p);
 status		makeClassProcess(Class class);
 
 /* unx/socket.c */
@@ -47,6 +48,7 @@ status		initialiseStream(Stream s, Int rfd, Int wfd, Code input, Regex sep);
 status		closeInputStream(Stream s);
 status		closeOutputStream(Stream s);
 status		inputStream(Stream s, Int fd);
+void		add_data_stream(Stream s, char *data, int len);
 status		handleInputStream(Stream s);
 status		makeClassStream(Class class);
 status		makeClassStream(Class class);

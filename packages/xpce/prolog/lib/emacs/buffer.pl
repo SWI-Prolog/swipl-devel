@@ -165,7 +165,8 @@ file(B, File:file) :->
 	    send(B, modified, @off)
 	),
 	send(B, slot, file, File),
-	send(B, directory, File?directory_name).
+	new(F2, file(File?absolute_path)),
+	send(B, directory, F2?directory_name).
 
 
 save(B, File:[file]) :->

@@ -1,3 +1,54 @@
+* FIXED: Editor: honour textcolour of selection_style resource.
+
+* WIN32: Fixed look of browsers having a label.  Added ->pen to list_browser
+  and editor.  Changed resources to exploit these.
+
+* WIN32: Added inferior process interface.  Consider this ALPHA code, but
+  provided you have a 32-bits NT console application `grep', PceEmacs
+  allows you to do M-x grep in both Windows'95 and NT.  Doesn't work in
+  win32s though.  Use `@pce->has_feature: process' to test for the
+  availability of inferior processes.
+
+* ADDED: `file->is_absolute' to provide platform-independent checking for
+  absolute filenames.  Used by `emacs_shell_mode<-directory', but probably
+  should be inserted in more places.
+
+* WIN32: Fixed scrollbar repeat-timer stuff (actually, worked around timer
+  bug in Windows '95).
+
+* WIN32: Fixed loading of ~/.Xdefault for personalised initialisation.
+
+* ADDED: `chain<-next' and `chain<-previous' to query the order in a chain.
+
+* FIXED: path<-segment if there are 0-length segments (division by zero).
+
+* ADDED: `text_item ->value_width' to specify fieldwidth in pixels. Modified
+  initial value of `text_item: auto_value_align' to @off.
+
+* FIXED: pullright-mark in popup to be 3-d style again.
+
+* ADDED: PceDraw: select-all option to the edit menu.  Added ->fill_dialog
+  to the main draw class to improve embedding capabilities.  Modified
+  hide/expose to restack the graphical only 1 level.  Added key-bindings for
+  actions on selection: DEL --> delete_selection, Control-H: hide, Control-E:
+  expose, Control-C: copy.
+
+* FIXED: Event-handling for nearly-vertical or -horizontal lines.
+
+* FIXED: Button-indicating messages in dialog editor.
+
+* FIXED: stayup-mode handling of multiple-nested popup menus.
+
+[VERSION 4.8.14]
+
+* MODIFIED: handle `list_browser <->open_message' if multiple selection
+  is @on and <-open_message is not @nil.
+
+* FIXED: use new mclock() for timing of graphical->synchronise.  Makes this
+  functionality compatible in WIN32 and centralises portability of timing.
+
+* FIXED: PNM `RAWBITS' format.  It appears scanlines are byte-aligned.
+
 * ADDED: Bound ESC to cancel search in listbrowsers.  Also to cancel completer
   of text_item.
 

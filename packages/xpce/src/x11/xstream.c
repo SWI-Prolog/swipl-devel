@@ -122,3 +122,44 @@ ws_read_stream_data(Stream s, void *data, int len)
   
   return read(s->rdfd, data, len);
 }
+
+
+
+StringObj
+ws_read_line_stream(Stream s, Int timeout)
+{ if ( s->rdfd >= 0 )
+  { char buf[LINESIZE];
+
+    if ( !s->rdstream )
+      s->rdstream = fdopen(s->rdfd, "r");
+
+    if ( notDefault(timeout) )
+    { fd_set readfds;
+      struct timeval to;
+
+      to.tv_sec = valInt(timeout) / 1000;
+      to.tv_usec = (valInt(timeout) % 1000) * 1000;
+
+      FD_ZERO(&readfds);
+      FD_SET(fileno(s->rdstream), &readfds);
+      if ( select(32, &readfds, NULL, NULL, &to) == 0 )
+	fail;
+    }
+
+    if (fgets(buf, LINESIZE, s->rdstream) == NULL)	/* eof */
+    { closeInputStream(s);
+      fail;
+    }
+
+    answer(CtoString(buf));
+  }
+
+  errorPce(s, NAME_notOpen);
+  fail;
+}
+
+
+void
+ws_done_process(Process p)
+{
+}

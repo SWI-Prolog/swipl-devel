@@ -120,6 +120,21 @@ RedrawAreaListBrowser(ListBrowser lb, Area a)
 { Any obg = r_background(getResourceValueObject(lb, NAME_background));
 
   RedrawAreaDevice((Device)lb, a);
+  if ( lb->pen != ZERO )
+  { int x, y, w, h;
+    int th = valInt(lb->image->area->y);
+
+    initialiseDeviceGraphical(lb, &x, &y, &w, &h);
+    y += th;
+    h -= th;
+
+    if ( h > 0 )
+    { r_thickness(valInt(lb->pen));
+      r_dash(lb->texture);
+
+      r_box(x, y, w, h, 0, NIL);
+    }
+  }
 
   r_background(obg);
 
@@ -889,19 +904,20 @@ eventListBrowser(ListBrowser lb, EventObj ev)
 	succeed;
     } else if ( isAEvent(ev, NAME_msLeftDown) ||
 	        isAEvent(ev, NAME_msMiddleDown) )
-    { if ( di == FAIL )
+    { Name multi = getMulticlickEvent(ev);
+
+      if ( di == FAIL )
       { send(lb, NAME_changeSelection, NAME_clear, 0);
 	succeed;
       }
+
+      if ( multi == NAME_double && notNil(lb->open_message) )
+	return openListBrowser(lb, di);
+
 					  /* Single selection selection */
       if ( lb->multiple_selection == OFF )
-      { Name multi = getMulticlickEvent(ev);
-
-	if ( multi == NAME_single )
-	{ send(lb, NAME_changeSelection, NAME_set, di, 0);
-	  return forwardListBrowser(lb, di, getButtonEvent(ev));
-	} if ( multi == NAME_double )
-	  return openListBrowser(lb, di);
+      { send(lb, NAME_changeSelection, NAME_set, di, 0);
+	return forwardListBrowser(lb, di, getButtonEvent(ev));
       } else				/* Multiple selection */
       { if ( hasModifierEvent(ev, findGlobal(NAME_ModifierShift)) )
 	  send(lb, NAME_changeSelection, NAME_toggle, di, 0);

@@ -11,10 +11,6 @@
 #include <h/graphics.h>
 #include <math.h>
 
-#ifdef HAVE_SYS_TIME_H
-#include <sys/time.h>
-#endif
-
 static int	distance_area(int, int, int, int, int, int, int, int);
 static status	orientationGraphical(Graphical gr, Name orientation);
 static Point	getCenterGraphical(Graphical gr);
@@ -725,19 +721,16 @@ flushGraphical(Any gr)
 status
 synchroniseGraphical(Graphical gr, Bool always)
 { DisplayObj d;
-#ifdef HAVE_GETTIMEOFDAY
-  static struct timeval last;
+  static long last;
 
   if ( always != ON )
-  { struct timeval now;
-
-    gettimeofday(&now, NULL);
-    if ( ((now.tv_sec - last.tv_sec) * 1000 +
-	  (now.tv_usec - last.tv_usec) / 1000) < 200 )
+  { long now = mclock();
+    
+    if ( now - last < 200 )
       succeed;
+
     last = now;
   }
-#endif /*HAVE_GETTIMEOFDAY*/ 
 
   if ( (d = getDisplayGraphical(gr)) )
     synchroniseDisplay(d);

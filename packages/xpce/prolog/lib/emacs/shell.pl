@@ -463,7 +463,7 @@ end_of_file(E) :->
 	      new(chain(regex('\(\S +\):\s *\(\sd+\):'),        % gcc, grep
 			regex('"\(\S +\)", line \(\sd+\):')))). % SUN cc
 :- pce_global(@emacs_cd_regexs,
-	      new(chain(regex('\bcd\s +\(\(\w\|[_/+-.]\)+\)'),
+	      new(chain(regex('\bcd\s +\(\(\w\|[_/+-.:]\)+\)'),
 			regex('Entering directory `\([^'']+\)''')))).
 :- pce_global(@emacs_canonise_dir_regex,
 	      new(regex('[^/]+/\.\./'))).
@@ -485,9 +485,7 @@ directory_name(M, Pos:[int]*, DirName:string) :<-
 	    ;	P0 = Pos
 	    ),
 	    (	match_cd_regex(TB, P0, Dir0, Here)
-	    ->  (   (	send(Dir0, prefix, /)
-		    ;	send(Dir0, prefix, ~)
-		    )
+	    ->  (   send(file(Dir0), is_absolute)
 		->  DirName = Dir0
 		;   get(M, directory_name, Here, DirName),
 		    send(DirName, ensure_suffix, /),

@@ -166,13 +166,9 @@ superclass.  The normal schema is:
 In  our case,  the various windows  that make up the drawing  tool are
 created and attached to the frame.
 
-To avoid a giant clause, a call to the sub-predicate  fill_dialog/1 is
-made.  It is a difficult decision whether or not this should have been
-realised using   `send(Draw,  fill_dialog,   D)' and  the   subsequent
-declaration    of this  method.     In  general,  use  send/[2-12] and
-get/[3-13] for communication  between classes, or communication within
-a   class if type-checking   or  type-conversion associated  with  PCE
-methods is useful.
+To avoid a giant clause and improve   the  possibilities to refine the
+drawing tool using subclassing, the method  ->fill_dialog is called to
+fill the dialog rather than putting this code in ->initialise.
 
 For  PCE-3  users, note the  use of the term new/2  in the  second and
 further  sends to create  the windows  inline   and get the reference.
@@ -187,7 +183,7 @@ initialise(Draw) :->
 	send(Draw, append, new(Canvas, draw_canvas)),
 	send(new(Menu, draw_menu), left, Canvas),
 	send(new(D, dialog), above, Menu),
-	fill_dialog(D),
+	send(Draw, fill_dialog, D),
 	send(Draw, fill_menu),
 	send(Menu, activate_select).
 
@@ -248,8 +244,8 @@ initialisation arguments of class menu_item are:
 	  messages in a menu should be fast for good interactive response.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-fill_dialog(D) :-
-	new(Draw, D?frame),
+fill_dialog(Draw, D:dialog) :->
+	"Fill the top-dialog window"::
 	new(Canvas, Draw?canvas),
 	new(Menu, Draw?menu),
 	new(Selection, Canvas?selection),
@@ -341,6 +337,9 @@ fill_dialog(D) :-
 			      message(Canvas, edit_selection),
 			      @default, @on,
 			      NonEmptySelection)
+		  , menu_item(select_all,
+			      message(Canvas, select_all),
+			      condition := NonEmptyDrawing)
 		  , menu_item(duplicate,
 			      message(Canvas, duplicate_selection),
 			      @default, @off,
@@ -456,7 +455,7 @@ from the menu?  The answer is that the  menu is defined in a different
 module of the system.   It could be reusable  in a  different  context
 (for example in a prototype  editor), where the  overall tool wants to
 implement mode switches differently.  Note  that  through <-frame  the
-menu has generic access to the tool it is part of.
+<menu has generic access to the tool it is part of.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 mode(Draw, Mode:name, Cursor:cursor) :->

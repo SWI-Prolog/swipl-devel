@@ -701,7 +701,7 @@ getSegmentPath(Path p, Point pos)
     } else
     { Point p1 = cell->value;
       int   d1 = valInt(getDistancePoint(p1, pos));
-      int   dt = valInt(getDistancePoint(p0, p1));
+      int   dt = min(1, valInt(getDistancePoint(p0, p1)));
       int    h = (1000 * (d0 + d1 - dt)) / dt;
 
       DEBUG(NAME_path,
