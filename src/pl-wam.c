@@ -4108,6 +4108,12 @@ frame_failed:
 
   DEBUG(3, Sdprintf("BACKTRACKING\n"));
 
+  if ( is_signalled() )
+  { PL_handle_signals();
+    if ( exception_term )
+      goto b_throw;
+  }
+
 next_choice:
   ch = BFR;
   fr0 = FR;
