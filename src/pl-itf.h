@@ -11,7 +11,7 @@
 #define PL_INCLUDED
 
 #ifndef PLVERSION
-#define PLVERSION "1.6.6, October 1992"
+#define PLVERSION "1.6.7, December 1992"
 #endif
 
 #ifndef P
@@ -43,7 +43,7 @@ typedef Word		term;
 typedef word		foreign_t;
 #endif
 
-typedef foreign_t	(*function)();	/* foreign language functions */	
+typedef foreign_t	(*function)();	/* foreign language functions */
 
 #ifndef TRUE
 #define TRUE	(1)
@@ -140,22 +140,22 @@ int	PL_unify_functor P((term, functor));/* unify term with functor */
     Note 2: The argument to PL_retry is a 30 bits signed integer (long).
 */
 
-#define PL_FRG_CUT 	(0x80000000)		/* highest bit */
-#define PL_FRG_MASK	(0x40000000)		/* Mask to indicate redo */
-#define PL_FRG_MASKMASK	(FRG_CUT|FRG_MASK)	/* Conbined mask */
-#define PL_FRG_FIRSTCALL (0L)
+#define PL_FIRST_CALL		(0)
+#define PL_CUTTED		(1)
+#define PL_REDO			(2)
 
-#define PL_FIRST_CALL	(0)
-#define PL_CUTTED	(1)
-#define PL_REDO		(2)
+#define PL_retry(n)		return _PL_retry(n)
+#define PL_retry_address(a)	return _PL_retry((long) a)
 
-#define PL_retry(v)	return (foreign_t) (((long)(v) & ~PL_FRG_MASKMASK) \
-						       | PL_FRG_MASK)
-#define PL_foreign_control(h)	((long)(h) == PL_FIRST_CALL ? PL_FIRST_CALL : \
-				 (long)(h) & PL_FRG_CUT     ? PL_CUTTED : \
-							      PL_REDO)
-#define PL_foreign_context(h)	(((long)(h) << 2) >> 2)
-
+extern int	 		PL_foreign_control P((long));
+extern foreign_t		_PL_retry P((long));
+extern foreign_t		_PL_retry_address P((void *));
+extern long	 		PL_foreign_context P((long));
+#ifdef __STDC__
+extern void *	 		PL_foreign_context_address P((long));
+#else
+extern char *	 		PL_foreign_context_address P((long));
+#endif
 
 		/********************************
 		*      REGISTERING FOREIGNS     *

@@ -81,10 +81,20 @@ PORTABILITY/OPTIONS
 #include <fcntl.h>
 #include "pl-save.h"
 
+#ifdef sun
 int	brk P((caddr_t));
 caddr_t sbrk P((int));
-extern  etext;			/* end-of-text */
-extern  char **environ;		/* normally first data-address */
+#endif
+
+#ifndef DATA_START
+#ifndef FIRST_DATA_SYMBOL
+#define FIRST_DATA_SYMBOL environ;
+#endif
+#endif
+
+#ifdef  FIRST_DATA_SYMBOL
+extern  char **FIRST_DATA_SYMBOL;
+#endif
 
 #ifndef STACK_BASE_ALIGN
 #define STACK_BASE_ALIGN (1<<16)	/* 64K */
@@ -141,16 +151,16 @@ static long
 saveVersion()
 { if ( save_version == 0 )
   { long *start = (long *) saveVersion;
-#ifdef TEXT_END
-    long *end	= (long *) TEXT_END;
-#else
-    long *end   = (long *) &etext;
-#endif
+    long *end	= (long *) startProlog;
     int  step   = (end - start) / 500;
     
+    DEBUG(1, printf("Computing saveVersion in 0x%x .. 0x%x\n", start, end));
+
     for(; start < end; start += step)
       save_version ^= *start;
   }
+
+  DEBUG(1, printf("saveVersion = %ld\n", save_version));
 
   return save_version;
 }
@@ -189,19 +199,34 @@ topOfCStack()
   return (caddr) &local;
 }
 
-
 static caddr
-baseOfCStack(mainargcaddr)
-caddr mainargcaddr;
+baseOfCStack(argc, argv, env)
+int *argc;
+char **argv, **env;
 { 
 #ifdef BASE_OF_C_STACK
   return (caddr) BASE_OF_C_STACK;
 #else
+
+  ulong base = (ulong) &argc;
+  char **p;
+
+#ifdef O_C_STACK_GROWS_UP
+#define BoundStack(a,b) ((a) < (b) ? (a) : (b))
+#else
+#define BoundStack(a,b) ((a) > (b) ? (a) : (b))
+#endif
+
+  base = BoundStack(base, (ulong)argv);
+  for(p = argv; *p; p++)
+    base = BoundStack(base, (ulong)*p);
+  base = BoundStack(base, (ulong)env);
+  for(p = env; *p; p++)
+    base = BoundStack(base, (ulong)*p);
+
 # if ( O_C_STACK_GROWS_UP )		/* round-down */
-  ulong base = (ulong) mainargcaddr;
-  return (caddr) (base & ~(STACK_BASE_ALIGN-1))
+  return (caddr) (base & ~(STACK_BASE_ALIGN-1));
 # else
-  ulong base = (ulong) mainargcaddr;	/* round-up */
   return (caddr) ((base+STACK_BASE_ALIGN-1) & ~(STACK_BASE_ALIGN-1));
 # endif
 #endif
@@ -225,7 +250,7 @@ int fd;
 caddr start;
 long length;
 { 
-#if C_STACK_GROWS_UP
+#if O_C_STACK_GROWS_UP
   if ( (ulong) &fd - MAXSTACKFRAMESIZE > (ulong) start )
 #else
   if ( (ulong) &fd + MAXSTACKFRAMESIZE < (ulong) start )
@@ -329,7 +354,11 @@ SaveSection sections;
   struct save_header header;
   int nsects = nsections + (kind == RET_RETURN ? 2 : 1);
   int sects_size = sizeof(struct save_section) * nsects;
+#if O_NO_ALLOCA				/* cannot malloc() here */
+  struct save_section sects[MAX_SAVE_SECTIONS];
+#else
   SaveSection sects = alloca(sects_size);
+#endif
   int n;
   SaveSection sect;
 
@@ -352,7 +381,7 @@ SaveSection sections;
 #ifdef DATA_START
   sects[0].start	= (caddr) DATA_START;
 #else
-  sects[0].start	= &environ;
+  sects[0].start	= &FIRST_DATA_SYMBOL;
 #endif
   sects[0].length	= (long) sbrk(0) - (long) sects[0].start;
   sects[0].type		= S_DATA;
@@ -368,8 +397,13 @@ SaveSection sections;
       return SAVE_RESTORE;
     } 
     
+#if O_C_STACK_GROWS_UP
+    stack_sect->start  = c_stack_base;
+    stack_sect->length = (ulong) topOfCStack() - (ulong) stack_sect->start;
+#else
     stack_sect->start  = topOfCStack();
     stack_sect->length = (ulong) c_stack_base - (ulong) stack_sect->start;
+#endif
     stack_sect->type   = S_CSTACK;
     stack_sect->flags  = 0;
   }
@@ -408,7 +442,7 @@ char **argv;
 char **env;
 { int rval;
 
-  c_stack_base = baseOfCStack((caddr) &argc);
+  c_stack_base = baseOfCStack(&argc, argv, env);
 
   if ( setjmp(ret_main_ctx) )
   { DEBUG(1, printf("Restarting startProlog()\n"));

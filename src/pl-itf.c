@@ -211,6 +211,41 @@ register FunctorDef f;
 }
 
 		/********************************
+		*   UNDETERMINISTIC FOREIGNS    *
+		********************************/
+
+foreign_t
+_PL_retry(v)
+long v;
+{ ForeignRedo(v);
+}
+
+
+long
+PL_foreign_context(h)
+long h;
+{ return ForeignContext(h);
+}
+
+#ifdef __STDC__
+void *
+#else
+char *
+#endif
+PL_foreign_context_address(h)
+long h;
+{ return ForeignContextAddress(h);
+}
+
+
+int
+PL_foreign_control(h)
+long h;
+{ return ForeignControl(h);
+}
+
+
+		/********************************
 		*      REGISTERING FOREIGNS     *
 		*********************************/
 

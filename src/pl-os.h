@@ -56,6 +56,7 @@ extern int	write P((int, Void, int));
 extern int	gettimeofday P((struct timeval *, struct timeval *));
 extern long	strtol P((char *, char**, int));
 extern int	vfprintf P((FILE *, char *, ...));
+extern int	vfork P((void));
 #endif
 
 

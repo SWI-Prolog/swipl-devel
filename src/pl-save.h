@@ -18,6 +18,8 @@
 #define SAVE_SAVE	1	/* save() successfully saved state */
 #define SAVE_RESTORE	2	/* save() success after restore() */
 
+#define MAX_SAVE_SECTIONS 10	/* for machines without alloca() */
+
 typedef void * caddr;		/* anonymous address */
 
 typedef struct save_section

@@ -227,9 +227,9 @@ char **env;
 			break;
 	case 'B':
 #if !O_DYNAMIC_STACKS
-			options.localSize    = 16 K;
-			options.globalSize   = 16 K;
-			options.trailSize    = 16 K;
+			options.localSize    = 32 K;
+			options.globalSize   = 8 K;
+			options.trailSize    = 8 K;
 			options.argumentSize = 1 K;
 			options.lockSize     = 1 K;
 #endif

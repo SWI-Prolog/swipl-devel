@@ -13,7 +13,7 @@
 
 #include <sys/time.h>
 
-#if PROTO
+#if PROTO && sun
 extern int setitimer P((int, struct itimerval *,struct itimerval *));
 #endif
 

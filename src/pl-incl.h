@@ -250,8 +250,14 @@ consistent  with  the  definitions  in  pl-itf.h, which is included with
 users foreign language code.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define FRG_CUT 	(0x80000000L)		/* highest bit */
+#if O_DATA_AT_0X4
+#define FRG_MASK	(0x20000000L)		/* Mask to indicate redo */
+#define FRG_BITS	3
+#else
 #define FRG_MASK	(0x40000000L)		/* Mask to indicate redo */
+#define FRG_BITS	2
+#endif
+#define FRG_CUT 	(0x80000000L)		/* highest bit */
 #define FRG_MASK_MASK	(FRG_CUT|FRG_MASK)
 
 #define FRG_FIRST_CALL	(0)
@@ -265,7 +271,7 @@ users foreign language code.
 #define ForeignControl(h)	((h) == FIRST_CALL ? FRG_FIRST_CALL : \
 				 (h) & FRG_CUT	   ? FRG_CUTTED : \
 						     FRG_REDO)
-#define ForeignContext(h)	(((long)(h) << 2) >> 2)
+#define ForeignContext(h)	(((long)(h) << FRG_BITS) >> FRG_BITS)
 #define ForeignContextAddress(h) ((Void)((long)(h) & ~FRG_MASK_MASK))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -532,15 +538,11 @@ the range of integers to +- 2^25.  (Macros have to be rewritten))
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define REF_MASK	0x80000000L	/* Reference (= negative) */
-#define INDIRECT_MASK	0x40000000L	/* Indirect constant */
-#if O_DATA_AT_0X2
-#define INT_MASK	0x10000000L	/* Integer mask */
-#else
-#define INT_MASK	0x20000000L	/* Integer mask */
-#endif
 #define MARK_MASK	0x00000001L	/* GC marking bit */
 
 #if O_16_BITS
+#define INDIRECT_MASK	0x40000000L	/* Indirect constant */
+#define INT_MASK	0x20000000L	/* Indirect constant */
 #define MASK_BITS	4		/* high order mask bits */
 #define LMASK_BITS	1		/* low order mask bits */
 #define DMASK_BITS	5		/* DATA_TAG_MASK bits */
@@ -549,22 +551,37 @@ the range of integers to +- 2^25.  (Macros have to be rewritten))
 #define REAL_MASK	0x68000000L	/* Header mask on global stack */
 #define MASK_MASK	(INT_MASK|REF_MASK|INDIRECT_MASK|FIRST_MASK)
 #define DATA_TAG_MASK	0xf8000000L	/* Indirect data type mask */
+
+#else !O_16_BITS
+
+#define REAL_MASK	0x70000000L	/* Header mask on global stack */
+
+#if O_DATA_AT_0X4
+#define INDIRECT_MASK	0x20000000L	/* Indirect constant */
+#define INT_MASK	0x10000000L	/* Indirect constant */
+#define MASK_BITS	4		/* high order mask bits */
+#define STRING_MASK	0x30000000L	/* Header mask on global stack */
 #else
 #if O_DATA_AT_0X2
+#define INDIRECT_MASK	0x40000000L	/* Indirect constant */
+#define INT_MASK	0x10000000L	/* Indirect constant */
 #define MASK_BITS	4		/* high order mask bits */
 #define STRING_MASK	0x50000000L	/* Header mask on global stack */
-#define REAL_MASK	0x70000000L	/* Header mask on global stack */
-#else
+#else /* 0X1 or lower */
+#define INDIRECT_MASK	0x40000000L	/* Indirect constant */
+#define INT_MASK	0x20000000L	/* Indirect constant */
 #define MASK_BITS	3		/* high order mask bits */
 #define STRING_MASK	0x60000000L	/* Header mask on global stack */
-#define REAL_MASK	0x70000000L	/* Header mask on global stack */
-#endif
+#endif O_DATA_AT_0X2
+#endif O_DATA_AT_0X4
+
 #define LMASK_BITS	2		/* low order mask bits */
 #define DMASK_BITS	4		/* DATA_TAG_MASK bits */
 #define FIRST_MASK	0x00000002L	/* first member of relocation chain */
 #define MASK_MASK	(INT_MASK|REF_MASK|INDIRECT_MASK)
 #define DATA_TAG_MASK	0xf0000000L	/* Indirect data type mask */
-#endif
+
+#endif O_16_BITS
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Common Prolog objects typedefs.
@@ -678,18 +695,23 @@ AIX  version  we  substract  this value and add it again when converting
 integers to pointers.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if O_DATA_AT_0X2
-#  define pointerToNum(p)	consNum(((long)(p)-0x20000000)/sizeof(int))
-#  define numToPointer(n)	((Word)(valNum(n)*sizeof(int)+0x20000000))
+#if O_DATA_AT_0X4
+#  define PTR_TO_NUM_OFFSET	0x40000000L
 #else
-#  if O_DATA_AT_OX1
-#    define pointerToNum(p)	consNum(((long)(p)-0x10000000)/sizeof(int))
-#    define numToPointer(n)	((Word)(valNum(n)*sizeof(int)+0x10000000))
+#  if O_DATA_AT_0X2
+#    define PTR_TO_NUM_OFFSET	0x20000000L
 #  else
-#    define pointerToNum(p)	consNum((long)(p)/sizeof(int))
-#    define numToPointer(n)	((Word)(valNum(n)*sizeof(int)))
+#    if O_DATA_AT_OX1
+#      define PTR_TO_NUM_OFFSET 0x10000000L
+#    else
+#      define PTR_TO_NUM_OFFSET   0x0L
+#    endif
 #  endif
 #endif
+
+#define pointerToNum(p)	   consNum(((long)(p)-PTR_TO_NUM_OFFSET)/sizeof(int))
+#define numToPointer(n)	   ((Word)(valNum(n)*sizeof(int)+PTR_TO_NUM_OFFSET))
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Macros to handle the anonimous types.  'w' implies we expect a word, 'p'

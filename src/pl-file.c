@@ -169,11 +169,6 @@ the Unix assumptions?
 	  fileTable[n].stream_name = ATOM_user_input;
 	  fileTable[n].status = F_READ;
 	  fileTable[n].fd = stdin;
-#if hpux || sun
-	  stdin->_ptr = stdin->_base;
-	  stdin->_cnt = 0;		/* clear input after dump */
-	  clearerr(stdin);
-#endif
 	  break;
 	case 1:
 	  fileTable[n].name = ATOM_user;

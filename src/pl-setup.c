@@ -73,8 +73,11 @@ setupProlog()
   }
   DEBUG(1, printf("IO ...\n"));
   initIO();
+  DEBUG(1, printf("Loader ...\n"));
   resetLoader();
+  DEBUG(1, printf("Symbols ...\n"));
   getSymbols();
+  DEBUG(1, printf("Term ...\n"));
   resetTerm();
   status.io_initialised = TRUE;
 

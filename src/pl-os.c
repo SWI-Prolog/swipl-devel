@@ -14,21 +14,20 @@ static long	wait_ticks;	/* clock ticks not CPU time */
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-itf.h"
+
 #if unix
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <pwd.h>
 #include <sys/file.h>
-#if minix || LINUX
 #include <unistd.h>
-#endif
 
+#if sun
 extern int fstat(/*int, struct stat **/);
 extern int stat(/*char *, struct stat**/);
 extern int unlink(/*char **/);
 extern int link(/*char **/);
 extern int select(/*int *, int*, int*, struct timeval **/);
-#if !minix && !LINUX
 extern int ioctl(/*int, int, Void*/);
 extern int execl(/*char *, ... */);
 #endif
@@ -219,7 +218,12 @@ long n;
 #include <a.out.h>
 int
 getpagesize()
-{ return EXEC_PAGESIZE;
+{  
+#ifdef EXEC_PAGESIZE
+  return EXEC_PAGESIZE;
+#else
+  return 4096;				/* not that important */
+#endif
 }
 #endif
 
@@ -300,7 +304,7 @@ static void
 initRandom()
 {
 #if hpux || minix || tos || LINUX
-#if !minix && !tos && !LINUX
+#if sun
   extern int srand();
 #endif
   srand((unsigned)Time());
@@ -2171,8 +2175,6 @@ char *cmd;
   void (*old_int)();
   void (*old_stop)();
 
-  extern int vfork();
-
   Setenv("PROLOGCHILD", "yes");
 
 /*if ((shell = getenv("SHELL")) == (char *)NULL) bourne shell for speed now */
@@ -2475,9 +2477,7 @@ real time;
   if ( time < 60.0 )		/* select() is expensive. Does it make sense */
   { timeout.tv_sec = (int) time;
     timeout.tv_usec = (int)(time * 1000000) % 1000000;
-    select(32, (struct timeval *)NULL,
-	       (struct timeval *)NULL,
-	       (struct timeval *)NULL, &timeout);
+    select(32, NULL, NULL, NULL, &timeout);
   } else
     sleep( (int)(time+0.5) );
 }
