@@ -141,6 +141,9 @@ get_map_fd()
 #include <siginfo.h>
 #endif
 
+#ifndef SA_RESTART
+#define SA_RESTART 0
+#endif
 
 static handler_t
 set_stack_guard_handler(int sig, void *func)
