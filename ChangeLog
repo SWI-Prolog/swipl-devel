@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 5.1.5 (Jan 06, 2003)
+============================
+
   * FIXED: Make alarm/4 (library(time), package clib) handle exceptions more
     elegant.
 
@@ -11,7 +14,7 @@
     from Prolog.
 
   * ADDED: library(debug) for dealing with print-statements from your code
-    and assuptions you make during development.  Documented in the reference
+    and assumptions you make during development.  Documented in the reference
     manual.
 
 

@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.1.5, distributed with SWI-Prolog 5.1.5
+================================================
+
 * FIXED: `@pce->show-console' to deal with new SWI-Prolog console code.
 
 * PORT: Upgraded XPCE configure suite to use autoconf 2.5.3 (distributed

@@ -1,9 +1,9 @@
-SWI-Prolog 5.1.4/XPCE 6.1.4 Summary of changes
+SWI-Prolog 5.1.5/XPCE 6.1.5 Summary of changes
 
 Status
 ======
   
-  * 5th beta-release.  Suitable for research and development.
+  * 6th beta-release.  Suitable for research and development.
     Discouraged for production usage.  It has a few 5.0.10 bugs
     fixed but surely introduced new ones.
 
@@ -11,24 +11,20 @@ Status
 SWI-Prolog
 ==========
 
-  * Many threading problems fixed.
+  * Added library(debug), providing structured alternative to printing
+    messages.
 
-  * Added :- thread_local/1, though this new stuff is subject to
-    debate.
+  * Minor issues
 
 Packages
 ========
 
-  * CLIB: More socket problems fixed.
-
-  * RDF: Make process_rdf work again.
-
+  * Added HTTP package, providing pure-prolog libraries to do HTTP
+    services directly from Prolog.  Comes with inetd, XPCE and threading
+    front-end for the control-structure of your program.
 
 Development environment
 =======================
-
-  * Fixes to the GUI thread-monitor
-
 
 Short-term Plans
 ================

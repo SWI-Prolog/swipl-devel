@@ -22,7 +22,7 @@
 %    /PageMode /UseOutLines
 %  }
   \usepackage[pdftex]{graphicx}
-  \DeclareGraphicsExtensions{.png,.jpg,.pdf}
+  \DeclareGraphicsExtensions{.pdf,.jpg,.png}
 \else
   \usepackage[dvips]{graphicx}
   \DeclareGraphicsExtensions{.eps,.ps}
@@ -33,7 +33,7 @@
 
 \input logo.sty
 \usepackage{a4wide}
-\usepackage{fancyhdr}
+\usepackage{fancyheadings}
 \usepackage{fancychap}
 \usepackage{longtable}
 \usepackage{ifthen}
@@ -76,12 +76,16 @@
 
 %	Descriptions (definitions) of various things
 
+\def\@nodescription{false}
+
+\newcommand{\defentry}[1]{\definition{#1}}
 \newcommand{\definition}[1]{%
 	\onlinebreak%
-	\item[\parbox{\linewidth}{\raggedright#1}]\hfill\mbox{}\linebreak}
-\newcommand{\defentry}[1]{\definition{#1}}
-\newcommand{\emptydefinition}[1]{%
-	\makebox[-\leftmargin]{\mbox{}}\mbox{\bf #1}\\}
+	\ifthenelse{\equal{\@nodescription}{true}}{%
+	    \def\@nodescription{false}%
+	    \makebox[-\leftmargin]{\mbox{}}\mbox{\bf #1}\\}{%
+	    \item[\mbox{#1}]\hfill\mbox{}\linebreak}}
+\newcommand{\nodescription}{\def\@nodescription{true}}
 
 \makeatletter
 \def\cmdlineoptionitem{\@ifstar{\@gluedcmdoptitem}{\@cmdoptitem}}
@@ -103,8 +107,9 @@
 \newcommand{\pleaseoption}[3]{%
 	\definition{#1 {\it #2} {\rm(default: \it #3)}}%
 	\ignorespaces}
-\newcommand{\featureoption}[2]{%
-	\definition{#1 ({\it #2})}%
+\newcommand{\prologflagitem}[3]{%
+	\definition{#1 {\it (#2%
+	    \ifthenelse{\equal{rw}{#3}}{, changeable}{})}}%
 	\ignorespaces}
 \newcommand{\escapeitem}[1]{%
 	\definition{\Sesc{\tt #1}}
@@ -119,6 +124,11 @@
 	\ifthenelse{\equal{#2}{0}}{%
 	    \defentry{#1}}{%
 	    \defentry{#1({\it #3})}}%
+	\index{#1/#2}\ignorespaces}
+\newcommand{\dcg}[3]{%
+	\ifthenelse{\equal{#2}{0}}{%
+	    \defentry{#1}}{%
+	    \defentry{#1({\it #3}) \texttt{\string-->}}}%
 	\index{#1/#2}\ignorespaces}
 \newcommand{\infixop}[3]{%
 	\defentry{{\it #2} #1 {\it #3}}%
@@ -143,11 +153,23 @@
 \newcommand{\cfunction}[3]{%
 	\defentry{{\tt #1} #2{\rm (}{\it #3}{\rm )}}%
 	\index{#2()}\ignorespaces}
+\newcommand{\constructor}[2]{%
+	\defentry{#1::#1{\rm (}{\it #2}{\rm )}}%
+	\index{#1::#1()}\ignorespaces}
+\newcommand{\destructor}[1]{%
+	\defentry{#1::\Stilde{}#1{\rm ()}}%
+	\index{#1::\Stilde{}#1()}\ignorespaces}
+\newcommand{\cppcast}[2]{%
+	\defentry{#1::operator #2{\rm ({\it void})}}%
+	\index{#1::operator #2()}\ignorespaces}
 \newcommand{\cdecl}[2]{{\tt #1} {\em #2}}
 \newcommand{\cmacro}[3]{%
 	\defentry{{\it #1} #2({\it #3})}%
 	\index{#2()}\ignorespaces}
 \newcommand{\cglobalvar}[1]{{\tt #1}}
+\newcommand{\classitem}[1]{%
+	\definition{Class #1}%
+	\index{#1 \string\idxtype{class}}\ignorespaces}
 
 \renewcommand{\arg}[1]{\ifmmode\mbox{\em #1}\else{\em #1}\fi}
 \newcommand{\bnfmeta}[1]{\ifmmode{\langle\mbox{\it #1}\rangle}\else$\langle\mbox{\it #1}\rangle$\fi}
@@ -158,11 +180,12 @@
 \newcommand{\class}[1]{{\em #1}\index{#1 \string\idxtype{class}}}
 \newcommand{\classs}[1]{{\em #1s}\index{#1 \string\idxtype{class}}}
 \newcommand{\demo}[1]{{\sf #1}\index{#1 \string\idxtype{demo}}}
-\newcommand{\pllib}[1]{library({\tt #1})\index{#1 \string\idxtype{library}}}
+\newcommand{\pllib}[1]{{\tt #1}\index{#1 \string\idxtype{library}}}
 \newcommand{\clib}[1]{{\tt #1}\index{#1 \string\idxtype{library}}}
 \newcommand{\tool}[1]{{\em #1}\index{#1 \string\idxtype{tool}}}
 \newcommand{\constf}[1]{{\reffont #1}}
 \newcommand{\const}[1]{{\tt #1}}
+\newcommand{\plflag}[1]{{\tt #1}}
 \newcommand{\type}[1]{{\reffont #1}}
 \newcommand{\idx}[1]{#1\index{#1}}
 \newcommand{\foreseen}[1]{\footnote{#1}}
@@ -170,6 +193,7 @@
 \newcommand\file{\begingroup \urlstyle{tt}\Url}
 \newcommand\email{\begingroup \urlstyle{tt}\Url}
 \newcommand{\env}[1]{\mbox{\tt #1}}
+\newcommand{\except}[1]{\mbox{\tt #1}}
 \newcommand{\exam}[1]{\mbox{\tt #1}}
 \newcommand{\module}[1]{\mbox{\reffont #1}}
 \newcommand{\fileext}[1]{\mbox{\tt .#1}}
@@ -187,6 +211,13 @@
 \newcommand{\texenv}[1]{{\tt #1}}
 \newcommand{\texmode}[1]{{\tt #1}}
 \newcommand{\HTML}[1]{{\bf #1}}
+\newcommand{\libdoc}[2]{\section{\pllib{#1}: #2}\label{sec:lib:#1}}
+\newcommand{\key}[1]{{\sf #1}}
+\newcommand{\menu}[2]{%
+	{\sf #1}%
+	\ifthenelse{\equal{#2}{}}{%
+	    }{%
+	    ~(\texttt{#2})}}
 
 \newcommand\satom{\begingroup \urlstyle{tt}\Url}
 \newcommand\fmtseq{\begingroup \urlstyle{tt}\Url}
@@ -250,6 +281,7 @@
 \newcommand{\mod}[2]{#1 \mbox{\rm mod} #2}
 \newcommand{\rem}[2]{#1 \mbox{\rm rem} #2}
 \newcommand{\pow}[2]{{#1}^{#2}}
+\newcommand{\bsl}[2]{\Sesc}
 
 %	Index handling
 
@@ -310,13 +342,13 @@
 
 \def\postscriptfig{\@ifnextchar[{\@scaledpostscriptfig}{\@postscriptfig}}
 \def\@scaledpostscriptfig[#1]#2#3{%
-	\begin{figure}[htbp]%
+	\begin{figure}%
 	    \centerline{\includegraphics[#1]{#2}}
 	    \caption{#3}
 	    \label{fig:#2}
 	\end{figure}}
 \def\@postscriptfig#1#2{%
-	\begin{figure}[htbp]%
+	\begin{figure}%
 	    \centerline{\includegraphics{#1}}
 	    \caption{#2}
 	    \label{fig:#1}
