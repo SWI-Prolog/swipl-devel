@@ -5,8 +5,4 @@ for example) that root-directories of devices   (c:/,  etc.) are handled
 properly, no matter how the name is formed. It also implemends readdir()
 and friends for Unix-compatible access to the directory.
 
-To built it, just load  the  uxnt.mdp   project  into  MSVC++.  Copy the
-resulting uxnt.lib, dirent.h and uxnt.h  headers   to  a place where the
-compiler looks for them when building a product that depends on them.
-
 	Regards --- Jan
