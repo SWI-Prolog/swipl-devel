@@ -104,7 +104,7 @@ pl_rl_add_history(term_t text)
 
 static int
 event_hook()
-{ return PL_dispatch(0, PL_DISPATCH_NOWAIT);
+{ return PL_dispatch(0, PL_DISPATCH_WAIT);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -163,6 +163,74 @@ PutCloseBrace(IOSTREAM *s)
 
 
 static bool
+writeQuoted(IOSTREAM *stream, const unsigned char *s, int len, int quote,
+	    write_options *options)
+{ TRY(Putc(quote, stream));
+
+  while(len-- > 0)
+  { int c = *s++;
+
+    if ( true(options, PL_WRT_CHARESCAPES) )
+    { if ( c >= ' ' && c != 127 && c != quote && c != '\\' )
+      { TRY(Putc(c, stream));
+      } else
+      { char esc[4];
+
+	esc[1] = EOS;
+
+	if ( c == quote )
+	{ esc[0] = c;
+	} else
+	{ switch(c)
+	  { case 7:
+	      esc[0] = 'a';
+	      break;
+	    case '\b':
+	      esc[0] = 'b';
+	      break;
+	    case '\t':
+	      esc[0] = 't';
+	      break;
+	    case '\n':
+	      esc[0] = 'n';
+	      break;
+	    case 11:
+	      esc[0] = 'v';
+	      break;
+	    case '\r':
+	      esc[0] = 'r';
+	      break;
+	    case '\f':
+	      esc[0] = 'f';
+	      break;
+	    case '\\':
+	      esc[0] = '\\';
+	      break;
+	    case '\'':
+	      esc[0] = '\'';
+	      break;
+	    default:
+	      Ssprintf(esc, "%03o", c);
+	  }
+	}
+	if ( !Putc('\\', stream) ||
+	     !PutString(esc, stream) )
+	  fail;
+      }
+    } else
+    { if ( c == quote )
+      { TRY(Putc(c, stream) && Putc(c, stream));
+      } else
+      { TRY(Putc(c, stream));
+      }
+    }
+  }
+
+  return Putc(quote, stream);
+}
+
+
+static bool
 writeAtom(atom_t a, write_options *options)
 { Atom atom = atomValue(a);
   unsigned char *s = atom->name;
@@ -179,69 +247,12 @@ writeAtom(atom_t a, write_options *options)
       case AT_QUOTE:
       case AT_FULLSTOP:
       default:
-      { int c;
-
-	TRY(Putc('\'', stream));
-	while(len-- > 0)
-	{ c = *s++;
-
-	  if ( true(options, PL_WRT_CHARESCAPES) )
-	  { if ( c >= ' ' && c != 127 && c != '\'' && c != '\\' )
-	    { TRY(Putc(c, stream));
-	    } else
-	    { char esc[4];
-
-	      esc[1] = EOS;
-
-	      switch(c)
-	      { case 7:
-		  esc[0] = 'a';
-		  break;
-		case '\b':
-		  esc[0] = 'b';
-		  break;
-		case '\t':
-		  esc[0] = 't';
-		  break;
-		case '\n':
-		  esc[0] = 'n';
-		  break;
-		case 11:
-		  esc[0] = 'v';
-		  break;
-		case '\r':
-		  esc[0] = 'r';
-		  break;
-		case '\f':
-		  esc[0] = 'f';
-		  break;
-		case '\\':
-		  esc[0] = '\\';
-		  break;
-		case '\'':
-		  esc[0] = '\'';
-		  break;
-		default:
-		  Ssprintf(esc, "%03o", c);
-	      }
-	      if ( !Putc('\\', stream) ||
-		   !PutString(esc, stream) )
-		fail;
-	    }
-	  } else
-	  { if ( c == '\'' )
-	    { TRY(Putc(c, stream)&&Putc(c, stream));
-	    } else
-	    { TRY(Putc(c, stream));
-	    }
-	  }
-	}
-	return Putc('\'', stream);
-      }
+	return writeQuoted(stream, s, len, '\'', options);
     }
   } else
     return PutTokenN(s, len, stream);
 }
+
 
 #if !defined(HAVE_ISNAN) && defined(NaN)
 #define isnan(f)  ((f) == NaN)
@@ -299,18 +310,9 @@ writePrimitive(term_t t, write_options *options)
 
 #if O_STRING
   if ( PL_get_string(t, &s, &n) )
-  { int c;
-
-    if ( true(options, PL_WRT_QUOTED) )
-    { TRY(Putc('\"', out));
-      while( (c = *s++) != EOS )
-      { if ( c == '"' )
-	{ TRY(Putc('"', out));
-	}
-        TRY(Putc(c, out));
-      }
-      return Putc('\"', out);
-    } else
+  { if ( true(options, PL_WRT_QUOTED) )
+      return writeQuoted(out, (const unsigned char *)s, n, '"', options);
+    else
       return PutString(s, out);
   }
 #endif /* O_STRING */
@@ -641,6 +643,8 @@ do_write2(term_t stream, term_t term, int flags)
     options.depth     = 0;
     options.out	      = s;
     options.module    = MODULE_user;
+    if ( true(options.module, CHARESCAPE) )
+      options.flags |= PL_WRT_CHARESCAPES;
 
     PutOpenToken(EOF, s);		/* reset this */
     writeTerm(term, 1200, &options);

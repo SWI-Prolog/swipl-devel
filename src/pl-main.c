@@ -21,6 +21,9 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #include <sys/param.h>
 #endif
 
+#define LOCK()   PL_LOCK(L_INIT)
+#define UNLOCK() PL_UNLOCK(L_INIT)
+
 #ifdef FORCED_MALLOC_BASE
 #include "morecore.c"
 #endif
@@ -32,8 +35,7 @@ static bool	vsysError(const char *fm, va_list args);
 #define	optionString(s) { if (argc > 1) \
 			  { s = argv[1]; argc--; argv++; \
 			  } else \
-			  { usage(); \
-			    exit(1); \
+			  { return -1; \
 			  } \
 			}
 #define K * 1024L
@@ -334,6 +336,13 @@ initDefaultOptions()
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Does the commandline option parsing.  Actually   we  should  use the GNU
+getopt package and deal nicely with long   arguments  as well as shorts,
+but these options are  too  widely  used   as  they  are  to change them
+overnight. Returns -1 on error.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 parseCommandLineOptions(int argc0, char **argv, int *compile)
 { int argc = argc0;
@@ -360,14 +369,10 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 			{ GD->debug_level = atoi(argv[1]);
 			  argc--, argv++;
 			} else
-			{ usage();
-			  exit(1);
-			}
+			  return -1;
 			break;
 	case 'p':	if (!argc)	/* handled in Prolog */
-			{ usage();
-			  exit(1);
-			}
+			  return -1;
 			argc--, argv++;
 			break;
 	case 'O':	GD->cmdline.optimise = TRUE; /* see initFeatures() */
@@ -395,9 +400,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
         { unsigned long size = memarea_limit(&s[1]);
 	  
 	  if ( size == MEMAREA_INVALID_SIZE )
-	  { usage();
-	    exit(1);
-	  }
+	    return -1;
 
 	  switch(*s)
 	  { case 'L':	GD->options.localSize    = size; goto next;
@@ -494,10 +497,31 @@ openResourceDB(int argc, char **argv)
 
 
 int
+PL_is_initialised(int *argc, char ***argv)
+{ if ( GD->initialised )
+  { if ( argc )
+      *argc = GD->cmdline.argc;
+    if ( argv )
+      *argv = GD->cmdline.argv;
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+int
 PL_initialise(int argc, char **argv)
 { int n;
   bool compile = FALSE;
   const char *rcpath = "<none>";
+
+  LOCK();
+  if ( GD->initialised )
+  { UNLOCK();
+    succeed;
+  }
 
 #if defined(_DEBUG) && defined(WIN32)
   extern void initHeapDebug(void);
@@ -544,7 +568,9 @@ properly on Linux. Don't bother with it.
     argc--; argv++;
 
     if ( argc == 1 && giveVersionInfo(argv[0]) ) /* -help, -v, etc */
+    { UNLOCK();
       exit(0);
+    }
 
     for(n=0; n<argc; n++)		/* need to check this first */
     { if ( streq(argv[n], "--" ) )	/* --: terminates argument list */
@@ -559,13 +585,19 @@ properly on Linux. Don't bother with it.
 
     if ( !GD->resourceDB )
     { if ( !(GD->resourceDB = openResourceDB(argc, argv)) )
+      { UNLOCK();
 	fatalError("Could not find system resources");
+      }
       rcpath = ((RcArchive)GD->resourceDB)->path;
 
       initDefaultOptions();
     }
 
-    done = parseCommandLineOptions(argc, argv, &compile);
+    if ( (done = parseCommandLineOptions(argc, argv, &compile)) < 0 )
+    { usage();
+      UNLOCK();
+      fail;
+    }
     argc -= done;
     argv += done;
   }
@@ -584,7 +616,9 @@ properly on Linux. Don't bother with it.
     char *rcpathcopy = store_string(rcpath); /* rcpath is destroyed on close */
 
     if ( !compileFileList(s, argc, argv) )
+    { UNLOCK();
       Halt(1);
+    }
     if ( Sclose(s) != 0 ||
 	 !rc_close_archive(GD->resourceDB) )
     { 
@@ -595,6 +629,7 @@ properly on Linux. Don't bother with it.
 	       "[ERROR: Failed to save system resources %s]\n",
 	       rc_strerror(rc_errno));
 #endif
+      UNLOCK();
       Halt(1);
     }
 #if defined(__WINDOWS__) || defined(__WIN32__)
@@ -603,6 +638,7 @@ properly on Linux. Don't bother with it.
     Sfprintf(Serror,
 	     "Boot compilation has created %s\n", rcpathcopy);
 #endif
+    UNLOCK();
     Halt(0);
   } else
   { IOSTREAM *statefd = SopenRC(GD->resourceDB, "$state", "$prolog", RC_RDONLY);
@@ -610,13 +646,17 @@ properly on Linux. Don't bother with it.
     if ( statefd )
     { GD->bootsession = TRUE;
       if ( !loadWicFromStream(statefd) )
-	Halt(1);
+      { UNLOCK();
+	fail;
+      }
       GD->bootsession = FALSE;
 
       Sclose(statefd);
     } else
+    { UNLOCK();
       fatalError("Resource database \"%s\" does not contain a saved state",
 		 rcpath);
+    }
   }
 
   debugstatus.styleCheck = (LONGATOM_CHECK|
@@ -628,10 +668,16 @@ properly on Linux. Don't bother with it.
   DEBUG(1, Sdprintf("Starting Prolog Part of initialisation\n"));
 
   if ( compile )
-  { Halt(prologToplevel(PL_new_atom("$compile")) ? 0 : 1);
+  { int status = prologToplevel(PL_new_atom("$compile")) ? 0 : 1;
+
+    UNLOCK();
+    Halt(status);
+    fail;				/* make compile happy */
+  } else
+  { int status = prologToplevel(PL_new_atom("$initialise"));
+    UNLOCK();
+    return status;
   }
-    
-  return prologToplevel(PL_new_atom("$initialise"));
 }
 
 typedef const char *cline;

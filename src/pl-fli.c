@@ -2518,22 +2518,43 @@ PL_dispatch_hook(PL_dispatch_hook_t hook)
   return old;
 }
 
+
+#ifdef HAVE_SELECT
+
+static int
+input_on_fd(int fd)
+{ fd_set rfds;
+  struct timeval tv;
+
+  FD_ZERO(&rfds);
+  FD_SET(fd, &rfds);
+  tv.tv_sec = 0;
+  tv.tv_usec = 1;
+
+  return select(fd+1, &rfds, NULL, NULL, &tv) != 0;
+}
+
+#else
+#define input_on_fd(fd) 1
+#endif
+
+
 int
 PL_dispatch(int fd, int wait)
 { GET_LD
-  int rval;
 
   if ( wait == PL_DISPATCH_INSTALLED )
     return dispatch_events ? TRUE : FALSE;
 
   if ( dispatch_events )
-  { do
-    { rval = (*dispatch_events)(fd);
-    } while( wait == PL_DISPATCH_WAIT && rval == PL_DISPATCH_TIMEOUT );
-  } else
-    rval = PL_DISPATCH_INPUT;
+  { if ( wait == PL_DISPATCH_WAIT )
+    { while( !input_on_fd(fd) )
+	(*dispatch_events)(fd);
+    } else
+      (*dispatch_events)(fd);
+  }
 
-  return rval;
+  return TRUE;
 }
 
 

@@ -86,6 +86,7 @@ extern pthread_mutex_t _PL_mutexes[];	/* Prolog mutexes */
 #define L_FILE	       12
 #define L_FEATURE      13
 #define L_OP	       14
+#define L_INIT	       15
 
 #ifdef O_DEBUG_MT
 #define PL_LOCK(id) \
