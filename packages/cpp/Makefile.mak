@@ -20,6 +20,8 @@ install::
 		copy SWI-cpp.h "$(PLBASE)\include"
 !ENDIF
 
+xpce-install::
+
 uninstall::
 		del "$(PLBASE)\include\SWI-cpp.h"
 
