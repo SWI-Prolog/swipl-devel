@@ -50,24 +50,6 @@ user:file_search_path(emacs_user_library,
 		      user_profile('/lib/xpce/emacs')).
 
 
-		/********************************
-		*         DECLARE MODES		*
-		********************************/
-
-fix_mode_name_type :-
-	get(@pce, convert, mode_name, type, Type),
-	send(Type, name_reference, mode_name_type),
-	send(Type, kind, name_of),
-	send(Type, slot, context, new(Ctx, chain)),
-	send_list(Ctx, append,
-		  [ fundamental
-		  , prolog
-		  , shell
-		  ]).
-
-:- initialization fix_mode_name_type.
-
-
 		 /*******************************
 		 *           PROLOG		*
 		 *******************************/

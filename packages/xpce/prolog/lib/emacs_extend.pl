@@ -37,6 +37,23 @@
 :- require([ concat_atom/2
 	   ]).
 
+		/********************************
+		*         DECLARE MODES		*
+		********************************/
+
+fix_mode_name_type :-
+	get(@pce, convert, mode_name, type, Type),
+	send(Type, name_reference, mode_name_type),
+	send(Type, kind, name_of),
+	send(Type, slot, context, new(Ctx, chain)),
+	send_list(Ctx, append,
+		  [ fundamental
+		  , prolog
+		  , shell
+		  ]).
+
+:- initialization fix_mode_name_type.
+
 %	declare_emacs_mode(+ModeName, +FileSpec).
 %
 %	Specifies that PceEmacs mode `ModeName' may be defined by
@@ -44,7 +61,10 @@
 
 declare_emacs_mode(Mode, File) :-
 	get(string('emacs_%s_mode', Mode), value, EmacsModeClass),
-	pce_autoload(EmacsModeClass, File),
+	(   File == []
+	->  true
+	;   pce_autoload(EmacsModeClass, File)
+	),
 	(   \+ special_mode(Mode)
 	->  get(@mode_name_type, context, Ctx),
 	    send(Ctx, add, Mode),
