@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: qsave_program handling of loaded foreign libraries.  Reported
+    by Fabien Todescato.
+
   * ADDED: GUI-Tracer: add pseudo variable names for DCG input and output.
 
   * ADDED: plwin.exe: add menu item to edit the `associated' file.

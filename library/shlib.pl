@@ -47,6 +47,11 @@
 	foreign_predicate/2,		% Lib, Pred
 	current_library/5.		% Lib, Entry, Path, Module, Handle
 
+:- volatile				% Do not store in state
+	loading/1,
+	foreign_predicate/2,
+	current_library/5.
+
 :- (   current_prolog_flag(open_shared_object, true)
    ->  true
    ;   print_message(warning, shlib(not_supported)) % error?
