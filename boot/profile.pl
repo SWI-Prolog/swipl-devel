@@ -37,6 +37,11 @@ show_profile(N) :-
 		 List), 
 	sort(List, Sorted), 
 	reverse(Sorted, HighFirst), 
+	format('~w~t~w =~41|~t~w~57| = ~w ~t~w~79|~n',
+	       [ 'Predicate', 'Box Entries', 'Calls+Redos'
+	       , 'Exits+Fails', 'Time'
+	       ]),
+	format('~61t~79|~n'),
 	$show_profile(N, HighFirst).
 
 $profile_count(Head, Calls, Perc) :-
@@ -47,9 +52,11 @@ $profile_count(Head, Calls, Perc) :-
 
 $show_profile(0, _) :- !.
 $show_profile(_, []) :- !.
-$show_profile(N, [triple(Prom, Calls, Pred)|Rest]) :-
+$show_profile(N, [triple(Prom, Total, Pred)|Rest]) :-
 	$predicate_name(Pred, Name),
-	format('~w~t~35|~t~w~41| calls, ~t~1d%~54|~n', [Name, Calls, Prom]), 
+	profile_box(Pred, Calls, Redos, Exits, Fails),
+	format('~w~t~D =~41|~t~D+~D~57| = ~D+~D ~t~1d%~79|~n',
+	       [Name, Total, Calls, Redos, Exits, Fails, Prom]), 
 	succ(M, N), 
 	$show_profile(M, Rest).
 
