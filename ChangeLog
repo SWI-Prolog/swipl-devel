@@ -1,6 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: Save home in saved-state for class development and kernel.  This
+    enables saved-states to find the installed SWI-Prolog.  Especially
+    useful for Windows.
+
+  * ADDED: Save default stack limits in the Windows registry and add a
+    menu item to the manpce/0 File/Edit Preferences menu to manage these
+    registry settings.
+
+
 VERSION 4.0.4
 =============
 
