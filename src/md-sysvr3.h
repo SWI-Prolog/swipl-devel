@@ -10,18 +10,8 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Port to System V Release 3.2 by Eric S. Raymond <esr@snark.thyrsus.com>
 
-================================================================
-From: Kayvan Sylvan <kayvan.sylvan@quintus.com>
-Date: Thu, 11 Nov 93 13:32:31 PST
-To: jan@swi.psy.uva.nl
-Subject: Re: pl-1.8.3 on ESIX 5.3.2 D (i386 SVR3)
-Status: RO
-
-The relevant change was to make "environ" the FIRST_DATA_SYMBOL, rather
-than "etext".
-
-I don't know if this applies to other SVR3 intel386 systems.
-================================================================
+For ESIX 5.3.2 D (and possibly other SVR3 i386 systems), change
+FIRST_DATA_SYMBOL to "environ" to get save/1 to work.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define M_CC			gcc
@@ -43,7 +33,7 @@ I don't know if this applies to other SVR3 intel386 systems.
 
 			/* Operating system */
 #define O_PROFILE		0
-#define O_SIG_AUTO_RESET	0
+#define O_SIG_AUTO_RESET	1
 #define O_SHARED_MEMORY		0
 #define O_CAN_MAP		0
 #define O_SHIFT_STACKS		0
