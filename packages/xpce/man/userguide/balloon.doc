@@ -39,3 +39,5 @@ resource(print, image, image('16x16/print.xpm')).
 	send(B, label, image(resource(print))),
 	send(B, help_message, tag, 'Print document'),
 \end{pcecode}
+
+% tja ...
