@@ -226,6 +226,13 @@ if test "$MT" = "yes"; then
 pthread_ok=false
   PLLIB=libplmt.a
 
+case "$ARCH" in
+    *freebsd*)
+	AC_DEFINE(_THREAD_SAFE, 1,
+		  [Required in FreeBSD for compiling thread-safe code])
+	;;
+esac
+
   if test "$GCC" = "yes"; then
 AC_MSG_CHECKING("whether gcc supports -pthread")
 ocflags="$CFLAGS"
@@ -236,7 +243,7 @@ AC_TRY_LINK([
 	    [ static pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
 	      pthread_mutex_lock(&m);
 	      pthread_mutex_unlock(&m);
-#ifndef _REENTRANT
+#if !(defined(_REENTRANT) || defined(_THREAD_SAFE))
   this should not be compiled
 #endif
 	    ],
