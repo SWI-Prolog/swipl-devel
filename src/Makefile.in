@@ -312,6 +312,7 @@ iinclude:
 		done
 		if [ -d $(prefix)/include -a -w $(prefix)/include ]; then \
 		    $(INSTALL_DATA) ../include/SWI-Prolog.h $(prefix)/include; \
+		    $(INSTALL_DATA) ../include/SWI-Stream.h $(prefix)/include; \
 		fi
 
 iman:		@INSTALLRLMAN@
@@ -337,7 +338,7 @@ install_rlman:
 
 RTHOME=		$(prefix)/lib/rt-pl-$(PLVERSION)
 RTDIRS=		$(RTHOME) $(RTHOME)/bin $(RTHOME)/lib $(RTHOME)/lib/$(ARCH) \
-		$(RTHOME)/man $(RTHOME)/bin/$(ARCH)
+		$(RTHOME)/man $(RTHOME)/bin/$(ARCH) $(RTHOME)/include
 
 rt-install:
 		@echo "****************"
@@ -350,10 +351,12 @@ rt-install:
 		    fi; \
 		done
 		$(INSTALL_PROGRAM) $(PL) $(RTHOME)/bin/$(ARCH)/pl
-		$(INSTALL_DATA) $(srcdir)/pl.1 $(RTHOME)/man/pl.1
+		$(INSTALL_DATA) pl.1 $(RTHOME)/man/pl.1
 		$(INSTALL_DATA) swipl $(RTHOME)/swipl
 		$(INSTALL_DATA) swiplbin $(RTHOME)/bin/swipl
-		$(INSTALL_DATA) $(srcdir)/README.RT $(RTHOME)
+		$(INSTALL_DATA) ../README.RT $(RTHOME)
+		$(INSTALL_DATA) ../include/SWI-Prolog.h $(RTHOME)/include
+		$(INSTALL_DATA) ../include/SWI-Stream.h $(RTHOME)/include
 #		-cd $(bindir); rm -f plrt; ln -s $(RTHOME)/bin/$(ARCH)/pl plrt
 
 #
