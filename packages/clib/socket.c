@@ -659,10 +659,19 @@ static foreign_t
 pl_gethostname(term_t name)
 { char buf[256];
 
-  if ( gethostname(buf, sizeof(buf)) == 0 )
-    return PL_unify_atom_chars(name, buf);
+  if ( !tcp_init() )
+    return FALSE;
 
-  return pl_error(NULL, 0, NULL, ERR_ERRNO, errno);
+  if ( gethostname(buf, sizeof(buf)) == 0 )
+  { struct hostent *he;
+
+    if ( (he = gethostbyname(buf)) )
+      return PL_unify_atom_chars(name, he->h_name);
+    else
+      return PL_unify_atom_chars(name, buf);
+  }
+
+  return tcp_error(h_errno, h_errno_codes);
 }
 
 install_t
