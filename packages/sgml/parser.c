@@ -121,7 +121,7 @@ pop_location(dtd_parser *p, locbuf *saved)
 }
 
 
-inline void
+void
 sgml_cplocation(dtd_srcloc *d, dtd_srcloc *loc)
 { d->line    = loc->line;
   d->linepos = loc->linepos;
@@ -301,14 +301,18 @@ entity_file(dtd *dtd, dtd_entity *e)
   { case ET_SYSTEM:
     et_system:
     { const ichar *f = isee_text(dtd, e->exturl, "file:");
-      const ichar *b;
+      if ( f )
+      { const ichar *b;
 
-      if ( is_absolute_path(f) ||
-	   !e->baseurl ||
-	   !(b=isee_text(dtd, e->baseurl, "file:")) )
+	if ( is_absolute_path(f) ||
+	     !e->baseurl ||
+	     !(b=isee_text(dtd, e->baseurl, "file:")) )
 	return f;
       
-      return localpath(b, f);
+        return localpath(b, f);
+      }
+
+      return NULL;
     }
     case ET_PUBLIC:
     { char *f;
