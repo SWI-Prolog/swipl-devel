@@ -101,7 +101,7 @@ ws_store_image(Image image, FileObj file)
 
     putc('P', file->fd);
     DEBUG(NAME_ppm, Cprintf("Saving PNM image from index %d\n", ftell(file->fd)));
-    if ( write_pnm_file(file->fd, i, r->display_xref, 0, 0, 0, 0) < 0 )
+    if ( write_pnm_file(file->fd, i, r->display_xref, 0, 0, 0, PNM_RUNLEN) < 0 )
       fail;
     DEBUG(NAME_ppm, Cprintf("Saved PNM image to index %d\n", ftell(file->fd)));
 #else
@@ -267,7 +267,7 @@ ws_save_image_file(Image image, FileObj file, Name fmt)
     XImage *i;
     status rval;
 
-    if ( fmt == NAME_pnm )	pnm_fmt = 0;
+    if ( fmt == NAME_pnm )	pnm_fmt = PNM_PNM;
     else if ( fmt == NAME_pbm )	pnm_fmt = PNM_PBM;
     else if ( fmt == NAME_pgm )	pnm_fmt = PNM_PGM;
     else if ( fmt == NAME_ppm )	pnm_fmt = PNM_PPM;
@@ -278,13 +278,18 @@ ws_save_image_file(Image image, FileObj file, Name fmt)
       i=getXImageImage(image);
     }
   
-    send(file, NAME_kind, NAME_binary, 0);
-    TRY(send(file, NAME_open, NAME_write, 0));
-    if ( write_pnm_file(file->fd, i, r->display_xref, 0, 0, 0, 0) < 0 )
-      rval = errorPce(image, NAME_xError);
-    else
-      rval = SUCCEED;
-    send(file, NAME_close, 0);
+    if ( i )
+    { send(file, NAME_kind, NAME_binary, 0);
+      TRY(send(file, NAME_open, NAME_write, 0));
+      if ( write_pnm_file(file->fd, i, r->display_xref, 0, 0, 0,
+			  PNM_RAWBITS) < 0 )
+	rval = errorPce(image, NAME_xError);
+      else
+	rval = SUCCEED;
+      send(file, NAME_close, 0);
+    } else
+      rval = FAIL;
+
     return rval;
   }
   
@@ -428,32 +433,32 @@ ws_resize_image(Image image, Int w, Int h)
 
 
 void
-ws_postscript_image(Image image)
+ws_postscript_image(Image image, Int depth)
 { int w = valInt(image->size->w);
   int h = valInt(image->size->h);
   XImage *im;
 
-  if ( (im = getXImageImage(image)) && im->f.get_pixel )
-  { ulong bg;
+  if ( !(im=getXImageImage(image)) )
+  { getXImageImageFromScreen(image);
+    im=getXImageImage(image);
+  }
 
-    if ( image->kind == NAME_bitmap )
-      bg = 0L;
-    else
-    { DisplayObj d = image->display;
+  if ( im && im->f.get_pixel )
+  { DisplayObj d = image->display;
+    DisplayWsXref r;
 
-      if ( isNil(d) )
-	d = CurrentDisplay(image);
-      openDisplay(d);
+    if ( isNil(d) )
+      d = CurrentDisplay(image);
+    openDisplay(d);
+    r = d->ws_ref;
 
-      bg = getPixelColour(notDefault(image->background) ? image->background
-			  				: d->background,
-			  d);
-    }
-
-    postscriptXImage(im, w, h, bg);
+    postscriptXImage(im,
+		     0, 0, im->width, im->height,
+		     r->display_xref,
+		     r->colour_map, isDefault(depth) ? 0 : valInt(depth));
   } else
   { d_image(image, 0, 0, w, h);
-    postscriptDrawable(0, 0, w, h);
+    postscriptDrawable(0, 0, w, h);	/* to be done */
     d_done();
   }
 }

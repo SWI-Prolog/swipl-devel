@@ -824,9 +824,9 @@ ws_postscript_frame(FrameObj fr)
 
     im = XGetImage(d, root, x, y, iw, ih, AllPlanes, XYPixmap);
     
-    ps_output("0 0 ~D ~D bitmap\n\n", iw, ih);
-    postscriptXImage(im, iw, ih,
-		     getPixelColour(fr->display->background, fr->display));
+    ps_output("0 0 ~D ~D ", iw, ih);
+    postscriptXImage(im, 0, 0, iw, ih,
+		     r->display_xref, r->colour_map, 0);
     ps_output("\n");
 
     XDestroyImage(im);

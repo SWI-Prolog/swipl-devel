@@ -66,7 +66,35 @@ the system then crashes while opening an image object, we have a problem
 
 XImage *
 CreateXImageFromData(unsigned char *data, int width, int height)
-{ extern void _XInitImageFuncPtrs(XImage *);
+{ DisplayObj d = CurrentDisplay(NIL);
+  DisplayWsXref r;
+  Display *disp;
+  XImage *image;
+
+  openDisplay(d);
+  r = d->ws_ref;
+  disp = r->display_xref;
+  
+  image = XCreateImage(disp,
+		       DefaultVisual(disp, DefaultScreen(disp)),
+		       1,
+		       XYBitmap,
+		       0,
+		       data,
+		       width, height,
+		       8, (width+7)/8);
+
+  image->bits_per_pixel = 1;
+  image->byte_order = LSBFirst;
+  image->bitmap_unit = 8;
+  image->bitmap_bit_order = LSBFirst;
+  image->bitmap_pad = 8;
+
+  return image;
+}
+
+#if 0
+  extern void _XInitImageFuncPtrs(XImage *);
   XImage *image = (XImage *) XMalloc(sizeof(XImage));
 
   if ( image )
@@ -74,7 +102,7 @@ CreateXImageFromData(unsigned char *data, int width, int height)
 
     image->height = height;
     image->width = width;
-    image->depth = 1;
+    image->depth = bits_per_pixel = 1;
     image->xoffset = 0;
     image->format = XYBitmap /*ZPixmap*/;
     image->data = (char *)data;
@@ -88,6 +116,7 @@ CreateXImageFromData(unsigned char *data, int width, int height)
 
   return image;
 }
+#endif
 
 
 XImage *

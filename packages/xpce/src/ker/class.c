@@ -995,7 +995,7 @@ storeMethod(Class class, Name name, SendFunc function)
 }
 
 
-static status
+status
 fetchMethod(Class class, Name name, void *function)
 { Variable var = getInstanceVariableClass(class, (Any) name);
   Vector tv;

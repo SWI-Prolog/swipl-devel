@@ -2716,6 +2716,10 @@ makeClassObject(Class class)
   getMethod(class, NAME_convert, NAME_oms, "object", 1, "char_array",
 	    "Convert '@reference' into object",
 	    getConvertObject);
+  getMethod(class, NAME_storageReference, NAME_file, "any", 0,
+	    "Description name for ->save_in_file",
+	    getFailObject);
+
 
   succeed;
 }

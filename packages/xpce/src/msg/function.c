@@ -226,6 +226,9 @@ makeClassFunction(Class class)
   getMethod(class,  NAME_Execute, NAME_execute, "unchecked", 0,
 	    "Execute and return value",
 	    getNoExecuteFunction);
+  getMethod(class, NAME_storageReference, DEFAULT, "any", 0,
+	    "Description name for ->save_in_file",
+	    getFailObject);
 
   succeed;
 }

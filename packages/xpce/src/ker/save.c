@@ -65,6 +65,7 @@ Binary saved state of PCE object (collection). File format:
 		  | 'I' <integer>		(an integer)
 		  | 'R' <object_name>		(reference to saved object)
 		  | 'A' <string>		(reference to exernal object)
+		  | 'D' <object>		(Descriptive object)
 
 <extension>	::= 'a' <Object>		(Attribute sheet)
 		  | 'c' <Object>		(Constraint-list)
@@ -277,6 +278,7 @@ storeObject(Any obj, FileObj file)
     } else /*if ( equalName(class->saveStyle, NAME_normal) )*/
     { Int ref, classref;
       status rval;
+      Any sref;
 
       if ( (ref = isSavedObject(obj)) )
       { DEBUG(NAME_save, Cprintf("Storing reference\n"));
@@ -284,6 +286,13 @@ storeObject(Any obj, FileObj file)
 	return storeIdObject(obj, ref, file);
       }
       ref = setSavedObj(obj);
+
+      if ( (sref = qadGetv(obj, NAME_storageReference, 0, NULL)) )
+      { storeCharFile(file, 'D');
+	storeNameFile(file, class->name);
+	return storeObject(sref, file);
+      }
+
       TRY( classref = storeClass(class, file) );
       storeCharFile(file, 'O');
       storeIntFile(file, classref);
@@ -721,12 +730,29 @@ loadObject(FILE *fd)
 		}
 		return r;
 	      }		
+    case 'D': { Name classname = loadName(fd);
+		Type t         = nameToType(classname);
+		Any sref       = loadObject(fd);
+		Any rval;
+		
+		if ( !isClassType(t) )
+		{ errorPce(t, NAME_notClassType);
+		  return NIL;
+		}
+
+		if ( (rval = checkType(sref, t, NIL)) )
+		  return rval;
+
+		errorPce(classname, NAME_cannotConvert, sref);
+		return NIL;
+	      }
     case 'C':	restoreClass(fd);
 		if ( (c=getc(fd)) != 'O' )
 		{ errorPce(LoadFile, NAME_illegalCharacter,
 			   toInt(c), toInt(ftell(fd)));
 		  fail;
 		}
+		/* FALLTHROUGH */
     case 'O': { ClassDef def;
 		Int classid = toInt(loadWord(fd));
 		Any name;

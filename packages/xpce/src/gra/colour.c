@@ -12,11 +12,17 @@
 
 static XCloseColour(Colour c, DisplayObj d);
 
+static Int
+defcolourname(Int r, Int g, Int b)
+{ return toInt((valInt(r)/256) << 16 +
+	       (valInt(g)/256) << 8 +
+	       (valInt(b)/256));
+}
+
+
 static status
 initialiseColour(Colour c, Name name, Int r, Int g, Int b)
-{ /*char tmp[256];*/
-
-  assign(c, name, name);
+{ assign(c, name, name);
 
   if ( isDefault(r) && isDefault(g) && isDefault(b) )
   { DisplayObj d;
@@ -27,6 +33,10 @@ initialiseColour(Colour c, Name name, Int r, Int g, Int b)
     assign(c, kind, NAME_named);
   } else if ( notDefault(r) && notDefault(g) && notDefault(b) )
   { assign(c, kind, NAME_rgb);
+    if ( isDefault(name) )
+    { name = defcolourname(r, g, b);
+      assign(c, name, name);
+    }
   } else
     return errorPce(c, NAME_instantiationFault,
 		    getMethodFromFunction(initialiseColour));
@@ -35,8 +45,6 @@ initialiseColour(Colour c, Name name, Int r, Int g, Int b)
   assign(c, green, g);
   assign(c, blue,  b);
 
-/*sprintf(tmp, "%s_colour", strName(name));
-  newAssoc(CtoKeyword(tmp), c); */
   appendHashTable(ColourTable, c->name, c);
 
   succeed;
@@ -53,8 +61,28 @@ unlinkColour(Colour c)
 
 
 static Colour
-getLookupColour(Class class, Name name)
-{ answer(getMemberHashTable(ColourTable, (Any) name));
+getLookupColour(Class class, Name name, Int r, Int g, Int b)
+{ if ( isDefault(name) )
+    name = defcolourname(r, g, b);
+
+  answer(getMemberHashTable(ColourTable, (Any) name));
+}
+
+
+static Name
+getStorageReferenceColour(Colour c)
+{ if ( c->kind == NAME_named )
+    answer(c->name);
+  else
+  { char tmp[256];
+
+    sprintf(tmp, "#%02x%02x%02x",
+	    valInt(c->red)/256,
+	    valInt(c->green)/256,
+	    valInt(c->blue)/256);
+
+    answer(CtoName(tmp));
+  }
 }
 
 
@@ -171,6 +199,33 @@ XCloseColour(Colour c, DisplayObj d)
 }
 
 
+Int
+getRedColour(Colour c)
+{ if ( isDefault(c->red) )
+    getXrefObject(c, CurrentDisplay(NIL));
+
+  return c->red;
+}
+
+
+Int
+getGreenColour(Colour c)
+{ if ( isDefault(c->green) )
+    getXrefObject(c, CurrentDisplay(NIL));
+
+  return c->green;
+}
+
+
+Int
+getBlueColour(Colour c)
+{ if ( isDefault(c->blue) )
+    getXrefObject(c, CurrentDisplay(NIL));
+
+  return c->blue;
+}
+
+
 Colour
 getHiliteColour(Colour c)
 { Colour c2;
@@ -233,27 +288,46 @@ getReduceColour(Colour c)
 }
 
 
+static Int
+getIntensityColour(Colour c)
+{ int r, g, b;
+
+  if ( isDefault(c->green) )
+    getXrefObject(c, CurrentDisplay(NIL));
+  
+  r = valInt(c->red);
+  g = valInt(c->green);
+  b = valInt(c->blue);
+  
+  answer(toInt((r*20 + g*32 + b*18)/(20+32+18)));
+}
+
+
 status
 makeClassColour(Class class)
 { sourceClass(class, makeClassColour, __FILE__, "$Revision$");
 
-  localClass(class, NAME_name, NAME_name, "name", NAME_get,
+  localClass(class, NAME_name, NAME_name, "name|int", NAME_get,
 	     "Name of the colour");
   localClass(class, NAME_kind, NAME_kind, "{named,rgb}", NAME_none,
 	     "From X-colour database or user-defined");
-  localClass(class, NAME_red, NAME_colour, "[0..65535]", NAME_get,
+  localClass(class, NAME_red, NAME_colour, "[0..65535]", NAME_none,
 	     "Red value");
-  localClass(class, NAME_green, NAME_colour, "[0..65535]", NAME_get,
+  localClass(class, NAME_green, NAME_colour, "[0..65535]", NAME_none,
 	     "Green value");
-  localClass(class, NAME_blue, NAME_colour, "[0..65535]", NAME_get,
+  localClass(class, NAME_blue, NAME_colour, "[0..65535]", NAME_none,
 	     "Blue value");
 
   termClass(class, "colour", 1, NAME_name);
   setLoadStoreFunctionClass(class, loadColour, storeColour);
   cloneStyleClass(class, NAME_none);
 
+  fetchMethod(class, NAME_red,   getRedColour);
+  fetchMethod(class, NAME_green, getGreenColour);
+  fetchMethod(class, NAME_blue,  getBlueColour);
+
   sendMethod(class, NAME_initialise, DEFAULT, 4,
-	     "name=name",
+	     "name=[name]",
 	     "red=[0..65535]", "green=[0..65535]", "blue=[0..65535]",
 	     "Create from name and optional rgb",
 	     initialiseColour);
@@ -267,10 +341,12 @@ makeClassColour(Class class)
 	     "Destroy window-system counterpart",
 	     XCloseColour);
 
-  getMethod(class, NAME_convert, NAME_conversion, "colour", 1, "name",
+  getMethod(class, NAME_convert, NAME_conversion, "colour", 1, "name|int",
 	    "Convert X-colour name",
 	    getConvertColour);
-  getMethod(class, NAME_lookup, NAME_oms, "colour", 1, "name",
+  getMethod(class, NAME_lookup, NAME_oms, "colour", 4,
+	    "[name|int]",
+	    "red=[0..65535]", "green=[0..65535]", "blue=[0..65535]",
 	    "Lookup in @colours table",
 	    getLookupColour);
   getMethod(class, NAME_hilite, NAME_3d, "colour", 0,
@@ -279,6 +355,12 @@ makeClassColour(Class class)
   getMethod(class, NAME_reduce, NAME_3d, "colour", 0,
 	    "Reduced version of the colour",
 	    getReduceColour);
+  getMethod(class, NAME_intensity, NAME_grey, "0..65535", 0,
+	    "Total light intensity of the colour",
+	    getIntensityColour);
+  getMethod(class, NAME_storageReference, NAME_file, "name", 0,
+	    "Description name for ->save_in_file",
+	    getStorageReferenceColour);
 
   ColourTable = globalObject(NAME_colours, ClassHashTable, toInt(32), 0);
   assign(ColourTable, refer, OFF);

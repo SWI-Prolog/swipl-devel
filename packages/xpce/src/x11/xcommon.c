@@ -12,6 +12,12 @@
 #include "include.h"
 #include <X11/keysym.h>
 
+#undef roundup
+#define roundup(v, n)		((((v)+(n)-1)/(n))*(n))
+#define rescale(v, o, n)	((v) * (n) / (o))
+#define XBRIGHT ((1L<<16)-1)
+
+
 XtAppContext	ThePceXtAppContext;	/* X toolkit application context */
 
 		 /*******************************
@@ -176,25 +182,75 @@ getWMFrameFrame(FrameObj fr)
 		     bits = 8; c = 0; \
 		   }
 
-void
-postscriptXImage(XImage *im, int w, int h, ulong bg)
-{ static char print[] = {'0', '1', '2', '3', '4', '5', '6', '7',
-			 '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-  int x, y;
+status
+postscriptXImage(XImage *im,
+		 int fx, int fy, int w, int h,
+		 Display *disp,
+		 Colormap cmap,
+		 int depth)
+{ static char print[] = { '0', '1', '2', '3', '4', '5', '6', '7',
+			  '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+  int x, y, w8, psbright;
   int bits, bytes;
   int c;
+  unsigned char *psmap;
+  int psmap_alloced = 0;
+  XColor **cinfo;
 
-  for(bytes = y = c = 0, bits = 8; y < h; y++)
-  { for(x=0; x < w; x++)
-    { bits--;
-      if ( XGetPixel(im, x, y) != bg )
-	c |= 1 << bits;
+  if ( depth == 0 )			/* PostScript depth is 1, 2, 4, or 8 */
+  { depth = im->depth;
+
+    if ( depth == 3 )
+      depth = 2;
+    else if ( depth > 4 && depth < 8 )
+      depth = 4;
+    else if ( depth > 8 )
+      depth = 8;
+  }
+
+  if ( im->format == XYBitmap )
+  { psmap = "\0\1";
+    psbright = 1;
+  } else
+  { int entries	= 1<<im->depth;
+
+    if ( im->depth > 16 )
+      return errorPce(NIL, NAME_maxDepth, toInt(16));
+
+    psbright = (1<<depth) - 1;
+    psmap = (unsigned char *)malloc(entries * sizeof(unsigned char));
+    psmap_alloced++;
+    if ( (cinfo = makeSparceCInfo(disp, cmap, im, NULL)) )
+    { XColor **xc = cinfo;
+      int i, psscale = (1<<depth)-1;
+
+      for(i=0; i<entries; i++, xc++)
+      { int val = intensityXColor(*xc);
+
+	psmap[i] = rescale(val, XBRIGHT, psscale);
+      }
+      freeSparceCInfo(cinfo, im->depth);
+    }
+  }
+
+
+  w8 = roundup(w, 8);
+  for(bytes = c = 0, bits = 8, y = fy; y < h; y++)
+  { for(x = fx; x < w8; x++)
+    { int pixval;
+
+      bits -= depth;
+      pixval = (x < w ? psmap[XGetPixel(im, x, y)] : psbright);
+      c |= pixval << bits;
       if ( bits == 0 )
         putByte(c);
     }
-    if ( bits != 8 )
-      putByte(c);
   }
+
+  if ( psmap_alloced )
+    free(psmap);
+
+  succeed;
 }
 
 
@@ -232,6 +288,103 @@ x11_set_gc_foreground(DisplayObj d, Any fg, int gcs, GC *gc)
 
   for(; gcs > 0; gcs--, gc++)
     XChangeGC(r->display_xref, *gc, mask, &values);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+XColor **makeSparceCInfo(Display *d, Colormap cm, XImage *i, int *nc)
+	returns an array of pointers to XColor structures for all pixels
+	occurring in `i'.  The total number of colours found is stored
+	in `nc' is this pointer is non-NULL.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+XColor **
+makeSparceCInfo(Display *disp, Colormap cmap, XImage *img, int *ncolours)
+{ int entries = 1L<<img->depth;
+  XColor **info = (XColor **)malloc(sizeof(XColor *) * entries);
+  XColor *data;
+  int width = img->width;
+  int height = img->height;
+  int x, y, i;
+  int colours = 0;
+
+  for(i=0; i<entries; i++)
+    info[i] = NULL;
+      
+  for(y=0; y<height; y++)
+  { for(x=0; x<width; x++)
+    { ulong pixel = XGetPixel(img, x, y);
+
+      if ( pixel > entries )
+      { Cprintf("PNM: Illegal pixel value at %d,%d: %d\n", x, y, pixel);
+	pixel = 0;
+      }
+      if ( !info[pixel] )
+      { info[pixel] = (XColor *) 1;	/* flag it */
+	colours++;
+      }
+    }
+  }
+
+  if ( ncolours )
+    *ncolours = colours;
+  data = (XColor *)malloc(sizeof(XColor) * colours);
+  colours=0;
+  for(i=0; i<entries; i++)
+  { if ( info[i] )
+    { info[i] = &data[colours++];
+      info[i]->pixel = i;
+    }
+  }
+
+  if ( !XQueryColors(disp, cmap, data, colours) )
+  { Cprintf("PNM: XQueryColors() failed\n");
+    return NULL;
+  }
+
+  return info;
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void greySparceCInfo(XColor **cinfo, int depth)
+	Translates a color-info array returned by makeSparceCInfo() into
+	a grey-map.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+greySparceCInfo(XColor **cinfo, int depth)
+{ int i;
+  int entries = 1 << depth;
+
+  for(i=0; i<entries; i++)
+  { if ( cinfo[i] )
+    { XColor *c = cinfo[i];
+      int value = intensityXColor(c);
+      
+      c->red = c->green = c->blue = value;
+    }
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void	freeSparceCInfo(XColor **table, int depth)
+	Deallocates a structure returned by makeSparceCInfo().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+freeSparceCInfo(XColor **table, int depth)
+{ int entries = 1<<depth;
+  int i;
+
+  for(i=0; i<entries; i++)
+  { if ( table[i] )
+    { free(table[i]);
+      break;
+    }
+  }
+
+  free(table);
 }
 
 

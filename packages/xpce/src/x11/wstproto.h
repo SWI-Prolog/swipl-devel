@@ -151,16 +151,6 @@ status		ws_postscript_frame(FrameObj fr);
 /* ximage.c */
 void		ws_init_image(Image image);
 void		ws_destroy_image(Image image);
-status		ws_store_image(Image image, FileObj file);
-status		loadXImage(Image image, FILE *fd);
-status		ws_load_old_image(Image image, FILE *fd);
-status		ws_load_image_file(Image image);
-status		ws_save_image_file(Image image, FileObj file, Name fmt);
-status		ws_open_image(Image image, DisplayObj d);
-void		ws_close_image(Image image, DisplayObj d);
-status		ws_resize_image(Image image, Int w, Int h);
-void		ws_postscript_image(Image image);
-void		ws_create_image_from_x11_data(Image image, unsigned char *data, int w, int h);
 
 /* xstream.c */
 void		ws_close_input_stream(Stream s);
@@ -200,4 +190,3 @@ int		ws_revision(void);
 status		ws_expose_console(void);
 status		ws_iconify_console(void);
 status		ws_console_label(CharArray label);
-

@@ -14,17 +14,23 @@
 static void	initOutput(void);
 static void	closeOutput(void);
 static void	ps_put_string(String);
-static int	postscriptImage(Image);
+static int	postscriptImage(Image, Int);
 static int	header(Any, Area, Bool);
 static int	macros(void);
 static int	footer(void);
 static status	fill(Any, Name);
-static status	paintPostscriptArrow(Arrow a, Int x1, Int y1, Int x2, Int y2);
+static status	paintPostscriptArrow(Arrow a, Any fr,
+				     Int x1, Int y1, Int x2, Int y2);
+static void	ps_colour(Colour c, int grey);
 
 struct
-{ Name	family;			   /* family of current PostScript font */
-  Int	points;			   /* points in current PostScript font */
-} currentFont;
+{ Colour colour;			/* current colour */
+  struct
+  { Name	family;			/* family of current PostScript font */
+    Int		points;			/* points in current PostScript font */
+  } currentFont;
+} psstatus;
+
 Chain documentFonts = NIL;	   /* chain holding fonts used in document */
 char * PostScript;		   /* string holding the result */ 
 FILE * logFd;			   /* write here debugging stuff */
@@ -45,6 +51,9 @@ getPostscriptObject(Any obj, Bool ls, Area a)
   { documentFonts = globalObject(NAME_DocumentFonts, ClassChain, 0);
   } else
     clearChain(documentFonts);
+
+  psstatus.colour             = BLACK_COLOUR;
+  psstatus.currentFont.family = NIL;
 
   initOutput();
   if ( hasSendMethodObject(obj, NAME_compute) )
@@ -117,10 +126,11 @@ recognised:
     ~m	    Graphical	Move to XY of graphical
     ~t	    Figure	Translate to XY of figure
     ~T	    Graphical	Set texture to texture of graphical
+    ~C	    Graphical	Output colour of the graphical
     ~N	    Name 	print text of name
     ~S	    StringObj	Output text of StringObj with postscript escapes
     ~O	    Object	Output comment to start O
-    ~P	    Image	Output pattern of image
+    ~P	    Int, Image	Output pattern of image with depth Int
     ~p	    Graphical   Output pen of graphical
     ~x	    Graphical	Output X of graphical
     ~y	    Graphical	Output Y of graphical
@@ -195,6 +205,13 @@ _output(char *fm, va_list args)
 
 			continue;
 		      }
+	  case 'C':   { Graphical gr = va_arg(args, Graphical);
+			Colour c = get(gr, NAME_colour, 0);
+
+			ps_colour(c, 100);
+
+			continue;
+		      }
 	  case 'a':	ps_put_string(va_arg(args, String));
 			continue;
 	  case 'N':	putString(strName(va_arg(args, Name)));
@@ -211,7 +228,10 @@ _output(char *fm, va_list args)
 
 			continue;
 		      }
-	  case 'P':   { postscriptImage(va_arg(args, Image));
+	  case 'P':   { Int depth = va_arg(args, Int);
+			Image image = va_arg(args, Image);
+
+			postscriptImage(image, depth);
 			continue;
 		      }
 	  case 'x':   { Graphical gr = va_arg(args, Graphical);
@@ -301,7 +321,8 @@ ps_font(FontObj font)
   if ( family == FAIL ) family = CtoName("Courier");
   if ( points == FAIL ) points = font->points;
 
-  if ( currentFont.family == family && currentFont.points == points )
+  if ( psstatus.currentFont.family == family &&
+       psstatus.currentFont.points == points )
     succeed;
 
   if ( memberChain(documentFonts, family) != SUCCEED )
@@ -311,6 +332,25 @@ ps_font(FontObj font)
 
   succeed;
 }
+
+
+static void
+ps_colour(Colour c, int grey)
+{ if ( notDefault(c) )
+  { float r = (float) valInt(getRedColour(c))   / (float) valInt(BRIGHT);
+    float g = (float) valInt(getGreenColour(c)) / (float) valInt(BRIGHT);
+    float b = (float) valInt(getBlueColour(c))  / (float) valInt(BRIGHT);
+
+    if ( grey != 100 )
+    { r = 1 - (1-r) * grey / 100.0;
+      g = 1 - (1-g) * grey / 100.0;
+      b = 1 - (1-b) * grey / 100.0;
+    }
+
+    ps_output("~f ~f ~f setrgbcolor ", r, g, b);
+  }
+}
+
 
 static status
 fill(Any gr, Name sel)
@@ -322,21 +362,27 @@ fill(Any gr, Name sel)
 
   if ( instanceOfObject(pattern, ClassColour) )
   { Colour c = (Colour) pattern;
-    int greylevel = valInt(c->red) + valInt(c->green) + valInt(c->blue);
 
-    greylevel *= 100;
-    greylevel += 50;			/* rounding */
-    greylevel /= ((1<<16)-1) * 3;
-    ps_output("gsave ~f setgray fill grestore\n",
-	      (float)greylevel / 100.0 );
+    ps_output("gsave ");
+    ps_colour(c, 100);
+    ps_output(" fill grestore\n");
   } else
-  { if ( (greyLevel = (Int) get(pattern, NAME_postscriptGrey, 0)) )
-    { ps_output("gsave ~f setgray fill grestore\n",
-		(float) (100 - valInt(greyLevel)) / 100.0 );
+  { if ( hasGetMethodObject(pattern, NAME_postscriptGrey) &&
+	 (greyLevel = (Int) get(pattern, NAME_postscriptGrey, 0)) )
+    { Colour c = get(gr, NAME_displayColour, 0);
+
+      if ( c )
+      { ps_output("gsave ");
+	ps_colour(c, valInt(greyLevel));
+	ps_output(" fill grestore\n");
+      } else
+      { ps_output("gsave ~f setgray fill grestore\n",
+		  (float) (100 - valInt(greyLevel)) / 100.0 );
+      }
     } else
-    { ps_output("~x ~y ~w ~h ~d ~d \n<~P>\nfillpath\n",
+    { ps_output("~x ~y ~w ~h ~d ~d \n<~P>\nfillwithmask\n",
 		gr, gr, gr, gr,
-		pattern->size->w, pattern->size->h, pattern);
+		pattern->size->w, pattern->size->h, ONE, pattern);
     }
   }
   
@@ -363,6 +409,8 @@ postscriptDrawable(int ox, int oy, int w, int h)
   DEBUG(NAME_postscript,
 	Cprintf("postscriptDrawable(%d %d %d %d) ...", ox, oy, w, h));
 
+  ps_output("1 greymap\n\n");
+
   for(bytes = y = c = 0, bits = 8; y < h; y++)
   { for(x=0; x < w; x++)
     { c |= (r_get_mono_pixel(x+ox, y+oy) << --bits);
@@ -380,8 +428,8 @@ postscriptDrawable(int ox, int oy, int w, int h)
 
 
 static int
-postscriptImage(Image image)
-{ ws_postscript_image(image);
+postscriptImage(Image image, Int depth)
+{ ws_postscript_image(image, depth);
 
   succeed;
 }
@@ -514,6 +562,7 @@ status
 postscriptGraphical(Any obj)
 { ps_output("\n%%Object: ~O\n", obj);
 
+/*
   if ( instanceOfObject(obj, ClassGraphical) )
   { Graphical gr = obj;
     PceWindow sw;
@@ -527,6 +576,7 @@ postscriptGraphical(Any obj)
       succeed;
     }
   }
+*/
 
   return send(obj, NAME_DrawPostScript, 0);
 }
@@ -536,7 +586,7 @@ status
 drawPostScriptDevice(Device dev)
 { Cell cell;
 
-  ps_output("gsave ~t\n", dev);
+  ps_output("gsave ~t ~C\n", dev, dev);
 
   for_cell(cell, dev->graphicals)
   { Graphical gr = cell->value;
@@ -554,7 +604,7 @@ drawPostScriptDevice(Device dev)
 status
 drawPostScriptFigure(Figure f)
 { if ( f->pen != ZERO || notNil(f->background) )
-  { ps_output("gsave ~T ~p ~x ~y ~w ~h 0 boxpath\n", f, f, f, f, f, f);
+  { ps_output("gsave ~C ~T ~p ~x ~y ~w ~h 0 boxpath\n", f, f, f, f, f, f, f);
     fill(f, NAME_background);
     ps_output("draw grestore\n");
   }
@@ -576,16 +626,16 @@ drawPostScriptBox(Box b)
 	      add(a->x, s), add(a->y, s), sub(a->w, s), sub(a->h, s),
 	      r);
     ps_output("0.0 setgray fill grestore\n");
-    ps_output("gsave ~T ~p ~x ~y ~d ~d ~d boxpath\n", b, b,
-	      b, b, sub(a->w, s), sub(a->h, s), r);
+    ps_output("gsave ~C ~T ~p ~x ~y ~d ~d ~d boxpath\n", b, b,
+	      b, b, b, sub(a->w, s), sub(a->h, s), r);
     if ( notNil(b->fill_pattern) )
       fill(b, NAME_fillPattern);
     else
       ps_output("gsave 1.0 setgray fill grestore\n");
     ps_output("draw grestore\n");
   } else
-  { ps_output("gsave ~T ~p ~x ~y ~w ~h ~d boxpath\n",
-	      b, b, b, b, b, b, r);
+  { ps_output("gsave ~C ~T ~p ~x ~y ~w ~h ~d boxpath\n",
+	      b, b, b, b, b, b, b, r);
     fill(b, NAME_fillPattern);
     ps_output("draw grestore\n");
   }
@@ -596,9 +646,10 @@ drawPostScriptBox(Box b)
 
 status
 drawPostScriptCircle(Circle c)
-{ ps_output("~T ~p ~x ~y ~d circlepath\n", c, c, c, c, div(c->area->w, TWO));
+{ ps_output("gsave ~C ~T ~p ~x ~y ~d circlepath\n",
+	    c, c, c, c, c, div(c->area->w, TWO));
   fill(c, NAME_fillPattern);
-  ps_output("draw\n");
+  ps_output("draw grestore\n");
 
   succeed;
 }
@@ -611,17 +662,17 @@ drawPostScriptEllipse(Ellipse e)
     Int s = e->shadow;
 
     ps_output("gsave nodash 0 ~d ~d ~d ~d ellipsepath\n",
-	   add(a->x, s), add(a->y, s), sub(a->w, s), sub(a->h, s));
+	      add(a->x, s), add(a->y, s), sub(a->w, s), sub(a->h, s));
     ps_output("0.0 setgray fill grestore\n");
-    ps_output("gsave ~T ~p ~x ~y ~d ~d ellipsepath\n", e, e, e, e,
-	  sub(a->w, s), sub(a->h, s));
+    ps_output("gsave ~C ~T ~p ~x ~y ~d ~d ellipsepath\n",
+	      e, e, e, e, e, sub(a->w, s), sub(a->h, s));
     if ( notNil(e->fill_pattern) )
       fill(e, NAME_fillPattern);
     else
       ps_output("gsave 1.0 setgray fill grestore\n");
     ps_output("draw grestore\n");
   } else
-  { ps_output("gsave ~T ~p ~x ~y ~w ~h ellipsepath\n", e, e, e, e, e, e);
+  { ps_output("gsave ~C ~T ~p ~x ~y ~w ~h ellipsepath\n", e, e, e, e, e, e, e);
     fill(e, NAME_fillPattern);
     ps_output("draw grestore\n");
   }
@@ -656,8 +707,8 @@ drawPostScriptPath(Path p)
 	py = y0 - (valInt(pn->y) - y0);
       }
 
-      ps_output("gsave ~d ~d translate ~T ~p ~c startpath\n",
-	     p->offset->x, p->offset->y, p, p, pt);
+      ps_output("gsave ~d ~d translate ~C ~T ~p ~c startpath\n",
+		p->offset->x, p->offset->y, p, p, p, pt);
 
       for_cell(cell, points)
       { if ( i >= 0 )
@@ -705,9 +756,9 @@ drawPostScriptPath(Path p)
     { Cell cell;
       int i = -1;			/* skip first */
 
-      ps_output("gsave ~d ~d translate ~T ~p ~c startpath\n",
-	     p->offset->x, p->offset->y,
-	     p, p, getHeadChain(points));
+      ps_output("gsave ~d ~d translate ~C ~T ~p ~c startpath\n",
+		p->offset->x, p->offset->y,
+		p, p, p, getHeadChain(points));
       for_cell(cell, p->points)
       { if ( i >= 0 )
 	{ ps_output(" ~c lineto", cell->value);
@@ -731,20 +782,23 @@ drawPostScriptPath(Path p)
     { Point tip = getHeadChain(points);
       Point ref = getNth1Chain(points, TWO);
 
-      paintPostscriptArrow(p->first_arrow,
-			   add(tip->x,p->offset->x), add(tip->y,p->offset->y),
-			   add(ref->x,p->offset->x), add(ref->y,p->offset->y));
+      paintPostscriptArrow(p->first_arrow, p,
+			   add(tip->x,p->offset->x),
+			   add(tip->y,p->offset->y),
+			   add(ref->x,p->offset->x),
+			   add(ref->y,p->offset->y));
     }
     if ( notNil(p->second_arrow) )
     { Point tip = getTailChain(points);
       Point ref = getNth1Chain(points, sub(getSizeChain(points), ONE));
 
-      paintPostscriptArrow(p->second_arrow,
-			   add(tip->x,p->offset->x), add(tip->y,p->offset->y),
-			   add(ref->x,p->offset->x), add(ref->y,p->offset->y));
+      paintPostscriptArrow(p->second_arrow, p,
+			   add(tip->x,p->offset->x),
+			   add(tip->y,p->offset->y),
+			   add(ref->x,p->offset->x),
+			   add(ref->y,p->offset->y));
     }
   }
-
   succeed;
 }
 
@@ -766,14 +820,16 @@ drawPostScriptLine(Line ln)
   points_line(ln, x1, y1, x2, y2);
 
   if ( ln->pen != ZERO )
-    ps_output("~T ~p ~D ~D ~D ~D linepath draw\n", ln, ln, x1, y1, x2-x1, y2-y1);
+    ps_output("gsave ~C ~T ~p ~D ~D ~D ~D linepath draw\n",
+	      ln, ln, ln, x1, y1, x2-x1, y2-y1);
 
   if ( notNil(ln->first_arrow) )
-    paintPostscriptArrow(ln->first_arrow,
+    paintPostscriptArrow(ln->first_arrow, ln,
 			 toInt(x1), toInt(y1), toInt(x2), toInt(y2));
   if ( notNil(ln->second_arrow) )
-    paintPostscriptArrow(ln->second_arrow,
+    paintPostscriptArrow(ln->second_arrow, ln,
 			 toInt(x2), toInt(y2), toInt(x1), toInt(y1));
+  ps_output("grestore\n");
 
   succeed;
 }
@@ -781,44 +837,51 @@ drawPostScriptLine(Line ln)
 
 status
 drawPostScriptArrow(Arrow a)
-{ ps_output("~T ~p pen ", a, a);
+{ ps_output("gsave ~C ~T ~p pen ", a, a, a);
   ps_output("newpath ~d ~d moveto ~d ~d lineto ~d ~d lineto",
-	 a->left->x, a->left->y,
-	 a->tip->x, a->tip->y,
-	 a->right->x, a->right->y);
+	    a->left->x, a->left->y,
+	    a->tip->x, a->tip->y,
+	    a->right->x, a->right->y);
 
   if ( a->style == NAME_closed || notNil(a->fill_pattern) )
-    ps_output(" closepath");
+    ps_output(" closepath ");
 
   if ( isNil(a->fill_pattern) )
-  { ps_output(" ~T draw\n", a);
-    succeed;
-  }
+    ps_output(" ~T draw\n", a);
+  else
+    fill(a, NAME_fillPattern);
 
-  ps_output("\n");
-  fill(a, NAME_fillPattern);
+  ps_output(" grestore\n");
 
   succeed;
 }
 
 
 static status
-paintPostscriptArrow(Arrow a, Int x1, Int y1, Int x2, Int y2)
-{ pointsArrow(a, x1, y1, x2, y2);
-  computeArrow(a);
+paintPostscriptArrow(Arrow a, Any f, Int x1, Int y1, Int x2, Int y2)
+{ Colour c;
 
-  return drawPostScriptArrow(a);
+  pointsArrow(a, x1, y1, x2, y2);
+  computeArrow(a);
+  if ( isDefault(a->colour) && (c = get(f, NAME_displayColour, 0)) )
+  { assign(a, colour, c);
+    drawPostScriptArrow(a);
+    assign(a, colour, DEFAULT);
+  } else
+    drawPostScriptArrow(a);
+
+  succeed;
 }
 
 
 status
 drawPostScriptArc(Arc a)
-{ ps_output("gsave ~T ~p ~D ~d ~d ~d ~d ~f ~f arcpath\n",
-	 a, a,
-	 a->close == NAME_none ? 0 : a->close == NAME_chord ? 1 : 2,
-	 a->position->x, a->position->y,
-	 a->size->w, a->size->h,
-	 a->start_angle->value, a->size_angle->value);
+{ ps_output("gsave ~C ~T ~p ~D ~d ~d ~d ~d ~f ~f arcpath\n",
+	    a, a, a,
+	    a->close == NAME_none ? 0 : a->close == NAME_chord ? 1 : 2,
+	    a->position->x, a->position->y,
+	    a->size->w, a->size->h,
+	    a->start_angle->value, a->size_angle->value);
 
   fill(a, NAME_fillPattern);
   ps_output("draw grestore\n");
@@ -832,18 +895,18 @@ drawPostScriptArc(Arc a)
 
     if ( notNil(a->first_arrow) )
     { if ( a->size_angle->value >= 0.0 )
-	paintPostscriptArrow(a->first_arrow, toInt(sx), toInt(sy),
+	paintPostscriptArrow(a->first_arrow, a, toInt(sx), toInt(sy),
 			     toInt(sx+(sy-cy)), toInt(sy-(sx-cx)));
       else
-	paintPostscriptArrow(a->first_arrow, toInt(sx), toInt(sy),
+	paintPostscriptArrow(a->first_arrow, a, toInt(sx), toInt(sy),
 			     toInt(sx-(sy-cy)), toInt(sy+(sx-cx)));
     }
     if ( notNil(a->second_arrow) )
     { if ( a->size_angle->value >= 0.0 )
-	paintPostscriptArrow(a->second_arrow, toInt(ex), toInt(ey),
+	paintPostscriptArrow(a->second_arrow, a, toInt(ex), toInt(ey),
 			     toInt(ex-(ey-cy)), toInt(ey+(ex-cx)));
       else
-	paintPostscriptArrow(a->second_arrow, toInt(ex), toInt(ey),
+	paintPostscriptArrow(a->second_arrow, a, toInt(ex), toInt(ey),
 			     toInt(ex+(ey-cy)), toInt(ey-(ex-cx)));
     }
   }
@@ -854,7 +917,10 @@ drawPostScriptArc(Arc a)
 
 status
 drawPostScriptBitmap(BitmapObj bm)
-{ ps_output("~x ~y ~w ~h bitmap\n\n~P\n", bm, bm, bm, bm, bm->image);
+{ Int depth = get(bm->image, NAME_postscriptDepth, 0);
+
+  ps_output("~x ~y ~w ~h ~d greymap ~P\n",
+	    bm, bm, bm, bm, depth, depth, bm->image);
 
   succeed;
 }
@@ -862,8 +928,10 @@ drawPostScriptBitmap(BitmapObj bm)
 
 status
 drawPostScriptImage(Image image)
-{ ps_output("0 0 ~d ~d bitmap\n\n~P\n",
-	 image->size->w, image->size->h, image);
+{ Int depth = get(image, NAME_postscriptDepth, 0);
+
+  ps_output("0 0 ~d ~d ~d greymap ~P\n",
+	    image->size->w, image->size->h, depth, depth, image);
 
   succeed;
 }
@@ -881,6 +949,9 @@ drawPostScriptText(TextObj t)
   if ( isDefault(t->background) )
     ps_output("~x ~y ~w ~h clear\n", t, t, t, t);
   
+  if ( notDefault(t->colour) )
+    ps_output("gsave ~C", t);
+
   if ( s[0].size > 0 )			/* i.e. non-empty */
   { if ( t->wrap == NAME_wrap )
     { LocalString(buf, s, s->size + MAX_WRAP_LINES);
@@ -898,6 +969,10 @@ drawPostScriptText(TextObj t)
   if ( t->pen != ZERO )
     ps_output("gsave ~T ~p ~x ~y ~w ~h 0 boxpath draw grestore\n",
 	      t, t, t, t, t, t);
+
+  if ( notDefault(t->colour) )
+    ps_output("grestore\n", t);
+  
 
   succeed;
 }

@@ -33,23 +33,11 @@ x_colour_name(Name name)
 
 int
 intensityXColor(XColor *c)
-{ unsigned int r = c->red / 4;			/* avoid overflow */
-  unsigned int g = c->green / 4;
-  unsigned int b = c->blue / 4;
-  static double f;
-  static int fdone = FALSE;
-  int rval;
-  
-  if ( !fdone )
-  { f = (double) XBRIGHT / sqrt((double) (3*(XBRIGHT/4)*(XBRIGHT/4)));
-    fdone++;
-  }
+{ unsigned int r = c->red;
+  unsigned int g = c->green;
+  unsigned int b = c->blue;
 
-  rval = (int)(sqrt((double)(r*r + g*g + b*b)) * f);
-  if ( rval > XBRIGHT )
-    rval = XBRIGHT;
-
-  return rval;
+  return (r*20 + g*32 + b*18)/(20+32+18);
 }
 
 

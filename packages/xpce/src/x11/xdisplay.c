@@ -708,8 +708,8 @@ ws_postscript_display(DisplayObj d)
   im = XGetImage(r->display_xref, atts.root,
 		 0, 0, iw, ih, AllPlanes, XYPixmap);
 
-  ps_output("0 0 ~D ~D bitmap\n\n", iw, ih);
-  postscriptXImage(im, iw, ih, r->background_pixel);
+  ps_output("0 0 ~D ~D ", iw, ih);
+  postscriptXImage(im, 0, 0, iw, ih, r->display_xref, r->colour_map, 0);
   ps_output("\n");
 
   XDestroyImage(im);

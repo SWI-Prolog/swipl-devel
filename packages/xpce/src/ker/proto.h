@@ -49,6 +49,7 @@ status		allPceSlotsClass(Class class);
 void		termClass(Class class, char *name, int argc, ...);
 status		sendMethod(Class class, Name name, Name group, int argc, ...);
 status		storeMethod(Class class, Name name, SendFunc function);
+status		fetchMethod(Class class, Name name, void *function);
 status		getMethod(Class class, Name name, Name group, char *rtype, int argc, ...);
 status		cloneStyleClass(Class class, Name style);
 status		cloneStyleVariableClass(Class class, Name slot, Name style);

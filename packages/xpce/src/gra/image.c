@@ -636,6 +636,19 @@ getBoundingBoxImage(Image image)
 }
 
 
+static Int
+getPostscriptDepthImage(Image image)
+{ if ( image->kind == NAME_bitmap )
+    return ONE;
+  if ( valInt(image->depth) < 3 )	/* 1, 2 */
+    return image->depth;
+  if ( valInt(image->depth) < 8 )	/* 3-7 */
+    return toInt(4);
+
+  return toInt(8);
+}
+
+
 		/********************************
 		*       PREDEFINED IMAGES	*
 		********************************/
@@ -822,6 +835,9 @@ makeClassImage(Class class)
 	    "landscape=[bool]", "maximum_area=[area]",
 	    "New string holding PostScript description",
 	    getPostscriptObject);
+  getMethod(class, NAME_postscriptDepth, NAME_postscript, "int", 0,
+	    "Depth for PostScript image to be generated",
+	    getPostscriptDepthImage);
   getMethod(class, NAME_containedIn, DEFAULT, "bitmap", 0,
 	    "Equivalent to <-bitmap if ot @nil",
 	    getContainedInImage);

@@ -20,6 +20,9 @@ status		makeClassCircle(Class class);
 
 /* colour.c */
 status		equalColour(Colour c1, Colour c2);
+Int		getRedColour(Colour c);
+Int		getGreenColour(Colour c);
+Int		getBlueColour(Colour c);
 Colour		getHiliteColour(Colour c);
 Colour		getReduceColour(Colour c);
 status		makeClassColour(Class class);

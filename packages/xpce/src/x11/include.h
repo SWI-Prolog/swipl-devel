@@ -21,7 +21,13 @@
 #define PNM_PBM	1			/* Portable BitMap */
 #define PNM_PGM	2			/* Portable GreyMap */
 #define PNM_PPM	3			/* Portable PixMap */
+
+#define PNM_ASCII   0
+#define PNM_RAWBITS 3
+#define PNM_RUNLEN  6
 #endif
+
+
 
 #define String XString
 #include <X11/Intrinsic.h>
@@ -140,7 +146,14 @@ EventObj	CtoEvent(PceWindow window, XEvent *event);
 ulong		getPixelColour(Colour c, DisplayObj d);
 Window		getWMFrameFrame(FrameObj fr);
 void		setXImageImage(Image image, XImage *i);
-void		postscriptXImage(XImage *im, int w, int h, ulong bg);
+status		postscriptXImage(XImage *im,
+				 int x, int y, int w, int h,
+				 Display *disp, Colormap cmap,
+				 int depth);
+XColor **	makeSparceCInfo(Display *disp, Colormap cmap,
+				XImage *img, int *ncolours);
+void		greySparceCInfo(XColor **cinfo, int depth);
+void		freeSparceCInfo(XColor **table, int depth);
 void		x11_set_gc_foreground(DisplayObj d, Any fg, int gcs, GC *gc);
 
 /* x11-conversion.c */

@@ -1,10 +1,27 @@
 [VERSION 4.8.10]
 
+* ADDED: Generation of coloured PostScript for all graphical, except for
+  pixmaps. (will follow later).
+
+* ADDED: Improved schema to handle shared resources with object save/restore.
+  See `object<-storage_reference'.
+
+* FIXED: Postscript generation for pattern-filled objects.
+
+* ADDED: Generation of PostScript grey-maps from coloured image objects.
+  Makes screen-dumps and PostScript generation of diagrams containing
+  coloured images much better.
+
 * ADDED: Image interface for PNM (PPM, PBM, PGM): Portable aNy Map format.
   Allows for reading and writing colour images.  PNM is the central format
   of a set of public domain tools for the conversion of bitmaps to numerous
   formats.  Added format argument to image->save for saving in different
   formats.
+
+  A variant of the PNM format is now used for storage of images in saved
+  objects (`object ->save_in_file'), providing display-independent saved
+  images for all versions of XPCE.  This fixes bugs in save/reload of
+  PceDraw pictures holding captured windows.
 
 * FIXED: Incremental garbage-collector error.  The incremental garbage
   collector missed objects reaching 0 reference count when not running
@@ -33,7 +50,7 @@
 
 * FIXED: Better checking for valid colour specification in colour->initialise.
 
-* PERFORMANCE: Various minor and major changed to improve performance:
+* PERFORMANCE: Various minor and major changes to improve performance:
 	+ Exploit new SWI-Prolog 2.0.10 C-interface function PL_univg()
 	  to speed up the interface.
 	+ Prolog interface GetCompound changed to exploit name interface
