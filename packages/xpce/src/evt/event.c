@@ -697,7 +697,7 @@ getReceiverEvent(EventObj ev)
 
 static Name
 getKeyEvent(EventObj ev)
-{ answer(characterName(ev->id));
+{ answer(characterName(ev));
 }
 
 
