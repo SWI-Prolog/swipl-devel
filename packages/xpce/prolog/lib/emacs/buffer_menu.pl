@@ -40,6 +40,8 @@ initialise(BM, Emacs:emacs) :->
  	send(B, popup, new(P, popup)),
 
 	new(Buffer, @arg1?object),
+	send(P, update_message,
+	     message(B, selection, @arg1)),
 	send_list(P, append,
 		  [ menu_item(help,
 			      message(Emacs, help),
