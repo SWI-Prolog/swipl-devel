@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: writing XPM in Windows version.  This includes a patch to the Windows
+  port of XPM which inverted transparency.  If you use the source, get the
+  updated XPM library from ftp://www.swi.psy.uva.nl/xpce/Windows/lib/
+
 VERSION 6.0.8, distributed with SWI-Prolog 5.0.8
 ================================================
 
