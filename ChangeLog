@@ -7,6 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: changed encoding 'none' to 'octet'.  Streams opened as
+    type 'binary' now by default use the 'octet' encoding.  Adjusted
+    and documented sgml-parser interaction with Prolog stream encoding.
+
   * ADDED: More library(ordsets) primitives to support library clp(R).
 
   * FIXED: Allow for errornous parse_url('http://2004.bloggies.com/', X).
