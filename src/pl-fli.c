@@ -741,8 +741,8 @@ PL_get_nchars(term_t l, unsigned int *length, char **s, unsigned flags)
   char tmp[100];
   char *r;
   int type;
-  IOSTREAM *fd = NULL;
   unsigned int len = ~(unsigned int)0;
+  int malloced = FALSE;
 
   DEBUG(7, pl_write(l); pl_nl());
 
@@ -774,19 +774,24 @@ PL_get_nchars(term_t l, unsigned int *length, char **s, unsigned flags)
   { type = PL_VARIABLE;
     r = varName(l, tmp);
   } else if ( (flags & CVT_WRITE) )
-  { int size = 0;
+  { int size;
+    IOSTREAM *fd;
     
     type = PL_STRING;			/* hack to get things below ok */
 
     if ( !(flags & (BUF_MALLOC|BUF_RING)) )
       flags |= BUF_RING;
 
-    r = NULL;
+    r = tmp;
+    size = sizeof(tmp);
     fd = Sopenmem(&r, &size, "w");
     PL_write_term(fd, l, 1200, 0);
     Sputc(EOS, fd);
     Sflush(fd);
     len = size-1;			/* need to flush first */
+    Sclose(fd);
+    if ( r != tmp )
+      malloced = TRUE;
   } else
   { DEBUG(7, Sdprintf("--> fail\n"));
     fail;
@@ -801,8 +806,6 @@ PL_get_nchars(term_t l, unsigned int *length, char **s, unsigned flags)
   if ( flags & BUF_MALLOC )
   { *s = xmalloc(len+1);
     memcpy(*s, r, len+1);
-    if ( fd )
-      Sclose(fd);
   } else if ( ((flags & BUF_RING) && type != PL_ATOM) || /* never atoms */
 	      (type == PL_STRING) ||	/* always buffer strings */
 	      r == tmp )		/* always buffer tmp */
@@ -810,10 +813,11 @@ PL_get_nchars(term_t l, unsigned int *length, char **s, unsigned flags)
 
     addMultipleBuffer(b, r, len+1, char);
     *s = baseBuffer(b, char);
-    if ( fd )
-      Sclose(fd);
   } else
     *s = r;
+
+  if ( malloced )
+    free(r);
 
   succeed;
 }

@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Memory leak in PL_get_chars() using CVT_WRITE.  Reported by
+    Marcin Golebski.
+
   * INSTALL: export CIFLAGS=/path/to/local/include should now be
     honoured correctly by configure (Lukas Faulstich)
 
