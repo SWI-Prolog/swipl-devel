@@ -975,6 +975,11 @@ by default if you have this library installed on your system.  It is
 also true for the Win32 plwin.exe version of SWI-Prolog, which realises
 a subset of the readline functionality.
 
+    \prologflagitem{emacs_inferior_process}{bool}{r}
+If true, SWI-Prolog is running as an \jargon{inferior process} of
+(GNU/X-)Emacs.  SWI-Prolog assumes this is the case if the environment
+variable \env{EMACS} is \const{t} and \env{INFERIOR} is \const{yes}.
+
     \prologflagitem{saved_program}{bool}{r}
 If true, Prolog is started from a state saved with qsave_program/[1,2].
 

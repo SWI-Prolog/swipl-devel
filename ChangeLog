@@ -7,6 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Prolog flag emacs_inferior_process, which is set to true
+    if SWI-Prolog is running as Emacs inferior process.  After comments
+    from Michael Covington.
+
   * FIXED: include <time.h> in pl-stream.c (Anjo Anjewierden).
 
   * ENHANCED: downcase_atom/2 and upcase_atom/2 performance if both

@@ -216,10 +216,17 @@ static void
 setupGNUEmacsInferiorMode()
 { char envbuf[4];
   char *s;
+  int val;
 
   if ( ((s = getenv3("EMACS", envbuf, sizeof(envbuf))) && streq(s, "t")) ||
        ((s = getenv3("INFERIOR", envbuf, sizeof(envbuf))) && streq(s, "yes")) )
-    clearFeatureMask(TTY_CONTROL_FEATURE);
+  { clearFeatureMask(TTY_CONTROL_FEATURE);
+    val = TRUE;
+  } else
+  { val = FALSE;
+  } 
+
+  defFeature("emacs_inferior_process", FT_BOOL|FF_READONLY, val, 0);
 }
 
 

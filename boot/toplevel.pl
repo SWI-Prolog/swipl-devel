@@ -97,11 +97,13 @@ $load_script_file :-
 $load_script_file.
 
 $load_gnu_emacs_interface :-
-	getenv('EMACS', t),
-	current_prolog_flag(argv, Args),
-	memberchk('+C', Args), !,
-	ensure_loaded(user:library(emacs_interface)).
-$load_gnu_emacs_interface.
+	(   getenv('EMACS', t),
+	    current_prolog_flag(argv, Args),
+	    memberchk('+C', Args)
+	->  ensure_loaded(user:library(emacs_interface))
+	;   true
+	).
+
 
 		 /*******************************
 		 *	 AT_INITIALISATION	*
@@ -410,7 +412,9 @@ delete_leading_blanks(L, L).
 
 
 set_default_history :-
-	(   current_prolog_flag(readline, true)
+	(   (   current_prolog_flag(readline, true)
+	    ;	current_prolog_flag(emacs_inferior_process, true)
+	    )
 	->  set_prolog_flag(history, 0)
 	;   set_prolog_flag(history, 25)
 	).

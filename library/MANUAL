@@ -87,7 +87,7 @@ This manual does not  describe the full syntax and semantics  of Prolog,
 nor how  one should  write a  program in Prolog.    These subjects  have
 been  described extensively  in  the literature.    See  [Bratko, 1986],
 [Sterling & Shapiro, 1986],   and   [Clocksin & Melish, 1987].       For
-more  advanced  Prolog  material  see  [O'Keefe, 1990].      Syntax  and
+more  advanced  Prolog   material  see  [OKeefe, 1990].     Syntax   and
 standard  operator declarations  confirm  to the  `Edinburgh  standard'.
 Most  built  in  predicates  are  compatible  with  those  described  in
 [Clocksin & Melish, 1987].      SWI-Prolog  also  offers  a  number   of
@@ -95,7 +95,7 @@ primitive  predicates compatible  with  Quintus Prolog  [Qui, 1997]  and
 BIM_Prolog [BIM, 1989].
 
 ISO  compliant  predicates  are based  on  ``Prolog:    The  Standard'',
-[Deransart _e_t _a_l_., 1996], validated using [Hodgson, 1998].
+[Deransart _e_t _a_l_., 1996], validated using [??].
 
 
 11..22 SSttaattuuss
@@ -1528,6 +1528,11 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          on your  system.    It is  also true  for  the Win32  plwin.exe
          version of SWI-Prolog, which realises a subset  of the readline
          functionality.
+
+    eemmaaccss__iinnffeerriioorr__pprroocceessss _(_b_o_o_l_)
+         If  true,  SWI-Prolog is  running  as an  _i_n_f_e_r_i_o_r  _p_r_o_c_e_s_s  of
+         (GNU/X-)Emacs.   SWI-Prolog  assumes this  is the  case if  the
+         environment variable EMACS is t and INFERIOR is yes.
 
     ssaavveedd__pprrooggrraamm _(_b_o_o_l_)
          If  true,   Prolog  is   started  from   a  state  saved   with
@@ -6041,7 +6046,7 @@ uuppccaassee__aattoomm((_+_A_n_y_C_a_s_e_, _-_U_p_p_e_
 44..2233 RReepprreesseennttiinngg tteexxtt iinn ssttrriinnggss
 
 SWI-Prolog  supports the  data type  _s_t_r_i_n_g.   Strings  are  a time  and
-space efficient mechanism to handle text in Prolog.   Strings are stores
+space efficient mechanism to handle text in Prolog.   Strings are stored
 as  a byte  array  on the  global (term)  stack  and thus  destroyed  on
 backtracking and reclaimed by the garbage collector.
 
@@ -6071,14 +6076,15 @@ differences:
     use  of strings will cause many  garbage collections.  Atom  garbage
     collection is generally faster.
 
-String objects by  default have no syntax  and thus can only be  created
-using the  predicates below or through  the foreign language  interface.
-There  are  two  ways to  make  read/1  read  text  into  strings,  both
-controlled through  Prolog flags.   One is by setting  the double_quotes
-flag to  string and the other  is by setting the  backquoted_string  flag
-to  true.   In  latter case,  `Hello world` is  read into  a string  and
-write_term/2 prints strings between backquotes if quoted is true.   This
-flag provides compatibility to LPA Prolog string handling.
+String objects  by default have no  lexical representation and thus  can
+only  be created  using  the predicates  below  or through  the  foreign
+language interface (See  chapter 7.  There  are two ways to make  read/1
+read text into  strings, both controlled through  Prolog flags.  One  is
+by setting the double_quotes flag to string and the other  is by setting
+the backquoted_string flag  to true.   In latter case, `Hello world`  is
+read into  a string and  write_term/2 prints strings between  backquotes
+if quoted  is true.    This flag  provides compatibility  to LPA  Prolog
+string handling.
 
 
 ssttrriinngg__ttoo__aattoomm((_?_S_t_r_i_n_g_, _?_A_t_o_m))
@@ -7298,7 +7304,7 @@ ccoonnvveerrtt__ttiimmee((_+_T_i_m_e_, _-_S_t_r_i_n_g)
     also convert_time/8.
 
 
-44..3377..22 CCoonnttrroolllliinngg tthhee pprrooggrraammPPLLWWIINN..EEXXEE ccoonnssoollee wwiinnddooww
+44..3377..22 CCoonnttrroolllliinngg tthhee PLWIN.EXE ccoonnssoollee wwiinnddooww
 
 The Windows executable  PLWIN.EXE console has a number of  predicates to
 control the  appearance of  the console.    Being totally  non-portable,
@@ -8833,10 +8839,10 @@ following goals in mind.
     addition,  any foreign thread can  create its own Prolog engine  for
     dealing with calling Prolog from C-code.
 
-SWI-Prolog  multi-threading  is  based  on  the  POSIX  thread  standard
-[Butenhof, 1997] used  on most  popular systems  except for  MS-Windows.
-On Windows  it uses the pthread-win32  emulation of POSIX threads  mixed
-with the Windows native API for smoother and faster operation.
+SWI-Prolog multi-threading  is based  on the POSIX  thread standard  [??]
+used on most popular systems except for MS-Windows.   On Windows it uses
+the  pthread-win32 emulation  of POSIX  threads mixed  with the  Windows
+native API for smoother and faster operation.
 
 
 66..11 CCrreeaattiinngg aanndd ddeessttrrooyyiinngg PPrroolloogg tthhrreeaaddss
@@ -14775,10 +14781,6 @@ Bibliography
                                   _t_i_f_i_c_i_a_l _I_n_t_e_l_l_i_g_e_n_c_e. Addison-Wesley,
                                   Reading, Massachusetts, 1986.
 
-[Butenhof, 1997]                  David R.  Butenhof.  _P_r_o_g_r_a_m_m_i_n_g  _w_i_t_h
-                                  _P_O_S_I_X _t_h_r_e_a_d_s.  Addison-Wesley,  Read-
-                                  ing, MA, USA, 1997.
-
 [Clocksin & Melish, 1987]         W.  F.  Clocksin  and  C.  S.  Melish.
                                   _P_r_o_g_r_a_m_m_i_n_g   _i_n  _P_r_o_l_o_g.    Springer-
                                   Verlag, New York,  Third, Revised  and
@@ -14788,16 +14790,11 @@ Bibliography
                                   L. Cervoni.  _P_r_o_l_o_g_:    _T_h_e  _S_t_a_n_d_a_r_d.
                                   Springer-Verlag, New York, 1996.
 
-[Hodgson, 1998]                   Jonathan     Hodgson.       validation
-                                  suite  for   conformance   with   part
-                                  1    of    the     standard,     1998,
-                                  http://www.sju.edu/~jhodgson/pub/suite.tar.gz.
-
 [Kernighan & Ritchie, 1978]       B. W. Kernighan and D. M. Ritchie. _T_h_e
                                   _C _P_r_o_g_r_a_m_m_i_n_g _L_a_n_g_u_a_g_e. Prentice-Hall,
                                   Englewood Cliffs, New Jersey, 1978.
 
-[O'Keefe, 1990]                   R. A.  O'Keefe. _T_h_e  _C_r_a_f_t _o_f  _P_r_o_l_o_g.
+[OKeefe, 1990]                    R. A.  OKeefe.  _T_h_e _C_r_a_f_t  _o_f  _P_r_o_l_o_g.
                                   MIT Press, Massachussetts, 1990.
 
 [Pereira, 1986]                   F. Pereira.  _C_-_P_r_o_l_o_g  _U_s_e_r_'_s  _M_a_n_u_a_l,
@@ -14810,6 +14807,13 @@ Bibliography
 [Sterling & Shapiro, 1986]        L.  Sterling  and   E.  Shapiro.   _T_h_e
                                   _A_r_t _o_f _P_r_o_l_o_g.  MIT Press,  Cambridge,
                                   Massachusetts, 1986.
+
+[Warren, 1983]                    D.   H.  D.   Warren.    The   runtime
+                                  environment  for  a  prolog   compiler
+                                  using  a  copy  algorithm.   Technical
+                                  Report 83/052,  SUNY and Stone  Brook,
+                                  New York, 1983.  Major revision  March
+                                  1984.
 
                                   988
 
