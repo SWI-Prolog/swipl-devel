@@ -277,7 +277,11 @@ save(B, File:[file]) :->
 	;   ignore(send(SaveFile, backup))
 	),
 	send(B, do_save, SaveFile),
-	send(B, slot, time_stamp, SaveFile?time).
+	send(B, slot, time_stamp, SaveFile?time),
+	(   object(@emacs_mark_list)
+	->  ignore(send(@emacs_mark_list, saved_buffer, B))
+	;   true
+	).
 
 
 do_save(B, SaveFile:file) :->

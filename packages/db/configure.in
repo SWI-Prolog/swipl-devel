@@ -72,7 +72,14 @@ AC_MSG_RESULT("		PLLIBS=$PLLIBS")
 AC_MSG_RESULT("		PLLDFLAGS=$PLLDFLAGS")
 AC_MSG_RESULT("		MAKE_SHARED_OBJECT=$MAKE_SHARED_OBJECT")
 else
-PLLD=../../$BUILDDIR/plld
+case "$PLARCH" in
+  *darwin*|*aix*)
+    PLLD=plld
+    ;;
+  *)
+    PLLD="../../$BUILDDIR/plld -pl ../../$BUILDDIR/$PL"
+    ;;
+esac
 fi
 
 CC=$PLLD

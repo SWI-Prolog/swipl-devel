@@ -169,6 +169,12 @@ loaded_buffer(F, TB:emacs_buffer) :->
 	get(F, tree, Tree),
 	send(Tree?root, loaded_buffer, TB).
 
+saved_buffer(_F, TB:emacs_buffer) :->
+	"PceEmacs has saved this buffer"::
+	send(TB, for_all_fragments,
+	     if(message(@arg1, send_hyper, bookmark, update))).
+
+
 current(F, BM:emacs_bookmark*, UpdateSelection:[bool]) :->
 	"Make this bookmark the current one"::
 	(   UpdateSelection \== @off,
@@ -408,7 +414,7 @@ loaded_buffer(F, TB:emacs_buffer) :->
 	;   true
 	).
 
-:- pce_end_class.
+:- pce_end_class(emacs_toc_bookmark_folder).
 
 :- pce_begin_class(emacs_toc_bookmark, toc_file,
 		   "Represent a bookmark").
@@ -419,7 +425,22 @@ initialise(F, BM:emacs_bookmark) :->
 	get(file(Path), base_name, File),
 	get(BM, line_no, Line),
 	send_super(F, initialise,
-		   string('%s:%d %s', File, Line, Title), BM).
+		   string('%s:%d %s', File, Line, Title), BM),
+	send(BM, slot, node, F).
+
+unlink(F) :->
+	get(F, identifier, BM),
+	send(BM, slot, node, @nil),
+	send_super(F, unlink).
+
+update(F) :->
+	"Update label after changed bookmark"::
+	get(F, identifier, BM),
+	get(BM, title, Title),
+	get(BM, file_name, Path),
+	get(file(Path), base_name, File),
+	get(BM, line_no, Line),
+	send(F, label, string('%s:%d %s', File, Line, Title)).
 
 append(_F, _BM:emacs_bookmark) :->
 	"Can't append to a file"::
@@ -462,14 +483,15 @@ compare(F, N2:toc_node, Diff:{smaller,equal,larger}) :<-
 	    )
 	).
 
-:- pce_end_class.
+:- pce_end_class(emacs_toc_bookmark).
 
 :- pce_begin_class(emacs_bookmark, source_location,
 		   "Bookmark in PceEmacs").
 
-variable(title,		string,		get,  "Represented title").
-variable(created,	date,		get,  "Date of creation").
-variable(note,		string*,	both, "Annotation").
+variable(title,	  string,	       get,  "Represented title").
+variable(created, date,		       get,  "Date of creation").
+variable(note,	  string*,	       both, "Annotation").
+variable(node,	  emacs_toc_bookmark*, get,  "Visualiser").
 
 initialise(BM, File:name, Line:int, Title:string,
 	   Created:[date], Note:[string]*) :->
@@ -518,11 +540,31 @@ update(BM) :->
 	    TB \== @nil
 	->  get(Fragment, start, Start),
 	    get(TB, line_number, Start, Line),
-	    send(BM, line_no, Line)
+	    (	get(BM, line_no, Line)
+	    ->	true
+	    ;	send(BM, line_no, Line),
+		Modified = true
+	    ),
+	    get(Fragment, string, Title),
+	    send(Title, translate, '\t', ' '),
+	    (	send(BM?title, equal, Title)
+	    ->	true
+	    ;	send(BM, slot, title, Title),
+		Modified = true
+	    ),
+	    (	Modified == true
+	    ->	send(BM, modified)
+	    ;	true
+	    )
 	;   true			% destroy?
 	).
 
-:- pce_end_class.
+modified(BM) :->
+	"Bookmark parameters have been modified"::
+	get(BM, node, Node),
+	send(Node, update).
+
+:- pce_end_class(emacs_bookmark).
 
 
 :- pce_begin_class(emacs_bookmark_hyper, hyper,

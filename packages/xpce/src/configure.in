@@ -195,6 +195,16 @@ else
   ALLTARGET=xpce
 fi
 
+dnl darwin and aix are using COFF and must resolve to the real executable
+dnl for linking shared objects.  Therefore Prolog must be installed before
+dnl configuring and building XPCE.
+
+case "$OS" in
+  *darwin*|*aix*)
+    PLBUILD="$PL"
+    ;;
+esac
+
 if test "$MT" = true; then
   case "$OS" in
       *freebsd*)	AC_DEFINE(_THREAD_SAFE, 1,
