@@ -257,7 +257,10 @@ PL_cons_functor(term_t h, functor_t fd, ...)
     *a++ = (word) fd;
     while(arity-- > 0)
     { term_t r = va_arg(args, term_t);
-      *a++ = valHandle(r);
+      Word p = valHandleP(r);
+
+      deRef(p);
+      *a++ = (isVar(*p) ? makeRef(p) : *p);
     }
     va_end(args);
   }
@@ -267,10 +270,15 @@ PL_cons_functor(term_t h, functor_t fd, ...)
 void
 PL_cons_list(term_t l, term_t head, term_t tail)
 { Word a = allocGlobal(3);
+  Word p;
   
   a[0] = (word)FUNCTOR_dot2;
-  a[1] = valHandle(head);
-  a[2] = valHandle(tail);
+  p = valHandleP(head);
+  deRef(p);
+  a[1] = (isVar(*p) ? makeRef(p) : *p);
+  p = valHandleP(tail);
+  deRef(p);
+  a[2] = (isVar(*p) ? makeRef(p) : *p);
 
   setHandle(l, (word)a);
 }
@@ -1254,18 +1262,18 @@ _PL_retry(long v)
 
 
 long
-PL_foreign_context(unsigned long h)
+PL_foreign_context(control_t h)
 { return ForeignContext(h);
 }
 
 void *
-PL_foreign_context_address(unsigned long h)
+PL_foreign_context_address(control_t h)
 { return ForeignContextAddress(h);
 }
 
 
 int
-PL_foreign_control(unsigned long h)
+PL_foreign_control(control_t h)
 { return ForeignControl(h);
 }
 

@@ -22,7 +22,7 @@ before loading this file.  See end of this file.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef PLVERSION
-#define PLVERSION "2.5.1, Feb 1996"
+#define PLVERSION "2.5.2, Feb 1996"
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -57,6 +57,7 @@ typedef unsigned long	qid_t;		/* opaque query handle */
 typedef unsigned long	fid_t;		/* opaque foreign context handle */
 #endif
 typedef unsigned long	atomic_t;	/* same a word */
+typedef unsigned long	control_t;	/* non-deterministic control arg */
 typedef unsigned long	foreign_t;	/* return type of foreign functions */
 typedef foreign_t	(*pl_function_t)(); /* foreign language functions */
 
@@ -82,6 +83,29 @@ typedef foreign_t	(*pl_function_t)(); /* foreign language functions */
 
 #define	PL_succeed	return TRUE	/* succeed deterministically */
 #define PL_fail		return FALSE	/* fail */
+
+		/********************************
+		* NON-DETERMINISTIC CALL/RETURN *
+		*********************************/
+
+/*  Note 1: Non-deterministic foreign functions may also use the deterministic
+    return methods PL_succeed and PL_fail.
+
+    Note 2: The argument to PL_retry is a 30 bits signed integer (long).
+*/
+
+#define PL_FIRST_CALL		(0)
+#define PL_CUTTED		(1)
+#define PL_REDO			(2)
+
+#define PL_retry(n)		return _PL_retry(n)
+#define PL_retry_address(a)	return _PL_retry((long) a)
+
+__pl_export foreign_t		_PL_retry(long);
+__pl_export foreign_t		_PL_retry_address(void *);
+__pl_export int	 		PL_foreign_control(control_t);
+__pl_export long	 	PL_foreign_context(control_t);
+__pl_export void *	 	PL_foreign_context_address(control_t);
 
 
 		/********************************

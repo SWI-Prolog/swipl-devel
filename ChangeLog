@@ -1,8 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
-Version 2.5.1
+Version 2.5.2
 =============
+
+  * FIXED: PL_retry() and friends were lacking from the new SWI-Prolog.h
+
+  * FIXED: PL_cons_functor() and PL_cons_list(), also fixing variable
+    handling in bagof/setof.  Thanks to Khanh Doan for reporting.
 
   * ADDED: string_concat/3 with same semantics as concat/3, but unbound
     will be unified with a string object.
@@ -14,6 +19,9 @@ Version 2.5.1
   * ADDED: file_name_extension/3 to reason about filename extensions in
     a machine-independent manner.  Fixes Win32 associations if the filename
     has uppercase extension.
+
+Version 2.5.1 (released for Win32 only)
+=======================================
 
   * FIXED: Stack expansion for some foreign predicates using the local
     stack as temporary area for machines with exception-based stack-overflow

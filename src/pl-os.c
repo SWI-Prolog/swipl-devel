@@ -1690,7 +1690,13 @@ pl_rl_read_init_file(term_t file)
 { char *f;
 
   if ( (f = get_filename(file, NULL, 0)) )
-  { rl_read_init_file(f);
+  {
+#ifdef O_XOS
+    char buf[MAXPATHLEN];
+    rl_read_init_file(_xos_os_filename(f, buf));
+#else
+    rl_read_init_file(f);
+#endif
 
     succeed;
   }

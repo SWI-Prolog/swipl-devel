@@ -2,13 +2,13 @@
 			    Jan Wielemaker
 			       06/06/94
 
-			  (Updated: 04/12/95)
-			   (Version 2.1.13)
+			  (Updated: 08/02/96)
+			   (Version 2.5.2)
 
 
 This distribution contains SWI-Prolog for   Windows-'95,  Windows-NT and
-Windows 3.1/Win32s.  It is a port of version 2.1.13.  SWI-Prolog runs in
-a simple MS-Window providing traditional stream-based interaction.
+Windows 3.1/Win32s. It is a port of version 2.5.2.  SWI-Prolog runs in a
+simple MS-Window providing traditional stream-based interaction. 
 
 
 Installation:
@@ -42,17 +42,42 @@ both Windows-95 as NT, you can run this   from a DOS-box, in Windows 3.1
 you will have to use the "Run ..." option from the program manager.
 
 
+SWI-Prolog and 8-bit characters (programming readline)
+======================================================
+
+If you built SWI-Prolog  using  the   readline  library,  by default you
+cannot enter 8-bit characters from  the   terminal  as  the GNU readline
+library  maps  any   character   with   the    high-bit   set   to   ESC
+<character-with-8bit-cleared>. To fix this, create a file ~/.inputrc and
+add the following lines:
+
+################################################################
+set convert-meta off
+set output-meta  on
+################################################################
+
+Actually, the readline version underlying  the   Win32  version  is 1.2,
+which does not define the  "output-meta"   variable,  but  this does not
+harm.
+
+Note that ~/.inputrc is the file named .inputrc in the directory pointed
+to by the variable %HOME%.  This  does   not  work  under  Win32s, where
+.inputrc is an  invalid  filename.  Instead,   create  a  file  using an
+arbitrary name (inputrc for the example) and run:
+
+	?- rl_read_init_file(inputrc).
+
+See readline(3) for details.
+
 Status:
 =======
 
-This is the 8th release  for  the   Windows  platform.   The  first four
-releases were based on the WATCOM 32-bit  extender for Windows 3.1.  The
-5th release has been developed  with   Microsoft  Visual C/C++ 2.0 under
-Windows-NT 3.5.  This release was compiled  and tested under Windows-'95
-using MSVC 2.0.  It has been used in the development of XPCE for quite a
-while and appears to run stable on '95 and -NT.  The status under win32s
-is unclear.  I've received various problem   reports, but didn't succeed
-in reproducing them.
+The first four releases were based  on   the  WATCOM 32-bit extender for
+Windows 3.1. The 5th release has   been  developed with Microsoft Visual
+C/C++ 2.0 under Windows-NT 3.5.  This   release  was compiled and tested
+under Windows-'95 using MSVC 2.0. It has been used in the development of
+XPCE for quite a while and appears  to   run  stable  on '95 and -NT and
+reasonable (compared to the operating system :-) under win32s.
 
 I'm not sure whether it runs  on   machines  that  lack a floating point
 processor.
@@ -61,6 +86,12 @@ This version has Virtual Memory Management   based stack expansion (i.e.
 no stack-shifter and thus no bugs therein :-).
 
 This version also handles crashes often gracefully.
+
+
+Version 2.5.x windows-specific changes
+======================================
+
+	None sofar!
 
 
 Version 2.1.14 windows-specific changes

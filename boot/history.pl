@@ -43,6 +43,7 @@ read_history_(Show, Help, _, Help, _, _) :-
 	fail.
 read_history_(History, Help, DontStore, Raw, Term, Bindings) :-
 	expand_history(Raw, Expanded, Changed), 
+	save_history_line(Expanded),
 	$term_to_atom(Term0, Expanded, Bindings, 1),
 	(   var(Term0)
 	->  Term = Term0,
@@ -112,11 +113,12 @@ prompt_history(Prompt) :-
 %   save_event(+Event)
 %   Save Event in the history system. Remove possibly outdated events.
 
-save_event(_, Event) :-
+save_history_line(Line) :-
 	feature(readline, true),
-	string_concat(Event, '.', RlEvent),
-	call(rl_add_history(RlEvent)),	% fool check/0
-	fail.
+	string_concat(Line, '.', CompleteLine),
+	call(rl_add_history(CompleteLine)), !.
+save_history_line(_).
+
 save_event(Dont, Event) :-
 	memberchk(Event, Dont), !.
 save_event(_, Event) :-
@@ -159,7 +161,7 @@ history_depth_(15).
 expand_history(Raw, Expanded, Changed) :-
 	name(Raw, RawString), 
 	expand_history2(RawString, ExpandedString, Changed), 
-	name(Expanded, ExpandedString), !.
+	atom_chars(Expanded, ExpandedString), !.
 
 expand_history2([0'^|Rest], Expanded, true) :- !, 
 	get_last_event(Last), 
