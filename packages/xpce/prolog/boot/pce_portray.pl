@@ -99,13 +99,6 @@ user:prolog_predicate_name(pce_principal:get_implementation(Id0, _, _, _),
 	method_from_id(Id0, SG),
 	atom_from_method(SG, Id).
 
-clean_id(Id, Id) :-
-	atomic(Id).
-clean_id(Term, Id) :-
-	compound(Term),
-	arg(1, Term, Id0),
-	clean_id(Id0, Id).
-
 %	user:prolog_clause_name(+ClauseRef, -Name)
 %
 %	Translate the reference to a method-clause into the corresponding

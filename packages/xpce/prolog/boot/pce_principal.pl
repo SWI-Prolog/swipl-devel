@@ -338,6 +338,14 @@ get(Receiver, Selector, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, Answer) :-
 	send_implementation/3,
 	get_implementation/4.
 
+%	send_implementation(+Id, +Message, +Object)
+%	
+%	Method-bodies are compiled into clauses for this predicate. Id
+%	is a unique identifier for the implementation, Message is a
+%	compound whose functor is the method name and whose arguments
+%	are the arguments to the method-call. Object is the receiving
+%	object.
+
 send_implementation(true, _Args, _Obj).
 send_implementation(fail, _Args, _Obj) :- fail.
 send_implementation(once(Id), Args, Obj) :-
@@ -354,6 +362,12 @@ send_implementation(trace(Id), Args, Obj) :-
 	->  pce_info(pce_trace(exit, send_implementation(Id, Args, Obj)))
 	;   pce_info(pce_trace(fail, send_implementation(Id, Args, Obj)))
 	).
+
+
+%	get_implementation(+Id, +Message, +Object, -Return)
+%	
+%	As send_implementation/3 for get-methods.
+
 get_implementation(true, _Args, _Obj, _Rval).
 get_implementation(fail, _Args, _Obj, _Rval) :- fail.
 get_implementation(once(Id), Args, Obj, Rval) :-
@@ -371,7 +385,7 @@ get_implementation(trace(Id), Args, Obj, Rval) :-
 	;   pce_info(pce_trace(fail, get_implementation(Id, Args, Obj, Rval)))
 	).
 
-%	SWI-Prolog: make thus a normal user (debug-able) predicate.
+%	SWI-Prolog: make this a normal user (debug-able) predicate.
 
 pce_ifhostproperty(prolog(swi), [
 (:- '$set_predicate_attribute'(send_implementation(_,_,_),  system,      0)),

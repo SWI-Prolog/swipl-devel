@@ -31,10 +31,9 @@
 
 
 :- module(pce_host,
-	[ '$load_pce'/0
-	, (meta_predicate)/1
-	, '$call_atom'/1
-	]).
+	  [ '$load_pce'/0
+	  , (meta_predicate)/1
+	  ]).
 
 
 :- module_transparent
@@ -70,18 +69,6 @@ property(runtime) :-
 strip_module(Raw, Module, Term) :-
 	'$strip_module'(Raw, Module, Term).
 
-
-		/********************************
-		*      DEBUGGER SUPPORT		*
-		********************************/
-
-%	$call_atom(+Atom)
-%	Transform `Atom' into a term and call it in the user module.
-%	Used to implement the `@' option in the PCE tracer.
-
-'$call_atom'(Atom) :-
-	term_to_atom(Term, Atom),
-	user:Term.
 
 		 /*******************************
 		 *	     ERRORS		*
