@@ -4068,13 +4068,23 @@ in almost all cases).
 Set the output stream, used by tty_put/2 and tty_goto/2 to a
 specific stream. Default is user_output.
     \predicate{tty_size}{2}{-Rows, -Columns}
-Determine the size of the terminal. If the system provides
-\jargon{ioctl} calls for this these are used and tty_size/2 properly
-reflects the actual size after a user resize of the window. As a
-fallback, the system uses tty_get_capability/2 using \const{li} and
-\const{co} capabilities. In this case the reported size reflects the
-size at the first call and is not updated after a user-initiated
-resize of the terminal.
+Determine the size of the terminal.  Platforms:
+
+\begin{description}
+    \item[Unix]
+If the system provides \jargon{ioctl} calls for this, these are
+used and tty_size/2 properly reflects the actual size after a user
+resize of the window. As a fallback, the system uses
+tty_get_capability/2 using \const{li} and \const{co} capabilities. In
+this case the reported size reflects the size at the first call and is
+not updated after a user-initiated resize of the terminal.
+
+    \item[Windows]
+Getting the size of the terminal is provided for \program{plwin.exe}.
+The requested value reflects the current size. For the
+multi-threaded version the console that is associated with the
+\const{user_input} stream is used.
+\end{description}
 \end{description}
 
 \section{Operating System Interaction}	\label{sec:system}
