@@ -62,6 +62,26 @@ loadDate(Date d, IOSTREAM *fd, ClassDef def)
 }
 
 
+static Real
+getPosixValueDate(Date d)
+{ answer(CtoReal((double)d->unix_date));
+}
+
+
+static status
+posixValueDate(Date d, Real r)
+{ time_t v = (time_t)valReal(r);
+  double diff = (double) v - valReal(r);
+
+  if ( diff < -1.0 || diff > 1.0 )
+    return errorPce(d, NAME_intRange);
+  
+  d->unix_date = v;
+
+  succeed;
+}
+
+
 static Date
 getConvertDate(Class class, StringObj str)
 { if ( isstr8(&str->data) )
@@ -367,6 +387,8 @@ static senddecl send_date[] =
      NAME_set, "Copy time from argment date object"),
   SM(NAME_set, 6, T_initialise, setDate,
      NAME_set, "Set date from smhDMY"),
+  SM(NAME_posixValue, 1, "real", posixValueDate,
+     NAME_set, "Set date from POSIX timestamp"),
   SM(NAME_convert, 1, "description=char_array", convertDate,
      NAME_textual, "Set date conform time description")
 };
@@ -376,6 +398,8 @@ static senddecl send_date[] =
 static getdecl doget_date[] =
 { GM(NAME_difference, 2, "units=int", T_difference, getDifferenceDate,
      NAME_calculate, "Difference between dates in specified units"),
+  GM(NAME_posixValue, 0, "real", NULL, getPosixValueDate,
+     NAME_storage, "Fetch the value as a POSIX time-stamp"),
   GM(NAME_compare, 1, "{smaller,equal,larger}", "date", getCompareDate,
      NAME_compare, "Compare two dates for `chain ->sort'"),
   GM(NAME_day, 0, "1..31", NULL, getDayDate,
