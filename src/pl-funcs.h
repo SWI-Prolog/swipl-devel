@@ -893,6 +893,7 @@ foreign_t	pl_open_xterm(term_t title, term_t in, term_t out);
 foreign_t	pl_char_type(term_t chr, term_t class, word h);
 foreign_t	pl_code_type(term_t chr, term_t class, word h);
 foreign_t	pl_downcase_atom(term_t in, term_t out);
+foreign_t	pl_upcase_atom(term_t in, term_t out);
 void		initCharTypes(void);
 bool		systemMode(bool accept);
 

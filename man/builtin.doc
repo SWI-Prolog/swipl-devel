@@ -2901,6 +2901,7 @@ the space is not included!
     \termitem{to_lower}{Upper}
 \arg{Char} is a lower-case version of \arg{Upper}. For non-letters,
 or letter without case, \arg{Char} and \arg{Lower} are the same.
+See also upcase_atom/2 and downcase_atom/2.
     \termitem{upper}{}
 \arg{Char} is an upper-case letter.
     \termitem{upper}{Lower}
@@ -2909,6 +2910,7 @@ or letter without case, \arg{Char} and \arg{Lower} are the same.
     \termitem{to_upper}{Lower}
 \arg{Char} is an upper-case version of \arg{Lower}.  For non-letters,
 or letter without case, \arg{Char} and \arg{Lower} are the same.
+See also upcase_atom/2 and downcase_atom/2.
     \termitem{punct}{}
 \arg{Char} is a punctuation character. This is a \const{graph} character
 that is not a letter or digit.
@@ -2937,6 +2939,25 @@ They handle either representation if the argument is instantiated
 and only will instantiate with an integer code or one-character atom
 depending of the version used. See also the prolog-flag
 \const{double_quotes}, atom_chars/2 and atom_codes/2.
+\end{description}
+
+
+\subsection{Case conversion}
+
+There is nothing in the Prolog standard for converting case in textual
+data.  The SWI-Prolog predicates code_type/2 and char_type/2 can be used
+to test and convert individual characters. We have started some
+additional support:
+
+\begin{description}
+    \predicate{downcase_atom}{2}{+AnyCase, -LowerCase}
+Converts the characters of \arg{AnyCase} into lowercase as char_type/2
+does (i.e.\ based on the defined \jargon{locale} if Prolog provides
+locale support on the hosting platform) and unifies the lowercase atom
+with \arg{LowerCase}.
+
+    \predicate{upcase_atom}{2}{+AnyCase, -UpperCase}
+Converts, similar to downcase_atom/2, an atom to upper-case.
 \end{description}
 
 

@@ -455,6 +455,25 @@ pl_downcase_atom(term_t in, term_t out)
 }
 
 
+foreign_t
+pl_upcase_atom(term_t in, term_t out)
+{ char *s;
+  unsigned int len;
+
+  if ( PL_get_nchars_ex(in, &len, &s, CVT_ATOMIC) )
+  { char *tmp = alloca(len);
+    char *i, *o;
+    int n;
+
+    for(i=s, o=tmp, n=len; n-- > 0; o++, i++)
+      *o = toupper(*i);
+
+    return PL_unify_atom_nchars(out, len, tmp);
+  }
+
+  fail;
+}
+
 #if defined(HAVE_LOCALE_H) && defined(HAVE_SETLOCALE)
 #include <locale.h>
 

@@ -1,11 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: downcase_atom/2 and upcase_atom/2 to do quick case-conversion
+    on atoms.
+
   * FIXED: reporting boolean features using the FEATURE mask.
 
   * FIXED: quicker and more graceful stack-overflow exception from sort/2
     if available local-stack space doesn't suffice (Anjo Anjewierden).
 
+  * FIXED: Editor-handling based on $EDITOR (Ulrich Zimmermann).
 
 VERSION 5.0.5
 =============
