@@ -11,7 +11,8 @@ VERSION 5.2.5 (Jul 31, 2003)
 ============================
 
   * ADDED: Option SIO_NOMUTEX to make faster temporary streams that are
-    not shared between threads.
+    not shared between threads.  Provides a work-around for Bug#81 causes
+    my a memory leak in pthread-win32.  Mike Elston.
 
   * PORT: Bug#83 Added dummy foreign profiler interface on systems that
     do not support the profiler.  This causes problems on Solaris 2.8
