@@ -780,7 +780,7 @@ absolutePath(const char *file, char *path, size_t buflen)
     memcpy(path, ucwd, ul);
     s = path + ul;
     *s++ = '/';
-    strcpy(path, file);
+    strcpy(s, file);
   } else if ( strlen(file)+1 > buflen )
   { errno = ENAMETOOLONG;
     return -1;

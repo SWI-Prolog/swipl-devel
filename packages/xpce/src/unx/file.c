@@ -648,21 +648,24 @@ openFile(FileObj f, Name mode, Name filter, CharArray extension)
   if ( isNil(filter) )
   { DEBUG(NAME_file, Cprintf("Opening %s (%s) using mode %s\n",
 			     pp(f->name), pp(f), fdmode));
-    f->fd = Sopen_file(strName(path), fdmode);
+    f->fd = Sopen_file(charArrayToFN(path), fdmode);
   } else
 #ifndef HAVE_POPEN
   { return errorPce(f, NAME_noPopen);
   }
 #else
   { char cmd[LINESIZE];
+    const char *fn = nameToFN(filter);
+    const char *pn = charArrayToFN(path);
+    const char *rn = (mode == NAME_read ? "<" : mode == NAME_write ? ">" : ">>");
 
     if ( fdmode[0] == 'a' )
       fdmode[0] = 'w';
 
-    sprintf(cmd, "%s %s %s",
-	    strName(filter), 
-	    mode == NAME_read ? "<" : mode == NAME_write ? ">" : ">>",
-	    strName(path));
+    if ( strlen(fn)+strlen(pn)+7 > LINESIZE )
+      return errorPce(f, NAME_representation, NAME_nameTooLong);
+
+    sprintf(cmd, "%s %s \"%s\"", fn, rn, pn);
     f->fd = Sopen_pipe(cmd, fdmode);
   }
 #endif /*HAVE_POPEN*/
@@ -704,7 +707,7 @@ removeFile(FileObj f)
 
   closeFile(f);				/* Ok? */
 
-  if ( unlink(strName(name)) == 0 )
+  if ( unlink(nameToFN(name)) == 0 )
     succeed;
   if ( existsFile(f, OFF) )
     return errorPce(f, NAME_removeFile, getOsErrorPce(PCE));

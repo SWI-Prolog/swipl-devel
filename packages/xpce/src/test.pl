@@ -173,6 +173,49 @@ srcsink(read-1) :-
 
 
 		 /*******************************
+		 *	       FILE		*
+		 *******************************/
+
+file(env-1) :-
+	new(F, file('$PCEHOME/Defaults')),
+	send(F, exists),
+	absolute_file_name(pce('Defaults'), PlName),
+	get(F, name, PceName),
+	same_file(PceName, PlName),
+	send(F, same, PlName).
+file(home-1) :-
+	new(F, file('~/foobar')),
+	get(F, name, PceName),
+	expand_file_name('~/foobar', [PlName]),
+	same_file(PceName, PlName).
+file(abs-1) :-
+	new(F, file(foobar)),
+	get(F, absolute_path, Abs),
+	is_absolute_file_name(Abs),
+	file_directory_name(Abs, Here),
+	working_directory(H,H),
+	same_file(Here, H).
+file(exists-1) :-
+	expand_file_name(*, Files),
+	forall(member(F, Files),
+	       (   exists_file(F)
+	       ->  send(file(F), exists)
+	       ;   \+ send(file(F), exists)
+	       )).
+file(utf8-1) :-
+	atom_codes(Name, [1087, 1083, 1072, 1090, 1085, 1072, 1103]),
+	new(F, file(Name)),
+	send(F, open, write),
+	send(F, append, 'Hello world\n'),
+	send(F, close),
+	new(F2, file(Name)),
+	exists_file(Name),
+	send(F2, exists),
+	get(F2, contents, string('Hello world\n')),
+	send(F2, remove).
+
+
+		 /*******************************
 		 *	    TEXT-BUFFER		*
 		 *******************************/
 
@@ -359,6 +402,7 @@ testset(wname).				% Names holding wide characters
 testset(wstring).			% Strings holding wide characters
 testset(fmt).				% Formatting actions
 testset(srcsink).			% Source/Sink operations
+testset(file).				% file (-name) handling
 testset(textbuffer).
 testset(asfile).			% test pce_open and friends
 testset(selection).			% X11 selection

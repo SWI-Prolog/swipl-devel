@@ -202,6 +202,9 @@ stringToMB(String str)
     } 
   }
 
+  roomBuffer(out, MB_LEN_MAX+1);	/* add restore state + 0-byte */
+  wcrtomb(out->bufp, 0, &mbs);
+
   return out->data;
 }
 
@@ -342,7 +345,7 @@ MBToName(const char *mb)
 
     memset(&mbs, 0, sizeof(mbs));
     in = mb;
-    mbsrtowcs(ws, &in, 0, &mbs);
+    mbsrtowcs(ws, &in, len+1, &mbs);
     str_set_n_wchar(&s, len, ws);
     nm = StringToName(&s);
 

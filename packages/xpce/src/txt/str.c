@@ -55,6 +55,12 @@ str_pad(String s)			/* only 8-bit strings */
     
     while(from < len)
       s->s_textA[from++] = '\0';
+  } else
+  { int from = s->size;
+    int len  = str_allocsize(s)/sizeof(charW);
+    
+    while(from < len)
+      s->s_textW[from++] = '\0';
   }
 }
 
