@@ -6,6 +6,14 @@ VERSION 2.8.7
 
   * FIXED passing ldflags in plld script.
 
+  * CONFIG: Removed checking for -lelf if the system is not asked
+    to configure old save/1.
+
+  * CONFIG: Modified test/mmap.c to find out whether we should allocate
+    from the top or base of the heap.  Added TOPOFHEAP to config.h.  Should
+    fix Irix problems.
+
+
 VERSION 2.8.6
 =============
 
