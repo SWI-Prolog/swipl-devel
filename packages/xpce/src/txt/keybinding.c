@@ -355,7 +355,8 @@ typedKeyBinding(KeyBinding kb, Any id, Graphical receiver)
 	} else
 	  assign(kb, argument, toInt(valInt(kb->argument) * 4));
 	rval = SUCCEED;
-      } else if ( notDefault(kb->argument) && isdigit(valInt(id)) )
+      } else if ( notDefault(kb->argument) &&
+		  isInteger(id) && valInt(id) <= 0xff && isdigit(valInt(id)) )
       { if ( kb->status == NAME_universalArgument )
 	{ assign(kb, argument, toInt(valInt(id) - '0'));
 	  assign(kb, status, NIL);
