@@ -1631,8 +1631,10 @@ visible_window(PceWindow sw, IArea a)
 { int p = valInt(sw->pen);
 
   compute_window(sw, &a->x, &a->y, &a->w, &a->h);
-  a->x -= valInt(sw->scroll_offset->x) + p;
-  a->y -= valInt(sw->scroll_offset->y) + p;
+  a->x -= valInt(sw->scroll_offset->x);
+  a->y -= valInt(sw->scroll_offset->y);
+  a->w -= 2*p;
+  a->h -= 2*p;
 
   succeed;
 }
