@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 5.0.7 (Jun 5, 2002)
+===========================
+
   * FIXED: Informational messages from the PLWIN.EXE console when opening
     a URL. 
 

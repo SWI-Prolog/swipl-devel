@@ -1,6 +1,11 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.0.7, distributed with SWI-Prolog 5.0.7
+================================================
+
+* COMPAT: X11 file-finder: allow again for specifying extensions as .xyz
+  
 * FIXED: Improved compatibility of X11 selection-handling.  Works again
   with recent Qt versions which demanded the obligatory `targets' target.
 

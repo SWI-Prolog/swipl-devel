@@ -94,7 +94,7 @@ initialise(D, Mode:mode=[{open,save}]) :->
 	send(Files, select_message, message(D, selected_file, @arg1?key)),
 	send(Files, open_message, message(D, open_file, @arg1?key)),
 	send(Files, popup, @finder_file_popup),
-	send(D, append, new(_File, file_item(file))),
+	send(D, append, new(File, file_item(file))),
 	send(D, append, button(ok), right),
 	send(D, append, finder_filter_item(filter)),
 	send(D, append, button(cancel), right),
@@ -102,7 +102,8 @@ initialise(D, Mode:mode=[{open,save}]) :->
 	send(New, label, image(resource(newdir))),
 	send(D, default_button, ok),
 	send(D, resize_message, message(D, layout, @arg2)),
-	send(D, mode, TheMode).
+	send(D, mode, TheMode),
+	send(D, keyboard_focus, File).
 
 
 layout(D, Size:[size]) :->
@@ -535,9 +536,9 @@ alt_regex(*, Regex) :- !,
 	send(Regex, pattern, '.*').
 alt_regex(Atom, Regex) :-
 	atom(Atom), !,
-	ext_pattern(Atom, Pattern),
+	ext_pattern(Atom, Plain, Pattern),
 	send(Regex, pattern, Pattern),
-	(   pce_finder:file_type(Atom, Name)
+	(   pce_finder:file_type(Plain, Name)
 	->  send(Regex, attribute, print_name, Name)
 	;   send(Regex, attribute, print_name,
 		 string('%s files', Atom?label_name)?value)
@@ -554,6 +555,13 @@ alt_regex(Chain, Regex) :-
 	).
 
 ext_pattern(Ext, Pattern) :-
+	ext_pattern(Ext, _, Pattern).
+
+ext_pattern(Ext, Plain, Pattern) :-
+	sub_atom(Ext, 0, _, _, '.'), !,
+	sub_atom(Ext, 1, _, 0, Plain),
+	concat_atom(['^.*\\', Ext, '$'], Pattern).
+ext_pattern(Ext, Ext, Pattern) :-
 	concat_atom(['^.*\\.', Ext, '$'], Pattern).
 
 :- pce_end_class(finder_filter_item).
