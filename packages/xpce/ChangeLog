@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Improve keyboard input handling in X11 version when using transient
+  windows.  Opening a modal window now gives this window the input focus
+  regardless of what the window manager wants.
+
 * ADDED: implements/3 from library(pce_meta): allow for variable method
   name.  This library now handles not-yet-realised classes fully dynamic.
 

@@ -79,6 +79,20 @@ busyWindowFrame(FrameObj fr)
 { return fr->ws_ref ? ((frame_ws_ref *)fr->ws_ref)->busy_window : 0;
 }
 
+
+static inline Display *
+getXDisplayFrame(FrameObj fr)
+{ if ( notNil(fr->display) )
+  { DisplayWsXref dr = fr->display->ws_ref;
+    
+    if ( dr )
+      return dr->display_xref;
+  }
+
+  return NULL;
+}
+
+
 		 /*******************************
 		 *	     (UN)CREATE		*
 		 *******************************/
@@ -624,6 +638,24 @@ x_event_frame(Widget w, FrameObj fr, XEvent *event)
       updateAreaFrame(fr, DEFAULT);
       send(fr, NAME_mapped, ON, EAV);
       assign(fr, status, NAME_window);
+
+					/* some window managers don't */
+					/* do this, so we do it ourselves */
+					/* Note that XSetInputFocus can */
+					/* generate errors.  There seem */
+					/* to be no easy way out */
+      if ( notNil(fr->modal) )
+      { Display *d = getXDisplayFrame(fr);
+	Window me = XtWindow(widgetFrame(fr));
+
+	if ( d && me )
+	{ catchErrorPce(PCE, NAME_xError);
+	  XSetInputFocus(d, me, RevertToParent, CurrentTime);
+	  XSync(d, False);
+	  catchPopPce(PCE);
+	}
+      }
+
       return;
     }
     case UnmapNotify:
@@ -643,35 +675,32 @@ x_event_frame(Widget w, FrameObj fr, XEvent *event)
 	send(fr, NAME_hidden, EAV);
       return;
     case FocusIn:
-#if 0
     { FrameObj fr2;
 
       if ( (fr2=blockedByModalFrame(fr)) )
-      { PceWindow iw;
-	DisplayWsXref r;
+      { Display *d = getXDisplayFrame(fr2);
+	Widget wfr = widgetFrame(fr2);
 
-	if ( (iw = getKeyboardFocusFrame(fr2)) )
-	{ ws_grab_keyboard_window(iw, ON);
-	} else if ( (r=fr2->display->ws_ref) )
-	{ XSetInputFocus(r->display_xref, XtWindow(w),
-			 RevertToPointerRoot,
-			 CurrentTime);
-	}
-	return;
+	if ( d && wfr )
+	  XSetInputFocus(d, XtWindow(wfr), RevertToParent, CurrentTime);
+      } else
+      { send(fr, NAME_inputFocus, ON, EAV);
       }
-    }
-#endif
-
-      send(fr, NAME_inputFocus, ON, EAV);
       return;
+    }
     case FocusOut:
       send(fr, NAME_inputFocus, OFF, EAV);
       return;
     case KeyPress:
     { EventObj ev;
-      PceWindow sw = getKeyboardFocusFrame(fr);
+      FrameObj fr2;
+      PceWindow sw;
 
-      if ( sw && (ev = CtoEvent(sw, event)) )
+      if ( !(fr2=blockedByModalFrame(fr)) )
+	fr2 = fr;
+
+      if ( (sw=getKeyboardFocusFrame(fr2)) &&
+	   (ev=CtoEvent(sw, event)) )
       { addCodeReference(ev);
 	postEvent(ev, (Graphical) sw, DEFAULT);
 	delCodeReference(ev);

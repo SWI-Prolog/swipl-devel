@@ -223,30 +223,11 @@ ws_topmost_window(PceWindow sw, Bool topmost)
 		********************************/
 
 static void
-event_window(Widget w, XtPointer xsw, XtPointer xevent)
+x_event_window(PceWindow sw, XEvent *event)
 { EventObj ev;
-  PceWindow sw = (PceWindow) xsw;
   FrameObj fr = getFrameWindow(sw, OFF);
-  XEvent *event = (XEvent *)xevent;
   FrameObj bfr;
-
-  DEBUG(NAME_event, Cprintf("event_window(): X-event %d on %s\n",
-			    event->xany.type, pp(sw)));
-
-  if ( isFreeingObj(sw) || isFreedObj(sw) || sw->sensitive == OFF )
-    return;
-
-  if ( fr && (bfr=blockedByModalFrame(fr)) )
-  { switch( event->xany.type )
-    { case ButtonRelease:
-      case KeyPress:
-	send(fr, NAME_bell, EAV);
-      case ButtonPress:
-	send(bfr, NAME_expose, EAV);
-    }
-
-    return;
-  }
+  Any receiver = sw;
 
 #ifdef O_XDND
   if ( event->xany.type == MapNotify )
@@ -255,22 +236,52 @@ event_window(Widget w, XtPointer xsw, XtPointer xevent)
   }
 #endif /*O_XDND*/
 
+  if ( fr && (bfr=blockedByModalFrame(fr)) )
+  { switch( event->xany.type )
+    { case KeyPress:
+      { receiver = bfr;
+	break;
+      }
+      case ButtonRelease:
+	send(fr, NAME_bell, EAV);
+      case ButtonPress:
+	send(bfr, NAME_expose, EAV);
+      default:
+	return;
+    }
+  }
+
+  if ( (ev = CtoEvent(sw, event)) )
+  { addCodeReference(ev);
+    postEvent(ev, receiver, DEFAULT);
+    delCodeReference(ev);
+    freeableObj(ev);
+
+    RedrawDisplayManager(TheDisplayManager()); /* optional? */
+  }
+}
+
+
+static void
+event_window(Widget w, XtPointer xsw, XtPointer xevent)
+{ PceWindow sw = (PceWindow) xsw;
+  XEvent *event = (XEvent *)xevent;
+
+  DEBUG(NAME_event, Cprintf("event_window(): X-event %d on %s\n",
+			    event->xany.type, pp(sw)));
+
+  if ( isFreeingObj(sw) || isFreedObj(sw) || sw->sensitive == OFF )
+    return;
+
   ServiceMode(is_service_window(sw),
 	      { AnswerMark mark;
 		markAnswerStack(mark);
-  
-		if ( (ev = CtoEvent(sw, event)) )
-		{ addCodeReference(ev);
-		  postEvent(ev, (Graphical) sw, DEFAULT);
-		  delCodeReference(ev);
-		  freeableObj(ev);
-		}
-		  
-		RedrawDisplayManager(TheDisplayManager()); /* optional? */
-		
+
+		x_event_window(sw, event);
+
 		rewindAnswerStack(mark, NIL);
-	      })
-}
+	      });
+}		  
 
 
 static void
@@ -361,21 +372,22 @@ ws_grab_pointer_window(PceWindow sw, Bool val)
 }
 
 
-void
+void					/* XT_REVISION < 4 */
 ws_grab_keyboard_window(PceWindow sw, Bool val)
 { DisplayObj d;
   Display display;
+  Widget w;
 
-  if ( widgetWindow(sw) &&
+  if ( (w=widgetWindow(sw)) &&
        (d = getDisplayGraphical((Graphical)sw)) &&
        d->ws_ref &&
        (display = d->wsref->diaplay_xref) )
   { if ( val == ON )
-    { XSetInputFocus(display, XtWindow(widgetWindow(sw)),
-		     RevertToPointerRoot,
+    { XSetInputFocus(display, XtWindow(w),
+		     RevertToParent,
 		     current_event_time());
     } else
-    { XSetInputFocus(display, PointerRoot,
+    { XSetInputFocus(display, None,
 		     0,
 		     current_event_time());
     }
@@ -443,9 +455,9 @@ ws_grab_keyboard_window(PceWindow sw, Bool val)
 { if ( widgetWindow(sw) != NULL )
   { if ( val == ON )
       XtGrabKeyboard(widgetWindow(sw),
-		     True,
-		     GrabModeAsync,
-		     GrabModeAsync,
+		     True,		/* owner_events */
+		     GrabModeAsync,	/* pointer mode */
+		     GrabModeAsync,	/* keyboard mode */
 		     CurrentTime);
     else
       XtUngrabKeyboard(widgetWindow(sw), CurrentTime);

@@ -42,23 +42,25 @@ XtAppContext	ThePceXtAppContext;	/* X toolkit application context */
 
 static int
 x_error_handler(Display *display, XErrorEvent *error)
-{ char msg[1024];
-  char request[100];
-  char buf[100];
+{ if ( !catchedErrorPce(PCE, NAME_xError) )
+  { char msg[1024];
+    char request[100];
+    char buf[100];
 
-  XGetErrorText(display, error->error_code, msg, 1024);
-  sprintf(buf, "%d", error->request_code);
-  XGetErrorDatabaseText(display, "XRequest", buf,
-			"Unknown request", request, 100);
-  Cprintf("X error of failed request: %s\n", msg);
-  Cprintf("Major opcode of failed request: %d (%s)\n",
-	  error->request_code, request);
-  Cprintf("Minor opcode of failed request: %d\n", error->minor_code);
-  Cprintf("Resource id in failed request:  0x%x\n",
-	  (unsigned int) error->resourceid);
-  Cprintf("Serial number of failed request: %ld\n", error->serial);
-  
-  errorPce(NIL, NAME_xError);
+    XGetErrorText(display, error->error_code, msg, 1024);
+    sprintf(buf, "%d", error->request_code);
+    XGetErrorDatabaseText(display, "XRequest", buf,
+			  "Unknown request", request, 100);
+    Cprintf("X error of failed request: %s\n", msg);
+    Cprintf("Major opcode of failed request: %d (%s)\n",
+	    error->request_code, request);
+    Cprintf("Minor opcode of failed request: %d\n", error->minor_code);
+    Cprintf("Resource id in failed request:  0x%x\n",
+	    (unsigned int) error->resourceid);
+    Cprintf("Serial number of failed request: %ld\n", error->serial);
+    
+    errorPce(NIL, NAME_xError);
+  }
 
   return 0;				/* what to return here? */
 }

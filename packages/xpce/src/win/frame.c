@@ -1346,7 +1346,7 @@ eventFrame(FrameObj fr, EventObj ev)
     { 
     blocked:
       send(bfr, NAME_expose, EAV);
-      send(fr, NAME_bell, EAV);
+      send(bfr, NAME_event, ev, EAV);
       fail;
     }
 
