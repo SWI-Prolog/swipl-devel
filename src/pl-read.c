@@ -2438,7 +2438,7 @@ pl_atom_to_term(term_t atom, term_t term, term_t bindings)
     pl_writeq(term);
     toldString();
 
-    rval = PL_unify_atom_nchars(atom, bufsize-1, s);
+    rval = PL_unify_atom_nchars(atom, bufsize, s);
     if ( s != buf )
       free(s);
 
