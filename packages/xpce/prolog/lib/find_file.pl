@@ -327,15 +327,21 @@ file(F, Exists:exists=[bool], Ext0:extension=[name|chain],
  	"Get [existing] file with [extension]"::
 	get_file(F, Exists, Ext0, Dir, Default, File).
 
-get_file(_, Exists, Ext, Dir, Default, File) :-
+get_file(F, Exists, Ext, Dir, Default, File) :-
 	send(@display, has_get_method, win_file_name), !,
 	(   Exists == @on
 	->  Mode = open
 	;   Mode = save
 	),
 	win_filter(Ext, Filters),
+	(   Dir == @default
+	->  DefDir = Dir
+	;   get(F, directory, DefDir)
+	),
 	get(@display, win_file_name, Mode, Filters,
-	    @default, Default, Dir, File).
+	    @default, Default, DefDir, File),
+	file_directory_name(File, NewDir),
+	send(F, slot, directory, NewDir).
 get_file(F, Exists, Ext0, Dir, Default, File) :-
 	send(F, report, status, ''),
 	(   Exists \== @default
