@@ -41,7 +41,8 @@
 #define FIELD_STRING	1
 #define FIELD_CODELIST	2		/* list of ASCII codes */
 #define FIELD_INTEGER	3
-#define FIELD_FLOAT	4
+#define FIELD_HEX	4
+#define FIELD_FLOAT	5
 
 #define FIELD_SORTED	0x1		/* Flags: field is sorted */
 #define FIELD_UNIQUE	0x2		/* There is only one entry */

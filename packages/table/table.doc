@@ -89,6 +89,8 @@ destroying the access to external database tables.
     \hline
     \tt integer		& Convert to a Prolog integer.  The input is
     			  treated as a decimal number. \\
+    \tt hexadecimal	& Convert to a Prolog integer.  The input is
+    			  treated as a hex number. \\
     \tt float		& Convert to a Prolog floating point number.
 			  The input is handled by the C-library function
 			  {\tt strtod()}. \\

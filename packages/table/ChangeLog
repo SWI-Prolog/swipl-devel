@@ -1,3 +1,7 @@
+Feb 11, 2005
+
+  * ADDED: Support for hexadecimal columns.
+
 Oct 2, 2003
 
   * FIXED: returning fields as codelist or string.  Kip Rugger.

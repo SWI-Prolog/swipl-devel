@@ -89,6 +89,7 @@ open_table(+File, +Fields, +Options, -Handle)
 		string		read field as SWI-Prolog string
 		code_list	read field as list of ASCII codes
 		integer		read field as integer
+		hexadecimal	read field as hex integer
 		float		read field as floating point number
 
 	Options is a list of options.  Each option is of the form
@@ -146,6 +147,7 @@ static atom_t ATOM_file;
 static atom_t ATOM_float;
 static atom_t ATOM_functor;
 static atom_t ATOM_integer;
+static atom_t ATOM_hexadecimal;
 static atom_t ATOM_key_field;
 static atom_t ATOM_map_space_to_underscore;
 static atom_t ATOM_prefix;
@@ -181,6 +183,7 @@ init_constants()
   ATOM_float			= PL_new_atom("float");
   ATOM_functor			= PL_new_atom("functor");
   ATOM_integer			= PL_new_atom("integer");
+  ATOM_hexadecimal		= PL_new_atom("hexadecimal");
   ATOM_key_field		= PL_new_atom("key_field");
   ATOM_map_space_to_underscore	= PL_new_atom("map_space_to_underscore");
   ATOM_prefix			= PL_new_atom("prefix");
@@ -232,6 +235,8 @@ get_type(atom_t typename, int *type)
     *type = FIELD_CODELIST;
   else if ( typename == ATOM_integer )
     *type = FIELD_INTEGER;
+  else if ( typename == ATOM_hexadecimal )
+    *type = FIELD_HEX;
   else if ( typename == ATOM_float )
     *type = FIELD_FLOAT;
   else
@@ -687,6 +692,9 @@ unify_field_info(term_t t, Field field)	/* name(Type, Flags) */
     case FIELD_INTEGER:
       type = ATOM_integer;
       break;
+    case FIELD_HEX:
+      type = ATOM_hexadecimal;
+      break;
     case FIELD_FLOAT:
       type = ATOM_float;
       break;
@@ -1047,10 +1055,16 @@ out:
 }
 
 
-int
-digitval(int chr)
+static int
+digitval(int chr, int base)
 { if ( chr >= '0' && chr <= '9' )
     return chr - '0';
+  if ( base == 16 )
+  { if ( chr >= 'a' && chr <= 'f' )
+      return chr + 10 - 'a';
+    if ( chr >= 'A' && chr <= 'F' )
+      return chr + 10 - 'A';
+  }
 
   return -1;
 }
@@ -1164,17 +1178,24 @@ read_field(Table t, Field f, table_offset_t start, table_offset_t *end, term_t a
     case FIELD_STRING:
     case FIELD_CODELIST:
       return unify_field_text(t, f->flags, type, arg, s, z-s);
+    { int base;
+    case FIELD_HEX:
+      base = 16;
+      goto case_int;
     case FIELD_INTEGER:
-    { long l = 0;
-      char *a = s;
-      int digits=0;
+    { long l;
+      char *a;
+      int digits;
 
-      for(; a<z; a++)
+      base=10;
+    case_int:
+
+      for(l=0,digits=0,a=s; a<z; a++)
       { int code;
 
-	if ( (code = digitval(*a)) >= 0 )
+	if ( (code = digitval(*a, base)) >= 0 )
 	{ digits++;
-	  l = l*10+code;
+	  l = l*base+code;
 	}
 	else if ( !isBlank(*a) )
 	{ if ( f->flags & FIELD_ALLOWBADNUM )
@@ -1194,6 +1215,7 @@ read_field(Table t, Field f, table_offset_t start, table_offset_t *end, term_t a
       }
 
       return PL_unify_integer(arg, l);
+    }
     }
     case FIELD_FLOAT:
     { char *e;
@@ -1488,16 +1510,23 @@ match_field(Table t, Field f, QueryField q, table_offset_t start, table_offset_t
       }
     }
 
+    { int base;
+    case FIELD_HEX:
+      base = 16;
+      goto case_int;
     case FIELD_INTEGER:
-    { long l = 0;
-      int digits=0;
+    { long l;
+      int digits;
 
-      for(; a<z; a++)
+      base = 10;
+    case_int:
+
+      for(l=0, digits=0; a<z; a++)
       { int code;
 
-	if ( (code = digitval(*a)) >= 0 )
+	if ( (code = digitval(*a, base)) >= 0 )
 	{ digits++;
-	  l = l*10+code;
+	  l = l*base+code;
 	}
 	else if ( !isBlank(*a) )
 	{ if ( f->flags & FIELD_ALLOWBADNUM )
@@ -1519,6 +1548,7 @@ match_field(Table t, Field f, QueryField q, table_offset_t start, table_offset_t
       }
 
       return q->value.i == l ? MATCH_EQ : q->value.i < l ? MATCH_LT : MATCH_GT;
+    }
     }
 
     case FIELD_FLOAT:
@@ -1762,6 +1792,7 @@ make_query(Table t, term_t from)
 	    }
 	    qf->length = strlen(qf->value.s);
 	    break;
+	  case FIELD_HEX:
 	  case FIELD_INTEGER:
 	    if ( !PL_get_long(arg, &qf->value.i) )
 	      goto err2;
