@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Class node (part of tree) placement of constrained graphicals using
+  ->geometry instead of ->set, so windows can be displayed in hierarchy nodes.
+
 * FIXED: pce_identifier_item.pl: declare the used error (not filled).
 
 * FIXED: Avoid text_image (used by editor and list_browser) to draw selection

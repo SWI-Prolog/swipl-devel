@@ -219,7 +219,11 @@ computeLayoutNode(Node n, Int l, Int x, Int y)
        n->image->displayed == OFF )
     send(n->tree, NAME_display, n->image, EAV);
   if ( n->image->area->x != x2 || n->image->area->y != y2 )
-    send(n->image, NAME_set, x2, y2, EAV);
+  { Int av[4];
+
+    av[0] = x2; av[1] = y2; av[2] = DEFAULT; av[3] = DEFAULT;
+    qadSendv(n->image, NAME_geometry, 4, av);
+  }
 
   if ( n->collapsed == ON )
     succeed;
