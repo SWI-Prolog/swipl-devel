@@ -1379,6 +1379,14 @@ $do_expand_body(ignore(A), ignore(EA)) :- !,
 $do_expand_body(forall(A, B), forall(EA, EB)) :- !,
         $do_expand_body(A, EA),
         $do_expand_body(B, EB).
+$do_expand_body(findall(V, G, B), findall(V, EG, B)) :- !,
+        $do_expand_body(G, EG).
+$do_expand_body(bagof(V, G, B), bagof(V, EG, B)) :- !,
+        $do_expand_body(G, EG).
+$do_expand_body(setof(V, G, B), setof(V, EG, B)) :- !,
+        $do_expand_body(G, EG).
+$do_expand_body(V^G, V^EG) :- !,
+        $do_expand_body(G, EG).
 $do_expand_body(A, B) :-
         $goal_expansion_module(M),
         M:goal_expansion(A, B0),
