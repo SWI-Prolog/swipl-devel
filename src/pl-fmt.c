@@ -225,7 +225,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 					/* Get the numeric argument */
 	  if ( isDigit(*++fmt) )
 	  { for( ; isDigit(*fmt); fmt++ )
-	      arg = (arg == DEFAULT ? arg = *fmt - '0' : arg*10 + *fmt - '0');
+	      arg = (arg == DEFAULT ? *fmt - '0' : arg*10 + *fmt - '0');
 	  } else if ( *fmt == '*' )
 	  { NEED_ARG;
 	    if ( PL_get_integer(argv, &arg) )
