@@ -10,7 +10,8 @@
 #include "include.h"
 
 static int WINAPI frame_wnd_proc(HWND win, UINT msg, UINT wP, LONG lP);
-static status     keyboard_event_frame(FrameObj fr, Any id);
+static status     keyboard_event_frame(FrameObj fr, Any id,
+				       unsigned long bmask);
 static void       paint_icon(FrameObj fr);
 
 #define MainWindow(fr)	     ( isNil(fr->members->head) ? (Any) fr : \
@@ -276,9 +277,10 @@ do_frame_wnd_proc(FrameObj fr,
     case WM_KEYDOWN:			/* Named keys */
     case WM_SYSCHAR:			/* ALT-commands */
     case WM_CHAR:			/* Printable keys */
-    { Any id = messageToKeyId(message, wParam, lParam);
+    { unsigned long bmask;
+      Any id = messageToKeyId(message, wParam, lParam, &bmask);
 
-      if ( id && keyboard_event_frame(fr, id) )
+      if ( id && keyboard_event_frame(fr, id, bmask) )
 	return 0;
 
       break;
@@ -454,7 +456,7 @@ get_window_holding_point(FrameObj fr, POINT *pt)
 
 
 static status
-keyboard_event_frame(FrameObj fr, Any id)
+keyboard_event_frame(FrameObj fr, Any id, unsigned long bmask)
 { PceWindow sw;
   POINT pt;
   EventObj ev;
@@ -476,6 +478,7 @@ keyboard_event_frame(FrameObj fr, Any id)
     pt.y -= valInt(sw->area->y) + valInt(sw->pen);
   }
   ev = answerObject(ClassEvent, id, receiver, toInt(pt.x), toInt(pt.y), 0);
+  assign(ev, buttons, toInt(valInt(ev->buttons)|bmask));
 
   addCodeReference(ev);
   rval = postEvent(ev, receiver, DEFAULT);

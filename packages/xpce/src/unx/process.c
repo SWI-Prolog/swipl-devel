@@ -88,8 +88,9 @@ static status	killProcess(Process p, Any sig);
 #define OsError() getOsErrorPce(PCE)
 
 #ifndef USE_GRANTPT
-forwards int		getSlave(Process p, char *line);
-forwards int		getMaster(Process, char *);
+forwards int		getSlave(Process p, const char *line);
+static int		getPseudoTTY(Process p, char *line,
+				     int *master, int *slave);
 #endif
 forwards status		copyTty(Process, char *, int);
 
@@ -469,7 +470,7 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 
   if ( isNil(p->pid) )
   { if ( p->use_tty == ON )
-    { int master;
+    { int master, slave;
       int pid;
 #if USE_GRANTPT
       char *line = NULL;
@@ -480,7 +481,7 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 #if USE_GRANTPT
       if ( (master = open("/dev/ptmx", O_RDWR)) < 0 )
 #else
-      if ( (master = getMaster(p, line)) < 0 )
+      if ( !getPseudoTTY(p, line, &master, &slave) )
 #endif
       { Cprintf("[PCE: Failed to get pseudo tty: %s]\n",
 		strName(OsError()));
@@ -490,7 +491,6 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
       if ( (pid = fork()) == 0 )	/* child process */
       { int i, argc;
 	char **argv;
-	int slave;
 	int maxfd = getdtablesize();
 
 	if ( notDefault(p->directory) )
@@ -524,11 +524,6 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 	{ Cprintf("[PCE: failed to get slave pty: %s]\n", strName(OsError()));
 	  exit(1);
 	}
-#else
-	if ( (slave = getSlave(p, line)) < 0 )
-	{ Cprintf("[PCE: failed to open %s: %s]\n", line, strName(OsError()));
-	  exit(CHILD_NOPTY);
-	}
 #endif
 
 	DEBUG(NAME_process, Cprintf("Slave %s at %d\n", line, slave));
@@ -539,8 +534,9 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 	DEBUG(NAME_process, Cprintf("%s initialised\n", line));
 
 	for(i=0; i<=2; i++)		/* dup slave to stdin/stdout/stderr */
-	  if ( slave != i )
+	{ if ( slave != i )
 	    dup2(slave, i);
+	}
 
 	for(i=3; i < maxfd; i++)	/* close remaining open fd's */
 	  close(i);
@@ -562,7 +558,9 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 	}
       } else				/* parent process  */
       {
-#if USE_GRANTPT
+#ifndef USE_GRANTPT
+	close(slave);
+#else
 	if ( (line = ptsname(master)) != NULL )
 #endif
 	  assign(p, tty, CtoName(line));
@@ -876,35 +874,16 @@ makeClassProcess(Class class)
 		*        PROCESS/TTY STUFF	*
 		********************************/
 
+#define TTYPA 'a'
+#define TTYPZ 'z'
+
 static int
-getMaster(Process p, char *line)
+getPseudoTTY(Process p, char *line, int *master, int *slave)
 { char c;
   struct stat stb;
   int i;
   int fd;
-  int idx = strlen("/dev/pty");
-
-  strcpy(line, "/dev/pty");
-  
-
-  for (c = 'p'; c <= 's'; c++)
-  { line[idx] = c;
-    line[idx+1] = '0';
-    line[idx+2] = EOS;
-
-    if ( stat(line, &stb) < 0 )
-      break;
-
-    for (i = 0; i < 16; i++)
-    { line[idx+1] = "0123456789abcdef"[i];
-      if ( (fd = open(line, 2)) >= 0 )
-      { /*chown(line, pwd->pw_uid, pwd->pw_gid);*/
-	chmod(line, 0622);
-
-	return fd;
-      }
-    }
-  }
+  int idx;
 
   if ( stat("/dev/ptc", &stb) == 0 )
   { int n;
@@ -914,14 +893,44 @@ getMaster(Process p, char *line)
       if ( (fd = open(line, 2)) >= 0 )
       { chmod(line, 0622);
 
-	return fd;
+	if ( (*slave = getSlave(p, line)) >= 0 )
+	{ *master = fd;
+	  return TRUE;
+	}
+
+	close(fd);			/* slave is blocked */
       }
     }
   }
 
+  strcpy(line, "/dev/pty");
+  idx = strlen(line);
 
-  errorPce(p, NAME_outOfPtys);
-  return -1;
+  for (c = TTYPA; c <= TTYPZ; c++)
+  { line[idx] = c;
+    line[idx+1] = '0';
+    line[idx+2] = EOS;
+
+    if ( stat(line, &stb) < 0 )
+      continue;
+
+    for (i = 0; i < 16; i++)
+    { line[idx+1] = "0123456789abcdef"[i];
+      if ( (fd = open(line, 2)) >= 0 )
+      { /*chown(line, pwd->pw_uid, pwd->pw_gid);*/
+	chmod(line, 0622);
+
+	if ( (*slave = getSlave(p, line)) >= 0 )
+	{ *master = fd;
+	  return TRUE;
+	}
+
+	close(fd);
+      }
+    }
+  }
+
+  return errorPce(p, NAME_outOfPtys);
 }
 
 /*  Get the slave side of the psuedo tty.  This is where the child is
@@ -929,17 +938,22 @@ getMaster(Process p, char *line)
 */
 
 static int
-getSlave(Process p, char *line)
-{ if ( prefixstr(line, "/dev/pty") )
-    line[strlen("/dev/")] = 't';
-  else if ( prefixstr(line, "/dev/ptc/") )
-    line[strlen("/dev/pt")] = 's';
+getSlave(Process p, const char *line)
+{ char slave[100];
+
+  strcpy(slave, line);
+
+  if ( prefixstr(slave, "/dev/pty") )
+    slave[strlen("/dev/")] = 't';
+  else if ( prefixstr(slave, "/dev/ptc/") )
+    slave[strlen("/dev/pt")] = 's';
   else
     return -1;
-  /*chown(line, pwd->pw_uid, pwd->pw_gid);*/
-  chmod(line, 0622);
-  DEBUG(NAME_process, Cprintf("Opening slave %s\n", line));
-  return open(line, 2);
+
+  /*chown(slave, pwd->pw_uid, pwd->pw_gid);*/
+  chmod(slave, 0622);
+  DEBUG(NAME_process, Cprintf("Opening slave %s\n", slave));
+  return open(slave, 2);
 }
 
 #endif /* !USE_GRANTPT */
@@ -1020,3 +1034,4 @@ copyTty(Process p, char *pty, int fd)
 }
 
 #endif /*HAVE_PTYS*/
+

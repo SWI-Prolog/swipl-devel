@@ -98,7 +98,8 @@ HWND		getHwndFrame(FrameObj fr);
 void		setHwndFrame(FrameObj fr, HWND ref);
 HWND		getHwndWindow(PceWindow sw);
 void		setHwndWindow(PceWindow sw, HWND ref);
-Any		messageToKeyId(UINT message, UINT wParam, LONG lParam);
+Any		messageToKeyId(UINT message, UINT wParam, LONG lParam,
+			       unsigned long *bmask);
 EventObj	messageToEvent(HWND hwnd, UINT msg, UINT wParam, LONG lParam);
 status		d_mswindow(PceWindow sw, IArea a, int clear);
 void		d_hdc(HDC hdc, Colour fg, Colour bg);

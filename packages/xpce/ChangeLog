@@ -1,5 +1,38 @@
+* FIXED: PceDraw problem with text objects, related to an incompatibility
+  in use_class_template: it is no longer supported to define methods for
+  methods that are already in the template.  The compiler should be
+  modified to give an error in this case.
+
+* FIXED: text_buffer comment detection: skip over quoted strings.
+
+* ADDED: `text_buffer ->for_all_comments' to support colourisation of
+  comments based on the syntax table.
+
+* ADDED: xpce/src/msw/mkxcolours to generate the X-colour database
+  automatically.  The old file had some dark ... colours missing.
+
+* ADDED: manpce/0: Tools/Event viewer to examine the events generated
+  by user interaction.
+
+* ADDED: Win32: set shift/control/meta information in events for keyboard
+  related events, so one can detect shift-cursor-left, etc.  Spotted by
+  Uwe Lesta.
+
+* ADDED: various details to PceEmacs modes (to improve sharing with 
+  functionality under development).
+
+* ADDED: `text_buffer <-skip_layout' to skip blank space
+
 VERSION 5.0.3
 =============
+
+* MODIFIED: PceEmacs M-x visit_tag_table to check automatically for parent
+  directories that have a TAGS file if the current directory doesn't have
+  one.
+
+* FIXED: Unix version `process->open' to skip pseudo-ttys for which the
+  slave-side cannot be opened.  This used to stop starting tty-bound
+  processes if an application had left the tty of choice in a bad state.
 
 * FIXED: Redraw problem with Windows-buttons if it is the default problem.
 

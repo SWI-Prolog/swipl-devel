@@ -324,6 +324,7 @@ names/built:	names Names.Gen Names.X
 ################################################################
 
 tags:		
+		cd $(srcdir); \
 		fs="h/*.h x11/*.c"; \
 		for d in $(MODULES); do fs="$$fs $$d/*.c"; done; \
 		$(ETAGS) $$fs

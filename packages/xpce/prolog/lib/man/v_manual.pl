@@ -22,6 +22,7 @@
 	   , send_list/3
 	   ]).
 
+:- pce_autoload(event_viewer, library('man/showevent')).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			    OVERALL ARCHITECTURE
@@ -259,7 +260,9 @@ fill_dialog(M, D) :->
 	send_list(T, append,
 	     [ statistics
 	     , inspector
-	     , menu_item(visual_hierarchy,
+	     , visual_hierarchy
+	     , menu_item(event_viewer,
+			 message(M, event_viewer),
 			 end_group := @on)
 	     , menu_item(dialog_editor,
 			 message(M, dialog_editor))
@@ -558,6 +561,9 @@ dialog_editor(_M) :->
 	"Start the dialog editor"::
 	auto_call(dialog).
 
+event_viewer(_) :->
+	"Start event-viewer"::
+	send(new(event_viewer), open).
 
 start_emacs(_M) :->
 	"Start PceEmacs (*scratch* buffer)"::

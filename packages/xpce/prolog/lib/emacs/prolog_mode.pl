@@ -682,6 +682,10 @@ check_clause(M, From:[int], End:int) :<-
 	    ;   mark_singletons(M, T, S, P),
 		replace_singletons(M, P)
 	    ),
+	    (	send(M, has_send_method, colourise_term)
+	    ->	send(M, colourise_term, T, P)
+	    ;	true
+	    ),
 	    arg(2, P, E0),
 	    get(TB, find, E0, '.', 1, end, End)
 	;   Error = EPos:Msg,
@@ -767,8 +771,10 @@ unmark_singletons(M, P) :-
 	arg(1, P, Start),
 	arg(2, P, End),
 	new(Pt, point(Start, End)),
-	get(M, find_all_fragments, message(@arg1, overlap, Pt), Frags),
-	send(Frags, for_all, message(@arg1, free)).
+	send(M, for_all_fragments,
+	     if(and(@arg1?style == singleton,
+		    message(@arg1, overlap, Pt)),
+		message(@arg1, free))).
 
 mark_singletons(M, T, S, A-Z) :-
 	var(T),
@@ -804,7 +810,10 @@ replace_singletons(M, P) :-
 	arg(1, P, Start),
 	arg(2, P, End),
 	new(Pt, point(Start, End)),
-	get(M, find_all_fragments, message(@arg1, overlap, Pt), Frags),
+	get(M, find_all_fragments,
+	    and(message(@arg1, overlap, Pt),
+		@arg1?style == singleton),
+	    Frags),
 	send(M, attribute, singletons, Frags),
 	get(M, caret, C),
 	send(M, mark, C),
@@ -840,12 +849,6 @@ prepare_replace_singletons(M) :-
 	send(M, caret, E),
 	send(M, report, status,
 	     'Replace singleton? (''y'' --> _Name, ''_'' --> _, ''n'')').
-
-pce_ifhostproperty(prolog(swi),		% should become built-in
-(seek(Fd, Pos, bof, Old) :-
-	stream_position(Fd,
-			'$stream_position'(Old, _, _),
-			'$stream_position'(Pos, 0, 0)))).
 
 
 		 /*******************************

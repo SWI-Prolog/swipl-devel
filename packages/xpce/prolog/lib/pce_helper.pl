@@ -716,6 +716,7 @@ ispell(E) :->
 
 :- pce_global(@hlp_external_regex, new(regex('^\(.+\):\(\w+$\)'))).
 :- pce_global(@hlp_prolog_regex, new(regex('^prolog://\(.*\)$'))).
+:- pce_global(@hlp_manpce_regex, new(regex('^manpce://\(.*\)$'))).
 
 button(E, Button:hlp_fragment) :<-
 	"Find button at caret"::
@@ -751,6 +752,10 @@ goto(E, Label, _) :-
 	    )
 	;   send(E, report, error, 'Syntax error in %s', GoalAtom)
 	).
+goto(_, Label, _) :-
+	send(@hlp_manpce_regex, match, Label), !,
+	get(@hlp_manpce_regex, register_value, Label, 1, name, Target),
+	auto_call(manpce(Target)).
 goto(_, Label, _) :-
 	send(@hlp_external_regex, match, Label), !,
 	get(@hlp_external_regex, register_value, Label, 1, name, DB),

@@ -26,6 +26,7 @@ prolog_edit:(locate(ClassName, class(ClassName), Location) :-
 prolog_edit:locate(class(ClassName), Location) :-	% class(Name)
 	atom(ClassName),
 	get(@pce, convert, ClassName, class, Class),
+	\+ get(Class, creator, built_in),
 	source(Class, Location).
 prolog_edit:locate(Object, Location) :-			% @reference
 	source(Object, Location).

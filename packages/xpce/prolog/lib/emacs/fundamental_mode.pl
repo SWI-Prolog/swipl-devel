@@ -119,6 +119,32 @@ region(M, Tuple:tuple) :<-
 	->  new(Tuple, tuple(Caret, Mark))
 	).
 
+line_region(M, F0:[int], T0:[int], Tuple:tuple) :<-
+	"Start and end-of region for line-oriented commands"::
+	(   F0 == @default,
+	    T0 == @default
+	->  get(M, region, tuple(From, To))
+	;   From = F0,
+	    To = T0
+	),
+	get(M, text_buffer, TB),
+	get(TB, scan, From, line, 0, start, S),
+	get(TB, scan, To,   line, 0, start, E),
+	new(Tuple, tuple(S, E)).
+
+for_lines_in_region(M, From:[int], To:[int], Code:code) :->
+	"Run code with @arg1, @arg2 at the start/end of each line"::
+	get(M, line_region, From, To, tuple(S, E)),
+	for_lines_in_region(M, S, E, Code).
+
+for_lines_in_region(_M, S, E, _Code) :-
+	S >= E, !.
+for_lines_in_region(M, S, E, Code) :-
+	get(M, scan, S, line, 0, EOL),
+	send(Code, forward, S, EOL),
+	SOL is EOL + 1,
+	for_lines_in_region(M, SOL, E, Code).
+
 warn_big_region(M, Action:name, N:int) :->
 	"Warn if region exceeds size"::
 	get(M, region, tuple(Start, End)),

@@ -406,7 +406,17 @@ handle(w,   h/2, link, east).
 		*            TEXT		*
 		********************************/
 
-:- draw_begin_shape(draw_text, text, "PceDraw editable text", []).
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+In draw_text, we'd like to write  ->event,   but  this  has already been
+defined in the template. XPCE does not  support this. Therefore we first
+define draw_text1, which will include the   template, and then draw_text
+as a subclass thereof in which we redefine the ->event method. 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- draw_begin_shape(draw_text1, text, "PceDraw editable text (support)", []).
+:- draw_end_shape.
+
+:- draw_begin_shape(draw_text, draw_text1, "PceDraw editable text", []).
 
 handle(w/2, 0,   link, north).
 handle(w/2, h,   link, south).

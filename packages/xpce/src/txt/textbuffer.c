@@ -1077,6 +1077,8 @@ getSkipBlanksTextBuffer(TextBuffer tb, Int where, Name direction, Bool skipnl)
 
   if ( isDefault(skipnl) )
     skipnl = ON;
+  if ( isDefault(direction) )
+    direction = NAME_forward;
 
   if ( direction == NAME_forward )
   { if ( skipnl == OFF )
@@ -1205,13 +1207,23 @@ static status
 inCommentTextBuffer(TextBuffer tb, Int pos, Int from)
 { int idx = valInt(pos);
   int here = (isDefault(from) ? 0 : valInt(from));
+  SyntaxTable syntax = tb->syntax;
 
   while(here <= idx)
-  { char c;
+  { int c = fetch(here);
 
-    if ( tiscommentstart(tb->syntax, c=fetch(here)) ||
-	 (tiscommentstart1(tb->syntax, c) &&
-	  tiscommentstart2(tb->syntax, fetch(here+1))) )
+    if ( tisquote(syntax, c) )
+    { Int h = getMatchingQuoteTextBuffer(tb, toInt(here), NAME_forward);
+
+      if ( !h )
+	succeed;
+      here = valInt(h) + 1;
+      continue;
+    }
+
+    if ( tiscommentstart(syntax, c) ||
+	 (tiscommentstart1(syntax, c) &&
+	  tiscommentstart2(syntax, fetch(here+1))) )
     { here = valInt(getSkipCommentTextBuffer(tb, toInt(here), DEFAULT, OFF));
       if ( here >= idx )
 	succeed;
@@ -1221,6 +1233,47 @@ inCommentTextBuffer(TextBuffer tb, Int pos, Int from)
   }
 
   fail;
+}
+
+
+static status
+forAllCommentsTextBuffer(TextBuffer tb, Code msg, Int from, Int to)
+{ int here = (isDefault(from) ? 0 : valInt(from));
+  int end  = (isDefault(to)   ? tb->size : valInt(to));
+  SyntaxTable syntax = tb->syntax;
+
+  if ( here < 0 )			/* normalise the indices */
+    here = 0;
+  if ( end > tb->size )
+    end = tb->size;
+
+  while(here < end)
+  { int c = fetch(here);
+
+    if ( tisquote(syntax, c) )
+    { Int h = getMatchingQuoteTextBuffer(tb, toInt(here), NAME_forward);
+
+      if ( !h )
+	succeed;
+      here = valInt(h) + 1;
+      continue;
+    }
+
+    if ( tiscommentstart(syntax, c) ||
+	 (tiscommentstart1(syntax, c) &&
+	  tiscommentstart2(syntax, fetch(here+1))) )
+    { int endc = valInt(getSkipCommentTextBuffer(tb, toInt(here),
+						 DEFAULT, OFF));
+
+      forwardReceiverCode(msg, tb, toInt(here), toInt(endc), 0);
+
+      here = endc;
+    }
+
+    here++;
+  }
+
+  succeed;
 }
 
 
@@ -2197,15 +2250,23 @@ static char *T_matchingBracket[] =
 static char *T_matchingQuote[] =
         { "from=int", "direction={forward,backward}" };
 static char *T_find[] =
-        { "from=int", "for=string", "times=[int]", "return=[{start,end}]", "exact_case=[bool]", "word=[bool]" };
+        { "from=int", "for=string", "times=[int]",
+	  "return=[{start,end}]", "exact_case=[bool]", "word=[bool]" };
 static char *T_fromAint_sizeAint[] =
         { "from=int", "size=int" };
 static char *T_skipComment[] =
         { "from=int", "to=[int]", "skip_layout=[bool]" };
+static char *T_skipLayout[] =
+        { "from=int",
+	  "direction=[{forward,backward}]", "skip_newline=[bool]" };
 static char *T_scan[] =
-        { "from=int", "unit={character,word,line,sentence,paragraph,term}", "times=[int]", "return=[{start,end}]" };
+        { "from=int",
+	  "unit={character,word,line,sentence,paragraph,term}",
+	  "times=[int]", "return=[{start,end}]" };
 static char *T_save[] =
         { "in=file", "from=[int]", "size=[int]" };
+static char *T_forAllComments[] =
+	{ "message=code", "from=[int]", "to=[int]" };
 static char *T_indexAint_startADintD[] =
         { "index=int", "start=[int]" };
 static char *T_report[] =
@@ -2287,6 +2348,8 @@ static senddecl send_textBuffer[] =
      NAME_iterate, "Iterate code over all fragments"),
   SM(NAME_inComment, 2, T_indexAint_startADintD, inCommentTextBuffer,
      NAME_language, "Test if first index is in comment"),
+  SM(NAME_forAllComments, 3, T_forAllComments, forAllCommentsTextBuffer,
+     NAME_iterate, "Iterate code over all comments"),
   SM(NAME_inString, 2, T_indexAint_startADintD, inStringTextBuffer,
      NAME_language, "Test if first index is in string constant"),
   SM(NAME_checkPointUndo, 0, NULL, checkpointUndoTextBuffer,
@@ -2330,6 +2393,8 @@ static getdecl get_textBuffer[] =
      NAME_language, "Find matching string-quote"),
   GM(NAME_skipComment, 3, "index=int", T_skipComment, getSkipCommentTextBuffer,
      NAME_language, "Skip comments and optionally white space"),
+  GM(NAME_skipLayout, 3, "index=int", T_skipLayout, getSkipBlanksTextBuffer,
+     NAME_language, "Skip white-space in either direction"),
   GM(NAME_lineNumber, 1, "line=int", "index=[int]", getLineNumberTextBuffer,
      NAME_line, "Get line number (1-based) for character index"),
   GM(NAME_scan, 4, "index=int", T_scan, getScanTextBuffer,

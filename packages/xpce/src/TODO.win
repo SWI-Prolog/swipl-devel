@@ -1,31 +1,30 @@
 			MS-Windows Port TODO List
 			     Jan Wielemaker
 
+%	Last updated: Fri Mar 19 1999
+
 Images:
 
-	* TBD: Save/Load in MS-Windows format
-	* TBD: Save/Load in portable `object ->save_in_file' format
-
-Cursors:
-
-	* TBD: Fake cursors > 32x32 bits for supporting drag-and-drop.
-
-Redraw:
-
-	* TBD: Further improve on update-planning.
+	* TBD: Save in MS-Windows format
 
 Timers:
 
 	* FIX: Sometimes stops after closing some window.
 	* TBD: Implement timers with a time of > 2**16 milliseconds.
 
-Resources:
+GUI:
 
-	* TBD: Provide hooks to incorporate Windows defaults where applicable.
+	* Uwe Lesta:
 
-Console:
-
-	* TBD: User font-specification
-	* FIX: Resize of console with wrapped readline input line.
-	* FIX: Selection handling on resize (wrap problem?)
-	* TBD: Map Windows application errors onto signals
+``	If you like i can tell you some things
+	where the use of the dialog elements
+	can be make more elegant (windows like).
+	e.g. a combobox ( a text_item with a value_set )
+	on windows you can also select a value by open the box
+	and drag down to the value you want.
+	Or an other example your list browser e.g.
+	Demo programs. I open it select the Program (all with the keyboard)
+	that i like and than ?? I need the mouse. 
+	with which key can i open it. ?
+	(Alt+O don't work, but the selecton is green not blue)
+''

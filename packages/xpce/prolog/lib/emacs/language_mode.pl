@@ -233,17 +233,23 @@ backward_delete_char_untabify(M, Times:[int]) :->
 visit_tag_table(M, Table:tag_file='file|directory') :->
 	"Load specified GNU-Emacs (etags) tag-table"::
 	(   send(Table, instance_of, directory)
-	->  get(Table, file, 'TAGS', TagFile)
+	->  find_tag_from_dir(Table, TagFile)
 	;   TagFile = Table
 	),
 	get(TagFile, absolute_path, TagFileName),
 	(   send(TagFile, access, read)
 	->  auto_call(emacs_init_tags(TagFileName)),
 	    send(M, report, status, 'Loaded TAG table %s', TagFileName)
-	;   send(M, report, warning, '%s: no such file', TagFileName),
+	;   send(M, report, warning, '%s: not accessible', TagFileName),
 	    fail
 	).
 
+find_tag_from_dir(Dir, File) :-
+	get(Dir, file, 'TAGS', File),
+	send(File, exists), !.
+find_tag_from_dir(Dir, File) :-
+	get(Dir, parent, Parent),
+	find_tag_from_dir(Parent, File).
 
 expand_tag(M, Tag:[name], TheTag:name) :<-
 	"Expand tag using tag-table"::

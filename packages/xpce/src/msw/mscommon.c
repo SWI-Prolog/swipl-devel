@@ -9,7 +9,6 @@
 
 #include "include.h"
 
-
 		 /*******************************
 		 *	     DEBUGGING		*
 		 *******************************/
@@ -232,9 +231,15 @@ IsDownMeta(LONG lParam)
 
 
 Any
-messageToKeyId(UINT message, UINT wParam, LONG lParam)
+messageToKeyId(UINT message, UINT wParam, LONG lParam, unsigned long *bmask)
 { Any id = FAIL;
+  unsigned long state = 0L;
   
+  if ( IsDownKey(VK_CONTROL) )
+    state |= BUTTON_control;
+  if ( IsDownKey(VK_SHIFT) )
+    state |= BUTTON_shift;
+
   switch(message)
   { case WM_KEYDOWN:
     { switch((int) wParam)
@@ -266,19 +271,19 @@ messageToKeyId(UINT message, UINT wParam, LONG lParam)
         case VK_F9:		id = NAME_keyTop_9;	break;
         case VK_F10:		id = NAME_keyTop_10;	break;
         case '2':			/* ^@ */
-	  if ( IsDownKey(VK_CONTROL) )
+	  if ( state & BUTTON_control )
 	    id = ZERO;
 	  break;
 	case 0xbd:			/* OEM specific Control('_') ??? */
-	  if ( IsDownKey(VK_CONTROL) && !IsDownKey(VK_SHIFT) )
+	  if ( (state & BUTTON_control) && !(state & BUTTON_shift) )
 	    id = toInt(Control('_'));
 	  break;
 	case 0x56:			/* OEM specific 'V' ??? */
-	  if ( IsDownKey(VK_CONTROL) && IsDownMeta(lParam) )
+	  if ( (state & BUTTON_control) && IsDownMeta(lParam) )
 	    id = toInt(Control('V') + META_OFFSET);
 	  break;
 	case 0x49:			/* OEM specific 'I' ??? */
-	  if ( IsDownKey(VK_CONTROL) && IsDownMeta(lParam) )
+	  if ( (state & BUTTON_control) && IsDownMeta(lParam) )
 	    id = toInt(Control('I') + META_OFFSET);
 	  break;
       }
@@ -287,6 +292,7 @@ messageToKeyId(UINT message, UINT wParam, LONG lParam)
     }
     case WM_SYSCHAR:			/* handle ALT keys myself */
       id = toInt(wParam + META_OFFSET);
+      state |= BUTTON_meta;
       break;
 
     case WM_CHAR:
@@ -300,6 +306,9 @@ messageToKeyId(UINT message, UINT wParam, LONG lParam)
       break;
     }
   }
+
+  if ( id && bmask )
+    *bmask = state;
 
   return id;
 }
@@ -321,10 +330,15 @@ messageToEvent(HWND hwnd, UINT message, UINT wParam, LONG lParam)
   { case WM_KEYDOWN:			/* Named keys */
     case WM_SYSCHAR:			/* ALT-commands */
     case WM_CHAR:			/* Printable keys */
-      id = messageToKeyId(message, wParam, lParam);
-      if ( !id )
+    { unsigned long state = 0L;
+
+      if ( (id = messageToKeyId(message, wParam, lParam, &state)) )
+	buttons = toInt(state);
+      else
 	id = NIL;
+
       break;
+    }
 					/* BEGIN MOUSE STUFF */
     case WM_LBUTTONUP:
       if ( emu_hwnd == hwnd )
@@ -429,8 +443,8 @@ messageToEvent(HWND hwnd, UINT message, UINT wParam, LONG lParam)
   }
 
   if ( mouse_ev )
-  { int state = 0;
-    POINTS pt = MAKEPOINTS(lParam);
+  { POINTS pt = MAKEPOINTS(lParam);
+    int state = 0;
 
     x = toInt(pt.x);
     y = toInt(pt.y);
