@@ -260,7 +260,11 @@ rdfs_find(String, Domain, Fields, Method, Subject) :-
 	globalise_list(Fields, GlobalFields),
 	For =.. [Method,String],
 	member(Field, GlobalFields),
-	rdf_has(Subject, Field, literal(For, _)),
+	(   Field == resource
+	->  rdf_subject(Subject),
+	    rdf_match_label(Method, String, Subject)
+	;   rdf_has(Subject, Field, literal(For, _))
+	),
 	owl_satisfies(Domain, Subject).
 
 owl_satisfies(Domain, _) :-
