@@ -622,7 +622,7 @@ addClauseToIndex(Definition def, Clause cl, int where)
   } else
   { int hi = hashIndex(cl->index.key, ci->buckets);
     
-    DEBUG(2, Sdprintf("Storing in bucket %d\n", hi));
+    DEBUG(4, Sdprintf("Storing in bucket %d\n", hi));
     appendClauseChain(&ch[hi], cl, where);
 
     if ( ++ci->size / 2 > ci->buckets )
@@ -660,6 +660,8 @@ hashDefinition(Definition def, int buckets)
     fail;
   if ( def->indexPattern != 0x1 )
     fail;
+
+  DEBUG(2, Sdprintf("hashDefinition(%s, %d)\n", predicateName(def), buckets));
 
   LOCK();
   def->hash_info = newClauseIndexTable(buckets);

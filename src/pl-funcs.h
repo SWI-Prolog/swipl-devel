@@ -124,6 +124,7 @@ word		pl_clause2(term_t p, term_t term, word h);
 word		pl_nth_clause(term_t p, term_t n, term_t ref, word h);
 word		pl_xr_member(term_t ref, term_t term, word h);
 void		wamListClause(Clause clause);
+Code		wamListInstruction(IOSTREAM *out, Clause clause, Code bp);
 word		pl_wam_list(term_t ref);
 word		pl_fetch_vm(term_t ref, term_t offset, term_t noffset,
 			    term_t instruction);
