@@ -1190,25 +1190,62 @@ process_entity_declaraction(dtd_parser *p, const ichar *decl)
   }
 
   if ( (decl=process_entity_value_declaration(p, decl, e)) )
-  { if ( e->type != ET_LITERAL && *decl )
-    { dtd_symbol *nname;
+  { if ( e->type == ET_LITERAL )
+    { switch(e->content)
+      { case EC_STARTTAG:
+	{ ichar *buf = sgml_malloc((e->length + 3)*sizeof(ichar));
 
-      if ( (s=isee_identifier(dtd, decl, "cdata")) )
-      { decl = s;
-	e->content = EC_CDATA;
-      } else if ( (s=isee_identifier(dtd, decl, "sdata")) )
-      { decl = s;
-	e->content = EC_SDATA;
-      } else if ( (s=isee_identifier(dtd, decl, "ndata")) )
-      { decl = s;
-	e->content = EC_NDATA;
-      } else
-	return gripe(ERC_SYNTAX_ERROR, "Bad datatype declaration", decl);
+	  buf[0] = dtd->charfunc->func[CF_STAGO];
+	  istrcpy(&buf[1], e->value);
+	  buf[++e->length] = dtd->charfunc->func[CF_STAGC];
+	  buf[++e->length] = 0;
 
-      if ( (s=itake_name(dtd, decl, &nname)) )
-      { decl = s;
-      } else
-	return gripe(ERC_SYNTAX_ERROR, "Bad notation declaration", decl);
+	  sgml_free(e->value);
+	  e->value = buf;
+	  e->content = EC_SGML;
+
+	  break;
+	}
+	case EC_ENDTAG:
+	{ ichar *buf = sgml_malloc((e->length + 4)*sizeof(ichar));
+
+	  buf[0] = dtd->charfunc->func[CF_ETAGO1];
+	  buf[1] = dtd->charfunc->func[CF_ETAGO2];
+	  istrcpy(&buf[2], e->value);
+	  e->length++;
+	  buf[++e->length] = dtd->charfunc->func[CF_STAGC];
+	  buf[++e->length] = 0;
+
+	  sgml_free(e->value);
+	  e->value = buf;
+	  e->content = EC_SGML;
+
+	  break;
+	}
+	default:
+	  break;
+      }
+    } else
+    { if ( *decl )
+      { dtd_symbol *nname;
+
+	if ( (s=isee_identifier(dtd, decl, "cdata")) )
+	{ decl = s;
+	  e->content = EC_CDATA;
+	} else if ( (s=isee_identifier(dtd, decl, "sdata")) )
+	{ decl = s;
+	  e->content = EC_SDATA;
+	} else if ( (s=isee_identifier(dtd, decl, "ndata")) )
+	{ decl = s;
+	  e->content = EC_NDATA;
+	} else
+	  return gripe(ERC_SYNTAX_ERROR, "Bad datatype declaration", decl);
+  
+	if ( (s=itake_name(dtd, decl, &nname)) ) /* what is this? */
+	{ decl = s;
+	} else
+	  return gripe(ERC_SYNTAX_ERROR, "Bad notation declaration", decl);
+      }
     }
 
     if ( *decl )
@@ -3757,14 +3794,6 @@ process_entity(dtd_parser *p, const ichar *name)
 	    add_ocharbuf(p->cdata, *o);
 	  break;
 	}
-      case EC_STARTTAG:
-	prepare_cdata(p);
-	process_begin_element(p, text);
-	break;
-      case EC_ENDTAG:
-	prepare_cdata(p);
-	process_end_element(p, text);
-	break;
       case EC_SDATA:
       case EC_NDATA:
 	process_cdata(p, FALSE);
@@ -3775,6 +3804,18 @@ process_entity(dtd_parser *p, const ichar *name)
 	process_cdata(p, FALSE);
 	if ( p->on_pi )
 	  (*p->on_pi)(p, text);
+      case EC_STARTTAG:
+#if 0
+	prepare_cdata(p);
+	process_begin_element(p, text);
+#endif
+	break;
+      case EC_ENDTAG:
+#if 0
+	prepare_cdata(p);
+	process_end_element(p, text);
+#endif
+	break;
     }
 
     return TRUE;
@@ -3792,7 +3833,9 @@ on the state and the start-location of the error.
 int
 end_document_dtd_parser(dtd_parser *p)
 { switch(p->state)
-  { case S_PCDATA:
+  { case S_RCDATA:
+    case S_CDATA:
+    case S_PCDATA:
     { if ( p->dmode == DM_DATA )
       { sgml_environment *env;
 
@@ -3813,10 +3856,6 @@ end_document_dtd_parser(dtd_parser *p)
       }
       return TRUE;
     }
-    case S_CDATA:
-    case S_RCDATA:
-      return gripe(ERC_SYNTAX_ERROR,
-		   "Unexpected end-of-file in CDATA/RCDATA element", "");
     case S_CMT:
     case S_CMTE0:
     case S_CMTE1:

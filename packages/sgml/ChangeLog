@@ -1,3 +1,9 @@
+* FIXED: Interpret <!ENTITY e STARTTAG "x"> as <!ENTITY e "<x>"> (well,
+  dependent on the delimiters).  (Richard O'Keefe).
+
+* FIXED: Allow omitted end-tag for RCDATA and CDATA elements (only effective
+  when hitting the end of the file).
+
 * FIXED: Proper parsing of <!NOTATION ...> declaration.  Also fixed
   dtd_property(DTD, notations(Notations)) and modified
   dtd_property(DTD, notation(N, Decl)).
