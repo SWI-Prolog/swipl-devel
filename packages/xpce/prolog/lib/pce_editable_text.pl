@@ -149,7 +149,7 @@ typed(T, Id:event_id) :->
 
 event(T, Ev:event) :->
 	(   send(@editable_text_gesture, event, Ev)
-	;   send(T, send_super, event, Ev)
+	;   send_super(T, event, Ev)
 	).
 
 :- pce_end_class.

@@ -572,7 +572,6 @@ forwards int	compileSubClause(Word, code, compileInfo *);
 forwards bool	isFirstVar(VarTable vt, int n);
 forwards int	balanceVars(VarTable, VarTable, compileInfo *);
 forwards void	orVars(VarTable, VarTable);
-forwards void	setVars(Word t, VarTable ARG_LD);
 #if O_COMPILE_ARITH
 forwards int	compileArith(Word, compileInfo * ARG_LD);
 forwards bool	compileArithArgument(Word, compileInfo * ARG_LD);
@@ -651,9 +650,21 @@ orVars(VarTable valt1, VarTable valt2)
     *p1++ |= *p2++;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+setVars() marks all variables that appear   in the argument term, except
+for variables appearing inside the  \+   control  structure  as \+ never
+binds any variables. isctrl is TRUE  as   long  as  we are unfolding the
+control-structure and FALSE when we  are   in  the arguments to control-
+structures, so the arguments of  a  \+/1   term  inside  an  argument is
+counted normally.  See also the comments on \+ above compileBody().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
-setVars(register Word t, VarTable vt ARG_LD)
+setVars(Word t, VarTable vt, int isctrl ARG_LD)
 { int index;
+
+last_arg:
 
   deRef(t);
   if ( (index = isIndexedVarTerm(*t PASS_LD)) >= 0 )
@@ -664,9 +675,23 @@ setVars(register Word t, VarTable vt ARG_LD)
   if ( isTerm(*t) )
   { int arity;
 
-    arity = arityTerm(*t);
-    for(t = argTermP(*t, 0); arity > 0; t++, arity--)
-      setVars(t, vt PASS_LD);
+    if ( isctrl )
+    { functor_t fd = functorTerm(*t);
+      FunctorDef fdef = valueFunctor(fd);
+
+      if ( true(fdef, CONTROL_F) )
+      { if ( fd == FUNCTOR_not_provable1 )
+	  return;
+      } else
+	isctrl = FALSE;
+
+      arity = fdef->arity;
+    } else
+      arity = arityTerm(*t);
+
+    for(t = argTermP(*t, 0); --arity > 0; t++)
+      setVars(t, vt, isctrl PASS_LD);
+    goto last_arg;
   }
 }
 
@@ -947,8 +972,15 @@ A ; B, A -> B, A -> B ; C, \+ A
     these variables, leaving them invalid. Same holds for the
     source-level debugger using the same function. Therefore we
     explicitely reset these variables at the end of the code created by
-    \+. For optimisation-reasons however we can consider them
-    uninitialised.
+    \+.
+
+    For optimisation-reasons however we can consider them uninitialised
+    --- I thought :-( When compiling ( A ; \+ B ) the compilation of ;/2
+    examines the variables in both branches using setVars() and or's
+    them. Using this simple-minded causes the variables inside B to be
+    considered initialised at the end of the ;/2 while they are not.
+    For this reason, setVars() does not count variables inside \+/1
+    when encounted as a control-structure.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -978,8 +1010,8 @@ compileBody(Word body, code call, compileInfo *ci ARG_LD)
 	  valt1 = mkCopiedVarTable(ci->used_var);
 	  valt2 = mkCopiedVarTable(ci->used_var);
 	
-	  setVars(argTermP(*body, 0), valt1 PASS_LD);
-	  setVars(argTermP(*body, 1), valt2 PASS_LD);
+	  setVars(argTermP(*body, 0), valt1, TRUE PASS_LD);
+	  setVars(argTermP(*body, 1), valt2, TRUE PASS_LD);
 	} else
 	  vsave = valt1 = valt2 = NULL;
 
@@ -1091,7 +1123,7 @@ compileBody(Word body, code call, compileInfo *ci ARG_LD)
 	  tc_jmp = PC(ci);
 	  OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
 	  if ( balanceVars(vsave, ci->used_var, ci) > 0 )
-	  { copyVarTable(ci->used_var, vsave);
+	  { copyVarTable(ci->used_var, vsave);     /* \+ never binds any */
 	    OpCode(ci, tc_jmp-1) = (code)(PC(ci) - tc_jmp);
 	  } else			/* delete the jmp */
 	  { seekBuffer(&ci->codes, tc_jmp-2, code);

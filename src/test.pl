@@ -739,6 +739,9 @@ c2 :-
 	).
 c2.
 
+p(f(a,d)).
+p(f(b,c)).
+
 control(softcut-1) :-
 	findall(A, softcut1(A), [1,2]).
 control(softcut-2) :-
@@ -764,6 +767,8 @@ control(cut-1) :-
 	c1.
 control(cut-1) :-
 	\+ c2.
+control(not-1) :-
+	( fail ; \+ \+ p(f(X,Y)) ), p(f(X,Y)).
 
 
 		 /*******************************

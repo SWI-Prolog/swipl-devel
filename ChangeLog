@@ -7,6 +7,13 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.2.5 (Jul 23, 2003)
+============================
+
+  * FIXED: Bug in \+ inside ;/2 or (if -> then ; else) if the \+ introduces
+    new variables.  Jorge Baier Aranda.  Compiler bug; saved states and
+    QLF files must be recompiled.
+
   * FIXED: Switch off profiler during show_profile/2.  David Reitter.
 
   * FIXED: Bug#79, Gui tracer loosing pending exceptions.  Holger Kanwischer.
