@@ -45,6 +45,10 @@ connections and. In addition, if  the  system   is  embedded  in  an GUI
 even-driven application we try  to  handle   events  on  behalf  of this
 application while blocked in a socket operation.
 
+Please  note  that  in  the  current  version  wait_for_input/3  doesn't
+dispatch events. This needs to be fixed.
+
+
 Windows issues
 --------------
 
@@ -54,6 +58,12 @@ function. If it returns WSAEWOULDBLOCK we   call waitMsg() to dispatch a
 message (for example a socket message  to   our  hidden  window) and try
 again. This design ensures other  parts   of  the application running on
 normal event-dispatching keep working while blocked.
+
+Unix issues
+-----------
+
+In the Unix version we simply call PL_dispatch() before doing recv() and
+leave the details to this function.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef HAVE_CONFIG_H
@@ -878,6 +888,8 @@ tcp_read(void *handle, char *buf, int bufSize)
 
 #ifdef WIN32
 again:
+#else
+  PL_dispatch(socket, PL_DISPATCH_WAIT);
 #endif
 
   n = recv(socket, buf, bufSize, 0);
