@@ -418,21 +418,25 @@ read_jpeg_file(IOSTREAM *fd, Image image)
 #include <img/gifwrite.h>
 typedef unsigned char GSAMPLE;
 
+#define ROUND(p, n)		((((p) + (n) - 1) & ~((n) - 1)))
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Old versions used GetPixel(). Now it   uses  GetDIBits(), which probably
+gives a big performance boost. Unfortutanely   though we need packed RGB
+and GetDIBits() returns a word-aligned array of RGB triples Billy nicely
+orders as BGR. Hence the shifting and swapping ...
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 write_gif_file(IOSTREAM *fd, Image image, HBITMAP bm, HBITMAP mask)
-{ BITMAP bitmap;
-  int width, height, depth;
-  int y, rval;
+{ int width = valInt(image->size->w);
+  int height = valInt(image->size->h);
+  int rval, sl;
   HDC hdc;
-  HBITMAP obm;
-  GSAMPLE *data, *s;
+  GSAMPLE *data;
   DisplayObj d = image->display;
   HPALETTE ohpal=0, hpal;
-
-  if ( !GetObject(bm, sizeof(BITMAP), &bitmap) )
-  { Cprintf("write_gif_file(): GetObject() failed\n");
-    return -1;
-  }
+  BITMAPINFO info;
 
   if ( isNil(d) )
     d = CurrentDisplay(image);
@@ -441,35 +445,72 @@ write_gif_file(IOSTREAM *fd, Image image, HBITMAP bm, HBITMAP mask)
   else
     hpal = NULL;
 
-  width  = bitmap.bmWidth;
-  height = bitmap.bmHeight;
-  depth  = bitmap.bmPlanes * bitmap.bmBitsPixel;
-
   hdc = CreateCompatibleDC(NULL);
   if ( hpal )
   { ohpal = SelectPalette(hdc, hpal, FALSE);
     RealizePalette(hdc);
   }
-  obm = ZSelectObject(hdc, bm);
 
-  s = data = pceMalloc(sizeof(GSAMPLE)*3*width*height);
+  memset(&info, 0, sizeof(info));
+  info.bmiHeader.biSize = sizeof(info);
+  info.bmiHeader.biWidth = width;
+  info.bmiHeader.biHeight = height;
+  info.bmiHeader.biPlanes = 1;
+  info.bmiHeader.biBitCount = 24;
+  info.bmiHeader.biCompression = BI_RGB;
 
-  for(y=0; y<height; y++)
-  { int x;
+  if ( !(sl = GetDIBits(hdc, bm,
+			0, valInt(image->size->h),
+			NULL,
+			&info,
+			DIB_RGB_COLORS)) )
+  { Cprintf("%s: GetDIBits() returned %d", pp(image), sl);
+    return FALSE;
+  } else
+  { DEBUG(NAME_image,
+	  { Cprintf("%s: GetDIBits() returned %d; ", pp(image), sl);
+	    Cprintf("Image = %dx%dx%d (%ld bytes)\n",
+		    info.bmiHeader.biWidth,
+		    info.bmiHeader.biHeight,
+		    info.bmiHeader.biBitCount,
+		    info.bmiHeader.biSizeImage);
+	  });
 
-    for(x=0; x<width; x++)
-    { COLORREF c = GetPixel(hdc, x, y);
+    data = pceMalloc(info.bmiHeader.biSizeImage);
+    if ( !GetDIBits(hdc, bm,
+		    0, info.bmiHeader.biHeight,
+		    data,
+		    &info,
+		    DIB_RGB_COLORS) )
+    { Cprintf("%s: GetDIBits() failed to get bits\n", pp(image));
+      return FALSE;
+    }
 
-      *s++ = GetRValue(c);
-      *s++ = GetGValue(c);
-      *s++ = GetBValue(c);
+    if ( info.bmiHeader.biWidth*3 % sizeof(DWORD) )
+    { int outlensl = info.bmiHeader.biWidth*3;
+      int inlensl  = ROUND(outlensl, sizeof(DWORD));
+      int y;
+
+      for(y=0; y<info.bmiHeader.biHeight; y++)
+      { GSAMPLE *p = data+y*outlensl;
+	int x;
+
+	memcpy(p, data+y*inlensl, outlensl);
+					/* swap blue/red */
+	for(x=0; x<info.bmiHeader.biWidth; x++, p+=3)
+	{ GSAMPLE tmp = p[0];
+	  p[0] = p[2];
+	  p[2] = tmp;
+	}
+      }
     }
   }
 
-  rval = gifwrite_rgb(fd, data, NULL, width, height);
+  rval = gifwrite_rgb(fd, data, NULL,
+		      info.bmiHeader.biWidth,
+		      info.bmiHeader.biHeight);
   pceFree(data);
 
-  ZSelectObject(hdc, obm);
   if ( ohpal )
     SelectPalette(hdc, ohpal, FALSE);
   DeleteDC(hdc);
