@@ -1045,6 +1045,8 @@ pl_sgml_parse(term_t parser, term_t options)
   { recursive = FALSE;
     oldpd = NULL;			/* keep compiler happy */
 
+    set_mode_dtd_parser(p, DM_DATA);
+
     p->on_begin_element = on_begin;
     p->on_end_element   = on_end;
     p->on_entity	= on_entity;
@@ -1052,8 +1054,6 @@ pl_sgml_parse(term_t parser, term_t options)
     p->on_data          = on_cdata;
     p->on_error	        = on_error;
     p->on_xmlns		= on_xmlns;
-    p->dmode	        = DM_DATA;
-    p->state	        = S_PCDATA;
   
     pd = calloc(1, sizeof(*pd));
     pd->magic = PD_MAGIC;

@@ -406,6 +406,7 @@ void		putchar_dtd_parser(dtd_parser *p, int chr);
 int		begin_document_dtd_parser(dtd_parser *p);
 int		end_document_dtd_parser(dtd_parser *p);
 void		set_file_dtd_parser(dtd_parser *p, const char *file);
+void		set_mode_dtd_parser(dtd_parser *p, data_mode mode);
 #endif /*DTD_IMPLEMENTATION*/
 
 

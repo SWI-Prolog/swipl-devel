@@ -50,7 +50,12 @@ static int		emit_cdata(dtd_parser *p, int last);
 static dtd_space_mode	istr_to_space_mode(const ichar *val);
 static void		update_space_mode(dtd_parser *p, dtd_element *e,
 					  int natts, sgml_attribute *atts);
-
+static dtd_model *	make_model(dtd *dtd, const ichar *decl,
+				   const ichar **end);
+static void		for_elements_in_model(dtd_model *m,
+					      void (*f)(dtd_element *e,
+							void *closure),
+					      void *closure);
 void			putchar_dtd_parser(dtd_parser *p, int chr);
 int			load_dtd_from_file(dtd_parser *p, const char *file);
 void			free_dtd_parser(dtd_parser *p);
@@ -1179,6 +1184,11 @@ find_map(dtd *dtd, dtd_symbol *name)
 }
 
 
+static void
+set_map_element(dtd_element *e, void *closure)
+{ e->map = closure;
+}
+
 static int
 process_usemap_declaration(dtd_parser *p, const ichar *decl)
 { dtd *dtd = p->dtd;
@@ -1194,25 +1204,26 @@ process_usemap_declaration(dtd_parser *p, const ichar *decl)
   map = find_map(dtd, name);
 
   if ( isee_func(dtd, decl, CF_GRPO) )	/* ( */
-  { dtd_symbol *ng[MAXNAMEGROUP];
-    int ns;
-    int i;
+  { dtd_model *model;
 
-    if ( !(s=itake_namegroup(dtd, CF_SEQ, decl, ng, &ns)) )
-      return gripe(ERC_SYNTAX_ERROR, "Bad model", decl);
-
-    for(i=0; i<ns; i++)
-    { e = find_element(dtd, ng[i]);
-      e->map = map;
-    }
+    if ( (model = make_model(dtd, decl, &s)) )
+    { for_elements_in_model(model, set_map_element, map);
+      free_model(model);
+      decl = s;
+    } else
+      return FALSE;
   } else if ( (s=itake_name(dtd, decl, &ename)) )
   { e = find_element(dtd, ename);
     e->map = find_map(dtd, name);
+    decl = s;
   } else if ( p->environments )
   { p->environments->map = find_map(dtd, name);
     p->map = p->environments->map;
   } else
     return gripe(ERC_SYNTAX_ERROR, "element-name expected", decl);
+
+  if ( *decl )
+    return gripe(ERC_SYNTAX_ERROR, "Unparsed", decl);
 
   return TRUE;
 }
@@ -1269,6 +1280,33 @@ add_submodel(dtd_model *m, dtd_model *sub)
   for( d = &m->content.group; *d; d = &(*d)->next )
     ;
   *d = sub;
+}
+
+
+/* for_elements_in_model()
+   Walk along the model, calling f(e, closure) for any element found
+   in the model.  Used for <!SHORTREF name model>
+*/
+
+static void
+for_elements_in_model(dtd_model *m,
+		      void (*f)(dtd_element *e, void *closure),
+		      void *closure)
+{ switch(m->type)
+  { case MT_SEQ:
+    case MT_AND:
+    case MT_OR:
+    { dtd_model *sub = m->content.group;
+
+      for(; sub; sub = sub->next)
+	for_elements_in_model(sub, f, closure);
+    }
+    case MT_ELEMENT:
+      (*f)(m->content.element, closure);
+      break;
+    default:
+      ;
+  }
 }
 
 
@@ -1895,7 +1933,11 @@ push_element(dtd_parser *p, dtd_element *e, int callback)
 				       : p->dtd->space_mode);
     env->parent = p->environments;
     p->environments = env;
-    p->map = env->map = e->map;
+
+    if ( e->map )
+      p->map = env->map = e->map;
+    else if ( env->parent )
+      p->map = env->map = env->parent->map;
 
     p->first = TRUE;
     if ( callback && p->on_begin_element )
@@ -2541,6 +2583,17 @@ set_file_dtd_parser(dtd_parser *p, const char *file)
   p->location.charpos = 0;
 }
 
+
+int
+set_mode_dtd_parser(dtd_parser *p, data_mode m)
+{ p->dmode = m;				/* DM_DTD or DM_DATA */
+  p->state = S_PCDATA;
+  p->blank_cdata = TRUE;
+
+  return TRUE;
+}
+
+
 dtd_parser *
 new_dtd_parser(dtd *dtd)
 { dtd_parser *p = calloc(1, sizeof(*p));
@@ -2844,6 +2897,7 @@ emit_cdata(dtd_parser *p, int last)
   }
   
   empty_ocharbuf(p->cdata);
+  p->blank_cdata = TRUE;
 
   return TRUE;
 }
@@ -2858,8 +2912,6 @@ prepare_cdata(dtd_parser *p)
 
   if ( p->mark_state == MS_INCLUDE )
   { dtd *dtd = p->dtd;
-    int blank = TRUE;
-    const ichar *s;
 
     if ( p->environments )		/* needed for <img> <img> */
     { dtd_element *e = p->environments->element;
@@ -2868,18 +2920,25 @@ prepare_cdata(dtd_parser *p)
 	close_element(p, e);
     }
 
-    for(s = p->cdata->data; *s; s++)
-    { if ( !HasClass(dtd, *s, CH_BLANK) )
-      { blank = FALSE;
-	break;
-      }
-    }
+    if ( p->blank_cdata == TRUE )
+    { int blank = TRUE;
+      const ichar *s;
 
-    p->blank_cdata = blank;
-    if ( !blank )
-      open_element(p, CDATA_ELEMENT);
+      for(s = p->cdata->data; *s; s++)
+      { if ( !HasClass(dtd, *s, CH_BLANK) )
+	{ blank = FALSE;
+	  break;
+	}
+      }
+
+      p->blank_cdata = blank;
+      if ( !blank )
+	open_element(p, CDATA_ELEMENT);
+    }
   } else
-    empty_ocharbuf(p->cdata);
+  { empty_ocharbuf(p->cdata);
+    p->blank_cdata = TRUE;
+  }
 
   return TRUE;
 }
@@ -3181,6 +3240,10 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	    gripe(ERC_SYNTAX_ERROR, "Character data in DTD", "");
 	  return;
 	case DM_DATA:
+	  if ( p->blank_cdata == TRUE && !HasClass(dtd, chr, CH_BLANK) )
+	  { open_element(p, CDATA_ELEMENT);
+	    p->blank_cdata = FALSE;
+	  }
 #ifdef UTF8
 	  if ( p->utf8_decode && ISUTF8_MB(chr) )
 	  { process_utf8(p, chr);
@@ -3205,6 +3268,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	}
 	empty_icharbuf(p->buffer);
 	empty_ocharbuf(p->cdata);
+	p->blank_cdata = TRUE;
 	p->state = S_PCDATA;
       } else
       { add_cdata(p, dtd->charmap->map[chr]);
@@ -3468,8 +3532,7 @@ sgml_process_file(dtd_parser *p, const char *file)
   dtd_srcloc oldloc = p->location;
 
   set_file_dtd_parser(p, file);
-  p->dmode = DM_DATA;
-  p->state = S_PCDATA;
+  set_mode_dtd_parser(p, DM_DATA);
 
   if ( (fd = fopen(file, "rb")) )
   { int chr;
