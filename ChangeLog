@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: PL_same_compound( to test whether two compound terms are
+    the same term. 
+
   * MODIFIED: deleted the export of Quintus compatible statistics/2,
     so this can now only be accessed as quintus:statistics(Key, Value).
 
