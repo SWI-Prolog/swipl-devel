@@ -118,7 +118,7 @@ head(Title) :-
 	       '<head>~n',
 	       '<title>~w</title>~n'-[Title],
 	       '</head>~n~n',
-	       '<body>~n'
+	       '<body bgcolor="white">~n'
 	     ]).
 foot :-
 	emit([ '</body>~n',
@@ -188,7 +188,7 @@ parsed(Time, Triples) :-
 	#h2::'RDF statement parsed successfully',
 	#p::[ 'Your RDF statement has been parsed in ~2f seconds, '-[Time],
 	      'creating ', #b::Len, ' triples. ',
-	      'You find the created triples in the table below.'
+	      'Please find the created triples in the table below.'
 	    ],
 	(   getenv('HTTP_REFERER', Referer)
 	->  #p::[ 'If you want to try another RDF statement, please go ',
@@ -299,7 +299,7 @@ save_comment(Id, Mail, Comment) :-
 	concat_atom([Base, '/', Id], FileBase),
 	absolute_file_name(FileBase, AbsFileBase),
 	absolute_file_name(Base, AbsBase),
-	sub_atom(AbsFileBase, 0, _, _, AbsBase), 	% verify in tree
+	sub_atom(AbsFileBase, 0, _, _, AbsBase), 	% verify in tree
 	atom_concat(AbsFileBase, '.cmt', CmtFile),
 	open(CmtFile, write, Fd),
 	format(Fd, 'E-mail: ~w~n~n~w~n', [Mail, Comment]),
@@ -372,14 +372,19 @@ test :-
 	rdf_table(Triples),
 	foot.
 
+
+		 /*******************************
+		 *	       UTIL		*
+		 *******************************/
+
 read_file(File, Atom) :-
 	open(File, read, Fd),
-	get0(Fd, C),
+	get_code(Fd, C),
 	read_stream(C, Fd, Chars),
 	close(Fd),
 	atom_codes(Atom, Chars).
 
 read_stream(-1, _, []) :- !.
 read_stream(C0, Fd, [C0|T]) :-
-	get0(Fd, C),
+	get_code(Fd, C),
 	read_stream(C, Fd, T).

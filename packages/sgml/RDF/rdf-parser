@@ -1,4 +1,10 @@
 #!/bin/bash
+#
+# This is not the normal parser, just the front-end for the CGI interface.
+# The real CGI stuff is written in Prolog in the file online.pl.  The
+# request is in online.html
+#
+# The RDF parser itself is just a Prolog library.  See rdf2pl.{html,pdf}.
 
 base=/staff/jan/src/pl/packages/sgml/RDF
 tmp=/tmp/rdf-parser-$$
