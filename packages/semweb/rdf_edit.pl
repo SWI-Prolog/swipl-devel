@@ -826,7 +826,7 @@ journal(Term) :-
 	).
 
 write_journal(commit(TID, Time), Stream) :- !,
-	format(Stream, 'commit(~q, ~2f).~n', [TID, Time]).
+	format(Stream, 'commit(~q, ~2f).~n~n', [TID, Time]).
 write_journal(Term, Stream) :-
 	format(Stream, '~q.~n', [Term]).
 
@@ -914,11 +914,15 @@ ends_transaction(start(_)).
 replay_actions([]).
 replay_actions([H|T]) :-
 	(   replay_action(H)
-	->  true
+	->  replay_actions(T)
 	;   print_message(warning,
-			  rdf_replay_failed(H))
-	),
-	replay_actions(T).
+			  rdf_replay_failed(H)),
+	    (	debugging(journal)
+	    ->	gtrace,
+		replay_actions([H|T])
+	    ;	replay_actions(T)
+	    )
+	).
 
 
 %	replay_action(+Action)
@@ -939,6 +943,8 @@ replay_action(assert(_, Subject, Predicate, Object, PayLoad)) :-
 	rdf_assert(Subject, Predicate, Object, PayLoad).
 replay_action(update(_, Subject, Predicate, Object, Action)) :-
 	rdf_update(Subject, Predicate, Object, Action).
+replay_action(update(_, Subject, Predicate, Object, Payload, Action)) :-
+	rdf_update(Subject, Predicate, Object, Payload, Action).
 replay_action(rdf_load(_, File, Options)) :-
 	memberchk(md5(MD5), Options),
 	snapshot_file(File, MD5,
