@@ -1,5 +1,7 @@
 Sep 20, 2003
 
+  * ADDED: rdfe_assert/4 (encapsulating rdf_assert/4).
+
   * ADDED: rdf_update/5.  Allow changing the source data associated with
     a triple.
 

@@ -6,6 +6,7 @@
 
 :- module(rdf_edit,
 	  [ rdfe_assert/3,		% Sub, Pred, Obj
+	    rdfe_assert/4,		% Sub, Pred, Obj, PayLoad
 	    rdfe_retractall/3,		% Sub, Pred, Obj
 	    rdfe_update/4,		% Sub, Pred, Obj, +Action
 	    rdfe_load/1,		% +File
@@ -59,6 +60,11 @@ This library provides a number of functions on top of the rdf_db module:
 
 user:goal_expansion(rdfe_assert(Subj0, Pred0, Obj0),
 		    rdfe_assert(Subj, Pred, Obj)) :-
+	rdf_global_id(Subj0, Subj),
+	rdf_global_id(Pred0, Pred),
+	rdf_global_id(Obj0, Obj).
+user:goal_expansion(rdfe_assert(Subj0, Pred0, Obj0, PayLoad),
+		    rdfe_assert(Subj, Pred, Obj, PayLoad)) :-
 	rdf_global_id(Subj0, Subj),
 	rdf_global_id(Pred0, Pred),
 	rdf_global_id(Obj0, Obj).
