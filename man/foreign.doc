@@ -1179,6 +1179,18 @@ required type-switching this interface is slightly slower than using
 the primitives.  Please note that some bad C-compilers have fairly
 low limits on the number of arguments that may be passed to a function.
 
+Special attention is required when passing numbers. C `promotes' any
+integral smaller than \type{int} to \type{int}. I.e.\ the types
+\type{char}, \type{short} and \type{int} are all passed as \type{int}.
+In addition, on most 32-bit platforms \type{int} and \type{long} are the
+same. Upto version 4.0.5, only \const{PL_INTEGER} could be specified
+which was taken from the stack as \type{long}. Such code fails when
+passing small integral types on machines where \type{int} is smaller
+than \type{long}. It is adviced to use \const{PL_SHORT}, \const{PL_INT}
+or \const{PL_LONG} as appropriate. Similar, C compilers promote
+\type{float} to \type{double} and therefore \const{PL_FLOAT} and
+\const{PL_DOUBLE} are synonyms.
+
 The type identifiers are:
 
 \begin{description}
@@ -1187,7 +1199,9 @@ No op.  Used in arguments of \const{PL_FUNCTOR}.
    \definition{\const{PL_ATOM} \arg{atom_t}}
 Unify the argument with an atom, as in PL_unify_atom().
    \definition{\const{PL_SHORT} \arg{short}}
-Unify the argument with an integer, as in PL_unify_integer().
+Unify the argument with an integer, as in PL_unify_integer(). As
+\type{short} is promoted to \type{int}, \const{PL_SHORT} is a
+synonym for \type{PL_INT}.
    \definition{\const{PL_INT} \arg{int}}
 Unify the argument with an integer, as in PL_unify_integer().
    \definition{\const{PL_LONG} \arg{long}}
@@ -1198,7 +1212,7 @@ Unify the argument with an integer, as in PL_unify_integer().
 Unify the argument with a float, as in PL_unify_float(). Note that,
 as the argument is passed using the C vararg conventions, a float must
 be casted to a double explicitly.
-   \definition{\const{PL_FLOAT} \arg{float}}
+   \definition{\const{PL_FLOAT} \arg{double}}
 Unify the argument with a float, as in PL_unify_float().
    \definition{\const{PL_STRING} \arg{const char *}}
 Unify the argument with a string object, as in PL_unify_string_chars().
