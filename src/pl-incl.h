@@ -921,6 +921,7 @@ Handling environment (or local stack) frames.
 				  if ( --def->references == 0 && \
 				       true(def, NEEDSCLAUSEGC) ) \
 				    gcClausesDefinition(def); \
+				  SECURE(assert(def->references >= 0)); \
 				  PL_UNLOCK(L_MISC); \
 				}
 #endif /*O_DEBUG*/

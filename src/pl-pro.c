@@ -379,8 +379,17 @@ checkData(Word p)
     if ( isReal(*p) )
       return (word) valReal(*p);
     if ( isString(*p) )
-    { if ( sizeString(*p) != strlen(valString(*p)) )
-	printk("String has inconsistent length: 0x%x", *p);
+    { long sz, len;
+
+      if ( (sz=sizeString(*p)) != (len=strlen(valString(*p))) )
+      { if ( sz < len )
+	  printk("String has inconsistent length: 0x%x", *p);
+	else if ( valString(*p)[sz] )
+	  printk("String not not followed by NUL-char: 0x%x", *p);
+/*	else
+	  printf("String contains NUL-chars: 0x%x", *p);
+*/
+      }
       return *addressIndirect(*p);
     }
     printk("Illegal indirect datatype");

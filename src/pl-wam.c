@@ -2600,19 +2600,18 @@ exit(Block, RVal).  First does !(Block).
 	  BODY_FAILED;
 	}
 	
-	discardChoicesAfter(blockfr PASS_LD);
-
-	DEBUG(3, Sdprintf("BFR = %d\n", (Word)BFR - (Word)lBase) );
-
 	if ( unify(argFrameP(blockfr, 2), rval PASS_LD) )
-	{ for( ; FR > blockfr; FR = FR->parent )
-	  { discardFrame(FR);
+	{ for( ; ; FR = FR->parent )
+	  { SECURE(assert(FR > blockfr));
+	    discardChoicesAfter(FR PASS_LD);
+	    discardFrame(FR);
 	    if ( FR->parent == blockfr )
-	      PC = FR->programPointer;
+	    { PC = FR->programPointer;
+	      break;
+	    }
 	  }
 					/* TBD: tracing? */
-
-          environment_frame = FR;
+          environment_frame = FR = blockfr;
 	  DEF = FR->predicate;
 	  lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
 	  ARGP = argFrameP(lTop, 0);
@@ -2631,7 +2630,6 @@ exit(Block, RVal).  First does !(Block).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(I_CUT_BLOCK) MARK(CUT_BLOCK);
       { LocalFrame cutfr;
-	Choice ch;
 	Word name;
 
 	name = argFrameP(lTop, 0); deRef(name);
@@ -2642,16 +2640,7 @@ exit(Block, RVal).  First does !(Block).
 	  BODY_FAILED;
 	}
 	
-	for(ch=BFR; (void *)ch > (void *)cutfr; ch = ch->parent)
-	{ LocalFrame fr2;
-
-	  DEBUG(3, Sdprintf("Discarding %s\n", chp_chars(ch)));
-	  for(fr2 = ch->frame;    
-	      fr2 && fr2->clause && fr2 > FR;
-	      fr2 = fr2->parent)
-	    discardFrame(fr2);
-	}
-	BFR = ch;
+	discardChoicesAfter(cutfr PASS_LD);
 
 	lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
 	ARGP = argFrameP(lTop, 0);
