@@ -1,8 +1,8 @@
 \begin{thebibliography}{Wielemaker \& Anjewierden, 1994}
 
-\bibitem[Anjewierden, 1992]{PCE:lisp}
+\bibitem[Anjewierden, 1992]{XPCE:lisp}
 A.~Anjewierden.
-\newblock {\em {PCE/Lisp}: {PCE Common Lisp} Interface}.
+\newblock {\em {XPCE/Lisp}: {XPCE Common Lisp} Interface}.
 \newblock {SWI}, University of Amsterdam, Roetersstraat 15, 1018 WB Amsterdam,
   The Netherlands, 1992.
 \newblock E-mail: anjo@swi.psy.uva.nl.
@@ -33,39 +33,39 @@ J.~Wielemaker and A.~Anjewierden.
   Software and Technology}, pages 25--33, Williamsburg, Virginia, November
   1989. ACM Press.
 
-\bibitem[Wielemaker \& Anjewierden, 1993]{PCE:reference}
+\bibitem[Wielemaker \& Anjewierden, 1993]{XPCE:reference}
 J.~Wielemaker and A.~Anjewierden.
 \newblock {\em {XPCE-4} Reference Manual}.
 \newblock {SWI}, University of Amsterdam, Roetersstraat 15, 1018 WB Amsterdam,
   The Netherlands, 1993.
 \newblock Paper version of online manual.
 
-\bibitem[Wielemaker \& Anjewierden, 1994]{PCE:cpp}
+\bibitem[Wielemaker \& Anjewierden, 1994]{XPCE:cpp}
 J.~Wielemaker and A.~Anjewierden.
 \newblock {\em A {C++} interface for {XPCE}}.
 \newblock {SWI}, University of Amsterdam, Roetersstraat 15, 1018 WB Amsterdam,
   The Netherlands, 1994.
 \newblock E-mail: jan@swi.psy.uva.nl.
 
-\bibitem[Wielemaker, 1992a]{PCE:draw}
+\bibitem[Wielemaker, 1992]{XPCE:draw}
 J.~Wielemaker.
-\newblock {\em {PceDraw}: An example of using {PCE-4}}.
+\newblock {\em {PceDraw}: An example of using {XPCE-4}}.
 \newblock {SWI}, University of Amsterdam, Roetersstraat 15, 1018 WB Amsterdam,
   The Netherlands, 1992.
 \newblock E-mail: jan@swi.psy.uva.nl.
 
-\bibitem[Wielemaker, 1992b]{SWI-Prolog:manual}
-J.~Wielemaker.
-\newblock {\em {SWI-Prolog 2.1}: Reference Manual}.
-\newblock {SWI}, University of Amsterdam, Roetersstraat 15, 1018 WB Amsterdam,
-  The Netherlands, 1992.
-\newblock E-mail: jan@swi.psy.uva.nl.
-
-\bibitem[Wielemaker, 1994]{PCE:course}
+\bibitem[Wielemaker, 1994]{XPCE:course}
 J.~Wielemaker.
 \newblock {\em {XPCE/Prolog} Course Notes}.
 \newblock {SWI}, University of Amsterdam, Roetersstraat 15, 1018 WB Amsterdam,
   The Netherlands, 1994.
+\newblock E-mail: jan@swi.psy.uva.nl.
+
+\bibitem[Wielemaker, 1996]{SWI-Prolog:manual}
+J.~Wielemaker.
+\newblock {\em {SWI-Prolog 2.5}: Reference Manual}.
+\newblock {SWI}, University of Amsterdam, Roetersstraat 15, 1018 WB Amsterdam,
+  The Netherlands, 1996.
 \newblock E-mail: jan@swi.psy.uva.nl.
 
 \end{thebibliography}

@@ -6,18 +6,18 @@ similar to X11. Resources in XPCE act like class-variables for which a
 default is specified by the application programmer. The application may
 overrule this default by specifying its value in a \idx{resource-file}.
 
-The X11 version of XPCE uses the X11 resource machanism to find the
-value for a resource. The Win32 version uses its own resource parser
-that emulates the X11 resource-parsers behaviour.  Resources are
-read from the following locations.
+The X11 version of XPCE uses the X11 resource services to find the value
+for a resource. The Win32 version uses its own resource parser that
+emulates the X11 resource-parsers behaviour. Resources are read from the
+following locations.
 
 \begin{enumerate}
     \tick{The X11 server}
 Resources associated with this screen using \idx{xrdb(1)} overrule
-resources defines in any of the other locations.  Note that this
+resources defined in any of the other locations.  Note that this
 location is not provided for the Win32 emulator.
     \tick{The \$HOME/.Xdefaults Resource file}
-This file is contains user preferences that should overrule the
+This file contains user preferences that should overrule the
 XPCE default values.
     \tick{The \$PCEHOME/Pce Resource file}
 This file is used for system configuration.  It defines the basic
@@ -29,7 +29,7 @@ resolve a resource value.
 \end{enumerate}
 
 
-\section{Specifying XPCE resources}
+\section{Specifying xpce resources}
 
 XPCE is known by the X11 application {\tt Pce}.  An XPCE resource
 specification takes the following form:
@@ -58,7 +58,7 @@ syntax is inspired by Prolog.  Below is a partial BNF description.
 \def\isa{}
 \def\ora{}
 \renewcommand{\isa}{& ::=~}
-\renewcommand{\ora}{&  ~~$\|$~}
+\renewcommand{\ora}{&  ~~$\mid$~}
 \begin{quote}
 \begin{tabular}{|ll|}
 \hline
@@ -79,29 +79,29 @@ syntax is inspired by Prolog.  Below is a partial BNF description.
 			\ora <Any> <PostfixOp> \\
 			\ora {\tt "} <String> {\tt "} \\
 \hline
-<String>		\isa \{<CharNotDoubleQuote>$\|${\tt ""}\} \\
+<String>		\isa \{<CharNotDoubleQuote>$|${\tt ""}\} \\
 \hline
-<Name>			\isa <Letter>\{<Letter>$\|$<Digit>\} \\
-			\ora {\tt '} \{<CharNotSingleQuote>$\|${\tt ""}\} {\tt '} \\
+<Name>			\isa <Letter>\{<Letter>$|$<Digit>\} \\
+			\ora {\tt '} \{<CharNotSingleQuote>$|${\tt ''}\} {\tt '} \\
 \hline
 \end{tabular}
 \end{quote}
 
 Summarising, the syntax is the same as for Prolog.  All classes that can
 be specified using Prolog operators can be specified the same way, but
-as XPCE's parser is independent of Prolog, Prolog op/3 directives donot
+as XPCE's parser is independent of Prolog, Prolog op/3 directives do not
 influence XPCE.  XPCE has no variables, thus {\tt Fred} refers to the
 name {\em Fred} rather then defining a variable.  If an instance has
 to be created without arguments, such as and empty \class{chain} object,
-this is specified as {\tt chain()} rather then {\tt new(chain)}.  The
+this is specified as {\tt chain()} rather than {\tt new(chain)}.  The
 latter will try to make an instance of class \class{new} (and fail).
 
 
 \subsection{Long lines in resource files}
 
-X11 allows resource values that donot fit on a single line to be
+X11 allows resource values that do not fit on a single line to be
 continued on the next line if the newline is {\em immediately}
-preceeded by a backslash.
+preceded by a backslash.
 
 
 \section{Resources and inheritance}
@@ -111,14 +111,14 @@ obtained, XPCE will first check for the resource value given the current
 class.  If this cannot be found, it will continue with the super-class,
 etc.  If no value can be obtained for any of these classes, the default
 value stored in the resource object will be used.  This implies that
-the statement:
+the statement
 
 \begin{code}
 Pce.Text.font:	normal
 \end{code}
 
-Also applies for all subclasses of class text, unless the subclass
-explicitely defines a new font resource.%
+also applies for all subclasses of class text, unless the subclass
+explicitly defines a new font resource.%
     \footnote{If the resource-file specifies {\tt Pce.*.font: normal},
 	      its value will apply for all classes defining a font
 	      resource due to the way the X11 resource handler is
@@ -133,7 +133,7 @@ Obtaining resources is normally restricted to user-defined classes
 
 \begin{description}
     \predicate{default}{3}{+Arg, resource(+Obj, +Name), -Value}
-This predicate is decribed in \secref{udcpreds}.
+This predicate is described in \secref{udcpreds}.
     \getmethod{object}{resource_value}{name}{value}
 Get the value of the named resource.  Fails if the resource does
 not exist or cannot be converted.

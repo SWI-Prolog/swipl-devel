@@ -2,12 +2,12 @@
 
 \subsection{Aim of the report mechanism}
 
-Objects perform actions on behalf of the user. Sometimes it is desirable
-to inform the application user of progress, status or problems. In older
-applications, the action code often contained knowledge about the
-environment in which the object was embedded. This harms reusability
-enormously and therefore XPCE provides a generic mechanism to deal with
-such messages.
+Objects perform actions on behalf of the user.  Sometimes it is
+desirable to inform the application user of progress, status or
+problems.  In older applications, the action code often contained
+knowledge about the environment in which the object was embedded.  This
+harms reusability and therefore XPCE provides a generic mechanism to
+deal with such messages.
 
 \subsection{The report interface}
 
@@ -18,9 +18,9 @@ Whenever an object needs to inform the user, the programmer can use the
     \sendmethod{object}{report}{type, format, argument ...}
 Inform the user.  The message is constructed from {\em format} and
 the {\em argument} list.  See `string->format' for a description of
-the printf-like formatting syntax of XPCE.  {\em type} describes the
+the C printf-like formatting syntax of XPCE.  {\em type} describes the
 nature of the message and is used by the reporting mechanism to decide
-on the presentation-form.  See \secref{reporttypes} for the
+on the presentation-style.  See \secref{reporttypes} for the
 available types and their meaning.
 \end{description}
 
@@ -41,7 +41,7 @@ print its feedback to the host-language console using `@pce ->format'.
 
 The implementation of `visual ->report' will simply forward the message
 to its containing visual object.  If the message arrives at an instance
-of class \class{frame}, the implemenation of `frame ->report' will
+of class \class{frame}, the implementation of `frame ->report' will
 broadcast the message to each of its windows, but avoid sending it back
 to the window it came from.  If this fails and the frame is a transient
 frame for another frame, the report is forward to the main frame. Class
@@ -54,7 +54,7 @@ care of default handling.  See section~\ref{sec:reporttypes} on how
 the different report types are handled.
 
 
-\subsubsection{Information Types}		\label{sec:reporttypes}
+\subsubsection{Information types}		\label{sec:reporttypes}
 
 The report {\em type} indicates the semantic category of the report and
 defines how it is handled.  The following report types are defined:
@@ -64,7 +64,7 @@ defines how it is handled.  The following report types are defined:
 Information on progress, status change of the system, etc. such
 information should not attract much attention. By default, XPCE will
 format the message at an appropriate location. If no such location can
-be found the message is ignored
+be found the message is ignored.
     \tick{inform}
 The user requested information and this is the reply. Handled as
 {\tt status}, but if no appropriate location can be found it will
@@ -110,7 +110,7 @@ this.
 The typical way to exploit the report mechanism is by attaching a label
 named {\em reporter} to a dialog window of the applications frame.  For
 example, an application consisting of a menu-bar, browser and a
-graphical window window could choose to make place a small dialog for
+graphical window window could choose to make place for a small dialog for
 feedback at the bottom.  The following fragment would build the window
 layout of such an application:
 
@@ -166,4 +166,4 @@ load(Frame) :-
 
 The result is shown in figure~\ref{fig:reportdemo}.
 
-\postscriptfig[width=\textwidth]{reportdemo}{The `reporter' demo}
+\postscriptfig[width=4in]{reportdemo}{The `reporter' demo}

@@ -52,7 +52,7 @@ Pce.Display.screen_fonts: [ font(screen, roman, 10, "6x10"), \
 \end{code}
 
 The set of predefined physical fonts can be examined using the
-FontViewer demo application accesible through the online manual tools.
+FontViewer demo application accessible through the online manual tools.
 
 
 \subsubsection{Defining additional fonts}
@@ -61,7 +61,7 @@ If an application needs additional fonts, such fonts can be declared
 using directives. The 4th initialisation argument of class \class{font}
 determines the window-system font that will be mapped.  For example, the
 the 14-points adobe symbol may be approached using the directive below%
-    \footnote{xsontsel(1) was used to locate the font.}
+    \footnote{xfontsel(1) was used to locate the font.}
 
 \begin{code}
 :- new(_, font(symbol, roman, 14,
@@ -129,7 +129,7 @@ be easy to read.
 
 The end-user of an XPCE application can define the resource
 Pce.Display.user_fonts to overrule fonts.  The example below
-rebinds the most commonly used fonts to be slightly larger and
+re-binds the most commonly used fonts to be slightly larger and
 choose from the times font family rather than the helvetica
 fonts.
 
@@ -148,7 +148,7 @@ Class \class{font} predefined conversion will translate names to font
 objects.  This implies that for any method expecting a font object the
 programmer can specify the font-name instead.  In those (rare) cases
 where a font needs to be passed, but the type-specification does not
-require this, the conversion must be done explicitely.  The preferred
+require this, the conversion must be done explicitly.  The preferred
 way to make the conversion is using the font type object:
 
 \begin{code}

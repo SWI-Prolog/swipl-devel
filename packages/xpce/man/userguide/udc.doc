@@ -1,4 +1,4 @@
-\chapter{User Defined Classes}
+\chapter{User defined classes}
 \label{sec:udc}
 
 The user defined class interface provides a natural way to define new
@@ -6,7 +6,7 @@ XPCE classes. It is both used to create higher level libraries that have
 the same interface as the built-in XPCE classes as to define entire
 applications. Many of the library modules and XPCE/Prolog demo programs
 are implemented as user-defined classes. The PceDraw demo is an
-elaborated example defined entirely in user-defined classes.
+elaborate example defined entirely in user-defined classes.
 
 A user defined class lives in XPCE, just as any other XPCE class. There
 is no difference. Both use dynamic resolution of messages to method
@@ -19,7 +19,7 @@ the two systems.%
     \footnote{XPCE defines four implementation techniques for methods.
     {\em C-function pointers} are used for almost all the built-in
     behaviour. {\em C++-function pointers} are used when classes are
-    defined in C++ (\cite{PCE:cpp}). Instances of \class{cpointer} are
+    defined in C++ (\cite{XPCE:cpp}). Instances of \class{c_pointer} are
     left to the host object for interpretation and finally, \class{code}
     objects are executed.}
 
@@ -28,24 +28,24 @@ operators have special meaning. The definition of an XPCE/Prolog class
 is enclosed in
 
 \begin{code}
-:- pce_begin_class(<Class>, <Super>, [<Comment>]).
+:- pce_begin_class(<Class>, <Super> [, <Comment>]).
 <Class definition>
 :- pce_end_class.
 \end{code}
 
-Multiple classes may be defined in the same Prolog sourcefile, but class
+Multiple classes may be defined in the same Prolog source file, but class
 definitions may not be nested.
 
 
-\section{The Class Definition Skeleton}
+\section{The class definition skeleton}
 
 We introduce the syntax for user-defined classes using a skeleton.
-Except from the pce_begin_class/[2,3] and pce_end_class/0, everything in
+Except for the pce_begin_class/[2,3] and pce_end_class/0, everything in
 the skeleton is optional and may be repeated multiple times. The order
 of declarations is not important, but the order of the skeleton is the
 proposed order.  An exception to this rule is the pce_group/1 directive,
 that may be placed anywhere and defines the group-identifier for the
-declarations that follows.
+declarations that follow.
 
 \begin{boxed}
 \tt
@@ -55,18 +55,18 @@ declarations that follows.
 \newcommand{\sbc}{{\it ]}}
 \begin{tabbing}
 xxxxxxxx\=\kill
-:- pce_begin_class(\sbo<Meta>:\sbc<Class>\sbo(\cbo<TermName>\cbc)\sbc, <Super>, \sbo<Summary>\sbc).\\[2ex]
+:- pce_begin_class(\sbo<Meta>:\sbc<Class>\sbo(\cbo<TermName>\cbc)\sbc, <Super> \sbo, <Summary>\sbc).\\[2ex]
 
 :- use_class_template(<TemplateClass>).\\
 :- send(@class, <Selector>\cbo, <Arg>\cbc).\\
 :- pce_class_directive(<Goal>).\\[2ex]
 
-variable(<Name>, <Type>\sbo:= <Value>\sbc, <Access>, \sbo<Summary>\sbc).
+variable(<Name>, <Type>\sbo:= <Value>\sbc, <Access> \sbo, <Summary>\sbc).
 \\[2ex]
 
 delegate_to(<VarName>).\\[2ex]
 
-resource(<Name>, <Type>, <Default>, \sbo<Summary>\sbc).\\[2ex]
+resource(<Name>, <Type>, <Default> \sbo, <Summary>\sbc).\\[2ex]
 
 handle(<X>, <Y>, <Kind>, <Name>).\\[2ex]
 
@@ -84,33 +84,42 @@ handle(<X>, <Y>, <Kind>, <Name>).\\[2ex]
 \end{tabbing}
 \end{boxed}
 
-\subsection{Definition of the Template Elements}
+\subsection{Definition of the template elements}
 
 \begin{description}
     \directive{pce_begin_class}{[2,3]}{+[Meta:]Class, +Super, [+Summary]}
 Start the definition of an XPCE user-defined class.  This directive can
-appear anywhere in a Prolog sourcefile.  The definition must be closed
+appear anywhere in a Prolog source file.  The definition must be closed
 using pce_end_class/0 and definitions may not be nested.  {\em Class}
 describes the class to be created.  Besides giving the class-name, the
-meta-class (class of the class) may be specified.  When omited, 
+meta-class (class of the class) may be specified.  When omitted, 
 the meta-class of the {\em Super} will be used, which is normally
-class \class{class}.  The PceDraw shape infrastructure uses the meta-class
-mechanism.
+class \class{class}.  An example of meta-class programming can be found
+in PceDraw's file {\tt shape.pl}, see \cite{XPCE:draw}.
 
 The class-name may be followed by a list of {\em TermNames} that define
-the result of object/2.  This predicate will unify its second argument
+the result of object/2.  object/2 unifies its second argument
 with a term whose functor is the name of the class and whose arguments
 are the result of a `get' operation using the {\em TermName} as selector.
 For example, \mbox{\tt point(x,y)} specifies that object(P,~T) unifies
-T to a term point\mbox{}/2 with the <-x and <-y of the point instance
-as arguments.  When omited, the term-description of the super-class
+{\em T} to a term point\mbox{}/2 with the <-x and <-y of the point instance
+as arguments.  When omitted, the term-description of the super-class
 is inherited.
     \directive{use_class_template}{1}{TemplateClass}%
 Import a class template.  See section~\ref{sec:template}.
     \directive{send}{[2-12]}{@class, ...}%
-Directives like this may be used to invoke methods of the class under
-construction. See also pce_class_directive/1 and
-section~\ref{sec:ucdimplementation}.
+Directives like this may be used to invoke methods on the class under
+construction. This can be used to modify the class in ways that are not
+defined by this preprocessor. The following example tells the system
+that the `visual' attribute of an imaginary user-defined class should
+not be saved to file when the object is saved using
+`object->_save_in_file'.
+
+\begin{code}
+:- send(@class, save_style_variable, nil).
+\end{code}
+
+See also pce_class_directive/1 and section~\ref{sec:ucdimplementation}.
     \directive{pce_class_directive}{1}{+:Goal}%
 Define {\em Goal} to be a goal that manipulates the class instance
 directly.  See section~\ref{sec:ucdimplementation}.
@@ -123,8 +132,9 @@ The type may be postfixed with \mbox{{\tt := \em Value}},%
 	      current implementation.}
 in which case the instance-allocation will fill the slot with the given
 value. See also section~\ref{sec:omsmethods}. {\em Access} defines which
-implicit side-effect-free methods will be assiciated with the variable.
-See also section~\ref{sec:slots}.
+implicit {\em universal} will be associated with the variable.  A universal
+method is defined to be a method that reads or writes the slot, without
+performing any additional actions.  See also section~\ref{sec:slots}.
     \predicate{delegate_to}{1}{VariableName}%
 Declares the variable named {\em VariableName} to be a candidate for
 delegation.  See section~\ref{sec:delegation}.
@@ -140,24 +150,26 @@ close to the Prolog syntax, a passed Prolog term will be translated
 to the default value using term_to_atom/2.
     \predicate{handle}{3,4}{X, Y, Kind, Name}%
 Equivalent to \mbox{\tt :- send(@class, handle, handle(X, Y, Kind,
-Name).}  See also \secref{connection}.
+Name)).}  See also \secref{connection}.
     \directive{pce_group}{1}{GroupIdentifier}%
 Sets the `behaviour <->group' attribute of any variable or method
 definition following this directive.  Groups are used to organise
-methods by the ClassBrowser.  Groups have no semantical implications.
+methods by the ClassBrowser.  Groups have no semantic implications.
 \mbox{\tt :- pce_group(@default).} makes methods inherit their group
 from the method that is re(de)fined.  If no method is re(de)fined,
 the group will be {\tt miscellaneous}.
 \end{description}
 
-\subsubsection{Syntax Details}
+\subsubsection{Syntax details}
 
-Below we describe the details of the non-terminals in the above skeleton
-in more detail.  The notation is an incomplete BNF notation.
+Table \tabref{udcsyntax} describes the details of the non-terminals in
+the above skeleton in more detail. The notation is an incomplete BNF
+notation.
 
+\begin{table}
 \newcommand{\isa}{\>::=~}
 \newcommand{\cmt}[1]{\>\parbox[t]{3in}{#1}}
-\begin{tabbing}
+\begin{boxed}\begin{tabbing}
 xxxxxxxxxxxxxxxx\=xxxxxxxxxxxxxxxxxx\=\kill
 <Meta>		\isa <Name>	\cmt{Name of the class this class
 				     will be an instance of.  Default
@@ -202,17 +214,23 @@ xxxxxxxxxxxxxxxx\=xxxxxxxxxxxxxxxxxx\=\kill
 <Value>		\>		\cmt{Initial value for the instance variable.
 				     At this moment, only using constants
 				     is supported (int, name, bool)} \\
-\end{tabbing}
+\end{tabbing}\end{boxed}
+\caption{Syntax details for User Defined Classes} \label{tab:udcsyntax}
+\end{table}
 
 
-\section{Accessing Instance Variables (slots)}	\label{sec:slots}
+\section{Accessing instance variables (slots)}	\label{sec:slots}
 
-The method `object <->slot' is used to access slots directly and
-bypassing possible methods with the same name. It should normally only
-be used in ->initialise (see below) and when defining a method with the
-same name as a variable. Below is a fragment where a {\tt type} slot is
-displayed by a text object named {\tt type} in a graphical object. The
-... indicate where the fragment is incomplete.
+The method `object <->slot' is used to access slots directly, bypassing
+possible methods with the same name. Normally, it should only be used in
+->initialise (see below) and when defining a method with the same name
+as a variable. Below is a fragment where a {\tt type} slot is displayed
+by a text object named {\tt type} in a graphical object. This variable
+has access {\tt get}, associating a universal method <-type that yields
+the current value of the slot. The implementation of ->type uses the
+->slot method to write the argument in the <-type slot and subsequently
+performs the required side-effects. The ... indicate where the fragment
+is incomplete.
 
 \begin{code}
 variable(type,	name,	get, "Epistemological type").
@@ -236,7 +254,7 @@ type(D, Type:type) :->
     \getmethod*{object}{slot}{name}{unchecked}%
 Read or write slot without side-effects.  The value will be converted to
 the type of the instance variable addressed.  An error is raised if this
-conversion is not defined or the slot does not exist.
+conversion is not defined or if the slot does not exist.
 \end{description}
 
 
@@ -279,16 +297,18 @@ initialise(D, W:int, H:int, Str:string) :->
 \end{description}
 
 
-\subsection{General Redefinitions}	\label{sec:omsmethods}
+\subsection{General redefinitions}	\label{sec:omsmethods}
 
 The most commonly redefined methods are ->initialise and ->unlink to
 redefine object creation and destruction.  {\bf Note that none of these
-methods should ever be called directly}.
+methods should ever be called directly}, because the implementation
+often makes assumptions that are always true in the context they are
+normally invoked by the kernel.
 
 \begin{description}
     \sendmethod{object}{initialise}{<Class-Defined>}
 Initialise a new instance of the class.  The initialisation is not allowed
-to access behaviour or slots of the super-class without performing the
+to access behaviour or slots of the super-class without invoking the
 ->send_super: initialise <SuperClass-Defined>.  Not performing the
 ->send_super: initialise is a common source of errors, often leading
 to crashes.
@@ -299,39 +319,64 @@ cannot have the value @nil.  See also checkpce/0.
 
 If ->initialise fails, the exception {\tt initialise_failed} will be
 raised, passing the instance and the argument vector.  Afterwards, 
-a possible named reference is destroyed and the object, all slots are
-set back to @nil and the instance is deallocated.  ->unlink (see below)
-will not be called.  In general, it is not considered good programming
-style to let ->initialise fail.
+the (possible named) reference is destroyed and the object's slots are
+reset to @nil. Finally, the instance is deallocated.  ->unlink (see below)
+is not called.  In general, it is not good programming style to let
+->initialise fail.
     \sendmethod{object}{unlink}{}%
 Called from the object-management system if the object is to be destroyed.
 This method {\em must} call ->send_super: unlink somewhere in the process.
-It is considered an error if ->unlink fails.
+It is an error if ->unlink fails.
 
 This method is normally used to unlink the object from related objects.
 There is no need to reset slot-values as dereferencing the slot-values
 will be done by the object-management system after ->unlink has finished.
 
-->unlink is called no matter why the object was destroyed using ->free
-or due to the garbage-collector.
+->unlink is always called, whether the object was destroyed using ->free
+or by the garbage-collector.
     \getmethod{object}{convert}{<Class-Defined>}{Instance}
-This get method converts another object into an object of this class. The
-receiver is not defined during the execution of this method.  The method
-should either fail or succeed and return an instance of the requested
-class or one of its super-classes.  The argument vector consists of
-a single argument.  The type-conversion system guarantees the argument
-is of the satisfied type.  It is allowed, but not obligatory to use
-the method of the super-class.
+This get method converts another object into an object of this class. It
+is called by the type-checker.  Suppose an object {\em X} is handed to
+the type checker for checking against this class.  If {\em X} is not
+already an instance of this class or any of its subclasses, the type
+checker will:
+\begin{shortlist}
+    \item Check {\em X} against the <Class-Defined> type.
+    \item Run this method, passing the (possibly converted) {\em X}.
+\end{shortlist}
+
+The receiver is not defined during the execution of this method. The
+method should either fail or succeed and return an instance of the
+requested class or one of its super-classes. The argument vector
+consists of a single argument. The type-conversion system guarantees the
+argument is of the satisfied type. It is allowed, but not obligatory to
+use the method of the super-class.
+
+For example, suppose we are defining a class {\em person}, who has
+a unique name.  There is a table @persons, that maps the name onto
+the person.  We would like to be able to pass the name rather then
+a person instance to a method argument with the type {\tt person}.
+If no such person exist, a new person instance is created.  Below
+is the implementation for this:
+\begin{code}
+convert(_, Name:name, P:person) :<-
+	"Convert name to person frm @persons or create a new one"::
+	(   get(@persons, member, Name, P)
+	->  true
+	;   new(P, person(Name))
+	).
+\end{code}
+See also <-lookup described below.
     \getmethod{object}{lookup}{<Class-Defined>}{Instance}
 Called from the new() virtual machine operation to deal with {\em
 reusable} objects before ->initialise is considered. The arguments are
 normally the same as for ->initialise. If this method returns an instance,
 this will be the value returned by new().  If it fails, a new instance
-is allocated and ->initialised.
+is allocated and ->initialise{}d.
 \end{description}
 
 
-\subsection{Redefinition in Graphical Classes}
+\subsection{Redefinition in graphical classes}
 \label{sec:graphmethods}
 
 The generic graphical class \class{graphical} is prepared to have
@@ -341,17 +386,19 @@ the most important of these methods.
 \begin{description}
     \sendmethod{graphical}{event}{event}
 Called when a user-event needs to be dispatched. This message is
-initialy sent to the window object receiving the event.
-Graphical devices (and thus windows) will collect all graphicals
-for which `graphical ->in_event_area' succeeds.  This are normally
-all graphicals that overlap with the current position of the pointer.
-It will sort these objects to their stacking order, topmost object
-first.  See `device <-pointed'.  Next the device will use `event->post'
-to post the event to each of these graphicals until one accepts the
-event.  Finally `graphical->event' will be invoked, trying all the
-\class{recogniser} objects associated with this graphical.
+initially sent to the window object receiving the event. Graphical
+devices (and thus windows) collect all graphicals for which `graphical
+->in_event_area' succeeds. These are normally all graphicals that overlap
+with the current position of the pointer. It will sort these objects to
+their stacking order, the topmost object first. See `device <-pointed'.
+Next the device will use `event->post' to post the event to each of
+these graphicals until one accepts the event, after which the method
+immediately returns success. If none of the <-pointed objects is
+prepared to accept the event, `graphical->event' will be invoked, trying
+all he \class{recogniser} objects associated with this graphical.
 
-Notably most subclasses of class \class{dialog_item} redefine ->event.
+Notably most subclasses of class \class{dialog_item}, the standard
+controllers, redefine ->event.
 
 The method ->event is commonly redefined in user-defined graphicals to
 make them sensitive to the mouse. The following fragment makes it
@@ -378,26 +425,42 @@ displayed on the device to be considered before the device as a whole.
 It is not obligatory to use ->send_super and if it is used, no specific
 ordering is required.  If there is no behaviour of the super-class
 that conflicts with your extension we recommend to try ->send_super
-first.
+first, to ensure recognisers and local event-processing in graphicals
+displayed on a device with redefined event-processing are considered
+before your extensions.
 
 Note the way recognisers are activated from event methods.  The
 graphical object itself is not passed.  Instead, `recogniser->event'
 reads the receiver from `event <-receiver' set by `event ->post'.
 
 As a consequence, do not call `graphical ->event' directly.  An event
-is directed to a graphical using `event ->post'.
+is directed to a graphical using `event ->post'.  For example, the
+event-method of a device displaying an editable text object may decide
+to forward all button and keyboard events to the text.  The following
+accomplishes this:
+
+\begin{code}
+event(D, Ev:event) :->
+	(   (   send(Ev, is_a, button)
+	    ;   send(Ev, is_a, keyboard)
+	    )
+	->  get(D, member, text, Text),	% assumes text is named `text'
+	    send(Ev, post, Text)
+	;   send(D, send_super, event, Ev)
+	).
+\end{code}
     \sendmethod{graphical}{geometry}{X:[int], Y:[int], W:[int], H:[int]}
 Requests the receiver to position itself at the $X,Y$ and to be $W
 \times H$ pixels in size. Any of these values may be @default,
 indicating that the specific parameter is not to be changed.
 
-Redefining ->geometry is proper way to interfere with positioning or
+Redefining ->geometry is the proper way to interfere with positioning or
 resizing as this is the central method called by all move and resize
 methods.
 
 The example below takes the text-box to ensure proper geometry handling
-by this class.  Note that (1) the size of a device is by definition the
-bounding box of all displayed graphicals and (2) the text must be
+by this class.  Note that (I) the size of a device is by definition the
+bounding box of all displayed graphicals and (II) the text must be
 centered again.
 
 \begin{code}
@@ -431,14 +494,33 @@ this:
 \end{code}
 
 If the database object (model) is modified, it could use the following
-to signal all associated controllers of the change:
+to inform all associated controllers about the change:
 
 \begin{code}
 	send(Db, send_hyper, controller, request_compute)
 \end{code}
 
-The controller could react immediately, but it can also delay until it needs
-to be painted:
+XPCE remembers that the state of this graphical is not consistent.  If
+XPCE requires the graphical to be in a consistent state, either because
+it needs to paint the graphical or because it requires information about
+the geometry of the graphical, it will invoke the method ->compute on
+the graphical.
+
+This mechanism is used by graphicals that have a complicated structure
+and are difficult to update. An example in the built-in classes is class
+\class{text_image}, displaying the text of an \class{editor}. Any
+modification to the text in the displayed region of the text_image
+requires expensive computation to recompute the layout of the text.
+Suppose the ->request_compute and ->compute mechanism is not available.
+It this case, multiple modifications by the program to the text would
+require this expensive process to run several times. Now, after
+modifying the text, ->request_compute is invoked on the text_image.
+Whenever XPCE has processed all pending events, it will invoke ->compute
+to the text_image and then repaint it.
+
+The method below is a far to simple example, where the ->compute method
+simply copies the name of the represented object into the text object
+displayed on the device ->compute is defined on.
 
 \begin{code}
 compute(C) :->
@@ -449,19 +531,20 @@ compute(C) :->
 	send(C, send_super, compute).
 \end{code}
     \sendmethod{graphical}{_redraw_area}{area}
-Called by the graphical repaint thread.  Its task it to repaint itself.
+Called by the graphical repaint thread.  Its task is to repaint itself.
 {\em Area} indicates the area in the device coordinate system that needs
 to be repainted.  This area overlaps with the <-area of the device.
 
-Expointing this method to realise new graphical primitives is explained
+Exploitation of this method to realise new graphical primitives is explained
 in \secref{ugraphics}.
 \end{description}
 
 
-\section{Related Predicates}			\label{sec:udcpreds}
+\section{Handling default arguments}			\label{sec:udcpreds}
 
-There is a small number of predicates that support the definition of
-classes.  These are listed below:
+The predicate default/3 provides a comfortable way to specify the
+meaning of default arguments.  Future versions may incorporate the
+default value in the \class{type} object itself.
 
 \begin{description}
     \predicate{default}{3}{+Argument, +Default, -Value}
@@ -476,29 +559,22 @@ resource(<Object>, <Name>)
 In which case the <-resource_value: <Name> from <Object> will be
 used as default value.  {\em Value} is unified with {\em Argument}
 if {\em Argument} is not @default and with {\em Default} otherwise.
-    \predicate{pce_predicate_reference}{2}{?:Head, ?Reference}
-Converts between a Prolog predicate and an XPCE object referencing this
-predicate. A Prolog predicate is described by a \class{c_pointer}
-object.
 
-This predicate is used by the class compiler.
-	
-The following example generates a PCE reference to the Prolog predicate
-bar/2 in the Prolog module foo.
-	
+The following is an example that sets the volume to a specified value or
+the value of the resource `volume' if @default is passed as an argument.
 \begin{code}
-?- pce_begin_class(foo:bar(_,_), X).
-\end{code}
+resource(volume, 0..130,  75, "Volume in decibels").
 
-These reference objects are stored in the `method <->message' slot.
-Except for finding the predicate implementing a method, there are
-probably few sensible applications of this predicate.
+volume(X, Vol:[0..130]) :->
+	default(Vol, resource(X, volume), V),
+	<set the volume here>.
+\end{code}
 \end{description}
 
 
-\section{Advanced Topics}
+\section{Advanced topics}
 
-\subsection{More on Type Declarations}		\label{sec:moretypes}
+\subsection{More on type declarations}		\label{sec:moretypes}
 
 The basic XPCE type-syntax is described in section~\ref{sec:atype} of
 this manual.  Types are first-class reusable XPCE objects that are
@@ -513,33 +589,36 @@ mymethod(Me, A:'graphical|dict_item|0..') :->
 	...
 \end{code}
 
-For most cases however, this is not necessary. If the type is not
-an atom, the class-compiler will write the term to an atom and
-canonise the result.  Hence, {\tt [point]} will translate to the
-atom '[point]', which is interpreted by XPCE as ``an instance
-\class{point} or the constant @default. The atoms {\tt *} and {\tt
-...} are defined as postfix operators, while {\tt ..} is an infix
-operator.  This makes `\mbox{\tt any ...}' a valid notation for
-``any number of anything'' (see section~\ref{sec:varargs} below)
-and `{\tt 0..5}' a valid expression for ``an integer in the range
-0 to 5 (including the boundaries).
+For most cases however, this is not necessary.  If the type is not an
+atom, the class-compiler will convert the Prolog term into an atom
+suitable for XPCE's type system.  Hence, {\tt [point]} will translate to
+the atom '[point]', which is interpreted by XPCE as ``an instance of
+class \class{point} or the constant @default''.  The atoms {\tt *} and
+{\tt ...} are defined as postfix operators, while {\tt ..} is an infix
+operator.  This makes `\mbox{\tt any ...}' a valid notation for ``any
+number of anything'' (see section~\ref{sec:varargs} below) and `{\tt
+0..5}' a valid expression for ``an integer in the range 0 to 5
+(including the boundaries).
 
 Also, {\tt [box|circle]} is a valid description for ``an instance of
-\class{box} or \class{circle} or the constant @default.  Note however
-that {\tt [box|circle|ellipse]} is {\em not} valid syntax and should
-be written as {\tt '[box|circle|ellipse]'}.  Whenever you are in doubt,
-use quotes to prevent surprises.
+\class{box} or \class{circle} or the constant @default. Note however
+that {\tt [box|circle|ellipse]} is {\em not} valid Prolog syntax and
+should be written as {\tt '[box|circle|ellipse]'}. Whenever you are in
+doubt, use quotes to prevent surprises.
 
 
 \subsection{Methods with variable number of arguments} \label{sec:varargs}
 
 Methods such as `chain->initialise' and `string->format' handle an
 arbitrary number of arguments. The argument declaration for such a
-method first defines a number (possible zero) of `normal' arguments. The
-last argument may be postfixed with `{\tt ...}'. The variable will be
-bound to a \class{vector} object containing all arguments assigned to
-this variable. Below is a refinement of `label ->report' that will
-colour the label depending on the nature of the message.
+method first defines a number (possibly zero) of `normal' arguments. The
+last argument is postfixed with `{\tt ...}'. This argument will be bound
+to a \class{vector} object containing all remaining arguments. Below is
+a refinement of `label ->report' that will colour the label depending on
+the nature of the message. The ->report method takes two obligatory
+arguments, the {\em kind} of the report and a {\em format} string, as
+well as an undefined number of arguments required by the format
+specification.
 
 \begin{pcecode}
 :- pce_begin_class(coloured_reporter, label,
@@ -551,20 +630,7 @@ report(L, Kind:name, Format:char_array, Args:any ...) :->
 	send(L, colour, Colour).
 
 colour_from_report_category(L, Kind:name, Colour:colour) :<-
-	"Determine colour on the nature of report"::
-	get(L?display, visual_type, Type),
-	report_colour(Type, Kind, ColourName),
-	new(Colour, colour(ColourName)).
-
-report_colour(monochrome, _, black).
-report_colour(static_grey, _, black).
-report_colour(grey_scale, _, black).
-report_colour(_, status,   dark_green).
-report_colour(_, inform,   black).
-report_colour(_, progress, green).
-report_colour(_, done,     black).
-report_colour(_, warning,  orange).
-report_colour(_, error,	   red).
+	<left to the user>.
 
 :- pce_end_class.
 \end{pcecode}
@@ -573,7 +639,7 @@ The method ->send_super_vector is a contraction of ->send_super and
 ->send_vector.  ->send_vector and friends are used to {\em invoke}
 methods if the number of arguments is not known beforehand.  Note
 that the implementing method need not be a method accepting an
-argument vector.  Consider:
+argument vector.  The following is perfectly valid:
 
 \begin{code}
 ?- send(new(P, picture), send_vector, vector(open)).
@@ -581,7 +647,7 @@ argument vector.  Consider:
 
 \begin{description}
     \sendmethod{object}{send_vector}{unchecked ..., vector [,int]}
-Although the formal argument specification is {\tt unchecked ...}, the
+Although the formal argument specification is `{\tt unchecked ...}', the
 above describes the actual argument syntax.  This method creates a
 vector of arguments consisting of
 \begin{itemize}
@@ -600,7 +666,7 @@ Like ->send_vector, but to fetch a result.
 \end{description}
 
 
-\subsubsection{Using Class Templates}		\label{sec:template}
+\subsubsection{Using class templates}		\label{sec:template}
 
 XPCE provides two alternatives to multiple inheritance. Delegation is
 discussed in section~\ref{sec:delegation}. See also the directive
@@ -680,7 +746,7 @@ Note that use_class_template/1 {\em imports} the definitions from the
 template in the current class.  Thus, the following {\bf will not 
 extend} further on the `editable_graphical ->event' definition, but
 instead {\bf replace} this definition.  Of course it is allowed to
-subclass the definition of editable_box above are further refine the
+subclass the definition of editable_box above and further refine the
 event method in the subclass.
 
 \begin{pcecode}
@@ -697,7 +763,7 @@ event(Gr, Ev:event) :->
 \end{pcecode}
 
 
-\subsection{Implementation Notes}	\label{sec:ucdimplementation}
+\subsection{Implementation notes}	\label{sec:ucdimplementation}
 
 The XPCE/Prolog class-compilation is defined using the Prolog
 preprocessing capabilities of term_expansion/2. While the class is
@@ -727,8 +793,8 @@ is translated into
 
 \begin{code}
 send_gnus(gnu, A) :- ...
-send_gnat(gnat, A) :- ...
-send_gnats(gnats, A, B) :- ...
+send_gnus(gnat, A) :- ...
+send_gnus(gnats, A, B) :- ...
 \end{code}
 
 The remainder of the class specification is translated into a number of
@@ -743,7 +809,7 @@ facilities (for example changing the `variable ->clone_style') cannot
 be made by sending messages to the class inside the class definition
 body as this would address the not-yet-existing class.  Instead, they
 should be embedded in the pce_class_directive/1 directive.%
-    \footnote{To facilate the translation of old code, the construct
+    \footnote{To facilitate the translation of old code, the construct
 	      \mbox{\tt :- send(@class, ...} is treated automatically
 	      as if it was embedded using pce_class_directive/1}.
 The {\em Goal} argument of pce_class_directive/1 should refer to the

@@ -13,7 +13,7 @@ TEX=	doc.tex \
 	report.tex font.tex hyper.tex udc.tex dragdrop.tex \
 	dragdropdemo.tex control.tex whoiswho.tex namedref.tex \
 	ugraphics.tex code.tex resource.tex diaedit.tex dialog.tex \
-	wysiwyg.tex frame.tex error.tex
+	wysiwyg.tex frame.tex error.tex summary.tex
 
 LOGO=	figs/uva.ps figs/swi.ps
 
@@ -40,6 +40,10 @@ dragdropdemo.tex:	examples/dragdrop.pl
 	$(PLTOTEX) examples/dragdrop.pl > $@
 wysiwyg.tex:		examples/wysiwyg.pl
 	$(PLTOTEX) examples/wysiwyg.pl > $@
+summary.tex:		summary.doc classes.pl
+	xpce -g "[classes],process('summary.doc','summary.tmp')" -t halt
+	$(DOCTOTEX) summary.tmp > summary.tex
+	rm -f summary.tmp
 
 .doc.tex:
 	$(DOCTOTEX) $*.doc > $*.tex
@@ -49,5 +53,5 @@ wysiwyg.tex:		examples/wysiwyg.pl
 
 clean:
 	rm -f $(TEX) *.dvi *.toc *.aux *.idx *.ind *.blg *.log *~ figs/*~ \
-	      $(LOGO)
+	      $(LOGO) figs/class/* summary.tmp
 	

@@ -1,16 +1,17 @@
 \documentstyle[pce,11pt]{book}
-\def\booktitle{Programming in PCE/Prolog}
+\def\booktitle{Programming in XPCE/Prolog}
 
 %\psdraft
 
 \makeindex
 
-%\includeonly{dialog}
+%\includeonly{techniques}
 
 \begin{document}
 
 \begin{titlepage}
-\vfil\vfil\vfil
+\mbox{}
+\vfil
 \centerline{\psfig{figure=figs/title.ps,width=\textwidth}}
 \vfil\vfil\vfil
 \end{titlepage}
@@ -20,23 +21,23 @@
 \vfil\vfil
 
 \noindent
-Programming in PCE/Prolog \\[2cm]
+{\bf Programming in XPCE/Prolog} \\[2cm]
 Jan Wielemaker \\
 Anjo Anjewierden \\[1cm]
-jan@swi.psy.uva.nl \\
-anjo@swi.psy.uva.nl
+\email{jan@swi.psy.uva.nl} \\
+\email{anjo@swi.psy.uva.nl}
 \vfil
 \noindent
 XPCE/Prolog is a hybrid environment integrating logic programming and
 object-oriented programming for Graphical User Interfaces.  Applications
-in XPCE/Prolog are fully compatible accross the supported X11 and
+in XPCE/Prolog are fully compatible across the supported X11 and
 Win32 platforms.
 \vfil\vfil
 \noindent
-Last updated December 1, 1995 for XPCE version 4.8.15
+Last updated January 30, 1996 for XPCE version 4.8.16
 \vfil
 \noindent
-Copyright \copyright\ 1992-1995 University of Amsterdam
+Copyright \copyright\ 1992-1996 University of Amsterdam
 \end{titlepage}
 
 \pagestyle{fancyplain}
@@ -73,6 +74,7 @@ Copyright \copyright\ 1992-1995 University of Amsterdam
 \include{memory}
 \include{trouble}
 \include{glossary}
+\include{summary}
 
 \printindex
 

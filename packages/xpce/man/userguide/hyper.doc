@@ -1,11 +1,11 @@
-\section{Using Hyper Links to Relate Object}	\label{sec:hyper}
+\section{Using hyper links to relate object}	\label{sec:hyper}
 
 A \class{hyper} is a binary relation between two objects.  Hypers are,
 like \class{connection} objects, guarded automatically against
 destruction of one of the related objects.  Special methods allow for
 the easy communication between {\em hypered} objects.
 
-Hypers form an adequate answer where objects need to be related that
+Hypers form an adequate answer if objects need to be related that
 depend temporary and incidentally on each other.  It is possible to
 be informed of the destruction of hypers, which enables a hypered object
 to keep track of its environment.  Good examples for the usage of hypers
@@ -32,7 +32,7 @@ initialise(F) :->
 
 
 unlink(F) :->
-	"Destry all slave windows"::
+	"Destroy all slave windows"::
 	get(F, slaves, Slaves),
 	send(Slaves, for_all, message(@arg1?value, destroy)).
 
@@ -139,23 +139,22 @@ is being destroyed.  May be refined.
 \end{description}
 
 
-\subsubsection{Methods on Class Object}
+\subsubsection{Methods on class object}
 
 Below are the two most commonly used methods dealing with hypers and
-defined on class \class{objects}. XPCE defines various other messages
-that let you delete and inspect the hyper structure.  Please use the
-online manual for details.
+defined on class \class{objects}.  XPCE defines various other methods
+for deleting and inspecting the hyper structure.  Use the online manual
+for details.
 
 \begin{description}
     \sendmethod{object}{send_hyper}{Name:[name], Selector:name,
 				    Arg:unchecked ...}
-Perform a broadcast send-operation to all (named) <-hypered objects.
+Broadcast a send-operation to all (named) <-hypered objects.
 Similar to <-get_hyper, but does not stop if the method is received
-successfully. Succeeds if there was at least one hypered object
-accepting the message, fails otherwise.
+successfully. Succeeds if  at least one hypered object accepted the message.
     \getmethod{object}{hypered}{Name:[name], Test:[code]}{object}
 Find a hyper-related object. Name is the name of the hyper (seen from
-the side of the receiver). Test is an optionally additional test. If
+the side of the receiver). Test is an optional additional test. If
 present, this test is executed using the arguments given below.
 The first matching object is returned.  See also <-all_hypers.
 	
@@ -169,7 +168,7 @@ The first matching object is returned.  See also <-all_hypers.
 \end{description}
 
 
-\subsection{Programming Existence Dependencies}
+\subsection{Programming existence dependencies}
 
 The example of this section demonstrates a common existence
 relationship: if the `main' object is destroyed, all related slave
@@ -187,18 +186,19 @@ initialise(H, F:object, T:object, FN:[name], TN:[name]) :->
 	send(H, send_super, initialise, F, T, FromName, ToName).
 
 unlink_from(H) :->
-	"From-side (master is destroyed"::
-	ignore(send(H?to, free)),
+	"From-side (master is destroyed)"::
+	get(H, to, To),
+	free(To),
 	free(H).
 
 :- pce_begin_class.
 \end{pcecode}
 
 This hyper is demonstrated in the following application.  It defines a
-frame holding a graphical window and a dialog with a `Quit' button
-as well as a dialog frame that allows you to modify the label of the
-first frame.  See figure~\ref{fig:hyperdemo}.  If the main window is
-destroyed, the label-editor will be destroyed automatically.
+frame holding a graphical window and a dialog with a {\sf Quit} button and
+also a dialog frame for modifying the label of the first frame.  See
+figure~\ref{fig:hyperdemo}.  If the main window is destroyed, the
+label-editor will be destroyed automatically.
 
 \postscriptfig[width=\textwidth]{hyperdemo}{Two frames related by a hyper-link}
 

@@ -78,7 +78,7 @@ Trailing arguments that hac handle @default (indicated by square brackets
 in the type declaration) may be omitted.
 
 If the method accepts many arguments of which most are default, using
-the named argument convention may be preferred.  Fo example:
+the named argument convention may be preferred.  For example:
 
 \begin{code}
 	...,
@@ -239,7 +239,7 @@ auto_call(Goal) :-
 \section{Library predicates}
 
 \index{library (PCE/Prolog-)}\index{autoloading}% This section describes
-some of the predicates available from the PCE/Prolog library.
+Some of the predicates available from the PCE/Prolog library.
 
 \subsection{Library ``pce_util''}
 
@@ -272,7 +272,7 @@ send_list(Object, Selector) :-
 Equivalent to get/[3-13], but instead of unifying a variable with a
 reference the variable is unified with the term-description.  The
 arguments are unified as in get/[3-13].  Normally only used from the 
-Prolog toplevel for debugging purposes.
+Prolog top level for debugging purposes.
 
     \predicate{chain_list}{2}{?Chain, ?List}
 Converts between a PCE chain and a Prolog list. This may be useful to
@@ -392,14 +392,13 @@ this predicate is:
 \end{description}
 
 
-\subsection{Miscellaneous library predicates}
+\subsection{Miscellaneous library predicates}		\label{sec:miscpreds}
 
 \begin{description}
-    \predicate{manpce}{[0-1]}{[+ClassName]}
-Starts the online manual tools.  With an \arg{ClassName} argument,
-the ``Class Browser'' tool is started on the specified class.
-    \predicate{postscript}{2}{+Reference, +File}
-Generate PostScript from the given object.  Defined as:
+    \predicate{manpce}{[0-1]}{[+ClassName]} Starts the online manual
+tools. With an \arg{ClassName} argument, the ``Class Browser'' tool is
+started on the specified class. \predicate{postscript}{2}{+Reference,
++File} Generate PostScript from the given object. Defined as:
 
 \begin{code}
 postscript(Obj, File) :-

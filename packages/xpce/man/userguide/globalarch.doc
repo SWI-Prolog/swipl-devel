@@ -1,16 +1,16 @@
-\chapter{Global architecture}
+\chapter{Global architecture}			\label{sec:globalarch}
 
-Section~\ref{sec:starting} introduced the basic principles of PCE/Prolog
-with examples.  In this section we present a conceptual overview of PCE
-and the PCE/Prolog environment.
+Section~\ref{sec:starting} introduced the basic principles of XPCE/Prolog
+with examples.  In this section we present a conceptual overview of XPCE
+and the XPCE/Prolog environment.
 
 
 \section{What is ``Object-Oriented''?}
 
-PCE is an object-oriented system.  This implies that the basic
-entity in PCE's world is an object, which is an observable entity
-with persistent state capable of performing actions.  Such an action
-is activated by sending the object a {\em message}.
+XPCE is an object-oriented system.  This implies that the basic entity in
+XPCE's world is an object, an entity with state capable of performing
+actions.  Such an action is activated by sending the object a {\em
+message}.
 
 So far, most object oriented systems agree.  Starting from these
 notions however one can find object oriented environments that take
@@ -19,23 +19,26 @@ objects and sending messages.
 
 Rather than specifying operations on each individual object most OO
 environments define some way of sharing the operation definitions
-(called {\em methods}).  There are two ways to share methods.  One is
-to create objects as a copy of other objects and then modify them (by
-attaching and deleting attributes and methods) to fit the particular
-need.  If a series of similar objects is needed, one first creates an
-object that satisfies the common functionality and then creates
-multiple copies of this object.  This approach is followed by
-SELF \cite{chambers:89}.  The other ---more traditional--- approach is to
-define a {\em class}.  A class is an entity in the object oriented
-environment that defines the constituents of the persistent state
-and the methods for each of its {\em instantiations}.  PCE takes the
-latter approach, but adds some notions of the object-copying
-approach. 
+(called {\em methods}).  There are two ways to share methods.  One is to
+create objects as a copy of other objects and then modify them (by
+attaching and deleting slots and methods) to fit the particular need.
+If a series of similar objects is needed, one first creates an object
+that satisfies the common functionality and then creates multiple copies
+of this object.  This approach is followed by SELF \cite{chambers:89}.
+The other ---more traditional--- approach is to define a {\em class}.  A
+class is an entity in the object oriented environment that defines the
+constituents of the persistent state and the methods for each of its
+{\em instantiations}.
+
+XPCE takes the latter approach, but adds some notions of the
+object-copying approach because GUI's often contain unique objects and
+because object modification is more dynamic and therefore more suitable
+for rapid prototyping.
 
 
-\section{PCE's objects}
+\section{XPCE's objects}
 
-Getting down to earth, a PCE object is a set of {\em values} of {\em
+Getting down to earth, a XPCE object is a set of {\em values} of {\em
 instance variables} bundled into a single entity which is referred
 to by its {\em object reference}. An object is an instantiation of
 a {\em class}.  A class holds the key to decoding the information of
@@ -46,33 +49,33 @@ the instance variables.  The class also serves as a placeholder
 for storing the methods understood by its instances.  Figure~\ref
 {fig:arch1} illustrates this.
 
-\postscriptfig[width=\textwidth]{arch1}{Classes and Objects in PCE}
+\postscriptfig[width=4in]{arch1}{Classes and Objects in XPCE}
 
 
 \subsection{Classes}
 
-As explained above, a PCE class describes the storage-layout and the
-methods of its instances.  In PCE a class is a normal object.  It is
+As explained above, a XPCE class describes the storage-layout and the
+methods of its instances.  In XPCE a class is a normal object.  It is
 an instance of class {\em class}.%
     \footnote{Class class is an instance of itself.  In other systems
 	      (SmallTalk, \cite{Goldberg:83a}), classes are instances of a
-	      {\em meta-class}.  Yet in other system, classes have
+	      {\em meta-class}.  Yet in other systems, classes have
 	      a completely different status (for example widgets in
 	      the X11 Intrinsics)}
 \index{inheritance,of classes}
-As in most OO systems PCE classes may inherit from a {\em
-super-class}.  PCE classes are organised in a single-inheritance
+As in most OO systems XPCE classes may inherit from a {\em
+super-class}.  XPCE classes are organised in a single-inheritance
 hierarchy.%
     \footnote{Multiple inheritance introduces various technical and
-	      conceptual problems.  PCE uses delegation and
+	      conceptual problems.  XPCE uses delegation and
 	      templates to achieve similar results.  This is
 	      explained in section~\ref{sec:delegation} and
 	      section~\ref{sec:template}.}
 The root of this hierarchy is class {\em object}.  Class object is the
 only class without a super-class.  Figure~\ref{fig:classhierarchy} gives
-the complete hierarchy of PCE built-in classes.
+the complete hierarchy of XPCE built-in classes.
 
-\postscriptfig[height=8in]{classhierarchy}{PCE's Class hierarchy}
+\postscriptfig[height=8in]{classhierarchy}{XPCE's Class hierarchy}
 
 
 \section{Objects and integers}
@@ -80,48 +83,46 @@ the complete hierarchy of PCE built-in classes.
 Except for integers, everything accessible to the user is represented
 as an object.  By implementing classes, instance variables, methods,
 messages, conditions, constants, variables, etc.\ as objects
-everything in PCE may be accessed through the basic predicates
+everything in XPCE may be accessed through the basic predicates
 new/2, send/[2-12] and get/[3-13] from Prolog.
 
 
 \section{Delegation}		\label{sec:delegation}
 
 \index{delegation}\index{multiple inheritance}\index{inheritance,multiple}
-PCE does not offer multiple inheritance.  Sharing functionality from
+XPCE does not offer multiple inheritance.  Sharing functionality from
 multiple classes is generally dealt with using {\em delegation}.
 Delegation implies that messages not understood by a principal object
 are forwarded to an object that is associated to it.
 
-For example, PCE defines class \class{editor} to be a graphical object
+For example, XPCE defines class \class{editor} to be a graphical object
 capable of editing text.  Most applications require a \class {window}
-capable of editing text.  PCE's class \class{view} is not a subclass
-of both editor and window, but just of window.  The window displays an
-instance of class editor and constraints the size of the editor to
-occupy the entire visible area of the window.  Any message arriving on
-the view that is not defined on class view (or class window) will be
-forwarded to the associated editor object.
+capable of editing text.  This is implemented by XPCE's class
+\class{view}, which is not a subclass of both editor and window, but
+just of window.  The window displays an instance of class \class{editor}
+and constrains the size of the editor to occupy the entire visible area
+of the window.  Any message arriving on the view that is not defined on
+class \class{view} (or class \class{window}) will be forwarded to the
+associated editor object.
 
 The dynamic nature of delegation makes this mechanism more flexible
-than multiple inheritance.  For example, PCE defines class \class{node}.
+than multiple inheritance.  For example, XPCE defines class \class{node}.
 This class defines the communication to a \class{tree} to automate the
 layout of hierarchies.  A node can manipulate any graphical object.
 Using multiple inheritance would require a class {\em box_node},
-{\em cicle_node}, etc.%
-    \footnote{A problem with PCE's current implementation of
-	      delegation is that the object that is a functional
-	      part of another object is not aware of this fact.}
+{\em circle_node}, etc.
 
 
 \section{Prolog}
 
-As we have seen in \secref{starting}, activating PCE is done by
-providing the user with access to PCE's message passing primitives.
+As we have seen in \secref{starting}, activating XPCE is done by
+providing the user with access to XPCE's message passing primitives.
 Near the end of section~\ref{sec:starting} we briefly explained how
-control is passed from PCE to Prolog.  The predefined object @prolog is
+control is passed from XPCE to Prolog.  The predefined object @prolog is
 (the only) instance of class {\em host}.  Any message sent to this
 instance will be mapped on a Prolog goal and given to the Prolog system
 as a query: the {\em selector} of the method will be used as a predicate
-name.  The arguments will be translated from PCE data-types to their
+name.  The arguments will be translated from XPCE data-types to their
 corresponding Prolog data-types according to the transformation rules
 described in \secref{interface}.  
 
@@ -129,13 +130,13 @@ The relation between XPCE and Prolog is described in detail in
 \chapref{pceprolog}.  Examples can be found throughout this manual.
 
 Figure~\ref{fig:control} shows the data- and control-flow between
-PCE and Prolog.  The lines with arrows indicate data-flow in the
+XPCE and Prolog.  The lines with arrows indicate data-flow in the
 direction of the arrow.  The dotted ellipse with arrows indicates
 the flow of control.
 
-\postscriptfig[width=\textwidth]{control}{Data and Control flow in PCE/Prolog}
+\postscriptfig[width=\textwidth]{control}{Data and Control flow in XPCE/Prolog}
 
-\section{Executable Objects}
+\section{Executable objects}
 
 Executable code (statements, control-structures, variables, etc.) can be
 expressed as first-class objects.  Such expressions can be associated
@@ -150,19 +151,19 @@ Executable objects are used in many of the examples in this manual.
 \section{Summary}
 
 This section explained the basic object-oriented notions used in
-PCE.  PCE's data is organised in {\em objects} and integers.  An
+XPCE.  XPCE's data is organised in {\em objects} and integers.  An
 object represents a state.  An object is an instance of a class.
 A class describes the constituents of the state represented in
 its instances and the methods (actions) understood by its instances.
 
-A class is a normal object, as are all the other constituents of PCE's
+A class is a normal object, as are all the other constituents of XPCE's
 programming world: methods, instance variables, messages, expressions,
-etc.  This uniform representation allows for inspecting and changing PCE
+etc.  This uniform representation allows for inspecting and changing XPCE
 using the four basic interface predicates from Prolog.
 
-The basic interface predicates pass control from Prolog to PCE.
-As control is to be passed from PCE to Prolog (for example if
+The basic interface predicates pass control from Prolog to XPCE.
+As control is to be passed from XPCE to Prolog (for example if
 the user presses a button), a message is send to @prolog, the
 only instance of class host.  This object will create a goal
-from the message and pass this goal to the Prolog environment to
-be proven.
+from the message and pass this goal to the Prolog environment.
+

@@ -1,4 +1,4 @@
-\chapter{Programming Techniques}
+\chapter{Programming techniques}		\label{sec:techniques}
 
 This chapter is an assorted collection of techniques to programming
 problems that appear in many applications and for which support for
@@ -6,7 +6,7 @@ generic solutions is present, but cannot easily be found using the
 online reference manual.
 
 \begin{itemize}
-\newcommand{\secoverview}[2]{\item{\secref{#1}~~~{\it #2}}\\}
+\newcommand{\secoverview}[2]{\item{\makebox[2cm][l]{\ref{sec:#1}}{\bf #2}}\\}
     \secoverview{control}{Control-structure of PCE/Prolog applications}
 Discusses the event-driven control-structure used by XPCE applications.
 Also describes how to avoid using this structure.
@@ -23,7 +23,7 @@ Discusses the generic reporting system used to inform the user of
 progress, status and errors.
     \secoverview{font}{Specifying fonts}
 Discusses the indirections in the font-specification mechanism.
-    \secoverview{hyper}{Using Hyper Links to Relate Object}
+    \secoverview{hyper}{Using Hyper Links to Relate Objects}
 Discusses a technique to relate objects.
     \secoverview{dragdrop}{Drag and Drop Interface}
 Discusses the XPCE drag-and-drop gesture library.
@@ -35,7 +35,7 @@ Discusses the definition of new graphical primitives.
 \input{code.tex}
 \input{namedref.tex}
 \input{whoiswho.tex}
-\input{frame.doc}
+\input{frame.tex}
 \input{report.tex}
 \input{error.tex}
 \input{font.tex}

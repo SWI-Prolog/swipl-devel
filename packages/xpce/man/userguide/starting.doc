@@ -1,25 +1,25 @@
 \chapter{Getting started}		\label{sec:starting}
 
-This section introduces programming the PCE/Prolog environment: the
+This section introduces programming the XPCE/Prolog environment: the
 entities (objects), referencing objects and manipulating objects.  Most
 of the material is introduced with examples.  A complete definition of
 the interface primitives is given in \appref{interface}.
 
-\section{Starting PCE/Prolog}
+\section{Starting XPCE/Prolog}
 
-PCE can be connected to several Prolog implementations.  It is a
-normal Unix executable and is be started from the Unix shell like
-any other program.  When PCE/Prolog starts, it appears just like
+XPCE can be connected to several Prolog implementations.  It is a
+normal Unix executable and is started from the Unix shell like
+any other program.  When XPCE/Prolog starts, it appears just like
 the Prolog system it is based on, except for the banner message.
-Below we started PCE/SWI-Prolog (\cite{SWI-Prolog:manual}).
+Below we started XPCE/SWI-Prolog.
 
 \begin{code}
 % xpce
 ~/.xpcerc compiled, 0.09 sec, 10,636 bytes.
 .plrc compiled, 0.10 sec, 11,772 bytes.
-PCE Development system (4.8.14, Oct 1995 for i486-linux and X11R6)
-Copyright 1993-1995, University of Amsterdam.  All rights reserved.
-The host-language is SWI-Prolog version 2.1.10
+XPCE Development system (4.8.16, Jan 1996 for i486-linux and X11R6)
+Copyright 1993-1996, University of Amsterdam.  All rights reserved.
+The host-language is SWI-Prolog version 2.5.0.
 
 For HELP on prolog, please type help. or apropos(topic).
          on xpce, please type manpce.
@@ -28,35 +28,36 @@ For HELP on prolog, please type help. or apropos(topic).
 \end{code}
 
 \index{version}%
-SWI-Prolog's prompt is ``$<$n$>$ ?-'' where $<$n$>$ is the
-history-number of the command. The banner indicates the PCE version.
-The current version is 4.8 and the patch-level is 14.
+SWI-Prolog's prompt is ``<n> ?-'' where <n> is the
+history-number of the command. The banner indicates the XPCE version.
+The current version is 4.8 and the patch-level is 16.
 
 \section{Prolog ... and what?}
 
 This section describes the four basic Prolog predicates used to
-control PCE from Prolog.  These four predicates map onto the basic
-functions of PCE's virtual machine: creating, destroying,
-manipulating and querying {\em objects}, the basic entifies of
-PCE.
+control XPCE from Prolog.  These four predicates map onto the basic
+functions of XPCE's virtual machine: creating, destroying,
+manipulating and querying {\em objects}, the basic entities of
+XPCE.
 
-For those not familiar with this jargon, an object is an observable
-entity with a persistent state and associated procedures (called {\em
-methods}).  Objects may represent just about anything.  In PCE's world
-there are objects representing a position in a two-dimensional plane
-as well as an entire window on your screen.  Each object belongs to a
-{\em class}.  The class defines the constituents of the persistent
-state as well as the procedures associated with the object.  For
-example a position in a two-dimensional plane is represented by a
-object of class {\em point}.  The state of a point object consists of
-its X- and Y-coordinates.
+For those not familiar with this jargon, an object is an entity with a
+state and associated procedures, called {\em methods}. Objects may
+represent just about anything. In XPCE's world there are objects
+representing a position in a two-dimensional plane as well as an entire
+window on your screen. Each object belongs to a {\em class}. The class
+defines the constituents of the state as well as the procedures
+associated with the object. For example, a position in a two-dimensional
+plane is represented by an object of class \class{point}. The state of
+a point object consists of its X- and Y-coordinates. A point has methods
+to set the X- and Y-coordinate, mirror the point over a reference point,
+compute its distance to another point, etc.
 
-\subsection{New: creating objects}			\label{sec:new2}
+\subsection{Creating objects: new}			\label{sec:new2}
 
 \index{object,reference}\index{reference, object}
 The predicate new/2 (new(?Reference,~+NewTerm)) {\em creates} an
-object in the PCE world and either assigns the given {\em reference}
-to it or unifies the first argument with a PCE generated reference.
+object in the XPCE world and either assigns the given {\em reference}
+to it or unifies the first argument with a XPCE generated reference.
 An (object-) reference is a unique handle used in further
 communication with the object.  Below are some examples (\verb$?-$ is
 the Prolog prompt):
@@ -70,74 +71,72 @@ P = @772024
 
 The first example creates an instance of class point from the
 arguments `10' and `20'.  The reference is represented in Prolog using
-the prefix operator \predrefer{@}{1}.  For PCE generated references
-the argument of this term is a PCE generated integer value.  These
+the prefix operator \predrefer{@}{1}.  For XPCE generated references
+the argument of this term is a XPCE generated integer value.  These
 integers are guaranteed to be unique.  The second example creates a
 dialog object.  A dialog is a window that is specialised for
-displaying structured UI objects such as buttons, text-entry-fields,
+displaying controllers such as buttons, text-entry-fields,
 etc.  In this example we have specified the reference.  Such a
-reference must be of the form @Atom. PCE will associate the created
+reference must be of the form @Atom. XPCE will associate the created
 object with this reference.%
-    \footnote{Normal applications use almost only PCE generated
+    \footnote{Normal applications use almost exclusively XPCE generated
 	      references.  Many of the examples in this manual are
 	      typed from the terminal and Prolog specified references
 	      are easier to type.}
 
-As illustrated by the examples above, the second argument to new/2
-is a term.  The principal functor denotes the name of the class of
-which a instance is to be created and the arguments are the
-initialisation parameters.  The complete transformation rules are
-given in appendix~\ref{sec:interface}.
+As illustrated by the examples above, the second argument to new/2 is a
+term. The principal functor denotes the name of the class of which an
+instance is created and the arguments are the initialisation parameters.
+The complete transformation rules are given in
+appendix~\ref{sec:interface}.
 
-As stated before, an object has persistent state.  At creation time, the
-initial state is defined by the class from which the object is created
-and the initialisation arguments.  In our example, the point is assigned
-an x-value of 10 and and y-value of 20.  The dialog is assigned the label
-`Demo Window'.  A dialog window has many {\em instance variables}: local
-variables that serve as place-holders for the persistent state
-associated with the object.  The example defines the `label' instance
-variable.  All the others default according to the class definition.  
+As stated before, an object has a state. At creation time, the initial
+state is defined by the class from which the object is created and the
+initialisation arguments. In our example, the point is assigned an
+x-value of 10 and and y-value of 20. The dialog is assigned the label
+`Demo Window'. A dialog window has many {\em slots}%
+    \footnote{The attributes of an object state are called slots. In
+	      other languages they may be called {\em instance
+	      variables} or fields.}
+The example defines the `label' slot. All the other slots are set to
+the default value described in the class definition. 
 
 
-\subsection{Send: modifying object state}
+\subsection{Modifying object state: send}
 
 The state of an object may be manipulated using the predicate
 send/[2-12] (send(+Receiver, +Selector, ...Args...)).  The first two
 arguments of this predicate are an object reference and the name of
-the operation to perform (called {\em selector}). The example below
-assumes the previous example to be typed in.%
-    \footnote{Replace @772024 with the reference returned in
-	      the previous example.} 
+the operation to perform, often called the {\em selector}:
     
 \begin{code}
 3 ?- send(@772024, x, 15).
 4 ?- send(@demo, append, text_item(name)).
 \end{code}
 
-The first example invokes the {\em method} `x' of the point object.
-This method is declared at class point.  It sets the instance variable
-x of the corresponding point object to the argument value.  The second
-example invokes the method append of class dialog.  This method
-appends a UI component to the dialog window.  The component is
-specified by the term `text_item(name)', which is converted into an
-object just as the second argument of new/2.  The query below will open
-the dialog window.
+The first example invokes the {\em method} `x' of the point object. It
+sets the instance variable x of the corresponding point object to the
+argument value. The second example invokes the method `append' of class
+dialog. This method appends a UI component to the dialog window. The
+component is specified by the term `text_item(name)', which is converted
+into an object just as the second argument of new/2. The query below
+opens the dialog window.
 
 \begin{code}
 5 ?- send(@demo, open).
 \end{code}
 
 If everything is ok, a window as shown in figure~\ref{fig:dialog}
-should appear on your screen.  The outside (in the figure this is the
-title-bar displayed above the window) is determined by the window
-manager you are using.  It should look the same as any other window
-on your terminal.  If an error of any kind appears, please refer
-to appendix~\ref{sec:trouble}.
+appears on your screen. The border (in the figure this is the title-bar
+displayed above the window) is determined by the window manager you are
+using. It should look the same as any other window on your terminal. If
+an error of any kind appears, please refer to
+appendix~\ref{sec:trouble}.
 
 
 \postscriptfig{dialog}{Example Dialog Window}
 
-\subsection{Get: querying objects}
+\subsection{Querying objects: get}
 
 The next fundamental interface predicate is get/[3-13].  It is used to
 obtain information on the state of objects.  Again, the first two
@@ -193,16 +192,15 @@ TextItem = @573481/text_item, Text = hello
 The first get operation requests a member of the dialog with the given
 name (`name').  This will return the object reference of the text_item
 object appended to the dialog.  The next request obtains the
-`selection' of the text_item.  This is the text typed in the text
-entry field.
+`selection' of the text_item.  This is the text typed in by the user.
 
 
-\subsection{Free: removing objects}
+\subsection{Removing objects: free}
 
 \index{remove,objects}\index{object,remove}
 The final principal interface predicate is free/1.  Its argument is
 an object reference as returned by new/2 or get/[3-13].  It will remove
-the object from the PCE object base.  Examples:
+the object from the XPCE object base.  Examples:
 
 \begin{code}
 12 ?- free(@772024).
@@ -212,7 +210,7 @@ No
 \end{code}
 
 The second example not only removed the dialog window object from
-the PCE object base, it also removes the associated X-window from
+the XPCE object base, it also removes the associated X-window from
 the screen.  The last example illustrates that certain system objects
 have been protected against freeing.
 
@@ -220,61 +218,61 @@ have been protected against freeing.
 \section{Optional arguments}
 
 \index{default arguments}\index{optional arguments}\index{argument,optional}
-Arguments to PCE methods are identified by their position.  Many
+Arguments to XPCE methods are identified by their position.  Many
 methods have both obligatory and optional arguments.  If obligatory
-arguments are omitted PCE will generate a warning.  If optional
-arguments are omitted PCE will fill the argument with the constant
+arguments are omitted XPCE will generate a warning.  If optional
+arguments are omitted XPCE will fill the argument with the constant
 @default.  The interpretation of @default is left to the
 implementation of the receiving method.  See also
 section~\ref{sec:online}.
 
-\section{Named arguments}
+\section{Named arguments}			\label{sec:namedargs}
 
-\index{argument,named}\index{named argument}
-Some methods take a lot of arguments of which you generally only want
-to specify a few.  A good example is `style ->initialise'%
-	\footnote{The ->initialise method is called by new/2 and
-		  controls creating a new instance.}
-taking 7 arguments.  Both calls below create a style object representing
-an underlined text-fragment:
+\index{argument,named}\index{named argument} Some methods take a lot of
+arguments of which you generally only want to specify a few. A good
+example is the creation of a \class{style} object. A style is an object
+used to control the attributes of displayed text: font, fore- and
+background colour, underline, etc. Its ->initialise method, serving the
+same role the {\em \idx{constructor}} in \idx{C++}, takes 7 arguments.
+Both calls below create a style object representing an underlined
+text-fragment:
 
 \begin{code}
 1 ?- new(X, style(@default, @default, @default, @default, @on)).
 2 ?- new(X, style(underline := @on)).
 \end{code}
 
-The names of arguments are specified in the reference manual.  For
-example, the method `area ->set' has the following specification.
+The names of arguments are specified in the reference manual. For
+example, the method `area ->set', used to set one or more of the X-, Y-,
+H- and W-attributes of a rectangle, has the specification given below.
+For each argument that is specified as @default, the corresponding slot
+will not be changed.
 
 \begin{code}
-area->set: x=[int], y=[int], width=[int], heigth=[int]
+area->set: x=[int], y=[int], width=[int], height=[int]
 \end{code}
 
 The following example illustrates the usage of this method:
 
 \begin{code}
 1 ?- new(A, area),
-     send(A, set, y := 10, heigth := 50).
+     send(A, set, y := 10, height := 50).
 \end{code}
 
 
 \section{Argument conversion}
 
-\index{arguments,typed}\index{type}\index{type,conversion}%
-Arguments to XPCE methods are {\em typed}.  For example, the send-method
-`colour' on class \class{graphical} specifies is accepts a single
-argument of type `colour'.  A colour in XPCE is represented by a
-colour {\em object}.  Colour objects are created from their name, or
-there {\em RGB} value.  The following queries both create a colour
-object that appears as red.
+\index{arguments,typed}\index{type}\index{type,conversion}
+Arguments to XPCE methods are {\em typed} and variables are dynamically
+typed.  This combination is used for two purposes: automatic conversion
+and raising exceptions at the earliest possible point if conversion
+is not defined.
 
-\begin{code}
-1 ?- new(X, colour(red)).
-2 ?- new(X, colour(@default, 65535, 0, 0)).
-\end{code}
-
-It is thus possible to specify a graphical should be coloured red using
-the following query:
+For example, the send-method `colour' on class \class{graphical}
+specifies accepts a single argument of type `colour'. A colour in XPCE
+is represented by a colour {\em object}. Colour objects may be created
+from their name. The natural way to specify a box should be coloured
+`red' is:
 
 \begin{code}
 	...,
@@ -282,9 +280,10 @@ the following query:
 	...
 \end{code}
 
-As the colour method knows it expects an instance of class colour and
-class colour defines the conversion from a name to a colour (see
-\secref{omsmethods}), the following query achieves the same goal:
+Because the ->colour method knows that it expects an instance of class
+colour, and because class colour defines the conversion from a name to a
+colour (see \secref{omsmethods}), the following message achieves the
+same goal:
 
 \begin{code}
 	...,
@@ -294,8 +293,8 @@ class colour defines the conversion from a name to a colour (see
 
 Some other examples of classes defining type conversion are
 \class{font}, \class{image}, \class{name}, \class{string}, \class{real}
-and the non-object data item {\em int}.  This implies the following
-queries are valid:
+and the non-object data item {\em int}. The following messages are
+thus valid:
 
 \begin{code}
 	...,
@@ -311,14 +310,14 @@ queries are valid:
 \index{notation,in this manual}
 This manual, as well as all other XPCE documentation both printed and
 online uses some notational conventions.  Instead of speaking of
-`the send-method colour of class box', we will simple write
+`the send-method colour of class box', we write
 
 \begin{quote}
 `box ->colour'
 \end{quote}
 
 \noindent
-Similar, instead of `the get-method height of class window', we will
+Similar, instead of `the get-method height of class window', we
 write
 
 \begin{quote}
@@ -326,8 +325,8 @@ write
 \end{quote}
 
 \noindent
-In some cases, the arguments and/or the return type of the method will
-be specified:
+In some cases, the arguments and/or the return type of the
+method are specified:
 
 \begin{quote}
 `box ->colour: colour'
@@ -337,10 +336,10 @@ be specified:
 
 \section{Example: show files in directory}	\label{sec:fileviewer}
 
-In this section we will illustrate the above with some small examples.
-We will also show how the GUI can call procedures in the Prolog system.
+In this section we illustrate the above with some simple examples.
+We also show how the GUI can call procedures in the Prolog system.
 
-The demo creates a list of files from the given directory and allows
+The demo creates a list of files from a given directory and allows
 the user to view a file.  \Figref{fileviewer} shows the result.
 
 \postscriptfig[width=\textwidth]{fileviewer}{The FileViewer demo}
@@ -364,13 +363,14 @@ view(F) :-
 \end{pcecode}
 
 The main window of the application consists of a \class{frame} holding
-two specialised \class{window} instances.  Any opened window in XPCE
-is enclosed in a \class{frame}.  A \class{frame} is a collection of
-{\em tiled} windows.  The windows are positioned using the methods
-->above, ->below, ->right and ->left.  The frame ensures its member
-windows will be properly aligned and handles resizing of the frame.
+two specialised \class{window} instances. A \class{frame} is a
+collection of {\em tiled} windows. Any opened window in XPCE is enclosed
+in a \class{frame}. The windows are positioned using the methods
+->above, ->below, ->right and ->left. The frame ensures that its member
+windows are properly aligned and handles resizing of the frame.  See
+also \secref{framelayout}.
 
-In line 3, a \class{browser} is ->append'ed to the frame object. A
+In line 3, a \class{browser} is ->append{}ed to the frame object. A
 browser is a window specialised for displaying a list of objects.
 Browsers handle very large numbers of items effectively.  Next,
 a \class{dialog} is positioned below the browser.  A dialog is
@@ -383,15 +383,15 @@ Line 5 adds a \class{button} to the dialog.  `view' specifies the
 capitalises the name and replaces underscores with spaces.  The
 second argument of the button specifies the {\em action} associated
 with the button.  A \class{message} is a dormant send-operation.  When
-pressed, the button will execute
+pressed, the button executes
 
 \begin{code}
 send(@prolog, view, B?selection?key)
 \end{code}
 
-If a message is sent to @prolog, this will be mapped on executing
-a predicate with the name of the {\em selector} of the message and
-an arity that equals the number of arguments to the message (1 here).
+If a message is sent to @prolog, this calls a predicate with the name of
+the {\em selector} of the message and an arity that equals the number of
+arguments to the message (1 here).
 
 The argument is a term with principal functor \class{?} and defines an
 `obtainer', which is a dormant get-operation. It is defined as a Prolog
@@ -414,17 +414,17 @@ A \class{dict_item} consists of a <-key (its identifier), a <-label
 (the visual text) and optionally an associated <-object.
 
 Line 8 appends a second button to the dialog window.  The dialog window
-will automatially align this one to the right of the first.  The action
+will automatically align this one to the right of the first.  The action
 sends a message directly to another XPCE object and ->destroys the
 frame object if the quit button is pressed.  Note that this will erase
 all UI objects associated with the frame.  The garbage collector will
-destroy the \class{message} objects too.
+destroy all related objects.
 
 Line 10 fills the \class{browser} with the files from the specified
-directory.  The expression \mbox{\tt directory(Dir)?files} defines
-an obtainer operating on an instance of class \class{directory}.  The
-obtainer evaluates to a \class{chain} holding the names of all files
-in the directory.  This expression is the same as:
+directory. The expression \mbox{\tt directory(Dir)?files} defines an
+obtainer operating on an instance of class \class{directory}. The
+obtainer evaluates to a \class{chain}, XPCE's notion of a list, holding
+the names of all files in the directory. This expression is the same as:
 
 \begin{code}
 	...,
@@ -438,11 +438,11 @@ Again, the garbage collector will take care of the directory and chain
 objects.  The browser will automatically convert the given names to
 \class{dict_item} objects.%
     \footnote{This conversion is implemented with class
-	      \class{dict_item}.  Actually the browser just specifies
+	      \class{dict_item}.  In fact, the browser just specifies
 	      the desired type and the message passing kernel invokes
 	      the conversion method of class \class{dict_item}.}
 
-Finally, the frame is ->open'ed.  This will cause the frame to ask
+Finally, the frame is ->open{}ed.  This will cause the frame to ask
 each of the windows to compute its desired size, after which the
 frame aligns the windows, decides on their final geometry and creates
 the Window-system counterpart.
@@ -455,20 +455,26 @@ Again, the type-conversion will deal with this.
 
 \section{Summary}
 
-PCE's world consists of objects.  An object is an entity with
-persistent state that belongs to a class.  The PCE/Prolog interface
-defines four basic predicates: new/2 to create objects from a
-description and returns an object reference.  The predicate
-send/[2-12] changes the state of an object and succeeds if the
-requested change could be made.  The predicate get/[3-13] requests an
-object to compute a value and return it.  Finally, free/1 removes
-objects from the PCE database.
+XPCE's world consists of objects. An object is an entity with persistent
+state that belongs to a class. The XPCE/Prolog interface defines four
+basic predicates, new/2 to create objects from a description and returns
+an object reference, send/[2-12] to change the state of an object and
+succeeds if the requested change could be made, get/[3-13] to request an
+object to compute a value and return it, and free/1 to remove objects
+from the XPCE database.
 
-Objects of the class message are `dormant' send operations.  They
+Objects of the \class{message} are `dormant' send operations.  They
 may be activated by other objects (button, text_item, ...).  In this
-case a send operation is started.
+case a send operation is started.  Objects of class \class{?} are called
+{\em \idx{obtainer}} and represent `dormant' get operations.  The `?'
+sign is defined as a prolog infix operator, allowing for constructs
+as:
+
+\begin{code}
+	send(Frame, height, Frame?display?height)
+\end{code}
 
 The object @prolog (class \class{host}) allows calling Prolog predicates
-from the PCE environment.
+from the XPCE environment.
 
 

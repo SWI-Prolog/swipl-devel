@@ -21,10 +21,10 @@ with the currently selected fill-pattern.
 \end{quote}
 
 
-To reduce the code of the individual examples, we will the following
-predicate creating the fill-pattern menu is assumed to be available:
+To reduce the code of the individual examples, the following predicate
+creating the fill-pattern menu is assumed to be available:
 
-\begin{code}
+\begin{pcecode}
 fill_pattern(@white_image).
 fill_pattern(@grey12_image).
 fill_pattern(@grey25_image).
@@ -37,14 +37,14 @@ make_fill_pattern_menu(M) :-
 	send(M, layout, horizontal),
 	forall(fill_pattern(P),
 	       send(M, append, menu_item(P, @default, P))).
-\end{code}
+\end{pcecode}
 
 \subsection{Global named references}
 
-Using this approach, we will call the label @fill_pattern_menu. It leads
+Using this approach, we will call the menu @fill_pattern_menu. It leads
 to the following (minimal) program:
 
-\begin{code}
+\begin{pcecode}
 fill_1(P) :-
 	new(D, dialog('Fill 1')),
 	make_fill_pattern_menu(@fill_pattern_menu),
@@ -59,25 +59,27 @@ add_box_1(P) :-
 	     menu_item(fill,
 		       message(B, fill_pattern,
 			       @fill_pattern_menu?selection))).
+\end{pcecode}
 
+\begin{code}
 1 ?-	fill_1(P),
 	add_box_1(P).
 \end{code}
 
-This approach is very straight-forward.  Unfortunately it has various
-serious disadvantages:
+This approach is straightforward.  Unfortunately it has various serious
+disadvantages:
 
 \begin{itemize}
     \tick{Name conflicts}
-Large applications will have many objects whose reference needs
+Large applications will have many objects whose references needs
 to be available.  Unless the application provides a structure
 that can be used to generate meaningful names, one is likely to run
 into name conflicts quickly.
     \tick{Object life-time}
-With named references, PCE assumes Prolog wants to be responsible
-for destruction of the object.  Thus, if a window holding named
-objects is freed, the named objects will not be destroyed.  This
-has to be done explicitly from Prolog. See appendix~\ref{sec:memory}.
+With named references, the application is responsible for destruction of
+the object.  Thus, if a window holding named objects is freed, the named
+objects will not be destroyed.  This has to be done explicitly.
+See also appendix~\ref{sec:memory}.
     \tick{No multiple instances}
 The code above cannot be called more than once to create more than one
 such frame.
@@ -97,12 +99,12 @@ below:
 \end{code}
 
 
-\subsection{Using the Prolog database}
+\subsection{Using the prolog database}
 
 Dynamic predicates form another technique often used by novice
 PCE users.  Using dynamic predicates the ``label'' would result in:
 
-\begin{code}
+\begin{pcecode}
 :- dynamic
 	fill_pattern_menu/1.
 
@@ -122,25 +124,27 @@ add_box_2(P) :-
 	     menu_item(fill,
 		       message(B, fill_pattern,
 			       M?selection))).
+\end{pcecode}
 
+\begin{code}
 1 ?-	fill_2(P),
 	add_box_2(P).
 \end{code}
 
-Neither this is a proper way to deal with references. First of all, it
-does not really solve the danger of name conflicts unless one is using
-Prolog modules to establish storage of the dynamic predicates local to
-the module that uses them.  More seriously, using implicit object
-references, PCE assumes it is allowed to destroy the object whenever
-no other PCE object has a reference to it.  The fill_pattern_menu/1
-predicate then holds an invalid reference.
+This is not a proper way to deal with references either.  First of all,
+it does not really solve the danger of name conflicts unless one is
+using Prolog modules to establish storage of the dynamic predicates
+local to the module that uses them.  More seriously, using implicit
+object references, PCE assumes it is allowed to destroy the object
+whenever no other PCE object has a reference to it.  The
+fill_pattern_menu/1 predicate then holds an invalid reference.
 
 
-\subsection{Using PCE attributes}
+\subsection{Using object-level attributes}
 
 PCE object-level attributes provide another approach:
 
-\begin{code}
+\begin{pcecode}
 fill_3(P) :-
 	new(D, dialog('Fill 3')),
 	make_fill_pattern_menu(M),
@@ -157,13 +161,15 @@ add_box_3(P) :-
 	     menu_item(fill,
 		       message(B, fill_pattern,
 			       M?selection))).
+\end{pcecode}
 
+\begin{code}
 1 ?-	fill_3(P),
 	add_box_3(P).
 \end{code}
 
 This approach is much better. There no longer is a potential
-name-conflict and PCE has access to all information it needs to do
+name-conflict and PCE has access to all information it needs for
 proper memory management. Two disadvantages remain. First of all, the
 message object has a direct reference to `P' and therefore the entire
 recogniser object cannot be shared by multiple graphical objects
@@ -180,7 +186,7 @@ method `device <-member: name' to find the (first) graphical with this
 name. The default name for a graphical is its class name.  For
 dialog-items it is the label of the item.  Using <-member results in:
 
-\begin{code}
+\begin{pcecode}
 fill_4(P) :-
 	new(D, dialog('Fill 4')),
 	make_fill_pattern_menu(M),
@@ -202,29 +208,31 @@ make_fill_with_current_pattern(G) :-
 add_box_4(P) :-
 	send(P, display, new(B, box(100,100)), point(20,20)),
 	send(B, popup, @fill_with_current_pattern).
+\end{pcecode}
 
+\begin{code}
 fill4 :-
 	fill_4(P),
 	add_box_4(P).
 \end{code}
 
-In this example we made the recogniser generic.  This saves both
+In this example we have made the recogniser generic.  This saves both
 time and memory.  Note however that this approach could be used in
 the previous example as well.
 
 This example has largely the same (dis)advantages as the previous two.
 As an advantage, the attribute object may be omitted. The assumption
 here is that the frame the box is in contains a dialog which in turn
-contains a graphical object named `fill_pattern' thats implements
+contains a graphical object named `fill_pattern' that implements
 a <-selection method yielding an image.
 
 
-\subsection{Using User Defined Classes}
+\subsection{Using user defined classes}
 
 Using user-defined classes we can hide the implementation details and
 make objects depend on each other in a much more organised manner.
 
-\begin{code}
+\begin{pcecode}
 :- pce_begin_class(fill5, frame).
 
 initialise(F) :->
@@ -260,7 +268,9 @@ event(B, Ev:event) :->
 	;   send(@fillbox_recogniser, event, Ev)
 	).
 :- pce_end_class.
+\end{pcecode}
 
+\begin{code}
 1 ?- send(new(F, fill5), open),
      send(F, draw_box).
 \end{code}
@@ -290,5 +300,5 @@ the structure of the UI components as well as the relation between UI
 objects and application entities. See \cite{Wielemaker:89}.
 
 Hyper objects as described in section~\ref{sec:hyper} form an
-alternative to relate objects that is most suitable if dependant objects
+alternative to relate objects that is suitable if dependent objects
 cannot rely on each other's existence.

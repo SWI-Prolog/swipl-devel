@@ -1,14 +1,16 @@
 \chapter{Introduction}
 
-XPCE is an object-oriented symbolic environment for symbolic languages
-or strongly typed languages. The combination provides a hybrid
-environment with a small but powerful and transparent interface.
-Although PCE provides many general-purpose classes, it is primarily
-designed to implement graphical user-interfaces (GUI).
+XPCE is an object-oriented library for building Graphical User
+Interfaces (GUI's) for symbolic or strongly typed languages. It provides
+high level GUI specification primitives and dynamic modification of the
+program to allow for rapid development of interfaces. It integrates a
+graphical tool for the specification of interfaces, but also
+sufficiently powerful and uniform mechanism to facilitate automatic
+generation of GUI's.
 
-XPCE is not a programming language in the traditional sence. Contructs
-of the system do not have a textual representation. The interface to the
-`hosting' language defines what the XPCE looks like from the programmers
+XPCE is not a programming language in the traditional sense. Constructs
+of the system do not have a syntactical representation. The interface to
+the `hosting' language defines what XPCE looks like from the programmers
 point of view. As a consequence, the programmer will first of all
 experience XPCE as a {\em library}.
 
@@ -22,13 +24,17 @@ programmer to extend the XPCE object-oriented system with new methods
 and classes from the host-language. In addition, procedures can be
 expressed as objects and then given to XPCE for execution.
 
+The interface between XPCE and its hosting language is small, which
+makes XPCE especially a good GUI candidate for special-purpose
+languages.
+
 The main target language for XPCE is {\em Prolog} and this document
 concentrates on XPCE/Prolog rather then XPCE/Lisp or XPCE/C++.
 XPCE/Prolog comes with a graphical programming environment that allows
-for quick browsing of the source-code, provides debugging tools and
-allows for the graphical construction of {\em dialog boxes} (graphical
-windows with {\em controllers}). XPCE's built-in editor is modelled
-after the standard (GNU-)Emacs editor and can be programmed in
+for quick browsing of the source-code, that provides debugging tools
+and allows for the graphical construction of {\em dialog boxes}
+(graphical windows with {\em controllers}). XPCE's built-in editor is
+modelled after the standard (GNU-)Emacs editor and can be programmed in
 XPCE/Prolog.
 
 
@@ -39,22 +45,22 @@ It provides the background material needed to understand the other
 documentation:
 
 \begin{itemize}
-    \tick{The XPCE Reference Manual} \cite{PCE:reference}
+    \tick{The XPCE Reference Manual} \cite{XPCE:reference}
 The reference manual is available in two formats: printed and by
 means of the Prolog predicate manpce/0.%
 	\footnote{ProWindows-3: user_help/0} The reference manual provides
 detailed descriptions of all classes, methods, etc.\ which may be accessed
 from various viewpoints. See also Chapter~\ref{sec:online}.
-    \tick{PceDraw: An example of using PCE-4 \cite{PCE:draw}}
+    \tick{PceDraw: An example of using XPCE-4} \cite{XPCE:draw}
 This document contains the annotated sources of the drawing tool PceDraw.
 It illustrates many of the (graphical) functionality of XPCE.  Useful as
 a source of examples.
-    \tick{{XPCE/Prolog} Course Notes} \cite{PCE:course}
+    \tick{{XPCE/Prolog} Course Notes} \cite{XPCE:course}
 Course-notes, examples and exercises for programming XPCE/Prolog.  The
-course-notes have a large overlap in contents with this userguide, but
+course-notes have a large overlap in contents with this user guide, but
 the material is more concise.  If you are familiar with object-oriented
 systems, Prolog and graphical user interfaces the course-notes may be
-a quick alternative to the userguide.
+a quick alternative to the user guide.
 \end{itemize}
 
 
@@ -64,7 +70,7 @@ Luca Passani maintains a programmers FAQ (Frequently Asked Questions)
 on the internet.  The address is:
 
 \begin{code}
-http://www.stud.unit.no:80/~passani/FAQ.html
+http://www.idt.unit.no/~passani/XPCE
 \end{code}
 
 A snapshot of this file is in the file {\tt man/faq/faq.html} in the
@@ -82,43 +88,52 @@ in the primary XPCE anonymous ftp archive:
 ftp://swi.psy.uva.nl/pub/xpce/
 \end{code}
 
+\index{bug,reporting}%
 There is a mailing list for exchanging information and problems between
 programmers as well as for us to announce new releases and developments.
-The address is {\tt xpce@swi.psy.uva.nl}. Please send mail to
-{\tt xpce-request@swi.psy.uva.nl} to subscribe or unsubscribe to this
+The address is \email{xpce@swi.psy.uva.nl}. Please send mail to
+\email{xpce-request@swi.psy.uva.nl} to subscribe or unsubscribe to this
 list.  This E-mail address can also be used to communicate with the
-authors.
+authors.  The address \email{xpce-bugs@swi.psy.uva.nl} should be used
+for reporting bugs.
 
 
 \section{Language interfaces}
 
-The interface between PCE and the application (host) language is very
-small. This feature makes it easy to connect PCE to a new language. PCE
-fits best with dynamically typed or strongly statically typed langages
-with pogrammable type-conversion.  XPCE itself is dynamically typed.
+The interface between XPCE and the application (host) language is very
+small. This feature makes it easy to connect XPCE to a new language. XPCE
+fits best with dynamically typed or strongly statically typed languages
+with programmable type-conversion.  XPCE itself is dynamically typed.
 Cooperating with languages with the named properties avoid the need
-for explicitely programmed type-conversion.
+for explicitly programmed type-conversion.  For a dynamically typed
+host-language such as Prolog or Lisp, the interface determines the
+type of the host-language construct passed and translates it into the
+corresponding XPCE object. For \idx{C++}, the rules for translating C
+data structures to XPCE objects can be handled by the programmable
+type-casting mechanism of C++.
 
 \begin{itemize}
     \tick{SWI-Prolog}
 \index{SWI-Prolog (binding)}%
-The combination SWI-Prolog/PCE is the development version.
+The combination SWI-Prolog/XPCE is the development version. As of
+XPCE version 4.8.16, the interface has been changed to use the new
+garbage-collection-safe SWI-Prolog foreign language interface.
     \tick{Quintus Prolog}
 \index{Quintus Prolog (binding)}%
 Distributed by AIIL (UK) under the name ProWindows-3/XPCE.  This version
-is commerically supported.  Contact chris@aiil.co.uk for details.
-    \tick{SICStus Prolog}\index{SICStus Prolog (binding)}
+is commerically supported. Contact \email{chris@aiil.co.uk} for details.
+    \tick{SICStus Prolog}\index{SICStus Prolog (binding)}%
 This binding has been implemented in close cooperation with SICS. Prolog
-libraries delivered with PCE run both on SICStus and SWI-Prolog.
+libraries delivered with XPCE run both on SICStus and SWI-Prolog.
     \tick{Lucid Common Lisp 4}
 \index{Lucid CommonLisp (binding)}%
-The Lisp language binding is described in \cite{PCE:lisp}.
+The Lisp language binding is described in \cite{XPCE:lisp}.
     \tick{Harlequin LispWorks 3.1}
 \index{Harlequin LispWorks (binding)}\index{LispWorks (binding)}%
-The Lisp language binding is described in \cite{PCE:lisp}.
+The Lisp language binding is described in \cite{XPCE:lisp}.
     \tick{GNU-C++ (g++)}
 \index{C++ (binding)}\index{g++ (binding)}%
-This binding is described in \cite{PCE:cpp}.  It allows for the
+This binding is described in \cite{XPCE:cpp}.  It allows for the
 definition of both stand-alone C++/XPCE applications as well as
 mixed Prolog/C++/XPCE applications.%
 	\footnote{Mixed Lisp/SomeThing/XPCE applications are hard to handle
@@ -133,11 +148,11 @@ standard ANSI-C and is portable to any machine offering a flat,
 sufficiently large, memory model (32 or 64 bits). XPCE's graphical
 classes (including windows, etc.) interface to XPCE {\em Virtual Windows
 System} (VWS). Currently there are VWS implementations for X11 and the
-Microsoft Win32 API. Please contact the authors if you are interrested
+Microsoft Win32 API. Please contact the authors if you are interested
 in other implementations.
 
 
-\subsection{Unix/X-Windows}
+\subsection{Unix/X-windows}
 
 \index{X-windows}\index{OpenWindows}\index{Motif}
 XPCE runs on most Unix/X11 platforms.  Tested platforms include SunOs,
@@ -148,13 +163,14 @@ realised using GNU autoconf with an extensive test-suite.
 \subsection{Win32}
 
 The Win32 API provided the required 32-bit flat memory model, making a
-port of XPCE feasible.  Currently XPCE/Prolog is only available with
-the SWI-Prolog host language.  A Quintus port will be available shortly.
+port of XPCE feasible. Currently XPCE/Prolog for Win32 is only available
+with the SWI-Prolog host language. A Quintus port will be available
+shortly.
 
 
 \section{Look-and-feel}
 
-\index{look-and-feel}\index{Motif}\index{OpenWindows} PCE is not
+\index{look-and-feel}\index{Motif}\index{OpenWindows} XPCE is not
 implemented on top of a standard UI library such as Motif, OpenWindows,
 or Win32. Instead, it is built on top of its own VWS defining
 primitives to create and manipulate windows, draw primitives such as
@@ -162,9 +178,9 @@ lines, circles, text and handle user-events.
 
 As a consequence, XPCE programs are fully compatible over the available
 platforms, except that some (almost exclusively obscure) features may
-have a different or no effect on some implementations. For example,
-Window icons in win32 are always scaled to $32 \times 32$ pixels, where
-they can have arbitrary size in X11.
+have a different or have no effect on some implementations. For example,
+window icons in Win32 are always scaled to $32 \times 32$ pixels, where
+they can have an arbitrary size in X11.
 
 The implementation of all of XPCE on top of its primitive graphicals
 guarantees there are no platform-specific limitations in the
@@ -178,8 +194,8 @@ actions (feel) of the XPCE controllers is determined by XPCE's {\em
 resource} file. The X11 version examines the resources through the
 standard X11 resource manager. The Win32 version contains a parser for
 the X11 resource files. XPCE is currently shipped with two resource
-files, one for OpenWindows and one for Windows-'95. Support for Motif
-is still rudimentary.
+files, one for OpenWindows and one for \idx{Windows'95}. Support for
+Motif is still rudimentary.
 
 
 \section{A brief history of (X)PCE}
@@ -197,13 +213,13 @@ PCE has been redesigned and largely re-implemented on a SUN workstation
 using Quintus Prolog and later SWI-Prolog \cite{SWI-Prolog:manual} in
 the Esprit project P1098 (KADS).  This project used PCE to implement a
 knowledge engineering workbench called Shelley
-(\cite{Anjewierden:90b}).  During this period PCE/Prolog has been used by
+\cite{Anjewierden:90b}.  During this period PCE/Prolog has been used by
 various research groups to implement graphical interfaces for
 applications implemented in Prolog.  Most of these interfaces stressed
 the use of \idx{direct-manipulation} graphical interfaces. Feedback
 from these projects has made PCE generally useful and mature.
 
-This document describes version 4.8 of PCE. Version 4 is a major
+This document describes version 4.8 of XPCE. Version 4 is a major
 release. During the versions 4.0 to 4.5, XPCE was moved from SunView to
 X-windows and since 4.7 to the Win32 platform. In addition, the virtual
 machine has been made available to the application programmer, allowing
@@ -214,18 +230,61 @@ vital requirement to reduce incompatible changes to the absolute
 minimum.
 
 
+\section{About this manual}
+
+This userguide introduces the basics of XPCE/Prolog and its development
+environment. Chapters~\ref{sec:starting} and~\ref{sec:globalarch},
+``Getting Started'' and ``Global Architecture'' explain the interface
+and provide a global overview of the XPCE/Prolog hybrid environment.
+\Chapref{online}, ``Using the online manual'' introduces the online
+documentation tools. These are introduced this early as many of the
+examples in this manual introduce classes and methods without explaining
+them. The online manual tool can be used to find the definitions of
+these constructs quickly. The Chapters~\ref{sec:graphics}
+and~\ref{sec:controller}, ``Dialog (controller) windows'' and ``Simple
+Graphics'' introduce the various controller and graphical primitives.
+\Chapref{dialogeditor}, ``The Dialog Editor'' introduces the tool to
+built controller windows with the mouse. 
+
+With the material of the above described chapters, the user is
+sufficiently informed to create simple GUI's from predefined XPCE
+objects.  The remaining chapters provide the background information
+and techniques that allow for the design of larger graphical systems.
+
+\Chapref{pceprolog}, ``The relation between XPCE and Prolog'' is a brief
+intermezzo, explaining the relation between XPCE and Prolog data in more
+detail. \Chapref{udc}, ``User defined classes'' explain the definition
+of new XPCE classes from Prolog and thus brings object-oriented
+programming to the user. \Chapref{resources}, ``Using resources''
+introduces the XPCE's notion of \idx{user preferences}.
+\Chapref{techniques}, ``Programming techniques'' is an assorted
+collection of hints on how XPCE can be used to solve real-world
+problems elegantly.  The proof-readers appreciated this chapter
+the most.
+
+\Chapref{debugging}, ``Development and debugging tools'' introduces
+the XPCE debugger.  The current debugger is powerful, but not very
+intuitive and requires a nice-looking front-end.
+
+Of the appendices, appendix~\ref{sec:summary} is probably the most
+useful, providing a short description of each class and its relation
+to other classes.  Many of the classes are accompanied with a
+small example.
+
+
 \section{Acknowledgements}
 
 The development of XPCE was  started by Anjo Anjewierden.  The package
 was  then called PCE.  He designed  and implemented  version  1 and 2.
-Version 3 is the result of a joint effort from  Anjo Anjewierden and Jan
+Version 3 is the result of a joint effort by Anjo Anjewierden and Jan
 Wielemaker.
 
 XPCE, offering support for X-windows and user-defined classes, has been
-implemented by the author. The implementation of user-defined classes
-was initiated when I was guest at SERC (Software Engineering Research
-Centre). Gert Florijn has contributed in the initial discussions on
-user-defined classes. Frans Heeman has been the first user.
+implemented by Jan Wielemaker. The implementation of user-defined
+classes was initiated when Jan Wielemaker was guest at SERC (Software
+Engineering Research Centre). Gert Florijn has contributed in the
+initial discussions on user-defined classes. Frans Heeman has been the
+first user.
 
 The interface to SICStus Prolog has been implemented in cooperation with
 Stefan Andersson and Mats Carlsson from SICS.
@@ -234,9 +293,12 @@ The interface to Quintus Prolog was initiated by Paul-Holmes Higgins.  The
 project was realised by James Little, Mike Vines and Simon Heywood
 from AIIL.
 
-Luca Passani has bothered me with many questions, but was so kind to
-organise this material and make it available to other (novice) XPCE
-programmers in the form of a FAQ (see section~\ref{sec:faq}).
+Luca Passani has bothered us with many questions, but was so kind to
+organise this material and make it available to other XPCE programmers
+in the form of a FAQ (see section~\ref{sec:faq}).
+
+Gertjan van Heijst has commented on XPCE as well as earlier drafts of
+this documents.
 
 (X)PCE is used by many people. They have often been puzzled by bugs,
 incompatibilities with older versions, etc. We would like to thank them

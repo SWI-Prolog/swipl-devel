@@ -24,7 +24,7 @@ This problem is not possible in the Win32 implementation.
 
     \problem{Failed to convert resource value}
 This implies PCE could not translate a default specified in
-\file{~/.Xdefaults}, \file{/usr/lib/X11/app-defaults/Pce} or the PCE
+\file{\string~/.Xdefaults}, \file{/usr/lib/X11/app-defaults/Pce} or the PCE
 class resource specification (see `resource <-default') into a PCE
 object of the type of the resource.  PCE will first try the class
 defined default value and generate a fatal error if this fails as well.

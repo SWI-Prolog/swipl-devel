@@ -16,12 +16,12 @@ a number of prototypical `life-cycles' for objects.  Heuristics tell
 the system which of these is applicable and when the object may be
 deleted. 
 
-PCE distinguishes between {\em global-}, {\em toplevel-}, {\em
+PCE distinguishes between {\em global-}, {\em top level-}, {\em
 support-}, {\em argument-} and {\em answer-} objects.  {\em Global}
 objects are created and exist for the entire PCE session: @prolog,
-class objects, etc.  {\em Toplevel} objects are the principal objects
+class objects, etc.  {\em Top-level} objects are the principal objects
 of the application.  They should exist even if no other PCE object
-refers to them.  An example of a toplevel object is a frame or
+refers to them.  An example of a top level object is a frame or
 hash_table representing a database in the application.  {\em Support}
 objects only complete the definition of other objects.  If this
 `other' object is removed, the support object may be removed as well.
@@ -46,7 +46,7 @@ reusable objects: @prolog, @pce, @display, names, classes, etc.
 This flag indicates that the object may not be removed by the garbage
 collector.  Locked objects can only be freed by sending an explicit
 `object ->free' message' or using the predicate free/1.  It is used to
-avoid that `toplevel' objects such as frames are deleted by the
+avoid that `top level' objects such as frames are deleted by the
 garbage collector.  It is also used to indicate that Prolog wants to
 be responsible for destruction of the object rather than PCE's garbage
 collector.  The lock flag is automatically set on
@@ -85,7 +85,7 @@ must either be attached to another object, locked against PCE's garbage
 collector or destroyed using `object ->done' if it is created during the
 {\em initialisation} of the application or in a loop that is passed many
 times.  Such objects will be automatically reclaimed if (1) the object
-is created while handling a user-event after hanlding the event is
+is created while handling a user-event after handling the event is
 finished or (2) the object is created in the implementation of a method
 on a user-defined class and the method terminates execution.
 

@@ -1,69 +1,76 @@
 \chapter{Using the online manual}		\label{sec:online}
 
-In the previous sections we have introduced PCE using examples and
-described the global architecture of the PCE/Prolog environment.
-The primitives of PCE are simple, but PCE as a whole is a massive
-library of very diverse classes with many methods.  The current
-system contains about 150 classes defining over 2700 methods.  This
-section introduces the online manual tools provided with PCE.
+In the previous sections we have introduced XPCE using examples and
+described the global architecture of the XPCE/Prolog environment.  The
+primitives of XPCE are simple, but XPCE as a whole is a massive library
+of very diverse classes with many methods.  The current system contains
+about 160 classes defining over 2700 methods.
 
-The online manual tools both document the system classes as the
-user-defined classes (see \chapref{udc}).  The system provides overviews
-of the functionality of user-defined classes and allows you to jump
-directly to the implementation.
+To help you finding your way around in the package as well as in
+libraries and private code loaded in XPCE, an integrated manual is
+provided.  This manual extracts all information, except for a natural
+language description of the class, method or slot from the system and
+thus guarantees exact and consistent information on available classes,
+methods, slots, types, inheritance in the system.
+
+The manual consists of a number of search tools using different entry
+points to the material.  A successful query displays the summary
+information for the relevant hyper-cards.  Clicking on the summary
+displays the cards themselves and hyper-links between the cards aid
+to quickly browse the environment of related material.
 
 
 \section{Overview}
 
 The online manual consists of a large set of tools to examine
-different aspects of the PCE/Prolog environment and to navigate
+different aspects of the XPCE/Prolog environment and to navigate
 through the available material from different view-points.
 
 \begin{itemize}
-\newcommand{\tool}[2]{\item\makebox[5in][l]{\em #1\hfill\sf #2}\mbox{}\\}
-    \tool{The inheritance hierarchy}{Browsers/Class Hierarchy}
+\newcommand{\manualtool}[2]{\item\makebox[\linewidth][l]{\em #1\hfill\sf #2}}
+    \manualtool{The inheritance hierarchy}{Browsers/Class Hierarchy}
 \index{class,hierarchy}%
-The `Class Hierarchy' tool allows the user to examine PCE's class
+The `Class Hierarchy' tool allows the user to examine XPCE's class
 hierarchy.  This tool reads the inheritance relations from the class
 objects and thus also visualises application or library classes.
 Figure~\ref{fig:classhierarchy} is created using this tool.
-    \tool{The structure of a class}{Browsers/Class Browser}
+    \manualtool{The structure of a class}{Browsers/Class Browser}
 \index{class,structure}%
 The most important tool is the `Class Browser'.  It provides the
 user with a view of material related to a class.  As everything in
-PCE is an object and thus an instance of a class this tool provides
-access to everything in PCE, except for the Prolog interface.
-    \tool{Search Tool}{Browsers/Search}
+XPCE is an object and thus an instance of a class this tool provides
+access to everything in XPCE, except for the Prolog interface.
+    \manualtool{Search Tool}{Browsers/Search}
 This tool provides full search capabilities on the entire manual contents,
 including combined search specifications.
-    \tool{Globally available object references}{Browsers/Global Objects}
+    \manualtool{Globally available object references}{Browsers/Global Objects}
 \index{global objects}%
-The PCE environment provides predefined objects (@pce, @prolog, @arg1, etc.).
+The XPCE environment provides predefined objects (@pce, @prolog, @arg1, etc.).
 The tool allows the user to find these objects.
-    \tool{Prolog interface predicates}{Browsers/Prolog Predicates}
+    \manualtool{Prolog interface predicates}{Browsers/Prolog Predicates}
 \index{Prolog interface}%
-This tool documents all the PCE/Prolog predicates.
-    \tool{Instances}{Tools/Inspector}
+This tool documents all the XPCE/Prolog predicates.
+    \manualtool{Instances}{Tools/Inspector}
 \index{inspecting instances}\index{object,inspecting}%
 This tool is part of the runtime support system.  It allows you to
 inspect the persistent state associated with objects.
-    \tool{Structure of User Interface}{Tools/Visual Hierarchy}
+    \manualtool{Structure of User Interface}{Tools/Visual Hierarchy}
 \index{UI,structure of}\index{consists-of}%
 This tool provides a `consists-of' view of all displayed visual objects.
 It provides a quick overview of the structure of an interface.  It is
 a useful for finding object-references, examining the structure of
 an unknown UI and verifying that your program created the expected 
 structure.
-    \tool{The manual itself (help)}{File/Help}
+    \manualtool{The manual itself (help)}{File/Help}
 \index{help,on manual}%
 The manual tools are documented by itself.  Each tool has a `Help' button
 that documents the tool.
-    \tool{PCE Demo programs}{File/Demo Programs}
+    \manualtool{XPCE Demo programs}{File/Demo Programs}
 \index{demo programs}%
 The `Demo Programs' entry of the `File' menu starts an overview of the
 available demo programs and lets you start these demos.  The sources of
 the demos may be found in \file{.../xpce/prolog/demo}, where ...
-refers to the PCE installation directory, which may be obtained using
+refers to the XPCE installation directory, which may be obtained using
 \begin{code}
 1 ?- get(@pce, home, Home).
 Home = '/usr/local/lib/pl-2.1.13/xpce'
@@ -82,7 +89,7 @@ The various overview tools indicate candidate documentation cards with
 a {\em \idx{summary line}}.  This line is of the form:
 
 \begin{quote}
-{$<$Identifier$>$ $<$Formal Description$>$ [``$<$Summary$>$'']}
+{<Identifier> <Formal~Description> [``<Summary>'']}
 \end{quote}
 
 \noindent
@@ -124,9 +131,9 @@ card.  See section~\ref{sec:card}.
 \subsection{Argument types}		\label{sec:atype}
 
 \index{argument,type}\index{type}
-PCE is a partially typed language.  Types may be defined for both
+XPCE is a partially typed language.  Types may be defined for both
 method arguments and instance variables.  A type is represented by an
-instance of class \class{type}.  PCE defines a conversion to create
+instance of class \class{type}.  XPCE defines a conversion to create
 type objects from a textual representation.  A full description of this
 conversion may be found in the online manual (method `type <-convert').
 In this document we will summarise the most important types:
@@ -134,27 +141,28 @@ In this document we will summarise the most important types:
 \begin{itemize}
 \setlength{\itemsep}{5pt}
     \tick{int}
-PCE integer datum.
+XPCE integer datum.
     \tick{<low>..<high>, <low>.., ..<high>}
 Range of integers (including <low> and <high>).  The latter two constructs
 indicate one-side-unbound ranges.
     \tick{any}
 Both integers and objects.  Function objects will be evaluated.
 See section~\ref{sec:function}.
-    \tick{object}
-Objects only. Function objects will be evaluated.  Equivalent to {\em any},
-except that {\em object} does {\em not} accept integers. See \secref{function}.
     \tick{<class-name>}
-Any instance of this class or one of its sub-classes.
-    \tick{[<type>]}
+Any instance of this class or one of its sub-classes.  Class
+\class{object} is the root of the inheritance hierarchy.  The type {\tt
+object} is interpreted slightly different, as it does {\em not} accept
+instances of class \class{function} or its subclasses.  This implies
+that the type {\tt object} forces functions to be evaluated.
+    \tick{{\tt [}<type>{\tt ]}}
 Either this type or @default.  Trailing arguments to methods that
 accept @default may be omitted.
-    \tick{<type>*}
+    \tick{<type>{\tt *}}
 Either this type or @nil.
-    \tick{<type> ...}
+    \tick{<type> {\tt ...}}
 Methods with this type specification accept any number of arguments
 that satisfy <type>.
-    \tick{\{<atom1>,<atom2>,...\}}
+    \tick{\{<atom1>,<atom2>,\ldots\}}
 Any of these name objects.
 \end{itemize}
 
@@ -190,7 +198,7 @@ The ``Class Browser'' is the central tool of the online manual. It
 provides an overview of the functionality of a class and options to
 limit the displayed information. \Figref{classbrowser} shows this tool
 in a typical situation. In this example the user is interested in
-methods dealing with selection in an \class{editor}.
+methods dealing with `caret' in an \class{editor}.
 
 The dialog to the left-side of the tool specifies {\em what} information
 is displayed. The top-right window displays the class together with the
@@ -201,16 +209,13 @@ for ->initialise.
 Below this text a hierarchy is displayed that indicates the place in the
 inheritance hierarchy as well as the classes to which messages are {\em
 delegated} (see \secref{delegation}).  The user can select multiple
-classes%
-    \footnote{multiple classes can only be selected if there is
-	      delegation and the tree actually has branches. Use for
-	      example class editor or class view to explore these
-	      facilities}
-(using the left-mouse-button) and press the {\sc apply} button to make
-the class-browser search for methods in all classes below the selected
-classes.  If a method is found in multiple classes the class-browser
-will automatically display only the one method that will actually be
-used by this class.
+classes only if there is delegation and the tree actually has branches.
+Use class \class{editor} or class view to explore these facilities.
+After the user has selected one or more classes, the {\sf Apply} button
+makes the class-browser search for methods in all classes below the
+selected classes.  If a method is found in multiple classes the
+class-browser will automatically display only the one method that will
+actually be used by this class.
 
 The large right window displays a list of matching classes, variables,
 methods and resources. When an item is tagged with a ``\idx{(+)}'' there
@@ -258,8 +263,8 @@ Methods implemented in the host-language.
 
 
 The {\bf Display} menu determines the objects searched for.  {\sf
-Self} refers to the class itself, {\sf Sub Class} refers to a direct
-subclass of this class.  The other fields refer to instance-variables,
+Self} refers to the class itself, {\sf Sub Class} refers to the direct
+sub classes of this class. The other fields refer to instance-variables,
 methods with send- and get-access and resources.
 
 The {\bf Search} and {\bf ... In} controllers limit the displayed cards
@@ -270,7 +275,7 @@ the {\sf Name} field is useful to find a particular method if the name
 (or part of it) is known.
 
 
-\subsubsection{Example queries to the ClassBrowser}
+\subsubsection{Example queries to the classbrowser}
 
 Below we illustrate how some commonly asked questions may be answered
 with the class browser.
@@ -278,9 +283,9 @@ with the class browser.
 \begin{itemize}
     \tick{What are variables of a bitmap?}
 Select {\sf variable} in the {\bf Display} menu, clear {\bf Search},
-set {\bf Filer} to {\sf All}. Finally type `bitmap' in {\bf Class} and
-hit return.  Note that bu double-clicking on class \class{graphical}
-in the inheritance display, not only the variables of class
+and set {\bf Filter} to {\sf All}. Then type `bitmap' in {\bf Class} and
+hit return.  Note that by double-clicking on class \class{graphical}
+in the inheritance display not only the variables of class
 \class{bitmap} itself are shown, but also those of class
 \class{graphical}.
     \tick{How can I position the caret in an editor?} The caret can
@@ -293,20 +298,24 @@ likely to have `caret' as a substring.  Thus, {\bf Display} is set to
 
 \subsubsection{Methods with special meaning}
 
-The methods described below are activated from PCE's virtual machine and
-allow a class to define creation, destruction, type conversion,
-delegation, etc. These methods may be found using the ``Class Browser''
-after which their documentation card may be requested.
+This section describes the role of the `special' methods.  These are
+methods that are not used directly, but they define the behaviour of
+new/2, type conversion, etc.  and knowing about them is therefore
+essential for understanding an XPCE class.
 
 \begin{description}
     \sendmethod{object}{initialise}{<Class-Defined>}
 \index{objects,creating}%
-The ->initialise method of a class defines what happens when an
-instance of this class is created.  See new/2, \secref{new2}.
+The ->initialise method of a class defines what happens when an instance
+of this class is created.  It may be compared to the \idx{constructor}
+in C++.  Note that double-clicking the class description in the
+class-browser (top-right window) opens the reference card for the
+->initialise method.  See also new/2, \secref{new2}.
     \sendmethod{object}{unlink}{}
 \index{object,remove}%
 The ->unlink method describes what happens when an instance of this
-class is removed from the object-base.
+class is removed from the object-base and may be compared to the C++
+\idx{destructor}.
     \getmethod{object}{lookup}{<Class-Defined>}{object}
 \index{reusability}%
 If defined, this method describes the lookup of already an already
@@ -327,7 +336,7 @@ with this capability are: \class{name}, \class{font}, \class{colour},
 \index{type,conversion}%
 Defines what can be converted into an instance of this type.  If an instance
 of this class is requested by a type but another object is provided
-PCE will call this method to translate the given argument into an instance
+XPCE will call this method to translate the given argument into an instance
 of this class.
     \sendmethod{object}{catch_all}{<Class-Defined>}
 \index{catch-all}%
@@ -364,10 +373,11 @@ an object will show two titles above the card.  The card from which the
 documentation originates will have an underlined type-indicator.
 
 The {\bf Goto} field allows for switching to a new card.  The syntax for
-this field is similar to manpce/1, tracepce/1 and editpce/1 predicates.
-It consists of a classname, followed by \verb$->$ to indicate a
-send-method, \verb$<-$ for a get-method and \verb$-$ to specify an
-instance-variable without considering associated methods.
+this field is similar to manpce/1, tracepce/1 and editpce/1 predicates
+description in \secref{miscpreds}.  It consists of a classname, followed
+by \verb$->$ to indicate a send-method, \verb$<-$ for a get-method and
+\verb$-$ to specify an instance-variable without considering associated
+methods.
 
 The item performs {\em completion} bound to the space-bar.  The first
 word is completed to a class-name. The second to a send-method, variable
@@ -375,17 +385,20 @@ or get-method.  Method completion considers inheritance and delegation.%
     \footnote{Given the dynamic nature of delegation, the system cannot
 	      possibly determine all methods available through
 	      delegation. Consider a slot specified with type
-	      \class{graphical}.  The system can infere it will surely
+	      \class{graphical}.  The system can infer it will surely
 	      be able to use behaviour defined at class
 	      \class{graphical}.  If at runtime, the slot is filled with
 	      a \class{box}, all methods defined at class box will be
 	      available too.}
 
 
-\subsection{Search Tool}		\label{sec:searchtool}
+\subsection{Search tool}		\label{sec:searchtool}
 
-The search tool is shown in \figref{searchtool}.  It allows the user
-to search through all XPCE manual cards in an efficient manner.  A
+The search tool is shown in \figref{searchtool}.  It allows the user to
+search through all XPCE manual cards in an efficient manner with queries
+similar to that what is found in \idx{WAIS} tools.  XPCE maintains a
+word index for the text off all material in the online manual and this
+tool quickly finds all cards holding a, or a combination of words.  A
 search specification is an expression formed from the following
 primitives:
 
@@ -394,7 +407,7 @@ primitives:
     \tick{Word}
 Specifies all cards containing a word for which the search
 specification is the {\em prefix}.  Case is ignored.
-    \tick{\verb$<$Word\verb$>$}
+    \tick{{\tt\string<}Word{\tt\string>}}
 Specifies all cards that contain the indicated word.  Case is ignored.
     \tick{Expr1 {\tt and} Expr2}
 Specifies all cards satisfying both conditions.
@@ -409,6 +422,10 @@ cards containing all these words.
 If the user stops typing for more than a second, the system will parse
 the expression and display the number of matching cards.
 
+The \class{browser} window on the left contains all words occuring
+anywhere in the manual.  The window on the right is used to display the
+card summaries of all matching cards.
+
 \postscriptfig[width=\textwidth]{searchtool}{Manual search tool}
 
 \subsection{Class hierarchy}		\label{sec:classhierarchy}
@@ -416,15 +433,15 @@ the expression and display the number of matching cards.
 \postscriptfig[width=\textwidth]{hierarchy}{Class Hierachy Tool}
 
 The ``Class Hierachy'' tool shown in \figref{hierarchy} may be used to
-get an overview of PCE's class hierarchy or to find the (inheritance)
-relations of a particular class with other classes.  Note that PCE's
+get an overview of XPCE's class hierarchy or to find the (inheritance)
+relations of a particular class with other classes.  Note that XPCE's
 inheritance hierarchy has a technical foundation rather than a
 conceptual.  Super-classes are motivated by the need for code-sharing.
 
 
 \section{Summary}
 
-The online manuals integrate visualisation of PCE's internal
+The online manuals integrate visualisation of XPCE's internal
 structure with a hyper-text system.  This approach guarantees
 consistency between the documentation and the actual system and
 integrates overview and documentation of library and user-defined

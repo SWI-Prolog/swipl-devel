@@ -1,21 +1,20 @@
 \chapter{Development and debugging tools}	\label{sec:debugging}
 
-This section describes various tools and techniques to help finding
-bugs in PCE/Prolog code.  Prolog provides an interactive program
-development environment.  PCE provides a dynamic object-oriented
-environment that may be inspected, traced and modified during
-execution.  Unlike Prolog, PCE almost exclusively manipulates
-global information.  This limits the possibilities for interactive
-manipulation of the environment.  For example, you cannot {\em undo}
-operations in PCE, change the program and redo the goal as you can
-in Prolog.
+This section describes various tools and techniques to help finding bugs
+in XPCE/Prolog code.  XPCE/Prolog provides an interactive program development
+environment: a dynamic object-oriented environment that may be
+inspected, traced and modified during execution.  Unlike Prolog, XPCE
+almost exclusively manipulates global information.  This limits the
+possibilities for interactive manipulation of the environment.  For
+example, you cannot {\em undo} operations in XPCE, change the program and
+redo the goal as you can in Prolog.
 
 \section{Object-base consistency}
 
-Unlike Prolog, PCE is not {\em secure}: if a Prolog environment traps
+Unlike Prolog, XPCE is not {\em secure}: if a Prolog environment traps
 a fatal error there is almost always a bug in the Prolog system.
 Except for violating system limits there is no Prolog program that can
-make the Prolog environment crash.  For PCE this is different.
+make the Prolog environment crash.  For XPCE this is different.
 Consider the following example:
 
 \begin{code}
@@ -29,31 +28,31 @@ Area = @ 803438, B = @803419/box
 
 After these calls, the <-area attribute of the box has been destroyed,
 but the box is not aware of this fact.  The utility predicate
-checkpce/0 scans the PCE object-base for various inconsistencies and
+checkpce/0 scans the XPCE object-base for various inconsistencies and
 will report that the box contains a slot referring to a freed object.
 
 \begin{code}
 2 ?- checkpce.
 
-WARNING: Freed object in slot area of @803419/box: @803438/area
-PCE: Checked 13173 objects
+[WARNING: Freed object in slot area of @803419/box: @803438/area]
+[PCE: Checked 13173 objects]
 \end{code}
 
-PCE uses heuristics trying to avoid that such problems actually
+XPCE uses heuristics trying to avoid that such problems actually
 crash the system (in the example above execution continues
 normally).
 
-We advice using checkpce/0 regulary during program development to
+We advice using checkpce/0 regularly during program development to
 verify your application is not violating object consistency.  Please
-see section~\ref{sec:whoiswho} and~\ref{sec:hyper} for technique
+see section~\ref{sec:whoiswho} and~\ref{sec:hyper} for techniques
 to avoid `dangling' object references.
 
 
-\section{The PCE tracer}
+\section{The XPCE tracer}
 
-The PCE tracer allows both for interactive execution as for printing the
+The XPCE tracer allows both for interactive execution as for printing the
 entry and/or completion of operations. This section first introduces
-some common ways the exploit the tracer. Section~\ref{sec:tracemodel}
+some common ways to exploit the tracer. Section~\ref{sec:tracemodel}
 discusses the underlying concepts. The end of this section provides
 examples of advanced queries to the tracer such as conditional trace-
 and break-points.
@@ -73,17 +72,17 @@ using:%
 [ 1] exit: new(view) --> @v/view
 \end{code}
 
-The tracer is switched off again using notracepce/0.
+The tracer is switched off using notracepce/0.
 
-Unless you are desparate, full trace mode will often give an enormous
-amount of unreadable output and should be avoided.  Below we present
-predicates that allow for more fine-tuned tracing of XPCE's actions.
+Full trace mode often gives an enormous amount of unreadable output and
+should be avoided.  Below we present predicates that allow for more
+fine-tuned tracing of XPCE's actions.
 
 
 \subsection{Tracing specific methods}
 
 It is often useful to inspect the execution of a particular method.
-Suppose we'd like to monitor geometry-changes of graphical objects. The
+Suppose we want to monitor geometry-changes of graphical objects.  The
 utility predicate tracepce/1 (see also \secref{interface}) may be used:
 
 \begin{code}
@@ -114,12 +113,12 @@ An XPCE {\em break-point} is similar to a Prolog spy-point.  Execution
 is broken and the debugger waits for further instructions. The available
 instructions are given in \secref{inspecterrors}.  The predicates to
 manipulate breakpoints are breakpce/1 and nobreakpce/1. These predicates
-use the same synbtax as tracepce/1 and notracepce/1.
+use the same syntax as tracepce/1 and notracepce/1.
 
 
 \subsection{Inspecting the context of errors} \label{sec:inspecterrors}
 
-Whenever an error is detected of <-kind `warning' and the <-feedback
+Whenever an error is detected of <-kind `error' and the <-feedback
 equals `print' the error will be printed, after which an {\em exception}
 flag is placed on the current goal and the tracer is switched on in
 `user' mode. This will cause the tracer to `break' at the `fail' port of
@@ -136,54 +135,54 @@ bug :-
 	send(B, open).
 
 1 ?- bug.
-[PCE warning: window ->below: Argument 1 should be a window
+[PCE error: window ->below: Argument 1 should be a window
         in: M @922496/picture(window) ->below: @922729/list_browser]
 [ 2] fail: M @922496/picture(window) ->below: @922729/list_browser ? 
 \end{code}
 
-The warning indicates a method has been invoked whose first argument
+The error indicates a method has been invoked whose first argument
 should be a window object. The ``in:'' line shows the top of the
-goal-stack. The line starting ``[2]'' is the PCE tracer. The following
+goal-stack. The line starting ``[2]'' is the XPCE tracer. The following
 tracer options are useful to find the context of the error:
 
 \begin{itemize}
-    \tick{{\bf g[ah] [depth]}: Goals}
-Print the stack.  By default it prints the `user' goals of PCE's stack
+    \tick{{\bf g[a][h] [depth]:} Goals}
+Print the stack.  By default it prints the `user' goals of XPCE's stack
 of active messages.  With the `{\bf a}lways' modifier it also prints
 the internal (system) messages.  With the `{\bf h}ost' modifier it will
 print the Prolog stack. The optional `depth' argument specifies the
 number of frames printed.
     \tick{{\bf b}: Break}
-Start a recursive interactive Prolog toplevel (as the Prolog predicate
+Start a recursive interactive Prolog top level (as the Prolog predicate
 break/0).  This may be used to get information on the status of the
 object base, Prolog program, etc.
     \tick{{\bf t}: Trace}
-Disable the PCE tracer and start the Prolog tracer.  This will cause
+Disable the XPCE tracer and start the Prolog tracer.  This will cause
 execution to continue until control reaches Prolog again, after which
 the Prolog tracer may be used to examine the Prolog context of the
 error.
-    \tick{{\bf e[iwef] [id]}: Error Kind}
+    \tick{{\bf e[i][w][e][f] [id]}: Error Kind}
 Change the `kind' of the current error or the error with identifier {\em
 id}:  `i' is ignore; `w' is warning (print, but do not break); `e' is
 error (print and break), `f' is fatal (print stack and abort).
     \tick{{\bf a}: Abort}
-Abort execution and restart the Prolog toplevel.  Be careful with this
+Abort execution and restart the Prolog top level.  Be careful with this
 option as it sometimes leaves either the X11 library or XPCE in an
 inconsistent state.
     \tick{{\bf n}: Nodebug}
 Continue execution.  Note that the current message will fail.  Note that
 some methods do not anticipate failure of sending a message.  In these
-cases the system will behave unpredictably.
+cases the system will behave in an unpredictable manner.
 \end{itemize}
 
 
 \subsection{The trace model}			\label{sec:tracemodel}
 
-All objects of PCE's program-world (classes, methods, messages, etc.)
+All objects of XPCE's program-world (classes, methods, messages, etc.)
 are subclasses of class \class{program_object} which defines the
 manipulation of the tracer.  Except for classes, whose role is
 explained later, all program objects represent an `operation'.  For
-example, a method may be invokes and an instance variable may be
+example, a method may be invoked and an instance variable may be
 assigned to.
 
 
@@ -199,7 +198,7 @@ program-object.  A new goal is created and pushed on the {\em
 goal-stack} when the execution of a program-object is started
 (entered).  After completion of the execution this goal is popped from
 the goal-stack again.  A frame of the goal-stack stores the following
-information to facilitate the PCE tracer:
+information to facilitate the XPCE tracer:
 
 \begin{itemize}
     \tick{object}
@@ -233,11 +232,11 @@ classes inherit their trace- and break-points from their super-class.
 Thus, associating a trace-point with class \class{program_object}
 associates it as a default for all traceable objects.
 
-Both trace- and break-points may be associated a {\em condition}.
-This is a \class{code}object that is evaluated before the trace- or
+Both trace- and break-points may be associated with a {\em condition}.
+This is a \class{code}-object that is evaluated before the trace- or
 break-point is activated.  If the code object fails the goal is not
 printed (or execution is not `broken').  The parameters passed
-to the code ar listed in table~\ref{tab:goalargs}.
+to the code are listed in table~\ref{tab:goalargs}.
 
 \begin{table}
 \begin{center}
@@ -272,16 +271,16 @@ Class type	& @receiver	& Object to be converted \\
 
 \subsubsection{The virtual machine operations}	\label{sec:vmi}
 
-The basic operations of PCE (new, send, get and free) are added to
+The basic operations of XPCE (new, send, get and free) are added to
 this model by introducing class \class{vmi} with instances @vmi_new,
 @vmi_send, @vmi_get and @vmi_free.
 
 
 \subsubsection{System and user mode of operation}
 
-PCE distinguishes between two modes of operating a goal: system- and
+XPCE distinguishes between two modes of operating a goal: system- and
 user-mode.  This distinction allows the system to only display goals
-that have been specified by the user and hide goals invoked by the
+that have been specified by the user and to hide goals invoked by the
 system itself.   All goals are executed in system-mode with the
 exception of new-, send-, get- and free-operations started from
 Prolog and the execution of program-objects created by the user.
@@ -309,15 +308,14 @@ does not respond to a specific mouse and/or keyboard operation.
 For example you programmed an object to be movable with the
 middle-mouse-button; but it does not respond.
 
-The first to verify is whether or not the events arrive there where
-you expect them.  When operating the mouse many events are generated
-which requires selective printing of goals.  Breaking is not advised
-as the mouse is necessary to carry-out the move-gesture and thus
-cannot be used to select the trace-window.  To debug event-processing
-it is first of all useful to know who processes the events and with
-what result.  The following query will print the execution of any
-send-operation which selector `event' that is caused by the
-middle-down event.
+The first thing to verify is whether the events arrive where you expect
+them.  When operating the mouse many events are generated which requires
+selective printing of goals.  Breaking is not advised as the mouse is
+necessary to carry-out the move-gesture and thus cannot be used to
+select the trace-window.  To debug event-processing it is first of all
+useful to know who processes the events and with what result.  The
+following query will print the execution of any send-operation with
+selector `event' that is caused by the mouse-middle-down event.
 
 \begin{code}
 1 ?- send(@vmi_send, trace, @on, full,
@@ -337,7 +335,7 @@ print failing virtual machine instructions:
 1 ?- send(class(vmi), trace, @on, fail).
 \end{code}
 
-Now unfortunately this may result is lots of messages because some
+Now, unfortunately this may result in lots of messages because some
 operations are designed to test status and succeed or fail according
 to the result of the test.  The following will ignore all failing
 send-operations whose method summary-string starts with ``Test''.
