@@ -1514,7 +1514,7 @@ r_elevation_shadow(Elevation e)
   { Any bg = context.background;
 
     if ( instanceOfObject(bg, ClassColour) && context.depth != 1 )
-      return getReduceColour(bg);
+      return getReduceColour(bg, DEFAULT);
     else
       return BLACK_COLOUR;
   } else

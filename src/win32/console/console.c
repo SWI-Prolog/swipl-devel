@@ -29,7 +29,7 @@ part of SWI-Prolog, but unlike  the   base  system  which is distributed
 under the GPL, the console code is  distributed under the LGPL, and thus
 allows for embedding in proprietary software.
 
-The SWI-Prolog source is at http://swi.psy.uva.nl/projects/SWI-Prolog/
+The SWI-Prolog source is at http://www.swi-prolog.org
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1052,6 +1052,8 @@ rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	scrolledbykey:
 	  rlc_update_scrollbar(b);
 	  InvalidateRect(hwnd, NULL, FALSE);
+
+	  return 0;
 	}
 	case VK_NEXT:			/* page down */
 	{ int maxup = rlc_count_lines(b, b->window_start, b->last);
