@@ -62,6 +62,8 @@
 	    odbc_statistics/1		% -Value
 
 	  ]).
+:- use_module(library(shlib)).
+:- use_module(library(lists)).
 
 :- initialization
    load_foreign_library(foreign(odbc4pl)).
