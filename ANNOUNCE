@@ -1,34 +1,49 @@
-SWI-Prolog 5.2.2/XPCE 6.2.2 stable release
+SWI-Prolog 5.2.3/XPCE 6.2.3 stable release
 
 Status
 ======
   
   * Stable release integrating shared-database multi-threaded execution.
 
-
-Brief summary of changes since 5.2.1
+Brief summary of changes since 5.2.2
 ====================================
 
 SWI-Prolog
 ----------
 
-  * Fixed GC problem when activated by the autoloader.
+  * Portability issues: cygwin, enhanced installation procedure to accomodate
+    RPM and Debian package managers easier.  Ported thread-support to FreeBSD.
 
-  * Fixed various installation and xpce-stub.exe problems (Windows).
+  * Fixed deadlock in thread_statistics/3.
+
+  * Debugger issues: hide predicates starting with $ (Logtalk), make trace/0
+    trap debugger on `skip', make behaviour of call_cleanup/3 consistent in
+    debug/nondebug mode.
 
 
 Packages
 --------
 
-  * Semweb: Fixed giant memory leak in rdf_reachable/3 (module rdf_db).
+  * Semweb: Added rdf_generation/1 which increments on any change to the
+    database.
 
-  * XPCE GUI system: Various enhancements and fixes to the tabbed_window
-    library.  Various minor patches.
+  * XPCE GUI system: Improved handling of type := initial in variable
+    declarations, added menu_item->background, fixed redraw problems in
+    MS-Windows (notably associated with the tabbed_window class), lowered
+    priority of :: operator to improve coorperation with other packages.
 
+  * library(pce_toc): use a small window to make partly obscured nodes
+    visible.
 
 Development environment
 -----------------------
 
+  * Many improvements to the SWI-Prolog manual browser.
+
+  * Fix to source-level debugger avoiding unnecessary
+    use of decompiled code.
+
+  * Various improvements to the PceEmacs bookmark system.
 
 INCOMPATIBILITIES
 =================
