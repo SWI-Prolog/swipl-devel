@@ -539,10 +539,11 @@ statistics :-
 	       [LocalLimit, Local, LocalUsed]),
 	format('Global stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
 	       [GlobalLimit, Global, GlobalUsed]),
-	format('Trail  stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
+	format('Trail  stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n~n',
 	       [TrailLimit, Trail, TrailUsed]),
 
 	gc_statistics,
+	agc_statistics,
 	shift_statistics,
 	thread_statistics.
 
@@ -552,9 +553,18 @@ gc_statistics :-
 	statistics(collected, Collected),
 	statistics(gctime, GcTime),
 
-	format('~n~D garbage collections gained ~D bytes in ~2f seconds.~n',
+	format('~D garbage collections gained ~D bytes in ~2f seconds.~n',
 	       [Collections, Collected, GcTime]).
 gc_statistics.
+
+agc_statistics :-
+	catch(statistics(agc, Agc), _, fail),
+	Agc > 0, !,
+	statistics(agc_gained, Gained),
+	statistics(agc_time, Time),
+	format('~D atom garbage collections gained ~D atoms in ~2f seconds.~n',
+	       [Agc, Gained, Time]).
+agc_statistics.
 
 shift_statistics :-
 	statistics(local_shifts, LS),
@@ -564,7 +574,7 @@ shift_statistics :-
 	;   GS > 0
 	;   TS > 0
 	), !,
-	format('~nStack shifts: ~D local, ~D global, ~D trail.~n',
+	format('Stack shifts: ~D local, ~D global, ~D trail.~n',
 	       [LS, GS, TS]).
 shift_statistics.
 
@@ -574,7 +584,7 @@ thread_statistics :-
 	statistics(threads_created, Created),
 	statistics(thread_cputime, CpuTime),
 	Finished is Created - Active,
-	format('~n~D threads, ~D finished threads used ~2f seconds.~n',
+	format('~D threads, ~D finished threads used ~2f seconds.~n',
 	       [Active, Finished, CpuTime]).
 thread_statistics.
 
