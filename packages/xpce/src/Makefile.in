@@ -480,7 +480,8 @@ $(srcdir)/fmt/proto.h:	$(FMTSRC)
 # BOX 		--- Typesetting stuff
 ################################################################
 
-BOXOBJS=	boxes.o hbox.o tbox.o parbox.o grbox.o rubber.o
+BOXOBJS=	boxes.o hbox.o tbox.o parbox.o grbox.o rubber.o \
+		lbox.o
 BOXSRC=		$(addprefix $(srcdir)/box/, $(BOXOBJS:.o=.c))
 
 $(srcdir)/box/proto.h:	$(BOXSRC)
