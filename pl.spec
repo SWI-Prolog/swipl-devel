@@ -3,7 +3,7 @@ Name:		pl
 Version:	3.3.0
 Release:	1
 Copyright:	GPL-2
-Source:		ftp://swi.psy.uva.nl/pub/SWI-Prolog/pl-3.3.0.tar.gz
+Source:		ftp://swi.psy.uva.nl/pub/SWI-Prolog/pl-%{version}.tar.gz
 Vendor:		Jan Wielemaker <jan@swi.psy.uva.nl>
 Url:		http://www.swi.psy.uva.nl/projects/SWI-Prolog/
 Packager:	Tony Nugent <Tony.Nugent@usq.edu.au>
@@ -21,43 +21,38 @@ very fast compiler, X11 interface using XPCE
 %setup
 
 %build
-cd src
 env CFLAGS="$RPM_OPT_FLAGS" \
   ./configure --prefix=/usr
 make
 
 %install
+rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT/usr
-cd src
-make install prefix=$RPM_BUILD_ROOT/usr
-cp README.bin ..
-# Make the package relocatable by using local links
-ARCH=`$RPM_BUILD_ROOT/usr/bin/pl -arch`
-for f in pl plrc plld; do
-    ( cd $RPM_BUILD_ROOT/usr/bin && \
-      rm -f $f && \
-      ln -s ../lib/pl-3.3.0/bin/$ARCH/$f $f )
-done
+make install prefix=$RPM_BUILD_ROOT/usr bindir=$RPM_BUILD_ROOT/usr/bin \
+	man_prefix=$RPM_BUILD_ROOT/usr/man
+cp src/README.bin ..
 
-%files
-%doc ChangeLog INSTALL INSTALL.notes COPYING LSM PORTING
-%doc README README.bin README.GUI
-%doc VERSION
-%attr(755,root,root)/usr/lib/pl-3.3.0/bin/*
-%attr(644,root,root)/usr/lib/pl-3.3.0/boot/*
-%attr(644,root,root)/usr/lib/pl-3.3.0/include/*
-%attr(-,root,root)/usr/lib/pl-3.3.0/lib/*
-%attr(644,root,root)/usr/lib/pl-3.3.0/library/*
-%attr(644,root,root)/usr/lib/pl-3.3.0/man/*
-%attr(-,root,root)/usr/lib/pl-3.3.0/runtime/*
-%attr(644,root,root)/usr/lib/pl-3.3.0/swipl
-%attr(644,root,root)/usr/lib/pl-3.3.0/boot.prc
-%attr(644,root,root)/usr/man/man1/pl.1
-%attr(644,root,root)/usr/man/man1/plrc.1
-%attr(644,root,root)/usr/man/man1/plld.1
-%attr(-,root,root)/usr/bin/pl
-%attr(-,root,root)/usr/bin/plrc
-%attr(-,root,root)/usr/bin/plld
+# why are manpages installed twice?
+rm -rf /usr/lib/pl-%{version}/man
+
+# --- obsolated by rel-ln :
+# # Make the package relocatable by using local links
+# ARCH=`$RPM_BUILD_ROOT/usr/bin/pl -arch`
+# for f in pl plrc plld; do
+#       ln -sf ../lib/pl-%{version}/bin/$ARCH/$f $RPM_BUILD_ROOT/usr/bin
+# done
+# # or even:
+# # ln -sf ../lib/pl-%{version}/bin/`$RPM_BUILD_ROOT/usr/bin/pl -arch`/pl{,rc,ld} \
+# #	$RPM_BUILD_ROOT/usr/bin
 
 %clean
 rm -rf $RPM_BUILD_ROOT
+
+%files
+%defattr(-,root,root)
+%doc ChangeLog README README.bin README.GUI COPYING
+# not necessary in binary rpm, I think
+# %doc INSTALL INSTALL.notes LSM PORTING VERSION
+/usr/lib/pl-%{version}
+/usr/man/man1/*
+/usr/bin/pl*

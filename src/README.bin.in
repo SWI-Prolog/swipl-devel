@@ -1,4 +1,5 @@
 			SWI-Prolog binary directory
+			===========================
 
 Info:
 =====
@@ -11,32 +12,34 @@ Author:			Jan Wielemaker
 			The Netherlands
 			E-mail: jan@swi.psy.uva.nl
 
+WWW home:		http://www.swi.psy.uva.nl/projects/SWI-Prolog/
 Mailing list:		prolog@swi.psy.uva.nl
 Subscribe to:		prolog-request@swi.psy.uva.nl
 bug reports:		prolog-bugs@swi.psy.uva.nl
 
-Copyright:		* Free for academic, personal and research usage
-			* You need a licence for embedding in commercial
-			  applications
-			* See file LICENCE for details.
+Copyright:		GPL-2.  See the file COPYING distributed with
+			this package or http://www.gnu.org
+
+			Alternative (commercial) licenses available on
+			request.  See the WWW home page.
 
 
 Installing the binary version:
 ==============================
 
 The simplest method is to  make  a   *symbolic  link*  from  your public
-executable directory to the executable   in  bin/<arch>/pl. Donot *copy*
+executable directory to the executable in bin/<arch>/pl .  Do not *copy*
 the executable, as it uses the  information   from  the link to find the
 location of the libraries.
 
 If you installed this directory as
 
-	/usr/local/lib/pl-@PLVERSION@
+	@prefix@/lib/@PL@-@PLVERSION@
 
 do (as root, where <arch> is the name of the architecture):
 
-	# cd /usr/local/bin
-	# ln -s /usr/local/lib/pl-@PLVERSION@/bin/<arch>/pl .
+	# cd @bindir@
+	# ln -s @prefix@/lib/@PL@-@PLVERSION@/bin/<arch>/pl .
 
 
 Customising the binary version
