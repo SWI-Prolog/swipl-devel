@@ -435,6 +435,13 @@ term_colours(user:file_search_path(_,_),
 				       classify
 				     ]
 			]).
+term_colours((prolog:message(_) --> _),
+	     expanded - [ expanded - [ expanded,
+				       expanded - [ identifier
+						  ]
+				     ],
+			  classify
+			]).
 term_colours(portray(_),
 	     expanded - [ classify
 			]).
