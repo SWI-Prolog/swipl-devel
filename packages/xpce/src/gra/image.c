@@ -431,6 +431,7 @@ drawInImage(Image image, Graphical gr, Point pos)
   int iw = valInt(image->size->w);
   int ih = valInt(image->size->h);
   int m;
+  Area a;
 
   TRY(verifyAccessImage(image, NAME_drawIn));
 
@@ -476,14 +477,16 @@ drawInImage(Image image, Graphical gr, Point pos)
   { x -= m; y -= m; w += m*2; h += 2*m;
   }
 
+  a = answerObject(ClassArea, toInt(x), toInt(y), toInt(w), toInt(h), EAV);
   CHANGING_IMAGE(image,
     d_image(image, x, y, w, h);
     d_modify();
-    RedrawArea(gr, gr->area);
+    RedrawArea(gr, a);			/* Was gr->area */
     d_done();
     if ( notNil(image->bitmap) )
       changedImageGraphical(image->bitmap,
 			    toInt(x), toInt(y), toInt(w), toInt(h)););
+  doneObject(a);
 
 out:
   if ( notDefault(oldx) )

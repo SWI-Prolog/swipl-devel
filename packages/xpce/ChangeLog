@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ENHANCED: image->draw_in to avoid redrawing the whole graphical if only
+  part overlaps the image.
+	
 * ADDED: Support for writing PostScript color images.
 
 * ADDED: Windows version: load .ICO data from streams and therefore from
