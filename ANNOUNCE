@@ -1,0 +1,38 @@
+SWI-Prolog 4.0.11/XPCE 5.0.10 Summary of changes
+
+SWI-Prolog 4.0.11
+=================
+
+  * BUGS FIXED
+     + Exception-handling with findall/3, setof/3, and bagof/3.
+     + Improved syntax checking (passed errornous term)
+     + Writef('\\X') where X is not a digit
+     + Crash in concat_atom/2 on bad instantiation
+     + Out-of-stack handling (could leave system unstable)
+     + Handling really big terms in recorded database
+
+  * PORTABILITY
+     + Many patches for notably BSD systems to get the packages
+       compiled.
+
+  * ADDED
+     + fnctl() based locks on files (see open/4)
+      
+  * Beauty
+     + Many contributed patches to the manual
+     + Better (error) messages.
+
+XPCE 5.0.10
+===========
+
+  * BUGS FIXED
+     + Load .ICO files (windows)
+     + Remove size limits on ->format
+
+  * PORTABILITY
+     + Many patches for notably BSD systems to get the packages
+       compiled.
+
+  * ADDED
+     + Delay opening X11 display to first graphics operation, so
+       you can use the non-graphics things without X11 (Unix).
