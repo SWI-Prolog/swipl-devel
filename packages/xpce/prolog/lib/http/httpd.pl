@@ -309,9 +309,11 @@ html_to_buffer(Term, TB) :-
 	html_write:expand/3.
 
 html_write:expand(Object) -->
-	{ object(Object),
-	  send(Object, instance_of, char_array), !,
-	  get(Object, value, Name)
+	{ object(Object), !,
+	  (   send(Object, instance_of, char_array)
+	  ->  get(Object, value, Name)
+	  ;   get(Object, print_name, Name)
+	  )
 	},
 	html_quoted(Name).
 

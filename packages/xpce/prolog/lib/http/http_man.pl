@@ -15,6 +15,7 @@
 :- use_module(html_write).
 :- use_module(html_hierarchy).
 :- use_module(html_refman).
+:- use_module(library('man/v_search')).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Demo for the XPCE HTTP Deamon. This  demo   simply  lists a table of all
@@ -58,11 +59,11 @@ reply(/, @nil, HTTPD) :-
 
 frames -->
 	html(html([ head(title('XPCE web-manual')),
-		    frameset([cols('20%,80%')],
+		    frameset([cols('25%,75%')],
 			     [ frame([ src('/classhierarchy'),
 				       name(hierarchy)
 				     ]),
-			       frame([ src('/welcome'),
+			       frame([ src('/search'),
 				       name(description)
 				     ])
 			     ])
@@ -132,18 +133,26 @@ classlist([H|T], S) -->
 reply('/class', Form, HTTPD) :-
 	get(Form, name, Class), !,
 	get(@pce, convert, Class, class, ClassObj),
-	send(HTTPD, reply_html, pce_http_man:classdoc(ClassObj)).
+	send(HTTPD, reply_html, pce_http_man:classpage(ClassObj)).
 
-classdoc(Class) -->
+classpage(Class) -->
 	{ get(Class, name, Name)
 	},
 	page([ title(['XPCE class ', Name])
 	     ],
-	     [ h1([align(center)], ['XPCE class ', em(Name)]),
+	     \classdoc(Class)
+	    ).
+
+classdoc(Class) -->
+	{ get(Class, name, Name)
+	},
+	html([ h1([align(center)], ['XPCE class ', em(Name)]),
 	       p([]),
+	       \classtable(Class),
+	       h2('Description'),
 	       \description(Class),
 	       p([]),
-	       \classtable(Class)
+	       \classbehaviour(Class)
 	     ]).
 
 description(Obj) -->
@@ -231,6 +240,69 @@ variables([H|T]) -->
 	     ]),
 	variables(T).
 
+
+		 /*******************************
+		 *	    BEHAVIOUR		*
+		 *******************************/
+
+classbehaviour(Class) -->
+	{ collect_behaviour(Class, Chain),
+	  group_objects(Chain, Groups),	% Groups is a sheet name->chain
+	  get_chain(Groups, attribute_names, List)
+	},
+	html(h2('Behaviour')),
+	groups(List, Groups).
+
+groups([], _) -->
+	[].
+groups([H|T], Groups) -->
+	{ get(Groups, value, H, Chain),
+	  chain_list(Chain, Members)
+	},
+	group(H, Members),
+	groups(T, Groups).
+
+group(Group, Members) -->
+	{ cluster_behaviour(Members, Clusters),
+	  chain_list(Clusters, List)
+	},
+	html([ \group_header(Group),
+	       dl(\behaviour_clusters(List))
+	     ]).
+	       
+
+group_header(Group) -->
+	{ group_summary(Group, Summary), !,
+	  get(Group, capitalise, GroupName)
+	},
+	html(h4([hr([]), GroupName, ' -- ', em(Summary)])).
+group_header(Group) -->
+	{ get(Group, capitalise, GroupName)
+	},
+	html(h4(GroupName)).
+
+
+behaviour_clusters([]) -->
+	[].
+behaviour_clusters([H|T]) -->
+	{ chain_list(H, L),
+	  L = [First|_]
+	},
+	html([ dt(\headlines(L)),
+	       dd(\description(First))
+	     ]),
+	behaviour_clusters(T).
+	
+headlines([]) -->
+	[].
+headlines([H]) --> !,
+	headline(H).
+headlines([H|T]) --> !,
+	headline(H),
+	html(br([])),
+	headlines(T).
+
+
 %	/classhierarchy
 %	/classhierarchy?root=name
 %
@@ -252,10 +324,27 @@ reply(Path, @nil, HTTPD) :-
 	send(HTTPD, reply, Image).
 
 classhierarchy(Root, Cookie) -->
-	page(title('XPCE Class Hierarchy'),
-	     [ h3('Class Hierarchy')
-	     | \html_hierarchy(Root, gen_subclass, class_name, Cookie)
-	     ]).
+	{   pageYOffset(Cookie, Y), Y \== 0
+	->  sformat(JS, 'window.scrollTo(0, ~w)', [Y]),
+	    OnLoad = [onLoad(JS)]
+	;   OnLoad = []
+	},
+	page([ head(title('XPCE Class Hierarchy')),
+	       body([ bgcolor(white)
+		    | OnLoad
+		    ],
+		    [ h3('Class Hierarchy')
+		    | \html_hierarchy(Root,
+				      gen_subclass, hierarchy_class_name,
+				      Cookie)
+		    ])
+	     ]).	       
+
+hierarchy_class_name(Name) -->
+	{ www_form_encode(Name, Encoded),
+	  atom_concat('/class?name=', Encoded, URL)
+	},
+	html(a([name(Encoded), href(URL), target(description)], Name)).
 
 gen_subclass(Super, Sub) :-
 	get(@pce, convert, Super, class, Class),
@@ -269,8 +358,11 @@ gen_subclass(Super, Sub) :-
 %	As manpce/1: handle @ref, class, class->method, class<-method, etc.
 
 reply('/man', Form, HTTPD) :-
-	get(Form, for, String),
-	atom_to_method(String, Object),
+	(   get(Form, value, for, String)
+	->  atom_to_method(String, Object)
+	;   get(Form, value, id, Id),
+	    man_search:object_from_id(Id, Object)
+	),
 	send(HTTPD, reply_html, pce_http_man:objpage(Object)).
 	
 objpage(Object) -->
@@ -315,7 +407,7 @@ headline(GM) -->
 	  get(GM, return_type, Return)
 	}, !,
 	html([ \contextclass(GM),
-	       '->',
+	       '<-',
 	       b(\name(GM)),
 	       '(',
 	       \argv(GM),
@@ -333,6 +425,13 @@ headline(V) -->
 	       ': ',
 	       \type(Type)
 	     ]).
+headline(V) -->
+	{ send(V, instance_of, class)
+	}, !,
+	html([ 'Class ', b(\name(V))
+	     ]).
+headline(V) -->
+	objref(V).
 	       
 contextclass(SM) -->
 	{ get(SM, context, Class),
@@ -347,6 +446,11 @@ name(Obj) -->
 	html(Name).
 name(Obj) -->
 	html(Obj).
+
+objref(@Obj) -->
+	{ get(@Obj, class_name, Name)
+	},
+	html([@, Obj, /, Name]).
 
 argv(Method) -->
 	{ get(Method, types, Argv),
@@ -379,7 +483,176 @@ argv(_, _, _) -->
 	[].
 
 
+		 /*******************************
+		 *	      SEARCH		*
+		 *******************************/
 
+%	/search?for=pattern
+%
+%	Execute a search
+
+reply('/search', @nil, HTTPD) :- !,
+	send(HTTPD, reply_html, pce_http_man:searchpage).
+
+searchpage -->
+	page([ title('Search XPCE manual')
+	     ],
+	     [ \searchhead,
+	       \searchform('', 25)
+	     ]).
+
+searchhead -->
+	html([ h1('Search the XPCE reference manual'),
+	       p([ 'Please use the form below to search through the XPCE ',
+		   'reference material. ',
+		   'Advanced syntax: '
+		 ]),
+	       dl([dt(b('<...>')),
+		   dd('Word-match rather then substring match'),
+		   dt(b('not ...')),
+		   dd('Not containing ...'),
+		   dt(b('... and ...')),
+		   dd('Containing both expressions (default)'),
+		   dt(b('... or ...')),
+		   dd('Containing either expression'),
+		   dt(b('(...)')),
+		   dd('Use braces to specify nesting')
+		  ]),
+	       p([])
+	     ]).
+
+searchform(For, Max) -->
+	html(form([ action('/search'),
+		    method('GET')
+		  ],
+		  table(align(center),
+			[ tr([ td(align(right), b('Search for')),
+			       td(colspan(2),
+				  input([name(for), value(For), size(40)]))
+			     ]),
+			  tr([ td(align(right), b('Max results')),
+			       td(align(left),
+				  select(name(max_results),
+					 [ \option(10, Max),
+					   \option(25, Max),
+					   \option(100, Max)
+					 ])),
+			       td(align(right),
+				  input(type(submit)))
+			     ])
+			]))).
+
+option(Value, Value) --> !,
+	html(option(selected, Value)).
+option(Value, _) -->
+	html(option(Value)).
+
+reply('/search', Form, HTTPD) :-
+	get(Form, value, for, For),
+	(   get(Form, value, max_results, M0),
+	    get(@pce, convert, M0, int, Max)
+	->  true
+	;   Max = 25
+	),
+	(   get(Form, value, from, From0),
+	    get(@pce, convert, From0, int, From)
+	->  true
+	;   From = 0
+	),
+	send(HTTPD, reply_html, pce_http_man:search(For, Max, From)).
+
+search(For, Max, From) -->
+	{ search_index(@man_index),
+	  man_search:parse_search_spec(For, Term),
+	  man_search:execute_search(Term, @man_index, CardsIds),
+	  get(CardsIds, size, Matches),
+	  (   From == 0
+	  ->  (   Matches > Max
+	      ->  get(CardsIds, sub, 0, Max, Ch2),
+		  chain_list(Ch2, List),
+		  Found = p([ 'Showing first ~w matches of ~w. '-
+			        [Max, Matches],
+			      \next(For, Max, From)
+			    ])
+	      ;   chain_list(CardsIds, List),
+		  Found = p('Found ~w matches'-[Matches])
+	      )
+	  ;   To is From+Max,
+	      get(CardsIds, sub, From, To, Ch2),
+	      chain_list(Ch2, List),
+	      (	  Matches > To
+	      ->  Next = [\next(For, Max, From)
+			 ]
+	      ;	  Next = []
+	      ),
+	      get(List, size, Size),
+	      TheTo is From + Size,
+	      Found = p([ 'Showing matches from ~w to ~w from ~w. '-
+			    [From, TheTo, Matches]
+			| Next
+			])
+	  )
+	},
+	page([title(['XPCE Search results for ', For])],
+	     [ h2(['Search results for ', em(For)]),
+	       Found,
+	       p([]),
+	       table([ width('100%')
+		     ],
+		     [ col(width('30%')),
+		       col(width('70%'))
+		     | \search_results(List)
+		     ]),
+	       p([]),
+	       hr([]),
+	       \searchform(For, Max)
+	     ]).
+
+next(For, Max, From) -->
+	{ NewFrom is From+Max,
+	  www_form_encode(For, F1),
+	  www_form_encode(Max, F2),
+	  www_form_encode(NewFrom, F3),
+	  concat_atom(['/search?for=', F1,
+		       '&max_results=', F2,
+		       '&from=', F3],
+		      URL)
+	},
+	html(a(href(URL), next)).
+
+
+search_results([]) -->
+	[].
+search_results([H|T]) -->
+	search_result(H),
+	search_results(T).
+
+search_result(Id) -->
+	{ man_search:object_from_id(Id, Object),
+	  www_form_encode(Id, Encoded),
+	  atom_concat('/man?id=', Encoded, HREF),
+	  (   get(Object, summary, Summary),
+	      Summary \== @nil
+	  ;   Summary = ''
+	  )
+	},
+	html([ tr([ td(a(href(HREF), Object)),
+		    td(Summary)
+		  ])
+	     ]).
+	
+
+search_index(Index) :-
+	object(Index), !.
+search_index(@Ref) :-
+	absolute_file_name(pce('/man/reference/index'),
+			   [ extensions([obj]),
+			     access(read),
+			     file_errors(fail)
+			   ],
+			   IndexFile),
+	get(file(IndexFile), object, Obj),
+	send(Obj, name_reference, Ref).
 
 %	/welcome
 %

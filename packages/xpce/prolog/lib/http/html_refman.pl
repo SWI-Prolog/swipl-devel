@@ -9,11 +9,14 @@
 
 :- module(pce_html_refman,
 	  [ html_description/2,		% +Object, -HTMLString
-	    atom_to_method/2		% +Atom, -Behaviour
+	    atom_to_method/2,		% +Atom, -Behaviour
+	    collect_behaviour/2,	% +Class, -Behaviour
+	    group_objects/2,		% +Behaviour, -Groups
+	    cluster_behaviour/2,	% +Chain, -NestedChain
+	    group_summary/2		% +Group, -Summary
 	  ]).
 :- use_module(library(pce)).
 :- use_module(library(pce_manual)).
-:- use_module(re_parse).
 
 :- dynamic
 	drain/1,			% the output object (editor)
@@ -26,7 +29,7 @@
 %	Find XPCE object holding documentation from a textual specification.
 
 atom_to_method(String, Object) :-
-	(   new(Re, regex('\\([A-Z][a-z_]*\\)\\s *\\(<?->?\\)\\([a-z_]+\\)\\(:.*\\)?$')),
+	(   new(Re, regex('\\([A-Z]?[a-z_]*\\)\\s *\\(<?->?\\)\\([a-z_]+\\)\\(:.*\\)?$')),
 	    send(Re, match, String)
 	->  get(Re, register_value, String, 1, name, Class0),
 	    get(Re, register_value, String, 2, name, What0),
@@ -338,14 +341,6 @@ html_unescape(S) :-
 		 *	     BEHAVIOUR		*
 		 *******************************/
 
-behaviour(Class) :-
-	output('@subheading Behaviour\n\n'),
-	collect_behaviour(Class, Chain),
-	group_objects(Chain, Groups),
-	send(Groups, for_all,
-	     message(@prolog, html_group, Class, @arg1?name, @arg1?value)).
-	
-
 collect_behaviour(Class, Behaviour) :-
 	new(Behaviour, chain),
 
@@ -355,79 +350,58 @@ collect_behaviour(Class, Behaviour) :-
 	send(Class?send_methods, for_all, Merge),
 	send(Class?instance_variables, for_all,
 	     if(@arg1?context == Class,
-		message(Behaviour, append, @arg1))),
-	exclude(Class, Behaviour).
+		message(Behaviour, append, @arg1))).
 
 
 group_objects(Chain, Groups) :-
 	new(Groups, sheet),
-	Group = when(@arg1?group, @arg1?group, behaviour),
+	Group = when(@arg1?group, @arg1?group, miscellaneous),
 	send(Chain, for_all,
-	     if(Group,
-		if(message(Groups, is_attribute, Group),
-		   message(?(Groups, value, Group), append, @arg1),
-		   message(Groups, value, Group,
-			   ?(@pce, instance, chain, @arg1))),
-		if(@arg1?message == @nil,
-		   message(@arg1, report, warning,
-			   'Skipped %N: no group', @arg1)))),
+	     if(message(Groups, is_attribute, Group),
+		message(?(Groups, value, Group), append, @arg1),
+		message(Groups, value, Group,
+			?(@pce, instance, chain, @arg1)))),
 
 	SortByName = ?(@arg1?name, compare, @arg2?name),
 
 	order_groups(Groups),
+
 	send(Groups?members, for_all,
 	     message(@arg1?value, sort,
 		     quote_function(SortByName))).
 
-
-html_group(Class, Group, Elements) :-
-	get(Group, capitalise, CGroup),
-	(   group_summary(Group, Summary)
-	->  output('@subsection %s --- %s\n\n', [CGroup, Summary])
-	;   output('@subsection %s\n\n', [CGroup])
-	),
-	output('@giindex %s\n', Group),
-	(   group_description(Class, Group, S0)
-	->  get(S0, copy, S1),
-	    desc_to_html(S1),
-	    output('%s\n\n', S1)
-	;   true
-	),
-	combine_behaviour(Elements, Clusters),
-	send(Clusters, for_all,
-	     message(@prolog, html_cluster, @arg1)).
+order_groups(Sheet) :-
+	get(@manual, module, groups, @on, GroupModule),
+	get(GroupModule, id_table, Table),
+	get(Sheet, members, Chain),
+	new(Unordered, chain),
+	send(Chain, for_all,
+	     if(not(?(Table, member, @arg1?name)),
+		and(message(Unordered, append, @arg1),
+		    message(Chain, delete, @arg1)))),
+	send(Chain, sort,
+	     ?(?(Table, member, @arg1?name)?index, compare,
+	       ?(Table, member, @arg2?name)?index)),
+	send(Chain, merge, Unordered).
 
 
-combine_behaviour(Chain, Combined) :-
+cluster_behaviour(Chain, Combined) :-
 	new(Combined, chain),
 	send(Chain, for_all,
 	     and(assign(new(B, var), @arg1),
 		 or(and(assign(new(Ch, var),
 			       ?(Combined, find,
-				 message(@arg1?head?html_description, equal,
-					 B?html_description))),
+				 message(@arg1?head?fetch_description, equal,
+					 B?fetch_description))),
 			message(Ch, append, B)),
 		    message(Combined, append,
-			    ?(@pce, instance, chain, B))))).
+			    ?(@pce, instance, chain, B))))),
+	send(Combined, for_all, message(@prolog, sort_cluster, @arg1)).
 
 
-html_cluster(Chain) :-
-	send(@documented, merge, Chain),
+sort_cluster(Chain) :-
 	send(Chain, sort, ?(@prolog, compare_cluster_elements,
-			    @arg1?class_name, @arg2?class_name)),
-	send(Chain, for_all,
-	     message(@prolog, label_object, @arg1)),
-	send(Chain, for_all,
-	     and(if(@arg1 == Chain?head,
-		    message(@prolog, output, '@deffn '),
-		    message(@prolog, output, '@deffnx ')),
-		 message(@prolog, html_behaviour, @arg1),
-		 message(@prolog, cindex, @arg1))),
-	get(Chain, head, First),
-	refinement_of(First),
-	description(First),
-	bugs(Chain),
-	output('@end deffn\n\n').
+			    @arg1?class_name, @arg2?class_name)).
 
 compare_cluster_elements(X, 		    X, equal).
 compare_cluster_elements(delegate_variable, _, smaller).
@@ -438,71 +412,8 @@ compare_cluster_elements(X,		    _, _) :-
 	format('[WARNING: compare_cluster_elements/3: Illegal first element ~w]~n', X),
 	fail.
 
-
-refinement_of(M) :-
-	send(M, has_get_method, inherited_from),
-	get(M, inherited_from, SuperMethod), !,
-	get(SuperMethod, man_name, S0),
-	substitute(S0, ['.*\t', '']),
-	output('@b{Refinement of:} %s @*', S0).
-refinement_of(_).
-
-bugs(Chain) :-
-	get(Chain, map, ?(@arg1, man_attribute, bugs), Bugs),
-	send(Bugs, unique),
-	send(Bugs, for_all, message(@prolog, footnote, @arg1)).
-
-footnote(Text) :-
-	new(S0, string('%s', Text)),
-	html_escape(S0),
-	substitute(S0, [ '^\\s *[*#]', '@bullet ' ]),
-	output('@footnote{%s}\n', S0).
-
-
-		 /*******************************
-		 *	   GLOBAL OBJECTS	*
-		 *******************************/
-
-html_global_objects :-
-	start('Global Objects'),
-	get(@manual, module, objects, @on, Module),
-	new(Globals, chain),
-	send(Module?id_table, for_all, message(Globals, append, @arg2)),
-	send(Globals, sort,
-	     ?(@arg1?identifier, compare, @arg2?identifier)),
-	send(Globals, for_all,
-	     if(not(message(@prolog, check_global, @arg1)),
-		message(Globals, delete, @arg1))),
-	combine_behaviour(Globals, Combined),
-	send(Combined, for_all,
-	     message(@prolog, html_global_cluster, @arg1)),
-	end.
-
-
-check_global(Card) :-
-	html_description(Card, _),	% has description?
-	get(Card, identifier, Id),
-	concat('O.', Ref, Id),
-	object(@Ref).			% object exists
-
-
-html_global_cluster(Cluster) :-
-	send(Cluster, for_all,
-	     if(Cluster?head == @arg1,
-		message(@prolog, global_deffn, @arg1, deffn),
-		message(@prolog, global_deffn, @arg1, deffnx))),
-	get(Cluster, head, Head),
-	description(Head),
-	output('@end deffn\n\n').
-
-
-global_deffn(Card, Type) :-
-	get(Card, identifier, Id),
-	concat('O.', Ref, Id),
-	object(@Ref),
-	label_object(@Ref),
-	get(@Ref, '_class_name', ClassName),
-	get(ClassName, capitalise, TypeName),
-	output('@%s {%s} @@%s\n', [Type, TypeName, Ref]).
-
-
+group_summary(Group, Summary) :-
+	get(@manual, module, groups, @on, Module),
+	get(Module?id_table, member, Group, GroupCard),
+	get(GroupCard, summary, Summary),
+	Summary \== @nil.

@@ -7,7 +7,8 @@
 */
 
 :- module(html_write,
-	  [ page/4,			% generate an HTML page
+	  [ page/3,			% generate an HTML page
+	    page/4,			% page from head and body
 	    html/3,
 
 					% Useful primitives for expanding
@@ -21,10 +22,14 @@
 	    print_html/2,		% +Stream, +List
 	    html_print_length/2		% +List, -Length
 	  ]).
+:- use_module(library(quintus)).	% for meta_predicate/1
 
 :- meta_predicate
 	html(:, -, +),
-	page(:, :, -, +).
+	page(:, -, +),
+	page(:, :, -, +),
+	pagehead(:, -, +),
+	pagebody(:, -, +).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 library(html_write)
@@ -43,21 +48,50 @@ Prolog term into  an  HTML  document.  We   use  DCG  for  most  of  the
 generation. 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-page(Head, Contents) -->
+page(Content) -->
 	[ '<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 4.0//EN">\n',
-	  '<html>\n',
-	  '<head>',
+	  '<html>',
 	  nl(1)
 	],
-	html(Head),
-	[ '</head>\n\n',
-	  '<body bgcolor=white>\n'
-	],
-	html(Contents),
+	html(Content),
 	[ nl(1),
-	  '</body>\n',
 	  '</html>\n'
 	].
+
+page(Head, Body) -->
+	[ '<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 4.0//EN">\n',
+	  '<html>',
+	  nl(1)
+	],
+	pagehead(Head),
+	pagebody(Body),
+	[ nl(1),
+	  '</html>\n'
+	].
+
+pagehead(Head) -->
+	{ strip_module(Head, M, _),
+	  hook_module(M, head(_,_,_))
+	}, !,
+	M:head(Head).
+pagehead(Head) -->
+	html(head(Head)).
+
+
+pagebody(Body) -->
+	{ strip_module(Body, M, _),
+	  hook_module(M, body(_,_,_))
+	}, !,
+	M:body(Body).
+pagebody(Body) -->
+	html(body([bgcolor(white)], Body)).
+
+
+hook_module(M, P) :-
+	current_predicate(_, M:P), !.
+hook_module(user, P) :-
+	current_predicate(_, user:P).
+
 
 
 html(Spec) -->
@@ -82,10 +116,6 @@ html(X, M) -->
 
 do_expand(Token, _) -->			% call user hooks
 	expand(Token), !.
-do_expand(Token, _) -->
-	{ atomic(Token)
-	}, !,
-	html_quoted(Token).
 do_expand(Fmt-Args, _) --> !,
 	{ sformat(String, Fmt, Args)
 	},
@@ -103,6 +133,14 @@ do_expand(script(Content), _) --> !,	% general CDATA declared content elements?
 	[ Content
 	],
 	html_end(script).
+do_expand(&(Entity), _) --> !,
+	{ concat_atom([&, Entity, ;], HTML)
+	},
+	[ HTML ].
+do_expand(Token, _) -->
+	{ atomic(Token)
+	}, !,
+	html_quoted(Token).
 do_expand(Term, M) -->
 	{ Term =.. [Env, Contents]
 	}, !,
@@ -263,8 +301,11 @@ post_close(_) -->
 
 %	layout(Tag, PreOpen-PostOpen, PreClose-PostClose)
 %
-%	Define required newlines before and after tags.  Thus table is
+%	Define required newlines before and after tags.  This table is
 %	rather incomplete.
+
+:- multifile
+	layout/3.
 
 layout(table,	   2-1,	1-2).
 layout(blockquote, 2-1,	1-2).
@@ -279,6 +320,9 @@ layout(body,	   1-1,	1-1).
 layout(script,	   1-1,	1-1).
 
 layout(tr,	   1-0,	0-1).
+layout(li,	   1-0,	0-1).
+layout(dt,	   1-0,	-).
+layout(dd,	   0-0,	-).
 layout(title,	   1-0,	0-1).
 
 layout(h1,	   2-0,	0-2).
@@ -294,6 +338,7 @@ layout(base,	   1-1, empty).
 layout(link,	   1-1, empty).
 layout(input,	   0-0, empty).
 layout(frame,	   1-1, empty).
+layout(col,	   0-0, empty).
 
 layout(p,	   2-1, -).		% omited close
 layout(td,	   0-0, -).
