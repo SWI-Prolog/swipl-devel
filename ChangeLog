@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.1.10 (Mar 14, 2003)
+=============================
+
   * ADDED: Separating Prolog engines from threads.
 
   * ADDED: -embed-shared option to plld
