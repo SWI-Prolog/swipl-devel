@@ -1057,8 +1057,6 @@ set_dialect_dtd(dtd *dtd, dtd_dialect dialect)
       dtd_parser p;
 
       dtd->case_sensitive = TRUE;
-      dtd->charclass->class['_'] |= CH_LCNMSTRT;
-/*    dtd->charclass->class[':'] |= CH_LCNMSTRT;	now also for HTML */
       dtd->encoding = ENC_UTF8;
       dtd->space_mode = SP_PRESERVE;
       dtd->shorttag = FALSE;
@@ -2619,6 +2617,24 @@ close_current_element(dtd_parser *p)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+get_attribute_value()
+
+Get the value for an attribute.  Once   I  thought  this was simple, but
+Richard O'Keefe pointed to the complex   handling of white-space in SGML
+attributes. Basically, if the attribute is quoted, we need:
+
+	* If CDATA, map all blank to space characters, then expand
+	  entities
+
+	* If !CDATA expand all entities, canonise white space by
+	  deleting leading and trailing space and squishing multiple
+	  space characters to a single (lower for us) case.
+
+This almost, but not completely matches the XML definition. This however
+is so complex we will ignore it for now.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static const ichar *
 get_attribute_value(dtd_parser *p, const ichar *decl, sgml_attribute *att)
 { ichar tmp[MAXSTRINGLEN];
@@ -2628,20 +2644,44 @@ get_attribute_value(dtd_parser *p, const ichar *decl, sgml_attribute *att)
   const ichar *end;
 
   if ( (end=itake_string(dtd, decl, tmp, sizeof(tmp))) )
-  { ichar *s;
-    int hasent = FALSE;
-    int ero = dtd->charfunc->func[CF_ERO]; /* & */
+  { if ( att->definition->type == AT_CDATA )
+    { ichar *s;
+      int hasent = FALSE;
+      int ero = dtd->charfunc->func[CF_ERO]; /* & */
 
-    for(s=tmp; *s; s++)			/* map all blank to spaces */
-    { if ( HasClass(dtd, *s, CH_BLANK) )
-	*s = ' ';
-      else if ( *s == ero )
-	hasent = TRUE;
-    }
+      for(s=tmp; *s; s++)		/* map all blank to spaces */
+      { if ( HasClass(dtd, *s, CH_BLANK) )
+	  *s = ' ';
+	else if ( *s == ero )
+	  hasent = TRUE;
+      }
 
-    if ( hasent )
-    { expand_entities(p, tmp, cdata, MAXSTRINGLEN);
+      if ( hasent )
+      { expand_entities(p, tmp, cdata, MAXSTRINGLEN);
+	buf = (ichar *)cdata;
+      }
+    } else
+    { ichar *s, *d;
+      
+      expand_entities(p, tmp, cdata, MAXSTRINGLEN);
       buf = (ichar *)cdata;
+
+					/* canonise blanks */
+      for(s=buf; *s && HasClass(dtd, *s, CH_BLANK); s++)
+	;
+      for(d=buf; *s; s++)
+      { if ( dtd->case_sensitive )
+	{ while(*s && !HasClass(dtd, *s, CH_BLANK))
+	    *d++ = *s++;
+	} else
+	{ while(*s && !HasClass(dtd, *s, CH_BLANK))
+	    *d++ = tolower(*s++);
+	}
+	while(*s && HasClass(dtd, *s, CH_BLANK))
+	  s++;
+	if ( *s )
+	  *d++ = ' ';
+      }
     }
   } else
   { const ichar *s;
@@ -2697,8 +2737,6 @@ get_attribute_value(dtd_parser *p, const ichar *decl, sgml_attribute *att)
     case AT_NAMEOF:			/* one of these names */
     case AT_NMTOKEN:			/* name-token */
     case AT_NOTATION:			/* notation-name */
-      if ( !dtd->case_sensitive )
-	istrlower(buf);
       att->value.text = istrdup(buf);	/* TBD: more validation */
       return end;
     case AT_NUTOKEN:			/* number token */
@@ -2707,9 +2745,6 @@ get_attribute_value(dtd_parser *p, const ichar *decl, sgml_attribute *att)
       if ( strlen(buf) > 8 )
 	gripe(ERC_LIMIT, "NUTOKEN length");
 
-      if ( !dtd->case_sensitive )
-	istrlower(buf);
-    
       att->value.text = istrdup(buf);
       return end;
     case AT_ENTITY:			/* entity-name */
@@ -2720,8 +2755,6 @@ get_attribute_value(dtd_parser *p, const ichar *decl, sgml_attribute *att)
     case AT_NUMBERS:			/* number list */
     case AT_NUTOKENS:
     case AT_IDREFS:			/* list of identifier references */
-      if ( !dtd->case_sensitive )
-	istrlower(buf);
       att->value.text = istrdup(buf);	/* TBD: break-up */
       return end;
     case AT_ENTITIES:			/* entity-name list */

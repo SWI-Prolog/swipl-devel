@@ -1,6 +1,11 @@
 VERSION 1.0.12
 ==============
 
+* FIXED: More white-space issues in handling quoted attribute values.
+
+* ADDED: XML NAMECHARS to the default set.  This seems to match HTML-4
+  better and will only in exceptional cases harm normal SGML processing.
+
 * ADDED/MODIFIED: Attributes not in the source, but with a default or
   fixed value declared in the DTD are now included in the output.  The
   old behaviour can be used using the defaults(false) option to

@@ -13,22 +13,35 @@
 #include "dtd.h"
 #include <stdlib.h>
 
+static void
+char_range(dtd_charclass *map, int from, int to, int msk)
+{ unsigned char *ca;
+  int i;
+
+  for(i=from, ca=map->class+i; i++<=to; )
+    *ca++ |= msk;
+}
+
+
 dtd_charclass *
 new_charclass()
 { dtd_charclass *map = sgml_calloc(1, sizeof(*map));
   unsigned char *ca = map->class;
-  int i;
 
-  for(i='a' ; i<='z'; i++)
-    ca[i] |= CH_LCLETTER;
-  for(i='A' ; i<='Z'; i++)
-    ca[i] |= CH_UCLETTER;
-  for(i='0' ; i<='9'; i++)
-    ca[i] |= CH_DIGIT;
+  char_range(map, 'a', 'z', CH_LCLETTER);
+  char_range(map, 'A', 'Z', CH_LCLETTER);
+  char_range(map, '0', '9', CH_DIGIT);
   
-  ca['.'] |= CH_LCNMSTRT;
-  ca['-'] |= CH_LCNMSTRT;
-  ca[':'] |= CH_LCNMSTRT;		/* HTML and XML */
+  ca['.'] |= CH_CNM;
+  ca['-'] |= CH_CNM;
+  ca[183] |= CH_CNM;			/* XML */
+  ca[':'] |= CH_CNMSTRT;		/* HTML and XML */
+  ca['_'] |= CH_CNMSTRT;		/* HTML and XML */
+
+  char_range(map, 192, 214, CH_CNMSTRT); /* XML ISO-LATIN-1 accented chars */
+  char_range(map, 216, 246, CH_CNMSTRT);
+  char_range(map, 248, 305, CH_CNMSTRT);
+  char_range(map, 248, 255, CH_CNMSTRT);
 
   ca['\t'] |= CH_WHITE;
   ca[' ']  |= CH_WHITE;
