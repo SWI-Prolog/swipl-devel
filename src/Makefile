@@ -15,7 +15,7 @@
 #
 ################################################################
 
-PLVERSION=2.6.0
+PLVERSION=2.7.0
 
 PL=pl
 prefix=/usr/local
@@ -41,12 +41,12 @@ INSTALL=/usr/gnu/bin/install -c
 INSTALL_PROGRAM=${INSTALL}
 INSTALL_DATA=${INSTALL} -m 644
 
-COFLAGS=-g
+COFLAGS=-O2
 CWFLAGS=-Wall
 CIFLAGS=
 CMFLAGS=-funsigned-char
 CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS)
-LDFLAGS=$(COFLAGS)
+LDFLAGS=
 
 PLFOREIGN=
 
@@ -80,7 +80,7 @@ PLINIT=	$(PB)/init.pl
 
 SRC=	$(OBJ:.o=.c) $(DEPOBJ:.o=.c) $(EXT:.o=.c) pl-index.c pl-alloc.c
 HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h pl-itf.h pl-main.h \
-	pl-os.h pl-save.h
+	pl-os.h pl-save.h pl-data.h
 
 all:	banner headers system startup index runtime pl-bite chpl swipl swiplbin
 
@@ -240,7 +240,9 @@ iinclude:
 			$(INSTALL_DATA) $$f $(PLBASE)/include; \
 		    fi; \
 		done
-		$(INSTALL_DATA) ../include/SWI-Prolog.h $(prefix)/include
+		if [ -d $(prefix)/include -a -w $(prefix)/include ]; then \
+		    $(INSTALL_DATA) ../include/SWI-Prolog.h $(prefix)/include; \
+		fi
 
 iman:
 		$(SED) 's/PL/$(PL)/' $(srcdir)/pl.1 > $(PLBASE)/man/$(PL).$(mansec)
