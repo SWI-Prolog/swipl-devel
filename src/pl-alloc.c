@@ -1172,7 +1172,7 @@ with the GNU C-library lead to undefined symbols.  Therefore we define
 them in SWI-Prolog so that we can also give consistent warnings.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifndef xmalloc				/* for use with dmalloc */
+#if !defined(xmalloc) && defined(O_XMALLOC)
 
 void *
 xmalloc(size_t size)

@@ -365,7 +365,7 @@ atom_generator(const char *prefix, int state)
 { char *s = PL_atom_generator(prefix, state);
   
   if ( s )
-    return strcpy(xmalloc(1 + strlen(s)), s);
+    return strcpy(PL_malloc(1 + strlen(s)), s);
 
   return s;
 }

@@ -1011,7 +1011,7 @@ PL_get_list_nchars(term_t l,
     r = baseBuffer(b, char);
 
     if ( flags & BUF_MALLOC )
-    { *s = xmalloc(len+1);
+    { *s = PL_malloc(len+1);
       memcpy(*s, r, len+1);
       unfindBuffer(flags);
     } else
