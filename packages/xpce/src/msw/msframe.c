@@ -22,7 +22,10 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#define UNICODE 1
+#define _UNICODE 1
 #include "include.h"
+#include <tchar.h>
 
 static int WINAPI frame_wnd_proc(HWND win, UINT msg, UINT wP, LONG lP);
 static status     keyboard_event_frame(FrameObj fr, Any id,
@@ -35,16 +38,18 @@ static void       paint_icon(FrameObj fr);
 
 static FrameObj current_frame;		/* hack for timing problem */
 
-static char *
+static TCHAR *
 WinFrameClass()
-{ static Name winclassname = NULL;
-  static WNDCLASS wndClass;
+{ static WNDCLASS wndClass;
+  static TCHAR *cname = NULL;
+  Name winclassname = NULL;
+  
+  if ( !cname )
+  { TCHAR buf[50];
 
-  if ( !winclassname )
-  { char buf[50];
-
-    sprintf(buf, "PceFrame%ld", (unsigned long)PceHInstance);
-    winclassname = CtoName(buf);
+    wsprintf(buf, _T("PceFrame%ld"), (unsigned long)PceHInstance);
+    winclassname = WCToName(buf, _tcslen(buf));
+    cname = nameToWC(winclassname, NULL);
 
     wndClass.style		= 0;
     wndClass.lpfnWndProc	= (LPVOID) frame_wnd_proc;
@@ -55,25 +60,27 @@ WinFrameClass()
     wndClass.hCursor		= NULL;
     wndClass.hbrBackground	= GetStockObject(WHITE_BRUSH);
     wndClass.lpszMenuName	= NULL;
-    wndClass.lpszClassName	= strName(winclassname);
+    wndClass.lpszClassName	= cname;
 
     RegisterClass(&wndClass);
   }
 
-  return strName(winclassname);
+  return cname;
 }
 
 
-static char *
+static TCHAR *
 WinPopupFrameClass()
-{ static Name winclassname = NULL;
+{ static TCHAR *cname = NULL;
   static WNDCLASS wndClass;
+  Name winclassname;
 
-  if ( !winclassname )
-  { char buf[50];
+  if ( !cname )
+  { TCHAR buf[50];
 
-    sprintf(buf, "PcePopupFrame%ld", (unsigned long)PceHInstance);
-    winclassname = CtoName(buf);
+    wsprintf(buf, _T("PcePopupFrame%ld"), (unsigned long)PceHInstance);
+    winclassname = WCToName(buf, _tcslen(buf));
+    cname = nameToWC(winclassname, NULL);
 
     wndClass.style		= /*CS_HREDRAW|CS_VREDRAW|*/CS_SAVEBITS;
     wndClass.lpfnWndProc	= (LPVOID) frame_wnd_proc;
@@ -84,12 +91,12 @@ WinPopupFrameClass()
     wndClass.hCursor		= LoadCursor(NULL, IDC_ARROW);
     wndClass.hbrBackground	= GetStockObject(WHITE_BRUSH);
     wndClass.lpszMenuName	= NULL;
-    wndClass.lpszClassName	= strName(winclassname);
+    wndClass.lpszClassName	= cname;
 
     RegisterClass(&wndClass);
   }
 
-  return strName(winclassname);
+  return cname;
 }
 
 
@@ -145,7 +152,7 @@ do_frame_wnd_proc(FrameObj fr,
 	{ Cell cell;
 
 	  DEBUG(NAME_frame, Cprintf("Minimized %s\n", pp(fr)));
-	  SetWindowText(hwnd, strName(getIconLabelFrame(fr)));
+	  SetWindowText(hwnd, nameToWC(getIconLabelFrame(fr), NULL));
 	  assign(fr, status, NAME_iconic);
 	  for_cell(cell, fr->members)
 	    DisplayedGraphical(cell->value, OFF);
@@ -177,7 +184,7 @@ do_frame_wnd_proc(FrameObj fr,
 	  { Cell cell;
 
 	    send(fr, NAME_resize, EAV);
-	    SetWindowText(hwnd, strName(fr->label));
+	    SetWindowText(hwnd, nameToWC(fr->label, NULL));
 	    assign(fr, status, wParam == SIZE_MAXIMIZED ? NAME_fullScreen
 		   					: NAME_window);
 	    for_cell(cell, fr->members)
@@ -691,7 +698,7 @@ ws_create_frame(FrameObj fr)
   ref = CreateWindowEx(exstyle,
 		       fr->kind == NAME_popup ? WinPopupFrameClass()
 					      : WinFrameClass(),
-		       strName(fr->label),
+		       nameToWC(fr->label, NULL),
 		       style,
 		       rect.left, rect.top, w, h,
 		       owner,
@@ -1220,7 +1227,7 @@ ws_set_label_frame(FrameObj fr)
 { HWND hwnd = getHwndFrame(fr);
 
   if ( hwnd )
-    SetWindowText(hwnd, strName(fr->label));
+    SetWindowText(hwnd, nameToWC(fr->label, NULL));
 }
 
 

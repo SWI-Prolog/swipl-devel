@@ -1,7 +1,7 @@
 			   XPCE ChangeLog
 			   ==============
 
-* ADDED: X11: Support UNICODE in window titles.
+* ADDED: Support UNICODE in window titles.
 
 * ADDED: Win32: Support for UNICODE in cut/paste.
 
