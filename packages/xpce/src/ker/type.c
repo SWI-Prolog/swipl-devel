@@ -1614,6 +1614,8 @@ pceIncludesHostDataType(PceType t, PceClass cl)
   { case TV_ALIAS:
       t = t->context;
       goto l1;
+    case TV_UNCHECKED:
+      succeed;
     case TV_CLASS:
       realiseClassType(t);
       if ( isAClass(cl, t->context) )
