@@ -328,13 +328,13 @@ colourise_dcg_goal(Goal, TB, Pos) :-
 
 colourise_goal(Goal, TB, Pos) :-
 	nonvar(Goal),
-	goal_colours(Goal, ClassSpec-ArgSpecs), !,
+	goal_colours(Goal, ClassSpec-ArgSpecs), !, % specified
 	functor_position(Pos, FPos, ArgPos),
 	(   ClassSpec == classify
 	->  goal_classification(TB, Goal, Class)
 	;   Class = ClassSpec
 	),
-	colour_item(goal(Class), TB, FPos),
+	colour_item(goal(Class, Goal), TB, FPos),
 	specified_items(ArgSpecs, Goal, TB, ArgPos).
 colourise_goal(Goal, TB, Pos) :-
 	goal_classification(TB, Goal, Class),
@@ -342,7 +342,7 @@ colourise_goal(Goal, TB, Pos) :-
 	->  FPos = FF-FT
 	;   FPos = Pos
 	),
-	colour_item(goal(Class), TB, FPos),
+	colour_item(goal(Class, Goal), TB, FPos),
 	colourise_term_args(Goal, TB, Pos).
 
 %	colourise_files(+Arg, +TB, +Pos)
@@ -439,13 +439,20 @@ colour_item(_, _, _).
 colour_item(Class, TB, F, T) :-
 	colour_item(Class, TB, F-T).
 
+
+		 /*******************************
+		 *	POPUP AND MESSAGES	*
+		 *******************************/
+
 :- pce_global(@prolog_mode_file_popup,
 	      make_prolog_mode_file_popup).
 :- pce_global(@prolog_mode_class_popup,
 	      make_prolog_mode_class_popup).
+:- pce_global(@prolog_mode_goal_popup,
+	      make_prolog_mode_goal_popup).
 
 make_prolog_mode_file_popup(G) :-
-	new(G, popup(file_options)),
+	new(G, popup(file_actions)),
 	send_list(G, append,
 		  [ menu_item(open,
 			      message(@emacs, open_file, @arg1?message)),
@@ -454,7 +461,7 @@ make_prolog_mode_file_popup(G) :-
 		  ]).
 
 make_prolog_mode_class_popup(G) :-
-	new(G, popup(file_options)),
+	new(G, popup(class_actions)),
 	new(Class, @arg1?context),
 	M = @emacs_mode,
 	send_list(G, append,
@@ -488,12 +495,67 @@ edit_class(Mode, ClassName:name, NewWindow:[bool]) :->
 	;   send(Mode, report, error, 'Class %s doesn''t exist', ClassName)
 	).
 
+%	make_prolog_mode_goal_popup(-Popup)
+%	
+%	Create the popup and define actions for handling the right-menu
+%	on goals.
+
+make_prolog_mode_goal_popup(G) :-
+	new(G, popup(goal_actions)),
+	new(Goal, @arg1?context),
+	M = @emacs_mode,
+	new(HasSource, message(M, goal_has_source, Goal)),
+	send_list(G, append,
+		  [ menu_item(edit,
+			      message(M, edit_goal, Goal),
+			      condition := HasSource),
+		    menu_item(edit_other_window,
+			      message(M, edit_goal, Goal, @on),
+			      condition := HasSource),
+		    gap,
+		    menu_item(documentation,
+			      message(M, goal_documentation, Goal))
+		  ]).
+
+
+goal_has_source(M, Goal:emacs_prolog_mode_goal) :->
+	"Test if there is source available"::
+	get(M, text_buffer, TB),
+	get(Goal, name, Name),
+	get(Goal, arity, Arity),
+	functor(Head, Name, Arity),
+	(   xref_defined(TB, Head, local(_Line))
+	->  true
+	;   get(prolog_predicate(Name/Arity), source, _)
+	).
+
+edit_goal(M, Goal:emacs_prolog_mode_goal, NewWindow:[bool]) :->
+	"Open Prolog predicate [in new window]"::
+	get(Goal, name, Name),
+	get(Goal, arity, Arity),
+	send(M, find_definition, prolog_predicate(Name/Arity), NewWindow).
+
+goal_documentation(_, Goal:emacs_prolog_mode_goal) :->
+	get(Goal, name, Name),
+	get(Goal, arity, Arity),
+	help(Name/Arity).
+
+
+%	message(+Class, +Fragment)
+%	
+%	Used to associate messages or popups to the new fragment. See
+%	class emacs_colour_fragment for details.
+
 message(file(Path), F) :- !,
-	send(F, message, Path),
-	send(F, attribute, popup, @prolog_mode_file_popup).
+	send(F, message, Path),		% popup-message
+	send(F, popup, @prolog_mode_file_popup).
 message(class(_, Class), F) :- !,
 	send(F, context, Class),
-	send(F, attribute, popup, @prolog_mode_class_popup).
+	send(F, popup, @prolog_mode_class_popup).
+message(goal(Class, Goal), F) :- !,
+	functor(Goal, Name, Arity),
+	send(F, context, emacs_prolog_mode_goal(Class, Name, Arity)),
+	send(F, popup, @prolog_mode_goal_popup).
 message(_, _).
 
 
@@ -601,14 +663,14 @@ head_colours(M:_,		    built_in-[module(M),head]).
 %
 %	Define the style used for the given pattern.
 
-style(goal(built_in),	  style(colour	   := blue)).
-style(goal(imported),	  style(colour	   := blue)).
-style(goal(autoload),	  style(colour	   := blue)).
-style(goal(global),	  style(colour	   := navy_blue)).
-style(goal(undefined),	  style(colour	   := red)).
-style(goal(dynamic),	  style(colour	   := magenta)).
-style(goal(multifile),	  style(colour	   := navy_blue)).
-style(goal(expanded),	  style(colour	   := blue,
+style(goal(built_in,_),	  style(colour	   := blue)).
+style(goal(imported,_),	  style(colour	   := blue)).
+style(goal(autoload,_),	  style(colour	   := blue)).
+style(goal(global,_),	  style(colour	   := navy_blue)).
+style(goal(undefined,_),  style(colour	   := red)).
+style(goal(dynamic,_),	  style(colour	   := magenta)).
+style(goal(multifile,_),  style(colour	   := navy_blue)).
+style(goal(expanded,_),	  style(colour	   := blue,
 				underline  := @on)).
 
 style(head(exported),	  style(bold	   := @on, colour := blue)).
@@ -849,3 +911,19 @@ specified_argspec([P0|PT], Spec, N, T, TB) :-
 
 :- emacs_end_mode.
 
+
+:- pce_begin_class(emacs_prolog_mode_goal(classification, name, arity),
+		   object, "Keep info on goals").
+
+variable(classification,	name,	get, "Xref classification").
+variable(name,			name,	get, "Name of the predicate").
+variable(arity,			int,	get, "Arity of the predicate").
+
+initialise(G, Class:name, Name:name, Arity:int) :->
+	"Create from class, name and arity"::
+	send_super(G, initialise),
+	send(G, slot, classification, Class),
+	send(G, slot, name, Name),
+	send(G, slot, arity, Arity).
+
+:- pce_end_class(emacs_prolog_mode_goal).

@@ -359,14 +359,19 @@ default(M, For:type, Default:unchecked) :<-
 	).
 
 
-find_definition(M, For:prolog_predicate) :->
-	"Find definition of predicate"::
+find_definition(M, For:prolog_predicate, NewWindow:[bool]) :->
+	"Find definition of predicate [in new window]"::
 	get(M, text_buffer, TB),
 	get(For, head, @off, Head),
 	(   xref_defined(TB, Head, local(Line))
-	->  send(M, goto_line, Line)
+	->  (   NewWindow == @on
+	    ->	get(M, text_buffer, TB),
+		new(W2, emacs_frame(TB)),
+		send(W2, goto_line, Line)
+	    ;	send(M, goto_line, Line)
+	    )
 	;   get(For, source, SourceLocation)
-	->  send(@emacs, goto_source_location, SourceLocation)
+	->  send(@emacs, goto_source_location, SourceLocation, NewWindow)
 	;   send(M, report, warning, 'Cannot find source')
 	).
 

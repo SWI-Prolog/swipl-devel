@@ -106,14 +106,8 @@ input_focus(F, Val:bool) :->
 buffer(F, B:emacs_buffer) :->
 	"Switch to the given emacs buffer"::
 	get(F, editor, E),
-	send(E, text_buffer, B),
-	get(B, mode, ModeName),
-	send(F?view, mode, ModeName),
 	send(F, pool, B?pool),
-	send(B, update_label),
-	send(F, report, status, ''),
-	get(E, mode, Mode),
-	send(Mode, new_buffer).
+	send(E, text_buffer, B).
 
 
 view(F, View:emacs_view) :<-
@@ -838,6 +832,31 @@ catch_all(E, Selector:name, Args:unchecked ...) :->
         send(@pce, last_error, @nil),
 	Msg =.. [Selector|Args],
         send(Mode, Msg).
+
+
+text_buffer(E, B:emacs_buffer) :->
+	"Switch to indicated buffer"::
+	get(E, text_buffer, Last),
+	(   B == Last
+	->  true
+	;   send_super(E, text_buffer, B),
+	    get(B, mode, ModeName),
+	    send(E, mode, ModeName),
+	    send(B, update_label),
+	    send(E, report, status, ''),
+	    get(E, mode, Mode),
+	    send(Mode, new_buffer),
+	    (	send(Last, instance_of, emacs_buffer)
+	    ->  send(E, delete_hypers, last_buffer),
+		new(_, hyper(E, Last, last_buffer, last_editor))
+	    ;	true
+	    )
+	).
+
+
+last_buffer(E, TB:text_buffer) :<-
+	"Text-buffer we came from (for default)"::
+	get(E, hypered, last_buffer, TB).
 
 
 		 /*******************************

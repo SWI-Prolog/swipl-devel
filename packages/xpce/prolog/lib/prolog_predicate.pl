@@ -109,20 +109,40 @@ head(P, Qualify:[bool], Head:prolog) :<-
 	;   Head = user:Head0
 	).
 
-%	TODO: Deal with multiple solutions
+%	<-source:
+%	
+%	Get the source-location for this predicate. If not available and
+%	the autoload argument is not @off, try to autoload the predicate
+%	and try again.
+%	
+%	TBD: Deal with multiple solutions
 
-source(P, Loc:source_location) :<-
+source(P, Autoload:[bool], Loc:source_location) :<-
 	"Return source-location from Prolog DB"::
 	get(P, head, Head0),
 	(   Head0 = _:_
 	->  Head = Head0
 	;   Head = _:Head0
 	),
-	predicate_property(Head, file(File)),
+	(   predicate_property(Head, file(File))
+	->  true
+	;   Autoload \== @off,
+	    send(P, autoload),
+	    predicate_property(Head, file(File))
+	),
 	(   predicate_property(Head, line_count(Line))
 	->  new(Loc, source_location(File, Line))
 	;   new(Loc, source_location(File))
 	).
 	
+
+autoload(P, Module:[name]) :->
+	"Autoload the definition"::
+	get(P, head, @off, Term),
+	(   Module == @default
+	->  '$define_predicate'(Term)
+	;   '$define_predicate'(Module:Term)
+	).
+
 :- pce_end_class(prolog_predicate).
 	  

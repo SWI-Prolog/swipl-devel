@@ -87,9 +87,15 @@ make_item(_Mode, Label, Default, Type, _History, Item) :-
 	new(Item, emacs_command_item(Label, Selection)),
 	send(Item, type, Type).
 					% emacs buffer
-make_item(_Mode, Label, Default, Type, _History, Item) :-
+make_item(Mode, Label, Default, Type, _History, Item) :-
 	send(Type, includes, emacs_buffer), !,
-	default(Default, '', Selection),
+	(   Default == @default
+	->  (   get(Mode, last_buffer, LB)
+	    ->  get(LB, name, Selection)
+	    ;	Selection = ''
+	    )
+	;   Selection = Default
+	),
 	new(Item, emacs_complete_item(Label, Selection)),
 	send(Item, type, Type),
 	get(@emacs, buffers, Buffers),

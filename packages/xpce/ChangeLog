@@ -32,6 +32,7 @@
 	- Fix Control-J (new_line_and_indent)
 	- Make prompters return immediately if typed value is unique
 	- `editor->fill_paragraph' justifies if argument is specified
+	- Make Control-X B (switch_to_buffer) use last buffer as default. 
 
 
 VERSION 6.0.1, distributed with SWI-Prolog 5.0.1
