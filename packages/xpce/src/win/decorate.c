@@ -52,8 +52,10 @@ unlinkWindowDecorator(WindowDecorator dw)
 { PceWindow sw;
 
   if ( notNil((sw = dw->window)) )
-  { assign(dw, window, NIL);
+  { addCodeReference(sw);
+    assign(dw, window, NIL);
     freeObject(sw);
+    delCodeReference(sw);
   }
 
   return unlinkWindow((PceWindow) dw);

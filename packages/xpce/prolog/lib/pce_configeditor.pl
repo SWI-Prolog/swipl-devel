@@ -46,7 +46,7 @@
 :- pce_autoload(file_item,		library(file_item)).
 :- pce_autoload(colour_item,		library(pce_colour_item)).
 :- pce_autoload(colour_palette_item,	library(pce_colour_item)).
-:- pce_autoload(directory_item, 	library(directory_item)).
+:- pce_autoload(directory_item, 	library(file_item)).
 :- pce_autoload(set_item,		library(pce_set_item)).
 
 		 /*******************************

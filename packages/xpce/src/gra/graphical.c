@@ -1570,7 +1570,8 @@ assignDialogItem(Graphical gr, Name slot, Any value)
   DEBUG(NAME_left, Cprintf("assignDialogItem(%s, %s, %s)\n",
 			   pp(gr), pp(slot), pp(value)));
 
-  if ( (var = getInstanceVariableClass(classOfObject(gr), slot)) )
+  if ( (var = getInstanceVariableClass(classOfObject(gr), slot)) &&
+       var->context == ClassDialogItem )
     return sendVariable(var, gr, value);
 
   if ( isNil(value) )

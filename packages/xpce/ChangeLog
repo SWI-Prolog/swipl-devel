@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: A few problems in the configuration-editor.
+
 * ADDED: @prolog_ide->thread_monitor to monitor active threads.
 
 * ADDED: `timer->service' to execute timers in `service mode'.

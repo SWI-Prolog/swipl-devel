@@ -887,7 +887,10 @@ getReadLineFile(FileObj f)
   { int c = getc(f->fd);
 
     if ( c == EOF )
+    { if ( len == 0 )
+	fail;
       break;
+    }
     if ( len >= allocated )
     { allocated *= 2;
 

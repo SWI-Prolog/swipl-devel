@@ -277,10 +277,13 @@ save_config(Spec) :-
 	;   true
 	),
 	save_file(Key, File),
-	catch(save_config(File, M), E,
-	      print_message(warning, E)).
+	save_config(File, M).
 
 save_config(File, M) :-
+	catch(do_save_config(File, M), E,
+	      print_message(warning, E)).
+	
+do_save_config(File, M) :-
 	open(File, write, Fd),
 	save_config_header(Fd, M),
 	save_config_body(Fd, M),
