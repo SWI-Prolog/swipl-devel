@@ -57,7 +57,7 @@ static recursive_mutex_t mutex = RECURSIVE_MUTEX_INIT;
 	      pthread_mutex_unlock(&(mutex.lock)); \
 	    } \
 	  } else \
-	    assert(0);
+	    assert(0); \
 	}
 #endif
 #else /*_REENTRANT*/
