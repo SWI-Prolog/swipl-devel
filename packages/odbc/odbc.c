@@ -236,7 +236,7 @@ static  HENV henv;			/* environment handle (ODBC) */
 /* Prototypes */
 static int pl_put_row(term_t, context *);
 static int pl_put_column(context *c, int nth, term_t col);
-static SWORD CvtSqlToCType(SQLSMALLINT, SQLSMALLINT);
+static SWORD CvtSqlToCType(context *ctxt, SQLSMALLINT, SQLSMALLINT);
 static void free_context(context *ctx);
 static void close_context(context *ctx);
 static foreign_t odbc_set_connection(term_t con, term_t option);
@@ -1673,7 +1673,7 @@ prepare_result(context *ctxt)
       }
     }
 	
-    ptr_result->cTypeID = CvtSqlToCType(dataType, ptr_result->plTypeID);
+    ptr_result->cTypeID = CvtSqlToCType(ctxt, dataType, ptr_result->plTypeID);
     if (ptr_result->cTypeID == CVNERR)
     { free_context(ctxt);
       return PL_warning("odbc_query/2: column type not managed");
@@ -2261,7 +2261,7 @@ declare_parameters(context *ctxt, term_t parms)
 
     params->sqlTypeID = sqlType;
     params->plTypeID  = plType;
-    params->cTypeID   = CvtSqlToCType(params->sqlTypeID, plType);
+    params->cTypeID   = CvtSqlToCType(ctxt, params->sqlTypeID, plType);
     params->ptr_value = (SQLPOINTER)params->buf;
 
     switch(params->cTypeID)
@@ -2759,7 +2759,7 @@ day this should become SQL_C_WCHAR
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static SWORD
-CvtSqlToCType(SQLSMALLINT fSqlType, SQLSMALLINT plTypeID)
+CvtSqlToCType(context *ctxt, SQLSMALLINT fSqlType, SQLSMALLINT plTypeID)
 { switch(plTypeID)
   { case SQL_PL_DEFAULT:
       switch (fSqlType)
@@ -2795,8 +2795,9 @@ CvtSqlToCType(SQLSMALLINT fSqlType, SQLSMALLINT plTypeID)
 	case SQL_TIMESTAMP:
 	  return SQL_C_TIMESTAMP;
 	default:
-	  PL_warning("fSqlType %d not supported", fSqlType);
-	  return CVNERR;  
+	  if ( !true(ctxt, CTX_SILENT) )
+	    Sdprintf("Mapped unknown fSqlType %d to atom\n", fSqlType);
+	  return SQL_C_CHAR;
       }
     case SQL_PL_ATOM:
     case SQL_PL_STRING:
