@@ -166,9 +166,48 @@ S__removebuf(IOSTREAM *s)
 }
 
 
+#ifdef DEBUG_IO_LOCKS
+static char *
+Sname(IOSTREAM *s)
+{ if ( s == Serror ) return "error";
+  if ( s == Sinput ) return "input";
+  if ( s == Soutput ) return "output";
+  return "?";
+}
+
+
+#include <execinfo.h>
+#include <string.h>
+
+static void
+print_trace(void)
+{ void *array[3];
+  size_t size;
+  char **strings;
+  size_t i;
+     
+  size = backtrace(array, sizeof(array)/sizeof(void *));
+  strings = backtrace_symbols(array, size);
+     
+  printf(" Stack:");
+  for(i = 1; i < size; i++)
+  { printf(" [%d] %s", i, strings[i]);
+  }
+  printf("\n");
+       
+  free(strings);
+}
+#endif /*DEBUG_IO_LOCKS*/
+
+
 int
 Slock(IOSTREAM *s)
 { SLOCK(s);
+
+#ifdef DEBUG_IO_LOCKS
+  printf("  Lock: %d: %s: %d locks", PL_thread_self(), Sname(s), s->locks+1);
+  print_trace();
+#endif
 
   if ( !s->locks++ )
   { if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
@@ -196,6 +235,11 @@ StryLock(IOSTREAM *s)
 int
 Sunlock(IOSTREAM *s)
 { int rval = 0;
+
+#ifdef DEBUG_IO_LOCKS
+  printf("Unlock: %d: %s: %d locks", PL_thread_self(), Sname(s), s->locks-1);
+  print_trace();
+#endif
 
   if ( s->locks )
   { if ( --s->locks == 0 )

@@ -338,15 +338,17 @@ initIO()
 
 static inline IOSTREAM *
 getStream(IOSTREAM *s)
-{ if ( s )
-    Slock(s);
+{ if ( s && s->magic == SIO_MAGIC )	/* TBD: ensure visibility? */
+  { Slock(s);
+    return s;
+  }
 
-  return s;
+  return NULL;
 }
 
 static inline IOSTREAM *
 tryGetStream(IOSTREAM *s)
-{ if ( s && StryLock(s) == 0 )
+{ if ( s && s->magic == SIO_MAGIC && StryLock(s) == 0 )
     return s;
 
   return NULL;
@@ -354,7 +356,8 @@ tryGetStream(IOSTREAM *s)
 
 static inline void
 releaseStream(IOSTREAM *s)
-{ Sunlock(s);
+{ if ( s->magic == SIO_MAGIC )
+    Sunlock(s);
 }
 
 #else /*O_PLMT*/
@@ -393,13 +396,9 @@ get_stream_handle__LD(term_t t, IOSTREAM **s, int flags ARG_LD)
 	goto noent;
       }
 
-      LOCK();
-      if ( ((IOSTREAM *)p)->magic == SIO_MAGIC )
-      { *s = getStream(p);
-        UNLOCK();
-        return TRUE;
-      }
-      UNLOCK();
+      if ( (*s = getStream(p)) )
+	return TRUE;
+
       goto noent;
     }
   } else if ( PL_get_atom(t, &alias) )
@@ -415,17 +414,19 @@ get_stream_handle__LD(term_t t, IOSTREAM **s, int flags ARG_LD)
       { stream = LD->IO.streams[n];
       } else
 	stream = symb->value;
+	
+      if ( !(flags & SH_UNLOCKED) )
+	UNLOCK();
       
       if ( stream )
-      { assert(stream->magic == SIO_MAGIC);
-	if ( (flags & SH_UNLOCKED) )
-	{ *s = stream;
+      { if ( (flags & SH_UNLOCKED) )
+	{ if ( stream->magic == SIO_MAGIC )
+	  { *s = stream;
+	    return TRUE;
+	  }
+	} else if ( (*s = getStream(stream)) )
 	  return TRUE;
-	} else
-	{ *s = getStream(stream);
-	  UNLOCK();
-	  return TRUE;
-	}
+	goto noent;
       }
     }
     if ( !(flags & SH_UNLOCKED) )
@@ -1169,7 +1170,8 @@ toldString()
   { Sputc(EOS, s);
     closeStream(s);
     popOutputContext();
-  }
+  } else
+    releaseStream(s);
 
   succeed;
 }
