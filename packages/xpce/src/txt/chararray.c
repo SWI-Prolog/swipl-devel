@@ -613,6 +613,38 @@ getBase64DecodeCharArray(CharArray in)
 }
 
 
+		 /*******************************
+		 *	      AS-FILE		*
+		 *******************************/
+
+static CharArray
+getReadAsFileCharArray(CharArray n, Int from, Int size)
+{ int f = valInt(from);
+  int s = valInt(size);
+
+  if ( f < 0 || s < 0 || f > n->data.size )
+    fail;
+
+  if ( f == 0 && s >= n->data.size )
+    answer(n);
+  else
+  { string str;
+
+    if ( f+s > n->data.size )
+      s = n->data.size - f;
+
+    str_cphdr(&str, &n->data);
+    str.size = s;
+    if ( isstr8(&n->data) )
+      str.s_text8 = &n->data.s_text8[f];
+    else
+      str.s_text16 = &n->data.s_text16[f];
+    
+    answer((CharArray)StringToString(&str));
+  }
+}
+
+
 		/********************************
 		*          READING GETS		*
 		********************************/
@@ -812,6 +844,8 @@ static char *T_gsub[] =
         { "start=int", "end=[int]" };
 static char *T_cmpcase[] =
         { "text=char_array", "ignore_case=[bool]" };
+static char *T_readAsFile[] =
+        { "from=int", "size=int" };
 
 /* Instance Variables */
 
@@ -895,7 +929,11 @@ static getdecl get_charArray[] =
   GM(NAME_base64Encode, 0, "char_array", NULL, getBase64EncodeCharArray,
      NAME_mime, "Perform base-64 encoding on the argument"),
   GM(NAME_base64Decode, 0, "char_array", NULL, getBase64DecodeCharArray,
-     NAME_mime, "Perform base-64 decoding on the argument")
+     NAME_mime, "Perform base-64 decoding on the argument"),
+  GM(NAME_readAsFile, 2, "char_array", T_readAsFile, getReadAsFileCharArray,
+     NAME_stream, "Read data from object using pce_open/3"),
+  GM(NAME_sizeAsFile, 0, "characters=int", NULL, getSizeCharArray,
+     NAME_stream, "Support pce_open/3")
 };
 
 /* Resources */

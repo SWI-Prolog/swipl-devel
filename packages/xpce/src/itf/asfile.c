@@ -87,7 +87,7 @@ pceOpen(Any obj, int flags)
     return -1;
   }
 
-  if ( flags & (PCE_WRONLY|PCE_RDWR) )
+  if ( flags & PCE_WRONLY )
   { if ( !hasSendMethodObject(obj, NAME_writeAsFile) )
     { errno = EACCES;
       return -1;
@@ -99,6 +99,12 @@ pceOpen(Any obj, int flags)
       { errno = EACCES;
 	return -1;
       }
+    }
+  }
+  if ( flags & PCE_RDONLY )
+  { if ( !hasGetMethodObject(obj, NAME_readAsFile) )
+    { errno = EACCES;
+      return -1;
     }
   }
 

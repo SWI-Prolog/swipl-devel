@@ -408,6 +408,19 @@ recordSeparatorStream(Stream s, Any re)
 
 
 		 /*******************************
+		 *	      AS FILE		*
+		 *******************************/
+
+static status
+writeAsFileStream(Stream s, Int where, CharArray txt)
+{ if ( notDefault(where) )
+    return errorPce(s, NAME_cannotSeekNonFile);
+
+  return appendStream(s, txt);
+}
+
+
+		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/
 
@@ -416,7 +429,10 @@ recordSeparatorStream(Stream s, Any re)
 static char *T_format[] =
         { "format=char_array", "argument=any ..." };
 static char *T_initialise[] =
-        { "rfd=[int]", "wfd=[int]", "input_message=[code]", "record_separator=[regex|int]" };
+        { "rfd=[int]", "wfd=[int]",
+	  "input_message=[code]", "record_separator=[regex|int]" };
+static char *T_writeAsFile[] =
+        { "at=[int]", "text=char_array" };
 
 /* Instance Variables */
 
@@ -467,7 +483,9 @@ static senddecl send_stream[] =
   SM(NAME_format, 2, T_format, formatStream,
      NAME_output, "Format arguments and send to stream"),
   SM(NAME_newline, 0, NULL, newlineStream,
-     NAME_output, "Send a newline to the stream")
+     NAME_output, "Send a newline to the stream"),
+  SM(NAME_writeAsFile, 2, T_writeAsFile, writeAsFileStream,
+     NAME_stream, "Allow pce_open(Socket, append, Stream)")
 };
 
 /* Get Methods */
