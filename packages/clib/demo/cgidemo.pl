@@ -9,7 +9,7 @@
 :- use_module(library(cgi)).
 
 main :-
-	get_form(Arguments),
+	cgi_get_form(Arguments),
 	format('Content-type: text/html~n~n', []),
 	format('<HTML>~n', []),
 	format('<HEAD>~n', []),
