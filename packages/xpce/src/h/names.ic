@@ -1948,6 +1948,7 @@
   BUILTIN_NAME("show_combo_box")
   BUILTIN_NAME("show_console")
   BUILTIN_NAME("show_current")
+  BUILTIN_NAME("show_focus_border")
   BUILTIN_NAME("show_label")
   BUILTIN_NAME("show_matching_bracket")
   BUILTIN_NAME("show_open_bracket")

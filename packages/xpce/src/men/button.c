@@ -18,6 +18,7 @@ initialiseButton(Button b, Name name, Message msg, Name acc)
 { createDialogItem(b, name);
 
   assign(b, default_button, OFF);
+  assign(b, show_focus_border, ON);
 
   assign(b, message, msg);
   if ( notDefault(acc) )
@@ -83,6 +84,15 @@ RedrawMenuBarButton(Button b, Area a)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Draw face of the button. This is  really   a  mess. There are simply too
+many style and other options. In addition,  the Motif/Gtk choice to draw
+a large sunken region around the focus/default button make the mess even
+bigger. We generally should not do that   for  all buttons (i.e. not for
+closely stacked buttons in a button-bar,   which  means normally not for
+buttons having images.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 draw_generic_button_face(Button b,
 			 int x, int y, int w, int h,
@@ -100,21 +110,24 @@ draw_generic_button_face(Button b,
 
       if ( b->look == NAME_motif ||
 	   b->look == NAME_gtk )
-      { PceWindow sw = getWindowGraphical((Graphical)b);
+      { 
+	if ( b->show_focus_border == ON )
+	{ PceWindow sw = getWindowGraphical((Graphical)b);
 
-	if ( focus ||
-	     sw->keyboard_focus == (Graphical) b ||	/* inactive focus */
-	     (defb && !instanceOfObject(sw->keyboard_focus, ClassButton)) )
-	{ static Elevation e = NULL;
+	  if ( focus ||
+	       sw->keyboard_focus == (Graphical) b ||	/* inactive focus */
+	       (defb && !instanceOfObject(sw->keyboard_focus, ClassButton)) )
+	  { static Elevation e = NULL;
+	    
+	    if ( !e )
+	      e = newObject(ClassElevation, ONE, EAV);
   
-	  if ( !e )
-	    e = newObject(ClassElevation, ONE, EAV);
-  
-	  bx -= GTK_BUTTON_MARGIN;
-	  by -= GTK_BUTTON_MARGIN;
-	  bw += GTK_BUTTON_MARGIN * 2;
-	  bh += GTK_BUTTON_MARGIN * 2;
-	  r_3d_box(bx, by, bw, bh, r, e, FALSE);
+	    bx -= GTK_BUTTON_MARGIN;
+	    by -= GTK_BUTTON_MARGIN;
+	    bw += GTK_BUTTON_MARGIN * 2;
+	    bh += GTK_BUTTON_MARGIN * 2;
+	    r_3d_box(bx, by, bw, bh, r, e, FALSE);
+	  }
 	}
 
 	if ( focus )
@@ -547,11 +560,20 @@ labelButton(Button b, Any label)
     int sametype = (instanceOfObject(b->label, ClassImage) == ltype);
 
     if ( !sametype )
-      assign(b, radius, ltype ? ZERO : getClassVariableValueObject(b, NAME_radius));
+    { assign(b, radius, ltype ? ZERO
+			      : getClassVariableValueObject(b, NAME_radius));
+      assign(b, show_focus_border, ltype ? OFF : ON);
+    }
     assignGraphical(b, NAME_label, label);
   }
 
   succeed;
+}
+
+
+static status
+showFocusBorderButton(Button b, Bool show)
+{ return assignGraphical(b, NAME_showFocusBorder, show);
 }
 
 
@@ -591,7 +613,9 @@ static vardecl var_button[] =
   SV(NAME_popupImage, "image*", IV_GET|IV_STORE, popupImageButton,
      NAME_appearance, "Indication that button has a popup menu"),
   SV(NAME_defaultButton, "[bool]", IV_GET|IV_STORE, defaultButtonButton,
-     NAME_accelerator, "Button is default button for its <-device")
+     NAME_accelerator, "Button is default button for its <-device"),
+  SV(NAME_showFocusBorder, "bool", IV_GET|IV_STORE, showFocusBorderButton,
+     NAME_appearance, "Show wide border around focus/default button")
 };
 
 /* Send Methods */

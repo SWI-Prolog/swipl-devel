@@ -352,6 +352,7 @@ NewClass(button)
   Int	     shadow;			/* shadow around button */
   Image	     popup_image;		/* Image to indicate popup */
   Bool	     default_button;		/* Button is the default button */
+  Bool	     show_focus_border;		/* Show wide border around focus */
 End;
 
 #define ABSTRACT_TEXTITEM \
