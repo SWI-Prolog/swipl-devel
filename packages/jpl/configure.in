@@ -17,11 +17,11 @@ AC_SUBST(LD)
 AC_SUBST(SO)
 AC_SUBST(LDSOFLAGS)
 AC_SUBST(JAVA_HOME)
+AC_SUBST(JAVALIBS)
 
 AC_ARG_ENABLE(mt, [  --enable-mt		  Enable Multi-threading],
 	      [case "$enableval" in
-		   yes) AC_DEFINE(_REENTRANT, 1,
-				  [Define for multi-thread support])
+		   yes) MT=yes
 			;;
 		   *)  ;;
 	       esac])
@@ -46,8 +46,14 @@ AC_MSG_RESULT("		PLLIBS=$PLLIBS")
 AC_MSG_RESULT("		PLLDFLAGS=$PLLDFLAGS")
 AC_MSG_RESULT("		PLSHARED=$PLSHARED")
 AC_MSG_RESULT("		PLSOEXT=$PLSOEXT")
+if test "$PLTHREADS" = yes; then MT=yes; fi
 else
 PLLD=../plld.sh
+fi
+
+if test "$MT" = yes; then
+  AC_DEFINE(_REENTRANT, 1,
+	    [Define for multi-thread support])
 fi
 
 CC=$PLLD
@@ -72,6 +78,16 @@ else
     COFLAGS=-O
     CWFLAGS=
 fi
+
+case "$PLARCH" in
+   *darwin*)
+	JAVALIBS="-Wl,-framework,JavaVM"
+	;;
+   *)
+	JAVALIBS="-ljava -lverify -ljvm"
+	;;
+esac
+
 
 dnl ================================================================
 dnl Java stuff

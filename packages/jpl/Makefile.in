@@ -32,6 +32,7 @@ NETLIBS=@NETLIBS@
 
 JAVA_HOME=@JAVA_HOME@
 JAVAC=@JAVAC@
+JAVALIBS=@JAVALIBS@
 
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PCEHOME)/bin/pl2tex
@@ -57,7 +58,7 @@ all:		$(TARGETS)
 		(cd src/java && $(MAKE) all)
 
 libjpl.@SO@:	$(OBJ)
-		$(LD) $(LDFLAGS) -o $@ $(OBJ) -ljava -lverify -ljvm
+		$(LD) $(LDFLAGS) -o $@ $(OBJ) $(JAVALIBS)
 
 ################################################################
 # Verify the package

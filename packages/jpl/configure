@@ -271,7 +271,7 @@ PACKAGE_STRING=
 PACKAGE_BUGREPORT=
 
 ac_unique_file="install-sh"
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS PL PLLIBS PLBASE PLARCH PLINCL COFLAGS CWFLAGS CMFLAGS CIFLAGS ETAGS LD SO LDSOFLAGS JAVA_HOME PLLD MAKE INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CPP EGREP build build_cpu build_vendor build_os host host_cpu host_vendor host_os JAVAC JAR _ACJNI_JAVAC LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS PL PLLIBS PLBASE PLARCH PLINCL COFLAGS CWFLAGS CMFLAGS CIFLAGS ETAGS LD SO LDSOFLAGS JAVA_HOME JAVALIBS PLLD MAKE INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CPP EGREP build build_cpu build_vendor build_os host host_cpu host_vendor host_os JAVAC JAR _ACJNI_JAVAC LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -1241,15 +1241,12 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
+
 # Check whether --enable-mt or --disable-mt was given.
 if test "${enable_mt+set}" = set; then
   enableval="$enable_mt"
   case "$enableval" in
-		   yes)
-cat >>confdefs.h <<\_ACEOF
-#define _REENTRANT 1
-_ACEOF
-
+		   yes) MT=yes
 			;;
 		   *)  ;;
 	       esac
@@ -1366,8 +1363,17 @@ echo "$as_me:$LINENO: result: \"		PLSHARED=$PLSHARED\"" >&5
 echo "${ECHO_T}\"		PLSHARED=$PLSHARED\"" >&6
 echo "$as_me:$LINENO: result: \"		PLSOEXT=$PLSOEXT\"" >&5
 echo "${ECHO_T}\"		PLSOEXT=$PLSOEXT\"" >&6
+if test "$PLTHREADS" = yes; then MT=yes; fi
 else
 PLLD=../plld.sh
+fi
+
+if test "$MT" = yes; then
+
+cat >>confdefs.h <<\_ACEOF
+#define _REENTRANT 1
+_ACEOF
+
 fi
 
 CC=$PLLD
@@ -2957,6 +2963,16 @@ else
     CWFLAGS=
 fi
 
+case "$PLARCH" in
+   *darwin*)
+	JAVALIBS="-Wl,-framework,JavaVM"
+	;;
+   *)
+	JAVALIBS="-ljava -lverify -ljvm"
+	;;
+esac
+
+
 
 # Make sure we can run config.sub.
 $ac_config_sub sun4 >/dev/null 2>&1 ||
@@ -3144,7 +3160,7 @@ else
 JAVA_TEST=Test.java
 CLASS_TEST=Test.class
 cat << \EOF > $JAVA_TEST
-/* #line 3147 "configure" */
+/* #line 3163 "configure" */
 public class Test {
 }
 EOF
@@ -4063,6 +4079,7 @@ s,@LD@,$LD,;t t
 s,@SO@,$SO,;t t
 s,@LDSOFLAGS@,$LDSOFLAGS,;t t
 s,@JAVA_HOME@,$JAVA_HOME,;t t
+s,@JAVALIBS@,$JAVALIBS,;t t
 s,@PLLD@,$PLLD,;t t
 s,@MAKE@,$MAKE,;t t
 s,@INSTALL_PROGRAM@,$INSTALL_PROGRAM,;t t
