@@ -35,7 +35,8 @@ workers_ready(N, N, _) :- !.
 workers_ready(N,
 	      NumberOfWorkers,
 	      WorkerMessageQueue) :-
-	thread_get_message(WorkerMessageQueue, worker_ready(_)),
+	thread_get_message(WorkerMessageQueue, worker_ready(_Id)),
+	writeln(ready(_Id)),
 	M is N + 1,
 	workers_ready(M, NumberOfWorkers, WorkerMessageQueue).
 
@@ -43,6 +44,7 @@ workers_ready(N,
 wait_workers(N, N, _) :- !.
 wait_workers(N, NumberOfWorkers, WorkerMessageQueue) :-
 	thread_get_message(WorkerMessageQueue, worker_done(Id)),
+	writeln(done(Id)),
 	thread_join(Id, X),
 	X == true,
 	M is N + 1,
@@ -51,10 +53,13 @@ wait_workers(N, NumberOfWorkers, WorkerMessageQueue) :-
 
 worker(WorkerMessageQueue) :-
 	thread_self(WorkerThreadId),
+	writeln(send(ready(WorkerThreadId))),
 	thread_send_message(WorkerMessageQueue, worker_ready(WorkerThreadId)),
 	repeat,
 	thread_get_message(WorkerMessageQueue, worker_task(WorkerTask)),
 	(   WorkerTask == done
-	->  thread_send_message(WorkerMessageQueue, worker_done(WorkerThreadId))
+	->  writeln(send(done(WorkerThreadId))),
+	    thread_send_message(WorkerMessageQueue,
+				worker_done(WorkerThreadId))
 	;   fail
 	).

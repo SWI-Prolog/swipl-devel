@@ -1506,8 +1506,8 @@ queue_message(message_queue *queue, term_t msg)
   { queue->tail->next = msgp;
     queue->tail = msgp;
   }
-  pthread_cond_signal(&queue->cond_var);
   pthread_mutex_unlock(&queue->mutex);
+  pthread_cond_signal(&queue->cond_var);
 }
 
 
@@ -1563,6 +1563,7 @@ static int
 peek_message(message_queue *queue, term_t msg)
 { thread_message *msgp;
   term_t tmp = PL_new_term_ref();
+  word key = getIndexOfTerm(msg);
   mark m;
 
   Mark(m);
@@ -1571,7 +1572,9 @@ peek_message(message_queue *queue, term_t msg)
   msgp = queue->head;
 
   for( msgp = queue->head; msgp; msgp = msgp->next )
-  { PL_recorded(msgp->message, tmp);
+  { if ( key && msgp->key && key != msgp->key )
+      continue;
+    PL_recorded(msgp->message, tmp);
 
     if ( PL_unify(msg, tmp) )
     { pthread_mutex_unlock(&queue->mutex);
