@@ -290,22 +290,25 @@ colourise_dcg_goal(Goal, TB, Pos) :-
 %	colourise_goal(+Goal, +TB, +Pos).
 
 colourise_goal(Goal, TB, Pos) :-
+	nonvar(Goal),
+	goal_colours(Goal, ClassSpec-ArgSpecs), !,
+	(   Pos = term_position(_,_,FF,FT,ArgPos)
+	->  FPos = FF-FT
+	;   FPos = Pos
+	),
+	(   ClassSpec == classify
+	->  goal_classification(TB, Goal, Class)
+	;   Class = ClassSpec
+	),
+	colour_item(goal(Class), TB, FPos),
+	specified_items(ArgSpecs, 1, Goal, TB, ArgPos).
+colourise_goal(Goal, TB, Pos) :-
 	goal_classification(TB, Goal, Class),
 	(   Pos = term_position(_,_,FF,FT,_ArgPos)
 	->  FPos = FF-FT
 	;   FPos = Pos
 	),
 	colour_item(goal(Class), TB, FPos),
-	colourise_goal_args(Goal, TB, Pos).
-
-%	colourise_goal_args(+Goal, +TB, +Pos)
-%
-%	Colourise the arguments to a goal.
-
-colourise_goal_args(use_module(Files), TB,
-		    term_position(_,_,_,_,[ArgPos])) :-
-	colourise_files(Files, TB, ArgPos).
-colourise_goal_args(Goal, TB, Pos) :-
 	colourise_term_args(Goal, TB, Pos).
 
 %	colourise_files(+Arg, +TB, +Pos)
@@ -449,13 +452,15 @@ built_in_predicate(Goal) :-
 	predicate_property(system:Goal, built_in), !.
 built_in_predicate(module(_, _)).
 
-%	Goals loading files, so we can classify the files
+%	Speciy colours for individual goals.  Currently used only to
+%	highlight file references, so we can jump to them and are indicated
+%	on missing files.
 
-load_goal(use_module(F), F).
-load_goal(use_module(F, _), F).
-load_goal([H|T], [H|T]).
-load_goal(consult(F), F).
-load_goal(ensure_loaded(F), F).
+goal_colours(use_module(_),     built_in-[file]).
+goal_colours(use_module(_,_),   built_in-[file,classify]).
+goal_colours(consult(_),        built_in-[file]).
+goal_colours(ensure_loaded(_),  built_in-[file]).
+goal_colours(pce_autoload(_,_), classify-[classify,file]).
 
 
 		 /*******************************
@@ -549,12 +554,12 @@ term_colours(user:portray(_),
 term_colours(resource(_,_,_),
 	     expanded - [ identifier,
 			  classify,
-			  classify
+			  file
 			]).
 term_colours((resource(_,_,_) :- _),
 	     expanded - [ expanded - [ identifier,
 				       classify,
-				       classify
+				       file
 				     ],
 			  classify
 			]).
@@ -670,6 +675,8 @@ term_colours((_,_),
 
 specified_item(classify, Term, TB, Pos) :- !,
 	colourise_term_arg(Term, TB, Pos).
+specified_item(file, Term, TB, Pos) :- !,
+	colourise_files(Term, TB, Pos).
 specified_item(FuncSpec-ArgSpecs, Term, TB,
 	       term_position(_,_,FF,FT,ArgPos)) :- !,
 	specified_item(FuncSpec, Term, TB, FF-FT),
