@@ -300,6 +300,8 @@ library provides transactions and undo on top of this.  Applications
 that wish to use the \file{rdf_edit} layer must \emph{never} use the
 predicates from this section directly.
 
+\subsection{Modifying predicates}		\label{sec:modpreds}
+
 \begin{description}
     \predicate{rdf_assert}{3}{+Subject, +Predicate, +Object}
 Assert a new triple into the database. This is equivalent to
@@ -347,6 +349,67 @@ source has no consequences for the semantics and therefore the
 			      +Source,+Action}
 As rdf_update/4 but allows for specifying the source.
 
+\end{description}
+
+
+\subsection{Transactions}			\label{transactions}
+
+\index{transaction}%
+The predicates from \secref{modpreds} perform immediate and atomic
+modifications to the database. There are two cases where this is not
+desirable:
+
+\begin{enumerate}
+    \item
+If the database is modified using information based on reading the same
+database. A typical case is a forward reasoner examining the database
+and asserting new triples that can be deduced from the already existing
+ones.   For example, \emph{if length(X) > 2 then size(X) is large}:
+
+\begin{code}
+	(   rdf(X, length, literal(L)),
+	    atom_number(L, IL),
+	    IL > 2,
+	    rdf_assert(X, size, large),
+	    fail
+	;   true
+	).
+\end{code}
+
+Running this code without precautions causes an error because
+rdf_assert/3 tries to get a write lock on the database which has
+an a read operation (rdf/3 has choicepoints) in progress.
+
+    \item
+Multi-threaded access making multiple changes to the database that
+must be handled as a unit.
+\end{enumerate}
+
+Where the second case is probably obvious, the first case is less so.
+The storage layer may require reindexing after adding or deleting
+triples.  Such reindexing operatations however are not possible while
+there are active read operations in other threads or from choicepoints
+that can be in the same thread. For this reason we added
+rdf_transaction/1.
+
+\begin{description}
+    \predicate{rdf_transaction}{:Goal}
+After starting a transaction, all predicates from \secref{modpreds}
+append their operation to the \emph{transaction} instead of modifying
+the database. If \arg{Goal} succeeds rdf_transaction cuts all
+choicepoints in \arg{Goal} and executes all recorded operations. If
+\arg{Goal} fails or throws an exception, all recorded operations are
+discarded and rdf_transaction/1 fails or re-throws the exception. 
+
+On entry, rdf_transaction/1 gains exclusive access to the database, but
+does allow readers to come in from all threads. After the successful
+completion of \arg{Goal} rdf_transaction/1 gains completely exclusive
+access while performing the database updates.
+
+Transactions may be nested.  Committing a nested transactions merges
+its change records into the outer transaction, while discarding a
+nested transaction simply destroys the change records belonging to
+the nested transaction.
 \end{description}
 
 

@@ -268,6 +268,10 @@ update(object-6) :-			% drop lang
 		 *	    TRANSACTIONS	*
 		 *******************************/
 
+transaction(empty-1) :-
+	rdf_transaction(true),
+	findall(rdf(S,P,O), rdf(S,P,O), L),
+	L == [].
 transaction(assert-1) :-
 	rdf_transaction(rdf_assert(x, a, v)),
 	findall(rdf(S,P,O), rdf(S,P,O), L),
@@ -283,6 +287,12 @@ transaction(nest-1) :-
 	findall(rdf(S,P,O), rdf(S,P,O), L),
 	L == [ rdf(x, a, v),
 	       rdf(x, a, v2)
+	     ].
+transaction(nest-2) :-
+	rdf_transaction( ( rdf_assert(x, a, v),
+			   \+ rdf_transaction((rdf_assert(x, a, v2),fail)))),
+	findall(rdf(S,P,O), rdf(S,P,O), L),
+	L == [ rdf(x, a, v)
 	     ].
 
 
