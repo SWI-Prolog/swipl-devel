@@ -24,8 +24,7 @@
 
 
 #include <h/kernel.h>
-#include "utf8.h"
-#include "utf8.c"
+#include <h/utf8.h>
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 These  functions  translate  CharArray  (String,  Name)  into  a  format
