@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORT: Modified Unix stack-expansion to look for POSIX.1b SA_SIGINFO
+    support, fixed various portability problems in src/test/mmap.c.
+
   * FIXED: Dangling trail-references from trimStacks().  Often causes
     crashes after out-of-stack errors.
 
