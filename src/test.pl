@@ -487,9 +487,23 @@ do_exception_1 :-
 	A = _,
 	A.
 
+rethrow(G) :-
+	catch(G, E, throw(E)).
+
+throwit :-
+	throw(foo(_)).
+
 exception(call-1) :-
 	catch(do_exception_1, E, true),
 	E =@= error(instantiation_error, _).
+exception(call-2) :-
+	\+ catch(do_exception_1, _, fail).
+exception(call-3) :-
+	catch(rethrow(do_exception_1), E, true),
+	E =@= error(instantiation_error, _).
+exception(call-4) :-
+	catch(throwit, foo(X), X = a),
+	X = a.
 
 
 		 /*******************************

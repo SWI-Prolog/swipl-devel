@@ -14,6 +14,8 @@
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 
+#define	     BFR (LD->choicepoints)	/* choicepoint registration */
+
 #if sun
 #include <prof.h>			/* in-function profiling */
 #else
@@ -126,7 +128,19 @@ pl_count()
 }
 
 #else /* ~COUNTING */
-#define count(id, pc)
+
+#ifdef O_DEBUG				/* use counting for debugging */
+static void
+count(code c, Code PC)
+{ DEBUG(3, wamListInstruction(Serror, NULL, PC-1));
+}
+
+#else
+
+#define count(id, pc)			/* no debugging not counting */
+
+#endif
+
 #endif /* COUNTING */
 
 
@@ -1131,6 +1145,55 @@ copyFrameArguments(LocalFrame from, LocalFrame to, int argc ARG_LD)
 #define ulong unsigned long
 #endif
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Discard  a  frame.  This  procedure  deals  with  proper  resetting  the
+predicate reference-count. For non-deterministic   foreign predicates it
+will call the foreign function to execute the required cleanup.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+leaveFrame(LocalFrame fr)
+{ DEBUG(3, Sdprintf("discard #%d running %s\n",
+		    (Word)fr - (Word)lBase,
+		    predicateName(fr->predicate)));
+
+  if ( true(fr->predicate, FOREIGN) )
+  { if ( true(fr->predicate, NONDETERMINISTIC) )
+      leaveForeignFrame(fr);
+  } else
+    leaveDefinition(fr->predicate);
+
+#ifdef O_DEBUGGER
+  if ( true(fr, FR_WATCHED) )
+    frameFinished(fr);
+#endif
+
+  fr->clause = NULL;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Discard all choice-points created after  the   creation  of the argument
+environment. See also leaveFrame().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+discardChoicesAfter(LocalFrame fr)
+{ Choice ch;
+
+  for(ch = BFR; ch && ch > fr; ch = ch->backtrackFrame)
+  { LocalFrame fr2;
+
+    for(fr2 = ch;			/* ch->frame */
+	fr2 && fr2->clause && fr2 > fr;
+	fr2 = fr2->parent)
+      leaveFrame(fr2);
+  }
+
+  BFR = ch;
+} 
+
+
 qid_t
 PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 { GET_LD
@@ -1265,17 +1328,9 @@ static void
 discard_query(QueryFrame qf)
 { GET_LD
   LocalFrame FR  = &qf->frame;
-  LocalFrame BFR = LD->choicepoints;
-  LocalFrame fr, fr2;
 
   set(FR, FR_CUT);			/* execute I_CUT */
-  for(fr = BFR; fr > FR; fr = fr->backtrackFrame)
-  { for(fr2 = fr; fr2->clause && fr2 > FR; fr2 = fr2->parent)
-    { DEBUG(3, Sdprintf("discard %d\n", (Word)fr2 - (Word)lBase) );
-      leaveFrame(fr2);
-      fr2->clause = NULL;
-    }
-  }
+  discardChoicesAfter(FR);
   leaveFrame(FR);
 }
 
@@ -1382,7 +1437,6 @@ PL_next_solution(qid_t qid)
   Definition DEF = NULL;		/* definition of current procedure */
   Word *     aFloor = aTop;		/* don't overwrite old arguments */
 #define	     CL (FR->clause)		/* clause of current frame */
-#define	     BFR (LD->choicepoints)	/* choicepoint registration */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Get the labels of the various  virtual-machine instructions in an array.
@@ -2132,7 +2186,7 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
     VMI(B_THROW) MARK(B_THROW);
       { Word catcher;
 	word except;
-	LocalFrame catchfr, fr, fr2, bfr;
+	LocalFrame catchfr;
 
 	if ( exception_term )		/* PL_throw() generated */
 	  catcher = valTermRef(exception_term);
@@ -2170,17 +2224,8 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	}
 #endif /*O_DEBUGGER*/
 
-	bfr = NULL;
 	for( ; FR && FR > catchfr; FR = FR->parent )
-	{ /* Destroy older choicepoints */
-	  for(fr = bfr; fr && fr > FR; fr = fr->backtrackFrame)
-	  { for(fr2 = fr; fr2 && fr2->clause && fr2 > FR; fr2 = fr2->parent)
-	    { DEBUG(3, Sdprintf("discard %d\n", (Word)fr2 - (Word)lBase) );
-	      leaveFrame(fr2);
-	      fr2->clause = NULL;
-	    }
-	  }
-	  bfr = FR;
+	{ discardChoicesAfter(FR);
 
 #if O_DEBUGGER
 	  if ( debugstatus.debugging )
@@ -2196,7 +2241,6 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	  }
 #endif
 	  leaveFrame(FR);
-	  FR->clause = NULL;
 	}
 
 	if ( catchfr )
@@ -2279,7 +2323,6 @@ exit(Block, RVal).  First does !(Block).
 	{ for(fr2 = fr; fr2->clause && fr2 > blockfr; fr2 = fr2->parent)
 	  { DEBUG(3, Sdprintf("discard %d\n", (Word)fr2 - (Word)lBase) );
 	    leaveFrame(fr2);
-	    fr2->clause = NULL;
 	  }
 	}
 #ifdef O_DEBUGGER
@@ -2301,7 +2344,6 @@ exit(Block, RVal).  First does !(Block).
 	if ( unify(argFrameP(blockfr, 2), rval PASS_LD) )
 	{ for( ; FR > blockfr; FR = FR->parent )
 	  { leaveFrame(FR);
-	    FR->clause = NULL;
 	    if ( FR->parent == blockfr )
 	      PC = FR->programPointer;
 	  }
@@ -2357,7 +2399,6 @@ exit(Block, RVal).  First does !(Block).
 	    { DEBUG(3, Sdprintf("discard [%ld] %s\n",
 				levelFrame(fr), predicateName(fr->predicate)));
 	      leaveFrame(fr2);
-	      fr2->clause = NULL;
 	    }
 	  }
 	}
@@ -2414,7 +2455,6 @@ backtrack that makes it difficult to understand the tracer's output.
 			      levelFrame(fr2),
 			      predicateName(fr2->predicate)));
 	    leaveFrame(fr2);
-	    fr2->clause = NULL;
 	  }
 	}
 #ifdef O_DEBUGGER
@@ -2518,8 +2558,6 @@ discarded.
     VMI(C_CUT) MARK(C_CUT);
       { LocalFrame obfr = (LocalFrame) varFrame(FR, *PC);
 	LocalFrame cbfr = obfr;
-	LocalFrame fr;
-	register LocalFrame fr2;
 
 	PC++;				/* cannot be in macro! */
 	if ( BFR <= cbfr )		/* already done this */
@@ -2527,13 +2565,7 @@ discarded.
 	if ( cbfr < FR )
 	  cbfr = FR;
 
-	for(fr = BFR; fr > cbfr; fr = fr->backtrackFrame)
-	{ for(fr2 = fr; fr2->clause && fr2 > cbfr; fr2 = fr2->parent)
-	  { DEBUG(3, Sdprintf("discard %d: ", (Word)fr2 - (Word)lBase) );
-	    leaveFrame(fr2);
-	    fr2->clause = NULL;
-	  }
-	}
+	discardChoicesAfter(cbfr);
 
 	{ int nvar = (true(cbfr->predicate, FOREIGN)
 				? cbfr->predicate->functor->arity
@@ -3443,8 +3475,9 @@ execution can continue at `next_instruction'
 	  goto depart_continue;
 	}
 #endif /*TAILRECURSION*/
-       /*FALLTHROUGH*/
+        goto i_call;
       VMI(I_CALL)					MARK(CALL);
+      i_call:
         next = lTop;
         next->flags = FR->flags;
 	if ( true(DEF, HIDE_CHILDS) )		/* parent has hide_childs */
@@ -3731,9 +3764,10 @@ interception. Second, there should be some room for optimisation here.
 	  }
 	}
 #endif /*O_DEBUGGER*/
-	/*FALLTHROUGH*/
+        goto i_exit;
 
     VMI(I_EXIT) MARK(EXIT);
+    i_exit:
 	if ( false(FR, FR_CUT) )
 	{ if ( FR > BFR )			/* alternatives */
 	    SetBfr(FR);
@@ -3831,7 +3865,6 @@ to the call-port and finally, restart the clause.
 #if O_DEBUGGER
 retry:					MARK(RETRY);
 { LocalFrame rframe = debugstatus.retryFrame;
-  LocalFrame fr;
 
   if ( !rframe )
     rframe = FR;
@@ -3847,16 +3880,7 @@ retry:					MARK(RETRY);
 	   (Word)rframe - (Word)lBase,
 	   predicateName(rframe->predicate));
 
-  for(fr = BFR; fr > rframe; fr = fr->backtrackFrame)
-  { LocalFrame fr2;
-
-    for(fr2 = fr; fr2->clause && fr2 > rframe; fr2 = fr2->parent)
-    { DEBUG(3, Sdprintf("discard %d\n", (Word)fr2 - (Word)lBase) );
-      leaveFrame(fr2);
-      fr2->clause = NULL;
-    }
-  }
-
+  discardChoicesAfter(rframe);
   environment_frame = FR = rframe;
   DEF = FR->predicate;
   Undo(FR->mark);

@@ -729,6 +729,7 @@ typedef struct table *		Table;		/* (numeric) hash table */
 typedef struct symbol *		Symbol;		/* symbol of hash table */
 typedef struct table_enum *	TableEnum; 	/* Enumerate table entries */
 typedef struct localFrame *	LocalFrame;	/* environment frame */
+typedef struct localFrame *	Choice;		/* Choice-point */
 typedef struct queryFrame *	QueryFrame;     /* toplevel query frame */
 typedef struct fliFrame *	FliFrame; 	/* FLI interface frame */
 typedef struct trail_entry *	TrailEntry;	/* Entry of trail stack */
@@ -906,24 +907,6 @@ Handling environment (or local stack) frames.
 				  PL_UNLOCK(L_MISC); \
 				}
 #endif /*O_DEBUG*/
-
-#ifdef O_DEBUGGER
-#define leaveFrame(fr) { if ( true(fr->predicate, FOREIGN) ) \
-			 { if ( true(fr->predicate, NONDETERMINISTIC) ) \
-			     leaveForeignFrame(fr); \
-			 } else \
-			   leaveDefinition(fr->predicate); \
-			 if ( true(fr, FR_WATCHED) ) \
-			   frameFinished(fr); \
-		       }
-#else /*O_DEBUGGER*/
-#define leaveFrame(fr) { if ( true(fr->predicate, FOREIGN) ) \
-			 { if ( true(fr->predicate, NONDETERMINISTIC) ) \
-			     leaveForeignFrame(fr); \
-			 } else \
-			   leaveDefinition(fr->predicate); \
-		       }
-#endif /*O_DEBUGGER*/
 
 #define INVALID_TRAILTOP  ((TrailEntry)~0L)
 #define INVALID_GLOBALTOP ((Word)~1L)
