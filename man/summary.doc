@@ -445,6 +445,7 @@ suggest predicates from a keyword.
 \predicatesummary{thread_self}{1}{Get identifier of current thread}
 \predicatesummary{thread_send_message}{2}{Send message to another thread}
 \predicatesummary{thread_signal}{2}{Execute goal in another thread}
+\predicatesummary{thread_statistics}{3}{Get statistics of another thread}
 \predicatesummary{threads}{0}{List running threads}
 \predicatesummary{throw}{1}{Raise an exception (see catch/3)}
 \predicatesummary{time}{1}{Determine time needed to execute goal}

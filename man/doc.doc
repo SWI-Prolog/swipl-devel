@@ -36,9 +36,9 @@
 \pagestyle{fancyplain}
 
 \newcommand{\vmajor}{5}
-\newcommand{\vminor}{0}
-\newcommand{\vpatch}{10}
-\newcommand{\vmonth}{September}
+\newcommand{\vminor}{1}
+\newcommand{\vpatch}{1}
+\newcommand{\vmonth}{November}
 \newcommand{\vyear}{2002}
 
 \newcommand{\versionshort}{\vmajor.\vminor}

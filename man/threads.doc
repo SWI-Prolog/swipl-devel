@@ -89,6 +89,38 @@ data from their stacks.
 Get the Prolog thread identifier of the running thread.  If the thread
 has an alias, the alias-name is returned.
 
+    \predicate{thread_join}{2}{+Id, -Status}
+Wait for the termination of thread with given \arg{Id}.  Then unify
+the result-status (see thread_exit/1) of the thread with \arg{Status}.
+After this call, \arg{Id} becomes invalid and all resources associated
+with the thread are reclaimed. See also current_thread/2.
+
+A thread that has been completed without thread_join/2 being called on
+it is partly reclaimed: the Prolog stacks are released and the C-thread
+is destroyed.  A small data-structure represening the exit-status of the
+thread is retained until thread_join/2 is called on the thread.
+
+    \predicate{thread_exit}{1}{+Term}
+Terminates the thread immediately, leaving \term{exited}{Term} as
+result-state.  The Prolog stacks and C-thread are reclaimed.
+
+    \predicate{thread_at_exit}{1}{:Goal}
+Run \arg{Goal} after the execution of this thread has terminated. This
+is to be compared to at_halt/1, but only for the current thread.  These
+hooks are ran regardless of why the execution of the thread has been
+completed.  As these hooks are run, the return-code is already available
+through current_thread/2.
+\end{description}
+
+
+\section{Monitoring threads}		\label{sec:thmonitor}
+
+Normal multi-threaded applications should not need these the predicates
+from this section. They are provided for diagnosis and monitoring tasks.
+See also \secref{thutil}, describing more high-level primitives.
+
+
+\begin{description}
     \predicate{current_thread}{2}{?Id, ?Status}
 Enumerates identifiers and status of all currently known threads.
 Calling current_thread/2 does not influence any thread.  See also
@@ -112,27 +144,16 @@ The \arg{Goal} of the thread has been terminated due to an uncaught
 exception (see throw/1 and catch/3).
 \end{description}
 
-    \predicate{thread_join}{2}{+Id, -Status}
-Wait for the termination of thread with given \arg{Id}.  Then unify
-the result-status (see thread_exit/1) of the thread with \arg{Status}.
-After this call, \arg{Id} becomes invalid and all resources associated
-with the thread are reclaimed. See also current_thread/2.
-
-A thread that has been completed without thread_join/2 being called on
-it is partly reclaimed: the Prolog stacks are released and the C-thread
-is destroyed.  A small data-structure represening the exit-status of the
-thread is retained until thread_join/2 is called on the thread.
-
-    \predicate{thread_exit}{1}{+Term}
-Terminates the thread immediately, leaving \term{exited}{Term} as
-result-state.  The Prolog stacks and C-thread are reclaimed.
-
-    \predicate{thread_at_exit}{1}{:Goal}
-Run \arg{Goal} after the execution of this thread has terminated. This
-is to be compared to at_halt/1, but only for the current thread.  These
-hooks are ran regardless of why the execution of the thread has been
-completed.  As these hooks are run, the return-code is already available
-through current_thread/2.
+    \predicate{thread_statistics}{3}{+Id, +Key, -Value}
+Obtains statistical information on thread \arg{Id} as statistics/2
+does in single-threaded applications.  This call returns all keys
+of statistics/2, although only information statistics about the
+stacks and CPU time yield different values for each thread.%
+	\footnote{Getting the CPU-time of a different thread is
+		  not supported on all platforms.  For Microsoft,
+		  it does not work in 95/98/ME.  For POSIX systems
+		  it requires times() to return values specific for
+		  the calling thread.}.
 \end{description}
 
 
@@ -288,7 +309,7 @@ once/1.
 \end{description}
 
 
-\section{Thread-support library(threadutil)}
+\section{Thread-support library(threadutil)}	\label{sec:thutil}
 
 This library defines a couple of useful predicates for demonstrating and
 debugging multi-threaded applications. This library is certainly not
