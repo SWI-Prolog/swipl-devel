@@ -146,7 +146,9 @@ rdfs_individual_of(_Resource, _Class) :-
 
 %	rdfs_label(?Resource, ?Label)
 %
-%	Convert between class and label.
+%	Convert between class and label.  If the label is generated from
+%	the resource the it uses both rdf:label and its sub-properties,
+%	but labels registered with rdf:label are returned first.
 
 rdfs_label(Resource, Label) :-
 	nonvar(Resource), !,
@@ -178,15 +180,22 @@ rdfs_ns_label(Resource, Label) :-
 	).
 
 
-%	take_label(+Class, -Label)
+%	take_label(+Resource, -Label)
 %
-%	Get the label to use for a class.  
+%	Get the label to use for a resource.
 
-take_label(Class, Label) :-
-	(   rdf_has(Class, rdfs:label, literal(Label))
+take_label(Resource, Label) :-
+	(   label_of(Resource, Label)
 	*-> true
-	;   rdf_split_url(_, Label, Class)
+	;   rdf_split_url(_, Label, Resource)
 	).
+
+label_of(Resource, Label) :-
+	rdf(Resource, rdfs:label, literal(Label)).
+label_of(Resource, Label) :-
+	rdf_equal(rdfs:label, LabelP),
+	rdf_has(Resource, LabelP, literal(Label), P),
+	P \== LabelP.
 
 %	rdfs_class_property(+Class, ?Property)
 %

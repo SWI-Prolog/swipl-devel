@@ -1,3 +1,8 @@
+Oct 7, 2003
+
+  * MODIFIED: rdfs_label(+Resource, -Label) first returns labels registered
+    with rdfs:label and only afterwards with sub-properties thereof.
+
 Oct 6, 2003
 
   * MODIFIED: rdfs_individual_of(Resource, Class) implicitely assumes all
