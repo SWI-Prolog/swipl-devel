@@ -35,7 +35,26 @@
 		 *	      TMP HACKS		*
 		 *******************************/
 
-extern int unboundStringHashValue(const char *t, unsigned int len);
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Note: this function comes from SWI-Prolog   itself. We could also extend
+the SWI-Prolog interface to provide this value. 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+unboundStringHashValue(const char *t, unsigned int len)
+{ unsigned int value = 0;
+  unsigned int shift = 5;
+
+  while(len-- != 0)
+  { unsigned int c = *t++;
+    
+    c -= 'a';
+    value ^= c << (shift & 0xf);
+    shift ^= c;
+  }
+
+  return value ^ (value >> 16);
+}
 
 typedef unsigned long plhash_t;
 
@@ -54,7 +73,7 @@ PL_atom_hash(atom_t a)
 		 *	  ATOM MANAGEMENT	*
 		 *******************************/
 
-static int maxdupl;
+static unsigned long maxdupl;
 
 static int
 equal_dbt(DBT *a, DBT *b)

@@ -76,6 +76,9 @@ DB_ENV *db_env;				/* default environment */
 
 #define mkfunctor(n, a) PL_new_functor(PL_new_atom(n), a)
 
+#ifdef WIN32
+#define NOSIG(code) { code; }
+#else
 #define NOSIG(code) \
 	{ sigset_t new, old; \
 	  sigemptyset(&new); \
@@ -84,6 +87,7 @@ DB_ENV *db_env;				/* default environment */
 	  code; \
 	  sigprocmask(SIG_SETMASK, &old, NULL); \
 	}
+#endif
 
 #define TheTXN current_transaction()
 
@@ -1035,7 +1039,7 @@ pl_db_del3(term_t handle, term_t key, term_t value, control_t ctx)
 
 
 static void
-cleanup()
+cleanup(void)
 { if ( db_env )
   { int rval;
 
