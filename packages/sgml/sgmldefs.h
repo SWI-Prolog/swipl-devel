@@ -13,6 +13,11 @@
 #ifndef SGMLDEFS_H_INCLUDED
 #define SGMLDEFS_H_INCLUDED
 
+#ifdef WIN32
+#define HAVE_MALLOC_H 1
+#define HAVE_IO_H 1
+#endif
+
 #ifdef HAVE_DMALLOC_H
 #include <dmalloc.h>
 #endif

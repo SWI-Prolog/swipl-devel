@@ -18,7 +18,12 @@
 #endif
 #include <stdio.h>
 #include <string.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+#ifdef HAVE_IO_H
+#include <io.h>
+#endif
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -295,7 +300,7 @@ empty_ocharbuf(ocharbuf *buf)
 
 const char *
 str_summary(const char *s, int len)
-{ ichar buf[len+10];			/* GCC */
+{ ichar *buf = alloca(sizeof(ichar)*(len+10));
   int l = strlen(s);
 
   if ( l < len )

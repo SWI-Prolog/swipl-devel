@@ -2117,7 +2117,7 @@ static int
 process_entity(dtd_parser *p, const ichar *name)
 { if ( name[0] == '#' )			/* #charcode: character entity */
   { char *end;
-    long v = strtol((char *)&name[1], &end, 10);
+    int v = strtol((char *)&name[1], &end, 10);
 
     if ( *end == '\0' )
     { if ( v <= 0 || v >= OUTPUT_CHARSET_SIZE )

@@ -17,6 +17,10 @@
 #include "error.h"
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
+#ifdef HAVE_MALLOC_H
+#include <malloc.h>
+#endif
 
 #define streq(s1, s2) (strcmp(s1, s2) == 0)
 
@@ -973,12 +977,14 @@ static void
 put_content(term_t t, dtd_edef *def)
 { switch(def->type)
   { case C_EMPTY:
-      return PL_put_atom(t, ATOM_empty);
+      PL_put_atom(t, ATOM_empty);
+      return;
     case C_CDATA:
-      return PL_put_atom(t, ATOM_cdata);
+      PL_put_atom(t, ATOM_cdata);
+      return;
     default:
       if ( def->content )
-	return put_model(t, def->content);
+	put_model(t, def->content);
   }
 }
 

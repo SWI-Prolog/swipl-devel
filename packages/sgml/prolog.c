@@ -18,6 +18,9 @@
 #include "util.h"
 #include "prolog.h"
 #include <time.h>
+#ifdef HAVE_MALLOC_H
+#include <malloc.h>
+#endif
 
 static int errors;
 
