@@ -1,5 +1,17 @@
-* ADDED: library(doc/html): handle <BASE> element and be more reasonable
-  on the <SCRIPT> element.
+* FIXED: Moved dialog-grid (<-above, etc.) unlinking from class dialog_item
+  to class graphical: dialog windows get inconsistent if a non-dialog item
+  is deleted.
+
+* ADDED: Allow for :- pce_end_class(Class), providing additional documentation
+  and error checking.
+
+* ADDED: Book icon to manual tool main window.
+
+* ADDED: `image->save' support for saving JPEG files (Unix/X11 version
+  only sofar).
+
+* ADDED: library(doc/html): handle <BASE> element and ignore the content
+  of <SCRIPT> elements.
 
 * INSTALL: (Unix) changed behaviour of `make install' to be equivalent to
   the old `make dv-install'.  For this reason changed the name of the
