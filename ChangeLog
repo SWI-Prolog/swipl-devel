@@ -7,7 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: source-file administration in saved-states.  Matt Lilley.
+
   * PORT: Enhance detection of support for ELF visibility attributes.
+
 
 VERSION 5.5.3 (Januari 17, 2005)
 ================================
@@ -168,7 +171,7 @@ VERSION 5.4.0 (September 21, 2004)
 
   * ADDED: return value for PL_put_blob() to indicate new/reused blob
     identifier.  Also added `acquire' hook to the blob type.
-    Salvador Fandi�o.
+    Salvador Fandio.
 
 
 VERSION 5.3.21 (September 14, 2004)

@@ -567,6 +567,7 @@ loadXRc(int c, IOSTREAM *fd ARG_LD)
 	  { sf->time   = time;
 	    sf->system = (c == 's' ? TRUE : FALSE);
 	  }
+	  sf->count++;
 	  xr = (word)sf;
 	  break;
 	}
@@ -829,6 +830,7 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
   Definition def;
   Clause clause;
   functor_t f = (functor_t) loadXR(fd);
+  SourceFile csf = NULL;
 
   proc = lookupProcedure(f, LD->modules.source);
   DEBUG(3, Sdprintf("Loading %s ", procedureName(proc)));
@@ -872,6 +874,10 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 	  int sno = (sf ? sf->index : 0);
 
 	  clause->source_no = sno;
+	  if ( sf && sf != csf )
+	  { addProcedureSourceFile(sf, proc);
+	    csf = sf;
+	  }
 	}
 	clearFlags(clause);
 	clause->prolog_vars = (unsigned short) getNum(fd);
@@ -2156,8 +2162,8 @@ pl_qlf_start_file(term_t name)
   { GET_LD
     atom_t a;
 
-    if ( !PL_get_atom(name, &a) )
-      return warning("qlf_start_file/1: argument must be an atom");
+    if ( !PL_get_atom_ex(name, &a) )
+      fail;
   
     return qlfStartFile(lookupSourceFile(a), wicFd PASS_LD);
   }
@@ -2178,13 +2184,12 @@ pl_qlf_end_part()
 
 word
 pl_qlf_open(term_t file)
-{ GET_LD
-  atom_t a;
+{ atom_t a;
 
-  if ( PL_get_atom(file, &a) )
+  if ( PL_get_atom_ex(file, &a) )
     return qlfOpen(a);
 
-  return warning("qlf_open/1: instantiation fault");
+  fail;
 }
 
 
@@ -2299,9 +2304,8 @@ pl_qlf_assert_clause(term_t ref, term_t saveclass)
 
     if ( !get_clause_ptr_ex(ref, &clause) )
       fail;
-    if ( !PL_get_atom(saveclass, &sclass) )
-      return PL_error("qlf_assert_clause", 2, NULL,
-		      ERR_DOMAIN, ATOM_save_class, 2);
+    if ( !PL_get_atom_ex(saveclass, &sclass) )
+      fail;
 
     openProcedureWic(clause->procedure, s, sclass PASS_LD);
     saveWicClause(clause, s);
