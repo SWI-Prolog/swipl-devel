@@ -827,6 +827,10 @@ public:
     if ( !PL_initialise(1, av) )
       throw PlError("failed to initialise");
   }
+
+  ~PlEngine()
+  { PL_cleanup(0);
+  }
 };
 
 
