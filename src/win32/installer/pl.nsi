@@ -275,6 +275,7 @@ Section "SGML/XML/HTML parser"
   SetOutPath $INSTDIR\library
   File /r pl\library\DTD
   File pl\library\sgml.pl
+  File pl\library\sgml_write.pl
   File pl\library\xsdp_types.pl
   File pl\library\iso_639.pl
   SetOutPath $INSTDIR\doc\packages

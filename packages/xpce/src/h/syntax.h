@@ -81,7 +81,9 @@ extern char  char_context[];		/* Initial context table */
 				 (char_flags[(unsigned int)(c)] & (f)))
 #define HasSyntax8(c, f)	((char_flags[(unsigned int)(c)] & (f)))
 
+#ifndef iscsym
 #define iscsym(c)		(isalnum(c) || c == '_')
+#endif
 #define isopenbrace(c)		HasSyntax((c), OB)
 #define isclosebrace(c)		HasSyntax((c), CB)
 #define isendsline(c)		HasSyntax((c), EL)

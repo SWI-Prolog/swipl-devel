@@ -2800,7 +2800,7 @@ str_advance(String s, int from, int to, FontObj f)
 
 
 void
-s_print8(charA *s, int l, int x, int y, FontObj f)
+s_printA(charA *s, int l, int x, int y, FontObj f)
 { if ( l > 0 )
   { s_font(f);
     y -= context.wsf->ascent;
@@ -2810,7 +2810,7 @@ s_print8(charA *s, int l, int x, int y, FontObj f)
 
 
 void
-s_print16(charW *s, int l, int x, int y, FontObj f)
+s_printW(charW *s, int l, int x, int y, FontObj f)
 { Cprintf("16-bits characters are not supported on XPCE for Windows\n");
 }
 
@@ -2818,9 +2818,9 @@ s_print16(charW *s, int l, int x, int y, FontObj f)
 void
 s_print(String s, int x, int y, FontObj f)
 { if ( isstrA(s) )
-    s_print8(s->s_textA, s->size, x, y, f);
+    s_printA(s->s_textA, s->size, x, y, f);
   else
-    s_print16(s->s_textW, s->size, x, y, f);
+    s_printW(s->s_textW, s->size, x, y, f);
 }
 
 

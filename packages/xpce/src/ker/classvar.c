@@ -691,7 +691,7 @@ loadDefaultClassVariables(SourceSink f)
 
       lineno++;
 
-      while(isblank(*s))
+      while(isblank(*s) || *s == '\r')
 	s++;
       if ( s[0] == '!' || s[0] == '\n' )
 	continue;

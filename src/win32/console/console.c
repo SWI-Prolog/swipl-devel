@@ -595,14 +595,6 @@ reg_save_int(HKEY key, const TCHAR *name, int value)
 		     (LPBYTE)&val, sizeof(val)) != ERROR_SUCCESS )
     DEBUG(MessageBox(NULL, _T("Failed to save int setting"),
 		     _T("Error"), MB_OK));
-  else
-  { DEBUG(TCHAR buf[256];
-    
-	  _stprintf(buf, _T("Saved %ld to %s (key = %p)"),
-		    val, name, key);
-	  
-	  MessageBox(NULL, buf, _T("info"), MB_OK));
-  }
 }
 
 static void

@@ -84,9 +84,9 @@ displayError(Error e, int argc, Any *argv)
     str_writefv(&s, (CharArray) e->format, argc, argv);
 	
     if ( e->kind == NAME_inform || e->kind == NAME_status )
-      Cprintf("[PCE: %s");
+      Cprintf("[PCE: ");
     else
-      Cprintf("[PCE %s:", strName(e->kind));
+      Cprintf("[PCE %s: ", strName(e->kind));
 
     Cputstr(&s);
     str_unalloc(&s);

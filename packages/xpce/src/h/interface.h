@@ -448,6 +448,10 @@ __pce_export int	Cputchar(int chr);
 __pce_export void	Cflush(void);
 __pce_export char *	Cgetline(char *line, int size);
 
+#ifdef PCE_INCLUDED
+	     int	Cputstr(String s);
+#endif
+
 
 		 /*******************************
 		 *	MEMORY ALLOCATION	*

@@ -2829,7 +2829,7 @@ pl_Cvprintf(const char *fmt, va_list args)
 
 static int
 pl_Cputchar(int c)
-{ return Sputc(c, XPCE_OUTPUT);
+{ return Sputcode(c, XPCE_OUTPUT);
 }
 
 
