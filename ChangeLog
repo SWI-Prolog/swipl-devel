@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Installing the manuals by Pixel <pixel@mandrakesoft.com>
+
   * UPDATED: web-locations in help and Windows console.
 
   * MODIFIED: is_list/1 now checks for a poper list.  proper_list/1 has

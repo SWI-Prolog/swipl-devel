@@ -1,5 +1,5 @@
 ################################################################
-# Makefile for SWI-Prolog 4.x
+# Makefile for SWI-Prolog 5.x
 # $Id$
 #
 # Author:	Jan Wielemaker
@@ -18,6 +18,7 @@
 #	* make install-bins	Link executables from $(bindir)
 #	* make install-arch	Install machine dependent files
 #	* make install-libs	Install machine independent files
+#	* make install-lman	Install man files in Prolog lib hierarchy
 #	* make install-mt	Install multi-threaded version next to normal
 #	* make check		Run some tests
 #
@@ -44,11 +45,11 @@ bindir=@bindir@
 PLBASE=$(prefix)/lib/@PL@-$(PLVERSION)
 # NOTE: Also defined in config.h!
 BOOTFILE=@BOOTFILE@
-man_prefix=@mandir@
+mandir=@mandir@
 mansec=1
 lmansec=3
-mandir=$(man_prefix)/man$(mansec)
-lmandir=$(man_prefix)/man$(lmansec)
+smandir=$(mandir)/man$(mansec)
+lmandir=$(mandir)/man$(lmansec)
 plmandir=$(PLBASE)/man
 
 CC=@CC@
@@ -342,21 +343,23 @@ iinclude::
 		fi
 
 iman:		@INSTALLRLMAN@
-		$(INSTALL_DATA) pl.1 $(plmandir)/$(PL).$(mansec)
-		$(INSTALL_DATA) $(srcdir)/plrc.1 $(plmandir)/plrc.$(mansec)
-		$(INSTALL_DATA) $(srcdir)/plld.1 $(plmandir)/plld.$(mansec)
-		$(INSTALL_DATA) $(srcdir)/readline.3 $(plmandir)/readline.$(lmansec)
-		-if [ ! -d $(man_prefix) ]; then $(MKDIR) $(man_prefix); fi
-		-if [ ! -d $(mandir)  ];    then $(MKDIR) $(mandir);     fi
-		-$(INSTALL_DATA) $(plmandir)/$(PL).$(mansec) $(mandir)
-		-$(INSTALL_DATA) $(plmandir)/plrc.$(mansec) $(mandir)
-		-$(INSTALL_DATA) $(plmandir)/plld.$(mansec) $(mandir)
+		-if [ ! -d $(mandir) ]; then $(MKDIR) $(mandir); fi
+		-if [ ! -d $(smandir)  ];    then $(MKDIR) $(smandir);     fi
+		-$(INSTALL_DATA) $(plmandir)/$(PL).$(mansec) $(smandir)
+		-$(INSTALL_DATA) $(plmandir)/plrc.$(mansec) $(smandir)
+		-$(INSTALL_DATA) $(plmandir)/plld.$(mansec) $(smandir)
 
 install_rlman:
 		-if [ ! -d $(lmandir) ]; then $(MKDIR) $(lmandir); fi
 		-if [ ! -r $(lmandir)/readline.$(lmansec) ]; then \
 		  $(INSTALL_DATA) $(srcdir)/readline.3 $(lmandir)/readline.$(lmansec); \
 		fi
+
+install-lman::
+		$(INSTALL_DATA) pl.1 $(plmandir)/$(PL).$(mansec)
+		$(INSTALL_DATA) $(srcdir)/plrc.1 $(plmandir)/plrc.$(mansec)
+		$(INSTALL_DATA) $(srcdir)/plld.1 $(plmandir)/plld.$(mansec)
+		$(INSTALL_DATA) $(srcdir)/readline.3 $(plmandir)/readline.$(lmansec)
 
 #
 # runtime-only environment installation
