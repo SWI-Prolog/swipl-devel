@@ -19,6 +19,7 @@ AC_SUBST(PLVERSION)
 AC_SUBST(VPATH)
 AC_SUBST(COUTOPT)
 AC_SUBST(INSTALLTARGET)
+AC_SUBST(INSTALLRLMAN)
 
 INSTALLTARGET=dv-install
 PL=pl
@@ -153,6 +154,22 @@ if test ! "$runtime" = "yes" -a "$configreadline" = "yes"; then
       echo "Found curses library.  See if -lreadline works now"
       unset ac_cv_lib_readline_main
       AC_CHECK_LIB(readline, main)
+    fi
+  fi
+
+  if test "$ac_cv_lib_readline_main" = "yes"; then
+    AC_MSG_CHECKING(whether to install readline.3)
+    INSTALLRLMAN=install_rlman
+    if test -z "$MANPATH"; then MANPATH=/usr/man; fi
+    for d in `echo $MANPATH | sed 's/:/ /g'`; do
+      if test -r $d/man3/readline.3; then
+        INSTALLRLMAN=""
+      fi
+    done
+    if test -z "$INSTALLRLMAN"; then
+      AC_MSG_RESULT(Already present)
+    else
+      AC_MSG_RESULT(yes)
     fi
   fi
 fi

@@ -285,17 +285,19 @@ iinclude:
 		    $(INSTALL_DATA) ../include/SWI-Prolog.h $(prefix)/include; \
 		fi
 
-iman:
+iman:		@INSTALLRLMAN@
 		$(INSTALL_DATA) pl.1 $(plmandir)/$(PL).$(mansec)
 		$(INSTALL_DATA) $(srcdir)/plrc.1 $(plmandir)/plrc.$(mansec)
 		$(INSTALL_DATA) $(srcdir)/plld.1 $(plmandir)/plld.$(mansec)
 		$(INSTALL_DATA) $(srcdir)/readline.3 $(plmandir)/readline.$(lmansec)
 		-if [ ! -d $(man_prefix) ]; then mkdir $(man_prefix); fi
 		-if [ ! -d $(mandir)  ];    then mkdir $(mandir);     fi
-		-if [ ! -d $(lmandir) ];    then mkdir $(lmandir);    fi
 		-$(INSTALL_DATA) $(plmandir)/$(PL).$(mansec) $(mandir)
 		-$(INSTALL_DATA) $(plmandir)/plrc.$(mansec) $(mandir)
 		-$(INSTALL_DATA) $(plmandir)/plld.$(mansec) $(mandir)
+
+install_rlman:
+		-if [ ! -d $(lmandir) ]; then mkdir $(lmandir); fi
 		-if [ ! -r $(lmandir)/readline.$(lmansec) ]; then \
 		  $(INSTALL_DATA) $(plmandir)/readline.$(lmansec) $(lmandir); \
 		fi
