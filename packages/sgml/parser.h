@@ -35,9 +35,9 @@
 
 typedef struct _sgml_attribute
 { struct				/* so we can free members */
-  { ochar *cdata;			/* CDATA value */
-    ichar *text;			/* other textual value */
-    long   number;			/* numeric value */
+  { ichar *textA;			/* ANSI textual value */
+    wchar_t *textW;			/* UCS textual value */
+    long   number;			/* numeric value/length */
   } value;
   dtd_attr *definition;			/* DTD definition */
   unsigned flags;			/* additional flags */

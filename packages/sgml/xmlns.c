@@ -111,8 +111,10 @@ update_xmlns(dtd_parser *p, dtd_element *e, int natts, sgml_attribute *atts)
   for( ; natts-- > 0; atts++ )
   { const ichar *name = atts->definition->name->name;
 
-    if ( (name=isxmlns(name, nschr)) && atts->definition->type == AT_CDATA )
-      xmlns_push(p, name, atts->value.cdata);
+    if ( (name=isxmlns(name, nschr)) &&
+	 atts->definition->type == AT_CDATA &&
+	 atts->value.textA )
+      xmlns_push(p, name, atts->value.textA);
   }
 }
 

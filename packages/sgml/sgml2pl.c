@@ -826,25 +826,36 @@ unify_listval(dtd_parser *p,
 }
 
 
+static int
+put_att_text(term_t t, sgml_attribute *a)
+{ if ( a->value.textA )
+  { PL_put_atom_chars(t, a->value.textA);
+    return TRUE;
+  } else if ( a->value.textW )
+  { PL_put_variable(t);
+    PL_unify_wchars(t, PL_ATOM, a->value.number, a->value.textW);
+    return TRUE;
+  } else
+    return FALSE;
+}
+
+
 static void
 put_attribute_value(dtd_parser *p, term_t t, sgml_attribute *a)
 { switch(a->definition->type)
   { case AT_CDATA:
-      PL_put_atom_chars(t, a->value.cdata);
+      put_att_text(t, a);
       break;
     case AT_NUMBER:
-    { if ( a->value.text )
-	PL_put_atom_chars(t, a->value.text);
-      else
+    { if ( !put_att_text(t, a) )
 	PL_put_integer(t, a->value.number);
       break;
     }
-    default:
-    { const ichar *val = a->value.text;
-      const ichar *e;
-
-      if ( a->definition->islist )	/* multi-valued attribute */
+    default:				/* multi-valued attribute */
+    { if ( a->definition->islist && a->value.textA )
       { term_t tail, head = PL_new_term_ref();
+	const ichar *val = a->value.textA;
+	const ichar *e;
 
 	PL_put_variable(t);
 	tail = PL_copy_term_ref(t);
@@ -859,7 +870,7 @@ put_attribute_value(dtd_parser *p, term_t t, sgml_attribute *a)
 	unify_listval(p, head, a->definition->type, istrlen(val), val);
         PL_unify_nil(tail);
       } else
-	PL_put_atom_chars(t, val);
+	put_att_text(t, a);
     }
   }
 }
@@ -869,7 +880,6 @@ put_attribute_value(dtd_parser *p, term_t t, sgml_attribute *a)
 Produce a tag-location in the format
 
 	start_location=file:char-char	
-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int

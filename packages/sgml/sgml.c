@@ -29,6 +29,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <wchar.h>
 
 #define streq(s1, s2) (strcmp(s1, s2) == 0)
 
@@ -100,6 +101,38 @@ print_escaped(char c, ochar const *s)
 }
 
 
+static void
+print_cdata(char c, sgml_attribute *a)
+{ if ( a->value.textA )
+  { print_escaped(c, a->value.textA);
+  } else
+  { FILE *f = stdout;
+    const wchar_t *s = a->value.textW;
+    const wchar_t *e = &s[a->value.number];
+
+    putc(c, f);
+    while ( s < e )
+    { wint_t x = *s;
+
+      if ( x > 0xff )
+      { printf("\\u%4x\\", x);		/* \uXXXX */
+      } else if (x >= ' ')
+      { if (x == '\\')
+	  putc(x, f);
+	putc(x, f);
+      } else if (x == '\t')
+      { putc(x, f);
+      } else if (x == '\n')
+      { printf("\\n");
+      } else
+      { printf("\\%3o", x);
+      }
+    }
+    putc('\n', f);
+  }
+}
+
+
 static int
 print_close(dtd_parser * p, dtd_element * e)
 { print_word(p, ')', e->name->name, 0);
@@ -160,7 +193,7 @@ istrblank(ichar const *s)
 
 
 static int
-print_open(dtd_parser * p, dtd_element * e, int argc, sgml_attribute * argv)
+print_open(dtd_parser * p, dtd_element * e, int argc, sgml_attribute *argv)
 { int i;
 
   for (i = 0; i < argc; i++)
@@ -168,22 +201,22 @@ print_open(dtd_parser * p, dtd_element * e, int argc, sgml_attribute * argv)
     switch (argv[i].definition->type)
     { case AT_CDATA:
 	printf(" CDATA");
-	print_escaped(' ', argv[i].value.cdata);
+	print_cdata(' ', &argv[i]);
 	continue;		/* so we don't get two line breaks */
       case AT_NUMBER:
 	printf(" NUMBER ");
-	if (argv[i].value.text)
-	  printf("%s", argv[i].value.text);
+	if (argv[i].value.textA)
+	  printf("%s", argv[i].value.textA);
 	else
 	  printf("%ld", argv[i].value.number);
 	break;
       case AT_NAMEOF:
 	printf(" NAME");
-	print_word(p, ' ', argv[i].value.text, 0);
+	print_word(p, ' ', argv[i].value.textA, 0);
 	break;
       default:
       { atdef *ad = find_attrdef(argv[i].definition->type);
-	ichar const *val = argv[i].value.text;
+	ichar const *val = argv[i].value.textA;
 
 	print_word(p, ' ', (ichar const *) ad->name, 0);
 	if (ad->islist)

@@ -39,6 +39,7 @@
 #include <wctype.h>
 
 #define DEBUG(g) ((void)0)
+#define ZERO_TERM_LEN (-1)		/* terminated by nul */
 
 		 /*******************************
 		 *	    LOCAL TYPES		*
@@ -411,13 +412,20 @@ representable_char(dtd_parser *p, int chr)
 
 
 static int
-expand_pentities(dtd_parser *p, const ichar *in, ichar *out, int len)
+expand_pentities(dtd_parser *p, const ichar *in, int ilen, ichar *out, int len)
 { dtd *dtd = p->dtd;
   int pero = dtd->charfunc->func[CF_PERO]; /* % */
   int ero = dtd->charfunc->func[CF_ERO]; /* & */
   const ichar *s;
+  const ichar *end;
 
-  while(*in)
+  if ( ilen == ZERO_TERM_LEN )
+  { end = in + strlen(in);
+  } else
+  { end = &in[ilen];
+  }
+
+  while(in < end)
   { if ( *in == pero )
     { dtd_symbol *id;
 
@@ -436,7 +444,7 @@ expand_pentities(dtd_parser *p, const ichar *in, ichar *out, int len)
 	if ( !(eval = entity_value(p, e, NULL)) )
 	  return FALSE;
 
-	if ( !expand_pentities(p, eval, out, len) )
+	if ( !expand_pentities(p, eval, ZERO_TERM_LEN, out, len) )
 	  return FALSE;
 	l = strlen(out);		/* could be better */
 	out += l;
@@ -536,13 +544,14 @@ Expand entities in a string.  Used to expand CDATA attribute values.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-expand_entities(dtd_parser *p, const ichar *in, ochar *out, int len)
+expand_entities(dtd_parser *p, const ichar *in, int len, ocharbuf *out)
 { const ichar *s;
+  const ichar *end = &in[len];
   dtd *dtd = p->dtd;
   int ero = dtd->charfunc->func[CF_ERO]; /* & */
   const ochar *map = dtd->charmap->map;
 
-  while(*in)
+  while(in < end)
   { if ( *in == ero )
     { const ichar *estart = in;		/* for recovery */
       int chr;
@@ -554,9 +563,7 @@ expand_entities(dtd_parser *p, const ichar *in, ochar *out, int len)
 	  else
 	    gripe(ERC_REPRESENTATION, "character");
 	}
-	if ( --len <= 0 )
-	  return gripe(ERC_REPRESENTATION, "CDATA string too long");
-	*out++ = chr;
+	add_ocharbuf(out, chr);
 	in = s;
 	continue;
       }
@@ -565,7 +572,6 @@ expand_entities(dtd_parser *p, const ichar *in, ochar *out, int len)
       { dtd_symbol *id;
 	dtd_entity *e;
 	const ichar *eval;
-	int l;
 	
 	if ( !(in = itake_name(dtd, in+1, &id)) )
 	{ in = estart;
@@ -586,34 +592,35 @@ expand_entities(dtd_parser *p, const ichar *in, ochar *out, int len)
 	  goto recover;
 	}
 
-	if ( !expand_entities(p, eval, out, len) )
+	if ( !expand_entities(p, eval, strlen(eval), out) )
 	  return FALSE;
-	l = ostrlen(out);		/* could be better */
-	out += l;
-	len -= l;
 
 	continue;
       }
     }
 
   recover:
-    if ( --len <= 0 )
-      return gripe(ERC_REPRESENTATION, "CDATA string too long");
 
+    if ( *in == CR && in[1] == LF )
+      in++;
+
+    if ( HasClass(dtd, *in, CH_BLANK) )
+    { add_ocharbuf(out, ' ');
+      in++;
+    } else
 #ifdef UTF8
     if ( p->utf8_decode && ISUTF8_MB(*in) )
     { int chr;
 
       in = sgml__utf8_get_char(in, &chr);
-      if ( chr >= OUTPUT_CHARSET_SIZE )
-	gripe(ERC_REPRESENTATION, "character");
-      *out++ = chr;
-    }
+      add_ocharbuf(out, chr);
+    } else
 #endif
-    *out++ = map[*in++];
+    { add_ocharbuf(out, map[*in++]);
+    }
   }
 
-  *out = 0;
+  terminate_ocharbuf(out);
 
   return TRUE;
 }
@@ -986,23 +993,26 @@ itake_number(dtd *dtd, const ichar *in, dtd_attr *at)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Get a quoted value. After successful return,  *start points to the start
+of the string in the input and  *len   to  the length. The data is *not*
+nul terminated.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static const ichar *
-itake_string(dtd *dtd, const ichar *in, ichar *out, int len)
+itake_string(dtd *dtd, const ichar *in, ichar **start, int *len)
 { in = iskip_layout(dtd, in);
 
   if ( isee_func(dtd, in, CF_LIT) ||
        isee_func(dtd, in, CF_LITA) )
   { ichar q = *in++;
 
+    *start = (ichar *)in;
     while( *in && *in != q )
-    { *out++ = *in++;
-      if ( --len == 0 )
-      { gripe(ERC_REPRESENTATION, "String too long");
-	return NULL;
-      }
-    }
+      in++;
     if ( *in )
-    { *out = '\0';
+    { *len = in - (*start);
+
       return iskip_layout(dtd, ++in);
     }
   }
@@ -1013,11 +1023,12 @@ itake_string(dtd *dtd, const ichar *in, ichar *out, int len)
 
 static const ichar *
 itake_dubbed_string(dtd *dtd, const ichar *in, ichar **out)
-{ ichar buf[MAXSTRINGLEN];
+{ ichar *start;
+  int len;
   const ichar *end;
 
-  if ( (end=itake_string(dtd, in, buf, sizeof(buf))) )
-    *out = istrdup(buf);
+  if ( (end=itake_string(dtd, in, &start, &len)) )
+    *out = istrndup(start, len);
 
   return end;
 }
@@ -1026,21 +1037,13 @@ itake_dubbed_string(dtd *dtd, const ichar *in, ichar **out)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 itake_url() is used to get the argument of a SYSTEM or 2nd argument of a
 PUBLIC reference. Once upon a  time  it   tried  to  tag the argument as
-file:<path>, but this job cannot be before   lookup in the catalogue. We
-could have replaced the calls  with   itake_string(),  but I'll leave it
-this way for documentation purposes.
+file:<path>, but this job cannot be before   lookup in the catalogue. It
+is now the same as itake_dubbed_string(), so we simply call this one.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static const ichar *
 itake_url(dtd *dtd, const ichar *in, ichar **out)
-{ ichar buf[MAXSTRINGLEN];
-  const ichar *end;
-
-  if ( (end=itake_string(dtd, in, buf, sizeof(buf))) )
-  { *out = istrdup(buf);
-  }
-
-  return end;
+{ return itake_dubbed_string(dtd, in, out);
 }
 
 
@@ -1257,14 +1260,14 @@ process_entity_value_declaration(dtd_parser *p,
 
     goto string_expected;
   } else
-  { ichar buf[MAXSTRINGLEN];
+  { ichar *start; int len;
     ichar val[MAXSTRINGLEN];
 
-    if ( !(s = itake_string(dtd, decl, buf, sizeof(buf))) )
+    if ( !(s = itake_string(dtd, decl, &start, &len)) )
       goto string_expected;
     decl = s;
 
-    expand_pentities(p, buf, val, sizeof(val));
+    expand_pentities(p, start, len, val, sizeof(val));
 
     switch ( e->type )
     { case ET_PUBLIC:
@@ -1566,7 +1569,7 @@ free_shortrefs(dtd_shortref *sr)
 
 static const ichar *
 shortref_add_map(dtd *dtd, const ichar *decl, dtd_shortref *sr)
-{ ichar buf[MAXSTRINGLEN];
+{ ichar *start; int len;
   ichar from[MAXMAPLEN];
   ichar *f = from;
   dtd_symbol *to;
@@ -1575,7 +1578,7 @@ shortref_add_map(dtd *dtd, const ichar *decl, dtd_shortref *sr)
   dtd_map **p;
   dtd_map *m;
 
-  if ( !(s=itake_string(dtd, decl, buf, sizeof(buf))) )
+  if ( !(s=itake_string(dtd, decl, &start, &len)) )
   { gripe(ERC_SYNTAX_ERROR, "map-string expected", decl);
     return NULL;
   }
@@ -1586,17 +1589,21 @@ shortref_add_map(dtd *dtd, const ichar *decl, dtd_shortref *sr)
   }
   end = s;
 
-  for(decl=buf; *decl;)
+  for(decl=start; len > 0;)
   { if ( *decl == 'B' )		/* blank */
     { if ( decl[1] == 'B' )
       { *f++ = CHR_DBLANK;
 	decl += 2;
+	len -= 2;
         continue;
       }
       *f++ = CHR_BLANK;
       decl++;
+      len--;
     } else
-      *f++ = *decl++;			/* any other character */
+    { *f++ = *decl++;			/* any other character */
+      len--;
+    }
   }
   *f = 0;
 
@@ -1672,7 +1679,7 @@ process_shortref_declaration(dtd_parser *p, const ichar *decl)
   dtd_symbol *name;
   const ichar *s;
 
-  if ( !expand_pentities(p, decl, buf, sizeof(buf)) )
+  if ( !expand_pentities(p, decl, ZERO_TERM_LEN, buf, sizeof(buf)) )
     return FALSE;
   decl = buf;
 
@@ -1751,7 +1758,7 @@ process_usemap_declaration(dtd_parser *p, const ichar *decl)
   dtd_element *e;
   dtd_shortref *map;
 
-  if ( !expand_pentities(p, decl, buf, sizeof(buf)) )
+  if ( !expand_pentities(p, decl, ZERO_TERM_LEN, buf, sizeof(buf)) )
     return FALSE;
   decl = buf;
 
@@ -2223,7 +2230,7 @@ process_element_declaraction(dtd_parser *p, const ichar *decl)
   int i;
 
 					/* expand parameter entities */
-  if ( !expand_pentities(p, decl, buf, sizeof(buf)) )
+  if ( !expand_pentities(p, decl, ZERO_TERM_LEN, buf, sizeof(buf)) )
     return FALSE;
   decl = buf;
 
@@ -2369,7 +2376,7 @@ process_attlist_declaraction(dtd_parser *p, const ichar *decl)
   const ichar *s;
 
 					/* expand parameter entities */
-  if ( !expand_pentities(p, decl, buf, sizeof(buf)) )
+  if ( !expand_pentities(p, decl, ZERO_TERM_LEN, buf, sizeof(buf)) )
     return FALSE;
   decl = iskip_layout(dtd, buf);
   DEBUG(printf("Expanded to %s\n", decl));
@@ -2496,38 +2503,53 @@ process_attlist_declaraction(dtd_parser *p, const ichar *decl)
 
     if ( at->def == AT_DEFAULT || at->def == AT_FIXED )
     { ichar buf[MAXSTRINGLEN];
+      ichar *start; int len;
       const ichar *end;
       
-      if ( !(end=itake_string(dtd, decl, buf, sizeof(buf))) )
-	end=itake_nmtoken_chars(dtd, decl, buf, sizeof(buf));
+      if ( !(end=itake_string(dtd, decl, &start, &len)) )
+      { end=itake_nmtoken_chars(dtd, decl, buf, sizeof(buf));
+	start = buf;
+	len = strlen(buf);
+      }
       if ( !end )
 	return gripe(ERC_SYNTAX_ERROR, "Bad attribute default", decl);
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Note: itake_name(), etc. work on nul-terminated   strings. The result of
+itake_string() is a  pointer  in  a   nul-terminated  string  and  these
+functions will stop scanning at the  quote   anyway,  so  we can use the
+length of the parsed data to verify we parsed all of it.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
       switch(at->type)
       { case AT_CDATA:
-	{ at->att_def.cdata = istrdup(buf);
+	{ at->att_def.cdata = istrndup(start, len);
 	  break;
 	}
 	case AT_ENTITY:
 	case AT_NOTATION:
 	case AT_NAME:
-	{ if ( !(s=itake_name(dtd, buf, &at->att_def.name)) || *s )
+	{ if ( !(s=itake_name(dtd, start, &at->att_def.name)) ||
+	       (s-start) != len )
 	    return gripe(ERC_DOMAIN, "name", decl);
 	  break;
 	}
 	case AT_NMTOKEN:
 	case AT_NAMEOF:
-	{ if ( !(s=itake_nmtoken(dtd, buf, &at->att_def.name)) || *s )
+	{ if ( !(s=itake_nmtoken(dtd, start, &at->att_def.name)) ||
+	       (s-start) != len )
 	    return gripe(ERC_DOMAIN, "nmtoken", decl);
 	  break;
 	}
 	case AT_NUTOKEN:
-	{ if ( !(s=itake_nutoken(dtd, buf, &at->att_def.name)) || *s )
+	{ if ( !(s=itake_nutoken(dtd, start, &at->att_def.name)) ||
+	       (s-start) != len )
 	    return gripe(ERC_DOMAIN, "nutoken", decl);
 	  break;
 	}
 	case AT_NUMBER:
-	{ if ( !(s=itake_number(dtd, buf, at)) || *s )
+	{ if ( !(s=itake_number(dtd, start, at)) ||
+	       (s-start) != len )
 	     return gripe(ERC_DOMAIN, "number", decl);
 	  break;
 	}
@@ -2537,7 +2559,7 @@ process_attlist_declaraction(dtd_parser *p, const ichar *decl)
 	case AT_NMTOKENS:
 	case AT_NUMBERS:
 	case AT_NUTOKENS:
-	{ at->att_def.list = istrdup(buf);
+	{ at->att_def.list = istrndup(buf, len);
 	  break;
 	}
 	default:
@@ -2990,12 +3012,11 @@ static ichar const *
 get_attribute_value(dtd_parser *p, ichar const *decl, sgml_attribute *att)
 { ichar tmp[MAXSTRINGLEN];
   ichar *buf = tmp;
-  ochar cdata[MAXSTRINGLEN];
   ichar const *s;
-  ichar *d;
   ichar c;
   dtd *dtd = p->dtd;
   ichar const *end;
+  ichar *start; int len;
 
   enum
   { DIG_FIRST = 8,		/* any token start with digit? */
@@ -3006,49 +3027,49 @@ get_attribute_value(dtd_parser *p, ichar const *decl, sgml_attribute *att)
   }
   token = YET_EMPTY;
 
-  end = itake_string(dtd, decl, tmp, sizeof tmp);
-  if (end != NULL)
-  { if (att->definition->type == AT_CDATA)
-    { int hasent = FALSE;
-      ichar const ero = dtd->charfunc->func[CF_ERO];	/* & */
-      ichar *q;
+  att->value.textA = NULL;		/* ansi text */
+  att->value.textW = NULL;		/* UCS text */
+  att->value.number = 0;
+  att->flags = 0;
 
-      for (d = q = tmp; *d; *q++ = *d++)
-      { if ( d[0] == CR && d[1] == LF )
-	  d++;
-	if (HasClass(dtd, *d, CH_BLANK))
-	{ *d = ' ';		/* map all blanks to spaces */
-	} else if (*d == ero)
-	{ hasent = TRUE;	/* notice char/entity references */
-	}
-#ifdef UTF8
-	  else if ( p->utf8_decode && ISUTF8_MB(*d) )
-	{ hasent = TRUE;
-	}
-#endif
-      }
-      *q = '\0';
-      if (hasent)
-      { expand_entities(p, tmp, cdata, MAXSTRINGLEN);
-	buf = (ichar *) cdata;
-      }
+  end = itake_string(dtd, decl, &start, &len);
+
+  if ( end != NULL )
+  { ocharbuf out;
+
+    init_ocharbuf(&out);
+    expand_entities(p, start, len, &out);
+
+    if ( att->definition->type == AT_CDATA )
+    { malloc_ocharbuf(&out);
+
+      att->value.number = out.size;
+      if ( out.encoding == SGML_ENC_ISO )
+	att->value.textA = out.data.t;
+      else
+	att->value.textW = out.data.w;
+
+      return end;
     } else
     { ichar *d;
 
-      expand_entities(p, tmp, cdata, MAXSTRINGLEN);
-      buf = (ichar *) cdata;
+      if ( out.encoding == SGML_ENC_ISO )
+      {	buf = (ichar *) out.data.t;
+      } else
+      { gripe(ERC_SYNTAX_WARNING, "Illegal characters", decl);
+      }
 
       /* canonicalise blanks */
       s = buf;
       while ((c = *s++) != '\0' && HasClass(dtd, c, CH_BLANK))
-      { }
+	;
       d = buf;
-      while (c != '\0')
+      while ( c != '\0' )
       { token |= HasClass(dtd, c, CH_DIGIT) ? DIG_FIRST
 	  : HasClass(dtd, c, CH_NAME) ? NAM_FIRST : /* oops! */ ANY_OTHER;
-	if (d != buf)
+	if ( d != buf )
 	  *d++ = ' ';
-	if (dtd->case_sensitive)
+	if ( dtd->case_sensitive )
 	{ *d++ = c;
 	  while ((c = *s++) != '\0' && !HasClass(dtd, c, CH_BLANK))
 	  { token |= HasClass(dtd, c, CH_DIGIT) ? 0
@@ -3090,11 +3111,6 @@ get_attribute_value(dtd_parser *p, ichar const *decl, sgml_attribute *att)
       istrlower(buf);
   }
 
-  att->value.cdata = NULL;
-  att->value.text = NULL;
-  att->value.number = 0;
-  att->flags = 0;
-
   switch (att->definition->type)
   { case AT_NUMBER:		/* number */
       if (token != DIG_FIRST)
@@ -3102,11 +3118,11 @@ get_attribute_value(dtd_parser *p, ichar const *decl, sgml_attribute *att)
       } else if (dtd->number_mode == NU_INTEGER)
       { (void) istrtol(buf, &att->value.number);
       } else
-      { att->value.text = istrdup(buf);
+      { att->value.textA = istrdup(buf);
       }
       return end;
     case AT_CDATA:		/* CDATA attribute */
-      att->value.cdata = ostrdup((ochar *) buf);
+      att->value.textA = istrdup(buf);
       return end;
     case AT_ID:		/* identifier */
     case AT_IDREF:		/* identifier reference */
@@ -3164,7 +3180,7 @@ get_attribute_value(dtd_parser *p, ichar const *decl, sgml_attribute *att)
   }
 
 passed:
-  att->value.text = istrdup(buf);	/* TBD: more validation */
+  att->value.textA = istrdup(buf);	/* TBD: more validation */
   return end;
 }
 
@@ -3225,9 +3241,9 @@ process_attributes(dtd_parser *p, dtd_element *e, const ichar *decl,
 		  gripe(ERC_SYNTAX_WARNING,
 			"Value short-hand in XML mode", decl);
 		atts[attn].definition   = a;
-		atts[attn].value.cdata  = NULL;
+		atts[attn].value.textW  = NULL;
 		atts[attn].value.number = 0;
-		atts[attn].value.text   = istrdup(nm->name);
+		atts[attn].value.textA  = istrdup(nm->name);
 		attn++;
 		goto next;
 	      }
@@ -3292,26 +3308,26 @@ add_default_attributes(dtd_parser *p, dtd_element *e,
 	}
 
         ap->definition   = a;
-	ap->value.cdata  = NULL;
-	ap->value.text   = NULL;
+	ap->value.textA  = NULL;
+	ap->value.textW  = NULL;
 	ap->value.number = 0;
 	ap->flags        = SGML_AT_DEFAULT;
 
 	switch(a->type)
 	{ case AT_CDATA:
-	    ap->value.cdata = a->att_def.cdata;
+	    ap->value.textA = a->att_def.cdata;
 	    break;
 	  case AT_NUMBER:
 	    if ( p->dtd->number_mode == NU_TOKEN )
-	      ap->value.text = (ichar *)a->att_def.name->name;
+	      ap->value.textA = (ichar *)a->att_def.name->name;
 	    else
 	      ap->value.number = a->att_def.number;
 	    break;
 	  default:
 	    if ( a->islist )
-	      ap->value.text = a->att_def.list;
+	      ap->value.textA = a->att_def.list;
 	    else
-	      ap->value.text = (ichar *)a->att_def.name->name;
+	      ap->value.textA = (ichar *)a->att_def.name->name;
 	}
 
 	natts++;
@@ -3332,10 +3348,10 @@ free_attribute_values(int argc, sgml_attribute *argv)
   { if ( (argv->flags & SGML_AT_DEFAULT) )
       continue;				/* shared with the DTD */
 
-    if ( argv->value.cdata )
-      sgml_free(argv->value.cdata);
-    if ( argv->value.text )
-      sgml_free(argv->value.text);
+    if ( argv->value.textA )
+      sgml_free(argv->value.textA);
+    else if ( argv->value.textW )
+      sgml_free(argv->value.textW);
   }
 }
 
@@ -3664,16 +3680,22 @@ process_pi(dtd_parser *p, const ichar *decl)
 
       if ( (s=itake_name(dtd, decl, &nm)) &&
 	   (s=isee_func(dtd, s, CF_VI)) )
-      { ichar buf[MAXSTRINGLEN];
+      { ichar *start; int len;
+	char buf[MAXSTRINGLEN];
 	const ichar *end;
 
-	if ( !(end=itake_string(dtd, s, buf, sizeof(buf))) )
-	  end=itake_nmtoken_chars(dtd, s, buf, sizeof(buf));
+	if ( !(end=itake_string(dtd, s, &start, &len)) )
+	{ end=itake_nmtoken_chars(dtd, s, buf, sizeof(buf));
+	  start = buf;
+	  len = strlen(buf);
+	}
 
 	if ( end )
-	{ decl = end;
+	{ const char *enc = "encoding";
+	  int l = strlen(enc);
+	  decl = end;
 
-	  if ( istrcaseeq(nm->name, "encoding") )
+	  if ( l == len && istrncaseeq(nm->name, enc, len) )
 	    set_encoding(p, buf);
 
 	  /* fprintf(stderr, "XML %s = %s\n", nm->name, buf); */
@@ -3888,7 +3910,7 @@ process_marked_section(dtd_parser *p)
 
   if ( (decl=isee_func(dtd, decl, CF_MDO2)) && /* ! */
        (decl=isee_func(dtd, decl, CF_DSO)) && /* [ */
-       expand_pentities(p, decl, buf, sizeof(buf)) )
+       expand_pentities(p, decl, ZERO_TERM_LEN, buf, sizeof(buf)) )
   { dtd_symbol *kwd;
 
     decl = buf;
@@ -3971,13 +3993,15 @@ update_space_mode(dtd_parser *p, dtd_element *e,
 { for( ; natts-- > 0; atts++ )
   { const ichar *name = atts->definition->name->name;
 
-    if ( istreq(name, "xml:space") && atts->definition->type == AT_CDATA )
-    { dtd_space_mode m = istr_to_space_mode(atts->value.cdata);
+    if ( istreq(name, "xml:space") &&
+	 atts->definition->type == AT_CDATA &&
+	 atts->value.textA )
+    { dtd_space_mode m = istr_to_space_mode(atts->value.textA);
 
       if ( m != SP_INHERIT )
 	p->environments->space_mode = m;
       else
-	gripe(ERC_EXISTENCE, "xml:space-mode", atts->value.cdata);
+	gripe(ERC_EXISTENCE, "xml:space-mode", atts->value.textA);
 
       return;
     }

@@ -55,6 +55,7 @@ typedef struct
 
 int		istrlen(const ichar *s);
 ichar *         istrdup(const ichar *s);
+ichar *         istrndup(const ichar *s, int len);
 ichar *		istrcpy(ichar *d, const ichar *s);
 ichar *		istrupper(ichar *s);
 ichar *		istrlower(ichar *s);
@@ -89,8 +90,10 @@ void		empty_icharbuf(icharbuf *buf);
 int		ostrlen(const ochar *s);
 ochar *         ostrdup(const ochar *s);
 
+ocharbuf *	init_ocharbuf(ocharbuf *buf);
 ocharbuf *	new_ocharbuf(void);
 void		free_ocharbuf(ocharbuf *buf);
+ocharbuf *	malloc_ocharbuf(ocharbuf *buf);
 void		add_ocharbuf(ocharbuf *buf, int chr);
 void		del_ocharbuf(ocharbuf *buf);
 void		terminate_ocharbuf(ocharbuf *buf);

@@ -67,6 +67,19 @@ istrdup(const ichar *s)
 
 
 ichar *
+istrndup(const ichar *s, int len)
+{ ichar *dup = sgml_malloc((len+1)*sizeof(ichar));
+  ichar *d = dup;
+
+  while(--len >= 0)
+    *d++ = *s++;
+  *d = 0;
+
+  return dup;
+}
+
+
+ichar *
 istrcpy(ichar *d, const ichar *s)
 { ichar *r = d;
 
@@ -315,15 +328,21 @@ character that doesn't fit ISO Latin-1 is added to the buffer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 ocharbuf *
-new_ocharbuf()
-{ ocharbuf *buf = sgml_malloc(sizeof(*buf));
-
-  buf->size = 0;
+init_ocharbuf(ocharbuf *buf)
+{ buf->size = 0;
   buf->allocated = sizeof(buf->localbuf);
   buf->data.t = buf->localbuf;
   buf->encoding = SGML_ENC_ISO;
 
   return buf;
+}
+
+
+ocharbuf *
+new_ocharbuf()
+{ ocharbuf *buf = sgml_malloc(sizeof(*buf));
+  
+  return init_ocharbuf(buf);
 }
 
 
@@ -346,6 +365,31 @@ nextsize(long n)
     m *= 2;
 
   return m;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Make sure the data of the buffer is malloc'ed and nul-terminated.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+ocharbuf *
+malloc_ocharbuf(ocharbuf *buf)
+{ if ( buf->data.t == buf->localbuf )
+  { int bytes = buf->size + 1;
+
+    if ( buf->encoding == SGML_ENC_UCS )
+      bytes *= sizeof(wchar_t);
+
+    buf->data.t = sgml_malloc(bytes);
+    memcpy(buf->data.t, buf->localbuf, bytes);
+    if ( buf->encoding == SGML_ENC_ISO )
+      buf->data.t[buf->size] = 0;
+    else
+      buf->data.w[buf->size] = 0;
+  } else
+    terminate_ocharbuf(buf);
+
+  return buf;
 }
 
 
@@ -384,16 +428,16 @@ promote_ocharbuf(ocharbuf *buf)
 void
 add_ocharbuf(ocharbuf *buf, int chr)
 { if ( buf->encoding == SGML_ENC_ISO && chr <= 0xff )
-{ if ( buf->size == buf->allocated )
+  { if ( buf->size == buf->allocated )
     { buf->allocated *= 2;
 
       if ( buf->data.t != buf->localbuf )
-	buf->data.t = sgml_realloc(buf->data.t, buf->allocated);
-    else
+      { buf->data.t = sgml_realloc(buf->data.t, buf->allocated);
+      } else
       { buf->data.t = sgml_malloc(buf->allocated);
 	memcpy(buf->data.t, buf->localbuf, sizeof(buf->localbuf));
       }
-  }
+    }
     buf->data.t[buf->size++] = chr;
   
     return;
@@ -406,8 +450,8 @@ add_ocharbuf(ocharbuf *buf, int chr)
   { buf->allocated *= 2;
 
     if ( buf->data.w != (wchar_t*)buf->localbuf )
-      buf->data.w = sgml_realloc(buf->data.w, buf->allocated*sizeof(wchar_t));
-    else
+    { buf->data.w = sgml_realloc(buf->data.w, buf->allocated*sizeof(wchar_t));
+    } else
     { buf->data.w = sgml_malloc(buf->allocated*sizeof(wchar_t));
       memcpy(buf->data.w, buf->localbuf, sizeof(buf->localbuf));
     }
