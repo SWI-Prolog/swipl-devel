@@ -45,14 +45,7 @@ createDialogItem(Any obj, Name name)
 
 status
 unlinkDialogItem(DialogItem di)
-{ Graphical gr = (Graphical) di;
-
-  aboveGraphical(gr, NIL);		/* move to graphical??? */
-  belowGraphical(gr, NIL);
-  rightGraphical(gr, NIL);
-  leftGraphical(gr, NIL);
-
-  return unlinkGraphical(gr);
+{ return unlinkGraphical((Graphical)di);
 }
 
 
@@ -576,8 +569,8 @@ static senddecl send_dialogItem[] =
      DEFAULT, "Change <-name, update <-label"),
   SM(NAME_reset, 0, NULL, resetDialogItem,
      DEFAULT, "Change status to `inactive'"),
-  SM(NAME_unlink, 0, NULL, unlinkDialogItem,
-     DEFAULT, "Remove left,right,above,below links"),
+/*SM(NAME_unlink, 0, NULL, unlinkDialogItem,		empty these days
+     DEFAULT, "Remove left,right,above,below links"), */
   SM(NAME_default, 1, "any", virtualObject,
      NAME_apply, "Virtual method"),
   SM(NAME_modified, 1, "bool", modifiedDialogItem,
