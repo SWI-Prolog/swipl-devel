@@ -995,11 +995,6 @@ term_colours((:- pce_global(_, new(_))),
 				       pce_arg
 				     ]
 			]).
-term_colours((:- pce_global(_, _)),
-	     expanded - [ expanded - [ identifier,
-				       body
-				     ]
-			]).
 term_colours((:- emacs_end_mode),
 	     expanded - [ expanded
 			]).
