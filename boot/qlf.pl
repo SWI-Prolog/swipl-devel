@@ -31,7 +31,7 @@
 
 :- module($qlf,
 	  [ qcompile/1,		% +File
-	    $qload_file/6	% +Path, +Module, +Import, +IsModule, -Ac, -LM
+	    $qload_file/7	% +Path, +Enc, +Module, +Import, +IsModule, -Ac, -LM
 	  ]).
 
 
@@ -69,11 +69,12 @@ qcompile(File) :-
 	Ok == true.
 
 
-%	qload(+File, +Module, +Import, -IsModule, -Action, -LoadedModule)
+%	qload(+File, _Enc, +Module, +Import, -IsModule, -Action,
+%	-LoadedModule)
 %
 %	Load predicate for .qlf files.  See init.pl
 
-$qload_file(File, Module, Import, IsModule, loaded, LoadedModule) :-
+$qload_file(File, _Enc, Module, Import, IsModule, loaded, LoadedModule) :-
 	$qlf_load(Module:File, LoadedModule),
 	check_is_module(IsModule, LoadedModule, File),
 	(   atom(LoadedModule)

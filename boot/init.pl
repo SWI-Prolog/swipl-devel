@@ -705,26 +705,33 @@ $ifcompiling(G) :-
 preprocessor(Old, New) :-
 	flag($preprocessor, Old, New).
 
-$open_source(stream(Id, In), In, Goal) :- !,
+$set_encoding(default, _) :- !.
+$set_encoding(Encoding, Stream) :-
+	set_stream(Stream, encoding(Encoding)).
+
+$open_source(stream(Id, In), Enc, In, Goal) :- !,
 	$push_input_context,
+	$set_encoding(Enc, In),
 	set_stream(In, file_name(Id)),
 	set_stream(In, record_position(true)),
 	$open_source_call(Id, In, Goal, True),
 	$pop_input_context,
 	True == yes.
-$open_source(File, In, Goal) :-
+$open_source(File, Enc, In, Goal) :-
 	preprocessor(none, none), !,
 	$push_input_context,
 	open(File, read, In),
+	$set_encoding(Enc, In),
 	$open_source_call(File, In, Goal, True),
 	close(In),
 	$pop_input_context,
 	True == yes.
-$open_source(File, In, Goal) :-
+$open_source(File, Enc, In, Goal) :-
 	preprocessor(Pre, Pre),
 	(   $substitute_atom('%f', File, Pre, Command)
 	->  $push_input_context,
 	    open(pipe(Command), read, In),
+	    $set_encoding(Enc, In),
 	    $open_source_call(File, In, Goal, True),
 	    close(In),
 	    $pop_input_context,
@@ -967,6 +974,7 @@ $load_file(File, Module, Options) :-
 	$get_option(if(If), Options, true),
 	$get_option(autoload(Autoload), Options, false),
 	$get_option(derived_from(DerivedFrom), Options, -),
+	$get_option(encoding(Encoding), Options, default),
 
 	(   Autoload == false
 	->  flag($autoloading, AutoLevel, AutoLevel)
@@ -1000,12 +1008,14 @@ $load_file(File, Module, Options) :-
 			   load_file(start(Level,
 					   file(File, Absolute)))),
 	    (   nonvar(FromStream),
-	        $consult_file(stream(Absolute, FromStream),
+	        $consult_file(stream(Absolute, FromStream), Encoding,
 			      Module, Import, IsModule, Action, LM)
 	    ->	true
 	    ;   var(FromStream),
 		$consult_goal(Absolute, Goal),
-		call(Goal, Absolute, Module, Import, IsModule, Action, LM)
+		call(Goal,
+		     Absolute, Encoding,
+		     Module, Import, IsModule, Action, LM)
 	    ->  true
 	    ;   print_message(error, load_file(failed(File))),
 		fail
@@ -1047,19 +1057,20 @@ $print_message_fail(E) :-
 	print_message(error, E),
 	fail.
 
-%	$consult_file(+Path, +Module, +Import, +IsModule, -Action, -LoadedIn)
+%	$consult_file(+Path, +Encoding,
+%		      +Module, +Import, +IsModule, -Action, -LoadedIn)
 
-$consult_file(Absolute, Module, Import, IsModule, What, LM) :-
+$consult_file(Absolute, Enc, Module, Import, IsModule, What, LM) :-
 	$set_source_module(Module, Module), !, % same module
-	$consult_file_2(Absolute, Module, Import, IsModule, What, LM).
-$consult_file(Absolute, Module, Import, IsModule, What, LM) :-
+	$consult_file_2(Absolute, Enc, Module, Import, IsModule, What, LM).
+$consult_file(Absolute, Enc, Module, Import, IsModule, What, LM) :-
 	$set_source_module(OldModule, Module),
 	$ifcompiling($qlf_start_sub_module(Module)),
-        $consult_file_2(Absolute, Module, Import, IsModule, What, LM),
+        $consult_file_2(Absolute, Enc, Module, Import, IsModule, What, LM),
 	$ifcompiling($qlf_end_part),
 	$set_source_module(_, OldModule).
 
-$consult_file_2(Absolute, Module, Import, IsModule, What, LM) :-
+$consult_file_2(Absolute, Enc, Module, Import, IsModule, What, LM) :-
 	$set_source_module(OldModule, Module),	% Inform C we start loading
 	$load_id(Absolute, Id),
 	$start_consult(Id),
@@ -1072,7 +1083,7 @@ $consult_file_2(Absolute, Module, Import, IsModule, What, LM) :-
 
 	current_prolog_flag(generate_debug_info, DebugInfo),
 	$style_check(OldStyle, OldStyle),	% Save style parameters
-	$open_source(Absolute, In,
+	$open_source(Absolute, Enc, In,
 		     $load_file(In, Id, Import, IsModule, LM)),
 	$style_check(_, OldStyle),		% Restore old style
 	set_prolog_flag(generate_debug_info, DebugInfo),
