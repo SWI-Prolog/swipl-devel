@@ -274,7 +274,8 @@ Initialize.o:
 # XPCE's modules
 ################################################################
 
-MODULES=	adt ari evt gnu gra itf ker men fmt msg prg rel txt unx win img
+MODULES=	adt ari evt gnu gra itf ker men fmt msg prg rel \
+		txt unx win img box
 
 ################################################################
 # PROTOTYPES (must be made in the source directory)
@@ -476,6 +477,17 @@ $(srcdir)/fmt/proto.h:	$(FMTSRC)
 
 
 ################################################################
+# BOX 		--- Typesetting stuff
+################################################################
+
+BOXOBJS=	boxes.o hbox.o tbox.o parbox.o grbox.o rubber.o
+BOXSRC=		$(addprefix $(srcdir)/box/, $(BOXOBJS:.o=.c))
+
+$(srcdir)/box/proto.h:	$(BOXSRC)
+		$(MKPROTO) $(BOXSRC) | $(CLPROTO) > $@
+
+
+################################################################
 # MSG 		--- Executable (message) Objects
 ################################################################
 
@@ -593,6 +605,7 @@ OBJECTS=	$(addprefix adt/, $(ADTOBJS)) \
 		$(addprefix ker/, $(KEROBJS)) \
 		$(addprefix men/, $(MENOBJS)) \
 		$(addprefix fmt/, $(FMTOBJS)) \
+		$(addprefix box/, $(BOXOBJS)) \
 		$(addprefix msg/, $(MSGOBJS)) \
 		$(addprefix prg/, $(PRGOBJS)) \
 		$(addprefix rel/, $(RELOBJS)) \
