@@ -4,6 +4,9 @@
 VERSION 6.2.9, distributed with SWI-Prolog 5.2.9
 ================================================
 
+* FIXED: Frame area computation in MS-Windows to use AdjustWindowRectEx(). 
+  Fixes layout problems in Windows XP.
+
 * ADDED: in_pce_thread/1 to support the model of XPCE running in the foreground
   and make background threads interact synchronously with it.
 

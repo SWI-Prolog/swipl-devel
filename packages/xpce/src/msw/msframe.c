@@ -612,41 +612,6 @@ ws_uncreate_frame(FrameObj fr)
   }
 }
 
-
-static void
-outer_frame_area(FrameObj fr, int *x, int *y, int *w, int *h, int limit)
-{ Area a = fr->area;
-  int dw, th;
-
-  *x = valInt(a->x);
-  *y = valInt(a->y);
-  *w = valInt(a->w);
-  *h = valInt(a->h);
-
-  if ( fr->kind == NAME_toplevel )
-  { dw = 4;				/* decoration width */
-    th = 19;				/* title hight */
-  } else if ( fr->kind == NAME_transient )
-  { dw = 4;
-    if ( getClassVariableValueObject(fr, NAME_decorateTransient) == ON )
-      th = 19;
-    else
-      th = 0;
-  } else
-    dw = th = 0;
-
-  *x -= dw;
-  *w += dw * 2;
-  *y -= dw + th;
-  *h += dw * 2 + th;
-
-  if ( limit && *x < 0 )
-    *x = 0;
-  if ( limit && *y < 0 )
-    *y = 0;
-}
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 NOTE: transients are a bit complicated. I'd   like to have a window with
 just a title and a close-button. The  below appears to achieve that. The
@@ -662,7 +627,8 @@ ws_create_frame(FrameObj fr)
   HWND owner = NULL;
   DWORD style = WS_CLIPCHILDREN; 
   DWORD exstyle = 0;
-  int x, y, w, h;
+  RECT rect;
+  int w, h;
 
   if ( fr->kind == NAME_popup )
   { style |= WS_POPUP;
@@ -698,9 +664,28 @@ ws_create_frame(FrameObj fr)
   if ( fr->sensitive == OFF )
     style |= WS_DISABLED;
 
-  outer_frame_area(fr, &x, &y, &w, &h, TRUE);
+  rect.left   = valInt(fr->area->x);
+  rect.top    = valInt(fr->area->y);
+  rect.right  = rect.left + valInt(fr->area->w);
+  rect.bottom = rect.top  + valInt(fr->area->h);
+  AdjustWindowRectEx(&rect, style, FALSE, exstyle);
+  if ( rect.left < 0 )
+  { rect.right -= rect.left;
+    rect.left = 0;
+  }
+  if ( rect.top < 0 )
+  { rect.bottom -= rect.top;
+    rect.top = 0;
+  }
+  w = rect.right - rect.left;
+  h = rect.bottom - rect.top;
+  if ( w < 5 )
+    w = 5;
+  if ( h < 5 )
+    h = 5;
+
   DEBUG(NAME_frame, Cprintf("Creating %s area(%d,%d,%d,%d)\n", 
-			    pp(fr), x, y, w, h));
+			    pp(fr), rect.left, rect.top, w, h));
 
   current_frame = fr;
   ref = CreateWindowEx(exstyle,
@@ -708,7 +693,7 @@ ws_create_frame(FrameObj fr)
 					      : WinFrameClass(),
 		       strName(fr->label),
 		       style,
-		       x, y, w, h,
+		       rect.left, rect.top, w, h,
 		       owner,
 		       NULL,		/* menu */
 		       PceHInstance,
@@ -720,6 +705,11 @@ ws_create_frame(FrameObj fr)
   setHwndFrame(fr, ref);
   assocObjectToHWND(ref, fr);
   current_frame = NULL;
+
+  { WsFrame f = fr->ws_ref;
+    f->style = style;
+    f->styleex = exstyle;
+  }
 
   succeed;
 }
@@ -984,16 +974,27 @@ void
 ws_geometry_frame(FrameObj fr, Int px, Int py, Int pw, Int ph)
 { WsFrame f = fr->ws_ref;
 
-  if ( f )
-  { int x, y, w, h;
-    UINT flags = SWP_NOACTIVATE|SWP_NOZORDER;
+  if ( f && f->hwnd )
+  { UINT flags = SWP_NOACTIVATE|SWP_NOZORDER;
     Area a = fr->area;
-
-    outer_frame_area(fr, &x, &y, &w, &h, FALSE);
-/*
-    x = valInt(a->x);
-    y = valInt(a->y);
-*/
+    RECT rect;
+    int w, h;
+    
+    rect.left   = valInt(fr->area->x);
+    rect.top    = valInt(fr->area->y);
+    rect.right  = rect.left + valInt(fr->area->w);
+    rect.bottom = rect.top  + valInt(fr->area->h);
+    AdjustWindowRectEx(&rect, f->style, FALSE, f->styleex);
+    if ( rect.left < 0 )
+    { rect.right -= rect.left;
+      rect.left = 0;
+    }
+    if ( rect.top < 0 )
+    { rect.bottom -= rect.top;
+      rect.top = 0;
+    }
+    w = rect.right - rect.left;
+    h = rect.bottom - rect.top;
 
     if ( isDefault(pw) && isDefault(ph) )
       flags |= SWP_NOSIZE;
@@ -1004,7 +1005,7 @@ ws_geometry_frame(FrameObj fr, Int px, Int py, Int pw, Int ph)
 
     SetWindowPos(f->hwnd,
 		 HWND_TOP,		/* ignored */
-		 x, y, w, h,
+		 rect.left, rect.top, w, h,
 		 flags);
   }
 }

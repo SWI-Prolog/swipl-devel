@@ -104,6 +104,8 @@ typedef struct
   HCURSOR	hcursor;		/* cursor displayed */
   int		bb;			/* has bounding box */
   int		bbx, bby, bbw, bbh;	/* BB coordinates */
+  DWORD		style;			/* style of MS-Windows window */
+  DWORD		styleex;		/* extended style */
 } ws_frame, *WsFrame;
 
 		 /*******************************
