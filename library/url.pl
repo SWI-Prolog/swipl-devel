@@ -225,6 +225,13 @@ cparam(Name=Value) --> !,
 	cform(Name), 
 	"=", 
 	cform(Value). 
+cparam(NameValue) -->			% allow to feed Name(Value)
+	{ compound(NameValue), !,
+	  NameValue =.. [Name,Value]
+	},
+	cform(Name), 
+	"=", 
+	cform(Value). 
 cparam(Name)--> 
 	cform(Name). 
 	
@@ -776,7 +783,6 @@ parse_url_search(Spec, Fields) :-
 parse_url_search(Codes, Fields) :-
 	is_list(Codes), !,
 	phrase(search(Fields), Codes).
-parse_url_search(Out, Fields) :-
-	phrase(csearch(Fields), Codes),
-	atom_codes(Out, Codes).
+parse_url_search(Codes, Fields) :-
+	phrase(csearch(Fields, ""), Codes).
 	

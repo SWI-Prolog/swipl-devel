@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED/MODIFIED: library(url), parse_url_search(-Spec, +Fields), packing
+    a search specification.
+
   * ADDED: 'F' (fail) option to graphical debugger (Feature #51, Holger
     Kanwischer).
 
