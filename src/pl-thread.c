@@ -205,12 +205,10 @@ PL_atomic_inc(int *addr)
 #ifdef WIN32
   if ( sizeof(int) == sizeof(long) )
     InterlockedIncrement((long *)addr);
-  else
 #else
-  { PL_LOCK(L_MISC);
-    (*addr)++;
-    PL_UNLOCK(L_MISC);
-  }
+  PL_LOCK(L_MISC);
+  (*addr)++;
+  PL_UNLOCK(L_MISC);
 #endif
 #endif
 }
@@ -225,12 +223,10 @@ PL_atomic_dec(int *addr)
 #ifdef WIN32
   if ( sizeof(int) == sizeof(long) )
     InterlockedDecrement((long *)addr);
-  else
 #else
-  { PL_LOCK(L_MISC);
-    (*addr)--;
-    PL_UNLOCK(L_MISC);
-  }
+  PL_LOCK(L_MISC);
+  (*addr)--;
+  PL_UNLOCK(L_MISC);
 #endif
 #endif
 }
