@@ -198,10 +198,13 @@ library_index_out_of_date(Index, Files) :-
 
 
 do_make_library_index(Index, Files) :-
+	$style_check(OldStyle, OldStyle),
+	style_check(-dollar),
 	open(Index, write, Fd),
 	index_header(Fd),
 	checklist(index_file(Fd), Files),
-	close(Fd).
+	close(Fd),
+	$style_check(_, OldStyle).
 
 index_file(Fd, File) :-
 	open(File, read, In),
