@@ -453,3 +453,4 @@
 #define ATOM_dec10        MK_ATOM(452)
 #define ATOM_xdigit       MK_ATOM(453)
 #define ATOM_canceled     MK_ATOM(454)
+#define ATOM_time_stamp   MK_ATOM(455)

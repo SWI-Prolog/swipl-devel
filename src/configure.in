@@ -124,8 +124,7 @@ AC_CHECK_PROGS(ETAGS, etags ctags, ":")
 AC_PROG_AWK
 AC_PROG_INSTALL
 case "$INSTALL" in
-    ./*) if test -z "$PWD"; then PWD=`pwd`; fi
-         INSTALL="$PWD/$INSTALL" ;;
+    ./*) INSTALL="`pwd`/$INSTALL" ;;
 esac
 AC_PROG_CPP
 AC_ISC_POSIX

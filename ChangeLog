@@ -1,6 +1,17 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: configure work-around for shells providing $PWD, but with the
+    wrong value ...
+
+  * FIXED: time_t problem in convert_time/2.  Added exception to instantiation
+    errors of convert_time/[2,8].
+
+  * FIXED: Portability problem for PPC chip (and possibly others) in
+    PL_unify_term(), causing crashes at various places on affected
+    processors.  The new implementation is propably a litle faster too.
+    With help of Paulo Moura.
+
   * FIXED: a few type conversions for the 64-bit versions. Just making
     the compiler silent.
 

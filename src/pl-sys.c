@@ -102,10 +102,11 @@ pl_convert_time(term_t time, term_t year, term_t month,
 	 PL_unify_integer(second, tm->tm_sec) &&
 	 PL_unify_integer(usec,   us) )
       succeed;
-  } else
-    warning("convert_time/8: instantiation fault");
+    else
+      fail;
+  }
 
-  fail;
+  return PL_error("convert_time", 8, NULL, ERR_TYPE, ATOM_time_stamp, time);
 }
 
 
@@ -114,7 +115,7 @@ pl_convert_time2(term_t time, term_t string)
 { double tf;
 
   if ( PL_get_float(time, &tf) && tf <= PLMAXINT && tf >= PLMININT )
-  { long t  = (long) tf;
+  { time_t t  = (time_t)(long)tf;
     char *s = ctime(&t);
 
     if ( s )
@@ -129,7 +130,7 @@ pl_convert_time2(term_t time, term_t string)
     return warning("convert_time/2: %s", OsError());
   }
   
-  return warning("convert_time/2: instantiation fault");
+  return PL_error("convert_time", 2, NULL, ERR_TYPE, ATOM_time_stamp, time);
 }
 
 
