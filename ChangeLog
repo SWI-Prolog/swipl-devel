@@ -1,11 +1,18 @@
 			SWI-Prolog ChangeLog
 			====================
 			
+  * ADDED: close_hook to IOSTREAM to allow setting a foreign hook on the
+    closure of any stream  
+
+  * ADDED: library(memfile) to the package clib providing streams to
+    memory-buffers.
+
   * ADDED: library(cgi) from package clib is now standard part of the
     Windows distribution.
 
   * ADDED: stream_property/2 and set_stream/2 set and query the buffer mode
-    of existing streams.  Also added eof_action(Action) to set_stream/2.
+    of existing streams.  Also added eof_action(Action) and
+    close_on_abort(Bool) to set_stream/2.
 
   * MODIFIED: The sequence X=!, X doesn't cut any longer as this was
     in conflict with the ISO standard (Bart Demoen).
@@ -14,7 +21,7 @@
     of findall/3, bagof/3 or setof/3.  Reported by Bart Demoen.
 
   * FIXED: Possible infinite loop looking for attached state.  Spotted with
-    fix by NIDE Naoyuki.   Thanks!
+    fix by Nide Naoyuki.   Thanks!
 
   * PORT: Added various issues to make SWI-Prolog compile on BeOS.  Thanks
     to Axel Doerfler.
