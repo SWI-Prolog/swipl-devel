@@ -174,6 +174,7 @@
   BUILTIN_NAME("ascii")
   BUILTIN_NAME("assign")
   BUILTIN_NAME("assign_accelerators")
+  BUILTIN_NAME("associates")
   BUILTIN_NAME("atomic")
   BUILTIN_NAME("attach")
   BUILTIN_NAME("attach_hyper")
@@ -2360,4 +2361,3 @@
   BUILTIN_NAME("yref")
   BUILTIN_NAME("yref_var")
   BUILTIN_NAME("zoom")
-  BUILTIN_NAME("associates")

@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: qsave_program/2: properly handle small and 0 (= max) stack-size
+    specification.  Detmar Meurers.
+
   * FIXED: Flush user_output before query/error messages in the toplevel,
     avoiding confusion due to stream-buffering for more simple cases.
     Martin Sondergaard.

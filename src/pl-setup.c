@@ -1064,8 +1064,8 @@ mapOrOutOf(Stack s)
 
   s->max = addPointer(s->max, incr);
 
-  if ( newroom <= STACK_SIGNAL )
-  { if ( newroom <= STACK_RESERVE )
+  if ( newroom < STACK_SIGNAL )
+  { if ( newroom < STACK_RESERVE )
     {
 #ifndef NO_SEGV_HANDLING
       LD->current_signal = SIGSEGV;
@@ -1112,6 +1112,7 @@ unmap(Stack s)
   }
 }
 
+/* mmap() version */
 
 static void
 allocStacks(long local, long global, long trail, long argument)
@@ -1135,10 +1136,10 @@ allocStacks(long local, long global, long trail, long argument)
   tsep = size_alignment;
 #endif
 
-  local    = max(local,    minlocal);
-  global   = max(global,   minglobal);
-  trail    = max(trail,    mintrail);
-  argument = max(argument, minargument);
+  local    = max(local,    minlocal + STACK_SIGNAL);
+  global   = max(global,   minglobal + STACK_SIGNAL);
+  trail    = max(trail,    mintrail + STACK_SIGNAL);
+  argument = max(argument, minargument + STACK_SIGNAL);
 
   local    = (long) align_size(local);	/* Round up to page boundary */
   global   = (long) align_size(global);
@@ -1287,12 +1288,18 @@ unmap(Stack s)
 }
 
 
+/* Windows VirtualAlloc() version */
+
 static void
 allocStacks(long local, long global, long trail, long argument)
 { caddress lbase, gbase, tbase, abase;
   long glsize;
   long lsep, tsep;
   SYSTEM_INFO info;
+  long minglobal   = 4*SIZEOF_LONG K;
+  long minlocal    = 2*SIZEOF_LONG K;
+  long mintrail    = 2*SIZEOF_LONG K;
+  long minargument = 1*SIZEOF_LONG K;
 
   GetSystemInfo(&info);
   size_alignment = info.dwPageSize;
@@ -1303,6 +1310,11 @@ allocStacks(long local, long global, long trail, long argument)
   lsep = STACK_SEPARATION;
   tsep = size_alignment;
 #endif
+
+  local    = max(local,    minlocal + STACK_SIGNAL);
+  global   = max(global,   minglobal + STACK_SIGNAL);
+  trail    = max(trail,    mintrail + STACK_SIGNAL);
+  argument = max(argument, minargument + STACK_SIGNAL);
 
   local    = (long) align_size(local);	/* Round up to page boundary */
   global   = (long) align_size(global);
@@ -1324,10 +1336,10 @@ allocStacks(long local, long global, long trail, long argument)
   init_stack((Stack) &LD->stacks.name, print, base, limit, minsize);
 #define K * 1024
 
-  INIT_STACK(global,   "global",   gbase, global,   4*SIZEOF_LONG K);
-  INIT_STACK(local,    "local",    lbase, local,    2*SIZEOF_LONG K);
-  INIT_STACK(trail,    "trail",    tbase, trail,    2*SIZEOF_LONG K);
-  INIT_STACK(argument, "argument", abase, argument, 1*SIZEOF_LONG K);
+  INIT_STACK(global,   "global",   gbase, global,   minglobal);
+  INIT_STACK(local,    "local",    lbase, local,    minlocal);
+  INIT_STACK(trail,    "trail",    tbase, trail,    mintrail);
+  INIT_STACK(argument, "argument", abase, argument, minargument);
 
 #ifndef NO_SEGV_HANDLING
   set_stack_guard_handler(SIGSEGV, _PL_segv_handler);
@@ -1556,9 +1568,16 @@ init_stack(Stack s, char *name, long size, long limit, long minfree)
   s->small     = (s->gc ? SMALLSTACK : 0);
 }
 
+/* malloc() version */
+
 static void
-allocStacks(long local, long global, long trail, long arg)
+allocStacks(long local, long global, long trail, long argument)
 { long old_heap = GD->statistics.heap;
+  long minglobal   = 25*SIZEOF_LONG K;
+  long minlocal    = 4*SIZEOF_LONG K;
+  long mintrail    = 4*SIZEOF_LONG K;
+  long minargument = 1*SIZEOF_LONG K;
+
 #if O_SHIFT_STACKS
   long itrail  = 8*SIZEOF_LONG K;
   long iglobal = 50*SIZEOF_LONG K;
@@ -1569,21 +1588,26 @@ allocStacks(long local, long global, long trail, long arg)
   long ilocal  = local;
 #endif
 
+  local    = max(local,    minlocal);
+  global   = max(global,   minglobal);
+  trail    = max(trail,    mintrail);
+  argument = max(argument, minargument);
+
   gBase = (Word) malloc(iglobal + sizeof(word) +
 			ilocal + sizeof(struct localFrame) +
 			MAXARITY * sizeof(word));
   lBase = (LocalFrame)	addPointer(gBase, iglobal+sizeof(word));
   tBase = (TrailEntry)	malloc(itrail);
-  aBase = (Word *)	malloc(arg);
+  aBase = (Word *)	malloc(argument);
 
   init_stack((Stack)&LD->stacks.global,
-	     "global",   iglobal, global,  25*SIZEOF_LONG K);
+	     "global",   iglobal, global,  minglobal);
   init_stack((Stack)&LD->stacks.local,
-	     "local",    ilocal,  local,   4*SIZEOF_LONG K);
+	     "local",    ilocal,  local,   minlocal);
   init_stack((Stack)&LD->stacks.trail,
-	     "trail",    itrail,  trail,   2*SIZEOF_LONG K);
+	     "trail",    itrail,  trail,   mintrail);
   init_stack((Stack)&LD->stacks.argument,
-	     "argument", arg,     arg,	   0 K);
+	     "argument", argument, argument, minargument);
 
   GD->statistics.heap = old_heap;
 }

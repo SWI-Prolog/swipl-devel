@@ -156,10 +156,12 @@ min_stack(global,   16).
 min_stack(trail,    16).
 min_stack(argument, 16).
 
-convert_option(_, 0, 0) :- !.
-convert_option(Stack, Val, NewVal) :-
+convert_option(Stack, Val, NewVal) :-	% stack-sizes are in K-bytes
 	min_stack(Stack, Min), !,
-	NewVal is max(Min, Val).
+	(   Val == 0
+	->  NewVal = Val
+	;   NewVal is max(Min, Val*1024)
+	).
 convert_option(_, Val, Val).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
