@@ -1466,7 +1466,7 @@ pl_erase(term_t ref)
       PL_error("erase", 1, NULL, ERR_PERMISSION,
 	       ATOM_clause, ATOM_erase, ref);
 
-    return retractClauseProcedure(clause->procedure, clause);
+    return retractClauseProcedure(clause->procedure, clause PASS_LD);
   }
   
   LOCK();

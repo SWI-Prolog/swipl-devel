@@ -851,20 +851,18 @@ removeClausesProcedure(Procedure proc, int sfindex, int is_marked)
     gcClausesDefinition(def);
 }
 
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Retract a clause from a procedure. When   a clause without references is
-retracted it is actually removed from the  heap, otherwise the clause is
-unlinked and marked as `erased'. Its next   pointer will not be changed.
-to avoid the follow up clause  to  be   destroyed  it  is given an extra
-reference.
+Unlink a clause from the  definition,  both   from  the  index table and
+clause-chain. The clause itself is not  deleted,   this  task is left to
+retractClauseProcedure().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static bool
-retractClauseDefinitionMT(Definition def, Clause clause)
-{ GET_LD
-  ClauseRef prev = NULL;
+static void
+unlinkClause(Definition def, Clause clause ARG_LD)
+{ ClauseRef prev = NULL;
   ClauseRef c;
-  bool rval = FALSE;
+
   startCritical;
 
   if ( def->hash_info )
@@ -884,28 +882,24 @@ retractClauseDefinitionMT(Definition def, Clause clause)
 
 
       freeClauseRef(c PASS_LD);
-#if O_DEBUGGER
-      if ( PROCEDURE_event_hook1 &&
-	   def != PROCEDURE_event_hook1->definition )
-	callEventHook(PLEV_ERASED, clause);
-#endif
-      freeClause(clause);
       def->number_of_clauses--;
 
-      rval = TRUE;
       break;
     }
   }
-  endCritical;
 
-  return rval;
+  endCritical;
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Called from erase/1, retract/1 and retractall/1. In the latter two cases
+the definition is always referenced.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 bool
-retractClauseProcedure(Procedure proc, Clause clause)
+retractClauseProcedure(Procedure proc, Clause clause ARG_LD)
 { Definition def = proc->definition;
-  bool rval;
 
   LOCK();
   if ( true(clause, ERASED) )
@@ -930,19 +924,31 @@ retractClauseProcedure(Procedure proc, Clause clause)
 #ifdef O_LOGICAL_UPDATE
     clause->generation.erased = ++GD->generation;
 #endif
-    rval = TRUE;
-  } else
-  { rval = retractClauseDefinitionMT(def, clause);
+    UNLOCK();
+
+    succeed;
   }
+
+  unlinkClause(def, clause PASS_LD);
   UNLOCK();
 
-  return rval;
+					/* as we do a call-back, we cannot */
+					/* hold the L_PREDICATE mutex */
+#if O_DEBUGGER
+  if ( PROCEDURE_event_hook1 &&
+       def != PROCEDURE_event_hook1->definition )
+    callEventHook(PLEV_ERASED, clause);
+#endif
+
+  freeClause(clause PASS_LD);
+
+  succeed;
 }
 
 
 void
-freeClause(Clause c)
-{ GET_LD
+freeClause(Clause c ARG_LD)
+{ 
 #if O_DEBUGGER
   if ( true(c, HAS_BREAKPOINTS) )
     clearBreakPointsClause(c);
@@ -1010,7 +1016,7 @@ gcClausesDefinition(Definition def)
       }
 #endif
       def->erased_clauses--;
-      freeClause(c->clause);
+      freeClause(c->clause PASS_LD);
       freeClauseRef(c PASS_LD);
     } else
     { prev = cref;
@@ -1476,7 +1482,7 @@ pl_retract(term_t term, control_t h)
     r0 = PL_new_term_refs(0);
     while( cref )
     { if ( decompile(cref->clause, cl, 0) )
-      { retractClauseProcedure(proc, cref->clause);
+      { retractClauseProcedure(proc, cref->clause PASS_LD);
 	if ( !next )
 	{ resetTermRefs(r0);
 	  leaveDefinition(def);
@@ -1534,12 +1540,7 @@ pl_retractall(term_t head)
   Mark(m);
   enterDefinition(def);
 
-#if 1
   if ( !(cref = firstClause(argv, fr, def, &next PASS_LD)) )
-#else					/* debugging (HACK) */
-  if ( !(cref = findClause(def->definition.clauses,
-			   argv, fr, def, &next PASS_LD)) )
-#endif
   { leaveDefinition(def);
     succeed;
   }
@@ -1547,7 +1548,7 @@ pl_retractall(term_t head)
   r0 = PL_new_term_refs(0);
   while( cref )
   { if ( decompileHead(cref->clause, thehead) )
-      retractClauseProcedure(proc, cref->clause);
+      retractClauseProcedure(proc, cref->clause PASS_LD);
 
     if ( !next )
     { resetTermRefs(r0);

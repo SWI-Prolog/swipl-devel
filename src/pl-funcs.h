@@ -599,8 +599,8 @@ foreign_t	pl_current_predicate1(term_t spec, control_t ctx);
 ClauseRef	assertProcedure(Procedure proc, Clause clause,
 				int where ARG_LD);
 bool		abolishProcedure(Procedure proc, Module module);
-bool		retractClauseProcedure(Procedure proc, Clause clause);
-void		freeClause(Clause c);
+bool		retractClauseProcedure(Procedure proc, Clause clause ARG_LD);
+void		freeClause(Clause c ARG_LD);
 void		freeClauseRef(ClauseRef c ARG_LD);
 ClauseRef	newClauseRef(Clause cl ARG_LD);
 void		gcClausesDefinition(Definition def);

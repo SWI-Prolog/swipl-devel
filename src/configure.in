@@ -28,6 +28,7 @@ AC_SUBST(LDEXE)
 AC_SUBST(EXTRAHDR)
 AC_SUBST(SO)
 AC_SUBST(BUILDDIR)
+AC_SUBST(CNFG)
 
 if test ! -z "$CIFLAGS"; then
     CFLAGS="$CIFLAGS $CFLAGS"
@@ -41,6 +42,7 @@ PL=pl
 PLLIB=libpl.a
 RT=""
 PLVERSION=`cat ../VERSION`
+CNFG=""				dnl Package configuration options
 
 dnl ****************************************************************
 dnl Some systems don't appear to have true.  Hope all like this ...
@@ -215,27 +217,12 @@ dnl Finding libraries
 dnl ****************************************************************
 
 if test "$MT" = "yes"; then
-  cat << _EOM_
-
-    ##################################################################
-    # You have requested support for MULTI-THREADING.  This feature  #
-    # is BETA and about 30% SLOWER then single-threaded operation.   #
-    # It should compile on any system providing POSIX threads.       #
-    #                                                                #
-    # Do not forget to add --enable-mt when configuring PACKAGES.    #
-    # Packages compiled with MT can be used with the single-threaded #
-    # version as well.                                               #
-    #                                                                # 
-    # If MT is not intended, please rerun configure without the      #
-    # --enable-mt option					     #
-    ##################################################################
-
-_EOM_
   PLLIB=libplmt.a
 
   AC_CHECK_LIB(pthread, main)
   if test "$ac_cv_lib_pthread_main" = "yes"; then
     AC_DEFINE(O_PLMT)
+    CNFG="--enable-mt"
   fi
   AC_CHECK_LIB(rt, sem_init)
   AC_CHECK_FUNCS(sem_init)

@@ -918,7 +918,7 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 	}
 
 	if ( skip )
-	  freeClause(clause);
+	  freeClause(clause PASS_LD);
 	else
 	{ if ( def->hash_info )
 	  { reindexClause(clause);

@@ -1822,7 +1822,7 @@ care of reconsult, redefinition, etc.
 		stringAtom(def->functor->name), 
 		def->functor->arity, 
 		stringAtom(proc->definition->module->name) );
-      freeClause(clause);
+      freeClause(clause PASS_LD);
       return NULL;
     }
 
@@ -1851,7 +1851,7 @@ mode, the predicate is still undefined and is not dynamic or multifile.
 
   if ( false(def, DYNAMIC) && isDefinedProcedure(proc) )
   { PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
-    freeClause(clause);
+    freeClause(clause PASS_LD);
     return NULL;
   }
   set(def, DYNAMIC);			/* Make dynamic on first assert */
