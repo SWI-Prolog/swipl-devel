@@ -765,7 +765,7 @@ frameFinished(LocalFrame fr, enum finished reason)
 
     if ( unify_finished(catcher, reason) )
     { term_t clean = argFrameP(fr, 2) - (Word)lBase;
-      term_t ex = 0;
+      term_t ex;
       int rval;
       
       rval = callProlog(fr->context, clean, PL_Q_CATCH_EXCEPTION, &ex);

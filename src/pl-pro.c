@@ -118,9 +118,17 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
   functor_t fd;
   Procedure proc;
 
+  if ( ex )
+    *ex = 0;
+
   PL_strip_module(goal, &module, g);
   if ( !PL_get_functor(g, &fd) )
-    return warning("callProlog(): Illegal goal");
+  { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, goal);
+    if ( ex )
+      *ex = exception_term;
+
+    fail;
+  }
   
   proc = lookupProcedure(fd, module);
   
