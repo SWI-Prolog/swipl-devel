@@ -2056,6 +2056,19 @@ Set end-of-file handling to one of \const{eof_code}, \const{reset} or
 Determine whether or not the stream is closed by abort/0.  By default
 streams are closed.
 
+    \termitem{timeout}{Seconds}
+This option can be used to make streams generate an exception if it
+takes longer than \arg{Seconds} before any new data arrives at the
+stream.  The value \arg{infinite} (default) makes the stream block
+indefinitely.  Like wait_for_input/3, this call only applies to
+streams that support the select() system call. For further information
+about timeout handling, see wait_for_input/3. The exception is of the
+form
+
+\begin{quote}
+    \term{error}{\term{timeout_error}{read, Stream}, _}
+\end{quote}
+
     \termitem{record_position}{Bool}
 Do/do not record the line-count and line-position (see line_count/2
 and line_position/2). 
@@ -2225,6 +2238,24 @@ Unix this call is implemented for any stream referring to a file-handle,
 which implies all OS-based streams: sockets, terminals, pipes, etc.  On
 non-Unix systems select() is generally only implemented for socket-based
 streams.  See also \pllib{socket} from the \const{clib} package.
+
+Note that wait_for_input/3 returns streams that have data waiting. This
+does not mean you can, for example, call read/2 on the stream without
+blocking as the stream might hold an incomplete term. The predicate
+set_stream/2 using the option \term{timeout}{Seconds} can be used to
+make the stream generate an exception if no new data arrives for within
+the timeout.  Suppose two processes communicate by exchanging Prolog
+terms.  The following code makes the server immune for clients that
+write an incomplete term:
+
+\begin{code}
+	...,
+	tcp_accept(Server, Socket, _Peer),
+	tcp_open(Socket, In, Out),
+	set_stream(In, timeout(10)),
+	catch(read(In, Term), _, (close(Out), close(In), fail)),
+	...,
+\end{code}
 
     \predicate{character_count}{2}{+Stream, -Count}
 Unify \arg{Count} with the current character index.  For input streams

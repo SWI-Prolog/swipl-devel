@@ -439,7 +439,8 @@ cause edit/1 to use the built-in PceEmacs editor.
 
 Version 5.0 marks a breakpoint in the phylosophy, where SWI-Prolog moves
 from a dual GPL/proprietary to a uniform LGPL (Lesser GNU Public
-Licence) schema, providing a widely usable free Prolog implementation.
+Licence) schema, providing a widely usable Free Source Prolog
+implementation.
 
 On the technical site the development environment, consisting of
 source-level debugger, integrated editor and various analysis and
@@ -452,6 +453,15 @@ For details, please visit the new website at
 \url{http://www.swi-prolog.org}
 
 
+\subsection{Version 5.1 Release Notes} \label{sec:rel-5.1}
+
+Version 5.1 is a beta-serie introducing portable multi-threading. See
+\chapref{threads}.  In addition it introduces many new facilities to
+support server applications, such as the new \pllib{rlimit} library
+to limit system resources and the possibility to set timeouts on
+input streams.
+
+
 \section{Donate to the SWI-Prolog project}	\label{sec:sponsor}
 
 If you are happy with SWI-Prolog, you care it to be around for much
@@ -460,7 +470,7 @@ you should consider to donate to the SWI-Prolog foundation.  Please
 visit the page below.
 
 \begin{quote}
-\url{http://www.swi-prolog.org/sponsor.html}
+\url{http://www.swi-prolog.org/donate.html}
 \end{quote}
 
 
