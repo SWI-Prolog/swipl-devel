@@ -1018,9 +1018,15 @@ $store_clause(Term, File) :-
 		*        GRAMMAR RULES          *
 		*********************************/
 
-/*  Original version by Fernando Pereira, Edinburgh, 1984
-
- ** Thu Sep  1 15:57:59 1988  jan@swivax.UUCP (Jan Wielemaker)  */
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The DCG compiler. The original code was copied from C-Prolog and written
+by Fernando Pereira, EDCAAD, Edinburgh,  1984.   Since  then many people
+have modified and extended this code. It's a nice mess now and it should
+be redone from scratch. I won't be doing   this  before I get a complete
+spec explaining all an implementor needs to   know  about DCG. I'm a too
+basic user of this facility myself (though   I  learned some tricks from
+people reporting bugs :-)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 $translate_rule((LP-->List), H) :-
 	proper_list(List), !,
@@ -1062,7 +1068,7 @@ $t_body(List, S, SR, C) :-
 	List = [_|_], !,
 	C = append(List, SR, S).
 $t_body(!, S, S, !) :- !.
-$t_body({T}, S, S, T) :- !.
+$t_body({T}, S, SR, (T, SR = S)) :- !.
 $t_body((T, R), S, SR, (Tt, Rt)) :- !,
 	$t_body(T, S, SR1, Tt),
 	$t_body(R, SR1, SR, Rt).
