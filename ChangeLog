@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Syntax error in pl-atom.c
+
   * FIXED: MT: Problem in the atom-garbage collector reclaiming atoms
     in use by other threads.  Sergey Tikhonov.
 

@@ -582,10 +582,10 @@ resetAtoms()
 
 void
 PL_register_atom(atom_t a)
-{
+{ Atom p;
 #ifdef O_ATOMGC
   LOCK();
-  Atom p = atomValue(a);
+  p = atomValue(a);
   p->references++;
   UNLOCK();
 #endif
@@ -594,10 +594,10 @@ PL_register_atom(atom_t a)
 
 void
 PL_unregister_atom(atom_t a)
-{
+{ Atom p;
 #ifdef O_ATOMGC
   LOCK();
-  Atom p = atomValue(a);
+  p = atomValue(a);
   p->references--;
   assert(p->references >= 0);
   UNLOCK();
