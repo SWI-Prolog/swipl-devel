@@ -20,4 +20,4 @@ clean::
 	if exist *~ del *~
 
 distclean: clean
-	-del *.dll *.lib *.exp *.dbg 2>nul
+	-del *.dll *.lib *.exp *.pdb 2>nul

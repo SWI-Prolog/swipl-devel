@@ -28,5 +28,5 @@ clean::
 		if exist *~ del *~
 
 distclean:	clean
-		-del plrc.exe rc.lib *.dbg 2>nul
+		-del plrc.exe rc.lib *.pdb 2>nul
 

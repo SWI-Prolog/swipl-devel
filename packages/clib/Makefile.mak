@@ -78,6 +78,6 @@ clean::
 		if exist *~ del *~
 
 distclean:	clean
-		-DEL *.dll *.lib *.exp *.dbg 2>nul
+		-DEL *.dll *.lib *.exp *.pdb 2>nul
 
 

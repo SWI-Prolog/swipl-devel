@@ -326,6 +326,7 @@ clean:		clean_packages
 distclean:	clean distclean_packages
 		@chdir rc & $(MAKE) distclean
 		@chdir win32\foreign & $(MAKE) distclean
+		-del ..\bin\*.exe ..\bin\*.dll ..\bin\*.pdb 2>nul
 		-del ..\library\INDEX.pl 2>nul
 		-del swipl swiplbin 2>nul
 
