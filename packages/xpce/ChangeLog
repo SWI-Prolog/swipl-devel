@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Search form of the XPCE HTTP manual (from xpce/prolog/lib/http)
+
 VERSION 6.0.2, distributed with SWI-Prolog 5.0.2
 ================================================
 
