@@ -12,6 +12,7 @@
 
 :- module(emacs_buffer_menu, []).
 :- use_module(library(pce)).
+:- use_module(library(persistent_frame)).
 :- require([ send_list/3
 	   ]).
 
@@ -22,7 +23,7 @@ resource(saveall, image, image('16x16/saveall.xpm')).
 resource(help,    image, image('16x16/help.xpm')).
 resource(buffers, image, image('32x32/buffers.xpm')).
 
-:- pce_begin_class(emacs_buffer_menu, frame,
+:- pce_begin_class(emacs_buffer_menu, persistent_frame,
 		   "List showing all PceEmacs buffers").
 
 class_variable(geometry,	geometry,	'211x190+0+125').

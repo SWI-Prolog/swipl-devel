@@ -48,7 +48,7 @@ have to create your frame explitely:
 
 variable(persistent_subwindow_layout, bool := @on, get,
 	 "Remember the layout of the subwindows?").
-variable(geometry_key,		      [name], send,
+variable(geometry_key,		      name*, send,
 	 "Key used to identify this frame").
 
 unlink(F) :->
@@ -65,7 +65,7 @@ open(F, Pos:point=[point], Grab:grab=[bool], Normalise:normalise=[bool]) :->
 geometry_key(F, Key:name) :<-
 	"Name to store geometry"::
 	(   get(F, slot, geometry_key, Key),
-	    Key \== @default
+	    Key \== @nil
 	->  true
 	;   get(F, class_name, Key),
 	    Key \== persistent_frame
@@ -101,12 +101,20 @@ load_layout(F) :->
 	;   true
 	).
 
+%	get_tile_layout(+Tile, -Layout)
+%
+%	Create a Prolog term representing the subwindow (tile) layout.
+%	Note that we only save the width/height of resizeable subwindows,
+%	leaving the others to the application.  This ensures proper behaviour
+%	if the application is modified.
+
 get_tile_layout(T, layout(Me, SubLayout)) :-
 	get_this_tile_layout(T, Me),
 	(   get(T, members, Members),
 	    Members \== @nil
 	->  chain_list(Members, List),
-	    maplist(get_this_tile_layout, List, SubLayout)
+	    maplist(get_this_tile_layout, List, SubLayout),
+	    has_specifier(layout(Me, SubLayout))
 	;   SubLayout = []
 	).
 
@@ -118,6 +126,22 @@ get_this_tile_layout(T, Size) :-
 	;   get(A, height, Size)
 	).
 get_this_tile_layout(_, *).
+
+%	has_specifier(+Layout)
+%
+%	See whether there is a specification somewhere, otherwise there
+%	is no use storing it.
+
+has_specifier(layout(Size, _)) :-
+	Size \== *, !.
+has_specifier(layout(_, Subs)) :-
+	member(Sub, Subs),
+	has_specifier(Sub).
+
+%	apply_tile_layout(+Tile, +Layout)
+%	
+%	Apply a previously saved layout description, sending ->width
+%	or ->height messages to resizeable tiles.
 
 apply_tile_layout(T, layout(Me, SubLayout)) :-
 	apply_this_tile_layout(T, Me),

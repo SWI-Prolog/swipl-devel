@@ -2,7 +2,8 @@
 			   ==============
 
 * ADDED: library(persistent_frame) defining a class with the same name that
-  realises a frame remembering its position, size and subwindow layout.
+  realises a frame remembering its position, size and subwindow layout.  Use
+  this class for (part of) the development environment tools.
 
 * FIXED: May issues around frame<->geometry.  At least on the X11 version,
   <->geometry now queries and restores the geometry correctly.

@@ -16,6 +16,7 @@
 :- use_module(library(helpidx)).
 :- use_module(library('trace/util')).
 :- use_module(browse_xref).
+:- use_module(library(persistent_frame)).
 :- require([ start_emacs/0
 	   , '$qlf_info'/4
 	   , append/3
@@ -57,7 +58,7 @@ make_prolog_navigator(Dir, Navigator) :-
 	;   send(new(Navigator, prolog_navigator(Dir)), open)
 	).
 
-:- pce_begin_class(prolog_navigator, frame,
+:- pce_begin_class(prolog_navigator, persistent_frame,
 		   "Prolog source navigator").
 
 initialise(SB, Root:directory) :->

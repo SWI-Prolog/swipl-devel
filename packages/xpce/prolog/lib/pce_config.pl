@@ -365,8 +365,7 @@ load_config(M, Key) :-
 	load_config_keys(M, Bindings),
 	set_config_(M, config/file, File, file),
 	clear_modified(M).
-load_config(M, Spec) :-			% no config file, use defaults
-	strip_module(Spec, M, Key),
+load_config(M, Key) :-			% no config file, use defaults
 	load_key(M, Key),
 	set_config_(M, config/file, Key, file),
 	clear_modified(M).		% or not, so we save first time?

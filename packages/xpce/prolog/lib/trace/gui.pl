@@ -20,6 +20,7 @@
 :- use_module(library(pce)).
 :- use_module(library(toolbar)).
 :- use_module(library(pce_report)).
+:- use_module(library(persistent_frame)).
 :- use_module(trace).
 :- use_module(clause).
 :- use_module(util).
@@ -149,7 +150,7 @@ initialise(App) :->
 		 *	   DEBUGGER FRAME	*
 		 *******************************/
 
-:- pce_begin_class(prolog_debugger, frame,
+:- pce_begin_class(prolog_debugger, persistent_frame,
 		   "Toplevel driver for the debugger").
 
 variable(source,	any,	both, "Source view").

@@ -15,6 +15,7 @@
 :- use_module(library(toolbar)).
 :- use_module(library(pce_toc)).
 :- use_module(library(pce_report)).
+:- use_module(library(persistent_frame)).
 :- require([ ignore/1
 	   , file_directory_name/2
 	   , term_to_atom/2
@@ -44,7 +45,7 @@ resource(save, image, image('16x16/save.xpm')).
 resource(cut,  image, image('16x16/cut.xpm')).
 resource(open, image, image('16x16/book2.xpm')).
 
-:- pce_begin_class(emacs_bookmark_editor, frame,
+:- pce_begin_class(emacs_bookmark_editor, persistent_frame,
 		   "PceEmacs bookmark administration and viewing").
 
 variable(file,	       file, get, "File for holding the bookmarks").

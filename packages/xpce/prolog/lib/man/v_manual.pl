@@ -15,6 +15,7 @@
 :- module(man_manual, []).
 
 :- use_module(library(pce)).
+:- use_module(library(persistent_frame)).
 :- use_module(util).
 :- require([ absolute_file_name/3
 	   , auto_call/1
@@ -77,7 +78,7 @@ and possible broadcasted by ManualTool.  These messages are:
         Switch edit_mode on/off.  Broadcasted to all tools.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- pce_begin_class(man_manual, frame,
+:- pce_begin_class(man_manual, persistent_frame,
 		   "PCE manual main object").
 
 class_variable(geometry,	geometry,		'+0+0').
@@ -292,6 +293,8 @@ fill_dialog(M, D) :->
 			 end_group := @on),
 	       menu_item(prolog_graphical_tracer,
 			 message(M, guitracer)),
+	       menu_item(prolog_navigator,
+			 message(M, prolog_navigator)),
 	       menu_item(emacs,
 			 message(M, start_emacs),
 			 end_group := @on),
@@ -661,6 +664,10 @@ guitracer(M) :->
 	;   send(M, report, error, 'Failed to load GUI tracer')
 	).
 
+prolog_navigator(_M) :->
+	"Start the source-code navigator"::
+	auto_call(prolog_navigator('.')).
+
 start_emacs(_M) :->
 	"Start PceEmacs (*scratch* buffer)"::
 	auto_call(emacs).
@@ -955,7 +962,7 @@ toggle_edit_mode(M) :->
 		*          TOOL FRAMES		*
 		********************************/
 
-:- pce_begin_class(man_frame(label), frame).
+:- pce_begin_class(man_frame(label), persistent_frame).
 
 variable(manual,	man_manual,	get,
 	 "Manual we are related to").
