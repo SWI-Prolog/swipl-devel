@@ -380,10 +380,12 @@ html_to_buffer(Term, TB) :-
 :- multifile
 	html_write:expand/3.
 
-html_write:expand(Object) -->
-	{ object(Object)
+html_write:expand(@Ref) -->
+	{ (   object(@Ref)
+	  ;   catch(get(@Ref, self, _), _, fail) % force creation
+	  )
 	},
-	expand_object(Object), !.
+	expand_object(@Ref), !.
 	
 expand_object(Object) -->
 	{ send(Object, instance_of, char_array), !,
