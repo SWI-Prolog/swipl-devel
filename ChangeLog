@@ -1,7 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
-  * FIXED: registry_get_key/[2,3] (undefined predicate)
+  * FIXED: registry_get_key/[2,3] (undefined predicate).  Also prepared
+    for use inside saved-states.
 
   * ADDED: PL_NCHARS option to PL_unify_term().
 
