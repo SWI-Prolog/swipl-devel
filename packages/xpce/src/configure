@@ -2724,7 +2724,6 @@ echo "$as_me: checking \"Running $PL -dump-runtime-variables\"..." >&6;}
 	 PLBUILD="$PL"
 	 PLLD=plld
      else
-         PLBUILD="`(cd ../../../$BUILDDIR && pwd)`/$PL"
          PLLD="`(cd ../.. && pwd)`/plld.sh"
          PLBUILD="`(cd ../.. && pwd)`/pl.sh"
      fi
@@ -2758,13 +2757,6 @@ echo "${ECHO_T}\"		MAKE_SHARED_OBJECT=$MAKE_SHARED_OBJECT\"" >&6
 else
   ALLTARGET=xpce
 fi
-
-
-case "$OS" in
-  *darwin*|*aix*)
-    PLBUILD="$PL"
-    ;;
-esac
 
 if test "$MT" = true; then
   case "$OS" in
