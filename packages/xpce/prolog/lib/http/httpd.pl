@@ -110,11 +110,13 @@ break_path(_, Header:sheet) :->
 	    sub_atom(Path, B, _, A, ?)
 	->  sub_atom(Path, 0, B, _, NewPath),
 	    sub_atom(Path, _, A, 0, FormString),
-	    send(Header, path, NewPath),
 	    send(Header, value, form, new(Form, sheet)),
 	    decode_form_string(FormString, Form)
-	;   send(Header, value, form, @nil)
-	).
+	;   send(Header, value, form, @nil),
+	    NewPath = Path
+	),
+	www_form_encode(ThePath, NewPath),
+	send(Header, path, ThePath).
 
 decode_form_string('', _) :- !.
 decode_form_string(S, Sheet) :-
