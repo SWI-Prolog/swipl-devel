@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Paint <-mark of class path when generating PostScript.
+
 * ENHANCED: barchart package: show cursor indicating a bar can be dragged.
 
 VERSION 6.2.5, distributed with SWI-Prolog 5.2.5

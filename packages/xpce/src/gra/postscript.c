@@ -826,6 +826,8 @@ static psmacro macrodefs[] =
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 %	x y w h BITMAP hexdata
+
+Draw a transparent image.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   PSMACRO(NAME_bitmap,
@@ -835,14 +837,14 @@ static psmacro macrodefs[] =
 	  "\t  /x exch def\n"
 
 	  "\t  gsave\n"
-	  "\t  {1 exch sub} settransfer\n"
+/*	  "\t  {1 exch sub} settransfer\n" */
 /*	  "  region clip" */
 	  "\t  x y h add translate\n"
 	  "\t  /w8 w 7 add 8 idiv 8 mul def\n"
 	  "\t  /picstr w8 8 idiv string def\n"
 	  "\t  w8 h neg scale\n"
-	  "\t  w8 h 1 [w 0 0 h neg 0 h]\n"
-	  "\t  {currentfile picstr readhexstring pop} image\n"
+	  "\t  w8 h false [w 0 0 h neg 0 h]\n"
+	  "\t  {currentfile picstr readhexstring pop} imagemask\n"
 	  "\t  grestore\n"
 	  "\t} def",
 	  NULL),
@@ -1578,25 +1580,37 @@ drawPostScriptArc(Arc a)
 
 static status
 draw_postscript_image(Image image, Int x, Int y)
-{ Name format = get(image, NAME_postscriptFormat, EAV);
-
-  if ( format == NAME_colour )
+{ if ( image->depth == ONE /* && image->transparent == ON */ )
   { if ( psstatus.mkheader )
-    { psdef(NAME_rgbimage);
+    { psdef(NAME_bitmap);
     } else
-    { Int depth = get(image, NAME_postscriptDepth, EAV);
+    { Int iw = image->size->w;
+      Int ih = image->size->h;
 
-      ps_output("~d ~d ~d ~d ~d rgbimage\n~I\n",
-		x, y, image->size->w, image->size->h, depth, depth, image);
+      ps_output("~d ~d ~d ~d bitmap\n~I\n",
+		x, y, iw, ih, ONE, image);
     }
   } else
-  { if ( psstatus.mkheader )
-    { psdef(NAME_greymap);
+  { Name format = get(image, NAME_postscriptFormat, EAV);
+  
+    if ( format == NAME_colour )
+    { if ( psstatus.mkheader )
+      { psdef(NAME_rgbimage);
+      } else
+      { Int depth = get(image, NAME_postscriptDepth, EAV);
+  
+	ps_output("~d ~d ~d ~d ~d rgbimage\n~I\n",
+		  x, y, image->size->w, image->size->h, depth, depth, image);
+      }
     } else
-    { Int depth = get(image, NAME_postscriptDepth, EAV);
-      
-      ps_output("~d ~d ~d ~d ~d greymap\n~P\n",
-		x, y, image->size->w, image->size->h, depth, depth, image);
+    { if ( psstatus.mkheader )
+      { psdef(NAME_greymap);
+      } else
+      { Int depth = get(image, NAME_postscriptDepth, EAV);
+	
+	ps_output("~d ~d ~d ~d ~d greymap\n~P\n",
+		  x, y, image->size->w, image->size->h, depth, depth, image);
+      }
     }
   }
 
