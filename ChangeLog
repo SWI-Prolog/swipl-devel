@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 5.1.4 (Dec 20, 2002)
+============================
+
   * FIXED: race-condition in autoloader.
 
   * FIXED: Streams with timeout could signal end-of-file on an interrupt.

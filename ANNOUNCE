@@ -1,9 +1,9 @@
-SWI-Prolog 5.1.3/XPCE 6.1.3 Summary of changes
+SWI-Prolog 5.1.4/XPCE 6.1.4 Summary of changes
 
 Status
 ======
   
-  * 4th beta-release.  Suitable for research and development.
+  * 5th beta-release.  Suitable for research and development.
     Discouraged for production usage.  It has a few 5.0.10 bugs
     fixed but surely introduced new ones.
 
@@ -11,42 +11,23 @@ Status
 SWI-Prolog
 ==========
 
-  * MODIFIED: retract((a :- _)) now also retracts the fact a.
+  * Many threading problems fixed.
 
-  * Provide message-queues as first class objects, so one queue can
-    serve multiple threads for simple realisation of the `worker pool'
-    design.
-
-  * Avoid leaking mutexes and condition-variables when creating and
-    destroying threads.
-
-  * Added a set_stream(Stream, timeout(Seconds)) to cause input from
-    the stream to generate an exception if no input arrives.
-
-  * Various issues when managing threads from C.
-
-  * Various minor bug-fixes
-
+  * Added :- thread_local/1, though this new stuff is subject to
+    debate.
 
 Packages
 ========
 
-  * CLIB: Many bugfixes for the Windows implementation of the
-    socket library.  I shouldn't forget to acknowlegde Peter Marks and
-    Mike Elston for their determinism in creating yet another program
-    illustrating a problem.  Thanks!
+  * CLIB: More socket problems fixed.
 
   * RDF: Make process_rdf work again.
-
-  * XPCE: Forgotten mutex unlock, causing the GUI to freeze in some
-    MT usage.  Various minor problems fixed.
 
 
 Development environment
 =======================
 
-  * Added ?- prolog_ide(thread_monitor). as well as menu-options for
-    this, showing status of running threads graphically.
+  * Fixes to the GUI thread-monitor
 
 
 Short-term Plans
