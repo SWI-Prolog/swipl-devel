@@ -412,8 +412,7 @@ style(var,		  style(colour	   := red4)).
 style(quoted_atom,        style(colour	   := blue4)).
 style(string,		  style(colour	   := blue4)).
 
-style(pce(comment),	  style(colour	   := dark_green)).
-style(pce(identifier),	  style(bold       := @on)).
+style(identifier,	  style(bold       := @on)).
 style(expanded,		  style(colour	   := blue,
 				underline := @on)).
 style(error,		  style(background := orange)).
@@ -425,45 +424,67 @@ style(error,		  style(background := orange)).
 :- multifile
 	term_colours/2.
 
+term_colours(file_search_path(_,_),
+	     expanded - [ identifier,
+			  classify
+			]).
+term_colours(portray(_),
+	     expanded - [ classify
+			]).
+term_colours(resource(_,_,_),
+	     expanded - [ identifier,
+			  classify,
+			  classify
+			]).
+term_colours((resource(_,_,_) :- _),
+	     expanded - [ expanded - [ identifier,
+				       classify,
+				       classify
+				     ],
+			  classify
+			]).
+
+%	XPCE rules
+
 term_colours(variable(_, _, _, _),
-	     expanded - [ pce(identifier),
+	     expanded - [ identifier,
 			  classify,
 			  classify,
-			  pce(comment)
+			  comment
 			]).
 term_colours(variable(_, _, _),
-	     expanded - [ pce(identifier),
+	     expanded - [ identifier,
 			  classify,
 			  atom
 			]).
 term_colours(class_variable(_,_,_,_),
-	     expanded - [ pce(identifier),
+	     expanded - [ identifier,
 			  pce(type),
 			  pce(default),
-			  pce(comment)
+			  comment
 			]).
 term_colours(class_variable(_,_,_),
-	     expanded - [ pce(identifier),
+	     expanded - [ identifier,
 			  pce(type),
 			  pce(default),
-			  pce(comment)
+			  comment
 			]).
 term_colours(delegate_to(_),
 	     expanded - [ classify
 			]).
 term_colours((:- pce_begin_class(_, _, _)),
-	     expanded - [ expanded - [ pce(identifier),
+	     expanded - [ expanded - [ identifier,
 				       classify,
-				       pce(comment)
+				       comment
 				     ]
 			]).
 term_colours((:- pce_begin_class(_, _)),
-	     expanded - [ expanded - [ pce(identifier),
+	     expanded - [ expanded - [ identifier,
 				       classify
 				     ]
 			]).
 term_colours((:- pce_extend_class(_)),
-	     expanded - [ expanded - [ pce(identifier)
+	     expanded - [ expanded - [ identifier
 				     ]
 			]).
 term_colours((:- pce_end_class),
@@ -474,29 +495,24 @@ term_colours(:- use_class_template(_),
 				     ]
 			]).
 term_colours((:- emacs_begin_mode(_,_,_,_,_)),
-	     expanded - [ expanded - [ pce(identifier),
+	     expanded - [ expanded - [ identifier,
 				       classify,
 				       classify,
 				       classify,
-				       pce(comment)
+				       comment
 				     ]
 			]).
 term_colours((:- emacs_extend_mode(_,_)),
-	     expanded - [ expanded - [ pce(identifier),
+	     expanded - [ expanded - [ identifier,
 				       classify
 				     ]
 			]).
-term_colours(resource(_,_,_),
-	     expanded - [ pce(identifier),
-			  classify,
-			  classify
-			]).
 term_colours((:- pce_group(_)),
-	     expanded - [ expanded - [ pce(identifier)
+	     expanded - [ expanded - [ identifier
 				     ]
 			]).
 term_colours((:- pce_global(_, _)),
-	     expanded - [ expanded - [ pce(identifier),
+	     expanded - [ expanded - [ identifier,
 				       classify
 				     ]
 			]).
