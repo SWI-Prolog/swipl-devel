@@ -44,10 +44,13 @@ See also the built-in class int_item.
 
 variable(low,		real*,	      both, "Lowest value").
 variable(high,		real*,	      both, "highest value").
-variable(format,	name := '%g', get,  "How values are formatted").
+variable(format,	name, get,  "How values are formatted").
 variable(allow_default,	bool := @off, get,  "'' <-> @default").
 variable(step,		real*,	      get,  "Step for up/down").
 variable(apply_step,	bool := @on,  both, "Apply stepping immediately").
+
+class_variable(format, name,  '%g').
+class_variable(step,   reel*, @nil).
 
 initialise(RI, Label:label=name, Default:default=[real], Msg:message=[code]*,
 	   Low:low=[real], High:high=[real]*) :->
@@ -65,6 +68,11 @@ initialise(RI, Label:label=name, Default:default=[real], Msg:message=[code]*,
 	),
 	(   Default \== @default
 	->  send(RI, selection, Default)
+	;   true
+	),
+	(   get(RI, step, Step),
+	    Step \== @nil
+	->  send(RI, step, Step)
 	;   true
 	).
 
