@@ -36,7 +36,10 @@
 #undef max
 #define max(a,b) ((a) > (b) ? (a) : (b))
 
+#undef K
+#undef MB
 #define K * 1024
+#define MB * (1024L * 1024L)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module initialises the system and defines the global variables.  It
@@ -829,9 +832,30 @@ pl_on_signal(term_t sig, term_t name, term_t old, term_t new)
 		 *	       STACKS		*
 		 *******************************/
 
+static void
+enforce_limit(long *size, long maxarea, const char *name)
+{ if ( *size == 0 )
+    *size = maxarea;
+  else if ( *size > MAXTAGGEDPTR )
+  { Sdprintf("WARNING: Maximum stack size for %s stack is %d MB\n",
+	     name, (MAXTAGGEDPTR+1) / (1 MB));
+    *size = MAXTAGGEDPTR;
+  }
+}
+
+
 int
 initPrologStacks(long local, long global, long trail, long argument)
-{ allocStacks(local, global, trail, argument);
+{ ulong maxarea;
+
+  maxarea = (MAXTAGGEDPTR < 512 MB ? MAXTAGGEDPTR : 512 MB);
+
+  enforce_limit(&local,	   maxarea, "local");
+  enforce_limit(&global,   maxarea, "global");
+  enforce_limit(&trail,	   maxarea, "trail");
+  enforce_limit(&argument, 16 MB,   "argument");
+
+  allocStacks(local, global, trail, argument);
 
   base_addresses[STG_LOCAL]  = (unsigned long)lBase;
   base_addresses[STG_GLOBAL] = (unsigned long)gBase;
@@ -939,9 +963,6 @@ extern int errno;
 #endif /*WIN32*/
 
 static int size_alignment;	/* Stack sizes must be aligned to this */
-
-#undef MB
-#define MB * (1024L * 1024L)
 
 static long
 align_size(long int x)
@@ -1097,7 +1118,6 @@ allocStacks(long local, long global, long trail, long argument)
 { caddress lbase, gbase, tbase, abase;
   long glsize;
   long lsep, tsep;
-  ulong maxarea;
 
   size_alignment = getpagesize();
   while(size_alignment < 4*SIZEOF_LONG K)
@@ -1110,13 +1130,6 @@ allocStacks(long local, long global, long trail, long argument)
   lsep = STACK_SEPARATION;
   tsep = size_alignment;
 #endif
-
-  maxarea = (MAXTAGGEDPTR < 1024 MB ? MAXTAGGEDPTR : 1024 MB);
-
-  if ( local	== 0 ) local	= maxarea;
-  if ( global	== 0 ) global	= maxarea;
-  if ( trail	== 0 ) trail	= maxarea;
-  if ( argument	== 0 ) argument	= 4*SIZEOF_LONG MB;
 
   local    = (long) align_size(local);	/* Round up to page boundary */
   global   = (long) align_size(global);
@@ -1271,7 +1284,6 @@ allocStacks(long local, long global, long trail, long argument)
   long glsize;
   long lsep, tsep;
   SYSTEM_INFO info;
-  ulong maxarea;
 
   GetSystemInfo(&info);
   size_alignment = info.dwPageSize;
@@ -1282,13 +1294,6 @@ allocStacks(long local, long global, long trail, long argument)
   lsep = STACK_SEPARATION;
   tsep = size_alignment;
 #endif
-
-  maxarea = (MAXTAGGEDPTR < 512 MB ? MAXTAGGEDPTR : 512 MB);
-
-  if ( local	== 0 ) local	= maxarea;
-  if ( global	== 0 ) global	= maxarea;
-  if ( trail	== 0 ) trail	= maxarea;
-  if ( argument	== 0 ) argument	= 16 MB;
 
   local    = (long) align_size(local);	/* Round up to page boundary */
   global   = (long) align_size(global);

@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Check whether stack sizes are not allocated above physical
+    limits (128 MB on 32-bit machines)
+
   * BUILD: Fixed missing references to `runtex' from various Makefiles
     in the packages (Paulo Moura).
 
