@@ -63,6 +63,7 @@
 	  cut			   = button(edit),
 	  paste			   = button(edit),
 	  -			   = button(edit),
+	  find			   = button(edit),
 	  replace		   = button(edit),
 
 					% BROWSER menu
@@ -438,8 +439,16 @@ print(M) :->
 	
 
 		 /*******************************
-		 *	      REPLACE		*
+		 *	    FIND/REPLACE	*
 		 *******************************/
+
+:- pce_autoload(editor_find_dialog, library('emacs/find')).
+
+find(M) :->
+	"Find in text"::
+	get(M, editor, E),
+	send(editor_find_dialog(E), open).
+
 
 replace(M, From:'replace=regex', To:'into=string') :->
 	"Query replace regular expression"::
