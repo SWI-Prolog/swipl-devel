@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: memory leak due to error in recent change in incremental GC.
+
 * MODIFIED: termToObject() translates Prolog floats that happen to be
   integer into an XPCE real object.  Petter Egesund.
 

@@ -87,6 +87,7 @@ delRefObject(Any from, Any to)
   { delRefObj(to);
     checkDeferredUnalloc(to);
   }
+  freeableObj(to);
 }
 
 
