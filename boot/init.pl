@@ -261,14 +261,17 @@ $undefined_procedure(Module, Name, Arity) :-
 $undefined_procedure(Module, Name, Arity) :-
 	flag($enable_autoload, on, on),
 	$find_library(Module, Name, Arity, LoadModule, Library),
+	functor(Head, Name, Arity),
 	flag($autoloading, Old, Old+1),
 	(   Module == LoadModule
 	->  ignore(ensure_loaded(Library))
-	;   ignore(Module:use_module(Library, [Name/Arity]))
+	;   (   $c_current_predicate(_, LoadModule:Head)
+	    ->	Module:import(LoadModule:Head)
+	    ;	ignore(Module:use_module(Library, [Name/Arity]))
+	    )
 	),
 	flag($autoloading, _, Old),
-	functor(Head, Name, Arity),
-	current_predicate(_, Module:Head), !,
+	$c_current_predicate(_, Module:Head), !,
 	$map_trace_action(retry, Int),
 	$trace_continuation(Int).
 $undefined_procedure(Module, Name, Arity) :-
@@ -338,7 +341,8 @@ $warning(Format, Args) :-
 $warning(Format, Args) :-
 	format(user_error, '[WARNING: ', []), 
 	format(user_error, Format, Args), 
-	format(user_error, ']~n', []).
+	format(user_error, ']~n', []),
+	trace.
 
 
 %	$warn_undefined(+Goal, +Dwims)
@@ -382,15 +386,12 @@ $predicate_name(Goal, String) :-
 		*********************************/
 
 %	File is a specification of a Prolog source file. Return the full
-%	path of the file. Warns the user if no such file exists.
+%	path of the file.
 
 $check_file(0, _) :- !, fail.			% deal with variables
 $check_file(user, user) :- !.
 $check_file(File, Absolute) :-
-	$chk_file(File, Absolute, [''], ['.pl', '']), !.
-$check_file(File, _) :-
-	$warning('~w: No such file', [File]),
-	fail.
+	$chk_file(File, Absolute, [''], ['.qlf', '.pl', '']).
 
 $chk_file(library(File), FullName, Prefixes, Ext) :- !,
 	$chk_lib_file(File, FullName, Prefixes, Ext).
@@ -404,12 +405,19 @@ $chk_file(Term, FullName, Prefixes, Ext) :-	% allow a/b, a-b, etc.
 $chk_file(File, FullName, _, Exts) :-
 	atomic(File),
 	member(Ext, Exts),
+	Ext \== '',
+	concat(_, Ext, File), !,
+	$absolute_file_name(File, FullName),
+	exists_file(FullName).
+$chk_file(File, FullName, _, Exts) :-
+	atomic(File),
+	member(Ext, Exts),
 	(   concat(_, Ext, File)
 	->  PlFile = File
 	;   concat(File, Ext, PlFile)
 	),
-	absolute_file_name(PlFile, FullName),
-	exists_file(FullName), !.
+	$absolute_file_name(PlFile, FullName),
+	exists_file(FullName).
 
 :- dynamic
 	$lib_file_cache/4.
@@ -417,14 +425,14 @@ $chk_file(File, FullName, _, Exts) :-
 $chk_lib_file(File, FullFile, Prefixes, Exts) :-
 	$lib_file_cache(File, FullFile, Pref, Ext),
 	memberchk(Pref, Prefixes),
-	memberchk(Ext, Exts), !.
+	memberchk(Ext, Exts).
 $chk_lib_file(File, FullFile, Prefixes, Exts) :-
 	user:library_directory(Dir),
 	member(Prefix, Prefixes),
 	member(Ext, Exts),
 	concat_atom([Dir, '/', Prefix, '/', File, Ext], LibFile),
-	exists_file(LibFile), !,
-	absolute_file_name(LibFile, FullFile),
+	exists_file(LibFile),
+	$absolute_file_name(LibFile, FullFile),
 	asserta($lib_file_cache(File, FullFile, Prefix, Ext)).
 	
 
@@ -451,7 +459,7 @@ $chk_lib_file(File, FullFile, Prefixes, Exts) :-
 %	Is true if SWI-Prolog is generating an intermediate code file
 
 compiling :-
-	flag($compiling, wic, wic).
+	\+ flag($compiling, database, database).
 
 
 		/********************************
@@ -465,7 +473,7 @@ $open_source(File, Goal) :-
 	preprocessor(none, none), !,
 	$file_dir_name(File, Dir),
 	seeing(Old),
-	absolute_file_name('', OldDir), chdir(Dir),
+	$absolute_file_name('', OldDir), chdir(Dir),
 	see(File),
 	$open_source_call(File, Goal, True),
 	seen,
@@ -477,7 +485,7 @@ $open_source(File, Goal) :-
 	$file_dir_name(File, Dir),
 	$file_base_name(File, Base),
 	seeing(Old),
-	absolute_file_name('', OldDir), chdir(Dir),
+	$absolute_file_name('', OldDir), chdir(Dir),
 	$substitute_atom('%f', Base, Pre, Command),
 	see(pipe(Command)),
 	$open_source_call(File, Goal, True),
@@ -538,8 +546,11 @@ ensure_loaded([Spec|Rest]) :- !,
 	ensure_loaded(Rest).
 ensure_loaded(Spec) :-
 	$strip_module(Spec, _, File),
-	$check_file(File, FullFile),
-	$ensure_loaded(Spec, FullFile).
+	(   $check_file(File, FullFile)
+	->  $ensure_loaded(Spec, FullFile)
+	;   $warning('ensure_loaded/1: No such file: ~w', Spec),
+	    fail
+	).
 
 $ensure_loaded(_Spec, FullFile) :-
 	source_file(FullFile), !.
@@ -571,11 +582,12 @@ use_module(File, ImportList) :-
 $use_module(Spec, Import, _) :-
 	$strip_module(Spec, _, File),
 	$check_file(File, FullFile),
-	$module_file(FullFile, Module),
+	$current_module(Module, FullFile), !,
 	context_module(Context),
 	$import_list(Context, Module, Import).	
 $use_module(Spec, Import, Options) :-
 	$consult_file(Spec, [import = Import, is_module | Options]).
+	
 
 [F|R] :-
 	consult([F|R]).
@@ -587,6 +599,17 @@ consult([File|Rest]) :- !,
 	consult(Rest).
 consult(Spec) :-
 	$consult_file(Spec, [verbose]).
+
+
+%	Compilation extensions
+
+$compiler_extension('.qlf', $qload_file).
+$compiler_extension('',  $consult_file).
+
+$consult_goal(Path, Goal) :-
+	$compiler_extension(Ext, Goal),
+	concat(_, Ext, Path), !.
+
 
 %	$consult_file(+File, +Options)
 %	
@@ -611,8 +634,13 @@ $consult_file(Spec, Options) :-
 	(memberchk(is_module, Options) -> IsModule = true ; IsModule = false),
 
 	$strip_module(Spec, Module, File),
-	$check_file(File, Absolute),
-	$consult_file(Absolute, Module, Import, IsModule, LM),
+	(   $check_file(File, Absolute),
+	    $consult_goal(Absolute, Goal),
+	    $apply(Goal, [Absolute, Module, Import, IsModule, Action, LM])
+	->  true
+	;   $warning('No such file: ~w', Spec),
+	    fail
+	),
 
 	(   memberchk(verbose, Options),
 	    (flag($autoloading, 0, 0) ; flag($verbose_autoload, on, on))
@@ -623,8 +651,9 @@ $consult_file(Spec, Options) :-
 	    $confirm_file(File, Absolute, ConfirmFile),
 	    $confirm_module(LM, ConfirmModule),
 
-	    $ttyformat('~N~w compiled~w, ~2f sec, ~D bytes.~n',
-		       [ConfirmFile, ConfirmModule, TimeUsed, HeapUsed])
+	    $ttyformat('~N~w ~w~w, ~2f sec, ~D bytes.~n',
+		       [ConfirmFile, Action, ConfirmModule,
+			TimeUsed, HeapUsed])
 	;   true
 	).
 
@@ -633,17 +662,19 @@ $confirm_file(File, _, File).
 
 $confirm_module(user, '') :- !.
 $confirm_module(Module, Message) :-
+	atom(Module), !,
 	concat(' into ', Module, Message).
+$confirm_module(_, '').
 
 $read_clause(Clause) :-				% get the first non-syntax
 	repeat,					% error
 	    read_clause(Clause), !.
 
-$consult_file(Absolute, Module, Import, IsModule, LM) :-
+$consult_file(Absolute, Module, Import, IsModule, compiled, LM) :-
 	$set_source_module(OldModule, Module),	% Inform C we start loading
 	$start_consult(Absolute),
-	(   compiling
-	->  $add_directive_wic($assert_load_context_module(Absolute, OldModule))
+	(   flag($compiling, wic, wic)	% TBD
+	->  $add_directive_wic($assert_load_context_module(Absolute,OldModule))
 	;   true
 	),
 	$assert_load_context_module(Absolute, OldModule),
@@ -652,12 +683,7 @@ $consult_file(Absolute, Module, Import, IsModule, LM) :-
 	$open_source(Absolute, (		% Load the file
 	    $read_clause(First),
 	    $load_file(First, Absolute, Import, IsModule, LM))),
-
 	$style_check(_, OldStyle),		% Restore old style
-	(   compiling
-	->  $add_directive_wic($style_check(_, OldStyle))
-	;   true
-	),
 	$set_source_module(_, OldModule).	% Restore old module
 
 %	$load_context_module(+File, -Module)
@@ -691,19 +717,12 @@ $load_file(end_of_file, _, _, _, Module) :- !,		% empty file
 	$set_source_module(Module, Module).
 $load_file(FirstClause, File, _, false, Module) :- !,
 	$set_source_module(Module, Module),
+	$qlf_start_file(File),
 	ignore($consult_clause(FirstClause, File)),
 	repeat,
 	    read_clause(Clause),
-	    $consult_clause(Clause, File), !.
-
-:- dynamic
-	$module_file/2.
-
-$assert_module_file(File, Module) :-
-	$module_file(File, Module), !.
-$assert_module_file(File, Module) :-
-	asserta($module_file(File, Module)).
-
+	    $consult_clause(Clause, File), !,
+	$qlf_end_part.
 
 $reserved_module(system).
 $reserved_module(user).
@@ -715,32 +734,23 @@ $load_module(Reserved, _, _, _) :-
 	fail.
 $load_module(Module, Public, Import, File) :-
 	$set_source_module(OldModule, OldModule),
-	(   compiling
-	->  $start_module_wic(Module, File),
-	    $add_directive_wic($assert_module_file(File, Module))
-	;   true
-	),
 	$declare_module(Module, File),
 	$export_list(Module, Public),
-	$assert_module_file(File, Module),
+	$qlf_start_module(Module),
+
 	repeat,
 	    read_clause(Clause),
 	    $consult_clause(Clause, File), !,
+
 	Module:$check_export,
-	(   compiling
-	->  $start_module_wic(OldModule, 0)
-	;   true
-	),
+	$qlf_end_part,
 	$import_list(OldModule, Module, Import).
 
 
 $import_list(_, _, []) :- !.
 $import_list(Module, Source, [Name/Arity|Rest]) :- !,
 	functor(Term, Name, Arity),
-	(   compiling
-	->  $import_wic(Source, Name, Arity)
-	;   true
-	),
+	$import_wic(Source, Term),
 	ignore(Module:import(Source:Term)),
 	$import_list(Module, Source, Rest).
 $import_list(Context, Module, all) :- !,
@@ -751,25 +761,18 @@ $import_list(Context, Module, all) :- !,
 $import_all([], _, _).
 $import_all([Head|Rest], Context, Source) :-
 	ignore(Context:import(Source:Head)),
-	(   compiling
-	->  functor(Head, Name, Arity),
-	    $import_wic(Source, Name, Arity)
-	;   true
-	),
+	$import_wic(Source, Head),
 	$import_all(Rest, Context, Source).
 
 
 $export_list(_, []) :- !.
 $export_list(Module, [Name/Arity|Rest]) :- !,
-	(   compiling
-	->  $export_wic(Name, Arity)
-	;   true
-	),
 	functor(Term, Name, Arity),
 	export(Module:Term),
 	$export_list(Module, Rest).
 $export_list(Module, [Term|Rest]) :-
-	$warning('Illegal predicate specification in public list: `~w''', [Term]),
+	$warning('Illegal predicate specification in public list: `~w''',
+		 [Term]),
 	$export_list(Module, Rest).
 
 $consult_clause(end_of_file, _) :- !.
@@ -779,7 +782,7 @@ $consult_clause(Clause, File) :-
 	fail.
 
 $execute_directive(Goal) :-
-	flag($compiling, wic, wic), !,
+	compiling, !,
 	$add_directive_wic2(Goal),
 	$execute_directive2(Goal).
 $execute_directive(Goal) :-
@@ -830,9 +833,9 @@ $goal_type(Goal, Type) :-
 
 $load_goal([_|_]).
 $load_goal(consult(_)).
-$load_goal(ensure_loaded(_)).
-$load_goal(use_module(_)).
-$load_goal(use_module(_, _)).
+$load_goal(ensure_loaded(_)) :- flag($compiling, wic, wic).
+$load_goal(use_module(_))    :- flag($compiling, wic, wic).
+$load_goal(use_module(_, _)) :- flag($compiling, wic, wic).
 
 		/********************************
 		*        TERM EXPANSION         *
@@ -855,16 +858,11 @@ $store_clause((:- Goal), _) :- !,
 	$execute_directive(Goal).
 $store_clause((?- Goal), _) :- !,
 	$execute_directive(Goal).
-$store_clause((_, _), F) :- !,
-	current_input(Stream),
-	line_count(Stream, Line),
-	$file_base_name(F, Base),
-	$warning('Full stop in clause body (line ~w of ~w)', [Line, Base]).
+$store_clause((_, _), _) :- !,
+	$warning('Full stop in clause body? (attempt to define ,/2)').
 $store_clause(Term, File) :-
-	flag($compiling, database, database), !,
-	$record_clause(Term, File).
-$store_clause(Term, File) :-
-	$add_clause_wic(Term, File).
+	$record_clause(Term, File, Ref),
+        $qlf_assert_clause(Ref).
 
 
 		/********************************
@@ -886,8 +884,6 @@ $translate_rule((LP-->List), H) :-
 	   $extend([S, SR], LP, H)
 	).
 $translate_rule((LP-->RP), (H:-B)):-
-%	style_check(+dollar),
-%	trace,
 	$t_head(LP, S, SR, H),
 	$t_body(RP, S, SR, B1),
 	$t_tidy(B1, B).

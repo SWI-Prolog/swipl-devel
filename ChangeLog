@@ -1,6 +1,24 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.0.0
+=============
+
+  * Added `Quick Load File' compilation support.  See qcompile/1 and
+    qload/1.  Alpha stage.
+  * Important FIX to the garbage collector.  This bug may happen iff
+    a garbage collection is invoked while clauses are active that have
+    \+ or (a -> b ; c) constructs that are not yet active.  Generally
+    the problem is reported as an inconsistency in the relocation count.
+  * Fix to virtual machine encoding that applies to versions compiled
+    with gcc 2.x and whose text-space starts at a high address.
+  * Modified absolute_file_name/2 to take specifications of the
+    form absolute_file_name(library('shell.pl'), X).
+  * Various fixes to the new .qlf format and support for compiliation 
+    of individual or combined sources into .qlf files.  .qlf files may
+    now be loaded as normal sourcefiles instead of only as `boot' file.
+
+
 Version 1.9.6:
 ==============
 

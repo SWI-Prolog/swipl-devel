@@ -1,18 +1,6 @@
-Remaining problems in SWI-Prolog
+Remaining problems in SWI-Prolog (1.9.6)
 
-* Still, we have to search for a solution to garbage collection
-  while foreign code is active.
-
-* Read/1 is buggy.  Operator resolution still does not solve all problems
-  correctly.
-
-  See:
-
-  	?- op(900, fy, cd).
-	
-	cd :- cd ~.
-
-  is read as cd (:- cd ~).
+* decode: add offset to handle text at strange places.
 
 * Bagof/setof have a bug as reported by Paul Broome <broome@BRL.MIL>:
 

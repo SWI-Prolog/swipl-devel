@@ -33,9 +33,6 @@ struct chunk
 
 forwards Chunk	allocate(alloc_t size);
 
-#define ALLOCSIZE	10240	/* size of allocation chunks */
-#define ALLOCFAST	512	/* big enough for all structures */
-
 static char   *spaceptr;	/* alloc: pointer to first free byte */
 static alloc_t spacefree;	/* number of free bytes left */
 

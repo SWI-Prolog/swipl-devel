@@ -1,3 +1,4 @@
+
 /*  $Id$
 
     Copyright (c) 1990 Jan Wielemaker. All rights reserved.
@@ -145,13 +146,34 @@ pl_default_module(Word me, Word old, Word new)
 
 word
 pl_current_module(Word module, Word file, word h)
-{ Module m;
-  Atom f;
-  Symbol symb;
+{ Symbol symb = firstHTable(moduleTable);
+  mark mark;
+
+					/* deterministic cases */
+  if ( isAtom(*module) )
+  { for(; symb; symb = nextHTable(moduleTable, symb) )
+    { Module m = (Module) symb->value;
+
+      if ( (Atom) *module == m->name )
+      { Atom f = (m->file == (SourceFile) NULL ? ATOM_nil : m->file->name);
+	return unifyAtomic(file, f);
+      }
+    }
+
+    fail;
+  } else if ( isAtom(*file) )
+  { for( ; symb; symb = nextHTable(moduleTable, symb) )
+    { Module m = (Module) symb->value;
+
+      if ( m->file && m->file->name == (Atom) *file )
+	return unifyAtomic(module, m->name);
+    }
+
+    fail;
+  }
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
-      symb = firstHTable(moduleTable);
       break;
     case FRG_REDO:
       symb = (Symbol) ForeignContextAddress(h);
@@ -161,10 +183,16 @@ pl_current_module(Word module, Word file, word h)
       succeed;
   }
 
+  DoMark(mark);
+
   for(; symb; symb = nextHTable(moduleTable, symb) )
-  { m = (Module) symb->value;
+  { Atom f;
+    Module m = (Module) symb->value;
+
     if ( stringAtom(m->name)[0] == '$' && !SYSTEM_MODE && isVar(*module) )
       continue;
+
+    DoUndo(mark);
     if (unifyAtomic(module, m->name) == FALSE)
       continue;
     f = (m->file == (SourceFile) NULL ? ATOM_nil : m->file->name);

@@ -892,7 +892,10 @@ save_program(+NewProgram, +ListOfOptions)
 
 
 save_program(+NewProgram)
-    Equivalent to `save_program(NewProgram, [])'.  .C save/1 +State
+    Equivalent to `save_program(NewProgram, [])'.
+
+
+save(+State)
     Writes the current status on the program, Prolog- and C-stacks to the
     file State.  When this file is restored, save/1 succeeds in the
     restored state and execution continues as illustrated by the
@@ -1127,7 +1130,7 @@ Chapter  3
 
 Built-In  Predicates
 
-                                44
+                                45
 
 
 3.1 Notation of Predicate Descriptions
@@ -1265,6 +1268,55 @@ preprocessor(-Old, +New)
         ?- preprocessor(Old, '/lib/cpp -C -P %f'), consult(...).
 
         Old = none
+
+
+3.2.1 Quick Load Files
+
+The features described in this section should be regarded alpha.
+
+As of version 2.0.0, SWI-Prolog supports compilation of individual or
+multiple Prolog sourcefiles into `Quick Load Files'.  A `Quick Load Files'
+(.qlf file) stores the contents of the file in a precompiled format very
+similar to compiled files created using the -b and -c flags (see
+section 2.7).
+
+These files load considerably faster than sourcefiles and are normally
+more compact.  They are machine independent and may thus be loaded on any
+implementation of SWI-Prolog.  Note however that clauses are stored as
+virtual machine instructions.  Changes to the compiler will generally make
+old compiled files unusable.
+
+Quick Load Files are created using qcompile/1.  They may be loaded
+explicitely using qload/1 or implicitely using consult/1 or one of the
+other file-loading predicates described in section 3.2.  If consult is
+given the explicit .pl file, it will load the Prolog source.  When given
+the .qlf file, it will call qload/1 to load the file.  When no extension
+is specified, it will load the .qlf file when present and the .pl file
+otherwise.
+
+
+qcompile(+File)
+    Takes a single file specification like consult/1 (i.e.  accepts
+    constructs like library(LibFile) and creates a Quick Load File from
+    File.  The file-extension of this file is .qlf.  The base name of the
+    Quick Load File is the same as the input file.
+
+    If the file contains `:- consult(+File)' or `:- [+File]' statements,
+    the referred files are compiled into the same .qlf file.  Other
+    directives will be stored in the .qlf file and executed in the same
+    fashion as when loading the .pl file.
+
+    For term_expansion/2, the same rules as described in section 2.7
+    apply.
+
+    Source references (source_file/2) in the Quick Load File refer to the
+    Prolog source file from which the compiled code originates.
+
+
+qload(+File)
+    Loads the `Quick Load File'.  It has the same semantics as consult/1
+    for a normal sourcefile.  Equivalent to consult(File) iff File refers
+    to a `Quick Load File'.
 
 
 3.3 Listing Predicates and Editor Interface
@@ -4082,7 +4134,7 @@ Chapter  4
 
 Using  Modules
 
-                                417
+                                421
 
 
 4.1 Why Using Modules?
@@ -4591,7 +4643,7 @@ trade-off the user is responsible for type checking and should be careful
 not to violate consistency rules as Prolog provides access to its internal
 data structures.
 
-                                440
+                                444
 
 
 5.1 Overview of the Interface
@@ -5618,7 +5670,7 @@ debugging tools for Prolog.  The predicates described here should be
 handled with some care as it is easy to corrupt the consistency of the
 Prolog system by misusing them.
 
-                                528
+                                532
 
 
 6.1 Examining the Environment Stack
@@ -5927,6 +5979,8 @@ halt/0                      Exit from Prolog
 help/0                      Give help on help
 help/1                      Give help on predicates and show parts of manual
 history_depth/1              Number of remembered queries
+qcompile/1                  Compile source to Quick Load File
+qload/1                     Load Quick Load File as consult/1
 read_history/6               Read using history substitution
 redefine_system_predicate/1   Abolish system definition
 ignore/1                    Call the argument, but always succeed
@@ -6122,4 +6176,4 @@ writeq/2                    Write term, insert quotes on stream
 xor/2                       Arithmetic:  exclusive or
 |/2                         Disjunction of goals
 
-                                537
+                                541

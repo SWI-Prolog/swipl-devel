@@ -20,5 +20,6 @@
 	, foreign
 	, parms
 	, autoload
+	, qlf
 	, user:topvars
 	].

@@ -190,10 +190,15 @@ index_file(Fd, File) :-
 	read(In, Term),
 	close(In),
 	Term = (:- module(Module, Public)), !,
+	delete_suffix(File, '.pl', Base),
 	forall( member(Name/Arity, Public),
 		format(Fd, 'index((~k), ~k, ~k, ~k).~n',
-		       [Name, Arity, Module, File])).
+		       [Name, Arity, Module, Base])).
 index_file(_, _).
+
+delete_suffix(File, Suffix, Base) :-
+	concat(Base, Suffix, File), !.
+delete_suffix(File, _, File).
 
 index_header(Fd):-
 	format(Fd, '/*  $Id$~n~n', []),

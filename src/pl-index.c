@@ -200,27 +200,35 @@ part of the stacks (e.g. backtrailing is not needed).
 
 bool
 reindexClause(Clause clause)
-{ Word head;
-  Procedure proc = clause->procedure;
-  mark m;
+{ Procedure proc = clause->procedure;
+  unsigned long pattern = proc->definition->indexPattern;
 
-  if (proc->definition->indexPattern == 0x0)
+  if ( pattern == 0x0 )
     succeed;
+  else
+  { mark m;
+    
+    Mark(m);
+    if ( pattern == 0x1 )		/* the 99.9% case.  Speedup a little */
+    { Word a1 = newTerm();
 
-  Mark(m);
-  head = newTerm();
-  if ( !decompileHead(clause, head) )
-  { sysError("Failed to decompile head of %s", procedureName(proc));
-    fail;
+      decompileArg1(clause, a1);
+      clause->index = getIndex(a1, pattern, 1);
+    } else
+    { Word head = newTerm();
+
+      decompileHead(clause, head);
+      clause->index = getIndex(argTermP(*head, 0),
+			       pattern,
+			       proc->definition->indexCardinality);
+    }
+
+    Undo(m);
   }
-
-  clause->index = getIndex(argTermP(*head, 0),
-			   proc->definition->indexPattern, 
-			   proc->definition->indexCardinality);
-  Undo(m);
 
   succeed;
 }
+
 
 bool
 indexPatternToTerm(Procedure proc, Word value)

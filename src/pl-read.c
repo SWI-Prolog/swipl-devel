@@ -181,8 +181,9 @@ errorWarning(char *what)
     unifyAtomic(argTermP(arg, 1), consNum(source_line_no));
     unifyAtomic(argTermP(arg, 2), lookupAtom(what));
 
-    if ( callGoal(MODULE_user, goal, FALSE) == FALSE )
-      warning("Syntax error: %s", what);
+    if ( !callGoal(MODULE_user, goal, FALSE) )
+      warning("%s:%d: Syntax error: %s",
+	      stringAtom(source_file_name), source_line_no, what);
     Undo(m);
   }
 }

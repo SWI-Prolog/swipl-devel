@@ -23,7 +23,7 @@ lookupFunctorDef(register Atom atom, register int arity)
   DEBUG(9, printf("Lookup functor %s/%d = ", stringAtom(atom), arity));
   for(f = functorDefTable[v]; f && !isRef((word)f); f = f->next)
   { if (atom == f->name && f->arity == arity)
-    { DEBUG(9, printf("%D (old)\n", f));
+    { DEBUG(9, printf("%ld (old)\n", f));
       return f;
     }
   }
@@ -35,7 +35,7 @@ lookupFunctorDef(register Atom atom, register int arity)
   functorDefTable[v] = f;
   statistics.functors++;
 
-  DEBUG(9, printf("%D (new)\n", f));
+  DEBUG(9, printf("%ld (new)\n", f));
 
   return f;
 }
@@ -91,15 +91,15 @@ checkFunctors()
   { f = functorDefTable[n];
     for( ;f && !isRef((word)f); f = f->next )
     { if ( f->type != FUNCTOR_TYPE )
-        printf("[ERROR: Functor %D has bad type: %D]\n", f, f->type);
+        printf("[ERROR: Functor %ld has bad type: %ld]\n", f, f->type);
       if ( f->arity < 0 || f->arity > 10 )	/* debugging only ! */
-        printf("[ERROR: Functor %D has dubious arity: %d]\n", f, f->arity);
+        printf("[ERROR: Functor %ld has dubious arity: %d]\n", f, f->arity);
       if ( !inCore(f->name) || f->name->type != ATOM_TYPE )
-        printf("[ERROR: Functor %D has illegal name: %D]\n", f, f->name);
+        printf("[ERROR: Functor %ld has illegal name: %ld]\n", f, f->name);
       if ( !( f->next == (FunctorDef) NULL ||
 	      isRef((word)f->next) ||
 	      inCore(f->next)) )
-	printf("[ERROR: Functor %D has illegal next: %D]\n", f, f->next);
+	printf("[ERROR: Functor %ld has illegal next: %ld]\n", f, f->next);
     }
     if ( (isRef((word)f) &&
 	 ((FunctorDef *) unRef((word)f) != &functorDefTable[n+1])) )
@@ -136,7 +136,7 @@ pl_current_functor(Word name, Word arity, word h)
       succeed;
   }
 
-  DEBUG(9, printf("current_functor(): fdef = %D\n", fdef));
+  DEBUG(9, printf("current_functor(): fdef = %ld\n", fdef));
   for(; fdef; fdef = fdef->next)
   { while( isRef((word)fdef) )
     { fdef = *((FunctorDef *)unRef(fdef));
@@ -148,7 +148,7 @@ pl_current_functor(Word name, Word arity, word h)
     if ( unifyAtomic(name, fdef->name) == FALSE ||
 	 unifyAtomic(arity, consNum(fdef->arity)) == FALSE)
       continue;
-    DEBUG(9, printf("Returning backtrack point %D\n", fdef->next));
+    DEBUG(9, printf("Returning backtrack point %ld\n", fdef->next));
 
     return_next_table(FunctorDef, fdef);
   }

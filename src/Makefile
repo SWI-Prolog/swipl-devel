@@ -44,7 +44,7 @@ LDFLAGS= -static
 
 PLFOREIGN=foreign.pl
 
-PLVERSION=1.9.6
+PLVERSION=2.0.0
 DEFSTARTUP=.plrc
 
 PB=../boot
@@ -69,7 +69,7 @@ ALLOBJ= $(OBJ) $(DEPOBJ) $(EXT)
 
 PLINIT=	$(PB)/init.pl
 
-SRC=	$(OBJ:.o=.c) $(DEPOBJ:.o=.c) $(EXT:.o=.c)
+SRC=	$(OBJ:.o=.c) $(DEPOBJ:.o=.c) $(EXT:.o=.c) pl-index.c pl-alloc.c
 HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h pl-itf.h pl-main.h \
 	pl-os.h pl-save.h
 

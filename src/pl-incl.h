@@ -218,6 +218,13 @@ redesign of parts of the compiler.
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Allocation Parameters
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define ALLOCSIZE	(1<<15)	/* size of allocation chunks (64K) */
+#define ALLOCFAST	512	/* big enough for all structures */
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Macros to handle hash tables.  See pl-table.c for  details.   First  the
 sizes  of  the  hash  tables are defined.  Note that these should all be
 2^N.
@@ -677,6 +684,7 @@ with one operation, it turns out to be faster as well.
 #define TRACE_FAIL		(0x00008000L) /* predicate */
 					/* This may be changed later ... */
 #define LOCKED			(SYSTEM)      /* predicate */
+#define FILE_ASSIGNED		(0x00010000L) /* predicate */
 
 #define ERASED			(0x0001) /* clause */
 #define UNKNOWN			(0x0002) /* module */
@@ -739,7 +747,7 @@ integers to pointers.
 #    ifdef DATA_AT_0X2
 #      define PTR_TO_NUM_OFFSET	  0x20000000L
 #    else
-#      ifdef DATA_AT_0X1
+#      ifdef DATA_AT_OX1
 #        define PTR_TO_NUM_OFFSET 0x10000000L
 #      else
 #        define PTR_TO_NUM_OFFSET 0x0L
@@ -1198,11 +1206,14 @@ GLOBAL bool	  fileerrors;		/* Report file errors? */
 
 #if VMCODE_IS_ADDRESS
 GLOBAL char  *dewam_table;			/* decoding table */
+GLOBAL long  dewam_table_offset;		/* offset of 1st */
 GLOBAL code  wam_table[I_HIGHEST+1];		/* code --> address */
 GLOBAL void **interpreter_jmp_table;		/* interpreters table */
 
 #define encode(wam) (wam_table[wam])		/* WAM --> internal */
-#define decode(c)   ((code) dewam_table[c])	/* internal --> WAM */
+						/* internal --> WAM */
+#define decode(c)   ((code) (dewam_table[(unsigned long)(c) - \
+					 dewam_table_offset]))
 #else /* VMCODE_IS_ADDRESS */
 #define encode(wam) (wam)
 #define decode(wam) (wam)

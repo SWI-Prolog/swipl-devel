@@ -1018,15 +1018,18 @@ void
 addProcedureSourceFile(SourceFile sf, Procedure proc)
 { ListCell cell;
 
-  for(cell=sf->procedures; cell; cell = cell->next)
-    if ( cell->value == proc )
-      return;
+  if ( true(proc->definition, FILE_ASSIGNED) )
+  { for(cell=sf->procedures; cell; cell = cell->next)
+      if ( cell->value == proc )
+	return;
+  }
 
   startCritical;
   cell = allocHeap(sizeof(struct list_cell));
   cell->value = proc;
   cell->next = sf->procedures;
   sf->procedures = cell;
+  set(proc->definition, FILE_ASSIGNED);
   endCritical;
 }
 
@@ -1088,16 +1091,10 @@ pl_time_source_file(Word file, Word time, word h)
   fail;
 }
 
-word
-pl_start_consult(Word file)
-{ SourceFile f;
 
-  if (!isAtom(*file) )
-    fail;
-  f = lookupSourceFile((Atom)*file);
-  f->time = LastModifiedFile(stringAtom(*file));
-
-  if ( f->count++ > 0 )
+void
+startConsult(SourceFile f)
+{ if ( f->count++ > 0 )
   { ListCell cell, next;
 
     for(cell = f->procedures; cell; cell = next)
@@ -1111,7 +1108,21 @@ pl_start_consult(Word file)
     }
     f->procedures = NULL;
   }
+
   f->current_procedure = NULL;
+}
+
+
+word
+pl_start_consult(Word file)
+{ SourceFile f;
+
+  if (!isAtom(*file) )
+    fail;
+  f = lookupSourceFile((Atom)*file);
+  f->time = LastModifiedFile(stringAtom(*file));
+
+  startConsult(f);
 
   succeed;
 }

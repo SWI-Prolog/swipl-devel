@@ -57,7 +57,7 @@ static struct foreign {
   ADD("prompt",			2, pl_prompt,			TRACE_ME),
   ADD("prompt1",		1, pl_prompt1,			TRACE_ME),
   ADD("expand_file_name",	2, pl_expand_file_name,		TRACE_ME),
-  ADD("absolute_file_name",	2, pl_absolute_file_name,	TRACE_ME),
+  ADD("$absolute_file_name",	2, pl_absolute_file_name,	TRACE_ME),
   ADD("$file_base_name",	2, pl_file_base_name,		TRACE_ME),
   ADD("$file_dir_name",		2, pl_file_dir_name,		TRACE_ME),
   ADD("prolog_to_os_filename",	2, pl_prolog_to_os_filename,	TRACE_ME),
@@ -115,21 +115,25 @@ static struct foreign {
 
   ADD("$open_wic",		1, pl_open_wic,			TRACE_ME),
   ADD("$close_wic",		0, pl_close_wic,		TRACE_ME),
-  ADD("$add_clause_wic",	2, pl_add_clause_wic,		TRACE_ME),
   ADD("$add_directive_wic",	1, pl_add_directive_wic,	TRACE_ME),
-  ADD("$start_module_wic",	2, pl_start_module_wic,		TRACE_ME),
-  ADD("$export_wic",		2, pl_export_wic,		TRACE_ME),
-  ADD("$import_wic",		3, pl_import_wic,		TRACE_ME),
-/*
-  ADD("$load_wic_file",		1, pl_load_wic_file,		TRACE_ME),
-*/
+  ADD("$import_wic",		2, pl_import_wic,		TRACE_ME),
+
+  ADD("$qlf_start_module",	1, pl_qlf_start_module,		TRACE_ME),
+  ADD("$qlf_start_file",	1, pl_qlf_start_file,		TRACE_ME),
+  ADD("$qlf_end_part",		0, pl_qlf_end_part,		TRACE_ME),
+  ADD("$qlf_open",		1, pl_qlf_open,			TRACE_ME),
+  ADD("$qlf_close",		0, pl_qlf_close,		TRACE_ME),
+  ADD("$qlf_load",		2, pl_qlf_load,	    TRANSPARENT|TRACE_ME),
+  ADD("$qlf_assert_clause",	1, pl_qlf_assert_clause,	TRACE_ME),
+
 
   ADD("abolish",    2, pl_abolish,    TRANSPARENT|TRACE_ME),
   ADD("$clause",    3, pl_clause,     NONDETERMINISTIC|TRANSPARENT|TRACE_ME),
   ADD("nth_clause", 3, pl_nth_clause, NONDETERMINISTIC|TRANSPARENT|TRACE_ME),
   ADD("retract",    1, pl_retract,    NONDETERMINISTIC|TRANSPARENT|TRACE_ME),
   ADD("$xr_member", 2, pl_xr_member,  NONDETERMINISTIC|TRACE_ME),
-
+  ADD("$wam_list",  1, pl_wam_list,   TRACE_ME),
+  
   ADD("flag",			3, pl_flag,			TRACE_ME),
   ADD("recorda",		3, pl_recorda,			TRACE_ME),
   ADD("recordz",		3, pl_recordz,			TRACE_ME),
@@ -141,7 +145,7 @@ static struct foreign {
   ADD("assert",			2, pl_assertz2,		TRANSPARENT|TRACE_ME),
   ADD("asserta",		2, pl_asserta2,		TRANSPARENT|TRACE_ME),
   ADD("assertz",		2, pl_assertz2,		TRANSPARENT|TRACE_ME),
-  ADD("$record_clause",		2, pl_record_clause,		TRACE_ME),
+  ADD("$record_clause",		3, pl_record_clause,		TRACE_ME),
   ADD("redefine_system_predicate", 1, pl_redefine_system_predicate,
 							TRANSPARENT|TRACE_ME),
 

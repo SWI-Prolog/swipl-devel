@@ -52,6 +52,7 @@
 	, save_program/1
 	, save_program/2
 	, save/1
+	, absolute_file_name/2
 	]).	
 
 		/********************************
@@ -69,7 +70,7 @@ $map_bits(Pred, -Name, Old, New) :- !, 		% clear a bit
 	$apply(Pred, [Name, Bits]), !,
 	New is Old /\ (\Bits).
 $map_bits(Pred, ?Name, Old, Old) :-		% ask a bit
-	$apply(Pred, [Name, Bits]), !,
+	$apply(Pred, [Name, Bits]),
 	Old /\ Bits > 0.
 
 $port_bit(  call, 2'00001).
@@ -549,6 +550,24 @@ sformat(String, Format, Arguments) :-
 	$write_on_string(format(Format, Arguments), String).
 sformat(String, Format) :-
 	$write_on_string(format(Format), String).
+
+		 /*******************************
+		 *	      FILES		*
+		 *******************************/
+
+absolute_file_name(Name, Abs) :-
+	atomic(Name), !,
+	$absolute_file_name(Name, Abs).
+absolute_file_name(V, _) :-
+	var(V), !,
+	$warning('absolute_file_name/2: instantiation fault'),
+	fail.
+absolute_file_name(library(Name), Abs) :-
+	user:library_directory(Dir),
+	concat_atom([Dir, '/', Name], LibFile),
+	absolute_file_name(LibFile, Abs),
+	exists_file(Abs), !.
+
 
 		/********************************
 		*         MISCELLENEOUS         *

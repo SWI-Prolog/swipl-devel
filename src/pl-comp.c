@@ -13,6 +13,7 @@
 #define CODE(c, n, a, e)	{ n, c, a, e }
 
 struct code_info codeTable[] = {
+/*     ID		name	     #args #xr */
   CODE(I_NOP,		"i_nop",	0, 0),
   CODE(I_ENTER,		"i_enter",	0, 0),
   CODE(I_CALL,		"i_call",	1, 1),
@@ -62,8 +63,8 @@ struct code_info codeTable[] = {
   CODE(C_END,		"c_end",	0, 0),
   CODE(C_NOT,		"c_not",	2, 0),
   CODE(C_FAIL,		"c_fail",	0, 0),
-  CODE(B_REAL,		"b_real",	1, 0),
-  CODE(B_STRING,	"b_string",	1, 0),
+  CODE(B_REAL,		"b_real",	1, 1),
+  CODE(B_STRING,	"b_string",	1, 1),
 #if O_BLOCK
   CODE(I_CUT_BLOCK,	"i_cut_block",	0, 0),
   CODE(B_EXIT,		"b_exit",	0, 0),
@@ -143,22 +144,29 @@ NOTE:	If the assert() fails, look at pl-wam.c: VMI(C_NOT, ... for
 void
 initWamTable(void)
 { int n;
-  int maxcoded = 0;
+  code maxcoded, mincoded;
 
   if ( interpreter_jmp_table == NULL )
     prolog((word) ATOM_fail);
 
-  for(n = 0; n <= I_HIGHEST; n++)
+  wam_table[0] = (code) ((int)interpreter_jmp_table[0]);
+  maxcoded = mincoded = wam_table[0];
+
+  for(n = 1; n <= I_HIGHEST; n++)
   { wam_table[n] = (code) ((int)interpreter_jmp_table[n]);
     if ( wam_table[n] > maxcoded )
       maxcoded = wam_table[n];
+    if ( wam_table[n] < mincoded )
+      mincoded = wam_table[n];
   }
+  dewam_table_offset = mincoded;
 
   assert(wam_table[C_NOT] != wam_table[C_IFTHENELSE]);
-  dewam_table = (char *)allocHeap((maxcoded + 1) * sizeof(char));
+  dewam_table = (char *)allocHeap(((maxcoded-dewam_table_offset) + 1) *
+				  sizeof(char));
   
   for(n = 0; n <= I_HIGHEST; n++)
-    dewam_table[wam_table[n]] = (char) n;
+    dewam_table[wam_table[n]-dewam_table_offset] = (char) n;
 
   checkCodeTable();
 }
@@ -891,7 +899,7 @@ Non-void variables. There are many cases for this.
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The task of compileSubClause() is to  generate  code  for  a  sunclause.
+The task of compileSubClause() is to  generate  code  for  a  subclause.
 First  it will call compileArgument for each argument to the call.  Then
 an instruction to call the procedure is added.  Before doing all this it
 will check for the subclause just beeing a variable or the cut.
@@ -1280,11 +1288,16 @@ pl_asserta2(Word term, Word ref)
 
 
 word
-pl_record_clause(Word term, Word file)
-{ if (!isAtom(*file) )
+pl_record_clause(Word term, Word file, Word ref)
+{ Clause clause;
+
+  if (!isAtom(*file) )
     fail;
 
-  return assert_term(term, 'z', (Atom)*file) == (Clause)NULL ? FALSE : TRUE;
+  if ( (clause = assert_term(term, 'z', (Atom)*file)) )
+    return unifyAtomic(ref, pointerToNum(clause));
+  
+  fail;
 }  
 
 
@@ -1354,6 +1367,58 @@ unifyVar(register Word var, register Word *vars, register int i)
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+decompileArg1()  is  a  simplified  version   of  decompileHead().   Its
+function is to extract the relevant   information  for (re)computing the
+index information for indexing on the   first argument (the 99.9% case).
+See reindexClause().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+bool
+decompileArg1(Clause clause, Word argp)
+{ Code APC = clause->codes;
+
+  for(;;)
+  { switch(decode(*APC++))
+    { case I_NOP:
+	  continue;
+      case H_NIL:
+	  TRY(unifyAtomic(argp++, ATOM_nil));
+          succeed;
+      case H_REAL:
+	  TRY(unifyAtomic(argp++, globalReal(valReal(XR(*APC++)))));
+	  succeed;
+#if O_STRING
+      case H_STRING:
+	  TRY(unifyAtomic(argp++, globalString(valString(XR(*APC++)))));
+	  succeed;
+#endif /* O_STRING */
+      case H_CONST:
+	  TRY(unifyAtomic(argp++, XR(*APC++)) );
+	  succeed;
+      case H_FIRSTVAR:
+      case H_VAR:
+      case H_VOID:
+	  succeed;			/* Just leave variable */
+      case H_FUNCTOR:
+	{ register FunctorDef fdef = (FunctorDef) XR(*APC++);
+
+      common_functor:
+	  TRY(unifyFunctor(argp, fdef) );
+	  succeed;
+      case H_LIST:	  fdef = FUNCTOR_dot2;		goto common_functor;
+	}
+      case I_EXIT:			/* fact */
+      case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
+	  succeed;
+      default:
+	  assert(0);
+	  fail;
+    }
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 decompileHead()  is  public  as  it  is   needed  to  update  the  index
 information for clauses if this changes   when  the predicate is already
 defined.  Also for intermediate  code  file   loaded  clauses  the index
@@ -1367,6 +1432,7 @@ decompileHead(Clause clause, Word head)
 
   return decompile_head(clause, head, &di);
 }
+
 
 static bool
 decompile_head(Clause clause, Word head, register decompileInfo *di)
@@ -2024,3 +2090,81 @@ pl_xr_member(Word ref, Word term, word h)
   fail;
 }
 
+		 /*******************************
+		 *	     WAM_LIST		*
+		 *******************************/
+
+#define VARNUM(i) ((i) - (ARGOFFSET / (int) sizeof(word)))
+
+word
+pl_wam_list(Word ref)
+{ Clause clause;
+  Code bp, ep;
+
+  if (!isInteger(*ref))
+    return warning("$wam_list/1: argument is not a clause reference");
+
+  clause = (Clause) numToPointer(*ref);
+  
+  if ( !inCore(clause) || !isClause(clause) )
+    return warning("$wam_list/1: Invalid reference");
+
+  bp = clause->codes;
+  ep = bp + clause->code_size;
+
+  while( bp < ep )
+  { code op = decode(*bp++);
+    CodeInfo ci = &codeTable[op];
+    int n = 0;
+
+    Putf("\t%s", ci->name);
+
+    switch(op)
+    { case B_FIRSTVAR:
+      case B_ARGFIRSTVAR:
+      case B_VAR:
+      case B_ARGVAR:
+      case H_VAR:
+      case C_VAR:
+      case C_MARK:
+      case C_CUT:			/* var */
+	assert(ci->arguments == 1);
+	Putf(" var(%d)", VARNUM(*bp++));
+	break;
+      case C_IFTHENELSE:		/* var, jump */
+      case C_NOT:
+	assert(ci->arguments == 2);
+        Putf(" var(%d), jmp(%d)", VARNUM(*bp++), *bp++);
+        break;
+      default:
+	for( ; n < codeTable[op].externals; n++ )
+	{ word xr = *bp++;
+
+	  Putf("%s", n == 0 ? " " : ", ");
+	  if ( isInteger(xr) )
+	    Putf("%d", valNum(xr));
+	  else if ( isReal(xr) )
+	    Putf("%f", valReal(xr));
+	  else if ( isString(xr) )
+	    Putf("\"%s\"", valString(xr));
+	  else if ( isAtom(xr) )
+	    Putf("'%s'", stringAtom(xr));
+	  else if ( ((FunctorDef)xr)->type == FUNCTOR_TYPE )
+	  { FunctorDef f = (FunctorDef) xr;
+	    
+	    Putf("%s/%d", stringAtom(f->name), f->arity);
+	  } else
+	  { Procedure p = (Procedure) xr;
+	    
+	    Putf("%s", procedureName(p));
+	  }
+	}
+        for( ; n < codeTable[op].arguments; n++ )
+	  Putf("%s%d", n == 0 ? " " : ", ", *bp++);
+    }
+
+    Putf("\n");
+  }
+
+  succeed;
+}

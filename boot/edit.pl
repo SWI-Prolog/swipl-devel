@@ -24,11 +24,12 @@
 	ed/1.
 
 edit(File) :-
-	$break($check_file(File, _)), !, 
+	$check_file(File, Path),
+	\+ qlf_file(Path), !,
 	$record_last($edit_file, File), 
 	$edit_load(File).
 edit(File) :-
-	$confirm('Edit new file ~w', [File]),
+	$confirm('No such file.  Edit new file ~w', [File]),
 	$record_last($edit_file, File), 
 	$edit(File).
 
@@ -64,6 +65,9 @@ ed :-
 ed :-
 	$break($warning('ed/0: You can only use ed/0 after ed/1!')).
 
+qlf_file(Path) :-
+	concat(_, '.qlf', Path), !.
+
 $record_last(Key, Term) :-
 	recorded(Key, Last) -> 
 	Last = Term, !.
@@ -71,12 +75,16 @@ $record_last(Key, Term) :-
 	recorda(Key, Term).
 
 $edit_load(File:Predicate) :-
-	$check_file(File, Path), 
-	$edit(Path:Predicate), !.
+	(   $check_file(File, Path), 
+	    \+ qlf_file(Path)
+	->  $edit(Path:Predicate), !
+	).
 $edit_load(File) :-
 	File \= _:_,
-	$check_file(File, Path), 
-	$edit(Path), !.
+	(   $check_file(File, Path), 
+	    \+ qlf_file(Path)
+	->  $edit(Path), !
+	).
 $edit_load(_, _).
 
 $edit(Spec) :-

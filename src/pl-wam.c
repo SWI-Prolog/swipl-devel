@@ -729,17 +729,6 @@ interpret(Module Context, word Goal, bool debug)
 
 #if VMCODE_IS_ADDRESS
   interpreter_jmp_table = jmp_table;	/* make it globally known */
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-If the assertion below fails, addresses cannot be  stored in VM codes.
-Add #define VMCODE_IS_ADDRESS 0 to your md.h file.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  DEBUG(0, { int i;
-
-	     for(i=0; i<=I_HIGHEST; i++)
-	       assert((long) jmp_table[i] < (1 << (sizeof(code)*8)));
-	   });
 #endif /* VMCODE_IS_ADDRESS */
 
   DEBUG(1, { extern int Output;		/* --atoenne-- */
@@ -1345,6 +1334,11 @@ backtrack that makes it difficult to understand the tracer's output.
       }
 
 #if O_COMPILE_OR
+#define FrameRefToInt(fr) \
+        ((fr) ? (consNum((Word)(fr) - (Word)lBase)) : 0L)
+#define IntToFrameRef(w) \
+	((w) ? ((LocalFrame)((Word)lBase + valNum(w))) : (LocalFrame) NULL)
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 WAM support for ``A ; B'', ``A -> B'' and ``A -> B ; C'' constructs.  As
 these functions introduce control within the WAM instructions  they  are
@@ -1370,7 +1364,7 @@ garbage collector won't see it.  With the introduction of stack-shifting
 this slot has been made relative to lBase.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
    VMI(C_MARK, COUNT_N(c_mark), ("c_mark %d\n", *PC)) MARK(C_MARK);
-      { varFrame(FR, *PC++) = (word) ((char *) BFR - (char *) lBase);
+      { varFrame(FR, *PC++) = FrameRefToInt(BFR);
 
 	NEXT_INSTRUCTION;
       }
@@ -1400,12 +1394,11 @@ All frames created since what becomes now the  backtrack  point  can  be
 discarded.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(C_CUT, COUNT_N(c_cut), ("c_cut %d\n", *PC)) MARK(C_CUT);
-      { LocalFrame obfr = (LocalFrame) ((char *) lBase +
-					(unsigned long) varFrame(FR, *PC++));
-					
+      { LocalFrame obfr = IntToFrameRef(varFrame(FR, *PC));
 	LocalFrame fr;
 	register LocalFrame fr2;
 
+	PC++;				/* cannot be in macro! */
 	if ( obfr < FR )
 	  obfr = FR;
 
@@ -1431,7 +1424,7 @@ discarded.
       }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-C_END is a dummy instruction to help the decompiler to fin the end of  A
+C_END is a dummy instruction to help the decompiler to find the end of A
 ->  B.  (Note  that  a  :-  (b  ->  c),  d == a :- (b -> c, d) as far as
 semantics.  They are different terms however.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1679,6 +1672,7 @@ continue as with a normal call.
 	goto normal_call;
 	
 #if O_COMPILE_OR
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 If-then-else is a contraction of C_MARK and C_OR.  This contraction  has
 been  made  to help the decompiler distinguis between (a ; b) -> c and a
@@ -1705,8 +1699,7 @@ effect* and 2) is *not optimised* away by the compiler.
 #endif
     VMI(C_IFTHENELSE, COUNT_2N(c_ifthenelse), ("c_ifthenelse %d\n", *PC))
       MARK(C_ITE);
-      { varFrame(FR, *PC++) = (word) ((char *) BFR - (char *) lBase);
-						/* == C_MARK */
+      { varFrame(FR, *PC++) = FrameRefToInt(BFR); /* == C_MARK */
 
 	/*FALL-THROUGH to C_OR*/
       }

@@ -198,6 +198,13 @@ static Word *mark_base;			/* Array of marked cells addresses */
 static Word *mark_top;			/* Top of this array */
 static Table check_table = NULL;	/* relocation address table */
 
+/*
+int
+trap_gdb()				/* intended to put a break on */
+{
+}
+*/
+
 static void
 needsRelocation(addr)
 Word addr;
@@ -465,6 +472,11 @@ clear_uninitialised(LocalFrame fr, Code PC)
 	  if ( PC >= branch_end )
 	    setVar(varFrame(fr, PC[1]));
 	  break;
+	case C_NOT:			/* stores c_cut context here! */
+	case C_IFTHENELSE:
+	  if ( PC >= branch_end )
+	    setVar(varFrame(fr, PC[1]));
+	  break;
       }
       if ( decode(*PC) > I_HIGHEST )
 	sysError("GC: Illegal WAM instruction: %d", decode(*PC));
@@ -483,7 +495,10 @@ mark_environments(LocalFrame fr)
   for( ; ; )
   { int slots;
     Word sp;
-    
+#if O_SECURE
+    int oslots;
+#endif
+
     if ( true(fr, FR_MARKED) )
       return (LocalFrame) NULL;		/* from choicepoints only */
     set(fr, FR_MARKED);
@@ -494,6 +509,9 @@ mark_environments(LocalFrame fr)
     clear_uninitialised(fr, PC);
 
     slots = (PC == NULL ? fr->procedure->functor->arity : slotsFrame(fr));
+#if O_SECURE
+    oslots = slots;
+#endif
     sp = argFrameP(fr, 0);
     for( ; slots > 0; slots--, sp++ )
     { if ( !marked(sp) )

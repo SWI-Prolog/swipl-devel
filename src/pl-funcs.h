@@ -84,13 +84,15 @@ word		pl_assertz(Word term);
 word		pl_asserta(Word term);
 word		pl_assertz2(Word term, Word ref);
 word		pl_asserta2(Word term, Word ref);
-word		pl_record_clause(Word term, Word file);
+word		pl_record_clause(Word term, Word file, Word ref);
 word		pl_redefine_system_predicate(Word term);
 bool		decompileHead(Clause clause, Word head);
+bool		decompileArg1(Clause clause, Word arg1);
 bool		decompile(Clause clause, Word term);
 word		pl_clause(Word p, Word term, Word ref, word h);
 word		pl_nth_clause(Word p, Word n, Word ref, word h);
 word		pl_xr_member(Word ref, Word term, word h);
+word		pl_wam_list(Word ref);
 
 /* pl-dump.c */
 word		saveProgram(Word new);
@@ -427,6 +429,7 @@ word		pl_get_clause_attribute(Word ref, Word att, Word value);
 word		pl_get_predicate_attribute(Word pred, Word what, Word value);
 word		pl_set_predicate_attribute(Word pred, Word what, Word value);
 void		reindexProcedure(Procedure proc);
+void		startConsult(SourceFile f);
 word		pl_index(Word pred);
 SourceFile	lookupSourceFile(Atom name);
 SourceFile	isCurrentSourceFile(Atom name);
@@ -436,6 +439,7 @@ word		pl_make_system_source_files(void);
 word		pl_source_file(Word descr, Word file);
 word		pl_time_source_file(Word file, Word time, word h);
 word		pl_start_consult(Word file);
+
 
 /* pl-prof.c */
 void		stopItimer(void);
@@ -543,13 +547,18 @@ void		systemMode(bool accept);
 bool		loadWicFile(char *file, bool toplevel, bool load_options);
 word		pl_open_wic(Word name);
 word		pl_close_wic(void);
-word		pl_add_clause_wic(Word term, Word file);
 word		pl_add_directive_wic(Word term);
-word		pl_start_module_wic(Word term, Word file);
-word		pl_export_wic(Word name, Word arity);
-word		pl_import_wic(Word module, Word name, Word arity);
+word		pl_import_wic(Word module, Word head);
 bool		compileFileList(char *out, int argc, char **argv);
 bool		appendState(char *name);
+
+word		pl_qlf_start_module(Word name);
+word		pl_qlf_start_file(Word name);
+word		pl_qlf_end_part(void);
+word		pl_qlf_open(Word file);
+word		pl_qlf_close(void);
+word		pl_qlf_load(Word file, Word module);
+word		pl_qlf_assert_clause(Word ref);
 
 /* pl-write.c */
 word		pl_nl(void);

@@ -53,6 +53,7 @@ setupProlog(void)
 	      options.trailSize, 
 	      options.argumentSize,
 	      options.lockSize);
+  assert(stacks.local.maxlimit < PLMAXINT/sizeof(word)); /* C_NOT, etc. */
 
   if ( status.dumped == FALSE )
   { DEBUG(1, printf("Atoms ...\n"));
@@ -75,10 +76,7 @@ setupProlog(void)
     initArith();
     DEBUG(1, printf("Tracer ...\n"));
     initTracer();
-    debugstatus.styleCheck = LONGATOM_CHECK |
-			     SINGLETON_CHECK |
-			     DOLLAR_STYLE |
-			     DISCONTIGUOUS_STYLE;
+    debugstatus.styleCheck = SINGLETON_CHECK;
     DEBUG(1, printf("wam_table ...\n"));
     initWamTable();
   } else
