@@ -90,6 +90,21 @@ add_char_buf(charbuf *b, int chr)
 
 
 static int
+add_char_bufW(charbuf *b, int chr)
+{ if ( room_buf(b, sizeof(wchar_t)) )
+  { wchar_t *p = (wchar_t*)b->end;
+
+    *p++ = chr;
+    b->end = (char *)p;
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+static int
 add_str_buf(charbuf *b, const char *s)
 { int len = strlen(s);
 
@@ -104,41 +119,83 @@ add_str_buf(charbuf *b, const char *s)
 }
 
 
+static int
+add_str_bufW(charbuf *b, const char *s)
+{ int len = strlen(s);
+
+  if ( room_buf(b, len*sizeof(wchar_t)) )
+  { wchar_t *p = (wchar_t*)b->end;
+
+    while(*s)
+      *p++ = *s++;
+    b->end = (char *)p;
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 
 static foreign_t
 do_quote(term_t in, term_t quoted, char **map)
-{ char *ins;
+{ char *inA = NULL;
+  wchar_t *inW = NULL;
   unsigned len;
   const unsigned  char *s;
   charbuf buffer;
   int changes = 0;
   int rc;
 
-  if ( !PL_get_nchars(in, &len, &ins, CVT_ATOMIC) )
+  if ( !PL_get_nchars(in, &len, &inA, CVT_ATOMIC) &&
+       !PL_get_wchars(in, &len, &inW, CVT_ATOMIC) )
     return sgml2pl_error(ERR_TYPE, "atom", in);
   if ( len == 0 )
     return PL_unify(in, quoted);
 
   init_buf(&buffer);
 
-  for(s = (unsigned char*)ins ; len-- > 0; s++ )
-  { int c = *s;
-    
-    if ( map[c] )
-    { if ( !add_str_buf(&buffer, map[c]) )
-	return FALSE;
-
-      changes++;
-    } else
-    { add_char_buf(&buffer, c);
+  if ( inA )
+  { for(s = (unsigned char*)inA ; len-- > 0; s++ )
+    { int c = *s;
+      
+      if ( map[c] )
+      { if ( !add_str_buf(&buffer, map[c]) )
+	  return FALSE;
+	
+	changes++;
+      } else
+      { add_char_buf(&buffer, c);
+      }
     }
+
+    if ( changes > 0 )
+      rc = PL_unify_atom_nchars(quoted, used_buf(&buffer), buffer.bufp);
+    else
+      rc = PL_unify(in, quoted);
+  } else
+  { for( ; len-- > 0; inW++ )
+    { int c = *inW;
+      
+      if ( c <= 0xff && map[c] )
+      { if ( !add_str_bufW(&buffer, map[c]) )
+	  return FALSE;
+	
+	changes++;
+      } else
+      { add_char_bufW(&buffer, c);
+      }
+    }
+	 
+    if ( changes > 0 )
+      rc = PL_unify_wchars(quoted, PL_ATOM,
+			   used_buf(&buffer)/sizeof(wchar_t),
+			   (wchar_t*)buffer.bufp);
+    else
+      rc = PL_unify(in, quoted);
   }
   
-  if ( changes > 0 )
-    rc = PL_unify_atom_nchars(quoted, used_buf(&buffer), buffer.bufp);
-  else
-    rc = PL_unify(in, quoted);
-
   free_buf(&buffer);
 
   return rc;
