@@ -2612,6 +2612,7 @@ exit(Block, RVal).  First does !(Block).
 	  }
 					/* TBD: tracing? */
           environment_frame = FR = blockfr;
+	  discardChoicesAfter(FR PASS_LD); /* delete possible CHP_DEBUG */
 	  DEF = FR->predicate;
 	  lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
 	  ARGP = argFrameP(lTop, 0);
@@ -2660,47 +2661,42 @@ exit(Block, RVal).  First does !(Block).
 #endif /*O_BLOCK*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-!. Basic task is to mark the frame, telling it  is  cut  off,  restoring
-`BFR'  to the backtrack frame of this frame (this, nor one of the childs
-has alternatives left due to the cut).  `lTop'  is  set  to  point  just
-above this frame, as all childs can be abbandoned now.
-
-After the cut all child frames with alternatives and their parents  that
-are childs of this frame become garbage.  The interpreter will visit all
-these  frames  and  decrease the references of the clauses referenced by
-the Prolog goals.
-
-If the debugger is on we change the backtrack frame to this frame rather
-than to the  backtrackframe  of  the  current  frame  to  avoid  a  long
-backtrack that makes it difficult to understand the tracer's output.
+!. Task is to detroy all choicepoints   newer then the current frame. If
+we are in debug-mode we create a   new CHP_DEBUG frame to provide proper
+debugger output.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     i_cut:			/* from I_USERCALL0 */
     VMI(I_CUT)						MARK(CUT);
       { 
 #ifdef O_DEBUGGER
 	if ( debugstatus.debugging )
-	{ switch(tracePort(FR, BFR, CUT_CALL_PORT, PC))
-	  { case ACTION_RETRY:
-	      goto retry;
-	    case ACTION_FAIL:
-	      FRAME_FAILED;
-	  }
-	}
-#endif
-	discardChoicesAfter(FR PASS_LD);
-	lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
-	ARGP = argFrameP(lTop, 0);
+	{ Choice ch;
 
-#ifdef O_DEBUGGER
-	if ( debugstatus.debugging )
-	{ switch(tracePort(FR, BFR, CUT_EXIT_PORT, PC))
+	  switch(tracePort(FR, BFR, CUT_CALL_PORT, PC))
 	  { case ACTION_RETRY:
 	      goto retry;
 	    case ACTION_FAIL:
 	      FRAME_FAILED;
 	  }
-	}
+
+	  discardChoicesAfter(FR PASS_LD);
+	  lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
+	  ch = newChoice(CHP_DEBUG, FR PASS_LD);
+	  Mark(ch->mark);
+	  ARGP = argFrameP(lTop, 0);
+
+	  switch(tracePort(FR, BFR, CUT_EXIT_PORT, PC))
+	  { case ACTION_RETRY:
+	      goto retry;
+	    case ACTION_FAIL:
+	      FRAME_FAILED;
+	  }
+	} else
 #endif
+	{ discardChoicesAfter(FR PASS_LD);
+	  lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
+	  ARGP = argFrameP(lTop, 0);
+	}
 
 	NEXT_INSTRUCTION;
       }
