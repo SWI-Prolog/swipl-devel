@@ -32,15 +32,25 @@ E-mail: <A HREF="mailto:jan@swi.psy.uva.nl">jan@swi.psy.uva.nl</A></I>
 This document describes commonly used foreign language extensions to
 <A HREF="http://www.swi.psy.uva.nl/projects/SWI-Prolog">SWI-Prolog</A> 
 distributed as a package known under the name <EM>clib</EM>. The package 
-actually defines four libraries with accompagnying foreign libraries.
+defines a number of Prolog libraries with accompagnying foreign 
+libraries.
 
-<P>The <CODE>library(unix)</CODE> library provides Unix process control 
-using fork(), exec(), pipe(), etc. The <CODE>library(cgi)</CODE> library 
-provides access to CGI form-data if Prolog is used for CGI-scripting, 
-the <CODE>library(crypt)</CODE> library provides access to Unix password 
-encryption and finally, the
-<CODE>library(socket)</CODE> library provides access to TCP/IP 
-communication.
+<DL>
+
+<P>
+<DT><B><CODE>library(unix)</CODE></B><DD>
+This library provides Unix process control using fork(), exec(), pipe(), 
+etc.
+<DT><B><CODE>library(cgi)</CODE></B><DD>
+This library provides access to CGI form-data if Prolog is used for 
+CGI-scripting.
+<DT><B><CODE>library(crypt)</CODE></B><DD>
+This library provides access to Unix password encryption.
+<DT><B><CODE>library(mime)</CODE></B><DD>
+This library decodes MIME messages.
+<DT><B><CODE>library(socket)</CODE></B><DD>
+This library provides access to TCP/IP communication.
+</DL>
 
 <P>Currently only <CODE>library(socket)</CODE> and <CODE>library(cgi)</CODE> 
 are available on the default MS-Windows distribution. The <CODE>library(unix)</CODE> 
@@ -63,11 +73,12 @@ SWI-Prolog suite is compiled using <A HREF="http://www.cygwin.com">Cywin</A>.
 <UL>
 <LI><A HREF="#sec:4.1">4.1 Some considerations</A>
 </UL>
-<LI><A HREF="#sec:5"><B>5 Unix password encryption library</B></A>
-<LI><A HREF="#sec:6"><B>6 Memory files</B></A>
-<LI><A HREF="#sec:7"><B>7 Installation</B></A>
+<LI><A HREF="#sec:5"><B>5 MIME decoding library</B></A>
+<LI><A HREF="#sec:6"><B>6 Unix password encryption library</B></A>
+<LI><A HREF="#sec:7"><B>7 Memory files</B></A>
+<LI><A HREF="#sec:8"><B>8 Installation</B></A>
 <UL>
-<LI><A HREF="#sec:7.1">7.1 Unix systems</A>
+<LI><A HREF="#sec:8.1">8.1 Unix systems</A>
 </UL>
 </UL>
 
@@ -459,7 +470,105 @@ is not really a neat way of producing HTML. A high-level alternative is
 provided by
 <CODE>library(http/html_write)</CODE> from the XPCE package.
 
-<H2><A NAME="sec:5">5 Unix password encryption library</A></H2>
+<H2><A NAME="sec:5">5 MIME decoding library</A></H2>
+
+<P>MIME (Multipurpose Internet Mail Extensions) is a format for 
+serializing multiple typed data objects. It was designed for E-mail, but 
+it is also used for other applications such packaging multiple values 
+using the HTTP POST request on web-servers. Double Precision, Inc. has 
+produced the C-libraries rfc822 (mail) and rfc2045 (MIME) for decoding 
+and manipulating MIME messages. The <CODE>library(mime)</CODE> library 
+is a Prolog wrapper around the rfc2045 library for deconding MIME 
+messages.
+
+<P>The general name `mime' is used for this library as it is anticipated 
+to add MIME-creation functionality to this message.
+
+<P>Currently the mime library defines one predicate:
+
+<DL>
+
+<P>
+<DT><A NAME="mime_parse/2"><STRONG>mime_parse</STRONG>(<VAR>Data, Parsed</VAR>)</A><DD>
+Parse <VAR>Data</VAR> and unify the result to <VAR>Parsed</VAR>. <VAR>Data</VAR> 
+is one of:
+
+<DL>
+
+<P>
+<DT><STRONG>stream</STRONG>(<VAR>Stream</VAR>)<DD>
+Parse the data from <VAR>Stream</VAR> upto the end-of-file.
+
+<P>
+<DT><STRONG>stream</STRONG>(<VAR>Stream, Length</VAR>)<DD>
+Parse a maximum of <VAR>Length</VAR> characters from <VAR>Stream</VAR> 
+or upto the end-of-file, whichever comes first.
+
+<P>
+<DT><STRONG><VAR>Text</VAR></STRONG><DD>
+Atoms, strings, code- and character lists are treated as valid sources 
+of data.
+</DL>
+
+<P><VAR>Parsed</VAR> is a tree structure of <CODE>mime(Attributes, Data, 
+PartList)</CODE> terms. Currently either <VAR>Data</VAR> is the empty 
+atom or <VAR>PartList</VAR> is an empty list.<A NAME=back-to-note-3 HREF="index.html#note-3"> (3)</A>
+<VAR>Data</VAR> is an atom holding the message data. The library 
+automatically decodes <EM>base64</EM> and <EM>quoted-printable</EM> 
+messages. See also the <CODE>transfer_encoding</CODE> attribute below.
+
+<P><VAR>PartList</VAR> is a list of <B>mime(3)</B> terms. <VAR>Attributes</VAR> 
+is a list holding a subset of the following arguments. For details 
+please consult the RFC2045 document.
+
+<DL>
+
+<P>
+<DT><STRONG>type</STRONG>(<VAR>Atom</VAR>)<DD>
+Denotes the Content-Type, how the <VAR>Data</VAR> should be interpreted.
+
+<P>
+<DT><STRONG>transfer_encoding</STRONG>(<VAR>Atom</VAR>)<DD>
+How the <VAR>Data</VAR> was encoded. This is not very interesting as the 
+library decodes the content of the message.
+
+<P>
+<DT><STRONG>character_set</STRONG>(<VAR>Atom</VAR>)<DD>
+The character set used for text data. Note that SWI-Prolog's 
+capabilities for character-set handling are limited.
+
+<P>
+<DT><STRONG>language</STRONG>(<VAR>Atom</VAR>)<DD>
+Language in which the text-data is written.
+
+<P>
+<DT><STRONG>id</STRONG>(<VAR>Atom</VAR>)<DD>
+Identifier of the message-part.
+
+<P>
+<DT><STRONG>description</STRONG>(<VAR>Atom</VAR>)<DD>
+Descrptive text for the <VAR>Data</VAR>.
+
+<P>
+<DT><STRONG>disposition</STRONG>(<VAR>Atom</VAR>)<DD>
+Where the data comes from. The current library only deals with `inline' 
+data.
+
+<P>
+<DT><STRONG>name</STRONG>(<VAR>Atom</VAR>)<DD>
+Name of the part.
+
+<P>
+<DT><STRONG>filename</STRONG>(<VAR>Atom</VAR>)<DD>
+Name of the file the data should be stored in.
+</DL>
+
+</DL>
+
+<P><B>NOTE</B> This library is only built and installed if the maildrop 
+libraries are installed on your system.
+
+<H2><A NAME="sec:6">6 Unix password encryption library</A></H2>
 
 <P>The <CODE>library(crypt)</CODE> library defines <A NAME="idx:crypt2:34"></A><A HREF="#crypt/2">crypt/2</A> 
 for encrypting and testing Unix passwords:
@@ -483,7 +592,7 @@ as this implies the password will be available from the Prolog heap as a
 defined atom.
 </DL>
 
-<H2><A NAME="sec:6">6 Memory files</A></H2>
+<H2><A NAME="sec:7">7 Memory files</A></H2>
 
 <P>The <CODE>library(memfile)</CODE> provides an alternative to 
 temporary files, intended for temporary buffering of data. Memory files 
@@ -541,9 +650,9 @@ eturn the content of the memory-file in <VAR>Atom</VAR>.
 eturn the content of the memory-file as a list of character-codes in <VAR>Codes</VAR>.
 </DL>
 
-<H2><A NAME="sec:7">7 Installation</A></H2>
+<H2><A NAME="sec:8">8 Installation</A></H2>
 
-<H3><A NAME="sec:7.1">7.1 Unix systems</A></H3>
+<H3><A NAME="sec:8.1">8.1 Unix systems</A></H3>
 
 <P>Installation on Unix system uses the commonly found <EM>configure</EM>,
 <EM>make</EM> and <EM>make install</EM> sequence. SWI-Prolog should be 
@@ -561,9 +670,9 @@ using:
 </PRE>
 </TABLE>
 
-<P>This installs the foreign libraries in <CODE>\$PLBASE/lib/\$PLARCH</CODE> 
-and the Prolog library files in <CODE>\$PLBASE/library</CODE>, where
-<CODE>\$PLBASE</CODE> refers to the SWI-Prolog `home-directory'.
+<P>This installs the foreign libraries in <CODE>$PLBASE/lib/$PLARCH</CODE> 
+and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
+<CODE>$PLBASE</CODE> refers to the SWI-Prolog `home-directory'.
 
 <H1><A NAME="document-notes">Footnotes</A></H1>
 
@@ -577,6 +686,9 @@ interrupt-names as well
 More subtle handling of I/O, especially for debugging is required: 
 communicate with the syslog deamon and optionally start a debugging 
 dialog on a newly created (X-)terminal should be considered.
+<DT><A NAME=note-3 HREF="index.html#back-to-note-3">note-3</A><DD>
+It is unclear to me whether a MIME note can contain a mixture of content 
+and parts, but I believe the answer is `no'.
 </DL>
 
 </BODY></HTML>

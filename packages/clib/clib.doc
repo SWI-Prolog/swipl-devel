@@ -24,13 +24,23 @@
 This document describes commonly used foreign language extensions to
 \url[SWI-Prolog]{http://www.swi.psy.uva.nl/projects/SWI-Prolog}
 distributed as a package known under the name {\em clib}.  The package
-actually defines four libraries with accompagnying foreign libraries.
+defines a number of Prolog libraries with accompagnying foreign
+libraries.
 
-The \pllib{unix} library provides Unix process control using fork(),
-exec(), pipe(), etc.  The \pllib{cgi} library provides access to CGI
-form-data if Prolog is used for CGI-scripting, the \pllib{crypt}
-library provides access to Unix password encryption and finally, the
-\pllib{socket} library provides access to TCP/IP communication.
+\begin{description}
+    \item[\pllib{unix}]
+This library provides Unix process control using fork(),
+exec(), pipe(), etc.
+    \item[\pllib{cgi}]
+This library provides access to CGI form-data if Prolog is used for
+CGI-scripting.
+    \item[\pllib{crypt}]
+This library provides access to Unix password encryption.
+    \item[\pllib{mime}]
+This library decodes MIME messages.
+    \item[\pllib{socket}]
+This library provides access to TCP/IP communication.
+\end{description}
 
 Currently only \pllib{socket} and \pllib{cgi} are available on
 the default MS-Windows distribution.  The \pllib{unix} and
@@ -40,6 +50,7 @@ is compiled using \url[Cywin]{http://www.cygwin.com}.
 
 \vfill
 
+\pagebreak
 \tableofcontents
 
 \vfill
@@ -377,6 +388,81 @@ of producing HTML.  A high-level alternative is provided by
 \pllib{http/html_write} from the XPCE package.
 
 
+\section{MIME decoding library}
+
+MIME (Multipurpose Internet Mail Extensions) is a format for serializing
+multiple typed data objects.  It was designed for E-mail, but it is also
+used for other applications such packaging multiple values using the
+HTTP POST request on web-servers.  Double Precision, Inc.\ has produced
+the C-libraries rfc822 (mail) and rfc2045 (MIME) for decoding and
+manipulating MIME messages. The \pllib{mime} library is a Prolog wrapper
+around the rfc2045 library for deconding MIME messages.	
+
+The general name `mime' is used for this library as it is anticipated to
+add MIME-creation functionality to this message.
+
+Currently the mime library defines one predicate:
+
+\begin{description}
+    \predicate{mime_parse}{2}{Data, Parsed}
+Parse \arg{Data} and unify the result to \arg{Parsed}.  \arg{Data} is
+one of:
+
+\begin{description}
+    \termitem{stream}{Stream}
+Parse the data from \arg{Stream} upto the end-of-file.
+    \termitem{stream}{Stream, Length}
+Parse a maximum of \arg{Length} characters from \arg{Stream} or
+upto the end-of-file, whichever comes first.
+    \termitem{\arg{Text}}{}
+Atoms, strings, code- and character lists are treated as valid
+sources of data.
+\end{description}
+
+\arg{Parsed} is a tree structure of \term{mime}{Attributes, Data,
+PartList} terms.  Currently either \arg{Data} is the empty atom
+or \arg{PartList} is an empty list.%
+	\footnote{It is unclear to me whether a MIME note can contain
+		  a mixture of content and parts, but I believe the
+		  answer is `no'.}
+\arg{Data} is an atom holding the message data. The library
+automatically decodes \jargon{base64} and \jargon{quoted-printable}
+messages.  See also the \const{transfer_encoding} attribute below.
+
+ \arg{PartList} is
+a list of \funcref{mime}{3} terms.  \arg{Attributes} is a list holding
+a subset of the following arguments.  For details please consult the
+RFC2045 document.
+
+\begin{description}
+    \termitem{type}{Atom}
+Denotes the Content-Type, how the \arg{Data} should be interpreted.
+    \termitem{transfer_encoding}{Atom}
+How the \arg{Data} was encoded.  This is not very interesting as the
+library decodes the content of the message.
+    \termitem{character_set}{Atom}
+The character set used for text data. Note that SWI-Prolog's
+capabilities for character-set handling are limited.
+    \termitem{language}{Atom}
+Language in which the text-data is written.
+    \termitem{id}{Atom}
+Identifier of the message-part.
+    \termitem{description}{Atom}
+Descrptive text for the \arg{Data}.
+    \termitem{disposition}{Atom}
+Where the data comes from.  The current library only deals with
+`inline' data.
+    \termitem{name}{Atom}
+Name of the part.
+    \termitem{filename}{Atom}
+Name of the file the data should be stored in.
+\end{description}
+\end{description}
+
+{\bf NOTE} This library is only built and installed if the maildrop
+libraries are installed on your system.
+
+
 \section{Unix password encryption library}
 
 The \pllib{crypt} library defines crypt/2 for encrypting and testing
@@ -465,9 +551,9 @@ using:
 % make install
 \end{code}
 
-This installs the foreign libraries in \file{\$PLBASE/lib/\$PLARCH} and
-the Prolog library files in \file{\$PLBASE/library}, where
-\file{\$PLBASE} refers to the SWI-Prolog `home-directory'.
+This installs the foreign libraries in \file{$PLBASE/lib/$PLARCH} and
+the Prolog library files in \file{$PLBASE/library}, where
+\file{$PLBASE} refers to the SWI-Prolog `home-directory'.
 
 \end{document}
 

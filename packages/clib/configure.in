@@ -16,6 +16,8 @@ AC_SUBST(ETAGS)
 AC_SUBST(LD)
 AC_SUBST(SO)
 AC_SUBST(LDSOFLAGS)
+AC_SUBST(TARGETS)
+AC_SUBST(PLTARGETS)
 
 AC_ARG_ENABLE(mt, [  --enable-mt		  Enable Multi-threading],
 	      [case "$enableval" in
@@ -54,6 +56,8 @@ LDSOFLAGS=-shared
 
 SO="$PLSOEXT"
 
+TARGETS="unix.$SO socket.$SO cgi.$SO memfile.$SO"
+
 AC_CHECK_PROGS(MAKE, gmake make, "make")
 AC_CHECK_PROGS(ETAGS, etags ctags, ":")
 AC_PROG_INSTALL
@@ -78,6 +82,35 @@ AC_CHECK_LIB(nsl, t_bind,
 	     [NETLIBS="$NETLIBS -lnsl"]
 	     AC_DEFINE(HAVE_LIBNSL))
 AC_CHECK_LIB(crypt, crypt)
+AC_CHECK_LIB(rfc822, rfc822t_alloc)
+AC_MSG_CHECKING(for -lrfc2045)
+oldlibs="$LIBS"
+LIBS="-lrfc2045 $LIBS"
+AC_TRY_LINK(
+void
+rfc2045_error(const char *errmsg)
+{ 
+},,
+  AC_MSG_RESULT(yes)
+  have_rfc2045=yes,
+  AC_MSG_RESULT(no)
+  have_rfc2045=no
+  LIBS="$oldlibs")
+
+
+if test "$ac_cv_lib_crypt_crypt" = yes; then
+  TARGETS="$TARGETS crypt.$SO"
+else
+  echo "WARNING: could not find crypt; dropping crypt.pl from targets"
+fi
+if test "$ac_cv_lib_rfc822_rfc822t_alloc" = yes &&
+   test "$have_rfc2045" = yes; then
+  TARGETS="$TARGETS mime.$SO"
+else
+  echo "WARNING: could not find -lrfc822 and/or -lrfc2045; dropping mime.pl from targets"
+fi
+
+PLTARGETS=`echo $TARGETS | sed "s/\.$SO/.pl/g"`
 
 AC_MSG_CHECKING(h_errno)
 AC_TRY_COMPILE(
