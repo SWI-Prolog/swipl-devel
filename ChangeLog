@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: Handle *-> in DCG (Jakub Jiricek).
+
   * FIXED: Cleanup dangling records in findall/3 and friends if an abort
     happens inside one of the bag predicates.
 

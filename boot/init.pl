@@ -1503,6 +1503,10 @@ $t_body((C->T;E), S, SR, (Ct->Tt;Et)) :- !,
 	$t_body(C, S, S1, Ct),
 	$t_body(T, S1, S2, T1), $t_fill(S, SR, S2, T1, Tt),
 	$t_body(E, S1, S3, E1), $t_fill(S, SR, S3, E1, Et).
+$t_body((C*->T;E), S, SR, (Ct*->Tt;Et)) :- !,
+	$t_body(C, S, S1, Ct),
+	$t_body(T, S1, S2, T1), $t_fill(S, SR, S2, T1, Tt),
+	$t_body(E, S1, S3, E1), $t_fill(S, SR, S3, E1, Et).
 $t_body((C->T|E), S, SR, (Ct->Tt;Et)) :- !,
 	$t_body(C, S, S1, Ct),
 	$t_body(T, S1, S2, T1), $t_fill(S, SR, S2, T1, Tt),
