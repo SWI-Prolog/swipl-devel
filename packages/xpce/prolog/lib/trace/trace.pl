@@ -50,7 +50,8 @@
 
 :- dynamic
 	last_action/1,
-	show_unify_as/2.
+	show_unify_as/2,
+	showing/1.
 
 user:prolog_trace_interception(Port, Frame, BFR, Action) :-
 	current_prolog_flag(gui_tracer, true),
@@ -128,7 +129,11 @@ do_intercept(call, Frame, BFR, Action) :-
 	    action(Action)
 	).
 do_intercept(exit, Frame, BFR, Action) :-
-	(   last_action(finish)
+	(   %last_action(finish)
+	    prolog_frame_attribute(Frame, goal, Goal),
+	    \+(	predicate_property(Goal, built_in)
+	      ;	predicate_property(Goal, foreign)
+	      )
 	->  show(Frame, BFR, 0, exit),
 	    action(Action)
 	;   last_action(leap)
@@ -145,7 +150,7 @@ do_intercept(fail, Frame, BFR, Action) :-
 	),
 	show(Frame, BFR, Up, fail),
 	action(Action).
-do_intercept(exception, Frame, BFR, Action) :-
+do_intercept(exception(Except), Frame, BFR, Action) :-
 	(   prolog_frame_attribute(Frame, goal, Goal),
 	    (	predicate_property(Goal, built_in)
 	    ;	predicate_property(Goal, foreign)
@@ -153,7 +158,7 @@ do_intercept(exception, Frame, BFR, Action) :-
 	->  Up = 1
 	;   Up = 0
 	),
-	show(Frame, BFR, Up, exception),
+	show(Frame, BFR, Up, exception(Except)),
 	action(Action).
 do_intercept(redo, Frame, _BFR, into) :-
 	prolog_frame_attribute(Frame, goal, GT),
@@ -215,6 +220,12 @@ do_intercept(cut_exit(PC), Frame, BFR, Action) :-
 	action(Action).
 
 
+show(StartFrame, BFR, Up, exception(Except)) :-
+	show(StartFrame, BFR, Up, exception, exception),
+	\+ \+ (numbervars(Except, '$VAR', 0, _),
+	       term_to_atom(Except, Atom),
+	       send_tracer(report(warning, 'Exception: %s', Atom))
+	      ).
 show(StartFrame, BFR, Up, Port) :-
 	prolog_frame_attribute(StartFrame, goal, Goal),
 	predicate_name(user:Goal, Pred),
@@ -229,6 +240,8 @@ show(StartFrame, BFR, Up, Port, Style) :-
 			    stack
 			  ]),
 	find_frame(Up, StartFrame, Port, PC, Frame),
+	retractall(showing(_)),
+	assert(showing(Frame)),
 	prolog_show_frame(Frame,
 			  [ pc(PC),
 			    port(Port),
