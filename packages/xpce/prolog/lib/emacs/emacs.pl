@@ -83,6 +83,7 @@ pce_ifhostproperty(prolog(swi),
 		 *******************************/
 
 :- pce_autoload(file_item, library(file_item)).
+:- pce_autoload(save_file, library(file_item)).
 
 
 		 /*******************************

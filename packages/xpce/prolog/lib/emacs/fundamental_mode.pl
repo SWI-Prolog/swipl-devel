@@ -395,7 +395,7 @@ save_buffer(M) :->
 	send(M, save_text).
 
 
-save_as(M, File:file) :->
+save_as(M, File:save_file) :->
 	"Equivalent to write_file"::
 	send(M, write_file, File).
 
@@ -423,12 +423,12 @@ insert_file(M, File:file) :->
 	send(M?text_buffer, insert_file, M?caret, File).
 
 
-write_file(M, File:file) :->
+write_file(M, File:save_file) :->
 	"Write buffer to named file"::
 	send(M?text_buffer, save, File).
 
 
-write_region(M, File:file) :->
+write_region(M, File:save_file) :->
 	"Write current region to file"::
 	get(M, region, tuple(Start, End)),
 	Length is End - Start,

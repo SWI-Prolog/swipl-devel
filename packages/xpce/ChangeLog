@@ -4,6 +4,9 @@
 VERSION 6.0.6, distributed with SWI-Prolog 5.0.6
 ================================================
 
+* ADDED `file_item <->exists', fixing browse mode in PceEmacs save_as and
+  friends.
+
 * FIXED: Explicit window placement in Windows version. 
 
 * FIXED: avoid loosing a file-descriptor in prolog_xref.pl if a loaded

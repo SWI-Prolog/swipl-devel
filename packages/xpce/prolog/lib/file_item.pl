@@ -37,6 +37,19 @@
 
 
 		 /*******************************
+		 *	  CLASS SAVE-FILE	*
+		 *******************************/
+
+:- pce_begin_class(save_file, file,
+		   "File as a destination (type-check only)").
+
+convert(_, Name:name, SaveFile:save_file) :<-
+	new(SaveFile, save_file(Name)).
+
+:- pce_end_class(save_file).
+
+
+		 /*******************************
 		 *       FILE COMPLETION	*
 		 *******************************/
 
@@ -123,7 +136,7 @@ indicate_directory(_FI, Dir:string) :->
 
 selection(FI, FileName:name) :<-
 	"Get the current selection"::
-	get(FI, get_super, selection, RawName),
+	get_super(FI, selection, RawName),
 	get(RawName, size, L),
 	(   get(regex('//\\|~'), search, RawName, L, 0, Start)
 	->  new(S, string('%s', RawName)),
@@ -134,7 +147,16 @@ selection(FI, FileName:name) :<-
  	    ),
 	    get(S, value, FileName)
 	;   get(RawName, value, FileName)
+	),
+	(   get(FI, exists, @on)
+	->  (   send(file(FileName), exists)
+	    ->	true
+	    ;	send(FI, report, warning, 'File %s does not exist', FileName),
+	        fail
+	    )
+	;   true
 	).
+
 
 clean_file_name(Def, Clean) :-
 	\+ send(Def, '_instance_of', function),

@@ -35,7 +35,6 @@
 :- use_module(library(pce)).
 
 :- pce_autoload(behaviour_item,	       library('man/behaviour_item')).
-:- pce_autoload(directory_item,	       library('file_item')).
 :- pce_autoload(prolog_predicate_item, library(prolog_predicate_item)).
 :- pce_autoload(emacs_tag_item,	       library(emacs_tags)).
 
@@ -76,7 +75,11 @@ make_item(Mode, Label, Default, Type, _History, Item) :-
 	    )
 	->  new(Item, emacs_file_or_directory_item(Label, DefPath))
 	;   send(Type, includes, file)
-	->  new(Item, file_item(Label, DefPath))
+	->  new(Item, file_item(Label, DefPath)),
+	    (	send(Type, includes, save_file)
+	    ->	send(Item, exists, @off)
+	    ;	send(Item, exists, @on)
+	    )
 	;   new(Item, directory_item(Label, DefPath))
 	),
 	send(Item, length, 40).
