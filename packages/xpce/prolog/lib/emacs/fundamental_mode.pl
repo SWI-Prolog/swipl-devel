@@ -80,8 +80,8 @@
 	  -			   = button(help),
 	  show_key_bindings	   = button(help),
 	  -			   = button(help),
-	  manpce		   = button(help),
-	  manual_entry		   = button(help)
+	  manual_entry		   = button(help),
+	  xpce_manual		   = button(help)
 	],
 	[
 	]).
@@ -100,11 +100,6 @@ variable(auto_colourise_size_limit,
 	 int,
 	 both,
 	 "Auto-colourise if buffer is smaller then this").
-variable(coloured_generation,
-	 int := -1,
-	 get,
-	 "Last generation of the text-buffer that was coloured").
-
 
 		 /*******************************
 		 *	COLOURISE BUFFERS	*
@@ -117,20 +112,20 @@ idle(M) :->
 
 new_buffer(M) :->
 	"A new buffer is attached"::
-	send(M, slot, coloured_generation, -1),
 	send(M, auto_colourise_buffer).
 
 
 auto_colourise_buffer(M) :->
 	"Colourise if shorter then <-auto_colourise_size_limit"::
-	get(M, generation, Generation),
-	get(M, coloured_generation, Coloured),
+	get(M, text_buffer, TB),
+	get(TB, generation, Generation),
+	get(TB, coloured_generation, Coloured),
 	(   Coloured \== Generation,
-	    get(M?text_buffer, size, Size),
+	    get(TB, size, Size),
 	    get(M, auto_colourise_size_limit, Limit),
 	    Size < Limit
 	->  (	send(M, colourise_buffer)
-	    ->	send(M, slot, coloured_generation, Generation)
+	    ->	send(TB, coloured_generation, Generation)
 	    ;	true
 	    )
 	;   true
@@ -139,16 +134,18 @@ auto_colourise_buffer(M) :->
 
 colourisation_up_to_date(M) :->
 	"True if the colourisation is up-to-date"::
-	get(M, generation, Generation),
-	get(M, coloured_generation, Coloured),
+	get(M, text_buffer, TB),
+	get(TB, generation, Generation),
+	get(TB, coloured_generation, Coloured),
 	Generation == Coloured.
 
 
 colourise_buffer(M) :->
 	"Colour buffer using syntax-rules"::
 	send(M, remove_syntax_fragments),
-	get(M, generation, Generation),
-	send(M, slot, coloured_generation, Generation).
+	get(M, text_buffer, TB),
+	get(TB, generation, Generation),
+	send(TB, coloured_generation, Generation).
 
 
 remove_syntax_fragments(M, From:[int], To:[int]) :->
@@ -790,6 +787,10 @@ customise(_) :->
 		 *	       PCE		*
 		 *******************************/
 
+xpce_manual(_M) :->
+	"Start XPCE manual"::
+	auto_call(manpce).
+
 manpce(_M, Class:'behaviour|class*') :->
 	"Start XPCE manual on behaviour or class"::
 	(   Class == @nil
@@ -813,15 +814,6 @@ tracepce(M, Method:behaviour*) :->
 	->  send(M, report, warning,
 		 'Enter "class->|<-|-selector"')
 	;   auto_call(tracepce(Method))
-	).
-
-
-breakpce(M, Method:behaviour*) :->
-	"Put break-point on XPCE class <->method"::
-	(   Method == @nil
-	->  send(M, report, warning,
-		 'Enter "class->|<-|-selector"')
-	;   auto_call(breakpce(Method))
 	).
 
 

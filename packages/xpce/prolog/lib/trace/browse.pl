@@ -6,7 +6,7 @@
     Copyright (C) 1997 University of Amsterdam. All rights reserved.
 */
 
-:- module(prolog_source_browser,
+:- module(prolog_navigator,
 	  [ 
 	  ]).
 :- use_module(library(pce)).
@@ -40,7 +40,7 @@ resource(up,	    image, image('16x16/up.xpm')).
 resource(refresh,   image, image('16x16/refresh.xpm')).
 resource(butterfly, image, image('butterfly.xpm')).
 
-:- pce_begin_class(prolog_source_browser, frame,
+:- pce_begin_class(prolog_navigator, frame,
 		   "Prolog source navigator").
 
 initialise(SB, Root:directory) :->
@@ -80,12 +80,13 @@ goto(SB, File:file, Line:int) :->
 	get(SB, member, prolog_source_structure, FB),
 	send(FB, goto, File, Line).
 
-:- pce_end_class(prolog_source_browser).
+:- pce_end_class(prolog_navigator).
 
 
 :- pce_begin_class(prolog_source_structure, toc_filesystem,
 		   "Browser for (prolog) source-files").
 
+class_variable(auto_refresh, int*, @nil).
 class_variable(size,	size,	size(200, 500),
 	       "Intial window size").
 
@@ -703,11 +704,13 @@ head(P, Qualify:[bool], Head:prolog) :<-
 	get(P, arity, Arity),
 	functor(Head0, Name, Arity),
 	(   M == @nil
-	->  (   Qualify == @on,
-	        get(P, file_node, SbPrologFile),
-		get(SbPrologFile, module, Module)
-	    ->	Head = Module:Head0
-	    ;	Head = user:Head0
+	->  (   Qualify == @on
+	    ->	(   get(P, file_node, SbPrologFile),
+		    get(SbPrologFile, module, Module)
+		->  Head = Module:Head0
+		;   Head = user:Head0
+		)
+	    ;	Head = Head0
 	    )
 	;   Head = M:Head0
 	).

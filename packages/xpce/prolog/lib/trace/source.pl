@@ -16,6 +16,7 @@
 	    current_source_buffer/2	% +File, -Buffer
 	  ]).
 :- use_module(library(pce)).
+:- use_module(library(pce_emacs)).
 :- use_module(break).
 :- use_module(util).
 
@@ -25,17 +26,16 @@
 
 style(call,  		style(background := green,
 			      icon := 'call.xpm')).
-style(break, 		style(background := aquamarine)).
+style(break, 		style(background := cyan)).
 style(exit,  		style(background := green,
 			      icon := 'exit.xpm')).
 style(redo,  		style(background := yellow,
 			      icon := 'redo.xpm')).
-style(fail,  		style(background := red,
+style(fail,  		style(background := '#ff8080',
 			      icon := 'fail.xpm')).
-style(exception,  	style(background := purple,
+style(exception,  	style(background := magenta,
 			      icon := 'except.xpm')).
 style(unify, 		style(background := sky_blue)).
-style(listing,		style(background := bisque)).
 
 style(breakpoint, 	style(icon := 'stop.xpm')).
 
@@ -44,14 +44,16 @@ style(breakpoint, 	style(icon := 'stop.xpm')).
 		 *	    SOURCE VIEW		*
 		 *******************************/
 
-:- pce_begin_class(prolog_source_view, view,
+:- pce_begin_class(prolog_source_view, emacs_view,
 		   "Prolog GUI source viewer").
 
-variable(source,	'name|text_buffer*', both, "Currently shown source").
+class_variable(size,	size,	size(80,20), "Default size in characters").
 
-initialise(V, Size:size) :->
-	send(V, send_super, initialise, size := Size),
-	send(V, label, 'No source'),
+variable(source,	'name|emacs_buffer*', get, "Currently shown source").
+
+initialise(V) :->
+	send(V, send_super, initialise),
+	send(V, mode, prolog),
 	send(V, margin_width, 22),
 	send(V?margin, recogniser,
 	     click_gesture(left, '', single,
@@ -61,17 +63,36 @@ initialise(V, Size:size) :->
 			      message(V, selected_fragment, @nil)))),
 	forall(style(Name, Style),
 	       send(V, style, Name, Style)),
-	send(V, editable, @off).
+	send(V, editable, @off),
+	send(V, update_label).
 
 lost_text_buffer(V) :->
 	"The textbuffer has been destroyed, replace by a new one"::
 	send(V, file, @nil).
 
+update_label(V) :->
+	"Create label from <-editable and <-source"::
+	get(V, source, Source),
+	(   atom(Source)
+	->  Label0 = Source
+	;   Source == @nil
+	->  Label0 = '<no source>'
+	;   get(Source, attribute, comment, Label0)
+	->  true
+	;   get(Source, name, Label0)
+	),
+	(   get(V, editable, @on)
+	->  send(V, label, string('[edit] %s', Label0))
+	;   send(V, label, Label0)
+	).
+
 :- pce_group(event).
 
 event(V, Ev:event) :->
 	(   send(Ev, is_a, keyboard),
+	    get(V, editable, @off),
 	    get(V, frame, Tracer),
+	    send(Tracer, has_send_method, source_typed),
 	    send(Tracer, source_typed, Ev)
 	->  true
 	;   send(V, send_super, event, Ev)
@@ -79,35 +100,14 @@ event(V, Ev:event) :->
 	
 :- pce_group(edit).
 
-edit(V) :->
-	"Prepare for editing the source"::
-	get(V, text_buffer, TB),
-	get(V, start, StartOfWindow),
-	get(V, caret, Caret),
-	debug('Edit, caret at ~w~n', [Caret]),
-	(   (   get(@pce, convert, emacs_buffer, class, _)
-	    ;	setting(use_pce_emacs, true),
-		start_emacs
-	    )
-	->  (	send(TB, instance_of, emacs_buffer)
-	    ->  get(TB, open, Frame),
-		get(Frame, editor, Editor),
-		send(Editor, scroll_to, StartOfWindow),
-		send(Editor, caret, Caret)
-	    ;   get(TB, attribute, file, FileObj),
-		new(B, emacs_buffer(FileObj)),
-		get(B, open, Frame),
-		get(Frame, editor, Editor),
-		send(Editor, scroll_to, StartOfWindow),
-		send(Editor, caret, Caret),
-		send(V, text_buffer, B),
-		send(V, scroll_to, StartOfWindow),
-		send(V, caret, Caret)
-	    )
-	;   get(TB, attribute, file, FileObj),
-	    get(FileObj, name, File),
-	    edit(File)
-	).
+edit(V, Val:[bool]) :->
+	"Toggle read-only mode"::
+	(   Val == @default
+	->  get(V?editable, negate, NewVal)
+	;   NewVal = Val
+	),
+	send(V, editable, Val),
+	send(V, update_label).
 
 :- pce_group(stop).
 
@@ -130,7 +130,7 @@ delete_selected_stop(V) :->
 	'$break_at'(ClauseRef, PC, false).
 
 
-:- pce_group(file).
+:- pce_group(source).
 
 :- pce_global(@gui_last_change_check, new(date)).
 
@@ -143,25 +143,23 @@ not_recently_checked :-
 	;   send(@gui_last_change_check, copy, D)
 	).
 
-
-file(V, File:'name|text_buffer*') :->
+source(V, Source:'name|emacs_buffer*') :->
 	"Attach to indicated file"::
-	(   File == @nil
-	->  send(V, text_buffer, new(text_buffer)),
-	    send(V, label, '<No source>')
-	;   send(File, instance_of, text_buffer)
-	->  send(V, text_buffer, File),
-	    (	get(File, attribute, comment, Label)
-	    ->	send(V, label, Label)
-	    ;	send(V, label, '<Decompiled code>')
-	    )
-	;   absolute_file_name(File, Canonical),
-	    send(V, label, Canonical),
-	    buffer(Canonical, B),
-	    send(V, text_buffer, B),
-	    send(V, check_modified)
-	),
-	send(V, source, File).
+	(   get(V, source, Source)
+	->  true
+	;   (   Source == @nil
+	    ->  send(V, text_buffer, emacs_buffer(@nil, '<no source>'))
+	    ;   send(Source, instance_of, emacs_buffer)
+	    ->  send(V, text_buffer, Source)
+	    ;   absolute_file_name(Source, Canonical),
+		buffer(Canonical, B),
+		send(V, text_buffer, B),
+		send(V, check_modified)
+	    ),
+	    send(V, slot, source, Source),
+	    send(V, update_label),
+	    send(V?editor, auto_colourise_buffer)
+	).
 
 source_file(V, File:name) :<-
 	"Currently shown sourcefile"::
@@ -173,35 +171,25 @@ check_modified(V) :->
 	"Check for possibly modified file"::
 	(   not_recently_checked
 	->  get(V, text_buffer, TB),
-	    (   get(@classes, member, emacs_buffer, _),
-		send(TB, instance_of, emacs_buffer)
-	    ->  send(TB, check_modified_file, @off)
-	    ;   (   get(TB, attribute, time_stamp, Stamp),
-		    get(TB, attribute, file, File),
-		    get(File, time, FileStamp),
-		    \+ send(Stamp, equal, FileStamp)
-		->  reload_buffer(TB)
-		;   true
-		)
-	    )
+	    send(TB, check_modified_file, @off)
 	;   true
 	).
 
 :- pce_group(show).
 
-show_range(V, File:'name|text_buffer', From:int, To:int, Style:name) :->
+show_range(V, File:'name|emacs_buffer', From:int, To:int, Style:name) :->
 	"Show indicated region using Style"::
-	send(V, file, File),
+	send(V, source, File),
 	send(V, caret, To),
 	new(F, fragment(V, From, To-From, Style)),
 	ignore(send(V?frame, send_hyper, fragment, free)),
 	new(_, trace_hyper(V?frame, F, fragment, tracer)),
 	send(V, normalise, From, To).
 
-show_line(V, File:'name|text_buffer', Line:int, Style:name) :->
+show_line(V, File:'name|emacs_buffer', Line:int, Style:name) :->
 	"Show numbered line"::
 	debug('Show ~w:~w, style = ~w~n', [File, Line, Style]),
-	send(V, file, File),
+	send(V, source, File),
 	get(V, text_buffer, TB),
 	get(TB, scan, 0, line, Line - 1, start, SOL),
 	get(TB, scan, SOL, line, 0, end, EOL),
@@ -211,7 +199,7 @@ show_line(V, File:'name|text_buffer', Line:int, Style:name) :->
 listing(V, Module:name, Predicate:name, Arity:int) :->
 	"List the specified predicate"::
 	functor(Head, Predicate, Arity),
-	send(V, file, @nil),
+	send(V, source, @nil),
 	get(V, text_buffer, TB),
 	open(TB, write, Fd),
 	telling(Old), set_output(Fd),
@@ -225,54 +213,13 @@ listing(V, Module:name, Predicate:name, Arity:int) :->
 		 *      BUFFER MANAGEMENT	*
 		 *******************************/
 
-:- dynamic
-	user:message_hook/3,
-	current_source_buffer/2.			% +File, -Buffer
-:- multifile
-	user:message_hook/3.
-
-user:message_hook(load_file(start(_Level, file(_Spec, Path))), _, _Lines) :-
-	current_source_buffer(Path, Buffer),
-	reload_buffer(Buffer),
-	fail.
+current_source_buffer(File, Buffer) :-
+	get(@emacs, file_buffer, File, Buffer).
 
 buffer(File, Buffer) :-
-	object(@emacs), !,
-	destroy_buffers,
 	new(Buffer, emacs_buffer(File)),
+	send(Buffer, mode, prolog),
 	mark_special(File, Buffer).
-buffer(File, Buffer) :-
-	current_source_buffer(File, Buffer), !.
-buffer(File, Buffer) :-
-	new(FileObj, file(File)),
-	new(Buffer, text_buffer),
-	send(Buffer, attribute, file, FileObj),
-	send(Buffer, attribute, time_stamp, FileObj?time),
-	send(Buffer, insert_file, 0, FileObj, 1),
-	send(Buffer, lock_object, @on),
-	asserta(current_source_buffer(File, Buffer)),
-	mark_special(File, Buffer).
-
-reload_buffer(Buffer) :-
-	get(@pce, convert, emacs_buffer, class, _),
-	send(Buffer, instance_of, emacs_buffer), !,
-	send(Buffer, revert),
-	current_source_buffer(File, Buffer),
-	send(Buffer, delete_attribute, debugger_marks_done),
-	mark_special(File, Buffer),
-	send(Buffer, report, status, 'Reloaded %s', File).
-reload_buffer(Buffer) :-
-	send(Buffer, clear),
-	get(Buffer, attribute, file, FileObj),
-	send(Buffer, insert_file, 0, FileObj, 1),
-	get(FileObj, name, File),
-	send(Buffer, delete_attribute, debugger_marks_done),
-	mark_special(File, Buffer),
-	send(Buffer, report, status, 'Reloaded %s', File).
-
-destroy_buffers :-
-	forall(retract(current_source_buffer(_, Buffer)),
-	       free(Buffer)).
 
 mark_special(_, Buffer) :-
 	get(Buffer, attribute, debugger_marks_done, @on), !.
@@ -288,10 +235,14 @@ mark_stop_points(_, Source) :-
 	fail.
 mark_stop_points(_, _).
 
+:- pce_global(@prolog_debugger, new(object)).
+
 %	mark_stop_point(+ClauseRef, +PC)
 %
 %	Mark stop-points using a breakpoint fragment.
 
+mark_stop_point(ClauseRef, PC) :-
+	stop_fragment(ClauseRef, PC, _), !. 		% alredy got this one
 mark_stop_point(ClauseRef, PC) :-
 	break_location(ClauseRef, PC, File, A-Z),
 	buffer(File, Buffer),
@@ -301,14 +252,17 @@ mark_stop_point(ClauseRef, PC) :-
 	new(_, hyper(@prolog_debugger, F, break, debugger)).
 
 unmark_stop_point(ClauseRef, PC) :-
-	(   get(@prolog_debugger, find_hyper, break,
-		and(@arg3?clause == ClauseRef,
-		    @arg3?pc == PC),
-		Hyper)
-	->  get(Hyper, to, Fragment),
-	    free(Fragment)
+	(   stop_fragment(ClauseRef, PC, Fragment)
+	->  free(Fragment)
 	;   true
 	).
+
+stop_fragment(ClauseRef, PC, Fragment) :-
+	get(@prolog_debugger, find_hyper, break,
+	    and(@arg3?clause == ClauseRef,
+		@arg3?pc == PC),
+	    Hyper),
+	get(Hyper, to, Fragment).
 
 
 		 /*******************************

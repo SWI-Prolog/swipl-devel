@@ -18,17 +18,18 @@
 	    display_stack/3
 	  ]).
 :- use_module(library(pce)).
+:- use_module(library(toolbar)).
+:- use_module(library(pce_report)).
 :- use_module(settings).
 :- use_module(trace).
 :- use_module(source).
-:- use_module(library(toolbar)).
 :- use_module(util).
 :- use_module(clause).
 :- use_module(viewterm).
 :- use_module(stack).
 
-:- pce_autoload(prolog_source_browser, library('trace/browse')).
-:- pce_autoload(prolog_query,	       library('trace/query')).
+:- pce_autoload(prolog_navigator, library('trace/browse')).
+:- pce_autoload(prolog_query,	  library('trace/query')).
 
 :- multifile
 	user:prolog_event_hook/1,
@@ -172,13 +173,9 @@ initialise(F) :->
 	send(V, name, bindings),
 	send(new(S, prolog_stack_view), right, V),
 	send(V, below, D),
-	send(new(Src, prolog_source_view(size(80, 20))), below, V),
+	send(new(Src, prolog_source_view), below, V),
 	send(F, source, Src),
-	send(new(D2, dialog), below, Src),
-	send(D2, name, report_dialog),
-	send(D2, gap, size(5, 0)),
-	send(D2, append, label(reporter)),
-	send(D2, pen, 0),
+	send(new(report_dialog), below, Src),
 	send(S, label, 'Call Stack'),
 	send(S, name, stack).
  
@@ -225,7 +222,7 @@ fill_menu_bar(F) :->
 			      end_group := @on),
 		    menu_item(prolog_manual,
 			      message(@prolog, prolog_help)),
-		    menu_item(pce_manual,
+		    menu_item('XPCE manual',
 			      message(@prolog, manpce))
 		  ]).
 
@@ -346,7 +343,7 @@ nostop_or_spy(F) :->
 	;   (   get(F, current_frame, Frame)
 	    ;   get(F, selected_frame, Frame)
 	    ),
-	    Frame == @nil,
+	    Frame \== @nil,
 	    prolog_frame_attribute(Frame, goal, Goal0),
 	    (   Goal0 = _:_
 	    ->  Goal = Goal0
@@ -361,9 +358,9 @@ nostop_or_spy(F) :->
 browse(F) :->
 	"Provides overview for edit/spy/break"::
 	get(F, application, App),
-	(   get(App, member, prolog_source_browser, Browser)
+	(   get(App, member, prolog_navigator, Browser)
 	->  send(Browser, expose)
-	;   send(new(PB, prolog_source_browser('.')), open),
+	;   send(new(PB, prolog_navigator('.')), open),
 	    send(PB, application, F?application)
 	).
 

@@ -20,7 +20,8 @@
 	  ]).
 
 
-:- pce_global(@dynamic_source_buffer, new(text_buffer)).
+:- pce_global(@dynamic_source_buffer,
+	      new(emacs_buffer(@nil, '*dynamic code*'))).
 
 debug(_, _).
 %debug(Fmt, Args) :- format(Fmt, Args), flush.

@@ -100,8 +100,8 @@ make_item(_Mode, Label, Default, Type, History, Item) :-
 :- pce_begin_class(emacs_prompt_dialog, dialog,
 		   "Prompt for method arguments").
 
-variable(implementation, any,  get, "Processed implementation").
-variable(hindex,	 int*, both, "History index").
+variable(implementation, any,	     get,  "Processed implementation").
+variable(hindex,	 int*,	     both, "History index").
 
 :- pce_global(@emacs_prompt_dialog_recogniser, make_prompt_binding).
 
@@ -111,13 +111,14 @@ make_prompt_binding(G) :-
 	new(Forw, message(Window, forwards)),
 
 	new(G, key_binding(emacs_prompter, text_item)),
-	send(G, function, 'TAB', complete),
+	send(G, function, 'TAB', complete_or_next),
 	send(G, function, 'SPC', insert_self),
 	send(G, function, 'RET', message(Window, on_return)),
 	send(G, function, page_up, Back),
 	send(G, function, '\\ep', Back), 	% traditional Emacs
 	send(G, function, page_down, Forw),
 	send(G, function, '\\en', Forw),
+	send(G, function, '\\es', message(Window, sticky_window)),
 	send(G, function, '\\C-g', and(message(@receiver, keyboard_quit),
 				       message(Window, cancel))).
 
@@ -196,6 +197,14 @@ on_return(D) :->
 		NotFilled)
 	->  send(D, keyboard_focus, NotFilled)
 	;   send(D, ok)
+	).
+
+sticky_window(D, Val:[bool]) :->
+	"Toggle sticky status of window"::
+	get(D, transient_for, Frame),
+	(   send(Frame, has_send_method, sticky_window)
+	->  send(Frame, sticky_window, Val)
+	;   fail
 	).
 
 prompt(D, V:emacs_view, Argv:vector) :->

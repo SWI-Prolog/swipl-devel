@@ -48,11 +48,11 @@ resource(mode_pl_icon, image, image('32x32/doc_pl.xpm')).
 	  -			       = button(prolog),
 	  check_clause		       = key('\\C-c\\C-s') + button(prolog),
 	  insert_full_stop	       = key(.),
-	  find_definition	       = key('\\e.') + button(prolog),
+	  find_definition	       = key('\\e.') + button(browse),
 	  -			       = button(prolog),
-	  make			       = key('\\C-cRET') + button(prolog),
-	  compile_buffer	       = key('\\C-c\\C-b') + button(prolog),
-	  consult_selection	       = button(compile) + button(prolog),
+	  make			       = key('\\C-cRET') + button(compile),
+	  compile_buffer	       = key('\\C-c\\C-b') + button(compile),
+	  consult_selection	       = button(compile) + button(compile),
 	  source_file		       = button(browse,
 						@prolog?source_file_chain),
 
@@ -61,10 +61,8 @@ resource(mode_pl_icon, image, image('32x32/doc_pl.xpm')).
 	  backward_predicate	       = key('\\e['),
 	  forward_predicate	       = key('\\e]'),
 
-	  manpce		       = key('\\C-c?') + button(pce),
 	  editpce		       = key('\\C-ce') + button(pce),
 	  tracepce		       = key('\\C-ct') + button(pce),
-	  breakpce 		       = button(pce),
 	  spypce		       = button(pce),
 	  what_class		       = key('\\C-cw') + button(pce),
 	  pce_insert_require_directive = key('\\C-c\\C-r') + button(pce),
@@ -97,10 +95,12 @@ icon(_, I:image) :<-
 setup_mode(M) :->
 	"Attach styles for errors, warnings, etc."::
 	send(M, send_super, setup_mode),
-	send(M,	style, breakpoint, style(background := aquamarine)),
+	send(M, style, singleton,  style(bold := @on)),
+	send(M,	style, breakpoint, style(background := cyan)),
 	send(M,	style, error,	   style(background := red)),
 	send(M,	style, warning,	   style(background := orange)),
-	send(M,	style, info,	   style(background := grey80)).
+	send(M,	style, info,	   style(background := grey80)),
+	send(M, setup_styles).
 
 
 :- send(@class, attribute, outline_regex_list,
@@ -340,7 +340,7 @@ current_name_arity(E, Module, PredName, PredArity) :-
 	;   Def = string('%s/%d', Name, Arity)
 	),
 	new(Item, prolog_predicate_item('[Module:]Name[/Arity]', Def)),
-	get(E?frame, prompt_using, Item, Selection),
+	get(E?window, prompt_using, Item, Selection),
 	free(Item),
 	(   Selection = Module:PredName/PredArity
 	->  true
@@ -468,17 +468,17 @@ what_module(M) :->
 		 *	   BROWSE STUFF		*
 		 *******************************/
 
-:- pce_autoload(prolog_source_browser, library('trace/browse')).
+:- pce_autoload(prolog_navigator, library('trace/browse')).
 
 prolog_navigator(M) :->
-	Browser = @emacs_prolog_source_browser,
+	Browser = @prolog_navigator,
 	get(M, file, File), File \== @nil,
 	get(File, absolute_path, Path),
 	get(M, line_number, Line),
 	(   object(Browser)
 	->  send(Browser, expose)
 	;   file_directory_name(Path, Dir),
-	    send(new(Browser, prolog_source_browser(Dir)), open),
+	    send(new(Browser, prolog_navigator(Dir)), open),
 	    send(Browser, wait)
 	),
 	send(Browser, goto, Path, Line).
@@ -718,7 +718,6 @@ alternate_syntax(pce_class, pce_expansion:push_compile_operators,
 
 check_clause(M, From:from=[int], Repair:repair=[bool], End:int) :<-
 	"Check clause, returning the end of it"::
-	send(M, style, singleton, style(bold := @on)),
         (   From == @default
 	->  get(M, caret, C),
 	    get(M, beginning_of_clause, C, Start),

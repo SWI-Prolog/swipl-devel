@@ -60,8 +60,6 @@ range([H|T], term_position(_, _, _, _, PosL), A, Z) :-
 		 *	      FEEDBACK		*
 		 *******************************/
 
-:- pce_global(@prolog_debugger, new(object)).
-
 user:prolog_event_hook(break(ClauseRef, PC, Set)) :-
 	break(Set, ClauseRef, PC).
 

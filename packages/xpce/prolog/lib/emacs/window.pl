@@ -169,7 +169,7 @@ keyboard_focus(F, W:window) :->
 :- pce_global(@prompt_recogniser, make_prompt_binding).
 
 make_prompt_binding(G) :-
-	new(G, key_binding(emacs_prompter, text_item)),
+	new(G, key_binding(emacs_mini_window_prompter, text_item)),
 	send(G, function, 'TAB',  complete),
 	send(G, function, 'SPC',  insert_self),
 	send(G, function, 'RET',  if(message(@receiver, apply, @on))),
@@ -402,15 +402,19 @@ prompter(D, Prompter:dialog_item*) :->
 
 class_variable(size,         size, size(80,32), "Size of text-field").
 
-initialise(V, B:buffer=emacs_buffer, W:width=[int], H:height=[int]) :->
+initialise(V, B:buffer=[emacs_buffer], W:width=[int], H:height=[int]) :->
 	"Create for buffer"::
 	get(V, class_variable_value, size, size(DW, DH)),
 	default(W, DW, Width),
 	default(H, DH, Height),
+	(   B == @default
+	->  new(Buffer, emacs_buffer(@nil, '*scratch*'))
+	;   Buffer = B
+	),
 	send_super(V, initialise, @default, @default, @default,
-		   new(E, emacs_editor(B, Width, Height))),
+		   new(E, emacs_editor(Buffer, Width, Height))),
 	send(E?image, recogniser, @emacs_image_recogniser),
-	get(B, mode, ModeName),
+	get(Buffer, mode, ModeName),
 	send(E, mode, ModeName),
 	get(E, mode, Mode),		% the mode object
 	ignore(send(Mode, new_buffer)).

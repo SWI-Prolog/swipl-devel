@@ -23,7 +23,8 @@
 	   , unix/1
 	   ]).
 
-:- pce_autoload(emacs, library('emacs/emacs')).
+:- pce_autoload(emacs,	    library('emacs/emacs')).
+:- pce_autoload(emacs_view, library('emacs/emacs')).
 
 :- pce_global(@emacs_buffers, new(dict)).
 :- pce_global(@emacs, new(emacs(@emacs_buffers))).

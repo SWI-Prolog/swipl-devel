@@ -30,6 +30,10 @@ variable(auto_save_count, number,	get,  "Auto-save at expiration").
 variable(saved_caret,	  int,		both, "Saved caret on last quit").
 variable(saved_fill,	  bool,		both, "Saved fill_mode on quit").
 variable(pool,		  [name],	both, "Window pool I belong too").
+variable(coloured_generation,
+	 int := -1,
+	 both,
+	 "Last generation of the text-buffer that was coloured").
 
 class_variable(undo_buffer_size, int, 40000).
 
@@ -409,7 +413,7 @@ open(B, New:[bool], Window:emacs_frame) :<-
 	(   New == @on
 	->  send(new(Window, emacs_frame(B)), open)
 	;   (   get(B?editors, find,
-		    message(@arg1?frame, instance_of, emacs_frame),
+		    message(@arg1, instance_of, emacs_editor),
 		    Editor)
 	    ->  get(Editor, frame, Window),
 		send(Window, expose)
