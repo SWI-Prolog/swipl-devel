@@ -52,6 +52,9 @@ typedef int (*sgml_error_f)(dtd_parser_p parser,
 
 typedef enum
 { S_PCDATA,				/* between declarations */
+#ifdef UTF8
+  S_UTF8,				/* Loading UTF-8 character */
+#endif
   S_CDATA,				/* non-parsed data */
   S_ECDATA1,				/* Seen < in CDATA */
   S_ECDATA2,				/* Seen </ in CDATA */
@@ -106,9 +109,15 @@ typedef struct _dtd_parser
   const ichar *etag;			/* name of end-tag in CDATA */
   int	   etaglen;			/* length of end-tag */
   int	   grouplevel;			/* [..] level in declaration */
-  int	   blank_cdata;			/* Only collected blanks */
-  ichar    previous_char;		/* previous character */
-  ichar	   saved;			/* saved character */
+  int      previous_char;		/* previous character */
+  int	   saved;			/* saved character */
+  dtd_char_encoding encoding;		/* CDATA output character-set */
+#ifdef UTF8
+  int	   utf8_decode;			/* decode UTF-8 sequences? */
+  int      utf8_char;			/* building character */
+  int	   utf8_left;			/* bytes left */
+  dtdstate saved_state;			/* state from which we come */
+#endif
   int	   line;			/* line number */
   const char *file;			/* name of the file */
 
@@ -122,6 +131,10 @@ typedef struct _dtd_parser
 
 
 #endif /*SGML_PARSER_H_INCLUDED*/
+
+
+
+
 
 
 

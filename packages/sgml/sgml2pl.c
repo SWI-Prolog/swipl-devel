@@ -581,7 +581,6 @@ pl_sgml_open(term_t parser, term_t options, term_t stream)
   p->on_error	      = sgml_error;
   p->dmode	      = DM_SGML;
   p->state	      = S_PCDATA;
-  p->blank_cdata      = TRUE;
   
   pd = calloc(1, sizeof(*pd));
   pd->parser = p;
@@ -623,14 +622,16 @@ pl_sgml_open(term_t parser, term_t options, term_t stream)
     qid_t qid;
     int rval;
 
+    begin_document_dtd_parser(p);
     qid = PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, pred, goal);
     rval = PL_next_solution(qid);
-    if ( rval && Sflush(s) == 0 )
-    { PL_close_query(qid);
-      PL_close_foreign_frame(fid);
+    PL_cut_query(qid);
+    if ( rval &&
+	 Sflush(s) == 0 &&
+	 end_document_dtd_parser(p) )
+    { PL_close_foreign_frame(fid);
       return TRUE;
     }
-    PL_cut_query(qid);
     PL_discard_foreign_frame(fid);
 
     if ( pd->errors > pd->max_errors )

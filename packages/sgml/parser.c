@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
+#include "utf8.h"
 
 #define DEBUG(g) ((void)0)
 
@@ -259,8 +260,9 @@ Expand entities in a string.  Used to expand CDATA attribute values.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-expand_entities(dtd *dtd, const ichar *in, ochar *out, int len)
+expand_entities(dtd_parser *p, const ichar *in, ochar *out, int len)
 { const ichar *s;
+  dtd *dtd = p->dtd;
 
   while(*in)
   { if ( (s = isee_func(dtd, in, CF_ERO)) ) /* & */
@@ -300,7 +302,7 @@ expand_entities(dtd *dtd, const ichar *in, ochar *out, int len)
 	  goto recover;
 	}
 
-	if ( !expand_entities(dtd, eval, out, len) )
+	if ( !expand_entities(p, eval, out, len) )
 	  return FALSE;
 	l = ostrlen(out);		/* could be better */
 	out += l;
@@ -313,6 +315,15 @@ expand_entities(dtd *dtd, const ichar *in, ochar *out, int len)
   recover:
     if ( --len <= 0 )
       return gripe(ERC_REPRESENTATION, "CDATA string too long");
+
+#ifdef UTF8
+    if ( p->utf8_decode && ISUTF8_MB(*in) )
+    { int chr;
+
+      in = __utf8_get_char(in, &chr);
+      *out++ = chr;
+    }
+#endif
     *out++ = dtd->charmap->map[*in++];
   }
 
@@ -713,6 +724,7 @@ set_dialect_dtd(dtd *dtd, dtd_dialect dialect)
       dtd->case_sensitive = TRUE;
       dtd->charclass->class['_'] |= CH_LCNMSTRT;
       dtd->charclass->class[':'] |= CH_LCNMSTRT;
+      dtd->encoding = ENC_UTF8;
 
       for(el = xml_entities; *el; el++)
 	process_entity_declaraction(dtd, *el);
@@ -1395,7 +1407,6 @@ push_element(dtd_parser *p, dtd_element *e, int callback)
       (*p->on_begin_element)(p, e, 0, NULL);
     if ( e->structure && e->structure->type == C_CDATA )
     { p->state = S_CDATA;
-      p->blank_cdata = FALSE;		/* irrelevant */
       p->etag = e->name->name;
       p->etaglen = istrlen(p->etag);
     }
@@ -1579,7 +1590,7 @@ get_attribute_value(dtd_parser *p, const ichar *decl, sgml_attribute *att)
 	return s;
       return NULL;
     case AT_CDATA:			/* CDATA attribute */
-      expand_entities(dtd, buf, cdata, MAXSTRINGLEN);
+      expand_entities(p, buf, cdata, MAXSTRINGLEN);
       att->value.cdata = ostrdup(cdata);
       return end;
     case AT_ENTITY:			/* entity-name */
@@ -1823,7 +1834,11 @@ process_doctype(dtd_parser *p, const ichar *decl)
 }
 
 
-/* Process <? ... ?> */
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Process <? ... ?>
+
+Should deal with character encoding for XML documents.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 process_pi(dtd_parser *p, const ichar *decl)
@@ -1894,6 +1909,7 @@ new_dtd_parser(dtd *dtd)
   p->state	= S_PCDATA;
   p->mark_state	= MS_INCLUDE;
   p->dmode      = DM_DTD;
+  p->encoding	= ENC_ISO_LATIN1;
   p->buffer	= new_icharbuf();
   p->cdata	= new_ocharbuf();
   p->line	= 1;
@@ -1911,7 +1927,6 @@ clone_dtd_parser(dtd_parser *p)
   clone->marked	      =	NULL;
   clone->etag	      =	NULL;
   clone->grouplevel   =	0;
-  clone->blank_cdata  =	TRUE;
   clone->state	      =	S_PCDATA;
   clone->mark_state   =	MS_INCLUDE;
   clone->dmode	      =	DM_DTD;
@@ -2036,10 +2051,19 @@ process_cdata(dtd_parser *p)
   terminate_ocharbuf(p->cdata);
 
   if ( p->mark_state == MS_INCLUDE )
-  { const ichar *data = p->cdata->data;
+  { dtd *dtd = p->dtd;
+    const ichar *s, *data = p->cdata->data;
     int len = p->cdata->size;
+    int blank = TRUE;
 
-    if ( !p->blank_cdata )
+    for(s=data; *s; s++)
+    { if ( !HasClass(dtd, *s, CH_BLANK) )
+      { blank = FALSE;
+	break;
+      }
+    }   
+
+    if ( !blank )
     { open_element(p, CDATA_ELEMENT);
       if ( p->on_cdata )
 	(*p->on_cdata)(p, len, data);
@@ -2056,7 +2080,6 @@ process_cdata(dtd_parser *p)
   }
   
   empty_ocharbuf(p->cdata);
-  p->blank_cdata = TRUE;
 
   return TRUE;
 }
@@ -2129,8 +2152,8 @@ Deal with end of input.  We should give a proper error message depending
 on the state and the start-location of the error.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
-eof_parser(dtd_parser *p)
+int
+end_document_dtd_parser(dtd_parser *p)
 { switch(p->state)
   { case S_PCDATA:
     { if ( p->dmode == DM_SGML )
@@ -2149,7 +2172,7 @@ eof_parser(dtd_parser *p)
 	  close_element(p, e);
 	}
       }
-      return;
+      return TRUE;
     }
     case S_CDATA:
     case S_ECDATA1:
@@ -2162,11 +2185,52 @@ eof_parser(dtd_parser *p)
     case S_PENT:
     case S_ENT:
       gripe(ERC_SYNTAX_ERROR, "Unexpected end-of-file", "");
+#ifdef UTF8
+    case S_UTF8:
+      gripe(ERC_SYNTAX_ERROR, "Unexpected end-of-file in UTF-8 sequence", "");
+#endif
   }
+
+  return FALSE;				/* ?? */
 }
 
 
-/* We discovered illegal markup and not process it as normal CDATA
+int
+begin_document_dtd_parser(dtd_parser *p)
+{ dtd *dtd = p->dtd;
+
+  if ( dtd->encoding == ENC_UTF8 &&
+       p->encoding   == ENC_ISO_LATIN1 )
+  { p->utf8_decode = TRUE;
+    fprintf(stderr, "Converting UTF-8 to ISO-Latin-1\n");
+  } else
+    p->utf8_decode = FALSE;
+
+  return TRUE;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Set the UTF-8 state
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+process_utf8(dtd_parser *p, int chr)
+{ int bytes;
+  int mask;
+
+  for( bytes=1, mask=0x20; chr&mask; bytes++, mask >>= 1 )
+    ;
+  mask--;				/* 0x20 --> 0x1f */
+
+  p->saved_state = p->state;		/* state to return to */
+  p->state = S_UTF8;
+  p->utf8_char = chr & mask;
+  p->utf8_left = bytes;
+}
+
+
+/* We discovered illegal markup and now process it as normal CDATA
 */
 
 static void
@@ -2199,10 +2263,6 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 
   if ( f[CF_RS] == chr )
     p->line++;
-  else if ( chr == EOF )
-  { eof_parser(p);
-    return;
-  }
 
   switch(p->state)
   { case S_PCDATA:
@@ -2235,17 +2295,20 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	}
 	return;				/* TBD: error if only one ] */
       }
-					/* real character data */
+					/* Real character data */
       switch(p->dmode)
       { case DM_DTD:
 	  if ( !HasClass(dtd, chr, CH_BLANK) )
-	  { gripe(ERC_SYNTAX_ERROR, "Character data in DTD", "");
-	  }
+	    gripe(ERC_SYNTAX_ERROR, "Character data in DTD", "");
 	  return;
 	case DM_SGML:
+#ifdef UTF8
+	  if ( p->utf8_decode && ISUTF8_MB(chr) )
+	  { process_utf8(p, chr);
+	    return;
+	  }
+#endif
 	  add_ocharbuf(p->cdata, dtd->charmap->map[chr]);
-	  if ( p->blank_cdata && !HasClass(dtd, chr, CH_BLANK) )
-	    p->blank_cdata = FALSE;
 	  return;
       }
     }
@@ -2263,7 +2326,6 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	empty_icharbuf(p->buffer);
 	empty_ocharbuf(p->cdata);
 	p->state = S_PCDATA;
-	p->blank_cdata = TRUE;
       } else
       { add_ocharbuf(p->cdata, dtd->charmap->map[chr]);
 	if ( p->etaglen < p->buffer->size || !HasClass(dtd, chr, CH_NAME))
@@ -2399,6 +2461,18 @@ putchar_dtd_parser(dtd_parser *p, int chr)
       }
       break;
     }
+#ifdef UTF8
+    case S_UTF8:
+    { if ( (chr & 0xc0) != 0x80 )	/* TBD: recover */
+	gripe(ERC_SYNTAX_ERROR, "Bad UTF-8 sequence", "");
+      p->utf8_char <<= 6;
+      p->utf8_char |= (chr & 0xc0);
+      if ( --p->utf8_left == 0 )
+      { add_ocharbuf(p->cdata, p->utf8_char);
+	p->state = p->saved_state;
+      }
+    }
+#endif
   }
 }
 
@@ -2469,7 +2543,6 @@ sgml_process_file(dtd_parser *p, const char *file)
   p->line  = 1;
   p->dmode = DM_SGML;
   p->state = S_PCDATA;
-  p->blank_cdata = TRUE;
 
   if ( (fd = fopen(file, "rb")) )
   { int chr;
@@ -2679,8 +2752,3 @@ gripe(dtd_error_id e, ...)
 
   return FALSE;
 }
-
-
-
-
-

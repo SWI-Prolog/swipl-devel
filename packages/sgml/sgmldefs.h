@@ -17,6 +17,8 @@
 #include <dmalloc.h>
 #endif
 
+#define UTF8 1				/* Include UTF-8 decoding */
+
 		 /*******************************
 		 *    INPUT/OUTPUT CHARACTERS	*
 		 *******************************/

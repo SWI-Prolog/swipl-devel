@@ -59,7 +59,10 @@ typedef enum
   CF_ENDTABLE				/* to find size */
 } charfunc;				/* function of characters */
 
-#define CH_MODEL_AND CH_ENT_OPEN	/* Dubious */
+typedef enum
+{ ENC_ISO_LATIN1,			/* ISO-Latin-1 */
+  ENC_UTF8				/* Multi-byte UTF-8 encoding */
+} dtd_char_encoding;
 
 typedef enum
 { C_CDATA,				/* pure cdata */
@@ -304,6 +307,7 @@ typedef struct _dtd
   dtd_charfunc	       *charfunc;	/* CF_ --> ichar */
   dtd_charclass	       *charclass;	/* ichar -> CH_-mask */
   dtd_charmap	       *charmap;	/* ichar ->ochar */
+  dtd_char_encoding	encoding;	/* document encoding */
 } dtd;
 
 extern dtd_charfunc *new_charfunc(void);   /* default classification */
@@ -326,13 +330,18 @@ typedef void *	dtd_parser;		/* abstract parser handle */
 
 dtd *		file_to_dtd(const char *file, const char *doctype);
 int		sgml_process_file(dtd_parser *p, const char *file);
+
 dtd_parser *	new_dtd_parser(dtd *dtd);
 void		free_dtd_parser(dtd_parser *p);
-void		putchar_dtd_parser(dtd_parser *p, int chr);
+
 void		free_dtd(dtd *dtd);
 int		load_dtd_from_file(dtd_parser *p, const char *file);
 dtd *		new_dtd(const ichar *doctype);
 int		set_dialect_dtd(dtd *dtd, dtd_dialect dialect);
+
+void		putchar_dtd_parser(dtd_parser *p, int chr);
+int		begin_document_dtd_parser(dtd_parser *p);
+int		end_document_dtd_parser(dtd_parser *p);
 #endif /*DTD_IMPLEMENTATION*/
 
 
