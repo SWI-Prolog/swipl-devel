@@ -816,18 +816,20 @@ Note that the operator precedence relation between \const{;} and
 form \exam{;(->(If, Then), Else)}.  The first two clauses belong to
 the definition of \predref{;}{2}), while only the last defines
 \predref{->}{2}.
+
 \infixop{*->}{+Condition}{+Action ; +Else}
 This construct implements the so-called `soft-cut'. The control is
 defined as follows: If \arg{Condition} succeeds at least once, the
 semantics is the same as (\arg{Condition}, \arg{Action}). If
 \arg{Condition} does not succeed, the semantics is that of
-(\arg{Condition}, \arg{Else}). In other words, If \arg{Condition}
-succeeds at least once, simply behave as the conjunction of
-\arg{Condition} and \arg{Action}, otherwise execute \arg{Else}.
+(\verb$\+$ \arg{Condition}, \arg{Else}). In other words, If
+\arg{Condition} succeeds at least once, simply behave as the conjunction
+of \arg{Condition} and \arg{Action}, otherwise execute \arg{Else}.
+
 \prefixop{\+}{+Goal}
 Succeeds if `Goal' cannot be proven (mnemonic: \chr{+} refers to {\em
 provable} and the backslash (\chr{\}) is normally used to
-indicate negation).
+indicate negation in Prolog).
 \end{description}
 
 \section{Meta-Call Predicates}		\label{sec:metacall}
@@ -844,6 +846,7 @@ while for normal calls this search is done at compile time.
 Invoke \arg{Goal} as a goal. Note that clauses may have variables as
 subclauses, which is identical to call/1, except when the argument is
 bound to the cut. See \predref{!}{0}.
+
     \predicate{call}{2}{+Goal, +ExtraArg1, \ldots}		% 2..
 Append \arg{ExtraArg1, ExtraArg2, \ldots} to the argument list of
 \arg{Goal} and call the result. For example, \exam{call(plus(1), 2, X)}
@@ -853,6 +856,7 @@ The call/[2..] construct is handled by the compiler, which implies that
 redefinition as a predicate has no effect.  The predicates call/[2-6]
 are defined as true predicates, so they can be handled by interpreted
 code.
+
     \predicate{apply}{2}{+Term, +List}
 Append the members of \arg{List} to the arguments of \arg{Term} and call
 the resulting term. For example: \exam{apply(plus(1), [2, X])} will
@@ -861,9 +865,11 @@ machine of SWI-Prolog. This implies that the overhead can be compared to
 the overhead of call/1. New code should use call/[2..] if the length of
 \arg{List} is fixed, which is more widely supported and faster because
 there is no need to build and examine the argument list.
+
     \predicate{not}{1}{+Goal}
 Succeeds when \arg{Goal} cannot be proven.  Retained for compatibility
 only. New code should use \predref{\+}{1}.
+
     \predicate{once}{1}{+Goal}
 Defined as:
 \begin{code}
@@ -873,10 +879,12 @@ once(Goal) :-
 once/1 can in many cases be replaced with \predref{->}{2}. The only
 difference is how the cut behaves (see !/0). The following two clauses
 are identical:
+
 \begin{code}
 1) a :- once((b, c)), d.
 2) a :- b, c -> d.
 \end{code}
+
     \predicate{ignore}{1}{+Goal}
 Calls \arg{Goal} as once/1, but succeeds, regardless of whether
 \arg{Goal} succeeded or not. Defined as:
@@ -886,6 +894,7 @@ ignore(Goal) :-
         Goal, !.
 ignore(_).
 \end{code}
+
     \predicate{call_with_depth_limit}{3}{+Goal, +Limit, -Result}
 If \arg{Goal} can be proven without recursion deeper than \arg{Limit}
 levels, call_with_depth_limit/3 succeeds, binding \arg{Result} to the
