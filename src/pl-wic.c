@@ -170,6 +170,7 @@ bits) as well as machines with different byte order.
 static char saveMagic[] = "SWI-Prolog (c) 1990 Jan Wielemaker\n";
 static char qlfMagic[]  = "SWI-Prolog .qlf file\n";
 static char *wicFile;			/* name of output file */
+static char *mkWicFile;			/* Wic file under construction */
 static IOSTREAM *wicFd;			/* file descriptor of wic file */
 static Procedure currentProc;		/* current procedure */
 static SourceFile currentSource;	/* current source file */
@@ -220,10 +221,10 @@ int arity;
 
 void
 qlfCleanup()
-{ if ( wicFile )
-  { warning("Removing incomplete Quick Load File %s", wicFile);
-    RemoveFile(wicFile);
-    wicFile = NULL;
+{ if ( mkWicFile )
+  { warning("Removing incomplete Quick Load File %s", mkWicFile);
+    RemoveFile(mkWicFile);
+    mkWicFile = NULL;
   }
 }
 
@@ -1320,6 +1321,7 @@ openWic(char *file, Word args)
   DEBUG(1, Sdprintf("Open compiler output file %s\n", file));
   if ( (wicFd = Fopen(file, STREAM_OPEN_BIN_WRITE)) == (IOSTREAM *)NULL )
     return warning("Can't open %s: %s", file, OsError());
+  mkWicFile = wicFile;
   DEBUG(1, Sdprintf("Searching for executable\n"));
   if ( loaderstatus.restored_state )
   { exec = stringAtom(loaderstatus.restored_state);
@@ -1381,6 +1383,7 @@ closeWic()
 
   wicFd = NULL;
   wicFile = NULL;
+  mkWicFile = NULL;
 
   return rval;
 }
@@ -1595,6 +1598,8 @@ qlfOpen(Atom name)
   if ( !(wicFd = Fopen(wicFile, STREAM_OPEN_BIN_WRITE)) )
     return warning("qlf_open/1: can't open %s: %s", wicFile, OsError());
 
+  mkWicFile = wicFile;
+
   putString(qlfMagic, wicFd);
   putNum(VERSION, wicFd);
   putString(absname, wicFd);
@@ -1615,7 +1620,7 @@ qlfClose()
   writeSourceMarks(wicFd);
   Sclose(wicFd);
   wicFd = NULL;
-  wicFile = NULL;
+  mkWicFile = NULL;
 
   destroyHTable(savedXRTable);
   savedXRTable = NULL;
