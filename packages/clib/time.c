@@ -278,12 +278,12 @@ generating an exception.
 
 static void
 print_trace (void)
-{ void *array[10];
+{ void *array[100];
   size_t size;
   char **strings;
   size_t i;
      
-  size = backtrace(array, 100);
+  size = backtrace(array, sizeof(array)/sizeof(void *));
   strings = backtrace_symbols(array, size);
      
   Sdprintf("on_alarm() context:\n");
