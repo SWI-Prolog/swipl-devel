@@ -2,6 +2,22 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 2.8.3
+=============
+
+  * FIXED: Changed manual to talk about PL_atom_chars(), rather then
+    PL_string_from_atom().
+
+  * FIXED: oset_addel/3, thanks to Robert van Engelen for both the
+    report and the patch.
+
+  * FIXED: string_to_list(X, []).
+
+  * FIXED: Order and unlinking shared objects.  Now, all files are
+    closed before unlinking any shared libraries.  Shared libraries
+    are unlinked explicitely only on non-Unix systems.
+
+
 VERSION 2.8.2
 =============
 
