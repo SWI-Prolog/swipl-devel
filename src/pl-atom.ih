@@ -519,3 +519,4 @@
 #define ATOM_module_property MK_ATOM(518)
 #define ATOM_parent_goal  MK_ATOM(519)
 #define ATOM_select       MK_ATOM(520)
+#define ATOM_comment_start MK_ATOM(521)

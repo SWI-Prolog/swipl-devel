@@ -531,6 +531,7 @@ A noprofile		"noprofile"
 A module_property	"module_property"
 A parent_goal		"parent_goal"
 A select		"select"
+A comment_start		"/*"
 
 F abs			1
 F access		1

@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#130: writeq('/*').  Holger Kanwischer.
+
   * FIXED: win_shell/2.  Added win_shell/3.  Dmitry.
 
   * FIXED: allow for peek_byte(-1), etc.  Michael A. Covington.
