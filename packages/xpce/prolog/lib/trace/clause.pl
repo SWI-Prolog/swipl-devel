@@ -227,33 +227,46 @@ match_module(H1, H2, Pos, Pos) :-	% deal with facts
 
 %	unify_body(+Read, +Decompiled, +Pos0, -Pos)
 %	
-%	Deal with translations implied by the compiler.  For eaxmple,
+%	Deal with translations implied by the compiler.  For example,
 %	compiling (a,b),c yields the same code as compiling a,b,c.
 %	
 %	Pos0 and Pos still include the term-position of the head.
 
 unify_body(B, B, Pos, Pos) :-
-	\+ term_member(brace_term_position(_,_,_), Pos), !.
+	\+ subterm(brace_term_position(_,_,_), Pos), !.
 unify_body(R, D,
 	   term_position(F,T,FF,FT,[HP,BP0]),
 	   term_position(F,T,FF,FT,[HP,BP])) :-
 	ubody(R, D, BP0, BP).
 	   
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Some remarks.
+
+a --> { x, y, z }.
+    This is translated into "(x,y),z), X=Y" by the DCG translator, after
+    which the compiler creates "a(X,Y) :- x, y, z, X=Y".
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 ubody(B, B, P, P) :-
-	\+ term_member(brace_term_position(_,_,_), P), !.
-ubody(B, B,
-      brace_term_position(F,T,A),
-      term_position(F,T,F,T,[A])).
-ubody(((A,B),C), (A,B,C),
-      term_position(F1,T1,FF1,TT1,
-		    [ term_position(F1,T2,FF2,FT2, [PA, PB]),
-		      PC
-		    ]),
-      term_position(F1,T1,FF1,TT1,
-		    [ PA,
-		      term_position(F1,T2,FF2,FT2, [PB, PC])
-		    ])) :- !.
+	\+ subterm(brace_term_position(_,_,_), P), !.
+ubody(B0, B,
+      brace_term_position(F,T,A0),
+      Pos) :-
+	B0 = (_,_=_), !,
+	T1 is T - 1,
+	ubody(B0, B,
+	      term_position(F,T,
+			    F,T,
+			    [A0,T1-T]),
+	      Pos).
+ubody(B0, B,
+      brace_term_position(F,T,A0),
+      term_position(F,T,F,T,[A])) :- !,
+	ubody(B0, B, A0, A).
+ubody(C0, C, P0, P) :-
+	C0 = (_,_), !,
+      conj(C0, P0, GL, PL),
+      mkconj(C,  P,  GL, PL).
 ubody(((A,B),C), (A,B,C),		% {},X expansion
       term_position(F1,T1,FF1,TT1,
 		    [ brace_term_position(F1,T2,PA),
@@ -277,11 +290,35 @@ ubody_list([G0|T0], [G|T], [PA0|PAT0], [PA|PAT]) :-
 	ubody_list(T0, T, PAT0, PAT).
 
 
-term_member(X,X).
-term_member(X, T) :-
+conj(Goal, Pos, GoalList, PosList) :-
+	conj(Goal, Pos, GoalList, [], PosList, []).
+
+conj((A,B), term_position(_,_,_,_,[PA,PB]), GL, TG, PL, TP) :- !,
+	conj(A, PA, GL, TGA, PL, TPA),
+	conj(B, PB, TGA, TG, TPA, TP).
+conj((A,B), brace_term_position(_,T,PA), GL, TG, PL, TP) :-
+	B = (_=_), !,
+	conj(A, PA, GL, TGA, PL, TPA),
+	T1 is T - 1,
+	conj(B, T1-T, TGA, TG, TPA, TP).
+conj(A, P, [A|TG], TG, [P|TP], TP).
+
+
+mkconj(Goal, Pos, GoalList, PosList) :-
+	mkconj(Goal, Pos, GoalList, [], PosList, []).
+
+mkconj((A,B), term_position(0,0,0,0,[PA,PB]), GL, TG, PL, TP) :- !,
+	mkconj(A, PA, GL, TGA, PL, TPA),
+	mkconj(B, PB, TGA, TG, TPA, TP).
+mkconj(A0, P0, [A|TG], TG, [P|TP], TP) :-
+	ubody(A0, A, P0, P).
+
+
+subterm(X,X).
+subterm(X, T) :-
 	compound(T),
 	arg(_, T, A),
-	term_member(X, A).
+	subterm(X, A).
 
 
 		 /*******************************
