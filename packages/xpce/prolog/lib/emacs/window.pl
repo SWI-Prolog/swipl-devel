@@ -38,7 +38,6 @@
 	   , forall/2
 	   , ignore/1
 	   ]).
-:- set_prolog_flag(character_escapes, false).
 
 resource(pinned,	image, image('pinned.xpm')).
 resource(not_pinned,	image, image('pin.xpm')).
@@ -191,7 +190,7 @@ make_prompt_binding(G) :-
 	send(G, function, 'TAB',  complete),
 	send(G, function, 'SPC',  insert_self),
 	send(G, function, 'RET',  if(message(@receiver, apply, @on))),
-	send(G, function, '\C-g', and(message(@receiver, keyboard_quit),
+	send(G, function, '\\C-g', and(message(@receiver, keyboard_quit),
 				      message(@receiver?frame, return,
 					      canceled))).
 
@@ -337,11 +336,11 @@ human_accelerator(Key, Text) :-
 	accel_cache(Key, Text), !.
 human_accelerator(Key, Text) :-
 	new(S, string('%s', Key)),
-	send(regex('\\C-\(.\)'), for_all, S,
-	     message(@arg1, replace, @arg2, 'Control-\1 ')),
+	send(regex('\\\\C-\\(.\\)'), for_all, S,
+	     message(@arg1, replace, @arg2, 'Control-\\1 ')),
 	send(regex('RET'), for_all, S,
 	     message(@arg1, replace, @arg2, 'Control-m ')),
-	send(regex('\\e'), for_all, S,
+	send(regex('\\\\e'), for_all, S,
 	     message(@arg1, replace, @arg2, 'Alt-')),
 	get(S, value, Text),
 	assert(accel_cache(Key, Text)).
@@ -436,9 +435,9 @@ ok_to_overrule(error, _).
 
 make_emacs_mini_window_bindings(B) :-
 	new(B, key_binding(emacs_mini_window)),
-	send(B, function, '\es', sticky_window),
-	send(B, function, '\en', m_x_next),
-	send(B, function, '\ep', m_x_previous).
+	send(B, function, '\\es', sticky_window),
+	send(B, function, '\\en', m_x_next),
+	send(B, function, '\\ep', m_x_previous).
 	      
 editor_event(D, Ev:event) :->
 	"Process event typed in the editor"::
