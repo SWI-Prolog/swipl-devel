@@ -1255,7 +1255,7 @@ undo_while_saving_term(mark *m, Word term)
   if ( info.nvars > 0 )
   { if ( !(b.vars = alloca(sizeof(Word) * info.nvars)) )
       fatalError("alloca(%d) failed", info.nvars);
-    for(p = b.vars, n=info.nvars; --n >= 0;)
+    for(p = b.vars, n=info.nvars; n-- > 0;)
       *p++ = 0;
   }
   b.gstore = allocGlobal(info.size);
