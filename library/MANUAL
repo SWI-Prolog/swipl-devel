@@ -6044,6 +6044,12 @@ mmuutteexx__lloocckk((_+_M_u_t_e_x_I_d))
     If  _M_u_t_e_x_I_d is  an atom,  and there  is no current  mutex with  that
     name,  the  mutex  is  created automatically  using  mutex_create/1.
     This implies named mutexes need not be declared explicitly.
+
+    Please  note that  locking and  unlocking mutexes  should be  paired
+    carefully.    Especially make  sure to  unlock mutexes  even if  the
+    protected  code  fails or  raises an  exception.    For most  common
+    cases  use  with_mutex/2,  wich  provides a  safer way  for  handling
+    prolog-level mutexes.
 
 
 mmuutteexx__ttrryylloocckk((_+_M_u_t_e_x_I_d))
@@ -6076,6 +6082,10 @@ wwiitthh__mmuutteexx((_+_M_u_t_e_x_I_d_, _:_G_o_a_l))
     regardless  of whether _G_o_a_l succeeds, fails or raises  an exception.
     An  exception thrown by _G_o_a_l is  re-thrown after the mutex has  been
     successfully unlocked.  See also mutex_create/2.
+
+    Although  described in  the thread-section,  this predicate is  also
+    available  in the single-threaded  version, where it behaves  simply
+    as once/1.
 
 
 33..3377..33 TThhrreeaadd--ssuuppppoorrtt lliibbrraarryy((tthhrreeaadduuttiill))

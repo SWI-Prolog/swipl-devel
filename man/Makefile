@@ -22,17 +22,22 @@ STYFILES=	html.sty txt.sty
 
 help:		
 		@echo
-		@echo '"make all"       creates both HTML and DVI'
+		@echo '"make all"       creates online, PDF and HTML'
 		@echo '"make online"    creates the help/1 database'
 		@echo '"make html"      create HTML verstion'
-		@echo '"make manual"    makes the manual'
 		@echo '"make pdf"       makes $(PDF)'
 		@echo
 		@echo '"make clean"     removes all temporary files'
 		@echo '"make distclean" lets you start from scratch'
 		@echo
 
-all:		html manual
+all:		
+		$(MAKE) online
+		$(MAKE) clean
+		$(MAKE) pdf
+		$(MAKE) clean
+		$(MAKE) html
+		$(MAKE) clean
 
 dvi:		$(TEXFILES)
 		$(LATEX) doc
@@ -41,8 +46,6 @@ html:		$(TEXFILES) $(STYFILES) doc.bbl
 		rm -rf Manual
 		latex2html doc
 		(cd Manual; ln -s Title.html index.html)
-
-manual:		$(MANUAL)
 
 pdf:		$(PDF)
 
@@ -63,21 +66,9 @@ distclean:	clean
 		rm -f $(MANUAL) $(DVITOTTY)
 		make -C$(DVITOTTY-HOME) distclean
 
-
-$(MANUAL):	latex_if_needed doc.tex $(TEXFILES) doc.bbl doc.ind
-		./latex_if_needed $(LATEX) doc
-		mv doc.dvi $@
-
 $(PDF):		doc.tex $(TEXFILES) doc.bbl
 		runtex --pdf doc
 		mv doc.pdf $@
-
-# pstill is nice, but pdflatex is a lot quicker and produces hyperlinks
-# for free.  Also the produced PDF file is considerably smaller.
-
-#$(PDF):	$(MANUAL)
-#		dvips -o MANUAL.ps $(MANUAL)
-#		pstill -cgipt -o $@ MANUAL.ps
 
 man:		doc.tex $(TEXFILES) doc.bbl doc.ind
 		$(LATEX) doc

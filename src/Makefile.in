@@ -31,6 +31,7 @@
 PLVERSION=@PLVERSION@
 
 PL=@PL@@RT@
+PLV=@PL@@RT@-@PLVERSION@
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 srcdir=@srcdir@
@@ -87,12 +88,13 @@ OBJ=	pl-atom.o pl-wam.o pl-stream.o pl-error.o pl-arith.o pl-bag.o \
 	pl-proc.o pl-prof.o pl-read.o pl-rec.o pl-rl.o pl-setup.o \
 	pl-sys.o pl-table.o pl-trace.o pl-util.o pl-wic.o pl-write.o \
 	pl-term.o pl-buffer.o pl-thread.o pl-xterm.o \
-	pl-feature.o pl-ctype.o @ALLOCA@ @EXTRAOBJ@
+	pl-feature.o pl-ctype.o
+XOBJ=	@ALLOCA@ @EXTRAOBJ@
 RCOBJ=	rc/access.o rc/build.o rc/html.o rc/rc.o rc/util.o
 
 DEPOBJ=	pl-main.o
 EXT=	pl-extend.o
-ALLOBJ= $(OBJ) $(DEPOBJ) $(EXT)
+ALLOBJ= $(OBJ) $(DEPOBJ) $(EXT) $(XOBJ)
 
 PLINIT=	$(PB)/init.pl
 
@@ -136,11 +138,11 @@ $(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)
 		./$(PL) -O -o $(STARTUPPATH) -b $(PLINIT)
 
 
-$(RUNTIME):	$(OBJ) $(RCOBJ) $(DEPOBJ)
+$(RUNTIME):	$(OBJ) $(RCOBJ) $(DEPOBJ) $(XOBJ)
 		if [ ! -d ../runtime ]; then $(MKDIR) ../runtime; fi
 		if [ ! -d $(RUNTIMEDIR) ]; then $(MKDIR) $(RUNTIMEDIR); fi
 		rm -f $@
-		$(AR) r $@ $(OBJ) $(RCOBJ) $(DEPOBJ)
+		$(AR) r $@ $(OBJ) $(RCOBJ) $(DEPOBJ) $(XOBJ)
 		$(RANLIB) $@
 
 rc-lib:
@@ -200,33 +202,40 @@ $(srcdir)/pl-atom.ih:	$(srcdir)/ATOMS
 
 frame.o:
 		ar x `$(CC) -print-libgcc-file-name` $@
+frame.c:	
+		touch $@
 
 plld:		$(srcdir)/plld.c
 		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/plld.c
 
-tags:		TAGS
+tags:		$(srcdir)/TAGS
 
-TAGS:		$(SRC)
-		$(ETAGS) $(SRC) $(HDR)
+$(srcdir)/TAGS:	$(SRC)
+		(cd $(srcdir) && $(ETAGS) $(SRC) $(HDR))
 
 swipl:
 		echo "." > $@
 swiplbin:	
 		echo ".." > $@
 
-pl-funcs.h:	$(SRC)
-		mkproto -p $(SRC) > $@
-
 install:	@INSTALLTARGET@
+install-version: install-arch install-libs install-vbins
 
 dv-install:	install-arch install-libs install-bins
 
 install-bins:	install-arch
 		-if [ ! -d $(bindir)  ]; then $(MKDIR) $(bindir); fi
 		for f in $(PL) plld plrc; do \
-		    ( cd $(bindir); rm -f $$f; ln -s $(PLBASE)/bin/$(ARCH)/$$f . ); \
+		    (cd $(bindir); rm -f $$f; ln -s $(PLBASE)/bin/$(ARCH)/$$f . ); \
 		done
 
+install-vbins:	install-arch
+		-if [ ! -d $(bindir)  ]; then $(MKDIR) $(bindir); fi
+		(cd $(bindir); rm -f $(PLV); ln -s $(PLBASE)/bin/$(ARCH)/$(PL) $(PLV))
+		for f in plld plrc; do \
+		    rm -f $(bindir)/$$f
+		    $(INSTALL_PROGRAM) $$f $(bindir)
+		done
 
 install-arch:	idirs iruntime
 		for f in $(PL) plld rc/plrc; do \
