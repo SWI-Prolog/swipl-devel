@@ -405,6 +405,20 @@ WCToName(const wchar_t *wc, size_t len)
 }
 
 
+StringObj
+WCToString(const wchar_t *wc, size_t len)
+{ if ( wc )
+  { string s;
+
+    str_set_n_wchar(&s, len, (wchar_t *)wc);
+
+    return StringToString(&s);
+  }
+
+  return NULL;
+}
+
+
 		 /*******************************
 		 *	     FILE-NAMES		*
 		 *******************************/

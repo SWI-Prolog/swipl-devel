@@ -286,24 +286,43 @@ ws_events_queued_display(DisplayObj d)
 
 static HGLOBAL
 ws_string_to_global_mem(String s)
-{ int size  = str_datasize(s);
-  int bytes = size + str_count_chr(s, 0, s->size, '\n');
-  HGLOBAL mem = GlobalAlloc(GMEM_MOVEABLE|GMEM_DDESHARE, bytes + 1);
-  char far *data;
+{ int size  = s->size;
+  int extra = size + str_count_chr(s, 0, s->size, '\n');
+  HGLOBAL mem = GlobalAlloc(GMEM_MOVEABLE, bytes + 1);
+  wchar_t *data;
   int i;
 
-  if ( !mem )
+  if ( !(mem = GlobalAlloc(GMEM_MOVEABLE, (size+extra+1)*sizeof(wchar_t))) )
   { Cprintf("Cannot allocate\n");
     return 0;
   }
+
   data = GlobalLock(mem);
 
-  for(i=0; i<size; i++)
-  { if ( s->s_textA[i] == '\n' )
-      *data++ = '\r';
-    *data++ = s->s_textA[i];
+  if ( isstrA(s) )
+  { charA *q;
+
+    if ( !(mem = GlobalAlloc(GMEM_MOVEABLE, size+extra+1)) )
+    { Cprintf("Cannot allocate\n");
+      return 0;
+    }
+
+    for(q=s->s_textA,i=0; i<size; i++)
+    { if ( *q == '\n' )
+	*data++ = '\r';
+      *data++ = *q++;
+    }
+    *data = EOS;
+  } else
+  { charW *q;
+
+    for(q=s->s_textW,i=0; i<size; i++)
+    { if ( *q == '\n' )
+	*data++ = '\r';
+      *data++ = *q++;
+    }
+    *data = EOS;
   }
-  *data = EOS;
 
   GlobalUnlock(mem);
 
@@ -318,7 +337,7 @@ ws_set_cutbuffer(DisplayObj d, int n, String s)
 
     OpenClipboard(PceHiddenWindow());
     EmptyClipboard();
-    SetClipboardData(CF_TEXT, mem);
+    SetClipboardData(CF_UNICODETEXT, mem);
     CloseClipboard();
 
     succeed;
@@ -336,14 +355,28 @@ get_clipboard_data(DisplayObj d, Name type)
   Any rval = FAIL;
 
   OpenClipboard(CLIPBOARDWIN);
-  if ( type != NAME_winMetafile && (mem = GetClipboardData(CF_TEXT)) )
+  if ( type != NAME_winMetafile && (mem = GetClipboardData(CF_UNICODETEXT)) )
+  { wchar_t *data = GlobalLock(mem);
+    wchar_t *copy, *q;
+
+    q = copy = pceMalloc((wcslen(data)+1)*sizeof(wchar_t));
+
+    for(; *data; data++)
+    { if ( *data == '\r' && data[1] == '\n' )
+      { data++;
+	*q++ = '\n';
+      } else
+	*q++ = *data;
+    }
+    *q = EOS;
+    rval = WCToString(copy, q-copy);
+    pceFree(copy);
+    GlobalUnlock(mem);
+  } else if ( type != NAME_winMetafile && (mem = GetClipboardData(CF_TEXT)) )
   { char far *data = GlobalLock(mem);
     char *copy, *q;
-    int i;
 
-    for(i=0; data[i]; i++)
-      ;
-    q = copy = pceMalloc(i + 1);
+    q = copy = pceMalloc(strlen(data));
 
     for(; *data; data++)
     { if ( *data == '\r' && data[1] == '\n' )
