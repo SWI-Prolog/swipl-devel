@@ -614,6 +614,10 @@ getLookupClass(Class class, Name name, Class super)
     }
     if ( name == NAME_object )		/* class(object) has no super! */
       answer(cl);
+  } else if ( isDefault(super) )	/* lookup: class(box) or so */
+  { exceptionPce(PCE, NAME_undefinedClass, name, 0);
+    if ( (cl = getMemberHashTable(classTable, name)) )
+      answer(cl);
   }
 
   fail;
