@@ -130,25 +130,27 @@ isCurrentProcedure(functor_t f, Module m)
 ClauseRef
 hasClausesDefinition(Definition def)
 { if ( def->definition.clauses )
-  { ClauseRef c;
-#ifdef O_LOGICAL_UPDATE
-    unsigned long generation;
-    if ( environment_frame )
-      generation = generationFrame(environment_frame);
+  { if ( def->erased_clauses == 0 )
+      return def->definition.clauses;
     else
-      generation = ~0L-1;		/* any non-erased clause */
+    { ClauseRef c;
+#ifdef O_LOGICAL_UPDATE
+      unsigned long generation;
+      LocalFrame fr = environment_frame;
+      if ( fr )
+	generation = generationFrame(fr);
+      else
+	generation = ~0L-1;		/* any non-erased clause */
 #else
 #define generation (0)
 #endif
-
-    if ( def->erased_clauses == 0 )
-      return def->definition.clauses;
     
-    for(c = def->definition.clauses; c; c = c->next)
-    { Clause cl = c->clause;
+      for(c = def->definition.clauses; c; c = c->next)
+      { Clause cl = c->clause;
 
-      if ( visibleClause(cl, generation) )
-	return c;
+	if ( visibleClause(cl, generation) )
+	  return c;
+      }
     }
   }
 

@@ -120,7 +120,8 @@ word
 pl_between(term_t low, term_t high, term_t n, word b)
 { switch( ForeignControl(b) )
   { case FRG_FIRST_CALL:
-      { long l, h, i;
+      { GET_LD
+	long l, h, i;
 
 	if ( !PL_get_long(low, &l) )
 	  return PL_error("between", 3, NULL, ERR_TYPE, ATOM_integer, low);
@@ -143,7 +144,8 @@ pl_between(term_t low, term_t high, term_t n, word b)
 	ForeignRedoInt(l);
       }
     case FRG_REDO:
-      { long next = ForeignContextInt(b) + 1;
+      { GET_LD
+	long next = ForeignContextInt(b) + 1;
 	long h;
 
 	PL_unify_integer(n, next);
@@ -159,7 +161,8 @@ pl_between(term_t low, term_t high, term_t n, word b)
 
 word
 pl_succ(term_t n1, term_t n2)
-{ long i1, i2;
+{ GET_LD
+  long i1, i2;
 
   if ( PL_get_long(n1, &i1) )
   { if ( PL_get_long(n2, &i2) )
@@ -193,7 +196,8 @@ var_or_long(term_t t, long *l, int which, int *mask)
 
 word
 pl_plus(term_t a, term_t b, term_t c)
-{ long m, n, o;
+{ GET_LD
+  long m, n, o;
   int mask = 0;
 
   if ( !var_or_long(a, &m, 0x1, &mask) ||
@@ -583,23 +587,17 @@ toIntegerNumber(Number n)
 
 void
 canoniseNumber(Number n)
-{					/* only if not explicit! */
-  if ( n->type == V_REAL )
-  { GET_LD
-    if ( !trueFeature(ISO_FEATURE) )
-    { long l;
+{ long l;
 
 #ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
-      if ( !((n->value.f >= PLMININT) && (n->value.f <= PLMAXINT)) )
-        return;
+  if ( !((n->value.f >= PLMININT) && (n->value.f <= PLMAXINT)) )
+    return;
 #endif
 
-      l = (long)n->value.f;
-      if ( n->value.f == (real) l )
-      { n->value.i = l;
-	n->type = V_INTEGER;
-      }
-    }
+  l = (long)n->value.f;
+  if ( n->value.f == (real) l )
+  { n->value.i = l;
+    n->type = V_INTEGER;
   }
 }
 
@@ -610,9 +608,7 @@ canoniseNumber(Number n)
 
 static int
 ar_add(Number n1, Number n2, Number r)
-{ GET_LD
-
-  if ( intNumber(n1) && intNumber(n2) ) 
+{ if ( intNumber(n1) && intNumber(n2) ) 
   { r->value.i = n1->value.i + n2->value.i; 
     
     if ( n1->value.i > 0 && n2->value.i > 0 && r->value.i <= 0 )
@@ -624,8 +620,11 @@ ar_add(Number n1, Number n2, Number r)
     succeed;
 
 overflow:
-    if ( trueFeature(ISO_FEATURE) )
-      return PL_error("+", 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
+    { GET_LD
+
+      if ( trueFeature(ISO_FEATURE) )
+        return PL_error("+", 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
+    }
   }
 
   
@@ -640,9 +639,7 @@ overflow:
 
 static int
 ar_minus(Number n1, Number n2, Number r)
-{ GET_LD
-
-  if ( intNumber(n1) && intNumber(n2) ) 
+{ if ( intNumber(n1) && intNumber(n2) ) 
   { r->value.i = n1->value.i - n2->value.i; 
     
     if ( n1->value.i > 0 && n2->value.i < 0 && r->value.i <= 0 )
@@ -654,8 +651,10 @@ ar_minus(Number n1, Number n2, Number r)
     succeed;
 
 overflow:
-    if ( trueFeature(ISO_FEATURE) )
-      return PL_error("-", 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
+    { GET_LD
+      if ( trueFeature(ISO_FEATURE) )
+	return PL_error("-", 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
+    }
   } 
 
   promoteToRealNumber(n1);
@@ -835,7 +834,7 @@ static int
 ar_divide(Number n1, Number n2, Number r)
 { GET_LD
 
-  if ( !trueFeature(ISO_FEATURE) && (intNumber(n1) && intNumber(n2)) )
+  if ( (intNumber(n1) && intNumber(n2)) && !trueFeature(ISO_FEATURE) )
   { if ( n2->value.i == 0 )
       return PL_error("/", 2, NULL, ERR_DIV_BY_ZERO);
 
@@ -1136,7 +1135,8 @@ pl_is(term_t v, term_t e)
   number arg;
 
   if ( valueExpression(e, &arg PASS_LD) )
-  { canoniseNumber(&arg);
+  { if ( !trueFeature(ISO_FEATURE) && arg.type == V_REAL )
+      canoniseNumber(&arg);
 
     if ( intNumber(&arg) )
       return PL_unify_integer(v, arg.value.i);

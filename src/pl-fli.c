@@ -351,7 +351,8 @@ PL_cvt_i_atom(term_t p, atom_t *c)
 
 bool
 PL_cvt_o_integer(long c, term_t p)
-{ return PL_unify_integer(p, c);
+{ GET_LD
+  return PL_unify_integer(p, c);
 }
 
 
@@ -1736,11 +1737,18 @@ PL_unify_list_chars(term_t l, const char *chars)
 
 
 int
+PL_unify_integer__LD(term_t t, long i ARG_LD)
+{ return unifyAtomic(t, makeNum(i) PASS_LD);
+}
+
+
+#undef PL_unify_integer
+int
 PL_unify_integer(term_t t, long i)
 { GET_LD
   return unifyAtomic(t, makeNum(i) PASS_LD);
 }
-
+#define PL_unify_integer(t, i)	PL_unify_integer__LD(t, i PASS_LD)
 
 int
 PL_unify_pointer(term_t t, void *ptr)
@@ -2162,7 +2170,7 @@ PL_strip_module(term_t raw, module_t *m, term_t plain)
   
   deRef(p);
   if ( hasFunctor(*p, FUNCTOR_colon2) )
-  { p = stripModule(p, m);
+  { p = stripModule(p, m PASS_LD);
     setHandle(plain, linkVal(p));
   } else
   { if ( *m == NULL )

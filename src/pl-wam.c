@@ -3217,7 +3217,8 @@ the result (a word) and the number holding the result.  For example:
 	n--;				/* pop the number */
 	ARGP = argFrameP(lTop, 0);	/* 1-st argument */
 	deRef2(ARGP, k);
-	canoniseNumber(n);		/* whole real --> long */
+	if ( n->type == V_REAL && !trueFeature(ISO_FEATURE) )
+	  canoniseNumber(n);		/* whole real --> long */
 
 	if ( isVar(*k) )
 	{ Trail(k);
@@ -3273,7 +3274,7 @@ BUG: have to find out how to proceed in case of failure (I am afraid the
 	deRef(a);			/* variable */
 
 	module = NULL;
-	a = stripModule(a, &module);
+	a = stripModule(a, &module PASS_LD);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Determine the functor definition associated with the goal as well as the
@@ -3354,7 +3355,7 @@ atom is referenced by the goal-term anyway.
 	deRef(a);			/* variable */
 
 	module = NULL;
-	a = stripModule(a, &module);
+	a = stripModule(a, &module PASS_LD);
 
 	if ( isAtom(goal = *a) )
 	{ arity   = 0;
@@ -3719,7 +3720,7 @@ Obtain the functor of the actual goal from the first argument  and  copy
 the arguments of this term in the frame.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 	
-	gp = stripModule(gp, &module);
+	gp = stripModule(gp, &module PASS_LD);
 	next->context = module;
 	goal = *gp;
 

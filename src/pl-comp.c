@@ -714,16 +714,15 @@ Clause
 compileClause(Word head, Word body, Procedure proc, Module module)
 { GET_LD
   compileInfo ci;			/* data base for the compiler */
-  struct clause local_clause;
-  Clause clause;
+  struct clause clause;
+  Clause cl;
 
   if ( head )
   { ci.islocal      = FALSE;
     ci.subclausearg = 0;
     ci.arity        = proc->definition->functor->arity;
     ci.argvars      = 0;
-    clause          = &local_clause;
-    clause->flags   = 0;
+    clause.flags    = 0;
   } else
   { Word g = varFrameP(lTop, VAROFFSET(1));
 
@@ -732,23 +731,16 @@ compileClause(Word head, Word body, Procedure proc, Module module)
     ci.argvars	    = 1;
     ci.argvar       = 1;
     ci.arity        = 0;
-    clause          = &local_clause;
-    clause->flags   = GOAL_CLAUSE;
+    clause.flags    = GOAL_CLAUSE;
     *g		    = *body;
   }
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Allocate the clause and fill initialise the field we already know.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+  clause.procedure  = proc;
+  clause.code_size  = 0;
+  clause.source_no  = clause.line_no = 0;
 
-  clause->procedure  = proc;
-  clause->code_size  = 0;
-  clause->source_no  = clause->line_no = 0;
-
-  ci.clause = clause;
+  ci.clause = &clause;
   ci.module = module;
-
-  DEBUG(9, Sdprintf("clause struct initialised\n"));
 
   analyse_variables(head, body, &ci PASS_LD);
   ci.cutvar = 0;
@@ -807,7 +799,7 @@ automatic update if a predicate is later defined as meta-predicate.
     }
     Output_0(&ci, I_EXIT);
   } else
-  { set(clause, UNIT_CLAUSE);		/* fact (for decompiler) */
+  { set(&clause, UNIT_CLAUSE);		/* fact (for decompiler) */
     Output_0(&ci, I_EXITFACT);
   }
 
@@ -817,42 +809,39 @@ automatic update if a predicate is later defined as meta-predicate.
 Finish up the clause.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 #ifdef O_SHIFT_STACKS
-  clause->marks = clause->variables - clause->prolog_vars;
+  clause.marks = clause.variables - clause.prolog_vars;
 #endif
 
-  clause->code_size = entriesBuffer(&ci.codes, code);
+  clause.code_size = entriesBuffer(&ci.codes, code);
 
   if ( head )
-  { int size  = sizeofClause(clause->code_size);
-    Clause cl = allocHeap(size);
+  { int size  = sizeofClause(clause.code_size);
 
-    memcpy(cl,       clause, sizeofClause(0));
-    clause = cl;
+    cl = allocHeap(size);
+    memcpy(cl, &clause, sizeofClause(0));
 
-    GD->statistics.codes += clause->code_size;
+    GD->statistics.codes += clause.code_size;
   } else
   { LocalFrame fr = lTop;
-    Word p0 = argFrameP(fr, clause->variables);
+    Word p0 = argFrameP(fr, clause.variables);
     Word p = p0;
-    Clause cl;
     ClauseRef cref;
 
     DEBUG(1, Sdprintf("%d argvars; %d prolog vars; %d vars",
 		      ci.argvars, clause->prolog_vars, clause->variables));
     assert(ci.argvars == ci.argvar);
     requireStack(local,
-		 clause->variables*sizeof(word) +
-		 sizeofClause(clause->code_size) +
+		 clause.variables*sizeof(word) +
+		 sizeofClause(clause.code_size) +
 		 sizeof(*cref));
 
     cref = (ClauseRef)p;
     p = addPointer(p, sizeof(*cref));
     cref->next = NULL;
     cref->clause = cl = (Clause)p;
-    memcpy(cl, clause, sizeofClause(0));
-    clause = cl;
-    p = addPointer(p, sizeofClause(cl->code_size));
-    clause->variables += p-p0;
+    memcpy(cl, &clause, sizeofClause(0));
+    p = addPointer(p, sizeofClause(clause.code_size));
+    cl->variables += p-p0;
 
     fr->clause = cref;
     fr->context = module;
@@ -862,15 +851,15 @@ Finish up the clause.
     lTop = (LocalFrame)p;
   }
 
-  memcpy(clause->codes,baseBuffer(&ci.codes, code),sizeOfBuffer(&ci.codes));
+  memcpy(cl->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
   discardBuffer(&ci.codes);
 
   DEBUG(1,
 	if ( !head )
-	{ wamListClause(clause);
+	{ wamListClause(cl);
 	});
 
-  return clause;
+  return cl;
 
 exit_fail:
   resetVars(PASS_LD1);
@@ -3358,7 +3347,8 @@ $fetch_vm(+Clause, +Offset, -NextOffset, -Instruction)
 
 word
 pl_fetch_vm(term_t ref, term_t offset, term_t noffset, term_t instruction)
-{ Clause clause;
+{ GET_LD
+  Clause clause;
   int pcoffset;
   Code PC;
   code op;
@@ -3656,7 +3646,8 @@ for placing a break-point.
 
 word
 pl_break_pc(term_t ref, term_t pc, term_t nextpc, control_t h)
-{ Clause clause;
+{ GET_LD
+  Clause clause;
   int offset;
   Code PC, end;
 
@@ -3823,7 +3814,8 @@ pl_break_at(term_t ref, term_t pc, term_t set)
 
 word
 pl_current_break(term_t ref, term_t pc, control_t h)
-{ TableEnum e = NULL;			/* make gcc happy */
+{ GET_LD
+  TableEnum e = NULL;			/* make gcc happy */
   Symbol symb;
   
   if ( !breakTable )

@@ -137,8 +137,11 @@ remaining term.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Word
-stripModule(Word term, Module *module)
-{ deRef(term);
+stripModule(Word term, Module *module ARG_LD)
+{
+#undef LD
+#define LD LOCAL_LD
+  deRef(term);
 
   while( hasFunctor(*term, FUNCTOR_colon2) )
   { Word mp;
@@ -156,6 +159,8 @@ stripModule(Word term, Module *module)
 	       			 : MODULE_user);
 
   return term;
+#undef LD
+#define LD GLOBAL_LD
 }
 
 bool

@@ -124,7 +124,8 @@ pl_flag(term_t name, term_t old, term_t new)
     f->value.a = a;
     PL_register_atom(a);
   } else if ( valueExpression(new, &n PASS_LD) )
-  { canoniseNumber(&n);
+  { if ( n.type == V_REAL && !trueFeature(ISO_FEATURE) )
+      canoniseNumber(&n);
 
     if ( n.type == V_INTEGER )
     { freeFlagValue(f);

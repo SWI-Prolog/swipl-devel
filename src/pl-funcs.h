@@ -356,6 +356,7 @@ void		_PL_get_arg__LD(int index, term_t t, term_t a ARG_LD);
 term_t		PL_new_term_ref__LD(ARG1_LD);
 term_t		PL_new_term_refs__LD(int n ARG_LD);
 int		PL_unify__LD(term_t t1, term_t t2 ARG_LD);
+int		PL_unify_integer__LD(term_t t1, long i ARG_LD);
 void		registerForeignLicenses(void);
 
 /* pl-fmt.c */
@@ -415,7 +416,7 @@ Module		lookupModule(atom_t name);
 Module		isCurrentModule(atom_t name);
 void		initModules(void);
 int		isSuperModule(Module s, Module m);
-Word		stripModule(Word term, Module *module);
+Word		stripModule(Word term, Module *module ARG_LD);
 bool		isPublicModule(Module module, Procedure proc);
 int		declareModule(atom_t name, SourceFile sf);
 word		pl_default_module(term_t me, term_t old, term_t new);
