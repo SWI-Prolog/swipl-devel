@@ -617,10 +617,20 @@ pl_current_predicate1(term_t spec, word ctx)
       }
     }
 
-    if ( !e->functor && e->super->super )
-    { e->super = e->super->super;	/* advance to userp-modules */
-    } else if ( e->emod && (sm = advanceTableEnum(e->emod)) )
-    { e->super = e->module = sm->value;	/* advance to next real module */
+    if ( e->emod )			/* enumerate all modules */
+    { while( (sm = advanceTableEnum(e->emod)) )
+      { Module m = sm->value;
+
+					/* skip hidden modules */
+	if ( stringAtom(m->name)[0] != '$' || SYSTEM_MODE )
+	  break;
+      }
+      if ( sm )
+	e->super = e->module = sm->value;
+      else
+	break;
+    } else if ( !e->functor && e->super && e->super->super )
+    { e->super = e->super->super;	/* advance to user-modules */
     } else
       break;				/* finished all modules */
 
@@ -645,17 +655,6 @@ typeerror:
   return PL_error(NULL, 0, NULL, ERR_TYPE,
 		  ATOM_predicate_indicator, spec);
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 		 /*******************************
