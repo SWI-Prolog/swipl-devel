@@ -512,7 +512,7 @@ frame_flags(Frame) -->
 port(Port) -->
 	{ port_name(Port, Name)
 	}, !,
-	[ '~w: '-[Port] ].
+	[ '~w: '-[Name] ].
 
 port_name(call,	     'Call').
 port_name(exit,	     'Exit').
