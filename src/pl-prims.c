@@ -1704,8 +1704,7 @@ pl_atom_concat(term_t a1, term_t a2, term_t a3, control_t ctx)
 
 word
 pl_concat_atom3(term_t list, term_t sep, term_t atom)
-{ char *s;
-  term_t l = PL_copy_term_ref(list);
+{ term_t l = PL_copy_term_ref(list);
   term_t head = PL_new_term_ref();
   int first = TRUE;
   char *sp;
@@ -1713,9 +1712,8 @@ pl_concat_atom3(term_t list, term_t sep, term_t atom)
   tmp_buffer b;
   
   if ( sep )
-  { if ( !PL_get_chars(sep, &sp, CVT_ATOMIC|BUF_RING) )
+  { if ( !PL_get_nchars(sep, &splen, &sp, CVT_ATOMIC|BUF_RING) )
       return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, sep);
-    splen = strlen(sp);
   } else
   { sp = NULL;
     splen = 0;
@@ -1723,7 +1721,10 @@ pl_concat_atom3(term_t list, term_t sep, term_t atom)
 
   initBuffer(&b);
   while( PL_get_list(l, head, l) )
-  { if ( !PL_get_chars(head, &s, CVT_ATOMIC) )
+  { char *s;
+    int slen;
+
+    if ( !PL_get_nchars(head, &slen, &s, CVT_ATOMIC) )
     { discardBuffer(&b);
       return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, head);
     }
@@ -1733,7 +1734,7 @@ pl_concat_atom3(term_t list, term_t sep, term_t atom)
     else if ( splen )
       addMultipleBuffer(&b, sp, splen, char);
 
-    addMultipleBuffer(&b, s, strlen(s), char);
+    addMultipleBuffer(&b, s, slen, char);
   }
 
   if ( PL_get_nil(l) )

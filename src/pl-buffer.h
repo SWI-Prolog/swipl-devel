@@ -44,12 +44,13 @@ void	growBuffer(Buffer, long);
 	do \
 	{ int _tms = (times); \
           int _len = _tms * sizeof(type); \
+          type *_d, *_s = (type *)ptr; \
 	  if ( (b)->top + _len > (b)->max ) \
 	    growBuffer((Buffer)b, _len); \
+          _d = (type *)(b)->top; \
           while ( --_tms >= 0 ) \
-	  { *((type *)(b)->top) = *ptr++; \
-	    (b)->top += sizeof(type); \
-	  } \
+	    *_d++ = *_s++; \
+	  (b)->top = (char *)_d; \
 	} while(0)
   
 #define baseBuffer(b, type)	 ((type *) (b)->base)
