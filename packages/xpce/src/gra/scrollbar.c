@@ -1285,6 +1285,9 @@ bubbleScrollBar(ScrollBar sb, Int l, Int s, Int v)
   if ( sb->length == l && sb->start == s && sb->view == v )
     succeed;
 
+  DEBUG(NAME_scroll, Cprintf("bubbleScrollBar(%s, %d, %d, %d)\n",
+			     pp(sb), valInt(l), valInt(s), valInt(v)));
+
   assign(sb, length, l);
   assign(sb, start,  s);
   assign(sb, view,   v);

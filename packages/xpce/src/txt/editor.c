@@ -1179,7 +1179,10 @@ ensureCaretInWindowEditor(Editor e)
     { if ( e->image->eof_in_window == ON )
     	assign(e, caret, e->image->end);
       else
-	assign(e, caret, sub(e->image->end, ONE));
+      { long ie = max(0, valInt(e->image->end) - 1);
+	
+	assign(e, caret, toInt(ie));
+      }
     }
   }
 

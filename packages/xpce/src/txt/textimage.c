@@ -636,12 +636,13 @@ updateMapTextImage(TextImage ti)
 
       next_index = fill_line(ti, line, index, y);
       DEBUG(NAME_text,
-	    Cprintf("Line %d %4ld..%4ld (changed = %d, y=%d)\n",
-		    line, index, next_index, ti->map->lines[line].changed, y));
+	    Cprintf("Line %d %4ld..%4ld (changed = %d, y=%d, h=%d)\n",
+		    line, index, next_index, ti->map->lines[line].changed,
+		    y, ti->map->lines[line].h));
       if ( line >= ti->map->skip )
 	y += ti->map->lines[line].h;
 
-      if ( y > ti->h - TXT_Y_MARGIN )
+      if ( y > ti->h - TXT_Y_MARGIN && line > 0 )
       { ti->map->length = line - ti->map->skip;
 	assign(ti, end, toInt(index));
 	assign(ti, eof_in_window, eof_in_window);

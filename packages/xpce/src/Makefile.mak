@@ -25,9 +25,9 @@ INCLUDE=$(INCLUDE);..\include
 XLIBS=$(UXLIB) $(PLLIB) jpeglib2.lib xpm.lib comdlg32.lib
 
 XPCEDLL=xpce.dll
-PL2XPCE=pl2xpce.dll
+PL2XPCE=pl2xpce
 
-all:	$(PL2XPCE)
+all:	$(PL2XPCE).dll
 
 ################################################################
 # XPCE's modules
@@ -249,7 +249,7 @@ $(XPCEDLL):	$(OBJECTS)
 
 PLOBJ=		$(OBJECTS) ..\pl\src\interface.obj
 
-$(PL2XPCE):	$(PLOBJ)
+$(PL2XPCE).dll:	$(PLOBJ)
 		@echo Linking $@ ...
 		@$(LD) $(LDFLAGS) /out:$@ /dll $(PLOBJ) $(LIBS) $(XLIBS)
 
@@ -342,8 +342,12 @@ idirs::
 		@for %d in ($(IDIRS)) do \
 		  @if not exist "$(IBASE)\%d\$(NULL)" mkdir "$(IBASE)\%d"
 
-idll:		$(PL2XPCE)
-		$(INSTALL) $(PL2XPCE) "$(BINDIR)"
+idll:		$(PL2XPCE).dll
+		$(INSTALL) $(PL2XPCE).dll "$(BINDIR)"
+!IF "$(DBG)" == "true"
+		$(INSTALL) $(PL2XPCE).pdb "$(BINDIR)"
+!ENDIF
+
 
 ixpce:		xpce.exe
 		$(INSTALL) xpce.exe "$(BINDIR)"
