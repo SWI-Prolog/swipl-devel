@@ -264,6 +264,7 @@ static struct
 
 #define CON_MAGIC      0x7c42b620	/* magic code */
 #define CTX_MAGIC      0x7c42b621	/* magic code */
+#define CTX_FREEMAGIC  0x7c42b622	/* magic code if freed */
 
 #define CTX_PERSISTENT  0x0001		/* persistent statement handle */
 #define CTX_BOUND       0x0002		/* result-columns are bound */
@@ -279,7 +280,6 @@ static struct
 #define CTX_NOAUTO	0x0800		/* fetch by hand */
 
 #define FND_SIZE(n)	((int)&((findall*)NULL)->codes[n])
-
 
 #define true(s, f)	((s)->flags & (f))
 #define false(s, f)	!true(s, f)
@@ -349,21 +349,18 @@ odbc_report(HENV henv, HDBC hdbc, HSTMT hstmt, RETCODE rc)
   }
 }
 
-#define TRY(ctxt, stmt) \
+#define TRY(ctxt, stmt, onfail) \
 	{ ctxt->rc = (stmt); \
 	  if ( !report_status(ctxt) ) \
+	  { onfail; \
 	    return FALSE; \
+	  } \
 	}
 
-/* NOTE: if an error is reported report_status() returns FALSE and
-   the context is closed
-*/
 
 static int
 report_status(context *ctxt)
-{ int rval;
-
-  switch(ctxt->rc)
+{ switch(ctxt->rc)
   { case SQL_SUCCESS:
       return TRUE;
     case SQL_SUCCESS_WITH_INFO:
@@ -371,19 +368,13 @@ report_status(context *ctxt)
 	return TRUE;
       break;
     case SQL_NO_DATA_FOUND:
-      close_context(ctxt);
       return FALSE;
     case SQL_INVALID_HANDLE:
-    { free_context(ctxt);
       return PL_warning("Invalid handle: %p", ctxt->hstmt);
-    }
   }
 
-  if ( !(rval=odbc_report(ctxt->henv, ctxt->connection->hdbc,
-			  ctxt->hstmt, ctxt->rc)) )
-    close_context(ctxt);
-
-  return rval;
+  return odbc_report(ctxt->henv, ctxt->connection->hdbc,
+		     ctxt->hstmt, ctxt->rc);
 }
 
 
@@ -1618,7 +1609,16 @@ free_parameters(int n, parameter *params)
 
 static void
 free_context(context *ctx)
-{ ctx->magic = 0;
+{ if ( ctx->magic != CTX_MAGIC )
+  { if ( ctx->magic == CTX_FREEMAGIC )
+      Sdprintf("ODBC: Trying to free context twice: %p\n", ctx);
+    else
+      Sdprintf("ODBC: Trying to free non-context: %p\n", ctx);
+
+    return;
+  }
+
+  ctx->magic = CTX_FREEMAGIC;
 
   if ( ctx->hstmt )
     SQLFreeStmt(ctx->hstmt, SQL_DROP);
@@ -1659,7 +1659,9 @@ clone_context(context *in)
   set(new, CTX_SQLMALLOCED);
 
 					/* Prepare the statement */
-  TRY(new, SQLPrepare(new->hstmt, new->sqltext, new->sqllen));
+  TRY(new,
+      SQLPrepare(new->hstmt, new->sqltext, new->sqllen),
+      close_context(new));
 
 					/* Copy parameter declarations */
   if ( (new->NumParams = in->NumParams) > 0 )
@@ -1691,7 +1693,8 @@ clone_context(context *in)
 				p->scale,		/* ibScale */
 				p->ptr_value,		/* rgbValue */
 				0,			/* cbValueMax */
-				vlenptr));		/* pcbValue */
+				vlenptr),		/* pcbValue */
+	  close_context(new));
     }
   }
 
@@ -1719,7 +1722,8 @@ clone_context(context *in)
 			    p->cTypeID,
 			    p->ptr_value,
 			    p->len_value,
-			    &p->length_ind));
+			    &p->length_ind),
+	    close_context(new));
       }
 
       set(new, CTX_BOUND);
@@ -1932,12 +1936,20 @@ prepare_result(context *ctxt)
 			 ptr_result->cTypeID,
 			 ptr_result->ptr_value,
 			 ptr_result->len_value,
-			 &ptr_result->length_ind));
+			 &ptr_result->length_ind),
+       (void)0);
   }
 
   return TRUE;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+odbc_row()  is  the  final  call  from  the  various  query  predicates,
+returning a result row or, in case  of findall, the whole result-set. It
+must call close_context() if we are  done   with  the  context due to an
+error or the last result.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static foreign_t
 odbc_row(context *ctxt, term_t trow)
@@ -1946,7 +1958,9 @@ odbc_row(context *ctxt, term_t trow)
 
   if ( !true(ctxt, CTX_BOUND) )
   { if ( !prepare_result(ctxt) )
+    { close_context(ctxt);
       return FALSE;
+    }
     set(ctxt, CTX_BOUND);
   }
       
@@ -1984,7 +1998,9 @@ odbc_row(context *ctxt, term_t trow)
 	  break;
 	default:
 	  if ( !report_status(ctxt) )
+	  { close_context(ctxt);
 	    return FALSE;
+	  }
       }
       
       if ( !PL_unify_list(tail, head, tail) ||
@@ -2003,10 +2019,12 @@ odbc_row(context *ctxt, term_t trow)
   { if ( true(ctxt, CTX_PREFETCHED) )
       clear(ctxt, CTX_PREFETCHED);
     else
-      TRY(ctxt, SQLFetch(ctxt->hstmt));
+      TRY(ctxt, SQLFetch(ctxt->hstmt), close_context(ctxt));
 
     if ( !pl_put_row(local_trow, ctxt) )
+    { close_context(ctxt);
       return FALSE;			/* with pending exception */
+    }
       
     if ( !PL_unify(trow, local_trow) )
     { PL_rewind_foreign_frame(fid);
@@ -2027,7 +2045,11 @@ odbc_row(context *ctxt, term_t trow)
 	set(ctxt, CTX_PREFETCHED);
 	PL_retry_address(ctxt);
       default:
-	return report_status(ctxt);
+	if ( !report_status(ctxt) )
+	{ close_context(ctxt);
+	  return FALSE;
+	}
+        return TRUE;
     }
   }
 }
@@ -2145,7 +2167,9 @@ pl_odbc_query(term_t dsn, term_t tquery, term_t trow, term_t options,
 	return FALSE;
       }
       set(ctxt, CTX_INUSE);
-      TRY(ctxt, SQLExecDirect(ctxt->hstmt, ctxt->sqltext, ctxt->sqllen));
+      TRY(ctxt,
+	  SQLExecDirect(ctxt->hstmt, ctxt->sqltext, ctxt->sqllen),
+	  close_context(ctxt));
 
       return odbc_row(ctxt, trow);
     }
@@ -2177,7 +2201,9 @@ odbc_tables(term_t dsn, term_t row, control_t handle)
       ctxt = new_context(cn);
       ctxt->null = NULL;		/* use default $null$ */
       set(ctxt, CTX_TABLES);
-      TRY(ctxt, SQLTables(ctxt->hstmt, NULL,0,NULL,0,NULL,0,NULL,0));
+      TRY(ctxt,
+	  SQLTables(ctxt->hstmt, NULL,0,NULL,0,NULL,0,NULL,0),
+	  close_context(ctxt));
 
       return odbc_row(ctxt, row);
     }
@@ -2212,8 +2238,10 @@ pl_odbc_column(term_t dsn, term_t db, term_t row, control_t handle)
       ctxt = new_context(cn);
       ctxt->null = NULL;		/* use default $null$ */
       set(ctxt, CTX_COLUMNS);
-      TRY(ctxt, SQLColumns(ctxt->hstmt, NULL, 0, NULL, 0,
-			   (SQLCHAR*)s, (SWORD)len, NULL, 0));
+      TRY(ctxt,
+	  SQLColumns(ctxt->hstmt, NULL, 0, NULL, 0,
+		     (SQLCHAR*)s, (SWORD)len, NULL, 0),
+	  close_context(ctxt));
       
       return odbc_row(ctxt, row);
     }
@@ -2256,7 +2284,9 @@ odbc_types(term_t dsn, term_t sqltype, term_t row, control_t handle)
 	return FALSE;
       ctxt = new_context(cn);
       ctxt->null = NULL;		/* use default $null$ */
-      TRY(ctxt, SQLGetTypeInfo(ctxt->hstmt, type));
+      TRY(ctxt,
+	  SQLGetTypeInfo(ctxt->hstmt, type),
+	  close_context(ctxt));
       
       return odbc_row(ctxt, row);
     }
@@ -2447,7 +2477,9 @@ declare_parameters(context *ctxt, term_t parms)
   SWORD npar;
   int pn;
 
-  TRY(ctxt, SQLNumParams(ctxt->hstmt, &npar));
+  TRY(ctxt,
+      SQLNumParams(ctxt->hstmt, &npar),
+      (void)0);
   if ( (nparams=list_length(parms)) < 0 )
     return FALSE;
   if ( npar != nparams )
@@ -2502,7 +2534,8 @@ declare_parameters(context *ctxt, term_t parms)
 				 &sqlType,
 				 &cbColDef,
 				 &params->scale,
-				 &fNullable));
+				 &fNullable),
+	  (void)0);
     }
 
     params->sqlTypeID = sqlType;
@@ -2569,7 +2602,8 @@ declare_parameters(context *ctxt, term_t parms)
 			       params->scale,		/* ibScale */
 			       params->ptr_value,	/* rgbValue */
 			       0,			/* cbValueMax */
-			       vlenptr));		/* pcbValue */
+			       vlenptr), 		/* pcbValue */
+	(void)0);		
   }
 
   return TRUE;
@@ -2590,7 +2624,9 @@ odbc_prepare(term_t dsn, term_t sql, term_t parms, term_t qid, term_t options)
     return FALSE;
   }
 
-  TRY(ctxt, SQLPrepare(ctxt->hstmt, ctxt->sqltext, ctxt->sqllen));
+  TRY(ctxt,
+      SQLPrepare(ctxt->hstmt, ctxt->sqltext, ctxt->sqllen),
+      close_context(ctxt));
 
   if ( !declare_parameters(ctxt, parms) )
   { free_context(ctxt);
@@ -2898,7 +2934,9 @@ odbc_execute(term_t qid, term_t args, term_t row, control_t handle)
 	}
       }
       if ( !report_status(ctxt) )
+      { close_context(ctxt);
 	return FALSE;
+      }
 
       if ( true(ctxt, CTX_NOAUTO) )
 	return TRUE;
@@ -3009,11 +3047,18 @@ odbc_fetch(term_t qid, term_t row, term_t options)
       /*FALLTHROUGH*/
     case SQL_SUCCESS:
       if ( !pl_put_row(local_trow, ctxt) )
+      { close_context(ctxt);
 	return FALSE;			/* with pending exception */
+      }
 
       return PL_unify(local_trow, row);
     default:
-      return report_status(ctxt);
+      if ( !report_status(ctxt) )
+      { close_context(ctxt);
+	return FALSE;
+      }
+
+      return TRUE;
   }
 }
 
