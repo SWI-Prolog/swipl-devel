@@ -667,7 +667,8 @@ stdImage(Name name, Image *global, char *bits, int w, int h)
 { Image image = globalObject(name, ClassImage, name, toInt(w), toInt(h), 0);
   
   assign(image, access, NAME_read);
-  ws_create_image_from_x11_data(image, (unsigned char *)bits, w, h);
+  if ( bits )
+    ws_create_image_from_x11_data(image, (unsigned char *)bits, w, h);
   *global = image;
 
   return image;
@@ -721,6 +722,8 @@ standardImages(void)
 	   pullright_bm_bits, pullright_bm_width, pullright_bm_height);
   stdImage(NAME_markHandleImage, &MARK_HANDLE_IMAGE,
 	   mark_handle_bm_bits, mark_handle_bm_width, mark_handle_bm_height);
+  stdImage(NAME_nullImage, &NULL_IMAGE,
+	   NULL, 0, 0);
 }
 
 
@@ -775,6 +778,8 @@ static vardecl var_image[] =
      NAME_organisation, "X-Display this image belongs to"),
   IV(NAME_bitmap, "bitmap*", IV_GET,
      NAME_organisation, "Access both and displayed on this bitmap"),
+  IV(NAME_hotSpot, "point*", IV_BOTH,
+     NAME_dimension, "Hot-spot position"),
   IV(NAME_wsRef, "alien:WsRef", IV_NONE,
      NAME_storage, "Window System Reference")
 };

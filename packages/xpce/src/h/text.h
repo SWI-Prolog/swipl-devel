@@ -152,10 +152,15 @@ typedef long (*FetchFunction)(Any, TextChar);
 typedef void (*MarginFunction)(Any, int *, int*);
 typedef void (*RewindFunction)(Any);
 
+#define CHAR_ASCII	(0)		/* ASCII character */
+#define CHAR_GRAPHICAL	(1)		/* graphical object */
+#define CHAR_IMAGE	(2)		/* image object */
+
 struct text_char
 { union
   { int		c;			/* character at pos */
     Graphical	graphical;		/* graphical at pos */
+    Image	image;			/* image at pos */
   } value;
   FontObj	font;			/* Font of this character */
   Colour	colour;			/* Colour of this character */
@@ -163,7 +168,7 @@ struct text_char
   long		index;			/* Index in line (relative) */
   short		x;			/* X-position in line (pixels) */
   unsigned char attributes;		/* Its attributes */
-  unsigned 	is_graphical : 1;	/* graphical character */
+  unsigned 	type : 2;		/* type of character */
 };
 
 struct text_line

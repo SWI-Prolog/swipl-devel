@@ -1,5 +1,9 @@
 [VERSION 4.8.16]
 
+* MODIFIED: Changed default extension for PostScript output to be .eps,
+  which appears to be more conforming to the current standards.  PceDraw
+  now add a showpage command to the file, so files can printed directly.
+
 * DEBUG: Improved error reporting when sending a message to a freed
   or otherwise invalid object-reference.
 

@@ -756,7 +756,7 @@ postscript(Canvas) :->
 postscript_as(Canvas) :->
 	"Write PostScript to file"::
 	get(Canvas, default_psfile, DefFile),
-	get(@finder, file, @off, '.ps', @default, DefFile, FileName),
+	get(@finder, file, @off, '.eps', @default, DefFile, FileName),
 	send(Canvas, generate_postscript, FileName).
 
 
@@ -764,6 +764,7 @@ generate_postscript(Canvas, PsFile:file) :->
 	"Write PostScript to named file"::
 	send(PsFile, open, write),
 	send(PsFile, append, Canvas?postscript),
+	send(PsFile, append, string('showpage\n')),
 	send(PsFile, close),
 	send(Canvas?frame, feedback,
 	     string('Written PostScript to `%s''', PsFile?base_name)).
@@ -775,8 +776,8 @@ default_psfile(Canvas, DefName) :<-
 	    File \== @nil,
 	    get(File, name, Name),
 	    concat(Base, '.pd', Name)
-	->  concat(Base, '.ps', DefName)
-	;   DefName = 'scratch.ps'
+	->  concat(Base, '.eps', DefName)
+	;   DefName = 'scratch.eps'
 	).
 
 
@@ -787,13 +788,14 @@ extended by resquesting additional parameters from the user.
 
 print(Canvas) :->
 	"Send to default printer"::
+	get(Canvas, default_printer, Printer),
 	default_printer(Printer),
-	temp_file(File),
-	new(PsFile, file(File)),
+	new(PsFile, file),
 	send(PsFile, open, write),
 	send(PsFile, append, Canvas?postscript),
 	send(PsFile, append, 'showpage\n'),
 	send(PsFile, close),
+	get(PsFile, absolute_path, File),
 	concat_atom(['lpr -P', Printer, ' ', File], Cmd),
 	shell(Cmd),
 	send(PsFile, remove),
@@ -801,13 +803,24 @@ print(Canvas) :->
 	send(Canvas?frame, feedback,
 	     string('Sent to printer `%s''', Printer)).
 	
+
+default_printer(Canvas, Printer:name) :<-
+	"Get name of the printer"::
+	default_printer(DefPrinter),
+	new(D, dialog('PceDraw: printer?')),
+	send(D, append, append, new(P, text_item(printer, DefPrinter))),
+	send(D, append, button(ok, message(Canvas, return, P?selection))),
+	send(D, append, button(cancel, message(Canvas, return, @nil))),
+	send(D, default_button(ok)),
+	get(D, confirm_center, Canvas?frame?area?center, Answer),
+	send(D, destroy),
+	Answer \== @nil,
+	Printer = Answer.
+
 default_printer(Printer) :-
 	get(@pce, environment_variable, 'PRINTER', Printer), !.
 default_printer(postscript).
 
-temp_file(Name) :-
-	get(@pce, pid, Pid),
-	concat('/tmp/xpce_', Pid, Name).
 
 		/********************************
 		*             MODES		*

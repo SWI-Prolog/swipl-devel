@@ -787,7 +787,7 @@ fetch_editor(Any obj, TextChar tc)
   long index = fc->index;
 
   tc->value.c      = Fetch(e, index);
-  tc->is_graphical = 0;
+  tc->type	   = CHAR_ASCII;
   tc->font         = fc->font;
   tc->colour       = fc->colour;
   tc->background   = fc->background;
@@ -802,7 +802,7 @@ fetch_editor(Any obj, TextChar tc)
 
     if ( gr )
     { tc->value.graphical = gr;
-      tc->is_graphical    = TRUE;
+      tc->type	         = CHAR_GRAPHICAL;
     
       indexFragmentCache(e->fragment_cache, e, index+3);
       return fc->index;

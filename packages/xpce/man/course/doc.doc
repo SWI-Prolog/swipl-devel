@@ -1,4 +1,4 @@
-\documentstyle[local,twoside,pce,psfig,logo,11pt]{report}
+\documentstyle[twoside,pce,psfig,11pt]{report}
 
 %\psdraft
 

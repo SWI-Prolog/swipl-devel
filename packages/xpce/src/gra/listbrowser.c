@@ -397,6 +397,7 @@ static unsigned char current_atts;	/* Attributes for it */
 static FontObj	     current_font;	/* Current font */
 static Colour	     current_colour;	/* Current colour */
 static Any	     current_background; /* Current background */
+static Image	     current_image;	/* Image to flag line */
 
 static void
 compute_current(ListBrowser lb)
@@ -414,6 +415,7 @@ compute_current(ListBrowser lb)
       current_colour     = style->colour;
       current_background = style->background;
       current_atts       = style->attributes;
+      current_image      = style->icon;
 
       if ( isDefault(current_font) )
 	current_font = lb->font;
@@ -422,6 +424,7 @@ compute_current(ListBrowser lb)
       current_colour     = DEFAULT;
       current_background = DEFAULT;
       current_atts       = 0;
+      current_image      = NIL;
     }
 
     if ( selectedListBrowser(lb, di) )
@@ -448,6 +451,7 @@ compute_current(ListBrowser lb)
     current_font       = lb->font;
     current_colour     = DEFAULT;
     current_background = DEFAULT;
+    current_image      = NIL;
   }
 }
 
@@ -519,23 +523,36 @@ fetch_list_browser(Any obj, TextChar tc)
   if ( current_name )
   { int len = current_name->size;
 
-    if ( pos < len )
-      tc->value.c = str_fetch(current_name, pos);
-    else if ( pos == len )
+    if ( pos <= len )
+    { if ( pos == 0 )
+      { if ( notNil(current_image) )
+	{ tc->value.image  = current_image;
+	  tc->type = CHAR_IMAGE;
+	} else
+	{ tc->value.image = NULL_IMAGE;
+	  tc->type = CHAR_IMAGE;
+	}
+      } else
+      { tc->value.c = str_fetch(current_name, pos-1);
+	tc->type = CHAR_ASCII;
+      }
+    } else /* if ( pos == len+1 ) */
     { tc->value.c = '\n';
+      tc->type = CHAR_ASCII;
       current_index = ((index / BROWSER_LINE_WIDTH) + 1) * BROWSER_LINE_WIDTH;
     }
   } else
-    tc->value.c = EOB;
+  { tc->value.c = EOB;
+    tc->type = CHAR_ASCII;
+  }
 
-  tc->is_graphical = 0;
   tc->font         = current_font;
   tc->attributes   = current_atts;
   tc->colour	   = current_colour;
   tc->background   = current_background;
   tc->index        = index;
 
-  if ( pos < current_search )
+  if ( pos <= current_search )
   { Style s = getResourceValueObject(lb, NAME_isearchStyle);
 
     if ( s && notDefault(s) )

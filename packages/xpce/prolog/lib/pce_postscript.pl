@@ -14,7 +14,7 @@
 
 
 postscript(Obj, File) :-
-	get(File, ensure_suffix, '.ps', FileName),
+	get(File, ensure_suffix, '.eps', FileName),
 	new(F, file(FileName)),
 	send(F, open, write),
 	send(F, append, Obj?postscript),

@@ -78,6 +78,7 @@ static int	char_from_x(TextLine tl, int x);
 static void	copy_line_attributes(TextLine from, TextLine to);
 static void	copy_line_chars(TextLine from, int start, TextLine to);
 static void	ascent_and_descent_graphical(Graphical gr, int *, int *);
+static void	ascent_and_descent_image(Image im, int *, int *);
 
 
 		/********************************
@@ -361,20 +362,28 @@ fill_dimensions_line(TextLine l)
   for(tc=l->chars, te=&l->chars[l->length]; tc<te; tc++)
   { int a, d;
 
-    if ( tc->is_graphical )
-    { ascent_and_descent_graphical(tc->value.graphical, &a, &d);
-      ascent  = max(ascent, a);
-      descent = max(descent, d);
-    } else
-    { if ( tc->font != f )
-      { f = tc->font;
-      
-	assert(f);
-	a = valInt(getAscentFont(f));
-	d = valInt(getDescentFont(f));
+    switch(tc->type)
+    { case CHAR_GRAPHICAL:
+	ascent_and_descent_graphical(tc->value.graphical, &a, &d);
 	ascent  = max(ascent, a);
 	descent = max(descent, d);
-      }
+	break;
+      case CHAR_IMAGE:
+	ascent_and_descent_image(tc->value.image, &a, &d);
+        ascent  = max(ascent, a);
+	descent = max(descent, d);
+	break;
+      case CHAR_ASCII:
+	if ( tc->font != f )
+	{ f = tc->font;
+      
+	  assert(f);
+	  a = valInt(getAscentFont(f));
+	  d = valInt(getDescentFont(f));
+	  ascent  = max(ascent, a);
+	  descent = max(descent, d);
+	}
+        break;
     }
   }
   
@@ -422,43 +431,51 @@ do_fill_line(TextImage ti, TextLine l, long int index)
     tc->index -= start;
     tc->x = x;
 
-    if ( tc->is_graphical )
-    { ComputeGraphical(tc->value.graphical);
+    switch(tc->type)
+    { case CHAR_ASCII:
+	switch(tc->value.c)
+	{ case EOB:
+	  case '\n':
+	    x = ti->w - TXT_X_MARGIN;
+	    l->ends_because |= END_NL;
+	    l->length = ++i;
+	    l->end = index;
+	    if ( tc->value.c == EOB )
+	    { index--;
+	      l->ends_because |= END_EOF;
+	    }
+	    l->w = x;
+	    ensure_chars_line(l, i+1);
+	    tc = &l->chars[i];
+	    tc->x = x;
+	    fill_dimensions_line(l);
+	    return index;
+	  case '\t':
+	    x = tab(ti, x);
+	    if ( ++last_is_space == 1 )
+	      last_break = i;
+	    break;
+	  case ' ':
+	    x += c_width(tc->value.c, tc->font);
+	    if ( ++last_is_space == 1 )
+	      last_break = i;
+	    break;
+	  default:
+	    x += c_width(tc->value.c, tc->font);
+	    last_is_space = FALSE;
+	    break;
+	}
+        break;
+      case CHAR_GRAPHICAL:
+	ComputeGraphical(tc->value.graphical);
 
-      x += valInt(tc->value.graphical->area->w);
-    } else
-    { switch(tc->value.c)
-      { case EOB:
-	case '\n':
-	  x = ti->w - TXT_X_MARGIN;
-	  l->ends_because |= END_NL;
-	  l->length = ++i;
-	  l->end = index;
-	  if ( tc->value.c == EOB )
-	  { index--;
-	    l->ends_because |= END_EOF;
-	  }
-	  l->w = x;
-	  ensure_chars_line(l, i+1);
-	  tc = &l->chars[i];
-	  tc->x = x;
-	  fill_dimensions_line(l);
-	  return index;
-	case '\t':
-	  x = tab(ti, x);
-	  if ( ++last_is_space == 1 )
-	    last_break = i;
-	  break;
-	case ' ':
-	  x += c_width(tc->value.c, tc->font);
-	  if ( ++last_is_space == 1 )
-	    last_break = i;
-	  break;
-	default:
-	  x += c_width(tc->value.c, tc->font);
-	  last_is_space = FALSE;
-	  break;
-      }
+        x += valInt(tc->value.graphical->area->w);
+	last_is_space = FALSE;
+	break;
+      case CHAR_IMAGE:
+	x += valInt(tc->value.image->size->w);
+        last_is_space = FALSE;
+	break;
     }
     
     if ( x >= right_margin )
@@ -768,6 +785,18 @@ ascent_and_descent_graphical(Graphical gr, int *ascent, int *descent)
 
 
 static void
+ascent_and_descent_image(Image im, int *ascent, int *descent)
+{ if ( notNil(im->hot_spot) )
+    *ascent = valInt(im->hot_spot->y);
+  else
+    *ascent = valInt(im->size->h);
+  
+  if ( descent )
+    *descent = valInt(im->size->h) - *ascent;
+}
+
+
+static void
 paint_graphical(TextImage ti, Area a, Graphical gr, int x, int base)
 { int dx, dy;
   int asc;
@@ -785,6 +814,21 @@ paint_graphical(TextImage ti, Area a, Graphical gr, int x, int base)
   assign(a, x, ox);
   assign(a, y, oy);
   r_offset(-dx, -dy);
+}
+
+
+static void
+paint_image(TextImage ti, Area a, Image im, int x, int base)
+{ int asc;
+
+  ascent_and_descent_image(im, &asc, NULL);
+
+  DEBUG(NAME_image, Cprintf("Painting %s at %d, %d\n", pp(im), x, base));
+
+  r_image(im,
+	  0, 0,
+	  x, base - asc, valInt(im->size->w), valInt(im->size->h),
+	  ON);
 }
 
 
@@ -857,13 +901,21 @@ paint_line(TextImage ti, Area a, TextLine l, int from, int to)
 
     e = s;
 
-    if ( l->chars[e].is_graphical )
-    { paint_graphical(ti, a,
-		      l->chars[e].value.graphical, 
-		      l->chars[e].x,
-		      l->y + l->base);
-      e++;
-      continue;
+    switch(l->chars[e].type)
+    { case CHAR_GRAPHICAL:
+	paint_graphical(ti, a,
+			l->chars[e].value.graphical, 
+			l->chars[e].x,
+			l->y + l->base);
+        e++;
+	continue;
+      case CHAR_IMAGE:
+	paint_image(ti, a,
+		    l->chars[e].value.image, 
+		    l->chars[e].x,
+		    l->y + l->base);
+	e++;
+        continue;
     }
 
     n = 0;
@@ -1205,8 +1257,8 @@ getIndexTextImage(TextImage ti, EventObj ev)
 static status
 updatePointedTextImage(TextImage ti, EventObj ev, long *where)
 { Int x, y;
-  TextLine tl;
-  TextChar tc;
+  TextLine tl = NULL;
+  TextChar tc = NULL;
   Graphical gr;
 
   if ( isAEvent(ev, NAME_areaExit) )
@@ -1227,7 +1279,7 @@ updatePointedTextImage(TextImage ti, EventObj ev, long *where)
   { get_xy_event(ev, ti, ON, &x, &y);
     if ( (tl = line_from_y(ti, valInt(y))) &&
 	 (tc = &tl->chars[char_from_x(tl, valInt(x))]) &&
-	 tc->is_graphical )
+	 tc->type == CHAR_GRAPHICAL )
     { *where = tl->start + tc->index;
       gr = tc->value.graphical;
     } else
@@ -1271,7 +1323,6 @@ static CursorObj
 getDisplayedCursorTextImage(TextImage ti)
 { if ( notNil(ti->pointed) )
   { CursorObj c;
-    PceWindow sw;
 
     if ( notNil(c=qadGetv(ti->pointed, NAME_displayedCursor, 0, NULL)) )
       answer(c);
@@ -1302,9 +1353,9 @@ eventTextImage(TextImage ti, EventObj ev)
       DeviceGraphical(gr, ti->device);
       DisplayedGraphical(gr, ON);
       rval = postEvent(ev, gr, DEFAULT);
-      if ( sw && sw->focus == gr || sw->keyboard_focus == gr )
+      if ( sw && (sw->focus == gr || sw->keyboard_focus == gr) )
       { DisplayObj d = getDisplayGraphical((Graphical) sw);
-	TextCursor tc;
+	TextCursor tc = NIL;
 	Any tcon = NIL;
 
 	if ( sw->keyboard_focus == gr &&

@@ -291,6 +291,13 @@ fill_dialog(Draw, D:dialog) :->
 			      message(Canvas, postscript_as),
 			      @default, @off,
 			      NonEmptyDrawing)
+		  , menu_item(save_and_postscript,
+			      and(message(Canvas, save),
+				  message(Canvas, postscript)),
+			      @default, @off,
+			      and(NonEmptyDrawing,
+				  Canvas?modified == @on,
+				  HasCurrentFile))
 		  , menu_item(print,
 			      message(Canvas, print),
 			      @default, @on,

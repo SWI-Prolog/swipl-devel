@@ -565,6 +565,7 @@ End;
   Size		size;			/* Size of the image */ \
   DisplayObj	display;		/* Display of read-write's */ \
   BitmapObj	bitmap;			/* Bitmap for read-write's */ \
+  Point		hot_spot;		/* Indication of hot-spot */ \
   WsRef		ws_ref;			/* Window system reference */
 
 NewClass(image)
@@ -872,6 +873,7 @@ GLOBAL Image MS_MARK_IMAGE;		/* MS images for toggle and marked */
 GLOBAL Image MS_NOMARK_IMAGE;
 GLOBAL Image PULLRIGHT_IMAGE;		/* Popup menu pullright marker */
 GLOBAL Image MARK_HANDLE_IMAGE;		/* connect_gesture */
+GLOBAL Image NULL_IMAGE;		/* empty image */
 
 GLOBAL Modifier MODIFIER_shift;		/* Demands `shift-is-down' */
 GLOBAL Modifier MODIFIER_allup;		/* Demands all modifiers up */
