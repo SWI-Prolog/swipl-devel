@@ -2192,12 +2192,14 @@ Sopen_file(const char *path, const char *how)
   long lfd;
   enum {lnone=0,lread,lwrite} lock = lnone;
   IOSTREAM *s;
+  IOENC enc = ENC_UNKNOWN;
 
   for( ; *how; how++)
   { switch(*how)
     { case 'b':				/* binary */
 	flags &= ~SIO_TEXT;
         oflags = O_BINARY;
+	enc = ENC_OCTET;
         break;
       case 'r':				/* no record */
 	flags &= SIO_RECORDPOS;
@@ -2287,6 +2289,8 @@ Sopen_file(const char *path, const char *how)
 
   lfd = (long)fd;
   s = Snew((void *)lfd, flags, &Sfilefunctions);
+  if ( enc != ENC_UNKNOWN )
+    s->encoding = enc;
   if ( lock )
     s->flags |= SIO_ADVLOCK;
 
