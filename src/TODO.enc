@@ -1,0 +1,42 @@
+Character encoding issues
+-------------------------
+
+* See http://www.websina.com/bugzero/kb/unicode-bom.html
+
+Done:
+
+	get, get0, get_code, get_byte, get_char
+	put, put_code, put_byte, put_char
+	atom_codes/2, atom_chars/2, name/2
+	char_code/2,
+	atom_concat/2, concat_atom/[2,3]
+	downcase_atom/2 upcase_atom/2
+	read/1 and friends
+	write/1 and friends
+	code_type/2, char_type/2
+	atom_length/2
+	'$raw_read'/[1,2],
+	rl_add_history/1
+	term_to_atom/2
+	atom_to_term/3
+	sub_atom/5, sub_string/5
+	format/3
+	sformat/3
+	syntax error term for parsing strings
+	init default encoding from LANG and assign to prolog_flag 'encoding'
+	load_files/2: added encoding argument
+
+TBD:
+	dwim_match/[2,3]
+	compare/3 (compareStandard): atoms
+
+	Foreign language handling:
+
+		- file-name handling (PL_get_filename)
+		- Put, unify/get 
+
+TBD Documentation:
+	encoding property of streams
+	:- encoding directive
+	foreign-language interface
+	
