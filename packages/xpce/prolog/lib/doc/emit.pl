@@ -52,11 +52,14 @@ emit(Term, PB, Mode) :-
 emit([Text|T], PB, Mode) :-
 	atomic(Text), !,
 	get(Mode, style, Style),
-	get(Mode, space, Space),
-	get(Mode, ignore_blanks, BlankMode),
-	send(PB, cdata, Text, Style, Space, BlankMode),
-	blank_mode(BlankMode, NewBlankMode),
-	send(Mode, ignore_blanks, NewBlankMode),
+	(   get(Mode, space_mode, preserve)
+	->  append_pre_atom(Text, PB, Mode)
+	;   get(Mode, space, Space),
+	    get(Mode, ignore_blanks, BlankMode),
+	    send(PB, cdata, Text, Style, Space, BlankMode),
+	    blank_mode(BlankMode, NewBlankMode),
+	    send(Mode, ignore_blanks, NewBlankMode)
+	),
 	emit(T, PB, Mode).
 emit([\H|T], PB, Mode) :-
 	action(H, PB, Mode), !,
@@ -85,6 +88,28 @@ blank_mode(Mode,     Mode).
 
 action(ignorespaces, _, Mode) :-
 	send(Mode, ignore_blanks, leading).
+action(space(SpaceMode), _, Mode) :-
+	send(Mode, space_mode, SpaceMode).
+action(pre(Text), PB, Mode) :-
+	append_pre(Text, PB, Mode).
+
+append_pre([], _, _).
+append_pre([H|T], PB, Mode) :-
+	append_pre_atom(H, PB, Mode),
+	append_pre(T, PB, Mode).
+
+append_pre_atom(H, PB, Mode) :-
+	get(Mode, style, Style),
+	(   sub_atom(H, Before, Len, _, '\n')
+	->  AfterChars is Before+Len,
+	    sub_atom(H, 0, Before, _, A),
+	    sub_atom(H, AfterChars, _, 0, H1),
+	    send(PB, append, tbox(A, Style)),
+	    send(PB, append, @br),
+	    append_pre_atom(H1, PB, Mode)
+	;   send(PB, append, tbox(H, Style))
+	).
+	
 
 %	Paragraphs
 
@@ -125,7 +150,9 @@ action(list(Options, Content), PB, Mode) :-
 	get(Mode, clone, Clone),
 	option(class(Class), Options, bullet_list),
 	send(PB, append, @br),
-	new(GrBox, grbox(new(LB, Class), top, @hfill_rubber)),
+	get(PB, line_width, LW),
+	NewTerm =.. [Class, LW],
+	new(GrBox, grbox(new(LB, NewTerm), top, @hfill_rubber)),
 	send(PB, append, GrBox),
 	send(PB, append, @br),
 	emit(Content, LB, Clone).
@@ -275,6 +302,17 @@ action(thead(_Options, Content), Table, Mode) :-
 	emit(Content, Table, Clone),
 	send(Table, def_alignment, DefAlign).
 	
+%	footnotes
+
+action(footnote(Text), PB, Mode) :-
+	send(PB, append,
+	     new(T, grbox(bitmap('16x16/note.xpm')))),
+%	     new(T, tbox('\247\', @symbol_style))),
+	new(FN, pbox(500, left)),
+	get(Mode, clone, Clone),
+	emit(Text, FN, Clone),
+	send(FN, auto_crop, @on),
+	send(T, attribute, footnote, FN).
 
 %	preformatted text
 
