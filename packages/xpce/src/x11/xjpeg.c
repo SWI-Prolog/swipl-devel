@@ -158,6 +158,79 @@ init_maps(int r_bright, int g_bright, int b_bright,
 
 
 		 /*******************************
+		 *     SCANLINE CONVERSION	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Write a scanline. Convert colour brightness   using  the stuff above and
+use specialised versions of the XPutPixel()  to speed-up a little (about
+30%). The code for  avoiding  XPutPixel()   is  written  after examining
+create.c from the XPM library source (version 3.4k).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+writeRGBScanLine(JSAMPLE *line, int width, int y, XImage *img)
+{ int x;
+  JSAMPLE *i;
+
+  if ( img->bits_per_pixel > 16 )
+  { char *data = img->data + y * img->bytes_per_line;
+
+    for(x=0, i=line; x<width; x++)
+    { unsigned long pixel;
+      int r = *i++;
+      int g = *i++;
+      int b = *i++;
+      
+      pixel = MKPIXEL(r, g, b);
+      
+      if ( img->byte_order == MSBFirst )
+      { *data++ = pixel >> 24;
+        *data++ = pixel >> 16;
+        *data++ = pixel >> 8;
+	*data++ = pixel;
+      } else
+      { *data++ = pixel;
+	*data++ = pixel >> 8;
+	*data++ = pixel >> 16;
+	*data++ = pixel >> 24;
+      }
+    }
+  } else if ( img->bits_per_pixel == 16 )
+  { char *data = img->data + y * img->bytes_per_line;
+
+    for(x=0, i=line; x<width; x++)
+    { unsigned long pixel;
+      int r = *i++;
+      int g = *i++;
+      int b = *i++;
+    
+      pixel = MKPIXEL(r, g, b);
+
+      if ( img->byte_order == MSBFirst )
+      { *data++ = pixel >> 8;
+	*data++ = pixel;
+      } else
+      { *data++ = pixel;
+	*data++ = pixel >> 8;
+      }
+    }
+  } else
+  { for(x=0, i=line; x<width; x++)
+    { unsigned long pixel;
+      int r = *i++;
+      int g = *i++;
+      int b = *i++;
+    
+      pixel = MKPIXEL(r, g, b);
+
+      XPutPixel(img, x, y, pixel);
+    }
+  }
+}
+
+
+		 /*******************************
 		 *	     READ JPEG		*
 		 *******************************/
 
@@ -251,6 +324,7 @@ staticColourReadJPEGFile(Image image, IOSTREAM *fd, XImage **return_image)
 
     jpeg_read_scanlines(&cinfo, &line, 1);
 
+
     switch(cinfo.output_components)
     { case 1:
 	for(x=0, i=line; x<cinfo.output_width; x++)
@@ -263,18 +337,8 @@ staticColourReadJPEGFile(Image image, IOSTREAM *fd, XImage **return_image)
 	}
 	break;
       case 3:
-	for(x=0, i=line; x<cinfo.output_width; x++)
-	{ unsigned long pixel;
-	  int r = *i++;
-	  int g = *i++;
-	  int b = *i++;
-	  
-	  pixel = MKPIXEL(r, g, b);
-      
-	  XPutPixel(img, x, y, pixel);
-	}
-
-	break;
+	writeRGBScanLine(line, cinfo.output_width, y, img);
+        break;
       default:
 	Cprintf("JPEG: Unsupported: %d output components\n",
 		cinfo.output_components);
