@@ -110,6 +110,7 @@
 \objectname{-}
 \noclass{-}
 \class{-}
+\menuref{+}
 \classs{-}
 \send{-}
 \get{-}

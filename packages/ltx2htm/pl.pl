@@ -218,13 +218,18 @@ cmd(pleaseoption({Name}, {Type}, {Default}),
 	     ])).
 cmd(featureoption({Name}, {Type}),
     #defitem([#strong(Name), ' ', #embrace(#var(Type))])).
-cmd(menuitem({Name}, {[]}), #defitem(#label(Clean, #strong(+Name)))) :-
-	clean_name(Name, Clean),
-	add_to_index(Clean, +Clean).
+cmd(menuitem({Name}, {[]}),
+    #defitem(#label(RefName, #strong(+Name)))) :-
+	clean_name(Name, RefName0),
+	atom_concat('menu:', RefName0, RefName),
+	concat_atom(Name, ' ', Atom),
+	add_to_index(Atom, +RefName).
 cmd(menuitem({Name}, {Arg}),
-    #defitem([#label(Clean, #strong(+Name)), ' ', #embrace(#var(+Arg))])) :-
-	clean_name(Name, Clean),
-	add_to_index(Clean, +Clean).
+    #defitem([#label(RefName, #strong(+Name)), ' ', #embrace(#var(+Arg))])) :-
+	clean_name(Name, RefName0),
+	atom_concat('menu:', RefName0, RefName),
+	concat_atom(Name, ' ', Atom),
+	add_to_index(Atom, +RefName).
 cmd(escapeitem({Name}), #defitem(#code([nospace('\\'), +Name]))).
 cmd(ttdef({Def}), #defitem(#code(+Def))).
 cmd(predicatesummary({RawName}, {Arity}, {Summary}),
@@ -264,6 +269,11 @@ cmd(nodescription, []).
 
 cmd(class({Name}),              #lref(Label, Name)) :-
         concat('class:', Name, Label),
+        add_to_index(Name).
+cmd(menuref({A1}),            #lref(RefName, Name)) :-
+	clean_name(A1, RefName0),
+	atom_concat('menu:', RefName0, RefName),
+	concat_atom(A1, ' ', Name),
         add_to_index(Name).
 
 % Glossary support

@@ -523,10 +523,10 @@ language_map(table,	'Table').
  	[ #iflref(home,  	    '[Home]')
 	]).
 #(Macro, []) :-
-	functor(Macro, Name, Arity),
 	format(user_error,
-	       'Post-processing macro #~w/~d could not be expanded~n',
-	       [Name, Arity]).
+	       'Post-processing macro #~p could not be expanded~n',
+	       [Macro]),
+	gtrace, fail.
 	 
 add_td([], []).
 add_td([H|T0], [html('<TD>'), H, html('</TD>')|T]) :-
@@ -1699,6 +1699,12 @@ add_to_index(Term) :-
 	section_tag(Tag),
 	add_to_index(Term, Tag).
 
+%	add_to_index(+Term, +Tag)
+%	
+%	Add Term to the index using the href Tag. If Tag is of the
+%	format +Tag, it is the primary index for the term, normally
+%	a pointer to the definition of Term.
+
 add_to_index(Term, Tag) :-
 	atom_codes(Term, Chars),
 	atom_codes(Atom, Chars),	% So, sure we have an atom now
@@ -1706,6 +1712,9 @@ add_to_index(Term, Tag) :-
 	atom_codes(SortKey, Sort),
 	assert(index(SortKey, Atom, Tag)).
 
+%sort_chars(Chars, Sort) :-
+%	append("menu:", X, Chars), !,
+%	sort_chars(X, Sort).
 sort_chars(Chars, Sort) :-
 	member(C, Chars),
 	is_alpha(C), !,
