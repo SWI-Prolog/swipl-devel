@@ -432,6 +432,7 @@ drawInImage(Image image, Graphical gr, Point pos)
   int ih = valInt(image->size->h);
   int m;
   Area a;
+  Bool olddisplayed = gr->displayed;
 
   TRY(verifyAccessImage(image, NAME_drawIn));
 
@@ -446,6 +447,7 @@ drawInImage(Image image, Graphical gr, Point pos)
     dev = NIL;				/* keep compiler happy */
   }
 
+  displayedGraphical(gr, ON);
   ComputeGraphical(gr);
   x = valInt(gr->area->x);
   y = valInt(gr->area->y);
@@ -489,6 +491,7 @@ drawInImage(Image image, Graphical gr, Point pos)
   doneObject(a);
 
 out:
+  displayedGraphical(gr, olddisplayed);
   if ( notDefault(oldx) )
   { setGraphical(gr, oldx, oldy, DEFAULT, DEFAULT);
     gr->device = dev;
