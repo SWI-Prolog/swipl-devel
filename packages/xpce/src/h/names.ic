@@ -118,6 +118,7 @@
   BUILTIN_NAME("all_active")
   BUILTIN_NAME("all_attributes")
   BUILTIN_NAME("all_constraints")
+  BUILTIN_NAME("all_files")
   BUILTIN_NAME("all_get_methods")
   BUILTIN_NAME("all_hypers")
   BUILTIN_NAME("all_off")
