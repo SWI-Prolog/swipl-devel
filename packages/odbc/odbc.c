@@ -69,6 +69,19 @@ typedef DWORD SQLLEN;
 #define NameBufferLength 256
 #define CVNERR -1			/* conversion error */
 
+#ifdef _REENTRANT
+#include <pthread.h>
+
+					/* FIXME: Actually use these */
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+#define LOCK() pthread_mutex_lock(&mutex)
+#define UNLOCK() pthread_mutex_unlock(&mutex)
+#else
+#define LOCK()
+#define UNLOCK()
+#endif
+
+
 static atom_t    ATOM_row;		/* "row" */
 static atom_t    ATOM_informational;	/* "informational" */
 static atom_t	 ATOM_default;		/* "default" */
@@ -953,6 +966,7 @@ find_connection(atom_t alias)
   { if ( c->alias == alias )
       return c;
   }
+  
 
   return NULL;
 }
