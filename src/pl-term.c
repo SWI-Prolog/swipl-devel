@@ -197,7 +197,7 @@ Word old, new;
   succeed;
 }
 
-#else ~unix
+#else /* ~unix */
 
 void resetTerm()
 {
@@ -228,4 +228,4 @@ Word old, new;
 { return notImplemented("set_tty", 2);
 }
 
-#endif unix
+#endif /* unix */

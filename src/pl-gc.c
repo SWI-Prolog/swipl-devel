@@ -196,7 +196,7 @@ Word addr;
 
   s->value = FALSE;
 }
-#endif O_DEBUG
+#endif /* O_DEBUG */
 
 		/********************************
 		*          UTILITIES            *
@@ -1075,7 +1075,7 @@ Stack s;
     }
   }
 }
-#endif O_DYNAMIC_STACKS
+#endif /* O_DYNAMIC_STACKS */
 
 #if O_DEBUG
 static bool

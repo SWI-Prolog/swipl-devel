@@ -117,7 +117,7 @@ atomic  PL_new_integer P((int));	/* create a new integer */
 atomic	PL_new_float P((double));	/* create a new float */
 #if O_STRING
 atomic	PL_new_string P((char *));	/* create a new string */
-#endif O_STRING
+#endif /* O_STRING */
 functor	PL_new_functor P((atomic, int)); /* create a new functor */
 int	PL_unify P((term, term));	/* unify two terms */
 int	PL_unify_atomic P((term, atomic));  /* unify term with atomic value */
@@ -265,5 +265,5 @@ typedef struct _PL_extension
 
 extern PL_extension PL_extensions[];	/* see pl-extend.c */
 
-#endif PL_INCLUDED
+#endif /* PL_INCLUDED */
 /* DO NOT WRITE BELOW THIS ENDIF */

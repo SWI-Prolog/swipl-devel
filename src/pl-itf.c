@@ -69,7 +69,7 @@ register Word t;
   if ( isReal(*t) )		return PL_FLOAT;
 #if O_STRING
   if ( isString(*t) )		return PL_STRING;
-#endif O_STRING
+#endif /* O_STRING */
   if ( isAtom(*t) )		return PL_ATOM;
   if ( isTerm(*t) )		return PL_TERM;
 
@@ -88,7 +88,7 @@ PL_string_value(t)
 register word t;
 { return valString(t);
 }
-#endif O_STRING
+#endif /* O_STRING */
 
 char *
 PL_list_string_value(t)
@@ -175,7 +175,7 @@ PL_new_string(s)
 char *s;
 { return (atomic) globalString(s);
 }
-#endif O_STRING
+#endif /* O_STRING */
 
 atomic
 PL_new_float(f)
@@ -529,7 +529,7 @@ va_dcl
   vfatalError(fm, args);
   va_end(args);
 }
-#endif ANSI
+#endif /* ANSI */
 
 		/********************************
 		*            ACTIONS            *

@@ -129,7 +129,8 @@ This has worked on TURBO_C not very long ago.
 #include <process.h>
 #include <io.h>
 #include <strings.h>
-#endif OS2
+typedef unsigned short  ushort;
+#endif /* OS2 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A common basis for C keywords.
@@ -178,7 +179,7 @@ typedef void (*handler_t)();
 #ifndef SIGNAL_CONTEXT_TYPE
 #define SIGNAL_CONTEXT_TYPE struct sigcontext *
 #endif
-#endif unix
+#endif /* unix */
 
 #ifndef TRUE
 #define TRUE			1
@@ -320,7 +321,7 @@ codes.
 #define H_REAL		((code)13)		/* real in the head */
 #if O_STRING
 #define H_STRING	((code)14)		/* string in the head */
-#endif O_STRING
+#endif /* O_STRING */
 
 #define B_FIRSTVAR	((code)15)		/* first occurrence of var */
 #define H_FIRSTVAR	((code)16)
@@ -362,7 +363,7 @@ codes.
 #define A_EQ		((code)45)		/* =:= */
 #define A_NE		((code)46)		/* =\= */
 #define A_IS		((code)47)		/* is */
-#endif O_COMPILE_ARITH
+#endif /* O_COMPILE_ARITH */
 
 #if O_COMPILE_OR
 #define C_OR		((code)48)		/* In-clause backtract point */
@@ -374,7 +375,7 @@ codes.
 #define C_END		((code)54)		/* dummy to help decompiler */
 #define C_NOT		((code)55)		/* same as C_IFTHENELSE */
 #define C_FAIL		((code)56)		/* fail */
-#endif O_COMPILE_OR
+#endif /* O_COMPILE_OR */
 
 #define B_REAL		((code)57)		/* REAL in body */
 #define B_STRING	((code)58)		/* STRING in body */
@@ -567,7 +568,7 @@ the range of integers to +- 2^25.  (Macros have to be rewritten))
 #define MASK_MASK	(INT_MASK|REF_MASK|INDIRECT_MASK|FIRST_MASK)
 #define DATA_TAG_MASK	0xf8000000L	/* Indirect data type mask */
 
-#else !O_16_BITS
+#else /* !O_16_BITS */
 
 #define REAL_MASK	0x70000000L	/* Header mask on global stack */
 
@@ -587,8 +588,8 @@ the range of integers to +- 2^25.  (Macros have to be rewritten))
 #define INT_MASK	0x20000000L	/* Indirect constant */
 #define MASK_BITS	3		/* high order mask bits */
 #define STRING_MASK	0x60000000L	/* Header mask on global stack */
-#endif O_DATA_AT_0X2
-#endif O_DATA_AT_0X4
+#endif /* O_DATA_AT_0X2 */
+#endif /* O_DATA_AT_0X4 */
 
 #define LMASK_BITS	2		/* low order mask bits */
 #define DMASK_BITS	4		/* DATA_TAG_MASK bits */
@@ -596,7 +597,7 @@ the range of integers to +- 2^25.  (Macros have to be rewritten))
 #define MASK_MASK	(INT_MASK|REF_MASK|INDIRECT_MASK)
 #define DATA_TAG_MASK	0xf0000000L	/* Indirect data type mask */
 
-#endif O_16_BITS
+#endif /* O_16_BITS */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Common Prolog objects typedefs.
@@ -746,7 +747,7 @@ for a pointer.
 						(DMASK_BITS+LMASK_BITS))
 #define equalString(w1,w2)	(sizeString(w1) == sizeString(w2) && \
 				 streq(valString(w1), valString(w2)))
-#endif O_STRING
+#endif /* O_STRING */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Handling references.
@@ -770,7 +771,7 @@ Handling dereferenced arbitrary Prolog runtime objects.
 #if O_STRING
 #define isString(w)	(isIndirect(w) && \
 			 (*((Word)unMask(w)) & DATA_TAG_MASK) == STRING_MASK)
-#endif O_STRING
+#endif /* O_STRING */
 #define isNumber(w)	(isInteger(w) || isReal(w))
 #define isVar(w)	((w) == (word) NULL)
 #define nonVar(w)	((w) != (word) NULL)
@@ -933,7 +934,7 @@ struct definition
   int		profile_calls;		/* profiler: number of calls */
   int		profile_redos;		/* profiler: number of redos */
   int		profile_fails;		/* profiler: number of fails */
-#endif O_PROFILE
+#endif /* O_PROFILE */
   ulong		indexPattern;		/* indexed argument pattern */
   char		indexCardinality;	/* cardinality of index pattern */
 #if O_AUTOINDEX
@@ -1050,7 +1051,7 @@ struct lock
 	    long	size;		/* Size of this segment */	    \
 	  } segments[MAX_STACK_SEGMENTS];				    \
 	}
-#else !O_SHARED_MEMORY
+#else /* !O_SHARED_MEMORY */
 #define STACK(type) \
 	{ type		base;		/* base address of the stack */     \
 	  type		top;		/* current top of the stack */      \
@@ -1134,10 +1135,10 @@ GLOBAL void **interpreter_jmp_table;		/* interpreters table */
 
 #define encode(wam) (wam_table[wam])		/* WAM --> internal */
 #define decode(c)   ((code) dewam_table[c])	/* internal --> WAM */
-#else O_VMCODE_IS_ADDRESS
+#else /* O_VMCODE_IS_ADDRESS */
 #define encode(wam) (wam)
 #define decode(wam) (wam)
-#endif O_VMCODE_IS_ADDRESS
+#endif /* O_VMCODE_IS_ADDRESS */
 
 		/********************************
 		*            STATUS             *
@@ -1181,7 +1182,7 @@ GLOBAL struct
 #if O_PROFILE
   int		profiling;		/* profiler is on? */
   long		profile_ticks;		/* profile ticks total */
-#endif O_PROFILE
+#endif /* O_PROFILE */
 } statistics;
 
 		/********************************
@@ -1236,7 +1237,7 @@ Tracer communication declarations.
 #define DISCONTIGUOUS_STYLE 0x8		/* warn on discontiguous predicates */
 #if O_STRING
 #define O_STRING_STYLE	    0x10	/* read ".." as string instead of list */
-#endif O_STRING
+#endif /* O_STRING */
 #define MAXNEWLINES	    5		/* maximum number of newlines in atom */
 #define SYSTEM_MODE	    (debugstatus.styleCheck & DOLLAR_STYLE)
 

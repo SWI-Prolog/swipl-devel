@@ -241,7 +241,7 @@ register Word t1, t2;
 #if O_STRING
     if ( isString(w1) && isString(w2) && equalString(w1, w2) )
       succeed;
-#endif O_STRING
+#endif /* O_STRING */
     if ( isReal(w1) && isReal(w2) && valReal(w1) == valReal(w2) )
       succeed;
     fail;
@@ -299,7 +299,7 @@ word a;
 #if O_STRING
     if (isString(a) && isString(*p) && equalString(a, *p))
       succeed;
-#endif O_STRING
+#endif /* O_STRING */
   }
 
   fail;
@@ -382,7 +382,7 @@ register Word p;
       sysError("String has inconsistent length: 0x%x", *p);
     return;
   }
-#endif O_STRING
+#endif /* O_STRING */
   if (onHeap(*p) && !onGlobal(*p))
   { if (((Atom)(*p))->type != ATOM_TYPE)
       sysError("Illegal atom: 0x%x", *p);
@@ -400,4 +400,4 @@ register Word p;
 
   return;
 }
-#endif TEST
+#endif /* TEST */

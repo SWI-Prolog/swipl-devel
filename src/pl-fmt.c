@@ -193,9 +193,9 @@ va_dcl
 
   return rval;
 }
-#endif ANSI
+#endif /* ANSI */
 
-#endif O_C_FORMAT
+#endif /* O_C_FORMAT */
 		/********************************
 		*       ACTUAL FORMATTING	*
 		********************************/
@@ -472,6 +472,11 @@ int space;
     for(m = rn / 2, n = 0; space; n++, space--)
     { r[m + (n % 2 ? n : -n)].size++;
     }
+  } else
+  { int n;
+
+    for(n=0; n < rn; n++)		/* set all rubber to 0 */
+      r[n].size = 0;
   }
 }
 

@@ -164,7 +164,6 @@
 { (Atom)NULL, ATOM_TYPE, "user_input" },
 { (Atom)NULL, ATOM_TYPE, "user_output" },
 { (Atom)NULL, ATOM_TYPE, "user_error" },
-{ (Atom)NULL, ATOM_TYPE, "/dev/null" },
 { (Atom)NULL, ATOM_TYPE, "$stream_position" },
 { (Atom)NULL, ATOM_TYPE, "read" },
 { (Atom)NULL, ATOM_TYPE, "write" },

@@ -418,7 +418,7 @@ FILE *fd;
 	  if ( pattern != 0x1 )
 #if O_AUTOINDEX
 	    clear(def, AUTOINDEX);
-#endif O_AUTOINDEX
+#endif /* O_AUTOINDEX */
 	  reindexProcedure(proc);
 	}
 
@@ -450,7 +450,7 @@ FILE *fd;
 	      case 's':
 		*xp = heapString(getString(fd));
 		continue;
-#endif O_STRING
+#endif /* O_STRING */
 	      case 'f':
 		arity = (int) getNum(fd);
 		name = getString(fd);
@@ -653,7 +653,7 @@ FILE *fd;
     } else if ( isString(xr) )
     { Putc('s', fd);
       putString(valString(xr), fd);
-#endif O_STRING
+#endif /* O_STRING */
     } else if (((FunctorDef)xr)->type == FUNCTOR_TYPE)
     { Putc('f', fd);
       putNum(((FunctorDef)xr)->arity, fd);
@@ -741,7 +741,7 @@ char *file;
   fprintf(wicFd, "/* Compiled SWI-Prolog Program */\r\n'@ECHO OFF'\r\nparse source . . name\r\n\"%s -x \" name arg(1)\r\nexit\r\n", exec);
 #else
   fprintf(wicFd, "#!/bin/sh\nexec %s -x $0 $*\n", exec);
-#endif OS2
+#endif /* OS2 */
   DEBUG(2, printf("Magic  ...\n"));
   putString( saveMagic,            wicFd);
   DEBUG(2, printf("Numeric options ...\n"));

@@ -139,7 +139,7 @@ Word args;
     succeed;
   fail;
 }
-#endif LINK_THIEF
+#endif /* LINK_THIEF */
 
 word
 pl_grep(file, search, line, h)

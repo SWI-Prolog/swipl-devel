@@ -143,10 +143,12 @@ initSignals()
       signalHandlers[n].catched = FALSE;
     }
 
+#ifdef SIGTTOU
     pl_signal(SIGTTOU, SIG_IGN);
+#endif
     pl_signal(SIGSEGV, fatal_signal_handler);
     pl_signal(SIGILL,  fatal_signal_handler);
-#ifdef SIGBUS				/* not on LINUX */
+#ifdef SIGBUS
     pl_signal(SIGBUS,  fatal_signal_handler);
 #endif
   } else
@@ -181,7 +183,7 @@ char *addr;
   sysError("Unexpected signal: %d\n", sig);
 }
 
-#endif unix
+#endif /* unix */
 
 #if O_DYNAMIC_STACKS
 
@@ -372,7 +374,7 @@ Stack s;
 }
 
 
-#endif O_CAN_MAP
+#endif /* O_CAN_MAP */
 
 #if O_SHARED_MEMORY
 #include <sys/stat.h>
@@ -501,7 +503,7 @@ Stack s;
     map(s);
 }
 
-#else O_SHM_ALIGN_FAR_APART
+#else /* O_SHM_ALIGN_FAR_APART */
 
 static void
 map(s)
@@ -544,8 +546,8 @@ Stack s;
   }
 }
 
-#endif O_SHM_ALIGN_FAR_APART
-#endif O_SHARED_MEMORY
+#endif /* O_SHM_ALIGN_FAR_APART */
+#endif /* O_SHARED_MEMORY */
 
 static bool
 expandStack(s, addr)
@@ -635,13 +637,13 @@ long limit, minsize;
     s->segments[n].base = s->base + base_alignment * n;
   }
 }
-#else O_SHM_ALIGN_FAR_APART
+#else /* O_SHM_ALIGN_FAR_APART */
   s->segment_top     = 0;
   s->segment_initial = 32 * 1024;
   s->segment_double  = 5;
   s->segments[0].base = base;
-#endif O_SHM_ALIGN_FAR_APART
-#endif O_SHARED_MEMORY
+#endif /* O_SHM_ALIGN_FAR_APART */
+#endif /* O_SHARED_MEMORY */
 
   while(s->max < s->min)
     map(s);
@@ -781,7 +783,7 @@ Word s, l;
     return warning("limit_stack/2: unknown stack: %s", stringAtom(k));
 }
 
-#else O_DYNAMIC_STACKS
+#else /* O_DYNAMIC_STACKS */
 
 		/********************************
 		*    SIMPLE STACK ALLOCATION    *
@@ -865,4 +867,4 @@ long local, global, trail, argument, lock;
   statistics.heap = old_heap;
 }
 
-#endif O_DYNAMIC_STACKS
+#endif /* O_DYNAMIC_STACKS */

@@ -171,14 +171,14 @@ initWamTable()
   checkCodeTable();
 }
 
-#else O_VMCODE_IS_ADDRESS
+#else /* O_VMCODE_IS_ADDRESS */
 
 void
 initWamTable()
 { checkCodeTable();
 }
 
-#endif O_VMCODE_IS_ADDRESS
+#endif /* O_VMCODE_IS_ADDRESS */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module forms together  with  the  module  'pl-wam.c'  the  complete
@@ -224,7 +224,7 @@ forwards int	analyseVariables2 P((Word, int, int, int));
 #define A_NOTARITH	0
 #define A_OK		1
 #define A_ERROR		2
-#endif O_COMPILE_ARITH
+#endif /* O_COMPILE_ARITH */
 
 static struct vardef
 { FunctorDef	functor;		/* mimic a functor (FUNCTOR_var1) */
@@ -567,7 +567,7 @@ Allocate the clause and fill initialise the field we already know.
     if ( isAtom(*a) || isInteger(*a) || isTerm(*a) )
       set(clause, INDEXABLE);
   }
-#endif O_AUTOINDEX
+#endif /* O_AUTOINDEX */
 
   DEBUG(9, printf("clause struct initialised\n"));
 
@@ -786,7 +786,7 @@ register compileInfo *ci;
       ci->used_var = vsave;
       
       succeed;
-#endif O_COMPILE_OR
+#endif /* O_COMPILE_OR */
     }
   }
 
@@ -864,7 +864,7 @@ be a variable, and thus cannot be removed if it is before an I_POP.
 		     addStringXRtable(*arg, ci));
 	return NONVOID;
       }
-#endif O_STRING
+#endif /* O_STRING */
     }
 
     if ( isInteger(*arg) )
@@ -1021,7 +1021,7 @@ register compileInfo *ci;
 
   return ci->tx++;
 }
-#endif O_STRING
+#endif /* O_STRING */
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1097,7 +1097,7 @@ will use the meta-call mechanism for all these types of calls.
 	case A_ERROR:	fail;
       }
     }
-#endif O_COMPILE_ARITH
+#endif /* O_COMPILE_ARITH */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Term, not a variable and not a module call.  Compile the  arguments  and
@@ -1258,7 +1258,7 @@ register compileInfo *ci;
     succeed;
   }
 }
-#endif O_COMPILE_ARITH
+#endif /* O_COMPILE_ARITH */
 
 
 		/********************************
@@ -1562,7 +1562,7 @@ register decompileInfo *di;
       case H_STRING:
 	  TRY( unifyAtomic(argp++, globalString(valString(XR[*PC++]))) );
 	  continue;
-#endif O_STRING      
+#endif /* O_STRING */
       case H_CONST:
 	  TRY(unifyAtomic(argp++, XR[*PC++]) );
 	  continue;
@@ -1775,7 +1775,7 @@ Code until;
       			    build_term(functorArithFunction(*PC++), di);
       			    PC++;
 			    continue;
-#endif O_COMPILE_ARITH
+#endif /* O_COMPILE_ARITH */
       { FunctorDef f;
 #if O_COMPILE_ARITH
 	case A_LT:	    f = FUNCTOR_smaller2;	goto f_common;
@@ -1785,7 +1785,7 @@ Code until;
 	case A_EQ:	    f = FUNCTOR_ar_equals2;	goto f_common;
 	case A_NE:	    f = FUNCTOR_ar_not_equal2;	goto f_common;
 	case A_IS:	    f = FUNCTOR_is2;		goto f_common;
-#endif O_COMPILE_ARITH
+#endif /* O_COMPILE_ARITH */
 	case I_APPLY:	    f = FUNCTOR_apply2;		f_common:
 			    build_term(f, di);
 			    pushed++;
@@ -1853,7 +1853,7 @@ Code until;
 			    build_term(FUNCTOR_ifthen2, di);
 			    pushed++;
 			    continue;
-#endif O_COMPILE_OR
+#endif /* O_COMPILE_OR */
       case I_EXIT:
 			    break;
       default:

@@ -68,7 +68,7 @@ register Word k;
 
   fail;
 }
-#endif O_STRING
+#endif /* O_STRING */
 
 word
 pl_number(k)
@@ -174,7 +174,7 @@ register Word t1, t2;
         succeed;
       fail;
     }
-#endif O_STRING
+#endif /* O_STRING */
     if (isReal(*t2) && valReal(*t1) == valReal(*t2) )
       succeed;
     fail;
@@ -270,7 +270,7 @@ register Word t1, t2;
   }
   if ( isString(w2) )
     return GREATER;
-#endif O_STRING
+#endif /* O_STRING */
 
   if ( isNumber(w1) )
   { if ( !isNumber(w2) )
@@ -411,7 +411,7 @@ int index;
         succeed;
       fail;
     }
-#endif O_STRING
+#endif /* O_STRING */
     if (isReal(*t2) && valReal(*t1) == valReal(*t2) )
       succeed;
     fail;
@@ -819,7 +819,7 @@ bool save;
 #if O_STRING
   if (isString(w))
     return valString(w);
-#endif O_STRING
+#endif /* O_STRING */
 
   return (char *) NULL;
 }
@@ -1219,7 +1219,7 @@ Word str, offset, length, sub;
 
   return unifyAtomic(sub, ss);
 }
-#endif O_STRING
+#endif /* O_STRING */
 
 word
 pl_write_on_atom(goal, atom)
@@ -1247,7 +1247,7 @@ Word goal, string;
   TRY(rval);
   return unifyAtomic(string, globalString(tmp));
 } 
-#endif O_STRING
+#endif /* O_STRING */
 
 word
 pl_write_on_list(goal, string)

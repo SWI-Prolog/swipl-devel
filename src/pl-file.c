@@ -116,7 +116,7 @@ stopHandler()
   kill(getpid(), SIGSTOP);		/* Who has SISSTOP probably also */
   PopTty(&tab);				/* has kill() and getpid() */
 }
-#endif JOBCONTROL
+#endif /* JOBCONTROL */
 
 #if PIPE
 static void
@@ -127,7 +127,7 @@ pipeHandler()
   signal(SIGPIPE, SIG_DFL);		/* should abort fail. */
   kill(getpid(), SIGPIPE);		/* Unix has both pipes and kill() */
 }
-#endif PIPE
+#endif /* PIPE */
 
 void
 initIO()
@@ -194,7 +194,7 @@ the Unix assumptions?
   PushTty(&ttytab, TTY_COOKED);
 #if O_LINE_EDIT
   stdin_driver.eol = ttytab.tab.c_cc[ VEOF ] ;
-#endif O_LINE_EDIT
+#endif /* O_LINE_EDIT */
   ResetTty();
 #if JOBCONTROL
   signal(SIGTSTP, stopHandler);
@@ -226,7 +226,7 @@ int n;
   if (fileTable[n].pipe == TRUE)
     Pclose(fileTable[n].fd);
   else
-#endif PIPE
+#endif /* PIPE */
     Fclose(fileTable[n].fd);
   fileTable[n].status = F_CLOSED;
   fileTable[n].name = fileTable[n].stream_name = (Atom) NULL;
@@ -545,7 +545,7 @@ bool fresh;
     signal(SIGPIPE, pipeHandler);
 #else
     return warning("Pipes are not supported on this OS");
-#endif PIPE
+#endif /* PIPE */
   } else
     return warning("Illegal stream specification");
 
@@ -882,7 +882,7 @@ Word streams, available, timeout;
 { return notImplemented("wait_for_input", 3);
 }
 
-#endif unix
+#endif /* unix */
 
 		/********************************
 		*      PROLOG CONNECTION        *
@@ -1181,11 +1181,15 @@ Word file, mode, stream;
   }
 }
 
+#ifndef DEVNULL
+#define DEVNULL "/dev/null"
+#endif
+
 word
 pl_open_null_stream(stream)
 Word stream;
 { static word mode = (word) ATOM_write;
-  static word file = (word) ATOM_devnull;
+  word file = (word) lookupAtom(DEVNULL);
 
   return pl_open(&file, &mode, stream);
 }

@@ -209,7 +209,7 @@ profile()
     clear(fr->procedure->definition, PROFILE_TICKED);
 }
 
-#else O_PROFILE
+#else /* O_PROFILE */
 
 void
 stopItimer()
@@ -239,4 +239,4 @@ pl_reset_profiler()
 { return notImplemented("reset_profile", 0);
 }
 
-#endif O_PROFILE
+#endif /* O_PROFILE */

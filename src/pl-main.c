@@ -413,7 +413,7 @@ va_dcl
 
   PL_fail;
 }
-#endif ANSI
+#endif /* ANSI */
 
 bool
 vsysError(fm, args)

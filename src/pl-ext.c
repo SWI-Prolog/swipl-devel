@@ -197,7 +197,7 @@ static struct foreign {
   ADD("$list_active_procedures",0, pl_list_active_procedures,	TRACE_ME),
 #if COUNTING
   ADD("$count",			0, pl_count,			TRACE_ME),
-#endif COUNTING
+#endif /* COUNTING */
 
   ADD("$profile",		2, pl_profile,			TRACE_ME),
   ADD("reset_profiler",		0, pl_reset_profiler,		TRACE_ME),
@@ -246,12 +246,12 @@ static struct foreign {
   ADD("string_to_atom",		2, pl_string_to_atom,		TRACE_ME),
   ADD("string_to_list",		2, pl_string_to_list,		TRACE_ME),
   ADD("substring",		4, pl_substring,		TRACE_ME),
-#endif O_STRING
+#endif /* O_STRING */
 
 #if O_SAVE
   ADD("save",			2, pl_save,			TRACE_ME),
   ADD("restore",		1, pl_restore,			TRACE_ME),
-#endif O_SAVE
+#endif /* O_SAVE */
   ADD("$save_program",		2, pl_save_program,		TRACE_ME),
   ADD("$version",		1, pl_version,			TRACE_ME),
 
@@ -268,7 +268,7 @@ static struct foreign {
 
 #if O_COMPILE_OR
   ADD("$alt",			1, pl_alt,		NONDETERMINISTIC),
-#endif O_COMPILE_OR
+#endif /* O_COMPILE_OR */
   ADD("$atom_hashstat",		2, pl_atom_hashstat,		TRACE_ME),
   ADD("$tty",			0, pl_tty,			TRACE_ME),
   ADD("$arch",			2, pl_arch,			TRACE_ME),

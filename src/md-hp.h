@@ -49,7 +49,7 @@ Version 1.6.11 includes   various fixes suggested  by Dave   Sherratt,
 #define M_CC			cc
 #define M_OPTIMIZE	        +O3
 #define M_LDFLAGS		-O -Wl,-a archive
-#define M_CFLAGS		
+#define M_CFLAGS		-Aa -D_HPUX_SOURCE -Dunix -Dhpux
 #endif
 
 #define M_LIBS			-lm -ltermcap

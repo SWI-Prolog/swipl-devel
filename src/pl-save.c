@@ -86,7 +86,7 @@ PORTABILITY/OPTIONS
     The routines for determing the stack frame are fine.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-#endif OS2
+#endif /* OS2 */
 
 #if TEST
 #undef DEBUG
@@ -108,7 +108,7 @@ caddr_t sbrk P((int));
 #if OS2 & EMX
 extern caddr _heap_base;
 extern long _heap_end;
-#endif OS2
+#endif /* OS2 */
 
 extern char **environ;
 
@@ -434,11 +434,11 @@ SaveSection sections;
   sects[0].type		= S_DATA;
   sects[0].flags	= 0;
 #ifdef HEAP_START
-  sects[1].start        = HEAP_START
+  sects[1].start        = HEAP_START;
   sects[1].length       = (long) sbrk(0) - (long) sects[1].start;
   sects[1].type         = S_DATA;
   sects[1].flags        = 0;
-#endif HEAP_START
+#endif /* HEAP_START */
 
   memcpy(&sects[C_DATA_SECTIONS], sections,
 	 nsections * sizeof(struct save_section));
@@ -523,7 +523,7 @@ char **env;
   return 1;
 }
 
-#else !O_SAVE
+#else /* !O_SAVE */
 
 int
 main(argc, argv, env)

@@ -221,7 +221,7 @@ char *s;
   return (word)gt | INDIRECT_MASK;
 }
 
-#endif O_STRING
+#endif /* O_STRING */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 To allow for garbage collection,  reals  are  packed  into  two  tagged
@@ -291,7 +291,7 @@ Word p;
 
   return b.f;
 }
-#endif IEEE
+#endif /* IEEE */
 
 void
 setReal(w, f)

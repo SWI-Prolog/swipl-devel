@@ -266,7 +266,7 @@ Word file;
   fail;
 }
 
-#endif O_SAVE
+#endif /* O_SAVE */
 
 #if O_STORE_PROGRAM
 
@@ -276,7 +276,7 @@ Word file;
 
 #include UNEXEC_SOURCE
 
-#else ~UNEXEC_SOURCE
+#else /* ~UNEXEC_SOURCE */
 
 #include <a.out.h>
 
@@ -335,25 +335,25 @@ struct exec *hdr;
 #else
   return (char *) N_TXTADDR(*hdr);
 #endif
-#else N_TXTADDR
+#else /* N_TXTADDR */
 #ifdef TEXT_START
   return ((char *) TEXT_START);
 #else
 #if gould				/* GOULD machine */
   extern csrt();
   return ((char *) csrt);
-#else gould
+#else /* gould */
   return (char *) hdr->a_entry;
 #endif
-#endif TEXT_START
-#endif N_TXTADDR
+#endif /* TEXT_START */
+#endif /* N_TXTADDR */
 }
 
 #include "gnu/unexec.c"
-#endif UNEXEC_SOURCE
-#endif O_STORE_PROGRAM
+#endif /* UNEXEC_SOURCE */
+#endif /* O_STORE_PROGRAM */
 
-#else O_STORE_PROGRAM || O_SAVE
+#else /* O_STORE_PROGRAM || O_SAVE */
 
 word
 saveProgram(new)
@@ -367,4 +367,4 @@ Word old, new;
 { return warning("store_program/2: not ported to this machine");
 }
 
-#endif O_STORE_PROGRAM || O_SAVE
+#endif /* O_STORE_PROGRAM || O_SAVE */

@@ -400,7 +400,7 @@ Number r;
   }
 }
 
-#endif O_PROLOG_FUNCTIONS
+#endif /* O_PROLOG_FUNCTIONS */
 
 static int
 valueExpression(t, r)
@@ -999,7 +999,7 @@ word h;
   fail;
 }
 
-#endif O_PROLOG_FUNCTIONS
+#endif /* O_PROLOG_FUNCTIONS */
 
 #define ADD(functor, func) { (ArithFunction)NULL, functor, func }
 
@@ -1160,7 +1160,7 @@ register Word *stack;
   }
 }
 
-#endif O_COMPILE_ARITH
+#endif /* O_COMPILE_ARITH */
 
 word
 evaluate(p)

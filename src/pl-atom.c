@@ -351,4 +351,4 @@ Word prefix, alts;
   return unifyAtomic(alts, ATOM_nil);
 } 
 
-#endif O_EXTEND_ATOMS
+#endif /* O_EXTEND_ATOMS */

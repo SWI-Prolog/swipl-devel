@@ -32,15 +32,15 @@
 #define MAX_VIRTUAL_ADDRESS	(220 * 1024 * 1024)
 #define O_FOREIGN		0
 #define O_SAVE			1
+#define DEVNULL			"/dev/nul"
 #define DEFAULT_PATH		"C:\\usr\\local\\cmd;.;"
-#define IS_DIR_SEPARATOR	((c) == '\\' || (c) == '/')
+#define IS_DIR_SEPARATOR(c)	((c) == '\\' || (c) == '/')
 #define DESCRIPTOR_TABLE_SIZE   4096
 #define FIRST_DATA_SYMBOL       _data   /* valid for EMX under OS/2 only */
 #define LAST_DATA_SYMBOL        _end    /* valid for EMX under OS/2 only */
-#define HEAP_START		_heap_start
+#define HEAP_START		_heap_base
 #define SIGNAL_CONTEXT_TYPE	void *
 #define O_VMCODE_IS_ADDRESS	0
-typedef unsigned short		ushort;
 
 			/* terminal driver */
 #define O_TERMIOS 		1

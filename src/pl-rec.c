@@ -175,7 +175,7 @@ Word copy;
     { *copy = globalString(valString(*term));
       return;
     }
-#endif O_STRING
+#endif /* O_STRING */
     *copy = globalReal(valReal(*term));
     return;
   }
@@ -226,7 +226,7 @@ register Word term;
     { freeHeap(unMask(*term), allocSizeString(sizeString(*term)));
       return;
     }
-#endif O_STRING
+#endif /* O_STRING */
     freeHeap(unMask(*term), sizeof(real));
     return;
   }

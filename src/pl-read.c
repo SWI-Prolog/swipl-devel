@@ -108,7 +108,7 @@ struct read_buffer
 #if O_PCE
 static struct read_buffer rb_stack[MAX_READ_NESTING];
 int read_nesting = 0;		/* current nesting level */
-#endif O_PCE
+#endif /* O_PCE */
 
 void
 resetRead()
@@ -129,7 +129,7 @@ startRead()
   }
   rb_stack[read_nesting++] = rb;
   rb = rb_stack[read_nesting];
-#endif O_PCE
+#endif /* O_PCE */
   rb.doExtend = (Input == 0 && status.notty == FALSE);
   rb.stream = Input;
   rb.fd = checkInput(rb.stream);
@@ -148,7 +148,7 @@ stopRead()
   { rb.fd = checkInput(rb.stream);
   /*source_file_name = currentStreamName();*/
   }
-#endif O_PCE
+#endif /* O_PCE */
 }
 
 		/********************************
@@ -310,7 +310,7 @@ extendBeep()
 #if O_LINE_EDIT				/* otherwise, define in md.h */
 #define DEL_ESC	"\b\b  \b\b"
 #define DEL_EOF "\b\b  \b\b"
-#endif O_LINE_EDIT
+#endif /* O_LINE_EDIT */
 
 static void
 extendDeleteEscape()
@@ -341,7 +341,7 @@ bool reprint;
   fflush(stdout);
 }
 
-#endif O_EXTEND_ATOMS
+#endif /* O_EXTEND_ATOMS */
 
 static Char
 getchr()
@@ -418,7 +418,7 @@ raw_read2()
 		    extendReprint(TRUE);
 		    break;
 		  }		  
-#endif O_EXTEND_ATOMS
+#endif /* O_EXTEND_ATOMS */
 		  rawSyntaxError("Unexpected end of file");
 		}
       e_o_f:
@@ -542,7 +542,7 @@ raw_read2()
 		  break;		  
 		}
 		/*FALLTHROUGH*/
-#endif O_EXTEND_ATOMS
+#endif /* O_EXTEND_ATOMS */
       case_default:				/* Hack, needs fixing */
       default:	if ( isBlank(c) )
 		{ long rd;
@@ -1007,7 +1007,7 @@ bool must_be_op;
 			  token.value.prolog = (word) stringToList(start);
 #else
 			token.value.prolog = (word) stringToList(start);
-#endif O_STRING
+#endif /* O_STRING */
 			DEBUG(9, printf("STR: %s\n", start));
 			*s = end;
 			token.type = T_STRING;

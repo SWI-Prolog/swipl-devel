@@ -66,7 +66,7 @@ bool quote;
     }
     return;
   }
-#endif O_STRING
+#endif /* O_STRING */
 
   if (isVar(*w))
   { Putf("%s", varName(w) );

@@ -529,7 +529,7 @@ struct bag *b;
 	  }
 	}
       }
-#endif tos
+#endif /* tos */
     }
   next_bag:;
   }

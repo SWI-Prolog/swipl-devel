@@ -13,6 +13,7 @@
 
 # Change cc to gcc in the line below if necessary
 CPP=cc -E
+AWK=awk
 
 # DO NOT CHANGE BELOW THIS LINE
 
@@ -92,8 +93,8 @@ PLBOOT= $(PB)/syspred.pl $(PB)/toplevel.pl $(PB)/listing.pl \
 SRC=	$(OBJ:.o=.c) $(DEPOBJ:.o=.c) $(EXT:.o=.c)
 
 #if OS2MAKE
-PARMS=	-DSYSTEMHOME="$(SYSTEMHOME)" \
-	-DDEFSTARTUP="$(DEFSTARTUP)"
+PARMS=	-DSYSTEMHOME=""$(SYSTEMHOME)"" \
+	-DDEFSTARTUP=""$(DEFSTARTUP)""
 #else
 PARMS=	-DSYSTEMHOME=\"$(SYSTEMHOME)\" \
 	-DDEFSTARTUP=\"$(DEFSTARTUP)\"
@@ -104,7 +105,11 @@ TARGETS=	$(EXPORTS) $(CINCLUDE) system startup pl-bite
 all:		xmakefile
 		make -f xmakefile ${TARGETS}
 
+#if OS2MAKE	/* GNU Make *NEEDS* Unix(tm)-style names as targets! */
+startup:	$(SYSTEMHOME) $(STARTUPDIR) $(STARTUPPATH)
+#else
 startup:	$(SYSTEMDIR) $(OS-STARTUPDIR) $(OS-STARTUPPATH)
+#endif
 system:		$(SYS)
 
 runtime:	all
@@ -124,12 +129,24 @@ xmakefile:	Makefile md.h ../config.h
 $(SYS):		$(OBJ) $(DEPOBJ) $(EXT)
 		$(CC) $(LDFLAGS) -o $(SYS) $(OBJ) $(DEPOBJ) $(EXT) $(LIBS)
 
+#if OS2MAKE
+$(SYSTEMHOME):
+#else
 $(SYSTEMDIR):
+#endif
 		-mkdir $(SYSTEMDIR)
+#if OS2MAKE
+$(STARTUPDIR):
+#else
 $(OS-STARTUPDIR):	
+#endif
 		-mkdir $(OS-STARTUPDIR)
 
+#if OS2MAKE
+$(STARTUPPATH):		$(PLBOOT) $(PLINIT) pl-wam.o
+#else
 $(OS-STARTUPPATH):	$(PLBOOT) $(PLINIT) pl-wam.o
+#endif
 #if OS2MAKE
 		echo .\\$(SYS) -O -o $(OS-STARTUPPATH) -b $(PLINIT) -c > xxfoo
 		echo $(PLBOOT1) >> xxfoo
@@ -215,7 +232,7 @@ clean:		xmakefile
 		make -f xmakefile xclean
 
 xclean:
-		rm -f *.o a.out core makefile pl-bite
+		rm -f *.o a.out core pl-bite
 		rm -f $(SYS)
 .c.s:
 		$(CC) -S $(CFLAGS) $*.c

@@ -214,7 +214,7 @@ typedef struct
   int		mode;		/* Prolog;'s view on mode */
 } ttybuf;
 
-#else O_TERMIOS
+#else /* O_TERMIOS */
 
 #include <sgtty.h>
 
@@ -223,7 +223,7 @@ typedef struct
   struct tchars chars;		/* tty characters */
   int		mode;		/* Prolog's view on mode */
 } ttybuf;
-#endif O_TERMIOS
+#endif /* O_TERMIOS */
 
 #elif OS2 && EMX
 #if O_TERMIOS
@@ -236,7 +236,7 @@ typedef struct
   int		mode;		/* Prolog;'s view on mode */
 } ttybuf;
 
-#else ! O_TERMIOS
+#else /* ! O_TERMIOS */
 
 #include <sgtty.h>
 
@@ -245,13 +245,13 @@ typedef struct
   struct tchars chars;		/* tty characters */
   int		mode;		/* Prolog's view on mode */
 } ttybuf;
-#endif O_TERMIOS
+#endif /* O_TERMIOS */
 
-#else OS2
+#else /* OS2 */
 typedef struct
 { int		mode;		/* Prolog's view on mode */
 } ttybuf;
-#endif unix
+#endif /* unix */
 
 extern ttybuf	ttytab;			/* saved tty status */
 extern int	ttymode;		/* Current tty mode */
@@ -276,7 +276,7 @@ extern struct tty_driver
   short flags;          /* FLAGS */
   char  queue[QSIZE];   /* character queue */
 } stdin_driver ;
-#endif O_LINE_EDIT
+#endif /* O_LINE_EDIT */
 #define IsaTty(fd)	isatty(fd)
 
 extern bool PushTty P((ttybuf *, int mode));

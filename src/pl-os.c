@@ -7,6 +7,8 @@
     Purpose: Operating System Dependencies
 */
 
+/*  Modified (M) 1993 Dave Sherratt  */
+
 #if __TOS__
 #include <tos.h>		/* before pl-os.h due to Fopen, ... */
 static long	wait_ticks;	/* clock ticks not CPU time */
@@ -40,7 +42,7 @@ extern int random P((void));
 
 #if OS2 && EMX
 static real initial_time;
-#endif OS2
+#endif /* OS2 */
 
 forwards void	initExpand P((void));
 forwards void	initRandom P((void));
@@ -92,7 +94,7 @@ initOs()
 		   + i.seconds
 		   + (i.hundredths / 100.0);
   }
-#endif OS2
+#endif /* OS2 */
   DEBUG(1, printf("OS:done\n"));
 
   succeed;
@@ -646,7 +648,7 @@ OsPath(char *unixpath)
 
   return path;
 } 
-#endif OS2
+#endif /* OS2 */
 
 #if unix
 char *PrologPath(p)
@@ -854,7 +856,7 @@ char *f1, *f2;
 #if OS2 && EMX
     /* Amazing! There is no simple way to check two files for identity. */
     /* stat() and fstat() both return dummy values for inode and device. */
-#endif OS2
+#endif /* OS2 */
 
     fail;
   }
@@ -1168,7 +1170,7 @@ char *pattern, *expanded;
     if ( user[0] != EOS || (value = getenv("HOME")) == (char *) NULL )
     { value = "/";	/* top directory of current drive */
     } else
-    { value = PrologPath(value)
+    { value = PrologPath(value);
     }
 #endif
     size += (l = (int) strlen(value));
@@ -1266,7 +1268,7 @@ char *buf;
 }
 #else
 extern char *getwd P((char *));
-#endif hpux
+#endif /* hpux */
 #endif
 
 #if OS2 && EMX
@@ -1277,7 +1279,7 @@ char *buf;
 { strcpy(buf, PrologPath(_getcwd2(buf, MAXPATHLEN)));
   return buf;
 }
-#endif OS2
+#endif /* OS2 */
 
 
 #if tos
@@ -1313,7 +1315,7 @@ char *buf;
 #define isRootlessPath(p) (p[0] == '/' && isLetter(p[1]) && \
 			   p[2] == ':' && p[3] != '/')
 #define isRelativePath(p) (p[0] == '.')
-#endif OS2
+#endif /* OS2 */
 
 /*
   Design Note -- atoenne --
@@ -1349,7 +1351,7 @@ char *spec;
     strcpy(&path[3], file);
     return canonisePath(path);
   }
-#endif OS2
+#endif /* OS2 */
   if ( CWDdir[0] == EOS )
   {
     getwd(CWDdir);
@@ -1368,7 +1370,7 @@ char *spec;
     strcat(path, &file[3]);
     return canonisePath(path);
   }
-#endif OS2
+#endif /* OS2 */
   if ( (strlen(CWDdir) + strlen(file) + 2) >= MAXPATHLEN )
   { warning("path name too long");
     return (char *) NULL;
@@ -1461,7 +1463,7 @@ FILE *fd;
 
   return l;
 }
-#endif minix || tos
+#endif /* minix || tos */
 
 		/********************************
 		*        TIME CONVERSION        *
@@ -1598,7 +1600,7 @@ struct tty_driver stdin_driver =
   0, 0, 0,		/* colunm, in, out */
   CRLF			/* flags */
 };
-#endif O_LINE_EDIT
+#endif /* O_LINE_EDIT */
 
 #if O_TERMIOS				/* System V termio system */
 
@@ -1643,7 +1645,7 @@ int mode;
 	break;
     case TTY_APPEND:
 	break;
-#else O_LINE_EDIT
+#else /* O_LINE_EDIT */
     case TTY_RAW:
 	tio.c_lflag &= ~(ECHO|ICANON);
 	tio.c_cc[VTIME] = 0, tio.c_cc[VMIN] = 1;
@@ -1659,8 +1661,8 @@ int mode;
     case TTY_APPEND:
 	tio.c_lflag |= ECHO;
 	break;
-#endif O_LINE_EDIT
-#endif O_EXTEND_ATOMS
+#endif /* O_LINE_EDIT */
+#endif /* O_EXTEND_ATOMS */
     default:
 	sysError("Unknown PushTty() mode: %d", mode);
 	/*NOTREACHED*/
@@ -1749,7 +1751,7 @@ int mode;
     case TTY_RETYPE:
     case TTY_APPEND:
 	break;
-#else O_LINE_EDIT
+#else /* O_LINE_EDIT */
     case TTY_EXTEND_ATOMS:
 	chrs.t_brkc = ESC;		/* ESC, EOF already on 04 */
 	chars_set = TRUE;
@@ -1762,7 +1764,7 @@ int mode;
 	flgs.sg_flags |= ECHO;
 	flags_set = TRUE;
 	break;
-#endif O_LINE_EDIT
+#endif /* O_LINE_EDIT */
     default:
 	sysError("Unknown PushTty() mode: %d", mode);
 	/*NOTREACHED*/
@@ -1792,7 +1794,7 @@ ttybuf *buf;
 
   succeed;
 }
-#endif unix && !O_TERMIOS
+#endif /* unix && !O_TERMIOS */
 
 #if tos					/* ATARI_ST, running TOS */
 bool
@@ -1825,7 +1827,7 @@ ttybuf *buf;
   ttymode = buf->mode;
   succeed;
 }
-#endif tos
+#endif /* tos */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     void ResetTty()
@@ -1860,7 +1862,7 @@ ResetTty()
 #if tos
   stdin_driver.isatty = TRUE;		/* how to find out? */
 #endif
-#endif O_LINE_EDIT
+#endif /* O_LINE_EDIT */
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1878,7 +1880,7 @@ PretendTyped(c)
 char c;
 { ioctl(0, TIOCSTI, &c);
 }
-#endif O_EXTEND_ATOMS
+#endif /* O_EXTEND_ATOMS */
 
 #if O_LINE_EDIT
 		/********************************
@@ -2133,7 +2135,7 @@ char c;
   d->emitting = FALSE;
 }
 
-#endif O_LINE_EDIT
+#endif /* O_LINE_EDIT */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Read a character.   When using PCE  we  should be  prepared to  handle
@@ -2419,7 +2421,7 @@ char *cmd;
 
     rval = retstat;
   }
-#else v7
+#else /* v7 */
   { union wait status;			/* the parent */
     int n;
 
@@ -2441,7 +2443,7 @@ char *cmd;
       /*NOTREACHED*/
     }
   }
-#endif v7
+#endif /* v7 */
 
   signal(SIGINT,  old_int);		/* restore signal handlers */
   signal(SIGTSTP, old_stop);
@@ -2449,7 +2451,7 @@ char *cmd;
 
   return rval;
 }
-#endif unix
+#endif /* unix */
 
 #if tos
 #include <aes.h>
@@ -2545,7 +2547,7 @@ char *command;
 {
   return system(command);
 }
-#endif OS2
+#endif /* OS2 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     char *Symbols()
@@ -2587,7 +2589,7 @@ char *s;
 }
 
 #define PATHSEP	':'
-#endif unix
+#endif /* unix */
 
 #if tos
 static char *
@@ -2613,7 +2615,7 @@ char *s;
 }
 
 #define PATHSEP ','
-#endif tos
+#endif /* tos */
 
 #if OS2 && EMX
 static char *
@@ -2652,7 +2654,7 @@ char *s;
 }
 
 #define PATHSEP ';'
-#endif OS2
+#endif /* OS2 */
 
 static char *
 Which(program)
@@ -2664,7 +2666,7 @@ char *program;
   if ( isAbsolutePath(program) ||
 #if OS2 && EMX
        isDriveRelativePath(program) ||
-#endif OS2
+#endif /* OS2 */
        isRelativePath(program) ||
        index(program, '/') )
   { if ( (e = okToExec(program)) != NULL )
@@ -2684,7 +2686,7 @@ char *program;
     strcat(fullname, e);
     return fullname;
   }
-#endif OS2
+#endif /* OS2 */
   if  ((path = getenv("PATH") ) == 0)
     path = DEFAULT_PATH;
 
@@ -2751,7 +2753,7 @@ real time;
     sleep( (int)(time+0.5) );
 }
 #endif /* has select() */
-#endif unix
+#endif /* unix */
 
 #if OS2 && EMX                  /* the OS/2 API call for DosSleep allows */
 void                            /* a millisecond granualrity. */
@@ -2763,7 +2765,7 @@ real time;                      /* granularity only. */
 
   DosSleep((ULONG)(time * 1000));
 }
-#endif OS2
+#endif /* OS2 */
 
 #if tos
 void

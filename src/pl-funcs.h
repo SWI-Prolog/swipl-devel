@@ -64,7 +64,7 @@ void		initArith P((void));
 int		indexArithFunction P((FunctorDef, Module));
 FunctorDef	functorArithFunction P((int));
 bool		ar_func_n P((FI(code), int, Word *));
-#endif O_COMPILE_ARITH
+#endif /* O_COMPILE_ARITH */
 
 		/* pl-atom.c */
 Atom		lookupAtom P((char *));

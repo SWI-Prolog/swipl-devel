@@ -49,7 +49,7 @@ Module m;
   def->profile_calls = 0;
   def->profile_redos = 0;
   def->profile_fails = 0;
-#endif O_PROFILE
+#endif /* O_PROFILE */
   clearFlags(def);
   resetProcedure(proc);
 
@@ -278,7 +278,7 @@ char where;
       { def->indexMerit -= 2;		/* indexing looses on this one */
       }
     }
-#endif O_AUTOINDEX
+#endif /* O_AUTOINDEX */
   }
   endCritical;  
 
@@ -311,7 +311,7 @@ Module module;
     def->profile_calls = 0;
     def->profile_redos = 0;
     def->profile_fails = 0;
-#endif O_PROFILE
+#endif /* O_PROFILE */
     resetProcedure(proc);
 
     succeed;
@@ -444,7 +444,7 @@ Module m;
   { def = ((Procedure) s->value)->definition;
 #if O_PROFILE
     clear(def, PROFILE_TICKED);
-#endif O_PROFILE
+#endif /* O_PROFILE */
     if ( true(def, FOREIGN) )
       continue;
 

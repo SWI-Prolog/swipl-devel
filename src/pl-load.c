@@ -114,7 +114,7 @@ typedef struct
 } textSymbol;
 
 char *symbolString();			/* forwards */
-#endif NOENTRY
+#endif /* NOENTRY */
 
 static struct exec header;		/* a.out header */  
 
@@ -459,7 +459,7 @@ long n;
   return temp;
 }
 
-#endif NOENTRY
+#endif /* NOENTRY */
 
 #else
 #if O_AIX_FOREIGN
@@ -735,6 +735,6 @@ Word file, entry, options, libraries, size;
   fail;
 }
 
-#endif O_MACH_FOREIGN
-#endif O_AIX_FOREIGN
-#endif O_FOREIGN
+#endif /* O_MACH_FOREIGN */
+#endif /* O_AIX_FOREIGN */
+#endif /* O_FOREIGN */
