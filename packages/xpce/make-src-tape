@@ -4,17 +4,24 @@ version=`cat VERSION`
 out=xpce-$version.tar.gz
 compress=gzip
 
-cp /dev/null srcfiles-0
-for d in `find . -type d -print`; do
-    if [ -r $d/CVS/Entries ]; then
-	awk -F/ '{printf("%s/%s\n", "'$d'", $2)}' $d/CVS/Entries > srcfiles-0
-    fi
-done
+rm -f xpce-$version
+if [ ! "o$1" = "o-q" ]; then
+  rm -f srcfiles-0 srcfiles-1
+  cp /dev/null srcfiles-0
+  echo -n "Collecting distribution files "
+  for d in `find . -name CVS -type d -print`; do
+      echo -n "."
+      dir=`dirname $d`
+      awk -F/ '{printf("%s/%s\n", "'$dir'", $2)}' $dir/CVS/Entries >> srcfiles-0
+  done
+  echo "done"
+fi
 
-grep -v src/msw/ srcfiles | sed 's@^\./@xpce-$version/@ > srcfiles-1
+grep -v src/msw/ srcfiles-0 | sed "s@^\./@xpce-$version/@" > srcfiles
 
 cd ..
 ln -s xpce xpce-$version
-tar cvfI - xpce/srcfiles-1 | $compress > $out
+tar cvfT - xpce/srcfiles | $compress > $out
+rm -f xpce-$version
 
 
