@@ -1,5 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
+VERSION 4.0.3
+=============
+
+  * ENHANCED: the GUI debugger.  Too much to name it here.
 
   * INTERNAL: Moved message-activation of spy and nospy predicates to
     foreign-code to make sure it gets always called.
