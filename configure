@@ -12,4 +12,12 @@
 #	% make
 #	% make install
 
-(cd src && ./configure $*)
+if [ -z "$BUILDARCH" ]; then
+  BUILDARCH=src;
+else
+  if [ ! -d "$BUILDARCH" ]; then mkdir "$BUILDARCH"; fi
+fi
+
+sed "s/@BUILDARCH@/$BUILDARCH/" Makefile.in > Makefile
+
+cd $BUILDARCH && ../src/configure "$@"

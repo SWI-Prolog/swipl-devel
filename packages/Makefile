@@ -5,11 +5,12 @@
 PKG=	clib \
 	table \
 	sgml \
-	sgml/RDF
+	sgml/RDF \
+	xpce
 
 CONFIG=	./configure --enable-mt
 
-all:	configure objects
+all:	objects
 	
 objects:
 	for p in $(PKG); do \
@@ -21,7 +22,7 @@ install:
 	    ( cd $$p && $(MAKE) install ) \
         done
 	
-configure:
+configure::
 	for p in $(PKG); do \
 	    ( cd $$p && $(CONFIG) ) \
         done

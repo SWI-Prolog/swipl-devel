@@ -1,6 +1,6 @@
 		    SWI-Prolog Distribution Directory
 
-** Last update: Thu Sep 28 2000 (Version 3.3.10)
+** Last update: Feb  6 2001 (Version 4.0.0)
 
 AUTHOR
 ======
@@ -32,6 +32,13 @@ The SWI-Prolog source tree consists of the following directories:
 ./library	Prolog user's library
 ./include	Include files.  Mostly for handling foreign-code
 ./man		Manual (LaTeX)
+./packages	Additional packages:
+	clib	Process management and sockets
+	cpp	C++ wrapper for foreign-language interface
+	mp	Interface to gmp: arbitrary precession arithmetic
+	smgl	XML/SGML interface as well as RDF parser
+	table	Simple table-access routines (for static DB)
+	xpce	The Prolog (portable) GUI toolkit and GUI tracer
 
 
 BUILDING SWI-Prolog
@@ -66,12 +73,32 @@ MS-Windows
 Unless there is a special reason, please  use the binary distribution on
 MS-Windows.
 
-If you insist using the sources, the windows version is build using MSVC
-5.0. If you have this version, load src\pl.dsw and recompile those parts
-of the system you  need.  The  executables   are  created  in  the `bin'
-directory, the import-libraries in the `lib'  directory. They can be run
-from  this  location.  It  is  adviced  to   copy  them  into  a  binary
-distribution to arrive at a properly configured system.
+Otherwise, get yourself the following tools and resources
+
+	* Windows-NT or Windows-2000 (Makefiles require CMD.EXE)
+	* MSVC 5.0 or later
+	* JPEG and XPM libraries.  You find precompiled versions in
+
+		ftp://ftp.swi.psy.uva.nl/pub/Windows/libs
+
+Now proceed as follows
+
+	* Unpack the sources (anywhere)
+	* Edit ...\pl\src\rules.mk following the instructions there
+	* Open a command window and switch to ...\pl\src
+	* Make sure PATH LIB and INCLUDE are set up properly for the
+	  compiler you want to use
+	* Compile the system
+
+		nmake /f Makefile.mak
+	
+	* Install the system
+
+		nmake /f Makefile.mak install
+
+Thats  all.  You  can  now  start    plwin.exe  or  plcon.exe  from  the
+$(prefix)\pl\bin\ directory. If you want  you   can  associate  .PL with
+plwin.exe and/or add plwin.exe to your start menu.
 
 
 GNU-EMACS INTERFACE
