@@ -158,7 +158,8 @@ $make_alias(Chars, Alias) :-
 
 $load_associated_file :-
 	current_prolog_flag(associate, Ext),
-	current_prolog_flag(argv, [_,OsFile]),
+	current_prolog_flag(argv, Argv),
+	append(_, [OsFile], Argv),
 	prolog_to_os_filename(File, OsFile),
 	file_name_extension(_, Ext, File),
 	access_file(File, read),
@@ -166,12 +167,8 @@ $load_associated_file :-
 	chdir(Dir),
 	consult(user:File), !,
 	atom_concat('SWI-Prolog -- ', File, Title),
-	G = user:window_title(_, Title),
-	(   current_predicate(_, G)
-	->  G
-	;   true
-	),
-	nl.
+	catch(user:window_title(_, Title), _, true),
+	nl.				% why?
 $load_associated_file.
 
 

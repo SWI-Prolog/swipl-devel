@@ -1,9 +1,19 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: File association in Windows to allow for additional arguments
+    (notably stack-expansion).
+
+  * MODIFIED: moved all internal messages to $messages:prolog_message/3
+    rather then prolog:message/3, so all messages can be overrulled by
+    adding clauses to prolog:message/3.
+
+  * ADDED: Printing of goals by the trace through print_message/2 to allow
+    for better tailuring by the user.
+
   * FIXED: Bug in call/1 on ground-calls and very specific control.
 
-  * FIXED: Incorrect verification in SECURE-mode in pl-bags.c (debugging
+  * FIXED: Incorrect verification in SECURE-mode in pl-bags.c (maintenance
     only).
 
   * FIXED: Bug in handling logical-update view of assert/retract.  Thanks
