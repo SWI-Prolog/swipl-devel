@@ -19,12 +19,14 @@ properties:
 Both in terms of source-code (&lt; 1200 lines) and executable.
 
     <dt><b>Fast</b><dd>
-Parses about 400 Kbytes/sec on a Pentium-II/450.
+Parses about 1.2 Mbytes/sec on an AMD 1600+ running SWI-Prolog 5.1.6 and
+SuSE Linux 8.1 (tested on a 9MB RDFS file containing 179403 triples).
 
     <dt><b>Conforming</b><dd>
 This parser conforms to http://www.w3.org/TR/rdf-syntax-grammar/,
 W3C Working Draft 8 November 2002.  It includes the revised bag
-syntax, <code>xml:base</code>, and <code>parseType="Collection"</code>.
+syntax, <code>xml:base</code>, <code>parseType="Collection"</code>
+and <code>nodeID</code> features.
 
     <dt><b>Prolog based</b><dd>
 Many people regard the Prolog programming language a good vehicle to

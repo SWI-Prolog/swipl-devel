@@ -1,8 +1,7 @@
-Dec 4, 2002
+  * FIXED: online.pl (web frontend) to avoid using goal/1 option for the
+    xml parser.  Now uses 4.0.8 clib memfile library primitives.
 
   * FIXED: process_rdf/3, Peter Marks.
-
-Nov 14, 2002
 
   * ADDED: parseType="Collection", satisfying the W3C Working Draft
     8 November 2002.

@@ -83,7 +83,7 @@ $(WEBPAGE):	online.html
 		sed 's%@ACTION@%$(CGIURL)/$(CGISCRIPT)%' online.html > $@
 
 $(CGIDIR)/$(CGISCRIPT): rdf-parser
-		sed "s%@BASEDIR@%`pwd`%" rdf-parser > $@
+		sed -e "s%@BASEDIR@%`pwd`%" -e s%@SWI@%$(PL)% rdf-parser > $@
 		chmod 755 $@
 
 ################################################################
