@@ -319,6 +319,7 @@ suggest predicates from a keyword.
 \predicatesummary{plus}{3}{Logical integer addition}
 \predicatesummary{portray}{1}{\hook{user} Modify behaviour of print/1}
 \predicatesummary{portray_clause}{1}{Pretty print a clause}
+\predicatesummary{portray_clause}{2}{Pretty print a clause to a stream}
 \predicatesummary{predicate_property}{2}{Query predicate attributes}
 \predicatesummary{predsort}{3}{Sort, using a predicate to determine the order}
 \predicatesummary{preprocessor}{2}{Install a preprocessor before the compiler}

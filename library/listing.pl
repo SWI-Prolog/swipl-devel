@@ -32,7 +32,8 @@
 :- module(prolog_listing,
 	[ listing/0,
 	  listing/1,
-	  portray_clause/1
+	  portray_clause/1,		% +Clause
+	  portray_clause/2		% +Stream, +Clause
 	]).
 
 :- module_transparent
@@ -175,6 +176,7 @@ notify_changed(Pred) :-
 notify_changed(_).
 
 %	portray_clause(+Clause)
+%
 %	Portray `Clause' on the current output stream.   Layout  of  the
 %	clause  is  to our best standards.  As the actual variable names
 %	are not available we use A, B, ... Deals with ';', '|',  '->'  and
@@ -189,104 +191,107 @@ notify_changed(_).
 %portray_clause(Head :- _Body) :-
 %	user:prolog_list_goal(Head), !.
 portray_clause(Term) :-
-	numbervars(Term, '$VAR', 0, _), 
-	do_portray_clause(Term), 
-	fail.					% undo bindings		
-portray_clause(_).
+	current_output(Out),
+	portray_clause(Out, Term).
 
-do_portray_clause((Head :- true)) :- !, 
-	portray_head(Head), 
-	put(0'.), nl.
-do_portray_clause((Head :- Body)) :- !, 
-	portray_head(Head), 
-	write(' :-'), 
+portray_clause(Stream, Term) :-
+	\+ \+ ( numbervars(Term, '$VAR', 0, _), 
+		do_portray_clause(Stream, Term)
+	      ).
+
+do_portray_clause(Out, (Head :- true)) :- !, 
+	portray_head(Out, Head), 
+	put(Out, 0'.), nl(Out).
+do_portray_clause(Out, (Head :- Body)) :- !, 
+	portray_head(Out, Head), 
+	write(Out, ' :-'), 
 	(   nonvar(Body),
 	    Body = Module:LocalBody
-	->  nl, portray_indent(1),
+	->  nl, portray_indent(Out, 1),
 	    format('~q:', [Module]),
-	    nl, portray_indent(1),
+	    nl, portray_indent(Out, 1),
 	    write('(   '),
-	    portray_body(LocalBody, 2, noindent),
-	    nl, portray_indent(1),
+	    portray_body(LocalBody, 2, noindent, Out),
+	    nl, portray_indent(Out, 1),
 	    write(')')
-	;   portray_body(Body, 2, indent)
+	;   portray_body(Body, 2, indent, Out)
 	),
-	put(0'.), nl.
-do_portray_clause(Fact) :-
-	do_portray_clause((Fact :- true)).
+	put(Out, 0'.), nl(Out).
+do_portray_clause(Out, Fact) :-
+	do_portray_clause(Out, (Fact :- true)).
 
-portray_head(Head) :-
-	pprint(Head).
+portray_head(Out, Head) :-
+	pprint(Out, Head).
 
-portray_body(!, _, _) :- !, 
-	write(' !').
-portray_body((!, Clause), Indent, _) :- !, 
-	write(' !,'), 
-	portray_body(Clause, Indent, indent).
-portray_body(Term, Indent, indent) :- !, 
-	nl, portray_indent(Indent), 
-	portray_body(Term, Indent, noindent).
-portray_body((A, B), Indent, _) :- !, 
-	portray_body(A, Indent, noindent), 
-	write(','), 
-	portray_body(B, Indent, indent).
-portray_body(Or, Indent, _) :-
+portray_body(!, _, _, Out) :- !, 
+	write(Out, ' !').
+portray_body((!, Clause), Indent, _, Out) :- !, 
+	write(Out, ' !,'), 
+	portray_body(Clause, Indent, indent, Out).
+portray_body(Term, Indent, indent, Out) :- !, 
+	nl(Out), portray_indent(Out, Indent), 
+	portray_body(Term, Indent, noindent, Out).
+portray_body((A, B), Indent, _, Out) :- !, 
+	portray_body(A, Indent, noindent, Out), 
+	write(Out, ','), 
+	portray_body(B, Indent, indent, Out).
+portray_body(Or, Indent, _, Out) :-
 	memberchk(Or, [(_;_), (_|_), (_->_), (_*->_)]), !, 
-	write('(   '), 
-	portray_or(Or, Indent), 
-	nl, portray_indent(Indent), 
-	write(')').
-portray_body(Meta, Indent, _) :-
+	write(Out, '(   '), 
+	portray_or(Or, Indent, Out), 
+	nl(Out), portray_indent(Out, Indent), 
+	write(Out, ')').
+portray_body(Meta, Indent, _, Out) :-
 	meta_call(Meta, N), !, 
-	portray_meta(Meta, N, Indent).
-portray_body(Clause, _, _) :-
-	pprint(Clause).
+	portray_meta(Out, Meta, N, Indent).
+portray_body(Clause, _, _, Out) :-
+	pprint(Out, Clause).
 
-portray_or((If -> Then ; Else), Indent) :- !, 
+portray_or((If -> Then ; Else), Indent, Out) :- !, 
 	succ(Indent, NestIndent), 
-	portray_body(If, NestIndent, noindent), 	
-	nl, portray_indent(Indent),
-	write('->  '), 
-	portray_body(Then, NestIndent, noindent), 
-	nl, portray_indent(Indent), 
-	write(';   '), 
-	portray_or(Else, Indent).
-portray_or((If *-> Then ; Else), Indent) :- !, 
+	portray_body(If, NestIndent, noindent, Out), 	
+	nl(Out), portray_indent(Out, Indent),
+	write(Out, '->  '), 
+	portray_body(Then, NestIndent, noindent, Out), 
+	nl(Out), portray_indent(Out, Indent), 
+	write(Out, ';   '), 
+	portray_or(Else, Indent, Out).
+portray_or((If *-> Then ; Else), Indent, Out) :- !, 
 	succ(Indent, NestIndent), 
-	portray_body(If, NestIndent, noindent), 	
-	nl, portray_indent(Indent),
-	write('*-> '), 
-	portray_body(Then, NestIndent, noindent), 
-	nl, portray_indent(Indent), 
-	write(';   '), 
-	portray_or(Else, Indent).
-portray_or((If -> Then), Indent) :- !, 
+	portray_body(If, NestIndent, noindent, Out), 	
+	nl(Out), portray_indent(Out, Indent),
+	write(Out, '*-> '), 
+	portray_body(Then, NestIndent, noindent, Out), 
+	nl(Out), portray_indent(Out, Indent), 
+	write(Out, ';   '), 
+	portray_or(Else, Indent, Out).
+portray_or((If -> Then), Indent, Out) :- !, 
 	succ(Indent, NestIndent), 
-	portray_body(If, NestIndent, noindent), 	
-	nl, portray_indent(Indent), 
-	write('->  '), 
-	portray_or(Then, Indent).
-portray_or((If *-> Then), Indent) :- !, 
+	portray_body(If, NestIndent, noindent, Out), 	
+	nl(Out), portray_indent(Out, Indent), 
+	write(Out, '->  '), 
+	portray_or(Then, Indent, Out).
+portray_or((If *-> Then), Indent, Out) :- !, 
 	succ(Indent, NestIndent), 
-	portray_body(If, NestIndent, noindent), 	
-	nl, portray_indent(Indent), 
-	write('*-> '), 
-	portray_or(Then, Indent).
-portray_or((A;B), Indent) :- !, 
+	portray_body(If, NestIndent, noindent, Out), 	
+	nl(Out), portray_indent(Out, Indent), 
+	write(Out, '*-> '), 
+	portray_or(Then, Indent, Out).
+portray_or((A;B), Indent, Out) :- !, 
 	succ(Indent, OrIndent), 
-	portray_body(A, OrIndent, noindent), 
-	nl, portray_indent(Indent), 
-	write(';   '), 
-	portray_or(B, Indent).
-portray_or((A|B), Indent) :- !, 
+	portray_body(A, OrIndent, noindent, Out), 
+	nl(Out), portray_indent(Out, Indent), 
+	write(Out, ';   '), 
+	portray_or(B, Indent, Out).
+portray_or((A|B), Indent, Out) :- !, 
 	succ(Indent, OrIndent), 
-	portray_body(A, OrIndent, noindent), 	
-	nl, portray_indent(Indent), 
-	write('|   '), 
-	portray_or(B, Indent).
-portray_or(A, Indent) :-
+	portray_body(A, OrIndent, noindent, Out), 	
+	nl(Out), portray_indent(Out, Indent), 
+	write(Out, '|   '), 
+	portray_or(B, Indent, Out).
+portray_or(A, Indent, Out) :-
 	succ(Indent, OrIndent), 
-	portray_body(A, OrIndent, noindent).
+	portray_body(A, OrIndent, noindent, Out).
 
 meta_call(call(_), 1).
 meta_call(once(_), 1).
@@ -294,30 +299,30 @@ meta_call(not(_), 1).
 meta_call(\+(_), 1).
 meta_call(ignore(_), 1).
 
-portray_meta(Term, N, Indent) :-
+portray_meta(Out, Term, N, Indent) :-
 	arg(N, Term, Arg), 
 	memberchk(Arg, [(_, _), (_;_), (_->_), (_*->_)]), !, 
 	functor(Term, Name, _), 
-	write(Name), write('(('), 
+	write(Out, Name), write(Out, '(('), 
 	succ(Indent, CallIndent), 
-	portray_body(Arg, CallIndent, indent), 
-	nl, portray_indent(CallIndent), 
-	write('))').	
-portray_meta(Term, _, _) :-
-	pprint(Term).	
+	portray_body(Out, Arg, CallIndent, indent), 
+	nl(Out), portray_indent(Out, CallIndent), 
+	write(Out, '))').	
+portray_meta(Out, Term, _, _) :-
+	pprint(Out, Term).	
 
-portray_indent(N) :-
+portray_indent(Out, N) :-
 	Tab is N // 2, 
 	Space is (N mod 2) * 4, 
-	put_tabs(Tab),
-	tab(Space).
+	put_tabs(Out, Tab),
+	tab(Out, Space).
 
-put_tabs(N) :-
+put_tabs(Out, N) :-
 	N > 0, !,
-	put(9),
+	put(Out, 9),
 	NN is N - 1,
-	put_tabs(NN).
-put_tabs(_).
+	put_tabs(Out, NN).
+put_tabs(_, _).
 
-pprint(Term) :-
-	writeq(Term).
+pprint(Out, Term) :-
+	writeq(Out, Term).

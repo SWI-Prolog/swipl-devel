@@ -630,7 +630,10 @@ List all predicates of the database using listing/1.
     \predicate{portray_clause}{1}{+Clause}
 Pretty print a clause. A clause should be specified as a term
 `\exam{<Head> :- <Body>}'. Facts are represented as `\exam{<Head> :-
-true}'.
+true}' or simply \exam{<Head>}.  See also portray_clause/2.
+
+    \predicate{portray_clause}{2}{+Stream, +Clause}
+Pretty print a clause to \arg{Stream}. See portray_clause/1 for details.
 \end{description}
 
 

@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: portray_clause/2 (compatibility and consistency).
+
   * FIXED: Bug #52: write/1 to write SWI-Prolog string objects with
     embedded 0 chacters.  Mike Elston.
 
