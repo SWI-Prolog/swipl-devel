@@ -3071,7 +3071,7 @@ Converts, similar to downcase_atom/2, an atom to upper-case.
 
 SWI-Prolog supports the data type \arg{string}. Strings are a time and
 space efficient mechanism to handle text in Prolog. Strings are
-stores as a byte array on the global (term) stack and thus destroyed on
+stored as a byte array on the global (term) stack and thus destroyed on
 backtracking and reclaimed by the garbage collector.
 
 Strings were added to SWI-Prolog based on an early draft of the ISO
@@ -3100,15 +3100,16 @@ strings will cause many garbage collections. Atom garbage collection is
 generally faster.
 \end{itemlist}
 
-String objects by default have no syntax and thus can only be created
-using the predicates below or through the foreign language interface.
-There are two ways to make read/1 read text into strings, both
-controlled through Prolog flags.  One is by setting the
-\const{double_quotes} flag to \const{string} and the other is by
-setting the \const{backquoted_string} flag to \const{true}.  In latter
-case, \verb$`Hello world`$ is read into a string and write_term/2 prints
-strings between backquotes if \const{quoted} is \const{true}.  This
-flag provides compatibility to LPA Prolog string handling.
+String objects by default have no lexical representation and thus
+can only be created using the predicates below or through the foreign
+language interface (See \chapref{foreign}. There are two ways to make
+read/1 read text into strings, both controlled through Prolog flags. One
+is by setting the \const{double_quotes} flag to \const{string} and the
+other is by setting the \const{backquoted_string} flag to \const{true}.
+In latter case, \verb$`Hello world`$ is read into a string and
+write_term/2 prints strings between backquotes if \const{quoted} is
+\const{true}. This flag provides compatibility to LPA Prolog string
+handling.
 
 
 \begin{description}
@@ -4189,7 +4190,7 @@ See also convert_time/8.
 \end{description}
 
 
-\subsection{Controlling the program{PLWIN.EXE} console window}
+\subsection{Controlling the \program{PLWIN.EXE} console window}
 
 The Windows executable \program{PLWIN.EXE} console has a number of
 predicates to control the appearance of the console. Being totally
