@@ -11,9 +11,6 @@
 	, $clean_history/0
 	]).
 
-:- dynamic
-	user:history_depth/1.
-
 %   read_history(+History, +Help, +DontStore, +Prompt, -Term, -Bindings)
 %   Give a prompt using Prompt. The sequence '%w' is substituted with the
 %   current event number. Then read a term from the input stream and perform
@@ -140,7 +137,7 @@ remove_history(_, _).
 %    Define the depth to which to keep the history.
 
 history_depth_(N) :-
-	user:history_depth(N), !.
+	feature(history, N), !.
 history_depth_(15).
 
 %    expand_history(+Raw, -Expanded)

@@ -136,6 +136,7 @@ static const struct foreign {
   FRG("read_clause",		1, pl_read_clause,		TRACE_ME),
   FRG("read_clause",		2, pl_read_clause2,		TRACE_ME),
   FRG("$raw_read",		1, pl_raw_read,			TRACE_ME),
+  FRG("$raw_read",		2, pl_raw_read2,		TRACE_ME),
   FRG("current_op",		3, pl_current_op,	   NDET|TRACE_ME),
   FRG("current_atom",		1, pl_current_atom,	   NDET|TRACE_ME),
   FRG("current_functor",	2, pl_current_functor,	   NDET|TRACE_ME),

@@ -2223,7 +2223,7 @@ pl_set_feature(term_t key, term_t value)
   if ( PL_get_atom(value, &a) )
     return setFeature(k, FT_ATOM, a);
   if ( PL_get_long(value, &i) )
-    return setFeature(k, FT_INTEGER, a);
+    return setFeature(k, FT_INTEGER, i);
 
   return warning("set_feature/2: illegal value");
 }

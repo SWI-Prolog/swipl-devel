@@ -545,6 +545,7 @@ int		get_number(const unsigned char *string,
 			   unsigned char **end,
 			   Number value);
 word		pl_raw_read(term_t term);
+word		pl_raw_read2(term_t stream, term_t term);
 word		pl_read_variables(term_t term, term_t variables);
 word		pl_read_variables3(term_t stream, term_t term,
 				   term_t variables);

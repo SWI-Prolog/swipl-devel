@@ -127,10 +127,11 @@ make_library_index(Dir) :-
 	make_library_index(Dir, ['*.pl']).
 	
 make_library_index(Dir, Patterns) :-
-	access_file(Dir, write), !,
+	Index = 'INDEX.pl',
+	concat_atom([Dir, '/', Index], AbsIndex),
+	access_file(AbsIndex, write), !,
 	absolute_file_name('', OldDir),
 	chdir(Dir),
-	Index = 'INDEX.pl',
 	expand_index_file_patterns(Patterns, Files),
 	(   library_index_out_of_date(Index, Files)
 	->  format('Making library index for ~w ... ', Dir), flush,

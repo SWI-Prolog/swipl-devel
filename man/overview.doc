@@ -805,6 +805,12 @@ atom by calling read_term/2 using the option \const{variable_names} and
 binding the variables to their name. Using this feature, F(x) can be
 turned into valid syntax for such script languages. Suggested by Robert
 van Engelen.  SWI-Prolog specific.
+    \featureoption{history}{integer}
+If $> 0$, support Unix \program{csh(1)} like history as described in
+\secref{history}.  Otherwise, only support reusing commands through
+the commandline editor.  The default is to set this feature to 0 if
+a commandline editor is provided (see feature \const{readline}) and
+15 otherwise.
     \featureoption{gc}{bool}
 If true (default), the garbage collector is active.  If false, neither
 garbage-collection, nor stack-shifts will take place, even not on

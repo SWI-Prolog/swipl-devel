@@ -190,7 +190,6 @@ suggest predicates from a keyword.
 \predicatesummary{hash_term}{2}{Hash-value of ground term}
 \predicatesummary{help}{0}{Give help on help}
 \predicatesummary{help}{1}{Give help on predicates and show parts of manual}
-\predicatesummary{history_depth}{1}{Number of remembered queries}
 \predicatesummary{ignore}{1}{Call the argument, but always succeed}
 \predicatesummary{import}{1}{Import a predicate from a module}
 \predicatesummary{index}{1}{Change clause indexing}

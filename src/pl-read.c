@@ -1910,6 +1910,13 @@ pl_raw_read(term_t term)
   return PL_unify_atom_chars(term, s);
 }
 
+
+word
+pl_raw_read2(term_t stream, term_t term)
+{ streamInput(stream, pl_raw_read(term));
+}
+
+
 word
 pl_read_variables(term_t term, term_t variables)
 { return read_term(term, variables, 0, FALSE);

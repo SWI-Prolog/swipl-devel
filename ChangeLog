@@ -4,6 +4,20 @@
 VERSION 2.9.6
 =============
 
+  * FIXED: testing of write-premissions for the library index for
+    make/0.
+
+  * MODIFIED: Toplevel queries are now read from user_input, rather
+    than from the current input stream.
+
+  * ADDED: feature(history, Depth).  If 0, no history and no history-prompt
+    are provided.  This is the default if feature(readline, true) succeeds.
+
+  * FIXED: set_feature(Name, Integer)
+
+  * FIXED: chdir/absolute_file_name problem, reported by Machiel Jansen.
+    Thanks.
+
   * FIXED: erase/1 on records referenced by recorded/3 choicepoints.  Thanks
     to Robert van Engelen.
 

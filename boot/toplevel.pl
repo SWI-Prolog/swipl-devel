@@ -271,14 +271,61 @@ prolog :-
 		$system_prompt(TypeIn, BreakLev, Prompt),
 		prompt(Old, '|    '), 
 		trim_stacks,
-		read_history(h, '!h', 
-			      [trace, end_of_file], 
-			      Prompt, Goal, Bindings), 
+		read_query(Prompt, Goal, Bindings),
 		prompt(_, Old),
 		call_expand_query(Goal, ExpandedGoal,
 				  Bindings, ExpandedBindings)
 	    ->  $execute(ExpandedGoal, ExpandedBindings)
 	    ), !.
+
+
+read_query(Prompt, Goal, Bindings) :-
+	feature(history, N),
+	N > 0, !,
+	remove_history_prompt(Prompt, Prompt1),
+	repeat,				% over syntax errors
+	prompt1(Prompt1),
+	(   feature(readline, true)
+	->  $raw_read(user_input, Line),
+	    atom_chars(Line, LineChars),
+	    append(LineChars, ".", CompleteLine),
+	    call(rl_add_history(CompleteLine)),
+	    $term_to_atom(Goal, Line, Bindings, 1)
+	;   read_term(user_input, Goal, [variable_names(Bindings)])
+	), !.
+read_query(Prompt, Goal, Bindings) :-
+	seeing(Old), see(user_input),
+	(   read_history(h, '!h', 
+			 [trace, end_of_file], 
+			 Prompt, Goal, Bindings)
+	->  see(Old)
+	;   see(Old),
+	    fail
+	).
+
+remove_history_prompt(Prompt0, Prompt) :-
+	atom_chars(Prompt0, Chars0),
+	clean_history_prompt_chars(Chars0, Chars1),
+	delete_leading_blanks(Chars1, Chars),
+	atom_chars(Prompt, Chars).
+
+clean_history_prompt_chars([], []).
+clean_history_prompt_chars([0'%, 0'!|T], T) :- !.
+clean_history_prompt_chars([H|T0], [H|T]) :-
+	clean_history_prompt_chars(T0, T).
+ 
+delete_leading_blanks([32|T0], T) :- !,
+	delete_leading_blanks(T0, T).
+delete_leading_blanks(L, L).
+
+
+set_default_history :-
+	(   feature(readline, true)
+	->  set_feature(history, 0)
+	;   set_feature(history, 15)
+	).
+
+:- initialization set_default_history.
 
 
 		/********************************
@@ -291,7 +338,7 @@ prolog :-
 $prompt("%m%l%! ?- ").
 
 $set_prompt(P) :-
-	name(P, S),
+	atom_chars(P, S),
 	retractall($prompt(_)),
 	assert($prompt(S)).
 
@@ -306,7 +353,7 @@ $system_prompt(Module, BrekLev, Prompt) :-
 	->   $substitute("%l", ["[", BrekLev, "] "], P1, P2)
 	;    $substitute("%l", [], P1, P2)
 	),
-	name(Prompt, P2).
+	atom_chars(Prompt, P2).
 	
 $substitute(From, T, Old, New) :-
 	convert_to(T, T0),

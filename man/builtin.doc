@@ -1667,11 +1667,6 @@ SWI-Prolog calls read_history/6 as follows:
 read_history(h, '!h', [trace], '%w ?- ', Goal, Bindings)
 \end{code}
 
-    \predicate{history_depth}{1}{-Int}
-Dynamic predicate, normally not defined. The user can define this
-predicate to set the history depth. It should unify the argument with a
-positive integer. When not defined 15 is used as the default.
-
     \predicate{prompt}{2}{-Old, +New}
 Set prompt associated with read/1 and its derivatives.  \arg{Old}
 is first unified with the current prompt.  On success the prompt will be

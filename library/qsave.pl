@@ -31,7 +31,7 @@ qsave_program(File, Options0) :-
 	->  Options = Options4
 	;   term_to_atom(GoalTerm, GoalAtom),
 	    term_to_atom(GT, GoalAtom),
-	    '$define_predicate'(user:GT),	% autoloader
+	    define_predicate(user:GT),
 	    Options = [goal=GoalAtom|Options4]
 	),
 	(   Autoload == true
@@ -66,6 +66,14 @@ qsave_program(File, Options0) :-
 
 special_module(system).
 special_module(user).
+
+define_predicate(Head) :-
+	'$define_predicate'(Head), !.	% autoloader
+define_predicate(Head) :-
+	'$strip_module'(Head, _, Term),
+	functor(Term, Name, Arity),
+	throw(error(existence_error(procedure, Name/Arity), _)).
+
 
 		 /*******************************
 		 *	      AUTOLOAD		*

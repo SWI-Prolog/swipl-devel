@@ -1635,6 +1635,7 @@ DeRefLink(const	char *link, char *buf)
 bool
 ChDir(const char *path)
 { char ospath[MAXPATHLEN];
+  char tmp[MAXPATHLEN];
 
   OsPath(path, ospath);
 
@@ -1642,11 +1643,11 @@ ChDir(const char *path)
        (CWDdir && streq(path, CWDdir)) )
     succeed;
 
-  if ( chdir(ospath) == 0 )
-  { char tmp[MAXPATHLEN];
-    int len;
+  AbsoluteFile(path, tmp);
 
-    AbsoluteFile(path, tmp);
+  if ( chdir(ospath) == 0 )
+  { int len;
+
     len = strlen(tmp);
     if ( len == 0 || tmp[len-1] != '/' )
     { tmp[len++] = '/';
