@@ -392,7 +392,7 @@ geometryMenuBar(MenuBar mb, Int x, Int y, Int w, Int h)
   if ( wtot )
     wtot -= gap;
 
-  if ( mb->look == NAME_motif && notDefault(w) && valInt(w) > wtot )
+  if ( notDefault(w) && valInt(w) > wtot )
     extragap = valInt(w) - wtot;
   else
     extragap = 0;

@@ -444,13 +444,22 @@ pceDispatch(int fd, int time)
 
 
 void
-pceRedraw(void)
-{ static DisplayManager dm = NULL;
+pceRedraw(int sync)
+{ if ( sync )
+  { static DisplayObj d = NULL;
 
-  if ( !dm && !(dm = getObjectAssoc(NAME_displayManager)) )
-    return;
+    if ( !d && !(d = CurrentDisplay(NIL)) )
+      return;
 
-  RedrawDisplayManager(dm);
+    synchroniseDisplay(d);
+  } else
+  { static DisplayManager dm = NULL;
+
+    if ( !dm && !(dm = getObjectAssoc(NAME_displayManager)) )
+      return;
+
+    RedrawDisplayManager(dm);
+  }
 }
 
 

@@ -75,6 +75,7 @@ End;
     ABSTRACT_VECTOR			/* vector attributes */ \
     Table	table;			/* Table I belong to */ \
     Any		background;		/* Background colour in */ \
+    Bool	selected;		/* Default <-selected for cells */ \
     Name	alignment;		/* halign,valign */ \
     Bool	end_group;		/* Slice ends a (row/column) group */ \
     Int		index;			/* nth row/column */ \

@@ -1188,6 +1188,8 @@ static resourcedecl rc_display[] =
      "  fixed     := font(screen, roman, 13)\n"
      "]",
      "Predefined font-aliases"),
+  RC(NAME_userFonts, "chain", "[]",
+     "User font-aliases"),
   RC(NAME_noFont, "font", "fixed",
      "Replacement for undefined fonts"),
   RC(NAME_quickAndDirty, "bool", "@on",

@@ -75,12 +75,12 @@ socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	{ case FD_READ:
 	    DEBUG(NAME_stream, Cprintf("Input available on %s\n", pp(s)));
 	    handleInputStream((Stream) s);
-	    pceRedraw();
+	    pceRedraw(FALSE);
 	    break;
 	  case FD_ACCEPT:
 	    DEBUG(NAME_stream, Cprintf("Accept on %s\n", pp(s)));
 	    acceptSocket(s);
-	    pceRedraw();		/* may have side-effects */
+	    pceRedraw(FALSE);		/* may have side-effects */
 	    break;
 	  case FD_CLOSE:
 	    DEBUG(NAME_stream, Cprintf("Close on %s\n", pp(s)));
@@ -104,7 +104,7 @@ socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 				  pp(p), avail));
       handleInputStream((Stream)p);
       input_to_handle = FALSE;
-      pceRedraw();
+      pceRedraw(FALSE);
       return 0;
     }
     case WM_PROCESS_EXIT:
@@ -114,7 +114,7 @@ socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       DEBUG(NAME_process, Cprintf("Received WM_PROCESS_EXIT %s %d\n",
 				  pp(p), status));
       eof_process(p, status);
-      pceRedraw();
+      pceRedraw(FALSE);
       return 0;
     }
 #ifndef USE_RLC_FUNCTIONS

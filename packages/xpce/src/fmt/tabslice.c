@@ -15,6 +15,7 @@ initialiseTableSlice(TableSlice c)
 { initialiseVectorv((Vector)c, 0, NULL);
 
   assign(c, background, DEFAULT);
+  assign(c, selected,   DEFAULT);
   assign(c, end_group,  OFF);
   assign(c, index,      ZERO);
   assign(c, width,      ZERO);
@@ -69,6 +70,8 @@ static vardecl var_table_slice[] =
      NAME_organisation, "Table I belong to"),
   IV(NAME_background, "[colour|pixmap]", IV_GET,
      NAME_colour, "Default background of the cells"),
+  IV(NAME_selected, "[bool]", IV_GET,
+     NAME_selection, "Default <-selected of the cells"),
   IV(NAME_alignment, "{top,bottom,left,right,center,reference,stretch}",
      IV_GET,
      NAME_layout, "Default alignment of cells"),
@@ -204,6 +207,17 @@ backgroundTableColumn(TableColumn col, Any bg)
 }
 
 
+static status
+selectedTableColumn(TableColumn col, Bool selected)
+{ if ( col->selected != selected )
+  { assign(col, selected, selected);
+    changedImageTableColumn(col);
+  }
+
+  succeed;
+}
+
+
 TableCell
 getCellTableColumn(TableColumn col, Int y)
 { Table tab = col->table;
@@ -281,6 +295,8 @@ static senddecl send_table_column[] =
      DEFAULT, "Remove from <-table"),
   SM(NAME_background, 1, "[colour|pixmap]", backgroundTableColumn,
      NAME_colour, NULL),
+  SM(NAME_selected, 1, "[bool]", selectedTableColumn,
+     NAME_selection, NULL),
   SM(NAME_halign, 1, T_halign, halignTableColumn,
      NAME_alignment, "Default horizontal alignment"),
   SM(NAME_compute, 0, NULL, computeTableColumn,
@@ -377,6 +393,17 @@ static status
 backgroundTableRow(TableRow row, Any bg)
 { if ( row->background != bg )
   { assign(row, background, bg);
+    changedImageTableRow(row);
+  }
+
+  succeed;
+}
+
+
+static status
+selectedTableRow(TableRow row, Bool selected)
+{ if ( row->selected != selected )
+  { assign(row, selected, selected);
     changedImageTableRow(row);
   }
 
@@ -485,6 +512,8 @@ static senddecl send_table_row[] =
      DEFAULT, "Remove from <-table"),
   SM(NAME_background, 1, "[colour|pixmap]", backgroundTableRow,
      NAME_colour, NULL),
+  SM(NAME_selected, 1, "[bool]", selectedTableRow,
+     NAME_selection, NULL),
   SM(NAME_valign, 1, T_valign, valignTableRow,
      NAME_alignment, "Default vertical alignment"),
   SM(NAME_compute, 0, NULL, computeTableRow,

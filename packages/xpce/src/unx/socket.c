@@ -408,9 +408,9 @@ bindSocket(Socket s)
 	{ return errorPce(s, NAME_socket, NAME_getsockname, SockError());
 	} else
 	{ if ( s->address == ZERO )
-	    assign(s, address, toInt(addr.sin_port));
+	    assign(s, address, toInt(ntohs(addr.sin_port)));
 	  else
-	    assign((Tuple)s->address, second, toInt(address.sin_port));
+	    assign((Tuple)s->address, second, toInt(ntohs(address.sin_port)));
 	}
       }
     }

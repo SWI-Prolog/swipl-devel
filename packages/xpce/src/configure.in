@@ -351,6 +351,7 @@ AC_CHECK_PROGS(AR, ar /usr/ccs/bin/ar, ar)
 AC_CHECK_PROGS(LDCONFIG, ldconfig, "true")
 AC_C_INLINE
 AC_FUNC_ALLOCA
+AC_C_BIGENDIAN
 
 AC_CHECK_PROGS(YACC, bison yacc, yacc)
 if test $YACC = "bison"; then YACC="bison -y"; fi

@@ -1150,6 +1150,29 @@ getBackgroundTableCell(TableCell cell)
 }
 
 
+static Bool
+getSelectedTableCell(TableCell cell)
+{ Table tab;
+
+  if ( notDefault(cell->selected) )
+    answer(cell->selected);
+
+  if ( (tab=table_of_cell(cell) ) )
+  { TableRow row;
+    TableColumn col;
+
+    if ( (row = getRowTable(tab, cell->row, OFF)) &&
+	 notDefault(row->selected) )
+      answer(row->selected);
+    if ( (col = getColumnTable(tab, cell->column, OFF)) &&
+	 notDefault(col->selected) )
+      answer(row->selected);
+  }
+
+  fail;
+}
+
+
 #define NOSIDES	  0
 #define BOX_SIDES 0xf			/* top, right, bottom, left */
 #define VSIDES    0x5
@@ -1169,7 +1192,7 @@ RedrawRulesTableCell(TableCell cell, Name style, int b)
   if ( (bg=getBackgroundTableCell(cell)) )
     r_fill(d.x, d.y, d.w, d.h, bg);
 
-  if ( cell->selected == ON )
+  if ( getSelectedTableCell(cell) == ON )
   { r_thickness(b+1);
     r_box(d.x, d.y, d.w, d.h, 0, NIL);
   }

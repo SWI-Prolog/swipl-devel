@@ -191,11 +191,17 @@ specialisedType(Type t1, Type t2)	/* t1 is specialised regarding to t2 */
   while(t2->kind == NAME_alias)
     t2 = t2->context;
 
+  if ( t1 == t2 ||			/* Equivalence */
+       (t1->context == t2->context && t1->kind == t2->kind) )
+    succeed;
 					/* normal subclassing */
-  if ( t1 == t2 ||
-       (t1->context == t2->context && t1->kind == t2->kind) ||
-       (isClassType(t1) && isClassType(t2) &&
-	isAClass(t1->context, t2->context)) )
+  if ( t1->kind == NAME_class && t2->kind == NAME_class &&
+       isAClass(t1->context, t2->context) )
+    succeed;
+  
+					/* class object */
+  if ( t2->kind == NAME_object && t1->kind == NAME_class &&
+       !isAClass(t1->context, ClassFunction) )
     succeed;
 
 					/* relative to any */
@@ -220,6 +226,20 @@ specialisedType(Type t1, Type t2)	/* t1 is specialised regarding to t2 */
       if ( specialisedType(t1, cell->value) )
       	succeed;
   }
+
+  fail;
+}
+
+
+static status
+equalType(Type t1, Type t2)
+{ while(t1->kind == NAME_alias)
+    t1 = t1->context;
+  while(t2->kind == NAME_alias)
+    t2 = t2->context;
+
+  if ( t1 == t2 )
+    succeed;
 
   fail;
 }
@@ -917,6 +937,8 @@ static senddecl send_type[] =
      NAME_check, "Validate argument is of this type"),
   SM(NAME_includes, 1, "type", includesType,
      NAME_meta, "Type includes its argument"),
+  SM(NAME_equal, 1, "type", equalType,
+     NAME_compare, "Test if both types are the same"),
   SM(NAME_specialised, 1, "type", specialisedType,
      NAME_meta, "Test if argument is a specialised type")
 };
