@@ -913,7 +913,7 @@ replace_singletons(M, P) :-
 	    Frags),
 	send(M, attribute, singletons, Frags),
 	get(M, caret, C),
-	send(M, mark, C),
+	send(M, internal_mark, C),
 	send(M, focus_function, '_replace_singletons'),
 	prepare_replace_singletons(M).
 
@@ -930,7 +930,7 @@ replace_singletons(M, P) :-
 	    ->  true
 	    )
 	->  (   send(Frags, empty)
-	    ->  send(M, caret, M?mark),
+	    ->  send(M, caret, M?internal_mark),
 		cancel_replace_singletons(M)
 	    ;   prepare_replace_singletons(M)
 	    )

@@ -3697,8 +3697,23 @@ showScrollBarEditor(Editor e, Bool show, ScrollBar sb)
 }
 
 		/********************************
-		*            SELECTION		*
+		*     SELECTION/REGION/MARK	*
 		********************************/
+
+static status
+internalMarkEditor(Editor e, Int mark)
+{ e->internal_mark = valInt(normalise_index(e, mark));
+
+  succeed;
+}
+
+
+static Int
+getInternalMarkEditor(Editor e)
+{ return toInt(e->internal_mark);
+}
+
+
 
 static status
 selectionOriginEditor(Editor e, Int where)
@@ -4805,6 +4820,8 @@ static senddecl send_editor[] =
      NAME_search, "Start incremental search backward"),
   SM(NAME_isearchForward, 0, NULL, isearchForwardEditor,
      NAME_search, "Start incremental search forward"),
+  SM(NAME_internalMark, 1, "int", internalMarkEditor,
+     NAME_caret, "Mark for program-use"),
   SM(NAME_selectLine, 2, T_selectLine, selectLineEditor,
      NAME_selection, "Select given line number"),
   SM(NAME_selection, 2, T_fromADintD_toADintD, selectionEditor,
@@ -4917,6 +4934,8 @@ static getdecl get_editor[] =
      NAME_selection, "Index for end of selection"),
   GM(NAME_selectionStart, 0, "int", NULL, getSelectionStartEditor,
      NAME_selection, "Index for start of selection"),
+  GM(NAME_internalMark, 0, "int", NULL, getInternalMarkEditor,
+     NAME_caret, "Mark for program use"),
   GM(NAME_showLabel, 0, "bool", NULL, getShowLabelEditor,
      NAME_appearance, "Bool indicating if label is visible"),
   GM(NAME_marginWidth, 0, "pixels=int", NULL, getMarginWidthEditor,

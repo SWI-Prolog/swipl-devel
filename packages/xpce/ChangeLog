@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Published `editor<->internal_mark', a mark for program use.
+
 * FIXED: Throw exception of Prolog defined get-method returns a
   freed XPCE object. Used to succeed without binding the result.
   Thanks to Lourens van der Meij.
