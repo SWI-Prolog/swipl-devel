@@ -1,6 +1,12 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: library(pce_tagged_connection): allow ->tag: @nil to remove the
+  associated tag.
+
+* ADDED: `graphical <-connected' and use message passing in
+  `graphical <-layout' to find out about connected graphicals.
+
 * FIXED: Bug#103: Error loading XPCE on MS-Windows when compiled for single
   threading.  Holger Kanwischer.
 

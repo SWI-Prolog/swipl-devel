@@ -39,7 +39,7 @@
 
 variable(tag,	graphical*,	get, "Associated tag").
 
-tag(C, Tag:graphical) :->
+tag(C, Tag:graphical*) :->
 	"Associate (new) tag with the connection"::
 	get(C, tag, Old),
 	(   Old == Tag

@@ -2447,9 +2447,12 @@ layoutGraphical(Graphical gr,
   for (i=0, op=objects; i<n; i++, op++)
   { lg_object *op2;
     lg_relation *rp;
+    Any av[4];
+    av[1] = av[2] = av[3] = DEFAULT;
 
     for (j=0, op2=objects, rp = r[i]; j<i; j++, op2++, rp++)
-    { rp->c = getConnectedGraphical(op->gr, op2->gr, DEFAULT, DEFAULT, DEFAULT);
+    { av[0] = op2->gr;
+      rp->c = qadGetv(op->gr, NAME_connected, 4, av);
       if ( rp->c )
 	rp->ideal_len = qadGetv(rp->c, NAME_idealLength, 0, NULL);
     }
@@ -3567,6 +3570,8 @@ static getdecl get_graphical[] =
      NAME_postscript, "New string holding PostScript description"),
   GM(NAME_connections, 4, "chain", T_connections, getConnectionsGraphical,
      NAME_relation, "New chain with matching connections"),
+  GM(NAME_connected, 4, "connection", T_link, getConnectedGraphical,
+     NAME_relation, "Find specified connection"),
   GM(NAME_handle, 1, "handle", "name", getHandleGraphical,
      NAME_relation, "Find handle with given name"),
   GM(NAME_handlePosition, 2, "point", T_handlePosition, getHandlePositionGraphical,
