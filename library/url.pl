@@ -302,8 +302,17 @@ parse_url(URL, BaseURL, Attributes) :-
 	atom_codes(URL, Chars).
 
 	
+%	globalise_path(+LocalPath, +RelativeTo, -FullPath)
+%	
+%	The first clause deals with the  standard URL /... global paths.
+%	The second with file://drive:path on MS-Windows.   This is a bit
+%	of a cludge, but unfortunately common practice is -especially on
+%	Windows- not always following the standard
+
 globalise_path(LocalPath, _, LocalPath) :-
-	is_absolute_file_name(LocalPath), !. % make file:drive:path work on MS
+	sub_atom(LocalPath, 0, _, _, /), !.
+globalise_path(LocalPath, _, LocalPath) :-
+	is_absolute_file_name(LocalPath), !.
 globalise_path(Local, Base, Path) :-
 	base_dir(Base, BaseDir),
 	make_path(BaseDir, Local, Path).
