@@ -11,7 +11,7 @@
 
                    Reference Manual
 
-      Updated for version 2.7.11, August 1996
+      Updated for version 2.7.13, August 1996
 
                     Jan Wielemaker
 
@@ -2756,32 +2756,36 @@ destination of the data.
 open(+SrcDest, +Mode, -Stream, +Options)
      ISO compliant predicate to open a stream. SrcDes is either an
      atom, specifying a Unix file, or a term `pipe( Command)', just like
-     see/1 and tell/1. Mode is one of read, write or append. Stream
-     is either a variable, in which case it is bound to a small integer
-     identifying the stream, or an atom, in which case this atom will be
-     the stream indentifier. The Options list can contain the following
-     options:
+     see/1 and tell/1. Mode is one of read, write, append or
+     update. Mode append opens the file for writing, positioning the
+     file-pointer at the end. Mode update opens the file for writing,
+     positioning the file-pointer at the beginning of the file without
+     truncating the file. See also stream_position/3. Stream is either
+     a variable, in which case it is bound to an integer identifying the
+     stream, or an atom, in which case this atom will be the stream
+     indentifier. The Options list can contain the following options:
 
-         type(Type). Using type text (default), Prolog will write a
-         text-file in an operating-system compatible way. Using type
-         binary the bytes will be read or written without any
-         translation. Note there is no difference between the two on
-         Unix systems.
+         type(Type)
+         . Using type text (default), Prolog will write a text-file in an
+         operating-system compatible way. Using type binary the
+         bytes will be read or written without any translation. Note
+         there is no difference between the two on Unix systems.
 
-         alias(Atom) gives the stream a name. The following two
-         calls are identical, but only the latter is allowed in ISO
-         Prolog.
+         alias(Atom)
+         gives the stream a name. The following two calls are
+         identical, but only the latter is allowed in ISO Prolog.
 
              ?- open(foo, read, in, []).
              ?- open(foo, read, S, [alias(in)]).
 
-         eof_action(Action) defines what happens if the end of the
-         input stream is reached. Action eof_code makes get0/1 and
-         friends return -1 and read/1 and friends return the atom
-         end_of_file. Repetitive reading keeps yielding the same
-         result. Action error is like eof_code, but repetitive reading
-         will raise an error. With action reset, Prolog will examine
-         the file again and return more data if the file has grown.
+         eof_action(Action)
+         defines what happens if the end of the input stream is
+         reached. Action eof_code makes get0/1 and friends return
+         -1 and read/1 and friends return the atom end_of_file.
+         Repetitive reading keeps yielding the same result. Action
+         error is like eof_code, but repetitive reading will raise an
+         error. With action reset, Prolog will examine the file again
+         and return more data if the file has grown.
 
      The option reposition is not supported in SWI-Prolog. All
      streams connected to a file may be repositioned.
