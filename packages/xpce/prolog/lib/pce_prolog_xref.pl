@@ -688,6 +688,8 @@ process_chr(constraints(_), Src) :-
 	;   assert(mode(chr, Src))
 	).
 
+chr_head(X, _, _) :-
+	var(X), !.			% Illegal.  Warn?
 chr_head(\(A,B), Src, H) :-
 	chr_head(A, Src, H),
 	process_body(B, H, Src).
@@ -697,17 +699,24 @@ chr_head((H0,B), Src, H) :-
 chr_head(H0, Src, H) :-
 	chr_defined(H0, Src, H).
 
+chr_defined(X, _, _) :-
+	var(X), !.
 chr_defined(#(C,_Id), Src, C) :- !,
 	assert_constraint(Src, C).
 chr_defined(A, Src, A) :-
 	assert_constraint(Src, A).
 
+chr_body(X, From, Src) :-
+	var(X), !,
+	process_body(X, From, Src).
 chr_body('|'(Guard, Goals), H, Src) :- !,
 	chr_body(Guard, H, Src),
 	chr_body(Goals, H, Src).
 chr_body(G, From, Src) :-
 	process_body(G, From, Src).
 
+assert_constraint(_, Head) :-
+	var(Head), !.
 assert_constraint(Src, Head) :-
 	constraint(Head, Src, _), !.
 assert_constraint(Src, Head) :-
@@ -728,6 +737,9 @@ assert_constraint(Src, Head) :-
 
 assert_called(_, _, Var) :-
 	var(Var), !.
+assert_called(Src, From, Goal) :-
+	var(From), !,
+	assert_called(Src, '<unknown>', Goal).
 assert_called(Src, Origin, M:G) :- !,
 	(   atom(M),
 	    xmodule(M, Src)

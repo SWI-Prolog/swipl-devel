@@ -2,6 +2,8 @@
 			   ==============
 
 
+* FIXED: Bug#209 PceEmacs CHR colouring on bad input.
+
 VERSION 6.4.3, distributed with SWI-Prolog 5.4.3
 ================================================
 
