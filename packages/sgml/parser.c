@@ -4748,7 +4748,8 @@ reprocess:
 	p->saved = chr;
 	p->lit_saved_state = S_DECL;
 	return;
-      } else if ( f[CF_CMT] == chr )	/* - */
+      } else if ( f[CF_CMT] == chr &&	/* - */
+		  p->buffer->data[0] == f[CF_MDO2] ) /* Started <! */
       { p->state = S_DECLCMT0;
       } else if ( f[CF_DSO] == chr )	/* [: marked section */
       { terminate_icharbuf(p->buffer);

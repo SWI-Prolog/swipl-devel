@@ -1,3 +1,7 @@
+May 21, 2003
+
+  * FIXED: Handle -- in element-names (Bijan Parsia).
+
 May 8, 2003
 
   * Fix registering catalog files
