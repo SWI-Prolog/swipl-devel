@@ -583,15 +583,18 @@ outer_frame_area(FrameObj fr, int *x, int *y, int *w, int *h, int limit)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-NOTE: transients are a bit complicated.	 I'd like to have a window with
-just a title and a close-button.  The below appears to achieve that.  The
-icon_image must be set to @nil.  
+NOTE: transients are a bit complicated. I'd   like to have a window with
+just a title and a close-button. The  below appears to achieve that. The
+icon_image must be set to @nil. 
 
+If we are a transient window we must set the parent handle. This ensures
+we stay on top of the parent.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 status
 ws_create_frame(FrameObj fr)
 { HWND ref;
+  HWND owner = NULL;
   DWORD style = WS_CLIPCHILDREN; 
   DWORD exstyle = 0;
   int x, y, w, h;
@@ -605,14 +608,19 @@ ws_create_frame(FrameObj fr)
   { if ( fr->kind == NAME_toplevel )
     { style |= WS_OVERLAPPEDWINDOW;
     } else if ( fr->kind == NAME_transient )
-    { style = WS_POPUP;
-      if ( getClassVariableValueObject(fr, NAME_decorateTransient) == ON )
-      { Image deficon = getClassVariableValueClass(ClassFrame, NAME_iconImage);
+    { int dec;
 
-	style	|= WS_POPUPWINDOW|WS_CAPTION;
-	exstyle |= WS_EX_DLGMODALFRAME;
-      } else
-	style |= WS_DLGFRAME;
+      dec = (getClassVariableValueObject(fr, NAME_decorateTransient) == ON);
+      if ( notNil(fr->transient_for) )
+	owner = getHwndFrame(fr->transient_for);
+
+      { style = WS_POPUP;
+	if ( dec )
+	{ style	|= WS_POPUPWINDOW|WS_CAPTION;
+	  exstyle |= WS_EX_DLGMODALFRAME;
+	} else
+	  style |= WS_DLGFRAME;
+      }
     }
 
     if ( fr->can_resize == ON )
@@ -631,7 +639,10 @@ ws_create_frame(FrameObj fr)
 		       strName(fr->label),
 		       style,
 		       x, y, w, h,
-		       NULL, NULL, PceHInstance, NULL);
+		       owner,
+		       NULL,		/* menu */
+		       PceHInstance,
+		       NULL);		/* Creation data */
 		     
   if ( !ref )
     return errorPce(fr, NAME_xOpen, fr->display);
@@ -655,6 +666,12 @@ ws_realise_frame(FrameObj fr)
   }
 }
 
+void
+ws_frame_border(FrameObj fr, int *xb, int *yb, int *ycap)
+{ *xb   = GetSystemMetrics(SM_CXBORDER);
+  *yb   = GetSystemMetrics(SM_CYBORDER);
+  *ycap = GetSystemMetrics(SM_CYCAPTION);
+}
 
 #define PLACE_MARGIN 30			/* don't place on the border */
 #define PLACE_X_OFFSET 20		/* offsets */
@@ -664,14 +681,14 @@ static void
 ws_place_frame(FrameObj fr)
 { static int last_x = 0, last_y = 0;
   static int placed = 0;
-  int xborder = GetSystemMetrics(SM_CXBORDER);
-  int yborder = GetSystemMetrics(SM_CYCAPTION) +
-		GetSystemMetrics(SM_CYBORDER);
-
   int dw = valInt(getWidthDisplay(fr->display));
   int dh = valInt(getHeightDisplay(fr->display));
   int fw = valInt(fr->area->w);
   int fh = valInt(fr->area->h);
+  int xborder, yborder, ycap;
+
+  ws_frame_border(fr, &xborder, &yborder, &ycap);
+  yborder += ycap;
   
   if ( !placed++ )
   { last_x = rand() % (dw-fw-2*PLACE_MARGIN);
@@ -934,6 +951,36 @@ ws_get_icon_position_frame(FrameObj fr, int *x, int *y)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Enable/disable the windows we are modal too.   This is not really ok. If
+frame fr1 is application modal and  opens fr2 which is application-modal
+too, releasing fr2 will enable the other windows ...
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+ws_enable_modal(FrameObj fr, Bool val)
+{ BOOL enable = (val == ON ? TRUE : FALSE);
+
+  if ( fr->modal == NAME_transient && notNil(fr->transient_for) )
+  { HWND owner = getHwndFrame(fr->transient_for);
+
+    DEBUG(NAME_modal, Cprintf("ws_enable_modal() %s %s\n",
+			      pp(fr), enable ? "TRUE" : "FALSE"));
+    EnableWindow(owner, enable);
+  } else if ( fr->modal == NAME_application && notNil(fr->application) )
+  { Cell cell;
+
+    for_cell(cell, fr->application->members)
+    { FrameObj appfr = cell->value;
+      HWND hwnd;
+
+      if ( appfr != fr && (hwnd = getHwndFrame(appfr)) )
+	EnableWindow(hwnd, enable);
+    }
+  }
+}
+
+
 void
 ws_status_frame(FrameObj fr, Name stat)
 { WsFrame f = fr->ws_ref;
@@ -957,11 +1004,15 @@ ws_status_frame(FrameObj fr, Name stat)
 
     ShowWindow(f->hwnd, how);
     UpdateWindow(f->hwnd);
-  } else if ( stat == NAME_iconic )
-  { ShowWindow(f->hwnd, SW_MINIMIZE);
-  } else if ( stat == NAME_hidden )
-  { if ( f->hwnd )
-      ShowWindow(f->hwnd, SW_HIDE);
+    ws_enable_modal(fr, OFF);
+  } else
+  { if ( stat == NAME_iconic )
+    { ShowWindow(f->hwnd, SW_MINIMIZE);
+    } else if ( stat == NAME_hidden )
+    { if ( f->hwnd )
+	ShowWindow(f->hwnd, SW_HIDE);
+    }
+    ws_enable_modal(fr, ON);
   }
 }
 

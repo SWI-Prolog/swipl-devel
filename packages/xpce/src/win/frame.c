@@ -86,6 +86,7 @@ unlinkFrame(FrameObj fr)
       assign(sw, displayed, OFF);
     }
 
+    ws_enable_modal(fr, ON);
     if ( notNil(fr->transients) )
       for_chain(fr->transients, sfr, send(sfr, NAME_destroy, 0));
     if ( notNil(fr->transient_for) && notNil(fr->transient_for->transients) )
@@ -218,12 +219,17 @@ returnFrame(FrameObj fr, Any obj)
 
 static status
 openFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
-{ if ( !createdFrame(fr) )
+{ Int x, y;
+  Int w = DEFAULT, h = DEFAULT;
+    
+  if ( !createdFrame(fr) )
     TRY( send(fr, NAME_create, 0) );
   
   if ( notDefault(pos) )
-  { Int x = pos->x, y = pos->y, w = DEFAULT, h = DEFAULT;
+  { x = pos->x;
+    y = pos->y;
 
+  setpos:
     if ( normalise == ON )
     { Size s = getSizeDisplay(fr->display);
       int dw = valInt(s->w), dh = valInt(s->h);
@@ -237,6 +243,20 @@ openFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
 
     setFrame(fr, x, y, w, h);  
   }
+#ifdef WIN32
+  else if ( notNil(fr->transient_for) )
+  { Area pa = fr->transient_for->area;
+    int xb, yb, ycap;
+
+    ws_frame_border(fr, &xb, &yb, &ycap);
+
+    x = toInt(valInt(pa->x) + xb*2);
+    y = toInt(valInt(pa->y) + yb*2 + ycap);
+    if ( isDefault(normalise) )
+      normalise = ON;
+    goto setpos;
+  }
+#endif
 
   if ( !isOpenFrameStatus(fr->status) )
     statusFrame(fr, NAME_window);

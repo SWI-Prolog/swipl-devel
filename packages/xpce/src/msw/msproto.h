@@ -31,3 +31,4 @@ char *	ws_os(void);
 Name	WinStrError(int error, ...);
 status	makeClassWinMF(Class class);
 status	makeClassWinPrinter(Class class);
+void	ws_frame_border(FrameObj fr, int *xb, int *yb, int *ycap);

@@ -1,3 +1,9 @@
+* FIXED: Modal window handling, especially for transient windows.  A transient
+  modal window is now by defailt placed on the top-left of the parent window.
+
+* FIXED: Maintain and handle directory in Windows file-finder (bug introduced
+  while starting to use the standard GetOpenFilename()).
+
 * ADDED: PceEmacs: Added the (fairly experimental) HTML, SGML and XML modes
   to the standard library.
 

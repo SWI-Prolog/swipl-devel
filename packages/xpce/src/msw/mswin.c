@@ -352,7 +352,17 @@ getWinFileNameDisplay(DisplayObj d,
   ofn.lpstrFile    = buffer;
   ofn.nMaxFile     = sizeof(buffer)-1;
   if ( notDefault(dir) )
+  { char tmp[MAXPATHLEN];
+    char *s;
+#ifdef O_XOS				/* should always be true */
+    if ( (s = expandFileName(strName(dir->path), tmp)) )
+      ofn.lpstrInitialDir =_xos_os_filename(s, cwdbin);
+#else
     ofn.lpstrInitialDir = expandFileName(strName(dir->path), cwdbin);
+#endif
+
+/*  Cprintf("InitialDir = '%s'\n", ofn.lpstrInitialDir); */
+  }
   if ( notDefault(title) )
   ofn.lpstrTitle = strName(title);
 

@@ -165,6 +165,7 @@ void		ws_set_label_frame(FrameObj fr);
 Image		ws_image_of_frame(FrameObj fr);
 void		ws_transient_frame(FrameObj fr, FrameObj fr2);
 status		ws_postscript_frame(FrameObj fr);
+void		ws_enable_modal(FrameObj fr, Bool val);
 
 /* ../src/x11/ximage.c */
 void		ws_init_image(Image image);
