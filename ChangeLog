@@ -5,6 +5,10 @@
 Version 2.7.15
 ==============
 
+  * FIXED: Embedding: the kernel now not longer gives up if it cannot
+    find the Prolog home directory.  feature(home, Home) will fail if
+    the home could not be located.
+
   * FIXED: Configure problems related to -l[n]curses, etc.
 
   * FIXED: retractall(Module:Head(+Arg, ...)) (i.e. explicit module and
