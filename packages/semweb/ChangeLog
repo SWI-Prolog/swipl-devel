@@ -1,3 +1,7 @@
+Nov 7, 2003
+
+  * ADDED: Allows rdf_load/[1,2] to process a stream.  Maarten Menken.
+
 Oct 27, 2003
 
   * ADDED: installation of owl.owl. 

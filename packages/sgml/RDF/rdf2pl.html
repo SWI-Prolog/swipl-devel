@@ -292,15 +292,19 @@ complete <TT>&lt;rdf:RDF&gt;</TT> element, a list of RDF-objects
 (container or description) or a single description of container.
 
 <P>
-<DT><A NAME="process_rdf/3"><STRONG>process_rdf</STRONG>(<VAR>+File, 
+<DT><A NAME="process_rdf/3"><STRONG>process_rdf</STRONG>(<VAR>+Input, 
 :OnTriples, +Options</VAR>)</A><DD>
-Exploits the call-back interface of <B>sgml2pl</B>, calling
+
+<P>Exploits the call-back interface of <B>sgml2pl</B>, calling
 <CODE><VAR>OnTriples</VAR>(Triples, File:Line)</CODE> with the list of 
 triples resulting from a single top level RDF object for each RDF 
-element in the file as well as the source-location where the description 
-started. This predicate can be used to process arbitrary large RDF files 
-as the file is processed object-by-object. The example below simply 
-asserts all triples into the database:
+element in the input as well as the source-location where the 
+description started.
+<VAR>Input</VAR> is either a file name or term <CODE>stream(Stream)</CODE>. 
+When using a stream all triples are associated to the value of the
+<CODE>base_uri</CODE> option. This predicate can be used to process 
+arbitrary large RDF files as the file is processed object-by-object. The 
+example below simply asserts all triples into the database:
 
 <P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
 <PRE>

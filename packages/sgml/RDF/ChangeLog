@@ -1,3 +1,7 @@
+Nov 7, 2003
+
+  * ADDED: process_rdf/3: allow processing from a stream
+
 Oct 6, 2003
 
   * MODIFIED: synopsis of process_rdf/3 to

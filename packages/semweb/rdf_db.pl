@@ -86,6 +86,7 @@
 :- use_module(library(rdf)).
 :- use_module(library(lists)).
 :- use_module(library(shlib)).
+:- use_module(library(gensym)).
 
 :- initialization
    load_foreign_library(foreign(rdf_db)).
@@ -412,15 +413,30 @@ rdf_load(Spec) :-
 
 rdf_load(Spec, Options) :-
 	statistics(cputime, CpuOld),
-	(   memberchk(result(Action, Triples, MD5), Options)
+	(   select(result(Action, Triples, MD5), Options, Options1)
 	->  true
-	;   true
+	;   Options1 = Options
 	),
-	(   Spec = '$stream'(_)		% TBD: probably won't work yet
-	->  process_rdf(Spec, assert_triples, [blank_nodes(share)]),
+	(   (   Spec = '$stream'(_)
+	    ->	In = Spec
+	    ;	Spec = stream(In)
+	    )
+	->  (   memberchk(base_uri(BaseURI), Options1)
+	    ->	true
+	    ;	gensym('stream://', BaseURI)
+	    ),
+	    process_rdf(In, assert_triples,
+			[ base_uri(BaseURI),
+			  blank_nodes(share)
+			]),
+	    rdf_statistics_(triples(BaseURI, Triples)),
+	    rdf_md5(BaseURI, MD5),
+	    assert(rdf_source(BaseURI, Modified, Triples, MD5)),
+	    Source = BaseURI,
 	    Load = parsed(ParseTime),
 	    Action = load
-	;   absolute_file_name(Spec,
+	;   Source = Spec,
+	    absolute_file_name(Spec,
 			       [ access(read),
 				 extensions([rdf,rdfs,owl,''])
 			       ], File),
@@ -434,7 +450,8 @@ rdf_load(Spec, Options) :-
 	    ;	Action = load
 	    ),
 	    (	Action \== none
-	    ->  atom_concat('file:', File, BaseURI),
+	    ->  atom_concat('file:', File, DefBaseURI),
+		option(base_uri(BaseURI), Options1, DefBaseURI),
 		retractall(rdf_source(File, _, _, _)),
 		(   cache_file(File, Cache)
 		->  (   time_file(Cache, CacheTime),
@@ -465,7 +482,7 @@ rdf_load(Spec, Options) :-
 	->  statistics(cputime, CpuLoaded),
 	    ParseTime is CpuLoaded - CpuOld,
 	    print_message(informational,
-			  rdf(loaded(Spec, Triples, Load)))
+			  rdf(loaded(Source, Triples, Load)))
 	;   true
 	).
 
@@ -937,29 +954,17 @@ rdf_value(V, V).
 	prolog:message/3.
 
 prolog:message(rdf(loaded(Spec, Triples, parsed(ParseTime)))) -->
-	{   atom(Spec)
-	->  file_base_name(Spec, Base)
-	;   Base = Spec
-	},
-	[ 'Parsed "~w" in ~2f sec; ~D triples'-
-	  [Base, ParseTime, Triples]
-	].
+	[ 'Parsed' ],
+	source(Spec),
+	in_time(Triples, ParseTime).
 prolog:message(rdf(loaded(Spec, Triples, cache(ParseTime)))) -->
-	{   atom(Spec)
-	->  file_base_name(Spec, Base)
-	;   Base = Spec
-	},
-	[ 'Loaded "~w" in ~2f sec; added ~D triples'-
-	  [Base, ParseTime, Triples]
-	].
+	[ 'Loaded' ],
+	source(Spec),
+	in_time(Triples, ParseTime).
 prolog:message(rdf(loaded(Spec, Triples, snapshot(ParseTime)))) -->
-	{   atom(Spec)
-	->  file_base_name(Spec, Base)
-	;   Base = Spec
-	},
-	[ 'Loaded snapshot "~w" in ~2f sec; added ~D triples'-
-	  [Base, ParseTime, Triples]
-	].
+	[ 'Loaded snapshot' ],
+	source(Spec),
+	in_time(Triples, ParseTime).
 prolog:message(rdf(save_removed_duplicates(N, Subject))) -->
 	[ 'Removed ~d duplicate triples about "~p"'-[N,Subject] ].
 prolog:message(rdf(saved(File, SavedSubjects, SavedTriples))) -->
@@ -968,3 +973,18 @@ prolog:message(rdf(saved(File, SavedSubjects, SavedTriples))) -->
 	].
 prolog:message(rdf(using_namespace(Id, NS))) -->
 	[ 'Using namespace id ~w for ~w'-[Id, NS] ].
+
+source(Spec) -->
+	{ atom(Spec),
+	  (   sub_atom(Spec, 0, _, _, 'stream://')
+	  ->  Base = Spec
+	  ;   file_base_name(Spec, Base)
+	  )
+	},
+	[ ' "~w"'-[Base] ].
+source(Spec) -->
+	[ ' "~p"'-[Spec] ].
+
+in_time(Triples, ParseTime) -->
+	[ ' in ~2f sec; ~D triples'-[ParseTime, Triples]
+	].

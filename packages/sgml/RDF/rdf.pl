@@ -116,7 +116,15 @@ member_attribute(A) :-
 	in_rdf/1,			% BaseURI
 	object_handler/2.
 
-%	process_rdf(+File, +OnObject, +Options)
+%	process_rdf(+Input, :OnObject, +Options)
+%	
+%	Process RDF from Input. Input is either an atom or a term of the
+%	format stream(Handle). For each   encountered  description, call
+%	OnObject(+Triples) to handle the  triples   resulting  from  the
+%	description. Defined Options are:
+%	
+%		# base_uri(+URI)
+%		Determines the reference URI.
 
 process_rdf(File, OnObject, Options) :-
 	is_list(Options), !,
@@ -125,9 +133,17 @@ process_rdf(File, OnObject, Options) :-
 	rdf_start_file(Options),
 	'$strip_module'(OnObject, Module, Pred),
 	asserta(rdf:object_handler(BaseURI, Module:Pred), Ref),
-	open(File, read, In, [type(binary)]),
+	(   File = stream(In)
+	->  Source = BaseURI
+	;   File = '$stream'(_)
+	->  In = File,
+	    Source = BaseURI
+	;   open(File, read, In, [type(binary)]),
+	    Close = In,
+	    Source = File
+	),
 	new_sgml_parser(Parser, []),
-	set_sgml_parser(Parser, file(File)),
+	set_sgml_parser(Parser, file(Source)),
 	set_sgml_parser(Parser, dialect(xmlns)),
 	set_sgml_parser(Parser, space(remove)),
 	set_anon_prefix(BaseURI, Refs),
@@ -136,7 +152,7 @@ process_rdf(File, OnObject, Options) :-
 				  call(begin, rdf:on_begin),
 				  call(end, rdf:on_end)
 				]),
-		     rdf:cleanup_process(In, [Ref|Refs])).
+		     rdf:cleanup_process(Close, [Ref|Refs])).
 process_rdf(File, BaseURI, OnObject) :-
 %	print_message(warning,
 %		      format('process_rdf(): new argument order', [])),
@@ -144,7 +160,10 @@ process_rdf(File, BaseURI, OnObject) :-
 
 
 cleanup_process(In, Refs) :-
-	close(In),
+	(   var(In)
+	->  true
+	;   close(In)
+	),
 	erase_refs(Refs),
 	rdf_end_file.
 
