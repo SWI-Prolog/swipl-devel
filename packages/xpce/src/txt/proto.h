@@ -147,6 +147,7 @@ status		delete_textbuffer(TextBuffer tb, int where, int length);
 status		makeClassTextBuffer(Class class);
 
 /* textcursor.c */
+status		fontTextCursor(TextCursor c, FontObj font);
 status		setTextCursor(TextCursor c, Int x, Int y, Int w, Int h, Int b);
 status		styleTextCursor(TextCursor c, Name style);
 status		makeClassTextCursor(Class class);
@@ -155,7 +156,6 @@ status		makeClassTextCursor(Class class);
 status		InsertTextImage(TextImage ti, Int where, Int amount);
 status		ChangedRegionTextImage(TextImage ti, Int from, Int to);
 status		ChangedEntireTextImage(TextImage ti);
-status		updateMapTextImage(TextImage ti);
 status		get_character_box_textimage(TextImage ti, int index, int *x, int *y, int *w, int *h, int *b);
 Int		getLinesTextImage(TextImage ti);
 Int		getIndexTextImage(TextImage ti, EventObj ev);

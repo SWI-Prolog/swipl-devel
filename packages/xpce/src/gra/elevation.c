@@ -139,7 +139,7 @@ makeClassElevation(Class class)
   localClass(class, NAME_height, NAME_appearance, "int", NAME_get,
 	     "Height above the surface");
   localClass(class, NAME_colour, NAME_appearance, "[colour|pixmap]", NAME_get,
-	     "Colour/pixmap used at `light' side");
+	     "Colour/pixmap to paint the `top'");
   localClass(class, NAME_relief, NAME_appearance, "[colour|pixmap]", NAME_get,
 	     "Colour/pixmap used at `light' side");
   localClass(class, NAME_shadow, NAME_appearance, "[colour|pixmap]", NAME_get,

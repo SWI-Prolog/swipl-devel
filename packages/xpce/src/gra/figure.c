@@ -21,7 +21,7 @@ initialiseFigure(Figure f)
   assign(f, pen,        ZERO);
   assign(f, border,	ZERO);
   assign(f, radius,	ZERO);
-  assign(f, shadow,	ZERO);
+  assign(f, elevation,	NIL);
   assign(f, status,     NAME_allActive);
 
   succeed;
@@ -37,13 +37,16 @@ RedrawAreaFigure(Figure f, Area area)
   { int x, y, w, h;
 
     initialiseDeviceGraphical(f, &x, &y, &w, &h);
-    if ( f->pen == ZERO && f->radius == ZERO )
+    if ( f->pen == ZERO && f->radius == ZERO && isNil(f->elevation) )
       r_fill(x, y, w, h, f->background);
     else
     { r_thickness(valInt(f->pen));
       r_dash(f->texture);
-      r_shadow_box(x, y, w, h, valInt(f->radius),
-		   valInt(f->shadow), f->background);
+
+      if ( notNil(f->elevation) )
+	r_3d_box(x, y, w, h, valInt(f->radius), f->elevation, TRUE);
+      else
+	r_box(x, y, w, h, valInt(f->radius), f->background);
     }
   }
   
@@ -145,8 +148,11 @@ nextStatusFigure(Figure f)
 static status
 backgroundFigure(Figure f, Image bg)
 { if ( f->background != bg )
-  { CHANGING_GRAPHICAL(f, assign(f, background, bg);
-		          changedEntireImageGraphical(f));
+  { CHANGING_GRAPHICAL(f,
+		       assign(f, background, bg);
+		       if ( notNil(f->elevation) )
+		         assign(f->elevation, colour, isNil(bg) ? DEFAULT : bg);
+		       changedEntireImageGraphical(f));
   }
   
   succeed;
@@ -170,8 +176,31 @@ getClipAreaFigure(Figure f)
 
 
 static status
+elevationFigure(Figure f, Elevation e)
+{ return assignGraphical(f, NAME_elevation, e);
+}
+
+
+static status
 shadowFigure(Figure f, Int shadow)
-{ return assignGraphical(f, NAME_shadow, shadow);
+{ return elevationFigure(f, shadow == ZERO ?
+			      NIL :
+			      newObject(ClassElevation, NIL,
+					shadow, /* height */
+					isNil(f->background) ? DEFAULT
+							     : f->background,
+					DEFAULT, /* edge colours */
+					DEFAULT,
+					NAME_shadow, 0));
+}
+
+
+static Int
+getShadowFigure(Figure f)
+{ if ( notNil(f->elevation) )
+    answer(f->elevation->height);
+
+  answer(ZERO);
 }
 
 
@@ -204,6 +233,15 @@ displayFigure(Figure f, Graphical gr, Point pos)
 }
 
 
+static status
+convertOldSlotFigure(Figure f, Name slot, Any value)
+{ if ( slot == NAME_shadow )
+    shadowFigure(f, value);
+
+  succeed;
+}
+
+
 extern drawPostScriptFigure(Figure f);
 
 status
@@ -219,8 +257,8 @@ makeClassFigure(Class class)
 	     "Border around graphicals");
   localClass(class, NAME_radius, NAME_appearance, "int", NAME_get,
 	     "Radius of outline");
-  localClass(class, NAME_shadow, NAME_appearance, "int", NAME_get,
-	     "Shadow for surrounding box");
+  localClass(class, NAME_elevation, NAME_appearance, "elevation*", NAME_get,
+	     "Elevation from background");
 
   setRedrawFunctionClass(class, RedrawAreaFigure);
 
@@ -229,7 +267,7 @@ makeClassFigure(Class class)
   storeMethod(class, NAME_clipArea,   clipAreaFigure);
   storeMethod(class, NAME_border,     borderFigure);
   storeMethod(class, NAME_radius,     radiusFigure);
-  storeMethod(class, NAME_shadow,     shadowFigure);
+  storeMethod(class, NAME_elevation,  elevationFigure);
 
   sendMethod(class, NAME_initialise, DEFAULT, 0,
 	     "Create figure",
@@ -246,10 +284,20 @@ makeClassFigure(Class class)
   sendMethod(class, NAME_display, NAME_organisation, 2, "graphical", "[point]",
 	     "Display graphical at point",
 	     displayFigure);
+  sendMethod(class, NAME_shadow, NAME_appearance, 1, "0..",
+	     "Attach `shadow' elevation object",
+	     shadowFigure);
+  sendMethod(class, NAME_convertOldSlot, NAME_compatibility, 2,
+	     "slot=name", "value=any",
+	     "Translate old shadow into elevation",
+	     convertOldSlotFigure);
 	
   getMethod(class, NAME_clipArea, NAME_scroll, "area", 0,
 	    "Clip area associated with figure",
 	    getClipAreaFigure);
+  getMethod(class, NAME_shadow, NAME_compatibility, "0..", 0,
+	    "Read `elevation <-height'",
+	    getShadowFigure);
 
   succeed;
 }

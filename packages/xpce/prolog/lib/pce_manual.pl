@@ -12,16 +12,14 @@
 	  [ manpce/0
 	  , manpce/1
 	  ]).
-
-
 :- use_module(library(pce)).
-
 :- use_module(
 	[ 'man/p_card'		% General card infra-structure
 	, 'man/p_data'		% Manual specific infra-structure
 	, 'man/v_manual'	% Top level window
 	]).
-
+:- require([ term_to_atom/2
+	   ]).
 
 :- pce_autoload(man_class_browser,	library('man/v_class')).
 :- pce_autoload(man_editor,		library('man/v_editor')).

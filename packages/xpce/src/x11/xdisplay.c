@@ -56,6 +56,29 @@ ws_get_size_display(DisplayObj d, int *w, int *h)
 }
 
 
+Name
+ws_get_visual_type_display(DisplayObj d)
+{ if ( ws_depth_display(d) == 1 )
+    return NAME_monochrome;
+  else
+  { DisplayWsXref r = d->ws_ref;
+    Visual *v = XDefaultVisual(r->display_xref,
+			       DefaultScreen(r->display_xref));
+    int vclass = v->class;
+  
+    switch(vclass)
+    { case StaticGray:	return NAME_staticGrey;
+      case GrayScale:	return NAME_greyScale;
+      case StaticColor:	return NAME_staticColour;
+      case PseudoColor:	return NAME_pseudoColour;
+      case TrueColor:	return NAME_trueColour;
+      case DirectColor:	return NAME_directColour;
+      default:		return (Name) toInt(vclass);
+    }
+  }
+}
+
+
 int
 ws_depth_display(DisplayObj d)
 { DisplayWsXref r = d->ws_ref;
@@ -122,6 +145,22 @@ ws_open_display(DisplayObj d)
 { DisplayWsXref ref = d->ws_ref;
   char *address;
   Display *display;
+  char applresdir[512];
+  CharArray home = get(PCE, NAME_home, 0);
+
+  if ( home )
+  { char *oldxapplresdir = getenv("XAPPLRESDIR");
+
+    if ( oldxapplresdir )
+      sprintf(applresdir, "XAPPLRESDIR=%s:%s", strName(home), oldxapplresdir);
+    else
+      sprintf(applresdir, "XAPPLRESDIR=%s", strName(home));
+
+					/* does or doesn't putenv copy? */
+					/* Read the SunOs 4.1 manual */
+					/* ... and tell me if you understand */
+    putenv(save_string(applresdir));
+  }
   
   address = isDefault(d->address) ? NULL : strName(d->address);
   display = XtOpenDisplay(pceXtAppContext(NULL),

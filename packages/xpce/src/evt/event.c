@@ -801,11 +801,13 @@ static struct namepair
   { NAME_position,	NAME_mouse },
   { NAME_locMove,	NAME_position },
 
-  { NAME_focus,		NAME_any },
-  { NAME_releaseKeyboardFocus, NAME_focus },
-  { NAME_obtainKeyboardFocus, NAME_focus },
-  { NAME_releaseFocus,	NAME_focus },
-  { NAME_obtainFocus,	NAME_focus },
+  { NAME_focus,				NAME_any },
+  { NAME_deactivateKeyboardFocus,	NAME_focus },
+  { NAME_releaseKeyboardFocus, 		NAME_deactivateKeyboardFocus },
+  { NAME_obtainKeyboardFocus, 		NAME_focus },
+  { NAME_activateKeyboardFocus, 	NAME_obtainKeyboardFocus },
+  { NAME_releaseFocus,			NAME_focus },
+  { NAME_obtainFocus,			NAME_focus },
 
   { 0,			0 }
 };

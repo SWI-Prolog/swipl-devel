@@ -9,6 +9,9 @@
 
 :- module('emacs_c++_mode', []).
 :- use_module(library(pce)).
+:- require([ forall/2
+	   , ignore/1
+	   ]).
 
 :-	new(_KB, key_binding('c++', c)).
 

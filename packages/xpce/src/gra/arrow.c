@@ -368,8 +368,7 @@ makeClassArrow(Class class)
 	    "Y of tip  point",
 	    getTipYArrow);
 
-  attach_resource(class, "selection_style", "name", "corner_handles",
-		  "Visual feedback of <->selected");
+  refine_resource(class, "selection_handles", "corner_handles");
   attach_resource(class, "length", "int", "10",
 		  "Distance tip to base (10)");
   attach_resource(class, "wing", "int", "7",

@@ -14,6 +14,8 @@ NOTE: image_item should be moved to library
 
 :- module(pce_style_item, []).
 :- use_module(library(pce)).
+:- require([ forall/2
+	   ]).
 
 :- pce_autoload(font_item, library(pce_font_item)).
 :- pce_autoload(image_item, library('dialog/image_item')).

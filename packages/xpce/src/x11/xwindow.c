@@ -198,7 +198,9 @@ event_window(Widget w, XtPointer xsw, XtPointer xevent)
     return;
 
   switch(event->xany.type)
-  { case FocusIn:
+  {
+/*
+    case FocusIn:
       DEBUG(NAME_focus, printf("Received FocusIn on %s\n", pp(sw)));
       assign(sw, input_focus, ON);
       return;
@@ -206,6 +208,7 @@ event_window(Widget w, XtPointer xsw, XtPointer xevent)
       DEBUG(NAME_focus, printf("Received FocusOut on %s\n", pp(sw)));
       assign(sw, input_focus, OFF);
       return;
+*/
     default:
     { AnswerMark mark;
       markAnswerStack(mark);
@@ -285,11 +288,9 @@ ws_grab_pointer_window(PceWindow sw, Bool val)
 		   None,
 		   None,
 		   CurrentTime);
-      assign(sw, grab_pointer, ON);
       appendChain(grabbedWindows, sw);
     } else
-    { assign(sw, grab_pointer, OFF);
-      deleteChain(grabbedWindows, sw);
+    { deleteChain(grabbedWindows, sw);
       if ( notNil(grabbedWindows->tail) )
       { PceWindow sw2 = (PceWindow) grabbedWindows->tail->value;
 
@@ -355,8 +356,6 @@ do_grab_window(PceWindow sw)
     if ( msg )
       return errorPce(sw, NAME_cannotGrabPointer, CtoName(msg));
 
-    assign(sw, grab_pointer, ON);
-
     succeed;
   }
 
@@ -376,7 +375,6 @@ ws_grab_pointer_window(PceWindow sw, Bool val)
     } else
     { XtUngrabPointer(widgetWindow(sw), CurrentTime);
       flushWindow(sw);
-      assign(sw, grab_pointer, OFF);
       deleteChain(grabbedWindows, sw);
       if ( notNil(grabbedWindows->tail) )
         do_grab_window(grabbedWindows->tail->value);

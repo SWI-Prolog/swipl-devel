@@ -281,6 +281,7 @@ d_window(PceWindow sw, int x, int y, int w, int h, int clear, int limit)
   d_clip(x, y, w, h);
 
   r_background(sw->background);
+  context.default_background = sw->background;
   r_default_colour(sw->colour);
 
   if ( clear )
@@ -1083,41 +1084,43 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
     shadow = min(shadow, min(w, h));
     if ( shadow > MAX_SHADOW )
       shadow = MAX_SHADOW;
-    r_box(x, y, w-shadow, h-shadow, radius, e->colour);
+    r_box(x, y, w-shadow, h-shadow, radius-shadow, e->colour);
     
     xt = x, yt = y;
     Translate(xt, yt);
 
     if ( radius > 0 )
-    { int  r = radius;
-      int wh = 2 * r;
-      XArc as[MAX_SHADOW * 6];
+    { int  r = min(radius, min(w, h));
+      XArc as[MAX_SHADOW * 3];
       int  ns = 0;
 
       w--, h--;
       for( os=0; os < shadow; os++ )
-      { s[is].x1 = xt+w-os;		s[is].y1 = yt+r-shadow+os;
-	s[is].x2 = xt+w-os;		s[is].y2 = yt+h-r-os;
-	is++;
-	s[is].x1 = xt+r-shadow+os;	s[is].y1 = yt+h-os;
-	s[is].x2 = xt+w-r-os;		s[is].y2 = yt+h-os;
-	is++;
+      { int ar = r - shadow + os;
+	int ang /*= 90/(os+1) */;
 
-	if ( os == 0 )
-	{ as[ns].x = xt+w-wh;		as[ns].y = yt+h-wh;	/* bot-right */
-	  as[ns].width = wh;		as[ns].height = wh;
-	  as[ns].angle1 = 270*64;	as[ns].angle2 = 90*64;
-	  ns++;
-	} else
-	{ as[ns].x = -(os-1)+xt+w-wh;	as[ns].y = -os+yt+h-wh;
-	  as[ns].width = wh;		as[ns].height = wh;
-	  as[ns].angle1 = 270*64;	as[ns].angle2 = 90*64;
-	  ns++;
-	  as[ns].x = -os+xt+w-wh;	as[ns].y = -(os-1)+yt+h-wh;
-	  as[ns].width = wh;		as[ns].height = wh;
-	  as[ns].angle1 = 270*64;	as[ns].angle2 = 90*64;
-	  ns++;
-	}
+	s[is].x1 = xt+w-os;		s[is].y1 = yt+r-shadow; /* vert */
+	s[is].x2 = xt+w-os;		s[is].y2 = yt+h-r;
+	is++;
+	s[is].x1 = xt+r-shadow;		s[is].y1 = yt+h-os; /* hor */
+	s[is].x2 = xt+w-r;		s[is].y2 = yt+h-os;
+	is++;
+					/* bottom-right at xt+w-r, yt+h-r */
+	as[ns].x = xt+w-r-ar+1;		as[ns].y = yt+h-r-ar+1;
+	as[ns].width = 			as[ns].height = ar*2;
+	as[ns].angle1 = 270*64;		as[ns].angle2 = 90*64;
+	ns++;
+					/* top-right around xt+w-r, yt+r */
+	ang = 90;
+	as[ns].x = xt+w-2*ar-os;	as[ns].y = yt;
+	as[ns].width = 			as[ns].height = ar*2;
+	as[ns].angle1 = 0*64;		as[ns].angle2 = ang*64;
+	ns++;
+					/* bottom-left around xt+r, yt+h-r */
+	as[ns].x = xt;			as[ns].y = yt+h-2*ar-os;
+	as[ns].width = 			as[ns].height = ar*2;
+	as[ns].angle1 = (270-ang)*64;	as[ns].angle2 = ang*64;
+	ns++;
       }
 
       XDrawArcs(context.display, context.drawable,
@@ -1187,7 +1190,7 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
 	ss[is].x1 = -os+xt+w;   ss[is].y1 = os+yt+r;	/* right */
 	ss[is].x2 = -os+xt+w;   ss[is].y2 = -os+yt+h-r;
 	is++;
-	ss[is].x1 = os+xt+r;   ss[is].y1 = -os+yt+h;	/* bottom */
+	ss[is].x1 = os+xt+r;    ss[is].y1 = -os+yt+h;	/* bottom */
 	ss[is].x2 = os+xt+w-r;  ss[is].y2 = -os+yt+h;
 	is++;
 
@@ -1383,6 +1386,61 @@ r_ellipse(int x, int y, int w, int h, Image fill)
 
 
 void
+r_3d_ellipse(int x, int y, int w, int h, Elevation z, int up)
+{ int shadow;
+
+  if ( !z || isNil(z) )
+    r_ellipse(x, y, w, h, NIL);
+  
+  shadow = valInt(z->height);
+  if ( !up )
+    shadow = -shadow;
+  
+  if ( shadow > MAX_SHADOW )
+    shadow = MAX_SHADOW;
+
+  if ( shadow )
+  { GC TopLeftGC, BottomRightGC;
+    int xt=x, yt=y;
+    XArc a[MAX_SHADOW*2];
+    int an, os;
+
+    r_elevation(z);
+
+    if ( shadow > 0 )
+    { TopLeftGC     = context.gcs->reliefGC;
+      BottomRightGC = context.gcs->shadowGC;
+    } else
+    { TopLeftGC     = context.gcs->shadowGC;
+      BottomRightGC = context.gcs->reliefGC;
+      shadow        = -shadow;
+    }
+
+    Translate(xt, yt);
+    for(an=0, os=0; os<shadow && w>=1 && h>=1; os++)
+    { a[an].x = xt+os; a[an].y = yt+os;
+      a[an].width = w-2*os; a[an].height = h-2*os;
+      a[an].angle1 = 45*64; a[an].angle2 = 180*64;
+      an++;
+    }
+    XDrawArcs(context.display, context.drawable, TopLeftGC, a, an);
+    for(an=0, os=0; os<shadow && w>=1 && h>=1; os++)
+    { a[an].x = xt+os; a[an].y = yt+os;
+      a[an].width = w-2*os; a[an].height = h-2*os;
+      a[an].angle1 = 225*64; a[an].angle2 = 180*64;
+      an++;
+    }
+    XDrawArcs(context.display, context.drawable, BottomRightGC, a, an);
+  }
+
+  if ( notDefault(z->colour) )
+  { r_thickness(0);
+    r_arc(x+shadow, y+shadow, w-2*shadow, h-2*shadow, 0, 360*64, z->colour);
+  }
+}
+
+
+void
 r_line(int x1, int y1, int x2, int y2)
 { Translate(x1, y1);
   Translate(x2, y2);
@@ -1553,20 +1611,49 @@ r_image(Image image,
     { Pixmap pix = (Pixmap) getXrefObject(image, context.pceDisplay);
 
       if ( image->kind == NAME_bitmap )	/* bitmap on pixmap */
-      { values.foreground  = context.gcs->foreground_pixel;
-	values.background  = context.gcs->background_pixel;
-	values.stipple     = pix;
-	values.fill_style  = (transparent == ON ? FillStippled
-			      			: FillOpaqueStippled);
+      { if ( instanceOfObject(context.gcs->colour, ClassColour) )
+	{ values.foreground  = context.gcs->foreground_pixel;
+	  values.background  = context.gcs->background_pixel;
+	  values.stipple     = pix;
+	  values.fill_style  = (transparent == ON ? FillStippled
+			      			  : FillOpaqueStippled);
 
-	XChangeGC(context.display, context.gcs->bitmapGC,
-		  GCForeground|GCBackground|GCFillStyle|
-		  GCStipple|GCTileStipXOrigin|GCTileStipYOrigin,
-		  &values);
+	  XChangeGC(context.display, context.gcs->bitmapGC,
+		    GCForeground|GCBackground|GCFillStyle|
+		    GCStipple|GCTileStipXOrigin|GCTileStipYOrigin,
+		    &values);
 
-	XFillRectangle(context.display, context.drawable,
-		       context.gcs->bitmapGC,
-		       x, y, w, h);
+	  XFillRectangle(context.display, context.drawable,
+			 context.gcs->bitmapGC,
+			 x, y, w, h);
+	} else /* bitmap on pixmap, pixmap colour */
+	{ DisplayWsXref r = context.pceDisplay->ws_ref;
+	  Pixmap tmp = XCreatePixmap(context.display,
+				     XtWindow(r->shell_xref),
+				     w, h, context.depth);
+	  GC GCtmp;
+
+	  if ( !tmp )
+	    return;
+
+	  r_fillpattern(context.gcs->colour);
+	  XFillRectangle(context.display, tmp, context.gcs->fillGC,
+			 0, 0, w, h);
+
+	  values.clip_x_origin = values.ts_x_origin;
+	  values.clip_y_origin = values.ts_y_origin;
+	  values.clip_mask     = pix;
+
+	  GCtmp = XCreateGC(context.display, context.drawable,
+			    GCClipXOrigin|GCClipYOrigin|GCClipMask,
+			    &values);
+
+	  XCopyArea(context.display, tmp, context.drawable,
+		    GCtmp, 0, 0,
+		    w, h, x, y);
+	  XFreePixmap(context.display, tmp);
+	  XFreeGC(context.display, GCtmp);
+	}
       } else				/* pixmap on bitmap */
       { ulong fpixel = getPixelColour(image->foreground, context.pceDisplay);
 	ulong bpixel = getPixelColour(image->background, context.pceDisplay);

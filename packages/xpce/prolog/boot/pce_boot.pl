@@ -28,6 +28,7 @@ PCE public predicates
 	  , pce_begin_class/2, pce_begin_class/3
 	  , pce_extend_class/1
 	  , pce_end_class/0
+	  , pce_group/1
 	  , default/3
 	  , pce_term_expansion/2
 	  , pce_compiling/1

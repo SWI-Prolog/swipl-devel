@@ -18,7 +18,6 @@
 	   , is_list/1
 	   , member/2
 	   , memberchk/2
-	   , numbervars/4
 	   ]).
 
 

@@ -37,9 +37,20 @@ Binary versions for the free Linux   operating system running on 386/486
 PC hardware may be copied and used free of charge.
 
 
+Commercially supported version
+
+If you whish the benefits  of  commercial   support,  you  can  obtain a
+supported version from AIIL, UK.  This version  is connected to the best
+available Prolog system: Quintus Prolog   (version  3.2 currently).  The
+commercial version is supposed to be   slightly  behind, but more robust
+and following a better controlled release   path.   For details, contact
+Simon Heywood (simon@aiil.co.uk).
+
+
 Installation
 
-See the file INSTALL in this directory
+See the file INSTALL for installing the binary version.  See COMPILATION
+for installing from the sources.
 
 
 Bugs

@@ -165,10 +165,10 @@ make_vis_node_handler(H) :-
 				  message(Node, tile_hierarchy)),
 			      @default, @off,
 			      message(Visual, instance_of, frame))
-		  , menu_item(focus,
-			      block(message(Tool, selection, Node),
-				    message(Tool, request_tool_focus,
-					    Visual?class)),
+		  , menu_item(class_browser,
+			      and(message(Tool, selection, Node),
+				  message(Tool, request_tool_focus,
+					  Visual?class)),
 			      @default, @on)
 		  , menu_item(free,
 			      block(message(Tool, selection, Node),
@@ -186,6 +186,9 @@ make_vis_node_handler(H) :-
 
 variable(freed_message, message,	get, "Message to trap destruction").
 variable(nodes,		hash_table,	get, "V --> Node table").
+
+resource(selection_feedback, any,
+	 'when(@colour_display, colour(red), invert)').
 
 initialise(W) :->
 	send(W, send_super, initialise),
@@ -309,12 +312,12 @@ tree(F, Tree:tree) :<-
 
 selection(F, Node:vis_node*) :->
 	(   get(F, selection, Old), Old \== @nil
-	->  send(Old, inverted, @off)
+	->  send(Old, selected, @off)
 	;   true
 	),
 	send(F, slot, selection, Node),
 	(   Node \== @nil
-	->  send(Node, inverted, @on),
+	->  send(Node, selected, @on),
 	    get(Node, visual, @Ref),
 	    new(Selection, string('@%s', Ref)),
 	    send(F?display, copy, Selection),

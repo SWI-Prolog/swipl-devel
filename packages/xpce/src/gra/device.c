@@ -1830,8 +1830,5 @@ makeClassDevice(Class class)
 
   initClass(class);
 
-  attach_resource(class, "selection_style", "name", "corner_and_side_handles",
-		  "Visual feedback of <->selected");
-
   succeed;
 }

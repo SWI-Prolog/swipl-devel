@@ -10,7 +10,6 @@
 :- module(emacs_text_mode, []).
 :- use_module(library(pce)).
 
-
 :-  new(_KB, key_binding(emacs_text, fundamental)).
 
 :- new(_, syntax_table(text)).

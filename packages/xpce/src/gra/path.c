@@ -104,22 +104,37 @@ RedrawAreaPath(Path p, Area a)
 		 add(tip->x, p->offset->x), add(tip->y, p->offset->y),
 		 add(ref->x, p->offset->x), add(ref->y, p->offset->y));
     }
-
-    if ( p->selected == ON &&
-	 classOfObject(p)->selection_style == NAME_pathHandles )
-    { Cell cell;
-
-      for_cell(cell, p->points)
-      { Point pt = cell->value;
-	int bx = valInt(pt->x);
-	int by = valInt(pt->y);
-
-	r_complement(bx-2+ox, by-2+oy, 5, 5);
-      }
-    }
   }
 
   return RedrawAreaGraphical(p, a);
+}
+
+
+static status
+paintSelectedPath(Path p)
+{ PceWindow sw = getWindowGraphical((Graphical) p);
+  Any feedback = sw->selection_feedback;
+
+  if ( feedback == (Any) NAME_handles )
+  { int x, y, w, h;
+    int ox, oy;
+    Cell cell;
+
+    initialiseDeviceGraphical(p, &x, &y, &w, &h);
+    ox = x - valInt(p->area->x) + valInt(p->offset->x);
+    oy = y - valInt(p->area->y) + valInt(p->offset->y);
+
+    for_cell(cell, p->points)
+    { Point pt = cell->value;
+      int bx = valInt(pt->x);
+      int by = valInt(pt->y);
+
+      r_complement(bx-2+ox, by-2+oy, 5, 5);
+    }
+
+    succeed;
+  } else
+    return paintSelectedGraphical((Graphical)p);
 }
 
 
@@ -796,6 +811,10 @@ makeClassPath(Class class)
 	     "Move (member) point to (X, Y)",
 	     setPointPath);
   
+  sendMethod(class, NAME_paintSelected, NAME_appearance, 0,
+	     "Paint inverted drops on control-points",
+	     paintSelectedPath);
+
   sendMethod(class, NAME_DrawPostScript, NAME_postscript, 0,
 	     "Create PostScript",
 	     drawPostScriptPath);
@@ -817,8 +836,7 @@ makeClassPath(Class class)
 	    "End-point of path",
 	    getEndPath);
 
-  attach_resource(class, "selection_style", "name", "path_handles",
-		  "Visual feedback of <->selected");
+  refine_resource(class, "selection_handles", "@nil");
   attach_resource(class, "intervals", "int", "10",
 		  "Number of interpolated points");
 

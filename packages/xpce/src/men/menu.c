@@ -17,8 +17,8 @@ static status	ensureSingleSelectionMenu(Menu m);
 static status	multipleSelectionMenu(Menu m, Bool val);
 static status	restoreMenu(Menu m);
 
-#define CYCLE_DROP_WIDTH 16
-#define CYCLE_DROP_HEIGHT 16
+#define CYCLE_DROP_WIDTH 14
+#define CYCLE_DROP_HEIGHT 14
 #define CYCLE_TRIANGLE_WIDTH 9
 #define CYCLE_TRIANGLE_HEIGHT 8
 #define CYCLE_DROP_DISTANCE 5
@@ -414,6 +414,8 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation z)
 
     if ( c2 && notNil(c2) )
       colour = c2;
+
+    r_colour(colour);
   }
 
   if ( mi->selected == ON && notNil(m->on_image) )
@@ -596,23 +598,14 @@ RedrawAreaMenu(Menu m, Area a)
 
     if ( instanceOfObject(ci, ClassElevation) )
     { int bw = CYCLE_DROP_WIDTH;
-      int bh = CYCLE_DROP_HEIGHT;
-      int by;
-    
-      by = (m->vertical_format == NAME_top    ? cy :
-	    m->vertical_format == NAME_center ? cy + (ih-bh)/2 :
-					        cy + (ih-bh));
-      draw_cycle_blob(cx-(bw+CYCLE_DROP_DISTANCE), by, ci, TRUE);
+
+      draw_cycle_blob(cx-(bw+CYCLE_DROP_DISTANCE), cy, ci, TRUE);
     } else /*if ( instanceOfObject(ci, ClassImage) )*/
     { Image i = ci;
       int bw = valInt(i->size->w);
       int bh = valInt(i->size->h);
-      int by;
-    
-      by = (m->vertical_format == NAME_top    ? cy :
-	    m->vertical_format == NAME_center ? cy + (ih-bh)/2 :
-					        cy + (ih-bh));
-      r_image(i, 0, 0, cx-(bw+CYCLE_DROP_DISTANCE), by, bw, bh, ON);
+
+      r_image(i, 0, 0, cx-(bw+CYCLE_DROP_DISTANCE), cy, bw, bh, ON);
     }
 
     if ( mi != FAIL )

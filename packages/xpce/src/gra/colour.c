@@ -156,7 +156,7 @@ getHiliteColour(Colour c)
   
   n2 = getAppendName(CtoName("hilited_"), c->name);
   c2 = newObject(ClassColour, n2, toInt(r), toInt(g), toInt(b), 0);
-  attributeObject(c, newObject(ClassAttribute, NAME_hilite, c2, 0));
+  attributeObject(c, NAME_hilite, c2);
 
   answer(c2);
 }
@@ -185,7 +185,7 @@ getReduceColour(Colour c)
 
   n2 = getAppendName(CtoName("reduced_"), c->name);
   c2 = newObject(ClassColour, n2, toInt(r), toInt(g), toInt(b), 0);
-  attributeObject(c, newObject(ClassAttribute, NAME_reduce, c2, 0));
+  attributeObject(c, NAME_reduce, c2);
 
   answer(c2);
 }

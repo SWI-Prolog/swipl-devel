@@ -24,8 +24,9 @@ initialiseWindow(PceWindow sw, Name label, Size size, DisplayObj display)
   assign(sw, cursor,		   DEFAULT);
   assign(sw, scroll_offset,	   newObject(ClassPoint, 0));
   assign(sw, input_focus,	   OFF);
-  assign(sw, grab_pointer,	   OFF);
+  assign(sw, has_pointer,	   OFF);
   assign(sw, background,	   DEFAULT);
+  assign(sw, selection_feedback,   DEFAULT);
   assign(sw, sensitive,		   ON);
   assign(sw, bounding_box,	   newObject(ClassArea, 0));
   obtainResourcesObject(sw);
@@ -511,17 +512,33 @@ eventWindow(PceWindow sw, EventObj ev)
   assign(sw, current_event, ev);
 
   if ( isAEvent(ev, NAME_areaEnter) )
-  { if ( sw->input_focus != ON && notNil(sw->frame) )
-      inputFocusFrame(sw->frame, sw);
-  }
+  { FrameObj fr = getFrameWindow(sw);
+
+    if ( notNil(fr) && !getKeyboardFocusFrame(fr) )
+      send(fr, NAME_inputWindow, sw, 0);
+    send(sw, NAME_hasPointer, ON, 0);
+  } else if ( isAEvent(ev, NAME_areaExit) )
+    send(sw, NAME_hasPointer, OFF, 0);
 
   if ( !emptyChain(getDisplayGraphical((Graphical)sw)->inspect_handlers) &&
        inspectDevice((Device) sw, ev) )
     goto out;
 
-  if ( notNil(sw->keyboard_focus) && isAEvent(ev, NAME_keyboard) )
-  { rval = postEvent(ev, sw->keyboard_focus, DEFAULT);
-    goto out;
+  if ( isAEvent(ev, NAME_keyboard) )
+  { PceWindow iw;
+    FrameObj fr = getFrameWindow(sw);
+
+    if ( notNil(fr) &&
+	 (iw = getKeyboardFocusFrame(fr)) &&
+	 iw != sw )
+    { rval = eventFrame(fr, ev);
+      goto out;
+    }
+
+    if ( notNil(sw->keyboard_focus) )
+    { rval = postEvent(ev, sw->keyboard_focus, DEFAULT);
+      goto out;
+    }
   }
 
   if ( notNil(sw->focus) )
@@ -576,11 +593,24 @@ typedWindow(PceWindow sw, EventId id, Bool delegate)
   fail;
 }
 
-
-
 		/********************************
 		*             FOCUS		*
 		********************************/
+
+status
+inputFocusWindow(PceWindow sw, Bool val)
+{ if ( sw->input_focus != val )
+  { assign(sw, input_focus, val);
+
+    if ( notNil(sw->keyboard_focus) )
+      generateEventGraphical(sw->keyboard_focus,
+			     val == ON ? NAME_activateKeyboardFocus
+			   	       : NAME_deactivateKeyboardFocus);
+  }
+
+  succeed;
+}
+
 
 status
 keyboardFocusWindow(PceWindow sw, Graphical gr)
@@ -591,10 +621,11 @@ keyboardFocusWindow(PceWindow sw, Graphical gr)
     assign(sw, keyboard_focus, gr);
 
     if ( notNil(gr) )
-      generateEventGraphical(gr, NAME_obtainKeyboardFocus);
+      generateEventGraphical(gr,
+			     sw->input_focus == ON ? NAME_activateKeyboardFocus
+			     			   : NAME_obtainKeyboardFocus);
   }
 
-/*return inputFocusWindow(sw, ON);*/
   succeed;
 }
 
@@ -1059,7 +1090,8 @@ normaliseWindow(PceWindow sw, Any obj)
 	doneObject(a2);
       }
     
-    normalise_window(sw, a);
+    if ( a->w != ZERO && a->h != ZERO )
+      normalise_window(sw, a);
     considerPreserveObject(a);
 
     succeed;
@@ -1563,6 +1595,20 @@ backgroundWindow(PceWindow sw, Colour colour)
 }
 
 
+static status
+selectionFeedbackWindow(PceWindow sw, Any feedback)
+{ if ( isDefault(feedback) )
+    TRY(feedback = getResourceValueObject(sw, NAME_selectionFeedback));
+
+  if ( feedback != sw->selection_feedback )
+  { assign(sw, selection_feedback, feedback);
+    redrawWindow(sw, DEFAULT);
+  }
+
+  succeed;
+}
+
+
 static Colour
 getForegroundWindow(PceWindow sw)
 { answer(sw->colour);
@@ -1735,10 +1781,13 @@ makeClassWindow(Class class)
 	     "Event beeing processed now");
   localClass(class, NAME_sensitive, NAME_event, "bool", NAME_both,
 	     "Window accepts events");
-  localClass(class, NAME_background, NAME_appearance, "colour|pixmap", NAME_get,
+  localClass(class, NAME_background, NAME_appearance, "colour|pixmap",NAME_get,
 	     "Background colour or pattern");
-  localClass(class, NAME_grabPointer, NAME_focus, "bool", NAME_get,
-	     "If @on, grab pointer events");
+  localClass(class, NAME_hasPointer, NAME_event, "bool", NAME_both,
+	     "If @on, pointer (mouse) is in window");
+  localClass(class, NAME_selectionFeedback, NAME_appearance,
+	     "{invert,handles}|elevation|colour*", NAME_get,
+	     "How <-selected graphicals are visualised");
   localClass(class, NAME_changesData, NAME_redraw, "alien:UpdateArea",
 	     NAME_none, "Summary info for redraw");
   localClass(class, NAME_wsRef, NAME_windowSystem, "alien:WsRef", NAME_none,
@@ -1757,7 +1806,8 @@ makeClassWindow(Class class)
   storeMethod(class, NAME_background, backgroundWindow);
   storeMethod(class, NAME_keyboardFocus, keyboardFocusWindow);
   storeMethod(class, NAME_focusCursor, focusCursorWindow);
-  storeMethod(class, NAME_grabPointer, grabPointerWindow);
+  storeMethod(class, NAME_selectionFeedback, selectionFeedbackWindow);
+  storeMethod(class, NAME_inputFocus, inputFocusWindow);
 
   sendMethod(class, NAME_initialise, DEFAULT, 3,
 	     "label=[name]", "size=[size]", "display=[display]",
@@ -1832,6 +1882,9 @@ makeClassWindow(Class class)
   sendMethod(class, NAME_grabKeyboard, NAME_event, 1, "bool",
 	     "Grap keyboard events",
 	     grabKeyboardWindow);
+  sendMethod(class, NAME_grabPointer, NAME_event, 1, "bool",
+	     "Grab pointer (mouse) events",
+	     grabPointerWindow);
   sendMethod(class, NAME_pointer, NAME_pointer, 1, "point",
 	     "Move the pointer relative to window",
 	     pointerWindow);
@@ -1942,8 +1995,8 @@ makeClassWindow(Class class)
 
   WindowTable = createHashTable(toInt(32), OFF);
 
-  attach_resource(class, "selection_style", "name", "none",
-		  "Visual feedback of <->selected");
+  refine_resource(class, "selection_handles", "@nil");
+  attach_resource(class, "selection_feedback", NULL, "handles", NULL);
   attach_resource(class, "size", "size", "size(200,100)",
 		  "Default size (pixels)");
   attach_resource(class, "pen", "int", "1",

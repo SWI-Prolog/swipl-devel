@@ -3,6 +3,8 @@
 			non-US-ASCII characters
 
 
+Fri Oct  7 09:38:47 1994: Updated for 4.8.0
+
 STATUS
 ======
 
@@ -33,21 +35,19 @@ any XPCE process running on your computer.
 
 ----------------------------------------------------------------
 Pce.Display.font_families: \
-	screen_fonts \
-	courier_fonts \
-	helvetica_fonts \
-	times_fonts \
-	math_fonts
+	[ screen_fonts, \
+ 	  courier_fonts, \
+	  helvetica_fonts, \
+	  times_fonts, \
+	  math_fonts \
+	]
 
 Pce.Display.math_fonts : \
-	@math_roman_12 = \
-		"-*-*-medium-r-*-*-12-*-*-75-*-*-*-1_fmath" \
-	@math_roman_18 = \
-		"-*-*-medium-r-*-*-18-*-*-75-*-*-*-1_fmath" \
-	@math_bold_12 = \
-		"-*-*-bold-r-*-*-12-*-*-75-*-*-*-1_fmath" \
-	@math_bold_18 = \
-		"-*-*-bold-r-*-*-18-*-*-75-*-*-*-1_fmath"
+	[ font(math, roman, 12, "-*-*-medium-r-*-*-12-*-*-75-*-*-*-1_fmath"), \
+	  font(math, roman, 18, "-*-*-medium-r-*-*-18-*-*-75-*-*-*-1_fmath"), \
+	  font(math, bold, 12,  "-*-*-bold-r-*-*-12-*-*-75-*-*-*-1_fmath"), \
+	  font(math, bold, 18,  "-*-*-bold-r-*-*-18-*-*-75-*-*-*-1_fmath") \
+	]
 ----------------------------------------------------------------
 
 
@@ -91,11 +91,11 @@ SWI-Prolog too is 8-bit  transparent.   All   characters  in  the  range
 both an unquoted or quoted atom.
 
 **NOTE** When SWI-Prolog is reading  from   a  terminal connected to the
-standard input it uses the GNU  readline library (currently version 1.1)
-to allow for Emacs-like editing  of   the  command-line and browsing the
-history.  Readline treats characters of the   range 128..255 as commands
-instead  of  printable  characters.   There  are  two  alternatives  for
-entering such characters:
+standard input it uses  the  GNU   readline  library  (currently version
+2.0.3) to allow for Emacs-like editing  of the command-line and browsing
+the history.  Readline treats  characters  of   the  range  128..255  as
+commands instead of printable characters.    There  are two alternatives
+for entering such characters:
 
 	# xpce -tty
 	Tells SWI-Prolog to ignore the fact that the terminal is a tty

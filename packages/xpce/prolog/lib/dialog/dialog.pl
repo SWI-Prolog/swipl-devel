@@ -24,7 +24,7 @@ standard XPCE library directory.
 :- use_module(generate).
 :- use_module(pretty_print).
 :- use_module(load).
-:- use_module(library(template)).
+:- use_module(library('dialog/lib/template')).
 :- require([ between/3
 	   , forall/2
 	   , ignore/1
@@ -32,6 +32,7 @@ standard XPCE library directory.
 	   , member/2
 	   , pce_help_file/2
 	   , pce_image_directory/1
+	   , postscript/2
 	   , prompter/2
 	   , send_list/3
 	   ]).
@@ -530,10 +531,40 @@ attribute_editor(D, Ed:dia_attribute_editor) :<-
 	    send(D, attribute_editor, Ed)
 	).
 
+		 /*******************************
+		 *	   LAYOUT STUFF		*
+		 *******************************/
 
 fix_layout(D) :->
 	"Fix the layout"::
+	send(D, save_dialog_layout),
 	layout_dialog(D).
+
+
+save_dialog_layout(D) :->
+	"Save layout for later ->undo"::
+	get(D, overlay, Overlay),
+	send(D?graphicals, for_all,
+	     if(@arg1 \== Overlay,
+		message(@arg1, attribute,
+			undo_position, @arg1?area?position))).
+
+restore_dialog_layout(D) :->
+	"Restore saved dialog layout"::
+	new(UndoPos, ?(@arg1, attribute, undo_position)),
+	(   get(D?graphicals, find, UndoPos, _)
+	->  get(D, overlay, Overlay),
+	    send(D?graphicals, for_all,
+		 if(@arg1 \== Overlay,
+		    and(message(@arg1, above, @nil),
+			message(@arg1, below, @nil),
+			message(@arg1, left,  @nil),
+			message(@arg1, right, @nil),
+			if(message(@arg1, label_width, @default)),
+			if(message(@arg1, position,
+				   ?(@arg1, attribute, undo_position))))))
+	;   send(D, report, warning, 'No undo information')
+	).
 
 
 fit_size(D) :->
@@ -544,6 +575,10 @@ fit_size(D) :->
 	NH is H+2*GH,
 	send(D, size, size(NW, NH)).
 
+
+		 /*******************************
+		 *     SOURCE CODE GENERATION	*
+		 *******************************/
 
 prolog_source(D, String:string) :<-
 	"Prolog source-code for dialog"::
@@ -798,6 +833,7 @@ mode(DE, Mode:{create,layout,action,run}) :->
 :- pce_global(@dia_target, new(@receiver?frame?target)).
 
 mode_button(layout, layout,    message(@dia_target, fix_layout)).
+mode_button(layout, undo_layout, message(@dia_target, restore_dialog_layout)).
 mode_button(layout, fit,       message(@dia_target, fit_size)).
 mode_button(action, behaviour_model,
 			       message(@dia_target, open_behaviour_model)).

@@ -15,7 +15,6 @@
 :- use_module(util).
 :- require([ checkpce/0
 	   , pcedemo/0
-	   , emacs/0
 	   , ignore/1
 	   , send_list/3
 	   ]).

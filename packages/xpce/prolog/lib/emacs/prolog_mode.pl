@@ -59,6 +59,7 @@
 
 	send(MM, append, pce, manpce),
 	send(MM, append, pce, editpce),
+	send(MM, append, pce, pce_check_require_directives),
 	send(MM, append, pce, pce_insert_require_directive).
 
    
@@ -345,33 +346,36 @@ pce_insert_require_directive(M) :->
 	).
 
 
-pce_require_dir(M) :->
-	"Open buffers that need require"::
-	get(M, directory, Dir),
+pce_check_require_directives(M, Dir:directory) :->
+	"Mark :- require's that are out-of-date"::
 	get(Dir, files, '.*\.pl$', PlFiles),
-	get(PlFiles, map, ?(Dir?path, append, /, @arg1), FileNames),
-	send(FileNames, for_all, message(M, pce_check_require, @arg1)).
+	send(PlFiles, for_some,
+	     message(M, pce_check_require, ?(Dir, file, @arg1))),
+	get(Dir, directories, SubDirs),
+	send(SubDirs, for_some,
+	     message(M, pce_check_require_directives,
+		     ?(Dir, directory, @arg1))).
 
 
 pce_check_require(M, File:file) :->
 	"Open of there is no :- require"::
 	get(File, name, Name),
 	send(M, report, status, 'Checking %s', Name),
-	seeing(Old), see(Name),
-	repeat,
-	    read(Term),
-	    (	Term == end_of_file
-	    ->	!, Open = true
-	    ;	Term = (:- require(_))
-	    ->	!, Open = fail
-	    ;	fail
+	send(M, synchronise),
+	ensure_loaded(library(pce_require)),
+	Goal = pce_require(Name, _Directive, Message), % fool xref :-)
+	Goal,
+	(   send(Message, sub, 'up-to-date')
+	->  true
+	;   new(B, emacs_buffer(File)),
+	    (	get(regex('^:-\s *require('), search, B, Index)
+	    ->	true
+	    ;	Index = 0
 	    ),
-	seen, see(Old),
-	(   Open
-	->  new(B, emacs_buffer(File)),
-	    send(B, open)
-	;   true
-	).
+	    send(@emacs_mark_list, append_hit, B, Index)
+	),
+	send(M, report, done).
+
 	    
 		 /*******************************
 		 *	       DROP		*

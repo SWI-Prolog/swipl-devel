@@ -50,6 +50,7 @@ static status		saveEditor P((Editor, FileObj));
 static status		newKill P((CharArray));
 static CharArray	killRegister P((Int));
 static status		tabDistanceEditor(Editor e, Int tab);
+static status		isisearchingEditor(Editor e);
 
 static Timer	ElectricTimer;
 
@@ -92,7 +93,7 @@ initialiseEditor(Editor e, TextBuffer tb, Int w, Int h, Int tmw)
     assign(e, margin, newObject(ClassTextMargin, e, tmw, ih, 0));
   else
     assign(e, margin, NIL);
-  assign(e, text_cursor, newObject(ClassTextCursor, fw, fh, 0));
+  assign(e, text_cursor, newObject(ClassTextCursor, e->font, 0));
   send(e->text_cursor, NAME_active, OFF, 0);
   assign(e, caret, ZERO);
   assign(e, mark, toInt(tb->size));
@@ -110,6 +111,7 @@ initialiseEditor(Editor e, TextBuffer tb, Int w, Int h, Int tmw)
   assign(e, search_base, ZERO);
   assign(e, selection_origin, ZERO);
   assign(e, selection_unit, NAME_character);
+  assign(e, selection_style, getResourceValueObject(e, NAME_selectionStyle));
   assign(e, editable, ON);
   assign(e, error_message, NIL);
   assign(e, left_margin, ZERO);
@@ -303,10 +305,7 @@ electricCaretEditor(Editor e, Int caret, Real time)
 
 static status
 updateStyleCursorEditor(Editor e)
-{ if ( getFixedWidthFont(e->font) == ON )
-    styleTextCursor(e->text_cursor, NAME_block);
-  else
-    styleTextCursor(e->text_cursor, NAME_arrow);
+{ send(e->text_cursor, NAME_font, e->font, 0);
 
   return updateCursorEditor(e);
 }
@@ -518,6 +517,7 @@ struct fragment_cache
   ulong		attributes;		/* Current (fragment) attributes */
   FontObj	font;			/* current (fragment) font */
   Colour	colour;			/* current (fragment) colour */
+  Any		background;		/* curremt (fragment) background */
 };
 
 
@@ -553,6 +553,7 @@ resetFragmentCache(FragmentCache fc, TextBuffer tb)
   fc->attributes = 0;
   fc->font	 = DEFAULT;
   fc->colour	 = DEFAULT;
+  fc->background = DEFAULT;
 }
 
 
@@ -604,8 +605,10 @@ indexFragmentCache(FragmentCache fc, Editor e, long int i)
   if ( changed )
   { FragmentCell cell;
     FontObj f = DEFAULT;
-    long fl = 0;			/* keep compiler happy */
+    Any bg = DEFAULT;
     Colour c = DEFAULT;
+    long fl = 0;			/* keep compiler happy */
+    long bgl = 0;
     long cl = 0;
     ulong attributes = 0L;
 
@@ -623,10 +626,17 @@ indexFragmentCache(FragmentCache fc, Editor e, long int i)
 	  cl = cell->fragment->length;
 	}
       }
+      if ( notDefault(cell->style->background) )
+      { if ( isDefault(bg) || cell->fragment->length < bgl )
+	{ bg = cell->style->background;
+	  bgl = cell->fragment->length;
+	}
+      }
     }
 
     fc->font = f;
     fc->colour = c;
+    fc->background = bg;
     fc->attributes = attributes;
 
     DEBUG(NAME_fragment, printf("---> Font: %s; attributes: 0x%lx\n",
@@ -704,18 +714,35 @@ fetch_editor(Editor e, TextChar tc)
   tc->c          = Fetch(e, index);
   tc->font       = e->fragment_cache->font;
   tc->colour     = e->fragment_cache->colour;
+  tc->background = e->fragment_cache->background;
   tc->attributes = e->fragment_cache->attributes;
 
   if ( InRegion(index, e->selection_start, e->selection_end) )
-    tc->attributes ^= TXT_HIGHLIGHTED;
+  { Style s = (isisearchingEditor(e)
+	       ? getResourceValueObject(e, NAME_isearchStyle)
+	       : e->selection_style);
+
+    if ( !s || isDefault(s) )
+    { tc->attributes ^= TXT_HIGHLIGHTED;
+    } else
+    { tc->attributes |= s->attributes;
+      if ( notDefault(s->font) )
+	tc->font = s->font;
+      if ( notDefault(s->background) )
+	tc->background = s->background;
+    }
+  }
 
   if ( notNil(e->selected_fragment) )
   { Fragment fr = e->selected_fragment;
+    Style s = e->selected_fragment_style;
 
     if ( index >= fr->start && index < fr->start + fr->length )
-    { tc->attributes |= e->selected_fragment_style->attributes;
-      if ( notDefault(e->selected_fragment_style->font) )
-	tc->font = e->selected_fragment_style->font;
+    { tc->attributes |= s->attributes;
+      if ( notDefault(s->font) )
+	tc->font = s->font;
+      if ( notDefault(s->background) )
+	tc->background = s->background;
     }
   }
 
@@ -794,7 +821,7 @@ where_editor(Editor e, Int index)
   if ( i < valInt(getStartTextImage(e->image, ONE)) )
     return NAME_above;			/* above window */
 
-  updateMapTextImage(e->image);
+  ComputeGraphical(e->image);
   if ( i < valInt(e->image->end) )
     return NAME_inside;			/* In the window */
 
@@ -824,7 +851,7 @@ ensureVisibleEditor(Editor e, Int from, Int to)
     if ( where_editor(e, to) == NAME_below )
     { DEBUG(NAME_scroll, printf("More than one line: centering\n"));
       centerWindowEditor(e, to);
-      updateMapTextImage(e->image);
+      ComputeGraphical(e->image);
     }
   } else if ( valInt(to) < valInt(getStartTextImage(e->image, ONE)) )
   { startTextImage(e->image, getScanTextBuffer(e->text_buffer,
@@ -832,10 +859,10 @@ ensureVisibleEditor(Editor e, Int from, Int to)
 					       NAME_line, toInt(-1),
 					       NAME_start),
 		   ZERO);
-    updateMapTextImage(e->image);
+    ComputeGraphical(e->image);
     if ( valInt(to) < valInt(getStartTextImage(e->image, ONE)) )
     { centerWindowEditor(e, to);
-      updateMapTextImage(e->image);
+      ComputeGraphical(e->image);
     }
   }
 
@@ -846,7 +873,7 @@ ensureVisibleEditor(Editor e, Int from, Int to)
 						 NAME_line, toInt(-1),
 						 NAME_start),
 		     ZERO);
-      updateMapTextImage(e->image);
+      ComputeGraphical(e->image);
     }
   }
 
@@ -866,7 +893,7 @@ static status
 ensureCaretInWindowEditor(Editor e)
 { Int start;
 
-  updateMapTextImage(e->image);
+  ComputeGraphical(e->image);
 
   if ( valInt(e->caret) < valInt(start = getStartTextImage(e->image, ONE)) )
     assign(e, caret, start);
@@ -885,7 +912,7 @@ ensureCaretInWindowEditor(Editor e)
 
 static Int
 getFirstEditor(Editor e)
-{ updateMapTextImage(e->image);
+{ ComputeGraphical(e->image);
 
   answer(getLineNumberEditor(e, getStartTextImage(e->image, ONE)));
 }
@@ -1004,29 +1031,24 @@ event_editor(Editor e, EventObj ev)
   if ( isAEvent(ev, NAME_keyboard) )
     return send(e, NAME_typed, getIdEvent(ev), 0);
 
-  if ( isAEvent(ev, NAME_area) )
-  { if ( isAEvent(ev, NAME_areaEnter) )
-      send(e, NAME_keyboardFocus, 0);
-    else
-      send(e, NAME_keyboardFocus, OFF, 0);
-
-    succeed;
-  }
-
   if ( isAEvent(ev, NAME_focus) )
-  { if ( isAEvent(ev, NAME_obtainKeyboardFocus) )
+  { if ( isAEvent(ev, NAME_activateKeyboardFocus) )
       send(e->text_cursor, NAME_active, ON, 0);
-    else if ( isAEvent(ev, NAME_releaseKeyboardFocus) )
+    else if ( isAEvent(ev, NAME_deactivateKeyboardFocus) )
       send(e->text_cursor, NAME_active, OFF, 0);
 
     succeed;
   }
+					/* @editor_recogniser is a hook */
+					/* to allow for host-language */
+					/* level redefinition */
 
   { Any recogniser = getObjectFromReferencePce(PCE, NAME_editorRecogniser);
 
     if ( recogniser && instanceOfObject(recogniser, ClassRecogniser) )
       return send(recogniser, NAME_event, ev, 0);
   }
+					/* Built-in version */
 
   if ( isAEvent(ev, NAME_button) )
   { Int where = getIndexTextImage(e->image, ev);
@@ -2443,6 +2465,16 @@ findCutBufferEditor(Editor e, Int arg)
 
 
 static status
+isisearchingEditor(Editor e)
+{ if ( e->focus_function == NAME_Isearch ||
+       e->focus_function == NAME_StartIsearch )
+    succeed;
+
+  fail;
+}
+
+
+static status
 StartIsearchEditor(Editor e, EventId id)
 { Name cmd = getKeyBindingEditor(e, characterName(id));
 
@@ -2480,8 +2512,7 @@ abortIsearchEditor(Editor e)
 
 static status
 endIsearchEditor(Editor e)
-{ if ( e->focus_function == NAME_Isearch ||
-       e->focus_function == NAME_StartIsearch )
+{ if ( isisearchingEditor(e) )
   { int caret = (e->search_direction == NAME_forward ? e->selection_end
 						     : e->selection_start);
 
@@ -2861,7 +2892,7 @@ scrollToEditor(Editor e, Int pos)
 static status
 centerWindowEditor(Editor e, Int pos)
 { centerTextImage(e->image, normalise_index(e, pos), DEFAULT);
-  updateMapTextImage(e->image);
+  ComputeGraphical(e->image);
   updateCursorEditor(e);
 
   succeed;
@@ -2873,7 +2904,7 @@ scrollUpEditor(Editor e, Int arg)
 { TextImage ti = e->image;
 
   if ( isDefault(arg) )
-  { updateMapTextImage(ti);
+  { ComputeGraphical(ti);
     if ( ti->eof_in_window == ON )
       return send(e, NAME_report, NAME_warning,
 		  CtoName("End of buffer"), 0);
@@ -3367,7 +3398,7 @@ getReadLineEditor(Editor e)
 
 static StringObj
 getFirstLineEditor(Editor e)
-{ updateMapTextImage(e->image);
+{ ComputeGraphical(e->image);
 
   answer(getLineEditor(e, getStartTextImage(e->image, ONE)));
 }
@@ -3655,6 +3686,8 @@ makeClassEditor(Class class)
 	     "0-based mark index");
   localClass(class, NAME_tabDistance, NAME_appearance, "characters=int",
 	     NAME_get, "Distance between tabs");
+  localClass(class, NAME_selectionStyle, NAME_appearance, "[style]",
+	     NAME_get, "Feedback for the <-selection");
   localClass(class, NAME_selectedFragment, NAME_selection, "fragment*",
 	     NAME_get, "The current fragment");
   localClass(class, NAME_selectedFragmentStyle, NAME_appearance, "style",
@@ -4216,6 +4249,10 @@ makeClassEditor(Class class)
 		  "Modify selection using this modifier");
   attach_resource(class, "caret_modifier", "modifier", "",
 		  "Modify caret using this modifier");
+  attach_resource(class, "selection_style", "[style]", "@default",
+		  "Style for <-selection");
+  attach_resource(class, "isearch_style", "style", "style(highlight := @on)",
+		  "Style for incremental search");
 
   succeed;
 }

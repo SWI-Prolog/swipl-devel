@@ -226,7 +226,8 @@ status		constraintObject(Any obj, Constraint c);
 status		deleteConstraintObject(Any obj, Constraint c);
 status		attachHyperObject(Any obj, Hyper h, Any to);
 status		deleteHyperObject(Any obj, Hyper h);
-status		attributeObject(Any obj, Attribute att);
+status		attributeObject(Any obj, Any name, Any value);
+status		deleteAttributeObject(Any obj, Any att);
 Any		getAttributeObject(Any obj, Name name);
 status		hasSendMethodObject(Any obj, Name selector);
 status		hasGetMethodObject(Any obj, Name selector);
@@ -263,7 +264,6 @@ status		CheckObject(Any obj, Bool recursive);
 status		errorObjectv(Any obj, Error e, int argc, Any *argv);
 Name		getManIdObject(Any obj);
 status		makeClassObject(Class class);
-status		attach_attribute(Any obj, Name name, Any value);
 
 /* programobject.c */
 status		initialiseProgramObject(Any obj);

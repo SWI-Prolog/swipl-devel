@@ -298,11 +298,11 @@ getTokenTokeniser(Tokeniser t)
 
       continue;
     } else if ( tiscommentstart1(s, c) ) /* 2 character comment */
-    { char c2 = GETC(t);
+    { int c2 = GETC(t);
 
       if ( tiscommentstart2(s, c2) )
-      { char c1 = GETC(t);
-	char c2 = GETC(t);
+      { int c1 = GETC(t);
+	int c2 = GETC(t);
 
 	while( !tiscommentend1(s, c1) || !tiscommentend2(s, c2) )
 	{ c1 = c2;
@@ -330,7 +330,7 @@ getTokenTokeniser(Tokeniser t)
   if ( tisquote(s, c) )			/* strings */
   { char buf[LINESIZE];
     char *q = buf;
-    char open = c;
+    int open = c;
 
     for(;;)
     { if ( IsEof(c = GETC(t)) )
@@ -340,7 +340,7 @@ getTokenTokeniser(Tokeniser t)
 	
       if ( tisstringescape(s, open, c) )
       { if ( c == open )		/* escape as double "" or '' */
-	{ char c2 = GETC(t);
+	{ int c2 = GETC(t);
 	  
 	  if ( c2 == open )
 	  { *q++ = c;
@@ -351,7 +351,7 @@ getTokenTokeniser(Tokeniser t)
 	    answer(CtoString(buf));
 	  }
 	} else	
-	{ char c2;
+	{ int c2;
 
 	  if ( IsEof(c2 = GETC(t)) )
 	  { send(t, NAME_syntaxError, CtoName("End of file in string"));
@@ -376,7 +376,7 @@ getTokenTokeniser(Tokeniser t)
     int is_int = TRUE;
 
     if ( c == '-' )
-    { char c2 = GETC(t);
+    { int c2 = GETC(t);
 
       if ( !tisdigit(s, c2) )
       { UNGETC(t, c2);
@@ -393,7 +393,7 @@ getTokenTokeniser(Tokeniser t)
     } while ( tisdigit(s, c) );
     
     if ( c == '.' )
-    { char c2 = GETC(t);
+    { int c2 = GETC(t);
 
       if ( tisdigit(s, c2) )
       { *q++ = c;
@@ -410,7 +410,7 @@ getTokenTokeniser(Tokeniser t)
     }
 
     if ( c == 'e' || c == 'E' )
-    { char c2 = GETC(t);
+    { int c2 = GETC(t);
 
       if ( tisdigit(s, c2) )
       { *q++ = c;

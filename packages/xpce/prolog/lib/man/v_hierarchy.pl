@@ -15,10 +15,7 @@
 
 :- use_module(library(pce)).
 :- use_module(util).
-:- require([ forall/2
-	   , get_chain/3
-	   , member/2
-	   , send_list/3
+:- require([ send_list/3
 	   ]).
 
 
@@ -52,7 +49,7 @@ initialise(CH, Manual:man_manual) :->
 	send(D, below, P),
 	fill_dialog(D),
 	fill_picture(P),
-	send(P, recogniser, handler(keyboard, message(@event, post, D))),
+	send(CH, keyboard_focus, D),
 	send(CH, expand_node, CH?tree?root).
 
 
@@ -102,8 +99,8 @@ make_popup(P) :-
 	     [ menu_item(select,
 			 message(CH, request_selection, Class, @on),
 			 @default, @off,
-			 Node?inverted == @off)
-	     , menu_item(focus,
+			 Node?selected == @off)
+	     , menu_item(class_browser,
 			 message(CH, request_tool_focus, Class),
 			 @default, @on)
 	     , menu_item(expand,
@@ -137,6 +134,10 @@ make_popup(P) :-
 
 
 fill_picture(P) :-
+	(   get(P, selection_feedback, handles)
+	->  send(P, selection_feedback, invert)
+	;   true
+	),
 	get(P, frame, Tool),
 	create_node(Tool, @object_class, Root),
 	send(P, display, new(T, tree(Root))),
@@ -197,9 +198,9 @@ selected(CH, Obj:object*) :->
 	send(CH, slot, selection, @nil),
 	send(CH?tree, for_all,
 	     if(@arg1?context == Class,
-		block(message(@arg1?image, inverted, @on),
-		      message(CH, slot, selection, @arg1)),
-		message(@arg1?image, inverted, @off))).
+		and(message(@arg1?image, selected, @on),
+		    message(CH, slot, selection, @arg1)),
+		message(@arg1?image, selected, @off))).
 
 
 release_selection(CH) :->

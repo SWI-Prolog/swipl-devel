@@ -16,7 +16,7 @@
 #define BOXHEIGHT	6		/* boxes at top/bottom */
 #define BAR_WIDTH	3		/* Width of bar-line */
 #define BOX_MARGIN	2		/* Box to bar-line */
-#define BUTTON_HEIGHT  14		/* Height of (1/3) button */
+#define BUTTON_HEIGHT  15		/* Height of (1/3) button */
 static  int LastOffset;			/* pointer-warping */
 #endif
 
@@ -151,7 +151,7 @@ ComputeScrollBar(ScrollBar sb)
 	  }
 	}
 
-	assign(sb, status, NAME_inactive);
+/*	assign(sb, status, NAME_inactive); */
       }
 #endif /*OPENLOOK*/
       CHANGING_GRAPHICAL(sb, changedEntireImageGraphical(sb));
@@ -285,38 +285,36 @@ compute_bubble(ScrollBar s, struct bubble_info *bi,
 
 status
 RedrawAreaScrollBar(ScrollBar s, Area a)
-{ int x, y, w, h;
-  struct bubble_info bi;
-  int p = valInt(s->pen);
+{ Any bg = getResourceValueObject(s, NAME_background);
+  Any obg =  obg = r_background(bg);
 
   if ( s->look == NAME_openLook )
-    return OpenLookRedrawAreaScrollBar(s, a);
+    OpenLookRedrawAreaScrollBar(s, a);
+  else
+  { int x, y, w, h;
+    struct bubble_info bi;
+    int p = valInt(s->pen);
+    Elevation z = getResourceValueObject(s, NAME_elevation);
+    int d = 2;
 
-{
-#define d 2
-  Elevation z = getResourceValueObject(s, NAME_elevation);
-  Any obg, bg = getResourceValueObject(s, NAME_background);
+    initialiseDeviceGraphical(s, &x, &y, &w, &h);
+    NormaliseArea(x, y, w, h);
 
-  initialiseDeviceGraphical(s, &x, &y, &w, &h);
-  NormaliseArea(x, y, w, h);
+    compute_bubble(s, &bi, 0, MIN_BUBBLE, FALSE);
+    r_thickness(p);
+    r_dash(s->texture);
 
-  compute_bubble(s, &bi, 0, MIN_BUBBLE, FALSE);
-  obg = r_background(bg);
-  r_thickness(p);
-  r_dash(s->texture);
+    if ( equalName(s->orientation, NAME_vertical) )
+    { r_clear(x+p, y, w-2*p, h);
+      r_3d_box(x+d, y+bi.start, w-2*d, bi.length, 0, z, TRUE);
+    } else /* if ( equalName(s->orientation, NAME_horizontal) ) */
+    { r_clear(x, y+p, w, h-2*p);
+      r_3d_box(x+bi.start, y+d, bi.length, h-2*d, 0, z, TRUE);
+    }
 
-  if ( equalName(s->orientation, NAME_vertical) )
-  { r_clear(x+p, y, w-2*p, h);
-    r_3d_box(x+d, y+bi.start, w-2*d, bi.length, 0, z, TRUE);
-  } else /* if ( equalName(s->orientation, NAME_horizontal) ) */
-  { r_clear(x, y+p, w, h-2*p);
-    r_3d_box(x+bi.start, y+d, bi.length, h-2*d, 0, z, TRUE);
+    r_box(x, y, w, h, 0, NIL);
   }
-
-  r_box(x, y, w, h, 0, NIL);
   r_background(obg);
-#undef d
-}
 
   return RedrawAreaGraphical(s, a);
 }
@@ -340,12 +338,33 @@ scrollBarRepeatTimer()
 
 
 static status
-repeatScrollBar(ScrollBar s)
-{ intervalTimer(scrollBarRepeatTimer(),
-		getResourceValueObject(s, NAME_repeatInterval));
-  forwardScrollBar(s);
-  assign(s, status, NAME_repeat);
+changedBubbleScrollBar(ScrollBar s)
+{ if ( s->look == NAME_openLook )
+  { struct bubble_info button_bi;
+    compute_bubble(s, &button_bi,
+		   BOXHEIGHT+BOX_MARGIN, BUTTON_HEIGHT*3, TRUE);
 
+    if ( s->orientation == NAME_vertical )
+      changedImageGraphical(s, ZERO, toInt(button_bi.start),
+			    s->area->w, toInt(button_bi.length));
+    else
+      changedImageGraphical(s, toInt(button_bi.start), ZERO,
+			    toInt(button_bi.length), s->area->h);
+  }
+
+  succeed;
+}
+
+
+static status
+repeatScrollBar(ScrollBar s)
+{ if ( s->status == NAME_repeat )
+  { forwardScrollBar(s);
+    synchroniseGraphical((Graphical) s);
+    intervalTimer(scrollBarRepeatTimer(),
+		  getResourceValueObject(s, NAME_repeatInterval));
+  }
+  
   succeed;
 }
 
@@ -355,6 +374,8 @@ detachTimerScrollBar(ScrollBar s)
 { if ( ScrollBarRepeatMessage && ScrollBarRepeatMessage->receiver == s )
   { stopTimer(ScrollBarRepeatTimer);
     assign(ScrollBarRepeatMessage, receiver, NIL);
+    assign(s, status, NAME_inactive);
+    changedBubbleScrollBar(s);
   }
 }
 
@@ -378,18 +399,58 @@ unlinkScrollBar(ScrollBar s)
 }
 
 
+static void
+sb_box(int x, int y, int w, int h,
+       int vertical, Elevation z, int use_shadow,
+       int active)
+{ if ( !vertical )
+  { swap(x, y);
+    swap(w, h);
+  }
+
+  if ( !z )
+  { if ( use_shadow )
+      r_shadow_box(x, y, w, h, 0, 1, active ? BLACK_IMAGE : NIL);
+    else
+      r_box(x, y, w, h, 0, active ? BLACK_IMAGE : NIL);
+  } else
+  { r_3d_box(x, y, w, h, 0, z, active ? FALSE : TRUE);
+  }
+}
+
+
+static void
+sb_triangle(int x1, int y1,
+	    int x2, int y2,
+	    int x3, int y3,
+	    int vertical, Elevation z,
+	    int active)
+{ if ( !vertical )
+  { swap(x1, y1);
+    swap(x2, y2);
+    swap(x3, y3);
+  }
+
+  r_fillpattern((z || active) ? BLACK_IMAGE : GREY50_IMAGE);
+  r_triangle(x1, y1, x2, y2, x3, y3);
+}
+
+
 static status
 OpenLookRedrawAreaScrollBar(ScrollBar s, Area a)
 { int x, y, w, h;
   int p = valInt(s->pen);
-  int shadow = 1, radius = 1;
+  int shadow = 1;
   int am = 3;				/* arrow-margin */
   struct bubble_info bar_bi;
   struct bubble_info button_bi;
   struct iarea redraw;
-
+  Elevation z = getResourceValueObject(s, NAME_elevation);
   int boxh = BOXHEIGHT;
   int boxm = BOX_MARGIN;
+
+  if ( isNil(z) )
+    z = NULL;
 
   initialiseRedrawAreaGraphical(s, a, &x, &y, &w, &h, &redraw);
   r_clear(redraw.x, redraw.y, redraw.w, redraw.h);
@@ -403,18 +464,10 @@ OpenLookRedrawAreaScrollBar(ScrollBar s, Area a)
   if ( button_bi.bar_start == 0 )
     boxh = 0;
 
-#define Box(x, y, w, h, r, f) \
-	if ( vertical ) r_box(x, y, w, h, r, f); else r_box(y, x, h, w, r, f)
-#define ShadowBox(x, y, w, h, r, s, f) \
-	if ( vertical ) r_shadow_box(x, y, w, h, r, s, f); \
-  		   else r_shadow_box(y, x, h, w, r, s, f)
 #define Fill(x, y, w, h, f) \
 	if ( vertical ) r_fill(x, y, w, h, f); else r_fill(y, x, h, w, f)
 #define Clear(x, y, w, h) \
 	if ( vertical ) r_clear(x, y, w, h); else r_clear(y, x, h, w)
-#define Triangle(x1, y1, x2, y2, x3, y3) \
-	if ( vertical ) r_triangle(x1, y1, x2, y2, x3, y3); \
-		   else r_triangle(y1, x1, y2, x2, y3, x3)
 
   { int vertical = (s->orientation == NAME_vertical);
     int bx, cy, bh, ch, ch3, ch9, l1y, l2y;
@@ -428,10 +481,10 @@ OpenLookRedrawAreaScrollBar(ScrollBar s, Area a)
     bx = x + (w-BAR_WIDTH+1)/2;		/* x of the bar */
 
     if ( boxh > 0 )
-    { Box(x, y, w, boxh, 0,
-	  s->status == NAME_topOfFile ? BLACK_IMAGE : NIL);
-      Box(x, y+h-boxh, w, boxh, 0,
-	  s->status == NAME_bottomOfFile ? BLACK_IMAGE : NIL);
+    { sb_box(x, y, w, boxh, vertical, z, FALSE,
+	     s->status == NAME_topOfFile);
+      sb_box(x, y+h-boxh, w, boxh, vertical, z, FALSE,
+	     s->status == NAME_bottomOfFile);
     }
     
     cy = y + bar_bi.bar_start;		/* paint the bar */
@@ -446,26 +499,54 @@ OpenLookRedrawAreaScrollBar(ScrollBar s, Area a)
 
     cy = y+button_bi.start;		/* paint the button */
     bh = button_bi.length;
-    Clear(x, cy-1, w, 1);
-    ShadowBox(x, cy, w, bh, radius, shadow, NIL);
-    Clear(x, cy+bh, w, 1);
+    Clear(x, cy-1, w, bh+2);
+    sb_box(x, cy, w, bh, vertical, z, TRUE, FALSE);
     ch3 = bh/3;
     l1y = cy + ch3;
     l2y = cy + bh-ch3-shadow;
 
-    Box(x, l1y, w-shadow, l2y-l1y, 0,
-	s->status == NAME_dragging ? BLACK_IMAGE : NIL);
+    sb_box(x, l1y-shadow, w, l2y-l1y+2*shadow, vertical, z, FALSE,
+	   !z && s->status == NAME_dragging);
+    if ( z )
+    { if ( s->status == NAME_dragging )
+      { int ew = w/2;
+	int ex = x + (w-ew)/2;
+	int ey = l1y + (l2y-l1y-ew)/2;
+
+	if ( vertical )
+	  r_3d_ellipse(ex, ey, ew, ew, z, FALSE);
+	else
+	  r_3d_ellipse(ey, ex, ew, ew, z, FALSE);
+      } else if ( s->status == NAME_repeat && s->unit == NAME_line )
+      { int by = s->direction == NAME_forwards ? l2y : cy;
+
+	sb_box(x, by, w, l1y-cy, vertical, z, FALSE, TRUE);
+      }
+    }
 
     ch9 = ((ch3 * 3) / 10)+1;		/* ... and the arrows */
-    r_fillpattern(s->start == ZERO ? GREY50_IMAGE : BLACK_IMAGE);
-    Triangle(x+am, l1y-ch9,
-	     x+w-shadow-am-1, l1y-ch9,
-	     x+(w-shadow)/2, cy+ch9);
-    r_fillpattern(valInt(s->start) + valInt(s->view) >= valInt(s->length)
-		  ? GREY50_IMAGE : BLACK_IMAGE);
-    Triangle(x+am, l2y+ch9,
-	     x+w-shadow-am-1, l2y+ch9,
-	     x+(w-shadow)/2, cy+bh-shadow-ch9);
+    sb_triangle(x+am, l1y-1-ch9,
+		x+w-shadow-am-1, l1y-1-ch9,
+		x+(w-shadow)/2, cy+ch9,
+		vertical, z,
+		s->start != ZERO);
+    sb_triangle(x+am, l2y+1+ch9,
+		x+w-shadow-am-1, l2y+1+ch9,
+		x+(w-shadow)/2, cy+bh-shadow-ch9,
+		vertical, z,
+		valInt(s->start) + valInt(s->view) < valInt(s->length));
+
+    if ( !z && s->status == NAME_repeat && s->unit == NAME_line )
+    { int bx = x + shadow;
+      int by = s->direction == NAME_forwards ? l2y : cy;
+      int bh = l1y-cy;
+      int bw = w - 2*shadow;
+
+      if ( vertical )
+	r_complement(bx, by, bw, bh);
+      else
+	r_complement(by, bx, bh, bw);
+    }
   }
 
   succeed;
@@ -527,6 +608,8 @@ OpenLookEventScrollBar(ScrollBar s, EventObj ev)
       { LastOffset = offset; 
 	attachTimerScrollBar(s);
       }
+
+      changedBubbleScrollBar(s);
     }
   } else if ( isAEvent(ev, NAME_msLeftDrag) )
   { if ( s->status == NAME_dragging )
@@ -550,9 +633,10 @@ OpenLookEventScrollBar(ScrollBar s, EventObj ev)
     }
   } else if ( isAEvent(ev, NAME_msLeftUp) )
   { if ( s->status != NAME_dragging )
-      forwardScrollBar(s);
-    if ( s->status != NAME_repeat )
-      assign(s, status, NAME_inactive);
+    { forwardScrollBar(s);
+      computeScrollBar(s);
+    }
+    assign(s, status, NAME_inactive);
     detachTimerScrollBar(s);
     changedEntireImageGraphical(s);	/* too much, but for now ok */
   } else
@@ -878,9 +962,9 @@ makeClassScrollBar(Class class)
 		  "Thickness of surrounding box");
   attach_resource(class, "repeat_delay", "real", "0.35",
 		  "OpenLook: time to wait until start of repeat");
-  attach_resource(class, "repeat_interval", "real", "0.08",
+  attach_resource(class, "repeat_interval", "real", "0.06",
 		  "OpenLook: interval between repeats");
-  attach_resource(class, "elevation", "elevation", "0",
+  attach_resource(class, "elevation", "elevation*", "@nil",
 		  "3-D effect elevation");
   attach_resource(class, "background", "[colour|pixmap]", "white",
 		  "Colour of background parts");

@@ -18,11 +18,6 @@
 
 :- pce_begin_class(emacs_window, frame, "Frame for the PceEmacs editor").
 
-:- pce_global(@emacs_window_recogniser,
- 	new(handler_group(handler(area_enter,
-				  message(@receiver?frame, active, @on)),
-			  handler(area_exit,
-				  message(@receiver?frame, active, @off))))).
 :- pce_global(@emacs_image_recogniser,
 	      new(handler(button,
 			  message(@receiver?device?(mode), event, @event)))).
@@ -47,15 +42,21 @@ initialise(F, B:emacs_buffer) :->
 			 new(E, emacs_editor(B, Size?width, Size?height)))),
 	     below, MBD),
 	send(new(MW, emacs_mini_window), below, V),
-	send(E, recogniser, @emacs_window_recogniser),
-	send(E, recogniser, handler(keyboard, message(@event, post, MW))),
 	send(E?image,  recogniser, @emacs_image_recogniser),
+	send(E, recogniser, handler(keyboard, message(MW, event, @arg1))),
 
 	get(B, mode, ModeName),
 	send(V, mode, ModeName),
+	send(F, keyboard_focus, V),
 
 	send(F, open),
 	send(F, pool, B?pool).
+
+
+input_focus(F, Val:bool) :->
+	"Activate the window"::
+	send(F, send_super, input_focus, Val),
+	send(F, active, Val).
 
 
 buffer(F, B:emacs_buffer) :->
@@ -102,7 +103,7 @@ active(F, Val:bool) :->
 
 
 sticky_window(F, Val:[bool]) :->
-	"Change sticky status"::
+	"[toggle] sticky status"::
 	default(Val, F?sticky_window?negate, V2),
 	send(F, slot, sticky_window, V2),
 	get(F, member, mini_window, WM),
@@ -139,8 +140,11 @@ prompt_using(F, Item:dialog_item, Rval:any) :<-
 	send(W, prompter, Item),
 	send(Item, message, message(F, return, @receiver?selection)),
 	send(Item, recogniser, @prompt_recogniser),
-
+	
+	send(F, keyboard_focus, W),
 	get(F, confirm, RawVal),
+	get(F, member, view, View),
+	send(F, keyboard_focus, View),
 
 	send(RawVal, lock_object, @on),	% protect for gc
 	send(Item, message, @nil),
@@ -151,13 +155,16 @@ prompt_using(F, Item:dialog_item, Rval:any) :<-
 	
 
 :- pce_autoload(behaviour_item, library('man/behaviour_item')).
+:- pce_autoload(directory_item, library('file_item')).
 
 prompt(F, Label:char_array, Default:[any], Type:[type], Rval:any) :<-
 	"Prompt for a value in the mini-window"::
 	default(Default, '', Selection),
 	(   Type == @default
 	->  new(Item, text_item(Label, Selection))
-	;   send(Type, includes, file)
+	;   (	send(Type, includes, file)
+	    ;	send(Type, includes, directory)
+	    )
 	->  (	send(Default, instance_of, file)
 	    ->	get(Default, name, D2)
 	    ;	D2 = Default
@@ -173,7 +180,10 @@ prompt(F, Label:char_array, Default:[any], Type:[type], Rval:any) :<-
 	    ;	new(DefPath, string('%s', F?editor?(mode)?directory?path)),
 		send(DefPath, ensure_suffix, /)
 	    ),
-	    new(Item, file_item(Label, DefPath))
+	    (	send(Type, includes, file)
+	    ->	new(Item, file_item(Label, DefPath))
+	    ;	new(Item, directory_item(Label, DefPath))
+	    )
 	;   send(Type, includes, emacs_buffer)
 	->  new(Item, text_item(Label, Selection)),
 	    send(Item, type, Type),
@@ -209,7 +219,7 @@ variable(report_type,	 name*,		both,	"Last type of report").
 initialise(D) :->
 	send(D, send_super, initialise),
 	send(D, slot, report_count, number(0)),
-	send(D, gap, size(10, 0)),
+	send(D, gap, size(10, 2)),
 	send(D, pen, 0),
 	send(D, display, new(StickyIndicator, bitmap('nosticky.bm', @on))),
 	send(StickyIndicator, name, sticky_indicator),
@@ -243,6 +253,8 @@ report(D, Type:name, Fmt:[char_array], Args:any ...) :->
 
 ok_to_overrule(_, @nil).
 ok_to_overrule(_, status).
+ok_to_overrule(_, progress).
+ok_to_overrule(_, done).
 ok_to_overrule(error, _).
 
 
@@ -617,6 +629,11 @@ prompt(M, Label:char_array, Default:[any], Type:[type], Rval:any) :<-
 	get(M?frame, prompt, Label, Default, Type, Rval).
 
 
+prompt_using(M, Item:graphical, Rval:any) :<-
+	"Prompt using dialog item in the mini-window"::
+	get(M?frame, prompt_using, Item, Rval).
+
+
 interactive_argument(M, Implementation:any, Which:int, Value:any) :<-
 	"Prompt for interactive argument of specified type"::
 	get(M, frame, EmacsWindow),
@@ -626,7 +643,11 @@ interactive_argument(M, Implementation:any, Which:int, Value:any) :<-
 	->  true
 	;   DefaultValue = @default
 	),
-	get(EmacsWindow, prompt, Type?name, DefaultValue, Type, Value).
+	(   get(Type, argument_name, Label), Label \== @nil
+	->  true
+	;   get(Type, name, Label)
+	),
+	get(EmacsWindow, prompt, Label, DefaultValue, Type, Value).
 
 
 		 /*******************************
@@ -702,11 +723,26 @@ append(MM, Name:name, Action:'name|menu_item', Before:[name]) :->
 initialise(I, Name:name, ValueSet:'chain|function') :->
 	send(I, send_super, initialise, Name),
 	send(I, popup,
-	     new(P, popup(Name, message(@emacs_mode, arg_call, Name, @arg1)))),
+	     new(P, emacs_argument_popup(Name,
+					 message(@emacs_mode, arg_call,
+						 Name, @arg1)))),
 	(   send(ValueSet, '_instance_of', chain)
 	->  send(P, members, ValueSet)
 	;   send(P, update_message,
 		 message(@receiver, members, ValueSet))
 	).
+
+:- pce_end_class.
+
+
+:- pce_begin_class(emacs_argument_popup, popup,
+		   "Emacs mode menu pullright popup").
+
+members(I, Members:chain) :->
+	"->clear and attach new members (donot capitalise)"::
+	get(Members, map,
+	    create(menu_item, @arg1, @default, @arg1?print_name),
+	    Items),
+	send(I, send_super, members, Items).
 
 :- pce_end_class.

@@ -10,7 +10,8 @@
 :- module(draw_shapes, []).
 
 :- use_module(library(pce)).
-:- require([ memberchk/2
+:- require([ ignore/1
+	   , memberchk/2
 	   ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -191,21 +192,23 @@ NOTE:	PCE will probably provided higher-level primitives such as a
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 event(Text, Ev:event) :->
-	(   get(Text, show_caret, @on),
-	    get(Ev, id, Id),
-	    event(Id, Text)
-	->  true
-	;   send(Ev, is_a, keyboard),
-	    get(Text, show_caret, @on)
-	->  send(Text, typed, Ev?id),
-	    modified(Text)
-	;   send(Ev, is_a, obtain_keyboard_focus)
-	->  send(Text, show_caret, @on)
-	;   send(Ev, is_a, release_keyboard_focus)
-	->  (   get(Text?string, size, 0),
-	        send(Text?device, instance_of, draw_canvas) % HACK
-	    ->  send(Text, free)
-	    ;   send(Text, show_caret, @off)
+	(   send(Ev, is_a, focus)
+	->  ignore(send(Text, send_super, event, Ev)),
+	    (	send(Ev, is_a, release_keyboard_focus)
+	    ->	(   get(Text?string, size, 0),
+		    send(Text?device, instance_of, draw_canvas) % HACK
+		->  send(Text, free)
+		;   send(Text, show_caret, @off)
+		)
+	    ;	true
+	    )
+	;   get(Text, show_caret, @on),
+	    (   get(Ev, id, Id),
+		event(Id, Text)
+	    ->  true
+	    ;   send(Ev, is_a, keyboard),
+		send(Text, typed, Ev),
+		modified(Text)
 	    )
 	;   send(@draw_text_recogniser, event, Ev)
 	).

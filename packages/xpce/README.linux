@@ -28,7 +28,7 @@ LIB/OS VERSIONS:
 	* Linix-1.0 (from slackware 1.2.0)
 	* XFree 2.1
 	* Compiled by GCC 2.5.8
-	* ldd pl/i4*/xpce.base
+	* ldd pl/src/xpce.base
 	libXt.so.3 (DLL Jump 3.1) => /usr/X11/lib/libXt.so.3.1.0
 	libX11.so.3 (DLL Jump 3.1) => /usr/X11/lib/libX11.so.3.1.0
 	libc.so.4 (DLL Jump 4.5pl24) => /lib/libc.so.4.5.24

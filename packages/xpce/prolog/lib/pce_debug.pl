@@ -29,13 +29,8 @@
 
 
 :- use_module(library(pce)).
-:- require([ between/3
-	   , chain_list/2
-	   , forall/2
-	   , ignore/1
-	   , member/2
-	   , sublist/3
-	   , append/3
+:- require([ append/3
+	   , between/3
 	   ]).
 :- op(100, xfx, <-).
 

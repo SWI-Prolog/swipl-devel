@@ -509,8 +509,6 @@ makeClassArc(Class class)
 	     "Resize arc with specified factor",
 	     resizeArc);
 
-  attach_resource(class, "selection_style", "name", "corner_and_side_handles",
-		  "Visual feedback of <->selected");
   attach_resource(class, "radius", "int", "30",
 		  "Default radius");
 

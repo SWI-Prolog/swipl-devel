@@ -11,7 +11,6 @@
 :- module(draw_attribute, []).
 :- use_module(library(pce)).
 :- require([ between/3
-	   , concat_atom/2
 	   , forall/2
 	   , member/2
 	   , send_list/3
@@ -243,9 +242,13 @@ make_proto_menu(Menu, Proto, Attribute, Values) :-
 	send(Menu, off_image, @nil),
 	send(Menu, border, 2),
 	send(Menu, layout, horizontal),
+	(   Attribute == colour
+	->  Kind = pixmap
+	;   Kind = bitmap
+	),
 	(   member(Value, Values),
 		send(Proto, Attribute, Value),
-		new(Bm, bitmap(image(@nil, 30, 16, pixmap))),
+		new(Bm, bitmap(image(@nil, 30, 16, Kind))),
 		send(Bm, draw_in, @menu_proto_box),
 		send(Bm, draw_in, Proto),
 		send(Menu, append, menu_item(Value, @default, Bm)),

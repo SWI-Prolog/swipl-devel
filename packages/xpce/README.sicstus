@@ -17,4 +17,4 @@ Remarks:
 	?- require(emacs/0), emacs.
 
 	# :- initialization/1 has been redefined.  I don't know whether
-	this is still a way to access the original SICStus definition.
+	there is still a way to access the original SICStus definition.

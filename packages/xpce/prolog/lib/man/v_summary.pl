@@ -12,11 +12,7 @@
 
 :- use_module(library(pce)).
 :- use_module(util).
-:- require([ chain_list/2
-	   , maplist/3
-	   , member/2
-	   , send_list/3
-	   , ignore/1
+:- require([ send_list/3
 	   ]).
 
 
@@ -70,7 +66,7 @@ initialise(S, Att:name, Size:size) :->
 	send_list(P, append,
 		  [ menu_item(select,
 			      message(S, request_selection, Obj, @on))
-		  , menu_item(focus,
+		  , menu_item(class_browser,
 			      message(Tool, request_tool_focus, Obj),
 			      @default, @on,
 			      DI?style \== header)

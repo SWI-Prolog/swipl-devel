@@ -245,59 +245,6 @@ alignment_side(top_side).
 alignment_side(center_y).
 alignment_side(bottom_side).
 
-/*
-
-make_y_references(Row) :-
-	alignment_proto(Row, top_side,    Top,    TH),
-	alignment_proto(Row, center_y,    Center, CH),
-	alignment_proto(Row, bottom_side, Bottom, BH),
-	(   TH < CH, TH < BH
-	->  align_row(Row, top_side, Top)
-	;   CH < BH
-	->  align_row(Row, center_y, Center)
-	;   align_row(Row, bottom_side, Bottom)
-	).
-
-
-alignment_proto(Row, Side, Value, Handicap) :-
-	maplist(get_alignment(Side), Row, List),
-	average(List, Value),
-	deviation(List, Value, Handicap).
-
-get_alignment(Side, Gr, Value) :-
-	get(Gr, Side, Value).
-
-average(List, Avg) :-
-	sum(List, Sum),
-	length(List, L),
-	(   L == 0
-	->  Avg = 0
-	;   Avg is Sum // L
-	).
-
-sum([], 0).
-sum([H|T], Sum) :-
-	sum(T, S0),
-	Sum is S0 + H.
-
-deviation(List, Value, Handicap) :-
-	maplist(diff(Value), List, Diffs),
-	average(Diffs, Handicap).
-
-diff(Value, Elem, Diff) :-
-	Diff is (Elem - Value) * (Elem - Value).
-
-
-align_row([], _, _).
-align_row([H|T], Selector, Ref) :-
-	get(H, Selector, SV),
-	get(H, y, HY),
-	RefY is SV - HY,
-	get(H, reference, point(X, _Y)),
-	send(H, reference, point(X, RefY)),
-	align_row(T, Selector, Ref).
-
-*/
 
 		 /*******************************
 		 *	 RELATE THE ITEMS	*

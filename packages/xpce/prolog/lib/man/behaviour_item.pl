@@ -9,6 +9,10 @@
 
 :- module(pce_behaviour_item, []).
 :- use_module(library(pce)).
+:- require([ forall/2
+	   , get_chain/3
+	   , member/2
+	   ]).
 
 :- pce_begin_class(behaviour_item, text_item,
 		   "Text item for entering XPCE behaviour or class").

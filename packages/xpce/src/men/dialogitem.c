@@ -385,6 +385,7 @@ makeClassDialogItem(Class class)
 	    "Reference point for alingment",
 	    getReferenceDialogItem);
 
+  refine_resource(class, "selection_handles", "@nil");
   attach_resource(class, "look", "{x,open_look,motif}", "x",
 		  "Look-and-feel switch");
   attach_resource(class, "label_format", "{left,center,right}", "left",
@@ -393,8 +394,6 @@ makeClassDialogItem(Class class)
 		  "Ensured suffix of label");
   attach_resource(class, "alignment", "{column,left,center,right}", "column",
 		  "Alignment in the row");
-  attach_resource(class, "selection_style", "name", "none",
-		  "Visual feedback of <->selected");
   attach_resource(class, "background", "colour|pixmap*", "@nil",
 		  "Background of the item");
   attach_resource(class, "elevation", "elevation*", "@nil",

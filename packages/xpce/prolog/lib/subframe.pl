@@ -9,6 +9,8 @@
 
 :- module(pce_subframe, []).
 :- use_module(library(pce)).
+:- require([ send_list/3
+	   ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This file defines the XPCE class subframe.  Class subframe is a subclass

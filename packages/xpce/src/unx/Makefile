@@ -12,5 +12,8 @@ addlib:		$(UNXOBJS)
 proto.h:	$(UNXSRC)
 		$(MKPROTO) $(UNXSRC) | $(CLPROTO) > proto.h
 
+xpce-client:	client.o
+		$(CC) -o $@ client.o
+
 clean:
-		rm -f *~ a.out core $(UNXOBJS) addlib
+		rm -f *~ a.out core $(UNXOBJS) addlib client.o 

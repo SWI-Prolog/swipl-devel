@@ -9,6 +9,8 @@
 
 :- module(pce_selection, []).
 :- use_module(library(pce)).
+:- require([ ignore/1
+	   ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 X applications from different origin seem   to  obey different rules for

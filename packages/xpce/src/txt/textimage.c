@@ -397,7 +397,7 @@ do_fill_line(TextImage ti, TextLine l, long int index)
     switch(tc->c)
     { case EOB:
       case '\n':
-	x += c_width(' ', tc->font);
+	x = ti->w - TXT_X_MARGIN;
 	l->ends_because |= END_NL;
 	l->length = ++i;
 	l->end = index;
@@ -427,28 +427,26 @@ do_fill_line(TextImage ti, TextLine l, long int index)
 	break;
     }
     
-    if ( x > ti->w - TXT_X_MARGIN )
+    if ( x >= ti->w - TXT_X_MARGIN )
     { l->ends_because |= END_WRAP;
 
-      if ( equalName(ti->wrap, NAME_none) )
+      if ( ti->wrap == NAME_none )
       { int eof;
 
 	l->ends_because |= END_CUT;
 	l->length = i;
-	l->w = tc->x;
+	l->w = tc->x = ti->w - TXT_X_MARGIN;
 
 	index = (*ti->scan)(ti->text, index, 1, TEXT_SCAN_FOR, EL, &eof) + 1;
 	l->end = index;
 	if ( eof )
-	{ l->ends_because |= END_EOF;
-	  index--;
-	}
-      } else if ( equalName(ti->wrap, NAME_character) )
+	  l->ends_because |= END_EOF;
+      } else if ( ti->wrap == NAME_character )
       { l->length = i;
 	index--;
 	l->end = index;
 	l->w = tc->x = x;
-      } else if ( equalName(ti->wrap, NAME_word) )
+      } else if ( ti->wrap == NAME_word )
       { if ( last_break > 0 )
 	{ int eof;
 
@@ -478,6 +476,7 @@ do_fill_line(TextImage ti, TextLine l, long int index)
 #define equal_text_char(c1, c2) ( (c1)->c == (c2)->c && \
 				  (c1)->font == (c2)->font && \
 				  (c1)->colour == (c2)->colour && \
+				  (c1)->background == (c2)->background && \
 				  (c1)->x == (c2)->x && \
 				  (c1)->attributes == (c2)->attributes )
 
@@ -540,8 +539,8 @@ fill_line(TextImage ti, int line, long int index, short int y)
       if ( i < tmp.length )
       { l->changed = i;
 	copy_line_chars(&tmp, i, l);
-	l->length = tmp.length;
       } 
+      l->length = tmp.length;
 
       return idx;
     }
@@ -549,7 +548,7 @@ fill_line(TextImage ti, int line, long int index, short int y)
 }
 
 
-status
+static status
 updateMapTextImage(TextImage ti)
 { if ( ti->change_end > ti->change_start )
   { Bool eof_in_window = OFF;
@@ -614,7 +613,7 @@ dump_map(TextScreen map)
     else
       printf("%2d:", i - map->skip);
     printf("%4ld-%4ld at y=%3d changed = %d ",
-	   l->start, l->end-1, l->y, l->changed);
+	   l->start, l->start + l->length, l->y, l->changed);
     putchar((l->ends_because & END_EOF)  ? 'F' : '-');
     putchar((l->ends_because & END_WRAP) ? 'W' : '-');
     putchar((l->ends_because & END_CUT)  ? 'C' : '-');
@@ -750,6 +749,7 @@ paint_line(TextImage ti, TextLine l, int from, int to)
   int b16, n, s = from, e;
   FontObj f;
   Colour c;
+  Any bg;
   unsigned char atts;
   int cx, cw;
   int pen = valInt(ti->pen);
@@ -763,50 +763,80 @@ paint_line(TextImage ti, TextLine l, int from, int to)
 
   { TextChar last = &l->chars[to-1];
 
-    if ( last->c == '\n' )	/* do not paint newline */
-    { if ( last->attributes & TXT_HIGHLIGHTED )
-	t_invert(last->x, l->y, ti->w - TXT_X_MARGIN - last->x, l->h);
-
+    if ( last->c == EOB )
       to--;
-    } else if ( last->c == EOB )
-    { if ( to > 1 && (last->attributes & TXT_HIGHLIGHTED) )
-	t_invert(last->x, l->y, ti->w - TXT_X_MARGIN - last->x, l->h);
-      
-      to--;
-    }      
   }
 
   for( s = from; s < to; s = e )
-  { e = s;
+  { int prt;
+    e = s;
     n = 0;
     f      = l->chars[e].font;
     b16    = (f->b16 == ON);
     atts   = l->chars[e].attributes;
     c      = l->chars[e].colour;
+    bg     = l->chars[e].background;
     out    = buf;
+
     PutBuf(l->chars[e].c);
 
     if ( l->chars[e].c == '\t' )	/* print tabs */
-    { for(n++, e++; e < to; n++, e++)
-      { if ( l->chars[e].attributes != atts || l->chars[e].c != '\t' )
+    { prt = FALSE;
+
+      for(n++, e++; e < to; n++, e++)
+      { if ( l->chars[e].attributes != atts ||
+	     l->chars[e].background != bg ||
+	     l->chars[e].c != '\t' )
 	  break;
       }
-    } else				/* print anything else */
-    { for(n++, e++; e < to; n++, e++)
+    } else if ( l->chars[e].c == '\n' )	/* newline */
+    { prt = FALSE;
+
+      e++;
+    } else				/* real text */
+    { prt = TRUE;
+
+      for(n++, e++; e < to; n++, e++)
       { if ( l->chars[e].font != f ||
 	     l->chars[e].colour != c ||
+	     l->chars[e].background != bg ||
 	     l->chars[e].attributes != atts ||
-	     l->chars[e].c == '\t' )
+	     l->chars[e].c == '\t' ||
+	     l->chars[e].c == '\n' )
 	  break;
 	
 	PutBuf(l->chars[e].c);
       }
+    }
 
-      r_colour(c);
+    if ( notDefault(bg) )
+    { if ( instanceOfObject(bg, ClassElevation) )
+      { int f, t, x, tx;
+
+	for(f=s-1; f>=0 && l->chars[f].background == bg; f--)
+	  ;
+	f++;
+	for(t=e; t<l->length && l->chars[t].background == bg; t++)
+	  ;
+
+	x  = l->chars[f].x;
+	tx = l->chars[t].x;
+	r_3d_box(x, l->y, tx-x, l->h, 0, bg, TRUE);
+      } else
+      { int x  = l->chars[s].x;
+	int tx = l->chars[e].x;
+	r_fill(x, l->y, tx-x, l->h, bg);
+      }
+    }
+
+    if ( prt )
+    { r_colour(c);
+
       if ( b16 )
 	s_print16((char16 *)buf, e - s, l->chars[s].x, l->y + l->base, f);
       else
 	s_print8((char8 *)buf, e - s, l->chars[s].x, l->y + l->base, f);
+
       if ( atts & TXT_BOLDEN )
       { if ( b16 )
 	{ s_print16((char16 *)buf, e - s, l->chars[s].x+1, l->y + l->base, f);
@@ -820,6 +850,8 @@ paint_line(TextImage ti, TextLine l, int from, int to)
 
     paint_attributes(ti, l, s, e);
   }
+
+  t_underline(0, 0, 0);
 }
 
 
@@ -917,7 +949,7 @@ get_xy_pos(TextImage ti, Int pos, int *x, int *y)
   int index = valInt(pos);
   int skip;
 
-  updateMapTextImage(ti);
+  ComputeGraphical(ti);
   skip = ti->map->skip;
   
   for(line=0; line < ti->map->length; line++)
@@ -962,7 +994,7 @@ get_index_text_image(TextImage ti, int x, int y)
 { int line;
   int skip;
 
-  updateMapTextImage(ti);
+  ComputeGraphical(ti);
   skip = ti->map->skip;
 
   if ( y < TXT_Y_MARGIN )
@@ -991,7 +1023,7 @@ get_index_text_image(TextImage ti, int x, int y)
 
 Int
 getLinesTextImage(TextImage ti)
-{ updateMapTextImage(ti);
+{ ComputeGraphical(ti);
 
   answer(toInt(ti->map->length));
 }
@@ -1051,9 +1083,15 @@ RedrawAreaTextImage(TextImage ti, Area a)
 
   if ( sx < TXT_X_MARGIN || sx + w > ti->w - TXT_X_MARGIN ||
        sy < TXT_Y_MARGIN || sy + h > ti->h - TXT_Y_MARGIN )
-  { r_thickness(p);
-    r_dash(ti->texture);
-    r_box(bx, by, bw, bh, 0, NIL);
+  { Elevation z = getResourceValueObject(ti, NAME_elevation);
+    
+    if ( z && notNil(z) )
+    { r_3d_box(bx, by, bw, bh, 0, z, TRUE);
+    } else
+    { r_thickness(p);
+      r_dash(ti->texture);
+      r_box(bx, by, bw, bh, 0, NIL);
+    }
   }
 
   return RedrawAreaGraphical(ti, a);
@@ -1251,7 +1289,7 @@ centerTextImage(TextImage ti, Int position, Int screen_line)
   int line;
   TextScreen map = ti->map;
 
-  updateMapTextImage(ti);
+  ComputeGraphical(ti);
   line = (isDefault(screen_line) ? ti->map->length/2 : valInt(screen_line)-1);
   if ( line < 0 )
     line = 0;
@@ -1297,7 +1335,7 @@ getStartTextImage(TextImage ti, Int line)
   TextScreen map = ti->map;
   static struct text_line tl;		/* reusable dummy line */
   
-  updateMapTextImage(ti);
+  ComputeGraphical(ti);
 
   if ( ln >= 0 )
   { ln--;
@@ -1440,7 +1478,7 @@ makeClassTextImage(Class class)
   localClass(class, NAME_text, NAME_storage, "object", NAME_get,
 	     "Source of the text");
   localClass(class, NAME_background, NAME_appearance,
-	     "colour|pixmap", NAME_get,
+	     "[colour|pixmap]", NAME_get,
 	     "Background colour");
   localClass(class, NAME_start, NAME_scroll, "int", NAME_none,
 	     "Index of first character displayed");
@@ -1539,8 +1577,10 @@ makeClassTextImage(Class class)
 		  "Wrap unit for long lines");
   attach_resource(class, "tab_distance", "int", "64",
 		  "Tabstop interval (pixels)");
-  attach_resource(class, "background", "colour|pixmap", "white",
+  attach_resource(class, "background", "[colour|pixmap]", "white",
 		  "Background colour for the text");
+  attach_resource(class, "elevation", "elevation*", "@nil",
+		  "Elevation from the background");
 
   succeed;
 }

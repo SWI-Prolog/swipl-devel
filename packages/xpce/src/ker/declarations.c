@@ -487,6 +487,8 @@ initClassDefs()
 	   ClassObtain, "Invoke a get method");
   defClass(CtoName("\\=="), NAME_code, makeClassNonEqual,
 	   ClassNonEqual, "Test non-equivalence of arguments");
+  defClass(CtoName("@="), NAME_code, makeClassAssoc,
+	   ClassAssoc, "Assign named reference to object");
 
   numberTreeClass(ClassObject, 0);
 }

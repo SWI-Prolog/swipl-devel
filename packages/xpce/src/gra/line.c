@@ -393,8 +393,7 @@ makeClassLine(Class class)
 	    "Angle",
 	    getAngleLine);
 
-  attach_resource(class, "selection_style", "name", "line_handles",
-		  "Visual feedback of <->selected");
+  refine_resource(class, "selection_handles", "line");
 
   succeed;
 }

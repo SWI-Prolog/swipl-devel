@@ -4,7 +4,7 @@ arch=$1
 
 echo "[ERROR: No machine description file for ARCH=$arch]"
 
-arches=`ls md | sed 's/md-\(.*\)\.h/\1/'`
+arches=`ls md | grep -v CVS | sed 's/md-\(.*\)\.h/\1/'`
 
 echo ""
 echo "Please edit ARCH in Makefile to be one of:"

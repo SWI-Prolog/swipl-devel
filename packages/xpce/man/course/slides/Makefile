@@ -12,6 +12,10 @@ TEX=	slides.tex
 all:	$(TEX)
 	(TEXINPUTS=$(HOME)/TeX:$$TEXINPUTS; export TEXINPUTS; latex slides)
 
+kads:	kads.tex
+	(TEXINPUTS=$(HOME)/TeX:$$TEXINPUTS; export TEXINPUTS; latex kads)
+
+
 $(TEX):	$(DOCTOTEX)
 
 .doc.tex:

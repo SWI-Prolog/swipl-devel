@@ -74,3 +74,6 @@ status		makeClassWhen(Class class);
 
 /* while.c */
 status		makeClassWhile(Class class);
+
+/* nameref.c */
+status		makeClassAssoc(Class class);

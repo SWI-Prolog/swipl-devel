@@ -12,7 +12,10 @@
 
 :- use_module(library(pce)).
 :- use_module(util).
-:- require([ concat_atom/2
+:- require([ concat/3
+	   , concat_atom/2
+	   , forall/2
+	   , member/2
 	   ]).
 
 

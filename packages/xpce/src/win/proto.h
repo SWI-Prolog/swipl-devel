@@ -51,8 +51,8 @@ Name		getIconLabelFrame(FrameObj fr);
 TileObj		getTileFrame(FrameObj fr);
 status		AppendFrame(FrameObj fr, PceWindow sw);
 status		DeleteFrame(FrameObj fr, PceWindow sw);
-PceWindow	getInputFocusFrame(FrameObj fr);
-status		inputFocusFrame(FrameObj fr, PceWindow sw);
+PceWindow	getKeyboardFocusFrame(FrameObj fr);
+status		eventFrame(FrameObj fr, EventObj ev);
 status		makeClassFrame(Class class);
 
 /* picture.c */
@@ -65,6 +65,8 @@ status		resourceClass(Class class, Resource r);
 Resource	getResourceClass(Class class, Name name);
 Any		getResourceValueClass(Class cl, Name name);
 status		attach_resource(Class cl, char *name, char *type, char *def, char *doc);
+status		refine_resource(Class cl, char *name_s, char *def);
+status		variable_resource(Class cl, Name name, char *def);
 status		makeClassResource(Class class);
 
 /* setup.c */
@@ -96,6 +98,7 @@ void		offset_window(PceWindow sw, int *x, int *y);
 void		compute_window(PceWindow sw, int *x, int *y, int *w, int *h);
 status		frame_offset_window(PceWindow w, FrameObj *fr, int *X, int *Y);
 void		offset_windows(PceWindow w1, PceWindow w2, int *X, int *Y);
+status		inputFocusWindow(PceWindow sw, Bool val);
 status		keyboardFocusWindow(PceWindow sw, Graphical gr);
 status		focusWindow(PceWindow sw, Graphical gr, Recogniser recogniser, CursorObj cursor, Name button);
 void		changed_window(PceWindow sw, int x, int y, int w, int h, int clear);

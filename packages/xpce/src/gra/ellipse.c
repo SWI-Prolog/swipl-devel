@@ -74,8 +74,7 @@ makeClassEllipse(Class class)
 	     "Create PostScript",
 	     drawPostScriptEllipse);
 
-  attach_resource(class, "selection_style", "name", "side_handles",
-		  "Visual feedback of <->selected");
+  refine_resource(class, "selection_handles", "sides");
 
   succeed;
 }

@@ -9,6 +9,8 @@
 
 #include <h/kernel.h>
 #include <h/graphics.h>
+#include "rclass.h"			/* provides RESOURCE_CLASS */
+					/* generated from Makefile */
 
 static status	backgroundDisplay P((DisplayObj, Colour));
 static status	foregroundDisplay(DisplayObj d, Colour c);
@@ -24,7 +26,7 @@ initialiseDisplay(DisplayObj d, Name address, Name resource_class)
 { DisplayManager dm = TheDisplayManager();
 
   if ( isDefault(resource_class) )
-    resource_class = CtoName("Pce");
+    resource_class = CtoName(RESOURCE_CLASS);
 
   assign(d, size,        	NIL);
   assign(d, address,     	address);
@@ -93,7 +95,9 @@ shells.  This widget is never realised (page 35 of Xt manual).
 
 status
 openDisplay(DisplayObj d)
-{ if ( ws_opened_display(d) )
+{ Code code;
+
+  if ( ws_opened_display(d) )
     succeed;
 
   DEBUG(NAME_display, printf("Opening display %s\n", pp(d)));
@@ -109,6 +113,10 @@ openDisplay(DisplayObj d)
   BLACK_COLOUR = newObject(ClassColour, NAME_black, 0);
   WHITE_COLOUR = newObject(ClassColour, NAME_white, 0);
   attachCacheDisplay(d);
+
+  if ( (code = getResourceValueObject(d, NAME_initialise)) &&
+       instanceOfObject(code, ClassCode) )
+    forwardReceiverCodev(code, d, 0, NULL);
 
   succeed;
 }
@@ -304,6 +312,13 @@ getDepthDisplay(DisplayObj d)
   answer(toInt(ws_depth_display(d)));
 }
 
+static Name
+getVisualTypeDisplay(DisplayObj d)
+{ TRY(openDisplay(d));
+
+  answer(ws_get_visual_type_display(d));
+}
+
 		/********************************
 		*          CUT BUFFERS		*
 		********************************/
@@ -435,9 +450,9 @@ selectionOwnerDisplay(DisplayObj d, Any owner, Name selection,
     else
       h = getFindHyperObject(d, hypername, DEFAULT);
 
-    attach_attribute(h, NAME_convertFunction,
+    attributeObject(h, NAME_convertFunction,
 		     newObject(ClassQuoteFunction, convert, 0));
-    attach_attribute(h, NAME_looseMessage, loose);
+    attributeObject(h, NAME_looseMessage, loose);
 
     if ( !old )
     { if ( !ws_own_selection(d, selection) )
@@ -508,10 +523,10 @@ create_confirmer(DisplayObj d)
 		    0),
        0);
 
-  attach_attribute(d, NAME_SeenDown, OFF);
-  attach_attribute(d, NAME_confirmer, p);
-  attach_attribute(p, NAME_helpText, h);
-  attach_attribute(p, NAME_messageText, m);
+  attributeObject(d, NAME_SeenDown, OFF);
+  attributeObject(d, NAME_confirmer, p);
+  attributeObject(p, NAME_helpText, h);
+  attributeObject(p, NAME_messageText, m);
   
   succeed;
 }
@@ -877,6 +892,10 @@ makeClassDisplay(Class class)
   getMethod(class, NAME_depth, NAME_colour, "bits_per_pixel=int", 0,
 	    "Number of bits/pixel",
 	    getDepthDisplay);
+  getMethod(class, NAME_visualType, NAME_colour,
+	    "{monochrome,static_grey,grey_scale,static_colour,pseudo_colour,true_colour,direct_colour}", 0,
+	    "Type of display attached",
+	    getVisualTypeDisplay);
   getMethod(class, NAME_contains, DEFAULT, "chain", 0,
 	    "Chain with frames contained",
 	    getContainsDisplay);
@@ -920,6 +939,9 @@ makeClassDisplay(Class class)
 		  "Draw quick or correct");
   attach_resource(class, "window_manager", "[name]",  "@default",
 		  "Window manager running on this display");
+  attach_resource(class, "initialise", "code*", "@nil",
+		  "Code object to run on ->open");
+
   attach_font_families(class);
 
 #ifdef __WINDOWS__

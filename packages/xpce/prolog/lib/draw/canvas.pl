@@ -16,6 +16,7 @@
 	   , concat/3
 	   , concat_atom/2
 	   , ignore/1
+	   , send_list/3
 	   , shell/1
 	   ]).
 
@@ -97,6 +98,7 @@ sensitive to user actions.
 initialise(Canvas) :->
 	"Create a drawing canvas"::
 	send(Canvas, send_super, initialise, 'Canvas'),
+	send(Canvas, selection_feedback, handles),
 	send(Canvas, slot, modified, @off),
 	send(Canvas, auto_align_mode, @off),
 	send(Canvas, mode, select, @nil),
@@ -188,6 +190,7 @@ unlink(Canvas) :->
 		/********************************
 		*         MODIFICATIONS		*
 		********************************/
+:- pce_group(modified).
 
 modified(C) :->
 	send(C, slot, modified, @on).
@@ -196,6 +199,7 @@ modified(C) :->
 		/********************************
 		*           SELECTION		*
 		********************************/
+:- pce_group(selection).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Managing the  selection.    This is  no  different  than for  standard
@@ -219,6 +223,7 @@ toggle_select(C, Shape:graphical) :->
 		/********************************
 		*            IMPORTS		*
 		********************************/
+:- pce_group(imports).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Import a  named X11 image (bitmap) file  into the  drawing.  This code
@@ -276,6 +281,7 @@ import_frame(C) :->
 		/********************************
 		*             EDIT		*
 		********************************/
+:- pce_group(edit).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Selection-edit operations.  Most of them are rather trivial.  Note the
@@ -379,64 +385,6 @@ paste(Canvas, At:[point]) :->
 	    send(Canvas, modified)
 	;   send(Canvas, report, warning, 'Draw Clipboard is empty')
 	).
-
-
-		/********************************
-		*           ALIGNMENT		*
-		********************************/
-
-align_with_selection(Canvas, Gr:graphical) :->
-	"Align graphical (with selection)"::
-	(   get(Canvas, selection, G0),
-	    send(G0, delete_all, Gr),
-	    \+ send(G0, empty)
-	->  true
-	;   get(Canvas?graphicals, copy, G0),
-	    send(G0, delete_all, Gr)
-	),
-	get(G0, find_all, not(message(@arg1, instance_of, line)), G1),
-	chain_list(G1, L1),
-	align_graphical(Gr, L1).
-
-
-align_selection(Canvas) :->
-	"Align all elements of the selection"::
-	send(Canvas, edit, message(Canvas, align_graphical, @arg1)).
-
-
-align_graphical(Canvas, Gr:graphical) :->
-	"Align a single graphical"::
-	get(Canvas?graphicals, find_all,
-	    not(message(@arg1, instance_of, line)), G0),
-	send(G0, delete_all, Gr),
-	chain_list(G0, L0),
-	auto_adjust(resize, Gr, L0),
-	align_graphical(Gr, L0).
-	
-
-auto_align(Canvas, Gr:graphical, How:{create,resize,move}) :->
-	"Align graphical if auto_align_mode is @on"::
-	(   get(Canvas, auto_align_mode, @on)
-	->  ignore(auto_align(Canvas, Gr, How))
-	;   true
-	).
-
-
-auto_align(Canvas, Gr, How) :-
-	get(Canvas?graphicals, find_all,
-	    not(message(@arg1, instance_of, line)), G0),
-	send(G0, delete_all, Gr),
-	chain_list(G0, L0),
-	auto_adjust(How, Gr, L0),
-	align_graphical(Gr, L0).
-
-
-auto_adjust(How, Gr, L0) :-
-	(How == create ; How == resize),
-	\+ send(Gr, instance_of, text),
-	adjust_graphical(Gr, L0), !.
-auto_adjust(_, _, _).
-	
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The method below  duplicates the selection  and displays the duplicate
@@ -571,9 +519,69 @@ clear(Canvas, Confirm:[bool]) :->
 	send(Canvas, slot, modified, @off),
 	send(Canvas, update_attribute_editor).
 	
+
+		/********************************
+		*           ALIGNMENT		*
+		********************************/
+:- pce_group(alignment).
+
+align_with_selection(Canvas, Gr:graphical) :->
+	"Align graphical (with selection)"::
+	(   get(Canvas, selection, G0),
+	    send(G0, delete_all, Gr),
+	    \+ send(G0, empty)
+	->  true
+	;   get(Canvas?graphicals, copy, G0),
+	    send(G0, delete_all, Gr)
+	),
+	get(G0, find_all, not(message(@arg1, instance_of, line)), G1),
+	chain_list(G1, L1),
+	align_graphical(Gr, L1).
+
+
+align_selection(Canvas) :->
+	"Align all elements of the selection"::
+	send(Canvas, edit, message(Canvas, align_graphical, @arg1)).
+
+
+align_graphical(Canvas, Gr:graphical) :->
+	"Align a single graphical"::
+	get(Canvas?graphicals, find_all,
+	    not(message(@arg1, instance_of, line)), G0),
+	send(G0, delete_all, Gr),
+	chain_list(G0, L0),
+	auto_adjust(resize, Gr, L0),
+	align_graphical(Gr, L0).
+	
+
+auto_align(Canvas, Gr:graphical, How:{create,resize,move}) :->
+	"Align graphical if auto_align_mode is @on"::
+	(   get(Canvas, auto_align_mode, @on)
+	->  ignore(auto_align(Canvas, Gr, How))
+	;   true
+	).
+
+
+auto_align(Canvas, Gr, How) :-
+	get(Canvas?graphicals, find_all,
+	    not(message(@arg1, instance_of, line)), G0),
+	send(G0, delete_all, Gr),
+	chain_list(G0, L0),
+	auto_adjust(How, Gr, L0),
+	align_graphical(Gr, L0).
+
+
+auto_adjust(How, Gr, L0) :-
+	(How == create ; How == resize),
+	\+ send(Gr, instance_of, text),
+	adjust_graphical(Gr, L0), !.
+auto_adjust(_, _, _).
+	
+
 	      /********************************
 	      *           LOAD/SAVE	      *
 	      ********************************/
+:- pce_group(file).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Saving and loading is  currently performed  by saving the  PCE objects
@@ -699,6 +707,7 @@ file(Canvas, File:file*) :->
 		/********************************
 		*           POSTSCRIPT		*
 		********************************/
+:- pce_group(postscript).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Create a PostScript description of the contents of the picture.
@@ -773,6 +782,7 @@ temp_file(Name) :-
 		/********************************
 		*             MODES		*
 		********************************/
+:- pce_group(mode).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Switch the mode of the editor.  The mode determines which gestures are

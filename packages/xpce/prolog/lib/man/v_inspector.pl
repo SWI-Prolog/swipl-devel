@@ -241,8 +241,10 @@ initialise(AV, Title:name, TitleValue:[name]) :->
 	),
 	
 	send(AV, send_super, initialise),
-	send(AV, background, @white_image),
+	send(AV, border, 5),
+	send(AV, background, colour(white)),
 	send(AV, pen, 1),
+	send(AV, shadow, 2),
 	send(AV, format, @isp_attribute_value_sheet_format),
 
 	send(AV, display, TT),
@@ -499,7 +501,15 @@ inspect(MP, Object:'object|function', Pos:[point]) :->
 	->  send(Monitor, expose),
 	    send(Monitor, flash)
 	;   new(OS, isp_object_sheet(Object)),
-	    send(MP, display, OS, Pos),
+	    (	Pos == @default
+	    ->	get(MP, visible, area(X, Y, W, H)),
+		get(OS, size, size(OW, OH)),
+		OX is X + random(W-OW-20) + 10,
+		OY is Y + random(H-OH-20) + 10,
+		ThePos = point(OX, OY)
+	    ;	ThePos = Pos
+	    ),
+	    send(MP, display, OS, ThePos),
 	    Object = @Reference,
 	    get(MP, inspected, Table),
 	    send(Table, append, Reference, OS),

@@ -12,6 +12,7 @@
 :- require([ emacs_init_tags/1
 	   , emacs_tag/3
 	   , emacs_tag_file/1
+	   , ignore/1
 	   , member/2
 	   ]).
 
@@ -38,6 +39,8 @@
 	new(MM, emacs_mode_menu(language, fundamental)),
 	send(MM, append, browse, find_tag).
 
+
+:- pce_autoload(emacs_tag_item, library(emacs_tags)).
 
 :- pce_begin_class(emacs_language_mode, emacs_fundamental_mode).
 
@@ -205,18 +208,29 @@ backward_delete_char_untabify(M, Times:[int]) :->
 		 *	      TAGS		*
 		 *******************************/
 
+visit_tag_table(M, Table:'tag_file=file') :->
+	"Load specified GNU-Emacs (etags) tag-table"::
+	get(Table, absolute_path, TagFileName),
+	emacs_init_tags(TagFileName),
+	send(M, report, status, 'Loaded TAG table %s', TagFileName).
+
+
 find_tag(M, Tag:[name], Editor:editor) :<-
 	"Jump to indicated tag entry"::
-	(   Tag == @default
-	->  get(M, word, DefTag),
-	    get(M, prompt, 'Find tag', DefTag, name, TheTag)
-	;   TheTag = Tag
-	),
 	(   emacs_tag_file(_)
 	->  true
 	;   get(M, directory, Dir),
-	    get(Dir, path, Path),
-	    emacs_init_tags(Path)
+	    (	send(?(Dir, file, 'TAGS'), exists)
+	    ->	get(Dir, path, Path),
+		emacs_init_tags(Path)
+	    ;	send(M, noarg_call, visit_tag_table)
+	    )
+	),
+	(   Tag == @default
+	->  get(M, word, DefTag),
+	    new(I, emacs_tag_item('Find tag', DefTag)),
+	    get(M, prompt_using, I, TheTag)
+	;   TheTag = Tag
 	),
 	(   emacs_tag(TheTag, File, Line),
 	    new(B, emacs_buffer(File)),
@@ -259,48 +273,6 @@ closest_element(A, B, Here, A) :-
 	abs(A-Here) =< abs(B-Here), !.
 closest_element(A, B, Here, B) :-
 	abs(B-Here) < abs(A-Here).
-
-
-tag_list_from_file(M, File:file) :->
-	"Create browser from tag-list"::
-	send(File, open, read),
-	new(B, browser('Tags')),
-	send(new(D, dialog), below, B),
-	new(Next, and(message(M, send_hyper, editor, quit),
-		      message(@prolog, next, B))),
-	send(D, append, button(static,
-			       and(message(M, send_hyper, editor,
-					   insert_static),
-				   Next))),
-	send(D, append, button(static_status,
-			       and(message(M, send_hyper, editor,
-					   insert_static_status),
-				   Next))),
-	send(D, append, button(next,
-			       Next)),
-	send(B, select_message,
-	     and(assign(new(E, var), ?(M, find_tag, @arg1?key)),
-		 ?(@pce, instance, hyper, M, E, editor))),
-	send(B, open),
-	repeat,
-	     (	 get(File, read_line, Line)
-	     ->  send(Line, translate, 10, @nil),
-	         send(B, append, Line),
-		 fail
-	     ;	 !,
-	         send(File, close)
-	     ).
-	     
-
-next(B) :-
-	get(B, selection, DI),
-	get(B?dict, members, Ch),
-	get(Ch, index, DI, Index),
-	get(Ch, nth1, Index+1, DI2),
-	send(B, selection, DI2),
-	send(B, normalise, DI2),
-	send(B?select_message, forward, DI2),
-	send(B?frame, expose).
 
 
 		 /*******************************

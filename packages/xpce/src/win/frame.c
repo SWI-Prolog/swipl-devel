@@ -48,7 +48,7 @@ initialiseFrame(FrameObj fr, Name label, Name kind, DisplayObj display)
   assign(fr, kind,	    kind);
   assign(fr, status,	    NAME_unmapped);
   assign(fr, can_delete,    ON);
-  assign(fr, has_returned,  OFF);
+  assign(fr, input_focus,   OFF);
   assign(fr, wm_protocols,  newObject(ClassSheet, 0));
   assign(fr, wm_protocols_attached, OFF);
 
@@ -117,6 +117,8 @@ loadFrame(FrameObj fr, FILE *fd, ClassDef def)
 		*          OPEN/CREATE		*
 		********************************/
 
+static Constant ConstantNotReturned;
+
 Any
 getConfirmFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
 { Any rval;
@@ -124,9 +126,9 @@ getConfirmFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
   TRY( openFrame(fr, pos, grab, normalise) );
   busyCursorDisplay(fr->display, NIL, DEFAULT);
 
-  assign(fr, has_returned, OFF);
+  assign(fr, return_value, ConstantNotReturned);
   synchroniseDisplay(fr->display);
-  while( fr->has_returned == OFF )
+  while( fr->return_value == ConstantNotReturned )
   { if ( dispatchDisplay(fr->display) )
     { char buf[LINESIZE];
 
@@ -139,11 +141,11 @@ getConfirmFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
   rval = fr->return_value;
   if ( isObject(rval) )
   { addCodeReference(rval);
-    assign(fr, return_value, NIL);
+    assign(fr, return_value, ConstantNotReturned);
     delCodeReference(rval);
     pushAnswerObject(rval);
   } else
-    assign(fr, return_value, NIL);
+    assign(fr, return_value, ConstantNotReturned);
   
   answer(rval);
 }
@@ -170,7 +172,6 @@ getConfirmCenteredFrame(FrameObj fr, Point pos, Bool grab)
 static status
 returnFrame(FrameObj fr, Any obj)
 { assign(fr, return_value, obj);
-  assign(fr, has_returned, ON);
 
   succeed;
 }
@@ -907,42 +908,119 @@ getFrameFrame(FrameObj fr)
 }
 
 
-PceWindow
-getInputFocusFrame(FrameObj fr)
+static PceWindow
+getPointerWindowFrame(FrameObj fr)
 { Cell cell;
 
   for_cell(cell, fr->members)
   { PceWindow sw = cell->value;
 
-    if ( sw->input_focus == ON )
+    if ( instanceOfObject(sw, ClassWindowDecorator) )
+    { WindowDecorator dw = (WindowDecorator)sw;
+	
+      sw = dw->window;
+      if ( sw->has_pointer == ON )
+	answer(sw);
+    }
+
+    if ( sw->has_pointer == ON )
       answer(sw);
   }
-  
+
   fail;
 }
 
 
-status
-inputFocusFrame(FrameObj fr, PceWindow sw)
-{ if ( getFrameWindow(sw) != fr )
-    return errorPce(fr, NAME_notPart, sw);
+static status
+keyboardFocusFrame(FrameObj fr, PceWindow sw)
+{ if ( getHyperedObject(fr, NAME_keyboardFocus, DEFAULT) != sw )
+    freeHypersObject(fr, NAME_keyboardFocus, DEFAULT);
 
-  if ( sw->input_focus != OFF && sw->displayed == ON )
-  { Cell cell;
+  if ( instanceOfObject(sw, ClassWindow) )
+  { newObject(ClassHyper, fr, sw, NAME_keyboardFocus, NAME_KeyboardFocus, 0);
+    if ( fr->input_focus == ON )
+      send(fr, NAME_inputWindow, sw, 0);
+  } else if ( fr->input_focus == ON )
+  { PceWindow iw = getPointerWindowFrame(fr);
 
-    DEBUG(NAME_focus, printf("Setting input focus of %s to %s\n",
-			     pp(fr), pp(sw)));
+    send(fr, NAME_inputWindow, iw, 0);
+  }
+  
+  succeed;
+}
 
-    ws_grab_keyboard_window(sw, ON);
-     
-    for_cell(cell, fr->members)
-    { PceWindow w = cell->value;
 
-      assign(sw, input_focus, w == sw ? ON : OFF);
+PceWindow
+getKeyboardFocusFrame(FrameObj fr)
+{ return getHyperedObject(fr, NAME_keyboardFocus, DEFAULT);
+}
+
+
+static status
+inputWindowFrame(FrameObj fr, PceWindow iw)
+{ Cell cell;
+
+  if ( fr->input_focus == ON )
+  { for_cell(cell, fr->members)
+    { PceWindow sw = cell->value;
+
+      inputFocusWindow(sw, sw == iw ? ON : OFF);
+
+      if ( instanceOfObject(sw, ClassWindowDecorator) )
+      { WindowDecorator dw = (WindowDecorator)sw;
+	
+	sw = dw->window;
+	inputFocusWindow(sw, sw == iw ? ON : OFF);
+      }
     }
   }
 
   succeed;
+}
+
+
+static status
+inputFocusFrame(FrameObj fr, Bool val)
+{ if ( fr->input_focus != val )
+  { Cell cell;
+
+    assign(fr, input_focus, val);
+    if ( val == ON )
+    { PceWindow iw = getKeyboardFocusFrame(fr);
+
+      if ( !iw )
+	iw = getPointerWindowFrame(fr);
+      inputWindowFrame(fr, iw);
+    } else
+    { for_cell(cell, fr->members)
+      { PceWindow sw = cell->value;
+
+	inputFocusWindow(cell->value, OFF);
+
+	if ( instanceOfObject(sw, ClassWindowDecorator) )
+	{ WindowDecorator dw = (WindowDecorator)sw;
+	
+	  sw = dw->window;
+	  inputFocusWindow(sw, OFF);
+	}
+      }
+    }
+  }
+
+  succeed;
+}
+
+
+status
+eventFrame(FrameObj fr, EventObj ev)
+{ if ( isAEvent(ev, NAME_keyboard ) )
+  { PceWindow sw;
+
+    if ( (sw = getKeyboardFocusFrame(fr)) )
+      return postEvent(ev, (Graphical) sw, DEFAULT);
+  }
+
+  fail;
 }
 
 
@@ -1108,8 +1186,8 @@ makeClassFrame(Class class)
 	     "Back pointer for transient frames");
   localClass(class, NAME_returnValue, NAME_modal, "any", NAME_none,
 	     "Bin for value of ->return");
-  localClass(class, NAME_hasReturned, NAME_modal, "bool", NAME_none,
-	     "->return has been executed");
+  localClass(class, NAME_inputFocus, NAME_event, "bool", NAME_get,
+	     "Frame has focus for keyboard events");
   localClass(class, NAME_status, NAME_visibility,
 	     "{unmapped,hidden,iconic,open}", NAME_get,
 	     "Current visibility of the frame");
@@ -1134,6 +1212,7 @@ makeClassFrame(Class class)
   storeMethod(class, NAME_iconLabel, iconLabelFrame);
   storeMethod(class, NAME_iconPosition, iconPositionFrame);
   storeMethod(class, NAME_background, backgroundFrame);
+  storeMethod(class, NAME_inputFocus, inputFocusFrame);
 
   sendMethod(class, NAME_initialise, DEFAULT, 3,
 	     "label=[name]", "kind=[{toplevel,transient,popup}]",
@@ -1265,9 +1344,15 @@ makeClassFrame(Class class)
   sendMethod(class, NAME_resize, NAME_layout, 0,
 	     "Recompute layout of sub-windows",
 	     resizeFrame);
-  sendMethod(class, NAME_inputFocus, NAME_focus, 1, "window",
-	     "Forward keyboard input to this window",
-	     inputFocusFrame);
+  sendMethod(class, NAME_inputWindow, NAME_focus, 1, "window",
+	     "Input is directed to this window",
+	     inputWindowFrame);
+  sendMethod(class, NAME_keyboardFocus, NAME_focus, 1, "[window]*",
+	     "Redirect (default) keyboard input here",
+	     keyboardFocusFrame);
+/*sendMethod(class, NAME_event, NAME_event, 1, "event",
+	     "Handle frame-level event (mostly keyboard)",
+	     eventFrame); */
   sendMethod(class, NAME_mapped, NAME_open, 1, "bool",
 	     "Inform transients using ->show",
 	     mappedFrame);
@@ -1307,6 +1392,9 @@ makeClassFrame(Class class)
 	    "center=[point]", "grab=[bool]",
 	    "As <-confirm, but centered around point",
 	    getConfirmCenteredFrame);
+  getMethod(class, NAME_keyboardFocus, NAME_focus, "window", 0,
+	    "Window for default keyboard input",
+	    getKeyboardFocusFrame);
   getMethod(class, NAME_member, NAME_organisation, "window", 1, "name",
 	    "Find member window by name",
 	    getMemberFrame);
@@ -1335,9 +1423,6 @@ makeClassFrame(Class class)
   getMethod(class, NAME_convert, DEFAULT, "frame", 1, "window",
 	    "Frame of the window",
 	    getConvertFrame);
-  getMethod(class, NAME_inputFocus, NAME_event, "window", 0,
-	    "Window with <-input_focus == @on",
-	    getInputFocusFrame);
   getMethod(class, NAME_iconLabel, NAME_icon, "name", 0,
 	    "Name of the icon",
 	    getIconLabelFrame);
@@ -1364,6 +1449,11 @@ makeClassFrame(Class class)
 		  "Default cursor displayed by ->busy_cursor");
   attach_resource(class, "background", "colour|pixmap", "white",
 		  "Default background colour");
+
+  ConstantNotReturned = globalObject(NAME_NotReturned, ClassConstant,
+				     NAME_NotReturned,
+				     CtoString("Used for `frame <-confirm'"),
+				     0);
 
   succeed;
 }

@@ -9,7 +9,7 @@
 
 :- module(msg_behaviour_model, []).
 :- use_module(library(pce)).
-:- use_module(library(template)).
+:- use_module(library('dialog/lib/template')).
 :- require([ between/3
 	   , chain_list/2
 	   , editpce/1

@@ -12,6 +12,8 @@
 	  ]).
 :- use_module(library(pce)).
 :- use_module(library(emacs), [emacs/1]).
+:- require([ absolute_file_name/3
+	   ]).
 
 :- dynamic
 	help_file/1.

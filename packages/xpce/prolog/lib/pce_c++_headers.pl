@@ -10,6 +10,19 @@
 :- module(pce_cpp_header,
 	  [ generate_cpp_class_header_file/0
 	  ]).
+:- use_module(library(pce)).
+:- require([ append/1
+	   , apply/2
+	   , between/3
+	   , concat/3
+	   , concat_atom/2
+	   , forall/2
+	   , ignore/1
+	   , is_list/1
+	   , memberchk/2
+	   , nth1/3
+	   , once/1
+	   ]).
 
 itf_max_arg(9).
 

@@ -7,6 +7,9 @@
     Copyright (C) 1993 University of Amsterdam. All rights reserved.
 */
 
+:- module(twm_geometry_box, []).
+:- use_module(library(pce)).
+
 :- pce_begin_class(twm_geometry_box, device).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

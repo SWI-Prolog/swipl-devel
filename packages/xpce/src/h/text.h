@@ -59,6 +59,7 @@ End;
 NewClass(style)
   FontObj	font;			/* font of fragment */
   Colour	colour;			/* colour of fragment */
+  Any		background;		/* Background for drawing */
   Image		icon;			/* margin marker */
   long		attributes;		/* style attributes */
 End;
@@ -78,6 +79,7 @@ NewClass(editor)
   Int		caret;			/* position of the caret */
   Int		mark;			/* position of the marker */
   Int		tab_distance;		/* distance between tabs */
+  Style		selection_style;	/* style for the <-selection */
   Fragment	selected_fragment;	/* Currently selected fragment */
   Style		selected_fragment_style; /* style of selected_fragment */
   Sheet		styles;			/* Style-name --> Style-object */
@@ -146,6 +148,7 @@ struct text_char
 { int		c;			/* The character at this position */
   FontObj	font;			/* Font of this character */
   Colour	colour;			/* Colour of this character */
+  Any		background;		/* Background for the characters */
   short		x;			/* X-position in line (pixels) */
   unsigned char attributes;		/* Its attributes */
 };

@@ -14,9 +14,6 @@
 
 :- use_module(library(pce)).
 :- use_module(util).
-:- require([ forall/2
-	   , send_list/3
-	   ]).
 
 :- pce_autoload(behaviour_item, library('man/behaviour_item')).
 

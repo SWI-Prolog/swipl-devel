@@ -460,8 +460,9 @@ end_of_file(E) :->
 :- pce_global(@emacs_error_regexs,
 	      new(chain(regex('\(\S +\):\s *\(\sd+\):'),        % gcc, grep
 			regex('"\(\S +\)", line \(\sd+\):')))). % SUN cc
-:- pce_global(@emacs_cd_regex,
-	      new(regex('\bcd\s +\(\S +\)'))).
+:- pce_global(@emacs_cd_regexs,
+	      new(chain(regex('\bcd\s +\(\(\w\|[_/+-.]\)+\)'),
+			regex('Entering directory `\([^'']+\)''')))).
 :- pce_global(@emacs_canonise_dir_regex,
 	      new(regex('[^/]+/\.\./'))).
 
@@ -481,9 +482,8 @@ directory_name(M, Pos:[int]*, DirName:string) :<-
 	    ->	get(M, caret, P0)
 	    ;	P0 = Pos
 	    ),
-	    (	get(@emacs_cd_regex, search, TB, P0, 0, Here)
-	    ->	get(@emacs_cd_regex, register_value, TB, 1, Dir0),
-		(   (	send(Dir0, prefix, /)
+	    (	match_cd_regex(TB, P0, Dir0, Here)
+	    ->  (   (	send(Dir0, prefix, /)
 		    ;	send(Dir0, prefix, ~)
 		    )
 		->  DirName = Dir0
@@ -497,6 +497,17 @@ directory_name(M, Pos:[int]*, DirName:string) :<-
 	),
 	send(DirName, ensure_suffix, /),
 	canonise_path(DirName).
+
+
+match_cd_regex(TB, P0, Dir, Here) :-
+	get(@emacs_cd_regexs, find_all,
+	    message(@arg1, search, TB, P0, 0), Hits),
+	send(Hits, sort,
+	     ?(@arg2?register_start, compare, @arg1?register_start)),
+	get(Hits, head, Regex),
+	get(Regex, register_start, Here),
+	get(Regex, register_value, TB, 1, Dir),
+	send(Hits, done).
 
 
 directory(M, Pos:[int]*, Dir:directory) :<-

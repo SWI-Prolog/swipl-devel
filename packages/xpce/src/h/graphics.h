@@ -95,7 +95,7 @@ NewClass(figure)
   Image		background;		/* Pattern for background */
   Int		border;			/* border around graphicals */
   Int		radius;			/* radius of outline */
-  Int		shadow;			/* shadow of outline */
+  Elevation	elevation;		/* elevation of outline */
 End;
 
 
@@ -191,7 +191,7 @@ End;
 NewClass(box)
   ABSTRACT_GRAPHICAL
   Int        radius;			/* if displayed as a rounded box */
-  Elevation  elevation;			/* shadow displayed around box */
+  Int	     shadow;			/* shadow displayed around box */
   Image	     fill_pattern;		/* fill box with this */
 End;
 
@@ -215,7 +215,7 @@ NewClass(textobj)
   Int	     margin;		/* Right margin (pixels) */
   Point	     position;		/* reference position of text */
   Int        caret;		/* current insertion/deletion point */
-  Bool	     show_caret;	/* show the caret (default OFF) */
+  Any	     show_caret;	/* show the caret (default OFF) */
   Any	     background;	/* Background of text */
   Int	     border;		/* Border around actual text */
   Name	     wrap;		/* Clip to width */
@@ -490,6 +490,7 @@ NewClass(list_browser)
   Name		status;			/* active/inactive */
   KeyBinding	key_binding;		/* Keybinding table */
   Any		selection;		/* DictItem (Chain) of selected */
+  Style		selection_style;	/* Style object for selection */
   Bool		multiple_selection;	/* Multiple selections (def: OFF) */
   Code		select_message;		/* Message on left button click */
   Code		select_middle_message;	/* Message on middle button click */
@@ -531,7 +532,8 @@ End;
   EventObj	current_event;		/* Currently processed event */ \
   Bool		sensitive;		/* Sensitive to events */ \
   Any		background;		/* Background colour of the window */ \
-  Bool		grab_pointer;		/* We have a pointer grab */ \
+  Bool		has_pointer;		/* We own the pointer */ \
+  Any		selection_feedback;	/* Feedback for selection */ \
 					/* Alien stuff */ \
   UpdateArea	changes_data;		/* Recorded changes */ \
   WsRef		ws_ref;			/* Window system reference */
@@ -649,7 +651,7 @@ NewClass(frameobj)
   FrameObj	transient_for;		/* Sub frame of who? */
   Chain		transients;		/* Sub frames */
   Any		return_value;		/* ->return saved value */
-  Bool		has_returned;		/* ->return called */
+  Bool		input_focus;		/* @on: focus for keyboard events */
   Name		status;			/* {unmapped,iconic,open} */
   Bool		can_delete;		/* User can delete the frame */
   Bool		confirm_done;		/* User must confirm delete */

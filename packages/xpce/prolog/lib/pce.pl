@@ -25,6 +25,7 @@
 	  , pce_extend_class/1
 	  , pce_end_class/0
 	  , default/3
+	  , pce_group/1
 	  , pce_term_expansion/2
 	  , pce_compiling/1
 

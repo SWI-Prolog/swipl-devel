@@ -16,10 +16,13 @@
 
 :- use_module(library(pce)).
 :- consult('xref/quintus.def').		% built-in's
-:- require([ append/3			% not yet portable!
+:- require([ append/3
+	   , built_in/1
 	   , call_emacs/2
 	   , concat_atom/2
 	   , exists_file/1
+	   , expand_file_name/2
+	   , forall/2
 	   , ignore/1
 	   , member/2
 	   , sformat/3
@@ -128,6 +131,8 @@ process_directive(pce_extend_class(ClassName)) :-
 process_directive(pce_end_class) :-
 	retractall(compiling(_)),
 	pce_compile:pop_compile_operators.
+process_directive(op(P, A, N)) :-
+	op(P, A, N).			% should be local ...
 process_directive(Goal) :-
 	process_body(Goal).
 
@@ -299,15 +304,15 @@ undefined(_).
 
 report :-
 	findall(Head, (called(Head), undefined(Head)), U0),
-	sort(U0, Undefined),
-	(   Undefined == []
-	->  message(':- require/1: not needed')
-	;   forall(member(U, Undefined), current_require_declaration(U))
+	sort(U0, Undefined),		% remove duplicates
+	(   forall(member(U, Undefined), current_require_declaration(U)),
+	    forall(current_require_declaration(U), member(U, Undefined))
 	->  message(':- require/1: up-to-date')
 	;   output(':- require([ '),
 	    report_undefined(Undefined),
 	    output(']).~n')
 	).
+
 
 report_undefined([]).
 report_undefined([L]) :- !,

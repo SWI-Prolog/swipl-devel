@@ -8,6 +8,10 @@
 */
 
 
+:- module(pce_editable_text, []).
+:- use_module(library(pce)).
+
+
 :- pce_begin_class(editable_text, text, "Editable short graphical text").
 
 variable(editable,	bool := @on,	get,	"Text is editable").

@@ -130,6 +130,7 @@ loadTextBuffer(TextBuffer tb, FILE *fd, ClassDef def)
   assign(tb, editors, newObject(ClassChain, 0));
   tb->size = loadWord(fd);
   tb->allocated = ROUND(tb->size, ALLOC);
+  str_cphdr(&tb->buffer, str_nl());
   tb->tb_buffer8 = malloc(tb->allocated);
   fread(Address(tb, 0), sizeof(char), tb->size, fd); /* TBD */
   tb->gap_start = tb->size;

@@ -10,11 +10,12 @@
 :- module(emacs_fundamental_mode, []).
 :- use_module(library(pce)).
 :- initialization ensure_loaded(library(pce_selection)).
-:- require([ between/3
+:- require([ manpce/0
+	   , between/3
 	   , editpce/1
 	   , ignore/1
 	   , manpce/1
-	   , manpce/0
+	   , pcedraw/1
 	   , show_key_bindings/1
 	   ]).
 
@@ -42,6 +43,7 @@
 	send(KB, function, '\e@',      bookmark_line),
 	send(KB, function, '\ex',      execute_extended_command),
 	send(KB, function, '\em',      mode),
+	send(KB, function, '\es',      sticky_window),
 	send(KB, function, '\e\C-w',   write_region),
 	send(KB, function, '\C-xRET',  compile).
 
@@ -78,10 +80,11 @@
 	send(RestModes, delete, gdb),
 	send(RestModes, delete, shell),
 	send(RestModes, delete, man),
-	get(RestModes, map, ?(@pce, instance, menu_item,
-			      @arg1,
-			      ?(@pce, instance, message,
-				quote_function(@emacs_mode), mode, @arg1)),
+	get(RestModes, map,
+	    create(menu_item,
+		   @arg1,
+		   create(message,
+			  quote_function(@emacs_mode), mode, @arg1)),
 	    Entries),
 
 	send(Entries, for_all,

@@ -17,13 +17,15 @@ static status	greyStyle(Style s, Bool on);
 
 static status
 initialiseStyle(Style s, Image icon, FontObj font, Colour colour,
-		Bool highlight, Bool underline, Bool bold, Bool grey)
+		Bool highlight, Bool underline, Bool bold, Bool grey,
+		Any background)
 { if ( isDefault(icon) )
     icon = NIL;
 
-  assign(s, font,   font);
-  assign(s, icon,   icon);
-  assign(s, colour, colour);
+  assign(s, font,       font);
+  assign(s, icon,       icon);
+  assign(s, colour,     colour);
+  assign(s, background, background);
   s->attributes = 0;
 
   if ( notDefault(highlight) ) highlightStyle(s, highlight);
@@ -147,6 +149,9 @@ makeClassStyle(Class class)
 	     "Font of characters");
   localClass(class, NAME_colour, NAME_appearance, "[colour]", NAME_both,
 	     "Colour of the characters");
+  localClass(class, NAME_background, NAME_appearance,
+	     "[colour|pixmap|elevation]", NAME_both,
+	     "Background for the characters");
   localClass(class, NAME_icon, NAME_appearance, "image*", NAME_both,
 	     "Image for annotation margin");
   localClass(class, NAME_attributes, NAME_appearance, "alien:long", NAME_none,
@@ -155,10 +160,11 @@ makeClassStyle(Class class)
   termClass(class, "style", 2, NAME_icon, NAME_font);
   setLoadStoreFunctionClass(class, loadStyle, storeStyle);
 
-  sendMethod(class, NAME_initialise, DEFAULT, 7,
+  sendMethod(class, NAME_initialise, DEFAULT, 8,
 	     "icon=[image]*", "font=[font]", "colour=[colour]",
 	     "highlight=[bool]", "underline=[bool]",
 	     "bold=[bool]", "grey=[bool]",
+	     "background=[colour|pixmap|elevation]",
 	     "Create from icon, font, colour and attributes",
 	     initialiseStyle);
   sendMethod(class, NAME_highlight, NAME_appearance, 1, "bool",

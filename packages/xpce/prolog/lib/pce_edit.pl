@@ -17,7 +17,7 @@ editpce(Spec) :-
 	method(Spec, Obj),
 	(   get(Obj, source, Location)
 	->  use_module(library(pce_emacs)),
-	    start_emacs,
+	    Goal = start_emacs, Goal,	% fool xref
 	    send(@emacs, goto_source_location, Location)
 	;   send(Obj, report, warning, 'Can''t find source')
 	).

@@ -5,6 +5,6 @@ NOTE:	While linking, the text-symbol __iconv_open was reported
 	undefined.  I suspect a bug in /usr/lib/libX11.a which 
 	has .__iconv_open as defined and __iconv_open as
 	undefined symbol.  As a hack __iconv_open is now defined
-	as a dummy function in xwn-x11.c.  I don't know when this
+	as a dummy function in x11/x11.c.  I don't know when this
 	function is called.
 	

@@ -246,6 +246,7 @@ GLOBAL Class ClassBehaviour;
 GLOBAL Class ClassBinaryCondition;
 GLOBAL Class ClassBinaryExpression;
 GLOBAL Class ClassAssign;
+GLOBAL Class ClassAssoc;
 GLOBAL Class ClassBinding;
 GLOBAL Class ClassBitmap;
 GLOBAL Class ClassBlock;

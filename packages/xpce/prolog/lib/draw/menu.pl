@@ -34,9 +34,7 @@ to file.
 
 :- use_module(library(pce)).
 :- require([ concat/3
-	   , ignore/1
 	   , memberchk/2
-	   , send_list/3
 	   ]).
 
 

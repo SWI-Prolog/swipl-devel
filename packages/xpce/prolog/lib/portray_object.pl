@@ -23,7 +23,6 @@
 
 :- use_module(library(pce)).
 :- require([ maplist/3
-	   , member/2
 	   ]).
 
 %   Note: you may wish to incorporate portray_object/2 with the

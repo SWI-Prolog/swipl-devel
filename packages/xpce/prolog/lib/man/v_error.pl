@@ -12,7 +12,6 @@
 :- use_module(library(pce)).
 :- use_module(util).
 :- require([ ignore/1
-	   , send_list/3
 	   ]).
 
 :- pce_begin_class(man_error_browser, man_frame,

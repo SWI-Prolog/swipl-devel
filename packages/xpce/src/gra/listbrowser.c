@@ -67,6 +67,8 @@ initialiseListBrowser(ListBrowser lb, Dict dict, Int w, Int h)
   assign(lb,   search_hit,	      toInt(-1));
   assign(lb,   label_text,	      NIL);
   assign(lb,   styles,		      newObject(ClassSheet, 0));
+  assign(lb, selection_style, getResourceValueObject(lb, NAME_selectionStyle));
+
   lb->start_cell = NIL;
 
   assign(lb, font, getResourceValueObject(lb, NAME_font));
@@ -347,6 +349,7 @@ static int	     current_search;	/* search feedback */
 static unsigned char current_atts;	/* Attributes for it */
 static FontObj	     current_font;	/* Current font */
 static Colour	     current_colour;	/* Current colour */
+static Any	     current_background; /* Current background */
 
 static void
 compute_current(ListBrowser lb)
@@ -360,30 +363,44 @@ compute_current(ListBrowser lb)
 
     if ( notDefault(di->style) &&
 	 (style = getValueSheet(lb->styles, di->style)) )
-    { current_font   = style->font;
-      current_colour = style->colour;
-      current_atts   = style->attributes;
+    { current_font	 = style->font;
+      current_colour     = style->colour;
+      current_background = style->background;
+      current_atts       = style->attributes;
 
       if ( isDefault(current_font) )
 	current_font = lb->font;
     } else
-    { current_font   = lb->font;
-      current_colour = DEFAULT;
-      current_atts   = 0;
+    { current_font       = lb->font;
+      current_colour     = DEFAULT;
+      current_background = DEFAULT;
+      current_atts       = 0;
     }
 
     if ( selectedListBrowser(lb, di) )
-      current_atts ^= TXT_HIGHLIGHTED;
+    { if ( isDefault(lb->selection_style) )
+	current_atts ^= TXT_HIGHLIGHTED;
+      else
+      { current_atts |= lb->selection_style->attributes;
+	if ( notDefault(lb->selection_style->font) )
+	  current_font = lb->selection_style->font;
+	if ( notDefault(lb->selection_style->colour) )
+	  current_colour = lb->selection_style->colour;
+	if ( notDefault(lb->selection_style->background) )
+	  current_background = lb->selection_style->background;
+      }
+    }
 
     if ( di->index == lb->search_hit )
     { current_search = lb->search_string->data.size;
     } else
       current_search = 0;
   } else
-  { current_name   = NULL;		/* past the end */
-    current_atts   = 0;
-    current_font   = lb->font;
-    current_colour = DEFAULT;
+  { current_name       = NULL;		/* past the end */
+    current_atts       = 0;
+    current_font       = lb->font;
+    current_colour     = DEFAULT;
+    current_background = DEFAULT;
   }
 }
 
@@ -464,8 +481,19 @@ fetch_list_browser(ListBrowser lb, TextChar tc)
   tc->font       = current_font;
   tc->attributes = current_atts;
   tc->colour	 = current_colour;
+  tc->background = current_background;
+
   if ( pos < current_search )
-    tc->attributes ^= TXT_HIGHLIGHTED;
+  { Style s = getResourceValueObject(lb, NAME_isearchStyle);
+
+    if ( s && notDefault(s) )
+    { tc->attributes |= s->attributes;
+      if ( notDefault(s->font) )       tc->font = s->font;
+      if ( notDefault(s->colour) )     tc->colour = s->colour;
+      if ( notDefault(s->background) ) tc->background = s->background;
+    } else
+      tc->attributes ^= TXT_HIGHLIGHTED;
+  }
 
   return current_index;
 }
@@ -778,25 +806,25 @@ getDictItemListBrowser(ListBrowser lb, EventObj ev)
 
 static status
 eventListBrowser(ListBrowser lb, EventObj ev)
-{ if ( eventDevice(lb, ev) )
+{ if ( isAEvent(ev, NAME_focus) )
+  { if ( isAEvent(ev, NAME_activateKeyboardFocus) )
+      return send(lb, NAME_status, NAME_active, 0);
+    if ( isAEvent(ev, NAME_deactivateKeyboardFocus) )
+    { cancelSearchListBrowser(lb);
+      return send(lb, NAME_status, NAME_inactive, 0);
+    }
+  }
+
+  if ( eventDevice(lb, ev) )
     succeed;
 
   if ( isAEvent(ev, NAME_keyboard) )
     return send(lb, NAME_typed, getIdEvent(ev), 0);
 
-  if ( isAEvent(ev, NAME_area) )
-  { if ( isAEvent(ev, NAME_areaExit) )
-      return cancelSearchListBrowser(lb);
-    if ( isAEvent(ev, NAME_areaEnter) )
-      return send(lb, NAME_keyboardFocus, 0);
-  }
-
-  if ( isAEvent(ev, NAME_focus) )
-  { if ( isAEvent(ev, NAME_obtainKeyboardFocus) )
-      return send(lb, NAME_status, NAME_active, 0);
-    if ( isAEvent(ev, NAME_releaseKeyboardFocus) )
-      return send(lb, NAME_status, NAME_inactive, 0);
-  }
+/*
+  if ( isAEvent(ev, NAME_areaEnter) )
+    return send(lb, NAME_keyboardFocus, 0);
+*/
 
   if ( isAEvent(ev, NAME_button) )
   { DictItem di = getDictItemListBrowser(lb, ev);
@@ -1009,7 +1037,6 @@ normaliseListBrowser(ListBrowser lb, DictItem di)
   int start, last;
 
   computeListBrowser(lb);
-  updateMapTextImage(lb->image);
   start = valInt(lb->image->start) / BROWSER_LINE_WIDTH;
   last  = (valInt(lb->image->end) - 1) / BROWSER_LINE_WIDTH;
 
@@ -1287,6 +1314,8 @@ makeClassListBrowser(Class class)
   localClass(class, NAME_selection, NAME_selection,
 	     "chain|member:dict_item*", NAME_none,
 	     "Selected items");
+  localClass(class, NAME_selectionStyle, NAME_appearance, "[style]",
+	     NAME_get, "Style for selection feedback");
   localClass(class, NAME_multipleSelection, NAME_selection, "bool", NAME_get,
 	     "If @on, multiple items may be selected");
   localClass(class, NAME_selectMessage, NAME_action, "code*", NAME_both,
@@ -1499,6 +1528,10 @@ makeClassListBrowser(Class class)
 		  "@on: ignore case when searching");
   attach_resource(class, "label_font", "font", "@helvetica_bold_14",
 		  "Font used to display the label");
+  attach_resource(class, "selection_style", "[style]",
+		  "@default", "Style object for <-selection");
+  attach_resource(class, "isearch_style", "[style]",
+		  "@default", "Style for incremental search");
 
   succeed;
 }

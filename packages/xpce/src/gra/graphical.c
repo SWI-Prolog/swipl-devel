@@ -407,10 +407,17 @@ changedAreaGraphical(Any obj, Int x, Int y, Int w, Int h)
 	ox += offx; oy += offy;
 	cx += offx; cy += offy;
 
+					/* HACKS ... */
 	if ( instanceOfObject(gr, ClassJoint) )
 	{ ox -= 5; oy -= 5; ow += 10; oh += 10;
 	  cx -= 5; cy -= 5; cw += 10; ch += 10;
+	} else if ( instanceOfObject(gr, ClassText) ||
+		    instanceOfObject(gr, ClassTextItem) )
+	{ ox -= 5; oy -= 0; ow += 10; oh += 5;
+	  cx -= 5; cy -= 0; cw += 10; ch += 5;
 	}
+					/* end hacks! */
+
 	changed_window(sw, ox, oy, ow, oh, TRUE);
 	changed_window(sw, cx, cy, cw, ch, offFlag(gr, F_SOLID));
 
@@ -451,6 +458,9 @@ changedImageGraphical(Any obj, Int x, Int y, Int w, Int h)
 
 	if ( instanceOfObject(gr, ClassJoint) ) /* HACK (for arrows) */
 	{ cx -= 5; cy -= 5; cw += 10; ch += 10;
+	} else if ( instanceOfObject(gr, ClassText) ||
+		    instanceOfObject(gr, ClassTextItem) )
+	{ cx -= 5; cy -= 0; cw += 10; ch += 5;
 	}
 
 	changed_window(sw, cx, cy, cw, ch, offFlag(gr, F_SOLID));
@@ -585,12 +595,20 @@ RedrawArea(Any obj, Area area)
   ComputeGraphical(obj);		/* should not be necessary: */
 
   c = gr->colour;
+  if ( gr->selected == ON )
+  { PceWindow sw = getWindowGraphical(gr);
+    Any feedback = sw->selection_feedback;
+
+    if ( instanceOfObject(feedback, ClassColour) )
+      c = feedback;
+  }
   if ( gr->active == OFF )
   { Any c2;
 
     if ( (c2 = getResourceValueObject(gr, NAME_inactiveColour)) && notNil(c2) )
       c = c2;
   }
+
   if ( notDefault(c) )
     oc = r_default_colour(c);
 
@@ -600,6 +618,62 @@ RedrawArea(Any obj, Area area)
     r_default_colour(oc);
 
   return rval;
+}
+
+
+status
+paintSelectedGraphical(Graphical gr)
+{ PceWindow sw = getWindowGraphical(gr);
+  Any feedback = sw->selection_feedback;
+
+  if ( notNil(feedback) )
+  { int x, y, w, h;
+
+    initialiseDeviceGraphical(gr, &x, &y, &w, &h);
+
+    if ( feedback == (Any) NAME_invert )
+    { r_complement(x, y, w, h);
+    } else if ( feedback == (Any) NAME_handles )
+    { Name which = getResourceValueObject(gr, NAME_selectionHandles);
+
+      if ( which == NAME_corners )
+      { selection_bubble(x, y, w, h, 0, 0);
+	selection_bubble(x, y, w, h, 0, 2);
+	selection_bubble(x, y, w, h, 2, 0);
+	selection_bubble(x, y, w, h, 2, 2);
+      } else if ( which == NAME_sides )
+      { selection_bubble(x, y, w, h, 0, 1);
+	selection_bubble(x, y, w, h, 1, 0);
+	selection_bubble(x, y, w, h, 1, 2);
+	selection_bubble(x, y, w, h, 2, 1);
+      } else if ( which == NAME_line )
+      { int lw = valInt(gr->area->w);
+	int lh = valInt(gr->area->h);
+
+	NormaliseArea(x, y, w, h);
+	if ( (lw >= 0 && lh >= 0) || (lw < 0 && lh < 0) )
+	{ r_complement(x-2,   y-2,   5, 5);
+	  r_complement(x+w-3, y+h-3, 5, 5);
+	} else
+	{ r_complement(x+w-3, y-2,   5, 5);
+	  r_complement(x-2,   y+h-3, 5, 5);
+	}
+      } else if ( which == NAME_cornersAndSides )
+      { selection_bubble(x, y, w, h, 0, 0);
+	selection_bubble(x, y, w, h, 0, 2);
+	selection_bubble(x, y, w, h, 2, 0);
+	selection_bubble(x, y, w, h, 2, 2);
+	selection_bubble(x, y, w, h, 0, 1);
+	selection_bubble(x, y, w, h, 1, 0);
+	selection_bubble(x, y, w, h, 1, 2);
+	selection_bubble(x, y, w, h, 2, 1);
+      }
+    } else if ( instanceOfObject(feedback, ClassElevation) )
+    { r_3d_box(x, y, w, h, 0, feedback, TRUE);
+    }
+  }
+
+  succeed;
 }
 
 
@@ -615,56 +689,7 @@ RedrawAreaGraphical(Any obj, Area area)
   }
   
   if ( gr->selected == ON )
-  { Class class = classOfObject(gr);
-
-    if ( !init )
-    { initialiseDeviceGraphical(gr, &x, &y, &w, &h);
-      init = TRUE;
-    }
-
-    if ( isNil(class->selection_style) )	/* HACK */
-    { Name s;
-
-      if ( !(s = getResourceValueObject(gr, NAME_selectionStyle)) )
-	s = NAME_invert;
-      assign(class, selection_style, s);
-    }
-
-    if ( equalName(class->selection_style, NAME_invert) )
-    { r_complement(x, y, w, h);
-    } else if ( equalName(class->selection_style, NAME_cornerHandles) )
-    { selection_bubble(x, y, w, h, 0, 0);
-      selection_bubble(x, y, w, h, 0, 2);
-      selection_bubble(x, y, w, h, 2, 0);
-      selection_bubble(x, y, w, h, 2, 2);
-    } else if ( equalName(class->selection_style, NAME_sideHandles) )
-    { selection_bubble(x, y, w, h, 0, 1);
-      selection_bubble(x, y, w, h, 1, 0);
-      selection_bubble(x, y, w, h, 1, 2);
-      selection_bubble(x, y, w, h, 2, 1);
-    } else if ( equalName(class->selection_style, NAME_cornerAndSideHandles) )
-    { selection_bubble(x, y, w, h, 0, 0);
-      selection_bubble(x, y, w, h, 0, 2);
-      selection_bubble(x, y, w, h, 2, 0);
-      selection_bubble(x, y, w, h, 2, 2);
-      selection_bubble(x, y, w, h, 0, 1);
-      selection_bubble(x, y, w, h, 1, 0);
-      selection_bubble(x, y, w, h, 1, 2);
-      selection_bubble(x, y, w, h, 2, 1);
-    } else if ( equalName(class->selection_style, NAME_lineHandles) )
-    { int lw = valInt(gr->area->w);
-      int lh = valInt(gr->area->h);
-
-      NormaliseArea(x, y, w, h);
-      if ( (lw >= 0 && lh >= 0) || (lw < 0 && lh < 0) )
-      { r_complement(x-2,   y-2,   5, 5);
-	r_complement(x+w-3, y+h-3, 5, 5);
-      } else
-      { r_complement(x+w-3, y-2,   5, 5);
-	r_complement(x-2,   y+h-3, 5, 5);
-      }
-    }
-  }
+    qadSendv(gr, NAME_paintSelected, 0, NULL);
 
   succeed;
 }
@@ -681,7 +706,7 @@ flushGraphical(Any gr)
 }
 
 
-static status
+status
 synchroniseGraphical(Graphical gr)
 { DisplayObj d;
 
@@ -1286,7 +1311,10 @@ assignDialogItem(Graphical gr, Name slot, Any value)
   if ( (var = getInstanceVariableClass(classOfObject(gr), slot)) )
     return sendVariable(var, gr, 1, &value);
 
-  return attributeObject(gr, newObject(ClassAttribute, slot, value, 0));
+  if ( isNil(value) )
+    return deleteAttributeObject(gr, slot);
+  else
+    return attributeObject(gr, slot, value);
 }
 
 
@@ -1471,27 +1499,7 @@ penGraphical(Graphical gr, Int pen)
 
 status
 shadowGraphical(Graphical gr, Int s)
-{ if ( s == ZERO )
-    return send(gr, NAME_elevation, NIL, 0);
-  else
-    return send(gr, NAME_elevation,
-		newObject(ClassElevation, s, s,
-			  DEFAULT, DEFAULT, DEFAULT,
-			  NAME_shadow,
-			  0),
-		0);
-}
-
-
-static Int
-getShadowGraphical(Graphical gr)
-{ Elevation e;
-
-  TRY(e = getSlotObject(gr, NAME_elevation));
-  if ( e->kind == NAME_shadow )
-    answer(e->height);
-
-  answer(ZERO);
+{ return assignGraphical(gr, NAME_shadow, s);
 }
 
 
@@ -2535,6 +2543,9 @@ makeClassGraphical(Class class)
 	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
 	     "Request resize for graphical",
 	     requestGeometryGraphical);
+  sendMethod(class, NAME_paintSelected, NAME_repaint, 0,
+	     "Paint selection feedback",
+	     paintSelectedGraphical);
   sendMethod(class, NAME_center, NAME_area, 1, "point",
 	     "Move to make point the center",
 	     centerGraphical);
@@ -2753,9 +2764,6 @@ makeClassGraphical(Class class)
   sendMethod(class, NAME_restore, NAME_apply, 0,
 	     "Virtual method",
 	     virtualObject);
-  sendMethod(class, NAME_shadow, NAME_appearance, 1, "int",
-	     "Set shadow elevation",
-	     shadowGraphical);
 
   sendMethod(class, NAME_draw, NAME_repaint, 2, "offset=[point]", "area=[area]",
 	     "Draw specified area",
@@ -2923,15 +2931,14 @@ makeClassGraphical(Class class)
   getMethod(class, NAME_below, NAME_layout, "graphical", 0,
 	    "Dialog_item integration; fails",
 	    getFailObject);
-  getMethod(class, NAME_shadow, NAME_appearance, "int", 0,
-	    "Amount of shadow",
-	    getShadowGraphical);
 
   attach_resource(class, "visual_bell", "bool", "@on",
 		  "@on: flash; @off: ring bell on ->alert");
   attach_resource(class, "visual_bell_duration", "int", "100",
 		  "Lenght of flash in milliseconds");
-  attach_resource(class, "selection_style", "name", "corner_and_side_handles",
+  attach_resource(class, "selection_handles",
+		  "{corners,sides,corners_and_sides,line}*",
+		  "corners_and_sides",
 		  "Visual feedback of <->selected");
   attach_resource(class, "colour", "[colour|pixmap]", "@default",
 		  "Default colour for this object");

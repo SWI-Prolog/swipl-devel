@@ -59,5 +59,35 @@ indicate_directory(_FI, Dir:string) :->
 	).
 
 
+selection(FI, FileName:name) :<-
+	"Get the current selection"::
+	get(FI, get_super, selection, RawName),
+	get(RawName, size, L),
+	(   get(regex('//\|~'), search, RawName, L, 0, Start)
+	->  new(S, string('%s', RawName)),
+	    send(S, delete, 0, Start),
+	    (	send(S, prefix, '//')
+	    ->  send(S, delete, 0, 1)
+	    ;   true
+ 	    ),
+	    get(S, value, FileName)
+	;   get(RawName, value, FileName)
+	).
+
 :- pce_end_class.
 
+
+		 /*******************************
+		 *     CLASS DIRECTORY_ITEM	*
+		 *******************************/
+
+:- pce_begin_class(directory_item, file_item).
+
+completions(_FI, Tuple:tuple, Matches:chain) :<-
+	"Chain with completions of FileName in DirName"::
+	get(Tuple, first, DirName),
+	get(Tuple, second, FileName),
+	get(directory(DirName), directories, string('^%s', FileName), Matches).
+	
+
+:- pce_end_class.

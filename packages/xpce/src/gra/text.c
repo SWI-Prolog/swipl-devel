@@ -184,6 +184,35 @@ str_format(String out, const String in, const int width, const FontObj font)
 }
 
 
+static void
+draw_caret(int x, int y, int w, int h, int active)
+{ if ( active )
+  { int cx = x + w/2;
+
+    r_fillpattern(BLACK_IMAGE);
+    r_fill_triangle(cx, y, x, y+h, x+w, y+h);
+  } else
+  { struct ipoint pts[4];
+    int cx = x + w/2;
+
+    int cy = y + h/2;
+    int i = 0;
+
+    pts[i].x = cx;  pts[i].y = y;   i++;
+    pts[i].x = x;   pts[i].y = cy;  i++;
+    pts[i].x = cx;  pts[i].y = y+h; i++;
+    pts[i].x = x+w; pts[i].y = cy;  i++;
+      
+    r_fillpattern(GREY50_IMAGE);
+    r_fill_polygon(pts, i);
+  }
+}
+
+
+#ifndef OL_CURSOR_SIZE
+#define OL_CURSOR_SIZE	9
+#endif
+
 status
 repaintText(TextObj t, int x, int y, int w, int h)
 { int cw = valInt(getExFont(t->font));
@@ -217,14 +246,24 @@ repaintText(TextObj t, int x, int y, int w, int h)
 	       x+cw/2+valInt(t->x_offset), y, w-cw, h,
 	       t->format, NAME_top);
 
-  if ( t->show_caret == ON )
-  { r_caret(valInt(t->x_caret) + x - b,
-	    valInt(t->y_caret) + y - b,
-	    t->font);
-  }
-
   if ( t->wrap == NAME_clip )
     d_clip_done();
+
+  if ( t->show_caret != OFF )
+  { int fh = valInt(getAscentFont(t->font));
+    int active = (t->show_caret == ON);
+    Any colour = getResourceValueClass(ClassTextCursor,
+				       active ? NAME_colour
+					      : NAME_inactiveColour);
+    Any old = r_colour(colour);
+
+    draw_caret(valInt(t->x_caret) - OL_CURSOR_SIZE/2 + x - b - 2,
+	       valInt(t->y_caret) + y + fh - b - 3,
+	       OL_CURSOR_SIZE, OL_CURSOR_SIZE,
+	       active);
+
+    r_colour(old);
+  }
 
   succeed;
 }
@@ -616,7 +655,7 @@ stringText(TextObj t, CharArray s)
 
 
 status
-showCaretText(TextObj t, Bool val)
+showCaretText(TextObj t, Any val)
 { if ( t->show_caret == val )
     succeed;
 
@@ -658,6 +697,40 @@ geometryText(TextObj t, Int x, Int y, Int w, Int h)
   }
 
   succeed;
+}
+
+
+static status
+updateShowCaretText(TextObj t)
+{ if ( t->show_caret != OFF )
+  { PceWindow sw = getWindowGraphical((Graphical)t);
+    int active = (sw && sw->input_focus == ON);
+
+    showCaretText(t, active ? (Any)ON : (Any)NAME_passive); 
+  }
+
+  succeed;
+}
+
+
+static status
+eventText(TextObj t, EventObj ev)
+{ if ( eventGraphical(t, ev) )
+    succeed;
+
+  if ( isAEvent(ev, NAME_focus) )
+  { if ( isAEvent(ev, NAME_obtainKeyboardFocus) )
+      showCaretText(t, ON);
+    else if ( isAEvent(ev, NAME_releaseKeyboardFocus) )
+      showCaretText(t, OFF);
+
+    return updateShowCaretText(t);
+  }
+
+  if ( t->show_caret == ON && isAEvent(ev, NAME_keyboard) )
+    return send(t, NAME_typed, ev, 0);
+
+  fail;
 }
 
 
@@ -1178,8 +1251,9 @@ makeClassText(Class class)
 	     "Avoid `walking' with alignment");
   localClass(class, NAME_caret, NAME_caret, "int", NAME_get,
 	     "Index (0-based) of caret");
-  localClass(class, NAME_showCaret, NAME_appearance, "bool", NAME_get,
-	     "If @on, show the caret");
+  localClass(class, NAME_showCaret, NAME_appearance, "bool|{passive}",
+	     NAME_get,
+	     "If not @off, show the caret");
   localClass(class, NAME_background, NAME_appearance, "[colour|pixmap]*",
 	     NAME_get,
 	     "@nil: transparent; @default: cleared");
@@ -1232,6 +1306,9 @@ makeClassText(Class class)
   sendMethod(class, NAME_typed, NAME_event, 1, "event_id",
 	     "Handle a keystroke",
 	     typedText);
+  sendMethod(class, NAME_event, DEFAULT, 1, "event",
+	     "Handle focus and keyboard events",
+	     eventText);
   sendMethod(class, NAME_DrawPostScript, NAME_postscript, 0,
 	     "Create PostScript",
 	     drawPostScriptText);
@@ -1337,8 +1414,6 @@ makeClassText(Class class)
 		  "Default font");
   attach_resource(class, "format", "name", "left",
 		  "Default adjustment: {left,center,right}");
-  attach_resource(class, "selection_style", "name", "corner_and_side_handles",
-		  "Visual feedback of <->selected");
   attach_resource(class, "key_binding", "string", "",
 		  "`Key = selector' binding list");
   attach_resource(class, "border", "0..", "0",

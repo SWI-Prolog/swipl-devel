@@ -5,6 +5,9 @@
     E-mail: jan@swi.psy.uva.nl
 
     Copyright (C) 1992 University of Amsterdam. All rights reserved.
+
+    Last modified:
+	Fri Sep 30 16:03:19 1994	Added method-group support
 */
 
 
@@ -15,6 +18,7 @@
 	, pce_end_class/0
 	, pce_term_expansion/2
 	, pce_compiling/1
+	, pce_group/1
 	, default/3
 	]).
 
@@ -28,6 +32,7 @@
 :- use_module(pce_operator).
 :- require([ concat/3
 	   , concat_atom/2
+	   , ignore/1
 	   , pce_error/2
 	   , source_location/2
 	   , strip_module/3
@@ -38,6 +43,7 @@
 :- dynamic
 	compiling/1,
 	load_module/1,
+	current_group_/1,
 	verbose/0.
 
 
@@ -138,6 +144,7 @@ start_class(ClassName, Doc) :-
 
 start_class(ClassName) :-
 	asserta(compiling(ClassName)),
+	asserta(current_group_(@default)),
 	push_compile_operators.
 
 %	pce_end_class.
@@ -150,8 +157,8 @@ pce_end_class :-
 	),
 	retract(load_module(_)),
 	retractall(compiling(ClassName)),
+	ignore(retractall(current_group_(_))),
 	pop_compile_operators,
-%	send(class(ClassName), install),
 	feedback('Class ~w loaded~n', [ClassName]).
 
 %	push_compile_operators.
@@ -184,6 +191,28 @@ current_class(Class) :-
 
 pce_compiling(ClassName) :-
 	compiling(ClassName).
+
+		 /*******************************
+		 *	  METHOD GROUPS		*
+		 *******************************/
+
+%	pce_group(+GroupName)
+%	Define following methods to be in this group (documentation)
+
+pce_group(GroupName) :-
+	(   atom(GroupName)
+	;   GroupName == @default
+	), !,
+	ignore(retract(current_group_(_))),
+	asserta(current_group_(GroupName)).
+pce_group(GroupName) :-
+	pce_error(':- pce_group/1: ~w is not an atom', [GroupName]),
+	fail.
+
+current_group(GroupName) :-
+	current_group_(GroupName), !.
+current_group(@default).		% should not happen
+
 
 		/********************************
 		*            EXPAND		*
@@ -264,7 +293,7 @@ do_expand(delegate_to(VarName),
 
 do_expand((Head :-> DocBody),			% Prolog send
 	[ (?- send(Class, send_method,
-		  send_method(Selector, Types, Cascade, Doc, Loc)))
+		  send_method(Selector, Types, Cascade, Doc, Loc, Group)))
 	, (PlHead :- Body)
 	]) :- !,
 	(   DocBody = (DocText::Body)
@@ -274,6 +303,7 @@ do_expand((Head :-> DocBody),			% Prolog send
 	),
 	source_location_term(Loc),
 	current_class(Class),
+	current_group(Group),
 	class_name(Class, ClassName),
 	prolog_head(send, Head, Selector, Types, PlHead, Cascade),
 	feedback('~t~8|~w :->~w ... ok~n', [ClassName, Selector]).
@@ -281,7 +311,8 @@ do_expand((Head :-> DocBody),			% Prolog send
 
 do_expand((Head :<- DocBody),			% Prolog get
 	[ (?- send(Class, get_method,
-		  get_method(Selector, RType, Types, Cascade, Doc, Loc)))
+		   get_method(Selector, RType, Types,
+			      Cascade, Doc, Loc, Group)))
 	, (PlHead :- Body)
 	]) :- !,
 	(   DocBody = (DocText::Body)
@@ -291,6 +322,7 @@ do_expand((Head :<- DocBody),			% Prolog get
 	),
 	source_location_term(Loc),
 	current_class(Class),
+	current_group(Group),
 	class_name(Class, ClassName),
 	return_type(Head, RType),
 	prolog_head(get, Head, Selector, Types, PlHead, Cascade),

@@ -1,5 +1,91 @@
 [VERSION 4.8.0]
 
+* Changed location of the X11 resource-file Pce.  XPCE now adds PCE's
+  home directory to the environment $XAPPLRESDIR, so XPCE will always
+  load `@pce <-home'/Pce for finding resources.  This simplifies the
+  installation and allows for different versions of XPCE to have
+  different resource databases without conflicts.
+
+* Improved OpenWindows emulation on scrollbars: 3-D version for colour
+  displays, better event-handling.
+
+* CHANGED: Focussing keyboard input has changed considerably.  The aim is
+  to gain compatibility with `non-XPCE' graphical applications, to give more
+  control to the application programmer and to allow for showing which object
+  will receive keyboard input visually.  Methods affected:
+
+  	`frame ->input_focus'	(changed semantics)
+	`frame ->input_window'	(new method)
+	`frame ->keyboard_focus'(new method)
+	`window ->input_focus'	(new method)
+	`window ->has_pointer'	(new variable)
+	`window <-grab_pointer'	(deleted variable)
+	`frame -has_returned'	(deleted variable)
+	`text ->show_caret'	(now @off, passive, @on)
+	`text ->event'		(new method for handling caret activation)
+	
+  The event-types activate_keyboard_focus and deactivate_keyboard_focus have
+  been added (below type focus; see event-hierarchy demo program).
+
+  It is unlikely that existing source-code is affected by these changes.
+  Applications that want to redirect keyboard input should now consider
+  using `frame ->keyboard_focus' instead of posting the keyboard event to
+  the window that is supposed to receive the input.  This will send the
+  necessary focus-changing events.
+
+* Added interface predicate pce_group/1.  This predicate defines the functional
+  group to which subsequent methods will be attached.  See predicate browser.
+  Currently tested on class draw_canvas (part of PceDraw).  Slowly this will
+  be used in more and more classes to enable quick and more useful overview
+  of Prolog defined classes.
+
+* FIX: `window ->normalise' normalised point(0,0) when given an empty chain
+  of graphicals.  Now it does nothing if the union of the graphicals to
+  normalise on contains no points.
+
+* Colour handling handling feedback on selected graphicals by other means
+  then using selection.  Changes:
+
+  	* Added window <->selection_feedback (feedback on this window)
+	  Allows for invert, show inverted blobs, use colour or use
+	  an elevated area.
+	* Added graphical ->paint_selected to paint the selection attributes
+	* Added Pce.Graphical.selection_handles to define how to paint the
+	  inverted blobs if this mode is choosen.
+	* Deleted `class -selection_style' and Pce.Graphical.selection_style
+
+  These changes should in most cases allow for the usage of the built-in
+  graphical selection mechanism instead of reprogramming it as is commonly
+  done currently.
+
+* Dialog Editor: fixed code generation for layout.
+
+* CHANGED: `object ->attribute' now accepts both
+
+	send(Object, attribute, attribute(Name, Value))		and
+	send(Object, attribute, Name, Value)
+
+  which is a more pleasent syntax and avoids the creation of an attribute
+  object when an attribute value has to be changed.
+
+  INCOMPATIBILITY: send(Object, attribute, Name) in earlier releases
+  was equivalent to send(Object, attribute, attribute(Name, @nil)) and
+  is now interpreted as send(Object, attribute, Name, @default).
+
+* Added class @=, an executable object to assign names to objects.  This allows
+  writing myfont @= font(myfamily, mystyle, mysize, my-x-ref) and similar
+  constructions in the Xdefault file.
+
+* PceEmacs: Added `emacs_language_mode ->visit_tag_file' to allow switching
+  tag-files.  Added completion for finding tag entries.  Fixed the
+  switch_to_buffer pullright menu to include the plain buffer-names
+  instead of the capitalised ones.  Bound \es (ESC-s) to ->sticky_window,
+  toggling the sticky status of the current window.  Improved finding
+  current directory in shell-mode (compilation) windows, now also considering
+  output from GNU-make 3.71.
+
+* Fixed library class file_item to properly handle somedir//newpath, etc.
+
 * Reimplementation of `text_image ->_redraw_area'.  The `double buffering'
   of this class has been removed as it turns out that most X-servers are
   very could at painting text and not extremely good at copying large

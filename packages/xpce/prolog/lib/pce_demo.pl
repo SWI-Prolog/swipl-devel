@@ -13,6 +13,7 @@
 
 
 :- use_module(library(pce)).
+:- use_module(library('contrib/contrib')).
 :- require([ emacs/1
 	   , forall/2
 	   , member/2
@@ -183,9 +184,3 @@ demo('Biff',
      'Notify incoming mail',
      library('demo/biff'),
      biff).
-
-		 /*******************************
-		 *	  CONTRIBUTIONS		*
-		 *******************************/
-
-:- consult('contrib/contrib').

@@ -10,6 +10,7 @@
 :- module(emacs_c_mode, []).
 :- use_module(library(pce)).
 :- require([ between/3
+	   , forall/2
 	   , memberchk/2
 	   ]).
 

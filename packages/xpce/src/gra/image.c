@@ -654,7 +654,7 @@ greyImage(Name name, int grey, Image *global,
 
   image = stdImage(name, global, bits, w, h);
 
-  attach_attribute(image, NAME_postscriptGrey, toInt(grey));
+  attributeObject(image, NAME_postscriptGrey, toInt(grey));
 }
 
 

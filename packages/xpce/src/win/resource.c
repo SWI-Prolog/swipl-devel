@@ -88,6 +88,7 @@ static struct TAGop
 } operators[] = 
 { { "?", 150, NAME_yfx},
   { ":=", 990, NAME_xfx},
+  { "@=", 990, NAME_xfx},
   { "*", 400, NAME_yfx},
   { "/", 400, NAME_yfx},
   { "<", 700, NAME_xfx},
@@ -401,6 +402,43 @@ attach_resource(Class cl, char *name, char *type, char *def, char *doc)
 
   TRY( r = newObject(ClassResource, CtoName(name), DEFAULT, tp,
 		     CtoString(def), cl, s, 0) );
+
+  return resourceClass(cl, r);
+}
+
+
+status
+refine_resource(Class cl, char *name_s, char *def)
+{ Class super;
+  Name name = CtoName(name_s);
+
+  for( super = cl->super_class; notNil(super); super = super->super_class)
+  { Cell cell;
+    
+    for_cell(cell, super->resources)
+    { Resource r = cell->value;
+      
+      if ( r->name == name )		/* found it! */
+      { Resource new = newObject(ClassResource, name, DEFAULT,
+				 r->r_type, CtoString(def), cl, r->summary, 0);
+
+	return resourceClass(cl, new);
+      }
+    }
+  }
+				       
+  sysPce("Could not find super-resource to refine %s.%s\n",
+	 pp(cl->name), name_s);
+  fail;					/* notreached */
+}
+
+
+status
+variable_resource(Class cl, Name name, char *def)
+{ Resource r;
+
+  TRY( r = newObject(ClassResource, name, DEFAULT, DEFAULT,
+		     CtoString(def), cl, DEFAULT, 0) );
 
   return resourceClass(cl, r);
 }

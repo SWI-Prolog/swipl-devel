@@ -16,7 +16,7 @@
 #include <Xm/Xm.h>
 #endif
 
-static void	eventFrame P((Widget, FrameObj, XEvent *));
+static void	xEventFrame P((Widget, FrameObj, XEvent *));
 static void	destroyFrame P((Widget, FrameObj, XtPointer));
 static status   updateAreaFrame(FrameObj fr);
 
@@ -79,7 +79,7 @@ ws_uncreate_frame(FrameObj fr)
     XtRemoveCallback(w, XtNdestroyCallback,
 		     (XtCallbackProc)destroyFrame, fr);
     XtRemoveCallback(w, XtNeventCallback,
-		     (XtCallbackProc)eventFrame, fr);
+		     (XtCallbackProc)xEventFrame, fr);
 
     XtDestroyWidget(w);
 
@@ -146,7 +146,7 @@ ws_create_frame(FrameObj fr)
     return errorPce(fr, NAME_xOpen, fr->display);
 
   XtAddCallback(w, XtNeventCallback,
-		(XtCallbackProc) eventFrame, (caddr_t) fr);
+		(XtCallbackProc) xEventFrame, (caddr_t) fr);
   XtAddCallback(w, XtNdestroyCallback,
 		(XtCallbackProc) destroyFrame, (caddr_t) fr);
 
@@ -283,7 +283,7 @@ destroyFrame(Widget w, FrameObj fr, XtPointer data)
 
 
 static void
-eventFrame(Widget w, FrameObj fr, XEvent *event)
+xEventFrame(Widget w, FrameObj fr, XEvent *event)
 { switch( event->xany.type )
   { case ClientMessage:
     { DEBUG(NAME_frame, printf("Received client message\n"));
@@ -346,22 +346,20 @@ eventFrame(Widget w, FrameObj fr, XEvent *event)
 	send(fr, NAME_hidden, 0);
       return;
     case FocusIn:
-      DEBUG(NAME_focus, printf("Received FocusIn on %s\n", pp(fr)));
+      send(fr, NAME_inputFocus, ON, 0);
       return;
     case FocusOut:
-      DEBUG(NAME_focus, printf("Received FocusOut on %s\n", pp(fr)));
+      send(fr, NAME_inputFocus, OFF, 0);
       return;
     case KeyPress:
-    { PceWindow sw = getInputFocusFrame(fr);
-      EventObj ev;
+    { EventObj ev;
+      PceWindow sw = getKeyboardFocusFrame(fr);
 
-      if ( !sw )
-	sw = getHeadChain(fr->members);
-
-      if ( (ev = CtoEvent(sw, event)) )
+      if ( sw && (ev = CtoEvent(sw, event)) )
       { addCodeReference(ev);
 	postEvent(ev, (Graphical) sw, DEFAULT);
 	delCodeReference(ev);
+	freeableObj(ev);
       }
     }
     default:

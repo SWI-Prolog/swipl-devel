@@ -122,7 +122,7 @@ makeClassCircle(Class class)
 	    "Diameter (= twice radius)",
 	    getDiameterCircle);
 
-  attach_resource(class, "selection_style", "name", "side_handles",
+  attach_resource(class, "selection_handles", "name", "side_handles",
 		  "Visual feedback of <->selected");
 
   succeed;

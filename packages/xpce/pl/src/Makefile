@@ -26,7 +26,8 @@ xpce.base:	$(OBJ)
 		$(CC) $(LDFLAGS) -o $@ $(OBJ) $(LIBS) $(STATICLIBS)
 
 printcmd:
-		@echo $(CC) $(LDFLAGS) -o xpce.base $(BINOBJ) $(LIBS)
+		@echo $(CC) $(LDFLAGS) -o xpce.base \
+			$(BINOBJ) $(LIBS) $(STATICLIBS)
 
 $(TARGET):	xpce.base domangle
 		./dump ./xpce.base $@

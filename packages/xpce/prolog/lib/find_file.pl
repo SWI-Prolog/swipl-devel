@@ -16,21 +16,6 @@
 	   , send_list/3
 	   ]).
 
-		 /*******************************
-		 *     CLASS DIRECTORY_ITEM	*
-		 *******************************/
-
-:- pce_begin_class(directory_item, file_item).
-
-completions(_FI, Tuple:tuple, Matches:chain) :<-
-	"Chain with completions of FileName in DirName"::
-	get(Tuple, first, DirName),
-	get(Tuple, second, FileName),
-	get(directory(DirName), directories, string('^%s', FileName), Matches).
-	
-
-:- pce_end_class.
-
 
 		 /*******************************
 		 *         CLASS FINDER		*

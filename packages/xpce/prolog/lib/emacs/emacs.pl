@@ -11,10 +11,8 @@
 
 
 :- use_module(library(pce)).
-:- require([ ignore/1
-	   , send_list/3
+:- require([ send_list/3
 	   ]).
-
 
 		/********************************
 		*         DECLARE MODES		*

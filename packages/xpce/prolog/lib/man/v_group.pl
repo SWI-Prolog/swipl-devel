@@ -11,6 +11,8 @@
 
 :- use_module(library(pce)).
 :- use_module(util).
+:- require([ append/3
+	   ]).
 
 :- pce_begin_class(man_group_browser(module_name), man_frame).
 

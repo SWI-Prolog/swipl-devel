@@ -745,30 +745,45 @@ deleteHyperObject(Any obj, Hyper h)
 
 
 status
-attributeObject(Any obj, Attribute att)
-{ Variable var;
-  Chain ch;
+attributeObject(Any obj, Any name, Any value)
+{ Chain ch = getAllAttributesObject(obj, ON);
   Cell cell;
 
-  if ( (var=getInstanceVariableClass(classOfObject(obj), att->name)) )
-    return errorPce(obj, NAME_classHasVariable, att->name);
+  if ( instanceOfObject(name, ClassAttribute) )
+  { Attribute att = (Attribute) name;
 
-  ch = getAllAttributesObject(obj, ON);
+    for_cell(cell, ch)
+    { Attribute a = cell->value;
 
-  for_cell(cell, ch)
-  { Attribute a = cell->value;
-
-    if ( a->name == att->name )
-    { assign(a, value, att->value);
-      succeed;
+      if ( a->name == att->name )
+      { assign(a, value, att->value);
+	succeed;
+      }
     }
-  }
 
-  return appendChain(ch, att);
+    if ( getInstanceVariableClass(classOfObject(obj), att->name) )
+      return errorPce(obj, NAME_classHasVariable, att->name);
+
+    return appendChain(ch, att);
+  } else /* if instanceOfObject(att, ClassName) */
+  { for_cell(cell, ch)
+    { Attribute a = cell->value;
+
+      if ( a->name == name )
+      { assign(a, value, value);
+	succeed;
+      }
+    }
+
+    if ( getInstanceVariableClass(classOfObject(obj), name) )
+      return errorPce(obj, NAME_classHasVariable, name);
+
+    return appendChain(ch, newObject(ClassAttribute, name, value, 0));
+  }
 }
 
 
-static status
+status
 deleteAttributeObject(Any obj, Any att)
 { Chain ch;
   Cell cell;
@@ -2312,7 +2327,8 @@ makeClassObject(Class class)
   sendMethod(class, NAME_initialise, NAME_oms, 1, "unchecked ...",
 	     "Initialise variables and resources",
 	     initialiseObject);
-  sendMethod(class, NAME_attribute, NAME_storage, 1, "attribute",
+  sendMethod(class, NAME_attribute, NAME_storage, 2,
+	     "attribute|name", "value=[any]",
 	     "Append/change object-level attribute",
 	     attributeObject);
   sendMethod(class, NAME_deleteAttribute, NAME_storage, 1, "name|attribute",
@@ -2601,18 +2617,6 @@ makeClassObject(Class class)
 	    getConvertObject);
 
   succeed;
-}
-
-
-status
-attach_attribute(Any obj, Name name, Any value)
-{ Attribute att = tempObject(ClassAttribute, name, value, 0);
-  int rval;
-
-  rval = send(obj, NAME_attribute, att, 0);
-  considerPreserveObject(att);
-
-  return rval;
 }
 
 

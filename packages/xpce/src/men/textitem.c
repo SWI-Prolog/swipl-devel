@@ -91,10 +91,7 @@ RedrawAreaTextItem(TextItem ti, Area a)
 
   if ( z && notNil(z) && ti->look == NAME_motif )
     r_3d_box(tx, ty, tw, th, 0, z, TRUE);
-
-  repaintText(vt, tx, ty, tw, th);
-
-  if ( ti->look != NAME_motif )
+  else if ( ti->look != NAME_motif )
   { if ( z && notNil(z) )
     { int zh = abs(valInt(z->height));
       int ly = y+am+zh+valInt(getDescentFont(vt->font));
@@ -111,7 +108,26 @@ RedrawAreaTextItem(TextItem ti, Area a)
     }
   }
 
+  repaintText(vt, tx, ty, tw, th);
+
   return RedrawAreaGraphical(ti, a);
+}
+
+
+static status
+updateShowCaretTextItem(TextItem ti)
+{ if ( ti->status != NAME_inactive )
+  { PceWindow sw = getWindowGraphical((Graphical)ti);
+    int active = (sw && sw->input_focus == ON);
+
+    caretText(ti->value_text, DEFAULT);
+    showCaretText(ti->value_text, active ? (Any)ON : (Any)NAME_passive);  
+  } else
+    showCaretText(ti->value_text, OFF);
+
+  return requestComputeGraphical(ti, DEFAULT);
+
+  succeed;
 }
 
 
@@ -120,14 +136,7 @@ statusTextItem(TextItem ti, Name stat)
 { if ( ti->status != stat )
   { assign(ti, status, stat);
 
-    if ( equalName(stat, NAME_inactive) )
-      showCaretText(ti->value_text, OFF);
-    else
-    { caretText(ti->value_text, DEFAULT);
-      showCaretText(ti->value_text, ON);
-    }
-
-    return requestComputeGraphical(ti, DEFAULT);
+    return updateShowCaretTextItem(ti);
   }
 
   succeed;
@@ -217,8 +226,8 @@ completer(void)
     Completer = globalObject(NAME_completer, ClassBrowser, 0);
     protectObject(Completer);
     protectObject(Completer->frame);
-    attach_attribute(Completer, NAME_client, NIL);
-    attach_attribute(Completer, NAME_prefix, CtoName(""));
+    attributeObject(Completer, NAME_client, NIL);
+    attributeObject(Completer, NAME_prefix, CtoName(""));
     send(Completer, NAME_selectMessage,
 	 newObject(ClassMessage,
 		   newObject(ClassObtain, Completer, NAME_client, 0),
@@ -407,10 +416,14 @@ eventTextItem(TextItem ti, EventObj ev)
       return send(ti, NAME_keyboardFocus, 0);
     else
       return alertGraphical((Graphical) ti);
-  } else if ( isAEvent(ev, NAME_obtainKeyboardFocus) )
-  { return send(ti, NAME_status, NAME_active, 0);
-  } else if ( isAEvent(ev, NAME_releaseKeyboardFocus) )
-  { return send(ti, NAME_status, NAME_inactive, 0);
+  } else if ( isAEvent(ev, NAME_focus) )
+  { if ( isAEvent(ev, NAME_obtainKeyboardFocus) )
+    { send(ti, NAME_status, NAME_active, 0);
+    } else if ( isAEvent(ev, NAME_releaseKeyboardFocus) )
+    { send(ti, NAME_status, NAME_inactive, 0);
+    }
+
+    return updateShowCaretTextItem(ti);
   }
 
   if ( ti->status != NAME_inactive )

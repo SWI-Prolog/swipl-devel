@@ -14,5 +14,10 @@ addlib:		$(WINOBJS)
 proto.h:	$(WINSRC)
 		$(MKPROTO) $(WINSRC) | $(CLPROTO) > proto.h
 
+rclass.h:	../../Makefile
+		echo "#define RESOURCE_CLASS \"$(RESOURCE_CLASS)\"" > $@
+
+display.o:	rclass.h
+
 clean:
 		rm -f *~ a.out core $(WINOBJS) addlib
