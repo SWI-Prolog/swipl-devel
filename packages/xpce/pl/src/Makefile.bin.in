@@ -44,7 +44,7 @@ PWD=`pwd`
 
 STARTUP=	boot32.prc
 BOOTPLS=	boot/apply.pl boot/autoload.pl \
-		boot/bags.pl boot/dwim.pl boot/make.pl  \
+		boot/bags.pl boot/dwim.pl \
 		boot/history.pl boot/init.pl \
 		boot/load.pl boot/parms.pl \
 		boot/qlf.pl boot/sort.pl boot/syspred.pl boot/toplevel.pl \
