@@ -1540,9 +1540,13 @@ typedef struct saved
   struct saved *next;
 } saved;
 
-static saved ** saved_table;
-static long     saved_size;
-static long     saved_id;
+
+typedef struct save_context
+{ saved ** saved_table;
+  long     saved_size;
+  long     saved_id;
+} save_context;
+
 
 long
 next_table_size(long s0)
@@ -1555,23 +1559,20 @@ next_table_size(long s0)
 }
 
 static void
-init_saved(rdf_db *db)
+init_saved(rdf_db *db, save_context *ctx)
 { long size = next_table_size((db->created - db->erased)/8);
-  long bytes = size * sizeof(*saved_table);
+  long bytes = size * sizeof(*ctx->saved_table);
 
-  saved_table = PL_malloc(bytes);
-  memset(saved_table, 0, bytes);
-  saved_size = size;
-  saved_id = 0;
+  ctx->saved_table = PL_malloc(bytes);
+  memset(ctx->saved_table, 0, bytes);
+  ctx->saved_size = size;
+  ctx->saved_id = 0;
 }
 
 static void
-destroy_saved()
-{ if ( saved_table )
-    PL_free(saved_table);
-
-  saved_size = 0;
-  saved_id = 0;
+destroy_saved(save_context *ctx)
+{ if ( ctx->saved_table )
+    PL_free(ctx->saved_table);
 }
 
 #define LONGBITSIZE (sizeof(long)*8)
@@ -1617,14 +1618,14 @@ save_int(IOSTREAM *fd, long n)
 
 
 static void
-save_atom(IOSTREAM *out, atom_t a)
-{ int hash = atom_hash(a) % saved_size;
+save_atom(IOSTREAM *out, atom_t a, save_context *ctx)
+{ int hash = atom_hash(a) % ctx->saved_size;
   saved *s;
   unsigned int len;
   const char *chars;
   unsigned int i;
 
-  for(s=saved_table[hash]; s; s= s->next)
+  for(s=ctx->saved_table[hash]; s; s= s->next)
   { if ( s->name == a )
     { Sputc('X', out);
       save_int(out, s->as);
@@ -1635,9 +1636,9 @@ save_atom(IOSTREAM *out, atom_t a)
 
   s = PL_malloc(sizeof(*s));
   s->name = a;
-  s->as = saved_id++;
-  s->next = saved_table[hash];
-  saved_table[hash] = s;
+  s->as = ctx->saved_id++;
+  s->next = ctx->saved_table[hash];
+  ctx->saved_table[hash] = s;
 
   Sputc('A', out);
   chars = PL_atom_nchars(a, &len);
@@ -1655,26 +1656,26 @@ static const int double_byte_order[] = { 0,1,2,3,4,5,6,7 };
 
 
 static void
-write_triple(IOSTREAM *out, triple *t)
+write_triple(IOSTREAM *out, triple *t, save_context *ctx)
 { Sputc('T', out);
 
-  save_atom(out, t->subject);
-  save_atom(out, t->predicate->name);
+  save_atom(out, t->subject, ctx);
+  save_atom(out, t->predicate->name, ctx);
 
   if ( t->qualifier )
   { assert(t->type_or_lang);
     Sputc(t->qualifier == Q_LANG ? 'l' : 't', out);
-    save_atom(out, t->type_or_lang);
+    save_atom(out, t->type_or_lang, ctx);
   }
 
   switch(t->objtype)
   { case OBJ_RESOURCE:
       Sputc('R', out);
-      save_atom(out, t->object.resource);
+      save_atom(out, t->object.resource, ctx);
       break;
     case OBJ_STRING:
       Sputc('L', out);
-      save_atom(out, t->object.string);
+      save_atom(out, t->object.string, ctx);
       break;
     case OBJ_INTEGER:
       Sputc('I', out);
@@ -1706,7 +1707,7 @@ write_triple(IOSTREAM *out, triple *t)
       assert(0);
   }
 
-  save_atom(out, t->source);
+  save_atom(out, t->source, ctx);
   save_int(out, t->line);
 }
 
@@ -1729,15 +1730,16 @@ write_md5(rdf_db *db, IOSTREAM *out, atom_t src)
 static int
 save_db(rdf_db *db, IOSTREAM *out, atom_t src)
 { triple *t;
+  save_context ctx;
 
   LOCK();
-  init_saved(db);
+  init_saved(db, &ctx);
 
   Sfprintf(out, "%s", SAVE_MAGIC);
   save_int(out, SAVE_VERSION);
   if ( src )
   { Sputc('S', out);
-    save_atom(out, src);
+    save_atom(out, src, &ctx);
     write_md5(db, out, src);
   }
   if ( Sferror(out) )
@@ -1746,7 +1748,7 @@ save_db(rdf_db *db, IOSTREAM *out, atom_t src)
   for(t = db->by_none; t; t = t->next[BY_NONE])
   { if ( !t->erased &&
 	 (!src || t->source == src) )
-    { write_triple(out, t);
+    { write_triple(out, t, &ctx);
       if ( Sferror(out) )
 	return FALSE;
     }
@@ -1755,7 +1757,7 @@ save_db(rdf_db *db, IOSTREAM *out, atom_t src)
   if ( Sferror(out) )
     return FALSE;
 
-  destroy_saved();
+  destroy_saved(&ctx);
   UNLOCK();
 
   return TRUE;
