@@ -666,28 +666,18 @@ static Bool
 getHasCompletionsTextItem(TextItem ti)
 { Chain vset;
 
-#if 0					/* if you can program it anyway ... */
-  Any rec;
-  GetMethod m;
-
-					/* <-split_completions is redefined */
-  if ( (m = resolveGetMethodObject(ti, NULL, NAME_splitCompletion, &rec)) &&
-       (!instanceOfObject(m, ClassGetMethod) ||
-	m->function != getSplitCompletionTextItem) )
-    answer(ON);
-					/* <-completions is redefined */
-  if ( (m = resolveGetMethodObject(ti, NULL, NAME_completions, &rec)) &&
-       (!instanceOfObject(m, ClassGetMethod) ||
-	m->function != getCompletionsTextItem) )
-    answer(ON);
-#endif
-
   if ( isNil(ti->value_set) )
     answer(OFF);
   if ( isDefault(ti->value_set) )
   { if ( (vset=getValueSetType(ti->type, NIL)) )
-    { doneObject(vset);
-      answer(ON);
+    { Bool rval = ON;
+
+      if ( vset->size == ONE && getHeadChain(vset) == DEFAULT )
+	rval = OFF;
+
+      doneObject(vset);
+
+      answer(rval);
     }
     answer(OFF);
   }
