@@ -346,7 +346,7 @@ computeRubberTableColumn(TableColumn col)
   int ymin = valInt(getLowIndexVector(tab->rows));
   int ymax = valInt(getHighIndexVector(tab->rows));
   int y;
-  stretch stretches[ymax-ymin+1];
+  stretch *stretches = alloca((ymax-ymin+1)*sizeof(stretch));
   int nstretches = 0;
   stretch joined;
 
