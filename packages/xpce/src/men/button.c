@@ -125,10 +125,11 @@ draw_generic_button_face(Button b,
       { 
 	if ( b->show_focus_border == ON )
 	{ PceWindow sw = getWindowGraphical((Graphical)b);
+	  Graphical kbfocus = (sw ? sw->keyboard_focus : NIL);
 
 	  if ( focus ||
-	       sw->keyboard_focus == (Graphical) b ||	/* inactive focus */
-	       (defb && !instanceOfObject(sw->keyboard_focus, ClassButton)) )
+	       kbfocus == (Graphical) b ||	/* inactive focus */
+	       (defb && !instanceOfObject(kbfocus, ClassButton)) )
 	  { static Elevation e = NULL;
 	    
 	    if ( !e )

@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Crash in button->redraw if the button was nost displayed in a
+  window (i.e. `image->draw_in').  Lourens van der Meij.
+
 * FIXED/ADDED/MODIFIED: Fixed loc_still generation if loc_move handling
   created other events.  Added class-variable loc_still_time to class
   event to specify the time and modified the default to 400ms (was 700ms).
