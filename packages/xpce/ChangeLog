@@ -2,6 +2,10 @@
 			   ==============
 
 
+* ADDED: `node->move_before' to move a node just before another.
+
+* FIXED: `node->move_after' to handle @default as advertised (move to end).
+
 * ENHANCED: object->delete_hyper to destroy the object's <-hypers chain
   after deleting the last hyper.
 

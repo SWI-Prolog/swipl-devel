@@ -332,8 +332,19 @@ moveAfterNode(Node n, Node n2)
     if ( isObject(parent) )
     { status rval;
 
-      rval = moveAfterChain(parent->sons, n, DEFAULT);
-      requestComputeTree(n->tree);
+      if ( isNil(n2) )			/* @nil: move to the start */
+	rval = moveAfterChain(parent->sons, n, DEFAULT);
+      else				/* @default: move to the end */
+      { Any tail = getTailChain(parent->sons);
+
+	if ( tail && tail != n )
+	  rval = moveAfterChain(parent->sons, n, tail);
+	else
+	  rval = FAIL;
+      }
+
+      if ( rval )
+	requestComputeTree(n->tree);
 
       return rval;
     }
@@ -345,11 +356,32 @@ moveAfterNode(Node n, Node n2)
   for_cell(cell, n->parents)
   { Node parent = cell->value;
 
-    if ( memberChain(n2->parents, parent) == SUCCEED )
+    if ( memberChain(n2->parents, parent) )
     { status rval;
 
-      rval = moveAfterChain(parent->sons, n, n2);
-      requestComputeTree(n->tree);
+      if ( (rval = moveAfterChain(parent->sons, n, n2)) )
+	requestComputeTree(n->tree);
+
+      return rval;
+    }
+  }
+
+  fail;
+}
+
+
+static status
+moveBeforeNode(Node n, Node n2)
+{ Cell cell;
+
+  for_cell(cell, n->parents)
+  { Node parent = cell->value;
+
+    if ( memberChain(n2->parents, parent) )
+    { status rval;
+
+      if ( (rval = moveBeforeChain(parent->sons, n, n2)) )
+	requestComputeTree(n->tree);
 
       return rval;
     }
@@ -906,6 +938,8 @@ static senddecl send_node[] =
      NAME_edit, "Move argument to become a son of me"),
   SM(NAME_moveAfter, 1, "[node]*", moveAfterNode,
      NAME_edit, "Move node to be just after (below) arg"),
+  SM(NAME_moveBefore, 1, "node", moveBeforeNode,
+     NAME_edit, "Move node to be just before (above) arg"),
   SM(NAME_son, 2, T_son, sonNode,
      NAME_edit, "Add a new child-node"),
   SM(NAME_swap, 1, "node", swapNode,
