@@ -1160,7 +1160,7 @@ struct choice
 { choice_type	type;			/* CHP_* */
   Choice	parent;			/* Alternative if I fail */
   mark		mark;			/* data mark for undo */
-  LocalFrame 	frame;			/* Frame I/m related to */
+  LocalFrame 	frame;			/* Frame I am related to */
   union
   { ClauseRef	clause;			/* Next candidate clause */
     Code	PC;			/* Next candidate program counter */

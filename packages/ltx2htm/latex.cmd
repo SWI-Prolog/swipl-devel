@@ -131,6 +131,7 @@
 \normalsize
 \footnotesize
 \scriptsize
+\cal
 
 \emph{+}
 

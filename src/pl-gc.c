@@ -1587,6 +1587,7 @@ garbageCollect(LocalFrame fr)
   if ( gc_status.blocked || !trueFeature(GC_FEATURE) )
     return;
   gc_status.requested = FALSE;
+  blockGC();
 
   gc_status.active = TRUE;
   finish_foreign_frame(PASS_LD1);
@@ -1673,6 +1674,8 @@ garbageCollect(LocalFrame fr)
 		     PL_INTEGER, usedStack(trail),
 		     PL_INTEGER, roomStack(global),
 		     PL_INTEGER, roomStack(trail));
+
+  unblockGC();
 }
 
 word

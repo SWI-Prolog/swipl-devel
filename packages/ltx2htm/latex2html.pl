@@ -1228,7 +1228,7 @@ cmd(frac({A1}, {A2}), math, [math+A1, '/', math+A2]).
 cmd(mod({A1}, {A2}), math, [math+A1, ' ', 'mod', ' ', math+A2]).
 cmd(rem({A1}, {A2}), math, [math+A1, ' ', 'rem', ' ', math+A2]).
 cmd(div, math, div).
-cmd(pow({A1}, {A2}), math, [math+A1, '**', +A2]).
+cmd(pow({A1}, {A2}), math, [math+A1, '**', math+A2]).
 
 %
 % cmd(+Command, +Mode0, -Mode, -HTML
@@ -1249,6 +1249,7 @@ cmd(Font, group(Old), group([font(Font)|Old1]), HTML) :-
 html_font(em, 		html('<EM>'), 		html('</EM>')).
 html_font(bf, 		html('<B>'),  		html('</B>')).
 html_font(it, 		html('<I>'),  		html('</I>')).
+html_font(cal, 		html('<I>'),  		html('</I>')).
 html_font(tt, 		html('<TT>'), 		html('</TT>')).
 html_font(sf, 		html('<B>'),  		html('</B>')).
 html_font(sc, 		html('<font size=-1>'), html('</font>')).

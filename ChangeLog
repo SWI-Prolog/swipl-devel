@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: plwin.exe ... -- file.pl.  Thanks to Lourens van der Meij.
+
+  * MODIFIED: close/1 works as close(Stream, [force(true)]) if the
+    stream has an error condition when starting the close.
+
   * ISO: Replaced warning on atom_prefix/2 with exception.
 
   * FIXED: Sflush() to return 0 rather then the number of characters
