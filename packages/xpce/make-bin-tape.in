@@ -1,0 +1,70 @@
+#!/bin/sh
+
+if [ "x$1" = "x-b" ]; then 
+    binonly="t"
+    shift
+fi
+
+arch=$1
+RTSUFFIX="@RTSUFFIX@"
+version=`cat VERSION`
+dir=`pwd`
+binout=$dir/xpce$RTSUFFIX-$version-bin.tgz
+libout=$dir/xpce-$version-lib.tgz
+emulator="xpce$RTSUFFIX.base"
+compress="gzip"
+
+if [ ! -d $dir ]; then mkdir $dir; fi
+for d in library boot include; do
+    rm -f pl/$d
+    (cd pl; ln -s ../../pl/$d .)
+done
+
+if [ ! -r bin/$emulator ]; then
+    ( cd bin; ln -s ../pl/src/$emulator . )
+fi
+
+cd ..
+rm -f xpce-$version
+ln -s xpce xpce-$version
+tar cvhf - \
+	xpce-$version/bin/$emulator \
+	xpce-$version/bin/xpce-client \
+	xpce-$version/src/XPCE.a \
+	xpce-$version/pl/src/pl-crt0.o \
+	xpce-$version/install \
+	| $compress > $binout
+	
+if [ "$binonly" != "t" ]; then
+    tar cvhf - \
+	xpce-$version/INSTALL xpce-$version/README.linux \
+	xpce-$version/licence \
+	xpce-$version/INFO xpce-$version/README \
+	xpce-$version/src/load.pl \
+	xpce-$version/src/xpce.pl \
+	xpce-$version/include \
+	xpce-$version/CXX/demo/Makefile \
+	xpce-$version/CXX/demo/README \
+	xpce-$version/CXX/demo/*.C xpce-$version/CXX/demo/*.bm \
+	xpce-$version/STAMP xpce-$version/VERSION xpce-$version/ChangeLog \
+	xpce-$version/src/unx/client.c \
+	xpce-$version/src/h/interface.h \
+	xpce-$version/pl/src/Makefile \
+	xpce-$version/pl/src/mlist \
+	xpce-$version/pl/src/dump \
+	xpce-$version/pl/*.c xpce-$version/prolog/c \
+	xpce-$version/Pce xpce-$version/bitmaps xpce-$version/postscript \
+	xpce-$version/prolog/lib \
+	xpce-$version/prolog/boot \
+	xpce-$version/pl/load.pl \
+	xpce-$version/pl/library \
+	xpce-$version/pl/boot \
+	xpce-$version/pl/include \
+	xpce-$version/man/reference \
+	xpce-$version/man/info \
+	| $compress > $libout
+fi
+rm xpce-$version
+
+rm -f xpce/pl/{library,boot,include,startup}
+
