@@ -203,7 +203,7 @@ iprog::
 		$(INSTALL_PROGRAM) $(PLCON) "$(BINDIR)"
 		$(INSTALL_PROGRAM) $(PLDLL) "$(BINDIR)"
 		$(INSTALL_PROGRAM) $(TERMDLL) "$(BINDIR)"
-!IF "$(DBG)" == "true"
+!IF "$(PDB)" == "true"
 		$(INSTALL_PROGRAM) ..\bin\plwin.pdb "$(BINDIR)"
 		$(INSTALL_PROGRAM) ..\bin\plcon.pdb "$(BINDIR)"
 		$(INSTALL_PROGRAM) ..\bin\libpl.pdb "$(BINDIR)"

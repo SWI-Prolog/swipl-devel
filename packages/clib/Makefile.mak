@@ -45,6 +45,14 @@ idll::
 		copy memfile.dll "$(BINDIR)"
 		copy mime.dll "$(BINDIR)"
 		copy time.dll "$(BINDIR)"
+!IF "$(PDB)" == "true"
+		copy socket.pdb "$(BINDIR)"
+		copy cgi.pdb "$(BINDIR)"
+		copy memfile.pdb "$(BINDIR)"
+		copy mime.pdb "$(BINDIR)"
+		copy time.pdb "$(BINDIR)"
+!ENDIF
+
 ilib::
 		copy socket.pl "$(PLBASE)\library"
 		copy streampool.pl "$(PLBASE)\library"

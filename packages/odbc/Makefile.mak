@@ -27,6 +27,10 @@ install:	all idll ilib
 
 idll::
 		copy $(PKGDLL).dll "$(BINDIR)"
+!IF "$(PDB)" == "true"
+		copy $(PKGDLL).pdb "$(BINDIR)"
+!ENDIF
+
 ilib::
 		copy odbc.pl "$(PLBASE)\library"
 		$(MAKEINDEX)

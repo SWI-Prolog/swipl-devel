@@ -36,6 +36,10 @@ install:	idtd idll ilib
 
 idll::
 		copy $(PKGDLL).dll "$(PLBASE)\bin"
+!IF "$(PDB)" == "true"
+		copy $(PKGDLL).pdb "$(PLBASE)\bin"
+!ENDIF
+
 ilib::
 		copy sgml.pl "$(PLBASE)\library"
 		$(MAKEINDEX)

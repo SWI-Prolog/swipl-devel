@@ -28,6 +28,10 @@ DirText "This program will install SWI-Prolog on your computer.\
 LicenseData pl\COPYING.TXT
 LicenseText "SWI-Prolog is governed by the LGPL"
 
+InstType "Typical (all except debug symbols)"	# 1
+InstType "Minimal (no graphics)"		# 2
+InstType "Full"					# 3
+
 Page license
 Page components
 Page directory
@@ -36,6 +40,8 @@ Page instfiles
 
 Section "Base system (required)"
   SectionIn RO			# do not allow to delete this
+
+  Delete $INSTDIR\bin\*.pdb
 
   SetOutPath $INSTDIR\bin
   File pl\bin\plcon.exe
@@ -122,6 +128,7 @@ Section "Base system (required)"
 SectionEnd
 
 Section "Documentation and Help-system"
+  SectionIn 1 3
   SetOutPath $INSTDIR
   File pl\ChangeLog.TXT
   SetOutPath $INSTDIR\library
@@ -131,6 +138,7 @@ Section "Documentation and Help-system"
 SectionEnd
 
 Section "Demo files"
+  SectionIn 1 3
   SetOutPath $INSTDIR
   File /r pl\demo
   SetOutPath $INSTDIR\bin
@@ -138,6 +146,7 @@ Section "Demo files"
 SectionEnd
 
 Section "C/C++ Interface"
+  SectionIn 1 3 
   SetOutPath $INSTDIR
   File /r pl\lib
   File /r pl\include
@@ -149,6 +158,7 @@ Section "C/C++ Interface"
 SectionEnd
 
 Section "XPCE graphics library"
+  SectionIn 1 3
   SetOutPath $INSTDIR
   File /r pl\xpce
   File pl\plwin.rc
@@ -158,6 +168,7 @@ Section "XPCE graphics library"
 SectionEnd
 
 Section "Package CLIB"
+  SectionIn 1 3
   SetOutPath $INSTDIR\bin
   File pl\bin\cgi.dll
   File pl\bin\memfile.dll
@@ -175,6 +186,7 @@ Section "Package CLIB"
 SectionEnd
 
 Section "ODBC Interface"
+  SectionIn 1 3
   SetOutPath $INSTDIR\bin
   File pl\bin\odbc4pl.dll
   SetOutPath $INSTDIR\library
@@ -184,6 +196,7 @@ Section "ODBC Interface"
 SectionEnd
 
 Section "SGML/XML/HTML parser"
+  SectionIn 1 3
   SetOutPath $INSTDIR\bin
   File pl\bin\sgml2pl.dll
   SetOutPath $INSTDIR\library
@@ -194,6 +207,7 @@ Section "SGML/XML/HTML parser"
 SectionEnd
 
 Section "RDF and Semantic Web Library"
+  SectionIn 1 3
   SetOutPath $INSTDIR\bin
   File pl\bin\rdf_db.dll
 
@@ -211,6 +225,7 @@ Section "RDF and Semantic Web Library"
 SectionEnd
 
 Section "HTTP Client/Server package"
+  SectionIn 1 3
   SetOutPath $INSTDIR\library
   File /r pl\library\http
   SetOutPath $INSTDIR\doc\packages
@@ -221,6 +236,7 @@ Section "HTTP Client/Server package"
 SectionEnd
 
 Section "Table package"
+  SectionIn 1 3
   SetOutPath $INSTDIR\bin
   File pl\bin\table.dll
   SetOutPath $INSTDIR\library
@@ -230,7 +246,24 @@ Section "Table package"
   File pl\doc\packages\table.html
 SectionEnd
 
+Section "C Debugging Symbols (.pdb files)"
+  SectionIn 3
+  SetOutPath $INSTDIR\bin
+  File pl\bin\cgi.pdb
+  File pl\bin\libpl.pdb
+  File pl\bin\memfile.pdb
+  File pl\bin\mime.pdb
+  File pl\bin\odbc4pl.pdb
+  File pl\bin\plcon.pdb
+  File pl\bin\plterm.pdb
+  File pl\bin\plwin.pdb
+  File pl\bin\sgml2pl.pdb
+  File pl\bin\socket.pdb
+  File pl\bin\time.pdb
+SectionEnd
+
 Section "Sources for system predicates"
+  SectionIn 1 3
   SetOutPath $INSTDIR
   File /r pl\boot
   SetOutPath $INSTDIR\bin
@@ -238,7 +271,7 @@ Section "Sources for system predicates"
 SectionEnd
 
 Section "Shell Extensions" SecShell
-; SectionIn 1 2 3
+  SectionIn 1 2 3
   ; back up old value of .pl
   ReadRegStr $1 HKCR .${EXT} ""
   StrCmp $1 "" Label1
@@ -287,6 +320,7 @@ SectionEnd
 !macroend
 
 Section "Start Menu shortcuts"
+  SectionIn 1 2 3
   SetOutPath ${CWD}
   CreateDirectory "$SMPROGRAMS\${GRP}"
   IfFileExists "$SMPROGRAMS\${GRP}\XPCE.lnk" 0 NoOldXPCE

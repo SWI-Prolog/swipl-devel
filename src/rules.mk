@@ -35,8 +35,21 @@ LIB=$(LIB);$(HOME)\lib
 CFG=dev
 DBG=false
 MT=true
+PDB=false
+SYMOPT=
+SYMBOLS=true
 DBGOPT=/Od
 #DBGOPT=/O2
+
+!IF "$(DBG)" == "true"
+SYMOPT=/Zi
+PDB=true
+!ENDIF
+
+!IF "$(SYMBOLS)" == "true"
+SYMOPT=/Zi
+PDB=true
+!ENDIF
 
 !IF "$(CFG)" == "rt"
 CMFLAGS=/DO_RUNTIME
@@ -87,12 +100,16 @@ TERMLIB=$(PLHOME)\lib\plterm.lib
 UXLIB=$(PLHOME)\lib\uxnt.lib
 
 !IF "$(DBG)" == "false"
-CFLAGS=/MD /W3 /O2 /GX /DNDEBUG /DWIN32 /D_WINDOWS $(CMFLAGS) /nologo /c
+CFLAGS=/MD /W3 /O2 $(SYMOPT) /GX /DNDEBUG /DWIN32 /D_WINDOWS $(CMFLAGS) /nologo /c
+!IF "$(PDB)" == "true"
+LDFLAGS=/DEBUG /OPT:REF
+!ELSE
 LDFLAGS=
+!ENDIF
 D=
 DBGLIBS=
 !ELSE
-CFLAGS=/MD /W3 /Zi $(DBGOPT) /GX /D_DEBUG /DWIN32 /D_WINDOWS $(CMFLAGS) /nologo /c
+CFLAGS=/MD /W3 $(SYMOPT) $(DBGOPT) /GX /D_DEBUG /DWIN32 /D_WINDOWS $(CMFLAGS) /nologo /c
 LD=link.exe /nologo /incremental:yes
 LDFLAGS=/DEBUG
 D=D
