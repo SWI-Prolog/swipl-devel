@@ -1,3 +1,8 @@
+* FIXED: modal transient windows not honoured if there is a focus.
+
+* FIXED: Uninitialised data in dialog layout algorithm that could result
+  in totally wrong placement.
+
 * FIXED/MODIFIED: Deleting content from a table object now ->destroy's
   the graphicals if they are not locked.
 
