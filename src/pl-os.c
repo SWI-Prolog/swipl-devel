@@ -942,7 +942,13 @@ initExpand(void)
 
 static void
 cleanupExpand(void)
-{ canonical_dirlist = NULL;
+{ CanonicalDir dn = canonical_dirlist, next;
+
+  canonical_dirlist = NULL;
+  for( ; dn; dn = next )
+  { next = dn->next;
+    free(dn);
+  }
 }
 
 
@@ -968,7 +974,7 @@ registerParentDirs(const char *path)
     }
 	
     if ( statfunc(OsPath(dirname, tmp), &buf) == 0 )
-    { CanonicalDir dn   = allocHeap(sizeof(*dn));
+    { CanonicalDir dn   = malloc(sizeof(*dn));
 
       dn->next		= canonical_dirlist;
       dn->name		= store_string(dirname);
@@ -1008,7 +1014,7 @@ canoniseDir(char *path)
 					/* is sometimes bigger! */
 
   if ( statfunc(OsPath(path, tmp), &buf) == 0 )
-  { CanonicalDir dn = allocHeap(sizeof(*dn));
+  { CanonicalDir dn = malloc(sizeof(*dn));
     char dirname[MAXPATHLEN];
     char *e = path + strlen(path);
 
