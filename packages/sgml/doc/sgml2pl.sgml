@@ -1124,11 +1124,60 @@ resources can be used to store external entities.
 
 <s1>Writing markup</title>
 
+<s2>Writing documents</s2>
+
+<p>
+The library <ref lib/sgml_write/ provides the inverse of the parser,
+converting the parser's output back into a file. This process is fairly
+simple for XML, but due to the power of the SGML DTD it is much harder
+to achieve a reasonable generic result for SGML.
+
+<p>
+These predicates can write the output in two encoding schemas depending
+on the encoding of the <aref/Stream/. In UTF-8 mode, all characters are
+encoded using UTF-8 sequences. In ISO Latin-1 mode, characters outside
+the ISO Latin-1 range are represented using a named character entity if
+provided by the DTD or a numeric character entity.
+
+<definitions>
+    <pred>xml_write(+Stream, +Term, +Options)
+    <summary>Write an XML document from a parser-compatible term
+Write the XML header with encoding information and the content of
+the document as represented by <aref/Term/ to <aref/Stream/. 
+This predicate defines the following <aref/Options/
+<argdef>
+    <termitem>dtd(DTD)
+Specify the DTD.  In SGML documents the DTD is required to distinguish
+between elements that are declared empty in the DTD and elements that
+just happen to have no content.  Further optimisation (shortref, omitted
+tags, etc.) could be considered in the future.  The DTD is also used to
+find the declared named character entities.
+    <termitem>doctype(Doctype)
+Document type to include in the header.  When omitted it is taken from
+the outer element.
+</argdef>
+    <pred>sgml_write(+Stream, +Term, +Options)
+    <summary>Write an SGML document from a parser-compatible term
+Write the SGML <c/DOCTYPE/ header and the content of the document as
+represented by <aref/Term/ to <aref/Stream/.  The <aref/Options/ are
+described with <pref>xml_write/3</pref>.
+    <pred>html_write(+Stream, +Term, +Options)
+    <summary>Write an HTML document from a parser-compatible term
+Same as <pref>sgml_write/3</pref>, but passes the HTML DTD as obtained
+from <pref>dtd/2</pref>. The <aref/Options/ are described with
+<pref>xml_write/3</pref>.
+</definitions>
+
+
+<s2>Simplify quoting</s2>
+
 <p>
 The <ref pkg/sgml2pl/ package is a parser.  Output is generally much easier
 achieved directly from Prolog.  Nevertheless, it contains a few building
-blocks for emitting markup data.
-
+blocks for emitting markup data.<fn>With the introduction of wide character
+support in Prolog and <ref pkg/sgml2pl/ this is no longer simple.  The 
+provided interface is too simple as it needs to be aware of the stream
+encoding technique as well as entities defined in the DTD</fn>
 
 <definitions>  
     <pred>xml_quote_attribute(+In, -Quoted)

@@ -39,9 +39,24 @@
 :- use_module(library(debug)).
 :- use_module(library(assoc)).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This library provides the inverse functionality   of  the sgml.pl parser
+library, writing XML, SGML and HTML documents from the parsed output. It
+is intended to allow rewriting in a  different dialect or encoding or to
+perform document transformation in Prolog on the parsed representation.
 
-%	xml_write(+Streamn, +Data, +Options)
-%	sgml_write(+Streamn, +Data, +Options)
+The current implementation is  particulary   keen  on  getting character
+encoding and the use of character  entities   right.  Some work has been
+done providing layout, but space-handling in XML   and SGML make this is
+very hazerdous area.
+
+The Prolog-based low-level character and  escape   handling  is the real
+bottleneck in this library and will probably be   moved  to C in a later
+stage.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+%	xml_write(+Stream, +Data, +Options)
+%	sgml_write(+Stream, +Data, +Options)
 %	
 %	Write a term is created by the SGML/XML parser to a stream in
 %	SGML or XML format.  Options:
