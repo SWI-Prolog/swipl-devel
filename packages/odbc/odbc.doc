@@ -248,6 +248,8 @@ query extracts rows using Prolog integers:
 X = row(1, entity)
 \end{code}
 
+See also \secref{sqltypes} for notes on type-conversion.
+
     \termitem{null}{NullSpecifier}
 Specify SQL NULL representation.  See odbc_set_connection/2 for details.
 
@@ -265,9 +267,43 @@ available.%
 \begin{quote}
 \term{column}{TableName, ColumnName, Value}
 \end{quote}
-\end{description}
 
-See also \secref{sqltypes} for notes on type-conversion.
+    \termitem{findall}{Template, row(Column, \ldots)}
+Instead of returning rows on backtracking this option makes odbc_query/3
+return all rows in a list and close the statement.  The option is named
+after the Prolog findall/3 predicate, as the it makes odbc_query/3
+behave as the following commonly used findall/3 construct:
+
+\begin{code}
+lemmas(Lemmas) :-
+	findall(Lemma,
+		odbc_query(wordnet,
+			   'select (lemma) from word',
+			   row(Lemma)),
+	        Lemmas).
+\end{code}
+
+Using the \funcref{findall}{2} option the above can be implemented as
+below.  The number of argument of the \const{row} term must match the
+number of columns in the result-set.
+
+\begin{code}
+lemmas(Lemmas) :-
+	odbc_query(wordnet,
+		   'select (lemma) from word',
+		   Lemmas,
+		   [ findall(Lemma, row(Lemma))
+		   ]).
+\end{code}
+
+\begin{quote}\it
+The current implementation is incomplete. It does not allow arguments of
+\term{row}{\ldots} to be instantiated. Plain instantiation can always
+be avoided using a proper SELECT statement. Potentionally useful however
+would be the translation of compound terms, especially to translates
+date/time/timestamp structures to a format for use by the application. 
+\end{quote}
+\end{description}
 
     \predicate{odbc_query}{2}{+Connection, +SQL}
 As odbc_query/3, but used for SQL-statements that should not return
