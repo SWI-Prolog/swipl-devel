@@ -72,6 +72,16 @@ pl_error(const char *pred, int arity, const char *msg, int id, ...)
 		      PL_TERM, actual);
       break;
     }
+    case ERR_DOMAIN:
+    { term_t actual   = va_arg(args, term_t);
+      atom_t expected = PL_new_atom(va_arg(args, const char*));
+
+	PL_unify_term(formal,
+		      CompoundArg("domain_error", 2),
+		      PL_ATOM, expected,
+		      PL_TERM, actual);
+      break;
+    }
     case ERR_EXISTENCE:
     { const char *type = va_arg(args, const char *);
       term_t obj  = va_arg(args, term_t);
@@ -81,6 +91,18 @@ pl_error(const char *pred, int arity, const char *msg, int id, ...)
 		    PL_CHARS, type,
 		    PL_TERM, obj);
 
+      break;
+    }
+    case ERR_PERMISSION:
+    { term_t obj  = va_arg(args, term_t);
+      const char *op = va_arg(args, const char *);
+      const char *objtype = va_arg(args, const char *);
+
+      PL_unify_term(formal,
+		    CompoundArg("permission_error", 3),
+		    AtomArg(op),
+		    AtomArg(objtype),
+		    PL_TERM, obj);
       break;
     }
     default:

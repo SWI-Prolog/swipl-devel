@@ -34,13 +34,14 @@ INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
-LIBPL=		unix.pl socket.pl cgi.pl crypt.pl
-TARGETS=	unix.so socket.so cgi.so crypt.so
+LIBPL=		unix.pl socket.pl cgi.pl crypt.pl memfile.pl
+TARGETS=	unix.so socket.so cgi.so crypt.so memfile.so
 
 UNXOBJ=		error.o process.o
 SOCKOBJ=	error.o socket.o
 CGIOBJ=		error.o form.o cgi.o
 CRYPTOBJ=	error.o crypt.o
+MEMOBJ=		error.o memfile.o
 
 all:		$(TARGETS)
 
@@ -52,6 +53,8 @@ cgi.so:		$(CGIOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(CGIOBJ)
 crypt.so:	$(CRYPTOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(CRYPTOBJ) $(LIBS)
+memfile.so:	$(MEMOBJ)
+		$(LD) $(LDFLAGS) -o $@ $(MEMOBJ) $(LIBS)
 
 install:	$(TARGETS) $(LIBPL)
 		mkdir -p $(PLBASE)/lib/$(PLARCH)

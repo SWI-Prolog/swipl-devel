@@ -7,7 +7,7 @@ Copyright:	May be used with SWI-Prolog under the license conditions
 		to the GNU-Public licence (GPL).
 
 This library contains SWI-Prolog foreign-libraries  to deal with various
-mostly OS-dependent stuff from SWI-Prolog.
+OS-dependent or obscure stuff from SWI-Prolog.
 
 Currently provided:
 
@@ -25,3 +25,5 @@ Currently provided:
 	# library(crypt)
 	Unix password generation and validation.
 	
+	# library(memfile)
+	Read-write to memory-buffers, an alternative to temporary files.
