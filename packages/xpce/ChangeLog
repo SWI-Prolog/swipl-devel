@@ -2,6 +2,8 @@
 			   ==============
 
 
+* ADDED: (very simple) make check
+
 * FIXED: frame->geomtry for transient frames (MS-Windows).  Holger Kanwischer.
 
 * FIXED: PceEmacs crash on `revert-buffer'.  Pierpaolo Bernardi.
