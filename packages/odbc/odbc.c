@@ -1677,7 +1677,7 @@ prepare_result(context *ctxt)
   }
 
   ptr_result = ctxt->result;
-  for(i = 1; i <= ctxt->NumCols; i++)
+  for(i = 1; i <= ctxt->NumCols; i++, ptr_result++)
   { SQLDescribeCol(ctxt->hstmt, i,
 		   nameBuffer, NameBufferLength, &nameLength,
 		   &dataType, &columnSize, &decimalDigits,
@@ -1700,19 +1700,30 @@ prepare_result(context *ctxt)
       }
     }
 	
+    ptr_result->sqlTypeID = dataType;
     ptr_result->cTypeID = CvtSqlToCType(ctxt, dataType, ptr_result->plTypeID);
     if (ptr_result->cTypeID == CVNERR)
     { free_context(ctxt);
       return PL_warning("odbc_query/2: column type not managed");
     }
 
+    switch (ptr_result->sqlTypeID)
+    { case SQL_LONGVARCHAR:
+      case SQL_LONGVARBINARY:
+	ptr_result->ptr_value = NULL;	/* handle using SQLGetData() */
+        continue;
+    }
+
     switch (ptr_result->cTypeID)
     { case SQL_C_CHAR:
 	columnSize++;			/* one for decimal dot */
-	ptr_result->len_value = sizeof(char)*columnSize+1;
-	break;
+        /*FALLTHROUGH*/
       case SQL_C_BINARY:
-	ptr_result->len_value = sizeof(char)*columnSize+1;
+	if ( columnSize > 1024 )
+	{ ptr_result->ptr_value = NULL;	/* handle using SQLGetData() */
+	  continue;
+	}
+        ptr_result->len_value = sizeof(char)*columnSize+1;
 	break;
       case SQL_C_SLONG:
 	ptr_result->len_value = sizeof(SQLINTEGER);
@@ -1746,8 +1757,6 @@ prepare_result(context *ctxt)
 			 ptr_result->ptr_value,
 			 ptr_result->len_value,
 			 &ptr_result->length_ind));
-    
-    ++ptr_result;
   }
 
   return TRUE;
@@ -2902,7 +2911,30 @@ pl_put_column(context *c, int nth, term_t col)
     Put the nth (0-based) result column of the statement in the Prolog
     variable col.  If the source(true) option is in effect, bind col to
     column(Table, Column, Value)
+
+    If ptr_value is NULL, prepare_result() has not used SQLBindCol() due
+    to a potentionally too large field such as for SQL_LONGVARCHAR
+    columns.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+put_chars(term_t val, int plTypeID, int len, const char *chars)
+{ switch( plTypeID )
+  { case SQL_PL_DEFAULT:
+    case SQL_PL_ATOM:
+      PL_put_atom_nchars(val, len, chars);
+      break;
+    case SQL_PL_STRING:
+      PL_put_string_nchars(val, len, chars);
+      break;
+    case SQL_PL_CODES:
+      PL_put_list_ncodes(val, len, chars);
+      break;
+    default:
+      assert(0);
+  }
+}
+
 
 static int
 pl_put_column(context *c, int nth, term_t col)
@@ -2921,32 +2953,39 @@ pl_put_column(context *c, int nth, term_t col)
     cell = 0;				/* make compiler happy */
   }
 
+  if ( !p->ptr_value )			/* use SQLGetData() */
+  { char buf[25];
+    char *data = buf;
+    SDWORD len;
+
+    c->rc = SQLGetData(c->hstmt, (UWORD)(nth+1), p->cTypeID,
+		       buf, sizeof(buf), &len);
+    if ( c->rc == SQL_SUCCESS || c->rc == SQL_SUCCESS_WITH_INFO )
+    { if ( len >= sizeof(buf) )
+      { data = odbc_malloc(len+1);
+	c->rc = SQLGetData(c->hstmt, (UWORD)(nth+1), p->cTypeID,
+			   data, len+1, &len);
+	if ( c->rc != SQL_SUCCESS )
+	{ free(data);
+	  return report_status(c);
+	}
+      }
+    } else if ( !report_status(c) )
+      return FALSE;
+
+    put_chars(val, p->plTypeID, len, data);
+    if ( data != buf )
+      free(data);
+    goto ok;
+  }
+
   if ( p->length_ind == SQL_NULL_DATA )
   { put_sql_null(val, c->null);
   } else
   { switch( p->cTypeID )
     { case SQL_C_CHAR:
       case SQL_C_BINARY:
-	switch( p->plTypeID )
-	{ case SQL_PL_DEFAULT:
-	  case SQL_PL_ATOM:
-	    PL_put_atom_nchars(val,
-			       p->length_ind,
-			       (SQLCHAR *)p->ptr_value);
-	    break;
-	  case SQL_PL_STRING:
-	    PL_put_string_nchars(val,
-				 p->length_ind,
-				 (SQLCHAR *)p->ptr_value);
-	    break;
-	  case SQL_PL_CODES:
-	    PL_put_list_ncodes(val,
-			       p->length_ind,
-			       (SQLCHAR *)p->ptr_value);
-	    break;
-	  default:
-	    assert(0);
-	}
+	put_chars(val, p->plTypeID, p->length_ind, (SQLCHAR *)p->ptr_value);
 	break;
       case SQL_C_SLONG:
 	PL_put_integer(val,*(SQLINTEGER *)p->ptr_value);
@@ -3032,6 +3071,7 @@ pl_put_column(context *c, int nth, term_t col)
     }
   }
 
+ok:
   if ( true(c, CTX_SOURCE) )
     PL_cons_functor_v(col, FUNCTOR_column3, cell);
 

@@ -20,9 +20,9 @@ $(PKGDLL).dll:	$(OBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(OBJ) $(PLLIB) $(LIBS) odbc32.lib
 
 !IF "$(CFG)" == "rt"
-install:	idll
+install:	all idll
 !ELSE
-install:	idll ilib
+install:	all idll ilib
 !ENDIF
 
 idll::
