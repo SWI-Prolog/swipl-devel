@@ -113,6 +113,7 @@ static functor_t FUNCTOR_data_source2;
 static functor_t FUNCTOR_null1;
 static functor_t FUNCTOR_source1;
 static functor_t FUNCTOR_column3;
+static functor_t FUNCTOR_dbms_name1;
 
 #define SQL_PL_DEFAULT  0		/* don't change! */
 #define SQL_PL_ATOM	1		/* return as atom */
@@ -904,6 +905,96 @@ odbc_set_connection(term_t con, term_t option)
     return odbc_report(henv, cn->hdbc, NULL, rc);
 
   return TRUE;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Options for SQLGetInfo() from http://msdn.microsoft.com/library/default.asp?url=/library/en-us/odbcsql/od_odbc_c_9qp1.asp
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct
+{ const char *name;
+  UWORD id;
+  functor_t functor;
+} conn_option;
+
+static conn_option conn_option_list[] = 
+{ { "database_name",	   SQL_DATABASE_NAME },
+  { "dbms_name",           SQL_DBMS_NAME },
+  { "dbms_version",        SQL_DBMS_VER },
+  { "driver_name",         SQL_DRIVER_NAME },
+  { "driver_odbc_version", SQL_DRIVER_ODBC_VER },
+  { "driver_version",      SQL_DRIVER_VER },
+  { NULL, 0 }
+};
+
+static foreign_t
+odbc_get_connection(term_t conn, term_t option, control_t h)
+{ connection *cn;
+  UWORD infoid;
+  conn_option *opt;
+  functor_t f;
+  term_t a;
+
+  switch(PL_foreign_control(h))
+  { case PL_FIRST_CALL:
+      if ( !get_connection(conn, &cn) )
+	return FALSE;
+
+      opt = conn_option_list;
+
+      if ( PL_get_functor(option, &f) )
+      {	goto find;
+      }	else if ( PL_is_variable(option) )
+      { f = 0;
+	goto find;
+      } else
+	return type_error(option, "odbc_option");
+    case PL_REDO:
+      if ( !get_connection(conn, &cn) )
+	return FALSE;
+
+      f = 0;
+      opt = PL_foreign_context_address(h);
+
+      goto find;
+    case PL_CUTTED:
+    default:
+      return TRUE;
+  }
+
+find:
+  a = PL_new_term_ref();
+  PL_get_arg(1, option, a);
+
+  for(; opt->name; opt++)
+  { if ( !opt->functor )
+      opt->functor = PL_new_functor(PL_new_atom(opt->name), 1);
+
+    if ( !f || opt->functor == f )
+    { char buf[256];
+      SWORD len;
+      RETCODE rc;
+
+      if ( (rc=SQLGetInfo(cn->hdbc, infoid,
+			  buf, sizeof(buf), &len)) != SQL_SUCCESS )
+      { if ( f )
+	  return odbc_report(henv, cn->hdbc, NULL, rc);
+	else
+	  continue;
+      }
+
+      if ( f )
+	return PL_unify_atom_nchars(a, len, buf);
+      else if ( PL_unify_atom_nchars(a, len, buf) )
+	PL_retry_address(opt+1);
+    }
+  }
+
+  if ( f )
+    return domain_error(option, "odbc_option");
+
+  return FALSE;
 }
 
 
@@ -2138,11 +2229,13 @@ install_odbc4pl()
    FUNCTOR_null1		 = MKFUNCTOR("null", 1);
    FUNCTOR_source1		 = MKFUNCTOR("source", 1);
    FUNCTOR_column3		 = MKFUNCTOR("column", 3);
+   FUNCTOR_dbms_name1		 = MKFUNCTOR("dbms_name", 1);
 
    DET("odbc_connect",		   3, pl_odbc_connect);
    DET("odbc_disconnect",	   1, pl_odbc_disconnect);
    NDET("odbc_current_connection", 2, odbc_current_connection);
    DET("odbc_set_connection",	   2, odbc_set_connection);
+   NDET("odbc_get_connection",	   2, odbc_get_connection);
    DET("odbc_end_transaction",	   2, odbc_end_transaction);
 
    DET("odbc_prepare",		   5, odbc_prepare);

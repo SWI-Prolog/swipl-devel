@@ -35,6 +35,7 @@
 	    odbc_disconnect/1,		% +Conn
 	    odbc_current_connection/2,	% ?Conn, -DSN
 	    odbc_set_connection/2,	% +Conn, +Option
+	    odbc_get_connection/2,	% +Conn, ?Option
 	    odbc_end_transaction/2,	% +Conn, +CommitRollback
 
 	    odbc_query/4,		% +Conn, +SQL, -Row, +Options
