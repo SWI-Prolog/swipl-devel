@@ -1,6 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: handling exceptions from make while updating the library index.
+    Thanks to Bob Wielinga.
+
+VERSION 3.3.2
+=============
+
   * PORT: Modified Unix stack-expansion to look for POSIX.1b SA_SIGINFO
     support, fixed various portability problems in src/test/mmap.c.
 
