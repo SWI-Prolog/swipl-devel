@@ -80,6 +80,7 @@ sgml:		$(SGMLOBJ)
 
 doc:		$(PDF) $(HTML)
 pdf:		$(PDF)
+html:		$(HTML)
 
 $(HTML):	$(TEX)
 		latex2html $(DOC)
