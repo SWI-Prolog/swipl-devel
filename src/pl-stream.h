@@ -104,6 +104,9 @@ typedef struct io_stream
   IOFUNCTIONS	       *functions;	/* open/close/read/write/seek */
   int		        locks;		/* lock/unlock count */
   IOLOCK *		mutex;		/* stream mutex */
+					/* SWI-Prolog 4.0.7 */
+  void			(*close_hook)(void* closure);
+  void *		closure;
 } IOSTREAM;
 
 #define SmakeFlag(n)	(1<<(n-1))

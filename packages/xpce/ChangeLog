@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: get(@finder, file, @off, ...) not to return the obtainer.
+  (Anjo Anjewierden).
+
 * ADDED: <-read_as_file and<-size_as_file to class char_array, so
   atoms and strings can be opened as a Prolog stream using pce_open.
 

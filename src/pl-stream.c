@@ -677,7 +677,6 @@ Sclose(IOSTREAM *s)
   }
 
   SLOCK(s);
-  run_close_hooks(s);
 
   if ( s->buffer )
   { if ( (s->flags & SIO_OUTPUT) && S__flushbuf(s) < 0 )
@@ -691,6 +690,7 @@ Sclose(IOSTREAM *s)
 
   if ( s->functions->close && (*s->functions->close)(s->handle) < 0 )
     rval = -1;
+  run_close_hooks(s);
   SUNLOCK(s);
 
 #ifdef O_PLMT
@@ -1906,13 +1906,12 @@ Sopen_string(IOSTREAM *s, char *buf, int size, const char *mode)
   } else
     flags |= SIO_STATIC;
 
+  memset((char *)s, 0, sizeof(IOSTREAM));
   s->buffer    = buf;
   s->bufp      = buf;
   s->unbuffer  = buf;
-  s->position  = NULL;
   s->handle    = s;			/* for Sclose_string() */
   s->functions = &Sstringfunctions;
-  s->mutex     = NULL;
 
   switch(*mode)
   { case 'r':
@@ -1964,6 +1963,9 @@ run_close_hooks(IOSTREAM *s)
 
   for(p=close_hooks; p; p = p->next)
     (*p->hook)(s);
+
+  if ( s->close_hook )
+    (*s->close_hook)(s->closure);
 }
 
 int

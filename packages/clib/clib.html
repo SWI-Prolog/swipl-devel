@@ -66,9 +66,10 @@ worth much on non-Unix systems.
 <LI><A HREF="#sec:4.1">4.1 Some considerations</A>
 </UL>
 <LI><A HREF="#sec:5"><B>5 Unix password encryption library</B></A>
-<LI><A HREF="#sec:6"><B>6 Installation</B></A>
+<LI><A HREF="#sec:6"><B>6 Memory files</B></A>
+<LI><A HREF="#sec:7"><B>7 Installation</B></A>
 <UL>
-<LI><A HREF="#sec:6.1">6.1 Unix systems</A>
+<LI><A HREF="#sec:7.1">7.1 Unix systems</A>
 </UL>
 </UL>
 
@@ -217,13 +218,13 @@ controlling terminal.
 
 <H2><A NAME="sec:3">3 Socket library</A></H2>
 
-<P>The <CODE>library(Socket library)</CODE>socket) library provides TCP 
-inet-domain sockets from SWI-Prolog, both client and server-side 
-communication. The interface of this library is very close to the Unix 
-socket interface, also supported by the MS-Windows <EM>winsock</EM> API. 
-Since SWI-Prolog 4.0, XPCE is part of SWI-Prolog and offers . XPCE 
-provides an event-driven interface to sockets, handling multiple open 
-sockets in paralel.
+<P>The <CODE>library(socket)</CODE> library provides TCP inet-domain 
+sockets from SWI-Prolog, both client and server-side communication. The 
+interface of this library is very close to the Unix socket interface, 
+also supported by the MS-Windows <EM>winsock</EM> API. Since SWI-Prolog 
+4.0, XPCE is part of SWI-Prolog and offers . XPCE provides an 
+event-driven interface to sockets, handling multiple open sockets in 
+paralel.
 
 <P>In the future we hope to provide a more high-level socket interface 
 defined in Prolog and based on these primitives.
@@ -480,9 +481,60 @@ as this implies the password will be available from the Prolog heap as a
 defined atom.
 </DL>
 
-<H2><A NAME="sec:6">6 Installation</A></H2>
+<H2><A NAME="sec:6">6 Memory files</A></H2>
 
-<H3><A NAME="sec:6.1">6.1 Unix systems</A></H3>
+<P>The <CODE>library(memfile)</CODE> provides an alternative to 
+temporary files, intended for temporary buffering of data. Memory files 
+in general are faster than temporary files and do not suffer from 
+security riscs or naming conflicts associated with temporary-file 
+management. They do assume proper memory management by the hosting OS 
+and cannot be used to pass data to external processes using a file-name.
+
+<P>There is no limit to the number of memory streams, nor the size of 
+them. However, memory-streams cannot have multiple streams at the same 
+time (i.e. cannot be opened for reading and writing at the same time).
+
+<P>These predicates are first of all intended for building higher-level 
+primitives. See also <A NAME="idx:sformat3:35"></A><B>sformat/3</B>, <A NAME="idx:atomtoterm3:36"></A><B>atom_to_term/3</B>, <A NAME="idx:termtoatom2:37"></A><B>term_to_atom/2</B> 
+and the XPCE primitive <A NAME="idx:pceopen3:38"></A><B>pce_open/3</B>.
+
+<DL>
+
+<P>
+<DT><A NAME="new_memory_file/-Handle"><STRONG>new_memory_file</STRONG>(<VAR>-Handle</VAR>)</A><DD>
+reate a new memory file and return a unique opaque handle to it.
+
+<P>
+<DT><A NAME="free_memory_file/+Handle"><STRONG>free_memory_file</STRONG>(<VAR>+Handle</VAR>)</A><DD>
+iscard the memory file and its contents. If the file is open it is first 
+closed.
+
+<P>
+<DT><A NAME="open_memory_file/+Handle, +Mode, -Stream"><STRONG>open_memory_file</STRONG>(<VAR>+Handle, 
++Mode, -Stream</VAR>)</A><DD>
+pen the memory-file. <VAR>Mode</VAR> is currently one of <CODE>read</CODE> 
+or <CODE>write</CODE>. The resulting handling is closed using <A NAME="idx:close1:39"></A><B>close/1</B>.
+
+<P>
+<DT><A NAME="size_memory_file/+Handle, -Bytes"><STRONG>size_memory_file</STRONG>(<VAR>+Handle, 
+-Bytes</VAR>)</A><DD>
+eturn the content-length of the memory-file it <VAR>Bytes</VAR>. The 
+file should be closed and contain data.
+
+<P>
+<DT><A NAME="memory_file_to_atom/+Handle, -Atom"><STRONG>memory_file_to_atom</STRONG>(<VAR>+Handle, 
+-Atom</VAR>)</A><DD>
+eturn the content of the memory-file in <VAR>Atom</VAR>.
+
+<P>
+<DT><A NAME="memory_file_to_codes/+Handle, -Codes"><STRONG>memory_file_to_codes</STRONG>(<VAR>+Handle, 
+-Codes</VAR>)</A><DD>
+eturn the content of the memory-file as a list of character-codes in <VAR>Codes</VAR>.
+</DL>
+
+<H2><A NAME="sec:7">7 Installation</A></H2>
+
+<H3><A NAME="sec:7.1">7.1 Unix systems</A></H3>
 
 <P>Installation on Unix system uses the commonly found <EM>configure</EM>,
 <EM>make</EM> and <EM>make install</EM> sequence. SWI-Prolog should be 
@@ -510,7 +562,7 @@ and the Prolog library files in <CODE>\$PLBASE/library</CODE>, where
 
 <P>
 <DT><A NAME=note-1 HREF="index.html#back-to-note-1">note-1</A><DD>
-<A NAME="idx:kill2:35"></A><A HREF="#kill/2">kill/2</A> should support 
+<A NAME="idx:kill2:40"></A><A HREF="#kill/2">kill/2</A> should support 
 interrupt-names as well
 <DT><A NAME=note-2 HREF="index.html#back-to-note-2">note-2</A><DD>
 More subtle handling of I/O, especially for debugging is required: 
