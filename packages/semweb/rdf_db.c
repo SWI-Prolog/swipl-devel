@@ -890,7 +890,7 @@ save_atom(IOSTREAM *out, atom_t a)
   saved *s;
   unsigned int len;
   const char *chars;
-  int i;
+  unsigned int i;
 
   for(s=saved_table[hash]; s; s= s->next)
   { if ( s->name == a )

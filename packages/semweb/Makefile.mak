@@ -15,6 +15,7 @@ LIBDIR=		$(PLBASE)\library\semweb
 PKGDLL=rdf_db
 
 LIBPL=		rdf_db.pl rdfs.pl rdf_edit.pl
+DATA=		rdfs.rdfs dc.rdfs eor.rdfs
 OBJ=		rdf_db.obj
 
 all:		$(PKGDLL).dll
@@ -34,6 +35,7 @@ ilib::
 		if not exist "$(LIBDIR)/$(NULL)" $(MKDIR) "$(LIBDIR)"
 		@echo Copying $(LIBPL)
 		@for %f in ($(LIBPL)) do @copy %f "$(LIBDIR)"
+		@for %f in ($(DATA)) do @copy %f "$(LIBDIR)"
 		copy README "$(LIBDIR)\README.TXT"
 		$(MAKEINDEX)
 
@@ -47,7 +49,8 @@ xpce-install::
 
 uninstall::
 		del "$(PLBASE)\bin\$(PKGDLL).dll"
-		cd $(LIBDIR) & del $(LIBPL) README.TXT
+		cd $(LIBDIR) & del $(LIBPL) $(DATA) README.TXT
+		rmdir $(LIBDIR)
 		$(MAKEINDEX)
 
 clean::
