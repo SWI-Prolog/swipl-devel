@@ -255,6 +255,17 @@ selection(cutpaste-2) :-
 	X == Atom.
 
 
+		 /*******************************
+		 *	       IMAGE		*
+		 *******************************/
+
+image(bitmap-1) :-
+	new(I, image(@nil, 100, 100, bitmap)),
+	get(I, pixel, 10, 10, @off),
+	send(I, pixel, 10, 10, @on),
+	get(I, pixel, 10, 10, @on),
+	free(I).
+
 
 		 /*******************************
 		 *	      SCRIPTS		*
@@ -336,6 +347,7 @@ testset(srcsink).			% Source/Sink operations
 testset(textbuffer).
 testset(asfile).			% test pce_open and friends
 testset(selection).			% X11 selection
+testset(image).				% Simple image manipulation
 
 %	testdir(Dir)
 %	
