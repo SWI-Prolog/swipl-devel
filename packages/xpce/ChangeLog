@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: library(pce_toc): allow for the use of arbitrary graphicals as
+  label of nodes.
+
 * FIXED: `text_item->clear' to set the item to modified, so <-selection
   indeed returns ''.
 

@@ -354,7 +354,7 @@ image(TF, Img:image) :->
 
 font(TF, Font:font) :->
 	"Modify the font"::
-	get(TF, member, text, Text),
+	get(TF?image, find, message(@arg1, has_send_method, font), Text),
 	send(Text, font, Font).
 
 update_image(_) :->
@@ -416,27 +416,40 @@ make_toc_node_format(F) :-
 
 :- pce_begin_class(toc_image, device, "TOC node object").
 
-initialise(TF, Label:char_array, Img:image) :->
+initialise(TF, Label:'char_array|graphical', Img:image) :->
 	send(TF, send_super, initialise),
 	send(TF, format, @toc_node_format),
 	send(TF, display, bitmap(Img)),
-	send(TF, display, text(Label, left, normal)).
+	(   send(Label, instance_of, char_array)
+	->  new(Gr, text(Label, left, normal))
+	;   Gr = Label
+	),
+	send(Gr, name, label),
+	send(TF, display, Gr).
 
 selected(TF, Sel:bool) :->
-	get(TF, member, text, Text),
+	get(TF, member, label, Text),
 	send(Text, selected, Sel).
 selected(TF, Sel:bool) :<-
-	get(TF, member, text, Text),
+	get(TF, member, label, Text),
 	get(Text, selected, Sel).
 
-label(TF, Label:char_array) :->
+label(TF, Label:'char_array|graphical') :->
 	"Modify the textual label"::
-	get(TF, member, text, Text),
-	send(Text, string, Label).
-label(TF, Label:char_array) :<-
+	get(TF, member, label, Text),
+	(   send(Label, instance_of, char_array)
+	->  send(Text, string, Label)
+	;   free(Text),
+	    send(TF, display, Label),
+	    send(Label, name, label)
+	).
+label(TF, Label:'char_array|graphical') :<-
 	"Get the textual label"::
-	get(TF, member, text, Text),
-	get(Text, string, Label).
+	get(TF, member, label, Text),
+	(   send(Text, has_get_method, string)
+	->  get(Text, string, Label)
+	;   Label = Text
+	).
 
 image(TF, Image:image) :->
 	"Modify the icon"::
@@ -479,7 +492,7 @@ variable(collapsed_image,	[image], get, "Icon if collapsed [+]").
 variable(expanded_image,	[image], get, "Icon if expanded [-]").
 
 initialise(TF,
-	   Label:label=char_array,
+	   Label:label='char_array|graphical',
 	   Id:identifier=[any],
 	   CollapsedImg:collapsed_image=[image],
 	   ExpandedImg:expanded_image=[image],
@@ -545,7 +558,7 @@ open(TF) :->
 
 :- pce_begin_class(toc_file, toc_node, "TOC file object").
 
-initialise(TF, Label:char_array, Id:[any], Img:[image]) :->
+initialise(TF, Label:'char_array|graphical', Id:[any], Img:[image]) :->
 	default(Img, resource(file), I),
 	send(TF, send_super, initialise, Id, toc_image(Label, I)),
 	send(TF, collapsed, @nil).
