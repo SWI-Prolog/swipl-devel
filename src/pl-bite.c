@@ -8,6 +8,7 @@
 */
 
 #include "pl-incl.h"
+#include <stdio.h>
 #include <string.h>
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -60,6 +61,7 @@ main(int argc, char **argv)
   fclose(fd);
 
   exit(0);
+  return(0);
 }
 
 static void

@@ -26,9 +26,9 @@ numbers.  This should be changed to return arbitrary Prolog  terms  some
 day.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#include <math.h>			/* avoid abs() problem with MSVC++ */
 #include "pl-incl.h"
 #include "pl-itf.h"
-#include <math.h>
 #ifndef M_PI
 #define M_PI (3.141593)
 #endif
@@ -72,6 +72,53 @@ forwards ArithFunction	isCurrentArithFunction(FunctorDef, Module);
 static ArithFunction arithFunctionTable[ARITHHASHSIZE];
 static code next_index;
 static ArithFunction functions;
+
+		 /*******************************
+		 *	       TAGGING		*
+		 *******************************/
+
+#ifdef AVOID_0X80000000_BIT
+
+/*#define DONOT_USE_BIT_32_FOR_INT 1*/
+
+#if DONOT_USE_BIT_32_FOR_INT
+
+word
+fconsNum(long i)
+{ return unMask(i<<LMASK_BITS) | INT_MASK;
+}
+
+long
+fvalNum(word w)
+{ return ((long)((w)<<4)>>(4+LMASK_BITS));
+}
+
+#else
+
+word
+fconsNum(long i)
+{ i = (i<<LMASK_BITS) & 0x1fffffffL;
+  i |= (i << 3) & 0x80000000L;
+  i &= 0x8fffffffL;
+  
+  return (word) (i|INT_MASK);
+}
+
+long
+fvalNum(word w)
+{ long i = w;
+
+  i &= 0xefffffffL;
+  i |= (i>>3) & 0x10000000;
+  i = (i << 3) >> (3+LMASK_BITS);
+
+  return (long) i;
+}
+
+#endif
+
+#endif /*AVOID_0X80000000_BIT*/
+
 
 		/********************************
 		*   LOGICAL INTEGER FUNCTIONS   *
@@ -418,7 +465,7 @@ valueExpression(register Word t, Number r)
 
       if ( r->f == (real)i )
       { r->i = i;
-      return V_INTEGER;
+	return V_INTEGER;
       }
     }
     return V_REAL;

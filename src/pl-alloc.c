@@ -162,11 +162,10 @@ on 16-bit machines not supporting ANSI.
 
 #if O_SHIFT_STACKS
 Void
-alloc_global(n)
-register alloc_t n;
+alloc_global(int n)
 { register Word result;
 
-  if ( roomStack(global) < n )
+  if ( roomStack(global)/sizeof(word) < (long) n )
   { if ( shift_status.blocked )
       outOf((Stack) &stacks.global);
 
@@ -174,7 +173,7 @@ register alloc_t n;
   }
 
   result = gTop;
-  gTop += (n + sizeof(word)-1) / sizeof(word);
+  gTop += n;
 
   return result;
 }
@@ -182,10 +181,10 @@ register alloc_t n;
 #else
 
 Void
-alloc_global(register size_t n)
+alloc_global(int n)
 { register Word result = gTop;
 
-  gTop += (n + sizeof(word)-1) / sizeof(word);
+  gTop += n;
   verifyStack(global);
 
   return result;
@@ -196,7 +195,7 @@ alloc_global(register size_t n)
 word
 globalFunctor(register FunctorDef def)
 { register int arity = def->arity;
-  register Functor f = allocGlobal(sizeof(FunctorDef) + sizeof(word) * arity);
+  register Functor f = allocGlobal(1 + arity);
   register Word a;
 
   f->definition = def;
@@ -211,7 +210,7 @@ word
 globalString(register char *s)
 { register long l = strlen(s) + 1;
   register long chars = ROUND(l, sizeof(word));
-  register Word gt = allocGlobal(2*sizeof(word) + chars);
+  register Word gt = allocGlobal(2 + (chars + sizeof(word) - 1)/sizeof(word));
 
   gt[0] = gt[1+chars/sizeof(word)] = (((l-1)<<LMASK_BITS) | STRING_MASK);
   strcpy((char *)(gt+1), s);
@@ -235,7 +234,7 @@ heapString(char *s)
 
 Word
 newTerm(void)
-{ Word t = allocGlobal(sizeof(word));
+{ Word t = allocGlobal(1);
 
   setVar(*t);
 

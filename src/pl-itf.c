@@ -10,52 +10,56 @@
 #include "pl-incl.h"
 #include "pl-itf.h"
 
+#undef term				/* get rid of compatibility stuff */
+#undef atomic
+#undef functor
+#undef module
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This modules  defines  the  functions  available  to  users  of  foreign
-language  code.   Most  of  this  module  just is a small function layer
-around primitives, normally provided via macros.   This  module  is  not
-responsible for loading foreign language code (see pl-load.c). Note that
-on  systems  on which pl-load.c is not portable, one can still use these
-functions, link the .o files while linking prolog and call  the  foreign
-module's initialisation function from main() in pl-main.c.  PCE normally
-is linked this way.
+This modules defines  the  functions  available   to  users  of  foreign
+language code. Most of this module just is a small function layer around
+primitives, normally provided via macros. This module is not responsible
+for loading foreign language code (see  pl-load.c). Note that on systems
+on which pl-load.c is not portable, one   can still use these functions.
+Link runtime/<arch>/pl.o to a modified version   of pl-extend.c and your
+.o files.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 		/********************************
 		*           ANALYSIS            *
 		*********************************/
 
-constf int
+__pl_constf int
 PL_is_var(const Word t)
 { return isVar(*t);
 }
 
-constf int
+__pl_constf int
 PL_is_int(const Word t)
 { return isInteger(*t);
 }
 
-constf int
+__pl_constf int
 PL_is_atom(const Word t)
 { return isAtom(*t);
 }
 
-constf int
+__pl_constf int
 PL_is_float(const Word t)
 { return isReal(*t);
 }
 
-constf int
+__pl_constf int
 PL_is_string(const Word t)
 { return isString(*t);
 }
 
-constf int
+__pl_constf int
 PL_is_term(const Word t)
 { return isTerm(*t);
 }
 
-constf int
+__pl_constf int
 PL_type(const Word t)
 { if ( isVar(*t) )		return PL_VARIABLE;
   if ( isInteger(*t) )		return PL_INTEGER;
@@ -89,93 +93,141 @@ PL_list_string_value(const Word t)
   return listToString(*t2);
 }
 
-constf long
+__pl_constf long
 PL_integer_value(const word t)
 { return valNum(t);
 }
 
-char * constf
-PL_atom_value(const atomic t)
+char * __pl_constf
+PL_atom_value(const atomic_t t)
 { return stringAtom((Atom) t);
 }
 
-constf functor
+__pl_constf functor_t
 PL_functor(const Word t)
-{ return isTerm(*t) ? (functor) functorTerm(*t) : (functor) NULL;
+{ return isTerm(*t) ? (functor_t) functorTerm(*t) : (functor_t) NULL;
 }
 
-constf atomic
+__pl_constf atomic_t
 PL_functor_name(const FunctorDef f)
-{ return (atomic) f->name;
+{ return (atomic_t) f->name;
 }
 
-constf int
+__pl_constf int
 PL_functor_arity(const FunctorDef f)
 { return f->arity;
 }
 
-term constf
-PL_arg(const term t, int n)
+term_t __pl_constf
+PL_arg(const term_t t, int n)
 { Word a = argTermP(*(Word)t, n-1);
 
   deRef(a);
 
-  return (term) a;
+  return (term_t) a;
 }
 
-constf term
-PL_strip_module(const term t, Module *m)
-{ return (term) stripModule(t, m);
+__pl_constf term_t
+PL_strip_module(const term_t t, Module *m)
+{ return (term_t) stripModule(t, m);
 }
 
 		/********************************
 		*         CONSTRUCTION          *
 		*********************************/
 
-term
-PL_new_term(void)
-{ register Word var = allocGlobal(sizeof(word));
+term_t
+PL_new_term()
+{ register Word var = allocGlobal(1);
 
   setVar(*var);
   return var;
 }
 
-atomic
-PL_new_atom(char *s)
-{ return (atomic) lookupAtom(s);
+
+term_t
+PL_term(atomic_t a)
+{ register Word t = allocGlobal(1);
+
+  *t = a;
+  return t;
 }
 
-atomic
-PL_new_integer(int i)
-{ return (atomic) consNum(i);
+
+void
+PL_term_vector(int size, term_t *t, atomic_t *a)
+{ Word b = allocGlobal(size);
+
+  while(--size >= 0)
+  { *b = *a++;
+    *t++ = b++;
+  }
 }
+
+
+atomic_t
+PL_new_atom(char *s)
+{ return (atomic_t) lookupAtom(s);
+}
+
+
+atomic_t
+PL_new_integer(int i)
+{ return (atomic_t) consNum(i);
+}
+
 
 #if O_STRING
-atomic
+atomic_t
 PL_new_string(char *s)
-{ return (atomic) globalString(s);
+{ return (atomic_t) globalString(s);
 }
 #endif /* O_STRING */
 
-atomic
-PL_new_float(double f)
-{ return (atomic) globalReal(f);
+
+atomic_t
+PL_new_var()
+{ return (atomic_t) NULL;
 }
 
-functor
-PL_new_functor(atomic f,  int a)
-{ return (functor) lookupFunctorDef((Atom)f, a);
+
+atomic_t
+PL_new_compound(functor_t def, atomic_t *args)
+{ int arity = def->arity;
+  Functor f = allocGlobal(1 + arity);
+  Word a;
+
+  f->definition = def;
+  for(a = argTermP(f, 0); arity > 0; a++, arity--)
+    *a = *args++;
+
+  return (atomic_t) f;
 }
+
+
+atomic_t
+PL_new_float(double f)
+{ return (atomic_t) globalReal(f);
+}
+
+
+functor_t
+PL_new_functor(atomic_t f,  int a)
+{ return (functor_t) lookupFunctorDef((Atom)f, a);
+}
+
 
 bool
 PL_unify(Word t1,  Word t2)
 { return (bool) pl_unify(t1, t2);
 }
 
+
 bool
 PL_unify_atomic(Word t,  word w)
 { return unifyAtomic(t, w);
 }
+
 
 bool
 PL_unify_functor(Word t,  FunctorDef f)
@@ -212,7 +264,7 @@ PL_cvt_i_float(Word p, double *c)
 bool
 PL_cvt_i_single(Word p, float *c)
 { if ( isReal(*p) )
-  { *c = valReal(*p);
+  { *c = (float) valReal(*p);
     succeed;
   } else if ( isInteger(*p) )
   { *c = (float) valNum(*p);
@@ -236,9 +288,9 @@ PL_cvt_i_string(Word p, char **c)
 
 
 bool
-PL_cvt_i_atom(Word p, atomic *c)
+PL_cvt_i_atom(Word p, atomic_t *c)
 { if ( isAtom(*p) )
-  { *c = (atomic)(*p);
+  { *c = (atomic_t)(*p);
     succeed;
   } else
     fail;
@@ -270,7 +322,7 @@ PL_cvt_o_string(char *c, Word p)
 
 
 bool
-PL_cvt_o_atom(atomic c, Word p)
+PL_cvt_o_atom(atomic_t c, Word p)
 { return unifyAtomic(p, c);
 }
 
@@ -290,12 +342,8 @@ PL_foreign_context(long int h)
 { return ForeignContext(h);
 }
 
-#ifdef __STDC__
 void *
-#else
-char *
-#endif
-PL_foreign_context_address(long int h)
+PL_foreign_context_address(long h)
 { return ForeignContextAddress(h);
 }
 
@@ -310,17 +358,14 @@ PL_foreign_control(long int h)
 		*      REGISTERING FOREIGNS     *
 		*********************************/
 
-static bool registerForeign(char *, int, Func, va_list);
-
-static bool
-registerForeign(char *name, int arity, Func f, va_list args)
+bool
+PL_register_foreign(char *name, int arity, Func f, int flags)
 { SourceFile sf;
   Procedure proc;
   Definition def;
-  int n;
   Module m;
-  int attribute;
   Word t = newTerm();
+  FunctorDef fdef = lookupFunctorDef(lookupAtom(name), arity);
 
   pl_seeing(t);
   deRef(t);
@@ -350,36 +395,27 @@ registerForeign(char *name, int arity, Func f, va_list args)
   set(def, FOREIGN|TRACE_ME);
   clear(def, NONDETERMINISTIC);
 
-  for(n=0; (attribute = va_arg(args, int)) != 0; n++ )
-  { switch( attribute )
-    { case PL_FA_NOTRACE:	   clear(def, TRACE_ME);	break;
-      case PL_FA_TRANSPARENT:	   set(def, TRANSPARENT);	break;
-      case PL_FA_NONDETERMINISTIC: set(def, NONDETERMINISTIC);	break;
-      case PL_FA_GCSAFE:	   set(def, GC_SAFE);		break;
-      default:
-	return warning("PL_register_foreign(): %s: bad argument",
-		       procedureName(proc));
-    }
-    if ( n > 4 )
-      return warning("PL_register_foreign(): %s: argument list not closed",
-		     procedureName(proc));
+  if ( (flags & PL_FA_NOTRACE) )	  clear(def, TRACE_ME);
+  if ( (flags & PL_FA_TRANSPARENT) )	  set(def, TRANSPARENT);
+  if ( (flags & PL_FA_NONDETERMINISTIC) ) set(def, NONDETERMINISTIC);
+  if ( (flags & PL_FA_GCSAFE) )           set(def, GC_SAFE);
+
+  if ( status.initialised )
+  { word goal;
+    mark b;
+
+    Mark(b);
+    goal = globalFunctor(FUNCTOR_dforeign_registered2);
+    argTerm(goal, 0) = (word) m->name;
+    unifyFunctor(argTermP(goal, 1), fdef);
+
+    callGoal(MODULE_system, goal, TRUE);
+
+    Undo(b);
   }
 
   succeed;
 }  
-
-
-bool
-PL_register_foreign(char *name, int arity, Func f, ...)
-{ va_list args;
-  bool rval;
-
-  va_start(args, f);
-  rval = registerForeign(name, arity, f, args);
-  va_end(args);
-
-  return rval;
-}
 
 
 bool
@@ -462,20 +498,59 @@ _PL_unlock(Word *t)
 		*            MODULES            *
 		*********************************/
 
-module
+module_t
 PL_context()
-{ return (module) contextModule(environment_frame);
+{ return (module_t) environment_frame ? contextModule(environment_frame)
+				      : MODULE_user;
 }
 
-atomic
+atomic_t
 PL_module_name(register Module m)
-{ return (atomic) m->name;
+{ return (atomic_t) m->name;
 }
 
-module
-PL_new_module(register atomic name)
-{ return (module) lookupModule((Atom) name);
+module_t
+PL_new_module(register atomic_t name)
+{ return (module_t) lookupModule((Atom) name);
 }
+
+		 /*******************************
+		 *	    PREDICATES		*
+		 *******************************/
+
+predicate_t
+PL_predicate(functor_t functor, module_t module)
+{ if ( module == NULL )
+    module = PL_context();
+
+  return (predicate_t)lookupProcedure((FunctorDef)functor, (Module)module);
+}
+
+
+int
+PL_predicate_arity(predicate_t pred)
+{ return pred->functor->arity;
+}
+
+
+atomic_t
+PL_predicate_name(predicate_t pred)
+{ return (atomic_t) pred->functor->name;
+}
+
+
+functor_t
+PL_predicate_functor(predicate_t pred)
+{ return (functor_t) pred->functor;
+}
+
+
+module_t
+PL_predicate_module(predicate_t pred)
+{ return (module_t) pred->definition->module;
+}
+
+
 
 		/********************************
 		*            SIGNALS            *
@@ -483,8 +558,8 @@ PL_new_module(register atomic name)
 
 #if HAVE_SIGNAL
 void
-(*PL_signal(int sig, void (*func) (/* ??? */)))(/* ??? */)
-{ void (*old)();
+(*PL_signal(int sig, void (*func) (int)))(int)
+{ void (*old)(int);
 
   if ( sig < 0 || sig >= MAXSIGNAL )
   { fatalError("PL_signal(): illegal signal number: %d", sig);
@@ -513,16 +588,15 @@ void
 typedef struct abort_handle * AbortHandle;
 
 static struct abort_handle
-{ AbortHandle	next;			/* Next handle */
-  void		(*function)();		/* The handle itself */
+{ AbortHandle	  next;			/* Next handle */
+  PL_abort_hook_t function;		/* The handle itself */
 } * abort_head = NULL,
   * abort_tail = NULL;
 
 
 void
-PL_abort_handle(void (*func) (/* ??? */))
+PL_abort_hook(PL_abort_hook_t func)
 { AbortHandle h = (AbortHandle) allocHeap(sizeof(struct abort_handle));
-
   h->next = NULL;
   h->function = func;
 
@@ -535,12 +609,98 @@ PL_abort_handle(void (*func) (/* ??? */))
 }
 
 
+int
+PL_abort_unhook(PL_abort_hook_t func)
+{ AbortHandle h = abort_head;
+
+  for(; h; h = h->next)
+  { if ( h->function == func )
+    { h->function = NULL;
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+
 void
 resetForeign(void)
 { AbortHandle h = abort_head;
 
   for(; h; h = h->next)
-    (*h->function)();
+    if ( h->function )
+      (*h->function)();
+}
+
+
+		/********************************
+		*      REINITIALISE (SAVE)	*
+		********************************/
+
+typedef struct reinit_handle * ReinitHandle;
+
+static struct reinit_handle
+{ ReinitHandle	  next;			/* Next handle */
+  PL_reinit_hook_t function;		/* The handle itself */
+} * reinit_head = NULL,
+  * reinit_tail = NULL;
+
+
+void
+PL_reinit_hook(PL_reinit_hook_t func)
+{ ReinitHandle h = reinit_head;
+
+  for(; h; h = h->next)
+  { if ( h->function == func )
+      return;				/* already there */
+  }
+
+  h = (ReinitHandle) allocHeap(sizeof(struct reinit_handle));
+
+  h->next = NULL;
+  h->function = func;
+
+  if ( reinit_head == NULL )
+  { reinit_head = reinit_tail = h;
+  } else
+  { reinit_tail->next = h;
+    reinit_tail = h;
+  }
+}
+
+
+int
+PL_reinit_unhook(PL_reinit_hook_t func)
+{ ReinitHandle h = reinit_head;
+
+  for(; h; h = h->next)
+  { if ( h->function == func )
+    { h->function = NULL;
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+
+void
+reinitForeign(int argc, char **argv)
+{ ReinitHandle h = reinit_head;
+
+  for(; h; h = h->next)
+    (*h->function)(argc, argv);
+}
+
+
+		 /*******************************
+		 *	      PROMPT		*
+		 *******************************/
+
+void
+PL_prompt1(const char *s)
+{ prompt1((char *) s);
 }
 
 

@@ -905,6 +905,17 @@ pl_visible(Word old, Word new)
   succeed;
 }
 
+
+word
+pl_debuglevel(Word old, Word new)
+{ TRY(unifyAtomic(old, consNum(status.debugLevel)));
+  if ( isInteger(*new) )
+    status.debugLevel = valNum(*new);
+
+  succeed;
+}
+
+
 word
 pl_unknown(Word old, Word new)
 { Module m = contextModule(environment_frame);

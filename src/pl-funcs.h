@@ -12,7 +12,7 @@
 /* pl-alloc.c */
 void		free_heap(Void mem, size_t n);
 volatile void	outOf(Stack s);
-Void		alloc_global(alloc_t n);
+Void		alloc_global(int n);
 Void		alloc_heap(size_t n);
 word		globalFunctor(FunctorDef def);
 word		globalString(char *s);
@@ -37,7 +37,6 @@ word		pl_count(void);
 bool		unify(Word t1, Word t2);
 bool		unify_atomic(Word p, word a);
 bool		unifyFunctor(Word term, FunctorDef functor);
-bool		interpret(Module Context, word Goal, bool debug);
 word		pl_alt(Word skip, word h);
 
 /* pl-atom.c */
@@ -50,6 +49,11 @@ word		pl_atom_completions(Word prefix, Word alts);
 char *		atom_generator(char *prefix, int state);
 
 /* pl-arith.c */
+
+#ifdef AVOID_0X80000000_BIT
+word		fconsNum(long i);
+long		fvalNum(word w);
+#endif
 word		pl_between(Word l, Word h, Word n, word b);
 word		pl_succ(Word n1, Word n2);
 word		pl_plus(Word a, Word b, Word c);
@@ -138,6 +142,8 @@ word		pl_wait_for_input(Word streams, Word available, Word timeout);
 word		pl_put(Word c);
 word		pl_put2(Word stream, Word chr);
 word		pl_get(Word chr);
+word		pl_skip(Word chr);
+word		pl_skip2(Word stream, Word chr);
 word		pl_get2(Word stream, Word chr);
 word		pl_tty(void);
 word		pl_get_single_char(Word c);
@@ -157,6 +163,7 @@ word		pl_protocola(Word file);
 word		pl_noprotocol(void);
 word		pl_protocolling(Word file);
 word		pl_prompt(Word old, Word new);
+void		prompt1(char *prompt);
 word		pl_prompt1(Word prompt);
 word		pl_tab(Word n);
 char *		PrologPrompt(void);
@@ -189,6 +196,7 @@ word		pl_same_file(Word file1, Word file2);
 word		pl_rename_file(Word old, Word new);
 word		pl_fileerrors(Word old, Word new);
 word		pl_absolute_file_name(Word name, Word expanded);
+word		pl_is_absolute_file_name(Word name);
 word		pl_chdir(Word dir);
 word		pl_file_base_name(Word f, Word b);
 word		pl_file_dir_name(Word f, Word b);
@@ -196,6 +204,9 @@ word		pl_prolog_to_os_filename(Word pl, Word os);
 int		Get0(void);
 int		Put(int c);
 void		protocol(int c);
+#ifdef O_XOS
+word		pl_make_fat_filemap(Word dir);
+#endif
 
 /* pl-flag.c */
 void		initFlags(void);
@@ -227,7 +238,6 @@ void		lockMark(mark *m);
 void		unlockw(Word p);
 void		unlockp(Void ptr);
 void		unlockMark(mark *m);
-word		checkStacks(LocalFrame frame);
 Word		findGRef(int n);
 void		growStacks(LocalFrame fr, Code PC, int l, int g, int t);
 
@@ -239,6 +249,7 @@ word		pl_expand_file_name(Word f, Word l);
 
 /* pl-itf.c */
 void		resetForeign(void);
+void		reinitForeign(int argc, char **argv);
 
 /* pl-list.c */
 word		pl_is_list(Word list);
@@ -294,15 +305,16 @@ real		CpuTime(void);
 Void		Allocate(long int n);
 long		Random(void);
 Atom		TemporaryFile(char *id);
+char *		canonisePath(char *path);
 void		RemoveTemporaryFiles(void);
-char *		OsPath(char *unixpath);
-char *		PrologPath(char *ospath);
+char *		OsPath(const char *unixpath);
+char *		PrologPath(char *ospath, char *plpath);
 long		LastModifiedFile(char *f);
 bool		ExistsFile(char *path);
 bool		AccessFile(char *path, int mode);
 bool		ExistsDirectory(char *path);
 long		SizeFile(char *path);
-bool		DeleteFile(char *path);
+int		RemoveFile(const char *path);
 bool		RenameFile(char *old, char *new);
 bool		SameFile(char *f1, char *f2);
 bool		OpenStream(int fd);
@@ -311,6 +323,7 @@ bool		expandVars(char *pattern, char *expanded);
 char *		ExpandOneFile(char *spec);
 char *		getwd(char *buf);
 char *		AbsoluteFile(char *spec);
+int		IsAbsolutePath(const char *spec);
 char *		BaseName(char *f);
 char *		DirName(char *f);
 char *		ReadLink(char *f);
@@ -326,7 +339,7 @@ char *		Setenv(char *name, char *value);
 char *		Unsetenv(char *name);
 int		System(char *cmd);
 char *		Symbols(void);
-void		Sleep(real time);
+void		Pause(real time);
 
 /* pl-prims.c */
 word		pl_nonvar(Word k);
@@ -426,6 +439,7 @@ void		resetReferences(void);
 Procedure	resolveProcedure(FunctorDef f, Module module);
 void		trapUndefined(Procedure proc);
 word		pl_retract(Word term, word h);
+word		pl_retractall(Word head);
 word		pl_abolish(Word atom, Word arity);
 word		pl_list_references(Word descr);
 word		pl_list_active_procedures(void);
@@ -530,6 +544,7 @@ word		pl_spy(Word p);
 word		pl_nospy(Word p);
 word		pl_leash(Word old, Word new);
 word		pl_visible(Word old, Word new);
+word		pl_debuglevel(Word old, Word new);
 word		pl_unknown(Word old, Word new);
 word		pl_prolog_current_frame(Word fr);
 word		pl_prolog_frame_attribute(Word frame, Word what, Word value);
@@ -558,12 +573,14 @@ bool		compileFileList(char *out, int argc, char **argv);
 bool		appendState(char *name);
 
 word		pl_qlf_start_module(Word name);
+word		pl_qlf_start_sub_module(Word name);
 word		pl_qlf_start_file(Word name);
 word		pl_qlf_end_part(void);
 word		pl_qlf_open(Word file);
 word		pl_qlf_close(void);
 word		pl_qlf_load(Word file, Word module);
 word		pl_qlf_assert_clause(Word ref);
+word		pl_qlf_info(Word file, Word cversion, Word fversion, Word info);
 
 /* pl-write.c */
 word		pl_nl(void);
@@ -600,6 +617,15 @@ bool		vwarning(char *fm, va_list args);
 
 word		pl_open_dde_conversation(Word service, Word topic, Word hdl);
 word		pl_close_dde_conversation(Word handle);
-word		pl_dde_request(Word handle, Word item, Word value);
-word		pl_dde_execute(Word handle, Word cmd);
+word		pl_dde_request(Word handle, Word item, Word value, Word tmo);
+word		pl_dde_execute(Word handle, Word cmd, Word tmo);
+word		pl_dde_register_service(Word service, Word onoff);
 
+/* pl-dll.c */
+word		pl_open_dll(Word name, Word handle);
+word		pl_close_dll(Word handle);
+word		pl_call_dll_function(Word handle, Word funcname);
+
+/* pl-nt.c */
+
+void		PlMessage(const char *buf, ...);

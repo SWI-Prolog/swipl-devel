@@ -10,6 +10,11 @@
 /*#define O_SECURE 1*/
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-itf.h"
+
+#ifdef O_RLC
+#include <console.h>
+#endif
 
 #if sun
 #include <prof.h>			/* in-function profiling */
@@ -200,7 +205,7 @@ given as `backtrack control'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static inline bool
-callForeign(Procedure proc, LocalFrame frame)
+callForeign(const Procedure proc, LocalFrame frame)
 { int argc = proc->functor->arity;
   word result;
   Word argv[20]; /* this must be as big as the number args we stuff in it 
@@ -630,7 +635,7 @@ findBlock(LocalFrame fr, Word block)
 #endif
 
 bool
-interpret(Module Context, word Goal, bool debug)
+PL_call_predicate(Module Context, bool debug, Procedure proc, Word *argv)
 { register LocalFrame FR;		/* current frame */
   register Word	      ARGP;		/* current argument pointer */
   register Code	      PC;		/* program counter */
@@ -639,6 +644,11 @@ interpret(Module Context, word Goal, bool debug)
   Definition DEF;			/* definition of current procedure */
   bool	     deterministic;		/* clause found deterministically */
 #define	     CL (FR->clause)		/* clause of current frame */
+
+  LocalFrame lSave   = lTop;		/* call-back status info */
+  Lock	     pSave   = pTop;
+  LocalFrame envSave = environment_frame;
+  Word *     aSave   = aTop;
 
 #if O_LABEL_ADDRESSES
   static void *jmp_table[] =
@@ -737,65 +747,96 @@ interpret(Module Context, word Goal, bool debug)
 #endif /* VMCODE_IS_ADDRESS */
 
   DEBUG(1, { extern int Output;		/* --atoenne-- */
+
 	     if ( Output )
-	     { Putf("Interpret: ");
-	       pl_write(&Goal);
-	       Putf("\n");
+	     { int n;
+
+	       Putf("Interpret: %s(", stringAtom(proc->functor->name));
+	       for(n=0; n<proc->functor->arity; n++)
+	       { if ( n > 0 )
+		   Putf(", ");
+		 pl_write(argv[n]);
+	       }
+	       Putf(")\n");
 	     } else
 	       Sdprintf("Interpret goal in unitialized environment.\n");
 	   });
 
   /* Allocate a local stack frame */
 
+  gc_status.blocked++;
+
+  lTop = (LocalFrame) addPointer(lTop, sizeof(word));
+  verifyStack(local);
+  varFrame(lTop, -1) = (word) environment_frame;
+
   FR = lTop;
   FR->parent = (LocalFrame) NULL;
+
+#define RESTORE_REGS() do { lTop = lSave; \
+			    aTop = aSave; \
+			    environment_frame = envSave; \
+			    gc_status.blocked--; \
+			    assert(pSave == pTop); } while(0)
+
 #if O_SHIFT_STACKS
   lockp(&FR);
   lockp(&BFR);
   lockp(&ARGP);
+  lockp(&lSave);
+  lockp(&envSave);
 
 #define RETURN(val) do \
-	            { unlockp(&ARGP); \
+	            { RESTORE_REGS(); \
+		      unlockp(&envSave); \
+		      unlockp(&lSave); \
+		      unlockp(&ARGP); \
 		      unlockp(&BFR); \
 		      unlockp(&FR); \
 		      return(val); \
 		    } while(0)
 #else
-#define RETURN(val) return(val)
+#define RETURN(val) do \
+	            { RESTORE_REGS(); \
+		      return(val); } while(0)
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Find the procedure definition associated with `Goal'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  { Word gp;
-    word g;
-    Module module = Context;
-    FunctorDef functor;
+					/* machine registers */
+  { int n, arity;
 
-    if ( !(gp = stripModule(&Goal, &module)) )
-      RETURN(FALSE);
+    PROC = proc;
+    DEF  = PROC->definition;
+    arity = PROC->functor->arity;
 
-    g = *gp;
-    if ( isAtom(g) )
-    { functor = lookupFunctorDef((Atom)g, 0);
-    } else if ( isTerm(g) )
-    { int arity;
-      Word a, args = argTermP(g, 0);
+					/* fill frame arguments */
+    ARGP = argFrameP(FR, 0);
+    for( n = arity; n-- > 0; argv++ )
+      *ARGP++ = isVar(**argv) ? makeRef(*argv) : **argv;
 
-      functor = functorTerm(g);
-      arity = functor->arity;
-      ARGP = argFrameP(FR, 0);
-
-      for(; arity-- > 0; args++)
-      { deRef2(args, a);
-	*ARGP++ = (isVar(*a) ? makeRef(a) : *a);
-      }
+					/* find definition and clause */
+    if ( (CL = DEF->definition.clauses) == (Clause) NULL &&
+         false(DEF, DYNAMIC) )
+    { lTop = (LocalFrame) argFrameP(FR, arity);
+      trapUndefined(PROC);
+      DEF = PROC->definition;
+      CL = DEF->definition.clauses;
+    }
+    
+					/* context module */
+    if ( true(DEF, TRANSPARENT) )
+    { if ( Context )
+	FR->context = Context;
+      else if ( environment_frame )
+	FR->context = environment_frame->context;
+      else
+	FR->context = DEF->module;
     } else
-      RETURN(warning("Illegal goal while called from C"));
+      FR->context = DEF->module;
 
-    PROC = resolveProcedure(functor, module);
-    DEF = PROC->definition;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Finally fill all the slots of  the  frame  and  initialise  the  machine
@@ -808,18 +849,9 @@ registers.
       set(FR, FR_NODEBUG);
     FR->backtrackFrame = (LocalFrame) NULL;
     FR->procedure = PROC;
-    FR->clause = (Clause) NULL;
     SetBfr(FR);
     DoMark(FR->mark);
     environment_frame = FR;
-
-    if ( (CL = DEF->definition.clauses) == (Clause) NULL )
-    { lTop = (LocalFrame) argFrameP(FR, functor->arity);
-      trapUndefined(PROC);
-      DEF = PROC->definition;		/* may have changed! */
-      CL = DEF->definition.clauses;
-    }
-    FR->context = (true(DEF, TRANSPARENT) ? module : DEF->module);
 
 #if O_DEBUGGER
     if ( debugstatus.debugging )
@@ -841,12 +873,44 @@ registers.
 
       FR->clause = FIRST_CALL;
       rval = callForeign(PROC, FR);
-      RETURN(rval);
+#if O_DEBUGGER      
+      if ( debugstatus.debugging )
+      { LocalFrame lTopSave = lTop;
+	int action;
+
+	lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
+	action = tracePort(FR, rval ? EXIT_PORT : FAIL_PORT);
+	lTop = lTopSave;
+	switch(action)
+	{ case ACTION_FAIL:	rval = FALSE;
+	  			break;
+	  case ACTION_IGNORE:	rval = TRUE;
+	}
+      }
+#endif /*O_DEBUGGER*/
+      RETURN(rval);			/* need trace call */
     }
 
     ARGP = argFrameP(FR, 0);
     if ( (CL = findClause(CL, ARGP, DEF, &deterministic)) == NULL )
-      RETURN(FALSE);
+    { bool rval = FALSE;
+#if O_DEBUGGER
+      if ( debugstatus.debugging )
+      { LocalFrame lTopSave = lTop;
+	int action;
+
+	lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
+	action = tracePort(FR, FAIL_PORT);
+	lTop = lTopSave;
+	switch(action)
+	{ case ACTION_FAIL:	rval = FALSE;
+	  			break;
+	  case ACTION_IGNORE:	rval = TRUE;
+	}
+      }
+#endif /*O_DEBUGGER*/
+      RETURN(rval);			/* need trace call */
+    }
     if ( deterministic )
       set(FR, FR_CUT);
     CL->references++;
@@ -1355,11 +1419,6 @@ backtrack that makes it difficult to understand the tracer's output.
       }
 
 #if O_COMPILE_OR
-#define FrameRefToInt(fr) \
-        ((fr) ? (consNum((Word)(fr) - (Word)lBase)) : 0L)
-#define IntToFrameRef(w) \
-	((w) ? ((LocalFrame)((Word)lBase + valNum(w))) : (LocalFrame) NULL)
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 WAM support for ``A ; B'', ``A -> B'' and ``A -> B ; C'' constructs.  As
 these functions introduce control within the WAM instructions  they  are
@@ -1385,7 +1444,7 @@ garbage collector won't see it.  With the introduction of stack-shifting
 this slot has been made relative to lBase.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
    VMI(C_MARK, COUNT_N(c_mark), ("c_mark %d\n", *PC)) MARK(C_MARK);
-      { varFrame(FR, *PC++) = FrameRefToInt(BFR);
+      { varFrame(FR, *PC++) = (word) BFR;
 
 	NEXT_INSTRUCTION;
       }
@@ -1415,7 +1474,7 @@ All frames created since what becomes now the  backtrack  point  can  be
 discarded.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(C_CUT, COUNT_N(c_cut), ("c_cut %d\n", *PC)) MARK(C_CUT);
-      { LocalFrame obfr = IntToFrameRef(varFrame(FR, *PC));
+      { LocalFrame obfr = (LocalFrame) varFrame(FR, *PC);
 	LocalFrame fr;
 	register LocalFrame fr2;
 
@@ -1720,7 +1779,7 @@ effect* and 2) is *not optimised* away by the compiler.
 #endif
     VMI(C_IFTHENELSE, COUNT_2N(c_ifthenelse), ("c_ifthenelse %d\n", *PC))
       MARK(C_ITE);
-      { varFrame(FR, *PC++) = FrameRefToInt(BFR); /* == C_MARK */
+      { varFrame(FR, *PC++) = (word) BFR; /* == C_MARK */
 
 	/*FALL-THROUGH to C_OR*/
       }
@@ -1781,8 +1840,12 @@ the first call of $alt/1 simply succeeds.
 
 #ifdef O_INLINE_FOREIGNS
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-I_CALL_FV1  Call  a  deterministics  foreign  procedure  with  a  single
-argument that is a variable.
+I_CALL_FV[012] Call a deterministics foreign procedures  with a 0, 1, or
+2 arguments that appear as variables in   the  clause. This covers true,
+fail, var(X) and other type-checking  predicates,   =/2  in  a number of
+cases (i.e. X = Y, not X = 5).
+
+The VMI for these calls are ICALL_FVN, proc, var-index ...
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     { Word vars[2];
       int nvars;
@@ -1818,6 +1881,11 @@ argument that is a variable.
 	    f = fproc->definition->definition.function;
 	  }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+If we are debugging, just build a normal  frame and do the normal thing,
+so the inline call is expanded to a normal call and may be traced.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 	  if ( 
 #ifdef O_DEBUGGER
 	       debugstatus.debugging ||
@@ -1836,28 +1904,49 @@ argument that is a variable.
 	    next->context = FR->context;
 
 	    goto normal_call;
-	  }
+	  } else
+	  { LocalFrame oldtop = lTop;
 	
-	  statistics.inferences++;
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+We must create a frame and mark the  stacks for two reasons: undo if the
+foreign call fails *AND*  make  sure   Trail()  functions  properly.  We
+increase lTop too to prepare for asynchronous interrupts.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-	  switch(nvars)
-	  { case 0:
-	      rval = (*f)();
-	      break;
-	    case 1:
-	      rval = (*f)(vars[0]);
-	      break;
-	    case 2:
-	    default:
-	      rval = (*f)(vars[0], vars[1]);
-	      break;
-	  }
-	  if ( rval )
-	  { NEXT_INSTRUCTION;
-	  }
+	    statistics.inferences++;
+	    environment_frame = next = lTop;
+	    lTop = (LocalFrame) argFrameP(next, 0);
+	    if ( true(fproc->definition, TRANSPARENT) )
+	      next->context = FR->context;
+	    else
+	      next->context = fproc->definition->module;
+	    
+	    DoMark(next->mark);
 
-	  statistics.inferences++;	/* is a redo! */
-	  BODY_FAILED;
+	    switch(nvars)
+	    { case 0:
+		rval = (*f)();
+	        break;
+	      case 1:
+		rval = (*f)(vars[0]);
+	        break;
+	      case 2:
+	      default:
+		rval = (*f)(vars[0], vars[1]);
+	        break;
+	    }
+
+	    environment_frame = FR;
+	    lTop = oldtop;
+
+	    if ( rval )
+	    { NEXT_INSTRUCTION;
+	    }
+
+	    DoUndo(next->mark);
+	    statistics.inferences++;	/* is a redo! */
+	    BODY_FAILED;
+	  }
 	}
       }
     }
@@ -2027,7 +2116,7 @@ Note: we are working above `lTop' here!
 #if O_RLC				/* Windows readline console */
 	{ static int tick;
 
-	  if ( (++tick & 0x7ff) == 0 )
+	  if ( (++tick & 0x7fff) == 0 )
 	    rlc_check_intr();		/* check for interrupt (^C) */
 	}
 #endif

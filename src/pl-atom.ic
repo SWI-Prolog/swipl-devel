@@ -200,3 +200,6 @@
 { (Atom)NULL, ATOM_TYPE, "locked" },
 { (Atom)NULL, ATOM_TYPE, "clause" },
 { (Atom)NULL, ATOM_TYPE, "file" },
+{ (Atom)NULL, ATOM_TYPE, "$foreign_registered" },
+{ (Atom)NULL, ATOM_TYPE, "exist" },
+{ (Atom)NULL, ATOM_TYPE, "none" },

@@ -64,14 +64,14 @@ saveProgram(Word new)
     Putf("Taking symbol table from %s\n", sym_name);
   Putf("Saving to %s ... ", new_name); pl_flush();
   if ( unexec(new_name, old_name, sym_name, 0, 0, 0) < 0 )
-  { DeleteFile(tmp);
+  { RemoveFile(tmp);
     fail;
   }
   Putf("ok.\n");
   Putf("Moving %s to %s ... ", tmp, dest); pl_flush();
   if ( RenameFile(tmp, dest) == FALSE )
   { warning("Failed to install %s: %s", dest, OsError());
-    DeleteFile(tmp);
+    RemoveFile(tmp);
     fail;
   }
 #endif

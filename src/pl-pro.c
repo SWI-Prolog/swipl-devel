@@ -7,8 +7,12 @@
     Purpose: Support for virtual machine
 */
 
-/*#define O_SECURE 1*/
+/*#define O_SECURE 1*/			/* include checkData() */
 #include "pl-incl.h"
+#include "pl-itf.h"
+#ifdef HAVE_MALLOC_H
+#include <malloc.h>
+#endif
 
 		/********************************
 		*    CALLING THE INTERPRETER    *
@@ -71,37 +75,45 @@ break environment and thus bindings which result of the call are lost.
 
 bool
 callGoal(Module module, word goal, bool debug)
-{ LocalFrame lSave   = lTop;
-  Lock	     pSave   = pTop;		/* TMP */
-  LocalFrame envSave = environment_frame;
-  Word *     aSave = aTop;
-  bool	     rval;
-
-  if ( module == NULL )
+{ FunctorDef fd;
+  Module m;
+  Procedure proc;
+  Word g, ap;
+  
+  if ( (m=module) == NULL )
   { if ( environment_frame )
-      module = contextModule(environment_frame);
+      m = contextModule(environment_frame);
     else
-      module = MODULE_user;
+      m = MODULE_user;
   }
 
-  lockp(&lSave);
-  lockp(&envSave);
-  lTop = (LocalFrame) addPointer(lTop, sizeof(word));
-  verifyStack(local);
-  varFrame(lTop, -1) = (word) environment_frame;
+  TRY(g = stripModule(&goal, &m));
+  goal = *g;
 
-  gc_status.blocked++;
-  rval = interpret(module, goal, debug);
-  gc_status.blocked--;
-  lTop = lSave;
-  aTop = aSave;
-  environment_frame = envSave;
-  unlockp(&envSave);
-  unlockp(&lSave);
-  assert(pSave == pTop);
+  if ( isAtom(goal) )
+  { fd = lookupFunctorDef((Atom)goal, 0);
+    ap = NULL;
+  } else if ( isTerm(goal) )
+  { fd = functorTerm(goal);
+    ap = argTermP(goal, 0);
+  } else
+    return warning("Illegal goal whiled called from C");
 
-  return rval;
+  proc = lookupProcedure(fd, m);
+
+  if ( ap )
+  { TermVector(argv, fd->arity);
+    Word *av = argv;
+    int n;
+
+    for( n=fd->arity; n-- > 0; )
+      *av++ = ap++;
+
+    return PL_call_predicate(m, debug, proc, argv);
+  } else
+    return PL_call_predicate(m, debug, proc, NULL);
 }
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Bring the Prolog system itself to life.  Prolog  saves  the  C-stack  to
@@ -142,32 +154,32 @@ interpreter with the toplevel goal.
 
 bool
 prolog(volatile word goal)
-{ if (setjmp(abort_context) != 0)
+{ if ( setjmp(abort_context) != 0 )
   { goal = (word) ATOM_abort;
   } else
   { debugstatus.debugging = FALSE;
   }
 
   environment_frame = NULL;
-  lTop = (LocalFrame) addPointer(lBase, sizeof(LocalFrame));
-  varFrame(lTop, -1) = (word) NULL;
+  lTop = lBase;
   tTop = tBase;
   gTop = gBase;
   aTop = aBase;
   pTop = pBase;
-  gc_status.blocked   = 0;
-  gc_status.requested = FALSE;
+
+  gc_status.blocked    = -1;
+  gc_status.requested  = FALSE;
 #if O_SHIFT_STACKS
   shift_status.blocked = 0;
 #endif
-  status.arithmetic   = 0;
+  status.arithmetic    = 0;
 
   lockp(&environment_frame);
 
-  debugstatus.tracing = FALSE;
+  debugstatus.tracing      = FALSE;
   debugstatus.suspendTrace = 0;
 
-  return interpret(MODULE_system, goal, FALSE);
+  return callGoal(MODULE_system, goal, FALSE);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -200,3 +200,6 @@
 #define ATOM_locked       (&atoms[199])
 #define ATOM_clause       (&atoms[200])
 #define ATOM_file         (&atoms[201])
+#define ATOM_dforeign_registered (&atoms[202])
+#define ATOM_exist        (&atoms[203])
+#define ATOM_none         (&atoms[204])

@@ -82,7 +82,7 @@ forwards void	checkCodeTable(void);
 static void
 checkCodeTable(void)
 { CodeInfo ci;
-  int n;
+  unsigned int n;
 
   for(ci = codeTable, n = 0; ci->name != NULL; ci++, n++ )
   { if ( ci->code != n )
@@ -559,7 +559,7 @@ Allocate the clause and fill initialise the field we already know.
   }
 
   TRY( analyse_variables(head, body, ci.arity, &nvars) );
-  clause->variables = nvars + ci.arity;
+  clause->prolog_vars = clause->variables = nvars + ci.arity;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Initialise the `compileInfo' structure.
@@ -1006,7 +1006,7 @@ operator.
 	  Output_a(ci, VAROFFSET(vars[n]));
 
 	succeed;
-      non_fv:
+      non_fv:;
       }
 #endif /*O_INLINE_FOREIGNS*/
 

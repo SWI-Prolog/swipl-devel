@@ -33,6 +33,8 @@ static struct foreign {
   ADD("put",			1, pl_put,			TRACE_ME),
   ADD("get0",			1, pl_get0,			TRACE_ME),
   ADD("get",			1, pl_get,			TRACE_ME),
+  ADD("skip",			1, pl_skip,			TRACE_ME),
+  ADD("skip",			2, pl_skip2,			TRACE_ME),
   ADD("get_single_char",	1, pl_get_single_char,		TRACE_ME),
   ADD("seeing",			1, pl_seeing,			TRACE_ME),
   ADD("telling",		1, pl_telling,			TRACE_ME),
@@ -57,9 +59,13 @@ static struct foreign {
   ADD("prompt1",		1, pl_prompt1,			TRACE_ME),
   ADD("expand_file_name",	2, pl_expand_file_name,		TRACE_ME),
   ADD("$absolute_file_name",	2, pl_absolute_file_name,	TRACE_ME),
+  ADD("is_absolute_file_name",	1, pl_is_absolute_file_name,	TRACE_ME),
   ADD("$file_base_name",	2, pl_file_base_name,		TRACE_ME),
   ADD("$file_dir_name",		2, pl_file_dir_name,		TRACE_ME),
   ADD("prolog_to_os_filename",	2, pl_prolog_to_os_filename,	TRACE_ME),
+#if defined(O_XOS) && defined(__WIN32__)
+  ADD("make_fat_filemap",	1, pl_make_fat_filemap,		TRACE_ME),
+#endif
   ADD("fileerrors",		2, pl_fileerrors,		TRACE_ME),
   ADD("chdir",			1, pl_chdir,			TRACE_ME),
 
@@ -121,18 +127,20 @@ static struct foreign {
   ADD("$import_wic",		2, pl_import_wic,		TRACE_ME),
 
   ADD("$qlf_start_module",	1, pl_qlf_start_module,		TRACE_ME),
+  ADD("$qlf_start_sub_module",	1, pl_qlf_start_sub_module,	TRACE_ME),
   ADD("$qlf_start_file",	1, pl_qlf_start_file,		TRACE_ME),
   ADD("$qlf_end_part",		0, pl_qlf_end_part,		TRACE_ME),
   ADD("$qlf_open",		1, pl_qlf_open,			TRACE_ME),
   ADD("$qlf_close",		0, pl_qlf_close,		TRACE_ME),
   ADD("$qlf_load",		2, pl_qlf_load,	    TRANSPARENT|TRACE_ME),
   ADD("$qlf_assert_clause",	1, pl_qlf_assert_clause,	TRACE_ME),
-
+  ADD("$qlf_info",		4, pl_qlf_info,			TRACE_ME),
 
   ADD("abolish",    2, pl_abolish,    TRANSPARENT|TRACE_ME),
   ADD("$clause",    3, pl_clause,     NONDETERMINISTIC|TRANSPARENT|TRACE_ME),
   ADD("nth_clause", 3, pl_nth_clause, NONDETERMINISTIC|TRANSPARENT|TRACE_ME),
   ADD("retract",    1, pl_retract,    NONDETERMINISTIC|TRANSPARENT|TRACE_ME),
+  ADD("retractall", 1, pl_retractall, TRANSPARENT|TRACE_ME),
   ADD("$xr_member", 2, pl_xr_member,  NONDETERMINISTIC|TRACE_ME),
   ADD("$wam_list",  1, pl_wam_list,   TRACE_ME),
   
@@ -210,6 +218,7 @@ static struct foreign {
   ADD("$nospy",			1, pl_nospy,		TRANSPARENT|TRACE_ME),
   ADD("$leash",			2, pl_leash, 			0),
   ADD("$visible",		2, pl_visible,			0),
+  ADD("$debuglevel",		2, pl_debuglevel,		TRACE_ME),
   ADD("unknown",		2, pl_unknown,		TRANSPARENT|TRACE_ME),
   ADD("$style_check",		2, pl_style_check,		TRACE_ME),
 
@@ -270,9 +279,16 @@ static struct foreign {
 #if O_DDE
   ADD("open_dde_conversation",	3, pl_open_dde_conversation,	TRACE_ME),
   ADD("close_dde_conversation",	1, pl_close_dde_conversation,	TRACE_ME),
-  ADD("dde_request",		3, pl_dde_request,		TRACE_ME),
-  ADD("dde_execute",		2, pl_dde_execute,		TRACE_ME),
-#endif
+  ADD("dde_request",		4, pl_dde_request,		TRACE_ME),
+  ADD("dde_execute",		3, pl_dde_execute,		TRACE_ME),
+  ADD("$dde_register_service",	2, pl_dde_register_service,	TRACE_ME),
+#endif /*O_DDE*/
+
+#ifdef O_DLL
+  ADD("open_dll",		2, pl_open_dll,			TRACE_ME),
+  ADD("close_dll",		1, pl_close_dll,		TRACE_ME),
+  ADD("call_dll_function",	2, pl_call_dll_function, TRANSPARENT|TRACE_ME),
+#endif /*O_DLL*/
 
 #if O_STRING
   ADD("string",			1, pl_string,			TRACE_ME),

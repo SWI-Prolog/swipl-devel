@@ -669,6 +669,65 @@ pl_retract(Word term, word h)
   fail;
 }
 
+
+word
+pl_retractall(Word head)
+{ Module m = (Module) NULL;
+  Procedure proc;
+  Definition def;
+  Clause cl;
+
+  if ( !(head = stripModule(head, &m)) )
+    fail;
+
+  if ( isAtom(*head) )
+    proc = isCurrentProcedure(lookupFunctorDef((Atom)*head, 0), m);
+  else if ( isTerm(*head) )
+    proc = isCurrentProcedure(functorTerm(*head), m);
+  else
+    return warning("retractall/1: Illegal predicate specification");
+
+  if ( proc == (Procedure) NULL )
+    succeed;
+
+  def = proc->definition;
+  if ( true(def, FOREIGN) )
+    return warning("retractall/1: cannot retract from a foreign predicate");
+  if ( true(def, LOCKED) && false(def, DYNAMIC) )
+    return warning("retractall/1: Attempt to retract from a system predicate");
+
+  for(cl = def->definition.clauses; cl; )
+  { bool det;
+
+    if ( isTerm(*head) )
+    { cl = findClause(cl, argTermP(*head, 0), def, &det);
+    } else
+    { while( cl && true(cl, ERASED) )
+	cl = cl->next;
+      if ( cl )
+	det = !cl->next;
+    }
+
+    if ( cl )
+    { mark m;
+      Clause next = cl->next;
+    
+      Mark(m);
+      if ( decompileHead(cl, head) )
+	retractClauseProcedure(proc, cl);
+      Undo(m);
+
+      if ( det )
+	succeed;
+
+      cl = next;
+    }
+  }
+
+  succeed;
+}
+
+
 		/********************************
 		*       PROLOG PREDICATES       *
 		*********************************/

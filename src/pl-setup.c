@@ -10,16 +10,20 @@
 /*#define O_DEBUG 1*/
 
 #define GLOBAL				/* allocate global variables here */
-#include "parms.h"
 #include "pl-incl.h"
 #if defined(__WATCOMC__)
 #define lock lock_function		/* avoid lock() name conflict */
 #endif
 #include <sys/stat.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 #if defined(__WATCOMC__)
 #undef lock
 #endif
+
+#undef ulong
+#define ulong unsigned long
 
 #define K * 1024
 
@@ -45,15 +49,16 @@ setupProlog(void)
   DEBUG(1, Sdprintf("Prolog Signal Handling ...\n"));
   initSignals();
 #endif
-  DEBUG(1, Sdprintf("OS ...\n"));
-  initOs();
+  if ( status.dumped == FALSE )
+  { hBase = (char *)0xffffffffL;
+    hTop  = (char *)NULL;
+  }
   DEBUG(1, Sdprintf("Stacks ...\n"));
   initStacks( options.localSize, 
 	      options.globalSize, 
 	      options.trailSize, 
 	      options.argumentSize,
 	      options.lockSize);
-  assert(stacks.local.maxlimit < PLMAXINT/sizeof(word)); /* C_NOT, etc. */
 
   if ( status.dumped == FALSE )
   { DEBUG(1, Sdprintf("Atoms ...\n"));
@@ -116,6 +121,10 @@ setupProlog(void)
 Feature interface
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef O_RLC
+#include <console.h>
+#endif
+
 static void
 CSetFeature(char *name, char *value)
 { setFeature(lookupAtom(name), (word) lookupAtom(value));
@@ -124,6 +133,10 @@ CSetFeature(char *name, char *value)
 static void
 initFeatures()
 { CSetFeature("arch",		ARCH);
+#ifdef O_RLC
+  if ( rlc_iswin32s() )
+    CSetFeature("win32s",	"true");
+#endif
   CSetFeature("version",	PLVERSION);
   CSetFeature("home",		systemDefaults.home);
   CSetFeature("c_libs",		C_LIBS);
@@ -143,6 +156,9 @@ initFeatures()
 #ifdef HAVE_DLOPEN
   CSetFeature("open_shared_object", "true");
 #endif
+#ifdef O_DLL
+  CSetFeature("dll", "true");
+#endif
 #if O_DYNAMIC_STACKS
   CSetFeature("dynamic_stacks",	"true");
 #endif
@@ -160,6 +176,13 @@ initFeatures()
 #endif
   setFeature(lookupAtom("max_integer"), consNum(PLMAXINT));
   setFeature(lookupAtom("min_integer"), consNum(PLMININT));
+#if defined(__DATE__) && defined(__TIME__)
+  { char buf[100];
+
+    Ssprintf(buf, "%s, %s", __DATE__, __TIME__);
+    CSetFeature("compiled_at",	buf);
+  }
+#endif
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -250,6 +273,15 @@ deliverSignal(int sig, int type, SignalContext scp, char *addr)
 #endif /*HAVE_SIGNAL*/
 
 #if O_DYNAMIC_STACKS
+
+static void init_stack(Stack s, char *name,
+		       caddress base, long limit, long minsize);
+#ifdef SIGNAL_HANDLER_PROVIDES_ADDRESS
+static RETSIGTYPE segv_handler(int sig, int type,
+			       SignalContext scp, char *addr);
+#else
+static RETSIGTYPE segv_handler(int sig);
+#endif
 
 #define STACK_SEPARATION size_alignment
 #define STACK_MINIMUM    (32 * 1024)
@@ -638,7 +670,126 @@ caddress addr;
 
   fail;
 }
-#endif
+#endif /*O_SHARED_MEMORY*/
+
+#ifdef HAVE_VIRTUAL_ALLOC
+
+#undef TRANSPARENT			/* conflicts */
+#undef FD_ZERO
+#undef FD_ISSET
+#undef FD_SET
+#include <windows.h>
+#undef small
+
+static void
+map(Stack s)
+{ if ( (ulong)s->max + size_alignment > (ulong)s->base + s->maxlimit )
+    outOf(s);
+
+  if ( VirtualAlloc(s->max, size_alignment,
+		    MEM_COMMIT, PAGE_READWRITE ) != s->max )
+    fatalError("VirtualAlloc() failed at 0x%x for %d bytes: %d\n",
+	       s->max, size_alignment, GetLastError());
+
+  DEBUG(1, Sdprintf("mapped %d bytes from 0x%x to 0x%x\n",
+		    size_alignment, (unsigned) s->max,
+		    (ulong) s->max + size_alignment));
+
+  s->max = (void *)((ulong)s->max + size_alignment);
+}
+
+
+static void
+unmap(Stack s)
+{ caddress top  = (s->top > s->min ? s->top : s->min);
+  caddress addr = (caddress) align_size((long) top + size_alignment);
+
+  if ( addr < s->max )
+  { if ( !VirtualFree(addr, (ulong)s->max - (ulong)addr, MEM_DECOMMIT) )
+      fatalError("Failed to unmap memory: %d", GetLastError());
+    s->max = addr;
+  }
+}
+
+
+#define MAX_VIRTUAL_ALLOC (256 * MB)
+#define SPECIFIC_INIT_STACK 1
+
+static void
+initStacks(long local, long global, long trail, long argument, long lck)
+{ SYSTEM_INFO info;
+  int large = 0;			/* number of `large' stacks */
+  ulong base;				/* allocation base */
+  ulong totalsize;			/* total size to allocate */
+
+  GetSystemInfo(&info);
+  size_alignment = info.dwPageSize;
+  base_alignment = size_alignment;
+/*base_alignment = info.dwAllocationGranularity;*/
+
+  assert(MAXVARIABLES*sizeof(word) < STACK_SEPARATION);
+
+  local    = (long) align_size(local);	/* Round up to page boundary */
+  global   = (long) align_size(global);
+  trail    = (long) align_size(trail);
+  argument = (long) align_size(argument);
+  lck      = (long) align_size(lck);
+
+  if ( local    == 0 ) large++;		/* find dynamic ones */
+  if ( global   == 0 ) large++;
+  if ( trail    == 0 ) large++;
+  if ( argument == 0 ) large++;
+  if ( lck      == 0 ) large++;
+
+  if ( large )
+    totalsize = MAX_VIRTUAL_ALLOC;
+  else
+    totalsize = local + global + trail + argument + lck + 4 * STACK_SEPARATION;
+
+  if ( !(base = (ulong) VirtualAlloc(NULL, totalsize,
+				     MEM_RESERVE, PAGE_READWRITE)) )
+    fatalError("Failed to allocate stacks for %d bytes: %d",
+	       totalsize, GetLastError());
+
+  ptr_to_num_offset = base & 0xF0000000L;
+
+  if ( large )
+  { ulong space = totalsize -
+           ( align_base(local + STACK_SEPARATION) +
+	     align_base(global + STACK_SEPARATION) +
+	     align_base(trail + STACK_SEPARATION) +
+	     align_base(lck + STACK_SEPARATION) +
+	     align_base(argument) );
+    ulong large_size = ((space / large) / base_alignment) * base_alignment;
+
+    if ( large_size < STACK_MINIMUM )
+      fatalError("Can't fit requested stack sizes in address space");
+    DEBUG(1, Sdprintf("Large stacks are %ld\n", large_size));
+
+    if ( local    == 0 ) local    = large_size;
+    if ( global   == 0 ) global   = large_size;
+    if ( trail    == 0 ) trail    = large_size;
+    if ( argument == 0 ) argument = large_size;
+    if ( lck      == 0 ) lck      = large_size;
+  }
+
+#define INIT_STACK(name, print, limit, minsize) \
+  DEBUG(1, Sdprintf("%s stack at 0x%x; size = %ld\n", print, base, limit)); \
+  init_stack((Stack) &stacks.name, print, (caddress) base, limit, minsize); \
+  base += limit + STACK_SEPARATION; \
+  base = align_base(base);
+#define K * 1024
+
+  INIT_STACK(global,   "global",   global,   16 K);
+  INIT_STACK(local,    "local",    local,    8 K);
+  INIT_STACK(trail,    "trail",    trail,    8 K);
+  INIT_STACK(lock,     "lock",     lck,      1 K);
+  INIT_STACK(argument, "argument", argument, 1 K);
+
+  pl_signal(SIGSEGV, (handler_t) segv_handler);
+}
+
+#endif /*HAVE_VIRTUAL_ALLOC*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This the the signal handler for segmentation faults if we are using  MMU
@@ -654,7 +805,11 @@ exported variable localScratchBase (see pl-alloc.c).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static RETSIGTYPE
+#ifdef SIGNAL_HANDLER_PROVIDES_ADDRESS
 segv_handler(int sig, int type, SignalContext scp, char *addr)
+#else
+segv_handler(int sig)
+#endif
 { Stack stacka = (Stack) &stacks;
   int i;
 
@@ -663,13 +818,14 @@ segv_handler(int sig, int type, SignalContext scp, char *addr)
   extern char *localScratchBase;	/* see pl-alloc.c */
 
   DEBUG(1, Sdprintf("Page fault.  Free room (g+l+t) = %ld+%ld+%ld\n",
-		  roomStack(global), roomStack(local), roomStack(trail)));
+		    roomStack(global), roomStack(local), roomStack(trail)));
 
   for(i=0; i<N_STACKS; i++)
-  { long r = stacka[i].max - stacka[i].top;
+  { long r = (ulong)stacka[i].max - (ulong)stacka[i].top;
 
     if ( r < size_alignment )
-    { map(&stacka[i]);
+    { DEBUG(1, Sdprintf("Mapped %s stack (free was %d)\n", stacka[i].name, r));
+      map(&stacka[i]);
       considerGarbageCollect(&stacka[i]);
       mapped++;
     }
@@ -707,15 +863,19 @@ segv_handler(int sig, int type, SignalContext scp, char *addr)
     }
 #endif /*SIGNAL_HANDLER_PROVIDES_ADDRESS*/
 
+#ifdef SIGNAL_HANDLER_PROVIDES_ADDRESS
   deliverSignal(sig, type, scp, addr);
+#else
+  deliverSignal(sig, 0, 0, NULL);	/* for now ... */
+#endif
 }
 
 static bool
-limit_stack(Stack s, long int limit)
-{ if ( limit > s->maxlimit || limit <= 0 )
+limit_stack(Stack s, ulong limit)
+{ if ( limit > (ulong)s->maxlimit || limit == 0L )
     limit = s->maxlimit;
-  if ( limit <= s->top - s->base )
-    limit = s->top - s->base;
+  if ( limit <= (ulong)s->top - (ulong)s->base )
+    limit = (ulong)s->top - (ulong)s->base;
 
   limit = align_size(limit);
   s->limit = limit;
@@ -724,11 +884,11 @@ limit_stack(Stack s, long int limit)
 }
 
 static void
-init_stack(Stack s, char *name, caddress base, long int limit, long int minsize)
+init_stack(Stack s, char *name, caddress base, long limit, long minsize)
 { s->maxlimit  = limit;			/* deleted this notion */
   s->name      = name;
   s->base      = s->max = s->top = base;
-  s->min       = s->base + minsize;	/* No need to get below this value */
+  s->min       = (caddress)((ulong)s->base + minsize);
   s->gced_size = 0L;			/* size after last gc */
   s->gc	       = ((s == (Stack) &stacks.global ||
 		   s == (Stack) &stacks.trail) ? TRUE : FALSE);
@@ -753,6 +913,9 @@ init_stack(Stack s, char *name, caddress base, long int limit, long int minsize)
 #endif /* O_SHM_ALIGN_FAR_APART */
 #endif /* O_SHARED_MEMORY */
 
+  DEBUG(1, Sdprintf("%-8s stack from 0x%08x to 0x%08x\n",
+		    s->name, (ulong)s->base, (ulong)s->base + s->maxlimit));
+
   while(s->max < s->min)
     map(s);
 }
@@ -775,16 +938,13 @@ this  is the maximum discontinuity in writing the stacks.  On almost any
 machine size_alignment will do.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifndef SPECIFIC_INIT_STACK
+
 static void
-initStacks(long int local, long int global, long int trail, long int argument, long int lck)
+initStacks(long local, long global, long trail, long argument, long lck)
 { long heap = 0;			/* malloc() heap */
   int large = 1;
   unsigned long base, top, space, large_size;
-
-  if ( status.dumped == FALSE )
-  { hBase = (char *)0x20000000L;
-    hTop  = (char *)NULL;
-  }
 
   size_alignment = getpagesize();
 #ifdef MMAP_STACK
@@ -855,6 +1015,8 @@ initStacks(long int local, long int global, long int trail, long int argument, l
 
   pl_signal(SIGSEGV, (handler_t) segv_handler);
 }
+
+#endif /*SPECIFIC_INIT_STACK*/
 
 		/********************************
 		*     STACK TRIMMING & LIMITS   *
@@ -976,7 +1138,7 @@ long size, limit, minfree;
   s->top	= s->base;
   s->limit	= limit;
   s->minfree	= minfree;
-  s->max	= s->base + size;
+  s->max	= (char *)s->base + size;
   s->gced_size = 0L;			/* size after last gc */
   s->gc	       = ((s == (Stack) &stacks.global ||
 		   s == (Stack) &stacks.trail) ? TRUE : FALSE);
@@ -1008,11 +1170,6 @@ long local, global, trail, argument, lck;
   long iglobal = global;
   long ilocal  = local;
 #endif
-
-  if ( status.dumped == FALSE )
-  { hBase = (char *)0x20000000L;
-    hTop  = (char *)NULL;
-  }
 
   gBase = (Word) MALLOC(gBase, iglobal + sizeof(word) +
 			       ilocal + sizeof(struct localFrame) +

@@ -164,7 +164,7 @@ pl_sleep(Word time)
 { real t;
 
   TRY( wordToReal(*time, &t) );
-  Sleep(t);
+  Pause(t);
   
   succeed;
 }

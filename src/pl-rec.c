@@ -198,7 +198,7 @@ copyTermToGlobal(register Record term)
   { register int n;
     register Word v;
 
-    vars = allocGlobal(sizeof(word) * term->n_vars);
+    vars = allocGlobal(term->n_vars);
     for(n=term->n_vars, v=vars; n>0; n--, v++)
       setVar(*v);
   } else

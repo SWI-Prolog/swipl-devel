@@ -88,6 +88,10 @@ PORTABILITY/OPTIONS
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef __WIN32__
+#undef TEST				/* ??? */
+#endif
+
 #if TEST
 #include <stdio.h>
 #undef DEBUG
@@ -629,23 +633,22 @@ main(int argc, char **argv, char **env)
 
 #else /* !O_SAVE */
 
-int
-#ifdef __NT__
-ntmain(argc, argv, env)
-#else
-main(argc, argv, env)
-#endif
-int argc;
-char **argv;
-char **env;
-{
-#if O_HPFS
-  argv[0] = store_string(PrologPath(argv[0]));
-#endif
+#ifdef __WIN32__
 
-  exit(startProlog(argc, argv, env));
+int
+plmain(int argc, char **argv)
+{ exit(startProlog(argc, argv, NULL));
   return 1;
 }
+
+#else
+
+int
+main(int argc, char **argv, char **env)
+{ exit(startProlog(argc, argv, env));
+  return 1;
+}
+#endif
 
 #endif
 

@@ -27,10 +27,8 @@
 #else /*__WATCOMC__*/
 #if HAVE_DIRENT_H
 # include <dirent.h>
-# define NAMLEN(dirent) strlen((dirent)->d_name)
 #else
 # define dirent direct
-# define NAMLEN(dirent) (dirent)->d_namlen
 # if HAVE_SYS_NDIR_H
 #  include <sys/ndir.h>
 # endif
@@ -114,7 +112,9 @@ forwards char	*compile_pattern(struct out *, char *, int);
 forwards bool	match_pattern(uchar *, char *);
 forwards int	stringCompare(const void *, const void *);
 forwards bool	expand(char *, char **, int *);
+#ifdef O_EXPANDS_TESTS_EXISTS
 forwards bool	Exists(char *);
+#endif
 forwards char	*change_string(char *, char *);
 forwards bool	expandBag(struct bag *);
 
@@ -365,10 +365,11 @@ expand(char *f, char **argv, int *argc)
   } while( b.changed );
 
   { char **r = argv;
+    char plp[MAXPATHLEN];
 
     *argc = b.size;
     for( ; b.out != b.in; b.out = NextIndex(b.out) )
-      *r++ = change_string(b.bag[b.out], PrologPath(b.bag[b.out]));
+      *r++ = change_string(b.bag[b.out], PrologPath(b.bag[b.out], plp));
     *r = (char *) NULL;
     qsort(argv, b.size, sizeof(char *), stringCompare);
 
@@ -376,6 +377,7 @@ expand(char *f, char **argv, int *argc)
   }
 }
 
+#ifdef O_EXPANDS_TESTS_EXISTS
 #ifdef HAVE_STAT
 static bool
 Exists(char *path)
@@ -404,6 +406,7 @@ char *path;
   fail;
 }
 #endif
+#endif /*O_EXPANDS_TESTS_EXISTS*/
 
 static char *
 change_string(char *old, char *new)
@@ -424,12 +427,17 @@ expandBag(struct bag *b)
 
       switch( (c = *s++) )
       { case EOS:				/* no special characters */
+#ifdef O_EXPANDS_TESTS_EXISTS
 	  if ( b->expanded == FALSE || Exists(b->bag[b->out]) )
 	  { b->bag[b->in] = b->bag[b->out];
 	    b->in = NextIndex(b->in);
 	  } else
 	  { b->size--;
 	  }
+#else
+	  b->bag[b->in] = b->bag[b->out];
+	  b->in = NextIndex(b->in);
+#endif
 	  goto next_bag;
 	case '[':				/* meta characters: expand */
 	case '{':

@@ -16,7 +16,7 @@ ac_help="$ac_help
 ac_help="$ac_help
   --enable-runtime	  Runtime system only"
 ac_help="$ac_help
-  --enable-dlopen	  Provide shared-library interface"
+  --enable-dlopen	  Provide shared-lib interface"
 
 # Initialize some variables set by options.
 # The variables have the same names as the options, with
@@ -1194,11 +1194,11 @@ else
   echo "$ac_t""no" 1>&4
 fi
 
-# Check whether --with-dlopen or --without-dlopen was given.
-withval="$with_dlopen"
-if test -n "$withval"; then
-  if test "$withval" = "yes"; then
-		echo $ac_n "checking for -ldl""... $ac_c" 1>&4
+# Check whether --enable-dlopen or --disable-dlopen was given.
+enableval="$enable_dlopen"
+if test -n "$enableval"; then
+  if test "$enableval" = "yes"; then
+		  echo $ac_n "checking for -ldl""... $ac_c" 1>&4
 if eval "test \"`echo '${'ac_cv_lib_dl'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&4
 else
@@ -1237,7 +1237,7 @@ else
   echo "$ac_t""no" 1>&4
 fi
 
-	        for ac_func in dlopen
+	          for ac_func in dlopen
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&4
 if eval "test \"`echo '${'ac_cv_func_$ac_func'+set}'`\" = set"; then
@@ -1286,7 +1286,7 @@ else
 fi
 done
 
-	    fi
+	      fi
 fi
 
 
@@ -2553,7 +2553,11 @@ case "$host" in
     *linux*)	STATICLIBS="/usr/lib/libc.a" ;;
     *sunos5*)	STATICLIBS="/usr/lib/libc.a -ldl" ;;
     *solaris2*)	STATICLIBS="/usr/lib/libc.a -ldl" ;;
-    *sunos4*)	LDFLAGS="$LDFLAGS -static" ;;
+    *sunos4*)	if test "$ac_cv_func_dlopen" = "yes"; then
+		   STATICLIBS="/usr/lib/libc.a"
+		else
+		   LDFLAGS="$LDFLAGS -static"
+		fi ;;
     *)
     for ac_prog in ldd
 do
@@ -2595,7 +2599,7 @@ test -n "$LDD" || LDD=""none""
 	echo $ac_n "checking "what kind of static linking is required"""... $ac_c" 1>&4
 
 cat > conftest.$ac_ext <<EOF
-#line 2599 "configure"
+#line 2603 "configure"
 #include "confdefs.h"
 
 int main() { return 0; }
@@ -2627,7 +2631,7 @@ fi					# O_SAVE's fi
 
 echo $ac_n "checking "foreign C-interface"""... $ac_c" 1>&4
 cat > conftest.$ac_ext <<EOF
-#line 2631 "configure"
+#line 2635 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -2660,7 +2664,7 @@ rm -f conftest*
 
 if test "$ac_foreign" != "yes"; then
 cat > conftest.$ac_ext <<EOF
-#line 2664 "configure"
+#line 2668 "configure"
 #include "confdefs.h"
 
 #include <rld.h>
@@ -2715,7 +2719,7 @@ EOF
 rm -rf conftest*
 echo $ac_n "checking "BSD a.out based loading"""... $ac_c" 1>&4
 cat > conftest.$ac_ext <<EOF
-#line 2719 "configure"
+#line 2723 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>

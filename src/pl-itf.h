@@ -11,31 +11,57 @@
 #define PL_INCLUDED
 
 #ifndef PLVERSION
-#define PLVERSION "2.0.5, February 1995"
+#define PLVERSION "2.0.6, March 1995"
+#endif
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+_declspec(dllexport) is used bu MSVC++ 2.0 to declare exports from
+libraries.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if defined(__WIN32__) && defined(PL_KERNEL)
+#define __pl_export _declspec(dllexport)
+#else
+#define __pl_export extern
+#endif
+
+#ifdef __WIN32__
+#define install_t _declspec(dllexport) void
+#else
+#define install_t void
 #endif
 
 #if __GNUC__ && !__STRICT_ANSI__
-#define constf const			/* const function */
+#define __pl_constf const		/* const function */
 #else
-#define constf
+#define __pl_constf
 #endif
 
 #ifndef PL_KERNEL
-typedef	unsigned long	atomic;		/* atomic Prolog datum */
-typedef unsigned long	functor;	/* name/arity pair as Prolog */
-typedef unsigned long	module;		/* Prolog module */
-typedef unsigned long *	term;		/* general term */
+typedef	unsigned long	atomic_t;	/* atomic Prolog datum */
+typedef void *		functor_t;	/* name/arity pair as Prolog */
+typedef void *		module_t;	/* Prolog module */
+typedef void *		predicate_t;	/* Prolog procedure */
+typedef atomic_t *	term_t;		/* general term */
 typedef unsigned long	foreign_t;	/* return type of foreign functions */
 #define O_STRING 1
+
+
+#define atomic  atomic_t		/* backward compatibility */
+#define functor functor_t		/* backward compatibility */
+#define module  module_t		/* backward compatibility */
+#define term    term_t			/* backward compatibility */
+
 #else
-typedef word		atomic;
-typedef FunctorDef	functor;
-typedef Module		module;
-typedef Word		term;
+typedef word		atomic_t;
+typedef FunctorDef	functor_t;
+typedef Procedure	predicate_t;
+typedef Module		module_t;
+typedef Word		term_t;
 typedef word		foreign_t;
 #endif
 
-typedef foreign_t	(*function)();	/* foreign language functions */
+typedef foreign_t	(*pl_function_t)(); /* foreign language functions */
 
 #ifndef TRUE
 #define TRUE	(1)
@@ -49,7 +75,7 @@ typedef struct
 typedef struct _PL_extension
 { char 		*predicate_name;	/* Name of the predicate */
   short		arity;			/* Arity of the predicate */
-  function	function;		/* Implementing functions */
+  pl_function_t	function;		/* Implementing functions */
   short		flags;			/* Or of PL_FA_... */
 } PL_extension;
 
@@ -89,58 +115,82 @@ extern PL_extension PL_extensions[];	/* see pl-extend.c */
 
 #define PL_atomic(t)	(*(t))		/* convert term to atomic */
 
-int constf PL_is_var(const term);
-int constf PL_is_int(const term);
-int constf PL_is_atom(const term);
-int constf PL_is_float(const term);
-int constf PL_is_string(const term);
-int constf PL_is_term(const term);
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+New style type-checks.  If you want  to   know  whether  `x' is an atom,
+PL_is_atom(x) is the same as PL_type(x) ==   PL_ATOM, but the first is a
+lot faster.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int	constf PL_type(const term);
-long	constf PL_integer_value(const atomic);
-double	       PL_float_value(const atomic);
-char *	       PL_string_value(const atomic);
-char *         PL_list_string_value(const term);
-char *	constf PL_atom_value(const atomic);
-functor constf PL_functor(const term);
-atomic	constf PL_functor_name(const functor);
-int	constf PL_functor_arity(const functor);
-term	constf PL_arg(const term, int);
-term	constf PL_strip_module(const term, module*);
+__pl_export int __pl_constf PL_is_var(const term_t);
+__pl_export int __pl_constf PL_is_int(const term_t);
+__pl_export int __pl_constf PL_is_atom(const term_t);
+__pl_export int __pl_constf PL_is_float(const term_t);
+__pl_export int __pl_constf PL_is_string(const term_t);
+__pl_export int __pl_constf PL_is_term(const term_t);
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+General analysis functions.  PL_type() may often   be replaced by one of
+the above.  Note  thats  the  `extract'   functions  donot  perform  any
+checking, so you'd better verify the type yourself before calling them.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+__pl_export int __pl_constf	PL_type(const term_t);
+__pl_export long __pl_constf	PL_integer_value(const atomic_t);
+__pl_export double		PL_float_value(const atomic_t);
+__pl_export char *		PL_string_value(const atomic_t);
+__pl_export char *		PL_list_string_value(const term_t);
+__pl_export char * __pl_constf	PL_atom_value(const atomic_t);
+__pl_export functor_t __pl_constf PL_functor(const term_t);
+__pl_export atomic_t __pl_constf  PL_functor_name(const functor_t);
+__pl_export int __pl_constf	PL_functor_arity(const functor_t);
+__pl_export term_t __pl_constf	PL_arg(const term_t, int);
+__pl_export term_t __pl_constf	PL_strip_module(const term_t, module_t*);
+
 
 		/********************************
 		*         CONSTRUCTION          *
 		*********************************/
 
-term	PL_new_term(void);		/* create a new term (variable) */
-atomic	PL_new_atom(char *);		/* create an atom from a char * */
-atomic  PL_new_integer(int);		/* create a new integer */
-atomic	PL_new_float(double);		/* create a new float */
+__pl_export term_t	PL_new_term(void);
+__pl_export atomic_t	PL_new_atom(char *);
+__pl_export atomic_t	PL_new_integer(int);
+__pl_export atomic_t	PL_new_float(double);
 #if O_STRING
-atomic	PL_new_string(char *);		/* create a new string */
+__pl_export atomic_t	PL_new_string(char *);
 #endif /* O_STRING */
-functor	PL_new_functor(atomic, int);	/* create a new functor */
-int	PL_unify(term, term);		/* unify two terms */
-int	PL_unify_atomic(term, atomic);  /* unify term with atomic value */
-int	PL_unify_functor(term, functor);/* unify term with functor */
+__pl_export atomic_t	PL_new_var(void);
+__pl_export atomic_t	PL_new_compound(functor_t f, atomic_t *args);
+__pl_export term_t	PL_term(atomic_t a);
+__pl_export void	PL_term_vector(int size, term_t *t, atomic_t *a);
+__pl_export functor_t	PL_new_functor(atomic_t name, int arity);
+__pl_export int		PL_unify(term_t, term_t);
+__pl_export int		PL_unify_atomic(term_t, atomic_t);
+__pl_export int		PL_unify_functor(term_t, functor_t);
+
 
 		 /*******************************
 		 *	   QUINTUS STYLE	*
 		 *******************************/
 
-int	PL_cvt_i_integer(term, long *);	/* input long */
-int	PL_cvt_i_float(term, double *);	/* input double */
-int	PL_cvt_i_single(term, float *);	/* input float */
-int	PL_cvt_i_string(term, char **);	/* input char * */
-int	PL_cvt_i_atom(term, atomic *);	/* input atom identifier */
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+These functions are used by the automatically generated wrappers for the
+Quintus' style C-interface.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int	PL_cvt_o_integer(long, term);	/* output long */
-int	PL_cvt_o_float(double, term);	/* output double */
-int	PL_cvt_o_single(float, term);	/* output float */
-int	PL_cvt_o_string(char *, term);	/* output char * */
-int	PL_cvt_o_atom(atomic, term);	/* output atom identifier */
+__pl_export int	PL_cvt_i_integer(term_t, long *);
+__pl_export int	PL_cvt_i_float(term_t, double *);
+__pl_export int	PL_cvt_i_single(term_t, float *);
+__pl_export int	PL_cvt_i_string(term_t, char **);
+__pl_export int	PL_cvt_i_atom(term_t, atomic_t *);
 
-int	PL_load_extensions(PL_extension *); /* load extensions */
+__pl_export int	PL_cvt_o_integer(long, term_t);
+__pl_export int	PL_cvt_o_float(double, term_t);
+__pl_export int	PL_cvt_o_single(float, term_t);
+__pl_export int	PL_cvt_o_string(char *, term_t);
+__pl_export int	PL_cvt_o_atom(atomic_t, term_t);
+
+__pl_export int	PL_load_extensions(PL_extension *); /* load extensions */
 
 		/********************************
 		*    DETERMINISTIC CALL/RETURN  *
@@ -166,11 +216,11 @@ int	PL_load_extensions(PL_extension *); /* load extensions */
 #define PL_retry(n)		return _PL_retry(n)
 #define PL_retry_address(a)	return _PL_retry((long) a)
 
-extern int	 		PL_foreign_control(long);
-extern foreign_t		_PL_retry(long);
-extern foreign_t		_PL_retry_address(void *);
-extern long	 		PL_foreign_context(long);
-extern void *	 		PL_foreign_context_address(long);
+__pl_export int	 		PL_foreign_control(long);
+__pl_export foreign_t		_PL_retry(long);
+__pl_export foreign_t		_PL_retry_address(void *);
+__pl_export long	 	PL_foreign_context(long);
+__pl_export void *	 	PL_foreign_context_address(long);
 
 		/********************************
 		*      REGISTERING FOREIGNS     *
@@ -181,7 +231,7 @@ extern void *	 		PL_foreign_context_address(long);
 #define PL_FA_NONDETERMINISTIC	(4)	/* foreign is non-deterministic */
 #define PL_FA_GCSAFE		(8)	/* safe to GC and/or shift stacks */
 
-int	PL_register_foreign(char *, int, function, ...);
+__pl_export int	PL_register_foreign(char *, int, pl_function_t, int flags);
 
 		/********************************
 		*        CALLING PROLOG         *
@@ -190,59 +240,71 @@ int	PL_register_foreign(char *, int, function, ...);
 #define PL_lock(t)	_PL_lock(&(t));
 #define PL_unlock(t)	_PL_unlock(&(t));
 
-void	PL_mark(bktrk_buf *);		/* mark global and trail stack */
-void	PL_bktrk(bktrk_buf *);		/* backtrack global stack to mark */
-void	_PL_lock(term *);		/* lock term variable */
-void	_PL_unlock(term *);		/* unlock term variable */
+__pl_export void PL_mark(bktrk_buf *);	/* mark global and trail stack */
+__pl_export void PL_bktrk(bktrk_buf *); /* backtrack global stack to mark */
+__pl_export void _PL_lock(term_t *);	/* lock term_t variable */
+__pl_export void _PL_unlock(term_t *);	/* unlock term_t variable */
 
-int	PL_call(term, module);		/* invoke term as Prolog goal */
+__pl_export int	PL_call(term_t, module_t); /* invoke term_t as Prolog goal */
+
+					/* find predicate */
+__pl_export predicate_t PL_predicate(functor_t functor, module_t module);
+					/* call it directly */
+__pl_export int		PL_predicate_arity(predicate_t pred);
+__pl_export atomic_t	PL_predicate_name(predicate_t pred);
+__pl_export functor_t	PL_predicate_functor(predicate_t pred);
+__pl_export module_t	PL_predicate_module(predicate_t pred);
+__pl_export int		PL_call_predicate(module_t context, int debug,
+					  predicate_t pred,
+					  term_t *argv);
 
 		/********************************
 		*            MODULES            *
 		*********************************/
 
-module	PL_context(void);		/* context module of predicate */
-atomic	PL_module_name(module);		/* return name of a module */
-module	PL_new_module(atomic);		/* return module from an atom */
+__pl_export module_t PL_context(void);	/* context module of predicate */
+__pl_export atomic_t PL_module_name(module_t); /* return name of a module */
+__pl_export module_t PL_new_module(atomic_t); /* return module from an atom */
 
 
 		/********************************
-		*         EVENT HANDLING	*
+		*             HOOKS	*
 		********************************/
 
 #define PL_DISPATCH_INPUT   0		/* There is input available */
 #define PL_DISPATCH_TIMEOUT 1		/* Dispatch timeout */
 
-extern int (*PL_dispatch_events)(void);	/* Dispatch user events */
+typedef int  (*PL_dispatch_hook_t)(void);
+typedef void (*PL_abort_hook_t)(void);
+typedef void (*PL_reinit_hook_t)(int argc, char **argv);
 
-
-		/********************************
-		*      INITIALISATION HOOK	*
-		********************************/
-
-extern void (*PL_foreign_reinit_function)(int argc, char **argv);
+__pl_export PL_dispatch_hook_t PL_dispatch_hook(PL_dispatch_hook_t);
+__pl_export void	       PL_abort_hook(PL_abort_hook_t);
+__pl_export void	       PL_reinit_hook(PL_reinit_hook_t);
+__pl_export int		       PL_abort_unhook(PL_abort_hook_t);
+__pl_export int		       PL_reinit_unhook(PL_reinit_hook_t);
 
 
 		/********************************
 		*            SIGNALS            *
 		*********************************/
 
-void (*PL_signal(int sig, void (*func)()))(); /* signal() replacement */
+__pl_export void (*PL_signal(int sig, void (*func)(int)))(int);
 
 
-		/********************************
-		*             ABORTS		*
-		********************************/
+		 /*******************************
+		 *	      PROMPT		*
+		 *******************************/
 
-void PL_abort_handle(void (*func)());	/* func called by pl_abort() */
+__pl_export void PL_prompt1(const char *prompt);
 
 
 		/********************************
 		*           WARNINGS            *
 		*********************************/
 
-int	PL_warning(char *, ...);	/* Print standard Prolog warning */
-void	PL_fatal_error(char *, ...);	/* Print warning and die */
+__pl_export int	PL_warning(char *, ...);
+__pl_export void PL_fatal_error(char *, ...);	/* Print warning and die */
 
 		/********************************
 		*        PROLOG ACTIONS         *
@@ -258,8 +320,8 @@ void	PL_fatal_error(char *, ...);	/* Print warning and die */
 #define PL_ACTION_WRITE		8	/* write via Prolog i/o buffer */
 #define PL_ACTION_FLUSH		9	/* Flush Prolog i/o buffer */
 
-int	PL_action(int, void *);		/* perform some action */
-void	PL_on_halt(void (*)(int, void *), void *);
+__pl_export int	 PL_action(int, void *); /* perform some action */
+__pl_export void PL_on_halt(void (*)(int, void *), void *);
 
 		/********************************
 		*         QUERY PROLOG          *
@@ -271,7 +333,7 @@ void	PL_on_halt(void (*)(int, void *), void *);
 #define PL_QUERY_ORGSYMBOLFILE	4	/* symbol file before first load */
 #define PL_QUERY_GETC		5	/* Read character from terminal */
 
-long	PL_query(int);			/* get information from Prolog */
+__pl_export long	PL_query(int);	/* get information from Prolog */
 
 #ifdef SIO_MAGIC
 		 /*******************************
@@ -279,7 +341,7 @@ long	PL_query(int);			/* get information from Prolog */
 		 *******************************/
 
 					/* Make IOSTREAM known to Prolog */
-extern int PL_open_stream(IOSTREAM *s, term t);
+__pl_export int PL_open_stream(IOSTREAM *s, term_t t);
 #endif
 
 #endif /* PL_INCLUDED */

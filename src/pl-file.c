@@ -28,7 +28,11 @@ handling times must be cleaned, but that not only holds for this module.
 
 #include "pl-incl.h"
 #include "pl-ctype.h"
+#include "pl-itf.h"
 
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
 #ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
 #endif
@@ -187,11 +191,22 @@ static bool
 closeStream(int n)
 { PlFile f = &fileTable[n];
 
-  if ( n >= 3 && f->stream )
-  { Sclose(f->stream);
-    f->stream = NULL;
-    f->name   = NULL;
-    f->status = F_CLOSED;
+  if ( f->stream )
+  { switch(n)
+    { case 0:
+	Sclearerr(f->stream);
+        break;
+      case 1:
+      case 2:
+	Sflush(f->stream);
+        break;
+      default:
+        Sclose(f->stream);
+        f->stream = NULL;
+	f->name   = NULL;
+	f->status = F_CLOSED;
+	break;
+    }
   }
 
   succeed;
@@ -349,7 +364,16 @@ int
 Get0()
 { IOSTREAM *s = fileTable[Input].stream;
   
-  return s ? Sgetc(s) : -1;
+  if ( s )
+  { int c;
+
+    if ( (c = Sgetc(s)) == EOF && Input == 0 )
+      Sclearerr(s);
+    
+    return c;
+  }
+
+  return EOF;
 }
 
 
@@ -887,6 +911,28 @@ pl_get(Word chr)
   return unifyAtomic(chr, consNum(c));
 }
 
+
+word
+pl_skip(Word chr)
+{ int c, r;
+
+  if ( !isInteger(*chr) )
+    return warning("skip/1: instantiation fault");
+  c = valNum(*chr) & 0xff;
+
+  while((r=Get0()) != c && r != EOF )
+    ;
+
+  succeed;
+}
+
+
+word
+pl_skip2(Word stream, Word chr)
+{ streamInput(stream, pl_skip(chr));
+}
+
+
 word
 pl_get2(Word stream, Word chr)
 { streamInput(stream, pl_get(chr));
@@ -1008,6 +1054,15 @@ pl_prompt(Word old, Word new)
 }
 
 
+void
+prompt1(char *prompt)
+{ if ( first_prompt )
+    remove_string(first_prompt);
+  first_prompt = store_string(prompt);
+  first_prompt_used = FALSE;
+}
+
+
 word
 pl_prompt1(Word prompt)
 { char *s;
@@ -1016,10 +1071,7 @@ pl_prompt1(Word prompt)
        !(s = listToString(*prompt)) )
     return warning("prompt1/1: instantiation fault");
 
-  if ( first_prompt )
-    remove_string(first_prompt);
-  first_prompt = store_string(s);
-  first_prompt_used = FALSE;
+  prompt1(s);
 
   succeed;
 }
@@ -1049,7 +1101,10 @@ PrologPrompt()
     return first_prompt;
   }
 
-  return stringAtom(prompt_atom);
+  if ( Sinput->position && Sinput->position->linepos == 0 )
+    return stringAtom(prompt_atom);
+  else
+    return "";
 }
 
 
@@ -1428,20 +1483,26 @@ word
 pl_access_file(Word name, Word mode)
 { char *n;
   int md;
+  Atom m = (Atom) *mode;
+
+  if ( m == ATOM_none )
+    succeed;
 
   if ( (n = primitiveToString(*name, FALSE)) == (char *)NULL )
     return warning("access_file/2: instantiation fault");
   if ( (n = ExpandOneFile(n)) == (char *)NULL )
     fail;
   
-  if      ( *mode == (word) ATOM_write )
+  if      ( m == ATOM_write || m == ATOM_append )
     md = ACCESS_WRITE;
-  else if ( *mode == (word) ATOM_read )
+  else if ( m == ATOM_read )
     md = ACCESS_READ;
-  else if ( *mode == (word) ATOM_execute )
+  else if ( m == ATOM_execute )
     md = ACCESS_EXECUTE;
+  else if ( m == ATOM_exist )
+    md = ACCESS_EXIST;
   else
-    return warning("access_file/2: mode is one of {read, write, execute}");
+    return warning("access_file/2: mode is one of {read,write,append,execute,exist,none}");
 
   return AccessFile(n, md);
 }
@@ -1508,7 +1569,7 @@ pl_delete_file(Word name)
   if ( (n = ExpandOneFile(n)) == (char *)NULL )
     fail;
   
-  return DeleteFile(n);
+  return RemoveFile(n);
 }
 
 
@@ -1587,12 +1648,27 @@ pl_absolute_file_name(Word name, Word expanded)
 
 
 word
+pl_is_absolute_file_name(Word name)
+{ char *s = primitiveToString(*name, FALSE);
+  char pls[MAXPATHLEN];
+
+  if ( s &&
+       (s = ExpandOneFile(PrologPath(s, pls))) &&
+       IsAbsolutePath(s) )
+    succeed;
+
+  fail;
+}
+
+
+word
 pl_chdir(Word dir)
 { char *s = primitiveToString(*dir, FALSE);
+  char pls[MAXPATHLEN];
 
   if ( s == (char *)NULL )
     return warning("chdir/1: instantiation fault");
-  if ( (s = ExpandOneFile(PrologPath(s))) == (char *)NULL )
+  if ( (s = ExpandOneFile(PrologPath(s, pls))) == (char *)NULL )
     fail;
   
   if ( ChDir(s) )
@@ -1631,9 +1707,6 @@ pl_prolog_to_os_filename(Word pl, Word os)
     return unifyAtomic(os, lookupAtom(buf));
   } else if ( isAtom(*os) )
   { _xos_canonical_filename(stringAtom(*os), buf);
-#ifdef __msdos__
-    strlwr(buf);
-#endif
     return unifyAtomic(pl, lookupAtom(buf));
   } else
     return warning("prolog_to_os_filename/2: instantiation fault");
@@ -1641,3 +1714,22 @@ pl_prolog_to_os_filename(Word pl, Word os)
   return pl_unify(pl, os);
 #endif /*O_XOS*/
 }
+
+
+#if defined(O_XOS) && defined(__WIN32__)
+word
+pl_make_fat_filemap(Word dir)
+{ char *s = primitiveToString(*dir, FALSE);
+  char pls[MAXPATHLEN];
+
+  if ( s == (char *)NULL )
+    return warning("make_fat_filemap/1: instantiation fault");
+  if ( (s = ExpandOneFile(PrologPath(s, pls))) == (char *)NULL )
+    fail;
+  
+  if ( _xos_make_filemap(s) < 0 )
+    return warning("make_fat_filemap/1: failed: %s", OsError());
+  
+  succeed;
+}
+#endif

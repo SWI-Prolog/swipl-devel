@@ -7,7 +7,7 @@
     Purpose: Windows DDE interface (client side)
 */
 
-#if defined(__WINDOWS__)
+#if defined(__WINDOWS__) || defined(__WIN32__)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Extension of SWI-Prolog:
@@ -56,163 +56,21 @@
 #define WATCOM_DDEACCESS_BUG 1
 #endif
 
-#define MAX_CONVERSATIONS 10   /* Max. number of simultaneous conversations */
-static HCONV conv_handle[MAX_CONVERSATIONS];  /* I assume initialized to 0 */
+#define FASTBUFSIZE 512			/* use local buffer upto here */
+#define MAX_CONVERSATIONS 32		/* Max. # of conversations */
+#define TIMEOUT_VERY_LONG 0x7fffffff;	/* largest positive int */
 
-static DWORD ddeInst;    /* Instance identifier of this process; set by
-                            DdeInitialize.  Zero if initialization not done,
-                            -1 if initialization failed */
+static HCONV conv_handle[MAX_CONVERSATIONS];
+static HCONV server_handle[MAX_CONVERSATIONS];
+static DWORD ddeInst;			/* Instance of this process */
 
-/* Callback function, required by API, but not used for anything in this
-   case */
-#pragma off(unreferenced)
-HDDEDATA CALLBACK 
-DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
-            HDDEDATA hData, DWORD dwData1,  DWORD dwData2)
-{
-  switch(type)
-  {
-     default:
-        return (HDDEDATA)NULL;
-
-  }  /* end switch */
-}
-#pragma on(unreferenced)
-
-
-word
-pl_open_dde_conversation(Word service, Word topic, Word handle)
-{
-  UINT i;
-  HSZ Hservice, Htopic;
-
-  if (!isAtom(*service) || !isAtom(*topic)) {
-    warning("open_dde_conversation/3: input arguments must be atoms");
-    fail;
-  }
-
-  /* Initialize for DDE operations, if not already done */
-  if (ddeInst == (DWORD)NULL)
-    if (DdeInitialize(&ddeInst, (PFNCALLBACK)DdeCallback,
-                      APPCMD_CLIENTONLY | CBF_SKIP_ALLNOTIFICATIONS, 0L)
-        != DMLERR_NO_ERROR) {
-      /* Should probably do better job here; on the other hand, this should
-         never fail */
-      ddeInst = -1;
-      warning("open_dde_conversation/3: DDE initialization failed");
-      fail;
-    }
-
-  /* Establish a connection and get a handle for it */
-  for (i=0; i < MAX_CONVERSATIONS; i++)   /* Find an open slot */
-    if (conv_handle[i] == (HCONV)NULL) break;
-  if (i == MAX_CONVERSATIONS) {
-    warning("open_dde_conversation/3: too many conversations");
-    fail;
-  }
-
-  Hservice = DdeCreateStringHandle(ddeInst, stringAtom(*service), CP_WINANSI);
-  Htopic = DdeCreateStringHandle(ddeInst, stringAtom(*topic), CP_WINANSI);
-  if ((conv_handle[i] = DdeConnect(ddeInst, Hservice, Htopic, 0))
-      == (HCONV)NULL )
-    fail;
-  else
-    TRY(unifyAtomic(handle, consNum(i)));
-
-  DdeFreeStringHandle(ddeInst, Hservice);
-  DdeFreeStringHandle(ddeInst, Htopic);
-  succeed;
-}
-
-
-word
-pl_close_dde_conversation(Word handle)
-{
-  int hdl = valNum(*handle);
-
-  if (!isInteger(*handle)) {
-    warning("close_dde_conversation/1: argument not an integer");
-    fail;
-  }
-  if ( MAX_CONVERSATIONS <= hdl || conv_handle[hdl] == (HCONV)NULL) {
-    warning("close_dde_conversation/1: argument not a conversation handle");
-    fail;
-  }
-  DdeDisconnect(conv_handle[hdl]);
-  conv_handle[hdl] = (HCONV)NULL;
-  succeed;
-}
-
-#define REQ_TIMEOUT 2000   /* Time in milliseconds to wait for response
-                              (should probably be an optional arg. to call) */
-word
-pl_dde_request(Word handle, Word item, Word value)
-{
-  int hdl = valNum(*handle);
-  int rval;
-  int ddeErr;
-  HSZ Hitem;
-  char * itemstr = NULL;
-  DWORD result, valuelen;
-  HDDEDATA Hvalue;
-
-  /* Should do more validation here: active handle */
-  if (isAtom(*item)) itemstr = stringAtom(*item);
-  else if (isString(*item)) itemstr = valString(*item);
-  else ddeErr = DMLERR_FIRST - 1;  /* Bad argument type */
-  
-  /* Make the request */
-  if (itemstr != NULL) {
-      Hitem = DdeCreateStringHandle(ddeInst, itemstr, CP_WINANSI);
-      Hvalue = DdeClientTransaction(NULL, 0, conv_handle[hdl], Hitem, CF_TEXT,
-                                       XTYP_REQUEST, REQ_TIMEOUT, &result);
-      ddeErr = DdeGetLastError(ddeInst);
-      DdeFreeStringHandle(ddeInst, Hitem);
-  }
-
-  /* If successful, copy the data to a local string and "atomize" it */
-  if (ddeErr == DMLERR_NO_ERROR) {
-    char * valuebuf;
-#ifdef WATCOM_DDEACCESS_BUG
-    /* Watcom's DdeAccessData is declared to return a 32-bit near ptr, but actually
-       delivers a 16-bit far; the following is to work around this */
-    LPARAM valuefp;
-    char far * valuedata;
-    valuefp = (LPARAM)DdeAccessData(Hvalue, &valuelen);
-    valuedata = MK_FP32((void *)valuefp);
-    valuebuf = (char *)malloc((size_t)valuelen+1);
-    _fstrncpy(valuebuf, valuedata, valuelen+1);
-#else
-    char * valuedata;
-    valuedata = DdeAccessData(Hvalue, &valuelen);
-    valuebuf = (char *)malloc((size_t)valuelen+1);
-    strncpy(valuebuf, valuedata, valuelen+1);
-#endif
-    DdeUnaccessData(Hvalue);
-    valuebuf[valuelen] = '\0';
-    rval = unifyAtomic(value, lookupAtom(valuebuf));
-    free(valuebuf);
-    return rval;
-  }
-  else {
-    /* Unsuccessful, put together an error term telling why */
-    term errterm;
-    char * errmsg;
-
-    switch (ddeErr) {
-    case DMLERR_BUSY:            errmsg = "Server busy"; break;
-    case DMLERR_DATAACKTIMEOUT:  errmsg = "Request timed out"; break;
-    case DMLERR_SERVER_DIED:     errmsg = "Server disconnected"; break;
-    case DMLERR_FIRST -1:        errmsg = "Bad item argument type"; break;   
-    default:                     errmsg = "Unknown error"; break;
-    }
-    errterm = PL_new_term();
-    PL_unify_functor(errterm, PL_new_functor(PL_new_atom("error"), 1));
-    unifyAtomic(PL_arg(errterm, 1), lookupAtom(errmsg));
-    return pl_unify(value, errterm);
-  }
-}
-
+static Module	  MODULE_dde;		/* win_dde */
+static FunctorDef FUNCTOR_dde_connect3;
+static FunctorDef FUNCTOR_dde_connect_confirm3;
+static FunctorDef FUNCTOR_dde_disconnect1;
+static FunctorDef FUNCTOR_dde_request4;
+static FunctorDef FUNCTOR_dde_execute3;
+static FunctorDef FUNCTOR_error1;
 
 static word
 dde_warning(char *cmd)
@@ -240,29 +98,438 @@ dde_warning(char *cmd)
 }
 
 
+static Atom
+hszToAtom(HSZ hsz)
+{ char buf[FASTBUFSIZE];
+  int len;
+
+  if ( !(len=DdeQueryString(ddeInst, hsz, buf, sizeof(buf)-1, CP_WINANSI)) )
+  { dde_warning("string handle");
+    return NULL;
+  }
+
+  if ( len == sizeof(buf)-1 )
+  { if ( (len=DdeQueryString(ddeInst, hsz, NULL, 0, CP_WINANSI)) > 0 )
+    { char *b2 = malloc(len+1);
+      Atom a;
+      
+      DdeQueryString(ddeInst, hsz, b2, len+1, CP_WINANSI);
+      a = lookupAtom(b2);
+      free(b2);
+
+      return a;
+    }
+
+    dde_warning("string handle");
+  }
+
+  return lookupAtom(buf);
+}
+
+
+static word
+hdataToString(HDDEDATA data)
+{ char buf[FASTBUFSIZE];
+  int len;
+
+  if ( !(len=DdeGetData(data, buf, sizeof(buf)-1, 0)) )
+  { dde_warning("data handle");
+    return (word)NULL;
+  }
+
+  if ( len == sizeof(buf)-1 )
+  { if ( (len=DdeGetData(data, NULL, 0, 0)) > 0 )
+    { char *b2 = malloc(len+1);
+      word s;
+      
+      DdeGetData(data, b2, len, 0);
+      b2[len] = '\0';
+      s = globalString(b2);
+      free(b2);
+
+      return s;
+    }
+
+    dde_warning("data handle");
+  }
+
+  return globalString(buf);
+}
+
+
+static HSZ
+wordToHsz(word data)
+{ char *s;
+
+  if ( (s = primitiveToString(data, FALSE)) )
+    return DdeCreateStringHandle(ddeInst, s, CP_WINANSI);
+
+  return (HSZ) NULL;
+}
+
+
+static int
+allocServerHandle(HCONV handle)
+{ int i;
+
+  for(i=0; i<MAX_CONVERSATIONS; i++)
+  { if ( !server_handle[i] )
+    { server_handle[i] = handle;
+      return i;
+    }
+  }
+
+  return -1;
+}
+
+
+static int
+findServerHandle(HCONV handle)
+{ int i;
+
+  for(i=0; i<MAX_CONVERSATIONS; i++)
+  { if ( server_handle[i] == handle )
+      return i;
+  }
+
+  return -1;
+}
+
+
+static HDDEDATA CALLBACK 
+DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
+            HDDEDATA hData, DWORD dwData1, DWORD dwData2)
+{
+  switch(type)
+  {  case XTYP_CONNECT:
+     { word goal;
+       mark m;
+       int rval;
+
+       Mark(m);
+       goal = globalFunctor(FUNCTOR_dde_connect3);
+       argTerm(goal, 0) = (word) hszToAtom(hsz2); /* topic */
+       argTerm(goal, 1) = (word) hszToAtom(hsz1); /* service */
+       argTerm(goal, 2) = (dwData2 ? consNum(1) : consNum(0)); /* same inst */
+       rval = callGoal(MODULE_dde, goal, TRUE);
+       Undo(m);
+       
+       return rval ? TRUE : FALSE;
+     }
+     case XTYP_CONNECT_CONFIRM:
+     { word goal;
+       mark m;
+       int rval;
+       int plhandle;
+
+       if ( (plhandle = allocServerHandle(hconv)) < 0 )
+       { warning("No more DDE server handles");
+	 return FALSE;
+       }
+
+       Mark(m);
+       goal = globalFunctor(FUNCTOR_dde_connect_confirm3);
+       argTerm(goal, 0) = (word) hszToAtom(hsz2); /* topic */
+       argTerm(goal, 1) = (word) hszToAtom(hsz1); /* service */
+       argTerm(goal, 2) = consNum(plhandle);
+       rval = callGoal(MODULE_dde, goal, TRUE);
+       Undo(m);
+       
+       return rval ? TRUE : FALSE; 
+     }
+     case XTYP_DISCONNECT:
+     { word goal;
+       mark m;
+       int rval;
+       int plhandle = findServerHandle(hconv);
+       
+       if ( plhandle >= 0 && plhandle < MAX_CONVERSATIONS )
+	 server_handle[plhandle] = (HCONV)NULL;
+
+       Mark(m);
+       goal = globalFunctor(FUNCTOR_dde_disconnect1);
+       argTerm(goal, 0) = consNum(plhandle);      /* handle */
+       rval = callGoal(MODULE_dde, goal, TRUE);
+       Undo(m);
+       
+       return rval ? TRUE : FALSE;
+     }
+     case XTYP_EXECUTE:
+     { Atom topic = hszToAtom(hsz1);
+       word data;
+       mark m;
+       int plhandle = findServerHandle(hconv);
+       HDDEDATA rval = DDE_FNOTPROCESSED;
+
+       Mark(m);
+
+       if ( (data = hdataToString(hData)) )
+       { word goal = globalFunctor(FUNCTOR_dde_execute3);
+
+	 argTerm(goal, 0) = consNum(plhandle);
+	 argTerm(goal, 1) = (word) topic;
+	 argTerm(goal, 2) = data;
+	 if ( callGoal(MODULE_dde, goal, TRUE) )
+	   rval = DDE_FACK;
+	 
+	 DdeFreeDataHandle(hData);
+       } else
+	 dde_warning("DdeAccessData()");
+
+       Undo(m);
+       return rval;
+     }
+     case XTYP_REQUEST:
+     { HDDEDATA data = (HDDEDATA) NULL;
+
+       if ( fmt == CF_TEXT )
+       { Atom topic = hszToAtom(hsz1);
+	 Atom item  = hszToAtom(hsz2);
+	 word goal;
+	 mark m;
+	 int plhandle = findServerHandle(hconv);
+	   
+	 Mark(m);
+	 goal = globalFunctor(FUNCTOR_dde_request4);
+	 argTerm(goal, 0) = consNum(plhandle);
+	 argTerm(goal, 1) = (word) topic;
+	 argTerm(goal, 2) = (word) item;
+	 if ( callGoal(MODULE_dde, goal, TRUE) )
+	 { Word rval = argTermP(goal, 3);
+	   char *s;
+
+	   if ( (s = primitiveToString(*rval, FALSE)) )
+	   { data = DdeCreateDataHandle(ddeInst, s, strlen(s)+1,
+					0, hsz2, CF_TEXT, 0);
+	   }
+	 }
+	 Undo(m);
+       } 
+
+       return data;
+     }
+     default:
+       ;
+  }
+
+  return (HDDEDATA)NULL;
+}
+
+
+static int
+dde_initialise()
+{ if ( ddeInst == (DWORD)NULL )
+  { if (DdeInitialize(&ddeInst, (PFNCALLBACK)DdeCallback,
+		      APPCLASS_STANDARD|CBF_FAIL_ADVISES|CBF_FAIL_POKES|
+		      CBF_SKIP_REGISTRATIONS|CBF_SKIP_UNREGISTRATIONS,
+		      0L)
+	!= DMLERR_NO_ERROR)
+    { ddeInst = (DWORD) -1;
+      return dde_warning("initialise");
+      fail;
+    }
+
+    MODULE_dde = lookupModule(lookupAtom("win_dde"));
+
+    FUNCTOR_dde_connect3  =
+	lookupFunctorDef(lookupAtom("$dde_connect"), 3);
+    FUNCTOR_dde_connect_confirm3 =
+	lookupFunctorDef(lookupAtom("$dde_connect_confirm"), 3);
+    FUNCTOR_dde_disconnect1 =
+        lookupFunctorDef(lookupAtom("$dde_disconnect"), 1);
+    FUNCTOR_dde_request4  =
+	lookupFunctorDef(lookupAtom("$dde_request"), 4);
+    FUNCTOR_dde_execute3  =
+	lookupFunctorDef(lookupAtom("$dde_execute"), 3);
+    FUNCTOR_error1        =
+        lookupFunctorDef(lookupAtom("error"), 1);
+  }
+
+  succeed;
+}
+
+
 word
-pl_dde_execute(Word handle, Word command)
-{ int hdl = valNum(*handle);
+pl_dde_register_service(Word topic, Word onoff)
+{ HSZ t;
+
+  TRY(dde_initialise());
+
+  if ( !(t=wordToHsz(*topic)) )
+    return warning("dde_register_topic/1: instantiation fault");
+
+  if ( *onoff == (word)ATOM_off )
+  { int rval = (int)DdeNameService(ddeInst, t, 0L, DNS_UNREGISTER);
+    DdeFreeStringHandle(ddeInst, t);
+    return rval ? TRUE : FALSE;
+  } else
+  { if ( DdeNameService(ddeInst, t, 0L, DNS_REGISTER|DNS_FILTERON) )
+      succeed;				/* should we free too? */
+
+    DdeFreeStringHandle(ddeInst, t);
+    return dde_warning("dde_register_request");
+  }
+}
+
+
+word
+pl_open_dde_conversation(Word service, Word topic, Word handle)
+{ UINT i;
+  HSZ Hservice, Htopic;
+
+  if (!isAtom(*service) || !isAtom(*topic)) {
+    warning("open_dde_conversation/3: input arguments must be atoms");
+    fail;
+  }
+
+  if ( !dde_initialise() )
+    fail;
+
+  /* Establish a connection and get a handle for it */
+  for (i=0; i < MAX_CONVERSATIONS; i++)   /* Find an open slot */
+    if (conv_handle[i] == (HCONV)NULL) break;
+  if (i == MAX_CONVERSATIONS) {
+    warning("open_dde_conversation/3: too many conversations");
+    fail;
+  }
+
+  Hservice = DdeCreateStringHandle(ddeInst, stringAtom(*service), CP_WINANSI);
+  Htopic = DdeCreateStringHandle(ddeInst, stringAtom(*topic), CP_WINANSI);
+
+  if ( !(conv_handle[i] = DdeConnect(ddeInst, Hservice, Htopic, 0)) )
+    fail;
+  else
+    TRY(unifyAtomic(handle, consNum(i)));
+
+  DdeFreeStringHandle(ddeInst, Hservice);
+  DdeFreeStringHandle(ddeInst, Htopic);
+  succeed;
+}
+
+
+static int
+wordToConvHandle(word handle)
+{ if ( isInteger(handle) )
+  { int h = valNum(handle);
+
+    if ( h >= 0 && h < MAX_CONVERSATIONS && conv_handle[h] )
+      return h;
+  }
+
+  return -1;
+}
+
+
+word
+pl_close_dde_conversation(Word handle)
+{ int hdl;
+
+  if ( (hdl = wordToConvHandle(*handle)) < 0 )
+    return warning("close_dde_conversation/1: invalid handle");
+
+  DdeDisconnect(conv_handle[hdl]);
+  conv_handle[hdl] = (HCONV)NULL;
+
+  succeed;
+}
+
+
+word
+pl_dde_request(Word handle, Word item, Word value, Word timeout)
+{ int hdl;
+  int rval;
+  int ddeErr;
+  HSZ Hitem;
+  DWORD result, valuelen;
+  HDDEDATA Hvalue;
+  DWORD tmo;
+
+  if ( (hdl = wordToConvHandle(*handle)) < 0 )
+    return warning("dde_request/4: invalid handle");
+  if ( !(Hitem = wordToHsz(*item)) )
+    return warning("dde_request/4: invalid item");
+  if ( !isInteger(*timeout) )
+    return warning("dde_request/4: invalid timeout");
+  tmo = valNum(*timeout);
+  if ( tmo <= 0 )
+    tmo = TIMEOUT_VERY_LONG;
+
+  Hvalue = DdeClientTransaction(NULL, 0, conv_handle[hdl], Hitem, CF_TEXT,
+				XTYP_REQUEST, tmo, &result);
+  ddeErr = DdeGetLastError(ddeInst);
+  DdeFreeStringHandle(ddeInst, Hitem);
+
+  if ( ddeErr == DMLERR_NO_ERROR)
+  { char * valuebuf;
+#ifdef WATCOM_DDEACCESS_BUG
+    /* Watcom's DdeAccessData is declared to return a 32-bit near ptr, but actually
+       delivers a 16-bit far; the following is to work around this */
+    LPARAM valuefp;
+    char far * valuedata;
+    valuefp = (LPARAM)DdeAccessData(Hvalue, &valuelen);
+    valuedata = MK_FP32((void *)valuefp);
+    valuebuf = (char *)malloc((size_t)valuelen+1);
+    _fstrncpy(valuebuf, valuedata, valuelen+1);
+#else
+    char * valuedata;
+    valuedata = DdeAccessData(Hvalue, &valuelen);
+    valuebuf = (char *)malloc((size_t)valuelen+1);
+    strncpy(valuebuf, valuedata, valuelen+1);
+#endif
+    DdeUnaccessData(Hvalue);
+    valuebuf[valuelen] = '\0';
+    rval = unifyAtomic(value, lookupAtom(valuebuf));
+    free(valuebuf);
+    return rval;
+  } else
+  { char * errmsg;
+
+    switch (ddeErr)
+    { case DMLERR_BUSY:            errmsg = "Server busy"; break;
+      case DMLERR_DATAACKTIMEOUT:  errmsg = "Request timed out"; break;
+      case DMLERR_SERVER_DIED:     errmsg = "Server disconnected"; break;
+      default:                     errmsg = "Unknown error"; break;
+    }
+
+    if ( unifyFunctor(value, FUNCTOR_error1) &&
+	 unifyAtomic(argTermP(value, 1), lookupAtom(errmsg)) )
+      succeed;
+
+    fail;
+  }
+}
+
+
+
+word
+pl_dde_execute(Word handle, Word command, Word timeout)
+{ int hdl;
   char *cmdstr;
   HDDEDATA Hvalue, data;
   DWORD result;
+  DWORD tmo;
 
-  if ( !isInteger(*handle) ||
-       (cmdstr = primitiveToString(*command, FALSE)) == NULL )
-    return warning("dde_execute/2: instantiation fault");
-  if ( !conv_handle[hdl] )
-    return warning("dde_execute/2: invalid handle");
+  if ( (hdl = wordToConvHandle(*handle)) < 0 )
+    return warning("dde_execute/3: invalid handle");
+  if ( (cmdstr = primitiveToString(*command, FALSE)) == NULL )
+    return warning("dde_execute/3: invalid command");
+  if ( !isInteger(*timeout) )
+    return warning("dde_execute/2: invalid timeout");
+
+  tmo = valNum(*timeout);
+  if ( tmo <= 0 )
+    tmo = TIMEOUT_VERY_LONG;
 
   if ( !(data = DdeCreateDataHandle(ddeInst, cmdstr, strlen(cmdstr)+1,
 				    0, 0, CF_TEXT, 0)) )
-    return dde_warning("dde_execute/2");
+    return dde_warning("dde_execute/3");
 
-  Hvalue = DdeClientTransaction(data, -1,
+  Hvalue = DdeClientTransaction((LPBYTE) data, (DWORD) -1,
 				conv_handle[hdl], 0L, 0,
-				XTYP_EXECUTE, REQ_TIMEOUT, &result);
+				XTYP_EXECUTE, tmo, &result);
   if ( Hvalue )
     succeed;
-  
+
   return dde_warning("dde_execute/2");
 }
 

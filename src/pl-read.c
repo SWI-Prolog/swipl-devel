@@ -7,9 +7,9 @@
     Purpose: read/1, 2
 */
 
+#include <math.h>
 #include "pl-incl.h"
 #include "pl-ctype.h"
-#include <math.h>
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module defines the Prolog parser.  Reading a term takes two passes:
@@ -38,7 +38,7 @@ forwards void	stopRead(void);
 forwards void	errorWarning(char *);
 forwards void	singletonWarning(Atom *, int);
 forwards void	clearBuffer(void);
-forwards void	addToBuffer(char);
+forwards void	addToBuffer(int);
 forwards char *	raw_read2(void);
 forwards char *	raw_read(void);
 
@@ -255,7 +255,7 @@ clearBuffer()
 
 
 static void
-addToBuffer(register char c)
+addToBuffer(int c)
 { if (rb.left-- == 0)
   { if ((rb.base = Realloc(rb.base, rb.size * 2)) == (char *)NULL)
       fatalError("%s", OsError());
@@ -265,7 +265,7 @@ addToBuffer(register char c)
     rb.left = rb.size - 1;
     rb.size *= 2;
   }
-  *rb.here++ = c;
+  *rb.here++ = c & 0xff;
 }
 
 
@@ -1295,7 +1295,7 @@ read_term(Word term, Word variables, bool check)
 #endif
     if ( var->times != 1 || var->address != (Word)NULL )
       sysError("Error while reading a single variable??");
-    var->address = allocGlobal(sizeof(word));
+    var->address = allocGlobal(1);
     setVar(*var->address);
     result = makeRef(var->address);
   }

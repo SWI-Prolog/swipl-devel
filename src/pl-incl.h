@@ -10,6 +10,20 @@
 #ifndef _PL_INCLUDE_H
 #define _PL_INCLUDE_H
 
+#ifdef __WIN32__
+#define MD "config/win32.h"
+#define PLHOME       "c:/pl"
+#define DEFSTARTUP   ".plrc"
+#define PLVERSION    "2.0.6"
+#define ARCH	     "i386-win32"
+#define C_LIBS	     "-lreadline -lconsole -luxnt"
+#define C_STATICLIBS ""
+#define C_CC	     "msvc++ 2.0"
+#define C_LDFLAGS    ""
+#else
+#include "parms.h"
+#endif
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 First, include config.h or, if MD is  specified, this file.  This allows
 for -DMD="md-mswin.h"
@@ -108,13 +122,17 @@ This has worked on TURBO_C not very long ago.
 #define unix 1
 #endif
 
+#if HAVE_XOS_H
+#include <xos.h>
+#endif
+#ifdef HAVE_UXNT_H
+#include <uxnt.h>
+#endif
+
 #ifndef CONFTEST
 #include "pl-stream.h"
 #else
 #include <stdio.h>			/* for testing pl-save.c */
-#endif
-#if O_XOS
-#include <xos/xos.h>
 #endif
 
 #include <sys/types.h>
@@ -149,14 +167,19 @@ This has worked on TURBO_C not very long ago.
 A common basis for C keywords.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if !__GNUC__ || __STRICT_ANSI__
-#define volatile		/* volatile functions do not return */
-#ifndef inline
-#define inline			/* inline functions are integrated in */
-				/* their caller */
+#if __GNUC__ && !__STRICT_ANSI__
+#define HAVE_INLINE 1
+#define HAVE_VOLATILE 1
 #endif
-#define signed			/* some compilers don't have this. */
+
+#if !defined(HAVE_INLINE) && !defined(inline)
+#define inline
 #endif
+
+#ifndef HAVE_VOLATILE
+#define volatile
+#endif
+
 
 #if __STRICT_ANSI__
 #undef TAGGED_LVALUE
@@ -182,6 +205,14 @@ typedef int			bool;
 typedef double			real;
 typedef void *			Void;
 
+#if __GNUC__ && !__STRICT_ANSI__
+#define LocalArray(t, n, s)	t n[s]
+#else
+#define LocalArray(t, n, s)	t *n = (t *) alloca((s)*sizeof(t))
+#endif
+
+#define TermVector(name, s)	LocalArray(Word, name, s)
+
 #if HAVE_SIGNAL
 #define MAXSIGNAL		32	/* highest system signal number */
 
@@ -203,7 +234,7 @@ GLOBAL struct
 #define fail			return FALSE
 #define TRY(goal)		{ if ((goal) == FALSE) fail; }
 
-typedef char *			caddress;
+typedef void *			caddress;
 
 #define EOS			('\0')
 #define ESC			((char) 27)
@@ -231,10 +262,10 @@ redesign of parts of the compiler.
 #define MAXARITY		128	/* arity of predicate */
 #define MAXVARIABLES		256	/* number of variables/clause */
 
-				/* Prolog's largest int */
-#define PLMAXINT		((1L<<(32 - MASK_BITS - LMASK_BITS - 1)) - 1)
-				/* Prolog's smallest int */
+				/* Prolog's integer range */
 #define PLMININT		(-(1L<<(32 - MASK_BITS - LMASK_BITS - 1)))
+#define PLMAXINT		(-PLMININT - 1)
+
 #if vax
 #define MAXREAL			(1.701411834604692293e+38)
 #else					/* IEEE double */
@@ -281,6 +312,11 @@ consistent  with  the  definitions  in  pl-itf.h, which is included with
 users foreign language code.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef AVOID_0X80000000_BIT
+#define FRG_MASK	(0x20000000L)
+#define FRG_BITS	3
+#define FRG_CUT		(0x40000000L)
+#else /*AVOID_0X80000000_BIT*/
 #ifdef DATA_AT_0X4
 #define FRG_MASK	(0x20000000L)		/* Mask to indicate redo */
 #define FRG_BITS	3
@@ -289,6 +325,7 @@ users foreign language code.
 #define FRG_BITS	2
 #endif
 #define FRG_CUT 	(0x80000000L)		/* highest bit */
+#endif /*AVOID_0X80000000_BIT*/
 #define FRG_MASK_MASK	(FRG_CUT|FRG_MASK)
 
 #define FRG_FIRST_CALL	(0)
@@ -570,6 +607,40 @@ tag bits on bits 32, 31 and 29 instead of 32, 31 and 30.   This  reduces
 the range of integers to +- 2^25.  (Macros have to be rewritten))
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef AVOID_0X80000000_BIT
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+WIN32/WIN32S stuff.  WIN32  allocates  memory   from  low  addresses and
+doesn't permit allocations above 0x80000000L.   WIN32S allocation starts
+at 0x80000000L.  For  indirect  datatypes,  we   use  the  REF_MASK  for
+distinquishing between reals and strings.  I think   this is ok, but the
+garbage collector needs to be tested.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define REF_MASK	0x40000000L	/* Reference */
+#define INDIRECT_MASK	0x20000000L	/* Indirect datatype */
+#define INT_MASK	0x10000000L	/* Integer mask */
+#define MARK_MASK	0x00000001L	/* GC mark */
+#define FIRST_MASK	0x00000002L	/* GC first mark */
+#define STRING_MASK	0x30000000L	/* String (indirect) */
+#define REAL_MASK	0x70000000L	/* Real (indirect) */
+
+#define MASK_MASK	(INT_MASK|REF_MASK|INDIRECT_MASK|FIRST_MASK)
+#define DATA_TAG_MASK	0x70000000L	/* Indirect data mask */
+
+#define MASK_BITS	3		/* high-word masks */
+#define LMASK_BITS	2		/* low-word masks */
+#define DMASK_BITS	4
+
+#define makeRef(p)	((word)(p) | REF_MASK)
+#define unRef(w)	((Word)((word)(w) & ~REF_MASK))
+#define isRef(w)	((word)(w) & REF_MASK)
+
+#define consNum(i)	fconsNum(i)
+#define valNum(i)	fvalNum(i)
+
+#else /*AVOID_0X80000000_BIT*/
+
 #define REF_MASK	0x80000000L	/* Reference (= negative) */
 #define MARK_MASK	0x00000001L	/* GC marking bit */
 
@@ -646,6 +717,7 @@ as for low addresses (< 0x20000000L), but  we place the reference tag on
 #define DATA_TAG_MASK	0xf0000000L	/* Indirect data type mask */
 
 #endif /* O_16_BITS */
+#endif /*AVOID_0X80000000_BIT*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Common Prolog objects typedefs.
@@ -746,7 +818,7 @@ Handling environment (or local stack) frames.
 					     : (LocalFrame)varFrame((f), -1))
 #define slotsFrame(f)		(true((f)->procedure->definition, FOREIGN) ? \
 				      (f)->procedure->functor->arity : \
-				      (f)->clause->variables)
+				      (f)->clause->prolog_vars)
 #define contextModule(f)	((f)->context)
 
 #define leaveClause(clause) { if ( --clause->references == 0 && \
@@ -770,6 +842,12 @@ AIX  version  we  substract  this value and add it again when converting
 integers to pointers.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef __WIN32__
+
+#define PTR_TO_NUM_OFFSET ptr_to_num_offset
+GLOBAL unsigned long ptr_to_num_offset;
+
+#else /*__WIN32__*/
 #ifdef DATA_AT_0X8
 #define PTR_TO_NUM_OFFSET	  0x80000000L
 #else
@@ -787,9 +865,10 @@ integers to pointers.
 #    endif
 #  endif
 #endif
+#endif /*__WIN32__*/
 
-#define pointerToNum(p)	   consNum(((long)(p)-PTR_TO_NUM_OFFSET)/sizeof(int))
-#define numToPointer(n)	   ((Word)(valNum(n)*sizeof(int)+PTR_TO_NUM_OFFSET))
+#define pointerToNum(p) consNum(((unsigned long)(p)-PTR_TO_NUM_OFFSET)/sizeof(int))
+#define numToPointer(n) ((Word)(valNum(n)*sizeof(int)+PTR_TO_NUM_OFFSET))
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -799,7 +878,10 @@ for a pointer.
 
 #define unMask(w)		((w) & ~MASK_MASK)
 #define mask(w)			(w & MASK_MASK)
+#ifndef consNum
 #define consNum(n)		((word) (unMask((n)<<LMASK_BITS) | INT_MASK))
+#endif
+#ifndef valNum
 #ifdef DATA_AT_0X4
 #define valNum(w)               ((long) ((((w) & SIGN_MASK) << SIGN_OFFSET) | \
 				 (unMask(w) << MASK_BITS)) >> \
@@ -807,8 +889,8 @@ for a pointer.
 #else
 #define valNum(w)		((long)((w)<<MASK_BITS)>>(MASK_BITS+LMASK_BITS))
 #endif
+#endif
 
-#define consNumFromCode(c)	consNum((signed short)(c))
 #define valReal(w)		unpack_real((Word)unMask(w))
 #if O_STRING
 #define allocSizeString(l)	(ROUND(l+1, sizeof(word)) + 2 * sizeof(word))
@@ -932,7 +1014,8 @@ struct clause
   unsigned int	references;	/* no of. references from interpreter */
   short		code_size;	/* size of byte code array */
   short		subclauses;	/* number of subclauses in body (decompiler) */
-  code		variables;	/* number of variables */
+  short		variables;		/* # of variables for frame */
+  short		prolog_vars;		/* # real Prolog variables */
   unsigned short	line_no;	/* Source line-number */
   unsigned short	source_no;	/* Index of source-file */
   unsigned short	flags;		/* Flag field holding: */
@@ -1105,19 +1188,22 @@ struct symbol
 		*             STACKS            *
 		*********************************/
 
+#ifdef small				/* defined by MSVC++ 2.0 windows.h */
+#undef small
+#endif
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 If we have access to the virtual   memory management of the machine, use
 this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if MMAP_STACK || O_SHARED_MEMORY
+#if MMAP_STACK || O_SHARED_MEMORY || HAVE_VIRTUAL_ALLOC
 #define O_DYNAMIC_STACKS 1
 #else
 #ifndef O_SHIFT_STACKS
 #define O_SHIFT_STACKS 1
 #endif
 #endif
-
 
 #if O_SHARED_MEMORY
 #define O_SHM_FREE_IMMEDIATE 1
@@ -1364,7 +1450,7 @@ Tracer communication declarations.
 #define SYSTEM_MODE	    (debugstatus.styleCheck & DOLLAR_STYLE)
 
 GLOBAL struct debuginfo
-{ long		skiplevel;		/* current skip level */
+{ unsigned long	skiplevel;		/* current skip level */
   bool		tracing;		/* are we tracing? */
   bool		debugging;		/* are we debugging? */
   unsigned long leashing;		/* ports we are leashing */

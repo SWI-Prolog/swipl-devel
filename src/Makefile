@@ -15,7 +15,7 @@
 #
 ################################################################
 
-PLVERSION=2.0.5
+PLVERSION=2.0.6
 
 PL=pl
 prefix=/staff/jan
@@ -26,8 +26,8 @@ mansec=1
 mandir=$(prefix)/man/man$(mansec)
 
 CC=gcc
-LIBS= -lreadline -ltermcap -lm
-STATICLIBS=
+LIBS= -lreadline -ltermcap -lm -ldl
+STATICLIBS=/usr/lib/libc.a
 AWK=nawk
 SED=sed
 LD_R=ld -r
@@ -38,11 +38,11 @@ INSTALL_PROGRAM=${INSTALL}
 INSTALL_DATA=${INSTALL} -m 644
 
 COFLAGS=-O2
-CWFLAGS=-Wall
+CWFLAGS=
 CIFLAGS=
 CMFLAGS=-funsigned-char
 CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS)
-LDFLAGS= -static
+LDFLAGS=
 
 PLFOREIGN=foreign.pl
 

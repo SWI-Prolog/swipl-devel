@@ -102,10 +102,10 @@
 /* #undef O_MACH_FOREIGN */
 
 /* Define if BSD Unix ld -A foreign language interface is to be used */
-#define O_FOREIGN 1
+/* #undef O_FOREIGN */
 
 /* Define if ld accepts -A option */
-#define HAVE_LD_A 1
+/* #undef HAVE_LD_A */
 
 /* Define if /dev/null is named differently */
 /* #undef DEVNULL */
@@ -120,10 +120,10 @@
 /* #undef NEED_DECL_ERRNO */
 
 /* Define to "file.h" to include additional system prototypes */
-#define SYSLIB_H "syslib.h"
+/* #undef SYSLIB_H */
 
 /* Define how to invoke the linker for incremental linking (default: ld) */
-#define LD_COMMAND "gcc"
+/* #undef LD_COMMAND */
 
 /* Define to make runtime version */
 /* #undef O_RUNTIME */
@@ -135,7 +135,7 @@
 #define HAVE_CHMOD 1
 
 /* Define if you have the dlopen function.  */
-/* #undef HAVE_DLOPEN */
+#define HAVE_DLOPEN 1
 
 /* Define if you have the dossleep function.  */
 /* #undef HAVE_DOSSLEEP */
@@ -270,7 +270,7 @@
 #define HAVE_UNISTD_H 1
 
 /* Define if you have the dl library (-ldl).  */
-/* #undef HAVE_LIBDL */
+#define HAVE_LIBDL 1
 
 /* Define if you have the elf library (-lelf).  */
 /* #undef HAVE_LIBELF */

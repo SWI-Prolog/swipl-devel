@@ -123,7 +123,7 @@ pl_format(Word fmt, register Word args)
 
     if ( (argc = lengthList(args)) < 0 )
       return warning("format/2: argument list is not proper");
-    ap = argv = allocGlobal(argc * sizeof(word));
+    ap = argv = allocGlobal(argc);
 
     while( isList(*args) )
     { Word a = HeadList(args);

@@ -7,17 +7,33 @@
     Purpose: SWI-Prolog IO streams
 */
 
+#ifdef __WIN32__
+#include <uxnt.h>
+#define MD "config/win32.h"
+#endif
+
+#ifdef MD
+#include MD
+#else
+#include "config.h"
+#endif
+
+#define _MAKE_DLL
+#undef _export
 #include "pl-stream.h"
 #include <errno.h>
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #endif HAVE_MALLOC_H
 #include <memory.h>
+#include <string.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <ctype.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 #include <stdio.h>			/* sprintf() for numeric values */
 #include <assert.h>
 #ifdef SYSLIB_H
@@ -30,6 +46,8 @@
 #ifndef TRUE
 #define TRUE 1
 #endif
+
+#define char_to_int(c)	(0xff & (int)(c))
 
 int Slinesize = SIO_LINESIZE;		/* Sgets() buffer size */
 
@@ -103,6 +121,7 @@ S__flushbufc(int c, IOSTREAM *s)
   return c;
 }
 
+
 static int
 S__fillbuf(IOSTREAM *s)
 { if ( s->flags & (SIO_FEOF|SIO_FERR) )
@@ -113,7 +132,7 @@ S__fillbuf(IOSTREAM *s)
     int n;
 
     if ( (n=(*s->functions->read)(s->handle, &chr, 1)) == 1 )
-    { return (int) chr;
+    { return char_to_int(chr);
     } else if ( n == 0 )
     { s->flags |= SIO_FEOF;
       return EOF;
@@ -132,7 +151,7 @@ S__fillbuf(IOSTREAM *s)
     if ( (n=(*s->functions->read)(s->handle, s->buffer, s->bufsize)) > 0 )
     { s->bufp = s->buffer;
       s->limitp = &s->buffer[n];
-      return (int) *s->bufp++;
+      return char_to_int(*s->bufp++);
     } else
     { s->bufp = s->buffer;		/* empty the buffer */
       s->limitp = s->buffer;
@@ -161,6 +180,9 @@ S__updatefilepos(IOPOS *p, int c)
       p->linepos = 0;
 /*    p->flags &= ~SIO_NOLINEPOS; TBD*/
       break;
+    case '\r':
+      p->linepos = 0;
+      break;
     case '\b':
       if ( p->linepos > 0 )
 	p->linepos--;
@@ -179,7 +201,9 @@ S__updatefilepos(IOPOS *p, int c)
 
 int
 Sputc(int c, IOSTREAM *s)
-{ if ( s->bufp < s->limitp )
+{ c &= 0xff;
+
+  if ( s->bufp < s->limitp )
     *s->bufp++ = (char)c;
   else
   { if ( S__flushbufc(c, s) < 0 )
@@ -203,7 +227,7 @@ Sgetc(IOSTREAM *s)
 { int c;
 
   if ( s->bufp < s->limitp )
-    c = *s->bufp++;
+    c = (int) *s->bufp++ & 0xff;
   else
     c = S__fillbuf(s);
 
@@ -230,12 +254,13 @@ Sungetc(int c, IOSTREAM *s)
 
 int
 Sputw(int w, IOSTREAM *s)
-{ char *q = (char *)&w;
+{ unsigned char *q = (unsigned char *)&w;
   int n;
 
   for(n=0; n<sizeof(w); n++)
-    if ( Sputc(*q++, s) < 0 )
+  { if ( Sputc(*q++, s) < 0 )
       return -1;
+  }
 
   return w;
 }
@@ -244,7 +269,7 @@ Sputw(int w, IOSTREAM *s)
 int
 Sgetw(IOSTREAM *s)
 { int w;
-  char *q = (char *)&w;
+  unsigned char *q = (unsigned char *)&w;
   int n;
 
   for(n=0; n<sizeof(w); n++)
@@ -256,6 +281,40 @@ Sgetw(IOSTREAM *s)
   }
 
   return w;
+}
+
+		 /*******************************
+		 *	    FREAD/FWRITE	*
+		 *******************************/
+
+int
+Sfread(void *data, int size, int elms, IOSTREAM *s)
+{ int chars = size * elms;
+  char *buf = data;
+
+  for( ; chars > 0; chars-- )
+  { int c;
+
+    if ( (c = Sgetc(s)) == EOF )
+      break;
+
+    *buf++ = c;
+  }
+  
+  return chars ? elms : (elms - (chars+size-1)/size);
+}
+
+
+int
+Sfwrite(void *data, int size, int elms, IOSTREAM *s)
+{ int chars = size * elms;
+  char *buf = data;
+
+  for( ; chars > 0; chars-- )
+    if ( Sputc(*buf++, s) < 0 )
+      break;
+  
+  return chars ? elms : (elms - (chars+size-1)/size);
 }
 
 
@@ -315,6 +374,10 @@ Sseek(IOSTREAM *s, long pos, int whence)
   s->limitp = s->buffer;
   s->flags &= ~SIO_FEOF;		/* not on eof of file anymore */
 
+  if ( whence == SIO_SEEK_CUR )
+  { pos += Stell(s);
+    whence = SIO_SEEK_SET;
+  }
   pos = (*s->functions->seek)(s->handle, pos, whence);
 
   if ( s->position )
@@ -329,8 +392,8 @@ Sseek(IOSTREAM *s, long pos, int whence)
 long
 Stell(IOSTREAM *s)
 { if ( s->position )
-    return s->position->charno;
-  else if ( s->functions->seek )
+  { return s->position->charno;
+  } else if ( s->functions->seek )
   { long pos = (*s->functions->seek)(s->handle, 0L, SIO_SEEK_CUR);
 
     if ( s->buffer )			/* open */
@@ -690,13 +753,23 @@ Svsprintf(char *buf, const char *fm, va_list args)
 
 
 int
+Svdprintf(const char *fm, va_list args)
+{ int rval;
+
+  rval = Svfprintf(Soutput, fm, args);
+  Sflush(Soutput);
+
+  return rval;
+}
+
+
+int
 Sdprintf(const char *fm, ...)
 { va_list args;
   int rval;
 
   va_start(args, fm);
-  rval = Svfprintf(Soutput, fm, args);
-  Sflush(Soutput);
+  rval = Svdprintf(fm, args);
   va_end(args);
 
   return rval;
@@ -1032,6 +1105,10 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
 }
 
 
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
 IOSTREAM *
 Sopen_file(char *path, char *how)
 { int fd;
@@ -1039,15 +1116,15 @@ Sopen_file(char *path, char *how)
 
   switch(*how)
   { case 'w':
-      fd = open(path, O_WRONLY|O_CREAT|O_TRUNC, 0666);
+      fd = open(path, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY, 0666);
       flags = SIO_FILE|SIO_OUTPUT|SIO_RECORDPOS;
       break;
     case 'a':
-      fd = open(path, O_WRONLY|O_CREAT|O_APPEND, 0666);
+      fd = open(path, O_WRONLY|O_CREAT|O_APPEND|O_BINARY, 0666);
       flags = SIO_FILE|SIO_OUTPUT|SIO_RECORDPOS;
       break;
     case 'r':
-      fd = open(path, O_RDONLY);
+      fd = open(path, O_RDONLY|O_BINARY); /* TBD */
       flags = SIO_FILE|SIO_INPUT|SIO_RECORDPOS;
       break;
     default:
@@ -1101,9 +1178,17 @@ IOSTREAM S__iob[] =
   STDIO(2, SIO_FILE|SIO_OUTPUT|SIO_NBUF|SIO_STATIC)  /* Serror */
 };
 
+
+IOSTREAM *
+S__getiob()
+{ return S__iob;
+}
+
 		 /*******************************
 		 *	       PIPES		*
 		 *******************************/
+
+#ifdef HAVE_POPEN
 
 static int
 Sread_pipe(void *handle, char *buf, int size)
@@ -1156,6 +1241,7 @@ Sopen_pipe(const char *command, const char *type)
   return NULL;
 }
 
+#endif /*HAVE_POPEN*/
 
 		 /*******************************
 		 *	  MEMORY STREAMS	*

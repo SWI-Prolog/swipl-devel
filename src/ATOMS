@@ -211,6 +211,9 @@ A dexit			"$exit"
 A locked		"locked"
 A clause		"clause"
 A file			"file"
+A dforeign_registered    "$foreign_registered"
+A exist			"exist"
+A none			"none"
 
 F apply			2
 F call			1
@@ -287,3 +290,4 @@ F warning		3
 F block			3
 F dcut			1
 F dexit			2
+F dforeign_registered   2

@@ -18,13 +18,6 @@
 # endif
 #endif
 
-#ifndef HAVE_GETTIMEOFDAY
-struct timeval
-{ long tv_sec;
-  long tv_usec;
-};
-#endif
-
 
 		/********************************
 		*        MEMORY MANAGEMENT      *
@@ -38,7 +31,7 @@ struct timeval
 
 #define allocHeap(n)	alloc_heap((alloc_t) (n))
 #define freeHeap(p, n)	free_heap((char *)(p), (alloc_t)(n))
-#define allocGlobal(n)	alloc_global((alloc_t) (n))
+#define allocGlobal(n)	alloc_global((int) (n))
 #define allocLocal(n)	alloc_local((alloc_t) (n))
 
 extern Void Allocate(long);
@@ -105,7 +98,6 @@ long		LastModifiedFile(char *name),
 bool		AccessFile(char *name, int how),
 		ExistsFile(char *name),
 		ExistsDirectory(char *name),
-		DeleteFile(char *name),
 		RenameFile(char *old, char *new),
 		SameFile(char *file1, char *file2),
 		OpenStream(int index),
@@ -116,8 +108,6 @@ char 		*AbsoluteFile(char *),
 		*ExpandOneFile(char *),
 		*BaseName(char *),
 		*DirName(char *),
-		*PrologPath(char *),
-		*OsPath(char *),
 		*ReadLink(char *),
 		*DeRefLink(char *);
 
@@ -128,6 +118,7 @@ extern int	getdtablesize(void);
 extern int	getpagesize(void);
 #endif
 
+#define ACCESS_EXIST	0
 #define ACCESS_EXECUTE	1
 #define ACCESS_READ	2
 #define ACCESS_WRITE	4
@@ -207,5 +198,4 @@ extern void ResetTty(void);
 #define Wait(stat)	wait(stat)
 
 extern int System(char *command);
-extern void Sleep(real time);
 extern char *Symbols(void);

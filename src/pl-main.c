@@ -14,17 +14,14 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 
 /*#define O_DEBUG 1*/
 
-#ifdef __WINDOWS__
-#include <windows.h>
-#undef TRANSPARENT
-#endif
-
-#include "parms.h"
 #include "pl-incl.h"
 #include "pl-itf.h"
 #include "pl-save.h"
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
+#endif
+#if O_RLC
+#include <console.h>
 #endif
 
 forwards void	usage(void);
@@ -38,10 +35,11 @@ forwards void	usage(void);
 static char *
 findHome(char *symbols, char *def)
 { char *home;
+  char plp[MAXPATHLEN];
 
   if ( !(home = getenv("SWI_HOME_DIR")) )
     home = getenv("SWIPL");
-  if ( home && (home = PrologPath(home)) && ExistsDirectory(home) )
+  if ( home && (home = PrologPath(home, plp)) && ExistsDirectory(home) )
     return store_string(home);
 
   if ( (home = symbols) )
@@ -67,7 +65,7 @@ findHome(char *symbols, char *def)
       }
 #endif
 
-	if ( buf[0] != '/' )
+	if ( !IsAbsolutePath(buf) )
 	{ char buf2[MAXPATHLEN];
 
 	  Ssprintf(buf2, "%s/%s", parent, buf);
@@ -227,20 +225,26 @@ startProlog(int argc, char **argv, char **env)
   mainArgv			= argv;
   mainEnv			= env;
 
+  DEBUG(1, Sdprintf("System compiled at %s %s\n", __TIME__, __DATE__));
+
 #if O_MALLOC_DEBUG
   malloc_debug(O_MALLOC_DEBUG);
 #endif
 
- /* status.debugLevel = 9; */
+  status.debugLevel = 0;
+  DEBUG(1, Sdprintf("OS ...\n"));
+  initOs();				/* initialise OS bindings */
 
   if ( status.dumped == FALSE )
-  { symbols = Symbols();
+  { char plp[MAXPATHLEN];
+
+    symbols = Symbols();
     if ( symbols ) 
       symbols = store_string(DeRefLink(symbols));
 
     systemDefaults.arch        = ARCH;
     systemDefaults.home	       = findHome(symbols,
-					  store_string(PrologPath(PLHOME)));
+					  store_string(PrologPath(PLHOME,plp)));
 #ifdef O_XOS
   { char buf[MAXPATHLEN];
     _xos_limited_os_filename(systemDefaults.home, buf);
@@ -249,7 +253,7 @@ startProlog(int argc, char **argv, char **env)
 #endif
 
     systemDefaults.state       = findState(symbols);
-    systemDefaults.startup     = store_string(PrologPath(DEFSTARTUP));
+    systemDefaults.startup     = store_string(PrologPath(DEFSTARTUP, plp));
     systemDefaults.local       = DEFLOCAL;
     systemDefaults.global      = DEFGLOBAL;
     systemDefaults.trail       = DEFTRAIL;
@@ -278,7 +282,7 @@ startProlog(int argc, char **argv, char **env)
   { char title[60];
 
     Ssprintf(title, "SWI-Prolog (version %s)", PLVERSION);
-    rlc_title(title);
+    rlc_title(title, NULL, 0);
   }
 #endif
 					/* EMACS inferior processes */
@@ -347,6 +351,8 @@ startProlog(int argc, char **argv, char **env)
     { status.notty = (argv[0][0] == '-');
       continue;
     }
+    if ( streq(&argv[0][1], "-" ) )	/* pl <plargs> -- <app-args> */
+      break;
 
     s = &argv[0][1];
     while(*s)
@@ -405,10 +411,8 @@ startProlog(int argc, char **argv, char **env)
     status.autoload = FALSE;
     if ( compileFileList(options.compileOut, argc, argv) == TRUE )
     {
-#ifdef __WINDOWS__
-      char msg[200];
-      Ssprintf(msg, "Boot compilation has created %s", options.compileOut);
-      MessageBox(NULL, msg, "SWI-Prolog", MB_OK|MB_TASKMODAL);
+#if defined(__WINDOWS__) || defined(__WIN32__)
+      PlMessage("Boot compilation has created %s", options.compileOut);
 #else
       if ( !explicit_compile_out )
 	Sfprintf(Serror, "Result stored in %s\n", options.compileOut);
@@ -426,9 +430,7 @@ startProlog(int argc, char **argv, char **env)
     status.boot = FALSE;
   }
 
-  if ( PL_foreign_reinit_function != NULL )
-    (*PL_foreign_reinit_function)(mainArgc, mainArgv);
-
+  reinitForeign(mainArgc, mainArgv);	/* run PL_reinit_hook() functions */
   systemMode(FALSE);
   status.dumped = TRUE;
   status.initialised = TRUE;
@@ -523,7 +525,7 @@ va_list args;
 	    "\n[While in %ld-th garbage collection; skipping stacktrace]\n",
 	    gc_status.collections);
   }
-#ifdef O_DEBUGGER
+#if defined(O_DEBUGGER) && !defined(__WIN32__) /* TBD */
   else
   { Sfprintf(Serror, "\n[Switched to system mode: style_check(+dollar)]\n");
     debugstatus.styleCheck |= DOLLAR_STYLE;
@@ -532,6 +534,23 @@ va_list args;
     Sfprintf(Serror, "]\n");
   }
 #endif /*O_DEBUGGER*/
+
+action:
+  Sprintf("\nAction? "); Sflush(Soutput);
+  ResetTty();
+  switch(getSingleChar())
+  { case 'a':
+      pl_abort();
+      break;
+    case 'e':
+      Halt(3);
+      break;
+    default:
+      Sprintf("Unknown action.  Valid actions are:\n"
+	      "\ta\tabort to toplevel\n"
+	      "\te\texit Prolog\n");
+      goto action;
+  }
 
   pl_abort();
   Halt(3);
@@ -543,12 +562,13 @@ vfatalError(fm, args)
 char *fm;
 va_list args;
 {
-#ifdef __WINDOWS__
+#if defined(__WINDOWS__) || defined(__WIN32__)
   char msg[500];
   Ssprintf(msg, "[FATAL ERROR:\n\t");
   Svsprintf(&msg[strlen(msg)], fm, args);
   Ssprintf(&msg[strlen(msg)], "]");
-  MessageBox(NULL, msg, "Error", MB_OK);
+  
+  PlMessage(msg);
 #else
   Sfprintf(Serror, "[FATAL ERROR:\n\t");
   Svfprintf(Serror, fm, args);

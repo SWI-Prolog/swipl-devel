@@ -73,3 +73,4 @@
 #define FUNCTOR_block3       (&functors[72])
 #define FUNCTOR_dcut1        (&functors[73])
 #define FUNCTOR_dexit2       (&functors[74])
+#define FUNCTOR_dforeign_registered2 (&functors[75])

@@ -7,15 +7,21 @@
     Purpose: load and save intermediate code files
 */
 
-/*#define O_DEBUG 1*/
+#define O_DEBUG 1
 #include "pl-incl.h"
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 
 forwards char *	getString(IOSTREAM *);
 forwards long	getNum(IOSTREAM *);
 forwards real	getReal(IOSTREAM *);
 forwards bool	loadWicFd(char *, IOSTREAM *, bool, bool);
-forwards bool	loadPredicate(IOSTREAM *);
-forwards bool	loadImport(IOSTREAM *);
+forwards bool	loadPredicate(IOSTREAM *, int skip);
+forwards bool	loadImport(IOSTREAM *, int skip);
 forwards void	putString(char *, IOSTREAM *);
 forwards void	putAtom(Atom, IOSTREAM *);
 forwards void	putNum(long, IOSTREAM *);
@@ -34,8 +40,11 @@ forwards word	loadXR(IOSTREAM *);
 forwards word   loadXRc(int c, IOSTREAM *fd);
 forwards void	putstdw(word w, IOSTREAM *fd);
 forwards word	getstdw(IOSTREAM *fd);
-static bool	loadStatement(int c, IOSTREAM *fd);
-static bool	loadPart(IOSTREAM *fd, Module *module);
+static bool	loadStatement(int c, IOSTREAM *fd, int skip);
+static bool	loadPart(IOSTREAM *fd, Module *module, int skip);
+static bool	loadInModule(IOSTREAM *fd, int skip);
+static int	qlfVersion(IOSTREAM *s);
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog can compile Prolog source files into intermediate code files, 
@@ -73,23 +82,26 @@ Below is an informal description of the format of a `.qlf' file:
 			<goal>				% a <string>
 			<topLevel>			% a <string>
 			<initFile>			% a <string>
+			<home>				% a <string>
 			{<statement>}
 ----------------------------------------------------------------
 <qlf-file>	::=	<qlf-magic>
 			<version-number>
+			'F' <string>			% path of qlf file
 			'Q' <qlf-part>
 <qlf-magic>	::=	<string>
 <qlf-module>	::=	<qlf-header>
+			<size>				% size in bytes
 			{<statement>}
 			'X'
 <qlf-header>	::=	'M' <XR/modulename>		% module name
 			<source>			% file + time
 			{<qlf-export>}
 			'X'
-			| <source>			% not a module
+		      | <source>			% not a module
 			<time>
 <qlf-export>	::=	'E' <XR/functor>
-<source>	::=	'F' <XR/name> <time> <system>
+<source>	::=	'F' <string> <time> <system>
 		      | '-'
 ----------------------------------------------------------------
 <magic code>	::=	<string>			% normally #!<path>
@@ -97,12 +109,18 @@ Below is an informal description of the format of a `.qlf' file:
 <statement>	::=	'W' <string>			% include wic file
 		      | 'P' <XR/functor>
 			    {<clause>} <pattern>	% predicate
+		      |	'O' <XR/modulename>
+			    <XR/functor>		% pred out of module
+			    {<clause>} <pattern>
 		      | 'D' 
 		        <lineno>			% source line number
 			<term>				% directive
 		      | 'E' <XR/functor>		% export predicate
 		      | 'I' <XR/procedure>		% import predicate
 		      | 'Q' <qlf-module>		% include module
+		      | 'M' <XR/modulename>		% load-in-module
+		            {<statement>}
+			    'X'
 <clause>	::=	'C' <line_no> <# var>
 			    <#n subclause> <#codes> <codes>
 		      | 'X' 				% end of list
@@ -138,7 +156,7 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define VERSION 17			/* save version number */
+#define VERSION 23			/* save version number */
 
 #define XR_REF     0			/* reference to previous */
 #define XR_ATOM	   1			/* atom */
@@ -146,7 +164,7 @@ bits) as well as machines with different byte order.
 #define XR_PRED	   3			/* procedure */
 #define XR_INT     4			/* int */
 #define XR_FLOAT   5			/* float */
-#define XR_STRING   6			/* string */
+#define XR_STRING  6			/* string */
 
 static char saveMagic[] = "SWI-Prolog (c) 1990 Jan Wielemaker\n";
 static char qlfMagic[]  = "SWI-Prolog .qlf file\n";
@@ -274,6 +292,10 @@ storeXrId(long id, word value)
 		 /*******************************
 		 *	 PRIMITIVE LOADING	*
 		 *******************************/
+
+static int	qlf_has_moved;		/* file has moved: be careful */
+static char *   qlf_save_dir;		/* dir of saved .qlf file */
+static char *	qlf_load_dir;		/* dir of .qlf file now */
 
 static bool
 qlfLoadError(IOSTREAM *fd, char *ctx)
@@ -486,7 +508,7 @@ loadQlfTerm(IOSTREAM *fd)
   { int n;
     Word v;
 
-    vars = allocGlobal(sizeof(word) * nvars);
+    vars = allocGlobal(nvars);
     for(n=nvars, v=vars; n>0; n--, v++)
       setVar(*v);
   } else
@@ -565,6 +587,7 @@ loadWicFd(char *file, IOSTREAM *fd, bool toplevel, bool load_options)
   Char c;
   int n;
   char mbuf[100];
+  char *savedhome;
 
 #if OS2
   for(n=0; n<5; n++)                    /* skip first five lines */
@@ -606,6 +629,16 @@ loadWicFd(char *file, IOSTREAM *fd, bool toplevel, bool load_options)
     for(n=0; n<3; n++)   getString(fd);
   }
 
+					/* fix paths for changed home */
+  savedhome = getString(fd);
+  if ( streq(savedhome, systemDefaults.home) )
+  { qlf_has_moved = FALSE;
+  } else
+  { qlf_has_moved = TRUE;
+    qlf_save_dir = store_string(savedhome);
+    qlf_load_dir = systemDefaults.home;
+  }
+
   for(;;)
   { c = Getc(fd);
 
@@ -624,8 +657,10 @@ loadWicFd(char *file, IOSTREAM *fd, bool toplevel, bool load_options)
 	  }
 	  continue;
 	}
+      case 'X':
+        break;
       default:
-        { loadStatement(c, fd);
+        { loadStatement(c, fd, FALSE);
 	  continue;
 	}
     }
@@ -634,31 +669,47 @@ loadWicFd(char *file, IOSTREAM *fd, bool toplevel, bool load_options)
 
 
 static bool
-loadStatement(int c, IOSTREAM *fd)
+loadStatement(int c, IOSTREAM *fd, int skip)
 { switch(c)
   { case 'P':
-      return loadPredicate(fd);
+      return loadPredicate(fd, skip);
 
+    case 'O':
+    { word mname = loadXR(fd);
+      Module om = modules.source;
+      bool rval;
+
+      modules.source = lookupModule((Atom)mname);
+      rval = loadPredicate(fd, skip);
+      modules.source = om;
+
+      return rval;
+    }
     case 'I':
-      return loadImport(fd);
+      return loadImport(fd, skip);
 
     case 'D':
     { mark m;
       word goal;
-      Atom osf = source_file_name;
-      int  oln = source_line_no;
+      Atom osf  = source_file_name;
+      int  oln  = source_line_no;
 
-      source_file_name = currentSource->name;
+      if ( currentSource )
+	source_file_name = currentSource->name;
+      else
+	source_file_name = NULL;
       source_line_no   = getNum(fd);
       
       Mark(m);
       goal = loadQlfTerm(fd);
-      if ( !callGoal(MODULE_user, goal, FALSE) )
-      { Sfprintf(Serror,
-		 "[WARNING: %s:%d: (loading %s) directive failed: ",
-		 stringAtom(source_file_name), source_line_no, wicFile);
-	pl_write(&goal);
-	Sfprintf(Serror, "]\n");
+      if ( !skip )
+      { if ( !callGoal(MODULE_user, goal, FALSE) )
+	{ Sfprintf(Serror,
+		   "[WARNING: %s:%d: (loading %s) directive failed: ",
+		   stringAtom(source_file_name), source_line_no, wicFile);
+	  pl_write(&goal);
+	  Sfprintf(Serror, "]\n");
+	}
       }
       Undo(m);
       
@@ -669,7 +720,10 @@ loadStatement(int c, IOSTREAM *fd)
     }	  
 
     case 'Q':
-      return loadPart(fd, NULL);
+      return loadPart(fd, NULL, skip);
+
+    case 'M':
+      return loadInModule(fd, skip);
 
     default:
       return qlfLoadError(fd, "loadStatement()");
@@ -679,7 +733,7 @@ loadStatement(int c, IOSTREAM *fd)
 
 
 static bool
-loadPredicate(IOSTREAM *fd)
+loadPredicate(IOSTREAM *fd, int skip)
 { Procedure proc;
   Definition def;
   Clause clause;
@@ -689,17 +743,19 @@ loadPredicate(IOSTREAM *fd)
   proc = lookupProcedure(f, modules.source);
   DEBUG(3, Putf("Loading %s ", procedureName(proc)));
   def = proc->definition;
-  if ( SYSTEM_MODE )
-  { set(def, SYSTEM|HIDE_CHILDS|LOCKED);
+  if ( !skip )
+  { if ( SYSTEM_MODE )
+    { set(def, SYSTEM|HIDE_CHILDS|LOCKED);
+    }
+    addProcedureSourceFile(currentSource, proc);
   }
-  addProcedureSourceFile(currentSource, proc);
 
   for(;;)
   { switch(Getc(fd) )
     { case 'X':
       { unsigned long pattern = getNum(fd);
 
-	if ( def->indexPattern != pattern )
+	if ( def->indexPattern != pattern && !skip )
 	{ def->indexPattern = pattern;
 	  def->indexCardinality = cardinalityPattern(def->indexPattern);
 	  if ( pattern != 0x1 )
@@ -714,15 +770,16 @@ loadPredicate(IOSTREAM *fd)
 
 	DEBUG(3, Sdprintf("."));
 	clause = (Clause) allocHeap(sizeof(struct clause));
-	clause->line_no = getNum(fd);
+	clause->line_no = (unsigned short) getNum(fd);
 	clause->next = (Clause) NULL;
 	clause->references = 0;
 	clearFlags(clause);
-	clause->variables = getNum(fd);
-	clause->subclauses = getNum(fd);
+	clause->prolog_vars = (short) getNum(fd);
+	clause->variables = (short) getNum(fd);
+	clause->subclauses = (short) getNum(fd);
 	clause->procedure = proc;
 	clause->source_no = currentSource->index;
-	clause->code_size = getNum(fd);
+	clause->code_size = (short) getNum(fd);
 	statistics.codes += clause->code_size;
 	clause->codes = (Code) allocHeap(clause->code_size * sizeof(code));
 
@@ -752,8 +809,12 @@ loadPredicate(IOSTREAM *fd)
 	  }
 	}
 
-	assertProcedure(proc, clause, 'z');
-	reindexClause(clause);
+	if ( skip )
+	  freeClause(clause);
+	else
+	{ assertProcedure(proc, clause, 'z');
+	  reindexClause(clause);
+	}
       }
     }
   }
@@ -761,28 +822,30 @@ loadPredicate(IOSTREAM *fd)
 
 
 static bool
-loadImport(IOSTREAM *fd)
+loadImport(IOSTREAM *fd, int skip)
 { Procedure proc = (Procedure) loadXR(fd);
   FunctorDef functor = proc->functor;
   Procedure old;
 
-  DEBUG(3, Sdprintf("loadImport(): %s into %s\n",
-		    procedureName(proc), stringAtom(modules.source->name)));
+  if ( !skip )
+  { DEBUG(3, Sdprintf("loadImport(): %s into %s\n",
+		      procedureName(proc), stringAtom(modules.source->name)));
 
-  if ( (old = isCurrentProcedure(functor, modules.source)) )
-  { if ( old->definition == proc->definition )
-      succeed;			/* already done this! */
+    if ( (old = isCurrentProcedure(functor, modules.source)) )
+    { if ( old->definition == proc->definition )
+	succeed;			/* already done this! */
+      
+      if (!isDefinedProcedure(old) )
+      { old->definition = proc->definition;
+	succeed;
+      }
 
-    if (!isDefinedProcedure(old) )
-    { old->definition = proc->definition;
-      succeed;
+      return warning("Failed to import %s into %s", 
+		     procedureName(proc), 
+		     stringAtom(modules.source->name) );
     }
-
-    return warning("Failed to import %s into %s", 
-		   procedureName(proc), 
-		   stringAtom(modules.source->name) );
+    addHTable(modules.source->procedures, functor, proc);
   }
-  addHTable(modules.source->procedures, functor, proc);
 
   succeed;
 }
@@ -790,11 +853,27 @@ loadImport(IOSTREAM *fd)
 
 static bool
 qlfLoadSource(IOSTREAM *fd)
-{ word fname = loadXR(fd);
-  long time  = getstdw(fd);
-  int issys  = (Sgetc(fd) == 's') ? TRUE : FALSE;
+{ char *str = getString(fd);
+  long time = getstdw(fd);
+  int issys = (Sgetc(fd) == 's') ? TRUE : FALSE;
+  Atom fname;
 
-  currentSource = lookupSourceFile((Atom) fname);
+  if ( qlf_has_moved && strprefix(str, qlf_save_dir) )
+  { char buf[MAXPATHLEN];
+    char *s;
+
+    strcpy(buf, qlf_load_dir);
+    s = &buf[strlen(buf)];
+    *s++ = '/';
+    strcpy(s, &str[strlen(qlf_save_dir)]);
+    fname = lookupAtom(canonisePath(buf));
+  } else
+    fname = lookupAtom(canonisePath(str));
+
+  DEBUG(1, if ( !streq(stringAtom(fname), str) )
+	     Sdprintf("Replaced path %s --> %s\n", str, stringAtom(fname)));
+
+  currentSource = lookupSourceFile(fname);
   currentSource->time = time;
   currentSource->system = issys;
   startConsult(currentSource);
@@ -804,7 +883,7 @@ qlfLoadSource(IOSTREAM *fd)
 
 
 static bool
-loadPart(IOSTREAM *fd, Module *module)
+loadPart(IOSTREAM *fd, Module *module, int skip)
 { Module om     = modules.source;
   SourceFile of = currentSource;
   int stchk     = debugstatus.styleCheck;
@@ -821,13 +900,22 @@ loadPart(IOSTREAM *fd, Module *module)
 	}
 	case 'F':
 	{ word fname;
+	  Module m;
 
 	  qlfLoadSource(fd);
 	  fname = (word) currentSource->name;
 
-	  if ( !pl_declare_module(&mname, &fname) )
-	    fail;
-	  assert(currentSource == modules.source->file);
+	  m = lookupModule((Atom) mname);
+	  if ( m->file != NULL && m->file != currentSource )
+	  { warning("%s:\n\tmodule \"%s\" already loaded from \"%s\" (skipped)",
+		    wicFile, stringAtom(m->name), stringAtom(m->file->name));
+	    skip = TRUE;
+	    modules.source = m;
+	  } else
+	  { if ( !pl_declare_module(&mname, &fname) )
+	      fail;
+	    assert(currentSource == modules.source->file);
+	  }
 
 	  if ( module )
 	    *module = modules.source;
@@ -836,9 +924,21 @@ loadPart(IOSTREAM *fd, Module *module)
 	  { switch(Sgetc(fd))
 	    { case 'E':
 	      { FunctorDef f = (FunctorDef) loadXR(fd);
-		Procedure proc = lookupProcedure(f, modules.source);
 
-		addHTable(modules.source->public, f, proc);
+		if ( !skip )
+		{ Procedure proc = lookupProcedure(f, modules.source);
+
+		  addHTable(modules.source->public, f, proc);
+		} else
+		{ if ( !lookupHTable(m->public, f) )
+		  { warning("%s: skipped module \"%s\" lacks %s/%d",
+			    wicFile,
+			    stringAtom(m->name),
+			    stringAtom(f->name),
+			    f->arity);
+		  }
+		}
+
 		continue;
 	      }
 	      case 'X':
@@ -881,7 +981,31 @@ loadPart(IOSTREAM *fd, Module *module)
 	succeed;
       }
       default:
-	loadStatement(c, fd);
+	loadStatement(c, fd, skip);
+    }
+  }
+
+  succeed;
+}
+
+
+static bool
+loadInModule(IOSTREAM *fd, int skip)
+{ word mname = loadXR(fd);
+  Module om = modules.source;
+
+  modules.source = lookupModule((Atom) mname);
+  
+  for(;;)
+  { int c = Sgetc(fd);
+
+    switch(c)
+    { case 'X':
+      { modules.source = om;
+	succeed;
+      }
+      default:
+	loadStatement(c, fd, skip);
     }
   }
 
@@ -1109,6 +1233,7 @@ saveWicClause(Clause clause, IOSTREAM *fd)
 
   Putc('C', fd);
   putNum(clause->line_no, fd);
+  putNum(clause->prolog_vars, fd);
   putNum(clause->variables, fd);
   putNum(clause->subclauses, fd);
   putNum(clause->code_size, fd);
@@ -1193,6 +1318,8 @@ openWic(char *file)
   putString(options.topLevel,      wicFd);
   putString(options.initFile, 	   wicFd);
 
+  putString(systemDefaults.home,   wicFd);
+
   DEBUG(2, Sdprintf("States ...\n"));
   putStates(wicFd);
 
@@ -1210,6 +1337,7 @@ closeWic()
 { if (wicFd == (IOSTREAM *) NULL)
     fail;
   closeProcedureWic(wicFd);
+  Putc('X', wicFd);
   destroyHTable(savedXRTable);
   savedXRTable = NULL;
   Sclose(wicFd);
@@ -1222,13 +1350,22 @@ addClauseWic(Word term, Atom file)
 { Clause clause;
 
   if ((clause = assert_term(term, 'z', file)) != (Clause)NULL)
-  { if (clause->procedure != currentProc)
-    { closeProcedureWic(wicFd);
+  { IOSTREAM *s = wicFd;
+
+    if (clause->procedure != currentProc)
+    { closeProcedureWic(s);
       currentProc = clause->procedure;
-      Putc('P', wicFd);
-      saveXR((word) currentProc->functor, wicFd);
+
+      if ( clause->procedure->definition->module != modules.source )
+      { Putc('O', s);
+	saveXR((word) clause->procedure->definition->module->name, s);
+      } else
+      { Putc('P', s);
+      }
+
+      saveXR((word) currentProc->functor, s);
     }
-    saveWicClause(clause, wicFd);
+    saveWicClause(clause, s);
     succeed;
   }
 
@@ -1257,23 +1394,176 @@ importWic(Procedure proc, IOSTREAM *fd)
 }
 
 		 /*******************************
+		 *	    PART MARKS		*
+		 *******************************/
+
+typedef struct source_mark *SourceMark;
+
+struct source_mark
+{ long	   file_index;
+  SourceMark next;
+};
+
+static SourceMark source_mark_head = NULL;
+static SourceMark source_mark_tail = NULL;
+
+static void
+initSourceMarks()
+{ source_mark_head = source_mark_tail = NULL;
+}
+
+
+static void
+sourceMark(IOSTREAM *s)
+{ SourceMark pm = allocHeap(sizeof(struct source_mark));
+
+  pm->file_index = Stell(s);
+  pm->next = NULL;
+  if ( source_mark_tail )
+  { source_mark_tail->next = pm;
+    source_mark_tail = pm;
+  } else
+  { source_mark_tail = source_mark_head = pm;
+  }
+}
+
+
+static int
+writeSourceMarks(IOSTREAM *s)
+{ int n = 0;
+  SourceMark pn, pm = source_mark_head;
+
+  DEBUG(1, Sdprintf("Writing source marks: "));
+
+  for( ; pm; pm = pn )
+  { pn = pm->next;
+
+    DEBUG(1, Sdprintf(" %d", pm->file_index));
+    putstdw(pm->file_index, s);
+    freeHeap(pm, sizeof(*pm));
+    n++;
+  }
+  
+  DEBUG(1, Sdprintf("Written %d marks\n", n));
+  putstdw(n, s);
+
+  return 0;
+}
+
+
+static Word
+qlfSourceInfo(IOSTREAM *s, long offset, Word info)
+{ char *str;
+  Atom f;
+
+  if ( Sseek(s, offset, SIO_SEEK_SET) != offset )
+  { warning("%s: seek failed: %s", wicFile, OsError());
+    return NULL;
+  }
+
+  if ( Getc(s) != 'F' || !(str=getString(s)) )
+  { warning("QLF format error");
+    return NULL;
+  }
+  
+  f = lookupAtom(str);
+  APPENDLIST(info, (Word) &f);
+
+  return info;
+}
+
+
+static word
+qlfInfo(char *file, Word cversion, Word version, Word files)
+{ IOSTREAM *s = NULL;
+  int lversion;
+  int nqlf, i;
+  long *qlfstart = NULL;
+  word rval = TRUE;
+
+  TRY(unifyAtomic(cversion, consNum(VERSION)));
+
+  wicFile = file;
+
+  if ( !(s = Fopen(file, STREAM_OPEN_BIN_READ)) )
+    return warning("Can't open %s: %s", file, OsError());
+
+  if ( !(lversion = qlfVersion(s)) )
+  { Sclose(s);
+    fail;
+  }
+    
+  TRY(unifyAtomic(version, consNum(lversion)));
+
+  if ( Sseek(s, -(int)sizeof(long), SIO_SEEK_END) < 0 )
+    return warning("qlf_info/3: seek failed: %s", OsError());
+  nqlf = getstdw(s);
+  DEBUG(1, Sdprintf("Found %d sources at %d starting at", nqlf, rval));
+  qlfstart = (long *)allocHeap(sizeof(long) * nqlf);
+  Sseek(s, -(int)sizeof(long) * (nqlf+1), SIO_SEEK_END);
+  for(i=0; i<nqlf; i++)
+  { qlfstart[i] = getstdw(s);
+    DEBUG(1, Sdprintf(" %d", qlfstart[i]));
+  }
+  DEBUG(1, Sdprintf("\n"));
+
+  for(i=0; i<nqlf; i++)
+    if ( !(files = qlfSourceInfo(s, qlfstart[i], files)) )
+    { rval = FALSE;
+      goto out;
+    }
+
+  rval = unifyAtomic(files, ATOM_nil);
+
+out:
+  if ( qlfstart )
+    freeHeap(qlfstart, sizeof(long) * nqlf);
+  if ( s )
+    Sclose(s);
+
+  return rval;
+}
+
+
+
+word
+pl_qlf_info(Word file, Word cversion, Word version, Word files)
+{ char *name;
+
+  if ( !(name = primitiveToString(*file, FALSE)) )
+    return warning("qlf_info/3: instantiation fault");
+  if ( !(name = ExpandOneFile(name)) )
+    fail;
+
+   return qlfInfo(name, cversion, version, files);
+}
+
+
+
+		 /*******************************
 		 *	NEW MODULE SUPPORT	*
 		 *******************************/
 
 static bool
 qlfOpen(Atom name)
-{ wicFile = stringAtom(name);
+{ char *absname;
+
+  wicFile = stringAtom(name);
+  if ( !(absname = AbsoluteFile(wicFile)) )
+    fail;
 
   if ( !(wicFd = Fopen(wicFile, STREAM_OPEN_BIN_WRITE)) )
     return warning("qlf_open/1: can't open %s: %s", wicFile, OsError());
 
   putString(qlfMagic, wicFd);
   putNum(VERSION, wicFd);
+  putString(absname, wicFd);
 
   currentProc    = (Procedure) NULL;
   currentSource  = (SourceFile) NULL;
   savedXRTable   = newHTable(256);
   savedXRTableId = 0;
+  initSourceMarks();
 
   succeed;
 }
@@ -1282,6 +1572,7 @@ qlfOpen(Atom name)
 static bool
 qlfClose()
 { closeProcedureWic(wicFd);
+  writeSourceMarks(wicFd);
   Sclose(wicFd);
   wicFd = NULL;
 
@@ -1292,35 +1583,59 @@ qlfClose()
 }
 
 
+static int
+qlfVersion(IOSTREAM *s)
+{ char mbuf[100];
+  char *magic;
+
+  if ( !(magic = getMagicString(s, mbuf, sizeof(mbuf))) ||
+       !streq(magic, qlfMagic) )
+  { Sclose(s);
+    return warning("%s: not a SWI-Prolog .qlf file", wicFile);
+  }
+
+  return getNum(s);
+}
+
+
+
 static bool
 qlfLoad(char *file, Module *module)
 { IOSTREAM *fd;
-  char *magic;
   bool rval;
-  char mbuf[100];
   int lversion;
+  char *absloadname;
+  char *abssavename;
 
   wicFile = file;
+  if ( !(absloadname = AbsoluteFile(wicFile)) )
+    fail;
   
   if ( !(fd = Fopen(file, STREAM_OPEN_BIN_READ)) )
     return warning("$qlf_load/1: can't open %s: %s", file, OsError());
-  if ( !(magic = getMagicString(fd, mbuf, sizeof(mbuf))) ||
-       !streq(magic, qlfMagic) )
+  if ( (lversion = qlfVersion(fd)) != VERSION )
   { Sclose(fd);
-    return warning("$qlf_load/1: %s is not a SWI-Prolog .qlf file", file);
-  }
-  if ( (lversion = getNum(fd)) != VERSION )
-  { Sclose(fd);
-    warning("$qlf_load/1: %s bad version (file version = %d, prolog = %d)",
-	    wicFile, lversion, VERSION);
+    if ( lversion )
+      warning("$qlf_load/1: %s bad version (file version = %d, prolog = %d)",
+	      wicFile, lversion, VERSION);
     fail;
+  }
+
+  abssavename = getString(fd);
+  if ( streq(absloadname, abssavename) )
+  { qlf_has_moved = FALSE;
+    qlf_load_dir = qlf_save_dir = NULL;
+  } else
+  { qlf_has_moved = TRUE;
+    qlf_load_dir = stringAtom(lookupAtom(DirName(absloadname)));
+    qlf_save_dir = stringAtom(lookupAtom(DirName(abssavename)));
   }
 
   if ( Sgetc(fd) != 'Q' )
     return qlfLoadError(fd, "qlfLoad()");
 
   pushXrIdTable();
-  rval = loadPart(fd, module);
+  rval = loadPart(fd, module, FALSE);
   popXrIdTable();
 
   Sclose(fd);
@@ -1331,8 +1646,9 @@ qlfLoad(char *file, Module *module)
 
 static bool
 qlfSaveSource(SourceFile f, IOSTREAM *fd)
-{ Putc('F', fd);
-  saveXR((word)f->name, fd);
+{ sourceMark(fd);
+  Putc('F', fd);
+  putAtom(f->name, fd);
   putstdw(f->time, fd);
   Putc(f->system ? 's' : 'u', fd);
 
@@ -1369,6 +1685,16 @@ qlfStartModule(Module m, IOSTREAM *fd)
 
 
 static bool
+qlfStartSubModule(Module m, IOSTREAM *fd)
+{ closeProcedureWic(fd);
+  Putc('M', fd);
+  saveXR((word) m->name, fd);
+
+  succeed;
+}
+
+
+static bool
 qlfStartFile(SourceFile f, IOSTREAM *fd)
 { closeProcedureWic(fd);
   Putc('Q', fd);
@@ -1394,6 +1720,19 @@ pl_qlf_start_module(Word name)
       return warning("qlf_start_module/1: argument must be an atom");
   
     return qlfStartModule(lookupModule((Atom)*name), wicFd);
+  }
+
+  succeed;
+}
+
+
+word
+pl_qlf_start_sub_module(Word name)
+{ if ( wicFd )
+  { if ( !isAtom(*name) )
+      return warning("qlf_start_sub_module/1: argument must be an atom");
+  
+    return qlfStartSubModule(lookupModule((Atom)*name), wicFd);
   }
 
   succeed;
@@ -1519,6 +1858,7 @@ word
 pl_qlf_assert_clause(Word ref)
 { if ( wicFd )
   { Clause clause;
+    IOSTREAM *s = wicFd;
 
     if (!isInteger(*ref))
     { warning("$qlf_assert_clause/1: argument is not a clause reference");
@@ -1530,14 +1870,21 @@ pl_qlf_assert_clause(Word ref)
     if ( !inCore(clause) || !isClause(clause) )
       return warning("$qlf_assert_claue/1: Invalid reference");
 
-    if (clause->procedure != currentProc)
-    { closeProcedureWic(wicFd);
+    if ( clause->procedure != currentProc )
+    { closeProcedureWic(s);
       currentProc = clause->procedure;
-      Putc('P', wicFd);
-      saveXR((word) currentProc->functor, wicFd);
+
+      if ( clause->procedure->definition->module != modules.source )
+      { Putc('O', s);
+	saveXR((word) clause->procedure->definition->module->name, s);
+      } else
+      { Putc('P', s);
+      }
+
+      saveXR((word) currentProc->functor, s);
     }
 
-    saveWicClause(clause, wicFd);
+    saveWicClause(clause, s);
   }
 
   succeed;

@@ -17,7 +17,7 @@ forwards bool	freeVariables(Word, Word *, bool);
 forwards char 	*prependBase(int, char *);
 forwards bool	isPrefix(char *, char *);
 forwards bool	boolPlease(bool *, Word, Word);
-forwards word	copyTerm(Word, Table);
+forwards void	copyTerm(Word, Word, Table);
 
 		/********************************
 		*         TYPE CHECKING         *
@@ -458,7 +458,7 @@ word
 pl_functor(Word t, Word f, Word a)
 { int arity;
 
-  if (isVar(*t) )
+  if ( isVar(*t) )
   { if (isAtom(*f) && isInteger(*a) )
     { arity = (int) valNum(*a);
       if (arity == 0)
@@ -469,11 +469,11 @@ pl_functor(Word t, Word f, Word a)
     }
     fail;
   }
-  if (isAtom(*t) )
+  if ( isAtom(*t) || isNumber(*t) )
   { TRY(unifyAtomic(f, *t) );
     return unifyAtomic(a, consNum(0));
   }
-  if (!isTerm(*t))
+  if ( !isTerm(*t) )
     fail;
 
   TRY(unifyAtomic(f, functorTerm(*t)->name) );
@@ -698,50 +698,56 @@ pl_e_free_variables(Word t, Word l)
   succeed;
 }
 
-static word
-copyTerm(Word f, Table vars)
+
+static void
+copyTerm(Word f, Word copy, Table vars)
 { deRef(f);
+
   if ( isVar(*f) )
   { Symbol s = lookupLocalTable(vars, f);
-    Word p;
 
     if ( s != (Symbol) NULL )
-      return makeRef(s->value);
-    p = allocGlobal(sizeof(word));
-    setVar(*p);
-    addLocalTable(vars, f, p);
+    { *copy = makeRef(s->value);
+    } else
+    { if ( isVar(*copy) )
+	addLocalTable(vars, f, copy);
+      else
+      { Word p = allocGlobal(1);
+        setVar(*p);
+	*copy = makeRef(p);
+	addLocalTable(vars, f, p);
+      }
+    }
 
-    return makeRef(p);
-  }
-  if ( isTerm(*f) )
-  { word copy = globalFunctor(functorTerm(*f));
-    Word p, q;
+    return;
+  } else if ( isTerm(*f) )
+  { Word p, q;
     int n;
 
-    p = argTermP(copy, 0);
+    *copy = globalFunctor(functorTerm(*f));
+
+    p = argTermP(*copy, 0);
     q = argTermP(*f, 0);
 
     for(n = 0; n < functorTerm(*f)->arity; n++, p++, q++)
-      *p = copyTerm(q, vars);
-
-    return copy;
-  }
-
-  return *f;			/* atoms, integers, reals and strings */
+      copyTerm(q, p, vars);
+  } else
+    *copy = *f;				/* atomic datatypes */
 }
 
 
 word
 pl_copy_term(Word f, Word t)
 { Table vartable;
-  word copy;
+  Word copy = allocGlobal(1);
 
+  setVar(*copy);
   initAllocLocal();
   vartable = newLocalTable(16);
-  copy = copyTerm(f, vartable);
+  copyTerm(f, copy, vartable);
   stopAllocLocal();
 
-  return pl_unify(t, &copy);
+  return pl_unify(t, copy);
 }
 
 bool

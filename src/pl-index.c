@@ -35,7 +35,7 @@ indexing only on the first argument as this is default.
 
 #define SHIFT(c, a)	((32/(c)) * a)
 #define MASK(c)		(c == 1 ? ~0L : ((1L << (32/(c))) - 1))
-#define VM(c, a)	(~(MASK(c) << SHIFT(c, a)))
+#define VM(c, a)	((unsigned long)(~(MASK(c) << SHIFT(c, a))))
 
 #define Shift(c, a)	(mask_shift[c][a])
 #define Mask(c)		(mask_mask[c])
@@ -49,7 +49,7 @@ static unsigned long variable_mask[][4] =
 #ifdef DONOT_AVOID_SHIFT_WARNING
     { VM(1, 0), 0,        0,        0 },
 #else
-    { ~0L,      0,        0,        0 },
+    { (unsigned long)~0L,      0,        0,        0 },
 #endif
     { VM(2, 0), VM(2, 1), 0,        0 }, 
     { VM(3, 0), VM(3, 1), VM(3, 2), 0 }, 
@@ -100,7 +100,7 @@ getIndex(register Word argv, register unsigned long pattern, int card)
       return result;
     }
     result.key = (isTerm(*argv) ? (word) functorTerm(*argv) : *argv);
-    result.varmask = ~0L;
+    result.varmask = (unsigned long) ~0L;
 
     return result;
   } else
@@ -109,7 +109,7 @@ getIndex(register Word argv, register unsigned long pattern, int card)
     register int a;
 
     result.key = 0;
-    result.varmask = ~0L;			/* all 1s */
+    result.varmask = (unsigned long) ~0L;			/* all 1s */
 
     for(a = 0; a < card; a++, pattern >>= 1, argv++)
     { for(;(pattern & 0x1) == 0; pattern >>= 1)

@@ -174,7 +174,9 @@ forwards int		cmp_address(const void *, const void *);
 forwards void		check_relocation(Word);
 forwards void		needsRelocation(Word);
 forwards bool		scan_global(void);
+forwards word		checkStacks(LocalFrame frame);
 #endif
+
 		/********************************
 		*           GLOBALS             *
 		*********************************/
@@ -188,6 +190,10 @@ static long needs_relocation;	/* # cells that need relocation */
 static long local_marked;	/* # cells marked local -> global ptrs */
 static long relocation_refs;	/* # refs that need relocation */
 static long relocation_indirect;/* # indirects */
+#if O_SHIFT_STACKS || O_SECURE
+static long local_frames;	/* frame count for debugging */
+#endif
+
 
 #if O_SECURE
 		/********************************
@@ -462,9 +468,6 @@ branch.  If we hit a C_JMP, we   will  have initialised all variables in
 the `cond -> if' part and  the variable balancing instructions guarantee
 the same variables will be initialised in the `else' brance.
 
-The variables used to store the skip   amount for C_NOT and C_IFTHENELSE
-donot join in the balancing, so each variable needs to be reset.
-
 [Q] wouldn't it be better to track  the variables that *are* initialised
 and consider the others to be not?  Might   take more time, but might be
 more reliable and simpler.
@@ -490,10 +493,6 @@ clear_uninitialised(LocalFrame fr, Code PC)
 	    sysError("Reset instruction on argument");
 	  if ( PC >= branch_end )
 	    setVar(varFrame(fr, PC[1]));
-	  break;
-	case C_NOT:			/* stores c_cut context here! */
-	case C_IFTHENELSE:
-	  setVar(varFrame(fr, PC[1]));
 	  break;
       }
       if ( decode(*PC) > I_HIGHEST )
@@ -527,7 +526,7 @@ mark_environments(LocalFrame fr)
     set(fr, FR_MARKED);
     
     DEBUG(3, Sdprintf("Marking [%ld] %s\n",
-		levelFrame(fr), procedureName(fr->procedure)));
+		      levelFrame(fr), procedureName(fr->procedure)));
 
     clear_uninitialised(fr, PC);
 
@@ -1120,7 +1119,8 @@ pl_collect_parms(Word g, Word t)
 void
 considerGarbageCollect(Stack s)
 { if ( s->gc )
-  { if ( s->top - s->base > 2 * s->gced_size + s->small )
+  { if ( (unsigned long) s->top - (unsigned long) s->base >
+	 	(unsigned long) (2 * s->gced_size + s->small) )
     { DEBUG(1, Sdprintf("%s overflow: Posted garbage collect request\n",
 		      s->name));
       gc_status.requested = TRUE;
@@ -1173,7 +1173,116 @@ scan_global()
 
   return errors == 0;
 }
-#endif
+
+
+static word key;
+static int checked;
+
+static LocalFrame
+check_environments(fr)
+LocalFrame fr;
+{ Code PC = NULL;
+
+  if ( fr == NULL )
+    return NULL;
+
+  for(;;)
+  { int slots, n;
+    Word sp;
+
+    if ( true(fr, FR_MARKED) )
+      return NULL;			/* from choicepoints only */
+    set(fr, FR_MARKED);
+    local_frames++;
+    clear_uninitialised(fr, PC);
+
+    DEBUG(1, Sdprintf("Check [%ld] %s:",
+		      levelFrame(fr),
+		      procedureName(fr->procedure)));
+
+    slots   = (PC == NULL ? fr->procedure->functor->arity : slotsFrame(fr));
+    sp = argFrameP(fr, 0);
+    for( n=0; n < slots; n++ )
+    { key += checkData(&sp[n], FALSE);
+    }
+    checked += slots;
+    DEBUG(1, Sdprintf(" 0x%lx\n", key));
+
+    PC = fr->programPointer;
+    if ( fr->parent )
+      fr = fr->parent;
+    else
+      return (LocalFrame) varFrame(fr, -1);
+  }
+}
+
+
+static void
+check_choicepoints(bfr)
+LocalFrame bfr;
+{ for( ; bfr; bfr = bfr->backtrackFrame )
+  { check_environments(bfr);
+  }
+}
+
+
+static LocalFrame
+lunmark_environments(fr)
+LocalFrame fr;
+{ if ( fr == NULL )
+    return NULL;
+
+  for(;;)
+  { if ( false(fr, FR_MARKED) )
+      return NULL;
+    clear(fr, FR_MARKED);
+    local_frames--;
+    
+    if ( fr->parent )
+      fr = fr->parent;
+    else				/* Prolog --> C --> Prolog calls */
+      return parentFrame(fr);
+  }
+}
+
+
+static void
+lunmark_choicepoints(bfr)
+LocalFrame bfr;
+{ for( ; bfr; bfr = bfr->backtrackFrame )
+    lunmark_environments(bfr);
+}
+
+
+static word
+checkStacks(frame)
+LocalFrame frame;
+{ LocalFrame fr, fr2;
+
+  if ( !frame )
+    frame = environment_frame;
+
+  local_frames = 0;
+  key = 0L;
+
+  for( fr = frame; fr; fr = fr2 )
+  { fr2 = check_environments(fr);
+
+    check_choicepoints(fr->backtrackFrame);
+  }
+
+  for( fr = frame; fr; fr = fr2 )
+  { fr2 = lunmark_environments(fr);
+
+    lunmark_choicepoints(fr->backtrackFrame);
+  }
+
+  assert(local_frames == 0);
+
+  return key;
+}
+
+#endif /*O_SECURE || O_DEBUG*/
 
 
 void
@@ -1193,6 +1302,8 @@ garbageCollect(LocalFrame fr)
 #if O_SECURE
   if ( !scan_global() )
     sysError("Stack not ok at gc entry");
+
+  SECURE(key = checkStacks(fr));
 
   if ( check_table == NULL )
     check_table = newHTable(256);
@@ -1348,25 +1459,15 @@ unlockMark(mark *m)
 
 #if O_SHIFT_STACKS
 
-/* Development work ... */
-
-
 		 /*******************************
 		 *	   STACK-SHIFTER	*
 		 *******************************/
-
-static int local_frames;		/* count for debugging */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Update the Prolog runtime stacks presuming they have shifted by the
 the specified offset.
 
 Memory management description.
-
-
-
-
-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1429,95 +1530,6 @@ long ls, gs;
   }
 }
 
-
-#if O_SECURE || O_DEBUG
-word key;
-int checked;
-
-		 /*******************************
-		 *	      CHECKING		*
-		 *******************************/
-
-static LocalFrame unmark_environments(LocalFrame);
-static void unmark_choicepoints(LocalFrame);
-
-static LocalFrame
-check_environments(fr)
-LocalFrame fr;
-{ Code PC = NULL;
-
-  if ( fr == NULL )
-    return NULL;
-
-  for(;;)
-  { int slots, n;
-    Word sp;
-
-    if ( true(fr, FR_MARKED) )
-      return NULL;			/* from choicepoints only */
-    set(fr, FR_MARKED);
-    local_frames++;
-    clear_uninitialised(fr, PC);
-
-    DEBUG(1, Sdprintf("Check [%ld] %s:",
-		    levelFrame(fr),
-		    procedureName(fr->procedure)));
-
-    slots = (PC == NULL ? fr->procedure->functor->arity : slotsFrame(fr));
-    sp = argFrameP(fr, 0);
-    for( n=0; n < slots; n++ )
-      key += checkData(&sp[n], FALSE);
-    checked += slots;
-    DEBUG(1, Sdprintf(" 0x%lx\n", key));
-
-    PC = fr->programPointer;
-    if ( fr->parent )
-      fr = fr->parent;
-    else
-      return (LocalFrame) varFrame(fr, -1);
-  }
-}
-
-
-static void
-check_choicepoints(bfr)
-LocalFrame bfr;
-{ for( ; bfr; bfr = bfr->backtrackFrame )
-  { check_environments(bfr);
-  }
-}
-
-word
-checkStacks(frame)
-LocalFrame frame;
-{ LocalFrame fr, fr2;
-
-  if ( !frame )
-    frame = environment_frame;
-
-  local_frames = 0;
-  key = 0L;
-
-  for( fr = frame; fr; fr = fr2 )
-  { fr2 = check_environments(fr);
-
-    check_choicepoints(fr->backtrackFrame);
-  }
-
-  for( fr = frame; fr; fr = fr2 )
-  { fr2 = unmark_environments(fr);
-
-    unmark_choicepoints(fr->backtrackFrame);
-  }
-
-  assert(local_frames == 0);
-
-  return key;
-}
-
-
-
-#endif /*O_SECURE || O_DEBUG*/
 
 		 /*******************************
 		 *	   LOCAL STACK		*
