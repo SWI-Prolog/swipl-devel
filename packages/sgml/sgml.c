@@ -65,7 +65,7 @@ static atdef attrs[] =
   { AT_NUTOKENS, "nutoken",  TRUE },
   { AT_NOTATION, "notation", FALSE },
 
-  { 0, NULL }
+  { 0, NULL, FALSE }
 };
 
 
@@ -84,12 +84,15 @@ find_attrdef(attrtype type)
 
 
 static char *
-mkupper(const ichar *s)
-{ int len = strlen(s)+1;
-  ichar *buf = alloca(len);
+fixcase(dtd_parser *p, const ichar *s)
+{ if ( !p->dtd->case_sensitive )
+  { int len = strlen(s)+1;
+    ichar *buf = alloca(len);
 
-  istrcpy(buf, s);
-  return str2ring((char *)istrupper(buf));
+    istrcpy(buf, s);
+    return str2ring((char *)istrupper(buf));
+  } else
+    return (char *)s;
 }
 
 
@@ -101,12 +104,12 @@ print_open(dtd_parser *p, dtd_element *e, int argc, sgml_attribute *argv)
   { switch(argv[i].definition->type)
     { case AT_CDATA:
 	printf("A%s CDATA %s\n",
-	       mkupper(argv[i].definition->name->name),
+	       fixcase(p, argv[i].definition->name->name),
 	       argv[i].value.cdata);
 	break;
       case AT_NUMBER:
 	printf("A%s NUMBER ",
-	       mkupper(argv[i].definition->name->name));
+	       fixcase(p, argv[i].definition->name->name));
 
 	if ( argv[i].value.text )
 	  printf("%s\n", argv[i].value.text);
@@ -116,19 +119,19 @@ print_open(dtd_parser *p, dtd_element *e, int argc, sgml_attribute *argv)
 	break;
       case AT_NAMEOF:
 	printf("A%s NAME %s\n",
-	       mkupper(argv[i].definition->name->name),
-	       mkupper(argv[i].value.text));
+	       fixcase(p, argv[i].definition->name->name),
+	       fixcase(p, argv[i].value.text));
 	break;
       default:
 	printf("A%s %s %s\n",
-	       mkupper(argv[i].definition->name->name),
-	       mkupper(find_attrdef(argv[i].definition->type)),
-	       mkupper(argv[i].value.text));
+	       fixcase(p, argv[i].definition->name->name),
+	       fixcase(p, find_attrdef(argv[i].definition->type)),
+	       fixcase(p, argv[i].value.text));
 	break;
     }
   }
 
-  printf("(%s\n", mkupper(e->name->name));
+  printf("(%s\n", fixcase(p, e->name->name));
 
   return TRUE;
 }
@@ -182,13 +185,68 @@ on_pi(dtd_parser *p, const ichar *pi)
 }
 
 
+static dtd_srcloc *
+file_location(dtd_srcloc *l)
+{ while(l->parent && l->type != IN_FILE)
+    l = l->parent;
+
+  return l;
+}
+
+
+
+static int
+on_error(dtd_parser *p, dtd_error *error)
+{ const char *severity;
+  const char *dialect;
+  dtd_srcloc *l = file_location(error->location);
+
+  switch(p->dtd->dialect)
+  { case DL_SGML:
+      dialect = "sgml";
+      break;
+    case DL_XML:
+      dialect = "xml";
+      break;
+    case DL_XMLNS:
+    default:				/* make compiler happy */
+      dialect = "xmlns";
+      break;
+  }
+
+  switch(error->severity)
+  { case ERS_WARNING:
+      severity = "Warning";
+      break;
+    case ERS_ERROR:
+    default:				/* make compiler happy */
+      severity = "Error";
+      break;
+  }
+
+  fprintf(stderr, "%s: (%s mode) %s: %s:%d:%d %s\n",
+	  program,
+	  dialect,
+	  severity,
+	  l->name ? l->name : "[]",
+	  l->line, l->linepos,
+	  error->plain_message);
+
+  return TRUE;
+}
+
+
 static void
-set_functions(dtd_parser *p)
-{ p->on_end_element = print_close;
-  p->on_begin_element = print_open;
-  p->on_data = print_data;
-  p->on_entity = on_entity;
-  p->on_pi = on_pi;
+set_functions(dtd_parser *p, int output)
+{ if ( output )
+  { p->on_end_element = print_close;
+    p->on_begin_element = print_open;
+    p->on_data = print_data;
+    p->on_entity = on_entity;
+    p->on_pi = on_pi;
+  }
+
+  p->on_error = on_error;
 }
 
 #define shift (argc--, argv++)
@@ -249,8 +307,7 @@ main(int argc, char **argv)
   }
 
   if ( argc == 1 )
-  { if ( output )
-      set_functions(p);
+  { set_functions(p, output);
     sgml_process_file(p, argv[0]);
     free_dtd_parser(p);
     if ( output )

@@ -2517,7 +2517,10 @@ process_attributes(dtd_parser *p, dtd_element *e, const ichar *decl,
 	  a->def  = AT_IMPLIED;
 	  add_attribute(dtd, e, a);
 
-	  if ( !e->undefined )
+	  if ( !e->undefined &&
+	       !(dtd->dialect != DL_SGML &&
+		 (istreq("xmlns", nm->name) ||
+		  istrprefix("xmlns:", nm->name))) )
 	    gripe(ERC_NO_ATTRIBUTE, e->name->name, nm->name);
 	}
 	atts[attn].definition = a;

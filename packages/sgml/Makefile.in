@@ -4,12 +4,9 @@
 # Copyright: LGPL (see COPYING or www.gnu.org
 ################################################################
 
-.SUFFIXES: .tex .dvi .doc .pl
-
 PL=@PL@
 PLBASE=@PLBASE@
 PLARCH=@PLARCH@
-PCEHOME=/staff/jan/src/xpce
 
 CC=@CC@
 COFLAGS=@COFLAGS@
@@ -18,15 +15,6 @@ CMFLAGS=@CMFLAGS@
 CIFLAGS=-I. -I$(PLBASE)/include
 CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@
 LDFLAGS=$(COFLAGS)
-
-DOCTOTEX=$(PCEHOME)/bin/doc2tex
-PLTOTEX=$(PCEHOME)/bin/pl2tex
-RUNTEX=@RUNTEX@
-DOC=sgml2pl
-TEX=$(DOC).tex
-DVI=$(DOC).dvi
-PDF=$(DOC).pdf
-HTML=$(DOC).html
 
 LD=@LD@
 LDSOFLAGS=@LDSOFLAGS@
@@ -39,6 +27,13 @@ LIBOBJ=		parser.o util.o charmap.o catalog.o model.o xmlns.o utf8.o
 PLOBJ=		$(LIBOBJ) error.o sgml2pl.o
 SGMLOBJ=	$(LIBOBJ) sgml.o
 DTD2PLOBJ=	$(LIBOBJ) dtd2pl.o prolog.o
+
+HDRS=		catalog.h dtd.h model.h prolog.h utf8.h xmlns.h \
+		config.h error.h parser.h sgmldefs.h util.h
+
+ALLCSRC=	$(LIBOBJ:.o=.c) \
+		$(PLOBJ:.o=.c) $(SGMLOBJ:.o=.c) $(DTD2PLOBJ:.o=.c) \
+		$(HDRS)
 
 LIBPL=		sgml.pl
 TARGETS=	sgml2pl.so
@@ -77,27 +72,10 @@ dtd2pl:		$(DTD2PLOBJ)
 sgml:		$(SGMLOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(SGMLOBJ)
 
-################################################################
-# Documentation
-################################################################
+tags:		TAGS
 
-doc:		$(PDF) $(HTML)
-pdf:		$(PDF)
-html:		$(HTML)
-
-$(HTML):	$(TEX)
-		latex2html $(DOC)
-		mv html/index.html $@
-
-$(PDF):		$(TEX)
-		$(RUNTEX) --pdf $(DOC)
-
-$(TEX):		$(DOCTOTEX)
-
-.doc.tex:
-		$(DOCTOTEX) $*.doc > $*.tex
-.pl.tex:
-		$(PLTOTEX) $*.pl > $*.tex
+TAGS:		$(ALLCSRC)
+		etags $(ALLCSRC)
 
 ################################################################
 # Clean
@@ -108,5 +86,4 @@ clean:
 
 distclean:	clean
 		rm -f $(TARGETS) config.cache config.h config.status Makefile
-		rm -f $(TEX)
-		$(RUNTEX) --clean $(DOC)
+
