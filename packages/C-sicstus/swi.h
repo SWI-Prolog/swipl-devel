@@ -91,7 +91,9 @@ typedef struct _qid_t
   int		flags;
 } qid_struct, *qid_t;
 
-typedef SP_term_ref			   fid_t;
+typedef SP_term_ref			   PL_fid_t;
+#define fid_t PL_fid_t			/* avoid AIX name-clash */
+
 
 		 /*******************************
 		 *	     CONSTANTS		*
