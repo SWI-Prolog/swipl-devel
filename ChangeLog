@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: random/3 in library(quintus).  Thanks to Peng Te.
+
   * FIXED: improved type-checking converting code-lists or character-lists
     to text.  The routine is now also faster, especially if the argument is
     not a valid codelist of character list.
