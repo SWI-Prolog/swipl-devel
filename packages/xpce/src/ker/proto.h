@@ -1,5 +1,5 @@
 
-/* ker/alloc.c */
+/* ../src/ker/alloc.c */
 Any		alloc(register int n);
 void		unalloc(register int n, Any p);
 void		initAlloc(void);
@@ -9,7 +9,7 @@ status		listWastedCorePce(Pce pce, Bool ppcells);
 char *		save_string(const char *s);
 void		free_string(char *s);
 
-/* ker/assoc.c */
+/* ../src/ker/assoc.c */
 PceITFSymbol	newSymbol(Any obj, Name name);
 void		deleteAssoc(Any obj);
 void		newAssoc(Name name, Any obj);
@@ -19,11 +19,11 @@ status		renameAssoc(Name old, Name new);
 status		forSomeAssoc(Code code);
 void		initAssoc(int handles);
 
-/* ker/behaviour.c */
+/* ../src/ker/behaviour.c */
 status		initialiseBehaviour(Behaviour b, Name name, Any ctx);
 status		makeClassBehaviour(Class class);
 
-/* ker/class.c */
+/* ../src/ker/class.c */
 Class		typeClass(Name name);
 Class		nameToTypeClass(Name name);
 Class		defineClass(Name name, Name super, StringObj summary, SendFunc makefunction);
@@ -79,7 +79,7 @@ Any		getFeatureClass(Class class, Name name);
 Chain		getSendMethodsClass(Class class);
 status		makeClassClass(Class class);
 
-/* ker/conversion.c */
+/* ../src/ker/conversion.c */
 status		toString(Any obj, String s);
 char *		toCharp(Any obj);
 Int		toInteger(Any obj);
@@ -91,21 +91,21 @@ char *		pcePP(Any obj);
 char *		pcePP(Any obj);
 Any		expandFunction(Any obj);
 
-/* ker/debug.c */
+/* ../src/ker/debug.c */
 void		catchErrorSignals(Bool yes);
 status		confirmTerminal(char *question, char *def);
 
-/* ker/declarations.c */
+/* ../src/ker/declarations.c */
 void		initClassDefs(void);
 void		initTypeAliases(void);
 
-/* ker/error.c */
+/* ../src/ker/error.c */
 Error		getConvertError(Class class, Name id);
 status		makeClassError(Class class);
 status		errorPce(Any obj, Name id, ...);
 status		errorTypeMismatch(Any rec, Any impl, int arg, Type type, Any val);
 
-/* ker/gc.c */
+/* ../src/ker/gc.c */
 void		pushAnswerObject(Any obj);
 void		deleteAnswerObject(Any obj);
 export void	_rewindAnswerStack(AnswerMark *mark, Any obj);
@@ -113,17 +113,17 @@ void		initAnswerStack(void);
 void		resetAnswerStack(void);
 Int		countAnswerStack(void);
 
-/* ker/getmethod.c */
+/* ../src/ker/getmethod.c */
 GetMethod	createGetMethod(Name name, Type rtype, Vector types, StringObj doc, Func action);
 status		initialiseGetMethod(GetMethod m, Name name, Type rtype, Vector types, Function msg, StringObj doc, SourceLocation loc, Name group);
 status		makeClassGetMethod(Class class);
 
-/* ker/glob.c */
+/* ../src/ker/glob.c */
 
-/* ker/global.c */
+/* ../src/ker/global.c */
 Any		findGlobal(Name name);
 
-/* ker/goodies.c */
+/* ../src/ker/goodies.c */
 int		isqrt(long a);
 int		distance(int x1, int y1, int x2, int y2);
 int		rfloat(float f);
@@ -155,7 +155,7 @@ int		pceAssert(int expr, char *text, char *file, int line);
 void		at_pce_exit(atexit_function f, int flags);
 void		run_pce_exit_hooks(int rval);
 
-/* ker/passing.c */
+/* ../src/ker/passing.c */
 status		vm_send(Any receiver, Name selector, Class class, int argc, const Any argv []);
 Any		vm_get(Any receiver, Name selector, Class class, int argc, const Any argv []);
 status		sendSendMethod(SendMethod sm, Any receiver, int argc, const Any argv []);
@@ -169,7 +169,7 @@ Any		get(Any receiver, Name selector, ...);
 Any		resolveSendMethodObject(Any obj, Class class, Name sel, Any *receiver);
 Any		resolveGetMethodObject(Any obj, Class class, Name sel, Any *receiver);
 
-/* ker/method.c */
+/* ../src/ker/method.c */
 status		createMethod(Method m, Name name, Vector types, StringObj doc, Func action);
 status		initialiseMethod(Method m, Name name, Vector types, Code msg, StringObj doc, SourceLocation loc, Name group);
 Type		getArgumentTypeMethod(Method m, Int n);
@@ -177,7 +177,7 @@ Method		getInheritedFromMethod(Method m);
 Method		getMethodFromFunction(Any f);
 status		makeClassMethod(Class class);
 
-/* ker/name.c */
+/* ../src/ker/name.c */
 void		trapGdb(void);
 void		initNamesPass1(void);
 void		initNamesPass2(void);
@@ -192,7 +192,7 @@ Name		CtoKeyword(const char *s);
 char *		saveStringName(Name n);
 status		makeClassName(Class class);
 
-/* ker/object.c */
+/* ../src/ker/object.c */
 void		addRefObject(Any from, Any to);
 void		delRefObject(Any from, Any to);
 void		assignField(Instance instance, Any *field, Any value);
@@ -271,14 +271,14 @@ status		errorObjectv(Any obj, Error e, int argc, Any *argv);
 Name		getManIdObject(Any obj);
 status		makeClassObject(Class class);
 
-/* ker/programobject.c */
+/* ../src/ker/programobject.c */
 status		initialiseProgramObject(Any obj);
 status		initialiseNewSlotProgramObject(ProgramObject obj, Variable var);
 void		setDFlagProgramObject(Any obj, unsigned long mask);
 void		clearDFlagProgramObject(Any obj, unsigned long mask);
 status		makeClassProgramObject(Class class);
 
-/* ker/save.c */
+/* ../src/ker/save.c */
 Int		isSavedObject(Any obj);
 status		saveInFileObject(Any obj, FileObj file);
 status		storeObject(Any obj, FileObj file);
@@ -291,7 +291,7 @@ Any		getObjectSourceSink(SourceSink f);
 Any		loadObject(IOSTREAM *fd);
 status		loadSlotsObject(Any obj, IOSTREAM *fd, ClassDef def);
 
-/* ker/self.c */
+/* ../src/ker/self.c */
 status		formatPcev(Pce pce, CharArray fmt, int argc, Any *argv);
 Name		getOsErrorPce(Pce pce);
 status		catchErrorPce(Pce pce, Any ids);
@@ -311,15 +311,15 @@ status		makeClassPce(Class class);
 export status	pceInitialise(int handles, const char *home, int argc, char **argv);
 int		check_licence(void);
 
-/* ker/sendmethod.c */
+/* ../src/ker/sendmethod.c */
 SendMethod	createSendMethod(Name name, Vector types, StringObj doc, SendFunc action);
 status		makeClassSendMethod(Class class);
 
-/* ker/srclocation.c */
+/* ../src/ker/srclocation.c */
 status		initialiseSourceLocation(SourceLocation loc, Name file, Int line);
 status		makeClassSourceLocation(Class class);
 
-/* ker/timer.c */
+/* ../src/ker/timer.c */
 status		intervalTimer(Timer tm, Real interval);
 status		executeTimer(Timer tm);
 status		statusTimer(Timer tm, Name stat);
@@ -327,13 +327,13 @@ status		startTimer(Timer tm, Name mode);
 status		stopTimer(Timer tm);
 status		makeClassTimer(Class class);
 
-/* ker/trace.c */
+/* ../src/ker/trace.c */
 void		resetDebugger(void);
 void		initDebugger(void);
 void		writeErrorGoal(void);
 int		pceDebugging(Name subject);
 
-/* ker/type.c */
+/* ../src/ker/type.c */
 status		initialiseType(Type t, Name name, Name kind, Any context, Chain supers);
 Type		getLookupType(Class class, Name name);
 Type		createType(Name name, Name kind, Any context);
@@ -354,7 +354,7 @@ void		resetTypes(void);
 void		initTypes(void);
 Type		defineType(char *name, char *def);
 
-/* ker/variable.c */
+/* ../src/ker/variable.c */
 Variable	createVariable(Name name, Type type, Name access);
 status		cloneStyleVariable(Variable var, Name style);
 status		saveStyleVariable(Variable var, Name style);
@@ -366,14 +366,14 @@ Any		getGetVariable(Variable var, Any rec);
 Name		getGroupVariable(Variable v);
 status		makeClassVariable(Class class);
 
-/* ker/xref.c */
+/* ../src/ker/xref.c */
 WsRef		getXrefObject(Any obj, DisplayObj d);
 WsRef		getExistingXrefObject(Any obj, DisplayObj d);
 status		registerXrefObject(Any obj, DisplayObj d, WsRef xref);
 Xref		unregisterXrefObject(Any obj, DisplayObj d);
 void		closeAllXrefs(void);
 
-/* ker/classvar.c */
+/* ../src/ker/classvar.c */
 Any		getValueClassVariable(ClassVariable cv);
 ClassVariable	getClassVariableClass(Class class, Name name);
 status		classVariableValueClass(Class cl, Name name, Any val);
