@@ -664,6 +664,7 @@ alloc_thread()
   for(i=1; i<MAX_THREADS; i++)
   { if ( threads[i].status == PL_THREAD_UNUSED )
     { PL_local_data_t *ld = allocHeap(sizeof(PL_local_data_t));
+
       memset(ld, 0, sizeof(PL_local_data_t));
 
       threads[i].pl_tid = i;
@@ -1086,7 +1087,9 @@ pl_thread_join(term_t thread, term_t retcode)
   }
 
   while( (rc=pthread_join(info->tid, &r)) == EINTR )
-    ;
+  { if ( PL_handle_signals() < 0 )
+      fail;
+  }
   switch(rc)
   { case 0:
       break;
