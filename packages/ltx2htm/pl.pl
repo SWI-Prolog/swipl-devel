@@ -373,6 +373,7 @@ special('Stilde', ~).
 special('Spercent', '%').
 special('Shash', #).
 special(backslash, \).
+special(bsl, \).
 
 clean_name([\Special], Out) :-
 	special(Special, Out), !.

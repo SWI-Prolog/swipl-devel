@@ -186,6 +186,7 @@
 \Spercent
 \Shash
 \backslash
+\bsl
 
 % These are hacks to get the index right
 
