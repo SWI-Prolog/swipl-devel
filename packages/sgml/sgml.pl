@@ -163,6 +163,7 @@ parser_option(line(_)).
 parser_option(space(_)).
 parser_option(number(_)).
 parser_option(defaults(_)).
+parser_option(doctype(_)).
 
 set_parser_options(Parser, Options, RestOptions) :-
 	parser_option(Option),
