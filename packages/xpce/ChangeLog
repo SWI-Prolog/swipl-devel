@@ -1,8 +1,84 @@
+* WIN32: Programmed around MSVC++ 2.0 optimizer bug for ker/goodies.c.
+
+* FIXED: Input handling in class stream to avoid a crash if executing the
+  ->input_message of the stream destroys the stream (fixes problems in
+  socket and process).
+
+  [sent C-part of the patches to AIIL]
+
+* FIXED: PceEmacs server package to deal properly with invalid requests.
+
+* ADDED: dict ->insert and dict <-sort_by to manipulate sorted dictionaries
+  more efficiently.
+
+* FIXED: Visualisation update problem in list_browser after a ->sort.
+
+* INSTALL: Configure fixed for users of a shell that doesn't export $PWD.
+
+* ADDED: ->drop and ->preview drop to emacs_fundamental_mode to allow for
+  dropping files on PceEmacs windows.
+
+* ADDED: `directory ->modified' to check for modifications in a directory
+
+* FIXED: Source option on demo tool.  Now uses absolute_file_name/3.
+
+* MODIFIED: ImageViewer demo to use directory_item for realising
+  completion on the directory.
+
+* MODIFIED: Dialog editor to exploit the new drag-and-drop gestures.  All
+  actions are now moved from the middle to the left mouse-button, so the
+  system gets less dependent on the middle-button.  Deleted dialog/prompter;
+  the dialog editor now uses library(pce_prompter).
+
+* FIXED: directory->scan to handle the hidden_too argument properly.
+
+* FIXED: Prevented `editor->event' from calling ->report: status, '' through
+  endIsearchEditor().
+
+* ADDED: Indirected all internal calls of `editor->caret' as a message, so
+  the application can keep track of moving the caret in an easy way.
+
+* ADDED: Proper geometry management for text-item objects that allow for
+  more interactive editing in the dialog editor and better layout of dialog
+  windows.
+
+* UPGRADED: library(pce_prompt) to be a bit smarter and more useful in simple
+  applications: better feedback on errors, automatic generation of menus,
+  list_browsers or text_item.  Completion in text_item if appropriate.
+
+* ADDED: editpce/1 to accept objects: editpce(@blabla) will edit the source
+  file of the class to which @blabla belongs.  Also, editpce(@blabla->hello).
+  Same for manpce/1.
+
+* MODIFIED: drag_and_drop_gesture and drag_and_drop_dict_item_gesture to
+  use a normal cursor.  This will fix problems with systems not supporting
+  big cursors or making a mess out of them (most colour X11 servers).
+
+  The ->preview_drop method now has an optional position argument, allowing
+  the receiver to preview the location of the drop and possibly only allow
+  for dropping in restricted areas.  The dialog editor usage of the drag
+  and drop gestures have been modified to handle this.
+
+  Both gestures are now defined on the left-button by default.  These gestures
+  ->cancel if the up is within 5 pixels of the down, allowing other gestures
+  to cooperate with them.  See the dialog editor for details.
+
+* FIXED: left-drag from dialog objects in dialog editor to yield an undefined
+  method.
+
+* FIXED: dialog editor: documentation on @prolog to work ok.
+
+* FIXED: `event->inside' now works for windows and succeeds if the event is
+  in the visible area of a window.
+
+* FIXED: getting position of an event relative to a device in another window
+  as from where the event was generated.
+
 [VERSION 4.8.13]
 
 * UPDATED: PW3 version:
 	- Fix to input-handling.  New windows where sometimes only filled
-	after moving the pointer in the window.
+	  after moving the pointer in the window.
 	- Update of the Prolog dependencies and PW3 specific Makefiles.
 	- Fixed incorrect definition of make/0 and source_warning/2.
 

@@ -13,10 +13,14 @@ if [ ! "o$1" = "o-q" ]; then
       dir=`dirname $d`
       awk -F/ '{printf("%s/%s\n", "'$dir'", $2)}' $dir/CVS/Entries >> srcfiles
   done
+
+find ./bitmaps -name '*.bm' -print >> srcfiles
+
 cat >> srcfiles << EOF
-./man/faq/pce.hlp
 ./prolog/lib/man/classification.obj
+./bitmaps/README
 EOF
+
   echo "done"
 fi
 

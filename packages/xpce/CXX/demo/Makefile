@@ -22,12 +22,14 @@
 
 PCEHOME=	/staff/jan/src/xpce
 
+all:
+		@echo "This Makefile only provides default rules"
 
 CC=gcc
 CXX=g++
-CXXFLAGS=	-I$(PCEHOME)/include -O
+CXXFLAGS=	-I$(PCEHOME)/include
 CFLAGS=		-O
-PCELIBS=	$(PCEHOME)/src/XPCE.a -lXt -lX11 -lm
+PCELIBS=	$(PCEHOME)/sun4/libXPCE.a -lXt -lX11 -lm
 LDFLAGS=	$(PCELIBS)
 
 clean:
