@@ -12,6 +12,7 @@
 
 :- module(emacs_frame, []).
 :- use_module(library(pce)).
+:- use_module(prompt).
 :- require([ between/3
 	   , concat/3
 	   , concat_atom/2
@@ -36,19 +37,11 @@ various others.
 
 :- pce_begin_class(emacs_frame, frame, "Frame for the PceEmacs editor").
 
-:- pce_global(@emacs_image_recogniser,
-	      new(handler(button,
-			  message(@receiver?device?(mode), event, @event)))).
-
 class_variable(confirm_done, bool, false,       "Donot confirm emacs-windows").
 class_variable(size,         size, size(80,32), "Size of text-field").
 
 variable(sticky_window, bool,   get,  "When @on, window won't be killed").
 variable(pool,		[name], both, "Window pool I belong too").
-
-:- pce_global(@emacs_drop_files,
-	      new(send_method(drop_files, vector(chain, point),
-			      message(@receiver?editor, drop_files, @arg1)))).
 
 initialise(F, B:emacs_buffer) :->
 	"Create window for buffer"::
@@ -61,18 +54,13 @@ initialise(F, B:emacs_buffer) :->
 	send(MBD, display, new(menu_bar)),
 
 	get(F, class_variable_value, size, Size),
-	send(new(V, view(@default, @default, @default,
-			 new(E, emacs_editor(B, Size?width, Size?height)))),
-	     below, MBD),
-	send(V, send_method, @emacs_drop_files),
+	send(new(V, emacs_view(B, Size?width, Size?height)), below, MBD),
 	send(new(MW, emacs_mini_window), below, V),
-	send(E?image,  recogniser, @emacs_image_recogniser),
+	get(V, editor, E),
 	send(E, recogniser, handler(keyboard,
 				    message(MW, editor_event, @arg1))),
-
-	get(B, mode, ModeName),
-	send(V, mode, ModeName),
 	send(F, keyboard_focus, V),
+	send(F, setup_mode, V),
 
 	send(F, open),
 	send(F, pool, B?pool),
@@ -102,20 +90,14 @@ buffer(F, B:emacs_buffer) :->
 	send(Mode, new_buffer).
 
 
-view(F, View:view) :<-
-	get(F, member, view, View).
+view(F, View:emacs_view) :<-
+	get(F, member, emacs_view, View).
 
 
 editor(F, Editor:emacs_editor) :<-
 	"Editor component of the frame"::
-	get(F, member, view, V),
+	get(F, member, emacs_view, V),
 	get(V, editor, Editor).
-
-
-mode(F, Mode:emacs_mode) :<-
-	"Current mode object of the editor"::
-	get(F, editor, E),
-	get(E, mode, Mode).
 
 
 menu_bar(F, MB:menu_bar) :<-
@@ -124,9 +106,26 @@ menu_bar(F, MB:menu_bar) :<-
 	get(D, member, menu_bar, MB).
 
 
+mode(F, Mode:emacs_mode) :<-
+	"Current mode object of the editor"::
+	get(F, editor, E),
+	get(E, mode, Mode).
+
+
+setup_mode(F, V:emacs_view) :->
+	"Setup the mode for indicated view"::
+	get(V, mode, Mode),
+	(   get(Mode, icon, Icon)
+	->  send(F, icon, Icon)
+	;   true
+	),
+	get(F, menu_bar, MB),
+	ignore(send(V, fill_menu_bar, MB)).
+
+
 active(F, Val:bool) :->
 	"Indicate active status"::
-	get(F, member, view, View),
+	get(F, view, View),
 	(   Val == @on
 	->  send(@emacs, selection, View?text_buffer)
 	;   send(@emacs, selection, @nil)
@@ -179,11 +178,12 @@ make_prompt_binding(G) :-
 
 prompt_using(F, Item:dialog_item, Rval:unchecked) :<-
 	"Prompt for value in dialog using Item"::
+	get(F, view, View),
 	get(F, member, mini_window, W),
-	get(F, member, dialog, Dialog),
-	get(Dialog, member, menu_bar, MB),
-
+	get(F, menu_bar, MB),
 	send(MB, active, @off),
+
+	send(W, client, View),
 	send(W, prompter, Item),
 	send(Item, message, message(F, return, ok)),
 	(   send(Item, instance_of, text_item)
@@ -204,7 +204,7 @@ prompt_using(F, Item:dialog_item, Rval:unchecked) :<-
 	send(Item, lock_object, @on),	% Tricky, but we should leave the
 	send(W, prompter, @nil),	% lifetime to the caller
 	get(Item, unlock, Item),
-	get(F, member, view, View),
+	get(F, view, View),
 	send(F, keyboard_focus, View),
 	send(MB, active, @on),
 	Return == ok.
@@ -218,91 +218,10 @@ reset(F) :->
 	get(Dialog, member, menu_bar, MB),
 	send(MB, active, @on).
 
-:- pce_autoload(behaviour_item, library('man/behaviour_item')).
-:- pce_autoload(directory_item, library('file_item')).
+:- pce_end_class(emacs_frame).
 
-prompt(F, Label:char_array, Default:[any], Type:[type], History:[chain],
-       Rval:any) :<-
-	"Prompt for a value in the mini-window"::
-	default(Default, '', Selection),
-	(   Type == @default
-	->  new(Item, text_item(Label, Selection))
-	;   (	send(Type, includes, file)
-	    ;	send(Type, includes, directory)
-	    )
-	->  (	send(Default, instance_of, file)
-	    ->	get(Default, name, D2)
-	    ;	D2 = Default
-	    ),
-	    (	send(D2, instance_of, char_array),
-		send(D2, prefix, '/')
-	    ->	DefPath = D2
-	    ;	send(D2, instance_of, char_array),
-		send(regex('[a-zA-Z0-9_-.]+$'), match, D2)
-	    ->	new(DefPath, string('%s/%s',
-				    F?editor?(mode)?directory?path,
-				    D2))
-	    ;	new(DefPath, string('%s', F?editor?(mode)?directory?path)),
-		send(DefPath, ensure_suffix, /)
-	    ),
-	    (	send(Type, includes, file)
-	    ->	new(Item, file_item(Label, DefPath))
-	    ;	new(Item, directory_item(Label, DefPath))
-	    )
-	;   send(Type, includes, emacs_mode_command)
-	->  new(Item, emacs_command_item(Label, Selection)),
-	    send(Item, type, Type)
-	;   send(Type, includes, emacs_buffer)
-	->  new(Item, text_item(Label, Selection)),
-	    send(Item, type, Type),
-	    get(@emacs, buffers, Buffers),
-	    send(Item, value_set, Buffers)
-	;   send(Type, includes, behaviour)
-	->  new(Item, behaviour_item(Label, Selection))
-	;   send(Type, includes, class)
-	->  new(Item, text_item(Label, Selection)),
-	    send(Item, type, Type),
-	    new(Classes, chain),
-	    send(@classes, for_all, message(Classes, append, @arg1)),
-	    send(Item, value_set, Classes)
-	;   new(Item, text_item(Label, Selection)),
-	    send(Item, type, Type),
-	    (	History \== @default,
-		\+ get(Type, value_set, _)
-	    ->	send(Item, value_set, History)
-	    ;	true
-	    )
-	),
-	send(Item, length, 60),
-	send(Item, pen, 0),
-	
-	get(F, prompt_using, Item, RawRval),
-	fix_rval(Type, RawRval, Rval),
-	(   object(Rval),
-	    get(Rval, lock_object, @off)
-	->  send(Rval, lock_object, @on), 	% protect during deletion!
-	    free(Item),
-	    get(Rval, unlock, Rval)
-	;   free(Item)
-	).
-
-
-%	If the user entered a directory while requested for a file,
-%	start the finder in the specified directory to provide the file.
-
-fix_rval(Type, RawRval, RVal) :-
-	send(Type, instance_of, type),
-	send(Type, includes, file),
-	\+ send(Type, includes, directory),
-	atom(RawRval),
-	send(directory(RawRval), exists), !,
-	get(@finder, file, @on, directory := RawRval, RVal).
-fix_rval(_, Rval, Rval).
-
-
-:- pce_end_class.
-
-:- pce_begin_class(emacs_command_item, text_item).
+:- pce_begin_class(emacs_command_item, text_item,
+		   "Prompt for a M-x command").
 
 canonise(TI) :->
 	get(TI, value_text, Text),
@@ -319,7 +238,7 @@ selection(TI, Name:name) :<-
 	send(TI, canonise),
 	get(TI, get_super, selection, Name).
 
-:- pce_end_class.
+:- pce_end_class(emacs_command_item).
 
 
 :- pce_begin_class(emacs_mini_window, dialog, "Prompt and feedback window").
@@ -346,6 +265,15 @@ initialise(D) :->
 '_compute_desired_size'(_) :->
 	"We have fixed size"::
 	true.
+
+client(D, Client:emacs_view) :->
+	"Register emacs_view as client"::
+	send(D, delete_hypers, client),
+	new(_, hyper(D, Client, client, mini_window)).
+client(D, Client:emacs_view) :<-
+	"Get client emacs_view"::
+	get(D, hypered, client, Client).
+
 
 report(D, Type:name, Fmt:[char_array], Args:any ...) :->
 	"Report"::
@@ -416,7 +344,7 @@ event(D, Ev:event) :->
 
 m_x_next(D) :->
 	"Handle M-n to get next value"::
-	(   get(D?frame?mode, m_x_next, NewDefault)
+	(   get(D?client?mode, m_x_next, NewDefault)
 	->  send(D?prompter, displayed_value, NewDefault?print_name)
 	;   send(D?prompter, restore)
 	).
@@ -424,7 +352,7 @@ m_x_next(D) :->
 
 m_x_previous(D) :->
 	"Handle M-p to get previous value"::
-	get(D?frame?mode, m_x_previous, NewDefault),
+	get(D?client?mode, m_x_previous, NewDefault),
 	send(D?prompter, displayed_value, NewDefault?print_name).
 
 
@@ -462,6 +390,121 @@ prompter(D, Prompter:dialog_item*) :->
 	send(D, slot, prompter, Prompter).
 
 :- pce_end_class.
+
+
+:- pce_begin_class(emacs_view, view,
+		   "View running an emacs_editor").
+
+:- pce_global(@emacs_image_recogniser,
+	      new(handler(button,
+			  message(@receiver?device?(mode), event, @event)))).
+
+class_variable(size,         size, size(80,32), "Size of text-field").
+
+initialise(V, B:buffer=emacs_buffer, W:width=[int], H:height=[int]) :->
+	"Create for buffer"::
+	get(V, class_variable_value, size, size(DW, DH)),
+	default(W, DW, Width),
+	default(H, DH, Height),
+	send_super(V, initialise, @default, @default, @default,
+		   new(E, emacs_editor(B, Width, Height))),
+	send(E?image, recogniser, @emacs_image_recogniser),
+	get(B, mode, ModeName),
+	send(E, mode, ModeName),
+	get(E, mode, Mode),		% the mode object
+	ignore(send(Mode, new_buffer)).
+
+
+drop_files(V, Files:chain, _At:point) :->
+	"Accept files dropped on me"::
+	send(V?editor, drop_files, Files).
+
+
+:- pce_group(mode).
+
+setup_mode(V) :->
+	"Editor has changed mode; ask <-frame to do its part"::
+	(   get(V, frame, Frame),
+	    send(Frame, has_send_method, setup_mode)
+	->  send(Frame, setup_mode, V)
+	;   true
+	).
+
+fill_menu_bar(V, MB:menu_bar) :->
+	"Setup menu-bar for current mode"::
+	send(V?editor, fill_menu_bar, MB).
+
+:- pce_group(prompt).
+
+prompt_using(V, Item:dialog_item, Rval:unchecked) :<-
+	"Prompt for one value using a dialog-item"::
+	(   get(V, frame, Frame),
+	    send(Frame, has_get_method, prompt_using)
+	->  get(Frame, prompt_using, Item, Rval)
+	;   new(D, dialog),		% very incomplete!
+	    send(D, transient_for, V),
+	    send(D, modal, transient),
+	    send(D, append, Item),
+	    get(D, confirm_centered, Rval)
+	).
+
+prompt(V, Label:char_array, Default:[any], Type:[type], History:[chain],
+       Rval:any) :<-
+	"Prompt for a value"::
+	get(V, mode, Mode),
+	make_item(Mode, Label, Default, Type, History, Item),
+	(   send(Item, instance_of, text_item)
+	->  send(Item, length, 60),
+	    send(Item, pen, 0)
+	),
+	
+	get(V, prompt_using, Item, RawRval),
+
+	fix_rval(Type, RawRval, Rval),
+	(   object(Rval),
+	    get(Rval, lock_object, @off)
+	->  send(Rval, lock_object, @on), 	% protect during deletion!
+	    free(Item),
+	    get(Rval, unlock, Rval)
+	;   free(Item)
+	).
+
+
+%	If the user entered a directory while requested for a file,
+%	start the finder in the specified directory to provide the file.
+
+fix_rval(Type, RawRval, RVal) :-
+	send(Type, instance_of, type),
+	send(Type, includes, file),
+	\+ send(Type, includes, directory),
+	atom(RawRval),
+	send(directory(RawRval), exists), !,
+	get(@finder, file, @on, directory := RawRval, RVal).
+fix_rval(_, Rval, Rval).
+
+
+interactive_arguments(V, Impl:any, Times:[int], Argv:vector) :<-
+	"Prompt for arguments for the given implementation"::
+	get(V, mode, Mode),
+	new(Argv, vector),
+	between(1, 10, ArgN),
+	(   get(Impl, argument_type, ArgN, ArgType)
+	->  (   integer(Times),
+	        send(ArgType, includes, int)
+	    ->	send(Argv, element, ArgN, Times)
+	    ;   send(ArgType, includes, default)
+	    ->  send(Argv, element, ArgN, @default)
+	    ;   get(Mode, interactive_argument, Impl, ArgN, Arg),
+		get(ArgType, check, Arg, CheckedArg)
+	    ->  send(Argv, element, ArgN, CheckedArg)
+	    ;   !, fail
+	    ),
+	    fail			% force backtracing
+	;   !
+	).
+
+:- pce_end_class(emacs_view).
+
 
 :- pce_begin_class(emacs_editor, editor, "Generic PceEmacs editor").
 
@@ -550,11 +593,7 @@ mode(E, ModeName:mode_name) :->
 	    send(E?text_buffer, mode, ModeName),
 	    send(E, syntax, Mode?syntax),
 	    send(E, setup_mode),
-	    (	get(Mode, icon, Icon)
-	    ->	send(E?frame, icon, Icon)
-	    ;	true
-	    ),
-	    ignore(send(E, fill_menu_bar, E?frame?menu_bar)),
+	    send(E?device, setup_mode),
 	    send(E, report, status, 'Switched to ``%s'''' mode', ModeName)
 	).
 
@@ -918,24 +957,13 @@ clean_argv(Vector) :-
 	send(Vector, for_all,
 	     message(Vector, element, @arg2, @arg1?print_name)).
 
-noarg_call(M, Selector:name) :->
+noarg_call(M, Selector:name, Times:[int]) :->
 	"Invoke method without arguments (prompt)"::
 	(   get(M, send_method, Selector, tuple(_, Impl))
 	->  send(@current_emacs_mode, assign, M),
 	    send(M, open_history, Impl, @on),
-	    new(Argv, vector),
-	    between(1, 10, ArgN),
-	    (   get(Impl, argument_type, ArgN, ArgType)
-	    ->  (   send(ArgType, includes, default)
-		->  send(Argv, element, ArgN, @default)
-		;   get(M, interactive_argument, Impl, ArgN, Arg),
-		    get(ArgType, check, Arg, CheckedArg)
-		->  send(Argv, element, ArgN, CheckedArg)
-		;   !, fail
-		),
-		fail			% force backtracing
-	    ;   !
-	    ),
+	    get(M, interactive_arguments, Impl, Times, Argv),
+	    send(M, report, status, ''),
 	    result(send(M, send_vector, Selector, Argv), YesNo),
 	    (	object(M)
 	    ->  send(M, close_history, Argv),
@@ -1061,18 +1089,24 @@ file(M, File:file*) :<-
 
 prompt(M, Label:char_array, Default:[any], Type:[type], Rval:any) :<-
 	"Prompt for a value in the mini-window"::
-	get(M?frame, prompt, Label, Default, Type, Rval).
+	get(M?window, prompt, Label, Default, Type, Rval).
 
 
 prompt_using(M, Item:graphical, Rval:any) :<-
 	"Prompt using dialog item in the mini-window"::
-	get(M?frame, prompt_using, Item, Rval).
+	get(M?window, prompt_using, Item, Rval).
+
+
+interactive_arguments(M, Implementation:any, Times:[int], Argv:vector) :<-
+	"Prompt for arguments for the given implementation"::
+	get(M, window, View),
+	get(View, interactive_arguments, Implementation, Times, Argv).
 
 
 interactive_argument(M, Implementation:any, Which:int, Value:any) :<-
 	"Prompt for interactive argument of specified type"::
 	send(M, open_history, Implementation),
-	get(M, frame, EmacsWindow),
+	get(M, window, EmacsWindow),
 	get(Implementation, argument_type, Which, Type),
 	send(M, m_x_argn, Which),
 	get(M, m_x_history, History),

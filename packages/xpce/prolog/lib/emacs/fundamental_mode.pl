@@ -561,38 +561,7 @@ execute_extended_command(M,
 			 CmdName:command=emacs_mode_command,
 			 Times:[int]) :->
 	"Prompt for interactive command"::
-	get(M, send_method, CmdName, tuple(_, Impl)),
-	send(M, open_history, Impl, @on),
-	new(Argv, vector),
-	between(1, 100, ArgN),
-	    (   get(Impl, argument_type, ArgN, ArgType)
-	    ->  (   send(ArgType, includes, int),
-		    Times \== @default
-		->  send(Argv, element, ArgN, Times)
-		;   send(ArgType, includes, default)
-		->  send(Argv, element, ArgN, @default)
-		;   get(M, interactive_argument, Impl, ArgN, Arg),
-		    get(ArgType, check, Arg, CheckedArg)
-		->  send(Argv, element, ArgN, CheckedArg)
-		;   !, fail
-		),
-		fail			% force backtracking
-	    ;   !
-	    ),
-	send(M, report, status, ''),
-	result(send(M, send_vector, CmdName, Argv), YesNo),
-	(   object(M)			% may be ->free'd!
-	->  send(M, close_history, Argv),
-	    (	YesNo == fail
-	    ->  send(M, report, status, no)
-	    ;	true
-	    )
-	;   true
-	).
-
-result(Goal, true) :-
-	Goal, !.
-result(_, fail).
+	send(M, noarg_call, CmdName, Times).
 
 
 		 /*******************************
