@@ -7,7 +7,12 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
-VERSION 5.1.11 (April 25, 2003)
+  * DOCS: Updated some comments in Makefile and INSTALL.notes files.
+
+  * FIXED: Compiler warning in pl-proc.c.  Paulo Moura.
+
+
+VERSION 5.1.12 (April 25, 2003)
 ===============================
 
   * ADDED: library(checklast) to check for the modified argument order of

@@ -6,23 +6,52 @@
 
 
 Configuration, compilation and installation is based on the GNU autoconf
-package.
+package and consists of two steps:  builting the basic SWI-Prolog system
+and building the packages.
+
+SWI-Prolog can only be built using   GNU-Make. On many non-linux systems
+this is installed as gmake.
+
+Although the system compiles using a  wide variety of C-compilers, using
+GCC avoids a lot of trouble. The   configure  script has very incomplete
+and sometimes aged default  compiler  settings   for  the  system native
+compiler, so in most case you will need to modify the CFLAGS and LDFLAGS
+definitions in the Makefile to reach at optimal results.
+
+
+Building SWI-Prolog lite
+------------------------
 
 In normal cases, the following should do:
 
 	% cd src
 	% ./configure
-	% make
-	% make test
-	% make install
+	% gmake
+	% gmake check
+	% gmake install
 
 By default, the system  is  installed   as  /usr/local/bin/pl,  with the
 libraries in /usr/local/lib/pl-<version>.
 
 	% ./configure --prefix=PREFIX
 
-Building for multiple architectures
-===================================
+
+Building the SWI-Prolog packages
+--------------------------------
+
+	(Ensure the installed pl executable is in your path)
+	% cd packages
+	% ./configure
+	% gmake
+	% gmake install
+
+The packages can also be  configured   and  build  individually from the
+package itself. Most packages are installed with the ./configure && make
+&& make install sequence.
+
+
+Building for multiple or different settings
+===========================================
 
 To build for a second architecture, you  should either clean the sources
 using `make distclean' or make  a  new   directory  next  to  the source
@@ -35,6 +64,7 @@ requires GNU-MAKE.  For example:
 	% make
 	% make test
 	% make install
+
 
 Building a runtime version
 ==========================
@@ -80,9 +110,8 @@ still doesn't solve the problem,   use  --disable-mapped-stacks. If that
 doesn't fix the problem  you  found   something  new.  Please  report to
 prolog-bugs@swi.psy.uva.nl.
 
-Sofar, automatic configuration is known to   generate  a working version
-using mmap() based stacks on SunOS   4.1.x, Solaris 2.x, Linux (anything
-not truly antique) and SCO OpenServer.
+Using mmapped stacks works on  most   modern  Unix  platforms, including
+Linux, Solaris, OpenBSD, FreeBSD, IRIX, HP/UX and many more.
 
 # Assembler warnings
 

@@ -13,9 +13,10 @@ SWI-Prolog
     http://www.prolog-standard.fmg.uva.nl/twiki/bin/view/Library/PredLast2
     for a discussion.
 
-  * Some portability patches.
+  * Added various dec10 compatible library predicates to library(lists).
+    fixed some problems in the library (Richard O'Keefe).
 
-  * Miscellaneous small patches.
+  * Some portability patches and small patches.
 
 Packages
 ========

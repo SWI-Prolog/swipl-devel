@@ -10,6 +10,9 @@
 #		1018 WB  Amsterdam
 #		The Netherlands
 #
+# This  Makefile  requires  GNU-Make,  often  installed  as  `gmake'  on
+# Non-Linux systems.
+#
 # Public targets:
 # 
 #	* make			Simply makes all programs in the current tree
@@ -26,11 +29,7 @@
 # 
 # Copyright policy:
 #	
-#	* GPL-2 (see file COPYING or http://www.gnu.org/)
-#
-#	* Licenses for use with proprietary software are available.
-#	  See http://www.swi.pay.uva.nl/pub/SWI-Prolog/
-#
+#	* LGPL (see file COPYING or http://www.swi-prolog.org/)
 ################################################################
 
 PLVERSION=@PLVERSION@
