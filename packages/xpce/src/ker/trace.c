@@ -31,7 +31,6 @@ void
 resetDebugger(void)
 { CurrentGoal = NULL;
   ServiceMode = PCE_EXEC_USER;
-  GoalDepth   = 0;
 }
 
 

@@ -27,7 +27,6 @@
 
 GLOBAL PceGoal	CurrentGoal;		/* current active goal */
 GLOBAL int	ServiceMode;		/* Running a service  call-back */
-GLOBAL int	GoalDepth;		/* recursion level */
 GLOBAL int	MaxGoalDepth;		/* maximum recursion level */
 
 #define NO_MAX_GOAL_DEPTH INT_MAX 	/* Setting for MaxGoalDepth if unlimited */
