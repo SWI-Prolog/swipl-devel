@@ -216,6 +216,8 @@ html_decode_tag(const char *data, HtmlTagDef spec, void *dest)
 
     si = s;
     ei = skipidentifier(si);
+    if ( si == ei )			/* end of the file */
+      return (char *)s;
 
     if ( *ei == '=' )
     { sv = ei+1;

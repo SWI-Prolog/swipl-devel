@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 			
+  * FIXED: Possible infinite loop looking for attached state.  Spotted with
+    fix by NIDE Naoyuki.   Thanks!
+
   * PORT: Added various issues to make SWI-Prolog compile on BeOS.  Thanks
     to Axel Doerfler.
 

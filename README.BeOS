@@ -1,0 +1,38 @@
+SWI-Prolog, BeOS port
+
+last updated: 24/05/2001
+--
+
+In order to build SWI-Prolog  on  BeOS   you  should  first  install the
+GNU/readline package which is available for  BeOS at various places (one
+of them is www.ninemoons.com).
+
+To install SWI-Prolog you should begin with this:
+
+	$ ./configure --prefix=directory-where-prolog-should-be-installed
+
+I installed SWI-Prolog in /boot/develop/prolog but you can use any other
+place as well. The rest is simple. If   you don't have BONE (which is at
+the time of this writing still not   available to the public) you should
+edit the file src/config.h and comment out the line:
+
+	#define HAVE_SELECT 1
+
+This is because pre-BONE's select() doesn't work on file descriptors.
+
+After this just follow the standard procedure:
+
+	$ make
+	$ make install
+
+That's it, you have now a working version of SWI-Prolog in the
+chosen directory.
+
+--
+
+If you have any questions regarding the BeOS port, feel free to bother
+me directly:
+
+	Axel Dörfler
+	axeld@pinc-software.de
+

@@ -1510,9 +1510,9 @@ for the semantics of a predicate, only on its performance. If indexing
 is enabled on a predicate a special purpose algorithm is used to select
 candidate clauses based on the actual arguments of the goal. This
 algorithm checks whether indexed arguments might unify in the clause
-head. Only atoms, integers and functors (e.g. name and arity of a term)
-are considered. Indexing is very useful for predicates with many clauses
-representing facts.
+head. Only atoms, integers and compound terms are considered. Compound
+terms are indexed on the combination of their name and arity. Indexing
+is very useful for predicates with many clauses representing facts.
 
 Due to the representation technique used at most 4 arguments can be
 indexed. All indexed arguments should  be in the first 32 arguments of
