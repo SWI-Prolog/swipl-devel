@@ -1640,7 +1640,8 @@ $translate_options([O|T0], [Opt|T]) :-
 	atom_chars(O, [-,-|Rest]),
 	$split(Rest, [=], Head, Tail), !,
 	atom_chars(Name, Head),
-	name(Value, Tail),
+	name(Atom, Tail),
+	term_to_atom(Value, Atom),
 	Opt =.. [Name, Value],
 	$translate_options(T0, T).
 $translate_options([_|T0], T) :-

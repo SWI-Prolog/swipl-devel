@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: pl -o myexe --goal=hello,halt -c hello.pl (handling complex
+    terms in --goal= and --toplevel=)
+
   * FIXED: pl -q -t true printed a single newline.  Eric Goldlust.
 
   * FIXED: Ignore -x in pl -- -x foo.  With patch from Salvador "Fandiño.
