@@ -1,3 +1,26 @@
+* FIXED: Class key_binding to fetch <-saved_column on ->cursor_up and
+  ->cursor_down.  MODIFIED: class key_binding now uses <-up_down_column
+  to find the desired `context' column rather then <-column.  This allows
+  a class to do close cooperation between <-up_down_column and the
+  cursor movement without using the generic <-column method.
+
+* ADDED: `editor<->wrap', delegating to the <-image.
+
+* ADDED: Support writing jpeg files on systems running 24 or 32 bit
+  colordepth (X11 version).
+
+* ADDED: Lots of stuff to the HTTP server libraries including fairly
+  complete manual server as demo.  Also documentation for the html_write
+  library.
+
+* FIXED: Deleting part of a tree that is zoomed (Paul Holmes-Higgin).
+
+* FIXED: correct building of xpce-install through different routes.
+
+* ADDED: `chain<-sub': return sub-chain using range of indices.
+
+* FIXED: term-representation of class get_method.
+
 * FIXED: PceEmacs Prolog colourising mode: errornous non-determinism when
   colouring DCG rules, leading to very poor performance.
 
@@ -6,7 +29,7 @@
 VERSION 5.0.10
 ==============
 
-* ADDED: Library 'http/httpd' for a HTTP deamon skeleton: make your XPCE
+* ADDED: Library 'http/httpd' for a HTTP daemon skeleton: make your XPCE
   process drive your browser!
 
 * FIXED/MODIFIED: `node->for_some' and `node->for_all' to traverse the
