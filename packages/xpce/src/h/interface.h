@@ -290,7 +290,7 @@ __pce_export int	pceEnumElements(PceObject collection,
 
 #define LOCK_PCE	0
 
-__pce_export void	pceMTinit(void);
+__pce_export int	pceMTinit(void);
 __pce_export void	pceMTLock(int lock);
 __pce_export void	pceMTUnlock(int lock);
 

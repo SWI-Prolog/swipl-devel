@@ -101,7 +101,7 @@ static sem_t sem_canceled;		/* used on halt */
 
 static Table threadAliases;		/* name --> integer-id */
 static PL_thread_info_t threads[MAX_THREADS];
-static int threads_exited = FALSE;	/* Prolog threads are finished */
+static int threads_ready = FALSE;	/* Prolog threads available */
 
 TLD_KEY PL_ldata;			/* key for thread PL_local_data */
 
@@ -293,7 +293,7 @@ free_prolog_thread(void *data)
   PL_thread_info_t *info;
   int acknowlege;
 
-  if ( threads_exited )
+  if ( !threads_ready )
     return;				/* Post-mortem */
 
   info = ld->thread.info;
@@ -334,6 +334,12 @@ void
 initPrologThreads()
 { PL_thread_info_t *info;
 
+  LOCK();
+  if ( threads_ready )
+  { UNLOCK();
+    return;
+  }
+
   TLD_alloc(&PL_ldata);
   info = alloc_thread();
   info->tid = pthread_self();
@@ -345,6 +351,8 @@ initPrologThreads()
 
   GD->statistics.thread_cputime = 0.0;
   GD->statistics.threads_created = 1;
+  threads_ready = TRUE;
+  UNLOCK();
 }
 
 
@@ -427,7 +435,7 @@ exitPrologThreads()
   if ( canceled == 0 )			/* safe */
     sem_destroy(&sem_canceled);
 
-  threads_exited = TRUE;
+  threads_ready = FALSE;
 }
 
 
@@ -596,6 +604,7 @@ static const opt_spec make_thread_options[] =
   { ATOM_argument,	OPT_LONG },
   { ATOM_alias,		OPT_ATOM },
   { ATOM_detached,	OPT_BOOL },
+  { ATOM_stack,		OPT_LONG },
   { NULL_ATOM,		0 }
 };
 
@@ -649,6 +658,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   PL_local_data_t *ldnew;
   atom_t alias = NULL_ATOM;
   pthread_attr_t attr;
+  long stack = 0;
 
   if ( !(PL_is_compound(goal) || PL_is_atom(goal)) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, goal);
@@ -664,6 +674,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 		     &info->trail_size,
 		     &info->argument_size,
 		     &alias,
+		     &stack,
 		     &info->detached) )
     fail;				/* FIXME: free stuff */
 
@@ -671,6 +682,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   info->global_size   *= 1024;
   info->trail_size    *= 1024;
   info->argument_size *= 1024;
+  stack		      *= 1024;
 
   info->goal = PL_record(goal);
   info->module = PL_context();
@@ -698,6 +710,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   pthread_attr_init(&attr);
   if ( info->detached )
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+  if ( stack )
+    pthread_attr_setstacksize(&attr, stack);
   if ( pthread_create(&info->tid, &attr, start_thread, info) != 0 )
   { pthread_attr_destroy(&attr);
     return PL_error(NULL, 0, OsError(),
@@ -2023,7 +2037,6 @@ foreign_t
 pl_thread_self(term_t id)
 { return PL_unify_atom(id, ATOM_main);
 }
-
 
 #endif  /*O_PLMT*/
 

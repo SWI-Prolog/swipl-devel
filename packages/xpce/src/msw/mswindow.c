@@ -86,7 +86,7 @@ getExistingFrameWindow(PceWindow sw)
   fail;
 }
 
-
+#define WM_PCE_REDRAW (WM_USER+25)
 
 static int WINAPI
 do_window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
@@ -111,6 +111,10 @@ do_window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 		  if ( hasSendMethodObject(sw, NAME_dropFiles) )
 		    DragAcceptFiles(hwnd, TRUE));
       goto cascade;
+
+    case WM_PCE_REDRAW:
+      RedrawWindow(sw);
+      return 0;
 
     case WM_DROPFILES:
     { HDROP hdrop = (HDROP) wParam;
@@ -580,6 +584,51 @@ ws_invalidate_window(PceWindow sw, Area a)
     }
   }
   pceMTUnlock(LOCK_PCE);
+}
+
+
+Int
+ws_window_thread(PceWindow sw)
+{ HWND hwnd;
+
+  if ( (hwnd = getHwndWindow(sw)) )
+  { DWORD owner = GetWindowThreadProcessId(hwnd, NULL);
+
+    return toInt(owner);
+  }
+
+  fail;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Called from RedrawWindow(). If the window is owned by another thread, we
+post a message to this thread asking for the the redraw.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+ws_delayed_redraw_window(PceWindow sw)
+{
+#ifdef _REENTRANT
+  HWND hwnd;
+  
+  if ( (hwnd = getHwndWindow(sw)) )
+  { DWORD owner = GetWindowThreadProcessId(hwnd, NULL);
+    DWORD me = GetCurrentThreadId();
+
+    if ( owner == me )
+      return FALSE;
+
+    DEBUG(NAME_thread,
+	  Cprintf("Delaying redraw of %s from thread 0x%x (me=0x%x)\n",
+		  pp(sw), owner, me));
+
+    PostMessage(hwnd, WM_PCE_REDRAW, 0, 0L);
+    return TRUE;
+  }
+#endif
+
+  return FALSE;
 }
 
 

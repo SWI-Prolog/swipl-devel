@@ -338,6 +338,18 @@ destroy_window(Widget w, XtPointer xsw, XtPointer data)
 }
 
 
+int					/* MT: see msw/mswindow.c */
+ws_delayed_redraw_window(PceWindow sw)
+{ fail;
+}
+
+
+Int
+ws_window_thread(PceWindow sw)
+{ fail;					/* for now */
+}
+
+
 		/********************************
 		*     GRAB POINTER/KEYBOARD	*
 		********************************/

@@ -1168,28 +1168,6 @@ getVersionPce(Pce pce, Name how)
 		 *******************************/
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Note that setting this to true will raise some errors while unlocking, but
-that should not be a problem.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static int
-multiThreadingPce(Pce pce, Bool val)
-{ 
-  if ( XPCE_mt == -1 )
-    return errorPce(pce, NAME_threadsInitialised);
-
-#if defined(_REENTRANT) && (defined(HAVE_XINITTHREADS) || defined(WIN32))
-  XPCE_mt = (val == ON ? TRUE : FALSE);
-  pceMTLock(LOCK_PCE);			/* we will see two unlocks .. */
-  pceMTLock(LOCK_PCE);
-  succeed;
-#endif
-
-  fail;
-}
-
-
 static Bool
 getMultiThreadingPce(Pce pce)
 { answer(XPCE_mt == TRUE ? ON : OFF);
@@ -1341,9 +1319,7 @@ static senddecl send_pce[] =
   SM(NAME_hasFeature, 1, "any", hasFeaturePce,
      NAME_version, "Test if feature is defined"),
   SM(NAME_loadDefaults, 1, "source_sink", loadDefaultsPce,
-     NAME_default, "Load class variable defaults from file"),
-  SM(NAME_multiThreading, 1, "bool", multiThreadingPce,
-     NAME_thread, "Enable multi-threaded access")
+     NAME_default, "Load class variable defaults from file")
 };
 
 /* Get Methods */

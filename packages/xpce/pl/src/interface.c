@@ -2732,25 +2732,25 @@ PrologQuery(int what, PceCValue *value)
 
 void
 pl_Cvprintf(const char *fmt, va_list args)
-{ Svprintf(fmt, args);
+{ Svfprintf(Suser_output, fmt, args);
 }
 
 
 static int
 pl_Cputchar(int c)
-{ return Sputchar(c);
+{ return Sputc(c, Suser_output);
 }
 
 
 static void
 pl_Cflush(void)
-{ Sflush(Soutput);
+{ Sflush(Suser_output);
 }
 
 
 static char *
 pl_Cgetline(char *buf, int size)
-{ return Sfgets(buf, size, Sinput);
+{ return Sfgets(buf, size, Suser_input);
 }
 
 
@@ -2971,6 +2971,15 @@ do_redraw(void)
 }
 #endif
 
+static int
+hasThreadsProlog()
+{ predicate_t pred = PL_predicate("current_prolog_flag", 2, "user");
+  term_t av = PL_new_term_refs(2);
+
+  PL_put_atom_chars(av+0, "threads");
+  PL_put_atom_chars(av+1, "true");
+  return PL_call_predicate(NULL, PL_Q_NORMAL, pred, av);
+}
 
 foreign_t
 pl_pce_init(Term a)
@@ -2991,7 +3000,12 @@ pl_pce_init(Term a)
   if ( !initialised++ )
   { PceObject plname;
 
-    pceMTinit();
+    if ( hasThreadsProlog() )
+    { if ( !pceMTinit() )
+	Sdprintf("Warning: this version of XPCE is not compiled to support\n"
+		 "Warning: multiple threads.\n");
+    }
+
     PROLOG_INSTALL_REINIT_FUNCTION(pl_pce_init);
     PROLOG_ITF_INIT();
 

@@ -120,26 +120,20 @@ pce_home(_) :-
 	),
 	init_pce.
 
-init_threads :-
-	current_prolog_flag(threads, true), !,
-	(   pce_principal:send(@pce, multi_threading(@on))
-	->  true
-	;   print_message(warning, pce(no_threads))
-	).
-init_threads.
-
 init_pce :-
 	(   pce_home(PceHome),
 	    pce_principal:'$pce_init'(PceHome)
-	->  set_prolog_flag(xpce, true),
-	    init_threads
+	->  set_prolog_flag(xpce, true)
 	;   print_message(error,
 			  format('Failed to initialise XPCE', [])),
-	    halt(1)
+	    abort
 	).
 
 %	We must declare this here as boot/english/pce_messages.pl is
 %	not yet loaded.
+%	
+%	Right now the message is not printed from here but directly from
+%	pl/src/interface.c.
 
 :- multifile
 	prolog:message/3.

@@ -48,31 +48,58 @@
 
 					/* Win32 native locking */
 #ifdef WIN32
+#define HAS_LOCK 1
 #undef Arc
 #undef Ellipse
 
 static CRITICAL_SECTION mutex;
+int lock_count;
+DWORD lock_owner;
 
-#define LOCK() \
-	if ( XPCE_mt == TRUE ) \
-	{ EnterCriticalSection(&mutex); \
-	}
-#define UNLOCK() \
-	if ( XPCE_mt == TRUE ) \
-	{ LeaveCriticalSection(&mutex); \
-	}
+inline void
+LOCK()
+{ if ( XPCE_mt == TRUE )
+  { EnterCriticalSection(&mutex);
+    if ( lock_count++ == 0 )
+      lock_owner = GetCurrentThreadId();
+  }
+}
 
-void
+inline void
+UNLOCK()
+{ if ( XPCE_mt == TRUE )
+  { LeaveCriticalSection(&mutex);
+    if ( --lock_count == 0 )
+      lock_owner = 0;
+  }
+}
+
+#include <SWI-Prolog.h>
+static foreign_t
+pce_lock_owner(term_t owner, term_t count)
+{ if ( PL_unify_integer(owner, lock_owner) &&
+       PL_unify_integer(count, lock_count) )
+    return TRUE;
+
+  return FALSE;
+}
+
+int
 pceMTinit()
-{ //Cprintf("INIT\n");
-  InitializeCriticalSection(&mutex);
+{ InitializeCriticalSection(&mutex);
+  XPCE_mt = TRUE;
+
+  PL_register_foreign("pce_lock_owner", 2, pce_lock_owner, 0);
+
+  succeed;
 }
 
 #endif /*WIN32*/
 
 /* POSIX thread based locking */
 
-#if defined(_REENTRANT) && !defined(LOCK)
+#if defined(_REENTRANT) && !defined(HAS_LOCK)
+#define HAS_LOCK 1
 #include <pthread.h>
 
 #ifdef PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
@@ -117,21 +144,23 @@ static recursive_mutex_t mutex = RECURSIVE_MUTEX_INIT;
 	}
 #endif /*PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP*/
 
-void
+int
 pceMTinit()
-{ 
+{ XPCE_mt = TRUE;
+
+  succeed;
 }
 
 #endif /*_REENTRANT*/
 
 					/* No threading */
-#ifndef LOCK
+#ifndef HAS_LOCK
 #define LOCK()
 #define UNLOCK()
 
-void
+int					/* signal we can't do this */
 pceMTinit()
-{
+{ fail;
 }
 
 #endif

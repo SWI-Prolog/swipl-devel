@@ -1096,6 +1096,12 @@ RedrawWindow(PceWindow sw)
     AnswerMark mark;
     iarea visible;
 
+    if ( ws_delayed_redraw_window(sw) )
+    { deleteChain(ChangedWindows, sw);
+      DEBUG(NAME_window, Cprintf("\tForwarded to owner thread\n"));
+      succeed;
+    }
+
     markAnswerStack(mark);
 
     ComputeGraphical(sw);
@@ -2055,6 +2061,15 @@ catchAllWindowv(PceWindow sw, Name selector, int argc, Any *argv)
   return errorPce(sw, NAME_noBehaviour, CtoName("->"), selector);
 }
 
+		 /*******************************
+		 *	    THREADING		*
+		 *******************************/
+
+static Int
+getThreadWindow(PceWindow sw)
+{ return ws_window_thread(sw);
+}
+
 
 		 /*******************************
 		 *	 CLASS DECLARATION	*
@@ -2281,7 +2296,9 @@ static getdecl get_window[] =
      NAME_windows, "Fetch the MS-Windows HWND of the window (if any)"),
 #endif
   GM(NAME_confirmCentered, 2, "any", T_confirmCentered, getConfirmCenteredWindow,
-     NAME_modal, "->confirm with frame centered around point")
+     NAME_modal, "->confirm with frame centered around point"),
+  GM(NAME_thread, 0, "int", NULL, getThreadWindow,
+     NAME_thread, "Return system thread-id that owns the window")
 };
 
 /* Resources */

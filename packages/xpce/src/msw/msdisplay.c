@@ -182,20 +182,32 @@ PceWhDeleteWindow(HWND win)
 }
 
 
+static void
+send_message(HWND win, UINT msg, WPARAM wParam, LPARAM lParam)
+{ DWORD owner = GetWindowThreadProcessId(win, NULL);
+
+  if ( owner == GetCurrentThreadId() )
+  { SendMessage(win, msg, wParam, lParam);
+  } else
+  { PostMessage(win, msg, wParam, lParam);
+  }
+}
+
+
 void
 PceEventInWindow(HWND win)
 { if ( win != current_window )
   { if ( current_window )
     { DEBUG(NAME_areaEnter,
 	    Cprintf("Posting exit to %s\n",
-		    getObjectFromHWND(current_window)));
-      SendMessage(current_window, WM_WINEXIT, 0, 0L);
+		    pp(getObjectFromHWND(current_window))));
+      send_message(current_window, WM_WINEXIT, 0, 0L);
     }
     if ( win )
     { DEBUG(NAME_areaEnter,
 	    Cprintf("Posting enter to %s\n",
-		    getObjectFromHWND(win)));
-      SendMessage(win, WM_WINENTER, 0, 0L);
+		    pp(getObjectFromHWND(win))));
+      send_message(win, WM_WINENTER, 0, 0L);
     }
 
     current_window = win;

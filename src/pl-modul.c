@@ -113,7 +113,11 @@ void
 initModules(void)
 { LOCK();
   if ( !GD->tables.modules )
-  { initTables();
+  {
+#ifdef O_PLMT
+    initPrologThreads();
+#endif
+    initTables();
     initFunctors();
 
     GD->tables.modules = newHTable(MODULEHASHSIZE);
