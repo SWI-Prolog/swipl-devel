@@ -557,6 +557,9 @@ static status
 connectSocket(Socket s)
 { int rval;
 
+  if ( s->status == NAME_connected )
+    succeed;
+
   TRY(createSocket(s));
 
 #ifdef UNIX_DOMAIN_SOCKETS
