@@ -1,3 +1,10 @@
+* FIXED: PceEmacs: Prolog colourising could get into a loop.
+
+* ADDED: Support for writing .GIF files
+
+* ADDED: `date->advance', moving date objects forwards and backward
+  in time.
+
 * ADDED: `char_array <-base64_encode' and <-base64_decode supporting
   rfc-2045 conform base-64 encoding and decoding.
 
