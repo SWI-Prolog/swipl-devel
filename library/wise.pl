@@ -40,7 +40,8 @@ ensure_group(Group) :-
 
 
 wise_install :-
-	(   get_wise_variable('EXT', Ext)
+	(   get_wise_variable('EXT', Ext),
+	    Ext \== ''
 	->  true
 	;   Ext = pl
 	),

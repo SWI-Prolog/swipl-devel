@@ -114,7 +114,7 @@ typedef struct
 { tmp_buffer code;			/* code buffer */
   tmp_buffer vars;			/* variable pointers */
   int	     size;			/* size on global stack */
-  int	     nvars;			/* # variables */
+  uint	     nvars;			/* # variables */
   int	     external;			/* Allow for external storage */
 } compile_info, *CompileInfo;
 
@@ -371,7 +371,7 @@ typedef struct
 { const char *data;
   const char *base;			/* start of data */
   Word *vars;
-  int  nvars;				/* for se_record() */
+  uint  nvars;				/* for se_record() */
   Word gstore;
 } copy_info, *CopyInfo;
 
@@ -706,7 +706,7 @@ unref_cont:
     case TAG_ATOM:
       if ( storage(w) == STG_GLOBAL )
       { if ( stag == PL_TYPE_VARIABLE )
-	{ long n = ((long)(w) >> 7);
+	{ uint n = (uint)((unsigned long)(w) >> 7);
 	  uint i = fetchSizeInt(info);
 
 	  if ( i == n )
@@ -751,7 +751,7 @@ unref_cont:
       { Word f  = addressIndirect(w);
 	int n   = wsizeofInd(*f);
 	int pad = padHdr(*f);		/* see also sizeString() */
-	long l  = n*sizeof(word)-pad;
+	uint l  = n*sizeof(word)-pad;
 
 	uint llen = fetchSizeInt(info);
 	if ( llen == l &&
@@ -1234,7 +1234,7 @@ undo_while_saving_term(mark *m, Word term)
 { GET_LD
   compile_info info;
   copy_info b;
-  int n;
+  uint n;
   Word *p;
 
   initBuffer(&info.code);
@@ -1246,7 +1246,7 @@ undo_while_saving_term(mark *m, Word term)
   compile_term_to_heap(term, &info);
   n = info.nvars;
   p = (Word *)info.vars.base;
-  while(--n >= 0)
+  while(n-- > 0)
     setVar(**p++);
 
   Undo(*m);
