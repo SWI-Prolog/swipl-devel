@@ -927,6 +927,15 @@ $t_tidy(A, A).
 
 $char([X|S], X, S).
 
+:- module_transparent
+	phrase/2,
+	phrase/3.
+
+phrase(RuleSet, Input) :-
+	phrase(RuleSet, Input, []).
+phrase(RuleSet, Input, Rest) :-
+	$apply(RuleSet, Input, Rest).
+
 
 		/********************************
 		*     WIC CODE COMPILER         *
