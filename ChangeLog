@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Scanning resource-file without using mmap().  (Sergey Tikhonov).
+
   * FIXED: Detection of mmap() for regular files (Sergey Tikhonov).
 
   * FIXED: Avoid calling flatten from library(lists) in toplevel.pl.

@@ -205,7 +205,7 @@ decode_member_header(RcArchive rca, RcMember mbr)
     { html_decode_tag(properties, make_file_tag_def(), mbr);
 
       if ( mbr->name )
-      { mbr->offset = ftell(rca->fd) + 1;
+      { mbr->offset = ftell(rca->fd) + 1 - rca->offset;
 
 	if ( !mbr->size )
 	{ if ( html_fd_find_close_tag(rca->fd, "file") )
@@ -345,7 +345,11 @@ find_archive_dimensions(RcArchive rca)
   if ( rc_errno == RCE_NOARCHIVE )
     return FALSE;
 
-  bufstart = fseek(rca->fd, sizeof(buf), SEEK_END);
+  if ( fseek(rca->fd, rca->size - sizeof(buf), SEEK_SET) == -1 )
+  { rc_errno = RCE_NOARCHIVE;
+    return FALSE;
+  }
+  bufstart = ftell(rca->fd);
   theend = buf + fread(buf, sizeof(char), sizeof(buf), rca->fd);
   end = theend;
 
@@ -361,9 +365,9 @@ find_archive_dimensions(RcArchive rca)
   { rc_size len = contentlength(s);
 
     if ( len )
-    { rc_size offset = bufstart + (end-buf) - len;
+    { rc_size offset = rca->size - len - (theend - end);
 
-      if ( fseek(rca->fd, offset, SEEK_SET) == offset )
+      if ( fseek(rca->fd, offset, SEEK_SET) == 0 )
       { if ( at_archive_start(rca) )
 	{ rca->offset = offset;		/* base offset in file */
 	  rca->size  -= offset;
