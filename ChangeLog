@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Make alarm/4 (library(time), package clib) handle exceptions more
+    elegant.
+
   * FIXED: Quoting rules for plld.c.  Failed to link packages on MacOS X
     (Kuniaki Mukai)
 

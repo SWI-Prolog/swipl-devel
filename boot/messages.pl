@@ -49,6 +49,8 @@ translate_message(Term) -->
 	prolog_message(Term).
 translate_message(error(resource_error(stack), Name)) -->
 	[ 'Out of ~w stack'-[Name] ].
+translate_message(error(resource_error(Missing), _)) -->
+	[ 'Not enough resources: ~w'-[Missing] ].
 translate_message(error(ISO, SWI)) -->
 	swi_context(SWI),
 	term_message(ISO),
