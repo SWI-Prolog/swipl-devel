@@ -264,7 +264,7 @@ enableThreads(int enable)
   } else
   { LOCK();
     if ( GD->statistics.threads_created -
-	 GD->statistics.threads_finished == 1 ) /* I am alone */
+	 GD->statistics.threads_finished == 1 ) /* I am alone :-( */
     { GD->thread.enabled = FALSE;
     } else
     { term_t key = PL_new_term_ref();
@@ -387,10 +387,15 @@ initPrologThreads()
     return;
   }
 
-  TLD_alloc(&PL_ldata);
-  info = alloc_thread();
+  TLD_alloc(&PL_ldata);			/* see also alloc_thread() */
+  TLD_set(PL_ldata, &PL_local_data);
+  info = &threads[1];
   info->tid = pthread_self();
-  TLD_set(PL_ldata, info->thread_data);
+  info->pl_tid = 1;
+  info->thread_data = &PL_local_data;
+  info->status = PL_THREAD_CREATED;
+  PL_local_data.thread.info = info;
+  PL_local_data.thread.magic = PL_THREAD_MAGIC;
 #ifdef WIN32
   info->w32id = GetCurrentThreadId();
   attachThreadWindow(info->thread_data);
@@ -709,6 +714,14 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, goal);
 
   LOCK();
+
+  if ( !GD->thread.enabled )
+  { UNLOCK();
+    return PL_error(NULL, 0, "threading disabled",
+		      ERR_PERMISSION,
+		      ATOM_create, ATOM_thread, goal);
+  }
+
   info = alloc_thread();
   UNLOCK();
   if ( !info )
@@ -1841,6 +1854,14 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
     LD->thread.info->open_count++;
 
   LOCK();
+  if ( !GD->thread.enabled )
+  { UNLOCK();
+#ifdef EPERM				/* FIXME: Better reporting */
+    errno = EPERM;
+#endif
+    return -1;
+  }
+
   info = alloc_thread();
   UNLOCK();
   if ( !info )

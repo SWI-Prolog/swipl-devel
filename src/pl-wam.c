@@ -3214,18 +3214,14 @@ BUG: have to find out how to proceed in case of failure (I am afraid the
     VMI(I_USERCALL0) MARK(USRCL0);
       { word goal;
 	int arity;
-	Word args, a;
+	Word args;
 	int n;
-	LocalFrame next;
-	Module module;
+	LocalFrame next = lTop;
+	volatile Word a = argFrameP(next, 0);	/* get the goal */
+	Module module = NULL;
 	functor_t functor;
 	int callargs;
 
-	next = lTop;
-	a = argFrameP(next, 0);		/* get the (now) instantiated */
-	deRef(a);			/* variable */
-
-	module = NULL;
 	a = stripModule(a, &module PASS_LD);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

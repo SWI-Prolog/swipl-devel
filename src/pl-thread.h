@@ -90,22 +90,33 @@ extern simpleMutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_INIT	       14
 #define L_TERM	       15
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The IFMT(id, g) macro  is  used  to   bypass  mutexes  if  threading  is
+disabled. We cannot do this for the L_THREAD mutex however as we need to
+control when threads can be created.
+
+We  assume  id  ==  L_THREAD  is  optimized  away  if  id  is  known  at
+compile-time
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define IFMT(id, g) if ( id == L_THREAD || GD->thread.enabled ) g
+
 #ifdef O_DEBUG_MT
 #define PL_LOCK(id) \
 	do { Sdprintf("[%s] %s:%d: LOCK(%s)\n", \
 		      threadName(0), \
 		      __BASE_FILE__, __LINE__, #id); \
-             simpleMutexLock(&_PL_mutexes[id]); \
+             IFMT(id, simpleMutexLock(&_PL_mutexes[id])); \
 	   } while(0)
 #define PL_UNLOCK(id) \
 	do { Sdprintf("[%s] %s:%d: UNLOCK(%s)\n", \
 		      threadName(0), \
 		      __BASE_FILE__, __LINE__, #id); \
-	     simpleMutexUnlock(&_PL_mutexes[id]); \
+	     IFMT(id, simpleMutexUnlock(&_PL_mutexes[id])); \
 	   } while(0)
 #else
-#define PL_LOCK(id)   simpleMutexLock(&_PL_mutexes[id])
-#define PL_UNLOCK(id) simpleMutexUnlock(&_PL_mutexes[id])
+#define PL_LOCK(id)   IFMT(id, simpleMutexLock(&_PL_mutexes[id]))
+#define PL_UNLOCK(id) IFMT(id, simpleMutexUnlock(&_PL_mutexes[id]))
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -155,12 +166,14 @@ choose to store the result of LD is a local variable.
 
 extern TLD_KEY PL_ldata;		/* key to local data */
 
-#if defined(__GNUC__) && 0
-#define GLOBAL_LD _LD()
-extern PL_local_data_t *_LD(void) __attribute((const));
+#if 0					/* doesn't seem to help much */
+#define GLOBAL_LD (GD->thread.enabled ? \
+		   (PL_local_data_t *)TLD_get(PL_ldata) : \
+		   &PL_local_data)
 #else
 #define GLOBAL_LD ((PL_local_data_t *)TLD_get(PL_ldata))
 #endif
+
 #define GET_LD    PL_local_data_t *__PL_ld = GLOBAL_LD;
 #define PRED_LD   PL_local_data_t *__PL_ld = PL__ctx->engine;
 
