@@ -125,6 +125,12 @@ user:file_search_path(image,   pce(bitmaps)).
 
 
 		 /*******************************
+		 *	      HOOKS		*
+		 *******************************/
+
+:- use_module(swi_hooks).
+
+		 /*******************************
 		 *	   EDIT HOOKS		*
 		 *******************************/
 
@@ -174,34 +180,6 @@ method_clause(<-(Class, Get), Ref) :-
 	atom(Id),
 	concat_atom([Class,Get], '->', Id).
 
-       		 /*******************************
-		 *	    DEBUG HOOKS		*
-		 *******************************/
-
-:- multifile
-	prolog:debug_control_hook/1.
-
-prolog:debug_control_hook(spy(Method)) :-
-	auto_call(spypce(Method)).
-prolog:debug_control_hook(nospy(Method)) :-
-	auto_call(nospypce(Method)).
-
-		 /*******************************
-		 *	     HELP HOOK		*
-		 *******************************/
-
-:- multifile
-	prolog:help_hook/1.
-
-prolog:help_hook(help) :- !,
-	auto_call(prolog_help(help/1)).
-prolog:help_hook(apropose(What)) :- !,
-	auto_call(prolog_apropos(What)).
-prolog:help_hook(help(What)) :- !,
-	(   auto_call(pce_to_method(What, Method))
-	->  auto_call(manpce(Method))
-	;   auto_call(prolog_help(What))
-	).
 
 		/********************************
 		*            BANNER		*

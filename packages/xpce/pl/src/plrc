@@ -1,4 +1,5 @@
-/*  $Id$
+/*  -*-Prolog-*-
+    $Id$
 
     Part of SWI-Prolog
     Designed and implemented by Jan Wielemaker
@@ -55,7 +56,8 @@ gui_setup_ :-
 	;   current_prolog_flag(arch, Arch),
 	    '$apropos_match'(win32, Arch)
 	), !,
-	set_prolog_flag(gui, true).
+	set_prolog_flag(gui, true),
+	use_module(library(swi_hooks)).	% help, etc.
 
 pce_setup_ :-
 	current_prolog_flag(xpce, true), !.
