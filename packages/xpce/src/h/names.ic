@@ -2329,3 +2329,4 @@
   BUILTIN_NAME("is_apply")
   BUILTIN_NAME("prompt")
   BUILTIN_NAME("win_file_name")
+  BUILTIN_NAME("representation")
