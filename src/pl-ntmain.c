@@ -153,12 +153,13 @@ Srlc_read(void *handle, char *buffer, int size)
 
   if ( Suser_input && Suser_input->handle == c && PL_ttymode(Suser_input) == PL_RAWTTY )
   { int chr = getkey(c);
+    TCHAR *tbuf = (TCHAR*)buffer;
       
     if ( chr == 04 || chr == 26 || chr == -1 )
     { bytes = 0;
     } else
-    { buffer[0] = chr & 0xff;
-      bytes = 1;
+    { tbuf[0] = chr;
+      bytes = sizeof(TCHAR);
     }
   } else
   { bytes = rlc_read(c, (TCHAR*)buffer, size/sizeof(TCHAR));

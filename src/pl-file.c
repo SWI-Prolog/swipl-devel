@@ -1936,7 +1936,7 @@ pl_tab2(term_t out, term_t spaces)
       fail;
 
     while(m-- > 0)
-    { if ( Sputc(' ', s) < 0 )
+    { if ( Sputcode(' ', s) < 0 )
 	break;
     }
 
