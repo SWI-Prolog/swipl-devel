@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#91: source level debugger generates error.  Holger Kanwischer.
+
 VERSION 5.2.8 (Sep 13, 2003)
 ============================
 

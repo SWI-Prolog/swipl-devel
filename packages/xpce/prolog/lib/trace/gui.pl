@@ -538,13 +538,16 @@ initialise(D) :->
 make_message(+Action, D, message(D?frame, Action)) :- !.
 make_message(Action,  D, message(D, return, Action)).
 
-typed(D, Id:event_id) :->
+typed(D, Id:event_id, Delegate:[bool]) :->
 	"Handle typing"::
-	get(D, find, @default, 
-	    and(message(@arg1, has_get_method, keys),
-		message(@arg1?keys, member, Id)),
-	    Button),
-	send(Button, execute).
+	(   get(D, find, @default, 
+		and(message(@arg1, has_get_method, keys),
+		    message(@arg1?keys, member, Id)),
+		Button)
+	->  send(Button, execute)
+	;   Delegate == @on
+	->  send_super(D, typed, Id, Delegate)
+	).
 
 event(D, Ev:event) :->
 	(   send(Ev, is_a, keyboard)
