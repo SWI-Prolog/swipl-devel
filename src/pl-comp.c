@@ -3483,8 +3483,9 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
     { Code endloc;
       case C_OR:			/* C_OR <jmp1> <A> C_JMP <jmp2> <B> */
       { Code jmploc;
-
-	jmploc = PC + *PC++ + 1;
+	code inc = *PC++;
+	
+	jmploc = PC + inc;
 	endloc = jmploc + jmploc[-1];
 
 	DEBUG(1, Sdprintf("jmp = %d, end = %d\n",
