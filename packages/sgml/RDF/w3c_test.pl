@@ -425,6 +425,7 @@ generated_prefix('Alt__').
 generated_prefix('Description__').
 generated_prefix('Statement__').
 generated_prefix('Node__').
+generated_prefix('List__').
 
 %	compare_bags(+Members1, +Members2, +S0, -S)
 %	
