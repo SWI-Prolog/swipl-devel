@@ -54,25 +54,18 @@ close_goal(Handle, close_dll(Handle)) :-
 close_goal(Handle, close_shared_object(Handle)) :-
 	feature(open_shared_object, true), !.
 
-extensions(['.so']) :-
-	feature(open_shared_object, true), !.
-extensions(['.dll']) :-
-	feature(dll, true).
-
 find_library(Spec, Lib) :-
-	extensions(Exts),
 	absolute_file_name(Spec,
-			   [ extensions(Exts),
-			     access(read)
+			   [ file_type(executable),
+			     access(read),
+			     file_errors(fail)
 			   ], Lib), !.
 find_library(Spec, Spec) :-
 	atom(Spec), !.			% use machines finding schema
 find_library(foreign(Spec), Spec) :-
 	atom(Spec), !.			% use machines finding schema
 find_library(Spec, _) :-
-	'$warning'('load_foreign_library/1: Cannot find ~w: no such file',
-		   [Spec]),
-	fail.
+	throw(error(existence_error(source_sink, Spec), _)).
 
 
 		 /*******************************
