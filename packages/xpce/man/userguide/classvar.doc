@@ -62,7 +62,7 @@ To access the class-variable explicitly, use the methods from
 
 The \file{Defaults} file consists of statements. Each statement is on a
 seperate line. A statement may be split over several lines by preceeding
-the newline with a backslash (\const{\}). The exclamation mark
+the newline with a backslash (\verb$\$). The exclamation mark
 (\const{!}) is the line-comment character. All input from the \const{!}
 upto the following newline is replaced by a single space-character.
 Empty lines or lines containing only blank space are ignored.
@@ -70,7 +70,7 @@ Empty lines or lines containing only blank space are ignored.
 Default files may include other default files using the statement
 
 \begin{quote}
-{\tt #include} <file>
+{\tt \#include} <file>
 \end{quote}
 
 Default statements are of the form:
@@ -179,7 +179,7 @@ sources, and the other is to load the compatibility package
 \lib{compatibility/resource}.
 
 
-\subsection{Incompatibilities}		\label{dec:resincompat}
+\subsection{Incompatibilities}		\label{sec:resincompat}
 
 \begin{description}
     \item[Naming]

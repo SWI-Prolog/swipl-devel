@@ -139,19 +139,21 @@ slot, without performing any additional actions. See also
     \predicate{delegate_to}{1}{VariableName}%
 Declares the variable named {\em VariableName} to be a candidate for
 delegation.  See \secref{delegation}.
-    \predicate{resource}{[3,4]}{Name, Type, Default, [Summary]}%
-Declare a resource for the class.  Resources are like class-variables
-that may be set from the resource file.
-The {\em Default} entry describes the default value if the resource
-is not defined in any of the standard resource locations.  It is
-a textual description (an atom) of the value in \product{}'s resource
-syntax (see \chapref{resources}).  As this syntax is very
-close to the Prolog syntax, a passed Prolog term will be translated
-to the default value using term_to_atom/2.
+    \predicate{class_variable}{[3,4]}{Name, Type, Default, [Summary]}%
+Declare a class-variable for the class. Class-variables describe common
+properties for all instances of the class. The \arg{Default} value for a
+class-variable can de defined in the \file{Defaults} file. See
+\chapref{classvar} for details.
+
+The {\em Default} entry describes the default value if there is no
+value specified in the \file{Defaults} file.   Example:
+\begin{code}
+class_variable(size, size, size(400,200), "Default size of object").
+\end{code}
     \predicate{handle}{3,4}{X, Y, Kind, Name}%
 Equivalent to the expression below.  See also \secref{connection}.
 \begin{code}
-:- send(@class, handle, handle(X, Y, Kind, Name))}.
+:- send(@class, handle, handle(X, Y, Kind, Name)).
 \end{code}
     \directive{pce_group}{1}{GroupIdentifier}%
 Sets the `behaviour <->group' attribute of any variable or method

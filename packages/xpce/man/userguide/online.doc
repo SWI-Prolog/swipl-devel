@@ -234,7 +234,7 @@ methods and class-variables. If an item is tagged with a ``\idx{(+)}''
 there is additional information that may be obtained by (double-)
 clicking the card to start the ``Card Viewer'' (see \secref{card}).
 
-\subsubsection{The ClassBrowser dialog}		\label{sec:classbrowser}
+\subsubsection{The ClassBrowser dialog}
 
 The {\bf Class} text_item (text-entry-field) may be used to  switch to
 a new class. Note that this text_item implements \idx{completion} (bound

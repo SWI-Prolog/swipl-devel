@@ -1,10 +1,16 @@
 .SUFFIXES: .tex .dvi .doc .pl
 
+PCETEX=../../TeX
 DOCTOTEX=../../bin/doc2tex
 PLTOTEX=../../bin/pl2tex
 CORRECTINDEX=../../bin/correctindex
-MAKEINDEX=makeindex -s ../../TeX/makeindex.ist
-
+MAKEINDEX=makeindex -s $(PCETEX)/makeindex.ist
+DOC=xpceusg
+DVI=$(DOC).dvi
+LOG=$(DOC).log
+PS=$(DOC).ps
+PDF=$(DOC).pdf
+RERUN="Rerun to get cross-references right"
 
 COMMON=	intro.tex starting.tex globalarch.tex online.tex debug.tex \
 	interface.tex graphics.tex pceprolog.tex trouble.tex memory.tex \
@@ -12,18 +18,36 @@ COMMON=	intro.tex starting.tex globalarch.tex online.tex debug.tex \
 	udc.tex dragdrop.tex dragdropdemo.tex control.tex whoiswho.tex \
 	namedref.tex ugraphics.tex code.tex classvar.tex diaedit.tex \
 	dialog.tex wysiwyg.tex frame.tex error.tex application.tex \
-	images.tex mlingual.tex summary.tex body.tex
+	resource.tex images.tex mlingual.tex summary.tex body.tex
 
 XPCETEX=	xpceusg.tex $(COMMON)
 PWTEX=		pwusg.tex pwinfo.tex $(COMMON)
 
 LOGO=	figs/uva.eps figs/swi.eps
 
-all:	$(XPCETEX) $(LOGO) figs/class
-	-$(CORRECTINDEX) xpceusg.idx
-	-$(MAKEINDEX) xpceusg.idx
-	touch xpceusg.ind
-	(TEXINPUTS=../../TeX:$$TEXINPUTS; export TEXINPUTS; latex xpceusg)
+all:	$(DVI)
+pdf:	$(PDF)
+ps:	$(PS)
+
+$(DVI):	$(XPCETEX) $(LOGO) figs/class
+	@TEXINPUTS=.:$(PCETEX):$$TEXINPUTS; \
+	echo "**********************************************************"; \
+	echo "* Running latex $(DOC)"; \
+	echo "**********************************************************"; \
+	export TEXINPUTS; \
+	rm -f $(LOG); \
+	while test ! -e $(DVI) -o ! -e $(LOG) || grep -q $(RERUN) $(LOG); do \
+	  $(CORRECTINDEX) $(DOC).idx; \
+	  $(MAKEINDEX) $(DOC).idx; \
+	  touch $(DOC).ind; \
+	  latex $(DOC) || exit 1; \
+	done
+
+$(PS):	$(DVI)
+	dvips -o $@ $(DVI)
+
+$(PDF):	$(PS)
+	pstill -cgipt -o $@ $(PS)
 
 html:	$(XPCETEX)
 	latex2html xpceusg
@@ -35,15 +59,15 @@ pwtex:	$(PWTEX)
 tex:	$(XPCETEX)
 
 bib:	xpceusg.aux
-	(TEXINPUTS=../../TeX:$$TEXINPUTS; \
+	(TEXINPUTS=$(PCETEX):$$TEXINPUTS; \
 	 BIBINPUTS=$$TEXINPUTS; \
 	 export TEXINPUTS BIBINPUTS; bibtex xpceusg)
 
-figs/uva.eps:	../../TeX/figs/uva.eps
-	cp ../../TeX/figs/uva.eps figs/uva.eps
+figs/uva.eps:	$(PCETEX)/figs/uva.eps
+	cp $(PCETEX)/figs/uva.eps figs/uva.eps
 
-figs/swi.eps:	../../TeX/figs/swi.eps
-	cp ../../TeX/figs/swi.eps figs/swi.eps
+figs/swi.eps:	$(PCETEX)/figs/swi.eps
+	cp $(PCETEX)/figs/swi.eps figs/swi.eps
 figs/class:
 	mkdir -p $@
 

@@ -618,11 +618,9 @@ and techniques that allow for the design of larger graphical systems.
 brief intermezzo, explaining the relation between \product{} and Prolog
 data in more detail. \Chapref{udc}, ``User defined classes'' explain the
 definition of new \product{} classes from Prolog and thus brings
-object-oriented programming to the user. \Chapref{resources}, ``Using
-resources'' introduces the \product{}'s notion of \idx{user
-preferences}. \Chapref{techniques}, ``Programming techniques'' is an
-assorted collection of hints on how \product{} can be used to solve
-real-world problems elegantly.
+object-oriented programming to the user. \Chapref{techniques},
+``Programming techniques'' is an assorted collection of hints on how
+\product{} can be used to solve real-world problems elegantly.
 
 \Chapref{debugging}, ``Development and debugging tools'' introduces
 the \product{} debugger.  The current debugger is powerful, but not very

@@ -25,6 +25,7 @@
 \include{pceprolog}
 \include{udc}
 \include{classvar}
+\include{resource}
 \include{techniques}
 \include{debug}
 \ifpw{}{\bibliographystyle{name}

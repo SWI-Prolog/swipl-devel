@@ -58,14 +58,15 @@ in \productpl{} are portable across the supported X11 and Win32 (Windows
 \product{} has been connected to the following Prolog systems.
 
 \begin{itemize}
-    \item \url[SWI-Prolog]{http://www.swi.psy.uva.nl/usr/jan/SWI-Prolog.html}
-    \item \url[Quintus Prolog]{http://www.aiil.co.uk/prolog/frames_home.htm}
+    \item \url[SWI-Prolog]{http://www.swi.psy.uva.nl/projects/SWI-Prolog/}
+    \item \url[Quintus Prolog]{http://www.sics.se/quintus/}
     \item \url[SICStus Prolog]{http://www.sics.se/isl/sicstus.html}
 \end{itemize}
 
-{\it Last updated March 17, 1997 for \product{} version \productversion}
+{\it {\bf Partly} updated February 5, 1999 for \product{} version
+ \productversion}
 
-Copyright \copyright\ 1992-1997 University of Amsterdam
+Copyright \copyright\ 1992-1999 University of Amsterdam
 \end{abstract}
 
 \hr
