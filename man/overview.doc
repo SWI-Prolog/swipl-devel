@@ -70,19 +70,30 @@ explorer.
 \subsection{Executing a query}			\label{sec:execquery}
 
 After loading a program, one can ask Prolog queries about the program.
-The query below asks Prolog to prove whether `john' likes someone and
-who is liked by `john'.  The system responds with \mbox{\tt X = <value>}
-if it can prove the goal for a certain \arg{X}.  The user can type
-the semi-colon (;) if (s)he wants another solution, or {\sc return} if
-(s)he is satisfied, after which Prolog will say {\bf Yes}.  If Prolog
-answers {\bf No}, it indicates it cannot find any more answers to the
-query.  Finally, Prolog can answer using an error message to indicate
-the query or program contains an error.
+The query below asks Prolog what food `sam' likes. The system responds
+with \mbox{\tt X = <value>} if it can prove the goal for a certain
+\arg{X}. The user can type the semi-colon (;)%
+	\footnote{On most installations, single-character commands are
+		  executed without waiting for the {\sc return} key.}
+if (s)he wants another solution, or {\sc return} if (s)he is satisfied,
+after which Prolog will say {\bf Yes}. If Prolog answers {\bf No}, it
+indicates it cannot find any (more) answers to the query. Finally,
+Prolog can answer using an error message to indicate the query or
+program contains an error.
 
 \begin{code}
-?- likes(john, X).
+?- likes(sam, X).
 
-X = mary
+X = dahl ;
+
+X = tandoori ;
+
+...
+
+X = chips ;
+
+No
+?-
 \end{code}
 
 
