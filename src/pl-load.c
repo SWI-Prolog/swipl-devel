@@ -887,44 +887,12 @@ pl_call_shared_object_function(Word plhandle, Word name)
     return warning("call_shared_object_function/2: instantiation fault");
   
   if ( !(ef = (dl_funcptr) dlsym(e->dlhandle, fname)) )
-    return warning("load_shared_object/2: %s", dlerror());
-
-  if ( (*ef)() )
-    succeed;
-  fail;
-}
-
-#if 0
-word
-pl_load_shared_object(Word file, Word entry)
-{ char *fn, *e, fnb[256], eb[256];
-  void *dlhandle;
-  dl_funcptr ef = NULL;
-
-  initAllocLocal();
-  if ( (fn = primitiveToString(*file, TRUE)) == NULL ||
-       (e  = primitiveToString(*entry, TRUE)) == NULL )
-  { stopAllocLocal();
-    return warning("load_shared_object/2: instantiation fault");
-  }
-
-  strcpy(eb, e);
-  strcpy(fnb, fn);
-  stopAllocLocal();			/* can have call-back! */
-
-  if ( !(dlhandle = dlopen(fnb, RTLD_LAZY)) )
-  { stopAllocLocal();
-    return warning("load_shared_object/2: %s", dlerror());
-  }
-  Sdprintf("Handle = 0x%p\n", dlhandle);
-
-  if ( !(ef = (dl_funcptr) dlsym(dlhandle, eb)) )
-    return warning("load_shared_object/2: %s", dlerror());
+    fail;
 
   (*ef)();
 
   succeed;
 }
-#endif
+
 
 #endif /*HAVE_DLOPEN*/

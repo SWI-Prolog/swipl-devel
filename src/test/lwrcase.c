@@ -31,7 +31,7 @@ pl_lowercase(term u, term l)
   return PL_unify_atomic(l, la);
 }
 
-void
+install_t
 install()
 { PL_register_foreign("lowercase", 2, pl_lowercase, 0);
 }

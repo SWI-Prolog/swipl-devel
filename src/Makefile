@@ -27,7 +27,7 @@ mandir=$(prefix)/man/man$(mansec)
 
 CC=gcc
 LIBS= -lreadline -ltermcap -lm -ldl
-STATICLIBS=/usr/lib/libc.a
+STATICLIBS=
 AWK=nawk
 SED=sed
 LD_R=ld -r
@@ -79,7 +79,7 @@ all:	../VERSION banner headers system startup index runtime pl-bite
 
 system:		$(PL)
 startup:	$(STARTUPPATH)
-headers:	$(EXPORTS) $(CINCLUDE) $(STREAMH)
+headers:	parms.h $(EXPORTS) $(CINCLUDE) $(STREAMH)
 runtime:	$(RUNTIME)
 
 banner:

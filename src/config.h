@@ -90,7 +90,7 @@
 /* #undef FIRST_DATA_SYMBOL */
 
 /* Define if pl-save.c works */
-#define O_SAVE 1
+/* #undef O_SAVE */
 
 /* Define if symbolic links are supported by the OS */
 #define HAVE_SYMLINKS 1
