@@ -168,11 +168,12 @@ load_sgml_file/2</pref>, <pref>load_xml_file/2</pref>, and
 <pref>load_html_file/2</pref>.
 
 <definitions>
-    <pred>load_structure(+File, -ListOfContent, +Options)
-    <summary>Parse XML/SGML/HTML file into Prolog term
-Load the XML file <aref/File/ and return the resulting structure in <aref/
-ListOfContent/. <aref/Options/ is a list of options controlling the 
-conversion process.
+    <pred>load_structure(+Source, -ListOfContent, +Options)
+    <summary>Parse XML/SGML/HTML data into Prolog term
+Parse <aref/Source/ and return the resulting structure in <aref/
+ListOfContent/.  <aref/Source/ is either a term of the format
+<term>stream(StreamHandle)</term> or a file-name. <aref/Options/ is a
+list of options controlling the conversion process.
 
 <p>
 A proper XML document contains only a single toplevel element whose name
@@ -189,17 +190,7 @@ case-insensitive, all element names are returned as lowercase atoms.
 
 <p>
 <aref/ListOfAttributes/ is a list of <aref/Name/=<aref/Value/ pairs for
-attributes that appeared in the source. No information is returned on
-<!--****OUCH****.  So that's what was going wrong.
-    How hard would it be to change this rather devastating limitation?
-    The essence of attribute processing is that an application should
-    have no reason to care, let alone know, which attribute values
-    came from what source.  The HyTime "SGML Extended Facilities", which are
-    supposed to become part of the SGML standard, even provide a way
-    for a document to provide its own default values (<dvlist>).
--->other attributes, such as <c/fixed/ or <c/default/ attributes. See
-<pref>dtd_property/2</pref> for accessing the DTD for this information.
-Attributes of type <c/CDATA/ are returned literal. Multi-valued
+attributes. Attributes of type <c/CDATA/ are returned literal. Multi-valued
 attributes (<c/NAMES/, <em>etc.</em>) are returned as a list of atoms.
 Handling attributes of the types <c/NUMBER/ and <c/NUMBERS/ depends on
 the setting of the <term>number(+NumberMode)</term> attribute through

@@ -248,9 +248,10 @@ simplicity a number of commonly used shorthands are provided: <a href="#load_sgm
 
 <dl>
 <dt>&nbsp;<br>
-<b><a name="load_structure/3">load_structure(<var>+File, -ListOfContent, +Options</var>)</a></b><dd>
-Load the XML file <var>File</var> and return the resulting structure in <var>ListOfContent</var>. <var>Options</var> is a list of options controlling the 
-conversion process.
+<b><a name="load_structure/3">load_structure(<var>+Source, -ListOfContent, +Options</var>)</a></b><dd>
+Parse <var>Source</var> and return the resulting structure in <var>ListOfContent</var>.  <var>Source</var> is either a term of the format
+<code>stream(StreamHandle)</code> or a file-name. <var>Options</var> is a
+list of options controlling the conversion process.
 
 
 
@@ -274,10 +275,7 @@ case-insensitive, all element names are returned as lowercase atoms.
 
 <p>
 <var>ListOfAttributes</var> is a list of <var>Name</var>=<var>Value</var> pairs for
-attributes that appeared in the source. No information is returned on
-other attributes, such as <a name="const:fixed"><b><tt>fixed</tt></b></a> or <a name="const:default"><b><tt>default</tt></b></a> attributes. See
-<a href="#dtd_property/2"><b>dtd_property/2</b></a> for accessing the DTD for this information.
-Attributes of type <a name="const:CDATA%4"><b><tt>CDATA</tt></b></a> are returned literal. Multi-valued
+attributes. Attributes of type <a name="const:CDATA%4"><b><tt>CDATA</tt></b></a> are returned literal. Multi-valued
 attributes (<a name="const:NAMES"><b><tt>NAMES</tt></b></a>, <em>etc.</em>) are returned as a list of atoms.
 Handling attributes of the types <a name="const:NUMBER"><b><tt>NUMBER</tt></b></a> and <a name="const:NUMBERS"><b><tt>NUMBERS</tt></b></a> depends on
 the setting of the <code>number(+NumberMode)</code> attribute through
@@ -449,14 +447,14 @@ space.
     
 <dt>&nbsp;<br>
 <b>space(<var>remove</var>)</b><dd>
-In addition to <a name="const:default%2"><b><tt>default</tt></b></a>, all leading and trailing white-space is 
+In addition to <a name="const:default"><b><tt>default</tt></b></a>, all leading and trailing white-space is 
 removed from <a name="const:CDATA%5"><b><tt>CDATA</tt></b></a> objects. If, as a result, the <a name="const:CDATA%6"><b><tt>CDATA</tt></b></a> 
 becomes empty, nothing is passed to the application. This mode is 
 especially handy for processing `data-oriented' documents, such as RDF. 
 It is not suitable for normal text documents. Consider the HTML 
 fragment below. When processed in this mode, the spaces between the 
 three modified words are lost.  This mode is not part of any standard;
-XML 1.0 allows only <a name="const:default%3"><b><tt>default</tt></b></a> and <a name="const:preserve"><b><tt>preserve</tt></b></a>.
+XML 1.0 allows only <a name="const:default%2"><b><tt>default</tt></b></a> and <a name="const:preserve"><b><tt>preserve</tt></b></a>.
 
 
 
@@ -1661,7 +1659,7 @@ standard.  He also made many suggestions for improving this document.
 <tr><td><a href="#load_dtd/2"><b>load_dtd/2</b></a></td><td>Read DTD information from a file</td></tr>
 <tr><td><a href="#load_html_file/2"><b>load_html_file/2</b></a></td><td>Parse HTML file into Prolog term</td></tr>
 <tr><td><a href="#load_sgml_file/2"><b>load_sgml_file/2</b></a></td><td>Parse SGML file into Prolog term </td></tr>
-<tr><td><a href="#load_structure/3"><b>load_structure/3</b></a></td><td>Parse XML/SGML/HTML file into Prolog term</td></tr>
+<tr><td><a href="#load_structure/3"><b>load_structure/3</b></a></td><td>Parse XML/SGML/HTML data into Prolog term</td></tr>
 <tr><td><a href="#load_xml_file/2"><b>load_xml_file/2</b></a></td><td>Parse XML file into Prolog term</td></tr>
 <tr><td><a href="#new_dtd/2"><b>new_dtd/2</b></a></td><td>Create a DTD object</td></tr>
 <tr><td><a href="#new_sgml_parser/2"><b>new_sgml_parser/2</b></a></td><td>Create a new parser</td></tr>
@@ -1711,7 +1709,7 @@ deleted. This is not yet implemented.
 <li><a href="#const:content"><b><tt>content</tt></b></a> [ <a href="#const:content%2">2</a>]
 <li><a href="#const:current"><b><tt>current</tt></b></a>
 <li><a href="#const:declaration"><b><tt>declaration</tt></b></a>
-<li><a href="#const:default"><b><tt>default</tt></b></a> [ <a href="#const:default%2">2</a> <a href="#const:default%3">3</a>]
+<li><a href="#const:default"><b><tt>default</tt></b></a> [ <a href="#const:default%2">2</a>]
 <li><a href="#dtd/2"><b>dtd/2</b></a>
 <li><a href="#dtd_property/2"><b>dtd_property/2</b></a>
 <li><a href="#const:element"><b><tt>element</tt></b></a> [ <a href="#const:element%2">2</a>]
@@ -1722,7 +1720,6 @@ deleted. This is not yet implemented.
 <li><a href="#const:explicit"><b><tt>explicit</tt></b></a>
 <li><a href="#const:false"><b><tt>false</tt></b></a> [ <a href="#const:false%2">2</a>]
 <li><a href="#const:file"><b><tt>file</tt></b></a>
-<li><a href="#const:fixed"><b><tt>fixed</tt></b></a>
 <li><a href="#free_dtd/1"><b>free_dtd/1</b></a>
 <li><a href="#free_sgml_parser/1"><b>free_sgml_parser/1</b></a>
 <li><a href="#get_sgml_parser/2"><b>get_sgml_parser/2</b></a>

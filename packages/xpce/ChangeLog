@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: `menu->insert_before' for easily adding menu items in the middle
+  of existing menus.
+
 * FIXED: `object <-get_hyper' got into a loop when accessing the hyper
   backwards.
 
