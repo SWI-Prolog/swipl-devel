@@ -409,7 +409,7 @@ rdf_load(Spec, Options) :-
 	;   true
 	),
 	(   Spec = '$stream'(_)		% TBD: probably won't work yet
-	->  process_rdf(Spec, [], assert_triples),
+	->  process_rdf(Spec, assert_triples, [blank_nodes(share)]),
 	    Load = parsed(ParseTime),
 	    Action = load
 	;   absolute_file_name(Spec,
@@ -434,11 +434,17 @@ rdf_load(Spec, Options) :-
 			CacheTime >= FileTime,
 			catch(rdf_load_db(Cache), _, fail)
 		    ->  Load = cache(ParseTime)
-		    ;   process_rdf(File, BaseURI, assert_triples),
+		    ;   process_rdf(File, assert_triples,
+				    [ base_uri(BaseURI),
+				      blank_nodes(share)
+				    ]),
 			Load = parsed(ParseTime),
 			save_cache(File, Cache)
 		    )
-		;   process_rdf(File, BaseURI, assert_triples),
+		;   process_rdf(File, assert_triples,
+				[ base_uri(BaseURI),
+				  blank_nodes(share)
+				]),
 		    Load = parsed(ParseTime)
 		),
 		rdf_statistics_(triples(File, Triples)),
