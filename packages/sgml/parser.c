@@ -1337,6 +1337,7 @@ for_elements_in_model(dtd_model *m,
 
       for(; sub; sub = sub->next)
 	for_elements_in_model(sub, f, closure);
+      break;
     }
     case MT_ELEMENT:
       (*f)(m->content.element, closure);
@@ -1524,12 +1525,39 @@ itake_namegroup(dtd *dtd, charfunc sep, const ichar *decl,
 }
 
 
+typedef struct
+{ dtd_symbol **list;
+  int size;
+} namelist;
+
+
+static void
+add_list_element(dtd_element *e, void *closure)
+{ namelist *nl = closure;
+
+  nl->list[nl->size++] = e->name;
+}
+
+
 static const ichar *
-itake_id_or_idlist(dtd *dtd, const ichar *decl, dtd_symbol **names, int *n)
+itake_el_or_model_element_list(dtd *dtd, const ichar *decl, dtd_symbol **names, int *n)
 { const ichar *s;
 
   if ( isee_func(dtd, decl, CF_GRPO) )
-  { return itake_namegroup(dtd, CF_OR, decl, names, n);
+  { dtd_model *model;
+
+    if ( (model = make_model(dtd, decl, &s)) )
+    { namelist nl;
+      
+      nl.list = names;
+      nl.size = 0;
+      for_elements_in_model(model, add_list_element, &nl);
+      free_model(model);
+
+      *n = nl.size;
+      return s;
+    } else
+      return NULL;
   } else
   { if ( !(s = itake_name(dtd, decl, &names[0])) )
     { gripe(ERC_SYNTAX_ERROR, "Name expected", decl);
@@ -1567,7 +1595,7 @@ process_element_declaraction(dtd *dtd, const ichar *decl)
     return FALSE;
   decl = buf;
 
-  if ( !(s=itake_id_or_idlist(dtd, decl, eid, &en)) )
+  if ( !(s=itake_el_or_model_element_list(dtd, decl, eid, &en)) )
     return gripe(ERC_SYNTAX_ERROR, "Name or name-group expected", decl);
   decl = s;
   if ( en == 0 )
@@ -1716,7 +1744,7 @@ process_attlist_declaraction(dtd *dtd, const ichar *decl)
   decl = iskip_layout(dtd, buf);
   DEBUG(printf("Expanded to %s\n", decl));
 
-  if ( !(decl=itake_id_or_idlist(dtd, decl, eid, &en)) )
+  if ( !(decl=itake_el_or_model_element_list(dtd, decl, eid, &en)) )
     return FALSE;
 
 					/* fetch attributes */
