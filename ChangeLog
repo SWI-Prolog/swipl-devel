@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.1.11 (April 1, 2003)
+==============================
+
   * FIXED: Bug#38: optimized prolog arithmetic functions in saved-states.
     Holger Kanwischer.
 

@@ -438,7 +438,7 @@ $make_path(Dir, File, Path) :-
 		*********************************/
 
 %	absolute_file_name(+Term, +Args, -AbsoluteFile)
-%	absolute_file_name(+Term, +AbsoluteFile, -Args)
+%	absolute_file_name(+Term, -AbsoluteFile, +Args)
 %	
 %	Translate path-specifier into a full   path-name. This predicate
 %	originates from Quintus was introduced  in SWI-Prolog very early
