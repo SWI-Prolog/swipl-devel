@@ -513,23 +513,6 @@ Putf(char *fm, ...)
   return rval < 0 ? FALSE : TRUE;
 }
 
-word
-vPutf(char *fm, va_list args)
-{ return Svfprintf(fileTable[Output].stream, fm, args) < 0 ? FALSE : TRUE;
-}
-
-
-int
-currentInputLine()
-{ IOSTREAM *stream = fileTable[Input].stream;
-
-  if ( stream && stream->position )
-    return stream->position->lineno;
-  else
-    return -1;
-}
-
-
 bool
 PL_open_stream(term_t handle, IOSTREAM *s)
 { int n;

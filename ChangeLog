@@ -1,6 +1,53 @@
 
 			SWI-Prolog ChangeLog
 			====================
+VERSION 2.8.4
+=============
+
+  * FIXED: PL_{get,put,unify}_pointer() mapping of pointer to integer,
+    to ensure all possible pointer values are restored properly.
+
+  * CLEANUP: Removed various internal unused functions, changed
+    functions to be local that were only called locally.
+  
+  * MODIFIED: Redesign of various parts of the system to get rid of
+    terms living in the permanent heap. This modification allows the
+    permanent heap (where malloc() operates) to grow unlimited (used to
+    be 64 MB).
+
+    + Records (recorda/3, recorded/3, erase/1) are no longer stored
+      as copies of the global-terms, but instead as a form of compiled
+      code, optimised for copying the object back to the runtime stacks.
+
+      Records are also used by findall/3, setof/3 and bagof/3, and these
+      predicates have thus been modified too.  The interface between the
+      C and Prolog part has changed, making old saved-states worthless.
+      Old QLF files work properly.
+
+    + Records are also used by the /f goal option of the tracer.  The
+      implementation of this has been changed drastically.  The result
+      is a lot faster while searching and a bug has been fixed.
+
+    + loadXRc() in pl-wic.c has been modified not to store longs, doubles
+      and string onto the heap.  This is the desired behaviour anyway.
+
+    + Feature storage changed to use a union type, rather then integers
+      on the heap.
+
+    + Variable analysis in the compiler now used TAG_ATOM|STG_GLOBAL,
+      like records, to flag the analysed variables.
+
+    + Temporary variable management in read/1 using the same trick.
+
+    + Atoms are indexed over a global, resizable, array.
+
+    GOOD THINGS
+
+    + makeRef() now simply is makeRefLG().
+
+    + Trail() is simplified a lot.
+
+    + makePtr() (pl-gc.c) no longer deals with heap pointers
 
 VERSION 2.8.3
 =============

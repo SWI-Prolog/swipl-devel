@@ -59,10 +59,10 @@ struct token
 
 
 struct variable
-{ struct atom	atom;		/* Normal atom ($VAR/0) */
-  char *	name;		/* Name of the variable */
+{ char *	name;		/* Name of the variable */
   term_t	variable;	/* Term-reference to the variable */
   int		times;		/* Number of occurences */
+  word		signature;	/* Pseudo atom */
   Variable 	next;		/* Next of chain */
 };
 
@@ -572,7 +572,7 @@ raw_read(void)
 These functions manipulate the  variable-name  base   for  a  term. When
 building the term on the global stack, variables are represented using a
 reference to a `struct variable'. The first  part of this structure is a
-stuct atom, so if a garbage   collection  happens, the garbage collector
+struct atom, so if a garbage   collection happens, the garbage collector
 will simply assume an atom.
 
 The buffer `var_buffer' is a  list  if   pointers  to  a  stock of these
@@ -594,7 +594,15 @@ static Variable  var_tail;		/* tail of linked list */
 
 static void
 initVarTable()
-{ var_list = var_tail = NULL;
+{ static int done = 0;
+
+  if ( !done )
+  { initBuffer(&var_name_buffer);
+    initBuffer(&var_buffer);
+    done++;
+  }
+
+  var_list = var_tail = NULL;
   var_free = 0;
   emptyBuffer(&var_name_buffer);
 }
@@ -620,8 +628,14 @@ save_var_name(const char *name)
 
 					/* use hash-key? */
 
-static char *uniquename = "read/1 tmp var";
-#define isVarAtom(w) (isAtom(w) && stringAtom(w) == uniquename)
+static Variable
+isVarAtom(word w)
+{ if ( tagex(w) == (TAG_ATOM|STG_GLOBAL) )
+    return baseBuffer(&var_buffer, Variable)[w>>7];
+  
+  return NULL;
+}
+
 
 static Variable
 lookupVariable(const char *name)
@@ -636,10 +650,8 @@ lookupVariable(const char *name)
        
   while ( var_free >= var_allocated )
   { Variable v = allocHeap(sizeof(struct variable));
-    v->atom.next        = NULL;
-    v->atom.hash_value  = 0;
-    v->atom.name	= uniquename;
     addBuffer(&var_buffer, v, Variable);
+    v->signature = (var_allocated<<7)|TAG_ATOM|STG_GLOBAL;
     var_allocated++;
   }
 
@@ -734,7 +746,7 @@ forwards void	build_term(term_t term, atom_t name, int arity, term_t *args);
 forwards bool	complex_term(const char *end, term_t term, term_t positions);
 forwards bool	simple_term(bool, term_t term, bool *isname, term_t positions);
 
-int
+static int
 scan_number(char **s, int b, Number n)
 { int d;
   unsigned long maxi = PLMAXINT/b;	/* cache? */
@@ -1181,11 +1193,10 @@ statically allocated and thus unique.
 static inline void
 readValHandle(term_t term, Word argp)
 { word w = *valTermRef(term);
+  Variable var;
 
-  if ( isVarAtom(w) )
-  { Variable var = (Variable) atomValue(w);
-
-    DEBUG(2, Sdprintf("readValHandle(): var at 0x%x\n", var));
+  if ( (var = isVarAtom(w)) )
+  { DEBUG(2, Sdprintf("readValHandle(): var at 0x%x\n", var));
 
     if ( !var->variable )		/* new variable */
     { var->variable = PL_new_term_ref();
@@ -1613,7 +1624,7 @@ simple_term(bool must_be_op, term_t term, bool *name, term_t positions)
       setHandle(term, 0L);		/* variable */
       goto atomic_out;
     case T_VARIABLE:
-      setHandle(term, consPtr(token->value.variable, TAG_ATOM|STG_HEAP));
+      setHandle(term, token->value.variable->signature);
       DEBUG(2, Sdprintf("Pushed var at 0x%x\n", token->value.variable));
       goto atomic_out;
     case T_NAME:

@@ -472,12 +472,12 @@ loadXRc(int c, IOSTREAM *fd)
     case XR_INT:
       return consInt(getNum(fd));
     case XR_BIGNUM:
-      return heapLong(getstdw(fd));	/* global ... */
+      return globalLong(getstdw(fd));
     case XR_FLOAT:
-      return heapReal(getReal(fd));	/* global ... */
+      return globalReal(getReal(fd));
 #if O_STRING
     case XR_STRING:
-      return heapString(getString(fd));
+      return globalString(getString(fd));
 #endif
     default:
     { xr = 0;				/* make gcc happy */
@@ -1551,7 +1551,7 @@ openWic(const char *file, term_t args)
 }  
 
 
-void
+static void
 writeTrailer(IOSTREAM *fd)
 { long size = Stell(fd) - emulator_size;
 

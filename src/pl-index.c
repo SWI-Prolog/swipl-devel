@@ -104,7 +104,7 @@ hashIndex(word key, int buckets)
 }
 
 
-word
+static word
 indexOfWord(word w)
 { for(;;)
   { switch(tag(w))

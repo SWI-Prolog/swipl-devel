@@ -106,9 +106,9 @@ Indirect data
 
 #define STG_MASK	(0x3<<3)
 #define STG_STATIC	(0x0<<3)	/* storage masks */
-#define STG_HEAP	(0x1<<3)
-#define STG_GLOBAL	(0x2<<3)
-#define STG_LOCAL	(0x3<<3)
+#define STG_GLOBAL	(0x1<<3)
+#define STG_LOCAL	(0x2<<3)
+#define STG_RESERVED	(0x3<<3)
 
 #define STG_INLINE	STG_STATIC
 #define STG_TRAIL	STG_STATIC
@@ -118,6 +118,7 @@ Indirect data
 
 GLOBAL unsigned long	base_addresses[STG_MASK+1];
 GLOBAL buffer		functor_array;
+GLOBAL buffer		atom_array;
 
 #define tag(w)		((w) & TAG_MASK)
 #define storage(w)	((w) & STG_MASK)
@@ -189,15 +190,15 @@ extern const unsigned int tagtypeex[];
 #define valString(w)	((char *)valIndirectP(w))
 #define valBignum(w)	(*(long *)valIndirectP(w))
 #define isBignum(w)	(isInteger(w) && storage(w) != STG_INLINE)
-#define isTaggedInt(w)	(isInteger(w) && storage(w) == STG_INLINE)
+#define isTaggedInt(w)	(tagex(w) == (TAG_INTEGER|STG_INLINE))
+			/* == (isInteger(w) && storage(w) == STG_INLINE) */
 
 		 /*******************************
 		 *	       VALUES		*
 		 *******************************/
 
-#define atomValue(w)	(storage(w) == STG_HEAP ? \
-				(Atom)valPtr2(w, STG_HEAP) :  \
-				&atoms[valInt(w)])
+#define indexAtom(w)	((w)>>LMASK_BITS)
+#define atomValue(w)	fetchBuffer(&atom_array, indexAtom(w), Atom)
 #define stringAtom(w)	(atomValue(w)->name)
 #define valInteger(w)	(storage(w) == STG_INLINE ? valInt(w) : valBignum(w))
 

@@ -395,27 +395,27 @@ analyseVariables2(Word head, int nvars, int arity, int argn)
     vd = getVarDef(index);
     vd->address = head;
     vd->times = 1;
-    *head = consPtr(vd, TAG_COMPOUND|STG_HEAP);
+    *head = (index<<7)|TAG_ATOM|STG_GLOBAL; /* special mark */
 
+    return nvars;
+  }
+
+  if ( tagex(*head) == (TAG_ATOM|STG_GLOBAL) )
+  { VarDef vd = vardefs[(*head) >> 7];
+
+    vd->times++;
     return nvars;
   }
 
   if ( isTerm(*head) )
   { Functor f = valueTerm(*head);
+    int ar = arityFunctor(f->definition);
 
-    if ( f->definition == FUNCTOR_var1->functor )
-    { VarDef vd = (VarDef)f;
-      vd->times++;
-      return nvars;
-    } else
-    { int ar = arityFunctor(f->definition);
+    head = f->arguments;
+    argn = ( argn < 0 ? 0 : arity );
 
-      head = f->arguments;
-      argn = ( argn < 0 ? 0 : arity );
-
-      for(; ar > 0; ar--, head++, argn++)
-	nvars = analyseVariables2(head, nvars, arity, argn);
-    }
+    for(; ar > 0; ar--, head++, argn++)
+      nvars = analyseVariables2(head, nvars, arity, argn);
   }
 
   return nvars;
@@ -475,7 +475,7 @@ typedef struct
   int		arity;			/* arity of top-goal */
   Clause	clause;			/* clause we are constructing */
   int		vartablesize;		/* size of the vartable */
-  buffer	codes;			/* scratch code table */
+  tmp_buffer	codes;			/* scratch code table */
   VarTable	used_var;		/* boolean array of used variables */
 } compileInfo;
 
@@ -498,8 +498,8 @@ forwards bool	compileArithArgument(Word, compileInfo *);
 
 static inline int
 isIndexedVarTerm(word w)
-{ if ( hasFunctor(w, FUNCTOR_var1) )
-  { VarDef v = (VarDef) valPtr(w);
+{ if ( tagex(w) == (TAG_ATOM|STG_GLOBAL) )
+  { VarDef v = vardefs[w>>7];
     return v->offset;
   }
 
@@ -560,16 +560,17 @@ orVars(VarTable valt1, VarTable valt2)
 
 static void
 setVars(register Word t, VarTable vt)
-{ deRef(t);
+{ int index;
+
+  deRef(t);
+  if ( (index = isIndexedVarTerm(*t)) >= 0 )
+  { isFirstVar(vt, index);
+    return;
+  }
 
   if ( isTerm(*t) )
-  { int index;
-    register int arity;
+  { int arity;
 
-    if ( (index = isIndexedVarTerm(*t)) >= 0 )
-    { isFirstVar(vt, index);
-      return;
-    }
     arity = arityTerm(*t);
     for(t = argTermP(*t, 0); arity > 0; t++, arity--)
       setVars(t, vt);
@@ -905,6 +906,8 @@ be a variable, and thus cannot be removed if it is before an I_POPF.
       }
       /* FALLTHROUGH for tagged integers */
     case TAG_ATOM:
+      if ( tagex(*arg) == (TAG_ATOM|STG_GLOBAL) )
+	goto isvar;
       if ( isNil(*arg) )
       {	Output_0(ci, (where & A_BODY) ? B_NIL : H_NIL);
       } else
@@ -926,12 +929,11 @@ be a variable, and thus cannot be removed if it is before an I_POPF.
     }
   }
 
-  assert(isTerm(*arg));
-    
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Non-void variables. There are many cases for this.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+isvar:
   if ( (index = isIndexedVarTerm(*arg)) >= 0 )
   { first = isFirstVar(ci->used_var, index);
 
@@ -978,6 +980,8 @@ Non-void variables. There are many cases for this.
     return NONVOID;
   }
 
+  assert(isTerm(*arg));
+    
   { int ar;
     int lastnonvoid;
     FunctorDef fdef;
@@ -1036,18 +1040,17 @@ compileSubClause(register Word arg, code call, compileInfo *ci)
 { Module tm = ci->module;
 
   deRef(arg);
-
-  if ( isTerm(*arg) )
-  {
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A non-void variable. Create a I_USERCALL0 instruction for it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    if ( isIndexedVarTerm(*arg) >= 0 )
-    { compileArgument(arg, A_BODY, ci);
-      Output_0(ci, I_USERCALL0);
-      succeed;
-    }
+  if ( isIndexedVarTerm(*arg) >= 0 )
+  { compileArgument(arg, A_BODY, ci);
+    Output_0(ci, I_USERCALL0);
+    succeed;
+  }
 
+  if ( isTerm(*arg) )
+  {
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 If the argument is of the form <Module>:<Goal>, <Module> is an atom  and
 <Goal>  is  nonvar  then compile to the specified module.  Otherwise use
@@ -1110,7 +1113,7 @@ operator.
 	{ Word a = argTermP(*arg, n);
 
 	  deRef(a);
-	  if ( isTerm(*a) && (vars[n] = isIndexedVarTerm(*a)) >= 0 )
+	  if ( (vars[n] = isIndexedVarTerm(*a)) >= 0 )
 	    continue;
 
 	  goto non_fv;
@@ -1242,7 +1245,7 @@ compileArith(Word arg, compileInfo *ci)
 
 
 static bool
-compileArithArgument(register Word arg, register compileInfo *ci)
+compileArithArgument(Word arg, compileInfo *ci)
 { int index;
 
   deRef(arg);
@@ -1261,7 +1264,7 @@ compileArithArgument(register Word arg, register compileInfo *ci)
     succeed;
   }
 					/* variable */
-  if ( isTerm(*arg) && (index = isIndexedVarTerm(*arg)) >= 0 )
+  if ( (index = isIndexedVarTerm(*arg)) >= 0 )
   { int first = isFirstVar(ci->used_var, index);
 
     if ( index < ci->arity )		/* shared in the head */

@@ -51,7 +51,7 @@ bagof(Gen, Goal, Bag) :-
 	Bag \== [].
 
 assert_bag(Templ, G) :-
-	$record_bag(-(mark, -)), 
+	$record_bag(-), 
 	G,
 	    $record_bag(Templ), 
 	fail.

@@ -31,7 +31,17 @@ struct assoc
 
 static Assoc bags = (Assoc) NULL;	/* chain of value pairs */
 
-forwards void freeAssoc(Assoc, Assoc);
+static
+void
+freeAssoc(Assoc prev, Assoc a)
+{ if ( prev == NULL )
+    bags = a->next;
+  else
+    prev->next = a->next;
+  if ( a->binding )
+    freeRecord(a->binding);
+  freeHeap(a, sizeof(struct assoc));
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 $record_bag(Key-Value)
@@ -44,7 +54,10 @@ word
 pl_record_bag(term_t t)
 { Assoc a = (Assoc) allocHeap(sizeof(struct assoc));
 
-  a->binding = copyTermToHeap(t);
+  if ( PL_is_atom(t) )
+    a->binding = NULL;
+  else
+    a->binding = compileTermToHeap(t);
   a->next    = bags;
   bags       = a;
 
@@ -78,14 +91,14 @@ pl_collect_bag(term_t bindings, term_t bag)
   
   if ( !(a = bags) )
     fail;
-  if ( argTerm(a->binding->term, 0) == ATOM_mark )
+  if ( !a->binding )
   { freeAssoc(prev, a);
     fail;				/* trapped the mark */
   }
 
   PL_put_nil(list);
 					/* get variable term on global stack */
-  copyTermToGlobal(binding, a->binding);
+  copyRecordToGlobal(binding, a->binding);
   PL_get_arg(1, binding, var_term);
   PL_unify(bindings, var_term);
   PL_get_arg(2, binding, tmp);
@@ -96,17 +109,15 @@ pl_collect_bag(term_t bindings, term_t bag)
 
   if ( next != NULL )
   { for( a = next, next = a->next; next; a = next, next = a->next )
-    { Word key = argTermP(a->binding->term, 0);
-
-      if ( *key == ATOM_mark )
+    { if ( !a->binding )
 	break;
-      _PL_put_atomic(tmp, *key);
-      if ( !pl_structural_equal(var_term, tmp) )
+
+      if ( !structuralEqualArg1OfRecord(var_term, a->binding) )
       { prev = a;
 	continue;
       }
 
-      copyTermToGlobal(binding, a->binding);
+      copyRecordToGlobal(binding, a->binding);
       PL_get_arg(1, binding, tmp);
       PL_unify(tmp, bindings);
       PL_get_arg(2, binding, tmp);
@@ -122,13 +133,3 @@ pl_collect_bag(term_t bindings, term_t bag)
 }
 
 
-static
-void
-freeAssoc(Assoc prev, Assoc a)
-{ if ( prev == NULL )
-    bags = a->next;
-  else
-    prev->next = a->next;
-  freeRecord(a->binding);
-  freeHeap(a, sizeof(struct assoc));
-}

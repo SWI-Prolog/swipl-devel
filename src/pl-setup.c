@@ -75,14 +75,12 @@ setupProlog(void)
 
   { void *hbase = allocHeap(sizeof(word));
 
-    base_addresses[STG_HEAP]   = (ulong)hbase & ~0x007fffffL;
+    heap_base = (ulong)hbase & ~0x007fffffL; /* 8MB */
     freeHeap(hbase, sizeof(word));
   }
   base_addresses[STG_LOCAL]  = (unsigned long)lBase;
   base_addresses[STG_GLOBAL] = (unsigned long)gBase;
   base_addresses[STG_TRAIL]  = (unsigned long)tBase;
-  DEBUG(1, Sdprintf("base_addresses[STG_HEAP] = %p\n",
-		    base_addresses[STG_HEAP]));
   DEBUG(1, Sdprintf("base_addresses[STG_LOCAL] = %p\n",
 		    base_addresses[STG_LOCAL]));
   DEBUG(1, Sdprintf("base_addresses[STG_GLOBAL] = %p\n",
@@ -159,14 +157,14 @@ setupProlog(void)
 Feature interface
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+void
 CSetFeature(char *name, char *value)
-{ return setFeature(lookupAtom(name), lookupAtom(value));
+{ setFeature(lookupAtom(name), FT_ATOM, lookupAtom(value));
 }
 
 static void
 CSetIntFeature(char *name, long value)
-{ setFeature(lookupAtom(name), consInt(value));
+{ setFeature(lookupAtom(name), FT_INTEGER, value);
 }
 
 static void
@@ -222,8 +220,8 @@ initFeatures()
   CSetFeature("debug_on_error",	"true");
   CSetFeature("report_error",	"true");
 					/* ISO features */
-  setFeature(lookupAtom("max_integer"), heapLong(PLMAXINT));
-  setFeature(lookupAtom("min_integer"), heapLong(PLMININT));
+  CSetIntFeature("max_integer", PLMAXINT);
+  CSetIntFeature("min_integer", PLMININT);
   CSetIntFeature("max_tagged_integer", PLMAXTAGGEDINT);
   CSetIntFeature("min_tagged_integer", PLMINTAGGEDINT);
   CSetFeature("bounded",	"true");
@@ -543,12 +541,13 @@ mapOrOutOf(Stack s)
 }
 
 
+#ifdef NO_SEGV_HANDLING
 void
 ensureRoomStack(Stack s, int bytes)
 { while((char *)s->max - (char *)s->top < (int)bytes)
     mapOrOutOf(s);
 }
-
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 unmap() returns all memory resources of a stack that are  no  longer  in
@@ -568,6 +567,8 @@ unmap(Stack s)
 }
 
 
+#ifdef O_SAVE
+
 static void
 deallocateStack(Stack s)
 { long len = (unsigned long)s->max - (unsigned long)s->base;
@@ -585,8 +586,6 @@ deallocateStacks(void)
   deallocateStack((Stack) &stacks.argument);
 }
 
-
-#ifdef O_SAVE
 
 bool
 restoreStack(Stack s)
@@ -840,12 +839,13 @@ mapOrOutOf(Stack s)
 }
 
 
+#ifdef NO_SEGV_HANDLING
 void
 ensureRoomStack(Stack s, int bytes)
 { while((char *)s->max - (char *)s->top < (int)bytes)
     mapOrOutOf(s);
 }
-
+#endif
 
 static void
 unmap(Stack s)

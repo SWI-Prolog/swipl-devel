@@ -437,7 +437,7 @@ struct uchoice
 };
 
 static bool
-structeql(Word t1, Word t2, Buffer buf)
+structeql(Word t1, Word t2, TmpBuffer buf)
 { int todo = 1;
   UChoice nextch = NULL, tailch = NULL;
 
@@ -528,7 +528,7 @@ structeql(Word t1, Word t2, Buffer buf)
 word
 pl_structural_equal(term_t t1, term_t t2)
 { bool rval;
-  buffer buf;
+  tmp_buffer buf;
   Reset r;
   Word p1 = valTermRef(t1);
   Word p2 = valTermRef(t2);
@@ -797,7 +797,7 @@ start:
     PL_unify_arg(1, t, tmp);
 
     n++;
-  } else if ( _PL_get_name_arity(t, &name, &arity) && arity > 0 )
+  } else if ( _PL_get_name_arity(t, &name, &arity) )
   { if ( arity == 1 )
     { PL_get_arg(1, t, t);
       goto start;
@@ -1527,14 +1527,14 @@ pl_concat(term_t a1, term_t a2, term_t a3)
 
 word
 pl_concat_atom3(term_t list, term_t sep, term_t atom)
-{ buffer b;
-  char *s;
+{ char *s;
   term_t l = PL_copy_term_ref(list);
   term_t head = PL_new_term_ref();
   int first = TRUE;
   char *sp;
   int splen;
-
+  tmp_buffer b;
+  
   if ( sep )
   { if ( !PL_get_chars(sep, &sp, CVT_ATOMIC) )
       return warning("concat_atom/3: illegal separator");
@@ -2058,8 +2058,13 @@ pl_statistics(term_t k, term_t value)
 
 typedef struct feature *Feature;
 struct feature
-{ atom_t name;
-  word value;
+{ atom_t	name;
+  int	 	type;
+  union
+  { atom_t	atom;			/* value as atom */
+    long	i;			/* value as integer */
+  } value;
+
   Feature next;
 };
 
@@ -2092,15 +2097,30 @@ builtin_named_feature builtin_named_features[] =
 };
 
 int
-setFeature(atom_t name, word value)
+setFeature(atom_t name, int type, ...)
 { Feature f;
   builtin_boolean_feature *bf;
   builtin_named_feature   *nf;
+  atom_t a = 0;
+  long i = 0;
+  va_list args;
+
+  va_start(args, type);
+  switch(type)
+  { case FT_ATOM:
+      a = va_arg(args, atom_t);
+      break;
+    case FT_INTEGER:
+      i = va_arg(args, long);
+      break;
+    default:
+      assert(0);
+  }
 
   for(nf = builtin_named_features; nf->name; nf++)
   { if ( name == nf->name )
-    { if ( isAtom(value) )
-      { *nf->address = value;
+    { if ( type == FT_ATOM )
+      { *nf->address = a;
       } else
       { warning("set_feature/2: %s feature is atom", stringAtom(name));
 	fail;
@@ -2110,12 +2130,16 @@ setFeature(atom_t name, word value)
   }
   for(bf = builtin_boolean_features; bf->name; bf++ )
   { if ( name == bf->name )
-    { if ( value == ATOM_true || value == ATOM_on )
-	set(&features, bf->mask);
-      else if ( value == ATOM_false || value == ATOM_off )
-	clear(&features, bf->mask);
-      else
-      { warning("set_feature/2: %s feature is boolean", stringAtom(name));
+    { if ( type == FT_ATOM )
+      { if ( a == ATOM_true || a == ATOM_on )
+	  set(&features, bf->mask);
+	else if ( a == ATOM_false || a == ATOM_off )
+	  clear(&features, bf->mask);
+	else
+	  goto nobool;
+      } else
+      { nobool:
+	warning("set_feature/2: %s feature is boolean", stringAtom(name));
 	fail;
       }
       if ( name == ATOM_tty_control )	/* status.notty should be feature */
@@ -2127,28 +2151,36 @@ setFeature(atom_t name, word value)
 doset:
   for(f=feature_list; f; f = f->next)
   { if ( f->name == name )
-    { f->value = value;
-      succeed;
-    }
+      goto setf;
   }
 
   f = allocHeap(sizeof(struct feature));
   f->next = feature_list;
   f->name = name;
-  f->value = value;
   feature_list = f;
+
+setf:
+  f->type = type;
+  switch(f->type)
+  { case FT_ATOM:
+      f->value.atom = a;
+      break;
+    case FT_INTEGER:
+      f->value.i = i;
+      break;
+  }
 
   succeed;
 }
 
 
-word
-getFeature(atom_t name)
+static Feature
+findFeature(atom_t name)
 { Feature f;
 
   for(f=feature_list; f; f = f->next)
   { if ( f->name == name )
-      return f->value;
+      return f;
   }
 
   fail;
@@ -2158,14 +2190,32 @@ getFeature(atom_t name)
 word
 pl_set_feature(term_t key, term_t value)
 { atom_t k;
-  word v;
+  atom_t a;
+  long i;
   
-  if ( !PL_get_atom(key, &k) ||
-       !(PL_is_atom(value) || PL_is_integer(value)) )
-    return warning("set_feature/2; instantiation fault");
+  if ( !PL_get_atom(key, &k) )
+    return warning("set_feature/2: key is not an atom");
 
-  v = _PL_get_atomic(value);
-  return setFeature(k, v);
+  if ( PL_get_atom(value, &a) )
+    return setFeature(k, FT_ATOM, a);
+  if ( PL_get_long(value, &i) )
+    return setFeature(k, FT_INTEGER, a);
+
+  return warning("set_feature/2: illegal value");
+}
+
+
+static int
+unify_feature_value(Feature f, term_t val)
+{ switch(f->type)
+  { case FT_ATOM:
+      return PL_unify_atom(val, f->value.atom);
+    case FT_INTEGER:
+      return PL_unify_integer(val, f->value.i);
+    default:
+      assert(0);
+      fail;
+  }
 }
 
 
@@ -2178,10 +2228,10 @@ pl_feature(term_t key, term_t value, word h)
     { atom_t k;
 
       if ( PL_get_atom(key, &k) )
-      { word val;
+      { Feature f;
 
-	if ( (val=getFeature(k)) )
-	  return _PL_unify_atomic(value, val);
+	if ( (f = findFeature(k)) )
+	  return unify_feature_value(f, value);
 	fail;
       } else if ( PL_is_variable(key) )
       { here = feature_list;
@@ -2198,7 +2248,7 @@ pl_feature(term_t key, term_t value, word h)
 
   for(; here; here = here->next)
   { if ( PL_unify_atom(key, here->name) &&
-	 _PL_unify_atomic(value, here->value) )
+	 unify_feature_value(here, value) )
     { if ( !here->next )
 	succeed;
       ForeignRedoPtr(here->next);

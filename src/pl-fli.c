@@ -298,6 +298,42 @@ PL_cons_list(term_t l, term_t head, term_t tail)
   setHandle(l, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
 }
 
+		 /*******************************
+		 *     POINTER <-> PROLOG INT	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Pointers are not a special type in Prolog. Instead, they are represented
+by an integer. The funtions below convert   integers  such that they can
+normally be expressed as a tagged  integer: the heap_base is subtracted,
+it is divided by 4 and the low 2   bits  are placed at the top (they are
+normally 0). longToPointer() does the inverse operation.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static ulong
+pointerToLong(void *ptr)
+{ ulong p = (ulong) ptr;
+  ulong low = p & 0x3L;
+
+  p -= heap_base;
+  p >>= 2;
+  p |= low<<(sizeof(ulong)*8-2);
+  
+  return p;
+}
+
+
+static void *
+longToPointer(ulong p)
+{ ulong low = p >> (sizeof(ulong)*8-2);
+
+  p <<= 2;
+  p |= low;
+  p += heap_base;
+
+  return (void *) p;
+}
+
 
 		 /*******************************
 		 *	      GET-*		*
@@ -356,6 +392,9 @@ findBuffer(int flags)
     b = &buffer_ring[current_buffer_id];
   } else
     b = &discardable_buffer;
+
+  if ( !b->base )
+    initBuffer(b);
 
   emptyBuffer(b);
   return b;
@@ -554,22 +593,10 @@ PL_get_float(term_t t, double *f)
 
 int
 PL_get_pointer(term_t t, void **ptr)
-{ word w = valHandle(t);
-  
-  if ( isInteger(w) )
-  { ulong p;
+{ long p;
 
-    if ( isTaggedInt(w) )
-    { if ( w == consInt(0) )
-      { p = 0L;
-      } else 
-      { p  = valInt(w) * sizeof(int) + base_addresses[STG_HEAP];
-      }
-    } else
-    { p = valBignum(w);
-    }
-
-    *ptr = (void *)p;
+  if ( PL_get_long(t, &p) )
+  { *ptr = longToPointer((ulong)p);
 
     succeed;
   }
@@ -956,23 +983,6 @@ _PL_put_number(term_t t, Number n)
     PL_put_integer(t, n->value.i);
   else
     PL_put_float(t, n->value.f);
-}
-
-
-static ulong
-pointerToLong(void *ptr)
-{ ulong p = (ulong) ptr;
-
-  if ( p > base_addresses[STG_HEAP] &&
-       p % sizeof(int) == 0 )
-  { p -= base_addresses[STG_HEAP];
-    p /= sizeof(int);
-    
-    if ( p <= PLMAXTAGGEDINT )
-      return p;
-  }
-
-  return (ulong)ptr;
 }
 
 
@@ -1909,12 +1919,12 @@ PL_set_feature(const char *name, int type, ...)
   switch(type)
   { case PL_ATOM:
     { char *v = va_arg(args, char *);
-      setFeature(lookupAtom(name), lookupAtom(v));
+      setFeature(lookupAtom(name), FT_ATOM, lookupAtom(v));
       break;
     }
     case PL_INTEGER:
-    { int v = va_arg(args, int);
-      setFeature(lookupAtom(name), makeNum(v));
+    { long v = va_arg(args, long);
+      setFeature(lookupAtom(name), FT_INTEGER, v);
       break;
     }
     default:

@@ -180,7 +180,7 @@ ar_compare(Number n1, Number n2, int what)
 }
 
 
-word
+static word
 compareNumbers(term_t n1, term_t n2, int what)
 { number left, right;
 

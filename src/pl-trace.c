@@ -17,10 +17,22 @@ int trace_continuation;			/* how to continue? */
 #define W_WRITEQ	3		/* writeq/1 */
 #define W_DISPLAY	4		/* display/1 */
 
+#define TRACE_FIND_NONE	0
+#define TRACE_FIND_ANY	1
+#define TRACE_FIND_NAME	2
+#define TRACE_FIND_TERM	3
+
 static struct
 { int	 port;				/* Port to find */
   bool	 searching;			/* Currently searching? */
-  Record goal;				/* Goal to find */
+  int	 type;				/* TRACE_FIND_* */
+  union
+  { atom_t	name;			/* Name of goal to find */
+    struct
+    { functor_t	functor;		/* functor of the goal */
+      Record	term;			/* Goal to find */
+    } term;
+  } goal;
 } find;
 
 #define PrologRef(fr)	 ((Word)fr - (Word)lBase)
@@ -46,7 +58,6 @@ forwards bool		hasAlternativesFrame(LocalFrame);
 forwards void		alternatives(LocalFrame);
 forwards void		listProcedure(Definition);
 forwards int		traceInterception(LocalFrame, LocalFrame, int, Code);
-forwards bool		canUnifyTermWithGoal(Word, LocalFrame);
 forwards void		writeFrameGoal(LocalFrame frame, int how);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -73,28 +84,44 @@ as the record is not in the proper format.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
-canUnifyTermWithGoal(Word t, LocalFrame fr)
-{ deRef(t);
-  if ( isVar(*t) )
-    succeed;
-  if ( isAtom(*t) && fr->predicate->functor->name == *t )
-    succeed;
-  if ( hasFunctor(*t, fr->predicate->functor) )
-  { Word a, b;
-    int arity;
+canUnifyTermWithGoal(LocalFrame fr)
+{ switch(find.type)
+  { case TRACE_FIND_ANY:
+      succeed;
+    case TRACE_FIND_NAME:
+      return find.goal.name == fr->predicate->functor->name;
+    case TRACE_FIND_TERM:
+    { if ( find.goal.term.functor == fr->predicate->functor )
+      { fid_t cid = PL_open_foreign_frame();
+	term_t t = PL_new_term_ref();
+	Word a, b;
+	int arity = find.goal.term.functor->arity;
+	int rval = TRUE;
 
-    a = argTermP(*t, 0);
-    b = argFrameP(fr, 0);
-    arity = functorTerm(*t)->arity;
-    while( arity > 0 )
-    { if ( !can_unify(a, b) )
-        fail;
+	copyRecordToGlobal(t, find.goal.term.term);
+	a = valTermRef(t);
+	deRef(a);
+	a = argTermP(*a, 0);
+	b = argFrameP(fr, 0);
+	while( arity-- > 0 )
+	{ if ( !can_unify(a++, b++) )
+	  { rval = FALSE;
+	    break;
+	  }
+	}
+
+	PL_discard_foreign_frame(cid);
+	return rval;
+      }
+
+      fail;
     }
-    succeed;
+    default:
+      assert(0);
+      fail;
   }
-  
-  fail;
 }
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Toplevel  of  the  tracer.   This  function  is  called  from  the   WAM
@@ -197,7 +224,7 @@ We are in searching mode; should we actually give this port?
   if ( find.searching )
   { DEBUG(2, Sdprintf("Searching\n"));
 
-    if ( (port & find.port) && canUnifyTermWithGoal(&find.goal->term, frame) )
+    if ( (port & find.port) && canUnifyTermWithGoal(frame) )
     { find.searching = FALSE;		/* Got you */
     } else
     { return ACTION_CONTINUE;		/* Continue the search */
@@ -316,10 +343,22 @@ setupFind(char *buf)
       fail;
     }
 
-    if ( find.goal )
-      freeRecord(find.goal);
+    if ( find.type == TRACE_FIND_TERM && find.goal.term.term )
+      freeRecord(find.goal.term.term);
+
+    if ( PL_is_variable(t) )
+    { find.type = TRACE_FIND_ANY;
+    } else if ( PL_get_atom(t, &find.goal.name) )
+    { find.type = TRACE_FIND_NAME;
+    } else if ( PL_get_functor(t, &find.goal.term.functor) )
+    { find.type = TRACE_FIND_TERM;
+      find.goal.term.term    = compileTermToHeap(t);
+    } else
+    { Putf("[Illegal goal specification]\n");
+      fail;
+    }
+
     find.port      = port;
-    find.goal      = copyTermToHeap(t);
     find.searching = TRUE;
 
     DEBUG(2, Sdprintf("setup ok, port = 0x%x, goal = ", port);
@@ -368,7 +407,7 @@ traceAction(char *cmd, int port, LocalFrame frame, bool interactive)
 		  return ACTION_CONTINUE;
 		}
 		return ACTION_AGAIN;    		
-    case '.':   if ( find.goal != NULL )
+    case '.':   if ( find.type != TRACE_FIND_NONE )
       	        { FeedBack("repeat search\n");
 		  find.searching = TRUE;
 		  clear(frame, FR_SKIPPED);

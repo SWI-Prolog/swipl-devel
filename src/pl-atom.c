@@ -33,9 +33,9 @@ static void	exitAtoms(int status, void *arg);
 		 *******************************/
 
 #ifdef O_HASHTERM
-#define ATOM(s) { (Atom)NULL, 0L, s }
+#define ATOM(s) { (Atom)NULL, 0L, 0L, s }
 #else
-#define ATOM(s) { (Atom)NULL, s }
+#define ATOM(s) { (Atom)NULL, 0L, s }
 #endif
 
 struct atom atoms[] = {
@@ -44,16 +44,15 @@ struct atom atoms[] = {
 };
 #undef ATOM
 
-static word
-mkAtom(Atom a)
-{ if ( (char *)a < (char *)atoms + sizeof(atoms) &&
-       a >= atoms )
-  { int i = a-atoms;
+static void
+registerAtom(Atom a)
+{ int n = entriesBuffer(&atom_array, Atom);
+    
+  a->atom = (n<<LMASK_BITS)|TAG_ATOM;
 
-    return MK_ATOM(i);
-  } else
-    return consPtr(a, TAG_ATOM|STG_HEAP);
+  addBuffer(&atom_array, a, Atom);
 }
+
 
 		 /*******************************
 		 *	  GENERAL LOOKUP	*
@@ -63,14 +62,14 @@ word
 lookupAtom(const char *s)
 { int v0 = unboundStringHashValue(s);
   int v = v0 & (atom_buckets-1);
-  register Atom a;
+  Atom a;
 
   DEBUG(0, lookups++);
 
   for(a = atomTable[v]; a && !isTableRef(a); a = a->next)
   { DEBUG(0, cmps++);
     if (streq(s, a->name) )
-      return mkAtom(a);
+      return a->atom;
   }
   a = (Atom)allocHeap(sizeof(struct atom));
   a->next       = atomTable[v];
@@ -79,12 +78,13 @@ lookupAtom(const char *s)
 #endif
   a->name       = store_string(s);
   atomTable[v]  = a;
+  registerAtom(a);
   statistics.atoms++;
 
   if ( atom_buckets * 2 < statistics.atoms && !atom_locked )
     rehashAtoms();
 
-  return mkAtom(a);
+  return a->atom;
 }
 
 
@@ -161,6 +161,8 @@ initAtoms(void)
 { atomTable = allocHeap(atom_buckets * sizeof(Atom));
   makeAtomRefPointers();
 
+  initBuffer(&atom_array);
+
   { Atom a;
 
     for( a = &atoms[0]; a->name; a++)
@@ -173,6 +175,7 @@ initAtoms(void)
       a->hash_value = v0;
 #endif
       atomTable[v]  = a;
+      registerAtom(a);
       statistics.atoms++;
     }
   }    
@@ -217,7 +220,7 @@ pl_current_atom(term_t a, word h)
       if ( !atom )
 	goto out;
     }
-    PL_unify_atom(a, mkAtom(atom));
+    PL_unify_atom(a, atom->atom);
 
     return_next_table(Atom, atom, unlockAtoms());
   }
@@ -366,7 +369,7 @@ pl_atom_completions(term_t prefix, term_t alternatives)
   
   for(i=0; i<altn; i++)
   { if ( !PL_unify_list(alts, head, alts) ||
-	 !PL_unify_atom(head, mkAtom(altv[i].name)) )
+	 !PL_unify_atom(head, altv[i].name->atom) )
       fail;
   }
 

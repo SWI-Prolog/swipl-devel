@@ -186,7 +186,7 @@ for the other modules, where it is far less fime-critical.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef consPtr
-inline word
+static inline word
 __consPtr(void *p, int ts)
 { unsigned long v = (unsigned long) p;
 
@@ -204,9 +204,13 @@ consPtr(void *p, int ts)
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-makeRef() and makeRefLG().   Make  a   reference  pointer.   The  second
+makeRef() and makeRefLG(). Make  a   reference  pointer. The makeRefLG()
 version is used by the WAM-interpreter to  exploit the fact that we know
-the pointer is either to the local or global stack.  See also TrailLG().
+the pointer is either to the local or global stack.
+
+This was designed while terms could  also   live  on the permanent heap.
+This is no longer the case, but  we   still  keep  makeRef() as a public
+function, rather then an inlined function.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static inline word
@@ -220,18 +224,7 @@ makeRefLG(Word p)
 
 word
 makeRef(Word p)
-{ int s;
-  word ref;
-
-  if ( onStackArea(local, p) )
-    s = TAG_REFERENCE|STG_LOCAL;
-  else if ( onStackArea(global, p) )
-    s = TAG_REFERENCE|STG_GLOBAL;
-  else
-    s = TAG_REFERENCE|STG_HEAP;
-
-  ref = consPtr(p, s);
-  return ref;
+{ return makeRefLG(p);			/* public version */
 }
 
 		/********************************
@@ -318,20 +311,6 @@ globalLong(long l)
 }
 
 
-word
-heapLong(long l)
-{ Word p = allocHeap(3 * sizeof(word));
-  word r = consPtr(p, TAG_INTEGER|STG_HEAP);
-  word m = mkIndHdr(1, TAG_INTEGER);
-
-  *p++ = m;
-  *p++ = l;
-  *p   = m;
-  
-  return r;
-}
-
-
 		 /*******************************
 		 *    OPERATIONS ON STRINGS	*
 		 *******************************/
@@ -369,24 +348,6 @@ globalString(const char *s)
 { return globalNString(strlen(s), s);
 }
 
-
-word
-heapString(const char *s)
-{ int l = strlen(s);
-  int lw = (l+sizeof(word))/sizeof(word);
-  int pad = (lw*sizeof(word) - l);
-  Word p = allocHeap((2 + lw) * sizeof(word));
-  word r = consPtr(p, TAG_STRING|STG_HEAP);
-  word m = mkStrHdr(lw, pad);
-
-  *p++ = m;
-  p[lw-1] = 0L;				/* padding word */
-  memcpy(p, s, l);
-  p += lw;
-  *p = m;
-  
-  return r;
-}
 
 
 		 /*******************************
@@ -443,28 +404,6 @@ globalReal(double d)
 }
 
 
-word
-heapReal(double d)
-{ Word p = allocHeap((2+WORDS_PER_DOUBLE)*sizeof(word));
-  word r = consPtr(p, TAG_FLOAT|STG_HEAP);
-  word m = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
-  union
-  { double d;
-    fword  l;
-  } val;
-  fword *v;
-
-  val.d = d;
-  *p++ = m;
-  v = (fword *)p;
-  *v++ = val.l;
-  p = (Word) v;
-  *p   = m;
-
-  return r;
-}
-
-
 		 /*******************************
 		 *  GENERIC INDIRECT OPERATIONS	*
 		 *******************************/
@@ -493,32 +432,6 @@ equalIndirect(word w1, word w2)
 Copy an indirect data object to the heap.  The type is not of importance,
 neither is the length or original location.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-word
-heapIndirect(word w)
-{ Word p = addressIndirect(w);
-  word t = *p;
-  int  n = wsizeofInd(t);
-  Word h = allocHeap((n+2) * sizeof(word));
-  Word hp = h;
-  
-  *hp = t;
-  while(--n >= 0)
-    *++hp = *++p;
-  *++hp = t;
-
-  return consPtr(h, tag(w)|STG_HEAP);
-}
-
-
-void
-freeHeapIndirect(word w)
-{ Word p = addressIndirect(w);
-  int  n = wsizeofInd(*p);
-
-  freeHeap(p, (n+2) * sizeof(word));
-}
-
 
 word
 globalIndirect(word w)
@@ -555,7 +468,7 @@ globalIndirectFromCode(Code *PC)
 }
 
 
-int
+static int				/* used in pl-wam.c */
 equalIndirectFromCode(word a, Code *PC)
 { Word pc = *PC;
   Word pa = addressIndirect(a);

@@ -12,8 +12,6 @@
 
 forwards RecordList lookupRecordList(word);
 forwards RecordList isCurrentRecordList(word);
-forwards void copyTermToHeap2(Word, Record, Word);
-forwards void freeHeapTerm(Word);
 
 #define RECORDA 0
 #define RECORDZ 1
@@ -28,6 +26,7 @@ initRecords(void)
   for(n=0, l=recordTable; n < (RECORDHASHSIZE-1); n++, l++)
     *l = makeTableRef(l+1);
 }
+
 
 static RecordList
 lookupRecordList(register word key)
@@ -48,6 +47,7 @@ lookupRecordList(register word key)
   return l;
 }
 
+
 static RecordList
 isCurrentRecordList(register word key)
 { int v = pointerHashValue(key, RECORDHASHSIZE);
@@ -57,183 +57,445 @@ isCurrentRecordList(register word key)
   { if (l->key == key)
       return l;
   }
-  return (RecordList) NULL;
+  return NULL;
 }
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Copy a term from the global stack onto the heap.  Terms on the heap  are
-not represented as `word', but as `record'.  A `record' holds additional
-information  for  linking  it in the record list and to make copying the
-term back on the global stack faster.
 
-All variables of a term  on  the  heap   are  together  in  an  array of
-variables of which the record knows  the   base  address  as well as the
-number of variables. The term  itself   holds  no  variables, except for
-direct references into the variable array.  Using this representation we
-can easily create a new variable array   on  the global stack and change
-the variables of the copied term  to   point  to this new variable array
-when copying back to the global stack.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+		 /*******************************
+		 *	    HEAP STORAGE	*
+		 *******************************/
+
+
+#ifndef offsetof
+#define offsetof(structure, field) ((int) &(((structure *)NULL)->field))
+#endif
+
+#define SIZERECORD  offsetof(struct record, buffer)
+
+typedef struct
+{ tmp_buffer code;			/* code buffer */
+  tmp_buffer vars;			/* variable pointers */
+  int	     size;			/* size on global stack */
+  int	     nvars;			/* # variables */
+} compile_info, *CompileInfo;
+
+
+#define	PL_TYPE_VARIABLE	(1)	/* variable */
+#define PL_TYPE_ATOM		(2)	/* atom */
+#define PL_TYPE_INTEGER	  	(3)	/* big integer */
+#define PL_TYPE_TAGGED_INTEGER  (4)	/* tagged integer */
+#define PL_TYPE_FLOAT	  	(5)	/* double */
+#define PL_TYPE_STRING	  	(6)	/* string */
+#define PL_TYPE_COMPOUND	(7)	/* compound term */
 
 static void
-copyTermToHeap2(register Word term, Record result, Word copy)
-{ 
+compile_term_to_heap(Word p, CompileInfo info)
+{ word w;
+
 right_recursion:
-  switch(tag(*term))
+  w = *p;
+
+  switch(tag(w))
   { case TAG_VAR:
+    { int n = info->nvars++;
+
+      *p = (n<<7)|TAG_ATOM|STG_GLOBAL;
+      addUnalignedBuffer(&info->vars, p, Word);
+      addBuffer(&info->code, PL_TYPE_VARIABLE, char);
+      addUnalignedBuffer(&info->code, n, int);
+
+      return;
+    }
     case TAG_ATOM:
-      *copy = *term;
-      break;
+    { if ( storage(w) == STG_GLOBAL )
+      { int n = ((long)(w) >> 7);
+
+	addBuffer(&info->code, PL_TYPE_VARIABLE, char);
+	addUnalignedBuffer(&info->code, n, int);
+      } else
+      { addBuffer(&info->code, PL_TYPE_ATOM, char);
+	addUnalignedBuffer(&info->code, w, atom_t);
+      }
+      return;
+    }
     case TAG_INTEGER:
-      if ( storage(*term) == STG_INLINE )
-      { *copy = *term;
-        break;
+    { long val;
+
+      if ( isTaggedInt(w) )
+      { val = valInt(w);
+	addBuffer(&info->code, PL_TYPE_TAGGED_INTEGER, char);
+      } else
+      { info->size += sizeof(long)/sizeof(word) + 2;
+	val = valBignum(w);
+	addBuffer(&info->code, PL_TYPE_INTEGER, char);
       }
-    case TAG_FLOAT:
+      
+      addUnalignedBuffer(&info->code, val, long);
+      return;
+    }
     case TAG_STRING:
-      *copy = heapIndirect(*term);
-      break;
+    { Word f = addressIndirect(w);
+      int n = wsizeofInd(*f);
+
+      info->size += n+2;
+      addBuffer(&info->code, PL_TYPE_STRING, char);
+      addUnalignedBuffer(&info->code, n, int);
+      addMultipleBuffer(&info->code, f+1, n, word);
+      
+      return;
+    }
+    case TAG_FLOAT:
+    { double val = valReal(w);
+
+      info->size += sizeof(double)/sizeof(word) + 2;
+      addBuffer(&info->code, PL_TYPE_FLOAT, char);
+      addUnalignedBuffer(&info->code, val, double);
+
+      return;
+    }
     case TAG_COMPOUND:
-    { Functor f = valueTerm(*term);
+    { Functor f = valueTerm(w);
+      int arity = arityFunctor(f->definition);
 
-      if ( f->definition == FUNCTOR_var1->functor )
-	*copy = makeRef(result->variables + valInt(f->arguments[0]));
-      else
-      { int arity = arityFunctor(f->definition);
-	Word c = allocHeap((arity+1) * sizeof(word));
-
-	*copy = consPtr(c, TAG_COMPOUND|STG_HEAP);
-	*c++ = f->definition;
-	copy = c;
-	term = f->arguments;
-	for(; --arity > 0; copy++, term++)
-	  copyTermToHeap2(term, result, copy);
-	goto right_recursion;
+      info->size += arity+1;
+      addBuffer(&info->code, PL_TYPE_COMPOUND, char);
+      addUnalignedBuffer(&info->code, f->definition, word);
+      p = f->arguments;
+      for(; --arity > 0; p++)
+      { compile_term_to_heap(p, info);
       }
-      break;
-    } 
+      goto right_recursion;
+    }
     case TAG_REFERENCE:
-      term = unRef(*term);
+      p = unRef(w);
       goto right_recursion;
   }
 }
 
 
+
 Record
-copyTermToHeap(term_t term)
-{ fid_t cid = PL_open_foreign_frame();
-  Record result;
-  int n;
-  Word v;
+compileTermToHeap(term_t t)
+{ compile_info info;
+  Record record;
+  Word *p;
+  int n, size;
 
-  SECURE(checkData(term, FALSE));
-  result = (Record) allocHeap(sizeof(struct record) );
-  result->n_vars = numberVars(term, FUNCTOR_var1, 0);
-  if (result->n_vars > 0)
-    result->variables = allocHeap(sizeof(word)*result->n_vars);
-  for(n=result->n_vars, v=result->variables; n > 0; n--, v++)
-    setVar(*v);
-  copyTermToHeap2(valTermRef(term), result, &result->term);
-  PL_discard_foreign_frame(cid);
-  SECURE(checkData(term, FALSE));
-  SECURE(checkData(&result->term, TRUE));
+  initBuffer(&info.code);
+  initBuffer(&info.vars);
+  info.size = 0;
+  info.nvars = 0;
 
-  return result;
+  compile_term_to_heap(valTermRef(t), &info);
+  n = info.nvars;
+  p = (Word *)info.vars.base;
+  while(--n >= 0)
+    setVar(**p++);
+  discardBuffer(&info.vars);
+  
+  size = SIZERECORD + sizeOfBuffer(&info.code);
+  record = allocHeap(size);
+  record->gsize = info.size;
+  record->nvars = info.nvars;
+  record->size = size;
+  memcpy(record->buffer, info.code.base, sizeOfBuffer(&info.code));
+  discardBuffer(&info.code);
+
+  return record;
 }
 
 
+typedef struct
+{ char *data;
+  Word *vars;
+  Word gstore;
+} copy_info, *CopyInfo;
+
+#define fetchBuf(b, var, type) \
+		do \
+		{ *var = *((type *)(b)->data); \
+		  (b)->data += sizeof(type); \
+		} while(0)
+#define fetchUnalignedBuf(b, var, type) \
+		do \
+		{ memcpy(var, (b)->data, sizeof(type)); \
+		  (b)->data += sizeof(type); \
+		} while(0)
+#define fetchMultipleBuf(b, var, times, type) \
+		do \
+		{ int _n = (times) * sizeof(type); \
+		  memcpy(var, (b)->data, _n); \
+		  (b)->data += _n; \
+		} while(0)
+
+
+#ifndef WORDS_PER_DOUBLE
+#define WORDS_PER_DOUBLE ((sizeof(double)+sizeof(word)-1)/sizeof(word))
+#endif
+
 static void
-copyTermToGlobal2(Word orgvars, term_t *vars, Word term, term_t copy)
-{ if ( isRef(*term) )
-  { int nth = unRef(*term) - orgvars;
+copy_record(Word p, CopyInfo b)
+{ int tag;
 
-    if ( vars[nth] )
-      PL_unify(copy, vars[nth]);
-    else
-    { vars[nth] = PL_new_term_ref();
-      PL_put_term(vars[nth], copy);
+right_recursion:
+  fetchBuf(b, &tag, char);
+  switch(tag)
+  { case PL_TYPE_VARIABLE:
+    { int n;
+
+      fetchUnalignedBuf(b, &n, int);
+      if ( b->vars[n] )
+	*p = makeRef(b->vars[n]);
+      else
+      {	setVar(*p);
+	b->vars[n] = p;
+      }
+      
+      return;
     }
+    case PL_TYPE_ATOM:
+    { atom_t val;
 
-    return;
-  }
+      fetchUnalignedBuf(b, &val, atom_t);
+      *p = val;
 
-  if ( isAtomic(*term) )
-  { term_t c2 = PL_new_term_ref();
+      return;
+    }
+    case PL_TYPE_TAGGED_INTEGER:
+    { long val;
 
-    _PL_copy_atomic(c2, *term);
-    PL_unify(copy, c2);
-  } else				/* term */
-  { FunctorDef fd = functorTerm(*term);
-    int arity = fd->arity;
-    int n;
-    term_t c2 = PL_new_term_ref();
+      fetchUnalignedBuf(b, &val, long);
+      *p = consInt(val);
 
-    PL_unify_functor(copy, fd);
-    term = argTermP(*term, 0);
-    for(n = 0; n < arity; n++, term++)
-    { PL_get_arg(n+1, copy, c2);
-      copyTermToGlobal2(orgvars, vars, term, c2);
+      return;
+    }
+    case PL_TYPE_INTEGER:
+    { long val;
+
+      fetchUnalignedBuf(b, &val, long);
+      *p = consPtr(b->gstore, TAG_INTEGER|STG_GLOBAL);
+      *b->gstore++ = mkIndHdr(1, TAG_INTEGER);
+      *b->gstore++ = val;
+      *b->gstore++ = mkIndHdr(1, TAG_INTEGER);
+
+      return;
+    }
+    case PL_TYPE_FLOAT:
+    { double val;
+
+      fetchUnalignedBuf(b, &val, double);
+      *p = consPtr(b->gstore, TAG_FLOAT|STG_GLOBAL);
+      *b->gstore++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
+      memcpy(b->gstore, &val, WORDS_PER_DOUBLE * sizeof(word));
+      b->gstore += WORDS_PER_DOUBLE;
+      *b->gstore++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
+
+      return;
+    }
+    case PL_TYPE_STRING:
+    { int len;
+
+      fetchUnalignedBuf(b, &len, int);
+      *p = consPtr(b->gstore, TAG_STRING|STG_GLOBAL);
+      *b->gstore++ = mkIndHdr(len, TAG_STRING);
+      memcpy(b->gstore, b->data, len * sizeof(word));
+      b->gstore += len;
+      *b->gstore++ = mkIndHdr(len, TAG_STRING);
+      b->data += len * sizeof(word);
+
+      return;
+    }
+    case PL_TYPE_COMPOUND:
+    { word fdef;
+      int arity;
+
+      fetchUnalignedBuf(b, &fdef, word);
+      arity = arityFunctor(fdef);
+
+      *p = consPtr(b->gstore, TAG_COMPOUND|STG_GLOBAL);
+      *b->gstore++ = fdef;
+      p = b->gstore;
+      b->gstore += arity;
+      for(; --arity > 0; p++)
+	copy_record(p, b);
+      goto right_recursion;
     }
   }
 }
 
 
 void
-copyTermToGlobal(term_t copy, Record term)
-{ term_t *vars;
+copyRecordToGlobal(term_t copy, Record r)
+{ copy_info b;
+  Word *p;
+  int n;
+
+  b.data = r->buffer;
+  b.vars = alloca(sizeof(Word) * r->nvars);
+  for(p = b.vars, n=r->nvars; --n >= 0;)
+    *p++ = 0;
+  b.gstore = allocGlobal(r->gsize);
   
-  if ( term->n_vars > 0 )
-  { int n;
+  copy_record(valTermRef(copy), &b);
+  if ( b.gstore != gTop )
+  { Sdprintf("b.gstore = %p, gTop = %p\n", b.gstore, gTop);
+  }
+}
 
-    vars = alloca(term->n_vars * sizeof(term_t));
-    for(n=0; n<term->n_vars; n++)
-      vars[n] = 0L;			/* special constant? */
-  } else
-    vars = NULL;
+		 /*******************************
+		 *     STRUCTURAL EQUIVALENCE	*
+		 *******************************/
 
-  SECURE(checkData(&term->term, TRUE));
-  PL_put_variable(copy);
-  copyTermToGlobal2(term->variables, vars, &term->term, copy);
-  SECURE(checkData(&copy, FALSE));
+typedef struct
+{ char *data;
+  tmp_buffer vars;
+} se_info, *SeInfo;
+
+
+static int
+se_record(Word p, SeInfo info)
+{ word w;
+  int stag;
+
+right_recursion:
+  fetchBuf(info, &stag, char);
+unref_cont:
+  w = *p;
+
+  switch(tag(w))
+  { case TAG_VAR:
+      if ( stag == PL_TYPE_VARIABLE )
+      { int n = entriesBuffer(&info->vars, Word);
+	int i;
+
+	fetchUnalignedBuf(info, &i, int);
+	if ( i != n )
+	  fail;
+
+	*p = (n<<7)|TAG_ATOM|STG_GLOBAL;
+	addUnalignedBuffer(&info->vars, p, Word);
+	succeed;
+      }
+      fail;
+    case TAG_ATOM:
+      if ( storage(w) == STG_GLOBAL )
+      { if ( stag == PL_TYPE_VARIABLE )
+	{ int n = ((long)(w) >> 7);
+	  int i;
+
+	  fetchUnalignedBuf(info, &i, int);
+	  if ( i == n )
+	    succeed;
+	}
+	fail;
+      } else if ( stag == PL_TYPE_ATOM )
+      { atom_t val;
+
+	fetchUnalignedBuf(info, &val, atom_t);
+	if ( val == w )
+	  succeed;
+      }
+
+      fail;
+    case TAG_INTEGER:
+      if ( isTaggedInt(w) )
+      { if ( stag == PL_TYPE_TAGGED_INTEGER )
+	{ long val = valInt(w);
+	  long v2;
+
+	  fetchUnalignedBuf(info, &v2, long);
+	  if ( v2 == val )
+	    succeed;
+	}
+      } else
+      { if ( stag == PL_TYPE_INTEGER )
+	{ long val = valBignum(w);
+	  long v2;
+
+	  fetchUnalignedBuf(info, &v2, long);
+	  if ( v2 == val )
+	    succeed;
+	}
+      }
+      fail;
+    case TAG_STRING:
+      if ( stag == PL_TYPE_STRING )
+      { int len;
+	char *s1 = valString(w);
+	word m  = *((Word)addressIndirect(w));
+	int wn  = wsizeofInd(m);
+
+	fetchUnalignedBuf(info, &len, int);
+	if ( wn == len && memcmp(s1, info->data, len * sizeof(word)) == 0 )
+	{ info->data += len * sizeof(word);
+	  succeed;
+	}
+      }
+      fail;
+    case TAG_FLOAT:
+      if ( stag == PL_TYPE_FLOAT )
+      { double val = valReal(w);
+	
+	if ( memcmp(&val, info->data, sizeof(double)) == 0 )
+	{ info->data += sizeof(double);
+	  succeed;
+	}
+      }
+
+      fail;
+    case TAG_COMPOUND:
+      if ( stag == PL_TYPE_COMPOUND )
+      { Functor f = valueTerm(w);
+	word fdef;
+
+	fetchUnalignedBuf(info, &fdef, word);
+	if ( fdef == f->definition )
+	{ int arity = arityFunctor(fdef);
+
+	  p = f->arguments;
+	  for(; --arity > 0; p++)
+	  { if ( !se_record(p, info) )
+	      fail;
+	  }
+	  goto right_recursion;
+	}
+      }
+
+      fail;
+    case TAG_REFERENCE:
+      p = unRef(w);
+      goto unref_cont;
+    default:
+      assert(0);
+      fail;
+  }
 }
 
 
-static void
-freeHeapTerm(register Word term)
-{ int arity, n;
-  Word arg;
-  
-  deRef(term);
+int
+structuralEqualArg1OfRecord(term_t t, Record r)
+{ se_info info;
+  int n, rval;
+  Word *p;
 
-  if ( isAtom(*term) || isTaggedInt(*term) )
-    return;
+  initBuffer(&info.vars);
+  info.data = r->buffer + sizeof(char) + sizeof(word);
+					/* skip PL_TYPE_COMPOUND <functor> */
+  rval = se_record(valTermRef(t), &info);
+  n = entriesBuffer(&info.vars, Word);
+  p = (Word *)info.vars.base;
+  while(--n >= 0)
+    setVar(**p++);
+  discardBuffer(&info.vars);
 
-  if (isIndirect(*term))
-  { freeHeapIndirect(*term);
-    return;
-  }
-
-  if (isTerm(*term))
-  { Functor f = (Functor)valPtr(*term);
-
-    arity = arityFunctor(f->definition);
-    arg = f->arguments;
-    for(n = arity; n > 0; n--, arg++)
-      freeHeapTerm(arg);
-
-    freeHeap(f, (arity+1) * sizeof(word));
-  }
+  return rval;
 }
 
 
 bool
 freeRecord(Record record)
 { SECURE(checkData(&record->term, TRUE));
-  freeHeapTerm(&record->term);
-  if (record->n_vars > 0)
-    freeHeap(record->variables, sizeof(word)*record->n_vars);
-  record->list = (RecordList) NULL;
-  freeHeap(record, sizeof(struct record));
+  freeHeap(record, record->size);
 
   succeed;
 }
@@ -250,6 +512,7 @@ unifyKey(term_t key, word val)
   return PL_unify_functor(key, (FunctorDef) val);
 }
 
+
 word
 getKey(term_t key)
 { Word k = valTermRef(key);
@@ -262,6 +525,7 @@ getKey(term_t key)
   else
     return (word)NULL;
 }
+
 
 word
 pl_current_key(term_t k, word h)
@@ -304,7 +568,7 @@ record(term_t key, term_t term, term_t ref, int az)
     return warning("record%c/3: illegal key", az == RECORDA ? 'a' : 'z');
 
   l = lookupRecordList(k);
-  copy = copyTermToHeap(term);
+  copy = compileTermToHeap(term);
   copy->list = l;
 
   TRY(PL_unify_pointer(ref, copy));
@@ -340,6 +604,7 @@ pl_recorded(term_t key, term_t term, term_t ref, word h)
 { RecordList rl;
   Record record;
   word k;
+  term_t copy;
 
   DEBUG(5, Sdprintf("recorded: h=0x%lx, control = %d\n",
 		    h, ForeignControl(h)));
@@ -349,16 +614,11 @@ pl_recorded(term_t key, term_t term, term_t ref, word h)
       if ( PL_get_pointer(ref, (void **)&record) )
       { if ( !isRecord(record) )
 	  return warning("recorded/3: Invalid reference");
-	
-	if ( can_unify(valTermRef(term), &record->term) &&
-	     unifyKey(key, record->list->key) )
-	{ term_t copy = PL_new_term_ref();
-
-	  copyTermToGlobal(copy, record);
-	  return PL_unify(term, copy);
-	} else
-	{ fail;
-	}
+	if ( !unifyKey(key, record->list->key) )
+	  fail;
+	copy = PL_new_term_ref();
+	copyRecordToGlobal(copy, record);
+	return PL_unify(term, copy);
       }
       if ( !(k = getKey(key)) )
 	return warning("recorded/3: illegal key");
@@ -374,23 +634,24 @@ pl_recorded(term_t key, term_t term, term_t ref, word h)
       succeed;
   }
 
+  copy = PL_new_term_ref();
   for( ;record; record = record->next )
-  { if ( can_unify(valTermRef(term), &record->term) &&
-	 PL_unify_pointer(ref, record) )
-    { term_t copy = PL_new_term_ref();
+  { mark m;
 
-      copyTermToGlobal(copy, record);
-      PL_unify(term, copy);
-
-      if ( !record->next )
+    Mark(m);
+    copyRecordToGlobal(copy, record);	/* unifyRecordToGlobal()? */
+    if ( PL_unify(term, copy) && PL_unify_pointer(ref, record) )
+    { if ( !record->next )
 	succeed;
       else
 	ForeignRedoPtr(record->next);
     }
+    Undo(m);
   }
 
   fail;
 }
+
 
 word
 pl_erase(term_t ref)

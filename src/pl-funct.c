@@ -144,7 +144,8 @@ allocFunctorTable()
 
 void
 initFunctors(void)
-{ allocFunctorTable();
+{ initBuffer(&functor_array);
+  allocFunctorTable();
 
   { register FunctorDef f;
     register int v;

@@ -25,6 +25,7 @@ forwards void	usage(void);
 static void	version(void);
 static void	arch(void);
 static void	runtime_vars(void);
+static bool	vsysError(const char *fm, va_list args);
 
 #define	optionString(s) { if (argc > 1) \
 			  { s = argv[1]; argc--; argv++; \
@@ -632,7 +633,7 @@ warning(const char *fm, ...)
 }
 
 
-bool
+static bool
 vsysError(const char *fm, va_list args)
 { Sfprintf(Serror, "[PROLOG INTERNAL ERROR:\n\t");
   Svfprintf(Serror, fm, args);

@@ -276,14 +276,14 @@ static inline word
 makePtr(Word ptr, int tag)
 { int stg;
 
-  if ( onStackArea(trail, ptr) )
-    stg = STG_TRAIL;
+  if ( onStackArea(global, ptr) )
+    stg = STG_GLOBAL;
   else if ( onStackArea(local, ptr) )
     stg = STG_LOCAL;
-  else if ( onStackArea(global, ptr) )
-    stg = STG_GLOBAL;
   else
-    stg = STG_HEAP;
+  { assert(onStackArea(trail, ptr));
+    stg = STG_TRAIL;
+  }
 
   return consPtr(ptr, tag|stg);
 }

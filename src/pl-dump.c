@@ -179,7 +179,7 @@ allocateSection(SaveSection s)
 	(stacks.trail.base    == s->start &&
 	 restoreStack((Stack) &stacks.trail)) ||
 	(stacks.argument.base == s->start &&
-<	 restoreStack((Stack) &stacks.argument)) )
+	 restoreStack((Stack) &stacks.argument)) )
       succeed;
 
     fatalError("Cannot locate stack to restore");
@@ -310,11 +310,6 @@ pl_restore(term_t state)
 { return warning("restore/1: not ported to this machine");
 }
 
-
-word
-saveProgram(term_t new)
-{ return warning("store_program/1: not ported to this machine");
-}
 
 word
 pl_save_program(term_t old, term_t new)

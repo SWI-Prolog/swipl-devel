@@ -496,7 +496,7 @@ global stack and fr is available.
 
 static inline void			/* used by the WAM interpreter */
 TrailLG(Word p, LocalFrame fr)
-{ if ( p >= (Word) lBase )
+{ if ( p >= (Word) lBase )		/* gBase < gTop < lBase  */
   { requireStack(trail, sizeof(struct trail_entry));
     (tTop++)->address = consPtr(p, TAG_TRAILADDR|STG_LOCAL);
   } else if ( p <= valPtr2(fr->mark.globaltop, STG_GLOBAL) )
@@ -506,25 +506,16 @@ TrailLG(Word p, LocalFrame fr)
 }
 
 
-static void
+static inline void
 Trail(Word p, LocalFrame fr)
 { int st;
 
   if ( p >= (Word)lBase )
-  { if ( p <= (Word) lLimit )
-      st = TAG_TRAILADDR|STG_LOCAL;
-    else
-      st = TAG_TRAILADDR|STG_HEAP;
+  { st = TAG_TRAILADDR|STG_LOCAL;
   } else
-  { if ( p <= gLimit )
-    { if ( fr && p > valPtr2(fr->mark.globaltop, STG_GLOBAL) )
-	return;
-      if ( p >= gBase )
-	st = TAG_TRAILADDR|STG_GLOBAL;
-      else
-	st = TAG_TRAILADDR|STG_HEAP;
-    } else
-      st = TAG_TRAILADDR|STG_HEAP;
+  { if ( fr && p > valPtr2(fr->mark.globaltop, STG_GLOBAL) )
+      return;
+    st = TAG_TRAILADDR|STG_GLOBAL;
   }
 
   requireStack(trail, sizeof(struct trail_entry));

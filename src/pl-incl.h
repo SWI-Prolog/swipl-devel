@@ -933,6 +933,7 @@ Structure declarations that must be shared across multiple files.
 
 struct atom
 { Atom		next;		/* next in chain */
+  word		atom;		/* as appearing on the global stack */
 #ifdef O_HASHTERM
   int		hash_value;	/* hash-key value */
 #endif
@@ -1107,13 +1108,13 @@ struct fliFrame
   mark		mark;			/* data-stack mark */
 };
 
-
 struct record
-{ RecordList	list;		/* list I belong to */
-  Record	next;		/* next of chain */
-  word		term;		/* term associated */
-  int		n_vars;		/* number of variables */
-  Word		variables;	/* array of variables */
+{ RecordList	list;			/* list I belong to */
+  Record	next;			/* next of chain */
+  int		nvars;			/* # variables in the term */
+  int		gsize;			/* Stack space required (words) */
+  int		size;			/* # bytes of the record */
+  char 		buffer[1];		/* array holding codes */
 };
 
 struct recordList
@@ -1345,6 +1346,7 @@ GLOBAL struct
 
 GLOBAL char *	hTop;			/* highest allocated heap address */
 GLOBAL char *	hBase;			/* lowest allocated heap address */
+GLOBAL unsigned long heap_base;		/* Rounded base of the heap */
 
 #define SetHTop(val)	{ if ( (char *)(val) > hTop  ) hTop  = (char *)(val); }
 #define SetHBase(val)	{ if ( (char *)(val) < hBase ) hBase = (char *)(val); }
@@ -1559,6 +1561,9 @@ GLOBAL struct debuginfo
   int		suspendTrace;		/* tracing is suspended now */
   LocalFrame	retryFrame;		/* Frame to retry */
 } debugstatus;
+
+#define FT_ATOM		0		/* atom feature */
+#define FT_INTEGER	1		/* integer feature */
 
 #define CHARESCAPE_FEATURE	0x01	/* handle \ in atoms */
 #define GC_FEATURE		0x02	/* do GC */

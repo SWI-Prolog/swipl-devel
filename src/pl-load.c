@@ -34,7 +34,7 @@ getSymbols(void)
 
   loaderstatus.symbolfile = loaderstatus.orgsymbolfile
 			  = lookupAtom(abs_symbols);
-  setFeature(lookupAtom("symbol_file"), loaderstatus.symbolfile);
+  setFeature(lookupAtom("symbol_file"), FT_ATOM, loaderstatus.symbolfile);
 
   succeed;
 }

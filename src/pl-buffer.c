@@ -1,7 +1,6 @@
 /*  $Id$
 
-    Part of XPCE
-    Designed and implemented by Anjo Anjewierden and Jan Wielemaker
+    Designed and implemented by Jan Wielemaker
     E-mail: jan@swi.psy.uva.nl
 
     Copyright (C) 1993 University of Amsterdam. All rights reserved.
@@ -11,16 +10,23 @@
 
 void
 growBuffer(Buffer b, long int minfree)
-{ long sz = b->max - b->base;
+{ long osz = b->max - b->base, sz = osz;
   long top = b->top - b->base;
 
   while( top + minfree > sz )
-  { sz = sz ? 2*sz : 512;
-  }
+    sz *= 2;
 
-  b->base = (b->base ? realloc(b->base, sz) : malloc(sz));
-  if ( !b->base )
-    fatalError("Not enough memory");
+  if ( b->base != b->static_buffer )
+  { b->base = realloc(b->base, sz);
+    if ( !b->base )
+      fatalError("Not enough memory");
+  } else
+  { char *old = b->base;
+    b->base = malloc(sz);
+    if ( !b->base )
+      fatalError("Not enough memory");
+    memcpy(b->base, old, osz);
+  }
 
   b->top = b->base + top;
   b->max = b->base + sz;
