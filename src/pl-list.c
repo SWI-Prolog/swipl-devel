@@ -96,15 +96,21 @@ list_to_sorted_array(term_t List, int *size ARG_LD)
   term_t rval;
   term_t list = PL_copy_term_ref(List);
   term_t head = PL_new_term_ref();
+  long minfree;
   int i;
 
   if ( n < 0 )
     fail;				/* not a proper list */
 
+  minfree = (long)sizeof(word)*n;
 					/* Won't work anyhow */
-  if ( spaceStack(local) < (long)sizeof(word)*n )
+  if ( spaceStack(local) < minfree )
   { outOfStack((Stack)&LD->stacks.local, STACK_OVERFLOW_RAISE);
     fail;
+  }
+					/* grow stack if needed */
+  if ( roomStack(local) < minfree )
+  { growStacks(NULL, NULL, NULL, minfree, FALSE, FALSE);
   }
 
   rval = PL_new_term_refs(n);

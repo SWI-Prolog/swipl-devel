@@ -2100,11 +2100,14 @@ update_stacks(LocalFrame frame, Choice choice, Code PC,
 
 
 static long
-nextStackSize(Stack s)
+nextStackSize(Stack s, long minfree)
 { GET_LD
   long size  = diffPointers(s->max, s->base);
-  long grow  = ROUND(size/2, 8192);
   long limit = diffPointers(s->limit, s->base);
+  long grow;
+
+  grow = ((minfree+8192) > size/2 ? minfree+8192 : size/2);
+  grow = ROUND(grow, 8192);
 
   if ( size + grow > limit )
   { if ( size + grow > (limit*3)/2 )
@@ -2130,7 +2133,7 @@ Entry point from interpret()
 #define GL_SEPARATION sizeof(word)
 
 int
-growStacks(LocalFrame fr, Choice ch, Code PC, int l, int g, int t)
+growStacks(LocalFrame fr, Choice ch, Code PC, long l, long g, long t)
 { GET_LD
   
   if ( !fr )
@@ -2173,7 +2176,7 @@ growStacks(LocalFrame fr, Choice ch, Code PC, int l, int g, int t)
     SECURE(key = checkStacks(fr, ch));
 
     if ( t )
-    { tsize = nextStackSize((Stack) &LD->stacks.trail);
+    { tsize = nextStackSize((Stack) &LD->stacks.trail, t);
       tb = xrealloc(tb, tsize);
       shift_status.trail_shifts++;
     }
@@ -2183,11 +2186,11 @@ growStacks(LocalFrame fr, Choice ch, Code PC, int l, int g, int t)
       assert(lb == addPointer(gb, loffset));	
 
       if ( g )
-      { gsize = nextStackSize((Stack) &LD->stacks.global);
+      { gsize = nextStackSize((Stack) &LD->stacks.global, g);
 	shift_status.global_shifts++;
       }
       if ( l )
-      { lsize = nextStackSize((Stack) &LD->stacks.local);
+      { lsize = nextStackSize((Stack) &LD->stacks.local, l);
 	shift_status.local_shifts++;
       }
 

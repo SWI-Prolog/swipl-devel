@@ -393,7 +393,7 @@ void		blockGC(ARG1_LD);
 void		unblockGC(ARG1_LD);
 Word		findGRef(int n);
 int		growStacks(LocalFrame fr, Choice ch, Code PC,
-			   int l, int g, int t);
+			   long lminfree, long gminfree, long tminfree);
 void		clearUninitialisedVarsFrame(LocalFrame, Code);
 word		check_foreign(void);	/* O_SECURE stuff */
 void		markAtomsOnStacks(PL_local_data_t *ld);

@@ -7,6 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Call stack-shifter when low on stack in built-in sort/1.
+    Only applies to systems where mmap() doesn't work or isn't detected
+    properly. Richard O'Keefe.  
+
   * FIXED: Bug#29: PLWIN.EXE console scrinks one row each invocation.
     Holger Kanwischer.
 
