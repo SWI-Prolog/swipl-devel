@@ -1097,6 +1097,9 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   }
   fr->backtrackFrame = (LocalFrame) NULL;
   fr->predicate = def;
+#ifdef O_LOGICAL_UPDATE
+  fr->generation = GD->generation;
+#endif
   Mark(fr->mark);
   environment_frame = fr;
 
@@ -3237,6 +3240,9 @@ Note: we are working above `lTop' here!
       }
 #endif
 
+#ifdef O_LOGICAL_UPDATE
+	FR->generation     = GD->generation;
+#endif
 	incLevel(FR);
 #ifdef O_DEBUGGER
       retry_continue:
@@ -3266,18 +3272,23 @@ Note: we are working above `lTop' here!
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Undefined   predicate detection and   handling.  trapUndefined() takes
-care of  linking from the  public  modules  or  calling  the exception
-handler.
+Undefined predicate detection and handling.   trapUndefined() takes care
+of linking from the public modules or calling the exception handler.
 
-Note that DEF->definition is  a  union  of  the clause  or C-function.
+Note that DEF->definition is  a  union   of  the  clause  or C-function.
 Testing is suffices to find out that the predicate is defined.
+
+Logical-update: note that trapUndefined() may add  clauses and we should
+be able to access these!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 	if ( !DEF->definition.clauses && false(DEF, PROC_DEFINED) )	
 	{ lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
 
 	  FR->predicate = DEF = trapUndefined(DEF);
+#ifdef O_LOGICAL_UPDATE
+	  FR->generation = GD->generation;
+#endif
 
 	  if ( !DEF->definition.clauses &&
 	       false(DEF, PROC_DEFINED) &&
@@ -3393,7 +3404,7 @@ values found in the clause,  give  a   reference  to  the clause and set
 	DEBUG(9, Sdprintf("Searching clause ... "));
 
 	lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
-	if ( !(CL = firstClause(ARGP, DEF, &deterministic)) )
+	if ( !(CL = firstClause(ARGP, FR, DEF, &deterministic)) )
 	{ DEBUG(9, Sdprintf("No clause matching index.\n"));
 	  FRAME_FAILED;
 	}
@@ -3672,7 +3683,7 @@ resume_frame:
   ARGP = argFrameP(FR, 0);
   Undo(FR->mark);			/* backtrack before clause indexing */
 
-  if ( !(CL = findClause(CL, ARGP, DEF, &deterministic)) )
+  if ( !(CL = findClause(CL, ARGP, FR, DEF, &deterministic)) )
     goto frame_failed;
 
   if ( deterministic )

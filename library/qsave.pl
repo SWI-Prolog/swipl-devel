@@ -183,8 +183,7 @@ save_resource(RC, Name, Class, _) :-
 	$rc_handle(SystemRC),
 	copy_resource(SystemRC, RC, Name, Class), !.
 save_resource(_, Name, Class, FileSpec) :-
-	$warning('Could not find resource ~w/~w on ~w or system resources',
-		 [Name, Class, FileSpec]).
+	print_message(error, no_resource(Name, Class, FileSpec)).
 
 copy_resources(ToRC) :-
 	$rc_handle(FromRC),
@@ -557,3 +556,12 @@ check_type(ground, V) :-
 check_type(bool, true).
 check_type(bool, false).
 	
+		 /*******************************
+		 *	      MESSAGES		*
+		 *******************************/
+
+:- multifile prolog:message/3.
+
+message(no_resource(Name, Class, File)) -->
+	[ 'Could not find resource ~w/~w on ~w or system resources'-
+	  [Name, Class, File] ].

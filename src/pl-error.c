@@ -140,6 +140,20 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
 		      PL_TERM, pred);
       break;
     }
+    case ERR_PERMISSION_PROC:
+    { atom_t op = va_arg(args, atom_t);
+      atom_t type = va_arg(args, atom_t);
+      Definition def = va_arg(args, Definition);
+      term_t pred = PL_new_term_ref();
+
+      unify_definition(pred, def, 0, GP_NAMEARITY);
+      PL_unify_term(formal,
+		    PL_FUNCTOR, FUNCTOR_permission_error3,
+		    PL_ATOM, op,
+		    PL_ATOM, type,
+		    PL_TERM, pred);
+      break;
+    }
     case ERR_FAILED:
     { Procedure proc = va_arg(args, Procedure);
       term_t pred = PL_new_term_ref();
@@ -258,7 +272,7 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
     { atom_t what = va_arg(args, atom_t);
 
       PL_unify_term(formal,
-		    PL_FUNCTOR, FUNCTOR_not_implemented_error1,
+		    PL_FUNCTOR, FUNCTOR_resource_error1,
 		      PL_ATOM, what);
       break;
     }
@@ -381,4 +395,26 @@ tostr(char *buf, const char *fmt, ...)
   va_end(args);
   
   return buf;
+}
+
+
+		 /*******************************
+		 *	PRINTING MESSAGES	*
+		 *******************************/
+
+void
+printMessage(atom_t severity, ...)
+{ fid_t fid = PL_open_foreign_frame();
+  term_t av = PL_new_term_refs(2);
+  predicate_t pred = PL_predicate("print_message", 2, "user");
+  va_list args;
+
+  va_start(args, severity);
+  PL_put_atom(av+0, severity);
+  PL_unify_termv(av+1, args);
+  va_end(args);
+
+  PL_call_predicate(NULL, PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION, pred, av);
+  
+  PL_discard_foreign_frame(fid);
 }

@@ -14,7 +14,6 @@
 	, $compile/0 			% `-c' toplevel
 	, $welcome/0			% banner
 	, prolog/0 			% user toplevel predicate
-	, time/1			% time query
 	, $set_prompt/1			% set the main prompt
 	, at_initialization/1		% goals to run at initialization
 	, (initialization)/1		% initialization goal (directive)
@@ -29,15 +28,7 @@
 	loaded_init_file/1.		% already loaded init files
 
 $welcome :-
-	current_prolog_flag(version, Version),
-	Major is Version // 10000,
-	Minor is (Version // 100) mod 100,
-	Patch is Version mod 100,
-	$ttyformat('Welcome to SWI-Prolog (Version ~w.~w.~w)~n',
-		   [Major, Minor, Patch]),
-	$ttyformat('Copyright (c) 1993-1999 University of Amsterdam.  '),
-	$ttyformat('All rights reserved.~n~n'),
-	$ttyformat('For help, use ?- help(Topic). or ?- apropos(Word).~n~n').
+	print_message(help, welcome).
 
 $load_init_file(none) :- !.
 $load_init_file(Base) :-
@@ -97,7 +88,7 @@ $run_at_initialization :-
 	    (   catch(Goal, E,
 		      print_message(error, initialization_exception(Goal, E)))
 	    ->  fail
-	    ;   $warning('at_initialization goal ~p failed~n', [Goal]),
+	    ;   print_message(warning, goal_failed(at_initialization, Goal)),
 		fail
 	    )
 	;   true
@@ -125,8 +116,7 @@ $set_file_search_paths :-
 	    ->	reverse(Aliases, Aliases1),
 	        forall(member(Alias, Aliases1),
 		       asserta(user:file_search_path(Name, Alias)))
-	    ;	$warning('-p: failed to parse ~w', [Path]),
-	        nodebug
+	    ;   print_message(error, commandline_arg_type(p, Path))
 	    )
 	->  true
 	),
@@ -221,24 +211,22 @@ $abort :-
 	flag($break_level, _, 0), 
 	flag($compilation_level, _, 0),
 	$calleventhook(abort),
-	$ttyformat('~nExecution Aborted~n~n'),
+	print_message(informational, '$aborted'),
 	$toplevel.
 
 $break :-
-	flag($break_level, Old, Old), 
-	succ(Old, New), 
-	flag($break_level, _, New), 
-	$ttyformat('Break Level [~d]~n', [New]),
+	flag($break_level, Old, Old+1), 
+	flag($break_level, New, New), 
+	print_message(informational, break(enter(New))),
 	$runtoplevel,
-	$calleventhook(exit_break(New)),
-	$ttyformat('[exit break level ~d]~n', [New]),
+	print_message(informational, break(exit(New))),
 	flag($break_level, _, Old), !.
 
 :- $hide($toplevel, 0).			% avoid in the GUI stacktrace
 
 $toplevel :-
 	$runtoplevel,
-	$ttyformat('[halt]~n', []).		
+	print_message(informational, halt).
 
 $runtoplevel :-
 	$option(toplevel, TopLevelAtom, TopLevelAtom), 
@@ -387,24 +375,21 @@ convert_to([S|T], [S|R]) :-
 
 $execute(Var, _) :-
 	var(Var), !,
-	$ttyformat('... 1,000,000 ............ 10,000,000 years later~n~n'),
-	$ttyformat('~t~8|>> 42 << (last release gives the question)~n'),
+	print_message(informational, var_query(Var)),
 	fail.
-$execute(end_of_file, _) :-
- 	$ttyformat('~N'), !.
+$execute(end_of_file, _) :- !.
 $execute(Goal, Bindings) :-
 	$module(TypeIn, TypeIn), 
 	TypeIn:$dwim_correct_goal(Goal, Bindings, Corrected), !, 
 	$execute_goal(Corrected, Bindings).
 $execute(_, _) :-
 	notrace, 
-	$ttyformat('~nNo~n'),
+	print_message(query, query(no)),
 	fail.
 
 $execute_goal(trace, []) :-
 	trace, 
-	$ttyformat('~n'),
-	$write_bindings([]), !, 
+	print_message(query, query(yes)), !,
 	fail.
 $execute_goal(Goal, Bindings) :-
 	$module(TypeIn, TypeIn), 
@@ -414,17 +399,14 @@ $execute_goal(Goal, Bindings) :-
 	(   TypeIn:$user_query(Qid, Bindings),
 	    flush,
 	    call_expand_answer(Bindings, NewBindings),
-	    $ttyformat('~n'),
-	    (	$write_bindings(NewBindings)
+	    (	write_bindings(NewBindings)
 	    ->	!,
 	        notrace,
-		$calleventhook(finished_query(Qid, true)),
 		erase(Ref),
 		fail
 	    )
 	;   notrace, 
-	    $ttyformat('~nNo~n'),
-	    $calleventhook(finished_query(Qid, false)),
+	    print_message(query, query(no)),
 	    erase(Ref),
 	    fail
 	).
@@ -433,38 +415,21 @@ $set_user_goal_attributes(TypeIn) :-
 	TypeIn:(($hide($user_query, 2),
 		 $show_childs($user_query, 2))).
 
-$write_bindings([]) :- !, 
-	$ttyformat('Yes~n').
-$write_bindings(Bindings) :-
+write_bindings([]) :- !, 
+	print_message(query, query(yes)).
+write_bindings(Bindings) :-
 	repeat,
-	    $output_bindings(Bindings),
+	    print_message(query, query(yes, Bindings)),
 	    get_respons(Action),
 	(   Action == redo
 	->  !, fail
 	;   Action == show_again
 	->  fail
-	;   !, format(user_output, '~n~nYes~n', [])
+	;   !,
+	    print_message(query, query(yes))
 	).
 
 :- flag($toplevel_print_predicate, _, print).
-
-$output_bindings([]) :- !,
-	$ttyformat('Yes~n').
-$output_bindings([Name = Var]) :- !,
-	$output_binding(Name, Var),
-	write(user_output, ' '),
-	ttyflush.
-$output_bindings([Name = Var|Rest]) :-
-	$output_binding(Name, Var),
-	nl(user_output),
-	$output_bindings(Rest).
-
-$output_binding(Name, Var) :-
-	write(user_output, Name),
-	write(user_output, ' = '),
-	flag($toplevel_print_predicate, Pred, Pred),
-	Goal =.. [Pred, user_output, Var],
-	Goal.
 
 get_respons(Action) :-
 	repeat,
@@ -472,77 +437,39 @@ get_respons(Action) :-
 	    get_single_char(Char),
 	    answer_respons(Char, Action),
 	    (   Action == again
-	    ->  $ttyformat('Action? '),
+	    ->  print_message(query, query(action)),
 		fail
 	    ;   !
 	    ).
 
 answer_respons(Char, again) :-
 	memberchk(Char, "?h"), !,
-	show_toplevel_usage.
+	print_message(help, query(help)).
 answer_respons(Char, redo) :-
 	memberchk(Char, ";nrNR"), !,
-	$format_if_tty(';~n').
+	print_message(query, if_tty(';')).
 answer_respons(Char, redo) :-
 	memberchk(Char, "tT"), !,
 	trace,
-	$format_if_tty('; [trace]~n').
+	print_message(query, if_tty('; [trace]')).
 answer_respons(Char, continue) :-
 	memberchk(Char, [0'c, 0'a, 0' , 10, 13, 0'y, 0'Y]), !.
 answer_respons(0'b, show_again) :- !,
 	break.
 answer_respons(Char, show_again) :-
-	print_predicate(Char, Pred), !,
-	$format_if_tty('~w~n', [Pred]),
-	flag($toplevel_print_predicate, _, Pred).
+	print_predicate(Char, Pred, Format), !,
+	print_message(query, if_tty(Pred)),
+	set_prolog_flag(answer_format, Format).
 answer_respons(-1, show_again) :- !,
-	$format_if_tty('EOF: exit~n'),
+	print_message(query, halt('EOF')),
 	halt(0).
-answer_respons(_, again) :-
-	$ttyformat('~nUnknown action (h for help)~nAction? '),
-	ttyflush.
+answer_respons(Char, again) :-
+	print_message(query, no_action(Char)).
 
-print_predicate(0'd, display).
-print_predicate(0'w, write).
-print_predicate(0'p, print).
-
-show_toplevel_usage :-
-	$ttyformat('~nActions:~n'),
-	$ttyformat('; (n, r):     redo    t:                 trace & redo~n'),
-	$ttyformat('b:            break   c (a, RET, space): continue~n'),
-	$ttyformat('d:            display p                  print~n'),
-	$ttyformat('w:            write   h (?):             help~n').
-
-$format_if_tty(Fmt) :-
-	$format_if_tty(Fmt, []).
-$format_if_tty(Fmt, Args) :-
-	current_prolog_flag(tty_control, true), !,
-	$ttyformat(Fmt, Args).
-$format_if_tty(_, _).
-
-:- module_transparent
-	time/1, 
-	$time_call/2.
-
-time(Goal) :-
-	statistics(cputime, OldTime), 
-	statistics(inferences, OldInferences), 
-	$time_call(Goal, Result), 
-	statistics(inferences, NewInferences), 
-	statistics(cputime, NewTime), 
-	UsedTime is NewTime - OldTime, 
-	UsedInf  is NewInferences - OldInferences, 
-	(   UsedTime =:= 0
-	->  Lips = 'Infinite'
-	;   Lips is integer(UsedInf / UsedTime)
-	), 
-	$ttyformat('~D inferences in ~2f seconds (~w Lips)~n',
-			[UsedInf, UsedTime, Lips]),
-	Result == yes.
-
-$time_call(Goal, yes) :-
-	Goal, !.
-$time_call(_Goal, no).
+print_predicate(0'd, [quoted], '~q').
+print_predicate(0'q, [quoted], '~q').
+print_predicate(0'w, [write],  '~w').
+print_predicate(0'p, [print],  '~p').
 
 
 		 /*******************************

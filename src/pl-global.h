@@ -65,6 +65,10 @@ typedef struct
   int		debug_level;		/* Maintenance debugging: 0..9 */
   void *	resourceDB;		/* program resource database */
 
+#ifdef O_LOGICAL_UPDATE
+  unsigned long generation;		/* generation of the database */
+#endif
+
   struct
   { int		argc;			/* main(int argc, char **argv) */
     char **	argv;

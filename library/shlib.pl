@@ -87,8 +87,7 @@ load_foreign_library(LibFile, Module, DefEntry) :-
 	    )
 	->  assert_shlib(LibFile, Entry, Path, Module, Handle),
 	    clean_fpublic
-	;   '$warning'('~w: failed to call entry point ~w',
-		       [LibFile, DefEntry]),
+	;   print_message(error, shlib(LibFile, call_entry(DefEntry))),
 	    close_shared_object(Handle),
 	    fail
 	).
@@ -145,8 +144,7 @@ reload_foreign_libraries :-
 	forall(retract(current_library(File, Entry, _, Module, _, _)),
 	       (   load_foreign_library(File, Module, Entry)
 	       ->  true
-	       ;   '$warning'('reload_foreign_libraries/0: failed to load ~w',
-		   	      [File])
+	       ;   print_message(shlib(File, load_failed))
 	       )).
 
 
@@ -167,3 +165,16 @@ unload_all_foreign_libraries :-
 unload_all_foreign_libraries :-
 	forall(current_foreign_library(File, _),
 	       unload_foreign_library(File)).
+
+
+		 /*******************************
+		 *	      MESSAGES		*
+		 *******************************/
+
+:- multifile
+	prolog:message/3.
+
+prolog:message(shlib(LibFile, call_entry(DefEntry))) -->
+	[ '~w: Failed to call entry-point ~w'-[LibFile, DefEntry] ].
+prolog:message(shlib(LibFile, load_failed)) -->
+	[ '~w: Failed to load file'-[LibFile] ].

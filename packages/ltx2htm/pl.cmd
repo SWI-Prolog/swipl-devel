@@ -10,6 +10,7 @@
 \cfunction{-}{-}{+}=item	1 0
 \cmacro{-}{-}{+}=item		1 0
 \fmtchar{+}=item		1 0
+\prologflagitem{-}{-}{-}=item	1 0
 \predref{+}{-}
 \functor{+}{-}
 \compound{+}{+}
@@ -43,6 +44,7 @@
 \url[+]{-}
 \email[+]{-}
 \const{+}
+\except{+}
 \module{+}
 \infixterm{+}{+}{+}
 \fmtseq{-}
@@ -169,6 +171,10 @@
 \Spercent
 \Shash
 
+% These are hacks to get the index right
+
+\+
+\=
 
 
 % HTML

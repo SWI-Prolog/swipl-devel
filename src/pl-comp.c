@@ -1387,8 +1387,8 @@ care of reconsult, redefinition, etc.
 
     if ( def->module != mhead )
     { if ( true(def->module, SYSTEM) )
-        warning("Attempt to redefine a system predicate: %s", 
-		procedureName(proc));
+	PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+		 ATOM_redefine, PL_new_atom("built_in_procedure"), def);
       else
 	warning("%s/%d already imported from module %s", 
 		stringAtom(def->functor->name), 
@@ -1420,8 +1420,8 @@ mode, the predicate is still undefined and is not dynamic or multifile.
   /* assert[az]/1 */
 
   if ( def->module != mhead && false(def, DYNAMIC) )
-  { warning("Attempt to redefine an imported predicate %s", 
-			      procedureName(proc) );
+  { PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+	     ATOM_modify, PL_new_atom("static_procedure"), def);
     freeClause(clause);
     return (Clause) NULL;
   }
@@ -2207,7 +2207,8 @@ unify_functor(term_t t, functor_t fd, int how)
 int
 unify_definition(term_t head, Definition def, term_t thehead, int how)
 { if ( PL_is_variable(head) )
-  { if ( def->module == MODULE_user )
+  { if ( def->module == MODULE_user ||
+	 ((how&GP_HIDESYSTEM) && true(def->module, SYSTEM)) )
     { unify_functor(head, def->functor->functor, how);
       if ( thehead )
 	PL_put_term(thehead, head);
@@ -2322,7 +2323,7 @@ pl_clause4(term_t p, term_t term, term_t ref, term_t bindings, word h)
   for(; cref; cref = cref->next)
   { bool det;
 
-    if ( !(cref = findClause(cref, argv, def, &det)) )
+    if ( !(cref = findClause(cref, argv, environment_frame, def, &det)) )
     { leaveDefinition(def);
       fail;
     }
@@ -2363,6 +2364,9 @@ pl_nth_clause(term_t p, term_t n, term_t ref, word h)
   Procedure proc;
   Definition def;
   Cref cr;
+#ifdef O_LOGICAL_UPDATE
+  unsigned long generation = environment_frame->generation;
+#endif
 
   if ( ForeignControl(h) == FRG_CUTTED )
   { cr = ForeignContextPtr(h);
@@ -2376,11 +2380,12 @@ pl_nth_clause(term_t p, term_t n, term_t ref, word h)
   { int i;
 
     if (!inCore(clause) || !isClause(clause))
-      return warning("nth_clause/3: Invalid integer reference");
+      return PL_error(NULL, 0, "Invalid integer reference", ERR_DOMAIN,
+		      ATOM_clause_reference, ref);
 	
     proc = clause->procedure;
     def  = proc->definition;
-    for( cref = def->definition.clauses, i=1; cref; cref = cref->next, i++)
+    for( cref = def->definition.clauses, i=1; cref; cref = cref->next)
     { if ( cref->clause == clause )
       { if ( !PL_unify_integer(n, i) ||
 	     !unify_definition(p, def, 0, 0) )
@@ -2388,6 +2393,8 @@ pl_nth_clause(term_t p, term_t n, term_t ref, word h)
 
 	succeed;
       }
+      if ( visibleClause(cref->clause, generation) )
+	i++;
     }
 
     fail;
@@ -2402,7 +2409,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, word h)
 
     def = proc->definition;
     cref = def->definition.clauses;
-    while ( cref && true(cref->clause, ERASED) )
+    while ( cref && !visibleClause(cref->clause, generation) )
       cref = cref->next;
     
     if ( !cref )
@@ -2414,7 +2421,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, word h)
       while(i > 0 && cref)
       { do
 	{ cref = cref->next;
-	} while ( cref && true(cref->clause, ERASED) );
+	} while ( cref && !visibleClause(cref->clause, generation) );
 
 	i--;
       }
@@ -2436,7 +2443,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, word h)
   PL_unify_pointer(ref, cr->clause->clause);
 
   cref = cr->clause->next;
-  while ( cref && true(cref->clause, ERASED) )
+  while ( cref && !visibleClause(cref->clause, generation) )
     cref = cref->next;
 
   if ( cref )

@@ -1550,7 +1550,9 @@ garbageCollect(LocalFrame fr)
   gc_status.active = TRUE;
   finish_foreign_frame();
   if ( verbose )
-    Sfprintf(Suser_error, "%% GC ... ");
+    printMessage(ATOM_informational,
+		 PL_FUNCTOR_CHARS, "gc", 1,
+		   PL_CHARS, "start");
 #ifdef O_PROFILE
   PROCEDURE_garbage_collect0->definition->profile_calls++;
 #endif
@@ -1617,12 +1619,16 @@ garbageCollect(LocalFrame fr)
 	   Sdprintf("(OK) "));
 
   if ( verbose )
-  { Sfprintf(Suser_error,
-	     "(gained %ld+%ld in %.2f sec; used: %d+%d; free: %d+%d)\n",
-	     ggar, tgar, t,
-	     usedStack(global), usedStack(trail),
-	     roomStack(global), roomStack(trail));
-  }
+    printMessage(ATOM_informational,
+		 PL_FUNCTOR_CHARS, "gc", 1,
+		   PL_FUNCTOR_CHARS, "done", 7,
+		     PL_INTEGER, ggar,
+		     PL_INTEGER, tgar,
+		     PL_FLOAT, t,
+		     PL_INTEGER, usedStack(global),
+		     PL_INTEGER, usedStack(trail),
+		     PL_INTEGER, roomStack(global),
+		     PL_INTEGER, roomStack(trail));
 }
 
 word

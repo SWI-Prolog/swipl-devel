@@ -58,7 +58,7 @@ pushd(N) :-
 	(   nth1(N, Ds, Go),
 	    retract(stack(Go))
 	->  pushd(Go)
-	;   warning('Directory stack not that deep'),
+	;   warning('Directory stack not that deep', []),
 	    fail
 	).
 pushd(Dir) :-
@@ -71,7 +71,7 @@ popd :-
 	retract(stack(Dir)), !,
 	chdir(Dir).
 popd :-
-	warning('Directory stack empty'),
+	warning('Directory stack empty', []),
 	fail.
 
 dirs :-
@@ -127,7 +127,7 @@ ls_(Files) :-
 	ls__(Files).
 
 ls__([]) :- !,
-	warning('No Match'),
+	warning('No Match', []),
 	fail.
 ls__(Files) :-
 	maplist(tag_file, Files, Tagged),
@@ -211,8 +211,5 @@ longest([_|T], S, M) :-
 
 %	warning(Fmt, [Args]).
 
-warning(Fmt) :-
-	warning(Fmt, []).
-
 warning(Fmt, Args) :-
-	'$break'('$warning'(Fmt, Args)).
+	print_message(warning, format(Fmt, Args)).

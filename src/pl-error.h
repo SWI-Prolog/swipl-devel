@@ -35,5 +35,6 @@
 #define ERR_SIGNALLED	       25	/* int sig, char *name */
 #define ERR_CLOSED_STREAM      26	/* IOSTREAM * */
 #define ERR_BUSY	       27	/* mutexes */
+#define ERR_PERMISSION_PROC    28	/* op, type, Definition */
 
 #define MSG_ERRNO		((char *)(-1))

@@ -20,7 +20,7 @@
 
 :- (   current_prolog_flag(dde, true)
    ->  true
-   ;   '$warning'('Module "library(progman)" requires DDE support')
+   ;   print_message(error, missing_feature('DDE'))
    ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -101,13 +101,20 @@ progman_make_item(Group, Title, CmdLine, Dir, Icon) :-
 program_group(Default, Group) :-
 	progman_groups(Existing),
 	memberchk(Default, Existing), !,
-	(   '$confirm'('Put (replace) items in existing group ~w', [Default])
+	(   '$confirm'(progman_replace(Default))
 	->  Group = Default
 	;   format('Enter new group name: '),
 	    read_line(NewDef),
 	    program_group(NewDef, Group)
 	).
 program_group(Default, Default).
+
+:- multifile
+	prolog:message/3.
+
+prolog:message(progman_replace(Default)) -->
+	[ 'Put (replace) items in existing group ~w? '-[Default], flush ].
+
 
 		 /*******************************
 		 *	       INSTALL		*

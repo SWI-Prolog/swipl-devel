@@ -145,6 +145,8 @@ statistics(local_stack, [InUse, Free]) :- !,
 	Free is Limit - InUse.
 statistics(trail, [InUse]) :- !,
 	system:statistics(trailused, InUse).
+statistics(Key, Value) :-
+	system:statistics(Key, Value).
 
 
 		/********************************

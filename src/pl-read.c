@@ -1960,6 +1960,7 @@ static const opt_spec read_term_options[] =
   { ATOM_subterm_positions, OPT_TERM },
   { ATOM_character_escapes, OPT_BOOL },
   { ATOM_double_quotes,	    OPT_ATOM },
+  { ATOM_module,	    OPT_ATOM },
   { NULL_ATOM,	     	    0 }
 };
 
@@ -1972,6 +1973,7 @@ pl_read_term3(term_t from, term_t term, term_t options)
   IOSTREAM *s;
   bool charescapes = -1;
   atom_t dq = NULL_ATOM;
+  atom_t mname = NULL_ATOM;
 
   if ( !getInputStream(from, &s) )
     fail;
@@ -1983,10 +1985,16 @@ pl_read_term3(term_t from, term_t term, term_t options)
 		     &tpos,
 		     &rd.subtpos,
 		     &charescapes,
-		     &dq) )
+		     &dq,
+		     &mname) )
   { PL_release_stream(s);
     fail;
   }
+
+  if ( mname )
+  { rd.module = lookupModule(mname);
+    rd.flags  = rd.module->flags;
+  } 
 
   if ( charescapes != -1 )
   { if ( charescapes )

@@ -32,7 +32,7 @@ an editor.
 
 edit(Spec) :-
 	var(Spec), !,
-	'$warning'('Edit what?', []).
+	throw(error(instantiation_error, _)).
 edit(Spec) :-
 	findall(Location-FullSpec,
 		locate(Spec, FullSpec, Location),
@@ -121,7 +121,9 @@ do_edit_source(Location) :-
 	edit_source(Location), !.
 do_edit_source(Location) :-
 	external_edit_command(Location, Command),
-	shell(Command),
+	catch(shell(Command), E,
+	      (print_message(warning, E),
+	       fail)),
 	make.
 
 external_edit_command(Location, Command) :-
@@ -223,16 +225,16 @@ merge_specs(source_file(Path), _, source_file(Path)).
 %	select_location(+Pairs, +UserSpec, -Location)
 
 select_location([], Spec, _) :- !,
-	print_message(error, edit(not_found(Spec))),
+	print_message(warning, edit(not_found(Spec))),
 	fail.
 select_location([Location-_Spec], _, Location) :- !.
 %select_location(Pairs, _, Location) :-
 %	length(Pairs, N),
 %	N > 20, !,
 select_location(Pairs, _, Location) :-
-	print_message(info, edit(select)),
+	print_message(help, edit(select)),
 	list_pairs(Pairs, 1),
-	print_message(info, edit(prompt_select)),
+	print_message(help, edit(prompt_select)),
 	read_number(N),
 	nth1(N, Pairs, Location-_Spec), !.
 
@@ -243,7 +245,7 @@ list_pairs([H|T], N) :-
 	list_pairs(T, NN).
 
 list_pair(Pair, N) :-
-	print_message(info, edit(target(Pair, N))).
+	print_message(help, edit(target(Pair, N))).
 
 	
 read_number(X) :-
@@ -272,15 +274,14 @@ read_line(C, [C|T]) :-
 prolog:message(edit(not_found(Spec))) -->
 	[ 'Cannot find anything to edit from "~p"'-[Spec] ].
 prolog:message(edit(select)) -->
-	[ 'Please select item to edit:~n~n' ].
+	[ 'Please select item to edit:', nl, nl ].
 prolog:message(edit(prompt_select)) -->
-	[ '~nYour choice? ' ].
+	[ nl, 'Your choice? ', flush ].
 prolog:message(edit(target(Location-Spec, N))) -->
 	[ '~t~d~3| '-[N]],
 	edit_specifier(Spec),
 	[ '~t~32|' ],
-	edit_location(Location),
-	[ '~n' ].
+	edit_location(Location).
 
 edit_specifier(Module:Name/Arity) -->
 	[ '~w:~w/~w'-[Module, Name, Arity] ].

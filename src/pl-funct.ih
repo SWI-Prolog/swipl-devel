@@ -132,3 +132,4 @@
 #define FUNCTOR_dstream1     MK_FUNCTOR(131, 1)
 #define FUNCTOR_dmutex1      MK_FUNCTOR(132, 1)
 #define FUNCTOR_busy2        MK_FUNCTOR(133, 2)
+#define FUNCTOR_message_lines1 MK_FUNCTOR(134, 1)

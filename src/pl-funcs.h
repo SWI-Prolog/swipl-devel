@@ -129,8 +129,8 @@ word		parseSaveProgramOptions(term_t args,
 int		cardinalityPattern(unsigned long pattern);
 void		getIndex(Word argv, unsigned long pattern, int card,
 			 struct index *);
-ClauseRef	findClause(ClauseRef cl,
-			   Word argv, Definition def, bool *deterministic);
+ClauseRef	findClause(ClauseRef cl, Word argv,
+			   LocalFrame fr, Definition def, bool *deterministic);
 bool		reindexClause(Clause clause);
 bool		unify_index_pattern(Procedure proc, term_t value);
 bool		hashDefinition(Definition def, int buckets);
@@ -153,6 +153,7 @@ void		initBuildIns(void);
 int		PL_error(const char *pred, int arity, const char *msg,
 			 int id, ...);
 char *		tostr(char *buf, const char *fmt, ...);
+void		printMessage(atom_t severity, ...);
 
 /* pl-file.c */
 void		initIO(void);
@@ -273,6 +274,7 @@ void		initialiseForeign(int argc, char **argv);
 char *		buffer_string(const char *s, int flags);
 atom_t		codeToAtom(int code);
 extern record_t PL_duplicate_record(record_t r);
+int		PL_unify_termv(term_t t, va_list args);
 
 /* pl-fmt.c */
 word		pl_format_predicate(term_t chr, term_t descr);

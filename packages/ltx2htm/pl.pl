@@ -19,6 +19,14 @@
 #(defitem(Label),	[html('<P>'), html('<DT>'), Label, html('<DD>')]).
 
 		 /*******************************
+		 *	    INDEX HACK		*
+		 *******************************/
+
+cmd(+, index, nospace('\+')).
+cmd(=, index, nospace('\=')).
+
+
+		 /*******************************
 		 *	     COMMANDS		*
 		 *******************************/
 
@@ -43,6 +51,7 @@ cmd(jargon(		{A1}), #em(+A1)).
 cmd(chr(		{A1}), #code(+A1)).
 cmd(const(		{A1}), #code(+A1)).
 cmd(module(		{A1}), #code(+A1)).
+cmd(except(		{A1}), #code(+A1)).
 cmd(op(			{A1}), #strong(+A1)).
 cmd(cmdlineoption(	{A1}), #strong(+A1)).
 cmd(longoption(	   {A1},{[]}), [#strong([nospace(--), +A1])]).
@@ -61,8 +70,9 @@ cmd(argoption({RawName}, {ArgName}),
     [ #strong(Name), ' ', #var(ArgName)
     ]) :-
 	clean_tt(RawName, Name).
-cmd(predref({RawName}, {Arity}), #lref(Text, Text)) :-
+cmd(predref({RawName}, {Arity}), #lref(RefName, Text)) :-
 	clean_name(RawName, Name),
+	predicate_refname(Name, Arity, RefName),
 	sformat(Text, '~w/~w', [Name, Arity]).
 cmd(functor({RawName}, {Arity}), Text) :-
 	clean_name(RawName, Name),
@@ -127,6 +137,12 @@ cmd(infixop({RawName}, {Arg1}, {Arg2}),
 cmd(termitem({Name}, {[]}), #defitem(#strong(+Name))).
 cmd(termitem({Name}, {Arg}),
     #defitem([#strong(+Name), #embrace(#var(+Arg))])).
+cmd(prologflagitem({Name}, {Type}, {Access}),
+    #defitem([#strong(Name), #embrace([#var(Type)|Change])])) :-
+	(   Access == r
+	->  Change = []
+	;   Change = nospace(', changeable')
+	).
 cmd(fmtchar({Name}), #defitem(#code(+Name))).
 cmd(optionval({Value}), #defitem(#strong(+Value))).
 cmd(cmdlineoptionitem(M, {Option}, {Arg}),
@@ -151,7 +167,7 @@ cmd(pleaseoption({Name}, {Type}, {Default}),
 	     ])).
 cmd(featureoption({Name}, {Type}),
     #defitem([#strong(Name), ' ', #embrace(#var(Type))])).
-cmd(escapeitem({Name}), #defitem(#code([nospace('\'), +Name]))).
+cmd(escapeitem({Name}), #defitem(#code([nospace('\\'), +Name]))).
 cmd(ttdef({Def}), #defitem(#code(+Def))).
 cmd(predicatesummary({RawName}, {Arity}, {Summary}),
     #row([#predref(Name, Arity), +Summary])) :-
@@ -181,59 +197,60 @@ cmd(Cmd, HTML) :-
 	special(Cmd, Atom),
 	HTML = #code(Atom).
 
+
 special('Sexe', '#!').
-special('Scut', '!').
-special('Scomma', ',').
-special('Sifthen', '->').
-special('Ssoftcut', '*->').
+special('Scut', !).
+special('Scomma',  (,)).
+special('Sifthen',  (->)).
+special('Ssoftcut',  (*->)).
 special('Sdot', '.').
-special('Ssemicolon', ';').
-special('Slt', '<').
-special('Seq', '=').
-special('Suniv', '=..').
-special('Saeq', '=:=').
-special('Sle', '=<').
-special('Sequal', '==').
-special('Sstructeq', '=@=').
-special('Sstructneq', '\=@=').
-special('Sane', '=\=').
-special('Sgt', '>').
-special('Sge', '>=').
-special('Stlt', '@<').
-special('Stle', '@=<').
-special('Stgt', '@>').
-special('Stge', '@>=').
-special('Snot', '\+').
-special('Sne', '\=').
-special('Snequal', '\==').
-special('Shat', '^').
-special('Sbar', '|').
-special('Stimes', '*').
-special('Spow', '**').
-special('Splus', '+').
-special('Sminus', '-').
-special('Sdiv', '/').
-special('Sidiv', '//').
-special('Sand', '/\').
-special('Slshift', '<<').
-special('Srshift', '>>').
-special('Sneg', '\').
-special('Sesc', '\').
-special('Sor', '\/').
-special('Sdollar', '$').
-special('Squest', '?').
-special('Smodule', ':').
-special('Sneck', ':-').
-special('Sdirective', '?-').
-special('Sdcg', '-->').
-special('Bc', '\c').
-special('Bn', '\n').
-special('Br', '\r').
-special('Bl', '\l').
-special('BB', '\\').
-special('Stilde', '~').
+special('Ssemicolon',  (;)).
+special('Slt', <).
+special('Seq', =).
+special('Suniv', =..).
+special('Saeq', =:=).
+special('Sle', =<).
+special('Sequal', ==).
+special('Sstructeq', =@=).
+special('Sstructneq', \=@=).
+special('Sane', =\=).
+special('Sgt', >).
+special('Sge', >=).
+special('Stlt', @<).
+special('Stle', @=<).
+special('Stgt', @>).
+special('Stge', @>=).
+special('Snot', \+).
+special('Sne', \=).
+special('Snequal', \==).
+special('Shat', ^).
+special('Sbar',  ('|')).
+special('Stimes', *).
+special('Spow', **).
+special('Splus', +).
+special('Sminus', -).
+special('Sdiv', /).
+special('Sidiv', //).
+special('Sand', /\).
+special('Slshift', <<).
+special('Srshift', >>).
+special('Sneg', \).
+special('Sesc', \).
+special('Sor', \/).
+special('Sdollar', $).
+special('Squest', ?).
+special('Smodule', :).
+special('Sneck',  (:-)).
+special('Sdirective',  (?-)).
+special('Sdcg',  (-->)).
+special('Bc', '\\c').
+special('Bn', '\\n').
+special('Br', '\\r').
+special('Bl', '\\l').
+special('BB', \\).
+special('Stilde', ~).
 special('Spercent', '%').
-special('Shash', '#').
+special('Shash', #).
 
 clean_name([\Special], Out) :-
 	special(Special, Out), !.

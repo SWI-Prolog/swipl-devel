@@ -1959,9 +1959,7 @@ PopTty(IOSTREAM *s, ttybuf *buf)
 #else /*HAVE_SGTTYB*/
 
 bool
-PushTty(IOSTREAM *s, buf, mode)
-ttybuf *buf;
-int mode;
+PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 { buf->mode = ttymode;
   ttymode = mode;
 
@@ -1970,8 +1968,7 @@ int mode;
 
 
 bool
-PopTty(IOSTREAM *s, buf)
-ttybuf *buf;
+PopTty(IOSTREAM *s, ttybuf *buf)
 { ttymode = buf->mode;
   if ( ttymode != TTY_RAW )
     LD->prompt.next = TRUE;

@@ -76,6 +76,9 @@ handy for it someone wants to add a data type to the system.
       compiled Prolog  code  rather than the  virtual-machine numbers.
       This speeds-up  the vm  instruction dispatching in  interpret().
       See also pl-comp.c
+  O_LOGICAL_UPDATE
+      Use `logical' update-view for dynamic predicates rather then the
+      `immediate' update-view of older Prolog systems.
   O_PLMT
       Include support for multi-threaded Prolog application.  Currently
       very incomplete and only for the POSIX thread library.
@@ -96,6 +99,7 @@ handy for it someone wants to add a data type to the system.
 #define O_HASHTERM		1
 #define O_LIMIT_DEPTH		1
 #define O_SAFE_SIGNALS		1
+#define O_LOGICAL_UPDATE	1
 
 #ifndef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
 #ifdef __i386__
@@ -770,6 +774,7 @@ typedef struct
 
 #define GP_HOW_MASK	0x0ff
 #define GP_NAMEARITY	0x100		/* or'ed mask */
+#define GP_HIDESYSTEM	0x200		/* hide system module */
 
 		 /*******************************
 		 *	      FLAGS		*
@@ -863,6 +868,11 @@ Handling environment (or local stack) frames.
 				      (f)->predicate->functor->arity : \
 				      (f)->clause->clause->prolog_vars)
 #define contextModule(f)	((f)->context)
+#ifdef O_LOGICAL_UPDATE
+#define generationFrame(f)	((f)->generation)
+#else
+#define generationFrame(f)	(0)
+#endif
 
 #define enterDefinition(def)	{ PL_LOCK(L_MISC); \
 				  def->references++; \
@@ -972,10 +982,26 @@ struct functorDef
 		/* INLINE_F	   Inlined foreign (system) predicate */
 };
 
+
+#ifdef O_LOGICAL_UPDATE
+#define visibleClause(cl, gen) \
+	((cl)->generation.created <= (gen) && \
+	 (cl)->generation.erased   > (gen))
+#else
+#define visibleClause(cl, gen) false(cl, ERASED)
+#endif
+
+
 struct clause
 { Procedure	procedure;	/* procedure we belong to */
   Code		codes;		/* byte codes of clause */
   struct index	index;		/* index key of clause */
+#ifdef O_LOGICAL_UPDATE
+  struct
+  { unsigned long created;	/* Generation that created me */
+    unsigned long erased;	/* Generation I was erased */
+  } generation;
+#endif /*O_LOGICAL_UPDATE*/
   short		code_size;	/* size of byte code array */
   short		variables;		/* # of variables for frame */
   short		prolog_vars;		/* # real Prolog variables */
@@ -1080,7 +1106,7 @@ struct definition
 		/*	NEEDSREHASH	   Hash-table is out-of-date */
 		/*	P_VARARG	   Foreign called using t0, ac, ctx */
   unsigned	indexCardinality : 8;	/* cardinality of index pattern */
-  short		number_of_clauses;	/* number of associated clauses */
+  unsigned	number_of_clauses : 24;	/* number of associated clauses */
 };
 
 struct localFrame
@@ -1091,6 +1117,9 @@ struct localFrame
   Definition	predicate;	/* Predicate we are running */
   mark		mark;		/* data backtrack mark */
   Module	context;	/* context module of frame */
+#ifdef O_LOGICAL_UPDATE
+  unsigned long generation;	/* generation of the database */
+#endif
   unsigned long flags;		/* packet long holding: */
 		/*	LEVEL	   recursion level (28 bits) */
 		/*	FR_CUT     has frame been cut ? */

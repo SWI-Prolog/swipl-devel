@@ -1,8 +1,24 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: errorneous `redefined' messages.
+
+  * MODIFIED: Implemented `logical update-view' for dynamic predicates!
+
+  * MOVED: time/1 and profile/3 and friends is now in library(statistics)
+    rather then built-in.
+
+  * DELETED: qload/1.  Just load the .qlf-file will do the same.  
+
+  * ADDED: message_hook/3 hook into print_message/2.  print_message_lines/3
+    (All Quintus/SICStus compatible).  This mechanism is now used for all
+    errors and warnings and for a growing number of system messages.
+    
+    exception/3 using `warning' has been deleted.  Use message_hook/3 to
+    hook into printing messages.
+
   * FIXED: handling mmap() based stacks and shared object interface for
-    HP/UX (hppa1.1-hpux10.20).  Tested build using bash, HPUX make
+    HP/UX (hppa1.1-hpux10.20).  Tested build using bash, HP/UX make
     and gcc-2.8.1.  With thanks to Gertjan van Noord for providing
     access to their machine.
 

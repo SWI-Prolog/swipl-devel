@@ -264,11 +264,12 @@ $undefined_procedure(Module, Name, Arity, retry) :-
 	$find_library(Module, Name, Arity, LoadModule, Library),
 	functor(Head, Name, Arity),
 	flag($autoloading, Old, Old+1),
+	print_message(silent, autoload(Module:Name/Arity, Library)),
 	(   Module == LoadModule
-	->  ignore(ensure_loaded(Library))
+	->  ensure_loaded(Module:Library)
 	;   (   $c_current_predicate(_, LoadModule:Head)
 	    ->	Module:import(LoadModule:Head)
-	    ;	ignore(Module:use_module(Library, [Name/Arity]))
+	    ;	use_module(Module:Library, [Name/Arity])
 	    )
 	),
 	flag($autoloading, _, Old),
@@ -288,105 +289,26 @@ $calleventhook(Term) :-
 		*        SYSTEM MESSAGES        *
 		*********************************/
 
-%	$ttyformat(+Format, [+ArgList])
-%	Format on the user stream.  Used to print system messages.
-
-$ttyformat(Format) :-
-	$ttyformat(Format, []).
-$ttyformat(Format, Args) :-
-	format(user_error, Format, Args).
-
-%	$confirm(Format, Args)
+%	$confirm(Spec)
 %
-%	Ask the user to confirm a question.
+%	Ask the user to confirm a question.  Spec is a term as used for
+%	print_message/2.
 
-$confirm(Format, Args) :-
-	$ttyformat(Format, Args),
-	$ttyformat('? '),
+$confirm(Spec) :-
+	print_message(query, Spec),
 	between(0, 5, _),
-	    (   get_single_char(Answer),
-		memberchk(Answer, [0'y, 0'Y, 0'j, 0'J, 0'n, 0'N, 0' ,10])
-	    ->  !, $confirm_(Answer)
-	    ;   $ttyformat('Please answer ''y'' or ''n''~n'),
+	    get_single_char(Answer),
+	    (	memberchk(Answer, "yYjJ \n")
+	    ->	!,
+	        print_message(query, if_tty(yes))
+	    ;	memberchk(Answer, "nN")
+	    ->	!,
+	        print_message(query, if_tty(no)),
+		fail
+	    ;	print_message(help, query(confirm)),
 		fail
 	    ).
-
-$confirm_(Answer) :-
-	memberchk(Answer, [0'y, 0'Y, 0'j, 0'J, 0' ,10]), !,
-	(   current_prolog_flag(tty_control, true)
-	->  $ttyformat('yes~n')
-	;   true
-	).
-$confirm_(_) :-
-	current_prolog_flag(tty_control, true),
-	$ttyformat('no~n'),
-	fail.
-
-%	$warning(+Format, [+ArgList])
-%	Format a standard warning to the user and start the tracer.
-
-$warning(Format) :-
-	$warning(Format, []).
-$warning(Format, Args) :-
-	source_location(File, Line), !,
-	(   current_prolog_flag(report_error, true)
-	->  sformat(Msg, Format, Args),
-	    (   user:exception(warning, warning(File, Line, Msg), _)
-	    ->  true
-	    ;   format(user_error, '[WARNING: (~w:~d)~n~t~8|~w]~n',
-		       [File, Line, Msg])
-	    )
-	;   true
-	).
-$warning(Format, Args) :-
-	(   current_prolog_flag(report_error, true)
-	->  format(user_error, '[WARNING: ', []), 
-	    format(user_error, Format, Args), 
-	    format(user_error, ']~n', [])
-	;   true
-	),
-	(   current_prolog_flag(debug_on_error, true)
-	->  trace
-	;   true
-	).
-
-
-%	$warn_undefined(+Goal, +Dwims)
-%	Tell the user that the predicate implied by `Goal' does not exists,
-%	If there are alternatives (DWIM) tell the user about them.
-
-:- module_transparent
-	$warn_undefined/2,
-	$write_alternatives/1,
-	$predicate_name/2.
-
-$warn_undefined(Goal, Dwims) :-
-	$predicate_name(Goal, Name),
-	$ttyformat('[WARNING: Undefined predicate: `~w''', [Name]),
-	(   Dwims == []
-	;   $ttyformat('~nHowever there are definitions for:'), 
-	    $write_alternatives(Dwims)
-	), !,
-	$ttyformat(']~n').
-
-$write_alternatives([]) :- !.
-$write_alternatives([Dwim|Rest]) :-
-	$predicate_name(Dwim, Name), 
-	$ttyformat('~n~t~8|~w', [Name]), 
-	$write_alternatives(Rest).
-
-%	$predicate_name(+Head, -String)
-%	Convert `Head' into a predicate name.
-
-$predicate_name(Goal, String) :-
-	$strip_module(Goal, Module, Head), 
-	functor(Head, Name, Arity), 
-	(   memberchk(Module, [user, system])
-	->  sformat(String, '~w/~w',	[Name, Arity])
-	;   sformat(String, '~w:~w/~w',	[Module, Name, Arity])
-	).
-
-
+	    
 :- dynamic
 	user:portray/1.
 :- multifile
@@ -647,15 +569,16 @@ $open_source(File, Goal) :-
 	    $open_source_call(File, Goal, True),
 	    seen, see(Old), !,
 	    True == yes
-	;   $warning('Illegal preprocessor specification: `~w''', [Pre]),
-	    fail
+	;   throw(error(domain_error(preprocessor, Pre), _))
 	).
 
 
 $open_source_call(File, Goal, Status) :-
 	flag($compilation_level, Level, Level+1),
 	ignore(user:$start_compilation(File, Level)),
-	(   Goal
+	(   catch(Goal, E,
+		  (print_message(error, E),
+		   fail))
 	->  Status = yes
 	;   Status = no
 	),
@@ -823,56 +746,53 @@ $load_file(Spec, Options) :-
 		)
 	    )
 	;   $qlf_file(FullFile, Absolute),
-	    $calleventhook(load_file(Absolute, start)),
-	    (   $consult_goal(Absolute, Goal),
-		call(Goal, Absolute, Module, Import, IsModule, Action, LM)
-	    ->  true
-	    ;   $warning('Failed to load file: ~w', Spec),
-		$calleventhook(load_file(Absolute, false)),
-		fail
-	    ),
-	    $calleventhook(load_file(Absolute, true)),
 
+	    flag($compilation_level, Level, Level),
 	    (   Silent == false,
 		(   flag($autoloading, 0, 0)
 		;   current_prolog_flag(verbose_autoload, true)
 		)
-	    ->  statistics(heapused, Heap),
-		statistics(cputime, Time),
-		HeapUsed is Heap - OldHeap,
-		TimeUsed is Time - OldTime,
-		$confirm_file(File, Absolute, ConfirmFile),
-		$confirm_module(LM, ConfirmModule),
+	    ->	MessageLevel = informational
+	    ;	MessageLevel = silent
+	    ),
 
-		$ttyformat('~N~w ~w~w, ~2f sec, ~D bytes.~n',
-			   [ConfirmFile, Action, ConfirmModule,
-			    TimeUsed, HeapUsed])
-	    ;   true
-	    )
+	    $print_message(silent /*MessageLevel*/,
+			   load_file(start(Level,
+					   file(File, Absolute)))),
+	    (   $consult_goal(Absolute, Goal),
+		call(Goal, Absolute, Module, Import, IsModule, Action, LM)
+	    ->  true
+	    ;   print_message(error, load_file(failed(Spec))),
+		fail
+	    ),
+
+	    statistics(heapused, Heap),
+	    statistics(cputime, Time),
+	    HeapUsed is Heap - OldHeap,
+	    TimeUsed is Time - OldTime,
+
+	    $print_message(MessageLevel,
+			   load_file(done(Level,
+					  file(File, Absolute),
+					  Action,
+					  LM,
+					  TimeUsed,
+					  HeapUsed)))
 	),
 	flag($load_silent, _, DefSilent).
 
 
-$confirm_file(library(_), Absolute, Absolute) :- !.
-$confirm_file(File, _, File).
-
-$confirm_module(user, '') :- !.
-$confirm_module(Module, Message) :-
-	atom(Module), !,
-	atom_concat(' into ', Module, Message).
-$confirm_module(_, '').
+$print_message(Level, Term) :-
+	$current_module('$messages', _), !,
+	print_message(Level, Term).
+$print_message(_Level, _Term) :-
+	true.
 
 $read_clause(Clause) :-				% get the first non-syntax
 	repeat,					% error
-	catch(read_clause(Clause), E, $compile_syntax_error(E)), !.
+	catch(read_clause(Clause), E, $print_message_fail(E)), !.
 
-$compile_syntax_error(E) :-
-	E = error(_, file(File, Line)),
-	'$messages':message_to_string(E, Str),
-	user:exception(warning,
-		       warning(File, Line, Str), _), !,
-	fail.
-$compile_syntax_error(E) :-
+$print_message_fail(E) :-
 	print_message(error, E),
 	fail.
 
@@ -937,8 +857,7 @@ $load_file((?- module(Module, Public)), File, Import, _, Module) :- !,
 $load_file((:- module(Module, Public)), File, Import, _, Module) :- !,
 	$load_module(Module, Public, Import, File).
 $load_file(_, File, _, true, _) :- !,
-	$warning('use_module: ~w is not a module file', [File]),
-	fail.
+	throw(error(domain_error(module_file, File), _)).
 $load_file(end_of_file, _, _, _, Module) :- !,		% empty file
 	$set_source_module(Module, Module).
 $load_file(FirstClause, File, _, false, Module) :- !,
@@ -956,9 +875,7 @@ $reserved_module(user).
 
 $load_module(Reserved, _, _, _) :-
 	$reserved_module(Reserved), !,
-	$warning('Cannot load into module "~w": reserved module name',
-		 [Reserved]),
-	fail.
+	throw(error(permission_error(load, module, Reserved), _)).
 $load_module(Module, Public, Import, File) :-
 	$set_source_module(OldModule, OldModule),
 	$declare_module(Module, File),
@@ -993,14 +910,12 @@ $import_all([Head|Rest], Context, Source) :-
 
 
 $export_list(_, []) :- !.
-$export_list(Module, [Name/Arity|Rest]) :- !,
-	functor(Term, Name, Arity),
+$export_list(Module, [Name/Arity|Rest]) :-
+	functor(Term, Name, Arity), !,
 	export(Module:Term),
 	$export_list(Module, Rest).
-$export_list(Module, [Term|Rest]) :-
-	$warning('Illegal predicate specification in public list: `~w''',
-		 [Term]),
-	$export_list(Module, Rest).
+$export_list(_Module, [Term|_Rest]) :-
+	throw(error(type_error(predicate_indicator, Term), _)).
 
 $consult_clause(Clause, File) :-
 	expand_term(Clause, Expanded),
@@ -1029,7 +944,7 @@ $execute_directive2(Goal) :-
 	catch(Module:Goal, Term, $exception_in_directive(Term)), !.
 $execute_directive2(Goal) :-
 	$set_source_module(Module, Module),
-	print_message(warning, directive_failed(Module:Goal)),
+	print_message(warning, goal_failed(directive, Module:Goal)),
 	fail.
 
 $exception_in_directive(Term) :-
@@ -1050,8 +965,7 @@ $add_directive_wic2(Goal, Type) :-
 $add_directive_wic2(Goal, _) :-
 	(   flag($compiling, qlf, qlf)	% no problem for qlf files
 	->  true
-	;   $warning('Cannot compile mixed loading/calling directives: ~w',
-		     [Goal])
+	;   print_message(error, mixed_directive(Goal))
 	).
 	
 $common_goal_type((A,B), Type) :- !,
@@ -1107,12 +1021,17 @@ $store_clause((:- Goal), _) :- !,
 $store_clause((?- Goal), _) :- !,
 	$execute_directive(Goal).
 $store_clause((_, _), _) :- !,
-	$warning('Full stop in clause body? (attempt to define ,/2)').
+	print_message(error, cannot_redefine_comma),
+	fail.
 $store_clause($source_location(File, Line):Term, _) :- !,
-	$record_clause(Term, File:Line, Ref),
+	catch($record_clause(Term, File:Line, Ref),
+	      E,
+	      $print_message_fail(E)),
         $ifcompiling($qlf_assert_clause(Ref, development)).
 $store_clause(Term, File) :-
-	$record_clause(Term, File, Ref),
+	catch($record_clause(Term, File, Ref),
+	      E,
+	      $print_message_fail(E)),
         $ifcompiling($qlf_assert_clause(Ref, development)).
 
 		 /*******************************

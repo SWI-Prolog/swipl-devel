@@ -318,10 +318,14 @@ start_thread(void *closure)
 word
 pl_thread_create(term_t goal, term_t id, term_t options)
 { PL_thread_info_t *info = alloc_thread();
-  PL_local_data_t *ldnew = info->thread_data;
+  PL_local_data_t *ldnew;
   atom_t alias = NULL_ATOM;
   pthread_attr_t attr;
 
+  if ( !info )
+    return PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_threads);
+
+  ldnew = info->thread_data;
 
   if ( !scan_options(options, 0,
 		     ATOM_thread_option, make_thread_options,

@@ -73,23 +73,31 @@ $define_predicate(Term) :-
 		********************************/
 
 $update_library_index :-
-	absolute_file_name(library('INDEX'),
-			   [ file_errors(fail),
-			     solutions(all),
-			     access(write),
-			     access(read),
-			     file_type(prolog)
-			   ], IndexFile),
-	file_directory_name(IndexFile, Dir),
-	update_library_index(Dir),
-	fail.
-$update_library_index.
+	findall(Dir, indexed_directory(Dir), Dirs),
+	update_indices(Dirs, false, Modified),
+	(   Modified == true
+	->  clear_library_index
+	;   true
+	).
 
-update_library_index(Dir) :-
-	user:prolog_file_type(Ext, prolog),
-	concat_atom([Dir, '/INDEX.', Ext], IndexFile),
-	access_file(IndexFile, write),
-	make_library_index(Dir).
+indexed_directory(Dir) :-
+	index_file_name(IndexFile, [access(read), access(write)]),
+	file_directory_name(IndexFile, Dir).
+
+update_indices([], M, M).
+update_indices([Dir|T], M0, M) :-
+	make_library_index2(Dir, M1),
+	add_modified(M0, M1, M2),
+	update_indices(T, M2, M).
+
+add_modified(true, _, true) :- !.
+add_modified(_, true, true) :- !.
+add_modified(_,	_,    false).
+
+%	clear_library_index/0
+%
+%	Remove all entries from the index.  First reference will reload
+%	the index.
 
 clear_library_index :-
 	retractall(library_index(_, _, _)).
@@ -101,35 +109,36 @@ clear_library_index :-
 load_library_index :-
 	library_index(_, _, _), !.		% loaded
 load_library_index :-
+	findall(Index, index_file_name(Index, [access(read)]), Indices),
+	forall(member(Index, Indices),
+	       read_index(Index)).
+	
+index_file_name(IndexFile, Options) :-
 	absolute_file_name(library('INDEX'),
 			   [ file_type(prolog),
-			     access(read),
 			     solutions(all),
 			     file_errors(fail)
-			   ], Index),
-	    file_directory_name(Index, Dir),
-	    read_index(Index, Dir),
-	fail.
-load_library_index.
-	
-read_index(Index, Dir) :-
+			   | Options
+			   ], IndexFile).
+
+read_index(Index) :-
+	print_message(silent, autoload(read_index(Dir))),
+	file_directory_name(Index, Dir),
 	seeing(Old), see(Index),
 	repeat,
 	    read(Term),
-	    (   Term == end_of_file
-	    ->  !
-	    ;   assert_index(Term, Dir),
-	        fail
-	    ),
+	    assert_index(Term, Dir), !,
 	seen, see(Old).
 
+assert_index(end_of_file, _) :- !.
 assert_index(index(Name, Arity, Module, File), Dir) :- !,
 	functor(Head, Name, Arity),
 	concat_atom([Dir, '/', File], Path),
-	assertz(library_index(Head, Module, Path)).
+	assertz(library_index(Head, Module, Path)),
+	fail.
 assert_index(Term, Dir) :-
-	$warning('Illegal term in INDEX file of directory ~w: ~w',
-		 [Dir, Term]).
+	print_message(error, illegal_autoload_index(Dir, Term)),
+	fail.
 	
 
 		/********************************
@@ -137,10 +146,16 @@ assert_index(Term, Dir) :-
 		********************************/
 
 make_library_index(Dir) :-
+	make_library_index2(Dir, _).
+
+make_library_index(Dir, Pattern) :-
+	make_library_index2(Dir, Pattern, _).
+
+make_library_index2(Dir, Modified) :-
 	findall(Pattern, source_file_pattern(Pattern), PatternList),
-	make_library_index(Dir, PatternList).
+	make_library_index2(Dir, PatternList, Modified).
 	
-make_library_index(Dir, Patterns) :-
+make_library_index2(Dir, Patterns, Modified) :-
 	once(user:prolog_file_type(PlExt, prolog)),
 	file_name_extension('INDEX', PlExt, Index),
 	concat_atom([Dir, '/', Index], AbsIndex),
@@ -149,14 +164,14 @@ make_library_index(Dir, Patterns) :-
 	chdir(Dir),
 	expand_index_file_patterns(Patterns, Files),
 	(   library_index_out_of_date(Index, Files)
-	->  format('Making library index for ~w ... ', Dir), flush,
+	->  print_message(informational, make(library_index(Dir))),
 	    do_make_library_index(Index, Files),
-	    format('ok~n')
-	;   true
+	    Modified = true
+	;   Modified = false
 	),
 	chdir(OldDir).
-make_library_index(Dir, _) :-
-	$warning('make_library_index/1: Cannot write ~w', [Dir]).
+make_library_index(Dir, _, _) :-
+	throw(error(permission_error(write, index_file, Dir), _)).
 
 source_file_pattern(Pattern) :-
 	user:prolog_file_type(PlExt, prolog),

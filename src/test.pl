@@ -277,6 +277,39 @@ proc(recorda-1) :-
 	\+ (recorded(bla,S),
 	    S=sign(_,(B,B),_)).
 
+		 /*******************************
+		 *	    UPDATE-VIEW		*
+		 *******************************/
+
+:- dynamic
+	a/1.
+
+update(assert-1) :-
+	retractall(a(_)),
+	\+ ( assert(a(1)),
+	     assert(a(2)),
+	     a(X),
+	     assert(a(3)),
+	     X = 3
+	   ).
+update(retract-1) :-
+	retractall(a(_)),
+	(   assert(a(1)),
+	    assert(a(2)),
+	    retract(a(_)),
+	    assert(a(3)),
+	    fail
+	;   findall(X, a(X), Xs),
+	    Xs = [3,3]
+	).
+update(retract-2) :-
+	retractall(a(_)),
+	assert(a(1)),
+	assert(a(2)),
+	a(X),
+	ignore(retract(a(2))),
+	X = 2.
+
 
 		 /*******************************
 		 *	       CONTROL		*
@@ -431,6 +464,7 @@ testset(list).
 testset(sets).
 testset(atom_handling).
 testset(proc).
+testset(update).
 testset(gc).
 testset(floatconv).
 testset(control).

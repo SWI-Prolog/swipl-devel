@@ -52,13 +52,13 @@ iswhite(int chr)
 
 
 static int
-iscsym(int chr)
+fiscsym(int chr)
 { return isalnum(chr) || chr == '_';
 }
 
 
 static int
-iscsymf(int chr)
+fiscsymf(int chr)
 { return isalpha(chr) || chr == '_';
 }
 
@@ -171,8 +171,8 @@ mkfunction(isspace)
 const static char_type char_types[] =
 { { ATOM_alnum,		fisalnum },
   { ATOM_alpha,		fisalpha },
-  { ATOM_csym,		iscsym },
-  { ATOM_csymf,		iscsymf },
+  { ATOM_csym,		fiscsym },
+  { ATOM_csymf,		fiscsymf },
   { ATOM_ascii,		fisascii },
   { ATOM_white,		iswhite },
   { ATOM_cntrl,		fiscntrl },

@@ -133,7 +133,8 @@ trace(Pred, Ports) :-
 	(   member(Head, Preds),
 		$define_predicate(Head),
 	        $trace(Ports, Head),
-	        show_trace_point(Head),
+	        trace_ports(Head, Tracing),
+	        print_message(informational, trace(Head, Tracing)),
 	    fail
 	;   true
 	).
@@ -182,8 +183,7 @@ spy(Spec) :-
 	member(Head, Preds),
 	    $define_predicate(Head),
 	    $spy(Head),
-	    $predicate_name(Head, Name),
-	    $ttyformat('Spy point on ~w~n', [Name]),
+	    print_message(informational, spy(Head)),
 	fail.
 spy(_).
 
@@ -195,60 +195,43 @@ nospy(Spec) :-
 	$find_predicate(Spec, Preds),
 	member(Head, Preds),
 	    $nospy(Head),
-	    $predicate_name(Head, Name),
-	    $ttyformat('Spy point removed from ~w~n', [Name]),
+	    print_message(informational, nospy(Head)),
 	fail.
 nospy(_).
 
 nospyall :-
-	current_predicate(_, Module:Head),
-	    $nospy(Module:Head),
+	spy_point(Head),
+	    $nospy(Head),
+	    print_message(informational, nospy(Head)),
 	fail.
 nospyall.
 
 debugging :-
 	$debugging, !,
-	format('Debug mode is on; spy points (see spy/1) on:~n'),
-	$show_spy_points,
-	format('Trace points (see trace/1) on:~n'),
-	show_trace_points.
-
+	print_message(informational, debugging(on)),
+	findall(H, spy_point(H), SpyPoints),
+	print_message(informational, spying(SpyPoints)),
+	findall(trace(H,P), trace_point(H,P), TracePoints),
+	print_message(informational, tracing(TracePoints)).
 debugging :-
-	format('Debug mode is off~n').
+	print_message(informational, debugging(off)).
 
-$show_spy_points :-
+spy_point(Module:Head) :-
 	current_predicate(_, Module:Head),
 	$get_predicate_attribute(Module:Head, spy, 1),
-	\+ predicate_property(Module:Head, imported_from(_)),
-	$predicate_name(Module:Head, Name),
-	format('~t~8|~w~n', [Name]),
-	fail.
-$show_spy_points.
+	\+ predicate_property(Module:Head, imported_from(_)).
 
-show_trace_points :-
+trace_point(Module:Head, Ports) :-
 	current_predicate(_, Module:Head),
-	$get_predicate_attribute(Module:Head, trace_any, 1),
-	\+ predicate_property(Module:Head, imported_from(_)),
-	show_trace_point(Module:Head),
-	fail.
-show_trace_points.
+	    $get_predicate_attribute(Module:Head, trace_any, 1),
+	    \+ predicate_property(Module:Head, imported_from(_)),
+	    trace_ports(Module:Head, Ports).
 
-:- module_transparent
-	show_trace_point/1,
-	show_trace_ports/1.
-
-show_trace_point(Head) :-
-	$predicate_name(Head, Name),
-	format('~t~8|~w:', [Name]),
-	show_trace_ports(Head),
-	nl.
-
-show_trace_ports(Head) :-
-	trace_alias(Port, [AttName]),
-	$get_predicate_attribute(Head, AttName, 1),
-	format(' ~w', [Port]),
-	fail.
-show_trace_ports(_).
+trace_ports(Head, Ports) :-
+	findall(Port,
+		(trace_alias(Port, [AttName]),
+		 $get_predicate_attribute(Head, AttName, 1)),
+		Ports).
 
 
 		/********************************
@@ -494,9 +477,9 @@ require([N/A|T]) :- !,
 	functor(Head, N, A),
 	$require(Head),
 	require(T).
-require([H|T]) :-
-	$warning('require/1: Illegal predicate specifier: ~w', [H]),
-	require(T).
+require([H|_T]) :-
+	throw(error(type_error(predicate_indicator, H), _)).
+
 
 		/********************************
 		*            MODULES            *
@@ -515,7 +498,7 @@ module(Module) :-
 	$module(_, Module).
 module(Module) :-
 	$module(_, Module),
-	$break($warning('~w is not a current module', [Module])).
+	print_message(warning, no_current_module(Module)).
 
 		/********************************
 		*          STATISTICS           *

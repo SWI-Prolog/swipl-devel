@@ -73,9 +73,8 @@ profile(Goal, Style, N) :-
 	profiler(_, off), 
 	show_profile(N), !, 
 	Rval == true.
-profile(_, _, _) :-
-	$warning('profile/3: second argument should be one of {plain, cumulative}'), 
-	fail.
+profile(_, Style, _) :-
+	throw(error(domain_error(profile_type, Style), _)).
 
 $time_rval(Goal, true) :-
 	time(Goal), !.

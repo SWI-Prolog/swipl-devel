@@ -932,7 +932,7 @@ traceInterception(LocalFrame frame, LocalFrame bfr, int port, Code PC)
 #endif /*O_DEBUGGER*/
 
 static bool
-hasAlternativesFrame(register LocalFrame frame)
+hasAlternativesFrame(LocalFrame frame)
 { ClauseRef cref;
 
   if ( true(frame, FR_CUT) )
@@ -940,7 +940,7 @@ hasAlternativesFrame(register LocalFrame frame)
   if ( true(frame->predicate, FOREIGN) )
     succeed;
   for(cref = frame->clause; cref; cref = cref->next)
-  { if ( false(cref->clause, ERASED) )
+  { if ( visibleClause(cref->clause, generationFrame(frame)) )
       succeed;
   }
 
@@ -1077,7 +1077,9 @@ tracemode(int doit, int *old)
 	LD->trace.find->searching = FALSE;
     }
     debugstatus.tracing = doit;
-    callEventHook(PLEV_TRACING, doit);
+    printMessage(ATOM_silent,
+		 PL_FUNCTOR_CHARS, "trace_mode", 1,
+		   PL_ATOM, doit ? ATOM_on : ATOM_off);
   }
 
   succeed;
@@ -1096,7 +1098,9 @@ debugmode(int doit, int *old)
   { if ( doit )
       debugstatus.skiplevel = VERY_DEEP;
     debugstatus.debugging = doit;
-    callEventHook(PLEV_DEBUGGING, doit);
+    printMessage(ATOM_silent,
+		 PL_FUNCTOR_CHARS, "debug_mode", 1,
+		   PL_ATOM, doit ? ATOM_on : ATOM_off);
   }
 
   succeed;

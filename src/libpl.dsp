@@ -58,7 +58,7 @@ LINK32=link.exe
 SOURCE=$(InputPath)
 PostBuild_Desc=Install header files
 PostBuild_Cmds=if not exist ..\include mkdir ..\include	copy pl-itf.h\
-     ..\include\SWI-Prolog.h	copy pl-stream.h ..\include\SWI-Stream.h
+      ..\include\SWI-Prolog.h	copy pl-stream.h ..\include\SWI-Stream.h
 # End Special Build Tool
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Debug"
@@ -89,7 +89,7 @@ LINK32=link.exe
 # Begin Special Build Tool
 SOURCE=$(InputPath)
 PostBuild_Cmds=if not exist ..\include mkdir ..\include	copy pl-itf.h\
-     ..\include\SWI-Prolog.h	copy pl-stream.h ..\include\SWI-Stream.h
+      ..\include\SWI-Prolog.h	copy pl-stream.h ..\include\SWI-Stream.h
 # End Special Build Tool
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Runtime"
@@ -162,6 +162,10 @@ SOURCE=".\pl-comp.c"
 # End Source File
 # Begin Source File
 
+SOURCE=".\pl-ctype.c"
+# End Source File
+# Begin Source File
+
 SOURCE=".\pl-dde.c"
 # End Source File
 # Begin Source File
@@ -179,6 +183,10 @@ SOURCE=".\pl-error.c"
 # Begin Source File
 
 SOURCE=".\pl-ext.c"
+# End Source File
+# Begin Source File
+
+SOURCE=".\pl-feature.c"
 # End Source File
 # Begin Source File
 

@@ -80,7 +80,6 @@ suggest predicates from a keyword.
 \predicatesummary{break}{0}{Start interactive toplevel}
 \predicatesummary{call}{1}{Call a goal}
 \predicatesummary{call}{[2..]}{Call with additional arguments}
-\predicatesummary{call_dll_function}{2}{Win32: Call function in dynamic link library (.dll file)}
 \predicatesummary{call_shared_object_function}{2}{UNIX:  Call C-function in shared (.so) file}
 \predicatesummary{call_with_depth_limit}{3}{Prove goal with bounded depth}
 \predicatesummary{catch}{3}{Call goal, watching for exceptions}
@@ -94,7 +93,6 @@ suggest predicates from a keyword.
 \predicatesummary{clause_property}{2}{Get properties of a clause}
 \predicatesummary{close}{1}{Close stream}
 \predicatesummary{close_dde_conversation}{1}{Win32: Close DDE channel}
-\predicatesummary{close_dll}{1}{Win32: Close dynamic link library (.dll file)}
 \predicatesummary{close_shared_object}{1}{UNIX:  Close shared library (.so file)}
 \predicatesummary{compare}{3}{Compare, using a predicate to determine the order}
 \predicatesummary{compiling}{0}{Is this a compilation run?}
@@ -316,7 +314,6 @@ suggest predicates from a keyword.
 \predicatesummary{put}{1}{Write a character}
 \predicatesummary{put}{2}{Write a character on a stream}
 \predicatesummary{qcompile}{1}{Compile source to Quick Load File}
-\predicatesummary{qload}{1}{Load Quick Load File as consult/1}
 \predicatesummary{qsave_program}{1}{Create runtime application}
 \predicatesummary{qsave_program}{2}{Create runtime application}
 \predicatesummary{read}{1}{Read Prolog term}
@@ -339,7 +336,6 @@ suggest predicates from a keyword.
 \predicatesummary{require}{1}{This file requires these predicates}
 \predicatesummary{reset_profiler}{0}{Clear statistics obtained by the profiler}
 \predicatesummary{resource}{3}{Declare a program resource}
-\predicatesummary{restore}{1}{Restore saved-state (save/1, save_program/1)}
 \predicatesummary{retract}{1}{Remove clause from the database}
 \predicatesummary{retractall}{1}{Remove unifying clauses from the database}
 \predicatesummary{reverse}{2}{Inverse the order of the elements in a list}
@@ -379,7 +375,7 @@ suggest predicates from a keyword.
 \predicatesummary{statistics}{2}{Obtain collected statistics}
 \predicatesummary{stream_position}{3}{Get/seek to position in file}
 \predicatesummary{string}{1}{Type check for string}
-\predicatesummary{string_concat}{3}{concat/3 for strings (non-deterministic)}
+\predicatesummary{string_concat}{3}{atom_concat/3 for strings}
 \predicatesummary{string_length}{2}{Determine length of a string}
 \predicatesummary{string_to_atom}{2}{Conversion between string and atom}
 \predicatesummary{string_to_list}{2}{Conversion between string and list of ASCII}

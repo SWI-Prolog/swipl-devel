@@ -1638,15 +1638,30 @@ unify_termVP(term_t t, va_list_rec *argsRecP)
     case PL_CHARS:
       rval = PL_unify_atom_chars(t, va_arg(args, const char *));
       break;
+  { functor_t ft;
+    int arity;
+
+    case PL_FUNCTOR_CHARS:
+    { const char *s = va_arg(args, const char *);
+
+      arity = va_arg(args, int);
+      ft = PL_new_functor(PL_new_atom(s), arity);
+      goto common_f;
+    }
     case PL_FUNCTOR:
-    { functor_t ft = va_arg(args, functor_t);
-      int arity = arityFunctor(ft);
-      term_t tmp = PL_new_term_ref();
+    { term_t tmp;
       int n;
 
-      if ( !PL_unify_functor(t, ft) )
-	goto failout;
+      ft = va_arg(args, functor_t);
+      arity = arityFunctor(ft);
 
+    common_f:
+      if ( !PL_unify_functor(t, ft) )
+      { rval = FALSE;
+	break;
+      }
+
+      tmp = PL_new_term_ref();
       for(n=1; n<=arity; n++)
       {	_PL_get_arg(n, t, tmp);
 	
@@ -1663,6 +1678,7 @@ unify_termVP(term_t t, va_list_rec *argsRecP)
       PL_reset_term_refs(tmp);
       break;
     }
+  }
     case PL_LIST:
     { int length = va_arg(args, int);
       term_t tmp = PL_copy_term_ref(t);
@@ -1682,6 +1698,12 @@ unify_termVP(term_t t, va_list_rec *argsRecP)
       PL_reset_term_refs(tmp);
       break;
     }
+    case _PL_PREDICATE_INDICATOR:
+    { predicate_t proc = va_arg(args, predicate_t);
+
+      return unify_definition(t, proc->definition,
+			      0, GP_HIDESYSTEM|GP_NAMEARITY);
+    }
     default:
       PL_warning("Format error in PL_unify_term()");
       rval = FALSE;
@@ -1693,13 +1715,24 @@ unify_termVP(term_t t, va_list_rec *argsRecP)
 
 int
 PL_unify_term(term_t t, ...)
-{ 
-  va_list_rec argsRec;
+{ va_list_rec argsRec;
   int rval;
 
   va_start(args, t);
   rval = unify_termVP(t, &argsRec);
   va_end(args);
+
+  return rval;
+}
+
+
+int
+PL_unify_termv(term_t t, va_list a)
+{ va_list_rec argsRec;
+  int rval;
+
+  memcpy(&argsRec, &a, sizeof(argsRec));
+  rval = unify_termVP(t, &argsRec);
 
   return rval;
 }

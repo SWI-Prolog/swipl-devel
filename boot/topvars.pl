@@ -43,7 +43,7 @@ expand_vars(Bindings, $(Var), Value) :-
 	name_var(Var, Bindings, Name),
 	(   toplevel_var(Name, Value)
 	->  !
-	;   $warning('$~w: No such variable', Name)
+	;   throw(error(existence_error(variable, Name), _))
 	).
 expand_vars(Bindings, Term, Expanded) :-
 	functor(Term, Name, Arity), !,

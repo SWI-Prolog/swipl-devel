@@ -253,9 +253,10 @@ When compiling a module (see \chapref{modules} and the directive module/2),
 expand_term/2 will first try term_expansion/2 in the module being
 compiled to allow for term-expansion rules that are local to a module.
 If there is no local definition, or the local definition fails to
-translate the term, expand_term/2 will try user:term_expansion/2. For
-compatibility with SICStus and Quintus Prolog, this feature should not
-be used. See also expand_term/2, goal_expansion/2 and expand_goal/2.
+translate the term, expand_term/2 will try term_expansion/2 in module
+\module{user}. For compatibility with SICStus and Quintus Prolog, this
+feature should not be used. See also expand_term/2, goal_expansion/2 and
+expand_goal/2.
 
     \predicate{expand_term}{2}{+Term1, -Term2}
 This predicate is normally called by the compiler to perform preprocessing.
@@ -264,7 +265,7 @@ a grammar-rule translation.  If this fails it returns the first argument.
 
     \predicate{goal_expansion}{2}{+Goal1, -Goal2}
 Like term_expansion/2, goal_expansion/2 provides for macro-expansion
-of Prolog source-code. Between term_expand/2 and the actual compilation,
+of Prolog source-code. Between expand_term/2 and the actual compilation,
 the body of clauses analysed and the goals are handed to expand_goal/2,
 which uses the goal_expansion/2 hook to do user-defined expansion.
 
@@ -335,14 +336,12 @@ on any implementation of SWI-Prolog.  Note however that clauses are
 stored as virtual machine instructions.  Changes to the compiler will
 generally make old compiled files unusable.
 
-Quick Load Files are created using qcompile/1.  They may be loaded
-explicitly using qload/1 or implicitly using consult/1 or one
-of the other file-loading predicates described in
-\secref{consulting}.  If consult is given the explicit
-\fileext{pl} file, it will load the Prolog source.  When given the
-\fileext{qlf} file, it will call qload/1 to load the file.  When no
-extension is specified, it will load the \fileext{qlf} file when present
-and the fileext{pl} file otherwise.
+Quick Load Files are created using qcompile/1. They are loaded using
+consult/1 or one of the other file-loading predicates described in
+\secref{consulting}. If consult is given the explicit \fileext{pl} file,
+it will load the Prolog source. When given the \fileext{qlf} file, it
+will load the file. When no extension is specified, it will load the
+\fileext{qlf} file when present and the fileext{pl} file otherwise.
 
 \begin{description}
 \predicate{qcompile}{1}{+File}
@@ -362,10 +361,6 @@ For term_expansion/2, the same rules as described in
 
 Source references (source_file/2) in the Quick Load File refer to
 the Prolog source file from which the compiled code originates. 
-\predicate{qload}{1}{+File}
-Loads the `Quick Load File'.  It has the same semantics as consult/1
-for a normal sourcefile.  Equivalent to \exam{consult(\arg{File})}
-iff \arg{File} refers to a `Quick Load File'.
 \end{description}
 
 
@@ -430,8 +425,8 @@ Same as prolog_edit:locate/3, but only deals with fully-sepecified
 objects.
 
     \predicate{prolog_edit:edit_source}{1}{+Location}
-Start editor on \arg{Location}.  See locate/3 for the format of a
-location term.  This multi-file predicate is normally not defined.
+Start editor on \arg{Location}. See prolog_edit:locate/3 for the format
+of a location term. This multi-file predicate is normally not defined.
 If it succeeds, edit/1 assumes the editor is started.
 
 If it fails, edit/1 will invoke an external editor.  The editor
@@ -853,12 +848,12 @@ the error.  Any part of this structure may be a variable if no
 information was present.
 
 
-\subsection{Printing a message from an exception}
+\subsection{Printing messages}
 
-The predicate print_message/2 may be used to print an exception term
+The predicate print_message/2 may be used to print a message term
 in a human readable format.  The other predicates from this section
 allow the user to refine and extend the message system.  The most
-common usage of print_message/3 is to print error messages from
+common usage of print_message/2 is to print error messages from
 exceptions.  The code below prints errors encountered during the
 execution of \arg{Goal}, without further propagating the exception
 and without starting the debugger.
@@ -871,6 +866,10 @@ and without starting the debugger.
 	      )),
 	...
 \end{code}
+
+Another common use is to defined message_hook/3 for printing messages
+that are normally \jargon{silent}, suppressing messages, redirecting
+messages or make something happen in addition to printing the message.
 
 \begin{description}
     \predicate{print_message}{2}{+Kind, +Term}
@@ -891,13 +890,20 @@ The print_message/2 predicate and its rules are in the file
 information on the error messages and related error terms.
 
     \predicate{print_message_lines}{3}{+Stream, +Prefix, +Lines}
-Print a message (see print_message/3) that has been translated to
+Print a message (see print_message/2) that has been translated to
 a list of message elements.  The elements of this list are:
 
 \begin{description}
     \definition{<Format>-<Args>}
         Where \arg{Format} is an atom and \arg{Args} is a list
 	of format argument.  Handed to format/3.
+    \definition{\const{flush}}
+	If this appears as the last element, \arg{Stream} is flushed
+	(see flush_output/1) and no final newline is generated.
+    \definition{\const{at_same_line}}
+        If this appears as first element, no prefix is printed for
+	the first line and the line-position is not forced to 0
+	(see format/1, \verb$~N$).
     \definition{<Format>}
         Handed to format/3 as \exam{format(Stream, Format, [])}.
     \definition{nl}
@@ -905,7 +911,7 @@ a list of message elements.  The elements of this list are:
 	the \arg{Prefix} is printed too.
 \end{description}
 
-See also print_message/3 and message_hook/3.
+See also print_message/2 and message_hook/3.
 
     \predicate{message_hook}{3}{+Term, +Kind, +Lines}
 Hook predicate that may be define in the module \const{user} to
@@ -1140,11 +1146,11 @@ at the tail of this chain. This mechanism is considerably faster than
 the assert/retract mechanism as terms are not compiled, but just copied
 into the heap.
 
-The third mechanism is a special purpose one.  It associates an integer
-or atom with a key, which is an atom, integer or term.  Each key can
-only have one atom or integer associated with it.  It again is
-considerably faster than the mechanisms described above, but can only be
-used to store simple status information like counters, etc.
+The third mechanism is a special purpose one. It associates an integer
+or atom with a key, which is an atom, integer or term. Each key can only
+have one atom or integer associated with it. It is faster than the
+mechanisms described above, but can only be used to store simple status
+information like counters, etc.
 
 \begin{description}
     \predicate{abolish}{1}{:PredicateIndicator}
@@ -1234,6 +1240,32 @@ succeeds_n_times(Goal, Times) :-
         fail ; flag(succeeds_n_times, Times, Old).
 \end{code}
 \end{description}
+
+\subsection{Update view}			\label{sec:update}
+
+\index{logical,update view}%
+\index{immediate, update view}%
+\index{update view}%
+Traditionally, Prolog systems used the \jargon{immediate update view}:
+new clauses became visible to predicates backtracking over dynamic
+predicates immediately and retracted clauses became invisible
+immediately.  
+
+Starting with SWI-Prolog 3.3.0 we adhere the \jargon{logical update
+view}, where backtrackable predicates that enter the definition of a
+predicate will not see any changes (either caused by assert/1 or
+retract/1) to the predicate.  This view is the ISO standard, the
+most commonly used and the most `safe'.%
+    \footnote{For example, using the immediate update view, no call to a
+	      dynamic predicate is deterministic.}
+Logical updates are realised by keeping reference-counts on predicates
+and \jargon{generation} information on clauses.  Each change to the
+database causes an increment of the generation of the database.  Each
+goal is tagged with the generation in which it was started.  Each clause
+is flagged with the generation it was created as well as the generation
+it was erased.  Only clauses with `created' \ldots `erased' interval
+that encloses the generation of the current goal are considered visible.
+
 
 \subsection{Indexing databases}
 
@@ -1794,7 +1826,7 @@ Succeeds after the last character of the named stream is read, or
 \arg{Stream} is not a valid input stream.
 \predicate{copy_stream_data}{3}{+StreamIn, +StreamOut, +Len}
 Copy \arg{Len} bytes from stream \arg{StreamIn} to \arg{StreamOut}.
-\predicate{copy_stream_data}{3}{+StreamIn, +StreamOut}
+\predicate{copy_stream_data}{2}{+StreamIn, +StreamOut}
 Copy data all (remaining) data from stream \arg{StreamIn} to
 \arg{StreamOut}.
 \end{description}
@@ -1903,19 +1935,27 @@ always reported using exception-handling (see catch/3). Options:
     \termitem{variable_names}{Vars}
 Unify \arg{Vars} with a list of `\arg{Name} = \arg{Var}', where \arg{Name} is an atom describing the variable name and \arg{Var} is a
 variable that shares with the corresponding variable in \arg{Term}.
+(ISO).
 
     \termitem{singletons}{Vars}
 As \const{variable_names}, but only reports the variables occurring only
 once in the \arg{Term} read. Variables starting with an underscore
-(`\chr{_}') are not included in this list.
+(`\chr{_}') are not included in this list. (ISO).
+
+    \termitem{module}{Module}
+Specify \arg{Module} for operators, \const{character_escapes} flag
+and \const{double_quotes} flag. The value of the latter two is overruled
+if the corresponding read_term/3 option is provided.  If no module is
+specified, the current `source-module' is used.  (SWI-Prolog).
 
     \termitem{character_escapes}{Bool}
 Defines how to read \verb$\$ escape-sequences in quoted atoms.
 See the prolog-flags \const{character_escapes}, current_prolog_flag/2.
+(SWI-Prolog).
 
     \termitem{double_quotes}{Bool}
 Defines how to read "\ldots" strings. See the prolog-flags
-\const{double_quotes}, current_prolog_flag/2.
+\const{double_quotes}, current_prolog_flag/2.  (SWI-Prolog).
 
     \termitem{term_position}{Pos}
 Unifies \arg{Pos} with the starting position of the term read.  \arg{Pos}
@@ -2167,8 +2207,8 @@ polutes the atom-database.  See also string_concat/3.
     \predicate{concat_atom}{2}{+List, -Atom}
 \arg{List} is a list of atoms, integers or floating point numbers. Succeeds
 if \arg{Atom} can be unified with the concatenated elements of \arg{List}. If
-\arg{List} has exactly 2 elements it is equivalent to concat/3, allowing
-for variables in the list.
+\arg{List} has exactly 2 elements it is equivalent to atom_concat/3,
+allowing for variables in the list.
 \predicate{concat_atom}{3}{+List, +Separator, -Atom}
 Creates an atom just like concat_atom/2, but inserts \arg{Separator}
 between each pair of atoms.  For example:
@@ -2315,18 +2355,17 @@ Unify \arg{Length} with the number of characters in \arg{String}. This
 predicate is functionally equivalent to atom_length/2 and also accepts
 atoms, integers and floats as its first argument.
 \predicate{string_concat}{3}{?String1, ?String2, ?String3}
-Similar to concat/3, but the unbound argument will be unified with a
-string object rather than an atom.  Also, if both \arg{String1} and
-\arg{String2} are unbound and \arg{String3} is bound to text, it
-breaks \arg{String3}, unifying the start with \arg{String1} and the
-end with \arg{String2} as append does with lists.  Note that this
-is not particularly fast on long strings as for each redo the system
-has to create two entirely new strings, while the list equivalent
-only creates a single new list-cell and moves some pointers around.
-\predicate{substring}{4}{+String, +Start, +Length, -Sub}
-Create a substring of \arg{String} that starts at character \arg{Start}
-(1 base) and has \arg{Length} characters. Unify this substring with
-\arg{Sub}.%
+Similar to atom_concat/3, but the unbound argument will be unified with
+a string object rather than an atom. Also, if both \arg{String1} and
+\arg{String2} are unbound and \arg{String3} is bound to text, it breaks
+\arg{String3}, unifying the start with \arg{String1} and the end with
+\arg{String2} as append does with lists. Note that this is not
+particularly fast on long strings as for each redo the system has to
+create two entirely new strings, while the list equivalent only creates
+a single new list-cell and moves some pointers around.
+\predicate{substring}{4}{+String, +Start, +Length, -Sub} Create a
+substring of \arg{String} that starts at character \arg{Start} (1 base)
+and has \arg{Length} characters. Unify this substring with \arg{Sub}.%
     \footnote{Future versions probably will provide a more logical
               variant of this predicate.}
 \end{description}

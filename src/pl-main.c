@@ -840,49 +840,62 @@ vfatalError(const char *fm, va_list args)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+One day, warning() should be replaced by   PL_error()  or direct call to
+print_message/2. For now we make warning call print_message/2, so we can
+move the rest of the warnings gradually. For this reason we make a term
+
+	message_lines(ListOfLines)
+
+Where ListOfLines is a list of string objects.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 bool
 vwarning(const char *fm, va_list args)
-{ toldString();
+{ toldString();				/* play safe */
 
   if ( trueFeature(REPORT_ERROR_FEATURE) )
-  { if ( ReadingSource &&
-	 !GD->bootsession && GD->initialised &&
+  { if ( !GD->bootsession && GD->initialised &&
 	 !LD->outofstack )		/* cannot call Prolog */
-    { fid_t cid = PL_open_foreign_frame();
-      term_t argv = PL_new_term_refs(3);
-      predicate_t pred = PL_pred(FUNCTOR_exception3, MODULE_user);
-      term_t a = PL_new_term_ref();
-      char message[LINESIZ];
-      qid_t qid;
-      int rval;
-  
+    { char message[LINESIZ];
+      char *s = message;
+      fid_t cid   = PL_open_foreign_frame();
+      term_t av   = PL_new_term_refs(2);
+      term_t tail = PL_copy_term_ref(av+1);
+      term_t head = PL_new_term_ref();
+      predicate_t pred = PL_predicate("print_message", 2, "user");
+
       Svsprintf(message, fm, args);
-  
-      PL_put_atom(   argv+0, ATOM_warning);
-      PL_put_functor(argv+1, FUNCTOR_warning3);
-      PL_get_arg(1, argv+1, a); PL_unify_atom(a, source_file_name);
-      PL_get_arg(2, argv+1, a); PL_unify_integer(a, source_line_no);
-      PL_get_arg(3, argv+1, a); PL_unify_string_chars(a, message);
       
-      qid = PL_open_query(MODULE_user, PL_Q_NODEBUG, pred, argv);
-      rval = PL_next_solution(qid);
-      PL_close_query(qid);
-      PL_discard_foreign_frame(cid);
-  
-      if ( !rval )
-      { Sfprintf(Suser_error, "[WARNING: (%s:%d)\n\t%s]\n",
-		 stringAtom(source_file_name), source_line_no, message);
+      for(;;)
+      { char *eol = strchr(s, '\n');
+
+	if ( eol )
+	{ PL_unify_list(tail, head, tail);
+	  PL_unify_string_nchars(head, eol-s, s);
+	  s = eol+1;
+	} else
+	{ if ( *s )
+	  { PL_unify_list(tail, head, tail);
+	    PL_unify_string_chars(head, s);
+	  }
+	  PL_unify_nil(tail);
+	  break;
+	}
       }
-  
-      PL_fail;				/* handled */
+      PL_cons_functor(av+1, FUNCTOR_message_lines1, av+1);
+      PL_put_atom(av, ATOM_error);	/* error? */
+
+      PL_call_predicate(NULL, PL_Q_NODEBUG, pred, av);
+      PL_discard_foreign_frame(cid);
+    } else
+    { Sfprintf(Suser_error, "ERROR: ");
+      Svfprintf(Suser_error, fm, args);
+      Sfprintf(Suser_error, "\n");
     }
-  
-    Sfprintf(Suser_error, "[WARNING: ");
-    Svfprintf(Suser_error, fm, args);
-    Sfprintf(Suser_error, "]\n");
   }
 
-  if ( trueFeature(DEBUG_ON_ERROR_FEATURE) )
+  if ( !ReadingSource && trueFeature(DEBUG_ON_ERROR_FEATURE) )
     pl_trace();
 
   PL_fail;

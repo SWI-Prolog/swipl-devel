@@ -75,15 +75,29 @@ correct_goal(Goal, Bindings, [Dwim], DwimGoal) :-
 	context_module(Context),
 	$prefix_module(DM, Context, G2, DwimGoal),
 	goal_name(DwimGoal, Bindings, String),
-	$confirm('Correct to: `~w''', [String]).
+	$confirm(dwim_correct(String)).
 correct_goal(Goal, Bindings, Dwims, NewGoal) :-
 	$strip_module(Goal, _, G1), 
 	functor(G1, _, Arity), 
 	sublist($dwim:has_arity(Arity), Dwims, [Dwim]), !,
 	correct_goal(Goal, Bindings, [Dwim], NewGoal).
 correct_goal(Goal, _, Dwims, _) :-
-	$break($warn_undefined(Goal, Dwims)), 
+	tag_module(Goal, MGoal),
+	tag_modules(Dwims, MDwims),
+	print_message(error, dwim_undefined(MGoal, MDwims)),
 	fail.
+
+:- module_transparent
+	tag_module/2,
+	tag_modules/2.
+
+tag_module(T, M:T2) :-
+	$strip_module(T, M, T2).
+
+tag_modules([], []).
+tag_modules([H0|T0], [H|T]) :-
+	tag_module(H0, H),
+	tag_modules(T0, T).
 
 has_arity(A, G) :-
 	$strip_module(G, _, G1), 
@@ -154,7 +168,7 @@ find_predicate(Module, C, Name, Arity, Pack) :-
 	pack(List, Module, Arity, C, Packs),
 	member(Dwim-Pack, Packs),
 	print_pack_name(C, Dwim, PredName),
-	$confirm('Correct to `~w''', PredName), !.
+	$confirm(dwim_correct(PredName)), !.
 
 print_pack_name(C, C:Name/Arity, P) :- !, concat_atom([Name, /, Arity], P).
 print_pack_name(_, M:Name/Arity, P) :- !, concat_atom([M, :, Name, /, Arity], P).
@@ -231,8 +245,7 @@ name_arity(Name/Arity, Name, Arity) :- !.
 name_arity(Term, Name, Arity) :-
 	functor(Term, Name, Arity), !.
 name_arity(Spec, _, _) :-
-	$warning('Illegal predicate specification: `~w''', [Spec]),
-	fail.
+	throw(error(type_error(predicate_indicator, Spec), _)).
 
 
 %	principal_predicates(+Context, +Heads, -Principals)

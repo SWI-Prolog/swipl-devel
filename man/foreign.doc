@@ -688,7 +688,7 @@ If \arg{t} is an atom, store a pointer to a 0-terminated C-string in
 \arg{s}.  It is explicitly \strong{not} allowed to modify the contents
 of this string.  Some built-in atoms may have the string allocated in
 read-only memory, so `temporary manipulation' can cause an error.
-\cfunction{int}{PL_get_string}{term_t +t, char **s, int *len}
+\cfunction{int}{PL_get_string_chars}{term_t +t, char **s, int *len}
 If \arg{t} is a string object, store a pointer to a 0-terminated
 C-string in \arg{s} and the length of the string in \arg{len}.  Note
 that this pointer is invalidated by backtracking, garbage-collection

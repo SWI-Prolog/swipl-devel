@@ -375,7 +375,9 @@ static const struct foreign {
   FRG("format",			2, pl_format,			TRACE_ME),
   FRG("$collect_bag",		2, pl_collect_bag,		TRACE_ME),
   FRG("$record_bag",		1, pl_record_bag,		TRACE_ME),
+#ifdef O_DEBUG
   FRG("$check_definition",	1, pl_check_definition,    META|TRACE_ME),
+#endif
 
 #if O_COMPILE_OR
   FRG("$alt",			0, pl_alt,			NDET),
@@ -465,9 +467,8 @@ static const struct foreign {
   FRG("mutex_unlock",		1, pl_mutex_unlock,		TRACE_ME),
   FRG("mutex_unlock_all",	0, pl_mutex_unlock_all,		TRACE_ME),
   FRG("current_mutex",		3, pl_current_mutex,	   NDET|TRACE_ME),
-#endif
-
   FRG("open_xterm",		3, pl_open_xterm,		TRACE_ME),
+#endif
 
   /* DO NOT ADD ENTRIES BELOW THIS ONE */
   FRG((char *)NULL,		0, (Func)NULL,			0)

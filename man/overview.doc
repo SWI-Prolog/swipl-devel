@@ -829,8 +829,10 @@ emulator.
 List is a list of atoms representing the command-line arguments used to
 invoke SWI-Prolog.  Please note that {\bf all} arguments are included
 in the list returned.
-    \prologflagitem{pipe}{bool}{r}
-If true, tell(pipe(command)), etc.\ are supported.
+    \prologflagitem{pipe}{bool}{rw}
+If true, \exam{open(pipe(command), mode, Stream)}, etc.\ are supported.
+Can be changed to disable the use of pipes in applications testing this
+feature.  Not recommended.
     \prologflagitem{open_shared_object}{bool}{r}
 If true, open_shared_object/2 and friends are implemented, providing
 access to shared libraries (\fileext{so} files) or dynamic link

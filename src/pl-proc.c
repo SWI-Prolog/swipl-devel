@@ -111,6 +111,15 @@ isDefinedProcedure(Procedure proc)
 
   if ( def->definition.clauses )
   { ClauseRef c;
+#ifdef O_LOGICAL_UPDATE
+    unsigned long generation;
+    if ( environment_frame )
+      generation = generationFrame(environment_frame);
+    else
+      generation = ~0L-1;		/* any non-erased clause */
+#else
+#define generation (0)
+#endif
 
     if ( false(def, NEEDSCLAUSEGC) )
       succeed;
@@ -118,7 +127,7 @@ isDefinedProcedure(Procedure proc)
     for(c = def->definition.clauses; c; c = c->next)
     { Clause cl = c->clause;
 
-      if ( false(cl, ERASED) )
+      if ( visibleClause(cl, generation) )
 	succeed;
     }
   }
@@ -144,10 +153,10 @@ lookupProcedureToDefine(functor_t def, Module m)
        (proc=isCurrentProcedure(def, MODULE_system)) &&
        true(proc->definition, LOCKED) &&
        false(proc->definition, DYNAMIC) )
-  { warning("Attempt to redefine a system predicate: %s/%d\n"
-	    "\tUse :- redefine_system_predicate(+Head) if this is intended",
-	    stringAtom(proc->definition->functor->name),
-	    proc->definition->functor->arity);
+  { PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+	     ATOM_redefine, PL_new_atom("built_in_procedure"),
+	     proc->definition);
+
     return NULL;
   }
  
@@ -234,7 +243,8 @@ get_head_functor(term_t head, functor_t *fdef)
 { int arity;
 
   if ( !PL_get_functor(head, fdef) )
-    return warning("Illegal predicate specification");
+    return PL_error(NULL, 0, NULL, ERR_TYPE,
+		    ATOM_predicate_indicator, head);
   if ( (arity=arityFunctor(*fdef)) > MAXARITY )
   { char buf[100];
     return PL_error(NULL, 0,
@@ -415,11 +425,13 @@ assertProcedure(Procedure proc, Clause clause, int where)
 { Definition def = proc->definition;
   ClauseRef cref = newClauseRef(clause);
 
-  LOCK();
   if ( def->references && (debugstatus.styleCheck & DYNAMIC_STYLE) )
-    warning("assert/[1,2]: %s has %d references",
-	    predicateName(def), def->references);
+    printMessage(ATOM_informational,
+		     PL_FUNCTOR_CHARS, "modify_active_procedure", 2,
+		       PL_CHARS, "assert",
+		       _PL_PREDICATE_INDICATOR, proc);
 
+  LOCK();
   if ( !def->lastClause )
   { def->definition.clauses = def->lastClause = cref;
   } else if ( where == CL_START )
@@ -433,6 +445,10 @@ assertProcedure(Procedure proc, Clause clause, int where)
   }
 
   def->number_of_clauses++;
+#ifdef O_LOGICAL_UPDATE
+  clause->generation.created = ++GD->generation;
+  clause->generation.erased  = ~0L;	/* infinite */
+#endif
 
   if ( def->hash_info )
     addClauseToIndex(def, clause, where);
@@ -496,6 +512,9 @@ removeClausesProcedure(Procedure proc, int sfindex)
   ClauseRef c;
 
   enterDefinition(def);
+#ifdef O_LOGICAL_UPDATE
+  GD->generation++;
+#endif
 
   for(c = def->definition.clauses; c; c = c->next)
   { Clause cl = c->clause;
@@ -503,6 +522,9 @@ removeClausesProcedure(Procedure proc, int sfindex)
     if ( (sfindex == 0 || sfindex == cl->source_no) && false(cl, ERASED) )
     { set(cl, ERASED);
       set(def, NEEDSCLAUSEGC);
+#ifdef O_LOGICAL_UPDATE
+      cl->generation.erased = GD->generation;
+#endif
       def->number_of_clauses--;
     } 
   }
@@ -523,22 +545,27 @@ reference.
 bool
 retractClauseProcedure(Procedure proc, Clause clause)
 { Definition def = proc->definition;
+  bool rval;
 
   if ( true(clause, ERASED) )
     succeed;
 
+  LOCK();
   if ( def->references )
   { set(clause, ERASED);
     set(def, NEEDSCLAUSEGC);
     if ( def->hash_info )
       markDirtyClauseIndex(def->hash_info, clause);
     def->number_of_clauses--;
-    succeed;
+#ifdef O_LOGICAL_UPDATE
+    clause->generation.erased = ++GD->generation;
+#endif
+    rval = TRUE;
   } else
   { ClauseRef prev = NULL;
     ClauseRef c;
-    bool rval = FALSE;
 
+    rval = FALSE;
     startCritical;
 
     if ( def->hash_info )
@@ -570,11 +597,11 @@ retractClauseProcedure(Procedure proc, Clause clause)
 	break;
       }
     }
-
     endCritical;
-
-    return rval;
   }
+  UNLOCK();
+
+  return rval;
 }
 
 
@@ -693,6 +720,7 @@ resetReferences(void)
   UNLOCK();
 }
 
+#ifdef O_DEBUG
 		 /*******************************
 		 *	    CHECKING		*
 		 *******************************/
@@ -707,7 +735,7 @@ pl_check_definition(term_t spec)
   ClauseRef cref;
 
   if ( !get_procedure(spec, &proc, 0, GP_FIND) )
-    return warning("$check_definition/1: can't find definition");
+    return Sdprintf("$check_definition/1: can't find definition");
   def = proc->definition;
 
   if ( true(def, FOREIGN) )
@@ -722,24 +750,24 @@ pl_check_definition(term_t spec)
       nclauses++;
     else
     { if ( false(def, NEEDSCLAUSEGC) )
-	warning("%s contains erased clauses and has no NEEDSCLAUSEGC",
-		predicateName(def));
+	Sdprintf("%s contains erased clauses and has no NEEDSCLAUSEGC",
+		 predicateName(def));
     }
   }
 
   if ( def->hash_info )
   { if ( def->hash_info->size != nindexable )
-      warning("%s has inconsistent def->hash_info->size",
+      Sdprintf("%s has inconsistent def->hash_info->size",
 	      predicateName(def));
   }
 
   if ( def->number_of_clauses != nclauses )
-    warning("%s has inconsistent number_of_clauses (%d, should be %d)",
-	    predicateName(def), def->number_of_clauses, nclauses);
+    Sdprintf("%s has inconsistent number_of_clauses (%d, should be %d)",
+	     predicateName(def), def->number_of_clauses, nclauses);
 
   succeed;
 }
-
+#endif /*O_DEBUG*/
 
 		/********************************
 		*     UNDEFINED PROCEDURES      *
@@ -932,20 +960,24 @@ pl_retract(term_t term, word h)
     { functor_t fd;
 
       if ( !PL_get_functor(head, &fd) )
-	return warning("retract/1: illegal head");
+	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, term);
       if ( !(proc = isCurrentProcedure(fd, m)) )
 	fail;
 
       def = proc->definition;
 
       if ( true(def, FOREIGN) )
-	return warning("retract/1: cannot retract from foreign predicate");
-      if ( true(def, LOCKED) && false(def, DYNAMIC) )
-	return warning("retract/1: Attempt to retract from system predicate");
+	return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+			ATOM_modify, PL_new_atom("foreign_procedure"), def);
+      if ( false(def, DYNAMIC) )
+	return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+			ATOM_modify, PL_new_atom("static_procedure"), def);
 
       if ( def->references && (debugstatus.styleCheck & DYNAMIC_STYLE) )
-	warning("retract/1: %s has %d references",
-		predicateName(def), def->references);
+	printMessage(ATOM_informational,
+		     PL_FUNCTOR_CHARS, "modify_active_procedure", 2,
+		       PL_CHARS, "retract",
+		       _PL_PREDICATE_INDICATOR, proc);
 
       cref = def->definition.clauses;
       enterDefinition(def);			/* reference the predicate */
@@ -966,7 +998,7 @@ pl_retract(term_t term, word h)
       } else
 	argv = NULL;
 
-      if ( !(cref = findClause(cref, argv, def, &det)) )
+      if ( !(cref = findClause(cref, argv, environment_frame, def, &det)) )
       { leaveDefinition(def);
 	fail;
       }
@@ -1008,9 +1040,11 @@ pl_retractall(term_t head)
 
   def = proc->definition;
   if ( true(def, FOREIGN) )
-    return warning("retractall/1: cannot retract from a foreign predicate");
-  if ( true(def, LOCKED) && false(def, DYNAMIC) )
-    return warning("retractall/1: Attempt to retract from a system predicate");
+    return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+		    ATOM_modify, PL_new_atom("foreign_procedure"), def);
+  if ( false(def, DYNAMIC) )
+    return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+		    ATOM_modify, PL_new_atom("static_procedure"), def);
 
   enterDefinition(def);
   for(cref = def->definition.clauses; cref; cref = cref->next)
@@ -1024,7 +1058,7 @@ pl_retractall(term_t head)
     } else
       argv = NULL;
 
-    cref = findClause(cref, argv, def, &det);
+    cref = findClause(cref, argv, environment_frame, def, &det);
 
     if ( cref )
     { fid_t cid = PL_open_foreign_frame();
@@ -1061,10 +1095,12 @@ pl_abolish(term_t atom, term_t arity)
   atom_t name;
   int a;
 
-  if ( !PL_strip_module(atom, &m, tmp) )
-    fail;
-  if ( !PL_get_atom(tmp, &name) || !PL_get_integer(arity, &a) )
-    return warning("abolish/2: instantiation fault");
+  PL_strip_module(atom, &m, tmp);
+
+  if ( !PL_get_atom(tmp, &name) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, atom);
+  if ( !PL_get_integer(arity, &a) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, arity);
 
   if ( !(f = isCurrentFunctor(name, a)) ||
        !(proc = isCurrentProcedure(f, m)) )
@@ -1148,7 +1184,7 @@ pl_get_predicate_attribute(term_t pred,
   def = proc->definition;
 
   if ( !PL_get_atom(what, &key) )
-    return warning("$get_predicate_attribute/3: key should be an atom");
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, what);
 
   if ( key == ATOM_imported )
   { if ( module == def->module )
@@ -1192,8 +1228,8 @@ pl_get_predicate_attribute(term_t pred,
   } else if ( (att = attribute_mask(key)) )
   { return PL_unify_integer(value, (def->flags & att) ? 1 : 0);
   } else
-  { return warning("$get_predicate_attribute/3: unknown key: %s",
-		   stringAtom(key));
+  { return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		    PL_new_atom("procedure_property"), what);
   }
 }
   
@@ -1207,12 +1243,13 @@ pl_set_predicate_attribute(term_t pred,
   int val;
   unsigned long att;
 
-  if ( !PL_get_atom(what, &key) ||
-       !PL_get_integer(value, &val) || val & ~1 )
-    return warning("$set_predicate_attribute/3: instantiation fault");
+  if ( !PL_get_atom(what, &key) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, what);
+  if ( !PL_get_integer(value, &val) || val & ~1 )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, value);
   if ( !(att = attribute_mask(key)) )
-    return warning("$set_predicate_attribute/4: unknown key: %s",
-		   stringAtom(key));
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		    PL_new_atom("procedure_property"), what);
   if ( att & (TRACE_ANY|SPY_ME) )
   { if ( !get_procedure(pred, &proc, 0, GP_RESOLVE) )
       fail;
@@ -1331,9 +1368,9 @@ pl_index(term_t pred)
   { Definition def = proc->definition;
     int arity = def->functor->arity;
 
-    if (true(def, FOREIGN))
-      return warning("index/1: cannot index foreign predicate %s", 
-		     procedureName(proc));
+    if ( true(def, FOREIGN) )
+      return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+		      ATOM_index, PL_new_atom("foreign_procedure"), def);
 
     if ( arity > 0 )
     { unsigned long pattern = 0x0;
@@ -1343,10 +1380,10 @@ pl_index(term_t pred)
       for(n=0; n<arity && n < 31; n++)
       { int ia;
 
-	if ( !PL_get_arg(n+1, head, a) ||
-	     !PL_get_integer(a, &ia) || (ia & ~1) )
-	  return warning("index/1: %s: illegal index specification", 
-			 procedureName(proc));
+	_PL_get_arg(n+1, head, a);
+	if ( !PL_get_integer(a, &ia) || (ia & ~1) )
+	  return PL_error(NULL, 0, "0 or 1", ERR_TYPE,
+			  ATOM_integer, a);
 	if ( ia )
 	{ pattern |= 1 << n;
 	  if (++card == 4)		/* maximal 4 indexed arguments */
@@ -1373,9 +1410,9 @@ pl_get_clause_attribute(term_t ref, term_t att, term_t value)
 
   if ( !PL_get_pointer(ref, (void **)&clause)  ||
        !inCore(clause) || !isClause(clause) )
-    return warning("$clause_attribute/3: illegal reference");
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_clause, ref);
   if ( !PL_get_atom(att, &a) )
-    return warning("$clause_attribute/3: instantiation fault");
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, a);
 
   if ( a == ATOM_line_count )
   { if ( clause->line_no )
@@ -1390,8 +1427,14 @@ pl_get_clause_attribute(term_t ref, term_t att, term_t value)
 			 true(clause, UNIT_CLAUSE) ? ATOM_true
 			 			   : ATOM_false);
   } else if ( a == ATOM_erased )
-  { return PL_unify_atom(value,
-			 true(clause, ERASED) ? ATOM_true : ATOM_false);
+  { atom_t erased;
+
+    if ( visibleClause(clause, generationFrame(environment_frame)) )
+      erased = ATOM_false;
+    else
+      erased = ATOM_true;
+
+    return PL_unify_atom(value, erased);
   }
 
   fail;
@@ -1488,7 +1531,10 @@ redefineProcedure(Procedure proc, SourceFile sf)
 
   if ( true(def, FOREIGN) )
   { abolishProcedure(proc, def->module);
-    warning("Redefined: foreign predicate %s", procedureName(proc));
+    printMessage(ATOM_warning,
+		 PL_FUNCTOR_CHARS, "redefined_procedure", 2,
+		   PL_CHARS, "foreign",
+		   _PL_PREDICATE_INDICATOR, proc);
   }
 
   if ( false(def, MULTIFILE) )
@@ -1500,11 +1546,22 @@ redefineProcedure(Procedure proc, SourceFile sf)
     if ( first && first->clause->source_no == sf->index )
     { if ( (debugstatus.styleCheck & DISCONTIGUOUS_STYLE) &&
 	   false(def, DISCONTIGUOUS) )
-	warning("Clauses of %s are not together in the source file", 
-		procedureName(proc));
+	printMessage(ATOM_warning,
+		     PL_FUNCTOR_CHARS, "discontiguous", 1,
+		       _PL_PREDICATE_INDICATOR, proc);
     } else
     { abolishProcedure(proc, def->module);
-      warning("Redefined: %s", procedureName(proc));
+
+      if ( proc->definition->references )
+	printMessage(ATOM_informational,
+		     PL_FUNCTOR_CHARS, "redefined_procedure", 2,
+		       PL_CHARS, "active",
+		       _PL_PREDICATE_INDICATOR, proc);
+      else
+	printMessage(ATOM_warning,
+		     PL_FUNCTOR_CHARS, "redefined_procedure", 2,
+		       PL_CHARS, "static",
+		       _PL_PREDICATE_INDICATOR, proc);
     }
   }
 }

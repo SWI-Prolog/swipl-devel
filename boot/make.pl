@@ -20,20 +20,27 @@
 
 make :-
 	$update_library_index,
+	findall(File, modified_file(File), Reload),
+	print_message(silent, make(reload(Reload))),
+	reload(Reload),
+	print_message(silent, make(done)).
+
+modified_file(File) :-
 	$time_source_file(File, LoadTime),
 	time_file(File, Modified),
-	Modified @> LoadTime,
-	reload(File),
-	fail.
-make.
+	Modified @> LoadTime.
 
+reload([]).
+reload([H|T]) :-
+	reload_file(H),
+	reload(T).
 
-%	reload(File)
+%	reload_file(File)
 %
 %	Reload file into the proper module.  Note that if the file is loaded
 %	into multiple modules this should be handled more carefully.
 
-reload(File) :-
+reload_file(File) :-
 	findall(Context, $load_context_module(File, Context), Modules),
 	(   Modules = []
 	->  consult(user:File)

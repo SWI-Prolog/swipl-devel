@@ -151,20 +151,31 @@ little choice.
 #define O_ABORT_WITH_THROW 1
 #endif
 
-#ifdef O_ABORT_WITH_THROW
-
-word
-pl_abort()
+static word
+pl_throw_abort()
 { fid_t fid = PL_open_foreign_frame();
   term_t ex = PL_new_term_ref();
 
   pl_notrace();
+
+  if ( GD->critical > 0 )		/* abort in critical region: delay */
+  { LD->aborted = TRUE;
+    succeed;
+  }
 
   PL_put_atom(ex, ATOM_aborted);
   PL_throw(ex);				/* use longjmp() to ensure */
 
   PL_close_foreign_frame(fid);		/* should not be reached */
   fail;				
+}
+
+
+#ifdef O_ABORT_WITH_THROW
+
+word
+pl_abort()
+{ return pl_throw_abort();
 }
 
 #else /*O_ABORT_WITH_THROW*/
@@ -175,9 +186,7 @@ static int can_abort;			/* embeded code can't abort */
 word
 pl_abort()
 { if ( !can_abort )
-  { warning("Embedded system, cannot abort");
-    Halt(1);
-  }
+    return pl_throw_abort();
 
   if ( GD->critical > 0 )		/* abort in critical region: delay */
   { pl_notrace();
@@ -260,12 +269,11 @@ prologToplevel(volatile atom_t goal)
 	
 	pl_nodebug();
 	if ( PL_get_atom(except, &a) && a == ATOM_aborted )
-	  Sfprintf(Suser_error, "\nExecution aborted\n\n");
-	else
-	{ Sfprintf(Suser_error, "[WARNING: Unhandled exception: ");
-	  PL_write_term(Suser_error, except,
-			1200, PL_WRT_QUOTED|PL_WRT_PORTRAY);
-	  Sfprintf(Suser_error, "]\n");
+	{ printMessage(ATOM_informational, PL_ATOM, ATOM_aborted);
+	} else if ( !PL_is_functor(except, FUNCTOR_error2) )
+	{ printMessage(ATOM_error,
+		       PL_FUNCTOR_CHARS, "unhandled_exception", 1,
+		         PL_TERM, except);
 	}
 	PL_close_query(qid);
 	continue;

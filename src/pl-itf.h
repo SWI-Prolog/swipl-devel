@@ -111,22 +111,25 @@ typedef union
 		 *******************************/
 
 					/* PL_unify_term() arguments */
-#define	PL_VARIABLE	(1)		/* nothing */
-#define PL_ATOM		(2)		/* const char * */
-#define PL_INTEGER	(3)		/* int */
-#define PL_FLOAT	(4)		/* double */
-#define PL_STRING	(5)		/* const char * */
-#define PL_TERM		(6)
+#define	PL_VARIABLE	 (1)		/* nothing */
+#define PL_ATOM		 (2)		/* const char * */
+#define PL_INTEGER	 (3)		/* int */
+#define PL_FLOAT	 (4)		/* double */
+#define PL_STRING	 (5)		/* const char * */
+#define PL_TERM		 (6)
 
 					/* PL_unify_term() */
-#define PL_FUNCTOR	(10)		/* functor_t, arg ... */
-#define PL_LIST		(11)		/* length, arg ... */
-#define PL_CHARS	(12)		/* const char * */
-#define PL_POINTER	(13)		/* void * */
+#define PL_FUNCTOR	 (10)		/* functor_t, arg ... */
+#define PL_LIST		 (11)		/* length, arg ... */
+#define PL_CHARS	 (12)		/* const char * */
+#define PL_POINTER	 (13)		/* void * */
 					/* PlArg::PlArg(text, type) */
-#define PL_CODE_LIST	(14)		/* [ascii...] */
-#define PL_CHAR_LIST	(15)		/* [h,e,l,l,o] */
-#define PL_BOOL		(16)		/* PL_set_feature() */
+#define PL_CODE_LIST	 (14)		/* [ascii...] */
+#define PL_CHAR_LIST	 (15)		/* [h,e,l,l,o] */
+#define PL_BOOL		 (16)		/* PL_set_feature() */
+#define PL_FUNCTOR_CHARS (17)		/* PL_unify_term() */
+#define _PL_PREDICATE_INDICATOR (18)	/* predicate_t (Procedure) */
+
 
 		/********************************
 		*    DETERMINISTIC CALL/RETURN  *
@@ -134,6 +137,7 @@ typedef union
 
 #define	PL_succeed	return TRUE	/* succeed deterministically */
 #define PL_fail		return FALSE	/* fail */
+
 
 		/********************************
 		* NON-DETERMINISTIC CALL/RETURN *

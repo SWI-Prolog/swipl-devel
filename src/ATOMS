@@ -419,6 +419,12 @@ A quote			"quote"
 A paren			"paren"
 A to_lower		"to_lower"
 A to_upper		"to_upper"
+A message_lines		"message_lines"
+A informational		"informational"
+A redefine		"redefine"
+A callable		"callable"
+A index			"index"
+A silent		"silent"
 
 F abs			1
 F acos			1
@@ -554,3 +560,4 @@ F string		2
 F dstream		1
 F dmutex		1
 F busy			2
+F message_lines		1

@@ -71,8 +71,7 @@ dde_register_service(Template, Goal) :-
 	asserta(win_dde:dde_service(Service, Topic, -,
 				    Command, Module, PlainGoal)).
 dde_register_service(Template, _Goal) :-
-	'$warning'('dde_register_service/2: illegal template: ~w', [Template]),
-	fail.
+	throw(error(type_error(dde_service, Template), _)).
 
 dde_unregister_service(Service) :-
 	(   retract(dde_service(Service, _, _, _, _, _))
@@ -142,7 +141,7 @@ dde_current_connection(Service, Topic) :-
 	Module:Goal,
 	Answer = Value.
 '$dde_request'(_Handle, Topic, _Item, _Answer) :-
-	'$warning'('DDE server: no registrations for topic ~w~n', [Topic]).
+	throw(error(existence_error(dde_topic, Topic), _)).
 
 %	$dde_execute(+Handle, +Topic, +Command)
 %
@@ -155,4 +154,5 @@ dde_current_connection(Service, Topic) :-
 	dde_service(Service, Topic, _, Command, Module, Goal), !,
 	Module:Goal.
 '$dde_execute'(_Handle, Topic, _Command) :-
-	'$warning'('DDE server: no registrations for topic ~w~n', [Topic]).
+	throw(error(existence_error(dde_topic, Topic), _)).
+

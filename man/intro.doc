@@ -302,7 +302,12 @@ fixes various internal problems and removes Prolog limits on the number
 of streams.  Progress has been made to improve ISO compliance: handling
 strings as lists of one-character atoms is now supported (next to
 character codes as integers).  Many more exceptions have been added and
-printing of exceptions and messages is rationalised.
+printing of exceptions and messages is rationalised using Quintus and
+SICStus Prolog compatible print_message/2, message_hook/3 and
+print_message_lines/3.
+
+As of version 3.3, SWI-Prolog adheres the ISO \jargon{logical update view}
+for dynamic predicates.  See \secref{update} for details.
 
 Finally, an alpha version of a multi-threaded SWI-Prolog for Linux is
 added. This version is still much slower than the single-threaded

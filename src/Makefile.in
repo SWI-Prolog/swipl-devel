@@ -105,7 +105,7 @@ PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/listing.pl \
 	../boot/list.pl ../boot/writef.pl ../boot/history.pl \
 	../boot/profile.pl ../boot/dwim.pl ../boot/rc.pl \
 	../boot/parms.pl ../boot/autoload.pl ../boot/qlf.pl \
-	../boot/topvars.pl ../boot/messages.pl
+	../boot/topvars.pl ../boot/messages.pl ../boot/load.pl
 
 all:	banner \
 	headers rc-lib system startup index runtime \

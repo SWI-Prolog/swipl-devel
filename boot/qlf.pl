@@ -8,7 +8,6 @@
 
 :- module($qlf,
 	  [ qcompile/1,		% +File
-	    qload/1,		% +File
 	    $qload_file/6	% +Path, +Module, +Import, +IsModule, -Ac, -LM
 	  ]).
 
@@ -18,9 +17,7 @@
 		 *******************************/
 
 :- module_transparent
-	qcompile/1,
-	qload/1,
-	qload/2.
+	qcompile/1.
 
 qcompile([]) :- !.
 qcompile([H|T]) :- !,
@@ -48,50 +45,10 @@ qcompile(File) :-
 	$qlf_close,
 	Ok == true.
 
-	
-		 /*******************************
-		 *	      LOADING		*
-		 *******************************/
 
-qload([]) :- !.
-qload([H|T]) :- !,
-	qload(H),
-	qload(T).
-qload(File) :-
-	qload(File, [verbose = true]).
-
-qload(File, Options) :-
-	statistics(heapused, OldHeap),
-	statistics(cputime, OldTime),
-
-	$strip_module(File, Module, FileName),
-	absolute_file_name(FileName,
-			   [ file_type(qlf),
-			     access(read)
-			   ], Absolute), !,
-	$qlf_load(Module:Absolute, LoadedModule),
-	(   atom(LoadedModule)
-	->  (   memberchk(import = Import, Options)
-	    ->	true
-	    ;	Import = all
-	    ),
-	    $import_list(Module, LoadedModule, Import)
-	;   true
-	),
-
-	(   memberchk(verbose=true, Options)
-	->  statistics(heapused, Heap),
-	    statistics(cputime, Time),
-	    HeapUsed is Heap - OldHeap,
-	    TimeUsed is Time - OldTime,
-	    $confirm_file(FileName, Absolute, ConfirmFile),
-	    $confirm_module(LoadedModule, ConfirmModule),
-
-	    $ttyformat('~N~w loaded~w, ~2f sec, ~D bytes.~n',
-		       [ConfirmFile, ConfirmModule, TimeUsed, HeapUsed])
-	;   true
-	).
-
+%	qload(+File, +Module, +Import, -IsModule, -Action, -LoadedModule)
+%
+%	Load predicate for .qlf files.  See init.pl
 
 $qload_file(File, Module, Import, IsModule, loaded, LoadedModule) :-
 	$qlf_load(Module:File, LoadedModule),
@@ -103,5 +60,5 @@ $qload_file(File, Module, Import, IsModule, loaded, LoadedModule) :-
 	
 
 check_is_module(true, 0, File) :- !,
-	$warning('use_module: ~w is not a module file', [File]).
+	throw(error(domain_error(module_file, File), _)).
 check_is_module(_, _, _).

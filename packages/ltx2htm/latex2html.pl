@@ -32,7 +32,7 @@
 	  ]).
 :- use_module(library(quintus)).
 
-version('0.11').
+version('0.12').			% for SWI-Prolog 3.3
 
 :- dynamic			
 	html_output_dir/1,		% output relative to this dir
@@ -69,7 +69,7 @@ user:file_search_path(img, library(icons)).
 
 :- load_foreign_library(user:foreign(tex)).
 
-:- op(100, fx, #).
+:- op(100, fx, user:(#)).
 
 		 /*******************************
 		 *         TEX INPUTS		*
@@ -141,6 +141,13 @@ current_setting(html_output_dir(Dir)) :-
 		 /*******************************
 		 *	      SETTINGS		*
 		 *******************************/
+
+:- dynamic
+	keep_figures/1,
+	onefile/1,
+	makeindex/1,
+	title/1,
+	auther/1.
 
 keep_figures(true).
 onefile(false).
@@ -300,14 +307,12 @@ translate_2($(Expr), Mode, Mode, #var(HTML)) :-		% $...$
 	translate(Tokens, math, _, HTML).
 translate_2(verbatim(_Cmd, Text), Mode, Mode, 		% \begin{verbatim} ...
 	    #listing(#pre(pre(Text)))).
-:- set_feature(character_escapes, true).
 translate_2(verb(_, Text), pcecode, pcecode, pre(Text)).
 translate_2(Layout, pcecode, pcecode, []) :-
 	atomic(Layout), !.
 translate_2('\n', Mode, Mode, [html('<BR>')]) :-
 	Mode = group(Atts),
 	memberchk(obeylines, Atts), !.
-:- set_feature(character_escapes, false).
 translate_2(verb(_, Text), Mode, Mode, #code(Text)).	% \verbX...X
 translate_2([Atom], Mode, Mode, nospace(Atom)) :-	% {foo} 
 	atomic(Atom).
@@ -348,7 +353,7 @@ translate_cmd(Cmd, Mode, Mode, HTML) :-
 translate_cmd(Cmd, Mode, Mode, []) :-
 	functor(Cmd, Name, _),
 	format(user_error,
-	       'Failed to translate \~w in mode "~w"~n', [Name, Mode]),
+	       'Failed to translate \\~w in mode "~w"~n', [Name, Mode]),
 	format(user_error, 'Term: "~p"~n', [Cmd]),
 	true.	
 
@@ -362,7 +367,7 @@ translate_env(Env, Mode, Mode, HTML) :-
 translate_env(Env, []) :-
 	functor(Env, Name, _),
 	format(user_error,
-	       'Failed to translate \begin{~w} ... \end{~w}~n',
+	       'Failed to translate \\begin{~w} ... \\end{~w}~n',
 	       [Name, Name]),
 %	format(user_error, 'Term: "~p"~n', [Env]),
 	true.
@@ -417,8 +422,8 @@ language_map(table,	'Table').
 			 html('<TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>'), Text,
 			 html('</TABLE>')]).
 #(embrace([O,C],Text),	[nospace(OA),	   Text, nospace(CA)]) :-
-	atom_char(OA, O),
-	atom_char(CA, C).
+	char_code(OA, O),
+	char_code(CA, C).
 #(embrace(Text),	#embrace("()", Text)).
 #(h(Level, Title),	[html(OpenH), Title, html(CloseH)]) :-
 	h(Level, OpenH, CloseH).
@@ -717,13 +722,11 @@ items([Token|More], List) :-
 %	Succeeds if Tokens is a token that may appear before the first
 %	item of a list, and should not be translated.
 
-:- set_feature(character_escapes, true).
 no_item_token(' ').
 no_item_token('\n').
 no_item_token(\par).
 no_item_token(\(setlength, _)).
 no_item_token(\(newcommand, _)).
-:- set_feature(character_escapes, false).
 
 item_commands(List, [], List) :-
 	List = [Cmd|_],
@@ -796,10 +799,8 @@ cmd(usepackage(_, {_File}, _), preamble, []) :- !.
 cmd(makeindex, preamble, []) :-
 	retractall(makeindex(_)),
 	asserta(makeindex(true)).
-:- set_feature(character_escapes, true).
 cmd(vskip(_), pcecode, verb('\n')).
 cmd(lineno({_Line}), pcecode, verb('\n')).
-:- set_feature(character_escapes, false).
 
 %       cmd(+Command, -HTML)
 
@@ -811,7 +812,7 @@ cmd(renewcommand({Name}, [], {Expanded}), []) :-
 	declare_command(Name, 0, Expanded).
 cmd(renewcommand({Name}, [Args], {Expanded}), []) :-
 	declare_command(Name, Args, Expanded).
-cmd(def({'\booktitle'}, {Title}), HTML) :-
+cmd(def({'\\booktitle'}, {Title}), HTML) :-
 	cmd(title({[Title]}), HTML).
 cmd(def(_, _), []).
 cmd(sloppy, []).
@@ -926,7 +927,7 @@ cmd(htmlmainfile({File}), []) :-
 	assert(html_file_base(File)).
 cmd(htmlfiledepth({Depth}), []) :-
 	atom_codes(Depth, Chars),
-	number_chars(D, Chars),
+	number_codes(D, Chars),
 	retractall(html_split_level(_)),
 	assert(html_split_level(D)).
 
@@ -1027,7 +1028,7 @@ cmd('$', nospace('$')).
 cmd('&', nospace('&')).
 cmd('{', nospace('{')).
 cmd('}', nospace('}')).
-cmd('"'({'\i'}), html('&iuml;')).	% \"\i
+cmd('"'({'\\i'}), html('&iuml;')).	% \"\i
 cmd('"'({C}), html(Cmd)) :-		% \"[ouey...]
 	concat_atom([&, C, 'uml;'], Cmd).
 cmd(''''({C}), html(Cmd)) :-		% \'[ouey...]
@@ -1179,7 +1180,7 @@ cmd(item([Tokens]), itemlist,			% \item in itemlist
 	translate_group(Tokens, Tag).
 
 cmd(times, math, [' ', html('&times;'), ' ']).
-cmd(wedge, math, ['/\']).
+cmd(wedge, math, ['/\\']).
 cmd(rightarrow, ['->']).
 cmd('Rightarrow', ['=>']).
 cmd('Leftrightarrow', ['<=>']).
@@ -1281,12 +1282,12 @@ clean_tt(Raw, Clean) :-
 	->  true
 	;   S2 = S0
 	),
-	(   append("\tt", S3, S2)
+	(   append("\\tt", S3, S2)
 	->  true
 	;   S3 = S2
 	),
         clean_specials(S3, S4),
-	delete_all(S4, "\string", S5),
+	delete_all(S4, "\\string", S5),
 	delete_all(S5, " ", S6),
 	atom_codes(Clean, S6).
 
@@ -1320,12 +1321,12 @@ upcase_html([H|T0], [H|T]) :-
 
 upcase_atom(Low, Up) :-
 	atom_codes(Low, S0),
-	maplist(upcase, S0, S1),
+	maplist(to_upper, S0, S1),
 	atom_codes(Up, S1).
 
 downcase_atom(Up, Low) :-
 	atom_codes(Up, S0),
-	maplist(downcase, S0, S1),
+	maplist(to_lower, S0, S1),
 	atom_codes(Low, S1).
 
 capitalise_atom(In, Out) :-
@@ -1333,37 +1334,19 @@ capitalise_atom(In, Out) :-
 	capitalise(S0, S1, up),
 	atom_codes(Out, S1).
 
-upcase(L, U) :-
-	between(0'a, 0'z, L), !,
-	U is L + 0'A - 0'a.
-upcase(C, C).
-
-downcase(L, U) :-
-	between(0'A, 0'Z, L), !,
-	U is L + 0'a - 0'A.
-downcase(C, C).
-
 capitalise([], [], _).
 capitalise([H0|T0], [H|T], up) :-
-	islower(H0), !,
-	upcase(H0, H),
+	is_lower(H0), !,
+	to_upper(H0, H),
 	capitalise(T0, T, down).
 capitalise([H|T0], [H|T], up) :-
 	capitalise(T0, T, up).
 capitalise([H|T0], [H|T], down) :-
-	isletter(H), !,
+	is_alpha(H), !,
 	capitalise(T0, T, down).
 capitalise([H|T0], [H|T], down) :-
 	capitalise(T0, T, up).
 	
-isletter(C) :- between(0'a, 0'z, C), !.
-isletter(C) :- between(0'A, 0'Z, C), !.
-isdigit(C)  :- between(0'0, 0'9, C), !.
-islower(C)  :- between(0'a, 0'z, C), !.
-isspace(32).
-isspace(9).
-isspace(10).
-isspace(13).
 
 		 /*******************************
 		 *	    FOOTNOTES		*
@@ -1498,7 +1481,7 @@ section_tag(Tag) :-
 	    arg(1, Term, S),
 	    S > AS
 	->  App is (S - AS - 1) + 0'A,
-	    atom_char(AN, App),
+	    char_code(AN, App),
 	    L = [_|T],
 	    concat_atom([AN|T], '.', Tag)
         ;   concat_atom(L, '.', Tag)
@@ -1617,14 +1600,14 @@ add_to_index(Term, Tag) :-
 
 sort_chars(Chars, Sort) :-
 	member(C, Chars),
-	isletter(C), !,
+	is_alpha(C), !,
 	get_lower_letters(Chars, Sort).
 sort_chars(Chars, Chars).
 
 get_lower_letters([], []).
 get_lower_letters([H0|T0], [H|T]) :-
-	isletter(H0), !,
-	downcase(H0, H),
+	is_alpha(H0), !,
+	to_lower(H0, H),
 	get_lower_letters(T0, T).
 get_lower_letters([_|T0], T) :-
 	get_lower_letters(T0, T).
@@ -1682,8 +1665,8 @@ add_separator(Term, _, CL, [ html('<DT>'),
 			     html('<DD>')
 			   ]) :-
 	atom_codes(Term, [CL|_]),
-	upcase(CL, UC),
-	atom_char(Char, UC).
+	to_upper(CL, UC),
+	char_code(Char, UC).
 
 
 		 /*******************************
@@ -1793,7 +1776,7 @@ step_counter(Name, NewVal) :-
 		 *	       RULES		*
 		 *******************************/
 
-cmd(rule({'\linewidth'}, {_H}), [html('<hr>')]) :- !.
+cmd(rule({'\\linewidth'}, {_H}), [html('<hr>')]) :- !.
 cmd(rule({_W}, {_H}), []) :-
 	format('_W = ~w, H = ~w~n', [_W, _H]).
 
@@ -1963,7 +1946,7 @@ number(N) -->
 	digit(C0),
 	float_digits(C),
 	{ append(S, [C0|C], Chars),
-	  number_chars(N, Chars)
+	  number_codes(N, Chars)
 	}.
 
 integer(N) -->
@@ -1971,7 +1954,7 @@ integer(N) -->
 	digit(C0),
 	digits(C),
 	{ append(S, [C0|C], Chars),
-	  number_chars(N, Chars)
+	  number_codes(N, Chars)
 	}.
 
 optional_sign("-") --> "-", !.
@@ -2010,7 +1993,6 @@ relative_width(mm, N, W) :- W is integer(100 * (N/25.4) / 6).
 %	appear to recognise this.  It is just LaTeX's default, while HTML's
 %	default is middle.
 
-:- set_feature(character_escapes, true).
 
 table_body([], _, []).
 table_body([\(\, _)|T], _, []) :-
@@ -2061,7 +2043,7 @@ sgml_attribute(Name=Value, Att) :-
 
 to_integer(Atom, Integer) :-
 	atom_codes(Atom, Chars),
-	number_chars(Integer, Chars).
+	number_codes(Integer, Chars).
 
 column_alignment(X, Alignment) :-
 	atom_codes(X, Chars),
@@ -2108,8 +2090,6 @@ clean_body(Body, Body1) :-
 	    all_white_space(T)
 	->  true
 	).
-
-:- set_feature(character_escapes, false).
 
 		 /*******************************
 		 *	      FIGURES		*
@@ -2195,7 +2175,7 @@ declare_command(Name, ArgCAtom, Expanded) :-
 	(   tex_command_property(CmdName, _, _) % test for existence
 	->  true
 	;   atom_codes(ArgCAtom, ArgCChars),
-	    number_chars(Args, ArgCChars),
+	    number_codes(Args, ArgCChars),
 	    make_cmd_spec(Name, Args, CmdSpec),	% \Name{+}...
 	    tex_declare(CmdSpec),
 	    functor(Head, CmdName, Args),
@@ -2385,12 +2365,10 @@ write_html([]) :- !.				% Unpack lists
 write_html([H|T]) :- !,
 	write_html(H),
 	write_html(T).
-:- set_feature(character_escapes, true). 	% Smash <P> and layout
 write_html('\n') :-
 	pending_par, !.
 write_html(' ') :-
 	pending_par, !.
-:- set_feature(character_escapes, false).
 write_html(html('<P>')) :- !,
 	(   pending_par
 	->  true
@@ -2516,10 +2494,8 @@ write_html(H) :-
 	put_html_token(H), !.
 write_html(_).
 	
-:- set_feature(character_escapes, true).
 nl_html :-
 	write_html(verb('\n')).
-:- set_feature(character_escapes, false).
 
 %	translate_ref(+Label, -Anchor, -TextLabel)
 

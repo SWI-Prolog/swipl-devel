@@ -40,7 +40,7 @@ read_history_(History, _, _, History, _, _) :-
 	list_history, !, 
 	fail.
 read_history_(Show, Help, _, Help, _, _) :-
-	help_history(Show, Help), !, 
+	print_message(help, history(help(Show, Help))), !,
 	fail.
 read_history_(History, Help, DontStore, Raw, Term, Bindings) :-
 	expand_history(Raw, Expanded, Changed), 
@@ -57,15 +57,14 @@ read_history_(History, Help, DontStore, Raw, Term, Bindings) :-
 	->  user:ignore(Goal),
 	    read_history(History, Help, DontStore, '', Term, Bindings)
 	;   save_event(DontStore, Expanded), 
-	    write_event(Expanded, Changed), 
+	    (	Changed == true
+	    ->	print_message(query, history(expanded(Expanded)))
+	    ;	true
+	    ),
 	    Term = Term0,
 	    Bindings = Bindings0
 	).
 
-
-write_event(_, false) :- !.
-write_event(Event, true) :-
-	format('~w.~n', [Event]).
 
 %   list_history
 %   Write history events to the current output stream.
@@ -74,11 +73,12 @@ list_history :-
 	flag($last_event, Last, Last), 
 	history_depth_(Depth), 
 	plus(First, Depth, Last), 
-	between(First, Last, Nr), 
-	    recorded($history_list, Nr/Event), 
-	    format('~t~w   ~8|~w.~n', [Nr, Event]), 
-	fail.
-list_history.
+	findall(Nr/Event,
+		(   between(First, Last, Nr), 
+		    recorded($history_list, Nr/Event)
+		),
+		Events),
+	print_message(query, history(history(Events))).
 
 $clean_history :-
 	recorded($history_list, _, Ref),
@@ -86,19 +86,6 @@ $clean_history :-
 	fail.
 $clean_history :-
 	flag($last_event, _, 0).
-
-help_history(Show, Help) :-
-    $ttyformat('History Commands:~n'), 
-    $ttyformat('    !!.              Repeat last query~n'), 
-    $ttyformat('    !nr.             Repeat query numbered <nr>~n'), 
-    $ttyformat('    !str.            Repeat last query starting with <str>~n'), 
-    $ttyformat('    !?str.           Repeat last query holding <str>~n'), 
-    $ttyformat('    ^old^new.        Substitute <old> into <new> of last query~n'), 
-    $ttyformat('    !nr^old^new.     Substitute in query numbered <nr>~n'), 
-    $ttyformat('    !str^old^new.    Substitute in query starting with <str>~n'), 
-    $ttyformat('    !?str^old^new.   Substitute in query holding <str>~n'), 
-    $ttyformat('    ~w.~21|Show history list~n', [Show]), 
-    $ttyformat('    ~w.~21|Show this list~n', [Help]).
 
 %   prompt_history(+Prompt)
 %   Give prompt, substituting '%!' by the event number.
@@ -208,7 +195,7 @@ get_last_event(Event) :-
 	recorded($history_list, _/Atom), 
 	atom_chars(Atom, Event), !.
 get_last_event(_) :-
-	$ttyformat('! No such event~n'),
+	print_message(query, history(no_event)),
 	fail.
 
 %   substitute(+Old, +New, +String, -Substituted)	
@@ -223,7 +210,7 @@ substitute(Old, New, String, Substituted) :-
 substitute_warn(Old, New, String, Substituted) :-
 	substitute(Old, New, String, Substituted), !.
 substitute_warn(_, _, _, _) :-
-	$ttyformat('! bad substitution~n'),
+	print_message(query, history(bad_substitution)),
 	fail.
 
 %   match_event(+Spec, -Event, -Rest)
@@ -234,7 +221,7 @@ match_event(Spec, Event, Rest) :-
 	find_event(Spec, RawEvent, Rest0), !, 
 	substitute_event(Rest0, RawEvent, Event, Rest).
 match_event(_, _, _) :-
-	$ttyformat('! No such event~n'),
+	print_message(query, history(no_event)),
 	fail.
 
 substitute_event([^|Spec], RawEvent, Event, Rest) :- !, 

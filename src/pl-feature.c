@@ -112,7 +112,7 @@ defFeature(const char *name, int flags, ...)
       }
       f->value.a = (val ? ATOM_true : ATOM_false);
       if ( f->index > 0 )
-      { unsigned long mask = 1L << (f->index-1);
+      { mask = 1L << (f->index-1);
 
 	if ( val )
 	  setFeatureMask(mask);
@@ -573,7 +573,7 @@ initFeatures()
   defFeature("dynamic_stacks",	FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
 #ifdef HAVE_POPEN
-  defFeature("pipe", FT_BOOL|FF_READONLY, TRUE, 0);
+  defFeature("pipe", FT_BOOL, TRUE, 0);
 #endif
 #ifdef O_PLMT
   defFeature("threads",	FT_BOOL, TRUE, 0);	/* FF_READONLY? */
@@ -582,7 +582,7 @@ initFeatures()
   defFeature("associate", FT_ATOM, ASSOCIATE_SRC);
 #endif
 #ifdef O_DDE
-  defFeature("dde", FT_ATOM|FF_READONLY, TRUE);
+  defFeature("dde", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
 #ifdef O_RUNTIME
   defFeature("runtime",	FT_BOOL|FF_READONLY, TRUE, 0);
@@ -607,6 +607,7 @@ initFeatures()
     defFeature("integer_rounding_function", FT_ATOM|FF_READONLY, "toward_zero");
   defFeature("max_arity", FT_ATOM|FF_READONLY, "unbounded");
   defFeature("float_format", FT_ATOM, "%g");
+  defFeature("answer_format", FT_ATOM, "~p");
   defFeature("character_escapes", FT_BOOL, TRUE, CHARESCAPE_FEATURE);
   defFeature("double_quotes", FT_ATOM, "codes");
   defFeature("allow_variable_name_as_functor", FT_BOOL, FALSE,
@@ -619,7 +620,7 @@ initFeatures()
 
   defFeature("tty_control", FT_BOOL|FF_READONLY,
 	     trueFeature(TTY_CONTROL_FEATURE), TTY_CONTROL_FEATURE);
-  defFeature("readline", FT_BOOL/*|FF_READONLY*/, FALSE);
+  defFeature("readline", FT_BOOL/*|FF_READONLY*/, FALSE, 0);
 
 #if defined(__WIN32__) && defined(_DEBUG)
   defFeature("kernel_compile_mode", FT_ATOM|FF_READONLY, "debug");

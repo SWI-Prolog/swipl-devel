@@ -35,11 +35,20 @@ qlf_make(Base) :-
 		       access_file(Source, read))
 	    ->	atom_concat(PlBase, '.qlf', QlfFile),
 	        user:qcompile(PlBase)
-	    ;	'$warning'('Cannot update ~w: no access to sourcefile ~w',
-			   [ QlfFile, Source ])
+	    ;	print_message(error, qlf(QlfFile, no_source(Source))),
+		fail
 	    )
 	).
 qlf_make(Base) :-
 	qcompile(Base).
 	
-	
+
+		 /*******************************
+		 *	     MESSAGES		*
+		 *******************************/
+
+:- multifile
+	prolog:message/3.
+
+prolog:message(qlf(QlfFile, no_source(Source))) -->
+	[ 'Cannot update ~w: no source file ~w'-[QlfFile, Source] ].

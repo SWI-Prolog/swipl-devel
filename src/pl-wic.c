@@ -2226,7 +2226,10 @@ compileFile(char *file)
 	    PL_write_term(Serror, directive, 1200, 0);
 	    Sdprintf(".\n") );
       addDirectiveWic(directive, wicFd);
-      callProlog(MODULE_user, directive, PL_Q_NODEBUG, NULL);
+      if ( !callProlog(MODULE_user, directive, PL_Q_NODEBUG, NULL) )
+	Sdprintf("%s:%d: directive failed\n",
+		 PL_atom_chars(source_file_name),
+		 source_line_no);
     } else if ( directiveClause(directive, t, "$:-") )
     { DEBUG(1,
 	    Sdprintf("$:- ");
