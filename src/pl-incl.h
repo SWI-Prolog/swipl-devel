@@ -88,6 +88,12 @@ handy for it someone wants to add a data type to the system.
 #define O_DESTRUCTIVE_ASSIGNMENT 1
 #define O_HASHTERM		1
 
+#ifndef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
+#ifdef __i386__
+#define DOUBLE_TO_LONG_CAST_RAISES_SIGFPE 1
+#endif
+#endif
+
 #if MMAP_STACK || O_SHARED_MEMORY || HAVE_VIRTUAL_ALLOC
 #define O_DYNAMIC_STACKS 1		/* sparse memory management */
 #else

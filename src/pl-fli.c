@@ -484,8 +484,14 @@ PL_get_integer(term_t t, int *i)
   }
   if ( isReal(w) )
   { real f = valReal(w);
-    long l = (long) f;
-    
+    long l;
+
+#ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
+    if ( !(f >= PLMININT) && (f <= PLMAXINT) )
+      fail;
+#endif
+
+    l = (long)f;
     if ( (real)l == f )
     { *i = l;
       succeed;
@@ -509,8 +515,14 @@ PL_get_long(term_t t, long *i)
   }
   if ( isReal(w) )
   { real f = valReal(w);
-    long l = (long) f;
+    long l;
     
+#ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
+    if ( !(f >= PLMININT) && (f <= PLMAXINT) )
+      fail;
+#endif
+
+    l = (long) f;
     if ( (real)l == f )
     { *i = l;
       succeed;

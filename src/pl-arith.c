@@ -476,8 +476,14 @@ promoteToRealNumber(Number n)
 int
 toIntegerNumber(Number n)
 { if ( floatNumber(n) )
-  { long l = (long)n->value.f;
+  { long l;
 
+#ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
+    if ( !(n->value.f >= PLMININT) && (n->value.f <= PLMAXINT) )
+      fail;
+#endif
+
+    l = (long)n->value.f;
     if ( n->value.f == (real) l )
     { n->value.i = l;
       n->type = V_INTEGER;
@@ -494,8 +500,14 @@ toIntegerNumber(Number n)
 void
 canoniseNumber(Number n)
 { if ( n->type == V_REAL )		/* only if not explicit! */
-  { long l = (long)n->value.f;
+  { long l;
 
+#ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
+    if ( !(n->value.f >= PLMININT) && (n->value.f <= PLMAXINT) )
+      return;
+#endif
+
+    l = (long)n->value.f;
     if ( n->value.f == (real) l )
     { n->value.i = l;
       n->type = V_INTEGER;
