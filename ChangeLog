@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 5.1.6 (Jan 17, 2003)
+============================
+
   * ADDED: Using ?- set_prolog_flag(prompt_alternatives_no_bindings, true)
     the system prompts for alternative answers on the toplevel if the goal
     makes no bindings.  Requested by Paulo Moura.  Experimental.
@@ -15,7 +18,7 @@
 
   * FIXED: #2: Handle Control-C in plcon.exe (Windows console app).
 
->>>>>>> 1.649
+
 VERSION 5.1.5 (Jan 06, 2003)
 ============================
 

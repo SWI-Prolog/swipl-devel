@@ -1,27 +1,35 @@
-SWI-Prolog 5.1.5/XPCE 6.1.5 Summary of changes
+SWI-Prolog 5.1.6/XPCE 6.1.6 Summary of changes
 
 Status
 ======
   
-  * 6th beta-release.  Suitable for research and development.
-    Discouraged for production usage.  It has a few 5.0.10 bugs
-    fixed but surely introduced new ones.
+  * 7th beta-release.  Considering feedback, the 5.1.x series probably becomes
+    mainstream not too far from here.
 
+    Remaining issues are exploiting the multi-threaded version in a
+    multi-threaded foreign environment, which is currently incompatible
+    to using the single threaded version.
 
 SWI-Prolog
 ==========
 
-  * Added library(debug), providing structured alternative to printing
-    messages.
-
-  * Minor issues
+  * Minor issues.
 
 Packages
 ========
 
-  * Added HTTP package, providing pure-prolog libraries to do HTTP
-    services directly from Prolog.  Comes with inetd, XPCE and threading
-    front-end for the control-structure of your program.
+  * RDF: Now fully compliant with the current RDF specs, including
+    rdf:nodeID.  It passes the W3C test-suite without errors (well,
+    at the moment the suite it passes is inofficial as this work
+    exposed a bug in the testcases :-).
+
+  * HTTP: Added proxy support to the to HTTP client packages and
+    redirection support to http_open/3.
+
+  * XPCE: Added support for reading .ICO files from streams (Windows),
+    so they can be added to programs as Prolog resources.  Added generation
+    of colour PostScript from images, frames and the display.  Various
+    small bugs fixed.
 
 Development environment
 =======================
@@ -29,17 +37,20 @@ Development environment
 Short-term Plans
 ================
 
-  * More RDF/RDFS/OWL handling
+  * RDF storage and RDFS and OWL query support.
 
-  * More multi-threading support (thread-monitor, debugging, etc).
+  * Provide support for N Prolog engines in M threads (N>=1, M>=1).
 
-  * Some ODBC issues
- 
-  * Resolve Java interface issues
+  * Resolve Java interface issues (Linking issues and related to the above)
 
+Donations
+=========
 
-Please, especially for professional users, support SWI-Prolog with a
-donation at
+Donations, small and big, are well appreciated, as are critisism and plans
+to turn SWI-Prolog in a self-supporting project.  Please visit
 
 	http://www.swi-prolog.org/donate.html
 
+	Thanks
+
+		--- Jan

@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.1.6, distributed with SWI-Prolog 5.1.6
+================================================
+
 * FIXED: `toc_node->font' from the library(pce_toc).  Filip Prochazka
 
 * FIXED: Balloon help in modal windows.  After demo program from Juergen Repp.
