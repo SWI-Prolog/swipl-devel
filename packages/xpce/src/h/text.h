@@ -34,6 +34,7 @@ NewClass(text_buffer)
   Bool		modified;		/* has textbuffer been modified? */
   Int		undo_buffer_size;	/* Size of the undo-buffer */
   SyntaxTable	syntax;			/* Syntax description */
+  Int		generation;		/* Increments on each change */
 					/* start private data */
   int		changed_start;		/* start of changed region */
   int		changed_end;		/* end of changed region */

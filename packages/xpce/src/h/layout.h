@@ -91,7 +91,8 @@ End;
     Int		width;			/* width/height of the row/column */ \
     Int		reference;		/* position of reference-aligned */ \
     Int		position;		/* Offset of row/column */ \
-    Rubber	rubber;			/* Stretch/Shrinkability */
+    Rubber	rubber;			/* Stretch/Shrinkability */ \
+    Bool	displayed;		/* @off: slice is hidden */
 
 NewClass(table_slice)
     ABSTRACT_TABLE_SLICE

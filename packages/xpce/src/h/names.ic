@@ -874,6 +874,7 @@
   BUILTIN_NAME("gc")
   BUILTIN_NAME("gecos")
   BUILTIN_NAME("generate_event")
+  BUILTIN_NAME("generation")
   BUILTIN_NAME("geometry")
   BUILTIN_NAME("gesture")
   BUILTIN_NAME("get")
