@@ -692,6 +692,7 @@ initFeatures()
   defFeature("double_quotes", FT_ATOM, "codes");
   defFeature("unknown", FT_ATOM, "error");
   defFeature("debug", FT_BOOL, FALSE, 0);
+  defFeature("verbose", FT_ATOM, GD->options.silent ? "silent" : "normal");
   defFeature("allow_variable_name_as_functor", FT_BOOL, FALSE,
 	     ALLOW_VARNAME_FUNCTOR);
   defFeature("toplevel_var_size", FT_INTEGER, 1000);

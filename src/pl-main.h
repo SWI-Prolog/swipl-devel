@@ -41,6 +41,7 @@ typedef struct
   char *	systemInitFile;		/* -F initialisation file */
   char *	compileOut;		/* file to store compiler output */
   char *	saveclass;		/* Type of saved state */
+  bool		silent;			/* -q: quiet operation */
 } pl_options_t;
 
 

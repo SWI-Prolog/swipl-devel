@@ -183,6 +183,11 @@ eval `pl -dump-runtime-variables`
 cc -I$PLBASE/include -L$PLBASE/runtime/$PLARCH ...
 \end{code}
 
+    \cmdlineoptionitem{-q}{}
+\index{verbose}\index{quiet}%
+Set the prolog-flag \const{verbose} to \const{silent}, supressing
+informational and banner messages.
+
     \cmdlineoptionitem*{-L}{size[km]}
 Give local stack limit (2 Mbytes default). Note that there is no space
 between the size option and its argument.  By default, the argument is
@@ -998,23 +1003,34 @@ more conservative in destroying choice-points to simplify debugging.
 
 Disabling these optimisations can cause the system to run out of memory
 on programs that behave correctly if debug mode is off.
+
     \prologflagitem{tail_recursion_optimisation}{bool}{rw}
 Determines whether or not tail-recursion optimisation is enabled.
 Normally the value of this flag is equal to the \const{debug} flag.  As
 programs may run out of stack if tail-recursion optimisation is omitted,
 it is sometimes necessary to enable it during debugging.
+
     \prologflagitem{abort_with_exception}{bool}{rw}
 Determines how abort/0 is realised.  See the description of abort/0
 for details.
+
     \prologflagitem{debug_on_error}{bool}{rw}
 If {\tt true}, start the tracer after an error is detected.  Otherwise
 just continue execution.  The goal that raised the error will normally
 fail.  See also fileerrors/2 and the prolog-flag {\tt report_error}.  May
 be changed.  Default is {\tt true}, except for the runtime version.
+
     \prologflagitem{report_error}{bool}{rw}
 If {\tt true}, print error messages, otherwise suppress them.  May be
 changed.  See also the {\tt debug_on_error} prolog-flag.  Default is {\tt
 true}, except for the runtime version.  
+
+    \prologflagitem{verbose}{Atom}{rw}
+This flags is used by print_message/2.  If its value is \const{silent},
+messages of type \const{informational} and \const{banner} are supressed.
+The \cmdlineoption{-q} switches the value from the initial
+\const{normal} to \const{silent}.
+
     \prologflagitem{file_name_variables}{bool}{rw}
 If \const{true} (default \const{false}), expand \file{\$\arg{varname}}
 and \file{~} in arguments of builtin-predicates that accept a file name
@@ -1022,11 +1038,13 @@ and \file{~} in arguments of builtin-predicates that accept a file name
 expand_file_name/2 should be used to expand environment variables
 and wildcard patterns. This prolog-flag is intended for backward
 compatibility with older versions of SWI-Prolog.
+
     \prologflagitem{unix}{bool}{r}
 \index{unix}%
 If {\tt true}, the operating system is some version of Unix.  Defined
 if the C-compiler used to compile this version of SWI-Prolog either
 defines \verb$__unix__$ or \const{unix}.
+
     \prologflagitem{windows}{bool}{r}
 \index{windows}%
 If {\tt true}, the operating system is an implementation of Microsoft

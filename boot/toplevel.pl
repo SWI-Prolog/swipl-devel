@@ -28,7 +28,7 @@
 	loaded_init_file/1.		% already loaded init files
 
 $welcome :-
-	print_message(help, welcome).
+	print_message(banner, welcome).
 
 $load_init_file(none) :- !.
 $load_init_file(Base) :-

@@ -569,6 +569,10 @@ print_message(Level, Term) :-
 %	source-location and should therefore not be handled this way.
 
 print_system_message(_, silent, _) :- !.
+print_system_message(_, informational, _) :-
+	current_prolog_flag(verbose, silent), !.
+print_system_message(_, banner, _) :-
+	current_prolog_flag(verbose, silent), !.
 print_system_message(Term, Level, Lines) :-
 	source_location(File, Line),
 	Term \= error(syntax_error(_), _),
@@ -588,6 +592,7 @@ prefix(query,	      '',          user_error).
 prefix(debug,	      '',          user_output).
 prefix(warning,	      'Warning: ', user_error).
 prefix(error,	      'ERROR: ',   user_error).
+prefix(banner,	      '',	   user_error).
 prefix(informational, '% ',        user_error).
 
 %	print_message_lines(+Stream, +Prefix, +Lines)

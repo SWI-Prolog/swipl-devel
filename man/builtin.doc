@@ -985,9 +985,14 @@ messages or make something happen in addition to printing the message.
     \predicate{print_message}{2}{+Kind, +Term}
 The predicate print_message/2 is used to print messages, notably from
 exceptions in a human-readable format. \arg{Kind} is one of
-\const{informational}, \const{warning}, \const{error}, \const{help} or
-\const{silent}. A human-readable message is printed to the stream
-\const{user_error}.
+\const{informational}, \const{banner}, \const{warning}, \const{error},
+\const{help} or \const{silent}. A human-readable message is printed to
+the stream \const{user_error}.
+
+\index{silent}\index{quiet}%
+If the prolog flag (see current_prolog_flag/2) \const{verbose} is
+\const{silent}, messages with \arg{Kind} \const{informational},
+or \const{banner} are treated as silent.  See \cmdlineoption{-q}.
 
 This predicate first translates the \arg{Term} into a list of
 `message lines' (see print_message_lines/3 for details).  Next it will

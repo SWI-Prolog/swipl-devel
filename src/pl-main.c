@@ -405,7 +405,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 			break;
 	case 'b':	GD->bootsession = TRUE;
 			break;
-	case 'q':	defFeature("verbose", FT_ATOM, "silent");
+	case 'q':	GD->options.silent = TRUE;
 			break;
 	case 'L':
 	case 'G':
@@ -841,6 +841,7 @@ usage()
     "    -F file          System Initialisation file\n",
     "    [+/-]tty         Allow tty control\n",
     "    -O               Optimised compilation\n",
+    "    -q               Quiet operation\n",
     NULL
   };
   const cline *lp = lines;
