@@ -414,6 +414,16 @@ test(decimal) :-
 	odbc_query(test, 'select * from test', row('17.45')),
 	progress(' OK!~n', []).
 
+		 /*******************************
+		 *	       META		*
+		 *******************************/
+
+tcolumns :-
+	open_db,
+	make_mark_table,
+	findall(X, odbc_table_column(test, marks, X), List),
+	List = [name, mark].
+
 
 		 /*******************************
 		 *	     FEEDBACK		*
