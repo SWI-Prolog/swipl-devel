@@ -86,6 +86,7 @@ indexed_directory(Dir) :-
 indexed_directory(Dir) :-
 	absolute_file_name(library('MKINDEX'),
 			   [ file_type(prolog),
+			     access(read),
 			     solutions(all),
 			     file_errors(fail)
 			   ], MkIndexFile),
