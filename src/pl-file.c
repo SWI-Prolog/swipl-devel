@@ -3365,27 +3365,35 @@ pl_copy_stream_data3(term_t in, term_t out, term_t len)
   IOSTREAM *i, *o;
   int c;
 
-  if ( !getInputStream(in, &i) ||
-       !getOutputStream(out, &o) )
+  if ( !getInputStream(in, &i) )
     return FALSE;
+  if ( !getOutputStream(out, &o) )
+  { releaseStream(i);
+    return FALSE;
+  }
 
   if ( !len )
   { while ( (c = Sgetc(i)) != EOF )
     { if ( Sputc(c, o) < 0 )
+      { releaseStream(i);
 	return streamStatus(o);
+      }
     }
   } else
   { long n;
 
-    if ( !PL_get_long(len, &n) )
-      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, len);
+    if ( !PL_get_long_ex(len, &n) )
+      fail;
     
     while ( n-- > 0 && (c = Sgetc(i)) != EOF )
     { if ( Sputc(c, o) < 0 )
+      { releaseStream(i);
 	return streamStatus(o);
+      }
     }
   }
 
+  releaseStream(o);
   return streamStatus(i);
 }
 

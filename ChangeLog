@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: copy_stream_data/[2,3] locking problem.
+
   * FIXED: call_cleanup/[2,3] to pass exceptions properly
 
   * ADDED: thread_detach/1.
