@@ -20,8 +20,8 @@ status		makeClassCircle(Class class);
 Int		getRedColour(Colour c);
 Int		getGreenColour(Colour c);
 Int		getBlueColour(Colour c);
-Colour		getHiliteColour(Colour c);
-Colour		getReduceColour(Colour c);
+Colour		getHiliteColour(Colour c, Real h);
+Colour		getReduceColour(Colour c, Real r);
 status		makeClassColour(Class class);
 
 /* ../src/gra/connection.c */

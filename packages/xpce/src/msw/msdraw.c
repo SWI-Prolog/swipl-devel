@@ -1527,7 +1527,7 @@ r_elevation_relief(Elevation e)
   { Any bg = context.background;
 
     if ( instanceOfObject(bg, ClassColour) && context.depth != 1 )
-      return getHiliteColour(bg);
+      return getHiliteColour(bg, DEFAULT);
     else
       return WHITE_COLOUR;
   } else
@@ -1580,9 +1580,9 @@ r_elevation_fillpattern(Elevation e, int up)
 
     if ( instanceOfObject(bg, ClassColour) && context.depth != 1 )
     { if ( fill == NAME_reduced )
-	fill = getReduceColour(bg);
+	fill = getReduceColour(bg, DEFAULT);
       else
-	fill = getHiliteColour(bg);
+	fill = getHiliteColour(bg, DEFAULT);
     } else
       fail;
   }

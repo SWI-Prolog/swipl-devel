@@ -205,26 +205,31 @@ RedrawAreaTab(Tab t, Area a)
 { int x, y, w, h;
   Elevation e = getClassVariableValueObject(t, NAME_elevation);
   int lh      = valInt(t->label_size->h);
-  int lw      = valInt(t->label_size->w);
+  int lw      = valInt(t->label_size->w)-1;
   int loff    = valInt(t->label_offset);
   int eh      = valInt(e->height);
   int ex      = valInt(getExFont(t->label_font));
+  int r       = 1;			/* radius of label corners */
 
   initialiseDeviceGraphical(t, &x, &y, &w, &h);
+  w -= 1;
+  h -= 1;
 
   if ( t->status == NAME_onTop )
-  { ipoint pts[8];
+  { ipoint pts[10];
     IPoint p = pts;
     
     if ( loff == 0 )
-    { GOTO(p, x, y);
+    { GOTO(p, x, y+r);			/* top-left of label */
     } else
-    { GOTO(p, x, y+lh);
+    { GOTO(p, x, y+lh);			/* top-left of contents */
       RMOVE(p, loff, 0);
-      RMOVE(p, 0, -lh);
+      RMOVE(p, 0, -lh+r);			/* top-left of label */
     }
-    RMOVE(p, lw, 0);
-    RMOVE(p, 0, lh);
+    RMOVE(p, r, -r);
+    RMOVE(p, lw-2*r, 0);		/* top-right of label */
+    RMOVE(p, r, r);
+    RMOVE(p, 0, lh-r);
     GOTO(p, x+w, y+lh);
     RMOVE(p, 0, h-lh);
     RMOVE(p, -w, 0);
@@ -256,13 +261,24 @@ RedrawAreaTab(Tab t, Area a)
       assign(a, y, ay);
     }
   } else /* if ( t->status == NAME_hidden ) */
-  { ipoint pts[4];
+  { ipoint pts[6];
     IPoint p = pts;
+    Colour obg = r_background(DEFAULT);
+    static Real dot9;
 
-    GOTO(p, x+loff, y+lh);
-    RMOVE(p, 0, -lh);
-    RMOVE(p, lw, 0);
-    RMOVE(p, 0, lh);
+    if ( !dot9 )
+    { dot9 = CtoReal(0.9);
+      lockObject(dot9, ON);
+    }
+
+    r_fill(x+loff+1, y+2, lw-1, lh-2, getReduceColour(obg, dot9));
+
+    GOTO(p, x+loff, y+lh);		/* bottom-left */
+    RMOVE(p, 0, -lh+r+1);		/* top-left */
+    RMOVE(p, r, -r);
+    RMOVE(p, lw-2*r, 0);		/* top-right */
+    RMOVE(p, r, r);
+    RMOVE(p, 0, lh-r-2);		/* bottom-right */
 
     r_3d_rectangular_polygon(p-pts, pts, e, DRAW_3D_FILLED);
 
@@ -437,7 +453,7 @@ static classvardecl rc_tab[] =
      "Font used to display the label"),
   RC(NAME_labelFormat, "{left,center,right}", "left",
      "Alignment of label in box"),
-  RC(NAME_labelSize, "size", "size(80, 20)",
+  RC(NAME_labelSize, "size", "size(50, 20)",
      "Size of box for label")
 };
 

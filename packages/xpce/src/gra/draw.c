@@ -39,25 +39,19 @@ r_3d_rectangular_polygon(int n, IPoint pts, Elevation e, int flags)
 	further.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define D_RIGHT	0
-#define D_UP	1
-#define D_LEFT	2
-#define D_DOWN  3
+#define LIGHT  1
+#define DARK  -1
 
-static int
-direction(ISegment s)
-{ if ( s->x1 == s->x2 )
-  { if ( s->y2 > s->y1 )
-      return D_DOWN;
-    else
-      return D_UP;
-  } else
-  { if ( s->x2 > s->x1 )
-      return D_RIGHT;
-    else
-      return D_LEFT;
-  }
-}
+typedef struct
+{ signed char dx, dy;
+  signed char dlight;
+} edge;
+
+static const edge edges[3][3] =
+{ { { 0,  0,LIGHT}, { 0, 0, LIGHT}, { 0, 0, LIGHT} },
+  { { 0,  0,DARK},  { 0, 0, DARK},  { 0, 0, LIGHT} },
+  { { 0,  0,DARK},  {-1, 0, DARK},  {-1, 0, DARK} }
+};
 
 
 void
@@ -73,6 +67,7 @@ r_3d_rectangular_polygon(int n, IPoint pts, Elevation e, int flags)
   if ( h )
   { ISegment dark  = (ISegment)alloca(sizeof(isegment) * n * h);
     ISegment light = (ISegment)alloca(sizeof(isegment) * n * h);
+    ISegment last  = NULL;
     int ndark = 0, nlight = 0;
     int m;
     IPoint p1, p2;
@@ -82,6 +77,8 @@ r_3d_rectangular_polygon(int n, IPoint pts, Elevation e, int flags)
 
       for(p1 = pts, p2 = p1+1, i=0; i<n; i++, p1++, p2++)
       { isegment s;
+	int dx, dy;
+	const edge *e;
   
 	if ( i == n-1 )
 	  p2 = pts;			/* closing line */
@@ -91,41 +88,26 @@ r_3d_rectangular_polygon(int n, IPoint pts, Elevation e, int flags)
 	s.x2 = p2->x;
 	s.y2 = p2->y;
   
-	switch(direction(&s))
-	{ case D_RIGHT:
-	    p1->y++;
-	    p2->y++;
-	    goto addlight;
-	  case D_UP:
-	    p1->x++;
-	    p2->x++;
-	  addlight:
-	    if ( i < n-1 || (flags & DRAW_3D_CLOSED) )
-	    { if ( up )
-		light[nlight++] = s;
-	      else
-		dark[ndark++] = s;
-	    }
-	    break;
-	  case D_DOWN:
-	    s.x1--;			/* draw at inside */
-	    s.x2--;
-	    p1->x--;
-	    p2->x--;
-	    goto adddark;
-	  case D_LEFT:
-	  default:
-	    s.y1--;			/* draw at inside */
-	    s.y2--;
-	    p1->y--;
-	    p2->y--;
-	  adddark:
-	    if ( i < n-1 || (flags & DRAW_3D_CLOSED) )
-	    { if ( up )
-		dark[ndark++] = s;
-	      else
-		light[nlight++] = s;
-	    }
+	dx = s.x2 - s.x1;
+	dy = s.y2 - s.y1;
+
+	dx = (dx < 0 ? 0 : dx > 0 ? 2 : 1);	/* 0: < 0, 1: ==0, 2: > 0 */
+	dy = (dy < 0 ? 0 : dy > 0 ? 2 : 1);
+	e = &edges[dy][dx];
+
+	DEBUG(NAME_path,
+	      Cprintf("edge %d (%d,%d->%d,%d): dx=%d, dy=%d, dlight=%d\n",
+		      i, p1->x, p1->y, p2->x, p2->y,
+		      dx, dy, e->dlight));
+
+	if ( i < n-1 || (flags & DRAW_3D_CLOSED) )
+	{ if ( (up && e->dlight == LIGHT) ||
+	       (!up && e->dlight == DARK) )
+	    last = &light[nlight++];
+	  else
+	    last = &dark[ndark++];
+
+	  *last = s;
 	}
       }
     }

@@ -2360,3 +2360,4 @@
 #define NAME_yref (&builtin_names[2359])
 #define NAME_yrefVar (&builtin_names[2360])
 #define NAME_zoom (&builtin_names[2361])
+#define NAME_associates (&builtin_names[2362])

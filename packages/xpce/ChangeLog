@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* MODIFIED: class tab/tab_stack: nicer visualisation of top/hidden tab.
+
+* ADDED: `colour<-hilite' and `colour<-reduce': argument to say how much.
+
 * FIXED: `frame->set' on Windows to handle X and Y properly.  Reported by
   Ron Seljee.
 

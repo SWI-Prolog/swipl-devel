@@ -1221,7 +1221,7 @@ r_elevation_shadow(Elevation e)
   { Any bg = context.gcs->background;
 
     if ( instanceOfObject(bg, ClassColour) && context.gcs->depth != 1 )
-      return getReduceColour(bg);
+      return getReduceColour(bg, DEFAULT);
     else
       return BLACK_COLOUR;
   } else
@@ -1235,7 +1235,7 @@ r_elevation_relief(Elevation e)
   { Any bg = context.gcs->background;
 
     if ( instanceOfObject(bg, ClassColour) && context.gcs->depth != 1 )
-      return getHiliteColour(bg);
+      return getHiliteColour(bg, DEFAULT);
     else
       return WHITE_COLOUR;
   } else
@@ -1285,9 +1285,9 @@ r_elevation_fillpattern(Elevation e, int up)
 
     if ( instanceOfObject(bg, ClassColour) && context.gcs->depth != 1 )
     { if ( fill == NAME_reduced )
-	fill = getReduceColour(bg);
+	fill = getReduceColour(bg, DEFAULT);
       else
-	fill = getHiliteColour(bg);
+	fill = getHiliteColour(bg, DEFAULT);
     } else
       fail;
   }

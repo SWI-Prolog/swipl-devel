@@ -340,19 +340,41 @@ getValueColour(Colour c)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+We store derived colours in a chain  associated with the main colour, so
+they remain in existence as long as the main colour.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static Colour
+associateColour(Colour c, Int r, Int g, Int b)
+{ Name name;
+  Colour c2;
+  Chain ch;
+
+  name = defcolourname(r, g, b);
+  if ( !(c2=getMemberHashTable(ColourTable, name)) )
+    c2 = newObject(ClassColour, name, r, g, b, EAV);
+
+  if ( !(ch=getAttributeObject(c, NAME_associates)) )
+    attributeObject(c, NAME_associates, newObject(ClassChain, c2, EAV));
+  else
+    addChain(ch, c2);
+
+  answer(c2);
+}
+
+
+
 Colour
-getHiliteColour(Colour c)
-{ Colour c2;
-  int r, g, b;
-  Name n2;
-  Real h;
+getHiliteColour(Colour c, Real h)
+{ int r, g, b;
   float hf;
 
-  if ( (c2 = getAttributeObject(c, NAME_hilite)) )
-    answer(c2);
-  h  = getClassVariableValueObject(c, NAME_hiliteFactor);
-  hf = h ? valReal(h) : 0.5;
-  if ( isDefault(c->green) )
+  if ( isDefault(h) )
+    h = getClassVariableValueObject(c, NAME_hiliteFactor);
+  hf = h ? valReal(h) : 0.9;
+
+  if ( isDefault(c->green) )		/* realise the colour */
     getXrefObject(c, CurrentDisplay(NIL));
   
   r = valInt(c->red);
@@ -363,28 +385,20 @@ getHiliteColour(Colour c)
   g = g + (int)((float)(65535 - g) * hf);
   b = b + (int)((float)(65535 - b) * hf);
   
-  n2 = getAppendName(CtoName("hilited_"), c->name);
-  c2 = newObject(ClassColour, n2, toInt(r), toInt(g), toInt(b), EAV);
-  attributeObject(c, NAME_hilite, c2);
-
-  answer(c2);
+  return associateColour(c, toInt(r), toInt(g), toInt(b));
 }
 
 
 Colour
-getReduceColour(Colour c)
-{ Colour c2;
-  int r, g, b;
-  Name n2;
-  Real rfactor;
+getReduceColour(Colour c, Real re)
+{ int r, g, b;
   float rf;
 
-  if ( (c2 = getAttributeObject(c, NAME_reduce)) )
-    answer(c2);
-  rfactor = getClassVariableValueObject(c, NAME_reduceFactor);
-  rf = rfactor ? valReal(rfactor) : 0.5;
-  DEBUG(NAME_reduce, Cprintf("reduceFactor = %f\n", rf));
-  if ( isDefault(c->green) )
+  if ( isDefault(re) )
+    re = getClassVariableValueObject(c, NAME_reduceFactor);
+  rf = re ? valReal(re) : 0.6;
+
+  if ( isDefault(c->green) )		/* realise the colour */
     getXrefObject(c, CurrentDisplay(NIL));
   
   r = valInt(c->red);
@@ -395,11 +409,7 @@ getReduceColour(Colour c)
   g = (int)((float)g * rf);
   b = (int)((float)b * rf);
 
-  n2 = getAppendName(CtoName("reduced_"), c->name);
-  c2 = newObject(ClassColour, n2, toInt(r), toInt(g), toInt(b), EAV);
-  attributeObject(c, NAME_reduce, c2);
-
-  answer(c2);
+  return associateColour(c, toInt(r), toInt(g), toInt(b));
 }
 
 
@@ -465,9 +475,9 @@ static senddecl send_colour[] =
 /* Get Methods */
 
 static getdecl get_colour[] =
-{ GM(NAME_hilite, 0, "colour", NULL, getHiliteColour,
+{ GM(NAME_hilite, 1, "colour", "factor=[0.0..1.0]", getHiliteColour,
      NAME_3d, "Hilited version of the colour"),
-  GM(NAME_reduce, 0, "colour", NULL, getReduceColour,
+  GM(NAME_reduce, 1, "colour", "factor=[0.0..1.0]", getReduceColour,
      NAME_3d, "Reduced version of the colour"),
   GM(NAME_convert, 1, "colour", "name", getConvertColour,
      NAME_conversion, "Convert X-colour name"),
@@ -489,9 +499,9 @@ static getdecl get_colour[] =
 
 static classvardecl rc_colour[] =
 { RC(NAME_hiliteFactor, "real", "0.9",
-     "Factor for <-hilite'd colour"),
+     "Default factor for <-hilite'd colour"),
   RC(NAME_reduceFactor, "real", "0.6",
-     "Factor for <-reduce'd colour")
+     "Default factor for <-reduce'd colour")
 };
 
 /* Class Declaration */
