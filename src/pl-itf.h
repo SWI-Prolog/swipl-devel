@@ -11,7 +11,7 @@
 #define PL_INCLUDED
 
 #ifndef PLVERSION
-#define PLVERSION "1.9.0 June 1994"
+#define PLVERSION "1.9.1 October 1994"
 #endif
 
 #if __GNUC__ && !__STRICT_ANSI__
@@ -143,11 +143,7 @@ extern int	 		PL_foreign_control(long);
 extern foreign_t		_PL_retry(long);
 extern foreign_t		_PL_retry_address(void *);
 extern long	 		PL_foreign_context(long);
-#ifdef __STDC__
 extern void *	 		PL_foreign_context_address(long);
-#else
-extern char *	 		PL_foreign_context_address(long);
-#endif
 
 		/********************************
 		*      REGISTERING FOREIGNS     *

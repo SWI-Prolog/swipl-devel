@@ -37,6 +37,9 @@
 #define IS_DIR_SEPARATOR(c)	((c) == '\\' || (c) == '/')
 #define DESCRIPTOR_TABLE_SIZE	20
 
+			/* Windows interprocess stuff */
+#define O_DDE			1
+
 			/* terminal driver */
 #define O_TERMIOS 		0	/* Won't work!  Update! */
 #define O_READLINE		1

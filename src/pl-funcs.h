@@ -321,6 +321,13 @@ word		pl_open_shared_object(Word file, Word plhandle),
 		pl_call_shared_object_function(Word plhandle, Word name);
 #endif /*O_DLOPEN*/
 
+#if O_DDE
+		/* pl-dde.c */
+word		pl_open_dde(Word service, Word topic, Word handle);
+word		pl_close_dde(Word handle);
+word		pl_dde_request(Word handle, Word item, Word value);
+#endif
+
 		/* pl-main.c */
 
 bool		sysError(char *fm , ...),

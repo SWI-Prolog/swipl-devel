@@ -251,6 +251,12 @@ static struct foreign {
 							TRANSPARENT|TRACE_ME),
 #endif /*O_DLOPEN*/
 
+#if O_DDE
+  ADD("open_dde_conversation",	3, pl_open_dde_conversation,	TRACE_ME),
+  ADD("close_dde_conversation",	1, pl_close_dde_conversation,	TRACE_ME),
+  ADD("dde_request",		3, pl_dde_request,		TRACE_ME),
+#endif
+
 #if O_STRING
   ADD("string",			1, pl_string,			TRACE_ME),
   ADD("string_length",		2, pl_string_length,		TRACE_ME),
