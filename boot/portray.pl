@@ -25,6 +25,12 @@ $portray_variable($$VAR(Name)) :-
 $portray_variable($$VAR(N)) :-
 	$varname(N, Name), 
 	format('~s', [Name]).
+$portray_variable($VAR(Name)) :-	% QP compatibility
+	atom(Name), !,
+	format('~w', [Name]).
+$portray_variable($VAR(N)) :-
+	$varname(N, Name), 
+	format('~s', [Name]).
 
 $varname(N, [C]) :-
 	N < 26, !, 
