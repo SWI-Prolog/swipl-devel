@@ -28,9 +28,6 @@ goal_expansion(F, T) :- rew_goal_expansion(F, T).
 rdf_name_space('http://www.w3.org/1999/02/22-rdf-syntax-ns#').
 rdf_name_space('http://www.w3.org/TR/REC-rdf-syntax').
 
-:- dynamic
-	base_uri/1.
-
 %	xml_to_rdf(+RDFElementOrObject, +BaseURI, -RDFTerm)
 %
 %	Translate an XML (using namespaces) term into an Prolog term
@@ -41,75 +38,71 @@ rdf_name_space('http://www.w3.org/TR/REC-rdf-syntax').
 
 
 xml_to_plrdf(element(_:'RDF', _, Objects), BaseURI, RDF) :- !,
-	asserta(base_uri(BaseURI), Ref),
-	rewrite(\rdf_objects(RDF), Objects),
-	erase(Ref).
+	rewrite(\rdf_objects(RDF, BaseURI), Objects).
 xml_to_plrdf(Objects, BaseURI, RDF) :-
-	asserta(base_uri(BaseURI), Ref),
 	(   is_list(Objects)
-	->  rewrite(\rdf_objects(RDF), Objects)
-	;   rewrite(\rdf_object(RDF), Objects)
-	),
-	erase(Ref).
+	->  rewrite(\rdf_objects(RDF, BaseURI), Objects)
+	;   rewrite(\rdf_object(RDF, BaseURI), Objects)
+	).
 
-rdf_objects([]) ::=
+rdf_objects(_, []) ::=
 	[], !.
-rdf_objects([H|T]) ::=
-	[ \rdf_object_or_error(H)
-	| \rdf_objects(T)
+rdf_objects([H|T], Base) ::=
+	[ \rdf_object_or_error(H, Base)
+	| \rdf_objects(T, Base)
 	].
 
-rdf_object_or_error(H) ::=
-	\rdf_object(H), !.
-rdf_object_or_error(unparsed(Data)) ::=
+rdf_object_or_error(H, Base) ::=
+	\rdf_object(H, Base), !.
+rdf_object_or_error(_, unparsed(Data)) ::=
 	Data.
 
-rdf_object(container(Type, Id, Elements)) ::=
-	\container(Type, Id, Elements), !.
-rdf_object(description(Type, About, BagID, Properties)) ::=
-	\description(Type, About, BagID, Properties).
+rdf_object(container(Type, Id, Elements), Base) ::=
+	\container(Type, Id, Elements, Base), !.
+rdf_object(description(Type, About, BagID, Properties), Base) ::=
+	\description(Type, About, BagID, Properties, Base).
 
 
 		 /*******************************
 		 *	    DESCRIPTION		*
 		 *******************************/
 
-description(description, About, BagID, Properties) ::=
+description(description, About, BagID, Properties, Base) ::=
 	element(\rdf('Description'),
-		\attrs([ \?idAboutAttr(About),
-			 \?bagIdAttr(BagID)
-		       | \propAttrs(PropAttrs)
+		\attrs([ \?idAboutAttr(About, Base),
+			 \?bagIdAttr(BagID, Base)
+		       | \propAttrs(PropAttrs, Base)
 		       ]),
-		\propertyElts(PropElts)),
+		\propertyElts(PropElts, Base)),
 	{ !, append(PropAttrs, PropElts, Properties)
 	}.
-description(Type, About, BagID, Properties) ::=
+description(Type, About, BagID, Properties, Base) ::=
 	element(Type,
-		\attrs([ \?idAboutAttr(About),
-			 \?bagIdAttr(BagID)
-		       | \propAttrs(PropAttrs)
+		\attrs([ \?idAboutAttr(About, Base),
+			 \?bagIdAttr(BagID, Base)
+		       | \propAttrs(PropAttrs, Base)
 		       ]),
-		\propertyElts(PropElts)),
+		\propertyElts(PropElts, Base)),
 	{ append(PropAttrs, PropElts, Properties)
 	}.
 		
-propAttrs([]) ::=
+propAttrs([], _) ::=
 	[], !.
-propAttrs([H|T]) ::=
-	[ \propAttr(H)
-	| \propAttrs(T)
+propAttrs([H|T], Base) ::=
+	[ \propAttr(H, Base)
+	| \propAttrs(T, Base)
 	].
 
-propAttr(rdf:type = URI) ::=
-	\rdf_or_unqualified(type) = \uri(URI), !.
-propAttr(Name = literal(Value)) ::=
+propAttr(rdf:type = URI, Base) ::=
+	\rdf_or_unqualified(type) = \uri(URI, Base), !.
+propAttr(Name = literal(Value), _) ::=
 	Name = Value.
 
-propertyElts([]) ::=
+propertyElts([], _) ::=
 	[], !.
-propertyElts([H|T]) ::=
-	[ \propertyElt(Id, Name, Value)
-	| \propertyElts(T)
+propertyElts([H|T], Base) ::=
+	[ \propertyElt(Id, Name, Value, Base)
+	| \propertyElts(T, Base)
 	],
 	{ mkprop(Name, Value, Prop),
 	  (   var(Id)
@@ -123,76 +116,76 @@ mkprop(NS:Local, Value, rdf:Local = Value) :-
 mkprop(Name, Value, Name = Value).
 
 
-propertyElt(Id, Name, literal(Value)) ::=
+propertyElt(Id, Name, literal(Value), Base) ::=
 	element(Name,
 		\attrs([ \parseLiteral,
-			 \?idAttr(Id)
+			 \?idAttr(Id, Base)
 		       ]),
 		Value), !.
-propertyElt(_, Name, description(description, Id, _, Properties)) ::=
+propertyElt(_, Name, description(description, Id, _, Properties), Base) ::=
 	element(Name,
 		\attrs([ \parseResource,
-			 \?idTermAttr(Id)
+			 \?idTermAttr(Id, Base)
 		       ]),
-		\propertyElts(Properties)), !.
-propertyElt(Id, Name, literal(Value)) ::=
+		\propertyElts(Properties, Base)), !.
+propertyElt(Id, Name, literal(Value), Base) ::=
 	element(Name,
-		\attrs([ \?idAttr(Id)
+		\attrs([ \?idAttr(Id, Base)
 		       ]),
 		[ Value ]),
 	{ atom(Value), !
 	}.
-propertyElt(Id, Name, Value) ::=
+propertyElt(Id, Name, Value, Base) ::=
 	element(Name,
-		\attrs([ \?idAttr(Id)
+		\attrs([ \?idAttr(Id, Base)
 		       ]),
-		\an_rdf_object(Value)), !.
-propertyElt(_Id, Name, description(description, About, BagID, Properties)) ::=
+		\an_rdf_object(Value, Base)), !.
+propertyElt(_Id, Name, description(description, About, BagID, Properties), Base) ::=
 	element(Name,
-		\attrs([ \?idRefAttr(About),
-			 \?bagIdAttr(BagID)
-		       | \propAttrs(Properties)
+		\attrs([ \?idRefAttr(About, Base),
+			 \?bagIdAttr(BagID, Base)
+		       | \propAttrs(Properties, Base)
 		       ]),
 		[]), !.
-propertyElt(Id, Name, unparsed(Value)) ::=
+propertyElt(Id, Name, unparsed(Value), Base) ::=
 	element(Name,
-		\attrs([ \?idAttr(Id)
+		\attrs([ \?idAttr(Id, Base)
 		       ]),
 		Value).
 
-idTermAttr(id(Id)) ::=
-	\idAttr(Id).
+idTermAttr(id(Id), Base) ::=
+	\idAttr(Id, Base).
 
-idAboutAttr(id(Id)) ::=
-	\idAttr(Id), !.
-idAboutAttr(about(About)) ::=
-	\aboutAttr(About), !.
-idAboutAttr(AboutEach) ::=
-	\aboutEachAttr(AboutEach).
+idAboutAttr(id(Id), Base) ::=
+	\idAttr(Id, Base), !.
+idAboutAttr(about(About), Base) ::=
+	\aboutAttr(About, Base), !.
+idAboutAttr(AboutEach, Base) ::=
+	\aboutEachAttr(AboutEach, Base).
 
-idRefAttr(Id) ::=
-	\idAttr(Id), !.
-idRefAttr(about(URI)) ::=
-	\resourceAttr(URI).
+idRefAttr(Id, Base) ::=
+	\idAttr(Id, Base), !.
+idRefAttr(about(URI), Base) ::=
+	\resourceAttr(URI, Base).
 
 
-%	an_rdf_object(-Object)
+%	an_rdf_object(-Object, +BaseURI)
 %
 %	Deals with an object, but there may be spaces around.  I'm still
 %	not sure where to deal with these.  Best is to ask the XML parser
 %	to get rid of them, So most likely this code will change if this
 %	happens.
 
-an_rdf_object(Object) ::=
-	[ \rdf_object(Object)
+an_rdf_object(Object, Base) ::=
+	[ \rdf_object(Object, Base)
 	], !.
-an_rdf_object(Object) ::=
-	[ \rdf_object(Object),
+an_rdf_object(Object, Base) ::=
+	[ \rdf_object(Object, Base),
 	  \blank
 	], !.
-an_rdf_object(Object) ::=
+an_rdf_object(Object, Base) ::=
 	[ \blank
-	| \an_rdf_object(Object)
+	| \an_rdf_object(Object, Base)
 	].
 
 blank ::=
@@ -212,40 +205,36 @@ all_blank([H|T]) :-
 		 *	   RDF ATTRIBUTES	*
 		 *******************************/
 
-idAttr(Id) ::=
-	\rdf_or_unqualified('ID') = \globalid(Id).
+idAttr(Id, Base) ::=
+	\rdf_or_unqualified('ID') = \globalid(Id, Base).
 
-bagIdAttr(Id) ::=
-	\rdf_or_unqualified(bagID) = \globalid(Id).
+bagIdAttr(Id, Base) ::=
+	\rdf_or_unqualified(bagID) = \globalid(Id, Base).
 
-aboutAttr(About) ::=
-	\rdf_or_unqualified(about) = \uri(About).
+aboutAttr(About, Base) ::=
+	\rdf_or_unqualified(about) = \uri(About, Base).
 
-aboutEachAttr(each(AboutEach)) ::=
-	\rdf_or_unqualified(aboutEach) = \uri(AboutEach), !.
-aboutEachAttr(prefix(Prefix)) ::=
-	\rdf_or_unqualified(aboutEachPrefix) = \uri(Prefix), !.
+aboutEachAttr(each(AboutEach), Base) ::=
+	\rdf_or_unqualified(aboutEach) = \uri(AboutEach, Base), !.
+aboutEachAttr(prefix(Prefix), Base) ::=
+	\rdf_or_unqualified(aboutEachPrefix) = \uri(Prefix, Base), !.
 
-resourceAttr(URI) ::=
-	\rdf_or_unqualified(resource) = \uri(URI).
+resourceAttr(URI, Base) ::=
+	\rdf_or_unqualified(resource) = \uri(URI, Base).
 
 
-uri(URI) ::=
+uri(URI, Base) ::=
 	A,
-	{   (   base_uri(Base)
-	    ->  Base \== []
-	    )
+	{   Base \== []
 	->  canonical_uri(A, Base, URI)
 	;   sub_atom(A, 0, _, _, #)
 	->  sub_atom(A, 1, _, 0, URI)
 	;   URI = A
 	}.
 
-globalid(Id) ::=
+globalid(Id, Base) ::=
 	A,
-	{   (   base_uri(Base)
-	    ->  Base \== []
-	    )
+	{   Base \== []
 	->  concat_atom([Base, A], #, Id)
 	;   sub_atom(A, 0, _, _, #)		% Protege 1.3 -hack
 	->  sub_atom(A, 1, _, 0, Id),
@@ -260,17 +249,17 @@ globalid(Id) ::=
 		 *	     CONTAINERS		*
 		 *******************************/
 
-container(Type, Id, Elements) ::=
+container(Type, Id, Elements, Base) ::=
 	element(\containertype(Type),
-		\attrs([ \?idAttr(Id)
+		\attrs([ \?idAttr(Id, Base)
 		       | \memberAttrs(Elements)
 		       ]),
 		[]), !.
-container(Type, Id, Elements) ::=
+container(Type, Id, Elements, Base) ::=
 	element(\containertype(Type),
-		\attrs([ \?idAttr(Id)
+		\attrs([ \?idAttr(Id, Base)
 		       ]),
-		\memberElts(Elements)).
+		\memberElts(Elements, Base)).
 
 containertype(Type) ::=
 	\rdf(Type),
@@ -281,36 +270,36 @@ containertype('Bag').
 containertype('Seq').
 containertype('Alt').
 
-memberElts([]) ::=
+memberElts([], _) ::=
 	[].
-memberElts([H|T]) ::=
-	[ \memberElt(H)
-	| \memberElts(T)
+memberElts([H|T], Base) ::=
+	[ \memberElt(H, Base)
+	| \memberElts(T, Base)
 	].
 
-memberElt(LI) ::=
-	\referencedItem(LI).
-memberElt(LI) ::=
-	\inlineItem(LI).
+memberElt(LI, Base) ::=
+	\referencedItem(LI, Base).
+memberElt(LI, Base) ::=
+	\inlineItem(LI, Base).
 
-referencedItem(LI) ::=
+referencedItem(LI, Base) ::=
 	element(\rdf_or_unqualified(li),
-		[ \resourceAttr(LI) ],
+		[ \resourceAttr(LI, Base) ],
 		[]).
 
-inlineItem(literal(LI)) ::=
+inlineItem(literal(LI), _Base) ::=
 	element(\rdf_or_unqualified(li),
 		[ \parseLiteral ],
 		LI).
-inlineItem(description(description, _, _, Properties)) ::=
+inlineItem(description(description, _, _, Properties), Base) ::=
 	element(\rdf_or_unqualified(li),
 		[ \parseResource ],
-		\propertyElts(Properties)).
-inlineItem(LI) ::=
+		\propertyElts(Properties, Base)).
+inlineItem(LI, Base) ::=
 	element(\rdf_or_unqualified(li),
 		[],
-		[\rdf_object(LI)]), !.	% inlined object
-inlineItem(literal(LI)) ::=
+		[\rdf_object(LI, Base)]), !.	% inlined object
+inlineItem(literal(LI), _Base) ::=
 	element(\rdf_or_unqualified(li),
 		[],
 		[LI]).			% string value

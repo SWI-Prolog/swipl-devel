@@ -1,3 +1,8 @@
+Oct 28, 2002
+
+  * CLEANUP: pass base-uri as attribute, preparing for xml:base and making
+    the parser ready for multi-threading.
+
 Sep 16, 2002 
 
   * MODIFIED: Allow for unqualified attribute-names
