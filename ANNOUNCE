@@ -1,39 +1,41 @@
-SWI-Prolog 5.2.4/XPCE 6.2.4 stable release
+SWI-Prolog 5.2.5/XPCE 6.2.5 stable release
 
 Status
 ======
   
   * Stable release integrating shared-database multi-threaded execution.
 
-Brief summary of changes since 5.2.3
+Brief summary of changes since 5.2.4
 ====================================
 
 SWI-Prolog
 ----------
 
-  * Fix to call_cleanup/3 if the handler needs to be autoloaded and is
-    called due to an exception.
+  * Serious bug using \+ inside ; or if-then-else causing undefined behaviour
+    (crash/loop/wrong result).
 
-  * Memory leaks in some multi-threaded application cooperation models.
+  * Fixed memory leak in creating and destroying streams.  This notably
+    affects sformat/3, swritef/3, atom_to_term/3 and similar predicates
+    that create a temporary stream and may be called very frequently.
+    Affects MS-Windows version, not Linux.  Other platforms may be affected.
+
+  * Fixed deadlock in see/1 if the file does not exist.
+
+  * Portability issues: platforms that do not support the profiler, platforms
+    that require the stack-shifter.  Fixed Solaris detection of profiler
+    capabilities.
 
 Packages
 --------
 
-  * XML parser: fixes for handling character entities > 255 and UTF-8
-    sequences > 255.
-
+  * XPCE: fix to process->close (could crash in Unix/X11 version).
 
 Development environment
 -----------------------
 
-  * Fix to the profiler (leading to very large overhead and memory usage).
+  * Improved exception handling in the graphical debugger.
 
-  * Allow for extending the profiler with data from foreign libraries that
-    have a notion of `executable code'.  Used with XPCE to incorporate
-    individual methods into the profiler.
-
-  * Fix to source-level debugger avoiding unnecessary use of decompiled
-    code as well as printing improper lists in the variable-details window.
+  * Fixed some minor problems
 
 
 INCOMPATIBILITIES
