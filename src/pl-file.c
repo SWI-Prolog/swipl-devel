@@ -1235,14 +1235,19 @@ pl_set_stream(term_t stream, term_t attr)
 	else if ( val == ATOM_prolog )
 	  set(s, SIO_REPPL);
 	else
-	  return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-			  ATOM_representation_errors, a);
+	{ PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		   ATOM_representation_errors, a);
+	  goto error;
+	}
+	goto ok;
       }
     }
   }
 
-  return PL_error("set_stream", 2, NULL, ERR_TYPE,
-		  PL_new_atom("stream_attribute"), attr);
+  PL_error("set_stream", 2, NULL, ERR_TYPE,
+	   PL_new_atom("stream_attribute"), attr);
+  goto error;
+
 ok:
   releaseStream(s);
   succeed;

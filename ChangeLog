@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#27: set_stream_property/2 for representation errors.  
+    Jiri Spitz.
+
 VERSION 5.5.11 (March 15, 2005)
 ===============================
 
