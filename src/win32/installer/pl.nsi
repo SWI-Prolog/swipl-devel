@@ -312,12 +312,12 @@ SectionEnd
 
 Section "Update library index"
   SectionIn RO			# do not allow to delete this
-  ExecWait '"$INSTDIR\bin\plwin.exe" -g "make_library_index(swi(library)),halt"'
+  ExecWait '"$INSTDIR\bin\plwin.exe" -f none -g "make_library_index(swi(library)),halt"'
 SectionEnd
 
 Section "Precompiled libraries"
   SectionIn RO			# do not allow to delete this
-  ExecWait '"$INSTDIR\bin\plwin.exe" -g wise_install_xpce,halt'
+  ExecWait '"$INSTDIR\bin\plwin.exe" -f none -g wise_install_xpce,halt'
 SectionEnd
 
 ################################################################
