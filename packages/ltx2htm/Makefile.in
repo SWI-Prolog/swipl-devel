@@ -84,5 +84,4 @@ clean:
 	rm -f *% *~ $(OBJ) tex.@SO@ latex2html
 
 distclean: clean
- 
 	rm -f Makefile config.log config.status config.h
