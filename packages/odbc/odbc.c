@@ -168,6 +168,12 @@ typedef struct
   int references;			/* reference count */
 } nulldef;				/* Prolog's representation of NULL */
 
+typedef struct
+{ int references;			/* reference count */
+  unsigned flags;			/* misc flags */
+  code     codes[1];			/* executable code */
+} findall;
+
 typedef struct connection
 { long	       magic;			/* magic code */
   atom_t       alias;			/* alias name of the connection */
@@ -193,7 +199,7 @@ typedef struct
   char        *sqltext;			/* statement text */
   unsigned     flags;			/* general flags */
   nulldef     *null;			/* Prolog null value */
-  code	      *make_result;		/* compiled code to create result */
+  findall     *findall;			/* compiled code to create result */
   struct context *clones;		/* chain of clones */
 } context;
 
@@ -213,6 +219,9 @@ static struct
 #define CTX_OWNNULL	0x0010		/* null-definition is not shared */
 #define CTX_SOURCE	0x0020		/* include source of results */
 #define CTX_SILENT	0x0040		/* don't produce messages */
+
+#define FND_SIZE(n)	((int)&((findall*)NULL)->codes[n])
+
 
 #define true(s, f)	((s)->flags & (f))
 #define false(s, f)	!true(s, f)
@@ -622,6 +631,7 @@ typedef struct
 { term_t row;				/* the row */
   term_t tmp;				/* scratch term */
   int columns;				/* arity of row-term */
+  unsigned flags;			/* CTX_PERSISTENT */
   int  size;				/* # codes */
   code buf[MAXCODES];
 } compile_info;
@@ -643,8 +653,14 @@ nth_row_arg(compile_info *info, term_t var)
 }
 
 
+typedef union
+{ code   ascode[sizeof(double)/sizeof(code)];
+  double asdouble;
+} u_double;
+
+
 static void
-compile(compile_info *info, term_t t)
+compile_arg(compile_info *info, term_t t)
 { int tt;
 
   switch((tt=PL_term_type(t)))
@@ -661,14 +677,37 @@ compile(compile_info *info, term_t t)
     { atom_t val;
       PL_get_atom(t, &val);
       ADDCODE_1(info, PL_ATOM, val);
+      if ( true(info, CTX_PERSISTENT) )
+	PL_register_atom(val);
       break;
     } 
     case PL_STRING:
     case PL_FLOAT:
-    { term_t cp = PL_copy_term_ref(t);
-      ADDCODE_1(info, PL_TERM, cp);
+      if ( true(info, CTX_PERSISTENT) )
+      { if ( tt == PL_FLOAT )
+	{ u_double v;
+	  int i;
+
+	  PL_get_float(t, &v.asdouble);
+	  ADDCODE(info, PL_FLOAT);
+	  for(i=0; i<sizeof(double)/sizeof(code); i++)
+	    ADDCODE(info, v.ascode[i]);
+	} else				/* string */
+	{ int len;
+	  char *s, *cp;
+
+	  PL_get_string_chars(t, &s, &len);
+	  cp = malloc(len+1);
+	  memcpy(cp, s, len+1);
+	  ADDCODE(info, PL_STRING);
+	  ADDCODE(info, len);
+	  ADDCODE(info, cp);
+	}
+      } else
+      { term_t cp = PL_copy_term_ref(t);
+	ADDCODE_1(info, PL_TERM, cp);
+      }
       break;
-    }
     case PL_INTEGER:
     { long v;
       PL_get_long(t, &v);
@@ -685,7 +724,7 @@ compile(compile_info *info, term_t t)
       ADDCODE_1(info, PL_FUNCTOR, f);
       for(i=1; i<=arity; i++)
       { PL_get_arg(i, t, a);
-	compile(info, a);
+	compile_arg(info, a);
       }
       break;
     }
@@ -695,26 +734,95 @@ compile(compile_info *info, term_t t)
 }
 
 
-static code *
-compile_allspec(term_t all)
+static findall *
+compile_findall(term_t all, unsigned flags)
 { compile_info info; 
   term_t t = PL_new_term_ref();
   atom_t a;
-  code *codes;
+  findall *f;
+  int i;
 
-  info.tmp  = PL_new_term_ref();
-  info.row  = PL_new_term_ref();
-  info.size = 0;
+  info.tmp   = PL_new_term_ref();
+  info.row   = PL_new_term_ref();
+  info.size  = 0;
+  info.flags = flags;
 
-  PL_get_arg(1, all, t);
   PL_get_arg(2, all, info.row);
   PL_get_name_arity(info.row, &a, &info.columns);
-  compile(&info, t);
-  
-  codes = malloc(sizeof(code)*info.size);
-  memcpy(codes, info.buf, sizeof(code)*info.size);
 
-  return codes;
+  for(i=1; i<=info.columns; i++)
+  { PL_get_arg(i, info.row, t);
+    if ( !PL_is_variable(t) )
+    { type_error(t, "unbound");
+      return NULL;
+    }
+  }
+
+  PL_get_arg(1, all, t);
+  compile_arg(&info, t);
+  
+  f = malloc(FND_SIZE(info.size));
+  f->references = 1;
+  f->flags = flags;
+  memcpy(f->codes, info.buf, sizeof(code)*info.size);
+
+  return f;
+}
+
+
+static findall *
+clone_findall(findall *in)
+{ if ( in )
+    in->references++;
+  return in;
+}
+
+
+static code *
+unregister_code(code *PC)
+{ switch((int)*PC++)
+  { case PL_VARIABLE:
+      return PC;
+    case ROW_ARG:			/* 1-based column */
+    case PL_INTEGER:
+    case PL_TERM:
+      return PC+1;
+    case PL_ATOM:
+      PL_unregister_atom((atom_t)*PC++);
+      return PC;
+    case PL_FLOAT:
+      return PC+sizeof(double)/sizeof(code);
+    case PL_STRING:
+    { char *s = (char*)PC[2];
+      free(s);
+      return PC+2;
+    }
+    case PL_FUNCTOR:
+    { functor_t f = (functor_t)*PC++;
+      int i, arity = PL_functor_arity(f);
+
+      for(i=0;i<arity;i++)
+      { if ( !(PC=unregister_code(PC)) )
+	  return NULL;
+      }
+
+      return PC;
+    }
+    default:
+      assert(0);
+      return NULL;
+  }
+}
+
+
+static void
+free_findall(findall *in)
+{ if ( in && --in->references == 0 )
+  { if ( true(in, CTX_PERSISTENT) )
+      unregister_code(in->codes);
+
+    free(in);
+  }
 }
 
 
@@ -731,6 +839,21 @@ build_term(context *ctxt, code *PC, term_t result)
     }
     case PL_ATOM:
     { PL_put_atom(result, (atom_t)*PC++);
+      return PC;
+    }
+    case PL_FLOAT:
+    { u_double v;
+      int i;
+
+      for(i=0; i<sizeof(double)/sizeof(code); i++)
+	v.ascode[i] = *PC++;
+      PL_put_float(result, v.asdouble);
+      return PC;
+    }
+    case PL_STRING:
+    { int len = (int)*PC++;
+      char *s = (char*)*PC++;
+      PL_put_string_nchars(result, len, s);
       return PC;
     }
     case PL_INTEGER:
@@ -759,6 +882,15 @@ build_term(context *ctxt, code *PC, term_t result)
       assert(0);
       return NULL;
   }
+}
+
+
+static int
+put_findall(context *ctxt, term_t result)
+{ if ( build_term(ctxt, ctxt->findall->codes, result) )
+    return TRUE;
+
+  return FALSE;
 }
 
 
@@ -1340,8 +1472,8 @@ free_context(context *ctx)
     free(ctx->sqltext);
   if ( true(ctx, CTX_OWNNULL) )
     free_nulldef(ctx->null);
-  if ( ctx->make_result )		/* TBD: Clone! */
-    free(ctx->make_result);
+  if ( ctx->findall )
+    free_findall(ctx->findall);
   free(ctx);
 
   statistics.statements_freed++;
@@ -1430,7 +1562,8 @@ clone_context(context *in)
     }
   }
 
-  new->null = clone_nulldef(in->null);
+  new->null    = clone_nulldef(in->null);
+  new->findall = clone_findall(in->findall);
 
   return new;
 }
@@ -1579,7 +1712,7 @@ odbc_row(context *ctxt, term_t trow)
     return TRUE;			/* no results defined */
   }
 
-  if ( ctxt->make_result )
+  if ( ctxt->findall )
   { term_t tail = PL_copy_term_ref(trow);
     term_t head = PL_new_term_ref();
     term_t tmp  = PL_new_term_ref();
@@ -1598,7 +1731,7 @@ odbc_row(context *ctxt, term_t trow)
       }
       
       if ( !PL_unify_list(tail, head, tail) ||
-	   !build_term(ctxt, ctxt->make_result, tmp) ||
+	   !put_findall(ctxt, tmp) ||
 	   !PL_unify(head, tmp) )
 	return FALSE;
     }      
@@ -1674,7 +1807,8 @@ set_statement_options(context *ctxt, term_t options)
 	if ( val )
 	  set(ctxt, CTX_SOURCE);
       } else if ( PL_is_functor(head, FUNCTOR_findall2) )
-      { ctxt->make_result = compile_allspec(head);
+      { if ( !(ctxt->findall = compile_findall(head, ctxt->flags)) )
+	  return FALSE;
       } else
 	return domain_error(head, "odbc_option");
     }
@@ -2146,12 +2280,12 @@ odbc_prepare(term_t dsn, term_t sql, term_t parms, term_t qid, term_t options)
     return FALSE;
   }
 
+  ctxt->flags |= CTX_PERSISTENT;
+
   if ( !set_statement_options(ctxt, options) )
   { free_context(ctxt);
     return FALSE;
   }
-
-  ctxt->flags |= CTX_PERSISTENT;
 
   return unifyStmt(qid, ctxt);
 }

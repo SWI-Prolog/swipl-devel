@@ -322,6 +322,12 @@ marks(L) :-
 		   'select * from marks', L,
 		   [findall(mark(X,Y), row(X,Y))]).
 
+with_mark(Mark, L) :-
+	open_db,
+	odbc_query(test,
+		   'select * from marks', L,
+		   [ findall(Name, row(Name, Mark))
+		   ]).
 		 /*******************************
 		 *	     FEEDBACK		*
 		 *******************************/
