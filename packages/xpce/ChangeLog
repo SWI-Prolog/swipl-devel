@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* INSTALL: Properly install swipl.rc in the MacOS version to bind XPCE
+  to the normal Prolog executable swipl.
+
 * FIXED/MODIFIED: `stream <-read_line': timeout argument is now a float
   representing timeout in seconds for compatibility with other time
   specifiers.  Return is now @nil timeout, failure on end-of-input.

@@ -813,7 +813,7 @@ rt-link:
 		cd $(PLBASE); rm -f xpce; ln -s xpce-$(PCEVERSION) xpce
 
 dv-link:	rt-link
-		$(INSTALL_DATA) ../pl/src/plrc $(PLBASE)/pl.rc
+		$(INSTALL_DATA) ../pl/src/plrc $(PLBASE)/$(PL).rc
 		$(INSTALL_DATA) ../pl/src/plrc $(PLBASE)/xpce.rc
 		$(INSTALL_DATA) ../pl/src/Makefile.bin $(PLBASE)/Makefile
 
