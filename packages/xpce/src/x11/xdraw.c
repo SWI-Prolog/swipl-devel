@@ -1044,8 +1044,8 @@ r_box(int x, int y, int w, int h, int r, Any fill)
   if ( mwh == 0 )
     return;
 
-  if ( r > mwh / 2 - pen - 1)
-    r = mwh / 2 - pen - 1;
+  if ( r > mwh / 2 - pen)
+    r = mwh / 2 - pen;
 
   x += drawpen / 2;
   y += drawpen / 2;
@@ -1180,27 +1180,39 @@ r_shadow_box(int x, int y, int w, int h, int r, int shadow, Image fill)
 
 #define MAX_SHADOW 10
 
+Any
+r_elevation_shadow(Elevation e)
+{ if ( isDefault(e->shadow) )
+  { Any bg = context.gcs->background;
+
+    if ( instanceOfObject(bg, ClassColour) && context.gcs->depth != 1 )
+      return getReduceColour(bg);
+    else
+      return BLACK_COLOUR;
+  } else
+    return e->shadow;
+}
+
+
+static Any
+r_elevation_relief(Elevation e)
+{ if ( isDefault(e->relief) )
+  { Any bg = context.gcs->background;
+
+    if ( instanceOfObject(bg, ClassColour) && context.gcs->depth != 1 )
+      return getHiliteColour(bg);
+    else
+      return WHITE_COLOUR;
+  } else
+    return e->relief;
+}
+
+
 static void
 r_elevation(Elevation e)
 { if ( context.gcs->elevation != e )
-  { Any bg = context.gcs->background;
-    Any relief, shadow;
-
-    if ( isDefault(e->relief) )
-    { if ( instanceOfObject(bg, ClassColour) && context.gcs->depth != 1 )
-	relief = getHiliteColour(bg);
-      else
-	relief = WHITE_COLOUR;
-    } else
-      relief = e->relief;
-
-    if ( isDefault(e->shadow) )
-    { if ( instanceOfObject(bg, ClassColour) && context.gcs->depth != 1 )
-	shadow = getReduceColour(bg);
-      else
-	shadow = BLACK_COLOUR;
-    } else
-      shadow = e->shadow;
+  { Any relief = r_elevation_relief(e);
+    Any shadow = r_elevation_shadow(e);
   
     x11_set_gc_foreground(context.pceDisplay, relief,
 			  1, &context.gcs->reliefGC);
