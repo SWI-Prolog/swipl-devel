@@ -263,14 +263,26 @@ only.
 \section{GNU Emacs Interface}
 
 \index{GNU-Emacs}\index{Emacs}
-A provisional interface to \program{emacs} has been included since
-version 1.6 of SWI-Prolog. The interface is based on the freely
-distributed interface delivered with Quintus Prolog. When running Prolog
-as an inferior process under GNU-Emacs, there is support for finding
-predicate definitions, completing atoms, finding the locations of
-compilation-warnings and many more. For details, see the files
-\file{pl/lisp/README} and \file{pl/lisp/swi-prolog.el}. 
+Once upon a time, there was port of the Quintus Prolog GNU-Emacs
+package for GNU-Emacs 18.  This package has been dropped from the
+distribution because it didn't work on Emacs 19 and 20.
 
+The default Prolog mode for GNU-Emacs can be activated by adding
+the following rules to your Emacs initialisation file:
+
+\begin{code}
+(setq auto-mode-alist
+      (append
+       '(("\\.pl" . prolog-mode))
+       auto-mode-alist))
+(setq prolog-program-name "pl")
+(setq prolog-consult-string "[user].\n")
+;If you want this.  Indentation is either poor or I don't use
+;it as intended.
+;(setq prolog-indent-width 8)
+\end{code}
+
+If anyone has a better suggestion, please make this public.
 
 \section{Online Help}
 
@@ -808,6 +820,9 @@ easier for implementing version-conditional statements.
 SWI-Prolog's notion of the home-directory.  SWI-Prolog uses it's home
 directory to find its startup file as \file{<home>/startup/startup.<arch>}
 and to find its library as \file{<home>/library}.
+    \featureoption{executable}{atom}
+Path-name of the running executable.  Used by qsave_program/2 as default
+emulator.
     \featureoption{pipe}{bool}
 If true, tell(pipe(command)), etc.\ are supported.
     \featureoption{load_foreign}{bool}
@@ -817,11 +832,16 @@ If true, open_shared_object/2 and friends are implemented, providing
 access to shared libraries (.so files).  This requires the C-library
 functions dlopen() and friends as well as the configuration option
 {\tt --with-dlopen}.
+    \featureoption{shared_object_extension}{atom}
+Extension used by the operating system for shared objects.  \const{so}
+for most Unix systems and \const{dll} for Windows.  Used for locating
+files using the \const{file_type} \const{executable}.  See also
+absolute_file_name/3.
     \featureoption{dynamic_stacks}{bool}
-If true, the system uses some form of `sparse-memory management' to
-realise the stacks.  If false, malloc()/realloc() are used for the stacks.
-In earlier days this had consequenses for foreign code.  As of version
-2.5, this is no longer the case.
+If \const{true}, the system uses some form of `sparse-memory management'
+to realise the stacks. If false, malloc()/realloc() are used for the
+stacks. In earlier days this had consequenses for foreign code. As of
+version 2.5, this is no longer the case.
 
 Systems using `sparse-memory management' are a bit faster as there is no
 stack-shifter, and checking the stack-boundary is often realised by the

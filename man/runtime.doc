@@ -51,7 +51,7 @@ class	 &		& atom		& If \const{runtime}, only read
 					  resources from the state (default).
 					  If \const{kernel}, lock all
 					  predicates as system predicates
-					  If \const{development}, change the
+					  If \const{development}, save the
 					  predicates in their current state
 					  and keep reading resources from
 					  their source (if present).

@@ -67,7 +67,8 @@ suggest predicates from a keyword.
 \predicatesummary{at_initialization}{1}{Register goal to run at start-up}
 \predicatesummary{atom}{1}{Type check for an atom}
 \predicatesummary{atom_char}{2}{Convert between atom and ASCII value}
-\predicatesummary{atom_chars}{2}{Convert between atom and list of ASCII values}
+\predicatesummary{atom_chars}{2}{Convert between atom and list of characters}
+\predicatesummary{atom_codes}{2}{Convert between atom and list of ASCII values}
 \predicatesummary{atom_length}{2}{Determine length of an atom}
 \predicatesummary{atom_prefix}{2}{Test for start of atom}
 \predicatesummary{atom_to_term}{3}{Convert between atom and term}
@@ -96,7 +97,7 @@ suggest predicates from a keyword.
 \predicatesummary{compare}{3}{Compare, using a predicate to determine the order}
 \predicatesummary{compiling}{0}{Is this a compilation run?}
 \predicatesummary{compound}{1}{Test for compound term}
-\predicatesummary{concat}{3}{Append two atoms}
+\predicatesummary{atom_concat}{3}{Append two atoms}
 \predicatesummary{concat_atom}{2}{Append a list of atoms}
 \predicatesummary{concat_atom}{3}{Append a list of atoms with separator}
 \predicatesummary{consult}{1}{Read (compile) a Prolog source file}
@@ -217,8 +218,6 @@ suggest predicates from a keyword.
 \predicatesummary{listing}{0}{List program in current module}
 \predicatesummary{listing}{1}{List predicate}
 \predicatesummary{load_files}{2}{Load source files with options}
-\predicatesummary{load_foreign}{2}{Load foreign (C) module}
-\predicatesummary{load_foreign}{5}{Load foreign (C) module}
 \predicatesummary{load_foreign_library}{1}{\pllib{shlib} Load shared library (.so file)}
 \predicatesummary{load_foreign_library}{2}{\pllib{shlib} Load shared library (.so file)}
 \predicatesummary{make}{0}{Reconsult all changed source files}

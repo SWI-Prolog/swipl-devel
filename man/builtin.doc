@@ -165,7 +165,7 @@ user:file_search_path(swi, Home) :-
         feature(home, Home).
 user:file_search_path(foreign, swi(ArchLib)) :-
         feature(arch, Arch),
-        concat('lib/', Arch, ArchLib).
+        atom_concat('lib/', Arch, ArchLib).
 user:file_search_path(foreign, swi(lib)).
 \end{code}
 
@@ -1488,7 +1488,7 @@ getwd(Wd) :-
         seeing(Old), see(pipe(pwd)), 
         collect_wd(String), 
         seen, see(Old), 
-        atom_chars(Wd, String).
+        atom_codes(Wd, String).
 
 collect_wd([C|R]) :-
         get0(C), C \== -1, !, 
@@ -2064,19 +2064,41 @@ copy_term(In, Out) :-
 \section{Analysing and Constructing Atoms}
 
 These predicates convert between Prolog constants and lists of ASCII
-values. The predicates atom_chars/2, number_chars/2 and name/2 behave
-the same when converting from a constant to a list of ASCII values. When
-converting the other way around, atom_chars/2 will generate an atom,
-number_chars will generate a number or fail and name/2 will return a
-number if possible and an atom otherwise.
+values. The predicates atom_codes/2, number_chars/2 and name/2
+behave the same when converting from a constant to a list of ASCII
+values. When converting the other way around, atom_codes/2 will
+generate an atom, number_chars/2 will generate a number or fail and
+name/2 will return a number if possible and an atom otherwise.
+
+The ISO standard defines atom_chars/2 to describe the `broken-up'
+atom as a list of one-character atoms instead of a list of codes.  Upto
+version 3.2.x, SWI-Prolog's atom_chars/2 behaved, compatible to
+Quintus and SICStus Prolog, like atom_codes.  As of 3.3.x SWI-Prolog
+atom_codes/2 and atom_chars/2 are compliant to the ISO standard.
+
+To ease the pain of all variations in the Prolog community, all
+SWI-Prolog predicates behave as flexible as possible.  This implies
+the `list-side' accepts either a code-list or a char-list and the
+`atom-side' accept all atomic types (atom, number and string).
 
 \begin{description}
-\predicate{atom_chars}{2}{?Atom, ?String}
+    \predicate{atom_codes}{2}{?Atom, ?String}
 Convert between an atom and a list of ASCII values.  If \arg{Atom} is
 instantiated, if will be translated into a list of ASCII values and the
 result is unified with \arg{String}. If \arg{Atom} is unbound and \arg{String} is a list of ASCII values, it will \arg{Atom} will be unified
 with an atom constructed from this list.
-\predicate{atom_char}{2}{?Atom, ?ASCII}
+    \predicate{atom_chars}{2}{?Atom, ?CharList}
+As atom_codes/2, but \arg{CharList} is a list of one-character atoms
+rather than a list of ASCII values%
+	\footnote{Upto version 3.2.x, atom_chars/2 behaved as the
+		  current atom_codes/2.  The current definition is
+		  compliant with the ISO standard}.
+\begin{code}
+?- atom_chars(hello, X).
+
+X = [h, e, l, l, o]
+\end{code}
+    \predicate{atom_char}{2}{?Atom, ?ASCII}
 Convert between character and ASCII value for a single character.
 \predicate{number_chars}{2}{?Number, ?String}
 Similar to atom_chars/2, but converts between a number and its
@@ -2112,11 +2134,15 @@ Use \arg{Atom} as input to read_variables/2 and return the read term in
 \arg{Term} and the variable bindings in \arg{Bindings}.  \arg{Bindings}
 is a list of $\arg{Name} = \arg{Var}$ couples, thus providing access to
 the actual variable names.  See also read_variables/2.
-\predicate{concat}{3}{?Atom1, ?Atom2, ?Atom3}
+    \predicate{atom_concat}{3}{?Atom1, ?Atom2, ?Atom3}
 \arg{Atom3} forms the concatenation of \arg{Atom1} and \arg{Atom2}.  At
 least two of the arguments must be instantiated to atoms, integers or
-floating point numbers.
-\predicate{concat_atom}{2}{+List, -Atom}
+floating point numbers.  For ISO compliance, the instantiation-pattern
+\mbox{-, -, +} is allowed too, non-deterministically splitting the 3-th
+argument into two parts (as append/3 does for lists).  Note that, as
+SWI-Prolog does not yet have an atom-garbage collector, using this
+polutes the atom-database.  See also string_concat/3.
+    \predicate{concat_atom}{2}{+List, -Atom}
 \arg{List} is a list of atoms, integers or floating point numbers. Succeeds
 if \arg{Atom} can be unified with the concatenated elements of \arg{List}. If
 \arg{List} has exactly 2 elements it is equivalent to concat/3, allowing

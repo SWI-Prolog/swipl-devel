@@ -62,37 +62,25 @@ Prolog process.%
 \subsection{What linking is provided?}
 
 The \jargon{static linking} schema can be used on all versions of
-SWI-Prolog.  The feature/2 predicate may be used to find out what
-other linking methods are provided for this version.
-
-\begin{itemlist}
-    \item [feature(open_shared_object, true)]
-\index{dlopen}\index{.so files}%
-If this succeeds the system provides the open_shared_object/2 and
-related predicates that allow for handling Unix shared object files
-based on the Unix library functions \manref{dlopen}{2} and friends. See
-\secref{shlib}.
-    \item [feature(dll, true)]
-If this succeeds the system provides an interface for loading \fileext{DLL}
-files by means of open_dll/2 and friends. See \secref{shlib}.
-\end{itemlist}
-
-If either the feature \const{open_shared_object} or \const{dll} is true, the
-library \file{library(shlib)} provides a common interface for loading
-foreign files from Prolog.
-
+SWI-Prolog.  Whether or not dynamic linking is supported can be deduced
+from the feature \const{open_shared_object} (see feature/2).  If this
+feature yields true, open_shared_object/2 and related predicates are
+defined. See \secref{shlib} for a suitable high-level interface to these
+predicates.
 
 \subsection{What kind of loading should I be using?}
 
 All described approaches have their advantages and disadvantages. Static
 linking is portable and allows for debugging on all platforms. It is
 relatively cumbersome and the libraries you need to pass to the linker
-may vary from system to system.
+may vary from system to system, though the utility program
+\program{plld} described in \secref{plld} often hides these problems
+from the user.
 
-Loading shared objects or DLL files provides sharing and protection and
-is generally the best choice. If a saved-state is created using
-qsave_program/[1,2], an initialization/1 directive may be used to load
-the appropriate library at startup.
+Loading shared objects (DLL files on Windows) provides sharing and
+protection and is generally the best choice. If a saved-state is created
+using qsave_program/[1,2], an initialization/1 directive may be used to
+load the appropriate library at startup.
 
 Note that the definition of the foreign predicates is the same, regardless
 of the linking type used.
@@ -101,11 +89,11 @@ of the linking type used.
 \section{Dynamic Linking of shared libraries}
 
 The interface defined in this section allows the user to load shared
-libraries (\fileext{so} files on most Unix systems). This interface is
-portable to all machines providing the function \manref{dlopen}{2} or an
-equivalent, normally from the library \clib{-ldl}. These functions
-provide the basic interface layer. It is advised to use the predicates
-from \secref{shlib} in your application.
+libraries (\fileext{so} files on most Unix systems, \fileext{dll} files
+on Windows). This interface is portable to Windows as well as to Unix
+machines providing \manref{dlopen}{2} (Solaris, Linux, FreeBSD, Irix and
+many more) or \manref{shl_open}{2} (HP/UX). It is advised to use the
+predicates from \secref{shlib} in your application.
 
 
 \begin{description}
@@ -124,7 +112,8 @@ resolved immediately rather than lazy (default). \const{global} implies
 symbols of the loaded object are visible while loading other shared
 objects (by default they are local). Note that these flags may not be
 supported by your operating system. Check the documentation of dlopen()
-or equivalent on your operating system.
+or equivalent on your operating system.  Unsupported flags are silently
+ignored.
 
     \predicate{close_shared_object}{1}{+Handle}
 Detach the shared object identified by \arg{Handle}.
@@ -142,14 +131,12 @@ PL_register_foreign().
                                                          \label{sec:shlib}
 
 This section discusses the functionality of the (autoload) library
-\file{shlib.pl}, providing an interface to shared libraries. Currently
-it supports MS-Windows DLL (\fileext{DLL}) libraries and Unix
-\fileext{so} (shared object) files.
+\file{shlib.pl}, providing an interface to shared libraries.   This
+library can only be used if the feature \const{open_shared_object} is
+enabled.
 
 \begin{description}
-\predicate{load_foreign_library}{1}{+Lib}
-Equivalent to load_foreign_library(Lib, install).
-\predicate{load_foreign_library}{2}{+Lib, +Entry}
+    \predicate{load_foreign_library}{2}{+Lib, +Entry}
 Search for the given foreign library and link it to the current
 SWI-Prolog instance.  The library may be specified with or without the
 extension.  First, absolute_file_name/3 is used to locate the file.  If
@@ -165,13 +152,19 @@ called without arguments. The return value of the function is ignored.
 
 The \arg{Entry} function will normally call PL_register_foreign() to
 declare functions in the library as foreign predicates.
-\predicate{unload_foreign_library}{1}{+Lib}
-If the foreign library defines the function uninstall(), this
-function will be called without arguments and its return value is
-ignored.  Next, abolish/2 is used to remove all known foreign predicates
-defined in the library. Finally the library itself is detached from the
-process.
-\predicate{current_foreign_library}{2}{-Lib, -Predicates}
+    \predicate{load_foreign_library}{1}{+Lib}
+Equivalent to load_foreign_library/2. For the entry-point, this function
+first identifies the `base-name' of the library, which is defined to be
+the file-name with path nor extension.  It will then try the entry-point
+\mbox{\const{install-}<base>}.  On failure it will try to function
+install().  Otherwise no install function will be called.
+    \predicate{unload_foreign_library}{1}{+Lib}
+If the foreign library defines the function uninstall_<base>() or
+uninstall(), this function will be called without arguments and its
+return value is ignored. Next, abolish/2 is used to remove all known
+foreign predicates defined in the library. Finally the library itself is
+detached from the process.
+    \predicate{current_foreign_library}{2}{-Lib, -Predicates}
 Query the currently loaded foreign libraries and their predicates.  {\em
 Predicates} is a list with elements of the form {\em Module:Head},
 indicating the predicates installed with PL_register_foreign() when
@@ -273,33 +266,6 @@ it to libpl.a from the runtime directory and the libraries required by
 both the extensions and the SWI-Prolog kernel. This may be done by hand,
 or using the \program{plld} utility described in secref{plld}.
 
-
-\subsection{Dynamic Linking based on load_foreign/[2,5]}
-
-The predicates below are considered obsolete. They are briefly described
-here for compatibility purposes.  New code should use the predicates
-from the \file{library(shlib)}.
-
-\begin{description}
-\predicate{load_foreign}{2}{+File, +Entry}
-Load a foreign file or list of files specified by \arg{File}.  The files
-are searched for similar to consult/1.  Except that the `\fileext{o}'
-extension is used rather than `\fileext{pl}'.
-
-\arg{Entry} defines the entry point of the resulting executable.  The
-entry point will be called by Prolog to install the foreign predicates.
-\predicate{load_foreign}{2}{+File, +Entry, +Options, +Libraries, +Size}
-The first two arguments are identical to those of load_foreign/2. {\em
-Options} is (a list of) additional option to be given to the loader.
-The options are inserted just before the files. \arg{Libraries} is (a
-list of) libraries to be passed to the loader. They are inserted just
-after the files. If \arg{Size} is specified Prolog first assumes that
-the resulting executable will fit in \arg{Size} bytes and do the loading
-in one pass.
-\predicate{foreign_file}{1}{?File}
-Is true if \arg{File} is the absolute path name of a file loaded as
-foreign file.
-\end{description}
 
 \section{Interface Data types}
 
@@ -733,7 +699,7 @@ first specifies which term-types should converted and the second
 how the argument is stored.  Below is a specification of these
 constants.  \const{BUF_RING} implies, if the data is not static
 (as from an atom), the data is copied to the next buffer from a
-ring of four (4) buffers.  This is a convenient way of converting
+ring of 16 buffers.  This is a convenient way of converting
 multiple arguments passed to a foreign predicate to C-strings.  If
 BUF_MALLOC is used, the data must be freed using free() when not
 needed any longer.
@@ -749,8 +715,12 @@ needed any longer.
 \const{CVT_NUMBER}  & Convert if term is a integer or float \\
 \const{CVT_ATOMIC}  & Convert if term is atomic \\
 \const{CVT_VARIABLE}& Convert variable to print-name \\
+\const{CVT_WRITE}   & Convert any term that is not converted by
+		      any of the other flags using write/1.  If
+		      no \const{BUF_*} is provided, \const{BUF_RING}
+		      is implied. \\
 \const{CVT_ALL}     & Convert if term is any of the above, except for
-                      variables \\
+                      \const{CVT_VARIABLE} and \const{CVT_WRITE} \\
 \hline
 \const{BUF_DISCARDABLE}     & Data must copied immediately \\
 \const{BUF_RING}    & Data is stored in a ring of buffers \\
@@ -1173,6 +1143,47 @@ install()
 }
 \end{code}
 
+\cfunction{int}{PL_chars_to_term}{const char *chars, term_t -t}
+Parse the string \arg{chars} and put the resulting Prolog term into
+\arg{t}. \arg{chars} may or may not be closed using a Prolog full-stop
+(i.e.\ a dot followed by a blank). Returns \const{FALSE} if a syntax
+error was encountered and \const{TRUE} after successful completion.
+See also term_to_atom/2.
+
+The following example build a goal-term from a string and calls it.
+
+\begin{code}
+int
+call_chars(const char *goal)
+{ fid_t fid = PL_open_foreign_frame();
+  term_t g = PL_new_term_ref();
+  BOOL rval;
+
+  if ( PL_string_to_term(goal, g) )
+    rval = PL_call(goal, NULL);
+  else
+    rval = FALSE;
+
+  PL_discard_foreign_frame(fid);
+  return rval;
+}
+
+  ...
+  call_chars("consult(load)");
+  ...
+\end{code}
+
+\cfunction{char *}{PL_quote}{int chr, const char *string}
+    Return a quoted version of \arg{string}.  If \arg{chr} is
+    \verb$'\''$, the result is a quoted atom.  If \arg{chr} is
+    \verb$'"'$, the result is a string.  The result string is stored
+    in the same ring of buffers as described with the \const{BUF_RING}
+    argument of PL_get_chars();
+
+    In the current implementation, the string is surrounded by
+    \arg{chr} and any occurence of \arg{chr} is doubled.  In the
+    future the behaviour will depend on the \const{character_escape}
+    feature.  See feature/2.
 \end{description}
 
 
@@ -1687,12 +1698,17 @@ information is wanted. The  options are given in \tabref{query}.
 
 \subsection{Registering Foreign Predicates}
 \begin{description}
-\cfunction{int}{PL_register_foreign}{name, arity, function, flags}
+\cfunction{int}{PL_register_foreign}{const char *name, int arity,
+				     foreign_t (*function)(), int flags}
 Register a C-function to implement a Prolog predicate. After this call
 returns successfully a predicate with name \arg{name} (a char *) and
-arity \arg{arity} (a C int) is created. When called in Prolog, Prolog
-will call \arg{function}. \arg{flags} forms bitwise or'ed list of
-options for the installation. These are:
+arity \arg{arity} (a C int) is created. As a special case, \arg{name}
+may consist of a sequence of alpha-numerical characters followed by the
+colon (\const{:}). In this case the name uptil the colon is taken to be
+the destination module and the rest of the name the predicate name.
+
+When called in Prolog, Prolog will call \arg{function}. \arg{flags}
+forms bitwise or'ed list of options for the installation. These are:
 
 \begin{tabular}{|p{\tableft}|p{3.5in}|}
 \hline
@@ -1700,6 +1716,7 @@ options for the installation. These are:
 \const{PL_FA_TRANSPARENT}      & Predicate is module transparent \\
 \const{PL_FA_NONDETERMINISTIC} & Predicate is non-deterministic.
                                  See also PL_retry(). \\
+\const{PL_FA_VARARGS}	       & Use alternative calling convention. \\
 \hline
 \end{tabular}
 \cfunction{void}{PL_register_extensions}{PL_extension *e}
@@ -2005,14 +2022,65 @@ PL_initialise() interprets all the command-line arguments, except for
 the \argoption{-t}{toplevel} flag that is interpreted by PL_toplevel().
 
 \begin{description}
-\cfunction{int}{PL_initialise}{int argc, char **argv, char **environ}
+\cfunction{int}{PL_initialise}{int argc, char **argv}
 Initialises the SWI-Prolog heap and stacks, restores the boot QLF file,
-loads the system and personal initialisation files, runs
-the at_initialization/1 hooks and finally runs the \argoption{-g}{goal} hook.
+loads the system and personal initialisation files, runs the
+at_initialization/1 hooks and finally runs the \argoption{-g}{goal}
+hook.
+
+Special consideration is required for \verb$argv[0]$. On {\bf Unix},
+this argument passes the part of the commandline that is used
+to locate the executable.  Prolog uses this to find the file holding
+the running executable.  The {\bf Windows} version uses this to find
+a \jargon{module} of the running executable.  If the specified module
+cannot be found, it tries the module \const{libpl.dll}, containing
+the Prolog runtime kernel. In all these cases, the resulting file is
+used for two purposes
+
+\begin{itemize}
+    \item See whether a Prolog saved-state is appended to the file.
+          If this is the case, this state will be loaded instead of
+	  the default \file{boot.prc} file from the SWI-Prolog home
+	  directory.  See also qsave_program/[1,2] and \secref{plld}.
+    \item Find the Prolog home directory.  This process is described
+          in detail in \secref{findhome}.
+\end{itemize}
 
 PL_initialise() returns 1 if all initialisation succeeded and 0
-otherwise.  Various fatal errors may cause PL_initialise to call
-PL_halt(1), preventing it from returning at all.
+otherwise.%
+    \bug{Various fatal errors may cause PL_initialise to call
+	 PL_halt(1), preventing it from returning at all.}
+
+In most cases, \arg{argc} and \arg{argv} will be passed from the main
+program.  It is allowed to create your own argument vector, provided
+\verb$argv[0]$ is constructed according to the rules above.   For
+example:
+
+\begin{code}
+int
+main(int argc, char **argv)
+{ char *av[10];
+  int ac = 0;
+
+  av[ac++] = argv[0];
+  av[ac++] = "-x";
+  av[ac++] = "mystate";
+  av[ac]   = NULL;
+
+  if ( !PL_initialise(ac, av) )
+    PL_halt(1);
+  ...
+}
+\end{code}
+
+Please note that the passed argument vector may be referred from Prolog
+at any time and should therefore be valid as long as the Prolog engine
+is used.
+
+A good setup in Windows is to add SWI-Prolog's \file{bin} directory
+to your \env{PATH} and either pass a module holding a saved-state, or
+\verb$"libpl.dll"$ as \verb$argv[0]$.
+
 \cfunction{void}{PL_install_readline}{}
 Installs the GNU-readline line-editor.  Embedded applications that do not
 use the Prolog toplevel should normally delete this line, shrinking the
@@ -2217,13 +2285,47 @@ The following indicates the usage of the application:
 \end{code}
 
 
+\section{The Prolog `home' directory}		\label{sec:findhome}
+
+Executables embedding SWI-Prolog should be able to find the `home'
+directory of the development environment unless a self-contained
+saved-state has been added to the executable (see qsave_program/[1,2]
+and \secref{plld}). 
+
+If Prolog starts up, it will try to locate the development environment.
+To do so, it will try the following steps until one succeeds.
+
+\begin{enumerate}
+    \item If the environment variable \env{SWI_HOME_DIR} is defined and
+          points to an existing directory, use this.
+    \item If the environment variable \env{SWIPL} is defined and
+          points to an existing directory, use this.
+    \item Locate the primary executable or (Windows only) a component
+          (\jargon{module}) thereof and check whether the parent
+	  directory of the directory holding this file contains the
+	  file \file{swipl}.  If so, this file contains the (relative)
+	  path to the home directory. If this directory exists, use
+	  this.  This is the normal mechanism used by the binary
+	  distribution.
+    \item If the precompiled path exists, use it.  This is only useful
+          for a source installation.
+\end{enumerate}
+
+If all fails and there is no state attached to the executable or
+provided Windows module (see PL_initialise()), SWI-Prolog gives up.  If
+a state is attached, the current working directory is used.
+
+The file_search_path/2 alias \const{swi} is set to point to the home
+directory located.
+
+
 \section{Example of Using the Foreign Interface}
 
 Below is an example showing all stages of the declaration of a foreign
-predicate that transforms atoms possibly holding uppercase letters into
-an atom only holding lower case letters. \Figref{lowercase-c}
-shows the C-source file, \figref{load-foreign} illustrates
-compiling and loading of foreign code.
+    predicate that transforms atoms possibly holding uppercase letters
+    into an atom only holding lower case letters. \Figref{lowercase-c}
+    shows the C-source file, \figref{load-foreign} illustrates compiling
+    and loading of foreign code.
 
 \begin{figure}[htb]
 
