@@ -34,6 +34,7 @@ static status	multipleSelectionMenu(Menu m, Bool val);
 static status	restoreMenu(Menu m);
 static status	compute_popup_indicator(Menu m, MenuItem mi, int *w, int *h);
 static status	modifiedMenu(Menu m, Bool val);
+static MenuItem getMemberMenu(Menu m, Any obj);
 
 #define CYCLE_DROP_WIDTH 14
 #define CYCLE_DROP_HEIGHT 14
@@ -1361,14 +1362,16 @@ nextMenu(Menu m)
 		********************************/
 
 static status
-append_menu(Menu m, MenuItem mi, Name where)
+append_menu(Menu m, MenuItem mi, Any where)
 { if ( notNil(mi->menu) )
     return errorPce(mi, NAME_alreadyShown, mi, mi->menu);
 
-  if ( equalName(where, NAME_head) )
+  if ( where == NAME_head )
     prependChain(m->members, mi);
-  else
+  else if ( where == NAME_tail )
     appendChain(m->members, mi);
+  else
+    insertBeforeChain(m->members, mi, where);
 
   assign(mi, menu, m);
 
@@ -1385,6 +1388,17 @@ appendMenu(Menu m, Any mi)
 static status
 prependMenu(Menu m, Any mi)
 { return append_menu(m, mi, NAME_head);
+}
+
+
+static status
+insertBeforeMenu(Menu m, MenuItem mi, MenuItem mi2)
+{ if ( isName(mi2) )
+  { if ( !(mi2 = getMemberMenu(m, mi2)) )
+      mi2 = NIL;
+  }
+
+  return append_menu(m, mi, mi2);
 }
 
 
@@ -1976,6 +1990,8 @@ static char *T_selected[] =
         { "item=member:menu_item", "selected=bool" };
 static char *T_initialise[] =
         { "name=[name]", "kind=[name]", "message=[code]*" };
+static char *T_insertBefore[] =
+        { "item=menu_item", "before=name|menu_item" };
 
 /* Instance Variables */
 
@@ -2091,6 +2107,8 @@ static senddecl send_menu[] =
      NAME_items, "->clear and ->append members of chain"),
   SM(NAME_prepend, 1, "item=menu_item", prependMenu,
      NAME_items, "Prepend a menu_item, value or popup"),
+  SM(NAME_insertBefore, 2, T_insertBefore, insertBeforeMenu,
+     NAME_items, "Insert item before another one"),
   SM(NAME_sort, 1, "[code]", sortMenu,
      NAME_items, "Sort members (see `chain ->sort')"),
   SM(NAME_labelWidth, 1, "width=[int]", labelWidthMenu,
