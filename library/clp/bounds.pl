@@ -83,8 +83,11 @@
 		all_different/1,
 		sum/3,
 		lex_chain/1,
-		indomain/1
+		indomain/1,
+		check/1
 	]).
+
+:- use_module(library('clp/clp_events')).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % exported predicates
@@ -185,6 +188,33 @@ reify((X #\ Y),B) :-
 reify(#\ C, B) :-
 	reify(C,BC),
 	mynot(BC,B).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+check(X #= Y) :-
+	parse_expression(X,XR),
+	parse_expression(Y,YR),
+	check_eq(XR,YR).
+
+check(X #=< Y) :-
+	parse_expression(X,XR),
+	parse_expression(Y,YR),
+	check_leq(XR,YR).
+
+check(X #>= Y) :-
+	parse_expression(X,XR),
+	parse_expression(Y,YR),
+	check_leq(YR,XR).
+
+check(X #< Y) :-
+	parse_expression(X,XR),
+	parse_expression(Y,YR),
+	check_lt(XR,YR).
+
+check(X #> Y) :-
+	parse_expression(X,XR),
+	parse_expression(Y,YR),
+	check_lt(YR,XR).
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 parse_expression(Expr,Result) :-
@@ -1141,6 +1171,44 @@ reified_geq(X,Y,B) :-
 		X #< Y
 	).
 
+check_leq(X,Y) :-
+	( nonvar(X) ->
+		( nonvar(Y) ->
+			X =< Y
+		;
+			bounds(Y,L,_),
+			X =< L
+		)
+	;
+		( nonvar(Y) ->
+			bounds(X,_,U),
+			U =< Y
+		;
+			bounds(X,_,UX),
+			bounds(Y,LY,_),
+			UX =< LY
+		)
+	).
+
+check_lt(X,Y) :-
+	( nonvar(X) ->
+		( nonvar(Y) ->
+			X < Y
+		;
+			bounds(Y,L,_),
+			X < L
+		)
+	;
+		( nonvar(Y) ->
+			bounds(X,_,U),
+			U < Y
+		;
+			bounds(X,_,UX),
+			bounds(Y,LY,_),
+			UX < LY
+		)
+	).
+			
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 reified_eq(X,Y,B) :-
 	( var(B) ->
@@ -1192,6 +1260,9 @@ reified_eq(X,Y,B) :-
 		X #\= Y
 	).
 		
+
+check_eq(X,Y) :-
+	X == Y.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 reified_neq(X,Y,B) :-
 	mynot(B,B1),
@@ -1353,11 +1424,13 @@ put(X,L,U,Exp) :-
 				true
 			;
 				%format('\t~w in ~w .. ~w\n',[X,L,U]),
-				trigger_exps(Exp,X)
+				trigger_exps(Exp,X),
+				notify(X,bounds)
 			)
 		; 
 			%format('\t~w in ~w .. ~w\n',[X,L,U]),
-			put_attr(X,bounds,bounds(L,U,Exp))
+			put_attr(X,bounds,bounds(L,U,Exp)),
+			notify(X,bounds)
 		)
 	).
 
