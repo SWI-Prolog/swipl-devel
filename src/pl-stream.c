@@ -1198,7 +1198,7 @@ int
 Sfputs(const char *q, IOSTREAM *s)
 { 
   for( ; *q; q++)
-  { if ( Sputc(*q, s) < 0 )
+  { if ( Sputcode(*q&0xff, s) < 0 )
       return EOF;
   }
 

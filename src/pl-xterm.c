@@ -64,11 +64,9 @@ Xterm_read(void *handle, char *buffer, int count)
   int size;
 
   if ( LD->prompt.next && ttymode != TTY_RAW )
-  { Sfputs(PrologPrompt(), Suser_output);
-    
-    LD->prompt.next = FALSE;
-  }
-  Sflush(Suser_output);
+    PL_write_prompt(TRUE);
+  else
+    Sflush(Suser_output);
 
   size = read(xt->fd, buffer, count);
 
