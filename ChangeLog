@@ -7,7 +7,7 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
-VERSION 5.1.9 (Mar 05, 2003)
+VERSION 5.1.9 (Mar 06, 2003)
 ============================
 
   * ENHANCED: Check for instantiation errors in send_list/[2,3].  Anjo

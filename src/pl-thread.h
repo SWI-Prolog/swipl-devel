@@ -64,6 +64,8 @@ typedef struct message_queue
   struct _thread_msg   *head;		/* Head of message queue */
   struct _thread_msg   *tail;		/* Tail of message queue */
   word		       id;		/* Id of the queue */
+  int		       waiting;		/* # waiting threads */
+  int		       waiting_var;	/* # waiting with unbound */
 } message_queue;
 
 typedef struct pl_mutex

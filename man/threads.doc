@@ -224,6 +224,18 @@ thread_self/1). Any term can be placed in a message queue, but note that
 the term is copied to the receiving thread and variable-bindings are
 thus lost. This call returns immediately.
 
+If more than one thread is waiting for messages on the given queue and
+at least one of these is waiting with a partially instantiated
+\arg{Term}, the waiting threads are \emph{all} sent a wakeup signal,
+starting a rush for the available messages in the queue.  This behaviour
+can seriously harm performance with many threads waiting on the same
+queue as all-but-the-winner perform a useless scan of the queue. If
+there is only one waiting thread or all waiting threads wait with an
+unbound variable an arbitrary thread is restarted to scan the queue.%
+	\footnote{See the documentation for the POSIX thread functions
+		  pthread_cond_signal() v.s.\ pthread_cond_broadcastt()
+		  for background information.}
+
     \predicate{thread_get_message}{1}{?Term}
 Examines the thread message-queue and if necessary blocks execution
 until a term that unifies to \arg{Term} arrives in the queue.  After

@@ -1480,7 +1480,14 @@ This code deals with telling other threads something.  The interface:
 	thread_get_message(-Message)
 	thread_send_message(+Id, +Message)
 
-Messages are sent asynchronously.
+Queues can be waited for by   multiple  threads using different (partly)
+instantiated patterns for Message. For this   reason all waiting threads
+should be restarted using pthread_cond_broadcast().   However,  if there
+are a large number of workers only   waiting for `any' message this will
+cause all of them to wakeup for only   one  to grab the message. This is
+highly undesirable and therefore the queue  keeps two counts: the number
+of waiting threads and the number waiting  with a variable. Only if they
+are not equal and there are multiple waiters we must be using broadcast.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct _thread_msg
@@ -1500,32 +1507,68 @@ queue_message(message_queue *queue, term_t msg)
   msgp->key     = getIndexOfTerm(msg);
   
   pthread_mutex_lock(&queue->mutex);
+
   if ( !queue->head )
   { queue->head = queue->tail = msgp;
   } else
   { queue->tail->next = msgp;
     queue->tail = msgp;
   }
+
+  if ( queue->waiting )
+  { if ( queue->waiting > queue->waiting_var && queue->waiting > 1 )
+    { DEBUG(1, Sdprintf("%d of %d non-var waiters; broadcasting\n",
+			queue->waiting - queue->waiting_var,
+		        queue->waiting));
+      pthread_cond_broadcast(&queue->cond_var);
+    } else
+    { DEBUG(1, Sdprintf("%d var waiters; signalling\n", queue->waiting));
+      pthread_cond_signal(&queue->cond_var);
+    }
+  } else
+  { DEBUG(1, Sdprintf("No waiters\n"));
+  }
+
   pthread_mutex_unlock(&queue->mutex);
-  pthread_cond_signal(&queue->cond_var);
+}
+
+
+typedef struct
+{ message_queue *queue;
+  int            isvar;
+} get_msg_cleanup_context;
+
+
+static void
+cleanup_get_message(void *context)
+{ get_msg_cleanup_context *ctx = context;
+
+  ctx->queue->waiting--;
+  ctx->queue->waiting_var -= ctx->isvar;
+  pthread_mutex_unlock(&ctx->queue->mutex);
 }
 
 
 static int
 get_message(message_queue *queue, term_t msg)
-{ term_t tmp = PL_new_term_ref();
-  word key = getIndexOfTerm(msg);
+{ get_msg_cleanup_context ctx;
+  term_t tmp = PL_new_term_ref();
+  int isvar = PL_is_variable(msg) ? 1 : 0;
+  word key = (isvar ? 0L : getIndexOfTerm(msg));
   mark m;
 
   Mark(m);
 
-  pthread_cleanup_push((void *)pthread_mutex_unlock, (void *)&queue->mutex);
+  ctx.queue = queue;
+  ctx.isvar = isvar;
+  pthread_cleanup_push(cleanup_get_message, (void *)&ctx);
   pthread_mutex_lock(&queue->mutex);
 
   for(;;)
   { thread_message *msgp = queue->head;
     thread_message *prev = NULL;
 
+    DEBUG(1, Sdprintf("%d: scanning queue\n", PL_thread_self()));
     for( ; msgp; prev = msgp, msgp = msgp->next )
     { if ( key && msgp->key && key != msgp->key )
 	continue;			/* fast search */
@@ -1549,12 +1592,19 @@ get_message(message_queue *queue, term_t msg)
     }
 				/* linux docs say it may return EINTR */
 				/* does it re-lock in that case? */
+    queue->waiting++;
+    queue->waiting_var += isvar;
+    DEBUG(1, Sdprintf("%d: waiting on queue\n", PL_thread_self()));
     while( pthread_cond_wait(&queue->cond_var, &queue->mutex) == EINTR )
       ;
+    DEBUG(1, Sdprintf("%d: wakeup on queue\n", PL_thread_self()));
+    queue->waiting--;
+    queue->waiting_var -= isvar;
   }
 out:
 
-  pthread_cleanup_pop(1);
+  pthread_mutex_unlock(&queue->mutex);
+  pthread_cleanup_pop(0);
   succeed;
 }
 
