@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * MODIFIED: wait_for_input/3 now takes the value `infinite' as timeout to
+    wait forever.  The integer 0 has the same function for backwards
+    compatibility.
+
+
 VERSION 5.1.2 (Nov 27, 2002)
 ============================
 
