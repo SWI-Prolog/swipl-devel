@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: `term-names' of text_item to use <-value rather then <-selection
+  to avoid resetting <-modified (and other side-effects).
+
 * FIXED: Lock up on `point<-distance' if points are very far apart.  Now
   use floating point arithmetic.
 

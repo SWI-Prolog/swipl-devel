@@ -1721,7 +1721,7 @@ static classvardecl rc_textItem[] =
 
 /* Class Declaration */
 
-static Name textItem_termnames[] = { NAME_label, NAME_selection, NAME_message };
+static Name textItem_termnames[] = { NAME_label, NAME_value, NAME_message };
 
 ClassDecl(textItem_decls,
           var_textItem, send_textItem, get_textItem, rc_textItem,
