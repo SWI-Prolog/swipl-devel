@@ -608,9 +608,13 @@ int
 Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 { long printed = 0;
   char buf[TMPBUFSIZE];
+  int tmpbuf;
 
-  if ( s->flags & SIO_NBUF )
-    S__setbuf(s, buf, sizeof(buf));
+  if ( !s->buffer && (s->flags & SIO_NBUF) )
+  { S__setbuf(s, buf, sizeof(buf));
+    tmpbuf = TRUE;
+  } else
+    tmpbuf = FALSE;
 
   while(*fm)
   { if ( *fm == '%' )
@@ -776,7 +780,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
     }
   }
 
-  if ( s->flags & SIO_NBUF )
+  if ( tmpbuf )
   { if ( S__removebuf(s) < 0 )
       return -1;
   }

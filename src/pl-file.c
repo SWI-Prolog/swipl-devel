@@ -448,6 +448,13 @@ PL_current_input()
 { return fileTable[Input].stream;
 }
 
+
+IOSTREAM *
+PL_current_output()
+{ return fileTable[Output].stream;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Formated put.  It would be better to define our own formated  write  for
 this  which  accepts  both  Prolog data structures (ints, floats, atoms,
@@ -1637,7 +1644,13 @@ pl_access_file(Word name, Word mode)
   else
     return warning("access_file/2: mode is one of {read,write,append,execute,exist,none}");
 
-  return AccessFile(n, md);
+  if ( AccessFile(n, md) )
+    succeed;
+
+  if ( md == ACCESS_WRITE && AccessFile(DirName(n), md) )
+    succeed;
+
+  fail;
 }
 
 

@@ -359,11 +359,24 @@ do_format(char *fmt, int argc, Word argv)
 		  pl_common:
 
 		  NEED_ARG;
-		  tellString(buf, BUFSIZE);
-		  (*f)(a);
-		  toldString();
+		  if ( pending_rubber )
+		  { tellString(buf, BUFSIZE);
+		    (*f)(a);
+		    toldString();
+		    OUTSTRING(buf);
+		  } else
+		  { IOSTREAM *s = PL_current_output();
+		    if ( s->position && s->position->linepos == column )
+		    { (*f)(a);
+		      column = s->position->linepos;
+		    } else
+		    { tellString(buf, BUFSIZE);
+		      (*f)(a);
+		      toldString();
+		      OUTSTRING(buf);
+		    }
+		  }
 		  SHIFT;
-		  OUTSTRING(buf);
 		  fmt++;
 		  break;
 		}

@@ -1057,16 +1057,18 @@ get_token(bool must_be_op)
 		}
     case PU:	{ switch(c)
 		  { case '{':
-		    case '[': while(isBlank(*here) )
-				here++;
-			      if (here[0] == matchingBracket(c))
-			      { here++;
-				token.value.prolog =
-				    (word)(c == '[' ? ATOM_nil : ATOM_curl);
-				token.type = T_NAME;
-				DEBUG(9, Sdprintf("NAME: %s\n", stringAtom(token.value.prolog)));
-				return &token;
-			      }
+		    case '[':
+		      while(isBlank(*here) )
+			here++;
+		      if (here[0] == matchingBracket(c))
+		      { here++;
+			token.value.prolog =
+			  (word)(c == '[' ? ATOM_nil : ATOM_curl);
+			token.type = here[0] == '(' ? T_FUNCTOR : T_NAME;
+			DEBUG(9, Sdprintf("NAME: %s\n",
+					  stringAtom(token.value.prolog)));
+			return &token;
+		      }
 		  }
 		  token.value.character = c;
 		  token.type = T_PUNCTUATION;

@@ -227,6 +227,7 @@ int		Get0(void);
 int		Put(int c);
 void		protocol(int c);
 IOSTREAM *	PL_current_input();
+IOSTREAM *	PL_current_output();
 #ifdef O_XOS
 word		pl_make_fat_filemap(Word dir);
 #endif

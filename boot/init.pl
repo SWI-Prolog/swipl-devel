@@ -503,6 +503,10 @@ $file_condition(file_type(directory), File) :- !,
 $file_condition(file_type(file), File) :- !,
 	exists_file(File),
 	\+ exists_directory(File).
+$file_condition(access([A1|AT]), File) :- !,
+	$file_condition(access(A1), File),
+	$file_condition(access(AT), File).
+$file_condition(access([]), _) :- !.
 $file_condition(access(Access), File) :- !,
 	access_file(File, Access).
 

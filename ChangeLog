@@ -4,8 +4,24 @@
 Version 2.1.12
 ==============
 
+  * Most of these fixed after comments from David Plummer.  Thanks.
+
+  * FIXED: displayq for ','(...)
+
+  * FIXED: read/1 and friends to handle {}(..) and [](...) correctly.
+
+  * FIXED: format/[2,3] to be able to write unlimited-length output,
+    provided there are no `pending' ~t's.
+
+  * COMPAT: absolute_file/3 to accept list of access-modes
+
+  * MODIFIED: access_file/2 to succeed on write and append mode if the
+    file does not exist, but the directory can be written.
+
   * FIXED: unification order in translating grammar --> {goal}.  Noted
     by Andreas Steiner.
+
+  * FIXED: Temporary-buffer management in Svfprintf() and friends.
 
 Version 2.1.11
 ==============

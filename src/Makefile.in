@@ -147,6 +147,7 @@ parms.h:	Makefile
 
 pl-main.o:	parms.h
 pl-setup.o:	parms.h
+pl-wic.o:	parms.h
 pl-funct.o:	$(srcdir)/pl-funct.ih
 pl-atom.o:	$(srcdir)/pl-funct.ih
 pl-wam.o:	pl-alloc.c pl-index.c

@@ -178,7 +178,10 @@ display(Word t, bool quote)
 
   DEBUG(9, Sdprintf("functorTerm() = 0x%x, ->name = 0x%x\n",
 				functorTerm(*t), functorTerm(*t)->name));
-  writePrimitive((Word)&(functorTerm(*t)->name), quote);
+  if ( functorTerm(*t)->name == ATOM_comma )
+    Putf("','");
+  else
+    writePrimitive((Word)&(functorTerm(*t)->name), quote);
   Putf("(");
   for(n=0; n<arity; n++, arg++)
   { if (n > 0)
