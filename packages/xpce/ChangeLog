@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 5.1.8
+=============
+
 * ADDED: `table->insert_row' to allow adding a the row to be inserted.
   This allows for subclassing class table_row and play around with rows.
 
