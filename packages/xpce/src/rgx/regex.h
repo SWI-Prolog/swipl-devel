@@ -119,8 +119,6 @@ typedef void re_void;
 #define	__REG_CONST	const
 #endif
 
-
-
 /*
  * other interface types
  */
@@ -163,18 +161,8 @@ typedef struct {
 } rm_detail_t;
 
 
-
 /*
  * compilation
- ^ #ifndef __REG_NOCHAR
- ^ int re_comp(regex_t *, __REG_CONST char *, size_t, int);
- ^ #endif
- ^ #ifndef __REG_NOFRONT
- ^ int regcomp(regex_t *, __REG_CONST char *, int);
- ^ #endif
- ^ #ifdef __REG_WIDE_T
- ^ int __REG_WIDE_COMPILE(regex_t *, __REG_CONST __REG_WIDE_T *, size_t, int);
- ^ #endif
  */
 #define	REG_BASIC	000000	/* BREs (convenience) */
 #define	REG_EXTENDED	000001	/* EREs */
@@ -195,21 +183,8 @@ typedef struct {
 #define	REG_FAKE	010000	/* none of your business :-) */
 #define	REG_PROGRESS	020000	/* none of your business :-) */
 
-
-
 /*
  * execution
- ^ #ifndef __REG_NOCHAR
- ^ int re_exec(regex_t *, __REG_CONST char *, size_t,
- ^				rm_detail_t *, size_t, regmatch_t [], int);
- ^ #endif
- ^ #ifndef __REG_NOFRONT
- ^ int regexec(regex_t *, __REG_CONST char *, size_t, regmatch_t [], int);
- ^ #endif
- ^ #ifdef __REG_WIDE_T
- ^ int __REG_WIDE_EXEC(regex_t *, __REG_CONST __REG_WIDE_T *, size_t,
- ^				rm_detail_t *, size_t, regmatch_t [], int);
- ^ #endif
  */
 #define	REG_NOTBOL	0001	/* BOS is not BOL */
 #define	REG_NOTEOL	0002	/* EOS is not EOL */
@@ -217,14 +192,14 @@ typedef struct {
 #define	REG_FTRACE	0010	/* none of your business */
 #define	REG_MTRACE	0020	/* none of your business */
 #define	REG_SMALL	0040	/* none of your business */
-
+				/* JW */
+#define REG_MATCH	0100	/* match, do not search */
 
 
 /*
  * misc generics (may be more functions here eventually)
  ^ re_void regfree(regex_t *);
  */
-
 
 
 /*
@@ -267,8 +242,20 @@ typedef struct {
  */
 int re_compileA _ANSI_ARGS_((regex_t *, __REG_CONST charA*, size_t, int));
 int re_compileW _ANSI_ARGS_((regex_t *, __REG_CONST charW*, size_t, int));
-int re_execA _ANSI_ARGS_((regex_t *, __REG_CONST charA*, size_t, rm_detail_t *, size_t, regmatch_t [], int));
-int re_execW _ANSI_ARGS_((regex_t *, __REG_CONST charW*, size_t, rm_detail_t *, size_t, regmatch_t [], int));
+int re_execA _ANSI_ARGS_((regex_t *re,
+			  __REG_CONST charA* string,
+			  size_t size,
+			  int (*fetch)(__REG_CONST charA*, void*closure), void *closure,
+			  rm_detail_t* details,
+			  size_t nummatch, regmatch_t matches[],
+			  int flags));
+int re_execW _ANSI_ARGS_((regex_t *re,
+			  __REG_CONST charW* string,
+			  size_t size,
+			  int (*fetch)(__REG_CONST charW*, void*closure), void *closure,
+			  rm_detail_t* details,
+			  size_t nummatch, regmatch_t matches[],
+			  int flags));
 re_void regfree _ANSI_ARGS_((regex_t *));
 extern size_t regerror _ANSI_ARGS_((int, __REG_CONST regex_t *, char *, size_t));
 

@@ -63,8 +63,8 @@ int *hitstopp;			/* record whether hit v->stop, if non-NULL */
 		co = d->cnfa->bos[(v->eflags&REG_NOTBOL) ? 0 : 1];
 		FDEBUG(("color %ld\n", (long)co));
 	} else {
-		co = GETCOLOR(cm, *(cp - 1));
-		FDEBUG(("char %c, color %ld\n", (char)*(cp-1), (long)co));
+		co = GETCOLOR(cm, GETCHR(v, cp - 1));
+		FDEBUG(("char %c, color %ld\n", (char)GETCHR(v, cp-1), (long)co));
 	}
 	css = miss(v, d, css, co, cp, start);
 	if (css == NULL)
@@ -75,8 +75,8 @@ int *hitstopp;			/* record whether hit v->stop, if non-NULL */
 	if (v->eflags&REG_FTRACE)
 		while (cp < realstop) {
 			FDEBUG(("+++ at c%d +++\n", css - d->ssets));
-			co = GETCOLOR(cm, *cp);
-			FDEBUG(("char %c, color %ld\n", (char)*cp, (long)co));
+			co = GETCOLOR(cm, GETCHR(v, cp));
+			FDEBUG(("char %c, color %ld\n", (char)GETCHR(v, cp), (long)co));
 			ss = css->outs[co];
 			if (ss == NULL) {
 				ss = miss(v, d, css, co, cp+1, start);
@@ -89,7 +89,7 @@ int *hitstopp;			/* record whether hit v->stop, if non-NULL */
 		}
 	else
 		while (cp < realstop) {
-			co = GETCOLOR(cm, *cp);
+			co = GETCOLOR(cm, GETCHR(v, cp));
 			ss = css->outs[co];
 			if (ss == NULL) {
 				ss = miss(v, d, css, co, cp+1, start);
@@ -163,8 +163,8 @@ int *hitstopp;			/* record whether hit v->stop, if non-NULL */
 		co = d->cnfa->bos[(v->eflags&REG_NOTBOL) ? 0 : 1];
 		FDEBUG(("color %ld\n", (long)co));
 	} else {
-		co = GETCOLOR(cm, *(cp - 1));
-		FDEBUG(("char %c, color %ld\n", (char)*(cp-1), (long)co));
+		co = GETCOLOR(cm, GETCHR(v, cp - 1));
+		FDEBUG(("char %c, color %ld\n", (char)GETCHR(v, cp-1), (long)co));
 	}
 	css = miss(v, d, css, co, cp, start);
 	if (css == NULL)
@@ -176,8 +176,8 @@ int *hitstopp;			/* record whether hit v->stop, if non-NULL */
 	if (v->eflags&REG_FTRACE)
 		while (cp < realmax) {
 			FDEBUG(("--- at c%d ---\n", css - d->ssets));
-			co = GETCOLOR(cm, *cp);
-			FDEBUG(("char %c, color %ld\n", (char)*cp, (long)co));
+			co = GETCOLOR(cm, GETCHR(v, cp));
+			FDEBUG(("char %c, color %ld\n", (char)GETCHR(v, cp), (long)co));
 			ss = css->outs[co];
 			if (ss == NULL) {
 				ss = miss(v, d, css, co, cp+1, start);
@@ -192,7 +192,7 @@ int *hitstopp;			/* record whether hit v->stop, if non-NULL */
 		}
 	else
 		while (cp < realmax) {
-			co = GETCOLOR(cm, *cp);
+			co = GETCOLOR(cm, GETCHR(v, cp));
 			ss = css->outs[co];
 			if (ss == NULL) {
 				ss = miss(v, d, css, co, cp+1, start);

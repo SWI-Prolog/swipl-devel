@@ -31,7 +31,7 @@
 
 #include "regguts.h"
 
-
+#define GETCHR(v, p) (v->fetch ? (chr)(*v->fetch)(p, v->closure) : *p)
 
 /* lazy-DFA representation */
 struct arcp {			/* "pointer" to an outarc */
@@ -95,6 +95,10 @@ struct smalldfa {
 /* internal variables, bundled for easy passing around */
 struct vars {
 	regex_t *re;
+				/* fetch characters indirectly */
+	int (*fetch)(CONST chr* here, void* closure);
+	void *closure;		/* context for indirect fetching */
+
 	struct guts *g;
 	int eflags;		/* copies of arguments */
 	size_t nmatch;
@@ -123,7 +127,11 @@ struct vars {
 /* =====^!^===== begin forwards =====^!^===== */
 /* automatically gathered by fwd; do not hand-edit */
 /* === regexec.c === */
-int exec _ANSI_ARGS_((regex_t *, CONST chr *, size_t, rm_detail_t *, size_t, regmatch_t [], int));
+int
+exec(regex_t *re, CONST chr *string, size_t len,
+     int (*fetch)(CONST chr*, void*closure), void *closure,
+     rm_detail_t *details, size_t nmatch, regmatch_t pmatch[],
+     int flags);
 static int find _ANSI_ARGS_((struct vars *, struct cnfa *, struct colormap *));
 static int cfind _ANSI_ARGS_((struct vars *, struct cnfa *, struct colormap *));
 static int cfindloop _ANSI_ARGS_((struct vars *, struct cnfa *, struct colormap *, struct dfa *, struct dfa *, chr **));
@@ -161,14 +169,10 @@ static struct sset *pickss _ANSI_ARGS_((struct vars *, struct dfa *, chr *, chr 
  ^					size_t, regmatch_t [], int);
  */
 int
-exec(re, string, len, details, nmatch, pmatch, flags)
-regex_t *re;
-CONST chr *string;
-size_t len;
-rm_detail_t *details;
-size_t nmatch;
-regmatch_t pmatch[];
-int flags;
+exec(regex_t *re, CONST chr *string, size_t len,
+     int (*fetch)(CONST chr*, void* closure), void *closure,
+     rm_detail_t *details, size_t nmatch, regmatch_t pmatch[],
+     int flags)
 {
 	struct vars var;
 	register struct vars *v = &var;
@@ -188,6 +192,8 @@ int flags;
 
 	/* setup */
 	v->re = re;
+	v->fetch = fetch;
+	v->closure = closure;
 	v->g = (struct guts *)re->re_guts;
 	if ((v->g->cflags&REG_EXPECT) && details == NULL)
 		return REG_INVARG;
