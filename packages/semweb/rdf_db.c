@@ -3086,7 +3086,9 @@ get_partial_triple(rdf_db *db,
     t->indexed |= BY_S;
   if ( t->predicate )
     t->indexed |= BY_P;
-  if ( t->objtype == OBJ_STRING && t->match <= STR_MATCH_EXACT )
+  if ( t->objtype == OBJ_STRING && 
+       t->object.string &&
+       t->match <= STR_MATCH_EXACT )
     t->indexed |= BY_O;
   else if ( t->objtype == OBJ_RESOURCE )
     t->indexed |= BY_O;

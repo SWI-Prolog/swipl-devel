@@ -1,3 +1,7 @@
+Feb 18, 2005
+
+  * FIXED: rdf(X,Y,literal(lang(L,W))): not indexed query.  Djam Seddah.
+
 Jan 27, 2005
 
   * ADDED: wide-character support in label matching (rdf_match_label/3)
