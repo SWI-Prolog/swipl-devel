@@ -45,46 +45,22 @@ Places to deal with them
 	  variable.
 
 	  	wakeup(A, V, <Tail>)
-	
-
-		 /*******************************
-		 *	    CYCLIC TERMS	*
-		 *******************************/
-
-Cyclic terms, especially over attributed variables are very common.
-Places where we support them:
-
-	# =/2
-	# copy_term/2
 
 
 		 /*******************************
-		 *	  GLOBAL VARIABLES	*
+		 *	   AVOID WAKEUP		*
 		 *******************************/
 
-Copied semantics from hProlog.
+	* Some callbacks should *not* do call the wakeup list as their
+	  execution does not contribute to the truth result of the
+	  computation.  There are two ways out:
 
-GNU:
+		- Save/restore the wakeup list
+		- Make sure the wakeup list is processed (i.e. empty).
 
-	g_link(+Callable, ?Term)
-	g_read(+Callable, ?Term)
+	  Points requiring attention are:
 
-
-		 /*******************************
-		 *	       MISC		*
-		 *******************************/
-
-	* Print attvars as X{...} (Tom Schrijvers)
-
-	  set_prolog_flag(write_attributes, Mode) where mode is one of
-
-	  	* ignore		(write as plain variables)
-		* dots			(write as {...})
-		* write			(hand to write)
-		* portray		(hand each attribute to
-					 Module:portray_attr)
-
-	  Also write_term(X, [attributes(Mode)])
-
-	  Module:portray_attr()
-		
+		- Tracer
+		- portray
+		- interrupt (Control-C), signals in general
+		- event hook.

@@ -276,6 +276,7 @@ tracePort(LocalFrame frame, Choice bfr, int port, Code PC ARG_LD)
 { int action = ACTION_CONTINUE;
   Definition def = frame->predicate;
   LocalFrame fr;
+  fid_t wake;
 
   if ( !bfr )
     bfr = LD->choicepoints;
@@ -363,19 +364,17 @@ We are in searching mode; should we actually give this port?
     }
   }
 
+
+  wake = saveWakeup(PASS_LD1);
+  blockGC(PASS_LD1);
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Do the Prolog trace interception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  blockGC(PASS_LD1);
   action = traceInterception(frame, bfr, port, PC);
   if ( action >= 0 )
-  { unblockGC(PASS_LD1);
-    if ( action == ACTION_ABORT )
-      pl_abort(ABORT_NORMAL);		/* return it? */
-
-    return action;
-  }
+    goto out;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 All failed.  Things now are upto the normal Prolog tracer.
@@ -421,7 +420,11 @@ again:
   } else
     Sputc('\n', Sdout);
 
+out:
   unblockGC(PASS_LD1);
+  restoreWakeup(wake PASS_LD);
+  if ( action == ACTION_ABORT )
+    pl_abort(ABORT_NORMAL);
 
   return action;
 }
@@ -551,7 +554,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr, bool interactive)
 
   switch( *s )
   { case 'a':	FeedBack("abort\n");
-		pl_abort(ABORT_NORMAL);
+    		return ACTION_ABORT;
     case 'b':	FeedBack("break\n");
 		pl_break();
 		return ACTION_AGAIN;
@@ -763,7 +766,8 @@ static const portname portnames[] =
 
 static void
 writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
-{ fid_t cid = PL_open_foreign_frame();
+{ fid_t wake = saveWakeup(PASS_LD1);
+  fid_t cid = PL_open_foreign_frame();
   Definition def = frame->predicate;
 
   blockGC(PASS_LD1);
@@ -841,6 +845,7 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
   unblockGC(PASS_LD1);
     
   PL_discard_foreign_frame(cid);
+  restoreWakeup(wake PASS_LD);
 }
 
 /*  Write those frames on the stack that have alternatives left.
@@ -1746,11 +1751,12 @@ callEventHook(int ev, ...)
   
   if ( PROCEDURE_event_hook1->definition->definition.clauses )
   { va_list args;
-    fid_t fid;
+    fid_t fid, wake;
     term_t arg;
     term_t ex;
 
     blockGC(PASS_LD1);
+    wake = saveWakeup(PASS_LD1);
     fid = PL_open_foreign_frame();
     arg = PL_new_term_ref();
 
@@ -1817,6 +1823,7 @@ callEventHook(int ev, ...)
     }
 
     PL_discard_foreign_frame(fid);
+    restoreWakeup(wake PASS_LD);
     unblockGC(PASS_LD1);
     va_end(args);
   }

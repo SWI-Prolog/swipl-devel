@@ -302,6 +302,77 @@ del_attr(Word av, atom_t name ARG_LD)
 
 
 		 /*******************************
+		 *	 CONTROLLING  WAKEUP    *
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Some callbacks should *not* do call the   wakeup list as their execution
+does not contribute to the truth result   of  the computation. There are
+two ways out:
+
+	- Save/restore the wakeup list
+	- Make sure the wakeup list is processed (i.e. empty).
+
+Points requiring attention are:
+
+	- Tracer
+	- portray
+	- interrupt (Control-C), signals in general	(S/W)
+	- event hook.					(S/W)
+
+The ones marked (S/W) should not affect execution and therefore must use
+the save/restore approach. Effectively,  forcing   from  foreign code is
+very hard as explained in the   determinism handling of foreignWakeup(),
+so we will use save/restore in all places.
+
+The functions below provide a way to   realise the save/restore. It must
+be nicely nested in the  same  way   and  using  the same constraints as
+PL_open_foreign_frame/PL_close_foreign_frame.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+fid_t
+saveWakeup(ARG1_LD)
+{ Word h;
+
+  if ( *(h=valTermRef(LD->attvar.head)) )
+  { fid_t fid = PL_open_foreign_frame();
+    term_t s = PL_new_term_refs(2);
+    
+    pl_write(LD->attvar.head), pl_nl();
+
+    *valTermRef(s+0) = *h;
+    setVar(*h);
+    h = valTermRef(LD->attvar.tail);
+    *valTermRef(s+1) = *h;
+    setVar(*h);    
+    Sdprintf("Saved wakeup to %p\n", valTermRef(s));
+
+    return fid;
+  }
+
+  return (fid_t)0;
+}
+
+
+void
+restoreWakeup(fid_t fid ARG_LD)
+{ if ( fid )
+  { FliFrame fr = (FliFrame) valTermRef(fid);
+    Word p = (Word)(fr+1);
+
+    Sdprintf("Restore wakeup from %p\n", p);
+
+    *valTermRef(LD->attvar.head) = p[0];
+    *valTermRef(LD->attvar.tail) = p[1];
+
+    pl_write(LD->attvar.head), pl_nl();
+
+    PL_discard_foreign_frame(fid);
+  }
+}
+
+
+		 /*******************************
 		 *	     PREDICATES		*
 		 *******************************/
 
@@ -349,11 +420,21 @@ PRED_IMPL("get_attr", 3, get_attr3, 0) /* +Var, +Name, -Value */
 static
 PRED_IMPL("put_attr", 3, put_attr3, 0)	/* +Var, +Name, +Value */
 { PRED_LD
-  Word av;
+  Word av, vp;
   atom_t name;
 
   if ( !PL_get_atom_ex(A2, &name) )
     fail;
+
+  if ( !onStackArea(global, (vp=valTermRef(A3))) )
+  { Word p = allocGlobal(1);		/* attribute values should be on */
+					/* the global stack! */
+    
+    setVar(*p);
+    *vp = makeRefG(p);
+    Trail(vp);
+    vp = p;
+  }
 
   requireStack(global, 4*sizeof(word));
 
@@ -362,9 +443,9 @@ PRED_IMPL("put_attr", 3, put_attr3, 0)	/* +Var, +Name, +Value */
 
   if ( isVar(*av) )
   { make_new_attvar(av PASS_LD);
-    return put_attr(av, name, valTermRef(A3) PASS_LD);
+    return put_attr(av, name, vp PASS_LD);
   } else if ( isAttVar(*av) )
-  { return put_attr(av, name, valTermRef(A3) PASS_LD);
+  { return put_attr(av, name, vp PASS_LD);
   } else
   { return PL_error("put_attr", 3, NULL, ERR_TYPE, ATOM_var, A1);
   }

@@ -638,7 +638,8 @@ callPortray(term_t arg, write_options *options)
   portray = _PL_predicate("portray", 1, "user", &GD->procedures.portray);
 
   if ( portray->definition->definition.clauses )
-  { fid_t fid   = PL_open_foreign_frame();
+  { fid_t wake    = saveWakeup(PASS_LD1);
+    fid_t fid     = PL_open_foreign_frame();
     IOSTREAM *old = Scurout;
     int rval;
 
@@ -647,6 +648,7 @@ callPortray(term_t arg, write_options *options)
     Scurout = old;
 
     PL_discard_foreign_frame(fid);
+    restoreWakeup(wake PASS_LD);
 
     return rval;
   }

@@ -71,6 +71,8 @@ COMMON(void *) 		xrealloc(void *mem, size_t size);
 
 /* pl-attvar.c */
 COMMON(int) 		assignAttVar(Word av, Word value ARG_LD);
+COMMON(fid_t)		saveWakeup(ARG1_LD);
+COMMON(void)		restoreWakeup(fid_t fid ARG_LD);
 
 /* pl-gvar.c */
 
