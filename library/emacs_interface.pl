@@ -85,11 +85,11 @@ tmp_file([_|T], File) :-
 %	Redefine [] to clear the compilation-buffer first
 
 :- (   running_under_emacs_interface
-   ->  user:abolish('.', 2),
-       user:abolish(make, 0),
+   ->  user:redefine_system_predicate([_|_]),
+       user:redefine_system_predicate(make),
        user:(module_transparent '.'/2),
        user:assert(([H|T] :- emacs_consult([H|T]))),
-       user:assert((make :- emacs_interface:make)),
+       user:assert((make :- emacs_interface:emacs_make)),
        user:assert(exception(A,B,C) :- emacs_interface:exception(A,B,C))
    ;   true
    ).
@@ -107,7 +107,7 @@ emacs_consult(Files) :-
 	emacs_finish_compilation.
 
 
-make :-
+emacs_make :-
 	emacs_start_compilation,
 	system:make,
 	emacs_finish_compilation.

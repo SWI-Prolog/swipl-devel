@@ -1,8 +1,18 @@
 			SWI-Prolog ChangeLog
 			====================
 
-Version 1.9.4.  Redefining system-predicates now   results in a warning.
-This may be overruled using :- redefine_system_predicate(+Head).
+Version 1.9.4.  Redefining system-predicates is no longer allowed.  This
+may be overruled using  :-   redefine_system_predicate(+Head).   Fix  in
+Makefile (from Kayvan Sylvan): fixes shell   syntax  error make install.
+Give warning on user-files trying  to   load  module  `user' or `system'
+(this is why library(system) could not   be loaded).  Fixed whereis/1 to
+find locations of predicates.   Fixed   trace/[1,2]  to  avoid low-level
+errors on bad specifications.  Specification now   also  accept the much
+more natural ?- trace(append, fail).  as a shorthand for [+fail].  Added
+autoloader handling to ed/1, listing/1, spy/1 and trace/2.  Manipulating
+not-yet-loaded autoload predicates will trap the autoloader.  Added hook
+for help-system, so we provide a   decent help-window when running under
+the XPCE graphical environment.  The hook is called show_help_file/2.
 
 Version  1.9.3.   Fix  index/1  problem    introduced   in  1.9.2.   Fix
 stack-expansion problem in all versions that   lack hardware support for
@@ -10,7 +20,7 @@ stack-expansion.  Some cleanup in pl-gc.c to make clean compilation with
 -Wall  and  -DO_DEBUG  possible.   Regenerated   common  prototype  file
 pl-funcs.h using mkproto tool (and some editing).
 
-Version 1.9.2.  Configuration is  now  based   on  GNU's  autoload.  All
+Version 1.9.2.  Configuration is  now  based   on  GNU's  autoconf.  All
 md-*.h files have been removed from  the distribution.  $arch/2, $home/1
 and $version/1 have been replaced by feature/2.  A predicate read_link/3
 has been added to read symbolic links.   Installation is tested on SunOs

@@ -9,6 +9,7 @@
 :- module($autoload,
 	[ $find_library/5
 	, $in_library/2
+	, $define_predicate/1
 	, $update_library_index/0
 	, make_library_index/1
 	, make_library_index/2
@@ -39,6 +40,29 @@ $in_library(Name, Arity) :-
 	load_library_index,
 	library_index(Head, _, _),
 	functor(Head, Name, Arity).
+
+%	$define_predicate(+Head)
+%	Make sure pred can be called.  First test if the predicate is
+%	defined.  If not, invoke the autoloader.
+
+:- module_transparent
+	$define_predicate/1.
+
+$define_predicate(Head) :-
+	$defined_predicate(Head), !.
+$define_predicate(Term) :-
+	$strip_module(Term, Module, Head),
+	functor(Head, Name, Arity),
+	flag($enable_autoload, on, on),
+	$find_library(Module, Name, Arity, LoadModule, Library),
+	flag($autoloading, Old, Old+1),
+	(   Module == LoadModule
+	->  ignore(ensure_loaded(Library))
+	;   ignore(Module:use_module(Library, [Name/Arity]))
+	),
+	flag($autoloading, _, Old),
+	$define_predicate(Term).
+
 
 		/********************************
 		*          UPDATE INDEX		*

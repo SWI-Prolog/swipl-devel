@@ -15,8 +15,8 @@
 #
 ################################################################
 
-PL=pl
-prefix=/staff/jan
+PL=pl-1.9.4
+prefix=/usr/local
 exec_prefix=${prefix}
 bindir=$(exec_prefix)/bin
 PLBASE=$(prefix)/lib/$(PL)
@@ -186,13 +186,13 @@ idirs:
 				mv $(PLBASE) $(PLBASE).old; \
 			else \
 				rm -r $(PLBASE); \
-			fi \
+			fi; \
 		fi
 		mkdir $(PLBASE)
 		for d in $(installdirs); do \
 			if [ ! -d $(PLBASE)/$$d ]; then \
 				mkdir $(PLBASE)/$$d; \
-			fi \
+			fi; \
 		done
 
 	
@@ -210,7 +210,7 @@ iinclude:
 		for f in SWI-Prolog.h SWI-Exports; do \
 		    if [ -f $$f ]; then \
 			$(INSTALL_DATA) $$f $(PLBASE)/include; \
-		    fi \
+		    fi; \
 		done
 		$(INSTALL_DATA) ../include/SWI-Prolog.h $(prefix)/include
 

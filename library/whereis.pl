@@ -10,46 +10,32 @@
 	[ whereis/1
 	]).
 
-:- style_check(+dollar).
+:- module_transparent
+	whereis/1.
 
 %	whereis(+Spec)
 %	Find predicate definition.
 
-whereis(Name/Arity) :- !,
-	whereis(Name, Arity).
-whereis(Name) :-
-	atom(Name), !,
-	whereis(Name, _).
-whereis(Head) :-
-	functor(Head, Name, Arity),
-	whereis(Name, Arity).
-
-whereis(Name, Arity) :-
-	(   nonvar(Arity)
-	->  functor(Head, Name, Arity)
-	;   true
+whereis(Spec) :-
+	'$find_predicate'(Spec, List),
+	member(Head, List),
+	'$predicate_name'(Head, PredName),
+	(   '$defined_predicate'(Head)
+	->  predicate_property(Head, file(File)),
+	    predicate_property(Head, line_count(Line)),
+	    format('~t~8|~w is in ~w:~d~n', [PredName, File, Line])
+	;   '$strip_module'(Head, Module, H),
+	    functor(H, Name, Arity),
+	    '$find_library'(Module, Name, Arity, _, Lib),
+	    libname(Lib, LibName),
+	    format('~t~8|~w is in ~w~n', [PredName, LibName])
 	),
-	findall(Module:Head - 0,
-		current_predicate(Name, Module:Head),
-		Loaded),
-	findall(Head - Where,
-		find_library_predicate(Name, Head, Where),
-		Library),
-	append(Loaded, Library, Places),
-	sort(Places, Sorted),
-	checklist(output, Sorted).
+	fail ; true.
 
-find_library_predicate(Name, Head, Where) :-
-	(   nonvar(Head)
-	->  functor(Head, Name, Arity)
-	;   true
-	),
-	$find_library(Name, Arity, Where).
-
-output(Module:Head - 0) :-
-	true.
-output(Head - Library) :-
-	true.
-	
-
+libname(File, library(LibName)) :-
+	findall(LN, ( library_directory(X),
+		      concat(X, LN, File)),
+		[LN0]),
+	(concat('/', LN1, LN0) -> true ; LN1 = LN0),
+	(concat(LibName, '.pl', LN1) -> true ; LibName = LN1).
 	

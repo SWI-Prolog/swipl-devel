@@ -1624,13 +1624,20 @@ abolish(+Functor, +Arity)
     retractall/1 rather than abolish/2.
 
 
-retract(+Term)
-    When Term is an atom or a term it is unified with the first unifying
-    fact or clause in the database.  The fact or clause is removed from
-    the database.
+redefine_system_predicate(+Head)
+    This directive may be used both in module user and in normal modules
+    to redefine any system predicate.  If the system definition is
+    redefined in module user, the new definition is the default
+    definition for all sub-modules.  Otherwise the redefinition is local
+    to the module.  The system definition remains in the module system.
+
+    Redefining system predicate facilates the definition of compatibility
+    packages.  Use in other context is discouraged.
 
 
-retractall(+Term)
+retract(+Term When Term is an atom or a term it is)
+    unified with the first unifying fact or clause in the database.  The
+    fact or clause is removed from the database.  .C retractall 1 +Term
     All facts or clauses in the database that unify with Term are
     removed.
 
@@ -5769,6 +5776,7 @@ help/0                      Give help on help
 help/1                      Give help on predicates and show parts of manual
 history_depth/1              Number of remembered queries
 read_history/6               Read using history substitution
+redefine_system_predicate/1   Abolish system definition
 ignore/1                    Call the argument, but always succeed
 import/1                    Import a predicate from a module
 index/1                     Change clause indexing

@@ -871,11 +871,11 @@ DeleteFile(char *path)
 bool
 RenameFile(char *old, char *new)
 {
+#ifdef HAVE_RENAME
+  return rename(old, new) == 0 ? TRUE : FALSE;
+#else
   char os_old[MAXPATHLEN];
   char os_new[MAXPATHLEN];
-#ifdef HAVE_RENAME
-  return rename(os_old, os_new) == 0 ? TRUE : FALSE;
-#else
   int rval;
 
   strcpy(os_old, OsPath(old));

@@ -47,6 +47,7 @@ listing(X) :-
 $listing(Preds, _) :-
 	member(Pred, Preds),
 	nl, 
+	$define_predicate(Pred),
 	$strip_module(Pred, _, Head), 
 	functor(Head, Name, Arity), 
         $listing2(Name, Pred, Arity), 

@@ -705,6 +705,14 @@ $assert_module_file(File, Module) :-
 	asserta($module_file(File, Module)).
 
 
+$reserved_module(system).
+$reserved_module(user).
+
+$load_module(Reserved, _, _, _) :-
+	$reserved_module(Reserved), !,
+	$warning('Cannot load into module "~w": reserved module name',
+		 [Reserved]),
+	fail.
 $load_module(Module, Public, Import, File) :-
 	$set_source_module(OldModule, OldModule),
 	(   compiling

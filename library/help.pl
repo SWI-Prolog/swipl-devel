@@ -44,20 +44,20 @@ apropos(What) :-
 
 give_help(Name/Arity) :- !,
 	predicate(Name, Arity, _, From, To), !,
-	show_help([From-To]).
+	show_help(Name/Arity, [From-To]).
 give_help(Section) :-
 	user_index(Index, Section), !,
 	section(Index, _, From, To),
-	show_help([From-To]).
+	show_help(Section, [From-To]).
 give_help(Function) :-
 	atom(Function),
 	concat('PL_', _, Function),
 	function(Function, From, To), !,
-	show_help([From-To]).
+	show_help(Function, [From-To]).
 give_help(Name) :-
 	findall(From-To, predicate(Name, _, _, From, To), Ranges),
 	Ranges \== [], !,
-	show_help(Ranges).
+	show_help(Name, Ranges).
 give_help(What) :-
 	format('No help available for ~w~n', What).
 
@@ -72,27 +72,34 @@ help_tmp_file(X) :-
 	tmp_file(manual, X),
 	asserta(asserted_help_tmp_file(X)).
 
-show_help(Ranges) :-
-	current_predicate(_, running_under_emacs_interface),
-	running_under_emacs_interface, !,
+write_ranges_to_file(Ranges, Outfile) :-
 	online_manual_stream(Manual),
 	help_tmp_file(Outfile),
 	open(Outfile, write, Output),
 	show_ranges(Ranges, Manual, Output),
 	close(Manual),
-	close(Output),
+	close(Output).
+
+show_help(Title, Ranges) :-
+	current_predicate(_, show_help_hook(_,_)),
+	write_ranges_to_file(Ranges, TmpFile),
+	user:show_help_hook(Title, TmpFile).
+show_help(_, Ranges) :-
+	clause(running_under_emacs_interface, _), 
+	running_under_emacs_interface, !,
+	write_ranges_to_file(Ranges, Outfile),
 	call_emacs('(view-file-other-window "~w")', [Outfile]).
-show_help(Ranges) :-
+show_help(_, Ranges) :-
 	\+ (feature(pipe, V), V == true), !,
 	online_manual_stream(Manual),
 	show_ranges(Ranges, Manual, user_output).
-show_help([Start-End]) :-
+show_help(_, [Start-End]) :-
 	End - Start > 4000, !,
 	find_manual(Manual),
 	find_pager(Pager),
 	sformat(Cmd, 'pl-bite ~d:~d ~a | ~a', [Start, End, Manual, Pager]),
 	shell(Cmd).	
-show_help(Ranges) :-
+show_help(_, Ranges) :-
 	online_manual_stream(Manual),
 	pager_stream(Pager),
 	show_ranges(Ranges, Manual, Pager),

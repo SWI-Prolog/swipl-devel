@@ -6,7 +6,7 @@
     Purpose: Manipulate system predicates and system mode
 */
 
-:- module(system,
+:- module(swi_system_utilities,
 	[ lock_predicate/2
 	, unlock_predicate/2
 	, system_mode/1

@@ -26,6 +26,7 @@
 	, source_file/1
 	, source_file/2
 	, current_predicate/2
+	, $defined_predicate/1
 	, predicate_property/2
 	, $predicate_property/2
 	, clause/2
@@ -126,6 +127,7 @@ trace(Pred, Ports) :-
 	$find_predicate(Pred, Preds),
 	Preds \== [],
 	(   member(Head, Preds),
+		$define_predicate(Head),
 	        $trace(Ports, Head),
 	        show_trace_point(Head),
 	    fail
@@ -148,15 +150,18 @@ $trace(+H, Head) :-
 	tag_list(A0, +, A1),
 	$trace(A1, Head).
 $trace(+H, Head) :- !,
+	trace_alias(_, [H]),
 	$set_predicate_attribute(Head, H, 1).
 $trace(-H, Head) :-
 	trace_alias(H, A0), !,
 	tag_list(A0, -, A1),
 	$trace(A1, Head).
 $trace(-H, Head) :- !,
+	trace_alias(_, [H]),
 	$set_predicate_attribute(Head, H, 0).
 $trace(H, Head) :-
-	$set_predicate_attribute(Head, H, 1).
+	atom(H),
+	$trace(+H, Head).
 
 tag_list([], _, []).
 tag_list([H0|T0], F, [H1|T1]) :-
@@ -171,6 +176,7 @@ spy([H|T]) :- !,
 spy(Spec) :-
 	$find_predicate(Spec, Preds),
 	member(Head, Preds),
+	    $define_predicate(Head),
 	    $spy(Head),
 	    $predicate_name(Head, Name),
 	    $ttyformat('Spy point on ~w~n', [Name]),

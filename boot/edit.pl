@@ -44,6 +44,7 @@ ed(Spec) :-
 	    $predicate_name(Head, PredName),
 	    $confirm('Edit predicate `~w''', [PredName])
 	), !, 
+	$define_predicate(Head),
 	source_file(Head, File), 
 	predicate_property(Head, line_count(LineNo)),
 	$strip_module(Head, Module, Term), 

@@ -824,6 +824,17 @@ pl_set_predicate_attribute(Word pred, Word what, Word value)
   Atom key;
   Module module = (Module) NULL;
   unsigned long att;
+  int nodef;				/* does not define pred */
+
+  if ( !isAtom(*what) ||
+       (!isInteger(*value) || (valNum(*value) & ~1)) )
+    return warning("$set_predicate_attribute/3: instantiation fault");
+  key = (Atom) *what;
+  if ( !(att = attribute_mask(key)) )
+    return warning("$set_predicate_attribute/4: unknown key: %s",
+		   stringAtom(key));
+
+  nodef = (att & (TRACE_ANY|SPY_ME));
 
   pred = stripModule(pred, &module);
   if ( isAtom(*pred) )
@@ -833,17 +844,11 @@ pl_set_predicate_attribute(Word pred, Word what, Word value)
   else
     fail;
 
-  if ( !(proc = lookupProcedureToDefine(fd, module)) )
+  proc = (nodef ? resolveProcedure(fd, module)
+	        : lookupProcedureToDefine(fd, module));
+  if ( !proc )
     fail;
   def = proc->definition;
-
-  if ( !isAtom(*what) ||
-       (!isInteger(*value) || (valNum(*value) & ~1)) )
-    return warning("$set_predicate_attribute/3: instantiation fault");
-  key = (Atom) *what;
-  if ( !(att = attribute_mask(key)) )
-    return warning("$set_predicate_attribute/4: unknown key: %s",
-		   stringAtom(key));
 
   if ( *value == consNum(0) )
   { clear(def, att);
