@@ -445,6 +445,7 @@ suggest predicates from a keyword.
 \predicatesummary{tty_get_capability}{3}{Get terminal parameter}
 \predicatesummary{tty_goto}{2}{Goto position on screen}
 \predicatesummary{tty_put}{2}{Write control string to terminal}
+\predicatesummary{tty_size}{2}{Get row/column size of the terminal}
 \predicatesummary{ttyflush}{0}{Flush output on terminal}
 \predicatesummary{union}{3}{Union of two sets}
 \predicatesummary{unify_with_occurs_check}{2}{Logically sound unification}

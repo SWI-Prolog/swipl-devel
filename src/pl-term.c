@@ -23,6 +23,10 @@ windowing!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef HAVE_TGETENT
+#ifndef NO_SYS_IOCTL_H_WITH_SYS_TERMIOS_H
+#include <sys/ioctl.h>
+#endif
+
 extern int  tgetent();
 extern int  tgetnum();
 extern int  tgetflag();
@@ -53,7 +57,6 @@ typedef struct
 } entry, *Entry;
 
 forwards bool	initTerm(void);
-forwards Entry	lookupEntry(atom_t, atom_t);
 
 void
 resetTerm()
@@ -196,6 +199,52 @@ pl_tty_put(term_t a, term_t affcnt)
   return warning("tty_put: instantiation fault");
 }
 
+
+word
+pl_tty_size(term_t r, term_t c)
+{ int rows, cols;
+
+#ifdef __unix__
+  int iorval;
+
+#ifdef TIOCGSIZE
+  struct ttysize ws;
+  iorval = ioctl(0, TIOCGSIZE, &ws);
+	
+  rows = ws.ts_lines;
+  cols = ws.ts_cols;
+#else
+#ifdef TIOCGWINSZ
+  struct winsize ws;
+  iorval = ioctl(0, TIOCGWINSZ, &ws);
+
+  rows = ws.ws_row;
+  cols = ws.ws_col;
+#else
+  Entry er, ec;
+
+  if ( (er=lookupEntry(ATOM_li, ATOM_number)) &&
+       (ec=lookupEntry(ATOM_co, ATOM_number)) &&
+       er->value && ec->value )
+  { rows = valInt(er->value);
+    cols = valInt(ec->value);
+    iorval = 0;
+  } else
+    iorval = -1;
+#endif
+#endif
+
+  if ( iorval != 0 )
+    return PL_error("tty_size", 2, MSG_ERRNO, ERR_SYSCALL, ATOM_ioctl);
+#else /*__unix__*/
+  rows = ScreenRows();			/* old stuff refering to plterm.dll */
+  cols = ScreenCols();			/* not used anyway */
+#endif /*__unix__*/
+
+  return PL_unify_integer(r, rows) &&
+	 PL_unify_integer(c, cols);
+}
+
 #else /* ~TGETENT */
 
 void resetTerm()
@@ -220,6 +269,11 @@ pl_tty_put(term_t a, term_t affcnt)
 word
 pl_set_tty(term_t old, term_t new)
 { return notImplemented("set_tty", 2);
+}
+
+word
+tty_size(term_t r, term_t c)
+{ return notImplemented("tty_size", 2);
 }
 
 #endif /* TGETENT */

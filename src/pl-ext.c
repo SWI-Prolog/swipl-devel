@@ -465,6 +465,7 @@ static const struct foreign {
   FRG("tty_get_capability",	3, pl_tty_get_capability,	TRACE_ME),
   FRG("tty_goto",		2, pl_tty_goto,			TRACE_ME),
   FRG("tty_put",		2, pl_tty_put,			TRACE_ME),
+  FRG("tty_size",		2, pl_tty_size,			TRACE_ME),
   FRG("format_predicate",	2, pl_format_predicate,	   META|TRACE_ME),
   FRG("current_format_predicate", 2, pl_current_format_predicate,
 						      META|NDET|TRACE_ME),

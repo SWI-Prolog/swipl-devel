@@ -472,6 +472,9 @@ A asserta		"asserta"
 A assert		"assert"
 A export		"export"
 A shared_object		"shared_object"
+A li			"li"
+A co			"co"
+A ioctl			"ioctl"
 
 F abs			1
 F acos			1

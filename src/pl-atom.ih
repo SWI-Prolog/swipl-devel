@@ -461,3 +461,6 @@
 #define ATOM_assert       MK_ATOM(460)
 #define ATOM_export       MK_ATOM(461)
 #define ATOM_shared_object MK_ATOM(462)
+#define ATOM_li           MK_ATOM(463)
+#define ATOM_co           MK_ATOM(464)
+#define ATOM_ioctl        MK_ATOM(465)
