@@ -711,29 +711,28 @@ Q: Should we limit the passes?
 
 static void
 run_thread_exit_hooks()
-{ fid_t fid = PL_open_foreign_frame();
+{ term_t goal = PL_new_term_ref();
+  fid_t fid = PL_open_foreign_frame();
   at_exit_goal *eg;
-  mark m;
-  term_t goal = PL_new_term_ref();
 
   while( (eg = LD->thread.exit_goals) )
   { at_exit_goal *next;
 
     LD->thread.exit_goals = NULL;	/* empty these */
 
-    Mark(m);
     for( ; eg; eg = next)
     { next = eg->next;
   
       PL_recorded(eg->goal, goal);
       PL_erase(eg->goal);
       callProlog(eg->module, goal, PL_Q_NODEBUG, NULL);
-      Undo(m);
+      PL_rewind_foreign_frame(fid);
       freeHeap(eg, sizeof(*eg));
     }
   }
 
   PL_discard_foreign_frame(fid);
+  PL_reset_term_refs(goal);
 }
 
 

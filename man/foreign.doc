@@ -1277,7 +1277,7 @@ call_chars(const char *goal)
 
 \subsection{Calling Prolog from C}
 
-The Prolog engine can be called from C. There are to interfaces for
+The Prolog engine can be called from C. There are two interfaces for
 this. For the first, a term is created that could be used as an argument
 to call/1 and next PL_call() is used to call Prolog. This system is
 simple, but does not allow to inspect the different answers to a
