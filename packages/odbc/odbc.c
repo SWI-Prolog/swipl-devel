@@ -37,7 +37,7 @@ Stefano  De  Giorgi  (s.degiorgi@tin.it).
 #ifdef WIN32
 #include <windows.h>
 #define HAVE_MKTIME 1
-#define HAVE_LOCALTIME 1
+#define HAVE_GMTIME 1
 #else
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -1610,7 +1610,7 @@ get_time(term_t head, TIME_STRUCT* time)
 static int
 get_timestamp(term_t t, SQL_TIMESTAMP_STRUCT* stamp)
 {
-#ifdef HAVE_LOCALTIME
+#if defined(HAVE_LOCALTIME) || defined(HAVE_GMTIME)
   double tf;
 #endif
 
@@ -1633,11 +1633,15 @@ get_timestamp(term_t t, SQL_TIMESTAMP_STRUCT* stamp)
     stamp->fraction = v;
 
     return TRUE;
-#ifdef HAVE_LOCALTIME
+#if defined(HAVE_LOCALTIME) || defined(HAVE_GMTIME)
   } else if ( PL_get_float(t, &tf) && tf <= LONG_MAX && tf >= LONG_MIN )
   { time_t t = (time_t) tf;
     long  us = (long)((tf - (double) t) * 1000.0);
+#ifdef HAVE_GMTIME
     struct tm *tm = localtime(&t);
+#else
+    struct tm *tm = gmtime(&t);
+#endif
 
     stamp->year	    = tm->tm_year + 1900;
     stamp->month    = tm->tm_mon + 1;

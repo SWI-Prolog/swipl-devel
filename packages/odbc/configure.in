@@ -79,7 +79,7 @@ fi
 
 AC_CHECK_LIB(odbc, SQLAllocEnv)
 AC_CHECK_HEADERS(malloc.h sql.h time.h)
-AC_CHECK_FUNCS(localtime mktime)
+AC_CHECK_FUNCS(localtime mktime gmtime)
 
 if test "$ac_cv_lib_odbc_SQLAllocEnv" = yes &&
    test "$ac_cv_header_sql_h" = yes; then
