@@ -34,6 +34,7 @@ all::
 
 install:	$(LIBPL)
 		mkdir -p $(DESTDIR)/$(CLPDIR)
+		mkdir -p $(DESTDIR)/$(CLPRDIR)
 		$(INSTALL_DATA) $(LIBPL) $(DESTDIR)/$(CLPDIR)
 		(cd clpr && $(INSTALL_DATA) $(CLPRPRIV) $(DESTDIR)/$(CLPRDIR))
 		$(INSTALL_DATA) README $(DESTDIR)/$(CLPRDIR)
