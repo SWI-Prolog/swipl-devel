@@ -460,11 +460,11 @@ edit_preferences(_, What:name) :->
 	auto_call(start_emacs),
 	(   \+ access_file(File, exist)
 	->  send(@display, confirm,
-		 'Preferences file %s doesn''t exist.\nCreate it?')
+		 'Preferences file %s doesn''t exist.\nCreate it?', File)
 	;   access_file(File, write)
 	->  true
 	;   send(@display, inform,
-		 'You cannot modify the preferences file %s')
+		 'You cannot modify the preferences file %s', File)
 	),
 	send(@emacs, goto_source_location, File).
 
