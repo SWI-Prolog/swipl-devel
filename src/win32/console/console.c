@@ -363,14 +363,10 @@ rlc_window_class(HICON icon)
 }
 
 
-
-int
-rlc_main(HANDLE hInstance, HANDLE hPrevInstance,
-	 LPTSTR lpszCmdLine, int nCmdShow,
-	 RlcMain mainfunc, HICON icon)
-{ TCHAR *	    argv[100];
-  int		    argc;
-  TCHAR		    program[MAXPATHLEN];
+static RlcData
+prepare_main(TCHAR **argv, int *argc, HANDLE hInstance, HANDLE hPrevInstance,
+	     LPTSTR lpszCmdLine, int nCmdShow, HICON icon)
+{ TCHAR		    program[MAXPATHLEN];
   TCHAR	 	    progbase[100];
   RlcData           b;
   rlc_console_attr  attr;
@@ -389,13 +385,57 @@ rlc_main(HANDLE hInstance, HANDLE hPrevInstance,
   _rlc_program = attr.title = progbase;
   _rlc_stdio = b = rlc_create_console(&attr);
 
-  argc = rlc_breakargs(program, lpszCmdLine, argv);
+  if ( !lpszCmdLine )
+    lpszCmdLine = GetCommandLine();
+
+  *argc = rlc_breakargs(program, lpszCmdLine, argv);
+
+  return b;
+}
+
+
+
+int
+rlc_main(HANDLE hInstance, HANDLE hPrevInstance,
+	 LPTSTR lpszCmdLine, int nCmdShow,
+	 RlcMain mainfunc, HICON icon)
+{ TCHAR *	    argv[100];
+  int		    argc;
+  RlcData           b;
+
+  b = prepare_main(argv, &argc,
+		   hInstance, hPrevInstance, lpszCmdLine, nCmdShow, icon);
 
   if ( mainfunc )
     return (*mainfunc)(b, argc, argv);
   else
     return 0;
 }
+
+
+#if 0
+int
+rlc_main_utf8(HANDLE hInstance, HANDLE hPrevInstance,
+	      LPTSTR lpszCmdLine, int nCmdShow,
+	      RlcMain mainfunc, HICON icon)
+{ TCHAR *	    argv[100];
+  int		    argc;
+  RlcData           b;
+
+  b = prepare_main(argv, &argc,
+		   hInstance, hPrevInstance, lpszCmdLine, nCmdShow, icon);
+
+  if ( mainfunc )
+  { char *av;
+
+    for(i=0; i<argc; i++)
+      av[i] = dup2utf8(argv[i]);
+
+    return (*mainfunc)(b, argc, av);
+  } else
+    return 0;
+}
+#endif
 
 
 rlc_console
@@ -769,7 +809,7 @@ rlc_get_options(rlc_console_attr *attr)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Windows-'95 appears to quote names of files   (I guess because files may
-hold spaces).  rlc_breakargs()  will  pass  a   quoted  _tcsings  as  one
+hold spaces).  rlc_breakargs()  will  pass  a   quoted  strings  as  one
 argument.  If it can't find the closing   quote, it will tread the quote
 as a normal character.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */

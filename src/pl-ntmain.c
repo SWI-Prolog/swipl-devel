@@ -22,7 +22,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#define _UNICODE 1
+#define UNICODE 1
+
 #include <windows.h>
+#include <tchar.h>
+#include <malloc.h>
 #include <stdio.h>
 #include "pl-stream.h"
 #include "pl-itf.h"
@@ -50,7 +55,7 @@ __declspec(dllexport) rlc_console	PL_current_console();
 static int		type_error(term_t actual, const char *expected);
 static int		domain_error(term_t actual, const char *expected);
 static HWND		create_prolog_hidden_window(rlc_console c);
-static int		get_chars_arg_ex(int a, term_t t, char **v, unsigned flags);
+static int		get_chars_arg_ex(int a, term_t t, TCHAR **v);
 
 #define RLC_PROLOG_WINDOW	RLC_VALUE(0) /* GetCurrentThreadID() */
 #define RLC_PROLOG_INPUT	RLC_VALUE(1) /* Input  stream (IOSTREAM*) */
@@ -156,7 +161,8 @@ Srlc_read(void *handle, char *buffer, int size)
       bytes = 1;
     }
   } else
-  { bytes = rlc_read(c, buffer, size);
+  { bytes = rlc_read(c, (TCHAR*)buffer, size/sizeof(TCHAR));
+    bytes *= sizeof(TCHAR);
   }
 
   if ( bytes == 0 || buffer[bytes-1] == '\n' )
@@ -169,8 +175,12 @@ Srlc_read(void *handle, char *buffer, int size)
 static int
 Srlc_write(void *handle, char *buffer, int size)
 { rlc_console c = handle;
+  int n;
 
-  return rlc_write(c, buffer, size);
+  n = rlc_write(c, (TCHAR*)buffer, size/sizeof(TCHAR));
+  n *= sizeof(TCHAR);
+
+  return n;
 }
 
 
@@ -217,6 +227,10 @@ rlc_bind_terminal(rlc_console c)
   Sinput->handle  = c;
   Soutput->handle = c;
   Serror->handle  = c;
+
+  Sinput->encoding  = ENC_UNICODE_LE;
+  Soutput->encoding = ENC_UNICODE_LE;
+  Serror->encoding  = ENC_UNICODE_LE;
 }
 
 
@@ -234,8 +248,12 @@ process_console_options(rlc_console_attr *attr, term_t options)
       return type_error(opt, "compound");
     s = PL_atom_chars(name);
     if ( streq(s, "registry_key") && arity == 1 )
-    { if ( !get_chars_arg_ex(1, opt, (char **)&attr->key, CVT_ALL|BUF_RING) )
+    { TCHAR *key;
+
+      if ( !get_chars_arg_ex(1, opt, &key) )
 	return FALSE;
+
+      attr->key = key;
     } else
       return domain_error(opt, "window_option");
   }
@@ -260,12 +278,13 @@ pl_win_open_console(term_t title, term_t input, term_t output, term_t error,
 { rlc_console_attr attr;
   rlc_console c;
   IOSTREAM *in, *out, *err;
-  char *s;
+  TCHAR *s;
+  unsigned int len;
 
   memset(&attr, 0, sizeof(attr));
-  if ( !PL_get_chars(title, &s, CVT_ALL|BUF_RING) )
+  if ( !PL_get_wchars(title, &len, &s, CVT_ALL|BUF_RING) )
     return type_error(title, "text");
-  attr.title = (const char *) s;
+  attr.title = (const TCHAR*) s;
 
   if ( !process_console_options(&attr, options) )
     return FALSE;
@@ -286,6 +305,10 @@ pl_win_open_console(term_t title, term_t input, term_t output, term_t error,
   in->position  = &in->posbuf;		/* record position on same stream */
   out->position = &in->posbuf;
   err->position = &in->posbuf;
+
+  in->encoding  = ENC_UNICODE_LE;
+  out->encoding = ENC_UNICODE_LE;
+  err->encoding = ENC_UNICODE_LE;
 
   if ( !PL_unify_stream(input, in) ||
        !PL_unify_stream(output, out) ||
@@ -319,12 +342,16 @@ pl_rl_add_history(term_t text)
 
   if ( PL_get_atom(text, &a) )
   { if ( a != last )
-    { if ( last )
+    { TCHAR *s;
+
+      if ( last )
 	PL_unregister_atom(last);
       last = a;
       PL_register_atom(last);
 
-      rlc_add_history(PL_current_console(), PL_atom_chars(a));
+      PL_get_wchars(text, NULL, &s, CVT_ATOM);
+
+      rlc_add_history(PL_current_console(), s);
     }
 
     return TRUE;
@@ -346,6 +373,16 @@ pl_rl_read_init_file(term_t file)
 
 static RlcCompleteFunc file_completer;
 
+static TCHAR *
+str2wide_copy(TCHAR *dest, const char *src)
+{ TCHAR *d;
+
+  for(d=dest; *src; )
+    *d++ = (*src++)&0xff;
+
+  return dest;
+}
+
 static int
 prolog_complete(RlcCompleteData data)
 { Line ln = data->line;
@@ -353,28 +390,28 @@ prolog_complete(RlcCompleteData data)
   switch(data->call_type)
   { case COMPLETE_INIT:
     { int start = ln->point;
-      int c;
+      wint_t c;
 
       if ( !ln->data )			/* we donot want to complete on all atoms */
 	return FALSE;
 
-      while(start > 0 && (isalnum((c=ln->data[start-1])) || c == '_') )
+      while(start > 0 && (_istalnum((c=ln->data[start-1])) || c == '_') )
 	start--;
       if ( start > 0 )
-      { int cs = ln->data[start-1];
+      { _TINT cs = ln->data[start-1];
 	
-	if ( strchr("'/\\.~", cs) )
+	if ( _tcschr(_T("'/\\.~"), cs) )
 	  return FALSE;			/* treat as a filename */
       }
-      if ( islower(ln->data[start]) )	/* Lower, Aplha ...: an atom */
+      if ( _istlower(ln->data[start]) )	/* Lower, Aplha ...: an atom */
       { int patlen = ln->point - start;
 	char *s;
 
-	memcpy(data->buf_handle, &ln->data[start], patlen);
+	_tcsncpy(data->buf_handle, &ln->data[start], patlen);
 	data->buf_handle[patlen] = '\0';
 	
 	if ( (s = PL_atom_generator(data->buf_handle, FALSE)) )
-	{ strcpy(data->candidate, s);
+	{ str2wide_copy(data->candidate, s);
 	  data->replace_from = start;
 	  data->function = prolog_complete;
 	  return TRUE;
@@ -386,7 +423,7 @@ prolog_complete(RlcCompleteData data)
     case COMPLETE_ENUMERATE:
     { char *s = PL_atom_generator(data->buf_handle, TRUE);
       if ( s )
-      { strcpy(data->candidate, s);
+      { str2wide_copy(data->candidate, s);
 	return TRUE;
       }
       return FALSE;
@@ -425,15 +462,15 @@ PL_current_console()
 
 foreign_t
 pl_window_title(term_t old, term_t new)
-{ char buf[256];
-  char *n;
+{ TCHAR buf[256];
+  TCHAR *n;
 
-  if ( !PL_get_atom_chars(new, &n) )
+  if ( !PL_get_wchars(new, NULL, &n, CVT_ALL) )
     return type_error(new, "atom");
 
-  rlc_title(PL_current_console(), n, buf, sizeof(buf));
+  rlc_title(PL_current_console(), n, buf, sizeof(buf)/sizeof(TCHAR));
 
-  return PL_unify_atom_chars(old, buf);
+  return PL_unify_wchars(old, PL_ATOM, _tcslen(buf), buf);
 }
 
 
@@ -464,11 +501,11 @@ domain_error(term_t actual, const char *expected)
 }
 
 static int
-get_chars_arg_ex(int a, term_t t, char **v, unsigned flags)
+get_chars_arg_ex(int a, term_t t, TCHAR **v)
 { term_t arg = PL_new_term_ref();
 
-  PL_get_arg(a, t, arg);
-  if ( PL_get_chars(arg, v, flags) )
+  if ( PL_get_arg(a, t, arg) &&
+       PL_get_wchars(arg, NULL, v, CVT_ALL|BUF_RING) )
     return TRUE;
 
   return type_error(arg, "text");
@@ -584,16 +621,16 @@ call_menu(const char *name)
 
 foreign_t
 pl_win_insert_menu_item(foreign_t menu, foreign_t label, foreign_t before)
-{ char *m, *l, *b;
+{ TCHAR *m, *l, *b;
 
-  if ( !PL_get_atom_chars(menu, &m) ||
-       !PL_get_atom_chars(label, &l) ||
-       !PL_get_atom_chars(before, &b) )
+  if ( !PL_get_wchars(menu, NULL, &m, CVT_ATOM) ||
+       !PL_get_wchars(label, NULL, &l, CVT_ATOM) ||
+       !PL_get_wchars(before, NULL, &b, CVT_ATOM) )
     return FALSE;
   
-  if ( strcmp(b, "-") == 0 )
+  if ( _tcscmp(b, _T("-")) == 0 )
     b = NULL;
-  if ( strcmp(l, "--") == 0 )
+  if ( _tcscmp(l, _T("--")) == 0 )
     l = NULL;				/* insert a separator */
     
   return rlc_insert_menu_item(PL_current_console(), m, l, b);
@@ -602,13 +639,13 @@ pl_win_insert_menu_item(foreign_t menu, foreign_t label, foreign_t before)
 
 foreign_t
 pl_win_insert_menu(foreign_t label, foreign_t before)
-{ char *l, *b;
+{ TCHAR *l, *b;
 
-  if ( !PL_get_atom_chars(label, &l) ||
-       !PL_get_atom_chars(before, &b) )
+  if ( !PL_get_wchars(label, NULL, &l, CVT_ATOM) ||
+       !PL_get_wchars(before, NULL, &b, CVT_ATOM) )
     return FALSE;
   
-  if ( strcmp(b, "-") == 0 )
+  if ( _tcscmp(b, _T("-")) == 0 )
     b = NULL;
     
   return rlc_insert_menu(PL_current_console(), l, b);
@@ -680,14 +717,14 @@ pl_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 }
 
 
-static char *
+static TCHAR *
 HiddenFrameClass()
-{ static char winclassname[32];
+{ static TCHAR winclassname[32];
   static WNDCLASS wndClass;
   HINSTANCE instance = rlc_hinstance();
 
   if ( !winclassname[0] )
-  { sprintf(winclassname, "SWI-Prolog-hidden-win%d", instance);
+  { _stprintf(winclassname, _T("SWI-Prolog-hidden-win%d"), instance);
 
     wndClass.style		= 0;
     wndClass.lpfnWndProc	= (LPVOID) pl_wnd_proc;
@@ -721,7 +758,7 @@ create_prolog_hidden_window(rlc_console c)
     return (HWND)hwnd;
 
   hwnd = (unsigned long)CreateWindow(HiddenFrameClass(),
-				     "SWI-Prolog hidden window",
+				     _T("SWI-Prolog hidden window"),
 				     0,
 				     0, 0, 32, 32,
 				     NULL, NULL, rlc_hinstance(), NULL);
@@ -791,10 +828,10 @@ interrupt(rlc_console c, int sig)
 
 
 static void
-menu_select(rlc_console c, const char *name)
+menu_select(rlc_console c, const TCHAR *name)
 { 
 #ifdef O_PLMT
-  if ( streq(name, "&New thread") )
+  if ( _tcscmp(name, _T("&New thread")) == 0 )
   { create_interactor();
   } else
 #endif /*O_PLMT*/
@@ -822,17 +859,20 @@ message_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 
 static void
 set_window_title(rlc_console c)
-{ char title[256];
+{ TCHAR title[256];
   long v = PL_query(PL_QUERY_VERSION);
   int major = v / 10000;
   int minor = (v / 100) % 100;
   int patch = v % 100;
 
 #ifdef O_PLMT
-  Ssprintf(title, "SWI-Prolog (Multi-threaded, version %d.%d.%d)", major, minor, patch);
+  _stprintf(title, _T("SWI-Prolog (Multi-threaded, version %d.%d.%d)"),
+	    major, minor, patch);
 #else
-  Ssprintf(title, "SWI-Prolog (version %d.%d.%d)", major, minor, patch);
+  _stprintf(title, _T("SWI-Prolog (version %d.%d.%d)"),
+	    major, minor, patch);
 #endif
+
   rlc_title(c, title, NULL, 0);
 }
 
@@ -885,9 +925,14 @@ closeWin(int s, void *a)
   }
 }
 
+#define MAX_ARGC 100
+
 int
-win32main(rlc_console c, int argc, char **argv)
-{ set_window_title(c);
+win32main(rlc_console c, int argc, TCHAR **argv)
+{ char *av[MAX_ARGC+1];
+  int i;
+
+  set_window_title(c);
   rlc_bind_terminal(c);
 
   PL_register_extensions(extensions);
@@ -903,7 +948,7 @@ win32main(rlc_console c, int argc, char **argv)
   rlc_message_hook(message_proc);
   PL_set_feature("console_menu", PL_BOOL, TRUE);
 #ifdef O_PLMT
-  rlc_insert_menu_item(c, "&Run", "&New thread", NULL);
+  rlc_insert_menu_item(c, _T("&Run"), _T("&New thread"), NULL);
 #endif
 #if !defined(O_DEBUG) && !defined(_DEBUG)
   initSignals();
@@ -911,7 +956,20 @@ win32main(rlc_console c, int argc, char **argv)
   PL_register_foreign("system:win_open_console", 5,
 		      pl_win_open_console, 0);
 
-  if ( !PL_initialise(argc, argv) )
+  if ( argc > MAX_ARGC )
+    argc = MAX_ARGC;
+  for(i=0; i<argc; i++)
+  { char *s;
+    TCHAR *q;
+
+    av[i] = alloca(_tcslen(argv[i])+1);
+    for(s=av[i], q=argv[i]; *q; )
+      *s++ = (char)*q++;		/* TBD: --> UTF-8 */
+    *s = '\0';
+  }
+  av[i] = NULL;
+
+  if ( !PL_initialise(argc, av) )
     PL_halt(1);
   
   PL_halt(PL_toplevel() ? 0 : 1);
@@ -928,8 +986,12 @@ console.c for further details.
 int PASCAL
 WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	LPSTR lpszCmdLine, int nCmdShow)
-{ InitializeCriticalSection(&mutex);
+{ LPTSTR cmdline;
 
-  return rlc_main(hInstance, hPrevInstance, lpszCmdLine, nCmdShow,
-		  win32main, LoadIcon(hInstance, "SWI_Icon"));
+  InitializeCriticalSection(&mutex);
+
+  cmdline = GetCommandLine();
+
+  return rlc_main(hInstance, hPrevInstance, cmdline, nCmdShow,
+		  win32main, LoadIcon(hInstance, _T("SWI_Icon")));
 }

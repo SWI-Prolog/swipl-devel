@@ -8,10 +8,10 @@
 CFLAGS = $(CFLAGS) /DUNICODE /D_UNICODE
 
 PLHOME=		..\..\..
-#OUTDLL=		$(PLHOME)\bin\plterm.dll
-#OUTLIB=		$(PLHOME)\lib\plterm.lib
-OUTDLL=		plterm.dll
-OUTLIB=		plterm.lib
+OUTDLL=		$(PLHOME)\bin\plterm.dll
+OUTLIB=		$(PLHOME)\lib\plterm.lib
+#OUTDLL=		plterm.dll
+#OUTLIB=		plterm.lib
 OUTINC=		$(PLHOME)\include\console.h
 OUTDBG=		$(PLHOME)\bin\plterm.pdb
 

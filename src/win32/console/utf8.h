@@ -55,14 +55,15 @@
 
 
 #define utf8_get_char(in, chr) \
-	(*(in) & 0x80 ? _PL__utf8_get_char(in, chr) \
+	(*(in) & 0x80 ? rlc_utf8_get_char(in, chr) \
 		      : (*(chr) = *(in), (char *)(in)+1))
 #define utf8_put_char(out, chr) \
-	(chr < 0x80 ? out[0]=chr&0xff, out+1 : _PL__utf8_put_char(out, chr))
+	(chr < 0x80 ? out[0]=chr&0xff, out+1 : rlc_utf8_put_char(out, chr))
 
-extern char *_PL__utf8_get_char(const char *in, int *chr);
-extern char *_PL__utf8_put_char(char *out, int chr);
+extern char *rlc_utf8_get_char(const char *in, int *chr);
+extern char *rlc_utf8_put_char(char *out, int chr);
 
 extern unsigned int utf8_strlen(const char *s, unsigned int len);
+extern char * dup2utf8(const TCHAR *in);
 
 #endif /*UTF8_H_INCLUDED*/

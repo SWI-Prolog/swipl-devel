@@ -32,7 +32,7 @@ UTF-8 Decoding, based on http://www.cl.cam.ac.uk/~mgk25/unicode.html
 #define VAL(i, s) ((in[i]&0x3f) << s)
 
 char *
-_PL__utf8_get_char(const char *in, int *chr)
+rlc_utf8_get_char(const char *in, int *chr)
 { 					/* 2-byte, 0x80-0x7ff */
   if ( (in[0]&0xe0) == 0xc0 && CONT(1) )
   { *chr = ((in[0]&0x1f) << 6)|VAL(1,0);
@@ -66,7 +66,7 @@ _PL__utf8_get_char(const char *in, int *chr)
 
 
 char *
-_PL__utf8_put_char(char *out, int chr)
+rlc_utf8_put_char(char *out, int chr)
 { if ( chr < 0x80 )
   { *out++ = chr;
   } else if ( chr < 0x800 )
@@ -101,7 +101,7 @@ _PL__utf8_put_char(char *out, int chr)
 
 
 unsigned int
-utf8_strlen(const char *s, unsigned int len)
+rlc_utf8_strlen(const char *s, unsigned int len)
 { const char *e = &s[len];
   unsigned int l = 0;
 
@@ -114,3 +114,38 @@ utf8_strlen(const char *s, unsigned int len)
 
   return l;
 }
+
+
+unsigned int
+utf8len(const TCHAR *in)
+{ unsigned int len;
+
+  for(len = 0; *in; in++)
+  { int c = *in;
+
+    if ( c < 0 )
+      c &= 0xff;
+
+    len += UTF8_BYTES_FOR_CODE(c);
+  }
+
+  return len;
+}
+
+
+char *
+dup2utf8(const TCHAR *in)
+{ char *copy rlc_malloc(utf8len(in)+1);
+  char *s = copy;
+
+  for( ; *in; in++)
+  { s = utf8_put_char(s, *in);
+  }
+  
+  return copy;
+}
+
+
+		 /*******************************
+		 *	       WRAPPERS		*
+		 *******************************/
