@@ -1113,7 +1113,7 @@ GLOBAL int	  source_line_no;	/* Current source line_no */
 
 #if O_VMCODE_IS_ADDRESS
 GLOBAL char  *dewam_table;			/* decoding table */
-GLOBAL code  wam_table[I_HIGHEST];		/* code --> address */
+GLOBAL code  wam_table[I_HIGHEST+1];		/* code --> address */
 GLOBAL void **interpreter_jmp_table;		/* interpreters table */
 
 #define encode(wam) (wam_table[wam])		/* WAM --> internal */
