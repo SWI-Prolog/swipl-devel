@@ -2727,7 +2727,7 @@ unify_statistics(term_t key, functor_t f)
       v = 0;
 
     PL_get_arg(2, key, a);
-    return PL_unify_integer(a, src->triple_count);
+    return PL_unify_integer(a, v);
   } else
     assert(0);
 

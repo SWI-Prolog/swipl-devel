@@ -937,6 +937,14 @@ prolog:message(rdf(loaded(Spec, Triples, cache(ParseTime)))) -->
 	[ 'Loaded "~w" in ~2f sec; added ~D triples'-
 	  [Base, ParseTime, Triples]
 	].
+prolog:message(rdf(loaded(Spec, Triples, snapshot(ParseTime)))) -->
+	{   atom(Spec)
+	->  file_base_name(Spec, Base)
+	;   Base = Spec
+	},
+	[ 'Loaded snapshot "~w" in ~2f sec; added ~D triples'-
+	  [Base, ParseTime, Triples]
+	].
 prolog:message(rdf(save_removed_duplicates(N, Subject))) -->
 	[ 'Removed ~d duplicate triples about "~p"'-[N,Subject] ].
 prolog:message(rdf(saved(File, SavedSubjects, SavedTriples))) -->

@@ -78,7 +78,7 @@
 	current_transaction/1,		% TID
 	transaction_name/2,		% TID, Name
 	undo_marker/2,			% Mode, TID
-	journal/2,			% Path, Stream
+	journal/3,			% Path, Mode, Stream
 	modified/1.			% Path
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -232,23 +232,26 @@ rdfe_load(File) :-
 			     extensions([rdf,rdfs,owl,''])
 			   ], Path),
 	rdf_load(Path,
-		 [ result(_Action, Triples, MD5)
+		 [ result(Action, Triples, MD5)
 		 ]),
-	absolute_file_name('.', PWD),
-	size_file(Path, Size),
-	time_file(Path, Modified),
-	SecTime is round(Modified),
-	assert_action(TID, load_file(Path), -, -, -),
-	journal(rdf_load(TID,
-			 Path,
-			 [ pwd(PWD),
-			   size(Size),
-			   modified(SecTime),
-			   triples(Triples),
-			   md5(MD5),
-			   from(File)
-			 ])),
-	ensure_snapshot(Path).
+	(   Action == none		% load, reload, none
+	->  true
+	;   absolute_file_name('.', PWD),
+	    size_file(Path, Size),
+	    time_file(Path, Modified),
+	    SecTime is round(Modified),
+	    assert_action(TID, load_file(Path), -, -, -),
+	    journal(rdf_load(TID,
+			     Path,
+			     [ pwd(PWD),
+			       size(Size),
+			       modified(SecTime),
+			       triples(Triples),
+			       md5(MD5),
+			       from(File)
+			     ])),
+	    ensure_snapshot(Path)
+	).
 
 
 rdfe_unload(Path) :-
@@ -683,57 +686,98 @@ rdfe_reset_undo :-
 journal_version(1).
 
 rdfe_open_journal(_, _) :-		% already open
-	journal(_, _), !.
-rdfe_open_journal(File, Mode) :-
+	journal(_, _, _), !.
+rdfe_open_journal(File, read) :- !,
+	absolute_file_name(File,
+			   [ extensions([rdfj, '']),
+			     access(read)
+			   ],
+			   Path),
+	rdfe_replay_journal(Path),
+	rdfe_clear_modified(_).
+rdfe_open_journal(File, write) :- !,
 	absolute_file_name(File,
 			   [ extensions([rdfj, '']),
 			     access(write)
 			   ],
 			   Path),
-	(   Mode == append,
-	    exists_file(Path)
-	->  Start = resume(Options),
-	    rdfe_replay_journal(File),
-	    rdfe_clear_modified(_)
-	;   Start = start(Options)
-	),
-	open(Path, Mode, Stream, [close_on_abort(false)]),
-	assert(journal(Path, Stream)),
-	(   Start = start(_)
-	->  format(Stream,
-		   '/* RDF editor journal\n\n   \
-		   Created by XPCE/SWI-Prolog RDF editor\n   \
-		   By Jan Wielemaker <jan@swi.psy.uva.nl>\n\n   \
-		   Do not edit!\n\
-		    */~n~n', [])
-	;   true
-	),
+	open(Path, write, Stream, [close_on_abort(false)]),
+	assert(journal(Path, write, Stream)),
 	get_time(T),
-	SecTime is round(T),
+	journal_open(start, T).
+rdfe_open_journal(File, append) :-
+	absolute_file_name(File,
+			   [ extensions([rdfj, '']),
+			     access(write)
+			   ],
+			   Path),
+	(   exists_file(Path)
+	->  rdfe_replay_journal(Path),
+	    rdfe_clear_modified(_),
+	    get_time(T),
+	    assert(journal(Path, append(T), []))
+	;   rdfe_open_journal(Path, write)
+	).
+
+
+journal_open(Type, Time) :-
+	journal_comment(Type, Time),
+	SecTime is round(Time),
 	journal_version(Version),
-	Options = [ time(SecTime),
-		    version(Version)
+	Start =.. [ Type, [ time(SecTime),
+			    version(Version)
+			  ]
 		  ],
 	journal(Start),
 	broadcast(rdf_journal(Start)).
+
+journal_comment(start, Time) :-
+	journal(_, _, Stream),
+	convert_time(Time, String),
+	format(Stream,
+	       '/* Triple20 Journal File\n\n   \
+	       Created: ~w\n   \
+	       Triple20 by Jan Wielemaker <jan@swi.psy.uva.nl>\n\n   \
+	       EDIT WITH CARE!\n\
+	       */~n~n', [String]).
+journal_comment(resume, Time) :-
+	journal(_, _, Stream),
+	convert_time(Time, String),
+	format(Stream,
+	       '\n\
+	       /* Resumed: ~w\n\
+	       */~n~n', [String]).
 
 rdfe_close_journal :-
 	get_time(T),
 	SecTime is round(T),
 	journal(end([ time(SecTime)
 		    ])),
-	retract(journal(_, Stream)),
-	close(Stream).
+	retract(journal(_, Mode, Stream)),
+	(   Mode = append(_)
+	->  true
+	;   close(Stream)
+	).
 
 %	rdfe_current_journal(-Path)
 %	
 %	Query the currently open journal
 
 rdfe_current_journal(Path) :-
-	journal(Path, _Stream).
+	journal(Path, _Mode, _Stream).
 
 journal(Term) :-
-	(   journal(_, Stream)
+	journal(Path, append(T), _), !,
+	(   Term = end(_)
+	->  true
+	;   open(Path, append, Stream, [close_on_abort(false)]),
+	    retractall(journal(Path, _, _)),
+	    assert(journal(Path, append, Stream)),
+	    journal_open(resume, T),
+	    journal(Term)
+	).
+journal(Term) :-
+	(   journal(_, _, Stream)
 	->  write_journal(Term, Stream),
 	    flush_output(Stream)
 	;   report_no_journal
@@ -861,10 +905,7 @@ replay_action(rdf_load(_, File, Options)) :-
 		      ],
 		      Path), !,
 	debug(snapshot, 'Reloading snapshot ~w~n', [Path]),
-	rdf_load_db(Path),
-	rdf_statistics(triples_by_file(File, Triples)),
-					% 1e10: modified far in the future
-	assert(rdf_db:rdf_source(File, 1e10, Triples, MD5)).
+	load_snapshot(File, Path).
 replay_action(rdf_load(_, File, Options)) :-
 	find_file(File, Options, Path),
 	(   memberchk(triples(0), Options),
@@ -896,6 +937,25 @@ find_file(File, Options, Path) :-
 make_path(File, PWD, Path) :-
 	atom_concat(PWD, /, PWD2),
 	atom_concat(PWD2, Path, File).
+
+%	load_snapshot(+Source, +Path)
+%	
+%	Load triples from the given snapshot   file. One of the troubles
+%	is the time-stamp to avoid rdf_make/0   from reloading the file.
+%	for the time being we use 1e12, which   is  a lot further in the
+%	future than this system is going to live.
+
+load_snapshot(Source, Path) :-
+	statistics(cputime, T0),
+	rdf_load_db(Path),
+	statistics(cputime, T1),
+	Time is T1 - T0,
+	rdf_statistics(triples_by_file(Source, Triples)),
+	rdf_md5(Source, MD5),
+					% 1e10: modified far in the future
+	assert(rdf_db:rdf_source(Source, 1e12, Triples, MD5)),
+	print_message(informational,
+		      rdf(loaded(Source, Triples, snapshot(Time)))).
 
 
 		 /*******************************
