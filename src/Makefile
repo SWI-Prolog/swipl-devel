@@ -11,11 +11,6 @@
 #   Copyright (c) 1989, University of Amsterdam
 #
 
-#
-# This file contains changes which are part of a port to HPUX 8.0
-# T. Kielmann, 01 Jun 92
-#
-
 #include "md.h"
 
 # The following parameters are loaded from md.h (using cpp)
@@ -48,7 +43,10 @@ BINDIR=M_BINDIR
 
 SYS=pl
 STARTUPDIR=../startup
-STARTUPPATH=$(STARTUPDIR)/startup.MACHINE (delete-quotes)
+MACH=MACHINE(delete-quotes)
+STARTUPPATH=$(STARTUPDIR)/startup.$(MACH)
+RUNTIMEDIR=../runtime/$(MACH)
+RUNTIME=$(RUNTIMEDIR)/pl.o
 PB=../boot
 BINLIB=libPL.a
 CPP=/lib/cpp
@@ -66,6 +64,7 @@ OBJ=	pl-wam.o pl-save.o \
 	pl-prof.o pl-read.o pl-rec.o pl-setup.o pl-sys.o pl-table.o \
 	pl-trace.o pl-util.o pl-wic.o pl-write.o pl-term.o
 DEPOBJ=	pl-main.o
+EXT=	pl-extend.o
 
 PLINIT=	$(PB)/init.pl
 PLBOOT=	$(PB)/syspred.pl $(PB)/toplevel.pl $(PB)/listing.pl \
@@ -74,7 +73,7 @@ PLBOOT=	$(PB)/syspred.pl $(PB)/toplevel.pl $(PB)/listing.pl \
 	$(PB)/profile.pl $(PB)/dwim.pl $(PB)/$(FOREIGN) $(PB)/parms.pl \
 	$(PB)/autoload.pl
 
-SRC=	$(OBJ:.o=.c) $(DEPOBJ:.o=.c)
+SRC=	$(OBJ:.o=.c) $(DEPOBJ:.o=.c) $(EXT:.o=.c)
 
 PARMS=	-DSYSTEMHOME=\"$(SYSTEMHOME)\" \
 	-DDEFSTARTUP=\"$(DEFSTARTUP)\"
@@ -87,23 +86,35 @@ all:		xmakefile
 startup:	$(STARTUPDIR) $(STARTUPPATH)
 
 
+runtime:	all
+		make -f xmakefile xruntime
+xruntime:	$(RUNTIME)
+		
+
 xmakefile:	Makefile md.h ../config.h
 		@-rm -f junk.c
 		@sed -f make.sed Makefile > junk.c
 		@$(CPP) junk.c | \
 		sed -e 's/^[ 	]*$$//' -e 's/^ /	/' \
-		    -e 's/\(.*\)"\(.*\)"\(.*\)[ 	][ 	]*(delete-quotes)/\1\2\3/' | \
+		    -e 's/\(.*\)"\(.*\)"\(.*\)[ 	]*(delete-quotes)/\1\2\3/' | \
 		sed -n -e '/^..*$$/p' > xmakefile
 		@rm -f junk.c
 
-$(SYS):		$(OBJ) $(DEPOBJ)
-		$(CC) $(LDFLAGS) -o $(SYS) $(OBJ) $(DEPOBJ) $(LIBS)
+$(SYS):		$(OBJ) $(DEPOBJ) $(EXT)
+		$(CC) $(LDFLAGS) -o $(SYS) $(OBJ) $(DEPOBJ) $(EXT) $(LIBS)
 
 $(STARTUPDIR):	
 		-mkdir $@
 
 $(STARTUPPATH):	$(PLBOOT) $(PLINIT) pl-wam.o
 		./$(SYS) -O -o $(STARTUPPATH) -b $(PLINIT) -c $(PLBOOT)
+
+$(RUNTIMEDIR):
+		@-mkdir ../runtime
+		@-mkdir $@
+
+$(RUNTIME):	$(OBJ) $(DEPOBJ) $(RUNTIMEDIR)
+		$(LD) -r -o $@ $(OBJ) $(DEPOBJ)
 
 $(EXPORTS):	xmakefile pl-export
 		echo \#!$(BINDIR)/$(PROLOG) > $(EXPORTS)
@@ -175,25 +186,3 @@ xclean:
 
 saber_src:
 		#load $(OBJ) $(DEPOBJ) $(CFLAGS) $(LIBS)
-
-# XPCE linking (incomplete; refer to the xpce directory)
-
-XPCEBASE=	../../xpce
-XBIN=		$(XPCEBASE)/MACHINE (delete-quotes)
-ITF=		$(XPCEBASE)/pl/MACHINE/pl-pce.o (delete-quotes)
-XLIBS=		$(LIBS) -lX11 -lXt
-
-xpce:		xmakefile
-		make -f xmakefile xxpce
-
-pce-main.c:	pl-main.c
-		ln -s pl-main.c pce-main.c
-
-pce-main.o:	xmakefile pl-main.c pl-main.h
-		$(CC) -c $(CFLAGS) $(PARMS) -DO_LINK_PCE pce-main.c
-
-xxpce:		$(OBJ) pce-main.o
-		(cd $(XPCEBASE)/src; ./make)
-		cc -o $@ pce-main.o $(OBJ) $(ITF) \
-		`awk '{print "$(XBIN)/" $$0}' $(XPCEBASE)/src/files` \
-		$(XLIBS)

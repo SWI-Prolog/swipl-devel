@@ -8,6 +8,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-itf.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Link all foreign language predicates.  The arguments to ADD are:
@@ -329,6 +330,7 @@ void
 initBuildIns()
 { struct foreign *f;
   register Definition def;
+  PL_extension *e;
 
   for(f = &foreigns[0]; f->name; f++)
   { def = lookupProcedure(lookupFunctorDef(lookupAtom(f->name), f->arity), 
@@ -344,4 +346,21 @@ initBuildIns()
   PROCEDURE_alt1 = lookupProcedure(FUNCTOR_alt1, MODULE_system);
   PROCEDURE_garbage_collect0 = lookupProcedure(FUNCTOR_garbage_collect0,
 					       MODULE_system);
+
+  for(e = &PL_extensions[0]; e->predicate_name; e++)
+  { short flags = TRACE_ME;
+
+    if ( e->flags & PL_FA_NOTRACE )	     flags &= TRACE_ME;
+    if ( e->flags & PL_FA_TRANSPARENT )	     flags |= TRANSPARENT;
+    if ( e->flags & PL_FA_NONDETERMINISTIC ) flags |= NONDETERMINISTIC;
+
+    def = lookupProcedure(lookupFunctorDef(lookupAtom(e->predicate_name),
+					   e->arity), 
+			  MODULE_user)->definition;
+    set(def, FOREIGN);
+    set(def, flags);
+    def->definition.function = e->function;
+    def->indexPattern = 0;
+    def->indexCardinality = 0;
+  }    
 }

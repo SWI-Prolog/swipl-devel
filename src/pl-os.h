@@ -7,69 +7,66 @@
     Purpose: Describe your OS here
 */
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Declarations of OS functions (should be provided by header files of  the
-machines),  macros needed to get a common basis under OS's and types and
-functions of pl-os.c.  Not the most beautifull file; needs cleaning!
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+#ifdef TIME_INCLUDE
+#include TIME_INCLUDE
+#else
+#include <sys/time.h>
+#endif
+
+#if tos
+struct timeval
+{ long tv_sec;
+  long tv_usec;
+};
+#endif
+
+		/********************************
+		*             OS-TYPES		*
+		********************************/
 
 extern int	puti P((int, FILE *));
 extern int	geti P((FILE *));
 
-#if tos || (!minix && !ANSI)
-extern void	bcopy P((Void, Void, size_t));
-extern void	bzero P((Void, size_t));
-#endif
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The types below should (mostly) be in stdlib.h.  They are not and this
+file keeps GCC silent while using the -Wall flag.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if !minix && !ANSI && !LINUX && !hpux
-extern long	putw P((long, FILE *));
-extern long	getw P((FILE *));
-extern Void	malloc P((malloc_t));
-extern Void	realloc P((Void, malloc_t));
-extern int	free P((Void));
-extern char	*sprintf P((char *, char *, ...)),
-		*vsprintf P((char *, char *, va_list));
-extern int	fprintf P((FILE *, char *, ...));
-extern int	vfprintf P((FILE *, char *, ...));
-extern int	printf P((char *, ...));
-extern int	qsort P((Void, int, int, int(*f)()));
-extern int	atoi P((char *));
-extern long	strtol P((char *, char**, int));
-extern volatile void exit P((int));
-extern char	*getenv P((char *));
-extern int	strlen P((char*));
-extern char	*strcpy P((char *, char*));
-extern char	*strncpy P((char *, char *, int));
-extern char	*index P((char *, char));
-extern int	strcmp P((char*, char*));
-extern char	*strcat P((char *, char*));
-extern int	kill P((int, int));
+#if sun
 extern int	getpid P((void));
-#if sun || mips
-extern int	_filbuf P((FILE *));
-extern int	_flsbuf P((unsigned char, FILE *));
-#endif
-extern int	fflush P((FILE *));
+extern int	isatty P((int));
 extern int	fclose P(( FILE * ));
 extern int	pclose P((FILE *));
-extern int	open P((char *, int, int));
+extern int	_filbuf P((FILE *));
+extern int	_flsbuf P((unsigned char, FILE *));
+extern int	fflush P((FILE *));
+extern char *   vsprintf P((char *, char *, va_list));
+extern void	bzero P((Void, int));
+extern void	exit P((int));
 extern int	close P((int));
 extern int	read P((int, Void, int));
-extern int	write P((int, Void, int));
-extern long	tell P((int));
-extern int	isatty P((int));
-extern int	chmod P((char *, int));
 extern int	access P((char *, int));
-extern int	getdtablesize();
-extern long	times P((struct utimes*));
-extern int 	wait P((union wait *));
-extern int	gettimeofday P((struct timeval *, struct timeval *));
 extern unsigned	sleep P((unsigned));
-#endif minix
+extern int	fprintf P((FILE *, char *, ...));
+extern int	printf P((char *, ...));
+extern long	putw P((long, FILE *));
+extern long	getw P((FILE *));
+extern char *	index P((char *, char));
+extern int	write P((int, Void, int));
+extern int	gettimeofday P((struct timeval *, struct timeval *));
+extern long	strtol P((char *, char**, int));
+extern int	vfprintf P((FILE *, char *, ...));
+#endif
+
 
 		/********************************
 		*        MEMORY MANAGEMENT      *
 		*********************************/
+
+#if !ANSI
+#define memcpy(to, from, n)	bcopy(from, to, n)
+#endif
+
 
 #define malloc_t	size_t		/* Argument type of malloc(), etc */
 #define alloc_t		size_t		/* argument type of Prolog's alloc */
@@ -169,23 +166,9 @@ char 		*AbsoluteFile P((char *)),
 		*        TIME CONVERSION        *
 		*********************************/
 
-#if minix || ANSI
-#include <time.h>
-#else
-#include <sys/time.h>
-#endif
-
 extern struct tm *LocalTime P((long *));
 extern real	  CpuTime P((void));
 
-#if tos
-struct timeval
-{ long tv_sec;
-  long tv_usec;
-};
-
-extern void gettimeofday P((struct timeval *, void *));
-#endif
 
 		/********************************
 		*       FILE DESCR. SETS	*

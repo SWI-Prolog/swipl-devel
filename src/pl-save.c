@@ -253,7 +253,7 @@ int (*allocf) P((SaveSection));
 
   { jmp_buf restore_ctx;	/* Will be destroyed */
 
-    bcopy(ret_main_ctx, restore_ctx, sizeof(restore_ctx));
+    memcpy(restore_ctx, ret_main_ctx, sizeof(restore_ctx));
 
     for(n = 0; n < header.nsections; n++)
     { struct save_section section_header;
@@ -274,7 +274,7 @@ int (*allocf) P((SaveSection));
       }
     }
 
-    bcopy(restore_ctx, ret_main_ctx, sizeof(restore_ctx));
+    memcpy(ret_main_ctx, restore_ctx, sizeof(restore_ctx));
 
     longjmp(ret_main_ctx, 1);
     /*NOTREACHED*/
@@ -295,7 +295,7 @@ SaveSection sections;
 { int fd;
   char buf[MAXLINE1];
   long header_offset;
-  long section_offset;
+  volatile long section_offset;		/* volatile to keep gcc happy */
   struct save_header header;
   int nsects = nsections + (kind == RET_RETURN ? 2 : 1);
   int sects_size = sizeof(struct save_section) * nsects;
@@ -306,7 +306,8 @@ SaveSection sections;
   if ( (fd = open(file, O_WRONLY|O_CREAT|O_TRUNC, 0777)) < 0 )
     return warning("save/1: cannot write %s: %s\n", OsError());
   
-  sprintf(buf, "#!%s -r\n", interpreter);
+/*sprintf(buf, "#!%s -r\n", interpreter);*/
+  sprintf(buf, "#!/bin/sh\nexec %s -r $0 $*\n", interpreter);
   header_offset = strlen(buf) + 1; /* +1 to write the EOS too */
   DEBUG(1, printf("header_offset = %d\n", header_offset));
   tryWrite(fd, buf, header_offset);
@@ -323,7 +324,7 @@ SaveSection sections;
   sects[0].type		= S_DATA;
   sects[0].flags	= 0;
 
-  bcopy(sections, &sects[1], nsections * sizeof(struct save_section));
+  memcpy(&sects[1], sections, nsections * sizeof(struct save_section));
 
   if ( kind == RET_RETURN )
   { SaveSection stack_sect = &sects[nsections+1];
@@ -344,7 +345,7 @@ SaveSection sections;
     section_offset += sect->length;
   }
 
-  tryWrite(fd, header, sizeof(header));
+  tryWrite(fd, &header, sizeof(header));
   tryWrite(fd, sects, sects_size);
 
   for(n=0, sect = sects; n++ < header.nsections; sect++)
@@ -397,16 +398,18 @@ char **env;
   }
 
   exit(rval);
+  return 1;
 }
 
 #else !O_SAVE
 
-volatile int
+int
 main(argc, argv, env)
 int argc;
 char **argv;
 char **env;
 { exit(startProlog(argc, argv, env));
+  return 1;
 }
 
 #endif

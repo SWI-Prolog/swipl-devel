@@ -13,7 +13,7 @@ Depending  on  the  PROTO  cpp  flag  ANSI  declarations  or  old  style
 declarations are used.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if __GNUC__
+#if defined(__GNUC__) && __GNUC__ == 1
 #define FI(type) int	/* type that promotes to int */
 #else
 #define FI(type) type
@@ -224,7 +224,7 @@ int		cardinalityPattern P((ulong));
 bool		reindexClause P((Clause)),
 		indexPatternToTerm P((Procedure, Word));
 struct index	getIndex P((Word, ulong, int));
-Clause		findClause P((Clause, Word, const Definition, const bool *));
+Clause		findClause P((Clause, Word, const Definition, bool *));
 
 		/* pl-itf.h */
 void		resetForeign P((void));
@@ -311,7 +311,6 @@ word		pl_load_foreign1 P((Word));
 
 		/* pl-main.c */
 
-int		main P((int argc , char **argv , char **env ));
 bool		sysError P((char *fm , ...)),
 		fatalError P((char *fm , ...)),
 		warning P((char *fm , ...)),

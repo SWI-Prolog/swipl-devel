@@ -222,11 +222,16 @@ bool
 allocateSection(s)
 SaveSection s;
 { if ( s->type == S_PLSTACK )
-  { if ((stacks.local.base    == s->start && restoreStack(&stacks.local)) ||
-	(stacks.global.base   == s->start && restoreStack(&stacks.global)) ||
-	(stacks.trail.base    == s->start && restoreStack(&stacks.trail)) ||
-	(stacks.argument.base == s->start && restoreStack(&stacks.argument)) ||
-	(stacks.lock.base     == s->start && restoreStack(&stacks.lock)) )
+  { if ((stacks.local.base    == s->start &&
+	 restoreStack((Stack) &stacks.local)) ||
+	(stacks.global.base   == s->start &&
+	 restoreStack((Stack) &stacks.global)) ||
+	(stacks.trail.base    == s->start &&
+	 restoreStack((Stack) &stacks.trail)) ||
+	(stacks.argument.base == s->start &&
+	 restoreStack((Stack) &stacks.argument)) ||
+	(stacks.lock.base     == s->start &&
+	 restoreStack((Stack) &stacks.lock)) )
       succeed;
 
     fatalError("Cannot locate stack to restore");

@@ -7,11 +7,6 @@
     Purpose: file system i/o
 */
 
-/*
-** This file contains changes which are part of a port to HPUX 8.0
-** T. Kielmann, 01 Jun 92
-*/
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module is far too big.  It defines a layer around open(), etc.   to
 get  opening  and  closing  of  files to the symbolic level required for
@@ -28,9 +23,6 @@ handling times must be cleaned, but that not only holds for this module.
 #if unix
 #include <sys/time.h>
 #include <sys/file.h>
-#endif
-#if ANSI && !AIX
-#include <stdarg.h>
 #endif
 
 #define MAXSTRINGNEST	20		/* tellString --- Told nesting */

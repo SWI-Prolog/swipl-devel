@@ -82,10 +82,6 @@ char *base;
 }
 
 
-#ifdef O_MULTI_LANGUAGE
-#define main	PL_start
-#endif
-
 #if O_LINK_PCE
 foreign_t
 pl_pce_init()
@@ -288,14 +284,10 @@ char **env;
 
   DEBUG(1, printf("Starting Prolog Engine\n"));
 
-#ifdef O_MULTI_LANGUAGE
-  prolog(PL_new_atom("$init_return"));
-#else
   if ( prolog(PL_new_atom(compile ? "$compile" : "$init")) == TRUE )
     Halt(0);
   else
     Halt(1);
-#endif
 
   return 0;
 }

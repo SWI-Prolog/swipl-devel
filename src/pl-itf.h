@@ -241,5 +241,18 @@ int	PL_action P((int, void *));	/* perform some action */
 
 long	PL_query P((int));		/* get information from Prolog */
 
+		/********************************
+		*        STATIC LINKING		*
+		********************************/
+
+typedef struct _PL_extension
+{ char 		*predicate_name;	/* Name of the predicate */
+  short		arity;			/* Arity of the predicate */
+  function	function;		/* Implementing functions */
+  short		flags;			/* Or of PL_FA_... */
+} PL_extension;
+
+extern PL_extension PL_extensions[];	/* see pl-extend.c */
+
 #endif PL_INCLUDED
 /* DO NOT WRITE BELOW THIS ENDIF */

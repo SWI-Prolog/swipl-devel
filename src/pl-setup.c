@@ -26,13 +26,6 @@ setupProlog()
   critical = 0;
   aborted = FALSE;
 
-#if O_PCE
-  notify_status.active        = 0;
-  notify_status.dispatching   = FALSE;
-  notify_status.called	      = FALSE;
-  notify_status.abort_is_save = TRUE;
-#endif O_PCE
-
   startCritical;
 #if unix
   DEBUG(1, printf("Prolog Signal Handling ...\n"));

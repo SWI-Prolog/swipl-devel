@@ -7,11 +7,6 @@
     Purpose: Operating System Dependencies
 */
 
-/*
-** This file contains changes which are part of a port to HPUX 8.0
-** T. Kielmann, 01 Jun 92
-*/
-
 #if __TOS__
 #include <tos.h>		/* before pl-os.h due to Fopen, ... */
 static long	wait_ticks;	/* clock ticks not CPU time */
@@ -35,9 +30,6 @@ extern int link(/*char **/);
 extern int select(/*int *, int*, int*, struct timeval **/);
 #if !minix && !LINUX
 extern int ioctl(/*int, int, Void*/);
-#if !hpux
-extern char *sbrk();
-#endif
 extern int execl(/*char *, ... */);
 #endif
 #endif unix
@@ -95,6 +87,7 @@ int status;
   RemoveTemporaryFiles();
 
   exit(status);
+  /*NOTREACHED*/
 }
 
 		/********************************
@@ -204,25 +197,6 @@ getpagesize()
 
 #if hpux || tos
 void
-bcopy(from, to, n)
-Void from; 
-Void to;
-register size_t n;
-{ register char *f = from;
-  register char *t = to;
-
-  if ( f > t )
-  { while( n-- > 0 )
-      *t++ = *f++;
-  } else
-  { f += n-1;
-    t += n-1;
-    while( n-- > 0 )
-      *t-- = *f--;
-  }
-}
-
-void
 bzero(p, n)
 Void p;
 register size_t n;
@@ -233,19 +207,6 @@ register size_t n;
 }
 #endif hpux
 
-#if sparc
-int
-strcmp(s1, s2)				/* strcmp() appears broken on sparc! */
-register char *s1, *s2;
-{ for( ; *s1; s1++, s2++ )
-  { if ( *s1 == *s2 )
-      continue;
-    return *s1 < *s2 ? -1 : 1;
-  }
-
-  return *s2 ? -1 : 0;
-}
-#endif
 
 		/********************************
 		*             PRINT             *
@@ -468,7 +429,9 @@ GetDTableSize()
      (void) getrlimit(RLIMIT_NOFILE,&rlp);
      return (rlp.rlim_cur);
 #  else
-      return getdtablesize();
+     extern int getdtablesize P((void));
+
+     return getdtablesize();
 #  endif
 #endif
 }
@@ -805,6 +768,7 @@ initExpand()
 { CWDdir[0] = EOS;
 }
 
+forwards char	*canonisePath P((char *));
 
 static char *
 canonisePath(path)
@@ -842,7 +806,6 @@ register char *path;
 
 forwards char	*takeWord P((char **));
 forwards int	ExpandFile P((char *, char **));
-forwards char	*canonisePath P((char *));
 
 static char *
 takeWord(string)
@@ -1824,18 +1787,15 @@ do_get_char()
   if ( PL_dispatch_events != NULL )
   { DEBUG(3, printf("do_get_char() --> "));
     for(;;)
-    { mayNotify();
-      if ( (*PL_dispatch_events)() == PL_DISPATCH_INPUT )
+    { if ( (*PL_dispatch_events)() == PL_DISPATCH_INPUT )
       { char chr;
 
 	if (read(0, &chr, 1) == 0)
 	  c = EOF;
 	else
 	  c = (Char) chr;
-	hasNotified();
 	break;
       }
-      hasNotified();
     }
 
     DEBUG(3, printf("%d (%c) --> ", c, c));
@@ -2071,10 +2031,6 @@ char *cmd;
 
   PushTty(&buf, TTY_SAVE);
   PopTty(&ttytab);			/* restore cooked mode */
-
-#if AIX || minix || LINUX
-#define vfork() fork()
-#endif
 
   if ( (pid = vfork()) == -1 )
   { return warning("Fork failed: %s\n", OsError());
