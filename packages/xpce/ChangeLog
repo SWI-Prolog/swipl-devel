@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Documentation for pce_autoload_all/0.  Lourens vand er Meij and
+  Piet Mertens.
+
 * FIXED: Change label of objects in dialog editor.  Denis Medvedev.
 
 * FIXED: Class node (part of tree) placement of constrained graphicals using
