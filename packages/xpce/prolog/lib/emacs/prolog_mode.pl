@@ -33,7 +33,7 @@
 :- use_module(library(pce)).
 :- use_module(library(emacs_extend)).
 :- use_module(library(prolog_predicate)).
-:- [prolog_xref].
+:- use_module(library(pce_prolog_xref)).
 :- require([ make/0
 	   , absolute_file_name/3
 	   , auto_call/1

@@ -8,7 +8,7 @@
 	  [ pce_make_library_index/1,	% +Dir
 	    pce_update_library_index/0
 	  ]).
-:- use_module(library('emacs/prolog_xref')).
+:- use_module(library('pce_prolog_xref')).
 :- use_module(library(lists)).
 
 index_file('CLASSINDEX.pl').
@@ -23,7 +23,12 @@ index_file('CLASSINDEX.pl').
 %	cross-referencing and syntax-highlighting.
 
 pce_make_library_index(Dir) :-
-	working_directory(Old, Dir),
+	absolute_file_name(Dir,
+			   [ file_type(directory),
+			     access(exist)
+			   ],
+			   Path),
+	working_directory(Old, Path),
 	call_cleanup(make_library_index,
 		     working_directory(_, Old)).
 

@@ -33,7 +33,7 @@
 :- module(emacs_prolog_colours, []).
 :- use_module(library(pce)).
 :- use_module(library(emacs_extend)).
-:- use_module(prolog_xref).
+:- use_module(library(pce_prolog_xref)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 User extension hooks.

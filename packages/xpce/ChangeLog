@@ -4,6 +4,9 @@
 VERSION 6.1.10, distributed with SWI-Prolog 5.1.10
 ==================================================
 
+* MODIFIED: moved library(emacs/prolog_xref) to library(pce_prolog_xref) for
+  better library structure.
+
 * ADDED: library(pce_class_index).  Ongoing work to simplify class management.
 
 * ADDED: Support for cross-referencing class definitions and usage from
