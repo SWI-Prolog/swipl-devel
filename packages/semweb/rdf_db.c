@@ -1405,6 +1405,9 @@ update_duplicates_add(triple *t)
 { triple *d;
   const int indexed = BY_SP;
 
+  assert(t->is_duplicate == FALSE);
+  assert(t->duplicates == 0);
+
   d = table[indexed][triple_hash(t, indexed)];
   for( ; d; d = d->next[indexed] )
   { if ( d != t && match_triples(d, t, MATCH_EXACT) )
@@ -1413,8 +1416,11 @@ update_duplicates_add(triple *t)
       { d->duplicates++;
 
 	DEBUG(1,
-	      print_triple_source(t); Sdprintf("Duplicate: "); print_triple(t);
-	      print_triple_source(d); Sdprintf("Location of first\n"));
+	      print_triple_source(t);
+	      Sdprintf("%p: %d-th duplicate: ", t, d->duplicates);
+	      print_triple(t);
+	      print_triple_source(d);
+	      Sdprintf("Location of first (%p)\n", d));
 
 	assert(d->duplicates);		/* check overflow */
 	duplicates++;
@@ -1431,27 +1437,33 @@ static void				/* t is about to be deleted */
 update_duplicates_del(triple *t)
 { const int indexed = BY_SP;
 
+  duplicates--;
+
   if ( t->duplicates )			/* I am the principal one */
-  { duplicates--;
-
-    if ( --t->duplicates == 0 )		/* no duplicates left */
-    { triple *d;
+  { triple *d;
       
-      d = table[indexed][triple_hash(t, indexed)];
-      for( ; d; d = d->next[indexed] )
-      { if ( d != t && match_triples(d, t, MATCH_EXACT) )
-	{ assert(d->is_duplicate);
-	  d->is_duplicate = FALSE;
+    DEBUG(1,
+	  print_triple(t);
+	  Sdprintf(": Deleting %p, %d duplicates\n", t, t->duplicates));
 
-	  return;
-	}
+    d = table[indexed][triple_hash(t, indexed)];
+    for( ; d; d = d->next[indexed] )
+    { if ( d != t && match_triples(d, t, MATCH_EXACT) )
+      { assert(d->is_duplicate);
+	d->is_duplicate = FALSE;
+	d->duplicates = t->duplicates-1;
+	DEBUG(1, Sdprintf("New principal: %p\n", d));
+
+	return;
       }
-      assert(0);
     }
+    assert(0);
   } else if ( t->is_duplicate )		/* I am a duplicate */
   { triple *d;
       
-    duplicates--;
+    DEBUG(1,
+	  print_triple(t);
+	  Sdprintf(": Deleting, is a duplicate\n"));
 
     d = table[indexed][triple_hash(t, indexed)];
     for( ; d; d = d->next[indexed] )
@@ -1492,7 +1504,6 @@ rdf_assert4(term_t subject, term_t predicate, term_t object, term_t src)
 
   lock_atoms(t);
   link_triple(t);
-  update_duplicates_add(t);
   generation++;
 
   return TRUE;

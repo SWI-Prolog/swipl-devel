@@ -1,3 +1,8 @@
+Sep 2, 2003
+
+  * FIXED: rdf_assert duplicate administration (crashes rdf_retractall on
+    assertion failure).
+
 Aug 18, 2003
 
   * MODIFIED: Assume ids starting with __ are anonymous
