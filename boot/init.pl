@@ -1263,5 +1263,6 @@ $load_additional_boot_files :-
 	concat(Dir, '/load.pl', LoadFile),
 	$load_wic_files(system, [LoadFile]),
 	format('SWI-Prolog boot files loaded~n', []),
-	$execute_directive($style_check(_, 2'1011)),
-	$execute_directive($set_source_module(_, user)).
+	flag($compiling, OldC, wic),
+	$execute_directive($set_source_module(_, user)),
+	flag($compiling, _, OldC).

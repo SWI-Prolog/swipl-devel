@@ -498,6 +498,9 @@ startProlog(int argc, char **argv, char **env)
   }
 
   initialiseForeign(mainArgc, mainArgv); /* PL_initialise_hook() functions */
+  debugstatus.styleCheck = (LONGATOM_CHECK|
+			    SINGLETON_CHECK|
+			    DISCONTIGUOUS_STYLE);
   systemMode(FALSE);
   status.dumped = TRUE;
   status.initialised = TRUE;

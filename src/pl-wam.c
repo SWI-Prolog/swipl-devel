@@ -594,6 +594,7 @@ name(mark *m) \
   } \
   tTop = tt; \
   gTop = valPtr2(m->globaltop, STG_GLOBAL); \
+/*assert(gTop <= gMax);*/ \
 }
 
 void UNDO_FUNC(do_undo)
@@ -3253,6 +3254,12 @@ retry:					MARK(RETRY);
   if ( !rframe )
     rframe = FR;
   debugstatus.retryFrame = NULL;
+
+  if ( rframe->mark.globaltop == INVALID_GLOBALTOP )
+  { Sdprintf("[Undo mark lost by garbage collection]\n");
+    rframe = FR;
+    assert(rframe->mark.globaltop != INVALID_GLOBALTOP);
+  }
 
   Sdprintf("[Retrying frame %d running %s]\n",
 	   (Word)rframe - (Word)lBase,

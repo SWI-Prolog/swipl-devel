@@ -57,11 +57,19 @@ lookupProcedure(FunctorDef f, Module m)
   return proc;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+resetProcedure() is called  by  lookupProcedure()   for  new  ones,  and
+abolishProcedure() by abolish/2. In the latter   case, abolish may leave
+dirty clauses when called on a   running predicate. Hence, NEEDSCLAUSEGC
+should be retained. Bug found by Paulo Moura, LogTalk developer.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 resetProcedure(Procedure proc)
 { register Definition def = proc->definition;
 
-  def->flags ^= def->flags & ~SPY_ME;	/* Preserve the spy flag */
+  def->flags ^= def->flags & ~(SPY_ME|NEEDSCLAUSEGC);
   set(def, TRACE_ME);
   def->indexCardinality = 0;
   def->number_of_clauses = 0;
@@ -90,10 +98,25 @@ isCurrentProcedure(FunctorDef f, Module m)
 
 bool
 isDefinedProcedure(Procedure proc)
-{ if ( /* true(proc->definition, FOREIGN) || not needed; union */
-       proc->definition->definition.clauses ||
-       true(proc->definition, DYNAMIC) )
+{ Definition def = proc->definition;
+
+  if ( true(def, DYNAMIC|FOREIGN) )
     succeed;
+
+  if ( def->definition.clauses && false(def, FOREIGN) )
+  { ClauseRef c;
+
+    if ( false(def, NEEDSCLAUSEGC) )
+      succeed;
+    
+    for(c = def->definition.clauses; c; c = c->next)
+    { Clause cl = c->clause;
+
+      if ( false(cl, ERASED) )
+	succeed;
+    }
+  }
+
   fail;
 }
 
@@ -621,9 +644,8 @@ resolveProcedure(FunctorDef f, Module module)
 { Procedure proc;
   Module m;
 
-  for( m = module; m != (Module) NULL; m = m->super )
-  { if ( (proc = isCurrentProcedure(f, m)) != (Procedure) NULL &&
-       isDefinedProcedure(proc) )
+  for( m = module; m; m = m->super )
+  { if ( (proc = isCurrentProcedure(f, m)) && isDefinedProcedure(proc) )
       return proc;
   }
 

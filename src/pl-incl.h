@@ -1534,7 +1534,7 @@ Tracer communication declarations.
 #define CUT_CALL_PORT   0x40
 #define CUT_EXIT_PORT   0x80
 #define CUT_PORT	(CUT_CALL_PORT|CUT_EXIT_PORT)
-#define VERY_DEEP	10000000L	/* deep skiplevel */
+#define VERY_DEEP	1000000000L	/* deep skiplevel */
 
 #define LONGATOM_CHECK	    0x1		/* read/1: error on long atoms */
 #define SINGLETON_CHECK	    0x2		/* read/1: check singleton vars */

@@ -88,10 +88,21 @@ abs(Number, Absolute) :-
 
 %	Math library predicates
 
-sin(A, V) :- V is sin(A).
-cos(A, V) :- V is cos(A).
-tan(A, V) :- V is tan(A).
-log(A, V) :- V is log(A).
+sin(A, V) :-	  V is sin(A).
+cos(A, V) :-	  V is cos(A).
+tan(A, V) :-	  V is tan(A).
+log(A, V) :-	  V is log(A).
+log10(X, V) :-	  V is log10(X).
+pow(X,Y,V) :-	  V is X**Y.
+ceiling(X, V) :-  V is ceil(X).
+floor(X, V) :-	  V is floor(X).
+round(X, V) :-	  V is round(X).
+sqrt(X, V) :-	  V is sqrt(X).
+acos(X, V) :-	  V is acos(X).
+asin(X, V) :-	  V is asin(X).
+atan(X, V) :-	  V is atan(X).
+atan2(Y, X, V) :- V is atan(Y, X).
+sign(X, V) :-	  V is sign(X).
 
 %	random(+Min, +Max, -Value)
 

@@ -153,7 +153,7 @@ forwards void		compact_trail(void);
 forwards void		sweep_mark(mark *);
 forwards void		sweep_trail(void);
 forwards LocalFrame	sweep_environments(LocalFrame);
-forwards void		sweep_choicepoints(LocalFrame);
+forwards LocalFrame	sweep_choicepoints(LocalFrame);
 forwards void		sweep_stacks(LocalFrame);
 forwards void		sweep_local(LocalFrame);
 forwards bool		is_downward_ref(Word);
@@ -949,27 +949,37 @@ sweep_environments(LocalFrame fr)
     if ( fr->parent != NULL )
       fr = fr->parent;
     else
-      return parentFrame(fr);	/* Prolog --> C --> Prolog calls */
+      return fr;			/* Prolog --> C --> Prolog calls */
   }
 }
 
 
-static void
+static LocalFrame
 sweep_choicepoints(LocalFrame bfr)
-{ for( ; bfr != (LocalFrame)NULL; bfr = bfr->backtrackFrame )
+{ for( ; ; )
   { sweep_environments(bfr);
     sweep_mark(&bfr->mark);
+    if ( !bfr->backtrackFrame )
+      return bfr;
+    else
+      bfr = bfr->backtrackFrame;
   }
 }
+
 
 static void
 sweep_stacks(LocalFrame fr)
-{ LocalFrame pfr;
+{ LocalFrame tfr, tbfr;
 
-  if ( (pfr = sweep_environments(fr)) != NULL )
-    sweep_stacks(pfr);
+  while(fr)
+  { tfr  = sweep_environments(fr);
+    tbfr = sweep_choicepoints(fr);
 
-  sweep_choicepoints(fr);
+    if ( tfr != tbfr )
+      sweep_mark(&tfr->mark);
+
+    fr = parentFrame(tfr);
+  }
 }
 
 

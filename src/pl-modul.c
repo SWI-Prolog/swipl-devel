@@ -418,7 +418,7 @@ pl_check_export()
   { Procedure proc = (Procedure) s->value;
     Definition def = proc->definition;
 
-    if (isDefinedProcedure(proc) == FALSE)
+    if ( !isDefinedProcedure(proc) )
     { warning("Exported procedure %s:%s/%d is not defined", 
 				  stringAtom(module->name), 
 				  stringAtom(def->functor->name), 

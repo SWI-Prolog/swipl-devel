@@ -910,7 +910,7 @@ loadImport(IOSTREAM *fd, int skip)
     { if ( old->definition == proc->definition )
 	succeed;			/* already done this! */
       
-      if (!isDefinedProcedure(old) )
+      if ( !isDefinedProcedure(old) )
       { old->definition = proc->definition;
 	succeed;
       }

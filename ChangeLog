@@ -5,6 +5,22 @@
 VERSION 2.8.1
 =============
 
+  * FIXED: Garbage collection problem, occurring with a specific
+    combination of call-back from C and choicepoint organisation
+    in the callback environment.
+
+  * FIXED: Tracer `retry <n>' (guitracer only) to take of garbage
+    collected choicepoints.
+
+  * FIXED: initialisation of style_check defaults to specify
+    singletons, long atoms and discontiguous clauses.
+
+  * ADDED: Several predicates for math in library(quintus).
+
+  * FIXED: abolish/2 on active (running) predicates, not to remove the
+    NEEDSCLAUSE_GC flag, so the clauses are actually removed if the
+    predicates is finished.  Thanks to Paulo Moura, author of LogTalk.
+
   * FIXED: PL_get_arg() when using -L0 -G0 (maximized stacks).  Probably
     only breaks tracing code under these circumstances.
 
