@@ -42,9 +42,10 @@ The SWI-Prolog source tree consists of the following directories:
 ./include	Include files.  Mostly for handling foreign-code
 ./man		Manual (LaTeX)
 ./packages	Additional packages:
-	clib	Process management and sockets
+	clib	Process management and TCP/IP sockets
 	cpp	C++ wrapper for foreign-language interface
 	mp	Interface to gmp: arbitrary precession arithmetic
+	db	Interface to BerkeleyDB 3.0 or higher
 	smgl	XML/SGML interface as well as RDF parser
 	table	Simple table-access routines (for static DB)
 	xpce	The Prolog (portable) GUI toolkit and GUI tracer
@@ -113,7 +114,7 @@ Otherwise, get yourself the following tools and resources
 	* MSVC 5.0 or later
 	* MIME, JPEG and XPM libraries. You find precompiled versions in
 
-		ftp://ftp.swi.psy.uva.nl/pub/Windows/libs
+		ftp://ftp.swi.psy.uva.nl/xpce/Windows/lib
 
 Now proceed as follows
 
