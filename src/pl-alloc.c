@@ -636,8 +636,9 @@ inline  as  it is simple and usualy very time critical.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if O_SHIFT_STACKS
+
 Word
-allocGlobal(int n ARG_LD)
+allocGlobal__LD(int n ARG_LD)
 { Word result;
 
   if ( roomStack(global) < (long) n * sizeof(word) )
