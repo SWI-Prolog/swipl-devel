@@ -164,16 +164,16 @@ read(Handle, Module, Clause, TermPos, VarNames) :-
 %	
 %	Create a Term varnames(...) where each argument contains the name
 %	of the variable at that offset.  If the read Clause is a DCG rule,
-%	name the two last arguments <DCG_in> and <DCG_out>
+%	name the two last arguments <DCG_list> and <DCG_tail>
 
 make_varnames((Head --> _Body), Offsets, Names, Bindings) :- !,
 	functor(Head, _, Arity),
 	In is Arity,
 	memberchk(In=IVar, Offsets),
-	Names1 = ['<DCG_in>'=IVar|Names],
+	Names1 = ['<DCG_list>'=IVar|Names],
 	Out is Arity + 1,
 	memberchk(Out=OVar, Offsets),
-	Names2 = ['<DCG_out>'=OVar|Names1],
+	Names2 = ['<DCG_tail>'=OVar|Names1],
 	make_varnames(xx, Offsets, Names2, Bindings).
 make_varnames(_, Offsets, Names, Bindings) :-
 	length(Offsets, L),
