@@ -1,0 +1,174 @@
+\section{Dialog support libraries}
+
+This section deals with a number of classes from the library to simplify the
+creation of dialog windows.
+
+
+\subsection{Reporting errors and warnings}
+
+\index{messages,reporting}\index{errors,reporting}\index{reporting}%
+Error, and warning and informational messages are raised using the
+->report or ->error method defined on all \product{} objects.  Basic
+error and message handling is described in \secref{error}.  The library
+\pllib{pce_report} defines the classes \class{reporter} and
+\class{report_dialog}.
+
+\begin{itemlist}
+    \item[\class{reporter}]
+This is a refinement of class \class{label}, displayed using the
+fashionable lowered 3D-style.  In addition, it redefines the ->report
+message to colour error messages red.
+
+    \item[\class{report_dialog}]
+This is a trivial subclass of \class{dialog}, displaying a
+\class{reporter} and constraining this reporter to occupy the entire
+window.
+\end{itemlist}
+
+An example using these classes is in \secref{toolbar}.
+
+
+\subsection{Toolbar support}			\label{sec:toolbar}
+
+\index{button-bar}%
+The library \pllib{toolbar} defines the classes \class{tool_bar},
+\class{tool_button} and \class{tool_status_button} to simplify the
+definition of tool-bars.
+
+\begin{description}
+    \sendmethod{tool_bar}{initialise}{Client:object*,
+				      Orientation:[\{horizontal,vertical\}]}
+Create a \class{tool_bar} for which the buttons execute actions on
+\arg{Client} (see class \class{tool_button} for details). By default the
+buttons are placed left-to-right, but using \const{vertical}
+\arg{Orientation} they can be stacked top-to-bottom.
+
+    \sendmethod{tool_bar}{append}{Button:tool_button\string|\{gap\}}
+Append a tool-button to the bar or, using the name \const{gap}, make
+a small gap to separate logical groups of buttons.
+
+    \sendmethod{tool_bar}{activate}{}
+Send ->activate to all member buttons, reflecting whether they are
+ready to accept commands or `greyed-out'.
+
+    \sendmethod{tool_button}{initialise}{%
+	   Action:name|code,
+	   Label:name|image,
+	   Balloon:[name|string],
+	   Condition:[code]*}
+Define a button for `tool_bar->append'.  \arg{Action} is the action
+to execute.  If this is a plain atom, this method without arguments
+is invoked on the `tool_bar<-client'.  If it is a code object this
+code is simply executed.  \arg{Label} is the label.  Normally for
+toolbars this will be an \class{image} object.  \arg{Balloon} defines
+the text for the popup-window if the user rests the pointer long enough
+on the button.  It it is a name, this balloon is subject to
+`name<-label_name' (see \secref{mlingual}), otherwise it is passed
+literally.  Finally, if \arg{Condition} is present it is evaluated by
+->activate to determine the activation-state of the button.
+
+    \sendmethod{tool_button}{activate}{}
+If <-condition is present, evaluate it and send ->active.
+
+    \sendmethod{tool_button}{active}{Active:bool}
+If @off, deactivate the button and provide visual feedback for this.
+\end{description}
+
+A \class{tool_status_button} is toggled between depressed state and
+normal state on each click.  If it has an atomic <-action it will
+send \var{action}: @on to the client when going to depressed state
+and \var{action}:@off when returning to normal state.  If the <-action
+is a code object this boolean will for forwarded over the code object.
+See \secref{code}.
+
+
+\subsection{Example}
+
+The example below uses these classes as well as class \class{menu_bar}
+to arrive at a typical modern application layout.
+
+\postscriptfig{libdia}{Simple application framework}
+
+\begin{pcecode}
+% 	Pull in the classes
+
+:- pce_autoload(report_dialog, library(pce_report)).
+:- pce_autoload(tool_bar, library(toolbar)).
+:- pce_autoload(finder, library(find_file)).
+:- pce_global(@finder, new(finder)).
+
+%	Define icons as program resources
+
+resource(printer,	image,	image('16x16/print.xpm')).
+resource(floppy,	image,	image('16x16/save.xpm')).
+
+%	Define the application as a subclass of frame.
+
+:- pce_begin_class(myapp, frame,
+		   "Frame representing the application").
+
+initialise(MyApp) :->
+	send_super(MyApp, initialise, 'My application'),
+	send(MyApp, append, new(D, dialog)),
+	send(D, pen, 0),
+	send(D, gap, size(5, 5)),
+	send(D, append, new(menu_bar)),
+	send(D, append, new(tool_bar(MyApp))),
+	send(MyApp, fill_menu_bar),
+	send(MyApp, fill_tool_bar),
+	send(new(W, myapp_workspace), below, D),
+	send(new(report_dialog), below, W).
+
+fill_menu_bar(F) :->
+	get(F, member, dialog, D),
+	get(D, member, menu_bar, MB),
+	send_list(MB, append,
+		  [ new(File, popup(file)),
+		    new(_Edit, popup(edit))
+		  ]),
+
+	send_list(File, append,
+		  [ menu_item(load,
+			      message(F, load),
+			      end_group := @on),
+		    menu_item(print,
+			      message(F, print))
+		  ]).
+
+fill_tool_bar(F) :->
+	get(F, member, dialog, D),
+	get(D, member, tool_bar, TB),
+	send_list(TB, append,
+		  [ tool_button(load,
+				resource(floppy),
+				load),
+		    gap,		% skip a little
+		    tool_button(print,
+				resource(printer),
+				print)
+		  ]).
+				
+print(MyApp) :->
+	"Print the document"::
+	send(MyApp, report, progress, 'Printing ...'),
+	get(MyApp, member, myapp_workspace, WS),
+	send(WS, print),
+	send(MyApp, report, progress, done).
+
+load(MyApp) :->
+	"Ask a file and load it"::
+	get(@finder, file, @on, myp, File),
+	get(MyApp, member, myapp_workspace, WS),
+	send(WS, load, File).
+
+:- pce_end_class(myapp).
+
+
+%	dummy class for the work-area of your application
+
+:- pce_begin_class(myapp_workspace, window).
+
+:- pce_end_class(myapp_workspace).
+\end{pcecode}
+
+% do not delete this line

@@ -12,23 +12,39 @@ Prolog is started with PCE loaded on top of it.
 
 \begin{description}
     \predicate{new}{2}{?Reference, +TermDescription}
-Create a PCE object from \arg{TermDescription} and either unify an
+Create a \product{} object from \arg{TermDescription} and either unify an
 integer reference (e.g.\ @2535252) with \arg{Reference} or give the
 new object the provided atomic reference (e.g. @my_diagram).  The
 argument \arg{TermDescription} is a complex term of the form
 \mbox{Functor(...InitArg...)}.  \arg{Functor} denotes the class from
 which to create an object and \arg{InitArg} are the initialisation
-arguments for the object creation.  Each \arg{InitArg} is translated
-to a PCE data object and may be an integer, atom (translated into
-a PCE name object), object reference (e.g.\ @2535252 or @pce) or
-complex term.  When the latter is encountered, it is transformed
-into a PCE object just as \arg{TermDescription}.  Finally, an argument
-may be of the form \mbox{new(+TermDescription)} or
-\mbox{new(?Reference, +TermDescription)}.  The first forces an
-atom to be translated into an instance of the named class instead of a
-PCE name object.  The latter provides access to the reference of the
-object provided as an argument.  The following sequences illustrate
-this.  Each of them provides the same object structure in PCE.
+arguments for the object creation. Each \arg{InitArg} is translated to a
+\product{} data object using the following rules:
+
+\begin{itemlist}
+    \item[\var{atom}]
+Atoms are translated into \product{} \class{name} objects.  This is
+a loss-less transformation.
+    \item[\var{integer}]
+Prolog integers are translated into \product{} int data-types. The
+range of \product{} int is half that of Prolog (i.e.\ $\pm 2^30$ on
+a 32-bit machine).
+    \item[\term{Class}{+InitArg...}]
+Creates an instance of class \arg{Class} using \arg{InitArg}.
+    \item[\term{new}{+TermDescription}]
+Same as plain \arg{InitArg}, but an atom is translated to an instance
+of the named class.  E.g.\ the term \exam{new(chain)} is translated to
+an empty \class{chain} object rather then the atom \const{chain}.
+    \item[\term{new}{?Reference, +TermDescription}]
+Same as \functor{new}{2}, handling \arg{Reference} the same as the
+predicate new/2.
+    \item[\term{prolog}{Term}]
+Pass \arg{Term} as an unmodified Prolog term.
+\end{itemlist}
+
+Below we illustrate the use of embedded \functor{new}{2} terms in
+\arg{InitArg} to get access to the reference of in-line created
+objects.  The examples are functionally equivalent.
 
 \begin{code}
 1 ?- new(@icon_viewer, dialog('Icon Viewer 1')),
@@ -59,12 +75,14 @@ invoking `Class <-instance: InitArgs ...'.  The arguments needed
 to instantiate a class are defined by the ->initialise method
 of this class.  See also \secref{classbrowser}.
 
+    \predicate{send}{2}{+Receiver, +Selector(+Argument...)}
+%   \emptydefinition
     \predicate{send}{2}{+Receiver, +Selector, +Argument...}
 Invoke a send-method on the \arg{Receiver}.  \arg{Receiver} is
 processed as the \arg{InitArgs} described with new/2.  This implies
 that a complex term is translated into an object before the method is
-invoked.  An atom is translated into an PCE name object.
-\arg{Selector} is a Prolog atom which is translated into a PCE name
+invoked.  An atom is translated into an \product{} name object.
+\arg{Selector} is a Prolog atom which is translated into a \product{} name
 object.  The \arg{Argument}s are processed as the \arg{InitArgs}
 described with new/2.
 
@@ -74,8 +92,8 @@ argument-error.  The method itself may also produce error messages.
 This predicate only succeeds if the requested method was executed
 successfully.
 
-Trailing arguments that hac handle @default (indicated by square brackets
-in the type declaration) may be omitted.
+Trailing arguments that can handle @default (indicated by square
+brackets in the type declaration) may be omitted.
 
 If the method accepts many arguments of which most are default, using
 the named argument convention may be preferred.  For example:
@@ -85,18 +103,25 @@ the named argument convention may be preferred.  For example:
 send(Graphical, graphics_state, colour := red),
 ...,
 \end{code}
+
+The first form using \term{Selector}{Argument...} is the principal
+form.  The second is translated by the \productpl{} macro-layer and
+available for compatibility and style-preference.
+
+    \predicate{get}{3}{+Receiver, +Selector(+Argument...), -Result}
+%   \emptydefinition
     \predicate{get}{3}{+Receiver, +Selector, +Argument..., -Result}
 Invoke a get-method on \arg{Receiver}.  \arg{Receiver}, \arg{Selector}
 and \arg{Argument...} are processed as with send/[2-12].  If the method
-fails, this predicate fails too.  Otherwise the PCE result of invoking
+fails, this predicate fails too.  Otherwise the \product{} result of invoking
 the method is unified with \arg{Result}.
 
-If the return value is a PCE integer, real object or name object, it
+If the return value is a \product{} integer, real object or name object, it
 is unified with a Prolog integer, float or atom.  Otherwise if the
 Prolog return argument is a variable or a term @/1 it is unified with
 the object reference.  Otherwise the Prolog argument should be a
 compound term.  Its functor will be compared with the class-name of
-the PCE return value.  The arguments will be unified in the same
+the \product{} return value.  The arguments will be unified in the same
 manner with the term-description arguments as declared with the class.
 Examples:
 
@@ -120,6 +145,29 @@ free(_).
 \end{code}
 This definition implies free/1 only fails if the object may not be
 freed (see `object ->protect').
+
+    \predicate{send_class}{3}{+Reference, +Class, +Selector(+Arg...)}
+%    \emptydefinition
+    \predicate{get_class}{3}{+Reference, +Class, +Selector(+Arg...), -Result}
+    %\emptydefinition
+    \predicate{send_super}{2}{+Reference, +Selector(+Arg...)}
+    %\emptydefinition
+    \predicate{get_super}{3}{+Reference, +Selector(+Arg...), -Result}
+    %\emptydefinition
+    \predicate{send_super}{2}{+Reference, +Selector, +Arg...}
+    %\emptydefinition
+    \predicate{get_super}{3}{+Reference, +Selector, +Arg..., -Result}
+The predicates send_class/3 and get_class/4 invoke methods on a
+super-class of the class \arg{Reference} belongs to.  In most cases methods
+access the {\em immediate} super-class and this is the function of
+send_super/[2-12] and get_super/[3-13].
+
+The *_super calls are macro-expanded to send_class/3 or get_class/4.
+They {\bf must} appear within a \product{} class definition. Though not
+enforced, using any of these predicates or macros outside the context of
+a method-definition should be considered illegal.  See \chapref{udc} for
+further discussion on defining classes and methods.
+
     \predicate{object}{1}{+Reference}
 Succeeds if \arg{Reference} is a term of the form @/1 and the argument
 is a valid object reference.  Fails silently otherwise.  Note that the
@@ -129,7 +177,7 @@ Consider the following example:
 \begin{code}
 1 ?- new(P, point(100,100)).
 P = @235636/point
-2 ?- send(@235636, free).
+2 ?- free(@235636).
 3 ?- object(@235636).		---> fail
 4 ?- new(S, size(50,50)).
 S = @235636/size
@@ -142,6 +190,7 @@ object than expected.  Finally, the memory may be reused by a
 non-object data structure.  In this case object/1 only applies
 heuristics to detect whether the memory holds an object.
 See also \secref{debugging} and \secref{global}
+
     \predicate{object}{2}{+Reference, -TermDescription}
 Unify object description with the argument.  Normally only used for
 debugging purposes.  Equivalent to:
@@ -151,14 +200,14 @@ object(Ref, Term) :-
 	get_object(Ref, self, Term).
 \end{code}
 
-    \directive{pce_global}{2}{+Reference, +Create}
+    \directive{pce_global}{2}{+Reference, :Create}
 Define exception handler for undefined global (named) reference.
-When PCE refers to a non-existing named reference an exception is
+When \product{} refers to a non-existing named reference an exception is
 raised.  The standard handler for this exception will scan the
 pce_global/2 database and execute the \arg{Create} action.
 \arg{Create} is either a term of the form new(+TermDescription) or
 another term.  In the first case \arg{TermDescription} is transformed
-into a PCE object as the second argument of new/2.  In the latter
+into a \product{} object as the second argument of new/2.  In the latter
 case, \arg{Reference} is appended to the list of arguments
 of the term and the term is called as a Prolog goal:
 
@@ -214,10 +263,10 @@ PceEmacs editor to verify the syntax of an entered clause.
 \predicate{pce_catch_error}{2}{+ErrorIds, +Goal}
 This predicates allows the application to handle errors occuring while
 \arg{Goal} is called.  \arg{ErrorIds} is either an atom representing
-the id of PCE error or a chain of such id's.  If one of the given
+the id of \product{} error or a chain of such id's.  If one of the given
 errors occurrs the goal will silently fail and `@pce <-last_error'
 holds the id of the trapped error.  Any other error that occurs during
-the execution of \arg{Goal} will be handled by PCE's normal error
+the execution of \arg{Goal} will be handled by \product{}'s normal error
 handling mechanism.  See \secref{errors}.
 \end{description}
 
@@ -267,16 +316,17 @@ auto_call(Goal) :-
 \end{description}
 
 
-\section{Library predicates}
+\section{Additional interface libraries}
 
-\index{library (PCE/Prolog-)}\index{autoloading}% This section describes
-Some of the predicates available from the PCE/Prolog library.
+\index{autoloading}%
+This section describes Some of the predicates available from the
+\product{}/Prolog library.
 
 \subsection{Library ``pce_util''}
 
-The predicates in this section used to be PCE principal predicates.
-Changes to PCE, the interface and our current understanding about
-programming the PCE/Prolog environment have made these predicates less
+The predicates in this section used to be \product{} principal predicates.
+Changes to \product{}, the interface and our current understanding about
+programming the \product{}/Prolog environment have made these predicates less
 important.
 
 
@@ -299,6 +349,17 @@ send_list(Object, Selector) :-
 	send(Object, Selector).
 \end{code}
 
+Note that, since send/2 accepts \term{Selector}{Arg...} the following
+is now valid code:
+
+\begin{code}
+	...,
+	send_list(Box,
+		  [ colour(red),
+		    fill_pattern(colour(greed))
+		  ]),
+\end{code}
+
     \predicate{get_object}{[3-13]}{+Receiver, +Selector, +Argument..., -Result}
 Equivalent to get/[3-13], but instead of unifying a variable with a
 reference the variable is unified with the term-description.  The
@@ -306,8 +367,8 @@ arguments are unified as in get/[3-13].  Normally only used from the
 Prolog top level for debugging purposes.
 
     \predicate{chain_list}{2}{?Chain, ?List}
-Converts between a PCE chain and a Prolog list. This may be useful to
-exploit Prolog's list-processing primitives. Note however that PCE
+Converts between a \product{} chain and a Prolog list. This may be useful to
+exploit Prolog's list-processing primitives. Note however that \product{}
 chains define various operations that may be exploited to avoid the
 translation. Suppose `Pict' is a picture and `Pos' is a point object. We
 want to determine the topmost graphical object overlapping with `Pos'.
@@ -326,7 +387,7 @@ topmost([H|T], Pos, _, Gr) :-
 topmost([_|T], Pos, Gr0, Gr) :-
 	topmost(T, Pos, Gr0, Gr).
 \end{code}
-Or, using PCE's list processing:
+Or, using \product{}'s list processing:
 \begin{code}
 topmost_graphical(Dev, Pos, Gr) :-
 	get(Dev, graphicals, Grs),
@@ -336,7 +397,7 @@ topmost_graphical(Dev, Pos, Gr) :-
 	send(O, done).
 \end{code}
 The second implementation is not only shorter, it also requires far less
-data conversions between Prolog and PCE and is therefore much faster.
+data conversions between Prolog and \product{} and is therefore much faster.
 
     \predicate{get_chain}{3}{+Receiver, +Selector, -List}
 Utility predicate implemented as:
@@ -351,18 +412,14 @@ See comments with chain_list/2.
 \subsection{Library ``pce_debug''}
 
 The predicates in this section provide shorthands for common
-commands for debugging PCE programs.
+commands for debugging \product{} programs. See \secref{debug} for more
+information on debugging \productpl{} programs.
 
 \begin{description}
-    \predicate{tracepce}{0}{}
-Start tracing PCE's virtual machine instructions.  Equivalent to
-send(class(vmi), trace, @on).
-    \predicate{notracepce}{0}{}
-Switch the interactive tracer off.  Equivalent to send(@pce, trace, never).
     \predicate{tracepce}{1}{+Class {\tt \string<-|->|-} Selector}
 Find send- (\verb!->!), get- (\verb!<-!) method or variable
-(\verb!-!) and invokes `->trace: @on' on this \class{behaviour} object.
-Prints the method on which it has set the trace-point.
+(\verb!-!) and cause invocations thereof to be printed on the
+console.
 
 Syntax note:  (\verb!->!) is a standard Prolog operator with
 $priority > 1000$.  Therefore many Prolog systems require additional
@@ -372,8 +429,10 @@ brackets:
 \end{code}
 In SWI-Prolog this is not necessary.  To be able to trace get-methods
 with this predicate (\verb!<-!) must be declared as an infix operator.
+
     \predicate{notracepce}{1}{+Class {\tt \string<-|->|-} Selector}
 Disables trace-point set with tracepce/1.
+
     \predicate{checkpce}{0}{}
 Collect all global (named-) objects and run `object ->_check' on them.
 This performs various consistency checks on the objects and prints
@@ -401,54 +460,23 @@ A graphical tool for inspecting instance variables is described in
 \secref{inspector}.
 \end{description}
 
-\subsection{Library ``find_file''}
-
-\index{file,prompting for}
-This library file describes the class \class{finder}, representing
-a modal dialog window for entering a filename.  This class defines
-the method `finder <-file':
-
-\begin{description}
-    \getmethod{finder}{file}{Exists:[bool], Ext:[name],
-			     Dir:[directory], Def:[file]}{name}
-Process events util the user specified a file or pressed the cancel
-button.  In the latter case this method fails. The normal way to use
-this predicate is: 
-
-\begin{code}
-:- pce_autoload(finder, library(find_file)).
-:- pce_global(@finder, new(finder)).
-
-	...,
-	get(@finder, file, @on, '.pl', PlFile),
-	...,
-\end{code}
-\end{description}
-
-
-\subsection{Miscellaneous library predicates}		\label{sec:miscpreds}
+\subsection{Accessing the \product{} manual}		\label{sec:manpce}
 
 \begin{description}
     \predicate{manpce}{0}{}
-    \predicate{manpce}{1}{+ClassName}
-Starts the online manual tools. With an \arg{ClassName} argument, the
-``Class Browser'' tool is started on the specified class.
-    \predicate{postscript}{2}{+Reference, +File}
-Generate PostScript from the given object. Defined as:
+Start the \product{} online manual tools.  This opens a small GUI console
+at the top-left of the screen, providing access to the manual, demo programs
+and tools described in this manual.  See \chapref{online}.
+
+    \predicate{manpce}{1}{+Spec}
+As manpce/0, but immediately opens the the manual from \arg{Spec}.
+\arg{Spec} is either a class-name, opening the ClassBrowser, or a term
+\mbox{Class {\tt \string<-|->|-} Selector} (see tracepce/1) to open the
+manual-card of the specified behaviour.  Examples:
 
 \begin{code}
-postscript(Obj, File) :-
-	extension(File, '.ps', FileName),
-	new(F, file(FileName)),
-	send(F, open, write),
-	send(F, append, Obj?postscript),
-	send(F, format, 'showpage\n'),
-	send(F, close),
-	get(F, size, Size),
-	format('PostScript written to ~w, ~D bytes~n',
-	       [FileName,Size]).
+1 ?- manpce(box).
+2 ?- manpce((view->caret)).
 \end{code}
-    \predicate{show_key_bindings}{1}{+ViewOrEditor}
-Show the key-bindings for view or editor object.  May be used as part
-of a help-system.
+
 \end{description}

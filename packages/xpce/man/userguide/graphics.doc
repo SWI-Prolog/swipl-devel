@@ -180,7 +180,7 @@ compound graphical objects are shown in \tabref{compoundgraphics}.
 		  devices using `device ->format'. \\
 \class{table}	& The successor of \class{format} realises tabular
 		  layout compatible to the HTML-3 model for tables.
-		  See \secref{tabular}.
+		  See \secref{tabular}. \\
 \hline
 \end{tabularlp}
 \end{center}

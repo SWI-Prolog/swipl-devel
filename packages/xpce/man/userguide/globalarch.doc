@@ -75,7 +75,7 @@ The root of this hierarchy is class {\em object}.  Class object is the
 only class without a super-class.  \Figref{classhierarchy} gives
 the complete hierarchy of \product{} built-in classes.
 
-\postscriptfig[height=8in]{classhierarchy}{\product{}'s Class hierarchy}
+\postscriptfig[height=8in]{pceclasshierarchy}{\product{}'s Class hierarchy}
 
 
 \section{Objects and integers}

@@ -8,13 +8,32 @@ source-code of the library.
 
 \begin{itemize}
 \newcommand{\secoverview}[2]{\item[\ref{sec:#1}]{\bf #2}\\}
+    \secoverview{findfile}{Asking a filename}
+This library defines the object @finder, instance of \class{finder}. The
+finder allows for asking filenames.
+
+    \secoverview{libdia}{Dialog utilities}
+Toolbars and reporting facilities.  Includes example code for an
+application framework.
+
+    \secoverview{toc}{Table-of-content like hierachies}
+This library extends class \class{tree}, displaying a modern-style
+hierachy inside a window.  This library is used for displaying the
+VisualHierachy and ClassHierarchy tools of the \product{} manual
+toolkit.  See \chapref{online}.
 
     \secoverview{multi-lingual}{Multi-lingual applications}
 Discusses support for multi-lingual applications.
 
     \secoverview{dragdrop}{Drag and Drop Interface}
+This library allows for drapping objects within one \product{}
+application.
 \end{itemize}
 
-\input{mlingual}
+\input{findfile.tex}
+\input{libdia.tex}
+\input{toc.tex}
+\input{mlingual.tex}
 \input{dragdrop.tex}
+
 

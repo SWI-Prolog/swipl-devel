@@ -7,10 +7,10 @@ defined with the declaration of it, but this default my be overruled
 using the \file{Defaults} file. The system defaults file is located in
 the \product{} home directory (`@pce <-home'). This file contains an
 \jargon{include} statement, including the file \file{~/.xpce/Defaults},%
-    \footnote{On Windows systems, \file{~} expands to \file{%HOME%},
-	      \file{%USERPROFILE}, \file{%HOMEDRIVE%/%HOMEPATH} or the
-	      root of the current drive.  See expand_file_name/2 of
-	      the SWI-Prolog manual.}
+    \footnote{On Windows systems, \file{~} expands to \file{\%HOME\%},
+	      \file{\%USERPROFILE\%}, \file{\%HOMEDRIVE\%/\%HOMEPATH\%}
+	      or the root of the current drive. See expand_file_name/2
+	      of the SWI-Prolog manual.}
 which may be used by the developer and application user to specify
 defaults.
 

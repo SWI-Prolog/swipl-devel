@@ -1,0 +1,145 @@
+\section{Library ``pce_toc'': displaying hierarchies}	\label{sec:toc}
+
+The table-of-content library defines a \class{window} displaying a \class{tree}
+in an explorer-like style.  This library is programmed by refining its base-class
+\class{toc_window}.  We will introduce this library using an example exploring the
+filesystem.  A screendump of this application is in \figref{libtoc}.
+
+\postscriptfig[width=0.9\linewidth]{libtoc}{Exploring the filesystem}
+
+\begin{pcecode}
+:- pce_autoload(toc_window, library(pce_toc)).
+:- pce_autoload(report_dialog, library(pce_report)).
+
+:- pce_begin_class(explorer, frame, "Explore the filesystem").
+
+initialise(E, Dir:directory) :->
+	"Explore from directory"::
+	send_super(E, initialise, 'Simple explorer'),
+	send(E, append, new(DH, directory_hierarchy(Dir))),
+	send(new(view), right, DH),
+	send(new(report_dialog), below, DH).
+
+open_node(E, Node:file) :->
+	"Show file content of opened node"::
+	get(E, member, view, View),
+	send(View, load, Node).
+
+:- pce_end_class.
+
+
+:- pce_begin_class(directory_hierarchy, toc_window,
+		   "Browser for a directory-hierarchy").
+
+initialise(FB, Root:directory) :->
+	send(FB, send_super, initialise),
+	get(Root, name, Name),
+	send(FB, root, toc_folder(Name, Root)).
+
+expand_node(FB, D:directory) :->
+	"Called if a node is to be expanded"::
+	new(SubDirsNames, chain),
+	new(FileNames, chain),
+	send(D, scan, FileNames, SubDirsNames),
+
+	get(SubDirsNames, map, ?(D, directory, @arg1), SubDirs),
+	send(SubDirs, for_all,
+	     message(FB, son, D,
+		     create(toc_folder, @arg1?name, @arg1))),
+	get(FileNames, map, ?(D, file, @arg1), SubFiles),
+	send(SubFiles, for_all,
+	     message(FB, son, D,
+		     create(toc_file, @arg1?base_name, @arg1))).	
+
+open_node(FB, Node:file) :->
+	"Called if a file is double-clicked"::
+	send(FB?frame, open_node, Node).
+	
+:- pce_end_class.
+\end{pcecode}
+
+Programming is achieved by subclassing \class{toc_window} and in some
+cases the support classes \class{toc_folder} and \class{toc_file},
+representing expandable and leaf-nodes.
+
+Each node is assigned an \jargon{identifier}, a unique reference to the
+node. In the example below we used \class{file} and \class{directory}
+objects for this purpose. The identifier is the second argument to the
+creation of the node. When omited, the node is turned into an identifier
+of itself. This distinction is used to hide the existence of graphical
+node objects for users of the basic functionality.
+
+Below we describe the important methods of this package.  We start with
+the virtual methods on class \class{toc_window} that should be refined
+by most applications.
+
+\begin{description}
+    \sendmethod{toc_window}{expand_node}{Id:any}
+The user clicked the \verb![+]! sign or double-clicked a \class{toc_folder}.
+This method is normally refined to add sub-nodes for \arg{Id} to the current
+node using `toc_window->son'.  If the implementation of \class{toc_window} is
+activated at the end the window will scroll such that as much as possible of
+the subtree below \arg{Id} is visible.
+
+    \sendmethod{toc_window}{open_node}{Id:any}
+Called on double-click on a \class{toc_file} node.  The implementation of
+\class{toc_window} is empty.
+
+    \sendmethod{toc_window}{select_node}{Id:any}
+Called after single-click on \class{toc_folder} or \class{toc_file}.
+Note that double-clicking activates both ->select_node and ->open_node
+and therefore the action following select_node should execute quickly.
+
+    \getmethod{toc_window}{popup}{Id:any}{Popup:popup}
+This method is called on a right-down.  If it returns a \class{popup}
+object this is displayed.
+\end{description}
+
+The methods below are used for general querying and manipulation of the
+hierarchy.
+
+\begin{description}
+    \getmethod{toc_window}{selection}{ChainOfNodes}
+Returns a \class{chain} holding the \class{node} objects that are
+currently selected.
+
+    \getmethod{toc_window}{node}{Id:any}{Node:toc_node}
+Map a node-identifier to a node.  Fails silently if this identifier is
+not in the tree.
+    
+    \sendmethod{toc_window}{root}{Root:toc_folder}
+Assign the hierarchy a (new) root.
+
+    \sendmethod{toc_window}{son}{Parent:any, Son:toc_node}
+Make a new node below the node representing \arg{Parent}.  If the node
+is a leaf, \arg{Son} is a subclass of \class{toc_file}, otherwise it is
+a subclass of \class{toc_folder}.
+
+    \sendmethod{toc_window}{expand_root}{}
+Expands the root-node.  This is normally called from ->initialise to
+get a sensible initial hierarchy.
+\end{description}
+
+The classes \class{toc_folder} and \class{toc_file} are summarised below.
+Subclassing may be used to modify interaction and/or store additional
+information with the node.
+
+\begin{description}
+    \sendmethod{toc_folder}{initialise}{%
+	   Label:char_array,
+	   Id:[any],
+	   CollapsedImg:[image],
+	   ExpandedImg:[image],
+	   CanExpand:[bool]}
+Create an expandable node.  \arg{Id} defaults to the node object itself
+and the two images to the standard opened/closed folder images.  Folders
+assume they can be expanded, \arg{CanExpand} may be set to @off to indicate
+`an empty folder'.
+
+    \sendmethod{toc_file}{indicate}{%
+	   Label:char_array,
+	   Id:[any],
+	   Img:[image]}
+Create a `file'-node from its \arg{Label}, \arg{Id} (defaults to the
+created node object) and \arg{Image} (defaults to a `document' icon).
+\end{description}

@@ -73,8 +73,9 @@ visible.
 
 The predicate notracepce/1 disables a tracepoint.
 
-\section{Breaking on methods}
+\section{Breaking (spy) on methods}
 
+\index{spy}\index{break}%
 Prolog-defined methods are all implemented using the same predicate,
 which makes it hard to use spy/1 for starting the debugger on a method.
 One way around is to stick a call to trace/0 into the method body and
@@ -100,7 +101,6 @@ the structure of the ``PceDraw'' demo program.
 
 \postscriptfig[width=\textwidth]{vishierarchy}{Visual Hierarchy Tool showing ``PceDraw''}
 
-\index{postscript}%
 This tool is very useful to examine the structure of existing
 applications (for example the various demo programs).  It may also
 be used to find object-references and to launch the inspector

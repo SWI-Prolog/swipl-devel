@@ -11,6 +11,7 @@ LOG=$(DOC).log
 PS=$(DOC).ps
 PDF=$(DOC).pdf
 RERUN="Rerun to get cross-references right"
+CLHIER=figs/pceclasshierarchy.eps
 
 COMMON=	intro.tex starting.tex globalarch.tex online.tex debug.tex \
 	interface.tex graphics.tex pceprolog.tex trouble.tex memory.tex \
@@ -18,8 +19,9 @@ COMMON=	intro.tex starting.tex globalarch.tex online.tex debug.tex \
 	udc.tex dragdrop.tex dragdropdemo.tex control.tex whoiswho.tex \
 	namedref.tex ugraphics.tex code.tex classvar.tex diaedit.tex \
 	dialog.tex wysiwyg.tex frame.tex error.tex application.tex \
-	resource.tex images.tex mlingual.tex summary.tex body.tex \
-	mswin.tex
+	resource.tex images.tex summary.tex body.tex \
+	mswin.tex \
+	libs.tex findfile.tex toc.tex libdia.tex mlingual.tex 
 
 XPCETEX=	xpceusg.tex $(COMMON)
 PWTEX=		pwusg.tex pwinfo.tex $(COMMON)
@@ -35,7 +37,7 @@ pdfimages=	$(epsimages:.eps=.pdf)
 
 pdfimg:	$(pdfimages)
 
-$(DVI):	$(XPCETEX) $(LOGO)
+$(DVI):	$(XPCETEX) $(LOGO) $(CLHIER)
 	@TEXINPUTS=.:$(PCETEX):$$TEXINPUTS; \
 	echo "**********************************************************"; \
 	echo "* Running latex $(DOC)"; \
@@ -49,7 +51,7 @@ $(DVI):	$(XPCETEX) $(LOGO)
 	  latex $(DOC) || exit 1; \
 	done
 
-$(PDF):	$(XPCETEX) $(LOGO)
+$(PDF):	$(XPCETEX) $(LOGO) $(CLHIER)
 	$(MAKE) pdfimg
 	@TEXINPUTS=.:$(PCETEX):$$TEXINPUTS; \
 	echo "**********************************************************"; \
@@ -90,6 +92,9 @@ figs/swi.eps:	$(PCETEX)/figs/swi.eps
 	cp $< $@
 figs/class:
 	mkdir -p $@
+
+$(CLHIER):
+	xpce -f mkclasshier.pl -t halt
 
 $(TEX):	$(DOCTOTEX)
 

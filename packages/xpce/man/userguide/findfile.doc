@@ -1,0 +1,24 @@
+\subsection{Library ``find_file''}
+
+\index{file,prompting for}
+This library file describes the class \class{finder}, representing
+a modal dialog window for entering a filename.  This class defines
+the method `finder <-file':
+
+\begin{description}
+    \getmethod{finder}{file}{Exists:[bool], Ext:[name],
+			     Dir:[directory], Def:[file]}{name}
+Process events util the user specified a file or pressed the cancel
+button.  In the latter case this method fails. The normal way to use
+this predicate is: 
+
+\begin{code}
+:- pce_autoload(finder, library(find_file)).
+:- pce_global(@finder, new(finder)).
+
+	...,
+	get(@finder, file, @on, '.pl', PlFile),
+	...,
+\end{code}
+\end{description}
+
