@@ -4347,13 +4347,21 @@ set_tty(-OldStream, +NewStream)
      specific stream. Default is user_output.
 
 
-3.32  Unix Interaction
+3.32  Operating System Interaction
 
 
 shell(+Command, -Status)
      Execute Command on the operating system. Command is given to the
      bourne shell (/bin/sh). Status is unified with the exit status of
      the command.
+
+     On Win32 systems, shell/[1,2] executes the command using the
+     CreateProcess() API and waits for the command to terminate.
+     This does not work under Win32s (Windows 3.1), which does not
+     support this call. If the command ends with a & sign, the
+     command is handed to the WinExec() API, which does not wait
+     for the new task to terminate and also works for Win32s. See also
+     win_exec/2.
 
 
 shell(+Command)
@@ -4362,7 +4370,15 @@ shell(+Command)
 
 shell
      Start an interactive Unix shell. Default is /bin/sh , the
-     environment variable SHELL overrides this default.
+     environment variable SHELL overrides this default. Not available
+     for Win32 platforms.
+
+
+win_exec(+Command, +Show)
+     Win32 systems only. Spawns a Windows task without waiting for
+     its completion. Show is either iconic or normal and dictates the
+     initial status of the window. The iconic option is notably handy
+     to start (DDE) servers.
 
 
 getenv(+Name, -Value)
@@ -4984,16 +5000,24 @@ close_dde_conversation(+Handle)
 
 dde_request(+Handle, +Item, -Value)
      Request a value from the server. Item is an atom that identifies
-     the requested data, and Value will be an atom (CF_TEXT data in
+     the requested data, and Value will be a string (CF_TEXT data in
      DDE parlance) representing that data, if the request is successful.
      If unsuccessful, Value will be unified with a term of form
-     error(reason), identifying the problem.
+     error(Reason), identifying the problem. This call uses
+     SWI-Prolog string objects to return the value rather then atoms to
+     reduce the load on the atom-space. See section 3.19 for a
+     discussion on this datatype.
 
 
 dde_execute(+Handle, +Command)
      Request the DDE server to execute the given command-string.
      Succeeds if the command could be executed and fails with error
      message otherwise.
+
+
+dde_poke(+Handle, +Item, +Command)
+     Issue a POKE command to the server on the specified Item.
+     Command is passed as data of type CF_TEXT.
 
 
 3.40.2  DDE server mode
@@ -8094,6 +8118,7 @@ dde_current_service/2          Win32: Examine DDE services provided
 dde_execute/2                   Win32: Execute command on DDE server
 dde_register_service/2         Win32: Become a DDE server
 dde_request/3                   Win32: Make a DDE request
+dde_poke/3                      Win32: POKE operation on DDE server
 dde_unregister_service/1       Win32: Terminate a DDE service
 debug/0                          Test for debugging mode
 debugging/0                     Show debugger status
@@ -8388,6 +8413,7 @@ volatile/1{fx 1150}            Predicates that are not saved
 
 wait_for_input/3                Wait for input with optional timeout
 wildcard_match/2                Csh(1) style wildcard match
+win_exec/2                      Win32: spawn Windows task
 write/1                          Write term
 write/2                          Write term to stream
 write_ln/1                      Write term, followed by a newline

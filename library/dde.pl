@@ -9,7 +9,7 @@
 :- module(win_dde,
 	  [ dde_request/3,		% +Handle, +Key, -Value
 	    dde_execute/2,		% +Handle, +Command
-	    dde_poke/3			% +Handle, +Item, +Data
+	    dde_poke/3,			% +Handle, +Item, +Data
 	    dde_register_service/2,	% +Template, +Goal
 	    dde_unregister_service/1,	% +Service
 	    dde_current_service/2,	% -Service, -Topic

@@ -3,8 +3,6 @@
 Info:
 =====
 
-Target Architecture:	@ARCH@
-
 Author:			Jan Wielemaker
 			SWI
 			University of Amsterdam
@@ -27,25 +25,25 @@ Installing the binary version:
 ==============================
 
 The simplest method is to  make  a   *symbolic  link*  from  your public
-executable directory to the executable  in   bin/pl.   Donot  *copy* the
-executable, as it uses  the  information  from   the  link  to  find the
+executable directory to the executable   in  bin/<arch>/pl. Donot *copy*
+the executable, as it uses the  information   from  the link to find the
 location of the libraries.
 
 If you installed this directory as
 
 	/usr/local/lib/pl-@PLVERSION@
 
-do (as root):
+do (as root, where <arch> is the name of the architecture):
 
 	# cd /usr/local/bin
-	# ln -s /usr/local/lib/pl-@PLVERSION@/bin/pl .
+	# ln -s /usr/local/lib/pl-@PLVERSION@/bin/<arch>/pl .
 
 
 Customising the binary version
 ==============================:
 
-You can make small customisations by making/editing a file called `plrc'
-in the SWI-Prolog  home  directory.   This   file  is  consulted  before
+You can make small  customisations  by   making/editing  a  file  called
+`pl.rc' in the SWI-Prolog home directory.  This file is consulted before
 personal initialisation files (~/.plrc) and before  the execution of the
 -g initialisation goal.
 

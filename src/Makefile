@@ -15,7 +15,9 @@
 # 
 #	* make			Simply makes all programs in the current tree
 #	* make install		Installs the libraries and public executables
-#	* make install-libs	Installs only the libraries
+#	* make install-bins	Link executables from $(exec_prefix)/bin
+#	* make install-arch	Install machine dependent files
+#	* make install-libs	Install machine independent files
 #
 # Copyright (c) University of Amsterdam, all rights reserved
 # 
@@ -27,13 +29,13 @@
 #	  based on SWI-Prolog.  Contact prolog-request@swi.psy.uva.nl.
 ################################################################
 
-PLVERSION=2.7.6
+PLVERSION=2.7.7
 
 PL=pl
-prefix=/staff/jan/i386
+prefix=/usr/local
 exec_prefix=${prefix}
-srcdir=../src
-vpath %.c ../src
+srcdir=.
+vpath %.c .
 bindir=$(exec_prefix)/bin
 PLBASE=$(prefix)/lib/pl-$(PLVERSION)
 mansec=1
@@ -48,7 +50,7 @@ AWK=nawk
 SED=sed
 ETAGS=etags
 RANLIB=ranlib
-ARCH=
+ARCH=sparc-solaris2.5
 INSTALL=/usr/gnu/bin/install -c
 INSTALL_PROGRAM=${INSTALL}
 INSTALL_DATA=${INSTALL} -m 644
@@ -58,7 +60,7 @@ CWFLAGS=-Wall
 CIFLAGS=
 CMFLAGS=-funsigned-char
 CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS)
-LDFLAGS=-rdynamic 
+LDFLAGS=
 
 PLFOREIGN=
 
@@ -195,24 +197,29 @@ swiplbin:
 pl-funcs.h:	$(SRC)
 		mkproto -p $(SRC) > $@
 
-install:	install-libs
+install:	install-libs install-arch install-bins
+
+install-bins:	install-arch
+		if [ -r $(bindir)/$(PL) ]; then \
+		    mv $(bindir)/$(PL) $(bindir)/$(PL).old; \
+		fi
 		for f in $(PL) pl-bite chpl plld; do \
 		    ( cd $(bindir); rm -f $$f; ln -s $(PLBASE)/bin/$(ARCH)/$$f . ); \
 		done
+		
 
-install-libs:	idirs iboot ilib iinclude iruntime iman
+install-arch:	idirs iruntime
+		for f in $(PL) pl-bite chpl; do \
+		    $(INSTALL_PROGRAM) $$f $(PLBASE)/bin/$(ARCH); \
+		done
+		$(INSTALL_PROGRAM) $(srcdir)/plld $(PLBASE)/bin/$(ARCH)
+
+install-libs:	idirs iboot ilib iruntime iman
 		$(INSTALL_DATA) $(STARTUPPATH) $(PLBASE)/startup/startup
 		$(INSTALL_DATA) swipl $(PLBASE)
 		$(INSTALL_DATA) swiplbin $(PLBASE)/bin/swipl
 		$(INSTALL_DATA) README.bin $(PLBASE)
 		$(INSTALL_DATA) ../LICENCE $(PLBASE)
-		if [ -r $(bindir)/$(PL) ]; then \
-		    mv $(bindir)/$(PL) $(bindir)/$(PL).old; \
-		fi
-		for f in $(PL) pl-bite chpl; do \
-		    $(INSTALL_PROGRAM) $$f $(PLBASE)/bin/$(ARCH); \
-		done
-		$(INSTALL_PROGRAM) $(srcdir)/plld $(PLBASE)/bin/$(ARCH)
 		cd $(PLBASE)/library; \
 		   ../bin/$(ARCH)/$(PL) \
 			-f none \
@@ -275,7 +282,7 @@ iman:
 
 RTHOME=		$(prefix)/lib/rt-pl-$(PLVERSION)
 RTDIRS=		$(RTHOME) $(RTHOME)/bin $(RTHOME)/lib $(RTHOME)/lib/$(ARCH) \
-		$(RTHOME)/man
+		$(RTHOME)/man $(RTHOME)/bin/$(ARCH)
 
 rt-install:
 		@echo "****************"
@@ -287,12 +294,12 @@ rt-install:
 			mkdir $$d; \
 		    fi; \
 		done
-		$(INSTALL_PROGRAM) $(PL) $(RTHOME)/bin/pl
-		$(INSTALL_PROGRAM) chpl $(RTHOME)/bin/chpl
+		$(INSTALL_PROGRAM) $(PL) $(RTHOME)/bin/$(ARCH)/pl
+		$(INSTALL_PROGRAM) chpl $(RTHOME)/bin/$(ARCH)chpl
 		$(INSTALL_DATA) $(srcdir)/pl.1 $(RTHOME)/man/pl.1
 		$(INSTALL_DATA) $(srcdir)/chpl.1 $(RTHOME)/man/chpl.1
-		@-echo . > swipl
 		$(INSTALL_DATA) swipl $(RTHOME)/swipl
+		$(INSTALL_DATA) swiplbin $(RTHOME)/bin/swipl
 		$(INSTALL_DATA) $(srcdir)/README.RT $(RTHOME)
 
 #
