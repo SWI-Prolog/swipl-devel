@@ -250,61 +250,96 @@ get_logical_drive_strings(int bufsize, char *buf)
 		 *      COMMON DIALOG STUFF	*
 		 *******************************/
 
+#include <h/unix.h>
+#ifndef MAXPATHLEN
+#define MAXPATHLEN _MAX_PATH
+#endif
+#define strapp(s, q) \
+	{ int l = strlen(q); \
+	  if ( s+l+2 > filter+sizeof(filter) ) \
+	  { errorPce(filters, NAME_representation, \
+		     CtoString("filter too long")); \
+	    fail; \
+	  } \
+	  strcpy(s, q); \
+	  s += l; \
+	}
 
 Name
-getWinFileNameDisplay(DisplayObj obj,
+getWinFileNameDisplay(DisplayObj d,
 		      Name mode,	/* open, save */
 		      Chain filters,	/* tuple(Name, Pattern) */
 		      CharArray title,
-		      Directory dir)
+		      CharArray file,	/* default file */
+		      Directory dir)	/* initial dir */
 { OPENFILENAME ofn;
   HWND hwnd;
-  Cell cell;
-  StringObj fs = newObject(ClassString, 0);
   Name rval = 0;
-  string nul;
+  EventObj ev = EVENT->value;
+  char filter[1024], *ef = filter;
+  char buffer[2048];
+  char cwdbin[MAXPATHLEN];
 
   memset(&ofn, 0, sizeof(OPENFILENAME));
   ofn.lStructSize = sizeof(OPENFILENAME);
 
-  if ( instanceObjObject(EVENT, ClassEvent) &&
-       (hwnd = getHwndWindow(EVENT->window)) )
+  if ( instanceOfObject(ev, ClassEvent) &&
+       (hwnd = getHwndWindow(ev->window)) )
     ofn.hwndOwner = hwnd;
 
-  str_inithdr(&nul, ENC_ASCII);
-  nul.size = 1;
-  nul.data.s_text8 = "\0";
-
-  for_cell(cell, filters)
-  { if ( instanceOfbject(cell->value, ClassTuple) )
-    { Tuple t = cell->value;
-      CharArray s1 = t->first, s2 = t->second;
-
-      if ( !instanceOfbject(s1, ClassCharArray) )
-      { errorPce(s1, NAME_unexpectedType, TypeCharArray);
-	goto error;
+  if ( isDefault(filters) )
+  { Name nm = get((Any)NAME_allFiles, NAME_labelName, 0);
+    strapp(ef, strName(nm));
+    *ef++ = '\0';
+    strapp(ef, "*.*");
+    *ef++ = '\0';
+  } else
+  { Cell cell;
+  
+    for_cell(cell, filters)
+    { if ( instanceOfObject(cell->value, ClassTuple) )
+      { Tuple t = cell->value;
+	CharArray s1 = t->first, s2 = t->second;
+  
+	if ( !instanceOfObject(s1, ClassCharArray) )
+	{ errorPce(s1, NAME_unexpectedType, TypeCharArray);
+	  fail;
+	}
+	if ( !instanceOfObject(s2, ClassCharArray) )
+	{ errorPce(s2, NAME_unexpectedType, TypeCharArray);
+	  fail;
+	}
+	strapp(ef, strName(s1));
+	*ef++ = '\0';
+	strapp(ef, strName(s2));
+	*ef++ = '\0';
+      } else if ( instanceOfObject(cell->value, ClassCharArray) )
+      { StringObj s = cell->value;
+  
+	strapp(ef, strName(s));
+	*ef++ = '\0';
+	strapp(ef, strName(s));
+	*ef++ = '\0';
+      } else
+      { errorPce(cell->value, NAME_unexpectedType, CtoType("char_array|tuple"));
+	fail;
       }
-      if ( !instanceOfbject(s2, ClassCharArray) )
-      { errorPce(s2, NAME_unexpectedType, TypeCharArray);
-	goto error;
-      }
-      appendString(sf, s1);
-      str_insert_string(&sf->data, DEFAULT, &nul);
-      appendString(sf, s2);
-      str_insert_string(&sf->data, DEFAULT, &nul);
-    } else if ( instanceOfbject(cell->value, ClassCharArray) )
-    { appendString(sf, cell->value);
-      str_insert_string(&sf->data, DEFAULT, &nul);
-      appendString(sf, cell->value);
-      str_insert_string(&sf->data, DEFAULT, &nul);
-    } else
-    { errorPce(cell->value, NAME_unexpectedType, CtoType("char_array|tuple"));
-      goto error;
     }
   }
-
-  ofn.lpstrFilter  = stringCharArray(fs);
+  *ef = '\0';
+  ofn.lpstrFilter  = filter;
   ofn.nFilterIndex = 0;
+
+  if ( isDefault(file) )
+    buffer[0] = '\0';
+  else
+  { if ( strlen(strName(file)) >= sizeof(buffer) )
+    { errorPce(file, NAME_representation, CtoString("name too long"));
+      fail;
+    }
+    strcpy(buffer, strName(file));
+  }
+
   ofn.lpstrFile    = buffer;
   ofn.nMaxFile     = sizeof(buffer)-1;
   if ( notDefault(dir) )
@@ -312,19 +347,21 @@ getWinFileNameDisplay(DisplayObj obj,
   if ( notDefault(title) )
   ofn.lpstrTitle = strName(title);
 
-  ofn.Flags = OFN_HIDEREADONLY | OFN_NOVALIDATE;
+  ofn.Flags = (OFN_HIDEREADONLY|
+	       OFN_NOCHANGEDIR);
+	       
   if ( mode == NAME_open )
+  { ofn.Flags |= OFN_FILEMUSTEXIST;
     GetOpenFileName(&ofn);
-  else
+  } else
     GetSaveFileName(&ofn);
 
   if ( buffer[0] )
+#ifdef O_XOS				/* should always be true */
+    rval = CtoName(_xos_canonical_filename(buffer, filter));
+#else
     rval = CtoName(buffer);
+#endif
 
-  doneObject(fs);
   return rval;
-
-error:
-  doneObject(fs);
-  fail;
 }
