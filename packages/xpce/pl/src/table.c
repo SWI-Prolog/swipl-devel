@@ -71,7 +71,8 @@ atomToName(Atom a)
   ASymbol s = atom_to_name.symbols[k];
   PceName name;
   unsigned int len;
-  const char *text;
+  const char *textA;
+  const wchar_t *textW;
   
   for( ; s; s = s->next )
   { if ( s->atom == a )
@@ -79,8 +80,15 @@ atomToName(Atom a)
   }
        
   PL_register_atom(a);
-  text = PL_atom_nchars(a, &len);
-  name = cToPceName_n(text, len);
+  if ( (textA = PL_atom_nchars(a, &len)) )
+  { name = cToPceName_nA(textA, len);
+  } else if ( (textW = PL_atom_wchars(a, &len)) )
+  { name = cToPceName_nW(textW, len);
+  } else
+  { assert(0);
+    return NULL;
+  }
+
   s = pceAlloc(sizeof(struct asymbol));
   s->atom = a;
   s->name = name;
@@ -99,15 +107,23 @@ CachedNameToAtom(PceName name)
   ASymbol s = name_to_atom.symbols[k];
   Atom a;
   unsigned int len;
-  char *text;
+  const char *textA;
+  const wchar_t *textW;
 
   for( ; s; s = s->next )
   { if ( s->name == name )
       return s->atom;
   }
        
-  text = pceCharArrayToC(name, &len);
-  a = PL_new_atom_nchars(len, text);
+  if ( (textA = pceCharArrayToCA(name, &len)) )
+  { a = PL_new_atom_nchars(len, textA);
+  } else if ( (textW = pceCharArrayToCW(name, &len)) )
+  { a = PL_new_atom_wchars(len, textW);
+  } else
+  { assert(0);
+    return 0;
+  }
+
   s = pceAlloc(sizeof(struct asymbol));
   s->atom = a;
   s->name = name;

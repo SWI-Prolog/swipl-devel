@@ -78,7 +78,8 @@ COMMON(void)	pceGetMethod(PceClass class, const char *name, const char *group, c
 COMMON(int)	pceToCReference(Any obj, PceCValue *rval);
 COMMON(int)	pceToC(Any obj, PceCValue *rval);
 COMMON(char *)	pceStringToC(Any val);
-COMMON(char *)	pceCharArrayToC(Any val, unsigned int *len);
+COMMON(char *)	pceCharArrayToCA(Any val, unsigned int *len);
+COMMON(wchar_t *)	pceCharArrayToCW(Any val, unsigned int *len);
 COMMON(int)	pceObject(Any obj);
 COMMON(int)	pceGetMethodInfo(PceMethod m, pce_method_info *info);
 COMMON(PceITFSymbol) getITFSymbolName(Name name);

@@ -397,14 +397,33 @@ pceStringToC(Any val)
 
 
 char *
-pceCharArrayToC(Any val, unsigned int *len)
+pceCharArrayToCA(Any val, unsigned int *len)
 { if ( instanceOfObject(val, ClassCharArray) )
   { CharArray ca = val;
 
-    if ( len )
-      *len = (unsigned int)str_datasize(&ca->data);
+    if ( isstrA(&ca->data) )
+    { if ( len )
+	*len = ca->data.size;
 
-    return strName(ca);
+      return ca->data.s_textA;
+    }
+  }
+
+  return NULL;
+}
+
+
+wchar_t *
+pceCharArrayToCW(Any val, unsigned int *len)
+{ if ( instanceOfObject(val, ClassCharArray) )
+  { CharArray ca = val;
+
+    if ( isstrW(&ca->data) )
+    { if ( len )
+	*len = ca->data.size;
+
+      return ca->data.s_textW;
+    }
   }
 
   return NULL;

@@ -284,23 +284,6 @@ PL_new_atom_nchars(unsigned int len, const char *s)
 }
 
 
-const char *
-PL_atom_chars(atom_t a)
-{ return (const char *) stringAtom(a);
-}
-
-
-const char *
-PL_atom_nchars(atom_t a, unsigned int *len)
-{ Atom x = atomValue(a);
-
-  if ( len )
-    *len = x->length;
-
-  return x->name;
-}
-
-
 functor_t
 PL_new_functor(atom_t f,  int a)
 { return lookupFunctorDef(f, a);
@@ -348,6 +331,15 @@ lookupUCSAtom(const pl_wchar_t *s, unsigned int len)
 
   return lookupBlob((const char *)s, len*sizeof(pl_wchar_t),
 		    &ucs_atom, &new);
+}
+
+
+atom_t
+PL_new_atom_wchars(unsigned int len, const wchar_t *s)
+{ if ( !GD->initialised )
+    initAtoms();
+
+  return lookupUCSAtom(s, len);
 }
 
 
@@ -430,6 +422,45 @@ PL_unify_wchars(term_t t, int flags, unsigned int len, const pl_wchar_t *s)
 
   return rc;
 }
+
+
+		 /*******************************
+		 *	  GET ATOM TEXT		*
+		 *******************************/
+
+const char *
+PL_atom_chars(atom_t a)
+{ return (const char *) stringAtom(a);
+}
+
+
+const char *
+PL_atom_nchars(atom_t a, unsigned int *len)
+{ Atom x = atomValue(a);
+
+  if ( x->type != &ucs_atom )
+  { if ( len )
+      *len = x->length;
+
+    return x->name;
+  } else
+    return NULL;
+}
+
+
+const wchar_t *
+PL_atom_wchars(atom_t a, unsigned int *len)
+{ Atom x = atomValue(a);
+
+  if ( x->type == &ucs_atom )
+  { if ( len )
+      *len = x->length / sizeof(pl_wchar_t);
+
+    return (const wchar_t *)x->name;
+  } else
+    return NULL;
+}
+
 
 
 		 /*******************************

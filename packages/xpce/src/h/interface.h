@@ -167,7 +167,8 @@ typedef union
 
 __pce_export int    pceToC(PceObject datum, PceCValue *rval);
 __pce_export int    pceToCReference(PceObject datum, PceCValue *rval);
-__pce_export char * pceCharArrayToC(PceObject datum, unsigned int *len);
+__pce_export char * pceCharArrayToCA(PceObject datum, unsigned int *len);
+__pce_export wchar_t * pceCharArrayToCW(PceObject datum, unsigned int *len);
 __pce_export char * pceStringToC(PceObject datum);
 __pce_export void * pcePointerToC(PceObject datum);
 __pce_export PceHostData  CtoHostData(PceClass class, void *handle, int flags);

@@ -316,8 +316,10 @@ PL_EXPORT(void)		PL_reset_term_refs(term_t r);
 			/* Constants */
 PL_EXPORT(atom_t)	PL_new_atom(const char *s);
 PL_EXPORT(atom_t)	PL_new_atom_nchars(unsigned int len, const char *s);
+PL_EXPORT(atom_t)	PL_new_atom_wchars(unsigned int len, const wchar_t *s);
 PL_EXPORT(const char *)	PL_atom_chars(atom_t a);
 PL_EXPORT(const char *) PL_atom_nchars(atom_t a, unsigned int *len);
+PL_EXPORT(const wchar_t *) PL_atom_wchars(atom_t a, unsigned int *len);
 #ifndef O_DEBUG_ATOMGC
 PL_EXPORT(void)		PL_register_atom(atom_t a);
 PL_EXPORT(void)		PL_unregister_atom(atom_t a);

@@ -301,6 +301,8 @@ static PceName		NAME_chain;	/* "chain" */
 static PceName		NAME_vector;	/* "vector" */
 static PceName		NAME_codeVector;/* "code_vector" */
 
+#define cToPceName(s) cToPceName_nA(s, strlen(s))
+
 static void
 initPceConstants()
 { NAME_functor	  = cToPceName("functor");
@@ -906,12 +908,15 @@ PceObject referenceToObject(Term a)
 static Atom
 nameToAtom(PceName name)
 { unsigned int len;
-  char *s = pceCharArrayToC(name, &len);
+  const char *textA;
+  const wchar_t *textW;
 
-  if ( s )
-    return PL_new_atom_nchars(len, s);
-
-  return (Atom)0;
+  if ( (textA = pceCharArrayToCA(name, &len)) )
+    return PL_new_atom_nchars(len, textA);
+  else if ( (textW = pceCharArrayToCW(name, &len)) )
+    return PL_new_atom_wchars(len, textW);
+  else
+    return (Atom)0;
 }
 
 
@@ -1579,9 +1584,17 @@ unifyObject(Term t, PceObject obj, int top)
       return UnifyFloat(t, value.real);
     case PCE_NAME:			/* name */
     { unsigned int len;
-      char *s = pceCharArrayToC(obj, &len);
-
-      return PL_unify_atom_nchars(t, len, s);
+      const char *textA;
+      const wchar_t *textW;
+	
+      if ( (textA = pceCharArrayToCA(obj, &len)) )
+	return PL_unify_atom_nchars(t, len, textA);
+      else if ( (textW = pceCharArrayToCW(obj, &len)) )
+	return PL_unify_wchars(t, PL_ATOM, len, textW);
+      else
+      { assert(0);
+	return FALSE;
+      }
     }
     case PCE_HOSTDATA:
       return Unify(t, getTermHandle(obj)); /* TBD: avoid redoing this */

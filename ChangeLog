@@ -7,6 +7,13 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: PL_new_atom_wchars() and PL_atom_wchars() for create/fetch
+    text from a wide-character atom.
+
+
+VERSION 5.5.2 (December 23, 2004)
+=================================
+
   * FIXED: Bug#216: Random() name conflict with MacOS libraries. 
     Helmar Spangenberg.
 
