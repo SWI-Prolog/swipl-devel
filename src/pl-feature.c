@@ -559,7 +559,7 @@ initFeatures()
 #if __WIN32__
   if ( iswin32s() )
     defFeature("win32s", FT_BOOL|FF_READONLY, TRUE, 0);
-  defFeature("windows",	FT_BOOL|FF_READONLY, 0);
+  defFeature("windows",	FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
   defFeature("version",	FT_INTEGER|FF_READONLY, PLVERSION);
   if ( systemDefaults.home )

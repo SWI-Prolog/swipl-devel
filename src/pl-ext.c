@@ -98,6 +98,7 @@ static const struct foreign {
   FRG("$mark_executable",	1, pl_mark_executable,		TRACE_ME),
 #ifdef __WIN32__
   FRG("win_exec",		2, pl_win_exec,			TRACE_ME),
+  FRG("win_module_file",	2, pl_win_module_file,		TRACE_ME),
 #ifdef O_XOS
   FRG("make_fat_filemap",	1, pl_make_fat_filemap,		TRACE_ME),
 #endif

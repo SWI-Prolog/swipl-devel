@@ -322,6 +322,21 @@ initHeapDebug(void)
 }
 #endif
 
+foreign_t
+pl_win_module_file(term_t module, term_t file)
+{ char buf[MAXPATHLEN];
+  char *m;
+  char *f;
+
+  if ( !PL_get_chars_ex(module, &m, CVT_ALL) )
+    fail;
+  if ( (f = findExecutable(m, buf)) )
+    return PL_unify_atom_chars(file, f);
+
+  fail;
+}
+
+
 		 /*******************************
 		 *	DLOPEN AND FRIENDS	*
 		 *******************************/
@@ -380,6 +395,5 @@ dlclose(void *handle)
 #endif /*EMULATE_DLOPEN*/
 
 #endif /*__WINDOWS__*/
-
 
 

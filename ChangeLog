@@ -1,6 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: unload_foreign_library/[1,2] calling of the uninstall hook.
+    Might fix exit problems in the Windows version.
+
+  * ADDED: load_foreign_library/[1,2] now first looks for lib<D>.dll
+    if the SWI-Prolog kernel is compiled for debugging.  That should
+    simplify debugging foreign code under Windows.
+
+  * FIXED: current_prolog_flag(windows, X) on windows (returned false).
+
   * FIXED: retractall/1 and retract/1 not to complain while accessing
     undefined procedures.  The addressed procedures are flagged dynamic.
 

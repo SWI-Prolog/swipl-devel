@@ -48,6 +48,7 @@ lookupRecordList(word key)
     l->type = RECORD_TYPE;
     l->references = 0;
     l->flags = 0;
+    l->firstRecord = l->lastRecord = NULL;
     addHTable(GD->tables.record_lists, (void *)key, l);
 
     return l;

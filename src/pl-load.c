@@ -148,10 +148,16 @@ find_dl_entry(term_t h)
 
   if ( PL_get_integer(h, &id) )
   { for(e = dl_head; e; e = e->next)
-      if ( e->id == id )
+    { if ( e->id == id )
 	return e;
+    }
+    PL_error(NULL, 0, NULL, ERR_EXISTENCE,
+	     PL_new_atom("shared_object_handle"), h);
+    return NULL;
   }
-
+  
+  PL_error(NULL, 0, NULL, ERR_TYPE,
+	   PL_new_atom("shared_object_handle"), h);
   return NULL;
 }
 
@@ -177,10 +183,9 @@ pl_call_shared_object_function(term_t plhandle, term_t name)
   char *fname;
   dl_funcptr ef;
 
-  if ( !e || !e->dlhandle )
-    return warning("call_shared_object_function/2: bad handle");
-  if ( !PL_get_chars(name, &fname, CVT_ALL) )
-    return warning("call_shared_object_function/2: instantiation fault");
+  if ( !e || !e->dlhandle ||
+       !PL_get_chars_ex(name, &fname, CVT_ALL) )
+    fail;
   
   if ( !(ef = (dl_funcptr) dlsym(e->dlhandle, fname)) )
     fail;

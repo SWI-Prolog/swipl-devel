@@ -316,7 +316,9 @@ pl_signal_handler(int sig)
   switch(sig)
   { case SIGFPE:
     case SIGSEGV:
+#ifdef SIGBUS
     case SIGBUS:
+#endif
       if ( sig == LD->current_signal )
 	sysError("Recursively received fatal signal %d", sig);
   }

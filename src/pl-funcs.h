@@ -789,6 +789,7 @@ word		pl_call_dll_function(term_t handle, term_t funcname);
 void		PlMessage(const char *buf, ...);
 word		pl_window_title(term_t old, term_t new);
 word		pl_win_exec(term_t command, term_t show);
+foreign_t	pl_win_module_file(term_t module, term_t file);
 #ifdef EMULATE_DLOPEN
 void *		dlopen(const char *file, int flags);
 const char *	dlerror(void);

@@ -1356,7 +1356,9 @@ unregisterAtomsClause(Clause clause)
   for( ; PC < ep; PC += (codeTable[c].arguments + 1) )
   { c = decode(*PC);
 
+#if O_DEBUGGER
   again:
+#endif
     switch(c)
     {
 #if O_DEBUGGER

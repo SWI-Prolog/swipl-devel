@@ -155,6 +155,9 @@ pl_sleep(term_t time)
   succeed;
 }
 
+#ifdef __WIN32__
+#include <process.h>
+#endif
 
 word
 pl_get_pid(term_t pid)

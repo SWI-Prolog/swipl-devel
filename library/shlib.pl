@@ -39,27 +39,55 @@
 		 *	     DISPATCHING	*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Windows: If libpl.dll is compiled for debugging, prefer loading <lib>D.dll
+to allow for debugging.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 find_library(Spec, Lib) :-
+	current_prolog_flag(windows, true),
+	current_prolog_flag(kernel_compile_mode, debug),
+	libd_spec(Spec, SpecD),
+	catch(find_library2(SpecD, Lib), _, fail), !.
+find_library(Spec, Lib) :-
+	find_library2(Spec, Lib).
+
+find_library2(Spec, Lib) :-
 	absolute_file_name(Spec,
 			   [ file_type(executable),
 			     access(read),
 			     file_errors(fail)
 			   ], Lib), !.
-find_library(Spec, Spec) :-
+find_library2(Spec, Spec) :-
 	atom(Spec), !.			% use machines finding schema
-find_library(foreign(Spec), Spec) :-
+find_library2(foreign(Spec), Spec) :-
 	atom(Spec), !.			% use machines finding schema
-find_library(Spec, _) :-
+find_library2(Spec, _) :-
 	throw(error(existence_error(source_sink, Spec), _)).
 
+libd_spec(Name, NameD) :-
+	atomic(Name), !,
+	file_name_extension(Base, Ext, Name),
+	atom_concat(Base, 'D', BaseD),
+	file_name_extension(BaseD, Ext, NameD).
+libd_spec(Spec, SpecD) :-
+	Spec =.. [Alias,Name], !,
+	libd_spec(Name, NameD),
+	SpecD =.. [Alias,NameD].
+libd_spec(Spec, Spec).			% delay errors
+
 base(Path, Base) :-
+	atomic(Path), !,
 	file_base_name(Path, File),
 	file_name_extension(Base, _Ext, File).
-
+base(Path, Base) :-
+	Path =.. [_,Arg],
+	base(Arg, Base).
+	
 entry(_, Function, Function) :-
 	Function \= default(_), !.
-entry(Path, default(FuncBase), Function) :-
-	base(Path, Base),
+entry(Spec, default(FuncBase), Function) :-
+	base(Spec, Base),
 	concat_atom([FuncBase, Base], '_', Function).
 entry(_, default(Function), Function).
 
@@ -80,7 +108,7 @@ load_foreign_library(LibFile, Module, DefEntry) :-
 	find_library(LibFile, Path),
 	(   clean_fpublic,		% safety
 	    Module:open_shared_object(Path, Handle),
-	    (	entry(Path, DefEntry, Entry),
+	    (	entry(LibFile, DefEntry, Entry),
 		Module:call_shared_object_function(Handle, Entry)
 	    ->	true
 	    ;	DefEntry == default(install)
@@ -96,9 +124,9 @@ unload_foreign_library(LibFile) :-
 	unload_foreign_library(LibFile, default(uninstall)).
 
 unload_foreign_library(LibFile, DefUninstall) :-
-	current_library(LibFile, _, _, _, Public, Handle),
-	retractall(current_library(LibFile, _, Path, _, _, _)),
-	(   entry(Path, DefUninstall, Uninstall),
+	current_library(LibFile, _, _, Module, Public, Handle),
+	retractall(current_library(LibFile, _, _, _, _, _)),
+	(   entry(LibFile, DefUninstall, Uninstall),
 	    Module:call_shared_object_function(Handle, Uninstall)
 	->  true
 	;   true
