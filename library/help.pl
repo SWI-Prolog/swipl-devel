@@ -14,6 +14,9 @@
 
 :- use_module(library(helpidx)).
 
+:- multifile
+	prolog:help_hook/1.		% Generic help hook.
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module  defines the  online  help  facility of   SWI-Prolog.   It
 assumes  (Prolog) index file  at library(help_index)   and  the actual
@@ -24,18 +27,16 @@ defined pager, which defaults to `more'.
 %	help/0
 
 help :-
+	prolog:help_hook(help), !.
+help :-
 	help(help/1).
 
 %	help(+Subject)
 %
-%	Display online help on specified subject.  First clause detects
-%	presence of XPCE gui and redirects to the graphical help system.
-%	We use indirection through call/1 to fool check/0 that the
-%	predicate might not be true.
+%	Display online help on specified subject.
 
 help(What) :-
-	current_prolog_flag(gui, true), !,
-	call(prolog_help(What)).
+	prolog:help_hook(help(What)), !.
 help(What) :-
 	give_help(What).
 
@@ -43,8 +44,7 @@ help(What) :-
 %	Give a list of subjects that might be appropriate.
 
 apropos(What) :-
-	current_prolog_flag(gui, true), !,
-	call(prolog_apropos(What)).
+	prolog:help_hook(apropos(What)), !.
 apropos(What) :-
 	give_apropos(What).
 
