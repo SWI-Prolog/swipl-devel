@@ -543,6 +543,11 @@ into a list of \jargon{Locations}. If there is more than one `hit', the
 user is allows to select from the found locations. Finally,
 prolog_edit:edit_source/1 is used to invoke the user's preferred editor.
 
+    \predicate{edit}{0}{}
+Edit the `default' file using edit/1.  The default file is the file
+loaded with the commandline option \cmdlineoption{-s} or, in windows,
+the file loaded by double-clicking from the Windows shell.
+
     \predicate{prolog_edit:locate}{3}{+Spec, -FullSpec, -Location}
 Where \arg{Spec} is the specification provided through edit/1.  This
 multifile predicate is used to enumerate locations at with an object

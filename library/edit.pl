@@ -30,7 +30,8 @@
 */
 
 :- module(prolog_edit,
-	  [ edit/1			% +Spec
+	  [ edit/1,			% +Spec
+	    edit/0
 	  ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -62,6 +63,21 @@ edit(Spec) :-
 	merge_locations(Pairs0, Pairs),
 	do_select_location(Pairs, Spec, Location),
 	do_edit_source(Location).
+
+%	edit
+%	
+%	Load associated or script file
+
+edit :-
+	'$option'(script_file, OsFile, OsFile),
+	OsFile \== '', !,
+	prolog_to_os_filename(File, OsFile),
+	edit(file(File)).
+edit :-
+	current_prolog_flag(associated_file, File), !,
+	edit(file(File)).
+edit :-
+	throw(error(existence_error(flag, associated_file), _)).
 
 
 		 /*******************************
