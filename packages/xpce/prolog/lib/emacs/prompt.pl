@@ -169,7 +169,7 @@ selection(TI, Value:any) :<-
 	get(TI, value_text, Text),
 	get(Text, string, String),
 	get(TI, type, Type),
-	(   get(@pce, convert, String, Type, _)
+	(   get(@pce, convert, String?value, Type, _)
 	->  get_super(TI, selection, Value)
 	;   get(TI, completions, String, Completions),
 	    (	object(Completions, chain(Value))

@@ -1108,7 +1108,7 @@ specified_argspec([P0|PT], Spec, N, T, TB) :-
 :- pce_begin_class(emacs_goal_fragment, emacs_colour_fragment,
 		   "Fragment for a goal in PceEmacs Prolog mode").
 
-variable(name,	 name,	both, "Name of the predicate").
+variable(name,		 name,	both, "Name of the predicate").
 variable(arity,		 int,	both, "Arity of the predicate").
 variable(module,	 name*,	both, "Module if Module:Head").
 variable(classification, name,	both, "XREF classification").
