@@ -1,3 +1,6 @@
+* FIXED: Various output aspects of the sgml driver program, notably case and
+  character escaping problems.  By Richard O'Keefe.
+
 * ADDED: Ignore SGML declaration in <!SGML ...>
 
 * FIXED: Do not require ; after character-entity

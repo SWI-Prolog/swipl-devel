@@ -98,7 +98,7 @@ typedef enum
 typedef enum
 { DCL_DTD,				/* DTD Declaration */
   DCL_BEGIN,				/* begin-tag */
-  DCL_END,				/* end-tag */
+  DCL_END				/* end-tag */
 } dcl_type;
 
 
