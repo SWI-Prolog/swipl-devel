@@ -1118,7 +1118,11 @@ allocStacks(long local, long global, long trail, long argument)
 { caddress lbase, gbase, tbase, abase;
   long glsize;
   long lsep, tsep;
-
+  long minglobal   = 4*SIZEOF_LONG K;
+  long minlocal    = 2*SIZEOF_LONG K;
+  long mintrail    = 2*SIZEOF_LONG K;
+  long minargument = 1*SIZEOF_LONG K;
+  
   size_alignment = getpagesize();
   while(size_alignment < 4*SIZEOF_LONG K)
     size_alignment *= 2;
@@ -1130,6 +1134,11 @@ allocStacks(long local, long global, long trail, long argument)
   lsep = STACK_SEPARATION;
   tsep = size_alignment;
 #endif
+
+  local    = max(local,    minlocal);
+  global   = max(global,   minglobal);
+  trail    = max(trail,    mintrail);
+  argument = max(argument, minargument);
 
   local    = (long) align_size(local);	/* Round up to page boundary */
   global   = (long) align_size(global);
@@ -1159,10 +1168,10 @@ allocStacks(long local, long global, long trail, long argument)
   init_stack((Stack) &LD->stacks.name, print, base, limit, minsize);
 #define K * 1024
 
-  INIT_STACK(global,   "global",   gbase, global,   4*SIZEOF_LONG K);
-  INIT_STACK(local,    "local",    lbase, local,    2*SIZEOF_LONG K);
-  INIT_STACK(trail,    "trail",    tbase, trail,    2*SIZEOF_LONG K);
-  INIT_STACK(argument, "argument", abase, argument, 1*SIZEOF_LONG K);
+  INIT_STACK(global,   "global",   gbase, global,   minglobal);
+  INIT_STACK(local,    "local",    lbase, local,    minlocal);
+  INIT_STACK(trail,    "trail",    tbase, trail,    mintrail);
+  INIT_STACK(argument, "argument", abase, argument, minargument);
 
 #ifndef NO_SEGV_HANDLING
   set_stack_guard_handler(SIGSEGV, _PL_segv_handler);

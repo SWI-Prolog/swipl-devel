@@ -151,15 +151,15 @@ make_header(_, _, _).
 		 *	     OPTIONS		*
 		 *******************************/
 
-min_stack(local,    8192).
-min_stack(global,   8192).
-min_stack(trail,    8192).
-min_stack(argument, 4096).
-min_stack(heap,     204800).
+min_stack(local,    32).
+min_stack(global,   16).
+min_stack(trail,    16).
+min_stack(argument, 16).
 
+convert_option(_, 0, 0) :- !.
 convert_option(Stack, Val, NewVal) :-
 	min_stack(Stack, Min), !,
-	NewVal is max(Min, Val*1024).
+	NewVal is max(Min, Val).
 convert_option(_, Val, Val).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
