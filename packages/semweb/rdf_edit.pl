@@ -606,7 +606,7 @@ rdfe_reset_undo :-
 %	close possible open journal at exit.  Using a Prolog hook
 %	guarantees closure, even for most crashes.
 
-:- at_halt(rdfe_replay_journal).
+:- at_halt(rdfe_reset_journal).
 
 
 		 /*******************************
