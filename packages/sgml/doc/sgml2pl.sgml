@@ -487,8 +487,8 @@ following form:
 The element has no content. 
     <termitem><c/cdata/
 The element contains non-parsed character data.  All data upto the
-matching end-tag is included in the data (<jargon/declared content).
-    <termitem></c/any/
+matching end-tag is included in the data (<jargon/declared content/).
+    <termitem><c/any/
 The element may contain any number of any element from the DTD in
 any order.
     <termitem><c/#pcdata/
@@ -562,7 +562,7 @@ is that it builds a DTD while parsing a document with an <jargon/
 implicit/ DTD. The resulting DTD contains all elements encountered in 
 the document. For each element the content model is a disjunction of 
 elements and possibly <verb>#PCDATA</verb> that can be repeated. Thus, 
-if in element <elem/x/ whe found element <elem/y/ and CDATA, the model 
+if we found element <elem/y/ and CDATA in element <elem/x/, the model 
 is:
 
 <code>

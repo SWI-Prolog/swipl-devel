@@ -11,12 +11,13 @@ or latex.  Make targets:
 
 	make [doc.pdf]		Make doc.pdf (requires pdflatex)
 	make doc.ps		Make doc.ps (requires latex and dvips)
+	make doc.html		Make HTML version of the documentation
 	make clean		Remove generated file except for targets
 	make distclean		Remove all generated files
 
-doc2tex.pl and xml_convert.pl contain the   sourcecode of the converter.
-Especially  xml_convert.pl,  defining  xml_select/3    might   be  worth
-considering.
+doc2tex.pl, doc2html.pl and xml_convert.pl contain the sourcecode of the
+converter. Especially xml_convert.pl,  defining   xml_select/3  might be
+worth considering.
 
 If you have a recent version of XPCE, you can also type
 

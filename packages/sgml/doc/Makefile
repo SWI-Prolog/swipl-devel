@@ -11,7 +11,7 @@ PDFLATEX=pdflatex
 MAKEINDEX=makeindex
 DOC=sgml2pl
 
-all:		$(DOC).pdf
+all:		$(DOC.html) $(DOC).pdf
 
 $(DOC).tex:	$(DOC).sgml
 		./doc2tex $<
@@ -23,7 +23,7 @@ $(DOC).pdf:	$(DOC).tex
 		$(MAKEINDEX) $(DOC)
 		$(PDFLATEX) $(DOC)
 
-$(DOC).ps:		$(DOC).tex
+$(DOC).ps:	$(DOC).tex
 		$(LATEX) $(DOC)
 		$(MAKEINDEX) $(DOC)
 		$(LATEX) $(DOC)
@@ -31,8 +31,11 @@ $(DOC).ps:		$(DOC).tex
 		$(LATEX) $(DOC)
 		dvips -o $@ $(DOC)
 
+$(DOC).html:	$(DOC).sgml
+		./doc2html $<
+
 clean:		
 		rm -f $(DOC).aux $(DOC).tex $(DOC).ilg $(DOC).log *~
 
 distclean:	clean
-		rm -f $(DOC).pdf $(DOC).ps
+		rm -f $(DOC).pdf $(DOC).ps $(DOC.html)

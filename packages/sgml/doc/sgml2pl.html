@@ -1,0 +1,1202 @@
+<!DOCTYPE PUBLIC "-//W3C//DTD HTML 3.2//EN">
+
+<html>
+<head>
+<title>SWI-Prolog SGML/XML parser</title>
+</head>
+
+<body>
+
+<center>
+
+
+<h1>SWI-Prolog SGML/XML parser<br>
+<font size="+0"><em>Version 1.0.6, July 19 2000</em></font></h1>
+<br>
+<a href="mailto:jan@swi.psy.uva.nl"><em>Jan Wielemaker</em></a><br>
+<em>    SWI, <br>
+
+    University of Amsterdam <br>
+
+    The Netherlands
+  </em>
+</center>
+
+<blockquote>
+
+<hr>
+Markup languages are an increasingly important method for 
+data-representation and exchange. This article documents the package
+<b>sgml2pl</b>, a foreign library for SWI-Prolog to parse SGML and XML 
+documents, returning information on both the document and the document's
+DTD. The parser is designed to be small, fast and flexible. 
+<hr>
+
+</blockquote>
+<content>
+
+<h1>Table of Content</h1>
+<ul><li><a href="#sec-1">Introduction</a></li><li><a href="#sec-2">Bluffers Guide</a></li><ul><li><a href="#sec-2.1">`Goodies' Predicates</a></li></ul><li><a href="#sec-3">Predicate Reference</a></li><ul><li><a href="#sec-3.1">Loading Structured Documents</a></li><li><a href="#sec:space">Handling white-space</a></li><li><a href="#sec:xml">XML documents</a></li><ul><li><a href="#sec:xmlns">XML Namespaces</a></li></ul><li><a href="#sec-3.4">DTD-Handling</a></li><ul><li><a href="#sec-3.4.1">The DOCTYPE declaration</a></li></ul><li><a href="#sec:implicitdtd">Extracting a DTD</a></li><li><a href="#sec-3.6">Parsing Primitives</a></li><ul><li><a href="#sec-3.6.1">Partial Parsing</a></li></ul></ul><li><a href="#sec:indexaccess">Processing Indexed Files</a></li><li><a href="#sec-5">External entities</a></li><li><a href="#sec-6">Missing functionality</a></li><li><a href="#sec-7">Installation</a></li><ul><li><a href="#sec-7.1">Unix systems</a></li></ul><li><a href="#sec-8">Acknowledgements</a></li></ul></content>
+
+<p>
+&nbsp;
+
+<h1><a name="sec-1">Introduction</a></h1>
+
+
+<p>
+Markup languages have recently regained popularity for two reasons. One 
+is document exchange, which is largely based on HTML, an instance of 
+SGML and the other is for data-exchange between programs, which is often
+based on XML, which can be considered simplified and rationalised 
+version of SGML.
+
+
+<p>
+James Clark's SP parser is a flexible SGML and XML parser. Unfortunately
+it has some drawbacks. It is very big, not very fast, cannot work under 
+event-driven input and is generally hard to program beyond the scope of 
+the well designed generic interface. The generic interface however does 
+not provide access to the DTD, does not allow for flexible handling of 
+input or parsing the DTD independently of a document instance.
+
+
+<p>
+The parser described in this document is small (less than 50 Kbytes 
+executable on a Pentium), fast (between 2 and 5 times faster than SP), 
+provides access to the DTD and flexible input handling.
+
+
+<p>
+The document output is equal to the output produced by <b><em>xml2pl</em></b>, 
+an SP interface to SWI-Prolog written by Anjo Anjewierden.
+
+
+<p>
+&nbsp;
+
+<h1><a name="sec-2">Bluffers Guide</a></h1>
+
+
+<p>
+This package allows you to parse SGML, XML and HTML data into a Prolog 
+data structure. The high-level interface defined in <b>sgml</b> 
+provides access at the file-level, while the low-level interface defined
+in the foreign module works with Prolog streams. Please use the source 
+of <b>sgml.pl</b> as a starting point for dealing with data from 
+other sources than files, such as SWI-Prolog resources, network-sockets,
+character strings, etc. In the first example below loads an HTML file.
+
+
+<p>
+<table width="90%" align="center" border="2" bgcolor="#f0f0f0"><tr><td><pre>&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN"&gt;
+
+&lt;html&gt;
+&lt;head&gt;
+&lt;title&gt;Demo&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+&lt;h1 align=center&gt;This is a demo&lt;/title&gt;
+
+&lt;p&gt;Paragraphs in HTML need not be closed.
+
+&lt;p&gt;This is called `omitted-tag' handling.
+&lt;/body&gt;
+&lt;/html&gt;</pre></td></tr></table>
+
+<p>
+<table width="90%" align="center" border="2" bgcolor="#f0f0f0"><tr><td><pre>?- load_html_file('test.html', Term),
+   pretty_print(Term).
+
+[ element(html,
+          [],
+          [ element(head,
+                    [],
+                    [ element(title,
+                              [],
+                              [ 'Demo'
+                              ])
+                    ]),
+            element(body,
+                    [],
+                    [ '\n',
+                      element(h1,
+                              [ align = center
+                              ],
+                              [ 'This is a demo'
+                              ]),
+                      '\n\n',
+                      element(p,
+                              [],
+                              [ 'Paragraphs in HTML need not be closed.\n'
+                              ]),
+                      element(p,
+                              [],
+                              [ 'This is called `omitted-tag\' handling.'
+                              ])
+                    ])
+          ])
+].</pre></td></tr></table>
+
+<p>
+The document is represented as a list, each element being an atom to 
+represent <a name="const:CDATA"><b><tt>CDATA</tt></b></a> or a term <code>element(Name, Attributes, Content)</code>.
+Entities (e.g. <code>&amp;lt;</code>) are returned as part of <a name="const:CDATA%2"><b><tt>CDATA</tt></b></a>, 
+unless they cannot be represented. See <b>load_sgml_file/2</b> for
+details.
+
+
+<p>
+&nbsp;
+
+<h2><a name="sec-2.1">`Goodies' Predicates</a></h2>
+
+
+<p>
+These predicates are for basic usage of the library, converting entire 
+and self-contained files in one of the three supported XML dialects into
+a structured term. They are all expressed in <b>load_structure/3</b>.
+<dl>
+
+<p>
+<dt><b><content><a name="load_sgml_file/2"><content>load_sgml_file</content>(<var><content><content>+File</content>, </content><content><content>-ListOfContent</content></content></var>)</a></content></b></dt><dd>Same as <code>load_structure(File, ListOfContent, [dialect(sgml))</code>.
+    </dd>
+
+<p>
+<dt><b><content><a name="load_xml_file/2"><content>load_xml_file</content>(<var><content><content>+File</content>, </content><content><content>-ListOfContent</content></content></var>)</a></content></b></dt><dd>Same as <code>load_structure(File, ListOfContent, [dialect(xml))</code>.
+    </dd>
+
+<p>
+<dt><b><content><a name="load_html_file/2"><content>load_html_file</content>(<var><content><content>+File</content>, </content><content><content>-Content</content></content></var>)</a></content></b></dt><dd>Load <var>File</var> and parse as HTML. Implemented as:
+
+
+
+<p>
+<table width="90%" align="center" border="2" bgcolor="#f0f0f0"><tr><td><pre>load_html_file(File, Term) :-
+        dtd(html, DTD),
+        load_structure(File, Term,
+                       [ dtd(DTD),
+                         dialect(sgml)
+                       ]).</pre></td></tr></table></dd></dl>
+
+<p>
+&nbsp;
+
+<h1><a name="sec-3">Predicate Reference</a></h1>
+
+
+<p>
+&nbsp;
+
+<h2><a name="sec-3.1">Loading Structured Documents</a></h2>
+
+
+<p>
+SGML or XML files are loaded through the common predicate <b>load_structure/3</b>. This is a predicate with many options. For 
+simplicity a number of commonly used shorthands are provided: <b>load_sgml_file/2</b>, <b>load_xml_file/2</b>, and <b>load_html_file/2</b>.
+<dl>
+
+<p>
+<dt><b><content><a name="load_structure/3"><content>load_structure</content>(<var><content><content>+File</content>, </content><content><content>-ListOfContent</content>, </content><content><content>+Options</content></content></var>)</a></content></b></dt><dd>Load the XML file <var>File</var> and return the resulting structure in <var>ListOfContent</var>. <var>Options</var> is a list of options controlling the 
+conversion process.
+
+
+
+<p>
+A proper XML document contains only a single toplevel element whose name
+matches the document type. Nevertheless, a list is returned for 
+consistency with the representation of element content. The <var>ListOfContent</var> consists of three types:<dl>
+
+<p>
+<dt><b><content><var>Atom</var></content></b></dt><dd>Atoms are used to represent <a name="const:CDATA%3"><b><tt>CDATA</tt></b></a>. Note 
+this is possible in SWI-Prolog, as there is no length-limit on atoms and
+atom garbage collection is provided.
+    </dd>
+
+<p>
+<dt><b><content>element(<var><content><content>Name</content>, </content><content><content>ListAttributes</content>, </content><content><content>ListOfContent</content></content></var>)</content></b></dt><dd><var>Name</var> is the name of the element. Using SGML, which is 
+case-insensitive, all element names are returned as lowercase atoms.
+
+
+
+<p>
+<var>ListOfAttributes</var> is a list of <var>Name</var>=<var>Value</var> pairs for
+attributes that appeared in the source. No information is returned on
+other attributes, such as <a name="const:fixed"><b><tt>fixed</tt></b></a> or <a name="const:default"><b><tt>default</tt></b></a> attributes. See
+<b>dtd_property/2</b> for accessing the DTD for this information.
+Attributes of type <a name="const:CDATA%4"><b><tt>CDATA</tt></b></a> are returned literal. Attributes of type
+<a name="const:NUMBER"><b><tt>NUMBER</tt></b></a> are returned as a Prolog integer. Multi-valued attributes
+(<a name="const:NAMES"><b><tt>NAMES</tt></b></a>, etc.) are returned as a list of atoms. For the type
+<a name="const:NUMBERS"><b><tt>NUMBERS</tt></b></a>, a list of Prolog integers is returned for any element of
+the list that can be converted into an integer.
+
+
+<p>
+<var>ListOfContent</var> defines the content for the element.
+    </dd>
+
+<p>
+<dt><b><content>entity(<var><content><content>Code</content></content></var>)</content></b></dt><dd>If a character-entity (e.g. <code>&amp;#913;</code>) is encoutered that 
+cannot be represented in the Prolog character set, this term is 
+returned, representing the referred character code.
+    </dd>
+
+<p>
+<dt><b><content>entity(<var><content><content>Name</content></content></var>)</content></b></dt><dd>If an entity refers to a character-entity holding a single character, 
+but this character cannot be represented in the Prolog character set, 
+this term is returned. For example, the HTML input text
+<code>&amp;Alpha; &amp;lt; &amp;Beta;</code>
+is returned as below. Please note that neither in XML nor SGML entities 
+are case-insensitive.
+
+
+
+<p>
+<table width="90%" align="center" border="2" bgcolor="#f0f0f0"><tr><td><pre>[ entity('Alpha'), ' &lt; ', entity('Beta') ]</pre></td></tr></table>
+
+
+
+<p>
+This is a special case of <code>entity(Code)</code>, intended to handle 
+special symbols by their name rather then character code.
+    </dd>
+
+<p>
+<dt><b><content>sdata(<var><content><content>Text</content></content></var>)</content></b></dt><dd>If an entity width declared content-type <a name="const:SDATA"><b><tt>SDATA</tt></b></a> is encountered, this 
+term is returned holding the data in <var>Text</var>.
+    </dd>
+
+<p>
+<dt><b><content>ndata(<var><content><content>Text</content></content></var>)</content></b></dt><dd>If an entity width declared content-type <a name="const:NDATA"><b><tt>NDATA</tt></b></a> is encountered, this 
+term is returned holding the data in <var>Text</var>.
+    </dd>
+
+<p>
+<dt><b><content>pi(<var><content><content>Text</content></content></var>)</content></b></dt><dd>If a processing instruction is encoutered (<code>&lt;?...?&gt;</code>), <var>Text</var> holds the text of the processing instruction. Please note that the
+<code>&lt;?xml ...?&gt;</code> instruction is handled internally. </dd></dl>
+
+
+
+
+<p>
+The <var>Options</var> list controls the conversion process. Currently 
+defined options are:
+<dl>
+
+<p>
+<dt><b><content>dtd(<var><content><content>?DTD</content></content></var>)</content></b></dt><dd>Reference to a DTD object. If specified, the <code>&lt;!DOCTYPE ...&gt;</code>
+declaration is ignored and the document is parsed and validated against 
+the provided DTD. If provided as a variable, the implicitly created DTD 
+is returned. See <b>implicitdtd</b>.
+    </dd>
+
+<p>
+<dt><b><content>dialect(<var><content><content>+Dialect</content></content></var>)</content></b></dt><dd>Specify the parsing dialect. Supported are <a name="const:sgml"><b><tt>sgml</tt></b></a> (default), <a name="const:xml"><b><tt>xml</tt></b></a> 
+and <a name="const:xmlns"><b><tt>xmlns</tt></b></a>. See <b>xml</b> for details on the differences.
+    </dd>
+
+<p>
+<dt><b><content>space(<var><content><content>+SpaceMode</content></content></var>)</content></b></dt><dd>Sets the `space-handling-mode' for the initial environment. This mode is
+inherited by the other environments and subject to the XML reserved tag <b><tt>xml:space</tt></b>. See <b>space</b>.
+    </dd>
+
+<p>
+<dt><b><content>number(<var><content><content>+NumberMode</content></content></var>)</content></b></dt><dd>Determines how attributes of type <a name="const:NUMBER%2"><b><tt>NUMBER</tt></b></a> and <a name="const:NUMBERS%2"><b><tt>NUMBERS</tt></b></a> are handled.
+If <a name="const:token"><b><tt>token</tt></b></a> (default) they are passed as an atom.  If <a name="const:integer"><b><tt>integer</tt></b></a> the
+parser attempts to convert the value to an integer.  If successfull, the
+attribute is passed as a Prolog integer.  Otherwise it is still passed
+as an atom.  Note that SGML defines a numeric attribute to be a sequence
+of digits.  The <a name="const:-"><b><tt>-</tt></b></a> sign is not allowed and <code>1</code> is different from
+<code>01</code>.  For this reason the default is to handle numeric attributes as
+tokens.  If conversion to integer is enabled, negative values are silently
+accepted.
+    </dd>
+
+<p>
+<dt><b><content>file(<var><content><content>+Name</content></content></var>)</content></b></dt><dd>Sets the name of the file on which errors are reported. Sets the 
+linenumber to 1.
+    </dd>
+
+<p>
+<dt><b><content>line(<var><content><content>+Line</content></content></var>)</content></b></dt><dd>Sets the starting line-number for reporting errors.
+    </dd>
+
+<p>
+<dt><b><content>max_errors(<var><content><content>+Max</content></content></var>)</content></b></dt><dd>Sets the maximum number of errors. If this number is reached, an 
+exception of the format below is raised. The default is 50.
+
+
+<blockquote>
+<code>error(limit_exceeded(max_errors, Max), _)</code> 
+</blockquote>
+</dd></dl></dd></dl>
+
+<p>
+&nbsp;
+
+<h2><a name="sec:space">Handling white-space</a></h2>
+
+
+<p>
+SGPL2PL has four modes for handling white-space. The initial mode can be
+switched using the <code>space(SpaceMode)</code> option to <b>load_structure/3</b> and <b>set_sgml_parser/2</b>. In XML mode,
+the mode is further controlled by the <b><tt>xml:space</tt></b> attribute, which 
+may be specified both in the DTD as in the document. The defined modes 
+are:
+<dl>
+
+<p>
+<dt><b><content>space(<var><content><content>sgml</content></content></var>)</content></b></dt><dd>In SGML, newlines at the start and end of an element are removed.<a href="#fn-1" name="txt:fn-1"><sup>1</sup></a> This is the default mode for 
+the SGML dialect. 
+    </dd>
+
+<p>
+<dt><b><content>space(<var><content><content>preserve</content></content></var>)</content></b></dt><dd>White space is passed literally to the application. This is the default 
+mode. This mode leaves all white space handling to the application. This
+is the default mode for the XML dialect. 
+    </dd>
+
+<p>
+<dt><b><content>space(<var><content><content>default</content></content></var>)</content></b></dt><dd>In addition to <a name="const:sgml%2"><b><tt>sgml</tt></b></a> space-mode, all consequtive white-space is 
+reduced to a single space-character. This mode canonises all white 
+space. 
+    </dd>
+
+<p>
+<dt><b><content>space(<var><content><content>remove</content></content></var>)</content></b></dt><dd>In addition to <a name="const:default%2"><b><tt>default</tt></b></a>, all leading and trailing white-space is 
+removed from <a name="const:CDATA%5"><b><tt>CDATA</tt></b></a> objects. If, as a result, if the <a name="const:CDATA%6"><b><tt>CDATA</tt></b></a> 
+becomes empty, nothing is passed to the application. This mode is 
+especially handy for processing `data-oriented' documents, such as RDF. 
+It is not suitable for normal text documents. Consider the HTML 
+statement below. When processed in this mode, the spaces between the 
+three modified words are lost. This mode is, unlike the two others, not 
+part of the XML standard.
+
+
+
+<p>
+<table width="90%" align="center" border="2" bgcolor="#f0f0f0"><tr><td><pre>Consider adjecent &lt;b&gt;bold&lt;/b&gt; &lt;ul&gt;and&lt;/ul&gt; &lt;it&gt;italic&lt;/it&gt; words.</pre></td></tr></table></dd></dl>
+
+<p>
+&nbsp;
+
+<h2><a name="sec:xml">XML documents</a></h2>
+
+
+<p>
+The parser can operate in two modes: <a name="const:sgml%3"><b><tt>sgml</tt></b></a> mode and <a name="const:xml%2"><b><tt>xml</tt></b></a> mode, as 
+defined by the <code>dialect(Dialect)</code> option. Regardless of this 
+option, if the first line of the document reads as below, the parser is 
+switched automatically into XML mode.
+
+
+<p>
+<table width="90%" align="center" border="2" bgcolor="#f0f0f0"><tr><td><pre>&lt;?xml ... ?&gt;</pre></td></tr></table>
+
+<p>
+Currently switching to XML mode implies:
+<ul><li><em>XML empty elements</em><br>
+The construct <code>&lt;element [attribute...] /&gt;</code> is recognised as 
+an empty element. 
+   </li><li><em>Predefined entities</em><br>
+The following entitities are predefined: <a name="const:lt"><b><tt>lt</tt></b></a> (<code>&lt;</code>), <a name="const:gt"><b><tt>gt</tt></b></a>
+(<code>&gt;</code>), <a name="const:amp"><b><tt>amp</tt></b></a> (<code>&amp;</code>), <a name="const:apos"><b><tt>apos</tt></b></a> (<code>'</code>) 
+and <a name="const:quot"><b><tt>quot</tt></b></a> (<code>"</code>). 
+   </li><li><em>Case sensitivity</em><br>
+In XML mode, names are treated case-sensitive, except for the DTD 
+reserved names (i.e. <code>ELEMENT</code>, etc.). 
+   </li><li><em>Character classes</em><br>
+In XML mode, underscores (<code>_</code>) and colon (<code>:</code>) are
+allowed in names. 
+   </li><li><em>White-space handling</em><br>
+White space mode is set to <a name="const:preserve"><b><tt>preserve</tt></b></a>. In addition to setting 
+white-space handling at the toplevel the XML reserved attribute <b><tt>xml:space</tt></b> is honoured. It may appear both in the document as the DTD. 
+The <a name="const:remove"><b><tt>remove</tt></b></a> extension is honoured as <b><tt>xml:space</tt></b> value. For 
+example, the DTD statement below ensures that the <b><tt>pre</tt></b> element 
+preserves space, regardless of the default processing mode.
+
+
+
+<p>
+<table width="90%" align="center" border="2" bgcolor="#f0f0f0"><tr><td><pre>&lt;!ATTLIST pre xml:space nmtoken #fixed preserve&gt;</pre></td></tr></table></li></ul>
+
+<p>
+&nbsp;
+
+<h3><a name="sec:xmlns">XML Namespaces</a></h3>
+
+
+<p>
+Using the <b><em>dialect</em></b> <a name="const:xmlns%2"><b><tt>xmlns</tt></b></a>, the parser will interpret XML 
+namespaces. In this case, the names of elements are returned as a term 
+of the format
+
+<blockquote>
+<var>URL</var><a name="const::"><b><tt>:</tt></b></a><var>LocalName</var> 
+</blockquote>
+
+
+<p>
+If an identifier has no namespace and there is no default namespace it 
+is returned as a simple atom. If an identifier has a namespace but this 
+namespace is undeclared, the namespace name rather than the related URL 
+is returned.
+
+
+<p>
+Attributes declaring namespaces (<code>xmlns:<var>ns</var>=<var>url</var></code>
+are reported as if <a name="const:xmlns%3"><b><tt>xmlns</tt></b></a> is not a defined resource.
+
+
+<p>
+In many cases, getting attribute-names as <code><var>url</var>:<var>name</var></code>
+is not desirable. Such terms are hard to unified and sometimes multiple 
+URLs may be mapped to the same identifier. This may happen due to poor 
+version management, poor standardisation or because the the application 
+doesn't care too much about versions. This package defines two 
+call-backs that can be set using <b>set_sgml_parser/2</b> to deal 
+with this problem.
+
+
+<p>
+the call-back <a name="const:xmlns%4"><b><tt>xmlns</tt></b></a> is called as XML namespaces are pushed on the
+environment. It can be used to extend a canonical mapping for later use
+by the <a name="const:urlns"><b><tt>urlns</tt></b></a> call-back. The following illustrates this behaviour.
+Any namespace containing <a name="const:rdf-syntax"><b><tt>rdf-syntax</tt></b></a> in its URL or that is used as
+<a name="const:rdf"><b><tt>rdf</tt></b></a> namespace is canonised to <a name="const:rdf%2"><b><tt>rdf</tt></b></a>. This implies that any
+attribute and element name from the RDF namespace appears as
+<code>rdf:<var>name</var></code>.
+
+
+<p>
+<table width="90%" align="center" border="2" bgcolor="#f0f0f0"><tr><td><pre>:- dynamic
+        xmlns/3.
+
+on_xmlns(rdf, URL, _Parser) :- !,
+        asserta(xmlns(URL, rdf, _)).
+on_xmlns(_, URL, _Parser) :-
+        sub_atom(URL, _, _, _, rdf-syntax), !,
+        asserta(xmlns(URL, rdf, _)).
+
+load_rdf_xml(File, Term) :-
+        load_structure(File, Term,
+                       [ dialect(xmlns),
+                         call(xmlns, on_xmlns),
+                         call(urlns, xmlns)
+                       ]).</pre></td></tr></table>
+
+<p>
+&nbsp;
+
+<h2><a name="sec-3.4">DTD-Handling</a></h2>
+
+
+<p>
+The DTD (<b>D</b>ocument <b>T</b>ype <b>D</b>efinition) is a separate 
+entity in sgml2pl, that can be created, freed, defined and inspected. 
+Like the parser itself, it is filled by opening it it as a Prolog output
+stream and sending data to it. This section summarises the predicates 
+for handling the DTD.<dl>
+
+<p>
+<dt><b><content><a name="new_dtd/2"><content>new_dtd</content>(<var><content><content>+DocType</content>, </content><content><content>-DTD</content></content></var>)</a></content></b></dt><dd>Creates an empty DTD for the named <var>DocType</var>. The returned 
+DTD-reference is an opaque term that can be used in the other predicates
+of this package.
+
+    </dd>
+
+<p>
+<dt><b><content><a name="free_dtd/1"><content>free_dtd</content>(<var><content><content>+DTD</content></content></var>)</a></content></b></dt><dd>Deallocate all resources associated to the DTD. Further use of <var>DTD</var>
+is invalid.
+
+    </dd>
+
+<p>
+<dt><b><content><a name="load_dtd/2"><content>load_dtd</content>(<var><content><content>+DTD</content>, </content><content><content>+File</content></content></var>)</a></content></b></dt><dd>Define the DTD by loading the SGML-DTD file <var>File</var>. This predicate 
+is defined using the low-level <b>open_dtd/3</b> predicate:
+
+
+
+<p>
+<table width="90%" align="center" border="2" bgcolor="#f0f0f0"><tr><td><pre>load_dtd(DTD, DtdFile) :-
+        open_dtd(DTD, [], DtdOut),
+        open(DtdFile, read, DtdIn),
+        copy_stream_data(DtdIn, DtdOut),
+        close(DtdIn),
+        close(DtdOut).</pre></td></tr></table>
+
+    </dd>
+
+<p>
+<dt><b><content><a name="open_dtd/3"><content>open_dtd</content>(<var><content><content>+DTD</content>, </content><content><content>+Options</content>, </content><content><content>-OutStream</content></content></var>)</a></content></b></dt><dd>Open a DTD as an output stream. The option-list is currently 
+empty. See <b>load_dtd/2</b> for an example.
+
+    </dd>
+
+<p>
+<dt><b><content><a name="dtd/2"><content>dtd</content>(<var><content><content>+DocType</content>, </content><content><content>-DTD</content></content></var>)</a></content></b></dt><dd>Find the DTD representing the indicated <b><em>doctype</em></b>. This predicate
+uses a cache of DTD objects. If a doctype has no associated dtd, it 
+searches for a file using the file search path <code>dtd</code> using the call:
+
+
+
+<p>
+<table width="90%" align="center" border="2" bgcolor="#f0f0f0"><tr><td><pre>...,
+absolute_file_name(dtd(Type),
+                   [ extensions([dtd]),
+                     access(read)
+                   ], DtdFile),
+...</pre></td></tr></table>
+
+    </dd>
+
+<p>
+<dt><b><content><a name="dtd_property/2"><content>dtd_property</content>(<var><content><content>+DTD</content>, </content><content><content>?Property</content></content></var>)</a></content></b></dt><dd>This predicate is used to examine the content of a DTD. Property is one 
+of:
+<dl>
+
+<p>
+<dt><b><content>doctype(<var><content><content>DocType</content></content></var>)</content></b></dt><dd>An atom representing the document-type defined by this DTD. 
+    </dd>
+
+<p>
+<dt><b><content>elements(<var><content><content>ListOfElements</content></content></var>)</content></b></dt><dd>A list of atoms representing the names of the elements in this DTD. 
+    </dd>
+
+<p>
+<dt><b><content>element(<var><content><content>Name</content>, </content><content><content>Omit</content>, </content><content><content>Content</content></content></var>)</content></b></dt><dd>The DTD contains an element with the given name. <var>Omit</var> is a term 
+of the format <code>omit(OmitOpen, OmitClose)</code>, where both 
+arguments are booleans (<a name="const:true"><b><tt>true</tt></b></a> or <a name="const:false"><b><tt>false</tt></b></a> representing whether the 
+open- or close-tag may be omitted. <var>Content</var> is the content-model 
+of the element represented as a Prolog term. This term takes the 
+following form:
+<dl>
+
+<p>
+<dt><b><content><a name="const:empty"><b><tt>empty</tt></b></a></content></b></dt><dd>The element has no content. 
+    </dd>
+
+<p>
+<dt><b><content><a name="const:cdata"><b><tt>cdata</tt></b></a></content></b></dt><dd>The element contains non-parsed character data.  All data upto the
+matching end-tag is included in the data (<b><em>declared content</em></b>).
+    </dd>
+
+<p>
+<dt><b><content><a name="const:any"><b><tt>any</tt></b></a></content></b></dt><dd>The element may contain any number of any element from the DTD in
+any order.
+    </dd>
+
+<p>
+<dt><b><content><a name="const:#pcdata"><b><tt>#pcdata</tt></b></a></content></b></dt><dd>The element contains parsed character data 
+    </dd>
+
+<p>
+<dt><b><content><var>element</var></content></b></dt><dd>An element with this name. 
+    </dd>
+
+<p>
+<dt><b><content>*(<var><content><content>SubModel</content></content></var>)</content></b></dt><dd>0 or more appearances. 
+    </dd>
+
+<p>
+<dt><b><content>?(<var><content><content>SubModel</content></content></var>)</content></b></dt><dd>0 or one appearance. 
+    </dd>
+
+<p>
+<dt><b><content>+(<var><content><content>SubModel</content></content></var>)</content></b></dt><dd>1 or more appearances. 
+    </dd>
+
+<p>
+<dt><b><content>,(<var><content><content>SubModel1</content>, </content><content><content>SubModel2</content></content></var>)</content></b></dt><dd><var>SubModel1</var> followed by <var>SubModel2</var>. 
+    </dd>
+
+<p>
+<dt><b><content>&amp;(<var><content><content>SubModel1</content>, </content><content><content>SubModel2</content></content></var>)</content></b></dt><dd><var>SubModel1</var> and <var>SubModel2</var> in any order. 
+    </dd>
+
+<p>
+<dt><b><content>|(<var><content><content>SubModel1</content>, </content><content><content>SubModel2</content></content></var>)</content></b></dt><dd><var>SubModel1</var> or <var>SubModel2</var>. </dd></dl>
+
+    </dd>
+
+<p>
+<dt><b><content>attributes(<var><content><content>Element</content>, </content><content><content>ListOfAttributes</content></content></var>)</content></b></dt><dd><var>ListOfAttributes</var> is a list of atoms representing the attributes 
+of the element <var>Element</var>. 
+
+    </dd>
+
+<p>
+<dt><b><content>attribute(<var><content><content>Element</content>, </content><content><content>Attribute</content>, </content><content><content>Type</content>, </content><content><content>Default</content></content></var>)</content></b></dt><dd>Query an element. <var>Type</var> is one of <a name="const:cdata%2"><b><tt>cdata</tt></b></a>, <a name="const:entity"><b><tt>entity</tt></b></a>, <a name="const:id"><b><tt>id</tt></b></a>,
+<a name="const:idref"><b><tt>idref</tt></b></a>, <a name="const:name"><b><tt>name</tt></b></a>, <a name="const:nmtoken"><b><tt>nmtoken</tt></b></a>, <a name="const:notation"><b><tt>notation</tt></b></a>, <a name="const:number"><b><tt>number</tt></b></a> or
+<a name="const:nutoken"><b><tt>nutoken</tt></b></a>. For DTD types that allow for a list, the notation
+<code>list(Type)</code> is used. Finally, the DTD construct
+<code>(a|b|...)</code> is mapped to the term
+<code>nameof(ListOfValues)</code>. 
+
+    </dd>
+
+<p>
+<dt><b><content>entities(<var><content><content>ListOfEntities</content></content></var>)</content></b></dt><dd><var>ListOfEntities</var> is a list of atoms representing the names of the 
+defined entities. 
+    </dd>
+
+<p>
+<dt><b><content>entity(<var><content><content>Name</content>, </content><content><content>Value</content></content></var>)</content></b></dt><dd><var>Name</var> is the name of an entity with given value. Value is one of 
+<dl>
+
+<p>
+<dt><b><content><var>Atom</var></content></b></dt><dd>If the value is atomic, it represents the 
+literal value of the entity. 
+    </dd>
+
+<p>
+<dt><b><content>system(<var><content><content>Url</content></content></var>)</content></b></dt><dd><var>Url</var> is the URL of the system external entity. 
+    </dd>
+
+<p>
+<dt><b><content>public(<var><content><content>Id</content>, </content><content><content>Url</content></content></var>)</content></b></dt><dd>For external public entities, <var>Id</var> is the identifier. If an URL is 
+provided this is returned in <var>Url</var>. Otherwise this argument is 
+unbound. </dd></dl>
+    </dd>
+
+<p>
+<dt><b><content>notations(<var><content><content>ListOfNotations</content></content></var>)</content></b></dt><dd>Returns a list holding the names of all <a name="const:NOTATION"><b><tt>NOTATION</tt></b></a> declarations. 
+    </dd>
+
+<p>
+<dt><b><content>notation(<var><content><content>Name</content>, </content><content><content>File</content></content></var>)</content></b></dt><dd>Yields the declared file for from a <a name="const:NOTATION%2"><b><tt>NOTATION</tt></b></a> declaration. </dd></dl></dd></dl>
+
+<p>
+&nbsp;
+
+<h3><a name="sec-3.4.1">The DOCTYPE declaration</a></h3>
+
+
+<p>
+As this parser allows for processing partial documents and process the 
+DTD separately, the DOCTYPE declaration plays a special role.
+
+
+<p>
+If a document has no DOCTYPE declaraction, the parser returns a list 
+holding all elements and CDATA found. If the document has a DOCTYPE 
+declaraction, the parser will open the element defined in the DOCTYPE as
+soon as the first real data is encountered.
+
+
+<p>
+&nbsp;
+
+<h2><a name="sec:implicitdtd">Extracting a DTD</a></h2>
+
+
+<p>
+Some documents have no DTD. One of the neat facilities of this library 
+is that it builds a DTD while parsing a document with an <b><em>implicit</em></b> DTD. The resulting DTD contains all elements encountered in 
+the document. For each element the content model is a disjunction of 
+elements and possibly <code>#PCDATA</code> that can be repeated. Thus, 
+if we found element <b><tt>y</tt></b> and CDATA in element <b><tt>x</tt></b>, the model 
+is:
+
+
+<p>
+<table width="90%" align="center" border="2" bgcolor="#f0f0f0"><tr><td><pre>&lt;!ELEMENT x - - (y|#PCDATA)*&gt;</pre></td></tr></table>
+
+<p>
+Any encountered attribute is added to the attribute list with the type
+<a name="const:CDATA%7"><b><tt>CDATA</tt></b></a> and default <a name="const:#IMPLIED"><b><tt>#IMPLIED</tt></b></a>.
+
+
+<p>
+The example below extracts the elements used in an unknown XML document.
+
+
+<p>
+<table width="90%" align="center" border="2" bgcolor="#f0f0f0"><tr><td><pre>elements_in_xml_document(File, Elements) :-
+        load_structure(File, _,
+                       [ dialect(xml),
+                         dtd(DTD)
+                       ]),
+        dtd_property(DTD, elements(Elements)),
+        free_dtd(DTD).</pre></td></tr></table>
+
+<p>
+&nbsp;
+
+<h2><a name="sec-3.6">Parsing Primitives</a></h2>
+<dl>
+
+<p>
+<dt><b><content><a name="new_sgml_parser/2"><content>new_sgml_parser</content>(<var><content><content>-Parser</content>, </content><content><content>+Options</content></content></var>)</a></content></b></dt><dd>Creates a new parser. A parser can be used one or multiple times for 
+parsing documents or parts thereof. It may be bound to a DTD or the DTD 
+may be left implicit, in which case it is created from the document 
+prologue or parsing is performed without a DTD. Options:
+<dl>
+
+<p>
+<dt><b><content>dtd(<var><content><content>?DTD</content></content></var>)</content></b></dt><dd>If specified with an initialised DTD, this DTD is used for parsing the 
+document, regardless of the document prologue. If specified using as a 
+variable, a reference to the created DTD is returned. This DTD may be 
+created from the document prologue or build implicitely from the 
+document's content. </dd></dl>
+
+    </dd>
+
+<p>
+<dt><b><content><a name="free_sgml_parser/1"><content>free_sgml_parser</content>(<var><content><content>+Parser</content></content></var>)</a></content></b></dt><dd>Destroy all resources related to the parser. This does not destroy the 
+DTD if the parser was created using the <code>dtd(DTD)</code> option.
+    </dd>
+
+<p>
+<dt><b><content><a name="set_sgml_parser/2"><content>set_sgml_parser</content>(<var><content><content>+Parser</content>, </content><content><content>+Option</content></content></var>)</a></content></b></dt><dd>Sets attributes to the parser. Currently defined attributes: 
+
+<dl>
+
+<p>
+<dt><b><content>file(<var><content><content>File</content></content></var>)</content></b></dt><dd>Sets the file for reporting errors and warnings. Sets the line to 1. 
+    </dd>
+
+<p>
+<dt><b><content>line(<var><content><content>Line</content></content></var>)</content></b></dt><dd>Sets the current line. Useful if the stream is not at the start of the 
+(file) object for generating proper line-numbers. 
+    </dd>
+
+<p>
+<dt><b><content>dialect(<var><content><content>Dialect</content></content></var>)</content></b></dt><dd>Set the markup dialect. Known dialects: 
+<dl>
+
+<p>
+<dt><b><content><a name="const:sgml%4"><b><tt>sgml</tt></b></a></content></b></dt><dd>The default dialect is to process as SGML. This implies markup is 
+case-insensitive and standard SGML abbreviation is allowed (abreviated 
+attributes and omitted tags). 
+    </dd>
+
+<p>
+<dt><b><content><a name="const:xml%3"><b><tt>xml</tt></b></a></content></b></dt><dd>This dialect is selected automatically if the processing instruction <code>&lt;?xml ...&gt;</code>
+is encountered. See <b>xml</b> for details. 
+    </dd>
+
+<p>
+<dt><b><content><a name="const:xmlns%5"><b><tt>xmlns</tt></b></a></content></b></dt><dd>Process file as XML file with namespace support. See <b>xmlns</b> for
+details. </dd></dl></dd></dl>
+    </dd>
+
+<p>
+<dt><b><content><a name="get_sgml_parser/2"><content>get_sgml_parser</content>(<var><content><content>+Parser</content>, </content><content><content>-Option</content></content></var>)</a></content></b></dt><dd>Retrieve infomation on the current status of the parser. Notably useful 
+if the parser is used in the call-back mode. Currently defined options: 
+<dl>
+
+<p>
+<dt><b><content>file(<var><content><content>-File</content></content></var>)</content></b></dt><dd>Current file-name. Note that this may be different from the provided 
+file if an external entity is being loaded. 
+    </dd>
+
+<p>
+<dt><b><content>charpos(<var><content><content>-CharPos</content></content></var>)</content></b></dt><dd>Offset from where the parser started its processing in the file-object. 
+See <b>indexaccess</b>. 
+    </dd>
+
+<p>
+<dt><b><content>source(<var><content><content>-Stream</content></content></var>)</content></b></dt><dd>Prolog stream being processed. May be used in the <a name="const:on_begin"><b><tt>on_begin</tt></b></a>, etc. 
+callbacks from <b>sgml_parse/2</b>. 
+    </dd>
+
+<p>
+<dt><b><content>dialect(<var><content><content>-Dialect</content></content></var>)</content></b></dt><dd>Return the current dialect used by the parser (<a name="const:sgml%5"><b><tt>sgml</tt></b></a>, <a name="const:xml%4"><b><tt>xml</tt></b></a> or <a name="const:xmlns%6"><b><tt>xmlns</tt></b></a>).</dd></dl>
+
+
+
+
+<p>
+    </dd>
+
+<p>
+<dt><b><content><a name="sgml_parse/2"><content>sgml_parse</content>(<var><content><content>+Parser</content>, </content><content><content>+Options</content></content></var>)</a></content></b></dt><dd>Parse an XML file. The parser can operate in two input and two output
+modes. Output is either a structured term as described with
+<b>load_structure/2</b> or call-backs on predefined events. The
+first is especially suitable for manipulating not-too-large documents,
+while the latter provides a primitive means for handling very large
+documents.
+
+
+
+<p>
+Input is either a stream or an goal that pushes characters into the 
+parser. A full description of the option-list is below.<dl>
+
+<p>
+<dt><b><content>document(<var><content><content>+Term</content></content></var>)</content></b></dt><dd>A variable that will be unified with a list describing the content of 
+the document (see <b>load_structure/2</b>). 
+    </dd>
+
+<p>
+<dt><b><content>source(<var><content><content>+Stream</content></content></var>)</content></b></dt><dd>An input stream that is read. Either this option or the <code>goal(Goal)</code>
+option must be provided. 
+    </dd>
+
+<p>
+<dt><b><content>goal(<var><content><content>+Goal</content></content></var>)</content></b></dt><dd><var>Goal</var> is a callable term. The predicate <b>sgml_parse/2</b> 
+opens an output stream to the parser and invokes <code>call(Goal, Stream)</code>,
+where <var>Goal</var> should write the data to be parsed to <var>Stream</var>. 
+This option is not compatible to <code>parse(element)</code>. This 
+option can be used for example to parse a Prolog atom:
+
+
+
+<p>
+<table width="90%" align="center" border="2" bgcolor="#f0f0f0"><tr><td><pre>parse_atom(Atom, Term) :-
+        new_sgml_parser(Parser, []),
+        sgml_parse(Parser,
+                   [ document(Term),
+                     goal(provide_atom(Atom))
+                   ]),
+        free_sgml_parser(Parser).
+
+provide_atom(Atom, ParserStream) :-
+        write(ParserStream, Atom).</pre></td></tr></table>
+
+
+
+<p>
+For example:
+
+
+<p>
+<table width="90%" align="center" border="2" bgcolor="#f0f0f0"><tr><td><pre>?- parse_atom('&lt;h1&gt;hello world&lt;/title&gt;', X).
+
+X = [element(h1, [], ['hello world'])] </pre></td></tr></table>
+
+    </dd>
+
+<p>
+<dt><b><content>parse(<var><content><content>Unit</content></content></var>)</content></b></dt><dd>If <a name="const:file"><b><tt>file</tt></b></a> (default), parse everything upto the end of the input. If
+<a name="const:element"><b><tt>element</tt></b></a>, the parser will stop after reading the first element. Using
+<code> source(Stream)</code>, this implies reading is stopped as soon as
+the element is complete, and another call may be issued on the same
+stream to read the next element. Using <code>goal(Goal)</code> as input,
+the stream reports an I/O error after completing the first element. This
+exception destroyes the built <code>dcoument(Term)</code>, making this
+option useless using `Goal' driven input. The value <a name="const:content"><b><tt>content</tt></b></a> may be
+used in a call-back from <code>call(<a name="const:on_begin%2"><b><tt>on_begin</tt></b></a>, Pred)</code> to parse
+individual elements after validating their headers. 
+
+    </dd>
+
+<p>
+<dt><b><content>max_errors(<var><content><content>+MaxErrors</content></content></var>)</content></b></dt><dd>Set the maximum number of errors. If this number is exceeded further 
+writes to the stream will yield an I/O error exception. Printing of 
+errors is suppressed after reaching this value. The default is 100. 
+    </dd>
+
+<p>
+<dt><b><content>call(<var><content><content>+Event</content>, </content><content><content>:PredicateName</content></content></var>)</content></b></dt><dd>Issue call-backs on the specified events. <var>PredicateName</var> is the 
+name of the predicate to call on this event, possibly prefixed with a 
+module identifier. The defined events are:
+<dl>
+
+<p>
+<dt><b><content><content>begin</content></content></b></dt><dd>An open-tag has been parsed. The named handler is called with three 
+arguments: <code><var>Handler</var>(+Tag, +Attributes, +Parser)</code>. 
+    </dd>
+
+<p>
+<dt><b><content><content>end</content></content></b></dt><dd>A close-tag has been parsed. The named handler is called with two 
+arguments: <code><var>Handler</var>(+Tag, +Parser)</code>. 
+    </dd>
+
+<p>
+<dt><b><content><content>cdata</content></content></b></dt><dd>CDATA has been parsed. The named handler is called with two arguments: <code><var>Handler</var>(+CDATA, +Parser)</code>, where CDATA is an atom representing 
+the data. 
+    </dd>
+
+<p>
+<dt><b><content><content>entity</content></content></b></dt><dd>An entity that cannot be represented as CDATA has been parsed. The named
+handler is called with two arguments: <code><var>Handler</var>(+NameOrCode, 
++Parser)</code>. 
+    </dd>
+
+<p>
+<dt><b><content><content>pi</content></content></b></dt><dd>A processing instruction has been parsed. The named handler is called 
+with two arguments: <code><var>Handler</var>(+Text, +Parser)</code>, where <var>Text</var> is the text of the processing instruction. 
+    </dd>
+
+<p>
+<dt><b><content><content>xmlns</content></content></b></dt><dd>When parsing an in <a name="const:xmlns%7"><b><tt>xmlns</tt></b></a> mode, a new namespace declaraction is 
+pushed on the environment. The named handler is called with three 
+arguments: <code><var>Handler</var>(+NameSpace, +URL, +Parser)</code>. See <b>xmlns</b>
+for details. 
+    </dd>
+
+<p>
+<dt><b><content><content>urlns</content></content></b></dt><dd>When parsing an in <a name="const:xmlns%8"><b><tt>xmlns</tt></b></a> mode, this predicate can be used to map a 
+url into either a canonical URL for this namespace or another internal 
+identifier. See <b>xmlns</b> for details. </dd></dl>
+</dd></dl>
+</dd></dl>
+
+<p>
+&nbsp;
+
+<h3><a name="sec-3.6.1">Partial Parsing</a></h3>
+
+
+<p>
+In some cases, part of a document needs to be parsed. One option is to 
+use <b>load_structure/2</b> or one of its variations and extract 
+the desired elements from the returned structure. This is a clean 
+solution, especially on small and medium-sized documents. It however is 
+unsuitable for parsing really big documents. Such documents can only be 
+handled with the call-back output interface realised by the <code>call(
+Event, Action)</code> option of <b>sgml_parse/2</b>. Event-driven 
+processing is not very natural in Prolog.
+
+
+<p>
+The SGML2PL library allows for a mixed approach. Consider the case where
+we want to process all descriptions from RDF elements in a document. The
+code below calls <b>process_rdf_description/1</b> on any element 
+that is directly inside an RDF element.
+
+
+<p>
+<table width="90%" align="center" border="2" bgcolor="#f0f0f0"><tr><td><pre>:- dynamic
+        in_rdf/0.
+
+load_rdf(File) :-
+        retractall(in_rdf),
+        open(File, read, In),
+        new_sgml_parser(Parser, []),
+        set_sgml_parser(Parser, file(File)),
+        set_sgml_parser(Parser, dialect(xml)),
+        sgml_parse(Parser,
+                   [ source(In),
+                     call(begin, on_begin),
+                     call(end, on_end)
+                   ]),
+        close(In).
+
+on_end('RDF', _) :-
+        retractall(in_rdf).
+
+on_begin('RDF', _, _) :-
+        assert(in_rdf).
+on_begin(Tag, Attr, Parser) :-
+        in_rdf, !,
+        sgml_parse(Parser,
+                   [ document(Content),
+                     parse(content)
+                   ]),
+        process_rdf_description(element(Tag, Attr, Content)).</pre></td></tr></table>
+
+<p>
+&nbsp;
+
+<h1><a name="sec:indexaccess">Processing Indexed Files</a></h1>
+
+
+<p>
+In some cases applications which to process small portions of large 
+SGML, XML or RDF files. For example, the <em>OpenDirectory</em> project 
+by Netscape has produced a 90MB RDF file representing the main index. 
+The parser described here can process this document as a unit, but 
+loading takes 85 seconds on a Pentium-II 450 and the resulting term 
+requires about 70MB global stack. One option is to process the entire 
+document and output it as a Prolog fact-based of RDF tripplets, but in 
+many cases this is undesirable. Another example is a large SGML file 
+containing online documentation. The application normally wishes to 
+provide only small portions at a time to the user. Loading the entire 
+document into memory is then undesirable.
+
+
+<p>
+Using the <code>parse(element)</code> option, we open a file, seek 
+(using <b>seek/4</b>) to the position of the element and read the 
+desired element.
+
+
+<p>
+The index can be built using the call-back interface of
+<b>sgml_parse/2</b>. For example, the following code makes an
+index of the <b> structure.rdf</b> file of the OpenDirectory
+project:
+
+
+<p>
+<table width="90%" align="center" border="2" bgcolor="#f0f0f0"><tr><td><pre>:- dynamic
+        location/3.                     % Id, File, Offset
+
+rdf_index(File) :-
+        retractall(location(_,_)),
+        open(File, read, In, [type(binary)]),
+        new_sgml_parser(Parser, []),
+        set_sgml_parser(Parser, file(File)),
+        set_sgml_parser(Parser, dialect(xml)),
+        sgml_parse(Parser,
+                   [ source(In),
+                     call(begin, index_on_begin)
+                   ]),
+        close(In).
+
+index_on_begin(_Element, Attributes, Parser) :-
+        memberchk('r:id'=Id, Attributes),
+        get_sgml_parser(Parser, charpos(Offset)),
+        get_sgml_parser(Parser, file(File)),
+        assert(location(Id, File, Offset)).</pre></td></tr></table>
+
+<p>
+The following code extracts the RDF element with required id:
+
+
+<p>
+<table width="90%" align="center" border="2" bgcolor="#f0f0f0"><tr><td><pre>rdf_element(Id, Term) :-
+        location(Id, File, Offset),
+        load_structure(File, Term,
+                       [ dialect(xml),
+                         offset(Offset),
+                         parse(element)
+                       ]).</pre></td></tr></table>
+
+<p>
+&nbsp;
+
+<h1><a name="sec-5">External entities</a></h1>
+
+
+<p>
+While processing an SGML document the document may refer to external 
+data. This occurs in three places: external parameter entities, normal 
+external entities and the <a name="const:DOCTYPE"><b><tt>DOCTYPE</tt></b></a> declaration. The current version 
+of these tools deal rather primitively with external data. External 
+entities can only be loaded from a file and the mapping between the 
+entity names and the file is done using a <b><em>catalog</em></b> file in a 
+format compatible to that used by James Clark's SP Parser.
+
+
+<p>
+Catalog files can be specified using two primitives: the predicate <b>sgml_register_catalog_file/2</b> or the environment variable <b>SGML_CATALOG_FILES</b> (compatible to the SP package).<dl>
+
+<p>
+<dt><b><content><a name="sgml_register_catalog_file/2"><content>sgml_register_catalog_file</content>(<var><content><content>+File</content>, </content><content><content>+Location</content></content></var>)</a></content></b></dt><dd>Register the indicated <var>File</var> as a catalog file. <var>Location</var> is
+either <a name="const:start"><b><tt>start</tt></b></a> or <a name="const:end"><b><tt>end</tt></b></a> and defines whether the catalog is 
+considered first or last. This predicate has no effect if <var>File</var> is
+already part of the catalog.
+
+
+
+<p>
+If no files are registered using this predicate, the first query on the 
+catalog examines <b>SGML_CATALOG_FILES</b> and fills the catalog with
+all files in this path. </dd></dl>
+
+<p>
+Two types of lines are used by this package.
+
+<code><a name="const:DOCTYPE%2"><b><tt>DOCTYPE</tt></b></a> <var>doctype</var> <var>file</var>
+<a name="const:PUBLIC"><b><tt>PUBLIC</tt></b></a> <code>"</code><var>Id</var><code>"</code> <var>file</var> </code>
+
+
+<p>
+The specified <var>file</var> path is taken relative to the location of the 
+catolog file. For the <a name="const:DOCTYPE%3"><b><tt>DOCTYPE</tt></b></a> declaraction, <b>sgml2pl</b> first makes 
+an attempt to resolve the <a name="const:SYSTEM"><b><tt>SYSTEM</tt></b></a> or <a name="const:PUBLIC%2"><b><tt>PUBLIC</tt></b></a> identifier. If this 
+fails it tries to resolve the <var>doctype</var> using the provided catalog 
+files.
+
+
+<p>
+In the future we will design a call-back mechanism for locating and 
+processing external entities, so Prolog-based file-location and Prolog 
+resources can be used to store external entities.
+
+
+
+<p>
+&nbsp;
+
+<h1><a name="sec-6">Missing functionality</a></h1>
+
+
+<p>
+The current parser is rather limited. Though suitable to deal with many 
+serious documents, it also fails a number of less-used features in SGML 
+and XML. Known missing SGML features include
+<ul><li><em>NOTATION on entities</em><br>
+Though notation is fully parsed, notation attributes on external entity 
+declarations are not handed to the user. 
+    </li><li><em>SHORTTAG</em><br>
+The SGML SHORTTAG syntax is only partially implemented. Currently,
+<code>&lt;tag/content/</code> is a valid abbreviation for
+<code>&lt;tag&gt;content&lt;/tag&gt;</code>, which can also be written as
+<code>&lt;tag&gt;content&lt;/&gt;</code>.
+    </li><li><em>Declared content <a name="const:RCDATA"><b><tt>RCDATA</tt></b></a></em><br>
+The <b><em>declared</em></b> type <a name="const:RCDATA%2"><b><tt>RCDATA</tt></b></a> is not supported.
+    </li><li><em>SGML declaration</em><br>
+The `SGML declaration' is fixed, though most of the parameters are 
+handled through indirections in the implementation. </li></ul>
+
+<p>
+In XML mode the parser recognises SGML constructs that are not allowed 
+in XML. Also various extensions of XML over SGML are not yet realised.
+
+
+<p>
+&nbsp;
+
+<h1><a name="sec-7">Installation</a></h1>
+
+
+<p>
+&nbsp;
+
+<h2><a name="sec-7.1">Unix systems</a></h2>
+
+
+<p>
+Installation on Unix system uses the commonly found <code>configure</code>,
+<code>make</code> and <code>make install</code> sequence. SWI-Prolog should be 
+installed before building this package. If SWI-Prolog is not installed 
+as <b>pl</b>, the environment variable <b>PL</b> must be set to 
+the name of the SWI-Prolog executable. Installation is now accomplished 
+using:
+
+
+<p>
+<table width="90%" align="center" border="2" bgcolor="#f0f0f0"><tr><td><pre>% ./configure
+% make
+% make install</pre></td></tr></table>
+
+<p>
+This installs the foreign libraries in <b>$PLBASE/lib/$PLARCH</b> and
+the Prolog library files in <b>$PLBASE/library</b>, where
+<b>$PLBASE</b> refers to the SWI-Prolog `home-directory'.
+
+
+<p>
+&nbsp;
+
+<h1><a name="sec-8">Acknowledgements</a></h1>
+
+
+<p>
+The Prolog representation for parsed documents is based on the 
+SWI-Prolog interface to SP by Anjo Anjewierden.
+
+
+<p>
+Richard O'Keefe pointed out a number of mistakes in a earlier version of
+this parser.
+
+
+<h1><a name="Summary">Summary of Predicates</a></h1>
+<table border="2"><tr><td><a href="#dtd/2"><b>dtd/2</b></a></td><td>Find or build a DTD for a document type</td></tr><tr><td><a href="#dtd_property/2"><b>dtd_property/2</b></a></td><td>Query elements, entities and attributes in a DTD</td></tr><tr><td><a href="#free_dtd/1"><b>free_dtd/1</b></a></td><td>Free a DTD object</td></tr><tr><td><a href="#free_sgml_parser/1"><b>free_sgml_parser/1</b></a></td><td>Destroy a parser</td></tr><tr><td><a href="#get_sgml_parser/2"><b>get_sgml_parser/2</b></a></td><td>Get parser options</td></tr><tr><td><a href="#load_dtd/2"><b>load_dtd/2</b></a></td><td>Read DTD information from a file</td></tr><tr><td><a href="#load_html_file/2"><b>load_html_file/2</b></a></td><td>Parse HTML file into Prolog term</td></tr><tr><td><a href="#load_sgml_file/2"><b>load_sgml_file/2</b></a></td><td>Parse SGML file into Prolog term </td></tr><tr><td><a href="#load_structure/3"><b>load_structure/3</b></a></td><td>Parse XML/SGML/HTML file into Prolog term</td></tr><tr><td><a href="#load_xml_file/2"><b>load_xml_file/2</b></a></td><td>Parse XML file into Prolog term</td></tr><tr><td><a href="#new_dtd/2"><b>new_dtd/2</b></a></td><td>Create a DTD object</td></tr><tr><td><a href="#new_sgml_parser/2"><b>new_sgml_parser/2</b></a></td><td>Create a new parser</td></tr><tr><td><a href="#open_dtd/3"><b>open_dtd/3</b></a></td><td>Open a DTD object as an output stream</td></tr><tr><td><a href="#set_sgml_parser/2"><b>set_sgml_parser/2</b></a></td><td>Set parser options (dialect, source, etc.)</td></tr><tr><td><a href="#sgml_parse/2"><b>sgml_parse/2</b></a></td><td>Parse the input</td></tr><tr><td><a href="#sgml_register_catalog_file/2"><b>sgml_register_catalog_file/2</b></a></td><td>Register a catalog file</td></tr></table>
+
+<h1>Footnotes</h1>
+<dl><dt><a href="#txt:fn-1" name="fn-1">1</a></dt><dd>In 
+addition, newlines at the end of lines containing only markup should be 
+deleted. This is not yet implemented.</dd></dl>
+
+<h1>Index</h1>
+<dl><dt><a href="#const:#IMPLIED"><b><tt>#IMPLIED</tt></b></a></dt><dt><a href="#const:#pcdata"><b><tt>#pcdata</tt></b></a></dt><dt><a href="#const:-"><b><tt>-</tt></b></a></dt><dt><a href="#const::"><b><tt>:</tt></b></a></dt><dt><a href="#const:CDATA"><b><tt>CDATA</tt></b></a></dt><dd> <a href="#const:CDATA%2">2</a> <a href="#const:CDATA%3">3</a> <a href="#const:CDATA%4">4</a> <a href="#const:CDATA%5">5</a> <a href="#const:CDATA%6">6</a> <a href="#const:CDATA%7">7</a></dd><dt><a href="#const:DOCTYPE"><b><tt>DOCTYPE</tt></b></a></dt><dd> <a href="#const:DOCTYPE%2">2</a> <a href="#const:DOCTYPE%3">3</a></dd><dt><a href="#const:NAMES"><b><tt>NAMES</tt></b></a></dt><dt><a href="#const:NDATA"><b><tt>NDATA</tt></b></a></dt><dt><a href="#const:NOTATION"><b><tt>NOTATION</tt></b></a></dt><dd> <a href="#const:NOTATION%2">2</a></dd><dt><a href="#const:NUMBER"><b><tt>NUMBER</tt></b></a></dt><dd> <a href="#const:NUMBER%2">2</a></dd><dt><a href="#const:NUMBERS"><b><tt>NUMBERS</tt></b></a></dt><dd> <a href="#const:NUMBERS%2">2</a></dd><dt><a href="#const:PUBLIC"><b><tt>PUBLIC</tt></b></a></dt><dd> <a href="#const:PUBLIC%2">2</a></dd><dt><a href="#const:RCDATA"><b><tt>RCDATA</tt></b></a></dt><dd> <a href="#const:RCDATA%2">2</a></dd><dt><a href="#const:SDATA"><b><tt>SDATA</tt></b></a></dt><dt><a href="#const:SYSTEM"><b><tt>SYSTEM</tt></b></a></dt><dt><a href="#const:amp"><b><tt>amp</tt></b></a></dt><dt><a href="#const:any"><b><tt>any</tt></b></a></dt><dt><a href="#const:apos"><b><tt>apos</tt></b></a></dt><dt><a href="#const:cdata"><b><tt>cdata</tt></b></a></dt><dd> <a href="#const:cdata%2">2</a></dd><dt><a href="#const:content"><b><tt>content</tt></b></a></dt><dt><a href="#const:default"><b><tt>default</tt></b></a></dt><dd> <a href="#const:default%2">2</a></dd><dt><a href="#dtd/2"><b>dtd/2</b></a></dt><dt><a href="#dtd_property/2"><b>dtd_property/2</b></a></dt><dt><a href="#const:element"><b><tt>element</tt></b></a></dt><dt><a href="#const:empty"><b><tt>empty</tt></b></a></dt><dt><a href="#const:end"><b><tt>end</tt></b></a></dt><dt><a href="#const:entity"><b><tt>entity</tt></b></a></dt><dt><a href="#const:false"><b><tt>false</tt></b></a></dt><dt><a href="#const:file"><b><tt>file</tt></b></a></dt><dt><a href="#const:fixed"><b><tt>fixed</tt></b></a></dt><dt><a href="#free_dtd/1"><b>free_dtd/1</b></a></dt><dt><a href="#free_sgml_parser/1"><b>free_sgml_parser/1</b></a></dt><dt><a href="#get_sgml_parser/2"><b>get_sgml_parser/2</b></a></dt><dt><a href="#const:gt"><b><tt>gt</tt></b></a></dt><dt><a href="#const:id"><b><tt>id</tt></b></a></dt><dt><a href="#const:idref"><b><tt>idref</tt></b></a></dt><dt><a href="#const:integer"><b><tt>integer</tt></b></a></dt><dt><a href="#load_dtd/2"><b>load_dtd/2</b></a></dt><dt><a href="#load_html_file/2"><b>load_html_file/2</b></a></dt><dt><a href="#load_sgml_file/2"><b>load_sgml_file/2</b></a></dt><dt><a href="#load_structure/3"><b>load_structure/3</b></a></dt><dt><a href="#load_xml_file/2"><b>load_xml_file/2</b></a></dt><dt><a href="#const:lt"><b><tt>lt</tt></b></a></dt><dt><a href="#const:name"><b><tt>name</tt></b></a></dt><dt><a href="#new_dtd/2"><b>new_dtd/2</b></a></dt><dt><a href="#new_sgml_parser/2"><b>new_sgml_parser/2</b></a></dt><dt><a href="#const:nmtoken"><b><tt>nmtoken</tt></b></a></dt><dt><a href="#const:notation"><b><tt>notation</tt></b></a></dt><dt><a href="#const:number"><b><tt>number</tt></b></a></dt><dt><a href="#const:nutoken"><b><tt>nutoken</tt></b></a></dt><dt><a href="#const:on_begin"><b><tt>on_begin</tt></b></a></dt><dd> <a href="#const:on_begin%2">2</a></dd><dt><a href="#open_dtd/3"><b>open_dtd/3</b></a></dt><dt><a href="#const:preserve"><b><tt>preserve</tt></b></a></dt><dt><a href="#const:quot"><b><tt>quot</tt></b></a></dt><dt><a href="#const:rdf"><b><tt>rdf</tt></b></a></dt><dd> <a href="#const:rdf%2">2</a></dd><dt><a href="#const:rdf-syntax"><b><tt>rdf-syntax</tt></b></a></dt><dt><a href="#const:remove"><b><tt>remove</tt></b></a></dt><dt><a href="#set_sgml_parser/2"><b>set_sgml_parser/2</b></a></dt><dt><a href="#const:sgml"><b><tt>sgml</tt></b></a></dt><dd> <a href="#const:sgml%2">2</a> <a href="#const:sgml%3">3</a> <a href="#const:sgml%4">4</a> <a href="#const:sgml%5">5</a></dd><dt><a href="#sgml_parse/2"><b>sgml_parse/2</b></a></dt><dt><a href="#sgml_register_catalog_file/2"><b>sgml_register_catalog_file/2</b></a></dt><dt><a href="#const:start"><b><tt>start</tt></b></a></dt><dt><a href="#const:token"><b><tt>token</tt></b></a></dt><dt><a href="#const:true"><b><tt>true</tt></b></a></dt><dt><a href="#const:urlns"><b><tt>urlns</tt></b></a></dt><dt><a href="#const:xml"><b><tt>xml</tt></b></a></dt><dd> <a href="#const:xml%2">2</a> <a href="#const:xml%3">3</a> <a href="#const:xml%4">4</a></dd><dt><a href="#const:xmlns"><b><tt>xmlns</tt></b></a></dt><dd> <a href="#const:xmlns%2">2</a> <a href="#const:xmlns%3">3</a> <a href="#const:xmlns%4">4</a> <a href="#const:xmlns%5">5</a> <a href="#const:xmlns%6">6</a> <a href="#const:xmlns%7">7</a> <a href="#const:xmlns%8">8</a></dd></dl>
+</body>
+</html>

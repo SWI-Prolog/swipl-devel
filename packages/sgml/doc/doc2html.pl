@@ -22,6 +22,10 @@ Convert an SGML document into HTML. This  serves two purposes. The first
 is to get HTML version for the documentation   and  the second is to see
 how best to convert SGML documents to   textual formats using the Prolog
 `DOM' representation.
+
+The output of the grammar rule transformation  is a mixture of atoms and
+codes. This has been choosen instead of simply a list of codes to reduce
+stack-usage.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- op(500, fx, *).
@@ -38,12 +42,18 @@ doc2html(In) :-
 	load_sgml_file(InFile, Term),
 	del(_),
 	phrase(content(Term), HTML),
-	telling(Old),
-	tell(HTMLFile),
-	format('~s', [HTML]),
-	told,
-	tell(Old).
+	open(HTMLFile, write, Out),
+	write_doc(HTML, Out),
+	close(Out).
 	
+write_doc([], _).
+write_doc([H|T], Out) :-
+	(   atom(H)
+	->  write(Out, H)
+	;   put_code(Out, H)
+	),
+	write_doc(T, Out).
+
 x :-
 	doc2html(sgml2pl).
 
@@ -78,7 +88,8 @@ html(pldoc, _, C0) -->
 	  mkindex(C1, C2, Index),
 	  mkfn(C2, C, Footnotes)
 	},
-	"<!DOCTYPE PUBLIC \"-//W3C//DTD HTML 3.2//EN\">\n\n",
+	[ '<!DOCTYPE PUBLIC \"-//W3C//DTD HTML 3.2//EN\">\n\n'
+	],
 	starttag(html),
 	\head(\title(Title)),
 	starttag(body),
@@ -524,16 +535,16 @@ html(tag, _, Tag) -->
 \Term -->
 	{ Term =.. [Name|Args]
 	},
-	emit(Name, Args).
+	element(Args, Name).
 
-emit(Name, []) -->
+element([], Name) -->
 	starttag(Name, []),
 	endtag(Name).
-emit(Name, [Content]) -->
+element([Content], Name) --> !,
 	starttag(Name, []),
 	content(Content),
 	endtag(Name).
-emit(Name, [Args, Content]) -->
+element([Args, Content], Name) -->
 	starttag(Name, Args),
 	content(Content),
 	endtag(Name).
@@ -569,25 +580,37 @@ args([Name=Value|T]) -->
 	args(T).
 
 atom(Name) -->
-	{ atom_codes(Name, Chars)
-	},
-	Chars.
+	[ Name
+	].
 
 value(Value) -->
-	{ atom_codes(Value, Chars)
+	{ integer(Value), !,
+	  number_codes(Value, Codes)
+	},
+	Codes.
+value(Value) -->
+	{ atom_codes(Value, Chars),
+	  member(C, Chars),
+	  escape_code(C, _), !
 	},
 	escape(Chars).
+value(Value) -->
+	[ Value
+	].
 
 escape([]) -->
 	[].
 escape([H|T]) -->
-	escape1(H), !,
+	(   { escape_code(H, Entity)
+	    }
+	->  [Entity]
+	;   [H]
+	),
 	escape(T).
 
-escape1(0'<) --> "&lt;".
-escape1(0'>) --> "&gt;".
-escape1(0'&) --> "&amp;".
-escape1(C)   --> [C].
+escape_code(0'<, '&lt;').
+escape_code(0'>, '&gt;').
+escape_code(0'&, '&amp;').
 
 lines(Tag, start(before)) -->
 	{ layout(Tag, N-_, _)
@@ -631,10 +654,13 @@ layout(body,	   1-1,	1-1).
 content([]) --> !,
 	[].
 content([H|T]) --> !,
-	content1(H),
+	(   content1(H)
+	->  []
+	;   { format(user_error, 'Skipped ~p~n', [H]) }
+	),
 	content(T).
 content(H) -->
-	content1(H).
+	content([H]).
 
 content1(*List) --> !,
 	content(List).
@@ -644,16 +670,12 @@ content1(&Ent) --> !,
 	"&",
 	atom(Ent),
 	";".
-content1(element(E,A,C)) -->
+content1(element(E,A,C)) --> !,
 	html(E,A,C).
 content1(CDATA) -->
 	{ atomic(CDATA)
 	}, !,
 	value(CDATA).
-content1(X) -->
-	{ format('Skipped ~p~n', [X])
-	},
-	[].
 	
 
 		 /*******************************

@@ -1,0 +1,5 @@
+#!/bin/sh
+
+file="$1"
+
+exec pl -f none -g "load_files(doc2html,[silent(true)]),doc2html('$file'),halt"
