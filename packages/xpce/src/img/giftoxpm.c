@@ -87,6 +87,9 @@ gif_extension(int ext, void *data, void *closure)
     { XpmColor *c;
       int i = (int)data;
 
+      DEBUG(NAME_gif, Cprintf("Using %d as transparent (ncolors=%d)\n",
+			      i, img->ncolors));
+
       if ( i < 0 || i >= img->ncolors )
 	return GIF_INVALID;
 

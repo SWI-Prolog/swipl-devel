@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Windows: reading transparent GIF with > 128 colours.
+
 * FIXED: `Image->mask' in windows now sets the masked parts to black for
   proper display.
 

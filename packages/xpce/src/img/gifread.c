@@ -329,7 +329,7 @@ DoExtension(IOSTREAM * fd, int label, GIFDoExtension doext, void *cl)
     Gif89.inputFlag = (buf[0] >> 1) & 0x1;
     Gif89.delayTime = LM_to_uint(buf[1], buf[2]);
     if ((buf[0] & 0x1) != 0)
-    { Gif89.transparent = buf[3];
+    { Gif89.transparent = buf[3]&0xff;
       (*doext)(GIFEXT_TRANSPARENT, (void *)(long)Gif89.transparent, cl);
     }
 
