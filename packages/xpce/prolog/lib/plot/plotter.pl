@@ -48,12 +48,16 @@ axis(P, Axe:plot_axis) :->
 	send(P, display, Axe),
 	send(Axe, name, Type).
 
+axis(P, Which:name, Axis:plot_axis) :<-
+	"Get named axis"::
+	get(P, member, Which, Axis).
+
 x_axis(P, Axe:plot_axis) :<-
-	"Find the X-axis"::
+	"Find the X-axis (compatibility)"::
 	get(P, member, x, Axe).
 
 y_axis(P, Axe:plot_axis) :<-
-	"Find the Y-axis"::
+	"Find the Y-axis (compatibility)"::
 	get(P, member, y, Axe).
 
 pixel_range(P, Dir:{x,y}, Range:tuple) :<-

@@ -61,6 +61,7 @@ variable(high,		'int|real',	get,  "High end of the range").
 variable(step,		'int|real',	get,  "Indication steps").
 variable(small_step,	'int|real*',	get,  "Unnumbered indication steps").
 variable(length,	int,		get,  "Total length").
+variable(scale,		{linear,log} := linear, get, "Type of scale").
 variable(type,		{x,y},		get,  "Horizontal/vertical").
 variable(value_format,	[name],		get,  "Value format specification").
 variable(label,		graphical*,	get,  "Label along the axis").
@@ -80,7 +81,8 @@ initialise(A,
 	"Create from low, high, step, length and type"::
 	default(Length, 200, Len),
 	(   Step == @default
-	->  determine_steps(Low, High, Length, Type, TheStep, SmallStep)
+	->  get(A, scale, Scale),
+	    determine_steps(Scale, Low, High, Length, Type, TheStep, SmallStep)
 	;   TheStep = Step,
 	    SmallStep = @nil
 	),
@@ -102,7 +104,7 @@ initialise(A,
 	send(A, request_compute).
 
 
-determine_steps(Low, High, Len, XY, Step, SmallStep) :-
+determine_steps(linear, Low, High, Len, XY, Step, SmallStep) :-
 	Step0 is 10**round(log10(High-Low)-1),
 	Dist is Len/((High-Low)/Step0),
 	(   okdist(XY, Dist)
@@ -111,6 +113,11 @@ determine_steps(Low, High, Len, XY, Step, SmallStep) :-
 	;   Step is Step0*5,
 	    SmallStep = Step0
 	).
+determine_steps(log, Low, High, Len, XY, Step, SmallStep) :-
+	H is log10(High),
+	L is log10(Low),
+	determine_steps(linear, L, H, Len, XY, Step, SmallStep).
+
 
 okdist(x, Dist) :- Dist > 50.
 okdist(y, Dist) :- Dist > 25.
@@ -142,11 +149,11 @@ device(A, Dev:device*) :->
 
 location(A, Val:'int|real', Loc:int) :<-
 	"Location for value"::
-	loc(A, Val, Loc).
+	catch(loc(A, Val, Loc), _, fail).
 
 value_from_coordinate(A, Loc:int, Val:'int|real') :<-
 	"Translate location into value"::
-	loc(A, Val, Loc).
+	catch(loc(A, Val, Loc), _, fail).
        
 pixel_range(A, Tuple:tuple) :<-
 	"Pixel range covered"::
@@ -198,10 +205,14 @@ type(A, T:{x,y}) :->
 	set(A, type, T).
 
 format(A, Fmt:[name]) :->
-	set(A, format, Fmt).
+	set(A, value_format, Fmt).
 
 lines(A, Lines:{none,normal,all}) :->
 	set(A, lines, Lines).
+
+scale(A, Scale:{linear,log}) :->
+	set(A, scale, Scale).
+
 
 set(A, Slot, Value) :-
 	get(A, Slot, Value), !.
@@ -215,7 +226,8 @@ default_steps(A) :->
 	get(A, high, High),
 	get(A, length, Length),
 	get(A, type, Type),
-	determine_steps(Low, High, Length, Type, Step, SmallStep),
+	get(A, scale, Scale),
+	determine_steps(Scale, Low, High, Length, Type, Step, SmallStep),
 	send(A, step, Step),
 	send(A, small_step, SmallStep).
 
@@ -237,13 +249,18 @@ geometry(A, X:[int], Y:[int], W:[int], H:[int]) :->
 		 *	    COMPUTING		*
 		 *******************************/
 
+%	loc(+Axis, ?Value, ?Coordinate)
+%	
+%	Translate between Value and Coordinate.  
+
 loc(A, V, X) :-
+	get(A, scale, linear), !,	% Linear scales
 	get(A, origin, O),
 	get(A, type, T),
 	get(O, T, Origin),
+	get(A, length, Length),
 	get(A, low, Low),
 	get(A, high, High),
-	get(A, length, Length),
 	(   T == x
 	->  (   nonvar(V)
 	    ->  X is round(Origin + ((V-Low) * Length) / (High - Low))
@@ -254,19 +271,46 @@ loc(A, V, X) :-
 	    ;	V is Low + (Origin-X) * (High-Low)/Length % not tested
 	    )
 	).
+loc(A, V, X) :-
+	get(A, scale, log), !,		% Logarithmic scales
+	get(A, origin, O),
+	get(A, type, T),
+	get(O, T, Origin),
+	get(A, length, Length),
+	get(A, low, LowVal),
+	get(A, high, HighVal),
+	Low is log10(LowVal),
+	High is log10(HighVal),
+	(   T == x
+	->  (   nonvar(V)
+	    ->  X is round(Origin + ((log10(V)-Low) * Length) / (High - Low))
+	    ;	V is 10**(Low + (X-Origin) * (High-Low)/Length)
+	    )
+	;   (	nonvar(V)
+	    ->	X is round(Origin - ((log10(V)-Low) * Length) / (High - Low))
+	    ;	V is 10**(Low + (Origin-X) * (High-Low)/Length) % not tested
+	    )
+	).
 
-
-tick(Low, High, Step, Tick) :-
+tick(linear, Low, High, Step, Tick) :-
 	TheLow is Low - Step / 10000,
 	TheHigh is High + Step / 10000,	% avoid floating point rounding
 	L0 is ceil(TheLow/Step) * Step,
 	tick_(L0, TheHigh, Step, Tick).
+tick(log, Low, High, Step, Tick) :-
+	logtick(Low, High, Step, Tick).
 
 tick_(L, _, _, L).
 tick_(L, H, S, V) :-
 	L1 is L + S,
 	L1 =< H,
 	tick_(L1, H, S, V).
+
+logtick(L, _, _, L).
+logtick(L, H, S, V) :-
+	L1 is L*S,
+	L1 =< H,
+	logtick(L1, H, S, V).
 
 
 format(A, Fmt:[char_array]) :<-
@@ -298,11 +342,12 @@ compute_small_steps(A) :->
 	    get(A, device, Dev),
 	    get(A, origin, point(OX, OY)),
 	    get(A, slot, support, Support),
+	    get(A, scale, Scale),
 
 	    lines_extend(A, small, LStart, LEnd),
 
 	    (   get(A, type, x)
-	    ->  (   tick(Low, High, SmallStep, TV),
+	    ->  (   tick(Scale, Low, High, SmallStep, TV),
 		    (   Val is TV / Step, integer(Val)
 		    ->  true
 		    ;   loc(A, TV, TX),
@@ -320,7 +365,7 @@ compute_small_steps(A) :->
 		    fail
 		;   true
 		)
-	    ;   (   tick(Low, High, SmallStep, TV),
+	    ;   (   tick(Scale, Low, High, SmallStep, TV),
 		    (   Val is TV / Step, integer(Val)
 		    ->  true
 		    ;   loc(A, TV, TY),
@@ -369,15 +414,22 @@ lines_extend(A, Which, Min, Max) :-
 	).
 
 	
+label_for_value(A, Val:'int|real', Gr:graphical) :<-
+	"Compute a label for a value"::
+	get(A, format, Fmt),
+	get(A, tag_font, Font),
+	new(Gr, text(string(Fmt, Val), font := Font)).
+
+
 compute(A) :->
+	\+ get(A, slot, request_compute, computing), % avoid cycles
 	send(A, slot, request_compute, computing),
 	get(A, low, Low),
 	get(A, high, High),
 	get(A, step, Step),
-	get(A, format, Fmt),
+	get(A, scale, Scale),
 	get(A, origin, point(OX, OY)),
 	get(A, slot, support, Support),
-	get(A, tag_font, Font),
 	get(A, label, Label),
 	send(Support, for_all, message(@arg1, free)),
 	send(Support, clear),
@@ -393,13 +445,12 @@ compute(A) :->
 	->  send(A, points, Start, OY, End, OY),
 	    OY5 is OY+5,
 	    place_label(Dev, Label, x, End, OY),
-	    (	tick(Low, High, Step, TV),
-		(   loc(A, TV, TX),
+	    (	tick(Scale, Low, High, Step, TV),
+		(   catch(loc(A, TV, TX), _, fail),
 		    send(Dev, display,
 			 new(L, line(TX, OY, TX, OY5))),
-		    send(Dev, display,
-			 new(T, text(string(Fmt, TV), font := Font)),
-			 point(TX-3, OY5)),
+		    get(A, label_for_value, TV, Tag),
+		    send(Dev, display, Tag, point(TX-3, OY5)),
 		    (	LStart \== LEnd
 		    ->	send(Dev, display,
 			     new(SL, line(TX, LStart, TX, LEnd))),
@@ -408,7 +459,7 @@ compute(A) :->
 		    ;	true
 		    ),
 		    send(Support, append, L),
-		    send(Support, append, T)
+		    send(Support, append, Tag)
 		),
 		fail
 	    ;	true
@@ -416,16 +467,16 @@ compute(A) :->
 	;   send(A, points, OX, Start, OX, End),
 	    OX5 is OX-5,
 	    place_label(Dev, Label, y, OX, End),
-	    (   tick(Low, High, Step, TV),
-		(   loc(A, TV, TY),
+	    (   tick(Scale, Low, High, Step, TV),
+		(   catch(loc(A, TV, TY), _, fail),
 		    send(Dev, display,
 			 new(L, line(OX5, TY, OX, TY))),
-		    new(T, text(string(Fmt, TV), font := Font)),
-		    get(T, width, TW),
-		    get(T, height, TH),
+		    get(A, label_for_value, TV, Tag),
+		    get(Tag, width, TW),
+		    get(Tag, height, TH),
 		    TxtX is OX5-TW, TxtY is TY -TH + 3,
-		    send(T, set, TxtX, TxtY),
-		    send(Dev, display, T),
+		    send(Tag, set, TxtX, TxtY),
+		    send(Dev, display, Tag),
 		    (	LStart \== LEnd
 		    ->	send(Dev, display,
 			     new(SL, line(LStart, TY, LEnd, TY))),
@@ -434,7 +485,7 @@ compute(A) :->
 		    ;	true
 		    ),
 		    send(Support, append, L),
-		    send(Support, append, T)
+		    send(Support, append, Tag)
 		), fail
 	    ;	true
 	    )
