@@ -431,11 +431,69 @@ setCurrentSourceLocation(IOSTREAM *s)
 			       syntaxError(what, _PL_rd); \
 			     }
 
+static int
+raw_read_quoted(int q, ReadData _PL_rd)
+{ int newlines = 0;
+  int c;
+
+  addToBuffer(q, _PL_rd);
+  while((c=getchrq()) != EOF && c != q)
+  { if ( c == '\\' && DO_CHARESCAPE )
+    { int base;
+      int xdigits;
+
+      addToBuffer(c, _PL_rd);
+
+      switch( (c=getchrq()) )
+      { case EOF:
+	  goto eofinstr;
+	case 'x':			/* \xNN\ */
+	  addToBuffer(c, _PL_rd);
+	  base = 16;
+	  xdigits = 2;
+	  goto xdigits;
+	default:
+	  addToBuffer(c, _PL_rd);
+	  if ( digitValue(8, c) >= 0 )	/* \NNN\ */
+	  { base = 8;
+	    xdigits = 2;
+	  } else
+	    continue;			/* \symbolic-control-char */
+	xdigits:
+	  c = getchrq();
+	  while( xdigits-- > 0 && digitValue(base, c) >= 0 )
+	  { addToBuffer(c, _PL_rd);
+	    c = getchrq();
+	  }
+	  if ( c == EOF )
+	    goto eofinstr;
+	  addToBuffer(c, _PL_rd);
+	  if ( c == q )
+	    return TRUE;
+	  continue;
+      }
+    } else if (c == '\n' &&
+	       newlines++ > MAXNEWLINES &&
+	       (debugstatus.styleCheck & LONGATOM_CHECK))
+    { rawSyntaxError("long_string");
+    }
+    addToBuffer(c, _PL_rd);
+  }
+  if (c == EOF)
+  { eofinstr:
+      rawSyntaxError("end_of_file_in_string");
+  }
+  addToBuffer(c, _PL_rd);
+
+  return TRUE;
+}
+
+
+
 static char *
 raw_read2(ReadData _PL_rd)
 { int c;
   bool something_read = FALSE;
-  int newlines;
   bool dotseen = FALSE;
   
   clearBuffer(_PL_rd);				/* clear input buffer */
@@ -538,47 +596,14 @@ raw_read2(ReadData _PL_rd)
 		  break;
 		}
 
-		set_start_line;
-		newlines = 0;
-		addToBuffer(c, _PL_rd);
-		while((c=getchrq()) != EOF && c != '\'')
-		{ if ( c == '\\' && DO_CHARESCAPE )
-		  { addToBuffer(c, _PL_rd);
-		    if ( (c = getchrq()) == EOF )
-		      goto eofinquoted;
-		  } else if (c == '\n' &&
-			     newlines++ > MAXNEWLINES &&
-			     (debugstatus.styleCheck & LONGATOM_CHECK))
-		    rawSyntaxError("long_atom");
-
-		  addToBuffer(c, _PL_rd);
-		}
-		if (c == EOF)
-		{ eofinquoted:
-		  rawSyntaxError("end_of_file_in_atom");
-		}
-		addToBuffer(c, _PL_rd);
+     		set_start_line;
+     		if ( !raw_read_quoted(c, _PL_rd) )
+		  fail;
 		dotseen = FALSE;
 		break;
       case '"':	set_start_line;
-		newlines = 0;
-		addToBuffer(c, _PL_rd);
-		while((c=getchrq()) != EOF && c != '"')
-		{ if ( c == '\\' && DO_CHARESCAPE )
-		  { addToBuffer(c, _PL_rd);
-		    if ( (c = getchrq()) == EOF )
-		      goto eofinstr;
-		  } else if (c == '\n' &&
-			     newlines++ > MAXNEWLINES &&
-			     (debugstatus.styleCheck & LONGATOM_CHECK))
-		    rawSyntaxError("long_string");
-		  addToBuffer(c, _PL_rd);
-		}
-		if (c == EOF)
-		{ eofinstr:
-		  rawSyntaxError("end_of_file_in_string");
-		}
-		addToBuffer(c, _PL_rd);
+                if ( !raw_read_quoted(c, _PL_rd) )
+		  fail;
 		dotseen = FALSE;
 		break;
       case '.': addToBuffer(c, _PL_rd);
@@ -595,6 +620,7 @@ raw_read2(ReadData _PL_rd)
 		goto handle_c;
       default:	switch(_PL_char_types[c])
 		{ case SP:
+		  case CT:
 		    if ( dotseen )
 		    { if ( rb.here - rb.base == 1 )
 			rawSyntaxError("end_of_clause");

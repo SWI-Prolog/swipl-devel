@@ -12,17 +12,19 @@
 
 extern char _PL_char_types[];	/* array of character types */
 
-#define SP  0			/* space */
-#define SO  1			/* solo character */
-#define SY  2			/* symbol character */
-#define PU  3			/* Punctuation character */
-#define DQ  4			/* Double quote */
-#define SQ  5			/* Single quote */
-#define UC  6			/* Uppercase character */
-#define LC  7			/* Lowercase character */
-#define DI  8			/* Digit */
+#define CT  0			/* control-character */
+#define SP  1			/* space */
+#define SO  2			/* solo character */
+#define SY  3			/* symbol character */
+#define PU  4			/* Punctuation character */
+#define DQ  5			/* Double quote */
+#define SQ  6			/* Single quote */
+#define UC  7			/* Uppercase character */
+#define LC  8			/* Lowercase character */
+#define DI  9			/* Digit */
 
-#define isBlank(c)	(_PL_char_types[(unsigned)(c) & 0xff] == SP)
+#define isControl(c)	(_PL_char_types[(unsigned)(c) & 0xff] == CT)
+#define isBlank(c)	(_PL_char_types[(unsigned)(c) & 0xff] <= SP)
 #define isDigit(c)	(_PL_char_types[(unsigned)(c) & 0xff] == DI)
 #define isLower(c)	(_PL_char_types[(unsigned)(c) & 0xff] == LC)
 #define isUpper(c)	(_PL_char_types[(unsigned)(c) & 0xff] == UC)

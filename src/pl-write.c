@@ -181,10 +181,10 @@ writeQuoted(IOSTREAM *stream, const unsigned char *s, int len, int quote,
   { int c = *s++;
 
     if ( true(options, PL_WRT_CHARESCAPES) )
-    { if ( c >= ' ' && c != 127 && c != quote && c != '\\' )
+    { if ( !isControl(c) && c != quote && c != '\\' )
       { TRY(Putc(c, stream));
       } else
-      { char esc[4];
+      { char esc[8];
 
 	esc[1] = EOS;
 
@@ -216,11 +216,8 @@ writeQuoted(IOSTREAM *stream, const unsigned char *s, int len, int quote,
 	    case '\\':
 	      esc[0] = '\\';
 	      break;
-	    case '\'':
-	      esc[0] = '\'';
-	      break;
 	    default:
-	      Ssprintf(esc, "%03o", c);
+	      Ssprintf(esc, "%03o\\", c);
 	  }
 	}
 	if ( !Putc('\\', stream) ||
