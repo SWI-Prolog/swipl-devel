@@ -28,6 +28,8 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
+#define DTD_MINOR_ERRORS 1
+#include <dtd.h>			/* error codes */
 
 #ifndef MAXPATHLEN
 #define MAXPATHLEN 1024
@@ -257,13 +259,11 @@ cs_streql(char const *a, char const *b)
     positive outcome is CAT_OTHER.
 */
 
-static void
+static int
 scan_overflow(size_t buflen)
-{ fprintf(stderr,
-	  "Some token in a catalog file is more than %lu "
-	  "characters long.\nPerhaps there is a missing "
-	  "quote somewhere.\n", (unsigned long) buflen);
-  exit(EXIT_FAILURE);
+{ gripe(ERC_REPRESENTATION, "token length");
+
+  return EOF;
 }
 
 static int
@@ -309,7 +309,7 @@ scan(FILE * src, char *buffer, size_t buflen, int kw_expected)
 	  return CAT_OTHER;
 	}
 	if (p == e)
-	  scan_overflow(buflen);
+	  return scan_overflow(buflen);
 	*p++ = c;
       }
     }
@@ -323,7 +323,7 @@ scan(FILE * src, char *buffer, size_t buflen, int kw_expected)
   /*  ends at EOF, ', ", or layout.                  */
   while (c > ' ' && c != '"' && c != '\'')
   { if (p == e)
-      scan_overflow(buflen);
+      return scan_overflow(buflen);
     *p++ = c;
     c = getc(src);
   }
@@ -389,8 +389,8 @@ load_one_catalogue(catalog_file * file)
   catalogue_item_ptr this_item;
   int override = 0;
 
-  if (src == 0)
-  { fprintf(stderr, "Could not open catalogue '%s'\n", file->file);
+  if ( src == 0 )
+  { gripe(ERC_NO_CATALOGUE, file->file);
     return;
   }
 
@@ -578,7 +578,7 @@ find_in_catalogue(int kind,
     return 0;
 
   if ( strlen(name)+4+1 > sizeof(penname) )
-  { fprintf(stderr, "Name (%s) too long", name);
+  { gripe(ERC_REPRESENTATION, "entity name");
     return NULL;
   }
 

@@ -5254,6 +5254,16 @@ gripe(dtd_error_id e, ...)
       e = ERC_VALIDATE;
       break;
     }
+    case ERC_NO_CATALOGUE:
+    { char *file = va_arg(args, char *); /* catalogue file */
+
+      error.argv[0] = "catalogue file";
+      error.argv[1] = file;
+      error.severity = ERS_WARNING;
+      e = ERC_EXISTENCE;
+
+      break;
+    }
   } 
 
   error.id      = e;
