@@ -1642,15 +1642,19 @@ pl_access_file(Word name, Word mode)
   else if ( m == ATOM_exist )
     md = ACCESS_EXIST;
   else
-    return warning("access_file/2: mode is one of {read,write,append,execute,exist,none}");
+  { warning("access_file/2: mode: {read,write,append,execute,exist,none}");
+    fail;
+  }
 
   if ( AccessFile(n, md) )
     succeed;
 
-  if ( md == ACCESS_WRITE && 
-       !AccessFile(n, ACCESS_EXIST) &&
-       AccessFile(DirName(n), md) )
-    succeed;
+  if ( md == ACCESS_WRITE && !AccessFile(n, ACCESS_EXIST) )
+  { char *dir = DirName(n);
+
+    if ( AccessFile(*dir == EOS ? "." : dir, md) )
+      succeed;
+  }
 
   fail;
 }

@@ -1316,7 +1316,7 @@ x_chars(char *pred, Word atom, Word string, int how)
   { register char *q;
 
     if ( !(s = listToString(*string)) )
-      return warning("instantiation fault");
+      return warning("%s/2: instantiation fault", pred);
 
     switch(how)
     { case X_ATOM:
@@ -1342,7 +1342,7 @@ x_chars(char *pred, Word atom, Word string, int how)
     }
   }
 
-  return warning("%s/2: instantiation fault");
+  return warning("%s/2: instantiation fault", pred);
 }
 
 
