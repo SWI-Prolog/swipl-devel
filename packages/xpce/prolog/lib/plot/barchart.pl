@@ -170,6 +170,13 @@ initialise(B,
 	send(B, fill_offset, point(0,0)),
 	send(B, colour, TheColour).
 
+editable(Bar) :->
+	"Test if value can be edited"::
+	(   get(Bar, message, Code)
+	;   get(Bar, drag_message, Code)
+	),
+	Code \== @nil, !.
+
 value(B, Val:real) :->
 	send(B, slot, value, Val),
 	send(B, request_compute).
@@ -254,6 +261,15 @@ help_message(B, What:{tag,summary}, _Ev:[event], Msg:string) :<-
 	atom_concat('%s = ', Format, Fmt),
 	get(Name, label_name, Label),
 	new(Msg, string(Fmt, Label, Value)).
+
+displayed_cursor(B, Cursor:cursor) :<-
+	"Return the cursor to display"::
+	send(B, editable),
+	(   get(B, orientation, horizontal)
+	->  Name = sb_h_double_arrow
+	;   Name = sb_v_double_arrow
+	),
+	new(Cursor, cursor(Name)).
 
 :- pce_end_class.
 
@@ -480,10 +496,7 @@ initialise(G) :->
 
 verify(_, Ev:event) :->
 	get(Ev, receiver, Bar),
-	(   get(Bar, message, Code)
-	;   get(Bar, drag_message, Code)
-	),
-	Code \== @nil.
+	send(Bar, editable).
 
 initiate(G, Ev:event) :->
 	get(Ev, receiver, Bar),
@@ -500,7 +513,7 @@ initiate(G, Ev:event) :->
 	    Len is BX+BW-X
 	),
 	send(FB, attach, Axis, Bar?value, Len+5),
-	send(G, update_value).
+	send(G, drag, Ev).
 
 drag(G, Ev:event) :->
 	get(Ev, receiver, Bar),

@@ -1524,7 +1524,8 @@ getDisplayedCursorWindow(PceWindow sw)
       answer(sw->focus->cursor);
   }    
   
-  if ( notNil(rval = getDisplayedCursorDevice((Device) sw)) )
+  if ( (rval = getDisplayedCursorDevice((Device) sw)) &&
+       notNil(rval) )
     answer(rval);
 
   answer(sw->cursor);
@@ -1535,6 +1536,9 @@ status
 updateCursorWindow(PceWindow sw)
 { if ( ws_created_window(sw) )
   { CursorObj cursor = getDisplayedCursorWindow(sw);
+
+    if ( !cursor )
+      cursor = NIL;
 
     if ( sw->displayed_cursor != cursor )
     { assign(sw, displayed_cursor, cursor);

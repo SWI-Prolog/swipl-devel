@@ -85,7 +85,8 @@ getDisplayedCursorDevice(Device dev)
   Cell cell;
 
   for_cell(cell, dev->pointed)
-  { if ( notNil(c2 = qadGetv(cell->value, NAME_displayedCursor, 0, NULL)) )
+  { if ( (c2=qadGetv(cell->value, NAME_displayedCursor, 0, NULL)) &&
+	 notNil(c2) )
       answer(c2);
   }
 
