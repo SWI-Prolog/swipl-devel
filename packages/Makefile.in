@@ -6,11 +6,24 @@
 ################################################################
 .EXPORT_ALL_VARIABLES:
 
+# Define the packages you wish to build.  Please note that xpce requires
+# libXPM and libjpeg to compile
+
 PKG=	clib \
 	table \
 	sgml \
 	sgml/RDF \
 	xpce
+
+# Define additional config options.  If you wish to build the multi-threaded
+# version of SWI-Prolog and pl-mt to the same install-base, you must provide
+# --enable-mt here.
+
+#CNFG=	--enable-mt
+
+################################################################
+# Normally, all should be fine below here
+################################################################
 
 # Values filled from the main SWI-Prolog configure
 
@@ -35,7 +48,7 @@ INSTALL_DATA=@INSTALL_DATA@
 CONFIG=	env PL="$(PL)" PLBASE="$(PLBASE)" PLARCH="$(PLARCH)" \
 	    PLLIBS="$(PLLIBS)" PLLDFLAGS="$(PLLDFLAGS)" \
 	    PLINCL="$(PLINCL)" PLSHARED="$(PLSHARED)" \
-	    ./configure --enable-mt --prefix=$(prefix)
+	    ./configure $(CNFG) --prefix=$(prefix)
 
 all:	objects
 	

@@ -657,7 +657,7 @@ dv-install:	rt-install dv-home dv-lib dv-boot dv-help \
 		dv-misc cxx-install dv-qlf dv-bins
 
 rpm-install:	manindex rt-home rt-misc rt-bitmaps rt-bins rpm-link \
-		dv-lib dv-boot dv-help dv-pl-files dv-manual dv-man \
+		dv-lib dv-boot dv-help dv-link dv-pl-files dv-manual dv-man \
 		dv-misc cxx-install rpm-bins
 
 manindex:	$(MANINDEX)
