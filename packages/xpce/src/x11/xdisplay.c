@@ -92,6 +92,14 @@ ws_depth_display(DisplayObj d)
 }
 
 
+int
+ws_resolution_display(DisplayObj d, int *rx, int *ry)
+{ Cprintf("No support to get the screen-resolution for X11 yet\n");
+
+  fail;
+}
+
+
 void
 ws_activate_screen_saver(DisplayObj d)
 { DisplayWsXref r = d->ws_ref;
