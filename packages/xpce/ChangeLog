@@ -1,3 +1,6 @@
+* FIXED: Avoid possibility of last-window variable (in evt/event.c) to
+  become invalid.
+
 * ADDED: library(file_item) the method file_item ->browse to start browsing
   using @finder.
 
