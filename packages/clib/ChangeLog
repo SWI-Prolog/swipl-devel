@@ -1,3 +1,7 @@
+07/10/2000
+ 
+ * ADDED: Allow for descriptor to arguments of dup/2.
+
 30/06/1999
 
  * ADDED: cgi.pl, cgi.c and form.[ch] providing cgi_get_form/1 to get the

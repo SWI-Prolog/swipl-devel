@@ -168,18 +168,27 @@ pl_pipe(term_t Read, term_t Write)
 }
 
 
+static int
+get_stream_no(term_t t, IOSTREAM **s, int *fn)
+{ if ( PL_get_integer(t, fn) )
+    return TRUE;
+  if ( PL_get_stream_handle(t, s) )
+  { *fn = Sfileno(*s);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 static foreign_t
 pl_dup(term_t from, term_t to)
 { IOSTREAM *f = NULL, *t = NULL;
   int rval = FALSE;
   int fn, tn;
 
-  if ( !PL_get_stream_handle(from, &f) ||
-       !PL_get_stream_handle(to, &t) )
-    goto out;
-  if ( (fn = Sfileno(f)) < 0 )
-    goto out;
-  if ( (tn = Sfileno(t)) < 0 )
+  if ( !get_stream_no(from, &f, &fn) ||
+       !get_stream_no(to, &t, &tn) )
     goto out;
   
   if ( dup2(fn, tn) < 0 )

@@ -142,6 +142,10 @@ making both streams point to the same underlying object. This is
 normally used together with fork/1 and pipe/2 to talk to an external
 program that is designed to communicate using standard I/O.
 
+Both \arg{FromStream} and \arg{ToStream} either refer to a Prolog stream
+or an integer descriptor number to refer directly to OS descriptors.
+See also \file{demo/pipe.pl} in the source-distribution of this package.
+
     \predicate{detach_IO}{0}{}
 This predicate is intended to create Unix deamon-processes. It preforms
 two actions.  First of all, the I/O streams \const{user_input}, 
