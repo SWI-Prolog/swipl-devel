@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Cleanup problem in threads.
+
   * FIXED: Memory management problem in message_queue create/destroy.
 
   * FIXED: proper hidden window handling in Windows version.  Shows up as

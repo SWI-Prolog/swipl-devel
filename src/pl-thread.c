@@ -427,6 +427,7 @@ free_prolog_thread(void *data)
     return;				/* Post-mortem */
 
   info = ld->thread.info;
+
   LOCK();
   if ( info->status == PL_THREAD_RUNNING )
     info->status = PL_THREAD_EXITED;	/* foreign pthread_exit() */
@@ -452,14 +453,16 @@ free_prolog_thread(void *data)
   destroy_message_queue(&ld->thread.messages);
   GD->statistics.threads_finished++;
   GD->statistics.thread_cputime += CpuTime(CPU_USER);
-  info->thread_data = NULL;
-  UNLOCK();
 
-  mergeAllocPool(&GD->alloc_pool, &ld->alloc_pool);
-  freeHeap(ld, sizeof(*ld));
+  info->thread_data = NULL;
+  ld->thread.info = NULL;		/* avoid a loop */
+  UNLOCK();
 
   if ( info->detached )
     free_thread_info(info);
+
+  mergeAllocPool(&GD->alloc_pool, &ld->alloc_pool);
+  freeHeap(ld, sizeof(*ld));
 
   if ( acknowlege )
     sem_post(sem_canceled_ptr);
@@ -1038,9 +1041,8 @@ unify_thread_status(term_t status, PL_thread_info_t *info)
     case PL_THREAD_CANCELED:
       return PL_unify_atom(status, ATOM_canceled);
     default:
-      fatalError("info->status = %d", info->status);
-      assert(0);
-      fail;
+      DEBUG(1, Sdprintf("info->status = %d\n", info->status));
+      fail;				/* can happen in current_thread/2 */
   }
 }
 
