@@ -232,7 +232,9 @@ lookupAtom(const char *s, unsigned int length)
 	 memcmp(s, a->name, length) == 0 )
     { 
 #ifdef O_ATOMGC
+      LOCK(L_MISC);			/* used by PL_(un)register_atom() */
       a->references++;
+      UNLOCK(L_MISC);
 #endif
       UNLOCK();
       return a->atom;

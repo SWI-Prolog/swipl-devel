@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: MT: lookup/register/unregister atom mutex mismatch.
+    Sergey Tikhonov.
+
 VERSION 5.0.6 (May 21, 2002)
 ============================
 
