@@ -101,7 +101,7 @@ dnl ****************************************************************
 
 AC_CHECK_LIB(m, main)
 AC_CHECK_LIB(termcap, main)
-if test "$ac_cv_lib_termcap" = "yes"; then
+if test "$ac_cv_lib_termcap_main" = "yes"; then
   AC_MSG_CHECKING("whether -ltermcap needs -lucb")
   AC_TRY_LINK([],
 	      [ tgetent();
@@ -116,14 +116,14 @@ if test "$checkucb" = "yes"; then
 fi
 if test ! "$runtime" = "yes"; then
   AC_CHECK_LIB(readline, main)
-  if test ! "$ac_cv_lib_readline" = "yes"; then
+  if test ! "$ac_cv_lib_readline_main" = "yes"; then
     AC_CHECK_LIB(ncurses, main)
-    if test ! "$ac_cv_lib_ncurses" = "yes"; then
+    if test ! "$ac_cv_lib_ncurses_main" = "yes"; then
       AC_CHECK_LIB(curses, main)
     fi
-    if test "$ac_cv_lib_ncurses" = "yes" || test "$ac_cv_lib_curses" = "yes"; then
+    if test "$ac_cv_lib_ncurses_main" = "yes" || test "$ac_cv_lib_curses_main" = "yes"; then
       echo "Found curses library.  See if -lreadline works now"
-      unset ac_cv_lib_readline
+      unset ac_cv_lib_readline_main
       AC_CHECK_LIB(readline, main)
     fi
   fi

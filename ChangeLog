@@ -5,6 +5,8 @@
 Version 2.7.15
 ==============
 
+  * FIXED: Configure problems related to -l[n]curses, etc.
+
   * FIXED: retractall(Module:Head(+Arg, ...)) (i.e. explicit module and
     instantiated first argument).
 
