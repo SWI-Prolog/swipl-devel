@@ -38,6 +38,7 @@
 :- use_module(library(pce_emacs)).
 :- use_module(break).
 :- use_module(util).
+:- use_module(library(emacs_extend)).
 
 		 /*******************************
 		 *	       STYLES		*
@@ -59,6 +60,23 @@ style(unify, 		style(background := sky_blue)).
 style(breakpoint, 	style(icon := 'stop.xpm')).
 
 
+:- emacs_begin_mode(prolog_debug, prolog,
+		    "Submode for the debugger",
+		    [], []).
+
+save_text(M) :->
+	"Switch to non-edit mode after saving the buffer"::
+	send_super(M, save_text),
+	send(M?editors, for_all,
+	     if(message(@arg1?window, instance_of, prolog_source_view),
+		message(@arg1?window, edit, @off))).
+
+:- emacs_end_mode.
+
+:- initialization
+   declare_emacs_mode(prolog_debug, []).
+
+
 		 /*******************************
 		 *	    SOURCE VIEW		*
 		 *******************************/
@@ -73,7 +91,7 @@ variable(source,	'name|emacs_buffer*', get, "Currently shown source").
 initialise(V) :->
 	send(V, send_super, initialise),
 	send(V, reuse, @off),		% donot share in the pool
-	send(V, mode, prolog),
+	send(V, mode, prolog_debug),
 	send(V, margin_width, 22),
 	forall(style(Name, Style), send(V, style, Name, Style)),
 	send(V, editable, @off),
@@ -235,7 +253,7 @@ current_source_buffer(File, Buffer) :-
 
 buffer(File, Buffer) :-
 	new(Buffer, emacs_buffer(File)),
-	send(Buffer, mode, prolog),
+	send(Buffer, mode, prolog_debug),
 	mark_special(File, Buffer).
 
 mark_special(_, Buffer) :-
