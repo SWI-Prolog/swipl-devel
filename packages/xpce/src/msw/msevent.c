@@ -50,15 +50,20 @@ ws_dispatch(Int FD, Int timeout)
 
 #else /*USE_RLC_FUNCTIONS*/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+There is little reason for timeout here. This function returns everytime
+the loc_still timer expires (250 milliseconds).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 status
-ws_dispatch(Int FD, Int timeout)
+ws_dispatch(Int FD, Any timeout)
 { MSG msg;
-  
+
   if ( GetMessage(&msg, NULL, 0, 0) )
   { TranslateMessage(&msg);
     DispatchMessage(&msg);
 
-    fail;				/* signal no input? */
+    succeed;				/* processed an event */
   }
 
   ExitProcess(0);			/* WM_QUIT received */

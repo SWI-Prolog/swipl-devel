@@ -411,7 +411,22 @@ waitStream(Stream s)
 
 static StringObj
 getReadLineStream(Stream s, Real timeout)
-{ while(s->rdfd >= 0)
+{ unsigned long epoch, tmo, left;
+  int use_timeout;
+
+  if ( instanceOfObject(timeout, ClassReal) )
+  { double v = valReal(timeout);
+
+    if ( v < 0.0 )
+      answer((StringObj)NIL);
+
+    epoch = mclock();
+    tmo = (unsigned long)(v * 1000.0);
+    use_timeout = TRUE;
+  } else
+    use_timeout = FALSE;
+
+  while(s->rdfd >= 0)
   { if ( s->input_buffer )
     { unsigned char *q;
       int n;
@@ -434,7 +449,15 @@ getReadLineStream(Stream s, Real timeout)
       DEBUG(NAME_stream, Cprintf("No newline, reading\n"));
     }
 
-    if ( !ws_dispatch(DEFAULT, timeout) )
+    if ( use_timeout )
+    { unsigned long now = mclock();
+
+      if ( now - epoch > tmo )
+	answer((StringObj)NIL);
+      left = tmo - (now - epoch);
+    }
+
+    if ( !ws_dispatch(DEFAULT, use_timeout ? toInt(left) : NIL) )
       return (StringObj) NIL;
   }    
 
