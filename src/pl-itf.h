@@ -417,7 +417,7 @@ __pl_export int		PL_unify_term(term_t t, ...);
 		 *	  FILENAME SUPPORT	*
 		 *******************************/
 
-__pl_export char *	PL_get_filename(term_t n, char *buf, unsigned int sz);
+__pl_export int		PL_get_filename(term_t n, char **name, int flags);
 __pl_export void	PL_changed_cwd(void); /* foreign code changed CWD */
 __pl_export const char *PL_cwd();
 

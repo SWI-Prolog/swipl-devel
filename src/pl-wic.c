@@ -1820,7 +1820,7 @@ pl_qlf_info(term_t file,
 	    term_t files)
 { char *name;
 
-  if ( !(name = PL_get_filename(file, NULL, 0)) )
+  if ( !PL_get_filename(file, &name, 0) )
     fail;
 
    return qlfInfo(name, cversion, version, files);
@@ -2108,7 +2108,7 @@ pl_qlf_load(term_t file, term_t module)
   m = oldsrc;
   if ( !PL_strip_module(file, &m, name) )
     fail;
-  if ( !(fn = PL_get_filename(name, NULL, 0)) )
+  if ( !PL_get_filename(name, &fn, 0) )
     return warning("$qlf_load/2: instantiation fault");
 
   LD->modules.source = m;
