@@ -22,6 +22,7 @@ extern Class ClassWinPrinter;
 #endif
 
 extern Class ClassIntItem;
+extern void  initBoxes(void);
 
 		 /*******************************
 		 *	     CLASSES		*
@@ -565,6 +566,8 @@ initClassDefs()
 	   ClassNonEqual, "Test non-equivalence of arguments");
   defClass(CtoName("@="), NAME_code, makeClassAssoc,
 	   ClassAssoc, "Assign named reference to object");
+
+  initBoxes();
 
   numberTreeClass(ClassObject, 0);
 }
