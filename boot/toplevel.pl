@@ -211,8 +211,9 @@ initialise_prolog :-
 	$run_at_initialization,
 	$load_system_init_file,
 	$load_gnu_emacs_interface,
-	$option(init_file, File, File), 
-	$load_init_file(File), 
+	$option(init_file, OsFile, OsFile),
+	prolog_to_os_filename(File, OsFile),
+	$load_init_file(OsFile), 
 	$option(goal, GoalAtom, GoalAtom), 
 	term_to_atom(Goal, GoalAtom), 
 	(   Goal == $welcome

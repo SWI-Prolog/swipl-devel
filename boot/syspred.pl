@@ -116,6 +116,19 @@ style_check(Spec) :-
 	spy/1,
 	nospy/1.
 
+%	prolog:debug_control_hook(+Action)
+%
+%	Allow user-hooks in the Prolog debugger interaction.  See the calls
+%	below for the provided hooks.  We use a single predicate with action
+%	argument to avoid an uncontrolled poliferation of hooks.
+%
+%	TBD: What hooks to provide for trace/[1,2]
+
+:- multifile
+	prolog:debug_control_hook/1.	% +Action
+:- module_transparent
+	prolog:debug_control_hook/1.
+
 trace(Preds) :-
 	trace(Preds, +all).
 
@@ -178,11 +191,12 @@ tag_list([H0|T0], F, [H1|T1]) :-
 	H1 =.. [F, H0],
 	tag_list(T0, F, T1).
 
-
 spy([]) :- !.
 spy([H|T]) :- !,
 	spy(H),
 	spy(T).
+spy(Spec) :-
+	prolog:debug_control_hook(spy(Spec)), !.
 spy(Spec) :-
 	$find_predicate(Spec, Preds),
 	member(Head, Preds),
@@ -196,6 +210,8 @@ nospy([H|T]) :- !,
 	nospy(H),
 	nospy(T).
 nospy(Spec) :-
+	prolog:debug_control_hook(nospy(Spec)), !.
+nospy(Spec) :-
 	$find_predicate(Spec, Preds),
 	member(Head, Preds),
 	    $nospy(Head),
@@ -203,11 +219,16 @@ nospy(Spec) :-
 nospy(_).
 
 nospyall :-
+	prolog:debug_control_hook(nospyall),
+	fail.
+nospyall :-
 	spy_point(Head),
 	    $nospy(Head),
 	fail.
 nospyall.
 
+debugging :-
+	prolog:debug_control_hook(debugging), !.
 debugging :-
 	current_prolog_flag(debug, true), !,
 	print_message(informational, debugging(on)),
