@@ -153,3 +153,4 @@
 #define FUNCTOR_buffer1      MK_FUNCTOR(152, 1)
 #define FUNCTOR_close_on_abort1 MK_FUNCTOR(153, 1)
 #define FUNCTOR_punct2       MK_FUNCTOR(154, 2)
+#define FUNCTOR_call_cleanup3 MK_FUNCTOR(155, 3)

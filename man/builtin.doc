@@ -847,10 +847,10 @@ is unified with \const{depth_limit_exceeded} if the limit was exceeded
 during the proof, or the entire predicate fails if \arg{Goal} fails
 without exceeding \arg{Limit}.
 
-The depth-limit is guarded by the internal machinery. This differ from
-the depth computed based on a theoretical model. For example, true/0 is
-translated into an inlined virtual machine instruction. Also, repeat/0
-is not implemented as below, but as a non-deterministic foreign
+The depth-limit is guarded by the internal machinery. This may differ
+from the depth computed based on a theoretical model. For example,
+true/0 is translated into an inlined virtual machine instruction. Also,
+repeat/0 is not implemented as below, but as a non-deterministic foreign
 predicate.
 
 \begin{code}
@@ -866,6 +866,68 @@ cured by using Prolog equivalents to such built-in predicates.
 This predicate may be used for theorem-provers to realise techniques
 like \jargon{iterrative deepening}.  It was implemented after discussion
 with Steve Moyle \email{smoyle@ermine.ox.ac.uk}.
+
+    \predicate{call_cleanup}{3}{:Goal, +Catcher, :Cleanup}
+Calls \arg{Goal}.  If \arg{Goal} is completely finished, either
+by deterministic success, failure, its choicepoint being cut or
+raising an exception and \arg{Catcher} unifies to the termination
+code (see below), \arg{Cleanup} is called.  Success or failure of
+\arg{Cleanup} is ignored and possibly choicepoints it created are
+destroyed (as once/1).  If cleanup throws an exception this is
+executed as normal.
+
+\arg{Catcher} is unified with a term describing how the call has
+finished.  If this unification fails, \arg{Cleanup} is \emph{not}
+called.
+
+\begin{description}
+    \termitem{exit}{}
+\arg{Goal} succeeded without leaving any choicepoints.
+
+    \termitem{fail}{}
+\arg{Goal} failed.
+
+    \termitem{!}{}
+\arg{Goal} succeeded with choicepoints and these are now discarded
+by the execution of a cut (or orther pruning of the search tree such as
+if-then-else).
+
+    \termitem{exception}{Exception}
+\arg{Goal} raised the given \arg{Exception}.    
+\end{description}
+
+Typical use of this predicate is cleanup of permanent data storage
+required to execute \arg{Goal}, close file-descriptors, etc. The example
+below provides a non-deterministic search for a term in a file, closing
+the stream as needed.
+
+\begin{code}
+term_in_file(Term, File) :-
+	open(File, read, In),
+	call_cleanup(term_in_stream(Term, In), _, close(In)).
+
+term_in_stream(Term, In) :-
+	repeat,
+	read(In, T),
+	(   T == end_of_file
+	->  !, fail
+	;   T = Term
+	).
+\end{code}
+
+Note that this predicate is impossible to implement in Prolog other then
+reading all terms into a list, close the file and call member/2 because
+without call_cleanup/3 there is no way to gain control if the
+choicepoint left by repeat is killed by a cut.
+
+This predicate is a SWI-Prolog extension. See also call_cleanup/2 for
+compatibility to other Prolog implementations.
+
+    \predicate{call_cleanup}{2}{:Goal, :Cleanup}
+This predicate is equivalent to \term{call_cleanup}{Goal, _, Cleanup},
+calling \arg{Cleanup} regardless of the reason for termination and
+without providing information.  This predicate provides compatibility
+to a number of other Prolog implementations.
 \end{description}
 
 

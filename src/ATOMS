@@ -483,6 +483,8 @@ A exclusive		"exclusive"
 A terminal		"terminal"
 A terminal_capability	"terminal_capability"
 A environment		"environment"
+A call_cleanup		"call_cleanup"
+A dcall_cleanup		"$call_cleanup"
 
 F abs			1
 F acos			1
@@ -639,3 +641,4 @@ F shared_object		2
 F buffer		1
 F close_on_abort	1
 F punct			2
+F call_cleanup		3

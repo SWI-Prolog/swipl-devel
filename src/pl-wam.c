@@ -678,17 +678,56 @@ discardForeignFrame(LocalFrame fr)
 }
 
 
-#if O_DEBUGGER
+enum finished
+{ FINISH_EXIT = 0,
+  FINISH_FAIL,
+  FINISH_CUT,
+  FINISH_EXCEPT
+};
+
+
+static int
+unify_finished(term_t catcher, enum finished reason)
+{ static atom_t reasons[] = 
+  { ATOM_exit,
+    ATOM_fail,
+    ATOM_cut,
+    ATOM_exception
+  };
+
+  if ( reason == FINISH_EXCEPT )
+  { return PL_unify_term(catcher,
+			 PL_FUNCTOR, FUNCTOR_exception1,
+			   PL_TERM, exception_bin);
+  } else
+  { return PL_unify_atom(catcher, reasons[reason]);
+  }
+}
+
+
 static void
-frameFinished(LocalFrame fr)
+frameFinished(LocalFrame fr, enum finished reason)
 { GET_LD
   fid_t cid = PL_open_foreign_frame();
+
+  if ( fr->predicate == PROCEDURE_call_cleanup3->definition )
+  { term_t catcher = argFrameP(fr, 1) - (Word)lBase;
+
+    if ( unify_finished(catcher, reason) )
+    { term_t clean = argFrameP(fr, 2) - (Word)lBase;
+      term_t ex = 0;
+      int rval;
+      
+      rval = callProlog(fr->context, clean, PL_Q_CATCH_EXCEPTION, &ex);
+      if ( !rval && ex )
+	PL_throw(ex);
+    }
+  }
 
   callEventHook(PLEV_FRAMEFINISHED, fr);
 
   PL_discard_foreign_frame(cid);
 }
-#endif
 
 		 /*******************************
 		 *	     TRAILING		*
@@ -1160,13 +1199,13 @@ Noord.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static LocalFrame
-findCatcher(LocalFrame fr, Word catcher)
-{ Definition catch3 = PROCEDURE_catch3->definition;
+findCatcher(LocalFrame fr, Word ex)
+{ Definition catch3  = PROCEDURE_catch3->definition;
 
   for(; fr; fr = fr->parent)
   { if ( fr->predicate == catch3 &&
 	 false(fr, FR_CATCHED) &&
-	 unify_ptrs(argFrameP(fr, 1), catcher) )
+	 unify_ptrs(argFrameP(fr, 1), ex) )
     { set(fr, FR_CATCHED);
       return fr;
     }
@@ -1345,7 +1384,7 @@ copyFrameArguments(LocalFrame from, LocalFrame to, int argc ARG_LD)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 {leave,discard}Frame()
      Exit from a frame.  leaveFrame() is used for normal leaving due to
-     success or failure.  discardFrame() is used for frames that have
+     failure.  discardFrame() is used for frames that have
      been cut.  If such frames are running a foreign predicate, the
      functions should be called again using FRG_CUTTED context.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1357,15 +1396,13 @@ leaveFrame(LocalFrame fr)
   if ( false(def, FOREIGN) )
     leaveDefinition(def);
 
-#if O_DEBUGGER
   if ( true(fr, FR_WATCHED) )
-    frameFinished(fr);
-#endif
+    frameFinished(fr, FINISH_FAIL);
 }
 
 
 static void
-discardFrame(LocalFrame fr)
+discardFrame(LocalFrame fr, enum finished reason)
 { Definition def = fr->predicate;
 
   DEBUG(3, Sdprintf("discard #%d running %s\n",
@@ -1378,10 +1415,8 @@ discardFrame(LocalFrame fr)
   } else
     leaveDefinition(def);
 
-#ifdef O_DEBUGGER
   if ( true(fr, FR_WATCHED) )
-    frameFinished(fr);
-#endif
+    frameFinished(fr, reason);
 
   fr->clause = NULL;
 }
@@ -1422,7 +1457,7 @@ discardChoicesAfter(LocalFrame fr ARG_LD)
     for(fr2 = ch->frame;    
 	fr2 && fr2->clause && fr2 > fr;
 	fr2 = fr2->parent)
-      discardFrame(fr2);
+      discardFrame(fr2, FINISH_CUT);
   }
 
   DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(ch)));
@@ -1591,7 +1626,7 @@ discard_query(QueryFrame qf)
   LocalFrame FR  = &qf->frame;
 
   discardChoicesAfter(FR PASS_LD);
-  discardFrame(FR);
+  discardFrame(FR, FINISH_CUT);
 }
 
 
@@ -1808,6 +1843,8 @@ pl-comp.c
 #endif
     &&I_CONTEXT_LBL,
     &&C_LCUT_LBL,
+    &&I_CALLCLEANUP_LBL,
+    &&I_EXITCLEANUP_LBL,
     NULL
   };
 
@@ -2410,6 +2447,41 @@ instruction immediately follows the I_ENTER. The argument is the module.
 	NEXT_INSTRUCTION;
       }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Part of call_cleanup(:Goal, :Cleanup).  Simply set a flag on the frame and
+call the 1-st argument.  See also I_CATCH.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+    VMI(I_CALLCLEANUP)
+      { if ( BFR->frame == FR && BFR == (Choice)argFrameP(FR, 3) )
+	{ assert(BFR->type == CHP_DEBUG);
+	  BFR->type = CHP_CATCH;
+	} else
+	{ Choice ch = newChoice(CHP_CATCH, FR PASS_LD);
+
+	  Mark(ch->mark);
+	}
+
+	set(FR, FR_WATCHED);
+				/* = B_VAR0 */
+	*argFrameP(lTop, 0) = linkVal(argFrameP(FR, 0));
+
+	goto i_usercall0;
+      }
+      
+    VMI(I_EXITCLEANUP)
+      { if ( BFR->frame == FR && BFR == (Choice)argFrameP(FR, 3) )
+	{ assert(BFR->type == CHP_CATCH);
+
+	  DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(BFR->parent)));
+	  BFR = BFR->parent;
+
+	  frameFinished(FR, FINISH_EXIT);
+	}
+
+	NEXT_INSTRUCTION;		/* goto i_exit? */
+      }
+
 #if O_CATCHTHROW
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 I_CATCH has to fake a choice-point to   make  it possible to undo before
@@ -2493,9 +2565,7 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	    pl_trace();
 	  }
 	}
-#endif /*O_DEBUGGER*/
 
-#if O_DEBUGGER
         if ( debugstatus.debugging )
 	{ for( ; FR && FR > catchfr; FR = FR->parent )
 	  { Choice ch = findStartChoice(FR, LD->choicepoints);
@@ -2530,13 +2600,13 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	    }
 
 	    discardChoicesAfter(FR PASS_LD);
-	    discardFrame(FR);
+	    discardFrame(FR, FINISH_EXCEPT);
 	  }
 	} else
-#endif
+#endif /*O_DEBUGGER*/
 	{ for( ; FR && FR > catchfr; FR = FR->parent )
 	  { discardChoicesAfter(FR PASS_LD);
-	    discardFrame(FR);
+	    discardFrame(FR, FINISH_EXCEPT);
 	  }
 	}
 
@@ -2622,7 +2692,7 @@ exit(Block, RVal).  First does !(Block).
 	{ for( ; ; FR = FR->parent )
 	  { SECURE(assert(FR > blockfr));
 	    discardChoicesAfter(FR PASS_LD);
-	    discardFrame(FR);
+	    discardFrame(FR, FINISH_CUT);
 	    if ( FR->parent == blockfr )
 	    { PC = FR->programPointer;
 	      break;
@@ -2667,7 +2737,7 @@ exit(Block, RVal).  First does !(Block).
           for(fr2 = ch->frame;
               fr2 && fr2->clause && fr2 > FR;
 	      fr2 = fr2->parent)
-	      discardFrame(fr2);
+	      discardFrame(fr2, FINISH_CUT);
 	}
         BFR = ch;
 
@@ -2810,7 +2880,7 @@ conditions should be rare (I hope :-).
 	  for(fr2 = ch->frame;    
 	      fr2 && fr2->clause && fr2 > fr;
 	      fr2 = fr2->parent)
-	    discardFrame(fr2);
+	    discardFrame(fr2, FINISH_CUT);
 	}
 	assert(och == ch);
 	BFR = och;
@@ -3678,10 +3748,8 @@ execution can continue at `next_instruction'
 
 	  arity = ndef->functor->arity;
 	  lTop = (LocalFrame)argFrameP(lTop, arity);
-#if O_DEBUGGER
 	  if ( true(FR, FR_WATCHED) )
-	    frameFinished(FR);
-#endif
+	    frameFinished(FR, FINISH_EXIT);
 	  if ( DEF )
 	  { if ( true(DEF, HIDE_CHILDS) )
 	      set(FR, FR_NODEBUG);
@@ -4017,10 +4085,8 @@ bit more careful.
 	  { set(QF, PL_Q_DETERMINISTIC);
 	    lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
 
-#if O_DEBUGGER
 	    if ( true(FR, FR_WATCHED) )
-	      frameFinished(FR);
-#endif
+	      frameFinished(FR, FINISH_EXIT);
 	  }
 
 	  succeed;
@@ -4038,10 +4104,8 @@ bit more careful.
 	DEF = FR->predicate;
 	ARGP = argFrameP(lTop, 0);
 
-#if O_DEBUGGER
 	if ( leave )
-	  frameFinished(leave);
-#endif
+	  frameFinished(leave, FINISH_EXIT);
       }
 	NEXT_INSTRUCTION;
       }	  

@@ -104,11 +104,13 @@ const code_info codeTable[] = {
   CODE(I_EXITFACT,	"i_exitfact",	0, 0),
   CODE(D_BREAK,		"d_break",	0, 0),
 #if O_CATCHTHROW
-  CODE(I_CATCH,		"b_catch",      0, 0),
+  CODE(I_CATCH,		"i_catch",      0, 0),
   CODE(B_THROW,		"b_throw",	0, 0),
 #endif
   CODE(I_CONTEXT,	"i_context",	1, CA1_MODULE),
   CODE(C_LCUT,		"c_lcut",	1, CA1_VAR),
+  CODE(I_CALLCLEANUP,	"i_callcleanup",0, 0),
+  CODE(I_EXITCLEANUP,	"i_exitcleanup",0, 0),
 /*List terminator */
   CODE(0,		NULL,		0, 0)
 };
@@ -1413,6 +1415,9 @@ operator.
     { Output_0(ci, I_FAIL);
     } else if ( *arg == ATOM_dcatch )	/* $catch */
     { Output_0(ci, I_CATCH);
+    } else if ( *arg == ATOM_dcall_cleanup )	/* $call_cleanup */
+    { Output_0(ci, I_CALLCLEANUP);
+      Output_0(ci, I_EXITCLEANUP);
     } else
     { functor_t fdef = lookupFunctorDef(*arg, 0);
       code cproc = (code) lookupProcedure(fdef, tm);
@@ -2400,6 +2405,11 @@ decompileBody(decompileInfo *di, code end, Code until)
 			    continue;
       case I_CATCH:	    *ARGP++ = ATOM_dcatch;
 			    pushed++;
+			    continue;
+      case I_CALLCLEANUP:   *ARGP++ = ATOM_dcall_cleanup;
+			    pushed++;
+			    if ( *PC == encode(I_EXITCLEANUP) )
+			      PC++;
 			    continue;
       case I_CONTEXT:	    di->body_context = (Module) *PC++;
       			    continue;

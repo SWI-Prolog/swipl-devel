@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: call_cleanup/2 and call_cleanup/3.
+
   * ENHANCED: handling of call/1.  Instead of doing a full compilation of
     the clause the temporary clause now shares terms from the goal and
     is stored in the stack-frame itself.  In general call/1 will be faster

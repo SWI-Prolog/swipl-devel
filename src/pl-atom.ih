@@ -472,3 +472,5 @@
 #define ATOM_terminal     MK_ATOM(471)
 #define ATOM_terminal_capability MK_ATOM(472)
 #define ATOM_environment  MK_ATOM(473)
+#define ATOM_call_cleanup MK_ATOM(474)
+#define ATOM_dcall_cleanup MK_ATOM(475)

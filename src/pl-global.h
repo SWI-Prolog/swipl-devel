@@ -196,6 +196,7 @@ typedef struct
     Procedure	prolog_trace_interception4;
     Procedure	portray;		/* portray/1 */
     Procedure   dcall1;			/* $call/1 */
+    Procedure	call_cleanup3;		/* call_cleanup/2 */
   } procedures;
 
   struct
