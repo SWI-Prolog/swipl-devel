@@ -2,11 +2,11 @@
 
 \index{GUI}\index{XPCE}\index{Graphics}\index{Window interface}%
 \index{X11}%
-The XPCE GUI system for dynamically typed languages has been with
-SWI-Prolog for a long time. It is developed by Anjo Anjewierden and Jan
-Wielemaker from the department of SWI, University of Amsterdam. It aims
-at a high-productive development environment for graphical applications
-based on Prolog.
+The \url[XPCE GUI system]{http://www,swi.psy.uva.nl/projects/xpce/} for
+dynamically typed languages has been with SWI-Prolog for a long time. It
+is developed by Anjo Anjewierden and Jan Wielemaker from the department
+of SWI, University of Amsterdam. It aims at a high-productive
+development environment for graphical applications based on Prolog.
 
 Object oriented technology has proven to be a suitable model for
 implementing GUIs, which typically deal with things Prolog is not

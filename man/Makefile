@@ -38,6 +38,7 @@ dvi:		$(TEXFILES)
 
 html:		$(TEXFILES) $(STYFILES) doc.bbl
 		latex2html doc
+		(cd Manual; ln -s Title.html index.html)
 
 manual:		$(MANUAL)
 

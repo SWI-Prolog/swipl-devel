@@ -81,14 +81,16 @@ built-in predicates.
 \subsection*{About this document}
 
 This manual is written and maintained using \LaTeX{}. The \LaTeX{}
-source is included in the
-\url[source-distribution]{ftp://swi.psy.uva.nl/pub/SWI-Prolog/pl.tar.gz}
-of SWI-Prolog. The manual is converted into HTML using a converter
-distributed with the SWI-Prolog sources. From the same source we
-generate the plain-text version and index used by the online help system
-(located in the file \file{MANUAL} in the library directory) as well as
-the PostScript and PDF versions versions available from
-\url{ftp://swi.psy.uva.nl/pub/SWI-Prolog/refman/}.
+source is included in the source distribution of SWI-Prolog. The manual
+is converted into HTML using a converter distributed with the SWI-Prolog
+sources. From the same source we generate the plain-text version and
+index used by the online help system (located in the file \file{MANUAL}
+in the library directory) as well as the PDF version. Sources, binaries
+and documentation can be downloaded from the \url[SWi-Prolog download
+page]{http://www.swi.psy.uva.nl/projects/SWI-Prolog/download.html/}.
+
+The SWI-Prolog project {\bf home page} is located
+\url[here]{http://www.swi.psy.uva.nl/projects/SWI-Prolog/}
 
 Copyright \copyright\ 1990--\year, University of Amsterdam
 \end{htmlonly}
@@ -129,6 +131,8 @@ Copyright \copyright\ 1990--\year, University of Amsterdam
         {\it Updated for version \versionlong}	\\[1.5cm]
 	{\large \it Jan Wielemaker}		\\[7mm]
 	{\large jan@swi.psy.uva.nl}
+	{\large	http://www.swi.psy.uva.nl/projects/SWI-Prolog/}
+
 \end{center}
 \vfil
 \begin{quote}
