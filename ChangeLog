@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Print error-locations in files holding the ~-character.
+    Thanks to Mike Maxwell.
+
 VERSION 4.0.1
 =============
 
