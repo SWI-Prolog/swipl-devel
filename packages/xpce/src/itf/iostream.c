@@ -244,13 +244,25 @@ Sopen_object(Any obj, const char *mode)
   { int flags = SIO_TEXT|SIO_RECORDPOS;
     OpenObject h;
 
-    for( ; *mode; mode++)
+    switch(mode[0])
+    { case 'r':
+	flags |= SIO_INPUT;
+        break;
+      case 'w':
+	flags |= SIO_OUTPUT;
+        break;
+      default:
+	errno = EINVAL;
+        return NULL;
+    }
+
+    for(mode++; *mode; mode++)
     { switch(*mode)
       { case 'b':			/* binary */
 	  flags &= ~SIO_TEXT;
 	  break;
 	case 'r':			/* no record */
-	  flags &= SIO_RECORDPOS;
+	  flags &= ~SIO_RECORDPOS;
 	  break;
 	default:
 	  errno = EINVAL;
