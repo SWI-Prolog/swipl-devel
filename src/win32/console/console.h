@@ -179,7 +179,7 @@ typedef struct _line
   int		change_start;		/* start of change */
   int		complete;		/* line is completed */
   int		reprompt;		/* repeat the prompt */
-  char	       *data;			/* the data (malloc'ed) */
+  wchar_t      *data;			/* the data (malloc'ed) */
   rlc_console	console;		/* console I belong to */
 } line, *Line;
 

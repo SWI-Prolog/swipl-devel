@@ -167,7 +167,7 @@ const char *	rlc_bwd_history(RlcData b);
 const char *	rlc_fwd_history(RlcData b);
 void		rlc_get_mark(rlc_console c, RlcMark mark);
 void		rlc_goto_mark(rlc_console c, RlcMark mark,
-			      const char *data, int offset);
+			      const wchar_t *data, int offset);
 void		rlc_erase_from_caret(rlc_console c);
 void		rlc_putchar(rlc_console c, int chr);
 char *		rlc_read_screen(rlc_console c,

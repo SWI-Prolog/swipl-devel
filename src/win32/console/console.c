@@ -1374,7 +1374,7 @@ rlc_is_word_char(int chr)
 { if ( chr > 0 && chr < CHAR_MAX )
     return _rlc_word_chars[chr];
 
-  return FALSE;
+  return iswalnum((wint_t)chr);
 }
 
 
@@ -2710,7 +2710,7 @@ rlc_get_mark(rlc_console c, RlcMark m)
 
 
 void
-rlc_goto_mark(rlc_console c, RlcMark m, const char *data, int offset)
+rlc_goto_mark(rlc_console c, RlcMark m, const wchar_t *data, int offset)
 { RlcData b = rlc_get_data(c);
   
   b->caret_x = m->mark_x;
@@ -2808,7 +2808,7 @@ window_loop(LPVOID arg)
 
 	if ( line != RL_CANCELED_CHARP )
 	{ LQueued lq = rlc_malloc(sizeof(lqueued));
-    
+
 	  lq->next = NULL;
 	  lq->line = line;
     
@@ -3651,7 +3651,7 @@ Dprint_lines(RlcData b, int from, int to)
     int i;
 
     for(i=0; i<tl->size; i++)
-      buf[i] = tl->text[i].code;
+      buf[i] = tl->text[i].code&0xff;
     buf[i] = EOS;
 
     Dprintf("%03d: (0x%08x) \"%s\"\n", from, tl->text, buf);

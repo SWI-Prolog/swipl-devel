@@ -28,9 +28,11 @@
 #include "console.h"
 #include "console_i.h"
 #include "common.h"
+#include "utf8.h"
 #include <memory.h>
 #include <string.h>
 #include <ctype.h>
+#include <malloc.h>
 
 #ifndef EOF
 #define EOF -1
@@ -83,16 +85,16 @@ static void
 make_room(Line ln, int room)
 { while ( ln->size + room + 1 > ln->allocated )
   { if ( !ln->data )
-    { ln->data = rlc_malloc(256);
+    { ln->data = rlc_malloc(256*sizeof(wchar_t));
       ln->allocated = 256;
     } else
     { ln->allocated *= 2;
-      ln->data = rlc_realloc(ln->data, ln->allocated);
+      ln->data = rlc_realloc(ln->data, ln->allocated*sizeof(wchar_t));
     }
   }
 
   memmove(&ln->data[ln->point + room], &ln->data[ln->point],
-	  ln->size - ln->point);
+	  (ln->size - ln->point) * sizeof(wchar_t));
   ln->size += room;
   if ( room > 0 )
     ln->change_start = min(ln->change_start, ln->point);
@@ -100,19 +102,28 @@ make_room(Line ln, int room)
 
 
 static void
-set_line(Line ln, const char *s)
-{ int len = strlen(s);
+set_line_from_utf8(Line ln, const char *s)
+{ int blen = strlen(s);
+  int len = utf8_strlen(s, blen);
+  const char *e = &s[blen];
+  wchar_t *o;
 
   ln->size = ln->point = 0;
   make_room(ln, len);
-  memcpy(ln->data, s, len);
+
+  for(o=ln->data; s<e; )
+  { int chr;
+
+    s = utf8_get_char(s, &chr);
+    *o++ = chr;
+  }
 }
 
 
 static void
 terminate(Line ln)
 { if ( !ln->data )
-  { ln->data = rlc_malloc(1);
+  { ln->data = rlc_malloc(sizeof(wchar_t));
     ln->allocated = 1;
   }
   ln->data[ln->size] = EOS;
@@ -124,7 +135,9 @@ delete(Line ln, int from, int len)
 { if ( from < 0 || from > ln->size || len < 0 || from + len > ln->size )
     return;
 
-  memcpy(&ln->data[from], &ln->data[from+len], ln->size - (from+len));
+  memcpy(&ln->data[from], &ln->data[from+len],
+	 (ln->size - (from+len))*sizeof(wchar_t));
+
   ln->size -= len;
 } 
 
@@ -184,7 +197,7 @@ static void
 backward_delete_character(Line ln, int chr)
 { if ( ln->point > 0 )
   { memmove(&ln->data[ln->point-1], &ln->data[ln->point],
-	    ln->size - ln->point);
+	    (ln->size - ln->point)*sizeof(wchar_t));
     ln->size--;
     ln->point--;
   }
@@ -232,7 +245,8 @@ static void
 backward_delete_word(Line ln, int chr)
 { int from = back_word(ln, ln->point);
   
-  memmove(&ln->data[from], &ln->data[ln->point], ln->size - ln->point);
+  memmove(&ln->data[from], &ln->data[ln->point],
+	  (ln->size - ln->point)*sizeof(wchar_t));
   ln->size -= ln->point - from;
   ln->point = from;
   changed(ln, from);
@@ -243,7 +257,8 @@ static void
 forward_delete_word(Line ln, int chr)
 { int to = forw_word(ln, ln->point);
   
-  memmove(&ln->data[ln->point], &ln->data[to], ln->size - to);
+  memmove(&ln->data[ln->point], &ln->data[to],
+	  (ln->size - to)*sizeof(wchar_t));
   ln->size -= to - ln->point;
   changed(ln, ln->point);
 }
@@ -337,14 +352,31 @@ interrupt(Line ln, int chr)
 		 *******************************/
 
 static void
-add_history(rlc_console c, const char *data)
-{ const char *s = data;
-
+add_history(rlc_console c, const wchar_t *data)
+{ const wchar_t *s = data;
+  
   while(*s && *s <= ' ')
     s++;
 
   if ( *s )
-    rlc_add_history(c, s);
+  { const wchar_t *w;
+    int ulen;
+    char *buf;
+    char *u;
+
+    for(w=s, ulen = 0; *w; w++)
+    { int c = *w;
+
+      ulen += UTF8_BYTES_FOR_CODE(c);
+    }
+    buf = alloca(ulen+1);
+
+    for(u=buf, w=s; *w; w++)
+      u = utf8_put_char(u, *w);
+    *u = EOS;
+
+    rlc_add_history(c, buf);
+  }
 }
 
 
@@ -358,7 +390,7 @@ backward_history(Line ln, int chr)
   }
 
   if ( (h = rlc_bwd_history(ln->console)) )
-  { set_line(ln, h);
+  { set_line_from_utf8(ln, h);
     ln->point = ln->size;
   }
 }
@@ -370,7 +402,7 @@ forward_history(Line ln, int chr)
   { const char *h = rlc_fwd_history(ln->console);
 
     if ( h )
-    { set_line(ln, h);
+    { set_line_from_utf8(ln, h);
       ln->point = ln->size;
     }
   } else
@@ -536,7 +568,7 @@ list_completions(Line ln, int chr)
 		 *******************************/
 
 static void
-output(rlc_console b, char *s, int len)
+output(rlc_console b, const wchar_t *s, int len)
 { while(len-- > 0)
   { if ( *s == '\n' )
       rlc_putchar(b, '\r');
@@ -572,12 +604,48 @@ update_display(Line ln)
 }
 
 		 /*******************************
+		 *	   CREATE UTF-8		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+wchar2utf8() creates a malloc'ed UTF-8  string   from  an  wchar string.
+Maybe this should move to utf8.c?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static char *
+wchar2utf8(const wchar_t *w)
+{ const wchar_t *s;
+  char *u, *o;
+  int ulen;
+
+  for(s=w, ulen = 0; *s; s++)
+  { int c = *s;
+
+    ulen += UTF8_BYTES_FOR_CODE(c);
+  }
+
+  u = rlc_malloc(ulen+1);
+  for(s=w, o=u; *s; s++)
+  { o = utf8_put_char(o, *s);
+  }
+  *o++ = EOS;
+
+  return u;
+}
+
+
+		 /*******************************
 		 *	     TOPLEVEL		*
 		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Return a malloc'ed UTF-8 representation of an input line
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 char *
 read_line(rlc_console b)
 { line ln;
+  char *result;
 
   init_line_package(b);
 
@@ -607,16 +675,30 @@ read_line(rlc_console b)
 
     rlc_get_mark(b, &m1);
 
-    (*table[c & 0xff])(&ln, c);
+    if ( c < 256 )
+      (*table[c & 0xff])(&ln, c);
+    else if ( table == dispatch_table )
+    { if ( iswprint((wint_t)c) )
+	insert_self(&ln, c);
+      else
+	undefined(&ln, c);
+    } else
+      undefined(&ln, c);
+
     if ( m0.mark_x != m1.mark_x || m0.mark_y != m1.mark_y )
       ln.reprompt = TRUE;
+
     update_display(&ln);
   }
   rlc_clearprompt(b);
 
   add_history(b, ln.data);
 
-  return ln.data;
+  result = wchar2utf8(ln.data);
+
+  rlc_free(ln.data);
+  
+  return result;
 }
 
 
