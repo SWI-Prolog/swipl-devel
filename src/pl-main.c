@@ -413,11 +413,14 @@ char *fm;
 va_list args;
 { fprintf(stderr, "[PROLOG INTERNAL ERROR:\n\t");
   vfprintf(stderr, fm, args);
-/*  fprintf(stderr, "\nPROLOG STACK:\n");
-  backTrace(NULL, 100);
-  fprintf(stderr, "]\n"); */
+  fprintf(stderr, "\n[Switched to system mode: style_check(+dollar)]\n");
+  debugstatus.styleCheck |= DOLLAR_STYLE;
+  fprintf(stderr, "PROLOG STACK:\n");
+  backTrace(NULL, 10);
+  fprintf(stderr, "]\n");
 
-  abort();
+  pl_abort();
+  Halt(3);
   PL_fail;
 }
 

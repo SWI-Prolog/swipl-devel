@@ -80,6 +80,7 @@ static struct foreign {
   ADD("write",			1, pl_write,			TRACE_ME),
   ADD("writeq",			1, pl_writeq,			TRACE_ME),
   ADD("print",			1, pl_print,			TRACE_ME),
+  ADD("$print",			2, pl_dprint,		TRANSPARENT|TRACE_ME),
 
   ADD("read_variables",		2, pl_read_variables,		TRACE_ME),
   ADD("read_variables",		3, pl_read_variables3,		TRACE_ME),

@@ -15,10 +15,9 @@ forwards char *	varName P((Word));
 forwards void	writePrimitive P((Word, bool));
 forwards bool	display P((Word, bool));
 forwards int	priorityOperator P((Atom));
-forwards bool	portrayTerm P((Word));
-forwards bool	writeTerm P((Word, int, bool));
+forwards bool	writeTerm P((Word, int, bool, Word));
 forwards word	displayStream P((Word, Word, bool));
-forwards word	writeStreamTerm P((Word, Word, int, int));
+forwards word	writeStreamTerm P((Word, Word, int, int, Word));
 
 static char *
 varName(adr)
@@ -234,28 +233,49 @@ Atom atom;
  ** Sun Jun  5 15:37:12 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 static bool
-portrayTerm(term)
-Word term;
-{ word goal;
+pl_call2(goal, arg)
+Word goal;
+Word arg;
+{ Module mod = NULL;
+  Atom name;
+  int arity;
+  word g;
   mark m;
+  int n;
   bool rval;
 
+  TRY(goal = stripModule(goal, &mod));
+  deRef(goal);
+
+  if ( isAtom(*goal) )
+  { name = (Atom) *goal;
+    arity = 0;
+  } else if ( isTerm(*goal) )
+  { name = functorTerm(*goal)->name;
+    arity = functorTerm(*goal)->arity;
+  } else
+    return warning("call/2: instantiation fault");
+  
   Mark(m);
-  goal = globalFunctor(FUNCTOR_portray1);
-  pl_unify(argTermP(goal, 0), term);
+  g = globalFunctor(lookupFunctorDef(name, arity+1));
+  for(n = 0; n < arity; n++)
+    pl_unify(argTermP(g, n), argTermP(goal, n));
+  pl_unify(argTermP(g, n), arg);
   debugstatus.suspendTrace++;
-  rval = callGoal(MODULE_user, goal, FALSE);
+  rval = callGoal(mod, g, FALSE);
   debugstatus.suspendTrace--;
   Undo(m);
 
   return rval;
 }
 
+
 static bool
-writeTerm(term, prec, style)
+writeTerm(term, prec, style, g)
 Word term;
 int prec;
 bool style;
+Word g;
 { Atom functor;
   int arity, n;
   int op_type, op_pri;
@@ -264,7 +284,7 @@ bool style;
 
   deRef(term);
 
-  if (!isVar(*term) && style == PORTRAY && portrayTerm(term) == TRUE)
+  if ( !isVar(*term) && style == PORTRAY && pl_call2(g, term) )
     succeed;
 
   if (isPrimitive(*term) )
@@ -289,11 +309,11 @@ bool style;
       { deRef(arg);
 	if (!isTerm(*arg) || functorTerm(*arg) != FUNCTOR_comma2)
 	  break;
-	writeTerm(argTermP(*arg, 0), 999, style);
+	writeTerm(argTermP(*arg, 0), 999, style, g);
 	Put(',');
 	arg = argTermP(*arg, 1);
       }
-      writeTerm(arg, 999, style);      
+      writeTerm(arg, 999, style, g);      
       Put('}');
       succeed;
     }
@@ -302,7 +322,7 @@ bool style;
 	Put('(');
       writePrimitive((Word) &functor, quote);
       Put(' ');
-      writeTerm(arg, op_type == OP_FX ? op_pri-1 : op_pri, style);
+      writeTerm(arg, op_type == OP_FX ? op_pri-1 : op_pri, style, g);
       if (op_pri > prec)
 	Put(')');
       succeed;
@@ -310,7 +330,7 @@ bool style;
     if (isPostfixOperator(functor, &op_type, &op_pri) )
     { if (op_pri > prec)
 	Put('(');
-      writeTerm(arg, op_type == OP_XF ? op_pri-1 : op_pri, style);
+      writeTerm(arg, op_type == OP_XF ? op_pri-1 : op_pri, style, g);
       Put(' ');
       writePrimitive((Word)&functor, quote);
       if (op_pri > prec)
@@ -321,13 +341,13 @@ bool style;
   { if (functor == ATOM_dot)
     { Put('[');
       for(;;)
-      { writeTerm(arg++, 999, style);
+      { writeTerm(arg++, 999, style, g);
 	deRef(arg);
 	if (*arg == (word) ATOM_nil)
 	  break;
 	if (!isList(*arg) )
 	{ Put('|');
-	  writeTerm(arg, 999, style);
+	  writeTerm(arg, 999, style, g);
 	  break;
 	}
 	Put(',');
@@ -340,15 +360,15 @@ bool style;
     { if (op_pri > prec)
 	Put('(');
       writeTerm(arg++, 
-		 op_type == OP_XFX || op_type == OP_XFY ? op_pri-1 : op_pri, 
-		 style);
+		op_type == OP_XFX || op_type == OP_XFY ? op_pri-1 : op_pri, 
+		style, g);
       if (functor != ATOM_comma)
 	Put(' ');
       writePrimitive((Word)&functor, quote);
       Put(' ');
       writeTerm(arg, 
-		 op_type == OP_XFX || op_type == OP_YFX ? op_pri-1 : op_pri, 
-		 style);
+		op_type == OP_XFX || op_type == OP_YFX ? op_pri-1 : op_pri, 
+		style, g);
       if (op_pri > prec)
 	Put(')');
       succeed;
@@ -360,7 +380,7 @@ bool style;
   for(n=0; n<arity; n++, arg++)
   { if (n > 0)
       Putf(", ");
-    writeTerm(arg, 999, style);
+    writeTerm(arg, 999, style, g);
   }
   Put(')');
 
@@ -370,7 +390,7 @@ bool style;
 word
 pl_write(term)
 Word term;
-{ writeTerm(term, 1200, PLAIN);
+{ writeTerm(term, 1200, PLAIN, NULL);
 
   succeed;
 }
@@ -378,7 +398,7 @@ Word term;
 word
 pl_writeq(term)
 Word term;
-{ writeTerm(term, 1200, QUOTE_ATOMS);
+{ writeTerm(term, 1200, QUOTE_ATOMS, NULL);
 
   succeed;
 }
@@ -386,32 +406,44 @@ Word term;
 word
 pl_print(term)
 Word term;
-{ writeTerm(term, 1200, PORTRAY);
+{ word g = (word) ATOM_portray;
+
+  writeTerm(term, 1200, PORTRAY, &g);
+
+  succeed;
+}
+
+word
+pl_dprint(term, g)
+Word term, g;
+{ writeTerm(term, 1200, PORTRAY, g);
 
   succeed;
 }
 
 static word
-writeStreamTerm(stream, term, prec, style)
-Word stream, term;
+writeStreamTerm(stream, term, prec, style, g)
+Word stream, term, g;
 int prec, style;
-{ streamOutput(stream, writeTerm(term, prec, style));
+{ streamOutput(stream, writeTerm(term, prec, style, g));
 }
 
 word
 pl_write2(stream, term)
 Word stream, term;
-{ return writeStreamTerm(stream, term, 1200, PLAIN);
+{ return writeStreamTerm(stream, term, 1200, PLAIN, NULL);
 }
 
 word
 pl_writeq2(stream, term)
 Word stream, term;
-{ return writeStreamTerm(stream, term, 1200, QUOTE_ATOMS);
+{ return writeStreamTerm(stream, term, 1200, QUOTE_ATOMS, NULL);
 }
 
 word
 pl_print2(stream, term)
 Word stream, term;
-{ return writeStreamTerm(stream, term, 1200, PORTRAY);
+{ word g = (word) ATOM_portray;
+
+  return writeStreamTerm(stream, term, 1200, PORTRAY, &g);
 }

@@ -1,3 +1,10 @@
+Tue Oct 20 14:32:24 1992  Jan Wielemaker  (jan at swi)
+
+* Added expand_term/2 system predicate for compatibility with
+  SICStus and Quintus Prolog on this matter.
+
+VERSION 1.6.5
+
 Fri Jun 19 17:34:44 1992  Jan Wielemaker  (jan at swi)
 
 * Added support for static linking with C-code: see pl-extend.c

@@ -204,7 +204,7 @@ redesign of parts of the compiler.
 #define MAXARITY		128	/* arity of predicate */
 #define MAXVARIABLES		256	/* number of variables/clause */
 #define MAXEXTERNALS		512	/* external references of a clause */
-#define MAXCODES		10000	/* number of byte codes of a clause */
+#define MAXCODES		20000	/* number of byte codes of a clause */
 #define MAXSIGNAL		32	/* highest system signal number */
 
 				/* Prolog's largest int */

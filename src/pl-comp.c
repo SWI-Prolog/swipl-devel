@@ -394,7 +394,7 @@ calculation at runtime.
 #define BODY    4			/* compileArgument on body argument */
 #define BODYARG 5			/* ... on functor arg in body */
 
-#define ISVOID 0				/* compileArgument produced H_VOID */
+#define ISVOID 0			/* compileArgument produced H_VOID */
 #define NONVOID 1			/* ... anything else */
 
 #define Output_0(ci, c)		((ci)->codes[(ci)->tc++] = encode(c))
@@ -416,7 +416,7 @@ typedef struct
   int		tx;			/* index in XR table */
   struct vartable used_var;		/* boolean array of used variables */
   word		XR[MAXEXTERNALS];	/* scratch XR table */
-  code		codes[MAXCODES];	/* scratch code table */
+  Code		codes;			/* scratch code table */
 } compileInfo;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -588,6 +588,8 @@ Initialise the `compileInfo' structure.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   ci.tx = ci.tc = 0;
+  initAllocLocal();
+  ci.codes = alloc_local(MAXCODES);
   ci.module = module;
   ci.clause = clause;
   ClearVarTable(&ci);
@@ -644,6 +646,7 @@ Finish up the clause.
   clause->codes = (Code) allocHeap(sizeof(code) * ci.tc);
   memcpy(clause->codes, ci.codes, sizeof(code) * ci.tc);
   clause->code_size = ci.tc;
+  stopAllocLocal();
   statistics.externals += clause->XR_size;
   statistics.codes += clause->code_size;
 

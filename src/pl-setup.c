@@ -118,6 +118,17 @@ they  define  signal handlers to be int functions.  This should be fixed
 some day.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static void
+fatal_signal_handler(sig, type, scp, addr)
+int sig, type;
+struct sigcontext *scp;
+char *addr;
+{ DEBUG(1, printf("Fatal signal %d\n", sig));
+
+  deliverSignal(sig, type, scp, addr);
+}
+
+
 void
 initSignals()
 { int n;
@@ -129,7 +140,9 @@ initSignals()
     }
     
     pl_signal(SIGTTOU, SIG_IGN);
-
+    pl_signal(SIGSEGV, fatal_signal_handler);
+    pl_signal(SIGBUS,  fatal_signal_handler);
+    pl_signal(SIGILL,  fatal_signal_handler);
   } else
   { for( n = 0; n < MAXSIGNAL; n++ )
       if ( signalHandlers[n].os != SIG_DFL )
@@ -159,7 +172,7 @@ char *addr;
     return;
   }
 
-  fatalError("Unexpected signal: %d\n", sig);
+  sysError("Unexpected signal: %d\n", sig);
 }
 
 #endif unix
