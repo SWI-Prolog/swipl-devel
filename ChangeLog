@@ -7,8 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: compiler warnings on initPrologThreads().  Paulo Moura.
+
   * MODIFIED: Predicates whose name starts with '$' are automatically
-    hidden from the tracer.  To comfort LogTalk.  Paulo Moura.
+    hidden from the tracer.  To comfort Logtalk.  Paulo Moura.
 
   * FIXED: retractall/1 to call setDynamicProcedure() instead of simply
     modifying the predicate.  setDynamicProcedure() to call the clause

@@ -268,7 +268,6 @@ extern TLD_KEY PL_ldata;		/* key to local data */
 		 *	    FUNCTIONS		*
 		 *******************************/
 
-extern void		initPrologThreads(void);
 extern void		exitPrologThreads(void);
 extern bool		aliasThread(int tid, atom_t name);
 extern word		pl_thread_create(term_t goal, term_t id,
@@ -358,6 +357,12 @@ void		resumeThreads(void);
 #define UNLOCKMODULE(module)
 
 #endif /*O_PLMT*/
+
+		 /*******************************
+		 *	       COMMON		*
+		 *******************************/
+
+extern void		initPrologThreads(void);
 
 		 /*******************************
 		 *	LD-USING FUNCTIONS	*
