@@ -1,3 +1,7 @@
+Dec 16, 2004
+
+  * FIXED: More non-blocking I/O issues.   Matt Lilley.
+
 Dec 14, 2004
 
   * FIXED: Non-blocking I/O issues.   Matt Lilley.

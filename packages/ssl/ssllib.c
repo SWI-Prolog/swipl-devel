@@ -526,7 +526,7 @@ ssl_cb_cert_verify(int preverify_ok, X509_STORE_CTX *ctx)
 {
     SSL    * ssl    = NULL;
     PL_SSL * config = NULL;
-
+    
     /*
      * Get our config data
      */
@@ -716,7 +716,6 @@ ssl_init(PL_SSL_ROLE role)
 #else
     ssl_method = SSLv23_method();
 #endif
-
     ssl_ctx = SSL_CTX_new(ssl_method);
 
     if (!ssl_ctx) {
@@ -805,7 +804,7 @@ ssl_config(PL_SSL *config)
                                  , ssl_cb_pem_passwd
                                  ) ;
     ssl_deb(1, "password handler installed\n");
-
+   
     if (config->pl_ssl_cert_required) {
         if (config->pl_ssl_certf == NULL ||
             config->pl_ssl_keyf  == NULL) {
@@ -831,7 +830,7 @@ ssl_config(PL_SSL *config)
         }
         ssl_deb(1, "certificate installed successfully\n");
     }
-
+    
     (void) SSL_CTX_set_verify( config->pl_ssl_ctx
                              , (config->pl_ssl_peer_cert_required)
                                ? SSL_VERIFY_PEER|SSL_VERIFY_CLIENT_ONCE
@@ -948,14 +947,14 @@ ssl_ssl(PL_SSL *config, int sock_inst)
                 switch(ssl_inspect_status(instance->ssl, sock_inst, ssl_ret)) {
                     case SSL_SOCK_OK:
                         /* success */
-                        ssl_deb(1, "established ssl client side\n");
+                        ssl_deb(1, "established ssl server side\n");
                         return instance;
 
                     case SSL_SOCK_RETRY:
                         continue;
 
                     case SSL_SOCK_ERROR:
-                       if (SSL_get_error(instance->ssl, ssl_ret) == 2)
+                       if (SSL_get_error(instance->ssl, ssl_ret) == SSL_ERROR_WANT_READ)
                        {
                           nbio_wait(sock_inst, REQ_READ);
                           continue;
@@ -966,25 +965,40 @@ ssl_ssl(PL_SSL *config, int sock_inst)
             } while (1);
             break;
 
-        case PL_SSL_NONE:
-        case PL_SSL_CLIENT:
-            ssl_deb(1, "setting up SSL client side\n");
-            do {
-                int ssl_ret = SSL_connect(instance->ssl);
-                switch(ssl_inspect_status(instance->ssl, sock_inst, ssl_ret)) {
-                    case SSL_SOCK_OK:
-                        /* success */
-                        ssl_deb(1, "established ssl client side\n");
-                        return instance;
-
-                    case SSL_SOCK_RETRY:
-                        continue;
-
-                    case SSL_SOCK_ERROR:
-                        return NULL;
-                }
-            } while (1);
-            break;
+	case PL_SSL_NONE:
+	case PL_SSL_CLIENT:
+	   ssl_deb(1, "setting up SSL client side\n");
+	   do {
+	      int ssl_ret = SSL_connect(instance->ssl);
+	      switch(ssl_inspect_status(instance->ssl, sock_inst, ssl_ret)) {
+	         case SSL_SOCK_OK:
+	            /* success */
+	            ssl_deb(1, "established ssl client side\n");
+	            return instance;
+	            
+	         case SSL_SOCK_RETRY:
+	            continue;
+	            
+	         case SSL_SOCK_ERROR:
+	            if (SSL_get_error(instance->ssl, ssl_ret) == SSL_ERROR_WANT_READ)
+	            {
+	               nbio_wait(sock_inst, REQ_READ);
+	               continue;
+	            }
+	            else if (SSL_get_error(instance->ssl, ssl_ret) == SSL_ERROR_WANT_WRITE)
+	            {
+	               nbio_wait(sock_inst, REQ_WRITE);
+	               continue;
+	            }
+	            else
+	            {
+	               Sdprintf("Unrecoverable error: %d\n", SSL_get_error(instance->ssl, ssl_ret));
+	               Sdprintf("Additionally, get_error returned %d\n", ERR_get_error());
+	               return NULL;
+	            }
+	      }
+	   } while (1);
+	   break;
     }
     return NULL;
 }
@@ -1185,8 +1199,14 @@ ssl_read(PL_SSL_INSTANCE *instance, char *buf, int size)
                 continue;
 
             case SSL_SOCK_ERROR:
-                return -1;
-        }
+            if (SSL_get_error(instance->ssl, rbytes) == SSL_ERROR_WANT_READ)
+            {
+               nbio_wait(instance->sock, REQ_READ);
+               continue;
+            }
+            else
+               return -1;
+       }
     } while (1);
 }
 
@@ -1211,7 +1231,13 @@ ssl_write(PL_SSL_INSTANCE *instance, const char *buf, int size)
                 continue;
 
             case SSL_SOCK_ERROR:
-                return -1;
+               if (SSL_get_error(instance->ssl, wbytes) == SSL_ERROR_WANT_WRITE)
+               {
+                  nbio_wait(instance->sock, REQ_WRITE);
+                  continue;
+               }
+               else
+                  return -1;
         }
     } while (1);
 }
