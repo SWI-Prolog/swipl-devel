@@ -67,6 +67,33 @@ pl_break1(Word goal)
   return rval;
 }
 
+
+word
+pl_notrace1(Word goal)
+{ bool rval;
+  mark m;
+
+  long	     skipSave  = debugstatus.skiplevel;
+  bool	     traceSave = debugstatus.tracing;
+  bool	     debugSave = debugstatus.debugging;
+  int	     suspSave  = debugstatus.suspendTrace;
+
+  debugstatus.tracing = FALSE;
+  debugstatus.debugging = FALSE;
+  debugstatus.skiplevel = 0;
+  debugstatus.suspendTrace = 1;
+
+  rval = callGoal(NULL, *goal, FALSE);
+
+  debugstatus.suspendTrace = suspSave;
+  debugstatus.skiplevel    = skipSave;
+  debugstatus.debugging    = debugSave;
+  debugstatus.tracing      = traceSave;
+
+  return rval;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Call a prolog goal from C. The argument must  be  an  instantiated  term
 like for the Prolog predicate call/1.  The goal is executed in a kind of

@@ -14,7 +14,7 @@
 #define MD	     "config/win32.h"
 #define PLHOME       "c:/pl"
 #define DEFSTARTUP   ".plrc"
-#define PLVERSION    "2.1.4"
+#define PLVERSION    "2.1.5"
 #define ARCH	     "i386-win32"
 #define C_LIBS	     "-lreadline -lconsole -luxnt"
 #define C_STATICLIBS ""
@@ -236,6 +236,9 @@ GLOBAL struct
 #define fail			return FALSE
 #define TRY(goal)		{ if ((goal) == FALSE) fail; }
 
+#define CL_START		0	/* asserta */
+#define CL_END			1	/* assertz */
+
 typedef void *			caddress;
 
 #define EOS			('\0')
@@ -263,6 +266,7 @@ redesign of parts of the compiler.
 #define LINESIZ			1024	/* size of a data line */
 #define MAXARITY		128	/* arity of predicate */
 #define MAXVARIABLES		256	/* number of variables/clause */
+#define SMALLSTACK		200 * 1024 /* GC policy */
 
 				/* Prolog's integer range */
 #define PLMININT		(-(1L<<(32 - MASK_BITS - LMASK_BITS - 1)))
@@ -749,6 +753,9 @@ typedef struct functorDef *	FunctorDef;	/* name/arity pair */
 typedef struct procedure *	Procedure;	/* predicate */
 typedef struct definition *	Definition;	/* predicate definition */
 typedef struct clause *		Clause;		/* compiled clause */
+typedef struct clause_ref *	ClauseRef;      /* reference to a clause */
+typedef struct clause_index *	ClauseIndex;    /* Clause indexing table */
+typedef struct clause_chain *	ClauseChain;    /* Chian of clauses in table */
 typedef struct code_info *	CodeInfo;	/* WAM op-code info */
 typedef struct operator *	Operator;	/* see pl-op.c, pl-read.c */
 typedef struct record *		Record;		/* recorda/3, etc. */
@@ -799,6 +806,9 @@ with one operation, it turns out to be faster as well.
 #define LOCKED			(SYSTEM)      /* predicate */
 #define FILE_ASSIGNED		(0x00010000L) /* predicate */
 #define VOLATILE		(0x00020000L) /* predicate */
+#define AUTOINDEX		(0x00040000L) /* predicate */
+#define NEEDSCLAUSEGC		(0x00080000L) /* predicate */
+#define NEEDSREHASH		(0x00100000L) /* predicate */
 
 #define ERASED			(0x0001) /* clause */
 #define UNKNOWN			(0x0002) /* module */
@@ -828,22 +838,33 @@ Handling environment (or local stack) frames.
 #define varFrame(f, n)		(*varFrameP((f), (n)) )
 #define parentFrame(f)		((f)->parent ? (f)->parent\
 					     : (LocalFrame)varFrame((f), -1))
-#define slotsFrame(f)		(true((f)->procedure->definition, FOREIGN) ? \
-				      (f)->procedure->functor->arity : \
-				      (f)->clause->prolog_vars)
+#define slotsFrame(f)		(true((f)->predicate, FOREIGN) ? \
+				      (f)->predicate->functor->arity : \
+				      (f)->clause->clause->prolog_vars)
 #define contextModule(f)	((f)->context)
 
-#define leaveClause(clause) { if ( --clause->references == 0 && \
-				   true(clause, ERASED) ) \
-				unallocClause(clause); \
-			    }
+#if O_DEBUG
+#define leaveDefinition(def)	{ if ( --def->references == 0 && \
+				       true(def, NEEDSCLAUSEGC) ) \
+				    gcClausesDefinition(def); \
+				  if ( def->references < 0 ) \
+				  { Sdprintf("%s: reference count < 0\n", \
+					     predicateName(def)); \
+				    def->references = 0; \
+				  } \
+				}
+#else /*O_DEBUG*/
+#define leaveDefinition(def)	{ if ( --def->references == 0 && \
+				       true(def, NEEDSCLAUSEGC) ) \
+				    gcClausesDefinition(def); \
+				}
+#endif /*O_DEBUG*/
 
-#define leaveFrame(fr) { if ( true(fr->procedure->definition, FOREIGN) ) \
+#define leaveFrame(fr) { if ( true(fr->predicate, FOREIGN) & \
+			      true(fr->predicate, NONDETERMINISTIC) ) \
 			   leaveForeignFrame(fr); \
 			 else \
-			 { if ( fr->clause ) \
-			     leaveClause(fr->clause); \
-			 } \
+			   leaveDefinition(fr->predicate); \
 		       }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -945,6 +966,7 @@ Handling dereferenced arbitrary Prolog runtime objects.
 #define isPrimitive(w)  (isVar(w) || isAtomic(w))
 #define isAtomic(w)	(nonVar(w) && (isMasked(w) || pointerIsAtom(w)))
 #define isTerm(w)	(isPointer(w) && !pointerIsAtom(w))
+#define nonVarIsTerm(w)	(!isMasked(w) && !pointerIsAtom(w))
 #define isList(w)	(isPointer(w) && functorTerm(w) == FUNCTOR_dot2)
 #define functorTerm(w)	(((Functor)(w))->definition)
 #define argTerm(w, n)	(*argTermP((w), (n)))
@@ -1023,10 +1045,8 @@ struct functorDef
 
 struct clause
 { Procedure	procedure;	/* procedure we belong to */
-  Clause	next;		/* next clause of procedure */
   Code		codes;		/* byte codes of clause */
   struct index	index;		/* index key of clause */
-  unsigned int	references;	/* no of. references from interpreter */
   short		code_size;	/* size of byte code array */
   short		subclauses;	/* number of subclauses in body (decompiler) */
   short		variables;		/* # of variables for frame */
@@ -1035,6 +1055,11 @@ struct clause
   unsigned short	source_no;	/* Index of source-file */
   unsigned short	flags;		/* Flag field holding: */
 		/* ERASED	   Clause is retracted, but referenced */
+};
+
+struct clause_ref
+{ Clause	clause;
+  ClauseRef	next;
 };
 
 struct code_info
@@ -1062,24 +1087,37 @@ struct operator
 };
 
 struct procedure
-{ FunctorDef	functor;	/* Name/Arity of procedure */
+{ Definition	definition;	/* definition of procedure */
   int		type;		/* PROCEDURE_TYPE */
-  Definition	definition;	/* definition of procedure */
+};
+
+struct clause_index
+{ int		buckets;		/* # entries */
+  int		size;			/* # elements (clauses) */
+  ClauseChain 	entries;		/* chains holding the clauses */
+};
+
+struct clause_chain
+{ ClauseRef	head;
+  ClauseRef	tail;
 };
 
 struct definition
-{ union
-  { Clause	clauses;		/* clause list of procedure */
+{ FunctorDef	functor;		/* Name/Arity of procedure */
+  union
+  { ClauseRef	clauses;		/* clause list of procedure */
     Func	function;		/* function pointer of procedure */
   } definition;
-  Clause	lastClause;		/* last clause of list */
+  ClauseRef	lastClause;		/* last clause of list */
   Module	module;			/* module of the predicate */
+  int		references;		/* reference count */
 #ifdef O_PROFILE
   int		profile_ticks;		/* profiler: call times active */
   int		profile_calls;		/* profiler: number of calls */
   int		profile_redos;		/* profiler: number of redos */
   int		profile_fails;		/* profiler: number of fails */
 #endif /* O_PROFILE */
+  ClauseIndex 	hash_info;		/* clause hash-tables */
   unsigned long indexPattern;		/* indexed argument pattern */
   unsigned long	flags;			/* booleans: */
 		/*	FOREIGN		   foreign predicate? */
@@ -1099,15 +1137,18 @@ struct definition
 		/*	TRACE_EXIT	   Trace exit-port */
 		/*	TRACE_FAIL	   Trace fail-port */
 		/*	VOLATILE	   Don't save my clauses */
-  char		indexCardinality;	/* cardinality of index pattern */
+		/*	AUTOINDEX	   Automatically guess index */
+		/*	NEEDSCLAUSEGC	   Clauses have been erased */
+  unsigned	indexCardinality : 8;	/* cardinality of index pattern */
+  short		number_of_clauses;	/* number of associated clauses */
 };
 
 struct localFrame
 { Code		programPointer;	/* pointer into program */
   LocalFrame	parent;		/* parent local frame */
-  Clause	clause;		/* Current clause of frame */
+  ClauseRef	clause;		/* Current clause of frame */
   LocalFrame	backtrackFrame;	/* Frame for backtracking */
-  Procedure	procedure;	/* Procedure we are running */
+  Definition	predicate;	/* Predicate we are running */
   mark		mark;		/* data backtrack mark */
   Module	context;	/* context module of frame */
   unsigned long flags;		/* packet long holding: */
@@ -1235,6 +1276,8 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 #endif
 #endif
 
+#define GC_FAST_POLICY 0x1		/* not really used yet */
+
 #if O_SHARED_MEMORY
 #define O_SHM_FREE_IMMEDIATE 1
 #define MAX_STACK_SEGMENTS  20
@@ -1263,8 +1306,10 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 	  long		maxlimit;	/* maximum limit */                 \
 	  long		minfree;	/* minimum amount of free space */  \
 	  bool		gc;		/* Can be GC'ed? */		    \
-	  long		gced_size;	/* size after last GC */	    \
-	  long		small;		/* Donot GC below this size */	    \
+	  unsigned long	gced_size;	/* size after last GC */	    \
+	  unsigned long	small;		/* Donot GC below this size */	    \
+	  unsigned int	factor;		/* How eager we are */		    \
+	  int		policy;		/* Time, memory optimization */	    \
 	  char		*name;		/* Symbolic name of the stack */    \
 	}
 #endif

@@ -17,9 +17,10 @@ finding source files, etc.
 
 forwards void	resetReferencesModule(Module);
 
-SourceFile sourceFileTable = (SourceFile) NULL;
-SourceFile tailSourceFileTable = (SourceFile) NULL;
-SourceFile isCurrentSourceFile(Atom name);
+SourceFile 	sourceFileTable = (SourceFile) NULL;
+SourceFile 	tailSourceFileTable = (SourceFile) NULL;
+SourceFile 	isCurrentSourceFile(Atom name);
+static void	removeClausesProcedure(Procedure proc, int sfindex);
 
 Procedure
 lookupProcedure(FunctorDef f, Module m)
@@ -33,14 +34,15 @@ lookupProcedure(FunctorDef f, Module m)
   proc = (Procedure)  allocHeap(sizeof(struct procedure));
   def  = (Definition) allocHeap(sizeof(struct definition));
   proc->type = PROCEDURE_TYPE;
-  proc->functor = f;
   proc->definition = def;
-  def->module = m;
+  def->functor = f;
+  def->module  = m;
   addHTable(m->procedures, f, proc);
   statistics.predicates++;
 
-  def->definition.clauses = (Clause) NULL;
-  def->lastClause = (Clause) NULL;
+  def->definition.clauses = NULL;
+  def->lastClause = NULL;
+  def->hash_info = NULL;
 #ifdef O_PROFILE
   def->profile_ticks = 0;
   def->profile_calls = 0;
@@ -48,6 +50,7 @@ lookupProcedure(FunctorDef f, Module m)
   def->profile_fails = 0;
 #endif /* O_PROFILE */
   clearFlags(def);
+  def->references = 0;
   resetProcedure(proc);
 
   return proc;
@@ -59,12 +62,18 @@ resetProcedure(Procedure proc)
 
   def->flags ^= def->flags & ~SPY_ME;	/* Preserve the spy flag */
   set(def, TRACE_ME);
-  if ( proc->functor->arity == 0 )
+  def->indexCardinality = 0;
+  def->number_of_clauses = 0;
+  if ( def->functor->arity == 0 )
   { def->indexPattern = 0x0;
-    def->indexCardinality = 0;
   } else
-  { def->indexPattern = 0x1;
-    def->indexCardinality = 1;
+  { def->indexPattern = (0x0 | NEED_REINDEX);
+    set(def, AUTOINDEX);
+  }
+  
+  if ( def->hash_info && def->references == 0 )
+  { unallocClauseIndexTable(def->hash_info);
+    def->hash_info = NULL;
   }
 }
 
@@ -81,7 +90,7 @@ isCurrentProcedure(FunctorDef f, Module m)
 bool
 isDefinedProcedure(register Procedure proc)
 { if ( /* true(proc->definition, FOREIGN) || not needed; union */
-       proc->definition->definition.clauses != (Clause) NULL ||
+       proc->definition->definition.clauses ||
        true(proc->definition, DYNAMIC) )
     succeed;
   fail;
@@ -107,8 +116,8 @@ lookupProcedureToDefine(FunctorDef def, Module m)
        false(proc->definition, DYNAMIC) )
   { warning("Attempt to redefine a system predicate: %s/%d\n"
 	    "\tUse :- redefine_system_predicate(+Head) if this is intended",
-	    stringAtom(proc->functor->name),
-	    proc->functor->arity);
+	    stringAtom(proc->definition->functor->name),
+	    proc->definition->functor->arity);
     return NULL;
   }
  
@@ -221,14 +230,14 @@ pl_current_predicate(Word name, Word functor, word h)
     symb = (Symbol) ForeignContextAddress(h);
 
   for(; symb; symb = nextHTable(m->procedures, symb) )
-  { proc = (Procedure) symb->value;
+  { FunctorDef fdef;
+    
+    proc = (Procedure) symb->value;
+    fdef = proc->definition->functor;
 
-    if (n != (Atom) NULL && n != proc->functor->name)
-      continue;
-
-    if (unifyAtomic(name, proc->functor->name) == FALSE)
-      continue;
-    if (unifyFunctor(functor, proc->functor) == FALSE)
+    if ( (n != (Atom) NULL && n != fdef->name) ||
+	 !unifyAtomic(name, fdef->name) ||
+	 !unifyFunctor(functor, fdef) )
       continue;
 
     if ((symb = nextHTable(m->procedures, symb)) != (Symbol) NULL)
@@ -241,28 +250,53 @@ pl_current_predicate(Word name, Word functor, word h)
 }
 
 
+ClauseRef
+newClauseRef(Clause clause)
+{ ClauseRef cref = allocHeap(sizeof(struct clause_ref));
+  
+  cref->clause = clause;
+  cref->next   = NULL;
+
+  return cref;
+}
+
+
+void
+freeClauseRef(ClauseRef cref)
+{ freeHeap(cref, sizeof(struct clause_ref));
+}
+
+
 /*  Assert a clause to a procedure. Where askes to assert either at the
-    head or at the tail of the clause list. It should be instantiated
-    to ether 'a' or 'z'.
+    head or at the tail of the clause list.
 
  ** Fri Apr 29 12:44:08 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 bool
-assertProcedure(Procedure proc, Clause clause, char where)
-{ register Definition def = proc->definition;
+assertProcedure(Procedure proc, Clause clause, int where)
+{ Definition def = proc->definition;
+  ClauseRef cref = newClauseRef(clause);
 
   startCritical;
-  if (def->lastClause == (Clause) NULL)
-  { def->definition.clauses = def->lastClause = clause;
-  } else if (where == 'a')
-  { clause->next = def->definition.clauses;
-    def->definition.clauses = clause;
+  if ( !def->lastClause )
+  { def->definition.clauses = def->lastClause = cref;
+  } else if ( where == 'a' )
+  { cref->next = def->definition.clauses;
+    def->definition.clauses = cref;
   } else
-  { Clause last = def->lastClause;
+  { ClauseRef last = def->lastClause;
 
-    last->next = clause;
-    def->lastClause = clause;
+    last->next = cref;
+    def->lastClause = cref;
   }
+
+  if ( def->hash_info )
+    addClauseToIndex(def, clause, where);
+  else
+  { if ( ++def->number_of_clauses == 25 && true(def, AUTOINDEX) )
+      def->indexPattern |= NEED_REINDEX;
+  }
+
   endCritical;  
 
   succeed;
@@ -285,8 +319,8 @@ abolishProcedure(Procedure proc, Module module)
   { def  = (Definition) allocHeap(sizeof(struct definition));
     proc->definition = def;
     def->module = module;
-    def->definition.clauses = (Clause) NULL;
-    def->lastClause = (Clause) NULL;
+    def->definition.clauses = NULL;
+    def->lastClause = NULL;
 #ifdef O_PROFILE
     def->profile_ticks = 0;
     def->profile_calls = 0;
@@ -300,7 +334,7 @@ abolishProcedure(Procedure proc, Module module)
 
   if ( true(def, FOREIGN) )
   { startCritical;
-    def->definition.clauses = def->lastClause = (Clause) NULL;
+    def->definition.clauses = def->lastClause = NULL;
     resetProcedure(proc);
     endCritical;
 
@@ -313,97 +347,82 @@ abolishProcedure(Procedure proc, Module module)
   succeed;
 }
 
-void
+
+static void
 removeClausesProcedure(Procedure proc, int sfindex)
 { Definition def = proc->definition;
-  Clause c, next;
+  ClauseRef c;
 
-  startCritical;
-  c = def->definition.clauses;
-  def->definition.clauses = def->lastClause = (Clause) NULL;
+  def->references++;
 
-  for(; c; c = next)
-  { next = c->next;
+  for(c = def->definition.clauses; c; c = c->next)
+  { Clause cl = c->clause;
 
-    if ( sfindex == 0 || sfindex == c->source_no )
-    { if (c->references == 0)
-      { freeClause(c);
-      } else
-      { set(c, ERASED);
-	c->next = (Clause) NULL;
-      }
-    } else				/* keep this clause (multifile) */
-    { if ( !def->lastClause )
-      { def->definition.clauses = def->lastClause = c;
-      } else
-      { def->lastClause->next = c;
-	def->lastClause = c;
-      }
-      c->next = NULL;
-    }
+    if ( sfindex == 0 || sfindex == cl->source_no )
+    { set(cl, ERASED);
+      set(def, NEEDSCLAUSEGC);
+      def->number_of_clauses--;
+    } 
   }
 
-  endCritical;
+  leaveDefinition(def);
 }
 
-/*  Retract a clause from a procedure.  When a clause without references
-    is  retracted  it  is  actually removed from the heap, otherwise the
-    clause is unlinked and marked as `erased'.  Its  next  pointer  will
-    not be changed.  to avoid the follow up clause to be destroyed it is
-    given an extra reference.
-
- ** Sun Apr 17 16:28:32 1988  jan@swivax.UUCP (Jan Wielemaker)  */
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Retract a clause from a procedure. When   a clause without references is
+retracted it is actually removed from the  heap, otherwise the clause is
+unlinked and marked as `erased'. Its next   pointer will not be changed.
+to avoid the follow up clause  to  be   destroyed  it  is given an extra
+reference.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
 retractClauseProcedure(Procedure proc, Clause clause)
-{ Clause prev = (Clause) NULL;
-  Clause c;
-  register Definition def = proc->definition;
+{ Definition def = proc->definition;
 
-  for(c = def->definition.clauses; c; prev = c, c = c->next)
-  { if (c == clause)
-    { startCritical;
-      if (prev == (Clause) NULL)
-      { def->definition.clauses = c->next;
-	if (c->next == (Clause) NULL)
-	  def->lastClause = (Clause) NULL;
-      } else
-      { prev->next = c->next;
-	if (c->next == (Clause) NULL)
-	  def->lastClause = prev;
-      }
-      if (c->references == 0)
-      { freeClause(c);
-      } else
-      { set(clause, ERASED);
-	if (clause->next)
-	  clause->next->references++;
-      }
-      endCritical;
 
-      succeed;
+  if ( def->references )
+  { set(clause, ERASED);
+    set(def, NEEDSCLAUSEGC);
+    def->number_of_clauses--;
+    succeed;
+  } else
+  { ClauseRef prev = NULL;
+    ClauseRef c;
+    bool rval = FALSE;
+
+    startCritical;
+
+    if ( def->hash_info )
+      delClauseFromIndex(def->hash_info, clause);
+
+    for(c = def->definition.clauses; c; prev = c, c = c->next)
+    { if ( c->clause == clause )
+      { if ( !prev )
+	{ def->definition.clauses = c->next;
+	  if ( !c->next )
+	    def->lastClause = NULL;
+	} else
+	{ prev->next = c->next;
+	  if ( c->next == NULL)
+	    def->lastClause = prev;
+	}
+
+	freeClauseRef(c);
+	freeClause(clause);
+	def->number_of_clauses--;
+
+	rval = TRUE;
+	break;
+      }
     }
+
+    endCritical;
+
+    return rval;
   }
-
-  fail;
 }
 
-void
-unallocClause(Clause clause)
-{ DEBUG(1, Word w = newTerm();
-	   decompile(clause, w);
-	   Putf("removing clause ");
-	   pl_write(w);
-	   Putf(" of %s\n", procedureName(clause->procedure));
-       );
-
-  if ( clause->next &&
-       --clause->next->references == 0 &&
-       true(clause->next, ERASED) )
-    unallocClause(clause->next);
-
-  freeClause(clause);
-}
 
 void
 freeClause(Clause c)
@@ -412,27 +431,82 @@ freeClause(Clause c)
   freeHeap(c, sizeof(struct clause));
 }
 
-/*  resetReferences() sets all clause reference counts to zero. It is
-    called by abort().
 
- ** Fri May 27 10:36:14 1988  jan@swivax.UUCP (Jan Wielemaker)  */
+void
+gcClausesDefinition(Definition def)
+{ ClauseRef cref = def->definition.clauses, prev = NULL;
+  int rehash = 0;
+#if O_DEBUG
+  int left = 0, removed = 0;
+#endif
+
+  DEBUG(1, Sdprintf("gcClausesDefinition(%s) --> ", predicateName(def)));
+
+  startCritical;
+
+  if ( def->hash_info )
+  { if ( false(def, NEEDSREHASH) )
+      gcClauseIndex(def->hash_info);
+    else
+    { rehash = def->hash_info->size * 2;
+      unallocClauseIndexTable(def->hash_info);
+      def->hash_info = NULL;
+    }
+  }
+
+  while( cref )
+  { if ( true(cref->clause, ERASED) )
+    { ClauseRef c = cref;
+      
+      cref = cref->next;
+      if ( !prev )
+      { def->definition.clauses = c->next;
+	if ( !c->next )
+	  def->lastClause = NULL;
+      } else
+      { prev->next = c->next;
+	if ( c->next == NULL)
+	  def->lastClause = prev;
+      }
+
+      DEBUG(0, removed++);
+      freeClause(c->clause);
+      freeClauseRef(c);
+    } else
+    { prev = cref;
+      cref = cref->next;
+      DEBUG(0, left++);
+    }
+  }
+
+  DEBUG(1, Sdprintf("removed %d, left %d\n", removed, left));
+
+  if ( rehash )
+    hashDefinition(def, rehash);
+
+  clear(def, NEEDSCLAUSEGC|NEEDSREHASH);
+
+  endCritical;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+resetReferences() is called by abort() to clear all predicate references.
+Erased clauses will be removed as well.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 resetReferencesModule(Module m)
 { Definition def;
   Symbol s;
-  Clause clause;
 
   for_table(s, m->procedures)
   { def = ((Procedure) s->value)->definition;
 #ifdef O_PROFILE
     clear(def, PROFILE_TICKED);
 #endif /* O_PROFILE */
-    if ( true(def, FOREIGN) )
-      continue;
-
-    for(clause=def->definition.clauses; clause; clause = clause->next)
-      clause->references = 0;
+    def->references = 1;
+    leaveDefinition(def);
   }
 }
 
@@ -499,45 +573,48 @@ code  perhaps,  calls  indirect via C? (I do recall once conciously have
 decided its not save, but can't recall why ...)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-bool
+Definition
 autoImport(FunctorDef f, Module m)
-{ Procedure proc, p;
+{ Procedure proc;
+  Definition def;
 					/* Defined: no problem */
   if ( (proc = isCurrentProcedure(f, m)) != NULL &&
        isDefinedProcedure(proc) )
-    succeed;
+    return proc->definition;
   
   if ( m->super == (Module) NULL )	/* No super: can't import */
-    fail;
+    return NULL;
 
-  TRY( autoImport(f, m->super) );	/* Import in super */
+  if ( !(def = autoImport(f, m->super)) )
+    return NULL;
 
-  p = isCurrentProcedure(f, m->super);	/* Link the two */
   if ( proc == NULL )			/* Create header if not there */
     proc = lookupProcedure(f, m);
 					/* safe? */
   freeHeap(proc->definition, sizeof(struct definition));
-  proc->definition = p->definition;
+  proc->definition = def;
 
-  succeed;
+  return def;
 }
 
 static int undefined_nesting;
 
-void
-trapUndefined(Procedure proc)
+Definition
+trapUndefined(Definition def)
 { int retry_times = 0;
+  Definition newdef;
+  Module module = def->module;
+  FunctorDef functor = def->functor;
 
   retry:
 					/* Auto import */
-  if ( autoImport(proc->functor, proc->definition->module) )
-    return;
+  if ( (newdef = autoImport(functor, module)) )
+    return newdef;
 					/* Pred/Module does not want to trap */
-  if ( true(proc->definition, DYNAMIC) ||
-       false(proc->definition->module, UNKNOWN) )
-    return;
+  if ( true(def, DYNAMIC) || false(module, UNKNOWN) )
+    return def;
 
-  DEBUG(1, Sdprintf("trapUndefined(%s)\n", procedureName(proc)));
+  DEBUG(5, Sdprintf("trapUndefined(%s)\n", predicateName(def)));
 
 					/* Trap via exception/3 */
   if ( status.autoload )
@@ -549,15 +626,15 @@ trapUndefined(Procedure proc)
 
     if ( undefined_nesting++ == 1000 )
     { undefined_nesting = 1;
-      sysError("trapUndefined(): undefined: %s", procedureName(proc));
-      return;
+      sysError("trapUndefined(): undefined: %s", predicateName(def));
+      return def;
     }
 
     Mark(m);
     goal = globalFunctor(FUNCTOR_undefinterc3);
-    unifyAtomic(argTermP(goal, 0), proc->definition->module->name);
-    unifyAtomic(argTermP(goal, 1), proc->functor->name);
-    unifyAtomic(argTermP(goal, 2), consNum(proc->functor->arity));
+    unifyAtomic(argTermP(goal, 0), def->module->name);
+    unifyAtomic(argTermP(goal, 1), def->functor->name);
+    unifyAtomic(argTermP(goal, 2), consNum(def->functor->arity));
 
     debugstatus.suspendTrace++;
     rval = callGoal(MODULE_system, goal, FALSE);
@@ -568,16 +645,18 @@ trapUndefined(Procedure proc)
     Undo(m);
     undefined_nesting--;
 
+    def = lookupProcedure(functor, module)->definition; /* ??? */
+
     if ( rval == TRUE )
     { extern int trace_continuation;	/* from pl-trace.c */
 
       switch( trace_continuation )
       { case ACTION_FAIL:
-	  return;
+	  return def;
 	case ACTION_RETRY:
 	  if ( retry_times++ )
 	  { warning("exception handler failed to define predicate %s\n",
-		    procedureName(proc));
+		    predicateName(def));
 	    break;
 	  }
 	  goto retry;
@@ -586,9 +665,10 @@ trapUndefined(Procedure proc)
       }
     }
   }
-
 					/* No one want to intercept */
-  warning("Undefined predicate: %s", procedureName(proc) );
+  warning("Undefined predicate: %s", predicateName(def) );
+
+  return def;
 }
 
 		 /*******************************
@@ -621,13 +701,14 @@ pl_require(Word pred)
 word
 pl_retract(Word term, word h)
 { Procedure proc;
+  Definition def;
   Word head, body;
   Module m = (Module) NULL;
-  Clause clause;
+  ClauseRef cref;
 
   if ( ForeignControl(h) == FRG_CUTTED )
-  { clause = (Clause) ForeignContextAddress(h);
-    leaveClause(clause);			/* dereference it */
+  { cref = ForeignContextAddress(h);
+    leaveDefinition(cref->clause->procedure->definition);
 
     succeed;
   }
@@ -649,51 +730,47 @@ pl_retract(Word term, word h)
     if ( proc == (Procedure) NULL )
       fail;
 
-    if ( true(proc->definition, FOREIGN) )
+    def = proc->definition;
+
+    if ( true(def, FOREIGN) )
       return warning("retract/1: cannot retract from a foreign predicate");
-    if ( true(proc->definition, LOCKED) && false(proc->definition, DYNAMIC) )
+    if ( true(def, LOCKED) && false(def, DYNAMIC) )
       return warning("retract/1: Attempt to retract from a system predicate");
 
-    clause = proc->definition->definition.clauses;
+    cref = def->definition.clauses;
+    def->references++;			/* reference the predicate */
   } else
-  { Clause next;			/* dereference the old one */
-
-    clause = (Clause) ForeignContextAddress(h);
-    for( next = clause; next && true(next, ERASED); next = next->next )
-      ;
-    leaveClause(clause);
-    clause = next;
+  { cref = (ClauseRef) ForeignContextAddress(h);
+    proc = cref->clause->procedure;
+    def  = proc->definition;
   }
 
-  for(; clause; clause = clause->next)
-  { Clause next;
-    bool det;
+  for(; cref; cref = cref->next)
+  { bool det;
 
-    if (isTerm(*head) )
-    { if ((clause = findClause(clause, 
-			       argTermP(*head, 0), 
-			       clause->procedure->definition,
-			       &det)) == (Clause) NULL)
+    if ( isTerm(*head) )
+    { if ( !(cref = findClause(cref, argTermP(*head, 0), def, &det)) )
+      { leaveDefinition(def);
 	fail;
-    } else if ( isAtom(*head) )
-    { if ( true(clause, ERASED) )
+      }
+    } else /*if ( isAtom(*head) )*/
+    { if ( true(cref->clause, ERASED) )
 	continue;
-      det = (clause->next == NULL);
-    } else
-      return warning("retract/1: illegal clause head");
+      det = (cref->next == NULL);
+    }
 
     { mark m;
 
       Mark(m);
-      if (decompile(clause, term) == TRUE)
-      { next = clause->next;
-	retractClauseProcedure(clause->procedure, clause);
+      if ( decompile(cref->clause, term) )
+      { retractClauseProcedure(proc, cref->clause);
 	unlockMark(&m);
 	if ( det == TRUE )
+	{ leaveDefinition(def);
 	  succeed;
-	next->references++;	/* avoid the next being deleted */
+	}
 
-	ForeignRedo(next);
+	ForeignRedo(cref->next);
       }
       Undo(m);
     }
@@ -701,6 +778,7 @@ pl_retract(Word term, word h)
     continue;
   }
 
+  leaveDefinition(def);
   fail;
 }
 
@@ -710,7 +788,7 @@ pl_retractall(Word head)
 { Module m = (Module) NULL;
   Procedure proc;
   Definition def;
-  Clause cl;
+  ClauseRef cref;
 
   if ( !(head = stripModule(head, &m)) )
     fail;
@@ -731,33 +809,33 @@ pl_retractall(Word head)
   if ( true(def, LOCKED) && false(def, DYNAMIC) )
     return warning("retractall/1: Attempt to retract from a system predicate");
 
-  for(cl = def->definition.clauses; cl; )
+  def->references++;
+  for(cref = def->definition.clauses; cref; cref = cref->next)
   { bool det;
 
     if ( isTerm(*head) )
-    { cl = findClause(cl, argTermP(*head, 0), def, &det);
+    { cref = findClause(cref, argTermP(*head, 0), def, &det);
     } else
-    { while( cl && true(cl, ERASED) )
-	cl = cl->next;
-      if ( cl )
-	det = !cl->next;
+    { while( cref && true(cref->clause, ERASED) )
+	cref = cref->next;
+      if ( cref )
+	det = !cref->next;
     }
 
-    if ( cl )
+    if ( cref )
     { mark m;
-      Clause next = cl->next;
     
       Mark(m);
-      if ( decompileHead(cl, head) )
-	retractClauseProcedure(proc, cl);
+      if ( decompileHead(cref->clause, head) )
+	retractClauseProcedure(proc, cref->clause);
       Undo(m);
 
       if ( det )
-	succeed;
-
-      cl = next;
-    }
+	break;
+    } else
+      break;
   }
+  leaveDefinition(def);
 
   succeed;
 }
@@ -788,67 +866,6 @@ pl_abolish(Word atom, Word arity)
     return warning("abolish/2: attempt to abolish a system predicate");
 
   return abolishProcedure(proc, m);
-}
-
-word
-pl_list_references(Word descr)
-{ Procedure proc;
-  Clause clause;
-
-  if ((proc = findProcedure(descr)) == (Procedure) NULL)
-    return warning("$list_references/1: no such predicate");
-
-  if ( true(proc->definition, FOREIGN) )
-    fail;
-  for(clause=proc->definition->definition.clauses;
-       clause;
-       clause = clause->next)
-    Putf("%d ", clause->references);
-
-  Putf("\n");
-
-  succeed;
-}
-
-word
-pl_list_active_procedures(void)
-{ Procedure proc;
-  Module m;
-  Clause clause;
-  int nth;
-  bool first;
-  Symbol sm, sp;
-
-  for_table(sm, moduleTable)
-  { m = (Module) sm->value;
-    for_table(sp, m->procedures)
-    { proc = (Procedure) sp->value;
-
-      if ( true(proc->definition, FOREIGN) ||	/* no clauses */
-	   proc->definition->module != m)	/* imported */
-	continue;
-
-      first = TRUE;
-      for(clause = proc->definition->definition.clauses, nth=1;
-	   clause;
-	   nth++, clause = clause->next)
-      { if ( true(clause, ERASED) )
-	  continue;
-	if (clause->references != 0)
-	{ if (first)
-	  { Putf("%s: ", procedureName(proc) );
-	    first = FALSE;
-	  } else
-	    Putf(", ");
-	  Putf("%d: %d", nth, clause->references);
-	}
-      }
-      if (first == FALSE)
-	Putf("\n");
-    }
-  }
-
-  succeed;
 }
 
 
@@ -919,12 +936,17 @@ pl_get_predicate_attribute(Word pred, Word what, Word value)
 
     if ( false(def, FOREIGN) &&
 	 def->definition.clauses &&
-	 (line=def->definition.clauses->line_no) )
+	 (line=def->definition.clauses->clause->line_no) )
       return unifyAtomic(value, consNum(line));
     else
       fail;
   } else if (key == ATOM_foreign)
   { return unifyAtomic(value, consNum((def->flags & FOREIGN) ? 1 : 0));
+  } else if (key == ATOM_hashed)
+  { return unifyAtomic(value, consNum(def->hash_info ? def->hash_info->buckets
+				      		     : 0));
+  } else if (key == ATOM_references)
+  { return unifyAtomic(value, consNum(def->references));
   } else if ( (att = attribute_mask(key)) )
   { return unifyAtomic(value, consNum((def->flags & att) ? 1 : 0));
   } else
@@ -975,6 +997,8 @@ pl_set_predicate_attribute(Word pred, Word what, Word value)
     if ( (att == DYNAMIC || att == MULTIFILE) && SYSTEM_MODE )
     { set(def, SYSTEM|HIDE_CHILDS);
     }
+/*  if ( (att == DYNAMIC) )
+      clear(def, AUTOINDEX); */
   }
 
   succeed;
@@ -996,12 +1020,60 @@ pl_default_predicate(Word d1, Word d2)
 
 void
 reindexDefinition(Definition def)
-{ register Clause cl;
+{ ClauseRef cref;
+  int do_hash = 0;
+
+  DEBUG(2, if ( def->definition.clauses )
+	   { Procedure proc = def->definition.clauses->clause->procedure;
+
+	     Sdprintf("reindexDefinition(%s)\n", procedureName(proc));
+	   });
+
+  if ( true(def, AUTOINDEX) )
+  { int canindex = 0;
+    int cannotindex = 0;
+    
+    for(cref = def->definition.clauses; cref; cref = cref->next)
+    { mark m;
+      Word a1;
+    
+      Mark(m);      
+      a1 = newTerm();
+      decompileArg1(cref->clause, a1);
+      if ( isVar(*a1) || isIndirect(*a1) )
+	cannotindex++;
+      else
+	canindex++;
+      Undo(m);
+    }
+    if ( canindex == 0 )
+    { DEBUG(2, if ( def->definition.clauses )
+	       { Procedure proc = def->definition.clauses->clause->procedure;
+
+		 Sdprintf("not indexed: %s\n", procedureName(proc));
+	       });
+      def->indexPattern = 0x0;
+    } else
+    { def->indexPattern = 0x1;
+      if ( (cannotindex * 8 < canindex) && (canindex > 5) )
+	do_hash = canindex / 2;
+    }
+  }
 
   def->indexPattern &= ~NEED_REINDEX;
   def->indexCardinality = cardinalityPattern(def->indexPattern);
-  for(cl = def->definition.clauses; cl; cl = cl->next)
-    reindexClause(cl);
+  for(cref = def->definition.clauses; cref; cref = cref->next)
+    reindexClause(cref->clause);
+
+  if ( do_hash )
+  { DEBUG(1,
+	  if ( def->definition.clauses )
+	  { Procedure proc = def->definition.clauses->clause->procedure;
+
+	    Sdprintf("hash(%s, %d)\n", procedureName(proc), do_hash);
+	  });
+    hashDefinition(def, do_hash);
+  }
 }
 
 
@@ -1021,7 +1093,7 @@ pl_index(Word pred)
 
   if (!isTerm(*head) )			/* :- index(foo) */
     succeed;
-  arity = proc->functor->arity;
+  arity = def->functor->arity;
   for(a = 0; a < arity && a < 31; a++)
   { arg = argTermP(*head, a);
     deRef(arg);
@@ -1035,13 +1107,14 @@ pl_index(Word pred)
     }
   }
 
-  if (def->indexPattern == pattern)
-    succeed;
-
   if (true(def, FOREIGN))
     return warning("index/1: cannot index foreign predicate %s", 
 		   procedureName(proc));
 
+   
+  clear(def, AUTOINDEX);
+  if ( (def->indexPattern & ~NEED_REINDEX) == pattern)
+    succeed;
   def->indexPattern = (pattern | NEED_REINDEX);
 
   succeed;
@@ -1176,14 +1249,14 @@ pl_make_system_source_files(void)
 word
 pl_source_file(Word descr, Word file)
 { Procedure proc;
-  Clause clause;
+  ClauseRef cref;
   SourceFile sf;
 
   if ( !(proc = findProcedure(descr)) ||
        !proc->definition ||
        true(proc->definition, FOREIGN) ||
-       !(clause = proc->definition->definition.clauses) ||
-       !(sf = indexToSourceFile(clause->source_no)) )
+       !(cref = proc->definition->definition.clauses) ||
+       !(sf = indexToSourceFile(cref->clause->source_no)) )
     fail;
 
   return unifyAtomic(file, sf->name);

@@ -236,6 +236,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
 \\ \verb"nospyall/0"			\> Remove all spy points
 \\ \verb"not/1{fy 900}"			\> Negation by failure (argument not provable). Same as \verb"\+ /1"
 \\ \verb"notrace/0"			\> Stop tracing
+\\ \verb"notrace/1"			\> Do not debug argument goal
 \\ \verb"nth0/3"			\> N-th element of a list (0-based)
 \\ \verb"nth1/3"			\> N-th element of a list (1-based)
 \\ \verb"nth_clause/3"			\> N-th clause of a predicate
@@ -248,7 +249,8 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
 \\ \verb"open/3"			\> Open a file (creating a stream)
 \\ \verb"open_dde_conversation/3"	\> Win32: Open DDE channel
 \\ \verb"open_null_stream/1"		\> Open a stream to discard output
-\\ \verb"open_shared_object/2"		\> UNIX:  Open shared library (.so file)
+\\ \verb"open_shared_object/2"		\> UNIX: Open shared library (.so file)
+\\ \verb"open_shared_object/3"		\> UNIX: Open shared library (.so file)
 \\
 \\ \verb"phrase/2"			\> Activate grammar-rule set
 \\ \verb"phrase/3"			\> Activate grammar-rule set (returning rest)

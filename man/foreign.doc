@@ -288,7 +288,16 @@ section~\ref{sec:shlib} in your application.
 {\em File} is the name of a .so file (see your C programmers
 documentation on how to create a .so file).  This file is attached to
 the current process and {\em Handle} is unified with a handle to the
-shared object.
+shared object. Equivalent to {\tt open_shared_object(File, [global],
+Handle)}.
+.C open_shared_object 3 +File, +Options, -Handle
+As open_shared_object/2, but allows for additional flags to be passed.
+{\em Options} is a list of atoms.  {\tt now} implies the symbols are
+resolved immediately rather than lazy (default).  {\tt global} implies
+symbols of the loaded object are visible while loading other shared
+objects (by default they are local).  Note that these flags may not
+be supported by all operating systems.  Check the documentation of
+dlopen() or equivalent on your operating system.
 .C close_shared_object 1 +Handle
 Detach the shared object identified by {\em Handle}.
 .C call_shared_object_function 2 +Handle, +Function

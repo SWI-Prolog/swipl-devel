@@ -43,6 +43,8 @@
 	, shell/2
 	, shell/1
 	, shell/0
+	, open_shared_object/2
+	, open_shared_object/3
 	, format/1
 	, sformat/2
 	, sformat/3
@@ -390,39 +392,43 @@ predicate_property(Pred, Property) :-
 	\+ current_predicate(_, Term).
 predicate_property(Pred, Property) :-
 	current_predicate(_, Pred),
-	$predicate_property(Pred, Property).
+	$predicate_property(Property, Pred).
 
-:- index($predicate_property(0, 1)).
-
-$predicate_property(Pred, interpreted) :-
+$predicate_property(interpreted, Pred) :-
 	$get_predicate_attribute(Pred, foreign, 0).
-$predicate_property(Pred, built_in) :-
+$predicate_property(built_in, Pred) :-
 	$get_predicate_attribute(Pred, system, 1).
-$predicate_property(Pred, exported) :-
+$predicate_property(exported, Pred) :-
 	$get_predicate_attribute(Pred, exported, 1).
-$predicate_property(Pred, foreign) :-
+$predicate_property(foreign, Pred) :-
 	$get_predicate_attribute(Pred, foreign, 1).
-$predicate_property(Pred, (dynamic)) :-
+$predicate_property((dynamic), Pred) :-
 	$get_predicate_attribute(Pred, (dynamic), 1).
-$predicate_property(Pred, (volatile)) :-
+$predicate_property((volatile), Pred) :-
 	$get_predicate_attribute(Pred, (volatile), 1).
-$predicate_property(Pred, (multifile)) :-
+$predicate_property((multifile), Pred) :-
 	$get_predicate_attribute(Pred, (multifile), 1).
-$predicate_property(Pred, imported_from(Module)) :-
+$predicate_property(imported_from(Module), Pred) :-
 	$get_predicate_attribute(Pred, imported, Module).
-$predicate_property(Pred, transparent) :-
+$predicate_property(transparent, Pred) :-
 	$get_predicate_attribute(Pred, transparent, 1).
-$predicate_property(Pred, indexed(Pattern)) :-
+$predicate_property(indexed(Pattern), Pred) :-
 	$get_predicate_attribute(Pred, indexed, Pattern).
-$predicate_property(Pred, file(File)) :-
+$predicate_property(file(File), Pred) :-
 	source_file(Pred, File).
-$predicate_property(Pred, line_count(LineNumber)) :-
+$predicate_property(line_count(LineNumber), Pred) :-
 	$get_predicate_attribute(Pred, line_count, LineNumber).
-$predicate_property(Pred, notrace) :-
+$predicate_property(notrace, Pred) :-
 	$get_predicate_attribute(Pred, trace, 0).
-$predicate_property(Pred, show_childs) :-
+$predicate_property(show_childs, Pred) :-
 	$get_predicate_attribute(Pred, system, 1),
 	$get_predicate_attribute(Pred, hide_childs, 0).
+$predicate_property(hashed(N), Pred) :-
+	$get_predicate_attribute(Pred, hashed, N),
+	N > 0.
+$predicate_property(references(N), Pred) :-
+	$get_predicate_attribute(Pred, references, N),
+	N > 0.
 
 :- index(clause_property(0, 1)).
 
@@ -578,6 +584,27 @@ shell :-
 	shell('/bin/sh').
 
 
+		 /*******************************
+		 *	      DLOPEN		*
+		 *******************************/
+
+dlopen_flag(now,	2'01).		% see pl-load.c for these constants
+dlopen_flag(global,	2'10).		% Solaris only
+
+map_dlflags([], 0).
+map_dlflags([F|T], M) :-
+	map_dlflags(T, M0),
+	dlopen_flag(F, I),
+	M is M0 \/ I.
+
+open_shared_object(File, Flags, Handle) :-
+	map_dlflags(Flags, Mask),
+	$open_shared_object(File, Handle, Mask).
+
+open_shared_object(File, Handle) :-
+	open_shared_object(File, Handle, [global]). % use pl-load.c defaults
+
+
 		/********************************
 		*              I/O              *
 		*********************************/
@@ -610,7 +637,10 @@ absolute_file_name(Name, Abs) :-
 	atomic(Name), !,
 	$absolute_file_name(Name, Abs).
 absolute_file_name(Term, Abs) :-
-	$chk_file(Term, [''], [], File),
+	$chk_file(Term, [''], [access(read)], File), !,
+	$absolute_file_name(File, Abs).
+absolute_file_name(Term, Abs) :-
+	$chk_file(Term, [''], [], File), !,
 	$absolute_file_name(File, Abs).
 
 

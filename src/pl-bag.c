@@ -72,6 +72,18 @@ checkBags()
 #endif
 
 static word
+consList(word head, word tail)
+{ word rval = globalFunctor(FUNCTOR_dot2);
+  Word ap = argTermP(rval, 0);
+
+  *ap++ = head;
+  *ap   = tail;
+
+  return rval;
+}
+  
+/* Maybe useful later
+static word
 globalTerm(FunctorDef fdef, ...)
 { va_list args;
   word rval = globalFunctor(fdef);
@@ -84,6 +96,7 @@ globalTerm(FunctorDef fdef, ...)
 
   return rval;
 }
+*/
 
 word
 pl_collect_bag(Word bindings, Word bag)
@@ -109,7 +122,7 @@ pl_collect_bag(Word bindings, Word bag)
   binding  = copyTermToGlobal(a->binding);
   var_term = argTermP(binding, 0);
   pl_unify(bindings, var_term);
-  list = globalTerm(FUNCTOR_dot2, argTerm(binding, 1), list);
+  list = consList(argTerm(binding, 1), list);
 
   next = a->next;
   freeAssoc(prev, a);  
@@ -128,7 +141,7 @@ pl_collect_bag(Word bindings, Word bag)
 
       t = copyTermToGlobal(a->binding);
       pl_unify(argTermP(t, 0), bindings); /* can this fail (no)? */
-      list = globalTerm(FUNCTOR_dot2, argTerm(t, 1), list);
+      list = consList(argTerm(t, 1), list);
       SECURE(checkData(&list, FALSE));
       freeAssoc(prev, a);
     }

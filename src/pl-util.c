@@ -99,16 +99,23 @@ digitValue(int b, char c)
 
 char *
 procedureName(Procedure proc)
+{ return predicateName(proc->definition);
+}
+
+
+char *
+predicateName(Definition def)
 { static char tmp[256];
 
-  if ( proc->definition->module == MODULE_user ||
-       isUserSystemProcedure(proc) )
-    Ssprintf(tmp, "%s/%d", stringAtom(proc->functor->name), 
-			  proc->functor->arity);
+  if ( def->module == MODULE_user || isUserSystemPredicate(def) )
+    Ssprintf(tmp, "%s/%d",
+	     stringAtom(def->functor->name), 
+	     def->functor->arity);
   else
-    Ssprintf(tmp, "%s:%s/%d", stringAtom(proc->definition->module->name), 
-			     stringAtom(proc->functor->name), 
-			     proc->functor->arity);
+    Ssprintf(tmp, "%s:%s/%d",
+	     stringAtom(def->module->name), 
+	     stringAtom(def->functor->name), 
+	     def->functor->arity);
 
   return tmp;
 }
@@ -118,12 +125,17 @@ procedureName(Procedure proc)
  ** Fri Sep  2 17:03:43 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 bool
-isUserSystemProcedure(Procedure proc)
-{ if ( true(proc->definition, SYSTEM) &&
-       isCurrentProcedure(proc->functor, MODULE_user) != (Procedure) NULL)
+isUserSystemPredicate(Definition def)
+{ if ( true(def, SYSTEM) &&
+       isCurrentProcedure(def->functor, MODULE_user) )
     succeed;
 
   fail;
+}
+
+bool
+isUserSystemProcedure(Procedure proc)
+{ return isUserSystemPredicate(proc->definition);
 }
 
 word

@@ -15,7 +15,7 @@
 #
 ################################################################
 
-PLVERSION=2.1.4
+PLVERSION=2.1.5
 
 PL=pl
 prefix=/staff/jan
@@ -29,7 +29,7 @@ mandir=$(prefix)/man/man$(mansec)
 
 CC=gcc
 LIBS=-ldl -lreadline -ltermcap -lm 
-STATICLIBS=/usr/lib/libc.a
+STATICLIBS=
 AWK=nawk
 SED=sed
 LD_R=ld -r
@@ -46,7 +46,7 @@ CMFLAGS=-funsigned-char
 CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS)
 LDFLAGS=
 
-PLFOREIGN=foreign.pl
+PLFOREIGN=
 
 DEFSTARTUP=.plrc
 
@@ -200,7 +200,7 @@ iruntime:
 			$(INSTALL_DATA) ../runtime/$(ARCH)/$(PL).o \
 					$(PLBASE)/runtime/$(ARCH); \
 		fi
-		$(INSTALL_DATA) pl-extend.c $(PLBASE)/runtime
+		$(INSTALL_DATA) $(srcdir)/pl-extend.c $(PLBASE)/runtime
 
 idirs:
 		-mkdir $(PLBASE)

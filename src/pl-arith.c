@@ -390,11 +390,10 @@ is/0, >, etc.
 
 static int
 prologFunction(ArithFunction f, Word av, Number r)
-                
-        				/* pointer to term arguments */
-         
+
 { word goal;
-  int arity = f->proc->functor->arity;
+  Definition def = f->proc->definition;
+  int arity = def->functor->arity;
   int n;
   Word ap;
   mark m;
@@ -403,7 +402,7 @@ prologFunction(ArithFunction f, Word av, Number r)
   LocalFrame fr = lTop;
 
   Mark(m);
-  goal = globalFunctor(f->proc->functor);
+  goal = globalFunctor(def->functor);
   ap = argTermP(goal, 0);
   for(n=0; n < arity-1; n++)
   { number num;
@@ -948,6 +947,7 @@ pl_is(Word v, Word e)
 word
 pl_arithmetic_function(Word descr)
 { Procedure proc;
+  Definition def;
   FunctorDef fd;
   register ArithFunction f;
   Module m = NULL;
@@ -958,9 +958,10 @@ pl_arithmetic_function(Word descr)
 
   if ( (proc = findCreateProcedure(descr)) == (Procedure)NULL )
     fail;
-  if ( proc->functor->arity < 1 )
+  def = proc->definition;
+  if ( def->functor->arity < 1 )
     return warning("arithmetic_function/1: Illegal arity");
-  fd = lookupFunctorDef(proc->functor->name, proc->functor->arity - 1);
+  fd = lookupFunctorDef(def->functor->name, def->functor->arity - 1);
 
   if ( (f = isCurrentArithFunction(fd, m)) != NULL && f->module == m )
     succeed;				/* already registered */

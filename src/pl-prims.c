@@ -7,6 +7,7 @@
     Purpose: primitive built in
 */
 
+/*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-buffer.h"
@@ -389,6 +390,8 @@ compareStandard(register Word t1, register Word t2)
   return EQUAL;
 }
 
+#undef w1
+#undef w2
 
 word
 pl_compare(Word rel, Word t1, Word t2)
@@ -454,6 +457,114 @@ typedef struct
   Word  v2;
 } reset, *Reset;
 
+#define SE_ITERATIVE 1
+
+#ifdef SE_ITERATIVE
+
+typedef struct uchoice *UChoice;
+
+struct uchoice
+{ Word		alist1;
+  Word		alist2;
+  int		size;
+  UChoice	next;
+};
+
+static bool
+pl_se(Word t1, Word t2, Buffer buf)
+{ int todo = 1;
+  UChoice nextch = NULL, tailch = NULL;
+
+  DEBUG(1, Sdprintf("pl_se("); pl_write(t1); Sdprintf(", "); pl_write(t2);
+	   Sdprintf(")\n"));
+
+  for(;;)
+  { Word p1, p2;
+    word w1, w2;
+    int arity;
+
+    if ( !todo )
+    { if ( nextch )
+      { p1 = nextch->alist1;
+	p2 = nextch->alist2;
+	todo = nextch->size;
+	nextch = nextch->next;
+      } else
+	succeed;
+    }
+
+    deRef2(t1, p1);
+    deRef2(t2, p2);
+    w1 = *p1;
+    w2 = *p2;
+
+    todo--;
+    t1++; t2++;
+
+    if ( isVar(w1) )
+    { if ( isVar(w2) )
+      { word id = consNum(sizeOfBuffer(buf))|MARK_MASK;
+	reset r;
+  
+	r.v1 = p1;
+	r.v2 = p2;
+	addBuffer(buf, r, reset);
+	*p1 = *p2 = id;
+
+	continue;
+      }
+      fail;
+    }
+  
+    if (w1 == w2)
+      continue;
+    if ( w1 & MARK_MASK || w2 & MARK_MASK )
+      fail;
+  
+    if (isIndirect(w1) )
+    { 
+#if O_STRING
+      if (isString(w1))
+      { if ( isString(w2) && equalString(w1, w2) )
+	  continue;
+	fail;
+      }
+#endif /* O_STRING */
+      if (isReal(w2) && valReal(w1) == valReal(w2) )
+	continue;
+      fail;
+    }
+  
+    if (!isTerm(w1) || !isTerm(w2) ||
+	 functorTerm(w1) != functorTerm(w2) )
+      fail;
+  
+    arity = functorTerm(w1)->arity;
+    p1 = argTermP(w1, 0);
+    p2 = argTermP(w2, 0);
+
+    if ( todo == 0 )
+    { todo = arity;
+      t1 = p1;
+      t2 = p2;
+    } else if ( arity > 0 )
+    { UChoice next = allocLocal(sizeof(*next));
+
+      next->size   = arity;
+      next->alist1 = p1;
+      next->alist2 = p2;
+      next->next   = NULL;
+      if ( !nextch )
+	nextch = tailch = next;
+      else
+      { tailch->next = next;
+	tailch = next;
+      }
+    }
+  }
+}
+
+#else /*SE_ITERATIVE*/
 
 static bool
 pl_se(Word t1, Word t2, Buffer buf)
@@ -510,14 +621,25 @@ pl_se(Word t1, Word t2, Buffer buf)
   succeed;
 }
 
+#endif
+
 word
 pl_structural_equal(Word t1, Word t2)
 { bool rval;
   buffer buf;
   Reset r;
 
+  if ( *t1 == *t2 )
+    succeed;
+
   initBuffer(&buf);
+#ifdef SE_ITERATIVE
+  initAllocLocal();
+#endif
   rval = pl_se(t1, t2, &buf);
+#ifdef SE_ITERATIVE
+  stopAllocLocal();
+#endif
   for(r = baseBuffer(&buf, reset); r < topBuffer(&buf, reset); r++)
   { setVar(*r->v1);
     setVar(*r->v2);

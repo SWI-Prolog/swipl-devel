@@ -144,8 +144,6 @@ Marking, testing marks and extracting values from GC masked words.
 		 *     FUNCTION PROTOTYPES	*
 		 *******************************/
 
-forwards long		offset_cell(Word);
-forwards Word		previous_gcell(Word);
 forwards void		mark_variable(Word);
 #if GC_FOREIGN
 forwards void		mark_foreign(void);
@@ -242,25 +240,28 @@ Word addr;
 		*          UTILITIES            *
 		*********************************/
 
-static long
+static inline int
 offset_cell(Word p)
-{ word w = get_value(p);
+{ word m = *p & DATA_TAG_MASK;		/* was get_value(p) */
 
-  if ( (w & DATA_TAG_MASK) == REAL_MASK )
-  { DEBUG(3, Sdprintf("REAL at 0x%p (w = 0x%lx)\n", p, w));
-    return 1;
+  if ( m )
+  { if ( m == REAL_MASK )
+    { DEBUG(3, Sdprintf("REAL at 0x%p (w = 0x%lx)\n", p, w));
+      return 1;
+    }
+    if ( m == STRING_MASK )
+    { word w = get_value(p);
+      long l = ((w) << DMASK_BITS) >> (DMASK_BITS+LMASK_BITS);
+      DEBUG(3, Sdprintf("STRING ``%s'' at 0x%p (w = 0x%lx)\n",
+			(char *) p, p+1, w));
+      return allocSizeString(l) / sizeof(word) - 1;
+    }
   }
-  if ( (w & DATA_TAG_MASK) == STRING_MASK )
-  { long l = ((w) << DMASK_BITS) >> (DMASK_BITS+LMASK_BITS);
-    DEBUG(3, Sdprintf("STRING ``%s'' at 0x%p (w = 0x%lx)\n",
-		    (char *) p, p+1, w));
-    return allocSizeString(l) / sizeof(word) - 1;
-  }
-  
+
   return 0;
 }
 
-static Word
+static inline Word
 previous_gcell(Word p)
 { p--;
   return p - offset_cell(p);
@@ -491,7 +492,7 @@ clear_uninitialised(LocalFrame fr, Code PC)
 	case B_FIRSTVAR:
 	case B_ARGFIRSTVAR:
 	case C_VAR:
-	  if ( varFrameP(fr, PC[1]) < argFrameP(fr, fr->procedure->functor->arity) )
+	  if ( varFrameP(fr, PC[1]) < argFrameP(fr, fr->predicate->functor->arity) )
 	    sysError("Reset instruction on argument");
 	  if ( PC >= branch_end )
 	    setVar(varFrame(fr, PC[1]));
@@ -532,7 +533,7 @@ mark_environments(LocalFrame fr)
 
     clear_uninitialised(fr, PC);
 
-    slots = (PC == NULL ? fr->procedure->functor->arity : slotsFrame(fr));
+    slots = (PC == NULL ? fr->predicate->functor->arity : slotsFrame(fr));
 #if O_SECURE
     oslots = slots;
 #endif
@@ -565,7 +566,7 @@ mark_choicepoints(LocalFrame bfr)
   trailcells_deleted = 0;
 
   for( ; bfr != (LocalFrame)NULL; bfr = bfr->backtrackFrame )
-  { Word top = argFrameP(bfr, bfr->procedure->functor->arity);
+  { Word top = argFrameP(bfr, bfr->predicate->functor->arity);
 
     for( ; te >= bfr->mark.trailtop; te-- )	/* early reset of vars */
     { if ( !isTrailValueP(te->address) )
@@ -905,7 +906,7 @@ sweep_environments(LocalFrame fr)
       return (LocalFrame) NULL;
     clear(fr, FR_MARKED);
 
-    slots = (PC == NULL ? fr->procedure->functor->arity : slotsFrame(fr));
+    slots = (PC == NULL ? fr->predicate->functor->arity : slotsFrame(fr));
     sp = argFrameP(fr, 0);
     for( ; slots > 0; slots--, sp++ )
     { if ( marked(sp) )
@@ -1128,29 +1129,13 @@ collect_phase(LocalFrame fr)
 		*             MAIN              *
 		*********************************/
 
-static long gsmall = 200000L;
-static long tsmall = 100000L;
-
-word
-pl_collect_parms(Word g, Word t)
-{ if ( !isInteger(*g) || !isInteger(*t) )
-    return warning("$collect_parms/2: instantiation fault");
-
-  gsmall = valNum(*g);
-  tsmall = valNum(*t);
-
-  succeed;
-}
-
-
 #if O_DYNAMIC_STACKS
 void
 considerGarbageCollect(Stack s)
 { if ( s->gc )
-  { if ( (unsigned long) s->top - (unsigned long) s->base >
-	 	(unsigned long) (2 * s->gced_size + s->small) )
+  { if ( (char *)s->top - (char *)s->base > s->factor*s->gced_size + s->small )
     { DEBUG(1, Sdprintf("%s overflow: Posted garbage collect request\n",
-		      s->name));
+			s->name));
       gc_status.requested = TRUE;
     }
   }
@@ -1378,10 +1363,9 @@ garbageCollect(LocalFrame fr)
 		  usedStack(global), usedStack(trail),
 		  roomStack(global), roomStack(trail)));
   gc_status.time += CpuTime() - t;
-  stacks.global.gced_size = usedStack(global);
-  stacks.trail.gced_size  = usedStack(trail);
 
-  pl_trim_stacks();
+  trimStacks();
+
   gc_status.active = FALSE;
 }
 

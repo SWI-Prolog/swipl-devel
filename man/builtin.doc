@@ -2464,6 +2464,11 @@ is continued without asking for further information.  Examples:
 \end{center}
 
 The predicate debugging/0 shows all currently defined trace-points.
+.C notrace 1 +Goal
+Call {\em Goal}, but suspend the debugger while {\em Goal} is executing.
+The current implementation cuts the choicepoints of {\em Goal} after
+successful completion. See once/1.  Later implementations may have the
+same semantics as call/1.
 .C debug 0
 Start debugger (stop at spy points).
 .C nodebug 0

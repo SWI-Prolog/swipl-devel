@@ -205,3 +205,5 @@
 #define ATOM_none         (&atoms[204])
 #define ATOM_volatile     (&atoms[205])
 #define ATOM_initialization (&atoms[206])
+#define ATOM_hashed       (&atoms[207])
+#define ATOM_references   (&atoms[208])

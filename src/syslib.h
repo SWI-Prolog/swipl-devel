@@ -20,6 +20,7 @@ extern long time (long *);
 /* extern int fprintf (FILE *, const char *, ...); */
 /* extern int fflush (FILE *); */
 extern long int strtol (const char *, char **, int);
+extern int stricmp(const char *s1, const char *s2);
 extern int vprintf (const char *, char * );
 extern int vsprintf (char *, const char *, char * );
 /* extern int vfprintf (FILE *, const char *, char * ); */

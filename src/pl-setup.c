@@ -277,6 +277,8 @@ deliverSignal(int sig, int type, SignalContext scp, char *addr)
 
 static void init_stack(Stack s, char *name,
 		       caddress base, long limit, long minsize);
+static void gcPolicy(Stack s, int policy);
+
 #ifdef SIGNAL_HANDLER_PROVIDES_ADDRESS
 static RETSIGTYPE segv_handler(int sig, int type,
 			       SignalContext scp, char *addr);
@@ -891,9 +893,7 @@ init_stack(Stack s, char *name, caddress base, long limit, long minsize)
   s->base      = s->max = s->top = base;
   s->min       = (caddress)((ulong)s->base + minsize);
   s->gced_size = 0L;			/* size after last gc */
-  s->gc	       = ((s == (Stack) &stacks.global ||
-		   s == (Stack) &stacks.trail) ? TRUE : FALSE);
-  s->small     = (s->gc ? 100 K : 0);
+  gcPolicy(s, GC_FAST_POLICY);
   limit_stack(s, limit);
 #if O_SHARED_MEMORY
 #if O_SHM_ALIGN_FAR_APART
@@ -1023,8 +1023,8 @@ initStacks(long local, long global, long trail, long argument, long lck)
 		*     STACK TRIMMING & LIMITS   *
 		*********************************/
 
-word
-pl_trim_stacks(void)
+void
+trimStacks()
 { unmap((Stack) &stacks.local);
   unmap((Stack) &stacks.global);
   unmap((Stack) &stacks.trail);
@@ -1032,9 +1032,35 @@ pl_trim_stacks(void)
   unmap((Stack) &stacks.lock);
   stacks.global.gced_size = usedStack(global);
   stacks.trail.gced_size  = usedStack(trail);
+}
+
+
+static void
+gcPolicy(Stack s, int policy)
+{ s->gc = ((s == (Stack) &stacks.global ||
+	    s == (Stack) &stacks.trail) ? TRUE : FALSE);
+  if ( s->gc )
+  { s->small  = SMALLSTACK;
+    s->factor = 3;
+    s->policy = policy;
+  } else
+  { s->small  = 0;
+    s->factor = 0;
+    s->policy = 0;
+  }
+}
+
+
+word
+pl_trim_stacks(void)
+{ trimStacks();
+
+  gcPolicy((Stack) &stacks.global, GC_FAST_POLICY);
+  gcPolicy((Stack) &stacks.trail,  GC_FAST_POLICY);
 
   succeed;
 }
+
 
 word
 pl_limit_stack(Word s, Word l)
@@ -1143,7 +1169,7 @@ long size, limit, minfree;
   s->gced_size = 0L;			/* size after last gc */
   s->gc	       = ((s == (Stack) &stacks.global ||
 		   s == (Stack) &stacks.trail) ? TRUE : FALSE);
-  s->small     = (s->gc ? 100 K : 0);
+  s->small     = (s->gc ? SMALLSTACK : 0);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

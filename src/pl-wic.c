@@ -319,7 +319,7 @@ getString(IOSTREAM *fd)
     tmpend = &tmp[tmpsize-1];
   }
 
-  for( s = tmp; (c = Getc(fd)) != EOS, *s = c; s++ )
+  for( s = tmp; (*s = c = Getc(fd)) != EOS; s++ )
   { if ( s == tmpend )
     { tmp = realloc(tmp, tmpsize+512);
       s = &tmp[tmpsize-1];
@@ -773,8 +773,6 @@ loadPredicate(IOSTREAM *fd, int skip)
 	DEBUG(3, Sdprintf("."));
 	clause = (Clause) allocHeap(sizeof(struct clause));
 	clause->line_no = (unsigned short) getNum(fd);
-	clause->next = (Clause) NULL;
-	clause->references = 0;
 	clearFlags(clause);
 	clause->prolog_vars = (short) getNum(fd);
 	clause->variables = (short) getNum(fd);
@@ -814,7 +812,7 @@ loadPredicate(IOSTREAM *fd, int skip)
 	if ( skip )
 	  freeClause(clause);
 	else
-	{ assertProcedure(proc, clause, 'z');
+	{ assertProcedure(proc, clause, CL_END);
 	}
       }
     }
@@ -825,7 +823,7 @@ loadPredicate(IOSTREAM *fd, int skip)
 static bool
 loadImport(IOSTREAM *fd, int skip)
 { Procedure proc = (Procedure) loadXR(fd);
-  FunctorDef functor = proc->functor;
+  FunctorDef functor = proc->definition->functor;
   Procedure old;
 
   if ( !skip )
@@ -1166,7 +1164,7 @@ saveXR(word xr, IOSTREAM *fd)
   { Procedure p = (Procedure) xr;
     
     Putc(XR_PRED, fd);
-    saveXR((word) p->functor, fd);
+    saveXR((word) p->definition->functor, fd);
     saveXR((word) p->definition->module->name, fd);
     DEBUG(3, Putf("XR(%d) = proc %s\n", id, procedureName(p)));
   }
@@ -1252,7 +1250,7 @@ saveWicClause(Clause clause, IOSTREAM *fd)
       case I_DEPART:
       { Procedure p = (Procedure) *bp++;
 
-	saveXR((word)p->functor, fd);
+	saveXR((word)p->definition->functor, fd);
 	break;
       }
       default:
@@ -1370,7 +1368,7 @@ static bool
 addClauseWic(Word term, Atom file)
 { Clause clause;
 
-  if ((clause = assert_term(term, 'z', file)) != (Clause)NULL)
+  if ((clause = assert_term(term, CL_END, file)) != (Clause)NULL)
   { IOSTREAM *s = wicFd;
 
     if (clause->procedure != currentProc)
@@ -1384,7 +1382,7 @@ addClauseWic(Word term, Atom file)
       { Putc('P', s);
       }
 
-      saveXR((word) currentProc->functor, s);
+      saveXR((word) currentProc->definition->functor, s);
     }
     saveWicClause(clause, s);
     succeed;
@@ -1910,7 +1908,7 @@ pl_qlf_assert_clause(Word ref)
       { Putc('P', s);
       }
 
-      saveXR((word) currentProc->functor, s);
+      saveXR((word) currentProc->definition->functor, s);
     }
 
     saveWicClause(clause, s);

@@ -23,7 +23,7 @@
 #endif
 
 forwards void		copyFrameArguments(LocalFrame, LocalFrame, int);
-forwards inline bool	callForeign(const Procedure, LocalFrame);
+forwards inline bool	callForeign(const Definition, LocalFrame);
 forwards void		leaveForeignFrame(LocalFrame);
 forwards inline void    Trail(Word, LocalFrame);
 
@@ -211,8 +211,8 @@ given as `backtrack control'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static inline bool
-callForeign(const Procedure proc, LocalFrame frame)
-{ int argc = proc->functor->arity;
+callForeign(const Definition def, LocalFrame frame)
+{ int argc = def->functor->arity;
   word result;
   Word argv[20]; /* this must be as big as the number args we stuff in it 
                   * (switch() below can handle upto case : 15) */
@@ -229,7 +229,7 @@ callForeign(const Procedure proc, LocalFrame frame)
       deRef2(a, *ap)
   }
 
-  DEBUG(7, Sdprintf("Calling built in %s\n", procedureName(proc)) );
+  DEBUG(7, Sdprintf("Calling built in %s\n", predicateName(def)) );
 
   SECURE(
   int n;
@@ -240,20 +240,20 @@ callForeign(const Procedure proc, LocalFrame frame)
   }
   );
 
-  function = proc->definition->definition.function;
+  function = def->definition.function;
 
 #define A(n) argv[n]
 #define F (*function)
 
   gc_status.blocked++;
-  if ( (gc_save = true(proc->definition, GC_SAFE)) )
+  if ( (gc_save = true(def, GC_SAFE)) )
     lockp(&frame);
 #if O_SHIFT_STACKS
   else
     shift_status.blocked++;
 #endif
 
-  if ( true(proc->definition, NONDETERMINISTIC) )
+  if ( true(def, NONDETERMINISTIC) )
   { word B = (word) frame->clause;
 
   switch(argc)
@@ -342,11 +342,11 @@ callForeign(const Procedure proc, LocalFrame frame)
   if ( top != pTop )
   { if ( pTop > top )
     { warning("%s: left %d foreign data marks",
-	      procedureName(proc), pTop - top);
+	      predicateName(def), pTop - top);
       pTop = top;
     } else
     { warning("%s: popped %d foreign data marks too many",
-	      procedureName(proc), top - pTop);
+	      predicateName(def), top - pTop);
     }
   }
 
@@ -357,44 +357,45 @@ callForeign(const Procedure proc, LocalFrame frame)
   { frame->clause = NULL;
     succeed;
   } else
-  { if ( true(proc->definition, NONDETERMINISTIC) )
+  { if ( true(def, NONDETERMINISTIC) )
     { if ( !result & FRG_MASK )
       { warning("Illegal return value from foreign predicate %s: 0x%x",
-				    procedureName(proc), result);
+				    predicateName(def), result);
 	fail;
       }
-      frame->clause = (Clause) result;
+      frame->clause = (ClauseRef) result;
       succeed;
     }
     warning("Deterministic foreign predicate %s returns 0x%x",
-			    procedureName(proc), result);
+			    predicateName(def), result);
     fail;
   }
 }
 
 static void
 leaveForeignFrame(LocalFrame fr)
-{ if ( true(fr->procedure->definition, NONDETERMINISTIC) )
-  { Procedure proc = fr->procedure;
-    Func f = proc->definition->definition.function;
-    word context = (word) fr->clause | FRG_CUT;
+{ Definition def = fr->predicate;
+  Func f = def->definition.function;
+  word context = (word) fr->clause | FRG_CUT;
 
 #define U ((Word) NULL)
-    DEBUG(5, Sdprintf("Cut %s, context = 0x%lx\n", procedureName(proc), context));
-    switch(proc->functor->arity)
-    { case 0:	(*f)(context);					return;
-      case 1:	(*f)(U, context);				return;
-      case 2:	(*f)(U, U, context);				return;
-      case 3:	(*f)(U, U, U, context);				return;
-      case 4:	(*f)(U, U, U, U, context);			return;
-      case 5:	(*f)(U, U, U, U, U, context);			return;
-      case 6:	(*f)(U, U, U, U, U, U, context);		return;
-      case 7:	(*f)(U, U, U, U, U, U, U, context);		return;
-      case 8:	(*f)(U, U, U, U, U, U, U, U, context);		return;
-      case 9:	(*f)(U, U, U, U, U, U, U, U, U, context);	return;
-      case 10:	(*f)(U, U, U, U, U, U, U, U, U, U, context);	return;
-      default:	sysError("Too many arguments (%d) to leaveForeignFrame()");
-    }
+  DEBUG(5, Sdprintf("Cut %s, context = 0x%lx\n",
+		    predicateName(def), context));
+
+  switch(def->functor->arity)
+  { case 0:	(*f)(context);					return;
+    case 1:	(*f)(U, context);				return;
+    case 2:	(*f)(U, U, context);				return;
+    case 3:	(*f)(U, U, U, context);				return;
+    case 4:	(*f)(U, U, U, U, context);			return;
+    case 5:	(*f)(U, U, U, U, U, context);			return;
+    case 6:	(*f)(U, U, U, U, U, U, context);		return;
+    case 7:	(*f)(U, U, U, U, U, U, U, context);		return;
+    case 8:	(*f)(U, U, U, U, U, U, U, U, context);		return;
+    case 9:	(*f)(U, U, U, U, U, U, U, U, U, context);	return;
+    case 10:	(*f)(U, U, U, U, U, U, U, U, U, U, context);	return;
+    default:	sysError("Too many arguments (%d) to leaveForeignFrame()",
+		       def->functor->arity);
   }
 #undef U
 }
@@ -638,7 +639,7 @@ unifyFunctor(register Word term, register FunctorDef functor)
 static LocalFrame
 findBlock(LocalFrame fr, Word block)
 { for(; fr; fr = fr->parent)
-  { if ( fr->procedure->definition == PROCEDURE_block3->definition &&
+  { if ( fr->predicate == PROCEDURE_block3->definition &&
 	 pl_unify(argFrameP(fr, 0), block) )
       return fr;
   }
@@ -657,8 +658,6 @@ findBlock(LocalFrame fr, Word block)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			 MACHINE REGISTERS
 
-  - PROC
-    Current procedure running.
   - DEF
     Definition structure of current procedure.
   - PC
@@ -690,11 +689,10 @@ findBlock(LocalFrame fr, Word block)
 
 bool
 PL_call_predicate(Module Context, bool debug, Procedure proc, Word *argv)
-{ register LocalFrame FR;		/* current frame */
-  register Word	      ARGP;		/* current argument pointer */
-  register Code	      PC;		/* program counter */
+{ register   LocalFrame FR;		/* current frame */
+  register   Word	ARGP;		/* current argument pointer */
+  register   Code	PC;		/* program counter */
   LocalFrame BFR;			/* last backtrack frame */
-  Procedure  PROC;			/* current procedure */  
   Definition DEF;			/* definition of current procedure */
   bool	     deterministic;		/* clause found deterministically */
 #define	     CL (FR->clause)		/* clause of current frame */
@@ -804,12 +802,13 @@ PL_call_predicate(Module Context, bool debug, Procedure proc, Word *argv)
 #endif /* VMCODE_IS_ADDRESS */
 
   DEBUG(1, { extern int Output;		/* --atoenne-- */
+	     FunctorDef f = proc->definition->functor;
 
 	     if ( Output )
 	     { int n;
 
-	       Putf("Interpret: %s(", stringAtom(proc->functor->name));
-	       for(n=0; n<proc->functor->arity; n++)
+	       Putf("Interpret: %s(", stringAtom(f->name));
+	       for(n=0; n < f->arity; n++)
 	       { if ( n > 0 )
 		   Putf(", ");
 		 pl_write(argv[n]);
@@ -865,9 +864,8 @@ Find the procedure definition associated with `Goal'.
 					/* machine registers */
   { int n, arity;
 
-    PROC = proc;
-    DEF  = PROC->definition;
-    arity = PROC->functor->arity;
+    DEF   = proc->definition;
+    arity = DEF->functor->arity;
 
 					/* fill frame arguments */
     ARGP = argFrameP(FR, 0);
@@ -875,14 +873,12 @@ Find the procedure definition associated with `Goal'.
       *ARGP++ = isVar(**argv) ? makeRef(*argv) : **argv;
 
 					/* find definition and clause */
-    if ( (CL = DEF->definition.clauses) == (Clause) NULL &&
+    if ( (CL = DEF->definition.clauses) == NULL &&
          false(DEF, DYNAMIC) )
     { lTop = (LocalFrame) argFrameP(FR, arity);
-      trapUndefined(PROC);
-      DEF = PROC->definition;
+      DEF = trapUndefined(DEF);
       CL = DEF->definition.clauses;
     }
-    
 					/* context module */
     if ( true(DEF, TRANSPARENT) )
     { if ( Context )
@@ -905,7 +901,7 @@ registers.
     if ( !debug )
       set(FR, FR_NODEBUG);
     FR->backtrackFrame = (LocalFrame) NULL;
-    FR->procedure = PROC;
+    FR->predicate = DEF;
     SetBfr(FR);
     DoMark(FR->mark);
     environment_frame = FR;
@@ -921,7 +917,7 @@ registers.
     { LocalFrame lTopSave = lTop;
       int action;
 
-      lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
+      lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
       action = tracePort(FR, CALL_PORT);
       lTop = lTopSave;
       switch(action)
@@ -935,13 +931,13 @@ registers.
     { bool rval;
 
       FR->clause = FIRST_CALL;
-      rval = callForeign(PROC, FR);
+      rval = callForeign(DEF, FR);
 #if O_DEBUGGER      
       if ( debugstatus.debugging )
       { LocalFrame lTopSave = lTop;
 	int action;
 
-	lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
+	lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
 	action = tracePort(FR, rval ? EXIT_PORT : FAIL_PORT);
 	lTop = lTopSave;
 	switch(action)
@@ -955,14 +951,14 @@ registers.
     }
 
     ARGP = argFrameP(FR, 0);
-    if ( (CL = findClause(CL, ARGP, DEF, &deterministic)) == NULL )
+    if ( !(CL = firstClause(ARGP, DEF, &deterministic)) )
     { bool rval = FALSE;
 #if O_DEBUGGER
       if ( debugstatus.debugging )
       { LocalFrame lTopSave = lTop;
 	int action;
 
-	lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
+	lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
 	action = tracePort(FR, FAIL_PORT);
 	lTop = lTopSave;
 	switch(action)
@@ -974,11 +970,16 @@ registers.
 #endif /*O_DEBUGGER*/
       RETURN(rval);			/* need trace call */
     }
+
     if ( deterministic )
       set(FR, FR_CUT);
-    CL->references++;
-    PC = CL->codes;
-    lTop = (LocalFrame) argFrameP(FR, CL->variables);
+    DEF->references++;
+
+    { Clause clause = CL->clause;
+
+      PC = clause->codes;
+      lTop = (LocalFrame) argFrameP(FR, clause->variables);
+    }
   }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1355,7 +1356,7 @@ exit(Block, RVal).  First does !(Block).
 	{ for(fr2 = fr; fr2->clause && fr2 > blockfr; fr2 = fr2->parent)
 	  { DEBUG(3, Sdprintf("discard %d\n", (Word)fr2 - (Word)lBase) );
 	    leaveFrame(fr2);
-	    fr2->clause = (Clause) NULL;
+	    fr2->clause = NULL;
 	  }
 	}
 #ifdef O_DEBUGGER
@@ -1380,14 +1381,13 @@ exit(Block, RVal).  First does !(Block).
 					/* TBD: tracing? */
 
           environment_frame = FR;
-	  PROC = FR->procedure;
-	  DEF = PROC->definition;
-	  lTop = (LocalFrame) argFrameP(FR, CL->variables);
+	  DEF = FR->predicate;
+	  lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
 	  ARGP = argFrameP(lTop, 0);
 
 	  NEXT_INSTRUCTION;
 	} else
-	{ lTop = (LocalFrame) argFrameP(FR, CL->variables);
+	{ lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
 	  ARGP = argFrameP(lTop, 0);
 
 	  BODY_FAILED;
@@ -1422,18 +1422,18 @@ exit(Block, RVal).  First does !(Block).
 	{ for(fr2 = fr; fr2->clause && fr2 > cutfr; fr2 = fr2->parent)
 	  { if ( false(fr, FR_CUT) )
 	    { DEBUG(3, Sdprintf("discard [%ld] %s\n",
-			      levelFrame(fr), procedureName(fr->procedure)));
+				levelFrame(fr), predicateName(fr->predicate)));
 	      leaveFrame(fr2);
-	      fr2->clause = (Clause) NULL;
+	      fr2->clause = NULL;
 	    }
 	  }
 	}
 
 	DEBUG(3, Sdprintf("BFR = [%ld] %s\n",
-			levelFrame(BFR),
-			procedureName(BFR->procedure)));
+			  levelFrame(BFR),
+			  predicateName(BFR->predicate)));
 
-	lTop = (LocalFrame) argFrameP(FR, CL->variables);
+	lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
 	ARGP = argFrameP(lTop, 0);
 
 	NEXT_INSTRUCTION;
@@ -1465,7 +1465,7 @@ backtrack that makes it difficult to understand the tracer's output.
 	{ for(fr2 = fr; fr2->clause && fr2 > FR; fr2 = fr2->parent)
 	  { DEBUG(3, Sdprintf("discard %d\n", (Word)fr2 - (Word)lBase) );
 	    leaveFrame(fr2);
-	    fr2->clause = (Clause) NULL;
+	    fr2->clause = NULL;
 	  }
 	}
 #ifdef O_DEBUGGER
@@ -1475,7 +1475,7 @@ backtrack that makes it difficult to understand the tracer's output.
 #endif
 
 	DEBUG(3, Sdprintf("BFR = %d\n", (Word)BFR - (Word)lBase) );
-	lTop = (LocalFrame) argFrameP(FR, CL->variables);
+	lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
 	ARGP = argFrameP(lTop, 0);
 
 	NEXT_INSTRUCTION;
@@ -1550,15 +1550,15 @@ discarded.
 	  { DEBUG(3, Sdprintf("discard %d: ", (Word)fr2 - (Word)lBase) );
 	    DEBUG(3, writeFrameGoal(fr2, 2); pl_nl() );
 	    leaveFrame(fr2);
-	    fr2->clause = (Clause) NULL;
+	    fr2->clause = NULL;
 	  }
 	}
 
         SetBfr(obfr);
 	DEBUG(3, Putf("BFR at "); writeFrameGoal(BFR, 2); pl_nl() );
-	{ int nvar = (true(BFR->procedure->definition, FOREIGN)
-				? BFR->procedure->functor->arity
-				: BFR->clause->variables);
+	{ int nvar = (true(BFR->predicate, FOREIGN)
+				? BFR->predicate->functor->arity
+				: BFR->clause->clause->variables);
 	  lTop = (LocalFrame) argFrameP(BFR, nvar);
 	  ARGP = argFrameP(lTop, 0);
 	}
@@ -1873,16 +1873,13 @@ frame and write  the  module  name  just  below  the  frame.   See  also
 contextModule().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-	PROC = resolveProcedure(functor, module);
-	DEF = PROC->definition;
-	next->procedure = PROC;
+	DEF = resolveProcedure(functor, module)->definition;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Save the program counter (note  that   I_USERCALL0  has no argument) and
 continue as with a normal call.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-	next->programPointer = PC;
 	next->context = module;
 	goto normal_call;
 	
@@ -1898,9 +1895,7 @@ doesn't exist.
 	next->flags = FR->flags;
 	if ( true(DEF, HIDE_CHILDS) ) /* parent has hide_childs */
 	  set(next, FR_NODEBUG);
-	PROC = next->procedure = lookupProcedure(FUNCTOR_fail0, MODULE_system);
-	DEF  = PROC->definition;
-	next->programPointer = PC;
+	DEF = lookupProcedure(FUNCTOR_fail0, MODULE_system)->definition;
 	next->context = FR->context;
 
 	goto normal_call;
@@ -1915,9 +1910,7 @@ doesn't exist.
 	next->flags = FR->flags;
 	if ( true(DEF, HIDE_CHILDS) ) /* parent has hide_childs */
 	  set(next, FR_NODEBUG);
-	PROC = next->procedure = lookupProcedure(FUNCTOR_true0, MODULE_system);
-	DEF  = PROC->definition;
-	next->programPointer = PC;
+	DEF = lookupProcedure(FUNCTOR_true0, MODULE_system)->definition;
 	next->context = FR->context;
 
 	goto normal_call;
@@ -1984,13 +1977,12 @@ the first call of $alt/1 simply succeeds.
 	DEBUG(9, Sdprintf("$alt(%d)\n", skip));
 	next = lTop;
 	next->flags = FR->flags;
-	next->procedure = PROCEDURE_alt1;
+	next->predicate = PROCEDURE_alt1->definition;
 	next->programPointer = PC;
 	next->context = MODULE_system;
 
 #if NO_INLINE_C_OR			/* old code.  keep for debugging */
-        PROC = PROCEDURE_alt1;
-	DEF  = PROC->definition;
+        DEF  = next->predicate;
 	goto normal_call;
 #else
 	STACKVERIFY( if (next > lMax) outOf((Stack)&stacks.local) );
@@ -2003,7 +1995,7 @@ the first call of $alt/1 simply succeeds.
 	a = argFrameP(next, 0);		/* see callForeign() */
 	lTop = (LocalFrame)argFrameP(a, 1);
 					/* callForeign() here */
-	next->clause = (Clause) ForeignRedoVal(skip);
+	next->clause = (ClauseRef) ForeignRedoVal(skip);
 	SetBfr(next);
 	ARGP = argFrameP(lTop, 0);
 
@@ -2046,13 +2038,14 @@ The VMI for these calls are ICALL_FVN, proc, var-index ...
 	deRef2(varFrameP(FR, *PC++), vars[1]);
 
       common_call_fv:
-	{ Func f = fproc->definition->definition.function;
+	{ Definition def = fproc->definition;
+	  Func f = def->definition.function;
 	  int rval;
 	  int i;
 
 	  if ( !f )
-	  { trapUndefined(fproc);
-	    f = fproc->definition->definition.function;
+	  { def = trapUndefined(def);
+	    f = def->definition.function;
 	  }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2064,7 +2057,7 @@ so the inline call is expanded to a normal call and may be traced.
 #ifdef O_DEBUGGER
 	       debugstatus.debugging ||
 #endif
-	       false(fproc->definition, FOREIGN) )
+	       false(def, FOREIGN) )
 	  { for(i=0; i<nvars; i++)
 	      *ARGP++ = (isVar(*vars[i]) ? makeRef(vars[i]) : *vars[i]);
 	  
@@ -2072,9 +2065,7 @@ so the inline call is expanded to a normal call and may be traced.
 	    next->flags = FR->flags;
 	    if ( true(DEF, HIDE_CHILDS) ) /* parent has hide_childs */
 	      set(next, FR_NODEBUG);
-	    PROC = next->procedure = fproc;
-	    DEF  = PROC->definition;
-	    next->programPointer = PC;
+	    DEF = def;
 	    next->context = FR->context;
 
 	    goto normal_call;
@@ -2090,14 +2081,15 @@ increase lTop too to prepare for asynchronous interrupts.
 	    statistics.inferences++;
 	    next = lTop;
 	    lTop = (LocalFrame) argFrameP(next, 0);
-	    if ( true(fproc->definition, TRANSPARENT) )
+	    if ( true(def, TRANSPARENT) )
 	      next->context = FR->context;
 	    else
-	      next->context = fproc->definition->module;
+	      next->context = def->module;
+	    next->predicate = def;
+	    next->parent    = FR;
 #ifdef O_PROFILE
-	    next->procedure = fproc;
-	    if (statistics.profiling)
-	      fproc->definition->profile_calls++;
+	    if ( statistics.profiling )
+	      def->profile_calls++;
 #endif /* O_PROFILE */
 	    environment_frame = next;
 	    DoMark(next->mark);
@@ -2206,10 +2198,7 @@ program pointer and jump to the common part.
 	{ FunctorDef fdef;
 
 	  fdef = lookupFunctorDef(functor, arity);
-	  PROC = resolveProcedure(fdef, module);
-	  DEF = PROC->definition;
-	  next->procedure = PROC;
-	  next->programPointer = PC;
+	  DEF = resolveProcedure(fdef, module)->definition;
 	  next->context = module;
 	}
 
@@ -2233,37 +2222,36 @@ execution can continue at `next_instruction'
 	     && !debugstatus.debugging
 #endif
 	   )
-	{ leaveClause(CL);
+	{ leaveDefinition(DEF);
 
 	  if ( true(DEF, HIDE_CHILDS) )
 	    set(FR, FR_NODEBUG);
-
-	  PROC = FR->procedure = (Procedure) *PC++;
-	  DEF = PROC->definition;
-
-	  copyFrameArguments(lTop, FR, PROC->functor->arity);
+	  
+	  FR->predicate = DEF = ((Procedure) *PC++)->definition;
+	  copyFrameArguments(lTop, FR, DEF->functor->arity);
 
 	  goto depart_continue;
 	}
 #endif
-      VMI(I_CALL, COUNT(i_call), ("call %d\n", *PC)) MARK(CALL);
+      VMI(I_CALL,
+	  COUNT(i_call),
+	  ("call %s\n", procedureName((Procedure)*PC)))
+	  MARK(CALL);
         next = lTop;
         next->flags = FR->flags;
 	if ( true(DEF, HIDE_CHILDS) )		/* parent has hide_childs */
 	  set(next, FR_NODEBUG);
-	PROC = next->procedure = (Procedure)*PC++;
-	DEF = PROC->definition;
-	next->programPointer = PC;		/* save PC in child */
+	DEF = ((Procedure) *PC++)->definition;
 	next->context = FR->context;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This is the common part of the call variations.  By now the following is
 true:
 
-  - arguments, nodebug, programPointer		filled
-  - context					filled with context for
-						transparent predicate
-  - PROC, DEF					filled
+  - arguments, nodebug		filled
+  - context			filled with context for
+				transparent predicate
+  - DEF				filled
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
       normal_call:
@@ -2279,8 +2267,10 @@ not worthwile.
 Note: we are working above `lTop' here!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 	next->backtrackFrame = BFR;
-	next->parent = FR;
-	environment_frame = FR = next;	/* open the frame */
+	next->parent         = FR;
+	next->predicate	     = DEF;		/* TBD */
+	next->programPointer = PC;		/* save PC in child */
+	environment_frame = FR = next;		/* open the frame */
 
       depart_continue:
 #if tos
@@ -2320,9 +2310,8 @@ Testing is suffices to find out that the predicate is defined.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 	if ( !DEF->definition.clauses && false(DEF, DYNAMIC) )	
-	{ lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
-	  trapUndefined(PROC);
-	  DEF = PROC->definition;
+	{ lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
+	  FR->predicate = DEF = trapUndefined(DEF);
 	}
 
 	if ( false(DEF, TRANSPARENT) )
@@ -2332,7 +2321,7 @@ Testing is suffices to find out that the predicate is defined.
 
 #if O_DYNAMIC_STACKS
 	if ( gc_status.requested )
-	{ lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
+	{ lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
 	  garbageCollect(FR);
 	}
 #else /*O_DYNAMIC_STACKS*/
@@ -2342,7 +2331,7 @@ Testing is suffices to find out that the predicate is defined.
 	int tshift = narrowStack(trail);
 
 	if ( gshift || lshift || tshift )
-	{ lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
+	{ lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
 
 	  if ( gshift || tshift )
 	  { long gused = usedStack(global);
@@ -2364,7 +2353,7 @@ Testing is suffices to find out that the predicate is defined.
       }
 #else /*O_SHIFT_STACKS*/
 	if ( narrowStack(global) || narrowStack(trail) )
-	{ lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
+	{ lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
 	  garbageCollect(FR);
 	}
 #endif /*O_SHIFT_STACKS*/
@@ -2372,7 +2361,7 @@ Testing is suffices to find out that the predicate is defined.
 
 #if O_DEBUGGER
 	if ( debugstatus.debugging )
-	{ lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
+	{ lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
 	  CL = DEF->definition.clauses;
 	  switch(tracePort(FR, CALL_PORT))
 	  { case ACTION_FAIL:	goto frame_failed;
@@ -2382,14 +2371,14 @@ Testing is suffices to find out that the predicate is defined.
 #endif /*O_DEBUGGER*/
 
 	if ( true(DEF, FOREIGN) )
-	{ CL = (Clause) FIRST_CALL;
+	{ CL = (ClauseRef) FIRST_CALL;
 	call_builtin:			/* foreign `redo' action */
 
-	  if ( callForeign(PROC, FR) )
+	  if ( callForeign(DEF, FR) )
 	    goto exit_builtin;
 
 	  goto frame_failed;
-	}
+	} 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Call a normal Prolog predicate.  Just load the  machine  registers  with
@@ -2397,11 +2386,11 @@ values  found  in  the  clause, give a referecence to the clause and set
 `lTop' to point to the first location after the current frame.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 	ARGP = argFrameP(FR, 0);
+	DEF->references++;
 
 	DEBUG(9, Sdprintf("Searching clause ... "));
 
-	if ( (CL = findClause(DEF->definition.clauses, ARGP, DEF,
-			      &deterministic)) == NULL )
+	if ( !(CL = firstClause(ARGP, DEF, &deterministic)) )
 	{ DEBUG(9, Sdprintf("No clause matching index.\n"));
 	  FRAME_FAILED;
 	}
@@ -2409,13 +2398,16 @@ values  found  in  the  clause, give a referecence to the clause and set
 
 	if ( deterministic )
 	  set(FR, FR_CUT);
-	CL->references++;
-	PC = CL->codes;
-	lTop = (LocalFrame)(ARGP + CL->variables);
+
+	{ Clause clause = CL->clause;
+
+	  PC = clause->codes;
+	  lTop = (LocalFrame)(ARGP + clause->variables);
+	}
 
 	SECURE(
 	int argc; int n;
-	argc = PROC->functor->arity;
+	argc = DEF->functor->arity;
 	for(n=0; n<argc; n++)
 	  checkData(argFrameP(FR, n), FALSE);
 	);
@@ -2469,19 +2461,31 @@ Leave the clause:
 
     VMI(I_EXIT, COUNT(i_exit), ("exit ")) MARK(EXIT);
 	if (FR->parent == (LocalFrame) NULL)
-	{ leaveClause(CL);
-    top_exit:
+	{ 
+	top_exit:
+	  { LocalFrame fr, fr2;
+
+	    set(FR, FR_CUT);		/* execute I_CUT */
+	    for(fr = BFR; fr > FR; fr = fr->backtrackFrame)
+	    { for(fr2 = fr; fr2->clause && fr2 > FR; fr2 = fr2->parent)
+	      { DEBUG(3, Sdprintf("discard %d\n", (Word)fr2 - (Word)lBase) );
+		leaveFrame(fr2);
+		fr2->clause = NULL;
+	      }
+	    }
+	  }
 #if O_DEBUGGER
 	  if (debugstatus.debugging)
-	  { CL = (Clause) NULL;
+	  { CL = NULL;
 
 	    switch(tracePort(FR, EXIT_PORT))
 	    { case ACTION_RETRY:	goto retry;
 	      case ACTION_FAIL:		set(FR, FR_CUT);
-					goto frame_failed;
+					FRAME_FAILED;
 	    }
 	  }
 #endif /*O_DEBUGGER*/
+	  leaveFrame(FR);
 	  RETURN(TRUE);
 	}
 
@@ -2493,7 +2497,7 @@ Leave the clause:
 	  { if ( BFR == FR )
 	      SetBfr(FR->backtrackFrame);
 	    lTop = FR;
-	    leaveClause(CL);
+	    leaveDefinition(DEF);
 	  }
 	}
 
@@ -2503,14 +2507,14 @@ Leave the clause:
 	{ int action;
 	  LocalFrame lSave = lTop;
 
-	  if ( lTop < (LocalFrame)argFrameP(FR, PROC->functor->arity) )
-	    lTop = (LocalFrame)argFrameP(FR, PROC->functor->arity);
+	  if ( lTop < (LocalFrame)argFrameP(FR, DEF->functor->arity) )
+	    lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
 	  action = tracePort(FR, EXIT_PORT);
 
 	  switch(action)
 	  { case ACTION_RETRY:	goto retry;
-	    case ACTION_FAIL:	set(FR, FR_CUT);	/* references !!! */
-				goto frame_failed;
+	    case ACTION_FAIL:	set(FR, FR_CUT);
+				FRAME_FAILED;
 	  }
 
 	  lTop = lSave;
@@ -2519,8 +2523,7 @@ Leave the clause:
 
 	PC = FR->programPointer;
 	environment_frame = FR = FR->parent;
-	PROC = FR->procedure;
-	DEF = PROC->definition;
+	DEF = FR->predicate;
 	ARGP = argFrameP(lTop, 0);
 
 	NEXT_INSTRUCTION;
@@ -2549,16 +2552,18 @@ retry:					MARK(RETRY);
 #if O_DEBUGGER
   if (debugstatus.debugging)
   { LocalFrame lTopSave = lTop;
-    lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
+    lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
     tracePort(FR, CALL_PORT);
     lTop = lTopSave;
   }
 #endif /*O_DEBUGGER*/
   if ( false(DEF, FOREIGN) )
-  { struct clause zero;				/* fake a clause */
+  { struct clause_ref zero;		/* fake a clause */
+    struct clause zclause;
 
-    clear(&zero, ERASED);			/* avoid destruction */
-    zero.next = DEF->definition.clauses;
+    clear(&zclause, ERASED);		/* avoid destruction */
+    zero.next   = DEF->definition.clauses;
+    zero.clause = &zclause;
     CL = &zero;
 
     CLAUSE_FAILED;
@@ -2610,38 +2615,34 @@ body_failed:				MARK(BKTRK);
   }
 
 clause_failed:
-  { register Clause next;
-
-    next = CL->next;
-    leaveClause(CL);
-    CL = next;
-  }
-  if ( true(FR, FR_CUT) )
+  CL = CL->next;
+  if ( !CL || true(FR, FR_CUT) )
     goto frame_failed;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Resume frame FR.  CL points  to  the  next  (candidate)  clause.   First
 indexing  is  activated  to find the next real candidate.  If this fails
-the entire frame has failed, so we cab continue at `frame_failed'.
+the entire frame has failed, so we can continue at `frame_failed'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 resume_frame:
   ARGP = argFrameP(FR, 0);
   DoUndo(FR->mark);		/* backtrack before clause indexing */
 
-  if ( (CL = findClause(CL, ARGP, DEF, &deterministic)) == NULL )
+  if ( !(CL = findClause(CL, ARGP, DEF, &deterministic)) )
     goto frame_failed;
 
   if ( deterministic )
     set(FR, FR_CUT);
-  else
-    clear(FR, FR_CUT);
 
   SetBfr(FR->backtrackFrame);
-  CL->references++;
-  PC = CL->codes;
   aTop = aBase;
-  lTop = (LocalFrame) argFrameP(FR, CL->variables);
+
+  { Clause clause = CL->clause;
+
+    PC = clause->codes;
+    lTop = (LocalFrame) argFrameP(FR, clause->variables);
+  }
 
   NEXT_INSTRUCTION;
 
@@ -2658,18 +2659,17 @@ the alternative clause might be retracted).
 frame_failed:				MARK(FAIL);
 
   for(;;)
-  { 
+  { DEF = FR->predicate;
+
 #ifdef O_PROFILE
-	if (statistics.profiling)
-	  FR->procedure->definition->profile_fails++;
+    if (statistics.profiling)
+      DEF->profile_fails++;
 #endif
 
 #if O_DEBUGGER
     if ( debugstatus.debugging )
     { switch( tracePort(FR, FAIL_PORT) )
-      { case ACTION_RETRY:	PROC = FR->procedure;
-				DEF = PROC->definition;
-				goto retry;
+      { case ACTION_RETRY:	goto retry;
 	case ACTION_IGNORE:	Putf("ignore not (yet) implemented here\n");
       }
     }
@@ -2681,6 +2681,9 @@ frame's  clause are already updated.  All frames that can be reached via
 the parent links and are  created  after  the  backtrack  frame  can  be
 visited for dereferencing.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+    if ( false(DEF, FOREIGN) )
+      leaveDefinition(DEF);
 
     if ( !FR->backtrackFrame )			/* top goal failed */
     { register LocalFrame fr = FR->parent;
@@ -2707,15 +2710,9 @@ might free it!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 resume_from_body:
 
-    PROC = FR->procedure;
-    DEF = PROC->definition;
+    DEF = FR->predicate;
     if ( false(DEF, FOREIGN) )
-    { register Clause next;
-
-      next = CL->next;
-      leaveClause(CL);
-      CL = next;
-    }
+      CL = CL->next;
 
 #if O_DEBUGGER
     if ( debugstatus.debugging )
@@ -2724,7 +2721,7 @@ resume_from_body:
 
       switch( tracePort(FR, REDO_PORT) )
       { case ACTION_FAIL:	continue;
-	case ACTION_IGNORE:	CL = (Clause) NULL;
+	case ACTION_IGNORE:	CL = NULL;
 				goto exit_builtin;
 	case ACTION_RETRY:	goto retry;
       }
@@ -2734,7 +2731,7 @@ resume_from_body:
     statistics.inferences++;
 #ifdef O_PROFILE
     if ( statistics.profiling )
-      FR->procedure->definition->profile_redos++;
+      DEF->profile_redos++;
 #endif /* O_PROFILE */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2771,7 +2768,7 @@ The new arguments block can contain the following types:
     These can just be copied.
   - 1-deep references into the `to' frame.
     This is hard as there might be two of  them  pointing  to  the  same
-    location  int  the  `to' fram, indicating sharing variables.  In the
+    location  in  the  `to' frame, indicating sharing variables.  In the
     first pass we will fill the  variable  in  the  `to'  frame  with  a
     reference  to the new variable.  If we get another reference to this
     field we will copy the reference saved in the `to'  field.   Because

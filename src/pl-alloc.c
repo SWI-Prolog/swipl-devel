@@ -9,6 +9,10 @@
 
 #include "pl-incl.h"
 
+#define ALLOC_DEBUG 0
+#define ALLOC_MAGIC 0xbf
+#define ALLOC_FREE_MAGIC 0x5f
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module defines memory allocation for the heap (the  program  space)
 and  the  various  stacks.   Memory  allocation below ALLOCFAST bytes is
@@ -68,6 +72,16 @@ alloc_heap(register size_t n)
       f->next = (Chunk) NULL;
       DEBUG(9, Sdprintf("(r) %ld (0x%lx)\n",
 		      (unsigned long) f, (unsigned long) f));
+#if ALLOC_DEBUG
+      { int i;
+	char *s = (char *) f;
+
+	for(i=sizeof(struct chunk); i<n; i++)
+	  assert(s[i] == ALLOC_FREE_MAGIC);
+
+	memset((char *) f, ALLOC_MAGIC, n);
+      }
+#endif
       return (Word) f;			/* perfect fit */
     }
     f = allocate(n);			/* allocate from core */
@@ -76,11 +90,17 @@ alloc_heap(register size_t n)
     SetHTop((char *)f + n);
 
     DEBUG(9, Sdprintf("(n) %ld (0x%lx)\n", (unsigned long)f, (unsigned long)f));
+#if ALLOC_DEBUG
+    memset((char *) f, ALLOC_MAGIC, n);
+#endif
     return f;
   }
 
   f = (Chunk) Malloc(n);
   DEBUG(9, Sdprintf("(b) %ld\n", (unsigned long)f));
+#if ALLOC_DEBUG
+  memset((char *) f, ALLOC_MAGIC, n);
+#endif
   return f;
 }
 
@@ -89,6 +109,9 @@ free_heap(register Void mem, register size_t n)
 { Chunk p = (Chunk) mem;
 
   n = ALLOCROUND(n);
+#if ALLOC_DEBUG
+  memset((char *) mem, ALLOC_FREE_MAGIC, n);
+#endif
   statistics.heap -= n;
   DEBUG(9, Sdprintf("freed %ld bytes at %ld\n",
 		  (unsigned long)n, (unsigned long)p));
@@ -337,7 +360,7 @@ void
 freeHeapReal(word w)
 { Word p = (Word)unMask(w);
   
- freeHeap(p, sizeof(word) * 2);
+  freeHeap(p, sizeof(word) * 2);
 }
 
 

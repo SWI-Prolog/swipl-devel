@@ -206,12 +206,16 @@ pl_dwim_predicate(Word term, Word dwim, word h)
     symb = (Symbol) ForeignContextAddress(h);
 
   for(; symb; symb = nextHTable(module->procedures, symb))
-  { proc = (Procedure) symb->value;
-    if ( dwimMatch(stringAtom(fdef->name), stringAtom(proc->functor->name)) &&
+  { Definition def;
+
+    proc = (Procedure) symb->value;
+    def  = proc->definition;
+
+    if ( dwimMatch(stringAtom(fdef->name),
+		   stringAtom(def->functor->name)) &&
          isDefinedProcedure(proc) &&
-         (stringAtom(proc->functor->name)[0] != '$' ||
-	   SYSTEM_MODE) )
-    { if (unifyFunctor(dwim, proc->functor) == FALSE)
+         (stringAtom(def->functor->name)[0] != '$' || SYSTEM_MODE) )
+    { if ( unifyFunctor(dwim, def->functor) == FALSE)
 	continue;
       if ((symb = nextHTable(module->procedures, symb)) != (Symbol) NULL)
 	ForeignRedo(symb);

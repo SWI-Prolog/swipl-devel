@@ -110,8 +110,8 @@ stripModule(register Word term, Module *module)
 
 bool
 isPublicModule(Module module, Procedure proc)
-{ return lookupHTable(module->public, proc->functor) == (Symbol) NULL ? FALSE
-								      : TRUE;
+{ return lookupHTable(module->public, proc->definition->functor) ? TRUE
+								 : FALSE;
 }
 
 
@@ -326,7 +326,7 @@ pl_export(Word head)
   else
     return warning("export/1: illegal predicate specification");
 
-  addHTable(module->public, proc->functor, proc);
+  addHTable(module->public, proc->definition->functor, proc);
 
   succeed;
 }
@@ -338,11 +338,13 @@ pl_check_export(void)
 
   for_table(s, module->public)
   { Procedure proc = (Procedure) s->value;
+    Definition def = proc->definition;
+
     if (isDefinedProcedure(proc) == FALSE)
     { warning("Exported procedure %s:%s/%d is not defined", 
 				  stringAtom(module->name), 
-				  stringAtom(proc->functor->name), 
-				  proc->functor->arity);
+				  stringAtom(def->functor->name), 
+				  def->functor->arity);
     }
   }
 
@@ -379,17 +381,10 @@ pl_import(Word pred)
     return warning("import/1: illegal predicate specification");
 
   if ( !isDefinedProcedure(proc) )
-  { autoImport(proc->functor, proc->definition->module);
-/*  does this matter?
-    if ( !autoImport(proc->functor, proc->definition->module) )
-    { warning("%s: importing undefined predicate %s",
-	      stringAtom(destination->name),
-	      procedureName(proc));
-    }
-*/
+  { autoImport(proc->definition->functor, proc->definition->module);
   }
 
-  if ((old = isCurrentProcedure(proc->functor, destination)) != NULL)
+  if ( (old = isCurrentProcedure(proc->definition->functor, destination)) )
   { if ( old->definition == proc->definition )
       succeed;			/* already done this! */
 
@@ -426,10 +421,9 @@ pl_import(Word pred)
   { Procedure nproc = (Procedure)  allocHeap(sizeof(struct procedure));
   
     nproc->type = PROCEDURE_TYPE;
-    nproc->functor = proc->functor;
     nproc->definition = proc->definition;
   
-    addHTable(destination->procedures, proc->functor, nproc);
+    addHTable(destination->procedures, proc->definition->functor, nproc);
   }
 
   succeed;

@@ -216,6 +216,8 @@ A exist			"exist"
 A none			"none"
 A volatile		"volatile"
 A initialization	"initialization"
+A hashed		"hashed"
+A references		"references"
 
 F apply			2
 F call			1

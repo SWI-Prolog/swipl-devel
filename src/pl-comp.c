@@ -547,7 +547,7 @@ clause should belong to.
   if ( !proc )
     return NULL;
 
-  if ( (ci.arity = proc->functor->arity) > MAXARITY )
+  if ( (ci.arity = proc->definition->functor->arity) > MAXARITY )
     return (Clause) warning("Compiler: arity too high (%d)\n", ci.arity);
 
   DEBUG(9, Sdprintf("Splitted and found proc\n"));
@@ -557,21 +557,21 @@ Allocate the clause and fill initialise the field we already know.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   clause = (Clause) allocHeap(sizeof(struct clause));
-  clause->next = (Clause) NULL;
-  clause->references = 0;
-  clear(clause, ERASED);
-  clause->code_size = 0;
+  clause->flags      = 0;
+  clause->code_size  = 0;
   clause->subclauses = 0;
-  clause->procedure = proc;
-  clause->source_no = clause->line_no = 0;
+  clause->procedure  = proc;
+  clause->source_no  = clause->line_no = 0;
 
   DEBUG(9, Sdprintf("clause struct initialised\n"));
 
   { register Definition def = proc->definition;
 
     if ( def->indexPattern && !(def->indexPattern & NEED_REINDEX) )
-      clause->index = getIndex(argTermP(*head, 0), def->indexPattern, 
-						   def->indexCardinality);
+      getIndex(argTermP(*head, 0),
+	       def->indexPattern, 
+	       def->indexCardinality,
+	       &clause->index);
     else
       clause->index.key = clause->index.varmask = 0L;
   }
@@ -1030,17 +1030,18 @@ operator.
 
       for(arg = argTermP(*arg, 0); ar > 0; ar--, arg++)
 	compileArgument(arg, BODY, ci);
-      if ( proc->functor->name == ATOM_call )
-      { Output_1(ci, I_USERCALLN, (code)(proc->functor->arity - 1));
+
+      if ( fdef->name == ATOM_call )
+      { Output_1(ci, I_USERCALLN, (code)(fdef->arity - 1));
 	succeed;
-      } else if ( proc->functor == FUNCTOR_apply2 )
+      } else if ( fdef == FUNCTOR_apply2 )
       { Output_0(ci, I_APPLY);
 	succeed;
 #if O_BLOCK
-      } else if ( proc->functor == FUNCTOR_dcut1 )
+      } else if ( fdef == FUNCTOR_dcut1 )
       { Output_0(ci, I_CUT_BLOCK);
 	succeed;
-      } else if ( proc->functor == FUNCTOR_dexit2 )
+      } else if ( fdef == FUNCTOR_dexit2 )
       { Output_0(ci, B_EXIT);
 	succeed;
 #endif
@@ -1215,7 +1216,7 @@ The warnings should help explain what is going on here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Clause
-assert_term(Word term, char where, Atom file)
+assert_term(Word term, int where, Atom file)
 { Clause clause;
   Procedure proc;
   Definition def;
@@ -1255,9 +1256,9 @@ care of reconsult, redefinition, etc.
 				procedureName(proc));
       else
 	warning("%s/%d already imported from module %s", 
-				stringAtom(proc->functor->name), 
-				proc->functor->arity, 
-				stringAtom(proc->definition->module->name) );
+		stringAtom(def->functor->name), 
+		def->functor->arity, 
+		stringAtom(proc->definition->module->name) );
       freeClause(clause);
       return NULL;
     }
@@ -1279,9 +1280,9 @@ care of reconsult, redefinition, etc.
       }
 
       if ( false(def, MULTIFILE) )
-      { Clause first = def->definition.clauses;
+      { ClauseRef first = def->definition.clauses;
 
-	if ( first && first->source_no == sf->index )
+	if ( first && first->clause->source_no == sf->index )
 	{ if ( (debugstatus.styleCheck & DISCONTIGUOUS_STYLE) &&
 	       false(def, DISCONTIGUOUS) )
 	    warning("Clauses of %s are not together in the source file", 
@@ -1327,18 +1328,18 @@ mode, the predicate is still undefined and is not dynamic or multifile.
 
 word
 pl_assertz(Word term)
-{ return assert_term(term, 'z', (Atom)NULL) == (Clause)NULL ? FALSE : TRUE;
+{ return assert_term(term, CL_END, (Atom)NULL) == NULL ? FALSE : TRUE;
 }
 
 word
 pl_asserta(Word term)
-{ return assert_term(term, 'a', (Atom)NULL) == (Clause)NULL ? FALSE : TRUE;
+{ return assert_term(term, CL_START, (Atom)NULL) == NULL ? FALSE : TRUE;
 }
 
 
 word
 pl_assertz2(Word term, Word ref)
-{ Clause clause = assert_term(term, 'z', (Atom)NULL);
+{ Clause clause = assert_term(term, CL_END, (Atom)NULL);
 
   if (clause == (Clause)NULL)
     fail;
@@ -1349,7 +1350,7 @@ pl_assertz2(Word term, Word ref)
 
 word
 pl_asserta2(Word term, Word ref)
-{ Clause clause = assert_term(term, 'a', (Atom)NULL);
+{ Clause clause = assert_term(term, CL_START, (Atom)NULL);
 
   if (clause == (Clause)NULL)
     fail;
@@ -1365,7 +1366,7 @@ pl_record_clause(Word term, Word file, Word ref)
   if (!isAtom(*file) )
     fail;
 
-  if ( (clause = assert_term(term, 'z', (Atom)*file)) )
+  if ( (clause = assert_term(term, CL_END, (Atom)*file)) )
     return unifyAtomic(ref, pointerToNum(clause));
   
   fail;
@@ -1509,16 +1510,13 @@ static bool
 decompile_head(Clause clause, Word head, register decompileInfo *di)
 { int arity;
   Word argp, argp0;
+  Definition def = clause->procedure->definition;
 
   deRef(head);
 
-  DEBUG(5, Sdprintf("Decompiling head of %s\n", procedureName(clause->procedure)));
-  arity = clause->procedure->functor->arity;
-  if (arity == 0)
-  { TRY(unifyAtomic(head, clause->procedure->functor->name) );
-  } else
-  { TRY(unifyFunctor(head, clause->procedure->functor) );
-  }
+  DEBUG(5, Sdprintf("Decompiling head of %s\n", predicateName(def)));
+  arity = def->functor->arity;
+  TRY( unifyFunctor(head, def->functor) );
   argp0 = argp = argTermP(*head, 0);
   PC = clause->codes;
 
@@ -1767,10 +1765,11 @@ decompileBody(register decompileInfo *di, code end, Code until)
 			    pushed++;
 			    continue;
       case I_DEPART:
-      case I_CALL:
-			    build_term(((Procedure)XR(*PC++))->functor, di);
+      case I_CALL:        { Procedure proc = (Procedure)XR(*PC++);
+			    build_term(proc->definition->functor, di);
 			    pushed++;
 			    continue;
+			  }
       case I_USERCALL0:
 			    pushed++;
 			    continue;
@@ -1786,7 +1785,7 @@ decompileBody(register decompileInfo *di, code end, Code until)
 	  
 	  *ARGP++ = makeRef(index);
 	}
-	build_term(((Procedure)XR(*PC))->functor, di);
+	build_term(((Procedure)XR(*PC))->definition->functor, di);
 	pushed++;
 	PC += vars+1;
 	continue;
@@ -1900,7 +1899,9 @@ build_term(register FunctorDef f, register decompileInfo *di)
 word
 pl_clause(Word p, Word term, Word ref, word h)
 { Procedure proc;
+  Definition def;
   Clause clause;
+  ClauseRef cref;
   Module module = (Module)NULL;
 
   if ( ForeignControl(h) == FRG_CUTTED )
@@ -1922,7 +1923,8 @@ pl_clause(Word p, Word term, Word ref, word h)
       fail;
 
     proc = clause->procedure;
-    defModule = proc->definition->module;
+    def = proc->definition;
+    defModule = def->module;
 
     if (isTerm(*term) && functorTerm(*term) == FUNCTOR_module2)
     { p = stripModule(p, &module);
@@ -1947,32 +1949,34 @@ pl_clause(Word p, Word term, Word ref, word h)
   { if ( (proc = findProcedure(p)) == (Procedure) NULL ||
          true(proc->definition, FOREIGN) )
       fail;
-    clause = proc->definition->definition.clauses;
+    def = proc->definition;
+    cref = def->definition.clauses;
   } else
-  { clause = (Clause) ForeignContextAddress(h);
-    proc = clause->procedure;
+  { cref = (ClauseRef) ForeignContextAddress(h);
+    proc = cref->clause->procedure;
+    def  = proc->definition;
   }
 
   p = stripModule(p, &module);
 
-  for(; clause; clause = clause->next)
+  for(; cref; cref = cref->next)
   { bool det;
 
-    if ((clause = findClause(clause, 
-			     proc->functor->arity == 0 ? (Word)NULL
-						       : argTermP(*p, 0), 
-			     proc->definition, &det)) == (Clause)NULL)
+    if ((cref = findClause(cref, 
+			   def->functor->arity == 0 ? (Word)NULL
+						    : argTermP(*p, 0), 
+			   def, &det)) == NULL)
       fail;
 
-    if (decompile(clause, term) == FALSE)
+    if (decompile(cref->clause, term) == FALSE)
       continue;
-    if (unifyAtomic(ref, pointerToNum(clause)) == FALSE)
+    if (unifyAtomic(ref, pointerToNum(cref->clause)) == FALSE)
       continue;
 
     if ( det == TRUE )
       succeed;
-
-    ForeignRedo(clause->next);
+					/* ??? add reference? */
+    ForeignRedo(cref->next);
   }
 
   fail;
@@ -1980,26 +1984,29 @@ pl_clause(Word p, Word term, Word ref, word h)
 
 
 typedef struct
-{ Clause clause;			/* pointer to the clause */
-  int    index;				/* nth-1 index */
-} cref, *Cref;
+{ ClauseRef clause;			/* pointer to the clause */
+  int       index;			/* nth-1 index */
+} crref, *Cref;
 
 
 word
 pl_nth_clause(Word p, Word n, Word ref, word h)
 { Clause clause;
+  ClauseRef cref;
   Procedure proc;
+  Definition def;
   Cref cr;
 
   if ( ForeignControl(h) == FRG_CUTTED )
   { cr = (Cref) ForeignContextAddress(h);
-    freeHeap(cr, sizeof(cref));
+    def = cr->clause->clause->procedure->definition;
+    leaveDefinition(def);
+    freeHeap(cr, sizeof(crref));
     succeed;
   }
 
   if (!isVar(*ref))  
-  { Clause c;
-    int i;
+  { int i;
 
     if (!isInteger(*ref))
       return warning("nth_clause/3: illegal reference");
@@ -2010,15 +2017,16 @@ pl_nth_clause(Word p, Word n, Word ref, word h)
       return warning("nth_clause/3: Invalid integer reference");
 	
     proc = clause->procedure;
-    for(c = proc->definition->definition.clauses, i=1; c; c = c->next, i++)
-    { if ( c == clause )
+    def  = proc->definition;
+    for( cref = def->definition.clauses, i=1; cref; cref = cref->next, i++)
+    { if ( cref->clause == clause )
       { TRY(unifyAtomic(n, consNum(i)));
 
 	if ( isVar(*p) )
-	{ if ( proc->definition->module != MODULE_user &&
-	       proc->definition->module != contextModule(environment_frame) )
+	{ if ( def->module != MODULE_user &&
+	       def->module != contextModule(environment_frame) )
 	  { unifyFunctor(p, FUNCTOR_module2);
-	    unifyAtomic(argTermP(*p, 0), proc->definition->module->name);
+	    unifyAtomic(argTermP(*p, 0), def->module->name);
 	    p = argTermP(*p, 1);
 	  }
 	} else if ( isTerm(*p) && functorTerm(*p) == FUNCTOR_module2 )
@@ -2026,59 +2034,78 @@ pl_nth_clause(Word p, Word n, Word ref, word h)
 	  deRef(p);
 	}
 
-	return unifyFunctor(p, proc->functor);
+	return unifyFunctor(p, def->functor);
       }
     }
 
     fail;
   }
 
-  if ( ForeignControl(h) == FRG_FIRST_CALL)
+  if ( ForeignControl(h) == FRG_FIRST_CALL )
   { if ( (proc = findProcedure(p)) == (Procedure) NULL ||
          true(proc->definition, FOREIGN) )
       fail;
 
-    if ( !(clause = proc->definition->definition.clauses) )
+    def = proc->definition;
+    cref = def->definition.clauses;
+    while ( cref && true(cref->clause, ERASED) )
+      cref = cref->next;
+    
+    if ( !cref )
       fail;
 
     if ( isInteger(*n) )		/* proc and n specified */
     { int i = valNum(*n);
 
-      while(i > 1 && clause)
-      { clause = clause->next;
+      while(i > 1 && cref)
+      { do
+	{ cref = cref->next;
+	} while ( cref && true(cref->clause, ERASED) );
+
 	i--;
       }
       if ( i == 1 )
-	return unifyAtomic(ref, pointerToNum(clause));
+	return unifyAtomic(ref, pointerToNum(cref->clause));
       fail;
     }
 
-    cr = allocHeap(sizeof(cref));
-    cr->clause = clause;
+    cr = allocHeap(sizeof(crref));
+    cr->clause = cref;
     cr->index  = 1;
+    def->references++;
   } else
   { cr = (Cref) ForeignContextAddress(h);
-    proc = clause->procedure;
+    def = cr->clause->clause->procedure->definition;
   }
 
   unifyAtomic(n, consNum(cr->index));
-  unifyAtomic(ref, pointerToNum(cr->clause));
-  if ( (cr->clause = cr->clause->next) )
-  { cr->index++;
+  unifyAtomic(ref, pointerToNum(cr->clause->clause));
+
+  cref = cr->clause->next;
+  while ( cref && true(cref->clause, ERASED) )
+    cref = cref->next;
+
+  if ( cref )
+  { cr->clause = cref;
+    cr->index++;
     ForeignRedo(cr);
   }
 
-  freeHeap(cr, sizeof(cref));
+  freeHeap(cr, sizeof(crref));
+  leaveDefinition(def);
+
   succeed;
 }
 
 
 static bool
 unifyProcedure(Word t, Procedure proc)
-{ if ( unifyFunctor(t, FUNCTOR_module2) )
+{ Definition def = proc->definition;
+
+  if ( unifyFunctor(t, FUNCTOR_module2) )
   { deRef(t);
-    if ( unifyAtomic(argTermP(*t, 0), proc->definition->module->name) &&
-	 unifyFunctor(argTermP(*t, 1), proc->functor) )
+    if ( unifyAtomic(argTermP(*t, 0), def->module->name) &&
+	 unifyFunctor(argTermP(*t, 1), def->functor) )
       succeed;
   }
 

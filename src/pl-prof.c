@@ -109,8 +109,11 @@ pl_profile_count(Word head, Word calls, Word prom)
 
   TRY(unifyAtomic(calls, consNum(def->profile_calls+def->profile_redos)) );
 
-  return unifyAtomic(prom, consNum((1000 * def->profile_ticks) /
-				   statistics.profile_ticks) );
+  if ( statistics.profile_ticks == 0 )
+    return unifyAtomic(prom, consNum(0));
+  else
+    return unifyAtomic(prom, consNum((1000 * def->profile_ticks) /
+				     statistics.profile_ticks) );
 }
 
 
@@ -194,20 +197,20 @@ profile(int sig)
 
   statistics.profile_ticks++;
   if (statistics.profiling == PLAIN_PROFILING)
-  { fr->procedure->definition->profile_ticks++;
+  { fr->predicate->profile_ticks++;
     return;
   }
 
   for(; fr; fr = parentFrame(fr) )		/* CUMULATIVE_PROFILING */
-  { register Procedure proc = fr->procedure;
-    if ( false(proc->definition, PROFILE_TICKED) )
-    { set(proc->definition, PROFILE_TICKED);
-      proc->definition->profile_ticks++;
+  { register Definition def = fr->predicate;
+    if ( false(def, PROFILE_TICKED) )
+    { set(def, PROFILE_TICKED);
+      def->profile_ticks++;
     }
   }
   
   for(fr = environment_frame; fr; fr = parentFrame(fr) )
-    clear(fr->procedure->definition, PROFILE_TICKED);
+    clear(fr->predicate, PROFILE_TICKED);
 }
 
 #else /* O_PROFILE */

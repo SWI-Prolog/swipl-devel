@@ -1363,8 +1363,21 @@ AbsoluteFile(char *spec)
 
   if ( CWDlen == 0 )
   { char buf[MAXPATHLEN];
+    char *rval;
 
-    getcwd(buf, MAXPATHLEN);
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+On SunOs, getcwd() is using popen() to read the output of /bin/pwd.  This
+is slow and appears not to cooperate with profile/3.  getwd() is supposed
+to be implemented directly.  What about other Unixes?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if defined(HAVE_GETWD) && defined(__sun__)
+    rval = getwd(buf);
+#else
+    rval = getcwd(buf, MAXPATHLEN);
+#endif
+    if ( !rval )
+      warning("getcwd() failed: %s", OsError());
     strcpy(CWDdir, canonisePath(buf));
     CWDlen = strlen(CWDdir);
     CWDdir[CWDlen++] = '/';
@@ -1620,7 +1633,7 @@ extern char *filename_completion_function(char *, int);
 
 static int
 event_hook(void)
-{ ttybuf tab;
+{ /*ttybuf tab;*/
   int rval;
 
 /*PushTty(&tab, TTY_OUTPUT);*/

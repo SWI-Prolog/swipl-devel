@@ -78,7 +78,7 @@ pl_format_predicate(Word chr, Word descr)
 
   if ( (proc = findCreateProcedure(descr)) == NULL )
     fail;
-  if ( proc->functor->arity == 0 )
+  if ( proc->definition->functor->arity == 0 )
     return warning("format_predicate/2: predicate must have at least 1 argument");
 
   if ( format_predicates == NULL )
@@ -228,6 +228,7 @@ do_format(char *fmt, int argc, Word argv)
 				 (Void)((long)*fmt))) != NULL )
 #endif
 	  { Procedure proc = (Procedure) s->value;
+	    FunctorDef fdef = proc->definition->functor;
 	    char buf[BUFSIZE];
 	    mark m;
 	    word goal;
@@ -237,11 +238,11 @@ do_format(char *fmt, int argc, Word argv)
 	    Mark(m);
 	    goal = globalFunctor(FUNCTOR_module2);
 	    unifyAtomic(argTermP(goal, 0), proc->definition->module->name);
-	    unifyAtomic(argTermP(goal, 1), globalFunctor(proc->functor));
+	    unifyAtomic(argTermP(goal, 1), globalFunctor(fdef));
 	    g = argTermP(goal, 1);
 	    unifyAtomic(argTermP(*g, 0), arg == DEFAULT ? (word)ATOM_default
 						        : consNum(arg));
-	    for(n = 1; n < proc->functor->arity; n++)
+	    for(n = 1; n < fdef->arity; n++)
 	    { NEED_ARG;
 	      pl_unify(argTermP(*g, n), a);
 	      SHIFT;

@@ -821,6 +821,9 @@ Word file, entry, options, libraries, size;
 #ifndef RTLD_GLOBAL			/* solaris defines this */
 #define RTLD_GLOBAL 0
 #endif
+#ifndef RTLD_NOW			/* implicit on some versions */
+#define RTLD_NOW 0
+#endif
 
 #endif HAVE_DLOPEN
 
@@ -862,14 +865,27 @@ int	dl_plid;			/* next id to give */
 DlEntry dl_head;			/* loaded DL's */
 DlEntry dl_tail;			/* end of this chain */
 
+#define DL_NOW	  0x1
+#define DL_GLOBAL 0x2
+
 word
-pl_open_shared_object(Word file, Word plhandle)
+pl_open_shared_object(Word file, Word plhandle, Word flags)
 { void *dlhandle;
   DlEntry e;
+  int dlflags;
+
+  if ( isInteger(*flags) )
+  { int n = valNum(*flags);
+
+    dlflags = (n & DL_NOW) ? RTLD_NOW : RTLD_LAZY;
+    if ( n & DL_GLOBAL )
+      dlflags |= RTLD_GLOBAL;
+  } else
+    dlflags = RTLD_LAZY | RTLD_GLOBAL;
 
   if ( !isAtom(*file) )
     return warning("open_shared_object/2: instantiation fault");
-  if ( !(dlhandle = dlopen(stringAtom(*file), RTLD_LAZY|RTLD_GLOBAL)) )
+  if ( !(dlhandle = dlopen(stringAtom(*file), dlflags)) )
     return warning("load_shared_object/2: %s", dlerror());
   e = allocHeap(sizeof(struct dl_entry));
   e->id       = ++dl_plid;

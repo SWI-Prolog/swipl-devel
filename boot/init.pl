@@ -1233,7 +1233,8 @@ $load_additional_boot_files :-
         ).
 
 
-'$:-'	format('Loading Prolog startup files~n', []),
+'$:-'	
+	format('Loading Prolog startup files~n', []),
 	source_location(File, _Line),
 	file_directory_name(File, Dir),
 	concat(Dir, '/load.pl', LoadFile),

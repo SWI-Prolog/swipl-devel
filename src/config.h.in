@@ -163,6 +163,9 @@
 /* Define if you have the gettimeofday function.  */
 #undef HAVE_GETTIMEOFDAY
 
+/* Define if you have the getwd function.  */
+#undef HAVE_GETWD
+
 /* Define if you have the memmove function.  */
 #undef HAVE_MEMMOVE
 

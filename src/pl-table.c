@@ -53,8 +53,8 @@ newHTable(int buckets)
 void
 destroyHTable(Table ht)
 { clearHTable(ht);
-  freeHeap(ht, sizeof(struct table));
   freeHeap(ht->entries, ht->buckets * sizeof(Symbol));
+  freeHeap(ht, sizeof(struct table));
 }
 
 

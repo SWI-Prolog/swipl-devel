@@ -89,27 +89,26 @@ cardinalityPattern(register unsigned long pattern)
   return result;
 }
 
-struct index
-getIndex(register Word argv, register unsigned long pattern, int card)
-{ static struct index result;
-
-  if ( pattern == 0x1L )
+void
+getIndex(register Word argv, register unsigned long pattern, int card,
+	 struct index *index)
+{ if ( pattern == 0x1L )
   { deRef(argv);
     if (isVar(*argv) || isIndirect(*argv) )
-    { result.key = result.varmask = 0;
-      return result;
+    { index->key = index->varmask = 0;
+      return;
     }
-    result.key = (isTerm(*argv) ? (word) functorTerm(*argv) : *argv);
-    result.varmask = (unsigned long) ~0L;
+    index->key = (isTerm(*argv) ? (word) functorTerm(*argv) : *argv);
+    index->varmask = (unsigned long) ~0L;
 
-    return result;
+    return;
   } else
   { register Word k;
     register word key;
     register int a;
 
-    result.key = 0;
-    result.varmask = (unsigned long) ~0L;			/* all 1s */
+    index->key = 0;
+    index->varmask = (unsigned long) ~0L;			/* all 1s */
 
     for(a = 0; a < card; a++, pattern >>= 1, argv++)
     { for(;(pattern & 0x1) == 0; pattern >>= 1)
@@ -117,82 +116,191 @@ getIndex(register Word argv, register unsigned long pattern, int card)
 
       deRef2(argv, k);
       if (isVar(*k) || isIndirect(*k) )
-      { result.varmask &= varMask(card, a);
+      { index->varmask &= varMask(card, a);
 	continue;
       }
       key = (isTerm(*k) ? (word) functorTerm(*k) : *k);
       key = key >> 2;
-      result.key |= ((key & Mask(card)) << Shift(card, a) );
+      index->key |= ((key & Mask(card)) << Shift(card, a) );
     }
   }
 
-  return result;
+  return;
 }
 
-Clause
-findClause(Clause cl, Word argv, Definition def, bool *deterministic)
-{ *deterministic = FALSE;
 
-again:
-
-  if ( def->indexPattern == 0x0L )
-  { DEBUG(9, Sdprintf("Not indexed.\n"));
-    while(cl && true(cl, ERASED))
-    { DEBUG(9, Sdprintf("Skipping erased clause.\n"));
-      cl = cl->next;
+ClauseRef
+findClause(ClauseRef cref, Word argv, Definition def, bool *deterministic)
+{ if ( def->indexPattern == 0x0L )
+  { noindex:
+    for(;;cref = cref->next)
+    { if ( cref )
+      { if ( false(cref->clause, ERASED) )
+	{ *deterministic = !cref->next;
+	  return cref;
+	}
+      } else
+	return NULL;
     }
-    DEBUG(9, Sdprintf("Returning clause 0x%lx\n", (unsigned long) cl));
-    if ( cl && !cl->next )
-      *deterministic = TRUE;
-    return cl;
   } else if ( def->indexPattern == 0x1L )
   { word key;
 
     deRef(argv);
     if (isVar(*argv) || isIndirect(*argv))
-    { while(cl && true(cl, ERASED))
-	cl = cl->next;
-      if ( cl && !cl->next )
-	*deterministic = TRUE;
-      return cl;
-    }
-    key = (isTerm(*argv) ? (word) functorTerm(*argv) : *argv);
-    for(;cl ; cl = cl->next)
-    { if ((key & cl->index.varmask) == cl->index.key && false(cl, ERASED))
-      { Clause result = cl;
+      goto noindex;
+    key = (nonVarIsTerm(*argv) ? (word) functorTerm(*argv) : *argv);
+    for(;cref ; cref = cref->next)
+    { Clause clause = cref->clause;
+
+      if ( (key & clause->index.varmask) == clause->index.key &&
+	   false(clause, ERASED))
+      { ClauseRef result = cref;
       
-	for( cl = cl->next; cl; cl = cl->next )
-	{ if ((key & cl->index.varmask) == cl->index.key && false(cl, ERASED))
+	for( cref = cref->next; cref; cref = cref->next )
+	{ clause = cref->clause;
+	  if ( (key&clause->index.varmask) == clause->index.key &&
+	       false(clause, ERASED))
+	  { *deterministic = FALSE;
+
 	    return result;
+	  }
 	}
 	*deterministic = TRUE;
 
 	return result;
       }
     }
-    return (Clause) NULL;
+    return NULL;
+  } else if ( def->indexPattern & NEED_REINDEX )
+  { reindexDefinition(def);
+    return findClause(cref, argv, def, deterministic);
+  } else
+  { struct index argIndex;
+
+    getIndex(argv, def->indexPattern, def->indexCardinality, &argIndex);
+    for(; cref; cref = cref->next)
+    { if ( matchIndex(argIndex, cref->clause->index) &&
+	   false(cref->clause, ERASED))
+      { ClauseRef result = cref;
+      
+	for( cref = cref->next; cref; cref = cref->next )
+	{ if ( matchIndex(argIndex, cref->clause->index) &&
+	       false(cref->clause, ERASED))
+	  { *deterministic = FALSE;
+
+	    return result;
+	  }
+	}
+	*deterministic = TRUE;
+
+	return result;
+      }
+    }
+    return NULL;
+  }
+}
+
+
+ClauseRef
+nextClause(ClauseRef cref, bool *det, Index ctx)
+{ if ( ctx->varmask == 0x0L )		/* no indexing */
+  { for(;;cref = cref->next)
+    { if ( cref )
+      { if ( false(cref->clause, ERASED) )
+	{ *det = !cref->next;
+	  return cref;
+	}
+      } else
+	return NULL;
+    }
+  } else if ( ctx->varmask == ~0x0L )	/* first argument only */
+  { word key = ctx->key;
+
+    for(;cref ; cref = cref->next)
+    { Clause clause = cref->clause;
+
+      if ( (key & clause->index.varmask) == clause->index.key &&
+	   false(clause, ERASED))
+      { ClauseRef result = cref;
+      
+	for( cref = cref->next; cref; cref = cref->next )
+	{ clause = cref->clause;
+	  if ( (key&clause->index.varmask) == clause->index.key &&
+	       false(clause, ERASED))
+	  { *det = FALSE;
+
+	    return result;
+	  }
+	}
+	*det = TRUE;
+
+	return result;
+      }
+    }
+    return NULL;
+  } else
+  { for(; cref; cref = cref->next)
+    { if ( matchIndex(*ctx, cref->clause->index) &&
+	   false(cref->clause, ERASED))
+      { ClauseRef result = cref;
+      
+	for( cref = cref->next; cref; cref = cref->next )
+	{ if ( matchIndex(*ctx, cref->clause->index) &&
+	       false(cref->clause, ERASED))
+	  { *det = FALSE;
+
+	    return result;
+	  }
+	}
+	*det = TRUE;
+
+	return result;
+      }
+    }
+    return NULL;
+  }
+}
+
+
+ClauseRef
+firstClause(Word argv, Definition def, bool *det)
+{ ClauseRef cref;
+  struct index buf;
+  Index ctx = &buf;
+
+again:
+  if ( def->indexPattern == 0x0L )
+  { noindex:
+
+    cref = def->definition.clauses;
+    for(;;cref = cref->next)
+    { if ( cref )
+      { if ( false(cref->clause, ERASED) )
+	{ *det = !cref->next;
+	  return cref;
+	}
+      } else
+	return NULL;
+    }
+  } else if ( def->indexPattern == 0x1L )
+  { deRef(argv);
+    if (isVar(*argv) || isIndirect(*argv))
+      goto noindex;
+    ctx->key     = (nonVarIsTerm(*argv) ? (word) functorTerm(*argv) : *argv);
+    ctx->varmask = ~0x0L;
+    if ( def->hash_info )
+      cref = def->hash_info->entries[ctx->key & (def->hash_info->buckets-1)].head;
+    else
+      cref = def->definition.clauses;
   } else if ( def->indexPattern & NEED_REINDEX )
   { reindexDefinition(def);
     goto again;
   } else
-  { struct index argIndex;
-
-    argIndex = getIndex(argv, def->indexPattern, def->indexCardinality);
-    for(; cl; cl = cl->next)
-    { if (matchIndex(argIndex, cl->index) && false(cl, ERASED))
-      { Clause result = cl;
-      
-	for( cl = cl->next; cl; cl = cl->next )
-	{ if (matchIndex(argIndex, cl->index) && false(cl, ERASED))
-	    return result;
-	}
-	*deterministic = TRUE;
-
-	return result;
-      }
-    }
-    return (Clause) NULL;
+  { getIndex(argv, def->indexPattern, def->indexCardinality, ctx);
+    cref = def->definition.clauses;
   }
+
+  return nextClause(cref, det, ctx);
 }
 
 
@@ -218,14 +326,15 @@ reindexClause(Clause clause)
     { Word a1 = newTerm();
 
       decompileArg1(clause, a1);
-      clause->index = getIndex(a1, pattern, 1);
+      getIndex(a1, pattern, 1, &clause->index);
     } else
     { Word head = newTerm();
 
       decompileHead(clause, head);
-      clause->index = getIndex(argTermP(*head, 0),
-			       pattern,
-			       proc->definition->indexCardinality);
+      getIndex(argTermP(*head, 0),
+	       pattern,
+	       proc->definition->indexCardinality,
+	       &clause->index);
     }
 
     Undo(m);
@@ -238,18 +347,213 @@ reindexClause(Clause clause)
 bool
 indexPatternToTerm(Procedure proc, Word value)
 { Word argp;
-  unsigned long pattern = (proc->definition->indexPattern & ~NEED_REINDEX);
-  int n, arity = proc->functor->arity;
+  Definition def = proc->definition;
+  unsigned long pattern = (def->indexPattern & ~NEED_REINDEX);
+  int n, arity = def->functor->arity;
 
   if (pattern == 0)
     fail;
 
   deRef(value);
-  TRY(unifyFunctor(value, proc->functor) );
+  TRY(unifyFunctor(value, def->functor) );
   argp = argTermP(*value, 0);
 
   for(n=0; n<arity; n++, argp++, pattern >>= 1)
     TRY(unifyAtomic(argp, consNum((pattern & 0x1) ? 1 : 0) ));
 
   succeed;
+}
+
+		 /*******************************
+		 *	   HASH SUPPORT		*
+		 *******************************/
+
+ClauseIndex
+newClauseIndexTable(int buckets)
+{ ClauseIndex ci = allocHeap(sizeof(struct clause_index));
+  ClauseChain ch;
+  int m = 4;
+
+  while(m<buckets)
+    m *= 2;
+  buckets = m;
+
+  ci->buckets = buckets;
+  ci->size    = 0;
+  ci->entries = allocHeap(sizeof(struct clause_chain) * buckets);
+  
+  for(ch = ci->entries; buckets; buckets--, ch++)
+    ch->head = ch->tail = NULL;
+
+  return ci;
+}
+
+
+void
+unallocClauseIndexTable(ClauseIndex ci)
+{ ClauseChain ch;
+  int buckets = ci->buckets;
+
+  for(ch = ci->entries; buckets; buckets--, ch++)
+  { ClauseRef cr, next;
+
+    for(cr = ch->head; cr; cr = next)
+    { next = cr->next;
+      freeHeap(cr, sizeof(*cr));
+    }
+  }
+  
+  freeHeap(ci->entries, ci->buckets * sizeof(struct clause_chain));
+  freeHeap(ci, sizeof(struct clause_index));
+}
+
+
+static void
+appendClauseChain(ClauseChain ch, Clause cl, int where)
+{ ClauseRef cr = newClauseRef(cl);
+
+  if ( !ch->tail )
+    ch->head = ch->tail = cr;
+  else
+  { if ( where != CL_START )
+    { ch->tail->next = cr;
+      ch->tail = cr;
+    } else
+    { cr->next = ch->head;
+      ch->head = cr;
+    }
+  }
+}
+
+
+static void
+deleteClauseChain(ClauseChain ch, Clause clause)
+{ ClauseRef prev = NULL;
+  ClauseRef c;
+
+  for(c = ch->head; c; prev = c, c = c->next)
+  { if ( c->clause == clause )
+    { if ( !prev )
+      { ch->head = c->next;
+	if ( !c->next )
+	  ch->tail = NULL;
+      } else
+      { prev->next = c->next;
+	if ( !c->next)
+	  ch->tail = prev;
+      }
+    }
+  }
+}
+
+
+static void
+gcClauseChain(ClauseChain ch)
+{ ClauseRef cref = ch->head, prev = NULL;
+
+  while( cref )
+  { if ( true(cref->clause, ERASED) )
+    { ClauseRef c = cref;
+      
+      cref = cref->next;
+      if ( !prev )
+      { ch->head = c->next;
+	if ( !c->next )
+	  ch->tail = NULL;
+      } else
+      { prev->next = c->next;
+	if ( c->next == NULL)
+	  ch->tail = prev;
+      }
+
+      freeClauseRef(c);
+    } else
+    { prev = cref;
+      cref = cref->next;
+    }
+  }
+}
+
+
+void
+gcClauseIndex(ClauseIndex ci)
+{ ClauseChain ch = ci->entries;
+  int n = ci->buckets;
+    
+  for(; n; n--, ch++)
+    gcClauseChain(ch);
+}
+
+
+void
+addClauseToIndex(Definition def, Clause cl, int where)
+{ ClauseIndex ci = def->hash_info;
+  ClauseChain ch = ci->entries;
+
+  if ( cl->index.varmask == 0 )		/* a non-indexable field */
+  { int n = ci->buckets;
+    
+    for(; n; n--, ch++)
+      appendClauseChain(ch, cl, where);
+  } else
+  { int hi = cl->index.key & (ci->buckets-1);
+    
+    DEBUG(2, Sdprintf("Storing in bucket %d\n", hi));
+    appendClauseChain(&ch[hi], cl, where);
+
+    if ( ++ci->size / 2 > ci->buckets )
+    { def->references++;
+      set(def, NEEDSREHASH);
+      leaveDefinition(def);
+    }
+  }
+}
+
+
+void
+delClauseFromIndex(ClauseIndex ci, Clause cl)
+{ ClauseChain ch = ci->entries;
+
+  if ( cl->index.varmask == 0 )		/* a non-indexable field */
+  { int n = ci->buckets;
+    
+    for(; n; n--, ch++)
+      deleteClauseChain(ch, cl);
+  } else
+  { int hi = cl->index.key & (ci->buckets-1);
+    
+    DEBUG(2, Sdprintf("Storing in bucket %d\n", hi));
+    deleteClauseChain(&ch[hi], cl);
+    ci->size--;
+  }
+}
+
+
+bool
+hashDefinition(Definition def, int buckets)
+{ ClauseRef cref;
+
+  if ( true(def, FOREIGN) )
+    fail;
+  if ( def->indexPattern != 0x1 )
+    fail;
+
+  def->hash_info = newClauseIndexTable(buckets);
+
+  for(cref = def->definition.clauses; cref; cref = cref->next)
+    addClauseToIndex(def, cref->clause, CL_END);
+
+  succeed;
+
+}
+
+word
+pl_hash(Word pred)
+{ Procedure proc = findCreateProcedure(pred);
+  Definition def = proc->definition;
+
+  if ( false(def, FOREIGN) && def->indexPattern & NEED_REINDEX )
+    reindexDefinition(def);
+
+  return hashDefinition(def, 256);
 }

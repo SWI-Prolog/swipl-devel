@@ -4599,6 +4599,14 @@ trace(+Pred, +Ports)
      trace-points.
 
 
+notrace(+Goal)
+     Call Goal, but suspend the debugger while Goal is
+     executing.  The current implementation cuts the
+     choicepoints of Goal after successful completion.  See
+     once/1.  Later implementations may have the same
+     semantics as call/1.
+
+
 debug
      Start debugger (stop at spy points).
 
@@ -5728,12 +5736,6 @@ version.
      Unix library functions dlopen() and friends.  See
      section 5.4.
 
-     Note that, as this feature conflicts with save/[1,2]
-     and save_program/[1,2], it is not enabled by default.
-     To enable it, the system should be configured using:
-
-         % sh configure --enable-dlopen
-
      feature(dll, true)
      If this succeeds the system provides an interface for
      loading .DLL files by means of open_dll/2 and friends.
@@ -5940,14 +5942,10 @@ foreign_file(?File)
 The interface defined in this section allows the user to
 load shared libraries (.so files on most Unix systems).
 This interface is portable to all machines providing the
-function dlopen(), normally from the library -ldl.  To
-enable it, SWI-Prolog must be configured using
-
-     % sh configure --enable-dlopen
-
-These functions provide the basic interface layer.  It is
-adviced to use the predicates from section 5.4 in your
-application.
+function dlopen() or an equivalent, normally from the
+library -ldl.  These functions provide the basic interface
+layer.  It is adviced to use the predicates from
+section 5.4 in your application.
 
 
 open_shared_object(+File, -Handle)
@@ -5955,6 +5953,20 @@ open_shared_object(+File, -Handle)
      documentation on how to create a .so file).  This file
      is attached to the current process and Handle is
      unified with a handle to the shared object.
+     Equivalent to open_shared_object(File, [global],
+     Handle).
+
+
+open_shared_object(+File, +Options, -Handle)
+     As open_shared_object/2, but allows for additional
+     flags to be passed.  Options is a list of atoms.  now
+     implies the symbols are resolved immediately rather
+     than lazy (default).  global implies symbols of the
+     loaded object are visible while loading other shared
+     objects (by default they are local).  Note that these
+     flags may not be supported by all operating systems.
+     Check the documentation of dlopen() or equivalent on
+     your operating system.
 
 
 close_shared_object(+Handle)
@@ -7524,7 +7536,7 @@ it can serve a large number of applications.
      % cd pl-2.1.4
      % mkdir runtime
      % cd runtime
-     % ../src/configure --enable-runtime --enable-shared --prefix=$HOME
+     % ../src/configure --enable-runtime --prefix=$HOME
      % make
      % make rt-install
 
@@ -7952,6 +7964,7 @@ nospy/1                       Remove spy point
 nospyall/0                    Remove all spy points
 not/1{fy 900}                 Negation by failure (argument not provable).  Same as \+ /1
 notrace/0                     Stop tracing
+notrace/1                     Do not debug argument goal
 nth0/3                        N-th element of a list (0-based)
 nth1/3                        N-th element of a list (1-based)
 nth_clause/3                  N-th clause of a predicate
@@ -7965,6 +7978,7 @@ open/3                        Open a file (creating a stream)
 open_dde_conversation/3       Win32:  Open DDE channel
 open_null_stream/1            Open a stream to discard output
 open_shared_object/2          UNIX: Open shared library (.so file)
+open_shared_object/3          UNIX: Open shared library (.so file)
 
 phrase/2                      Activate grammar-rule set
 phrase/3                      Activate grammar-rule set (returning rest)

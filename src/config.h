@@ -90,7 +90,7 @@
 /* #undef FIRST_DATA_SYMBOL */
 
 /* Define if pl-save.c works */
-#define O_SAVE 1
+/* #undef O_SAVE */
 
 /* Define if symbolic links are supported by the OS */
 #define HAVE_SYMLINKS 1
@@ -163,6 +163,9 @@
 
 /* Define if you have the gettimeofday function.  */
 #define HAVE_GETTIMEOFDAY 1
+
+/* Define if you have the getwd function.  */
+#define HAVE_GETWD 1
 
 /* Define if you have the memmove function.  */
 /* #undef HAVE_MEMMOVE */

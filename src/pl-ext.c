@@ -83,6 +83,7 @@ static struct foreign {
   ADD("sleep",			1, pl_sleep,			TRACE_ME),
   ADD("break",			0, pl_break,			TRACE_ME),
   ADD("$break",			1, pl_break1,			TRACE_ME),
+  ADD("notrace",		1, pl_notrace1,			TRANSPARENT),
 
   ADD("display",		1, pl_display,			TRACE_ME),
   ADD("displayq",		1, pl_displayq,			TRACE_ME),
@@ -228,8 +229,6 @@ static struct foreign {
   ADD("unknown",		2, pl_unknown,		TRANSPARENT|TRACE_ME),
   ADD("$style_check",		2, pl_style_check,		TRACE_ME),
 
-  ADD("$list_references",	2, pl_list_references,		TRACE_ME),
-  ADD("$list_active_procedures",0, pl_list_active_procedures,	TRACE_ME),
 #if COUNTING
   ADD("$count",			0, pl_count,			TRACE_ME),
 #endif /* COUNTING */
@@ -269,6 +268,7 @@ static struct foreign {
   ADD("$check_export",		0, pl_check_export,	TRANSPARENT|TRACE_ME),
   ADD("export_list",		2, pl_export_list,		TRACE_ME),
   ADD("index",			1, pl_index,		TRANSPARENT|TRACE_ME),
+  ADD("hash",			1, pl_hash,		TRANSPARENT|TRACE_ME),
 #ifdef O_HASHTERM
   ADD("hash_term",		2, pl_hash_term,		TRACE_ME),
 #endif
@@ -278,7 +278,7 @@ static struct foreign {
   ADD("$load_foreign",		5, pl_load_foreign,	TRANSPARENT|TRACE_ME),
 #endif
 #if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD)
-  ADD("open_shared_object",	2, pl_open_shared_object,	TRACE_ME),
+  ADD("$open_shared_object",	3, pl_open_shared_object,	TRACE_ME),
   ADD("close_shared_object",	1, pl_close_shared_object,	TRACE_ME),
   ADD("call_shared_object_function",
 				2, pl_call_shared_object_function,
@@ -336,7 +336,6 @@ static struct foreign {
   ADD("stack_parameter",	4, pl_stack_parameter,		TRACE_ME),
 #endif
   ADD("$garbage_collect",	1, pl_garbage_collect,		TRACE_ME),
-  ADD("$collect_parms",		2, pl_collect_parms,		TRACE_ME),
   ADD("copy_term",		2, pl_copy_term,		TRACE_ME),
   ADD("current_key",		1, pl_current_key,	NONDETERMINISTIC|TRACE_ME),
   ADD("current_flag",		1, pl_current_flag,	NONDETERMINISTIC|TRACE_ME),

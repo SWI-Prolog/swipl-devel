@@ -234,11 +234,11 @@ delete_defaults([H|T], L, [H|R]) :-
 find_public(Head, user:Term) :-
 	$strip_module(Head, M, Term),
 	current_predicate(_, user:Term),
-	$predicate_property(user:Term, imported_from(M)), !.
+	$predicate_property(imported_from(M), user:Term), !.
 find_public(Head, Head).
 
 find_definition(C, Head, Principal) :-
-	$predicate_property(C:Head, imported_from(Module)), !,
+	$predicate_property(imported_from(Module), C:Head), !,
 	$strip_module(Head, _, Term),
 	$prefix_module(Module, C, Term, P0),
 	find_definition(C, P0, Principal).

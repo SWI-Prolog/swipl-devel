@@ -83,7 +83,7 @@ word		pl_collect_bag(Word bindings, Word bag);
 /* pl-comp.c */
 void		initWamTable(void);
 bool		splitClause(Word term, Word *head, Word *body, Module *m);
-Clause		assert_term(Word term, char where, Atom file);
+Clause		assert_term(Word term, int where, Atom file);
 word		pl_assertz(Word term);
 word		pl_asserta(Word term);
 word		pl_assertz2(Word term, Word ref);
@@ -110,10 +110,19 @@ word		parseSaveProgramOptions(Word args,
 
 /* pl-index.c */
 int		cardinalityPattern(unsigned long pattern);
-struct index	getIndex(Word argv, unsigned long pattern, int card);
-Clause		findClause(Clause cl, Word argv, Definition def, bool *deterministic);
+void		getIndex(Word argv, unsigned long pattern, int card,
+			 struct index *);
+ClauseRef	findClause(ClauseRef cl,
+			   Word argv, Definition def, bool *deterministic);
 bool		reindexClause(Clause clause);
 bool		indexPatternToTerm(Procedure proc, Word value);
+bool		hashDefinition(Definition def, int buckets);
+word		pl_hash(Word pred);
+void		addClauseToIndex(Definition def, Clause cl, int where);
+void		delClauseFromIndex(ClauseIndex ci, Clause cl);
+void		gcClauseIndex(ClauseIndex ci);
+void		unallocClauseIndexTable(ClauseIndex ci);
+
 
 /* pl-dwim.c */
 word		pl_dwim_match(Word a1, Word a2, Word mm);
@@ -234,7 +243,6 @@ int 		checkFunctors(void);
 word		pl_current_functor(Word name, Word arity, word h);
 
 /* pl-gc.c */
-word		pl_collect_parms(Word g, Word t);
 void		considerGarbageCollect(Stack s);
 void		garbageCollect(LocalFrame fr);
 word		pl_garbage_collect(Word d);
@@ -272,7 +280,7 @@ void		resetLoader(void);
 long		allocText(long int size);
 word		pl_load_foreign(Word file, Word entry, Word options, Word libraries, Word size);
 word		pl_load_foreign1(Word file);
-word		pl_open_shared_object(Word file, Word plhandle);
+word		pl_open_shared_object(Word file, Word plhandle, Word flags);
 word		pl_close_shared_object(Word plhandle);
 word		pl_call_shared_object_function(Word plhandle, Word name);
 word		pl_load_shared_object(Word file, Word entry);
@@ -425,6 +433,7 @@ word		pl_novice(Word old, Word new);
 /* pl-pro.c */
 word		pl_break(void);
 word		pl_break1(Word goal);
+word		pl_notrace1(Word goal);
 bool		callGoal(Module module, word goal, bool debug);
 word		pl_abort(void);
 bool		prolog(volatile word goal);
@@ -441,20 +450,19 @@ bool		isDefinedProcedure(Procedure proc);
 Procedure	findProcedure(Word descr);
 Procedure	findCreateProcedure(Word descr);
 word		pl_current_predicate(Word name, Word functor, word h);
-bool		assertProcedure(Procedure proc, Clause clause, char where);
+bool		assertProcedure(Procedure proc, Clause clause, int where);
 bool		abolishProcedure(Procedure proc, Module module);
-void		removeClausesProcedure(Procedure proc, int sfindex);
 bool		retractClauseProcedure(Procedure proc, Clause clause);
-void		unallocClause(Clause clause);
 void		freeClause(Clause c);
+void		freeClauseRef(ClauseRef c);
+ClauseRef	newClauseRef(Clause cl);
+void		gcClausesDefinition(Definition def);
 void		resetReferences(void);
 Procedure	resolveProcedure(FunctorDef f, Module module);
-void		trapUndefined(Procedure proc);
+Definition	trapUndefined(Definition def);
 word		pl_retract(Word term, word h);
 word		pl_retractall(Word head);
 word		pl_abolish(Word atom, Word arity);
-word		pl_list_references(Word descr);
-word		pl_list_active_procedures(void);
 word		pl_get_clause_attribute(Word ref, Word att, Word value);
 word		pl_get_predicate_attribute(Word pred, Word what, Word value);
 word		pl_set_predicate_attribute(Word pred, Word what, Word value);
@@ -471,7 +479,7 @@ word		pl_time_source_file(Word file, Word time, word h);
 word		pl_start_consult(Word file);
 Definition	findDefinition(FunctorDef f, Module m);
 word		pl_default_predicate(Word d1, Word d2);
-bool		autoImport(FunctorDef f, Module m);
+Definition	autoImport(FunctorDef f, Module m);
 word		pl_require(Word pred);
 
 /* pl-prof.c */
@@ -514,6 +522,7 @@ handler_t	pl_signal(int sig, handler_t func);
 void		deliverSignal(int sig, int type, SignalContext scp, char *addr);
 void		deallocateStacks(void);
 bool		restoreStack(Stack s);
+void		trimStacks(void);
 word		pl_trim_stacks(void);
 word		pl_limit_stack(Word s, Word l);
 word		pl_stack_parameter(Word name, Word key, Word old, Word new);
@@ -572,7 +581,9 @@ bool		wordToReal(word w, real *f);
 char		digitName(int n, bool small);
 int		digitValue(int b, char c);
 char *		procedureName(Procedure proc);
+char *		predicateName(Definition def);
 bool		isUserSystemProcedure(Procedure proc);
+bool		isUserSystemPredicate(Definition def);
 word		notImplemented(char *name, int arity);
 bool		strprefix(char *string, char *prefix);
 bool		strpostfix(char *string, char *postfix);

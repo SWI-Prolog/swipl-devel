@@ -44,7 +44,7 @@ forwards void		helpInterrupt(void);
 #endif
 forwards bool		hasAlternativesFrame(LocalFrame);
 forwards void		alternatives(LocalFrame);
-forwards void		listProcedure(Procedure);
+forwards void		listProcedure(Definition);
 forwards int		traceInterception(LocalFrame, int);
 forwards bool		canUnifyTermWithGoal(Word, LocalFrame);
 forwards int		setupFind(char *);
@@ -68,9 +68,9 @@ canUnifyTermWithGoal(Word t, LocalFrame fr)
 { deRef(t);
   if ( isVar(*t) )
     succeed;
-  if ( isAtom(*t) && fr->procedure->functor->name == (Atom)*t )
+  if ( isAtom(*t) && fr->predicate->functor->name == (Atom)*t )
     succeed;
-  if ( isTerm(*t) && functorTerm(*t) == fr->procedure->functor )
+  if ( isTerm(*t) && functorTerm(*t) == fr->predicate->functor )
   { mark m;
     Word a, b;
     int arity;
@@ -109,8 +109,7 @@ tracePort(LocalFrame frame, int port)
 { int OldOut;
   extern int Output;
   int action = ACTION_CONTINUE;
-  Procedure proc = frame->procedure;
-  Definition def = proc->definition;
+  Definition def = frame->predicate;
   LocalFrame fr;
 
   if ( (true(frame, FR_NODEBUG) && !(SYSTEM_MODE))	|| /* hidden */
@@ -417,13 +416,13 @@ traceAction(char *cmd, int port, LocalFrame frame, bool interactive)
 		}
 		return ACTION_AGAIN;
     case 'L':	FeedBack("Listing");
-		listProcedure(frame->procedure);
+		listProcedure(frame->predicate);
 		return ACTION_AGAIN;
     case '+':	FeedBack("spy\n");
-		set(frame->procedure->definition, SPY_ME);
+		set(frame->predicate, SPY_ME);
 		return ACTION_AGAIN;
     case '-':	FeedBack("no spy\n");
-		clear(frame->procedure->definition, SPY_ME);
+		clear(frame->predicate, SPY_ME);
 		return ACTION_AGAIN;
     case '?': 
     case 'h':	helpTrace();
@@ -477,11 +476,10 @@ always mean influencing in computer science).
 
 void
 writeFrameGoal(LocalFrame frame, int how)
-{ Procedure proc = frame->procedure;
-  Definition def = proc->definition;
+{ Definition def = frame->predicate;
   Word argv = argFrameP(frame, 0);
   Word argp;
-  int argc = proc->functor->arity;
+  int argc = def->functor->arity;
   int n;
   word goal;
   mark m;
@@ -495,9 +493,9 @@ writeFrameGoal(LocalFrame frame, int how)
 
   Mark(m);
   if (argc == 0)
-    goal = (word) proc->functor->name;
+    goal = (word) def->functor->name;
   else
-  { goal = globalFunctor(proc->functor);
+  { goal = globalFunctor(def->functor);
     argp = argTermP(goal, 0);
     for(n=0; n<argc; n++, argp++, argv++)
     { register Word a;
@@ -546,7 +544,7 @@ alternatives(LocalFrame frame)
 }    
 
 static void
-listProcedure(Procedure proc)
+listProcedure(Definition def)
 { extern int Output;
   int OldOut = Output;
   word goal, mod, spec;
@@ -558,10 +556,10 @@ listProcedure(Procedure proc)
   mod  = globalFunctor(FUNCTOR_module2);
   spec = globalFunctor(FUNCTOR_divide2);
   argTerm(goal, 0) = mod;
-  argTerm(mod, 0)  = (word) proc->definition->module->name;
+  argTerm(mod, 0)  = (word) def->module->name;
   argTerm(mod, 1)  = spec;
-  argTerm(spec, 0) = (word) proc->functor->name;
-  argTerm(spec, 1) = consNum(proc->functor->arity);
+  argTerm(spec, 0) = (word) def->functor->name;
+  argTerm(spec, 1) = consNum(def->functor->arity);
 
   Output = 1;
   debugstatus.debugging = FALSE;
@@ -576,7 +574,7 @@ backTrace(LocalFrame frame, int depth)
 { extern int Output;
   int OldOut = Output;
   LocalFrame same_proc_frame = NULL;
-  Procedure proc = NULL;
+  Definition def = NULL;
   int same_proc = 0;
   int alien = FALSE;
 
@@ -589,7 +587,7 @@ backTrace(LocalFrame frame, int depth)
   { if ( alien )
       Putf("    <Alien goal>\n");
 
-    if ( frame->procedure == proc )
+    if ( frame->predicate == def )
     { if ( ++same_proc >= 10 )
       { if ( same_proc == 10 )
 	  Putf("    ...\n    ...\n");
@@ -607,7 +605,7 @@ backTrace(LocalFrame frame, int depth)
 	same_proc_frame = NULL;
 	same_proc = 0;
       }
-      proc = frame->procedure;
+      def = frame->predicate;
     }
 
     if (false(frame, FR_NODEBUG) || SYSTEM_MODE)
@@ -671,14 +669,14 @@ traceInterception(LocalFrame frame, int port)
 
 static bool
 hasAlternativesFrame(register LocalFrame frame)
-{ register Clause clause;
+{ ClauseRef cref;
 
   if ( true(frame, FR_CUT) )
     fail;
-  if (true(frame->procedure->definition, FOREIGN))
+  if (true(frame->predicate, FOREIGN))
     succeed;
-  for(clause = frame->clause; clause; clause = clause->next)
-    if ( false(clause, ERASED) )
+  for(cref = frame->clause; cref; cref = cref->next)
+    if ( false(cref->clause, ERASED) )
       succeed;
   fail;
 }
@@ -970,7 +968,7 @@ pl_prolog_frame_attribute(Word frame, Word what, Word value)
   } else if (key == ATOM_context_module)
   { result = (word) contextModule(fr)->name;
   } else if (key == ATOM_clause)
-  { if ( false(fr->procedure->definition, FOREIGN) && fr->clause )
+  { if ( false(fr->predicate, FOREIGN) && fr->clause )
       result = pointerToNum(fr->clause);
     else
       fail;
@@ -978,17 +976,17 @@ pl_prolog_frame_attribute(Word frame, Word what, Word value)
   { int arity, n;
     Word arg;
     
-    if (fr->procedure->definition->module != MODULE_user)
+    if (fr->predicate->module != MODULE_user)
     { result = globalFunctor(FUNCTOR_module2);
-      argTerm(result, 0) = (word) fr->procedure->definition->module->name;
+      argTerm(result, 0) = (word) fr->predicate->module->name;
       arg = argTermP(result, 1);
     } else
       arg = &result;
 
-    if ((arity = fr->procedure->functor->arity) == 0)
-    { *arg = (word) fr->procedure->functor->name;
+    if ((arity = fr->predicate->functor->arity) == 0)
+    { *arg = (word) fr->predicate->functor->name;
     } else
-    { *arg = globalFunctor(fr->procedure->functor);
+    { *arg = globalFunctor(fr->predicate->functor);
       for(arg=argTermP(*arg, 0), n=0; n < arity; arg++, n++)
 	pl_unify(arg, argFrameP(fr, n) );
     }

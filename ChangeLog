@@ -4,6 +4,18 @@
 Version 2.1.5
 =============
 
+  * ADDED: notrace(+Goal) to run Goal invisible to the debugger.
+
+  * ADDED: open_shared_object/3 to be able to pass flags to dlopen().
+
+  * CLAUSE INDEXING: version 2.1.5 provides hashing to speed up first
+    argument indexing.  Numerous changes had to be made to realise this:
+    Indirection in the clause chain of predicates, implementation of a
+    lazy automatic system to guess the proper way to index a predicate,
+    a new clause-reference count system (avoiding problems with manipulation
+    of `active' predicates.  The representation of predicate and clauses
+    has changed in various ways.
+
   * INSTALL: Changed various things to the configure options and detection,
     to the defaults make more sence.
 

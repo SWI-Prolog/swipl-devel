@@ -430,7 +430,7 @@ PL_register_foreign(char *name, int arity, Func f, int flags)
 
   if ( def->definition.function )
     warning("PL_register_foreign(): redefined %s", procedureName(proc));
-  if ( false(def, FOREIGN) && def->definition.clauses != (Clause) NULL )
+  if ( false(def, FOREIGN) && def->definition.clauses != NULL )
     abolishProcedure(proc, m);
 
   def->definition.function = f;
@@ -492,7 +492,7 @@ PL_load_extensions(PL_extension *ext)
     }
     if ( def->definition.function )
       warning("PL_load_extensions(): redefined %s", procedureName(proc));
-    if ( false(def, FOREIGN) && def->definition.clauses != (Clause) NULL )
+    if ( false(def, FOREIGN) && def->definition.clauses != NULL )
       abolishProcedure(proc, m);
     set(def, FOREIGN);
     set(def, flags);
@@ -589,19 +589,19 @@ PL_predicate(functor_t functor, module_t module)
 
 int
 PL_predicate_arity(predicate_t pred)
-{ return pred->functor->arity;
+{ return pred->definition->functor->arity;
 }
 
 
 atomic_t
 PL_predicate_name(predicate_t pred)
-{ return (atomic_t) pred->functor->name;
+{ return (atomic_t) pred->definition->functor->name;
 }
 
 
 functor_t
 PL_predicate_functor(predicate_t pred)
-{ return (functor_t) pred->functor;
+{ return (functor_t) pred->definition->functor;
 }
 
 
