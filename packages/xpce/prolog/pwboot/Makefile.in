@@ -244,7 +244,10 @@ LIBHLPFILES=	dragdrop.hlp findfile.hlp overview.hlp
 
 INFOFILES=	ChangeLog README.customise README.font
 
-all:	qofs release
+all:	binfiles qofs release
+
+binfiles:
+	(cd ../../quintus/src; $(MAKE))
 
 qofs:	pceshare pce_qpc.qof pce.qof
 

@@ -42,10 +42,12 @@ AC_SUBST(SHELL)
 AC_SUBST(MAKE)
 AC_SUBST(QPENTRIES)
 AC_SUBST(QPBIN)
+AC_SUBST(QPPATH)
 
 RTSUFFIX=""
 QPENTRIES=""
 QPBIN="sun4-5"
+QPPATH="/usr/quintus"
 
 LD=ld
 AC_PROG_CC
@@ -259,11 +261,33 @@ else
   BOOTPL=xpce
 fi
 
-if test -r ../quintus/src/machine_type; then
-    AC_MSG_CHECKING("Quintus architecture identifier")
-    QPBIN=`../quintus/src/machine_type`
-    AC_MSG_RESULT($QPBIN)
+dnl %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+dnl % Begin Quintus specific configuration
+dnl %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+if test -d ../quintus/src; then
+
+AC_CHECK_PROGS(QPproduct, qpc qld quintus prolog, ":")
+if test $QPproduct != ":"; then
+    AC_CHECK_PROGS(QGETPATH, qgetpath, ":")
+    if test $QGETPATH != ":"; then
+	AC_PATH_PROG(QPPRODUCT, $QPproduct)
+	AC_MSG_CHECKING("Quintus directory")
+	QPPATH=`$QGETPATH -q $QPPRODUCT`
+	AC_MSG_RESULT($QPPATH)
+	AC_MSG_CHECKING("Quintus host type identifier")
+	QPBIN=`$QGETPATH -h $QPPRODUCT`
+	QPBIN=`basename $QPBIN`
+	AC_MSG_RESULT($QPBIN)
+    fi
 fi
+
+
+fi
+
+dnl %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+dnl % End Quintus specific configuration
+dnl %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if test "$runtime" = yes; then
   PLTARGET=rt-$PLTARGET
