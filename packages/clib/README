@@ -19,4 +19,9 @@ Currently provided:
 	General purpose inet tcp socket library. Loosely based on a TCP
 	library from Gordon Streeter.
 	
-
+	# library(cgi)
+	Get form-arguments from input and/or environment for CGI scripts
+	
+	# library(crypt)
+	Unix password generation and validation.
+	
