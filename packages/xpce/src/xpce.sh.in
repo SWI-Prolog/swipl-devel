@@ -1,0 +1,20 @@
+#!/bin/sh
+
+# Run XPCE from the  build-location.  This   relies  on  ../../pl.sh for
+# running Prolog from the build-location
+
+PCEHOME=@PCEHOME@
+PLARCH=@PLARCH@
+ldir=$PCEHOME/lib/$PLARCH
+
+if [ "x$@DLLIBVAR@" = "x" ]; then
+  @DLLIBVAR@=$ldir
+else
+  @DLLIBVAR@="$ldir:$@DLLIBVAR@"
+fi
+export @DLLIBVAR@
+
+XPCEHOME=$PCEHOME
+export XPCEHOME
+
+@PLBUILD@ -F none -f $PCEHOME/pl/src/plrc "$@"
