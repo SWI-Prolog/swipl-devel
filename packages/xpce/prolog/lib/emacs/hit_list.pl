@@ -77,7 +77,8 @@ clear(L) :->
 	"Clear browser and delete fragments"::
 	get(L?browser, dict, Dict),
 	send(Dict, for_all, message(@arg1?object, free)),
-	send(Dict, clear).
+	send(Dict, clear),
+	send(L, used, @off).
 
 
 append_hit(L, Buffer:emacs_buffer, Start:int, Len:[int], Msg:[char_array]) :->

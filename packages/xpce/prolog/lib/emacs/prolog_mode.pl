@@ -344,7 +344,9 @@ compile_buffer(E) :->
 	(   send(File, instance_of, file)
 	->  send(E, save_if_modified),
 	    get(File, name, Path),
+	    print_message(silent, emacs(consult(user:Path))),
 	    consult(user:Path),
+	    print_message(silent, emacs(consulted(user:Path))),
 	    send(E, report, status, '%s compiled', Path)
 	;   send(E, report, error,
 		 'Buffer is not connected to a file')

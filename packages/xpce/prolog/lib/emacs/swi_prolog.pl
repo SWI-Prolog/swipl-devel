@@ -53,6 +53,12 @@ make_prolog_warning_list(L) :-
 	send(L, expose_on_append, @on),
 	send(L, message, error_at_location).
 
+clear_message_list :-
+	(   object(@prolog_warnings)
+	->  send(@prolog_warnings, clear)
+	;   true
+	).
+
 user:message_hook(Term, Level, Lines) :-
 	accept_level(Level),
 	(   Term = error(syntax_error(Error), file(Path, Line))
@@ -70,6 +76,12 @@ user:message_hook(Term, Level, Lines) :-
 	get(Buffer, scan, 0, line, Line-1, start, SOL),
 	send(@prolog_warnings, append_hit, Buffer, SOL, @default, Message),
 	fail.					% give normal message too
+user:message_hook(make(reload(_Files)), _, _) :-
+	clear_message_list,
+	fail.
+user:message_hook(emacs(consult(_File)), _, _) :-
+	clear_message_list,
+	fail.
 
 accept_level(warning).
 accept_level(error).
