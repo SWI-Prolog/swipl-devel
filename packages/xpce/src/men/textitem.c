@@ -1051,7 +1051,11 @@ keyboardQuitTextItem(TextItem ti)
 
 static status
 executeTextItem(TextItem ti)
-{ return applyTextItem(ti, ON);
+{ Any av[1];
+
+  av[0] = ON;
+
+  return qadSendv(ti, NAME_apply, 1, av);
 }
 
 
@@ -1093,8 +1097,10 @@ enterTextItem(TextItem ti, EventId id)
 	 send(dev, NAME_typed, id, ON, EAV)) &&
        !isFreedObj(ti) )
   { int modified = (getModifiedTextItem(ti) == ON);
+    Any av[1];
 
-    if ( applyTextItem(ti, OFF) && !isFreedObj(ti) )
+    av[0] = OFF;
+    if ( qadSendv(ti, NAME_apply, 1, av) && !isFreedObj(ti) )
     { if ( ti->advance == NAME_clear )
       { if ( modified )
 	  selectionTextItem(ti, NAME_);
