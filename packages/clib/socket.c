@@ -441,8 +441,26 @@ socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 
       if ( s )
       { s->w32_flags |= evt;
-	s->error = err;
-	doRequest(s);
+	if ( err )
+	{ s->error = err;
+	  
+	  switch(s->request)
+	  { case REQ_CONNECT:
+	      break;
+	    case REQ_ACCEPT:
+	      s->rdata.accept.slave = SOCKET_ERROR;
+	      break;
+	    case REQ_READ:
+	      s->rdata.read.bytes = -1;
+	      break;
+	    case REQ_WRITE:
+	      s->rdata.write.bytes = -1;
+	      break;
+	  }
+	  doneRequest(s);
+	} else
+	{ doRequest(s);
+	}
       } else
 	DEBUG(2, Sdprintf("Socket %d is gone\n", sock));
     }
@@ -1230,15 +1248,24 @@ tcp_accept(term_t Master, term_t Slave, term_t Peer)
   m = lookupSocket(master);
 
 #ifdef WIN32
-  m->rdata.accept.addrlen = sizeof(m->rdata.accept.addr);
-  placeRequest(m, REQ_ACCEPT);
-  if ( !waitRequest(m) )
-    return FALSE;
-  if ( m->error )
-    return tcp_error(m->error, NULL);
-  addr    = m->rdata.accept.addr;
-  addrlen = m->rdata.accept.addrlen;
-  slave   = m->rdata.accept.slave;
+  slave = accept(master, (struct sockaddr*)&addr, &addrlen);
+
+  if ( slave == SOCKET_ERROR )
+  { m->error = WSAGetLastError();
+
+    if ( m->error == WSAEWOULDBLOCK )
+    { m->rdata.accept.addrlen = sizeof(m->rdata.accept.addr);
+      placeRequest(m, REQ_ACCEPT);
+      if ( !waitRequest(m) )
+	return FALSE;
+      if ( m->error )
+	return tcp_error(m->error, NULL);
+      addr    = m->rdata.accept.addr;
+      addrlen = m->rdata.accept.addrlen;
+      slave   = m->rdata.accept.slave;
+    } else
+      return tcp_error(m->error, NULL);
+  }
 #else /*WIN32*/
 
   for(;;)
@@ -1314,16 +1341,22 @@ tcp_read(void *handle, char *buf, int bufSize)
 
 #ifdef WIN32
 
-  s->rdata.read.buffer = buf;
-  s->rdata.read.size   = bufSize;
-  placeRequest(s, REQ_READ);
-  if ( !waitRequest(s) )
-  { errno = EPLEXCEPTION;
-    return -1;
-  }
-  n = s->rdata.read.bytes;
+  n = recv(socket, buf, bufSize, 0);
   if ( n < 0 )
-    errno = EIO;			/* TBD: map s->error to POSIX errno */
+  { if ( WSAGetLastError() == WSAEWOULDBLOCK )
+    { s->rdata.read.buffer = buf;
+      s->rdata.read.size   = bufSize;
+      placeRequest(s, REQ_READ);
+      if ( !waitRequest(s) )
+      { errno = EPLEXCEPTION;
+	return -1;
+      }
+      n = s->rdata.read.bytes;
+    }
+
+    if ( n < 0 )
+      errno = EIO;			/* TBD: map s->error to POSIX errno */
+  }
 
 #else /*WIN32*/
 
