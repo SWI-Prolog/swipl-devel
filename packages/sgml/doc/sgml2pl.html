@@ -77,7 +77,7 @@ DTD. The parser is designed to be small, fast and flexible.
 Markup languages have recently regained popularity for two reasons. One 
 is document exchange, which is largely based on HTML, an instance of 
 SGML and the other is for data-exchange between programs, which is often
-based on XML, which can be considered simplified and rationalised 
+based on XML, which can be considered a simplified and rationalised 
 version of SGML.
 
 
@@ -183,7 +183,7 @@ character strings, etc. In the first example below loads an HTML file.
 The document is represented as a list, each element being an atom to 
 represent <a name="const:CDATA"><b><tt>CDATA</tt></b></a> or a term <code>element(Name, Attributes, Content)</code>.
 Entities (e.g. <code>&amp;lt;</code>) are returned as part of <a name="const:CDATA%2"><b><tt>CDATA</tt></b></a>, 
-unless they cannot be represented. See <b>load_sgml_file/2</b> for
+unless they cannot be represented. See <a href="#load_sgml_file/2"><b>load_sgml_file/2</b></a> for
 details.
 
 
@@ -195,7 +195,7 @@ details.
 <p>
 These predicates are for basic usage of the library, converting entire 
 and self-contained files in one of the three supported XML dialects into
-a structured term. They are all expressed in <b>load_structure/3</b>.
+a structured term. They are all expressed in <a href="#load_structure/3"><b>load_structure/3</b></a>.
 
 <dl>
 <dt>&nbsp;<br>
@@ -238,8 +238,8 @@ load_html_file(File, Term) :-
 <h2><a name="sec-3.1">Loading Structured Documents</a></h2>
 
 <p>
-SGML or XML files are loaded through the common predicate <b>load_structure/3</b>. This is a predicate with many options. For 
-simplicity a number of commonly used shorthands are provided: <b>load_sgml_file/2</b>, <b>load_xml_file/2</b>, and <b>load_html_file/2</b>.
+SGML or XML files are loaded through the common predicate <a href="#load_structure/3"><b>load_structure/3</b></a>. This is a predicate with many options. For 
+simplicity a number of commonly used shorthands are provided: <a href="#load_sgml_file/2"><b>load_sgml_file/2</b></a>, <a href="#load_xml_file/2"><b>load_xml_file/2</b></a>, and <a href="#load_html_file/2"><b>load_html_file/2</b></a>.
 
 <dl>
 <dt>&nbsp;<br>
@@ -271,7 +271,7 @@ case-insensitive, all element names are returned as lowercase atoms.
 <var>ListOfAttributes</var> is a list of <var>Name</var>=<var>Value</var> pairs for
 attributes that appeared in the source. No information is returned on
 other attributes, such as <a name="const:fixed"><b><tt>fixed</tt></b></a> or <a name="const:default"><b><tt>default</tt></b></a> attributes. See
-<b>dtd_property/2</b> for accessing the DTD for this information.
+<a href="#dtd_property/2"><b>dtd_property/2</b></a> for accessing the DTD for this information.
 Attributes of type <a name="const:CDATA%4"><b><tt>CDATA</tt></b></a> are returned literal. Attributes of type
 <a name="const:NUMBER"><b><tt>NUMBER</tt></b></a> are returned as a Prolog integer. Multi-valued attributes
 (<a name="const:NAMES"><b><tt>NAMES</tt></b></a>, etc.) are returned as a list of atoms. For the type
@@ -399,7 +399,7 @@ exception of the format below is raised. The default is 50.
 
 <p>
 SGPL2PL has four modes for handling white-space. The initial mode can be
-switched using the <code>space(SpaceMode)</code> option to <b>load_structure/3</b> and <b>set_sgml_parser/2</b>. In XML mode,
+switched using the <code>space(SpaceMode)</code> option to <a href="#load_structure/3"><b>load_structure/3</b></a> and <a href="#set_sgml_parser/2"><b>set_sgml_parser/2</b></a>. In XML mode,
 the mode is further controlled by the <b><tt>xml:space</tt></b> attribute, which 
 may be specified both in the DTD as in the document. The defined modes 
 are:
@@ -539,7 +539,7 @@ is not desirable. Such terms are hard to unified and sometimes multiple
 URLs may be mapped to the same identifier. This may happen due to poor 
 version management, poor standardisation or because the the application 
 doesn't care too much about versions. This package defines two 
-call-backs that can be set using <b>set_sgml_parser/2</b> to deal 
+call-backs that can be set using <a href="#set_sgml_parser/2"><b>set_sgml_parser/2</b></a> to deal 
 with this problem.
 
 
@@ -604,7 +604,7 @@ is invalid.
 <dt>&nbsp;<br>
 <b><a name="load_dtd/2">load_dtd(<var>+DTD, +File</var>)</a></b><dd>
 Define the DTD by loading the SGML-DTD file <var>File</var>. This predicate 
-is defined using the low-level <b>open_dtd/3</b> predicate:
+is defined using the low-level <a href="#open_dtd/3"><b>open_dtd/3</b></a> predicate:
 
 
 
@@ -627,7 +627,7 @@ load_dtd(DTD, DtdFile) :-
 <dt>&nbsp;<br>
 <b><a name="open_dtd/3">open_dtd(<var>+DTD, +Options, -OutStream</var>)</a></b><dd>
 Open a DTD as an output stream. The option-list is currently 
-empty. See <b>load_dtd/2</b> for an example.
+empty. See <a href="#load_dtd/2"><b>load_dtd/2</b></a> for an example.
 
     
 <dt>&nbsp;<br>
@@ -932,7 +932,7 @@ See <b>indexaccess</b>.
 <dt>&nbsp;<br>
 <b>source(<var>-Stream</var>)</b><dd>
 Prolog stream being processed. May be used in the <a name="const:on_begin"><b><tt>on_begin</tt></b></a>, etc. 
-callbacks from <b>sgml_parse/2</b>. 
+callbacks from <a href="#sgml_parse/2"><b>sgml_parse/2</b></a>. 
     
 <dt>&nbsp;<br>
 <b>dialect(<var>-Dialect</var>)</b><dd>
@@ -949,7 +949,7 @@ Return the current dialect used by the parser (<a name="const:sgml%5"><b><tt>sgm
 <b><a name="sgml_parse/2">sgml_parse(<var>+Parser, +Options</var>)</a></b><dd>
 Parse an XML file. The parser can operate in two input and two output
 modes. Output is either a structured term as described with
-<b>load_structure/2</b> or call-backs on predefined events. The
+<a href="#load_structure/2"><b>load_structure/2</b></a> or call-backs on predefined events. The
 first is especially suitable for manipulating not-too-large documents,
 while the latter provides a primitive means for handling very large
 documents.
@@ -963,7 +963,7 @@ parser. A full description of the option-list is below.
 <dt>&nbsp;<br>
 <b>document(<var>+Term</var>)</b><dd>
 A variable that will be unified with a list describing the content of 
-the document (see <b>load_structure/2</b>). 
+the document (see <a href="#load_structure/2"><b>load_structure/2</b></a>). 
     
 <dt>&nbsp;<br>
 <b>source(<var>+Stream</var>)</b><dd>
@@ -972,7 +972,7 @@ option must be provided.
     
 <dt>&nbsp;<br>
 <b>goal(<var>+Goal</var>)</b><dd>
-<var>Goal</var> is a callable term. The predicate <b>sgml_parse/2</b> 
+<var>Goal</var> is a callable term. The predicate <a href="#sgml_parse/2"><b>sgml_parse/2</b></a> 
 opens an output stream to the parser and invokes <code>call(Goal, Stream)</code>,
 where <var>Goal</var> should write the data to be parsed to <var>Stream</var>. 
 This option is not compatible to <code>parse(element)</code>. This 
@@ -1098,19 +1098,19 @@ identifier. See <b>xmlns</b> for details.
 
 <p>
 In some cases, part of a document needs to be parsed. One option is to 
-use <b>load_structure/2</b> or one of its variations and extract 
+use <a href="#load_structure/2"><b>load_structure/2</b></a> or one of its variations and extract 
 the desired elements from the returned structure. This is a clean 
 solution, especially on small and medium-sized documents. It however is 
 unsuitable for parsing really big documents. Such documents can only be 
 handled with the call-back output interface realised by the <code>call(
-Event, Action)</code> option of <b>sgml_parse/2</b>. Event-driven 
+Event, Action)</code> option of <a href="#sgml_parse/2"><b>sgml_parse/2</b></a>. Event-driven 
 processing is not very natural in Prolog.
 
 
 <p>
 The SGML2PL library allows for a mixed approach. Consider the case where
 we want to process all descriptions from RDF elements in a document. The
-code below calls <b>process_rdf_description/1</b> on any element 
+code below calls <code>process_rdf_description(Element)</code> on each element 
 that is directly inside an RDF element.
 
 
@@ -1171,13 +1171,13 @@ document into memory is then undesirable.
 
 <p>
 Using the <code>parse(element)</code> option, we open a file, seek 
-(using <b>seek/4</b>) to the position of the element and read the 
+(using <a href="#seek/4"><b>seek/4</b></a>) to the position of the element and read the 
 desired element.
 
 
 <p>
 The index can be built using the call-back interface of
-<b>sgml_parse/2</b>. For example, the following code makes an
+<a href="#sgml_parse/2"><b>sgml_parse/2</b></a>. For example, the following code makes an
 index of the <b> structure.rdf</b> file of the OpenDirectory
 project:
 
@@ -1245,7 +1245,7 @@ format compatible to that used by James Clark's SP Parser.
 
 
 <p>
-Catalog files can be specified using two primitives: the predicate <b>sgml_register_catalog_file/2</b> or the environment variable <b>SGML_CATALOG_FILES</b> (compatible to the SP package).
+Catalog files can be specified using two primitives: the predicate <a href="#sgml_register_catalog_file/2"><b>sgml_register_catalog_file/2</b></a> or the environment variable <b>SGML_CATALOG_FILES</b> (compatible to the SP package).
 <dl>
 <dt>&nbsp;<br>
 <b><a name="sgml_register_catalog_file/2">sgml_register_catalog_file(<var>+File, +Location</var>)</a></b><dd>

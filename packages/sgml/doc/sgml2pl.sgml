@@ -34,7 +34,7 @@ DTD. The parser is designed to be small, fast and flexible.
 Markup languages have recently regained popularity for two reasons. One 
 is document exchange, which is largely based on HTML, an instance of 
 SGML and the other is for data-exchange between programs, which is often
-based on XML, which can be considered simplified and rationalised 
+based on XML, which can be considered a simplified and rationalised 
 version of SGML.
 
 <p>
@@ -771,7 +771,7 @@ processing is not very natural in Prolog.
 <p>
 The SGML2PL library allows for a mixed approach. Consider the case where
 we want to process all descriptions from RDF elements in a document. The
-code below calls <pref>process_rdf_description/1</pref> on any element 
+code below calls <xmp>process_rdf_description(Element)</xmp> on each element 
 that is directly inside an RDF element.
 
 <code>

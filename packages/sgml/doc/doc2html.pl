@@ -167,10 +167,7 @@ mksubid(Pre, N, Id) :-
 
 index(element(c, A, [C]), Ref, C-element(c, A, [C])) :-
 	atom_concat('const:', C, Ref).
-index(element(pred, _, C), Ref, Ref-element(pref, [],
-					[ element(name, [], [Name]),
-					  element(arity, [], [Arity])
-					])) :-
+index(element(pred, _, C), Ref, Ref-element(b, [], [Ref])) :-
 	xml_select(C, element(/name), element(_,_,[Name])),
 	findall(A, xml_select(C, element(/arglist/arg), A), AL),
 	length(AL, Arity),
@@ -437,8 +434,10 @@ html(term, _, Content) -->
 	\code(Content).
 html(sh, _, Content) -->
 	\code(Content).
-html(pref, _, [element(_,_,Name), element(_,_,Arity)]) -->
-	\b([*Name, /, *Arity]).
+html(pref, _, [element(_,_,[Name]), element(_,_,[Arity])]) -->
+	{ concat_atom([#, Name, /, Arity], Ref)
+	},
+	\a([href=Ref], \b([Name, /, Arity])).
 html(verb, _, Content) -->
 	\code(Content).
 html(aref, _, Content) -->
