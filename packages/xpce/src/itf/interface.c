@@ -142,14 +142,7 @@ cToPceName_nA(const char *text, unsigned int len)
 
 Any
 cToPceName_nW(const wchar_t *text, unsigned int len)
-{ if ( text )
-  { string s;
-
-    str_set_n_wchar(&s, len, (wchar_t *)text);
-
-    return StringToName(&s);
-  } else
-    fail;
+{ return WCToName(text, len);
 }
 
 

@@ -51,6 +51,7 @@
 #endif
 
 #include <sys/stat.h>
+#include <errno.h>
 
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
@@ -72,55 +73,34 @@ static Name	getWorkingDirectoryPce(Pce pce);
 
 #define MODIFIED_NOT_SET ((time_t) ~0L)
 
-/*  Sun Common Lisp 3.0 apparently redefines readdir(3) and associated
-    functions by redefining the dirent structure.  In order to avoid
-    having to generate two versions of PCE.o, we assume that when PCE
-    is used with SCL HOST->system starts with "SCL"
- */
 
-static char *
-nameOfDirectoryEntry(struct dirent *d)
-{ char *s;
-  static int sclhack = -1;
+static const char *
+nameToUTF8(Name n)
+{ return charArrayToUTF8((CharArray)n);
+}
 
-  if ( sclhack < 0 )
-    sclhack = prefixstr(strName(HostObject()->system), "SCL");
 
-  s = d->d_name;
-  if ( sclhack )
-    s -= sizeof(long);			/* subtract one word */
-
-  return s;
+static const char *
+nameToFN(Name n)
+{ return charArrayToFN((CharArray)n);
 }
 
 
 static status
 initialiseDirectory(Directory d, Name name)
-{ char *expanded;
-  char bin[MAXPATHLEN];
-  char *e;
+{ char path[MAXPATHLEN];
+  Name expanded;
+  const char *ufn;
 
-  assign(d, name, name);
+  if ( !(expanded = expandFileName(name)) )
+    fail;
 
-  if ( !(expanded = expandFileName(strName(name), bin)) )
-    return errorPce(d, NAME_badFileName, ExpandProblem);
+  ufn = nameToUTF8(expanded);
+  if ( absolutePath(ufn, path, sizeof(path)) < 0 )
+    return errorPce(d, NAME_representation, NAME_nameTooLong);
 
-  e = expanded + strlen(expanded);
-  while ( e>expanded+1 && IsDirSep(e[-1]) ) /* delete trailing / */
-    *--e = EOS;
-
-#ifdef O_XOS
-  { char buf[MAXPATHLEN];
-    expanded = _xos_canonical_filename(expanded, buf, sizeof(buf), 0);
-    if ( isalpha(expanded[0]) && expanded[1] == ':' && expanded[2] == EOS )
-    { expanded[2] = '/';
-      expanded[3] = EOS;
-    }
-  }
-#endif
-
-  assign(d, path, CtoName(absolutePath(expanded)));
-  assign(d, name, CtoName(baseName(expanded)));
+  assign(d, path, UTF8ToName(path));
+  assign(d, name, UTF8ToName(baseName(ufn)));
   d->modified = MODIFIED_NOT_SET;
 
   succeed;
@@ -152,7 +132,7 @@ static status
 existsDirectory(Directory d)
 { struct stat buf;
 
-  if ( stat(strName(d->path), &buf) == -1 ||
+  if ( stat(nameToUTF8(d->path), &buf) == -1 ||
        (buf.st_mode & S_IFMT) != S_IFDIR )
     fail;
 
@@ -163,7 +143,7 @@ existsDirectory(Directory d)
 static status
 makeDirectory(Directory d)
 { if ( !existsDirectory(d) )
-  { if ( mkdir(strName(d->path), 0777) != 0 )
+  { if ( mkdir(nameToUTF8(d->path), 0777) != 0 )
       return errorPce(d, NAME_mkdir, getOsErrorPce(PCE));
   }
 
@@ -173,7 +153,7 @@ makeDirectory(Directory d)
 
 static status
 removeDirectory(Directory d)
-{ if ( rmdir(strName(d->path)) != 0 )
+{ if ( rmdir(nameToUTF8(d->path)) != 0 )
   { if ( existsDirectory(d) )
       return errorPce(d, NAME_rmdir, getOsErrorPce(PCE));
   }
@@ -184,7 +164,7 @@ removeDirectory(Directory d)
 
 status
 cdDirectory(Directory d)
-{ if ( chdir(strName(d->path)) )
+{ if ( chdir(nameToUTF8(d->path)) )
     return errorPce(d, NAME_chdir, d->path, getOsErrorPce(PCE));
 
   succeed;
@@ -240,7 +220,7 @@ scanDirectory(Directory d, Chain files, Chain dirs, Regex pattern, Bool all)
     }
 
     for (dp=readdir(dirp); dp!=NULL; dp=readdir(dirp))
-    { char *name = nameOfDirectoryEntry(dp);
+    { char *name = dp->d_name;
       struct stat buf;
 
       if ( stat(name, &buf) != 0 )
@@ -249,7 +229,7 @@ scanDirectory(Directory d, Chain files, Chain dirs, Regex pattern, Bool all)
       if ( (notNil(files) && (buf.st_mode & S_IFMT) == S_IFREG) )
       { if ( notDefault(pattern) )
 	{ CharArray ca = CtoScratchCharArray(name);
-
+					/* TBD: UNICODE */
 	  if ( !searchRegex(pattern, ca, DEFAULT, DEFAULT) )
 	  { doneScratchCharArray(ca);
 	    continue;
@@ -260,12 +240,12 @@ scanDirectory(Directory d, Chain files, Chain dirs, Regex pattern, Bool all)
 	if ( all != ON && name[0] == '.' )
 	  continue;
 
-	appendChain(files, CtoName(name));
+	appendChain(files, FNToName(name));
       } else if ( (notNil(dirs) && (buf.st_mode & S_IFMT) == S_IFDIR) )
       { if ( all != ON && name[0] == '.' )
 	  continue;
 
-	appendChain(dirs, CtoName(name));
+	appendChain(dirs, FNToName(name));
       }
     }
     closedir(dirp);
@@ -276,14 +256,14 @@ scanDirectory(Directory d, Chain files, Chain dirs, Regex pattern, Bool all)
     if ( notNil(files) )
       sortNamesChain(files, OFF);
   } else if ( notNil(files) )
-  { if ( !(dirp = opendir(strName(d->path))) )
+  { if ( !(dirp = opendir(nameToFN(d->path))) )
       return errorPce(d, NAME_readDirectory, getOsErrorPce(PCE));
     for (dp=readdir(dirp); dp!=NULL; dp=readdir(dirp))
-    { char *name = nameOfDirectoryEntry(dp);
+    { char *name = dp->d_name;
       
       if ( notDefault(pattern) )
       { CharArray ca = CtoScratchCharArray(name);
-
+					/* TBD: UNICODE */
 	if ( !searchRegex(pattern, ca, DEFAULT, DEFAULT) )
 	{ doneScratchCharArray(ca);
 	  continue;
@@ -292,7 +272,7 @@ scanDirectory(Directory d, Chain files, Chain dirs, Regex pattern, Bool all)
       } else if ( all != ON && name[0] == '.' )
 	continue;
 
-      appendChain(files, CtoName(name));
+      appendChain(files, FNToName(name));
     }
     closedir(dirp);
 
@@ -326,7 +306,8 @@ getFilesDirectory(Directory d, Regex pattern, Bool all)
 
 static Directory
 getParentDirectory(Directory d)
-{ char *here = strName(d->path);
+{ char parent[MAXPATHLEN];
+  const char *here = nameToFN(d->path);
 
   if ( IsDirSep(here[0]) && here[1] == EOS ) /* the root */
     fail;
@@ -337,8 +318,10 @@ getParentDirectory(Directory d)
     fail;
 #endif
 
-  answer(answerObject(ClassDirectory,
-		      CtoName(dirName(here)), EAV));
+  if ( dirName(here, parent, sizeof(parent)) )
+    answer(answerObject(ClassDirectory, FNToName(parent), EAV));
+
+  fail;
 }
 
 
@@ -346,14 +329,14 @@ static Chain
 getRootsDirectory(Directory dir)
 { Chain ch = answerObject(ClassChain, EAV);
 #ifdef WIN32
-  char buf[1024];
+  char buf[MAXPATHLEN];
   extern int get_logical_drive_strings(int, char *);
 
   if ( get_logical_drive_strings(sizeof(buf)-1, buf) )
   { char *s = buf;
 
     while(*s)
-    { char buf2[1024];
+    { char buf2[MAXPATHLEN];
       char *cnfn;
 
       if ( (cnfn=_xos_canonical_filename(s, buf2, sizeof(buf2), 0)) )
@@ -383,7 +366,7 @@ getTimeDirectory(Directory d, Name which)
   if ( isDefault(which) )
     which = NAME_modified;
 
-  if ( stat(strName(name), &buf) < 0 )
+  if ( stat(nameToFN(name), &buf) < 0 )
   { errorPce(d, NAME_cannotStat, getOsErrorPce(PCE));
     fail;
   }
@@ -397,24 +380,22 @@ getTimeDirectory(Directory d, Name which)
 
 static Name
 getFileNameDirectory(Directory d, Name name)
-{ char *fn = strName(name);
+{ const char *fn = nameToUTF8(name);
 
   if ( isAbsolutePath(fn) )
     answer(name);
   else
-  { int maxl =  (valInt(getSizeCharArray(d->path)) +
-		 valInt(getSizeCharArray(name)) +
-		 2);
+  { const char *dfn = nameToUTF8(d->path);
+    size_t dfnl = strlen(dfn);
+    int maxl = strlen(fn) + dfnl + 2;
     LocalArray(char, buf, maxl);
-    char *q;
 
-    strcpy(buf, strName(d->path));
-    q = buf+strlen(buf);
-    if ( q > 0 && q[-1] != '/' )
-      *q++ = '/';
-    strcpy(q, fn);
+    memcpy(buf, dfn, dfnl);
+    if ( dfnl > 0 && buf[dfnl-1] != '/' )
+      buf[dfnl++] = '/';
+    strcpy(&buf[dfnl], fn);
 
-    answer(CtoName(buf));
+    answer(UTF8ToName(buf));
   }
 }
 
@@ -441,12 +422,12 @@ static status
 accessDirectory(Directory d, Name mode)
 { int m;
 
-  if ( equalName(mode, NAME_read) )
+  if ( mode == NAME_read )
     m = R_OK;
-  else /*if ( equalName(mode, NAME_write) )*/
+  else /*if ( mode == NAME_write )*/
     m = W_OK;
   
-  if ( access(strName(d->path), m) == 0 )
+  if ( access(nameToFN(d->path), m) == 0 )
     succeed;
 
   fail;
@@ -457,7 +438,7 @@ static status
 changedDirectory(Directory d)
 { struct stat buf;
 
-  if ( stat(strName(d->path), &buf) < 0 )
+  if ( stat(nameToFN(d->path), &buf) < 0 )
     succeed;			/* we signal non-extistence as changed */
 
   if ( d->modified == MODIFIED_NOT_SET )
@@ -593,6 +574,11 @@ makeClassDirectory(Class class)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Copied from SWI-Prolog pl-os.c. No poblem, as  SWI has copyright to both
 systems.  If you spot a bug, please synchronise.
+
+This routine works `in-place', using an   8-bit representation. It works
+fine  on  encoded  8-bit  representations  as   long  as  the  important
+characters . and / are unique. This is  true for UTF-8, but not for some
+state-shifting multibyte encodings.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static char *
@@ -654,10 +640,9 @@ canonisePath(char *path)
 
 
 char *
-dirName(const char *f)
+dirName(const char *f, char *dir, size_t dirlen)
 { if ( f )
-  { static char dir[MAXPATHLEN];
-    const char *base, *p;
+  { const char *base, *p;
 
     for(base = p = f; *p; p++)
     { if (*p == '/' && p[1] != EOS )
@@ -749,7 +734,7 @@ getWorkingDirectoryPce(Pce pce)
   }
 #endif
 
-  return CtoName(CWDdir);
+  return FNToName(CWDdir);
 } 
 
 
@@ -767,140 +752,145 @@ isAbsolutePath(const char *p)
 #define isRelativePath(p) ( p[0] == '.' )
 
 
-char *
-absolutePath(char *file)
-{ static char path[MAXPATHLEN];
-  
-  if ( !file ) 
-    return NULL;			/* propagate error */
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+absolutePath(const char *file, char *path, size_t buflen)
+	Convert a filename in UTF-8 to an absolute and canonical path in
+	UTF-8 notation.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+absolutePath(const char *file, char *path, size_t buflen)
+{ if ( !file ) 
+    return -1;				/* propagate error */
   
   if ( !isAbsolutePath(file) )
-  { Name cwd = getWorkingDirectoryPce(PCE);
+  { Name cwd;
+    const char *ucwd;
+    char *s;
+    size_t ul;
 
-    if ( !cwd )
-    { ExpandProblem = CtoName("Cannot get working directory");
-      return NULL;
+    if ( !(cwd = getWorkingDirectoryPce(PCE)) )
+      return -1;
+    ucwd = charArrayToUTF8((CharArray)cwd);
+
+    if ( (ul=strlen(ucwd)) + strlen(file) + 2 >= buflen )
+    { errno = ENAMETOOLONG;
+      return -1;
     }
-    if ( strlen(strName(cwd)) + strlen(file) + 2 >= MAXPATHLEN )
-    { ExpandProblem = CtoName("Path name too long");
-      return NULL;
-    }
-    strcpy(path, strName(cwd));
-    strcat(path, "/");
-    strcat(path, file);
+    memcpy(path, ucwd, ul);
+    s = path + ul;
+    *s++ = '/';
+    strcpy(path, file);
+  } else if ( strlen(file)+1 > buflen )
+  { errno = ENAMETOOLONG;
+    return -1;
   } else
     strcpy(path, file);
 
-  return canonisePath(path);
+  canonisePath(path);
+
+  return strlen(path);
 }
+
 
 		/********************************
 		*       ~ AND $ EXPANSION	*
 		********************************/
 
-static char *
-takeWord(char **string)
-{ static char wrd[MAXPATHLEN];
-  register char *s = *string;
-  register char *q = wrd;
-  register int left = MAXPATHLEN-1;
+#define USERNAME_MAX 20
 
-  while( *s && iscsym(*s) )
-  { if ( --left < 0 )
-    { ExpandProblem = CtoName("Variable or user name too long");
-      return (char *) NULL;
-    }
-    *q++ = *s++;
+static size_t
+takeWord(const wchar_t *s)
+{ size_t n = 0;
+
+  while( *s && (iswalnum(*s) || *s == '_') )
+  { n++, s++;
   }
-  *q = EOS;
   
-  *string = s;
-
-  return wrd;
+  return n;
 }
 
 
-static inline char *
-GETENV(char *var)
-{ Name val = getEnvironmentVariablePce(PCE, CtoName(var));
+static inline wchar_t *
+GETENV(const wchar_t *var, size_t len)
+{ Name val;
 
-  return val ? strName(val) : NULL;
+  val = getEnvironmentVariablePce(PCE, WCToName(var, len));
+
+  return val ? charArrayToWC((CharArray)val, NULL) : NULL;
 }
 
 
-char *
-expandFileName(char *pattern, char *bin)
-{ char *expanded = bin;
+int
+expandFileNameW(const wchar_t *pattern, wchar_t *bin, size_t binlen)
+{ wchar_t *expanded = bin;
   int size = 0;
-  char c;
+  wint_t c;
+
+  binlen--;				/* space for EOS */
 
   if ( *pattern == '~' )
   {
 #ifdef HAVE_GETPWNAM
-    static char fred[20];
-    static char fredLogin[MAXPATHLEN];
-    extern struct passwd *getpwnam(const char *);
+    static Name fred;
+    static Name fredLogin;
 #endif
-    char *user;
-    char *value;
-    char *s = pattern+1;		/* after ~ */
-    int l;
+    wchar_t *value;
+    const wchar_t *s = ++pattern;	/* after ~ */
+    size_t l;
 
-    pattern++;
-    if ( (user = takeWord(&s)) == NULL )
-      return NULL;			/* ~toolongname */
-    if ( *s && !IsDirSep(*s) )		/* ~shhs[^/] */
+    if ( (l = takeWord(s)) > USERNAME_MAX )
+    { ExpandProblem = CtoName("User name too long");
+      return -1;
+    }
+    if ( s[l] && !IsDirSep(s[l]) )	/* ~shhs[^/] */
       goto nouser;
-    pattern = s;
+    pattern = &s[l];
 
-    if ( user[0] == EOS )		/* ~/bla */
-    {
+    if ( l == 0 )			/* ~/bla */
+    { static Name myhome;
+
+      if ( !myhome )
+      {
 #ifdef O_XOS
-      value = _xos_home();
+	myhome = UTF8ToName(_xos_home());
 #else /*O_XOS*/
-      static char myhome[MAXPATHLEN];
-
-      if ( myhome[0] == EOS )
-      { if ( (value = getenv("HOME")) )
-	{ strcpy(myhome, value);
-	}
-	if ( myhome[0] == EOS )
-	  strcpy(myhome, "/");
+	myhome = getEnvironmentVariablePce(PCE, CtoName("HOME"));
+#endif
+	if ( !myhome)
+	  myhome = CtoName("/");
       }
 	
-      value = myhome;
-#endif /*O_XOS*/
+      value = charArrayToWC((CharArray)myhome, NULL);
     } else				/* ~fred */
 #ifdef HAVE_GETPWNAM
     { struct passwd *pwent;
+      Name user;
+      
+      user = WCToName(s, l);
 
-      if ( strlen(user)+1 > sizeof(fred) )
-      { ExpandProblem = CtoName("User name too long");
-	return NULL;
-      }
-
-      if ( !streq(fred, user) )
-      { if ( (pwent = getpwnam(user)) == (struct passwd *) NULL )
+      if ( fred != user )
+      { if ( (pwent = getpwnam(charArrayToMB((CharArray)user))) == (struct passwd *) NULL )
 	{ ExpandProblem = CtoName("Unknown user");
-	  return NULL;
+	  return -1;
 	}
-	strcpy(fred, user);
-	strcpy(fredLogin, pwent->pw_dir);
+	fred      = user;
+	fredLogin = MBToName(pwent->pw_dir);
       }
-      value = fredLogin;
+      value = charArrayToWC((CharArray)fredLogin, NULL);
     }	  
 #else
     { ExpandProblem = CtoName("Unknown user");
-      return NULL;
+      return -1;
     }
 #endif
 
-    size += (l = (int) strlen(value));
-    if ( size >= MAXPATHLEN )
+    size += (l = wcslen(value));
+    if ( size >= binlen )
     { ExpandProblem = CtoName("Name too long");
-      return NULL;
+      return -1;
     }
-    strcpy(expanded, value);
+    wcscpy(expanded, value);
     expanded += l;
 
 					/* avoid ~/ --> // */
@@ -914,28 +904,34 @@ nouser:
     { case EOS:
 	break;
       case '$':
-	{ char *var = takeWord(&pattern);
-	  char *value = GETENV(var);
-	  int l;
+	{ size_t varlen = takeWord(pattern);
 
-	  if ( value == (char *) NULL )
-	  { ExpandProblem = CtoName("Unknown variable");
-	    return NULL;
-	  }
-	  size += (l = (int)strlen(value));
-	  if ( size >= MAXPATHLEN )
-	  { ExpandProblem = CtoName("Name too long");
-	    return NULL;
-	  }
-	  strcpy(expanded, value);
-	  expanded += l;
+	  if ( varlen > 0 )
+	  { wchar_t *value = GETENV(pattern, varlen);
+	    int l;
 
-	  continue;
+	    if ( !value )
+	    { ExpandProblem = CtoName("Unknown variable");
+	      return -1;
+	    }
+	    size += (l = wcslen(value));
+	    if ( size >= binlen )
+	    { errno = ENAMETOOLONG;
+	      return -1;
+	    }
+	    wcscpy(expanded, value);
+	    expanded += l;
+
+	    pattern += varlen;
+	    continue;
+	  }
+
+	  /*FALLTHROUGH*/
 	}
       default:
-	if ( ++size >= MAXPATHLEN )
-	{ ExpandProblem = CtoName("Name too long");
-	  return NULL;
+	if ( ++size >= binlen )
+	{ errno = ENAMETOOLONG;
+	  return -1;
 	}
 	*expanded++ = c;
 
@@ -944,13 +940,14 @@ nouser:
     break;
   }
 
-  if ( ++size >= MAXPATHLEN )
-  { ExpandProblem = CtoName("Name too long");
-    return NULL;
-  }
-  *expanded++ = EOS;
+  *expanded = EOS;
 
-  DEBUG(NAME_path, Cprintf("Expanded %s to %s at %p\n", pattern, bin, bin));
+  /*DEBUG(NAME_path, Cprintf("Expanded %s to %s at %p\n",
+			     pattern, bin, bin));*/
 
-  return bin;
+  return expanded-bin;
 }
+
+
+
+

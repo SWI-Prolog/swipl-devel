@@ -53,7 +53,9 @@ static Sheet FileFilters;
 
 static status
 initialiseFile(FileObj f, Name name, Name encoding)
-{ initialiseSourceSink((SourceSink)f);
+{ Name fn;
+
+  initialiseSourceSink((SourceSink)f);
 
   if ( isDefault(encoding) )
     encoding = NAME_text;
@@ -126,24 +128,53 @@ initialiseFile(FileObj f, Name name, Name encoding)
 #endif
   }
 
-#if O_XOS
-  { char buf[MAXPATHLEN];
-    char lng[MAXPATHLEN];
-    
-    if ( _xos_long_file_name(strName(name), lng, sizeof(lng)) &&
-	 _xos_canonical_filename(lng, buf, sizeof(buf), 0) )
-    { assign(f, name, CtoName(buf));
-    } else
-    { return errorPce(f, NAME_representation, NAME_nameTooLong);
-    }    
-  }
-#else
-  assign(f, name, name);
-#endif
-
-
-  succeed;
+  if ( (fn=expandFileName(name)) )
+  { assign(f, name, fn);
+    succeed;
+  } else
+    fail;
 }
+
+
+static const char *
+nameToUTF8(Name n)
+{ return charArrayToUTF8((CharArray)n);
+}
+
+
+static const char *
+nameToFN(Name n)
+{ return charArrayToFN((CharArray)n);
+}
+
+
+Name
+expandFileName(Name in)
+{ wchar_t expanded[MAXPATHLEN];
+  int len;
+
+  if ( (len=expandFileNameW(charArrayToWC((CharArray)in, NULL),
+			    expanded, MAXPATHLEN)) > 0 )
+  {
+#if O_XOS
+     wchar_t lng[MAXPATHLEN];
+     char buf[MAXPATHLEN];
+  
+     if ( _xos_long_file_nameW(expanded, lng, MAXPATHLEN) &&
+	  _xos_canonical_filenameW(lng, buf, sizeof(buf), 0) )
+     { return UTF8ToName(buf);
+     } else
+     { errorPce(f, NAME_representation, NAME_nameTooLong);
+       fail;
+     }    
+#else
+     return WCToName(expanded, len);
+#endif
+  }
+
+  fail;
+}
+
 
 
 static status
@@ -159,12 +190,10 @@ kindFile(FileObj f, Name kind)
 
 Name
 getOsNameFile(FileObj f)
-{ char bin[MAXPATHLEN];
+{ if ( notDefault(f->path) )
+    answer(f->path);
 
-  if ( notDefault(f->path) )
-    answer(CtoName(strName(f->path)));
-
-  answer(CtoName(expandFileName(strName(f->name), bin)));
+  answer(f->name);
 }
 
 
@@ -221,25 +250,20 @@ closeFile(FileObj f)
 status
 existsFile(FileObj f, Bool mustbefile)
 { struct stat buf;
-  Name name;
+  const char *fn = charArrayToFN((CharArray)f->name);
 
-  if ( (name = getOsNameFile(f)) )
-  { DEBUG(NAME_file, Cprintf("name=\"%s\"\n", strName(name)));
 #ifdef HAVE_ACCESS
-    if ( mustbefile == OFF )
-    { if ( access(strName(name), F_OK) == 0 )
-	succeed;
-      fail;
-    }
-#endif
-    if ( stat(strName(name), &buf) == -1 )
-      fail;
-    if ( mustbefile != OFF && (buf.st_mode & S_IFMT) != S_IFREG )
-      fail;
-    succeed;
+  if ( mustbefile == OFF )
+  { if ( access(fn, F_OK) == 0 )
+      succeed;
+    fail;
   }
-
-  fail;
+#endif
+  if ( stat(fn, &buf) == -1 )
+    fail;
+  if ( mustbefile != OFF && (buf.st_mode & S_IFMT) != S_IFREG )
+    fail;
+  succeed;
 }
 
 
@@ -283,58 +307,35 @@ sameFile(FileObj f1, FileObj f2)
 
 static status
 absolutePathFile(FileObj f)
-{ char bin[MAXPATHLEN];
-  char *path = absolutePath(expandFileName(strName(f->name), bin));
+{ char path[MAXPATHLEN];
 
-  if ( path )
-  { assign(f, path, CtoName(path));
+  if ( absolutePath(charArrayToUTF8((CharArray)f->name), path, sizeof(path)) > 0 )
+  { assign(f, path, UTF8ToName(path));
     succeed;
   }
 
-  fail;
+  return errorPce(f, NAME_representation, NAME_nameTooLong);
 }
 
 
 Name
 getAbsolutePathFile(FileObj f)
-{ char bin[MAXPATHLEN];
+{ char path[MAXPATHLEN];
 
   if ( notDefault(f->path) )
     answer(f->path);
 
-  answer(CtoName(absolutePath(expandFileName(strName(f->name), bin))));
-}
+  if ( absolutePath(charArrayToUTF8((CharArray)f->name), path, sizeof(path)) > 0 )
+    return UTF8ToName(path);
 
-
-static int
-is_absolute_name(const char *s)
-{
-#ifdef __WIN32__
-  if ( isalpha(s[0]) && s[1] == ':' )
-    succeed;
-  if ( IsDirSep(s[0]) && IsDirSep(s[1]) )
-    succeed;
-#endif
-  if ( IsDirSep(s[0]) )
-    succeed;
-
+  errorPce(f, NAME_representation, NAME_nameTooLong);
   fail;
 }
+
 
 status
 isAbsoluteFile(FileObj f)
-{ char bin[MAXPATHLEN];
-  char *name = strName(f->name);
-  int n;
-
-  for(n=0; n < 2; n++)
-  { if ( is_absolute_name(name) )
-      succeed;
-
-    name = expandFileName(name, bin);
-  }
-
-  fail;
+{ return isAbsolutePath(charArrayToUTF8((CharArray)f->name));
 }
 
 
@@ -358,20 +359,17 @@ open_file(FileObj f, int access, ...)
 { va_list args;
   int mode;
   int fd = -1;
-  Name name;
   
   va_start(args, access);
   mode = va_arg(args, int);
   va_end(args);
 
-  if ( (name = getOsNameFile(f)) )
-  { fd = open(strName(name), access, mode);
+  fd = open(charArrayToFN((CharArray)f->name), access, mode);
 
-    if ( fd < 0 )
-      errorPce(f, NAME_openFile,
-	       (access & O_RDONLY) ? NAME_read : NAME_write,
-	       getOsErrorPce(PCE));
-  }
+  if ( fd < 0 )
+    errorPce(f, NAME_openFile,
+	     (access & O_RDONLY) ? NAME_read : NAME_write,
+	     getOsErrorPce(PCE));
 
   return fd;
 }
@@ -718,26 +716,27 @@ removeFile(FileObj f)
 static status
 nameFile(FileObj f, Name name)
 { int rval;
-  Name nm = getOsNameFile(f);
-  char *old, new[MAXPATHLEN];
+  Name ofn = getOsNameFile(f);
+  Name nfn = expandFileName(name);
 
-  if ( !nm || !expandFileName(strName(name), new) )
+  if ( !nfn )
     fail;
-  old = strName(nm);
 
   if ( existsFile(f, OFF) )
-  {
+  { const char *ofns = nameToFN(ofn);
+    const char *nfns = nameToFN(nfn);
+
 #ifdef HAVE_RENAME
-    remove(new);
-    rval = rename(old, new);
+    remove(nfns);
+    rval = rename(ofns, nfns);
 #else
-    unlink(new);
-    if ((rval = link(old, new)) == 0 && (rval = unlink(old)) != 0)
-      unlink(new);
+    unlink(nfns);
+    if ((rval = link(ofns, nfns)) == 0 && (rval = unlink(ofns)) != 0)
+      unlink(nfns);
 #endif /*__unix__*/
 
     if ( rval == 0 )
-    { assign(f, name, name);
+    { assign(f, name, nfn);
       succeed;
     }
 
@@ -907,17 +906,19 @@ getTimeFile(FileObj f, Name which)
 
 Name
 getBaseNameFile(FileObj f)
-{ char bin[MAXPATHLEN];
+{ const char *ufn = nameToUTF8(f->name);
 
-  answer(CtoName(baseName(expandFileName(strName(f->name), bin))));
+  answer(UTF8ToName(baseName(ufn)));
 }
 
 
 static Name
 getDirectoryNameFile(FileObj f)
-{ char bin[MAXPATHLEN];
+{ char dir[MAXPATHLEN];
 
-  answer(CtoName(dirName(expandFileName(strName(f->name), bin))));
+  dirName(nameToUTF8(getOsNameFile(f)), dir, sizeof(dir));
+
+  answer(UTF8ToName(dir));
 }
 
 
@@ -1108,9 +1109,24 @@ storeIntFile(FileObj f, Int i)
 { return storeWordFile(f, (Any) valInt(i));
 }
 
+
 		/********************************
 		*             PATHS		*
 		********************************/
+
+static int
+waccess(const wchar_t *name, int m)
+{ string s;
+  const char *ufn;
+
+  str_set_n_wchar(&s, wcslen(name), (wchar_t *)name);
+  ufn = stringToFN(&s);
+  
+  DEBUG(NAME_find, Cprintf("find: trying %s\n", name));
+
+  return access(ufn, m);
+}
+
 
 #ifndef X_OK
 #define X_OK 0
@@ -1118,17 +1134,15 @@ storeIntFile(FileObj f, Int i)
 
 status
 findFile(FileObj f, CharArray path, Name mode)
-{ char bin[MAXPATHLEN];
-  char *exp = expandFileName(strName(f->name), bin);
-  char base[MAXPATHLEN];
-  char name[MAXPATHLEN];
-  char *pathstr;
+{ wchar_t *base;
+  const wchar_t *pathstr;
   int m;
 
-  if ( !exp )
-    fail;
+  if ( isAbsolutePath(nameToUTF8(f->name)) )
+    succeed;
 
-  if ( isAbsolutePath(exp) || streq(exp, ".") )
+  base = charArrayToWC((CharArray)f->name, NULL);
+  if ( base[0] == '.' )
     succeed;
 
   if ( isDefault(mode) || mode == NAME_read )
@@ -1138,57 +1152,47 @@ findFile(FileObj f, CharArray path, Name mode)
   else /*if ( mode == NAME_execute )*/
     m = X_OK;
 
-  if ( notDefault(f->path) && access(strName(f->path), m) == 0 )
+  if ( notDefault(f->path) && access(nameToFN(f->path), m) == 0 )
     succeed;
 
-  strcpy(base, exp);
-  if ( is_absolute_name(base) )
-  { if ( access(base, m) == 0 )
-    { assign(f, path, CtoName(base));
-      succeed;
-    }
-
-    goto nofind;
-  }
-
   if ( isDefault(path) )
-    pathstr = ".";
+    pathstr = L".";
   else
-    pathstr = strName(path);
+    pathstr = charArrayToWC(path, NULL);
 
   while( pathstr && *pathstr )
-  { char *end = pathstr;
+  { wchar_t name[MAXPATHLEN];
+    wchar_t bin[MAXPATHLEN];
+    const wchar_t *end = pathstr;
+    size_t l;
 
 #ifdef __WIN32__
-    if ( isalpha(end[0]) && end[1] == ':' )
+    if ( end[0] < 0x80 && isalpha(end[0]) && end[1] == ':' )
       end += 2;
 #endif
 
-    if ( (end = strchr(end, ':')) == NULL )
-    { strcpy(name, pathstr);
+    if ( (end = wcschr(end, ':')) == NULL )
+    { wcscpy(name, pathstr);
       pathstr = NULL;
     } else
-    { strncpy(name, pathstr, end-pathstr);
+    { wcsncpy(name, pathstr, end-pathstr);
       name[end-pathstr] = EOS;
       pathstr = &end[1];
     }
-    if ( (exp = expandFileName(name, bin)) )
-      strcpy(name, exp);
+    if ( (l=expandFileNameW(name, bin, MAXPATHLEN)) > 0 )
+      wcsncpy(name, bin, l);
     else
       continue;
 
-    strcat(name, "/");
-    strcat(name, base);
+    name[l] = '/';
+    wcscat(&name[l+1], base);
 
-    DEBUG(NAME_find, Cprintf("%s->find: trying %s\n", pp(f), name));
-
-    if ( access(name, m) == 0 )
-    { assign(f, path, CtoName(name));
+    if ( waccess(name, m) == 0 )
+    { assign(f, path, WCToName(name, wcslen(name)));
       succeed;
     }
   }
 
-nofind:
   return errorPce(f, NAME_cannotFindFile, path);
 }
 

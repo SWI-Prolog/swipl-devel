@@ -70,6 +70,8 @@ initialisePce(Pce pce)
 { if ( PCE && notNil(PCE) )
     return errorPce(classOfObject(pce), NAME_cannotCreateInstances);
 
+  PCE = pce;
+
 #ifdef __APPLE__
  { extern int IAmAGlobalFunctionToMakeMeLoad(void);
   

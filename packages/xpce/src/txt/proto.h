@@ -214,9 +214,12 @@ COMMON(unsigned int) F_UTF8_ENCLENW(const wchar_t *s, unsigned int len);
 COMMON(unsigned int) F_UTF8_ENCLENA(const char *s, unsigned int len);
 
 /* /staff/jan/src/pl/packages/xpce/src/txt/i18n.c */
+COMMON(wchar_t *) charArrayToWC(CharArray ca, size_t *len);
 COMMON(char *)	charArrayToUTF8(CharArray ca);
 COMMON(char *)	charArrayToMB(CharArray ca);
-COMMON(wchar_t *) charArrayToWC(CharArray ca, size_t *len);
-COMMON(CharArray) UTF8ToCharArray(const char *utf8);
-COMMON(CharArray) MBToCharArray(const char *mb);
-COMMON(CharArray) WCToCharArray(const wchar_t *wc, size_t len);
+COMMON(Name)	UTF8ToName(const char *utf8);
+COMMON(Name)	MBToName(const char *mb);
+COMMON(Name)	WCToName(const wchar_t *wc, size_t len);
+COMMON(Name)	FNToName(const char *name);
+COMMON(char *)	charArrayToFN(CharArray ca);
+COMMON(char *)	stringToFN(String s);

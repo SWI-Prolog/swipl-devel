@@ -3,13 +3,14 @@
 /* /staff/jan/src/pl/packages/xpce/src/unx/directory.c */
 COMMON(status)	cdDirectory(Directory d);
 COMMON(status)	makeClassDirectory(Class class);
-COMMON(char *)	dirName(const char *f);
+COMMON(char *)	dirName(const char *f, char *dir, size_t dirlen);
 COMMON(char *)	baseName(const char *f);
 COMMON(int)	isAbsolutePath(const char *p);
-COMMON(char *)	absolutePath(char *file);
-COMMON(char *)	expandFileName(char *pattern, char *bin);
+COMMON(int)	absolutePath(const char *file, char *path, size_t buflen);
+COMMON(int)	expandFileNameW(const wchar_t *pattern, wchar_t *bin, size_t binlen);
 
 /* /staff/jan/src/pl/packages/xpce/src/unx/file.c */
+COMMON(Name)	expandFileName(Name in);
 COMMON(Name)	getOsNameFile(FileObj f);
 COMMON(status)	closeFile(FileObj f);
 COMMON(status)	existsFile(FileObj f, Bool mustbefile);

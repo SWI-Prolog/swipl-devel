@@ -111,16 +111,6 @@ addByte(rcell *c, int byte)
 }
 
 
-static void
-addBytes(rcell *c, char *bytes, size_t size)
-{ roomBuffer(c, size);
-
-  memcpy(c->bufp, bytes, size);
-  c->bufp += size;
-}
-
-
-
 		 /*******************************
 		 *	  CHARARRAY --> 	*
 		 *******************************/
@@ -128,10 +118,9 @@ addBytes(rcell *c, char *bytes, size_t size)
 typedef const unsigned char cuchar;
 typedef const wchar_t       cwchar;
 
-char *
-charArrayToUTF8(CharArray ca)
-{ String str = &ca->data;
-  rcell *out;
+static char *
+stringToUTF8(String str)
+{ rcell *out;
 
   if ( isstrA(str) )
   { cuchar *s = (cuchar*) str->s_textA;
@@ -168,10 +157,9 @@ charArrayToUTF8(CharArray ca)
 }
 
 
-char *
-charArrayToMB(CharArray ca)
-{ String str = &ca->data;
-  rcell *out;
+static char *
+stringToMB(String str)
+{ rcell *out;
   mbstate_t mbs;
   char b[MB_LEN_MAX];
   int rc;
@@ -222,6 +210,9 @@ wchar_t *
 charArrayToWC(CharArray ca, size_t *len)
 { String str = &ca->data;
 
+  if ( len )
+    *len = str->size;
+
   if ( isstrA(str) )
   { rcell *out = find_ring();
     cuchar *s = (cuchar*) str->s_textA;
@@ -241,26 +232,181 @@ charArrayToWC(CharArray ca, size_t *len)
 }
 
 
+char *
+charArrayToUTF8(CharArray ca)
+{ return stringToUTF8(&ca->data);
+}
+
+
+char *
+charArrayToMB(CharArray ca)
+{ return stringToMB(&ca->data);
+}
+
+
 		 /*******************************
-		 *	  <-- CHARARRAY  	*
+		 *	    <-- NAME	  	*
 		 *******************************/
 
-CharArray
-UTF8ToCharArray(const char *utf8)
-{ return NULL;
+Name
+UTF8ToName(const char *utf8)
+{ cuchar *in;
+  cuchar *e;
+  int len;
+  int wide;
+
+  for(in=utf8; *in; in++)
+  { if ( (*in)&0x80 )
+      break;
+  }
+
+  if ( *in == EOS )			/* simple ASCII string */
+    return CtoName(utf8);
+
+  e = in + strlen(in);
+  for(in=utf8, len=0, wide=FALSE; in < e; )
+  { int chr;
+
+    in = utf8_get_char(in, &chr);
+    if ( chr > 0xff )
+      wide = TRUE;
+    len++;
+  }
+
+  if ( wide )
+  { wchar_t *ws;
+    int mlcd;
+    string s;
+    Name nm;
+
+    if ( len < 1024 )
+    { ws = alloca((len+1)*sizeof(wchar_t));
+      mlcd = FALSE;
+    } else
+    { ws = pceMalloc((len+1)*sizeof(wchar_t));
+      mlcd = TRUE;
+    }
+
+    str_set_n_wchar(&s, len, ws);
+    nm = StringToName(&s);
+
+    if ( mlcd )
+      pceFree(ws);
+
+    return nm;
+  } else
+  { char *as;
+    int mlcd;
+    string s;
+    Name nm;
+
+    if ( len < 1024 )
+    { as = alloca((len+1));
+      mlcd = FALSE;
+    } else
+    { as = pceMalloc((len+1));
+      mlcd = TRUE;
+    }
+
+    str_set_n_ascii(&s, len, as);
+    nm = StringToName(&s);
+
+    if ( mlcd )
+      pceFree(as);
+
+    return nm;
+  }      
 }
 
 
-CharArray
-MBToCharArray(const char *mb)
-{ return NULL;
+Name
+MBToName(const char *mb)
+{ size_t len;
+  mbstate_t mbs;
+  const char *in = mb;
+
+  memset(&mbs, 0, sizeof(mbs));
+  if ( (len = mbsrtowcs(NULL, &in, 0, &mbs)) >= 0 )
+  { string s;
+    wchar_t *ws;
+    int mlcd;
+    Name nm;
+
+    if ( len < 1024 )
+    { ws = alloca((len+1)*sizeof(wchar_t));
+      mlcd = FALSE;
+    } else
+    { ws = pceMalloc((len+1)*sizeof(wchar_t));
+      mlcd = TRUE;
+    }
+
+    memset(&mbs, 0, sizeof(mbs));
+    in = mb;
+    mbsrtowcs(ws, &in, 0, &mbs);
+    str_set_n_wchar(&s, len, ws);
+    nm = StringToName(&s);
+
+    if ( mlcd )
+      pceFree(ws);
+
+    return nm;
+  }
+
+  return NULL;
 }
 
 
-CharArray
-WCToCharArray(const wchar_t *wc, size_t len)
-{ return NULL;
+Name
+WCToName(const wchar_t *wc, size_t len)
+{ if ( wc )
+  { string s;
+
+    str_set_n_wchar(&s, len, (wchar_t *)wc);
+
+    return StringToName(&s);
+  }
+
+  return NULL;
 }
 
 
+		 /*******************************
+		 *	     FILE-NAMES		*
+		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Turn  an  OS  filename  into  an  XPCE  name.  With  XOS,  the  filename
+representation is always UTF-8
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+Name
+FNToName(const char *name)
+{
+#ifdef XOS
+  return UTF8ToName(name);
+#else
+  return MBToName(name);
+#endif
+}
+
+
+char *
+charArrayToFN(CharArray ca)
+{
+#ifdef XOS
+   return charArrayToUTF8(ca);
+#else
+   return charArrayToMB(ca);
+#endif
+}
+
+
+char *
+stringToFN(String s)
+{
+#ifdef XOS
+   return stringToUTF8(s);
+#else
+   return stringToMB(s);
+#endif
+}

@@ -40,6 +40,7 @@
   BUILTIN_NAME("_instance_of")
   BUILTIN_NAME("_isearch")
   BUILTIN_NAME("_keyboard_focus")
+  BUILTIN_NAME("_m_a_x")
   BUILTIN_NAME("_man_id")
   BUILTIN_NAME("_margin_function")
   BUILTIN_NAME("_member")
