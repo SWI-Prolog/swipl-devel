@@ -285,7 +285,7 @@ addFunctor(CompileInfo info, functor_t f)
     addAtomValue(info, fd->name);
   } else
   { addOpCode(info, PL_TYPE_COMPOUND);
-    addBuffer(&info->code, f, word);
+    addWord(info, f);
   }
 }
 
