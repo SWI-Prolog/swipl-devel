@@ -14,7 +14,7 @@ OUTDBG=		$(PLHOME)\bin\plterm.pdb
 
 XLIBS=		gdi32.lib comdlg32.lib $(DBGLIBS)
 
-OBJ=		complete.obj console.obj edit.obj history.obj menu.obj
+OBJ=		complete.obj console.obj edit.obj history.obj menu.obj utf8.obj
 
 all:		$(OUTLIB) $(OUTINC)
 

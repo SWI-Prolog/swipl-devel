@@ -78,6 +78,7 @@ static void initHeapDebug(void);
 #include "console.h"
 #include "menu.h"
 #include "common.h"
+#include "utf8.h"
 #include <signal.h>
 #include <ctype.h>
 #include <stdio.h>
@@ -187,7 +188,7 @@ static void	rlc_adjust_line(RlcData b, int line);
 static int	text_width(RlcData b, HDC hdc, const dchar *text, int len);
 static int	wchar_width(RlcData b, HDC hdc, const wchar_t *text, int len);
 static void	rlc_queryfont(RlcData b);
-static void     rlc_do_write(RlcData b, char *buf, int count);
+static int      rlc_do_write(RlcData b, const char *buf, int count);
 static void     rlc_reinit_line(RlcData b, int line);
 static void	rlc_free_line(RlcData b, int line);
 static int	rlc_between(RlcData b, int f, int t, int v);
@@ -1253,11 +1254,21 @@ rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       { if ( b->output_queued > 0 )
 	  rlc_flush_output(b);
 
-	if ( count <= OQSIZE )
-	{ memcpy(b->output_queue, buf, count);
-	  b->output_queued = count;
-	} else
-	  rlc_do_write(b, buf, count);
+	while(count > 0)
+	{ if ( OQSIZE - b->output_queued > count )
+	  { memcpy(b->output_queue, buf, count);
+	    b->output_queued += count;
+	    break;
+	  } else
+	  { int room = OQSIZE - b->output_queued;
+
+	    memcpy(b->output_queue, buf, room);
+	    b->output_queued += room;
+	    rlc_flush_output(b);
+	    buf += room;
+	    count -= room;
+	  }
+	}
       }
 
       return 0;
@@ -2968,7 +2979,23 @@ ScreenRows(rlc_console c)
 		 *	      QUEUE		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The queue defined here is the terminal  input queue. It maintains a ring
+of characters stored in UTF-8 format. 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #define QN(q, i) ((i)+1 >= (q)->size ? 0 : (i)+1)
+
+static __inline int
+queue_room(RlcQueue q)			/* free room in queue */
+{ if ( q->first < q->last )
+    return q->size - (q->last - q->first) - 1;
+  else if ( q->last < q->first )
+    return q->first - q->last - 1;
+  else
+    return q->size;
+}
+
 
 
 RlcQueue
@@ -2980,7 +3007,7 @@ rlc_make_queue(int size)
     q->size = size;
     q->flags = 0;
 
-    if ( (q->buffer = rlc_malloc(sizeof(short) * size)) )
+    if ( (q->buffer = rlc_malloc(sizeof(char) * size)) )
       return q;
   }
 
@@ -3000,11 +3027,18 @@ rlc_free_queue(RlcQueue q)
 
 static int
 rlc_add_queue(RlcData b, RlcQueue q, int chr)
-{ int empty = (q->first == q->last);
+{ int empty = (q->first == q->last);	/* empty on entrance */
+  char buf[8];
+  char *e;
 
-  if ( QN(q, q->last) != q->first )
-  { q->buffer[q->last] = chr;
-    q->last = QN(q, q->last);
+  e = utf8_put_char(buf, chr);
+  if ( queue_room(q) > e-buf )
+  { char *s;
+
+    for(s=buf; s<e; s++)
+    { q->buffer[q->last] = *s&0xff;
+      q->last = QN(q, q->last);
+    }
 
     if ( empty )
       PostThreadMessage(b->application_thread_id, WM_RLC_INPUT, 0, 0);
@@ -3032,7 +3066,7 @@ rlc_empty_queue(RlcQueue q)
 
 
 static int
-rlc_from_queue(RlcQueue q)
+rlc_byte_from_queue(RlcQueue q)
 { if ( q->first != q->last )
   { int chr = q->buffer[q->first];
 
@@ -3041,7 +3075,35 @@ rlc_from_queue(RlcQueue q)
     return chr;
   }
 
-  return -1;
+  return EOF;
+}
+
+
+static int
+rlc_from_queue(RlcQueue q)
+{ int c = rlc_byte_from_queue(q);
+  int oldfirst = q->first;
+  
+  if ( c != EOF && (c&0x80) )
+  { int extra = UTF8_FBN(c);
+    int code;
+
+    code = UTF8_FBV(c,extra);
+    for( ; extra > 0; extra-- )
+    { int c2 = rlc_byte_from_queue(q);
+	  
+      if ( c2 == EOF )
+      { q->first = oldfirst;
+	return EOF;
+      }
+
+      code = (code<<6)+(c2&0x3f);
+    }
+
+    c = code;
+  }
+
+  return c;
 }
 
 
@@ -3112,14 +3174,29 @@ rlc_read(rlc_console c, char *buf, unsigned int count)
 }
 
 
-static void
-rlc_do_write(RlcData b, char *buf, int count)
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+rlc_do_write() writes an UTF-8 sequence  to   the  screen, returning the
+number of bytes processed. Incomplete  processing   is  possible  if the
+buffer contains an incomplete UTF-8 sequence.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+rlc_do_write(RlcData b, const char *buf, int count)
 { if ( count > 0 )
   { int n = 0;
-    char *s = buf;
+    const char *s = buf;
+    const char *e = &buf[count];
 
-    while(n++ < count)
-    { int chr = *s++;
+    while(s<e)
+    { int chr;
+
+      chr = *s&0xff;
+      if ( !(chr & 0x80) )
+      { s++;
+      } else if ( UTF8_FBN(chr)+s < e )
+      { s = utf8_get_char(s, &chr);
+      } else
+	break;
 
       if ( chr == '\n' )
 	rlc_putansi(b, '\r');
@@ -3131,7 +3208,11 @@ rlc_do_write(RlcData b, char *buf, int count)
     { rlc_request_redraw(b);
       UpdateWindow(b->window);
     }
+
+    return s-buf;
   }
+
+  return 0;
 }
 
 
@@ -3143,9 +3224,15 @@ rlc_flush_output(rlc_console c)
     return -1;
 
   if ( b->output_queued )
-  { rlc_do_write(b, b->output_queue, b->output_queued);
+  { int processed = rlc_do_write(b, b->output_queue, b->output_queued);
 
-    b->output_queued = 0;
+    if ( processed < b->output_queued )
+    { memmove(b->output_queue,
+	      &b->output_queue[processed],
+	      b->output_queued - processed);
+      b->output_queued -= processed;
+    } else
+      b->output_queued = 0;
   }
 
   return 0;
