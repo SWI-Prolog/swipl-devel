@@ -27,10 +27,12 @@
 #include <stdarg.h>
 
 #define ERR_ERRNO	0
-#define ERR_ARGTYPE	1
-#define ERR_DOMAIN	2
-#define ERR_EXISTENCE	3
-#define ERR_PERMISSION	4
+#define ERR_TYPE	1
+#define ERR_ARGTYPE	2
+#define ERR_DOMAIN	3
+#define ERR_EXISTENCE	4
+#define ERR_PERMISSION	5
+#define ERR_NOTIMPLEMENTED 6
 
 int		pl_error(const char *name, int arity,
 			 const char *msg, int id, ...);

@@ -1,3 +1,7 @@
+Jun 11, 2002
+
+ * ADDED: library(files), providing uncommon access to file objects.
+
 29/04/2002
   
  * Add initialization to load_foreign_library for calls lacking this.

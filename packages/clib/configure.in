@@ -57,7 +57,7 @@ CMFLAGS=-fpic
 
 SO="$PLSOEXT"
 
-TARGETS="unix.$SO socket.$SO cgi.$SO memfile.$SO"
+TARGETS="unix.$SO socket.$SO cgi.$SO memfile.$SO files.$SO"
 
 AC_CHECK_PROGS(MAKE, gmake make, "make")
 AC_CHECK_PROGS(ETAGS, etags ctags, ":")
@@ -124,9 +124,10 @@ AC_TRY_COMPILE(
    AC_MSG_RESULT(yes),
    AC_MSG_RESULT(no))
 
-AC_CHECK_HEADERS(malloc.h alloca.h unistd.h sys/time.h fcntl.h)
+AC_CHECK_HEADERS(malloc.h alloca.h unistd.h sys/time.h fcntl.h utime.h)
 AC_CHECK_HEADERS(execinfo.h)
-AC_CHECK_FUNCS(setsid strerror setitimer)
+
+AC_CHECK_FUNCS(setsid strerror setitimer utime)
 
 with_time=yes
 AC_ARG_WITH(time, [  --without-time		  Exclude alarm library],

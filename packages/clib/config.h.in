@@ -55,6 +55,12 @@
 /* Define if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
+/* Define if you have the `utime' function. */
+#undef HAVE_UTIME
+
+/* Define if you have the <utime.h> header file. */
+#undef HAVE_UTIME_H
+
 /* If using the C implementation of alloca, define if you know the
    direction of stack growth for your system; otherwise it will be
    automatically deduced at run-time.

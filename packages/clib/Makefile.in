@@ -45,6 +45,7 @@ CRYPTOBJ=	error.o crypt.o
 MEMOBJ=		error.o memfile.o
 MIMEOBJ=	error.o mime.o
 TIMEOBJ=	error.o time.o
+FILESOBJ=	error.o files.o
 
 all:		$(TARGETS)
 
@@ -62,6 +63,8 @@ mime.@SO@:	$(MIMEOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(MIMEOBJ) $(LIBS)
 time.@SO@:	$(TIMEOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(TIMEOBJ) $(LIBS)
+files.@SO@:	$(FILESOBJ)
+		$(LD) $(LDFLAGS) -o $@ $(FILESOBJ) $(LIBS)
 
 install:	$(TARGETS) $(LIBPL)
 		mkdir -p $(PLBASE)/lib/$(PLARCH)

@@ -1059,7 +1059,7 @@ CMFLAGS=-fpic
 
 SO="$PLSOEXT"
 
-TARGETS="unix.$SO socket.$SO cgi.$SO memfile.$SO"
+TARGETS="unix.$SO socket.$SO cgi.$SO memfile.$SO files.$SO"
 
 for ac_prog in gmake make
 do
@@ -3052,7 +3052,7 @@ echo "${ECHO_T}no" >&6
 fi
 rm -f conftest.$ac_objext conftest.$ac_ext
 
-for ac_header in malloc.h alloca.h unistd.h sys/time.h fcntl.h
+for ac_header in malloc.h alloca.h unistd.h sys/time.h fcntl.h utime.h
 do
 as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
 echo "$as_me:3058: checking for $ac_header" >&5
@@ -3148,7 +3148,7 @@ EOF
 fi
 done
 
-for ac_func in setsid strerror setitimer
+for ac_func in setsid strerror setitimer utime
 do
 as_ac_var=`echo "ac_cv_func_$ac_func" | $as_tr_sh`
 echo "$as_me:3154: checking for $ac_func" >&5

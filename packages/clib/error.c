@@ -88,6 +88,19 @@ pl_error(const char *pred, int arity, const char *msg, int id, ...)
 		      PL_TERM, actual);
       break;
     }
+    case ERR_TYPE:
+    { term_t actual   = va_arg(args, term_t);
+      atom_t expected = PL_new_atom(va_arg(args, const char*));
+
+      if ( PL_is_variable(actual) && expected != PL_new_atom("variable") )
+	PL_unify_atom_chars(formal, "instantiation_error");
+      else
+	PL_unify_term(formal,
+		      CompoundArg("type_error", 2),
+		      PL_ATOM, expected,
+		      PL_TERM, actual);
+      break;
+    }
     case ERR_DOMAIN:
     { term_t actual   = va_arg(args, term_t);
       atom_t expected = PL_new_atom(va_arg(args, const char*));
@@ -120,6 +133,15 @@ pl_error(const char *pred, int arity, const char *msg, int id, ...)
 		    AtomArg(objtype),
 		    PL_TERM, obj);
       break;
+    }
+    case ERR_NOTIMPLEMENTED:
+    { const char *op = va_arg(args, const char *);
+      term_t obj  = va_arg(args, term_t);
+
+      PL_unify_term(formal,
+		    CompoundArg("not_implemented", 2),
+		    AtomArg(op),
+		    PL_TERM, obj);
     }
     default:
       assert(0);
