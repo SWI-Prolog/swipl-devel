@@ -35,24 +35,20 @@ static char *	getString(IOSTREAM *);
 static long	getNum(IOSTREAM *);
 static real	getReal(IOSTREAM *);
 static bool	loadWicFd(IOSTREAM *);
-static bool	loadPredicate(IOSTREAM *, int skip);
-static bool	loadImport(IOSTREAM *, int skip);
+static bool	loadPredicate(IOSTREAM *, int skip ARG_LD);
+static bool	loadImport(IOSTREAM *, int skip ARG_LD);
 static void	putString(char *, IOSTREAM *);
 static void	putAtom(atom_t, IOSTREAM *);
 static void	putNum(long, IOSTREAM *);
 static void	putReal(real, IOSTREAM *);
 static void	saveWicClause(Clause, IOSTREAM *);
 static void	closeProcedureWic(IOSTREAM *);
-static bool	addDirectiveWic(term_t, IOSTREAM *fd);
-static bool	importWic(Procedure, IOSTREAM *fd);
 static bool	compileFile(char *);
-static word	loadXR(IOSTREAM *);
-static word	loadXRc(int c, IOSTREAM *fd);
-static bool	loadStatement(int c, IOSTREAM *fd, int skip);
-static bool	loadPart(IOSTREAM *fd, Module *module, int skip);
-static bool	loadInModule(IOSTREAM *fd, int skip);
+static word	loadXRc(int c, IOSTREAM *fd ARG_LD);
+static bool	loadStatement(int c, IOSTREAM *fd, int skip ARG_LD);
+static bool	loadPart(IOSTREAM *fd, Module *module, int skip ARG_LD);
+static bool	loadInModule(IOSTREAM *fd, int skip ARG_LD);
 static int	qlfVersion(IOSTREAM *s);
-static void	openProcedureWic(Procedure proc, IOSTREAM *fd, atom_t sclass);
 static atom_t	qlfFixSourcePath(const char *raw);
 
 #define Qgetc(s) Snpgetc(s)		/* ignore position recording */
@@ -193,39 +189,9 @@ static IOSTREAM *wicFd;			/* file descriptor of wic file */
 static Procedure currentProc;		/* current procedure */
 static SourceFile currentSource;	/* current source file */
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-On tos, loading takes long; give the user  something  to  look  at.   On
-workstations, it normally is so fast it is hardy noticable.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if tos
-static void
-notifyLoad(file)
-char *file;
-{ Sfprintf(Soutput, "Loading %s ", file);
-  Sflush(Soutput);
-}
-
-static void
-notifyLoaded()
-{ Sprintf(Soutput, "\r\033K");
-}
-
-static void
-notifyPredicate(functor_t f)
-{ static char cur[] = "|/-\\";
-  static int  n = 0;
-
-  Sprintf(Soutput, "%c\b", cur[n++ & 0x3]);
-}
-
-#else /*!tos*/
-
-#define notifyLoad(file)
-#define notifyLoaded()
-#define notifyPredicate(f)
-
-#endif /* tos */
+#undef LD
+#define LD LOCAL_LD
 
 		 /*******************************
 		 *     LOADED XR ID HANDLING	*
@@ -257,7 +223,7 @@ references.  That will normally overflow other system limits first.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-pushXrIdTable()
+pushXrIdTable(ARG1_LD)
 { XrTable t = allocHeap(sizeof(struct xr_table));
 
   t->previous = loadedXrs;
@@ -271,7 +237,7 @@ pushXrIdTable()
 
 
 static void
-popXrIdTable()
+popXrIdTable(ARG1_LD)
 { int i;
   XrTable prev = loadedXrs->previous;
 
@@ -356,7 +322,7 @@ getString(IOSTREAM *fd)
 
 
 static atom_t
-getAtom(IOSTREAM *fd)
+getAtom(IOSTREAM *fd ARG_LD)
 { char buf[1024];
   char *tmp, *s;
   int len = getNum(fd);
@@ -486,8 +452,15 @@ getLong(IOSTREAM *s)
 }
 
 
+static inline word
+loadXR__LD(IOSTREAM *fd ARG_LD)
+{ return loadXRc(Qgetc(fd), fd PASS_LD);
+}
+#define loadXR(s) loadXR__LD(s PASS_LD)
+
+
 static word
-loadXRc(int c, IOSTREAM *fd)
+loadXRc(int c, IOSTREAM *fd ARG_LD)
 { word xr;
   int id = 0;				/* make gcc happy! */
 
@@ -500,7 +473,7 @@ loadXRc(int c, IOSTREAM *fd)
     }
     case XR_ATOM:
     { id = ++loadedXRTableId;
-      xr = getAtom(fd);
+      xr = getAtom(fd PASS_LD);
       DEBUG(3, Sdprintf("XR(%d) = '%s'\n", id, stringAtom(xr)));
       break;
     }
@@ -584,14 +557,8 @@ loadXRc(int c, IOSTREAM *fd)
 }
 
 
-static word
-loadXR(IOSTREAM *fd)
-{ return loadXRc(Qgetc(fd), fd);
-}
-
-
 static void
-do_load_qlf_term(IOSTREAM *fd, term_t vars[], term_t term)
+do_load_qlf_term(IOSTREAM *fd, term_t vars[], term_t term ARG_LD)
 { int c = Qgetc(fd);
 
   if ( c == 'v' )
@@ -612,16 +579,16 @@ do_load_qlf_term(IOSTREAM *fd, term_t vars[], term_t term)
     PL_unify_functor(term, f);
     for(n=0; n < arity; n++)
     { _PL_get_arg(n+1, term, c2);
-      do_load_qlf_term(fd, vars, c2);
+      do_load_qlf_term(fd, vars, c2 PASS_LD);
     }
   } else
-  { _PL_unify_atomic(term, loadXRc(c, fd));
+  { _PL_unify_atomic(term, loadXRc(c, fd PASS_LD));
   }
 }
 
 
 static void
-loadQlfTerm(term_t term, IOSTREAM *fd)
+loadQlfTerm(term_t term, IOSTREAM *fd ARG_LD)
 { int nvars;
   Word vars;
 
@@ -638,7 +605,7 @@ loadQlfTerm(term_t term, IOSTREAM *fd)
     vars = NULL;
 
   PL_put_variable(term);
-  do_load_qlf_term(fd, vars, term);
+  do_load_qlf_term(fd, vars, term PASS_LD);
   DEBUG(3,
 	Sdprintf("Loaded ");
 	PL_write_term(Serror, term, 1200, 0);
@@ -652,14 +619,14 @@ Load intermediate code state from the specified stream.
 
 int
 loadWicFromStream(IOSTREAM *fd)
-{ pushXrIdTable();
-  if ( !loadWicFd(fd) )
-  { popXrIdTable();
-    return FALSE;
-  }
-  popXrIdTable();
+{ GET_LD
+  int rval;
 
-  return TRUE;
+  pushXrIdTable(PASS_LD1);
+  rval = loadWicFd(fd);
+  popXrIdTable(PASS_LD1);
+
+  return rval;
 }
 
 
@@ -684,7 +651,8 @@ loadWicFile(const char *file)
 
 static bool
 loadWicFd(IOSTREAM *fd)
-{ char *s;
+{ GET_LD
+  char *s;
   Char c;
   char mbuf[100];
   char *savedhome;
@@ -731,7 +699,7 @@ loadWicFd(IOSTREAM *fd)
       case 'X':
         break;
       default:
-        { loadStatement(c, fd, FALSE);
+        { loadStatement(c, fd, FALSE PASS_LD);
 	  continue;
 	}
     }
@@ -740,10 +708,10 @@ loadWicFd(IOSTREAM *fd)
 
 
 static bool
-loadStatement(int c, IOSTREAM *fd, int skip)
+loadStatement(int c, IOSTREAM *fd, int skip ARG_LD)
 { switch(c)
   { case 'P':
-      return loadPredicate(fd, skip);
+      return loadPredicate(fd, skip PASS_LD);
 
     case 'O':
     { word mname = loadXR(fd);
@@ -751,13 +719,13 @@ loadStatement(int c, IOSTREAM *fd, int skip)
       bool rval;
 
       LD->modules.source = lookupModule(mname);
-      rval = loadPredicate(fd, skip);
+      rval = loadPredicate(fd, skip PASS_LD);
       LD->modules.source = om;
 
       return rval;
     }
     case 'I':
-      return loadImport(fd, skip);
+      return loadImport(fd, skip PASS_LD);
 
     case 'D':
     { fid_t   cid = PL_open_foreign_frame();
@@ -768,7 +736,7 @@ loadStatement(int c, IOSTREAM *fd, int skip)
       source_file_name = (currentSource ? currentSource->name : NULL_ATOM);
       source_line_no   = getNum(fd);
       
-      loadQlfTerm(goal, fd);
+      loadQlfTerm(goal, fd PASS_LD);
       DEBUG(1, Sdprintf("Directive: ");
 	       pl_write(goal);
 	       Sdprintf("\n"));
@@ -792,10 +760,10 @@ loadStatement(int c, IOSTREAM *fd, int skip)
     }	  
 
     case 'Q':
-      return loadPart(fd, NULL, skip);
+      return loadPart(fd, NULL, skip PASS_LD);
 
     case 'M':
-      return loadInModule(fd, skip);
+      return loadInModule(fd, skip PASS_LD);
 
     default:
       return qlfLoadError(fd, "loadStatement()");
@@ -804,7 +772,7 @@ loadStatement(int c, IOSTREAM *fd, int skip)
 
 
 static void
-loadPredicateFlags(Definition def, IOSTREAM *fd, int skip)
+loadPredicateFlags(Definition def, IOSTREAM *fd, int skip ARG_LD)
 { if ( qlf_saved_version <= 31 )
   { if ( !skip && SYSTEM_MODE )
       set(def, SYSTEM|HIDE_CHILDS|LOCKED);
@@ -826,13 +794,12 @@ loadPredicateFlags(Definition def, IOSTREAM *fd, int skip)
 
 
 static bool
-loadPredicate(IOSTREAM *fd, int skip)
+loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 { Procedure proc;
   Definition def;
   Clause clause;
   functor_t f = (functor_t) loadXR(fd);
 
-  notifyPredicate(f);
   proc = lookupProcedure(f, LD->modules.source);
   DEBUG(3, Sdprintf("Loading %s ", procedureName(proc)));
   def = proc->definition;
@@ -843,7 +810,7 @@ loadPredicate(IOSTREAM *fd, int skip)
   }
   if ( def->references == 0 && !def->hash_info )
     def->indexPattern |= NEED_REINDEX;
-  loadPredicateFlags(def, fd, skip);
+  loadPredicateFlags(def, fd, skip PASS_LD);
 
   for(;;)
   { switch(Getc(fd) )
@@ -965,7 +932,7 @@ loadPredicate(IOSTREAM *fd, int skip)
 
 
 static bool
-loadImport(IOSTREAM *fd, int skip)
+loadImport(IOSTREAM *fd, int skip ARG_LD)
 { Procedure proc = (Procedure) loadXR(fd);
   functor_t functor = proc->definition->functor->functor;
   Procedure old;
@@ -1043,7 +1010,7 @@ qlfLoadSource(IOSTREAM *fd)
 
 
 static bool
-loadPart(IOSTREAM *fd, Module *module, int skip)
+loadPart(IOSTREAM *fd, Module *module, int skip ARG_LD)
 { Module om     = LD->modules.source;
   SourceFile of = currentSource;
   int stchk     = debugstatus.styleCheck;
@@ -1140,14 +1107,14 @@ loadPart(IOSTREAM *fd, Module *module, int skip)
 	succeed;
       }
       default:
-	loadStatement(c, fd, skip);
+	loadStatement(c, fd, skip PASS_LD);
     }
   }
 }
 
 
 static bool
-loadInModule(IOSTREAM *fd, int skip)
+loadInModule(IOSTREAM *fd, int skip ARG_LD)
 { word mname = loadXR(fd);
   Module om = LD->modules.source;
 
@@ -1162,7 +1129,7 @@ loadInModule(IOSTREAM *fd, int skip)
 	succeed;
       }
       default:
-	loadStatement(c, fd, skip);
+	loadStatement(c, fd, skip PASS_LD);
     }
   }
 }
@@ -1303,7 +1270,7 @@ savedXR(void *xr, IOSTREAM *fd)
 
 
 static void
-saveXR(word xr, IOSTREAM *fd)
+saveXR__LD(word xr, IOSTREAM *fd ARG_LD)
 { if ( isTaggedInt(xr) )		/* TBD: switch */
   { Sputc(XR_INT, fd);
     putNum(valInt(xr), fd);
@@ -1336,10 +1303,11 @@ saveXR(word xr, IOSTREAM *fd)
 
   assert(0);
 }
+#define saveXR(xr, s) saveXR__LD(xr, s PASS_LD)
 
 
 static void
-saveXRModule(Module m, IOSTREAM *fd)
+saveXRModule(Module m, IOSTREAM *fd ARG_LD)
 { if ( savedXR((void *)m, fd) )
     return;
 
@@ -1350,7 +1318,7 @@ saveXRModule(Module m, IOSTREAM *fd)
 
 
 static void
-saveXRFunctor(functor_t f, IOSTREAM *fd)
+saveXRFunctor(functor_t f, IOSTREAM *fd ARG_LD)
 { FunctorDef fdef;
 
   if ( savedXR((void *)f, fd) )
@@ -1367,19 +1335,19 @@ saveXRFunctor(functor_t f, IOSTREAM *fd)
 
 
 static void
-saveXRProc(Procedure p, IOSTREAM *fd)
+saveXRProc(Procedure p, IOSTREAM *fd ARG_LD)
 { if ( savedXR(p, fd) )
     return;
 
   DEBUG(3, Sdprintf("XR(%d) = proc %s\n", savedXRTableId, procedureName(p)));
   Sputc(XR_PRED, fd);
-  saveXRFunctor(p->definition->functor->functor, fd);
-  saveXRModule(p->definition->module, fd);
+  saveXRFunctor(p->definition->functor->functor, fd PASS_LD);
+  saveXRModule(p->definition->module, fd PASS_LD);
 }
 
 
 static void
-saveXRSourceFile(SourceFile f, IOSTREAM *fd)
+saveXRSourceFile(SourceFile f, IOSTREAM *fd ARG_LD)
 { if ( savedXR(f, fd) )
     return;
 
@@ -1399,7 +1367,7 @@ saveXRSourceFile(SourceFile f, IOSTREAM *fd)
 
 
 static void
-do_save_qlf_term(Word t, IOSTREAM *fd)
+do_save_qlf_term(Word t, IOSTREAM *fd ARG_LD)
 { deRef(t);
 
   if ( isTerm(*t) )
@@ -1415,9 +1383,9 @@ do_save_qlf_term(Word t, IOSTREAM *fd)
       int n, arity = arityFunctor(f);
 
       Sputc('t', fd);
-      saveXRFunctor(f, fd);
+      saveXRFunctor(f, fd PASS_LD);
       for(n=0; n < arity; n++, q++)
-	do_save_qlf_term(q, fd);
+	do_save_qlf_term(q, fd PASS_LD);
     }
   } else
   { assert(isAtomic(*t));
@@ -1427,7 +1395,7 @@ do_save_qlf_term(Word t, IOSTREAM *fd)
 
 
 static void
-saveQlfTerm(term_t t, IOSTREAM *fd)
+saveQlfTerm(term_t t, IOSTREAM *fd ARG_LD)
 { int nvars;
   fid_t cid;
 
@@ -1439,7 +1407,7 @@ saveQlfTerm(term_t t, IOSTREAM *fd)
 	Sdprintf(" from %d ... ", Stell(fd)));
   nvars = numberVars(t, FUNCTOR_var1, 0 PASS_LD);
   putNum(nvars, fd);
-  do_save_qlf_term(valTermRef(t), fd);	/* TBD */
+  do_save_qlf_term(valTermRef(t), fd PASS_LD);	/* TBD */
   DEBUG(3, Sdprintf("to %d\n", Stell(fd)));
 
   PL_discard_foreign_frame(cid);
@@ -1460,12 +1428,13 @@ interaction.
 
 static void
 saveWicClause(Clause clause, IOSTREAM *fd)
-{ Code bp, ep;
+{ GET_LD
+  Code bp, ep;
 
   Sputc('C', fd);
   putNum(clause->code_size, fd);
   putNum(clause->line_no, fd);
-  saveXRSourceFile(indexToSourceFile(clause->source_no), fd);
+  saveXRSourceFile(indexToSourceFile(clause->source_no), fd PASS_LD);
   putNum(clause->prolog_vars, fd);
   putNum(clause->variables, fd);
   putNum(true(clause, UNIT_CLAUSE) ? 0 : 1, fd);
@@ -1482,19 +1451,19 @@ saveWicClause(Clause clause, IOSTREAM *fd)
     { case CA1_PROC:
       { Procedure p = (Procedure) *bp++;
 	n++;
-	saveXRProc(p, fd);
+	saveXRProc(p, fd PASS_LD);
 	break;
       }
       case CA1_MODULE:
       { Module m = (Module) *bp++;
 	n++;
-	saveXRModule(m, fd);
+	saveXRModule(m, fd PASS_LD);
 	break;
       }
       case CA1_FUNC:
       { functor_t f = (functor_t) *bp++;
 	n++;
-	saveXRFunctor(f, fd);
+	saveXRFunctor(f, fd PASS_LD);
 	break;
       }
       case CA1_DATA:
@@ -1573,7 +1542,7 @@ predicateFlags(Definition def, atom_t sclass)
 
 
 static void
-openProcedureWic(Procedure proc, IOSTREAM *fd, atom_t sclass)
+openProcedureWic(Procedure proc, IOSTREAM *fd, atom_t sclass ARG_LD)
 { if ( proc != currentProc)
   { Definition def = proc->definition;
     int mode = predicateFlags(def, sclass);
@@ -1588,7 +1557,7 @@ openProcedureWic(Procedure proc, IOSTREAM *fd, atom_t sclass)
     { Sputc('P', fd);
     }
 
-    saveXRFunctor(def->functor->functor, fd);
+    saveXRFunctor(def->functor->functor, fd PASS_LD);
     putNum(mode, fd);
   }
 }
@@ -1634,7 +1603,7 @@ writeWicTrailer(IOSTREAM *fd)
 }
 
 static bool
-addClauseWic(term_t term, atom_t file)
+addClauseWic(term_t term, atom_t file ARG_LD)
 { Clause clause;
   sourceloc loc;
 
@@ -1649,7 +1618,7 @@ addClauseWic(term_t term, atom_t file)
 	     wamListClause(clause));
 #endif
 
-    openProcedureWic(clause->procedure, s, ATOM_development);
+    openProcedureWic(clause->procedure, s, ATOM_development PASS_LD);
     saveWicClause(clause, s);
 
     succeed;
@@ -1660,22 +1629,22 @@ addClauseWic(term_t term, atom_t file)
 }
 
 static bool
-addDirectiveWic(term_t term, IOSTREAM *fd)
+addDirectiveWic(term_t term, IOSTREAM *fd ARG_LD)
 { closeProcedureWic(fd);
   Sputc('D', fd);
   putNum(source_line_no, fd);
-  saveQlfTerm(term, fd);
+  saveQlfTerm(term, fd PASS_LD);
 
   succeed;
 }  
 
 
 static bool
-importWic(Procedure proc, IOSTREAM *fd)
+importWic(Procedure proc, IOSTREAM *fd ARG_LD)
 { closeProcedureWic(fd);
 
   Sputc('I', fd);
-  saveXRProc(proc, fd);
+  saveXRProc(proc, fd PASS_LD);
 
   succeed;
 }
@@ -1701,7 +1670,7 @@ initSourceMarks()
 
 
 static void
-sourceMark(IOSTREAM *s)
+sourceMark(IOSTREAM *s ARG_LD)
 { SourceMark pm = allocHeap(sizeof(struct source_mark));
 
   pm->file_index = Stell(s);
@@ -1716,7 +1685,7 @@ sourceMark(IOSTREAM *s)
 
 
 static int
-writeSourceMarks(IOSTREAM *s)
+writeSourceMarks(IOSTREAM *s ARG_LD)
 { unsigned int n = 0;
   SourceMark pn, pm = source_mark_head;
 
@@ -1739,7 +1708,7 @@ writeSourceMarks(IOSTREAM *s)
 
 
 static int
-qlfSourceInfo(IOSTREAM *s, long offset, term_t list)
+qlfSourceInfo(IOSTREAM *s, long offset, term_t list ARG_LD)
 { char *str;
   term_t head = PL_new_term_ref();
 
@@ -1756,7 +1725,7 @@ qlfSourceInfo(IOSTREAM *s, long offset, term_t list)
 static word
 qlfInfo(const char *file,
 	term_t cversion, term_t version,
-	term_t files0)
+	term_t files0 ARG_LD)
 { IOSTREAM *s = NULL;
   int lversion;
   int nqlf, i;
@@ -1796,7 +1765,7 @@ qlfInfo(const char *file,
   DEBUG(1, Sdprintf("\n"));
 
   for(i=0; i<nqlf; i++)
-  { if ( !qlfSourceInfo(s, qlfstart[i], files) )
+  { if ( !qlfSourceInfo(s, qlfstart[i], files PASS_LD) )
     { rval = FALSE;
       goto out;
     }
@@ -1819,12 +1788,13 @@ word
 pl_qlf_info(term_t file,
 	    term_t cversion, term_t version,
 	    term_t files)
-{ char *name;
+{ GET_LD
+  char *name;
 
   if ( !PL_get_file_name(file, &name, 0) )
     fail;
 
-   return qlfInfo(name, cversion, version, files);
+   return qlfInfo(name, cversion, version, files PASS_LD);
 }
 
 
@@ -1864,11 +1834,11 @@ qlfOpen(atom_t name)
 
 
 static bool
-qlfClose()
+qlfClose(ARG1_LD)
 { IOSTREAM *fd = wicFd;
 
   closeProcedureWic(fd);
-  writeSourceMarks(fd);
+  writeSourceMarks(fd PASS_LD);
   Sclose(fd);
   wicFd = NULL;
   mkWicFile = NULL;
@@ -1897,7 +1867,7 @@ qlfVersion(IOSTREAM *s)
 
 
 static bool
-qlfLoad(char *file, Module *module)
+qlfLoad(char *file, Module *module ARG_LD)
 { IOSTREAM *fd;
   bool rval;
   int lversion;
@@ -1946,9 +1916,9 @@ qlfLoad(char *file, Module *module)
   if ( Qgetc(fd) != 'Q' )
     return qlfLoadError(fd, "qlfLoad()");
 
-  pushXrIdTable();
-  rval = loadPart(fd, module, FALSE);
-  popXrIdTable();
+  pushXrIdTable(PASS_LD1);
+  rval = loadPart(fd, module, FALSE PASS_LD);
+  popXrIdTable(PASS_LD1);
 
   Sclose(fd);
 
@@ -1957,8 +1927,8 @@ qlfLoad(char *file, Module *module)
 
 
 static bool
-qlfSaveSource(SourceFile f, IOSTREAM *fd)
-{ sourceMark(fd);
+qlfSaveSource(SourceFile f, IOSTREAM *fd ARG_LD)
+{ sourceMark(fd PASS_LD);
   Sputc('F', fd);
   putString(stringAtom(f->name), fd);
   putNum(f->time, fd);
@@ -1971,13 +1941,13 @@ qlfSaveSource(SourceFile f, IOSTREAM *fd)
 
 
 static bool
-qlfStartModule(Module m, IOSTREAM *fd)
+qlfStartModule(Module m, IOSTREAM *fd ARG_LD)
 { closeProcedureWic(fd);
   Sputc('Q', fd);
   Sputc('M', fd);
   saveXR(m->name, fd);
   if ( m->file )
-    qlfSaveSource(m->file, fd);
+    qlfSaveSource(m->file, fd PASS_LD);
   else
     Sputc('-', fd);
 
@@ -1989,7 +1959,7 @@ qlfStartModule(Module m, IOSTREAM *fd)
 					 stringAtom(nameFunctor(f)),
 					 arityFunctor(f)));
 		       Sputc('E', fd);
-		       saveXRFunctor(f, fd);
+		       saveXRFunctor(f, fd PASS_LD);
 		     })
 
   Sputc('X', fd);
@@ -1999,7 +1969,7 @@ qlfStartModule(Module m, IOSTREAM *fd)
 
 
 static bool
-qlfStartSubModule(Module m, IOSTREAM *fd)
+qlfStartSubModule(Module m, IOSTREAM *fd ARG_LD)
 { closeProcedureWic(fd);
   Sputc('M', fd);
   saveXR(m->name, fd);
@@ -2009,10 +1979,10 @@ qlfStartSubModule(Module m, IOSTREAM *fd)
 
 
 static bool
-qlfStartFile(SourceFile f, IOSTREAM *fd)
+qlfStartFile(SourceFile f, IOSTREAM *fd ARG_LD)
 { closeProcedureWic(fd);
   Sputc('Q', fd);
-  qlfSaveSource(f, fd);
+  qlfSaveSource(f, fd PASS_LD);
 
   succeed;
 }
@@ -2030,12 +2000,13 @@ qlfEndPart(IOSTREAM  *fd)
 word
 pl_qlf_start_module(term_t name)
 { if ( wicFd )
-  { Module m;
+  { GET_LD
+    Module m;
 
     if ( !PL_get_module(name, &m) )
       return warning("qlf_start_module/1: argument must be an atom");
   
-    return qlfStartModule(m, wicFd);
+    return qlfStartModule(m, wicFd PASS_LD);
   }
 
   succeed;
@@ -2045,12 +2016,13 @@ pl_qlf_start_module(term_t name)
 word
 pl_qlf_start_sub_module(term_t name)
 { if ( wicFd )
-  { Module m;
+  { GET_LD
+    Module m;
 
     if ( !PL_get_module(name, &m) )
       return warning("qlf_start_sub_module/1: argument must be an atom");
   
-    return qlfStartSubModule(m, wicFd);
+    return qlfStartSubModule(m, wicFd PASS_LD);
   }
 
   succeed;
@@ -2060,12 +2032,13 @@ pl_qlf_start_sub_module(term_t name)
 word
 pl_qlf_start_file(term_t name)
 { if ( wicFd )
-  { atom_t a;
+  { GET_LD
+    atom_t a;
 
     if ( !PL_get_atom(name, &a) )
       return warning("qlf_start_file/1: argument must be an atom");
   
-    return qlfStartFile(lookupSourceFile(a), wicFd);
+    return qlfStartFile(lookupSourceFile(a), wicFd PASS_LD);
   }
 
   succeed;
@@ -2084,7 +2057,8 @@ pl_qlf_end_part()
 
 word
 pl_qlf_open(term_t file)
-{ atom_t a;
+{ GET_LD
+  atom_t a;
 
   if ( PL_get_atom(file, &a) )
     return qlfOpen(a);
@@ -2095,13 +2069,15 @@ pl_qlf_open(term_t file)
 
 word
 pl_qlf_close()
-{ return qlfClose();
+{ GET_LD
+  return qlfClose(PASS_LD1);
 }
 
 
 word
 pl_qlf_load(term_t file, term_t module)
-{ Module m, oldsrc = LD->modules.source;
+{ GET_LD
+  Module m, oldsrc = LD->modules.source;
   char *fn;
   bool rval;
   term_t name = PL_new_term_ref();
@@ -2113,7 +2089,7 @@ pl_qlf_load(term_t file, term_t module)
     fail;
 
   LD->modules.source = m;
-  rval = qlfLoad(fn, &m);
+  rval = qlfLoad(fn, &m PASS_LD);
   LD->modules.source = oldsrc;
 
   if ( !rval )
@@ -2162,11 +2138,12 @@ pl_close_wic()
 word
 pl_add_directive_wic(term_t term)
 { if ( wicFd )
-  { if ( !(PL_is_compound(term) || PL_is_atom(term)) )
+  { GET_LD
+    if ( !(PL_is_compound(term) || PL_is_atom(term)) )
       return PL_error("$add_directive_wic", 1, NULL, ERR_TYPE,
 		      ATOM_callable, term);
 
-    return addDirectiveWic(term, wicFd);
+    return addDirectiveWic(term, wicFd PASS_LD);
   }
 
   succeed;
@@ -2176,14 +2153,15 @@ pl_add_directive_wic(term_t term)
 word
 pl_import_wic(term_t module, term_t head)
 { if ( wicFd )
-  { Module m;
+  { GET_LD
+    Module m;
     functor_t f;
 
     if ( !PL_get_module(module, &m) ||
 	 !PL_get_functor(head, &f) )
       return warning("$import_wic/3: instantiation fault");
 
-    return importWic(lookupProcedure(f, m), wicFd);
+    return importWic(lookupProcedure(f, m), wicFd PASS_LD);
   }
 
   succeed;
@@ -2193,7 +2171,8 @@ pl_import_wic(term_t module, term_t head)
 word
 pl_qlf_assert_clause(term_t ref, term_t saveclass)
 { if ( wicFd )
-  { Clause clause;
+  { GET_LD
+    Clause clause;
     IOSTREAM *s = wicFd;
     atom_t sclass;
 
@@ -2203,7 +2182,7 @@ pl_qlf_assert_clause(term_t ref, term_t saveclass)
       return PL_error("qlf_assert_clause", 2, NULL,
 		      ERR_DOMAIN, ATOM_save_class, 2);
 
-    openProcedureWic(clause->procedure, s, sclass);
+    openProcedureWic(clause->procedure, s, sclass PASS_LD);
     saveWicClause(clause, s);
   }
 
@@ -2234,7 +2213,8 @@ tag, add one from the current source-module.
 
 static int
 directiveClause(term_t directive, term_t clause, const char *functor)
-{ atom_t name;
+{ GET_LD
+  atom_t name;
   int arity;
   term_t d0 = PL_new_term_ref();
   functor_t f;
@@ -2263,7 +2243,8 @@ directiveClause(term_t directive, term_t clause, const char *functor)
 
 static bool
 compileFile(char *file)
-{ char tmp[MAXPATHLEN];
+{ GET_LD
+  char tmp[MAXPATHLEN];
   char *path;
   term_t f = PL_new_term_ref();
   atom_t nf;
@@ -2280,7 +2261,7 @@ compileFile(char *file)
     fail;
   DEBUG(2, Sdprintf("pl_start_consult()\n"));
   pl_start_consult(f);
-  qlfStartFile(lookupSourceFile(nf), wicFd);
+  qlfStartFile(lookupSourceFile(nf), wicFd PASS_LD);
   
   for(;;)
   { fid_t	 cid = PL_open_foreign_frame();
@@ -2306,7 +2287,7 @@ compileFile(char *file)
 	    Sdprintf(":- ");
 	    PL_write_term(Serror, directive, 1200, 0);
 	    Sdprintf(".\n") );
-      addDirectiveWic(directive, wicFd);
+      addDirectiveWic(directive, wicFd PASS_LD);
       if ( !callProlog(MODULE_user, directive, PL_Q_NODEBUG, NULL) )
 	Sdprintf("%s:%d: directive failed\n",
 		 PL_atom_chars(source_file_name),
@@ -2318,7 +2299,7 @@ compileFile(char *file)
 	    Sdprintf(".\n"));
       callProlog(MODULE_user, directive, PL_Q_NODEBUG, NULL);
     } else
-      addClauseWic(t, nf);
+      addClauseWic(t, nf PASS_LD);
 
     PL_discard_foreign_frame(cid);
   }

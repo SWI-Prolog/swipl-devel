@@ -155,7 +155,7 @@ freeHeap__LD(void *mem, size_t n ARG_LD)
   } else
   { LOCK();
     freeBigHeap(mem);
-    GD->statistics.heap += n;
+    GD->statistics.heap -= n;
     UNLOCK();
   }
 }
@@ -232,13 +232,12 @@ allocate(AllocPool pool, size_t n)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-allocFromPool() allocates a rounded amount of bytes upto ALLOCFAST
+allocFromPool() allocates m units of ALIGN_SIZE
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void *
-allocFromPool(AllocPool pool, size_t n)
+allocFromPool(AllocPool pool, size_t m)
 { Chunk f;
-  size_t m = n / (int) ALIGN_SIZE;
   
   if ( (f = pool->free_chains[m]) )
   { pool->free_chains[m] = f->next;
@@ -246,6 +245,7 @@ allocFromPool(AllocPool pool, size_t n)
 #if ALLOC_DEBUG
     { int i;
       char *s = (char *) f;
+      int n * ALIGN_SIZE;
 
       for(i=sizeof(struct chunk); i<(int)n; i++)
 	assert(s[i] == ALLOC_FREE_MAGIC);
@@ -253,7 +253,7 @@ allocFromPool(AllocPool pool, size_t n)
       memset(f, ALLOC_MAGIC, n);
     }
 #endif
-    pool->allocated += n;
+    pool->allocated += m*ALIGN_SIZE;
 
     return f;
   }
@@ -271,24 +271,23 @@ allocHeap__LD(size_t n ARG_LD)
   n = ALLOCROUND(n);
 
   if ( n <= ALLOCFAST )
-  {
+  { size_t m = n / (int) ALIGN_SIZE;
 #ifdef O_PLMT
-    if ( !(mem = allocFromPool(&LD->alloc_pool, n)) )
-    { size_t m = n / (int) ALIGN_SIZE;
-
-      if ( GD->alloc_pool.free_chains[m] )
+    if ( !(mem = allocFromPool(&LD->alloc_pool, m)) )
+    { if ( GD->alloc_pool.free_chains[m] )
       { LOCK();
 	LD->alloc_pool.free_chains[m] = GD->alloc_pool.free_chains[m];
+	GD->alloc_pool.free_chains[m] = NULL;
 	UNLOCK();
 
-	if ( !(mem = allocFromPool(&LD->alloc_pool, n)) )
+	if ( !(mem = allocFromPool(&LD->alloc_pool, m)) )
 	  mem = allocate(&LD->alloc_pool, n);
       } else
 	mem = allocate(&LD->alloc_pool, n);
     }
 #else /*O_PLMT*/
     LOCK();
-    if ( !(mem = allocFromPool(&GD->alloc_pool, n)) )
+    if ( !(mem = allocFromPool(&GD->alloc_pool, m)) )
       mem = allocate(&GD->alloc_pool, n);
     UNLOCK();
 #endif /*O_PLMT*/

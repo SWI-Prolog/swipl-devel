@@ -752,8 +752,7 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
     addClauseToIndex(def, clause, where PASS_LD);
   } else
   { if ( def->number_of_clauses == 25 &&
-	 true(def, AUTOINDEX) &&
-	 !def->hash_info )
+	 true(def, AUTOINDEX) )
       def->indexPattern |= NEED_REINDEX;
   }
   UNLOCK();
