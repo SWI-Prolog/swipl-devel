@@ -1,6 +1,16 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 4.0.4
+=============
+
+  * FIXED: Problem in GUI tracer tracing predicates loaded from ?- [user].
+
+  * MODIFIED: The file-reading predicates (consult, use_module, load_files,
+    etc.) no longer change current input to the file loaded.  This implies
+    that read/1 and friends read from the current input before the load
+    predicate was started rather then the file we are loading from.
+
   * FIXED: Setting break-points on facts, or in general on the last
     (I_EXIT or I_EXITFACT) instruction of a clause.
 

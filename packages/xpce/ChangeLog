@@ -1,3 +1,14 @@
+VERSION 5.1.4
+=============
+
+* FIXED: Clip-handling on Windows, notably using class win_printer.
+
+* FIXED: Line-texture (dashes, etc) in Windows NT/2000.  Slightly enhanced
+  and documented shortcommings in Windows 95/98/ME.
+
+* FIXED: Problem in finder (opening files) due to the modified type
+  checking in frame->return.
+
 * PORT: Fixed handling of --with-jpeg=<dir> and --with-xpm=<dir>. 
   Thanks to Brad Knotwell.
 

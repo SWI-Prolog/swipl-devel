@@ -56,6 +56,7 @@ clause_info(ClauseRef, File, TermPos, NameOffset) :-
 	;   DecompiledClause = (Head :- Body)
 	),
 	clause_property(ClauseRef, file(File)),
+	File \== user,			% loaded using ?- [user].
 	clause_property(ClauseRef, line_count(LineNo)),
 	(   current_module(Module, File)
 	->  true
