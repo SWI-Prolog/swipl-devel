@@ -3131,6 +3131,7 @@ detach_thread(void *closure)
 }
 
 #include "dispatch.c"
+extern install_t install_pcecall();
 
 foreign_t
 pl_pce_init(Term a)
@@ -3181,6 +3182,7 @@ pl_pce_init(Term a)
     PROLOG_INSTALL_REDRAW_FUNCTION(do_redraw);
 
     pce_install_dispatch();
+    install_pcecall();
   }
 
   return TRUE;

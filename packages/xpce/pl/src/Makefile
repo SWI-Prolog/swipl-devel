@@ -36,9 +36,9 @@ CONFIG=		../../$(builddir)/config.h
 CPLIFLAGS=	-I$(PLINCL) -I../../$(builddir) -I../../src
 PL=     	pl
 PLLD=		plld -pl $(PL)
-ITFOBJ= 	$(addprefix $(OBJDIR)/, interface.o link.o)
+ITFOBJ= 	$(addprefix $(OBJDIR)/, interface.o link.o pcecall.o)
 ITFSRC=		interface.c table.c dispatch.c
-SOITF=		$(OBJDIR)/so-interface.o
+SOITF=		$(addprefix $(OBJDIR)/, so-interface.o pcecall.o)
 OBJ=		$(ITFOBJ)
 XPCE=		$(BINDIR)/xpce
 QLF=    	$(BINDIR)/xpce.qlf
@@ -79,6 +79,8 @@ $(OBJDIR)/interface.o:	$(ITFSRC)
 		$(CC) -c $(CFLAGS) $< -o $@
 $(OBJDIR)/link.o:	link.c
 		$(CC) -c $(CFLAGS) $< -o $@
+$(OBJDIR)/pcecall.o:	pcecall.c
+		$(CC) -c $(CFLAGS) $< -o $@
 
 ################################################################
 # Creating statically linked xpce and its xpce.qlf bootfile
@@ -98,7 +100,7 @@ $(QLF):		$(XPCE)
 # Creating pl2xpce.so
 ################################################################
 
-$(SOITF):	$(ITFSRC)
+$(OBJDIR)/so-interface.o: interface.c
 		$(CC) -DO_SHAREDLIBRARY $(CFLAGS) -c $< -o $@
 		
 $(OBJDIR)/Initialize.o:	
