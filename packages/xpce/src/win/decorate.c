@@ -307,9 +307,13 @@ labelWindowDecorator(WindowDecorator dw, CharArray fmt, int argc, Any *argv)
     assign(dw, label_text, NIL);
   } else
   { char buf[LINESIZE];
+    int sz = sizeof(buf);
     FontObj font = getClassVariableValueObject(dw, NAME_labelFont);
 
-    TRY(swritefv(buf, fmt, argc, argv));
+    swritefv(buf, &sz, fmt, argc, argv);
+    if ( sz > sizeof(buf)-1 )
+      return errorPce(fmt, NAME_formatBufferOverFlow, toInt(sizeof(buf)));
+
     if ( isNil(dw->label_text) )
     { assign(dw, label_text, newObject(ClassText, DEFAULT, DEFAULT, font, EAV));
       displayDevice(dw, dw->label_text, DEFAULT);

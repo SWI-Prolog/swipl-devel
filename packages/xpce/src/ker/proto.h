@@ -1,7 +1,7 @@
 
 /* ../src/ker/alloc.c */
 Any		alloc(register int n);
-void		unalloc(register int n, Any p);
+void		unalloc(int n, Any p);
 void		initAlloc(void);
 void		allocRange(void *low, int size);
 void		checkFreeChains(void);
@@ -139,7 +139,7 @@ void		checkSummaryCharp(Name classname, Name name, char *s);
 Name		characterName(Any chr);
 status		writef_arguments(char *fm, va_list args, int *argc, Any *argv);
 void		writef(char *fm, ...);
-status		swritefv(char *buf, CharArray format, int argc, const Any argv []);
+char *		swritefv(char *buf, int *szp, CharArray format, int argc, const Any argv []);
 status		str_writefv(String s, CharArray format, int argc, Any *argv);
 Int		scanstr(char *str, char *fmt, Any *r);
 status		sysPce(char *fm, ...);
@@ -156,6 +156,8 @@ void		at_pce_exit(atexit_function f, int flags);
 void		run_pce_exit_hooks(int rval);
 
 /* ../src/ker/passing.c */
+void		pceMTLock(int lock);
+void		pceMTUnlock(int lock);
 status		vm_send(Any receiver, Name selector, Class class, int argc, const Any argv []);
 Any		vm_get(Any receiver, Name selector, Class class, int argc, const Any argv []);
 status		sendSendMethod(SendMethod sm, Any receiver, int argc, const Any argv []);

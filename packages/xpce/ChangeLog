@@ -1,6 +1,13 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Text format (string->initialise, <many classes>->format) to
+  check for buffer overflows and report gracefully rather than
+  uncontrolled after buffer overrun.  Removed the limit altogether
+  on all methods where long output is considered mor or less `normal',
+  such as string->initialise, string->format, stream->format,
+  editor->format, etc.
+
 * ADDED: `prolog_term->equal' to test for Prolog equality on terms.
 
 * ADDED: library(pce_toc): allow for the use of arbitrary graphicals as

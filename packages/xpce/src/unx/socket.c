@@ -322,6 +322,7 @@ cloneSocket(Socket s, Socket clone)
 static StringObj
 getPrintNameSocket(Socket s)
 { char buf[256];
+  int sz = sizeof(buf);
   Any av[3];
   Name fmt;
   int an;
@@ -341,7 +342,7 @@ getPrintNameSocket(Socket s)
     fmt = CtoName("%s(%s)");
   }
 
-  swritefv(buf, (CharArray) fmt, an, av);
+  swritefv(buf, &sz, (CharArray) fmt, an, av);
 
   answer(CtoString(buf));
 }

@@ -55,9 +55,7 @@ getConvertError(Class class, Name id)
 
 static status
 displayError(Error e, int argc, Any *argv)
-{ char buf[FORMATSIZE];
-
-  if ( e->feedback == NAME_report )
+{ if ( e->feedback == NAME_report )
   { ArgVector(av, argc+2);
     int i;
 
@@ -68,8 +66,9 @@ displayError(Error e, int argc, Any *argv)
 
     sendv(argv[0], NAME_report, argc+2, av);
   } else
-  { if ( !swritefv(buf, (CharArray) e->format, argc, argv) )
-      strcpy(buf, "OOPS: conversion of format failed");
+  { char buf[FORMATSIZE];
+
+    swritefv(buf, NULL, (CharArray) e->format, argc, argv);
 	
     if ( e->kind == NAME_inform || e->kind == NAME_status )
       Cprintf("[PCE: %s", buf);
@@ -100,7 +99,7 @@ static StringObj
 getFormatError(Error e, int argc, const Any argv[])
 { char buf[FORMATSIZE];
 
-  TRY(swritefv(buf, (CharArray)e->format, argc, argv));
+  swritefv(buf, NULL, (CharArray)e->format, argc, argv);
 
   answer(CtoString(buf));
 }
@@ -656,8 +655,8 @@ static const error_def errors[] =
     "%O: No member %O" },
   { NAME_notSupportedForChar16, 0,
     "%O: operation not supported on 16-bit strings" },
-  { NAME_formatBufferOverFlow,  ET_FATAL,
-    "%O: format buffer overflow (size = %d)" },
+  { NAME_formatBufferOverFlow,  0,
+    "%O: format buffer overflow (buffer size = %d)" },
   { NAME_runtimeVersion,	0,
     "%N: operation not supported in runtime system"
   },

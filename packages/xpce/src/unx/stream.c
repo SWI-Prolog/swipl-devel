@@ -359,10 +359,21 @@ appendLineStream(Stream s, CharArray data)
 static status
 formatStream(Stream s, CharArray fmt, int argc, Any *argv)
 { char buf[FORMATSIZE];
+  int sz = sizeof(buf);
 
-  TRY(swritefv(buf, fmt, argc, argv));
+  swritefv(buf, &sz, fmt, argc, argv);
+  if ( sz > FORMATSIZE-1 )
+  { int len = ++sz;			/* 1 extra for EOS */
+    char *abuf = alloc(len);
+    status rval;
 
-  return ws_write_stream_data(s, buf, strlen(buf));
+    swritefv(abuf, &sz, fmt, argc, argv);
+    rval = ws_write_stream_data(s, abuf, sz);
+    unalloc(len, abuf);
+
+    return rval;
+  } else
+    return ws_write_stream_data(s, buf, sz);
 }
 
 

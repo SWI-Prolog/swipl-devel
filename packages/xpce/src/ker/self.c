@@ -127,7 +127,7 @@ status
 formatPcev(Pce pce, CharArray fmt, int argc, Any *argv)
 { char buf[FORMATSIZE];
 
-  TRY(swritefv(buf, fmt, argc, argv));
+  swritefv(buf, NULL, fmt, argc, argv);
   Cprintf("%s", buf);
   
   succeed;
@@ -883,7 +883,7 @@ informPce(Pce pce, CharArray fmt, int argc, Any *argv)
   if ( d != NULL && getOpenDisplay(d) == ON )
     return informDisplay(d, fmt, argc, argv);
 
-  TRY(swritefv(buf, fmt, argc, argv));
+  swritefv(buf, NULL, fmt, argc, argv);
   Cprintf("%s\n", buf);
 
   succeed;
@@ -899,7 +899,7 @@ confirmPce(Pce pce, CharArray fmt, int argc, Any *argv)
   if ( d != NULL && getOpenDisplay(d) == ON )
     return confirmDisplay(d, fmt, argc, argv);
 
-  TRY(swritefv(buf, fmt, argc, argv));
+  swritefv(buf, NULL, fmt, argc, argv);
   strcat(buf, " (y/n) ? ");
   
   for(try = 0; try < 3; try++)

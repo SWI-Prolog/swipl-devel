@@ -1241,7 +1241,7 @@ reportEditor(Editor e, Name kind, CharArray fm, int argc, Any *argv)
     if ( isDefault(fm) )
       fm = (CharArray) (kind == NAME_done ? NAME_done : CtoName(""));
 
-    swritefv(msg, fm, argc, argv);
+    swritefv(msg, NULL, fm, argc, argv);
     str = CtoTempString(msg);
 
     forwardReceiverCode(e->error_message, Receiver(e),

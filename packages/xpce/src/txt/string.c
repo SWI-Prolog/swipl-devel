@@ -15,7 +15,8 @@
 
 static status	appendString(StringObj, CharArray);
 static status	setString(StringObj str, String s);
-static status	CsetString(StringObj str, char *txt);
+static status	CsetString(StringObj str, const char *txt);
+static status	CsetStringL(StringObj str, const char *txt, int len);
 
 StringObj
 StringToString(String s)
@@ -63,6 +64,13 @@ CtoTempString(char *s)
 static StringObj
 getModifyString(StringObj str, CharArray value)
 { answer(answerObject(classOfObject(str), name_procent_s, value, EAV));
+}
+
+
+static void
+prepareWriteString(StringObj s)
+{ if ( s->data.readonly )
+    setString(s, &s->data);
 }
 
 
@@ -167,11 +175,11 @@ loadString(StringObj s, IOSTREAM *fd, ClassDef def)
 
 static status
 formatString(StringObj s, CharArray fmt, int argc, Any *argv)
-{ char buf[FORMATSIZE];
+{ prepareWriteString(s);
 
-  TRY(swritefv(buf, fmt, argc, argv));
-
-  return CsetString(s, buf);
+  str_unalloc(&s->data);
+  str_writefv(&s->data, fmt, argc, argv);
+  return setString(s, &s->data);
 }
 
 
@@ -369,13 +377,6 @@ untabifyString(StringObj str, Any tabs)
 }
 
 
-static void
-prepareWriteString(StringObj s)
-{ if ( s->data.readonly )
-    setString(s, &s->data);
-}
-
-
 status
 upcaseString(StringObj s)
 { prepareWriteString(s);
@@ -535,9 +536,8 @@ setString(StringObj str, String s)
 
 
 static status
-CsetString(StringObj str, char *txt)
-{ int l = strlen(txt);
-  string s;
+CsetStringL(StringObj str, const char *txt, int l)
+{ string s;
 
   s.size = l;
   s.encoding = ENC_ASCII;
@@ -546,6 +546,12 @@ CsetString(StringObj str, char *txt)
   s.s_text8 = (char8*) txt;
 
   return setString(str, &s);
+}
+
+
+static status
+CsetString(StringObj str, const char *txt)
+{ return CsetStringL(str, txt, strlen(txt));
 }
 
 

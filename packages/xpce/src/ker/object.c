@@ -2511,7 +2511,7 @@ reportObject(Any obj, Name kind, CharArray fmt, int argc, Any *argv)
 
     if ( isDefault(fmt) )
       fmt = (CharArray) (kind == NAME_done ? NAME_done : NAME_);
-    TRY(swritefv(buf, fmt, argc, argv));
+    swritefv(buf, NULL, fmt, argc, argv);
     av[0] = kind;
     av[1] = CtoTempString(buf);
     formatPcev(PCE,

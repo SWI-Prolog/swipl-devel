@@ -319,14 +319,27 @@ writef(char *fm, ...)
 	  else \
 	    sprintf(q, fmtbuf, arg, _s); \
 	}
+#define Put(c) if ( --left > 0 ) *q++ = (c)
+#define PutString(s) do { char *_s=(s); \
+			  while(*_s) \
+			  { Put(*_s); _s++; \
+			  } \
+			} while(0)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Comment to avoid mkproto not generating the prototype for this function
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-status
-swritefv(char *buf, CharArray format, int argc, const Any argv[])
+char *
+swritefv(char *buf, int *szp, CharArray format, int argc, const Any argv[])
 { char *fmt, *s, *q;
+  int left, size;
+
+  if ( szp )
+    left = *szp;
+  else
+    left = FORMATSIZE;
+  size = left;
 
   fmt = strName(format);
 
@@ -334,20 +347,20 @@ swritefv(char *buf, CharArray format, int argc, const Any argv[])
   { switch(*s)
     { case '\\':	
 	switch(*++s)
-	{ case 'r':	*q++ = '\r';	break;
-	  case 'n':	*q++ = '\n';	break;
-	  case 'b':	*q++ = '\b';	break;
-	  case 'f':	*q++ = '\f';	break;
-	  case 't':	*q++ = '\t';	break;
-	  case EOS:	*q++ = '\\';	continue;
-	  default:	*q++ = *s;	break;
+	{ case 'r':	Put('\r');	break;
+	  case 'n':	Put('\n');	break;
+	  case 'b':	Put('\b');	break;
+	  case 'f':	Put('\f');	break;
+	  case 't':	Put('\t');	break;
+	  case EOS:	Put('\\');	continue;
+	  default:	Put(*s);	break;
 	}
 	s++;
 	continue;
       case '%':
 	s++;
 	if ( *s == '%' )		/* `%%' */
-	{ *q++ = '%';
+	{ Put('%');
 	  s++;
 	  continue;
 	} else
@@ -387,6 +400,7 @@ swritefv(char *buf, CharArray format, int argc, const Any argv[])
 	    case 'X':
 	    { int a;
 	      Int i;
+	      char buf[64];
 
 	      if ( argc <= 0 )
 	      	a = 0;
@@ -404,10 +418,12 @@ swritefv(char *buf, CharArray format, int argc, const Any argv[])
 	      *r = EOS;
 
 	      if ( arg == NOT_SET )
-		sprintf(q, fmtbuf, a);
+		sprintf(buf, fmtbuf, a);
 	      else
-	      	sprintf(q, fmtbuf, arg, a);
-	      Skip(q);
+	      	sprintf(buf, fmtbuf, arg, a);
+
+	      PutString(buf);
+
 	      continue;
 	    }
 	    case 'f':
@@ -417,6 +433,7 @@ swritefv(char *buf, CharArray format, int argc, const Any argv[])
 	    case 'G':
 	    { double a;
 	      Real f;
+	      char buf[64];
 
 	      if ( argc <= 0 )
 	      	a = 0.0;
@@ -433,15 +450,19 @@ swritefv(char *buf, CharArray format, int argc, const Any argv[])
 	      *r++ = *s++;
 	      *r = EOS;
 	      if ( arg == NOT_SET )
-		sprintf(q, fmtbuf, a);
+		sprintf(buf, fmtbuf, a);
 	      else
-	      	sprintf(q, fmtbuf, arg, a);
-	      Skip(q);
+	      	sprintf(buf, fmtbuf, arg, a);
+
+	      PutString(buf);
+
 	      continue;
 	    }
+	  { char *a;
+
 	    case 's':
 	    case 'N':
-	    { char *a;
+	    { int ol, al;
 
 	      if ( argc <= 0 )
 	      { a = "(nil)";
@@ -454,69 +475,89 @@ swritefv(char *buf, CharArray format, int argc, const Any argv[])
 		  a = pp(argv[0]);
 	      }
 
+	    outstr:
 	      *r++ = 's';
 	      s++;
 	      *r = EOS;
-	      if ( arg == NOT_SET )
-		sprintf(q, fmtbuf, a);
-	      else
-	      	sprintf(q, fmtbuf, arg, a);
-	      Skip(q);
+
+	      ol = strlen(a);		/* text length */
+	      al = abs(atoi(fmtbuf+1));	/* specified field width */
+	      ol = max(ol, al);
+
+	      if ( ol < left )
+	      { if ( arg == NOT_SET )
+		  sprintf(q, fmtbuf, a);
+		else
+		  sprintf(q, fmtbuf, arg, a);
+		al = strlen(q);
+		DEBUG(NAME_format,
+		      if ( al != ol )
+		        Cprintf("swritefv(): al=%d; ol=%d\n", al, ol));
+		left -= al;
+		q += al;
+	      } else
+		left -= ol;
+
 	      argc--, argv++;
 	      continue;
 	    }
 	    case 'O':			/* object via pp() */
-	    { char *a;
-
-	      if ( argc <= 0 )
+	    { if ( argc <= 0 )
 	      	a = save_string("(nil)");
 	      else
 	      	a = pp(argv[0]);
 
-	      *r++ = 's';
-	      *r = EOS;
-	      s++;
-	      if ( arg == NOT_SET )
-		sprintf(q, fmtbuf, a);
-	      else
-	      	sprintf(q, fmtbuf, arg, a);
-	      Skip(q);
-	      argc--, argv++;
-	      continue;
+	      goto outstr;
 	    }
+	  }				/* end scope of a */
 	    case 'I':			/* ignore */
 	    { s++;
 	      argc--, argv++;
 	      continue;
 	    }
 	    default:
-	      *q++ = '%';
-	      *q++ = *s++;
+	      Put('%');
+	      Put(*s);
+	      s++;
 	      continue;
 	  }
 	}
       default:
-	*q++ = *s++;
+	Put(*s);
+        s++;
 	continue;
       }
   }
-  *q++ = EOS;
 
-  succeed;
+  if ( szp )
+  { *szp = size-left;
+  } else
+  { if ( left < 0 )
+      errorPce(format, NAME_formatBufferOverFlow, toInt(FORMATSIZE));
+  }
+
+  Put(EOS);
+
+  return buf;
 }
 
 
 status
 str_writefv(String s, CharArray format, int argc, Any *argv)
 { char buf[FORMATSIZE];
+  int sz = sizeof(buf);
 
-  TRY(swritefv(buf, format, argc, argv));
+  swritefv(buf, &sz, format, argc, argv);
+    
   str_inithdr(s, ENC_ASCII);
-  s->size = strlen(buf);
-  if ( s->size >= FORMATSIZE )
-    return errorPce(format, NAME_formatBufferOverFlow, toInt(FORMATSIZE));
+  s->size = sz;
   str_alloc(s);
-  memcpy(s->s_text, buf, s->size);
+
+  if ( sz > FORMATSIZE-1 )
+  { sz++;				/* provide room for terminating EOS */
+    swritefv(s->s_text, &sz, format, argc, argv);
+  } else
+    memcpy(s->s_text, buf, s->size);
 
   succeed;
 }
