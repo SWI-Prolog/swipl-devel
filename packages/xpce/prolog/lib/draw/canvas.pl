@@ -58,7 +58,7 @@ NOTE:	Should we  define  the  type  of the attribute_editor   to  be
 
 :- pce_begin_class(draw_canvas, picture).
 
-resource(size, size, '500x500',	'Default size of drawing area').
+resource(size, size, 'size(500,500)',	'Default size of drawing area').
 
 variable(mode,		   name,			get,
 	 "Current mode of operation").

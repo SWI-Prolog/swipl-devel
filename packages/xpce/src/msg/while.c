@@ -14,6 +14,9 @@ static status
 initialiseWhile(While w, Code cond, Code body)
 { initialiseCode((Code) w);
 
+  if ( isDefault(body) )
+    body = NIL;
+
   assign(w, condition, cond);
   assign(w, body,      body);
 
@@ -23,8 +26,11 @@ initialiseWhile(While w, Code cond, Code body)
 
 static status
 ExecuteWhile(While w)
-{ while ( executeCode(w->condition) != FAIL )
-    TRY( executeCode(w->body) );
+{ while ( executeCode(w->condition) )
+  { if ( notNil(w->body) )
+    { TRY( executeCode(w->body) );
+    }
+  }
 
   succeed;
 }
@@ -36,13 +42,13 @@ makeClassWhile(Class class)
 
   localClass(class, NAME_condition, NAME_statement, "code", NAME_both,
 	     "Condition to be tested");
-  localClass(class, NAME_body, NAME_statement, "code", NAME_both,
+  localClass(class, NAME_body, NAME_statement, "code*", NAME_both,
 	     "Statement to execute");
 
   termClass(class, "while", 2, NAME_condition, NAME_body);
 
   sendMethod(class, NAME_initialise, DEFAULT, 2,
-	     "condition=code", "statement=code",
+	     "condition=code", "statement=[code]*",
 	     "Create from condition and statement",
 	     initialiseWhile);
   sendMethod(class, NAME_Execute, DEFAULT, 0,

@@ -330,7 +330,7 @@ copyImage(Image image, Image i2)
 
     d_image(image, 0, 0, valInt(w), valInt(h));
     d_modify();
-    r_image(i2, 0, 0, 0, 0, valInt(w), valInt(h));
+    r_image(i2, 0, 0, 0, 0, valInt(w), valInt(h), OFF);
     d_done();
     changedEntireImageImage(image););
 
@@ -600,7 +600,7 @@ getClipImage(Image image, Area area)
   CHANGING_IMAGE(i2,
     d_image(i2, 0, 0, valInt(w), valInt(h));
     d_modify();
-    r_image(image, valInt(x), valInt(y), 0, 0, valInt(w), valInt(h));
+    r_image(image, valInt(x), valInt(y), 0, 0, valInt(w), valInt(h), OFF);
     d_done();
     changedEntireImageImage(i2););
 
@@ -808,7 +808,8 @@ makeClassImage(Class class)
 	    getContainedInImage);
 
   attach_resource(class, "path", "string",
-	  ".:bitmaps:~/lib/bitmaps:$PCEHOME/bitmaps:/usr/include/X11/bitmaps",
+		  "\".:bitmaps:~/lib/bitmaps:$PCEHOME/bitmaps:" /* concat */
+		  "/usr/include/X11/bitmaps\"",
 		  "Search path for loading images");
 
   ImageTable = globalObject(NAME_images, ClassHashTable, toInt(32), 0);

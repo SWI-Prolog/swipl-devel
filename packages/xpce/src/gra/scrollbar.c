@@ -168,12 +168,12 @@ ComputeScrollBar(ScrollBar sb)
 Int
 getMarginScrollBar(ScrollBar sb)
 { if ( sb->orientation == NAME_horizontal )
-  { if ( str_sub(&sb->placement->data, &NAME_bottom->data) )
+  { if ( memberChain(sb->placement, NAME_bottom) )
       answer(add(sb->area->h, sb->distance));
     else
       answer(minInt(add(sb->area->h, sb->distance)));
   } else				/* vertical */
-  { if ( str_sub(&sb->placement->data, &NAME_right->data) )
+  { if ( memberChain(sb->placement, NAME_right) )
       answer(add(sb->area->w, sb->distance));
     else
       answer(minInt(add(sb->area->w, sb->distance)));
@@ -190,14 +190,14 @@ placeScrollBar(ScrollBar sb, Graphical gr)
   { if ( sb->orientation == NAME_horizontal )
     { setGraphical(sb,
 		   gr->area->x,
-		   str_sub(&sb->placement->data, &NAME_bottom->data)
+		   memberChain(sb->placement, NAME_bottom)
 		       ? add(gr->area->y, add(gr->area->h, sb->distance))
 		       : sub(gr->area->y, add(sb->area->h, sb->distance)),
 		   gr->area->w,
 		   DEFAULT);
     } else				/* vertical */
     { setGraphical(sb,
-		   str_sub(&sb->placement->data, &NAME_right->data)
+		   memberChain(sb->placement, NAME_right)
 		        ? add(gr->area->x, add(gr->area->w, sb->distance))
 		        : sub(gr->area->x, add(sb->area->w, sb->distance)),
 		   gr->area->y,
@@ -801,7 +801,7 @@ makeClassScrollBar(Class class)
 	     "Message used to inform object");
   localClass(class, NAME_object, NAME_client, "graphical*", NAME_both,
 	     "Graphical to be scrolled scrolled");
-  localClass(class, NAME_placement, NAME_layout, "name", NAME_get,
+  localClass(class, NAME_placement, NAME_layout, "chain", NAME_get,
 	     "Relative automatic placement");
   localClass(class, NAME_distance, NAME_layout, "int", NAME_get,
 	     "Relative distance (pixels)");
@@ -873,7 +873,7 @@ makeClassScrollBar(Class class)
 		  "Width of the scroll_bar");
   attach_resource(class, "look", "name", "x",
 		  "Look-and-feel");
-  attach_resource(class, "placement", "name", "top,left",
+  attach_resource(class, "placement", "chain", "[top,left]",
 		  "Relative placement");
   attach_resource(class, "distance", "int", "-1",
 		  "Distance to graphical");

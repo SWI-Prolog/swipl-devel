@@ -264,18 +264,12 @@ space(C, Space) :<-
 store(C, Slot:name, Value:any) :->
 	"Store a slot value (normally a string)"::
 	get(C, slot, Slot, OldValue),
-	(   equal(OldValue, Value)
+	(   send(OldValue, equal, Value)
 	->  true
 	;   send(C?last_modified, current),
 	    send(C?module, modified, @on),
 	    send(C, slot, Slot, Value)
 	).
-
-equal(X, X).
-equal(@nil, _) :- !, fail.
-equal(_, @nil) :- !, fail.
-equal(V1, V2) :-
-	send(V1, equal, V2).
 
 fetch(C, Slot:name, Value:any) :<-
 	"Read a slot value (possibly inherit)"::

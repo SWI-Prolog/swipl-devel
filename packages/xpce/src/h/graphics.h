@@ -25,7 +25,7 @@ typedef struct update_area *UpdateArea;	/* Window changes data  */
   Bool       displayed;			/* is graphical object displayed? */ \
   Int        pen;			/* pen thickness for this object */ \
   Name	     texture;			/* dash pattern for lines */ \
-  Colour     colour;			/* colour of the graphical */ \
+  Any        colour;			/* colour of the graphical */ \
   Chain	     handles;			/* handles connected to graphical */ \
   Chain	     connections;		/* Available connections */ \
   Name       name;			/* name to find it */ \
@@ -266,6 +266,7 @@ NewClass(button)
   FontObj    font;			/* Font of the button */
   Name	     accelerator;		/* activate on this key */
   Image	     popup_image;		/* Image to indicate popup */
+  Any	     fill_pattern;		/* Button's fill-pattern */
 End;
 
 NewClass(textitem)
@@ -378,7 +379,7 @@ NewClass(scrollbar)
   ABSTRACT_GRAPHICAL
   Code		message;		/* Message executed */
   Graphical	object;			/* Scrolling this graphical */
-  Name		placement;		/* Relative placement */
+  Chain		placement;		/* Relative placement */
   Int		distance;		/* Distance to <-object */
   Name		status;			/* {inactive, active, running} */
   Name		orientation;		/* {horizontal, vertical} */
@@ -553,6 +554,7 @@ End;
 NewClass(bitmapobj)
   ABSTRACT_GRAPHICAL
   Image		image;			/* Image of the bitmap */
+  Bool		transparent;		/* Just stipple pattern */
 End;
 
 
@@ -621,6 +623,7 @@ NewClass(frameobj)
   Point		icon_position;		/* Position of the icon */
   DisplayObj	display;		/* Display it is displayed on */
   Int		border;			/* Border width */
+  Any		background;		/* Frames background */
   Area		area;			/* Area of the frame */
   Name		geometry;		/* X-Window geometry spec */
   Chain		members;		/* Windows displayed */
@@ -703,7 +706,6 @@ NewClass(resource)
   Type		r_type;			/* Type of this resource */
   StringObj	r_default;		/* Default value */
   Any		context;		/* Context object we belong to */
-  Bool		obtained;		/* Have obtained from resource file */
   Any		value;			/* Value of the resource */
   StringObj	summary;		/* Short documentation */
 End;

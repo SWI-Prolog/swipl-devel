@@ -210,6 +210,31 @@ getPixelColour(Colour c, DisplayObj d)
 }
 
 
+void
+x11_set_gc_foreground(DisplayObj d, Any fg, int gcs, GC *gc)
+{ XGCValues values;
+  ulong mask;
+  DisplayWsXref r = d->ws_ref;
+
+  if ( instanceOfObject(fg, ClassColour) )
+  { ulong pixel = getPixelColour(fg, d);
+	
+    values.foreground = pixel;
+    values.fill_style = FillSolid;
+    mask	      = (GCForeground|GCFillStyle);
+  } else
+  { Pixmap pm   = (Pixmap) getXrefObject(fg, d);
+    
+    values.tile       = pm;
+    values.fill_style = FillTiled;
+    mask	      = (GCTile|GCFillStyle);
+  }
+
+  for(; gcs > 0; gcs--, gc++)
+    XChangeGC(r->display_xref, *gc, mask, &values);
+}
+
+
 		/********************************
 		*      X-EVENT TRANSLATION	*
 		********************************/

@@ -362,7 +362,7 @@ initialise(D, Label:[name], Size:[size]) :->
 
 :- pce_begin_class(dia_target_dialog, dia_dialog, "Target dialog").
 
-resource(size,	size, '400x200').
+resource(size,	size, 'size(400,200)').
 
 initialise(D, Label:[name], Size:[size]) :->
 	default(Size, resource(D, size), Sz),

@@ -54,7 +54,7 @@ SHELL=/bin/sh
 # Settings you propably must change
 ################################################################
 
-PCEHOME=/staff/jan/exp/xpce-2
+PCEHOME=/staff/jan/src/xpce
 XBASE=/usr
 ARCH=sparc-sunos-4
 #ARCH=i486-linux

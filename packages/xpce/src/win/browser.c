@@ -195,7 +195,7 @@ makeClassBrowser(Class class)
 
   attach_resource(class, "pen",    "int",   "0",
 		  "Pen (done by <-list_browser)");
-  attach_resource(class, "size",   "size",  "25x10",
+  attach_resource(class, "size",   "size",  "size(25,10)",
 		  "Size in `characters x lines'");
 
   succeed;

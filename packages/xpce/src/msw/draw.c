@@ -816,6 +816,8 @@ r_op_image(Image image, int sx, int sy, int x, int y, int w, int h, Name op)
 }
 
 
+					/* TBD: add transparent arg */
+
 void
 r_image(Image image, int sx, int sy, int x, int y, int w, int h)
 { HBITMAP bm = (HBITMAP) getXrefObject(image, context.display);

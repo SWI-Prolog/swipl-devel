@@ -1487,7 +1487,7 @@ makeClassListBrowser(Class class)
 	    getViewListBrowser);
 	    
 
-  attach_resource(class, "size",  	 "size",      "15x10",
+  attach_resource(class, "size",  	 "size",      "size(15,10)",
 		  "Default size in `characters x lines'");
   attach_resource(class, "font",   	 "font",      "@helvetica_roman_14",
 		  "Default font");

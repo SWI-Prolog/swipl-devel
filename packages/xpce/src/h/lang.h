@@ -15,6 +15,8 @@ GLOBAL Class ClassTokeniser;
 GLOBAL Class ClassParser;
 GLOBAL Class ClassOperator;
 
+GLOBAL Constant EndOfFile;		/* @end_of_file */
+
 NewClass(operator)
   Name		name;			/* Name of the operator */
   Int		priority;		/* Own priority */

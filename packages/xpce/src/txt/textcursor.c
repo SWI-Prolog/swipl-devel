@@ -44,7 +44,7 @@ RedrawAreaTextCursor(TextCursor c, Area a)
     r_fillpattern(c->active == ON ? BLACK_IMAGE : GREY50_IMAGE);
     r_fill_polygon(pts, 3);
   } else if ( equalName(c->style, NAME_image) )
-  { r_image(c->image, 0, 0, x, y, w, h);
+  { r_image(c->image, 0, 0, x, y, w, h, ON);
   } else /*if ( equalName(c->style, NAME_block) )*/
   { if ( c->active == ON )
       r_complement(x, y, w, h);

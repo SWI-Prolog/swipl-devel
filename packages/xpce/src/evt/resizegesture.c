@@ -246,7 +246,7 @@ makeClassResizeGesture(Class class)
 		  "Cursor must be within 1/fraction from edge");
   attach_resource(class, "margin_width", "int", "15",
 		  "Cursor must be within <max> from edge");
-  attach_resource(class, "min_size", "size", "3x3",
+  attach_resource(class, "min_size", "size", "size(3,3)",
 		  "Minimum size of graphical");
 
   succeed;

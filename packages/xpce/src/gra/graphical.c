@@ -201,7 +201,7 @@ status
 initialiseDeviceGraphical(Any obj, int *x, int *y, int *w, int *h)
 { Graphical gr = obj;
   Device dev = gr->device;
-  Colour c = gr->colour;
+  Any c = gr->colour;
 
   *x = valInt(gr->area->x);
   *y = valInt(gr->area->y);
@@ -1473,7 +1473,7 @@ textureGraphical(Graphical gr, Name texture)
 
 
 status
-colourGraphical(Graphical gr, Colour c)
+colourGraphical(Graphical gr, Any c)
 { if ( gr->colour != c )
   { CHANGING_GRAPHICAL(gr, assign(gr, colour, c);
   			   changedEntireImageGraphical(gr));
@@ -1483,7 +1483,7 @@ colourGraphical(Graphical gr, Colour c)
 }
 
 
-Colour
+Any
 getDisplayColourGraphical(Graphical gr)
 { while( notNil(gr) )
   { if ( notDefault(gr->colour) )
@@ -2441,7 +2441,7 @@ makeClassGraphical(Class class)
 	     "Thickness of drawing pen");
   localClass(class, NAME_texture, NAME_appearance, "texture_name", NAME_get,
 	     "Stipple pattern of drawing pen");
-  localClass(class, NAME_colour, NAME_appearance, "[colour]", NAME_get,
+  localClass(class, NAME_colour, NAME_appearance, "[colour|image]", NAME_get,
 	     "Colour of drawing pen");
   localClass(class, NAME_handles, NAME_relation, "chain*", NAME_none,
 	     "Connection points for connections");
@@ -2814,7 +2814,7 @@ makeClassGraphical(Class class)
 	    "{north_west,south_east,north_east,south_east}", 0,
 	    "Current orientation",
 	    getOrientationGraphical);
-  getMethod(class, NAME_displayColour, NAME_appearance, "colour", 0,
+  getMethod(class, NAME_displayColour, NAME_appearance, "colour|image", 0,
 	    "Colour graphical is displayed in",
 	    getDisplayColourGraphical);
   getMethod(class, NAME_node, NAME_nodes, "node", 0,
@@ -2873,7 +2873,7 @@ makeClassGraphical(Class class)
 		  "Lenght of flash in milliseconds");
   attach_resource(class, "selection_style", "name", "corner_and_side_handles",
 		  "Visual feedback of <->selected");
-  attach_resource(class, "colour", "[colour]", "@default",
+  attach_resource(class, "colour", "[colour|image]", "@default",
 		  "Default colour for this object");
 
   ChangedWindows = globalObject(NAME_changedWindows, ClassChain, 0);

@@ -62,7 +62,7 @@ resource(title_font, font, '@helvetica_bold_14',    "Font for titles").
 resource(section_font,font,'@helvetica_bold_18',    "Font for sections").
 resource(tag_font,   font, '@helvetica_oblique_14', "Font for tags").
 resource(code_font,  font, '@screen_roman_13',      "Font for code att").
-resource(size,	     size, '80x15',		    "Size in chars").
+resource(size,	     size, 'size(80,15)',	    "Size in chars").
 
 
 initialise(E) :->

@@ -40,6 +40,7 @@ initialiseFrame(FrameObj fr, Name label, Name kind, DisplayObj display)
   assign(fr, icon_label,    DEFAULT);
   assign(fr, icon_image,    DEFAULT);
   assign(fr, border,	    DEFAULT);
+  assign(fr, background,    DEFAULT);
   assign(fr, confirm_done,  DEFAULT);
   assign(fr, area,	    newObject(ClassArea, 0));
   assign(fr, members,	    newObject(ClassChain, 0));
@@ -662,9 +663,26 @@ showLabelFrame(FrameObj fr, Bool val)
 
 static status
 borderFrame(FrameObj fr, Int width)
-{ assign(fr, border, width);
+{ if ( fr->border != width )
+  { assign(fr, border, width);
 
-  ws_border_frame(fr, valInt(width));
+    if ( ws_created_frame )
+      ws_border_frame(fr, valInt(width));
+  }
+
+  succeed;
+}
+
+
+static status
+backgroundFrame(FrameObj fr, Any bg)
+{ if ( fr->background != bg )
+  { assign(fr, background, bg);
+
+    if ( ws_created_frame(fr) )
+      ws_frame_background(fr, bg);
+  }
+
   succeed;
 }
 
@@ -1070,6 +1088,8 @@ makeClassFrame(Class class)
 	     "Display the frame resides on");
   localClass(class, NAME_border, NAME_appearance, "[int]", NAME_get,
 	     "Width of border");
+  localClass(class, NAME_background, NAME_appearance, "colour|image", NAME_get,
+	     "Background of the frame");
   localClass(class, NAME_area, NAME_area, "area", NAME_get,
 	     "Area of the opened frame on the display");
   localClass(class, NAME_geometry, NAME_area, "name*", NAME_none,
@@ -1112,6 +1132,7 @@ makeClassFrame(Class class)
   storeMethod(class, NAME_area, areaFrame);
   storeMethod(class, NAME_iconLabel, iconLabelFrame);
   storeMethod(class, NAME_iconPosition, iconPositionFrame);
+  storeMethod(class, NAME_background, backgroundFrame);
 
   sendMethod(class, NAME_initialise, DEFAULT, 3,
 	     "label=[name]", "kind=[{toplevel,transient,popup}]",
@@ -1332,7 +1353,7 @@ makeClassFrame(Class class)
 
   attach_resource(class, "confirm_done", "bool", "@on",
 		  "Show confirmer on `Delete'");
-  attach_resource(class, "icon_image", "image*", "pce.bm",
+  attach_resource(class, "icon_image", "image*", "\"pce.bm\"",
 		  "Image displayed for an icon");
   attach_resource(class, "icon_label", "name*", "@nil",
 		  "Label displayed in the icon");
@@ -1340,6 +1361,8 @@ makeClassFrame(Class class)
 		  "Position/size of the frame");
   attach_resource(class, "busy_cursor", "cursor*", "watch",
 		  "Default cursor displayed by ->busy_cursor");
+  attach_resource(class, "background", "colour|image", "white",
+		  "Default background colour");
 
   succeed;
 }

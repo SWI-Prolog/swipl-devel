@@ -1051,7 +1051,7 @@ destroyCloneFields()
 }
 
 
-static Any
+Any
 getCloneObject(Any obj)
 { Any clone;
   CloneField kf;

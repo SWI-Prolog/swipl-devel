@@ -1,5 +1,55 @@
 [VERSION 4.8.0]
 
+* Added: `bitmap <->transparent' to define bitmaps with non-rectangular
+  shape.
+
+* Modified resource-syntax.  Resources now use a syntax very similar to
+  the Prolog syntax for objects.  For example:
+
+  	Pce.Dialog.gap:		size(10,10)
+
+  Old-style resource specifications are still handled, but raise the
+  error `old_resource_format'.  You can use this error (by default just
+  prints a warning) to locate incompatibilities or invoke:
+
+  	?- send(error(old_resource_format), kind, ignored).
+
+  to stop the system complaining.  The resources Pce.Display.font_families
+  and the font-family implementing resources do *not* convert the old
+  format.  As these will not very often be redefined by the user, this
+  should be an acceptable burden.
+
+  The reason for this is to allow for specification of resource-values
+  for ambiguously typed resources.  For example, type colour|image makes
+  translating a name ambiguous (either a colour-name or an image-file
+  name).  In the new system, you may use `colour(red)' and `image("pce.bm")'.
+
+  See `resource <-convert_string' for details on the new syntax.
+
+* Class resource changes:
+
+	# deleted: `resource <-obtained'
+	A resource is not obtained if its <-value equals @not_obtained
+	(a constant)
+
+	# added: `resource <-convert_string'
+	Converts the string-value read from the `resource <-default' or
+	the X11 resource system in to a value satisfying the <-type.
+
+	# Added: @resource_parser
+	This global object parses resource specifications.
+
+* Modified resource inheritance.  Resource definitions with classes need no
+  longer to be redefined at each sub-class to be able for the user to
+  modify the resource.  The system takes care of refinement of resources
+  when necessary, while sharing as much as possible of the data-structures.
+  Lookup of resources has been speeded up drastically.
+
+* Improved colour-handling:
+	- Allow (window) background to be both an image or a colour.
+	- Allow graphical colour to be both image or a colour.
+	
+
 * Added `timer ->delay' to allow suspension of the XPCE process in a
   host-independant fashion.
 

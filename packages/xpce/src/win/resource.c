@@ -9,8 +9,11 @@
 
 #include <h/kernel.h>
 #include <h/graphics.h>
+#include <h/lang.h>
 
 forwards Name getResourceClassNameResource P((Resource));
+
+static Constant NotObtained;
 
 static status
 initialiseResource(Resource r, Name name, Name class, Type type, StringObj def, Any context, StringObj doc)
@@ -26,8 +29,7 @@ initialiseResource(Resource r, Name name, Name class, Type type, StringObj def, 
   assign(r, r_type,        type);
   assign(r, r_default,     def);
   assign(r, context,       context);
-  assign(r, obtained,      OFF);
-  assign(r, value,         NIL);
+  assign(r, value,         NotObtained);
   assign(r, summary,	   doc);
 
   succeed;
@@ -38,8 +40,7 @@ static status
 contextResource(Resource r, Any obj)
 { if ( r->context != obj )
   { assign(r, context, obj);
-    assign(r, obtained, OFF);
-    assign(r, value, NIL);
+    assign(r, value, NotObtained);
   }
   
   succeed;
@@ -64,35 +65,66 @@ convertFunctionRequiresName(Type t)
 }
 
 
-static status
-convertResource(Resource r, Any value)
+static Parser
+TheResourceParser()
+{ static Parser p;
+
+  if ( !p )
+  { SyntaxTable st = newObject(ClassSyntaxTable, 0);
+    Tokeniser    t = newObject(ClassTokeniser, st, 0);
+ 
+    p = globalObject(NAME_resourceParser, ClassParser, t, 0);
+    
+    send(p, NAME_active, CtoName("@"),
+	 newObject(ClassObtain, PCE, NAME_objectFromReference,
+		   newObject(ClassObtain, RECEIVER, NAME_token, 0),
+		   0),
+	 0);
+    send(p, NAME_active, CtoName("["),
+	 newObject(ClassObtain, RECEIVER, NAME_list,
+		   CtoName("]"), CtoName(","), NAME_chain, 0),
+	 0);
+    send(p, NAME_sendMethod,
+	 newObject(ClassSendMethod,
+		   NAME_syntaxError,
+		   newObject(ClassVector, NAME_charArray, 0),
+		   newObject(ClassOr, 0),
+		   CtoString("Just fail on syntax-error"),
+		   0),
+	 0);
+  }
+
+  return p;
+}
+
+
+static Any
+getConvertStringResource(Resource r, CharArray value)
 { Any val;
-  char8 *s;
 
-  if ( (s = toCharp(value)) )
-  { char8 *q = s;
+  if ( (val = qadGetv(TheResourceParser(), NAME_parse, 1, (Any *)&value)) )
+    answer(checkType(val, r->r_type, r->context));
 
-    while( islayout(*q) )
-      q++;
-
-    if ( q[0] == '@' && (val = getConvertObject(ClassObject, CtoKeyword(q))) )
-    { TRY( val = checkType(val, r->r_type, r->context) );
-      assign(r, value, val);
-      succeed;
-    }
+  if ( syntax.uppercase && specialisedType(r->r_type, TypeName) )
+  { val = CtoKeyword(strName(value));
+    answer(checkType(val, r->r_type, r->context));
   }
 
-  if ( syntax.uppercase && s )
-  { if ( r->r_type == TypeName ||
-	 r->r_type->kind == NAME_nameOf ||
-	 convertFunctionRequiresName(r->r_type) )
-      value = CtoKeyword(s);
+  if ( specialisedType(r->r_type, TypeCharArray) ||
+       value->data.size == 0 )		/* empty atom */
+    answer(checkType(value, r->r_type, r->context));
+
+  if ( syntax.uppercase &&
+       (specialisedType(r->r_type, TypeName) ||
+	convertFunctionRequiresName(r->r_type)) )
+    value = (CharArray) CtoKeyword(strName(value));
+
+  if ( (val = checkType(value, r->r_type, r->context)) )
+  { errorPce(r, NAME_oldResourceFormat, value);
+    answer(val);
   }
 
-  TRY( val = checkType(value, r->r_type, r->context) );
-
-  assign(r, value, val);
-  succeed;
+  fail;
 }
 
 
@@ -187,22 +219,22 @@ obtainResource(Resource r, Any obj)
 { if ( notDefault(obj) )
     contextResource(r, obj);
   
-  if ( r->obtained == OFF )
-  { status rval;
+  if ( r->value == NotObtained )
+  { Any rval;
     CharArray str;
 
     TRY(str = getStringValueResource(r, DEFAULT));
 
-    if ( (rval = convertResource(r, str)) == FAIL )
+    if ( !(rval = qadGetv(r, NAME_convertString, 1, (Any *)&str)) )
     { errorPce(r, NAME_cannotConvertResource, str);
-      if ( (rval = convertResource(r, r->r_default)) )
-	errorPce(r, NAME_cannotConvertResourceDefault, r->r_default);
+      if ( !(rval = qadGetv(r, NAME_convertString, 1, (Any *)&r->r_default)) )
+      { errorPce(r, NAME_cannotConvertResourceDefault, r->r_default);
+	fail;
+      }
     }
 
+    assign(r, value, rval);
     doneObject(str);
-    assign(r, obtained, ON);
-
-    return rval;
   }
   
   succeed;
@@ -213,7 +245,6 @@ static status
 valueResource(Resource r, Any val)
 { if ( (val = checkType(val, r->r_type, r->context)) != FAIL )
   { assign(r, value, val);
-    assign(r, obtained, ON);
 
     succeed;
   }
@@ -226,7 +257,9 @@ valueResource(Resource r, Any val)
 
 static Any
 getValueResource(Resource r, Any obj)
-{ TRY(obtainResource(r, obj));
+{ if ( r->value == NotObtained )
+  { TRY(obtainResource(r, obj));
+  }
 
   answer(r->value);
 }
@@ -431,8 +464,6 @@ makeClassResource(Class class)
 	     "Default if no resource defined");
   localClass(class, NAME_context, NAME_context, "object*", NAME_get,
 	     "Object resource is associated with");
-  localClass(class, NAME_obtained, NAME_cache, "bool", NAME_get,
-	     "Whether query to X has been done");
   localClass(class, NAME_value, NAME_cache, "any", NAME_none,
 	     "Value of the resource");
   localClass(class, NAME_summary, NAME_manual, "string*", NAME_both,
@@ -483,6 +514,10 @@ makeClassResource(Class class)
 	    "context=[object]",
 	    "Obtain and return value as a char_array",
 	    getStringValueResource);
+  getMethod(class, NAME_convertString, NAME_value, "any|function", 1,
+	    "textual=char_array",
+	    "Convert textual value into typed value",
+	    getConvertStringResource);
   getMethod(class, NAME_printName, NAME_textual, "name", 0,
 	    "Class.name",
 	    getPrintNameResource);
@@ -505,6 +540,11 @@ makeClassResource(Class class)
 	    "resource=name",
 	    "Get resource-value",
 	    getResourceValueClass);
+
+  NotObtained = globalObject(NAME_notObtained, ClassConstant,
+			     NAME_notObtained,
+			     CtoString("Value of not-obtained resource"), 0);
+  TheResourceParser();
 
   succeed;
 }

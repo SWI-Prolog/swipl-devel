@@ -71,6 +71,8 @@ struct global
   { NAME_pullRightImage,	NAME_image },
   { NAME_markHandleImage,	NAME_image },
   { NAME_defaultSyntaxTable,	NAME_syntaxTable },
+  { NAME_resourceParser,	NAME_resource },
+  { NAME_notObtained,		NAME_resource },
 
   { NULL,	  		NULL}
 };

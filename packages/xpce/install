@@ -8,7 +8,7 @@ if [ o$1 = "o-l" ]; then local=true; fi
 
 PCEHOME=`pwd`; export PCEHOME
 version=`cat VERSION`
-arch=`./machine`
+arch=sparc-sunos-4.h
 BIN=/usr/local/bin/xpce-$version; export BIN
 echo -n "XPCE executable [$BIN] ? "
 read bin
@@ -21,7 +21,9 @@ if [ ! -d man/reference ]; then
 fi
 
 if [ -x pl/$arch/xpce.base ]; then
-    true
+    dstbase=pl/$arch/xpce.base
+elif [ -x pl/src/xpce.base ]; then
+    dstbase=pl/src/xpce.base
 else
     sh -x link-$arch
     (cd pl/$arch; make domangle)
@@ -192,7 +194,7 @@ fi
 if [ $local = false ]; then
     (cd $LIB ; if [ ! -d src ]; then ln -s $PCEHOME/src; fi)
     if [ ! -d $LIB/bin.$arch ]; then mkdir $LIB/bin.$arch; fi
-    cp pl/$arch/xpce.base $LIB/bin.$arch
+    cp $dstbase $LIB/bin.$arch
     chmod 755 $LIB/bin.$arch $base
 fi
 

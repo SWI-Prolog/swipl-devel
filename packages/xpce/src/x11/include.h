@@ -92,6 +92,7 @@ struct draw_context
   GC		reliefGC;		/* Paint opposite of shadow */
   
   int		pen;			/* Current pen */
+  int		depth;			/* #bits per pixel */
   Name		dash;			/* Current dash pattern */
   Name		arcmode;		/* Current arc mode (filling arcs) */
   Image		fill_pattern;		/* Current fillpattern */
@@ -100,8 +101,8 @@ struct draw_context
   FontObj	font;			/* Current font */
   XFontStruct * font_info;		/* X-font for this display */
   cwidth      * char_widths;		/* array with widths of characters */
-  Colour	colour;			/* Current colour */
-  Colour	background;		/* Current background colour */
+  Any		colour;			/* Current colour */
+  Any		background;		/* Current background colour */
   ulong		foreground_pixel;	/* X pixel value of foreground */
   ulong		background_pixel;	/* X pixel value of background */
   Bool		subwindow_mode;		/* Draw in subwindows too */
@@ -127,6 +128,7 @@ ulong		getPixelColour(Colour c, DisplayObj d);
 Window		getWMFrameFrame(FrameObj fr);
 void		setXImageImage(Image image, XImage *i);
 void		postscriptXImage(XImage *im, int w, int h, ulong bg);
+void		x11_set_gc_foreground(DisplayObj d, Any fg, int gcs, GC *gc);
 
 /* x11-conversion.c */
 XImage *	readImageFile(FILE *fd);

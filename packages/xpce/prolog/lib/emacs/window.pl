@@ -28,7 +28,7 @@
 			  message(@receiver?device?(mode), event, @event)))).
 
 resource(confirm_done,	bool,	false,	 "Donot confirm emacs-windows").
-resource(size,		size,	'80x32', "Size of text-field").
+resource(size,		size,	'size(80,32)', "Size of text-field").
 
 variable(sticky_window, bool, get,  "When @on, window won't be killed").
 variable(pool,		[name], both, "Window pool I belong too").
@@ -38,7 +38,7 @@ initialise(F, B:emacs_buffer) :->
 	send(F, send_super, initialise, B?name),
 	send(F, slot, sticky_window, @off),
 	send(F, append, new(MBD, dialog)),
-	send(MBD, gap, size(0,0)),
+	send(MBD, gap, size(0,3)),
 	send(MBD, pen, 0),
 	send(MBD, display, new(menu_bar)),
 

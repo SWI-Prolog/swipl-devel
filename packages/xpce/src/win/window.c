@@ -1944,13 +1944,13 @@ makeClassWindow(Class class)
 
   attach_resource(class, "selection_style", "name", "none",
 		  "Visual feedback of <->selected");
-  attach_resource(class, "size", "size", "200x100",
+  attach_resource(class, "size", "size", "size(200,100)",
 		  "Default size (pixels)");
   attach_resource(class, "pen", "int", "1",
 		  "Thickness of outside line");
   attach_resource(class, "cursor", "cursor", "top_left_arrow",
 		  "Default window cursor");
-  attach_resource(class, "background", "colour", "white",
+  attach_resource(class, "background", "colour|image", "white",
 		  "Colour/fill pattern of the background");
 
   succeed;

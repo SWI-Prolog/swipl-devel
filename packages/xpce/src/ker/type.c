@@ -166,20 +166,33 @@ isClassType(Type t)
 }
 
 
-static status
-specialisedType(Type t, Type t2)	/* t is specialised regarding to t2 */
-{ if ( t == t2 )
+status
+specialisedType(Type t1, Type t2)	/* t1 is specialised regarding to t2 */
+{ while(t1->kind == NAME_alias)
+    t1 = t1->context;
+  while(t2->kind == NAME_alias)
+    t2 = t2->context;
+
+  if ( t1 == t2 ||
+       (t1->context == t2->context && t1->kind == t2->kind) ||
+       (isClassType(t1) && isClassType(t2) &&
+	isAClass(t1->context, t2->context)) )
     succeed;
-  
-  if ( isClassType(t) && isClassType(t2) &&
-       isAClass(t->context, t2->context) )
-    succeed;
+
+  if ( t1->kind == NAME_nameOf )
+    return specialisedType(TypeName, t2);
+  if ( t1->kind == NAME_intRange )
+    return specialisedType(TypeInt, t2);
+  if ( t1->kind == NAME_realRange )
+    return specialisedType(TypeReal, t2);
+  if ( t1->kind == NAME_char )
+    return specialisedType(TypeInt, t2);
 
   if ( notNil(t2->supers) )
   { Cell cell;
 
     for_cell(cell, t2->supers)
-      if ( specialisedType(t, cell->value) )
+      if ( specialisedType(t1, cell->value) )
       	succeed;
   }
 
@@ -195,9 +208,7 @@ includesType(Type t1, Type t2)		/* t1 includes t2 */
     t2 = t2->context;
 
   if ( t1 == t2 ||
-       (t1->context == t2->context &&
-	t1->validate_function == t2->validate_function &&
-	t1->translate_function == t2->translate_function) )
+       (t1->context == t2->context && t1->kind == t2->kind) )
     succeed;
 
   if ( notNil(t1->supers) )
@@ -1327,6 +1338,7 @@ initTypes(void)
   bootType(NAME_chain,      &ClassChain,      &TypeChain);
   bootType(NAME_function,   &ClassFunction,   &TypeFunction);
   bootType(NAME_graphical,  &ClassGraphical,  &TypeGraphical);
+  bootType(NAME_real,       &ClassReal,       &TypeReal);
 
   for( ; i->global; i++ )
     *i->global = createType(i->name, i->kind, i->context);

@@ -222,7 +222,7 @@ resource(example_font,		font,	'@screen_roman_13').
 resource(text_font, 		font,	'@helvetica_roman_12').
 resource(bold_font, 		font,	'@helvetica_bold_12').
 resource(emphasize_font,	font,	'@helvetica_oblique_12').
-resource(size,			size,	'88x20').
+resource(size,			size,	'size(88,20)').
 
 
 initialise(E, Data:[file|text_buffer]) :->

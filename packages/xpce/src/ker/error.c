@@ -240,6 +240,8 @@ static struct error_def errors[] =
     "%N: No associated resource" },
   { NAME_resourceSyntaxError,	ET_WARNING,
     "%I: %N:%d Syntax error in resource-file" },
+  { NAME_oldResourceFormat,	ET_WARNING,
+    "%N: old fashioned resource syntax: %s" },
 
 					/* Display */
   { NAME_noCurrentDisplay,	0,

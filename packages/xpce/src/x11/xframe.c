@@ -96,13 +96,22 @@ ws_create_frame(FrameObj fr)
 { Arg args[25];
   Cardinal n = 0;
   Widget w;
-  DisplayWsXref r = fr->display->ws_ref;
+  DisplayObj d = fr->display;
+  DisplayWsXref r = d->ws_ref;
 
   XtSetArg(args[n], XtNtitle,		  strName(fr->label));    n++;
   XtSetArg(args[n], XtNmappedWhenManaged, False);                 n++;
   XtSetArg(args[n], XtNwidth,      	  valInt(fr->area->w));   n++;
   XtSetArg(args[n], XtNheight,      	  valInt(fr->area->h));   n++;
   XtSetArg(args[n], XtNinput,		  True);		  n++;
+  if ( instanceOfObject(fr->background, ClassColour) )
+  { XtSetArg(args[n], XtNbackground, getPixelColour(fr->background, d));
+    n++;
+  } else
+  { Pixmap pm = (Pixmap) getXrefObject(fr->background, d);
+
+    XtSetArg(args[n], XtNbackgroundPixmap, pm); n++;
+  }		
 
   if ( notNil(fr->icon_label) )
   { XtSetArg(args[n], XtNiconName, strName(getIconLabelFrame(fr)));
@@ -173,6 +182,8 @@ ws_realise_frame(FrameObj fr)
 		    XA_WM_TRANSIENT_FOR);
   }
 #endif
+
+  ws_frame_background(fr, fr->background); /* Why is this necessary? */
 }
 
 
@@ -582,6 +593,32 @@ out:
     XMapRaised(r->display_xref, busyWindowFrame(fr));
   else if ( busyWindowFrame(fr) )
     XUnmapWindow(r->display_xref, busyWindowFrame(fr));
+}
+
+		 /*******************************
+		 *	      COLOUR		*
+		 *******************************/
+
+void
+ws_frame_background(FrameObj fr, Any c)
+{ Widget w = widgetFrame(fr);
+
+  if ( w )
+  { Arg args[2];
+    DisplayObj d = fr->display;
+    int i=0;
+
+    if ( instanceOfObject(c, ClassColour) )
+    { XtSetArg(args[i], XtNbackground, getPixelColour(c, d));		i++;
+      XtSetArg(args[i], XtNbackgroundPixmap, XtUnspecifiedPixmap);	i++;
+    } else
+    { Pixmap pm = (Pixmap) getXrefObject(c, d);
+
+      XtSetArg(args[i], XtNbackgroundPixmap, pm);			i++;
+    }
+      
+    XtSetValues(w, args, i);
+  }
 }
 
 

@@ -412,7 +412,7 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h)
     by = (m->vertical_format == NAME_top    ? y :
 	  m->vertical_format == NAME_center ? y + (h-bh)/2 :
 					      y + h - bh);
-    r_image(leftmark, 0, 0, x+b, by, bw, bh);
+    r_image(leftmark, 0, 0, x+b, by, bw, bh, ON);
   }
 
   if ( notNil(m->accelerator_font) && notNil(mi->accelerator) )
@@ -432,7 +432,7 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h)
     by = (m->vertical_format == NAME_top    ? y :
 	  m->vertical_format == NAME_center ? y + (h-bh)/2 :
 					      y + h - bh);
-    r_image(pi, 0, 0, x+w-b-bw, by, bw, bh);
+    r_image(pi, 0, 0, x+w-b-bw, by, bw, bh, ON);
   }
 
   ix = x + valInt(m->left_offset) + valInt(m->border);
@@ -461,7 +461,7 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h)
 	  m->vertical_format == NAME_center ? iy + (ih-bh)/2 :
 					      iy + ih - bh);
 
-    r_image(mi->label, 0, 0, bx, by, bw, bh);
+    r_image(mi->label, 0, 0, bx, by, bw, bh, ON);
   }
 
   if ( notNil(fill) )
@@ -1742,7 +1742,7 @@ makeClassMenu(Class class)
 		  "Adjust items {left,center,right} in their box");
   attach_resource(class, "vertical_format", "{top,center,bottom}", "center",
 		  "Adjust items {top,center,bottom} in their box");
-  attach_resource(class, "gap",	       "size",    "0x0",
+  attach_resource(class, "gap",	       "size",    "size(0,0)",
 		  "Gap between items (XxY)");
   attach_resource(class, "border",     "int",	  "0",
 		  "Border around each item");

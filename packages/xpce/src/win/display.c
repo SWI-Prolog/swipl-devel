@@ -914,6 +914,10 @@ makeClassDisplay(Class class)
 		  "Draw quick or correct");
   attach_resource(class, "window_manager", "[name]",  "@default",
 		  "Window manager running on this display");
+  attach_resource(class, "3d_shadow", "colour|image", "black",
+		  "Shadow-part for 3-d objects");
+  attach_resource(class, "3d_relief", "colour|image", "white",
+		  "Relief-part for 3-d objects");
   attach_font_families(class);
 
 #ifdef __WINDOWS__
@@ -1054,15 +1058,23 @@ default_font_list(Name fam, FontDef defs)
 { char buf[10240];
   char *s = buf;
 
+  *s++ = '[';
+  
   while(defs->style)
-  { sprintf(s, "@%s_%s_%d = \"%s\"\n",
+  { sprintf(s, "font(%s, %s, %d, \"%s\")",
 	    strName(fam),
 	    strName(defs->style),
 	    defs->points,
 	    defs->xname);
     s += strlen(s);
     defs++;
+    if ( defs->style )
+      strcpy(s, ",\n");
+    s += strlen(s);
   }
+
+  *s++ = ']';
+  *s = EOS;
 
   return save_string(buf);
 }
@@ -1070,7 +1082,7 @@ default_font_list(Name fam, FontDef defs)
 
 static void
 attach_fonts(Class class, char *res, Name fam, FontDef defs)
-{ attach_resource(class, res, "string",
+{ attach_resource(class, res, "chain",
 		  default_font_list(fam, defs),
 		  "Font family set");
 }
@@ -1078,8 +1090,9 @@ attach_fonts(Class class, char *res, Name fam, FontDef defs)
 
 static void
 attach_font_families(Class class)
-{ attach_resource(class, "font_families",  "string",
-		  "screen_fonts,courier_fonts,helvetica_fonts,times_fonts",
+{ attach_resource(class, "font_families",  "chain",
+		  "[screen_fonts, courier_fonts," /* concat */
+		  "helvetica_fonts, times_fonts]",
 		  "Predefined font families");
 
   attach_fonts(class, "screen_fonts", NAME_screen, screen_fonts);

@@ -48,7 +48,7 @@ r_line(x1, y1, x2, y2)		Draw line.
 r_polygon(pts, n, close)	Draw a polygon
 r_path(points, ox, oy, radius, close, fill)
 				Draw a line through points
-r_image(bm, sx, sy, x. y, w, h) Copy an image
+r_image(bm, sx, sy, x. y, w, h, transparent) Copy an image
 r_set_pixel(x, y)		Set a pixel to the foreground color
 r_clear_pixel(x, y)		Set a pixel to the background color
 r_complement_pixel(x, y)	Invert a pixel
@@ -101,9 +101,9 @@ static struct d_context
   DisplayObj	pceDisplay;		/* PCE display object */          
   Image		cache;			/* Actually writing here */       
   Window	window;			/* Window we are caching for */   
-  Colour	default_foreground;	/* Default foreground colour */   
-  Colour	default_background;	/* Default background colour */    
-  Colour	default_colour;		/* Colour for @default */
+  Any		default_foreground;	/* Default foreground colour */   
+  Any		default_background;	/* Default background colour */    
+  Any		default_colour;		/* Colour for @default */
   int		cache_x;		/* X-offset of cache */           
   int		cache_y;		/* Y-offset of cache */           
   int		cache_w;		/* Width of cache */              
@@ -268,12 +268,13 @@ d_window(PceWindow sw, int x, int y, int w, int h, int clear, int limit)
     context.cache = NULL;
   }
 
-  XSetTSOrigin(context.display, context.gcs->fillGC,
-	       context.origin_x-context.cache_x,
-	       context.origin_y-context.cache_y);
-  XSetTSOrigin(context.display, context.gcs->clearGC,
-	       context.origin_x-context.cache_x,
-	       context.origin_y-context.cache_y);
+  { int tsx = context.origin_x-context.cache_x;
+    int tsy = context.origin_y-context.cache_y;
+
+    XSetTSOrigin(context.display, context.gcs->fillGC, tsx, tsy);
+    XSetTSOrigin(context.display, context.gcs->clearGC, tsx, tsy);
+    XSetTSOrigin(context.display, context.gcs->workGC, tsx, tsy);
+  }
 
   d_clip(x, y, w, h);
   if ( clear )
@@ -673,19 +674,21 @@ r_andpattern(Image i)
 }
 
 
-Colour
+Any
 r_default_colour(Colour c)
-{ Colour old = context.default_colour;
+{ Any old = context.default_colour;
   
-  context.default_colour = c;
-  r_colour(c);
+  if ( notDefault(c) )
+    context.default_colour = c;
+
+  r_colour(context.default_colour);
   
   return old;
 }
 
 
 Colour
-r_colour(Colour c)
+r_colour(Any c)
 { Colour old = context.gcs->colour;
 
   if ( isDefault(c) )
@@ -693,15 +696,28 @@ r_colour(Colour c)
 
   if ( c != context.gcs->colour )
   { if ( context.gcs->kind != NAME_bitmap )
-    { ulong pixel;
+    { XGCValues values;
+      ulong mask;
 
-      if ( isDefault(c) )
-	c = context.default_foreground;
+      if ( instanceOfObject(c, ClassColour) )
+      { ulong pixel = getPixelColour(c, context.pceDisplay);
+	
+	values.foreground = pixel;
+	values.fill_style = FillSolid;
+	mask		  = (GCForeground|GCFillStyle);
 
-      pixel = getPixelColour(c, context.pceDisplay);
-      XSetForeground(context.display, context.gcs->workGC, pixel);
-      XSetForeground(context.display, context.gcs->fillGC, pixel);
-      context.gcs->foreground_pixel = pixel;
+	context.gcs->foreground_pixel = pixel;
+      } else
+      { Pixmap pm   = (Pixmap) getXrefObject(c, context.pceDisplay);
+
+	values.tile       = pm;
+	values.fill_style = FillTiled;
+	mask		  = (GCTile|GCFillStyle);
+      }
+
+      context.gcs->colour = c;
+      XChangeGC(context.display, context.gcs->workGC, mask, &values);
+      XChangeGC(context.display, context.gcs->fillGC, mask, &values);
     } 
     context.gcs->colour = c;
   }
@@ -968,7 +984,7 @@ r_3d_box(int x, int y, int w, int h, int shadow, Any fill, int up)
 { XSegment s[MAX_SHADOW * 2];
   int i;
   int pen = 1;
-  int os;
+  int ios, os;
   GC TopLeftGC, BottomRightGC;
   int xt, yt;
 
@@ -985,7 +1001,17 @@ r_3d_box(int x, int y, int w, int h, int shadow, Any fill, int up)
 
   xt = x, yt = y;
   Translate(xt, yt);
-  for(i=0, os=0; os < shadow; os += pen)
+
+#if 0
+  if ( context.gcs->depth == 1 )	/* monochrome */
+  { XDrawRectangle(context.display, context.drawable, context.gcs->shadowGC,
+		   xt, yt, w-1, h-1);
+    ios = 1;
+  } else
+#endif
+    ios = 0;
+
+  for(i=0, os=ios; os < shadow; os += pen)
   { s[i].x1 = xt+os;		s[i].y1 = yt+os;	/* top-side */
     s[i].x2 = xt+w-1-os;	s[i].y2 = yt+os;
     i++;
@@ -995,9 +1021,7 @@ r_3d_box(int x, int y, int w, int h, int shadow, Any fill, int up)
   }
   XDrawSegments(context.display, context.drawable, TopLeftGC, s, i);
   
-  xt = x, yt = y;
-  Translate(xt, yt);
-  for(i=0, os=0; os < shadow; os += pen)
+  for(i=0, os=ios; os < shadow; os += pen)
   { s[i].x1 = xt+os;		s[i].y1 = yt+h-1-os;	/* bottom-side */
     s[i].x2 = xt+w-1-os;	s[i].y2 = yt+h-1-os;
     i++;
@@ -1209,7 +1233,10 @@ r_op_image(Image image, int sx, int sy, int x, int y, int w, int h, Name op)
 
 
 void
-r_image(Image image, int sx, int sy, int x, int y, int w, int h)
+r_image(Image image,
+	int sx, int sy,
+	int x, int y, int w, int h,
+	Bool transparent)
 { if ( image->size->w == ZERO || image->size->h == ZERO )
     return;
 
@@ -1237,10 +1264,11 @@ r_image(Image image, int sx, int sy, int x, int y, int w, int h)
       { values.foreground  = context.gcs->foreground_pixel;
 	values.background  = context.gcs->background_pixel;
 	values.stipple     = pix;
-
+	values.fill_style  = (transparent == ON ? FillStippled
+			      			: FillOpaqueStippled);
 
 	XChangeGC(context.display, context.gcs->bitmapGC,
-		  GCForeground|GCBackground|
+		  GCForeground|GCBackground|GCFillStyle|
 		  GCStipple|GCTileStipXOrigin|GCTileStipYOrigin,
 		  &values);
 
@@ -1284,7 +1312,9 @@ r_image(Image image, int sx, int sy, int x, int y, int w, int h)
 	}
       }
     }
-  } else
+  } else if ( transparent == ON && image->kind == NAME_bitmap )
+    r_op_image(image, sx, sy, x, y, w, h, NAME_or);
+  else
     r_op_image(image, sx, sy, x, y, w, h, NAME_copy);
 }
 

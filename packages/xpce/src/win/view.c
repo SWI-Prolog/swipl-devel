@@ -197,7 +197,7 @@ makeClassView(Class class)
 
   attach_resource(class, "pen",    "int",   "0",
 		  "Pen (done by <-editor)");
-  attach_resource(class, "size",   "size",  "80x20",
+  attach_resource(class, "size",   "size",  "size(80,20)",
 		  "Default size in `characters x lines'");
 
   succeed;

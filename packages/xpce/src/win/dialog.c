@@ -340,7 +340,7 @@ makeClassDialog(Class class)
 	    "<-member: reporter or <-contained_in",
 	    getReportToDialog);
 	    
-  attach_resource(class, "gap", "size", "15x8",
+  attach_resource(class, "gap", "size", "size(15,8)",
 		  "Distance between items in X and Y");
 
   succeed;

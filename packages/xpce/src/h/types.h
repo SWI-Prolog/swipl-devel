@@ -222,6 +222,7 @@ GLOBAL Type TypeImage;
 GLOBAL Type TypeName;
 GLOBAL Type TypeNil;
 GLOBAL Type TypeObject;
+GLOBAL Type TypeReal;
 GLOBAL Type TypeSendMethod;
 GLOBAL Type TypeType;
 GLOBAL Type TypeUnchecked;

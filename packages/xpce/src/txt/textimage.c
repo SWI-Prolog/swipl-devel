@@ -1048,7 +1048,7 @@ shift_lines(TextImage ti)
 #ifdef __WINDOWS__
     r_copy(0, yfrom, 0, yto, ti->w, h);
 #else
-    r_image(ti->image, 0, yfrom, 0, yto, ti->w, h);
+    r_image(ti->image, 0, yfrom, 0, yto, ti->w, h, OFF);
     r_clear(0, yfrom, ti->w, yto - yfrom);
 #endif
     rotate_lines(&im->lines[sl], el - sl, ins);
@@ -1072,7 +1072,7 @@ shift_lines(TextImage ti)
 #ifdef __WINDOWS__
     r_copy(0, yfrom, 0, yto, ti->w, h);
 #else
-    r_image(ti->image, 0, yfrom, 0, yto, ti->w, h);
+    r_image(ti->image, 0, yfrom, 0, yto, ti->w, h, OFF);
     r_clear(0, yto + h, ti->w, yfrom - yto);
 #endif
     rotate_lines(&im->lines[sl], el - sl, -ins);
@@ -1227,7 +1227,7 @@ RedrawAreaTextImage(TextImage ti, Area a)
   if ( w > 0 && h > 0 ) 
   { DEBUG(NAME_textImage, printf("r_image(%s, %d, %d, %d, %d, %d, %d)\n",
 				 pp(ti->image), sx, sy, x, y, w, h));
-    r_image(ti->image, sx, sy, x, y, w, h);
+    r_image(ti->image, sx, sy, x, y, w, h, OFF);
   }
 
   r_thickness(p);

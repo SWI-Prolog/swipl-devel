@@ -151,71 +151,40 @@ XcloseFont(FontObj f, DisplayObj d)
 
 status
 loadFontFamilyDisplay(DisplayObj d, Name fam)
-{ Name list = getResourceValueObject(d, fam);
+{ Chain list = getResourceValueObject(d, fam);
 
   if ( !list )
   { Class class = classOfObject(d);
 
     if ( !getResourceClass(class, fam) )
     { resourceClass(class, newObject(ClassResource, fam, DEFAULT,
-				     NAME_string, CtoString(""), class,
+				     NAME_class, CtoString("[]"), class,
 				     CtoString("Font family set"), 0));
       list = getResourceValueObject(d, fam);
     }
 
-    if ( !list || list->data.size == 0 )
+    if ( !list )
       return errorPce(d, NAME_noFontsInFamily, fam);
   }
 
-  { char *s = strName(list);
-    Name family, style, xname;
-    int size;
-
-    while(*s)
-    { skip_until('@');
-      name_until(family, '_');
-      name_until(style, '_');
-      integer(size);
-      skip_until('"');
-      name_until(xname, '"');
-    
-      newObject(ClassFont, family, style, toInt(size), xname, 0);
-    }
-
-    succeed;
-  }
+  succeed;
 } 
 
 
 status
 loadFontsDisplay(DisplayObj d)
-{ CharArray rval;
+{ Chain fams;
   static int done = FALSE;
 
   if ( done == TRUE )
     succeed;
   done = TRUE;
 
-  if ( (rval = getResourceValueObject(d, NAME_fontFamilies)) )
-  { char *s = strName(rval);
-    
-    while(*s)
-    { char *a, t;
+  if ( (fams = getResourceValueObject(d, NAME_fontFamilies)) )
+  { Cell cell;
 
-      while(*s && !(isalnum(*s) || *s == '_'))
-	s++;
-      a = s;
-      while(*s && (isalnum(*s) || *s == '_'))
-	s++;
-      t = *s; *s = EOS;
-      if ( s > a )
-      { Name fam = CtoKeyword(a);
-	*s = t;
-
-	send(d, NAME_loadFontFamily, fam, 0);
-      } else
-	*s = t;
-    }
+    for_cell(cell, fams)
+      send(d, NAME_loadFontFamily, cell->value, 0);
   }
 
   succeed;

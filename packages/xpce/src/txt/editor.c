@@ -4192,7 +4192,7 @@ makeClassEditor(Class class)
 	    "Length of view (for scroll_bar)",
 	    getViewEditor);
 
-  attach_resource(class, "size",	       "size",    "40x20",
+  attach_resource(class, "size",	       "size",    "size(40,20)",
 		  "Default size in `characters x lines'");
   attach_resource(class, "font",	       "font",    "@screen_roman_13",
 		  "Default font");

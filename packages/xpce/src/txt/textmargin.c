@@ -236,7 +236,7 @@ makeClassTextMargin(Class class)
 	    "Find the fragment at the event-position",
 	    getFragmentTextMargin);
 
-  attach_resource(class, "gap", "size", "5x2",
+  attach_resource(class, "gap", "size", "size(5,2)",
 		  "Distance between icons in X and Y");
 
   succeed;

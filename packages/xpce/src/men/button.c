@@ -16,11 +16,12 @@ static status
 initialiseButton(Button b, Name name, Message msg, Name acc)
 { createDialogItem(b, name);
 
-  assign(b, pen,             DEFAULT);		/* resources */
-  assign(b, radius,          DEFAULT);
-  assign(b, font,            DEFAULT);
-  assign(b, shadow,          DEFAULT);
-  assign(b, popup_image,     DEFAULT);
+  assign(b, pen,          DEFAULT);	/* resources */
+  assign(b, radius,       DEFAULT);
+  assign(b, font,         DEFAULT);
+  assign(b, shadow,       DEFAULT);
+  assign(b, popup_image,  DEFAULT);
+  assign(b, fill_pattern, DEFAULT);
 
   assign(b, message, msg);
   if ( notDefault(acc) )
@@ -50,9 +51,8 @@ RedrawAreaButton(Button b, Area a)
 
   if ( b->look == NAME_motif )
   { int up   = (b->status == NAME_inactive || b->status == NAME_active);
-    Any fill = (b->status == NAME_execute ? GREY50_IMAGE : GREY25_IMAGE);
 
-    r_3d_box(x, y, w, h, 2, fill, up);
+    r_3d_box(x, y, w, h, shadow, b->fill_pattern, up);
   } else
   { if ( b->status == NAME_inactive || b->status == NAME_active )
     { r_shadow_box(x, y, w, h, radius, shadow, NIL);
@@ -75,7 +75,7 @@ RedrawAreaButton(Button b, Area a)
     int ih = valInt(b->popup_image->size->h);
 
     rm = iw+8;
-    r_image(b->popup_image, 0, 0, x+w-rm, y + (h-ih)/2, iw, ih);
+    r_image(b->popup_image, 0, 0, x+w-rm, y + (h-ih)/2, iw, ih, ON);
   }
 
   str_string(&b->label->data, b->font, x, y, w-rm, h,
@@ -297,16 +297,20 @@ makeClassButton(Class class)
 	     "Activate when ->key: name is received");
   localClass(class, NAME_popupImage, NAME_appearance, "image*", NAME_get,
 	     "Indication that button has a popup menu");
+  localClass(class, NAME_fillPattern, NAME_appearance, "image|colour*",
+	     NAME_get,
+	     "Fill interior using this");
 
   termClass(class, "button", 3, NAME_label, NAME_message, NAME_accelerator);
   setRedrawFunctionClass(class, RedrawAreaButton);
 
-  storeMethod(class, NAME_status,     statusButton);
-  storeMethod(class, NAME_radius,     radiusButton);
-  storeMethod(class, NAME_font,       fontButton);
-  storeMethod(class, NAME_popup,      popupButton);
-  storeMethod(class, NAME_shadow,     shadowButton);
-  storeMethod(class, NAME_popupImage, popupImageButton);
+  storeMethod(class, NAME_status,      statusButton);
+  storeMethod(class, NAME_radius,      radiusButton);
+  storeMethod(class, NAME_font,        fontButton);
+  storeMethod(class, NAME_popup,       popupButton);
+  storeMethod(class, NAME_shadow,      shadowButton);
+  storeMethod(class, NAME_popupImage,  popupImageButton);
+  storeMethod(class, NAME_fillPattern, fillPatternGraphical);
 
   sendMethod(class, NAME_initialise, DEFAULT,
 	     3, "name=name", "message=[code]*", "label=[name]",
@@ -347,7 +351,7 @@ makeClassButton(Class class)
 
   attach_resource(class, "font", "font", "@helvetica_bold_14",
 		  "Default font for text");
-  attach_resource(class, "size", "size", "80x20",
+  attach_resource(class, "size", "size", "size(80,20)",
 		  "Mimimum size in pixels");
   attach_resource(class, "pen", "int", "2",
 		  "Thickness of box");
@@ -361,6 +365,8 @@ makeClassButton(Class class)
 		  "Ensured suffix of label");
   attach_resource(class, "alignment", "{column,left,center,right}", "left",
 		  "Alignment in the row");
+  attach_resource(class, "fill_pattern", "image|colour*", "@nil",
+		  "Fill for interior");
 
   succeed;
 }

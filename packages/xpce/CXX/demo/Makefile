@@ -21,22 +21,14 @@
 .SUFFIXES: .C
 
 PCEHOME=	/staff/jan/src/xpce
-PCEARCH=	sparc-sunos-4.1.3
-#PCEARCH=	i386-linux-0.99.13
+
 
 CC=gcc
 C++=g++
-/*C++FLAGS=	-I$(PCEHOME)/include -B$(PCEHOME)/include/ -O*/
 C++FLAGS=	-I$(PCEHOME)/include -O
 CFLAGS=		-O
-PCELIBS=	$(PCEHOME)/$(PCEARCH)/XPCE.a -lXt -lX11 -lm
+PCELIBS=	$(PCEHOME)/src/XPCE.a -lXt -lX11 -lm
 LDFLAGS=	$(PCELIBS)
-
-domangle:	mangle mlist ../pl/$(PCEARCH)/xpce.base
-		./mangle mlist ../pl/$(PCEARCH)/xpce.base
-
-mangle:		mangle.c
-		$(CC) -o mangle -O mangle.c
 
 clean:
 		rm -f *.o core a.out *~ *%

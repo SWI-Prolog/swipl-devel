@@ -30,7 +30,7 @@ makeClassPicture(Class class)
 	     "Create from label, size and display",
 	     initialisePicture);
 
-  attach_resource(class, "size", "size", "400x200",
+  attach_resource(class, "size", "size", "size(400,200)",
 		  "Default size in pixels");
 
   succeed;

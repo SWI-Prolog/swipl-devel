@@ -12,35 +12,65 @@
 #include <h/lang.h>
 #include <math.h>
 
+#define A_NONE		0		/* no input */
+#define A_FILE		1		/* input is a file */
+#define A_CHAR_ARRAY	2		/* input is a char_array */
+#define A_TEXT_BUFFER	3		/* input in a text_buffer */
+
 NewClass(tokeniser)
   SyntaxTable	syntax;			/* syntax declarations */
   Any		source;			/* input device */
-  Int		line;			/* current line-no */
-  Name		status;			/* {open,closed} */
-  Name		kind;			/* {sequential,random_access} */
   Chain		stack;			/* push-back */
   HashTable	symbols;		/* (Partial) symbols */
-  int		caret;			/* current location (random_access) */
+  int		line;			/* current line-no */
+  int		access;			/* access-functions */
+  int		caret;			/* current location */
 End;
 
 static status	closeTokeniser P((Tokeniser));
-static status	sourceTokeniser(Tokeniser t, Any source);
 
-#define IsEof(c)	((c) == (char)EOF)
+#define IsEof(c)	((c) == EOF)
 
 /* Problems:
 
-	* Text access
 	* UNGETC has to do two chars!
 */
 
 static status
-initialiseTokeniser(Tokeniser t, Any source, SyntaxTable syntax)
+initialiseTokeniser(Tokeniser t, SyntaxTable syntax)
 { assign(t, syntax,  syntax);
-  assign(t, stack,   newObject(ClassChain, 0));
   assign(t, symbols, newObject(ClassHashTable, 0));
 
-  return sourceTokeniser(t, source);
+  t->access = A_NONE;
+  t->line = t->caret = 0;
+
+  succeed;
+}
+
+
+static status
+cloneTokeniser(Tokeniser t, Tokeniser clone)
+{ clonePceSlots(t, clone);
+  assign(clone, source, NIL);
+  t->access = A_NONE;
+  t->line = t->caret = 0;
+  
+  succeed;
+}
+
+		 /*******************************
+		 *	 READ ALIEN SLOTS	*
+		 *******************************/
+
+Int
+getLineTokeniser(Tokeniser t)
+{ answer(toInt(t->line));
+}
+
+
+Int
+getCaretTokeniser(Tokeniser t)
+{ answer(toInt(t->caret));
 }
 
 
@@ -48,55 +78,74 @@ initialiseTokeniser(Tokeniser t, Any source, SyntaxTable syntax)
 		 *	 HANLING <-SOURCE	*
 		 *******************************/
 
-static status
-sourceTokeniser(Tokeniser t, Any source)
-{ if ( t->source != source )
-  { closeTokeniser(t);
-    assign(t, source, source);
-    assign(t, status, NAME_closed);
-    assign(t, line, ONE);
-    t->caret = 0;
-    if ( instanceOfObject(source, ClassFile) )
-      assign(t, kind, NAME_sequential);
-    else
-      assign(t, kind, NAME_randomAccess);
+Tokeniser
+getOpenTokeniser(Tokeniser t, Any source)
+{ if ( notNil(t->source) )
+  { t = getCloneObject(t);
+    assert(t);
   }
 
-  succeed;
-}
+  assign(t, source, source);
+  t->line  = 1;
+  t->caret = 0;
 
-
-static status
-openTokeniser(Tokeniser t)
-{ if ( t->status != NAME_open )
-  { TRY(send(t->source, NAME_open, NAME_read, 0));
-    assign(t, status, NAME_open);
+  if ( instanceOfObject(source, ClassFile) )
+  { if ( !send(t->source, NAME_open, NAME_read, 0) )
+    { assign(t, source, NIL);
+      fail;
+    }
+    t->access = A_FILE;
+  } else if ( instanceOfObject(source, ClassCharArray) )
+  { t->access = A_CHAR_ARRAY;
+  } else if ( instanceOfObject(source, ClassTextBuffer) )
+  { t->access = A_TEXT_BUFFER;
   }
 
-  succeed;
+  answer(t);
 }
 
 
 static status
 closeTokeniser(Tokeniser t)
-{ if ( t->status != NAME_closed )
-  { if ( notNil(t->source) )
-      TRY(send(t->source, NAME_close, 0));
-    assign(t, status, NAME_closed);
+{ switch(t->access)
+  { case A_FILE:
+      send(t->source, NAME_close, 0);
   }
+
+  assign(t, source, NIL);
+  t->access = A_NONE;
 
   succeed;
 }
 
 
-static char
+static int
 GETC(Tokeniser t)
-{ FileObj f = t->source;
-  char c;
+{ int c;
 
-  c = getc(f->fd);
+  switch(t->access)
+  { case A_FILE:
+    { FileObj f = t->source;
+      c = getc(f->fd);
+      break;
+    }
+    case A_CHAR_ARRAY:
+    { CharArray ca = t->source;
+      String s = &ca->data;
+
+      c = (t->caret < s->size ? str_fetch(&ca->data, t->caret) : EOF);
+      break;
+    }
+    case A_TEXT_BUFFER:
+    { TextBuffer tb = t->source;
+      c = fetch_textbuffer(tb, t->caret);
+    }
+    default:
+      return EOF;
+  }
+
   if ( tisendsline(t->syntax, c) )
-    assign(t, line, inc(t->line));
+    t->line++;
   t->caret++;
 
   return c;
@@ -104,19 +153,26 @@ GETC(Tokeniser t)
 
 
 static void
-UNGETC(Tokeniser t, char c)
-{ FileObj f = t->source;
+UNGETC(Tokeniser t, int c)
+{ if ( t->caret > 0 )
+  { switch(t->access)
+    { case A_FILE:
+      { FileObj f = t->source;
 
-  ungetc(c, f->fd);
-  if ( tisendsline(t->syntax, c) )
-    assign(t, line, dec(t->line));
-  t->caret--;
+	ungetc(c, f->fd);
+      }
+    }
+
+    if ( tisendsline(t->syntax, c) )
+      t->line--;
+    t->caret--;
+  }
 }
 
 
 static Int
 getCharacterTokeniser(Tokeniser t)
-{ char c = GETC(t);
+{ int c = GETC(t);
 
   if ( !IsEof(c) )
     answer(toInt(c));
@@ -180,9 +236,18 @@ symbolTokeniser(Tokeniser t, Name symb)	/* only need 2++ characters!? */
 
 static status
 syntaxErrorTokeniser(Tokeniser t, CharArray msg)
-{ errorPce(t, NAME_sourceError, t->source, t->line, msg);
+{ errorPce(t, NAME_sourceError, t->source, toInt(t->line), msg);
 
   succeed;
+}
+
+
+static Any
+getReportToTokeniser(Tokeniser t)
+{ if ( notNil(t->source) )
+    answer(t->source);
+
+  fail;
 }
 
 
@@ -193,24 +258,28 @@ syntaxErrorTokeniser(Tokeniser t, CharArray msg)
 
 static status
 tokenTokeniser(Tokeniser t, Any token)
-{ return appendChain(t->stack, token);
+{ if ( isNil(t->stack) )
+    assign(t, stack, newObject(ClassChain, 0));
+
+  return appendChain(t->stack, token);
 }
 
 
 static Any
 getTokenTokeniser(Tokeniser t)
-{ char c;
+{ int c;
   SyntaxTable s = t->syntax;
 
-  if ( !emptyChain(t->stack) )
-  { Any token = getHeadChain(t->stack);
+  if ( notNil(t->stack) && !emptyChain(t->stack) )
+  { Any token = getDeleteHeadChain(t->stack);
 
-    deleteHeadChain(t->stack);
     answer(token);
   }
     
-
-  TRY(openTokeniser(t));
+  if ( isNil(t->source) )
+  { errorPce(t, NAME_notOpen);
+    fail;
+  }
 
 					/* skip whitespace and comment */
   for(;;)
@@ -221,8 +290,7 @@ getTokenTokeniser(Tokeniser t)
     if ( tiscommentstart(s, c) )	/* 1 character comment */
     { do
       { if ( IsEof(c = GETC(t)) )
-	{ errorPce(t, NAME_sourceError, t->source, t->line,
-		   CtoName("End of file in comment"));
+	{ send(t, NAME_syntaxError, CtoName("End of file in comment"));
 	  fail;
 	}
       } while( !tiscommentend(s, c) );
@@ -238,8 +306,7 @@ getTokenTokeniser(Tokeniser t)
 	while( !tiscommentend1(s, c1) || !tiscommentend2(s, c2) )
 	{ c1 = c2;
 	  if ( IsEof(c2 = GETC(t)) )
-	  { errorPce(t, NAME_sourceError, t->source, t->line,
-		     CtoName("End of file in comment"));
+	  { send(t, NAME_syntaxError, CtoName("End of file in comment"));
 	    fail;
 	  }
 	}
@@ -257,8 +324,7 @@ getTokenTokeniser(Tokeniser t)
   DEBUG(NAME_tokeniser, printf("Found char = %c at %d\n", c, t->caret));
 
   if ( IsEof(c) )
-  { fail;				/* TBD: special token (@eof) ? */
-  }
+    return EndOfFile;
 
   if ( tisquote(s, c) )			/* strings */
   { char buf[LINESIZE];
@@ -267,8 +333,7 @@ getTokenTokeniser(Tokeniser t)
 
     for(;;)
     { if ( IsEof(c = GETC(t)) )
-      { errorPce(t, NAME_sourceError, t->source, t->line,
-		 CtoName("End of file in string"));
+      { send(t, NAME_syntaxError, CtoName("End of file in string"));
 	fail;
       }
 	
@@ -288,8 +353,7 @@ getTokenTokeniser(Tokeniser t)
 	{ char c2;
 
 	  if ( IsEof(c2 = GETC(t)) )
-	  { errorPce(t, NAME_sourceError, t->source, t->line,
-		     CtoName("End of file in string"));
+	  { send(t, NAME_syntaxError, CtoName("End of file in string"));
 	    fail;
 	  }
 	  if ( c2 != open )
@@ -357,9 +421,10 @@ getTokenTokeniser(Tokeniser t)
     { char *e;
       long f = strtol(buf, &e, 10);
       if ( e != q )
-      { printf("Num = '%s' (%ld), e = %d, q = %d\n", buf, f, e-buf, q-buf);
-	errorPce(t, NAME_sourceError, t->source, t->line,
-		 CtoName("Illegal number"));
+      { DEBUG(NAME_tokeniser, 
+	      printf("Num = '%s' (%ld), e = %d, q = %d\n",
+		     buf, f, e-buf, q-buf));
+	send(t, NAME_syntaxError, CtoName("Illegal number"));
 	fail;
       }
       answer(toInt(f));
@@ -367,9 +432,10 @@ getTokenTokeniser(Tokeniser t)
     { char *e;
       double f = StrTod(buf, &e);
       if ( e != q )
-      { printf("Num = '%s' (%f), e = %d, q = %d\n", buf, f, e-buf, q-buf);
-	errorPce(t, NAME_sourceError, t->source, t->line,
-		 CtoName("Illegal number"));
+      { DEBUG(NAME_tokeniser,
+	      printf("Num = '%s' (%f), e = %d, q = %d\n",
+		     buf, f, e-buf, q-buf));
+	send(t, NAME_syntaxError, CtoName("Illegal number"));
 	fail;
       }
       answer(CtoReal(f));
@@ -395,6 +461,9 @@ getTokenTokeniser(Tokeniser t)
     *s = EOS;
     symb = CtoName(buf);
 
+    if ( isNil(t->symbols) || !getMemberHashTable(t->symbols, symb) )
+      answer(symb);
+    
     do
     { symbol = symb;
       *s++ = c;
@@ -417,38 +486,32 @@ makeClassTokeniser(Class class)
 
   localClass(class, NAME_syntax, NAME_syntax, "syntax_table", NAME_both,
 	     "Syntax used");
-  localClass(class, NAME_source, NAME_input, "file", NAME_get,
-	     "Input source");
-  localClass(class, NAME_line, NAME_report, "int", NAME_both,
-	     "Current line number");
-  localClass(class, NAME_status, NAME_input, "{open,closed}", NAME_get,
-	     "Status of input device");
-  localClass(class, NAME_kind, NAME_input,
-	     "{sequential,random_access}", NAME_get,
-	     "Kind of input device");
-  localClass(class, NAME_stack, NAME_readAhead, "chain", NAME_get,
+  localClass(class, NAME_source, NAME_input, "file|char_array|text_buffer*",
+	     NAME_get, "Input source");
+  localClass(class, NAME_stack, NAME_readAhead, "chain*", NAME_get,
 	     "Stack of pushed-back tokens");
   localClass(class, NAME_symbols, NAME_syntax, "hash_table", NAME_get,
 	     "Table with punctuation-character symbols");
+  localClass(class, NAME_access, NAME_input, "alien:int", NAME_none,
+	     "Internal access context");
+  localClass(class, NAME_line, NAME_report, "alien:int", NAME_none,
+	     "Current line number");
   localClass(class, NAME_caret, NAME_input, "alien:int", NAME_none,
 	     "Point for random_access devices");
 
   termClass(class, "tokeniser", 2, NAME_source, NAME_syntax);
+  setCloneFunctionClass(class, cloneTokeniser);
+  cloneStyleVariableClass(class, NAME_syntax,  NAME_reference);
+  cloneStyleVariableClass(class, NAME_symbols, NAME_reference);
+  cloneStyleVariableClass(class, NAME_source,  NAME_reference);
+  cloneStyleVariableClass(class, NAME_stack,   NAME_nil);
 
-  sendMethod(class, NAME_initialise, DEFAULT, 2,
-	     "input=file", "syntax=[syntax_table]",
-	     "Create for source with syntax",
+  sendMethod(class, NAME_initialise, DEFAULT, 1, "syntax=[syntax_table]",
+	     "Create from syntax",
 	     initialiseTokeniser);
-  sendMethod(class, NAME_open, NAME_input, 0,
-	     "Open source",
-	     openTokeniser);
   sendMethod(class, NAME_close, NAME_input, 0,
 	     "Close source",
 	     closeTokeniser);
-  sendMethod(class, NAME_source, NAME_input, 1,
-	     "source=file|char_array|text_buffer",
-	     "Assign specified source",
-	     sourceTokeniser);
   sendMethod(class, NAME_symbol, NAME_syntax, 1, "symbol=name",
 	     "Declare name to be a symbol",
 	     symbolTokeniser);
@@ -471,6 +534,24 @@ makeClassTokeniser(Class class)
   getMethod(class, NAME_peek, NAME_parse, "char", 0,
 	    "Peek at next character",
 	    getPeekTokeniser);
+  getMethod(class, NAME_reportTo, NAME_report, "any", 0,
+	    "Report errors to the <-source",
+	    getReportToTokeniser);
+  getMethod(class, NAME_open, NAME_input, "tokeniser", 1,
+	    "file|char_array|text_buffer*",
+	    "Open input for tokenising",
+	    getOpenTokeniser);
+  getMethod(class, NAME_caret, NAME_report, "int", 0,
+	    "Current character-index",
+	    getCaretTokeniser);
+  getMethod(class, NAME_line, NAME_report, "int", 0,
+	    "Current line-number (1-based)",
+	    getLineTokeniser);
+
+  EndOfFile = globalObject(NAME_endOfFile, ClassConstant,
+			   NAME_endOfFile,
+			   CtoString("End-of-file marker"),
+			   0);
 
   succeed;
 }

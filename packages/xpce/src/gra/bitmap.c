@@ -20,6 +20,7 @@ initialiseBitmap(BitmapObj b, Image image)
   
   initialiseGraphical(b, ZERO, ZERO, image->size->w, image->size->h);
   assign(b, pen, ZERO);
+  assign(b, transparent, OFF);
   assign(b, image, image);
   if ( image->access == NAME_both && isNil(image->bitmap) )
     assign(image, bitmap, b);
@@ -54,7 +55,7 @@ RedrawAreaBitmap(BitmapObj b, Area a)
 
   initialiseDeviceGraphical(b, &x, &y, &w, &h);
   if ( notNil(b->image) )
-    r_image(b->image, 0, 0, x, y, w, h);
+    r_image(b->image, 0, 0, x, y, w, h, b->transparent);
 
   if ( b->pen != ZERO )
   { r_thickness(valInt(b->pen));
@@ -95,6 +96,20 @@ imageBitmap(BitmapObj bm, Image image)
       delRefObj(bm);
       changedEntireImageGraphical(bm));
   }
+
+  succeed;
+}
+
+
+static status
+transparentBitmap(BitmapObj bm, Bool transparent)
+{ CHANGING_GRAPHICAL(bm,
+		     assign(bm, transparent, transparent);
+		     if ( transparent == OFF )
+		       setFlag(bm, F_SOLID);
+		     else
+		       clearFlag(bm, F_SOLID);
+		     changedEntireImageGraphical(bm));
 
   succeed;
 }
@@ -164,6 +179,8 @@ loadFdBitmap(BitmapObj bm, FILE *fd, ClassDef def)
       assign(bm, colour, DEFAULT);
     if ( isNil(bm->inverted) )
       assign(bm, inverted, OFF);
+    if ( isNil(bm->transparent) )
+      assign(bm, transparent, OFF);
   }
 
   succeed;
@@ -182,6 +199,8 @@ makeClassBitmap(Class class)
 
   localClass(class, NAME_image, NAME_appearance, "image", NAME_get,
 	     "The pixel collection managed");
+  localClass(class, NAME_transparent, NAME_appearance, "bool", NAME_get,
+	     "When @on, 0-pixels are not painted");
 
   solidClass(class, ON);
   termClass(class, "bitmap", 1, NAME_image);
@@ -190,6 +209,7 @@ makeClassBitmap(Class class)
   cloneStyleVariableClass(class, NAME_image, NAME_reference);
 
   storeMethod(class, NAME_image, imageBitmap);
+  storeMethod(class, NAME_transparent, transparentBitmap);
   delegateClass(class, NAME_image);
 
   sendMethod(class, NAME_initialise, DEFAULT, 1, "image=[image]",

@@ -43,7 +43,7 @@ RedrawAreaLabel(Label lb, Area a)
   } else /*if ( instanceOfObject(lb->selection, ClassImage) )*/
   { Image image = (Image) lb->selection;
 
-    r_image(image, 0, 0, x, y, w, h);
+    r_image(image, 0, 0, x, y, w, h, ON);
   }
 
   if ( lb->status == NAME_preview && notNil(lb->message) )

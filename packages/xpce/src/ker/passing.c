@@ -471,6 +471,35 @@ getv(Any receiver, Name selector, int argc, Any *argv)
 }
 
 
+Any					/* QuickAndDirtyGet */
+qadGetv(Any r, Name selector, int ac, Any *av)
+{ if ( !TraceMode)
+  { Any implementation = getGetMethodClass(classOfObject(r), selector);
+
+#define F (((GetMethod)implementation)->function)
+#if O_CPLUSPLUS
+#define PlainC(f) !isCppFunctionPointer(f)
+#else
+#define PlainC(f) 1
+#endif
+    if ( instanceOfObject(implementation, ClassGetMethod) && F && PlainC(F))
+    { switch(ac)
+      { case 0: return (*F)(r);
+	case 1: return (*F)(r, av[0]);
+	case 2: return (*F)(r, av[0],av[1]);
+	case 3: return (*F)(r, av[0],av[1],av[2]);
+	case 4: return (*F)(r, av[0],av[1],av[2],av[3]);
+	case 5: return (*F)(r, av[0],av[1],av[2],av[3],av[4]);
+	case 6: return (*F)(r, av[0],av[1],av[2],av[3],av[4],av[5]);
+      }
+    }
+  }
+#undef F
+
+  return vm_get(r, selector, classOfObject(r), ac, av);
+}
+
+
 status
 errorTypeMismatch(Any rec, Any impl, int arg, Type type)
 { Type argtype;
