@@ -22,9 +22,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#ifdef WIN32
-#include "../config/win32.h"
-#endif
+#define RC_KERNEL 1
+#include "rc.h"
 
 #include <stdio.h>
 #include <string.h>

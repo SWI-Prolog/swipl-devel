@@ -8,7 +8,10 @@
 					--------------------------------------
 
 
-  * Fixed: avoid deletion of clauses for dynamoc predicates on reload.
+  * PORT: Solaris _FILE_OFFSET_BITS issues in rc library.  Based on
+    comments from Ian Collier.
+
+  * FIXED: avoid deletion of clauses for dynamoc predicates on reload.
     Hugo Ferreira.
 
 

@@ -22,6 +22,9 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#define RC_KERNEL 1
+#include "rc.h"
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <string.h>
@@ -36,8 +39,6 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <stdarg.h>
-#define RC_KERNEL 1
-#include "rc.h"
 #include "rcutil.h"
 #include "html.h"
 #ifdef HAVE_UNISTD_H
