@@ -32,6 +32,10 @@
 #include <winsock2.h>
 #endif
 
+#include <wchar.h>
+typedef wchar_t pl_wchar_t;
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This modules defines the  SWI-Prolog  I/O   streams.  These  streams are
 provided to gain common access to  any   type  of character data: files,
@@ -592,6 +596,19 @@ Sputcode(int c, IOSTREAM *s)
 	return -1;
       if ( put_byte(c>>8, s) < 0 )
 	return -1;
+      break;
+    case ENC_WCHAR:
+    { pl_wchar_t chr = c;
+      unsigned char *q = (unsigned char *)&chr;
+      unsigned char *e = &q[sizeof(pl_wchar_t)];
+
+      while(q<e)
+      { if ( put_byte(*q++, s) < 0 )
+	  return -1;
+      }
+      
+      return -1;
+    }
     case ENC_UNKNOWN:
       return -1;
   }
@@ -742,6 +759,7 @@ Sungetcode(int c, IOSTREAM *s)
       }
       return -1;
     }
+    case ENC_WCHAR:			/* TBD */
     case ENC_UNKNOWN:
       return -1;
   }

@@ -399,6 +399,7 @@ PL_unify_wchars(term_t t, int flags, unsigned int len, const pl_wchar_t *text)
 }
 
 
+
 		 /*******************************
 		 *    QUINTUS WRAPPER SUPPORT   *
 		 *******************************/
@@ -833,15 +834,20 @@ unfindBuffer(int flags)
 }
 
 
-int
-PL_get_list_nchars(term_t l,
-		   unsigned int *length, char **s, unsigned int flags)
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+get_code_list(term_t l, unsigned flags, int wide)
+
+If l represents a list of codes   or characters, return a buffer holding
+the characters. If wide == TRUE  the   buffer  contains  objects of type
+pl_wchar_t. Otherwise it contains traditional characters.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static Buffer
+get_code_list(term_t l, unsigned int flags, int wide)
 { GET_LD
   Buffer b;
   word list = valHandle(l);
   Word arg, tail;
-  char *r;
-  unsigned int len;
   enum { CHARS, CODES } type;
 
   if ( isList(list) )
@@ -862,8 +868,7 @@ PL_get_list_nchars(term_t l,
       }
     }
   } else if ( isNil(list) )
-  { b = findBuffer(flags);
-    goto empty;
+  { return findBuffer(flags);
   }
 
   fail;
@@ -880,9 +885,7 @@ ok:
     switch(type)
     { case CODES:
 	if ( isTaggedInt(*arg) )
-	{ int i = valInt(*arg);
-	  if ( i >= 0 && i < 256 )
-	    c = i;
+	{ c = valInt(*arg);
 	}
         break;
       case CHARS:
@@ -891,38 +894,64 @@ ok:
 
 	  if ( a->length == 1 && true(a->type, PL_BLOB_TEXT) )
 	    c = a->name[0] & 0xff;
+	  if ( a->type == &ucs_atom && a->length == sizeof(pl_wchar_t) )
+	  { pl_wchar_t *n = (pl_wchar_t*)a->name;
+
+	    c = n[0];
+	  }
 
 	  break;
 	}
     }
 
-    if ( c == -1 )
-      return unfindBuffer(flags);
+    if ( c < 0 || (!wide && c > 0xff) )
+    { unfindBuffer(flags);
+      return NULL;
+    }
 
-    addBuffer(b, c, char);
+    if ( wide )
+      addBuffer(b, c, pl_wchar_t);
+    else
+      addBuffer(b, c, char);
+
     tail = argTermP(list, 1);
     deRef(tail);
     list = *tail;
   }
   if ( !isNil(list) )
-    return unfindBuffer(flags);
+  { unfindBuffer(flags);
+    return NULL;
+  }
 
-empty:
-  len = entriesBuffer(b, char);
+  return b;
+}
 
-  if ( length )
-    *length = len;
-  addBuffer(b, EOS, char);
-  r = baseBuffer(b, char);
 
-  if ( flags & BUF_MALLOC )
-  { *s = xmalloc(len+1);
-    memcpy(*s, r, len+1);
-    unfindBuffer(flags);
-  } else
-    *s = r;
+int
+PL_get_list_nchars(term_t l,
+		   unsigned int *length, char **s, unsigned int flags)
+{ Buffer b;
 
-  succeed;
+  if ( (b = get_code_list(l, flags, FALSE)) )
+  { char *r;
+    int len = entriesBuffer(b, char);
+
+    if ( length )
+      *length = len;
+    addBuffer(b, EOS, char);
+    r = baseBuffer(b, char);
+
+    if ( flags & BUF_MALLOC )
+    { *s = xmalloc(len+1);
+      memcpy(*s, r, len+1);
+      unfindBuffer(flags);
+    } else
+      *s = r;
+
+    succeed;
+  }
+
+  fail;
 }
 
 
@@ -1038,6 +1067,166 @@ PL_get_nchars(term_t l, unsigned int *length, char **s, unsigned flags)
 int
 PL_get_chars(term_t t, char **s, unsigned flags)
 { return PL_get_nchars(t, NULL, s, flags);
+}
+
+
+int
+PL_get_wchars(term_t l, unsigned int *length, pl_wchar_t **s, unsigned flags)
+{ GET_LD
+  word w = valHandle(l);
+  char tmp[100];
+  pl_wchar_t wtmp[100];
+  char *r = NULL;
+  pl_wchar_t *wr = NULL;
+  int type;
+  unsigned int len = ~(unsigned int)0;
+  int malloced = FALSE;
+
+  if ( (flags & CVT_ATOM) && isAtom(w) )
+  { Atom a = atomValue(w);
+    if ( false(a->type, PL_BLOB_TEXT) )
+      fail;				/* non-textual atom */
+    type = PL_ATOM;
+    if ( a->type == &ucs_atom )
+    { wr = (pl_wchar_t *) a->name;
+      len = a->length / sizeof(pl_wchar_t);
+      flags &= ~BUF_RING;
+    } else
+    { r = a->name;
+      len = a->length;
+      flags |= BUF_RING;
+    }
+  } else if ( (flags & CVT_INTEGER) && isInteger(w) )
+  { type = PL_INTEGER;
+    Ssprintf(tmp, "%ld", valInteger(w) );
+    r = tmp;
+    flags |= BUF_RING;
+  } else if ( (flags & CVT_FLOAT) && isReal(w) )
+  { char *q;
+    type = PL_FLOAT;
+    Ssprintf(tmp, "%g", valReal(w) );	/* TBD: use float format feature */
+    r = tmp;
+
+    q = tmp;				/* See also writePrimitive() */
+    if ( *q == L'-' )
+      q++;
+    for(; *q; q++)
+    { if ( !isDigit(*q) )
+	break;
+    }
+    if ( !*q )
+    { *q++ = '.';
+      *q++ = '0';
+      *q = EOS;
+    }
+    flags |= BUF_RING;
+#ifdef O_STRING
+  } else if ( (flags & CVT_STRING) && isString(w) )
+  { type = PL_STRING;
+    flags |= BUF_RING;			/* always buffer strings */
+    r = valString(w);
+    len = sizeString(w);
+#endif
+  } else if ( (flags & CVT_LIST) &&
+	      (isList(w) || isNil(w)) )
+  { Buffer b;
+
+    if ( (b = get_code_list(l, flags, TRUE)) )
+    { len = entriesBuffer(b, pl_wchar_t);
+      if ( length )
+	*length = len;
+      addBuffer(b, EOS, pl_wchar_t);
+
+      if ( flags & BUF_MALLOC )
+      { int bsize = (len+1)*sizeof(pl_wchar_t);
+
+	*s = xmalloc(bsize);
+        memcpy(*s, r, bsize);
+	unfindBuffer(flags);
+      } else
+	*s = baseBuffer(b, pl_wchar_t);
+
+      succeed;
+    }
+
+    fail;
+  } else if ( (flags & CVT_VARIABLE) && isVar(w) )
+  { type = PL_VARIABLE;
+    r = varName(l, tmp);
+    flags |= BUF_RING;
+  } else if ( (flags & CVT_WRITE) )
+  { int size;
+    IOSTREAM *fd;
+    
+    type = PL_STRING;			/* hack to get things below ok */
+    flags |= BUF_RING;
+
+    wr = wtmp;
+    size = sizeof(wtmp);
+    fd = Sopenmem(&r, &size, "w");
+    fd->encoding = ENC_WCHAR;
+    PL_write_term(fd, l, 1200, 0);
+    Sputcode(EOS, fd);
+    Sflush(fd);
+    len = (size/sizeof(pl_wchar_t))-1;	/* need to flush first */
+    Sclose(fd);
+    if ( wr != wtmp )
+      malloced = TRUE;
+  } else
+  { DEBUG(7, Sdprintf("--> fail\n"));
+    fail;
+  }
+    
+  DEBUG(7, Sdprintf("--> %s\n", r));
+  if ( len == ~(unsigned int)0 )
+  { assert(r);
+    len = strlen(r);
+  }
+  if ( length )
+    *length = len;
+
+  if ( flags & BUF_MALLOC )
+  { int bsize = (len+1)*sizeof(pl_wchar_t);
+
+    *s = xmalloc(bsize);
+      
+    if ( wr )
+    { memcpy(*s, wr, bsize);
+    } else
+    { pl_wchar_t *o = *s;
+      unsigned char *i = (unsigned char *)r;
+      unsigned char *e = &i[len];
+
+      while(i<e)
+	*o++ = *i++;
+      *i = EOS;
+    }
+  } else if ( (flags & BUF_RING) )		/* always buffer tmp */
+  { Buffer b = findBuffer(flags);
+
+    if ( wr )
+    { addMultipleBuffer(b, wr, len+1, pl_wchar_t);
+    } else
+    { unsigned char *i = (unsigned char *)r;
+      unsigned char *e = &i[len];
+
+      for(; i<e; i++)
+	addBuffer(b, *i, pl_wchar_t);
+      addBuffer(b, EOS, pl_wchar_t);
+    }
+
+    *s = baseBuffer(b, pl_wchar_t);
+  } else
+  { assert(wr && !r);
+    *s = wr;
+  }
+
+  if ( malloced )
+  { assert(wr);
+    free(wr);
+  }
+
+  succeed;
 }
 
 

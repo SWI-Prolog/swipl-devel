@@ -61,6 +61,7 @@ extern char _PL_char_types[];	/* array of character types */
 		 *******************************/
 
 #include <wctype.h>
+#include <wchar.h>
 
 #define PlCharType(c, t, w) \
 	((unsigned)(c) <= 0xff ? (_PL_char_types[(unsigned)(c)] t) : w)

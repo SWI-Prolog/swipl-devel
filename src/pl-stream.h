@@ -128,7 +128,8 @@ typedef enum
   ENC_ISO_LATIN_1,
   ENC_UTF8,
   ENC_UNICODE_BE,			/* big endian unicode file */
-  ENC_UNICODE_LE			/* little endian unicode file */
+  ENC_UNICODE_LE,			/* little endian unicode file */
+  ENC_WCHAR				/* pl_wchar_t */
 } IOENC;
 
 typedef struct io_stream
