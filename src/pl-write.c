@@ -578,7 +578,7 @@ writePrimitive(term_t t, write_options *options)
       sprintf(buf, LD->float_format, f);
 					/* make sure to write float */
 					/* such that it reads as a float */
-      if ( true(options, PL_WRT_QUOTED) )
+      /*if ( true(options, PL_WRT_QUOTED) )*/
       { q = buf;
 	if ( *q == '-' )
 	  q++;
