@@ -238,6 +238,33 @@ meta(apply-3) :-
 
 
 		 /*******************************
+		 *	      CLEANUP		*
+		 *******************************/
+
+:- dynamic
+	clean_rval/1.
+
+cleanup_1.
+cleanup_2(a).
+cleanup_2(b).
+cleanup_3 :-
+	fail.
+
+cleanup(clean-1) :-
+	retractall(clean_rval(_)),
+	call_cleanup(cleanup_1, R, assert(clean_rval(R))),
+	retract(clean_rval(exit)).
+cleanup(clean-2) :-
+	retractall(clean_rval(_)),
+	call_cleanup(cleanup_2(_), R, assert(clean_rval(R))), !,
+	retract(clean_rval(!)).
+cleanup(clean-3) :-
+	retractall(clean_rval(_)),
+	\+ call_cleanup(cleanup_3, R, assert(clean_rval(R))),
+	retract(clean_rval(fail)).
+
+
+		 /*******************************
 		 *	    TYPE TESTS		*
 		 *******************************/
 
@@ -896,6 +923,7 @@ testset(arithmetic_functions).
 testset(floattest).
 testset(type_test).
 testset(meta).
+testset(cleanup).
 testset(term).
 testset(list).
 testset(sets).
