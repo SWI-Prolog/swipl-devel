@@ -29,6 +29,9 @@
     the GNU General Public License.
 */
 
+					% use the local copy
+:- asserta(user:file_search_path(foreign, '.')).
+
 :- use_module(odbc).
 
 open_db :-
@@ -63,41 +66,43 @@ types we test this too.
 %	list of values of the alternative type.
 
 type(integer,
-     integer = [-1, 0, 42 ],
+     integer = [-1, 0, 42, '$null$' ],
      [ atom  = integer_to_atom,		% exchange as text
        float = integer_to_float		% exchange as float
      ]).
 type(double,
-     float   = [-1.0, 0.0, 42.0, 3.2747 ],
+     float   = [-1.0, 0.0, 42.0, 3.2747, '$null$' ],
      [ 
      ]).
 type(decimal(10,2),
-     atom = ['3.43', '4.50', '5.00'],
+     atom = ['3.43', '4.50', '5.00', '$null$'],
      [
      ]).
 type(numeric(10),
-     integer = [-1, 0, 42],
+     integer = [-1, 0, 42, '$null$'],
      [
      ]).
 type(varchar(20),
      atom = [ 'foo',
 	      '',
-	      'this is a long text'
+	      'this is a long text',
+	      '$null$'
 	    ],
-     [ codes   = atom_codes,
+     [ codes   = sql_atom_codes,
        string  = atom_to_string
      ]).
 type(varchar(10),				% can we access as integers?
-     atom = [ '1', '2'
+     atom = [ '1', '2', '$null$'
 	    ],
      [ integer = atom_to_integer
      ]).
 type(varchar(100),
      atom = [ foo,
 	      '',
-	      'This is a nice long string consisting of enough text'
+	      'This is a nice long string consisting of enough text',
+	      '$null$'
 	    ],
-     [ codes   = atom_codes
+     [ codes   = sql_atom_codes
      ]).
 type(binary(20),
      atom = [ foo,
@@ -107,15 +112,15 @@ type(binary(20),
      [
      ]).
 type(date,
-     date = [ date(1960,3,19) ],
+     date = [ date(1960,3,19), '$null$' ],
      [
      ]).
 type(time,
-     time = [ time(18,23,19) ],
+     time = [ time(18,23,19), '$null$' ],
      [
      ]).
 type(timestamp,				% MySQL uses POSIX stamps
-     timestamp = [ timestamp(1990,5,18,18,23,19,0) ],
+     timestamp = [ timestamp(1990,5,18,18,23,19,0), '$null$' ],
      [ integer = timestamp_to_integer
      ]).
 
@@ -216,6 +221,7 @@ compare_elements([H0|T0], [H1|T1]) :-
 		 *	       MAPS		*
 		 *******************************/
 
+integer_to_atom('$null$', '$null$') :- !.
 integer_to_atom(Int, Atom) :-
 	(   number(Int)
 	->  number_codes(Int, Codes),
@@ -224,15 +230,23 @@ integer_to_atom(Int, Atom) :-
 	    number_codes(Int, Codes)
 	).
 
+integer_to_float('$null$', '$null$') :- !.
 integer_to_float(Int, Float) :-
 	Float is float(Int).
 
+atom_to_string('$null$', '$null$') :- !.
 atom_to_string(Atom, String) :-
 	string_to_atom(String, Atom).
 
+atom_to_integer('$null$', '$null$') :- !.
 atom_to_integer(Atom, Int) :-
 	integer_to_atom(Int, Atom).
 
+sql_atom_codes('$null$', '$null$') :- !.
+sql_atom_codes(Atom, Codes) :-
+	atom_codes(Atom, Codes).
+
+timestamp_to_integer('$null$', '$null$') :- !.
 timestamp_to_integer(timestamp(Y,M,D,H,Mn,S,0), Sec) :-
 	get(date(S,Mn,H,D,M,Y), slot, date, Sec).
 

@@ -127,6 +127,18 @@ If \const{true} (default), each update statement is committed
 immediately.  If \const{false}, an update statement starts a transaction
 that can be committed or rolled-back.  See \secref{sqltrans} for details
 on transaction management.
+
+    \termitem{null}{NullSpecifier}
+Defines how the SQL constant NULL is represented. Without specification,
+the default is the atom \verb|$null$|. \arg{NullSpecifier} is an
+arbitrary Prolog term, though the implementation is optimised for
+using an unbound variable, atom and functor with one unbound variable.
+The representation \term{null}{_} is a commonly used alternative.
+
+The specified default holds for all statements executed on this
+connection. Changing the connection default does not affect already
+prepared or running statements.  The null-value can also be specified
+at the statement level.
 \end{description}
 \end{description}
 
@@ -190,6 +202,9 @@ query extracts rows using Prolog integers:
 
 X = row(1, entity)
 \end{code}
+
+    \termitem{Null}{NullSpecifier}
+Specify SQL NULL representation.  See odbc_set_connection/2 for details.
 \end{description}
 
 See also \secref{sqltypes} for notes on type-conversion.
@@ -578,6 +593,13 @@ using:
 This installs the foreign libraries in \file{$PLBASE/lib/$PLARCH} and
 the Prolog library files in \file{$PLBASE/library}, where
 \file{$PLBASE} refers to the SWI-Prolog `home-directory'.
+
+
+\section{Acknowledgements}
+
+The SWI-Prolog ODBC interface started from a partial interface by
+Stefano De Giorgi. Mike Elston suggested programmable
+null-representation.
 
 \end{document}
 

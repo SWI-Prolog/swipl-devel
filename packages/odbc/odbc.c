@@ -85,6 +85,7 @@ static atom_t	 ATOM_time;
 static atom_t	 ATOM_date;
 static atom_t	 ATOM_timestamp;
 static atom_t	 ATOM_all_types;
+static atom_t	 ATOM_null;		/* default null atom */
 
 static functor_t FUNCTOR_timestamp7;	/* timestamp/7 */
 static functor_t FUNCTOR_time3;		/* time/7 */
@@ -108,6 +109,7 @@ static functor_t FUNCTOR_minus2;
 static functor_t FUNCTOR_gt2;
 static functor_t FUNCTOR_context_error3;
 static functor_t FUNCTOR_data_source2;
+static functor_t FUNCTOR_null1;
 
 #define SQL_PL_DEFAULT  0		/* don't change! */
 #define SQL_PL_ATOM	1		/* return as atom */
@@ -132,11 +134,26 @@ typedef struct
   char	       buf[PARAM_BUFSIZE];	/* Small buffer for simple cols */
 } parameter;
 
+typedef struct
+{ enum
+  { NULL_VAR,				/* represent as variable */
+    NULL_ATOM,				/* some atom */
+    NULL_FUNCTOR,			/* e.g. null(_) */
+    NULL_RECORD				/* an arbitrary term */
+  } nulltype;
+  union
+  { atom_t atom;			/* as atom */
+    functor_t functor;			/* as functor */
+    record_t record;			/* as term */
+  } nullvalue;
+} nulldef;				/* Prolog's representation of NULL */
+
 typedef struct connection
 { long	       magic;			/* magic code */
   atom_t       alias;			/* alias name of the connection */
   atom_t       dsn;			/* DSN name of the connection */
   HDBC	       hdbc;			/* ODBC handle */
+  nulldef     *null;			/* Prolog null value */
   struct connection *next;		/* next in chain */
 } connection;
 
@@ -154,6 +171,7 @@ typedef struct
   unsigned int sqllen;			/* length of statement */
   char        *sqltext;			/* statement text */
   unsigned     flags;			/* general flags */
+  nulldef     *null;			/* Prolog null value */
   struct context *clones;		/* chain of clones */
 } context;
 
@@ -170,6 +188,7 @@ static struct
 #define CTX_BOUND       0x0002		/* result-columns are bound */
 #define	CTX_SQLMALLOCED 0x0004		/* sqltext is malloced */
 #define CTX_INUSE	0x0008		/* statement is running */
+#define CTX_OWNNULL	0x0010		/* null-definition is not shared */
 
 #define true(s, f)	((s)->flags & (f))
 #define false(s, f)	!true(s, f)
@@ -437,6 +456,123 @@ formatted_string(term_t in, unsigned int *len, char **out)
 
 
 		 /*******************************
+		 *	    NULL VALUES		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+There are many ways one  may  wish   to  handle  SQL  null-values. These
+functions deal with the three common ways   specially  and can deal with
+arbitrary representations.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static nulldef *
+nulldef_spec(term_t t)
+{ atom_t a;
+  functor_t f;
+  nulldef *nd = malloc(sizeof(*nd));
+  
+  memset(nd, 0, sizeof(*nd));
+
+  if ( PL_get_atom(t, &a) )
+  { if ( a == ATOM_null )
+    { free(nd);				/* TBD: not very elegant */
+      return NULL;			/* default specifier */
+    }
+    nd->nulltype  = NULL_ATOM;
+    nd->nullvalue.atom = a;
+    PL_register_atom(a);		/* avoid atom-gc */
+  } else if ( PL_is_variable(t) )
+  { nd->nulltype = NULL_VAR;
+  } else if ( PL_get_functor(t, &f) &&
+	      PL_functor_arity(f) == 1 )
+  { term_t a1 = PL_new_term_ref();
+
+    PL_get_arg(1, t, a1);
+    if ( PL_is_variable(a1) )
+    { nd->nulltype = NULL_FUNCTOR;
+      nd->nullvalue.functor = f;
+    } else
+      goto term;
+  } else
+  { term:
+    nd->nulltype = NULL_RECORD;
+    nd->nullvalue.record = PL_record(t);  
+  }
+
+  return nd;
+}
+
+
+static void
+free_nulldef(nulldef *nd)
+{ if ( nd )
+  { switch(nd->nulltype)
+    { case NULL_ATOM:
+	PL_unregister_atom(nd->nullvalue.atom);
+        break;
+      case NULL_RECORD:
+	PL_erase(nd->nullvalue.record);
+        break;
+      default:
+	break;
+    }
+
+    free(nd);
+  }
+}
+
+
+static void
+put_sql_null(term_t t, nulldef *nd)
+{ if ( nd )
+  { switch(nd->nulltype)
+    { case NULL_VAR:
+	break;
+      case NULL_ATOM:
+	PL_put_atom(t, nd->nullvalue.atom);
+        break;
+      case NULL_FUNCTOR:
+	PL_put_functor(t, nd->nullvalue.functor);
+        break;
+      case NULL_RECORD:
+	PL_recorded(nd->nullvalue.record, t);
+    }
+  } else
+    PL_put_atom(t, ATOM_null);
+}
+
+
+static int
+is_sql_null(term_t t, nulldef *nd)
+{ if ( nd )
+  { switch(nd->nulltype)
+    { case NULL_VAR:
+	return PL_is_variable(t);
+      case NULL_ATOM:
+      { atom_t a;
+
+	return PL_get_atom(t, &a) && a == nd->nullvalue.atom;
+      }
+      case NULL_FUNCTOR:
+	return PL_is_functor(t, nd->nullvalue.functor);
+      case NULL_RECORD:			/* TBD: Provide PL_unify_record */
+      { term_t rec = PL_new_term_ref();
+	PL_recorded(nd->nullvalue.record, rec);
+	return PL_unify(t, rec);
+      }
+      default:				/* should not happen */
+	assert(0);
+        return FALSE;
+    }
+  } else
+  { atom_t a;
+
+    return PL_get_atom(t, &a) && a == ATOM_null;
+  }
+}
+
+
+		 /*******************************
 		 *	    CONNECTION		*
 		 *******************************/
 
@@ -512,6 +648,7 @@ free_connection(connection *c)
     PL_unregister_atom(c->alias);
   if ( c->dsn )
     PL_unregister_atom(c->dsn);
+  free_nulldef(c->null);
 
   free(c);
 }
@@ -605,7 +742,8 @@ pl_odbc_connect(term_t tdsource, term_t cid, term_t options)
        if ( !(open == ATOM_once ||
 	      open == ATOM_multiple) )
 	 return domain_error(head, "open_mode");
-     } else if ( PL_is_functor(head, FUNCTOR_auto_commit1) )
+     } else if ( PL_is_functor(head, FUNCTOR_auto_commit1) ||
+		 PL_is_functor(head, FUNCTOR_null1) )
      { if ( nafter < MAX_AFTER_OPTIONS )
 	 PL_put_term(after_open+nafter++, head);
        else
@@ -744,6 +882,13 @@ odbc_set_connection(term_t con, term_t option)
       return FALSE;
     opt = SQL_AUTOCOMMIT;
     optval = (val ? SQL_AUTOCOMMIT_ON : SQL_AUTOCOMMIT_OFF);
+  } else if ( PL_is_functor(option, FUNCTOR_null1) )
+  { term_t a = PL_new_term_ref();
+
+    PL_get_arg(1, option, a);
+    cn->null = nulldef_spec(a);
+
+    return TRUE;
   } else
     return domain_error(option, "odbc_option");
 
@@ -793,6 +938,7 @@ new_context(connection *cn)
   ctxt->magic = CTX_MAGIC;
   ctxt->henv  = henv;
   ctxt->connection = cn;
+  ctxt->null = cn->null;
   SQLAllocStmt(cn->hdbc, &ctxt->hstmt);
   statistics.statements_created++;
 
@@ -839,6 +985,8 @@ free_context(context *ctx)
   free_parameters(ctx->NumParams, ctx->params);
   if ( true(ctx, CTX_SQLMALLOCED) )
     free(ctx->sqltext);
+  if ( true(ctx, CTX_OWNNULL) )
+    free_nulldef(ctx->null);
   free(ctx);
 
   statistics.statements_freed++;
@@ -880,6 +1028,7 @@ clone_context(context *in)
       switch(p->cTypeID)
       { case SQL_C_CHAR:
 	case SQL_C_BINARY:
+	  p->ptr_value = malloc(p->length_ind);
 	  vlenptr = &p->len_value;
 	  break;
       }
@@ -1112,6 +1261,12 @@ set_statement_options(context *ctxt, term_t options)
     { if ( PL_is_functor(head, FUNCTOR_types1) )
       { if ( !set_column_types(ctxt, head) )
 	  return FALSE;
+      } else if ( PL_is_functor(head, FUNCTOR_null1) )
+      { term_t arg = PL_new_term_ref();
+
+	PL_get_arg(1, head, arg);
+	ctxt->null = nulldef_spec(arg);
+	set(ctxt, CTX_OWNNULL);
       } else
 	return domain_error(head, "odbc_option");
     }
@@ -1182,6 +1337,7 @@ odbc_tables(term_t dsn, term_t row, control_t handle)
 	return FALSE;
 
       ctxt = new_context(cn);
+      ctxt->null = NULL;		/* use default $null$ */
       TRY(ctxt, SQLTables(ctxt->hstmt, NULL,0,NULL,0,NULL,0,NULL,0));
 
       return odbc_row(ctxt, row);
@@ -1215,6 +1371,7 @@ pl_odbc_column(term_t dsn, term_t db, term_t row, control_t handle)
       if ( !get_connection(dsn, &cn) )
 	return FALSE;
       ctxt = new_context(cn);
+      ctxt->null = NULL;		/* use default $null$ */
       TRY(ctxt, SQLColumns(ctxt->hstmt, NULL, 0, NULL, 0,
 			   (SQLCHAR*)s, (SWORD)len, NULL, 0));
       
@@ -1258,6 +1415,7 @@ odbc_types(term_t dsn, term_t sqltype, term_t row, control_t handle)
       if ( !get_connection(dsn, &cn) )
 	return FALSE;
       ctxt = new_context(cn);
+      ctxt->null = NULL;		/* use default $null$ */
       TRY(ctxt, SQLGetTypeInfo(ctxt->hstmt, type));
       
       return odbc_row(ctxt, row);
@@ -1517,14 +1675,28 @@ declare_parameters(context *ctxt, term_t parms)
 	}
         vlenptr = &params->len_value;
 	break;
+      case SQL_C_SLONG:
+	params->len_value = sizeof(long);
+        vlenptr = &params->len_value;
+	break;
+      case SQL_C_DOUBLE:
+	params->len_value = sizeof(double);
+        vlenptr = &params->len_value;
+	break;
       case SQL_C_DATE:
 	params->ptr_value = malloc(sizeof(DATE_STRUCT));
+        params->len_value = sizeof(DATE_STRUCT);
+	vlenptr = &params->len_value;
         break;
       case SQL_C_TIME:
 	params->ptr_value = malloc(sizeof(TIME_STRUCT));
+        params->len_value = sizeof(TIME_STRUCT);
+	vlenptr = &params->len_value;
         break;
       case SQL_C_TIMESTAMP:
 	params->ptr_value = malloc(sizeof(SQL_TIMESTAMP_STRUCT));
+        params->len_value = sizeof(SQL_TIMESTAMP_STRUCT);
+	vlenptr = &params->len_value;
         break;
     }
 
@@ -1698,6 +1870,17 @@ get_timestamp(term_t t, SQL_TIMESTAMP_STRUCT* stamp)
 
 
 static int
+try_null(context *ctxt, parameter *prm, term_t val, const char *expected)
+{ if ( is_sql_null(val, ctxt->null) )
+  { prm->len_value = SQL_NULL_DATA;
+
+    return TRUE;
+  } else
+    return type_error(val, expected);
+}
+
+
+static int
 bind_parameters(context *ctxt, term_t parms)
 { term_t tail = PL_copy_term_ref(parms);
   term_t head = PL_new_term_ref();
@@ -1706,32 +1889,53 @@ bind_parameters(context *ctxt, term_t parms)
   for(prm = ctxt->params; PL_get_list(tail, head, tail); prm++)
   { switch(prm->cTypeID)
     { case SQL_C_SLONG:
-	if ( !PL_get_long(head, (long *)prm->ptr_value) )
-	  return type_error(head, "integer");
+	if ( !PL_get_long(head, (long *)prm->ptr_value) &&
+	     !try_null(ctxt, prm, head, "integer") )
+	  return FALSE;
+        prm->len_value = sizeof(long);
         break;
       case SQL_C_DOUBLE:
-	if ( !PL_get_float(head, (double *)prm->ptr_value) )
-	  return type_error(head, "float");
+	if ( !PL_get_float(head, (double *)prm->ptr_value) &&
+	     !try_null(ctxt, prm, head, "float") )
+	  return FALSE;
+        prm->len_value = sizeof(double);
         break;
       case SQL_C_CHAR:
       case SQL_C_BINARY:
       { unsigned int len;
+	unsigned int flags = CVT_ATOM|CVT_STRING;
+	const char *expected = "text";
 	char *s;
+
+					/* check for NULL */
+	if ( is_sql_null(head, ctxt->null) )
+	{ prm->len_value = SQL_NULL_DATA;
+	  break;
+	}
 
 	switch(prm->plTypeID)
 	{ case SQL_PL_DEFAULT:
+	    flags = CVT_ATOM|CVT_STRING;
+	    expected = "text";
+	    break;
 	  case SQL_PL_ATOM:
+	    flags = CVT_ATOM;
+	    expected = "atom";
+	    break;
 	  case SQL_PL_STRING:
-	    if ( !PL_get_nchars(head, &len, &s, CVT_ATOM|CVT_STRING) )
-	      return type_error(head, "text");
+	    flags = CVT_STRING;
+	    expected = "string";
 	    break;
 	  case SQL_PL_CODES:
-	    if ( !PL_get_nchars(head, &len, &s, CVT_LIST) )
-	      return type_error(head, "code_list");
+	    flags = CVT_LIST;
+	    expected = "code_list";
 	    break;
 	  default:
 	    assert(0);
 	}
+
+	if ( !PL_get_nchars(head, &len, &s, flags) )
+	  return type_error(head, expected);
 
 	if ( len > prm->length_ind )
 	  return representation_error(head, "column_width");
@@ -1740,18 +1944,24 @@ bind_parameters(context *ctxt, term_t parms)
 	break;
       }
       case SQL_C_TYPE_DATE:
-      { if ( !get_date(head, (DATE_STRUCT*)prm->ptr_value) )
-	  return type_error(head, "date");
+      { if ( !get_date(head, (DATE_STRUCT*)prm->ptr_value) &&
+	     !try_null(ctxt, prm, head, "date") )
+	  return FALSE;
+	prm->len_value = sizeof(DATE_STRUCT);
 	break;
       }
       case SQL_C_TYPE_TIME:
-      { if ( !get_time(head, (TIME_STRUCT*)prm->ptr_value) )
-	  return type_error(head, "time");
+      { if ( !get_time(head, (TIME_STRUCT*)prm->ptr_value) &&
+	     !try_null(ctxt, prm, head, "time") )
+	  return FALSE;
+	prm->len_value = sizeof(TIME_STRUCT);
 	break;
       }
       case SQL_C_TIMESTAMP:
-      { if ( !get_timestamp(head, (SQL_TIMESTAMP_STRUCT*)prm->ptr_value) )
-	  return type_error(head, "timestamp");
+      { if ( !get_timestamp(head, (SQL_TIMESTAMP_STRUCT*)prm->ptr_value) &&
+	     !try_null(ctxt, prm, head, "timestamp") )
+	  return FALSE;
+	prm->len_value = sizeof(SQL_TIMESTAMP_STRUCT);
 	break;
       }
       default:
@@ -1862,6 +2072,7 @@ install_odbc4pl()
    ATOM_date	      =	PL_new_atom("date");
    ATOM_timestamp     =	PL_new_atom("timestamp");
    ATOM_all_types     = PL_new_atom("all_types");
+   ATOM_null          = PL_new_atom("$null$");
 
    FUNCTOR_timestamp7		 = MKFUNCTOR("timestamp", 7);
    FUNCTOR_time3		 = MKFUNCTOR("time", 3);
@@ -1886,6 +2097,7 @@ install_odbc4pl()
    FUNCTOR_context_error3	 = MKFUNCTOR("context_error", 3);
    FUNCTOR_statements2		 = MKFUNCTOR("statements", 2);
    FUNCTOR_data_source2		 = MKFUNCTOR("data_source", 2);
+   FUNCTOR_null1		 = MKFUNCTOR("null", 1);
 
    DET("odbc_connect",		   3, pl_odbc_connect);
    DET("odbc_disconnect",	   1, pl_odbc_disconnect);
@@ -1921,6 +2133,13 @@ uninstall_odbc()			/* TBD: make sure the library is */
 		 *	      TYPES		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+MS SQL Server seems to store the   dictionary  in UNICODE, returning the
+types SQL_WCHAR, etc. As current SWI-Prolog   doesn't do unicode, we ask
+them as normal SQL_C_CHAR, assuming the   driver  will convert this. One
+day this should become SQL_C_WCHAR
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static SWORD
 CvtSqlToCType(SQLSMALLINT fSqlType, SQLSMALLINT plTypeID)
 { switch(plTypeID)
@@ -1929,6 +2148,11 @@ CvtSqlToCType(SQLSMALLINT fSqlType, SQLSMALLINT plTypeID)
       { case SQL_CHAR:
 	case SQL_VARCHAR:
 	case SQL_LONGVARCHAR:
+#ifdef SQL_WCHAR
+	case SQL_WCHAR:			/* see note above */
+	case SQL_WVARCHAR:
+	case SQL_WLONGVARCHAR:
+#endif
 	  return SQL_C_CHAR;
     
 	case SQL_DECIMAL:
@@ -1999,7 +2223,7 @@ pl_put_row(term_t row, context *c)
    
   for (i=0, p=c->result; i<c->NumCols; i++, p++)
   { if ( p->length_ind == SQL_NULL_DATA )
-    { PL_put_atom_chars(columns+i,"$null$");
+    { put_sql_null(columns+i, c->null);
     } else
     { switch( p->cTypeID )
       { case SQL_C_CHAR:

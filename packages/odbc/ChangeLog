@@ -1,0 +1,9 @@
+Jul 9, 2002
+
+* Added writing NULL-data with prepared statements.
+
+* Added programmable NULL-data representation (Mike Elston).
+
+Jul 7, 2002
+
+* Initial alpha release.
