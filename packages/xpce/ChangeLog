@@ -1,3 +1,5 @@
+* ADDED: Allow controlling the frame<->colour_map through a class-variable.
+
 * ADDED: Honour `verbose' prolog flag to suppress the banner if this flag
   is `silent'.
 
