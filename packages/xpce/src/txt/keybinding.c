@@ -203,7 +203,7 @@ eventKeyBinding(KeyBinding kb, EventObj ev)
 { if ( isAEvent(ev, NAME_keyboard) &&
        (isNil(kb->condition) ||
 	forwardReceiverCode(kb->condition, kb, ev, EAV)) )
-    return send(kb, NAME_typed, getIdEvent(ev), ev->receiver, EAV);
+    return send(kb, NAME_typed, ev, ev->receiver, EAV);
 
   fail;
 }
