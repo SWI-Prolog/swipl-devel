@@ -122,7 +122,7 @@ cmd(funcref({RawName}, {Args}),
 	clean_name(RawName, Name),
 	sformat(RefName, '~w()', [Name]).
 cmd(definition({Tag}),
-    #defitem(+Tag)).
+    #defitem(#b(+Tag))).
 cmd('DCG'(A,B,C), X) :-
 	cmd(predicate(A,B,C), X).
 cmd(predicate({RawName}, {'0'}, {_}),
