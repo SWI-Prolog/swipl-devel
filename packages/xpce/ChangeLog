@@ -1,5 +1,11 @@
 [VERSION 4.8.0]
 
+* Reimplementation of `text_image ->_redraw_area'.  The `double buffering'
+  of this class has been removed as it turns out that most X-servers are
+  very could at painting text and not extremely good at copying large
+  rectangles.  This reduces memory usage both in XPCE as on the X-server
+  drastically.
+
 * Added '#<hexdigits>' conversion for class colour.  Allows for X11
   compatible RGB colour specification.
 

@@ -708,7 +708,6 @@ report_to(DE, Reporter:graphical) :<-
 
 fill_top_dialog(D) :-
 	send(D, name, top_dialog),
-	send(D, pen, 1),
 	send(D, gap, size(5,5)),
 	get(D, frame, Frame),
 	new(Target, Frame?target),

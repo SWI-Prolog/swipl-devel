@@ -11,8 +11,6 @@
 #include <h/graphics.h>
 #include <h/text.h>
 
-static status adjustSizeImageTextImage P((TextImage));
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The PCE-3 editor object is now split up into a large number of  separate
 objects  to  improve modilarity and reusability of various pieces of the
@@ -73,9 +71,12 @@ been changed, so we can forward this to the device's update algorithm.
 #define END_NL	 (8)			/* Line ends due to newline */
 
 
-forwards status fillImageTextImage P((TextImage, Bool force));
 forwards long	do_fill_line P((TextImage, TextLine, long));
+static TextLine line_from_y(TextImage ti, int y);
 forwards status reinitTextImage P((TextImage ti));
+static int	char_from_x(TextLine tl, int x);
+static void	copy_line_attributes(TextLine from, TextLine to);
+static void	copy_line_chars(TextLine from, int start, TextLine to);
 
 
 		/********************************
@@ -86,11 +87,9 @@ static status
 initialiseTextImage(TextImage ti, Any obj, Int w, Int h)
 { initialiseGraphical(ti, ZERO, ZERO, w, h);
   assign(ti, text,	   obj);
-  assign(ti, image,        NIL);
   assign(ti, start,        ZERO);
   assign(ti, end,	   ZERO);
   assign(ti, background,   DEFAULT);
-  assign(ti, foreground,   DEFAULT);
   assign(ti, wrap,	   getResourceValueObject(ti, NAME_wrap));
   assign(ti, tab_distance, getResourceValueObject(ti, NAME_tabDistance));
 
@@ -131,10 +130,6 @@ unlinkTextImage(TextImage ti)
   { unalloc_screen(ti->map);
     ti->map = NULL;
   }
-  if ( ti->image_map != NULL )
-  { unalloc_screen(ti->image_map);
-    ti->image_map = NULL;
-  }
 
   succeed;
 }
@@ -162,7 +157,7 @@ ensure_lines_screen(TextScreen s, int lines)
     for( ; n < lines; n++)		/* create new ones */
     { new[n].chars = alloc(chars * sizeof(struct text_char));
       new[n].allocated = chars;
-      new[n].changed = TRUE;
+      new[n].changed = 0;
       new[n].start = -1;
     }
 
@@ -207,7 +202,6 @@ static status
 reinitTextImage(TextImage ti)
 { Any obj = ti->text;
 
-  assign(ti, changed_area, newObject(ClassArea, 0));
   assign(ti, request_compute, ON);
 
   ti->w		   = valInt(ti->area->w);
@@ -226,9 +220,6 @@ reinitTextImage(TextImage ti)
   ti->map                  = alloc(sizeof(struct text_screen));
   ti->map->allocated       = ti->map->length = ti->map->skip = 0;
   ti->map->lines           = NULL;
-  ti->image_map            = alloc(sizeof(struct text_screen));
-  ti->image_map->allocated = ti->image_map->length = ti->image_map->skip = 0;
-  ti->image_map->lines     = NULL;
 
   return obtainResourcesObject(ti);
 }
@@ -389,14 +380,10 @@ do_fill_line(TextImage ti, TextLine l, long int index)
   short x = TXT_X_MARGIN;  
   int i;
 
-  l->changed = TRUE;
   l->ends_because = 0;
-
   l->start = index;
 
-  DEBUG(NAME_fill, printf("Filling line from %ld", index); fflush(stdout));
   (*ti->seek)(ti->text, index);
-  DEBUG(NAME_fill, printf(" (seek'ed)"); fflush(stdout));
 
   for( i = 0, tc = l->chars; ; i++, tc++)
   { if ( l->allocated <= i )
@@ -405,7 +392,6 @@ do_fill_line(TextImage ti, TextLine l, long int index)
     }
 
     index = (*ti->fetch)(ti->text, tc);
-    DEBUG(NAME_fill, printf(" %c", tc->c); fflush(stdout));
     tc->x = x;
 
     switch(tc->c)
@@ -489,6 +475,12 @@ do_fill_line(TextImage ti, TextLine l, long int index)
 }
 
 
+#define equal_text_char(c1, c2) ( (c1)->c == (c2)->c && \
+				  (c1)->font == (c2)->font && \
+				  (c1)->colour == (c2)->colour && \
+				  (c1)->x == (c2)->x && \
+				  (c1)->attributes == (c2)->attributes )
+
 static long
 fill_line(TextImage ti, int line, long int index, short int y)
 { TextLine l;
@@ -500,14 +492,60 @@ fill_line(TextImage ti, int line, long int index, short int y)
        (l->end < ti->change_start || l->start >= ti->change_end) )
   { if ( l->y != y )
     { l->y = y;
-      l->changed = TRUE;
+      l->changed = 0;
     }
     return ti->map->lines[line+1].start;
   }
   
-  l->y = y;
+  if ( l->y != y )
+  { l->y = y;
+    l->changed = 0;
 
-  return do_fill_line(ti, l, index);
+    return do_fill_line(ti, l, index);
+  } else
+  { static struct text_line tmp;
+    long idx;
+    
+    if ( !tmp.chars )
+    { tmp.chars = alloc(80 * sizeof(struct text_char));
+      tmp.allocated = 80;
+    }
+
+    idx = do_fill_line(ti, &tmp, index);
+    l->start        = tmp.start;
+    l->end          = tmp.end;
+    l->ends_because = tmp.ends_because;
+    
+    if ( l->h != tmp.h || l->base != tmp.base )
+    { l->changed = 0;
+      copy_line_attributes(&tmp, l);
+      l->y = y;				/* overruled by copy_line_attributes */
+      copy_line_chars(&tmp, 0, l);
+
+      return idx;
+    } else
+    { int i;
+      int n = min(l->length, tmp.length);
+
+      ensure_chars_line(l, tmp.length);
+      for(i=0; i<n; i++)
+      { if ( !equal_text_char(&tmp.chars[i], &l->chars[i]) )
+	{ l->changed = i;
+	  copy_line_chars(&tmp, i, l);
+	  l->length = tmp.length;
+
+	  return idx;
+	}
+      }
+      if ( i < tmp.length )
+      { l->changed = i;
+	copy_line_chars(&tmp, i, l);
+	l->length = tmp.length;
+      } 
+
+      return idx;
+    }
+  }
 }
 
 
@@ -527,6 +565,9 @@ updateMapTextImage(TextImage ti)
     { long next_index;
 
       next_index = fill_line(ti, line, index, y);
+      DEBUG(NAME_text,
+	    printf("Line %d %4ld..%4ld (changed = %d, y=%d)\n",
+		   line, index, next_index, ti->map->lines[line].changed, y));
       if ( line >= ti->map->skip )
 	y += ti->map->lines[line].h;
 
@@ -572,8 +613,8 @@ dump_map(TextScreen map)
       printf("--:");
     else
       printf("%2d:", i - map->skip);
-    printf("%4ld-%4ld at y=%3d %s ",
-	   l->start, l->end-1, l->y, l->changed ? "**" : "  ");
+    printf("%4ld-%4ld at y=%3d changed = %d ",
+	   l->start, l->end-1, l->y, l->changed);
     putchar((l->ends_because & END_EOF)  ? 'F' : '-');
     putchar((l->ends_because & END_WRAP) ? 'W' : '-');
     putchar((l->ends_because & END_CUT)  ? 'C' : '-');
@@ -665,56 +706,6 @@ t_grey(int x, int y, int w, int h)
 }
 
 
-static status
-t_open(TextImage ti)
-{ if ( notNil(ti->image) && ti->w > 0 && ti->h > 0 )
-  { clearArea(ti->changed_area);
-    DEBUG(NAME_text, printf("Opening image %s\n", pp(ti->image)));
-    d_image(ti->image, 0, 0, ti->w, ti->h);
-    
-    succeed;
-  }
-
-  fail;
-}
-
-
-static void
-t_close(void)
-{ t_underline(0, 0, 0);
-  t_invert(0, 0, 0, 0);
-  t_grey(0, 0, 0, 0);
-  
-  d_done();
-}
-
-
-		/********************************
-		*             AREAS		*
-		********************************/
-
-static void
-changed_area(TextImage ti, int x, int y, int w, int h)
-{ Area a = ti->changed_area;
-
-  if ( a->w == ZERO || a->h == ZERO )
-  { a->x = toInt(x); a->y = toInt(y); a->w = toInt(w); a->h = toInt(h);
-  } else
-  { int ax = valInt(a->x), ay = valInt(a->y),
-        aw = valInt(a->w), ah = valInt(a->h);
-  
-    if ( x < ax ) { aw += ax - x; ax = x; }
-    if ( y < ay ) { ah += ay - y; ay = y; }
-    if ( x+w > ax+aw ) { aw += x+w-ax; }
-    if ( y+h > ay+ah ) { ah += y+h-ay; }
-
-    DEBUG(NAME_text, printf("changed (%d %d %d %d) -> (%d %d %d %d)\n",
-			    x, y, w, h, ax, ay, aw, ah));
-
-    a->x = toInt(ax); a->y = toInt(ay); a->w = toInt(aw); a->h = toInt(ah);
-  }
-}
-
 		/********************************
 		*            PAINTING		*
 		********************************/
@@ -760,13 +751,15 @@ paint_line(TextImage ti, TextLine l, int from, int to)
   FontObj f;
   Colour c;
   unsigned char atts;
-  int cw;
+  int cx, cw;
+  int pen = valInt(ti->pen);
 
   DEBUG(NAME_text, printf("painting line 0x%lx from %d to %d\n",
 			  (ulong)l, from, to));
 
-  cw = (to == l->length ? ti->w : l->chars[to].x) - l->chars[from].x;
-  r_clear(l->chars[from].x, l->y, cw, l->h);
+  cx = (from == 0 ? pen : l->chars[from].x);
+  cw = (to >= l->length ? ti->w - pen : l->chars[to].x) - cx;
+  r_clear(cx, l->y, cw, l->h);
 
   { TextChar last = &l->chars[to-1];
 
@@ -827,262 +820,96 @@ paint_line(TextImage ti, TextLine l, int from, int to)
 
     paint_attributes(ti, l, s, e);
   }
-
-  changed_area(ti, l->chars[from].x, l->y, cw, l->h);
-}
-
-		/********************************
-		*         UPDATING LINES	*
-		********************************/
-
-static void
-copy_line_attributes(TextLine from, TextLine to)
-{ to->y      = from->y;
-  to->h      = from->h;
-  to->base   = from->base;
-  to->length = from->length;
 }
 
 
 static void
-copy_line_chars(TextLine from, int start, int end, TextLine to)
-{ ensure_chars_line(to, from->length);
+paint_area(TextImage ti, int x, int y, int w, int h)
+{ int p = valInt(ti->pen);
 
-  for( ; start < end; start++ )
-    to->chars[start] = from->chars[start];    
-}
+  if ( x < ti->w - TXT_X_MARGIN && x+w >= TXT_X_MARGIN &&
+       y < ti->h + TXT_Y_MARGIN && y+h >= TXT_Y_MARGIN )
+  { TextLine ml = line_from_y(ti, y);
+    int line = ml - &ti->map->lines[ti->map->skip];
+    int ly = 0;
+  
+    for(line = 0; line < ti->map->length && ml->y < y+h; line++, ml++)
+    { if ( ml->y + ml->h > y )
+      { int f, t;
 
-
-static void
-copy_line(TextLine from, TextLine to)
-{ copy_line_attributes(from, to);
-  copy_line_chars(from, 0, from->length, to);
-}
-
-
-#define equal_text_char(c1, c2) \
-  ( (c1)->c == (c2)->c && \
-    (c1)->x == (c2)->x && \
-    (c1)->attributes == (c2)->attributes && \
-    (c1)->font == (c2)->font \
-  )
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-ml  contains what the  line should  hold;  holds  the  contents of the
-screen.  After completion of this function the area described by ml of
-the image bitmap is ok and il is equivalent to ml.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static void
-update_line(TextImage ti, TextLine ml, TextLine il)
-{ if ( ml->changed == FALSE )
-    return;
-
-  if ( ml->y != il->y || ml->base != il->base || ml->h != il->h )
-  { copy_line(ml, il);
-    paint_line(ti, il, 0, il->length);
-  } else
-  { int end = min(ml->length, il->length);
-    int n;
-    
-    for( n = 0; n < end; n++ )
-      if ( !equal_text_char(&ml->chars[n], &il->chars[n] ) )
-        break;
-
-    if ( n < ml->length )
-    { copy_line_chars(ml, n, ml->length, il);
-      il->length = ml->length;
-      paint_line(ti, il, n, il->length);
-    }
-  }  
-
-  ml->changed = FALSE;
-}
-
-		/********************************
-		*         SHIFTING LINES	*
-		********************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The function shift_lines()  tries  to find  out whether the screen has
-been  scrolled  some lines  up/down  or whether some lines  have  been
-inserted  or deleted somewhere.     If so, it   will shift    the line
-description  structures of map_image  and shift the information on the
-image as well  using a copy area.   Finally it updates changed_area to
-propagate the change to the device.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define MAX_SHIFT 2			/* maximum lines to shift */
-
-static int
-equal_line(TextLine l1, TextLine l2)
-{ int n;
-
-  if ( l1->length != l2->length || l1->h != l2->h )
-    fail;
-
-  for(n=0; n < l1->length; n++)
-    if ( !equal_text_char(&l1->chars[n], &l2->chars[n]) )
-      fail;
-
-  succeed;
-}
-
-
-static int
-inserted_or_deleted_lines(TextImage ti, Name id, int sl, int el)
-{ int ins;
-  int line;
-  int skip = ti->map->skip;
-
-  for(ins = 1; ins < el - sl - 1 && ins <= MAX_SHIFT; ins++) 
-  { for(line = sl+1; line < el - ins; line++)
-    { if ( id == NAME_insert )
-      { DEBUG(NAME_shift, printf("equal_line(map: %d, image %d) --> ",
-				 line+ins, line));
-	if ( !equal_line(&ti->map->lines[line+ins+skip],
-			 &ti->image_map->lines[line]) )
-	  goto continue_outer;
-      } else
-      { DEBUG(NAME_shift, printf("equal_line(map: %d, image %d) --> ",
-				 line, line+ins));
-	if ( !equal_line(&ti->map->lines[line+skip],
-			 &ti->image_map->lines[line+ins]) )
-	  goto continue_outer;
+	if ( ml->y + ml->h > ti->h - TXT_Y_MARGIN )
+	  break;
+  
+	f = char_from_x(ml, x);
+	t = char_from_x(ml, x+w);
+  
+	paint_line(ti, ml, f, t+1);	/* TBD: get correct boundaries */
+	ly = ml->y + ml->h;
       }
-      DEBUG(NAME_shift, printf("yes\n"));
-    }
-    return ins;
+    }  
 
-    continue_outer:;
-    DEBUG(NAME_shift, printf("no\n"));
+    if ( y + h > ly )
+      r_clear(p, ly, ti->w-2*p, y+h-ly);
   }
 
-  return -1;
+  if ( y < TXT_Y_MARGIN )
+    r_clear(p, p, ti->w-2*p, TXT_Y_MARGIN-p);
 }
 
-
-static void
-rotate_lines(TextLine l, int size, int r)
-{ struct text_line tmp[MAX_SHIFT+1];
-  int n;
-
-  if ( r > 0 )
-  { for( n = 0; n < r; n++ )
-      tmp[n] = l[size-r+n];
-    for( n = 0; n < size-r; n++ )
-      l[size-1-n] = l[size-1-r-n];
-    for( n = 0; n < r; n++ )
-      l[n] = tmp[n];
-  } else
-  { r = -r;
-
-    for( n = 0; n < r; n++ )
-      tmp[n] = l[n];
-    for( n = 0; n < size-r; n++ )
-      l[n] = l[n+r];
-    for( n = 0; n < r; n++ )
-      l[size-r+n] = tmp[n];
-  }
-}
-
-
-static void
-shift_y_lines(TextLine l, int size, int shift)
-{ int n;
-
-  for(n = 0; n < size; n++)
-    l[n].y += shift;
-}
-
-
-static void
-shift_lines(TextImage ti)
-{ int sl, el = ti->map->length;
-  int skip = ti->map->skip;
-  int ins;
-  TextScreen im = ti->image_map;
-
-  if ( ti->map->length != im->length )
-    return;				/* not worth the trouble */
-
-  for(sl = 0; sl < el; sl++)		/* skip unchanged part */
-  { if ( ti->map->lines[sl+skip].changed )
-    { if ( equal_line(&ti->map->lines[sl+skip], &im->lines[sl]) )
-      { ti->map->lines[sl+skip].changed = FALSE;
-        continue;
-      }
-      break;
-    }
-  }
-					/* get rid of blank lines */
-  for( ; el > sl; el--)
-  { if ( ti->map->lines[el-1+skip].changed )
-    { if ( equal_line(&ti->map->lines[el-1+skip], &im->lines[el-1]) )
-      { ti->map->lines[el-1+skip].changed = FALSE;
-        continue;
-      }
-      break;
-    }
-  }
-  DEBUG(NAME_shift, printf("sl = %d, el = %d\n", sl, el));
-    
-  if ( el - sl < 2 )
-    return;
-
-  if ( (ins=inserted_or_deleted_lines(ti, NAME_insert, sl, el)) > 0 )
-  { int yfrom = im->lines[sl].y;
-    int yto   = im->lines[sl+ins].y;
-    int h     = im->lines[el-1].y + im->lines[el-1].h - yto;
-    int shift = yto - yfrom;
-    int ln;
-
-    DEBUG(NAME_shift, printf("Insert %d lines at %d: ", ins, sl));
-    DEBUG(NAME_shift, printf("copy %d -> %d, h=%d, clear(%d, %d)\n",
-			    yfrom, yto, h,
-			    yfrom, yto - yfrom));
-
-#ifdef __WINDOWS__
-    r_copy(0, yfrom, 0, yto, ti->w, h);
-#else
-    r_image(ti->image, 0, yfrom, 0, yto, ti->w, h, OFF);
-    r_clear(0, yfrom, ti->w, yto - yfrom);
-#endif
-    rotate_lines(&im->lines[sl], el - sl, ins);
-    shift_y_lines(&im->lines[sl], el - sl, shift);
-    for(ln = sl; ln < sl+ins; ln++)
-      im->lines[ln].length = 0;
-    changed_area(ti, 0, yfrom, ti->w, h+shift);
-  } else
-  if ( (ins=inserted_or_deleted_lines(ti, NAME_delete, sl, el)) > 0 )
-  { int yfrom = im->lines[sl+ins].y;
-    int yto   = im->lines[sl].y;
-    int h     = im->lines[el-1].y + im->lines[el-1].h - yfrom;
-    int shift = yto - yfrom;
-    int ln;
-
-    DEBUG(NAME_shift, printf("Delete %d lines at %d: ", ins, sl));
-    DEBUG(NAME_shift, printf("copy %d -> %d, h=%d, clear(%d, %d)\n",
-			    yfrom, yto, h,
-			    yto + h, yfrom - yto));
-
-#ifdef __WINDOWS__
-    r_copy(0, yfrom, 0, yto, ti->w, h);
-#else
-    r_image(ti->image, 0, yfrom, 0, yto, ti->w, h, OFF);
-    r_clear(0, yto + h, ti->w, yfrom - yto);
-#endif
-    rotate_lines(&im->lines[sl], el - sl, -ins);
-    shift_y_lines(&im->lines[sl], el - sl, shift);
-    for(ln = el-ins; ln < el; ln++)
-      im->lines[ln].length = 0;
-    changed_area(ti, 0, yto, ti->w, h-shift);
-  }
-}
 
 		/********************************
 		*        INDEX <-> POSITION	*
 		********************************/
+
+static TextLine
+line_from_y(TextImage ti, int y)
+{ int l = ti->map->skip;
+  int h = ti->map->length - 1;
+  int m;
+  TextLine tl;
+
+  if ( y < ti->map->lines[l].y )
+    return &ti->map->lines[l];
+  if ( y >= ti->map->lines[h].y + ti->map->lines[h].h )
+    return &ti->map->lines[h];
+
+  for(;;)
+  { m = (l+h) / 2;
+    tl = &ti->map->lines[m];
+
+    if ( y >= tl->y )
+    { if ( y < tl->y + tl->h )
+	return tl;
+      l = (l == m ? l+1 : m);
+    } else
+      h = m;
+  }
+}
+
+
+static int
+char_from_x(TextLine tl, int x)
+{ int l = 0;
+  int h = tl->length - 1;
+  int m;
+
+  if ( x < tl->chars[l].x )
+    return l;
+  if ( x >= tl->chars[h+1].x )
+    return h;
+
+  for(;;)
+  { m = (l+h) / 2;
+
+    if ( x >= tl->chars[m].x )
+    { if ( x < tl->chars[m+1].x )
+	return m;
+      l = (l == m ? l+1 : m);
+    } else
+      h = m;
+  }
+}
+
 
 static status
 get_xy_pos(TextImage ti, Int pos, int *x, int *y)
@@ -1113,7 +940,8 @@ get_xy_pos(TextImage ti, Int pos, int *x, int *y)
 
 
 status
-get_character_box_textimage(TextImage ti, int index, int *x, int *y, int *w, int *h, int *b)
+get_character_box_textimage(TextImage ti, int index,
+			    int *x, int *y, int *w, int *h, int *b)
 { int cx, cy;
 
   if ( get_xy_pos(ti, toInt(index), &cx, &cy) )
@@ -1201,16 +1029,9 @@ RedrawAreaTextImage(TextImage ti, Area a)
   int bx, by, bw, bh;
   int sx, sy;
   int p = valInt(ti->pen);
-
-  if ( isNil(ti->image) )
-  { computeTextImage(ti);
-    assign(ti, image,
-	   newObject(ClassPixmap, NIL, ti->foreground, ti->background, 0));
-    assign(ti->image, display, getDisplayGraphical((Graphical)ti));
-    adjustSizeImageTextImage(ti);
-    ensure_lines_screen(ti->image_map, ti->map->length);
-    fillImageTextImage(ti, ON);
-  }
+  int ox = valInt(ti->area->x);
+  int oy = valInt(ti->area->y);
+  Any obg;
 
   initialiseDeviceGraphical(ti, &x, &y, &w, &h);
   bx = x, by = y, bw = w, bh = h;
@@ -1222,74 +1043,60 @@ RedrawAreaTextImage(TextImage ti, Area a)
   if ( w > valInt(a->w) ) w = valInt(a->w);
   if ( h > valInt(a->h) ) h = valInt(a->h);
 
-  if ( w > 0 && h > 0 ) 
-  { DEBUG(NAME_textImage, printf("r_image(%s, %d, %d, %d, %d, %d, %d)\n",
-				 pp(ti->image), sx, sy, x, y, w, h));
-    r_image(ti->image, sx, sy, x, y, w, h, OFF);
-  }
+  obg = r_background(ti->background);
+  r_offset(ox, oy);
+  paint_area(ti, sx, sy, w, h);
+  r_offset(-ox, -oy);
+  r_background(obg);
 
-  r_thickness(p);
-  r_dash(ti->texture);
-  r_box(bx, by, bw, bh, 0, NIL);
+  if ( sx < TXT_X_MARGIN || sx + w > ti->w - TXT_X_MARGIN ||
+       sy < TXT_Y_MARGIN || sy + h > ti->h - TXT_Y_MARGIN )
+  { r_thickness(p);
+    r_dash(ti->texture);
+    r_box(bx, by, bw, bh, 0, NIL);
+  }
 
   return RedrawAreaGraphical(ti, a);
-}
-
-
-static status
-fillImageTextImage(TextImage ti, Bool force)
-{ if ( t_open(ti) )			/* No image: W or H is 0 */
-  { Area a;
-    int line;
-    TextLine ml, il;
-
-    if ( force == ON )
-    { ml = ti->map->lines + ti->map->skip;
-      il = ti->image_map->lines;
-      for(line = 0; line < ti->map->length; line++, ml++, il++)
-      { il->y = 0;
-	update_line(ti, ml, il);
-      }
-    } else
-    { shift_lines(ti);			/* Handle scroll or line ins/del */
-
-      ml = ti->map->lines + ti->map->skip;
-      il = ti->image_map->lines;
-      for(line = 0; line < ti->map->length; line++, ml++, il++)
-	update_line(ti, ml, il);
-      if ( ml->changed )
-      { r_clear(0, ml->y, ti->w, ti->h - ml->y);
-	ml->changed = FALSE;
-      }
-    }
-
-    ti->image_map->length = ti->map->length;
-    t_close();
-
-    a = ti->changed_area;
-    if ( valInt(a->w) > 0 && valInt(a->h) > 0 )
-    { CHANGING_GRAPHICAL(ti,
-			 DEBUG(NAME_text,
-			       printf("Changed: (%ld %ld %ld %ld)\n",
-				      valInt(a->x), valInt(a->y),
-				      valInt(a->w), valInt(a->h)));
-			 changedImageGraphical(ti, a->x, a->y, a->w, a->h));
-    }
-  }
-
-  succeed;
 }
 
 
 status
 computeTextImage(TextImage ti)
 { if ( notNil(ti->request_compute) )
-  { updateMapTextImage(ti);
+  { TextLine ml;
+    int line;
+    int fy = 0, ty = 0, fx = 100000, tx = ti->w - TXT_X_MARGIN;
 
-    if ( notNil(ti->image) )
-    { ensure_lines_screen(ti->image_map, ti->map->length);
-      fillImageTextImage(ti, OFF);	/* TBD: optimise? */
+    updateMapTextImage(ti);
+
+    ml = &ti->map->lines[ti->map->skip];
+    for(line = 0; line < ti->map->length; line++, ml++)
+    { if ( ml->changed >= 0 )
+      { int cx, cy = ml->y + ml->h;
+
+	if ( line == ti->map->length - 1 ) /* last line */
+	  cy = ti->h - valInt(ti->pen);
+
+	if ( fy == ty )
+	{ fy = ml->y;
+	  ty = cy;
+	} else
+	  ty = cy;
+
+	cx = ml->chars[ml->changed].x;
+	if ( cx < fx )
+	  fx = cx;
+
+	ml->changed = -1;
+      }
     }
+
+    DEBUG(NAME_text, printf("changedImageGraphical(%s, %d, %d, %d, %d)\n",
+			    pp(ti), fx, fy, tx-fx, ty-fy));
+    if ( ty > fy )
+      changedImageGraphical(ti,
+			    toInt(fx), toInt(fy), toInt(tx-fx), toInt(ty-fy));
+
     assign(ti, request_compute, NIL);
   }
 
@@ -1346,6 +1153,34 @@ locate_screen_line(TextScreen map, int pos)
   }
 
   return -1;				/* not in the map */
+}
+
+
+static void
+copy_line_attributes(TextLine from, TextLine to)
+{ to->y      = from->y;
+  to->h      = from->h;
+  to->base   = from->base;
+  to->length = from->length;
+  to->w      = from->w;
+}
+
+
+static void
+copy_line_chars(TextLine from, int start, TextLine to)
+{ int end = from->length+1;
+
+  ensure_chars_line(to, end);
+
+  for( ; start < end; start++ )
+    to->chars[start] = from->chars[start];    
+}
+
+
+static void
+copy_line(TextLine from, TextLine to)
+{ copy_line_attributes(from, to);
+  copy_line_chars(from, 0, to);
 }
 
 
@@ -1557,41 +1392,14 @@ tabStopsTextImage(TextImage ti, Vector v)
 
 
 static status
-adjustSizeImageTextImage(TextImage ti)
-{ if ( notNil(ti->image) )
-  { int bw = Round(ti->w, 16);
-    int bh = Round(ti->h, 16);
-
-    if ( bw > 0 && bh > 0 &&
-	 (bw != valInt(ti->image->size->w) ||
-	  bh != valInt(ti->image->size->h)) )
-    { DEBUG(NAME_image, printf("Resizing %s to %d x %d\n",
-			       pp(ti), bw, bh));
-      resizeImage(ti->image, toInt(bw), toInt(bh));
-      d_image(ti->image, 0, 0, bw, bh);
-      r_clear(0, 0, bw, bh);
-      d_done();
-    }
-  }
-  
-  succeed;
-}
-
-
-static status
 geometryTextImage(TextImage ti, Int x, Int y, Int w, Int h)
 {
 #define Changed(a) ( notDefault(a) && (a) != ti->area->a )
 
   if ( Changed(w) || Changed(h) )	/* resize */
-  { int line;
-
-    geometryGraphical(ti, x, y, w, h);
+  { geometryGraphical(ti, x, y, w, h);
     ti->w = valInt(ti->area->w);
     ti->h = valInt(ti->area->h);
-    adjustSizeImageTextImage(ti);
-    for(line = 0; line < ti->image_map->length; line++)
-      ti->image_map->lines[line].length = 0;
     ChangedEntireTextImage(ti);
   } else
     geometryGraphical(ti, x, y, DEFAULT, DEFAULT); /* move only */
@@ -1631,14 +1439,9 @@ makeClassTextImage(Class class)
 
   localClass(class, NAME_text, NAME_storage, "object", NAME_get,
 	     "Source of the text");
-  localClass(class, NAME_image, NAME_cache, "image*", NAME_get,
-	     "Scratch image");
   localClass(class, NAME_background, NAME_appearance,
 	     "colour|pixmap", NAME_get,
 	     "Background colour");
-  localClass(class, NAME_foreground, NAME_appearance,
-	     "colour|pixmap", NAME_get,
-	     "Text (foreground) colour");
   localClass(class, NAME_start, NAME_scroll, "int", NAME_none,
 	     "Index of first character displayed");
   localClass(class, NAME_end, NAME_scroll, "int", NAME_get,
@@ -1650,8 +1453,6 @@ makeClassTextImage(Class class)
 	     "Pixel distance between tab stops");
   localClass(class, NAME_tabStops, NAME_appearance, "vector*", NAME_get,
 	     "Vector of tab-stops in pixels");
-  localClass(class, NAME_changedArea, NAME_repaint, "area", NAME_get,
-	     "Area to redisplay next");
   localClass(class, NAME_eofInWindow, NAME_repaint, "bool", NAME_get,
 	     "Is end-of-file inside window?");
 
@@ -1673,8 +1474,6 @@ makeClassTextImage(Class class)
 	     "C-function to fetch next character from source");
   localClass(class, NAME_map, NAME_cache, "alien:TextScreen", NAME_none,
 	     "2-dimensional map of source");
-  localClass(class, NAME_imageMap, NAME_cache, "alien:TextScreen", NAME_none,
-	     "2-dimensional map of image");
 
   termClass(class, "text_image", 3, NAME_text, NAME_width, NAME_height);
   setRedrawFunctionClass(class, RedrawAreaTextImage);
@@ -1742,8 +1541,6 @@ makeClassTextImage(Class class)
 		  "Tabstop interval (pixels)");
   attach_resource(class, "background", "colour|pixmap", "white",
 		  "Background colour for the text");
-  attach_resource(class, "foreground", "colour|pixmap", "black",
-		  "Foreground colour for the text");
 
   succeed;
 }

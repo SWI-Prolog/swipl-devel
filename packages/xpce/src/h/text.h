@@ -175,15 +175,12 @@ struct text_screen
 NewClass(text_image)			/* TBD: subclass of bitmap? */
   ABSTRACT_GRAPHICAL
   Any   	text;			/* Text we are operation on */
-  Image		image;			/* Bitmap image */
   Any		background;		/* Background of text */
-  Any		foreground;		/* Text colour */
   Int		start;			/* Start offset */
   Int		end;			/* First non-visible character */
   Name		wrap;			/* Wrap mode in effect */
   Int		tab_distance;		/* Tab distance in pixels */
   Vector	tab_stops;		/* Vector of tab-stops (pixels) */
-  Area		changed_area;		/* Area changed this ->update */
   Bool		eof_in_window;		/* EOF is in the window */
 					/* start private data */
   int		w;			/* Used width in pixels */
@@ -195,7 +192,6 @@ NewClass(text_image)			/* TBD: subclass of bitmap? */
   ScanFunction	scan;			/* Scan for character type */
   FetchFunction fetch;			/* Function to fetch characters */
   TextScreen	map;			/* Describes the text object */
-  TextScreen	image_map;		/* Describes image */
 End;
 
 #endif /* _PCE_TXT_INCLUDED */

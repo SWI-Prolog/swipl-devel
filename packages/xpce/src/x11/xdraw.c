@@ -532,9 +532,9 @@ r_clear(int x, int y, int w, int h)
   { DEBUG(NAME_background, printf("r_clear(%d, %d, %d, %d) in %s context\n",
 				  x, y, w, h, pp(context.gcs->kind)));
 
-    if ( context.kind == NAME_window )
+/*  if ( context.kind == NAME_window )
       XClearArea(context.display, context.drawable, x, y, w, h, False);
-    else
+    else */
       XFillRectangle(context.display, context.drawable, context.gcs->clearGC,
 		     x, y, w, h);
   }
@@ -2023,7 +2023,8 @@ str_width(String s, int from, int to, FontObj f)
 void
 s_print8(char8 *s, int l, int x, int y, FontObj f)
 { if ( l > 0 )
-  { s_font(f);
+  { Translate(x, y);
+    s_font(f);
     XDrawString(context.display, context.drawable, context.gcs->workGC,
 		x, y, s, l);
   }
@@ -2033,7 +2034,8 @@ s_print8(char8 *s, int l, int x, int y, FontObj f)
 void
 s_print16(char16 *s, int l, int x, int y, FontObj f)
 { if ( l > 0 )
-  { s_font(f);
+  { Translate(x, y);
+    s_font(f);
     XDrawString16(context.display, context.drawable, context.gcs->workGC,
 		  x, y, (XChar2b *)s, l);
   }
