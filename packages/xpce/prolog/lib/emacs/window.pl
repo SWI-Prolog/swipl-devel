@@ -31,10 +31,10 @@ various others.
 	      new(handler(button,
 			  message(@receiver?device?(mode), event, @event)))).
 
-resource(confirm_done,	bool,	false,	 "Donot confirm emacs-windows").
-resource(size,		size,	'size(80,32)', "Size of text-field").
+resource(confirm_done,	bool,	false,	     "Donot confirm emacs-windows").
+resource(size,		size,	size(80,32), "Size of text-field").
 
-variable(sticky_window, bool, get,  "When @on, window won't be killed").
+variable(sticky_window, bool,   get,  "When @on, window won't be killed").
 variable(pool,		[name], both, "Window pool I belong too").
 
 initialise(F, B:emacs_buffer) :->
@@ -415,13 +415,14 @@ unlink(E) :->
 typed(E, Id:event_id) :->
 	"Handle typing via mode"::
 	get(E, mode, Mode),
-	send(Mode, typed, Id, E).
+	ignore(send(Mode, typed, Id, E)). % don't delegate to frame
 
 
 mode(E, ModeName:mode_name) :->
 	"Associate argument mode"::
-	(   get(E?(mode), name, ModeName)
-	->  true
+	get(E, mode, OldMode),
+	(   get(OldMode, name, ModeName)
+	->  send(E, syntax, OldMode?syntax)
 	;   (	get(E?modes, find, @arg1?name == ModeName, Mode)
 	    ->  send(E, slot, mode, Mode)
 	    ;	send(E, slot, mode, ModeName),	% Converted to object
@@ -483,9 +484,12 @@ catch_all(E, Selector:name, Args:unchecked ...) :->
 		 *          UTILITIES		*
 		 *******************************/
 
-looking_at(E, Re:regex) :->
+looking_at(E, Re:regex, Where:[int]) :->
 	"Test if regex macthes from the caret"::
-	get(E, caret, C),
+	(   Where == @default
+	->  get(E, caret, C)
+	;   C = Where
+	),
 	get(E, text_buffer, TB),
 	send(Re, match, TB, C).
 
@@ -727,7 +731,8 @@ close_history(M, Argv:[vector]) :->
 	"Close open history adding Argv"::
 	get(M, m_x_history, History),
 	(   Argv \== @nil, Argv \== @default
-	->  (	get(History, find,
+	->  clean_argv(Argv),
+	    (	get(History, find,
 		    message(@prolog, same_argv, Argv, @arg1),
 		    Old)
 	    ->	send(History, move_after, Old)
@@ -750,6 +755,14 @@ same_argv(V1, V2) :-
 		   send(P1, equal, P2)
 	       )).
 
+
+%	clean_argv(+Vector)
+%	Replace vector elements with their written version to avoid the
+%	risk of illegal-object references.
+
+clean_argv(Vector) :-
+	send(Vector, for_all,
+	     message(Vector, element, @arg2, @arg1?print_name)).
 
 noarg_call(M, Selector:name) :->
 	"Invoke method without arguments (prompt)"::
@@ -1083,7 +1096,7 @@ initialise(I, Name:name, ValueSet:'chain|function') :->
 		   "Emacs mode menu pullright popup").
 
 members(I, Members:chain) :->
-	"->clear and attach new members (donot capitalise)"::
+	"->clear and attach new members (do not capitalise)"::
 	get(Members, map,
 	    create(menu_item, @arg1, @default, @arg1?print_name),
 	    Items),

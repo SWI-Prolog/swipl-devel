@@ -101,6 +101,22 @@ quit(M) :->
 	ignore(send(M?text_buffer, save_if_modified)),
 	send(M?frame, destroy).
 
+
+		 /*******************************
+		 *		REGION		*
+		 *******************************/
+
+region(M, Tuple:tuple) :<-
+	"Get region start end end (sorted)"::
+	get(M, mark, Mark),
+	get(M, caret, Caret),
+	(   Caret > Mark
+	->  new(Tuple, tuple(Mark, Caret))
+	;   Mark > Caret
+	->  new(Tuple, tuple(Caret, Mark))
+	).
+
+
 		 /*******************************
 		 *		EDIT		*
 		 *******************************/
@@ -112,9 +128,8 @@ grab_region(M) :->
 
 sort_lines_in_region(M) :->
 	"Sort lines in mark ... caret alphabetically"::
-	get(M, mark, Mark),
-	get(M, caret, Caret),
-	send(M, sort, Mark, Caret).
+	get(M, region, tuple(Start, End)),
+	send(M, sort, Start, End).
 
 
 delete_matching_lines(M, Re:regex) :->
@@ -228,14 +243,8 @@ write_file(M, File:file) :->
 
 write_region(M, File:file) :->
 	"Write current region to file"::
-	get(M, mark, Mark),
-	get(M, caret, Caret),
-	(   Mark < Caret
-	->  Start = Mark,
-	    Length is Caret - Mark
-	;   Start = Caret,
-	    Length is Mark - Caret
-	),
+	get(M, region, tuple(Start, End)),
+	Length is End - Start,
 	send(M?text_buffer, write_region, File, Start, Length).
 
 
@@ -417,16 +426,20 @@ execute_extended_command(M,
 		fail			% force backtracking
 	    ;   !
 	    ),
+	send(M, report, status, ''),
 	result(send(M, send_vector, CmdName, Argv), YesNo),
 	(   object(M)			% may be ->free'd!
 	->  send(M, close_history, Argv),
-	    send(M, report, status, YesNo)
+	    (	\+ YesNo
+	    ->  send(M, report, status, no)
+	    ;	true
+	    )
 	;   true
 	).
 
-result(Goal, yes) :-
+result(Goal, true) :-
 	Goal, !.
-result(_, no).
+result(_, fail).
 
 
 		 /*******************************
@@ -628,21 +641,11 @@ goto_line(M, LineNo:int) :->
 
 count_lines_region(M) :->
 	"Inform user on # lines in region"::
-	get(M, caret, Caret),
-	get(M, mark, Mark),
-	get(M, line_number, Caret, CaretLine),
-	get(M, line_number, Mark, MarkLine),
+	get(M, region, tuple(Start, End)),
+	get(M, line_number, Start, CaretLine),
+	get(M, line_number, End, MarkLine),
 	Lines is MarkLine - CaretLine,
-	abs(Lines, AbsLines),
-	send(M, report, inform, 'Region has %d lines', AbsLines).
-
-
-abs(X, Y) :-
-	(   X >= 0
-	->  Y = X
-	;   Y is -X
-	).
-
+	send(M, report, inform, 'Region has %d lines', Lines).
 
 help(_) :->
 	"Display general help"::

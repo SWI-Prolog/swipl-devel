@@ -21,6 +21,8 @@ variable(clear_on_append,  bool := @off, both,
 	 "Clear on ->append_hit after usage").
 variable(used, 		   bool := @off, both,
 	 "->goto has been used").
+variable(message,	   name := caret, both,
+	 "Method to apply").
 
 resource(confirm_done, 	bool, '@off').
 
@@ -92,6 +94,7 @@ goto(L, Fragment:fragment) :->
 	get(Fragment, text_buffer, TB),
 	send(TB, open),
 	get(TB?editors, head, Editor),
-	send(Editor, caret, Fragment?start).
+	get(L, message, Method),
+	send(Editor, Method, Fragment?start).
 
 :- pce_end_class.

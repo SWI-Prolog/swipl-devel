@@ -267,13 +267,15 @@ decorateWindow(PceWindow sw, Name how, Int lb, Int tb, Int rb, Int bb,
 
   ws_reassociate_ws_window(sw, dw);
 
+  assign(dw, tile, sw->tile);
+  if ( instanceOfObject(dw->tile, ClassTile) )
+    assign(dw->tile, object, dw);
+  assign(sw, tile, NIL);
+
   if ( notNil(sw->frame) )
   { replaceChain(sw->frame->members, sw, dw);
     assign(dw, frame, sw->frame);
     assign(sw, frame, NIL);
-    assign(dw, tile, sw->tile);
-    assign(dw->tile, object, dw);
-    assign(sw, tile, NIL);
   } else if ( notNil(sw->device) )
   { replaceChain(sw->device->graphicals, sw, dw);
     assign(dw, device, sw->device);
@@ -1561,47 +1563,63 @@ mergeFramesWindow(PceWindow w1, PceWindow w2)
 
 
 static status
-relateWindow(PceWindow sw, Name how, PceWindow w2)
-{ if ( notNil(sw->decoration) )
-    return relateWindow(sw->decoration, how, w2);
-  if ( notNil(w2->decoration) )
+relateWindow(PceWindow sw, Name how, Any to)
+{ PceWindow w2 = instanceOfObject(to, ClassWindow) ? to : NIL;
+
+  if ( notNil(sw->decoration) )
+    return relateWindow(sw->decoration, how, to);
+  if ( notNil(w2) && notNil(w2->decoration) )
     return relateWindow(sw, how, w2->decoration);
   
   DeviceGraphical((Graphical)sw, NIL);
-  DeviceGraphical((Graphical)w2, NIL);
+  if ( notNil(w2) )
+  { DeviceGraphical((Graphical)w2, NIL);
+    tileWindow(w2, DEFAULT);
+  }
 
   if ( createdWindow(sw) && notNil(sw->frame) )
     send(sw->frame, NAME_delete, sw, 0);
   
   tileWindow(sw, DEFAULT);
-  tileWindow(w2, DEFAULT);
 
-  TRY(send(sw->tile, how, w2->tile, 0));
+  if ( notNil(w2) )
+  { TRY(send(sw->tile, how, w2->tile, 0));
+  } else
+  { TileObj t2 = to;
+
+    TRY(send(sw->tile, how, t2, OFF, 0));
+    while( isNil(t2->object) )
+    { t2 = getHeadChain(t2->members);
+      assert(t2);
+    }
+
+    w2 = t2->object;
+  }
   
   return mergeFramesWindow(sw, w2);
 }
 
 
 static status
-leftWindow(PceWindow w1, PceWindow w2)
+leftWindow(PceWindow w1, Any w2)
 { return relateWindow(w1, NAME_left, w2);
 }
 
 
 static status
-rightWindow(PceWindow w1, PceWindow w2)
+rightWindow(PceWindow w1, Any w2)
 { return relateWindow(w1, NAME_right, w2);
 }
 
 
 static status
-aboveWindow(PceWindow w1, PceWindow w2)
+aboveWindow(PceWindow w1, Any w2)
 { return relateWindow(w1, NAME_above, w2);
 }
 
 
 static status
-belowWindow(PceWindow w1, PceWindow w2)
+belowWindow(PceWindow w1, Any w2)
 { return relateWindow(w1, NAME_below, w2);
 }
 
@@ -1788,7 +1806,10 @@ catchAllWindowv(PceWindow sw, Name selector, int argc, Any *argv)
   }	
 
   if ( getSendMethodClass(ClassTile, selector) )
-  { tileWindow(sw, DEFAULT);
+  { if ( notNil(sw->decoration) )
+      return catchAllWindowv(sw->decoration, selector, argc, argv);
+
+    tileWindow(sw, DEFAULT);
     assign(PCE, last_error, NIL);
     return sendv(sw->tile, selector, argc, argv);
   }
@@ -1933,13 +1954,13 @@ static senddecl send_window[] =
      NAME_focus, "Forward events to graphical"),
   SM(NAME_ComputeDesiredSize, 0, NULL, ComputeDesiredSizeWindow,
      NAME_layout, "Compute the desired size (no-op)"),
-  SM(NAME_above, 1, "window", aboveWindow,
+  SM(NAME_above, 1, "window|tile", aboveWindow,
      NAME_layout, "Put me above argument"),
-  SM(NAME_below, 1, "window", belowWindow,
+  SM(NAME_below, 1, "window|tile", belowWindow,
      NAME_layout, "Put me below argument"),
-  SM(NAME_left, 1, "window", leftWindow,
+  SM(NAME_left, 1, "window|tile", leftWindow,
      NAME_layout, "Put me left of argument"),
-  SM(NAME_right, 1, "window", rightWindow,
+  SM(NAME_right, 1, "window|tile", rightWindow,
      NAME_layout, "Put me right of argument"),
   SM(NAME_create, 1, "[window]", createWindow,
      NAME_open, "Create associated X-window structure"),

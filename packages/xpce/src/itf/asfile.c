@@ -16,7 +16,7 @@
 typedef struct pce_file_handle * PceFileHandle;
 
 struct pce_file_handle
-{ Any		object;			/* object `filified' */
+{ Any		object;			/* object `file-i-fied' */
   long		point;			/* current position */
   int		flags;			/* general flags field */
 };

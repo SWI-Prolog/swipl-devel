@@ -393,11 +393,13 @@ fitFrame(FrameObj fr)
   Cell cell;
   Int border;
 
+  TRY(t = getTileFrame(fr));
+  enforceTile(t, OFF);
+
   for_cell(cell, fr->members)
     send(cell->value, NAME_ComputeDesiredSize, 0);
 
-  TRY(t = getTileFrame(fr));
-  enforceTile(t);
+  enforceTile(t, ON);
   border = mul(t->border, TWO);
 
   return setFrame(fr, DEFAULT, DEFAULT,

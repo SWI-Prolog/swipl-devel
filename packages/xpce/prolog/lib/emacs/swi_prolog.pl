@@ -45,7 +45,8 @@ user:edit_source(Spec) :-
 make_prolog_warning_list(L) :-
 	new(L, emacs_hit_list('SWI-Prolog warnings')),
 	send(L, clear_on_append, @on),
-	send(L, expose_on_append, @on).
+	send(L, expose_on_append, @on),
+	send(L, message, error_at_location).
 
 user:exception(warning, warning(Path, Line, Message), _) :-
 	Path \== user,

@@ -28,12 +28,20 @@
 	  indent_clause		       = key('\eq'),
 	  insert_if_then_else	       = key('(') + key(';') + key('>'),
 
+	  prolog_manual		       = button(prolog),
+	  check_clause		       = key('\C-c\C-s') + button(prolog),
+	  insert_full_stop	       = key(.),
 	  find_definition	       = key('\e.') + button(prolog),
 	  make			       = key('\C-cRET') + button(prolog),
 	  compile_buffer	       = key('\C-c\C-b') + button(prolog),
 	  consult_selection	       = button(compile) + button(prolog),
 	  source_file		       = button(prolog,
 						@prolog?source_file_chain),
+
+	  forward_clause	       = key('\ee'),
+	  backward_clause	       = key('\ea'),
+	  backward_predicate	       = key('\e['),
+	  forward_predicate	       = key('\e]'),
 
 	  manpce		       = key('\C-c?') + button(pce),
 	  editpce		       = key('\C-ce') + button(pce),
@@ -51,7 +59,7 @@
 	  @    = symbol,
 	  '%'  = comment_start,
 	  '\n' + comment_end,
-	  '/'  + comment_end('*'),
+	  '/'  + comment_start('*'),
 	  '*'  + comment_end('/')
 	]).
 		 
@@ -71,9 +79,9 @@ user_source_file(F) :-
 
 
 :- pce_global(@prolog_neck_regex,
-	      new(regex(':-\|-->\|:->\|:<-'))).
+	      new(regex(':-\|:->\|:<-\|-->'))).
 :- pce_global(@prolog_full_stop,
-	      new(regex('\S.\.\($\|\s \)'))).
+	      new(regex('[^-#$&*+./:<=>?@\^`~]\.\($\|\s \)'))).
 
 indent_line(E) :->
 	"Indent current line (Prolog indentation)"::
@@ -85,20 +93,22 @@ indent_line(E) :->
 	).
 	
 
-beginning_of_clause(E, Here:number, BOP:int) :<-
+beginning_of_clause(E, Start:int, BOP:int) :<-
 	"Find start of predicate"::
+	new(Here, number(Start)),
 	get(E, text_buffer, TB),
 	repeat,
 	    (	(   send(Here, less_equal, 0)
 		;   \+ send(@prolog_full_stop, search, TB, Here, 0)
 		)
-	    ->	!, fail
-	    ;   send(Here, value, @prolog_full_stop?register_start),
+	    ->	!,
+		get(TB, skip_comment, 0, BOP)
+	    ;   get(@prolog_full_stop, register_start, SReg),
 		get(@prolog_full_stop, register_end, P0),
+		send(Here, value, SReg),
 		get(TB, skip_comment, P0, BOP),
-		get(TB, scan, BOP, term, 1, end, P1),
-		get(TB, skip_comment, P1, P2),
-		send(@prolog_neck_regex, match, TB, P2)
+		BOP =< Start,
+		get(TB, scan_syntax, 0, BOP, code)
 	    ).
 
 
@@ -112,8 +122,7 @@ beginning_of_if_then_else(E, Pos:int) :<-
 	\+ send(E?syntax, has_syntax, Before, word),
 	Before \== 0'?,				% '?(' for xpce
 	get(E, beginning_of_clause, Pos, BegOfPred),
-	\+ send(TB, in_string, Pos, BegOfPred),
-	\+ send(TB, in_comment, Pos, BegOfPred).
+	get(TB, scan_syntax, BegOfPred, Pos, code).
 
 
 indent_if_then_else(E) :->
@@ -182,8 +191,7 @@ indent_clause(E) :->
 	    get(E, caret, Caret),
 	    get(regex('.*\S.\.'), match, TB, Caret, Size),
 	    End is Caret + Size,
-	    \+ send(TB, in_string, End, Start),
-	    \+ send(TB, in_comment, End, Start), !,
+	    get(TB, scan_syntax, Start, End, code), !,
  	send(E, forward_char, Size),
 	send(E, electric_caret, Start).
 
@@ -204,7 +212,7 @@ compile_buffer(E) :->
 	(   send(File, instance_of, file)
 	->  send(E, save_if_modified),
 	    get(File, name, Path),
-	    [user:Path],
+	    consult(user:Path),
 	    send(E, report, status, '%s compiled', Path)
 	;   send(E, report, error,
 		 'Buffer is not connected to a file')
@@ -218,9 +226,16 @@ compile_buffer(E) :->
 find_definition(E) :->
 	"Find definition of predicate"::
 	get(E, caret, Caret),
-	get(E, name_and_arity, Caret, tuple(Name, Arity)),
-	get(E?frame, prompt,
-	    'Name/Arity', string('%s/%d', Name, Arity), NameAndArity),
+	(   get(E, name_and_arity, Caret, tuple(Name, Arity))
+	->  true
+	;   Name = '',
+	    Arity = @default
+	),
+	(   Arity == @default
+	->  Def = Name
+	;   Def = string('%s/%d', Name, Arity)
+	),
+	get(E?frame, prompt, 'Name/Arity', Def, NameAndArity),
 	new(NameAndArityRegex, regex('\s *\(.+\)/\(\sd+\)\s *$')),
 	(   send(NameAndArityRegex, match, NameAndArity)
 	->  get(NameAndArityRegex, register_value, NameAndArity, 1, NameStr),
@@ -232,8 +247,9 @@ find_definition(E) :->
 
 	find_predicate(PredName, PredArity, Preds),
 	(   Preds = []
-	->  send(E, report, warning,
-		 'Cannot find %s/%d', PredName, PredArity)
+	->  ignore(PredArity = '?'),
+	    send(E, report, warning,
+		 'Cannot find %s/%s', PredName, PredArity)
 	;   Preds = [Pred]
 	->  (	locate_predicate(Pred, Buffer, Index)
 	    ->	send(Buffer, open),
@@ -441,6 +457,351 @@ drop(M, Obj:object) :->
 	    send(M, report, status, 'Source included')
 	;   send(M, send_super, drop, Obj)
 	).
+
+		 /*******************************
+		 *	  SYNTAX CHECKING	*
+		 *******************************/
+
+error_at_location(M, Caret:int) :->
+	"Goto error at location"::
+	send(M, caret, Caret),
+	send(M, check_clause).
+
+
+symbol_chars("-#$&*+./:<=>?@\^`~").
+
+
+symbol_char(C) :-
+	symbol_chars(Symbols),
+	memberchk(C, Symbols).
+
+
+insert_full_stop(M, Arg:[int]) :->
+	"Check clause after typing '.'"::
+	send(M, insert_self, Arg, 0'.),
+	(   Arg == @default,
+	    get(M, caret, Caret),
+	    get(M, character, Caret-2, Prev),
+	    \+ symbol_char(Prev),
+	    get(M, scan_syntax, 0, Caret, code)
+	->  send(M, check_clause)
+	;   true
+	).
+
+alternate_syntax(prolog,    true,
+			    true).
+alternate_syntax(pce_class, pce_expansion:push_compile_operators,
+			    pce_expansion:pop_compile_operators).
+
+:- dynamic
+	syntax_error/1.
+
+check_clause(M, From:[int], End:int) :<-
+	"Check clause, returning the end of it"::
+	send(M, style, singleton, style(bold := @on)),
+	retractall(syntax_error(_)),
+        (   From == @default
+	->  get(M, caret, C),
+	    get(M, beginning_of_clause, C, Start),
+	    ignore(send(M, electric_caret, Start)),
+	    Verbose = true
+	;   Start = From,
+	    Verbose = fail
+	),
+	get(M, text_buffer, TB),
+	pce_open(TB, read, Fd),
+	(   alternate_syntax(_Name, Setup, Restore),
+	    Setup,
+	    seek(Fd, Start, start),
+	    read_term(Fd, T, [ syntax_errors(Error),
+			       singletons(S),
+			       subterm_positions(P)
+			     ]),
+	    (	Error == none
+	    ->  !, close(Fd),
+		Restore,
+	        unmark_singletons(M, P),
+		(   S == []
+		->  (   Verbose
+		    ->  send(M, report, status, 'Clause checked')
+		    ;	true
+		    )
+		;   mark_singletons(M, T, S, P),
+		    replace_singletons(M, P)
+		),
+		arg(2, P, E0),
+		get(TB, find, E0, '.', 1, end, End)
+	    ;   Restore,
+		assert(syntax_error(Error)),
+		fail
+	    )
+	->  true
+	;   setof(E, syntax_error(E), Es),
+	    last('$stream_position'(EPos, _, _):Msg, Es),
+	    send(M, caret, EPos),
+	    send(M, report, warning, 'Syntax error: %s', Msg),
+	    fail
+	).
+
+
+check_clause(M, From:[int]) :->
+	"Check syntax of clause"::
+	get(M, check_clause, From, _).
+
+
+unmark_singletons(M, P) :-
+	arg(1, P, Start),
+	arg(2, P, End),
+	new(Pt, point(Start, End)),
+	get(M, find_all_fragments, message(@arg1, overlap, Pt), Frags),
+	send(Frags, for_all, message(@arg1, free)).
+
+mark_singletons(M, T, S, A-Z) :-
+	var(T),
+	member_var(T, S), !,
+	get(M, text_buffer, TB),
+	new(_, fragment(TB, A, Z-A, singleton)).
+mark_singletons(_, _, _, _-_) :- !.
+mark_singletons(_, _, _, list_position(_, _, [], none)) :- !.
+mark_singletons(M, T, S, list_position(_, _, [], Tail)) :- !,
+	mark_singletons(M, T, S, Tail).
+mark_singletons(M, [H|T], S, list_position(A, Z, [E|ET], Tail)) :- !,
+	mark_singletons(M, H, S, E),
+	mark_singletons(M, T, S, list_position(A, Z, ET, Tail)).
+mark_singletons(_, _, _, string_position(_,_)) :- !.
+mark_singletons(M, {T}, S, brace_term_position(_, _, P)) :- !,
+	mark_singletons(M, T, S, P).
+mark_singletons(M, T, S, term_position(_,_,_,_,Args)) :-
+	mark_arg_singletons(M, T, S, 1, Args).
+
+mark_arg_singletons(_, _, _, _, []) :- !.
+mark_arg_singletons(M, T, S, N, [H|L]) :-
+	arg(N, T, A),
+	mark_singletons(M, A, S, H),
+	NN is N + 1,
+	mark_arg_singletons(M, T, S, NN, L).
+
+member_var(V, [_=V2|_]) :-
+	V == V2, !.
+member_var(V, [_|T]) :-
+	member_var(V, T).
+
+replace_singletons(M, P) :-
+	arg(1, P, Start),
+	arg(2, P, End),
+	new(Pt, point(Start, End)),
+	get(M, find_all_fragments, message(@arg1, overlap, Pt), Frags),
+	send(M, attribute, singletons, Frags),
+	get(M, caret, C),
+	send(M, mark, C),
+	send(M, focus_function, '_replace_singletons'),
+	prepare_replace_singletons(M).
+
+'_replace_singletons'(M, Id:event_id) :->
+	get(M, attribute, singletons, Frags),
+	get(Frags, delete_head, Frag),
+	(   Id == 0'y
+	->  send(Frag, insert, 0, '_'),
+	    send(Frag, free)
+	;   Id == 0'_
+	->  send(Frag, string, '_'),
+	    send(Frag, free)
+	;   Id == 0'n
+	->  true
+	),
+	(   send(Frags, empty)
+	->  send(M, focus_function, @nil),
+	    send(M, selection, 0, 0),
+	    send(M, caret, M?mark),
+	    send(M, report, status, '')
+	;   prepare_replace_singletons(M)
+	).
+
+prepare_replace_singletons(M) :-
+	get(M, attribute, singletons, Frags),
+	get(Frags, head, F0),
+	get(F0, start, S),
+	get(F0, end, E),
+	send(M, selection, S, E),
+	send(M, caret, E),
+	send(M, report, status,
+	     'Replace singleton? (''y'' --> _Name, ''_'' --> _, ''n'')').
+
+seek(Fd, Pos, start) :-
+	stream_position(Fd, _Old, '$stream_position'(Pos, 0, 0)).
+
+		 /*******************************
+		 *	      HELP		*
+		 *******************************/
+
+make_prolog_help_topic :-
+	object(@prolog_help_topic_type), !.
+make_prolog_help_topic :-
+	new(Topics, quote_function(@prolog?help_topics)),
+	new(@prolog_help_topic_type,
+	    type(prolog_help_topic, value_set, Topics)).
+
+:- initialization make_prolog_help_topic.
+
+help_topics(@prolog_help_topics) :-
+	object(@prolog_help_topics), !.
+help_topics(@prolog_help_topics) :-
+	setof(Name, prolog_help_topic(Name), Names),
+	chain_list(Chain, [''|Names]),
+	send(Chain, name_reference, prolog_help_topics).
+
+prolog_manual(_M, What:prolog_help_topic) :->
+	(   What == ''
+	->  help
+	;   help(What)
+	).
+
+
+		 /*******************************
+		 *	  CLAUSE FWD/BWD	*
+		 *******************************/
+
+forward_clause(M, Start:int, EOC:int) :<-
+	"Find end of first clause after Start"::
+	new(Here, number(Start)),
+	repeat,
+	(   send(@prolog_full_stop, search, M, Here)
+	->  get(@prolog_full_stop, register_start, 1, Stop),
+	    (   get(M, scan_syntax, 0, Stop, code)
+	    ->	!,
+	        EOC = Stop
+	    ;	send(Here, value, Stop),
+		fail
+	    )
+	;   !,
+	    fail
+	).
+
+at_start_of_clause(M, Pos:[int]) :->
+	"Succeeds if this is the start of a clause"::
+	(   Pos == @default
+	->  get(M, caret, C)
+	;   C = Pos
+	),
+	get(M, scan, C, word, 0, start, SOW),
+	SOW == C,
+	(   send(M, looking_at, ':-', C)
+	;   get(M, text_buffer, TB),
+	    get(TB, scan, C, term, 1, end, TE),
+	    get(TB, skip_comment, TE, Neck),
+	    send(M, looking_at, ':-\|-->\|:<-\|\.', Neck)
+	).
+
+backward_clause(M, Start:int, BOC:int) :<-
+	"Find start of clause or previous clause"::
+	(   send(M, at_start_of_clause, Start)
+	->  From is Start - 1
+	;   From is Start
+	),
+	get(M, beginning_of_clause, From, BOC).
+
+forward_clause(M, Arg:[int]) :->
+	"Go forwards by <arg> clauses"::
+	default(Arg, 1, Times),
+	get(M, caret, Caret),
+	(   Times > 0
+	->  do_n_times(Times, M, forward_clause, Caret, Pos)
+	;   NegTimes is -Times,
+	    do_n_times(NegTimes, M, backward_clause, Caret, Pos)
+	),
+	send(M, caret, Pos).
+
+backward_clause(M, Arg:[int]) :->
+	"Go backwards by <arg> clauses"::
+	default(Arg, 1, Times),
+	Forward is -Times,
+	send(M, forward_clause, Forward).
+
+do_n_times(0, _, _, Pos, Pos) :- !.
+do_n_times(N, M, Sel, Here, End) :-
+	get(M, Sel, Here, Pos), !,
+	NN is N - 1,
+	do_n_times(NN, M, Sel, Pos, End).
+do_n_times(_, _, _, Pos, Pos).
+
+
+		 /*******************************
+		 *	 PREDICATE FWD/BWD	*
+		 *******************************/
+
+at_start_of_predicate(M, Start:[int]) :->
+	(   Start == @default
+	->  get(M, caret, P0)
+	;   P0 = Start
+	),
+	send(M, at_start_of_clause, P0),
+	get(M, name_and_arity, P0, tuple(Name, Arity)),
+	(   get(M, backward_clause, P0, P1)
+	->  \+ get(M, name_and_arity, P1, tuple(Name, Arity))
+	;   true
+	).
+	    
+
+backward_predicate(M, P0:int, BPred:int) :<-
+	"Find start of this/previous predicate"::
+	(   send(M, at_start_of_predicate, P0)
+	->  P1 is P0-1
+	;   P1 is P0
+	),
+	get(M, beginning_of_clause, P1, BOC),
+	(   get(M, name_and_arity, BOC, tuple(Name, Arity))
+	->  new(BP, number(BOC)),	% clause
+	    repeat,
+		(   get(M, backward_clause, BP, BPC),
+		    send(BP, larger, BPC)
+		->  (   get(M, name_and_arity, BPC, tuple(Name, Arity))
+		    ->  send(BP, value, BPC),
+			fail
+		    ;   !,
+		        get(BP, value, BPred)
+		    )
+		;   !,
+		    fail
+		)
+	;   get(M, backward_clause, P0-1, P2),
+	    (	get(M, name_and_arity, P2, tuple(Name, Arity))
+	    ->	get(M, backward_predicate, P2+1, BPred)
+	    ;	BPred = P2
+	    )
+	).
+
+forward_predicate(M, P0:int, End:int) :<-
+	"Find end of predicate"::
+	get(M, forward_clause, P0, EOC),
+	get(M, backward_clause, EOC, BOC),
+	(   get(M, name_and_arity, BOC, tuple(Name, Arity))
+	->  new(Here, number(EOC)),
+	    repeat,
+		get(M, skip_comment, Here, BONC),
+		(   get(M, name_and_arity, BONC, tuple(Name, Arity))
+		->  get(M, forward_clause, BONC, EONC),
+		    send(Here, value, EONC),
+		    fail
+		;   !,
+		    get(Here, value, End)
+		)
+	;   End = EOC
+	).
+
+
+forward_predicate(M, Arg:[int]) :->
+	"Move forwards by <arg> predicates"::
+	default(Arg, 1, Times),
+	get(M, caret, P0),
+	do_n_times(Times, M, forward_predicate, P0, P),
+	send(M, caret, P).
+
+backward_predicate(M, Arg:[int]) :->
+	"Move backwards by <arg> predicates"::
+	default(Arg, 1, Times),
+	get(M, caret, P0),
+	do_n_times(Times, M, backward_predicate, P0, P),
+	send(M, caret, P).
 
 :- emacs_end_mode.
 

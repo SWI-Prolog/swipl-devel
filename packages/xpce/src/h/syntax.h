@@ -126,13 +126,13 @@ extern char  char_context[];		/* Initial context table */
 #define tiscommentend(t, c)	(THasSyntax(t, c, CE) && \
 				 !(t)->context[(unsigned int)(c)])
 #define tiscommentstart1(t, c)	(THasSyntax(t, c, CS) && \
-				 (t)->context[(unsigned int)(c)] & 1)
+				 ((t)->context[(unsigned int)(c)] & 1))
 #define tiscommentend1(t, c)	(THasSyntax(t, c, CE) && \
-				 (t)->context[(unsigned int)(c)] & 4)
+				 ((t)->context[(unsigned int)(c)] & 4))
 #define tiscommentstart2(t, c)	(THasSyntax(t, c, CS) && \
-				 (t)->context[(unsigned int)(c)] & 2)
+				 ((t)->context[(unsigned int)(c)] & 2))
 #define tiscommentend2(t, c)	(THasSyntax(t, c, CE) && \
-				 (t)->context[(unsigned int)(c)] & 8)
+				 ((t)->context[(unsigned int)(c)] & 8))
 
 
 		/********************************

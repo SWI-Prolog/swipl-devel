@@ -806,35 +806,185 @@ scan_textbuffer(TextBuffer tb, int from, Name unit, int amount, int az)
 
 static Int
 getMatchingQuoteTextBuffer(TextBuffer tb, Int idx, Name direction)
-{ int i = valInt(idx);
-  int ic = (direction == NAME_forward ? 1 : -1);
-  wchar c = fetch(i);
+{ long i = valInt(idx);
+  int c = fetch(i);
+  SyntaxTable syntax = tb->syntax;
 
-  if ( !tisquote(tb->syntax, c) )
+  if ( !tisquote(tb->syntax, c) )	/* must start on quote */
     fail;
 
-  for( i += ic; i >= 0 && i < tb->size; i += ic )
-    if ( fetch(i) == c && (!tisstringescape(tb->syntax, c, fetch(i-1)) ||
-			   i-1 == valInt(idx)) )
-      break;
+  if ( direction == NAME_forward )
+  { long i0 = i;
+    int quoteisescape = tisstringescape(syntax, c, c);
 
-  if ( fetch(i) == c )
-    answer(toInt(i));
+    for(i++; i<tb->size; i++)
+    { int c2 = fetch(i);
+
+      if ( c2 == c )
+      { if ( quoteisescape && i+1 < tb->size && fetch(i+1) == c )
+	{ i++;
+	  continue;
+	}
+	if ( i-1 > i0 &&
+	     (c2=fetch(i-1)) != c &&
+	     tisstringescape(syntax, c, c2) )
+	  continue;
+	  
+	answer(toInt(i));
+      }
+    }
+  } else /* if ( direction == NAME_backward ) */
+  { for(i--; i>=0; i--)
+    { int c2 = fetch(i);
+      
+      if ( c2 == c && (i == 0 || !tisstringescape(syntax, c, fetch(i-1))) )
+	answer(toInt(i));
+    }
+  }
 
   fail;
 }
+
+
+		 /*******************************
+		 *        SYNTAX HANDLING	*
+		 *******************************/
+
+#define SST_PLAIN	0x100		/* syntax-state */
+#define SST_COMMENT1	0x200		/* 1-character comment-string */
+#define SST_COMMENT2	0x400		/* 2-character comment-string */
+#define SST_STRING	0x800		/* string (low-order is start) */
+
+typedef int (*scan_callback_t)(TextBuffer, long, long, int);
+
+int
+scan_syntax_textbuffer(TextBuffer tb,
+		       long from, long to,
+		       scan_callback_t *callback,
+		       int flags)
+{ long here = from;			/* current position */
+  SyntaxTable syntax = tb->syntax;	/* syntax-table */
+  int state = SST_PLAIN;		/* initial/current state */
+  int tokenstart;
+  
+  for(; here < to; here++)
+  { int c = fetch(here);
+
+					/* strings */
+    if ( tisquote(syntax, c) )
+    { int quoteisescape = tisstringescape(syntax, c, c);
+
+					/* Prolog 0char syntax */
+      if ( c == '\'' && syntax->name == NAME_prolog && here > 0 )
+      { int c0 = fetch(here-1);
+
+	if ( isdigit(c0) )		/* or <digit><number> */
+	  continue;
+      }
+
+      state = SST_STRING|c;
+      tokenstart = here;
+
+      for(here++; here<to; here++)
+      { int c2 = fetch(here);
+
+	if ( c2 == c )
+	{ if ( quoteisescape && here+1 < tb->size && fetch(here+1) == c )
+	  { here++;
+	    continue;
+	  }
+	  if ( here-1 > tokenstart &&
+	       (c2=fetch(here-1)) != c &&
+	       tisstringescape(syntax, c, c2) )
+	    continue;
+
+	  state = SST_PLAIN;
+	  goto cont;
+	}
+      }
+    } else if ( tiscommentstart(syntax, c) ) /* COMMENT (1) */
+    { tokenstart = here;
+
+      for(here++ ; here < to; here++ )
+      { int c = fetch(here);
+
+	if ( tiscommentend(syntax, c) )
+	  goto cont;
+      }
+
+      state = SST_COMMENT1;
+    } else if ( tiscommentstart1(syntax, c) &&
+		tiscommentstart2(syntax, fetch(here+1)) )
+    { for( here += 4; here < to; here++ )
+      { int c = fetch(here - 1);
+	  
+	if ( tiscommentend2(syntax, c) )
+	{ c = fetch(here - 2);
+	  if ( tiscommentend1(syntax, c) )
+	    goto cont;
+	}
+      }
+      state = SST_COMMENT2;
+    }
+
+  cont:
+    ;
+  }
+
+  return state;
+}
+
+
+static Name
+getScanSyntaxTextBuffer(TextBuffer tb, Int f, Int t)
+{ int from = NormaliseIndex(tb, valInt(f));
+  int to   = NormaliseIndex(tb, valInt(t));
+  int s;
+
+  if ( to == tb->size )
+    to--;
+
+  s = scan_syntax_textbuffer(tb, from, to, NULL, 0);
+  switch(s&0xff00)
+  { case SST_PLAIN:
+      answer(NAME_code);
+    case SST_COMMENT1:
+    case SST_COMMENT2:
+      answer(NAME_comment);
+    case SST_STRING:
+      answer(NAME_string);
+    default:
+      assert(0);
+      fail;
+  }
+} 
 
 
 static status
 inStringTextBuffer(TextBuffer tb, Int pos, Int from)
 { long idx = valInt(pos);
   long here = (isDefault(from) ? 0L : valInt(from));
+  SyntaxTable syntax = tb->syntax;
 
-  while(here <= idx)
-  { if ( tisquote(tb->syntax, fetch(here)) )
+  for( ; here <= idx; here++)
+  { int c = fetch(here);
+
+    if ( tisquote(syntax, c) )
     { Int match;
 
       DEBUG(NAME_inString, Cprintf("here = %ld (idx = %ld)\n", here, idx));
+
+					/* Prolog 0'char syntax */
+      if ( c == '\'' && syntax->name == NAME_prolog && here > 0 )
+      { int c0 = fetch(here-1);
+
+	if ( isdigit(c0) )
+	{ if ( c0 == '0' && idx == here+1 )
+	    succeed;
+	  continue;
+	}
+      }
+
       if ( (match = getMatchingQuoteTextBuffer(tb, toInt(here), NAME_forward)))
       { DEBUG(NAME_inString, Cprintf("Matching: %ld\n", valInt(match)));
 
@@ -843,8 +993,6 @@ inStringTextBuffer(TextBuffer tb, Int pos, Int from)
       } else
 	succeed;
     }
-
-    here++;
   }
 
   fail;
@@ -890,11 +1038,15 @@ getMatchingBracketTextBuffer(TextBuffer tb, Int idx, Int bracket)
       { errorPce(tb, NAME_mismatchedBracket);
 	fail;
       }
+    } else if ( tisquote(syntax, c) )
+    { Int mb = getMatchingQuoteTextBuffer(tb, toInt(i),
+					  ic > 0 ? NAME_forward
+					         : NAME_backward);
+      if ( mb )
+	i = valInt(mb);
+      else
+	fail;
     }
-    else if ( tisquote(syntax, c) )
-      for( i += ic; i >= 0 && i < tb->size; i += ic )
-        if ( fetch(i) == c && !tisstringescape(syntax, c, fetch(i-1)) )
-	  break;
 
     if ( depth == 0 )
       answer(toInt(i));
@@ -945,26 +1097,38 @@ getSkipCommentTextBuffer(TextBuffer tb, Int where, Int to, Bool layouttoo)
   pos = NormaliseIndex(tb, pos);
   end = NormaliseIndex(tb, end);
 
-  if ( fwd )			/* forward */
+  if ( fwd )				/* forward */
   { for(;;)
     { if ( pos < 0 )
 	answer(toInt(tb->size));
 
       if ( layouttoo != OFF )
-	for( ; pos < end && tislayout(tb->syntax, fetch(pos)); pos++ )
+      { for( ; pos < end && tislayout(tb->syntax, fetch(pos)); pos++ )
 	  ;
+      }
+
       if ( tiscommentstart(tb->syntax, fetch(pos)) )
-      { for( ; pos < end && !tiscommentend(tb->syntax, fetch(pos)); pos++ )
-	  ;
+      { for( ; pos < end; pos++ )
+	{ int c = fetch(pos);
+
+	  if ( tiscommentend(tb->syntax, c) )
+	    break;
+	}
 	continue;
       }
+
       if ( tiscommentstart1(tb->syntax, fetch(pos)) &&
 	   tiscommentstart2(tb->syntax, fetch(pos+1)) )
-      { for( pos += 4;
-	     pos < end && !(tiscommentend1(tb->syntax, fetch(pos-2)) &&
-	    	            tiscommentend2(tb->syntax, fetch(pos-1)));
-	     pos++ )
-	  ;
+      { for( pos += 4; pos < end; pos++ )
+	{ int c = fetch(pos - 1);
+	  
+	  if ( tiscommentend2(tb->syntax, c) )
+	  { c = fetch(pos - 2);
+	    if ( tiscommentend1(tb->syntax, c) )
+	      break;
+	  }
+	}
+
 	continue;
       }
       break;
@@ -2043,10 +2207,12 @@ static getdecl get_textBuffer[] =
      NAME_read, "New string holding text [from, to)"),
   GM(NAME_find, 6, "index=int", T_find, getFindTextBuffer,
      NAME_search, "Search for a string"),
-  GM(NAME_readAsFile, 2, "string", T_fromAint_sizeAint, getReadAsFileTextBuffer,
+  GM(NAME_readAsFile, 2, "string", T_fromAint_sizeAint,getReadAsFileTextBuffer,
      NAME_stream, "Implement reading as a file"),
   GM(NAME_sizeAsFile, 0, "characters=int", NULL, getSizeAsFileTextBuffer,
-     NAME_stream, "Implement seek when using as a file")
+     NAME_stream, "Implement seek when using as a file"),
+  GM(NAME_scanSyntax, 2, "name", T_fromADintD_toADintD,getScanSyntaxTextBuffer,
+     NAME_language, "Find syntactical state of position")
 };
 
 /* Resources */

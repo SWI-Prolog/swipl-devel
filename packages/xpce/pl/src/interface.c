@@ -401,11 +401,10 @@ GetSelector(Term t, Module *m)
 #ifdef __WIN32__
 #include <console.h>
 
-static IOSTREAM *S__iob;		/* Windows DLL version */
 static RlcUpdateHook old_update_hook;
 
 #define PROLOG_ITF_INIT() \
-	{ S__iob = S__getiob(); }
+	{ }
 #define PROLOG_INSTALL_REDRAW_FUNCTION(f) \
 	{ old_update_hook = rlc_update_hook(f); }
 #define O_SHAREDLIBRARY
@@ -1875,7 +1874,7 @@ static foreign_t
 pl_pce_open(Term t, Term mode, Term plhandle)
 { PceObject obj;
 
-  if ( (obj = termToObject(t, NULL, FALSE)) )
+  if ( (obj = termToObject(t, NULLATOM, FALSE)) )
   { int flags, sflags = SIO_LBUF|SIO_RECORDPOS;
     int handle;
     Atom m = NULLATOM;
@@ -2094,7 +2093,7 @@ pl_Cputchar(int c)
 
 
 static void
-pl_Cflush()
+pl_Cflush(void)
 { Sflush(Soutput);
 }
 

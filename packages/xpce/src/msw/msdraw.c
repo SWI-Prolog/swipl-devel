@@ -853,18 +853,18 @@ add_brush(Any fill, HBRUSH brush)
     }
   }
 
-  leastused = brush_cache;
-  leastusage = leastused->times;
-  
+  leastused = NULL;
+
   for(i=0, e=brush_cache; i<BRUSH_CACHE_SIZE; i++, e++)
-  { if ( e->times < leastusage )
-    { leastusage = e->times;
-      leastused  = e;
+  { if ( e->brush != context.hbrush )
+    { if ( !leastused || e->times < leastusage )
+      { leastusage = e->times;
+	leastused  = e;
+      }
     }
   }
 
-  if ( context.hbrush == leastused->brush )
-    Cprintf("%s:%d: Attempt to delete current brush", __FILE__, __LINE__);
+  assert(leastused);
 
   ZDeleteObject(leastused->brush);
   leastused->object = fill;

@@ -415,13 +415,24 @@ push_class(ClassName) :-
 	->  true
 	;   push_compile_operators
 	),
-	asserta(compiling(ClassName)).
+	asserta(compiling(ClassName)),
+	(   get(@classes, member, ClassName, Class),
+	    get(Class, realised, @on)
+	->  get(@class, '_value', OldClassVal),
+	    asserta(attribute(ClassName, old_class_val, OldClassVal)),
+	    send(@class, assign, Class, global)
+	;   true
+	).
 
 %	pop_class
 %	End class compilation.
 
 pop_class :-
 	retract(compiling(ClassName)), !,
+	(   attribute(ClassName, old_class_val, OldClassVal)
+	->  send(@class, assign, OldClassVal, global)
+	;   true
+	),
 	retractall(attribute(ClassName, _, _)),
 	(   compiling(_)
 	->  true

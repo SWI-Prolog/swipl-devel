@@ -80,13 +80,9 @@ StringObj	ws_get_resource_value(DisplayObj d, Name cc, Name cn, Name rc, Name rn
 
 /* win/tile.c */
 status		unrelateTile(TileObj t);
-status		leftTile(TileObj t, Any obj);
-status		rightTile(TileObj t, Any obj);
-status		aboveTile(TileObj t, Any obj);
-status		belowTile(TileObj t, Any obj);
 TileObj		getRootTile(TileObj t);
 status		setTile(TileObj t, Int x, Int y, Int w, Int h);
-status		enforceTile(TileObj t);
+status		enforceTile(TileObj t, Bool val);
 TileObj		getSubTileToResizeTile(TileObj t, Point pos);
 status		makeClassTile(Class class);
 

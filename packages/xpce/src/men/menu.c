@@ -241,7 +241,7 @@ computeItemsMenu(Menu m)
   int rm = 0, lm = 0;
   Cell cell;
   int border = valInt(m->border);
-  int popup = 0;
+  int popup = (instanceOfObject(m, ClassPopup) ? 0 : 1);
 
   for_cell(cell, m->members)
   { MenuItem mi = cell->value;
@@ -475,6 +475,9 @@ static void
 draw_popup_indicator(Menu m, MenuItem mi, int x, int y, int w, int h, int b)
 { Elevation z;
   int iw, ih, ix, iy;
+
+  if ( !instanceOfObject(m, ClassPopup) )
+    return;
 
   compute_popup_indicator(m, mi, &iw, &ih);
   iy = (m->vertical_format == NAME_top    ? y :

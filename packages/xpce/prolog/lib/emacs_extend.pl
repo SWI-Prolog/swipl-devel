@@ -94,7 +94,10 @@ emacs_mode_bindings(Mode, Module, Bindings, Syntax) :-
 	emacs_mode_class(SuperMode, SuperName),
 	new(KB, emacs_key_binding(Mode, SuperMode)),
 	new(MM, emacs_mode_menu(Mode, SuperMode)),
-	new(ST, syntax_table(Mode, SuperMode)),
+	(   get(@syntax_tables, member, Mode, ST)
+	->  true
+	;   new(ST, syntax_table(Mode, SuperMode))
+	),
 	make_bindings(Bindings, Module, KB, MM),
 	make_syntax(Syntax, ST).
 

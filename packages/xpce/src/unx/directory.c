@@ -307,6 +307,12 @@ getParentDirectory(Directory d)
 }
 
 
+static Name
+getBaseNameDirectory(Directory d)
+{ answer(d->name);
+}
+
+
 static FileObj
 getFileDirectory(Directory d, Name name)
 { char *fn = strName(name);
@@ -447,7 +453,9 @@ static getdecl get_directory[] =
   GM(NAME_convert, 1, "directory", "name", getConvertDirectory,
      NAME_conversion, "Convert directory name"),
   GM(NAME_parent, 0, "directory", NULL, getParentDirectory,
-     NAME_hierarchy, "New directory for parent directory")
+     NAME_hierarchy, "New directory for parent directory"),
+  GM(NAME_baseName, 0, "name", NULL, getBaseNameDirectory,
+     NAME_name, "Same as <-name, cf. `file <-base_name'")
 };
 
 /* Resources */

@@ -461,27 +461,46 @@ mode(B, Mode:name) :->
 		 *       LANGUAGE SUPPORT	*
 		 *******************************/
 
+%	emacs_buffer<-name_and_arity returns the name and arity if the 
+%	caret is in the functor of the term.  If the arity cannot be
+%	determines, arity is returned as @default.
+
 name_and_arity(TB, Pos:int, Tuple:tuple) :<-
 	"Find name and arity of term at position"::
+	(   get(TB, character, Pos, C0)
+	;   get(TB, character, Pos-1, C0)
+	),
+	send(TB?syntax, has_syntax, C0, word), !,
 	get(TB, scan, Pos, word, 0, start, P1),
 	get(TB, scan, P1, word, 0, end, P2),
 	get(TB, contents, P1, P2-P1, NameString),
-	(   send(regex('('), match, TB, P2)
+	(   get(TB, character, P2, 0'()
 	->  P4 is P2 + 1,
-	    count_args(TB, P4, 0, Arity)
+	    (	count_args(TB, P4, 0, 0, Arity)
+	    ->	true
+	    ;	Arity = @default
+	    )
 	;   Arity = 0
 	),
 	new(Tuple, tuple(NameString?value, Arity)).
 
 
-count_args(TB, Here, A0, A) :-
+count_args(TB, Here, _, _, _) :-
+	get(TB, size, Here), !,
+	fail.
+count_args(_TB, _Here, 20, _, _) :-
+	!,
+	fail.
+count_args(TB, Here, NAT, A0, A) :-
 	get(TB, scan, Here, term, 1, EndTerm),
-	(   get(TB, character, EndTerm, 0'))
+	get(TB, skip_comment, EndTerm, Next),
+	(   get(TB, character, Next, 0'))
 	->  A is A0 + 1
-	;   get(TB, character, EndTerm, 0',)
+	;   get(TB, character, Next, 0',)
 	->  A1 is A0 + 1,
-	    count_args(TB, EndTerm, A1, A)
-	;   count_args(TB, EndTerm, A0, A)
+	    count_args(TB, EndTerm, 0, A1, A)
+	;   NNAT is NAT + 1,
+	    count_args(TB, EndTerm, NNAT, A0, A)
 	).
 
 :- pce_end_class.

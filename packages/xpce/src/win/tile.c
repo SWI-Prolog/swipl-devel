@@ -128,14 +128,19 @@ toTile(Any obj)
 
 static status
 computeTile(TileObj t)
-{ if ( t->orientation == NAME_horizontal )
+{ Int w   = ZERO;
+  Int h   = ZERO;
+  Int vsh, vst, hsh, hst;
+
+  DEBUG(NAME_tile, Cprintf("computeTile(%s) --> ", pp(t)));
+
+  if ( t->orientation == NAME_horizontal )
   { Cell cell;
-    Int w   = ZERO;
-    Int h   = ZERO;
-    Int hsh = ZERO;
-    Int hst = ZERO;
-    Int vsh = INFINITE;
-    Int vst = INFINITE;
+
+    hsh = ZERO;
+    hst = ZERO;
+    vsh = INFINITE;
+    vst = INFINITE;
     
     for_cell(cell, t->members)
     { TileObj t2 = cell->value;
@@ -157,12 +162,11 @@ computeTile(TileObj t)
     assign(t, verStretch,  vst);
   } else if ( t->orientation == NAME_vertical )
   { Cell cell;
-    Int w   = ZERO;
-    Int h   = ZERO;
-    Int vsh = ZERO;
-    Int vst = ZERO;
-    Int hsh = INFINITE;
-    Int hst = INFINITE;
+
+    vsh = ZERO;
+    vst = ZERO;
+    hsh = INFINITE;
+    hst = INFINITE;
     
     for_cell(cell, t->members)
     { TileObj t2 = cell->value;
@@ -184,26 +188,81 @@ computeTile(TileObj t)
     assign(t, verStretch,  vst);
   }
   
+  DEBUG(NAME_tile,
+	if ( t->orientation == NAME_horizontal ||
+	     t->orientation == NAME_vertical )
+	  Cprintf("%s, %dx%d, -%dx+%d, -%dy+%d\n",
+		  pp(t->orientation),
+		  valInt(w), valInt(h),
+		  valInt(hsh), valInt(hst),
+		  valInt(vsh), valInt(vst));
+	else
+	  Cprintf("\n"));
+
   succeed;
 }
 
 
-status
-leftTile(TileObj t, Any obj)
+static status
+nonDelegatingLeftTile(TileObj t, TileObj t2)
+{ t = getRootTile(t);
+
+  if ( notNil(t2->super) )
+  { if ( t2->super->orientation == NAME_horizontal )
+    { prependChain(t2->super->members, t);
+      assign(t, super, t2);
+      computeTile(t2->super);
+    } else
+    { TileObj super = newObject(ClassTile, NIL, ZERO, ZERO, 0);
+      
+      assign(super, orientation, NAME_horizontal);
+      assign(super, members, newObject(ClassChain, t, t2, 0));
+      assign(super->area, x, t->area->x);
+      assign(super->area, y, t->area->y);
+
+      replaceChain(t2->super->members, t2, super);
+      assign(super, super, t2->super);
+      assign(t2, super, super);
+      assign(t,  super, super);
+      computeTile(super);
+    }
+  } else
+  { TileObj super = newObject(ClassTile, NIL, ZERO, ZERO, 0);
+    
+    assign(super, orientation, NAME_horizontal);
+    assign(super, members, newObject(ClassChain, t, t2, 0));
+    assign(super->area, x, t->area->x);
+    assign(super->area, y, t->area->y);
+    
+    assign(t2, super, super);
+    assign(t,  super, super);
+    computeTile(super);
+  }
+
+  succeed;
+}
+
+
+static status
+leftTile(TileObj t, Any obj, Bool delegate)
 { TileObj t2 = toTile(obj);
   TileObj super;
+
+  if ( delegate == OFF )
+    return nonDelegatingLeftTile(t, t2);
+
 					/* One already has a super tile */
   if ( notNil(t->super)  &&
        (t->super->orientation  == NAME_vertical ||
 	notNil(t->super->super)) )
-    return leftTile(t->super, t2);
+    return leftTile(t->super, t2, ON);
   if ( notNil(t2->super) &&
        (t2->super->orientation == NAME_vertical ||
 	notNil(t2->super->super)) )
-    return leftTile(t, t2->super);
+    return leftTile(t, t2->super, ON);
 					/* both left-to-right */
   if ( notNil(t->super) && notNil(t2->super) )
-    return leftTile(t->super, t2->super);
+    return leftTile(t->super, t2->super, ON);
 
   if ( notNil(t->super) )
   { super = t->super;
@@ -227,28 +286,72 @@ leftTile(TileObj t, Any obj)
 }
 
 
-status
-rightTile(TileObj t, Any obj)
-{ return leftTile(toTile(obj), t);
+static status
+rightTile(TileObj t, Any obj, Bool delegate)
+{ return leftTile(toTile(obj), t, delegate);
+}
+
+					/* can be merged with left version */
+static status
+nonDelegatingAboveTile(TileObj t, TileObj t2)
+{ t = getRootTile(t);
+
+  if ( notNil(t2->super) )
+  { if ( t2->super->orientation == NAME_vertical )
+    { prependChain(t2->super->members, t);
+      assign(t, super, t2);
+      computeTile(t2->super);
+    } else
+    { TileObj super = newObject(ClassTile, NIL, ZERO, ZERO, 0);
+      
+      assign(super, orientation, NAME_vertical);
+      assign(super, members, newObject(ClassChain, t, t2, 0));
+      assign(super->area, x, t->area->x);
+      assign(super->area, y, t->area->y);
+
+      replaceChain(t2->super->members, t2, super);
+      assign(super, super, t2->super);
+      assign(t2, super, super);
+      assign(t,  super, super);
+      computeTile(super);
+    }
+  } else
+  { TileObj super = newObject(ClassTile, NIL, ZERO, ZERO, 0);
+    
+    assign(super, members, newObject(ClassChain, t, t2, 0));
+    assign(super, orientation, NAME_vertical);
+    assign(super->area, x, t->area->x);
+    assign(super->area, y, t->area->y);
+    
+    assign(t2, super, super);
+    assign(t,  super, super);
+    computeTile(super);
+  }
+
+  succeed;
 }
 
 
-status
-aboveTile(TileObj t, Any obj)
+static status
+aboveTile(TileObj t, Any obj, Bool delegate)
 { TileObj t2 = toTile(obj);
   TileObj super;
+
+  if ( delegate == OFF )
+    return nonDelegatingAboveTile(t, t2);
+
 					/* One already has a super tile */
   if ( notNil(t->super)  &&
        (t->super->orientation  == NAME_horizontal ||
 	notNil(t->super->super)) )
-    return aboveTile(t->super, t2);
+    return aboveTile(t->super, t2, ON);
   if ( notNil(t2->super) &&
        (t2->super->orientation == NAME_horizontal ||
 	notNil(t2->super->super)) )
-    return aboveTile(t, t2->super);
+    return aboveTile(t, t2->super, ON);
 
   if ( notNil(t->super) && notNil(t2->super) )
-    return aboveTile(t->super, t2->super);
+    return aboveTile(t->super, t2->super, ON);
 
   if ( notNil(t->super) )
   { super = t->super;
@@ -273,9 +376,9 @@ aboveTile(TileObj t, Any obj)
 }
 
 
-status
-belowTile(TileObj t, Any obj)
-{ return aboveTile(toTile(obj), t);
+static status
+belowTile(TileObj t, Any obj, Bool delegate)
+{ return aboveTile(toTile(obj), t, delegate);
 }
 
 
@@ -420,6 +523,11 @@ status
 setTile(TileObj t, Int x, Int y, Int w, Int h)
 { TileObj super;
 
+  DEBUG(NAME_tile,
+	Cprintf("setTile(%s, %s, %s, %s, %s) ",
+		pp(t), pp(x), pp(y), pp(w), pp(h));
+	Cprintf("enforced = %s\n", pp(t->enforced)));
+
   if ( notDefault(w) && valInt(w) < valInt(t->border)) w = t->border;
   if ( notDefault(h) && valInt(h) < valInt(t->border)) h = t->border;
 
@@ -474,12 +582,32 @@ setTile(TileObj t, Int x, Int y, Int w, Int h)
 }
 
 
+static status
+unenforceTile(TileObj t)
+{ assign(t, enforced, OFF);
+
+  if ( notNil(t->members) )
+  { Cell cell;
+
+    for_cell(cell, t->members)
+      unenforceTile(cell->value);
+  }
+
+  succeed;
+}
+
+
 status
-enforceTile(TileObj t)
-{ if ( t->enforced == OFF )
-  { assign(t, enforced, ON);
+enforceTile(TileObj t, Bool val)
+{ if ( val == OFF )
+  { unenforceTile(t);
+    computeTile(t);
+  } else
+  { if ( t->enforced == OFF )
+    { assign(t, enforced, ON);
     
-    layoutTile(t, DEFAULT, DEFAULT, t->idealWidth, t->idealHeight);
+      layoutTile(t, DEFAULT, DEFAULT, t->idealWidth, t->idealHeight);
+    }
   }
 
   succeed;
@@ -514,6 +642,8 @@ layoutTile(TileObj t, Int ax, Int ay, Int aw, Int ah)
     return send(t->object, NAME_doSet,
 		toInt(x), toInt(y), toInt(w), toInt(h), 0);
 
+  DEBUG(NAME_tile, Cprintf("enter: layoutTile(%s) (%s)\n",
+			   pp(t), pp(t->orientation)));
   if ( t->orientation == NAME_horizontal )
   { stretch s[MAX_TILE_MEMBERS];
     int n = 0;
@@ -538,8 +668,6 @@ layoutTile(TileObj t, Int ax, Int ay, Int aw, Int ah)
       x += s[n].size + border;
       n++;
     }
-    
-    succeed;
   } else /*if ( t->orientation == NAME_vertical )*/
   { stretch s[MAX_TILE_MEMBERS];
     int n = 0;
@@ -564,9 +692,11 @@ layoutTile(TileObj t, Int ax, Int ay, Int aw, Int ah)
       y += s[n].size + border;
       n++;
     }
-    
-    succeed;
   }
+    
+  DEBUG(NAME_tile, Cprintf("exit: layoutTile(%s)\n", pp(t)));
+
+  succeed;
 }
 
 
@@ -697,6 +827,8 @@ static char *T_initialise[] =
         { "object=object*", "width=[int]", "height=[int]" };
 static char *T_xADintD_yADintD_widthADintD_heightADintD[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+static char *T_associate[] =
+	{ "object", "delegate=[bool]" };
 
 /* Instance Variables */
 
@@ -756,17 +888,17 @@ static senddecl send_tile[] =
      NAME_dimension, "Set Y of the tile"),
   SM(NAME_forAll, 1, "code", forAllTile,
      NAME_iterate, "Iterate over all <-object's"),
-  SM(NAME_above, 1, "object", aboveTile,
+  SM(NAME_above, 2, T_associate, aboveTile,
      NAME_layout, "Place a tile above me"),
-  SM(NAME_below, 1, "object", belowTile,
+  SM(NAME_below, 2, T_associate, belowTile,
      NAME_layout, "Place a tile below me"),
-  SM(NAME_enforce, 0, NULL, enforceTile,
+  SM(NAME_enforce, 1, "[bool]", enforceTile,
      NAME_layout, "Enforce the tile layout"),
   SM(NAME_layout, 4, T_xADintD_yADintD_widthADintD_heightADintD, layoutTile,
      NAME_layout, "Compute subtile layout and adjust objects"),
-  SM(NAME_left, 1, "object", leftTile,
+  SM(NAME_left, 2, T_associate, leftTile,
      NAME_layout, "Place a tile to my left"),
-  SM(NAME_right, 1, "object", rightTile,
+  SM(NAME_right, 2, T_associate, rightTile,
      NAME_layout, "Place a tile to my right"),
   SM(NAME_compute, 0, NULL, computeTile,
      NAME_update, "Compute ideal sizes from sub-tiles")

@@ -507,9 +507,9 @@ draw_bubble(ScrollBar s, SbDrawData d)
     xm = x+bi->start;
     wm = bi->length;
     if ( instanceOfObject(z, ClassElevation) )
-      r_3d_box(x+xm, y, wm, h, 0, z, TRUE);
+      r_3d_box(xm, y, wm, h, 0, z, TRUE);
     else
-      r_fill(x+xm, y, wm, h, GREY50_IMAGE);
+      r_fill(xm, y, wm, h, GREY50_IMAGE);
 
     xm += wm;
     wm = (bi->bar_start+bi->bar_length) - (bi->start+bi->length);

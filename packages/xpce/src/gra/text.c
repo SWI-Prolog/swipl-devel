@@ -118,7 +118,7 @@ str_format(String out, const String in, const int width, const FontObj font)
     { *o++ = *s;
 
       if ( s == e )
-      { out->size = o - out->s_text8;
+      { out->size = o - out->s_text8 - 1;
 	return;
       }
 
@@ -154,7 +154,7 @@ str_format(String out, const String in, const int width, const FontObj font)
     { *o++ = *s;
 
       if ( s == e )
-      { out->size = o - out->s_text16;
+      { out->size = o - out->s_text16 - 1;
 	return;
       }
 

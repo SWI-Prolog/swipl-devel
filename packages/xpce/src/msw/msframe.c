@@ -159,6 +159,7 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 
     case WM_SHOWWINDOW:
     { HWND hwnd;
+      Cell cell;
 
       if ( !wParam && (hwnd = getHwndFrame(fr)) )
       { Cell cell;
@@ -171,6 +172,26 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	}
 
 	PceWhDeleteWindow(hwnd);
+      }
+
+ 
+      if ( wParam )			/* show on */
+      { for_cell(cell, fr->members)
+	  send(cell->value, NAME_displayed, ON, 0);
+
+	send(fr, NAME_mapped, ON, 0);
+
+	assign(fr, status, NAME_open);
+      } else
+      { for_cell(cell, fr->members)
+	{ if ( !onFlag(cell->value, F_FREED|F_FREEING) )
+	    send(cell->value, NAME_displayed, OFF, 0);
+	}
+
+	if ( !isFreedObj(fr) || isFreeingObj(fr) )
+	  send(fr, NAME_mapped, OFF, 0);
+
+	assign(fr, status, NAME_hidden);
       }
 
       break;
@@ -532,7 +553,7 @@ ws_create_frame(FrameObj fr)
   } else /* popup */
   { style = WS_POPUP;
     if ( fr->border != ZERO )
-      style |= WS_BORDER|WS_DISABLED;
+      style |= WS_BORDER;
   }
     
   outer_frame_area(fr, &x, &y, &w, &h, TRUE);

@@ -1,5 +1,37 @@
 [VERSION 4.8.17]
 
+* FIXED: Win32 class frame: did not send ->displayed to member windows
+  on ->show on/off.  Did not invoke ->mapped too.
+
+* FIXED: Win32 problem in brush caching.
+
+* FIXED: menu-redraw problem when a menu-item in a non-popup menu
+  has not-nil <-popup.  Win32 only.
+
+* FIXED: redraw problem in horizontal scrollbar when not displayed at
+  x=0 (i.e. when used as a graphical).
+
+* FIXED: `text->margin' handling (displays box for unknown character
+  after the string on Win32, possible alignment problem on X11).
+
+* FIXED: Notably popup-driven action sometimes refused to redraw
+  properly.
+
+* ADDED: library(pce_toc): table-of-contents browser library.
+
+* ADDED: SWI-Prolog help library.  Modified plrc to make a more neat
+  connection between XPCE and Prolog.
+
+* MOFIFIED: `tile->enforced' now has additional argument, used by
+  `frame->fit'. See documentation.
+
+* ADDED: Window ->left, etc. may be given a tile to insert windows
+  at arbitrary positions.  Also modified `tile->left' and friends to
+  realise this.  Used by the new SWI-Prolog help GUI.
+
+* FIXED: If a tile message arrives on a window that has a decorator,
+  delegate it to the decorator.
+
 * FIXED: PceEmacs: M-x manual_entry: better feedback and handling of
   man -s on Solaris.
 
