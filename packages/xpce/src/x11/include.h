@@ -88,6 +88,8 @@ struct draw_context
   GC		bitmapGC;		/* Paint bitmap to pixmap */
   GC		copyGC;			/* Simple pixmap copy */
   GC		opGC;			/* Logical area operations */
+  GC		shadowGC;		/* Paint shadows */
+  GC		reliefGC;		/* Paint opposite of shadow */
   
   int		pen;			/* Current pen */
   Name		dash;			/* Current dash pattern */

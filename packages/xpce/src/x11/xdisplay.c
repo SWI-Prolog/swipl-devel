@@ -186,7 +186,7 @@ new_draw_context(DisplayObj d, Drawable drawable, Name kind)
   DisplayWsXref r = d->ws_ref;
   Display *display = r->display_xref;
   XGCValues values;
-  ulong black;
+  ulong black, white;
 
 # define GCALL (GCFunction|GCForeground|GCBackground|GCGraphicsExposures)
 
@@ -196,10 +196,12 @@ new_draw_context(DisplayObj d, Drawable drawable, Name kind)
   { values.foreground = 1;
     values.background = 0;
     black = 1;
+    white = 0;
   } else
   { values.foreground = r->foreground_pixel;
     values.background = r->background_pixel;
     black = r->black_pixel;
+    white = r->white_pixel;
   }
 
   values.graphics_exposures = False;
@@ -230,6 +232,11 @@ new_draw_context(DisplayObj d, Drawable drawable, Name kind)
   values.foreground = values.background;
   ctx->clearGC	    = XCreateGC(display, drawable, GCALL, &values);
   
+  values.foreground = black;
+  ctx->shadowGC	    = XCreateGC(display, drawable, GCALL, &values);
+  values.foreground = white;
+  ctx->reliefGC	    = XCreateGC(display, drawable, GCALL, &values);
+
 #undef GCALL
 
   ctx->pen	        = -1;

@@ -70,6 +70,7 @@ void		r_invert_mode(Bool val);
 void		r_translate(int x, int y, int *ox, int *oy);
 void		r_box(int x, int y, int w, int h, int r, Image fill);
 void		r_shadow_box(int x, int y, int w, int h, int r, int shadow, Image fill);
+void		r_3d_box(int x, int y, int w, int h, int shadow, Any fill, int up);
 void		r_arc(int x, int y, int w, int h, int s, int e, Image fill);
 void		r_ellipse(int x, int y, int w, int h, Image fill);
 void		r_line(int x1, int y1, int x2, int y2);
@@ -174,7 +175,7 @@ void		ws_grab_keyboard_window(PceWindow sw, Bool val);
 void		ws_ungrab_all(void);
 void		ws_move_pointer(PceWindow sw, int x, int y);
 void		ws_window_cursor(PceWindow sw, CursorObj cursor);
-void		ws_window_background(PceWindow sw, Colour c);
+void		ws_window_background(PceWindow sw, Any c);
 void		ws_raise_window(PceWindow sw);
 void		ws_lower_window(PceWindow sw);
 

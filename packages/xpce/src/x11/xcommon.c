@@ -146,11 +146,20 @@ getWMFrameFrame(FrameObj fr)
     else
     { Window root, parent, *children;
       unsigned int nchildren;
+      int m = 5;
 
-      XQueryTree(r->display_xref, w, &root, &parent,
-		 &children, &nchildren);
-      XFree((char *) children);	/* declared char * ???? */
-      return parent;
+      while(--m >= 0)			/* avoid a loop */
+      { if ( !XQueryTree(r->display_xref, w, &root, &parent,
+			 &children, &nchildren) )
+	  return w;
+	XFree((char *) children);	/* declared char * ???? */
+	DEBUG(NAME_frame, printf("w = %ld; root = %ld; parent = %ld\n",
+				 w, root, parent));
+	if ( parent == root )
+	  return w;
+
+	w = parent;
+      }
     }
   }
 

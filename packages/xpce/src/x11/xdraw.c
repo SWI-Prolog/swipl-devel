@@ -71,7 +71,7 @@ s_string(s, f, x, y, w, h, had, vad)
 
 static void	clip_area P((int *, int *, int *, int *));
 static void	r_andpattern(Image i);
-static void	r_background(Colour c);
+static void	r_background(Any c);
 
 		/********************************
 		*       DEVICE FUNCTIONS	*
@@ -269,6 +269,9 @@ d_window(PceWindow sw, int x, int y, int w, int h, int clear, int limit)
   }
 
   XSetTSOrigin(context.display, context.gcs->fillGC,
+	       context.origin_x-context.cache_x,
+	       context.origin_y-context.cache_y);
+  XSetTSOrigin(context.display, context.gcs->clearGC,
 	       context.origin_x-context.cache_x,
 	       context.origin_y-context.cache_y);
 
@@ -708,17 +711,33 @@ r_colour(Colour c)
 
 
 static void
-r_background(Colour c)
+r_background(Any c)
 { if ( isDefault(c) )
     c = context.default_background;
 
   if ( c != context.gcs->background )
   { if ( context.gcs->kind != NAME_bitmap )
-    { ulong pixel = getPixelColour(c, context.pceDisplay);
+    { XGCValues values;
+      ulong mask;
 
-      XSetForeground(context.display, context.gcs->clearGC, pixel);
+      if ( instanceOfObject(c, ClassColour) )
+      { ulong pixel = getPixelColour(c, context.pceDisplay);
+	
+	values.foreground = pixel;
+	values.fill_style = FillSolid;
+	mask		  = (GCForeground|GCFillStyle);
+
+	context.gcs->background_pixel = pixel;
+      } else
+      { Pixmap pm   = (Pixmap) getXrefObject(c, context.pceDisplay);
+
+	values.tile       = pm;
+	values.fill_style = FillTiled;
+	mask		  = (GCTile|GCFillStyle);
+      }
+
       context.gcs->background = c;
-      context.gcs->background_pixel = pixel;
+      XChangeGC(context.display, context.gcs->clearGC, mask, &values);
     }
   }
 }
@@ -939,6 +958,57 @@ r_shadow_box(int x, int y, int w, int h, int r, int shadow, Image fill)
   r_box(x+shadow, y+shadow, w-shadow, h-shadow, r, BLACK_IMAGE);
   r_colour(DEFAULT);
   r_box(x, y, w-shadow, h-shadow, r, isNil(fill) ? WHITE_IMAGE : fill);
+}
+
+
+#define MAX_SHADOW 10
+
+void
+r_3d_box(int x, int y, int w, int h, int shadow, Any fill, int up)
+{ XSegment s[MAX_SHADOW * 2];
+  int i;
+  int pen = 1;
+  int os;
+  GC TopLeftGC, BottomRightGC;
+  int xt, yt;
+
+  if ( up )
+  { TopLeftGC     = context.gcs->reliefGC;
+    BottomRightGC = context.gcs->shadowGC;
+  } else
+  { TopLeftGC     = context.gcs->shadowGC;
+    BottomRightGC = context.gcs->reliefGC;
+  }
+
+  if ( shadow > MAX_SHADOW )
+    shadow = MAX_SHADOW;
+
+  xt = x, yt = y;
+  Translate(xt, yt);
+  for(i=0, os=0; os < shadow; os += pen)
+  { s[i].x1 = xt+os;		s[i].y1 = yt+os;	/* top-side */
+    s[i].x2 = xt+w-1-os;	s[i].y2 = yt+os;
+    i++;
+    s[i].x1 = xt+os;		s[i].y1 = yt+os;	/* left-side */
+    s[i].x2 = xt+os;		s[i].y2 = yt+h-1-os;
+    i++;
+  }
+  XDrawSegments(context.display, context.drawable, TopLeftGC, s, i);
+  
+  xt = x, yt = y;
+  Translate(xt, yt);
+  for(i=0, os=0; os < shadow; os += pen)
+  { s[i].x1 = xt+os;		s[i].y1 = yt+h-1-os;	/* bottom-side */
+    s[i].x2 = xt+w-1-os;	s[i].y2 = yt+h-1-os;
+    i++;
+    s[i].x1 = xt+w-1-os;	s[i].y1 = yt+os;	/* right-side */
+    s[i].x2 = xt+w-1-os;	s[i].y2 = yt+h-1-os;
+    i++;
+  }
+  XDrawSegments(context.display, context.drawable, BottomRightGC, s, i);
+  
+  if ( notNil(fill) )
+    r_fill(x+shadow, y+shadow, w-2*shadow, h-2*shadow, fill);
 }
 
 

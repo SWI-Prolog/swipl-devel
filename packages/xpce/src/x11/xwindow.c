@@ -73,10 +73,7 @@ ws_uncreate_window(PceWindow sw)
 status
 ws_create_window(PceWindow sw, PceWindow parent)
 { Widget w;
-  ulong background_pixel;
-
-  background_pixel = getPixelColour(sw->background,
-				    getDisplayGraphical((Graphical)sw));
+  DisplayObj d = getDisplayGraphical((Graphical)sw);
 
 					/* create the widget */
   { Arg args[8];
@@ -89,7 +86,14 @@ ws_create_window(PceWindow sw, PceWindow parent)
     XtSetArg(args[n], XtNheight,      valInt(sw->area->h) - 2*pen); n++;
     XtSetArg(args[n], XtNborderWidth, pen); n++;
     XtSetArg(args[n], XtNinput,       True); n++;
-    XtSetArg(args[n], XtNbackground,  background_pixel); n++;
+    if ( instanceOfObject(sw->background, ClassColour) )
+    { XtSetArg(args[n], XtNbackground, getPixelColour(sw->background, d));
+      n++;
+    } else
+    { Pixmap pm = (Pixmap) getXrefObject(sw->background, d);
+
+      XtSetArg(args[n], XtNbackgroundPixmap, pm); n++;
+    }
 
     DEBUG(NAME_create, printf("Calling XtCreateWidget ..."); fflush(stdout));
     w = XtCreateWidget(strName(sw->name),
@@ -447,16 +451,24 @@ ws_window_cursor(PceWindow sw, CursorObj cursor)
 		 *******************************/
 
 void
-ws_window_background(PceWindow sw, Colour c)
+ws_window_background(PceWindow sw, Any c)
 { Widget w = widgetWindow(sw);
 
   if ( w )
-  { Arg args[1];
+  { Arg args[2];
+    DisplayObj d = getDisplayGraphical((Graphical)sw);
+    int i=0;
 
-    XtSetArg(args[0], XtNbackground,
-	     getPixelColour(c, getDisplayGraphical((Graphical)sw)));
+    if ( instanceOfObject(c, ClassColour) )
+    { XtSetArg(args[i], XtNbackground, getPixelColour(c, d));		i++;
+      XtSetArg(args[i], XtNbackgroundPixmap, XtUnspecifiedPixmap);	i++;
+    } else
+    { Pixmap pm = (Pixmap) getXrefObject(c, d);
+
+      XtSetArg(args[i], XtNbackgroundPixmap, pm);			i++;
+    }
       
-    XtSetValues(w, args, 1);
+    XtSetValues(w, args, i);
   }
 }
 
@@ -471,8 +483,7 @@ ws_raise_window(PceWindow sw)
   Widget w = widgetWindow(sw);
 
   if ( w )
-  { XRaiseWindow(r->display_xref, XtWindow(w));
-  }
+    XRaiseWindow(r->display_xref, XtWindow(w));
 }
 
 void
@@ -482,7 +493,6 @@ ws_lower_window(PceWindow sw)
   Widget w = widgetWindow(sw);
 
   if ( w )
-  { XLowerWindow(r->display_xref, XtWindow(w));
-  }
+    XLowerWindow(r->display_xref, XtWindow(w));
 }
 
