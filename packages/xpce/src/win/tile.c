@@ -526,6 +526,31 @@ distribute_stretches(stretch *s, int n, int w)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Combine stretches in their `natural' direction.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+sum_stretches(stretch *sp, int len, stretch *r)
+{ r->ideal   = 0;
+  r->minimum = 0;
+  r->maximum = 0;
+  r->shrink  = 0;
+  r->stretch = 0;
+
+  for( ; len-- > 0; sp++)
+  { r->shrink  = max(r->shrink, sp->shrink);
+    r->stretch = max(r->stretch, sp->stretch);
+    r->ideal   += sp->ideal;
+    r->minimum += sp->minimum;
+    if ( r->maximum < INT_MAX )
+    { r->maximum += sp->maximum;
+      if ( r->maximum > INT_MAX || r->maximum < 0 )
+	r->maximum = INT_MAX;
+    }
+  }
+}
+
 status
 setTile(TileObj t, Int x, Int y, Int w, Int h)
 { TileObj super;
