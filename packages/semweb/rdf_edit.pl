@@ -240,6 +240,7 @@ rdfe_load(File) :-
 			 ])).
 
 rdfe_unload(Path) :-
+	rdfe_current_transaction(TID),
 	rdf_unload(Path),
 	assert_action(TID, unload_file(Path), -, -, -),
 	journal(rdf_unload(TID, Path)).
