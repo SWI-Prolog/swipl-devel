@@ -102,7 +102,9 @@
 \end{-}=end		1 2
 \\[d]			0 1
 \ 
+\-
 \verb=verb
+\newline
 
 % table stuff
 

@@ -896,6 +896,7 @@ cmd(printindex, []).
 cmd(par, html('<P>')).				% \par
 cmd(\([]), html('<BR>')).			% \\
 cmd(\([_Skip]), html('<P>')).			% \\[skip]
+cmd(newline, html('<BR>')).			% \newline
 
 cmd(part({Title}), #h(1, +Title)).		% \part
 
@@ -989,6 +990,12 @@ cmd(bibitem([TeXCite], {Key}),			% \bibitem
     [ html('<P>'), html('<DT>'), #label(Key, #strong(Cite)), html('<DD>') ]) :-
 	translate(TeXCite, normal, Cite),
 	assert(cite(Key, Cite)).
+cmd(bibitem([], {Key}), 
+    [ html('<P>'), html('<DT>'), #label(Key, #strong(Cite)), html('<DD>') ]) :-
+	flag(cite, N, N+1),
+	TeXCite is N + 1,
+	expand_macros(#embrace("[]", TeXCite), Cite),
+	assert(cite(Key, Cite)).
 cmd(cite({Key}),	#cite(Key)).		% \cite
 cmd(yearcite({Key}),	#yearcite(Key)).	% \yearcite
 cmd(opencite({Key}),	#opencite(Key)).	% \opencite
@@ -1006,6 +1013,7 @@ cmd(bibliography({_}), HTML) :-			% \bibliography
 	).
 cmd(bibliographystyle(_), []).			% \bibliographystyle
 cmd(',', []).					% \,
+cmd(-, []).					% \- (stop hyphenation)
 
 cmd(emph({Tex}),   #em(+Tex)).			% \emph{text}
 cmd(texttt({Tex}), #tt(+Tex)).			% \texttt{text}
@@ -1109,8 +1117,15 @@ cmd(input({File}), HTML) :-
 	translate(TeXTokens, file, HTML).
 cmd(appendix, []) :-
 	appendix.
+%cmd(caption({Caption}),
+%    #center([#b([#nameof(Type), ' ', Number, ':', ' ']), +Caption])) :-
+%	current_float(Type, Number).
 cmd(caption({Caption}),
-    #center(#b([#nameof(Type), ' ', Number, ':', ' ', +Caption]))) :-
+    [ html('<TABLE ALIGN=center WIDTH="75%"><TR><TD>'),
+      #b([#nameof(Type), ' ', Number, ':', ' ']),
+      +Caption,
+      html('</TABLE>')
+    ]) :-
 	current_float(Type, Number).
 
 cmd(psdirectories({Spec}), []) :-

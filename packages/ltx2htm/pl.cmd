@@ -193,6 +193,10 @@
 \+
 \=
 
+% Other special stuff
+
+\hrule
+\spaces{-}
 
 % HTML
 

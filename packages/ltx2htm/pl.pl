@@ -48,11 +48,15 @@
 cmd(+, index, nospace('\+')).
 cmd(=, index, nospace('\=')).
 
-
 		 /*******************************
 		 *	     COMMANDS		*
 		 *******************************/
 
+cmd(spaces({X}), html(Spaces)) :-
+	atom_number(X, N),
+	n_list(N, '&nbsp;', L),
+	concat_atom(L, Spaces).
+cmd(hrule, html('<HR>')).
 cmd(bug({TeX}), HTML) :-
 	translate_footnote(['BUG:', ' '|TeX], HTML).
 cmd(fileext({Ext}), #code(Text)) :-
@@ -394,3 +398,9 @@ predicate_refname(Name, Arity, Ref) :-
 
 symbol_name('->',	send_arrow).
 symbol_name('<-',	get_arrow).
+
+n_list(0, _, []) :- !.
+n_list(N, X, [X|T]) :-
+	N > 0,
+	N2 is N - 1,
+	n_list(N2, X, T).
