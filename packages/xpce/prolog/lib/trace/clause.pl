@@ -92,7 +92,7 @@ clause_info(ClauseRef, File, TermPos, NameOffset) :-
 	debug('read ...', []),
 	unify_clause(Clause, DecompiledClause, TermPos0, TermPos),
 	debug('unified ...', []),
-	make_varnames(VarOffset, VarNames, NameOffset),
+	make_varnames(Clause, VarOffset, VarNames, NameOffset),
 	debug('got names~n', []), !,
 	asserta(clause_info_cache(ClauseRef, File, TermPos, NameOffset)),
 	debug('Added to info-cache~n', []).
@@ -118,7 +118,7 @@ clause_info(ClauseRef, S, TermPos, NameOffset) :-
 	read(Handle, user, Clause, TermPos, VarNames),
 	close(Handle),
 	debug('ok ...', []),
-	make_varnames(VarOffset, VarNames, NameOffset),
+	make_varnames(Clause, VarOffset, VarNames, NameOffset),
 	debug('got names~n', []), !.
 clause_info(_, _, _, _) :-
 	debug('FAILED~n', []),
@@ -160,7 +160,22 @@ read(Handle, Module, Clause, TermPos, VarNames) :-
 	    fail
 	).
 	
-make_varnames(Offsets, Names, Bindings) :-
+%	make_varnames(+ReadClause, +[Offset=Var ...], +[Name=Var...], -Term)
+%	
+%	Create a Term varnames(...) where each argument contains the name
+%	of the variable at that offset.  If the read Clause is a DCG rule,
+%	name the two last arguments <DCG_in> and <DCG_out>
+
+make_varnames((Head --> _Body), Offsets, Names, Bindings) :- !,
+	functor(Head, _, Arity),
+	In is Arity,
+	memberchk(In=IVar, Offsets),
+	Names1 = ['<DCG_in>'=IVar|Names],
+	Out is Arity + 1,
+	memberchk(Out=OVar, Offsets),
+	Names2 = ['<DCG_out>'=OVar|Names1],
+	make_varnames(xx, Offsets, Names2, Bindings).
+make_varnames(_, Offsets, Names, Bindings) :-
 	length(Offsets, L),
 	functor(Bindings, varnames, L),
 	do_make_varnames(Offsets, Names, Bindings).
