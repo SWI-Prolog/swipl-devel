@@ -1,6 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: File/Consult menu of plwin.exe to load the file into the
+    user module rather then the win_menu module providing the menu
+    interface.
+
+  * FIXED: Use GetWindowsDirectory() rather then the current drive as
+    last resort for expanding ~.
+
   * PORT: Add -fno-strict-aliasing when using GCC.  SWI-Prolog doesn't
     satisfy the requirements for this optimization and some gcc versions
     seem to use it using -O2.
@@ -126,7 +133,7 @@ VERSION 4.1.0
   * ADDED: working_directory/2 to query/change working directory, providing
     better compatibility and a non-hacky way to get the current directory.
 
-  * FIXED: Another problems handling `inlined' calls for the new implementation
+  * FIXED: Another problem handling `inlined' calls for the new implementation
     of call/1.  Thanks to Lyosha Ilyukhin.
 
   * FIXED/PORT: Win32 missing cleanupTerm(), some signed/unsigned problems
