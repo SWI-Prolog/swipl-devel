@@ -613,6 +613,8 @@ can_define_class(Name, _Super) :-
 	get(Class, creator, built_in), !,
 	throw(error(permission_error(modify, pce(built_in_class), Name), _)).
 can_define_class(Name, _Super) :-
+	flag('$compilation_level', Level, Level),
+	Level > 0,			% SWI: we are running consult
 	pce_class(Name, _Meta, _OldSuper, _Vars, _ClassVars, _Dirs),
 	throw(error(permission_error(modify, pce(class), Name), _)).
 can_define_class(_, _).
