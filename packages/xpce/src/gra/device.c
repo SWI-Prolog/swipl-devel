@@ -710,16 +710,30 @@ appendDevice(Device dev, Graphical gr)
   succeed;
 }
 
+/* True if sub is gr or a graphical inside the (device) gr
+*/
+
+status
+subGraphical(Graphical gr, Graphical sub)
+{ while( notNil(sub) )
+  { if ( sub == gr )
+      succeed;
+    sub = (Graphical)sub->device;
+  }
+
+  fail;
+}
+
 
 status
 eraseDevice(Device dev, Graphical gr)
 { if ( gr->device == dev )
   { PceWindow sw = getWindowGraphical((Graphical) dev);
 
-    if ( sw != FAIL )
-    { if ( sw->keyboard_focus == gr )
+    if ( sw )
+    { if ( subGraphical(gr, sw->keyboard_focus) )
 	keyboardFocusWindow(sw, NIL);
-      if ( sw->focus == gr )
+      if ( subGraphical(gr, sw->focus) )
 	focusWindow(sw, NIL, NIL, NIL, NIL);
     }
 

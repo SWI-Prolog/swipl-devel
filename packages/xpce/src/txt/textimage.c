@@ -1307,7 +1307,7 @@ updatePointedTextImage(TextImage ti, EventObj ev, long *where)
       if ( sw )
       { if ( sw->focus == ti->pointed )
 	  focusWindow(sw, NIL, NIL, NIL, NIL);
-	else if ( sw->keyboard_focus == ti->pointed )
+	else if ( subGraphical(ti->pointed, sw->keyboard_focus) )
 	  keyboardFocusWindow(sw, NIL);
       }
     }	     
