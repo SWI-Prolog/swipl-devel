@@ -326,7 +326,7 @@ replaceHeader(char *qlf, char *headerfile, char *outfile)
 
 
 char *
-basename(char *path)
+baseName(char *path)
 { char *b;
 
   for(b=path; *path; path++)
@@ -340,7 +340,7 @@ basename(char *path)
 
 int
 main(int argc, char **argv)
-{ program = basename(argv[0]);
+{ program = baseName(argv[0]);
 
   argc--; argv++;
   while(argc > 0 && argv[0][0] == '-')
