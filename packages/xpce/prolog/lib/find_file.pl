@@ -195,13 +195,13 @@ ok(F) :->
 	"User pressed ok"::
 	send(F, report, status, ''),
 	(   get(F, selection, File)
-	->  (   get(F, exists, @on)
+	->  get(File, name, Name),
+	    (   get(F, exists, @on)
 	    ->  (   send(File, exists)
-		->  get(File, name, Name),
-		    send(F, return, Name)
+		->  send(F, return, Name)
 		;   send(F, report, error, '%s: No such file', File?name)
 		)
-	    ;   send(F, return, File?name)
+	    ;   send(F, return, Name)
 	    )
 	;   get(F, directory_item, DI),
 	    get(DI, modified, @on)
