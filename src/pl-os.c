@@ -1158,17 +1158,16 @@ canonisePath(char *path)
 }
 #endif
 
-  while( path[0] == '/' && path[1] == '.' &&
-	 path[2] == '.' && path[3] == '/')
+  while( path[0] == '/' && path[1] == '.' && path[2] == '.' && path[3] == '/' )
     path += 3;
 
   while(*path)
   { if (*path == '/')
-    { 
+    {
     again:
-      while(path[1] == '/')
+      while( path[1] == '/' )
 	path++;
-      while (path[1] == '.' && path[2] == '/')
+      while( path[1] == '.' && (path[2] == '/' || path[2] == EOS) )
       { path += 2;
 	goto again;
       }
@@ -1176,7 +1175,9 @@ canonisePath(char *path)
 	     (path[3] == '/' || path[3] == EOS) )
       { out = osave[--osavep];
 	path += 3;
+	goto again;
       }
+
       osave[osavep++] = out;
       if ( (*out++ = *path) )
 	path++;
