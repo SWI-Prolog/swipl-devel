@@ -165,6 +165,27 @@ system should call the macro allocGlobal() to ensure the type  is  right
 on 16-bit machines not supporting ANSI.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#if O_SHIFT_STACKS
+Void
+alloc_global(n)
+register alloc_t n;
+{ register Word result;
+
+  if ( roomStack(global) < n )
+  { if ( shift_status.blocked )
+      outOf((Stack) &stacks.global);
+
+    growStacks(NULL, NULL, FALSE, TRUE, FALSE);
+  }
+
+  result = gTop;
+  gTop += (n + sizeof(word)-1) / sizeof(word);
+
+  return result;
+}
+
+#else
+
 Void
 alloc_global(n)
 register alloc_t n;
@@ -176,15 +197,15 @@ register alloc_t n;
   return result;
 }
 
+#endif
+
 word
 globalFunctor(def)
 register FunctorDef def;
-{ register Functor f = (Functor) gTop;
-  register int arity = def->arity;
+{ register int arity = def->arity;
+  register Functor f = allocGlobal(sizeof(FunctorDef) + sizeof(word) * arity);
   register Word a;
 
-  gTop = (Word)((char *)gTop + sizeof(FunctorDef) + sizeof(word) * arity);
-  verifyStack(global);
   f->definition = def;
   for(a = argTermP(f, 0); arity > 0; a++, arity--)
     setVar(*a);
@@ -197,11 +218,9 @@ word
 globalString(s)
 register char *s;
 { register ulong l = strlen(s) + 1;
-  register Word gt = gTop;
   register long chars = ROUND(l, sizeof(word));
+  register Word gt = allocGlobal(2*sizeof(word) + chars);
 
-  gTop = (Word) addPointer(gTop, 2*sizeof(word) + chars);
-  verifyStack(global);
   gt[0] = gt[1+chars/sizeof(word)] = (((l-1)<<LMASK_BITS) | STRING_MASK);
   strcpy((char *)(gt+1), s);
 

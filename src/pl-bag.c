@@ -71,9 +71,23 @@ checkBags()
 #endif
 
 word
+globalTerm(FunctorDef fdef, ...)
+{ va_list args;
+  word rval = globalFunctor(fdef);
+  int n;
+  
+  va_start(args, fdef);
+  for(n=0; n<fdef->arity; n++)
+    argTerm(rval, n) = va_arg(args, word);
+  va_end(args);
+
+  return rval;
+}
+
+word
 pl_collect_bag(bindings, bag)
 Word bindings, bag;
-{ word var_term;			/* v() term on global stack */
+{ word var_term = 0;			/* v() term on global stack */
   word list = (word) ATOM_nil;		/* result list */
   register Assoc a, next;
   Assoc prev = (Assoc) NULL;
@@ -85,26 +99,42 @@ Word bindings, bag;
     fail;				/* trapped the mark */
   }
 
+  lockp(&bag);
+  lockp(&bindings);
+  lockw(&var_term);
+  lockw(&list);
+
   var_term = copyTermToGlobal(a->key);	/* get variable term on global stack */
-  list = appendBag(list, copyTermToGlobal(a->value));
+  SECURE(checkData(&var_term, FALSE));
+  list = globalTerm(FUNCTOR_dot2, copyTermToGlobal(a->value), list);
 
   next = a->next;
   freeAssoc(prev, a);  
 
-  if ( next != (Assoc) NULL )
+  if ( next != NULL )
   { for( a = next, next = a->next; next; a = next, next = a->next )
-    { if ( a->key->term == (word) ATOM_mark )
+    { word t;
+
+      if ( a->key->term == (word) ATOM_mark )
 	break;
       if ( pl_structural_equal(&var_term, &a->key->term) == FALSE )
       { prev = a;
 	continue;
       }
 
-      list = appendBag(list, copyTermToGlobal(a->value));
+      t = copyTermToGlobal(a->value);
+      list = globalTerm(FUNCTOR_dot2, t, list);
+      SECURE(checkData(&list, FALSE));
       freeAssoc(prev, a);
     }
   }
 
+  unlockw(&list);
+  unlockw(&var_term);
+  unlockp(&bindings);
+  unlockp(&bag);
+
+  SECURE(checkData(&var_term, FALSE));
   TRY( pl_unify(bindings, &var_term) );
 
   return pl_unify(bag, &list);
@@ -122,17 +152,4 @@ Assoc prev, a;
   freeRecord(a->key);
   freeRecord(a->value);
   freeHeap(a, sizeof(struct assoc));
-}
-
-
-static word
-appendBag(bag, term)
-register word bag;
-register word term;
-{ register word result = globalFunctor(FUNCTOR_dot2);
-
-  argTerm(result, 0) = term;
-  argTerm(result, 1) = bag;
-
-  return result;
 }

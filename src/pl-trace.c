@@ -565,12 +565,14 @@ listProcedure(proc)
 Procedure proc;
 { extern int Output;
   int OldOut = Output;
-  Word gSave = gTop;
-  word goal = globalFunctor(FUNCTOR_listing1);
-  word mod  = globalFunctor(FUNCTOR_module2);
-  word spec = globalFunctor(FUNCTOR_divide2);
+  word goal, mod, spec;
   int debugSave = debugstatus.debugging;
+  mark m;
 
+  Mark(m);
+  goal = globalFunctor(FUNCTOR_listing1);
+  mod  = globalFunctor(FUNCTOR_module2);
+  spec = globalFunctor(FUNCTOR_divide2);
   argTerm(goal, 0) = mod;
   argTerm(mod, 0)  = (word) proc->definition->module->name;
   argTerm(mod, 1)  = spec;
@@ -582,7 +584,7 @@ Procedure proc;
   callGoal(MODULE_system, goal, FALSE);		/* listing(mod:name/arity) */
   debugstatus.debugging = debugSave;
   Output = OldOut;
-  gTop = gSave;
+  Undo(m);
 }
 
 void

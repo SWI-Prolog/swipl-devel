@@ -172,13 +172,16 @@ char *what;
     }
   } else
   { char *s;
-    word goal = globalFunctor(FUNCTOR_exception3);
+    word goal;
     word arg;
+    mark m;
 
     for(s = base; s < token_start; s++ )
       if ( *s == '\n' )
       	source_line_no++;
 
+    Mark(m);
+    goal = globalFunctor(FUNCTOR_exception3);
     unifyAtomic(argTermP(goal, 0), ATOM_syntax_error);
     unifyFunctor(argTermP(goal, 1), FUNCTOR_syntax_error3);
     arg = argTerm(goal, 1);
@@ -188,6 +191,7 @@ char *what;
 
     if ( callGoal(MODULE_user, goal, FALSE) == FALSE )
       warning("Syntax error: %s", what);
+    Undo(m);
   }
 }
 
@@ -200,7 +204,9 @@ int nvars;
   word arg;
   Word a;
   int n;
+  mark m;
 
+  Mark(m);
   unifyAtomic(argTermP(goal, 0), ATOM_singleton);
   unifyFunctor(argTermP(goal, 1), FUNCTOR_singleton3);
   arg = argTerm(goal, 1);
@@ -226,6 +232,7 @@ int nvars;
 
     warning("Singleton variables: %s", buf);
   }
+  Undo(m);
 }
 
 
@@ -1333,7 +1340,9 @@ Word term;
 { char *s;
   register char *top;
 
+  lockp(&term);
   s = raw_read();
+  unlockp(&term);
 
   if ( s == (char *) NULL )
     fail;
@@ -1343,7 +1352,7 @@ Word term;
     *top = EOS;
   for(; isBlank(*s); s++);
 
-  return unifyAtomic(term, lookupAtom(s) );
+  return unifyAtomic(term, lookupAtom(s));
 }
 
 word

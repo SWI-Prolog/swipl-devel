@@ -11,7 +11,7 @@
 #define PL_INCLUDED
 
 #ifndef PLVERSION
-#define PLVERSION "1.7.2 July 1993"
+#define PLVERSION "2.0 September 1993"
 #endif
 
 #ifndef P
@@ -164,6 +164,7 @@ extern char *	 		PL_foreign_context_address P((long));
 #define PL_FA_NOTRACE		(1)	/* foreign cannot be traced */
 #define PL_FA_TRANSPARENT	(2)	/* foreign is module transparent */
 #define PL_FA_NONDETERMINISTIC	(4)	/* foreign is non-deterministic */
+#define PL_FA_GCSAVE		(8)	/* save to GC and/or shift stacks */
 
 int	PL_register_foreign P((char *, int, function, ...));
 
@@ -171,8 +172,13 @@ int	PL_register_foreign P((char *, int, function, ...));
 		*        CALLING PROLOG         *
 		*********************************/
 
+#define PL_lock(t)	_PL_lock(&(t));
+#define PL_unlock(t)	_PL_unlock(&(t));
+
 void	PL_mark P((bktrk_buf *));	/* mark global and trail stack */
 void	PL_bktrk P((bktrk_buf *));	/* backtrack global stack to mark */
+void	_PL_lock P((term *));		/* lock term variable */
+void	_PL_unlock P((term *));		/* unlock term variable */
 
 int	PL_call P((term, module));	/* invoke term as Prolog goal */
 

@@ -422,9 +422,6 @@ FILE *fd;
 	{ def->indexPattern = pattern;
 	  def->indexCardinality = cardinalityPattern(def->indexPattern);
 	  if ( pattern != 0x1 )
-#if O_AUTOINDEX
-	    clear(def, AUTOINDEX);
-#endif /* O_AUTOINDEX */
 	  reindexProcedure(proc);
 	}
 

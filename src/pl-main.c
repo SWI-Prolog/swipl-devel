@@ -456,12 +456,15 @@ va_list args;
 { toldString();
 
   if ( ReadingSource && !status.boot && status.initialised )
-  { word goal = globalFunctor(FUNCTOR_exception3);
+  { word goal;
     char message[LINESIZ];
     word arg;
+    mark m;
 
     vsprintf(message, fm, args);
 
+    Mark(m);
+    goal = globalFunctor(FUNCTOR_exception3);
     unifyAtomic(argTermP(goal, 0), ATOM_warning);
     unifyFunctor(argTermP(goal, 1), FUNCTOR_warning3);
     arg = argTerm(goal, 1);
@@ -480,6 +483,7 @@ va_list args;
       Putf("]\n");
       Output = old;
     }
+    Undo(m);
 
     PL_fail;				/* handled */
   }

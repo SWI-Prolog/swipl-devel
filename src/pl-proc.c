@@ -64,13 +64,6 @@ Procedure proc;
   def->flags ^= def->flags & ~SPY_ME;	/* Preserve the spy flag */
   def->source = (SourceFile) NULL;
   def->source_count = 0;
-  def->line_no = -1;
-#if O_AUTOINDEX
-  set(def, TRACE_ME|AUTOINDEX);
-  def->indexPattern = 0x0;
-  def->indexCardinality = 0;
-  def->indexMerit = 0;
-#else
   set(def, TRACE_ME);
   if ( proc->functor->arity == 0 )
   { def->indexPattern = 0x0;
@@ -79,7 +72,6 @@ Procedure proc;
   { def->indexPattern = 0x1;
     def->indexCardinality = 1;
   }
-#endif
 }
 
 Procedure
@@ -262,24 +254,6 @@ char where;
 
     last->next = clause;
     def->lastClause = clause;
-    
-#if O_AUTOINDEX
-    if ( true(def, AUTOINDEX) && def->indexPattern == 0x0 )
-    { if ( true(clause, INDEXABLE) )
-      { if ( true(last, INDEXABLE) )
-	{ def->indexMerit += 1;		/* indexing gains on this clause */
-
-	  if ( def->indexMerit > 1 )	/* good enough? */
-	  { def->indexPattern = 0x1;
-	    def->indexCardinality = 1;
-	    reindexProcedure(proc);
-	  }
-	}
-      } else
-      { def->indexMerit -= 2;		/* indexing looses on this one */
-      }
-    }
-#endif /* O_AUTOINDEX */
   }
   endCritical;  
 
@@ -900,9 +874,6 @@ Word pred;
     }
   }
 
-#if O_AUTOINDEX
-  clear(proc->definition, AUTOINDEX);
-#endif
   if (proc->definition->indexPattern == pattern)
     succeed;
 

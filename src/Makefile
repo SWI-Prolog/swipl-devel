@@ -1,4 +1,4 @@
-# /* SWI-Prolog 1.7        Toplevel Makefile                            */
+# /* SWI-Prolog 2.0        Toplevel Makefile                            */
 
 # /* This is the toplevel makefile for SWI Prolog.                      */
 # /* This makefile is almost independent of your operating system!      */
@@ -74,9 +74,9 @@ CINCLUDE=../include/SWI-Prolog.h
 
 
 OBJ=	pl-wam.o pl-save.o \
-	pl-atom.o pl-alloc.o pl-arith.o pl-bag.o pl-comp.o pl-dump.o \
+	pl-atom.o pl-arith.o pl-bag.o pl-comp.o pl-dump.o \
 	pl-dwim.o pl-ext.o pl-file.o pl-flag.o pl-fmt.o pl-funct.o \
-	pl-gc.o pl-glob.o pl-index.o pl-itf.o pl-list.o pl-load.o \
+	pl-gc.o pl-glob.o pl-itf.o pl-list.o pl-load.o \
 	pl-modul.o pl-op.o pl-os.o pl-prims.o pl-pro.o pl-proc.o \
 	pl-prof.o pl-read.o pl-rec.o pl-setup.o pl-sys.o pl-table.o \
 	pl-trace.o pl-util.o pl-wic.o pl-write.o pl-term.o pl-buffer.o

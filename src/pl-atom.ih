@@ -191,3 +191,6 @@
 #define ATOM_global_shifts (&atoms[190])
 #define ATOM_trail_shifts (&atoms[191])
 #define ATOM_line_count   (&atoms[192])
+#define ATOM_lock         (&atoms[193])
+#define ATOM_limit        (&atoms[194])
+#define ATOM_min_free     (&atoms[195])

@@ -1411,22 +1411,17 @@ Word k, value;
 #else
     fail;
 #endif
+#if O_SHIFT_STACKS
   else if (key == ATOM_global_shifts)
-#if O_SHIFT_STACKS
-    result = consNum(statistics.global_shifts);
-#else
-    fail;
-#endif
+    result = consNum(shift_status.global_shifts);
   else if (key == ATOM_local_shifts)
-#if O_SHIFT_STACKS
-    result = consNum(statistics.local_shifts);
-#else
-    fail;
-#endif
+    result = consNum(shift_status.local_shifts);
   else if (key == ATOM_trail_shifts)
-#if O_SHIFT_STACKS
-    result = consNum(statistics.trail_shifts);
+    result = consNum(shift_status.trail_shifts);
 #else
+  else if ( key == ATOM_global_shifts ||
+	    key == ATOM_local_shifts ||
+	    key == ATOM_trail_shifts )
     fail;
 #endif
   else

@@ -121,9 +121,22 @@ Marking, testing marks and extracting values from GC masked words.
 				&& onGlobal(unMask(w))) \
 			|| (isRef(w) && onGlobal(unRef(w))))
 
-#define L_MARK 	  0	/* Foreign reference marks */
-#define L_WORD	  1
-#define L_POINTER 2
+		 /*******************************
+		 *	   FOREIGN LOCKS	*
+		 *******************************/
+
+#define L_MASK		(0x3L)		/* type-mask */
+#define L_MARK 	  	(0x0)		/* Foreign reference marks */
+#define L_POINTER 	(0x1)		/* pointer to a Word */
+#define L_WORD	  	(0x2)		/* pointer to a word */
+
+#define makeLock(a, t)	((ulong)(a) | (t)) 	 /* Create a lock */
+#define lockTag(l)	((l) & L_MASK)		 /* Tag of the lock */
+#define lockAddress(l)	((Void) ((l) & ~L_MASK)) /* Locked address */
+
+		 /*******************************
+		 *     FUNCTION PROTOTYPES	*
+		 *******************************/
 
 forwards long		offset_cell P((Word));
 forwards Word		previous_gcell P((Word));
@@ -394,9 +407,9 @@ mark_foreign()
 { Lock l;
 
   for( l = pBase; l < pTop; l++ )
-  { switch( l->type )
+  { switch( lockTag(*l) )
     { case L_WORD:
-	{ Word sp = (Word) (l->value << 2);
+	{ Word sp = (Word) lockAddress(*l);
 
 	  if ( isGlobalRef(*sp) )
 	  { DEBUG(5, printf("Marking foreign value at 0x%lx\n"));
@@ -406,7 +419,7 @@ mark_foreign()
 	  break;
 	}
       case L_POINTER:
-	{ Word *sp = (Word *) (l->value << 2);
+	{ Word *sp = (Word *) lockAddress(*l);
 
 	  if ( !marked(*sp) && isGlobalRef(**sp) )
 	  { DEBUG(5, printf("Marking foreign pointer at 0x%lx\n"));
@@ -415,8 +428,6 @@ mark_foreign()
 
 	  break;
 	}
-      case L_MARK:
-	break;
     }
   }
 }
@@ -1230,6 +1241,14 @@ resetGC()
   gc_status.blocked = 0;
   gc_status.collections = gc_status.global_gained = gc_status.trail_gained = 0;
   gc_status.time = 0.0;
+
+#if O_SHIFT_STACKS
+  shift_status.local_shifts = 0;
+  shift_status.global_shifts = 0;
+  shift_status.trail_shifts = 0;
+  shift_status.blocked = 0;
+  shift_status.time = 0.0;
+#endif
 }
 
 		/********************************
@@ -1251,19 +1270,16 @@ Word p;
 { Lock l = pTop++;
 
   verifyStack(lock);
-  l->type  = L_WORD;
-  l->value = (unsigned) p >> 2;
+  *l = makeLock(p, L_WORD);
 }
 
 void
 lockp(ptr)
 void *ptr;
-{ Word *p = ptr;
-  Lock l = pTop++;
+{ Lock l = pTop++;
 
   verifyStack(lock);
-  l->type  = L_POINTER;
-  l->value = (unsigned) p >> 2;
+  *l = makeLock(ptr, L_POINTER);
 }
   
 void
@@ -1272,33 +1288,35 @@ mark *m;
 { Lock l = pTop++;
 
   verifyStack(lock);
-  l->type  = L_MARK;
-  l->value = (unsigned) m >> 2;
+  *l = makeLock(m, L_MARK);
 }
 
 void
 unlockw(p)
 Word p;
-{ if ( ((--pTop)->value << 2) != (unsigned)p )
-    sysError("Mismatch in lock()/unlock()\n");
+{ lock l = *--pTop;
+
+  if ( p != lockAddress(l) )
+    warning("Mismatch in lock()/unlock()\n");
 }
+
 
 void
 unlockp(ptr)
-void *ptr;
-{ Word *p = ptr;
+Void ptr;
+{ lock l = *--pTop;
 
-  if ( ((--pTop)->value << 2) != (unsigned)p )
-    sysError("Mismatch in lock()/unlock()\n");
+  if ( ptr != lockAddress(l) )
+    warning("Mismatch in lock()/unlock()\n");
 }
 
 void
 unlockMark(m)
 mark *m;
-{ if ( pTop == pBase )
-    warning("Lock stack underflow");
-  else if ( ((--pTop)->value << 2) != (unsigned)m )
-    sysError("Mismatch in lock()/unlock()\n");
+{ lock l = *--pTop;
+
+  if ( m != lockAddress(l) )
+    warning("Mismatch in lock()/unlock()\n");
 }
 
 
@@ -1386,7 +1404,10 @@ long ls, gs;
 }
 
 
-#if O_SECURE
+#if O_SECURE || O_DEBUG
+word key;
+int checked;
+
 		 /*******************************
 		 *	      CHECKING		*
 		 *******************************/
@@ -1403,18 +1424,25 @@ LocalFrame fr;
     return NULL;
 
   for(;;)
-  { int slots;
+  { int slots, n;
     Word sp;
+
     if ( true(fr, FR_MARKED) )
       return NULL;			/* from choicepoints only */
     set(fr, FR_MARKED);
     local_frames++;
     clear_uninitialised(fr, PC);
 
+    DEBUG(1, printf("Check [%d] %s:",
+		    levelFrame(fr),
+		    procedureName(fr->procedure)));
+
     slots = (PC == NULL ? fr->procedure->functor->arity : slotsFrame(fr));
     sp = argFrameP(fr, 0);
-    for( ; slots > 0; slots--, sp++ )
-      checkData(sp, FALSE);
+    for( n=0; n < slots; n++ )
+      key += checkData(&sp[n], FALSE);
+    checked += slots;
+    DEBUG(1, printf(" 0x%x\n", key));
 
     PC = fr->programPointer;
     if ( fr->parent )
@@ -1433,6 +1461,7 @@ LocalFrame bfr;
   }
 }
 
+word
 checkStacks(frame)
 LocalFrame frame;
 { LocalFrame fr, fr2;
@@ -1441,6 +1470,7 @@ LocalFrame frame;
     frame = environment_frame;
 
   local_frames = 0;
+  key = 0L;
 
   for( fr = frame; fr; fr = fr2 )
   { fr2 = check_environments(fr);
@@ -1455,11 +1485,13 @@ LocalFrame frame;
   }
 
   assert(local_frames == 0);
+
+  return key;
 }
 
 
 
-#endif /* O_SECURE */
+#endif /*O_SECURE || O_DEBUG*/
 
 		 /*******************************
 		 *	   LOCAL STACK		*
@@ -1468,12 +1500,11 @@ LocalFrame frame;
 static void update_choicepoints P((LocalFrame, long, long, long));
 
 static LocalFrame
-update_environments(fr, ls, gs, ts)
+update_environments(fr, PC, ls, gs, ts)
 LocalFrame fr;
+Code PC;
 long ls, gs, ts;
-{ Code PC = NULL;
-
-  if ( fr == NULL )
+{ if ( fr == NULL )
     return NULL;
 
   for(;;)
@@ -1538,7 +1569,7 @@ long ls, gs, ts;
 { for( ; bfr; bfr = bfr->backtrackFrame )
   { DEBUG(1, printf("Updating choicepoints from 0x%x [%ld] %s ... ",
 		    bfr, levelFrame(bfr), procedureName(bfr->procedure)));
-    update_environments(bfr, ls, gs, ts);
+    update_environments(bfr, NULL, ls, gs, ts);
   }
 }
 
@@ -1631,6 +1662,26 @@ long ts, ls, gs;			/* trail-, local- and global offsets */
   }
 }
 
+		 /*******************************
+		 *	  ARGUMENT STACK	*
+		 *******************************/
+
+static void
+update_argument(ls, gs)
+long ls, gs;				/* local- and global offsets */
+{ Word *p = aBase;
+  Word *t = aTop;
+
+  for( ; p < t; p++ )
+  { if ( onGlobal(*p) )
+    { *p = addPointer(*p, gs);
+    } else
+    { assert(onLocal(*p));
+      *p = addPointer(*p, ls);
+    }
+  }
+}
+
 		/********************************
 		*           LOCK STACK		*
 		********************************/
@@ -1644,14 +1695,14 @@ long ls, gs, ts;
   DEBUG(1, printf("Locked references ...", pTop - pBase); fflush(stdout));
 
   for(l = pBase; l < pTop; l++)
-  { switch(l->type)
+  { switch(lockTag(*l))
     { case L_WORD:
 	w++;
-        assert(0);
+        update_variable((Word)lockAddress(*l), ls, gs);
 	break;
       case L_POINTER:
 	p++;
-        { char **address = (char **)(l->value << 2);
+        { char **address = (char **)lockAddress(*l);
 
 	  if	  ( onStackArea(local, *address) )
 	    *address += ls;
@@ -1665,7 +1716,7 @@ long ls, gs, ts;
 	break;
       case L_MARK:
 	m++;
-	update_mark((mark *)(l->value << 2), gs, ts);
+	update_mark((mark *)lockAddress(*l), gs, ts);
 	break;
     }
   }
@@ -1689,8 +1740,9 @@ way to reach at dynamic stacks.
 
 
 LocalFrame
-updateStacks(frame, lb, gb, tb)
+updateStacks(frame, PC, lb, gb, tb)
 LocalFrame frame;
+Code PC;
 Void lb, gb, tb;			/* bases addresses */
 { long ls, gs, ts;
   LocalFrame fr, fr2;
@@ -1704,11 +1756,11 @@ Void lb, gb, tb;			/* bases addresses */
   if ( ls || gs || ts )
   { local_frames = 0;
 
-    for(fr = addPointer(frame, ls); fr; fr = fr2)
-    { fr2 = update_environments(fr, ls, gs, ts);
+    for(fr = addPointer(frame, ls); fr; fr = fr2, PC = NULL)
+    { fr2 = update_environments(fr, PC, ls, gs, ts);
 
       update_choicepoints(fr->backtrackFrame, ls, gs, ts);
-      DEBUG(1, if ( fr2 ) printf("Update frames of C-parent\n"));
+      DEBUG(0, if ( fr2 ) printf("Update frames of C-parent at 0x%x\n", fr2));
     }
 
     DEBUG(2, printf("%d frames ...", local_frames); fflush(stdout));
@@ -1723,8 +1775,9 @@ Void lb, gb, tb;			/* bases addresses */
     if ( gs )
       update_global(gs);
     if ( gs || ls )
-      update_trail(ts, ls, gs);
-
+    { update_trail(ts, ls, gs);
+      update_argument(ls, gs);
+    }
     update_locks(ls, gs, ts);
 
     updateStackHeader(local,  ls);
@@ -1741,35 +1794,52 @@ Entry point from interpret()
 
 #define GL_SEPARATION sizeof(word)
 
-#define nextStackSize(name) ROUND((sizeStack(name) * 3) / 2, 4096)
+static long
+nextStackSize(s)
+Stack s;
+{ long size = (char *) s->max - (char *) s->base;
 
-LocalFrame
-growStacks(fr, l, g, t)
+  if ( size == s->limit )
+    outOf(s);
+
+  size = ROUND((size * 3) / 2, 4096);
+
+  return size > s->limit ? s->limit : size;
+}
+
+void
+growStacks(fr, PC, l, g, t)
 LocalFrame fr;
+Code PC;
 int l, g, t;
-{ if ( l || g || t )
+{ if ( (l || g || t) && !shift_status.blocked )
   { TrailEntry tb = tBase;
     Word gb = gBase;
     LocalFrame lb = lBase;
     long lsize = sizeStack(local);
     long gsize = sizeStack(global);
     long tsize = sizeStack(trail);
-
-    SECURE(checkStacks(fr));
+    real time = CpuTime();
+    word key;
 
     DEBUG(0,
-	  printf("growStacks(0x%x, %c%c%c) l+g+t = %ld %ld %ld ...",
-		 fr,
+	  printf("growStacks(0x%x, 0x%x, %c%c%c) l+g+t = %ld %ld %ld ...",
+		 fr, PC,
 		 l ? 'l' : '-',
 		 g ? 'g' : '-',
 		 t ? 't' : '-',
 		 lsize, gsize, tsize);
 	  fflush(stdout));
 
+    if ( !fr )
+      fr = environment_frame;
+
+    SECURE(key = checkStacks(fr));
+
     if ( t )
-    { tsize = nextStackSize(trail);
+    { tsize = nextStackSize(&stacks.trail);
       tb = realloc(tb, tsize);
-      statistics.trail_shifts++;
+      shift_status.trail_shifts++;
     }
 
     if ( g || l )
@@ -1777,12 +1847,12 @@ int l, g, t;
       assert(lb == addPointer(gb, loffset));	
 
       if ( g )
-      { gsize = nextStackSize(global);
-	statistics.global_shifts++;
+      { gsize = nextStackSize(&stacks.global);
+	shift_status.global_shifts++;
       }
       if ( l )
-      { lsize = nextStackSize(local);
-	statistics.local_shifts++;
+      { lsize = nextStackSize(&stacks.local);
+	shift_status.local_shifts++;
       }
 
       gb = realloc(gb, lsize + gsize + GL_SEPARATION);
@@ -1805,7 +1875,7 @@ int l, g, t;
 	     });
 		    
     DEBUG(1, printf("Updating stacks ..."); fflush(stdout));
-    fr = updateStacks(fr, lb, gb, tb);
+    fr = updateStacks(fr, PC, lb, gb, tb);
     DEBUG(0, printf("ok\n"));
 
     stacks.local.max  = addPointer(stacks.local.base,  lsize);
@@ -1814,11 +1884,14 @@ int l, g, t;
 
     SetHTop(stacks.local.max);
     SetHTop(stacks.trail.max);
+
+    shift_status.time += CpuTime() - time;
   }
 
-  SECURE(checkStacks(fr));
-
-  return fr;
+  SECURE(if ( checkStacks(fr) != key )
+	 { printf("Stack checksum failure\n");
+	   trap_gdb();
+	 });
 }
 
 #endif /*O_SHIFT_STACKS*/

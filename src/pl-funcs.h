@@ -193,7 +193,7 @@ void		garbageCollect P((LocalFrame)),
 		lockw P((Word)), unlockw P((Word)),
 		lockp P((void *)), unlockp P((void *)),
 		lockMark P((mark *)), unlockMark P((mark *));
-LocalFrame	growStacks P((LocalFrame, int, int, int));
+void		growStacks P((LocalFrame, Code, int, int, int));
 word		pl_garbage_collect P((Word)),
 		pl_collect_parms P((Word, Word));
 
@@ -472,7 +472,8 @@ void		deliverSignal P((int, int, SIGNAL_CONTEXT_TYPE, char *));
 handler_t	pl_signal P((int, handler_t));
 #endif
 word		pl_limit_stack P((Word, Word)),
-		pl_trim_stacks P((void));
+		pl_trim_stacks P((void)),
+		pl_stack_parameter P((Word, Word, Word, Word));
 
 		/* pl-sys.c */
 word		pl_shell P((Word, Word)),

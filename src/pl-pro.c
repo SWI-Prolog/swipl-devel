@@ -32,6 +32,7 @@ pl_break1(goal)
 Word goal;
 { extern int Input, Output;
   bool rval;
+  mark m;
 
   int	     inSave    = Input;
   int	     outSave   = Output;
@@ -48,7 +49,9 @@ Word goal;
   debugstatus.skiplevel = 0;
   debugstatus.suspendTrace = 0;
 
+  Mark(m);
   rval = callGoal(MODULE_user, *goal, FALSE);
+  Undo(m);
 
   debugstatus.suspendTrace = suspSave;
   debugstatus.skiplevel    = skipSave;
@@ -75,23 +78,27 @@ bool debug;
 { LocalFrame lSave   = lTop;
   Lock	     pSave   = pTop;		/* TMP */
   LocalFrame envSave = environment_frame;
-  mark       m;
   Word *     aSave = aTop;
   bool	     rval;
 
+  if ( module == NULL )
+  { if ( environment_frame )
+      module = contextModule(environment_frame);
+    else
+      module = MODULE_user;
+  }
+
   lockp(&lSave);
   lockp(&envSave);
-  lTop = (LocalFrame)addPointer(lTop, sizeof(struct localFrame) +
-				      MAXARITY * sizeof(word));
+/*lTop = (LocalFrame) addPointer(lTop, sizeof(struct localFrame) +
+				 MAXARITY * sizeof(word)); */
   lTop = (LocalFrame) addPointer(lTop, sizeof(LocalFrame));
   verifyStack(local);
   varFrame(lTop, -1) = (word) environment_frame;
 
-  Mark(m);
   gc_status.blocked++;
   rval = interpret(module, goal, debug);
   gc_status.blocked--;
-  Undo(m);
   lTop = lSave;
   aTop = aSave;
   environment_frame = envSave;
@@ -157,6 +164,9 @@ volatile word goal;
   pTop = pBase;
   gc_status.blocked   = 0;
   gc_status.requested = FALSE;
+#if O_SHIFT_STACKS
+  shift_status.blocked = 0;
+#endif
   status.arithmetic   = 0;
 
   lockp(&environment_frame);
@@ -212,7 +222,7 @@ printk(char *fm, ...)
 }
 
 
-void
+word
 checkData(p, on_heap)
 register Word p;
 int on_heap;
@@ -229,25 +239,24 @@ int on_heap;
     } else if ( !onHeap(p2) )
       printk("Illegal reference pointer at 0x%x --> 0x%x", p, p2);
 
-    checkData(p2, on_heap);
-    return;
+    return checkData(p2, on_heap);
   }
 
   if ( isVar(*p) )
-    return;
+    return 0x737473;			/* just a random number */
 
   if ( isInteger(*p) )
-    return;
+    return *p;
 
   if ( isIndirect(*p) )
   { if ( !on_heap && !onGlobal(unMask(*p)) )
       printk("Indirect data not on global");
     if ( isReal(*p) )
-      return;
+      return (word) valReal(*p);
     if ( isString(*p) )
     { if ( sizeString(*p) != strlen(valString(*p)) )
 	printk("String has inconsistent length: 0x%x", *p);
-      return;
+      return *(Word)unMask(*p);
     }
     printk("Illegal indirect datatype");
   }
@@ -256,7 +265,7 @@ int on_heap;
   { if ( !onGlobal(*p) )
     { if (((Atom)(*p))->type != ATOM_TYPE)
 	printk("Illegal atom: 0x%x", *p);
-      return;
+      return *p;
     }
   } else
   { if ( onStackArea(global, *p) ||
@@ -265,17 +274,20 @@ int on_heap;
       printk("Heap term from 0x%x points to stack at 0x%x", p, *p);
 
     if ( isAtom(*p) )
-      return;
+      return *p;
   }
 					/* now it should be a term */
-  if (functorTerm(*p)->type != FUNCTOR_TYPE)
-    printk("Illegal term: 0x%x", *p);
-  arity = functorTerm(*p)->arity;
-  if (arity <= 0 || arity > 100)
-    printk("Illegal arity");
-  for(n=0; n<arity; n++)
-    checkData(argTermP(*p, n), on_heap);
+  { word key = 0L;
 
-  return;
+    if (functorTerm(*p)->type != FUNCTOR_TYPE)
+      printk("Illegal term: 0x%x", *p);
+    arity = functorTerm(*p)->arity;
+    if (arity <= 0 || arity > 100)
+      printk("Illegal arity");
+    for(n=0; n<arity; n++)
+      key += checkData(argTermP(*p, n), on_heap);
+
+    return key;
+  }
 }
 #endif /* TEST */

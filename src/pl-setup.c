@@ -706,8 +706,8 @@ machine size_alignment will do.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-initStacks(local, global, trail, argument, lock)
-long local, global, trail, argument, lock;
+initStacks(local, global, trail, argument, lck)
+long local, global, trail, argument, lck;
 { long heap = 0;			/* malloc() heap */
   int large = 1;
   ulong base, top, space, large_size;
@@ -734,13 +734,13 @@ long local, global, trail, argument, lock;
   global   = (long) align_size(global);
   trail    = (long) align_size(trail);
   argument = (long) align_size(argument);
-  lock     = (long) align_size(lock);
+  lck      = (long) align_size(lck);
 
   if ( local    == 0 ) large++;		/* find dynamic ones */
   if ( global   == 0 ) large++;
   if ( trail    == 0 ) large++;
   if ( argument == 0 ) large++;
-  if ( lock     == 0 ) large++;
+  if ( lck      == 0 ) large++;
 
   base  = (long) align_base(sbrk(0));
   top   = (long) MAX_VIRTUAL_ADDRESS;
@@ -750,7 +750,7 @@ long local, global, trail, argument, lock;
            align_base(local + STACK_SEPARATION) +
 	   align_base(global + STACK_SEPARATION) +
 	   align_base(trail + STACK_SEPARATION) +
-	   align_base(lock + STACK_SEPARATION) +
+	   align_base(lck + STACK_SEPARATION) +
 	   align_base(argument);
   
   large_size = ((space / large) / base_alignment) * base_alignment;
@@ -763,23 +763,22 @@ long local, global, trail, argument, lock;
   if ( global   == 0 ) global   = large_size;
   if ( trail    == 0 ) trail    = large_size;
   if ( argument == 0 ) argument = large_size;
-  if ( lock     == 0 ) lock     = large_size;
+  if ( lck      == 0 ) lck      = large_size;
 
   base += heap;
 
-#define INIT_STACK(name, print, minsize) \
-  DEBUG(1, printf("%s stack at 0x%x; size = %ld\n", print, base, name)); \
-  init_stack(&stacks.name, print, base, name, minsize); \
-  base += name + STACK_SEPARATION; \
+#define INIT_STACK(name, print, limit, minsize) \
+  DEBUG(1, printf("%s stack at 0x%x; size = %ld\n", print, base, limit)); \
+  init_stack(&stacks.name, print, base, limit, minsize); \
+  base += limit + STACK_SEPARATION; \
   base = align_base(base);
 #define K * 1024
 
-  /*	     struct	name 	   minimum size */
-  INIT_STACK(global,   "global",   16 K);
-  INIT_STACK(local,    "local",    8 K);
-  INIT_STACK(trail,    "trail",    8 K);
-  INIT_STACK(lock,     "lock",     1 K);
-  INIT_STACK(argument, "argument", 1 K);
+  INIT_STACK(global,   "global",   global,   16 K);
+  INIT_STACK(local,    "local",    local,    8 K);
+  INIT_STACK(trail,    "trail",    trail,    8 K);
+  INIT_STACK(lock,     "lock",     lck,      1 K);
+  INIT_STACK(argument, "argument", argument, 1 K);
 
   pl_signal(SIGSEGV, segv_handler);
 }
@@ -848,10 +847,48 @@ Word s, l;
 { succeed;
 }
 
+
 word
 pl_trim_stacks()
 { succeed;
 }
+
+
+word
+pl_stack_parameter(name, key, old, new)
+Word name, key, old, new;
+{ Stack stack;
+  long *value;
+
+  if ( *name == (word) ATOM_local )
+    stack = (Stack) &stacks.local;
+  else if ( *name == (word) ATOM_global )
+    stack = (Stack) &stacks.global;
+  else if ( *name == (word) ATOM_trail )
+    stack = (Stack) &stacks.trail;
+  else if ( *name == (word) ATOM_argument )
+    stack = (Stack) &stacks.argument;
+  else if ( *name == (word) ATOM_lock )
+    stack = (Stack) &stacks.lock;
+  else
+    return warning("stack_parameter/4: unknown stack");
+
+  if ( *key == (word) ATOM_limit )
+    value = &stack->limit;
+  else if ( *key == (word) ATOM_min_free )
+    value = &stack->minfree;
+  else
+    return warning("stack_parameter/4: unknown key");
+
+  TRY(unifyAtomic(old, consNum(*value)));
+  if ( isInteger(*new) && valNum(*new) > 0 )
+    *value = valNum(*new);
+  else
+    return warning("stack_parameter/4: bad value");
+
+  succeed;
+}
+
 
 static void
 init_stack(s, name, size, limit, minfree)
@@ -887,12 +924,12 @@ not exist.
 #endif
 
 static void
-initStacks(local, global, trail, argument, lock)
-long local, global, trail, argument, lock;
+initStacks(local, global, trail, argument, lck)
+long local, global, trail, argument, lck;
 { long old_heap = statistics.heap;
 #if O_SHIFT_STACKS
-  long itrail  = 8 K;
-  long iglobal = 16 K;
+  long itrail  = 32 K;
+  long iglobal = 200 K;
   long ilocal  = 32 K;
 #else
   long itrail  = trail;
@@ -911,13 +948,13 @@ long local, global, trail, argument, lock;
   lBase = (LocalFrame)	addPointer(gBase, iglobal+sizeof(word));
   tBase = (TrailEntry)	MALLOC(tBase, itrail);
   aBase = (Word *)	MALLOC(aBase, argument);
-  pBase = (Lock)	MALLOC(pBase, lock);
+  pBase = (Lock)	MALLOC(pBase, lck);
 
-  init_stack((Stack)&stacks.global,   "global",	 iglobal,  global,   8 K);
+  init_stack((Stack)&stacks.global,   "global",	 iglobal,  global,   100 K);
   init_stack((Stack)&stacks.local,    "local",	 ilocal,   local,    16 K);
-  init_stack((Stack)&stacks.trail,    "trail",	 itrail,   trail,    4 K);
+  init_stack((Stack)&stacks.trail,    "trail",	 itrail,   trail,    8 K);
   init_stack((Stack)&stacks.argument, "argumet", argument, argument, 0);
-  init_stack((Stack)&stacks.lock,     "lock",    lock,     lock,     0);
+  init_stack((Stack)&stacks.lock,     "lock",    lck,      lck,      0);
 
   statistics.heap = old_heap;
 }

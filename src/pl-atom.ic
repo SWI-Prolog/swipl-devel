@@ -191,3 +191,6 @@
 { (Atom)NULL, ATOM_TYPE, "global_shifts" },
 { (Atom)NULL, ATOM_TYPE, "trail_shifts" },
 { (Atom)NULL, ATOM_TYPE, "line_count" },
+{ (Atom)NULL, ATOM_TYPE, "lock" },
+{ (Atom)NULL, ATOM_TYPE, "limit" },
+{ (Atom)NULL, ATOM_TYPE, "min_free" },

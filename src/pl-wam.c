@@ -168,6 +168,9 @@ int i;
 #endif /* COUNTING */
 
 
+#include "pl-index.c"
+#include "pl-alloc.c"
+
 		/********************************
 		*         FOREIGN CALLS         *
 		*********************************/
@@ -193,16 +196,17 @@ given as `backtrack control'.
 static inline bool
 callForeign(proc, frame)
 Procedure proc;
-register LocalFrame frame;
+LocalFrame frame;
 { int argc = proc->functor->arity;
   word result;
-  Word argv[20]; /* this must be as big as the number args we stuff in it 
-	          * (switch() below can handle upto case : 15) */
+  Word argv[20]; /* this must be as big as the number args we sutff in it 
+                * (switch() below can handle upto case : 15) */
   Func function;
   Lock top = pTop;
+  bool gc_save;
 
-  { register Word a, *ap;
-    register int n;
+  { Word a, *ap;
+    int n;
 
     a = argFrameP(frame, 0);
     lTop = (LocalFrame) argFrameP(a, argc);
@@ -215,7 +219,9 @@ register LocalFrame frame;
   SECURE(
   int n;
   for(n = 0; n < argc; n++)
-    checkData(argv[n], FALSE);
+  { checkData(argv[n], FALSE);
+    lockp(&argv[n]);
+  }
   );
 
   function = proc->definition->definition.function;
@@ -225,6 +231,13 @@ register LocalFrame frame;
 #define B ((word) frame->clause)
 
   gc_status.blocked++;
+  if ( (gc_save = true(proc->definition, GC_SAVE)) )
+    lockp(&frame);
+#if O_SHIFT_STACKS
+  else
+    shift_status.blocked++;
+#endif
+
   switch(argc)
   { case 0:  result = F(B); break;
     case 1:  result = F(A(0), B); break;
@@ -255,6 +268,13 @@ register LocalFrame frame;
 #endif
     default:	return sysError("Too many arguments to foreign function");
   }
+  
+  if ( gc_save )
+    unlockp(&frame);
+#if O_SHIFT_STACKS
+  else
+    shift_status.blocked--;
+#endif
   gc_status.blocked--;
 
 #undef B
@@ -263,8 +283,10 @@ register LocalFrame frame;
 
   SECURE(
   int n;
-  for(n=0;n<argc; n++)
+  for(n=argc-1; n >= 0; n--)
+  { unlockp(&argv[n]);
     checkData(argv[n], FALSE);
+  }
   );
 
   if ( top != pTop )
@@ -302,11 +324,11 @@ register LocalFrame frame;
 
 static void
 leaveForeignFrame(fr)
-register LocalFrame fr;
+LocalFrame fr;
 { if ( true(fr->procedure->definition, NONDETERMINISTIC) )
-  { register Procedure proc = fr->procedure;
-    register Func f = proc->definition->definition.function;
-    register word context = (word) fr->clause | FRG_CUT;
+  { Procedure proc = fr->procedure;
+    Func f = proc->definition->definition.function;
+    word context = (word) fr->clause | FRG_CUT;
 
 #define U ((Word) NULL)
     DEBUG(5, printf("Cut %s, context = 0x%lx\n", procedureName(proc), context));
@@ -556,6 +578,10 @@ register FunctorDef functor;
 #define BODY_FAILED		goto body_failed
 #define SetBfr(fr) 		(BFR = (fr))
 
+#if O_SHIFT_STACKS
+#define register
+#endif
+
 bool
 interpret(Context, Goal, debug)
 Module Context;
@@ -564,12 +590,12 @@ bool debug;
 { register LocalFrame FR;		/* current frame */
   register Word	      ARGP;		/* current argument pointer */
   register Code	      PC;		/* program counter */
-	   Word	      XR;		/* current external ref. table */
-	   LocalFrame BFR;		/* last backtrack frame */
-  	   Procedure  PROC;		/* current procedure */  
-  	   Definition DEF;		/* definition of current procedure */
-	   bool	      deterministic;    /* clause found deterministically */
-#define		      CL (FR->clause)	/* clause of current frame */
+  Word	     XR;			/* current external ref. table */
+  LocalFrame BFR;			/* last backtrack frame */
+  Procedure  PROC;			/* current procedure */  
+  Definition DEF;			/* definition of current procedure */
+  bool	     deterministic;		/* clause found deterministically */
+#define	     CL (FR->clause)		/* clause of current frame */
 
 #if O_LABEL_ADDRESSES
   static void *jmp_table[] =
@@ -691,6 +717,20 @@ Add #define O_VMCODE_IS_ADDRESS 0 to your md.h file.
 
   FR = lTop;
   FR->parent = (LocalFrame) NULL;
+#if O_SHIFT_STACKS
+  lockp(&FR);
+  lockp(&BFR);
+  lockp(&ARGP);
+
+#define RETURN(val) do \
+	            { unlockp(&ARGP); \
+		      unlockp(&BFR); \
+		      unlockp(&FR); \
+		      return(val); \
+		    } while(0)
+#else
+#define RETURN(val) return(val)
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Find the procedure definition associated with `Goal'.
@@ -701,8 +741,8 @@ Find the procedure definition associated with `Goal'.
     Module module = Context;
     FunctorDef functor;
 
-    if ((gp = stripModule(&Goal, &module)) == (Word) NULL)
-      fail;
+    if ( !(gp = stripModule(&Goal, &module)) )
+      RETURN(FALSE);
 
     g = *gp;
     if ( isAtom(g) )
@@ -720,7 +760,7 @@ Find the procedure definition associated with `Goal'.
 	*ARGP++ = (isVar(*a) ? makeRef(a) : *a);
       }
     } else
-      return warning("Illegal goal while called from C");
+      RETURN(warning("Illegal goal while called from C"));
 
     PROC = resolveProcedure(functor, module);
     DEF = PROC->definition;
@@ -756,20 +796,22 @@ registers.
       action = tracePort(FR, CALL_PORT);
       lTop = lTopSave;
       switch(action)
-      { case ACTION_FAIL:	fail;
-	case ACTION_IGNORE:	succeed;
+      { case ACTION_FAIL:	RETURN(FALSE);
+	case ACTION_IGNORE:	RETURN(TRUE);
       }
     }
 
     if ( true(DEF, FOREIGN) )
-    { FR->clause = FIRST_CALL;
+    { bool rval;
 
-      return callForeign(PROC, FR);
+      FR->clause = FIRST_CALL;
+      rval = callForeign(PROC, FR);
+      RETURN(rval);
     }
 
     ARGP = argFrameP(FR, 0);
     if ( (CL = findClause(CL, ARGP, DEF, &deterministic)) == NULL )
-      fail;
+      RETURN(FALSE);
     if ( deterministic )
       set(FR, FR_CUT);
     CL->references++;
@@ -1072,7 +1114,15 @@ the global stack (should we check?  Saves trail! How often?).
 	verifyStack(argument);
 	deRef(ARGP);
 	if (isVar(*ARGP) )
-	{ STACKVERIFY( if (gTop + 3 > gMax) outOf((Stack)&stacks.global) );
+	{ 
+#if O_SHIFT_STACKS
+  	  if ( gTop + 3 > gMax )
+	  { growStacks(FR, PC, FALSE, TRUE, FALSE);
+	    STACKVERIFY( if (gTop + 3 > gMax) outOf((Stack)&stacks.global) );
+	  }
+#else
+	  STACKVERIFY( if (gTop + 3 > gMax) outOf((Stack)&stacks.global) );
+#endif
 	  *ARGP = (word) gTop;
 	  Trail(ARGP, FR);
 	  *gTop++ = (word) FUNCTOR_dot2;
@@ -1206,11 +1256,14 @@ could be compiled out, but this is a bit more neath.
       }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-C_MARK saves the value of BFR (current backtrack frame) into a local
-frame slot reserved by the compiler. 
+C_MARK saves the value of BFR  (current   backtrack  frame) into a local
+frame slot reserved by the compiler.  Note that the variable to hold the
+local-frame pointer is *not* reserved in   clause->slots, so the garbage
+collector won't see it.  With the   introduction  of stack-shifting this
+slot has been made relative to lBase.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
    VMI(C_MARK, COUNT_N(c_mark), ("c_mark %d\n", *PC)) MARK(C_MARK);
-      { varFrame(FR, *PC++) = (word) BFR;
+      { varFrame(FR, *PC++) = (word) ((char *) BFR - (char *) lBase);
 
 	NEXT_INSTRUCTION;
       }
@@ -1240,7 +1293,9 @@ All frames created since what becomes now the  backtrack  point  can  be
 discarded.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(C_CUT, COUNT_N(c_cut), ("c_cut %d\n", *PC)) MARK(C_CUT);
-      { LocalFrame obfr = (LocalFrame) varFrame(FR, *PC++);
+      { LocalFrame obfr = (LocalFrame) ((char *) lBase +
+					(ulong) varFrame(FR, *PC++));
+					
 	LocalFrame fr;
 	register LocalFrame fr2;
 
@@ -1539,7 +1594,8 @@ effect* and 2) is *not optimised* away by the compiler.
 #endif
     VMI(C_IFTHENELSE, COUNT_2N(c_ifthenelse), ("c_ifthenelse %d\n", *PC))
       MARK(C_ITE);
-      { varFrame(FR, *PC++) = (word) BFR;	/* C_MARK */
+      { varFrame(FR, *PC++) = (word) ((char *) BFR - (char *) lBase);
+						/* == C_MARK */
 
 	/*FALL-THROUGH to C_OR*/
       }
@@ -1776,21 +1832,21 @@ Testing is suffices to find out that the predicate is defined.
 	{ lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
 
 	  if ( gshift || tshift )
-	  { long groom = roomStack(global);
-	    long troom = roomStack(trail);
+	  { long gused = usedStack(global);
+	    long tused = usedStack(trail);
 
 	    garbageCollect(FR);
+	    DEBUG(1, printf("\tgshift = %d; tshift = %d", gshift, tshift));
 	    if ( gshift )
-	      gshift = (roomStack(global) - groom < sizeStack(global) / 4);
+	      gshift = ((2 * usedStack(global)) > gused);
 	    if ( tshift )
-	      tshift = (roomStack(trail)  - troom < sizeStack(trail) / 4);
+	      tshift = ((2 * usedStack(trail)) > tused);
+	    DEBUG(1, printf(" --> gshift = %d; tshift = %d\n",
+			    gshift, tshift));
 	  }
 
 	  if ( gshift || tshift || lshift )
-	  { lockp(&BFR);
-	    FR = growStacks(FR, lshift, gshift, tshift);
-	    unlockp(&BFR);
-	  }
+	    growStacks(FR, NULL, lshift, gshift, tshift);
 	}
       }
 #else
@@ -1812,11 +1868,11 @@ Testing is suffices to find out that the predicate is defined.
 
 	if ( true(DEF, FOREIGN) )
 	{ CL = (Clause) FIRST_CALL;
+	call_builtin:			/* foreign `redo' action */
 
-	  call_builtin:				/* foreign `redo' action */
-
-	  if (callForeign(PROC, FR) == TRUE)
+	  if ( callForeign(PROC, FR) )
 	    goto exit_builtin;
+
 	  goto frame_failed;
 	}
 
@@ -1909,7 +1965,7 @@ Leave the clause:
 					goto frame_failed;
 	    }
 	  }
-	  succeed;
+	  RETURN(TRUE);
 	}
 
 	if ( false(FR, FR_CUT) )
@@ -2102,7 +2158,7 @@ visited for dereferencing.
       for(; fr; fr = fr->parent)
         leaveFrame(fr);
 
-      fail;
+      RETURN(FALSE);
     }
 
     { register LocalFrame fr = FR->parent;

@@ -7,6 +7,9 @@
     Purpose: SWI-Prolog general include file
 */
 
+#ifndef _PL_INCLUDE_H
+#define _PL_INCLUDE_H
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Include Machine Desciption (md-*) file.  If -DMD=md-sun.h  or  something
 similar  is  passed  as  cpp  flag,  this  machine  description is used.
@@ -43,10 +46,6 @@ handy for it someone wants to add a data type to the system.
       Include arithmetic compiler (compiles is/2, >/2, etc. into WAM).
   O_PROLOG_FUNCTIONS
       Include evaluatable Prolog functions into the arithmetic module.
-  O_AUTOINDEX
-      Include code to guess the best predicate indexing pattern. This is
-      not yet very well worked out, neither will be in the near  future.
-      just left in for the case I want to return to this subject.
   O_LABEL_ADDRESSES
       Means we can pick up the address of a label in  a function using
       the var  = `&&label' construct  and jump to  it using goto *var;
@@ -64,7 +63,6 @@ handy for it someone wants to add a data type to the system.
 #define O_COMPILE_OR		1
 #define O_COMPILE_ARITH		1
 #define O_STRING		1
-#define O_AUTOINDEX		0
 #define O_PROLOG_FUNCTIONS	1
 
 /*
@@ -212,7 +210,7 @@ typedef char *			caddress;
 Below are some arbitrary limits on object sizes.  Feel free  to  enlarge
 them,  but  be aware of the fact that this increases memory requirements
 and  slows  down  for  some  of  these  options.    Also,   MAXARITY   <
-MAXVARIABLES, MAXVARIABLES and MAXEXTERNALS must be lower that 64 K. One
+MAXVARIABLES, MAXVARIABLES and MAXEXTERNALS must be lower that 32 K. One
 day,  I  should  try  to  get  rid  of these limits.  This requires some
 redesign of parts of the compiler.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -612,6 +610,8 @@ typedef unsigned short		code;		/* bytes codes */
 typedef code *			Code;		/* pointer to byte codes */
 typedef int			Char;		/* char that can pass EOF */
 typedef word			(*Func)();	/* foreign functions */
+typedef ulong			lock;		/* foreign lock */
+typedef lock *			Lock;		/* pointer to a lock */
 
 typedef struct atom *		Atom;		/* atom */
 typedef struct functor *	Functor;	/* complex term */
@@ -632,7 +632,6 @@ typedef struct trail_entry *	TrailEntry;	/* Entry of train stack */
 typedef struct data_mark	mark;		/* backtrack mark */
 typedef struct index *		Index;		/* clause indexing */
 typedef struct stack *		Stack;		/* machine stack */
-typedef struct lock *		Lock;		/* GC data lock */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Many of the structures have a large number of booleans  associated  with
@@ -931,9 +930,6 @@ struct definition
   ulong		indexPattern;		/* indexed argument pattern */
   char		indexCardinality;	/* cardinality of index pattern */
   short		line_no;		/* Line number for the predicate */
-#if O_AUTOINDEX
-  int		indexMerit;		/* how badly do we want it? */
-#endif
   short		source_count;		/* times (re)consulted */
   ushort	flags;			/* booleans: */
 		/*	FOREIGN		   foreign predicate? */
@@ -1018,11 +1014,6 @@ struct symbol
   word		value;		/* associated value with name */
 };
 
-struct lock
-{ unsigned	type  : 2;	/* Type of lock */
-  unsigned	value : 30;	/* Anonymous value */
-};  
-
 		 /*******************************
 		 *	     MARK/UNDO		*
 		 *******************************/
@@ -1051,9 +1042,19 @@ struct lock
 		*             STACKS            *
 		*********************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+If we have access to the virtual   memory management of the machine, use
+this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #if O_CAN_MAP || O_SHARED_MEMORY
 #define O_DYNAMIC_STACKS 1
+#else
+#ifndef O_SHIFT_STACKS
+#define O_SHIFT_STACKS 1
 #endif
+#endif
+
 
 #if O_SHARED_MEMORY
 #define O_SHM_FREE_IMMEDIATE 1
@@ -1082,7 +1083,7 @@ struct lock
 	  long		limit;		/* how big it is allowed to grow */ \
 	  long		maxlimit;	/* maximum limit */                 \
 	  long		minfree;	/* minimum amount of free space */  \
-	  int		gc;		/* Garbage collect? */		    \
+	  bool		gc;		/* Can be GC'ed? */		    \
 	  long		gced_size;	/* size after last GC */	    \
 	  long		small;		/* Donot GC below this size */	    \
 	  char		*name;		/* Symbolic name of the stack */    \
@@ -1199,6 +1200,16 @@ GLOBAL struct
   real		time;			/* time spent in collections */
 } gc_status;
 
+#ifdef O_SHIFT_STACKS
+GLOBAL struct
+{ int		blocked;		/* No shifts allowed */
+  real		time;			/* time spent in stack shifts */
+  int		local_shifts;		/* Shifts of the local stack */
+  int		global_shifts;		/* Shifts of the global stack */
+  int		trail_shifts;		/* Shifts of the trail stack */
+} shift_status;
+#endif
+
 GLOBAL struct
 { Atom		symbolfile;		/* current symbol file */
   Atom		orgsymbolfile;		/* symbol file we started with */
@@ -1227,11 +1238,6 @@ GLOBAL struct
   int		profiling;		/* profiler is on? */
   long		profile_ticks;		/* profile ticks total */
 #endif /* O_PROFILE */
-#if O_SHIFT_STACKS
-  int		local_shifts;		/* Shifts of the local stack */
-  int		global_shifts;		/* Shifts of the global stack */
-  int		trail_shifts;		/* Shifts of the trail stack */
-#endif
 } statistics;
 
 		/********************************
@@ -1258,7 +1264,6 @@ GLOBAL Procedure	PROCEDURE_alt1;	/* $alt/1, see C_OR */
 GLOBAL Procedure	PROCEDURE_garbage_collect0;
 
 extern struct code_info	codeTable[];
-
 
 		/********************************
 		*            DEBUGGER           *
@@ -1355,3 +1360,5 @@ extern struct functorDef functors[];
 
 #include "pl-atom.ih"
 #include "pl-funct.ih"
+
+#endif _PL_INCLUDE_H

@@ -14,7 +14,7 @@ forwards RecordList lookupRecordList P((word));
 forwards RecordList isCurrentRecordList P((word));
 forwards word	   heapFunctor P((FunctorDef));
 forwards void	   copyTermToHeap2 P((Word, Record, Word));
-forwards void	   copyTermToGlobal2 P((Word, Word, Word, Word));
+forwards void	   copyTermToGlobal2 P((Word, Word *, Word, Word));
 forwards void	   freeHeapTerm P((Word));
 forwards bool	   record P((Word, Word, Word, char));
 
@@ -156,45 +156,54 @@ Word term;
   return result;
 }
 
+
 static void
 copyTermToGlobal2(orgvars, vars, term, copy)
-Word orgvars, vars;
+Word orgvars, *vars;
 register Word term;
 Word copy;
-{ int arity;
+{ bool locked;
 
   if (isRef(*term) )
-  { *copy = makeRef(unRef(*term) - orgvars + vars);
+  { *copy = makeRef(unRef(*term) - orgvars + *vars);
     return;
   }
   if (isAtom(*term) || isInteger(*term))
   { *copy = *term;
     return;
   }
+
+  if ( (locked = onStack(global, copy)) )
+    lockp(&copy);
+
   if (isIndirect(*term))
   {
 #if O_STRING
     if ( isString(*term) )
-    { *copy = globalString(valString(*term));
-      return;
-    }
+      *copy = globalString(valString(*term));
+    else
 #endif /* O_STRING */
-    *copy = globalReal(valReal(*term));
-    return;
+      *copy = globalReal(valReal(*term));
+  } else				/* term */
+  { int arity = functorTerm(*term)->arity;
+    int n;
+
+    *copy = globalFunctor(functorTerm(*term));
+
+    term = argTermP(*term, 0);
+    for(n = 0; n < arity; n++, term++)
+      copyTermToGlobal2(orgvars, vars, term, argTermP(*copy, n));
   }
-  arity = functorTerm(*term)->arity;
-  *copy = globalFunctor(functorTerm(*term) );
-  term = argTermP(*term, 0);
-  copy = argTermP(*copy, 0);
-  for(; arity > 0; arity--, term++, copy++)
-    copyTermToGlobal2(orgvars, vars, term, copy);
+
+  if ( locked )
+    unlockp(&copy);
 }
 
 word
 copyTermToGlobal(term)
 register Record term;
 { Word vars;
-  word copy;
+  word copy = 0;
 
   if (term->n_vars > 0)
   { register int n;
@@ -207,7 +216,11 @@ register Record term;
     vars = (Word) NULL;
 
   SECURE(checkData(&term->term, TRUE));
-  copyTermToGlobal2(term->variables, vars, &term->term, &copy);
+  lockp(&vars);
+  lockw(&copy);
+  copyTermToGlobal2(term->variables, &vars, &term->term, &copy);
+  unlockw(&copy);
+  unlockp(&vars);
   SECURE(checkData(&copy, FALSE));
 
   return copy;

@@ -297,10 +297,14 @@ va_list args;
     { case PL_FA_NOTRACE:	   clear(def, TRACE_ME);	break;
       case PL_FA_TRANSPARENT:	   set(def, TRANSPARENT);	break;
       case PL_FA_NONDETERMINISTIC: set(def, NONDETERMINISTIC);	break;
+      case PL_FA_GCSAVE:	   set(def, GC_SAVE);		break;
+      default:
+	return warning("PL_register_foreign(): %s: bad argument",
+		       procedureName(proc));
     }
-    if ( n > 3 )
-      return warning("PL_register_foreign(): %s/%d: argument list not closed",
-								name, arity);
+    if ( n > 4 )
+      return warning("PL_register_foreign(): %s: argument list not closed",
+		     procedureName(proc));
   }
 
   succeed;
@@ -334,7 +338,7 @@ va_dcl
   name  = va_arg(args, char *);
   arity = va_arg(args, int);
   f     = va_arg(args, Func);
-  rval = registerForeign(name, arity, f, args);
+  rval  = registerForeign(name, arity, f, args);
   va_end(args);
 
   return rval;
@@ -351,40 +355,36 @@ register bktrk_buf *buf;
 { Mark(*((mark *)buf));
 }
 
+
 void
 PL_bktrk(buf)
 register bktrk_buf *buf;
 { Undo(*((mark *)buf));
 }
 
+
 bool
 PL_call(t, m)
 Word t;
 Module m;
-{ LocalFrame lSave   = lTop;
-  LocalFrame envSave = environment_frame;
-  Word *     aSave   = aTop;
-  bool	     rval;
+{ deRef(t);
 
-  deRef(t);
-
-  if ( m == (Module) NULL )
-    m = contextModule(environment_frame);
-
-  lTop = (LocalFrame) addPointer(lTop, sizeof(LocalFrame));
-  verifyStack(local);
-  varFrame(lTop, -1) = (word) environment_frame;
-
-  gc_status.blocked++;
-  rval = interpret(m, *t, TRUE);
-  gc_status.blocked--;
-
-  lTop		    = lSave;
-  aTop		    = aSave;
-  environment_frame = envSave;
-
-  return rval;
+  return callGoal(m, *t, TRUE);
 }  
+
+
+void
+_PL_lock(t)
+Word *t;
+{ lockp(t);
+}
+
+
+void
+_PL_unlock(t)
+Word *t;
+{ unlockp(t);
+}
 
 		/********************************
 		*            MODULES            *

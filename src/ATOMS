@@ -202,6 +202,9 @@ A local_shifts		"local_shifts"
 A global_shifts		"global_shifts"
 A trail_shifts		"trail_shifts"
 A line_count		"line_count"
+A lock			"lock"
+A limit			"limit"
+A min_free		"min_free"
 
 F apply			2
 F call			1
