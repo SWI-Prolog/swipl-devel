@@ -4161,7 +4161,11 @@ add_jpl_to_classpath :-
 	->  true
 	;   Old = '.'
 	),
-	concat_atom([JplJAR, Old], :, New),
+	(   current_prolog_flag(windows, true)
+	->  Sep = (';')
+	;   Sep = (:)
+	),
+	concat_atom([JplJAR, Old], Sep, New),
 	setenv('CLASSPATH', New).
 
 %	libjpl(-Spec)
