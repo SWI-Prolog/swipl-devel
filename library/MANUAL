@@ -14288,12 +14288,12 @@ _________________________________________________________________________
     _d_e_v_e_l_o_p_m_e_n_t  _e_m_u_l_a_t_o_r.  The  _r_u_n_t_i_m_e _e_m_u_l_a_t_o_r is similar, but  lacks
     the tracer.
 
-    If the  option stand_alone(on)is present, the  emulator is the first
-    part of the state.   If the emulator is started it will test whether
-    a  boot-file (state)  is attached  to the emulator  itself and  load
-    this  state.   Provided  the application has  all libraries  loaded,
-    the  resulting executable is  completely independent of the  runtime
-    environment or location where it was build.
+    If  the option  stand_alone(true) is  present, the  emulator is  the
+    first  part of the state.   If the emulator is started it  will test
+    whether  a  boot-file (state)  is attached  to  the emulator  itself
+    and  load this state.   Provided  the application has all  libraries
+    loaded,  the resulting executable  is completely independent of  the
+    runtime environment or location where it was build.
 
     See also section 2.10.2.4.
 
