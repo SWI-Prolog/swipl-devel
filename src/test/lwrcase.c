@@ -11,15 +11,14 @@
 #include <ctype.h>
 
 foreign_t
-pl_lowercase(term u, term l)
+pl_lowercase(term_t u, term_t l)
 { char *copy;
   char *s, *q;
-  atomic la;
+  atom_t la;
 
-  if ( !PL_is_atom(u) )
+  if ( !PL_get_atom_chars(u, &s) )
     return PL_warning("lowercase/2: instantiation fault");
-  s = PL_atom_value(PL_atomic(u));
-  copy = (char *) malloc(strlen(s)+1);
+  copy = malloc(strlen(s)+1);
 
   for( q=copy; *s; q++, s++)
     *q = (isupper(*s) ? tolower(*s) : *s);
@@ -28,7 +27,7 @@ pl_lowercase(term u, term l)
   la = PL_new_atom(copy);
   free(copy);
 
-  return PL_unify_atomic(l, la);
+  return PL_unify_atom(l, la);
 }
 
 install_t
