@@ -7,4 +7,5 @@
 *.tex
 *.aux
 *.pdf
+log
 figs/class
