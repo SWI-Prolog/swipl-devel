@@ -1,3 +1,6 @@
+* MODIFIED: PceEmacs user-init file changes from ~/.pceemacsrc to
+  user_profile('pceemacs.ini') on Windows.
+
 * FIXED: Modal window handling, especially for transient windows.  A transient
   modal window is now by defailt placed on the top-left of the parent window.
 
