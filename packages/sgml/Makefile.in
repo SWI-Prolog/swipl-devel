@@ -63,6 +63,9 @@ install-dtd:
 		   $(INSTALL_DATA) DTD/$$f $(PLBASE)/library/DTD; \
 		done
 
+check:
+		@echo "No check provided yet"
+
 uninstall:
 		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))
 		(cd $(PLBASE)/library && rm -f $(LIBPL))

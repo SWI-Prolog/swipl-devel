@@ -14,15 +14,18 @@
 #define DTD_H_INCLUDED
 #include "sgmldefs.h"
 
-#define CH_BLANK	0x0001
+#define CH_WHITE	0x0001
 #define CH_LCLETTER	0x0002
 #define CH_UCLETTER	0x0004
 #define CH_LCNMSTRT	0x0008
 #define CH_UCNMSTRT	0x0010
 #define CH_DIGIT	0x0020
+#define CH_RE		0x0040
+#define CH_RS		0x0080
 
 #define CH_NMSTART	(CH_LCLETTER|CH_UCLETTER|CH_LCNMSTRT|CH_UCNMSTRT)
 #define CH_NAME		(CH_NMSTART|CH_DIGIT)
+#define CH_BLANK	(CH_WHITE|CH_RE|CH_RS)
 
 #define SGML_DTD_MAGIC	0x7364573
 
@@ -134,6 +137,7 @@ typedef enum
 { SP_PRESERVE = 0,			/* Preserve all white-space */
   SP_DEFAULT,				/* Default space handling */
   SP_REMOVE,				/* Remove all blank CDATA elements */
+  SP_SGML,				/* Compliant SGML mode */
   SP_INHERIT				/* DTD: inherit from environment */
 } dtd_space_mode;
 
@@ -311,6 +315,7 @@ typedef struct _dtd
   int			implicit;	/* There is no DTD */
   dtd_dialect		dialect;	/* DL_* */
   int			case_sensitive;	/* Tags are case-sensitive */
+  int			ent_case_sensitive; /* Entities are case-sensitive */
   ichar		       *doctype;	/* defined document type */
   dtd_symbol_table     *symbols;	/* symbol-table */
   dtd_entity           *pentities;	/* defined parameter entities */
@@ -320,6 +325,7 @@ typedef struct _dtd
   dtd_charclass	       *charclass;	/* ichar -> CH_-mask */
   dtd_charmap	       *charmap;	/* ichar ->ochar */
   dtd_char_encoding	encoding;	/* document encoding */
+  dtd_space_mode	space_mode;	/* Default for handling white-space */
   int			references;	/* destruction reference count */
 } dtd;
 

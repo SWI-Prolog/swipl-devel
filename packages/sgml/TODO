@@ -4,20 +4,7 @@ TODO LIST:
 	* Handling of external entities (both param and normal) in Prolog
 	* Check ID/IDREF
 	* Handle memory-allocation errors
-	* Parsing of processing instructions to end at ?> instead of just >
 	* Donot use quoted values for tag identifications.  Right now the
 	  following leads to bad error handling:
 
 		<tag name="value>
-
-
-XML NameSpaces
-
-	* Allow for mapping to local identifiers?
-
-		- Register multiple namespaces to local identifier:
-
-		:- xmlns_register(Local, Global).
-
-		xmlns(?Local, ?Global).
-

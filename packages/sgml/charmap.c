@@ -32,10 +32,10 @@ new_charclass()
   ca['.'] |= CH_LCNMSTRT;
   ca['-'] |= CH_LCNMSTRT;
 
-  ca['\t'] |= CH_BLANK;
-  ca[' ']  |= CH_BLANK;
-  ca['\r'] |= CH_BLANK;
-  ca['\n'] |= CH_BLANK;
+  ca['\t'] |= CH_WHITE;
+  ca[' ']  |= CH_WHITE;
+  ca['\r'] |= CH_RE;
+  ca['\n'] |= CH_RS;
 
   return map;
 }

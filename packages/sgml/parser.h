@@ -40,6 +40,7 @@ typedef int (*sgml_cdata_f)(dtd_parser_p parser,
 typedef int (*sgml_entity_f)(dtd_parser_p parser,
 			     dtd_entity *entity,
 			     int chr);
+typedef int (*sgml_pi_f)(dtd_parser_p parser, const ichar *pi);
 typedef int (*sgml_error_f)(dtd_parser_p parser,
 			    dtd_error *error);
 #ifdef XMLNS
@@ -65,6 +66,8 @@ typedef enum
   S_EMSCDATA2,				/* Seen ]] in S_MSCDATA */
   S_ECDATA1,				/* Seen < in CDATA */
   S_ECDATA2,				/* Seen </ in CDATA */
+  S_PI,					/* Seen <? */
+  S_PI2,				/* Seen <?...? */
   S_DECL,				/* inside a declaration */
   S_STRING,				/* inside a "string" or 'string' */
   S_COMMENT,				/* inside a --comment-- */
@@ -124,15 +127,16 @@ typedef struct _dtd_parser
   marktype mark_state;			/* processing mode */
   sgml_environment *environments;	/* Open environments */
   data_mode dmode;			/* How to handle characters */
+  int	   first;			/* Just seen <tag> */
   icharbuf *buffer;			/* buffer for temp data */
   ocharbuf *cdata;			/* collected character data */
+  int	   blank_cdata;			/* CDATA is all blank */
   const ichar *etag;			/* name of end-tag in CDATA */
   int	   etaglen;			/* length of end-tag */
   int	   grouplevel;			/* [..] level in declaration */
   int      previous_char;		/* previous character */
   int	   saved;			/* saved character */
   dtd_char_encoding encoding;		/* CDATA output character-set */
-  dtd_space_mode space_mode;		/* Default for handling white-space */
 #ifdef UTF8
   int	   utf8_decode;			/* decode UTF-8 sequences? */
   int      utf8_char;			/* building character */
@@ -147,6 +151,7 @@ typedef struct _dtd_parser
   sgml_end_element_f	on_end_element;	/* end an element */
   sgml_cdata_f		on_cdata;	/* process cdata */
   sgml_entity_f		on_entity;	/* unprocessed entity */
+  sgml_pi_f		on_pi;		/* processing instruction */
   sgml_error_f		on_error;	/* handle error */
 #ifdef XMLNS
   xmlns_f		on_xmlns;	/* handle new namespace */

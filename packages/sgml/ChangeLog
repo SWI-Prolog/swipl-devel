@@ -1,3 +1,14 @@
+* ADDED: Passing processing instructions to the user.
+
+* FIXED: Independent case-sensitivity switch for entities (SGML entities are
+  case sensitive).
+
+* ADDED: SGML Blank-space handling
+
+* FIXED: Completeness test for A&B?
+
+* ADDED: Dummy make check (Richard O'Keefe)
+
 * ADDED: Programmable XML namespace canonisation.
 
 * ADDED: White space handling using the xlm:space attribute as well as

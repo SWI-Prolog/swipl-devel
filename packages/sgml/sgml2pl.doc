@@ -107,20 +107,20 @@ character strings, etc.  In the first example below loads an HTML file.
                     ]),
             element(body,
                     [],
-                    [ '\n\n',
+                    [ '\n',
                       element(h1,
                               [ align = center
-			      ],
+                              ],
                               [ 'This is a demo'
                               ]),
                       '\n\n',
                       element(p,
                               [],
-                              [ 'Paragraphs in HTML need not be closed.\n\n'
+                              [ 'Paragraphs in HTML need not be closed.\n'
                               ]),
                       element(p,
                               [],
-                              [ 'This is called `omitted-tag\' handling.\n'
+                              [ 'This is called `omitted-tag\' handling.'
                               ])
                     ])
           ])
@@ -209,15 +209,20 @@ representing the referred character code.
 If an entity refers to a character-entity holding a single character,
 but this character cannot be represented in the Prolog character set,
 this term is returned. For example, the HTML input text
-\verb$&Alpha; &lt &Beta;$ is returned as below.  Please note the
-conversion to lowercase because SGML is case-insensitive.
+\verb$&Alpha; &lt &Beta;$ is returned as below. Please note that neither
+in XML nor SGML entities are case-insensitive.  
 
 \begin{code}
-[ entity(alpha), ' < ', entity(beta) ]
+[ entity('Alpha'), ' < ', entity('Beta') ]
 \end{code}
 
 This is a special case of \term{entity}{Code}, intended to handle
 special symbols by their name rather then character code.
+
+    \termitem{pi}{Text}
+If a processing instruction is encoutered (\verb$<?...?>$), \arg{Text}
+holds the text of the processing instruction.  Please note that the
+\verb$<?xml ...?>$ instruction is handled internally.
 \end{description}
 
 The \arg{Options} list controls the conversion process.  Currently
@@ -260,19 +265,27 @@ exception of the format below is raised.  The default is 50.
 
 \subsection{Handling white-space}		\label{sec:space}
 
-SGPL2PL has three modes for handling white-space.  The initial mode can
+SGPL2PL has four modes for handling white-space.  The initial mode can
 be switched using the \term{space}{SpaceMode} option to load_structure/3
 and set_sgml_parser/2.  In XML mode, the mode is further controlled by
 the \elem{xml:space} attribute, which may be specified both in the DTD
 as in the document.  The defined modes are:
 
 \begin{description}
+    \termitem{space}{sgml}
+In SGML, newlines at the start and end of an element are removed.%
+	\footnote{In addition, newlines at the end of lines containing
+		  only markup should be deleted.  This is not yet
+		  implemented.}
+This is the default mode for the SGML dialect.
     \termitem{space}{preserve}
 White space is passed literally to the application.  This is the default
-mode.  This mode leaves all white space handling to the application.
+mode. This mode leaves all white space handling to the application. This
+is the default mode for the XML dialect.
     \termitem{space}{default}
-All consequtive white-space is reduced to a single space-character. This
-mode canonises all white space.
+In addition to \const{sgml} space-mode, all consequtive white-space is
+reduced to a single space-character. This mode canonises all white
+space.
     \termitem{space}{remove}
 In addition to \const{default}, all leading and trailing white-space is
 removed from \const{CDATA} objects. If, as a result, if the
@@ -320,12 +333,12 @@ reserved names (i.e. \const{ELEMENT}, etc.).
 In XML mode, underscores (\verb$_$) and colon (\verb$:$) are allowed in
 names.
     \item [White-space handling]
-In addition to setting white-space handling at the toplevel the XML
-reserved attribute \elem{xml:space} is honoured.  It may appear both
-in the document as the DTD.  The \const{remove} extension is honoured
-as \elem{xml:space} value.  For example, the DTD statement below ensures
-that the \elem{pre} element preserves space, regardless of the default
-processing mode.
+White space mode is set to \const{preserve}. In addition to setting
+white-space handling at the toplevel the XML reserved attribute
+\elem{xml:space} is honoured. It may appear both in the document as the
+DTD. The \const{remove} extension is honoured as \elem{xml:space} value.
+For example, the DTD statement below ensures that the \elem{pre} element
+preserves space, regardless of the default processing mode.
 
 \begin{code}
 <!ATTLIST pre xml:space nmtoken #fixed preserve>
@@ -679,6 +692,10 @@ an atom representing the data.
 An entity that cannot be represented as CDATA has been parsed. The named
 handler is called with two arguments:
 \term{\arg{Handler}}{+NameOrCode, +Parser}.
+    \termitem{pi}{}
+A processing instruction has been parsed. The named handler is called
+with two arguments: \term{\arg{Handler}}{+Text, +Parser}, where
+\arg{Text} is the text of the processing instruction.
     \termitem{xmlns}{}
 When parsing an in \const{xmlns} mode, a new namespace declaraction is
 pushed on the environment.  The named handler is called with three
@@ -864,6 +881,15 @@ using:
 This installs the foreign libraries in \file{$PLBASE/lib/$PLARCH} and
 the Prolog library files in \file{$PLBASE/library}, where
 \file{$PLBASE} refers to the SWI-Prolog `home-directory'.
+
+
+\subsection{Acknowledgements}
+
+The Prolog representation for parsed documents is based on the
+SWI-Prolog interface to SP by Anjo Anjewierden.
+
+Richard O'Keefe pointed out a number of mistakes in a earlier version
+of this parser.
 
 \end{document}
 

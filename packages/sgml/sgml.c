@@ -48,17 +48,17 @@ print_open(dtd_parser *p, dtd_element *e, int argc, sgml_attribute *argv)
   for(i=0; i<argc; i++)
   { switch(argv[i].definition->type)
     { case AT_CDATA:
-	printf("\t %s=%s\n",
+	printf("A%s %s\n",
 	       argv[i].definition->name->name,
 	       argv[i].value.cdata);
 	break;
       case AT_NUMBER:
-	printf("\t %s=%ld\n",
+	printf("A%s %ld\n",
 	       argv[i].definition->name->name,
 	       argv[i].value.number);
 	break;
       default:
-	printf("\t %s=%s\n",
+	printf("A%s %s\n",
 	       argv[i].definition->name->name,
 	       argv[i].value.text);
 	break;
@@ -71,13 +71,12 @@ print_open(dtd_parser *p, dtd_element *e, int argc, sgml_attribute *argv)
 
 static int
 print_cdata(dtd_parser *p, int len, const ochar *data)
-{ if ( *data != '\n' )
-    putchar('-');
+{ putchar('-');
 
   for( ; *data; data++ )
   { if ( *data == '\n' )
-    { putchar('\n');
-      putchar('-');
+    { putchar('\\');
+      putchar('n');
     } else
       putchar(*data);
   }
@@ -98,12 +97,21 @@ on_entity(dtd_parser *p, dtd_entity *e, int chr)
 }
 
 
+static int
+on_pi(dtd_parser *p, const ichar *pi)
+{ printf("?%s?\n", pi);
+
+  return TRUE;
+}
+
+
 static void
 set_functions(dtd_parser *p)
 { p->on_end_element = print_close;
   p->on_begin_element = print_open;
   p->on_cdata = print_cdata;
   p->on_entity = on_entity;
+  p->on_pi = on_pi;
 }
 
 #define shift (argc--, argv++)
@@ -167,6 +175,8 @@ main(int argc, char **argv)
       set_functions(p);
     sgml_process_file(p, argv[0]);
     free_dtd_parser(p);
+    if ( output )
+      printf("C\n");
     return 0;
   } else
   { usage();

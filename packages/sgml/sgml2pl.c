@@ -60,6 +60,7 @@ typedef struct _parser_data
   predicate_t on_end;			/* end element */
   predicate_t on_cdata;			/* cdata */
   predicate_t on_entity;		/* entity */
+  predicate_t on_pi;			/* processing instruction */
   predicate_t on_xmlns;			/* xmlns */
   predicate_t on_urlns;			/* url --> namespace */
 
@@ -109,6 +110,7 @@ static functor_t FUNCTOR_call2;
 static functor_t FUNCTOR_charpos1;
 static functor_t FUNCTOR_ns2;		/* :/2 */
 static functor_t FUNCTOR_space1;
+static functor_t FUNCTOR_pi1;
 
 static atom_t ATOM_sgml;
 static atom_t ATOM_dtd;
@@ -152,6 +154,7 @@ initConstants()
   FUNCTOR_charpos1     = mkfunctor("charpos", 1);
   FUNCTOR_ns2	       = mkfunctor(":", 2);
   FUNCTOR_space1       = mkfunctor("space", 1);
+  FUNCTOR_pi1	       = mkfunctor("pi", 1);
 
   ATOM_dtd  = PL_new_atom("dtd");
   ATOM_sgml = PL_new_atom("sgml");
@@ -355,11 +358,11 @@ pl_set_sgml_parser(term_t parser, term_t option)
       return sgml2pl_error(ERR_TYPE, "atom", a);
 
     if ( streq(s, "preserve") )
-      p->space_mode = SP_PRESERVE;
+      p->dtd->space_mode = SP_PRESERVE;
     else if ( streq(s, "default") )
-      p->space_mode = SP_DEFAULT;
+      p->dtd->space_mode = SP_DEFAULT;
     else if ( streq(s, "remove") )
-      p->space_mode = SP_REMOVE;
+      p->dtd->space_mode = SP_REMOVE;
 
     else
       return sgml2pl_error(ERR_DOMAIN, "space", a);
@@ -673,6 +676,9 @@ static int
 on_entity(dtd_parser *p, dtd_entity *e, int chr)
 { parser_data *pd = p->closure;
 
+  if ( pd->stopped )
+    return TRUE;
+
   if ( pd->on_entity )
   { fid_t fid = PL_open_foreign_frame();
     term_t av = PL_new_term_refs(2);
@@ -688,7 +694,7 @@ on_entity(dtd_parser *p, dtd_entity *e, int chr)
     PL_discard_foreign_frame(fid);
   }
 
-  if ( pd->tail && !pd->stopped )
+  if ( pd->tail )
   { term_t h = PL_new_term_ref();
 
     if ( !PL_unify_list(pd->tail, h, pd->tail) )
@@ -803,6 +809,41 @@ on_xmlns(dtd_parser *p, dtd_symbol *ns, dtd_symbol *url)
 
     PL_call_predicate(NULL, PL_Q_NORMAL, pd->on_xmlns, av);
     PL_discard_foreign_frame(fid);
+  }
+
+  return TRUE;
+}
+
+
+static int
+on_pi(dtd_parser *p, const ichar *pi)
+{ parser_data *pd = p->closure;
+
+  if ( pd->stopped )
+    return TRUE;
+
+  if ( pd->on_pi )
+  { fid_t fid = PL_open_foreign_frame();
+    term_t av = PL_new_term_refs(2);
+
+    PL_put_atom_chars(av+0, pi);
+    unify_parser(av+1, p);
+
+    PL_call_predicate(NULL, PL_Q_NORMAL, pd->on_pi, av);
+    PL_discard_foreign_frame(fid);
+  }
+
+  if ( pd->tail )
+  { term_t h = PL_new_term_ref();
+
+    if ( !PL_unify_list(pd->tail, h, pd->tail) )
+      return FALSE;
+
+    PL_unify_term(h,
+		  PL_FUNCTOR, FUNCTOR_pi1,
+		  PL_CHARS, pi);
+			 
+    PL_reset_term_refs(h);
   }
 
   return TRUE;
@@ -925,6 +966,9 @@ set_callback_predicates(parser_data *pd, term_t option)
   } else if ( streq(fname, "entity") )
   { pp = &pd->on_entity;		/* name, parser */
     arity = 2;
+  } else if ( streq(fname, "pi") )
+  { pp = &pd->on_pi;			/* pi, parser */
+    arity = 2;
   } else if ( streq(fname, "xmlns") )
   { pp = &pd->on_xmlns;			/* ns, url, parser */
     arity = 3;
@@ -972,6 +1016,7 @@ pl_sgml_parse(term_t parser, term_t options)
     p->on_begin_element = on_begin;
     p->on_end_element   = on_end;
     p->on_entity	= on_entity;
+    p->on_pi		= on_pi;
     p->on_cdata         = on_cdata;
     p->on_error	        = on_error;
     p->on_xmlns		= on_xmlns;

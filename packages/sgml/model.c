@@ -149,8 +149,7 @@ find_same_state(dtd_state *final, dtd_state *here, visited *visited)
   if ( final == here )
     return TRUE;
 
-					/* use state_transitions() */
-  for(t=here->transitions; t; t=t->next)
+  for(t=state_transitions(here); t; t=t->next)
   { if ( t->element == NULL && visit(t->state, visited) )
     { if ( find_same_state(final, t->state, visited) )
 	return TRUE;

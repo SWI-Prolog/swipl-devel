@@ -30,13 +30,18 @@
 #define DEBUG(g) ((void)0)
 
 static const ichar *	itake_name(dtd *dtd, const ichar *in, dtd_symbol **id);
+static const ichar *	itake_entity_name(dtd *dtd, const ichar *in,
+					  dtd_symbol **id);
 static const char *	isee_func(dtd *dtd, const ichar *in, charfunc func);
 static const ichar *	isee_text(dtd *dtd, const ichar *in, char *id);
 static const ichar *	iskip_layout(dtd *dtd, const ichar *in);
 static int		process_chars(dtd_parser *p, const ichar *name, const ichar *s);
 static dtd_parser *	clone_dtd_parser(dtd_parser *p);
 static void		free_model(dtd_model *m);
-static int		process_entity_declaraction(dtd *dtd, const ichar *decl);
+static int		process_entity_declaraction(dtd *dtd,
+						    const ichar *decl);
+static int		process_cdata(dtd_parser *p, int last);
+static int		emit_cdata(dtd_parser *p, int last);
 static dtd_space_mode	istr_to_space_mode(const ichar *val);
 static void		update_space_mode(dtd_parser *p, dtd_element *e,
 					  int natts, sgml_attribute *atts);
@@ -92,6 +97,32 @@ dtd_find_symbol(dtd *dtd, const ichar *name)
 { dtd_symbol_table *t = dtd->symbols;
 
   if ( dtd->case_sensitive )
+  { int k = istrhash(name, t->size);
+    dtd_symbol *s;
+
+    for(s=t->entries[k]; s; s = s->next)
+    { if ( istreq(s->name, name) )
+	return s;
+    }
+  } else
+  { int k = istrcasehash(name, t->size);
+    dtd_symbol *s;
+
+    for(s=t->entries[k]; s; s = s->next)
+    { if ( istrcaseeq(s->name, name) )
+	return s;
+    }
+  }
+
+  return NULL;
+}
+
+
+static dtd_symbol *
+dtd_find_entity_symbol(dtd *dtd, const ichar *name)
+{ dtd_symbol_table *t = dtd->symbols;
+
+  if ( dtd->ent_case_sensitive )
   { int k = istrhash(name, t->size);
     dtd_symbol *s;
 
@@ -202,7 +233,7 @@ expand_pentities(dtd *dtd, const ichar *in, ichar *out, int len)
     { dtd_symbol *id;
 
       in = s;
-      if ( (in = itake_name(dtd, in, &id)) )
+      if ( (in = itake_entity_name(dtd, in, &id)) )
       { dtd_entity *e = find_pentity(dtd, id);
 	const ichar *eval;
 	int l;
@@ -567,6 +598,29 @@ itake_name(dtd *dtd, const ichar *in, dtd_symbol **id)
 
 
 static const ichar *
+itake_entity_name(dtd *dtd, const ichar *in, dtd_symbol **id)
+{ ichar buf[MAXNMLEN];
+  ichar *o = buf;
+
+  in = iskip_layout(dtd, in);
+  if ( !HasClass(dtd, *in, CH_NMSTART) )
+    return NULL;
+  if ( dtd->ent_case_sensitive )
+  { while( HasClass(dtd, *in, CH_NAME) )
+      *o++ = *in++;
+  } else
+  { while( HasClass(dtd, *in, CH_NAME) )
+      *o++ = tolower(*in++);
+  }
+  *o++ = '\0';
+
+  *id = dtd_add_symbol(dtd, buf);
+
+  return iskip_layout(dtd, in);
+}
+
+
+static const ichar *
 itake_nmtoken(dtd *dtd, const ichar *in, dtd_symbol **id)
 { ichar buf[MAXNMLEN];
   ichar *o = buf;
@@ -681,6 +735,8 @@ new_dtd(const ichar *doctype)
   dtd->charclass = new_charclass();
   dtd->charfunc	 = new_charfunc();
   dtd->charmap	 = new_charmap();
+  dtd->space_mode = SP_SGML;
+  dtd->ent_case_sensitive = TRUE;	/* case-sensitive entities */
 
   return dtd;
 }
@@ -723,6 +779,7 @@ set_dialect_dtd(dtd *dtd, dtd_dialect dialect)
   switch(dialect)
   { case DL_SGML:
     { dtd->case_sensitive = FALSE;
+      dtd->space_mode = SP_SGML;
       break;
     }
     case DL_XML:
@@ -733,6 +790,7 @@ set_dialect_dtd(dtd *dtd, dtd_dialect dialect)
       dtd->charclass->class['_'] |= CH_LCNMSTRT;
       dtd->charclass->class[':'] |= CH_LCNMSTRT;
       dtd->encoding = ENC_UTF8;
+      dtd->space_mode = SP_PRESERVE;
 
       for(el = xml_entities; *el; el++)
 	process_entity_declaraction(dtd, *el);
@@ -805,7 +863,7 @@ process_entity_declaraction(dtd *dtd, const ichar *decl)
   } else
     isparam = FALSE;
 
-  if ( !(s = itake_name(dtd, decl, &id)) )
+  if ( !(s = itake_entity_name(dtd, decl, &id)) )
     return gripe(ERC_SYNTAX_ERROR, "Name expected", decl);
   decl = s;
   e->name = id;
@@ -1437,13 +1495,16 @@ push_element(dtd_parser *p, dtd_element *e, int callback)
 { if ( e != CDATA_ELEMENT )
   { sgml_environment *env = calloc(1, sizeof(*env));
 
-    make_state_engine(e);
+    emit_cdata(p, FALSE);
+
     env->element = e;
     env->state = make_state_engine(e);
     env->space_mode = (p->environments ? p->environments->space_mode
-				       : p->space_mode);
+				       : p->dtd->space_mode);
     env->parent = p->environments;
     p->environments = env;
+
+    p->first = TRUE;
     if ( callback && p->on_begin_element )
       (*p->on_begin_element)(p, e, 0, NULL);
     if ( e->structure && e->structure->type == C_CDATA )
@@ -1469,8 +1530,13 @@ free_environment(sgml_environment *env)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Pop the stack,  closing  all  environment   uptil  `to'.  The  close was
+initiated by pushing the element `e'.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
-pop_to(dtd_parser *p, sgml_environment *to)
+pop_to(dtd_parser *p, sgml_environment *to, dtd_element *e0)
 { sgml_environment *env, *parent;
   
   for(env = p->environments; env != to; env=parent)
@@ -1482,13 +1548,15 @@ pop_to(dtd_parser *p, sgml_environment *to)
     if ( e->structure && !e->structure->omit_close )
       gripe(ERC_OMITTED_CLOSE, e->name->name);
 
+    if ( e0 != CDATA_ELEMENT )
+      emit_cdata(p, TRUE);
+    p->first = FALSE;
     if ( p->on_end_element )
       (*p->on_end_element)(p, e);
     free_environment(env);
   }
-  
   p->environments = to;
-
+  
   return TRUE;
 }
 
@@ -1548,28 +1616,28 @@ open_element(dtd_parser *p, dtd_element *e)
     }
 
     switch(in_or_excluded(env, e))
-    { case IE_EXCLUDED:
-	gripe(ERC_NOT_ALLOWED, e->name->name);
-	/*FALLTHROUGH*/
-      case IE_INCLUDED:
+    { case IE_INCLUDED:
         push_element(p, e, FALSE);
 	return TRUE;
+      case IE_EXCLUDED:
+	gripe(ERC_NOT_ALLOWED, e->name->name);
+	/*FALLTHROUGH*/
       case IE_NORMAL:
 	for(; env; env=env->parent)
 	{ dtd_state *new;
     
 	  if ( (new = make_dtd_transition(env->state, e)) )
 	  { env->state = new;
-	    pop_to(p, env);
+	    pop_to(p, env, e);
 	    push_element(p, e, FALSE);
 	    return TRUE;
 	  } else
-	  { dtd_element *oe[MAXOMITTED];
+	  { dtd_element *oe[MAXOMITTED]; /* omitted open */
 	    int olen;
 	    int i;
     
 	    if ( (olen=find_omitted_path(env->state, e, oe)) > 0 )
-	    { pop_to(p, env);
+	    { pop_to(p, env, e);
 	      for(i=0; i<olen; i++)
 	      { env->state = make_dtd_transition(env->state, oe[i]);
 		env = push_element(p, oe[i], TRUE);
@@ -1607,6 +1675,7 @@ close_element(dtd_parser *p, dtd_element *e)
 	validate_completeness(env);
 	parent = env->parent;
 	
+	p->first = FALSE;
 	if ( p->on_end_element )
 	  (*p->on_end_element)(p, env->element);
 	free_environment(env);
@@ -1829,10 +1898,10 @@ process_begin_element(dtd_parser *p, const ichar *decl)
 
     free_attribute_values(natts, atts);
 
-    if ( empty ||
+    if ( empty /*||
 	 (e->structure &&
 	  e->structure->type == C_EMPTY &&
-	  !e->undefined) )
+	  !e->undefined)*/ )
       close_element(p, e);
 
     return TRUE;
@@ -1966,7 +2035,7 @@ process_pi(dtd_parser *p, const ichar *decl)
   if ( (s=isee_identifier(dtd, decl, "xml")) ) /* <?xml version="1.0"?> */
   { decl = s;
 
-    while(*decl && *decl != '?')
+    while(*decl)
     { dtd_symbol *nm;
 
       if ( (s=itake_name(dtd, decl, &nm)) &&
@@ -2004,6 +2073,9 @@ process_pi(dtd_parser *p, const ichar *decl)
     return TRUE;
   }
 
+  if ( p->on_pi )
+    (*p->on_pi)(p, decl);
+
   return FALSE;				/* Warn? */
 }
 
@@ -2037,11 +2109,11 @@ process_declaration(dtd_parser *p, const ichar *decl)
 
   if ( p->dmode != DM_DTD )
   { if ( (s=isee_func(dtd, decl, CF_ETAGO2)) ) /* </ ... > */
+    { emit_cdata(p, TRUE);
       return process_end_element(p, s);
-    else if ( (s=isee_func(dtd, decl, CF_PRO2)) ) /* <? */
-      return process_pi(p, s);
-    else
-      return process_begin_element(p, decl);
+    } else
+    { return process_begin_element(p, decl);
+    }
   }
 
 
@@ -2075,7 +2147,6 @@ new_dtd_parser(dtd *dtd)
   p->state	= S_PCDATA;
   p->mark_state	= MS_INCLUDE;
   p->dmode      = DM_DTD;
-  p->space_mode = SP_PRESERVE;
   p->encoding	= ENC_ISO_LATIN1;
   p->buffer	= new_icharbuf();
   p->cdata	= new_ocharbuf();
@@ -2120,10 +2191,11 @@ static int
 process_include(dtd_parser *p, const ichar *entity_name)
 { dtd_symbol *id;
   dtd_entity *pe;
+  dtd *dtd = p->dtd;
 
-  if ( (id=dtd_find_symbol(p->dtd, entity_name)) &&
+  if ( (id=dtd_find_entity_symbol(dtd, entity_name)) &&
        (pe=find_pentity(p->dtd, id)) )
-  { const ichar *text = entity_value(p->dtd, pe);
+  { const ichar *text = entity_value(dtd, pe);
 
     if ( !text )
       return gripe(ERC_NO_VALUE, pe->name->name);
@@ -2235,6 +2307,8 @@ istr_to_space_mode(const ichar *val)
     return SP_DEFAULT;
   if ( istreq(val, "preserve") )
     return SP_PRESERVE;
+  if ( istreq(val, "sgml") )
+    return SP_SGML;
   if ( istreq(val, "remove") )
     return SP_REMOVE;
 
@@ -2266,28 +2340,42 @@ update_space_mode(dtd_parser *p, dtd_element *e,
 
 
 static int
-process_cdata(dtd_parser *p)
-{ terminate_ocharbuf(p->cdata);
+emit_cdata(dtd_parser *p, int last)
+{ dtd *dtd = p->dtd;
+  ichar *s, *data = p->cdata->data;
+  
+  if ( p->cdata->size == 0 )
+    return TRUE;			/* empty or done */
 
-  if ( p->mark_state == MS_INCLUDE )
-  { dtd *dtd = p->dtd;
-    ichar *s, *data = p->cdata->data;
-    int blank = TRUE;
+  if ( p->environments )
+  { switch(p->environments->space_mode)
+    { case SP_SGML:
+      case SP_DEFAULT:
+	if ( p->first )
+	{ if ( HasClass(dtd, *data, CH_RE) )
+	  { data++;
+	    p->cdata->size--;
+	  }
+	  if ( HasClass(dtd, *data, CH_RS) )
+	  { data++;
+	    p->cdata->size--;
+	  }
+	}
+	if ( last )
+	{ ichar *e = data + p->cdata->size;
 
-    if ( p->environments )
-    { switch(p->environments->space_mode)
-      { case SP_PRESERVE:
-	preserve:
-	  for(s=data; *s; s++)
-	  { if ( !HasClass(dtd, *s, CH_BLANK) )
-	    { blank = FALSE;
-	      break;
-	    }
-	  }   
-	  break;
-	case SP_DEFAULT:		/* map multiple blanks to a single */
+	  if ( e > data && HasClass(dtd, e[-1], CH_RS) )
+	  { *--e = '\0';
+	    p->cdata->size--;
+	  }
+	  if ( e>data && HasClass(dtd, e[-1], CH_RE) )
+	  { *--e = '\0';
+	    p->cdata->size--;
+	  }
+	}
+	if ( p->environments->space_mode == SP_DEFAULT )
 	{ ichar *o = data;
-
+  
 	  for(s=data; *s; s++)
 	  { if ( HasClass(dtd, *s, CH_BLANK) )
 	    { while(s[1] && HasClass(dtd, s[1], CH_BLANK))
@@ -2295,66 +2383,106 @@ process_cdata(dtd_parser *p)
 	      *o++ = ' ';
 	      continue;
 	    }
-	    blank = FALSE;
 	    *o++ = *s;
 	  }
 	  *o = '\0';
 	  p->cdata->size = o-data;
-	  break;
 	}
-	case SP_REMOVE:
-	{ ichar *o = data;
-	  ichar *end = data;
+	break;
+      case SP_REMOVE:
+      { ichar *o = data;
+	ichar *end = data;
 
-	  for(s=data; *s && HasClass(dtd, *s, CH_BLANK); s++)
-	    ;
-	  if ( *s )
-	  { blank = FALSE;
-
-	    for(; *s; s++)
-	    { if ( HasClass(dtd, *s, CH_BLANK) )
-	      { while(s[1] && HasClass(dtd, s[1], CH_BLANK))
-		  s++;
-		*o++ = ' ';
-		continue;
-	      }
-	      *o++ = *s;
-	      end = o;
+	for(s=data; *s && HasClass(dtd, *s, CH_BLANK); s++)
+	  ;
+	if ( *s )
+	{ for(; *s; s++)
+	  { if ( HasClass(dtd, *s, CH_BLANK) )
+	    { while(s[1] && HasClass(dtd, s[1], CH_BLANK))
+		s++;
+	      *o++ = ' ';
+	      continue;
 	    }
+	    *o++ = *s;
+	    end = o;
 	  }
-	  *end = '\0';
-	  p->cdata->size = end-data;
-	  break;
 	}
-	case SP_INHERIT:
-	  assert(0);
-	  return FALSE;
+	*end = '\0';
+	p->cdata->size = end-data;
+	break;
       }
-    } else
-      goto preserve;
+      case SP_PRESERVE:
+	break;
+      case SP_INHERIT:
+	assert(0);
+	return FALSE;
+    }
+  }
 
-    if ( p->cdata->size == 0 )
-      return TRUE;
+  if ( p->cdata->size == 0 )
+    return TRUE;
 
-    if ( !blank )
-    { open_element(p, CDATA_ELEMENT);
+  if ( !p->blank_cdata )
+  { if ( p->on_cdata )
+      (*p->on_cdata)(p, p->cdata->size, data);
+  } else if ( p->environments )
+  { sgml_environment *env = p->environments;
+    dtd_state *new;
+    
+    if ( (new=make_dtd_transition(env->state, CDATA_ELEMENT)) )
+    { env->state = new;
       if ( p->on_cdata )
 	(*p->on_cdata)(p, p->cdata->size, data);
-    } else if ( p->environments )
-    { sgml_environment *env = p->environments;
-      dtd_state *new;
-  
-      if ( (new=make_dtd_transition(env->state, CDATA_ELEMENT)) )
-      { env->state = new;
-	if ( p->on_cdata )
-	  (*p->on_cdata)(p, p->cdata->size, data);
-      }
     }
   }
   
   empty_ocharbuf(p->cdata);
 
   return TRUE;
+}
+
+
+static int
+prepare_cdata(dtd_parser *p)
+{ if ( p->cdata->size == 0 )
+    return TRUE;
+
+  terminate_ocharbuf(p->cdata);
+
+  if ( p->mark_state == MS_INCLUDE )
+  { dtd *dtd = p->dtd;
+    int blank = TRUE;
+    const ichar *s;
+
+    if ( p->environments )		/* needed for <img> <img> */
+    { dtd_element *e = p->environments->element;
+
+      if ( e->structure && e->structure->type == C_EMPTY && !e->undefined )
+	close_element(p, e);
+    }
+
+    for(s = p->cdata->data; *s; s++)
+    { if ( !HasClass(dtd, *s, CH_BLANK) )
+      { blank = FALSE;
+	break;
+      }
+    }
+
+    p->blank_cdata = blank;
+    if ( !blank )
+      open_element(p, CDATA_ELEMENT);
+  } else
+    empty_ocharbuf(p->cdata);
+
+  return TRUE;
+}
+
+
+static int
+process_cdata(dtd_parser *p, int last)
+{ prepare_cdata(p);
+
+  return emit_cdata(p, last);
 }
 
 
@@ -2367,7 +2495,7 @@ process_entity(dtd_parser *p, const ichar *name)
     if ( *end == '\0' )
     { if ( v <= 0 || v >= OUTPUT_CHARSET_SIZE )
       { if ( p->on_entity )
-	{ process_cdata(p);
+	{ process_cdata(p, FALSE);
 	  (*p->on_entity)(p, NULL, v);
 	} else
 	  return gripe(ERC_REPRESENTATION, "character");
@@ -2382,7 +2510,8 @@ process_entity(dtd_parser *p, const ichar *name)
     dtd_entity *e;
     dtd *dtd = p->dtd;
 
-    if ( (id=dtd_find_symbol(dtd, name)) && (e=id->entity) )
+    if ( (id=dtd_find_entity_symbol(dtd, name)) &&
+	 (e=id->entity) )
     { const ichar *text = entity_value(dtd, e);
       const ichar *s;
       int   chr;
@@ -2396,7 +2525,7 @@ process_entity(dtd_parser *p, const ichar *name)
 	  return TRUE;
 	} else
 	{ if ( p->on_entity )
-	  { process_cdata(p);
+	  { process_cdata(p, FALSE);
 	    (*p->on_entity)(p, e, chr);
 	  } else
 	    return gripe(ERC_REPRESENTATION, "character");
@@ -2430,7 +2559,7 @@ end_document_dtd_parser(dtd_parser *p)
     { if ( p->dmode == DM_SGML )
       { sgml_environment *env;
 
-	process_cdata(p);
+	process_cdata(p, TRUE);
 
 	if ( (env=p->environments) )
 	{ dtd_element *e;
@@ -2438,7 +2567,7 @@ end_document_dtd_parser(dtd_parser *p)
 	  while(env->parent)
 	    env = env->parent;
 
-	  pop_to(p, env);
+	  pop_to(p, env, CDATA_ELEMENT);
 	  e = env->element;
 	  if ( e->structure && !e->structure->omit_close )
 	    gripe(ERC_OMITTED_CLOSE, e->name->name);
@@ -2469,6 +2598,10 @@ end_document_dtd_parser(dtd_parser *p)
     case S_EMSCDATA2:
       return gripe(ERC_SYNTAX_ERROR,
 		   "Unexpected end-of-file in CDATA marked section", "");
+    case S_PI:
+    case S_PI2:
+      return gripe(ERC_SYNTAX_ERROR,
+		   "Unexpected end-of-file in processing instruction", "");
   }
 
   return FALSE;				/* ?? */
@@ -2614,7 +2747,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	terminate_ocharbuf(p->cdata);
 	if ( p->mark_state == MS_INCLUDE )
 	{ WITH_PUBLIC_PARSER(p,
-			     process_cdata(p);
+			     process_cdata(p, TRUE);
 			     process_end_element(p, p->buffer->data));
 	}
 	empty_icharbuf(p->buffer);
@@ -2719,14 +2852,11 @@ putchar_dtd_parser(dtd_parser *p, int chr)
     }
     case S_DECL:			/* <...> */
     { if ( f[CF_MDC] == chr )
-      { process_cdata(p);
-
+      { prepare_cdata(p);
 	p->state = S_PCDATA;
 	terminate_icharbuf(p->buffer);
 	if ( p->mark_state == MS_INCLUDE )
-	{ ichar *data = p->buffer->data;
-
-	  WITH_PUBLIC_PARSER(p, process_declaration(p, data));
+	{ WITH_PUBLIC_PARSER(p, process_declaration(p, p->buffer->data));
 	}
 	empty_icharbuf(p->buffer);
 	return;
@@ -2755,7 +2885,33 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	process_marked_section(p);
 	return;
       }
+      if ( p->buffer->size == 0 && f[CF_PRO2] == chr ) /* <? ... */
+      { p->state = S_PI;
+	return;
+      }
       add_icharbuf(p->buffer, chr);
+      return;
+    }
+    case S_PI:
+    { add_icharbuf(p->buffer, chr);
+      if ( f[CF_PRO2] == chr )		/* <? ... ? */
+	p->state = S_PI2;
+      return;
+    }
+    case S_PI2:
+    { if ( f[CF_PRC] == chr )
+      { process_cdata(p, FALSE);
+	p->state = S_PCDATA;
+	p->buffer->size--;
+	terminate_icharbuf(p->buffer);
+	if ( p->mark_state == MS_INCLUDE )
+	{ WITH_PUBLIC_PARSER(p, process_pi(p, p->buffer->data));
+	}
+	empty_icharbuf(p->buffer);
+	return;
+      }
+      add_icharbuf(p->buffer, chr);
+      p->state = S_PI;
       return;
     }
     case S_STRING:
