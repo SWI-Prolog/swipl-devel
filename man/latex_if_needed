@@ -1,7 +1,0 @@
-#!/bin/sh
-
-$1 $2
-
-while grep '^LaTeX Warning: .*Rerun' $2.log > /dev/null;
-  do $1 $2;
-done

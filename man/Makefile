@@ -92,18 +92,13 @@ online.bbl:	biblio.doc
 doc.idx:	$(TEXFILES)
 		$(LATEX) doc
 
-doc.ind:	doc.idx
-		./latex_if_needed $(LATEX) doc
-		makeindex doc.idx
-
-
 $(ONLINE):	online.dvi $(DVITOTTY)
 		$(DVITOTTY) -w100 online | \
 		cat -s | \
 		sed 's/\(.\)_/_\1/g' > $(ONLINE)
 
-online.dvi:	latex_if_needed online.tex $(TEXFILES) online.bbl
-		./latex_if_needed $(LATEX) online
+online.dvi:	online.tex $(TEXFILES) online.bbl
+		./runtex online
 
 online.doc:	main.doc
 		cp main.doc main.h
