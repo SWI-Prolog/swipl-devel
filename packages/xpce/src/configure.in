@@ -56,6 +56,9 @@ CXXLIBHACK=""
 
 LD=ld
 AC_PROG_CC
+AC_PROG_RANLIB
+AC_CHECK_PROGS(AR, ar /usr/ccs/bin/ar, ar)
+AC_CHECK_PROGS(LDCONFIG, ldconfig, "true")
 AC_CANONICAL_HOST
 changequote(,)dnl
 ARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-[^-]*/\1/'`
@@ -112,32 +115,8 @@ if test -z "$PWD"; then
   PWD=`pwd`
 fi
 
-RAWHOME=`dirname $PWD`
-AC_MSG_CHECKING("canonical path to $RAWHOME")
-if test ! -f $PCEHOME/src/Pce.in; then
-    PCEHOME=""
-    topdirs="$HOME /usr/local /home /opt"
-    for top in $topdirs; do
-	if test -r $top; then
-	    can="$RAWHOME"
-	    topinode=`ls -di $top | awk '{print $1}'`
-	    base=""
-	    while test "$can" != "/" && test "$PCEHOME" = ""; do
-		caninode=`ls -di $can | awk '{print $1}'`
-		if test "$caninode" = "$topinode"; then
-		    PCEHOME=`echo $top/$base | sed 's@/$@@'`
-		fi
-		base=`basename $can`/$base
-		can=`dirname $can`
-	    done
-	fi
-    done
-    if test "$PCEHOME" = ""; then
-	PCEHOME="$RAWHOME"
-    else
-	if test ! -r $PCEHOME/src/Pce.in; then PCEHOME="$RAWHOME"; fi
-    fi
-fi
+AC_MSG_CHECKING("Path to installation")
+PCEHOME=`dirname $PWD`
 AC_MSG_RESULT("$PCEHOME")
 
 AC_MSG_CHECKING("Path relative to $PCEHOME")
@@ -230,6 +209,19 @@ if test -z "$MAKE_SHARED_OBJECT"; then
 fi
 
 if test "$MAKE_SHARED_OBJECT" = "yes"; then
+  PLTARGET=soall			 # Link XPCE dynamically to prolog
+  BOOTPL=pl
+  
+  AC_MSG_CHECKING("Extension for shared objects")
+  SO=so
+  case "$OS" in
+    *aix*)	SO="o"
+    	        ;;
+    *hpux*)	SO="sl"
+		;;
+  esac
+  AC_MSG_RESULT("$SO")
+
   if test ! -z "$GCC"; then
     AC_MSG_CHECKING("Looking for -lgcc")
     if GCCLIB=`${CC-cc} -print-libgcc-file-name`; then
@@ -252,54 +244,131 @@ EOF
     fi
     rm -f conftest*
     CMFLAGS="$CMFLAGS -fPIC"
+
+dnl See whether gcc supports building shared objects.  Some older versions
+dnl recognise the flags, but don't behave appropirately.
+
+    AC_MSG_CHECKING("whether ${CC-cc} -shared works")
+    cat > conftest.c <<EOF
+int
+dummy()
+{ return 1+1;
+}
+EOF
+    ${CC-cc} -o conftest.$SO -fpic -shared conftest.c >/dev/null 2>&1
+    if test -r conftest.$SO; then
+      AC_MSG_RESULT("yes")
+      LD=${CC-cc}
+      LDSOFLAGS="-shared"
+      GCCLD=true
+    else
+      AC_MSG_RESULT("no")
+    fi
+    rm -f conftest*
+
+dnl GCC can be configured to use GNU-ld or native ld.  Check whether the
+dnl relevant GNU-ld options are supported.    
+
+    AC_MSG_CHECKING([whether ${CC-cc} -Wl,-soname works])
+    cat > conftest.c <<EOF
+int
+dummy()
+{ return 1+1;
+}
+EOF
+    ${CC-cc} -o conftest.o -fpic -c conftest.c >/dev/null 2>&1
+    ${CC-cc} -o conftest.$SO -shared -Wl,-soname,libconftest.$SO.1 conftest.o >/dev/null 2>&1
+    if test -r conftest.$SO; then
+      AC_MSG_RESULT("yes")
+      SONAMEFLAG='-Wl,-soname,$(LIBXPCESOM)'
+    else
+      AC_MSG_RESULT("no")
+    fi
+    rm -f conftest*
+
+    AC_MSG_CHECKING([whether ${CC-cc} -Wl,-whole-archive works])
+    cat > conftest1.c <<EOF
+int
+dummy1()
+{ return 1+1;
+}
+EOF
+    cat > conftest2.c <<EOF
+int
+dummy2()
+{ return 1+1;
+}
+EOF
+    ${CC-cc} -o conftest1.o -fpic -c conftest1.c >/dev/null 2>&1
+    ${CC-cc} -o conftest2.o -fpic -c conftest2.c >/dev/null 2>&1 
+    ${AR} ru conftest.a conftest1.o conftest2.o
+    ${RANLIB} conftest.a
+    ${CC-cc} -o conftest.$SO -shared -Wl,-whole-archive conftest.a >/dev/null 2>&1
+    if test -r conftest.$SO; then
+      AC_MSG_RESULT("yes")
+      SOWHOLEARCHIVE="-Wl,-whole-archive"
+    else
+      AC_MSG_RESULT("no")
+      SOWHOLEARCHIVE="-u pceSend -u pceOpen"
+    fi
+    rm -f conftest*
   fi
 
-  BOOTPL=pl
-
-  SO="so"				 # Default shared object extension
-  LD="gcc"				 # Default linking through gcc
-  LDSOFLAGS="-shared"			 # Create a shared object
-  SONAMEFLAG='-Wl,-soname,$(LIBXPCESOM)' # Set the internal name
-  SOWHOLEARCHIVE="-Wl,-whole-archive"	 # Link the whole archive
-  PLTARGET=soall			 # Link XPCE dynamically to prolog
-
   case "$OS" in
-    *solaris* | *sunos5*)	LD=/usr/ccs/bin/ld
-				LDSOFLAGS="-G"
-				SONAMEFLAG="-h $(LIBXPCESOM)"
-				SOWHOLEARCHIVE="-u pceSend -u pceOpen"
-				if "$GXX" != "NONE"; then
-				  LDSOFLAGS="$LDSOFLAGS -u __builtin_new"
-				fi
-    				;;
-    *sunos*)			LD=ld
-				LDSOFLAGS="-assert nodefinitions"
-				SOWHOLEARCHIVE="-u _pceSend -u _pceOpen"
-				SONAMEFLAG=""
-				SOEXTRAOBJ=Initialize.o
-				;;
-    *linux*)			CXXLIBHACK="-lc -Wl,-Bstatic"
-				;;
-    *irix*)			;;
-    *osf*)			if test -z "$GCC"; then
-				  LD=ld
-				  LDSOFLAGS="-shared -expect_unresolved \*"
-				  CMFLAGS="$CMFLAGS -std"
-				fi
-				AC_DEFINE(VARIABLE_POINTER_OFFSET)
-				;;
-    *aix*)			SO="o"
-				LDSOFLAGS="-bI:$PLBASE/include/SWI-Exports"
-				AC_DEFINE(__unix__)
-				QPENTRIES=entries.c
-				;;
-    *hpux*)			SO="sl"
-				LDSOFLAGS="-b"
-				;;
-    *)				;;
+    *solaris* | *sunos5*)
+	if test -z "$GCCLD"; then
+	    LD=/usr/ccs/bin/ld
+	    LDSOFLAGS="-G"
+	    SONAMEFLAG="-h $(LIBXPCESOM)"
+	    SOWHOLEARCHIVE="-u pceSend -u pceOpen"
+	    if "$GXX" != "NONE"; then
+	      LDSOFLAGS="$LDSOFLAGS -u __builtin_new"
+	    fi
+	fi
+	if text -z "$GCC"; then
+	    CMFLAGS="$CMFLAGS -K"
+	fi
+	;;
+    *sunos*)
+	if test -z "$GCCLD"; then
+	    LD=ld
+	    LDSOFLAGS="-assert nodefinitions"
+	    SOWHOLEARCHIVE="-u _pceSend -u _pceOpen"
+	    SONAMEFLAG=""
+	    SOEXTRAOBJ=Initialize.o
+	fi
+	if text -z "$GCC"; then
+	    CMFLAGS="$CMFLAGS -K"
+	fi
+	;;
+    *linux*)
+	CXXLIBHACK="-lc -Wl,-Bstatic"
+	;;
+    *irix*)
+	;;
+    *osf*)
+	if test -z "$GCCLD"; then
+	    LD=ld
+	    LDSOFLAGS="-shared -expect_unresolved \*"
+	fi
+	if text -z "$GCC"; then
+	    CMFLAGS="$CMFLAGS -std"
+	fi
+	AC_DEFINE(VARIABLE_POINTER_OFFSET)
+	;;
+    *aix*)
+        LDSOFLAGS="-bI:$PLBASE/include/SWI-Exports"
+	AC_DEFINE(__unix__)
+	QPENTRIES=entries.c
+	;;
+    *hpux*)
+    	SO="sl"
+	LDSOFLAGS="-b"
+	;;
+    *)
+	;;
   esac
 else
-  SHLIB=""
   BOOTPL=xpce
 fi
 
@@ -391,9 +460,6 @@ else
     CWFLAGS=
 fi
 CFLAGS="$CMFLAGS"
-AC_PROG_RANLIB
-AC_CHECK_PROGS(AR, ar /usr/ccs/bin/ar, ar)
-AC_CHECK_PROGS(LDCONFIG, ldconfig, "true")
 AC_C_INLINE
 AC_FUNC_ALLOCA
 AC_C_BIGENDIAN

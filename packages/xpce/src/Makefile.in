@@ -631,7 +631,7 @@ RTMISC=		Defaults RT-LICENCE README README.RT
 
 rt-install:	rt-home rt-misc rt-bitmaps rt-bins rt-link
 
-dv-install:	rt-install dv-home dv-lib dv-boot dv-help \
+dv-install:	install rt-install dv-home dv-lib dv-boot dv-help \
 	        dv-link dv-pl-files dv-manual dv-man \
 		dv-misc cxx-install dv-qlf dv-bins
 
@@ -822,5 +822,5 @@ distclean:	clean
 		$(RM) -f h/names.ic h/names.ih
 		$(RM) -rf names Names.Gen Names.X
 		$(RM) -f $(LIB)
-		$(RM) -f bin/xpce bin/xpce-client
-		$(RM) -f config.cache
+		$(RM) -f install rt-install xpce pl2xpce.so xpce-client
+		$(RM) -f Makefile config.h config.status config.cache
