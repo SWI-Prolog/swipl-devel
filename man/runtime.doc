@@ -248,8 +248,8 @@ can easily be expressed in Prolog sourcecode, but long texts are
 cumbersome.  Assume our application defines a command `help' that
 prints a helptext to the screen.  We put the content of the helptext
 into a file called \file{help.txt}.  The following code implements
-our help command such that help.txt is incorperated into the runtime
-executable.
+our help command such that \file{help.txt} is incorperated into the
+runtime executable.
 
 \begin{code}
 resource(help, text, 'help.txt').
@@ -272,9 +272,10 @@ copy_stream(C, In, Out) :-
 
 The predicate help/0 opens the resource as a Prolog stream.  If we are
 executing this from the development environment, this will actually
-return a stream to the \file{gelp.txt} itself.  When executed from the
-saved-state, the stream will actually be a stream opened on the program
-resource file, taking care of the offset and length of the resource.
+return a stream to the file \file{help.txt} itself. When executed from
+the saved-state, the stream will actually be a stream opened on the
+program resource file, taking care of the offset and length of the
+resource.
 
 \subsection{Predicates Definitions}
 
