@@ -32,7 +32,8 @@
 
 
 static int	ws_sizeof_bits(int w, int h);
-
+static status	ws_attach_xpm_image(Image image, XpmImage* xpmimg,
+				    XpmInfo* xpminfo);
 
 void
 ws_init_image(Image image)
@@ -428,7 +429,11 @@ readXpmImage(Image image, XpmImage *img, XpmInfo *info)
       }
 
       if ( Sfread(buffer, sizeof(char), size, fd) != size )
-	goto out;
+      { if ( malloced )
+	  pceFree(buffer);
+	Sclose(fd);
+	return XpmOpenFailed;
+      }
 
       buffer[size] = '\0';
       rval = XpmCreateXpmImageFromBuffer(buffer, img, info);
@@ -437,8 +442,6 @@ readXpmImage(Image image, XpmImage *img, XpmInfo *info)
     }
 
 out:
-    memset(info, 0, sizeof(*info));
-    info->valuemask = XpmReturnColorTable;
     Sclose(fd);
     return rval;
   }
@@ -467,7 +470,7 @@ ws_std_xpm_image(Name name, Image *global, char **data)
 }
 
 
-status
+static status
 ws_attach_xpm_image(Image image, XpmImage* xpmimg, XpmInfo* xpminfo)
 { XImage *img, *shape;
   HDC hdc;
