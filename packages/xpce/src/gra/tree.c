@@ -14,7 +14,7 @@
 #include <h/graphics.h>
 
 static status	updateHandlesTree(Tree);
-static status	rootTree(Tree t, Node root);
+static status	rootTree(Tree t, Node root, Bool relink);
 
 
 static Any div_h_2;			/* h/2 */
@@ -57,7 +57,7 @@ initialiseTree(Tree t, Node node)
   assign(t, displayRoot, NIL);
 
   if ( notNil(node) )
-    rootTree(t, node);
+    rootTree(t, node, OFF);
 
   requestComputeTree(t);
 
@@ -66,7 +66,7 @@ initialiseTree(Tree t, Node node)
 
 
 static status
-rootTree(Tree t, Node root)
+rootTree(Tree t, Node root, Bool relink)
 { if ( isNil(root) )
   { if ( notNil(t->root) )
     { setFlag(t, F_FREEING);		/* HACK! */
@@ -78,7 +78,21 @@ rootTree(Tree t, Node root)
     }
   } else
   { if ( notNil(t->root) )
-      rootTree(t, NIL);
+    { if ( relink == ON )
+      { Node oldroot = t->root;
+	
+	addCodeReference(oldroot);
+	displayTree(t, root);
+	assign(t, root, root);
+	assign(t, displayRoot, root);
+	assign(root, collapsed, OFF);
+	send(root, NAME_son, oldroot, 0);
+	delCodeReference(oldroot);
+
+	return requestComputeTree(t);
+      } else
+	rootTree(t, NIL, OFF);
+    }
 
     displayTree(t, root);
     assign(t, root, root);
@@ -625,6 +639,8 @@ getContainsTree(Tree t)
 
 /* Type declarations */
 
+static char *T_root[] =
+        { "root=node*", "relink=[bool]" };
 
 /* Instance Variables */
 
@@ -683,7 +699,7 @@ static senddecl send_tree[] =
      NAME_iterate, "Run code on all nodes (demand acceptance)"),
   SM(NAME_forSome, 1, "code", forSomeTree,
      NAME_iterate, "Run code on all nodes"),
-  SM(NAME_root, 1, "node*", rootTree,
+  SM(NAME_root, 2, T_root, rootTree,
      NAME_nodes, "Set root node"),
   SM(NAME_unzoom, 0, NULL, unzoomTree,
      NAME_scroll, "Make the visible root the real root"),
