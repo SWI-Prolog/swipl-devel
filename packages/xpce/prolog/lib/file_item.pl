@@ -84,10 +84,10 @@ selected_completion(FI, Component:char_array, _Apply:[bool]) :->
 	).
 
 
-local_path(FI, In:string, Out:string) :<-
+local_path(FI, In:char_array, Out:name) :<-
 	(   get(FI, directory, Dir),
 	    Dir \== @nil
-	->  new(Out, string('%s/%s', Dir?path, In))
+	->  get(string('%s/%s', Dir?path, In), value, Out)
 	;   Out = In
 	).
 
