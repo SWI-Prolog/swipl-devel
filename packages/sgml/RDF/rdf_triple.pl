@@ -174,16 +174,22 @@ container_base('Alt', '__Alt').
 		 *******************************/
 
 :- thread_local
-	node_id/2.			% nodeID --> ID
+	node_id/2,			% nodeID --> ID
+	unique_id/1.			% known rdf:ID
 
 rdf_reset_node_ids :-
-	retractall(node_id(_,_)).
+	retractall(node_id(_,_)),
+	retractall(unique_id(_)).
 
 description_id(Id, Id) :-
 	var(Id), !,
 	make_id('__Description', Id).
 description_id(about(Id), Id).
-description_id(id(Id), Id).
+description_id(id(Id), Id) :-
+	(   unique_id(Id)
+	->  print_message(error, rdf(redefined_id(Id)))
+	;   assert(unique_id(Id))
+	).
 description_id(each(Id), each(Id)).
 description_id(prefix(Id), prefix(Id)).
 description_id(node(NodeID), Id) :-

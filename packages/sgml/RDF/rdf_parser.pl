@@ -296,7 +296,7 @@ all_blank([H|T]) :-
 		 *******************************/
 
 idAttr(Id, Base) ::=
-	\rdf_or_unqualified('ID') = \globalid(Id, Base).
+	\rdf_or_unqualified('ID') = \uniqueid(Id, Base).
 
 bagIdAttr(Id, Base) ::=
 	\rdf_or_unqualified(bagID) = \globalid(Id, Base).
@@ -329,15 +329,31 @@ uri(URI, Base) ::=
 
 globalid(Id, Base) ::=
 	A,
-	{   Base \== []
-	->  (   is_absolute_url(A)
-	    ->	Id = A
-	    ;	concat_atom([Base, A], #, Id)
-	    )
-	;   sub_atom(A, 0, _, _, #)
-	->  sub_atom(A, 1, _, 0, Id)
-	;   Id = A
+	{   make_globalid(A, Base, Id)
 	}.
+
+uniqueid(Id, Base) ::=
+	A,
+	{   unique_xml_name(A),
+	    make_globalid(A, Base, Id)
+	}.
+
+unique_xml_name(Name) :-
+	(   xml_name(Name)
+	->  true
+	;   print_message(warning, rdf(not_a_name(Name)))
+	).
+
+make_globalid(In, Base, Id) :-
+	(   Base \== []
+	->  (   is_absolute_url(In)
+	    ->	Id = In
+	    ;	concat_atom([Base, In], #, Id)
+	    )
+	;   sub_atom(In, 0, _, _, #)
+	->  sub_atom(In, 1, _, 0, Id)
+	;   Id = In
+	).
 
 
 %	canonical_uri(+In, +Base, -Absolute)

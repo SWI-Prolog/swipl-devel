@@ -1,3 +1,8 @@
+Nov 29, 2003
+
+  * ADDED: warning for incorrect and multiple definitions of rdf:ID.
+    Maarten Menken.
+
 Nov 7, 2003
 
   * ADDED: process_rdf/3: allow processing from a stream

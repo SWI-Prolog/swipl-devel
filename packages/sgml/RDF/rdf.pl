@@ -229,6 +229,11 @@ prolog:message(rdf(protege(id, Id))) -->
 	[ 'RDF: Fixed Protege 1.3 ID="~w" bug'-[Id] ].
 prolog:message(rdf(shared_blank_nodes(N))) -->
 	[ 'RDF: Shared ~D blank nodes'-[N] ].
+prolog:message(rdf(not_a_name(Name))) -->
+	[ 'RDF: argument to rdf:ID is not an XML name: ~p'-[Name] ].
+prolog:message(rdf(redefined_id(Id))) -->
+	[ 'RDF: rdf:IS ~p: multiple definitions'-[Id] ].
+
 
 		 /*******************************
 		 *	    XML-TO-TEXT		*
