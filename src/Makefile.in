@@ -98,6 +98,9 @@ LIBRARYDIR=${PLBASE}/library
 MKLIBS=@MKLIBS@
 DEVPL=./pl.sh
 
+# Mac -install_name.  Overruled when installing using the port command
+LIBPL_INSTALL_NAME=$(PLBASE)/lib/$(ARCH)/$(SHARED)
+
 OBJ=	pl-atom.o pl-wam.o pl-stream.o pl-error.o pl-arith.o pl-bag.o \
 	pl-comp.o pl-rc.o pl-dwim.o pl-ext.o pl-file.o pl-flag.o \
 	pl-fmt.o pl-funct.o pl-gc.o pl-glob.o pl-itf.o pl-list.o \
@@ -183,7 +186,7 @@ $(RUNTIME):	$(OBJ) $(RCOBJ) $(XOBJ)
 ifeq ($(SOEXT),dylib)
 $(RUNTIMEDIR)/$(SHARED):	$(RUNTIMEDIR) $(OBJ) $(RCOBJ) $(XOBJ)
 		$(CC) -dynamiclib -current_version $(PLVERSION) \
-			-install_name $(PLBASE)/lib/$(ARCH)/$(SHARED) \
+			-install_name $(LIBPL_INSTALL_NAME) \
 			$(COFLAGS) -o $@ \
 			$(OBJ) $(RCOBJ) $(XOBJ) $(LIBS)
 else
