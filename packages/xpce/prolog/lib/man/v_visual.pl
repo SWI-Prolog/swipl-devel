@@ -23,8 +23,9 @@
 	   , term_to_atom/2
 	   ]).
 
-:- pce_autoload(tile_hierarchy, library('man/v_tile')).
-:- pce_autoload(toc_window,	library(pce_toc)).
+:- pce_autoload(tile_hierarchy,	  library('man/v_tile')).
+:- pce_autoload(toc_window,	  library(pce_toc)).
+:- pce_autoload(select_graphical, v_select).
 
 		/********************************
 		*        ICON GENERATION	*
@@ -36,6 +37,7 @@ resource(builtin_class_flash, image, image('16x16/builtin_classflash.xpm')).
 resource(user_class_flash,    image, image('16x16/user_classflash.xpm')).
 resource(help,		      image, image('16x16/help.xpm')).
 resource(grab,		      image, image('16x16/handpoint.xpm')).
+resource(vishier,	      image, image('32x32/vishier.xpm')).
 
 :- pce_extend_class(visual).
 
@@ -238,6 +240,9 @@ object_details(V) :->
 
 initialise(F, Manual:man_manual) :->
 	F*>>initialise(Manual, 'Visual Hierarchy'),
+	F->>icon(resource(vishier)),
+%	F->>icon(image('32x32/vishier.xpm')),
+%	send(F, icon, resource(vishier)),
 	F->>append(new(TD, tool_dialog)),
 	send_list(TD, append,
 		  [ tool_button(help,

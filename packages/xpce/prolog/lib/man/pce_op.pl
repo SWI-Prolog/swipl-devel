@@ -18,6 +18,7 @@
 
 :- use_module(library(pce)).
 :- require([ throw/1
+	   , strip_module/3
 	   ]).
 
 :- multifile
@@ -35,29 +36,30 @@
 %	TBD: make this a goal-expansion too.
 
 Obj->>Sel :-
-	action(Obj, [Sel]).
+	strip_module(Sel, M, Msg),
+	action(Obj, [Msg], M).
 	
-action(A, _) :-
+action(A, _, _) :-
 	var(A), !,
 	throw(error(instantiation_error, (->>)/2)).
-action(A = Obj, Sels) :- !,
-	gets(Sels, Obj, A).
-action(Obj->>Sel1, Sel) :- !,
-	action(Obj, [Sel1|Sel]).
-action(Obj, Sels) :- !,
-	sends(Sels, Obj).
+action(A = Obj, Sels, M) :- !,
+	gets(Sels, Obj, A, M).
+action(Obj->>Sel1, Sel, M) :- !,
+	action(Obj, [Sel1|Sel], M).
+action(Obj, Sels, M) :- !,
+	sends(Sels, Obj, M).
 
-gets([Sel], Obj, A) :- !,
-	get(Obj, Sel, A).
-gets([S1|Sels], Obj, A) :-
-	get(Obj, S1, O1),
-	gets(Sels, O1, A).
+gets([Sel], Obj, A, M) :- !,
+	get(Obj, M:Sel, A).
+gets([S1|Sels], Obj, A, M) :-
+	get(Obj, M:S1, O1),
+	gets(Sels, O1, A, M).
 
-sends([Sel], Obj) :- !,
-	send(Obj, Sel).
-sends([S1|Sels], Obj) :-
-	get(Obj, S1, O1),
-	sends(Sels, O1).
+sends([Sel], Obj, M) :- !,
+	send(Obj, M:Sel).
+sends([S1|Sels], Obj, M) :-
+	get(Obj, M:S1, O1),
+	sends(Sels, O1, M).
 
 
 		 /*******************************
