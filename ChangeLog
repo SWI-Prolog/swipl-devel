@@ -10,6 +10,9 @@
 VERSION 5.5.6 (Februari 11, 2005)
 =================================
 
+  * ADDED: library(unicode/unicode_data), providing access to the official
+    UNICODE data files (UnicodeData.txt, UCD).
+
   * FIXED: Bug#16: plwin.exe: having DISPLAY defined removes the menu.
     Richard Cheek.
 
@@ -1924,7 +1927,7 @@ VERSION 5.0.5 (April 16, 2002)
     `standard', allowing for `interleaved I/O'.  After a couple of
     complaints that text-book code was broken.
 
-  * FIXED: Various problems in the manual (�rjan Johansen).
+  * FIXED: Various problems in the manual (rjan Johansen).
 
   * FIXED: expand_file_name/2 handling of ~fred (�rjan Johansen).
 
