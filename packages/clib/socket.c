@@ -200,6 +200,106 @@ tcp_unify_socket(term_t Socket, int id)
 		 *	      ERRORS		*
 		 *******************************/
 
+#ifdef WIN32
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The code in BILLY_GETS_BETTER is, according to various documents the
+right code, but it doesn't work, so we do it by hand.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef BILLY_GETS_BETTER
+
+static char *
+WinSockError(unsigned long eno)
+{ char buf[1024];
+  static HMODULE netmsg = 0;
+  static int netmsg_loaded = FALSE;
+  unsigned long flags = (FORMAT_MESSAGE_FROM_SYSTEM|
+			 FORMAT_MESSAGE_IGNORE_INSERTS); 
+
+  if ( !netmsg_loaded )
+  { netmsg_loaded = TRUE;
+    netmsg = LoadLibraryEx("netmsg.dll", 0, LOAD_LIBRARY_AS_DATAFILE);
+    if ( !netmsg )
+      Sdprintf("failed to load netmsg.dll\n");
+    else
+      Sdprintf("Loaded netmsg.dll as %p\n", netmsg); 
+  }
+
+  if ( netmsg )
+    flags |= FORMAT_MESSAGE_FROM_HMODULE;
+
+  if ( !FormatMessage(flags,
+		      netmsg,
+		      eno,
+		      GetUserDefaultLangID(),
+		      /*MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),*/
+		      buf, sizeof(buf),
+		      0))
+  { sprintf(buf, "Unknown socket error (%u)", eno);
+  }
+
+  buf[sizeof(buf)-1]='\0';
+
+  return strdup(buf);
+}
+
+#else /*BILLY_GETS_BETTER*/
+
+static const char *
+WinSockError(int error)
+{ struct
+  { int index;
+    const char *string;
+  } *ep, edefs[] =
+  { { WSAEACCES, "Permission denied" },
+    { WSAEADDRINUSE, "Address already in use" },
+    { WSAEADDRNOTAVAIL, "Cannot assign requested address" },
+    { WSAEAFNOSUPPORT, "Address family not supported by protocol family" },
+    { WSAEALREADY, "Operation already in progress" },
+    { WSAECONNABORTED, "Software caused connection abort" },
+    { WSAECONNREFUSED, "Connection refused" },
+    { WSAECONNRESET, "Connection reset by peer" },
+    { WSAEDESTADDRREQ, "Destination address required" },
+    { WSAEFAULT, "Bad address" },
+    { WSAEHOSTDOWN, "Host is down" },
+    { WSAEHOSTUNREACH, "No route to host" },
+    { WSAEINPROGRESS, "Operation now in progress" },
+    { WSAEINTR, "Interrupted function call" },
+    { WSAEINVAL, "Invalid argument" },
+    { WSAEISCONN, "Socket is already connected" },
+    { WSAEMFILE, "Too many open files" },
+    { WSAEMSGSIZE, "Message too long" },
+    { WSAENETDOWN, "Network is down" },
+    { WSAENETRESET, "Network dropped connection on reset" },
+    { WSAENETUNREACH, "Network is unreachable" },
+    { WSAENOBUFS, "No buffer space available" },
+    { WSAENOPROTOOPT, "Bad protocol option" },
+    { WSAENOTCONN, "Socket is not connected" },
+    { WSAENOTSOCK, "Socket operation on non-socket" },
+    { WSAEOPNOTSUPP, "Operation not supported" },
+    { WSAEPFNOSUPPORT, "Protocol family not supported" },
+    { WSAEPROCLIM, "Too many processes" },
+    { WSAEPROTONOSUPPORT, "Protocol not supported" },
+    { WSAEPROTOTYPE, "Protocol wrong type for socket" },
+    { WSAESHUTDOWN, "Cannot send after socket shutdown" },
+    { WSAESOCKTNOSUPPORT, "Socket type not supported" },
+    { WSAETIMEDOUT, "Connection timed out" },
+    { WSAEWOULDBLOCK, "Resource temporarily unavailable" },
+    { WSAEDISCON, "Graceful shutdown in progress" },
+    { 0, NULL }
+  };
+
+  for(ep=edefs; ep->string; ep++)
+  { if ( ep->index == error )
+      return ep->string;
+  }
+
+  return "Unknown error";
+}
+
+#endif /*BILLY_GETS_BETTER*/
+#endif /*WIN32*/
+
 #ifdef HAVE_H_ERRNO
 typedef struct
 { int code;
@@ -235,6 +335,11 @@ tcp_error(int code, error_codes *map)
 { const char *msg;
   term_t except = PL_new_term_ref();
 
+#ifdef WIN32
+  msg = WinSockError(WSAGetLastError());
+  WSASetLastError(0);
+#else
+
 #ifdef HAVE_H_ERRNO
   static char msgbuf[100];
 
@@ -250,12 +355,17 @@ tcp_error(int code, error_codes *map)
   } else
 #endif
     msg = strerror(code);
+#endif /*WIN32*/
 
   PL_unify_term(except,
 		CompoundArg("error", 2),
 		  CompoundArg("socket_error", 1),
 		    AtomArg(msg),
 		  PL_VARIABLE);
+
+#if defined(WIN32) && 0
+  free(msg);
+#endif
 
   return PL_raise_exception(except);
 }
