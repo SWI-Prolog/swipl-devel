@@ -19,7 +19,7 @@
 	    parse_url/3,		% +URL|URI, +BaseURL, -Parts
 	    				% -URL, +BaseURL, +Parts
 	    global_url/3,		% +Local, +Base, -Global
-	    http_location/2,		% +Parts, -Location
+	    http_location/2,		% ?Parts, ?Location
 	    www_form_encode/2		% Value <-> Encoded
 	  ]).
 
@@ -70,7 +70,7 @@ parse_url(-URL, +BaseURL, +Parts)
 global_url(+URL, +BaseURL, -AbsoluteUrl)
     Transform a possible local URL into a global one.
 
-http_location(+Parts, -Location)
+http_location(?Parts, ?Location)
     If `Parts' is the part-list of an http URL, construct a string for
     the location.  So, to access a page with an HTTP url, do:
 
@@ -112,8 +112,11 @@ http_location(Parts, Location) :-	% Parts --> Location
 	phrase(curi(Parts), String), !,
 	atom_codes(Location, String).
 http_location(Parts, Location) :-	% Location --> Parts
-	atom(Location),
+	atom(Location), !,
 	atom_codes(Location, Codes),
+	phrase(http_location(Parts), Codes).
+http_location(Parts, Codes) :-		% LocationCodes --> Parts
+	is_list(Codes),
 	phrase(http_location(Parts), Codes).
 
 
@@ -152,9 +155,10 @@ catomic(A, In, Out) :-
 	append(Codes, Out, In).
 
 csearch(A)--> 
-	{ memberchk(search(Parameters), A) } -> 
-	csearch(Parameters, "?")
-    ;   []. 
+	(   { memberchk(search(Parameters), A) }
+	->  csearch(Parameters, "?")
+	;   []
+	).
 
 csearch([], _) --> 
 	[].
@@ -380,14 +384,6 @@ hostnumber(Host) -->
 	integer(D),
 	{ concat_atom([A,B,C,D], '.', Host)
 	}.
-%hostnumber(ip(A,B,C,D)) -->		% Might be cleaner
-%	integer(A),
-%	".",
-%	integer(B),
-%	".",
-%	integer(C),
-%	".",
-%	integer(D).
 
 path(Path) -->
 	segment(S0), !,
@@ -405,18 +401,6 @@ segment(Segment) -->
 	xalphas(Chars), !,
 	{ atom_codes(Segment, Chars)
 	}.
-
-% search(Search) -->
-% 	xalphas(Part1Chars),
-% 	{ atom_codes(Part1, Part1Chars)
-% 	},
-% 	(   "+"
-% 	->  search(Rest),
-% 	    { concat_atom([Part1, +, Rest], Search)
-% 	    }
-% 	;   { Search = Part1
-% 	    }
-% 	).
 
 search([Parameter|Parameters])--> 
 	parameter(Parameter), !,  
@@ -503,11 +487,6 @@ ialpha(Atom) -->
 digit(C, [C|T], T) :- code_type(C, digit).
 alpha(C, [C|T], T) :- code_type(C, alpha).
 alphanum(C, [C|T], T) :- code_type(C, alnum).
-safe(C, [C|T], T) :- safe(C).
-extra(C, [C|T], T) :- extra(C).
-reserved(C, [C|T], T) :- reserved(C).
-hex(C, [C|T], T) :-  code_type(C, xdigit(_)).
-national(C, [C|T], T) :- national(C).
 escape(C) -->
 	"%",
 	[C1, C2],
@@ -584,20 +563,6 @@ reserved(0'#).
 reserved(0'?).
 reserved(0':).
 reserved(0' ).
-
-xdigit(0'a).
-xdigit(0'b).
-xdigit(0'c).
-xdigit(0'd).
-xdigit(0'e).
-xdigit(0'f).
-
-xdigit(0'A).
-xdigit(0'B).
-xdigit(0'C).
-xdigit(0'D).
-xdigit(0'E).
-xdigit(0'F).
 
 national(0'{).
 national(0'}).

@@ -88,8 +88,10 @@ an HTTP URL.  That is, the path, search and fragment specifiers.
 In the HTTP protocol, the first line of a message is
 
 \begin{quote}
-\arg{Action} \arg{Location} \const{HTTP/}\arg{HttpVersion}
+\arg{Action} \arg{Location} [\const{HTTP/}\arg{HttpVersion}]
 \end{quote}
+
+\arg{Location} is either an atom or a code-list.
 
     \predicate{www_form_encode}{2}{?Value, ?WwwFormEncoded}
 Translate between a string-literal and the x-www-form-encoded
