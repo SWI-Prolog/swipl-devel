@@ -129,7 +129,7 @@ defFeature(const char *name, int flags, ...)
 	DEBUG(2, Sdprintf("Feature %s at 0x%08lx\n", name, mask));
       }
       f->value.a = (val ? ATOM_true : ATOM_false);
-      if ( f->index > 0 )
+      if ( f->index >= 0 )
       { mask = 1L << (f->index-1);
 
 	if ( val )
@@ -449,6 +449,12 @@ unify_feature_value(Module m, atom_t key, feature *f, term_t val)
 
   switch(f->flags & FT_MASK)
   { case FT_BOOL:
+      if ( f->index >= 0 )
+      { unsigned long mask = 1L << (f->index-1);
+
+	return PL_unify_bool_ex(val, trueFeature(mask));
+      }
+      /*FALLTHROUGH*/
     case FT_ATOM:
       return PL_unify_atom(val, f->value.a);
     case FT_INTEGER:

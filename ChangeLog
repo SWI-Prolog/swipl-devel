@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: reporting boolean features using the FEATURE mask.
+
   * FIXED: quicker and more graceful stack-overflow exception from sort/2
     if available local-stack space doesn't suffice (Anjo Anjewierden).
 
