@@ -121,6 +121,7 @@ status		setPoint(Point pt, Int x, Int y);
 status		offsetPoint(Point pt, Int x, Int y);
 int		get_distance_point(Point p, int x, int y);
 Int		getDistancePoint(Point p, Point q);
+Point		getMidPoint(Point p, Point q);
 status		plusPoint(Point p, Point q);
 status		minusPoint(Point p, Point q);
 status		makeClassPoint(Class class);
@@ -149,6 +150,7 @@ status		makeClassSheet(Class class);
 /* ../src/adt/size.c */
 status		equalSize(Size s, Size s2);
 status		copySize(Size s, Size s2);
+Size		getCopySize(Size s);
 status		setSize(Size s, Int w, Int h);
 status		makeClassSize(Class class);
 

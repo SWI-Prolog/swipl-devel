@@ -1,7 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
-* FIXED: Many issues to subwindow layout handling for the user.
+* FIXED: Many issues to subwindow layout handling for the user.  Added new
+  class tile_adjuster for this purpose.
 
 * FIXED: Proper handling of class-variable inheritence for class-variables
   associated with normal variables.

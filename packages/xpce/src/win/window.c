@@ -574,7 +574,7 @@ inspectWindow(PceWindow sw, EventObj ev)
 }
 
 
-static status
+status
 eventWindow(PceWindow sw, EventObj ev)
 { int rval = FAIL;
   EventObj old_event;
@@ -1623,7 +1623,7 @@ frame_window(PceWindow sw, FrameObj frame)
 
 status
 frameWindow(PceWindow sw, FrameObj frame)
-{ if ( notNil(sw->decoration) )
+{ while ( notNil(sw->decoration) )
     sw = sw->decoration;
 
   if ( isDefault(frame) )

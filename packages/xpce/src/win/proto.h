@@ -58,6 +58,9 @@ status		makeClassFrame(Class class);
 /* ../src/win/picture.c */
 status		makeClassPicture(Class class);
 
+/* ../src/win/tileadjust.c */
+status		makeClassTileAdjuster(Class class);
+
 /* ../src/win/setup.c */
 
 /* ../src/win/tile.c */
@@ -69,6 +72,7 @@ void		join_stretches(stretch *stretches, int len, stretch *r);
 status		setTile(TileObj t, Int x, Int y, Int w, Int h);
 status		enforceTile(TileObj t, Bool val);
 Bool		getCanResizeTile(TileObj t);
+status		updateAdjusterPositionTile(TileObj t);
 TileObj		getSubTileToResizeTile(TileObj t, Point pos);
 status		makeClassTile(Class class);
 
@@ -89,6 +93,7 @@ void		compute_window(PceWindow sw, int *x, int *y, int *w, int *h);
 status		frame_offset_window(Any obj, FrameObj *fr, int *X, int *Y);
 void		offset_windows(PceWindow w1, Any w2, int *X, int *Y);
 int		is_service_window(PceWindow sw);
+status		eventWindow(PceWindow sw, EventObj ev);
 status		typedWindow(PceWindow sw, EventId id, Bool delegate);
 status		inputFocusWindow(PceWindow sw, Bool val);
 status		keyboardFocusWindow(PceWindow sw, Graphical gr);

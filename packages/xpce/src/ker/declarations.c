@@ -466,6 +466,9 @@ static struct class_definition classdefs[] =
   { NAME_tile, NAME_object, makeClassTile,
     &ClassTile, "Manage non-overlapping areas" },
 
+  { NAME_tileAdjuster, NAME_window, makeClassTileAdjuster,
+    &ClassTileAdjuster, "Adjust size of a tile" },
+
   { NAME_timer, NAME_object, makeClassTimer,
     &ClassTimer, "Generate messages at intervals" },
 

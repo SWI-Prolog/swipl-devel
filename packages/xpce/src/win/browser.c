@@ -28,7 +28,7 @@ initialiseBrowser(Browser b, Name name, Size size, DisplayObj display)
 		   getSizeGraphical((Graphical) lb), display);
   t = get(b, NAME_tile, EAV);
   assign(t, horShrink,  ZERO);
-  assign(t, horStretch, ZERO);
+  assign(t, horStretch, ONE);		/* provide resizer */
   assign(b, list_browser, lb);
   send(lb, NAME_set, ZERO, ZERO, EAV);
   send(b, NAME_display, lb, EAV);

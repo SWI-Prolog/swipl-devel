@@ -416,6 +416,8 @@ createFrame(FrameObj fr)
     qadSendv(cell->value, NAME_resize, 0, NULL);
   }
   
+  send(fr, NAME_updateTileAdjusters, EAV);
+
   succeed;
 }
 
@@ -1224,199 +1226,42 @@ inputFocusFrame(FrameObj fr, Bool val)
 }
 
 
-static void
-drawFeedbackLines(FrameObj fr)
-{ Graphical gr = getAttributeObject(fr, NAME_ResizingFeedback);
-  
-  if ( gr && instanceOfObject(gr, ClassGraphical) )
-    drawInDisplay(fr->display, gr, DEFAULT, ON, ON);
+status
+redrawFrame(FrameObj fr, Area a)
+{ succeed;
 }
+
+
+		 /*******************************
+		 *	  SUBTILE LAYOUT	*
+		 *******************************/
 
 
 static status
-cancelResizeTileFrame(FrameObj fr)
-{ deleteAttributeObject(fr, NAME_ResizingFeedback);
-  deleteAttributeObject(fr, NAME_ResizingTile);
-  grabPointerFrame(fr, OFF, DEFAULT);
-  grabServerDisplay(fr->display, OFF);
-
-  succeed;
-}
-
-
-static status
-resizeTileEventFrame(FrameObj fr, EventObj ev)
-{ TileObj t;
-
-  if ( (t=getAttributeObject(fr, NAME_ResizingTile)) &&
-       instanceOfObject(t, ClassTile) )
-  { if ( isDragEvent(ev) )
-    { Device dev = getAttributeObject(fr, NAME_ResizingFeedback);
-      Graphical l1 = getHeadChain(dev->graphicals);
-      Graphical l2 = getTailChain(dev->graphicals);
-
-      drawFeedbackLines(fr);		/* erase them */
-      
-      if ( t->super->orientation == NAME_vertical )
-      { int y = valInt(getYEvent(ev, fr->display));
-
-	if ( y < valInt(fr->area->y) ||
-	     y > valInt(fr->area->y) + valInt(fr->area->h) )
-	  return cancelResizeTileFrame(fr);
-
-	yGraphical(l1, toInt(y-1));
-	yGraphical(l2, toInt(y+1));
-      } else
-      { int x = valInt(getXEvent(ev, fr->display));
-	
-	if ( x < valInt(fr->area->x) ||
-	     x > valInt(fr->area->x) + valInt(fr->area->w) )
-	  return cancelResizeTileFrame(fr);
-
-	xGraphical(l1, toInt(x-1));
-	xGraphical(l2, toInt(x+1));
-      }
-      drawFeedbackLines(fr);
-      succeed;
-    } else if ( isUpEvent(ev) )
-    { drawFeedbackLines(fr);
-      cancelResizeTileFrame(fr);
-
-      if ( t->super->orientation == NAME_vertical )
-      { int h = valInt(getYEvent(ev, fr)) - valInt(t->area->y) - 1;
-
-	DEBUG(NAME_tile,
-	      Cprintf("resizeTileEventFrame(): %s->height = %d\n",
-		      pp(t), h));
-	      
-	send(t, NAME_height, toInt(h), EAV);
-      } else
-      { int w = valInt(getXEvent(ev, fr)) - valInt(t->area->x) - 1;
-
-	DEBUG(NAME_tile,
-	      Cprintf("resizeTileEventFrame(): %s->width = %d\n",
-		      pp(t), w));
-	      
-	send(t, NAME_width, toInt(w), EAV);
-      }
-
-      succeed;
-    } else
-      fail;
-  } else
-  { TileObj rzt;			/* resize-tile */
-
-    t = getTileFrame(fr);
-    if ( (rzt = getSubTileToResizeTile(t, getPositionEvent(ev, fr))) )
-    { Name rcname = (rzt->super->orientation == NAME_horizontal
-				? NAME_horizontalResizeCursor
-				: NAME_verticalResizeCursor);
-      CursorObj c = getClassVariableValueObject(fr, rcname);
-
-      if ( !c )
-	fail;
-
-      cursorFrame(fr, c);
-      if ( isDownEvent(ev) )
-      { int x1, y1, x2, y2;
-	int dx, dy;
-	Device dev;
-
-	attributeObject(fr, NAME_ResizingTile, rzt);
-
-	if ( rzt->super->orientation == NAME_vertical )
-	{ int xo = valInt(fr->area->x);
-
-	  x1 = xo + valInt(rzt->area->x);
-	  x2 = x1 + valInt(rzt->area->w);
-	  y1 = y2 = valInt(getYEvent(ev, fr->display));
-	  dx = 0; dy = 1;
-	} else
-	{ int yo = valInt(fr->area->y);
-
-	  y1 = yo + valInt(rzt->area->y);
-	  y2 = y1 + valInt(rzt->area->h);
-	  x1 = x2 = valInt(getXEvent(ev, fr->display));
-	  dx = 1; dy = 0;
-	}
-	attributeObject(fr, NAME_ResizingFeedback,
-			dev = newObject(ClassDevice, EAV));
-	displayDevice(dev, newObject(ClassLine,
-				     toInt(x1-dx), toInt(y1-dy),
-				     toInt(x2-dx), toInt(y2-dy), EAV),
-		      DEFAULT);
-	displayDevice(dev, newObject(ClassLine,
-				     toInt(x1+dx), toInt(y1+dy),
-				     toInt(x2+dx), toInt(y2+dy), EAV),
-		      DEFAULT);
-	drawFeedbackLines(fr);
-	grabPointerFrame(fr, ON, c);
-	grabServerDisplay(fr->display, ON);
-      }      
-
-      succeed;
-    } else
-    { cursorFrame(fr, DEFAULT);
-
-      fail;
-    }
-  }
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Draw little marker buttons indicating places  where the subwindow layout
-may be altered by the user.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static int
-adjust_pos(Int H, int bh)
-{ int h  = valInt(H);
-  int i1 = h*3/4;
-  int i2 = h - 20;
-  int i  = max(i1, i2);
-  
-  return i;
-}
-
-
-static status
-drawResizeTileButtonsFrame(FrameObj fr, TileObj t, Image img)
+updateTileAdjustersFrame(FrameObj fr, TileObj t)
 { if ( isDefault(t) )
-  { t = getTileFrame(fr);
-
-    if ( t )
-      drawResizeTileButtonsFrame(fr, t, img);
-
-    succeed;
+  { if ( !(t = getTileFrame(fr)) )
+      succeed;				/* no tiles, nothing to do */
   }
 
   if ( notNil(t) )
   { if ( notNil(t->super) && getCanResizeTile(t) == ON )
-    { if ( img && notNil(img) )
-      { int cx, cy;
-	int bw = valInt(img->size->w);
-	int bh = valInt(img->size->h);
-      
-	if ( t->super->orientation == NAME_horizontal )
-	{ cx = valInt(t->area->x) + valInt(t->area->w) +
-               valInt(t->super->border)/2;
-	  cy = valInt(t->area->y) + adjust_pos(t->area->h, bh);
-	} else
-	{ cy = valInt(t->area->y) + valInt(t->area->h) +
-               valInt(t->super->border)/2;
-	  cx = valInt(t->area->x) + adjust_pos(t->area->w, bw);
-	}
-	  
-	r_image(img, 0, 0, cx - bw/2, cy - bh/2, bw, bh, ON);
+    { if ( isNil(t->adjuster) )
+      { TileAdjuster adj = newObject(ClassTileAdjuster, t, EAV);
+	assert(adj);
+
+	appendFrame(fr, (PceWindow)adj);
       }
-    }
+
+      send(t, NAME_updateAdjusterPosition, EAV);
+    } else if ( notNil(t->adjuster) )
+      freeObject(t->adjuster);
 
     if ( notNil(t->members) )
     { Cell cell;
       
       for_cell(cell, t->members)
-	drawResizeTileButtonsFrame(fr, cell->value, img);
+	updateTileAdjustersFrame(fr, cell->value);
     }
   }
 
@@ -1424,50 +1269,10 @@ drawResizeTileButtonsFrame(FrameObj fr, TileObj t, Image img)
 }
 
 
-status
-redrawFrame(FrameObj fr, Area a)
-{ Image img = getClassVariableValueObject(fr, NAME_adjustWindowImage);
 
-#if 0
-  Cell cell;
-
-  for_cell(cell, fr->members)
-  { PceWindow sw = cell->value;
-
-    if ( overlapArea(a, sw->area) )
-    { Int ox = a->x;
-      Int oy = a->y;
-
-      a->x = sub(a->x, sw->area->x);
-      a->y = sub(a->y, sw->area->y);
-      redrawWindow(sw, a);
-      a->x = ox;
-      a->y = oy;
-    }
-  }
-#endif
-
-
-  if ( img && notNil(img) )
-  { Bool swm;
-
-    d_frame(fr, 0, 0, valInt(fr->area->w), valInt(fr->area->h));
-    if ( notDefault(a) )
-      d_clip(valInt(a->x), valInt(a->y), valInt(a->w), valInt(a->h));
-
-    swm = r_subwindow_mode(ON);
-    drawResizeTileButtonsFrame(fr, DEFAULT, img);
-    r_subwindow_mode(swm);
-
-    if ( notDefault(a) )
-      d_clip_done();
-    d_done();
-  }
-
-  succeed;
-}
-
-
+		 /*******************************
+		 *	       MODAL		*
+		 *******************************/
 
 FrameObj
 blockedByModalFrame(FrameObj fr)
@@ -1527,7 +1332,7 @@ eventFrame(FrameObj fr, EventObj ev)
   if ( isDownEvent(ev) && (bfr=blockedByModalFrame(fr)) )
     goto blocked;
 
-  return resizeTileEventFrame(fr, ev);
+  fail;
 }
 
 
@@ -1916,6 +1721,9 @@ static senddecl send_frame[] =
   SM(NAME_redraw, 1, "[area]", redrawFrame,
      NAME_redraw, "Redraw subwindow adjust buttons"),
 
+  SM(NAME_updateTileAdjusters, 1, "[tile]", updateTileAdjustersFrame,
+     NAME_tile, "Update display and location of tile-adjusters"),
+
   SM(NAME_attachTransient, 1, "frame", attachTransientFrame,
      NAME_transient, "A frame is attached as a transient for me"),
   SM(NAME_detachTransient, 1, "frame", detachTransientFrame,
@@ -1997,9 +1805,7 @@ static classvardecl rc_frame[] =
   RC(NAME_decorateTransient, "bool", "@on",
      "Decorate transient windows (if possible)"),
   RC(NAME_colourMap, "[colour_map]*", "@default",
-     "Colourmap for the window's frame"),
-  RC(NAME_adjustWindowImage, "image*", "@adjust_window_image",
-     "Image to adjust subwindow size/position")
+     "Colourmap for the window's frame")
 };
 
 /* Class Declaration */

@@ -179,20 +179,21 @@ NewClass(format)
 End;
 
 NewClass(tileobj)
-  Int	     idealWidth;		/* Desired width of the tile */
-  Int	     idealHeight;		/* Idem for height */
-  Int	     horStretch;		/* Horizontal stretchability */
-  Int	     horShrink;			/* Horizontal shrinkability */
-  Int	     verStretch;		/* Vertical stretchability */
-  Int	     verShrink;			/* Vertical shrinkability */
-  Bool	     canResize;			/* Can be resized by user? */
-  Int	     border;			/* Border between subtiles */
-  Name       orientation;		/* none, horizontal, vertical */
-  Chain	     members;			/* subtiles */
-  TileObj    super;			/* Super tile */
-  Any	     object;			/* Object managed */
-  Area	     area;			/* Current area of the tile */
-  Bool	     enforced;			/* Enfore layout */
+  Int	     	idealWidth;		/* Desired width of the tile */
+  Int	     	idealHeight;		/* Idem for height */
+  Int	     	horStretch;		/* Horizontal stretchability */
+  Int	     	horShrink;		/* Horizontal shrinkability */
+  Int	     	verStretch;		/* Vertical stretchability */
+  Int	     	verShrink;		/* Vertical shrinkability */
+  Bool	     	canResize;		/* Can be resized by user? */
+  TileAdjuster	adjuster;		/* Object that resizes me */
+  Int	     	border;			/* Border between subtiles */
+  Name       	orientation;		/* none, horizontal, vertical */
+  Chain	     	members;		/* subtiles */
+  TileObj    	super;			/* Super tile */
+  Any	     	object;			/* Object managed */
+  Area	     	area;			/* Current area of the tile */
+  Bool	     	enforced;		/* Enfore layout */
 End;
 
 NewClass(tree)
@@ -830,6 +831,13 @@ End;
 
 NewClass(picture)
   ABSTRACT_WINDOW
+End;
+
+NewClass(tile_adjuster)
+  ABSTRACT_WINDOW
+  TileObj	client;			/* Tile I adjust */
+  Name		orientation;		/* Direction of resize */
+  Int		down_offset;		/* Offset when processing */
 End;
 
 NewClass(dialog)

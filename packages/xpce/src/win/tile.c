@@ -806,6 +806,8 @@ layoutTile(TileObj t, Int ax, Int ay, Int aw, Int ah)
     h -= border*2;
   }
 
+  updateAdjusterPositionTile(t);
+
   if ( t->orientation == NAME_none )
     return send(t->object, NAME_doSet,
 		toInt(x), toInt(y), toInt(w), toInt(h), EAV);
@@ -1008,6 +1010,47 @@ out:
 }
 
 
+static int
+adjust_pos(Int H, int bh)
+{ int h  = valInt(H);
+  int i1 = h*3/4;
+  int i2 = h - 20;
+  int i  = max(i1, i2);
+  
+  return i;
+}
+
+status
+updateAdjusterPositionTile(TileObj t)
+{ TileAdjuster adj;
+
+  if ( notNil((adj = t->adjuster)) )
+  { int cx, cy, bw, bh;
+    int border;
+
+    if ( notNil(t->super) )
+      border = valInt(t->super->border);
+    else
+      border = 0;
+
+    bw = valInt(adj->area->w);
+    bh = valInt(adj->area->h);
+
+    if ( adj->orientation == NAME_horizontal )
+    { cx = valInt(t->area->x) + valInt(t->area->w) + border/2;
+      cy = valInt(t->area->y) + adjust_pos(t->area->h, bh);
+    } else
+    { cy = valInt(t->area->y) + valInt(t->area->h) + border/2;
+      cx = valInt(t->area->x) + adjust_pos(t->area->w, bw);
+    }
+
+    send(adj, NAME_geometry, toInt(cx-bw/2), toInt(cy-bh/2), EAV);
+  }
+
+  succeed;
+}
+
+
 TileObj
 getSubTileToResizeTile(TileObj t, Point pos)
 { if ( pointInArea(t->area, pos) && notNil(t->members) )
@@ -1096,6 +1139,8 @@ static vardecl var_tile[] =
      NAME_resize, "Encouragement to get lower"),
   IV(NAME_canResize, "[bool]", IV_SEND,
      NAME_resize, "Can be resized by user?"),
+  IV(NAME_adjuster, "tile_adjuster*", IV_GET,
+     NAME_resize, "Window to adjust my size"),
   IV(NAME_border, "int", IV_BOTH,
      NAME_appearance, "Distance between areas"),
   IV(NAME_orientation, "{none,horizontal,vertical}", IV_GET,
@@ -1152,7 +1197,9 @@ static senddecl send_tile[] =
   SM(NAME_right, 2, T_associate, rightTile,
      NAME_layout, "Place a tile to my right"),
   SM(NAME_compute, 0, NULL, computeTile,
-     NAME_update, "Compute ideal sizes from sub-tiles")
+     NAME_update, "Compute ideal sizes from sub-tiles"),
+  SM(NAME_updateAdjusterPosition, 0, NULL, updateAdjusterPositionTile,
+     NAME_resize, "Update ->geometry of <-adjuster")
 };
 
 /* Get Methods */

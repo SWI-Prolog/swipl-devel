@@ -72,6 +72,12 @@ copySize(Size s, Size s2)
 }
 
 
+Size
+getCopySize(Size s)
+{ answer(answerObject(s->class, s->w, s->h, EAV));
+}
+
+
 status
 setSize(Size s, Int w, Int h)
 { if ( notDefault(w) ) assign(s, w, w);

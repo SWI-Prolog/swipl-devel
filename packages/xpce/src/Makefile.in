@@ -563,7 +563,7 @@ xpce-client:	unx/client.c
 ################################################################
 
 WINOBJS=	browser.o decorate.o dialog.o display.o \
-		displaymgr.o frame.o picture.o \
+		displaymgr.o frame.o picture.o tileadjust.o \
 		setup.o tile.o view.o window.o application.o
 WINSRC=		$(addprefix $(srcdir)/win/, $(WINOBJS:.o=.c))
 

@@ -465,6 +465,9 @@ static const error_def errors[] =
     "%O: Failed to get postscript_header" },
   { NAME_mustBeOpenBeforePostscript, 0,
     "%O: Must be opened before <-postscript" },
+					/* Windows, Frames and Tiles */
+  { NAME_noSubTile, 0,
+    "%O: tile %O has no <-super" },
 					/* Arithmetic */
   { NAME_noVar,			0,
     "%N: Cannot find variable %N" },

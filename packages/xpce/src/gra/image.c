@@ -863,7 +863,8 @@ stdImage(Name name, Image *global, char *bits, int w, int h)
 
 #ifdef XPM_PCEIMAGE
 #include "bitmaps/pce16.xpm"
-#include "bitmaps/adjustwin.xpm"
+#include "bitmaps/hadjusttile.xpm"
+#include "bitmaps/vadjusttile.xpm"
 #else
 #include "bitmaps/pce.bm"
 #endif
@@ -931,7 +932,8 @@ standardImages(void)
 	   intarrows_bits, intarrows_width, intarrows_height);
 #ifdef XPM_PCEIMAGE
   ws_std_xpm_image(NAME_pceImage, NULL, pce16_xpm);
-  ws_std_xpm_image(NAME_adjustWindowImage, NULL, adjustwin_xpm);
+  ws_std_xpm_image(NAME_hadjustTileImage, NULL, hadjusttile_xpm);
+  ws_std_xpm_image(NAME_vadjustTileImage, NULL, vadjusttile_xpm);
 #else
   stdImage(NAME_pceImage, NULL,
 	   pce_bm_bits, pce_bm_width, pce_bm_height);
