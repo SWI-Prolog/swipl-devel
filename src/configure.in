@@ -727,4 +727,4 @@ fi
 done
 fi # mmap
 
-AC_OUTPUT(Makefile README.bin pl.1 rc/Makefile ../pl.spec)
+AC_OUTPUT(Makefile rc/Makefile README.bin pl.1)

@@ -1,9 +1,13 @@
 /*  $Id$
 
     Part of SWI-Prolog
-    Designed and implemented by Jan Wielemaker
 
-    Copyright (C) 1999 SWI, University of Amsterdam. All rights reserved.
+    Author:  Jan Wielemaker
+    E-mail:  jan@swi.psy.uva.nl
+    WWW:     http://www.swi.psy.uva.nl/projects/SWI-Prolog/
+    Copying: GPL-2.  See the file COPYING or http://www.gnu.org
+
+    Copyright (C) 1990-2000 SWI, University of Amsterdam. All rights reserved.
 */
 
 /*#define O_DEBUG 1*/

@@ -1,10 +1,13 @@
 /*  $Id$
 
-    Part of XPCE
-    Designed and implemented by Anjo Anjewierden and Jan Wielemaker
-    E-mail: jan@swi.psy.uva.nl
+    Part of SWI-Prolog
 
-    Copyright (C) 1998 University of Amsterdam. All rights reserved.
+    Author:  Jan Wielemaker
+    E-mail:  jan@swi.psy.uva.nl
+    WWW:     http://www.swi.psy.uva.nl/projects/SWI-Prolog/
+    Copying: GPL-2.  See the file COPYING or http://www.gnu.org
+
+    Copyright (C) 1990-2000 SWI, University of Amsterdam. All rights reserved.
 */
 
 #ifndef RCUTIL_H_INCLUDED
