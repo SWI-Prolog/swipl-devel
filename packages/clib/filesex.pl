@@ -29,7 +29,7 @@
     the GNU General Public License.
 */
 
-:- module(clib_files,
+:- module(files_ex,
 	  [ set_time_file/3
 	  ]).
 

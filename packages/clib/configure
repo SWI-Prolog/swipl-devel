@@ -3236,7 +3236,7 @@ if test "$with_time" = yes; then
   fi
 fi
 
-PLTARGETS=`echo $TARGETS | sed "s/\.$SO/.pl/g"`
+PLTARGETS=`echo $TARGETS | sed -e "s/\.$SO/.pl/g" -e "s/files.pl/filesex.pl/"`
 
 ac_config_files="$ac_config_files Makefile"
 cat >confcache <<\_ACEOF
