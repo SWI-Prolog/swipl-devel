@@ -13,6 +13,7 @@
 \fmtchar{+}=item		1 0
 \prologflagitem{-}{-}{-}=item	1 0
 \glossitem{-}=item
+\menuitem{+}{+}=item		1 0
 \predref{+}{-}
 \functor{+}{-}
 \compound{+}{+}

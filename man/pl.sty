@@ -170,6 +170,13 @@
 \newcommand{\classitem}[1]{%
 	\definition{Class #1}%
 	\index{#1 \string\idxtype{class}}\ignorespaces}
+\newcommand{\menuitem}[2]{%
+	\ifthenelse{\equal{\protect}{\protect#2}}{%
+	    \definition{\textsf #1}}{%
+	    \definition{\textsf #1 ({\it #2})}}%
+	\index{#1 \string\idxtype{menu}}%
+	\ignorespaces}
+
 
 \renewcommand{\arg}[1]{\ifmmode\mbox{\em #1}\else{\em #1}\fi}
 \newcommand{\bnfmeta}[1]{\ifmmode{\langle\mbox{\it #1}\rangle}\else$\langle\mbox{\it #1}\rangle$\fi}

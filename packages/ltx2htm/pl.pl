@@ -218,6 +218,13 @@ cmd(pleaseoption({Name}, {Type}, {Default}),
 	     ])).
 cmd(featureoption({Name}, {Type}),
     #defitem([#strong(Name), ' ', #embrace(#var(Type))])).
+cmd(menuitem({Name}, {[]}), #defitem(#label(Clean, #strong(+Name)))) :-
+	clean_name(Name, Clean),
+	add_to_index(Clean, +Clean).
+cmd(menuitem({Name}, {Arg}),
+    #defitem([#label(Clean, #strong(+Name)), ' ', #embrace(#var(+Arg))])) :-
+	clean_name(Name, Clean),
+	add_to_index(Clean, +Clean).
 cmd(escapeitem({Name}), #defitem(#code([nospace('\\'), +Name]))).
 cmd(ttdef({Def}), #defitem(#code(+Def))).
 cmd(predicatesummary({RawName}, {Arity}, {Summary}),
