@@ -22,7 +22,7 @@
 #endif
 #endif
 
-#ifdef __GNUC__
+#if __GNUC__
 #define constf const			/* const function */
 #else
 #define constf

@@ -52,7 +52,7 @@ register Word t;
 int
 PL_is_string(t)
 register Word t;
-{ return isReal(*t);
+{ return isString(*t);
 }
 
 int

@@ -28,7 +28,7 @@ RUNTIMEDIR=../runtime/MACHINE
 RUNTIME=$(RUNTIMEDIR)/pl.o
 PB=../boot
 BINLIB=libPL.a
-CPP=/lib/cpp
+CPP=cc -E
 EXPORTS=../include/SWI-Exports
 CINCLUDE=../include/SWI-Prolog.h
 
@@ -73,7 +73,7 @@ xmakefile:	Makefile md.h ../config.h
 		@sed 's/[ 	][ 	]*/ /g' md.h ../config.h > make.h
 		@sed -f make.sed Makefile > junk.c
 		@$(CPP) junk.c | \
-		sed -e 's/^[ 	]*$$//' \
+		sed -e 's/[ 	]*$$//' \
 		    -e 's/^ /	/' \
 		    -e 's/\([^\\]\)"/\1/g' | \
 		sed -n -e '/^..*$$/p' > xmakefile

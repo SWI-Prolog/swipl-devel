@@ -24,7 +24,6 @@ $pl -f none -B << _EOS_
 save_program('$bin',
 	[ goal		= '''\$welcome'''
 	, toplevel	= prolog
-	, init_file	= '.plrc'
 	]).	
 forall(library_directory(X),
        (exists_directory(X) -> make_library_index(X) ; true)).

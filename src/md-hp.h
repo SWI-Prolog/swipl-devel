@@ -37,15 +37,15 @@ with access to their HP machines.
 #define __GNUC__		1	/* set to 0 to use HP's cc */
 #endif
 
-#ifdef __GNUC__				/* Use GNU-C */
+#if __GNUC__				/* Use GNU-C */
 #define M_CC			gcc
 #define M_OPTIMIZE	        -O2
 #define M_LDFLAGS		-static
 #define M_CFLAGS		
 #else					/* Use HP-UX cc */
 #define M_CC			cc
-#define M_OPTIMIZE	        -O
-#define M_LDFLAGS		-a archive
+#define M_OPTIMIZE	        +O3
+#define M_LDFLAGS		-Wl,-a archive
 #define M_CFLAGS		
 #endif
 

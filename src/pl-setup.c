@@ -733,7 +733,7 @@ long local, global, trail, argument, lock;
   base = align_base(base);
 #define K * 1024
 
-  INIT_STACK(global,   "global",   8 K);
+  INIT_STACK(global,   "global",   16 K);
   INIT_STACK(local,    "local",    8 K);
   INIT_STACK(trail,    "trail",    8 K);
   INIT_STACK(lock,     "lock",     0 K);

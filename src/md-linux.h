@@ -23,7 +23,7 @@ Updated version 1.6.8 after an important fix sent to me by Peter Barth
 #define M_OPTIMIZE	        -O2
 #define M_LDFLAGS		
 #define M_CFLAGS		
-#define M_LIBS			-lm -ltermcaps
+#define M_LIBS			-lm -ltermcap
 
 #define LINUX			1	/* Remaining #if's for linux */
 #define v7			1	/* Mostly v7 unix */
