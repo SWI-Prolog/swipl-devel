@@ -169,7 +169,7 @@ free_icharbuf(icharbuf *buf)
 
 
 void
-add_icharbuf(icharbuf *buf, int chr)
+__add_icharbuf(icharbuf *buf, int chr)
 { if ( buf->size == buf->allocated )
   { buf->allocated = (buf->allocated ? buf->allocated*2 : 128);
 
@@ -256,7 +256,7 @@ free_ocharbuf(ocharbuf *buf)
 
 
 void
-add_ocharbuf(ocharbuf *buf, int chr)
+__add_ocharbuf(ocharbuf *buf, int chr)
 { if ( buf->size == buf->allocated )
   { buf->allocated = (buf->allocated ? buf->allocated*2 : 128);
 

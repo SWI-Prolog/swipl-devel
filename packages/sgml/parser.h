@@ -38,7 +38,8 @@ typedef int (*sgml_end_element_f)(dtd_parser_p parser,
 typedef int (*sgml_cdata_f)(dtd_parser_p parser,
 			    int len, const ochar *text);
 typedef int (*sgml_entity_f)(dtd_parser_p parser,
-			     dtd_entity *entity);
+			     dtd_entity *entity,
+			     int chr);
 typedef int (*sgml_error_f)(dtd_parser_p parser,
 			    dtd_error *error);
 

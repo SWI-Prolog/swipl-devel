@@ -18,10 +18,11 @@
 
 #define streq(s1, s2) (strcmp(s1, s2) == 0)
 
+char *program;
 
 static void
 usage()
-{ fprintf(stderr, "Usage: html [file.dtd] file\n");
+{ fprintf(stderr, "Usage: %s [-xml] [-s] [file.dtd] file\n", program);
   exit(1);
 }
 
@@ -93,41 +94,72 @@ set_functions(dtd_parser *p)
   p->on_cdata = print_cdata;
 }
 
+#define shift (argc--, argv++)
 
 int
 main(int argc, char **argv)
 { dtd_parser *p = NULL;
-  char *ext;
+  char *s, *ext;
+  int xml = FALSE;
+  int output = TRUE;
 
-  if ( argc <= 1 )
+  if ( (s=strrchr(argv[0], '/')) )
+    program = s+1;
+  else
+    program = argv[0];
+
+  if ( streq(program, "xml") )
+    xml = TRUE;
+
+  shift;
+
+  while(argc>0 && argv[0][0] == '-')
+  { if ( streq(argv[0], "-xml") )
+    { xml = TRUE;
+      shift;
+    } else if ( streq(argv[0], "-s") )
+    { output = FALSE;
+      shift;
+    } else
+      usage();
+  }
+
+  if ( argc == 0 )
     usage();
 
-  ext = strchr(argv[1], '.');
+  ext = strchr(argv[0], '.');
   if ( streq(ext, ".dtd") )
   { char doctype[256];
     
-    strncpy(doctype, argv[1], ext-argv[1]);
-    doctype[ext-argv[1]] = '\0';
+    strncpy(doctype, argv[0], ext-argv[0]);
+    doctype[ext-argv[0]] = '\0';
       
     p = new_dtd_parser(new_dtd(doctype));
-    load_dtd_from_file(p, argv[1]);
+    load_dtd_from_file(p, argv[0]);
     argc--; argv++;
   } else if ( streq(ext, ".html") )
   { p = new_dtd_parser(new_dtd("html"));
 
     load_dtd_from_file(p, "html.dtd");
+  } else if ( streq(ext, ".xml") )
+  { dtd *dtd = new_dtd(NULL);
+
+    set_dialect_dtd(dtd, DL_XML);
+    p = new_dtd_parser(dtd);
   } else
   { p = new_dtd_parser(new_dtd(NULL));
   }
 
-  if ( argc == 2 )
-  { set_functions(p);
-    sgml_process_file(p, argv[1]);
+  if ( argc == 1 )
+  { if ( output )
+      set_functions(p);
+    sgml_process_file(p, argv[0]);
     free_dtd(p->dtd);
     free_dtd_parser(p);
     return 0;
+  } else
+  { usage();
+    return 1;
   }
-    
-  usage();
-  return 1;
 }
+

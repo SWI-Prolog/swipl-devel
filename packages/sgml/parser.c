@@ -47,10 +47,8 @@ void			free_dtd_parser(dtd_parser *p);
 		 *	   CHARACTER CLASS	*
 		 *******************************/
 
-static int
-HasClass(dtd *dtd, int chr, int mask)
-{ return dtd->charclass->class[chr] & mask;
-}
+#define HasClass(dtd, chr, mask) \
+	(dtd->charclass->class[(chr)] & (mask))
 
 		 /*******************************
 		 *	      SYMBOLS		*
@@ -239,6 +237,23 @@ expand_pentities(dtd *dtd, const ichar *in, ichar *out, int len)
 }
 
 
+static const ichar *
+isee_character_entity(dtd *dtd, const ichar *in, int *chr)
+{ const ichar *s;
+
+  if ( (s=isee_func(dtd, in, CF_ERO)) && *s == '#' )
+  { long v = strtol((char *)&s[1], (char **)&s, 10);
+
+    if ( (s=isee_func(dtd, s, CF_ERC)) )
+    { *chr = (int)v;
+      return s;
+    }
+  }
+
+  return NULL;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Expand entities in a string.  Used to expand CDATA attribute values.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -250,21 +265,16 @@ expand_entities(dtd *dtd, const ichar *in, ochar *out, int len)
   while(*in)
   { if ( (s = isee_func(dtd, in, CF_ERO)) ) /* & */
     { const ichar *estart = in;		/* for recovery */
+      int chr;
 
-      if ( *s == '#' )			/* &#char; */
-      { long v = strtol((char *)&s[1], (char **)&s, 10);
-	
-	if ( (s=isee_func(dtd, s, CF_ERC)) )
-	{ if ( v <= 0 || v >= OUTPUT_CHARSET_SIZE )
-	    gripe(ERC_REPRESENTATION, "character");
-	  if ( --len <= 0 )
-	    return gripe(ERC_REPRESENTATION, "CDATA string too long");
-	  *out++ = v;
-	  in = s;
-	  continue;
-	}
-	in = estart;
-	goto recover;
+      if ( (s=isee_character_entity(dtd, in, &chr)) )
+      { if ( chr <= 0 || chr >= OUTPUT_CHARSET_SIZE )
+	  gripe(ERC_REPRESENTATION, "character");
+	if ( --len <= 0 )
+	  return gripe(ERC_REPRESENTATION, "CDATA string too long");
+	*out++ = chr;
+	in = s;
+	continue;
       }
 
       if ( HasClass(dtd, *s, CH_NMSTART) )
@@ -2019,6 +2029,40 @@ process_marked_section(dtd_parser *p)
 
 
 static int
+process_cdata(dtd_parser *p)
+{ if ( p->cdata->size == 0 )
+    return TRUE;
+
+  terminate_ocharbuf(p->cdata);
+
+  if ( p->mark_state == MS_INCLUDE )
+  { const ichar *data = p->cdata->data;
+    int len = p->cdata->size;
+
+    if ( !p->blank_cdata )
+    { open_element(p, CDATA_ELEMENT);
+      if ( p->on_cdata )
+	(*p->on_cdata)(p, len, data);
+    } else if ( p->environments )
+    { sgml_environment *env = p->environments;
+      dtd_state *new;
+  
+      if ( (new=make_dtd_transition(env->state, CDATA_ELEMENT)) )
+      { env->state = new;
+	if ( p->on_cdata )
+	  (*p->on_cdata)(p, len, data);
+      }
+    }
+  }
+  
+  empty_ocharbuf(p->cdata);
+  p->blank_cdata = TRUE;
+
+  return TRUE;
+}
+
+
+static int
 process_entity(dtd_parser *p, const ichar *name)
 { if ( name[0] == '#' )			/* #charcode: character entity */
   { char *end;
@@ -2026,58 +2070,57 @@ process_entity(dtd_parser *p, const ichar *name)
 
     if ( *end == '\0' )
     { if ( v <= 0 || v >= OUTPUT_CHARSET_SIZE )
-	return gripe(ERC_REPRESENTATION, "character");
+      { if ( p->on_entity )
+	{ process_cdata(p);
+	  (*p->on_entity)(p, NULL, v);
+	} else
+	  return gripe(ERC_REPRESENTATION, "character");
+      } else
+	add_ocharbuf(p->cdata, v);
 
-      add_ocharbuf(p->cdata, v);
       return TRUE;
     } else
       return gripe(ERC_SYNTAX_ERROR, "Bad entity value", name);
   } else
   { dtd_symbol *id;
     dtd_entity *e;
+    dtd *dtd = p->dtd;
 
-    if ( (id=dtd_find_symbol(p->dtd, name)) && (e=id->entity) )
-    { const ichar *text = entity_value(p->dtd, e);
+    if ( (id=dtd_find_symbol(dtd, name)) && (e=id->entity) )
+    { const ichar *text = entity_value(dtd, e);
       const ichar *s;
       const ichar *oldfile = p->file;
       int   oldline  = p->line;
-      
+      int   chr;
+
       if ( !text )
 	return gripe(ERC_NO_VALUE, e->name->name);
 
-      p->file = (char *)name;			/* TBD: derefed file */
-      p->line = 1;
-      empty_icharbuf(p->buffer);		/* dubious */
-      for(s=text; *s; s++)
-	putchar_dtd_parser(p, *s);
-      p->file = oldfile;
-      p->line = oldline;
+      if ( (s=isee_character_entity(dtd, text, &chr)) && *s == '\0' )
+      { if ( chr > 0 && chr < OUTPUT_CHARSET_SIZE )
+	{ add_ocharbuf(p->cdata, chr);
+	  return TRUE;
+	} else
+	{ if ( p->on_entity )
+	  { process_cdata(p);
+	    (*p->on_entity)(p, e, chr);
+	  } else
+	    return gripe(ERC_REPRESENTATION, "character");
+	}
+      } else
+      { p->file = (char *)name;			/* TBD: derefed file */
+	p->line = 1;
+	empty_icharbuf(p->buffer);		/* dubious */
+	for(s=text; *s; s++)
+	  putchar_dtd_parser(p, *s);
+	p->file = oldfile;
+	p->line = oldline;
+      }
 
       return TRUE;
     } else
       return gripe(ERC_EXISTENCE, "entity", name);
   }
-}
-
-
-static int
-process_cdata(dtd_parser *p, int len, const ochar *data)
-{ if ( !p->blank_cdata )
-  { open_element(p, CDATA_ELEMENT);
-    if ( p->on_cdata )
-      (*p->on_cdata)(p, len, data);
-  } else if ( p->environments )
-  { sgml_environment *env = p->environments;
-    dtd_state *new;
-
-    if ( (new=make_dtd_transition(env->state, CDATA_ELEMENT)) )
-    { env->state = new;
-      if ( p->on_cdata )
-	(*p->on_cdata)(p, len, data);
-    }
-  }
-  
-  return TRUE;
 }
 
 
@@ -2214,7 +2257,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	terminate_ocharbuf(p->cdata);
 	if ( p->mark_state == MS_INCLUDE )
 	{ WITH_PUBLIC_PARSER(p,
-			     process_cdata(p, p->cdata->size, p->cdata->data);
+			     process_cdata(p);
 			     process_end_element(p, p->buffer->data));
 	}
 	empty_icharbuf(p->buffer);
@@ -2296,13 +2339,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
     }
     case S_DECL:			/* <...> */
     { if ( f[CF_MDC] == chr )
-      { if ( p->cdata->size > 0 )
-	{ terminate_ocharbuf(p->cdata);
-	  if ( p->mark_state == MS_INCLUDE )
-	    process_cdata(p, p->cdata->size, p->cdata->data);
-	  empty_ocharbuf(p->cdata);
-	  p->blank_cdata = TRUE;
-	}
+      { process_cdata(p);
 
 	p->state = S_PCDATA;
 	terminate_icharbuf(p->buffer);

@@ -23,29 +23,30 @@
 #define MAX_ERRORS	50
 #define MAX_WARNINGS	50
 
-static functor_t FUNCTOR_sgml_parser1;
-static functor_t FUNCTOR_equal2;
+static functor_t FUNCTOR_and2;
+static functor_t FUNCTOR_bar2;
+static functor_t FUNCTOR_comma2;
+static functor_t FUNCTOR_default1;
+static functor_t FUNCTOR_dialect1;
+static functor_t FUNCTOR_document1;
 static functor_t FUNCTOR_dtd1;
+static functor_t FUNCTOR_dtd2;
 static functor_t FUNCTOR_element1;
 static functor_t FUNCTOR_element3;
-static functor_t FUNCTOR_document1;
-static functor_t FUNCTOR_goal1;
-static functor_t FUNCTOR_dtd2;
-static functor_t FUNCTOR_omit2;
-static functor_t FUNCTOR_and2;
-static functor_t FUNCTOR_comma2;
-static functor_t FUNCTOR_bar2;
-static functor_t FUNCTOR_opt1;
-static functor_t FUNCTOR_rep1;
-static functor_t FUNCTOR_plus1;
-static functor_t FUNCTOR_default1;
-static functor_t FUNCTOR_fixed1;
-static functor_t FUNCTOR_list1;
-static functor_t FUNCTOR_nameof1;
+static functor_t FUNCTOR_entity1;
+static functor_t FUNCTOR_equal2;
 static functor_t FUNCTOR_file1;
+static functor_t FUNCTOR_fixed1;
+static functor_t FUNCTOR_goal1;
 static functor_t FUNCTOR_line1;
-static functor_t FUNCTOR_dialect1;
+static functor_t FUNCTOR_list1;
 static functor_t FUNCTOR_max_errors1;
+static functor_t FUNCTOR_nameof1;
+static functor_t FUNCTOR_omit2;
+static functor_t FUNCTOR_opt1;
+static functor_t FUNCTOR_plus1;
+static functor_t FUNCTOR_rep1;
+static functor_t FUNCTOR_sgml_parser1;
 
 static atom_t ATOM_sgml;
 static atom_t ATOM_dtd;
@@ -64,6 +65,7 @@ initConstants()
   FUNCTOR_dtd1	       = mkfunctor("dtd", 1);
   FUNCTOR_element1     = mkfunctor("element", 1);
   FUNCTOR_element3     = mkfunctor("element", 3);
+  FUNCTOR_entity1      = mkfunctor("entity", 1);
   FUNCTOR_document1    = mkfunctor("document", 1);
   FUNCTOR_goal1	       = mkfunctor("goal", 1);
   FUNCTOR_dtd2	       = mkfunctor("dtd", 2);
@@ -397,6 +399,36 @@ print_close(dtd_parser *p, dtd_element *e)
 
 
 static int
+print_entity(dtd_parser *p, dtd_entity *e, int chr)
+{ parser_data *pd = p->closure;
+
+  if ( pd->tail )
+  { term_t h = PL_new_term_ref();
+    int ok;
+
+    if ( !PL_unify_list(pd->tail, h, pd->tail) )
+      return FALSE;
+
+    if ( e )
+      ok = PL_unify_term(h,
+			 PL_FUNCTOR, FUNCTOR_entity1,
+			 PL_CHARS, e->name->name);
+    else
+      ok = PL_unify_term(h,
+			 PL_FUNCTOR, FUNCTOR_entity1,
+			 PL_INTEGER, chr);
+			 
+    if ( ok )
+    { PL_reset_term_refs(h);
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+
+static int
 print_cdata(dtd_parser *p, int len, const ochar *data)
 { parser_data *pd = p->closure;
 
@@ -542,6 +574,7 @@ pl_sgml_open(term_t parser, term_t options, term_t stream)
     return FALSE;
   p->on_begin_element = print_open;
   p->on_end_element   = print_close;
+  p->on_entity	      = print_entity;
   p->on_cdata         = print_cdata;
   p->on_error	      = sgml_error;
   p->dmode	      = DM_SGML;

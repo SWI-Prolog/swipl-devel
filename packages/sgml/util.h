@@ -36,9 +36,22 @@ int		istrncaseeq(const ichar *s1, const ichar *s2, int len);
 int             istrhash(const ichar *t, int tsize);
 int             istrcasehash(const ichar *t, int tsize);
 
+#define add_icharbuf(buf, chr) \
+	do { if ( buf->size < buf->allocated ) \
+	       buf->data[buf->size++] = chr; \
+	     else \
+	       __add_icharbuf(buf, chr); \
+	   } while(0)
+#define add_ocharbuf(buf, chr) \
+	do { if ( buf->size < buf->allocated ) \
+	       buf->data[buf->size++] = chr; \
+	     else \
+	       __add_ocharbuf(buf, chr); \
+	   } while(0)
+
 icharbuf *	new_icharbuf(void);
 void		free_icharbuf(icharbuf *buf);
-void		add_icharbuf(icharbuf *buf, int chr);
+void		__add_icharbuf(icharbuf *buf, int chr);
 void		del_icharbuf(icharbuf *buf);
 void		terminate_icharbuf(icharbuf *buf);
 void		empty_icharbuf(icharbuf *buf);
@@ -48,7 +61,7 @@ ochar *         ostrdup(const ochar *s);
 
 ocharbuf *	new_ocharbuf(void);
 void		free_ocharbuf(ocharbuf *buf);
-void		add_ocharbuf(ocharbuf *buf, int chr);
+void		__add_ocharbuf(ocharbuf *buf, int chr);
 void		del_ocharbuf(ocharbuf *buf);
 void		terminate_ocharbuf(ocharbuf *buf);
 void		empty_ocharbuf(ocharbuf *buf);

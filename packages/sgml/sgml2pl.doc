@@ -62,6 +62,76 @@ The document output is equal to the output produced by \jargon{xml2pl},
 an SP interface to SWI-Prolog written by Anjo Anjewierden.
 
 
+\section{Bluffers Guide}
+
+This package allows you to parse SGML, XML and HTML data into a Prolog
+data structure. The high-level interface defined in \pllib{sgml}
+provides access at the file-level, while the low-level interface defined
+in the foreign module works with Prolog streams.  Please use the source
+of \file{sgml.pl} as a starting point for dealing with data from other
+sources then files, such as SWI-Prolog resources, network-sockets,
+character strings, etc.  In the first example below loads an HTML file.
+
+\begin{code}
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+
+<html>
+<head>
+<title>Demo</title>
+</head>
+<body>
+
+<h1 align=center>This is a demo</h1>
+
+<p>Paragraphs in HTML need not be closed.
+
+<p>This is called `omitted-tag' handling.
+</body>
+</html>
+\end{code}
+
+\begin{code}
+?- load_html_file('test.html', Term),
+   pretty_print(Term).
+
+[ element(html,
+          [],
+          [ element(head,
+                    [],
+                    [ element(title,
+                              [],
+                              [ 'Demo'
+                              ])
+                    ]),
+            element(body,
+                    [],
+                    [ '\n\n',
+                      element(h1,
+                              [ align = center
+			      ],
+                              [ 'This is a demo'
+                              ]),
+                      '\n\n',
+                      element(p,
+                              [],
+                              [ 'Paragraphs in HTML need not be closed.\n\n'
+                              ]),
+                      element(p,
+                              [],
+                              [ 'This is called `omitted-tag\' handling.\n'
+                              ])
+                    ])
+          ])
+].
+\end{code}
+
+As you see, the document is a list, each element being an atom to
+represent \const{CDATA} or a term \term{element}{Name, Attributes,
+Content}. Entities (e.g.\ \verb$&lt$) are returned as part of
+\const{CDATA}, unless they cannot be represented. See load_sgml_file/2
+for details.
+
+
 \section{Defined predicates}
 
 \subsection{DTD-Handling}
@@ -192,10 +262,15 @@ load_sgml_file/[2,3]:
 Parse the SGML instance from \arg{File}, returning a list of elements.
 A proper SGML document contains only a single toplevel element whose
 name matches the document type.  Nevertheless, a list is returned for
-consistency with the representation of element content.  Each element
-is represented as described below:
+consistency with the representation of element content. The
+\arg{ListOfContent} consists of three types:
 
 \begin{description}
+    \termitem{\arg{Atom}}{}
+Atoms are used to represent \const{CDATA}.  Note this is possible
+in SWI-Prolog, as there is no length-limit on atoms and atom garbage
+collection is provided.
+
     \termitem{element}{Name, ListAttributes, ListOfContent}
 \arg{Name} is the name of the element. Using SGML, which is
 case-insensitive, all element names are returned as lowercase atoms.
@@ -209,9 +284,26 @@ type \const{NUMBER} are returned as a Prolog integer. All other
 attribute values are returned as lowercase atoms.%
 	\bug{List-valued attributes are returned as a single atom.}
 
-\arg{ListOfContent} is a list in which \const{CDATA} is represented
-using an atom and elements are represented using \funcref{element}{3}
-terms.
+\arg{ListOfContent} defines the content for the element.
+
+    \termitem{entity}{Code}
+If a character-entity (e.g. \verb$&#913;$) is encoutered that cannot
+be represented in the Prolog character set, this term is returned,
+representing the referred character code.
+
+    \termitem{entity}{Name}
+If an entity refers to a character-entity holding a single character,
+but this character cannot be represented in the Prolog character set,
+this term is returned. For example, the HTML input text
+\verb$&Alpha; &lt &Beta;$ is returned as below.  Please note the
+conversion to lowercase because SGML is case-insensitive.
+
+\begin{code}
+[ entity(alpha), ' < ', entity(beta) ]
+\end{code}
+
+This is a special case of \term{entity}{Code}, intended to handle
+special symbols by their name rather then character code.
 \end{description}
 
     \predicate{load_sgml_file}{3}{+File, -ListOfContent, ?DTD}
