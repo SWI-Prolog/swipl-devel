@@ -66,12 +66,15 @@ wise_install :-
 	report_error(failed(wise_install)).
 
 do_wise_install :-
+	wise_install_xpce,
+	shell_install.
+
+shell_install :-
 	(   get_wise_variable('REGISTER', true)
 	->  wise_register_ext,
 	    wise_register_icons
 	;   true
-	),
-	wise_install_xpce.
+	).
 
 wise_register_ext :-
 	(   get_wise_variable('EXT', Ext),
@@ -150,12 +153,15 @@ report_error(Message) :-
 	format(user_error, '* Message: ', []),
 	print_message(error, Message),
 	format(user_error, '*~n', []),
+	format(user_error, '* If a permission error occured on Windows NT/2000/XP~n', []),
+	format(user_error, '* please re-install as administrator~n', []),
+	format(user_error, '*~n', []),
 	format(user_error, '* Please contact prolog-bugs@swi.psy.uva.nl~n', []),
 	format(user_error, '*******************************************~n', []),
 	format(user_error, '~n', []),
 	format(user_error, 'Press any key to continue ...', []),
 	get_single_char(_),
-	halt(1).
+	halt.
 
 :- multifile
 	prolog:message/3.
