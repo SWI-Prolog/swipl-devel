@@ -1,30 +1,13 @@
 /*  $Id$
 
-    Copyright (c) 1991 Jan Wielemaker. All rights reserved.
-    jan@swi.psy.uva.nl
+    Part of XPCE
 
-    Purpose: Find a file
-    History:
+    Author:  Jan Wielemaker and Anjo Anjewierden
+    E-mail:  jan@swi.psy.uva.nl
+    WWW:     http://www.swi.psy.uva.nl/projects/xpce/
+    Copying: GPL-2.  See the file COPYING or http://www.gnu.org
 
-	# Oct 10, 2000
-	Allow for multiple extensions
-
-	# Oct 4 1995
-	Updated under Windows-'95 to use automatic dialog layout rather
-	than the fixed position-layout used in the original version. This
-	ensures this library cooperates better with different look-and-feel
-	styles.  Exploited new `graphical ->right_side' method to fix the
-	size of the browser in the dialog.
-
-	Automatically ajusts to case-insensitive completion if necessary.
-
-	# May 28 1998
-	Changed required images to use resources.
-
-	# August 13, 1998 
-	Complete rewrite to use multiple dialog windows.  This acheives
-	a resizeable version of the finder without hacky layout code.
-	The external interface remains the same.
+    Copyright (C) 1990-2001 SWI, University of Amsterdam. All rights reserved.
 */
 
 

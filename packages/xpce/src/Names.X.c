@@ -1,9 +1,13 @@
-/*  Names.X.c,v 1.1 1993/04/05 12:16:45 jan Exp
+/*  $Id$
 
-    Copyright (c) 1993 Jan Wielemaker. All rights reserved.
-    jan@swi.psy.uva.nl
+    Part of XPCE
 
-    Purpose: Extract name declrations from input files
+    Author:  Jan Wielemaker and Anjo Anjewierden
+    E-mail:  jan@swi.psy.uva.nl
+    WWW:     http://www.swi.psy.uva.nl/projects/xpce/
+    Copying: GPL-2.  See the file COPYING or http://www.gnu.org
+
+    Copyright (C) 1990-2001 SWI, University of Amsterdam. All rights reserved.
 */
 
 #include "md.h"

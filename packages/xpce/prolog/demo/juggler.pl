@@ -1,15 +1,13 @@
-/*  @(#) juggler.pl 1.0.0 (UvA SWI) Mon Jun 24 18:52:17 1991
+/*  $Id$
 
-    Copyright (c) 1991 Jan Wielemaker. All rights reserved.
-    jan@swi.psy.uva.nl
+    Part of XPCE
 
-    Note: The icons are created by David Torok (torok@nynexst.com),
-          who wrote this program for SunView.
+    Author:  Jan Wielemaker and Anjo Anjewierden
+    E-mail:  jan@swi.psy.uva.nl
+    WWW:     http://www.swi.psy.uva.nl/projects/xpce/
+    Copying: GPL-2.  See the file COPYING or http://www.gnu.org
 
-          An initial version of the juggler for PCE is written by
-	  Frank van Harmelen.
-
-    Purpose: The Juggler
+    Copyright (C) 1990-2001 SWI, University of Amsterdam. All rights reserved.
 */
 
 

@@ -1,10 +1,13 @@
 /*  $Id$
 
     Part of XPCE
-    Designed and implemented by Anjo Anjewierden and Jan Wielemaker
-    E-mail: jan@swi.psy.uva.nl
 
-    Copyright (C) 1992 University of Amsterdam. All rights reserved.
+    Author:  Jan Wielemaker and Anjo Anjewierden
+    E-mail:  jan@swi.psy.uva.nl
+    WWW:     http://www.swi.psy.uva.nl/projects/xpce/
+    Copying: GPL-2.  See the file COPYING or http://www.gnu.org
+
+    Copyright (C) 1990-2001 SWI, University of Amsterdam. All rights reserved.
 */
 
 #include <h/kernel.h>
@@ -15,8 +18,8 @@ forwards int	bestConnectionPoint(Device, Name, int, int,
 				    Graphical, Handle *, int *, int *);
 forwards int	relateConnection(Connection c, Graphical from, Graphical to);
 
-static int	distanceLineToPoint(int x1, int y1, int x2, int y2,
-				    int px, int py);
+static int	distanceLineToPoint_int(int x1, int y1, int x2, int y2,
+					int px, int py);
 
 #define getStartXLine(ln) (ln)->start_x
 #define getStartYLine(ln) (ln)->start_y
@@ -227,7 +230,7 @@ findbest:
     getXYHandle(h, gr, dev, &hx, &hy); \
     X = valInt(hx); Y = valInt(hy); \
     D = isqrt((x-X)*(x-X) + (y-Y)*(y-Y)); \
-    DC = distanceLineToPoint(x, y, X, Y, cx, cy); \
+    DC = distanceLineToPoint_int(x, y, X, Y, cx, cy); \
     if ((D + DC < bestd + bestdc) || found == FAIL) \
     { bestd = D; \
       bestdc = DC; \
@@ -485,7 +488,7 @@ makeClassConnection(Class class)
 { declareClass(class, &connection_decls);
 
   cloneStyleClass(class, NAME_relation);
-  distanceLineToPoint(0, 0, 10, 10, 0, 10);	/* initialise */
+  distanceLineToPoint_int(0, 0, 10, 10, 0, 10);	/* initialise */
 
   succeed;
 }
@@ -498,7 +501,7 @@ makeClassConnection(Class class)
 #define EMS (ENTRIES * STEP)
 
 static int
-distanceLineToPoint(int x1, int y1, int x2, int y2, int px, int py)
+distanceLineToPoint_int(int x1, int y1, int x2, int y2, int px, int py)
 { static int atable[ENTRIES+1];
   static int done = FALSE;
   int a, d;
