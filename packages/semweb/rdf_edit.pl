@@ -659,6 +659,19 @@ replay_actions([H|T]) :-
 	),
 	replay_actions(T).
 
+
+%	replay_action(+Action)
+%	
+%	Replay actions from the journal. Tricky is rdf_load/3. It should
+%	reload the file in the state it  was   in  at  the moment it was
+%	created. For now this has been hacked  for files that were empry
+%	at the moment they where loaded (e.g. created from `new_file' in
+%	our GUI prototype). How to solve this? We could warn if the file
+%	appears changed, but this isn't really   easy  as copying and OS
+%	differences makes it hard to decide on changes by length as well
+%	as modification time. Alternatively we could   save the state in
+%	seperate quick-load states.
+
 replay_action(retract(_, Subject, Predicate, Object, PayLoad)) :-
 	rdf_retractall(Subject, Predicate, Object, PayLoad).
 replay_action(assert(_, Subject, Predicate, Object, PayLoad)) :-
@@ -667,7 +680,13 @@ replay_action(update(_, Subject, Predicate, Object, Action)) :-
 	rdf_update(Subject, Predicate, Object, Action).
 replay_action(rdf_load(_, File, Options)) :-
 	find_file(File, Options, Path),
-	rdf_load(Path).
+	(   memberchk(triples(0), Options),
+	    memberchk(modified(Modified), Options)
+	->  rdf_retractall(_,_,_,Path:_),
+	    retractall(rdf_db:rdf_source(Path, _)),
+	    assert(rdf_db:rdf_source(Path, Modified))
+	;   rdf_load(Path)
+	).
 replay_action(ns(_, register(ID, URI))) :- !,
 	rdf_register_ns(ID, URI).
 replay_action(ns(_, unregister(ID, URI))) :-

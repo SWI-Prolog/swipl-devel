@@ -6,6 +6,10 @@
 #
 # License: LGPL
 #
+# Special targets:
+#
+#	ln-install		Install with symbolic links
+#
 # Author: Jan Wielemaker (jan@swi.psy.uva.nl)
 ################################################################
 
@@ -60,13 +64,21 @@ install:	$(TARGETS) $(LIBPL)
 		for f in $(TARGETS); do \
 		  $(INSTALL) -m 755 $$f $(PLBASE)/lib/$(PLARCH); \
 		done
-		for f in $(DATA); do \
+		for f in $(DATA) $(LIBPL) README; do \
 		  $(INSTALL_DATA) $$f $(LIBDIR); \
 		done
-		for f in $(LIBPL); do \
-		  $(INSTALL_DATA) $$f $(LIBDIR); \
+		$(PL) -f none -g make -t halt
+
+ln-install:	$(TARGETS) $(LIBPL)
+		mkdir -p $(LIBDIR)
+		mkdir -p $(PLBASE)/lib/$(PLARCH)
+		for f in $(TARGETS); do \
+		  $(INSTALL) -m 755 $$f $(PLBASE)/lib/$(PLARCH); \
 		done
-		$(INSTALL_DATA) README $(LIBDIR)
+		for f in $(DATA) $(LIBPL) README; do \
+		  rm -f $(LIBDIR)/$$f; \
+		  ln -s `pwd`/$$f $(LIBDIR); \
+		done
 		$(PL) -f none -g make -t halt
 
 rpm-install:	install
