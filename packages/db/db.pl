@@ -12,16 +12,16 @@
 	    db_close/1,			% +Handle
 	    db_closeall/0,		% 
 	    db_put/3,			% +DB, +Key, +Value
-	    db_del/2,			% +DB, +Key
 	    db_del/3,			% +DB, +Key, ?Value
 	    db_delall/3,		% +DB, +Key, +Value
+	    db_enum/3,			% +DB, -Key, -Value
 	    db_get/3,			% +DB, +Key, -Value
 	    db_getall/3,		% +DB, +Key, -ValueList
 	    db_init/1,			% +Options
 	    db_transaction/1,		% :Goal
 	    db_atom/3			% +DB, ?Atom, ?Id
 	  ]).
-:- load_foreign_library(db4pl).
+:- load_foreign_library(foreign(db4pl)).
 
 db_delall(DB, Key, Value) :-
 	var(Value), !,

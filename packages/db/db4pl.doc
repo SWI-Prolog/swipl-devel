@@ -22,10 +22,11 @@
 
 \begin{abstract}
 This package realised external storage of Prolog terms based on the {\em
-Berkeley DB} library from \url{www.sleepycat.com}. The DB library
-implements modular support for the bottom layers of a database. The
-database itself maps unconstrained keys onto values. Both key and value
-are \jargon{binary blobs}.
+Berkeley DB} library from \url[Sleepycat
+Software]{http://www.sleepycat.com}. The DB library implements modular
+support for the bottom layers of a database. The database itself maps
+unconstrained keys onto values. Both key and value are \jargon{binary
+blobs}.
 
 The SWI-Prolog interface for DB allows for fast storage of general
 Prolog terms in the database.
@@ -63,7 +64,37 @@ introduced in SWI-Prolog 3.3.7, in the database. It provides an
 interface similar to the recorded-database (recorda/3).  In the future
 we plan to link this interface transparently to a predicate.
 
+
+\subsection{About this manual}
+
+This manual is by no means complete. The Berkeley DB documentation
+should be consulted directly to resolve details on security, resource
+usage, formats, configuration options etc. This interface passed default
+values for most DB API calls. Supported options hint to the
+corresponding DB API calls, which should be consulted for details.
+
+
 \section{The DB interface}
+
+\subsection{The overall picture}
+
+Berkeley DB is an \jargon{embedded database}.  This implies the library
+provides access to a file containing one or more database tables.  The
+Berkeley DB database tables are always binary, mapping a \jargon{key}
+to a \jargon{value}.
+
+Accessing a database consists of four steps:
+
+\begin{enumerate}
+    \item Initialise the DB environment using db_init/1.  This step
+          is optional, providing simple non-transactional file access
+	  when omitted.
+    \item Open a database using db_open/4, returning a handle to the
+          database.
+    \item Accessing the data using db_put/3, db_get/3, etc.
+    \item Closing a database using db_close/1.  When omitted, all
+          open databases are closed on program halt (see at_halt/1).
+\end{enumerate}
 
 \subsection{Opening a database}
 
@@ -80,40 +111,147 @@ we plan to link this interface transparently to a predicate.
     not to allow for duplicates.
 	\termitem{database}{Name}
     If \arg{File} contains multiple databases, address the named
-    database in the file.
+    database in the file.  A DB file can only consist of multiple
+    databases if the db_open/4 call that created it specified this
+    argument.  Each database in the file has its own characteristics.
+        \termitem{key}{Type}
+    Specify the type of the key.  Allowed values are:
+	\begin{description}
+	    \termitem{term}{}
+	Key is a Prolog term (default). This type allows for
+	representing arbitrary Prolog data in both keys and value.  The
+	representation is space-efficient, but Prolog specific.
+	See PL_record_external() in the SWI-Prolog Reference Manual for
+	details on the representation.
+	The other representations are more neutral. This implies they
+	are more stable and sharing the DB with other languages is
+	feasible.
+	    \termitem{atom}{}
+	Key is an atom.  The text is represented using the character data
+	and its length.
+	    \termitem{c_string}{}
+	Key is an atom.  The text is represented as a C 0-terminated string.
+	    \termitem{c_long}{}
+	Key is an integer.  The value is represented as a native C long in
+	the machines byte-order.
+	\end{description}
+        \termitem{value}{Type}
+    Specify the type of the value.  See \const{key} for details.
     \end{description}
 \end{description}
 
 
-\subsection{Manipulating and querying a database}
+\subsection{Accessing a database}
+
+The predicates in this section are used to read and write the database.
+These predicate use a \arg{Key} and a \arg{Value}. These should satisfy
+the key and value-types specified with db_open/4. If a value is declared
+using the type \const{term} (default), arbitrary Prolog terms may be put
+in the database.
+
+If a non-ground term is used as \arg{Key}, it is matched using
+\jargon{structural equivalence}. See \predref{=@=}{2} in the SWI-Prolog
+reference manual for details.  For short, if a term \term{a}{A,B} is
+used as key, it will only be found using a key of the same format: a
+term with functor \const{a} and two unbound arguments that are not
+shared.
 
 \begin{description}
 \predicate{db_put}{3}{+DB, +Key, +Value}
     Add a new key-value pair to the database. If the database allows for
     duplicates this will always succeed, unless a system error occurs.
-\predicate{db_del}{2}{+DB, +Key}
-    Delete all key-value pairs with the named \arg{Key} from the
-    database.  Note that this is equivalent to \term{db_delall}{DB, Key, _}.
 \predicate{db_del}{3}{+DB, ?Key, ?Value}
     Delete the first matching key-value pair from the database.  If the
     database allows for duplicates, this predicate is non-deterministic.
     The enumeration performed by this predicate is the same as for
-    db_get/3.
+    db_get/3. See also db_delall/3.
 \predicate{db_delall}{3}{+DB, +Key, ?Value}
     Delete all matching key-value pairs from the database.  With unbound
-    key this calls db_del/2.
+    \arg{Key} the key and all values are removed efficiently.
 \predicate{db_get}{3}{+DB, ?Key, -Value}
     Query the database.  If the database allows for duplicates this
-    predicate is non-deterministic.  If \arg{Key} is unbound, all keys
-    are enumerated.  This mode is especially useful to enumerating the
-    entire content of a database.
+    predicate is non-deterministic.
+\predicate{db_enum}{3}{+DB, -Key, -Value}
+    Enumerate the whole database, unifying the key-value pairs to
+    \arg{Key} and \arg{Value}.  Though this predicate can be used with
+    an instantiated \arg{Key} to enumerate only the keys unifying with
+    \arg{Key}, no indexing is used by db_enum/3.
 \predicate{db_getall}{3}{+DB, +Key, -Value}
     Get all values associated with \arg{Key}.  Fails if the key does
     not exist (as bagof/3).
 \end{description}
 
 
+\subsection{Transactions}			\label{sec:transactions}
+
+Using the DB transaction protocol, security against system failure,
+atomicy of multiple changes and accessing a database from multiple
+writers is provided.
+
+Accessing a DB under transactions from Prolog is very simple.  First
+of all, the option \term{transactions}{true} needs to be provided to
+db_init/1 to initialise the transaction subsystem.  Next, the predicate
+db_transaction/1 may be used to execute multiple updates inside a
+transaction.
+
+\begin{description}
+    \predicate{db_transaction}{1}{:Goal}
+Start a transaction, execute \arg{Goal} and terminate the transaction.
+{\bf Only} if \arg{Goal} succeeds, the transaction is \jargon{commited}.
+If \arg{Goal} fails or raises an exception, the transaction is
+\jargon{aborted} and db_transaction/1 either fails or rethrows the
+exception.
+
+Of special interest is the exception
+
+\begin{quote}
+\term{error}{\term{package}{db, deadlock}, _}
+\end{quote}
+
+This exception indicates a \jargon{deadlock} was raised by one of the
+DB predicates. Deadlocks may arise if multiple processes or threads
+access the same keys in a different order.  The DB infra-structure
+causes one of the processes involved in the deadlock to abort its
+transaction.  This process may choose to restart the transaction.
+
+For example, a DB application may define \predref{\{\}}{1} to realise
+transactions and restart these automatically is a deadlock is raised:
+
+\begin{code}
+{}(Goal) :-
+	catch(db_transaction(Goal), E, true),
+	(   var(E)
+	->  true
+	;   E = error(package(db, deadlock), _)
+	->  { Goal }
+	;   throw(E)
+	).
+\end{code}
+\end{description}
+
+
+\subsection{Notes on signals and other interrupts}
+
+The Berkeley DB routines are not signal-safe. Without precaution, this
+implies it is not possible to interrupt Prolog programs using the DB
+routines in a safe manner. To improve convinience, interrupt signals are
+blocked during the execution of the DB calls. As db_transaction/1
+handles aborts gracefully, PrologDB applications can be interrupted and
+aborted safely.
+
+Signals other than \const{SIGINT} caught during the execution of one of
+the DB interaction predicates may leave the DB in an inconsistent state.
+Fatal signals thrown by other Prolog or foreign language facilities are
+handled gracefully.
+
+
 \subsection{Initialisation}
+
+Optionally, the DB environment may be initialised explicitely. Without
+initialisation,	the DB predicates may be used to access a database file
+without transaction support and using default caching. This is generally
+satisfactory for not-too-large databases that have no strong security
+demands and are accessed by at most one application in update mode.
 
 \begin{description}
 \predicate{db_init}{1}{+Options}
@@ -138,10 +276,47 @@ we plan to link this interface transparently to a predicate.
 	\termitem{mp_mmapsize}{+Integer}
     Maximum size of a DB file mapped entirely into memory.
     \end{description}
+	\termitem{create}{+Bool}
+    If \const{true}, create any underlying file as required. By default,
+    no new files are created.  This option should be set for prograns
+    that create new databases.
+	\termitem{logging}{+Bool}
+    Enable logging the DB modifications.  Logging enables recovery of
+    databases in case of system failure.  Normally it is used in
+    combination with transactions.
+	\termitem{transactions}{+Bool}
+    Enable transactions, providing atomicy of changes and security.
+    Implies \const{logging} and \const{locking}. See
+    \secref{transactions}.
+	\termitem{server}{+Host, [+ServerOptions]}
+    Initialise the DB package for accessing a remote database.
+    \arg{Host} specifies the name of the machine running
+    \program{berkeley_db_svc}.  Optionally additional options
+    may be specified:
+
+    \begin{description}
+        \termitem{server_timeout}{+Seconds}
+    Specify the timeout time the server uses to determine that the
+    client has gone. This implies the server will terminate
+    the connection to this client if this client does not issue
+    any requests for the indicated time.
+        \termitem{client_timeout}{+Seconds}
+    Specify the time the client waits for the server to handle
+    a request.
+    \end{description}
 \end{description}
 
 
 \section{Installation}
+
+\subsection{DB version}
+
+This package was developed for DB version 3.1.  The interface of
+DB 3.x is fundamentally different from previous releases and db4pl
+relies on functionality provided by DB 3.x.  Unfortunately many
+distributions of DB are still based on DB 2.x.  Please make sure
+to install DB 3.1 or later before building db4pl.
+
 
 \subsection{Unix systems}
 
@@ -162,8 +337,23 @@ This installs the foreign libraries in \file{$PLBASE/lib/$PLARCH} and
 the Prolog library files in \file{$PLBASE/library}, where
 \file{$PLBASE} refers to the SWI-Prolog `home-directory'.
 
+Configure recognises the following options in addition to the default
+GNU configure options.
 
-\subsection{Acknowledgements}
+\begin{description}
+    \longoptionitem{enable-mt}{}
+Enable thread-support for the multi-threaded version of SWI-Prolog.
+Currently not supported.
+    \longoptionitem{with-db}{DIR}
+Point to the installation-directory of DB 3.x for finding include files
+and the DB libraries.  For example:
+
+\begin{code}
+./configure --with-db=/usr/local/BerkeleyDB.3.1
+\end{code}
+\end{description}
+
+%\subsection{Acknowledgements}
 
 
 \end{document}

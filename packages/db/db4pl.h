@@ -18,11 +18,20 @@
 
 #define DBH_MAGIC 277484232		/* magic for validation */
 
+typedef enum
+{ D_TERM,				/* a Prolog term */
+  D_ATOM,				/* an atom (length+cahsr) */
+  D_CSTRING,				/* a C-string (0-terminated) */
+  D_CLONG				/* a C-long */
+} dtype;
+
 typedef struct
 { int	magic;				/* DBH_MAGIC */
   DB *db;				/* the database */
 
   int	duplicates;			/* Duplicates allowed? */
+  dtype	key_type;			/* type of the key */
+  dtype value_type;			/* type of the data */
 } dbh;
 
 typedef unsigned long	atomid_t;	/* internal atom identifier */
