@@ -122,22 +122,24 @@ See also pce_class_directive/1 and \secref{ucdimplementation}.
     \directive{pce_class_directive}{1}{+:Goal}%
 Define {\em Goal} to be a goal that manipulates the class instance
 directly.  See \secref{ucdimplementation}.
+
     \predicate{variable}{[3,4]}{Name, Type, Access, [Summary]}%
-Define a new instance variable.  {\em Name} is the name of the variable,
-which is local to the class and its subclasses.  {\em Type} defines
-the type. See \secref{atype} and \secref{moretypes}.
-The type may be postfixed with \mbox{{\tt := \em Value}},%
-    \footnote{Value must be an int, name or \class{constant} in the
-	      current implementation.}
-in which case the instance-allocation will fill the slot with the given
-value. See also \secref{omsmethods}. {\em Access} defines which
-implicit {\em universal} methods will be associated with the variable. A
-universal method is defined to be a method that reads or writes the
-slot, without performing any additional actions. See also
-\secref{slots}.
+Define a new instance variable. {\em Name} is the name of the variable,
+which is local to the class and its subclasses. {\em Type} defines the
+type. See \secref{atype} and \secref{moretypes}. The type may be
+postfixed with \mbox{{\tt :=} \arg{Value}} to specify an initial value.
+If \arg{Value} can be modified (i.e. is not a \class{constant}, int or
+\class{name}) it is often desirable to use \mbox{{\tt :=}
+\term{new}{NewTerm}} to force each instance to create its own unique
+copy of the initial value. {\em Access} defines which implicit {\em
+universal} methods will be associated with the variable. A universal
+method is defined to be a method that reads or writes the slot, without
+performing any additional actions. See also \secref{slots}.
+
     \predicate{delegate_to}{1}{VariableName}%
 Declares the variable named {\em VariableName} to be a candidate for
 delegation.  See \secref{delegation}.
+
     \predicate{class_variable}{[3,4]}{Name, Type, Default, [Summary]}%
 Declare a class-variable for the class. Class-variables describe common
 properties for all instances of the class. The \arg{Default} value for a
