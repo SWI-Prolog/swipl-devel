@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 4.0.5
+=============
+
   * FIXED: Actually make re-hashing predicates work.  This bug causes
     large (dynamic) predicates that are queried while they are build
     to show linear rather than constant-time access behaviour.  Perfomance

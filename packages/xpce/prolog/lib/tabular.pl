@@ -127,4 +127,4 @@ sort_rows(TD, Col:int, FromRow:int) :->
 	"Sort rows starting at FromRow on the indicated column"::
 	format('~p: Sorting rows below ~w on column ~w~n', [TD, FromRow, Col]).
 
-:- pce_end_class.
+:- pce_end_class(tabular).
