@@ -4,6 +4,14 @@
 Version 2.7.1
 =============
 
+  * FIXED: Signal/readline/abort interfaces for the Win32 versions, so
+    signals are handled correctly again and readline-based input handling
+    works.
+
+  * FIXED: bug in setup of memory-base pointers, causing all versions
+    to fail who allocate memory higher than 128MB, which includes the
+    win32 version under win32s (Windows 3.1)
+
   * FIXED: ar/ranlib configuration (notably for BSD systems, such as
     SunOs 4.1).
 
