@@ -86,12 +86,12 @@ static classvardecl rc_getMethod[] =
 /* Class Declaration */
 
 static Name getMethod_termnames[] = { NAME_name, NAME_returnType, NAME_types,
-				      NAME_message, NAME_summary, NAME_source
+				      NAME_summary
 				    };
 
 ClassDecl(getMethod_decls,
           var_getMethod, send_getMethod, get_getMethod, rc_getMethod,
-          6, getMethod_termnames,
+          4, getMethod_termnames,
           "$Rev$");
 
 

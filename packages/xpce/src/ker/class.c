@@ -1548,7 +1548,13 @@ attachLazySendMethodClass(Class class, const senddecl *sm)
   Vector tv;
   StringObj doc;
   char **tps = (sm->arity == 1 ? (char **)&sm->types : (char **)sm->types);
+  Cell cell;
 
+  for_cell(cell, class->send_methods)
+  { SendMethod m = cell->value;
+    if ( m->name == sm->name )
+      return m;
+  }
   for(i=0; i<sm->arity; i++)
   { if ( !(types[i] = CtoType(tps[i])) )
       sysPce("Bad type in argument %d of %s->%s: %s",
@@ -1580,7 +1586,13 @@ attachLazyGetMethodClass(Class class, const getdecl *gm)
   Vector tv;
   StringObj doc;
   char **tps = (gm->arity == 1 ? (char **)&gm->types : (char **)gm->types);
+  Cell cell;
 
+  for_cell(cell, class->get_methods)
+  { GetMethod m = cell->value;
+    if ( m->name == gm->name )
+      return m;
+  }
   for(i=0; i<gm->arity; i++)
   { if ( !(types[i] = CtoType(tps[i])) )
       sysPce("Bad type in argument %d of %s<-%s: %s",
