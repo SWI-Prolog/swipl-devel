@@ -946,12 +946,12 @@ dnl * X11 extensions
 dnl * XFT: The Xfree font management system
 dnl ****************************************************************
 
-AC_CHECK_PROGS(XFTCONF, xft-config, "true")
-if test "$XFTCONF" != "true" ; then
+AC_CHECK_PROGS(XFTCONFIG, xft-config, "false")
+if test "$XFTCONFIG" != "false" ; then
    AC_DEFINE(USE_XFT, 1,
 	     "Define to use the Xft scalable and anti-aliasing font system")
-   XLIBS="$XLIBS `$XFTCONF --libs`"
-   XINCLUDES="$XINCLUDES `$XFTCONF --cflags`"
+   XLIBS="$XLIBS `$XFTCONFIG --libs`"
+   XINCLUDES="$XINCLUDES `$XFTCONFIG --cflags`"
 fi;
 
 

@@ -4,12 +4,13 @@
 			   Jan Wielemaker
 			(jan@swi.psy.uva.nl)
 
-History:	Thu Apr 29, 2004 for version 5.3.10 (minor changes)
+History:	Tue Feb 01, 2005 for version 5.5.5  (minor changes)
+		Thu Apr 29, 2004 for version 5.3.10 (minor changes)
 		Fri Apr 26, 1996 for version 4.8.17 (complete rewrite)
 		Tue Jan 21, 1997 updated for 4.9.1  (minor changes)
 		Fri Aug 29, 1997 updated for 4.9.3  (minor changes)
-		Mon Dec  8, 1997 updated for 4.9.7  (minor changes)
-		Fri Feb  5, 1999 updated for 5.0.0  (deleted old stuff)
+		Mon Dec	08, 1997 updated for 4.9.7  (minor changes)
+		Fri Feb	05, 1999 updated for 5.0.0  (deleted old stuff)
 
 Configuration, compilation and installation is based on the GNU autoconf
 package. General comments on installing packages   based on autoconf are
@@ -26,7 +27,7 @@ Required tools
 	Necessary on most machines, though you might get away with
 	another ANSI C compiler.  Check the Makefile carefully for
 	the various flags passed to compiler in that case.  The only
-	non-gcc compiler used by us is MSVC++ 5.0 for the Win32 version.
+	non-gcc compiler used by us is MSVC++ 6.0 for the Win32 version.
 
 	Most GCC versions these days are fine.  We use gcc 3.3
 
@@ -48,6 +49,14 @@ Required tools
 	    ftp://swi.psy.uva.nl/pub/xpce/util/images/jpegsrc.v6a.tar.gz
 
 	which, again, can be found at many other places on the net.
+
+	# Freetype
+	Not really required, but if present the system will use the
+	Freetype library to realise scalable and antialiased fonts.
+	Its presence is detected by looking for the program xft-config,
+	which is also used to determine compile and link flags.  If
+	you want to build WITHOUT XFT and you have the library installed,
+	set the environment variable XFTCONFIG=false.
 
 
 For all other required tools, both the   GNU,  BSD and System-V versions
@@ -82,7 +91,7 @@ libXpm is not part of many standard   X11 distributions, and should thus
 be installed prior to running configure for XPCE. You can find a version
 of the xpm sources in
 
-	ftp://swi.psy.uva.nl/pub/xpce/util/images/xpm-3.4i.tar.gz.
+	ftp://gollem.science.uva.nl/pub/xpce/util/images/xpm-3.4i.tar.gz.
 
 If you make a version for  distribution,   it  is  good practice to link
 using the static version of libXpm.
@@ -102,7 +111,7 @@ scenes. JPEG reading is based on  the   jpeg  library as provided by the
 independent JPEG group.  The  source  for   this  library  is  free, and
 available from
 
-	ftp://swi.psy.uva.nl/pub/xpce/util/images/jpegsrc.v6a.tar.gz
+	ftp://gollem.science.uva.nl/pub/xpce/util/images/jpegsrc.v6a.tar.gz
 
 If you have libjpeg installed at a   location  not searched for includes
 and libraries you can add --with-jpeg=<dir>, after which the system adds
@@ -182,25 +191,10 @@ as a shared object (.so file on   most  Unix machines) into Prolog. This
 installation is better to maintain and   prepares SWI-Prolog for loading
 custom extensions written in C in a well supported manner.
 
-At the moment, shared libraries are *known* to work on:
-
-	* SunOs 4.1.x
-	* Solaris 2.x
-	* SGI/Irix 5.x
-	* Linux
-	* NetBSD
-	* Win32 (DLL interface)
-
-It is likely to work  on  any   system  using  ELF binaries or something
-compatible (many SVR4 systems).
-
-By  default,  SWI-Prolog  will  try  to  configure  the  shared  library
-interface and the XPCE configure run will   notify  this and prepare for
-building a shared object.
-
-Older versions of gcc (prior 2.7?) on Sun  require the Sun version of LD
-rather than the GNU version to create  shared objects. In that case, add
--B<dir-holding-system-version-of-ld> to the CFLAGS.
+Now, shared libraries are  used  on  all   systems  and  the  the static
+alternative is no longer actively maintained. When  porting to a new OS,
+please check the shared library facilities   of the SWI-Prolog plld tool
+and make sure it runs on your environment.
 
 ****************************************************************
 

@@ -8887,9 +8887,9 @@ fi
 
   test -n "$XFTCONF" && break
 done
-test -n "$XFTCONF" || XFTCONF=""true""
+test -n "$XFTCONF" || XFTCONF=""false""
 
-if test "$XFTCONF" != "true" ; then
+if test "$XFTCONF" != "false" ; then
 
 cat >>confdefs.h <<\_ACEOF
 #define USE_XFT 1
