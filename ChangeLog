@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 3.3.0 (release-11)
+==========================
+
   * INTERNAL: Got -DCOUNTING cpp option to work again for statistics
     on the virtual machine.
 
