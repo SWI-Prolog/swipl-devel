@@ -1586,9 +1586,12 @@ RedrawRulesTableCell(TableCell cell, Name style, int b)
   { int mw = valInt(cell->note_mark->size->w);
     int mh = valInt(cell->note_mark->size->h);
 
-    if ( mw > d.x ) mw = d.x;		/* clip the image */
-    if ( mh > d.y ) mh = d.y;
+    if ( mw > d.w ) mw = d.w;		/* clip the image */
+    if ( mh > d.h ) mh = d.h;
       
+    DEBUG(NAME_noteMark,
+	  Cprintf("%s: note_mark %s at %d,%d, size %dx%d\n",
+		  pp(cell), pp(cell->note_mark), d.x+d.w-mw, d.y, mw, mh));
     r_image(cell->note_mark, 0, 0, d.x+d.w-mw, d.y, mw, mh, ON);
   }
 

@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: `table_cell->note_mark' for cells in top row or left column.
+
 * FIXED: Colour update in class reporter on ->report: progress, ... 
 
 * FIXED: Focus handling bug opening text_item combobox (for completions).
