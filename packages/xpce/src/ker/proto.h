@@ -156,8 +156,6 @@ void		at_pce_exit(atexit_function f, int flags);
 void		run_pce_exit_hooks(int rval);
 
 /* ../src/ker/passing.c */
-void		pceMTLock(int lock);
-void		pceMTUnlock(int lock);
 status		vm_send(Any receiver, Name selector, Class class, int argc, const Any argv []);
 Any		vm_get(Any receiver, Name selector, Class class, int argc, const Any argv []);
 status		sendSendMethod(SendMethod sm, Any receiver, int argc, const Any argv []);
