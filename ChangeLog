@@ -2,6 +2,20 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 2.8.2
+=============
+
+  * FIXED: GC/tracer for clauses holding string objects at particular
+    places.  Reported by Andrew Dadakow.
+
+  * FIXED: Deleted old pl.mak, and added plwin.mak and plcon.mak for
+    rebuilding the sources on Windows.
+
+  * FIXED: Typo in the $write_on_* predicates, underlying sformat and
+    swritef, causing a crash on > 1024 characters output.  Thanks to
+    Shane P. McCarron.
+
+
 VERSION 2.8.1
 =============
 
@@ -14,7 +28,7 @@ VERSION 2.8.1
     combination of call-back from C and choicepoint organisation
     in the callback environment.
 
-  * FIXED: Tracer `retry <n>' (guitracer only) to take of garbage
+  * FIXED: Tracer `retry <n>' (guitracer only) to take care of garbage
     collected choicepoints.
 
   * FIXED: initialisation of style_check defaults to specify
