@@ -4,6 +4,11 @@
 VERSION 2.8.5
 =============
 
+  * MAN: Updated manual sources for a couple of recent changes, added
+    support for generation of the help/1 database using new tools for
+    nroff like generation of plain text from a LaTeX document.  Generated
+    all three formats of the manual: HTML, PostScript and plain text.
+ 
   * FIXED: Installation of the manual page for correct description of the
     pl -dump-runtime-variables.
 
