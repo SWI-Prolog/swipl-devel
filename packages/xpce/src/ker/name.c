@@ -98,7 +98,7 @@ stringHashValue(String s)
   charA *t = s->s_textA;
 
   if ( isstrW(s) )
-    size *= 2;
+    size *= sizeof(charW);
     
   while(--size >= 0)
   { unsigned int c = *t++;

@@ -64,6 +64,7 @@ COMMON(void)	str_alloc(String s);
 COMMON(void)	str_unalloc(String s);
 COMMON(String)	str_init(String s, String proto, charA *data);
 COMMON(status)	str_set_n_ascii(String str, int len, char *text);
+COMMON(status)	str_set_n_wchar(String str, int len, wchar_t *text);
 COMMON(status)	str_set_ascii(String str, char *text);
 COMMON(status)	str_set_static(String str, const char *text);
 COMMON(void)	str_ncpy(String dest, int at, String src, int from, int len);

@@ -805,11 +805,12 @@ StringToScratchCharArray(const String s)
   int n;
 
   for(n = 0; n < SCRATCH_CHAR_ARRAYS; n++, name++)
-    if ( name->data.s_textA == NULL )
+  { if ( name->data.s_textA == NULL )
     { str_cphdr(&name->data, s);
       name->data.s_text = s->s_text;
       return name;
     }
+  }
 
   initCharArrays();			/* handle the crash better */
   NOTREACHED;

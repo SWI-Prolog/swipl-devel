@@ -389,8 +389,8 @@ __pce_export int pceInitialise(int handles, const char *home,
 		*           C --> PCE		*
 		********************************/
 
-__pce_export PceObject	cToPceName(const char *);
-__pce_export PceObject	cToPceName_n(const char *, unsigned int len);
+__pce_export PceObject	cToPceName_nA(const char *, unsigned int len);
+__pce_export PceObject	cToPceName_nW(const wchar_t *, unsigned int len);
 __pce_export PceObject	cToPceInteger(long);
 __pce_export PceObject	cToPceReal(double);
 __pce_export PceObject	cToPceString(PceName assoc,

@@ -99,6 +99,19 @@ str_set_n_ascii(String str, int len, char *text)
 
 
 status
+str_set_n_wchar(String str, int len, wchar_t *text)
+{ if ( len > STR_MAX_SIZE )
+    return errorPce(NIL, NAME_stringTooLong, toInt(len));
+
+  str_inithdr(str, ENC_WCHAR);
+  str->size = len;
+  str->s_textW = text;
+
+  succeed;
+}
+
+
+status
 str_set_ascii(String str, char *text)
 { int len = strlen(text);
 
