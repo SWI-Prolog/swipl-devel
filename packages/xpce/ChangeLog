@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* INSTALL: Remove .qlf files when installing new libraries to avoid version
+  conflicts.
+
 * ADDED: Optional `ignore-case' argument to `char_array->equal'.
 
 * MODIFIED: renamed module of library(http_client) to pce_http_client

@@ -751,6 +751,7 @@ dv-lib:
 		        mkdir $(DVHOME)/prolog/$$d; \
 		    fi; \
 		    echo -n "Installing library files for prolog/$$d ..."; \
+		    rm -f $(DVHOME)/prolog/$$d/*.qlf; \
 		    $(INSTALL_DATA) ../prolog/$$d/*.pl $(DVHOME)/prolog/$$d; \
 		    if [ -r ../prolog/$$d/README ]; then \
 		        $(INSTALL_DATA) ../prolog/$$d/README $(DVHOME)/prolog/$$d; \
