@@ -3685,6 +3685,12 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
 	}
 	add_node(tail, 2 PASS_LD);
 	continue;
+      case H_INDIRECT:
+      case B_INDIRECT:
+      { word m = PC[0];
+	PC += wsizeofInd(m)+1;
+	break;
+      }
       default:
 	PC += ci->arguments;
     }

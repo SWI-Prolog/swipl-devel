@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * Fixed: Bug #9: GUI tracer handling string objects (Holger Kanwischer)
+
   * FIXED: Bug #8: module-specifier while listing declarations.
     Tolga Konik.
 
