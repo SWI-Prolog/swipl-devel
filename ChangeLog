@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: \=@=/2 (Lourens van der Meij).
+
   * ADDED: relative uri net path resolution (awkward, but needed for RDF
     test-suite).  library(url).
 

@@ -624,7 +624,7 @@ PRED_IMPL("=@=", 2, structural_eq, 0)
 
 static
 PRED_IMPL("\\=@=", 2, structural_neq, 0)
-{ return pl_structural_neq_va(PL__t0, PL__ac, PL__ctx) ? FALSE : TRUE;
+{ return pl_structural_eq_va(PL__t0, PL__ac, PL__ctx) ? FALSE : TRUE;
 }
 
 
