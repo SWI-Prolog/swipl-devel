@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: send(file('~/.xpce/Defaults'), exists) to take very long on Windows
+  98 and friends: ~/xyz is expanded to c://xyz, which in turn is treated as
+  a network path.
+
 * FIXED: `device->erase' to reset the windows focus also the erased graphical
   is a sub-graphical of the focus.  This can cause crashes in applications.
 
