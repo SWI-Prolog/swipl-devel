@@ -684,8 +684,8 @@ WRLOCK(rdf_db *db, int allow_readers)
 }
 
 static int
-UNLOCK(rdf_db *db)
-{ if ( db->writer == -1 )
+UNLOCK(rdf_db *db, int rd)
+{ if ( rd )
   { db->readers--;
   } else
   { db->writer = -1;
