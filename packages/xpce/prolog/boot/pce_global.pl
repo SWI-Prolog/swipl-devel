@@ -61,29 +61,36 @@ global(Ref, Module, Goal) :-
 	retractall('pce catcher'(Module, Goal)),
 	asserta('pce catcher'(Module, Goal)).
 global(Ref, Module, Goal) :-			  % just reconsult
-	'pce global goal'(Ref, Module, Goal), !.
+	'pce global goal'(Ref, Module, Goal), !,
+	(   Goal = new(_)
+	->  true
+	;   reload_global(@Ref)
+	).
 global(Ref, Module, Goal) :-
 	'pce global goal'(Ref, Module, _G2), !,	  % definition changed
-	(   object(@Ref)
-	->  gensym(Ref, NewRef),
-	    send(@Ref, name_reference, NewRef),
-	    format(user_error, ':- pce_global: Renamed @~w into @~w~n',
-		   [Ref, NewRef])
-	;   true
-	),
+	reload_global(@Ref),
 	retractall('pce global goal'(Ref, Module, _G2)),
 	asserta('pce global goal'(Ref, Module, Goal)).
 global(Ref, _M1, new(Term)) :-			  % same definition
 	'pce global goal'(Ref, _M2, new(Term)), !.
 global(Ref, M1, G1) :-
 	'pce global goal'(Ref, M2, G2), !,
-	format(user_error,
-	       '[WARNING: Global object @~w already defined in module ~w]~n',
-	       [Ref, M2]),
+	print_message(warning, object_already_defined(Ref, M2)),
 	retractall('pce global goal'(Ref, M2, G2)),
 	asserta('pce global goal'(Ref, M1, G1)).
 global(Ref, Module, Goal) :-
 	asserta('pce global goal'(Ref, Module, Goal)).
+
+reload_global(Ref) :-
+	object(Ref), !,
+	(   get(Ref, references, 0)
+	->  free(Ref)
+	;   Ref = @Name,
+	    gensym(Name, NewName),
+	    send(Ref, name_reference, NewName),
+	    print_message(informational, renamed_reference(Name, NewName))
+	).
+reload_global(_).
 
 
 		/********************************
@@ -106,9 +113,7 @@ trap_ref(Ref) :-
 	(   Goal = new(Term)
 	->  (   new(@Ref, Module:Term)
 	    ->  true
-	    ;   format(user_error,
-		       '[WARNING: pce_global/2: Create failed: ~w]~n',
-		       [Term]),
+	    ;   print_message(error, create_failed(Term)),
 		trace,
 	        fail
 	    )
@@ -117,9 +122,7 @@ trap_ref(Ref) :-
 	    GoalTerm =.. GoalList,
 	    (	Module:GoalTerm
 	    ->  true
-	    ;   format(user_error,
-		       '[WARNING: pce_global/2: Goal failed: ~w:~w]~n',
-		       [Module, GoalTerm]),
+	    ;   print_message(error, goal_failed(Module:GoalTerm)),
 		trace,
 		fail
 	    )

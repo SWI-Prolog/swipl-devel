@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ENHANCED: pce_global messages and handling of changed definitions.
+
 * ADDED: Support for new SWI-Prolog profiler hooks.
 
 * FIXED: Issues resulting from the :: priority change.  Anders Bouwer.
