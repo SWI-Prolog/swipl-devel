@@ -385,9 +385,9 @@ raw_read2()
   { c = getchr();
     DEBUG(3, if ( Input == 0 ) printf("getchr() -> %d (%c)\n", c, c));
     DEBUG(3, if ( Input == 0 ) printf("here = %d, base = %d", rb.here, rb.base));
+    if ( c == ttytab.tab.c_cc[ VEOF ] ) c = EOF ;
     switch(c)
     { case EOF:
-      case 04:
 		if (seeingString())		/* do not require '. ' when */
 		{ addToBuffer(' ');		/* reading from a string */
 		  addToBuffer('.');
@@ -806,7 +806,7 @@ bool must_be_op;
 		    here++;
 		  c = *here;
 		  *here = EOS;
-		  if (start[0] == '_')
+		  if (start[0] == '_' && here == start + 1)
 		  { setVar(token.value.prolog);
 		    DEBUG(9, printf("VOID\n"));
 		    token.type = T_VOID;

@@ -1,3 +1,34 @@
+Wed Feb  3 10:42:23 1993  Jan Wielemaker  (jan at swisun11)
+
+* VERSION 1.6.10
+
+* Fixed various installation problems for HP and LINUX.
+* Incorporated various useful changes from
+  ads@compsci.liverpool.ac.uk (Dave Sherratt (Daibhi)):
+
+(1) I discovered that SWI-Prolog appears to treat all variables beginning
+    with "_" as an anonymous variable. Only the variable "_" is the
+    anonymous variable (see Clocksin and Mellish). I have modified a line
+    in "pl-read.c" to ensure that only the variable "_" is the anonymous
+    variable.
+
+(2) The cputime measurement on H.P. machines is incorrect because the
+    ticks per second is not 60Hz., as assumed in "pl-os.c". It is
+    defined in <sys/param.h> (or whatever it includes) in "HZ". I have
+    modified "pl-os.c" accordingly.
+
+(3) For my interactive user sessions, various terminal control characters
+    are redefined, in particular, the EOF character is set to <CTRL Z>,
+    and the DSUSP character is set to <CTRL D>. O.K. it's perverse, but,
+    with the other Prologs I have used (with the possible exception of
+    Quintus Prolog) the EOF character is honoured.
+    With SWI-Prolog, there were problems because of the above mentioned
+    control char. shuffling, and its assumption that they have their
+    default values. I have modified code in "pl-os.h", "pl-file.c",
+    "pl-os.c" and "pl-read.c" so that the EOF character (and currently
+    only this character) is honoured.
+
+
 Tue Jan  5 17:50:50 1993  Jan Wielemaker  (jan at swi)
 
 VERSION 1.6.8

@@ -164,7 +164,11 @@ OsError()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if unix
-#define Hz	(60.0)
+#ifdef HZ
+#  define Hz HZ
+#else
+#  define Hz        60
+#endif
 #include <sys/times.h>
 #endif
 
@@ -176,7 +180,7 @@ CpuTime()
 
   times(&t);
 
-  return t.tms_utime / Hz;
+  return t.tms_utime / ( real )( Hz ) ;
 #endif
 #if tos
   return (real) (clock() - wait_ticks) / 200.0;
@@ -1399,29 +1403,11 @@ be provided by this layer of the terminal driver:
 
 #if O_LINE_EDIT
 #define CRLF		(0x0001)	/* map CR -> LF */
-#define QSIZE		(256)
 #define Empty(d)	( (d)->in == (d)->out )
 #define Advance(p)	{ if ( ++(p) == QSIZE ) (p) = 0; }
 #define Retreat(p)	{ if ( --(p) < 0 ) (p) = QSIZE-1; }
 
-struct tty_driver
-{ char	werase;		/* word erase character */
-  char  kill;		/* kill character */
-  char	erase;		/* erase character */
-  char	erase2;		/* alternative erase character */
-  char	eol;		/* alternative end-of-line */
-  char	eol2;		/* 2nd alternative end-of-line */
-  char	reprint;	/* reprint input */
-  char	intr;		/* interrupt */
-  int	mode;		/* mode of the driver */
-  int	emitting;	/* Lines available */
-  bool	isatty;		/* stdin actually is a terminal? */
-  int	column;		/* current cursor column */
-  int	in;		/* in-pointer in queue */
-  int	out;		/* out-pointer in queue */
-  short	flags;		/* FLAGS */
-  char	queue[QSIZE];	/* character queue */
-} stdin_driver =
+struct tty_driver stdin_driver =
 { Control('W'), Control('U'), Control('?'), Control('H'),
   Control('D'), Control('['), Control('R'), Control('C'),
   TTY_EXTEND_ATOMS,		/* mode */
@@ -1481,9 +1467,9 @@ int mode;
 	tio.c_cc[VTIME] = 0, tio.c_cc[VMIN] = 1;
 	break;
     case TTY_EXTEND_ATOMS:
-	tio.c_cc[VEOF]	= 0;	/* disable EOF */
-	tio.c_cc[VEOL]	= 04;	/* ^D: give alternatives */
-	tio.c_cc[VEOL2]	= ESC;	/* ESC: complete */
+	tio.c_cc[VEOF]	= 0;			 /* disable EOF */
+	tio.c_cc[VEOL]  = ttytab.tab.c_cc[VEOF]; /* EOF: give alternatives */
+	tio.c_cc[VEOL2]	= ESC;			 /* ESC: complete */
 	break;
     case TTY_RETYPE:
 	tio.c_lflag &= ~ECHO;

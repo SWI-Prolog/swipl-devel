@@ -189,6 +189,9 @@ the Unix assumptions?
 
   ttymode = TTY_COOKED;			/* initial tty mode */
   PushTty(&ttytab, TTY_COOKED);
+#if O_LINE_EDIT
+  stdin_driver.eol = ttytab.tab.c_cc[ VEOF ] ;
+#endif O_LINE_EDIT
   ResetTty();
 #if JOBCONTROL
   signal(SIGTSTP, stopHandler);

@@ -227,6 +227,27 @@ typedef struct
 extern ttybuf	ttytab;			/* saved tty status */
 extern int	ttymode;		/* Current tty mode */
 
+#if O_LINE_EDIT
+#define QSIZE (256)
+extern struct tty_driver
+{ char  werase;         /* word erase character */
+  char  kill;           /* kill character */
+  char  erase;          /* erase character */
+  char  erase2;         /* alternative erase character */
+  char  eol;            /* alternative end-of-line */
+  char  eol2;           /* 2nd alternative end-of-line */
+  char  reprint;        /* reprint input */
+  char  intr;           /* interrupt */
+  int   mode;           /* mode of the driver */
+  int   emitting;       /* Lines available */
+  bool  isatty;         /* stdin actually is a terminal? */
+  int   column;         /* current cursor column */
+  int   in;             /* in-pointer in queue */
+  int   out;            /* out-pointer in queue */
+  short flags;          /* FLAGS */
+  char  queue[QSIZE];   /* character queue */
+} stdin_driver ;
+#endif O_LINE_EDIT
 #define IsaTty(fd)	isatty(fd)
 
 extern bool PushTty P((ttybuf *, int mode));
