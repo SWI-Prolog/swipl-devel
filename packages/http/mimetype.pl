@@ -65,6 +65,7 @@ mime_extension(html, text/html).
 mime_extension(sgml, text/'x-sgml').
 mime_extension(sgm,  text/'x-sgml').
 mime_extension(xml,  text/xml).
+mime_extension(css,  text/css).
 					% semantic web stuff
 mime_extension(rdf,  application/'rdf+xml').
 mime_extension(rdfs, application/'rdf+xml').
