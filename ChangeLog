@@ -10,6 +10,8 @@
 VERSION 5.4.1 (September 28, 2004)
 ==================================
 
+  * ADDED: '$btree_find_node'/4 to speed up binary tree handling.
+
   * FIXED: Bug#193: reading */* .  Sandro Hawke.
 
   * FIXED: nb_setarg/3 using compound terms.
