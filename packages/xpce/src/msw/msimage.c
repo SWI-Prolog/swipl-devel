@@ -476,8 +476,7 @@ ws_std_xpm_image(Name name, Image *global, char **data)
 static status
 ws_attach_xpm_image(Image image, XpmImage* xpmimg, XpmInfo* xpminfo)
 { XImage *img, *shape;
-  HDC hdc;
-  HPALETTE hpal = NULL, ohpal = NULL;
+  HDC hdc, dhdc = NULL;
   DisplayObj d = image->display;
   int as = XpmAttributesSize();
   XpmAttributes *atts = (XpmAttributes *)alloca(as);
@@ -525,7 +524,8 @@ of that, and left the code for later.  This is the XPMTODIB.
       }
     }
 
-    hpal = getPaletteColourMap(d->colour_map);
+    if ( (atts->colormap = getPaletteColourMap(d->colour_map)) )
+      atts->valuemask |= XpmColormap;
   }
 
 #else /*XPMTODIB*/
@@ -573,21 +573,7 @@ palette, so we can be sure the  proper   colours  will be in the devices
 palette. 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  if ( hpal )
-  { HDC dhdc = GetDC(NULL);
-    HPALETTE oshpal;
-
-    oshpal = SelectPalette(dhdc, hpal, FALSE); /* make colours know  */
-    RealizePalette(dhdc);
-    SelectPalette(dhdc, oshpal, FALSE);
-    ReleaseDC(NULL, dhdc);
-
-    hdc = CreateCompatibleDC(NULL);
-    ohpal = SelectPalette(hdc, hpal, FALSE);
-    RealizePalette(hdc);
-  } else
-    hdc = CreateCompatibleDC(NULL);
-
+  hdc = GetDC(NULL);
   switch((rval=XpmCreateImageFromXpmImage(&hdc, xpmimg, &img, &shape, atts)))
   { case XpmNoMemory:
       return sysPce("Not enough memory");
@@ -596,15 +582,12 @@ palette.
     default:
       return errorPce(image, NAME_unknownError, toInt(rval));
   }
+  ReleaseDC(NULL, hdc);
 
-  if ( ohpal )
-  { SelectPalette(hdc, ohpal, FALSE);
 #ifdef XPMTODIB
+  if ( hpal )
     DeleteObject(hpal);
 #endif
-  }
-
-  DeleteDC(hdc);
 
   assign(image, kind, img->depth == 1 ? NAME_bitmap : NAME_pixmap);
   assign(image->size, w, toInt(img->width));

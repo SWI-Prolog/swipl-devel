@@ -598,7 +598,7 @@ ws_uncreate_colour_map(ColourMap cm, DisplayObj d)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Allocate a colour in the XPCE central  colourmap. At the moment, the map
-is filled, and colours are nog changed afterwards. It would be better to
+is filled, and colours are not changed afterwards. It would be better to
 collect all colours and now and then   build an optimal palette from the
 defined colours. How does one do that? 
 

@@ -115,12 +115,12 @@ ws_os(void)
 
 #ifdef USE_RLC_FUNCTIONS
 
-#define ConsoleWindow() rlc_hwnd()
+#define HostConsoleHWND() rlc_hwnd()
 
 #else /*USE_RLC_FUNCTIONS*/
 
-static HWND
-ConsoleWindow()
+HWND
+HostConsoleHWND()
 { PceCValue val;
 
   if ( hostQuery(HOST_CONSOLE, &val) )
@@ -133,7 +133,7 @@ ConsoleWindow()
 
 status
 ws_show_console(Name how)
-{ HWND hwnd = ConsoleWindow();
+{ HWND hwnd = HostConsoleHWND();
 
   if ( hwnd )
   { if ( how == NAME_open )
@@ -155,7 +155,7 @@ ws_show_console(Name how)
 
 status
 ws_console_label(CharArray label)
-{ HWND hwnd = ConsoleWindow();
+{ HWND hwnd = HostConsoleHWND();
 
   if ( hwnd )
     SetWindowText(hwnd, strName(label));
