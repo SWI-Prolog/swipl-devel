@@ -40,7 +40,9 @@ static int	giveVersionInfo(const char *a);
 static bool	vsysError(const char *fm, va_list args);
 
 #define	optionString(s) { if (argc > 1) \
-			  { s = argv[1]; argc--; argv++; \
+			  { if ( s ) remove_string(s); \
+			    s = store_string(argv[1]); \
+			    argc--; argv++; \
 			  } else \
 			  { return -1; \
 			  } \
@@ -163,7 +165,7 @@ defaultSystemInitFile(char *a0)
   if ( strlen(buf) > 0 )
     return store_string(buf);
 
-  return "pl";
+  return store_string("pl");
 }
 
 
@@ -316,16 +318,16 @@ do_value:
 
 static void
 initDefaultOptions()
-{ GD->options.compileOut    = "a.out";
+{ GD->options.compileOut    = store_string("a.out");
   GD->options.localSize     = systemDefaults.local    K;
   GD->options.globalSize    = systemDefaults.global   K;
   GD->options.trailSize     = systemDefaults.trail    K;
   GD->options.argumentSize  = systemDefaults.argument K;
   GD->options.heapSize      = systemDefaults.heap     K;
-  GD->options.goal	    = systemDefaults.goal;
-  GD->options.topLevel      = systemDefaults.toplevel;
-  GD->options.initFile      = systemDefaults.startup;
-  GD->options.saveclass	    = "none";
+  GD->options.goal	    = store_string(systemDefaults.goal);
+  GD->options.topLevel      = store_string(systemDefaults.toplevel);
+  GD->options.initFile      = store_string(systemDefaults.startup);
+  GD->options.saveclass	    = store_string("none");
 
   if ( !GD->bootsession && GD->resourceDB )
   { IOSTREAM *op = SopenRC(GD->resourceDB, "$options", "$prolog", RC_RDONLY);

@@ -2590,7 +2590,11 @@ pl_option(term_t key, term_t old, term_t new, control_t h)
 	    if ( !PL_unify_atom_chars(old, *val) ||
 		 !PL_get_atom_chars(new, &newval) )
 	      fail;
-	    *val = newval;
+
+	    if ( !streq(*val, newval) )
+	    { remove_string(*val);
+	      *val = store_string(newval);
+	    }
 
 	    succeed;
 	  }
