@@ -11,6 +11,9 @@
 #include <h/graphics.h>
 #include "include.h"
 #include <sys/time.h>
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 
 #ifndef FD_ZERO
 #include <sys/select.h>
@@ -54,12 +57,13 @@ is_timeout(XtPointer ctx, XtIntervalId *id)
 #define FD_SET(n, x)	{(x)->fds_bits[0] |= 1<<(n); }
 #endif
 
+static int dispatch_fd = -1;
+
 status
 ws_dispatch(Int FD, Int timeout)
 { XtIntervalId tid;
   int dispatch_status = DISPATCH_RUNNING;
-  static int dfd = -1;
-  int fd = (isDefault(FD) ? dfd : valInt(FD));
+  int fd = (isDefault(FD) ? dispatch_fd : valInt(FD));
 
 					/* No context: wait for input */
 					/* timeout */
@@ -80,10 +84,10 @@ ws_dispatch(Int FD, Int timeout)
   }					/* A display: dispatch until there */
 					/* is input or a timeout */
 
-  if ( fd != dfd && fd >= 0 )
+  if ( fd != dispatch_fd && fd >= 0 )
   { XtAppAddInput(ThePceXtAppContext, fd,
 		  (XtPointer) XtInputReadMask, is_pending, NULL);
-    dfd = fd;
+    dispatch_fd = fd;
   }
 
   if ( notNil(timeout) && valInt(timeout) > 0 )
@@ -119,7 +123,12 @@ ws_discard_input(const char *msg)
 { char buf[1024];
 
   Cprintf("%s; discarding input ...", msg);
-  Cgetline(buf, sizeof(buf));
+
+  if ( dispatch_fd >= 0 )
+    read(dispatch_fd, buf, sizeof(buf));
+  else
+    Cgetline(buf, sizeof(buf));
+
   Cprintf("ok\n");
 }
 
