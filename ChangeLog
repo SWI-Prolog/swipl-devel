@@ -1,13 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Some manual typos (Nikolaos Angelopoulos).
+
   * FIXED: GC/GUI-Tracer crash related to the compilation of \+ if the
     argument contains non-singleton variables that appear nowhere else
     in the clause and in the argument of a compound term.  Thanks to
     Sergey Tikhonov for providing a neat small crash-demo!
 
   * FIXED: working_directory/2 to raise a proper exception if it can't
-    get the working directory.
+    get the working directory (crashed).
 
   * FIXED: MT: lookup/register/unregister atom mutex mismatch.
     Sergey Tikhonov.
