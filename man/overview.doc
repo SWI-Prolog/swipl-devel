@@ -197,20 +197,20 @@ Equivalent to \exam{help(help/1)}.
     \predicate{help}{1}{+What}
 Show specified part of the manual.  \arg{What} is one of:
 \begin{center}\begin{tabular}{lp{3.5in}}
-<Name>/<Arity>  & give help on specified predicate \\
-<Name>          & give help on named predicate with any arity
+<Name>/<Arity>  & Give help on specified predicate \\
+<Name>          & Give help on named predicate with any arity
                   or C interface function with that name \\
-<Section>       & display specified section. section numbers are
+<Section>       & Display specified section. Section numbers are
                   dash-separated numbers: \exam{2-3} refers to
                   section 2.3 of the manual.  Section numbers are
                   obtained using apropos/1.
 \end{tabular}\end{center}
 
-Examples
+Examples:
 \begin{center}\begin{tabular}{lp{3.5in}}
-\exam{?- help(assert).}    & give help on predicate assert \\
-\exam{?- help(3-4).}       & display section 3.4 of the manual \\
-\exam{?- help('PL_retry').}& give help on interface function PL_retry() \\
+\exam{?- help(assert).}    & Give help on predicate assert \\
+\exam{?- help(3-4).}       & Display section 3.4 of the manual \\
+\exam{?- help('PL_retry').}& Give help on interface function PL_retry() \\
 \end{tabular}\end{center}
 
     \predicate{apropos}{1}{+Pattern}
@@ -271,7 +271,7 @@ The available history commands are shown in \tabref{history}.
 \verb+!nr.+           & Repeat query numbered <nr> \\
 \verb+!str.+          & Repeat last query starting with <str> \\
 \verb+!?str.+         & Repeat last query holding <str> \\
-\verb+^old^new.+      & Substitute <old> into <new> of
+\verb+^old^new.+      & Substitute <old> into <new> in
                         last query \\
 \verb+!nr^old^new.+   & Substitute in query numbered <nr> \\
 \verb+!str^old^new.+  & Substitute in query starting with <str> \\
@@ -375,8 +375,11 @@ Example:
 
 X = [105,102,109,109,112] 
 
+Yes
 2 ?- format('~s~n', [$X]).
 ifmmp
+
+Yes
 \end{code}
     \caption{Reusing toplevel bindings}
     \label{fig:topevelvars}
@@ -389,6 +392,7 @@ Note that variables may be set by executing \predref{=}{2}:
 
 X = statistics
 
+Yes
 7 ?- $X.
 28.00 seconds cpu time for 183,128 inferences
 4,016 atoms, 1,904 functors, 2,042 predicates, 52 modules
@@ -399,6 +403,8 @@ Heap         :                                624,820 Bytes
 Local  stack :    2,048,000        8,192          404 Bytes
 Global stack :    4,096,000       16,384          968 Bytes
 Trail  stack :    4,096,000        8,192          432 Bytes
+
+Yes
 \end{code}
 
 \section{Overview of the Debugger}
@@ -423,11 +429,10 @@ predicate write_term/2.  The style can be modified to include the
 
 \begin{figure}
 \begin{code}
-Yes
-2 ?- visible(+all), leash(-exit).
+1 ?- visible(+all), leash(-exit).
 
 Yes
-3 ?- trace, min([3, 2], X).
+2 ?- trace, min([3, 2], X).
   Call:  ( 3) min([3, 2], G235) ? creep
   Unify: ( 3) min([3, 2], G235)
   Call:  ( 4) min([2], G244) ? creep
@@ -440,6 +445,9 @@ Yes
   Redo:  ( 4) min(3, 2, G235) ? creep
   Exit:  ( 4) min(3, 2, 2)
   Exit:  ( 3) min([3, 2], 2)
+
+Yes
+[trace] 3 ?-
 \end{code}
     \caption{Example trace}
     \label{fig:tracer}
@@ -474,7 +482,7 @@ name equal to that atom matches.  Examples:
                           to setting a spy point on member/2. \\
 \end{tabular}\end{center}}
     \traceoption{.}{Repeat find}{
-Repeat the last find command (see `/')}
+Repeat the last find command (see `/').}
     \traceoption{A}{Alternatives}{
 Show all goals that have alternatives.} 
     \traceoption{C}{Context}{
@@ -494,7 +502,7 @@ Write goals using \const{ignore_ops} option.}
     \traceoption{e}{Exit}{
 Terminate Prolog (see halt/0).} 
     \traceoption{f}{Fail}{
-Force failure of the current goal} 
+Force failure of the current goal.} 
     \traceoption{g}{Goals}{
 Show the list of parent goals (the execution stack). Note that due to tail
 recursion optimization a number of parent goals might not exist any more.} 
@@ -524,7 +532,7 @@ Write goals without using the \const{portray} option.}
 
 The ideal 4 port model as described in many Prolog books
 \cite{Clocksin:87} is not visible in many Prolog implementations because
-code optimisation removes part of the choice- and exit points.
+code optimisation removes part of the choice- and exit-points.
 Backtrack points are not shown if either the goal succeeded
 deterministically or its alternatives were removed using the cut.  When
 running in debug mode (debug/0) choice points are only destroyed when
@@ -615,7 +623,7 @@ using qsave_program/[1,2] or using the linker plld(1). A saved state is
 a file containing machine-independent intermediate code in a format
 dedicated for fast loading. Optionally, the emulator may be integrated
 in the saved state, creating a single-file, but machine-dependent,
-exectable.  This process is descriped in \chapref{runtime}.
+executable.  This process is described in \chapref{runtime}.
 
 
 \subsubsection{Compililation using the -c commandline option}
@@ -820,10 +828,10 @@ binding the variables to their name. Using this feature, F(x) can be
 turned into valid syntax for such script languages. Suggested by Robert
 van Engelen.  SWI-Prolog specific.
     \featureoption{history}{integer}
-If $> 0$, support Unix \program{csh(1)} like history as described in
-\secref{history}.  Otherwise, only support reusing commands through
-the commandline editor.  The default is to set this feature to 0 if
-a commandline editor is provided (see feature \const{readline}) and
+If $\arg{integer}> 0$, support Unix \program{csh(1)} like history as
+described in \secref{history}. Otherwise, only support reusing commands
+through the commandline editor. The default is to set this feature to 0
+if a commandline editor is provided (see feature \const{readline}) and
 15 otherwise.
     \featureoption{gc}{bool}
 If true (default), the garbage collector is active.  If false, neither
@@ -922,7 +930,7 @@ If there are more than one library files containing the desired predicate
 the following search schema is followed:
 
 \begin{enumerate}
-  \item If a there is a library file that defines the module in which
+  \item If there is a library file that defines the module in which
         the undefined predicate is trapped, this file is used.
   \item Otherwise library files are considered in the order they appear
         in the library_directory/1 predicate and within the directory
@@ -939,17 +947,17 @@ directory does not exist or is write protected.
 
 \subsection{Notes on Automatic Loading}
 
-The autoloader is a new feature to SWI-Prolog.  Its aim is to simplify
+The auto-loader is a new feature to SWI-Prolog.  Its aim is to simplify
 program development and program management.  Common lisp has a similar
 feature, but here the user has to specify which library is to be
 loaded if a specific function is called which is not defined.  The
 advantage of the SWI-Prolog schema is that the user does not have to
 specify this.  The disadvantage however is that the user might be
 wondering ``where the hell this predicate comes from''.  Only
-experience can learn whether the functionality of the autoloader is
+experience can learn whether the functionality of the auto-loader is
 appropriate.  Comments are welcome.
 
-The autoloader only works if the unknown flag (see unknown/2) is set to
+The auto-loader only works if the unknown flag (see unknown/2) is set to
 \const{trace} (default).  A more appropriate interaction with this flag
 will be considered.
 
@@ -1040,10 +1048,11 @@ Octal character specification.  The rules and remarks for hexadecimal
 specifications apply to octal specifications too, but the maximum
 allowed number of octal digits is 3.
     \escapeitem{<character>}
-Any character immediately preceded by a \chr{\} is copied verbatim.
-Thus, \verb$'\\'$ is an atom consisting of a single \chr{\} and
-\verb$'\''$ and \verb$''''$ both describe the atom with a
-single~\verb$'$.
+Any character immediately preceded by a \chr{\} and not covered by the
+above escape sequences is copied verbatim. Thus, \verb$'\\'$ is an atom
+consisting of a single \chr{\} and \verb$'\''$ and \verb$''''$ both
+describe the atom with a single~\verb$'$.
+
 \end{description}
 
 Character escaping is only available if the
@@ -1051,8 +1060,11 @@ Character escaping is only available if the
 feature/2. Character escapes conflict with writef/2 in two ways:
 \verb$\40$ is interpreted as decimal 40 by writef/2, but character
 escapes handling by read has already interpreted as 32 (40 octal). Also,
-\fmtseq{\l} is translated to a single `l'. Double the \chr{\}
-(e.g.\ \fmtseq{\\}, use the above escape sequences or use format/2.
+\fmtseq{\l} is translated to a single `l'.  It is adviced to use the
+more widely supported format/[2,3] predicate instead. If you insist
+using writef, either switch \const{character_escapes} to \const{false},
+or use double \fmtseq{\\}, as in \verb$writef('\\l')$.
+
 
 \subsubsection{Syntax for Non-Decimal Numbers}
 

@@ -97,7 +97,7 @@ to maintain programs (see make/0).
     \item [Very fast compiler]
 Even very large applications can be loaded in seconds on most machines.
 If this is not enough, there is a Quick Load Format that is slightly
-more compact and loading is almst always I/O bound.
+more compact and loading is almost always I/O bound.
     \item [Transparent compiled code]
 SWI-Prolog compiled code can be treated just as interpreted code: you
 can list it, trace it, assert to or retract from it, etc. This implies
@@ -282,17 +282,17 @@ Added facilities to allow for embedding SWI-Prolog in C applications.
 
 \section{Version 2.5 Release Notes}
 
-Version 2.5 is an intermediate release on the path from 2.1 to 3.0.  All
-changes are to the foreign-language interface, both to user- and system
-predicates implemented in the C-language.  The aim is twofold.  First of
-all to make garbage-collection and stack-expansion (stack-shifts)
-possible while foreign code is active without the C-programmer having
-to worry about locking and unlocking C-variables pointing to Prolog
-terms.  The new approach is closely compatible to the Quintus and
-SICStus Prolog foreign interface using the \const{+term} argument
-specification (see their respective manuals).  This allows for writing
-foreign interfaces that are easily portable over these three Prolog
-platforms.
+Version 2.5 is an intermediate release on the path from 2.1 to 3.0. All
+changes are to the foreign-language interface, both to user- and
+system-predicates implemented in the C-language. The aim is twofold.
+First of all to make garbage-collection and stack-expansion
+(stack-shifts) possible while foreign code is active without the
+C-programmer having to worry about locking and unlocking C-variables
+pointing to Prolog terms. The new approach is closely compatible to the
+Quintus and SICStus Prolog foreign interface using the \const{+term}
+argument specification (see their respective manuals). This allows for
+writing foreign interfaces that are easily portable over these three
+Prolog platforms.
 
 According to the current plan, ISO compliant exception handling and
 hooks for source-code debugging will be added before the system will
@@ -305,7 +305,7 @@ are the main changes since 2.1.0:
     \item [ISO compatibility]
 Many ISO compatibility features have been added: open/4, arithmetic
 functions, syntax, etc.
-    \item [WIN32]
+    \item [Win32]
 Many fixes for the Win32 (NT, '95 and win32s) platforms.  Notably
 many problems related to pathnames and a problem in the garbage
 collector.
@@ -355,13 +355,14 @@ minimal cost.
 
 \section{Version 2.8 Release Notes}
 
-\index{Alpha, DEC}\index{DEC, Alpha}% With version 2.8, we declare the
-data-representation changes of 2.7.x stable. Version 2.8 exploits the
-changes of of 2.7 to support 64-bit processors like the DEC Alpha. As of
-version 2.8.5, the representation of recorded the terms has changed, and
-terms on the heap are now represented in a compiled format. SWI-Prolog
-no longer limits the use of \funcref{malloc}{} or uses assumptions on
-the addresses returned by this function.
+\index{Alpha, DEC}\index{DEC, Alpha}%
+With version 2.8, we declare the data-representation changes of 2.7.x
+stable. Version 2.8 exploits the changes of 2.7 to support 64-bit
+processors like the DEC Alpha. As of version 2.8.5, the representation
+of recorded terms has changed, and terms on the heap are now
+represented in a compiled format. SWI-Prolog no longer limits the use of
+\funcref{malloc}{} or uses assumptions on the addresses returned by this
+function.
 
 \section{Version 2.9 Release Notes}
 
