@@ -1,4 +1,4 @@
-SWI-Prolog 5.5.1/XPCE 6.5.1 development release
+SWI-Prolog 5.5.3/XPCE 6.5.1 development release
 
 Planned features in 5.5.x relative to 5.4.x and their status
 ============================================================
@@ -17,11 +17,12 @@ Planned features in 5.5.x relative to 5.4.x and their status
 		- UNICODE (LE/BE)
 	- Updated the MS-Windows console (plwin.exe/plterm.dll) to run
 	  in MS UNICODE mode
+	- Support wide characters in SGML/XML parser.
 
       Lacking
       -------
 
-	- Support in packages.  Notable sgml/xml parser
+	- Support in packages.  Notable XPCE
 	- Clear vision on foreign interface
 	- Clear vision on handling non-iso-latin-1 8-bit codepages
 
@@ -35,15 +36,11 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	  considered beta code.
 
 
-Patches in 5.5.1 relative to 5.5.0
+Patches in 5.5.2 relative to 5.5.1
 ==================================
 
-  * Integrated clp(R).
-
-  * Cleanup of foreign predicate registration by Salvador Fandino.
-
-  * Fixed some issues in the Windows console support for wide characters:
-    recalling window size/position, protocol/noprotocol.
+  * Provide wide-character support for the SGML/XML parser.  Also
+    added writing module (sgml_write.pl).
 
   * Various small issues.
 
@@ -51,12 +48,9 @@ Patches in 5.5.1 relative to 5.5.0
 Packages
 ========
 
-  * socket/ssl: Fix SSL problems on Windows and SSL/Socket interaction
-    on Windows.
-
+  (none)
 
 Incompatible changes
 ====================
 
-  * PL_register_foreign("module:predicate", ...) no longer works.  See
-    the new PL_register_foreign_in_module() interface
+  (none)
