@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Win32: `file->exists' succeeded on directories, where this is only
+  supposed to be the case if the optional must_be_file argument is @off.
+
 * FIXED: avoid domain error on random/1 in the manual object-inspector tool.
 
 * FIXED: Many issues to subwindow layout handling for the user.  Added new
