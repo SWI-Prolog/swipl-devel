@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: library(debug) for dealing with print-statements from your code
+    and assuptions you make during development.  Documented in the reference
+    manual.
+
+
 VERSION 5.1.4 (Dec 20, 2002)
 ============================
 

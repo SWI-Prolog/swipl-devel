@@ -61,6 +61,7 @@ suggest predicates from a keyword.
 \predicatesummary{asserta}{2}{Add a clause to the database (first)}
 \predicatesummary{assertz}{1}{Add a clause to the database (last)}
 \predicatesummary{assertz}{2}{Add a clause to the database (last)}
+\predicatesummary{assume}{1}{Make assertions about your program}
 \predicatesummary{attach_console}{0}{Attach I/O console to thread}
 \predicatesummary{at_end_of_stream}{0}{Test for end of file on input}
 \predicatesummary{at_end_of_stream}{1}{Test for end of file on stream}
@@ -141,8 +142,11 @@ suggest predicates from a keyword.
 \predicatesummary{dde_poke}{3}{Win32: POKE operation on DDE server}
 \predicatesummary{dde_unregister_service}{1}{Win32: Terminate a DDE service}
 \predicatesummary{debug}{0}{Test for debugging mode}
+\predicatesummary{debug}{1}{Select topic for debugging}
+\predicatesummary{debug}{3}{Print debugging message on topic}
 \predicatesummary{debug_control_hook}{1}{\hook{prolog} Extend spy/1, etc.}
 \predicatesummary{debugging}{0}{Show debugger status}
+\predicatesummary{debugging}{1}{Test where we are debugging topic}
 \predicatesummary{default_module}{2}{Get the default modules of a module}
 \predicatesummary{delete}{3}{Delete all matching members from a list}
 \predicatesummary{delete_directory}{1}{Remove a folder from the file system}
@@ -244,6 +248,7 @@ suggest predicates from a keyword.
 \predicatesummary{line_count}{2}{Line number on stream}
 \predicatesummary{line_position}{2}{Character position in line on stream}
 \predicatesummary{list_to_set}{2}{Remove duplicates}
+\predicatesummary{list_debug_topics}{0}{List registered topics for debugging}
 \predicatesummary{listing}{0}{List program in current module}
 \predicatesummary{listing}{1}{List predicate}
 \predicatesummary{load_files}{2}{Load source files with options}
@@ -279,6 +284,7 @@ suggest predicates from a keyword.
 \predicatesummary{nl}{0}{Generate a newline}
 \predicatesummary{nl}{1}{Generate a newline on a stream}
 \predicatesummary{nodebug}{0}{Disable debugging}
+\predicatesummary{nodebug}{1}{Disable debug-topic}
 \predicatesummary{noguitracer}{0}{Disable the graphical debugger}
 \predicatesummary{nonvar}{1}{Type check for bound term}
 \predicatesummary{noprotocol}{0}{Disable logging of user interaction}

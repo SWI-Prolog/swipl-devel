@@ -15,7 +15,7 @@ predicates in the following ways.
           current_prolog_flag/2), library predicates must be loaded
 	  explicitely.
 
-    \item Using libraries reduced the footprint of applications that
+    \item Using libraries reduce the footprint of applications that
           don't need them.
 \end{itemize}
 
@@ -27,6 +27,7 @@ documented at all.
 \end{quote}
 
 \input{check}
+\input{debug}
 \input{readutil}
 \input{netscape}
 \input{registry}

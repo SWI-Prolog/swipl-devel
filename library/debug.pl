@@ -34,7 +34,8 @@
 	    debug/1,			% +Topic
 	    nodebug/1,			% +Topic
 	    debugging/1,		% ?Topic
-	    debug_subject/1,		% +Topic
+	    debugging/2,		% ?Topic, ?Bool
+	    list_debug_topics/0,
 
 	    assume/1			% +Goal
 	  ]).
@@ -77,21 +78,30 @@ nodebug(Topic) :-
 	;   true
 	).
 
-%	debug_subject(+Topic)
+%	debug_topic(+Topic)
 %
 %	Declare a topic for debugging.  This can be used to find all
 %	topics available for debugging.
 
-debug_subject([]) :- !.
-debug_subject([H|T]) :- !,
-	debug_subject(H),
-	debug_subject(T).
-debug_subject(Topic) :-
-	debugging(Topic, _), !.
-debug_subject(Topic) :-
-	(   debugging(Topic, _)
+debug_topic(Topic) :-
+	(   debugging(Registered, _),
+	    Registered =@= Topic
 	->  true
 	;   assert(debugging(Topic, false))
+	).
+
+%	list_debug_topics
+%	
+%	List currently known debug topics and their setting.
+
+list_debug_topics :-
+	format(user_error, '~*t~40|~n', "-"),
+	format(user_error, '~w~t~30| ~w~n', ['Debug Topic', 'Activated']),
+	format(user_error, '~*t~40|~n', "-"),
+	(   debugging(Topic, Value),
+	    format(user_error, '~w~t~30| ~w~n', [Topic, Value]),
+	    fail
+	;   true
 	).
 
 %	debug(+Topic, +Format, +Args)
@@ -131,10 +141,18 @@ assumption_failed.
 :- multifile
 	user:goal_expansion/2.
 
-user:goal_expansion(debug(_,_,_), true) :-
-	current_prolog_flag(optimise, true).
-user:goal_expansion((debugging(_) -> _ ; true), true) :-
-	current_prolog_flag(optimise, true).
+user:goal_expansion(debug(Topic,_,_), true) :-
+	(   current_prolog_flag(optimise, true)
+	->  true
+	;   debug_topic(Topic),
+	    fail
+	).
+user:goal_expansion((debugging(Topic) -> _ ; true), true) :-
+	(   current_prolog_flag(optimise, true)
+	->  true
+	;   debug_topic(Topic),
+	    fail
+	).
 user:goal_expansion(assume(_), true) :-
 	current_prolog_flag(optimise, true).
 

@@ -1,0 +1,60 @@
+\libdoc{debug}{Some reusable code to help debugging applications}
+
+This library provides an structured alternative for putting
+print-statements into your source-code to trace what is going on. Debug
+messages are organised in \jargon{topics} that can be activated and
+de-activated without changing the source.  In addition, if the
+application is compiled with the \cmdlineoption{-O} flag these
+predicates are removed using goal_expansion/2.
+
+Although this library can be used through the normal demand-loading
+mechanism it is adviced to load it explicitely before code using it to
+profit from goal-expansion, which removes these calls if compiled with
+optimisation on and records the topics from debug/3 and debugging/1 for
+list_debug_topics/0.
+
+\begin{description}
+    \predicate{debug}{3}{+Topic, +Format, +Args}
+If \arg{Topic} is a selected debugging topic (see debug/1) a message
+is printed using print_message/2 with level \const{informational}.
+\arg{Format} and \arg{Args} are interpreted by format/2.  Here is a
+typical example:
+
+\begin{code}
+	...,
+	debug(init, 'Initialised ~w', [Module]),
+	...,
+\end{code}
+
+\arg{Topic} can be any Prolog term.  Compound terms can be used to
+make categories of topics that can be activated using debug/1.
+
+    \predicate{debugging}{1}{+Topic}
+Succeeds if \arg{Topic} is a selected debugging topic.  It is intended
+to execute arbitrary code depending on the users debug topic selection.
+The construct \mbox{\tt (debugging(Topic) -> \arg{Code} ; true)} is
+removed if the code is compiled in optimise mode.
+
+    \predicate{debug}{1}{+Topic}
+Select all registered topics that unify with \arg{Topic} for debugging.
+This call is normally used from the toplevel to activate a topic for
+debugging.  Topics are de-activated using nodebug/1.
+
+    \predicate{nodebug}{1}{+Topic}
+Deactivates topics for debugging.  See debug/1 for the arguments.
+
+    \predicate{list_debug_topics}{0}{}
+List the current status of registered topics.  See also debugging/0.
+
+    \predicate{assume}{1}{:Goal}
+\index{assertions}%
+This predicate is to be compared to the C-library assert()
+function. By inserting this goal you explicitely state you expect
+\arg{Goal} to succeed at this place. As assume/1 calls are removed when
+compiling in optimized mode \arg{Goal} should not have side-effects.
+Typical examples are type-tests and validating invariants defined by
+your application.
+
+If \arg{Goal} fails the system prints a message and starts the debugger.
+\end{description}
+

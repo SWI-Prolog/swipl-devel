@@ -31,8 +31,9 @@ In addition, any foreign thread can create its own Prolog engine for
 dealing with calling Prolog from C-code.
 \end{itemlist}
 
-SWI-Prolog multi-threading is based on the POSIX thread standard used on
-most popular systems except for MS-Windows. On Windows it uses the
+SWI-Prolog multi-threading is based on the POSIX thread standard
+\cite{Butenhof:1997:PPT} used on most popular systems except for
+MS-Windows. On Windows it uses the
 \url[pthread-win32]{http://sources.redhat.com/pthreads-win32/} emulation
 of POSIX threads mixed with the Windows native API for smoother and
 faster operation.
