@@ -847,10 +847,13 @@ compileBody(Word body, code call, register compileInfo *ci)
     } else if ( fd == FUNCTOR_ifthen2 )		/* A -> B */
     { int var = VAROFFSET(ci->clause->variables++);
       int rv;
+      int cutsave = ci->cutvar;
 
       Output_1(ci, C_MARK, var);
+      ci->cutvar = var;		/* Cut locally in the condition */
       if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci)) != TRUE )
 	return rv;
+      ci->cutvar = cutsave;
       Output_1(ci, C_CUT, var);
       if ( (rv=compileBody(argTermP(*body, 1), call, ci)) != TRUE )
 	return rv;

@@ -2779,7 +2779,8 @@ conditions should be rare (I hope :-).
 	    goto c_cut;
 	  }
 	}
-	assert(0);
+	assert(BFR == och);		/* no choicepoint yet */
+	NEXT_INSTRUCTION;
     VMI(C_CUT) 						MARK(C_CUT);
 	och = (Choice) varFrame(FR, *PC);
 	PC++;				/* cannot be in macro! */
