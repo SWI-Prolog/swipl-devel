@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: integer return values of prolog defined methods incorrectly mapped
+  to XPCE floats.
+
 * ADDED: `text_buffer->iso_latin_1' to see whether text can be expressed in
   ISO Latin-1.
 

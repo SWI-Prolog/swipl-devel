@@ -1261,7 +1261,7 @@ get_answer_object(PceGoal g, Term t, PceType type, PceObject *rval)
       obj = atomToName(val.a);
       break;
     case PL_INTEGER:
-      if ( val.i >- PCE_MIN_INT && val.i <= PCE_MAX_INT )
+      if ( val.i >= PCE_MIN_INT && val.i <= PCE_MAX_INT )
 	obj = cToPceInteger((long)val.i);
       else
 	obj = cToPceReal((double)val.i);
