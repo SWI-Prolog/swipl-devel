@@ -46,6 +46,7 @@ AC_MSG_RESULT("		PLSHARED=$PLSHARED")
 AC_MSG_RESULT("		PLSOEXT=$PLSOEXT")
 else
 PLLD=../plld.sh
+PL=../pl.sh
 fi
 
 CC=$PLLD
