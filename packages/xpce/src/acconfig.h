@@ -55,9 +55,6 @@
 /* Define if struct tm has tm_gmtoff field */
 #undef HAVE_TM_GMTOFF
 
-/* Define if you want the C++ interface compiled in */
-#undef O_CPLUSPLUS
-
 /* Define to include the password checking code */
 #undef O_LICENCE
 
