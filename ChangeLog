@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: PLWIN.EXE getting into a loop after using Page Up/Down buttons.
+    Yair Greenberg.
+
   * FIXED: qsave_program/2: properly handle small and 0 (= max) stack-size
     specification.  Detmar Meurers.
 
@@ -30,8 +33,8 @@
 
   * FIXED: Editor-handling based on $EDITOR (Ulrich Zimmermann).
 
-VERSION 5.0.5
-=============
+VERSION 5.0.5 (April 16, 2002)
+==============================
 
   * PORT: Hopefully get plld -shared -o test.so test.c to produce foreign
     libraries on BeOS.  With lots of help from Axel Dörfler.
