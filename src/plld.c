@@ -32,6 +32,7 @@ embedded application.
 #define PROG_PL "plcon.exe"
 #define PROG_LD "link.exe"
 #define PROG_CC "cl.exe"
+#define PROG_CXX "cl.exe"
 #define PROG_OUT "plout.exe"
 #define LIB_PL	 "libpl.lib"
 #define LIB_PL_DEBUG "libplD.lib"
@@ -42,6 +43,7 @@ embedded application.
 
 #define PROG_PL "pl"
 #define PROG_CC "cc"
+#define PROG_CXX "c++"
 #define PROG_LD cc
 #define PROG_OUT "a.out"
 #define LIB_PL	"-lpl"
@@ -672,7 +674,7 @@ tmpPath(char **store, const char *base)
 static void
 fillDefaultOptions()
 { char tmp[1024];
-  char *defcxx = "c++";
+  char *defcxx = PROG_CXX;
 
   defaultProgram(&cc,  PROG_CC);
   if ( streq(cc, "gcc") )

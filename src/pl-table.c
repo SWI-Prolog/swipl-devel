@@ -301,7 +301,7 @@ rawAdvanceTableEnum(TableEnum e)
   while(!n)
   { if ( ++e->key >= ht->buckets )
     { e->current = NULL;
-      return NULL;
+      return s;
     }
 
     n=ht->entries[e->key];

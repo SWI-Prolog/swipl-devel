@@ -1890,9 +1890,13 @@ qlfStartModule(Module m, IOSTREAM *fd)
   else
     Putc('-', fd);
 
+  DEBUG(2, Sdprintf("MODULE %s\n", stringAtom(m->name)));
   for_unlocked_table(m->public, s,
 		     { functor_t f = (functor_t)s->name;
 
+		       DEBUG(2, Sdprintf("Exported %s/%d\n",
+					 stringAtom(nameFunctor(f)),
+					 arityFunctor(f)));
 		       Putc('E', fd);
 		       saveXRFunctor(f, fd);
 		     })
