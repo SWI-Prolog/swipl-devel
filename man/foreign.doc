@@ -44,13 +44,14 @@ categories:
 
 \section{Linking Foreign Modules}		\label{sec:foreignlink}
 
-Foreign modules may be linked to Prolog in three ways. Using 
-\jargon{static linking}, the extensions, a small description file and the basic
-SWI-Prolog object file are linked together to form a new executable.
+Foreign modules may be linked to Prolog in two ways. Using
+\jargon{static linking}, the extensions, a (short) file defining main()
+which attaches the extensions calls Prolog and the SWI-Prolog kernel
+distributed as a C-library are linked together to form a new executable.
 Using \jargon{dynamic linking}, the extensions are linked to a shared
 library (\fileext{so} file on most Unix systems) or dynamic-link library
-(\fileext{DLL} file on Microsoft platforms) and loaded into the the running
-Prolog process.%
+(\fileext{DLL} file on Microsoft platforms) and loaded into the the
+running Prolog process.%
     \footnote{The system also contains code to load \fileext{o} files
               directly for some operating systems, notably Unix systems
               using the BSD \file{a.out} executable format. As the number of
