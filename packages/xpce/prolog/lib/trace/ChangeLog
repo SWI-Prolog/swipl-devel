@@ -1,0 +1,6 @@
+* FIXED: Avoid sending ->file: @nil to the source-view
+
+* FIXED: `Up' pass through foreign frames, so we can really get to the top,
+  regardless of intermediate foreign frames caused by breaks, XPCE message
+  passing, etc.
+

@@ -614,6 +614,8 @@ port_name(exception, 'Exception').
 
 clean_goal(M:Goal, Goal) :-
 	hidden_module(M), !.
+clean_goal(M:Goal, Goal) :-
+	predicate_property(M:Goal, built_in), !.
 clean_goal(Goal, Goal).
 
 

@@ -1122,6 +1122,9 @@ $goal_type(Goal, Type) :-
 
 $load_goal([_|_]).
 $load_goal(consult(_)).
+$load_goal(load_files(_)).
+$load_goal(load_files(_,Options)) :-
+	memberchk(qcompile(true), Options).
 $load_goal(ensure_loaded(_)) :- flag($compiling, wic, wic).
 $load_goal(use_module(_))    :- flag($compiling, wic, wic).
 $load_goal(use_module(_, _)) :- flag($compiling, wic, wic).

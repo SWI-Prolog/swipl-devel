@@ -54,12 +54,15 @@ user:portray(Obj) :-
 	;   get(Obj, '_class_name', CN),
 	    format('@~w/~w', [Ref, CN])
 	).
-user:portray(pce_principal:send_implementation(_Id, Args, Receiver)) :-
+user:portray(pce_principal:send_implementation(Id, Args, Receiver)) :-
 	object(Receiver), !,
-	format('~p->~p', [Receiver, Args]).
-user:portray(pce_principal:get_implementation(_Id, Args, Receiver, RVal)) :-
+	method_from_id(Id, (Class->_Method)),
+	format('Send-method on ~p: ~w->~p', [Receiver, Class, Args]).
+user:portray(pce_principal:get_implementation(Id, Args, Receiver, RVal)) :-
 	object(Receiver), !,
-	format('~p<-~p --> ~p', [Receiver, Args, RVal]).
+	method_from_id(Id, <-(Class, _Method)),
+	format('Get-method on ~p: ~w<-~p --> ~p',
+	       [Receiver, Class, Args, RVal]).
 
 %	user:prolog_list_goal(:Goal)
 %

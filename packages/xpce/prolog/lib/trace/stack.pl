@@ -243,8 +243,7 @@ step(N, B, child, V, V2) :-
 	step(NN, B, child, Ch, V2).
 step(N, B, parent, V, V2) :-
 	get(V, frame_reference, Frame),
-	prolog_frame_attribute(Frame, pc, PC),
-	prolog_frame_attribute(Frame, parent, Parent),
+	prolog_parent(Frame, Parent, PC),
 	(   debug('Looking for parent ~d, PC=~d~n', [Parent, PC]),
 	    get(B, member, Parent, PC, V1)
 	->  true
@@ -260,6 +259,18 @@ step(_, B, parent, V, V) :- !,
 	send(B, report, warning, 'Top frame').
 step(_, B, child, V, V) :- !,
 	send(B, report, warning, 'Deepest frame').
+
+%	prolog_parent(+Frame, -Parent, -PC)
+%
+%	Find parent executing Prolog. If our direct parent is a foreign
+%	frame, keep walking up.
+
+prolog_parent(Frame, Parent, PC) :-
+	prolog_frame_attribute(Frame, pc, PC), !,
+	prolog_frame_attribute(Frame, parent, Parent).
+prolog_parent(Frame, Parent, PC) :-
+	prolog_frame_attribute(Frame, parent, Super),
+	prolog_parent(Super, Parent, PC).
 
 down(B, Times:[int]) :->
 	"Select (Nth) child"::

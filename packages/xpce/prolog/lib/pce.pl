@@ -88,20 +88,22 @@ reexports the content of these files.
    absolute_file_name(RawBootDir, BootDir),
    assert(user:file_search_path(pce_boot, BootDir)).
 
-:- [ pce_boot(pce_expand),
-     pce_boot(pce_pl),
-     pce_boot(pce_principal),
-     pce_boot(pce_error),
-     pce_boot(pce_operator),
-     pce_boot(pce_global),
-     pce_boot(pce_expansion),
-     pce_boot(pce_realise),
-     pce_boot(pce_goal_expansion),
-     pce_boot(pce_autoload),
-     pce_boot(pce_editor),
-     pce_boot(pce_portray)
-   ].
-
+:- load_files([ pce_boot(pce_expand),
+		pce_boot(pce_pl),
+		pce_boot(pce_principal),
+		pce_boot(pce_error),
+		pce_boot(pce_operator),
+		pce_boot(pce_global),
+		pce_boot(pce_expansion),
+		pce_boot(pce_realise),
+		pce_boot(pce_goal_expansion),
+		pce_boot(pce_autoload),
+		pce_boot(pce_editor),
+		pce_boot(pce_portray)
+	      ],
+	      [ qcompile(true),
+		silent(true)
+	      ]).
 
 set_version :-
 	current_prolog_flag(version, PlVersion),

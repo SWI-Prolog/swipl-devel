@@ -426,9 +426,9 @@ query(_F) :->
 
 :- pce_group(delegate).
 
-file(F, File:'name|text_buffer*') :->
+file(F, File:'name|emacs_buffer*') :->
 	"Attach to indicated file"::
-	send(F?source, file, File).
+	send(F?source, source, File).
 
 show_range(F, File:'name|text_buffer', From:int, To:int, Style:name) :->
 	"Show indicated region using Style"::

@@ -476,7 +476,6 @@ static PL_dispatch_hook_t	old_dispatch_hook;
 					? PL_Q_NORMAL : PL_Q_NODEBUG)
 
 #define META	PL_FA_TRANSPARENT
-#define HIDDEN	PL_FA_NOTRACE
 #define InstallPredicate(n, a, f, flags) \
 	PL_register_foreign(n, a, f, flags)
 

@@ -122,8 +122,9 @@ pce_ifhostproperty(prolog(sicstus), [
 		********************************/
 
 
-%   free(+Ref)
-%   Delete object if it exists.
+%   	free(+Ref)
+%
+%	Delete object if it exists.
 
 free(Ref) :-
 	object(Ref), !,
@@ -131,10 +132,11 @@ free(Ref) :-
 free(_).
 
 
-%   send(+@Object, +Selector, ...+Arguments...)
+%	send(+@Object, +Selector, ...+Arguments...)
 %
-%   Succeeds if sending a message to Object with Selector and the given
-%   Arguments succeeds.
+%	Succeeds if sending a message to Object with Selector and the
+%	given Arguments succeeds. Normally, goal_expansion/2 expands all
+%	these goals into send(Receiver, Method(Args...)).
 
 send(Receiver, Selector, A1) :-
         functor(Message, Selector, 1),
@@ -231,8 +233,9 @@ send(Receiver, Selector, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10) :-
         arg(10, Message, A10),
         send(Receiver, Message).
 
-%   get(+@Object, +Selector, ...+Arguments..., Rval)
+%	get(+@Object, +Selector, ...+Arguments..., Rval)
 %
+%	See the comments with send/[3-12].
 
 get(Receiver, Selector, A1, Answer) :-
         functor(Message, Selector, 1),
@@ -366,7 +369,7 @@ send_implementation(trace(Id), Args, Obj) :-
 
 %	get_implementation(+Id, +Message, +Object, -Return)
 %	
-%	As send_implementation/3 for get-methods.
+%	As send_implementation/3, but for get-methods.
 
 get_implementation(true, _Args, _Obj, _Rval).
 get_implementation(fail, _Args, _Obj, _Rval) :- fail.

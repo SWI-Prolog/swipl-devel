@@ -2368,7 +2368,7 @@ PL_register_foreign(const char *name, int arity, Func f, int flags)
   def->flags = 0;
 
   if ( m == MODULE_system || SYSTEM_MODE )
-    set(def, FOREIGN|SYSTEM|HIDE_CHILDS);
+    set(def, FOREIGN|SYSTEM|TRACE_ME);
   else
     set(def, FOREIGN|TRACE_ME);
 

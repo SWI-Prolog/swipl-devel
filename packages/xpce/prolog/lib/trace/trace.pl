@@ -331,16 +331,22 @@ subgoal_position(ClauseRef, exception, File, CharA, CharZ) :- !,
 	subgoal_position(ClauseRef, exit, File, CharA, CharZ).
 subgoal_position(ClauseRef, PC, File, CharA, CharZ) :-
 	clause_info(ClauseRef, File, TPos, _),
-	'$clause_term_position'(ClauseRef, PC, List),
-	debug('Term-position: ~w~n', [List]),
-	(   find_subgoal(List, TPos, PosTerm)
-	->  true
-	;   PosTerm = TPos,
-	    send_tracer(report(warning,
-			       'Clause source-info could not be parsed'))
-	),
-	arg(1, PosTerm, CharA),
-	arg(2, PosTerm, CharZ).
+	(   '$clause_term_position'(ClauseRef, PC, List)
+	->  debug('Term-position: ~w~n', [List]),
+	    (   find_subgoal(List, TPos, PosTerm)
+	    ->  true
+	    ;   PosTerm = TPos,
+		send_tracer(report(warning,
+				   'Clause source-info could not be parsed')),
+		fail
+	    ),
+	    arg(1, PosTerm, CharA),
+	    arg(2, PosTerm, CharZ)
+	;   send_tracer(report(warning,
+			       'No clause-term-position for ref=%s at PC=%s',
+			       ClauseRef, PC)),
+	    fail
+	).
 
 
 head_pos(Ref, Pos, HPos) :-

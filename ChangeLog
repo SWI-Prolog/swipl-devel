@@ -1,6 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: when loading foreign libraries in `system mode', the loaded 
+    predicates are available to the tracer as other built-in code.  This
+    fixes tracing XPCE code.
+
+  * ADDED: option qcompile to load_files/2.
+
   * ENHANCED: Replaced some more warnings with exceptions in pl-trace.c
 
   * PORT: Port to MacOS X (darwin):

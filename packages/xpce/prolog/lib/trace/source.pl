@@ -81,7 +81,8 @@ initialise(V) :->
 
 lost_text_buffer(V) :->
 	"The textbuffer has been destroyed, replace by a new one"::
-	send(V, file, @nil).
+	new(Scratch, emacs_buffer(@nil, '*scratch*')),
+	send(V, text_buffer, Scratch).
 
 update_label(V) :->
 	"Create label from <-editable and <-source"::
@@ -158,6 +159,7 @@ not_recently_checked :-
 
 source(V, Source:'name|emacs_buffer*') :->
 	"Attach to indicated file"::
+	debug('Attaching source ~p ...', [Source]),
 	(   get(V, source, Source)
 	->  true
 	;   (   Source == @nil
@@ -173,7 +175,8 @@ source(V, Source:'name|emacs_buffer*') :->
 	    send(V, slot, source, Source),
 	    send(V, update_label),
 	    send(V?editor, auto_colourise_buffer)
-	).
+	),
+	debug('ok~n', []).
 
 source_file(V, File:name) :<-
 	"Currently shown sourcefile"::
