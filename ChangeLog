@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 4.1.0
+=============
+
   * FIXED/PORT: Win32 missing cleanupTerm(), some signed/unsigned problems
     in debug mode.
 

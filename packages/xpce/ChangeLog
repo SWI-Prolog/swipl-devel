@@ -1,6 +1,11 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 5.1.11, distributed with SWI-Prolog 4.1.0
+=================================================
+
+* FIXED: PceEmacs LaTeX mode: avoid loop looking for environment.
+
 * PORT: Win32: Upgraded jpeg-support libraries to version 6b, providing
   full compatibility with the current Unix/X11 versions.
 
