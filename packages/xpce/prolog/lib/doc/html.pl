@@ -347,6 +347,26 @@ element(body, Attributes, Content) -->	% <BODY>
 	| Content
 	].
 
+element(base, Attrs, [], Mode) -->	% <BASE href=BaseURL>
+	{ (   option(href(BaseURL), Attrs)
+	  ->  send(Mode, base_url, BaseURL)
+	  ;   true			% warn?
+	  )
+	},
+	[].
+
+		 /*******************************
+		 *	      SCRIPTS		*
+		 *******************************/
+
+%	should allow for `language=prolog' and define something to do
+%	with it!?
+
+element(script, _, _) -->
+	{ print_message(informational, html_ignored_script(script))
+	},
+	[].
+
 		 /*******************************
 		 *	       TITLES		*
 		 *******************************/
@@ -490,3 +510,5 @@ prolog:message(html_ignored_attribute(Element, Attribute)) -->
 	[ 'Failed to handle attribute ~p of element ~w'-[Attribute, Element] ].
 prolog:message(html_ignored_element(Element)) -->
 	[ 'Ignored element "~w", using content'-[Element] ].
+prolog:message(html_ignored_script(_Element)) -->
+	[ 'Ignored script' ].
