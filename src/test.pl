@@ -774,8 +774,19 @@ testset(popen) :-
 	current_prolog_flag(pipe, true).
 testset(ctype).
 
+:- dynamic
+	failed/1.
+
 test :-
-	forall(testset(Set), runtest(Set)).
+	retractall(failed(_)),
+	forall(testset(Set), runtest(Set)),
+	findall(X, failed(X), L),
+	length(L, Len),
+	(   Len > 0
+        ->  format('~n*** ~w tests failed ***~n', [Len]),
+	    fail
+        ;   format('~nAll tests passed~n', [])
+	).
 
 runtest(Name) :-
 	format('Running test set "~w" ', [Name]),
@@ -789,7 +800,8 @@ runtest(Name) :-
 	    clause_property(R, line_count(Line)),
 	    clause_property(R, file(File)),
 	    format('~N~w:~d: Test ~w(~w) failed~n',
-		   [File, Line, Name, TestName])
+		   [File, Line, Name, TestName]),
+	    assert(failed(Head))
 	),
 	fail.
 runtest(_) :-

@@ -234,6 +234,9 @@ swipl:
 swiplbin:	
 		echo ".." > $@
 
+test:
+		./$(PL) -f $(srcdir)/test.pl -F none -g test,halt -t 'halt(1)'
+
 install:	@INSTALLTARGET@
 install-version: install-arch install-libs install-vbins
 
