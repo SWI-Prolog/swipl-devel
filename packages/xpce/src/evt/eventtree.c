@@ -91,7 +91,7 @@ static senddecl send_eventTree[] =
 /* Get Methods */
 
 static getdecl get_eventTree[] =
-{ GM(NAME_node, 1, "event_node", "event_id", getNodeEventTree,
+{ GM(NAME_node, 1, "event_node", "name|int", getNodeEventTree,
      NAME_lookup, "Find a node from it's associated value")
 };
 
