@@ -389,7 +389,7 @@ set_constraint_indices([],M) :-
 	N is M - 1,
 	max_constraint_index(N).
 set_constraint_indices([C|Cs],N) :-
-	( ( may_trigger(C) ;  is_stored(C), get_store_type(C,default)) ->
+	( ( chr_pp_flag(debugable, on) ; may_trigger(C) ;  is_stored(C), get_store_type(C,default)) ->
 		constraint_index(C,N),
 		M is N + 1,
 		set_constraint_indices(Cs,M)
@@ -3253,7 +3253,7 @@ gen_cond_attach_clause(F/A,Id,L,T) :-
 	( is_finally_stored(F/A) ->
 		get_allocation_occurrence(F/A,AllocationOccurrence),
 		get_max_occurrence(F/A,MaxOccurrence),
-		( MaxOccurrence < AllocationOccurrence ->
+		( chr_pp_flag(debugable,off), MaxOccurrence < AllocationOccurrence ->
 			( may_trigger(F/A) ->
 				gen_cond_attach_goal(F/A,Body,AllArgs,Args,Susp)
 			;
@@ -3462,7 +3462,7 @@ gen_allocation(Vars,Susp,F/A,VarsSusp,ConstraintAllocationGoal) :-
 
 gen_occ_allocation(FA,O,Vars,Susp,VarsSusp,ConstraintAllocationGoal) :-
 	get_allocation_occurrence(FA,AO),
-	( O == AO ->
+	( chr_pp_flag(debugable,off), O == AO ->
 		( may_trigger(FA) ->
 			gen_cond_allocation(Vars,Susp,FA,VarsSusp,ConstraintAllocationGoal)
 		;

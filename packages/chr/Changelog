@@ -1,3 +1,7 @@
+Feb 25, 2005
+
+  * TS: Fixed several bugs in generation of debugable code.
+
 Feb 19, 2005
 
   * JW: Cleanup integration in SWI-Prolog environment:
