@@ -140,9 +140,10 @@ ws_dispatch(Int FD, Any timeout)
 
   pceMTLock(LOCK_PCE);
   RedrawDisplayManager(TheDisplayManager());
+  pceMTUnlock(LOCK_PCE);
+					/* All callbacks must be locked! */
   XtAppProcessEvent(ThePceXtAppContext,
 		    XtIMXEvent|XtIMTimer|XtIMAlternateInput);
-  pceMTUnlock(LOCK_PCE);
 
   if ( tid && rval )			/* if rval = FAIL, we had a timeout */
     XtRemoveTimeOut(tid);

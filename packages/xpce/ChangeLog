@@ -1,6 +1,13 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: When using with multi-threaded SWI-Prolog, avoid deadlock if
+  background threads wants to send output.
+
+
+VERSION 6.0.9, distributed with SWI-Prolog 5.0.9
+================================================
+
 * ADDED: Skeleton file for ~/.xpce/Defaults.
 
 * ADDED: First version of system-dependent and hot-switchable key-bindings

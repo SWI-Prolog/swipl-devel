@@ -267,6 +267,7 @@ event_window(Widget w, XtPointer xsw, XtPointer xevent)
 { PceWindow sw = (PceWindow) xsw;
   XEvent *event = (XEvent *)xevent;
 
+  pceMTLock(LOCK_PCE);
   DEBUG(NAME_event, Cprintf("event_window(): X-event %d on %s\n",
 			    event->xany.type, pp(sw)));
 
@@ -281,6 +282,7 @@ event_window(Widget w, XtPointer xsw, XtPointer xevent)
 
 		rewindAnswerStack(mark, NIL);
 	      });
+  pceMTUnlock(LOCK_PCE);
 }		  
 
 
@@ -292,6 +294,7 @@ expose_window(Widget w, XtPointer xsw, XtPointer xregion)
   Region region = (Region) xregion;
   Window win;
 
+  pceMTLock(LOCK_PCE);
   DEBUG(NAME_window, Cprintf("Window %ld ---> %s\n", XtWindow(w), pp(sw)));
   if ( !getMemberHashTable(WindowTable, (Any) (win=XtWindow(w))) )
     appendHashTable(WindowTable, (Any) win, sw);
@@ -302,18 +305,26 @@ expose_window(Widget w, XtPointer xsw, XtPointer xregion)
 			     toInt(rect.width), toInt(rect.height), EAV);
 	      redrawWindow(sw, a);
 	      considerPreserveObject(a));
+  pceMTUnlock(LOCK_PCE);
 }
 
 
 static void
 resize_window(Widget w, XtPointer xsw, XtPointer data)
-{ PceWindow sw = (PceWindow) xsw;
-  Area a = sw->area;
-  Int ow = a->w, oh = a->h;
+{ PceWindow sw;
+  Area a;
+  Int ow, oh;
+
+  pceMTLock(LOCK_PCE);
+  sw = (PceWindow) xsw;
+  a = sw->area;
+  ow = a->w;
+  oh = a->h;
 
   ServiceMode(is_service_window(sw),
 	      qadSendv(sw, NAME_resize, 0, NULL);
 	      changedUnionWindow(sw, a->x, a->y, ow, oh));
+  pceMTUnlock(LOCK_PCE);
 }
 
 

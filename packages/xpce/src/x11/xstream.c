@@ -106,7 +106,9 @@ ws_close_stream(Stream s)
 
 static void
 ws_handle_stream_data(XtPointer xp, int *source, XtInputId *id)
-{ handleInputStream((Stream) xp);
+{ pceMTLock(LOCK_PCE);
+  handleInputStream((Stream) xp);
+  pceMTUnlock(LOCK_PCE);
 }
 
 
