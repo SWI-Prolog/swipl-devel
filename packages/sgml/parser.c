@@ -3468,12 +3468,12 @@ putchar_dtd_parser(dtd_parser *p, int chr)
       }
       if ( dtd->shorttag && f[CF_ETAGO2] == chr && p->buffer->size > 0 )
       { prepare_cdata(p);
-	p->state = S_SHORTTAG_CDATA;
 	terminate_icharbuf(p->buffer);
 	if ( p->mark_state == MS_INCLUDE )
 	{ WITH_PUBLIC_PARSER(p, process_declaration(p, p->buffer->data));
 	}
 	empty_icharbuf(p->buffer);
+	p->state = S_SHORTTAG_CDATA;
 	return;
       }
       if ( f[CF_LIT] == chr )
