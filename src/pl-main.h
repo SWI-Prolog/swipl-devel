@@ -83,13 +83,13 @@ GLOBAL struct
 #define DEF_DEFGLOBAL	4000
 #define DEF_DEFTRAIL	4000
 #define DEF_DEFARGUMENT 8
-#define DEF_DEFLOCK	8
+#define DEF_DEFLOCK	100
 #else					/* static stack areas */
 #define DEF_DEFLOCAL	200
 #define DEF_DEFGLOBAL	200
 #define DEF_DEFTRAIL	200
 #define DEF_DEFARGUMENT 5
-#define DEF_DEFLOCK	5
+#define DEF_DEFLOCK	25
 #endif
 
 #ifndef DEFLOCAL

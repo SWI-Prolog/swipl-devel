@@ -32,6 +32,48 @@ Word adr;
   return name;
 }
 
+
+#define AT_LOWER	0
+#define AT_QUOTE	1
+#define AT_FULLSTOP	2
+#define AT_SYMBOL	3
+#define AT_SOLO		4
+#define AT_SPECIAL	5
+
+static int
+atomType(a)
+Atom a;
+{ char *s = stringAtom(a);
+
+  if ( isLower(*s) )
+  { char *s2;
+
+    for(s2 = s; *s2 && isAlpha(*s2); )
+      s2++;
+    return *s2 == EOS ? AT_LOWER : AT_QUOTE;
+  }
+
+  if ( streq(s, ".") )
+    return AT_FULLSTOP;
+  
+  if (isSymbol(*s))
+  { char *s2;
+
+    for(s2 = s; *s2 && isSymbol(*s2); )
+      s2++;
+    return *s2 == EOS ? AT_SYMBOL : AT_QUOTE;
+  }
+
+  if ((isSolo(*s) || *s == ',') && s[1] == EOS)
+    return AT_SOLO;
+
+  if (streq(s, "[]") || streq(s, "{}") )
+    return AT_SPECIAL;
+  
+  return AT_QUOTE;
+}
+
+
 static void
 writePrimitive(w, quote)
 Word w;
@@ -72,54 +114,33 @@ bool quote;
   { Putf("%s", varName(w) );
     return;
   }    
+
   if (isAtom(*w))
-  { s = stringAtom(*w);
-    DEBUG(9, printf("Atom(%s)\n", s));
-    if (quote == TRUE)
-    { if (isLower(*s))
-      { char *s2;
+  { if (quote == TRUE)
+    { switch( atomType((Atom) *w) )
+      { case AT_LOWER:
+	case AT_SYMBOL:
+	case AT_SOLO:
+	case AT_SPECIAL:
+	  Putf("%s", stringAtom(*w));
+          break;
+        case AT_QUOTE:
+        case AT_FULLSTOP:
+	default:
+	{ char *s = stringAtom(*w);
+	  char c;
 
-	for(s2 = s; *s2 && isAlpha(*s2); )
-	  s2++;
-	if (*s2 == EOS)
-	{ Putf("%s", stringAtom(*w) );	/* starts lower, rest alpha */
-	  return;
+	  Put('\'');
+	  while( (c = *s++) != EOS )
+	    if (c == '\'')
+	      Putf("''");
+	  else
+	    Put(c);
+	  Put('\'');
 	}
       }
-      if (streq(s, ".") )			/* otherwise might be seen */
-      { Putf("'.'");				/* as a full stop */
-	return;
-      }
-      if (isSymbol(*s))
-      { char *s2;
-
-	for(s2 = s; *s2 && isSymbol(*s2); )
-	  s2++;
-	if (*s2 == EOS)
-	{ Putf("%s", stringAtom(*w) );	/* all symbol */
-	  return;
-	}
-      }
-      if ((isSolo(*s) || *s == ',') && s[1] == EOS)
-      { Putf("%s", stringAtom(*w) );		/* just a solo */
-	return;
-      }
-      if (streq(s, "[]") || streq(s, "{}") )	/* specials */
-      { Putf("%s", s);
-	return;
-      }
-      Put('\'');
-      while( (c = *s++) != EOS )
-	if (c == '\'')
-	  Putf("''");
-	else
-	  Put(c);
-      Put('\'');
-      return;
     } else
-    { Putf("%s", stringAtom(*w) );
-      return;
-    }
+      Putf("%s", stringAtom(*w) );
   }
 }
 
@@ -271,6 +292,18 @@ Word arg;
 
 
 static bool
+needSpace(w1, w2)
+word w1, w2;
+{ if ( isAtom(w1) && atomType((Atom) w1) == AT_SYMBOL &&
+       ((isAtom(w2) && atomType((Atom) w2) == AT_LOWER) ||
+	isVar(w2)) )
+    fail;
+
+  succeed;
+}
+
+
+static bool
 writeTerm(term, prec, style, g)
 Word term;
 int prec;
@@ -321,7 +354,8 @@ Word g;
     { if (op_pri > prec)
 	Put('(');
       writePrimitive((Word) &functor, quote);
-      Put(' ');
+      if ( needSpace(functor, *arg) )
+	Put(' ');
       writeTerm(arg, op_type == OP_FX ? op_pri-1 : op_pri, style, g);
       if (op_pri > prec)
 	Put(')');
@@ -331,7 +365,8 @@ Word g;
     { if (op_pri > prec)
 	Put('(');
       writeTerm(arg, op_type == OP_XF ? op_pri-1 : op_pri, style, g);
-      Put(' ');
+      if ( needSpace(functor, *arg) )
+	Put(' ');
       writePrimitive((Word)&functor, quote);
       if (op_pri > prec)
 	Put(')');

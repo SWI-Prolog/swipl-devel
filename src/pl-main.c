@@ -315,7 +315,7 @@ usage()
     "    4) %s [options] [-o output] -b file ...\n",
     "Options:\n",
     "    -x state        Start from state (must be first)\n",
-    "    -[LGTA]kbytes   Specify [Local, Global, Trail, Argument] stack sizes\n",
+    "    -[LGTAP]kbytes  Specify {Local,Global,Trail,Argument,Lock} stack sizes\n",
     "    -B              Small stack sizes to prepare for boot\n",
     "    -t toplevel     Toplevel goal\n",
     "    -g goal         Initialisation goal\n",

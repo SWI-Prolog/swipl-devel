@@ -26,6 +26,7 @@ static long	wait_ticks;	/* clock ticks not CPU time */
 #include <pwd.h>
 #include <sys/file.h>
 #include <unistd.h>
+#include <errno.h>
 #endif
 
 #if sun
@@ -2104,14 +2105,19 @@ char *cmd;
     old_stop = signal(SIGTSTP, SIG_DFL);
 #endif /* SIGTSTP */
 
-    while( (waitstat = Wait(&retstat)) != pid && waitstat != -1 )
-      ;
-    if ( waitstat == -1 )
-    {  warning("Failed to execute %s", cmd);
-       rval = 1;
-    }
+    for(;;)
+    { while( (waitstat = Wait(&retstat)) != pid && waitstat != -1 )
+        ;
+      if ( waitstat == -1 )
+      {  if ( errno == EINTR )
+           continue;                    /* the for-loop */
+         warning("Failed to execute %s: %s", cmd, OsError());
+         rval = 1;
+      } else
+        rval = retstat;
 
-    rval = retstat;
+      break;
+    }
   }
 #else /* v7 */
   { union wait status;			/* the parent */
@@ -2124,7 +2130,7 @@ char *cmd;
 
     while((n = Wait(&status)) != -1 && n != pid);
     if (n == -1)
-    { warning("Failed to execute %s", cmd);
+    { warning("Failed to execute %s: %s", cmd, OsError());
       rval = 1;
     } else if (WIFEXITED(status))
     { rval = status.w_retcode;

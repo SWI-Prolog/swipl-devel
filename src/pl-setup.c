@@ -181,7 +181,12 @@ deliverSignal(sig, type, scp, addr)
 int sig, type;
 SIGNAL_CONTEXT_TYPE scp;
 char *addr;
-{ if ( signalHandlers[sig].user != SIG_DFL )
+{ 
+#if O_SIG_AUTO_RESET
+  signal(sig, signalHandlers[sig].os);	/* ??? */
+#endif
+
+  if ( signalHandlers[sig].user != SIG_DFL )
   { (*signalHandlers[sig].user)(sig, type, scp, addr);
     return;
   }
