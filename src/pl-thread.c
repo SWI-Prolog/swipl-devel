@@ -495,7 +495,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
 
 static int
-get_thread(term_t t, PL_thread_info_t **info)
+get_thread(term_t t, PL_thread_info_t **info, int warn)
 { int i = -1;
 
   if ( !PL_get_integer(t, &i) )
@@ -510,8 +510,13 @@ get_thread(term_t t, PL_thread_info_t **info)
 	i = (int)s->value;
     }
   }
+
   if ( i < 0 || i >= MAX_THREADS || !threads[i].tid )
-    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_thread, t);
+  { if ( warn )
+      return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_thread, t);
+    else
+      return FALSE;
+  }
   
   *info = &threads[i];
 
@@ -589,7 +594,7 @@ pl_thread_join(term_t thread, term_t retcode)
   void *r;
   word rval;
 
-  if ( !get_thread(thread, &info) )
+  if ( !get_thread(thread, &info, TRUE) )
     fail;
   if ( info == LD->thread.info )	/* joining myself */
     return PL_error("thread_join", 2, "Cannot join self",
@@ -622,7 +627,7 @@ pl_thread_kill(term_t t, term_t sig)
 { PL_thread_info_t *info;
   int s;
 
-  if ( !get_thread(t, &info) )
+  if ( !get_thread(t, &info, TRUE) )
     fail;
   if ( !_PL_get_signum(sig, &s) )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_signal, sig);
@@ -650,7 +655,7 @@ pl_current_thread(term_t id, term_t status, word h)
       { current = 1;
 	goto redo;
       }
-      if ( !get_thread(id, &info) )
+      if ( !get_thread(id, &info, FALSE) )
         fail;
 
       return unify_thread_status(status, info);
@@ -758,7 +763,7 @@ pl_thread_signal(term_t thread, term_t goal)
   PL_thread_info_t *info;
   PL_local_data_t *ld;
 
-  if ( !get_thread(thread, &info) )
+  if ( !get_thread(thread, &info, TRUE) )
     fail;
 
   PL_strip_module(goal, &m, goal);
@@ -862,7 +867,7 @@ pl_thread_send_message(term_t thread, term_t msg)
   PL_local_data_t *ld;
   thread_message *msgp;
 
-  if ( !get_thread(thread, &info) )
+  if ( !get_thread(thread, &info, TRUE) )
     fail;
 
   msgp = allocHeap(sizeof(*msgp));
