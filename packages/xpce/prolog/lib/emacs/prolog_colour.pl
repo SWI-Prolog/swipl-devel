@@ -483,6 +483,7 @@ style(goal(autoload),	  style(colour	   := blue)).
 style(goal(global),	  style(colour	   := navy_blue)).
 style(goal(undefined),	  style(colour	   := red)).
 style(goal(dynamic),	  style(colour	   := magenta)).
+style(goal(multifile),	  style(colour	   := navy_blue)).
 style(goal(expanded),	  style(colour	   := blue,
 				underline  := @on)).
 

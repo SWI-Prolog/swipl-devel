@@ -28,6 +28,7 @@
 :- dynamic
 	called/2,			% called head
 	(dynamic)/2,			% defined dynamic
+	(multifile)/2,			% defined multifile
 	defined/3,			% defined head
 	imported/2,			% imported head
 	exported/2,			% exported head
@@ -102,6 +103,8 @@ xref_clean(Source) :-
 	retractall(called(_, Src)),
 	retractall(defined(_, Src, _Line)),
 	retractall(exported(_, Src)),
+	retractall(dynamic(_, Src)),
+	retractall(multifile(_, Src)),
 	retractall(source(Src)).
 	
 xref_current_source(Source) :-
@@ -118,7 +121,9 @@ xref_defined(Source, Called, How) :-
 	;   imported(Called, Src),
 	    How = imported
 	;   dynamic(Called, Src),
-	    How = dynamic
+	    How = (dynamic)
+	;   multifile(Called, Src),
+	    How = (multifile)
 	).
 
 xref_exported(Source, Called) :-
@@ -211,6 +216,8 @@ process_directive(ensure_loaded(Modules), Src) :-
 	process_use_module(Modules, Src).
 process_directive(dynamic(Dynamic), Src) :-
 	assert_dynamic(Src, Dynamic).
+process_directive(multifile(Dynamic), Src) :-
+	assert_multifile(Src, Dynamic).
 process_directive(module(_Module, Export), Src) :-
 	assert_export(Src, Export).
 
@@ -411,6 +418,14 @@ assert_dynamic(_, _M:_Name/_Arity) :- !. % not local
 assert_dynamic(Src, Name/Arity) :-
 	functor(Term, Name, Arity),
 	assert(dynamic(Term, Src)).
+
+assert_multifile(Src, (A, B)) :- !,
+	assert_multifile(Src, A),
+	assert_multifile(Src, B).
+assert_multifile(_, _M:_Name/_Arity) :- !. % not local
+assert_multifile(Src, Name/Arity) :-
+	functor(Term, Name, Arity),
+	assert(multifile(Term, Src)).
 
 
 		/********************************
