@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PERFORMANCE: Allow a certain (16%) amount of `dirty' clauses
+    in a predicate, also if the reference-count is 0 when starting a retract.
+    This makes a *tremendous* difference retracting 60,000 facts from a
+    predicate holding almost 600,000 facts.
+
   * FIXED: GUI-tracer source-location problems with (If->Then).
 
   * FIXED: PLWIN.EXE getting into a loop after using Page Up/Down buttons.

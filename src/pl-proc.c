@@ -895,14 +895,14 @@ retractClauseProcedure(Procedure proc, Clause clause)
     succeed;
   }
 
-  if ( def->references )
+  if ( def->references || def->number_of_clauses > 16 )
   { set(clause, ERASED);
     if ( def->hash_info )
       markDirtyClauseIndex(def->hash_info, clause);
     def->number_of_clauses--;
     def->erased_clauses++;
     if ( false(def, DYNAMIC) ||
-	 def->erased_clauses > (def->number_of_clauses>>5) )
+	 def->erased_clauses > (def->number_of_clauses>>4) )
       set(def, NEEDSCLAUSEGC);
 #ifdef O_LOGICAL_UPDATE
     clause->generation.erased = ++GD->generation;
