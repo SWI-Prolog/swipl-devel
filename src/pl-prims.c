@@ -2379,7 +2379,7 @@ pl_depth_limit_true(term_t limit, term_t olimit, term_t oreached,
 	}
 
 	if ( ch && ch->frame == environment_frame->parent )
-	{ Sdprintf("CUT\n");
+	{ DEBUG(1, Sdprintf("CUT\n"));
 	  return PL_unify_atom(cut, ATOM_cut);
 	} else
 	{ if ( PL_unify_atom(cut, ATOM_true) )

@@ -370,15 +370,19 @@ prologFunction(ArithFunction f, term_t av, Number r ARG_LD)
     if ( (except = PL_exception(qid)) )
     { rval = PL_raise_exception(except);		/* pass exception */
     } else
-    { term_t goal = PL_new_term_ref();
+    { 
 #ifdef O_LIMIT_DEPTH
-       
+      if ( depth_reached > depth_limit )
+	rval = FALSE;
+      else
 #endif
-      PL_cons_functor(goal, f->proc->definition->functor->functor, av);
-
-      rval = PL_error(NULL, 0,
-		      "Aritmetic function must succeed or throw exception",
-		      ERR_FAILED, goal);
+      { term_t goal = PL_new_term_ref();
+	PL_cons_functor(goal, f->proc->definition->functor->functor, av);
+	
+	rval = PL_error(NULL, 0,
+			"Aritmetic function must succeed or throw exception",
+			ERR_FAILED, goal);
+      }
     }
 
     PL_cut_query(qid);			/* donot destroy data */

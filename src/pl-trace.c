@@ -787,6 +787,10 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
     Sfprintf(Sdout, "%s%s(%d) ", msg, pp, levelFrame(frame));
     if ( debugstatus.showContext )
       Sfprintf(Sdout, "[%s] ", stringAtom(contextModule(frame)->name));
+#ifdef O_LIMIT_DEPTH
+    if ( levelFrame(frame) > depth_limit )
+      Sfprintf(Sdout, "[deth-limit exceeded] ");
+#endif
 
     pl_write_term3(tmp, goal, options);
     if ( flags & (WFG_BACKTRACE|WFG_CHOICE) )
@@ -1030,10 +1034,12 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 
 static QueryFrame
 findQuery(LocalFrame fr)
-{ while(fr->parent)
+{ while(fr && fr->parent)
     fr = fr->parent;
 
-  return (QueryFrame)addPointer(fr, -offset(queryFrame, frame));
+  if ( fr )
+    return (QueryFrame)addPointer(fr, -offset(queryFrame, frame));
+  return NULL;
 }
 
 
@@ -1565,6 +1571,19 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
       else
 	a = ATOM_false;
     }
+
+    PL_put_atom(result, a);
+  } else if ( key == ATOM_depth_limit_exceeded )
+  { atom_t a;				/* get limit from saved query */
+
+#ifdef O_LIMIT_DEPTH
+    QueryFrame qf = findQuery(environment_frame);
+    
+    if ( qf && levelFrame(fr) > qf->saved_depth_limit )
+      a = ATOM_true;
+    else
+#endif
+      a = ATOM_false;
 
     PL_put_atom(result, a);
   } else

@@ -3997,7 +3997,10 @@ values found in the clause,  give  a   reference  to  the clause and set
 	if ( depth > depth_reached )
 	  depth_reached = depth;
 	if ( depth > depth_limit )
-	{ Sdprintf("depth-limit\n");
+	{ DEBUG(0, Sdprintf("depth-limit\n"));
+
+	  if ( debugstatus.debugging )
+	    newChoice(CHP_DEBUG, FR PASS_LD);
 	  FRAME_FAILED;
 	}
       }

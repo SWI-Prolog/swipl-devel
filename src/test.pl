@@ -265,6 +265,52 @@ cleanup(clean-3) :-
 
 
 		 /*******************************
+		 *	    DEPTH-LIMIT		*
+		 *******************************/
+
+dl_det(1) :- !.
+dl_det(N) :-
+	NN is N - 1,
+	dl_det(NN).
+
+dl_ndet(1).
+dl_ndet(N) :-
+	NN is N - 1,
+	dl_ndet(NN).
+
+dl_fail(1) :- !, fail.
+dl_fail(N) :-
+	NN is N - 1,
+	dl_fail(NN).
+
+:- arithmetic_function(fac/1).
+
+fac(1, 1) :- !.
+fac(N, V) :-
+	NN is N - 1,
+	fac(NN, V0),
+	V is N*V0.
+
+
+depth_limit(depth-1) :-
+	call_with_depth_limit(dl_det(1), 10, 1),
+	deterministic.
+depth_limit(depth-2) :-
+	call_with_depth_limit(dl_det(10), 10, 10).
+depth_limit(depth-3) :-
+	call_with_depth_limit(dl_det(10), 9, depth_limit_exceeded).
+depth_limit(ndet-1) :-
+	findall(X, 
+		call_with_depth_limit(dl_ndet(5), 10, X),
+		L),
+	L = [5, depth_limit_exceeded].
+depth_limit(fail-1) :-
+	\+ call_with_depth_limit(dl_fail(2), 10, _).
+depth_limit(arith-1) :-
+	call_with_depth_limit(_A is fac(10), 8, depth_limit_exceeded).
+
+
+		 /*******************************
 		 *	    TYPE TESTS		*
 		 *******************************/
 
@@ -984,6 +1030,8 @@ testset(syntax).
 testset(arithmetic).
 testset(arithmetic_functions).
 testset(floattest).
+testset(depth_limit) :-
+	current_predicate(_, user:call_with_depth_limit(_,_,_)).
 testset(type_test).
 testset(meta).
 testset(cleanup).

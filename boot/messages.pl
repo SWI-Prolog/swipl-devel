@@ -577,6 +577,7 @@ prolog_message(frame(Frame, Port, _PC)) -->
 	port(Port),
 	frame_level(Frame),
 	frame_context(Frame),
+	frame_depth_limit(Port, Frame),
 	frame_goal(Frame),
 	[ flush ].
 
@@ -599,6 +600,13 @@ frame_context(Frame) -->
 	->  [ '[~w] '-[Context] ]
 	;   []
 	).
+
+frame_depth_limit(fail, Frame) -->
+	{ prolog_frame_attribute(Frame, depth_limit_exceeded, true)
+	}, !,
+	[ '[depth-limit exceeded] ' ].
+frame_depth_limit(_, _) -->
+	[].
 
 frame_flags(Frame) -->
 	{ prolog_frame_attribute(Frame, goal, Goal),
