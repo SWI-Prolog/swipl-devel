@@ -74,7 +74,7 @@ $(PS):	$(DVI)
 #$(PDF):	$(PS)
 #	pstill -cgipt -o $@ $(PS)
 
-html:	$(XPCETEX)
+html:	$(XPCETEX) $(CLHIER)
 	latex2html xpceusg
 
 pwhtml:	$(PWTEX)

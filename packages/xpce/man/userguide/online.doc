@@ -441,11 +441,12 @@ card summaries of all matching cards.
 
 \postscriptfig[width=\textwidth]{classhierarchy}{Class Hierachy Tool}
 
-The ``Class Hierachy'' tool shown in \figref{hierarchy} may be used to
-get an overview of \product{}'s class hierarchy or to find the (inheritance)
-relations of a particular class with other classes.  Note that \product{}'s
-inheritance hierarchy has a technical foundation rather than a
-conceptual.  Super-classes are motivated by the need for code-sharing.
+The ``Class Hierachy'' tool shown in \figref{classhierarchy} may be used
+to get an overview of \product{}'s class hierarchy or to find the
+(inheritance) relations of a particular class with other classes. Note
+that \product{}'s inheritance hierarchy has a technical foundation
+rather than a conceptual. Super-classes are motivated by the need for
+code-sharing.
 
 
 \section{Summary}

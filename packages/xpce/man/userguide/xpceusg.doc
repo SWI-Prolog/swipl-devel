@@ -1,6 +1,10 @@
 %\documentclass{book}		% ProWindows (A5)
 \documentclass[11pt]{book}	% XPCE (A4)
-\usepackage{times}
+% Use helvetica
+\renewcommand{\sfdefault}{phv}
+\renewcommand{\rmdefault}{phv}
+\renewcommand{\ttdefault}{pcr}
+%\usepackage{times}
 \usepackage{pl}
 \usepackage{xpce}
 \usepackage{html}
@@ -23,7 +27,7 @@
 \newcommand{\quintus}{Quintus}
 \newenvironment{xpceonly}{}{}
 \excludecomment{pwonly}
-\newcommand{\productdate}{February 2001}
+\newcommand{\productdate}{March 2001}
 
 \renewcommand{\runningtitle}{\product{} \productversion}
 \def\booktitle{Programming in XPCE/Prolog}
@@ -38,7 +42,7 @@
 
 \makeindex
 
-%\includeonly{libs}
+\includeonly{}
 
 \begin{document}
 
