@@ -186,7 +186,14 @@ warnNoFile(char *file)
 
 static void
 warnNoState()
-{ char state[MAXPATHLEN];
+{
+#ifdef O_RUNTIME
+  Sfprintf(Serror, "[FATAL ERROR: Can not find a state to run\n");
+  Sfprintf(Serror, "\tUsage: %s -x state\n");
+  Sfprintf(Serror, "\twhere <state> is created using qsave_program/[1,2]"\n);
+  Sfprintf(Serror, "\tusing the development system]\n");
+#else
+  char state[MAXPATHLEN];
   char *full;
 
   Sfprintf(Serror, "[FATAL ERROR: Failed to find startup file\n");
@@ -209,6 +216,7 @@ warnNoState()
 	  "\nUse\n\t`%s -O -o startup-file -b boot/init.pl'\n",
 	  mainArgv[0]);
   Sfprintf(Serror, "\nto create one]\n");
+#endif
 
   Halt(1);
 }
