@@ -175,6 +175,9 @@ prolog:message(initialization_exception(E)) -->
 	translate_message(E).
 prolog:message(no_predicates_for(Spec)) -->
 	[ 'No predicates for `~w'''-[Spec] ].
+prolog:message(directive_failed(Goal)) -->
+	[ 'Directive failed: ~p'-[Goal] ].
+
 
 %	print_message(+Kind, +Term)
 %
@@ -199,8 +202,8 @@ print_system_message(Level, Lines) :-
 	prefix(Level, LinePrefix, Stream), !,
 	print_message_lines(Stream, LinePrefix, Lines).
 	
-prefix(error,	      '[ERROR: (~w:~d):~n',   '\t', ']', user_error).
-prefix(warning,	      '[WARNING: (~w:~d):~n', '\t', ']', user_error).
+prefix(error,	      'ERROR: (~w:~d):~n',   '\t', '', user_error).
+prefix(warning,	      'Warning: (~w:~d):~n', '\t', '', user_error).
 
 prefix(silent,	      '',        user_error).
 prefix(help,	      '',        user_error).

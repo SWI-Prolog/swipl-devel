@@ -15,7 +15,7 @@
 :- dynamic
 	verbose/0.
 
-:- initialization op(1, fx, $).
+:- initialization op(1, fx, user:($)).
 
 expand_query(Query, Expanded, Bindings, ExpandedBindings) :-
 	expand_vars(Bindings, Query, Expanded),

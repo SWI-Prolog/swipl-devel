@@ -1029,10 +1029,7 @@ $execute_directive2(Goal) :-
 	catch(Module:Goal, Term, $exception_in_directive(Term)), !.
 $execute_directive2(Goal) :-
 	$set_source_module(Module, Module),
-	(   Module == user
-	->  $warning('Directive failed: ~w', [Goal])
-	;   $warning('Directive failed: ~w:~w', [Module, Goal])
-        ),
+	print_message(warning, directive_failed(Module:Goal)),
 	fail.
 
 $exception_in_directive(Term) :-
