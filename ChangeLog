@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: installation of dotfiles (Unix makefile)
+
   * ADDED: edit/1 to include definition for uedit32 (Tolga Konik)
 
   * IMPROVED: edit/1 feedback when calling user editor through shell/2.

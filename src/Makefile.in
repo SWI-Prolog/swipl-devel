@@ -284,7 +284,7 @@ install-arch:	idirs iruntime
 		    $(INSTALL_PROGRAM) $$f $(PLBASE)/bin/$(ARCH); \
 		done
 
-install-libs:	idirs iboot ilib iruntime iinclude iman
+install-libs:	idirs iboot ilib iruntime iinclude iman idot
 		$(INSTALL_DATA) $(STARTUPPATH) $(PLBASE)/$(BOOTFILE)
 		$(INSTALL_DATA) swipl $(PLBASE)
 		$(INSTALL_DATA) swiplbin $(PLBASE)/bin/swipl
@@ -296,15 +296,15 @@ install-libs:	idirs iboot ilib iruntime iinclude iman
 			-t halt
 
 installdirs=	bin bin/$(ARCH) lib lib/$(ARCH) man boot library \
-		include runtime runtime/$(ARCH)
+		include runtime runtime/$(ARCH) dotfiles
 
-iruntime:
+iruntime::
 		$(INSTALL_DATA) $(RUNTIME) $(PLBASE)/runtime/$(ARCH)
 
-install-implib:
+install-implib::
 		$(INSTALL_DATA) libplimp.a $(PLBASE)/runtime/$(ARCH)
 
-idirs:
+idirs::
 		if [ ! -d $(prefix)/lib  ]; then $(MKDIR) $(prefix)/lib; fi
 		if [ ! -d $(PLBASE) ]; then $(MKDIR) $(PLBASE); fi
 		for d in $(installdirs); do \
@@ -314,16 +314,22 @@ idirs:
 		done
 
 
-iboot:		
+iboot::		
 		cd ../boot; \
 		for f in *.pl; do $(INSTALL_DATA) $$f $(PLBASE)/boot; done
-ilib:		
+ilib::		
 		cd ../library; \
 		for f in $(PLLIBS); do \
 			$(INSTALL_DATA) $$f $(PLBASE)/library; \
 		done
 
-iinclude:       
+idot::
+		$(INSTALL_DATA) ../dotfiles/dotplrc $(PLBASE)/dotfiles
+		$(INSTALL_DATA) ../dotfiles/dotxpcerc $(PLBASE)/dotfiles
+		$(INSTALL_DATA) ../dotfiles/README $(PLBASE)/dotfiles
+		$(INSTALL_PROGRAM) ../dotfiles/edit $(PLBASE)/dotfiles
+
+iinclude::
 		cd ../include; \
 		for f in SWI-Prolog.h SWI-Exports SWI-Stream.h stub.c; do \
 		    if [ -f $$f ]; then \
