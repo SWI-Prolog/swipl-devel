@@ -1,8 +1,10 @@
 			     XPCE HTTP LIBRARY
 
 This library provides some useful starting point to make XPCE/SWI-Prolog
-act as a web-server. This package is   designed with the following goals
-in mind:
+act as a web-server. This package is  futher documented in the XPCE User
+Guide.
+
+This package is designed with the following goals in mind:
 
 	* Document export
 	Applications that need to export documents may choose to do so

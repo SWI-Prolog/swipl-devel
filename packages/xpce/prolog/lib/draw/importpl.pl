@@ -39,7 +39,9 @@ of the drawing.
 %	as created by the PceDraw package library('draw/exportpl.pl').  This
 %	file contains a definition of the format of the Drawing term.
 
-realise_drawing(Device, drawing(Objects)) :-
+realise_drawing(Device, drawing(Objects)) :- !,
+	draw(Objects, Device).
+realise_drawing(Device, Objects) :-
 	draw(Objects, Device).
 
 draw([], _).
