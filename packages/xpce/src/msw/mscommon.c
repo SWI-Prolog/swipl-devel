@@ -483,9 +483,24 @@ messageToEvent(HWND hwnd, UINT message, UINT wParam, LONG lParam)
   if ( mouse_ev )
   { POINTS pt = MAKEPOINTS(lParam);
     int state = 0;
+    static PceWindow lastwin;
+    static int lastx;
+    static int lasty;
 
     x = toInt(pt.x);
     y = toInt(pt.y);
+
+				/* Some versions of windows sometimes */
+				/* give fake move-events.  We suppress these */
+    if ( id == NAME_locMove )
+    { if ( pt.x == lastx && pt.y == lasty && window == lastwin )
+	fail;
+      else
+      { lastx = pt.x;
+	lasty = pt.y;
+	lastwin = window;
+      }
+    }
 
     if ( wParam & MK_CONTROL )
       state |= BUTTON_control;
