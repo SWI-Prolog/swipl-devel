@@ -1497,8 +1497,7 @@ verify_editable_editor(Editor e)
 static status
 insert_editor(Editor e, Int times, Int chr, int fill)
 { wint_t c;
-  TextBuffer tb = e->text_buffer;
-  LocalString(s, tb->buffer.iswide, 1);
+  LocalString(s, TRUE, 1);		/* wide-character string! */
 
   MustBeEditable(e);
   if ( HasSelection(e) &&
@@ -3119,7 +3118,7 @@ justifyRegionEditor(Editor e)
 static status
 insertSelfFillEditor(Editor e, Int times, Int chr)
 { TextBuffer tb = e->text_buffer;
-  LocalString(s, tb->buffer.iswide, 1);
+  LocalString(s, TRUE, 1);
   wint_t c;
   Int le;
 

@@ -837,6 +837,11 @@ insert_date(M) :->
 	send(M, insert, string('%s %s, %s', Mon, D, Y)).
 
 
+insert_character_by_code(M, Code:code='0..') :->
+	"Insert character by entering numeric value"::
+	send(M, insert_self, @default, Code).
+
+
 what_cursor_position(M) :->
 	"Inform user on current position"::
 	get(M, caret, Caret),
