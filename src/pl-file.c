@@ -2660,7 +2660,7 @@ PL_get_filename(term_t n, char *buf, unsigned int size)
 	     ATOM_max_path_length);
     return NULL;
   } else
-    return buffer_string(name, 0);
+    return buffer_string(name, BUF_RING);
 }
 
 
@@ -2853,9 +2853,8 @@ pl_make_directory(term_t name)
 word
 pl_same_file(term_t file1, term_t file2)
 { char *n1, *n2;
-  char name1[MAXPATHLEN];
 
-  if ( (n1 = PL_get_filename(file1, name1, sizeof(name1))) &&
+  if ( (n1 = PL_get_filename(file1, NULL, 0)) &&
        (n2 = PL_get_filename(file2, NULL, 0)) )
     return SameFile(n1, n2);
 
@@ -2866,9 +2865,8 @@ pl_same_file(term_t file1, term_t file2)
 word
 pl_rename_file(term_t old, term_t new)
 { char *o, *n;
-  char ostore[MAXPATHLEN];
 
-  if ( (o = PL_get_filename(old, ostore, sizeof(ostore))) &&
+  if ( (o = PL_get_filename(old, NULL, 0)) &&
        (n = PL_get_filename(new, NULL, 0)) )
   { if ( RenameFile(o, n) )
       succeed;
@@ -3089,9 +3087,9 @@ pl_prolog_to_os_filename(term_t pl, term_t os)
 
 foreign_t
 pl_mark_executable(term_t path)
-{ char name[MAXPATHLEN];
+{ char *name;
 
-  if ( !PL_get_filename(path, name, sizeof(name)) )
+  if ( !(name=PL_get_filename(path, NULL, 0)) )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_source_sink, path);
 
   return MarkExecutable(name);

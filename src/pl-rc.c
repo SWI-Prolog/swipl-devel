@@ -194,11 +194,11 @@ pl_rc_close_archive(term_t rc_h)
 foreign_t
 pl_rc_save_archive(term_t rc_h, term_t to)
 { RcArchive rc;
-  char file[MAXPATHLEN];
+  char *file;
 
   if ( !get_rc(rc_h, &rc) )
     return FALSE;
-  if ( !PL_get_filename(to, file, sizeof(file)) &&
+  if ( !(file=PL_get_filename(to, NULL, 0)) &&
        !PL_is_variable(to) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_file_name, to);
 

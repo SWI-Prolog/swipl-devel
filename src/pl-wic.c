@@ -1819,9 +1819,8 @@ pl_qlf_info(term_t file,
 	    term_t cversion, term_t version,
 	    term_t files)
 { char *name;
-  char buf[MAXPATHLEN];
 
-  if ( !(name = PL_get_filename(file, buf, sizeof(buf))) )
+  if ( !(name = PL_get_filename(file, NULL, 0)) )
     fail;
 
    return qlfInfo(name, cversion, version, files);
@@ -2102,7 +2101,6 @@ pl_qlf_close()
 word
 pl_qlf_load(term_t file, term_t module)
 { Module m, oldsrc = LD->modules.source;
-  char fbuf[MAXPATHLEN];
   char *fn;
   bool rval;
   term_t name = PL_new_term_ref();
@@ -2110,7 +2108,7 @@ pl_qlf_load(term_t file, term_t module)
   m = oldsrc;
   if ( !PL_strip_module(file, &m, name) )
     fail;
-  if ( !(fn = PL_get_filename(name, fbuf, sizeof(fbuf))) )
+  if ( !(fn = PL_get_filename(name, NULL, 0)) )
     return warning("$qlf_load/2: instantiation fault");
 
   LD->modules.source = m;
