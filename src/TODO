@@ -6,10 +6,19 @@ BUGS:
 
 	* plcon.exe to delay Control-C in garbage collections.
 
+
 ISO:
 ----
 
 	* Complete replacement of warnings by exceptions.
+
+
+FEATURES:
+---------
+
+	* Provide options when trying to load existing module from another
+	  file.
+
 
 MULTI-LINGUAL SUPPORT:
 ----------------------
