@@ -115,6 +115,7 @@ $show_childs(Name, Arity) :-
 	(not)/1,
 	(\+)/1,
 	(->)/2,
+	(*->)/2,
 	once/1,
 	ignore/1,
 	block/3,
@@ -124,7 +125,8 @@ $show_childs(Name, Arity) :-
 %   ->/2, ;/2, |/2 and \+/1 are normally compiled. These predicate catch them
 %   in case they are called via the meta-call predicates.
 
-(If -> Then) :- If, !, Then.
+(If ->  Then) :- If, !, Then.
+(If *-> Then) :- (If *-> Then ; fail).
 
 (If ->  Then; Else) :- !, (If  -> Then ; Else).
 (If *-> Then; Else) :- !, (If *-> Then ; Else).
