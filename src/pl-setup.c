@@ -32,6 +32,20 @@ forwards void initStacks(long, long, long, long);
 forwards void initFeatures(void);
 forwards void initSignals(void);
 
+#undef I
+#define I TAGEX_INDIRECT
+
+const unsigned int tagtypeex[] = 
+{
+	    /* var     int    float   atom   string   list    term     ref */
+/* static */	0,	0,	0,	0,	0,	0,	0,	0,
+/* heap */	0,	I,	I,	0,	I,	0,	0,	0,
+/* global */	0,	I,	I,	0,	I,	0,	0,	0,
+/* local */	0,	0,	0,	0,	0,	0,	0,	0
+};
+
+#undef I
+
 void
 setupProlog(void)
 { DEBUG(1, Sdprintf("Starting Heap Initialisation\n"));
@@ -47,13 +61,6 @@ setupProlog(void)
   if ( status.dumped == FALSE )
   { hBase = (char *)0xffffffffL;
     hTop  = (char *)NULL;
-#ifdef AVOID_0X80000000_BIT
-    { void *ptr = allocHeap(4);
-      
-      ptr_to_num_offset = (unsigned long)ptr & 0xF0000000L;
-      freeHeap(ptr, 4);
-    }
-#endif
   }
   DEBUG(1, Sdprintf("Stacks ...\n"));
   initStacks(options.localSize, 
@@ -65,6 +72,16 @@ setupProlog(void)
   tTop = tBase;
   gTop = gBase;
   aTop = aBase;
+
+  { void *hbase = allocHeap(sizeof(word));
+
+    base_addresses[STG_HEAP]   = (ulong)hbase & 0xff80000L;
+    freeHeap(hbase, sizeof(word));
+  }
+  base_addresses[STG_LOCAL]  = (unsigned long)lBase;
+  base_addresses[STG_GLOBAL] = (unsigned long)gBase;
+  base_addresses[STG_TRAIL]  = (unsigned long)tBase;
+
   PL_open_foreign_frame();
 
   if ( status.dumped == FALSE )
@@ -131,7 +148,7 @@ Feature interface
 
 int
 CSetFeature(char *name, char *value)
-{ return setFeature(lookupAtom(name), (word) lookupAtom(value));
+{ return setFeature(lookupAtom(name), lookupAtom(value));
 }
 
 static void
@@ -183,8 +200,8 @@ initFeatures()
 					/* ISO features */
   setFeature(lookupAtom("max_integer"), heapLong(PLMAXINT));
   setFeature(lookupAtom("min_integer"), heapLong(PLMININT));
-  setFeature(lookupAtom("max_tagged_integer"), consNum(PLMAXTAGGEDINT));
-  setFeature(lookupAtom("min_tagged_integer"), consNum(PLMINTAGGEDINT));
+  setFeature(lookupAtom("max_tagged_integer"), consInt(PLMAXTAGGEDINT));
+  setFeature(lookupAtom("min_tagged_integer"), consInt(PLMINTAGGEDINT));
   CSetFeature("bounded",	"true");
   if ( (-3 / 2) == -2 )
     CSetFeature("integer_rounding_function", "down");
@@ -457,7 +474,7 @@ mapOrOutOf(Stack s)
   else
     incr = size_alignment;
 
-  if ( (ulong)s->max + incr > (ulong)s->base + s->maxlimit )
+  if ( (ulong)s->max + incr > (ulong)s->limit )
     outOf(s);
 
   if ( mmap(s->max, incr,
@@ -573,16 +590,17 @@ are freed, also if SWI-Prolog crashes.
 static long
 new_stack_size(s)
 Stack s;
-{ long size = s->top - s->base;
-  long free = size / s->segment_initial;
+{ long size  = s->top - s->base;
+  long free  = size / s->segment_initial;
+  long limit = diffPointers(s->limit, s->base);
 
   if ( free > s->segment_double ) free = s->segment_double;
   else if ( free < 1 )            free = 1;
   
   size = align_size(size + free * s->segment_initial);  
 
-  if ( size > s->limit )
-    size = s->limit;
+  if ( size > limit )
+    size = limit;
 
   return size;
 }
@@ -708,14 +726,12 @@ Stack s;
 
 #ifdef SIGNAL_HANDLER_PROVIDES_ADDRESS
 static bool
-expandStack(s, addr)
-Stack s;
-caddress addr;
-{ if ( addr < s->max || addr >= s->base + s->maxlimit + STACK_SEPARATION )
+expandStack(Stack s, caddress addr)
+{ if ( addr < s->max || addr >= addPointer(s->limit, STACK_SEPARATION) )
     fail;				/* outside this area */
 
   if ( addr <= s->max + STACK_SEPARATION*2 )
-  { if ( addr < s->base + s->limit )
+  { if ( addr < s->limit )
     { DEBUG(1, Sdprintf("Expanding %s stack\n", s->name));
       mapOrOutOf(s);
       considerGarbageCollect(s);
@@ -748,7 +764,7 @@ mapOrOutOf(Stack s)
   else
     incr = size_alignment;
 
-  if ( (ulong)s->max + incr > (ulong)s->base + s->maxlimit )
+  if ( addPointer(s->max, incr) > s->limit )
     outOf(s);
 
   if ( VirtualAlloc(s->max, incr,
@@ -936,28 +952,14 @@ segv_handler(int sig)
 
 #endif /*NO_SEGV_HANDLING*/
 
-static bool
-limit_stack(Stack s, ulong limit)
-{ if ( limit > (ulong)s->maxlimit || limit == 0L )
-    limit = s->maxlimit;
-  if ( limit <= (ulong)s->top - (ulong)s->base )
-    limit = (ulong)s->top - (ulong)s->base;
-
-  limit = align_size(limit);
-  s->limit = limit;
-
-  succeed;
-}
-
 static void
 init_stack(Stack s, char *name, caddress base, long limit, long minsize)
-{ s->maxlimit  = limit;			/* deleted this notion */
-  s->name      = name;
+{ s->name      = name;
   s->base      = s->max = s->top = base;
+  s->limit     = addPointer(base, limit);
   s->min       = (caddress)((ulong)s->base + minsize);
   s->gced_size = 0L;			/* size after last gc */
   gcPolicy(s, GC_FAST_POLICY);
-  limit_stack(s, limit);
 #if O_SHARED_MEMORY
 #if O_SHM_ALIGN_FAR_APART
 { int n;
@@ -978,7 +980,7 @@ init_stack(Stack s, char *name, caddress base, long limit, long minsize)
 #endif /* O_SHARED_MEMORY */
 
   DEBUG(1, Sdprintf("%-8s stack from 0x%08x to 0x%08x\n",
-		    s->name, (ulong)s->base, (ulong)s->base + s->maxlimit));
+		    s->name, (ulong)s->base, (ulong)s->limit));
 
   while(s->max < s->min)
     mapOrOutOf(s);
@@ -1136,29 +1138,6 @@ pl_trim_stacks()
 }
 
 
-word
-pl_limit_stack(term_t s, term_t l)
-{ Atom a, k;
-  long limit = 0L;
-
-  if ( !PL_get_atom(s, &k) ||
-       (!PL_get_long(l, &limit) &&
-	!(PL_get_atom(l, &a) && a == ATOM_unlimited)) )
-    return warning("limit_stack/2: instantiation fault");
-  limit *= 1024L;
-
-  if ( k == ATOM_local )
-    return limit_stack((Stack) &stacks.local, limit);
-  else if ( k == ATOM_global )
-    return limit_stack((Stack) &stacks.global, limit);
-  else if ( k == ATOM_trail )
-    return limit_stack((Stack) &stacks.trail, limit);
-  else if ( k == ATOM_argument )
-    return limit_stack((Stack) &stacks.argument, limit);
-  else
-    return warning("limit_stack/2: unknown stack: %s", stringAtom(k));
-}
-
 #else /* O_DYNAMIC_STACKS */
 
 		/********************************
@@ -1178,21 +1157,14 @@ at the moment of announcement?).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
-pl_limit_stack(term_t s, term_t l)	/* does not work on these systems */
-{ succeed;
-}
-
-
-word
 pl_trim_stacks()
 { succeed;
 }
 
 
 word
-pl_stack_parameter(term_t name, term_t key,
-		   term_t old, term_t new)
-{ Atom a, k;
+pl_stack_parameter(term_t name, term_t key, term_t old, term_t new)
+{ atom_t a, k;
   Stack stack = NULL;
   long *value = NULL;
 
@@ -1210,9 +1182,7 @@ pl_stack_parameter(term_t name, term_t key,
     return warning("stack_parameter/4: unknown stack");
 
   if ( PL_get_atom(key, &k) )
-  { if ( k == ATOM_limit )
-      value = &stack->limit;
-    else if ( k == ATOM_min_free )
+  { if ( k == ATOM_min_free )
       value = &stack->minfree;
   }
   if ( !value )
@@ -1223,10 +1193,7 @@ pl_stack_parameter(term_t name, term_t key,
 
 
 static void
-init_stack(s, name, size, limit, minfree)
-Stack s;
-char *name;
-long size, limit, minfree;
+init_stack(Stack s, char *name, long size, long limit, long minfree)
 { if ( s->base == NULL )
   { fatalError("Not enough core to allocate stacks");
     return;
@@ -1234,7 +1201,7 @@ long size, limit, minfree;
 
   s->name 	= name;
   s->top	= s->base;
-  s->limit	= limit;
+  s->limit	= addPointer(s->base, limit);
   s->minfree	= minfree;
   s->max	= (char *)s->base + size;
   s->gced_size = 0L;			/* size after last gc */

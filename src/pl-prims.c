@@ -10,7 +10,6 @@
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-ctype.h"
-#include "pl-buffer.h"
 
 forwards char 	*prependBase(int, char *);
 
@@ -97,54 +96,50 @@ pl_compound(term_t k)
 
 static bool
 termHashValue(word term, long *hval)
-{ if ( isVar(term) )
-    fail;
-
-  if ( isMasked(term) )
-  { if ( isInteger(term) )
-    { *hval = valInteger(term);
-      succeed;
-    }
-
-    if ( isReal(term) )
-    { union { real f;
-	      long l[2];
-	    } v;
-
-      v.f = valReal(term);
-      *hval = v.l[0] ^ v.l[1];
-
-      succeed;
-    }
-
-    if ( isString(term) )
-    { *hval = unboundStringHashValue(valString(term));
-      succeed;
-    }
-  }
-
-  if ( isAtom(term) )
-  { *hval = (((Atom)(term))->hash_value);
-    succeed;
-  }
-
-  assert(isTerm(term));
-
-  { FunctorDef fd = functorTerm(term);
-    int arity = fd->arity;
-    Word a, a2;
-
-    *hval = fd->name->hash_value + arity;
-    for(a = argTermP(term, 0); arity; arity--, a++)
-    { word av;
-
-      deRef2(a, a2);
-      if ( termHashValue(*a2, &av) )
-	*hval += av << (arity % 8);
-      else
+{ for(;;)
+  { switch(tag(term))
+    { case TAG_VAR:
 	fail;
+      case TAG_ATOM:
+	*hval = atomValue(term)->hash_value;
+        succeed;
+      case TAG_STRING:
+	*hval = unboundStringHashValue(valString(term));
+        succeed;
+      case TAG_INTEGER:
+	*hval = valInteger(term);
+        succeed;
+      case TAG_FLOAT:
+      { union { real f;
+		long l[2];
+	      } v;
+
+        v.f = valReal(term);
+	*hval = v.l[0] ^ v.l[1];
+
+	succeed;
+      }
+      case TAG_COMPOUND:
+      { FunctorDef fd = functorTerm(term);
+	int arity = fd->arity;
+	Word a, a2;
+
+	*hval = atomValue(fd->name)->hash_value + arity;
+	for(a = argTermP(term, 0); arity; arity--, a++)
+	{ word av;
+
+	  deRef2(a, a2);
+	  if ( termHashValue(*a2, &av) )
+	    *hval += av << (arity % 8);
+	  else
+	    fail;
+	}
+        succeed;
+      }
+      case TAG_REFERENCE:
+	term = *unRef(term);
+        continue;
     }
-    succeed;
   }
 }
 
@@ -270,99 +265,97 @@ pl_nonequal(term_t t1, term_t t2) /* \== */
 #define EQUAL  0
 #define GREATER  1
 
-#ifdef TAGGED_LVALUE
-#define w1 ((word)t1)
-#define w2 ((word)t2)
-#endif
-
 int
-compareStandard(register Word t1, register Word t2)
-{ int rval;
-  int arity;
-  int n;
-  FunctorDef f1, f2;
-#ifndef TAGGED_LVALUE
-  register word w1, w2;
-#endif
+compareStandard(Word p1, Word p2)
+{ word w1, w2;
+  int t1, t2;
 
-  deRef(t1);
-  deRef(t2);
-
-  if (isVar(*t1) )
-  { if (isVar(*t2) )
-      return t1 < t2 ? LESS : t1 == t2 ? EQUAL : GREATER;
-    return LESS;
+tail_recursion:
+  deRef(p1);
+  deRef(p2);
+  w1 = *p1;
+  w2 = *p2;
+  
+  if ( w1 == w2 )
+  { if ( isVar(w1) )
+      goto cmpvars;
+    return EQUAL;
   }
 
-  w2 = *t2;
-  if (isVar(w2) )
-    return GREATER;
-  
-  w1 = *t1; 
+  t1 = tag(w1);
+  t2 = tag(w2);
 
-  if ( isNumber(w1) )			/* TBD: can be optimised! */
-  { if ( !isNumber(w2) )
-      return LESS;
+  if ( t1 != t2 )
+  { if ( t1 == TAG_INTEGER && t2 == TAG_FLOAT )
+    { real f1 = (real)valInteger(w1);
+      real f2 = valReal(w2);
 
-    if ( isInteger(w1) && isInteger(w2) )
-    { long i1 = valInteger(w1);
-      long i2 = valInteger(w2);
+      return f1 < f2 ? LESS : f1 == f2 ? EQUAL : GREATER;
+    } else if ( t1 == TAG_FLOAT && t2 == TAG_INTEGER )
+    { real f1 = valReal(w1);
+      real f2 = (real)valInteger(w2);
 
-      return i1 < i2 ? LESS : i1 == i2 ? EQUAL : GREATER;
-    } else
-    { double f1 = (isInteger(w1) ? (double)valInteger(w1) : valReal(w1));
-      double f2 = (isInteger(w2) ? (double)valInteger(w2) : valReal(w2));
-    
       return f1 < f2 ? LESS : f1 == f2 ? EQUAL : GREATER;
     }
+
+    return t1 < t2 ? LESS : GREATER;
   }
-  if ( isNumber(w2) )
-    return GREATER;
-  
-  if (isAtom(w1) )
-  { if (isAtom(w2) )
+
+  switch(t1)
+  { case TAG_VAR:
+    cmpvars:
+      return p1 < p2 ? LESS : p1 == p2 ? EQUAL : GREATER;
+    case TAG_INTEGER:
+    { long l1 = valInteger(w1);
+      long l2 = valInteger(w2);
+
+      return l1 < l2 ? LESS : l1 == l2 ? EQUAL : GREATER;
+    }
+    case TAG_FLOAT:
+    { real f1 = valReal(w1);
+      real f2 = valReal(w2);
+
+      return f1 < f2 ? LESS : f1 == f2 ? EQUAL : GREATER;
+    }
+    case TAG_ATOM:
       return strcmp(stringAtom(w1), stringAtom(w2));
-    return LESS;
-  }
-  if (isAtom(w2) )
-    return GREATER;
-
-#if O_STRING
-  if ( isString(w1) )
-  { if ( isString(w2) )
+    case TAG_STRING:
       return strcmp(valString(w1), valString(w2));
-    return LESS;
+    case TAG_COMPOUND:
+    { Functor f1 = (Functor)valPtr(w1);
+      Functor f2 = (Functor)valPtr(w2);
+
+      if ( f1->definition != f2->definition )
+      { FunctorDef fd1 = valueFunctor(f1->definition);
+	FunctorDef fd2 = valueFunctor(f2->definition);
+
+	if ( fd1->name != fd2->name )
+	  return strcmp(stringAtom(fd1->name),
+			stringAtom(fd2->name));
+	if ( fd1->arity > fd2->arity )
+	  return GREATER;
+	return LESS;
+      } else
+      { int arity = arityFunctor(f1->definition);
+	int rval;
+	
+	p1 = f1->arguments;
+	p2 = f2->arguments;
+	for( ; --arity > 0; p1++, p2++ )
+	{ if ((rval = compareStandard(p1, p2)) != EQUAL)
+	    return rval;
+	}
+        goto tail_recursion;
+      }
+
+      return EQUAL;
+    }
+    default:
+      assert(0);
+      return EQUAL;
   }
-  if ( isString(w2) )
-    return GREATER;
-#endif /* O_STRING */
-
-  SECURE(if (!isTerm(w1) || !isTerm(w2)) sysError("Unknown type"));
-
-  f1 = functorTerm(w1);
-  f2 = functorTerm(w2);
-
-  if ((rval = strcmp(f1->name->name, f2->name->name)) != EQUAL)
-    return rval;
-  if (f1->arity > f2->arity)
-    return GREATER;
-  if (f2->arity > f1->arity)
-    return LESS;
-
-  arity = f1->arity;
-  t1 = argTermP(w1, 0);
-  t2 = argTermP(w2, 0);
-
-  for(n=0; n<arity; n++, t1++, t2++)
-  { if ((rval = compareStandard(t1, t2)) != EQUAL)
-      return rval;
-  }
-
-  return EQUAL;
 }
 
-#undef w1
-#undef w2
 
 word
 pl_compare(term_t rel, term_t t1, term_t t2)
@@ -451,7 +444,6 @@ structeql(Word t1, Word t2, Buffer buf)
   for(;;)
   { Word p1, p2;
     word w1, w2;
-    int arity;
 
     if ( !todo )
     { if ( nextch )
@@ -471,56 +463,62 @@ structeql(Word t1, Word t2, Buffer buf)
     todo--;
     t1++; t2++;
 
-    if ( isVar(w1) )
-    { if ( isVar(w2) )
-      { word id = consNum(sizeOfBuffer(buf))|MARK_MASK;
+    if ( w1 == w2 )
+    { if ( isVar(w1) )
+      { word id = consInt(sizeOfBuffer(buf))|MARK_MASK;
 	reset r;
   
 	r.v1 = p1;
 	r.v2 = p2;
 	addBuffer(buf, r, reset);
 	*p1 = *p2 = id;
-
-	continue;
       }
-      fail;
-    }
-  
-    if ( w1 == w2 )
       continue;
-    if ( (w1 & MARK_MASK) || (w2 & MARK_MASK) || isVar(w2) )
-      fail;
-  
-    if ( isIndirect(w1) )
-    { if ( isIndirect(w2) && equalIndirect(w1, w2) )
-	continue;
-
-      fail;
     }
   
-    if ( !nonVarIsTerm(w1) || !nonVarHasFunctor(w2, functorTerm(w1)) )
+    if ( ((w1|w2)&MARK_MASK) || tag(w1) != tag(w2) )
       fail;
-  
-    arity = functorTerm(w1)->arity;
-    p1 = argTermP(w1, 0);
-    p2 = argTermP(w2, 0);
 
-    if ( todo == 0 )			/* right-most argument recursion */
-    { todo = arity;
-      t1 = p1;
-      t2 = p2;
-    } else if ( arity > 0 )
-    { UChoice next = alloca(sizeof(*next));
+    switch(tag(w1))
+    { case TAG_VAR:
+      case TAG_ATOM:
+	fail;
+      case TAG_INTEGER:
+	if ( storage(w1) == STG_INLINE )
+	  fail;
+      case TAG_STRING:
+      case TAG_FLOAT:
+	if ( equalIndirect(w1, w2) )
+	  continue;
+        fail;
+      case TAG_COMPOUND:
+      { FunctorDef fd = functorTerm(w1);
+	int arity;
 
-      next->size   = arity;
-      next->alist1 = p1;
-      next->alist2 = p2;
-      next->next   = NULL;
-      if ( !nextch )
-	nextch = tailch = next;
-      else
-      { tailch->next = next;
-	tailch = next;
+	if ( !hasFunctor(w2, fd) )
+	  fail;
+
+	arity = fd->arity;
+	p1 = argTermP(w1, 0);
+	p2 = argTermP(w2, 0);
+	if ( todo == 0 )		/* right-most argument recursion */
+	{ todo = arity;
+	  t1 = p1;
+	  t2 = p2;
+	} else if ( arity > 0 )
+	{ UChoice next = alloca(sizeof(*next));
+
+	  next->size   = arity;
+	  next->alist1 = p1;
+	  next->alist2 = p2;
+	  next->next   = NULL;
+	  if ( !nextch )
+	    nextch = tailch = next;
+	  else
+	  { tailch->next = next;
+	    tailch = next;
+	  }
+	}
       }
     }
   }
@@ -534,6 +532,9 @@ pl_structural_equal(term_t t1, term_t t2)
   Reset r;
   Word p1 = valTermRef(t1);
   Word p2 = valTermRef(t2);
+
+  deRef(p1);
+  deRef(p2);
 
   if ( *p1 == *p2 )
     succeed;
@@ -563,7 +564,7 @@ pl_structural_nonequal(term_t t1, term_t t2)
 word
 pl_functor(term_t t, term_t f, term_t a)
 { int arity;
-  Atom name;
+  atom_t name;
   
   if ( PL_get_name_arity(t, &name, &arity) )
   { if ( !PL_unify_atom(f, name) ||
@@ -593,7 +594,7 @@ pl_functor(term_t t, term_t f, term_t a)
 
 word
 pl_arg(term_t n, term_t term, term_t arg, word b)
-{ Atom name;
+{ atom_t name;
   int arity;
 
   switch( ForeignControl(b) )
@@ -623,7 +624,7 @@ pl_arg(term_t n, term_t term, term_t arg, word b)
 	  { PL_unify_integer(n, argn);
 	    if ( argn == arity )
 	      succeed;
-	    ForeignRedo(argn);
+	    ForeignRedoInt(argn);
 	  }
 	}
 	fail;
@@ -631,7 +632,7 @@ pl_arg(term_t n, term_t term, term_t arg, word b)
       return warning("arg/3: first argument in not an integer or unbound");
     }
     case FRG_REDO:
-    { int argn = ForeignContext(b) + 1;
+    { int argn = ForeignContextInt(b) + 1;
       term_t a = PL_new_term_ref();
 
       if ( !PL_get_name_arity(term, &name, &arity) )
@@ -643,7 +644,7 @@ pl_arg(term_t n, term_t term, term_t arg, word b)
 	{ PL_unify_integer(n, argn);
 	  if ( argn == arity )
 	    succeed;
-	  ForeignRedo(argn);
+	  ForeignRedoInt(argn);
 	}
       }
 
@@ -658,7 +659,7 @@ pl_arg(term_t n, term_t term, term_t arg, word b)
 word
 pl_setarg(term_t n, term_t term, term_t value)
 { int arity, argn;
-  Atom name;
+  atom_t name;
   Word a, v;
 
   if ( !PL_get_integer(n, &argn) ||
@@ -723,7 +724,7 @@ lengthList(term_t list)
 word
 pl_univ(term_t t, term_t list)
 { int arity;
-  Atom name;
+  atom_t name;
   term_t l = PL_new_term_ref();
 
   arity = lengthList(list) - 1;
@@ -782,7 +783,7 @@ pl_univ(term_t t, term_t list)
 
 static int
 do_number_vars(term_t t, FunctorDef functor, int n)
-{ Atom name;
+{ atom_t name;
   int arity;
 
   if ( PL_is_variable(t) )
@@ -823,7 +824,7 @@ pl_numbervars(term_t t, term_t f,
 	      term_t start, term_t end)
 { int n;
   FunctorDef functor;
-  Atom name;
+  atom_t name;
   
   if ( !PL_get_integer(start, &n) ||
        !PL_get_atom(f, &name) )
@@ -896,7 +897,7 @@ undone by the Undo().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-dobind_vars(Word t, Atom constant)
+dobind_vars(Word t, atom_t constant)
 { deRef(t);
 
   if ( isVar(*t) )
@@ -917,16 +918,17 @@ bind_existential_vars(Word t)
 { deRef(t);
 
   if ( isTerm(*t) )
-  { int arity;
+  { Functor f = valueTerm(*t);
+    int arity;
     Word a;
 
-    if ( functorTerm(*t) == FUNCTOR_hat2 )
-    { dobind_vars(argTermP(*t, 0), ATOM_nil);
-      return bind_existential_vars(argTermP(*t, 1));
+    if ( f->definition == FUNCTOR_hat2->functor )
+    { dobind_vars(&f->arguments[0], ATOM_nil);
+      return bind_existential_vars(&f->arguments[1]);
     }
     
-    arity = functorTerm(*t)->arity;
-    for(a = argTermP(*t, 0); arity > 0; arity--, a++)
+    arity = arityFunctor(f->definition);
+    for(a = f->arguments; arity > 0; arity--, a++)
       bind_existential_vars(a);
   }
 
@@ -1413,7 +1415,7 @@ pl_number_chars(term_t atom, term_t string)
 
 word
 pl_atom_char(term_t atom, term_t chr)
-{ Atom a;
+{ atom_t a;
   int n;
 
   if ( PL_get_atom(atom, &a) )
@@ -1506,7 +1508,7 @@ pl_concat_atom(term_t list, term_t atom)
   }
 
   if ( PL_get_nil(l) )
-  { Atom a;
+  { atom_t a;
 
     addBuffer(&b, EOS, char);
     a = lookupAtom(baseBuffer(&b, char));
@@ -1573,14 +1575,14 @@ pl_string_concat(term_t a1, term_t a2, term_t a3, word h)
 	n = 0;
         goto cont;
       case FRG_REDO:
-	n = ForeignContext(h);
+	n = ForeignContextInt(h);
       cont:
 	if ( !PL_get_chars(a3, &s, CVT_ALL) )
 	  fail;
         PL_unify_string_nchars(a1, n, s);
 	PL_unify_string_chars(a2, &s[n]);
 	if ( s[n] )
-	  ForeignRedo(n+1);
+	  ForeignRedoInt(n+1);
 	else
 	  succeed;
       case FRG_CUTTED:
@@ -1740,7 +1742,7 @@ pl_repeat(word h)
 { switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
     case FRG_REDO:
-      ForeignRedo(2L);
+      ForeignRedoInt(2L);
     case FRG_CUTTED:
     default:
       succeed;
@@ -1777,12 +1779,13 @@ pl_halt(term_t code)
 
  ** Sun Apr 17 15:38:46 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
-#define makeNum(n)	((n) < PLMAXTAGGEDINT ? consNum(n) : globalLong(n))
+#define makeNum(n)	((n) < PLMAXTAGGEDINT ? consInt(n) : globalLong(n))
+#define limitStack(n)	diffPointers(stacks.n.limit, stacks.n.base)
 
 word
 pl_statistics(term_t k, term_t value)
 { word result;
-  Atom key;
+  atom_t key;
 
   if ( !PL_get_atom(k, &key) )
     return warning("statistics/2: instantiation fault");
@@ -1796,7 +1799,7 @@ pl_statistics(term_t k, term_t value)
   else if (key == ATOM_localused)
     result = makeNum((long)lTop - (long)lBase);
   else if (key == ATOM_locallimit)
-    result = makeNum(stacks.local.limit);
+    result = makeNum(limitStack(local));
   else if (key == ATOM_heapused)			/* heap */
     result = makeNum(statistics.heap);
   else if (key == ATOM_trail)				/* trail */
@@ -1804,42 +1807,42 @@ pl_statistics(term_t k, term_t value)
   else if (key == ATOM_trailused)
     result = makeNum((long)tTop - (long)tBase);
   else if (key == ATOM_traillimit)
-    result = makeNum(stacks.trail.limit);
+    result = makeNum(limitStack(trail));
   else if (key == ATOM_global)				/* global */
     result = makeNum((long)gMax - (long)gBase);
   else if (key == ATOM_globalused)
     result = makeNum((long)gTop - (long)gBase);
   else if (key == ATOM_globallimit)
-    result = makeNum(stacks.global.limit);
+    result = makeNum(limitStack(global));
   else if (key == ATOM_atoms)				/* atoms */
-    result = consNum(statistics.atoms);
+    result = consInt(statistics.atoms);
   else if (key == ATOM_functors)			/* functors */
-    result = consNum(statistics.functors);
+    result = consInt(statistics.functors);
   else if (key == ATOM_predicates)			/* predicates */
-    result = consNum(statistics.predicates);
+    result = consInt(statistics.predicates);
   else if (key == ATOM_modules)				/* modules */
-    result = consNum(statistics.modules);
+    result = consInt(statistics.modules);
   else if (key == ATOM_codes)				/* codes */
-    result = consNum(statistics.codes);
+    result = consInt(statistics.codes);
   else if (key == ATOM_gctime)
     result = globalReal(gc_status.time);
   else if (key == ATOM_collections)
-    result = consNum(gc_status.collections);
+    result = consInt(gc_status.collections);
   else if (key == ATOM_collected)
     result = makeNum(gc_status.trail_gained + gc_status.global_gained);
   else if (key == ATOM_core_left)			/* core left */
 #if tos
-    result = consNum((long)coreleft());
+    result = consInt((long)coreleft());
 #else
     fail;
 #endif
 #if O_SHIFT_STACKS
   else if (key == ATOM_global_shifts)
-    result = consNum(shift_status.global_shifts);
+    result = consInt(shift_status.global_shifts);
   else if (key == ATOM_local_shifts)
-    result = consNum(shift_status.local_shifts);
+    result = consInt(shift_status.local_shifts);
   else if (key == ATOM_trail_shifts)
-    result = consNum(shift_status.trail_shifts);
+    result = consInt(shift_status.trail_shifts);
 #else
   else if ( key == ATOM_global_shifts ||
 	    key == ATOM_local_shifts ||
@@ -1858,7 +1861,7 @@ pl_statistics(term_t k, term_t value)
 
 typedef struct feature *Feature;
 struct feature
-{ Atom name;
+{ atom_t name;
   word value;
   Feature next;
 };
@@ -1866,29 +1869,29 @@ struct feature
 static Feature feature_list = NULL;
 
 typedef struct
-{ Atom		name;
+{ atom_t	name;
   unsigned long	mask;
 } builtin_boolean_feature;
 
 typedef struct
-{ Atom		name;
-  Atom	       *address;
+{ atom_t	name;
+  atom_t       *address;
 } builtin_named_feature;
 
 builtin_boolean_feature builtin_boolean_features[] = 
 { { ATOM_character_escapes,	CHARESCAPE_FEATURE },
   { ATOM_gc,			GC_FEATURE },
   { ATOM_trace_gc,		TRACE_GC_FEATURE },
-  { NULL,			0L }
+  { NULL_ATOM,			0L }
 };
 
 builtin_named_feature builtin_named_features[] =
 { { ATOM_float_format,		&float_format },
-  { NULL,			NULL }
+  { NULL_ATOM,			NULL }
 };
 
 int
-setFeature(Atom name, word value)
+setFeature(atom_t name, word value)
 { Feature f;
   builtin_boolean_feature *bf;
   builtin_named_feature   *nf;
@@ -1896,7 +1899,7 @@ setFeature(Atom name, word value)
   for(nf = builtin_named_features; nf->name; nf++)
   { if ( name == nf->name )
     { if ( isAtom(value) )
-      { *nf->address = (Atom)value;
+      { *nf->address = value;
       } else
       { warning("set_feature/2: %s feature is atom", stringAtom(name));
 	fail;
@@ -1906,11 +1909,9 @@ setFeature(Atom name, word value)
   }
   for(bf = builtin_boolean_features; bf->name; bf++ )
   { if ( name == bf->name )
-    { if ( value == (word) ATOM_true ||
-	   value == (word) ATOM_on )
+    { if ( value == ATOM_true || value == ATOM_on )
 	set(&features, bf->mask);
-      else if ( value == (word) ATOM_false ||
-		value == (word) ATOM_off )
+      else if ( value == ATOM_false || value == ATOM_off )
 	clear(&features, bf->mask);
       else
       { warning("set_feature/2: %s feature is boolean", stringAtom(name));
@@ -1939,7 +1940,7 @@ doset:
 
 
 word
-getFeature(Atom name)
+getFeature(atom_t name)
 { Feature f;
 
   for(f=feature_list; f; f = f->next)
@@ -1953,7 +1954,7 @@ getFeature(Atom name)
 
 word
 pl_set_feature(term_t key, term_t value)
-{ Atom k;
+{ atom_t k;
   word v;
   
   if ( !PL_get_atom(key, &k) ||
@@ -1971,7 +1972,7 @@ pl_feature(term_t key, term_t value, word h)
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
-    { Atom k;
+    { atom_t k;
 
       if ( PL_get_atom(key, &k) )
       { word val;
@@ -1985,7 +1986,7 @@ pl_feature(term_t key, term_t value, word h)
       }
     }
     case FRG_REDO:
-      here = (Feature) ForeignContextAddress(h);
+      here = ForeignContextPtr(h);
       break;
     case FRG_CUTTED:
     default:
@@ -1997,7 +1998,7 @@ pl_feature(term_t key, term_t value, word h)
 	 _PL_unify_atomic(value, here->value) )
     { if ( !here->next )
 	succeed;
-      ForeignRedo(here->next);
+      ForeignRedoPtr(here->next);
     }
   }
 
@@ -2016,7 +2017,7 @@ pl_feature(term_t key, term_t value, word h)
 word
 pl_option(term_t key, term_t old, term_t new)
 { char *result, *n;
-  Atom k;
+  atom_t k;
 
   if ( !PL_get_atom(key, &k) )
     fail;
@@ -2040,7 +2041,7 @@ pl_option(term_t key, term_t old, term_t new)
 
 word
 pl_please(term_t key, term_t old, term_t new)
-{ Atom k;
+{ atom_t k;
 
   if ( !PL_get_atom(key, &k) )
     fail;

@@ -89,7 +89,7 @@ extern long Random(void);
 Char		GetChar(void);
 long		LastModifiedFile(char *name),
 		SizeFile(char *name);
-Atom		TemporaryFile(char *id);
+atom_t		TemporaryFile(char *id);
 bool		AccessFile(char *name, int how),
 		ExistsFile(char *name),
 		ExistsDirectory(char *name),

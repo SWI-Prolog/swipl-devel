@@ -174,6 +174,52 @@ outOf(Stack s)
   exit(2);				/* should not happen */
 }
 
+		 /*******************************
+		 *	REFS AND POINTERS	*
+		 *******************************/
+
+#ifndef consPtr
+inline word
+consPtr(void *p, int ts)
+{ unsigned long v = (unsigned long) p;
+
+  v -= base_addresses[ts&STG_MASK];
+/*assert(v < MAXTAGGEDPTR);*/
+  return (v<<5)|ts;
+}
+#endif
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+makeRef() and makeRefLG().   Make  a   reference  pointer.   The  second
+version is used by the WAM-interpreter to  exploit the fact that we know
+the pointer is either to the local or global stack.  See also TrailLG().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static inline word
+makeRefLG(Word p)
+{ if ( p >= (Word) lBase )
+    return consPtr(p, TAG_REFERENCE|STG_LOCAL);
+  else
+    return consPtr(p, TAG_REFERENCE|STG_GLOBAL);
+}
+
+
+word
+makeRef(Word p)
+{ int s;
+  word ref;
+
+  if ( onStackArea(local, p) )
+    s = TAG_REFERENCE|STG_LOCAL;
+  else if ( onStackArea(global, p) )
+    s = TAG_REFERENCE|STG_GLOBAL;
+  else
+    s = TAG_REFERENCE|STG_HEAP;
+
+  ref = consPtr(p, s);
+  return ref;
+}
+
 		/********************************
 		*        GLOBAL STACK           *
 		*********************************/
@@ -223,11 +269,11 @@ globalFunctor(register FunctorDef def)
   register Functor f = allocGlobal(1 + arity);
   register Word a;
 
-  f->definition = def;
-  for(a = argTermP(f, 0); arity > 0; a++, arity--)
+  f->definition = def->functor;
+  for(a = &f->arguments[0]; arity > 0; a++, arity--)
     setVar(*a);
 
-  return consPtr(f, TAG_COMPOUND, STG_GLOBAL);
+  return consPtr(f, TAG_COMPOUND|STG_GLOBAL);
 }
 
 
@@ -240,7 +286,6 @@ newTerm(void)
   return t;
 }
 
-
 		 /*******************************
 		 *      OPERATIONS ON LONGS	*
 		 *******************************/
@@ -248,11 +293,12 @@ newTerm(void)
 word
 globalLong(long l)
 { Word p = allocGlobal(3);
-  word r = (word)p | INDIRECT_MASK;
+  word r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+  word m = mkIndHdr(1, TAG_INTEGER);
 
-  *p++ = IDT_MASK|IDT_BIGNUM|makeIdtSizeMask(1);
+  *p++ = m;
   *p++ = l;
-  *p   = IDT_MASK|IDT_BIGNUM|makeIdtSizeMask(1);
+  *p   = m;
   
   return r;
 }
@@ -261,11 +307,12 @@ globalLong(long l)
 word
 heapLong(long l)
 { Word p = allocHeap(3 * sizeof(word));
-  word r = (word)p | INDIRECT_MASK;
+  word r = consPtr(p, TAG_INTEGER|STG_HEAP);
+  word m = mkIndHdr(1, TAG_INTEGER);
 
-  *p++ = IDT_MASK|IDT_BIGNUM|makeIdtSizeMask(1);
+  *p++ = m;
   *p++ = l;
-  *p   = IDT_MASK|IDT_BIGNUM|makeIdtSizeMask(1);
+  *p   = m;
   
   return r;
 }
@@ -277,12 +324,9 @@ heapLong(long l)
 
 int
 sizeString(word w)
-{ word h  = *((Word)addressIndirect(w));
-  int wn  = wSizeIndirect(h);
-  int pad = (h & 0xf) >> 2;
-
-  if ( pad == 0 )
-    pad = sizeof(word);
+{ word m  = *((Word)addressIndirect(w));
+  int wn  = wsizeofInd(m);
+  int pad = padHdr(m);
 
   return wn*sizeof(word) - pad;
 }
@@ -291,10 +335,10 @@ sizeString(word w)
 word
 globalNString(long l, const char *s)
 { int lw = (l+sizeof(word))/sizeof(word);
-  int pad = (lw*sizeof(word) - l) & 0x3;
+  int pad = (lw*sizeof(word) - l);
   Word p = allocGlobal(2 + lw);
-  word r = (word)p | INDIRECT_MASK;
-  word m = IDT_MASK|IDT_STRING|makeIdtSizeMask(lw)|(pad<<2);
+  word r = consPtr(p, TAG_STRING|STG_GLOBAL);
+  word m = mkStrHdr(lw, pad);
 
   *p++ = m;
   p[lw-1] = 0L;				/* write zero's for padding */
@@ -316,10 +360,10 @@ word
 heapString(const char *s)
 { int l = strlen(s);
   int lw = (l+sizeof(word))/sizeof(word);
-  int pad = (lw*sizeof(word) - l) & 0x3;
+  int pad = (lw*sizeof(word) - l);
   Word p = allocHeap((2 + lw) * sizeof(word));
-  word r = (word)p | INDIRECT_MASK;
-  word m = IDT_MASK|IDT_STRING|makeIdtSizeMask(lw)|(pad<<2);
+  word r = consPtr(p, TAG_STRING|STG_HEAP);
+  word m = mkStrHdr(lw, pad);
 
   *p++ = m;
   p[lw-1] = 0L;				/* padding word */
@@ -354,17 +398,18 @@ valReal(word w)
 word
 globalReal(double d)
 { Word p = allocGlobal(4);
-  word r = (word)p | INDIRECT_MASK;
+  word r = consPtr(p, TAG_FLOAT|STG_GLOBAL);
+  word m = mkIndHdr(2, TAG_FLOAT);
   union
   { double d;
     unsigned long w[2];
   } val;
 
   val.d = d;
-  *p++ = IDT_MASK|IDT_DOUBLE|makeIdtSizeMask(2);
+  *p++ = m;
   *p++ = val.w[0];
   *p++ = val.w[1];
-  *p   = IDT_MASK|IDT_DOUBLE|makeIdtSizeMask(2);
+  *p   = m;
 
   return r;
 }
@@ -373,17 +418,18 @@ globalReal(double d)
 word
 heapReal(double d)
 { Word p = allocHeap(4*sizeof(word));
-  word r = (word)p | INDIRECT_MASK;
+  word r = consPtr(p, TAG_FLOAT|STG_HEAP);
+  word m = mkIndHdr(2, TAG_FLOAT);
   union
   { double d;
     unsigned long w[2];
   } val;
 
   val.d = d;
-  *p++ = IDT_MASK|IDT_DOUBLE|makeIdtSizeMask(2);
+  *p++ = m;
   *p++ = val.w[0];
   *p++ = val.w[1];
-  *p   = IDT_MASK|IDT_DOUBLE|makeIdtSizeMask(2);
+  *p   = m;
 
   return r;
 }
@@ -399,7 +445,7 @@ equalIndirect(word w1, word w2)
   Word p2 = addressIndirect(w2);
   
   if ( *p1 == *p2 )
-  { int n = wSizeIndirect(*p1);
+  { int n = wsizeofInd(*p1);
     
     while( --n >= 0 )
     { if ( *++p1 != *++p2 )
@@ -422,7 +468,7 @@ word
 heapIndirect(word w)
 { Word p = addressIndirect(w);
   word t = *p;
-  int  n = wSizeIndirect(t);
+  int  n = wsizeofInd(t);
   Word h = allocHeap((n+2) * sizeof(word));
   Word hp = h;
   
@@ -431,14 +477,14 @@ heapIndirect(word w)
     *++hp = *++p;
   *++hp = t;
 
-  return (word)h | INDIRECT_MASK;
+  return consPtr(h, tag(w)|STG_HEAP);
 }
 
 
 void
 freeHeapIndirect(word w)
 { Word p = addressIndirect(w);
-  int  n = wSizeIndirect(*p);
+  int  n = wsizeofInd(*p);
 
   freeHeap(p, (n+2) * sizeof(word));
 }
@@ -448,7 +494,7 @@ word
 globalIndirect(word w)
 { Word p = addressIndirect(w);
   word t = *p;
-  int  n = wSizeIndirect(t);
+  int  n = wsizeofInd(t);
   Word h = allocGlobal((n+2));
   Word hp = h;
   
@@ -457,8 +503,48 @@ globalIndirect(word w)
     *++hp = *++p;
   *++hp = t;
 
-  return (word)h | INDIRECT_MASK;
+  return consPtr(h, tag(w)|STG_GLOBAL);
 }
+
+
+word
+globalIndirectFromCode(Code *PC)
+{ Code pc = *PC;
+  word m = *pc++;
+  int  n = wsizeofInd(m);
+  Word p = allocGlobal(n+2);
+  word r = consPtr(p, tag(m)|STG_GLOBAL);
+
+  *p++ = m;
+  while(--n >= 0)
+    *p++ = *pc++;
+  *p++ = m;
+
+  *PC = pc;
+  return r;
+}
+
+
+int
+equalIndirectFromCode(word a, Code *PC)
+{ Word pc = *PC;
+  Word pa = addressIndirect(a);
+
+  if ( *pc == *pa )
+  { int  n = wsizeofInd(*pc);
+
+    while(--n >= 0)
+    { if ( *++pc != *++pa )
+	fail;
+    }
+    pc++;
+    *PC = pc;
+    succeed;
+  }
+
+  fail;
+}
+
 
 		/********************************
 		*            STRINGS            *

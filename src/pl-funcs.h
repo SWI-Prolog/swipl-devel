@@ -28,7 +28,13 @@ double		valReal(word w);
 word		globalIndirect(word in);
 word		heapIndirect(word in);
 int		equalIndirect(word r1, word r2);
+word		globalIndirectFromCode(Code *PC);
+int		equalIndirectFromCode(word a, Code *PC);
 void		freeHeapIndirect(word w);
+word		makeRef(Word p);
+#ifndef consPtr
+word		consPtr(void *p, int ts);
+#endif
 char *		store_string(const char *s);
 void		remove_string(char *s);
 int		unboundStringHashValue(const char *t);
@@ -53,7 +59,7 @@ inline void	do_undo(mark *m);
 void		fix_term_ref_count(void);
 
 /* pl-atom.c */
-Atom		lookupAtom(const char *s);
+word		lookupAtom(const char *s);
 word		pl_atom_hashstat(term_t i, term_t n);
 void		initAtoms(void);
 word		pl_current_atom(term_t a, word h);
@@ -97,7 +103,7 @@ word		pl_collect_bag(term_t bindings, term_t bag);
 void		initWamTable(void);
 int		get_head_and_body_clause(term_t clause,
 					 term_t head, term_t body, Module *m);
-Clause		assert_term(term_t term, int where, Atom file);
+Clause		assert_term(term_t term, int where, atom_t file);
 word		pl_assertz(term_t term);
 word		pl_asserta(term_t term);
 word		pl_assertz2(term_t term, term_t ref);
@@ -110,6 +116,7 @@ bool		decompile(Clause clause, term_t term);
 word		pl_clause(term_t p, term_t term, term_t ref, word h);
 word		pl_nth_clause(term_t p, term_t n, term_t ref, word h);
 word		pl_xr_member(term_t ref, term_t term, word h);
+void		wamListClause(Clause clause);
 word		pl_wam_list(term_t ref);
 int		unify_definition(term_t head, Definition def,
 				 term_t thehead);
@@ -174,7 +181,7 @@ bool		seeingString(void);
 bool		seenString(void);
 bool		tellString(char *s, int size);
 bool		toldString(void);
-Atom		currentStreamName(void);
+atom_t		currentStreamName(void);
 word		pl_wait_for_input(term_t streams, term_t avail, term_t tmo);
 word		pl_put(term_t c);
 word		pl_put2(term_t stream, term_t chr);
@@ -260,8 +267,8 @@ word		pl_format(term_t fmt, term_t args);
 word		pl_format3(term_t s, term_t fmt, term_t args);
 
 /* pl-funct.c */
-FunctorDef	lookupFunctorDef(Atom atom, int arity);
-FunctorDef	isCurrentFunctor(Atom atom, int arity);
+FunctorDef	lookupFunctorDef(atom_t atom, int arity);
+FunctorDef	isCurrentFunctor(atom_t atom, int arity);
 void		initFunctors(void);
 int 		checkFunctors(void);
 word		pl_current_functor(term_t name, term_t arity, word h);
@@ -303,12 +310,12 @@ word		pl_call_shared_object_function(term_t plhandle, term_t name);
 word		pl_load_shared_object(term_t file, term_t entry);
 
 /* pl-modul.c */
-Module		lookupModule(Atom name);
+Module		lookupModule(atom_t name);
 void		initModules(void);
 int		isSuperModule(Module s, Module m);
 Word		stripModule(Word term, Module *module);
 bool		isPublicModule(Module module, Procedure proc);
-int		declareModule(Atom name, SourceFile sf);
+int		declareModule(atom_t name, SourceFile sf);
 word		pl_default_module(term_t me, term_t old, term_t new);
 word		pl_current_module(term_t module, term_t file, word h);
 word		pl_strip_module(term_t spec, term_t module, term_t term);
@@ -322,11 +329,11 @@ word		pl_context_module(term_t module);
 word		pl_import(term_t pred);
 
 /* pl-op.c */
-Operator	isCurrentOperator(Atom name, int type);
+Operator	isCurrentOperator(atom_t name, int type);
 word		pl_current_op(term_t prec, term_t type, term_t name, word h);
-bool		isPrefixOperator(Atom atom, int *type, int *priority);
-bool		isPostfixOperator(Atom atom, int *type, int *priority);
-bool		isInfixOperator(Atom atom, int *type, int *priority);
+bool		isPrefixOperator(atom_t atom, int *type, int *priority);
+bool		isPostfixOperator(atom_t atom, int *type, int *priority);
+bool		isInfixOperator(atom_t atom, int *type, int *priority);
 word		pl_op1(term_t priority, term_t type, term_t name);
 bool		newOp(char *name, int type, int pri);
 void		initOperators(void);
@@ -444,9 +451,9 @@ word		pl_fail(void);
 word		pl_true(void);
 word		pl_halt(term_t code);
 word		pl_statistics(term_t k, term_t value);
-int		setFeature(Atom name, word value);
+int		setFeature(atom_t name, word value);
 int		CSetFeature(char *name, char *value);
-word		getFeature(Atom name);
+word		getFeature(atom_t name);
 word		pl_feature(term_t key, term_t value, word h);
 word		pl_set_feature(term_t key, term_t value);
 word		pl_option(term_t key, term_t old, term_t new);
@@ -460,7 +467,7 @@ word		pl_break1(term_t goal);
 word		pl_notrace1(term_t goal);
 int		callProlog(Module module, term_t goal, int debug);
 word		pl_abort(void);
-bool		prolog(Atom toplevel);
+bool		prolog(atom_t toplevel);
 word		pl_metacut(void);
 int 		trap_gdb(void);
 word		checkData(Word p, int on_heap);
@@ -491,7 +498,7 @@ word		pl_set_predicate_attribute(term_t pred, term_t k, term_t v);
 void		reindexDefinition(Definition def);
 void		startConsult(SourceFile f);
 word		pl_index(term_t pred);
-SourceFile	lookupSourceFile(Atom name);
+SourceFile	lookupSourceFile(atom_t name);
 void		addProcedureSourceFile(SourceFile sf, Procedure proc);
 word		pl_make_system_source_files(void);
 word		pl_source_file(term_t descr, term_t file);
