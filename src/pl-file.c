@@ -38,6 +38,12 @@ handling times must be cleaned, but that not only holds for this module.
 #include "pl-incl.h"
 #include "pl-ctype.h"
 
+#ifdef HAVE_SYS_SELECT_H
+#include <sys/select.h>
+#endif
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif

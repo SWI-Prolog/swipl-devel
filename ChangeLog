@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MAYBEFIXED: Bug#68: lacking headers compiling pl-stream.c.  Lourens
+    van der Meij and Djamé Seddah.
+
   * FIXED: GC during autoload.  Fabien Todescato.  Thanks for the extensive
     test-suite!
 
