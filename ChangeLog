@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: expected type in sub_string/5 (Pierre.Nugues)
+
+
 VERSION 4.0.10
 ==============
 

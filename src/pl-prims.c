@@ -1905,11 +1905,12 @@ sub_text(term_t atom,
   unsigned int la;			/* length of `atom' */
   unsigned int ls;			/* length of `sub' */
   sub_state *state;			/* non-deterministic state */
+  atom_t expected = (out == PL_unify_string_nchars ? ATOM_string, ATOM_atom);
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
     { if ( !PL_get_nchars(atom, &la, &aa, CVT_ATOMIC) )
-	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, atom);
+	return PL_error(NULL, 0, NULL, ERR_TYPE, expected, atom);
 
       if ( !get_positive_integer_or_unbound(before, &b) ||
 	   !get_positive_integer_or_unbound(len, &l) ||
@@ -1918,7 +1919,7 @@ sub_text(term_t atom,
 
       if ( !PL_get_nchars(sub, &ls, &s, CVT_ATOMIC) )
       { if ( !PL_is_variable(sub) )
-	  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, sub);
+	  return PL_error(NULL, 0, NULL, ERR_TYPE, expected, sub);
       }
 
       if ( s )				/* `sub' given */

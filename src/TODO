@@ -7,7 +7,25 @@ BUGS:
 	* plcon.exe to delay Control-C in garbage collections.
 
 
+INPUT HANDLING:
+---------------
+
+Provide Quintus-like alternate input sources, so input from server-sockets
+can be mixed with the toplevel without loosing the toplevel.  Other aim:
+Allow Unix/X11 version of XPCE to run without X11 display but with active
+sockets.  Problems: Windows compatibility, X11 handling. 
+
+
+MULTITHREADED VERSION:
+----------------------
+
+Port to Windows.  First step is the kernel, second to make it possible to
+attach a console to each thread.  For now, AllocConsole() might do the
+trick?
+
+
 FOREIGN LINKING:
+----------------
 
 	* Add info for compilation and linking to pl -dump-runtime-variables:
 
