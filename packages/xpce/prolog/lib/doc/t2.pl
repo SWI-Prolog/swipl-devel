@@ -10,7 +10,7 @@
 :- use_module(xml_browse).
 
 show :-
-	show('/staff/jan/public_html/index.html').
+	show('t.html').
 
 show(File) :-
 	load_html_file(File, Tokens),

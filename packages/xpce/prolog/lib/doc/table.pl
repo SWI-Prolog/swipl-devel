@@ -70,8 +70,11 @@ next_row(T) :->
 compute_cell_rubber(_T, PB:parbox) :->
 	"Compute ->hrubber or table_cell"::
 	get(PB, layout_interface, Cell),
-	get(PB, width, NW),		% TBD: <-natural_width?
-	get(PB, minimum_width, MW),
+	cell_padding(Cell, CP),
+	get(PB, width, NW0),		% TBD: <-natural_width?
+	get(PB, minimum_width, MW0),
+	NW is NW0+2*CP,
+	MW is MW0+2*CP,
 	Shrink is (NW-MW)**2,
 	Stretch is NW,
 	new(R, rubber(1, Stretch, Shrink)),
@@ -265,7 +268,7 @@ compute_column(C, _, _) :-
 compute_column(C, _, _) :-
 	get(C, attribute, relative_width, W), !,
 	get(C, index, ColN),
-	debug(table, 'Col ~w: Reletive width = *~w~n', [ColN, W]),
+	debug(table, 'Col ~w: Relative width = *~w~n', [ColN, W]),
 	Stretch is 100*W,		% ???
 	new(R, rubber(1, Stretch, 0)),
 	send(R, shrink, 0),
@@ -306,14 +309,16 @@ stretched_cell(T, Cell:table_cell, W:int) :->
 	).
 
 image_width(Cell, W, IW) :-
-	get(Cell, cell_padding, CP),
-	CP \== @default, !,
-	get(CP, width, PW),
-	IW is max(0, W - 2*PW).
-image_width(Cell, W, IW) :-
-	get(Cell?table, cell_padding, CP),
-	get(CP, width, PW),
-	IW is max(0, W - 2*PW).
+	cell_padding(Cell, CP),
+	IW is max(0, W - 2*CP).
+
+cell_padding(Cell, CP) :-
+	(   get(Cell, cell_padding, Size),
+	    Size \== @default
+	->  true
+	;   get(Cell?table, cell_padding, Size)
+	),
+	get(Size, width, CP).
 
 :- pce_end_class.
 
