@@ -158,6 +158,7 @@ typedef struct _plsocket
   IOSTREAM *	    output;		/* output stream */
 #ifdef WIN32
   int		    w32_flags;		/* FD_* */
+  HWND		    hwnd;		/* associated window */
 #endif
 } plsocket;
 
@@ -286,7 +287,9 @@ socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	default:
 	  evtname = "???";
       }
-      DEBUG(Sdprintf("%s (0x%x) on %d\n", evtname, evt, sock));
+      DEBUG(Sdprintf("[thread %d, hwnd=%p]%s (0x%x) on %d; %p->w32_flags=0x%x\n",
+		     PL_thread_self(), hwnd, evtname, evt, sock,
+		     s, s ? s->w32_flags : 0));
     }
   }
 
@@ -428,6 +431,8 @@ lookupSocket(int socket)
   p->next   = sockets;
   sockets   = p;
 
+  DEBUG(Sdprintf("lookupSocket(%d): bound to %p\n", socket, p));
+
   UNLOCK();
   return p;
 }
@@ -479,6 +484,8 @@ freeSocket(int socket)
 	     WinSockError(WSAGetLastError()));
 #endif
   }
+
+  DEBUG(Sdprintf("freeSocket(%d) returned %d\n", socket, rval));
 
   return rval;
 }
@@ -736,6 +743,7 @@ socket(-Socket)
 static foreign_t
 tcp_socket(term_t Socket)
 { int sock;
+  plsocket *s;
 	
   if ( !tcp_init() )
     return FALSE;
@@ -743,16 +751,17 @@ tcp_socket(term_t Socket)
   if ( (sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     return tcp_error(errno, NULL);
 
-#ifdef WIN32
-  fcntl(sock, F_SETFL, O_NONBLOCK);
-  WSAAsyncSelect(sock, SocketHiddenWindow(), WM_SOCKET,
-		 FD_READ|FD_WRITE|FD_ACCEPT|FD_CONNECT|FD_CLOSE);
-#endif
-
-  if ( !lookupSocket(sock) )		/* register it */
+  if ( !(s=lookupSocket(sock)) )		/* register it */
   { closesocket(sock);
     return FALSE;
   }
+
+#ifdef WIN32
+  fcntl(sock, F_SETFL, O_NONBLOCK);
+  s->hwnd = SocketHiddenWindow();
+  WSAAsyncSelect(sock, s->hwnd, WM_SOCKET,
+		 FD_READ|FD_WRITE|FD_ACCEPT|FD_CONNECT|FD_CLOSE);
+#endif
 
   return tcp_unify_socket(Socket, sock);
 }
@@ -971,14 +980,27 @@ waitMsg(plsocket *s, int flags)
   HWND sockwin;
 
   sockwin = SocketHiddenWindow();
+  if ( s->hwnd != sockwin )
+  { DEBUG(Sdprintf("Switching %d to thread %d\n",
+		   s->socket, PL_thread_self()));
+    WSAAsyncSelect(s->socket, s->hwnd, 0, 0);
+    s->hwnd = sockwin;
+    WSAAsyncSelect(s->socket, s->hwnd, WM_SOCKET,
+		   FD_READ|FD_WRITE|FD_ACCEPT|FD_CONNECT|FD_CLOSE);
+
+  }
+
   if ( true(s, SOCK_DISPATCH) )
     hwnd = NULL;
   else
     hwnd = sockwin;
 
-  DEBUG(Sdprintf("["));
+  DEBUG(Sdprintf("[thread %d hwnd=%p]waitMsg(%d, 0x%x)[",
+		 PL_thread_self(), sockwin, s->socket, flags));
   for(;;)
-  { if ( (s->w32_flags & flags) )
+  { DEBUG(Sdprintf("%p->w32_flags = 0x%x\n", s, s->w32_flags));
+
+    if ( (s->w32_flags & flags) )
     { s->w32_flags &= ~flags;
       DEBUG(Sdprintf("]"));
       return;
