@@ -1,3 +1,9 @@
+* FIXED: Recursive calling of the readline interrupt handler, usually
+  if an interrupt is generated while an XPCE confirmer is active.
+
+* FIXED: Regex interface for SuSE 6.0 (conflict with library).  Unclear
+  whether this is caused by glibc, ld or ld.so.
+
 * FIXED: `editor ->fill'.  Ensure termination.
 
 * FIXED: Class editor incremental search: handle 8-bit characters ok.
