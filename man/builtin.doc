@@ -4252,6 +4252,9 @@ If \const{true}, show the window, if \const{false} hide the window.
 If present, activate the window.
 \end{description}
 
+    \predicate{win_has_menu}{0}{}
+Suceeds if win_insert_menu/2 and win_insert_menu_item/4 are present.
+
     \predicate{win_insert_menu}{2}{+Label, +Before}
 Insert a new entry (pulldown) in the menu.  If the menu already contains
 this entry, nothing is done.  The \arg{Label} is the label and using the
