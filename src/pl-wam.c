@@ -2496,7 +2496,7 @@ globalReal().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
     VMI(B_FLOAT) MARK(BINT)
-      { Word p = allocGlobal(4);
+      { Word p = allocGlobal(2+WORDS_PER_DOUBLE);
 
 	*ARGP++ = consPtr(p, TAG_FLOAT|STG_GLOBAL);
 	*p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
