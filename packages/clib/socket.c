@@ -146,7 +146,9 @@ typedef struct _plsocket
 } plsocket;
 
 static plsocket *lookupSocket(int socket);
+#ifdef WIN32
 static plsocket *lookupExistingSocket(int socket);
+#endif
 
 #if 0
 #define DEBUG(g) g
@@ -316,6 +318,7 @@ static functor_t FUNCTOR_ip4;
 static plsocket *sockets;
 static int initialised = FALSE;		/* Windows only */
 
+#ifdef WIN32
 static plsocket *
 lookupExistingSocket(int socket)
 { plsocket *p;
@@ -330,6 +333,7 @@ lookupExistingSocket(int socket)
   UNLOCK();
   return NULL;
 }
+#endif
 
 
 static plsocket *
