@@ -599,7 +599,7 @@ on_signal(Signal, _Old, _New) :-
 
 current_signal(Name, Id, Handler) :-
 	between(1, 32, Id),
-	$on_signal(Name, Id, Handler, Handler).
+	$on_signal(Id, Name, Handler, Handler).
 
 
 		 /*******************************
