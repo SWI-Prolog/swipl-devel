@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#16: plwin.exe: having DISPLAY defined removes the menu.
+    Richard Cheek.
+
   * FIXED: write_term/3: honour portray(true), numbervars(false) not to
     number the variables.
 

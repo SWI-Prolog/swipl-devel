@@ -55,14 +55,17 @@ user:file_search_path(foreign, pce(lib)).
 gui_setup_ :-
 	current_prolog_flag(gui, true), !.
 gui_setup_ :-
-	getenv('DISPLAY', _), !,
+	(   getenv('DISPLAY', _)
+	;   current_prolog_flag(windows, true)
+	), !,
 	set_prolog_flag(gui, true),
+	menu_setup_,
 	use_module(user:library(swi_hooks)).	% help, etc.
-gui_setup_ :-
-	current_prolog_flag(windows, true),
-	set_prolog_flag(gui, true),
-	use_module(user:library(win_menu)),
-	use_module(user:library(swi_hooks)).	% help, etc.
+
+menu_setup_ :-					% plwin.exe menus
+	current_prolog_flag(console_menu, true),
+	use_module(user:library(win_menu)).
+menu_setup_.
 
 pce_setup_ :-
 	current_prolog_flag(xpce, true), !.
