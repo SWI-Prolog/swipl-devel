@@ -282,8 +282,8 @@ pl_win_exec(term_t cmd, term_t how)
 { char *s;
   char *h;
 
-  if ( PL_get_chars(cmd, &s, CVT_ALL) &&
-       PL_get_atom_chars(how, &h) )
+  if ( PL_get_chars_ex(cmd, &s, CVT_ALL) &&
+       PL_get_chars_ex(how, &h, CVT_ATOM) )
   { char *msg = win_exec(s, h);
 
     if ( msg )
@@ -291,7 +291,56 @@ pl_win_exec(term_t cmd, term_t how)
     else
       succeed;
   } else
-    return warning("win_exec/2: instantiation fault");
+    fail;
+}
+
+typedef struct
+{ int   eno;
+  const char *message;
+} shell_error;
+
+static const shell_error se_errors[] = 
+{ { 0 ,                     "Out of memory or resources" },
+  { ERROR_FILE_NOT_FOUND,   "File not found" },
+  { ERROR_PATH_NOT_FOUND,   "path not found" },
+  { ERROR_BAD_FORMAT,	    "Invalid .EXE" },
+  { SE_ERR_ACCESSDENIED,    "Access denied" },
+  { SE_ERR_ASSOCINCOMPLETE, "Incomplete association" },
+  { SE_ERR_DDEBUSY,	    "DDE server busy" },
+  { SE_ERR_DDEFAIL,         "DDE transaction failed" },
+  { SE_ERR_DDETIMEOUT,	    "DDE request timed out" },
+  { SE_ERR_DLLNOTFOUND,	    "DLL not found" },
+  { SE_ERR_FNF,		    "File not found (FNF)" },
+  { SE_ERR_NOASSOC, 	    "No association" },
+  { SE_ERR_OOM,		    "Not enough memory" }, 
+  { SE_ERR_PNF,		    "Path not found (PNF)" },
+  { SE_ERR_SHARE,	    "Sharing violation" },
+  { 0,			    NULL }
+};
+ 
+
+word
+pl_shell_execute(term_t op, term_t file)
+{ char *o, *f;
+  HINSTANCE instance;
+
+  if ( !PL_get_chars_ex(op,   &o, CVT_ALL) ||
+       !PL_get_chars_ex(file, &f, CVT_ALL) )
+    fail;
+       
+  instance = ShellExecute(NULL, o, f, NULL, NULL, 0);
+
+  if ( (long)instance <= 32 )
+  { const shell_error *se;
+
+    for(se = se_errors; se->message; se++)
+    { if ( se->eno == (int)instance )
+	return PL_error(NULL, 0, se->message, ERR_SHELL_FAILED, file);
+    }
+    PL_error(NULL, 0, NULL, ERR_SHELL_FAILED, file);
+  }
+
+  succeed;
 }
 
 

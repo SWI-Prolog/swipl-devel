@@ -17,9 +17,12 @@
 
 www_open_url(URL) :-
 	feature(windows, true), !,
-	open_dde_conversation('NSShell', 'WWW_openUrl', Handle),
-	sformat(Request, '"~w"', [URL]),
-	dde_execute(Handle, Request).
+	(   current_predicate(_, win_shell(_,_))
+	->  win_shell(open, URL)	% SWI-Prolog 3.4.5
+	;   open_dde_conversation('NSShell', 'WWW_openUrl', Handle),
+	    sformat(Request, '"~w"', [URL]),
+	    dde_execute(Handle, Request)
+	).
 www_open_url(URL) :-
 	(   shell('netscape -remote "xfeDoCommand(openBrowser)"', 0)
 	->  sformat(Cmd, 'netscape -remote "openURL(~w)" &', [URL]),

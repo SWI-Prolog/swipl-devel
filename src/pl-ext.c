@@ -103,6 +103,7 @@ static const struct foreign {
   FRG("$mark_executable",	1, pl_mark_executable,		TRACE_ME),
 #ifdef __WIN32__
   FRG("win_exec",		2, pl_win_exec,			TRACE_ME),
+  FRG("win_shell",		2, pl_shell_execute,		TRACE_ME),
   FRG("win_module_file",	2, pl_win_module_file,		TRACE_ME),
   FRG("win_registry_get_value", 3, pl_get_registry_value,	TRACE_ME),
 #ifdef O_XOS
