@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Ensure the message queue of a thread is available after
+    thread_create/3 returns.  Holger Kanwischer
+
+
 VERSION 5.1.3 (Dec 8, 2002)
 ===========================
 

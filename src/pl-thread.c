@@ -315,8 +315,8 @@ enableThreads(int enable)
 		 *	 THREAD ALLOCATION	*
 		 *******************************/
 
-int
-PL_initialise_thread(PL_thread_info_t *info)
+static int
+initialise_thread(PL_thread_info_t *info)
 { assert(info->thread_data);
 
   TLD_set(PL_ldata, info->thread_data);
@@ -332,11 +332,9 @@ PL_initialise_thread(PL_thread_info_t *info)
 		   info->argument_size);
 
   initPrologLocalData();
-#ifdef WIN32				/* do this always? */
+#ifdef WIN32				/* For signals.  Do this always? */
   attachThreadWindow(info->thread_data);
 #endif
-
-  init_message_queue(&info->thread_data->thread.messages);
 
   LOCK();
   GD->statistics.threads_created++;
@@ -715,7 +713,7 @@ start_thread(void *closure)
   info->status = PL_THREAD_RUNNING;
   UNLOCK();
 
-  PL_initialise_thread(info);
+  initialise_thread(info);
   set_system_thread_id(info);
 
   pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
@@ -814,19 +812,20 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     ldnew->feature.table	 = copyHTable(LD->feature.table);
     PL_UNLOCK(L_FEATURE);
   }
+  init_message_queue(&info->thread_data->thread.messages);
 
   pthread_attr_init(&attr);
   if ( info->detached )
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
   if ( stack )
     pthread_attr_setstacksize(&attr, stack);
-  if ( (rc=pthread_create(&info->tid, &attr, start_thread, info)) != 0 )
+  rc = pthread_create(&info->tid, &attr, start_thread, info);
+  pthread_attr_destroy(&attr);
+  if ( rc != 0 )
   { free_thread_info(info);
-    pthread_attr_destroy(&attr);
     return PL_error(NULL, 0, ThError(rc),
 		    ERR_SYSCALL, "pthread_create");
   }
-  pthread_attr_destroy(&attr);
 
   return PL_unify_integer(id, info->pl_tid);
 }
@@ -2151,6 +2150,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   info->detached   = TRUE;		/* C-side should join me */
   info->status     = PL_THREAD_RUNNING;
   info->open_count = 1;
+  init_message_queue(&info->thread_data->thread.messages);
 
   ldnew->prompt			 = ldmain->prompt;
   ldnew->modules		 = ldmain->modules;
@@ -2166,7 +2166,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
     PL_UNLOCK(L_FEATURE);
   }
 
-  PL_initialise_thread(info); 
+  initialise_thread(info); 
   info->tid = pthread_self();		/* we are complete now */
   set_system_thread_id(info);
   if ( attr && attr->alias )
