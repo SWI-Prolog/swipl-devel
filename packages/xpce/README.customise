@@ -7,25 +7,24 @@
 1.1.  Where do I specify look-and-feel?
 =======================================
 
-Look-and-feel is specified using X11 resources.   These may be specified
-in any of the standard X11 ways:  in your ~/.Xdefaults, using xrdb(1) or
-in XPCE's default file, which is located   in the home-directory of xpce
-and called `Pce'.  Changes to this file are  visible by all users of the
-system and should be used to tailor XPCE to the institution's standards.
+Look-and-feel is specified using a resource specification similar to the
+X11 resources. The main resource file   loaded by XPCE is <pcehome>/Pce,
+which includes the file ~/.xpce/Xpce if it exists. 
 
 
 1.2.  How do I find attributes that can be specified?
 =====================================================
 
 You  can  find  the  defined  resources    for   some  class  using  the
-`ClassBrowser' as available from the PCE Manual under `Browsers':
+`ClassBrowser' as available from the XPCE Manual under `Browsers':
 
-	1) Select (only) `Resource' from the `Display' menu.
-	2) Set the `scope' menu to `super' to view inherited resources too.
-	3) Type the name of the class you want the resources for in the
-	   `Class' item (SPACE-bar completes the class!) and hit ENTER
-	   or press the `Apply' button.
-	4) A list of applicable resources will be presented.
+	1) Select the desired class using the `Class' item
+	2) Set the `Filter' to `all'
+	3) Set the `Display' to `Resource' only
+	4) `Apply'
+	5) Double-click on `object' in the top-right window to extend
+	   the search to all classes this class inherits from.
+	6) A list of applicable resources will be presented.
 	   Double-click (left) on the resource if you want a further
 	   description.
 
@@ -117,3 +116,5 @@ used in resource specifications.
 
 XPCE/Prolog reads the file ~/xpcerc  when   present  *after* reading the
 normal Prolog initialisation file.
+
+ProWindows/Quintus reads the file ~/.pwrc instead of ~/.xpcerc.
