@@ -279,11 +279,19 @@ do_frame_wnd_proc(FrameObj fr,
       } else
         goto win_default;
       
+#ifdef WM_MOUSEWHEEL			/* distributed as key-event */
+    case WM_MOUSEWHEEL:
+      DEBUG(NAME_wheel, Cprintf("Got WM_MOUSEWHEEL on %s\n", pp(fr)));
+#endif
     case WM_KEYDOWN:			/* Named keys */
     case WM_SYSCHAR:			/* ALT-commands */
     case WM_CHAR:			/* Printable keys */
     { unsigned long bmask;
       Any id = messageToKeyId(message, wParam, lParam, &bmask);
+
+      DEBUG(NAME_wheel,
+	    if ( id == NAME_wheel )
+	      Cprintf("Translated to wheel-event\n"));
 
       if ( id && keyboard_event_frame(fr, id, wParam, lParam, bmask) )
 	return 0;
@@ -493,9 +501,13 @@ keyboard_event_frame(FrameObj fr, Any id,
   assign(ev, buttons, toInt(m));
 
   if ( id == NAME_wheel )
-  { Any angle = toInt(HIWORD(wParam));
+  { short a = (short)HIWORD(wParam);
+    Any angle = toInt(a);
 
     attributeObject(ev, NAME_rotation, angle);
+    DEBUG(NAME_wheel,
+	  Cprintf("Posting wheel %s degrees to %s\n",
+		  pp(angle), pp(receiver)));
   }
 
   addCodeReference(ev);
