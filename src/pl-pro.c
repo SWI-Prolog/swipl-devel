@@ -430,8 +430,15 @@ last_arg:
   }
 
   if ( isAtom(*p) )
-  { if ( storage(*p) != STG_STATIC )
+  { unsigned long idx;
+    unsigned long mx = entriesBuffer(&atom_array, Atom);
+
+    if ( storage(*p) != STG_STATIC )
       printk("Atom doesn't have STG_STATIC");
+
+    idx = indexAtom(*p);
+    if ( idx > mx )
+      printk("Atom index out of range (%ld > %ld)", idx, mx);
     return key + *p;
   }
 					/* now it should be a term */
