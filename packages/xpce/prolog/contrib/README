@@ -1,0 +1,29 @@
+This  directory  is  for   contributions    from   the  user  community.
+Contributions are, when not  specified   otherwise  in  the contribution
+itself, distributed under the following conditions:
+
+	* GNU General Public Licence Release 2 is applicable
+
+Administrative points:
+
+	* Contributions may be mailed to jan@swi.psy.uva.nl.  Anything
+	  is welcome!
+
+	* Each contribution lives in it's own directory below this one
+
+	* To make contributions known through the demo browser, make
+	  an entry in `contrib.pl' in this directory.
+	  Contributions can only be started through this iff:
+
+		+ The contrubution is in a Prolog Module file.
+		+ There is a single `main' file loading the others.
+		+ It may be started with a single goal.
+
+Using this schema
+
+	* Interactive complete programs may be started from the 
+	  DemoBrowser.
+
+	* Libraries may be loaded using:
+
+		?- use_module(library('contrib/<Patckage>/<File>')).

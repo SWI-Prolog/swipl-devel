@@ -1,0 +1,83 @@
+COPYRIGHT:
+
+Copyright (C) 1993 by Christian Schlichtherle.
+
+For distribution conditions please read the
+GNU General Public License version 2.
+
+INSTALLATION:
+
+For installation just copy all the *.pl files into your favorite XPCE
+directory. The only condition is that the files are in the search path of the
+use_module/1 predicate.
+
+USE:
+
+For use, start XPCE, load the program via
+?- [rubikpce].
+and then start it via
+?- rubikpce.
+
+As this is the first version, the interface to the program is quite simple:
+At the bottom of the appearing window there is a dialog box with a collection
+of buttons. The buttons function like a record player. This is their meaning:
+
+Disorder:
+	This will load and start a cube disordering sequence.
+	Only possible when no other sequence is running (paused sequences
+	will be discarded).
+Order:
+	This will load and start a cube adjusting sequence.
+	Only possible when no other sequence is running (paused sequences
+	will be discarded).
+Quit:
+	Guess what.
+Step:
+	This will show a single move. The sequence will pause after the move
+	has completed.
+Play:
+	This will continue to play a paused sequence.
+Pause:
+	This will pause a running sequence.
+Stop:
+	This will stop and discard the current loaded sequence.
+
+The fancy thing about the program is the ability to do moves to the cube:
+Just move the mouse to a field on any view, hold down the left mouse button,
+drag the field to any position you want and release the mouse button.
+If the move is impossible, the cube "snaps" back to the last possible position.
+
+BUGS:
+
+- There is a harmless bug in the mouse drag animation, but you will hardly
+  ever notice it.
+    If you dare, try some unusual mouse drags and look whats happening when
+  you release the mouse button. Then compare this behaviour to what is
+  happening when you release the mouse button on a normal drag. Gotcha!
+    If you dare even more, look at the source code for a detailed comment about
+  the bug.
+    Since the bug is harmless and only arouses on very unusual mouse drags
+  and fixing it would require to rewrite the whole mouse drag code I decided
+  not to fix it!
+
+TODO:
+
+- Add a kind of "edit" mode where the user can construct a disordered cube
+  and the program shows the user how to adjust it.
+  As this was the reason for programming the core 'rubik.pl' module, the
+  graphical interface should really be capable of doing this.
+- Use constraints to center the devices on which the cube is displayed within
+  the visible area of their windows. But how can this be done?
+- Use only one timer object for every instance of the program. Hopefully this
+  will save some CPU time when using more than one instance of the program.
+- print/1 does not use the portray/1 clauses defined in the core module,
+  but it really should.
+- There should be a class for the frame in which the cube is displayed.
+- Use a file selector to allow the user to load some nice pattern-generating
+  movelists (there is already a collection of movelists hidden as comments).
+- Produce better documentation.
+- Construct a smarter communication with the user by outputting text like
+  "Oh how lovely - you adjusted the first plane!" or
+  "Let me show you how to do these kind of things!" or
+  "Oh damn, you stupid guy sucked it again!".
+  Wouldn't this be cute?! ;-)
