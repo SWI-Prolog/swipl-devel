@@ -31,24 +31,14 @@ SWI-Prolog runs on most Unix machines, as well as on the Microsoft Win32
 platform.
 
 .SH LICENSE INFORMATION
-SWI-Prolog is distributed in source-form as well as in binary format for
-some architectures.  The user is free to modify and redistribute the
-sources, provided the copyright and authorship messages are left in place.
-Modifications should be properly marked in the sources and if the modified
-version is distributed, the user should indicate it concerns a modified
-version and point to the location of the main source,
-.br
-.BI ftp://swi.psy.uva.nl/pub/SWI-Prolog/
-
-SWI-Prolog may be used free of charge for personal and educational purposes,
-as well as for research projects inside commercial organisations.  It is
-however
-.B not allowed to distribute commercial applications
-in which SWI-Prolog is embedded without an additional license.  Please
-contact
-.BI prolog-request@swi.psy.uva.nl
-for further information.
-
+SWI-Prolog is distributed under the GNU-2 (Gnu Public License, version 2).
+See the file COPYING for details.  In addition, we offer commercial licenses
+for those who want to use SWI-Prolog with
+.B proprietary
+software.  See the
+SWI-Prolog home page at
+.B ftp://swi.psy.uva.nl/pub/SWI-Prolog/
+for details.
 
 .SH OPTIONS
 .TP

@@ -2,7 +2,7 @@ Summary:	SWI-Prolog - Edinburgh compatible Prolog compiler
 Name:		pl
 Version:	3.3.0
 Release:	1
-Copyright:	Distributable, free for non-commercial use
+Copyright:	GPL-2
 Source:		ftp://swi.psy.uva.nl/pub/SWI-Prolog/pl-3.3.0.tar.gz
 Vendor:		Jan Wielemaker <jan@swi.psy.uva.nl>
 Url:		http://www.swi.psy.uva.nl/projects/SWI-Prolog/
@@ -34,7 +34,7 @@ cp README.bin ..
 
 
 %files
-%doc ChangeLog INSTALL INSTALL.notes LICENSE LSM PORTING
+%doc ChangeLog INSTALL INSTALL.notes COPYING LSM PORTING
 %doc README README.bin README.GUI
 %doc VERSION
 %attr(755,root,root)/usr/lib/pl-3.3.0/bin/*
