@@ -23,6 +23,7 @@
 	   ]).
 
 %	pce_server(+Atom|Int)
+%
 %	Create a PCE socket and interpret incomming lines as Prolog goals.
 %	The argument is:
 %	
@@ -30,6 +31,9 @@
 %		Unix-domain socket.  Atom is used as filename
 %		# Integer
 %		Internet socket.  Integer is the port number (> 5000)
+%
+%	Output send to current_output is send to the client, as are error
+%	messages
 
 pce_server(Address) :-
 	strip_module(Address, Module, Addr),
@@ -53,22 +57,34 @@ call_atom(Socket, Command) :-
 	get(Command, value, CommandAtom),
 	(   CommandAtom == ''
 	->  send(Socket, format, '\n%s', Prompt)
-	;   (   atom_to_term(CommandAtom, Term, Bindings)
+	;   (   catch(atom_to_term(CommandAtom, Term, Bindings), _, fail)
 	    ->  (   Term == exit
 		->  send(Socket, close)
-		;   (   call(Module:Term)
-		    ->  write_bindings(Bindings, Socket),
-			send(Socket, format, 'yes\n%s', Prompt)
-		    ;   send(Socket, format, 'no\n%s', Prompt)
-		    )
+		;   current_output(Old),
+		    pce_open(Socket, append, SockStream),
+		    set_output(SockStream),
+		    (   catch(call(Module:Term), E, true)
+		    ->  flush_output,
+		        (   var(E)
+			->  write_bindings(Bindings, Socket),
+			    send(Socket, format, 'yes\n%s', Prompt)
+			;   message_to_string(E, Message),
+			    send(Socket, format, 'ERROR: %s\n%s',
+				 Message, Prompt)
+			)
+		    ;   flush_output,
+		        send(Socket, format, 'no\n%s', Prompt)
+		    ),
+		    set_output(Old),
+		    close(SockStream)
 		)
 	    ;   send(Socket, format, 'Syntax error\n%s', Prompt)
 	    )
 	).
 
 
-write_bindings([], _).
+write_bindings([], _) :-
+	flush_output.
 write_bindings([Name = Value|Rest], Socket) :-
-	term_to_atom(Value, Atom),
-	send(Socket, format, '%s = %s\n', Name, Atom),
+	format('    ~w = ~p~n', [Name, Value]),
 	write_bindings(Rest, Socket).
