@@ -358,10 +358,14 @@ insert_declarations(Clauses0, Clauses) :-
 
 chr_module_declaration(CHRModuleDeclaration) :-
 	get_target_module(Mod),
-	CHRModuleDeclaration = [
-		(:- multifile chr:'$chr_module'/1),
-		chr:'$chr_module'(Mod)	
-	].	
+	( Mod \== chr_translate ->
+		CHRModuleDeclaration = [
+			(:- multifile chr:'$chr_module'/1),
+			chr:'$chr_module'(Mod)	
+		]
+	;
+		CHRModuleDeclaration = []
+	).	
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
