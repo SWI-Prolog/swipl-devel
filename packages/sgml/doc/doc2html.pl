@@ -639,6 +639,7 @@ escape([H|T]) -->
 escape_code(0'<, '&lt;').
 escape_code(0'>, '&gt;').
 escape_code(0'&, '&amp;').
+escape_code(0'", '&quot;').	% only necessary in attributes
 
 lines(Tag, start(before)) -->
 	{ layout(Tag, N-_, _)

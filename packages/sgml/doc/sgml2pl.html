@@ -123,7 +123,7 @@ character strings, <em>etc.</em> The first example below loads an HTML file.
 <table width="90%" align="center" border="2" bgcolor="#f0f0f0">
 <tr><td>
 <pre>
-&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN"&gt;
+&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 3.2//EN&quot;&gt;
 
 &lt;html&gt;
 &lt;head&gt;
@@ -500,7 +500,7 @@ an empty element.
 <li><em>Predefined entities</em><br>
 The following entitities are predefined: <a name="const:lt"><b><tt>lt</tt></b></a> (<code>&lt;</code>), <a name="const:gt"><b><tt>gt</tt></b></a>
 (<code>&gt;</code>), <a name="const:amp"><b><tt>amp</tt></b></a> (<code>&amp;</code>), <a name="const:apos"><b><tt>apos</tt></b></a> (<code>'</code>) 
-and <a name="const:quot"><b><tt>quot</tt></b></a> (<code>"</code>). 
+and <a name="const:quot"><b><tt>quot</tt></b></a> (<code>&quot;</code>). 
    
 <li><em>Case sensitivity</em><br>
 In XML mode, names are treated case-sensitive, except for the DTD 
@@ -1491,7 +1491,7 @@ Two types of lines are used by this package.
 <p>
 <pre>
 <a name="const:DOCTYPE%2"><b><tt>DOCTYPE</tt></b></a> <var>doctype</var> <var>file</var>
-<a name="const:PUBLIC"><b><tt>PUBLIC</tt></b></a> <code>"</code><var>Id</var><code>"</code> <var>file</var> 
+<a name="const:PUBLIC"><b><tt>PUBLIC</tt></b></a> <code>&quot;</code><var>Id</var><code>&quot;</code> <var>file</var> 
 </pre>
 
 
@@ -1533,7 +1533,7 @@ blocks for emitting markup data.
 <dt>&nbsp;<br>
 <b><a name="xml_quote_attribute/2">xml_quote_attribute(<var>+In, -Quoted</var>)</a></b><dd>
 Map the characters that may not appear in XML attributes to entities.
-Currently these are <a name="const:&lt;&gt;&amp;'""><b><tt>&lt;&gt;&amp;'"</tt></b></a>.  Future versions may
+Currently these are <a name="const:&lt;&gt;&amp;'&quot;"><b><tt>&lt;&gt;&amp;'&quot;</tt></b></a>.  Future versions may
 also deal with characters that cannot be represented by the document
 character-set.
     
@@ -1705,7 +1705,7 @@ deleted. This is not yet implemented.
 <li><a href="#const:/"><b><tt>/</tt></b></a> [ <a href="#const:/%2">2</a>]
 <li><a href="#const:/&gt;"><b><tt>/&gt;</tt></b></a>
 <li><a href="#const::"><b><tt>:</tt></b></a>
-<li><a href="#const:&lt;&gt;&amp;'""><b><tt>&lt;&gt;&amp;'"</tt></b></a>
+<li><a href="#const:&lt;&gt;&amp;'&quot;"><b><tt>&lt;&gt;&amp;'&quot;</tt></b></a>
 <li><a href="#const:CDATA"><b><tt>CDATA</tt></b></a> [ <a href="#const:CDATA%2">2</a> <a href="#const:CDATA%3">3</a> <a href="#const:CDATA%4">4</a> <a href="#const:CDATA%5">5</a> <a href="#const:CDATA%6">6</a> <a href="#const:CDATA%7">7</a>]
 <li><a href="#const:DOCTYPE"><b><tt>DOCTYPE</tt></b></a> [ <a href="#const:DOCTYPE%2">2</a> <a href="#const:DOCTYPE%3">3</a>]
 <li><a href="#const:NAMES"><b><tt>NAMES</tt></b></a>
