@@ -1,5 +1,7 @@
 			SWI-Prolog ChangeLog
 			====================
+VERSION 4.0.2
+=============
 
   * FIXED: Memory leak in PL_get_chars() using CVT_WRITE.  Reported by
     Marcin Golebski.
