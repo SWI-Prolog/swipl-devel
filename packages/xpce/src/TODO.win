@@ -28,3 +28,9 @@ GUI:
 	with which key can i open it. ?
 	(Alt+O don't work, but the selecton is green not blue)
 ''
+
+BUGS:
+
+	* new(X, colour('#00ffff')) fails.
+	* drawing boxes of very small size fails (see remark in msdraw.c).
+	* Symbol-font not mounted correctly

@@ -1165,7 +1165,7 @@ approaches.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 print_canvas(Canvas) :-
-	get(@pce, operating_system, win32), !,
+	get(@pce, window_system, windows), !,
 	get(Canvas, default_file, Job),
 	new(Prt, win_printer(Job)),
 	send(Prt, setup, Canvas),
