@@ -627,6 +627,26 @@ collect_data(C, Fd, [C|T]) :-
 	get0(Fd, C2),
 	collect_data(C2, Fd, T).
 
+
+		 /*******************************
+		 *	   CODE/CHAR-TYPE	*
+		 *******************************/
+
+ctype(code_type-1) :-
+	code_type(97, to_lower(97)),
+	code_type(97, to_lower(65)).
+ctype(code_type-2) :-
+	findall(X, code_type(X, lower), Lower),
+	subset("abcdefghijklmnopqrstuvwxyz", Lower).
+ctype(code_type-3) :-
+	code_type(48, digit(0)).
+ctype(code_type-4) :-
+	code_type(X, digit(0)),
+	X == 48.
+ctype(code_type-5) :-
+	code_type(48, digit(W)),
+	W == 0.
+
 		 /*******************************
 		 *        TEST MAIN-LOOP	*
 		 *******************************/
@@ -653,6 +673,7 @@ testset(exception).
 testset(term_atom).
 testset(popen) :-
 	current_prolog_flag(pipe, true).
+testset(ctype).
 
 test :-
 	forall(testset(Set), runtest(Set)).

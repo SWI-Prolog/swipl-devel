@@ -44,7 +44,7 @@ typedef struct
 
 typedef struct
 { int		current;		/* current character */
-  const char_type   *class;			/* current class */
+  const char_type   *class;		/* current class */
   int   	do_enum;		/* what to enumerate */
 } generator;
 
@@ -312,18 +312,25 @@ do_char_type(term_t chr, term_t class, word h, int how)
 
 	  if ( rval >= 0 )
 	  { term_t a = PL_new_term_ref();
+	    int ok;
 
 	    _PL_get_arg(1, class, a);
 
 	    if ( cc->ctx_type == CTX_CHAR )
-	      return PL_unify_char(a, rval, how);
+	      ok = PL_unify_char(a, rval, how);
 	    else
-	      return PL_unify_integer(a, rval);
-	  }
-	  
-	  fail;
+	      ok = PL_unify_integer(a, rval);
+
+	    if ( ok )
+	      return TRUE;
+	    else
+	      do_enum = ENUM_CHAR;	/* try the other way around */
+	  } else
+	    fail;
 	}
-      } else if ( do_enum == ENUM_CHAR && arity == 1 )
+      }
+
+      if ( do_enum == ENUM_CHAR && arity == 1 )
       {	term_t a = PL_new_term_ref();	/* char_type(X, lower('A')) */
 	int ca;
 
@@ -370,18 +377,28 @@ do_char_type(term_t chr, term_t class, word h, int how)
   { int rval;
 
     if ( (rval = (*gen->class->test)(gen->current)) )
-    { if ( (!(gen->do_enum & ENUM_CHAR) ||
-	    PL_unify_char(chr, gen->current, how)) &&
-	   (!(gen->do_enum & ENUM_CLASS) ||
-	    unify_char_type(class, gen->class, rval, how)) )
-      { if ( advanceGen(gen) )
-	  ForeignRedoPtr(gen);
-	else
-	{ freeHeap(gen, sizeof(*gen));
-	  succeed;
-	}
+    { if ( gen->do_enum & ENUM_CHAR )
+      { if ( !PL_unify_char(chr, gen->current, how) )
+	  goto next;
+      }
+      if ( gen->class->arity > 0 )
+      { if ( rval < 0 ||
+	     !unify_char_type(class, gen->class, rval, how) )
+	  goto next;
+	     
+      } else if ( gen->do_enum & ENUM_CLASS )
+      { if ( !unify_char_type(class, gen->class, rval, how) )
+	  goto next;
+      }
+
+      if ( advanceGen(gen) )		/* ok, found one */
+	ForeignRedoPtr(gen);
+      else
+      { freeHeap(gen, sizeof(*gen));	/* the only one */
+	succeed;
       }
     }
+  next:
     Undo(m);
 
     if ( !advanceGen(gen) )
