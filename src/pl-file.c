@@ -117,18 +117,6 @@ void
 initIO(void)
 { int n;
 
-#ifdef __WIN32__
-{ int w32s = rlc_iswin32s();
-  status.case_sensitive_files = FALSE;
-  status.case_preserving_files = (w32s ? FALSE : TRUE);
-  status.dos_files = (w32s ? TRUE : FALSE);
-}
-#else
-  status.case_sensitive_files = TRUE;
-  status.case_preserving_files = TRUE;
-  status.dos_files = FALSE;
-#endif
-
   fileerrors = TRUE;
   if ( maxfiles != getdtablesize() )
   { if ( fileTable != (PlFile) NULL )

@@ -111,6 +111,18 @@ initOs(void)
   DEBUG(1, Sdprintf("OS:initEnviron() ...\n"));
   initEnviron();
 
+#ifdef __WIN32__
+{ int w32s = rlc_iswin32s();
+  status.case_sensitive_files = FALSE;
+  status.case_preserving_files = (w32s ? FALSE : TRUE);
+  status.dos_files = (w32s ? TRUE : FALSE);
+}
+#else
+  status.case_sensitive_files = TRUE;
+  status.case_preserving_files = TRUE;
+  status.dos_files = FALSE;
+#endif
+
 #ifdef HAVE_CLOCK
   clock_wait_ticks = 0L;
 #endif

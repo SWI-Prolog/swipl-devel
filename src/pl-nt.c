@@ -123,13 +123,16 @@ System(char *command)
 		     NULL,			/* CWD */
 		     &sinfo,			/* startup info */
 		     &pinfo) )			/* process into */
-  { shell_finished = FALSE;
+  { CloseHandle(pinfo.hThread);			/* don't need this */
+      
+    shell_finished = FALSE;
     if ( _beginthread(waitthread, 10240, pinfo.hProcess) < 0 )
     { warning("Failed to create wait-thread: %s", OsError());
       return -1;
     }
     while ( !shell_finished )
       rlc_dispatch(NULL);
+    CloseHandle(pinfo.hProcess);
 
     return shell_rval;
   } else
