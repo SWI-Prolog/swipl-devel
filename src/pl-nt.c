@@ -141,11 +141,20 @@ again:
 		 *	  SLEEP/1 SUPPORT	*
 		 *******************************/
 
-void
+int
 Pause(double t)
 { DWORD msecs = (DWORD)(t * 1000.0);
 
-  Sleep(msecs);
+  while( msecs >= 100 )
+  { Sleep(100);
+    if ( PL_handle_signals() < 0 )
+      return FALSE;
+    msecs -= 100;
+  }
+  if ( msecs > 0 )
+    Sleep(msecs);
+
+  return TRUE;
 }
 
 		 /*******************************

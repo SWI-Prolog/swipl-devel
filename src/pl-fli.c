@@ -2937,9 +2937,15 @@ PL_dispatch(int fd, int wait)
   if ( dispatch_events )
   { if ( wait == PL_DISPATCH_WAIT )
     { while( !input_on_fd(fd) )
+      { if ( PL_handle_signals() < 0 )
+	  return FALSE;
 	(*dispatch_events)(fd);
+      }
     } else
-      (*dispatch_events)(fd);
+    { (*dispatch_events)(fd);
+      if ( PL_handle_signals() < 0 )
+	  return FALSE;
+    }
   }
 
   return TRUE;

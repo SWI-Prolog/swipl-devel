@@ -116,6 +116,7 @@ STRYLOCK(IOSTREAM *s)
 extern int 			fatalError(const char *fm, ...);
 extern int 			PL_error(const char *pred, int arity,
 					 const char *msg, int id, ...);
+extern int			PL_handle_signals();
 
 		 /*******************************
 		 *	      BUFFER		*
@@ -338,9 +339,20 @@ S__fillbuf(IOSTREAM *s)
       FD_ZERO(&wait);
       FD_SET(fd, &wait);
 
-      do
+      for(;;)
       { rc = select(fd+1, &wait, NULL, NULL, &time);
-      } while ( rc < 0 && errno == EINTR );
+	
+	if ( rc < 0 && errno == EINTR )
+	{ if ( PL_handle_signals() < 0 )
+	  { errno = EPLEXCEPTION;
+	    goto error;
+	  }
+
+	  continue;
+	}
+
+	break;
+      }
 
       if ( !FD_ISSET(fd, &wait) )
       { s->flags |= (SIO_TIMEOUT|SIO_FERR);
@@ -1449,11 +1461,20 @@ Sread_file(void *handle, char *buf, int size)
 { long h = (long) handle;
   int bytes;
 
-  do
+  for(;;)
   { bytes = read((int)h, buf, size);
-  } while ( bytes == -1 && errno == EINTR );
 
-  return bytes;
+    if ( bytes == -1 && errno == EINTR )
+    { if ( PL_handle_signals() < 0 )
+      { errno = EPLEXCEPTION;
+	return -1;
+      }
+
+      continue;
+    }
+
+    return bytes;
+  }
 }
 
 
@@ -1462,11 +1483,20 @@ Swrite_file(void *handle, char *buf, int size)
 { long h = (long) handle;
   int bytes;
 
-  do
+  for(;;)
   { bytes = write((int)h, buf, size);
-  } while ( bytes == -1 && errno == EINTR );
 
-  return bytes;
+    if ( bytes == -1 && errno == EINTR )
+    { if ( PL_handle_signals() < 0 )
+      { errno = EPLEXCEPTION;
+	return -1;
+      }
+
+      continue;
+    }
+
+    return bytes;
+  }
 }
 
 

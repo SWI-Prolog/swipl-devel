@@ -495,7 +495,7 @@ int		Setenv(char *name, char *value);
 int		Unsetenv(char *name);
 int		System(char *cmd);
 char *		findExecutable(const char *module, char *buf);
-void		Pause(real time);
+int		Pause(real time);
 #if __WIN32__
 int		iswin32s(void);
 #endif /*__WIN32__*/

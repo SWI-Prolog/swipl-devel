@@ -157,10 +157,10 @@ word
 pl_sleep(term_t time)
 { double t;
 
-  if ( PL_get_float(time, &t) )
-    Pause(t);
+  if ( PL_get_float_ex(time, &t) )
+    return Pause(t);
   
-  succeed;
+  fail;
 }
 
 #ifdef __WIN32__

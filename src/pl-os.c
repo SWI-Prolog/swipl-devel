@@ -2723,7 +2723,7 @@ Which(const char *program, char *fullname)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    void Pause(time)
+    int Pause(time)
 	 real time;
 
     Suspend execution `time' seconds.   Time  is  given  as  a  floating
@@ -2737,20 +2737,25 @@ Which(const char *program, char *fullname)
 #if !defined(PAUSE_DONE) && defined(HAVE_NANOSLEEP)
 #define PAUSE_DONE 1
 
-void
+int
 Pause(real t)
 { struct timespec req;
   int rc;
 
   if ( t < 0.0 )
-    return;
+    succeed;
 
   req.tv_sec = (time_t) t;
   req.tv_nsec = (long)((t - floor(t)) * 1000000000);
 
-  do
+  for(;;)
   { rc = nanosleep(&req, &req);
-  } while(rc == -1 && errno == EINTR );
+    if ( rc == -1 && errno == EINTR )
+    { if ( PL_handle_signals() < 0 )
+	return FALSE;
+    } else
+      return TRUE;
+  }
 }
 
 #endif /*HAVE_NANOSLEEP*/
@@ -2759,9 +2764,11 @@ Pause(real t)
 #if !defined(PAUSE_DONE) && defined(HAVE_USLEEP)
 #define PAUSE_DONE 1
 
-void
+int
 Pause(real t)
 { usleep((unsigned long)(t * 1000000.0));
+
+  return TRUE;
 }
 
 #endif /*HAVE_USLEEP*/
@@ -2770,7 +2777,7 @@ Pause(real t)
 #if !defined(PAUSE_DONE) && defined(HAVE_SELECT)
 #define PAUSE_DONE 1
 
-void
+int
 Pause(real time)
 { struct timeval timeout;
 
@@ -2781,8 +2788,23 @@ Pause(real time)
   { timeout.tv_sec = (long) time;
     timeout.tv_usec = (long)(time * 1000000) % 1000000;
     select(32, NULL, NULL, NULL, &timeout);
+    
+    return TRUE;
   } else
-    sleep( (int)(time+0.5) );
+  { int rc;
+    int left = (int)(time+0.5);
+
+    do
+    { rc = sleep(left);
+      if ( rc == -1 && errno == EINTR )
+      { if ( PL_handle_signals() < 0 )
+	  return FALSE;
+
+	return TRUE;
+      }
+      left -= rc;
+    } while ( rc != 0 );
+  }
 }
 
 #endif /*HAVE_SELECT*/
@@ -2790,7 +2812,7 @@ Pause(real time)
 #if !defined(PAUSE_DONE) && defined(HAVE_DOSSLEEP)
 #define PAUSE_DONE 1
 
-void                            /* a millisecond granualrity. */
+int                            /* a millisecond granualrity. */
 Pause(time)                     /* the EMX function sleep uses a seconds */
 real time;                      /* granularity only. */
 {                               /* the select() trick does not work at all. */
@@ -2798,6 +2820,8 @@ real time;                      /* granularity only. */
     return;
 
   DosSleep((ULONG)(time * 1000));
+
+  return TRUE;
 }
 
 #endif /*HAVE_DOSSLEEP*/
@@ -2805,12 +2829,14 @@ real time;                      /* granularity only. */
 #if !defined(PAUSE_DONE) && defined(HAVE_SLEEP)
 #define PAUSE_DONE 1
 
-void
+int
 Pause(real t)
 { if ( t <= 0.5 )
-    return;
+    succeed;
 
   sleep((int)(t + 0.5));
+
+  succeed;
 }
 
 #endif /*HAVE_SLEEP*/
@@ -2818,9 +2844,11 @@ Pause(real t)
 #if !defined(PAUSE_DONE) && defined(HAVE_DELAY)
 #define PAUSE_DONE 1
 
-void
+int
 Pause(real t)
 { delay((int)(t * 1000));
+
+  return TRUE;
 }
 
 #endif /*HAVE_DELAY*/
@@ -2828,9 +2856,8 @@ Pause(real t)
 #if !defined(PAUSE_DONE) && defined(tos)
 #define PAUSE_DONE 1
 
-void
-Pause(t)
-real t;
+int
+Pause(real t)
 { long wait = (long)(t * 200.0);
   long start_tick = clock();
   long end_tick = wait + start_tick;
@@ -2844,13 +2871,15 @@ real t;
   }
 
   wait_ticks += end_tick - start_tick;
+
+  return TRUE;
 }
 
 #endif /*tos*/
 
 #ifndef PAUSE_DONE
-void
+int
 Pause(real t)
-{ Sdprintf("Pause(): not implemented\n");
+{ return notImplemented("sleep", 1);
 }
 #endif

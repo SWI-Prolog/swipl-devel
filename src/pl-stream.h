@@ -87,6 +87,7 @@ stuff.
 #if defined(__WIN32__) && !defined(EWOULDBLOCK)
 #define EWOULDBLOCK	1000		/* Needed for socket handling */
 #endif
+#define EPLEXCEPTION	1001		/* errno: pending Prolog exception */
 
 #define SIO_BUFSIZE	(4096)		/* buffering buffer-size */
 #define SIO_LINESIZE	(1024)		/* Sgets() default buffer size */

@@ -366,10 +366,12 @@ this call returns immediately, assuming the   actual TCP call will block
 without dispatching if no input is available.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+static int
 wait_socket(plsocket *s, int fd)
 { if ( true(s, SOCK_DISPATCH) )
-    PL_dispatch(fd, PL_DISPATCH_WAIT);
+    return PL_dispatch(fd, PL_DISPATCH_WAIT);
+
+  return TRUE;
 }
 
 #endif /*WIN32*/
@@ -984,7 +986,7 @@ tcp_setopt(term_t Socket, term_t opt)
 
 
 #ifdef WIN32
-static void
+static int
 waitMsg(plsocket *s, int flags)
 { MSG msg;
   HWND hwnd;
@@ -1014,8 +1016,10 @@ waitMsg(plsocket *s, int flags)
     if ( (s->w32_flags & flags) )
     { s->w32_flags &= ~flags;
       DEBUG(Sdprintf("]"));
-      return;
+      succeed;
     }
+    if ( PL_handle_signals() < 0 )
+      fail;
     if ( GetMessage(&msg, hwnd, 0, 0) )
     { TranslateMessage(&msg);
       DispatchMessage(&msg);
@@ -1025,7 +1029,7 @@ waitMsg(plsocket *s, int flags)
   }
 }
 #else
-#define waitMsg(s, f)
+#define waitMsg(s, f) TRUE
 #endif
 
 
@@ -1079,7 +1083,8 @@ again:
     { case WSAEWOULDBLOCK:
       case WSAEINVAL:
       case WSAEALREADY:
-	waitMsg(s, FD_CONNECT);
+        if ( !waitMsg(s, FD_CONNECT) )
+	  return FALSE;
         goto again;
       case WSAEISCONN:
 	break;				/* ok, we're done */
@@ -1088,7 +1093,10 @@ again:
     }
 #else
     if ( errno == EINTR )
+    { if ( PL_handle_signals() < 0 )
+	return FALSE;
       goto again;
+    }
     return tcp_error(errno, NULL);
 #endif  
   }
@@ -1112,9 +1120,11 @@ tcp_accept(term_t Master, term_t Slave, term_t Peer)
 
 again:
 #ifdef WIN32
-  waitMsg(m, FD_ACCEPT);
+  if ( !waitMsg(m, FD_ACCEPT) )
+    return FALSE;
 #else
-  wait_socket(m, master);
+  if ( !wait_socket(m, master) )
+    return FALSE;
 #endif
 
   slave = accept(master, (struct sockaddr*)&addr, &addrlen);
@@ -1125,7 +1135,11 @@ again:
       goto again;
 #else
     if ( errno == EINTR )
+    { if ( PL_handle_signals() < 0 )
+	return FALSE;
+
       goto again;
+    }
 #endif  
     return tcp_error(errno, NULL);
   }
@@ -1192,7 +1206,11 @@ tcp_read(void *handle, char *buf, int bufSize)
   } else				/* normal (blocking) socket */
   { again:
     if ( false(s, SOCK_CLOSE_SEEN) )
-      waitMsg(s, FD_READ|FD_CLOSE);
+    { if ( !waitMsg(s, FD_READ|FD_CLOSE) )
+      { errno = EPLEXCEPTION;
+	return -1;
+      }
+    }
 
     n = recv(socket, buf, bufSize, 0);
 
@@ -1202,10 +1220,24 @@ tcp_read(void *handle, char *buf, int bufSize)
 
 #else /*WIN32*/
 
-  do
-  { wait_socket(s, socket);
+  for(;;)
+  { if ( !wait_socket(s, socket) )
+    { errno = EPLEXCEPTION;
+      return -1;
+    }
+
     n = recv(socket, buf, bufSize, 0);
-  } while ( n == -1 && errno == EINTR );
+
+    if ( n == -1 && errno == EINTR )
+    { if ( PL_handle_signals() < 0 )
+      { errno = EPLEXCEPTION;
+	return -1;
+      }
+      continue;
+    }
+
+    break;
+  }
 
 #endif /*WIN32*/
 
@@ -1232,13 +1264,21 @@ tcp_write(void *handle, char *buf, int bufSize)
     {
 #ifdef WIN32
       if ( WSAGetLastError() == WSAEWOULDBLOCK )
-      { waitMsg(s, FD_WRITE|FD_CLOSE);
+      { if ( !waitMsg(s, FD_WRITE|FD_CLOSE) )
+	{ errno = EPLEXCEPTION;
+	  return -1;
+	}
 	if ( false(s, SOCK_CLOSE_SEEN) )
 	  continue;
       }
 #else
       if ( errno == EINTR )
+      { if ( PL_handle_signals() < 0 )
+	{ errno = EPLEXCEPTION;
+	  return -1;
+	}
 	continue;
+      }
 #endif
       return -1;
     }

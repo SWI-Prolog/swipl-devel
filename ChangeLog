@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Make safe signal handling possible from various blocking I/O
+    operations, expanding the useability of call_with_tim_limit/2.
+
   * ENHANCED: Use Richard O'Keefe's natural merge-sort for sort/2, msort/2
     and keysort/2.  More space efficient.  As good as the best qsort()
     from libc and replaces old slow keysort with an efficient alternative.

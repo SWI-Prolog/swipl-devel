@@ -56,7 +56,10 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
     fail;
 
   if ( msg == MSG_ERRNO )
+  { if ( errno == EPLEXCEPTION )
+      return FALSE;
     msg = OsError();
+  }
 
   except = PL_new_term_ref();
   formal = PL_new_term_ref();
