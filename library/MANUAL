@@ -13,7 +13,7 @@
                          SSWWII--PPrroolloogg 55..22
                         RReeffeerreennccee MMaannuuaall
 
-              _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._2_._4_, _J_u_l_y _2_0_0_3
+            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._2_._9_, _O_c_t_o_b_e_r _2_0_0_3
 
                          _J_a_n _W_i_e_l_e_m_a_k_e_r
                        jan@swi.psy.uva.nl
@@ -39,7 +39,7 @@ primitives.
 This  document gives an overview of the features, system limits
 and built-in predicates.
 
-Copyright Oc 1990--2003, University of Amsterdam
+Copyright Oc 1990{2003,University of Amsterdam
 
 
 CChhaapptteerr 11..  IINNTTRROODDUUCCTTIIOONN
@@ -7537,10 +7537,10 @@ ffiillee__nnaammee__eexxtteennssiioonn((_?_B_a_s_e_, _
 eexxppaanndd__ffiillee__nnaammee((_+_W_i_l_d_C_a_r_d_, _-_L_i_s_t))
     Unify  _L_i_s_t with  a  sorted list  of files  or directories  matching
     _W_i_l_d_C_a_r_d.   The  normal Unix wildcard  constructs `?', `*',  `[...]'
-    and  `{...}'  are recognised.    The  interpretation  of `{...}'  is
+    and  `{...}'  are  recognised.    The interpretation  of  `{...}'  is
     interpreted  slightly different  from  the C  shell (csh(1)).    The
     comma  separated  argument  can  be  arbitrary  patterns,  including
-    `{...}'  patterns.  The empty pattern is legal as  well:  `\{.pl,\}'
+    `{...}'  patterns.  The empty pattern is  legal as well:  `\{.pl,\}'
     matches either `.pl' or the empty string.
 
     If  the pattern  does contains  wildcard  characters, only  existing
@@ -9942,12 +9942,6 @@ may  be copied  to  your project  and  modified  to define  the  foreign
 extensions.   Below is  stub.c, modified to  link the lowercase  example
 described later in this chapter:
 
-/*  Copyright (c) 1991 Jan Wielemaker. All rights reserved.
-    jan@swi.psy.uva.nl
-
-    Purpose: Skeleton for extensions
-*/
-
 #include <stdio.h>
 #include <SWI-Prolog.h>
 
@@ -9973,10 +9967,14 @@ main(int argc, char **argv)
   PL_halt(PL_toplevel() ? 0 : 1);
 }
 
-Now, a new executable may be created by compiling  this file and linking
-it to libpl.a from  the runtime directory and the libraries  required by
-both the  extensions and the  SWI-Prolog kernel.   This  may be done  by
-hand, or using the plld utility described in secrefplld.
+Now,  a  new  executable may  be  created  by compiling  this  file  and
+linking  it to  libpl.a from  the runtime  directory  and the  libraries
+required  by both  the  extensions and  the  SWI-Prolog  kernel.    This
+may  be  done  by   hand,  or  using  the  plld  utility   described  in
+secrefplld.   If  the linking is  preformed `by  hand', the  commandline
+option -dump-runtime-variables (see  section 2.4) can be used to  obtain
+the  required paths,  libraries  and linking  options  to link  the  new
+executable.
 
 
 77..55 IInntteerrffaaccee DDaattaa ttyyppeess
@@ -13736,7 +13734,18 @@ pprroolloogg__ffrraammee__aattttrriibbuuttee((_+_F_r_
          _V_a_l_u_e is unified with the  goal associated with _F_r_a_m_e.   If the
          definition module of the active predicate is not  user the goal
          is represented as <_m_o_d_u_l_e>:<_g_o_a_l>.  Do not instantiate variables
-         in this goal unless you kknnooww what you are doing!
+         in this goal  unless you kknnooww  what you are  doing!  Note  that
+         the  returned term  may contain  references  to the  frame  and
+         should be discarded before the frame terminates.
+
+    ppaarreenntt__ggooaall
+         If _V_a_l_u_e  is  instantiated to  a callable  term,  find a  frame
+         executing  the  predicate described  by  _V_a_l_u_e  and  unify  the
+         arguments of _V_a_l_u_e  to the goal  arguments associated with  the
+         frame.    This  is  intended  to check  the  current  execution
+         context.  The user  must ensure the checked parent goal  is not
+         removed from  the stack  due to last-call  optimisation and  be
+         aware of the slow operation on deeply nested calls.
 
     ccllaauussee
          _V_a_l_u_e is  unified with  a  reference to  the currently  running
