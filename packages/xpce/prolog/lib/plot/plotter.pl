@@ -94,10 +94,11 @@ graph(P, Gr:plot_graph) :->
 	"Display a graph on the plotter"::
 	send(P, display, Gr).
 
-clear(P) :->
+clear(P) :->				% TBD: how to decide what to remove?
 	"Remove all graphs"::
 	send(P?graphicals, for_all,
-	     if(message(@arg1, instance_of, plot_graph),
+	     if(or(message(@arg1, instance_of, plot_graph),
+		   message(@arg1, instance_of, plot_mark)),
 		message(@arg1, free))).
 
 modified_plot_axis(P, _A:plot_axis) :->
@@ -222,3 +223,59 @@ compute(PG) :->
 	send_super(PG, compute).
 
 :- pce_end_class.
+
+
+		 /*******************************
+		 *	     PLOT-MARK		*
+		 *******************************/
+
+:- pce_begin_class(plot_mark, device,
+		   "Graphical mark on a graph").
+
+variable(modified,	bool := @on,	none,	"X/Y value is modified").
+variable(x_value,	'int|real',	get,	"X-value").
+variable(y_value,	'int|real',	get,	"Y-value").
+
+initialise(PM, X:x='int|real', Y:y='int|real', Img:image=[graphical]) :->
+	send_super(PM, initialise),
+	(   Img \== @default
+	->  send(PM, display, Img),
+	    send(Img, center, point(0,0))
+	;   true
+	),
+	send(PM, slot, x_value, X),
+	send(PM, slot, y_value, Y),
+	send(PM, slot, modified, @on),
+	send(PM, request_compute).
+
+compute(PM) :->
+	(   get(PM, slot, modified, @on),
+	    get(PM, device, Plotter),
+	    Plotter \== @nil
+	->  send(PM, slot, modified, @off),
+	    get(PM, x_value, XVal),
+	    get(PM, y_value, YVal),
+	    get(Plotter, translate_x, XVal, X),
+	    get(Plotter, translate_y, YVal, Y),
+	    send(PM, position, point(X,Y))
+	;   true
+	),
+	send_super(PM, compute).
+
+modified(P) :->
+	"Indicate mark curve of modification"::
+	(   get(P, slot, modified, @on)
+	->  true
+	;   send(P, slot, modified, @on),
+	    send(P, request_compute)
+	).
+
+x_value(PM, X:'int|real') :->
+	send(PM, slot, x_value, X),
+	send(PM, modified).
+
+y_value(PM, Y:'int|real') :->
+	send(PM, slot, y_value, Y),
+	send(PM, modified).
+
+:- pce_end_class(plot_mark).
