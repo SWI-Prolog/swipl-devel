@@ -1671,13 +1671,13 @@ ws_prepare_image_mask(Image image)
 		 *******************************/
 
 void
-ws_postscript_image(Image image, Int depth)
+ws_postscript_image(Image image, Int depth, int iscolor)
 { int w = valInt(image->size->w);
   int h = valInt(image->size->h);
-  int d = valInt(depth);
+  int d = isDefault(depth) ? 0 : valInt(depth);
 
   d_image(image, 0, 0, w, h);
-  postscriptDC(d_current_hdc(), 0, 0, w, h, d);
+  postscriptDC(d_current_hdc(), 0, 0, w, h, d, iscolor);
 /*postscriptDrawable(0, 0, w, h);*/
   d_done();
 }
@@ -1685,40 +1685,39 @@ ws_postscript_image(Image image, Int depth)
 #undef roundup
 #define roundup(v, n)		((((v)+(n)-1)/(n))*(n))
 #define rescale(v, o, n)	((v) * (n) / (o))
-#define putByte(b) { ps_put_char(print[(b >> 4) & 0xf]); \
-		     ps_put_char(print[b & 0xf]); \
- 		     if ( (++bytes % 32) == 0 ) ps_put_char('\n'); \
-		     bits = 8; c = 0; \
-		   }
 
-static int
-brightness(COLORREF rgb, int bright)
-{ int r, g, b, i;
+typedef struct
+{ int bits;				/* bit remaining */
+  int depth;				/* postscript depth */
+  int val;				/* current value */
+  int count;				/* # emited bytes */
+} ps_stat;
 
-  if ( rgb == 0 )
-    return 0;
-  if ( rgb == RGB(255, 255, 255) )
-    return bright;
 
-  r = GetRValue(rgb);
-  b = GetBValue(rgb);
-  g = GetGValue(rgb);
+static void
+put_value(ps_stat *s, int val)
+{ static char print[] = { '0', '1', '2', '3', '4', '5', '6', '7',
+			  '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+  s->bits -= s->depth;
+  s->val |= val << s->bits;
 
-  i = (r*20 + g*32 + b*18)/(20+32+18);
-
-  return rescale(i, 256, bright);
+  if ( s->bits == 0 )
+  { ps_put_char(print[(s->val >> 4) & 0xf]);
+    ps_put_char(print[s->val & 0xf]);
+    if ( (++s->count % 32) == 0 )
+      ps_put_char('\n');
+    s->bits = 8; s->val = 0;
+  }
 }
 
 
 status
 postscriptDC(HDC hdc,				/* HDC to print from */
 	     int fx, int fy, int w, int h,	/* area to print */
-	     int depth)				/* PostScript depth */
-{ static char print[] = { '0', '1', '2', '3', '4', '5', '6', '7',
-			  '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
-  int x, y, w8, psbright;
-  int bits, bytes;
-  int c;
+	     int depth,				/* PostScript depth */
+	     int iscolor)			/* Write color postscript */
+{ int x, y, w8, psbright;
+  ps_stat stat;
   int bmdepth  = GetDeviceCaps(hdc, BITSPIXEL);
 
   if ( depth == 0 )			/* PostScript depth is 1, 2, 4, or 8 */
@@ -1734,21 +1733,45 @@ postscriptDC(HDC hdc,				/* HDC to print from */
 
   w8 = roundup(w, 8);
   psbright = (1<<depth)-1;
-  for(bytes = c = 0, bits = 8, y = fy; y < h; y++)
-  { for(x = fx; x < w8; x++)
-    { int pixval;
+  stat.count = 0;
+  stat.val = 0;
+  stat.bits = 8;
+  stat.depth = depth;
 
-      bits -= depth;
-
-      if ( x < w )
+  for(y = fy; y < fy+h; y++)
+  { for(x = fx; x < fx+w8; x++)
+    { if ( x < fx+w )
       { COLORREF c = GetPixel(hdc, x, y);
-	pixval = brightness(c, psbright);
-      } else
-	pixval = psbright;
+	int r = GetRValue(c);
+	int b = GetBValue(c);
+	int g = GetGValue(c);
 
-      c |= pixval << bits;
-      if ( bits == 0 )
-        putByte(c);
+	if ( psbright != 255 )
+	{ r = rescale(r, 256, psbright);
+	  g = rescale(g, 256, psbright);
+	  b = rescale(b, 256, psbright);
+	}
+
+	if ( iscolor )
+	{ put_value(&stat, r);
+	  put_value(&stat, g);
+	  put_value(&stat, b);
+	} else
+	{ int i = (r*20 + g*32 + b*18)/(20+32+18);
+
+	  if ( i > psbright )
+	    i = psbright;
+	  put_value(&stat, i);
+	}
+      } else
+      { if ( iscolor )
+	{ int i;
+
+	  for(i=0; i < 3; i++)
+	    put_value(&stat, psbright);
+	} else
+	  put_value(&stat, psbright);
+      }
     }
   }
 

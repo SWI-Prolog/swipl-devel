@@ -174,7 +174,7 @@ void		ws_init_loc_still_timer(void);
 void		setPaletteColourMap(ColourMap cm, HPALETTE hpal);
 HPALETTE	getPaletteColourMap(ColourMap cm);
 HDC		d_current_hdc(void);
-status		postscriptDC(HDC hdc, int fx, int fy, int w, int h, int depth);
+status		postscriptDC(HDC hdc, int fx, int fy, int w, int h, int depth, int iscolor);
 HBRUSH		standardWindowsBrush(Any obj);
 void		r_3d_rectangle(int x, int y, int w, int h,
 			       int z, COLORREF *colours);

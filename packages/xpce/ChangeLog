@@ -1,7 +1,7 @@
 			   XPCE ChangeLog
 			   ==============
 
-* ADDED: Partial support for writing PostScript color images.
+* ADDED: Support for writing PostScript color images.
 
 * ADDED: Windows version: load .ICO data from streams and therefore from
   SWI-Prolog resources.  With help from	Fabien Todescato.  Thanks.

@@ -1421,7 +1421,7 @@ psdepthXImage(XImage *im)
 
   
 status
-ws_postscript_frame(FrameObj fr)
+ws_postscript_frame(FrameObj fr, int iscolor)
 { Window win;
 
   if ( (win = getWMFrameFrame(fr, NULL, NULL)) )
@@ -1452,9 +1452,11 @@ ws_postscript_frame(FrameObj fr)
 
     im = XGetImage(d, root, x, y, iw, ih, AllPlanes, ZPixmap);
     
-    ps_output("0 0 ~D ~D ~D greymap\n", iw, ih, psdepthXImage(im));
+    ps_output("0 0 ~D ~D ~D ~N\n", iw, ih,
+	      psdepthXImage(im),
+	      iscolor ? NAME_rgbimage : NAME_greymap););
     postscriptXImage(im, 0, 0, iw, ih,
-		     r->display_xref, r->colour_map, 0, FAIL);
+		     r->display_xref, r->colour_map, 0, iscolor);
     ps_output("\n");
 
     XDestroyImage(im);

@@ -49,7 +49,7 @@ status		ws_own_selection(DisplayObj d, Name selection, Name type);
 Name		ws_window_manager(DisplayObj d);
 void		ws_synchronous(DisplayObj d);
 void		ws_asynchronous(DisplayObj d);
-status		ws_postscript_display(DisplayObj d);
+status		ws_postscript_display(DisplayObj d, int iscolor);
 Image		ws_grab_image_display(DisplayObj d, int x, int y, int width, int height);
 
 /* ../src/x11/xdraw.c */
@@ -173,7 +173,7 @@ void		ws_topmost_frame(FrameObj fr, Bool topmost);
 void		ws_set_label_frame(FrameObj fr);
 Image		ws_image_of_frame(FrameObj fr);
 void		ws_transient_frame(FrameObj fr, FrameObj fr2);
-status		ws_postscript_frame(FrameObj fr);
+status		ws_postscript_frame(FrameObj fr, int iscolor);
 Int		ws_frame_thread(FrameObj fr);
 
 /* ../src/x11/ximage.c */

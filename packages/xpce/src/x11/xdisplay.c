@@ -752,7 +752,7 @@ psdepthXImage(XImage *im)
 
 
 status
-ws_postscript_display(DisplayObj d)
+ws_postscript_display(DisplayObj d, int iscolor)
 { XWindowAttributes atts;
   XImage *im;
   int iw, ih;
@@ -770,8 +770,11 @@ ws_postscript_display(DisplayObj d)
   im = XGetImage(r->display_xref, atts.root,
 		 0, 0, iw, ih, AllPlanes, ZPixmap);
 
-  ps_output("0 0 ~D ~D ~D greymap\n", iw, ih, psdepthXImage(im));
-  postscriptXImage(im, 0, 0, iw, ih, r->display_xref, r->colour_map, 0, FALSE);
+  ps_output("0 0 ~D ~D ~D ~N\n", iw, ih,
+	    psdepthXImage(im),
+	    iscolor ? NAME_rgbimage : NAME_greymap);
+  postscriptXImage(im, 0, 0, iw, ih, r->display_xref, r->colour_map,
+		   0, iscolor);
   ps_output("\n");
 
   XDestroyImage(im);

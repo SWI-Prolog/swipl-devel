@@ -1219,7 +1219,7 @@ ws_transient_frame(FrameObj fr, FrameObj fr2)
 
 
 status
-ws_postscript_frame(FrameObj fr)
+ws_postscript_frame(FrameObj fr, int iscolor)
 { HWND hwnd;
 
   if ( (hwnd = getHwndFrame(fr)) )
@@ -1228,17 +1228,27 @@ ws_postscript_frame(FrameObj fr)
     int w, h;
     int depth = GetDeviceCaps(hdc, BITSPIXEL);
 
-    if ( depth >= 4 )
-      depth = 4;
-    else if ( depth == 3 )
-      depth = 2;
+    switch(depth)
+    { case 1:
+	break;
+      case 2:
+      case 4:
+      case 8:				/* colour-mapped */
+      case 16:
+	depth = 4;			/* low-res true-color */
+      case 24:
+      case 32:
+	depth = 8;			/* high-res true color */
+    }
 
     GetWindowRect(hwnd, &rect);
     w = rect.right - rect.left;
     h = rect.bottom - rect.top;
 
-    ps_output("0 0 ~D ~D ~D greymap\n", w, h, depth);
-    postscriptDC(hdc, rect.left, rect.top, rect.right, rect.bottom, depth);
+    ps_output("0 0 ~D ~D ~D ~N\n", w, h,
+	      depth,
+	      iscolor ? NAME_rgbimage : NAME_greymap);
+    postscriptDC(hdc, rect.left, rect.top, w, h, depth, iscolor);
     ps_output("\n");
 
     succeed;

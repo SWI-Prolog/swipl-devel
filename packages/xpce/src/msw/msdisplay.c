@@ -512,19 +512,28 @@ ws_asynchronous(DisplayObj d)
 
 
 status
-ws_postscript_display(DisplayObj d)
+ws_postscript_display(DisplayObj d, int iscolor)
 { int w = valInt(getWidthDisplay(d));
   int h = valInt(getHeightDisplay(d));
   HDC hdc = GetDC(NULL);
   int depth = GetDeviceCaps(hdc, BITSPIXEL);
 
-  if ( depth >= 4 )
-    depth = 4;
-  else if ( depth == 3 )
-    depth = 2;
+  switch(depth)
+  { case 1:
+      break;
+    case 2:
+    case 4:
+    case 8:				/* colour-mapped */
+    case 16:
+      depth = 4;			/* low-res true-color */
+    case 24:
+    case 32:
+      depth = 8;			/* high-res true color */
+  }
 
-  ps_output("0 0 ~D ~D ~D greymap\n", w, h, depth);
-  postscriptDC(hdc, 0, 0, w, h, depth);
+  ps_output("0 0 ~D ~D ~D ~N\n", w, h,
+	    depth, iscolor ? NAME_rgbimage : NAME_greymap);
+  postscriptDC(hdc, 0, 0, w, h, depth, iscolor);
   ps_output("\n");
 
   succeed;

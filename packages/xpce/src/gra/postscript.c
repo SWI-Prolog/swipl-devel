@@ -1685,18 +1685,18 @@ drawPostScriptText(TextObj t)
 status
 postscriptFrame(FrameObj fr)
 { if ( psstatus.mkheader )
-  { psdef(NAME_greymap);
+  { psdef(NAME_rgbimage);
     succeed;
   } else
-    return ws_postscript_frame(fr);
+    return ws_postscript_frame(fr, TRUE);
 }
 
 
 status
 postscriptDisplay(DisplayObj d)
 { if ( psstatus.mkheader )
-  { psdef(NAME_greymap);
+  { psdef(NAME_rgbimage);
     succeed;
   } else
-    return ws_postscript_display(d);
+    return ws_postscript_display(d, TRUE);
 }
