@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Don't call cleanup of deterministic foreign predicates after
+    an abort.
+
   * FIXED: Bug #19: documentation and status of numbervars/3.  Richard
     O'Keefe and Lourens van der Meij.
 

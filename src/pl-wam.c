@@ -4168,6 +4168,7 @@ be able to access these!
 	{ int rval;
 
 	  SAVE_REGISTERS(qid);
+	  FR->clause = NULL;
 	  rval = callForeign(FR, FRG_FIRST_CALL PASS_LD);
 	  LOAD_REGISTERS(qid);
 
