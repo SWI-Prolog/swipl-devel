@@ -261,10 +261,12 @@ $set_prolog_file_extension.
 :- flag($banner_goal, _, $welcome).
 
 $initialise :-
-	catch(initialise_prolog, E,
-	      (print_message(error, initialization_exception(E)),
-	       fail
-	      )).
+	catch(initialise_prolog, E, initialise_error(E)).
+
+initialise_error('$aborted') :- !.
+initialise_error(E) :-
+	print_message(error, initialization_exception(E)),
+	fail.
 
 initialise_prolog :-
 	$clean_history,

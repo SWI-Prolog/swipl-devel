@@ -90,7 +90,11 @@ dispatch_for_frames([]) :- !.
 dispatch_for_frames(Frames) :-
 	(   catch(send(@display, dispatch), E,
 		  (   term_to_atom(E, Msg),
-		      send(@display, inform, Msg)
+		      send(@display, inform, Msg),
+		      (	  E == '$aborted'
+		      ->  throw(E)
+		      ;	  true
+		      )
 		  ))
 	->  true
 	;   true
