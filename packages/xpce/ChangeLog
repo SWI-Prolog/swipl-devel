@@ -1,5 +1,8 @@
 [VERSION 4.8.0]
 
+* Added '#<hexdigits>' conversion for class colour.  Allows for X11
+  compatible RGB colour specification.
+
 * Added: make `graphical ->_redraw_area' an explicit method.  For the time
   being this just allows for traceing this method for debugging redraw
   problems.
