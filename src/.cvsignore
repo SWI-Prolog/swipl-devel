@@ -9,5 +9,6 @@ pl.opt
 pl.res
 pl.prc
 *.plg
+*.pdb
 chhdr
 swipl
