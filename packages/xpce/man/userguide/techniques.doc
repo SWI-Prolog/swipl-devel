@@ -18,11 +18,20 @@ Discusses handling of globally named system-wide objects.
     \secoverview{whoiswho}{Using object references: ``Who's Who?''}
 Discusses mechanism available to find object references, avoiding
 global references and explicit storage of references.
+    \secoverview{application}{Relating frames}
+Discusses combining frames in a application, transient frames and
+various styles of modal operation and event handling.
     \secoverview{report}{Informing the user}
 Discusses the generic reporting system used to inform the user of
 progress, status and errors.
+    \secoverview{errors}{Errors}
+Specifying, handling and generating errors.
+    \secoverview{multi-lingual}{Multi-lingual applications}
+Discusses support for multi-lingual applications.
     \secoverview{font}{Specifying fonts}
 Discusses the indirections in the font-specification mechanism.
+    \secoverview{images}{Using images and cursors}
+Discusses images, icons and cursors.
     \secoverview{hyper}{Using Hyper Links to Relate Objects}
 Discusses a technique to relate objects.
     \secoverview{dragdrop}{Drag and Drop Interface}
@@ -35,10 +44,13 @@ Discusses the definition of new graphical primitives.
 \input{code.tex}
 \input{namedref.tex}
 \input{whoiswho.tex}
+\input{application.tex}
 \input{frame.tex}
 \input{report.tex}
 \input{error.tex}
+\input{mlingual}
 \input{font.tex}
+\input{images.tex}
 \input{hyper.tex}
 \input{dragdrop.tex}
 \input{ugraphics.tex}

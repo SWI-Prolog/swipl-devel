@@ -1,5 +1,9 @@
 \documentclass[11pt]{book}
-\usepackage{pce}
+\usepackage{times}
+\usepackage{pl}
+\usepackage{xpce}
+\usepackage{html}
+\renewcommand{\runningtitle}{XPCE \pceversion}
 \def\booktitle{Programming in XPCE/Prolog}
 \author{\email[Jan Wielemaker]{jan@swi.psy.uva.nl} \\
 	\email[Anjo Anjewierden]{anjo@swi.psy.uva.nl} \\
@@ -7,6 +11,7 @@
 	Roetersstraat 15 \\
 	1018 WB  Amsterdam}
 
+\sloppy
 %\psdraft
 
 \makeindex
@@ -19,7 +24,7 @@
 %%%%		HTML TitlePage
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\begin{htmlversion}
+\begin{htmlonly}
 
 \maketitle
 
@@ -37,16 +42,9 @@ XPCE has been connected to the following Prolog systems.
     \item \url[SICStus Prolog]{http://www.sics.se/isl/sicstus.html}
 \end{itemize}
 
-\paragraph{Note.} Although this document is created december 1996, it is
-not in sync with the current system (XPCE 4.9.0).  Everything documented
-here is still valid, but some new features should shortly find a place
-in this document.  They include new facilities for handling colour,
-using XPCE objects as a Prolog {\em stream} and more advanced
-organisation of applications using class \class{application}.
+{\it Last updated March 17, 1997 for XPCE version 4.9.2}
 
-{\it Last updated January 30, 1996 for XPCE version 4.8.16}
-
-Copyright \copyright\ 1992-1996 University of Amsterdam
+Copyright \copyright\ 1992-1997 University of Amsterdam
 \end{abstract}
 
 \hr
@@ -69,20 +67,19 @@ page contains links to the \strong{table of contents}, \strong{Index},
 and \strong{Class Summary}.  Subsections contain links to their
 super-section, and sections that have subsections contain a
 \strong{`local' index} at the end of the page.
-\end{htmlversion}
+\end{htmlonly}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%		Normal document titlepage
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+\pagestyle{empty}
 \begin{titlepage}
 \mbox{}
 \vfil
-\centerline{\psfig{figure=figs/title.ps,width=\textwidth}}
+\centerline{\psfig{figure=figs/title.eps,width=\textwidth}}
 \vfil\vfil\vfil
-\end{titlepage}
-
-\begin{titlepage}
+\newpage
 \titlepageheader
 \vfil\vfil
 
@@ -97,29 +94,45 @@ Anjo Anjewierden \\[1cm]
 XPCE/Prolog is a hybrid environment integrating logic programming and
 object-oriented programming for Graphical User Interfaces.  Applications
 in XPCE/Prolog are fully compatible across the supported X11 and
-Win32 platforms.
+Win32 (Windows 95 and Windows NT) platforms.\\[10pt]
+This document also applies to ProWindows 3.1, distributed by \\[5pt]
+AI International Ltd \\
+Castle Chambers, High Street, \\
+Berkhamsted, Hertfordshire, \\
+HP4 2DF, United Kingdom \\
+E-mail: \email{sales@aiil.co.uk}
 \vfil\vfil
 \noindent
-Last updated January 30, 1996 for XPCE version 4.8.16
+Titlepage created using XPCE 4.9.2 on Windows-NT 4.0
 \vfil
 \noindent
-Copyright \copyright\ 1992-1996 University of Amsterdam
+Last updated March 17, 1997 for XPCE version 4.9.2
+\vfil
+\noindent
+Copyright \copyright\ 1992-1997 University of Amsterdam
 \end{titlepage}
 
 \pagestyle{fancyplain}
+\headheight 14pt
 \renewcommand{\chaptermark}[1]{\markboth{#1}{#1}} % remember chapter title
 \renewcommand{\sectionmark}[1]{\markright{\thesection\ #1}}
                                                 % section number and title
 \lhead[\fancyplain{}{\bf\thepage}]{\fancyplain{}{\bf\rightmark}}
 \rhead[\fancyplain{}{\bf\leftmark}]{\fancyplain{}{\bf\thepage}}
 \footrulewidth 0.2pt
-\lfoot[\tiny XPCE \pceversion]{}
-\rfoot[]{\tiny XPCE \pceversion}
+\lfoot[\tiny \runningtitle]{}
+\rfoot[]{\tiny \runningtitle}
 \cfoot{}
 
 {\parskip 0pt
-\tableofcontents
+ \setcounter{page}{0}
+ \pagenumbering{roman}
+ \tableofcontents
+ \cleardoublepage
 }
+
+\setcounter{page}{0}
+\pagenumbering{arabic}
 
 \include{intro}
 \include{starting}

@@ -6,27 +6,22 @@ similar to X11. Resources in XPCE act like class-variables for which a
 default is specified by the application programmer. The application may
 overrule this default by specifying its value in a \idx{resource-file}.
 
-The X11 version of XPCE uses the X11 resource services to find the value
-for a resource. The Win32 version uses its own resource parser that
-emulates the X11 resource-parsers behaviour. Resources are read from the
-following locations.
+Earlier versions of the X11 version of XPCE used the X11 resource
+services.  As the syntax of XPCE resources is different from what
+is handled by the Xt and related libraries, this often lead to 
+unexpected behaviour of XPCE-based applications.
 
-\begin{enumerate}
-    \tick{The X11 server}
-Resources associated with this screen using \idx{xrdb(1)} overrule
-resources defined in any of the other locations.  Note that this
-location is not provided for the Win32 emulator.
-    \tick{The \$HOME/.Xdefaults Resource file}
-This file contains user preferences that should overrule the
-XPCE default values.
-    \tick{The \$PCEHOME/Pce Resource file}
-This file is used for system configuration.  It defines the basic
-look-and feel of XPCE.  Multiple versions of this file are distributed
-with XPCE, allowing a site to choose its preferred look-and-feel.
-    \tick{The application}
-The values stored in the application are the last location used to
-resolve a resource value.
-\end{enumerate}
+Therefore, recent versions of the X11 implementation use the resource
+emulator developed for the Win32 version.  The resources are read from
+the file{\$PCEHOME/Pce}, which includes \file{~/.Xpce} if present.
+
+Only if no value is found in one of the resource files, the default
+defined with the resource declaration in the XPCE class definition is
+used. This is also the case if a value is defined, but contains syntax
+errors or is otherwise not a legal description for the resource.
+
+Note that the Win32 version is shipped with a totally different resource
+file, emulating the Windows 95 look-and-feel.
 
 
 \section{Specifying xpce resources}
@@ -94,7 +89,7 @@ influence XPCE.  XPCE has no variables, thus {\tt Fred} refers to the
 name {\em Fred} rather then defining a variable.  If an instance has
 to be created without arguments, such as and empty \class{chain} object,
 this is specified as {\tt chain()} rather than {\tt new(chain)}.  The
-latter will try to make an instance of class \noclass{new} (and fail).
+latter will try to make an instance of class \class{new} (and fail).
 
 
 \subsection{Long lines in resource files}

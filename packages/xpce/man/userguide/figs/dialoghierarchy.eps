@@ -1,0 +1,489 @@
+%!PS-Adobe-3.0 EPSF-3.0
+%%Creator: PCE 4.8.15, Nov 1995
+%%CreationDate: (Thu Nov 30 10:52:55 1995)
+%%Pages: 1
+%%DocumentFonts: (atend)
+%%BoundingBox: 70 70 504 338
+%%Object: @34159179/draw_canvas
+%%EndComments
+
+gsave
+
+%	$Id$
+%
+%	PostScript header file for PCE version 4.5
+%	Copyright Jan Wielemaker, Anjo Anjewierden
+%	Modified: Tue Mar 23 15:46:24 1993 (Added arcpath)
+
+%	PCE line attributes
+
+/dotted
+	{ [1 5] 0 setdash
+	} def
+/dashed
+	{ [5] 0 setdash
+	} def
+/dashdot
+	{ [5 2 1 2] 0 setdash
+	} def
+/dashdotted
+	{ [5 2 1 2 1 2 1 2] 0 setdash
+	} def
+/longdash
+	{ [8 5] 0 setdash
+	} def
+/nodash
+	{ [] 0 setdash
+	} def
+
+/pspen
+	{ 2 div
+	} def
+/pen
+	{ pspen
+	  setlinewidth
+	} def
+
+%	Draw a path according to the current  texture  and  pen.   Draws
+%	only  if  the  pen  is not 0.  If a dash pattern is provided the
+%	path is first cleared.
+
+/draw
+	{ 0 currentlinewidth ne
+	  { currentdash 0 eq exch [] eq and not
+	    { gsave nodash 1 setgray stroke grestore
+	    } if
+	    stroke
+	  } if
+	} def
+
+% Create a rectangular path from x, y, w, h in the current dict
+
+/region
+	{ newpath
+	    x y moveto
+	    w 0 rlineto
+	    0 h rlineto
+	    w neg 0 rlineto
+	  closepath
+	} def
+
+%	Paint inverted
+
+/invert
+	{ {1 exch sub} settransfer
+	} def
+
+%	Create a path for a PCE box without rounded corners. Stack:
+%	
+%	pen x y w h radius BOXPATH path
+
+/boxpath
+	{ /r exch def
+	  /h exch def
+	  /w exch def
+	  /y exch def
+	  /x exch def
+	  /p exch def
+	  
+	  r 0 eq
+	  { 2 setlinecap newpath
+	    x p pspen add y p pspen add moveto
+	    w p sub 0 rlineto
+	    0 h p sub rlineto
+	    w p sub neg 0 rlineto
+	    0 h p sub neg rlineto
+	  }
+	  { newpath
+	    /pr r p pspen add def
+	    x pr add y p pspen add moveto
+	    x w add pr sub	y pr add	r 270 360 arc
+	    x w add pr sub	y h add pr sub	r 0 90 arc
+	    x pr add		y h add pr sub  r 90 180 arc
+	    x pr add		y pr add	r 180 270 arc
+	  } ifelse
+	  
+	  p pen
+	} def
+
+%	Create a path for a PCE circle.
+%	pen x y radius CIRCLEPATH
+
+/circlepath
+	{ /r exch def
+	  /y exch def
+	  /x exch def
+	  /p exch def
+
+	  newpath
+	  x r add y r add r p pspen sub 0 360 arc
+	  
+	  p pen
+	} def
+
+%	Create a path for a PCE ellipse
+%	pen x y w h ELLIPSEPATH
+
+/ellipsepath
+	{ /h exch 2 div def
+	  /w exch 2 div def
+	  /y exch def
+	  /x exch def
+	  /p exch def
+
+	  matrix currentmatrix
+	  x w add y h add translate
+	  w p pspen sub h p pspen sub scale
+	  newpath
+	  0 0 1 0 360 arc
+	  setmatrix
+
+	  p pen
+	} def
+
+
+%	pen close x y w h start size ARCPATH
+
+/arcpath
+	{ /size exch neg def
+	  /start exch neg 360 add def
+	  /h exch def
+	  /w exch def
+	  /y exch def
+	  /x exch def
+	  /close exch def
+	  /p exch def
+
+	  matrix currentmatrix
+	  x y translate
+	  w p pspen sub h p pspen sub scale
+	  newpath
+
+	  close 2 eq { 0 0 moveto } if
+	  size 0 le
+	  { 0 0 1 start start size add arcn
+	  }
+	  { 0 0 1 start start size add arc
+	  } ifelse
+	  close 0 ne { closepath } if
+	  setmatrix
+
+	  p pen
+	} def
+
+
+%	pen x y STARTPATH
+
+/startpath
+	{ newpath moveto pen
+	} def
+
+
+%	Linepath: create a path for a pce line
+%	x y w h LINEPATH
+
+/linepath
+	{ /h exch def
+	  /w exch def
+
+	  newpath moveto w h rlineto
+	  pen
+	} def
+
+%	x y w h CLEAR
+%	Clear a region
+
+/clear
+	{ /h exch def
+	  /w exch def
+	  /y exch def
+	  /x exch def
+
+	  gsave
+	    region 1 setgray fill
+	  grestore
+	} def
+
+%	text. (x,y) is the xy coordinate of the baselinestart of the first
+%	character. w is the width to which the text is scaled.
+%	x y <invert> w string TEXT
+
+/text
+	{ /s exch def
+	  /w exch def
+	  
+	  gsave
+	    1 eq { invert } if
+	    moveto s stringwidth pop w exch div -1 scale s show
+	  grestore
+	} def
+
+
+%	x y w h BITMAP hexdata
+
+/bitmap
+	{ /h exch def
+	  /w exch def
+	  /y exch def
+	  /x exch def
+
+	  gsave
+	  {1 exch sub} settransfer
+%	  region clip
+	  x y h add translate
+	  /w8 w 7 add 8 idiv 8 mul def
+	  /picstr w8 8 idiv string def
+	  w8 h neg scale
+	  w8 h 1 [w 0 0 h neg 0 h]
+	  {currentfile picstr readhexstring pop} image
+	  grestore
+	} def
+	  
+
+%	x y w h depth GREYMAP hexdata
+
+/greymap
+	{ /d exch def
+	  /h exch def
+	  /w exch def
+	  /y exch def
+	  /x exch def
+
+	  gsave
+%	  {1 exch sub} settransfer
+%	  region clip
+	  x y h add translate
+	  /w8 w 7 add 8 idiv 8 mul def
+	  /picstr w8 8 idiv string def
+	  w8 h neg scale
+	  w8 h d [w 0 0 h neg 0 h]
+	  {currentfile picstr readhexstring pop} image
+	  grestore
+	} def
+	  
+
+%	x y w h pw ph pattern FILLWITHMASK
+%	Fill path with a repetitive pattern <pattern> which is sized (pw, ph).
+%	<x,y,w,h> discribe an area that encapsulates the path. <pattern> is a
+%	1-deep image.  1's of the image are painted in the current colour.
+
+/fillwithmask
+	{ /patternstring exch def
+	  /ph exch def
+	  /pw exch def
+	  /h exch def
+	  /w exch def
+	  /y exch def
+	  /x exch def
+	  
+	  /pw8 pw 7 add 8 idiv 8 mul def
+	  
+	  /putpattern
+	  { translate 1 -1 scale
+	    newpath 0 0 moveto 1 0 rlineto 0 1 rlineto -1 0 rlineto closepath
+	    clip
+	    pw8 ph false [pw 0 0 ph neg 0 ph] patternstring imagemask
+	  } def
+
+	  gsave
+	  clip
+	  gsave 1 setgray fill grestore
+	  x y translate pw ph scale
+
+	  0 1 w pw div ceiling 1 sub
+	  { 1 1 h ph div ceiling
+	    { gsave 2 copy putpattern pop grestore
+	    } for
+	  } for
+	  grestore
+	} def
+	      
+70 70 translate
+1.00 -1.00 scale
+85 -290 translate
+%%EndProlog
+%%Page 0 1
+
+%%Object: @34159179/draw_canvas
+gsave 0 0 translate 0.00 0.00 0.00 setrgbcolor 
+
+%%Object: @34338560/draw_text
+/Helvetica findfont 14 scalefont setfont
+135 55 0 59 (graphical) text
+
+%%Object: @34369581/draw_text
+/Helvetica findfont 14 scalefont setfont
+73 135 0 43 (device) text
+
+%%Object: @34370136/draw_text
+/Helvetica findfont 14 scalefont setfont
+72 202 0 45 (window) text
+
+%%Object: @34370489/draw_text
+/Helvetica findfont 14 scalefont setfont
+75 269 0 38 (dialog) text
+
+%%Object: @34370769/draw_text
+/Helvetica findfont 14 scalefont setfont
+200 135 0 72 (dialog_item) text
+
+%%Object: @34362694/draw_connection
+gsave  nodash 1 164 58 72 64 linepath draw
+grestore
+
+%%Object: @34376143/draw_connection
+gsave  nodash 1 164 58 -70 64 linepath draw
+grestore
+
+%%Object: @34376749/draw_connection
+gsave  nodash 1 94 138 0 51 linepath draw
+grestore
+
+%%Object: @34377371/draw_connection
+gsave  nodash 1 94 205 0 51 linepath draw
+grestore
+
+%%Object: @34656256/draw_compound
+gsave 208 22 translate 
+
+%%Object: @34656299/draw_line
+gsave  nodash 1 0 7 28 0 linepath draw
+gsave 0.00 0.00 0.00 setrgbcolor  nodash 1 pen newpath 18 10 moveto 28 7 lineto 18 4 lineto nodash draw
+ grestore
+grestore
+
+%%Object: @34656394/draw_text
+/Helvetica-Oblique findfont 12 scalefont setfont
+32 11 0 33 (above) text
+grestore
+
+%%Object: @34662913/draw_compound
+gsave 208 36 translate 
+
+%%Object: @34662956/draw_line
+gsave  nodash 1 0 7 28 0 linepath draw
+gsave 0.00 0.00 0.00 setrgbcolor  nodash 1 pen newpath 18 10 moveto 28 7 lineto 18 4 lineto nodash draw
+ grestore
+grestore
+
+%%Object: @34663051/draw_text
+/Helvetica-Oblique findfont 12 scalefont setfont
+32 11 0 32 (below) text
+grestore
+
+%%Object: @34669732/draw_compound
+gsave 208 50 translate 
+
+%%Object: @34669775/draw_line
+gsave  nodash 1 0 7 28 0 linepath draw
+gsave 0.00 0.00 0.00 setrgbcolor  nodash 1 pen newpath 18 10 moveto 28 7 lineto 18 4 lineto nodash draw
+ grestore
+grestore
+
+%%Object: @34827485/draw_text
+/Helvetica-Oblique findfont 12 scalefont setfont
+32 11 0 16 (left) text
+grestore
+
+%%Object: @34830746/draw_compound
+gsave 208 64 translate 
+
+%%Object: @34830789/draw_line
+gsave  nodash 1 0 7 28 0 linepath draw
+gsave 0.00 0.00 0.00 setrgbcolor  nodash 1 pen newpath 18 10 moveto 28 7 lineto 18 4 lineto nodash draw
+ grestore
+grestore
+
+%%Object: @34831397/draw_text
+/Helvetica-Oblique findfont 12 scalefont setfont
+32 11 0 25 (right) text
+grestore
+
+%%Object: @34834699/draw_compound
+gsave -78 117 translate 
+
+%%Object: @34834742/draw_line
+gsave  nodash 1 0 6 28 0 linepath draw
+gsave 0.00 0.00 0.00 setrgbcolor  nodash 1 pen newpath 18 9 moveto 28 6 lineto 18 3 lineto nodash draw
+ grestore
+grestore
+
+%%Object: @34866806/draw_text
+/Helvetica-Oblique findfont 12 scalefont setfont
+32 10 0 111 (append_dialog_item) text
+grestore
+
+%%Object: @34870198/draw_compound
+gsave -78 131 translate 
+
+%%Object: @34870241/draw_line
+gsave  nodash 1 0 7 28 0 linepath draw
+gsave 0.00 0.00 0.00 setrgbcolor  nodash 1 pen newpath 18 10 moveto 28 7 lineto 18 4 lineto nodash draw
+ grestore
+grestore
+
+%%Object: @34870334/draw_text
+/Helvetica-Oblique findfont 12 scalefont setfont
+32 11 0 75 (layout_dialog) text
+grestore
+
+%%Object: @34887294/draw_compound
+gsave -85 248 translate 
+
+%%Object: @34887337/draw_line
+gsave  nodash 1 0 7 28 0 linepath draw
+gsave 0.00 0.00 0.00 setrgbcolor  nodash 1 pen newpath 18 10 moveto 28 7 lineto 18 4 lineto nodash draw
+ grestore
+grestore
+
+%%Object: @34887432/draw_text
+/Helvetica-Oblique findfont 12 scalefont setfont
+32 11 0 41 (append) text
+grestore
+
+%%Object: @34890689/draw_compound
+gsave -85 262 translate 
+
+%%Object: @34890732/draw_line
+gsave  nodash 1 0 7 28 0 linepath draw
+gsave 0.00 0.00 0.00 setrgbcolor  nodash 1 pen newpath 18 10 moveto 28 7 lineto 18 4 lineto nodash draw
+ grestore
+grestore
+
+%%Object: @34890825/draw_text
+/Helvetica-Oblique findfont 12 scalefont setfont
+32 11 0 34 (layout) text
+grestore
+
+%%Object: @34906492/draw_compound
+gsave -85 276 translate 
+
+%%Object: @34906535/draw_line
+gsave  nodash 1 0 8 29 0 linepath draw
+gsave 0.00 0.00 0.00 setrgbcolor  nodash 1 pen newpath 19 11 moveto 29 8 lineto 19 5 lineto nodash draw
+ grestore
+grestore
+
+%%Object: @34921645/draw_text
+/Helvetica-Oblique findfont 12 scalefont setfont
+32 11 0 124 (_compute_disired_size) text
+grestore
+
+%%Object: @34956026/draw_compound
+gsave 288 122 translate 
+
+%%Object: @34956069/draw_line
+gsave  nodash 1 0 7 28 0 linepath draw
+gsave 0.00 0.00 0.00 setrgbcolor  nodash 1 pen newpath 18 10 moveto 28 7 lineto 18 4 lineto nodash draw
+ grestore
+grestore
+
+%%Object: @34956162/draw_text
+/Helvetica-Oblique findfont 12 scalefont setfont
+32 11 0 29 (event) text
+grestore
+grestore
+
+%%Trailer
+grestore
+%%DocumentFonts: Helvetica Helvetica-Oblique

@@ -107,7 +107,7 @@ visible.
 The predicate notracepce/1 disables a tracepoint.
 
 
-\subsubsection{Breaking on certain operations}.
+\subsubsection{Breaking on certain operations}
 
 An XPCE {\em break-point} is similar to a Prolog spy-point.  Execution
 is broken and the debugger waits for further instructions. The available

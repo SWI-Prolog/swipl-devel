@@ -1,0 +1,508 @@
+%!
+%%Creator: PCE 4.5.1, December 1992
+%%CreationDate: (Tue Dec 15 14:14:08 1992)
+%%Pages: 1
+%%DocumentFonts: (atend)
+%%BoundingBox: 70 70 329 198
+%%Object: @718923/draw_canvas
+%%EndComments
+
+gsave
+
+%	PostScript header file for PCE version 3.6
+%	Copyright Jan Wielemaker, Anjo Anjewierden
+%	Last Modified: May 3, 1989
+
+%	PCE line attributes
+
+/dotted
+	{ [1 5] 0 setdash
+	} def
+/dashed
+	{ [5] 0 setdash
+	} def
+/dashdot
+	{ [5 2 1 2] 0 setdash
+	} def
+/dashdotted
+	{ [5 2 1 2 1 2 1 2] 0 setdash
+	} def
+/longdash
+	{ [8 5] 0 setdash
+	} def
+/nodash
+	{ [] 0 setdash
+	} def
+
+/pspen
+	{ 2 div
+	} def
+/pen
+	{ pspen
+	  setlinewidth
+	} def
+
+%	Draw a path according to the current  texture  and  pen.   Draws
+%	only  if  the  pen  is not 0.  If a dash pattern is provided the
+%	path is first cleared.
+
+/draw
+	{ 0 currentlinewidth ne
+	  { currentdash 0 eq exch [] eq and not
+	    { gsave nodash 1 setgray stroke grestore
+	    } if
+	    stroke
+	  } if
+	} def
+
+% Create a rectangular path from x, y, w, h in the current dict
+
+/region
+	{ newpath
+	    x y moveto
+	    w 0 rlineto
+	    0 h rlineto
+	    w neg 0 rlineto
+	  closepath
+	} def
+
+%	Paint inverted
+
+/invert
+	{ {1 exch sub} settransfer
+	} def
+
+%	Create a path for a PCE box without rounded corners. Stack:
+%	
+%	pen x y w h radius BOXPATH path
+
+/boxpath
+	{ /r exch def
+	  /h exch def
+	  /w exch def
+	  /y exch def
+	  /x exch def
+	  /p exch def
+	  
+	  r 0 eq
+	  { 2 setlinecap newpath
+	    x p pspen add y p pspen add moveto
+	    w p sub 0 rlineto
+	    0 h p sub rlineto
+	    w p sub neg 0 rlineto
+	    0 h p sub neg rlineto
+	  }
+	  { newpath
+	    /pr r p pspen add def
+	    x pr add y p pspen add moveto
+	    x w add pr sub	y pr add	r 270 360 arc
+	    x w add pr sub	y h add pr sub	r 0 90 arc
+	    x pr add		y h add pr sub  r 90 180 arc
+	    x pr add		y pr add	r 180 270 arc
+	  } ifelse
+	  
+	  p pen
+	} def
+
+%	Create a path for a PCE circle.
+%	pen x y radius CIRCLEPATH
+
+/circlepath
+	{ /r exch def
+	  /y exch def
+	  /x exch def
+	  /p exch def
+
+	  newpath
+	  x r add y r add r p pspen sub 0 360 arc
+	  
+	  p pen
+	} def
+
+%	Create a path for a PCE ellipse
+%	pen x y w h ELLIPSEPATH
+
+/ellipsepath
+	{ /h exch 2 div def
+	  /w exch 2 div def
+	  /y exch def
+	  /x exch def
+	  /p exch def
+
+	  matrix currentmatrix
+	  x w add y h add translate
+	  w p pspen sub h p pspen sub scale
+	  newpath
+	  0 0 1 0 360 arc
+	  setmatrix
+
+	  p pen
+	} def
+
+
+%	pen x y STARTPATH
+
+/startpath
+	{ newpath moveto pen
+	} def
+
+
+%	Linepath: create a path for a pce line
+%	x y w h LINEPATH
+
+/linepath
+	{ /h exch def
+	  /w exch def
+
+	  newpath moveto w h rlineto
+	  pen
+	} def
+
+%	x y w h CLEAR
+%	Clear a region
+
+/clear
+	{ /h exch def
+	  /w exch def
+	  /y exch def
+	  /x exch def
+
+	  gsave
+	    region 1 setgray fill
+	  grestore
+	} def
+
+%	text. (x,y) is the xy coordinate of the baselinestart of the first
+%	character. w is the width to which the text is scaled.
+%	x y <invert> w string TEXT
+
+/text
+	{ /s exch def
+	  /w exch def
+	  
+	  gsave
+	    1 eq { invert } if
+	    moveto s stringwidth pop w exch div -1 scale s show
+	  grestore
+	} def
+
+
+%	x y w h BITMAP hexdata
+
+/bitmap
+	{ /h exch def
+	  /w exch def
+	  /y exch def
+	  /x exch def
+
+	  gsave
+	  {1 exch sub} settransfer
+%	  region clip
+	  x y h add translate
+	  /w8 w 7 add 8 idiv 8 mul def
+	  /picstr w8 8 idiv string def
+	  w8 h neg scale
+	  w8 h 1 [w 0 0 h neg 0 h]
+	  {currentfile picstr readhexstring pop} image
+	  grestore
+	} def
+	  
+
+%	x y w h pw ph pattern FILL
+%	Fill path with a repetitive pattern <pattern> which is sized (pw, ph).
+%	<x,y,w,h> discribe an area that encapsulates the path.
+
+/fillpath
+	{ /patternstring exch def
+	  /ph exch def
+	  /pw exch def
+	  /h exch def
+	  /w exch def
+	  /y exch def
+	  /x exch def
+	  
+	  /pw8 pw 7 add 8 idiv 8 mul def
+	  
+	  /putpattern
+	  { translate 1 -1 scale
+	    newpath 0 0 moveto 1 0 rlineto 0 1 rlineto -1 0 rlineto closepath
+	    clip
+	    pw8 ph 1 [pw 0 0 ph neg 0 ph] patternstring image
+	  } def
+
+	  gsave
+	  clip
+	  { 1.0 exch sub } settransfer
+	  x y translate pw ph scale
+
+	  0 1 w pw div ceiling 1 sub
+	  { 1 1 h ph div ceiling
+	    { gsave 2 copy putpattern pop grestore
+	    } for
+	  } for
+	  grestore
+	} def
+	      
+70 70 translate
+1.00 -1.00 scale
+-52 -327 translate
+%%EndProlog
+%%Page 0 1
+
+%%Object: @718923/draw_canvas
+gsave 0 0 translate
+
+%%Object: @555547/draw_path
+gsave nodash 1 160 226 startpath
+ 168 326 lineto
+ 180 326 lineto 207 280 lineto 222 326 lineto 233 326 lineto 266 228 lineto 281 228 lineto
+ 269 307 lineto 307 307 lineto 310 297 lineto 282 297 lineto 293 218 lineto 259 218 lineto
+ 228 311 lineto 213 266 lineto 202 266 lineto 177 311 lineto 170 218 lineto closepath
+gsave 1.00 setgray fill grestore
+draw grestore
+
+%%Object: @881713/draw_path
+gsave nodash 1 53 301 startpath
+53.38 301.62 51.62 301.25 52 302 curveto
+52.38 302.75 51.50 302.25 52 303 curveto
+52.50 303.75 51.50 303.25 52 304 curveto
+52.50 304.75 51.38 304.25 52 305 curveto
+52.62 305.75 52.38 305.25 53 306 curveto
+53.62 306.75 52.38 306.38 53 307 curveto
+53.62 307.62 52.88 306.50 54 307 curveto
+55.12 307.50 56.50 306.50 58 307 curveto
+59.50 307.50 60.50 306.50 62 307 curveto
+63.50 307.50 64.50 306.50 66 307 curveto
+67.50 307.50 68.50 306.50 70 307 curveto
+71.50 307.50 72.50 306.50 74 307 curveto
+75.50 307.50 76.50 306.50 78 307 curveto
+79.50 307.50 80.50 306.50 82 307 curveto
+83.50 307.50 84.50 306.50 86 307 curveto
+87.50 307.50 88.50 306.50 90 307 curveto
+91.50 307.50 92.38 306.50 94 307 curveto
+95.62 307.50 97.38 306.50 99 307 curveto
+100.62 307.50 101.50 306.50 103 307 curveto
+104.50 307.50 105.50 306.50 107 307 curveto
+108.50 307.50 109.62 306.50 111 307 curveto
+112.38 307.50 112.75 306.50 114 307 curveto
+115.25 307.50 115.75 306.50 117 307 curveto
+118.25 307.50 118.75 306.50 120 307 curveto
+121.25 307.50 121.88 306.62 123 307 curveto
+124.12 307.38 123.88 305.62 125 306 curveto
+126.12 306.38 126.75 305.62 128 306 curveto
+129.25 306.38 129.88 304.75 131 305 curveto
+132.12 305.25 132.12 303.62 133 304 curveto
+133.88 304.38 133.12 303.62 134 304 curveto
+134.88 304.38 135.12 302.88 136 303 curveto
+136.88 303.12 136.25 300.88 137 301 curveto
+137.75 301.12 137.25 299.75 138 300 curveto
+138.75 300.25 138.25 298.88 139 299 curveto
+139.75 299.12 139.38 296.88 140 297 curveto
+140.62 297.12 139.38 295.88 140 296 curveto
+140.62 296.12 140.38 293.88 141 294 curveto
+141.62 294.12 140.38 292.88 141 293 curveto
+141.62 293.12 141.38 290.88 142 291 curveto
+142.62 291.12 141.50 289.88 142 290 curveto
+142.50 290.12 141.50 287.88 142 288 curveto
+142.50 288.12 141.50 286.88 142 287 curveto
+142.50 287.12 141.50 284.88 142 285 curveto
+142.50 285.12 141.50 283.88 142 284 curveto
+142.50 284.12 141.62 281.88 142 282 curveto
+142.38 282.12 140.62 280.88 141 281 curveto
+141.38 281.12 140.50 279.00 141 279 curveto
+141.50 279.00 140.62 276.88 141 277 curveto
+141.38 277.12 139.75 275.88 140 276 curveto
+140.25 276.12 138.75 273.88 139 274 curveto
+139.25 274.12 137.88 272.88 138 273 curveto
+138.12 273.12 135.88 270.88 136 271 curveto
+136.12 271.12 134.88 269.75 135 270 curveto
+135.12 270.25 133.00 268.75 133 269 curveto
+133.00 269.25 131.00 267.75 131 268 curveto
+131.00 268.25 129.00 266.75 129 267 curveto
+129.00 267.25 127.00 265.62 127 266 curveto
+127.00 266.38 125.00 265.62 125 266 curveto
+125.00 266.38 123.12 264.75 123 265 curveto
+122.88 265.25 120.12 263.62 120 264 curveto
+119.88 264.38 118.00 263.62 118 264 curveto
+118.00 264.38 116.00 262.62 116 263 curveto
+116.00 263.38 114.12 262.62 114 263 curveto
+113.88 263.38 111.12 261.62 111 262 curveto
+110.88 262.38 109.12 261.50 109 262 curveto
+108.88 262.50 106.25 261.62 106 262 curveto
+105.75 262.38 103.25 260.62 103 261 curveto
+102.75 261.38 100.12 260.50 100 261 curveto
+99.88 261.50 98.12 260.62 98 261 curveto
+97.88 261.38 95.12 259.75 95 260 curveto
+94.88 260.25 92.88 258.75 93 259 curveto
+93.12 259.25 91.88 257.75 92 258 curveto
+92.12 258.25 89.88 256.88 90 257 curveto
+90.12 257.12 88.75 254.88 89 255 curveto
+89.25 255.12 87.62 253.88 88 254 curveto
+88.38 254.12 87.62 252.00 88 252 curveto
+88.38 252.00 86.62 250.00 87 250 curveto
+87.38 250.00 86.50 247.88 87 248 curveto
+87.50 248.12 86.50 246.88 87 247 curveto
+87.50 247.12 86.50 244.88 87 245 curveto
+87.50 245.12 86.38 243.88 87 244 curveto
+87.62 244.12 87.38 242.00 88 242 curveto
+88.62 242.00 87.38 239.88 88 240 curveto
+88.62 240.12 88.25 238.88 89 239 curveto
+89.75 239.12 89.12 237.00 90 237 curveto
+90.88 237.00 91.00 234.88 92 235 curveto
+93.00 235.12 93.00 233.88 94 234 curveto
+95.00 234.12 95.00 231.88 96 232 curveto
+97.00 232.12 96.88 230.75 98 231 curveto
+99.12 231.25 99.88 229.62 101 230 curveto
+102.12 230.38 101.75 229.50 103 230 curveto
+104.25 230.50 105.62 229.62 107 230 curveto
+108.38 230.38 108.62 228.62 110 229 curveto
+111.38 229.38 112.62 228.50 114 229 curveto
+115.38 229.50 115.62 228.50 117 229 curveto
+118.38 229.50 119.62 228.50 121 229 curveto
+122.38 229.50 122.62 228.50 124 229 curveto
+125.38 229.50 126.50 228.50 128 229 curveto
+129.50 229.50 130.38 228.50 132 229 curveto
+133.62 229.50 135.38 228.50 137 229 curveto
+138.62 229.50 139.38 228.50 141 229 curveto
+142.62 229.50 144.38 228.50 146 229 curveto
+147.62 229.50 148.38 228.50 150 229 curveto
+151.62 229.50 153.38 228.50 155 229 curveto
+156.62 229.50 157.75 228.62 159 229 curveto
+160.25 229.38 159.88 227.75 161 228 curveto
+162.12 228.25 162.88 226.88 164 227 curveto
+165.12 227.12 165.00 225.12 166 225 curveto
+167.00 224.88 167.12 222.12 168 222 curveto
+168.88 221.88 168.38 219.88 169 220 curveto
+169.62 220.12 168.62 218.75 169 219 curveto
+169.38 219.25 168.12 217.62 168 218 curveto
+167.88 218.38 164.38 217.50 164 218 curveto
+163.62 218.50 161.38 217.50 161 218 curveto
+160.62 218.50 157.38 217.50 157 218 curveto
+156.62 218.50 154.38 217.50 154 218 curveto
+153.62 218.50 150.38 217.50 150 218 curveto
+149.62 218.50 147.38 217.50 147 218 curveto
+146.62 218.50 143.38 217.50 143 218 curveto
+142.62 218.50 140.12 217.50 140 218 curveto
+139.88 218.50 138.12 217.50 138 218 curveto
+137.88 218.50 135.25 217.50 135 218 curveto
+134.75 218.50 132.25 217.50 132 218 curveto
+131.75 218.50 129.12 217.50 129 218 curveto
+128.88 218.50 127.12 217.50 127 218 curveto
+126.88 218.50 124.25 217.50 124 218 curveto
+123.75 218.50 121.38 217.50 121 218 curveto
+120.62 218.50 117.38 217.50 117 218 curveto
+116.62 218.50 114.25 217.50 114 218 curveto
+113.75 218.50 111.25 217.38 111 218 curveto
+110.75 218.62 108.38 218.38 108 219 curveto
+107.62 219.62 104.38 218.50 104 219 curveto
+103.62 219.50 101.12 218.50 101 219 curveto
+100.88 219.50 99.12 218.38 99 219 curveto
+98.88 219.62 96.12 219.38 96 220 curveto
+95.88 220.62 94.00 219.38 94 220 curveto
+94.00 220.62 92.00 220.25 92 221 curveto
+92.00 221.75 90.00 221.25 90 222 curveto
+90.00 222.75 88.00 222.25 88 223 curveto
+88.00 223.75 85.88 223.25 86 224 curveto
+86.12 224.75 84.88 224.25 85 225 curveto
+85.12 225.75 82.88 225.25 83 226 curveto
+83.12 226.75 81.75 226.12 82 227 curveto
+82.25 227.88 80.75 228.12 81 229 curveto
+81.25 229.88 79.75 229.12 80 230 curveto
+80.25 230.88 78.75 231.12 79 232 curveto
+79.25 232.88 77.75 232.12 78 233 curveto
+78.25 233.88 76.75 234.00 77 235 curveto
+77.25 236.00 75.62 236.12 76 237 curveto
+76.38 237.88 75.62 237.12 76 238 curveto
+76.38 238.88 74.62 239.00 75 240 curveto
+75.38 241.00 74.62 241.00 75 242 curveto
+75.38 243.00 73.62 243.00 74 244 curveto
+74.38 245.00 73.50 245.00 74 246 curveto
+74.50 247.00 73.50 246.88 74 248 curveto
+74.50 249.12 73.50 249.88 74 251 curveto
+74.50 252.12 73.38 252.00 74 253 curveto
+74.62 254.00 74.38 253.88 75 255 curveto
+75.62 256.12 74.38 256.88 75 258 curveto
+75.62 259.12 75.25 259.00 76 260 curveto
+76.75 261.00 76.25 261.00 77 262 curveto
+77.75 263.00 77.12 263.00 78 264 curveto
+78.88 265.00 79.12 265.12 80 266 curveto
+80.88 266.88 80.12 266.25 81 267 curveto
+81.88 267.75 82.00 267.25 83 268 curveto
+84.00 268.75 84.00 268.25 85 269 curveto
+86.00 269.75 86.00 269.25 87 270 curveto
+88.00 270.75 87.88 270.25 89 271 curveto
+90.12 271.75 90.75 271.38 92 272 curveto
+93.25 272.62 93.75 271.38 95 272 curveto
+96.25 272.62 96.62 272.38 98 273 curveto
+99.38 273.62 100.62 272.38 102 273 curveto
+103.38 273.62 103.75 273.38 105 274 curveto
+106.25 274.62 106.75 273.38 108 274 curveto
+109.25 274.62 109.88 274.38 111 275 curveto
+112.12 275.62 112.00 274.38 113 275 curveto
+114.00 275.62 114.00 275.38 115 276 curveto
+116.00 276.62 116.00 275.38 117 276 curveto
+118.00 276.62 118.00 276.38 119 277 curveto
+120.00 277.62 120.00 276.38 121 277 curveto
+122.00 277.62 122.00 277.25 123 278 curveto
+124.00 278.75 124.12 278.25 125 279 curveto
+125.88 279.75 125.25 279.25 126 280 curveto
+126.75 280.75 126.38 280.12 127 281 curveto
+127.62 281.88 126.38 282.12 127 283 curveto
+127.62 283.88 127.38 283.12 128 284 curveto
+128.62 284.88 127.50 285.12 128 286 curveto
+128.50 286.88 127.50 286.12 128 287 curveto
+128.50 287.88 127.50 288.12 128 289 curveto
+128.50 289.88 127.50 289.25 128 290 curveto
+128.50 290.75 127.62 290.25 128 291 curveto
+128.38 291.75 126.75 291.25 127 292 curveto
+127.25 292.75 125.62 292.25 126 293 curveto
+126.38 293.75 125.62 293.38 126 294 curveto
+126.38 294.62 124.88 293.38 125 294 curveto
+125.12 294.62 123.12 294.38 123 295 curveto
+122.88 295.62 120.25 294.38 120 295 curveto
+119.75 295.62 117.12 295.38 117 296 curveto
+116.88 296.62 115.12 295.50 115 296 curveto
+114.88 296.50 112.12 295.50 112 296 curveto
+111.88 296.50 110.12 295.50 110 296 curveto
+109.88 296.50 107.38 295.50 107 296 curveto
+106.62 296.50 103.50 295.50 103 296 curveto
+102.50 296.50 99.50 295.50 99 296 curveto
+98.50 296.50 95.38 295.50 95 296 curveto
+94.62 296.50 92.38 295.50 92 296 curveto
+91.62 296.50 88.50 295.50 88 296 curveto
+87.50 296.50 84.50 295.50 84 296 curveto
+83.50 296.50 80.50 295.50 80 296 curveto
+79.50 296.50 76.38 295.50 76 296 curveto
+75.62 296.50 73.38 295.50 73 296 curveto
+72.62 296.50 69.50 295.50 69 296 curveto
+68.50 296.50 65.50 295.50 65 296 curveto
+64.50 296.50 61.38 295.50 61 296 curveto
+60.62 296.50 58.38 295.50 58 296 curveto
+57.62 296.50 54.12 295.50 54 296 curveto
+53.88 296.50 52.62 295.38 53 296 curveto
+53.38 296.62 52.62 296.25 53 297 curveto
+53.38 297.75 51.62 297.25 52 298 curveto
+52.38 298.75 51.50 298.25 52 299 curveto
+52.50 299.75 51.38 299.38 52 300 curveto
+52.62 300.62 52.38 299.38 53 300 curveto
+53.62 300.62 52.50 300.38 53 301 curveto
+ closepath
+gsave 1.00 setgray fill grestore
+draw grestore
+
+%%Object: @925375/draw_path
+gsave nodash 1 284 199 startpath
+ 282 211 lineto
+ 295 211 lineto 296 199 lineto closepath
+gsave 1.00 setgray fill grestore
+draw grestore
+
+%%Object: @924012/draw_box
+gsave nodash 0 160 219 10 11 0 boxpath
+gsave 1.00 setgray fill grestore
+draw grestore
+grestore
+
+%%Trailer
+grestore
+%%DocumentFonts:

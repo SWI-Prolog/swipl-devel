@@ -16,6 +16,8 @@ In the second stage, logical font-names are mapped to their physical
 implementation.  At this level, fonts are identified by a single name
 from an extensible, but preferably small set.
 
+See \secref{winfont} for a description of Windows specific font issues.
+
 
 \subsection{Physical fonts}
 

@@ -30,7 +30,7 @@ For HELP on prolog, please type help. or apropos(topic).
 \index{version}%
 SWI-Prolog's prompt is ``<n> ?-'' where <n> is the
 history-number of the command. The banner indicates the XPCE version.
-The current version is 4.8 and the patch-level is 16.
+The indicated version is 4.8 and the patch-level is 16.
 
 \section{Prolog ... and what?}
 
@@ -98,7 +98,7 @@ x-value of 10 and and y-value of 20. The dialog is assigned the label
     \footnote{The attributes of an object state are called slots. In
 	      other languages they may be called {\em instance
 	      variables} or fields.}
-The example defines the `label' slot. All the other slots are set to
+The example defines the `label'. All the other slots are set to
 the default value described in the class definition. 
 
 
@@ -227,8 +227,7 @@ methods have both obligatory and optional arguments.  If obligatory
 arguments are omitted XPCE will generate a warning.  If optional
 arguments are omitted XPCE will fill the argument with the constant
 @default.  The interpretation of @default is left to the
-implementation of the receiving method.  See also
-section~\ref{sec:online}.
+implementation of the receiving method.  See also \chapref{online}.
 
 \section{Named arguments}			\label{sec:namedargs}
 
@@ -381,13 +380,14 @@ a \class{dialog} is positioned below the browser.  A dialog is
 a window specialised in handling the layout of controllers, or
 \class{dialog_item} objects as XPCE calls them.
 
-Line 5 adds a \class{button} to the dialog.  `view' specifies the
-{\em name} of the button. XPCE defines a central mapping from
-`dialog_item <->name' to the label displayed.  The default mapping
-capitalises the name and replaces underscores with spaces.  The
-second argument of the button specifies the {\em action} associated
-with the button.  A \class{message} is a dormant send-operation.  When
-pressed, the button executes
+Line 5 adds a \class{button} to the dialog. `view' specifies the {\em
+name} of the button. XPCE defines a central mapping from `dialog_item
+<->name' to the label displayed. The default mapping capitalises the
+name and replaces underscores with spaces. In \secref{multi-lingual}, we
+describe how this can be used to realise multi-lingual applications. The
+second argument of the button specifies the {\em action} associated with
+the button. A \class{message} is a dormant send-operation. When pressed,
+the button executes
 
 \begin{code}
 send(@prolog, view, B?selection?key)
@@ -398,7 +398,7 @@ the {\em selector} of the message and an arity that equals the number of
 arguments to the message (1 here).
 
 The argument is a term with principal functor \class{?} and defines an
-`obtainer', which is a dormant get-operation. It is defined as a Prolog
+`obtainer', a dormant get-operation. It is defined as a Prolog
 infix operator of type {\tt yfx}, priority 500. This implies that
 \mbox{\tt B?selection?key} should be read as%
     \footnote{Initial versions of XPCE lacked the obtainer.  In this

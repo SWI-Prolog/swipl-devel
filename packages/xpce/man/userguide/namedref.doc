@@ -17,11 +17,11 @@ the Prolog system.  It is desirable that the global object changes
 if the source-code that declares it has been changed.
 \end{itemize}
 
-Various alternatives to creating global objects have been tried.  We
-will present some of the straight-forward approaches below and
-describe the (dis)advantages.  Section~\ref{sec:interface} describes
-the pce_global/2 directive to solve this problem. We will use a
-particular fill-pattern (image) as an example.
+Various alternatives to creating global objects have been tried. We will
+present some of the straight-forward approaches below and describe the
+(dis)advantages. \Secref{global} describes the pce_global/2 directive to
+solve this problem. We will use a particular fill-pattern (image) as an
+example.
 
 \subsection{Using directives}
 

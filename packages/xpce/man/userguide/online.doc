@@ -26,7 +26,7 @@ The online manual consists of a large set of tools to examine
 different aspects of the XPCE/Prolog environment and to navigate
 through the available material from different view-points.
 
-\begin{description}
+\begin{itemize}
 \newcommand{\manualtool}[2]{\item\makebox[\linewidth][l]{\em #1\hfill\sf #2}}
     \manualtool{The inheritance hierarchy}{Browsers/Class Hierarchy}
 \index{class,hierarchy}%
@@ -79,7 +79,7 @@ Note that the DemoBrowser allows to view the sources of the main file
 of a demo application immediately. Also consider using the
 VisualHierarchy and ClassBrowser to analyse the structure of the demo
 programs.
-\end{description}
+\end{itemize}
 
 
 \section{Notational conventions}
@@ -143,8 +143,9 @@ In this document we will summarise the most important types:
     \tick{int}
 XPCE integer datum.
     \tick{<low>..<high>, <low>.., ..<high>}
-Range of integers (including <low> and <high>).  The latter two constructs
-indicate one-side-unbound ranges.
+Range of integers (including <low> and <high>). The latter two
+constructs indicate one-side-unbound integer. Both <low> and <high> can
+also be floating point numbers, indication a `real-range'.
     \tick{any}
 Both integers and objects.  Function objects will be evaluated.
 See section~\ref{sec:function}.

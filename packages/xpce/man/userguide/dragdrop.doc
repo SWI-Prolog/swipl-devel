@@ -41,7 +41,7 @@ it.  {\em GetSource} is a function that is evaluated with @arg1 bound
 to the graphical when the gesture is activated.  An example could be:
 
 \begin{code}
-	drag_and_drop_gesture(left, get_source := @arg1?db_record)
+drag_and_drop_gesture(left, get_source := @arg1?db_record)
 \end{code}
     \sendmethod{graphical}{drop}{Object:<Type> [, Pos:point]}
 This method may be defined on any graphical object that is a drop-zone.

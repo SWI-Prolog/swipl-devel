@@ -13,9 +13,10 @@ TEX=	xpceusg.tex \
 	report.tex font.tex hyper.tex udc.tex dragdrop.tex \
 	dragdropdemo.tex control.tex whoiswho.tex namedref.tex \
 	ugraphics.tex code.tex resource.tex diaedit.tex dialog.tex \
-	wysiwyg.tex frame.tex error.tex summary.tex
+	wysiwyg.tex frame.tex error.tex application.tex images.tex \
+	mlingual.tex summary.tex
 
-LOGO=	figs/uva.ps figs/swi.ps
+LOGO=	figs/uva.eps figs/swi.eps
 
 all:	$(TEX) $(LOGO)
 	-$(CORRECTINDEX) xpceusg.idx
@@ -33,8 +34,8 @@ bib:	xpceusg.aux
 figs/uva.ps:	../../TeX/figs/uva.ps
 	cp ../../TeX/figs/uva.ps figs/uva.ps
 
-figs/swi.ps:	../../TeX/figs/swi.ps
-	cp ../../TeX/figs/swi.ps figs/swi.ps
+figs/swi.eps:	../../TeX/figs/swi.eps
+	cp ../../TeX/figs/swi.eps figs/swi.eps
 
 $(TEX):	$(DOCTOTEX)
 

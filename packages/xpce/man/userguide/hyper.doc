@@ -1,4 +1,4 @@
-\section{Using hyper links to relate object}	\label{sec:hyper}
+\section{Using hyper links to relate objects}	\label{sec:hyper}
 
 A \class{hyper} is a binary relation between two objects.  Hypers are,
 like \class{connection} objects, guarded automatically against
@@ -18,7 +18,11 @@ Hypers are an alternative for using slots.  Suppose we want to define an
 application consisting of a main frame and a number of {\em slave}
 frames to handle specific tasks in the application.  One approach would
 be to relate a sheet for the slave frames with the master and a pointer
-to the main window in each slave.  The skeleton for this is given below.
+to the main window in each slave.  The skeleton for this is given below.%
+    \footnote{This example was written before the introduction of
+	      \class{application}.  The principal is still valid, but
+	      this particular problem would now be solved using an
+	      \class{application} object.}
 
 \begin{pcecode}
 :- pce_begin_class(main, frame, "Applications main window").

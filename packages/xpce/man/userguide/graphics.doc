@@ -98,7 +98,7 @@ overview of the primitive graphicals.
 		  by class \class{line}. \\
 \hline
 \class{bitmap}	& Visualisation of an image.  Both monochrome and
-		  full-colour images are supported. \\
+		  full-colour images are supported. See \secref{images}. \\
 \hline
 \class{box}	& Rectangle.  Can be rounded and filled. \\
 \hline

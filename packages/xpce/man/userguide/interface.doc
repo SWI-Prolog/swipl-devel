@@ -181,6 +181,34 @@ make_select_recogniser(R) :-
 
 See section~\ref{sec:pceprolog} for more examples.
 
+\predicate{pce_open}{3}{+Object, +Mode, -Stream}
+\index{stream,open Object as}%
+\index{read,text from object}%
+\index{write,text to object}%
+\index{open,object as stream}%
+The predicate pce_open/3 opens an XPCE object as a Prolog stream.
+Using this stream, the normal Prolog I/O predicates for reading
+from, or writing to the object can be used.
+	
+This predicate works on any object that implements the *as_file methods.
+Currently this is only implemented for class text_buffer. See
+`text_buffer <-read_as_file', `text_buffer <-size_as_file', `text_buffer
+->truncate_as_file' and `text_buffer ->write_as_file'.
+	
+The stream handle is discarded using Prolog's close/1 predicate. For
+example, to write to a view, one could use:
+	
+\begin{code}
+...
+pce_open(View, append, Stream),
+format(Stream, 'Hello World~n', []),
+close(View),
+...
+\end{code}
+
+See also `text_buffer ->format'. Reading from a stream is used by the
+PceEmacs editor to verify the syntax of an entered clause.
+
 \predicate{pce_catch_error}{2}{+ErrorIds, +Goal}
 This predicates allows the application to handle errors occuring while
 \arg{Goal} is called.  \arg{ErrorIds} is either an atom representing
@@ -192,6 +220,7 @@ handling mechanism.  See section~\ref{sec:errors}.
 \end{description}
 
 \subsection{Portable declaration of required library predicates}
+\label{sec:require}
 
 Different Prolog implementations to which XPCE has been connected
 provide a different library structure and offers different means for
@@ -322,10 +351,10 @@ The predicates in this section provide shorthands for common
 commands for debugging PCE programs.
 
 \begin{description}
-    \noargpredicate{tracepce}
+    \predicate{tracepce}{0}{}
 Start tracing PCE's virtual machine instructions.  Equivalent to
 send(class(vmi), trace, @on).
-    \noargpredicate{notracepce}
+    \predicate{notracepce}{0}{}
 Switch the interactive tracer off.  Equivalent to send(@pce, trace, never).
     \predicate{tracepce}{1}{+Class {\tt \string<-|->|-} Selector}
 Find send- (\verb!->!), get- (\verb!<-!) method or variable
@@ -340,7 +369,7 @@ In SWI-Prolog this is not necessary.  To be able to trace get-methods
 with this predicate (\verb!<-!) must be declared as an infix operator.
     \predicate{notracepce}{1}{+Class {\tt \string<-|->|-} Selector}
 Disables trace-point set with tracepce/1.
-    \noargpredicate{checkpce}
+    \predicate{checkpce}{0}{}
 Collect all global (named-) objects and run `object ->_check' on them.
 This performs various consistency checks on the objects and prints
 diagnostic messages if something is wrong.  `object ->_check' checks
@@ -395,10 +424,12 @@ this predicate is:
 \subsection{Miscellaneous library predicates}		\label{sec:miscpreds}
 
 \begin{description}
-    \predicate{manpce}{[0-1]}{[+ClassName]} Starts the online manual
-tools. With an \arg{ClassName} argument, the ``Class Browser'' tool is
-started on the specified class. \predicate{postscript}{2}{+Reference,
-+File} Generate PostScript from the given object. Defined as:
+    \predicate*{manpce}{0}{}
+    \predicate{manpce}{1}{+ClassName}
+Starts the online manual tools. With an \arg{ClassName} argument, the
+``Class Browser'' tool is started on the specified class.
+    \predicate{postscript}{2}{+Reference, +File}
+Generate PostScript from the given object. Defined as:
 
 \begin{code}
 postscript(Obj, File) :-

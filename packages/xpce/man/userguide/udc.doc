@@ -131,16 +131,16 @@ The type may be postfixed with \mbox{{\tt := \em Value}},%
 	      current implementation.}
 in which case the instance-allocation will fill the slot with the given
 value. See also section~\ref{sec:omsmethods}. {\em Access} defines which
-implicit {\em universal} will be associated with the variable.  A universal
-method is defined to be a method that reads or writes the slot, without
-performing any additional actions.  See also section~\ref{sec:slots}.
+implicit {\em universal} methods will be associated with the variable. A
+universal method is defined to be a method that reads or writes the
+slot, without performing any additional actions. See also
+\secref{slots}.
     \predicate{delegate_to}{1}{VariableName}%
 Declares the variable named {\em VariableName} to be a candidate for
 delegation.  See section~\ref{sec:delegation}.
     \predicate{resource}{[3,4]}{Name, Type, Default, [Summary]}%
 Declare a resource for the class.  Resources are like class-variables
-that may be set from the resource file.%
-    \footnote{Or its Win32 equivalent, See README.WIN32}
+that may be set from the resource file.
 The {\em Default} entry describes the default value if the resource
 is not defined in any of the standard resource locations.  It is
 a textual description (an atom) of the value in XPCE's resource
@@ -166,7 +166,6 @@ the above skeleton in more detail. The notation is an incomplete BNF
 notation.
 
 \begin{table}
-\newcommand{\isa}{& ::= &}
 \begin{tabular}{|lrl|p{3in}|}
 \hline
 <Meta>		\isa <Name>	&    Name of the class this class
