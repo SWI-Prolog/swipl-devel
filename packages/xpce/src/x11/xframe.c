@@ -128,6 +128,11 @@ ws_create_frame(FrameObj fr)
   { XtSetArg(args[n], XtNiconPixmap,
 	     getXrefObject(fr->icon_image, fr->display));
     n++;
+    if ( notNil(fr->icon_image->mask) )
+    { XtSetArg(args[n], XtNiconMask,
+	       getXrefObject(fr->icon_image->mask, fr->display));
+      n++;
+    }
   }
   if ( notNil(fr->icon_position) )
   { XtSetArg(args[n], XtNiconX, valInt(fr->icon_position->x)); n++;
@@ -724,14 +729,22 @@ ws_set_icon_frame(FrameObj fr)
 { Widget w = widgetFrame(fr);
 
   if ( w )
-  { Arg args[2];
+  { Arg args[3];
+    int n=0;
 
-    XtSetArg(args[0], XtNiconPixmap,
+    XtSetArg(args[n], XtNiconPixmap,
 	     getXrefObject(fr->icon_image, fr->display));
-    XtSetArg(args[1], XtNiconName,
+    n++;
+    if ( notNil(fr->icon_image->mask) )
+    { XtSetArg(args[n], XtNiconMask,
+	       getXrefObject(fr->icon_image->mask, fr->display));
+      n++;
+    }
+    XtSetArg(args[n], XtNiconName,
 	     strName(getIconLabelFrame(fr)));
+    n++;
 
-    XtSetValues(w, args, 2);
+    XtSetValues(w, args, n);
   }
 }
 

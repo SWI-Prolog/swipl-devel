@@ -240,9 +240,33 @@ ws_load_image_file(Image image)
 
 Image
 ws_std_xpm_image(Name name, Image *global, char **data)
-{ assert(0);				/* must be implemented later */
+{
+#ifdef HAVE_LIBXPM
+  extern XImage *attachXpmImageImage(Image image, XpmImage *xpm);
 
+  Image image = globalObject(name, ClassImage, name, ZERO, ZERO, 0);
+  XpmImage img;
+  XpmInfo info;
+  XImage *i;
+
+  assign(image, display, CurrentDisplay(NIL));
+  XpmCreateXpmImageFromData(data, &img, &info);
+  if ( (i=attachXpmImageImage(image, &img)) )
+  { assign(image, depth, toInt(i->depth));
+    assign(image, kind, image->depth == ONE ? NAME_bitmap : NAME_pixmap);
+    setXImageImage(image, i);
+    setSize(image->size, toInt(i->width), toInt(i->height));
+  }
+  XpmFreeXpmImage(&img);
+  assign(image, access, NAME_read);
+  if ( global )
+    *global = image;
+
+  return image;
+#else
+  assert(0);
   fail;
+#endif
 }
 
 

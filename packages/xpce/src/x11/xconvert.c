@@ -389,6 +389,28 @@ setXpmAttributesImage(Image image, XImage *shape, XpmAttributes *atts)
 }
 
 
+XImage *
+attachXpmImageImage(Image image, XpmImage *xpm)
+{ int as = XpmAttributesSize();
+  XpmAttributes *atts = (XpmAttributes *)alloca(as);
+  XImage *i = NULL;
+  XImage *shape = NULL;
+  Display *disp = defaultXDisplay();
+
+  memset(atts, 0, as);
+  atts->exactColors = FALSE;
+  atts->closeness   = (1<<16)-1;	/* always continue */
+  atts->valuemask   = XpmExactColors|XpmCloseness;
+
+  if ( XpmCreateImageFromXpmImage(disp, xpm, &i,
+				  &shape, atts) != XpmSuccess )
+    return NULL;
+  setXpmAttributesImage(image, shape, atts);
+
+  return i;
+}
+
+
 static XImage *
 readXpmFile(Image image, IOSTREAM *fd)
 { int offset = Stell(fd);
@@ -448,21 +470,7 @@ readGIFFile(Image image, IOSTREAM *fd)
 
   switch( XpmReadGIF(fd, &img) )
   { case GIF_OK:
-    { int as = XpmAttributesSize();
-      XpmAttributes *atts = (XpmAttributes *)alloca(as);
-      XImage *i = NULL;
-      XImage *shape = NULL;
-      Display *disp = defaultXDisplay();
-
-      memset(atts, 0, as);
-      atts->exactColors = FALSE;
-      atts->closeness   = (1<<16)-1;	/* always continue */
-      atts->valuemask   = XpmExactColors|XpmCloseness;
-
-      if ( XpmCreateImageFromXpmImage(disp, &img, &i,
-				      &shape, atts) != XpmSuccess )
-	return NULL;
-      setXpmAttributesImage(image, shape, atts);
+    { XImage *i = attachXpmImageImage(image, &img);
       XpmFreeXpmImage(&img);
 
       return i;
@@ -483,21 +491,7 @@ readJPEGFile(Image image, IOSTREAM *fd)
 
   switch( readJPEGtoXpmImage(fd, &img) )
   { case GIF_OK:
-    { int as = XpmAttributesSize();
-      XpmAttributes *atts = (XpmAttributes *)alloca(as);
-      XImage *i = NULL;
-      XImage *shape = NULL;
-      Display *disp = defaultXDisplay();
-
-      memset(atts, 0, as);
-      atts->exactColors = FALSE;
-      atts->closeness   = (1<<16)-1;	/* always continue */
-      atts->valuemask   = XpmExactColors|XpmCloseness;
-
-      if ( XpmCreateImageFromXpmImage(disp, &img, &i,
-				      &shape, atts) != XpmSuccess )
-	return NULL;
-
+    { XImage *i = attachXpmImageImage(image, &img);
       XpmFreeXpmImage(&img);
 
       return i;
