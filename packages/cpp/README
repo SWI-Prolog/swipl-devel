@@ -15,8 +15,8 @@ COPYING:	Confidential material.  Please do not (yet) redistribute!
 Documentation:	doc/pl2cpp.pdf
 
 Requires:	* SWI-Prolog 3.3 or later
-		* gcc 2.8.x or egcs 1.1 or later:
-		  gcc with exception-handling
+		* gcc 2.8.x or egcs 1.1 or later: gcc with exception-handling
+		  or MSVC
 		* Unix with support for shared objects in SWI-Prolog:
 		  Linux, Solaris, Irix and many more.
 
@@ -25,3 +25,10 @@ Demo:		make (must be GNU-make) produces
 		* embedded program likes.  See likes.cpp
 		* test.so, load using test.pl holding the examples from
 		  the manual and some more.
+
+Note:		I'm an amateur C++ programmer.  Volker Wysk <post@volker-wysk.de>
+		has compiled a new C++ interface and announced it for
+		first public testing on January 14, 2002. This interface
+		may be downloaded from.
+
+		http://www.volker-wysk.de/swiprolog-c++/index.html
