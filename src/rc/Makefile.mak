@@ -16,7 +16,7 @@ $(PLRC):	rc.lib rc.obj
 		$(LD) /subsystem:console /out:$@ rc.obj rc.lib $(LIBS)
 
 rc.lib:		$(LIBOBJ)
-		del $@
+		if exist $@ del $@
 		$(AR) /out:$@ /nologo $(LIBOBJ)
 
 ################################################################

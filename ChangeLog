@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORT: Adapt Windows makefile suite for use with Windows 2000 and
+    spaces in the destination path
+
   * FIXED: deadlock when loading a file with a module-name conflict.
 
   * FIXED: Removed size-limit on clauses of 256Kbytes compiled code.

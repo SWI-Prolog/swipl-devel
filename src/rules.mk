@@ -10,21 +10,22 @@
 # copy the result to wherever you want.
 
 # prefix=C:\Program Files
-prefix=E:\jan\installed
+HOME=$(USERPROFILE)\My Documents
+prefix=$(USERPROFILE)\installed
 PLBASE=$(prefix)\pl
 BINDIR=$(PLBASE)\bin
 LIBDIR=$(PLBASE)\lib
 INCDIR=$(PLBASE)\include
 PLCUSTOM=$(PLBASE)\custom
 # We get pthreadVC.dll from here
-WINDIR="C:\wtsrv\system32"
+WINDIR="C:\winnt\system32"
 
 # Setup the environment.  Use this to additional libraries and include
 # files to the path.  In particular provide access to the jpeg and xpm
 # libraries required to build XPCE
 
-INCLUDE=$(PLHOME)\include;$(INCLUDE);E:\jan\include
-LIB=$(LIB);E:\jan\lib
+INCLUDE=$(PLHOME)\include;$(INCLUDE);$(HOME)\include
+LIB=$(LIB);$(HOME)\lib
 
 # Configuration selection
 

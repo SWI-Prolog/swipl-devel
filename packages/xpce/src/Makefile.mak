@@ -338,7 +338,7 @@ install:	$(ITRG)
 		
 html-install::
 
-$(BINDIR):
+"$(BINDIR)":
 		mkdir "$@"
 
 idirs::
@@ -358,20 +358,20 @@ ixpce:		xpce.exe
 ilib::
 		@for %d in ($(IDIRS)) do \
 		  @echo Installing files in %d ... & \
-		  $(INSTALL) ..\%d\* $(IBASE)\%d
+		  $(INSTALL) ..\%d\* "$(IBASE)\%d"
 
 iindex::
-		chdir $(IBASE)\prolog\lib & \
-		  $(PLBASE)\bin\plcon.exe \
+		chdir "$(IBASE)\prolog\lib" & \
+		  "$(PLBASE)\bin\plcon.exe" \
 			-f none -F none \
 			-g make_library_index('.') \
 			-t halt
 
 irc::
-		$(INSTALL) ..\pl\src\plrc $(PLBASE)\plwin.rc
+		$(INSTALL) ..\pl\src\plrc "$(PLBASE)\plwin.rc"
 
 ireadme::
-		$(INSTALL) -C .. $(README) $(IBASE)
+		$(INSTALL) -C .. $(README) "$(IBASE)"
 		
 ################################################################
 # Manual index
@@ -380,8 +380,8 @@ ireadme::
 imanidx:	$(MANINDEX)
 		
 $(MANINDEX):	..\man\reference\*.doc ..\man\reference\class\*.doc
-		chdir $(IBASE)\man\reference & \
-		$(PLBASE)\bin\plwin.exe \
+		chdir "$(IBASE)\man\reference" & \
+		"$(PLBASE)\bin\plwin.exe" \
 		  -g "[library('man/man_index')],pce_make_manual_index('index.obj')" \
 		  -t halt
 

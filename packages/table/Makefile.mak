@@ -26,19 +26,19 @@ install:	idll ilib
 !ENDIF
 
 idll::
-		copy $(PKGDLL).dll $(BINDIR)
+		copy $(PKGDLL).dll "$(BINDIR)"
 ilib::
-		copy table.pl $(PLBASE)\library
-		copy table_util.pl $(PLBASE)\library
+		copy table.pl "$(PLBASE)\library"
+		copy table_util.pl "$(PLBASE)\library"
 		$(MAKEINDEX)
 
 html-install::
 		copy table.html $(PKGDOC)
 
 uninstall::
-		del $(PLBASE)\bin\$(PKGDLL).dll
-		del $(PLBASE)\library\table.pl
-		del $(PLBASE)\library\table_util.pl
+		del "$(PLBASE)\bin\$(PKGDLL).dll"
+		del "$(PLBASE)\library\table.pl"
+		del "$(PLBASE)\library\table_util.pl"
 		$(MAKEINDEX)
 
 clean::

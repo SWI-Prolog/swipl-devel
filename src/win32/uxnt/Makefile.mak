@@ -14,7 +14,7 @@ HDR=	$(PLHOME)\include\uxnt.h \
 all:	$(OUT) $(HDR)
 
 $(OUT):	$(OBJ)
-	del $@
+	if exist del $@
 	$(AR) /nologo /out:$@ $(OBJ)
 
 $(PLHOME)\include\uxnt.h: uxnt.h

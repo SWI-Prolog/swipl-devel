@@ -35,27 +35,27 @@ install:	idtd idll ilib
 !ENDIF
 
 idll::
-		copy $(PKGDLL).dll $(PLBASE)\bin
+		copy $(PKGDLL).dll "$(PLBASE)\bin"
 ilib::
-		copy sgml.pl $(PLBASE)\library
+		copy sgml.pl "$(PLBASE)\library"
 		$(MAKEINDEX)
 
 idtd:		$(DTDDIR)
 		@echo "Installing DTD files in $(DTDDIR)"
 		@for %f in ($(DTDFILES)) do \
-		   @copy DTD\%f $(DTDDIR)
+		   @copy DTD\%f "$(DTDDIR)"
 		@echo "done"
 
 $(DTDDIR):
 		mkdir "$@"
 
 uninstall::
-		del $(PLBASE)\bin\$(PKGDLL).dll
-		del $(PLBASE)\library\sgml.pl
+		del "$(PLBASE)\bin\$(PKGDLL).dll"
+		del "$(PLBASE)\library\sgml.pl"
 		$(MAKEINDEX)
 
 html-install::
-		copy doc\sgml2pl.html $(PKGDOC)
+		copy doc\sgml2pl.html "$(PKGDOC)"
 
 clean::
 		DEL *.obj *~

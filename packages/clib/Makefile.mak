@@ -40,30 +40,30 @@ install:	idll ilib
 !ENDIF
 
 idll::
-		copy socket.dll $(BINDIR)
-		copy cgi.dll $(BINDIR)
-		copy memfile.dll $(BINDIR)
-		copy mime.dll $(BINDIR)
-		copy time.dll $(BINDIR)
+		copy socket.dll "$(BINDIR)"
+		copy cgi.dll "$(BINDIR)"
+		copy memfile.dll "$(BINDIR)"
+		copy mime.dll "$(BINDIR)"
+		copy time.dll "$(BINDIR)"
 ilib::
-		copy socket.pl $(PLBASE)\library
-		copy cgi.pl $(PLBASE)\library
-		copy memfile.pl $(PLBASE)\library
-		copy mime.pl $(PLBASE)\library
-		copy time.pl $(PLBASE)\library
+		copy socket.pl "$(PLBASE)\library"
+		copy cgi.pl "$(PLBASE)\library"
+		copy memfile.pl "$(PLBASE)\library"
+		copy mime.pl "$(PLBASE)\library"
+		copy time.pl "$(PLBASE)\library"
 		$(MAKEINDEX)
 
 uninstall::
-		del $(BINDIR)\socket.dll
-		del $(BINDIR)\cgi.dll
-		del $(BINDIR)\memfile.dll
-		del $(BINDIR)\mime.dll
-		del $(BINDIR)\time.dll
-		del $(PLBASE)\library\socket.pl
-		del $(PLBASE)\library\cgi.pl
-		del $(PLBASE)\library\memfile.pl
-		del $(PLBASE)\library\mime.pl
-		del $(PLBASE)\library\time.pl
+		del "$(BINDIR)\socket.dll"
+		del "$(BINDIR)\cgi.dll"
+		del "$(BINDIR)\memfile.dll"
+		del "$(BINDIR)\mime.dll"
+		del "$(BINDIR)\time.dll"
+		del "$(PLBASE)\library\socket.pl"
+		del "$(PLBASE)\library\cgi.pl"
+		del "$(PLBASE)\library\memfile.pl"
+		del "$(PLBASE)\library\mime.pl"
+		del "$(PLBASE)\library\time.pl"
 		$(MAKEINDEX)
 
 html-install::

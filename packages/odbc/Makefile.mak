@@ -26,17 +26,17 @@ install:	all idll ilib
 !ENDIF
 
 idll::
-		copy $(PKGDLL).dll $(BINDIR)
+		copy $(PKGDLL).dll "$(BINDIR)"
 ilib::
-		copy odbc.pl $(PLBASE)\library
+		copy odbc.pl "$(PLBASE)\library"
 		$(MAKEINDEX)
 
 html-install::
-		copy odbc.html $(PKGDOC)
+		copy odbc.html "$(PKGDOC)"
 
 uninstall::
-		del $(PLBASE)\bin\$(PKGDLL).dll
-		del $(PLBASE)\library\odbc.pl
+		del "$(PLBASE)\bin\$(PKGDLL).dll"
+		del "$(PLBASE)\library\odbc.pl"
 		$(MAKEINDEX)
 
 clean::

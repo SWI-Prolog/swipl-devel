@@ -211,7 +211,7 @@ pl_abort(abort_type type)
        (trueFeature(EX_ABORT_FEATURE) && type == ABORT_NORMAL) )
     return pl_throw_abort();
 
-  if ( GD->critical > 0 )		/* abort in critical region: delay */
+  if ( LD->critical > 0 )		/* abort in critical region: delay */
   { pl_notrace();
     LD->aborted = TRUE;
     succeed;

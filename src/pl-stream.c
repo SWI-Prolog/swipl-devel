@@ -1064,7 +1064,7 @@ Svdprintf(const char *fm, va_list args)
 
   SLOCK(s);
   rval = Svfprintf(s, fm, args);
-#ifdef WIN32
+#if defined(_DEBUG) && defined(WIN32)
   Sputc('\0', s);
   s->bufp--;				/* `Unput' */
   OutputDebugString(s->buffer);

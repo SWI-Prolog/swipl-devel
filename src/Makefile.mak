@@ -214,25 +214,25 @@ iprog::
 
 install-libs:	idirs iinclude iboot ilib
 		$(INSTALL_DATA) $(STARTUPPATH) "$(PLBASE)\$(BOOTFILE)"
-		$(INSTALL_DATA) swipl $(PLBASE)
+		$(INSTALL_DATA) swipl "$(PLBASE)\swipl"
 		chdir "$(PLBASE)\library" & \
 		   $(PLCON) \
 			-f none \
 			-g make_library_index('.') \
 			-t halt
 
-IDIRS=		$(BINDIR) $(LIBDIR) $(PLBASE)\include \
-		$(PLBASE)\boot $(PLBASE)\library $(PKGDOC) \
-		$(PLCUSTOM) $(PLBASE)\demo
+IDIRS=		"$(BINDIR)" "$(LIBDIR)" "$(PLBASE)\include" \
+		"$(PLBASE)\boot" "$(PLBASE)\library" "$(PKGDOC)" \
+		"$(PLCUSTOM)" "$(PLBASE)\demo"
 
 $(IDIRS):
-		if not exist "$@/$(NULL)" $(MKDIR) "$@"
+		if not exist $@/$(NULL) $(MKDIR) $@
 
 idirs:		$(IDIRS)
 
 iboot:		
 		chdir $(PLHOME)\boot & copy *.pl "$(PLBASE)\boot"
-		copy win32\misc\mkboot.bat $(PLBASE)\bin\mkboot.bat
+		copy win32\misc\mkboot.bat "$(PLBASE)\bin\mkboot.bat"
 
 ilib:		
 		chdir $(PLHOME)\library & \
