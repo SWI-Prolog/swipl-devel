@@ -2910,7 +2910,7 @@ rlc_from_queue(RlcQueue q)
 
 
 		 /*******************************
-		 *	     UNIX I/O		*
+		 *	   BUFFERED I/O		*
 		 *******************************/
 
 int
@@ -2933,7 +2933,9 @@ rlc_read(char *buf, int count)
 
   if ( given >= len )
   { if ( line )
-      rlc_free(line);
+    { rlc_free(line);
+      line = NULL;
+    }
 
     if ( d->imode != IMODE_COOKED )
     { d->imode = IMODE_COOKED;
