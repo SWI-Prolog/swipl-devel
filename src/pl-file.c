@@ -2757,7 +2757,8 @@ peek(term_t stream, term_t chr, int how)
 
   pos = s->posbuf;
   c = Sgetc(s);
-  Sungetc(c, s);
+  if ( c != EOF )
+    Sungetc(c, s);
   s->posbuf = pos;
   if ( Sferror(s) )
     return streamStatus(s);

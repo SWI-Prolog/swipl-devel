@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: peek_code/2 and friends on end-of-file.  Steve Moyle.
+
+
 VERSION 5.2.10 (Oct 27, 2003)
 =============================
 	
