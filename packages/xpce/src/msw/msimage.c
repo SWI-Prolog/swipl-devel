@@ -440,10 +440,6 @@ readXpmImage(IOSTREAM *fd, Image image, XpmImage *img, XpmInfo *info)
 { int rval;
   int size;
 
-#ifdef HAVE_LIBJPEG
-  if ( (rval=readJPEGtoXpmImage(fd, img, image)) == XpmSuccess )
-    return XpmSuccess;
-#endif
 #ifdef O_GIF
   if ( (rval=XpmReadGIF(fd, img)) == XpmSuccess )
     return XpmSuccess;
