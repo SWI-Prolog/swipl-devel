@@ -778,9 +778,10 @@ specified_item(pce_arg, new(X, T), TB,
 specified_item(pce_arg, @Ref, TB, Pos) :- !,
 	colourise_term_arg(@Ref, TB, Pos).
 specified_item(pce_arg, Term, TB, Pos) :-
-	compound(Term), !,
+	compound(Term),
+	Term \= [_|_], !,
 	specified_item(pce_new, Term, TB, Pos).
-specified_item(pce_arg, Term, TB, Pos) :-
+specified_item(pce_arg, Term, TB, Pos) :- !,
 	colourise_term_arg(Term, TB, Pos).
 					% List of XPCE arguments
 specified_item(pce_arg_list, List, TB, list_position(_,_,Elms,Tail)) :- !,
