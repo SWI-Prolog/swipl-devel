@@ -536,9 +536,9 @@ www_decode([C|T]) -->
 	[ D1,D2 ], !,
 	{ code_type(D1, xdigit(Dv1)),
 	  code_type(D2, xdigit(Dv2)),
-	  C is ((Dv1)<<4) + Dv2
+	  C0 is ((Dv1)<<4) + Dv2
 	},
-	(   { C == 13
+	(   { C0 == 13
 	    },
 	    "%0",
 	    [D3],
@@ -546,7 +546,8 @@ www_decode([C|T]) -->
 	    }
 	->  { C = 10
 	    }
-	;   []
+	;   { C = C0
+	    }
 	),
 	www_decode(T).
 www_decode([C|T]) -->
