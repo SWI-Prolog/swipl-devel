@@ -387,10 +387,29 @@ must be handled as a unit.
 
 Where the second case is probably obvious, the first case is less so.
 The storage layer may require reindexing after adding or deleting
-triples.  Such reindexing operatations however are not possible while
+triples. Such reindexing operatations however are not possible while
 there are active read operations in other threads or from choicepoints
 that can be in the same thread. For this reason we added
-rdf_transaction/1.
+rdf_transaction/1. Note that, like the predicates from
+\secref{modpreds}, rdf_transaction/1 raises a permission error exception
+if the calling thread has active choicepoints on the database. The
+problem is illustrated below.  The rdf/3 call leaves a choicepoint and
+as the read lock originates from the calling thread itself the system
+will deadlock if it would not generate an exception.
+
+\begin{code}
+1 ?- rdf_assert(a,b,c).
+ 
+Yes
+2 ?- rdf_assert(a,b,d).
+ 
+Yes
+3 ?- rdf(a,b,X), rdf_transaction(rdf_assert(a,b,e)).
+ERROR: No permission to write rdf_db `default' (Operation would deadlock)
+^  Exception: (8) rdf_db:rdf_transaction(rdf_assert(a, b, e)) ? no debug
+4 ?-
+\end{code}
+
 
 \begin{description}
     \predicate{rdf_transaction}{1}{:Goal}

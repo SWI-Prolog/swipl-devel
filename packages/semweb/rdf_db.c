@@ -504,7 +504,7 @@ WRLOCK(rdf_db *db, int allow_readers)
   }
 
   if ( db->read_by_thread[self] > 0 )
-  { DEBUG(0, Sdprintf("SELF(%d) has %d readers\n",
+  { DEBUG(1, Sdprintf("SELF(%d) has %d readers\n",
 		      self, db->read_by_thread[self]));
     pthread_mutex_unlock(&db->mutex);
     return permission_error("write", "rdf_db", "default",
