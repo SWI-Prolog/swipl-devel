@@ -81,8 +81,9 @@ font(F, E, S, W,    Fix,  Size,  Font) :-
 font(_,	_, _, _,    @on,  _, fixed).
 font(_,	_, _, bold, @off, S, boldhuge)		:- S >= 6.
 font(_,	_, _, bold, @off, S, boldlarge)		:- S >= 4.
-font(_,	_, _, bold, @off, _, bold).
 font(_,	_, i, _,    _,	  _, italic).
+font(_,	_, _, bold, @on,  _, boldtt).
+font(_,	_, _, bold, @off, _, bold).
 font(_,	_, r, _,    _,	  S, small) 		:- S =< 2.
 font(_,	_, r, _,    _,	  4, large).
 font(_,	_, r, _,    _,	  5, large).

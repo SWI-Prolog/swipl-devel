@@ -123,7 +123,6 @@ url(PB, URL:name) :<-
 
 show(PB, Content:prolog, Mode:mode=[doc_mode]) :->
 	"Render list of commands in this box"::
-%	send(PB, clear),		/* without we can build gradually */
 	(   Mode == @default
 	->  new(M, doc_mode)
 	;   M = Mode
@@ -132,6 +131,7 @@ show(PB, Content:prolog, Mode:mode=[doc_mode]) :->
 	->  emit([Content], PB, M)
 	;   emit(Content, PB, M)
 	).
+%	send(PB, compute).
 
 :- pce_end_class.
 
@@ -230,7 +230,8 @@ make_item(BL, Item:prolog, Mode:mode, PB:parbox) :<-
 make_item(DL, Item:prolog, Mode:mode, PB:parbox) :<-
 	"Create a new item"::
 	get(Mode, alignment, Align),
-	send(DL, append, @default, new(PB, pbox(0, Align))),
+	get(DL, item_width, IW),
+	send(DL, append, @default, new(PB, pbox(IW, Align))),
 	get(DL, left_margin, LM),
 	send(PB, append, hbox(-LM)),
 	get(Mode, clone, Clone),
@@ -254,6 +255,7 @@ variable(vfont,		vfont,	  get,	"Virtual font").
 variable(space,		hbox,	  get,	"Space in current font").
 variable(base_url,	name:='', both,	"Reference URL").
 variable(ignore_blanks,	[name],	  both,	"How to handle blanks").
+variable(space_mode,    {preserve,canonical}, both, "How to handle blanks").
 variable(link_colour,	colour,	  both, "Colour for hyperlinks").
 
 initialise(M) :->
@@ -265,7 +267,8 @@ initialise(M) :->
 	send(M, set_font, family, helvetica),
 	send(M, slot, parsep, hbox(0,8)), 	% vertical skip
 	send(M, slot, parindent, hbox(0,0)),	% horizontal skip
-	send(M, alignment, justify).
+	send(M, alignment, justify),
+	send(M, space_mode, canonical).
 
 set_font(M, Att:name, Val:any) :->
 	"Set a font attribute"::

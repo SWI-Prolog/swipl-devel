@@ -34,16 +34,18 @@ initialise(H, XML:prolog) :->
 	send_super(H, initialise),
 	send(H, xml, XML).
 
-xml(H, XML:prolog) :->
+xml(H, XML:prolog) :->			% list of elements
 	"Visualise an XML structure"::
 	content(XML, Content),
 	send(H, slot, xml, Content),
 	get(H, icon, Content, @on, Icons),
-	send(H, root, xml_node('Document', [], Icons, @on)),
+	get(H, caption, Content, Caption),
+	send(H, root, xml_node(Caption, [], Icons, @on)),
 	send(H, expand_root).
 
 content(document(_Type, [Content]), Content).
 content([Content], Content).
+content(element(A,B,C), element(A,B,C)).
 
 expand_node(H, Node:xml_node) :->
 	"Expand clicked node"::
@@ -51,7 +53,8 @@ expand_node(H, Node:xml_node) :->
 	get(Node, path, Loc0),
 	append(Loc0, [Index], Loc),
 	(   nth1(Index, Content, Esub),
-	    Esub = element(Name, _, SubContent),
+	    get(H, caption, Esub, Name),
+	    arg(3, Esub, SubContent),
 	    (	memberchk(element(_,_,_), SubContent)
 	    ->	get(H, icon, Esub, @on, Icons),
 		send(H, son, Node, xml_node(Name, Loc, Icons, @on))
@@ -61,6 +64,12 @@ expand_node(H, Node:xml_node) :->
 	    fail
 	;   true
 	).
+
+:- pce_group(refine).
+
+caption(_, XML:prolog, Title:name) :<-
+	"Get title for a node"::
+	XML = element(Title, _, _).
 
 icon(_H, _XML:prolog, _HasSub:bool, Tuple:tuple) :<-
 	"Return open/close icon"::

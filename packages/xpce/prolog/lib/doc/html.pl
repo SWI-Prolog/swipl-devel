@@ -321,30 +321,12 @@ element(col, Attr, _) -->		% <COL>
 %	Preformatted output
 
 element(pre, _, Content) -->		% <PRE>
-	{ preformatted_atoms(Content, Pre)
-	},
 	[ @br,
-	  \group([ \setfont(fixed, @on) | Pre]),
+	  \group([ \setfont(fixed, @on),
+		   \pre(Content)
+		 ]),
 	  @br
 	].
-
-preformatted_atoms([], []).
-preformatted_atoms([H|T0], Pre) :-
-	atomic(H), !,
-	pre_lines(H, L),
-	append(L, T, Pre),
-	preformatted_atoms(T0, T).
-preformatted_atoms([H|T0], [H|T]) :-
-	preformatted_atoms(T0, T).
-
-pre_lines(H, [\preformatted(A), @br|T]) :-
-	sub_atom(H, Before, Len, _, '\n'), !,
-	AfterChars is Before+Len,
-	sub_atom(H, 0, Before, _, A),
-	sub_atom(H, AfterChars, _, 0, H1),
-	pre_lines(H1, T).
-pre_lines(H, [\preformatted(H)]).
-
 
 %	Document structure
 

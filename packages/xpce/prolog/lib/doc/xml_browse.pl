@@ -12,6 +12,9 @@
 :- use_module(library('doc/load')).
 :- use_module(library('doc/xml_hierarchy')).
 
+:- multifile
+	doc:caption/2.
+
 :- pce_begin_class(xml_browser, frame,
 		   "Browse XML document").
 
@@ -33,6 +36,10 @@ show_xml(B, Tokens:prolog) :->
 	
 :- pce_end_class.
 
+		 /*******************************
+		 *	      HIERARCHY		*
+		 *******************************/
+
 :- pce_begin_class(xml_browse_hierarchy, xml_hierarchy,
 		   "Browse an XML hierarchy").
 
@@ -40,5 +47,16 @@ select_node(H, Node:xml_node) :->
 	"Show content of selected node"::
 	get(Node, xml, Tokens),
 	send(H?frame, show_xml, Tokens).
+
+caption(H, XML:prolog, Caption:name) :<-
+	"Provide caption"::
+	(   doc:caption(XML, Caption)
+	->  true
+	;   get_super(H, caption, XML, Caption)
+	->  true
+	;   XML=[_|_]
+	->  Caption = '<Elements>'
+	;   Caption = '??'
+	).
 
 :- pce_end_class.
