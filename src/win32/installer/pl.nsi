@@ -118,8 +118,8 @@ Section "Base system (required)"
 
   ; Write uninstaller
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\SWI-Prolog" "DisplayName" "SWI-Prolog (remove only)"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\SWI-Prolog" "UninstallString" '"$INSTDIR\bin\uninstall.exe"'
-  WriteUninstaller "bin\uninstall.exe"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\SWI-Prolog" "UninstallString" '"$INSTDIR\uninstall.exe"'
+  WriteUninstaller "uninstall.exe"
 SectionEnd
 
 Section "Documentation and Help-system"
@@ -286,13 +286,14 @@ Section "Start Menu shortcuts"
   !insertmacro Create_Internet_Shorcut "Support SWI-Prolog development" \
 		 "http://www.swi-prolog.org/donate.html"
   CreateShortCut "$SMPROGRAMS\${GRP}\Uninstall.lnk" \
-		 "$INSTDIR\bin\uninstall.exe" \
+		 "$INSTDIR\uninstall.exe" \
 		 "" \
-		 "$INSTDIR\bin\uninstall.exe" \
+		 "$INSTDIR\uninstall.exe" \
 		 0
 
-  WriteRegStr HKLM SOFTWARE\SWI\Prolog group ${GRP}
-  WriteRegStr HKLM SOFTWARE\SWI\Prolog cwd ${CWD}
+  WriteRegStr HKLM SOFTWARE\SWI\Prolog group   ${GRP}
+  WriteRegStr HKLM SOFTWARE\SWI\Prolog cwd     ${CWD}
+  WriteRegStr HKLM SOFTWARE\SWI\Prolog context ${SHCTX}
 SectionEnd
 
 Section "Update library index"
@@ -312,21 +313,45 @@ SectionEnd
 UninstallText "This will uninstall SWI-Prolog. Hit Uninstall to continue."
 
 Section "Uninstall"
-  ReadRegStr $1 HKCR ${EXT} ""
-  StrCmp $1 "PrologFile" 0 NoOwn ; only do this if we own it
-    ReadRegStr $1 HKCR ${EXT} "backup_val"
-    StrCmp $1 "" 0 RestoreBackup ; if backup == "" then delete the whole key
-      DeleteRegKey HKCR ${EXT}
-    Goto NoOwn
-    RestoreBackup:
-      WriteRegStr HKCR ${EXT} "" $1
-      DeleteRegValue HKCR ${EXT} "backup_val"
-  NoOwn:
+  ReadRegStr ${EXT}   HKLM Software\SWI\Prolog fileExtension
+  ReadRegStr ${GRP}   HKLM Software\SWI\Prolog group
+  ReadRegStr ${SHCTX} HKLM Software\SWI\Prolog context
+
+  StrCmp ${SHCTX} "all" 0 +2
+    SetShellVarContext all
+
+  MessageBox MB_YESNO "Delete the following components?$\r$\n \
+                       Install dir: $INSTDIR$\r$\n \
+		       Extension: ${EXT}$\r$\n \
+		       Program Group ${GRP}" \
+		      IDNO Done
+
+  StrCmp "${EXT}" "" NoExt
+    ReadRegStr $1 HKCR ${EXT} ""
+    StrCmp $1 "PrologFile" 0 NoOwn ; only do this if we own it
+      ReadRegStr $1 HKCR ${EXT} "backup_val"
+      StrCmp $1 "" 0 RestoreBackup ; if backup == "" then delete the whole key
+	DeleteRegKey HKCR ${EXT}
+      Goto NoOwn
+      RestoreBackup:
+	WriteRegStr HKCR ${EXT} "" $1
+	DeleteRegValue HKCR ${EXT} "backup_val"
+    NoOwn:
+  NoExt:
 
   StrCmp "${GRP}" "" NoGrp
+    MessageBox MB_OK "Deleting $SMPROGRAMS\${GRP}"
     RMDir /r "$SMPROGRAMS\${GRP}"
   NoGrp:
-  RMDir /r "$INSTDIR"
+
+  IfFileExists "$INSTDIR\bin\plwin.exe" 0 NoDir
+    RMDir /r "$INSTDIR"
+    goto Done
+
+  NoDir:
+    MessageBox MB_OK "Folder $INSTDIR doesn't seem to contain Prolog"
+
+  Done:
 SectionEnd
 
 ################################################################
