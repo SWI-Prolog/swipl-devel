@@ -14,7 +14,7 @@
 #define MD	     "config/win32.h"
 #define PLHOME       "c:/pl"
 #define DEFSTARTUP   ".plrc"
-#define PLVERSION    "2.1.14"
+#define PLVERSION    "2.5.1"
 #define ARCH	     "i386-win32"
 #define C_LIBS	     "-lreadline -lconsole -luxnt"
 #define C_STATICLIBS ""
@@ -155,6 +155,9 @@ This has worked on TURBO_C not very long ago.
 
 #ifdef HAVE_SIGNAL
 #include <signal.h>
+#endif
+#ifdef HAVE_MALLOC_H
+#include <malloc.h>
 #endif
 
 #if defined(STDC_HEADERS) || defined(HAVE_STRING_H)

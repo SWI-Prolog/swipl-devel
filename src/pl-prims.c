@@ -12,7 +12,6 @@
 #include "pl-ctype.h"
 #include "pl-buffer.h"
 
-forwards int	pl_se(Word, Word, Buffer);
 forwards char 	*prependBase(int, char *);
 
 
@@ -453,7 +452,7 @@ struct uchoice
 };
 
 static bool
-pl_se(Word t1, Word t2, Buffer buf)
+structeql(Word t1, Word t2, Buffer buf)
 { int todo = 1;
   UChoice nextch = NULL, tailch = NULL;
 
@@ -556,7 +555,7 @@ pl_structural_equal(term_t t1, term_t t2)
 
   initBuffer(&buf);			/* can be faster! */
   initAllocLocal();			/* use normal alloc? */
-  rval = pl_se(p1, p2, &buf);
+  rval = structeql(p1, p2, &buf);
   stopAllocLocal();
   for(r = baseBuffer(&buf, reset); r < topBuffer(&buf, reset); r++)
   { setVar(*r->v1);

@@ -42,6 +42,7 @@
 
 #define INCLUDE_DDEML_H
 #include "windows.h"
+#undef V_ERROR
 #undef TRANSPARENT       /* defined in win16.h (which we can't avoid);
                             redef'd in pl-incl.h (we don't need
 			    the win16 version) */
@@ -151,7 +152,7 @@ unify_hdata(term_t t, HDDEDATA data)
     dde_warning("data handle");
   }
 
-  return PL_unify_list_chars(t, b2);
+  return PL_unify_list_chars(t, buf);
 }
 
 
@@ -159,7 +160,7 @@ static int
 get_hsz(term_t data, HSZ *rval)
 { char *s;
 
-  if ( PL_get_chars(rval, &s, CVT_ALL) )
+  if ( PL_get_chars(data, &s, CVT_ALL) )
   { HSZ h = DdeCreateStringHandle(ddeInst, s, CP_WINANSI);
     if ( h )
     { *rval = h;
@@ -248,6 +249,7 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
        term_t argv = PL_new_term_refs(1);
        predicate_t pred = PL_pred(FUNCTOR_dde_disconnect1, MODULE_dde);
        int rval;
+       int plhandle = findServerHandle(hconv);
        
        if ( plhandle >= 0 && plhandle < MAX_CONVERSATIONS )
 	 server_handle[plhandle] = (HCONV)NULL;
@@ -404,7 +406,7 @@ get_conv_handle(term_t handle, int *theh)
 { int h;
 
   if ( PL_get_integer(handle, &h) &&
-       h > 0 && h < MAX_CONVERSATIONS &&
+       h >= 0 && h < MAX_CONVERSATIONS &&
        conv_handle[h] )
   { *theh = h;
 
@@ -419,7 +421,7 @@ word
 pl_close_dde_conversation(term_t handle)
 { int hdl;
 
-  if ( !get_conv_handle(handle, &hdl )
+  if ( !get_conv_handle(handle, &hdl) )
     return warning("close_dde_conversation/1: invalid handle");
 
   DdeDisconnect(conv_handle[hdl]);

@@ -6,6 +6,7 @@
 #define OPEN_MAX 32
 
 #define HAVE_UXNT_H 1
+#define HAVE_MALLOC_H 1
 #define HAVE_VIRTUAL_ALLOC 1
 #define AVOID_0X80000000_BIT 1
 #define HAVE_CLOCK 1			/* clock() timing function */

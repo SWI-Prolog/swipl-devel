@@ -175,7 +175,7 @@ pl_plus(term_t a, term_t b, term_t c)
   { if ( PL_get_long(b, &n) )
       return PL_unify_integer(c, m+n);
     if ( PL_get_long(c, &o) )
-      return PL_unify_integer(b, o-a);
+      return PL_unify_integer(b, o-m);
   } else
   { if ( PL_get_long(b, &n) && PL_get_long(c, &o) )
       return PL_unify_integer(a, o-n);

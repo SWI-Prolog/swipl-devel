@@ -118,10 +118,10 @@ oset_dunion([], []).
 oset_dunion([H|T], DUnion) :-
     oset_dunion(T, H, DUnion).
 
-dunion([], _DUnion, _DUnion).
-dunion([H|T], DUnion0, DUnion) :-
+oset_dunion([], _DUnion, _DUnion).
+oset_dunion([H|T], DUnion0, DUnion) :-
     oset_union(H, DUnion0, DUnion1),
-    dunion(T, DUnion1, DUnion).
+    oset_dunion(T, DUnion1, DUnion).
 
 
 % oset_dint(+SetofSets, -DInt)    
@@ -133,7 +133,7 @@ oset_dint([H|T], DInt) :-
 
 dint([], DInt, DInt).
 dint([H|T], DInt0, DInt) :-
-    int(H, DInt0, DInt1),
+    oset_int(H, DInt0, DInt1),
     dint(T, DInt1, DInt).
 
 

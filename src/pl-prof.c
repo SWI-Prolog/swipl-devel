@@ -253,20 +253,18 @@ stopItimer()
 }
 
 word
-pl_profile(old, new)
-Word old, new;
+pl_profile(term_t old, term_t new)
 { return notImplemented("profile", 2);
 }
 
 word
-pl_profile_count(head, calls, prom)
-Word head, calls, prom;
+pl_profile_count(term_t head, term_t calls, term_t prom)
 { return notImplemented("profile_count", 3);
 }
 
 word
-pl_profile_box(head, calls, redos, exits, fails)
-Word head, calls, redos, exits, fails;
+pl_profile_box(term_t head,
+	       term_t calls, term_t redos, term_t exits, term_t fails)
 { return notImplemented("profile_box", 3);
 }
 

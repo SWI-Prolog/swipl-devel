@@ -215,8 +215,7 @@ void resetTerm()
 }
 
 word
-pl_tty_get_capability(name, type, value)
-Word name, type, value;
+pl_tty_get_capability(term_t name, term_t type, term_t value)
 { return notImplemented("tty_get_capability", 3);
 }
 

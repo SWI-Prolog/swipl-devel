@@ -326,7 +326,7 @@ reindexClause(Clause clause)
 
       if ( arg1Key(clause, &key) )
       { clause->index.key     = key;
-	clause->index.varmask = ~0L;
+	clause->index.varmask = (unsigned long)~0L;
       } else
       { clause->index.key     = 0L;
 	clause->index.varmask = 0L;

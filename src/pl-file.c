@@ -1581,7 +1581,7 @@ unifyTime(term_t t, long time)
 
 
 char *
-get_filename(term_t n, char *buf, int size)
+get_filename(term_t n, char *buf, unsigned int size)
 { char *name;
 
   if ( PL_get_chars(n, &name, CVT_ALL) &&
@@ -1865,7 +1865,7 @@ pl_make_fat_filemap(term_t dir)
 { char *n;
 
   if ( (n = get_filename(dir, NULL, 0)) )
-  { if ( _xos_make_filemap(s) == 0 )
+  { if ( _xos_make_filemap(n) == 0 )
       succeed;
 
     if ( fileerrors )

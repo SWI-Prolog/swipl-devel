@@ -8,6 +8,7 @@
 #if defined(__WINDOWS__) || defined(__WIN32__)
 
 #include "windows.h"
+#undef V_ERROR
 #undef TRANSPARENT
 
 #include "pl-incl.h"
@@ -38,7 +39,7 @@ allocDllHandle(HINSTANCE handle)
 
 
 static int
-findDllHandle(term_t handle, int *hdl)
+get_dll_handle(term_t handle, int *hdl)
 { int i;
 
   if ( PL_get_integer(handle, &i) &&

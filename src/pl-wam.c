@@ -464,6 +464,13 @@ Trail(Word p, LocalFrame fr)
   verifyStack(trail);
 }
 
+
+void
+DoTrail(Word p)
+{ Trail(p, environment_frame);
+}
+
+
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

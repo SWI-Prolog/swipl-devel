@@ -941,7 +941,7 @@ pl_call_shared_object_function(term_t plhandle, term_t name)
 #else /*HAVE_DLOPEN*/
 
 word
-pl_open_shared_object(Word file, Word plhandle, Word flags)
+pl_open_shared_object(term_t file, term_t plhandle, term_t flags)
 { return warning("open_shared_object/3: not ported to this machine");
 }
 

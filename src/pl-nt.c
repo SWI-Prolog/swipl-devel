@@ -10,6 +10,7 @@
 #if defined(__WINDOWS__) || defined(__WIN32__)
 
 #include <windows.h>
+#undef V_ERROR
 #include <process.h>
 #undef TRANSPARENT
 #include "pl-incl.h"

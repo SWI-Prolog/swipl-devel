@@ -73,12 +73,13 @@ PL_new_term_refs(int n)
 { Word t = (Word)lTop;
   term_t r = consTermRef(t);
 
+  lTop = (LocalFrame)(t+n);
+  verifyStack(local);
+
   while(n-- > 0)
   { SECURE(assert(*t != QID_MAGIC));
     setVar(*t++);
   }
-  lTop = (LocalFrame)t;
-  verifyStack(local);
   
   return r;
 }
@@ -174,7 +175,7 @@ PL_cvt_i_single(term_t p, float *c)
 { double f;
 
   if ( PL_get_float(p, &f) )
-  { *c = f;
+  { *c = (float)f;
     succeed;
   }
 
@@ -1028,6 +1029,7 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
     { Word a = allocGlobal(2);
   
       *p = (word)a;
+      DoTrail(p);
       *a++ = (word) FUNCTOR_xpceref1;
       if ( ref->type == PL_INTEGER )
 	*a++ = consNum(ref->value.i);

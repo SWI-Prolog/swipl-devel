@@ -43,17 +43,13 @@ bool		unify_atomic(Word p, word a);
 bool		unifyFunctor(Word term, FunctorDef functor);
 word		pl_alt(term_t skip, word h);
 void		TrailAssignment(Word p);
+void		DoTrail(Word p);
 #ifdef __WIN32__
 void		do_undo(mark *m);
 #else
 inline void	do_undo(mark *m);
 #endif
 void		fix_term_ref_count(void);
-qid_t		PL_open_query(Module ctx, bool debug,
-			      Procedure proc, term_t args);
-void            PL_cut_query(qid_t qid);
-void            PL_close_query(qid_t qid);
-int             PL_next_solution(qid_t qid);
 
 /* pl-atom.c */
 Atom		lookupAtom(const char *s);
@@ -165,7 +161,6 @@ word		Putf(char *fm, ...);
 bool		Puts(const char *str);
 word		vPutf(char *fm, va_list args);
 int		currentInputLine(void);
-bool		PL_open_stream(term_t handle, IOSTREAM *s);
 word		pl_told(void);
 word		pl_flush(void);
 word		pl_see(term_t f);
@@ -219,7 +214,7 @@ word		pl_line_count(term_t stream, term_t count);
 word		pl_line_position(term_t stream, term_t count);
 word		pl_source_location(term_t file, term_t line);
 bool		unifyTime(term_t t, long time);
-char *		get_filename(term_t n, char *buf, int bufsize);
+char *		get_filename(term_t n, char *buf, unsigned int bufsize);
 word		pl_time_file(term_t name, term_t t);
 word		pl_size_file(term_t name, term_t len);
 word		pl_access_file(term_t name, term_t mode);
@@ -532,10 +527,12 @@ word		pl_erase(term_t ref);
 /* pl-setup.c */
 void		setupProlog(void);
 handler_t	pl_signal(int sig, handler_t func);
+void		resetSignals(void);
 void		deliverSignal(int sig, int tp, SignalContext scp, char *addr);
 void		deallocateStacks(void);
 bool		restoreStack(Stack s);
 void		trimStacks(void);
+void		resetStacks(void);
 word		pl_trim_stacks(void);
 word		pl_limit_stack(term_t s, term_t l);
 word		pl_stack_parameter(term_t s, term_t k, term_t o, term_t n);
@@ -568,6 +565,7 @@ int		tracePort(LocalFrame frame, int port);
 void		backTrace(LocalFrame frame, int depth);
 word		pl_trace_continuation(term_t what);
 void		initTracer(void);
+void		resetTracer(void);
 word		pl_trace(void);
 word		pl_notrace(void);
 word		pl_tracing(void);

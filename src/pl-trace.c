@@ -821,6 +821,15 @@ again:
 #endif /*O_INTERRUPT*/
 
 void
+resetTracer(void)
+{
+#ifdef O_INTERRUPT
+  signal(SIGINT, interruptHandler);
+#endif
+}
+
+
+void
 initTracer(void)
 { 
 #ifdef O_RLC

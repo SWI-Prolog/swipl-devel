@@ -22,7 +22,7 @@ before loading this file.  See end of this file.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef PLVERSION
-#define PLVERSION "2.2.0, Jan 1996"
+#define PLVERSION "2.5.1, Feb 1996"
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -36,7 +36,7 @@ _declspec(dllexport) is used by MSVC++ 2.0 to declare exports from DLL's.
 #define __pl_export extern
 #endif
 
-#ifdef __WIN32_DLL__
+#if defined(__WIN32__) || defined(WIN32)
 #define install_t _declspec(dllexport) void
 #else
 #define install_t void
@@ -273,7 +273,7 @@ __pl_export void	_PL_copy_atomic(term_t t, atomic_t a);
 #define CVT_INTEGER	0x0008
 #define CVT_FLOAT	0x0010
 #define CVT_VARIABLE	0x0020
-#define CVT_NUMBER	(CVT_INTEGER|CVT_INTEGER)
+#define CVT_NUMBER	(CVT_INTEGER|CVT_FLOAT)
 #define CVT_ATOMIC	(CVT_NUMBER|CVT_ATOM|CVT_STRING)
 #define CVT_ALL		0x00ff
 

@@ -1,6 +1,27 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.5.1
+=============
+
+  * FIXED: Stack expansion for some foreign predicates using the local
+    stack as temporary area for machines with exception-based stack-overflow
+    handling that do not provide the address of the segmentation fault to
+    the handler (Win32, Linux).
+
+  * FIXED: Linux: repeated handling of the sequence Control-C, abort.
+
+  * FIXED: Crash after the system has ran out of some stacks on machines
+    with exception-based stack-overflow handling and POSIX signals.
+    Solaris, Linux and Win32 are the examples I know of.
+
+  * FIXED: CVT_NUMBER and CVT_ATOMIC constants in SWI-Prolog.h,
+    breaking name(+Float, -Chars).
+
+  * FIXED: plus/3 for +, -, + instantiation (2.5.0 introduced typo).
+
+  * FIXED: prototype declaraction reported by Martin Jansche.
+
 Version 2.5.0
 =============
 

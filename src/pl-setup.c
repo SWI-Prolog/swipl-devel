@@ -237,6 +237,10 @@ fatal_signal_handler(int sig, int type, SignalContext scp, char *addr)
 }
 
 
+#ifdef HAVE_SIGSETMASK
+static int defsigmask;
+#endif
+
 static void
 initSignals(void)
 { int n;
@@ -262,7 +266,25 @@ initSignals(void)
       if ( signalHandlers[n].os != SIG_DFL )
         signal(n, signalHandlers[n].os);
   }
+
+#ifdef HAVE_SIGGETMASK
+  defsigmask = siggetmask();
+#else
+#ifdef HAVE_SIGBLOCK
+  defsigmask = sigblock(0);
+#endif
+#endif;
 }
+
+
+void
+resetSignals()
+{
+#ifdef HAVE_SIGSETMASK			/* fixes Linux repeated ^C */
+  sigsetmask(defsigmask);
+#endif
+}
+
 
 handler_t
 pl_signal(int sig, handler_t func)
@@ -430,18 +452,25 @@ point to the same physical memory.
 
 static void
 map(Stack s)
-{ if ( s->max + size_alignment > s->base + s->maxlimit )
+{ ulong incr;
+
+  if ( s->top > s->max )
+    incr = ROUND(((ulong)s->top - (ulong)s->max), size_alignment);
+  else
+    incr = size_alignment;
+
+  if ( (ulong)s->max + incr > (ulong)s->base + s->maxlimit )
     outOf(s);
 
-  if ( mmap(s->max, size_alignment,
+  if ( mmap(s->max, incr,
 	    PROT_READ|PROT_WRITE, STACK_MAP_TYPE,
 	    mapfd, 0L) != s->max )
     fatalError("Failed to map memory at 0x%x for %d bytes on fd=%d: %s\n",
-	       s->max, size_alignment, mapfd, OsError());
+	       s->max, incr, mapfd, OsError());
 
   DEBUG(1, Sdprintf("mapped %d bytes from 0x%x to 0x%x\n",
-		  size_alignment, (unsigned) s->max, s->max + size_alignment));
-  s->max += size_alignment;
+		    size_alignment, (unsigned) s->max, s->max + incr));
+  s->max += incr;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -707,24 +736,33 @@ caddress addr;
 #undef FD_ZERO
 #undef FD_ISSET
 #undef FD_SET
+#undef V_ERROR
 #include <windows.h>
+#undef V_ERROR
 #undef small
 
 static void
 map(Stack s)
-{ if ( (ulong)s->max + size_alignment > (ulong)s->base + s->maxlimit )
+{ ulong incr;
+
+  if ( s->top > s->max )
+    incr = ROUND(((ulong)s->top - (ulong)s->max), size_alignment);
+  else
+    incr = size_alignment;
+
+  if ( (ulong)s->max + incr > (ulong)s->base + s->maxlimit )
     outOf(s);
 
-  if ( VirtualAlloc(s->max, size_alignment,
+  if ( VirtualAlloc(s->max, incr,
 		    MEM_COMMIT, PAGE_READWRITE ) != s->max )
     fatalError("VirtualAlloc() failed at 0x%x for %d bytes: %d\n",
-	       s->max, size_alignment, GetLastError());
+	       s->max, incr, GetLastError());
 
   DEBUG(1, Sdprintf("mapped %d bytes from 0x%x to 0x%x\n",
-		    size_alignment, (unsigned) s->max,
+		    incr, (unsigned) s->max,
 		    (ulong) s->max + size_alignment));
 
-  s->max = (void *)((ulong)s->max + size_alignment);
+  s->max = (void *)((ulong)s->max + incr);
 }
 
 
@@ -741,7 +779,7 @@ unmap(Stack s)
 }
 
 
-#define MAX_VIRTUAL_ALLOC (256 * MB)
+#define MAX_VIRTUAL_ALLOC (100 * MB)
 #define SPECIFIC_INIT_STACK 1
 
 static void
@@ -809,6 +847,24 @@ initStacks(long local, long global, long trail, long argument)
   INIT_STACK(argument, "argument", argument, 1 K);
 
   pl_signal(SIGSEGV, (handler_t) segv_handler);
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Reset the stacks after an abort
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+resetStacks()
+{ environment_frame = NULL;
+  fli_context       = NULL;
+  lTop = lBase;
+  tTop = tBase;
+  gTop = gBase;
+  aTop = aBase;
+
+  pl_signal(SIGSEGV, (handler_t) segv_handler);
+  trimStacks();
+  PL_open_foreign_frame();
 }
 
 #endif /*HAVE_VIRTUAL_ALLOC*/
@@ -1040,6 +1096,20 @@ initStacks(long local, long global, long trail, long argument)
   pl_signal(SIGSEGV, (handler_t) segv_handler);
 }
 
+void
+resetStacks()
+{ environment_frame = NULL;
+  fli_context       = NULL;
+  lTop = lBase;
+  tTop = tBase;
+  gTop = gBase;
+  aTop = aBase;
+
+  pl_signal(SIGSEGV, (handler_t) segv_handler);
+  trimStacks();
+  PL_open_foreign_frame();
+}
+
 #endif /*SPECIFIC_INIT_STACK*/
 
 		/********************************
@@ -1063,7 +1133,7 @@ gcPolicy(Stack s, int policy)
 
 
 word
-pl_trim_stacks(void)
+pl_trim_stacks()
 { trimStacks();
 
   gcPolicy((Stack) &stacks.global, GC_FAST_POLICY);
@@ -1218,6 +1288,18 @@ initStacks(long local, long global, long trail, long argument)
   init_stack((Stack)&stacks.argument, "argument",argument, argument, 0);
 
   statistics.heap = old_heap;
+}
+
+void
+resetStacks()
+{ environment_frame = NULL;
+  fli_context       = NULL;
+  lTop = lBase;
+  tTop = tBase;
+  gTop = gBase;
+  aTop = aBase;
+
+  PL_open_foreign_frame();
 }
 
 #endif /* O_DYNAMIC_STACKS */

@@ -559,7 +559,7 @@ vsysError(const char *fm, va_list args)
 	    "\n[While in %ld-th garbage collection; skipping stacktrace]\n",
 	    gc_status.collections);
   }
-#if defined(O_DEBUGGER) && !defined(__WIN32__) /* TBD */
+#if defined(O_DEBUGGER)
   else
   { Sfprintf(Serror, "\n[Switched to system mode: style_check(+dollar)]\n");
     debugstatus.styleCheck |= DOLLAR_STYLE;

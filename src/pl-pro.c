@@ -167,6 +167,9 @@ pl_abort()
 #ifdef O_PROFILE
   pl_reset_profiler();
 #endif
+  resetStacks();
+  resetTracer();
+  resetSignals();
 
   longjmp(abort_context, 1);
   /*NOTREACHED*/
