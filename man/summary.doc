@@ -243,6 +243,7 @@ suggest predicates from a keyword.
 \predicatesummary{merge}{3}{Merge two sorted lists}
 \predicatesummary{merge_set}{3}{Merge two sorted sets}
 \predicatesummary{message_hook}{3}{Intercept print_message/2}
+\predicatesummary{message_to_string}{2}{Translate message-term to string}
 \predicatesummary{meta_predicate}{1}{Quintus compatibility}
 \predicatesummary{module}{1}{Query/set current type-in module}
 \predicatesummary{module}{2}{Declare a module}

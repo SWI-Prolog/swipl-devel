@@ -9,7 +9,8 @@
 
 :- module($messages,
 	  [ print_message/2,		% +Kind, +Term
-	    print_message_lines/3	% +Stream, +Prefix, +Lines
+	    print_message_lines/3,	% +Stream, +Prefix, +Lines
+	    message_to_string/2		% +Term, -String
 	  ]).
 
 :- multifile

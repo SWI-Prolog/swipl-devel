@@ -996,6 +996,8 @@ The print_message/2 predicate and its rules are in the file
 \file{<plhome>/boot/messages.pl}, which may be inspected for more
 information on the error messages and related error terms.
 
+See also message_to_string/2.
+
     \predicate{print_message_lines}{3}{+Stream, +Prefix, +Lines}
 Print a message (see print_message/2) that has been translated to
 a list of message elements.  The elements of this list are:
@@ -1024,10 +1026,16 @@ See also print_message/2 and message_hook/3.
 Hook predicate that may be define in the module \const{user} to
 intercept messages from print_message/2. \arg{Term} and \arg{Kind} are
 the same as passed to print_message/2. \arg{Lines} is a list of format
-statements as described with print_message_lines/3.
+statements as described with print_message_lines/3.  See also
+message_to_string/2.
 
 This predicate should be defined dynamic and multifile to allow other
 modules defining clauses for it too.
+
+    \predicate{message_to_string}{2}{+Term, -String}
+Translates a message-term into a string object (see \secref{sec:string}.
+Primarily intended to write messages to Windows in XPCE (see
+\secref{sec:xpce}) or other GUI environments.
 \end{description}
 
 
