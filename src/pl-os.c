@@ -174,6 +174,7 @@ Halt(int rval)
       PlMessage("Exit status is %d", rval);
 #endif
 
+    qlfCleanup();			/* remove errornous .qlf files */
     dieIO();
     RemoveTemporaryFiles();
   }
@@ -391,14 +392,39 @@ static struct tempfile
   TempFile	next;
 } *tempfiles, *temptail;		/* chain of temporary files */
 
+#ifndef DEFTMPDIR
+#ifdef __WIN32__
+#define DEFTMPDIR "c:/tmp"
+#else
+#define DEFTMPDIR "/tmp"
+#endif
+#endif
+
 Atom
 TemporaryFile(char *id)
 { static char temp[MAXPATHLEN];
   TempFile tf = (TempFile) allocHeap(sizeof(struct tempfile));
+  char *tmpdir;
+
+  if ( !((tmpdir = getenv("TEMP")) || (tmpdir = getenv("TMP"))) )
+    tmpdir = DEFTMPDIR;
 
 #if unix
+{
   static int temp_counter = 0;
-  Ssprintf(temp, "/tmp/pl_%s_%d_%d", id, (int) getpid(), temp_counter++);
+  Ssprintf(temp, "%s/pl_%s_%d_%d", tmpdir, id, (int) getpid(), temp_counter++);
+}
+#endif
+
+#ifdef __WIN32__
+{ char *tmp;
+  static int temp_counter = 0;
+
+  if ( (tmp = _tempnam(tmpdir, id)) )
+    strcpy(temp, tmp);
+  else
+    Ssprintf(temp, "%s/pl_%s_%d", tmpdir, id, temp_counter++);
+}
 #endif
 
 #if EMX

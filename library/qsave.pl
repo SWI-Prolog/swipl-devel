@@ -81,7 +81,7 @@ save_autoload :-
 save_module(M) :-
 	$qlf_start_module(M),
 	feedback('~n~nMODULE ~w~n', [M]),
-	(   P = M:H,
+	(   P = (M:H),
 	    current_predicate(_, P),
 	    \+ predicate_property(P, imported_from(_)),
 	    \+ predicate_property(P, foreign),

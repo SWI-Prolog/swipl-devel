@@ -1,6 +1,17 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.1.8
+=============
+
+  * ADDED: check in exit code that removes possibly incomplete .qlf and
+    bootfiles if an error occurred while building the file.
+
+  * FIXED: WIN32 tmp_file/2.
+
+  * FIXED: configure for users of a shell that doesn't export $PWD and
+    the system chooses the install-sh script.
+
 Version 2.1.7
 =============
 

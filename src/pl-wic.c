@@ -215,6 +215,20 @@ int arity;
 #endif /* tos */
 
 		 /*******************************
+		 *	     CLEANUP		*
+		 *******************************/
+
+void
+qlfCleanup()
+{ if ( wicFile )
+  { warning("Removing incomplete Quick Load File %s", wicFile);
+    RemoveFile(wicFile);
+    wicFile = NULL;
+  }
+}
+
+
+		 /*******************************
 		 *     LOADED XR ID HANDLING	*
 		 *******************************/
 
@@ -1353,15 +1367,22 @@ openWic(char *file, Word args)
 
 static bool
 closeWic()
-{ if (wicFd == (IOSTREAM *) NULL)
+{ bool rval;
+
+  if (wicFd == (IOSTREAM *) NULL)
     fail;
+
   closeProcedureWic(wicFd);
   Putc('X', wicFd);
   destroyHTable(savedXRTable);
   savedXRTable = NULL;
   Sclose(wicFd);
+  rval = MarkExecutable(wicFile);
+
   wicFd = NULL;
-  return MarkExecutable(wicFile);
+  wicFile = NULL;
+
+  return rval;
 }
 
 static bool
@@ -1594,6 +1615,7 @@ qlfClose()
   writeSourceMarks(wicFd);
   Sclose(wicFd);
   wicFd = NULL;
+  wicFile = NULL;
 
   destroyHTable(savedXRTable);
   savedXRTable = NULL;

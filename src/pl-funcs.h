@@ -605,6 +605,7 @@ word		pl_add_directive_wic(Word term);
 word		pl_import_wic(Word module, Word head);
 bool		compileFileList(char *out, int argc, char **argv);
 bool		appendState(char *name);
+void		qlfCleanup(void);
 
 word		pl_qlf_put_states(void);
 word		pl_qlf_start_module(Word name);

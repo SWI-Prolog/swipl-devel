@@ -1,4 +1,4 @@
-/*  $Id$
+/*  pl-prof.c,v 1.14 1995/09/08 14:27:28 jan Exp
 
     Copyright (c) 1990 Jan Wielemaker. All rights reserved.
     See ../LICENCE to find out about your rights.
@@ -33,6 +33,9 @@ static struct sigaction osigaction;
 #ifndef SA_NOMASK
 #define SA_NOMASK 0
 #endif
+#ifndef SA_RESTART
+#define SA_RESTART 0
+#endif
 
 static bool
 startProfiler(int how)
@@ -42,8 +45,7 @@ startProfiler(int how)
 
   memset((char *) &action, 0, sizeof(action));
   action.sa_handler  = profile;
-  action.sa_mask     = 0;
-  action.sa_flags    = SA_NOMASK;
+  action.sa_flags    = SA_NOMASK|SA_RESTART;
 
   sigaction(SIGPROF, &action, &osigaction);
 #else

@@ -70,7 +70,8 @@ AC_CHECK_PROGS(ETAGS, etags ctags, ":")
 AC_PROG_AWK
 AC_PROG_INSTALL
 case "$INSTALL" in
-    ./*) INSTALL="$PWD/$INSTALL" ;;
+    ./*) if test -z "$PWD"; then PWD=`pwd`; fi
+         INSTALL="$PWD/$INSTALL" ;;
 esac
 AC_PROG_CPP
 AC_ISC_POSIX
