@@ -2,11 +2,11 @@
 
 /* /staff/jan/src/pl/packages/xpce/src/txt/chararray.c */
 COMMON(status)	initialiseCharArray(CharArray n, CharArray value);
-COMMON(status)	isWideCharArray(Any ca);
 COMMON(Name)	getValueCharArray(CharArray n);
 COMMON(status)	equalCharArray(CharArray n1, CharArray n2, Bool ign_case);
 COMMON(status)	prefixCharArray(CharArray n1, CharArray n2, Bool ign_case);
 COMMON(status)	suffixCharArray(CharArray n, CharArray s, Bool ign_case);
+COMMON(status)	isWideCharArray(Any s);
 COMMON(CharArray) getCopyCharArray(CharArray n);
 COMMON(CharArray) getCapitaliseCharArray(CharArray n);
 COMMON(CharArray) getLabelNameCharArray(CharArray n);
@@ -100,11 +100,12 @@ COMMON(String)	str_tab(String proto);
 COMMON(void)	str_strip(String s);
 COMMON(int)	str_common_length(String s1, String s2);
 COMMON(int)	str_icase_common_length(String s1, String s2);
-COMMON(tmp_string *)	str_tmp_init(tmp_string *tmp);
-COMMON(wint_t)		str_tmp_put(tmp_string *tmp, wint_t c);
-COMMON(void)		str_tmp_done(tmp_string *tmp);
+COMMON(tmp_string *) str_tmp_init(tmp_string *tmp);
+COMMON(wint_t)	str_tmp_put(tmp_string *tmp, wint_t c);
+COMMON(void)	str_tmp_done(tmp_string *tmp);
 
 /* /staff/jan/src/pl/packages/xpce/src/txt/string.c */
+COMMON(StringObj) create_string_from_str(String s, int tmp);
 COMMON(StringObj) StringToString(String s);
 COMMON(StringObj) StringToTempString(String s);
 COMMON(StringObj) CtoString(const char *s);
@@ -204,3 +205,18 @@ COMMON(status)	checkpointUndoTextBuffer(TextBuffer tb);
 COMMON(void)	register_insert_textbuffer(TextBuffer tb, long int where, long int len);
 COMMON(void)	register_delete_textbuffer(TextBuffer tb, long where, long len);
 COMMON(void)	register_change_textbuffer(TextBuffer tb, long int where, long int len);
+
+/* /staff/jan/src/pl/packages/xpce/src/txt/utf8.c */
+COMMON(char *)	F_UTF8_GET_CHAR(const char *in, int *chr);
+COMMON(char *)	F_UTF8_PUT_CHAR(char *out, int chr);
+COMMON(unsigned int) F_UTF8_STRLEN(const char *s, unsigned int len);
+COMMON(unsigned int) F_UTF8_ENCLENW(const wchar_t *s, unsigned int len);
+COMMON(unsigned int) F_UTF8_ENCLENA(const char *s, unsigned int len);
+
+/* /staff/jan/src/pl/packages/xpce/src/txt/i18n.c */
+COMMON(char *)	charArrayToUTF8(CharArray ca);
+COMMON(char *)	charArrayToMB(CharArray ca);
+COMMON(wchar_t *) charArrayToWC(CharArray ca, size_t *len);
+COMMON(CharArray) UTF8ToCharArray(const char *utf8);
+COMMON(CharArray) MBToCharArray(const char *mb);
+COMMON(CharArray) WCToCharArray(const wchar_t *wc, size_t len);

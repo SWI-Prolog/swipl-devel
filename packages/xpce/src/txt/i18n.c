@@ -26,6 +26,10 @@
 #include <h/kernel.h>
 #include <h/utf8.h>
 
+#ifndef MB_LEN_MAX
+#define MB_LEN_MAX 6
+#endif
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 These  functions  translate  CharArray  (String,  Name)  into  a  format
 suitable to drive operating- or windowsystem   calls,  such as accessing
@@ -144,7 +148,7 @@ charArrayToUTF8(CharArray ca)
     for( ; s<e; s++ )
     { roomBuffer(out, 2);		/* max bytes per UTF-8 < 256 */
 
-      c->bufp = utf8_put_char(c->bufp, *s);
+      out->bufp = utf8_put_char(out->bufp, *s);
     } 
   } else
   { cwchar *s = str->s_textW;
@@ -154,7 +158,7 @@ charArrayToUTF8(CharArray ca)
     for( ; s<e; s++ )
     { roomBuffer(out, 6);		/* max bytes per UTF-8 */
 
-      c->bufp = utf8_put_char(c->bufp, *s);
+      out->bufp = utf8_put_char(out->bufp, *s);
     } 
   }
 
@@ -169,7 +173,6 @@ charArrayToMB(CharArray ca)
 { String str = &ca->data;
   rcell *out;
   mbstate_t mbs;
-  int cmax = MB_CUR_MAX;
   char b[MB_LEN_MAX];
   int rc;
 
@@ -216,7 +219,7 @@ charArrayToMB(CharArray ca)
 
 
 wchar_t *
-charArrayToWC(CharArray, size_t *len)
+charArrayToWC(CharArray ca, size_t *len)
 { String str = &ca->data;
 
   if ( isstrA(str) )
@@ -225,14 +228,14 @@ charArrayToWC(CharArray, size_t *len)
     cuchar *e = &s[str->size];
     wchar_t *o;
 
-    roomBuffer(c, str->size*sizeof(wchar_t));
+    roomBuffer(out, str->size*sizeof(wchar_t));
 
-    for(o=(wchar_t*)c->data ; s<e; )
+    for(o=(wchar_t*)out->data ; s<e; )
     { *o++ = *s++;
     }
     *o = 0;
 
-    return out->data;
+    return (wchar_t *)out->data;
   } else
     return str->s_textW;
 }
@@ -244,19 +247,19 @@ charArrayToWC(CharArray, size_t *len)
 
 CharArray
 UTF8ToCharArray(const char *utf8)
-{
+{ return NULL;
 }
 
 
 CharArray
 MBToCharArray(const char *mb)
-{
+{ return NULL;
 }
 
 
 CharArray
 WCToCharArray(const wchar_t *wc, size_t len)
-{
+{ return NULL;
 }
 
 

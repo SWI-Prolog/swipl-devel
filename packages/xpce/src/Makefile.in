@@ -541,7 +541,7 @@ $(srcdir)/rel/proto.h:	$(RELSRC)
 TXTOBJS=	chararray.o editor.o fragment.o keybinding.o \
 		regex.o str.o string.o style.o syntax.o \
 		textbuffer.o textcursor.o textimage.o \
-		textmargin.o undo.o utf8.o
+		textmargin.o undo.o utf8.o i18n.o
 TXTSRC=		$(addprefix $(srcdir)/txt/, $(TXTOBJS:.o=.c))
 
 $(srcdir)/txt/proto.h:	$(TXTSRC)
