@@ -166,7 +166,7 @@ pl_default_module(term_t me, term_t old, term_t new)
 
 word
 pl_current_module(term_t module, term_t file, word h)
-{ TableEnum e;
+{ TableEnum e = NULL;
   Symbol symb;
   atom_t name;
 
