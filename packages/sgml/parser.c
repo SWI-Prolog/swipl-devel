@@ -4022,6 +4022,16 @@ empty_cdata(dtd_parser *p)
 }
 
 
+static void
+cb_cdata(dtd_parser *p, ocharbuf *buf, int offset, int size)
+{ if ( p->on_data && buf->encoding == SGML_ENC_ISO )
+  { (*p->on_data)(p, EC_CDATA, size, buf->data.t+offset);
+  } else if ( p->on_wdata && buf->encoding == SGML_ENC_UCS )
+  { (*p->on_wdata)(p, EC_CDATA, size, buf->data.w+offset);
+  }    
+}
+
+
 static int
 emit_cdata(dtd_parser *p, int last)
 { dtd *dtd = p->dtd;
@@ -4155,8 +4165,7 @@ emit_cdata(dtd_parser *p, int last)
   { if ( p->cdata_must_be_empty )
     { gripe(ERC_NOT_ALLOWED_PCDATA, p->cdata); /* TBD: now passes buffer! */
     }
-    if ( p->on_data )			/* TBD: wide character callback */
-      (*p->on_data)(p, EC_CDATA, size, cdata->data.t+offset);
+    cb_cdata(p, cdata, offset, size);
   } else if ( p->environments )
   { sgml_environment *env = p->environments;
     dtd_state *new;
@@ -4166,12 +4175,10 @@ emit_cdata(dtd_parser *p, int last)
 
     if ( (new=make_dtd_transition(env->state, CDATA_ELEMENT)) )
     { env->state = new;
-      if ( p->on_data )			/* TBD: wide character callback */
-	(*p->on_data)(p, EC_CDATA, size, cdata->data.t+offset);
+      cb_cdata(p, cdata, offset, size);
     } else if ( env->element->undefined &&
 		p->environments->space_mode == SP_PRESERVE )
-    { if ( p->on_data )			/* TBD: wide character callback */
-	(*p->on_data)(p, EC_CDATA, size, cdata->data.t+offset);
+    { cb_cdata(p, cdata, offset, size);
     }
   }
   

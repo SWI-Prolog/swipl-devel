@@ -102,33 +102,37 @@ print_escaped(char c, ochar const *s)
 
 
 static void
+wprint_escaped(FILE *f, const wchar_t *s, int len)
+{ const wchar_t *e = &s[len];
+
+  while ( s < e )
+  { wint_t x = *s;
+      
+    if ( x > 0xff )
+    { printf("\\u%4x\\", x);		/* \uXXXX */
+    } else if (x >= ' ')
+    { if (x == '\\')
+	putc(x, f);
+      putc(x, f);
+    } else if (x == '\t')
+    { putc(x, f);
+    } else if (x == '\n')
+    { printf("\\n");
+    } else
+    { printf("\\%3o", x);
+    }
+  }
+}
+
+
+static void
 print_cdata(char c, sgml_attribute *a)
 { if ( a->value.textA )
   { print_escaped(c, a->value.textA);
   } else
-  { FILE *f = stdout;
-    const wchar_t *s = a->value.textW;
-    const wchar_t *e = &s[a->value.number];
-
-    putc(c, f);
-    while ( s < e )
-    { wint_t x = *s;
-
-      if ( x > 0xff )
-      { printf("\\u%4x\\", x);		/* \uXXXX */
-      } else if (x >= ' ')
-      { if (x == '\\')
-	  putc(x, f);
-	putc(x, f);
-      } else if (x == '\t')
-      { putc(x, f);
-      } else if (x == '\n')
-      { printf("\\n");
-      } else
-      { printf("\\%3o", x);
-      }
-    }
-    putc('\n', f);
+  { putc(c, stdout);
+    wprint_escaped(stdout, a->value.textW, a->value.number);
+    putc('\n', stdout);
   }
 }
 
@@ -241,7 +245,7 @@ print_open(dtd_parser * p, dtd_element * e, int argc, sgml_attribute *argv)
 
 
 static int
-print_data(dtd_parser * p, data_type type, int len, ochar const *data)
+print_data(dtd_parser * p, data_type type, int len, const char *data)
 { char c;
 
   switch (type)
@@ -258,6 +262,30 @@ print_data(dtd_parser * p, data_type type, int len, ochar const *data)
       assert(0);
   }
   print_escaped(c, data);
+  return TRUE;
+}
+
+
+static int
+print_wdata(dtd_parser * p, data_type type, int len, const wchar_t *data)
+{ char c;
+
+  switch (type)
+  { case EC_CDATA:
+      c = '-';
+      break;
+    case EC_NDATA:
+      c = 'N';
+      break;
+    case EC_SDATA:
+      c = 'S';
+      break;
+    default:
+      assert(0);
+  }
+  putc(c, stdout);
+  wprint_escaped(stdout, data, len);
+  putc('\n', stdout);
   return TRUE;
 }
 
@@ -337,6 +365,7 @@ set_functions(dtd_parser * p, int output)
   { p->on_end_element = print_close;
     p->on_begin_element = print_open;
     p->on_data = print_data;
+    p->on_wdata = print_wdata;
     p->on_entity = on_entity;
     p->on_pi = on_pi;
   }

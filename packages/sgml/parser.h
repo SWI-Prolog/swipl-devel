@@ -25,6 +25,7 @@
 #ifndef SGML_PARSER_H_INCLUDED
 #define SGML_PARSER_H_INCLUDED
 #include "util.h"
+#include <wchar.h>
 
 		 /*******************************
 		 *	      CALL-BACK		*
@@ -52,7 +53,9 @@ typedef int (*sgml_begin_element_f)(dtd_parser_p parser,
 typedef int (*sgml_end_element_f)(dtd_parser_p parser,
 				  dtd_element *e);
 typedef int (*sgml_data_f)(dtd_parser_p parser,
-			   data_type type, int len, const ochar *text);
+			   data_type type, int len, const char *text);
+typedef int (*sgml_wdata_f)(dtd_parser_p parser,
+			   data_type type, int len, const wchar_t *text);
 typedef int (*sgml_entity_f)(dtd_parser_p parser,
 			     dtd_entity *entity,
 			     int chr);
@@ -203,6 +206,7 @@ typedef struct _dtd_parser
   sgml_begin_element_f	on_begin_element; /* start an element */
   sgml_end_element_f	on_end_element;	/* end an element */
   sgml_data_f		on_data;	/* process cdata */
+  sgml_wdata_f		on_wdata;	/* process wide-character cdata */
   sgml_entity_f		on_entity;	/* unprocessed entity */
   sgml_pi_f		on_pi;		/* processing instruction */
   sgml_error_f		on_error;	/* handle error */

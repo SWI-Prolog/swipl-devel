@@ -1076,14 +1076,19 @@ on_entity(dtd_parser *p, dtd_entity *e, int chr)
 
 
 static int
-on_cdata(dtd_parser *p, data_type type, int len, const ochar *data)
+on_data(dtd_parser *p, data_type type, int len,
+	const char *data, const wchar_t *wdata)
 { parser_data *pd = p->closure;
 
   if ( pd->on_cdata )
   { fid_t fid = PL_open_foreign_frame();
     term_t av = PL_new_term_refs(2);
 
-    PL_put_atom_nchars(av+0, len, data);
+    if ( data )
+      PL_put_atom_nchars(av+0, len, data);
+    else
+      PL_unify_wchars(av+0, PL_ATOM, len, wdata);
+
     unify_parser(av+1, p);
 
     PL_call_predicate(NULL, PL_Q_NORMAL, pd->on_cdata, av);
@@ -1094,23 +1099,24 @@ on_cdata(dtd_parser *p, data_type type, int len, const ochar *data)
   { term_t h = PL_new_term_ref();
 
     if ( PL_unify_list(pd->tail, h, pd->tail) )
-    { int rval;
+    { int rval = TRUE;
+      term_t a;
 
       switch(type)
       { case EC_CDATA:
-	  rval = PL_unify_atom_nchars(h, len, data);
+	  a = h;
 	  break;
 	case EC_SDATA:
 	{ term_t d = PL_new_term_ref();
 
-	  PL_put_atom_nchars(d, len, data);
+	  a = d;
 	  rval = PL_unify_term(h, PL_FUNCTOR, FUNCTOR_sdata1, PL_TERM, d);
 	  break;
 	}
 	case EC_NDATA:
 	{ term_t d = PL_new_term_ref();
 
-	  PL_put_atom_nchars(d, len, data);
+	  a = d;
 	  rval = PL_unify_term(h, PL_FUNCTOR, FUNCTOR_ndata1, PL_TERM, d);
 	  break;
 	}
@@ -1120,6 +1126,13 @@ on_cdata(dtd_parser *p, data_type type, int len, const ochar *data)
       }
 			       
       if ( rval )
+      { if ( data )
+	  rval = PL_unify_atom_nchars(a, len, data);
+	else
+	  rval = PL_unify_wchars(a, PL_ATOM, len, wdata);
+      }
+
+      if ( rval )
       { PL_reset_term_refs(h);
 	return TRUE;
       }
@@ -1127,6 +1140,18 @@ on_cdata(dtd_parser *p, data_type type, int len, const ochar *data)
   }
 
   return FALSE;
+}
+
+
+static int
+on_cdata(dtd_parser *p, data_type type, int len, const char *data)
+{ return on_data(p, type, len, data, NULL);
+}
+
+
+static int
+on_cwdata(dtd_parser *p, data_type type, int len, const wchar_t *data)
+{ return on_data(p, type, len, NULL, data);
 }
 
 
@@ -1490,6 +1515,7 @@ pl_sgml_parse(term_t parser, term_t options)
     p->on_entity	= on_entity;
     p->on_pi		= on_pi;
     p->on_data          = on_cdata;
+    p->on_wdata         = on_cwdata;
     p->on_error	        = on_error;
     p->on_xmlns		= on_xmlns;
     p->on_decl		= on_decl;
