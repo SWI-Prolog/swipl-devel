@@ -298,8 +298,8 @@ fill_dialog(Draw, D:dialog) :->
 	send(RL, alignment, left),
 
 	send(MB, append, new(F, popup(file))),
-	send(MB, append, new(P, popup(proto))),
 	send(MB, append, new(E, popup(edit))),
+	send(MB, append, new(P, popup(proto))),
 	send(MB, append, new(S, popup(settings))),
 
 	new(UM, message(@arg1?frame, select_mode)),
@@ -387,11 +387,11 @@ fill_dialog(Draw, D:dialog) :->
 		  [ menu_item(undo,
 			      message(UndoBuffer, open, Draw),
 			      condition := message(UndoBuffer, can_undo))
-		  , menu_item(expose,
+		  , menu_item(send_to_foreground,
 			      message(Canvas, expose_selection),
 			      @default, @off,
 			      NonEmptySelection)
-		  , menu_item(hide,
+		  , menu_item(send_to_background,
 			      message(Canvas, hide_selection),
 			      @default, @on,
 			      NonEmptySelection)

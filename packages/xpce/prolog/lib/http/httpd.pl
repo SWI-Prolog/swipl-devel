@@ -19,7 +19,7 @@ allow a browser to contact the running system.
 
 The typical way to use this module is   by  refining the class httpd and
 then  redefining  ->request.  Request   typically    uses   ->reply   or
-->reply_html to issue a reply.
+->reply_html to send a reply.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- pce_begin_class(httpd, socket, "The HTTP deamon socket").
@@ -153,6 +153,14 @@ builtin_request(S, Header:sheet) :->
 	get(@pce, object_from_reference, ObjRef, Obj),
 	send(S, reply, Obj).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+->request
+
+Virtual method. To use  this  class,   always  subclass  it and redefine
+->request. The reference implementation  here  is   used  to  test basic
+communication and responses.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 request(S, Header:sheet) :->
 	"Process a request.  The argument is the header"::
 	(   get(Header, path, '/no')
@@ -168,6 +176,33 @@ request(S, Header:sheet) :->
 
 :- pce_group(reply).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+->reply
+
+Send a reply to the  client.  This  method   is  used  to  reply using a
+complete object. If HTML generation is required   it may be desirable to
+use ->reply_html, which uses library(html_write) to   produce  HTML in a
+user-friendly way.
+
+Typically, the data for reply is  a   string,  a  text_buffer, a file, a
+resource or an image. Images are encoded  in jpeg and sent as image/jpeg
+mime-type or as GIF of the provided   mime-type is image/gif. Other data
+is sent as text/plain unless specified.
+
+Messages with status other than "200 OK"  are normally send using one of
+the specialised methods from the *error* group (see below).
+
+Finally, optional extra header information may be send. Please check the
+HTTP1.1 documentation at
+
+	http://www.w3.org/Protocols/rfc2616/rfc2616.html
+
+Some useful extra header fields:
+
+	Cache-Control:	no-cache	% Do not cache this data
+	Expires: <date>			% Set expiration-date
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 reply(S,
       Reply:data='string|source_sink|pixmap',
       Type:type=[name],
@@ -179,10 +214,11 @@ reply(S,
 	;   send(Reply, instance_of, image)
 	->  new(TB, text_buffer),
 	    send(TB, undo_buffer_size, 0),
-	    send(Reply, save, TB, jpeg),
+	    default(Type, 'image/jpeg', TheType),
+	    atom_concat('image/', ImgType, TheType),
+	    send(Reply, save, TB, ImgType),
 	    get(TB, contents, Data),
-	    free(TB),
-	    TheType = 'image/jpeg'
+	    free(TB)
 	;   Data = Reply
 	),
 	(   var(TheType)

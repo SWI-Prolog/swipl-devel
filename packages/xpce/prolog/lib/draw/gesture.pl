@@ -1437,13 +1437,13 @@ make_draw_shape_popup_gesture(G) :-
 			      block(message(Canvas, selection, Gr),
 				    message(Canvas, edit_selection)),
 			      @default, @on)
-		  , menu_item(hide,
-			      message(Canvas, edit,
-				      message(@arg1, hide), Gr))
-		  , menu_item(expose,
+		  , menu_item(send_to_foreground,
 			      message(Canvas, edit,
 				      message(@arg1, expose), Gr),
 			      @default, @on)
+		  , menu_item(send_to_background,
+			      message(Canvas, edit,
+				      message(@arg1, hide), Gr))
 		  ]),
 
 	new(G, draw_draw_shape_popup_gesture(P)).
