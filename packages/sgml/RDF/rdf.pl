@@ -45,17 +45,30 @@ load_rdf(File, Triples, Options) :-
 		       [ dialect(xmlns),
 			 space(sgml)
 		       ]),
-	rdf_reset_node_ids,		% make sure
-	xml_to_rdf(RDFElement, BaseURI, Triples0),
-	rdf_reset_node_ids,
+	set_anon_prefix(BaseURI, Refs),
+	call_cleanup(xml_to_rdf(RDFElement, BaseURI, Triples0),
+		     cleanup_load([Refs])),
 	post_process(Options, Triples0, Triples).
-
 	
 %	xml_to_rdf(+XML, +BaseURI, -Triples)
 
 xml_to_rdf(XML, BaseURI, Triples) :-
 	xml_to_plrdf(XML, BaseURI, RDF),
 	rdf_triples(RDF, Triples).
+
+set_anon_prefix([], []) :- !.
+set_anon_prefix(BaseURI, [Ref]) :-
+	atom_concat(BaseURI, '#', AnonBase),
+	asserta(anon_prefix(AnonBase), Ref).
+
+cleanup_load(Refs) :-
+	rdf_reset_node_ids,
+	erase_refs(Refs).
+
+erase_refs([]).
+erase_refs([H|T]) :-
+	erase(H),
+	erase_refs(T).
 
 
 		 /*******************************
@@ -112,13 +125,17 @@ process_rdf(File, BaseURI, OnObject) :-
 	set_sgml_parser(Parser, file(File)),
 	set_sgml_parser(Parser, dialect(xmlns)),
 	set_sgml_parser(Parser, space(remove)),
-	sgml_parse(Parser,
-		   [ source(In),
-		     call(begin, rdf:on_begin),
-		     call(end, rdf:on_end)
-		   ]),
+	set_anon_prefix(BaseURI, Refs),
+	call_cleanup(sgml_parse(Parser,
+				[ source(In),
+				  call(begin, rdf:on_begin),
+				  call(end, rdf:on_end)
+				]),
+		     rdf:cleanup_process(In, [Ref|Refs])).
+
+cleanup_process(In, Refs) :-
 	close(In),
-	erase(Ref),
+	erase_refs(Refs),
 	rdf_reset_node_ids.
 
 on_end(NS:'RDF', _) :-

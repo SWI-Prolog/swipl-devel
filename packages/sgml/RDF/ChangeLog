@@ -1,3 +1,11 @@
+Feb 28, 2003
+
+  * ADDED: Use BaseURI to create non-conflicting anonymous resources.
+
+  * FIXED: rdf_parser:global_id to ignore xml:base for absolute URIs
+
+Jan 17, 2003
+
   * FIXED: online.pl (web frontend) to avoid using goal/1 option for the
     xml parser.  Now uses 4.0.8 clib memfile library primitives.
 

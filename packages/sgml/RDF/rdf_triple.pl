@@ -14,10 +14,10 @@
 	  [ rdf_triples/2,		% +Parsed, -Tripples
 	    rdf_triples/3,		% +Parsed, -Tripples, +Tail
 	    rdf_reset_ids/0,		% Reset gensym id's
-	    rdf_reset_node_ids/0	% Reset nodeID --> Node__xxx table
+	    rdf_reset_node_ids/0,	% Reset nodeID --> Node__xxx table
+	    anon_prefix/1		% Prefix for anonynmous resources
 	  ]).
 :- use_module(library(gensym)).
-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Convert the output of xml_to_rdf/3  from   library(rdf)  into  a list of
@@ -106,7 +106,7 @@ triples(description(Type, IdAbout, BagId, Props), Subject) -->
 		   | Props
 		   ], BagId, Subject).
 triples(unparsed(Data), Id) -->
-	{ gensym('Error__', Id),
+	{ make_id('Error__', Id),
 	  print_message(error, rdf(unparsed(Data)))
 	},
 	[].
@@ -146,8 +146,12 @@ li(V, N, Id) -->
 container_id(_, Id) :-
 	nonvar(Id), !.
 container_id(Type, Id) :-
-	atom_concat(Type, '__', Base),
-	gensym(Base, Id).
+	container_base(Type, Base),
+	make_id(Base, Id).
+
+container_base('Bag', 'Bag__').
+container_base('Seq', 'Seq__').
+container_base('Alt', 'Alt__').
 
 
 		 /*******************************
@@ -162,7 +166,7 @@ rdf_reset_node_ids :-
 
 description_id(Id, Id) :-
 	var(Id), !,
-	gensym('Description__', Id).
+	make_id('Description__', Id).
 description_id(about(Id), Id).
 description_id(id(Id), Id).
 description_id(each(Id), each(Id)).
@@ -170,7 +174,7 @@ description_id(prefix(Id), prefix(Id)).
 description_id(node(NodeID), Id) :-
 	(   node_id(NodeID, Id)
 	->  true
-	;   gensym('Node__', Id),
+	;   make_id('Node__', Id),
 	    assert(node_id(NodeID, Id))
 	).
 
@@ -264,7 +268,7 @@ statement(Subject, Pred, Object, Id, BagH, BagT) -->
 statement_id(Id) :-
 	nonvar(Id), !.
 statement_id(Id) :-
-	gensym('Statement__', Id).
+	make_id('Statement__', Id).
 
 %	li_pred(+Pred, -Pred, +Nth, -NextNth)
 %	
@@ -284,7 +288,7 @@ collection([], rdf:nil) -->
 	[].
 collection([H|T], Id) -->
 	triples(H, HId),
-	{ gensym('List__', Id)
+	{ make_id('List__', Id)
 	},
 	[ rdf(Id, rdf:type, rdf:'List'),
 	  rdf(Id, rdf:first, HId),
@@ -297,6 +301,24 @@ collection([H|T], Id) -->
 		 *	       UTIL		*
 		 *******************************/
 
+:- thread_local
+	anon_prefix/1.
+
+make_id(For, ID) :-
+	anon_prefix(Prefix), !,
+	atom_concat(Prefix, For, Base),
+	gensym(Base, ID).
+make_id(For, ID) :-
+	gensym(For, ID).
+
+anon_base('Bag__').
+anon_base('Seq__').
+anon_base('Alt__').
+anon_base('Description__').
+anon_base('Statement__').
+anon_base('List__').
+anon_base('Node__').
+
 %	rdf_reset_ids
 %
 %	Utility predicate to reset the gensym counters for the various
@@ -304,10 +326,16 @@ collection([H|T], Id) -->
 %	output with the stored desired output (see rdf_test.pl).
 
 rdf_reset_ids :-
-	reset_gensym('Bag__'),
-	reset_gensym('Seq__'),
-	reset_gensym('Alt__'),
-	reset_gensym('Description__'),
-	reset_gensym('Statement__'),
-	reset_gensym('List__'),
-	reset_gensym('Node__').
+	anon_prefix(Prefix), !,
+	(   anon_base(Base),
+	    atom_concat(Prefix, Base, X),
+	    reset_gensym(X),
+	    fail
+	;   true
+	).
+rdf_reset_ids :-
+	(   anon_base(Base),
+	    reset_gensym(Base),
+	    fail
+	;   true
+	).

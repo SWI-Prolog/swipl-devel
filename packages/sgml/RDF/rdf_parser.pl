@@ -330,7 +330,10 @@ uri(URI, Base) ::=
 globalid(Id, Base) ::=
 	A,
 	{   Base \== []
-	->  concat_atom([Base, A], #, Id)
+	->  (   is_absolute_url(A)
+	    ->	Id = A
+	    ;	concat_atom([Base, A], #, Id)
+	    )
 	;   sub_atom(A, 0, _, _, #)
 	->  sub_atom(A, 1, _, 0, Id)
 	;   Id = A
