@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Properly deal with := in variable initialisations if the value is
+  shareable, but converted to a non-shareable value due to the variable
+  type.  Anjo Anjewierden.
+
 * ADDED: `date<-xml_string' and extended `date<-convert' to deal with XML
   Schema dateTime representation.
 

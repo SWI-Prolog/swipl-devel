@@ -2358,6 +2358,7 @@
   BUILTIN_NAME("xfsz")
   BUILTIN_NAME("xfx")
   BUILTIN_NAME("xfy")
+  BUILTIN_NAME("xml_string")
   BUILTIN_NAME("xor")
   BUILTIN_NAME("xpm")
   BUILTIN_NAME("xref")
@@ -2376,4 +2377,3 @@
   BUILTIN_NAME("yref")
   BUILTIN_NAME("yref_var")
   BUILTIN_NAME("zoom")
-  BUILTIN_NAME("xml_string")

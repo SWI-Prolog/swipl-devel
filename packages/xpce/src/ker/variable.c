@@ -234,22 +234,35 @@ initFunctionVariable(Variable var, Any f)
 }
 
 
-status
-initialValueVariable(Variable var, Any value)
+static int
+is_shareable(Any value)
 { if ( instanceOfObject(value, ClassConstant) ||
        instanceOfObject(value, ClassName) ||
        isInteger(value) )
+    succeed;
+
+  fail;
+}
+
+
+status
+initialValueVariable(Variable var, Any value)
+{ if ( is_shareable(value) )
   { Any val = checkType(value, var->type, NIL);
 
     if ( !val )
       return errorPce(value, NAME_unexpectedType, var->type);
 
-    allocValueVariable(var, val);
-    initFunctionVariable(var, NIL);
-  } else
-  { allocValueVariable(var, NIL);
-    initFunctionVariable(var, value);
+    if ( val == value || is_shareable(val) ) /* still the case? */
+    { allocValueVariable(var, val);
+      initFunctionVariable(var, NIL);
+
+      succeed;
+    }
   }
+
+  allocValueVariable(var, NIL);
+  initFunctionVariable(var, value);
 
   succeed;
 }
