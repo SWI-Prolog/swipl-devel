@@ -1898,11 +1898,6 @@ Sread_terminal(void *handle, char *buf, int size)
 
   LD->read_source = oldsrc;
 
-#ifdef __WIN32__
-  if ( size > 0 )			/* Why needed only here? */
-    protocol(buf, size);		/* and what is the correct condition */
-#endif
-
   return size;
 }
 
