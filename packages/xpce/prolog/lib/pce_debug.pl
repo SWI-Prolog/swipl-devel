@@ -208,19 +208,17 @@ report_redefined_method(method(_, _, B0, B1)) :-
 	arg(1, B1, Id1),
 	Id0 \== Id1, !.
 report_redefined_method(method(Class, Sel, B0, B1)) :-
-	describe_location(B0, Loc0),
 	describe_location(B1, Loc1),
-	(   functor(B0, bind_send, _)
-	->  Arrow = (->)
-	;   Arrow = (<-)
+	(   Loc1 = File:Line
+	->  Loc = file(File, Line)
+	;   true
 	),
-	send(@pce, format,
-	     '%s: %s%s%s redefined\n\tFirst definition at %s\n',
-	     Loc1, Class, Arrow, Sel, Loc0).
+	print_message(error,
+		      error(pce(redefined_method(Class, Sel, B0, B1)),
+			    Loc)).
 
-describe_location(Binder, Desc) :-
-	genarg(_, Binder, source_location(File, Line)), !,
-	concat_atom([File, Line], :, Desc).
+describe_location(Binder, File:Line) :-
+	genarg(_, Binder, source_location(File, Line)), !.
 describe_location(_, '<no source>').
 
 
@@ -354,3 +352,23 @@ pce_display_call(M) :-
 test(Goal, _) :-
 	Goal, !.
 test(_, no).
+
+		 /*******************************
+		 *	      MESSAGES		*
+		 *******************************/
+
+
+:- multifile
+	prolog:message/3.
+
+prolog:message(error(pce(redefined_method(Class, Sel, B0, B1)), _)) -->
+	{ describe_location(B0, Loc0),
+	  describe_location(B1, Loc1),
+	  (   functor(B0, bind_send, _)
+	  ->  Arrow = (->)
+	  ;   Arrow = (<-)
+	  )
+	},
+	[ '~w: ~w~w~w redefined'-[Loc1, Class, Arrow, Sel], nl,
+	  '\tFirst definition at ~w'-[Loc0]
+	].
