@@ -64,9 +64,7 @@ initiateEditTextGesture(EditTextGesture g, EventObj ev)
     fail;
 
   if ( origin )
-  { PceWindow sw = getWindowGraphical((Graphical)t);
-
-    assign(g, selection_origin, origin);
+  { assign(g, selection_origin, origin);
     send(t, NAME_caret, origin, EAV);
     send(t, NAME_selection, NIL, EAV);
     assign(g, activate, ON);

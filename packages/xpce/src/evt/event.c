@@ -47,6 +47,7 @@ static int	         multi_click_diff = 4;
 static int	         last_click_type  = CLICK_TYPE_triple;
 static int		 loc_still_posted = TRUE;
 static unsigned long	 host_last_time   = 0;
+static int		 loc_still_time	  = 400;
 
 static status
 initialiseEvent(EventObj e, Name id, Any window,
@@ -130,9 +131,11 @@ initialiseEvent(EventObj e, Name id, Any window,
   if ( !onFlag(window, F_FREED|F_FREEING) )
     last_window = window;
 
+#if 0
   if ( e->id != NAME_locMove )
     loc_still_posted = TRUE;
   else
+#endif
     loc_still_posted = FALSE;
 
   succeed;
@@ -147,8 +150,10 @@ considerLocStillEvent()
 { if ( !loc_still_posted )
   { unsigned long now = mclock();
 
-    if ( now - host_last_time < 700 )
+    if ( now - host_last_time < loc_still_time )
+    { DEBUG(NAME_locStill, Cprintf("TimeDiff = %d (ignored)\n", now - host_last_time));
       return;
+    }
 
     if ( !pceMTTryLock(LOCK_PCE) )
       return;
@@ -170,6 +175,7 @@ considerLocStillEvent()
 		    rewindAnswerStack(mark, NIL);		   
 		  })
     }
+    loc_still_posted = TRUE;
     pceMTUnlock(LOCK_PCE);
   }
 }
@@ -954,7 +960,9 @@ static getdecl get_event[] =
 
 static classvardecl rc_event[] =
 { RC(NAME_x11WheelMouse, "bool", UXWIN("@on", "@off"),
-     "Enable/disable wheel-mouse emulation on button 4 and 5")
+     "Enable/disable wheel-mouse emulation on button 4 and 5"),
+  RC(NAME_locStillTime, "int", "400",
+     "Time before generating a loc_still event in milliseconds")
 };
 
 /* Class Declaration */
@@ -969,10 +977,15 @@ ClassDecl(event_decls,
 
 status
 makeClassEvent(Class class)
-{ declareClass(class, &event_decls);
+{ Int t;
+
+  declareClass(class, &event_decls);
   cloneStyleVariableClass(class, NAME_receiver, NAME_reference);
   cloneStyleVariableClass(class, NAME_window,   NAME_reference);
   init_event_tree();
+
+  if ( (t=getClassVariableValueClass(class, NAME_locStillTime)) )
+    loc_still_time = valInt(t);
 
   succeed;
 }

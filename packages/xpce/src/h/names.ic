@@ -1284,6 +1284,7 @@
   BUILTIN_NAME("loaded")
   BUILTIN_NAME("loc_move")
   BUILTIN_NAME("loc_still")
+  BUILTIN_NAME("loc_still_time")
   BUILTIN_NAME("local")
   BUILTIN_NAME("local_table")
   BUILTIN_NAME("locate_event")
