@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Focus handling bug opening text_item combobox (for completions).
+
 * FIXED: User cancel of `display<-win_file_name' (used by find_file.pl
   to return a filename on a Windows platform).  Reported by Jelmer
   Jellema.
