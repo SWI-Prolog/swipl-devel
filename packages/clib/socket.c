@@ -372,6 +372,8 @@ tcp_get_sockaddr(term_t Address, struct sockaddr_in *addr)
   if ( hostName )
   { if( !(host = gethostbyname(hostName)) )
       return tcp_error(h_errno, h_errno_codes);
+    if ( sizeof(addr->sin_addr) < host->h_length )
+      return PL_warning("Oops, host address too long!");
     memcpy(&addr->sin_addr, host->h_addr, host->h_length);
   } else
     addr->sin_addr.s_addr = INADDR_ANY;
@@ -433,9 +435,11 @@ tcp_host_to_address(term_t Host, term_t Ip)
 
   if ( PL_get_atom_chars(Host, &host_name) )
   { if ( (host = gethostbyname(host_name)) )
-    { assert(sizeof(ip) == host->h_length);
-      memcpy(&ip, host->h_addr, host->h_length);
-      return tcp_unify_ip(Ip, &ip, TRUE);
+    { if ( sizeof(ip) == host->h_length )
+      { memcpy(&ip, host->h_addr, host->h_length);
+	return tcp_unify_ip(Ip, &ip, TRUE);
+      } else
+	return PL_warning("tcp_host_to_address/2: length mismatch in address");
     } else
       return tcp_error(h_errno, h_errno_codes);
   } else if ( tcp_get_ip(Ip, &ip) )
