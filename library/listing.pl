@@ -305,7 +305,7 @@ portray_meta(Out, Term, N, Indent) :-
 	functor(Term, Name, _), 
 	write(Out, Name), write(Out, '(('), 
 	succ(Indent, CallIndent), 
-	portray_body(Out, Arg, CallIndent, indent), 
+	portray_body(Arg, CallIndent, indent, Out), 
 	nl(Out), portray_indent(Out, CallIndent), 
 	write(Out, '))').	
 portray_meta(Out, Term, _, _) :-
