@@ -1224,6 +1224,8 @@ default_printer(Canvas, Printer:name) :<-
 	send(D, append, button(ok, message(D, return, P?selection))),
 	send(D, append, button(cancel, message(D, return, @nil))),
 	send(D, default_button, ok),
+	send(D, transient_for, Draw),
+	send(D, modal, transient),
 	get(D, confirm_centered, Canvas?frame?area?center, Answer),
 	send(D, destroy),
 	Answer \== @nil,
