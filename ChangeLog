@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Avoid calling flatten from library(lists) in toplevel.pl.
+    Wouter Jansweijer.
+
   * FIXED: PL_open_query() on auto-loaded procedures cause data corruption.
 
   * FIXED: IOSTREAM Locking problem in set_stream/2.

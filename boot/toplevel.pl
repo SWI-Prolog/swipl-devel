@@ -452,21 +452,25 @@ $system_prompt(Module, BrekLev, Prompt) :-
 	atom_chars(Prompt, P3).
 	
 $substitute(From, T, Old, New) :-
-	convert_to(T, T0),
-	flatten(T0, To),
+	phrase(subst_chars(T), T0),
 	$append(Pre, S0, Old),
 	$append(From, Post, S0) ->
-	$append(Pre, To, S1),
+	$append(Pre, T0, S1),
 	$append(S1, Post, New), !.
 $substitute(_, _, Old, Old).
 	
-convert_to([], []).
-convert_to([A|T], [S|R]) :-
-	atomic(A), !,
-	name(A, S),
-	convert_to(T, R).
-convert_to([S|T], [S|R]) :-
-	convert_to(T, R).
+subst_chars([]) -->
+	[].
+subst_chars([H|T]) -->
+	{ atomic(H), !,
+	  atom_codes(H, Codes)
+	},
+	Codes,
+	subst_chars(T).
+subst_chars([H|T]) -->
+	H,
+	subst_chars(T).
+
 
 		/********************************
 		*           EXECUTION		*
