@@ -3552,7 +3552,7 @@ timegm(struct tm *tm)
     strcat(oenv, otz);
     putenv(oenv);
   } else if ( otz )
-  { Cprintf("Too long value for TZ: %s", otz);
+  { Sdprintf("Too long value for TZ: %s", otz);
     t = mktime(tm);
   } else				/* not set, what to do? */
   { t = mktime(tm);
