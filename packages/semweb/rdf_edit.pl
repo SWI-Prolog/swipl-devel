@@ -79,7 +79,7 @@
 	transaction_name/2,		% TID, Name
 	undo_marker/2,			% Mode, TID
 	journal/3,			% Path, Mode, Stream
-	modified/1.			% Path
+	unmodified_md5/2.		% Path, MD5
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This library provides a number of functions on top of the rdf_db module:
@@ -144,8 +144,7 @@ rdfe_assert(Subject, Predicate, Object, PayLoad) :-
 	rdf_assert(Subject, Predicate, Object, PayLoad),
 	rdfe_current_transaction(TID),
 	assert_action(TID, assert(PayLoad), Subject, Predicate, Object),
-	journal(assert(TID, Subject, Predicate, Object, PayLoad)),
-	set_modified(PayLoad).
+	journal(assert(TID, Subject, Predicate, Object, PayLoad)).
 
 rdfe_retractall(Subject, Predicate, Object) :-
 	rdfe_retractall(Subject, Predicate, Object, _).
@@ -155,7 +154,6 @@ rdfe_retractall(Subject, Predicate, Object, PayLoad) :-
 	(   rdf(Subject, Predicate, Object, PayLoad),
 	    assert_action(TID, retract(PayLoad), Subject, Predicate, Object),
 	    journal(retract(TID, Subject, Predicate, Object, PayLoad)),
-	    set_modified(PayLoad),
 	    fail
 	;   true
 	),
@@ -175,8 +173,6 @@ rdfe_retractall(Subject, Predicate, Object, PayLoad) :-
 
 rdfe_update(Subject, Predicate, Object, Action) :-
 	rdfe_current_transaction(TID),
-	forall(rdf(Subject, Predicate, Object, PayLoad),
-	       set_modified(PayLoad)),		% Dubious; move to rdf_db.c?
 	rdf_update(Subject, Predicate, Object, Action),
 	(   Action = object(New)
 	->  assert_action(TID, object(Object), Subject, Predicate, New)
@@ -193,7 +189,6 @@ rdfe_update(Subject, Predicate, Object, Action) :-
 
 rdfe_update(Subject, Predicate, Object, PayLoad, Action) :-
 	rdfe_current_transaction(TID),
-	set_modified(PayLoad),
 	(   Action = source(New)
 	->  assert_action(TID, source(PayLoad, New),
 			  Subject, Predicate, Object)
@@ -610,24 +605,34 @@ user_transaction_member(Update, Subject, Predicate, Object,
 		 *	     MODIFIED		*
 		 *******************************/
 
-set_modified(File:_Line) :-
-	atom(File), !,
-	set_modified(File).
-set_modified(File) :-
-	modified(File), !.
-set_modified(File) :-
-	assert(modified(File)).
-
 %	rdfe_is_modified(?File)
 %	
 %	True if facts have been added, deleted or updated that have File
 %	as `payload'.
 
 rdfe_is_modified(File) :-
-	modified(File).
+	rdf_source(File),
+	rdf_md5(File, MD5),
+	(   unmodified_md5(File, UnmodifiedMD5)
+	->  true
+	;   rdf_db:rdf_source(File, _Time, _Triples, UnmodifiedMD5)
+	),
+	UnmodifiedMD5 \== MD5.
+
+
+rdfe_clear_modified :-
+	forall(rdf_source(File),
+	       rdfe_clear_modified(File)).
 
 rdfe_clear_modified(File) :-
-	retractall(modified(File)).
+	atom(File),
+	retractall(unmodified_md5(File, _)),
+	rdf_md5(File, MD5),
+	(   rdf_db:rdf_source(File, _Time, _Triples, UnmodifiedMD5),
+	    MD5 == UnmodifiedMD5
+	->  true
+	;   assert(unmodified_md5(File, MD5))
+	).
 
 
 		 /*******************************
@@ -671,7 +676,7 @@ rdfe_reset_undo :-
 	retractall(current_transaction(_)),
 	retractall(transaction_name(_,_)),
 	retractall(undo_marker(_,_)),
-	retractall(modified(_)).
+	retractall(unmodified_md5(_)).
 
 %	close possible open journal at exit.  Using a Prolog hook
 %	guarantees closure, even for most crashes.
@@ -694,7 +699,7 @@ rdfe_open_journal(File, read) :- !,
 			   ],
 			   Path),
 	rdfe_replay_journal(Path),
-	rdfe_clear_modified(_).
+	rdfe_clear_modified.
 rdfe_open_journal(File, write) :- !,
 	absolute_file_name(File,
 			   [ extensions([rdfj, '']),
@@ -713,7 +718,7 @@ rdfe_open_journal(File, append) :-
 			   Path),
 	(   exists_file(Path)
 	->  rdfe_replay_journal(Path),
-	    rdfe_clear_modified(_),
+	    rdfe_clear_modified,
 	    get_time(T),
 	    assert(journal(Path, append(T), []))
 	;   rdfe_open_journal(Path, write)

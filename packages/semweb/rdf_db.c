@@ -705,6 +705,7 @@ lookup_source(atom_t name, int create)
   src = PL_malloc(sizeof(*src));
   memset(src, 0, sizeof(*src));
   src->name = name;
+  src->md5 = TRUE;
   PL_register_atom(name);
   src->next = source_table[hash];
   source_table[hash] = src;
@@ -751,10 +752,11 @@ register_source(triple *t)
 
   src->triple_count++;
 #ifdef WITH_MD5
-{ md5_byte_t digest[16];
-  md5_triple(t, digest);
-  sum_digest(src->digest, digest);
-}
+  if ( src->md5 )
+  { md5_byte_t digest[16];
+    md5_triple(t, digest);
+    sum_digest(src->digest, digest);
+  }
 #endif
 }
 
@@ -775,10 +777,11 @@ unregister_source(triple *t)
 
   src->triple_count--;
 #ifdef WITH_MD5
-{ md5_byte_t digest[16];
-  md5_triple(t, digest);
-  dec_digest(src->digest, digest);
-}
+  if ( src->md5 )
+  { md5_byte_t digest[16];
+    md5_triple(t, digest);
+    dec_digest(src->digest, digest);
+  }
 #endif
 }
 
@@ -1124,11 +1127,16 @@ Quick Load Format (implemented in pl-wic.c).
 
 	<file> 		::= <magic>
 			    <version>
+			    [<source-file>]
+			    [<md5>]
 			    {<triple>}
 			    'E'
 
 	<magic> 	::= "RDF-dump\n"
 	<version> 	::= <integer>
+
+	<md5>		::= 'M'
+			    <byte>* 		(16 bytes digest)
 
 	<triple>	::= 'T'
 	                    <subject>
@@ -1149,7 +1157,9 @@ Quick Load Format (implemented in pl-wic.c).
 
 	<string>	::= <integer><bytes>
 
-	<source>	::= <atom>
+	<source-file>	::= <atom>
+
+	<source>	::= <source-file>
 			    <line>
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -1293,6 +1303,21 @@ write_triple(IOSTREAM *out, triple *t)
 }
 
 
+static void
+write_md5(IOSTREAM *out, atom_t src)
+{ source *s = lookup_source(src, FALSE);
+
+  if ( s )
+  { md5_byte_t *p = s->digest;
+    int i;
+
+    Sputc('M', out);
+    for(i=0; i<16; i++)
+      Sputc(*p++, out);
+  }
+}
+
+
 static int
 save_db(IOSTREAM *out, atom_t src)
 { triple *t;
@@ -1302,7 +1327,14 @@ save_db(IOSTREAM *out, atom_t src)
 
   Sfprintf(out, "%s", SAVE_MAGIC);
   save_int(out, SAVE_VERSION);
-  
+  if ( src )
+  { Sputc('S', out);
+    save_atom(out, src);
+    write_md5(out, src);
+  }
+  if ( Sferror(out) )
+    return FALSE;
+
   for(t = by_none; t; t = t->next[BY_NONE])
   { if ( !t->erased &&
 	 (!src || t->source == src) )
@@ -1381,6 +1413,9 @@ typedef struct ld_context
 { long		loaded_id;
   atom_t       *loaded_atoms;
   long		atoms_size;
+  source       *source;
+  md5_byte_t    digest[16];
+  int		md5;
 } ld_context;
 
 
@@ -1450,9 +1485,7 @@ load_triple(IOSTREAM *in, ld_context *ctx)
   t->object = load_atom(in, ctx);
   t->source = load_atom(in, ctx);
   t->line   = load_int(in);
-  LOCK();
   link_triple(t);
-  UNLOCK();
 
   return TRUE;
 }
@@ -1483,22 +1516,47 @@ load_db(IOSTREAM *in)
   
   memset(&ctx, 0, sizeof(ctx));
 
+  LOCK();
   while((c=Sgetc(in)) != EOF)
   { switch(c)
     { case 'T':
 	if ( !load_triple(in, &ctx) )
 	  return FALSE;
         break;
+      case 'S':
+	ctx.source = lookup_source(load_atom(in, &ctx), TRUE);
+        break;
+      case 'M':
+      { int i;
+
+	for(i=0; i<16; i++)
+	  ctx.digest[i] = Sgetc(in);
+
+	if ( ctx.source && ctx.source->md5 )
+	{ ctx.md5 = ctx.source->md5;
+	  ctx.source->md5 = FALSE;
+	}
+
+	break;
+      }
       case 'E':
 	if ( ctx.loaded_atoms )
 	  PL_free(ctx.loaded_atoms);
+
+        if ( ctx.md5 )
+	{ sum_digest(ctx.source->digest, ctx.digest);
+	  ctx.source->md5 = ctx.md5;
+	}
+
         generation++;
+	UNLOCK();
 	return TRUE;
       default:
 	break;
     }
   }
   
+  UNLOCK();
   return PL_warning("Illegal RDF triple file");
 }
 

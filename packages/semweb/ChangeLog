@@ -1,3 +1,9 @@
+Sep 29, 2003
+
+  * ENHANCED: Store and reload MD5 using rdf_save_db and rdf_load_db for
+    speedup of loading and (possible now) verify the integrety of a quick
+    load triple file.
+
 Sep 27, 2003
 
   * ADDED: 1st version of MD5 digest from loaded sources
