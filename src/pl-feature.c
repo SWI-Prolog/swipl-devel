@@ -738,6 +738,7 @@ initFeatures()
   defFeature("allow_variable_name_as_functor", FT_BOOL, FALSE,
 	     ALLOW_VARNAME_FUNCTOR);
   defFeature("toplevel_var_size", FT_INTEGER, 1000);
+  defFeature("toplevel_print_anon", FT_BOOL, TRUE, 0);
   defFeature("file_name_variables", FT_BOOL, FALSE, FILEVARS_FEATURE);
 #ifdef __unix__
   defFeature("unix", FT_BOOL|FF_READONLY, TRUE, 0);
