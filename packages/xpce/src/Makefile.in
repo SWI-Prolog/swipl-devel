@@ -66,6 +66,7 @@ LDCONFIG=@LDCONFIG@
 YACC=@YACC@
 PL=@PL@
 PLBUILD=@PLBUILD@
+PLLD=@PLLD@
 PLNAME=@PLNAME@
 MKPROTO=mkproto -p
 CLPROTO=grep -vw NewClass
@@ -201,7 +202,7 @@ xpce-pl:	xpce pl-itf
 pl-itf:		pl
 		cd ../pl/src; \
 		CANONICAL_PATHS=$(PCEHOME); export CANONICAL_PATHS; \
-		$(MAKE) PL=$(PLBUILD) $(PLTARGET)
+		$(MAKE) PLLD=$(PLLD) PL=$(PLBUILD) $(PLTARGET)
 
 pl-shared:	pl
 		cd ../pl/src; \

@@ -8,6 +8,7 @@ AC_SUBST(NETLIBS)
 AC_SUBST(PL)		dnl specified Prolog
 AC_SUBST(PLBUILD)	dnl the one to use while building
 AC_SUBST(PLNAME)	dnl the plain filename
+AC_SUBST(PLLD)
 AC_SUBST(PLLIBS)
 AC_SUBST(PLBASE)
 AC_SUBST(PLARCH)
@@ -167,8 +168,10 @@ if test "$swipl" != "no"; then
          AC_CHECKING("Running $PL -dump-runtime-variables")
          eval `$PL -dump-runtime-variables`
 	 PLBUILD="$PL"
+	 PLLD=plld
      else
          PLBUILD="`(cd ../../../$BUILDDIR && pwd)`/$PL"
+         PLLD="`(cd ../../../$BUILDDIR && pwd)`/plld"
      fi
   fi
   PLNAME=`basename $PL`
