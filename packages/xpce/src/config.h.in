@@ -271,5 +271,11 @@
 /* Define if you have the <sys/times.h> header file.  */
 #undef HAVE_SYS_TIMES_H
 
+/* Define if you have the <termio.h> header file.  */
+#undef HAVE_TERMIO_H
+
+/* Define if you have the <termios.h> header file.  */
+#undef HAVE_TERMIOS_H
+
 /* Define if you have the <unistd.h> header file.  */
 #undef HAVE_UNISTD_H

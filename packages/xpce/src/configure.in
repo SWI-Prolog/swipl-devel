@@ -516,7 +516,7 @@ AC_CHECK_LIB(nsl, t_bind,
 AC_CHECK_HEADERS(unistd.h string.h memory.h sys/time.h sys/file.h pwd.h)
 AC_CHECK_HEADERS(sys/select.h sys/param.h malloc.h sys/resource.h stropts.h)
 AC_CHECK_HEADERS(frame.h sys/timeb.h sys/times.h siginfo.h bstring.h)
-AC_CHECK_HEADERS(sys/socketvar.h conio.h sys/access.h)
+AC_CHECK_HEADERS(sys/socketvar.h conio.h sys/access.h termios.h termio.h)
 AC_CHECK_FUNCS(vsscanf on_exit memmove select popen strerror timelocal)
 AC_CHECK_FUNCS(getdtablesize socket fork ftime getpid select getlogin)
 AC_CHECK_FUNCS(getcwd setsid grantpt gethostname fstat gettimeofday)

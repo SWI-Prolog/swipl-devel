@@ -826,7 +826,7 @@ dv-pl-files:
 
 dv-qlf:		
 		cd $(RTHOME)/prolog/lib; \
-		make PL=$(PLBINDIR)/xpce
+		$(MAKE) PL=$(PLBINDIR)/xpce
 
 dv-bins:
 		(cd $(bindir); \
