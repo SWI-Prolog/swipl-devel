@@ -130,7 +130,7 @@ inputStream(Stream s, Int fd)
       s->rdfd = valInt(fd);		/* Unix only! */
   }
 
-  if ( notNil(s->input_message) )
+/*if ( notNil(s->input_message) )*/
     ws_input_stream(s);
 
   succeed;
@@ -295,7 +295,9 @@ handleInputStream(Stream s)
     fail;
 
   if ( (n = ws_read_stream_data(s, buf, BLOCKSIZE, DEFAULT)) > 0 )
-  { if ( isNil(s->record_separator) && !s->input_buffer )
+  { if ( isNil(s->input_message) )	/* modal */
+      add_data_stream(s, buf, n);
+    else if ( isNil(s->record_separator) && !s->input_buffer )
     { string q;
       Any str;
       AnswerMark mark;
@@ -409,11 +411,8 @@ waitStream(Stream s)
 
 static StringObj
 getReadLineStream(Stream s, Real timeout)
-{ for(;;)
-  { int done;
-    char buf[BLOCKSIZE];
-
-    if ( s->input_buffer )
+{ while(s->rdfd >= 0)
+  { if ( s->input_buffer )
     { unsigned char *q;
       int n;
 
@@ -435,23 +434,11 @@ getReadLineStream(Stream s, Real timeout)
       DEBUG(NAME_stream, Cprintf("No newline, reading\n"));
     }
 
-    done = ws_read_stream_data(s, buf, sizeof(buf), timeout);
-    switch(done)
-    { case -2:				/* timeout */
-	fail;
-      case -1:				/* error */
-	errorPce(s, NAME_ioError, OsError());
-        fail;
-      case 0:				/* end-of-file */
-	if ( s->input_p == 0 )
-	  answer((StringObj)NIL);
-	errorPce(s, NAME_incompleteLine);
-        fail;
-      default:
-	add_data_stream(s, buf, done);
-        DEBUG(NAME_stream, Cprintf("Buffer has %d bytes\n", s->input_p));
-    }
-  }
+    if ( !ws_dispatch(DEFAULT, timeout) )
+      return (StringObj) NIL;
+  }    
+
+  fail;
 }
 
 

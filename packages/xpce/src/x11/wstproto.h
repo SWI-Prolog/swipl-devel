@@ -134,7 +134,7 @@ void		str_label(String s, int acc, FontObj font, int x, int y, int w, int h, Nam
 
 /* ../src/x11/xevent.c */
 void		resetDispatch(void);
-status		ws_dispatch(Int FD, Int timeout);
+status		ws_dispatch(Int FD, Any timeout);
 void		ws_discard_input(const char *msg);
 Any		ws_event_in_subwindow(EventObj ev, Any root);
 

@@ -557,11 +557,10 @@ acceptSocket(Socket s)
   assign(s2, input_message, s->input_message);
   assign(s2, status, NAME_accepted);
   registerClientSocket(s, s2);
+  inputStream((Stream) s2, DEFAULT);
 
   if ( notNil(s->accept_message) )
     forwardReceiverCode(s->accept_message, s, s2, EAV);
-
-  inputStream((Stream) s2, DEFAULT);
 
   succeed;
 }

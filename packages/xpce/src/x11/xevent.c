@@ -56,7 +56,9 @@ is_pending(XtPointer ctx, int *source, XtInputId *id)
 
 static void
 is_timeout(XtPointer ctx, XtIntervalId *id)
-{ 
+{ status *p = (status *)ctx;
+
+  *p = FAIL;
 }
 
 #ifndef FD_ZERO
@@ -68,23 +70,37 @@ static int	  dispatch_fd = -1;
 static XtInputId  in_id;
 
 status
-ws_dispatch(Int FD, Int timeout)
-{ XtIntervalId tid;
+ws_dispatch(Int FD, Any timeout)
+{ XtIntervalId tid = 0;
   int fd = (isDefault(FD) ? dispatch_fd : valInt(FD));
+  status rval = SUCCEED;
 
 					/* No context: wait for input */
 					/* timeout */
   if ( ThePceXtAppContext == NULL )
-  { struct timeval timeout;
+  { struct timeval to;
+    struct timeval *tp = &to;
     fd_set readfds;
 
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 250000;
+    if ( isNil(timeout) )
+    { tp = NULL;
+    } else if ( isDefault(timeout) )
+    { to.tv_sec = 0;
+      to.tv_usec = 250000;
+    } else if ( isInteger(timeout) )
+    { to.tv_sec  = valInt(timeout) / 1000;
+      to.tv_usec = valInt(timeout) % 1000;
+    } else /* if ( isReal(timeout) ) */
+    { double v = valReal(timeout);
+
+      to.tv_sec  = (long)v;
+      to.tv_usec = (long)(v * 1000000.0) % 1000000;
+    }			 
 
     FD_ZERO(&readfds);
     if ( fd >= 0 )
       FD_SET(fd, &readfds);
-    if ( select(fd+1, &readfds, NULL, NULL, &timeout) > 0 )
+    if ( select(fd+1, &readfds, NULL, NULL, tp) > 0 )
       succeed;
     else
       fail;
@@ -104,11 +120,18 @@ ws_dispatch(Int FD, Int timeout)
     }
   }
 
-  if ( notNil(timeout) && valInt(timeout) > 0 )
-    tid = XtAppAddTimeOut(ThePceXtAppContext, valInt(timeout),
-			  is_timeout, NULL);
-  else
-    tid = 0;
+  if ( notNil(timeout) )
+  { long to = -1;
+
+    if ( isInteger(timeout) )
+      to = valInt(timeout);
+    else if ( instanceOfObject(timeout, ClassReal) )
+      to = (long)(valReal(timeout)*1000.0);
+
+    if ( to > 0 )
+      tid = XtAppAddTimeOut(ThePceXtAppContext, to, is_timeout,
+			    (XtPointer) &rval);
+  }
 
   DEBUG(NAME_dispatch, Cprintf("Dispatch: timeout = %s, tid = %d\n",
 			       pp(timeout), tid));
@@ -123,7 +146,7 @@ ws_dispatch(Int FD, Int timeout)
 
   considerLocStillEvent();
 
-  succeed;
+  return rval;
 }
 
 
