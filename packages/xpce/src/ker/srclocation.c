@@ -66,7 +66,7 @@ getConvertSourceLocation(SourceLocation loc, Any spec)
     CharArray ca = spec;
     String s = &ca->data;
 
-    if ( isstr8(s) )
+    if ( isstrA(s) )
     { if ( sscanf((char *)s->s_text, "%[^: ]:%d", buf, &line) == 2 )
 	answer(newObject(ClassSourceLocation, CtoName(buf), toInt(line), EAV));
       else

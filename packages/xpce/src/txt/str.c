@@ -39,7 +39,7 @@
 
 inline int
 str_allocsize(String s)
-{ if ( isstr8(s) )
+{ if ( isstrA(s) )
     return (((s->size + sizeof(long)) / sizeof(long)) * sizeof(long));
   else
     return (((s->size * 2 + sizeof(long) - 1) / sizeof(long)) * sizeof(long));
@@ -48,7 +48,7 @@ str_allocsize(String s)
 
 inline void
 str_pad(String s)			/* only 8-bit strings */
-{ if ( isstr8(s) )
+{ if ( isstrA(s) )
   { int from = s->size;
     int len  = str_allocsize(s);
     
@@ -89,7 +89,7 @@ str_set_n_ascii(String str, int len, char *text)
 { if ( len > STR_MAX_SIZE )
     return errorPce(NIL, NAME_stringTooLong, toInt(len));
 
-  str_inithdr(str, ENC_ASCII);
+  str_inithdr(str, ENC_ISOL1);
   str->size = len;
   str->s_textA = (charA *) text;
 
@@ -116,7 +116,7 @@ str_set_static(String str, const char *text)
   if ( len > STR_MAX_SIZE )
     return errorPce(NIL, NAME_stringTooLong, toInt(len));
 
-  str_inithdr(str, ENC_ASCII);
+  str_inithdr(str, ENC_ISOL1);
   str->readonly = TRUE;
   str->size = len;
   str->s_textA = (charA *) text;
@@ -131,7 +131,7 @@ str_set_static(String str, const char *text)
 
 void
 str_ncpy(String dest, int at, String src, int from, int len)
-{ if ( isstr8(dest) )
+{ if ( isstrA(dest) )
     memcpy(&dest->s_textA[at], &src->s_textA[from], len * sizeof(charA));
   else
     cpdata(&dest->s_textW[at], &src->s_textW[from], charW, len);
@@ -147,7 +147,7 @@ str_cpy(String dest, String src)
 
 charA *
 str_textp(String s, int i)
-{ return isstr8(s) ? &s->s_textA[i] : (charA *)&s->s_textW[i];
+{ return isstrA(s) ? &s->s_textA[i] : (charA *)&s->s_textW[i];
 }
 
 
@@ -157,7 +157,7 @@ str_textp(String s, int i)
 
 void
 str_upcase(String str, int from, int to)
-{ if ( isstr8(str) )
+{ if ( isstrA(str) )
   { charA *s = &str->s_textA[from];
 
     for(; from < to; from++, s++)
@@ -173,7 +173,7 @@ str_upcase(String str, int from, int to)
 
 void
 str_downcase(String str, int from, int to)
-{ if ( isstr8(str) )
+{ if ( isstrA(str) )
   { charA *s = &str->s_textA[from];
 
     for(; from < to; from++, s++)
@@ -206,7 +206,7 @@ str_cmp(String s1, String s2)
 
   sameEncoding(s1, s2);
 
-  if ( isstr8(s1) )
+  if ( isstrA(s1) )
   { charA *d1 = s1->s_textA;
     charA *d2 = s2->s_textA;
     int d;
@@ -236,7 +236,7 @@ str_icase_cmp(String s1, String s2)
 
   sameEncoding(s1, s2);
 
-  if ( isstr8(s1) )
+  if ( isstrA(s1) )
   { charA *d1 = s1->s_textA;
     charA *d2 = s2->s_textA;
     int d;
@@ -285,7 +285,7 @@ str_prefix_offset(String s1, unsigned int offset, String s2)
   if ( s2->size <= s1->size-offset )
   { int n = s2->size;
 
-    if ( isstr8(s1) )
+    if ( isstrA(s1) )
     { charA *d1 = s1->s_textA+offset;
       charA *d2 = s2->s_textA;
 
@@ -323,7 +323,7 @@ str_icase_prefix(String s1, String s2)	/* s2 is prefix of s1 */
   if ( s2->size <= s1->size )
   { int n = s2->size;
 
-    if ( isstr8(s1) )
+    if ( isstrA(s1) )
     { charA *d1 = s1->s_textA;
       charA *d2 = s2->s_textA;
 
@@ -356,7 +356,7 @@ str_suffix(String s1, String s2)	/* s2 is suffix of s1 */
   { int n = s2->size;
     int offset = s1->size - s2->size;
 
-    if ( isstr8(s1) )
+    if ( isstrA(s1) )
     { charA *d1 = &s1->s_textA[offset];
       charA *d2 = s2->s_textA;
 
@@ -389,7 +389,7 @@ str_icase_suffix(String s1, String s2)	/* s2 is suffix of s1 */
   { int n = s2->size;
     int offset = s1->size - s2->size;
 
-    if ( isstr8(s1) )
+    if ( isstrA(s1) )
     { charA *d1 = &s1->s_textA[offset];
       charA *d2 = s2->s_textA;
 
@@ -424,7 +424,7 @@ str_sub(String s1, String s2)		/* s2 is substring of s1 */
   { int n = 0;
     int m = s1->size - s2->size;
     
-    if ( isstr8(s1) )
+    if ( isstrA(s1) )
     { for(; n <= m; n++)
       { charA *d1 = &s1->s_textA[n];
 	charA *d2 = s2->s_textA;
@@ -465,7 +465,7 @@ str_icasesub(String s1, String s2)		/* s2 is substring of s1 */
   { int n = 0;
     int m = s1->size - s2->size;
     
-    if ( isstr8(s1) )
+    if ( isstrA(s1) )
     { for(; n <= m; n++)
       { charA *d1 = &s1->s_textA[n];
 	charA *d2 = s2->s_textA;
@@ -504,7 +504,7 @@ int
 str_next_index(String s, int from, wint_t chr)
 { int i, n = s->size;
 
-  if ( isstr8(s) )
+  if ( isstrA(s) )
   { charA *d = &s->s_textA[from];
     
     for(i=from; i<n; i++, d++)
@@ -526,7 +526,7 @@ int
 str_next_rindex(String s, int from, wint_t chr)
 { int i;
 
-  if ( isstr8(s) )
+  if ( isstrA(s) )
   { charA *d = &s->s_textA[from];
     
     for(i=from; i >= 0; i--, d--)
@@ -561,7 +561,7 @@ int
 str_count_chr(String s, int from, int to, wint_t chr)
 { int i, count = 0;
 
-  if ( isstr8(s) )
+  if ( isstrA(s) )
   { charA *d = &s->s_textA[from];
     
     for(i=from; i<to; i++, d++)
@@ -587,15 +587,15 @@ str_lineno(String s, int at)
 
 wint_t
 str_fetch(String s, int idx)
-{ return s->iswide ? str_fetch16(s, idx) & 0xffff
-		: str_fetch8(s, idx) & 0xff;
+{ return s->iswide ? str_fetchW(s, idx) & 0xffff
+		: str_fetchA(s, idx) & 0xff;
 }
 
 
 int
 str_store(String s, int idx, unsigned int chr)
-{ return s->iswide ? str_store16(s, idx, chr)
-		: str_store8(s, idx, chr);
+{ return s->iswide ? str_storeW(s, idx, chr)
+		: str_storeA(s, idx, chr);
 }
 
 		 /*******************************
@@ -608,7 +608,7 @@ str_from_char(String s, char c)
   text[0] = c;
   text[1] = '\0';
 
-  str_inithdr(s, ENC_ASCII);
+  str_inithdr(s, ENC_ISOL1);
   s->s_textA  = text;
   s->size     = 1;
 }
@@ -620,7 +620,7 @@ str_from_char16(String s, int c)
   text[0] = c;
   text[1] = '\0';
 
-  str_inithdr(s, ENC_UNICODE);
+  str_inithdr(s, ENC_WCHAR);
   s->s_textW = text;
   s->size     = 1;
 }
@@ -687,7 +687,7 @@ void
 str_strip(String s)
 { int size = s->size;
 
-  if ( isstr8(s) )
+  if ( isstrA(s) )
   { charA *f = s->s_textA;
     charA *t = s->s_textA;
     charA *e = &s->s_textA[size];
@@ -714,7 +714,7 @@ str_common_length(String s1, String s2)
   int size = min(s1->size, s2->size);
 
   if ( s1->encoding == s2->encoding )
-  { if ( isstr8(s1) )
+  { if ( isstrA(s1) )
     { charA *t1 = s1->s_textA;
       charA *t2 = s2->s_textA;
 
@@ -739,7 +739,7 @@ str_icase_common_length(String s1, String s2)
   int size = min(s1->size, s2->size);
 
   if ( s1->encoding == s2->encoding )
-  { if ( isstr8(s1) )
+  { if ( isstrA(s1) )
     { charA *t1 = s1->s_textA;
       charA *t2 = s2->s_textA;
 

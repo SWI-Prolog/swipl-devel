@@ -148,7 +148,7 @@ str_format(String out, const String in, const int width, const FontObj font)
 { int x = 0;
   int last_is_layout = TRUE;
 
-  if ( isstr8(in) )			/* 8-bit string */
+  if ( isstrA(in) )			/* 8-bit string */
   { charA  *s = in->s_textA;
     charA  *e = &s[in->size];
     charA  *o = out->s_textA;

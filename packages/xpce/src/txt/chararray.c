@@ -343,7 +343,7 @@ getSplitCharArray(CharArray in, CharArray br)
 
     while( i<=size-b->size )
     { if ( str_prefix_offset(s1, i, b) )
-      { if ( isstr8(s1) )
+      { if ( isstrA(s1) )
 	  buf.s_textA = s1->s_textA+last;
 	else
 	  buf.s_textW = s1->s_textW+last;
@@ -362,7 +362,7 @@ getSplitCharArray(CharArray in, CharArray br)
 
     while( i<size )
     { if ( islayout(str_fetch(s1, i)) )
-      { if ( isstr8(s1) )
+      { if ( isstrA(s1) )
 	  buf.s_textA = s1->s_textA+last;
 	else
 	  buf.s_textW = s1->s_textW+last;
@@ -380,7 +380,7 @@ getSplitCharArray(CharArray in, CharArray br)
     }
   }
 	   
-  if ( isstr8(s1) )
+  if ( isstrA(s1) )
     buf.s_textA = s1->s_textA+last;
   else
     buf.s_textW = s1->s_textW+last;
@@ -423,7 +423,7 @@ getAppendCharArrayv(CharArray ca, int argc, CharArray *argv)
        
   { LocalString(buf, &ca->data, l);
 
-    if ( isstr8(&ca->data) )
+    if ( isstrA(&ca->data) )
     { charA *d = buf->s_textA;
       
       memcpy(d, ca->data.s_textA, ca->data.size * sizeof(charA));
@@ -483,7 +483,7 @@ getDeletePrefixCharArray(CharArray n, CharArray s)
 
     str_cphdr(&buf, &n->data);
     buf.size = n->data.size - s->data.size;
-    if ( isstr8(&buf) )
+    if ( isstrA(&buf) )
       buf.s_textA = &n->data.s_textA[s->data.size];
     else
       buf.s_textW = &n->data.s_textW[s->data.size];
@@ -508,7 +508,7 @@ getSubCharArray(CharArray n, Int start, Int end)
 
   str_cphdr(&s, &n->data);
   s.size = y-x;
-  if ( isstr8(&n->data) )
+  if ( isstrA(&n->data) )
     s.s_textA = &n->data.s_textA[x];
   else
     s.s_textW = &n->data.s_textW[x];
@@ -648,7 +648,7 @@ getReadAsFileCharArray(CharArray n, Int from, Int size)
 
     str_cphdr(&str, &n->data);
     str.size = s;
-    if ( isstr8(&n->data) )
+    if ( isstrA(&n->data) )
       str.s_textA = &n->data.s_textA[f];
     else
       str.s_textW = &n->data.s_textW[f];
@@ -717,7 +717,7 @@ getLineNoCharArray(CharArray name, Int caret)
 
 static Vector
 getScanCharArray(CharArray n, CharArray fmt)
-{ if ( isstr8(&n->data) && isstr8(&fmt->data) )
+{ if ( isstrA(&n->data) && isstrA(&fmt->data) )
   { Any argv[SCAN_MAX_ARGS];
     Int argc;
 

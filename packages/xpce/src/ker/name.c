@@ -97,7 +97,7 @@ stringHashValue(String s)
   int size = s->size;
   charA *t = s->s_textA;
 
-  if ( isstr16(s) )
+  if ( isstrW(s) )
     size *= 2;
     
   while(--size >= 0)
@@ -224,7 +224,7 @@ initNamesPass1(void)
   allocRange(builtin_names, sizeof(builtin_names));
 
   for( name=(Name)builtin_names; name->data.s_text != NULL; name++)
-  { str_inithdr(&name->data, ENC_ASCII);
+  { str_inithdr(&name->data, ENC_ISOL1);
     name->data.size = strlen((char *)name->data.s_text);
   }
 }

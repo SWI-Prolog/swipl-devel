@@ -58,7 +58,7 @@ getConvertColourMap(Class class, Name name)
   if ( ColourMaps && (cm = getMemberHashTable(ColourMaps, name)) )
     answer(cm);
 
-  if ( isstr8(&name->data) &&
+  if ( isstrA(&name->data) &&
        sscanf(strName(name), "colour_cube_%d", &size) == 1 )
   { cm = newObject(ClassColourMap, name, NIL, EAV);
     lockObject(cm, ON);

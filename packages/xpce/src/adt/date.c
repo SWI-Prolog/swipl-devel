@@ -161,7 +161,7 @@ error:
 
 static Date
 getConvertDate(Class class, StringObj str)
-{ if ( isstr8(&str->data) )
+{ if ( isstrA(&str->data) )
   { time_t t;
     char *s = (char *)str->data.s_textA;
 
@@ -212,7 +212,7 @@ setDate(Date d, Int s, Int m, Int h, Int D, Int M, Int Y)
 
 static status
 convertDate(Date d, CharArray s)
-{ if ( isstr8(&s->data) )
+{ if ( isstrA(&s->data) )
   { long t = get_date((char *)s->data.s_textA, NULL);
 
     if ( t == -1 )

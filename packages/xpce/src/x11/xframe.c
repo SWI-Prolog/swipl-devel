@@ -531,7 +531,7 @@ dndEventFrame(FrameObj fr, XEvent *xevent)
 		      start = s;
 		      while(s<e && !(*s == '\r' || *s == '\n'))
 			s++;
-		      str_inithdr(&str, ENC_ASCII);
+		      str_inithdr(&str, ENC_ISOL1);
 
 		      if ( e-start > 5 && strncmp(start, "file:", 5) == 0 )
 			start += 5;

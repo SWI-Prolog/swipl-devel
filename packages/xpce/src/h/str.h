@@ -38,7 +38,7 @@ typedef unsigned short charW;		/* wide character */
 typedef struct _string
 { unsigned	size : STR_SIZE_BITS;	/* size indication (128 MB) */
   unsigned	encoding : 2;		/* character encoding used */
-  unsigned	iswide : 1;		/* 8- or 16-bit wide characters */
+  unsigned	iswide : 1;		/* char- or wide characters */
   unsigned	readonly : 1;		/* storage is externally managed */
   unsigned	pad : 1;		/* padding to word-boundary */
   union
@@ -51,29 +51,29 @@ typedef struct _string
 #define s_textA		text_union.textA
 #define s_textW	text_union.textW
 
-#define ENC_ASCII (0)			/* standard 7-bits ASCII encoding */
-#define ENC_UNICODE (1)			/* 16-bits unicode encoding */
+#define ENC_ISOL1 (0)			/* 8-bit ISO-Latin-1 encoding */
+#define ENC_WCHAR (1)			/* Wchar UCS/UNICODE encoding */
 
-#define isstr8(s) ((s)->iswide == 0)	/* 8-bit string */
-#define isstr16(s) ((s)->iswide == 1)	/* 16-bit string */
+#define isstrA(s) ((s)->iswide == 0)	/* 8-bit string */
+#define isstrW(s) ((s)->iswide == 1)	/* 16-bit string */
 
 #define str_len(s) ((s)->size)		/* length of the string */
-#define str_wsize(s) ((((s)->iswide ? (s)->size * 2 \
-		      	         : (s)->size) + sizeof(wint_t) - 1) \
-			/ sizeof(wint_t))
-#define str_fetch8(s, i)	(s->s_textA[(i)])
-#define str_fetch16(s, i)	(s->s_textW[(i)])
-#define str_store8(s, i, c)	(s->s_textA[(i)] = (charA)(c))
-#define str_store16(s, i, c)	(s->s_textW[(i)] = (charW)(c))
+#define str_wsize(s) ((((s)->iswide \
+	? (s)->size * sizeof(charW) \
+	: (s)->size) + sizeof(wint_t) - 1) / sizeof(wint_t))
+#define str_fetchA(s, i)	(s->s_textA[(i)])
+#define str_fetchW(s, i)	(s->s_textW[(i)])
+#define str_storeA(s, i, c)	(s->s_textA[(i)] = (charA)(c))
+#define str_storeW(s, i, c)	(s->s_textW[(i)] = (charW)(c))
 
 #define str_cphdr(t, f) do { *(unsigned long *)(t) = *(unsigned long *)(f); \
 			   } while(0)
 #define str_inithdr(s, e) do { *(unsigned long *)(s) = 0L; \
 			       (s)->encoding = (e); \
-			       (s)->iswide	     = ((e) == ENC_UNICODE ? 1 : 0); \
+			       (s)->iswide = ((e) == ENC_WCHAR ? 1 : 0); \
 			     } while(0)
 
-#define str_datasize(s) (isstr8(s) ? (s)->size : (s)->size * 2)
+#define str_datasize(s) (isstrA(s) ? (s)->size : (s)->size * sizeof(charW))
 
 #ifndef FALSE
 #define FALSE 0
@@ -88,7 +88,7 @@ typedef struct
 { charA newline;
   charA *tolower;
   charA *toupper;
-} str8_encoding, *Str8Encoding;
+} str_encodingA, *StrEncodingA;
 
 
 typedef struct
@@ -97,6 +97,6 @@ typedef struct
   int max_byte1;
   charW **tolower;
   charW **toupper;
-} str16_encoding, *Str16Encoding;
+} str_encodingW, *StrEncodingW;
 
 #endif /*_STR_H_INCLUDED*/

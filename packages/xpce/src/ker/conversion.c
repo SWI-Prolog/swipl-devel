@@ -77,7 +77,7 @@ toInteger(Any obj)
   { CharArray ca = obj;
     String s = &ca->data;
 
-    if ( isstr8(s) && s->size > 0 )
+    if ( isstrA(s) && s->size > 0 )
     { char *end;
       long i;
 
@@ -115,7 +115,7 @@ toBool(Any obj)
       return ON;
   }
   
-  if ( toString(obj, &s) && isstr8(&s) )
+  if ( toString(obj, &s) && isstrA(&s) )
   { if       ( streq_ignore_case((char *)s.s_textA, "@on") ||
 	       streq_ignore_case((char *)s.s_textA, "true") ||
 	       streq_ignore_case((char *)s.s_textA, "yes") ||

@@ -788,7 +788,7 @@ static status
 append_file(FileObj f, String str)
 { TRY( check_file(f, NAME_write) );
   fwrite(str->s_text,
-	 isstr8(str) ? sizeof(charA) : sizeof(charW),
+	 isstrA(str) ? sizeof(charA) : sizeof(charW),
 	 str->size, 
 	 f->fd);
 
@@ -959,7 +959,7 @@ getReadFile(FileObj f, Int n)
 
   s = answerObject(ClassString, EAV);
   str_unalloc(&s->data);
-  str_inithdr(&s->data, ENC_ASCII);
+  str_inithdr(&s->data, ENC_ISOL1);
   s->data.size = size;
   str_alloc(&s->data);
 

@@ -183,7 +183,7 @@ getUndoTextBuffer(TextBuffer tb)
 	  s.size = d->len;
 	  s.s_text = (unsigned char *)d->chars;
 	  s.iswide = ub->iswide;
-	  s.encoding = ENC_ASCII;
+	  s.encoding = ENC_ISOL1;
 	  DEBUG(NAME_undo, Cprintf("Undo delete at %ld, len=%ld\n",
 				   d->where, d->len));
 	  insert_textbuffer(tb, d->where, 1, &s);

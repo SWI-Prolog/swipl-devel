@@ -89,7 +89,7 @@ prepareWriteString(StringObj s)
 status
 initialiseStringv(StringObj str, CharArray fmt, int argc, Any *argv)
 { if ( isDefault(fmt) )
-  { str_inithdr(&str->data, ENC_ASCII);
+  { str_inithdr(&str->data, ENC_ISOL1);
     str->data.size = 0;
     str_alloc(&str->data);
   } else if ( (Name) fmt == name_procent_s &&
@@ -117,7 +117,7 @@ bitsPerCharacterString(StringObj str, Int bits)
 { String s = &str->data;
 
   if ( valInt(bits) == 8 )
-  { if ( !isstr8(s) )
+  { if ( !isstrA(s) )
     { string s2 = *s;
 
       s2.iswide = FALSE;
@@ -126,7 +126,7 @@ bitsPerCharacterString(StringObj str, Int bits)
     }
     succeed;
   } else if ( valInt(bits) == 16 )
-  { if ( !isstr16(s) )
+  { if ( !isstrW(s) )
     { string s2 = *s;
 
       s2.iswide = TRUE;
@@ -555,7 +555,7 @@ CsetStringL(StringObj str, const char *txt, int l)
     return errorPce(str, NAME_stringTooLong, toInt(l));
 
   s.size = l;
-  s.encoding = ENC_ASCII;
+  s.encoding = ENC_ISOL1;
   s.iswide = 0;
   s.pad = 0;
   s.s_textA = (charA*) txt;
@@ -602,7 +602,7 @@ getSubString(StringObj n, Int start, Int end)
 
   str_cphdr(&s, &n->data);
   s.size = y-x;
-  if ( isstr8(&n->data) )
+  if ( isstrA(&n->data) )
     s.s_textA = &n->data.s_textA[x];
   else
     s.s_textW = &n->data.s_textW[x];

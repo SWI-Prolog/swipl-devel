@@ -574,7 +574,7 @@ str_writefv(String s, CharArray format, int argc, Any *argv)
 
   swritefv(buf, &sz, format, argc, argv);
     
-  str_inithdr(s, ENC_ASCII);
+  str_inithdr(s, ENC_ISOL1);
   s->size = sz;				/* FORMATSIZE: ok */
   str_alloc(s);
 

@@ -50,7 +50,7 @@ forwards status insert_textbuffer_shift(TextBuffer, int, int, String, int);
 #define Swap(a, b)		{ int _tmp = (a); (a) = (b); (b) = _tmp; }
 #define Before(i1, i2)		{ if ( i1 > i2 ) Swap(i1, i2); }
 #define fetch(i)		fetch_textbuffer(tb, i)
-#define istb8(tb)		isstr8(&(tb)->buffer)
+#define istb8(tb)		isstrA(&(tb)->buffer)
 #define Address(tb, i)		(istb8(tb) ? &(tb)->tb_buffer8[(i)] \
 					   : (charA *)&(tb)->tb_buffer16[(i)])
 #define Index(tb, p) ((tb)->gap_start <= (p) ? \
@@ -1932,7 +1932,7 @@ str_sub_text_buffer(TextBuffer tb, String s, int start, int len)
   else
     idx = tb->gap_end + (start - tb->gap_start) + 1;
 
-  if ( isstr8(s) )
+  if ( isstrA(s) )
     s->s_textA = &tb->tb_buffer8[idx];
   else
     s->s_textW = &tb->tb_buffer16[idx];
@@ -2013,10 +2013,10 @@ insert_textbuffer_shift(TextBuffer tb, int where, int times,
 
   if ( istb8(tb) )
   { unitsize = sizeof(charA);
-    size = (isstr8(s) ? s->size : s->size * 2);
+    size = (isstrA(s) ? s->size : s->size * 2);
   } else
   { unitsize = sizeof(charW);
-    size = (isstr8(s) ? s->size/2 : s->size);
+    size = (isstrA(s) ? s->size/2 : s->size);
   }
 
   grow = times * size;

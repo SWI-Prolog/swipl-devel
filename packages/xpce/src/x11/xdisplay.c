@@ -535,7 +535,7 @@ collect_selection_display(Widget w, XtPointer xtp,
 	return;
       }
     } else if ( *format == 16 )
-    { str_inithdr(&s, ENC_UNICODE);
+    { str_inithdr(&s, ENC_WCHAR);
       s.size = *len / 2;
       s.s_text = (unsigned char *)value;
     } else
@@ -650,7 +650,7 @@ convert_selection_display(Widget w,
     { String s = &ca->data;
       int data = str_datasize(s);
       char *buf = XtMalloc(data);
-      int fmt = (isstr8(s) ? sizeof(charA) : sizeof(charW)) * 8;
+      int fmt = (isstrA(s) ? sizeof(charA) : sizeof(charW)) * 8;
 
       DEBUG(NAME_selection,
 	    Cprintf("returning XA_STRING, %d characters format = %d\n",

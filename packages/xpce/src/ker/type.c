@@ -783,7 +783,7 @@ getCharType(const Type t, const Any val, const Any ctx)
 
     if ( s->size == 1 )
       return toInt(str_fetch(s, 0));
-    if ( isstr8(s) && (c = charpToChar((char *)s->s_text)) >= 0 )
+    if ( isstrA(s) && (c = charpToChar((char *)s->s_text)) >= 0 )
       return toInt(c);
   } else
   { Int i = toInteger(val);
@@ -1177,7 +1177,7 @@ strip_string(TmpString s)
 
 static void
 init_string(TmpString s, String t)
-{ assert(isstr8(t));
+{ assert(isstrA(t));
   strcpy(s->text, (char *)t->s_text);
   s->start = s->text;
   s->end = &s->text[t->size - 1];

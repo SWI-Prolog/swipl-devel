@@ -66,7 +66,7 @@ getContentsSourceSink(SourceSink ss, Int from, Int len)
       fail;
     }
 
-    str_inithdr(&s, ENC_ASCII);
+    str_inithdr(&s, ENC_ISOL1);
     s.size = size;
     str_alloc(&s);
 

@@ -39,7 +39,7 @@ static Size
 getConvertSize(Class class, Name name)
 { int w, h;
 
-  if ( isstr8(&name->data) &&
+  if ( isstrA(&name->data) &&
        (sscanf((char *)name->data.s_textA, "%dx%d", &w, &h) == 2 ||
        (syntax.uppercase && sscanf((char *)name->data.s_textA, "%dX%d", &w, &h) == 2)))
     answer(newObject(ClassSize, toInt(w), toInt(h), EAV));
