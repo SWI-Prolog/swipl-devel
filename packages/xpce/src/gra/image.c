@@ -698,9 +698,9 @@ makeClassImage(Class class)
 	     "File from which to load");
   localClass(class, NAME_access, NAME_permission, "{read,both}", NAME_get,
 	     "One of {read, both}");
-  localClass(class, NAME_background, NAME_colour, "[colour]*", NAME_both,
+  localClass(class, NAME_background, NAME_colour, "[colour|image]", NAME_both,
 	     "Colour of background (pixmap)");
-  localClass(class, NAME_foreground, NAME_colour, "[colour]*", NAME_both,
+  localClass(class, NAME_foreground, NAME_colour, "[colour]", NAME_both,
 	     "Colour of foreground (pixmap)");
   localClass(class, NAME_depth, NAME_colour, "[int]", NAME_get,
 	     "Number of bits/pixel");

@@ -32,7 +32,7 @@ initialiseGraphical(Any obj, Int x, Int y, Int w, Int h)
   assign(gr, area,            newObject(ClassArea, 0));
   assign(gr, pen,             ONE);
   assign(gr, texture,         NAME_none);
-  assign(gr, colour,          DEFAULT);
+  assign(gr, colour,          getResourceValueObject(obj, NAME_colour));
   assign(gr, selected,        OFF);
   assign(gr, name,            class->name);
   assign(gr, handles,         NIL);
@@ -2873,6 +2873,8 @@ makeClassGraphical(Class class)
 		  "Lenght of flash in milliseconds");
   attach_resource(class, "selection_style", "name", "corner_and_side_handles",
 		  "Visual feedback of <->selected");
+  attach_resource(class, "colour", "[colour]", "@default",
+		  "Default colour for this object");
 
   ChangedWindows = globalObject(NAME_changedWindows, ClassChain, 0);
 
