@@ -649,6 +649,7 @@ print_system_message(_, informational, _) :-
 print_system_message(_, banner, _) :-
 	current_prolog_flag(verbose, silent), !.
 print_system_message(Term, Level, Lines) :-
+	flush_output(user_output),
 	source_location(File, Line),
 	Term \= error(syntax_error(_), _),
 	prefix(Level, Prefix, LinePrefix, PostFix, Wait, Stream), !,
@@ -660,6 +661,7 @@ print_system_message(Term, Level, Lines) :-
 	;   true
 	).
 print_system_message(_, Level, Lines) :-
+	flush_output(user_output),
 	prefix(Level, LinePrefix, Stream), !,
 	print_message_lines(Stream, LinePrefix, Lines).
 	

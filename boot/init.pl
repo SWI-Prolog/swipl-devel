@@ -1377,6 +1377,29 @@ $t_head(LP, S, SR, H) :-
 	$extend([S, SR], LP, H).
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Somewhere in the past, {X}  was  translated   into  X,  S=SR by the line
+marked (*) below. I cannot recall any longer   why  this is the case. An
+example is
+
+a --> x, {y}.
+
+which used to be translated into
+
+a(A, B) :-
+	x(A, C),
+	y,
+	B=C.
+
+Now, this causes trouble as pointed  out by Martin Sondergaard. Throwing
+the above call through SICStus and Amzi gives the answer that used to be
+produced by SWI-Prolog as well:
+
+a(A, B) :-
+	x(A, B),
+	y.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 $t_body(Var, S, SR, phrase(Var, S, SR)) :-
 	var(Var), !.
 $t_body([], S, SR, S=SR) :- !.		% inline lists
@@ -1387,7 +1410,8 @@ $t_body(List, S, SR, C) :-
 	;   C = append(List, SR, S)
 	).
 $t_body(!, S, S, !) :- !.
-$t_body({T}, S, SR, (T, SR = S)) :- !.
+%$t_body({T}, S, SR, (T, SR = S)) :- !.		% (*)
+$t_body({T}, S, S, T) :- !.
 $t_body((T, R), S, SR, (Tt, Rt)) :- !,
 	$t_body(T, S, SR1, Tt),
 	$t_body(R, SR1, SR, Rt).

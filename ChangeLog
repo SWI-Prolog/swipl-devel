@@ -1,6 +1,14 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * MODIFIED: DCG translation of {} no longer to do the delayed unification.
+    I don't know whether this breaks any existing code.  It surely fixes a
+    few clear bugs.  See comments in boot/init.pl.  Martin Sondergaard.
+
+  * FIXED: Flush user_output before query/error messages in the toplevel,
+    avoiding confusion due to stream-buffering for more simple cases.
+    Martin Sondergaard.
+
   * FIXED: Correctly perform unquoted write on atoms starting with a 0-byte.
     Mike Elston.
 
