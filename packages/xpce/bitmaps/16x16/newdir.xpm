@@ -1,0 +1,23 @@
+/* XPM */
+static char * scratch_xpm[] = {
+"16 16 4 1",
+" 	c None",
+".	c black",
+"X	c yellow",
+"o	c #C0C0C0C0C0C0",
+"                ",
+"           .    ",
+"                ",
+"           .    ",
+"        .     . ",
+"  ....   . . .  ",
+" .XoXo.   . .   ",
+"...........  . .",
+".oXoXoXoXoX..   ",
+".XoXoXoXoXo. .  ",
+".oXoXoXoXoX.  . ",
+".XoXoXoXoXo.    ",
+".oXoXoXoXoX.    ",
+".XoXoXoXoXo.    ",
+".oXoXoXoXoX.    ",
+"............    "};
