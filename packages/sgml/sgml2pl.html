@@ -991,6 +991,12 @@ SGML and XML. Known missing SGML features include
 <LI><I>NOTATION on entities</I><BR>
 Though notation is fully parsed, notation attributes on external entity 
 declarations are not handed to the user.
+<LI><I>SHORTTAG</I><BR>
+The SGML SHORTTAG syntax is only partially implemented. Currently,
+<CODE>&lt;tag/content/</CODE> is a valid abbreviation for
+<CODE>\bnfmeta{tag}content&lt;/tag&gt;</CODE>, which can also be written 
+as
+<CODE>\bnfmeta{tag}content&lt;/&gt;</CODE>.
 <LI><I>SGML declaration</I><BR>
 The `SGML declaration' is fixed, though most of the parameters are 
 handled through indirections in the implementation.
