@@ -13,7 +13,7 @@ library.  The latter can be hooked, which is used by the XPCE module
 \pllib{swi/pce_profile} to provide an interactive graphical
 representation of results.
 
-\section{Predicates}
+\subsection{Profiling predicates}
 
 Currently, the interface is kept compatible with the old profiler.
 As experience grows, it is likely that the old interface is replaced
@@ -61,7 +61,7 @@ statistics.
 \end{description}
 
 
-\subsection{Visualizing the results}			\label{sec:pceprofile}
+\subsection{Visualizing profiling data}			\label{sec:pceprofile}
 
 Browsing the annotated call-tree as described in \secref{profilegather}
 itself is not very attractive. Therefore, the results are combined per

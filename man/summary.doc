@@ -311,6 +311,8 @@ suggest predicates from a keyword.
 \predicatesummary{open_resource}{3}{Open a program resource as a stream}
 \predicatesummary{open_shared_object}{2}{UNIX: Open shared library (.so file)}
 \predicatesummary{open_shared_object}{3}{UNIX: Open shared library (.so file)}
+\predicatesummary{pce_dispatch}{1}{Run XPCE GUI in seperate thread}
+\predicatesummary{pce_call}{1}{Run goal in XPCE GUI thread}
 \predicatesummary{peek_byte}{1}{Read byte without removing}
 \predicatesummary{peek_byte}{2}{Read byte without removing}
 \predicatesummary{peek_char}{1}{Read character without removing}
@@ -330,6 +332,7 @@ suggest predicates from a keyword.
 \predicatesummary{print}{2}{Print a term on a stream}
 \predicatesummary{print_message}{2}{Print message from (exception) term}
 \predicatesummary{print_message_lines}{3}{Print message to stream}
+\predicatesummary{profile}{1}{Obtain execution statistics}
 \predicatesummary{profile}{3}{Obtain execution statistics}
 \predicatesummary{profile_count}{3}{Obtain profile results on a predicate}
 \predicatesummary{profiler}{2}{Obtain/change status of the profiler}
@@ -411,6 +414,7 @@ suggest predicates from a keyword.
 \predicatesummary{shell}{1}{Execute OS command}
 \predicatesummary{shell}{2}{Execute OS command}
 \predicatesummary{show_profile}{1}{Show results of the profiler}
+\predicatesummary{show_profile}{2}{Show results of the profiler}
 \predicatesummary{size_file}{2}{Get size of a file in characters}
 \predicatesummary{skip}{1}{Skip to character in current input}
 \predicatesummary{skip}{2}{Skip to character on stream}
