@@ -77,6 +77,36 @@ close_environment(E) :->
 	    send(E, report, warning, 'No open LaTeX environment')
 	).
 
+what_environment(E, Env:name):<-
+	"Return environment at caret"::
+	get(E, caret, Caret),
+	get(E, text_buffer, TB),
+	new(Nesting, number(0)),
+	new(Here, number(Caret)),
+	repeat,
+	(   get(@latex_env_regex, search, TB, Here, 0, Start)
+	->  get(@latex_env_regex, register_value, TB, 1, BE),
+	    (	send(BE, equal, end)
+	    ->	send(Nesting, plus, 1),
+		send(Here, value, Start),
+		fail
+	    ;	(   send(Nesting, equal, 0)
+		->  !,
+		    get(@latex_env_regex, register_value, TB, 2, name, Env)
+		;   send(Nesting, minus, 1),
+		    send(Here, value, Start),
+		    fail
+		)
+	    )
+	).
+
+what_environment(E) :->
+	"Display current LaTeX environment"::
+	get(E, what_environment, Env),
+	send(E, report, status, 'In LaTeX environment %s', Env).
+
+
+
 		 /*******************************
 		 *	      TYPING		*
 		 *******************************/
@@ -93,14 +123,21 @@ insert_self(M, Times:[int], Id:[char]) :->
 
 insert_quote(M) :->
 	"Insert `` or ''"::
-	get(M, caret, Caret),
-	get(M, text_buffer, TB),
-	get(M, syntax, S),
-	get(TB, character, Caret-1, Before),
-	(   \+ send(S, has_syntax, Before, layout)
-	->  send(M, insert, '''''')
-	;   send(M, insert, '``')
+	get(M, what_environment, Env),
+	(   verbatim(Env)
+	->  send(M, insert_self, 1, '"')
+	;   get(M, caret, Caret),
+	    get(M, text_buffer, TB),
+	    get(M, syntax, S),
+	    get(TB, character, Caret-1, Before),
+	    (   \+ send(S, has_syntax, Before, layout)
+	    ->  send(M, insert, '''''')
+	    ;   send(M, insert, '``')
+	    )
 	).
+
+verbatim(verbatim).
+verbatim(code).
 
 
 		 /*******************************

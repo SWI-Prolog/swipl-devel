@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ENHANCED: PceEmacs LaTeX mode to handle `"' normally in verbatim and
+  code environment.
+
 * FIXED: Text format (string->initialise, <many classes>->format) to
   check for buffer overflows and report gracefully rather than
   uncontrolled after buffer overrun.  Removed the limit altogether
