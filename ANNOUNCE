@@ -1,56 +1,45 @@
-SWI-Prolog 5.2.3/XPCE 6.2.3 stable release
+SWI-Prolog 5.2.4/XPCE 6.2.4 stable release
 
 Status
 ======
   
   * Stable release integrating shared-database multi-threaded execution.
 
-Brief summary of changes since 5.2.2
+Brief summary of changes since 5.2.3
 ====================================
 
 SWI-Prolog
 ----------
 
-  * Portability issues: cygwin, enhanced installation procedure to accomodate
-    RPM and Debian package managers easier.  Ported thread-support to FreeBSD.
+  * Fix to call_cleanup/3 if the handler needs to be autoloaded and is
+    called due to an exception.
 
-  * Fixed deadlock in thread_statistics/3.
-
-  * Debugger issues: hide predicates starting with $ (Logtalk), make trace/0
-    trap debugger on `skip', make behaviour of call_cleanup/3 consistent in
-    debug/nondebug mode.
-
-  * Windows: included debugging symbols (.PDB files) for the main
-    Prolog system and the smaller extension libraries to help people
-    tracking problems.  Installed if the user checks installation type
-    `Full'.
+  * Memory leaks in some multi-threaded application cooperation models.
 
 Packages
 --------
 
-  * Semweb: Added rdf_generation/1 which increments on any change to the
-    database.
+  * XML parser: fixes for handling character entities > 255 and UTF-8
+    sequences > 255.
 
-  * XPCE GUI system: Improved handling of type := initial in variable
-    declarations, added menu_item->background, fixed redraw problems in
-    MS-Windows (notably associated with the tabbed_window class), lowered
-    priority of :: operator to improve coorperation with other packages.
-
-  * library(pce_toc): use a small window to make partly obscured nodes
-    visible.
 
 Development environment
 -----------------------
 
-  * Many improvements to the SWI-Prolog manual browser.
+  * Fix to the profiler (leading to very large overhead and memory usage).
 
-  * Fix to source-level debugger avoiding unnecessary
-    use of decompiled code.
+  * Allow for extending the profiler with data from foreign libraries that
+    have a notion of `executable code'.  Used with XPCE to incorporate
+    individual methods into the profiler.
 
-  * Various improvements to the PceEmacs bookmark system.
+  * Fix to source-level debugger avoiding unnecessary use of decompiled
+    code as well as printing improper lists in the variable-details window.
+
 
 INCOMPATIBILITIES
 =================
+
+  (none)
 
 
 Donations
