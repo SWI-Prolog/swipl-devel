@@ -4366,6 +4366,15 @@ process_utf8(dtd_parser *p, int chr)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 add_cdata() adds a character to the output  data. It also maps \r\n onto
 a single \n for Windows newline conventions.
+
+There is a problem here in shortref  handling. We open the CDATA_ELEMENT
+as soon as we find a character as   this may open other elements through
+omitted tags and thus install a new shortref map.
+
+If, at a later stage, all CDATA read sofar turns out to be a shortref we
+have  incorrectly  opened   the   CDATA_ELEMENT.    As   `undoing'   the
+open_element() is not an option (it may  already have caused `events' on
+omitted tags) we are in trouble.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
