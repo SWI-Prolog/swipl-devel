@@ -437,7 +437,7 @@ load_file_to_charp(const char *file, int *length)
 		 *	     ALLOCATION		*
 		 *******************************/
 
-#ifdef WINDOWS
+#ifdef _WINDOWS
 #include <windows.h>
 #endif
 
@@ -445,7 +445,7 @@ void
 nomem()
 { fprintf(stderr, "SGML: Fatal: out of memory\n");
 
-#ifdef WINDOWS
+#ifdef _WINDOWS
    MessageBox(NULL, "SGML: Fatal: out of memory", "SGML", MB_OK|MB_TASKMODAL);
 #endif
 

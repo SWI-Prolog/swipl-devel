@@ -15,6 +15,9 @@
 #include "sgmldefs.h"
 
 #include <sys/types.h>
+#ifdef _WINDOWS		      /* get size_t */
+#include <malloc.h>
+#endif
 
 typedef struct 
 { int allocated;
