@@ -102,12 +102,31 @@ selection(IB, Sel:'image|chain') :<-
 
 :- pce_group(event).
 
+%	busy(+Visual, +Goal)
+%
+%	Run goal while showing busy cursor.
+
+busy(B, Goal) :-
+	get(B, display, Display), !,
+	send(Display, busy_cursor),
+	(   catch(Goal, E, true)
+	->  send(Display, busy_cursor, @nil),
+	    (	var(E)
+	    ->	true
+	    ;	throw(E)
+	    )
+	;   send(Display, busy_cursor, @nil),
+	    fail
+	).
+busy(_, Goal) :-
+	Goal.				% no display
+
 selected_image(IB, Img:image) :->
 	"User selected an image"::
 	send(IB, selection, Img),
 	(   get(IB, select_message, Msg),
 	    Msg \== @nil
-	->  send(Msg, forward, Img)
+	->  busy(IB, send(Msg, forward, Img))
 	;   true
 	).
 
@@ -115,18 +134,13 @@ open_image(IB, Img:image) :->
 	"User double-clicked an image"::
 	(   get(IB, open_message, Msg),
 	    Msg \== @nil
-	->  send(Msg, forward, Img)
+	->  busy(IB, send(Msg, forward, Img))
 	;   true
 	).
 
 selected_dir(IB, Dir:directory) :->
 	"User selected a sub-directory: open it"::
-	(   get(IB, display, Display)
-	->  send(Display, busy_cursor),
-	    ignore(send(IB, directory, Dir)),
-	    send(Display, busy_cursor, @nil)
-	;   send(IB, directory, Dir)
-	).
+	busy(IB, send(IB, directory, Dir)).
 
 report_image(IB, Image:image*) :->
 	"Report on the status of an image"::

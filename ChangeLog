@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: Allow single-keystroke selection of edit/1 with upto 10
+    alternatives.
+
   * PORT: deal with latest libreadline that renamed
     filename_completion_function into rl_filename_completion_function.
     Thanks to Lourens van der Meij.
