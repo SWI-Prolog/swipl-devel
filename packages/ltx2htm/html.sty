@@ -11,6 +11,33 @@
 
 \newcommand{\onefile}{}
 
+%	\bodycolor{Color}
+%
+%	Define colour for running text body (<BODY BGCOLOR=Color>).
+
+\newcommand{\bodycolor}[1]{}
+
+%	\linkimage{Id}{ImagePath}
+%
+%	Define image to use for specified link id
+
+\newcommand{\linkimage}[2]{}
+
+%	\htmlmainfile{File}
+%	\htmloutput{Directory}
+%
+%	Define the main output file and directory
+
+\newcommand{\htmlmainfile}[1]{}
+\newcommand{\htmloutput}[1]{}
+
+%	htmlfiledepth{Depth}
+%
+%	Defines the depth at which sections are split into separate files
+%	Default is 2 (each subsection produces a file). See also \onefile
+
+\newcommand{htmlfiledepth}[1]{}
+
 %	\email[TextToShow]{URL}
 %	\url[TextToShow]{URL}
 %
@@ -36,17 +63,23 @@
 %
 %	As description environment, but start a newline after the item
 
+\let\latexitem=\item
+
 \newenvironment{dlist}{%
 	\begin{description}%
-	\let\@ditem=\item%
-	\def\item[##1]{\@ditem[##1]\hfill\\}}{%
+	\def\item[##1]{\latexitem[##1]\hfill\\}}{%
 	\end{description}}
 
-\newenvironment{itemlist}{%
-	\begin{itemize}%
-	\let\@iitem=\item%
-	\def\item[##1]{\@iitem {\it ##1}\mbox{}\\}}{%
-	\end{itemize}}
+\newenvironment{itemlist}
+  {\itemize
+   \renewcommand\makelabel[1]{%
+     \hspace\labelwidth
+     \llap{\@itemlabel}%
+     \hspace\labelsep
+     \makebox[\linewidth][l]{\it ##1}%
+     \hspace{-\labelsep}}%
+     }%
+  {\enditemize}
 
 %	\var{Var}
 %

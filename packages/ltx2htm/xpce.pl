@@ -36,12 +36,12 @@ env(xpceonly(_, Tokens), HTML) :-
 	;   translate(Tokens, normal, HTML)
 	).
 
-cmd(product, 'ProWindows') :- pwtrue.
-cmd(product, 'XPCE').
-cmd(productpl, 'ProWindows') :- pwtrue.
-cmd(productpl, 'XPCE/Prolog').
-cmd(productversion, '3.1') :- pwtrue.
-cmd(productversion, '4.9.3').		% dynamic!
+%cmd(product, 'ProWindows') :- pwtrue.
+%cmd(product, 'XPCE').
+%cmd(productpl, 'ProWindows') :- pwtrue.
+%cmd(productpl, 'XPCE/Prolog').
+%cmd(productversion, '3.1') :- pwtrue.
+%cmd(productversion, '4.9.3').		% dynamic!
 
 cmd(objectname({Name}),		#b([nospace(@), Name])).
 cmd(noclass({Name}),		#b(Name)).
@@ -61,7 +61,6 @@ cmd(both({Name}),		#b([#code(nospace(<->)), Name])).
 cmd(classsend({Class}, {Name}),	#b([+Class, #code(nospace(->)), +Name])).
 cmd(classget({Class}, {Name}),	#b([+Class, #code(nospace(<-)), +Name])).
 cmd(classboth({Class}, {Name}),	#b([+Class, #code(nospace(<->)), +Name])).
-cmd(lineno({_Line}),		[]).
 cmd(sendmethod(_M, {Class}, {Selector}, {Args}),
     #defitem([ #strong([Class, ' ', nospace('->'), Selector, nospace(':')]),
 	       ' ', #var(+Args)

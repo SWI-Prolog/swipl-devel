@@ -44,8 +44,9 @@ cmd(const(		{A1}), #code(+A1)).
 cmd(module(		{A1}), #code(+A1)).
 cmd(op(			{A1}), #strong(+A1)).
 cmd(cmdlineoption(	{A1}), #strong(+A1)).
+cmd(longoption(	   {A1},{A2}), [#strong([nospace(--), +A1, nospace(=)]), #var(+A2)]).
 cmd(fmtseq(		{A1}), #code(A1)).
-cmd(versionshort,		 _, nospace(Version)) :-
+cmd(versionshort,	    _, nospace(Version)) :-
 	feature(version, V),
 	Major is V // 10000,
 	Minor is (V // 100) mod 100,
@@ -65,6 +66,7 @@ cmd(functor({RawName}, {Arity}), Text) :-
 	sformat(Text, '~w/~w', [Name, Arity]).
 cmd(compound({Name}, {Args}), #code([+Name, #embrace(+Args)])).
 cmd(term({Name}, {Args}), #code([+Name, #embrace(+Args)])).
+cmd(errorterm({Name}, {Args}), #code([+Name, #embrace(+Args)])).
 cmd(infixterm({RawName},{A1},{A2}), #code([+A1, Name, +A2])) :-
 	clean_name(RawName, Name).
 cmd(manref({RawName}, {Section}),
@@ -110,14 +112,14 @@ cmd(cmacro({RType}, {Name}, {Args}),
 cmd(prefixop({RawName}, {Arg}),
     #defitem(#label(RefName, [#strong(Name), ' ', #var(Arg)]))) :-
 	clean_name(RawName, Name),
-	sformat(RefName, '~w/1', [Name]),
+	predicate_refname(Name, 1, RefName),
 	add_to_index(RefName, +RefName).
 cmd(infixop({RawName}, {Arg1}, {Arg2}),
     #defitem(#label(RefName,
 		    [ #var(Arg1), ' ', #strong(Name), ' ', #var(Arg2)
 		    ]))) :-
 	clean_name(RawName, Name),
-	sformat(RefName, '~w/2', [Name]),
+	predicate_refname(Name, 2, RefName),
 	add_to_index(RefName, +RefName).
 cmd(termitem({Name}, {[]}), #defitem(#strong(+Name))).
 cmd(termitem({Name}, {Arg}),
@@ -228,5 +230,14 @@ special('Shash', '#').
 
 clean_name([\Special], Out) :-
 	special(Special, Out), !.
+clean_name([\tt, Out], Out) :- !.
 clean_name([Out], Out).
 	
+predicate_refname(Symbol, Arity, Ref) :-
+	symbol_name(Symbol, Name), !,
+	concat_atom([Name, /, Arity], Ref).
+predicate_refname(Name, Arity, Ref) :-
+	concat_atom([Name, /, Arity], Ref).
+
+symbol_name('->',	send_arrow).
+symbol_name('<-',	get_arrow).

@@ -230,7 +230,7 @@ default it searches the directories \file{<home>/lib/<arch>} and
 file_search_path/2.
 
 
-\section{Using Program Resources}
+\section{Using program resources}
 
 A \jargon{resource} is very similar to a file.  Resources however can
 be represented in two different formats: on files, as well as part of
@@ -262,7 +262,7 @@ copy_stream(In, Out) :-
 	copy_stream(C, In, Out).
 
 copy_stream(-1, _, _) :- !.
-	copy_stream(C, In, Out) :-
+copy_stream(C, In, Out) :-
 	put(Out, C),
 	get0(In, C2),
 	copy_stream(C2, In, Out).
@@ -332,6 +332,38 @@ system quickly accesses the system resources.
 \end{description}
 
 			    
+\subsection{The \program{plrc} program}			\label{sec:plrc}
+
+The utility program \program{plrc} can be used to examine and manipulate
+the contents of a SWI-Prolog resource file.  The options are inspired by
+the Unix \program{ar} program.  The basic command is:
+
+\begin{code}
+% plrc option resource-file member ...
+\end{code}
+
+The options are described below.
+
+\begin{description}
+    \cmdlineoptionitem{l}{}
+List contents of the archive.
+    \cmdlineoptionitem{x}{}
+Extract named (or all) members of the archive into the current
+directory.
+    \cmdlineoptionitem{a}{}
+Add files to the archive. If the archive already contains a member with
+the same name, the contents is replaced. Anywhere in the sequence of
+members, the options \longoption{class}{class} and
+\longoption{encoding}{encoding} may appear. They affect the class and
+encoding of subsequent files. The initial class is \const{data} and
+encoding \const{none}.
+    \cmdlineoptionitem{d}{}
+Delete named members from the archive. 
+\end{description}
+
+This command is also described in the \manref{pl}{1} Unix manual page.
+
+
 \section{Finding Application files}
 
 If your application uses files that are not part of the saved program
@@ -364,37 +396,12 @@ configure_gnat :-
 	    ).
 \end{code}
 
-\section{Using chpl for Configuration Information}
-
-\subsection{Changing the emulator of a runtime application}
-
-The program chpl, may be used to manipulate the header of a SWI-Prolog
-bootfile or state created with qsave_program/[1,2].
-
-It will be used most commonly by the installer of a SWI-Prolog runtime
-application to specify the path to the emulator. If the end-user decided
-to install the SWI-Prolog runtime environment in
-
-\begin{code}
-/usr/local/lib/rt-pl-2.1.4
-\end{code}
-
-the gnat application can be told to use this emulator using:
-
-\begin{code}
-% /usr/local/lib/rtpl-2.1.4/bin/chpl -e /usr/local/lib/rt-pl-2.1.4/bin/pl gnat
-\end{code}
-
-Now, {\tt gnat} may be installed in any public or private directory for
-binaries.
-
-
 \subsection{Passing a path to the application}
 
 Suppose the system administrator has installed the SWI-Prolog runtime
-environment in \file{/usr/local/lib/rt-pl-2.1.4}. A user wants to
+environment in \file{/usr/local/lib/rt-pl-3.2.0}. A user wants to
 install \file{gnat}, but gnat will look for its configuration in
-\file{/usr/local/lib/rt-pl-2.1.4/gnat} where the user cannot write.
+\file{/usr/local/lib/rt-pl-3.2.0/gnat} where the user cannot write.
 
 The user decides to install the gnat runtime files in
 \file{/users/bob/lib/gnat}.  For one-time usage, the user may decide
@@ -403,41 +410,6 @@ to start gnat using the command:
 \begin{code}
 % gnat -p gnatdir=/users/bob/lib/gnat
 \end{code}
-
-For a more widely used executable, this is not very comfortable.  The
-user may decide to edit the shell-script part of gnat.  Upto the line
-holding
-
-\begin{code}
-# End Header
-\end{code}
-
-gnat is a simple \program{/bin/sh} script.  After this line, the file is
-binary and may contain long lines.  Most editors are not capable of
-editing such files.%
-\footnote{If you use GNU-Emacs, make sure \const{require-final-newline}
-	  is set to \const{nil}}
-Instead of editing the file directly, the program \manref{chpl}{1} may be
-used to extract and replace the header of \file{gnat}.  The following
-editing sequence will work with any editor capable of editing ASCII
-files.
-
-\begin{code}
-% chpl -x gnat > gnat.hdr
-% emacs gnat.hdr
-% chpl -h gnat.hdr gnat
-\end{code}
-
-The header may be changed to the following to install gnat properly:
-
-\begin{code}
-#!/bin/sh
-# SWI-Prolog version: 2.1.4
-# SWI-Prolog save-version: 25
-exec ${SWIPL-/usr/local/lib/rt-pl-2.1.4/bin/pl} -x $0 \
--p gnatdir=/users/bob/lib/gnat "$@"
-\end{code}
-
 
 \section{The Runtime Environment}
 
@@ -473,12 +445,12 @@ protection however.
 \end{itemlist}
 
 The following fragment is an example for building the runtime
-environment in \file{\env{HOME}/lib/rt-pl-2.1.4}. If possible, the
+environment in \file{\env{HOME}/lib/rt-pl-3.2.0}. If possible, the
 shared-library interface should be configured to ensure it can serve a
 large number of applications.
 
 \begin{code}
-% cd pl-2.1.4
+% cd pl-3.2.0
 % mkdir runtime
 % cd runtime
 % ../src/configure --enable-runtime --prefix=$HOME
@@ -489,22 +461,20 @@ large number of applications.
 The runtime directory contains the components listed below. This
 directory may be tar'ed and shipped with your application.
 			    
-			    \begin{center}
-			    \begin{tabular}{|l|l|}
-			    \hline
-			    \file{README.RT}        & Info on the runtime environment \\
-			    \hline
-			    \file{bin/pl}           & The emulator itself \\
-			    \file{bin/chpl}         & The utility to change the runtime \\
-			    \hline
-			    \file{man/chpl.1}       & Manual page for chpl \\
-			    \file{man/pl.1}         & Manual page for pl \\
-			    \hline
-			    \file{swipl}            & pointer to the home directory (.) \\
-			    \hline
-			    \file{lib/}             & directory for shared libraries \\
-			    \file{lib/<arch>/}     & machine-specific shared libraries \\
-			    \hline
-			    \end{tabular}
-			    \end{center}
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+\file{README.RT}        & Info on the runtime environment \\
+\hline
+\file{bin/<arch>/pl}    & The emulator itself \\
+\hline
+\file{man/pl.1}         & Manual page for pl \\
+\hline
+\file{swipl}            & pointer to the home directory (.) \\
+\hline
+\file{lib/}             & directory for shared libraries \\
+\file{lib/<arch>/}      & machine-specific shared libraries \\
+\hline
+\end{tabular}
+\end{center}
 			    

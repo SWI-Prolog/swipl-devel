@@ -14,6 +14,7 @@ PL=		../linux/pl
 
 TEXFILES=	doc.tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex
+STYFILES=	html.sty txt.sty
 
 .SUFFIXES:
 .SUFFIXES: .doc .tex 
@@ -35,19 +36,21 @@ all:		html manual
 dvi:		$(TEXFILES)
 		$(LATEX) doc
 
-html:		$(TEXFILES) doc.bbl
+html:		$(TEXFILES) $(STYFILES) doc.bbl
 		latex2html doc
 
 manual:		$(MANUAL)
 
 pdf:		$(PDF)
 
-online:		txt.sty $(ONLINE) online_index
+online:		$(ONLINE) online_index
 online_index:	$(ONLINE_INDEX)
 
 dvi2tty:	$(DVI2TTY)
 txt.sty:	txt/txt.sty
 		cp txt/txt.sty $@
+html.sty:	../html/html.sty
+		cp $< $@
 
 clean:		
 		rm -f *~ *% tmp.* *.aux *.idx *.ind *.log *.toc *.ilg

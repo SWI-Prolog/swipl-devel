@@ -257,12 +257,20 @@
 % Stuff from package{html}
 
 \tick{+}=item
-\email[+]{-}
-\url[+]{-}
-\onefile
 {htmlonly}
 {dlist}=list
 {itemlist}=list
 \excludecomment{-}
 \obeylines
 \raggedright
+\email[+]{-}
+\url[+]{-}
+
+% Output control commands
+
+\onefile
+\bodycolor{-}
+\linkimage{-}{-}
+\htmlmainfile{-}
+\htmloutput{-}
+\htmlfiledepth{-}

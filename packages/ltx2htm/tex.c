@@ -172,14 +172,15 @@ static void cmd_prolog(Command g, Input fd, CallBack func, void *ctx);
 #define TOK_END_ENV	 4		/* \end{cmd} */
 #define TOK_VERB	 5		/* \verb|foo| */
 #define TOK_VERBATIM	 6		/* verbatim environment */
-#define TOK_MATH	 7		/* $...$ */
-#define TOK_MATH_ENV	 8		/* $$...$$ */
-#define TOK_PAR		 9		/* implicit paragraph (blank line) */
-#define TOK_WORD        10		/* general word */
-#define TOK_NOSPACEWORD 11		/* word without reintroducing spaces */
-#define TOK_SPACE       12		/* blank space */
-#define TOK_LINE        13		/* single line */
-#define TOK_EOF	        14		/* end-of-file */
+#define TOK_PRE		 7		/* pre environment */
+#define TOK_MATH	 8		/* $...$ */
+#define TOK_MATH_ENV	 9		/* $$...$$ */
+#define TOK_PAR		10		/* implicit paragraph (blank line) */
+#define TOK_WORD        11		/* general word */
+#define TOK_NOSPACEWORD 12		/* word without reintroducing spaces */
+#define TOK_SPACE       13		/* blank space */
+#define TOK_LINE        14		/* single line */
+#define TOK_EOF	        15		/* end-of-file */
 
 typedef struct _token
 { int	type;				/* type identifier */
@@ -1415,8 +1416,12 @@ parseTeXFile(const char *file, CallBack func, void *ctx)
 
 
 		 /*******************************
-  		 *	      TEST              *
+  		 *	    HTML OUTPUT         *
 		 *******************************/
+
+#define VERB_NORMAL	0
+#define VERB_VERBATIM	1
+#define VERB_PRE	2
 
 typedef struct
 { int	envnesting;			/* nesting of begin/end */
@@ -1466,7 +1471,22 @@ output(PPContext pp, const char *fmt, ...)
 	  break;
 	default:
 	  pp->spaces = 0;
-	  putc(c, pp->fd);
+	  if ( pp->verbatim == VERB_PRE	)
+	  { switch(c)
+	    { case '<':
+		fputs("&lt;", pp->fd);
+	        break;
+	      case '>':
+		fputs("&gt;", pp->fd);
+	        break;
+	      case '&':
+		fputs("&amp;", pp->fd);
+	        break;
+	      default:
+		putc(c, pp->fd);
+	    }
+	  } else
+	    putc(c, pp->fd);
 	  pp->line_pos++;
       }
     }
@@ -1637,18 +1657,18 @@ put_token(Token t, void *ctx)
       break;
     case TOK_VERB:
       outputBlank(pp);
-      pp->verbatim = TRUE;
+      pp->verbatim = VERB_VERBATIM;
       output(pp, "\\verb%s%s%s", t->context, t->value.string, t->context);
-      pp->verbatim = FALSE;
+      pp->verbatim = VERB_NORMAL;
       break;
     case TOK_VERBATIM:
 
       while( pp->newlines < CMD_BEGIN->pre_lines )
 	output(pp, "\n");
       output(pp, "\\begin{%s}", t->context);
-      pp->verbatim = TRUE;
+      pp->verbatim = VERB_VERBATIM;
       output(pp, "%s", t->value.string);
-      pp->verbatim = FALSE;
+      pp->verbatim = VERB_NORMAL;
       output(pp, "\\end{%s}", t->context);
       while( pp->newlines < CMD_BEGIN->post_lines )
 	output(pp, "\n");
@@ -1740,6 +1760,7 @@ static functor_t FUNCTOR_verb1;		/* verb/1 */
 static functor_t FUNCTOR_verb2;		/* verb/2 */
 static functor_t FUNCTOR_verbatim2;	/* verbatim/2 */
 static functor_t FUNCTOR_verbatim1;	/* verbatim/1 */
+static functor_t FUNCTOR_pre1;		/* pre/1 */
 static functor_t FUNCTOR_dot2;		/* ./2 */
 static functor_t FUNCTOR_brace1;	/* {}/1 */
 static functor_t FUNCTOR_cmd1;		/* \/1 */
@@ -1769,6 +1790,7 @@ initPrologConstants()
   FUNCTOR_verb1     = PL_new_functor(PL_new_atom("verb"), 1);
   FUNCTOR_verbatim2 = PL_new_functor(PL_new_atom("verbatim"), 2);
   FUNCTOR_verbatim1 = PL_new_functor(PL_new_atom("verbatim"), 1);
+  FUNCTOR_pre1	    = PL_new_functor(PL_new_atom("pre"), 1);
   FUNCTOR_dot2	    = PL_new_functor(PL_new_atom("."), 2);
   FUNCTOR_brace1    = PL_new_functor(PL_new_atom("{}"), 1);
   FUNCTOR_cmd1      = PL_new_functor(PL_new_atom("\\"), 1);
@@ -2426,16 +2448,22 @@ put_html_token(Token t, void *ctx)
       break;
     }
     case TOK_VERBATIM:
-    { pp->verbatim = TRUE;
+    { pp->verbatim = VERB_VERBATIM;
       output(pp, "%s", t->value.string);
-      pp->verbatim = FALSE;
+      pp->verbatim = VERB_NORMAL;
+      break;
+    }
+    case TOK_PRE:
+    { pp->verbatim = VERB_PRE;
+      output(pp, "%s", t->value.string);
+      pp->verbatim = VERB_NORMAL;
       break;
     }
     case TOK_VERB:
     { outputBlank(pp);
-      pp->verbatim = TRUE;
+      pp->verbatim = VERB_VERBATIM;
       output(pp, "%s", t->value.string);
-      pp->verbatim = FALSE;
+      pp->verbatim = VERB_NORMAL;
       
       break;
     }
@@ -2523,6 +2551,14 @@ pl_put_html_token(term_t term)
     if ( PL_get_arg(1, term, a) &&
 	 PL_get_chars(a, &s, CVT_ATOMIC) )
     { t.type = TOK_VERB;
+      t.value.string = s;
+    }
+  } else if ( PL_is_functor(term, FUNCTOR_pre1) )
+  { term_t a = PL_new_term_ref();
+
+    if ( PL_get_arg(1, term, a) &&
+	 PL_get_chars(a, &s, CVT_ATOMIC) )
+    { t.type = TOK_PRE;
       t.value.string = s;
     }
   } else if ( PL_is_functor(term, FUNCTOR_nospace1) )

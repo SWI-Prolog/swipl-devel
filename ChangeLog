@@ -10,6 +10,7 @@ VERSION 3.2.0
     that MSVC 5.0 produces considerably faster code.  The Windows
     and Linux versions now perform about equally on the same hardware
     (SuSE 5.3 linux using egcc 1.03 vs. NT 4.0/SP4 using MSVC 5.0).
+    With thanks to Lutz Wohlrab.
 
   * WIN32: Console version of SWI-Prolog (plcon.exe) no longer shows
     a message-box on errors, completion of the boot-compilation, etc.

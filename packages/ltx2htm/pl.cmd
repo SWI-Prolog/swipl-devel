@@ -5,7 +5,7 @@
 \definition{+}=item		1 0
 \predicate{+}{-}{+}=item	1 0
 \directive{+}{-}{-}=item	1 0
-\infixop{+}{-}{-}=item		1 0
+\infixop{+}{+}{+}=item		1 0
 \prefixop{+}{-}=item		1 0
 \cfunction{-}{-}{+}=item	1 0
 \cmacro{-}{-}{+}=item		1 0
@@ -21,8 +21,10 @@
 
 \cmdlineoptionitem*{+}{+}=item	1 0
 \cmdlineoption{+}
+\longoption{+}{+}
 \termitem{+}{+}=item		1 0
 \term{+}{+}
+\errorterm{+}{+}
 \optionval{+}=item		1 0
 \argoption{-}{-}
 
@@ -41,7 +43,7 @@
 \email[+]{-}
 \const{+}
 \module{+}
-\infixterm{-}{+}{+}
+\infixterm{+}{+}{+}
 \fmtseq{-}
 \ctype{+}
 \cglobalvar{+}

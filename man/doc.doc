@@ -5,6 +5,19 @@
 \sloppy
 \makeindex
 
+% Configure latex2html
+
+\htmloutput{Manual}				% Output directory
+\htmlmainfile{Title}				% Main document file
+\bodycolor{white}				% Page colour
+\linkimage{home}{icons/home.gif}		% Images for links
+\linkimage{index}{icons/yellow_pages.gif}
+\linkimage{contents}{icons/index.gif}
+\linkimage{up}{icons/up.gif}
+\linkimage{previous}{icons/prev.gif}
+\linkimage{next}{icons/next.gif}
+\linkimage{summary}{icons/info.gif}
+
 %\includeonly{foreign}
 
 \usepackage{times}
@@ -32,7 +45,7 @@
 \newcommand{\versionlong}{\vmajor.\vminor.\vpatch, \vmonth~\vyear}
 \renewcommand{\arabicday}{\versionshort}
 
-\title{SWI-Prolog Reference Manual}
+\title{SWI-Prolog \versionshort{} Reference Manual}
 \author{\email[Jan Wielemaker]{jan@swi.psy.uva.nl}	\\ 
 	Dept. of Social Science Informatics (SWI)	\\ 
 	    Roeterstraat 15, 1018 WB~~Amsterdam		\\ 
@@ -57,6 +70,18 @@ the C language.
 This document gives an overview of the features, system limits and
 built-in predicates.
 \end{abstract}
+
+\subsection*{About this document}
+
+This manual is written and maintained using \LaTeX{}. The \LaTeX{}
+source is included in the
+\url[source-distribution]{ftp://swi.psy.uva.nl/pub/SWI-Prolog/pl.tar.gz}
+of SWI-Prolog. The manual is converted into HTML using a converter
+distributed with the SWI-Prolog sources. From the same source we
+generate the plain-text version and index used by the online help system
+(located in the file \file{MANUAL} in the library directory) as well as
+the PostScript and PDF versions versions available from
+\url{ftp://swi.psy.uva.nl/pub/SWI-Prolog/refman/}.
 
 Copyright \copyright\ 1990--\year, University of Amsterdam
 \end{htmlonly}

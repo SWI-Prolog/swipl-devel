@@ -15,9 +15,9 @@
 
 \setupfancyplain
 
-\productpl
-\product
-\productversion
+%\productpl				% done dynamically
+%\product
+%\productversion
 
 {tabularlp}{-}
 

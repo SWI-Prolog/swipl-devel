@@ -32,15 +32,17 @@
 	  ]).
 :- use_module(library(quintus)).
 
-version('0.10').
+version('0.11').
 
 :- dynamic			
 	html_output_dir/1,		% output relative to this dir
 	tex_file_base/1,		% Basename of the main file
 	html_file_base/1,		% Basename of main output file
 	html_split_level/1,		% Split upto this level
+	bodycolor/1,			% \bodycolor storage
 	title/1,			% \title{} storage
-	author/1.			% \auther{} command storage
+	author/1,			% \auther{} command storage
+	link_image/2.			% Id, Image
 :- discontiguous
 	cmd/2,
 	cmd/3,
@@ -147,7 +149,7 @@ author('Anonymous').
 		 *******************************/
 
 
-latex2html(TeXFile, Base) :-
+run_latex2html(TeXFile) :-
 	reset_footnotes,
 	reset_counters,
 	reset_sections,
@@ -162,6 +164,7 @@ latex2html(TeXFile, Base) :-
 		   'No document environment; processing anyway~n', []),
 	    translate(TeXTokens, document, HTML)
 	),
+	once(html_file_base(Base)),
 	expand_macros([tell(Base), #header], Header),
 	footnote_html(FootNotes),
 	make_index(Index),
@@ -188,17 +191,28 @@ latex2html(Spec) :-
 			   TheTeXFile),
 	asserta(html_output_dir(Base)),
 	asserta(tex_file_base(Base)),
-	(   exists_directory(Base)
-	->  true
-	;   sformat(Cmd, 'mkdir ~w~n', [Base]),
-	    shell(Cmd)
-	),
-	html_file_base(Main),
-	latex2html(TheTeXFile, Main),
+	run_latex2html(TheTeXFile),
 	goodbye,
 	retract(tex_file_base(_)),
 	retract(html_output_dir(_)).
 
+%	make_output_directory
+%
+%	Create the output directory.
+
+:- dynamic
+	done_make_output_directory/0.
+
+make_output_directory :-
+	done_make_output_directory, !.
+make_output_directory :-
+	html_output_dir(Dir), !,
+	(   exists_directory(Dir)
+	->  true
+	;   sformat(Cmd, 'mkdir ~w~n', [Dir]),
+	    shell(Cmd)
+	),
+	assert(done_make_output_directory).
 
 :- dynamic
 	current_html_output_db/1,	% Base
@@ -209,6 +223,7 @@ reset_output :-
 	retractall(in_head(_)).
 
 open_output(Base) :-
+	make_output_directory,
 	html_output_dir(Dir), !,
 	concat_atom([Dir, /, Base, '.html'], HtmlFile),
 	tex_tell(HtmlFile),
@@ -280,11 +295,11 @@ translate_2($(Expr), Mode, Mode, #var(HTML)) :-		% $...$
 	tex_atom_to_tokens(Expr, Tokens),
 	translate(Tokens, math, _, HTML).
 translate_2(verbatim(_Cmd, Text), Mode, Mode, 		% \begin{verbatim} ...
-	    #xmp(verbatim(Text))).
+	    #listing(#pre(pre(Text)))).
 :- set_feature(character_escapes, true).
-translate_2(verb(_, Text), pcecode, pcecode,
-	    [verb('\n'), verb(Text)]).
-translate_2(vskip(_), pcecode, pcecode, verb('\n')).
+translate_2(verb(_, Text), pcecode, pcecode, pre(Text)).
+translate_2(Layout, pcecode, pcecode, []) :-
+	atomic(Layout), !.
 translate_2('\n', Mode, Mode, [html('<BR>')]) :-
 	Mode = group(Atts),
 	memberchk(obeylines, Atts), !.
@@ -368,6 +383,9 @@ language_map(table,	'Table').
 #(tell(File),		tell(File)).
 #(head(Head),		[html('<HEAD>'), HtmlHead, html('</HEAD>')]) :-
 	expand_macros(Head, HtmlHead).
+#(beginbody,		html(Body)) :-
+	bodycolor(Colour), !,
+	sformat(Body, '<BODY BGCOLOR="~w">', [Colour]).
 #(beginbody,		html('<BODY>')).
 #(endbody,		html('</BODY>')).
 #(thetitle,		Title) :-
@@ -389,6 +407,11 @@ language_map(table,	'Table').
 #(center(Text),		[html('<CENTER>'), Text, html('</CENTER>')]).
 #(right(Text),		[html('<RIGHT>'),  Text, html('</RIGHT>')]).
 #(quote(Text),		[html('<BLOCKQUOTE>'), Text, html('</BLOCKQUOTE>')]).
+#(listing(Text),	[html('<TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>'), Text,
+			 html('</TABLE>')]).
+#(abstract(Text),	[html('<CENTER><H3>Abstract</H3></Center>'),
+			 html('<TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>'), Text,
+			 html('</TABLE>')]).
 #(embrace([O,C],Text),	[nospace(OA),	   Text, nospace(CA)]) :-
 	atom_char(OA, O),
 	atom_char(CA, C).
@@ -597,7 +620,7 @@ label_tag(Tag) :-
 %
 %	Translate an environment.
 
-env(pcecode(_, Tokens), #pre(HTML)) :-
+env(pcecode(_, Tokens), #listing(#pre(HTML))) :-
 	translate(Tokens, pcecode, HTML).
 env(summarylist(_, Summary),
     [ html('<TABLE>'),
@@ -610,8 +633,7 @@ env(document(_, Contents), HTML) :- !,
 	translate(Contents, document, HTML).
 env(quote(_, Tokens), #quote(Quote)) :-
 	translate_group(Tokens, Quote).
-%env(abstract(_, Tokens), [html('<HR>'), #quote(Quote), html('<HR>')]) :-
-env(abstract(_, Tokens), #quote([html('<HR>'), Quote, html('<HR>')])) :-
+env(abstract(_, Tokens), #abstract(Quote)) :-
 	translate(Tokens, normal, Quote).
 env(center(_, Tokens), #center(Center)) :-
 	translate(Tokens, normal, Center).
@@ -748,7 +770,7 @@ prolog_function(\(renewcommand, [{Name}, [Args], {Expanded}])) :-
 		 *******************************/
 
 %
-%	cmd(+Command, -HTML)
+%	cmd(+Command, +Mode, -HTML)
 %
 
 cmd(onefile, preamble, []) :-
@@ -768,6 +790,13 @@ cmd(usepackage(_, {_File}, _), preamble, []) :- !.
 cmd(makeindex, preamble, []) :-
 	retractall(makeindex(_)),
 	asserta(makeindex(true)).
+:- set_feature(character_escapes, true).
+cmd(vskip(_), pcecode, verb('\n')).
+cmd(lineno({_Line}), pcecode, verb('\n')).
+:- set_feature(character_escapes, false).
+
+%       cmd(+Command, -HTML)
+
 cmd(newcommand({Name}, [], {Expanded}), []) :-
 	declare_command(Name, 0, Expanded).
 cmd(newcommand({Name}, [Args], {Expanded}), []) :-
@@ -808,9 +837,8 @@ cmd(parindent(_), []).
 cmd(raggedright, []).			% Always in HTML
 cmd(tableofcontents,
     [ #tell('Contents'),
-      #header,
-      #label('document-contents',
-	     [html('<H1>'), 'Table of Contents', html('</H1>')]),
+      #header(contents),
+      #h(1, #label('document-contents', 'Table of Contents')),
       tableofcontents(document)
     ]).
 cmd(printindex, []).
@@ -866,6 +894,33 @@ cmd(author({Author}), []) :-			% \author
 	retractall(author(_)),
 	translate(Author, normal, HTML),
 	assert(author(HTML)).
+cmd(bodycolor({BG}), []) :-			% \bodycolor
+	retractall(bodycolor(_)),
+	assert(bodycolor(BG)).
+cmd(linkimage({Name}, {Path}), []) :-		% \linkimage{Id, Path}
+	make_output_directory,
+	html_output_dir(Dir),
+	file_base_name(Path, Base),
+	concat_atom([Dir, Base], /, To),
+	sformat(Cmd, 'cp ~w ~w', [Path, To]),
+	shell(Cmd),
+	asserta(link_image(Name, Base)).
+cmd(htmloutput({Dir}), []) :-
+	(   done_make_output_directory
+	->  format(user_error,
+		   'Cannot change output directory after output has started~n',
+		   []),
+	    fail
+	;   retract(html_output_dir(_)), !,
+	    asserta(html_output_dir(Dir))
+	).
+cmd(htmlmainfile({File}), []) :-
+	retractall(html_file_base(_)),
+	assert(html_file_base(File)).
+cmd(htmlfiledepth({Depth}), []) :-
+	retractall(html_split_level(_)),
+	assert(html_split_level(Depth)).
+
 cmd(maketitle,					% \maketitle
     #quote(#quote(#quote(#quote([ #center(#h(1, #thetitle)),
 				  html('<HR>'),
@@ -933,9 +988,9 @@ cmd(centerline({Tex}), #center(+Tex)).
 cmd(rightline({Tex}), #right(+Tex)).
 
 cmd(email([], {Address}), #url(URL, Address)) :-
-	sformat(URL, 'mailto:~w"', [Address]).
+	sformat(URL, 'mailto:~w', [Address]).
 cmd(email([Text], {Address}), #url(URL, +Text)) :-
-	sformat(URL, 'mailto:~w"', [Address]).
+	sformat(URL, 'mailto:~w', [Address]).
 cmd(url([], {Address}), #url(Address, Address)).
 cmd(url([Text], {Address}), #url(Address, +Text)).
 cmd(strong(		{A1}), #strong(+A1)).
@@ -1011,6 +1066,7 @@ cmd(psfig({Spec}), html(Img)) :-
 	file_base_name(Base, GifBase),
 	file_name_extension(GifBase, gif, GifFile),
 	sformat(Img, '<IMG SRC="~w">', GifFile),
+	make_output_directory,
 	html_output_dir(Dir),
 	concat_atom([Dir, '/', GifFile], OutFile),
 	(   keep_figures(true),
@@ -1036,6 +1092,7 @@ cmd(postscript({_Width}, {File}, Title),
 		     translate_command(label({Label}), float, _, LabelHTML)
 		 )),
 	sformat(Img, '<IMG SRC="~w">', GifFile),
+	make_output_directory,
 	current_setting(html_output_dir(Dir)),
 	concat_atom([Dir, '/', GifFile], OutFile),
 	(   current_setting(keep_figures),
@@ -1057,6 +1114,7 @@ cmd(postscriptfig(_Options, {File}, Title),
 		     translate_command(label({Label}), float, _, LabelHTML)
 		 )),
 	sformat(Img, '<IMG SRC="~w">', GifFile),
+	make_output_directory,
 	current_setting(html_output_dir(Dir)),
 	concat_atom([Dir, '/', GifFile], OutFile),
 	(   current_setting(keep_figures),
@@ -1131,7 +1189,7 @@ cmd(Cmd, Mode0, Mode, HTML) :-
 cmd(obeylines, group(Atts), group([obeylines|Atts]), []).
 cmd(Font, group(Old), group([font(Font)|Old1]), HTML) :-
 	html_font(Font, Open, _), !,
-	(   delete(Old, font(OldFont), Old1),
+	(   select(Old, font(OldFont), Old1),
 	    html_font(OldFont, _, Close)
 	->  HTML = [Close,Open]
 	;   Old1 = Old,
@@ -1294,9 +1352,8 @@ footnote_html([]) :-
 	\+ footnote(_, _), !.
 footnote_html(HTML) :-
 	HTML0 = [ #tell('Notes'),
-		  #header,
-		  #label('document-notes',
-			 [html('<H1>'), 'Footnotes', html('</H1>')]),
+		  #header(notes),
+		  #h(1, #label('document-notes', 'Footnotes')),
 		  html('<DL>'),
 		  FootNodes,
 		  html('</DL>')
@@ -1489,9 +1546,29 @@ reset_index :-
 
 translate_index(Term, RefName) :-
 	step_counter(index, N),
-	sformat(RefName, 'idx:~w:~w', [Term, N]),
+	clean_index(Term, Clean),
+	sformat(RefName, 'idx:~w:~w', [Clean, N]),
 	section_tag(Tag),
 	add_to_index(Term, Tag:RefName).
+
+clean_index(Raw, Cleaned) :-
+	atom_chars(Raw, RawChars),
+	clean_index_2(RawChars, Chars),
+	atom_chars(Cleaned, Chars).
+
+clean_index_2([], []).
+clean_index_2([H|T0], [H|T]) :-
+	valid_index_char(H), !,
+	clean_index_2(T0, T).
+clean_index_2([_|T0], T) :-
+	clean_index_2(T0, T).
+
+valid_index_char(C) :-
+	between(0'a, 0'z, C).
+valid_index_char(C) :-
+	between(0'A, 0'Z, C).
+valid_index_char(C) :-
+	between(0'0, 0'9, C).
 
 add_to_index(Term) :-
 	section_tag(Tag),
@@ -1525,9 +1602,8 @@ make_index([]) :-
 	\+ index(_, _, _), !.
 make_index(HTML) :-
 	HTML0 = [ #tell('Index'),
-		  #header,
-		  #label('document-index',
-			 [html('<H1>'), 'Index', html('</H1>')]),
+		  #header(index),
+		  #h(1, #label('document-index', 'Index')),
 		  html('<DL>'),
 		  Index,
 		  html('</DL>')
@@ -2239,14 +2315,48 @@ aformat(Atom, Fmt, Args) :-
 		 *******************************/
 
 
-write_html([]) :- !.
+:- dynamic
+	pending_par/0.
+
+implicit_par(html('<H1>')).
+implicit_par(html('<H2>')).
+implicit_par(html('<H3>')).
+implicit_par(html('<H4>')).
+implicit_par(html('<PRE>')).
+implicit_par(html('<XMP>')).
+implicit_par(html('<DL>')).
+implicit_par(html('<TABLE>')).
+implicit_par(html('<CENTER>')).
+implicit_par(html('<BLOCKQUOTE>')).
+
+
+write_html([]) :- !.				% Unpack lists
 write_html([H|T]) :- !,
 	write_html(H),
 	write_html(T).
-write_html(html(Cmd)) :-
+:- set_feature(character_escapes, true). 	% Smash <P> and layout
+write_html('\n') :-
+	pending_par, !.
+write_html(' ') :-
+	pending_par, !.
+:- set_feature(character_escapes, false).
+write_html(html('<P>')) :- !,
+	(   pending_par
+	->  true
+	;   assert(pending_par)
+	).
+write_html(Token) :-
+	retract(pending_par), !,
+	(   implicit_par(Token)
+	->  true
+	;   cmd_layout('<P>', Pre, Post),
+	    put_html_token(html('<P>', Pre, Post))
+	),
+	write_html(Token).
+write_html(html(Cmd)) :-			% HTML commands
 	cmd_layout(Cmd, Pre, Post), !,
 	put_html_token(html(Cmd, Pre, Post)).
-write_html(ref(Label)) :- !,
+write_html(ref(Label)) :- !,			% References and labels
 	(   label(Label, _, Ref)
 	->  write_html(Ref)
 	;   write_html('??'),
@@ -2259,7 +2369,12 @@ write_html(body_link(Link)) :- !,
 	(   translate_ref(Link, Ref, Type)
 	->  sformat(Anchor, '<A HREF="~w">', [Ref]),
 	    capitalise_atom(Type, Text),
-	    write_html([html(Anchor), Text, html('</A>')]),
+	    (	link_image(Type, Image)
+	    ->	sformat(Img, '<IMG SRC="~w" BORDER=0 ALT="~w">', [Image, Text]),
+		Label = html(Img)
+	    ;	Label = Text
+	    ),
+	    write_html([html(Anchor), Label, html('</A>')]),
 	    nl_html
 	;   true
 	).
@@ -2400,10 +2515,12 @@ cmd_layout('</H3>',  0, 2).
 cmd_layout('</H4>',  0, 2). 
 cmd_layout('</H5>',  0, 2). 
 cmd_layout('</H6>',  0, 2). 
-cmd_layout('<HR>',   2, 0). 
+cmd_layout('<HR>',   1, 1). 
 cmd_layout('<BR>',   0, 1). 
 cmd_layout('<LI>', 	 1, 0).
 cmd_layout('<DT>', 	 1, 0).
+cmd_layout('<UL>', 	 1, 1).
+cmd_layout('</UL>', 	 1, 1).
 cmd_layout('<TR>',       1, 0). 
 cmd_layout('</TR>',      0, 1). 
 cmd_layout('<TBODY>',    1, 1). 
@@ -2411,14 +2528,22 @@ cmd_layout('<THEAD>',    1, 1).
 cmd_layout('</TABLE>',   0, 2). 
 cmd_layout('<LISTING>',	 2, 0). 
 cmd_layout('</LISTING>', 0, 2). 
+cmd_layout('<PRE>',	 1, 1). 
+cmd_layout('</PRE>', 	 1, 1). 
 cmd_layout('<XMP>',	 2, 0). 
 cmd_layout('</XMP>', 	 0, 2). 
+cmd_layout('<HEAD>',	 1, 1). 
+cmd_layout('</HEAD>',	 1, 1). 
+cmd_layout('<CENTER>',	 1, 1). 
+cmd_layout('</CENTER>',	 1, 1). 
 cmd_layout('<BODY>',	 2, 1). 
 cmd_layout('</BODY>',	 1, 1). 
 cmd_layout('</HEAD>',	 0, 1). 
 cmd_layout('<HTML>',	 0, 1). 
 cmd_layout('</HTML>',	 1, 1). 
-cmd_layout(Cmd,		 1, 1) :-
+cmd_layout('<BLOCKQUOTE>',	1, 0). 
+cmd_layout('</BLOCKQUOTE>',	0, 1). 
+cmd_layout(Cmd,		 	1, 1) :-
 	concat('<TABLE', _, Cmd).
 
 :- initialization
