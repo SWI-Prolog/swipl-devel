@@ -163,6 +163,7 @@ typedef enum
 
 typedef struct transaction_record
 { struct transaction_record    *previous;
+  struct transaction_record    *next;
   tr_type			type;
   triple		       *triple;		/* new/deleted triple */
   union
@@ -213,7 +214,8 @@ typedef struct rdf_db
   source      **source_table;		/* Hash table of sources */
   int      	source_table_size;	/* Entries in table */
   source	*last_source;		/* last accessed source */
-  transaction_record *transactions;	/* pending transactions */
+  transaction_record *tr_first;		/* first transaction record */
+  transaction_record *tr_last;		/* last transaction record */
   int		tr_nesting;		/* nesting depth of transactions */
 #ifdef _REENTRANT
 #ifdef WIN32

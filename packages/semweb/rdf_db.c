@@ -2556,7 +2556,7 @@ value:
   t->source = load_atom(in, ctx);
   t->line   = load_int(in);
 
-  if ( db->transactions )
+  if ( db->tr_first )
   { record_transaction(db, TR_ASSERT, t);     
   } else
   { link_triple(db, t);
@@ -2614,7 +2614,7 @@ load_db(rdf_db *db, IOSTREAM *in)
 
 	if ( ctx.source && ctx.source->md5 )
 	{ ctx.md5 = ctx.source->md5;
-	  if ( db->transactions )
+	  if ( db->tr_first )
 	  { record_md5_transaction(db, ctx.source, NULL);
 	  } else
 	  { ctx.source->md5 = FALSE;
@@ -2628,7 +2628,7 @@ load_db(rdf_db *db, IOSTREAM *in)
 	  PL_free(ctx.loaded_atoms);
 
         if ( ctx.md5 )
-	{ if ( db->transactions )
+	{ if ( db->tr_first )
 	  { md5_byte_t *d = PL_malloc(sizeof(ctx.digest));
 	    memcpy(d, ctx.digest, sizeof(ctx.digest));
 	    record_md5_transaction(db, ctx.source, d);
@@ -3360,8 +3360,15 @@ update_duplicates_del(rdf_db *db, triple *t)
 
 static void
 append_transaction(rdf_db *db, transaction_record *tr)
-{ tr->previous = db->transactions;
-  db->transactions = tr;
+{ if ( db->tr_last )
+  { tr->next = NULL;
+    tr->previous = db->tr_last;
+    db->tr_last->next = tr;
+    db->tr_last = tr;
+  } else
+  { tr->next = tr->previous = NULL;
+    db->tr_first = db->tr_last = tr;
+  }
 }
 
 
@@ -3372,7 +3379,7 @@ open_transaction(rdf_db *db)
   memset(tr, 0, sizeof(*tr));
   tr->type = TR_MARK;
 
-  if ( db->transactions )
+  if ( db->tr_first )
     db->tr_nesting++;
   else
     db->tr_nesting = 0;
@@ -3457,6 +3464,16 @@ free_transaction(transaction_record *tr)
 }
 
 
+static void
+truncate_transaction(rdf_db *db, transaction_record *last)
+{ db->tr_last = last;
+  if ( last )
+  { db->tr_last->next = NULL;
+  } else
+  { db->tr_first = NULL;
+  }
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 discard_transaction()  simply  destroys  all   actions    in   the  last
 transaction.
@@ -3466,12 +3483,12 @@ static void
 discard_transaction(rdf_db *db)
 { transaction_record *tr, *prev;
 
-  for(tr=db->transactions; tr; tr = prev)
+  for(tr=db->tr_last; tr; tr = prev)
   { prev = tr->previous;
 
     if ( tr->type == TR_MARK )
     { PL_free(tr);
-      db->transactions = prev;
+      truncate_transaction(db, prev);
       db->tr_nesting--;
       return;
     }
@@ -3483,40 +3500,41 @@ discard_transaction(rdf_db *db)
 
 static int
 commit_transaction(rdf_db *db)
-{ transaction_record *tr, *prev;
+{ transaction_record *tr, *next;
 
   if ( db->tr_nesting > 0 )		/* commit nested transaction */
-  { tr=db->transactions;
+  { tr=db->tr_last;
 
     if ( tr->type == TR_MARK )		/* empty nested transaction */
-    { db->transactions = tr->previous;
+    { truncate_transaction(db, tr->previous);
       PL_free(tr);
       db->tr_nesting--;
 
       return TRUE;
     }
 
-    for(; tr; tr = prev)
-    { prev = tr->previous;
-
-      if ( prev && prev->type == TR_MARK )
-      { tr->previous = prev->previous;
-	PL_free(prev);
+    for(; tr; tr = tr->previous)	/* not the last (tested above) */
+    {					/* not the first (we are nested) */
+      if ( tr->type == TR_MARK )
+      { tr->previous->next = tr->next;
+	tr->next->previous = tr->previous;
+	PL_free(tr);
 	db->tr_nesting--;
 
 	return TRUE;
       }
     }
+
+    assert(0);
+    return FALSE;
   }
 
 					/* real commit */
-  for(tr=db->transactions; tr; tr = prev)
-  { prev = tr->previous;
+  for(tr=db->tr_first; tr; tr = next)
+  { next = tr->next;
 
     switch(tr->type)
     { case TR_MARK:
-	db->transactions = NULL;
-        assert(prev == NULL);
 	break;
       case TR_ASSERT:
 	link_triple(db, tr->triple);
@@ -3565,6 +3583,8 @@ commit_transaction(rdf_db *db)
 
     PL_free(tr);
   }
+
+  db->tr_first = db->tr_last = NULL;
 
   return TRUE;
 }
@@ -3632,7 +3652,7 @@ rdf_assert4(term_t subject, term_t predicate, term_t object, term_t src)
     return FALSE;
   }
 
-  if ( db->transactions )
+  if ( db->tr_first )
   { record_transaction(db, TR_ASSERT, t);
   } else
   { link_triple(db, t);
@@ -3904,7 +3924,7 @@ update_triple(rdf_db *db, term_t action, triple *t)
       return FALSE;
     if ( t2.source == t->source && t2.line == t->line )
       return TRUE;
-    if ( db->transactions )
+    if ( db->tr_first )
     { record_update_src_transaction(db, t, t2.source, t2.line);
     } else
     { if ( t->source )
@@ -3934,7 +3954,7 @@ update_triple(rdf_db *db, term_t action, triple *t)
   new->line	    = tmp.line;
   lock_atoms(new);
 
-  if ( db->transactions )
+  if ( db->tr_first )
   { record_update_transaction(db, t, new);
   } else
   { erase_triple(db, t);
@@ -4004,7 +4024,7 @@ rdf_retractall4(term_t subject, term_t predicate, term_t object, term_t src)
   p = db->table[t.indexed][triple_hash(db, &t, t.indexed)];
   for( ; p; p = p->next[t.indexed])
   { if ( match_triples(p, &t, MATCH_EXACT|MATCH_SRC) )
-    { if ( db->transactions )
+    { if ( db->tr_first )
       { record_transaction(db, TR_RETRACT, p);
       } else
       { erase_triple(db, p);
@@ -4748,7 +4768,7 @@ rdf_reset_db()
   if ( !WRLOCK(db, FALSE) )
     return FALSE;
 
-  if ( db->transactions )
+  if ( db->tr_first )
     record_transaction(db, TR_RESET, NULL);
   else
     reset_db(db);
