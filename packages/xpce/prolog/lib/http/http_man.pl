@@ -53,7 +53,7 @@ To test it, do:
 Then run your browser and start at the url http://localhost:8080/
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-url(pcehome, 'http://www.swi-prolog.org/xpce/').
+url(pcehome, 'http://www.swi-prolog.org/packages/xpce/').
 url(pceusg,  'http://www.swi.psy.uva.nl/projects/xpce/UserGuide').
 
 pce_http_man(Port) :-			% start on anonymous port
