@@ -51,7 +51,7 @@
 :- use_module(bv,
 	[
 		deref/2,
-		detach_bounds_vlv/4,
+		detach_bounds_vlv/5,
 		dump_var/6,
 		dump_nz/5,
 		solve/1,
@@ -206,8 +206,8 @@ attr_unify_hook((_,_,_,_,_,forward(F),_),Y) :-
 attr_unify_hook((Ty,St,Li,Or,Cl,_,No,_),Y) :-
 	% numbers_only(Y),
 	verify_nonzero(No,Y),
-	verify_type((Ty,St),Y,Later,[]),
-	verify_lin((Or,Cl,Li),Y),
+	verify_type(Ty,St,Y,Later,[]),
+	verify_lin(Or,Cl,Li,Y),
 	call_list(Later).
 
 % call_list(List)
@@ -262,22 +262,22 @@ verify_nonzero(nonzero,Y) :-
 	).
 verify_nonzero(_,_). % X is not nonzero
 
-% verify_type((type(Type),strictness(Strict),Y,[OL|OLT],OLT)
+% verify_type(type(Type),strictness(Strict),Y,[OL|OLT],OLT)
 %
 % if possible verifies whether Y satisfies the type and strictness of X
 % if not possible to verify, then returns the constraints that follow from
 % the type and strictness
 
-verify_type((type(Type),strictness(Strict)),Y) -->
-  !,
-  verify_type(Y,Type,Strict).
-verify_type(_,_) --> [].
+verify_type(type(Type),strictness(Strict),Y) -->
+	!,
+	verify_type2(Y,Type,Strict).
+verify_type(_,_,_) --> [].
 
-verify_type(Y,TypeX,StrictX) --> 
+verify_type2(Y,TypeX,StrictX) --> 
 	{var(Y)},
 	!,
 	verify_type_var(TypeX,Y,StrictX).
-verify_type(Y,TypeX,StrictX) -->
+verify_type2(Y,TypeX,StrictX) -->
 	{verify_type_nonvar(TypeX,Y,StrictX)}.
 
 % verify_type_nonvar(Type,Nonvar,Strictness)
@@ -370,16 +370,16 @@ lub(_,U,V) -->	[{V < U}].
 % If X is indep and we do _not_ solve for it, we are in deep shit
 % because the ordering is violated.
 %
-verify_lin((order(OrdX),class(Class),lin(LinX)),Y) :-
+verify_lin(order(OrdX),class(Class),lin(LinX),Y) :-
 	!,
 	(
 	  indep(LinX,OrdX) ->
 
-		detach_bounds_vlv(OrdX,LinX,Class,Y),	% if there were bounds, they are requeued already
+		detach_bounds_vlv(OrdX,LinX,Class,Y,NewLinX),	% if there were bounds, they are requeued already
 		class_drop(Class,Y),
 		nf(-Y,NfY),
 		deref(NfY,LinY),
-		add_linear_11(LinX,LinY,Lind),
+		add_linear_11(NewLinX,LinY,Lind),
 		(
 		  nf_coeff_of(Lind,OrdX,_) ->	% X is element of Lind
 
@@ -394,6 +394,6 @@ verify_lin((order(OrdX),class(Class),lin(LinX)),Y) :-
 		add_linear_11(LinX,LinY,Lind),
 		solve(Lind)
 	).
-verify_lin( _, _).
+verify_lin(_,_,_,_).
 
 

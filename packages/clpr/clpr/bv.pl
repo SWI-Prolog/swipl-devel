@@ -49,7 +49,7 @@
 		deref/2,
 		deref_var/2,
 		detach_bounds/1,
-		detach_bounds_vlv/4,	
+		detach_bounds_vlv/5,	
 		determine_active_dec/1,
 		determine_active_inc/1,
 		dump_var/6,
@@ -1237,7 +1237,7 @@ detach_bounds(V) :-
 		class_basis_drop(Class,V)
 	).
 
-detach_bounds_vlv(OrdV,Lin,Class,Var) :-
+detach_bounds_vlv(OrdV,Lin,Class,Var,NewLin) :-
 	(
 	  indep(Lin,OrdV) ->
 	
@@ -1247,24 +1247,19 @@ detach_bounds_vlv(OrdV,Lin,Class,Var) :-
 			% in verify_lin, class might contain two occurrences of Var, but it
 			% doesn't matter which one we delete
 			class_basis_drop(Class,Var),
-			pivot(Vub,Class,OrdV,Vb)
+			pivot_vlv(Vub,Class,OrdV,Vb,NewLin)
 		;
 		  lb(Class,OrdV,Vlb-Vb-_) ->
 
 			class_basis_drop(Class,Var),
-			pivot(Vlb,Class,OrdV,Vb)
+			pivot_vlv(Vlb,Class,OrdV,Vb,NewLin)
 		;
-			true
+			NewLin = Lin
 		)
 	;
+		NewLin = Lin,
 		class_basis_drop(Class,Var)
 	).
-
-
-
-
-
-
 
 
 
@@ -1386,7 +1381,19 @@ pivot(Dep,Class,IndepOrd,IndAct) :-
 	K is -1.0/Coeff,			
 	Abvm is -Abv,				
 	add_linear_ff(H0,K,[0.0,Abvm,l(Dep* -1.0,DepOrd)],K,Lin),	% Indep = -1/Coeff*... + 1/Coeff*Dep 
-	backsubst(Class,IndepOrd,Lin).				
+	backsubst(Class,IndepOrd,Lin).	
+
+pivot_vlv(Dep,Class,IndepOrd,IndAct,Lin) :-
+	get_attr(Dep,itf3,(_,St,lin(H),order(DepOrd),RAtt)),
+	put_attr(Dep,itf3,(type(IndAct),St,lin(H),order(DepOrd),RAtt)),
+	select_active_bound(IndAct,Abv),	% Dep or Indep
+	delete_factor(IndepOrd,H,H0,Coeff),	% Dep = ... + Coeff*Indep + ...
+	K is -1.0/Coeff,			
+	Abvm is -Abv,				
+	add_linear_ff(H0,K,[0.0,Abvm,l(Dep* -1.0,DepOrd)],K,Lin),	% Indep = -1/Coeff*... + 1/Coeff*Dep 
+	backsubst(Class,IndepOrd,Lin).
+
+			
 
 % backsubst_delta(Class,OrdX,X,Delta)
 %

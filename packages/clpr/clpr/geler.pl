@@ -88,7 +88,7 @@ nonexhausted((A,B)) -->
 	nonexhausted(A),
 	nonexhausted(B).
 
-attr_unify_hook((goals(Gx),_),Y) :-
+attr_unify_hook(g(goals(Gx),_),Y) :-
 	!,
 	(
 		var(Y),
