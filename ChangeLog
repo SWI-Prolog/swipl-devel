@@ -4,6 +4,17 @@
 VERSION 2.9.6
 =============
 
+  * FIXED: current_predicate/2 not consider abolished predicates that
+    still exist as `current', so current_predicate(_, Goal), Goal is
+    guaranteed not to raise an exception on Goal.  Should fix recent
+    reconsult problems in XPCE.
+
+  * ADDED: user:message_hook/3 hook for print_message/2 (provisional).
+
+  * MODIFIED: Hooks installed by PL_initialise_hook() are called *before*
+    the saved-state is loaded, but after the heap is initialised.  This
+    implies only foreign predicates may be called from this hook now.
+
   * FIXED: testing of write-premissions for the library index for
     make/0.
 

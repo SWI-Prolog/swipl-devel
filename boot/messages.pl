@@ -105,13 +105,17 @@ swi_extra(_) -->
 %	system.
 
 
-print_message(error, Term) :-
-	source_location(File, Line), !,
+print_message(Level, Term) :-
 	message_to_string(Term, Str),
-	format(user_error, '[WARNING: (~w:~d):~n~t~8|~w]~n', [File, Line, Str]).
-print_message(error, Term) :-
-	message_to_string(Term, Str),
-	format(user_error, '[WARNING: ~w]~n', [Str]).
+	(   current_predicate(_, user:message_hook(_,_,_)),
+	    user:message_hook(Term, Level, Str)
+	->  true
+	;   source_location(File, Line)
+	->  format(user_error, '[WARNING: (~w:~d):~n~t~8|~w]~n',
+		   [File, Line, Str])
+	;   format(user_error, '[WARNING: ~w]~n', [Str])
+	).
+
 
 %	message_to_string(+Term, -String)
 %

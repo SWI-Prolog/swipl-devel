@@ -281,7 +281,7 @@ prolog :-
 
 read_query(Prompt, Goal, Bindings) :-
 	feature(history, N),
-	N > 0, !,
+	N =< 0, !,
 	remove_history_prompt(Prompt, Prompt1),
 	repeat,				% over syntax errors
 	prompt1(Prompt1),
