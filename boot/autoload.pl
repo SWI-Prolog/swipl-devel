@@ -36,14 +36,17 @@
 	    $update_library_index/0,
 	    make_library_index/1,
 	    make_library_index/2,
+	    reload_library_index/0,
 	    autoload/0,
 	    autoload/1
 	  ]).
 
 :- dynamic
-	library_index/3.			% Head x Module x Path
+	library_index/3,		% Head x Module x Path
+	autoload_directories/1.		% List
 :- volatile
-	library_index/3.
+	library_index/3,
+	autoload_directories/1.
 
 %	$find_library(+Module, +Name, +Arity, -LoadModule, -Library)
 %
@@ -53,7 +56,7 @@
 %	of the library and module declared in that file.
 
 $find_library(Module, Name, Arity, LoadModule, Library) :-
-	load_library_index,
+	load_library_index(Name, Arity),
 	functor(Head, Name, Arity),
 	(   library_index(Head, Module, Library),
 	    LoadModule = Module
@@ -64,6 +67,11 @@ $find_library(Module, Name, Arity, LoadModule, Library) :-
 %
 %	Is true if Name/Arity is in the autoload libraries.
 
+$in_library(Name, Arity) :-
+	atom(Name), integer(Arity), !,
+	load_library_index(Name, Arity),
+	functor(Head, Name, Arity),
+	library_index(Head, _, _).
 $in_library(Name, Arity) :-
 	load_library_index,
 	library_index(Head, _, _),
@@ -140,12 +148,44 @@ clear_library_index :-
 		*           LOAD INDEX		*
 		********************************/
 
+%	reload_library_index
+%	
+%	Reload the index on the next call
+
+reload_library_index :-
+	retractall(library_index(_, _, _)),
+	retractall(autoload_directories(_)).
+
+
+%	load_library_index(+Name, +Arity)
+%	
+%	Try to find Name/Arity  in  the   library.  If  the predicate is
+%	there, we are happy. If not, we  check whether the set of loaded
+%	libraries has changed and if so we reload the index.
+
+load_library_index(Name, Arity) :-
+	functor(Head, Name, Arity),
+	library_index(Head, _, _), !.
+load_library_index(_, _) :-
+	findall(Index, index_file_name(Index, [access(read)]), List),
+	(   autoload_directories(List)
+	->  true
+	;   retractall(library_index(_, _, _)),
+	    retractall(autoload_directories(_)),
+	    read_index(List),
+	    assert(autoload_directories(List))
+	).
+
+%	load_library_index
+%	
+%	Load the library index if it was not loaded.
+
 load_library_index :-
 	library_index(_, _, _), !.		% loaded
 load_library_index :-
-	forall(index_file_name(Index, [access(read)]),
-	       read_index(Index)).
-
+	findall(Index, index_file_name(Index, [access(read)]), List),
+	read_index(List),
+	assert(autoload_directories(List)).
 
 index_file_name(IndexFile, Options) :-
 	absolute_file_name(library('INDEX'),
@@ -155,6 +195,10 @@ index_file_name(IndexFile, Options) :-
 			   | Options
 			   ], IndexFile).
 
+read_index([]) :- !.
+read_index([H|T]) :- !,
+	read_index(H),
+	read_index(T).
 read_index(Index) :-
 	print_message(silent, autoload(read_index(Dir))),
 	file_directory_name(Index, Dir),

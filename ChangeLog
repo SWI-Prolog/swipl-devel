@@ -7,6 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: reload_library_index/0 and automatic reloading if the set of
+    library directories changes and predicates cannot be found.  After
+    comments by Tolga Konik.
+
   * ADDED: plld.exe -dll option to create a DLL with Prolog embedded into it.
 
   * ADDED/FIXED/MODIFIED: Windows: PL_initialise() can now be passed the

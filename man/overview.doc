@@ -1299,13 +1299,13 @@ If ---at runtime--- an undefined predicate is trapped the system will
 first try to import the predicate from the module's default module. If
 this fails the \jargon{auto loader} is activated. On first activation an
 index to all library files in all library directories is loaded in core
-(see library_directory/1). If the undefined predicate can be located in
-the one of the libraries that library file is automatically loaded and
-the call to the (previously undefined) predicate is resumed. By default
-this mechanism loads the file silently. The current_prolog_flag/2
-\const{verbose_autoload} is provided to get verbose loading. The
-prolog-flag \const{autoload} can be used to enable/disable the entire
-auto load system.
+(see library_directory/1 and file_search_path/2). If the undefined
+predicate can be located in the one of the libraries that library file
+is automatically loaded and the call to the (previously undefined)
+predicate is restarted. By default this mechanism loads the file
+silently. The current_prolog_flag/2 \const{verbose_autoload} is provided
+to get verbose loading. The prolog-flag \const{autoload} can be used to
+enable/disable the entire auto load system.
 
 The auto-loader only works if the unknown flag (see unknown/2) is set to
 \const{trace} (default).  A more appropriate interaction with this flag
@@ -1378,6 +1378,18 @@ predicates for the XPCE package.
 			'trace/browse.pl'
 		      ]).
 \end{code}
+
+    \predicate{reload_library_index}{0}{}
+Force reloading the index after modifying the set of library directories
+by changing the rules for library_directory/2, file_search_path/2,
+adding or deleting \file{INDEX.pl} files. This predicate does \emph{not}
+update the \file{INDEX.pl} files.  Check make_library_index/[1,2] and
+make/0 for updating the index files.
+
+Normally, the index is reloaded automatically if a predicate cannot be
+found in the index and the set of library directories has changed. Using
+reload_library_index/0 is necessary if directories are removed or the
+order of the library directories is changed.
 \end{description}
 
 

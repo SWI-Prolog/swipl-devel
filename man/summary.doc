@@ -381,6 +381,7 @@ suggest predicates from a keyword.
 \predicatesummary{recordz}{2}{Record term in the database (last)}
 \predicatesummary{recordz}{3}{Record term in the database (last)}
 \predicatesummary{redefine_system_predicate}{1}{Abolish system definition}
+\predicatesummary{reload_library_index}{0}{Force reloading the autoload index}
 \predicatesummary{rename_file}{2}{Change name of file}
 \predicatesummary{repeat}{0}{Succeed, leaving infinite backtrack points}
 \predicatesummary{require}{1}{This file requires these predicates}

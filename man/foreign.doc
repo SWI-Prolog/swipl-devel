@@ -2572,7 +2572,7 @@ loaded by the load_foreign_library/1 predicate. If used with
 file ready for linking into a shared object
 
     \cmdlineoptionitem{-dll}{}
-\epmh{Windows only}. Embed SWI-Prolog into a DLL rather than an
+\emph{Windows only}. Embed SWI-Prolog into a DLL rather than an
 executable.
 
     \cmdlineoptionitem{-c}{}
