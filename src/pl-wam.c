@@ -688,7 +688,9 @@ enum finished
 
 static int
 unify_finished(term_t catcher, enum finished reason)
-{ static atom_t reasons[] = 
+{ GET_LD
+
+  static atom_t reasons[] = 
   { ATOM_exit,
     ATOM_fail,
     ATOM_cut,

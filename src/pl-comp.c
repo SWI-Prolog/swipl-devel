@@ -682,6 +682,10 @@ LocalFrame structure:
 	FR->clause	Point to the ClauseRef struct
 	FR->context	Module argument
         FR->predicate	proc->definition
+
+Using `local' compilation, all variables are   shared  with the original
+goal-term and therefore initialised. This implies   there  is no need to
+play around with variable tables.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Clause
@@ -724,8 +728,11 @@ Allocate the clause and fill initialise the field we already know.
 
   analyse_variables(head, body, &ci);
   ci.cutvar = 0;
-  ci.used_var = alloca(sizeofVarTable(ci.vartablesize));
-  clearVarTable(&ci);
+  if ( !ci.islocal )
+  { ci.used_var = alloca(sizeofVarTable(ci.vartablesize));
+    clearVarTable(&ci);
+  } else
+    ci.used_var = NULL;
 
   initBuffer(&ci.codes);
 
@@ -904,13 +911,18 @@ compileBody(Word body, code call, compileInfo *ci)
       } else if ( fd == FUNCTOR_semicolon2 ||
 		  fd == FUNCTOR_bar2 )		/* A ; B and (A -> B ; C) */
       { Word a0 = argTermP(*body, 0);
-	VarTable vsave = mkCopiedVarTable(ci->used_var);
-	VarTable valt1 = mkCopiedVarTable(ci->used_var);
-	VarTable valt2 = mkCopiedVarTable(ci->used_var);
+	VarTable vsave, valt1, valt2;
 	int hard;
+
+	if ( !ci->islocal )
+	{ vsave = mkCopiedVarTable(ci->used_var);
+	  valt1 = mkCopiedVarTable(ci->used_var);
+	  valt2 = mkCopiedVarTable(ci->used_var);
 	
-	setVars(argTermP(*body, 0), valt1);
-	setVars(argTermP(*body, 1), valt2);
+	  setVars(argTermP(*body, 0), valt1);
+	  setVars(argTermP(*body, 1), valt2);
+	} else
+	  vsave = valt1 = valt2 = NULL;
 
 	deRef(a0);
 	if ( (hard=hasFunctor(*a0, FUNCTOR_ifthen2)) || /* A  -> B ; C */
@@ -929,14 +941,17 @@ compileBody(Word body, code call, compileInfo *ci)
 	  Output_1(ci, hard ? C_CUT : C_SOFTCUT, var);
 	  if ( (rv=compileBody(argTermP(*a0, 1), call, ci)) != TRUE )
 	    return rv;
-	  balanceVars(valt1, valt2, ci);
+	  if ( !ci->islocal )
+	    balanceVars(valt1, valt2, ci);
 	  Output_1(ci, C_JMP, (code)0);
 	  tc_jmp = PC(ci);
 	  OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
-	  copyVarTable(ci->used_var, vsave);
+	  if ( !ci->islocal )
+	    copyVarTable(ci->used_var, vsave);
 	  if ( (rv=compileBody(argTermP(*body, 1), call, ci)) != TRUE )
 	    return rv;
-	  balanceVars(valt2, valt1, ci);
+	  if ( !ci->islocal )
+	    balanceVars(valt2, valt1, ci);
 	  OpCode(ci, tc_jmp-1) = (code)(PC(ci) - tc_jmp);
 	} else					/* A ; B */
 	{ int tc_or, tc_jmp;
@@ -946,19 +961,24 @@ compileBody(Word body, code call, compileInfo *ci)
 	  tc_or = PC(ci);
 	  if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci)) != TRUE )
 	    return rv;
-	  balanceVars(valt1, valt2, ci);
+	  if ( !ci->islocal )
+	    balanceVars(valt1, valt2, ci);
 	  Output_1(ci, C_JMP, (code)0);
 	  tc_jmp = PC(ci);
 	  OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
-	  copyVarTable(ci->used_var, vsave);
+	  if ( !ci->islocal )
+	    copyVarTable(ci->used_var, vsave);
 	  if ( (rv=compileBody(argTermP(*body, 1), call, ci)) != TRUE )
 	    return rv;
-	  balanceVars(valt2, valt1, ci);
+	  if ( !ci->islocal )
+	    balanceVars(valt2, valt1, ci);
 	  OpCode(ci, tc_jmp-1) = (code)(PC(ci) - tc_jmp);
 	}
 
-	orVars(valt1, valt2);
-	copyVarTable(ci->used_var, valt1);
+	if ( !ci->islocal )
+	{ orVars(valt1, valt2);
+	  copyVarTable(ci->used_var, valt1);
+	}
 
 	succeed;
       } else if ( fd == FUNCTOR_ifthen2 )		/* A -> B */
@@ -980,9 +1000,14 @@ compileBody(Word body, code call, compileInfo *ci)
       } else if ( fd == FUNCTOR_not_provable1 )		/* \+/1 */
       { int var = VAROFFSET(ci->clause->variables++);
 	int tc_or;
-	VarTable vsave = mkCopiedVarTable(ci->used_var);
+	VarTable vsave;
 	int rv;
 	int cutsave = ci->cutvar;
+
+	if ( !ci->islocal )
+	  vsave = mkCopiedVarTable(ci->used_var);
+	else
+	  vsave = NULL;
 
 	Output_2(ci, C_NOT, var, (code)0);
 	tc_or = PC(ci);
@@ -993,7 +1018,8 @@ compileBody(Word body, code call, compileInfo *ci)
 	Output_1(ci, C_CUT, var);
 	Output_0(ci, C_FAIL);
 	OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
-	copyVarTable(ci->used_var, vsave);
+	if ( !ci->islocal )
+	  copyVarTable(ci->used_var, vsave);
       
 	succeed;
 #endif /* O_COMPILE_OR */

@@ -4,6 +4,9 @@
 VERSION 4.1.0
 =============
 
+  * FIXED: Another problems handling `inlined' calls for the new implementation
+    of call/1.  Thanks to Lyosha Ilyukhin.
+
   * FIXED/PORT: Win32 missing cleanupTerm(), some signed/unsigned problems
     in debug mode.
 

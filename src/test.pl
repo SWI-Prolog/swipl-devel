@@ -218,6 +218,17 @@ meta(call-8) :-
 	call((foo:true, true)).
 meta(call-9) :-
 	call((A=x, B=x, A==B)).		% avoid I_CALL_FVX for dynamic call
+meta(call-10) :-
+	A = (	member(_,[1,2,3]),
+		flag(a, F, F+1),
+		(   F >= 999999
+		->  fail
+		;   true
+		)
+	    ),
+	flag(a, Old, 0),
+	forall(A, true),
+	flag(a, 3, Old).
 meta(apply-1) :-
 	apply(=, [a,a]).
 meta(apply-2) :-
@@ -875,19 +886,35 @@ runtest(Name) :-
 	functor(Head, Name, 1),
 	nth_clause(Head, _N, R),
 	clause(Head, _, R),
-	(   catch(Head, blocked(Reason), assert(blocked(Head, Reason)))
-	->  put(.), flush
-	;   arg(1, Head, TestName),
-	    clause_property(R, line_count(Line)),
-	    clause_property(R, file(File)),
-	    format('~N~w:~d: Test ~w(~w) failed~n',
-		   [File, Line, Name, TestName]),
-	    assert(failed(Head))
+	(   catch(Head, Except, true)
+	->  (   var(Except)
+	    ->  put(.), flush
+	    ;   Except = blocked(Reason)
+	    ->  assert(blocked(Head, Reason)),
+		put(!), flush
+	    ;   test_failed(R, Except)
+	    )
+	;   test_failed(R, fail)
 	),
 	fail.
 runtest(_) :-
 	format(' done.~n').
 	
+test_failed(R, Except) :-
+	clause(Head, _, R),
+	functor(Head, Name, 1),
+	arg(1, Head, TestName),
+	clause_property(R, line_count(Line)),
+	clause_property(R, file(File)),
+	(   Except == failed
+	->  format('~N~w:~d: Test ~w(~w) failed~n',
+		   [File, Line, Name, TestName])
+	;   message_to_string(Except, Error),
+	    format('~N~w:~d: Test ~w(~w):~n~t~8|ERROR: ~w~n',
+		   [File, Line, Name, TestName, Error])
+	),
+	assert(failed(Head)).
+
 blocked(Reason) :-
 	throw(blocked(Reason)).
 

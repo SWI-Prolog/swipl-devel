@@ -626,6 +626,10 @@ initBuildIns(void)
   PROCEDURE_print_message2   = lookupProcedure(FUNCTOR_print_message2, 	  m);
   PROCEDURE_dcall1	     = lookupProcedure(FUNCTOR_dcall1,		  m);
   PROCEDURE_call_cleanup3    = lookupProcedure(FUNCTOR_call_cleanup3,	  m); 
+					/* allow debugging in call/1 */
+  clear(PROCEDURE_dcall1->definition, HIDE_CHILDS);
+  set(PROCEDURE_dcall1->definition, DYNAMIC);
+
   for( ecell = ext_head; ecell; ecell = ecell->next )
     bindExtensions(ecell->extensions);
 

@@ -222,7 +222,6 @@ call_cleanup(_Goal, _Catcher, _Cleanup) :-
 	$hide(('|'), 2),
 	$hide((','), 2),
 	$hide((->), 2),
-	$hide($call, 1),
 	$show_childs(^, 2),
 	$show_childs(call, 1),
 	$show_childs(call, 2),
@@ -239,9 +238,6 @@ call_cleanup(_Goal, _Catcher, _Cleanup) :-
 	$show_childs(('|'), 2),
 	$show_childs(block, 3),
 	$show_childs((->), 2).
-
-:- dynamic				% avoid reported errors
-	$call/1.
 
 
 		/********************************
