@@ -521,6 +521,13 @@ atom_handling(number-3) :-
 atom_handling(number-4) :-
 	atom_number(X, 42), X == '42'.
 
+atom_handling(sub_atom-1) :-
+	\+ sub_atom(a, _, _, 3, _).
+atom_handling(sub_atom-1) :-
+	\+ sub_atom(a, _, 3, _, _).
+atom_handling(sub_atom-1) :-
+	\+ sub_atom(a, 3, _, _, _).
+
 atom_handling(current-1) :-
 	findall(X, current_atom(X), Atoms),
 	checklist(atom, Atoms),

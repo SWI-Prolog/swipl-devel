@@ -2063,7 +2063,10 @@ sub_text(term_t atom,
       }
 
       if ( l >= 0 )			/* no before, len given */
-      { if ( a >= 0 )			/* len and after */
+      { if ( l > (int)la )
+	  fail;
+
+	if ( a >= 0 )			/* len and after */
 	{ if ( (b = la-a-l) >= 0 )
 	  { if ( PL_unify_integer(before, b) &&
 		 (*out)(sub, l, aa+b) )
@@ -2081,7 +2084,10 @@ sub_text(term_t atom,
       }
 
       if ( a >= 0 )			/* only after given */
-      { state = allocHeap(sizeof(*state));
+      { if ( a > (int)la )
+	  fail;
+
+	state = allocHeap(sizeof(*state));
 	state->type = SUB_SPLIT_HEAD;
 	state->n1   = 0;		/* before */
 	state->n2   = la;

@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: sub_atom('1', _, _, 3, Sub) (2nd or 3th argument longer than
+    atom).  Anjo Anjewierden.
+
   * FIXED: Prolog flag abort_with_exception to be true in multi-threaded
     version and make it read-only.  `Cosmetic' only.
 
