@@ -202,9 +202,15 @@ getShowLabelListBrowser(ListBrowser lb)
 static status
 statusListBrowser(ListBrowser lb, Name stat)
 { if ( lb->status != stat )
-  { assign(lb, status, stat);
-    penGraphical((Graphical) lb->image,
-		 stat == NAME_active ? add(lb->pen, ONE) : lb->pen);
+  { Elevation z;
+
+    assign(lb, status, stat);
+
+				/* avoid unnecessary flickering (hack) */
+    if ( !((z = getResourceValueObject(lb->image, NAME_elevation)) && notNil(z)) )
+    { penGraphical((Graphical) lb->image,
+		   stat == NAME_active ? add(lb->pen, ONE) : lb->pen);
+    }
   }
 
   succeed;

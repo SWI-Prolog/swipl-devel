@@ -1,72 +1,80 @@
 #!/bin/sh
 
-if [ "x$1" = "x-b" ]; then 
-    binonly="t"
-    shift
+arch=@ARCH@-@OS@
+RTSUFFIX=@RTSUFFIX@
+
+version=`cat VERSION`
+outdir=/guest/xpce/$version
+libout=$outdir/xpcelib.tgz
+binout=$outdir/xpce-$arch.tgz
+compress="gzip -9"
+emulator="./bin/xpce$RTSUFFIX"
+crt0=./bin/crt0.o
+xpcelib=./bin/XPCE$RTSUFFIX.a
+
+if [ ! -d $outdir ]; then
+    mkdir $outdir
 fi
 
-arch=$1
-RTSUFFIX="@RTSUFFIX@"
-version=`cat VERSION`
-dir=`pwd`
-binout=$dir/xpce$RTSUFFIX-$version-bin.tgz
-libout=$dir/xpce-$version-lib.tgz
-emulator="xpce$RTSUFFIX.base"
-compress="gzip"
-
-if [ ! -d $dir ]; then mkdir $dir; fi
 for d in library boot include; do
     rm -f pl/$d
     (cd pl; ln -s ../../pl/$d .)
 done
 
-if [ ! -r bin/$emulator ]; then
-    ( cd bin; ln -s ../pl/src/$emulator . )
+rm -f $emulator $crt0 $xpcelib
+(cd bin; ln -s ../pl/src/`basename $emulator` .)
+(cd bin; ln -s ../pl/src/`basename $crt0` .)
+(cd bin; ln -s ../src/`basename $xpcelib` .)
+
+chmod +x install
+
+libdirs="./CXX ./bitmaps ./include ./man/reference ./pl ./postscript ./prolog"
+
+rm -f xpce-$version
+if [ ! "o$1" = "o-q" ]; then
+  cp /dev/null libfiles
+  echo -n "Collecting distribution files "
+  for d in `find $libdirs -name CVS -type d -print`; do
+      echo -n "."
+      dir=`dirname $d`
+      awk -F/ '{printf("%s/%s\n", "'$dir'", $2)}' $dir/CVS/Entries >> libfiles
+  done
+cat >> libfiles << EOF
+./FAQ
+./INFO
+./Pce
+./INSTALL
+./README
+./README.customise
+./README.font
+./README.linux
+./VERSION
+./install-sh
+./licence/licence.tex
+./man/xpce-client.1
+./man/xpce.1
+./prolog/lib/man/classification.obj
+EOF
+  echo "done"
 fi
+
+grep -v src/msw/ libfiles | \
+	grep -v prolog/pwboot | \
+	grep -v quintus/ | \
+	sed "s@^\./@xpce-$version/@" > tapefiles.lib
+
+cat > binfiles << EOF
+$emulator
+$crt0
+$xpcelib
+./bin/xpce-client
+./install
+EOF
+
+sed "s@^\./@xpce-$version/@" binfiles > tapefiles.bin
 
 cd ..
-rm -f xpce-$version
 ln -s xpce xpce-$version
-tar cvhf - \
-	xpce-$version/bin/$emulator \
-	xpce-$version/bin/xpce-client \
-	xpce-$version/src/XPCE.a \
-	xpce-$version/pl/src/pl-crt0.o \
-	xpce-$version/install \
-	| $compress > $binout
-	
-if [ "$binonly" != "t" ]; then
-    tar cvhf - \
-	xpce-$version/INSTALL xpce-$version/README.linux \
-	xpce-$version/licence \
-	xpce-$version/INFO xpce-$version/README \
-	xpce-$version/src/load.pl \
-	xpce-$version/src/xpce.pl \
-	xpce-$version/include \
-	xpce-$version/CXX/demo/Makefile \
-	xpce-$version/CXX/demo/README \
-	xpce-$version/CXX/demo/*.C xpce-$version/CXX/demo/*.bm \
-	xpce-$version/STAMP xpce-$version/VERSION xpce-$version/ChangeLog \
-	xpce-$version/src/unx/client.c \
-	xpce-$version/src/h/interface.h \
-	xpce-$version/pl/src/Makefile \
-	xpce-$version/pl/src/mlist \
-	xpce-$version/pl/src/dump \
-	xpce-$version/pl/*.c xpce-$version/prolog/c \
-	xpce-$version/Pce xpce-$version/bitmaps xpce-$version/postscript \
-	xpce-$version/prolog/lib \
-	xpce-$version/prolog/boot \
-	xpce-$version/prolog/contrib \
-	xpce-$version/prolog/demo \
-	xpce-$version/pl/load.pl \
-	xpce-$version/pl/library \
-	xpce-$version/pl/boot \
-	xpce-$version/pl/include \
-	xpce-$version/man/reference \
-	xpce-$version/man/info \
-	| $compress > $libout
-fi
-rm xpce-$version
-
-rm -f xpce/pl/{library,boot,include,startup}
-
+tar chvfT - xpce/tapefiles.lib | $compress > $libout
+tar chvfT - xpce/tapefiles.bin | $compress > $binout
+rm -f xpce-$version

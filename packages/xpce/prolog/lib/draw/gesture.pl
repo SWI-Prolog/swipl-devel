@@ -557,9 +557,12 @@ setting this button to @nil, the focus will not be released.  See also
 
 terminate(G, Ev:event) :->
 	send(G, move),
-	send(G?path, append, G?line?end),
-	send(G?line, start, G?line?end),
-	send(Ev?window, focus, Ev?receiver, G, G?cursor, @nil).
+	(   get(G, path, Path),
+	    Path \== @nil
+	->  send(Path, append, G?line?end),
+	    send(G?line, start, G?line?end),
+	    send(Ev?window, focus, Ev?receiver, G, G?cursor, @nil)
+	).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Terminate the path.  Remove the feedback-line; set the current path to

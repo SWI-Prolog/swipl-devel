@@ -193,6 +193,9 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     if ( (ev = messageToEvent(hwnd, message, wParam, lParam)) )
     { WsWindow w = sw->ws_ref;
 
+      if ( message != WM_WINENTER && message != WM_WINEXIT )
+	PceEventInWindow(hwnd);
+
       addCodeReference(ev);
       if ( isDownEvent(ev) && !w->capture )
 	SetCapture(hwnd);

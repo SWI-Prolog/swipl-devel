@@ -22,11 +22,20 @@
 #include <h/unix.h>
 #include <errno.h>
 
+#ifdef __WIN32__
+#undef MACHINE
+#define MACHINE "i386"
+#undef OS
+#define OS ws_os()
+#endif
+
 #if defined(__linux__) || (defined(__sun__) && !STDC_HEADERS)
 extern int gethostname(char *__name, size_t __len);
 #endif
 
-static void	callExitMessagesPce(int, Pce);
+static void	callExitMessagesPce(int stat, Pce pce);
+static void	exit_pce(void);
+
 #ifndef O_RUNTIME
 static status	debuggingPce(Pce pce, Bool val);
 #endif
@@ -48,7 +57,7 @@ initialisePce(Pce pce)
   assign(pce, exit_messages,	  newObject(ClassChain, 0));
   assign(pce, exception_handlers, newObject(ClassSheet, 0));
 
-  assign(pce, home,		  CtoName("/usr/local/src/xpce"));
+  assign(pce, home,		  CtoName("/usr/local/lib/xpce"));
 
   assign(pce, version,            CtoName(PCE_VERSION));
   assign(pce, machine,            CtoName(MACHINE));
@@ -57,7 +66,7 @@ initialisePce(Pce pce)
   assign(pce, xt_revision,	  toInt(ws_revision()));
   assign(pce, features,		  newObject(ClassChain, 0));
 
-  hostAction(HOST_ONEXIT, callExitMessagesPce, pce);
+  at_pce_exit(exit_pce, ATEXIT_FIFO);
 
   succeed;
 }
@@ -146,8 +155,12 @@ Name
 getOsErrorPce(Pce pce)
 {
 #if HAVE_STRERROR
-  return CtoName(strerror(errno));
+#ifdef __WIN32__
+  return CtoName(strerror(_xos_errno()));
 #else
+  return CtoName(strerror(errno));
+#endif
+#else /*HAVE_STRERROR*/
   static char errmsg[64];
   extern int sys_nerr;
   extern char *sys_errlist[];
@@ -242,10 +255,18 @@ exitMessagePce(Pce pce, Code code)
 
 static void
 callExitMessagesPce(int stat, Pce pce)
-{ Cell cell;
+{ if ( pce && notNil(pce) )
+  { Cell cell;
 
-  for_cell(cell, pce->exit_messages)
-    forwardCode(cell->value, toInt(stat), 0);
+    for_cell(cell, pce->exit_messages)
+      forwardCode(cell->value, toInt(stat), 0);
+  }
+}
+
+
+static void
+exit_pce(void)				/* for usage with ANSI atexit() */
+{ callExitMessagesPce(0, PCE);
 }
 
 		/********************************
@@ -388,7 +409,19 @@ getdtablesize(void)
 
 int
 getdtablesize(void)
-{ return 32;				/* old *nix systems */
+{
+#ifdef OPEN_MAX
+  return OPEN_MAX;
+#else
+#ifdef FOPEN_MAX
+  return FOPEN_MAX;
+#else
+#ifdef _NFILE
+  return _NFILE;
+#endif
+#endif
+#endif
+  return 32;				/* don't know */
 }
 
 #endif /*HAVE_SYS_RESOURCE_H*/
@@ -397,7 +430,7 @@ getdtablesize(void)
 static Int
 getFdPce(Pce pce)
 {
-#ifndef __unix__
+#ifndef HAVE_FSTAT
   return toInt(ws_free_file_descriptors());
 #else
   int i, cntr = 0;
@@ -462,20 +495,20 @@ bannerPce(Pce pce)
 { Name host = get(HostObject(), NAME_system, 0);
 
 #ifdef __WINDOWS__
-  writef("PCE %s (%s for %I%IMS-Windows %d.%d)\n",
+  writef("PCE %s (%s for %I%IWindows-NT and Win32S %d.%d)\n",
 #else
   writef("PCE %s (%s for %s-%s and X%dR%d)\n",
 #endif
 	 CtoString(getIsRuntimeSystemPce(pce) == ON
 		   	? "Runtime system"
-		        : "Development environment"),
+		        : "Development system"),
 	 pce->version,
 	 pce->machine,
 	 pce->operating_system,
 	 pce->xt_version,
 	 pce->xt_revision);
 
-  writef("Copyright 1993, 1994, University of Amsterdam.  All rights reserved.\n");
+  writef("Copyright 1993-1995, University of Amsterdam.  All rights reserved.\n");
 
   if ( host != NAME_unknown )
     writef("The host-language is %s\n", host);
@@ -1579,7 +1612,7 @@ pceInitialise(int handles, int argc, char **argv)
 #ifdef HAVE_FORK
   featurePce(PCE, NAME_process);
 #endif
-#ifdef HAVE_SOCKET
+#if defined(HAVE_SOCKET) || defined(HAVE_WINSOCK)
   featurePce(PCE, NAME_socket);
 #endif
 
@@ -1592,6 +1625,7 @@ pceInitialise(int handles, int argc, char **argv)
   inBoot = FALSE;
 
   ws_initialise(argc, argv);
+  hostAction(HOST_ATEXIT, run_pce_exit_hooks);
 
   DEBUG_BOOT(Cprintf("Pce initialisation complete.\n"));
   succeed;

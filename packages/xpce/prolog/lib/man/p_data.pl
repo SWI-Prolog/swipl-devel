@@ -733,21 +733,33 @@ spy(M) :->
 	"Set spy-point on Prolog predicate for method"::
 	get(M, message, Msg),
 	(   Msg \== @nil,
-	    get(Msg, receiver, @prolog),
-	    get(Msg?arguments, size, Args),
-	    (   get(Msg, selector, call)
-	    ->  new(S, string('%s', ?(Msg, argument, 1))),
-	        Arity is Args - 1
-	    ;   new(S, string('%s', Msg?selector)),
-		Arity = Args
-	    ),
-	    (   get(S, scan, '%[^:]:%s', vector(string(Module), string(Name)))
-	    ->  true
-	    ;   get(S, value, Name),
-		Module = user
-	    ),
-	    send(S, free),
-	    spy(Module:Name/Arity)
+	    (	send(Msg, instance_of, message)
+	    ->  get(Msg, receiver, @prolog),
+		get(Msg?arguments, size, Args),
+		(   get(Msg, selector, call)
+		->  new(S, string('%s', ?(Msg, argument, 1))),
+		    Arity is Args - 1
+		;   new(S, string('%s', Msg?selector)),
+		    Arity = Args
+		),
+		(   get(S, scan, '%[^:]:%s',
+			vector(string(Module), string(Name)))
+		->  true
+		;   get(S, value, Name),
+		    Module = user
+		),
+		send(S, free),
+		spy(Module:Name/Arity)
+	    ;	send(Msg, instance_of, c_pointer),
+		pce_predicate_reference(Pred, Msg),
+		(   Pred = Module : Head
+		->  true
+		;   Module = user,
+		    Head = Pred
+		),
+		functor(Head, Name, Arity),
+		spy(Module:Name/Arity)
+	    )
 	->  true
 	;   send(@display, inform, 'Not implemented as a Prolog predicate')
 	).

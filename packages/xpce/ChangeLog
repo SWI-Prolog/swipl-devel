@@ -1,5 +1,13 @@
 [VERSION 4.8.8]
 
+* ADDED: PostScript generation for *all* graphical objects using intermediate
+  image objects.  See `graphical ->_draw_post_script'.
+
+* FIXED: PostScript generation for graphical objects filled with a solid
+  colour object.
+
+* ADDED: WinSock support for the win32 port.
+
 * FIXED: elevation handling associated with `figure->elevation', followed
   by figure->background.  Now uses the new method `elevation <-modify' to
   avoid messing up read-only elevation objects.

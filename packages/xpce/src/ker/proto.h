@@ -70,6 +70,7 @@ status		createdClass(Class class, Any instance, Name how);
 status		freedClass(Class class, Any instance);
 status		isAClass(Class class, Class super);
 int		numberTreeClass(Class class, int n);
+status		featureClass(Class class, Name name, Any value);
 status		makeClassClass(Class class);
 
 /* conversion.c */
@@ -148,6 +149,8 @@ void		msleep(int time);
 void		msleep(int time);
 int		getdtablesize(void);
 int		pceAssert(int expr, char *text, char *file, int line);
+void		at_pce_exit(atexit_function f, int flags);
+void		run_pce_exit_hooks(void);
 
 /* passing.c */
 status		sendImplementation(Any implementation, Any receiver, int argc, Any *argv);

@@ -10,7 +10,7 @@
 :- module(dia_menu_item, []).
 :- use_module(library(pce)).
 
-:- pce_autoload(sub_dialog, library(sub_dialog)).
+:- pce_autoload(sub_dialog, library('dialog/sub_dialog')).
 :- pce_autoload(drag_and_drop_dict_item_gesture, library(dragdict)).
 
 

@@ -552,18 +552,19 @@ str_writefv(String s, CharArray format, int argc, Any *argv)
 extern int vsscanf(const char *, const char *, va_list);
 #endif
 
-Int scanstr(char *str, char *fmt, Any *r)
+Int
+scanstr(char *str, char *fmt, Any *r)
 { int types[SCAN_MAX_ARGS];
   void *ptrs [SCAN_MAX_ARGS];
   int argn = 0;
   int ar, n;
   char *s = fmt;
 
-  for( ; *s; )
+  while( *s )
   { int supress = FALSE;
     int length;
 
-    switch(*s)
+    switch( *s )
     { case '\\':
 	s += (s[1] == EOS ? 1 : 2);
 	continue;
@@ -633,9 +634,8 @@ Int scanstr(char *str, char *fmt, Any *r)
 	      s++;
 	  case 's':
 	    if ( !supress )
-	    { types[argn] = T_CHARP;
-	      ptrs[argn]  = alloca(LINESIZE);
-	      argn++;
+	    { types[argn]  = T_CHARP;
+	      ptrs[argn++] = alloca(LINESIZE);
 	    }
 	    s++;
 	    continue;
@@ -924,11 +924,66 @@ getdtablesize()
 }
 #endif
 
+		 /*******************************
+		 *	 ASSERT() SUPPORT	*
+		 *******************************/
+
 int
 pceAssert(int expr, char *text, char* file, int line)
 { if ( !expr )
     sysPce("%s:%d: Assertion failed: %s", file, line, text);
 
   return 0;
+}
+
+		 /*******************************
+		 *	    AT_PCE_EXIT		*
+		 *******************************/
+
+typedef struct atexit_entry *AtexitEntry;
+
+struct atexit_entry
+{ atexit_function	function;
+  AtexitEntry		next;
+};
+
+static AtexitEntry atexit_head;
+static AtexitEntry atexit_tail;
+static int exit_running;
+
+void
+at_pce_exit(atexit_function f, int flags)
+{ if ( !exit_running )
+  { AtexitEntry h = alloc(sizeof(struct atexit_entry));
+
+    h->function = f;
+    if ( !atexit_head )
+    { atexit_head = atexit_tail = h;
+      h->next = NULL;
+    } else
+    { if ( flags & ATEXIT_FIFO )	/* first-in-first-out */
+      { h->next = atexit_head;
+	atexit_head = h;
+      } else				/* first-in-last-out */
+      { h->next = NULL;
+	atexit_tail->next = h;
+	atexit_tail = h;
+      }    
+    }
+  }
+}
+
+
+void
+run_pce_exit_hooks()
+{ AtexitEntry h;
+
+  tracePce(PCE, NAME_never);
+
+  if ( exit_running++ )
+    return;
+
+  for(h = atexit_head; h; h = h->next)
+    (*h->function)();
 }
 

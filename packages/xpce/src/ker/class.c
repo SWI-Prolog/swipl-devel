@@ -14,9 +14,9 @@ static status	recordInstancesClass(Class class, Bool keep, Bool recursive);
 static status	fill_slots_class(Class class, Class super);
 
 #ifndef O_RUNTIME
-#define CLASS_PCE_SLOTS 43
+#define CLASS_PCE_SLOTS 44
 #else
-#define CLASS_PCE_SLOTS 42		/* no source slot! */
+#define CLASS_PCE_SLOTS 43		/* no source slot! */
 #endif
 
 #define InstanceSize(c)	((int) &((Instance) NULL)->slots[valInt((c)->slots)])
@@ -249,6 +249,7 @@ fill_slots_class(Class class, Class super)
     assign(class, instance_variables,   getCopyVector(super->instance_variables));
     assign(class, cloneStyle,	        super->cloneStyle);
     assign(class, saveStyle,	        super->saveStyle);
+    assign(class, features,		getCopySheet(super->features));
     assign(class, solid,	        super->solid);
     assign(class, handles,	        getCopyChain(super->handles));
     assign(class, un_answer,	        super->un_answer);
@@ -286,6 +287,7 @@ fill_slots_class(Class class, Class super)
     assign(class, instance_variables,	newObject(ClassVector, 0));
     assign(class, cloneStyle,	        NAME_recursive);
     assign(class, saveStyle,	        NAME_normal);
+    assign(class, features,		NIL);
     assign(class, solid,	        OFF);
     assign(class, instance_size,        toInt(sizeof(struct object)));
     assign(class, slots,	        ZERO);
@@ -1596,6 +1598,52 @@ numberTreeClass(Class class, int n)
   return n;
 }
 
+
+		 /*******************************
+		 *	     FEATURE ITF	*
+		 *******************************/
+
+status
+featureClass(Class class, Name name, Any value)
+{ realiseClass(class);
+
+  if ( isDefault(value) )
+    value = ON;
+
+  if ( isNil(class->features) )
+    assign(class, features, newObject(ClassSheet, 0));
+
+  return valueSheet(class->features, name, value);
+}
+
+
+static status
+hasFeatureClass(Class class, Name name, Any value)
+{ realiseClass(class);
+
+  if ( notNil(class->features) )
+  { Any fval;
+    if ( (fval = getValueSheet(class->features, name)) &&
+	 (isDefault(value) || value == fval) )
+      succeed;
+  }
+
+  fail;
+}
+
+
+static Any
+getFeatureClass(Class class, Name name)
+{ realiseClass(class);
+
+  if ( notNil(class->features) )
+    return getValueSheet(class->features, name);
+
+  fail;
+}
+
+
+
 status
 makeClassClass(Class class)
 { sourceClass(class, makeClassClass, __FILE__, "$Revision$");
@@ -1620,6 +1668,8 @@ makeClassClass(Class class)
   localClass(class, NAME_saveStyle, NAME_file,
 	     "{normal,external,nil}",NAME_both,
 	     "How to save instances to file");
+  localClass(class, NAME_features, NAME_version, "sheet*", NAME_none,
+	     "Defined features on this class");
   localClass(class, NAME_noCreated, NAME_statistics, "int", NAME_get,
 	     "Number of instances created");
   localClass(class, NAME_noFreed, NAME_statistics, "int", NAME_get,
@@ -1782,6 +1832,14 @@ makeClassClass(Class class)
   sendMethod(class, NAME_install, NAME_behaviour, 0,
 	     "Prepare class for creating instances",
 	     installClass);
+  sendMethod(class, NAME_feature, NAME_version, 2,
+	     "feature=name", "value=[any]",
+	     "Register class feature",
+	     featureClass);
+  sendMethod(class, NAME_hasFeature, NAME_version, 2,
+	     "feature=name", "value=[any]",
+	     "Test if class has feature",
+	     hasFeatureClass);
 #ifdef O_RUNTIME
   sendMethod(class, NAME_source, NAME_runtime, 1, "source_location*",
 	     "Dummy method",
@@ -1820,6 +1878,9 @@ makeClassClass(Class class)
 	    "name=name", "super=[class]",
 	    "Lookup in @classes and verify super",
 	    getLookupClass);
+  getMethod(class, NAME_feature, NAME_version, "any", 1, "feature=name",
+	    "Get value of given feature",
+	    getFeatureClass);
 
   succeed;
 }

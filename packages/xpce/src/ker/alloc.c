@@ -241,7 +241,10 @@ initAlloc(void)
   wastedbytes = allocbytes = 0;
   allocTop  = 0L;
   allocBase = 0xffffffff;
-  alloc(0);				/* initialise Top/Base */
+  alloc(sizeof(long));			/* initialise Top/Base */
+#ifdef VARIABLE_POINTER_OFFSET
+  pce_data_pointer_offset = allocBase & 0xf0000000L;
+#endif
 }
 
 

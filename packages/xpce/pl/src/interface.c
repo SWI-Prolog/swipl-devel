@@ -7,7 +7,9 @@
     Copyright (C) 1992 University of Amsterdam. All rights reserved.
 */
 
+#ifndef NDEBUG
 #define NDEBUG				/* delete assert() */
+#endif
 #define MODULE	1			/* Tag selector with module */
 
 #include <SWI-Stream.h>			/* SWI-Prolog streams */
@@ -15,11 +17,17 @@
 #include "../../prolog/c/interface.h"	/* generic Prolog <->PCE part */
 #include <stdlib.h>			/* exit() */
 
+#ifdef __GNUC__
+#define AtomicVector(name, size)  atomic_t name[size]
+#else
+#define AtomicVector(name, size) \
+	atomic_t *name = (atomic_t *) alloca(size * sizeof(atomic_t))
+#endif
+
 #define pl_get0		pce_get0	/* avoid name-conflicts */
 #define pl_get2		pce_get2
 
 typedef term_t	Term;			/* generic Prolog term */
-typedef void (*OnExitFunction)(int, void *);
 
 static foreign_t	pl_pce_open(Term t, Term mode, Term plhandle);
 static foreign_t	pl_pce_predicate_reference(term_t pred, term_t ref);
@@ -27,14 +35,33 @@ static void		init_pce_callbacks(void);
 
 #ifdef __WIN32__
 static IOSTREAM *S__iob;		/* Windows DLL version */
-
 #define PROLOG_ITF_INIT() { S__iob = S__getiob(); }
+#define O_SHAREDLIBRARY
+#endif
+
+#ifdef O_SHAREDLIBRARY
+#ifndef PROLOG_ITF_INIT
+#define PROLOG_ITF_INIT() { }
+#endif
+#define PROLOG_ONEXIT(f)  { exitpce_hook = f; }
+
+static OnExitFunction exitpce_hook;
 
 install_t
 install()
-{ prolog_pce_init();
+{ /*Sdprintf("initialising XPCE ...");*/
+  prolog_pce_init();
+  /*Sdprintf(" ok\n");*/
 }
-#endif
+
+
+install_t
+uninstall()
+{ if ( exitpce_hook )
+    (*exitpce_hook)();
+}
+
+#endif /*O_SHAREDLIBRARY*/
 
 static atomic	 ATOM_call;		/* call */
 static atomic	 ATOM_read;		/* read */
@@ -117,7 +144,9 @@ static module_t  MODULE_user;		/* Global module */
 #define PROLOG_SIGNAL(s, f)	PL_signal(s, f)
 #define PROLOG_WRITE(s)		PL_action(PL_ACTION_WRITE, s)
 #define PROLOG_FLUSH()		PL_action(PL_ACTION_FLUSH, NULL)
-#define PROLOG_ONEXIT(f, a)	PL_on_halt(f, a)
+#ifndef PROLOG_ONEXIT
+#define PROLOG_ONEXIT(f)	PL_on_halt(f, NULL)
+#endif
 
 #define PROLOG_INSTALL_REINIT_FUNCTION(f) \
 				{ PL_reinit_hook((PL_reinit_hook_t)(f)); }
@@ -392,19 +421,16 @@ pl_pce_predicate_reference(term_t pred, term_t ref)
 }
 
 
-static term_t
+static atomic_t
 pushObject(PceObject obj)
 { PceCValue value;
-  int pltype, pcetype;
-  char *s;
+  int pcetype;
   atomic_t avalue;
-  term_t rval;
-  extern term_t alloc_global(int size);
 
   switch( pcetype = pceToC(obj, &value) )
   { case PCE_REFERENCE:
       avalue = PL_new_integer(value.integer);
-      goto ref_val;
+      return PL_new_compound(FUNCTOR_ref1, &avalue);
     case PCE_ASSOC:
       { PceITFSymbol symbol = value.itf_symbol;
 
@@ -413,17 +439,9 @@ pushObject(PceObject obj)
 	else
 	  avalue = PL_new_atom(pceCharArrayToC(symbol->name));
       }
-      goto ref_val;
-    ref_val:
-      rval = alloc_global(3);
-      rval[0] = (atomic_t) FUNCTOR_ref1;
-      rval[1] = avalue;
-      rval[2] = (atomic_t) rval;
-
-      return &rval[2];
+      return PL_new_compound(FUNCTOR_ref1, &avalue);
     case PCE_INTEGER:
-      avalue = PL_new_integer(value.integer);
-      goto atomic_val;
+      return PL_new_integer(value.integer);
     case PCE_NAME:
       { PceITFSymbol symbol = value.itf_symbol;
 
@@ -432,21 +450,15 @@ pushObject(PceObject obj)
 	else
 	  avalue = PL_new_atom(pceCharArrayToC(symbol->name));
       }
-      goto atomic_val;
+      return avalue;
     case PCE_REAL:
-      avalue = PL_new_float(value.real);
-      goto atomic_val;
-    atomic_val:
-      rval = alloc_global(1);
-      *rval = avalue;
-
-      return rval;
+      return PL_new_float(value.real);
 
     default:
       assert(0);
   }
 
-  return NULL;
+  return 0;
 }
 
 
@@ -458,7 +470,9 @@ PrologCallProc(PceObject handle, PceObject rec, int argc, PceObject objv[])
   if ( ptr != PCE_NO_POINTER )
   { predicate_t pred = ptr;
     int arity = PL_predicate_arity(pred);
-    TermVector(termv, arity);
+    AtomicVector(av, arity);
+    term_t *termv = (term_t *) av;
+    atomic *ap = av;
     int i, rval;
     bktrk_buf buf;
 
@@ -468,12 +482,12 @@ PrologCallProc(PceObject handle, PceObject rec, int argc, PceObject objv[])
     }
 
     PL_mark(&buf);
-    termv[0] = pushObject(rec);
-    for(i=0; i<argc; i++)
-      termv[i+1] = pushObject(objv[i]);
-
+    *ap++ = pushObject(rec);
+    for(i=argc; i > 0; i--)
+      *ap++ = pushObject(*objv++);
+    PL_term_vector(arity, termv, av);
+    
     rval = PL_call_predicate(NULL, TRUE, pred, termv) ? PCE_SUCCEED : PCE_FAIL;
-out:
     PL_bktrk(&buf);
 
     return rval;
@@ -491,7 +505,9 @@ PrologCallFunc(PceObject handle, PceObject rec, int argc, PceObject objv[])
   if ( ptr != PCE_NO_POINTER )
   { predicate_t pred = ptr;
     int arity = PL_predicate_arity(pred);
-    TermVector(termv, arity);
+    AtomicVector(av, arity);
+    term_t *termv = (term_t *) av;
+    atomic_t *ap = av;
     int i;
     PceObject answer;
     bktrk_buf buf;
@@ -502,16 +518,16 @@ PrologCallFunc(PceObject handle, PceObject rec, int argc, PceObject objv[])
     }
 
     PL_mark(&buf);
-    termv[0] = pushObject(rec);
-    for(i=0; i<argc; i++)
-      termv[i+1] = pushObject(objv[i]);
-    termv[arity-1] = PL_new_term();
+    *ap++ = pushObject(rec);
+    for(i=argc; i>0; i--)
+      *ap++ = pushObject(*objv++);
+    *ap = PL_new_var();
+    PL_term_vector(arity, termv, av);
 
     if ( PL_call_predicate(NULL, TRUE, pred, termv) )
     { answer = termToObject(termv[arity-1], NULL, FALSE);
     } else
       answer = PCE_FAIL;
-  out:
     PL_bktrk(&buf);
 
     return answer;

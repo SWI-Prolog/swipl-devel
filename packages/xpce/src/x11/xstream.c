@@ -10,6 +10,11 @@
 #include <h/kernel.h>
 #include <h/unix.h>
 #include "include.h"
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
+#define OsError() getOsErrorPce(PCE)
 
 static XtInputId
 getXtInputIdStream(Stream s)
@@ -24,13 +29,38 @@ setXtInputIdStream(Stream s, XtInputId id)
 
 
 void
-ws_close_stream(Stream s)
+ws_close_input_stream(Stream s)
 { XtInputId id;
+
+  if ( s->rdstream )
+  { fclose(s->rdstream);
+    s->rdstream = NULL;
+  }
+
+  if ( s->rdfd >= 0 )
+  { close(s->rdfd);
+    s->rdfd = -1;
+  }
 
   if ( (id = getXtInputIdStream(s)) )
   { XtRemoveInput(id);
     setXtInputIdStream(s, 0);
   }
+}
+
+
+void
+ws_close_output_stream(Stream s)
+{ if ( s->wrfd >= 0 )
+  { close(s->wrfd);
+    s->wrfd = -1;
+  }
+}
+
+
+void
+ws_close_stream(Stream s)
+{
 }
 
 
@@ -42,14 +72,16 @@ ws_handle_stream_data(XtPointer xp, int *source, XtInputId *id)
 
 void
 ws_input_stream(Stream s)
-{ XtInputId id;
+{ if ( s->rdfd >= 0 )
+  { XtInputId id;
 
-  id = XtAppAddInput(pceXtAppContext(NULL),
-		     s->rdfd,
-		     (XtPointer)(XtInputReadMask),
-		     ws_handle_stream_data, s);
+    id = XtAppAddInput(pceXtAppContext(NULL),
+		       s->rdfd,
+		       (XtPointer)(XtInputReadMask),
+		       ws_handle_stream_data, s);
 
-  setXtInputIdStream(s, id);
+    setXtInputIdStream(s, id);
+  }
 }
 
 
@@ -69,4 +101,24 @@ ws_listen_socket(Socket s)
 		     ws_accept, s);
 
   setXtInputIdStream((Stream) s, id);
+}
+
+
+status
+ws_write_stream_data(Stream s, void *data, int len)
+{ if ( s->wrfd < 0 )
+    return errorPce(s, NAME_notOpen);
+  if ( write(s->wrfd, data, len) != len )
+    return errorPce(s, NAME_ioError, OsError());
+
+  succeed;
+}
+
+
+int
+ws_read_stream_data(Stream s, void *data, int len)
+{ if ( s->rdfd < 0 )
+    return -1;
+  
+  return read(s->rdfd, data, len);
 }

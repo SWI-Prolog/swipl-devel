@@ -32,6 +32,12 @@
 #define GLOBAL extern			/* global variables */
 #endif
 
+#ifdef __WINDOWS__
+#define __pce_export _declspec(dllexport)
+#else
+#define __pce_export extern
+#endif
+
 #ifndef export				/* WIN32 DLL export stuff */
 #define export
 #endif
@@ -89,6 +95,15 @@ generate warnings on accidental use of them.
 #ifndef SIGNAL_HANDLER_TYPE		/* type returned by signal-handler */
 #define SIGNAL_HANDLER_TYPE void
 #endif
+
+		 /*******************************
+		 *	       CLEANUP		*
+		 *******************************/
+
+#define ATEXIT_FILO	0x1
+#define ATEXIT_FIFO	0x2
+
+typedef void			(*atexit_function)(void);
 
 		/********************************
 		*       SAVING OBJECTS		*
@@ -219,7 +234,12 @@ typedef struct dCell 	      **DelegateList;   /* See msg-passing.c */
 		********************************/
 
 #ifndef POINTER_OFFSET
+#ifdef VARIABLE_POINTER_OFFSET
+GLOBAL unsigned long pce_data_pointer_offset;
+#define POINTER_OFFSET pce_data_pointer_offset
+#else
 #define POINTER_OFFSET (0L)
+#endif
 #endif
 
 #define PointerToCInt(p) (((ulong)(p) - POINTER_OFFSET)/sizeof(int))
@@ -730,6 +750,7 @@ NewClass(class)
   Chain		resources;		/* resources of this class */
   Name		cloneStyle;		/* style of clone method */
   Name		saveStyle;		/* special save method */
+  Sheet		features;		/* installed features */
   Int		no_created;		/* how many were created */
   Int		no_freed;		/* how many were freed */
   Bool		solid;			/* graphicals: OFF by default */
@@ -1291,10 +1312,10 @@ typedef long	AnswerMark;
 #include "../adt/proto.h"
 
 					/* Interface callback stubs */
-void		Cprintf(const char *fmt, ...);
-void		Cvprintf(const char *fmt, va_list args);
-int		Cputchar(int chr);
-char *		Cgetline(char *line, int size);
+__pce_export void	Cprintf(const char *fmt, ...);
+__pce_export void	Cvprintf(const char *fmt, va_list args);
+__pce_export int	Cputchar(int chr);
+__pce_export char *	Cgetline(char *line, int size);
 
 					/* interface prototypes */
 status		makeClassC(Class class);
@@ -1518,7 +1539,6 @@ GLOBAL int hash_resizes;		/* # resizes done */
 #else
 #define COUNT(g)
 #endif
-
 
 		/********************************
 		*             SYNTAX		*

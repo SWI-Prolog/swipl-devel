@@ -11,7 +11,7 @@
 :- module(draw_canvas, []).
 
 :- use_module(library(pce)).
-:- use_module(library('draw/align')).
+:- consult(library('draw/align')).
 :- require([ chain_list/2
 	   , concat/3
 	   , concat_atom/2

@@ -138,7 +138,7 @@ static void
 setupProcesses()
 { if ( !initialised )
   { hostAction(HOST_SIGNAL, SIGCHLD, child_changed);
-    hostAction(HOST_ONEXIT, killAllProcesses, NULL);
+    at_pce_exit(killAllProcesses, ATEXIT_FIFO);
     initialised++;
   }
 }

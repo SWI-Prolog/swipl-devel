@@ -351,6 +351,9 @@ static status
 keyboard_event_frame(FrameObj fr, Any id)
 { PceWindow sw;
   POINT pt;
+  EventObj ev;
+  AnswerMark mark;
+  status rval = FALSE;
   
   if ( id == toInt(8) )			/* should be conditional!!!! */
     id = toInt(127);
@@ -358,31 +361,26 @@ keyboard_event_frame(FrameObj fr, Any id)
     id = toInt(127+META_OFFSET);
 
   get_point_frame(fr, &pt);
-  if ( (sw = get_window_holding_point(fr, &pt)) )
-  { EventObj ev;
-    AnswerMark mark;
-    status rval = FALSE;
+  if ( !(sw = get_window_holding_point(fr, &pt)) &&
+       !(sw = getKeyboardFocusFrame(fr)) )
+    fail;
+  
+  markAnswerStack(mark);
 
-    markAnswerStack(mark);
+  pt.x -= valInt(sw->area->x) + valInt(sw->pen);
+  pt.y -= valInt(sw->area->y) + valInt(sw->pen);
+  ev = answerObject(ClassEvent, id, sw, toInt(pt.x), toInt(pt.y), 0);
 
-    pt.x -= valInt(sw->area->x) + valInt(sw->pen);
-    pt.y -= valInt(sw->area->y) + valInt(sw->pen);
-    ev = answerObject(ClassEvent, id, sw, toInt(pt.x), toInt(pt.y), 0);
+  addCodeReference(ev);
+  rval = postEvent(ev, (Graphical) sw, DEFAULT);
+  delCodeReference(ev);
+  freeableObj(ev);
 
-    addCodeReference(ev);
-    rval = postEvent(ev, (Graphical) sw, DEFAULT);
-    delCodeReference(ev);
-    freeableObj(ev);
+  rewindAnswerStack(mark, NIL);
 
-    rewindAnswerStack(mark, NIL);
+  RedrawDisplayManager(TheDisplayManager());
 
-    if ( ev )				/* rval won't update on failing */
-      RedrawDisplayManager(TheDisplayManager());
-
-    succeed;
-  }
-
-  fail;
+  return rval;
 }
 
 
@@ -609,7 +607,7 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
   UINT flags = SWP_NOACTIVATE|SWP_NOZORDER;
   int x, y, w, h;
   char signx[1], signy[1];
-  int ok;
+  int ok=0;
   WsFrame f = fr->ws_ref;
 
   outer_frame_area(fr, &x, &y, &w, &h, FALSE);

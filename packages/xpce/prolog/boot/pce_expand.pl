@@ -17,10 +17,10 @@ term_expansion(pce_ifhostproperty(Prop, Clause), TheClause) :-
 	->  TheClause = Clause
 	;   TheClause = []
 	).
-term_expansion(pce_ifhostproperty(Prop, IfClause, ElseClause), TheClause) :-
+term_expansion(pce_ifhostproperty(Prop, If, Else), Clause) :-
 	(   pce_host:property(Prop)
-	->  TheClause = IfClause
-	;   TheClause = ElseClause
+	->  Clause = If
+	;   Clause = Else
 	).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

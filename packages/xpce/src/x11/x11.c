@@ -11,6 +11,9 @@
 #include <h/graphics.h>
 #include <h/interface.h>
 #include "include.h"
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 
 
 void
@@ -47,12 +50,11 @@ status
 ws_console_label(CharArray label)
 { char *t = getenv("TERM");
 
-  if ( t && streq(t, "xterm") )
-  { char buf[1000];
+  if ( t && streq(t, "xterm") && isatty(2) )
+  { char buf[256];
 
     sprintf(buf, "\033]2;%s\007", strName(label));
-    hostAction(HOST_WRITE, buf);
-    hostAction(HOST_FLUSH);
+    write(2, buf, strlen(buf));
   }
 
   succeed;

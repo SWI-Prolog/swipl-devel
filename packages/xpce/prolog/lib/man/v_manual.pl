@@ -653,9 +653,9 @@ request_selection(M, Frame:man_frame*, Obj:any*, Open:[bool]) :->
 	->  true
 	;   (   \+ get(M?tools, value, card_viewer, _)
 	    ->  (   Open == @on
-		->  send(M, report, status, 'Starting Card Viewer ...'),
+		->  send(M, report, progress, 'Starting Card Viewer ...'),
 		    send(M, start_tool, card_viewer),
-		    send(M, report, status, done)
+		    send(M, report, done)
 		;   true
 		)
 	    ;   send(M, expose_tool, card_viewer)  % exposes it?
@@ -669,9 +669,10 @@ request_tool_focus(M, Obj:object*) :->
 	send(M, update_history, focus_history, Obj),
 	send(M?tools, for_some, message(@arg1?value, tool_focus, Obj)),
 	(   send(Obj, instance_of, class),
-	    \+ get(M?tools, value, class_browser, _),
-	    send(@display, confirm, 'Start Class Browser?')
-	->  send(M, start_tool, class_browser)
+	    \+ get(M?tools, value, class_browser, _)
+	->  send(M, report, progress, 'Starting Class Browser'),
+	    send(M, start_tool, class_browser),
+	    send(M, report, done)
 	;   send(M, expose_tool, class_browser)	  % exposes it!
 	).
 

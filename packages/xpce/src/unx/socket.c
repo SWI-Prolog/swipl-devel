@@ -8,40 +8,137 @@
 */
 
 #include <md.h>				/* get HAVE_'s */
-#if HAVE_SOCKET
+#if defined(HAVE_SOCKET) || defined(HAVE_WINSOCK)
 
 #include <sys/types.h>
 #include <memory.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+
+#ifdef HAVE_WINSOCK
+#include "mswinsock.h"
+#include <io.h>
+#include <fcntl.h>
+#else /*HAVE_WINSOCK*/
+
+#define HAVE_SYS_UN_H 1
+#define UNIX_DOMAIN_SOCKETS 1
 #include <sys/socket.h>			/* must be first to avoid send() */
 #include <netdb.h>			/* conflict ... */
 #include <netinet/in.h>
-				
+#include <errno.h>
+extern int errno;
+
+#define SOCKET int
+#endif /*WINSOCK*/
+
 #define create PCEcreate		/* avoid conflict */
 
 #include <h/kernel.h>
 #include <h/unix.h>
 #include <h/interface.h>
+#ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
-#include <sys/un.h>
-#include <signal.h>
-#include <errno.h>
-
-extern int errno;
-
-#if defined(SYSLIB_H) && defined(sun)
-extern int socket(int domain, int type, int protocol);
-extern int bind(int s, struct sockaddr *name, int namelen);
-extern int accept(int s, struct sockaddr *addr, int *addrlen);
-extern int listen(int s, int backlog);
-extern int connect(int s, struct sockaddr *name, int namelen);
 #endif
+#ifdef HAVE_SYS_UN_H
+#include <sys/un.h>
+#endif
+#include <signal.h>
 
 #define MAX_UN_ADDRESS_LEN (sizeof(struct sockaddr_un) - sizeof(short))
 
+#ifndef INVALID_SOCKET
+#define INVALID_SOCKET -1
+#endif
+
 static status	closeSocket(Socket);
 
-#define OsError() getOsErrorPce(PCE)
+#ifdef HAVE_WINSOCK
+
+typedef struct
+{ int	 id;
+  char  *description;
+} wsock_err;
+
+static wsock_err wsock_err_list[] = {
+{ WSAEINTR,		"WSAEINTR" },
+{ WSAEBADF,		"WSAEBADF" },
+{ WSAEACCES,		"WSAEACCES" },
+{ WSAEFAULT,		"WSAEFAULT" },
+{ WSAEINVAL,		"WSAEINVAL" },
+{ WSAEMFILE,		"No more file descriptors" },
+{ WSAEWOULDBLOCK,	"WSAEWOULDBLOCK" },
+{ WSAEINPROGRESS,	"Blocking operation in progress" },
+{ WSAEALREADY,		"WSAEALREADY" },
+{ WSAENOTSOCK,		"WSAENOTSOCK" },
+{ WSAEDESTADDRREQ,	"WSAEDESTADDRREQ" },
+{ WSAEMSGSIZE,		"WSAEMSGSIZE" },
+{ WSAEPROTOTYPE,	"Type/protocol mismatch" },
+{ WSAENOPROTOOPT,	"WSAENOPROTOOPT" },
+{ WSAEPROTONOSUPPORT,   "Protocol not supported" },
+{ WSAESOCKTNOSUPPORT,   "Type not supported in address family" },
+{ WSAEOPNOTSUPP,	"WSAEOPNOTSUPP" },
+{ WSAEPFNOSUPPORT,	"WSAEPFNOSUPPORT" },
+{ WSAEAFNOSUPPORT,	"Unsupported address family" },
+{ WSAEADDRINUSE,	"WSAEADDRINUSE" },
+{ WSAEADDRNOTAVAIL,	"WSAEADDRNOTAVAIL" },
+{ WSAENETDOWN,		"Network is down" },
+{ WSAENETUNREACH,	"WSAENETUNREACH" },
+{ WSAENETRESET,		"WSAENETRESET" },
+{ WSAECONNABORTED,	"WSAECONNABORTED" },
+{ WSAECONNRESET,	"WSAECONNRESET" },
+{ WSAENOBUFS,		"No more buffer space" },
+{ WSAEISCONN,		"WSAEISCONN" },
+{ WSAENOTCONN,		"WSAENOTCONN" },
+{ WSAESHUTDOWN,		"WSAESHUTDOWN" },
+{ WSAETOOMANYREFS,	"WSAETOOMANYREFS" },
+{ WSAETIMEDOUT,		"WSAETIMEDOUT" },
+{ WSAECONNREFUSED,	"Connection refused" },
+{ WSAELOOP,		"WSAELOOP" },
+{ WSAENAMETOOLONG,	"WSAENAMETOOLONG" },
+{ WSAEHOSTDOWN,		"Remote host is down" },
+{ WSAEHOSTUNREACH,	"Host unreachable" },
+{ WSAENOTEMPTY,		"WSAENOTEMPTY" },
+{ WSAEPROCLIM,		"WSAEPROCLIM" },
+{ WSAEUSERS,		"WSAEUSERS" },
+{ WSAEDQUOT,		"WSAEDQUOT" },
+{ WSAESTALE,		"WSAESTALE" },
+{ WSAEREMOTE,		"WSAEREMOTE" },
+{ WSAEDISCON,		"WSAEDISCON" },
+{ WSASYSNOTREADY,	"WSASYSNOTREADY" },
+{ WSAVERNOTSUPPORTED,   "WSAVERNOTSUPPORTED" },
+{ WSANOTINITIALISED,	"Unsuccessfull WSAStartup()" },
+{ WSAHOST_NOT_FOUND,	"WSAHOST_NOT_FOUND" },
+{ WSATRY_AGAIN,		"WSATRY_AGAIN" },
+{ WSANO_RECOVERY,	"WSANO_RECOVERY" },
+{ WSANO_DATA,		"WSANO_DATA" },
+{ WSANO_ADDRESS,	"WSANO_ADDRESS" },
+{ 0, NULL }
+};
+
+
+Name
+SockError()
+{ int err = WSAGetLastError();
+  wsock_err *e = wsock_err_list;
+  char buf[50];
+
+  for( ; e->description; e++ )
+  { if ( e->id == err )
+      return CtoName(e->description);
+  }
+
+  sprintf(buf, "Unknown error: %d", err);
+  return CtoName(buf);
+}
+
+#define SocketHandle(s) ((SOCKET)((s)->ws_ref))
+
+#else /*HAVE_WINSOCK*/
+#define SocketHandle(s) ((s->rdfd))
+#define SockError() getOsErrorPce(PCE)
+#endif /*HAVE_WINSOCK*/
 
 static Chain	SocketChain;		/* Available open sockets */
 
@@ -50,6 +147,10 @@ closeAllSockets(void)
 { Socket s;
 
   for_chain(SocketChain, s, closeSocket(s));
+
+#ifdef WINSOCK
+  WSACleanup();
+#endif
 }
 
 
@@ -64,8 +165,35 @@ setupSockets(void)
 { static int initialised = 0;
 
   if ( !initialised )
-  { hostAction(HOST_ONEXIT, closeAllSockets, NULL);
+  { 
+#ifdef HAVE_WINSOCK
+    WSADATA data;
+    WORD wversion = MAKEWORD(1, 1);
+/*
+    int optionValue = SO_SYNCHRONOUS_ALERT;
+*/
+    if ( WSAStartup(wversion, &data) != 0 )
+      errorPce(NIL, NAME_socket, NAME_initialise, SockError());
+
+    DEBUG(NAME_socket,
+	  Cprintf("WSAStartup(): wVersion = %d.%d, wHighVersion = %d.%d\n",
+		  data.wVersion >> 8, data.wVersion & 0xff,
+		  data.wHighVersion >> 8, data.wHighVersion & 0xff);
+	  Cprintf("Description: %s\n", data.szDescription);
+	  Cprintf("Status:      %s\n", data.szSystemStatus);
+	 );
+
+/*
+    if ( setsockopt(INVALID_SOCKET, SOL_SOCKET, SO_OPENTYPE,
+		    (char *)&optionValue, sizeof(optionValue)) != NO_ERROR )
+      errorPce(NIL, NAME_socket, CtoName("setsockopt"), SockError());
+*/
+#endif
+
+    at_pce_exit(closeAllSockets, ATEXIT_FIFO);
+#ifdef SIGPIPE
     hostAction(HOST_SIGNAL, SIGPIPE, sigPipeSocket);
+#endif
     initialised++;
   }
 }
@@ -76,6 +204,9 @@ initialiseSocket(Socket s, Any address, Name domain)
 { setupSockets();
 
   initialiseStream((Stream) s, NIL, NIL, NIL, DEFAULT);
+#ifdef HAVE_WINSOCK
+  s->ws_ref = (WsRef) INVALID_SOCKET;
+#endif
 
   if ( isDefault(domain) )
   { if ( instanceOfObject(address, ClassFile) )
@@ -107,7 +238,11 @@ cloneSocket(Socket s, Socket clone)
 { clonePceSlots(s, clone);
 
   clone->rdfd = clone->wrfd = -1;
+#ifdef HAVE_WINSOCK
+  clone->ws_ref = (WsRef)INVALID_SOCKET;
+#else
   clone->ws_ref = 0;
+#endif
   clone->input_buffer = NULL;
   clone->input_allocated = s->input_p = 0;
 
@@ -115,29 +250,77 @@ cloneSocket(Socket s, Socket clone)
 }
 
 		 /*******************************
+		 *	     PRINT NAME		*
+		 *******************************/
+
+static StringObj
+getPrintNameSocket(Socket s)
+{ char buf[256];
+  Any av[3];
+  Name fmt;
+  int an;
+
+  av[0] = getClassNameObject(s);
+
+  if ( instanceOfObject(s->address, ClassTuple) )
+  { Tuple t = (Tuple) s->address;
+
+    av[1] = t->first;
+    av[2] = t->second;
+    an = 3;
+    fmt = CtoName("%s(%s:%d)");
+  } else
+  { av[1] = get(s->address, NAME_printName, 0);
+    an = 2;
+    fmt = CtoName("%s(%s)");
+  }
+
+  swritefv(buf, (CharArray) fmt, an, av);
+
+  answer(CtoString(buf));
+}
+
+
+		 /*******************************
 		 *      CREATE/CONNECT/ETC	*
 		 *******************************/
 
 static status
 createSocket(Socket s)
-{ if ( s->rdfd < 0 )
+{ if ( SocketHandle(s) == INVALID_SOCKET )
   { int domain;
    
     closeSocket(s);
 
     if ( s->domain == NAME_unix )
+    {
+#ifdef UNIX_DOMAIN_SOCKETS
       domain = PF_UNIX;
-    else /*if ( s->domain == NAME_inet )*/
+#else
+      return errorPce(s, NAME_noSocketDomain, NAME_unix);
+#endif
+    } else /*if ( s->domain == NAME_inet )*/
       domain = PF_INET;
 
+#ifdef HAVE_WINSOCK
+  { SOCKET mss;
+    
+    if ( (mss=socket(domain, SOCK_STREAM, 0)) == INVALID_SOCKET )
+      return errorPce(s, NAME_socket, NAME_create, SockError());
+
+    s->ws_ref = (WsRef) mss;
+  }
+#else
     if ( (s->rdfd = s->wrfd = socket(domain, SOCK_STREAM, 0)) < 0 )
-      return errorPce(s, NAME_socket, NAME_create, OsError());
+      return errorPce(s, NAME_socket, NAME_create, SockError());
+#endif
   }
 
   succeed;
 }
 
 
+#ifdef UNIX_DOMAIN_SOCKETS
 static status
 unix_address_socket(Socket s, struct sockaddr_un *address, int *len)
 { Name name = getOsNameFile((FileObj) s->address);
@@ -156,6 +339,7 @@ unix_address_socket(Socket s, struct sockaddr_un *address, int *len)
 
   succeed;
 }
+#endif /*UNIX_DOMAIN_SOCKETS*/
 
 
 static status
@@ -184,7 +368,7 @@ inet_address_socket(Socket s, struct sockaddr_in *address, int *len)
   { address->sin_port = valInt(s->address);
     address->sin_addr.s_addr = htonl(INADDR_ANY);
   } else
-    return errorPce(s->address, NAME_unexpectedType, CtoType("tupple"));
+    return errorPce(s->address, NAME_unexpectedType, CtoType("tuple"));
 
   succeed;
 }
@@ -195,16 +379,19 @@ bindSocket(Socket s)
 { int rval;
 
   TRY(createSocket(s));
+
+#ifdef UNIX_DOMAIN_SOCKETS
   if ( s->domain == NAME_unix )
   { struct sockaddr_un address;
     int len;
     TRY( unix_address_socket(s, &address, &len) );
-    rval = bind(s->rdfd, (struct sockaddr *) &address, len);
+    rval = bind(SocketHandle(s), (struct sockaddr *) &address, len);
   } else /*if ( s->domain == NAME_inet )*/
+#endif
   { struct sockaddr_in address;
     int len;
     TRY( inet_address_socket(s, &address, &len) );
-    if ( (rval = bind(s->rdfd, (struct sockaddr *) &address, len)) == 0 )
+    if ( (rval = bind(SocketHandle(s), (struct sockaddr *) &address, len))==0 )
     { if ( s->address == ZERO )
 	assign(s, address, toInt(address.sin_port));
       else if ( instanceOfObject(s->address, ClassTuple) &&
@@ -214,7 +401,7 @@ bindSocket(Socket s)
   }
 
   if ( rval != 0 )
-    return errorPce(s, NAME_socket, NAME_bind, OsError());
+    return errorPce(s, NAME_socket, NAME_bind, SockError());
 
   succeed;
 }
@@ -222,24 +409,26 @@ bindSocket(Socket s)
 
 status
 acceptSocket(Socket s)
-{ int id2;
+{ SOCKET id2;
   Socket s2;
   Any client_address;
 
+#ifdef UNIX_DOMAIN_SOCKETS
   if ( s->domain == NAME_unix )
   { struct sockaddr_un address;
     int len = sizeof(address);
 
-    if ( (id2 = accept(s->rdfd, (struct sockaddr *) &address, &len)) < 0 )
-      errorPce(s, NAME_socket, NAME_accept, OsError());
+    if ( (id2=accept(SocketHandle(s), (struct sockaddr *) &address, &len))<0 )
+      errorPce(s, NAME_socket, NAME_accept, SockError());
  
     client_address = s->address;
   } else /*if ( s->domain == NAME_inet )*/
+#endif
   { struct sockaddr_in address;
     int len = sizeof(address);
 
-    if ( (id2 = accept(s->rdfd, (struct sockaddr *) &address, &len)) < 0 )
-      errorPce(s, NAME_socket, NAME_accept, OsError());
+    if ( (id2=accept(SocketHandle(s), (struct sockaddr *) &address, &len))<0 )
+      errorPce(s, NAME_socket, NAME_accept, SockError());
  
     { struct hostent *hp;
 
@@ -258,7 +447,12 @@ acceptSocket(Socket s)
   if ( !(s2 = get(s, NAME_clone, 0)) )
     return errorPce(s, NAME_failedToClone);
 
+#ifdef HAVE_WINSOCK
+  s2->ws_ref = (WsRef) id2;
+  s2->rdfd = s2->wrfd = 0;		/* signal open status */
+#else
   s2->rdfd = s2->wrfd = id2;
+#endif
   assign(s2, input_message, s->input_message);
   assign(s2, status, NAME_accepted);
   assign(s2, master, s);
@@ -280,8 +474,8 @@ listenSocket(Socket s, Code accept_message, Int backlog)
 
   TRY(bindSocket(s));
 
-  if ( listen(s->rdfd, valInt(backlog)) )
-    return errorPce(s, NAME_socket, NAME_listen, OsError());
+  if ( listen(SocketHandle(s), valInt(backlog)) )
+    return errorPce(s, NAME_socket, NAME_listen, SockError());
 
   assign(s, status, NAME_listen);
   if ( notDefault(accept_message) )
@@ -325,20 +519,27 @@ connectSocket(Socket s)
 { int rval;
 
   TRY(createSocket(s));
+
+#ifdef UNIX_DOMAIN_SOCKETS
   if ( s->domain == NAME_unix )
   { struct sockaddr_un address;
     int len;
     TRY( unix_address_socket(s, &address, &len) );
-    rval = connect(s->rdfd, (struct sockaddr *) &address, len);
+    rval = connect(SocketHandle(s), (struct sockaddr *) &address, len);
   } else /*if ( s->domain == NAME_inet )*/
+#endif
   { struct sockaddr_in address;
     int len;
     TRY( inet_address_socket(s, &address, &len) );
-    rval = connect(s->rdfd, (struct sockaddr *) &address, len);
+    rval = connect(SocketHandle(s), (struct sockaddr *) &address, len);
   }
 
   if ( rval )
-    return errorPce(s, NAME_socket, NAME_connect, OsError());
+    return errorPce(s, NAME_socket, NAME_connect, SockError());
+
+#ifdef HAVE_WINSOCK
+  s->wrfd = 0;				/* signal open status */
+#endif
 
   assign(s, status, NAME_connected);
   appendChain(SocketChain, s);
@@ -445,6 +646,15 @@ makeClassSocket(Class class)
   sendMethod(class, NAME_endOfFile, NAME_input, 0,
 	     "EOF read",
 	     eofSocket);
+
+  getMethod(class, NAME_printName, DEFAULT, "string", 0,
+	    "returns <classname>(<address>)",
+	    getPrintNameSocket);
+
+#ifdef HAVE_SOCKET
+  featureClass(class, NAME_unixDomain, ON);
+#endif
+  featureClass(class, NAME_inetDomain, ON);
 
   SocketChain = globalObject(NAME_openSockets, ClassChain, 0);
 

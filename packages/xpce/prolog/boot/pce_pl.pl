@@ -114,20 +114,6 @@ require(Term) :-
 auto_call(Goal) :-
 	Goal.
 
-		/********************************
-		*            BANNER		*
-		********************************/
-
-:- at_initialisation(pce_boot:pce_load_init_file).
-
-pce_banner :-
-	send(@(pce), banner),
-	(   get(@(pce), is_runtime_system, @(off))
-	->  format('~nFor HELP on prolog, please type help. or apropos(topic).~n'),
-	    format('         on xpce, please type manpce.~n~n')
-	;   format('~n', [])
-	).
-
 
 		/********************************
 		*      DEBUGGER SUPPORT		*
@@ -200,12 +186,17 @@ actions_to_format([Fmt0-Args0|Tail], Fmt, Args) :-
 		********************************/
 
 '$load_pce' :-
-	feature(dll, true), !,
-	pce_principal:load_foreign_library(lxpce).
-'$load_pce' :-
-	current_predicate('$pce_init', '$pce_init'), !,
+	'$c_current_predicate'('$pce_init', user:'$pce_init'), !,
 	set_feature(xpce, true),
 	pce_principal:'$pce_init'.
+'$load_pce' :-
+	feature(dll, true), !,
+	pce_principal:load_foreign_library(pl2xpce),
+	set_feature(xpce, true).
+'$load_pce' :-
+	feature(open_shared_object, true), !,
+	pce_principal:load_foreign_library(so(xpce4pl)),
+	set_feature(xpce, true).
 
 
 		 /*******************************

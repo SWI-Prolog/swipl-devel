@@ -9,7 +9,7 @@
 
 :- module(msg_behaviour_model, []).
 :- use_module(library(pce)).
-:- use_module(library('dialog/lib/template')).
+:- use_module(library(pce_template)).
 :- require([ between/3
 	   , chain_list/2
 	   , editpce/1
@@ -29,10 +29,10 @@
 
 :- pce_autoload(editable_text, library(pce_editable_text)).
 :- pce_autoload(tagged_connection, library(pce_tagged_connection)).
-:- use_module(library('dialog/lib/prompter')).
+:- use_module(library('dialog/prompter')).
 :- use_module(proto).
 :- use_module(generate, [new_term/2]).
-:- use_module(meta).
+:- consult(meta).
 
 relation(get,		argument,	argument).
 relation(get,		object,		expansion).

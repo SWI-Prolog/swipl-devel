@@ -11,26 +11,47 @@
 XPCEOBJ=$(PCEHOME)/src/XPCE.a
 
 OBJ=	$(PLRUNTIME)/$(PLOBJ) interface.o link.o $(XPCEOBJ)
-BINOBJ= ../../pl/runtime/$(ARCH)/pl.o interface.o link.o $(XPCEOBJ)
-TARGET=	xpce
-BASE=xpce$(RTSUFFIX).base
+XPCE=	xpce$(RTSUFFIX)
+QLF=    xpce$(RTSUFFIX).qlf
+XLIBS=	-lXt -lX11
 
-CFLAGS= 	$(COFLAGS) -I$(PLINCLUDE) -I$(PCEHOME)/src
+CFLAGS= 	$(COFLAGS) $(CMFLAGS) -I$(PLINCLUDE) -I$(PCEHOME)/src
 ITF=		../../prolog/c/interface.c ../../prolog/c/interface.h
 
-all:		$(TARGET) pl-crt0.o 
+PLBOOT=		init.pl syspred.pl toplevel.pl listing.pl edit.pl sort.pl \
+		bags.pl apply.pl list.pl writef.pl history.pl portray.pl \
+		profile.pl dwim.pl foreign.pl parms.pl autoload.pl qlf.pl \
+		topvars.pl
+PLLIB=		quintus.pl
+PCEBOOT=	pce_expand.pl english/pce_messages.pl pce_pl.pl \
+		pce_principal.pl pce_error.pl pce_autoload.pl pe_global.pl \
+		pce_operator.pl pce_compile.pl pce_editor.pl pce_boot.pl
+PCELIB=		pce.pl
+PLLOAD=		load.pl xpce.pl
+
+all:		$(QLF) pl-crt0.o $(SHOBJ)
 
 interface.o:	$(ITF) interface.c
 
-$(BASE):	$(OBJ)
+$(XPCE):	$(OBJ)
 		$(CC) $(LDFLAGS) -o $@ $(OBJ) $(LIBS)
 
-printcmd:
-		@echo $(CC) $(LDFLAGS) -o xpce.base \
-			$(BINOBJ) $(LIBS) $(STATICLIBS)
+$(QLF):		$(XPCE)
+		./$(XPCE) -O -o $(QLF) \
+			  -g pce_welcome \
+			  -b $(PLBASE)/boot/init.pl \
+			  -c load.pl
 
-$(TARGET):	$(BASE) domangle
-		./dump ./$(BASE) $@
+shitf.o:	interface.c
+		cp interface.c shitf.c
+		$(CC) -DO_SHAREDLIBRARY $(CFLAGS) -c shitf.c
+		rm -f shitf.c
+		
+Initialize.o:	
+		ar x $(XLIB)/libXt.a $@
+
+xpce4pl.$(SO):	shitf.o $(XPCEOBJ) $(SOEXTRAOBJ)
+		$(LD) shitf.o $(XPCEOBJ) $(SOEXTRAOBJ) $(GCCLIB) $(XLIBS) -o $@
 
 mangle:		mangle.c
 		$(CC) -O -o mangle mangle.c

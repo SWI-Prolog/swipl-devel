@@ -131,7 +131,7 @@ initDraw()
 
   resetDraw();
 
-  atexit(exitDraw);
+  at_pce_exit(exitDraw, ATEXIT_FILO);
 }
 
 

@@ -33,14 +33,12 @@ ws_revision(void)
 }
 
 
-int
-ws_free_file_descriptors()
-{ 
-#ifdef __WIN32__
-return 32;
-#else
-return GetFreeFileHandles();
-#endif
+char *
+ws_os(void)
+{ if( GetVersion() & 0x80000000 && (GetVersion() & 0xFF) == 3 )
+    return "win32s";
+  else
+    return "win32";
 }
 
 

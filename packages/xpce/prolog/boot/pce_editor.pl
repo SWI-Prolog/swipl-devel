@@ -132,11 +132,16 @@ export_selection(E) :->
 
 import_selection(E) :->
 	"Import the (primary) selection or the cut_buffer"::
-	get(E, display, Display),
-	(   pce_catch_error(get_selection, get(Display, selection, String)),
-	    send(E, insert, String),
-	    send(String, done)
-	;   send(E, insert_cut_buffer)
+	(   get(E, editable, @on)
+	->  get(E, display, Display),
+	    (   pce_catch_error(get_selection, get(Display, selection, String)),
+		send(E, insert, String),
+		send(String, done)
+	    ;   send(E, insert_cut_buffer)
+	    )
+	;   send(E, report, warning, 'Text is read-only'),
+	    fail
 	).
+	
 
 :- pce_end_class.

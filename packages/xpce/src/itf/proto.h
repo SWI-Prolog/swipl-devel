@@ -109,7 +109,6 @@ int		Stub__Cputchar(int chr);
 char *		Stub__Cgetline(char *line, int size);
 
 /* stub.c */
-void		on_exit(OnExitFunction f, char *s);
 int		Stub__HostActionv(int action, va_list args);
 int		Stub__HostQuery(int what, PceCValue *value);
 int		Stub__HostSend(PceObject prolog, PceName sel, int argc, PceObject *argv);

@@ -234,6 +234,8 @@ static struct error_def errors[] =
     "%N: no domain and cannot infer default" },
   { NAME_hostname,		0,
     "%N: cannot get hostname: %s" },
+  { NAME_noSocketDomain,	ET_WARNING|EF_REPORT,
+    "%N: No support for %s domain sockets" },
 
 					/* Resources */
   { NAME_incompatibleResource,	0,

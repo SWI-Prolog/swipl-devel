@@ -17,6 +17,19 @@ initialiseSheet(Sheet sh, int argc, Attribute *argv)
 }
 
 
+Sheet
+getCopySheet(Sheet sh)
+{ if ( notNil(sh) )
+  { Sheet copy = answerObjectv(classOfObject(sh), 0, NULL);
+
+    assign(copy, attributes, getCopyChain(sh->attributes));
+
+    answer(copy);
+  } else
+    answer(sh);
+}
+
+
 status
 isAttributeSheet(Sheet sh, Any name)
 { Cell cell;

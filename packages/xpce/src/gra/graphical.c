@@ -2479,7 +2479,29 @@ initialiseNewSlotGraphical(Graphical gr, Variable new)
   succeed;
 }
 
+		 /*******************************
+		 *	    POSTSCRIPT		*
+		 *******************************/
+
 extern postscriptGraphical(Any obj);
+
+static status
+drawPostScriptGraphical(Graphical gr)
+{ Image i;
+
+  if ( (i=checkType(gr, nameToType(NAME_image), gr)) )
+  { BitmapObj bm = answerObject(ClassBitmap, i, 0);
+    
+    setGraphical(bm, gr->area->x, gr->area->y, DEFAULT, DEFAULT);
+    send(bm, NAME_DrawPostScript, 0);
+    doneObject(bm);
+    doneObject(i);
+
+    succeed;
+  }
+
+  fail;
+}
 
 
 status
@@ -2767,10 +2789,13 @@ makeClassGraphical(Class class)
   sendMethod(class, NAME_restore, NAME_apply, 0,
 	     "Virtual method",
 	     virtualObject);
-
-  sendMethod(class, NAME_draw, NAME_repaint, 2, "offset=[point]", "area=[area]",
+  sendMethod(class, NAME_draw, NAME_repaint, 2,
+	     "offset=[point]", "area=[area]",
 	     "Draw specified area",
 	     drawGraphical);
+  sendMethod(class, NAME_DrawPostScript, NAME_postscript, 0,
+	     "Create PostScript using intermediate image object",
+	     drawPostScriptGraphical);
 
   getMethod(class, NAME_absolutePosition, NAME_area, "point", 1, "[device]",
 	    "Get position relative to device (or window)",

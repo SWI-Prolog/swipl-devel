@@ -8,9 +8,12 @@
 */
 
 #include "include.h"
+#include <h/unix.h>
 #ifdef HAVE_XOS_H
 #include <xos.h>
 #endif
+
+static void init_render_hooks(void);
 
 void
 ws_flush_display(DisplayObj d)
@@ -116,6 +119,7 @@ ws_quit_display(DisplayObj d)
 { exitDraw();
 }
 
+#ifdef HOOK_BASED_MOUSE_HANDLING
 #ifdef __WATCOMC__
 		 /*******************************
 		 *	  MOUSE TRACKING	*
@@ -224,7 +228,7 @@ init_area_enter_exit_handling(DisplayObj d)
       DEBUG(NAME_dll, Cprintf("indirect fhandle = 0x%x\n", PceWhIH));
       PceWhAddTask(GetCurrentTask());
       DEBUG(NAME_dll, Cprintf("DLL loaded and initialised\n"));
-      atexit(unload_pcewhdll);
+      at_pce_exit(unload_pcewhdll, ATEXIT_FIFO);
       return;
     } else
       errorPce(d, NAME_failedToLoadDll, dllname, toInt(hlib));
@@ -237,7 +241,7 @@ init_area_enter_exit_handling(DisplayObj d)
 				      GetCurrentTask())) )
       sysPce("Failed to install xpce_mouse_hook()");
     
-    atexit(unhook_xpce_mouse_hook);
+    at_pce_exit(unhook_xpce_mouse_hook, ATEXIT_FIFO);
   }
 }
 
@@ -276,7 +280,7 @@ init_area_enter_exit_handling(DisplayObj d)
 
       MouseHookDeleteWindow = (mhdw_t) GetProcAddress(hlib,
 						      "MouseHookDeleteWindow");
-      atexit(unload_xpcemhdll);
+      at_pce_exit(unload_xpcemhdll, ATEXIT_FIFO);
       DEBUG(NAME_dll, Cprintf("%s loaded, hook = 0x%lx\n",
 			      MouseHookDeleteWindow));
     }
@@ -285,10 +289,59 @@ init_area_enter_exit_handling(DisplayObj d)
 
 #endif /*__WATCOMC__*/
 
+#else /*HOOK_BASED_MOUSE_HANDLING*/
+
+static HWND current_window;
+
+void
+PceWhDeleteWindow(HWND win)
+{ if ( win == current_window )
+    current_window = 0;
+}
+
+
+void
+PceEventInWindow(HWND win)
+{ if ( win != current_window )
+  { if ( current_window )
+    { DEBUG(NAME_areaEnter,
+	    Cprintf("Posting exit to %s\n",
+		    pp(GetWindowLong(current_window, GWL_DATA))));
+      SendMessage(current_window, WM_WINEXIT, 0, 0L);
+    }
+    if ( win )
+    { DEBUG(NAME_areaEnter,
+	    Cprintf("Posting enter to %s\n",
+		    pp(GetWindowLong(win, GWL_DATA))));
+      SendMessage(win, WM_WINENTER, 0, 0L);
+    }
+
+    current_window = win;
+  }
+}
+
+
+static void
+init_area_enter_exit_handling(DisplayObj d)
+{
+}
+
+
+#endif /*HOOK_BASED_MOUSE_HANDLING*/
+
+
+static RlcUpdateHook system_update_hook;
+
+static void
+exit_update_hook(void)
+{ rlc_update_hook(system_update_hook);
+}
+
 
 status
 ws_init_graphics_display(DisplayObj d)
-{ rlc_update_hook(check_redraw);
+{ system_update_hook = rlc_update_hook(check_redraw);
+  at_pce_exit(exit_update_hook, ATEXIT_FILO);
   initDraw();
 
   init_area_enter_exit_handling(d);
@@ -343,6 +396,9 @@ ws_events_queued_display(DisplayObj d)
   fail;
 }
 
+		 /*******************************
+		 *     SELECTION HANDLING	*
+		 *******************************/
 
 static HGLOBAL
 ws_string_to_global_mem(String s)
@@ -490,10 +546,36 @@ ws_own_selection(DisplayObj d, Name selection)
   EmptyClipboard();
   SetClipboardData(CF_TEXT, NULL);
   CloseClipboard();
-  rlc_render_hook(ws_provide_selection);
-  rlc_render_all_hook(ws_renderall);
+  init_render_hooks();
 
   succeed;
+}
+
+
+static RlcRenderHook	system_render_hook;
+static RlcRenderAllHook system_render_all_hook;
+static int 		render_hooks_initialised;
+
+static void
+exit_render_hooks(void)
+{ if ( render_hooks_initialised )
+  { rlc_render_hook(system_render_hook);
+    rlc_render_all_hook(system_render_all_hook);
+
+    render_hooks_initialised = FALSE;
+  }
+}
+
+
+static void
+init_render_hooks(void)
+{ if ( !render_hooks_initialised )
+  { system_render_hook     = rlc_render_hook(ws_provide_selection);
+    system_render_all_hook = rlc_render_all_hook(ws_renderall);
+    render_hooks_initialised++;
+
+    at_pce_exit(exit_render_hooks, ATEXIT_FIFO);
+  }
 }
 
 
@@ -563,11 +645,15 @@ add_resource(int nfields, Name *fields, StringObj value)
 
 static void
 load_resource_file(char *file)
-{ FILE *fd;
-  int lineno = 0;
+{ int lineno = 0;
+  FileObj f;
 
-  if ( (fd = fopen(file, "r")) )
+  f = answerObject(ClassFile, CtoString(file), 0);
+
+  if ( send(f, NAME_access, NAME_read, 0) &&
+       send(f, NAME_open, NAME_read, 0) )
   { char line[LINESIZE];
+    FILE *fd = f->fd;
 
     while( fgets(line, sizeof(line), fd) )
     { char *s = line;
@@ -672,7 +758,7 @@ load_resource_file(char *file)
     out:
       ;
 
-    fclose(fd);
+    send(f, NAME_close, 0);
   }
 }
 

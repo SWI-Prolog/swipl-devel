@@ -38,6 +38,7 @@ status		makeClassProcess(Class class);
 void		killAllProcesses(void);
 
 /* socket.c */
+Name		SockError(void);
 status		acceptSocket(Socket s);
 status		makeClassSocket(Class class);
 

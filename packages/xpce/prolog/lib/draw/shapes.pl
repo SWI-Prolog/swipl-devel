@@ -13,7 +13,7 @@
 	  ]).
 
 :- use_module(library(pce)).
-:- use_module(library('dialog/lib/template')).
+:- use_module(library(pce_template)).
 :- require([ forall/2
 	   , ignore/1
 	   , member/2

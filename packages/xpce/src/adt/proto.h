@@ -130,6 +130,7 @@ status		insideRegion(RegionObj r, Area a, Point p);
 status		makeClassRegion(Class class);
 
 /* sheet.c */
+Sheet		getCopySheet(Sheet sh);
 status		isAttributeSheet(Sheet sh, Any name);
 Attribute	getMemberSheet(Sheet sh, register Any name);
 status		deleteSheet(Sheet sh, Any name);

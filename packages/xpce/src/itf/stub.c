@@ -26,55 +26,18 @@
 
 typedef void (*VoidFunc)();
 typedef void (*sig_handler_t)(int);
-typedef void (*OnExitFunction)(int, void *);
-
-#if defined(HAVE_ATEXIT) && !defined(HAVE_ON_EXIT)
-#define HAVE_ON_EXIT 1
-typedef struct on_exit_cell * OnExitCell;
-static OnExitCell OnExitList;
-
-struct on_exit_cell
-{ OnExitFunction	function;	/* function to call */
-  void*			context;	/* argument to pass */
-  OnExitCell		next;		/* next to call */
-};
-
-static void
-do_exit_list(int code)
-{ OnExitCell c = OnExitList;
-
-  for(; c; c = c->next)
-    (*c->function)(code, c->context);
-}
-
-void
-on_exit(OnExitFunction f, char *s)
-{ static int initialised = FALSE;
-  OnExitCell c = malloc(sizeof(struct on_exit_cell));
-
-  c->function = f;
-  c->context = s;
-  c->next = OnExitList;
-  OnExitList = c;
-  
-  if ( !initialised )
-  { atexit(do_exit_list);
-    initialised = TRUE;
-  }
-}
-#endif /*HAVE_on_exit*/
+typedef void (*atexit_hook_t)(void);
 
 int
 Stub__HostActionv(int action, va_list args)
 { int rval = PCE_SUCCEED;
 
   switch(action)
-  { case HOST_ONEXIT:
-#if HAVE_ON_EXIT
-    { OnExitFunction func = va_arg(args, OnExitFunction);
-      char *s = va_arg(args, char *);
+  { case HOST_ATEXIT:
+#if HAVE_ATEXIT
+    { atexit_hook_t func = va_arg(args, atexit_hook_t);
 
-      on_exit(func, s);
+      atexit(func);
       break;
     }
 #endif

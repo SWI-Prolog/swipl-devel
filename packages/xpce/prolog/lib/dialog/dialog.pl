@@ -18,14 +18,16 @@ standard XPCE library directory.
 
 :- module(dia_dialog, []).
 :- use_module(library(pce)).
-:- use_module(library('dialog/lib/prompter')).
-:- use_module(proto).
-:- use_module(layout).
-:- use_module(generate).
-:- use_module(pretty_print).
-:- use_module(load).
-:- use_module(util).
-:- use_module(library('dialog/lib/template')).
+:- use_module(library('dialog/prompter')).
+:- [ proto,
+     layout,
+     generate,
+     pretty_print,
+     behaviour,
+     load,
+     util
+   ].
+:- use_module(library(pce_template)).
 :- require([ between/3
 	   , forall/2
 	   , ignore/1
@@ -43,7 +45,6 @@ standard XPCE library directory.
 :- pce_autoload(dia_attribute_editor, library('dialog/attribute')).
 :- pce_autoload(finder, library(find_file)).
 :- pce_global(@finder, new(finder)).
-:- pce_autoload(msg_model_editor, library('dialog/behaviour')).
 
 dia_version('0.4').
 

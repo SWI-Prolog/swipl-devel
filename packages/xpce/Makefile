@@ -42,22 +42,26 @@ RANLIB=ranlib
 # LIBRARIES
 
 NETLIBS=
-PLLIBS=-lreadline -ltermcap -lm
+PLLIBS=-lreadline -ltermcap -lm -ldl
 XLIBS=-lXt -lX11
 STATICLIBS=
-LDFLAGS=-static
+LDFLAGS=
+GCCLIB=/usr/local/lib/gcc-lib/sparc-sun-sunos4.1/2.5.7/libgcc.a
+LDSOFLAGS=
+SOEXTRAOBJ=Initialize.o
+SO=so
 
 LIBS=	$(XLIBS) $(PLLIBS) $(NETLIBS) $(STATICLIBS)
 COFLAGS=-O2
 CWFLAGS=
 CIFLAGS=-I..
-CMFLAGS=-funsigned-char -fPIC -DHAVE_CONFIG_H
+CMFLAGS= -fPIC -funsigned-char -DHAVE_CONFIG_H
 
 ################################################################
 # Paths for host-languages
 ################################################################
 
-PLBASE=/staff/jan/lib/pl-2.0.6
+PLBASE=/staff/jan/lib/pl-2.0.7
 PLARCH=sparc-sunos4.1.3
 
 SICSHOME=/staff/jan/src/sicstus2.1
@@ -84,7 +88,7 @@ PLRUNTIME=$(PLBASE)/runtime/$(PLARCH)
 PLOBJ=pl$(RTSUFFIX).o
 PLINCLUDE=$(PLBASE)/include
 
-TARGET=$(PCEHOME)/bin/xpce$(RTSUFFIX)
+PLTARGET=xpce4pl.so
 
 ################################################################
 # MAIN TARGETS
@@ -116,10 +120,9 @@ xpce:	$(RESOURCE_CLASS)
 xpce-pl: xpce xpce-client
 	cd pl/src; \
 	CANONICAL_PATHS=$(PCEHOME); export CANONICAL_PATHS; \
-	$(MAKE) TARGET=$(TARGET)
+	$(MAKE) $(PLTARGET)
 
 state:
-	$(RM) -f $(TARGET)
 	cd pl/src; \
 	CANONICAL_PATHS=$(PCEHOME); export CANONICAL_PATHS; \
 	$(MAKE) TARGET=$(TARGET)

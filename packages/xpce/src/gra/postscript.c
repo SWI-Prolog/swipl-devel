@@ -320,15 +320,25 @@ fill(Any gr, Name sel)
   if ( isNil(pattern) )
     succeed;
 
-  if ( (greyLevel = (Int) get(pattern, NAME_postscriptGrey, 0)) != FAIL )
-  { ps_output("gsave ~f setgray fill grestore\n",
-	   (float) (100 - valInt(greyLevel)) / 100.0 );
-    succeed;
+  if ( instanceOfObject(pattern, ClassColour) )
+  { Colour c = (Colour) pattern;
+    int greylevel = valInt(c->red) + valInt(c->green) + valInt(c->blue);
+
+    greylevel *= 100;
+    greylevel += 50;			/* rounding */
+    greylevel /= ((1<<16)-1) * 3;
+    ps_output("gsave ~f setgray fill grestore\n",
+	      (float)greylevel / 100.0 );
+  } else
+  { if ( (greyLevel = (Int) get(pattern, NAME_postscriptGrey, 0)) )
+    { ps_output("gsave ~f setgray fill grestore\n",
+		(float) (100 - valInt(greyLevel)) / 100.0 );
+    } else
+    { ps_output("~x ~y ~w ~h ~d ~d \n<~P>\nfillpath\n",
+		gr, gr, gr, gr,
+		pattern->size->w, pattern->size->h, pattern);
+    }
   }
-  
-  ps_output("~x ~y ~w ~h ~d ~d \n<~P>\nfillpath\n",
-	 gr, gr, gr, gr,
-	 pattern->size->w, pattern->size->h, pattern);
   
   succeed;
 }

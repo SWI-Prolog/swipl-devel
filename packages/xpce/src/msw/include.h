@@ -98,6 +98,8 @@ PceWindow	get_window_holding_point(FrameObj fr, POINT *pt);
 status		move_big_cursor(void);
 status		exit_big_cursor(void);
 status		start_big_cursor(CursorObj c);
+void	PceWhDeleteWindow(HWND win);
+void	PceEventInWindow(HWND win);
 
 		 /*******************************
 		 *	  DEBUGGING MACROS	*

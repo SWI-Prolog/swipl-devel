@@ -7,13 +7,23 @@
     Copyright (C) 1994 University of Amsterdam. All rights reserved.
 */
 
+#include <md.h>				/* get HAVE_'s */
+
+#if defined(HAVE_SOCKET) || defined(HAVE_WINSOCK) || defined(HAVE_FORK)
+
+#ifdef HAVE_WINSOCK
+#include "mswinsock.h"
+#endif
+
 #include <h/kernel.h>
 
-#if defined(HAVE_SOCKET) || defined(HAVE_FORK)
-
 #include <h/unix.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+#ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
+#endif
 
 #ifndef FD_ZERO
 #include <sys/select.h>
@@ -63,6 +73,8 @@ closeStream(Stream s)
 { closeOutputStream(s);
   closeInputStream(s);
 
+  ws_close_stream(s);
+
   succeed;
 }
 
@@ -71,17 +83,8 @@ status
 closeInputStream(Stream s)
 { DEBUG(NAME_stream, Cprintf("%s: Closing input\n", pp(s)));
 
-  if ( s->rdstream )
-  { fclose(s->rdstream);
-    s->rdstream = NULL;
-  }
-
-  if ( s->rdfd >= 0 )
-  { close(s->rdfd);
-    s->rdfd = -1;
-  }
-
-  ws_close_stream(s);
+  ws_close_input_stream(s);
+  s->rdfd = -1;
 
   if ( s->input_buffer )
   { free(s->input_buffer);
@@ -96,10 +99,8 @@ status
 closeOutputStream(Stream s)
 { DEBUG(NAME_stream, Cprintf("Closing output\n"));
 
-  if ( s->wrfd >= 0 )
-  { close(s->wrfd);
-    s->wrfd = -1;
-  }
+  ws_close_output_stream(s);
+  s->wrfd = -1;
 
   succeed;
 }
@@ -111,12 +112,11 @@ inputStream(Stream s, Int fd)
   { if ( isNil(fd) )
       closeInputStream(s);
     else
-      s->rdfd = valInt(fd);
+      s->rdfd = valInt(fd);		/* Unix only! */
   }
 
-  if ( s->rdfd >= 0 && notNil(s->input_message) )
-  { ws_input_stream(s);
-  }
+  if ( notNil(s->input_message) )
+    ws_input_stream(s);
 
   succeed;
 }
@@ -137,7 +137,7 @@ handleInputStream(Stream s)
 { char buf[BLOCKSIZE+1];
   int n;
 
-  if ( (n = read(s->rdfd, buf, BLOCKSIZE)) > 0 )
+  if ( (n = ws_read_stream_data(s, buf, BLOCKSIZE)) > 0 )
   { if ( isNil(s->record_separator) )
     { string q;
       Any str;
@@ -227,12 +227,7 @@ appendStream(Stream s, CharArray data)
 { String str = &data->data;
   int l = str_datasize(str);
 
-  if ( s->wrfd < 0 )
-    return errorPce(s, NAME_notOpen);
-  if ( write(s->wrfd, str->s_text, l) != l )
-    return errorPce(s, NAME_ioError, OsError());
-
-  succeed;
+  return ws_write_stream_data(s, str->s_text, l);
 }
 
 
@@ -240,12 +235,7 @@ static status
 newlineStream(Stream s)
 { static char nl[] = "\n";
 
-  if ( s->wrfd < 0 )
-    return errorPce(s, NAME_notOpen);
-  if ( write(s->wrfd, nl, 1) != 1 )
-    return errorPce(s, NAME_ioError, OsError());
-
-  succeed;
+  return ws_write_stream_data(s, nl, 1);
 }
 
 
@@ -262,18 +252,10 @@ appendLineStream(Stream s, CharArray data)
 static status
 formatStream(Stream s, CharArray fmt, int argc, Any *argv)
 { char buf[FORMATSIZE];
-  int l;
-
-  if ( s->wrfd < 0 )
-    return errorPce(s, NAME_notOpen);
 
   TRY(swritefv(buf, fmt, argc, argv));
-  l = strlen(buf);
 
-  if ( write(s->wrfd, buf, l) != l )
-    return errorPce(s, NAME_ioError, OsError());
-  
-  succeed;
+  return ws_write_stream_data(s, buf, strlen(buf));
 }
 
 
@@ -285,7 +267,11 @@ waitStream(Stream s)
   succeed;
 }
 
+		 /*******************************
+		 *	  INPUT HANDLING	*
+		 *******************************/
 
+#ifndef HAVE_WINSOCK
 static StringObj
 getReadLineStream(Stream s, Int timeout)
 { if ( s->rdfd >= 0 )
@@ -318,6 +304,7 @@ getReadLineStream(Stream s, Int timeout)
   errorPce(s, NAME_notOpen);
   fail;
 }
+#endif
 
 
 static status
@@ -404,9 +391,11 @@ makeClassStream(Class class)
 	     "Send when end-of-file is reached",
 	     endOfFileStream);
 
+#ifndef HAVE_WINSOCK
   getMethod(class, NAME_readLine, NAME_input, "string", 1, "[int]",
 	    "Read line with optional timeout (milliseconds)",
 	    getReadLineStream);
+#endif
 
   succeed;
 }

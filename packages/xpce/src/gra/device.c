@@ -988,7 +988,7 @@ static HashTable PlacedTable = NULL;	/* placed objects */
 #define MAX_L_ROWS	100
 #define MAXCOLLUMNS	100
 
-typedef struct _unit
+typedef struct _unit			/* can't use cell! */
 { Graphical item;			/* Item displayed here */
   short height;				/* Height above reference */
   short	depth;				/* Depth below reference */
@@ -1000,7 +1000,7 @@ typedef struct _unit
 static unit empty_unit = {(Graphical) NIL, 0, 0, 0, 0, NAME_column};
 
 typedef struct _matrix
-{ unit units[MAXCOLLUMNS][MAX_L_ROWS];
+{ unit *units[MAXCOLLUMNS];
 } matrix, *Matrix;
 
 
@@ -1011,6 +1011,7 @@ static void
 shift_x_matrix(Matrix m, int *max_x, int *max_y)
 { int x, y;
 
+  m->units[*max_x] = alloc(sizeof(unit) * MAX_L_ROWS);
   for(y=0; y < *max_y; y++)
   { for(x = *max_x; x > 0; x--)
       m->units[x][y] = m->units[x-1][y];
@@ -1041,6 +1042,7 @@ static void
 expand_x_matrix(Matrix m, int *max_x, int *max_y)
 { int y;
 
+  m->units[*max_x] = alloc(sizeof(unit) * MAX_L_ROWS);
   for(y=0; y < *max_y; y++)
     m->units[*max_x][y] = empty_unit;
 
@@ -1056,6 +1058,15 @@ expand_y_matrix(Matrix m, int *max_x, int *max_y)
     m->units[x][*max_y] = empty_unit;
 
   (*max_y)++;
+}
+
+
+static void
+free_matrix_columns(Matrix m, int max_x)
+{ int x;
+
+  for(x=0; x<max_x; x++)
+    unalloc(sizeof(unit) * MAX_L_ROWS, m->units[x]);
 }
 
 
@@ -1327,6 +1338,8 @@ layoutDialogDevice(Device d, Size gap)
     }
   }
   
+  free_matrix_columns(&m, max_x);
+
   { PceWindow sw;
 
     if ( (sw = getWindowGraphical((Graphical) d)) &&

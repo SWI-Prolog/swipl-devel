@@ -39,11 +39,13 @@
 		 *	     WIN32 DLL		*
 		 *******************************/
 
+#ifndef __pce_export
 #if defined(PCE_INCLUDED) && defined(__WINDOWS__)
 #define __pce_export _declspec(dllexport)
 #else
 #define __pce_export extern
 #endif /*PCE_INCLUDED*/
+#endif /*__pce_export*/
 
 
 		/********************************
@@ -172,7 +174,7 @@ __pce_export PceObject	pceGet __P((PceObject, PceName, int, PceObject *));
 #define HOST_RECOVER_FROM_FATAL_ERROR 9 /* Error: don't return */
 #define HOST_WRITE	10	/* Write a char * on the terminal */
 #define HOST_FLUSH	11	/* Flush terminal */
-#define HOST_ONEXIT	12	/* Callback on exit */
+#define HOST_ATEXIT	12	/* Callback on exit */
 
 typedef struct
 { int       (*hostSend)    __P((PceObject, PceName, int, PceObject *));

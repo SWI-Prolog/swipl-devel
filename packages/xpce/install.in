@@ -1,7 +1,7 @@
 #!/bin/sh
 ################################################################
 # Purpose: 	  Install XPCE/SWI-Prolog executable
-# Usage:   	  ./install [excutable]
+# Usage:   	  ./install [-save] [excutable]
 # Author:  	  Jan Wielemaker, University of Amsterdam
 # Last Modified:  Thu Feb 23 11:34:30 1995
 #		  + Added RTSUFFIX support for installing RUNTIME
@@ -11,19 +11,26 @@
 PLBASE=@PLBASE@
 LN_S="@LN_S@"
 RTSUFFIX="@RTSUFFIX@"
-emulator=bin/xpce$RTSUFFIX.base
-xpce=bin/xpce
+xpce=bin/xpce$RTSUFFIX
 PWD=`pwd`
+save=no;
 
-if [ "x$1" = "x-nosave" ]; then save=no; shift; fi
+if [ "x$1" = "x-save" ]; then save=yes; shift; fi
 if [ $# = 1 ]; then xpce=$1; fi
 
 for d in library boot include; do
     if [ ! -d pl/$d ]; then (cd pl; $LN_S $PLBASE/$d .); fi
 done
 
-if [ ! -r bin/xpce.base ]; then
-    ( cd bin; ln -s ../pl/src/xpce.base . )
+# find the executable (emulator)
+
+if [ -r bin/xpce$RTSUFFIX.base ]; then
+    emulator="bin/xpce$RTSUFFIX.base"
+elif [ -r bin/xpce$RTSUFFIX ]; then
+    emulator="bin/xpce$RTSUFFIX"
+elif [ -r pl/src/xpce$RTSUFFIX ]; then
+    emulator="bin/xpce$RTSUFFIX"
+    ( cd bin; ln -s ../pl/src/xpce$RTSUFFIX $emulator )
 fi
 
 if [ -r $PWD/Pce ]; then
@@ -65,7 +72,7 @@ Using the following paths:
 
 EOF
 
-if [ ! "$save" = "no" ]; then
+if [ "$save" = "yes" ]; then
 echo "Check whether we can create a saved state"
 $emulator -o bin/pl.qlf -b pl/boot/init.pl
 
@@ -85,15 +92,19 @@ fi
 fi
 
 if [ "$save" = "no" ]; then
-    echo -n "Copying $emulator to $xpce" ...
-    (rm -f $xpce; cp -p $emulator $xpce)
-    echo "ok"
-    cmd="$xpce -b $PCEHOME/pl/boot/init.pl -c $PCEHOME/pl/load.pl"
+    cmd="$emulator -O -g pce_host:pce_banner -b $PCEHOME/pl/boot/init.pl -c $PCEHOME/pl/load.pl"
     echo "Creating quick load file using the command"
     echo "	$cmd"
     echo ""
     $cmd
     echo "Done"
+    if [ ! "$xpce" = "$emulator" ]; then
+        echo ""
+	echo "Creating a link from $xpce to $PCEHOME/$emulator"
+	dir=`dirname "$xpce"`
+	base=`basename "$xpce"`
+	(cd $dir; rm -f $base; ln -s $PCEHOME/$emulator $base)
+    fi
     rm -f bin/pl.qlf
     exit 0
 fi

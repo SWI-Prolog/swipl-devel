@@ -35,7 +35,8 @@ PCE public predicates
 	  , pce_compiling/1
 	  , pce_send_method/7
 	  , pce_get_method/8
-
+	  , pce_send_method_message/2
+	  , pce_get_method_message/2
 	  , pce_catch_error/2
 	  ]).
 
@@ -68,8 +69,10 @@ pce_ifhostproperty(repeat_meta_declaraction,
 
 	new(?, :),
 
-	pce_send_method(+, :, +, +, +, +, +),
-	pce_get_method(+, :, +, +, +, +, +, +))).
+	pce_send_method(+, +, :, +, +, +, +),
+	pce_get_method(+, +, +, :, +, +, +, +),
+	pce_send_method_message(:, -),
+        pce_get_method_message(:, -))).
 
 
 		/********************************

@@ -163,9 +163,13 @@ void		ws_postscript_image(Image image);
 void		ws_create_image_from_x11_data(Image image, unsigned char *data, int w, int h);
 
 /* xstream.c */
+void		ws_close_input_stream(Stream s);
+void		ws_close_output_stream(Stream s);
 void		ws_close_stream(Stream s);
 void		ws_input_stream(Stream s);
 void		ws_listen_socket(Socket s);
+status		ws_write_stream_data(Stream s, void *data, int len);
+int		ws_read_stream_data(Stream s, void *data, int len);
 
 /* xtimer.c */
 void		ws_status_timer(Timer tm, Name status);

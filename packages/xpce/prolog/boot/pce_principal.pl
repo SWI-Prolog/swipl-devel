@@ -184,3 +184,6 @@ send(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, A9) :-
 	'$pce_send'(Obj, Sel, arguments(A1, A2, A3, A4, A5, A6, A7, A8, A9)).
 send(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10) :-
 	'$pce_send'(Obj, Sel, arguments(A1, A2, A3, A4, A5, A6, A7, A8, A9, A10)).
+
+:- initialization
+	send(@host, name_reference, prolog).

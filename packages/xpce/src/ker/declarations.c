@@ -369,7 +369,7 @@ static struct class_definition classdefs[] =
   { NAME_slider, NAME_dialogItem, makeClassSlider,
     &ClassSlider, "DialogItem to select from a numeric range" },
 
-#ifdef HAVE_SOCKET
+#if defined(HAVE_SOCKET) || defined(HAVE_WINSOCK)
   { NAME_socket, NAME_stream, makeClassSocket,
     &ClassSocket, "Unix socket" },
 #endif

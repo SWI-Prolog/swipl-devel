@@ -11,6 +11,8 @@
 
 static HashTable TimerTable;
 
+static void init_timers(void);
+
 static UINT
 getIdTimer(Timer tm)
 { return (UINT) tm->ws_ref;
@@ -85,3 +87,31 @@ ws_status_timer(Timer tm, Name status)
       Cprintf("Failed SetTimer()\n");
   }
 }
+
+
+static RlcTimerHook system_timer_hook;
+static int	    timers_initialised;
+
+static void
+exit_timers(void)
+{ if ( timers_initialised )
+  { rlc_timer_hook(system_timer_hook);
+    timers_initialised = FALSE;
+  }
+}
+
+
+static void
+init_timers(void)
+{ if ( !timers_initialised )
+  { system_timer_hook = rlc_timer_hook(timer_proc);
+    timers_initialised++;
+
+    TimerTable = globalObject(CtoName("active_timers"),
+				  ClassHashTable, 0);
+    assign(TimerTable, refer, OFF);
+    at_pce_exit(exit_timers, ATEXIT_FIFO);
+  }
+}
+
+

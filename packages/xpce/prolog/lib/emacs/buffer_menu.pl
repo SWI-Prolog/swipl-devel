@@ -210,6 +210,7 @@ free_window(BM, Pool:[name], Frame:emacs_window) :<-
 server_start(BM, Force:[bool]) :->
 	"Start server-mode (xpce-client interface)"::
 	(   (	\+ get(class(socket), send_method, listen, _)
+	    ;	\+ send(class(socket), has_feature, unix_domain)
 	    ;	get(@emacs_server, status, listen)
 	    )
 	->  true
