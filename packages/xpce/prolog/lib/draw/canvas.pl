@@ -1225,8 +1225,6 @@ print_canvas(Canvas) :-
 	free(Prt).
 print_canvas(Canvas) :-
 	get(Canvas, default_printer, Printer),
-	get(Canvas, frame, Draw),
-	default_printer(Draw, Printer),
 	new(PsFile, file),
 	send(PsFile, open, write),
 	send(PsFile, append, Canvas?postscript),

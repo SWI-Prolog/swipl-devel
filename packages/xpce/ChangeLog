@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug #14: printer handling for PceDraw (Lourens van der Meij).
+
 * FIXED: Object-reference counting problem that may cause colour objects
   to be garbage collected early.  (Lourens van der Meij).
 
