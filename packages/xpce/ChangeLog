@@ -2,6 +2,8 @@
 			   ==============
 
 
+* PORT: enhanced detection of visibility attribute
+
 VERSION 6.5.3, distributed with SWI-Prolog 5.5.3
 ================================================
 

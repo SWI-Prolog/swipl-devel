@@ -188,7 +188,7 @@ different types when passed to a vararg function.
 # define Promote(type) type
 #endif
 
-#ifdef HAVE_HIDDEN_ATTRIBUTE
+#ifdef HAVE_VISIBILITY_ATTRIBUTE
 #define SO_LOCAL __attribute__((visibility("hidden")))
 #else
 #define SO_LOCAL

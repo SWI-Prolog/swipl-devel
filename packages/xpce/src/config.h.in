@@ -70,9 +70,6 @@
 /* Define to 1 if you have the `grantpt' function. */
 #undef HAVE_GRANTPT
 
-/* Define if GCC visibility attribute is supported */
-#undef HAVE_HIDDEN_ATTRIBUTE
-
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
@@ -233,6 +230,9 @@
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
+
+/* Define if __attribute__ visibility is supported */
+#undef HAVE_VISIBILITY_ATTRIBUTE
 
 /* Define to 1 if you have the `vsscanf' function. */
 #undef HAVE_VSSCANF
