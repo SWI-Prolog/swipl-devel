@@ -856,7 +856,10 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
   SourceFile csf = NULL;
 
   proc = lookupProcedure(f, LD->modules.source);
-  DEBUG(3, Sdprintf("Loading %s ", procedureName(proc)));
+  DEBUG(2, Sdprintf("Loading %s%s",
+		    procedureName(proc),
+		    skip ? " (skip)" : ""));
+
   def = proc->definition;
   if ( !skip && currentSource )
   { if ( def->definition.clauses )
@@ -879,20 +882,18 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 	    Sdprintf("Cannot change indexing of %s\n", predicateName(def));
 	}
 
-	DEBUG(3, Sdprintf("ok\n"));
+	DEBUG(2, Sdprintf("ok\n"));
 	succeed;
       }
       case 'C':
       { Code bp, ep;
 	int ncodes = getInt(fd);
 
-	DEBUG(3, Sdprintf("."));
+	DEBUG(2, Sdprintf("."));
 	clause = (Clause) allocHeap(sizeofClause(ncodes));
 	clause->code_size = (unsigned short) ncodes;
 	clause->line_no = (unsigned short) getInt(fd);
-	if ( load_state->saved_version < 32 )
-	  clause->source_no = (currentSource ? currentSource->index : 0);
-	else
+
 	{ SourceFile sf = (void *) loadXR(fd);
 	  int sno = (sf ? sf->index : 0);
 
@@ -902,6 +903,7 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 	    csf = sf;
 	  }
 	}
+
 	clearFlags(clause);
 	clause->prolog_vars = (unsigned short) getInt(fd);
 	clause->variables   = (unsigned short) getInt(fd);
