@@ -73,6 +73,8 @@ typedef enum
   S_DECL,				/* inside a declaration */
   S_STRING,				/* inside a "string" or 'string' */
   S_COMMENT,				/* inside a --comment-- */
+  S_COMMENTDECL,			/* inside <!-- */
+  S_COMMENTDECL1,			/* Seen <!--...-- */
   S_GROUP,				/* inside [...] */
   S_PENT,				/* Seen % */
   S_ENT,				/* Seen & */

@@ -3422,6 +3422,8 @@ end_document_dtd_parser(dtd_parser *p)
     case S_DECL:
     case S_STRING:
     case S_COMMENT:
+    case S_COMMENTDECL:
+    case S_COMMENTDECL1:
     case S_GROUP:
     case S_PENT:
     case S_ENT:
@@ -3749,8 +3751,15 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	return;
       }
       if ( f[CF_CMT] == chr && prev == chr )
-      { del_icharbuf(p->buffer);
-	p->state = S_COMMENT;
+      { const ichar *s;
+
+	del_icharbuf(p->buffer);
+	terminate_icharbuf(p->buffer);
+
+	if ( (s=isee_func(dtd, p->buffer->data, CF_MDO2)) && !s[0] )
+	  p->state = S_COMMENTDECL;	/* <!-- */
+	else
+	  p->state = S_COMMENT;
 	return;
       }
       if ( f[CF_DSO] == chr )		/* [: marked section */
@@ -3811,6 +3820,20 @@ putchar_dtd_parser(dtd_parser *p, int chr)
     case S_COMMENT:
     { if ( f[CF_CMT] == chr && prev == chr )
 	p->state = S_DECL;
+      break;
+    }
+    case S_COMMENTDECL:			/* <!--... seen */
+    { if ( f[CF_CMT] == chr && prev == chr )
+	p->state = S_COMMENTDECL1;
+      break;
+    }
+    case S_COMMENTDECL1:		/* <!--...-- seen */
+    { if ( f[CF_MDC] == chr )
+	p->state = S_PCDATA;
+      else if ( !HasClass(dtd, chr, CH_BLANK) )
+      { gripe(ERC_SYNTAX_WARNING, "Illegal comment", "");
+	p->state = S_COMMENTDECL;
+      }
       break;
     }
     case S_GROUP:

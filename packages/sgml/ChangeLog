@@ -1,3 +1,7 @@
+* IMPROVED: Handle the (illegal) comment <!-- some text -- more text -->
+  more elegantly: assume <!-- will be terminated by --> and generate a
+  warning if text was found outside --comment--.
+
 * FIXED: Some issues in marked-section handling
 
 * ADDED: Direct error reporting of sgml application through callback for

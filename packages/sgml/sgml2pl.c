@@ -45,6 +45,10 @@ typedef enum
   SA_CONTENT				/* Stop after close */
 } stopat;
 
+typedef enum
+{ EM_PRINT = 0,				/* Print message */
+  EM_QUIET				/* Suppress messages */
+} errormode;
 
 typedef struct _env
 { term_t	tail;
@@ -60,6 +64,7 @@ typedef struct _parser_data
   int	      errors;			/* #errors seen */
   int	      max_errors;		/* error limit */
   int	      max_warnings;		/* warning limit */
+  errormode   error_mode;		/* how to handle errors */
 
   predicate_t on_begin;			/* begin element */
   predicate_t on_end;			/* end element */
@@ -120,6 +125,7 @@ static functor_t FUNCTOR_pi1;
 static functor_t FUNCTOR_sdata1;
 static functor_t FUNCTOR_ndata1;
 static functor_t FUNCTOR_number1;
+static functor_t FUNCTOR_syntax_errors1;
 
 static atom_t ATOM_sgml;
 static atom_t ATOM_dtd;
@@ -134,41 +140,43 @@ static atom_t ATOM_any;
 
 static void
 initConstants()
-{ FUNCTOR_sgml_parser1 = mkfunctor("sgml_parser", 1);
-  FUNCTOR_equal2       = mkfunctor("=", 2);
-  FUNCTOR_dtd1	       = mkfunctor("dtd", 1);
-  FUNCTOR_element1     = mkfunctor("element", 1);
-  FUNCTOR_element3     = mkfunctor("element", 3);
-  FUNCTOR_entity1      = mkfunctor("entity", 1);
-  FUNCTOR_document1    = mkfunctor("document", 1);
-  FUNCTOR_goal1	       = mkfunctor("goal", 1);
-  FUNCTOR_dtd2	       = mkfunctor("dtd", 2);
-  FUNCTOR_omit2	       = mkfunctor("omit", 2);
-  FUNCTOR_and2	       = mkfunctor("&", 2);
-  FUNCTOR_comma2       = mkfunctor(",", 2);
-  FUNCTOR_bar2         = mkfunctor("|", 2);
-  FUNCTOR_opt1         = mkfunctor("?", 1);
-  FUNCTOR_rep1         = mkfunctor("*", 1);
-  FUNCTOR_plus1	       = mkfunctor("+", 1);
-  FUNCTOR_default1     = mkfunctor("default", 1);
-  FUNCTOR_fixed1       = mkfunctor("fixed", 1);
-  FUNCTOR_list1        = mkfunctor("list", 1);
-  FUNCTOR_nameof1      = mkfunctor("nameof", 1);
-  FUNCTOR_notation1    = mkfunctor("notation", 1);
-  FUNCTOR_file1        = mkfunctor("file", 1);
-  FUNCTOR_line1        = mkfunctor("line", 1);
-  FUNCTOR_dialect1     = mkfunctor("dialect", 1);
-  FUNCTOR_max_errors1  = mkfunctor("max_errors", 1);
-  FUNCTOR_parse1       = mkfunctor("parse", 1);
-  FUNCTOR_source1      = mkfunctor("source", 1);
-  FUNCTOR_call2	       = mkfunctor("call", 2);
-  FUNCTOR_charpos1     = mkfunctor("charpos", 1);
-  FUNCTOR_ns2	       = mkfunctor(":", 2);
-  FUNCTOR_space1       = mkfunctor("space", 1);
-  FUNCTOR_pi1	       = mkfunctor("pi", 1);
-  FUNCTOR_sdata1       = mkfunctor("sdata", 1);
-  FUNCTOR_ndata1       = mkfunctor("ndata", 1);
-  FUNCTOR_number1      = mkfunctor("number", 1);
+{
+  FUNCTOR_sgml_parser1	 = mkfunctor("sgml_parser", 1);
+  FUNCTOR_equal2	 = mkfunctor("=", 2);
+  FUNCTOR_dtd1		 = mkfunctor("dtd", 1);
+  FUNCTOR_element1	 = mkfunctor("element", 1);
+  FUNCTOR_element3	 = mkfunctor("element", 3);
+  FUNCTOR_entity1	 = mkfunctor("entity", 1);
+  FUNCTOR_document1	 = mkfunctor("document", 1);
+  FUNCTOR_goal1		 = mkfunctor("goal", 1);
+  FUNCTOR_dtd2		 = mkfunctor("dtd", 2);
+  FUNCTOR_omit2		 = mkfunctor("omit", 2);
+  FUNCTOR_and2		 = mkfunctor("&", 2);
+  FUNCTOR_comma2	 = mkfunctor(",", 2);
+  FUNCTOR_bar2		 = mkfunctor("|", 2);
+  FUNCTOR_opt1		 = mkfunctor("?", 1);
+  FUNCTOR_rep1		 = mkfunctor("*", 1);
+  FUNCTOR_plus1		 = mkfunctor("+", 1);
+  FUNCTOR_default1	 = mkfunctor("default", 1);
+  FUNCTOR_fixed1	 = mkfunctor("fixed", 1);
+  FUNCTOR_list1		 = mkfunctor("list", 1);
+  FUNCTOR_nameof1	 = mkfunctor("nameof", 1);
+  FUNCTOR_notation1	 = mkfunctor("notation", 1);
+  FUNCTOR_file1		 = mkfunctor("file", 1);
+  FUNCTOR_line1		 = mkfunctor("line", 1);
+  FUNCTOR_dialect1	 = mkfunctor("dialect", 1);
+  FUNCTOR_max_errors1	 = mkfunctor("max_errors", 1);
+  FUNCTOR_parse1	 = mkfunctor("parse", 1);
+  FUNCTOR_source1	 = mkfunctor("source", 1);
+  FUNCTOR_call2		 = mkfunctor("call", 2);
+  FUNCTOR_charpos1	 = mkfunctor("charpos", 1);
+  FUNCTOR_ns2		 = mkfunctor(":", 2);
+  FUNCTOR_space1	 = mkfunctor("space", 1);
+  FUNCTOR_pi1		 = mkfunctor("pi", 1);
+  FUNCTOR_sdata1	 = mkfunctor("sdata", 1);
+  FUNCTOR_ndata1	 = mkfunctor("ndata", 1);
+  FUNCTOR_number1	 = mkfunctor("number", 1);
+  FUNCTOR_syntax_errors1 = mkfunctor("syntax_errors", 1);
 
   ATOM_dtd  = PL_new_atom("dtd");
   ATOM_sgml = PL_new_atom("sgml");
@@ -888,6 +896,7 @@ on_error(dtd_parser *p, dtd_error *error)
       break;
   }
 
+  if ( pd->error_mode == EM_PRINT )
   { fid_t fid = PL_open_foreign_frame();
     predicate_t pred = PL_predicate("print_message", 2, "user");
     term_t av = PL_new_term_refs(2);
@@ -1195,6 +1204,20 @@ pl_sgml_parse(term_t parser, term_t options)
       PL_get_arg(1, head, a);
       if ( !PL_get_integer(a, &pd->max_errors) )
 	return sgml2pl_error(ERR_TYPE, "integer", a);
+    } else if ( PL_is_functor(head, FUNCTOR_syntax_errors1) )
+    { term_t a = PL_new_term_ref();
+      char *s;
+
+      PL_get_arg(1, head, a);
+      if ( !PL_get_atom_chars(a, &s) )
+	return sgml2pl_error(ERR_TYPE, "atom", a);
+
+      if ( streq(s, "quiet") )
+	pd->error_mode = EM_QUIET;
+      else if ( streq(s, "print") )
+	pd->error_mode = EM_PRINT;
+      else
+	return sgml2pl_error(ERR_DOMAIN, "syntax_error", a);
     } else
       return sgml2pl_error(ERR_DOMAIN, "sgml_option", head);
   }
