@@ -3344,6 +3344,8 @@ process_begin_element(dtd_parser *p, const ichar *decl)
     if ( p->empty_element )
     { p->empty_element = NULL;
       close_element(p, e, conref);
+      if ( conref )	/* might be S_CDATA due to declared content */
+	p->cdata_state = p->state = S_PCDATA;
     }
 
     return TRUE;

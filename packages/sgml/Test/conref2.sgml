@@ -1,0 +1,10 @@
+<!DOCTYPE conref [
+  <!ELEMENT conref O O (b+)>
+  <!ELEMENT b - O RCDATA>
+  <!ATTLIST b x CDATA #CONREF>
+]>  
+<b>1.</b>
+<b x=2>
+<b>3.</b>
+<b x=4>
+<b>5.</b>

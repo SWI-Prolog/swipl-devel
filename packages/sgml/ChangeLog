@@ -1,3 +1,9 @@
+* FIXED: #CONREF attribute handling in elements with declared content
+  (CDATA/RCDATA).  Richard O'Keefe.
+
+SWI-Prolog VERSION 5.0.10
+=========================
+
 * FIXED: properly handle elements that have only an <!ATTLIST declaration
   but no <!ELEMENT declaration.  (C. M. Sperberg-McQueen).
 
@@ -17,7 +23,7 @@
   for providing a clear description how to handle this.
 
 SWI-Prolog VERSION 5.0.9
-=========================
+========================
 
 * FIXED: correct handling of content_length(Len) option (was reading one
   character too many).  Oops, normal reading was broken.  Fixed.
