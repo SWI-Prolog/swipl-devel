@@ -27,7 +27,7 @@ user to intercept and redefine the tracer.
 #define FrameRef(w)	 ((LocalFrame)((Word)lBase + valNum(w)))
 
 forwards LocalFrame	redoFrame P((LocalFrame));
-forwards int		traceAction P((char, int, LocalFrame, bool));
+forwards int		traceAction P((char *, int, LocalFrame, bool));
 forwards void		helpTrace P((void));
 forwards void		helpInterrupt P((void));
 forwards bool		hasAlternativesFrame P((LocalFrame));
@@ -35,7 +35,7 @@ forwards void		alternatives P((LocalFrame));
 forwards void		listProcedure P((Procedure));
 forwards int		traceInterception P((LocalFrame, int));
 forwards bool		canUnifyTermWithGoal P((Word, LocalFrame));
-forwards int		setupFind P((void));
+forwards int		setupFind P((char *));
 
 static struct
 { int	 port;				/* Port to find */
@@ -191,12 +191,21 @@ again:
   debugstatus.tracing = TRUE;
 
   if (debugstatus.leashing & port)
-  { char c;
+  { char buf[LINESIZ];
 
     Putf(" ? ");
     pl_flush();
-    c = getSingleChar();
-    if ((action = traceAction(c, port, frame, status.notty ? FALSE : TRUE))
+    if ( status.notty )
+    { readLine(buf, 0);
+    } else
+    { buf[0] = getSingleChar();
+      buf[1] = EOS;
+      if ( isDigit(buf[0]) || buf[0] == '/' )
+      { Putf(buf);
+	readLine(&buf[1], 0);
+      }
+    }
+    if ((action = traceAction(buf, port, frame, status.notty ? FALSE : TRUE))
 							== ACTION_AGAIN)
       goto again;
   } else
@@ -207,15 +216,13 @@ again:
 }
 
 static int
-setupFind()
+setupFind(buf)
+char *buf;
 { static word w;
   mark m;
   long rval;
-  char buf[LINESIZ];
   char *s;
   int port = 0;
-
-  readLine(buf, 0);  
 
   for(s = buf; *s && isBlank(*s); s++)	/* Skip blanks */
     ;
@@ -273,22 +280,31 @@ setupFind()
   succeed;
 }
 
-#if PROTO
+
 static int
-traceAction(char c, int port, LocalFrame frame, bool interactive)
-#else
-static int
-traceAction(c, port, frame, interactive)
-char c;
+traceAction(cmd, port, frame, interactive)
+char *cmd;
 int port;
 LocalFrame frame;
 bool interactive;
-#endif
-{
+{ int num_arg;				/* numeric argument */
+  char *s;
+
 #define FeedBack(msg)	{ if (interactive) Putf(msg); }
 #define Warn(msg)	{ if (interactive) Putf(msg); else warning(msg); }
+#define Default		(-1)
 
-  switch(c)
+  for(s=cmd; *s && isBlank(*s); s++)
+    ;
+  if ( isDigit(*s) )
+  { num_arg = strtol(s, &s, 10);
+
+    while(isBlank(*s))
+      s++;
+  } else
+    num_arg = Default;
+
+  switch( *s )
   { case 'a':	FeedBack("abort\n");
 		pl_abort();
     case 'b':	FeedBack("break\n");
@@ -296,7 +312,7 @@ bool interactive;
 		return ACTION_AGAIN;
     case '/': 	FeedBack("/");
     		pl_flush();
-    		if ( setupFind() == TRUE )
+    		if ( setupFind(&s[1]) == TRUE )
 		{ clear(frame, FR_SKIPPED);
 		  return ACTION_CONTINUE;
 		}
@@ -310,6 +326,7 @@ bool interactive;
 		{ Warn("No previous search\n");
 		}
 		return ACTION_AGAIN;    		
+    case EOS:
     case ' ':
     case '\n':
     case 'c':	FeedBack("creep\n");
@@ -357,7 +374,7 @@ bool interactive;
 		debugstatus.tracing = FALSE;
 		return ACTION_CONTINUE;
     case 'g':	FeedBack("goals\n");
-		backTrace(frame);
+		backTrace(frame, num_arg == Default ? 5 : num_arg);
 		return ACTION_AGAIN;
     case 'A':	FeedBack("alternatives\n");
 		alternatives(frame);
@@ -381,12 +398,10 @@ bool interactive;
     case '?': 
     case 'h':	helpTrace();
 		return ACTION_AGAIN;
-    default:	if (isDigit(c))
-		{ status.debugLevel = (int)c - '0';
-		  FeedBack("Debug level\n");
-		  return ACTION_AGAIN;
-		}
-		Warn("Unknown option (h for help)\n");
+    case 'D':   status.debugLevel = num_arg;
+		FeedBack("Debug level\n");
+		return ACTION_AGAIN;
+    default:	Warn("Unknown option (h for help)\n");
 		return ACTION_AGAIN;
   }
 }
@@ -399,7 +414,7 @@ helpTrace()
   Putf("a:                 abort      A:                 alternatives\n");
   Putf("b:                 break      c (return, space): creep\n");
   Putf("d:                 display    e:                 exit\n");
-  Putf("f:                 fail       g:                 goals\n");
+  Putf("f:                 fail       [depth] g:         goals\n");
   Putf("h (?):             help       i:                 ignore\n");
   Putf("l:                 leap       L:                 listing\n");
   Putf("n:                 no debug   p:                 print\n");
@@ -541,20 +556,26 @@ Procedure proc;
 }
 
 void
-backTrace(frame)
+backTrace(frame, depth)
 LocalFrame frame;
+int depth;
 { extern int Output;
   int OldOut = Output;
   LocalFrame same_proc_frame = NULL;
   Procedure proc = NULL;
   int same_proc = 0;
+  int alien = FALSE;
 
   if ( frame == NULL )
      frame = environment_frame;
 
   Output = 1;
-  for( ; frame; frame = frame->parent)
-  { if ( frame->procedure == proc )
+  for(; depth > 0 && frame;
+        alien = (frame->parent == NULL), frame = parentFrame(frame))
+  { if ( alien )
+      Putf("    <Alien goal>\n");
+
+    if ( frame->procedure == proc )
     { if ( ++same_proc >= 10 )
       { if ( same_proc == 10 )
 	  Putf("    ...\n    ...\n");
@@ -566,6 +587,7 @@ LocalFrame frame;
       { if ( false(same_proc_frame, FR_NODEBUG) || SYSTEM_MODE )
         { Putf("    [%3ld] ", levelFrame(same_proc_frame));
 	  writeFrameGoal(same_proc_frame, debugstatus.style);
+	  depth--;
 	  Put('\n');
 	}
 	same_proc_frame = NULL;
@@ -577,6 +599,7 @@ LocalFrame frame;
     if (false(frame, FR_NODEBUG) || SYSTEM_MODE)
     { Putf("    [%3ld] ", levelFrame(frame));
       writeFrameGoal(frame, debugstatus.style);
+      depth--;
       Put('\n');
     }
   }
@@ -701,7 +724,7 @@ again:
 		pl_halt();
 		break;
     case 'g':	Putf("goals\n");
-		backTrace(environment_frame);
+		backTrace(environment_frame, 5);
 		goto again;
     case 'h':
     case '?':	helpInterrupt();

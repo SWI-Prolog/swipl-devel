@@ -1380,7 +1380,8 @@ Testing is suffices to find out that the predicate is defined.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 	if ( !DEF->definition.clauses && false(DEF, DYNAMIC) )	
-	{ trapUndefined(PROC);
+	{ lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
+	  trapUndefined(PROC);
 	  DEF = PROC->definition;
 	}
 
@@ -1391,21 +1392,20 @@ Testing is suffices to find out that the predicate is defined.
 
 #if O_DYNAMIC_STACKS
 	if ( gc_status.requested )
+	{ lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
 	  garbageCollect(FR);
+	}
 #else
 	if ( gMax - gTop < 1024L || tMax - tTop < 1024L )
+	{ lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
 	  garbageCollect(FR);
+	}
 #endif	
 
 	if ( debugstatus.debugging )
-	{ LocalFrame lTopSave = lTop;
-	  int action;
-
-	  lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
+	{ lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
 	  CL = (Clause) NULL;
-	  action = tracePort(FR, CALL_PORT);
-	  lTop = lTopSave;
-	  switch(action)
+	  switch(tracePort(FR, CALL_PORT))
 	  { case ACTION_FAIL:	goto frame_failed;
 	    case ACTION_IGNORE: goto exit_builtin;
 	  }

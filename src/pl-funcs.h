@@ -307,6 +307,20 @@ void		resetLoader P((void));
 word		pl_load_foreign P((Word, Word, Word, Word, Word));
 word		pl_load_foreign1 P((Word));
 
+		/* pl-main.c */
+
+int		main P((int argc , char **argv , char **env ));
+bool		sysError P((char *fm , ...)),
+		fatalError P((char *fm , ...)),
+		warning P((char *fm , ...)),
+		sysError P((int va_alist )),
+		fatalError P((int va_alist )),
+		warning P((int va_alist )),
+		vsysError P((char *fm , va_list args )),
+		vfatalError P((char *fm , va_list args )),
+		vwarning P((char *fm , va_list args ));
+
+
 		/* pl-modul.c */
 Word		stripModule P((Word, Module *));
 Module		lookupModule P((Atom)), isCurrentModule P((Atom));
@@ -470,7 +484,7 @@ word		pl_shell P((Word, Word)),
 		/* pl-trace.c */
 int		tracePort P((LocalFrame, int));
 void		writeFrameGoal P((LocalFrame, int)),
-		backTrace P((LocalFrame)),
+		backTrace P((LocalFrame, int)),
 		initTracer P((void));
 word		pl_trace P((void)),
 		pl_notrace P((void)),

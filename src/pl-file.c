@@ -1416,7 +1416,7 @@ Word stream, count;
 word
 pl_source_location(file, line)
 Word file, line;
-{ if ( source_line_no >= 0 && source_file_name != NULL )
+{ if ( ReadingSource )
   { char *s = AbsoluteFile(stringAtom(source_file_name));
 
     if ( s != NULL )

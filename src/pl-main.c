@@ -10,22 +10,13 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Get the ball rolling.  The main task of  this  module  is  command  line
 option  parsing,  initialisation  and  handling  of errors and warnings.
-Also for the binairy distribution, this  file  is  in  source  form,  so
-people  can  easily  integrate with other software.  This makes things a
-bit messy as many definitions needs to be duplicated in pl-main.h.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if __TURBOC__
-#include <string.h>
-#include <stdlib.h>
-#include <tos.h>
-#define MAXPATHLEN	PATH_MAX
-#include "pl-ssymb.h"
-#else
-#include <sys/param.h>			/* MAXPATHLEN */
+#include "pl-incl.h"
+#include "pl-itf.h"
+#if unix
+#include <sys/param.h>
 #endif
-
-#include "pl-main.h"
 
 forwards void	usage P((void));
 forwards char * findHome P((char *));
@@ -37,17 +28,6 @@ forwards char *	findState P((char *));
 			    usage(); \
 			  break; \
 			}
-#define streq(s, q)	( strcmp(s, q) == 0 )
-
-#ifndef MACHINE
-#define MACHINE	"unknown"
-#endif
-#ifndef OPERATING_SYSTEM
-#define OPERATING_SYSTEM "unknown"
-#endif
-
-#define SECURE(g)
-/* #define SECURE(g) { g; } */
 
 static char *
 findHome(def)
@@ -257,15 +237,8 @@ char **env;
     next:;
   }
 #undef K
-
- DEBUG(1, printf("Command line options parsed\n"));
-
-#if O_PCE
-  notify_status.active        = 0;
-  notify_status.dispatching   = FALSE;
-  notify_status.called	      = FALSE;
-  notify_status.abort_is_save = FALSE;
-#endif O_PCE
+  
+  DEBUG(1, printf("Command line options parsed\n"));
 
   setupProlog();
 
@@ -437,7 +410,7 @@ va_list args;
 { fprintf(stderr, "[PROLOG INTERNAL ERROR:\n\t");
   vfprintf(stderr, fm, args);
 /*  fprintf(stderr, "\nPROLOG STACK:\n");
-  backTrace(NULL);
+  backTrace(NULL, 100);
   fprintf(stderr, "]\n"); */
 
   abort();
@@ -461,6 +434,36 @@ vwarning(fm, args)
 char *fm;
 va_list args;
 { toldString();
+
+  if ( ReadingSource && !status.boot && status.initialised )
+  { word goal = globalFunctor(FUNCTOR_exception3);
+    char message[LINESIZ];
+    word arg;
+
+    vsprintf(message, fm, args);
+
+    unifyAtomic(argTermP(goal, 0), ATOM_warning);
+    unifyFunctor(argTermP(goal, 1), FUNCTOR_warning3);
+    arg = argTerm(goal, 1);
+    unifyAtomic(argTermP(arg, 0), source_file_name);
+    unifyAtomic(argTermP(arg, 1), consNum(source_line_no));
+    unifyAtomic(argTermP(arg, 2), globalString(message));
+
+    if ( callGoal(MODULE_user, goal, FALSE) == FALSE )
+    { extern int Output;
+      int old = Output;
+    
+      Output = 2;
+      Putf("[WARNING: (%s:%d)\n\t",
+	    stringAtom(source_file_name), source_line_no);
+      vPutf(fm, args);
+      Putf("]\n");
+      Output = old;
+    }
+
+    PL_fail;				/* handled */
+  }
+
 
   if ( status.io_initialised )
   { extern int Output;

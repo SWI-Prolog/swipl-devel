@@ -104,7 +104,7 @@ $(EXPORTS):	xmakefile pl-export
 		echo \#!$(BINDIR)/$(PROLOG) > $(EXPORTS)
 		cat pl-export >> $(EXPORTS)
 
-$(CINCLUDE):
+$(CINCLUDE):	pl-itf.h
 		cp pl-itf.h $(CINCLUDE)
 
 

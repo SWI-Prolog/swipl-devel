@@ -30,9 +30,11 @@ extern int	free P((Void));
 extern char	*sprintf P((char *, char *, ...)),
 		*vsprintf P((char *, char *, va_list));
 extern int	fprintf P((FILE *, char *, ...));
+extern int	vfprintf P((FILE *, char *, ...));
 extern int	printf P((char *, ...));
 extern int	qsort P((Void, int, int, int(*f)()));
 extern int	atoi P((char *));
+extern long	strtol P((char *, char**, int));
 extern volatile void exit P((int));
 extern char	*getenv P((char *));
 extern int	strlen P((char*));
