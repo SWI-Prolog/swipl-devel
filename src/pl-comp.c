@@ -2926,12 +2926,14 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings,
 
   switch( ForeignControl(ctx) )
   { case FRG_FIRST_CALL:
-    { Clause clause;
+    { void *ptr;
+      Clause clause;
 
       if ( ref )
-      { if ( PL_get_pointer(ref, (void **)&clause) )
+      { if ( PL_get_pointer(ref, &ptr) )
 	{ term_t tmp;
       
+	  clause = ptr;
 	  if ( !isClause(clause) )
 	    PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_clause_reference, ref);
 	      
@@ -3046,6 +3048,7 @@ typedef struct
 word
 pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
 { GET_LD
+  void *ptr;
   Clause clause;
   ClauseRef cref;
   Procedure proc;
@@ -3066,9 +3069,10 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
     succeed;
   }
 
-  if ( PL_get_pointer(ref, (void **)&clause) )
+  if ( PL_get_pointer(ref, &ptr) )
   { int i;
 
+    clause = ptr;
     if ( !isClause(clause) )
       return PL_error(NULL, 0, "Invalid integer reference", ERR_DOMAIN,
 		      ATOM_clause_reference, ref);
@@ -3155,10 +3159,12 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
 int
 get_clause_ptr_ex(term_t ref, Clause *cl)
 { GET_LD
+  void *ptr;
   Clause clause;
 
-  if ( !PL_get_pointer(ref, (void **)&clause) )
+  if ( !PL_get_pointer(ref, &ptr) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_clause_reference, ref);
+  clause = ptr;
   if ( !isClause(clause) )
     return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_clause_reference, ref);
 

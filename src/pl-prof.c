@@ -297,11 +297,13 @@ static int
 get_node(term_t t, call_node **node ARG_LD)
 { if ( PL_is_functor(t, FUNCTOR_dprof_node1) )
   { term_t a = PL_new_term_ref();
-    call_node *n;
+    void *ptr;
 
     _PL_get_arg(1, t, a);
-    if ( PL_get_pointer(a, (void**)&n) )
-    { if ( n->magic == PROFNODE_MAGIC )
+    if ( PL_get_pointer(a, &ptr) )
+    { call_node *n = ptr;
+
+      if ( n->magic == PROFNODE_MAGIC )
       { *node = n;
         succeed;
       }

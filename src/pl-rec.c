@@ -1553,8 +1553,11 @@ pl_recorded(term_t key, term_t term, term_t ref, control_t h)
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
     { GET_LD
-      if ( PL_get_pointer(ref, (void **)&record) )
-      { LOCK();
+      void *ptr;
+
+      if ( PL_get_pointer(ref, &ptr) )
+      { record = ptr;
+	LOCK();
 	if ( isRecordRef(record) )
 	{ if ( unifyKey(key, record->list->key) )
 	  { GET_LD
@@ -1638,15 +1641,16 @@ pl_recorded(term_t key, term_t term, term_t ref, control_t h)
 word
 pl_erase(term_t ref)
 { GET_LD
+  void *ptr;
   RecordRef record;
   RecordRef prev, r;
   RecordList l;
   word rval;
 
-  if ( !PL_get_pointer(ref, (void **)&record) ||
-       !inCore(record))
+  if ( !PL_get_pointer(ref, &ptr) || !inCore(ptr))
     return PL_error("erase", 1, NULL, ERR_TYPE, ATOM_db_reference, ref);
 
+  record = ptr;
   if ( isClause(record) )
   { Clause clause = (Clause) record;
   
