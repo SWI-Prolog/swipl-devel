@@ -28,6 +28,16 @@
 
 #ifdef USE_XFT
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+XFT documentation is a bit of a  nightmare.   I  had the code marked (*)
+below   the   XftFontOpenPattern(),   where   it   crashes.   Also   the
+XftPatternDestroy() calls are commented out because the cause crashes. I
+have the idea that the various pattern   using  calls free the pattern??
+I'll have to look through the source-code. For now this isn't too bad as
+there aren't that many fonts to be opened in the average application, so
+a bit of leaking won't harm too much.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 status
 ws_create_font(FontObj f, DisplayObj d)
 { XpceFontInfo xref;
@@ -59,11 +69,7 @@ ws_create_font(FontObj f, DisplayObj d)
 	    Cprintf("Match = '%s'\n", buf);
 	  });
 
-    xft = XftFontOpenPattern(r->display_xref, match);
-
-    if ( !xft )
-      return replaceFont(f, d);
-
+					/* see above (*) */
     if ( FcPatternGetInteger(match, XFT_SPACING, 0, &i) == FcResultMatch )
     { Cprintf("Setting fixed from property\n");
       if ( i == XFT_MONO )
@@ -71,6 +77,11 @@ ws_create_font(FontObj f, DisplayObj d)
       else
 	assign(f, fixed_width, OFF);
     }
+
+    xft = XftFontOpenPattern(r->display_xref, match);
+
+    if ( !xft )
+      return replaceFont(f, d);
 
 //   XftPatternDestroy(p);
 //    XftPatternDestroy(match);
