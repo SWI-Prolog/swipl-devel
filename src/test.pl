@@ -837,6 +837,11 @@ gc(gc-2) :-			% Beautiful crash.  See compilation of \+
 	\+( x(X,2) == x(X,1) ),
 	garbage_collect,
 	true.
+gc(gc-3) :-
+	\+ \+ ( gc_data(X),
+		garbage_collect,
+		X == a
+	      ).
 gc(agc-1) :-
 	garbage_collect_atoms.
 gc(agc-2) :-
@@ -851,6 +856,7 @@ gc(agc-2) :-
 	;   true			% no atom-gc
 	).
 
+gc_data(a).
 
 		 /*******************************
 		 *            FLOATS		*

@@ -7,6 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: handling uninitialised data in compilation of \+/1.  Could
+    result in wrong results if the garbage collector is executed in the
+    critical window or the graphical tracer it used.  Alan Baljeu.
+
   * FIXED: qsave_program/[1,2] to save the thread_local attribute.
     Mike Elston.
 

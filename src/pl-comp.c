@@ -570,7 +570,7 @@ forwards int	compileBody(Word, code, compileInfo * ARG_LD);
 forwards int	compileArgument(Word, int, compileInfo * ARG_LD);
 forwards int	compileSubClause(Word, code, compileInfo *);
 forwards bool	isFirstVar(VarTable vt, int n);
-forwards void	balanceVars(VarTable, VarTable, compileInfo *);
+forwards int	balanceVars(VarTable, VarTable, compileInfo *);
 forwards void	orVars(VarTable, VarTable);
 forwards void	setVars(Word t, VarTable ARG_LD);
 #if O_COMPILE_ARITH
@@ -615,24 +615,30 @@ Emit  C_VAR  statements  for  all  variables  that  are  claimed  to  be
 uninitialised in valt1 and initialised in valt2.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+static int
 balanceVars(VarTable valt1, VarTable valt2, compileInfo *ci)
 { int *p1 = &valt1->entry[0];
   int *p2 = &valt2->entry[0];
   int vts = ci->vartablesize;
-  register int n;
+  int n;
+  int done = 0;
 
   for( n = 0; n < vts; p1++, p2++, n++ )
-  { register int m = (~(*p1) & *p2);
+  { int m = (~(*p1) & *p2);
 
     if ( m )
     { unsigned int i;
 
       for(i = 0; i < BITSPERINT; i++)
-	if ( m & (1 << i) )
-	  Output_1(ci, C_VAR, VAROFFSET(n * BITSPERINT + i));
+      { if ( m & (1 << i) )
+	{ Output_1(ci, C_VAR, VAROFFSET(n * BITSPERINT + i));
+	  done++;
+	}
+      }
     }
   }
+
+  return done;
 }
 
 static void
@@ -1076,10 +1082,21 @@ compileBody(Word body, code call, compileInfo *ci ARG_LD)
 	ci->cutvar = cutsave;
 	Output_1(ci, C_CUT, var);
 	Output_0(ci, C_FAIL);
-	OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
-	if ( !ci->islocal )
-	{ balanceVars(vsave, ci->used_var, ci); /* see comment above */
-	  copyVarTable(ci->used_var, vsave);
+	if ( ci->islocal )
+	{ OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
+	} else
+	{ int tc_jmp;
+
+	  Output_1(ci, C_JMP, (code)0);
+	  tc_jmp = PC(ci);
+	  OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
+	  if ( balanceVars(vsave, ci->used_var, ci) > 0 )
+	  { copyVarTable(ci->used_var, vsave);
+	    OpCode(ci, tc_jmp-1) = (code)(PC(ci) - tc_jmp);
+	  } else			/* delete the jmp */
+	  { seekBuffer(&ci->codes, tc_jmp-2, code);
+	    OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
+	  }
 	}
       
 	succeed;
