@@ -215,7 +215,7 @@ pp_list_elements([X|T], Ctx, Options) :-
 	context(Ctx, indent, Indent),
 	indent(Out, Indent-2),
 	write(Out, '| '),
-	pp_list_elements(T, Ctx, Options).
+	pp(T, Ctx, Options).
 pp_list_elements([X], Ctx, Options) :- !,
 	pp(X, Ctx, Options).
 pp_list_elements([H|T], Ctx, Options) :-
