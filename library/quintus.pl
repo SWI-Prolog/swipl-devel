@@ -135,9 +135,12 @@ atan2(Y, X, V) :- V is atan(Y, X).
 sign(X, V) :-	  V is sign(X).
 
 %	random(+Min, +Max, -Value)
+%
+%	Value is a random integer with Min <= Value < Max.  Note that
+%	Quintus random/3 also deals with floats.  This one doesn't.
 
 random(Min, Max, Value) :-
-	Value is Min + random(Max).
+	Value is Min + random(Max-Min).
 
 		 /*******************************
 		 *	TERM MANIPULATION	*
