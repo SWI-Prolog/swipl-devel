@@ -965,6 +965,24 @@ PL_open_query(Module ctx, bool debug, Procedure proc, term_t args)
 }
 
 
+static void
+discard_query(QueryFrame qf)
+{ LocalFrame FR  = &qf->frame;
+  LocalFrame BFR = qf->bfr;
+  LocalFrame fr, fr2;
+
+  set(FR, FR_CUT);			/* execute I_CUT */
+  for(fr = BFR; fr > FR; fr = fr->backtrackFrame)
+  { for(fr2 = fr; fr2->clause && fr2 > FR; fr2 = fr2->parent)
+    { DEBUG(3, Sdprintf("discard %d\n", (Word)fr2 - (Word)lBase) );
+      leaveFrame(fr2);
+      fr2->clause = NULL;
+    }
+  }
+  leaveFrame(FR);
+}
+
+
 void
 PL_cut_query(qid_t qid)
 { QueryFrame qf = QueryFromQid(qid);
@@ -973,21 +991,7 @@ PL_cut_query(qid_t qid)
   qf->magic = 0;			/* disqualify the frame */
 
   if ( !qf->deterministic )
-  { LocalFrame FR  = &qf->frame;
-    LocalFrame BFR = qf->bfr;
-    LocalFrame fr, fr2;
-
-    set(FR, FR_CUT);			/* execute I_CUT */
-    for(fr = BFR; fr > FR; fr = fr->backtrackFrame)
-    { for(fr2 = fr; fr2->clause && fr2 > FR; fr2 = fr2->parent)
-      { DEBUG(3, Sdprintf("discard %d\n", (Word)fr2 - (Word)lBase) );
-	leaveFrame(fr2);
-	fr2->clause = NULL;
-      }
-    }
-    leaveFrame(FR);
-  }
-
+    discard_query(qf);
 					/* restore the parent environment */
   environment_frame = qf->saved_environment;
   aTop		    = qf->aSave;
@@ -1001,9 +1005,18 @@ PL_close_query(qid_t qid)
 { QueryFrame qf = QueryFromQid(qid);
   LocalFrame fr = &qf->frame;
 
+  SECURE(assert(qf->magic == QID_MAGIC));
+  qf->magic = 0;			/* disqualify the frame */
+
+  if ( !qf->deterministic )
+    discard_query(qf);
+
   Undo(fr->mark);
 
-  PL_cut_query(qid);
+  environment_frame = qf->saved_environment;
+  aTop		    = qf->aSave;
+  lTop		    = (LocalFrame)qf;
+  SECURE(checkStacks(environment_frame));
 }
 
 #if O_SHIFT_STACKS
@@ -2939,7 +2952,9 @@ Leave the clause:
 	  QF->bfr = BFR;
 	  QF->deterministic = (BFR ? FALSE : TRUE);
 
-	  if ( QF->deterministic )		/* alternatives */
+	  assert(FR == &QF->frame);
+
+	  if ( QF->deterministic )	/* No alternatives */
 	  { LocalFrame fr, fr2;
 
 	    set(FR, FR_CUT);		/* execute I_CUT */
