@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: MT version: deadlock in append/1 and tell/1.  Thanks to
+    Andrew Diatchkov.
+
   * FIXED: Stop profiler in PL_cleanup().  Reported by Lourens van der Meij.
 
   * PORT: added MacOS X required sys/malloc.h to files from rc directory.
