@@ -45,6 +45,7 @@
 	  ]).
 :- use_module(library(debug)).
 :- use_module(library(rdf)).
+:- use_module(library(lists)).
 :- use_module(rdf_db).
 
 
@@ -258,9 +259,8 @@ rdfs_list_to_prolog_list(Set, [H|T]) :-
 rdfs_find(String, Domain, Fields, Method, Subject) :-
 	globalise_list(Fields, GlobalFields),
 	For =.. [Method,String],
+	member(Field, GlobalFields),
 	rdf_has(Subject, Field, literal(For, _)),
-	member(F, GlobalFields),
-	rdfs_subproperty_of(Field, F),
 	owl_satisfies(Domain, Subject).
 
 owl_satisfies(Domain, _) :-

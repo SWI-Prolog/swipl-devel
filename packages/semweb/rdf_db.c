@@ -756,7 +756,7 @@ triple_hash(triple *t, int which)
       v = atom_hash(t->subject);
       break;
     case BY_P:
-      v = predicate_hash(t->predicate);
+      v = predicate_hash(t->predicate->root);
       break;
     case BY_O:
       v = atom_hash(object_hash(t));
@@ -952,7 +952,11 @@ Match triple t to pattern p.  Erased triples are always skipped.
 
 static int
 match_triples(triple *t, triple *p, unsigned flags)
-{ if ( t->erased )
+{ DEBUG(3, Sdprintf("match_triple(");
+	   print_triple(t);
+	   Sdprintf(")\n"));
+
+  if ( t->erased )
     return FALSE;
   if ( p->subject && t->subject != p->subject )
     return FALSE;
