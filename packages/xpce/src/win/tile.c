@@ -1022,10 +1022,10 @@ getSubTileToResizeTile(TileObj t, Point pos)
     { TileObj t2 = cell->value;
       
       if ( pointInArea(t2->area, pos) && notNil(t2->members) )
-      { TileObj t2 = getSubTileToResizeTile(t2, pos);
+      { TileObj t3 = getSubTileToResizeTile(t2, pos);
 
-	if ( t2 )
-	  answer(t2);
+	if ( t3 )
+	  answer(t3);
       }
     }
 

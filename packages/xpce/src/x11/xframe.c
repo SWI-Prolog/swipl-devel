@@ -692,6 +692,15 @@ expose_frame(Widget w, FrameObj fr, Region region)
   XClipBox(region, &rect);
   DEBUG(NAME_frame, Cprintf("expose_frame(%s, %d,%d,%d,%d)\n",
 			    pp(fr), rect.x, rect.y, rect.width, rect.height));
+
+  ServiceMode(service_frame(fr),
+	      { Area a;
+
+		a = tempObject(ClassArea, toInt(rect.x), toInt(rect.y),
+			       toInt(rect.width), toInt(rect.height), EAV);
+		redrawFrame(fr, a);
+		considerPreserveObject(a);
+	      });
 }
 
 

@@ -477,6 +477,16 @@ d_screen(DisplayObj d)
 
 
 void
+d_frame(FrameObj fr, int x, int y, int w, int h)
+{ Widget widget = widgetFrame(fr);
+
+  if ( widget )
+  { d_xwindow(fr->display, XtWindow(widget), x, y, w, h);
+  }
+}
+
+
+void
 d_clip(int x, int y, int w, int h)
 { XRectangle rect;
 
@@ -970,9 +980,11 @@ r_swap_background_and_foreground()
 }
 
 
-void
+Bool
 r_subwindow_mode(Bool val)
-{ if ( context.gcs->subwindow_mode != val )
+{ Bool old = context.gcs->subwindow_mode;
+
+  if ( context.gcs->subwindow_mode != val )
   { int mode = (val == ON ? IncludeInferiors : ClipByChildren);
 
     XSetSubwindowMode(context.display, context.gcs->workGC,   mode);
@@ -984,6 +996,8 @@ r_subwindow_mode(Bool val)
 
     context.gcs->subwindow_mode = val;
   }
+
+  return old;
 }
 
 

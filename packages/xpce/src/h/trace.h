@@ -26,7 +26,7 @@ GLOBAL int	MaxGoalDepth;		/* maximum recursion level */
 #define ServiceMode(mode, code) \
   { int _smode = ServiceMode; \
     ServiceMode = mode; \
-    code; \
+    { code; } \
     ServiceMode = _smode; \
   }
 

@@ -1369,38 +1369,104 @@ Draw little marker buttons indicating places  where the subwindow layout
 may be altered by the user.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static int
+adjust_pos(Int H, int bh)
+{ int h  = valInt(H);
+  int i1 = h*3/4;
+  int i2 = h - 20;
+  int i  = max(i1, i2);
+  
+  return i;
+}
+
+
 static status
-drawResizeTileButtonsFrame(FrameObj fr, TileObj t)
+drawResizeTileButtonsFrame(FrameObj fr, TileObj t, Image img)
 { if ( isDefault(t) )
-    return drawResizeTileButtonsFrame(fr, getTileFrame(fr));
+  { t = getTileFrame(fr);
+
+    if ( t )
+      drawResizeTileButtonsFrame(fr, t, img);
+
+    succeed;
+  }
 
   if ( notNil(t) )
   { if ( notNil(t->super) && getCanResizeTile(t) == ON )
-    { int cx, cy;
-
-      if ( t->super->orientation == NAME_horizontal )
-      { cx = valInt(t->area->x) + valInt(t->area->w) +
-             valInt(t->super->border)/2;
-	cy = valInt(t->area->y) + (valInt(t->area->h)*3)/4;
-      } else
-      { cx = valInt(t->area->y) + valInt(t->area->h) +
-             valInt(t->super->border)/2;
-	cx = valInt(t->area->x) + (valInt(t->area->w)*3)/4;
+    { if ( img && notNil(img) )
+      { int cx, cy;
+	int bw = valInt(img->size->w);
+	int bh = valInt(img->size->h);
+      
+	if ( t->super->orientation == NAME_horizontal )
+	{ cx = valInt(t->area->x) + valInt(t->area->w) +
+               valInt(t->super->border)/2;
+	  cy = valInt(t->area->y) + adjust_pos(t->area->h, bh);
+	} else
+	{ cy = valInt(t->area->y) + valInt(t->area->h) +
+               valInt(t->super->border)/2;
+	  cx = valInt(t->area->x) + adjust_pos(t->area->w, bw);
+	}
+	  
+	r_image(img, 0, 0, cx - bw/2, cy - bh/2, bw, bh, ON);
       }
-
-      /* TDB: Draw button here, link to expose_frame() */
     }
 
     if ( notNil(t->members) )
     { Cell cell;
       
       for_cell(cell, t->members)
-	drawResizeTileButtonsFrame(fr, cell->value);
+	drawResizeTileButtonsFrame(fr, cell->value, img);
     }
   }
 
   succeed;
 }
+
+
+status
+redrawFrame(FrameObj fr, Area a)
+{ Image img = getClassVariableValueObject(fr, NAME_adjustWindowImage);
+
+#if 0
+  Cell cell;
+
+  for_cell(cell, fr->members)
+  { PceWindow sw = cell->value;
+
+    if ( overlapArea(a, sw->area) )
+    { Int ox = a->x;
+      Int oy = a->y;
+
+      a->x = sub(a->x, sw->area->x);
+      a->y = sub(a->y, sw->area->y);
+      redrawWindow(sw, a);
+      a->x = ox;
+      a->y = oy;
+    }
+  }
+#endif
+
+
+  if ( img && notNil(img) )
+  { Bool swm;
+
+    d_frame(fr, 0, 0, valInt(fr->area->w), valInt(fr->area->h));
+    if ( notDefault(a) )
+      d_clip(valInt(a->x), valInt(a->y), valInt(a->w), valInt(a->h));
+
+    swm = r_subwindow_mode(ON);
+    drawResizeTileButtonsFrame(fr, DEFAULT, img);
+    r_subwindow_mode(swm);
+
+    if ( notDefault(a) )
+      d_clip_done();
+    d_done();
+  }
+
+  succeed;
+}
+
 
 
 FrameObj
@@ -1847,6 +1913,9 @@ static senddecl send_frame[] =
      NAME_event, "Define the cursor for the frame-background"),
   SM(NAME_grabPointer, 2, T_grab_pointer, grabPointerFrame,
      NAME_event, "Grap all pointer-events"),
+  SM(NAME_redraw, 1, "[area]", redrawFrame,
+     NAME_redraw, "Redraw subwindow adjust buttons"),
+
   SM(NAME_attachTransient, 1, "frame", attachTransientFrame,
      NAME_transient, "A frame is attached as a transient for me"),
   SM(NAME_detachTransient, 1, "frame", detachTransientFrame,
@@ -1928,7 +1997,9 @@ static classvardecl rc_frame[] =
   RC(NAME_decorateTransient, "bool", "@on",
      "Decorate transient windows (if possible)"),
   RC(NAME_colourMap, "[colour_map]*", "@default",
-     "Colourmap for the window's frame")
+     "Colourmap for the window's frame"),
+  RC(NAME_adjustWindowImage, "image*", "@adjust_window_image",
+     "Image to adjust subwindow size/position")
 };
 
 /* Class Declaration */
