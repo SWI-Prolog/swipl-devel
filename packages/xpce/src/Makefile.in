@@ -136,7 +136,7 @@ SICSTARGET=xpce-sicstus
 VMAJOR=@VMAJOR@
 VMINOR=@VMINOR@
 VPATCH=@VPATCH@
-PCEVERSIONDATE=February 1999
+PCEVERSIONDATE=March 1999
 
 SOMAJOR=$(VMAJOR)
 SOMINOR=$(VMINOR).$(VPATCH)
@@ -280,10 +280,7 @@ MODULES=	adt ari evt gnu gra itf ker men fmt msg prg rel txt unx win img
 # PROTOTYPES (must be made in the source directory)
 ################################################################
 
-proto:
-		@$(MAKE) -C $(srcdir) theproto
-
-theproto:	$(foreach m, $(MODULES) x11, $(m)/proto.h)
+proto:		$(foreach m, $(MODULES) x11, $(srcdir)/$(m)/proto.h)
 
 ################################################################
 # Building the directories
@@ -338,9 +335,9 @@ tags:
 ADTOBJS=	area.o atable.o attribute.o bool.o chain.o chaintable.o \
 		constant.o date.o dict.o dictitem.o hashtable.o number.o \
 		point.o real.o region.o sheet.o size.o tuple.o vector.o
-ADTSRC=		$(addprefix adt/, $(ADTOBJS:.o=.c))
+ADTSRC=		$(addprefix $(srcdir)/adt/, $(ADTOBJS:.o=.c))
 
-adt/proto.h:	$(ADTSRC)
+$(srcdir)/adt/proto.h:	$(ADTSRC)
 		$(MKPROTO) $(ADTSRC) | $(CLPROTO) > $@
 
 ################################################################
@@ -348,9 +345,9 @@ adt/proto.h:	$(ADTSRC)
 ################################################################
 
 ARIOBJS=	equation.o expression.o
-ARISRC=		$(addprefix ari/, $(ARIOBJS:.o=.c))
+ARISRC=		$(addprefix $(srcdir)/ari/, $(ARIOBJS:.o=.c))
 
-ari/proto.h:	$(ARISRC)
+$(srcdir)/ari/proto.h:	$(ARISRC)
 		$(MKPROTO) $(ARISRC) | $(CLPROTO) > $@
 
 ################################################################
@@ -362,9 +359,9 @@ EVTOBJS=	clickgesture.o conngesture.o event.o \
 		handlergroup.o modifier.o movegesture.o \
 		mvolgesture.o popupgesture.o recogniser.o \
 		resizegesture.o rzolgesture.o edittextgest.o
-EVTSRC=		$(addprefix evt/, $(EVTOBJS:.o=.c))
+EVTSRC=		$(addprefix $(srcdir)/evt/, $(EVTOBJS:.o=.c))
 
-evt/proto.h:	$(EVTSRC)
+$(srcdir)/evt/proto.h:	$(EVTSRC)
 		$(MKPROTO) $(EVTSRC) | $(CLPROTO) > $@
 
 ################################################################
@@ -372,7 +369,7 @@ evt/proto.h:	$(EVTSRC)
 ################################################################
 
 GNUOBJS=	gregex.o getdate.o
-GNUSRC=		$(addprefix gnu/, $(GNUOBJS:.o=.c))
+GNUSRC=		$(addprefix $(srcdir)/gnu/, $(GNUOBJS:.o=.c))
 CNWFLAGS=	$(CMFLAGS) $(COFLAGS) $(CIFLAGS)
 
 gnu/gregex.o:	gnu/gregex.c gnu/gregex.h
@@ -383,7 +380,7 @@ $(srcdir)/gnu/getdate.c:	gnu/getdate.y
 		$(YACC) $<
 		mv -f y.tab.c $@
 
-gnu/proto.h:	$(GNUSRC)
+$(srcdir)/gnu/proto.h:	$(GNUSRC)
 		$(MKPROTO) $(GNUSRC) | $(CLPROTO) > $@
 
 ################################################################
@@ -396,9 +393,9 @@ GRAOBJS=	arc.o arrow.o bitmap.o box.o circle.o colour.o \
 		joint.o line.o link.o listbrowser.o node.o path.o \
 		postscript.o scrollbar.o text.o tree.o visual.o \
 		pixmap.o elevation.o pen.o draw.o colourmap.o
-GRASRC=		$(addprefix gra/, $(GRAOBJS:.o=.c))
+GRASRC=		$(addprefix $(srcdir)/gra/, $(GRAOBJS:.o=.c))
 
-gra/proto.h:	$(GRASRC)
+$(srcdir)/gra/proto.h:	$(GRASRC)
 		$(MKPROTO) $(GRASRC) | $(CLPROTO) > $@
 
 ################################################################
@@ -409,9 +406,9 @@ ITF1OBJS=	c.o host.o interface.o cpointer.o asfile.o console.o \
 		stub.o xmalloc.o iostream.o srcsink.o rc.o hostdata.o
 ITF2OBJS=	@CXXTARGETS@
 ITFOBJS=	$(ITF1OBJS) $(ITF2OBJS)
-ITFSRC=		$(addprefix itf/, $(ITF1OBJS:.o=.c) $(ITF2OBJS:.o=.cxx))
+ITFSRC=		$(addprefix $(srcdir)/itf/, $(ITF1OBJS:.o=.c) $(ITF2OBJS:.o=.cxx))
 
-itf/proto.h:	$(ITFSRC)
+$(srcdir)/itf/proto.h:	$(ITFSRC)
 		$(MKPROTO) $(ITFSRC) | $(CLPROTO) > $@
 
 itf/cpp.o:	itf/cpp.cxx
@@ -429,9 +426,9 @@ KER1OBJS=	alloc.o assoc.o behaviour.o class.o conversion.o \
 		trace.o type.o variable.o xref.o classvar.o
 KER2OBJS=	inline.o
 KEROBJS=	$(KER1OBJS) $(KER2OBJS)
-KER1SRC=	$(addprefix ker/, $(KER1OBJS:.o=.c))
+KER1SRC=	$(addprefix $(srcdir)/ker/, $(KER1OBJS:.o=.c))
 
-ker/proto.h:	$(KER1SRC)
+$(srcdir)/ker/proto.h:	$(KER1SRC)
 		$(MKPROTO) $(KER1SRC) | $(CLPROTO) | grep -v PceGoal | grep -v PceType > $@
 
 version.h:	Makefile
@@ -458,9 +455,9 @@ ker/glob.o:	h/kernel.h h/types.h h/graphics.h h/lang.h h/layout.h
 MENOBJS=	button.o dialogitem.o label.o menu.o menubar.o \
 		menuitem.o popup.o slider.o textitem.o tab.o diagroup.o \
 		tabstack.o labelbox.o intitem.o
-MENSRC=		$(addprefix men/, $(MENOBJS:.o=.c))
+MENSRC=		$(addprefix $(srcdir)/men/, $(MENOBJS:.o=.c))
 
-men/proto.h:	$(MENSRC)
+$(srcdir)/men/proto.h:	$(MENSRC)
 		$(MKPROTO) $(MENSRC) | $(CLPROTO) > $@
 
 
@@ -470,9 +467,9 @@ men/proto.h:	$(MENSRC)
 
 FMTOBJS=	layoutmgr.o layoutitf.o \
 		table.o tabcell.o tabslice.o
-FMTSRC=		$(addprefix fmt/, $(FMTOBJS:.o=.c))
+FMTSRC=		$(addprefix $(srcdir)/fmt/, $(FMTOBJS:.o=.c))
 
-fmt/proto.h:	$(FMTSRC)
+$(srcdir)/fmt/proto.h:	$(FMTSRC)
 		$(MKPROTO) $(FMTSRC) | $(CLPROTO) > $@
 
 
@@ -484,9 +481,9 @@ MSGOBJS=	and.o assign.o binding.o block.o code.o create.o \
 		equal.o function.o if.o message.o nonequal.o \
 		not.o obtain.o or.o progn.o quote.o var.o when.o while.o \
 		nameref.o
-MSGSRC=		$(addprefix msg/, $(MSGOBJS:.o=.c))
+MSGSRC=		$(addprefix $(srcdir)/msg/, $(MSGOBJS:.o=.c))
 
-msg/proto.h:	$(MSGSRC)
+$(srcdir)/msg/proto.h:	$(MSGSRC)
 		$(MKPROTO) $(MSGSRC) | $(CLPROTO) > $@
 
 ################################################################
@@ -494,9 +491,9 @@ msg/proto.h:	$(MSGSRC)
 ################################################################
 
 PRGOBJS=	operator.o parser.o tokeniser.o
-PRGSRC=		$(addprefix prg/, $(PRGOBJS:.o=.c))
+PRGSRC=		$(addprefix $(srcdir)/prg/, $(PRGOBJS:.o=.c))
 
-prg/proto.h:	$(PRGSRC)
+$(srcdir)/prg/proto.h:	$(PRGSRC)
 		$(MKPROTO) $(PRGSRC) | $(CLPROTO) > $@
 
 ################################################################
@@ -505,9 +502,9 @@ prg/proto.h:	$(PRGSRC)
 
 RELOBJS=	constraint.o hyper.o identity.o relation.o \
 		spatial.o
-RELSRC=		$(addprefix rel/, $(RELOBJS:.o=.c))
+RELSRC=		$(addprefix $(srcdir)/rel/, $(RELOBJS:.o=.c))
 
-rel/proto.h:	$(RELSRC)
+$(srcdir)/rel/proto.h:	$(RELSRC)
 		$(MKPROTO) $(RELSRC) | $(CLPROTO) > $@
 
 ################################################################
@@ -518,9 +515,9 @@ TXTOBJS=	chararray.o editor.o fragment.o keybinding.o \
 		regex.o str.o string.o style.o syntax.o \
 		textbuffer.o textcursor.o textimage.o \
 		textmargin.o undo.o
-TXTSRC=		$(addprefix txt/, $(TXTOBJS:.o=.c))
+TXTSRC=		$(addprefix $(srcdir)/txt/, $(TXTOBJS:.o=.c))
 
-txt/proto.h:	$(TXTSRC)
+$(srcdir)/txt/proto.h:	$(TXTSRC)
 		$(MKPROTO) $(TXTSRC) | $(CLPROTO) > $@
 
 ################################################################
@@ -528,9 +525,9 @@ txt/proto.h:	$(TXTSRC)
 ################################################################
 
 UNXOBJS=	directory.o file.o process.o socket.o stream.o
-UNXSRC=		$(addprefix unx/, $(UNXOBJS:.o=.c))
+UNXSRC=		$(addprefix $(srcdir)/unx/, $(UNXOBJS:.o=.c))
 
-unx/proto.h:	$(UNXSRC)
+$(srcdir)/unx/proto.h:	$(UNXSRC)
 		$(MKPROTO) $(UNXSRC) | $(CLPROTO) > $@
 
 xpce-client:	unx/client.c
@@ -546,9 +543,9 @@ xpce-client:	unx/client.c
 WINOBJS=	browser.o decorate.o dialog.o display.o \
 		displaymgr.o frame.o picture.o \
 		setup.o tile.o view.o window.o application.o
-WINSRC=		$(addprefix win/, $(WINOBJS:.o=.c))
+WINSRC=		$(addprefix $(srcdir)/win/, $(WINOBJS:.o=.c))
 
-win/proto.h:	$(WINSRC)
+$(srcdir)/win/proto.h:	$(WINSRC)
 		$(MKPROTO) $(WINSRC) | $(CLPROTO) > $@
 
 
@@ -557,9 +554,9 @@ win/proto.h:	$(WINSRC)
 ################################################################
 
 IMGOBJS=	jdatasrc.o jpegtoxpm.o gifread.o giftoxpm.o
-IMGSRC=		$(addprefix img/, $(IMGOBJS:.o=.c))
+IMGSRC=		$(addprefix $(srcdir)/img/, $(IMGOBJS:.o=.c))
 
-img/proto.h:	$(IMGSRC)
+$(srcdir)/img/proto.h:	$(IMGSRC)
 		$(MKPROTO) $(IMGSRC) | $(CLPROTO) > $@
 
 ################################################################
@@ -571,13 +568,13 @@ WSTOBJS=	xcolour.o xcursor.o xdisplay.o xdraw.o xevent.o xfont.o \
 		xframe.o ximage.o xstream.o xtimer.o xwindow.o x11.o xmenu.o
 X11OBJS=	$(XCOMMOBJS) $(WSTOBJS)
 
-XCOMMSRC=	$(addprefix x11/, $(XCOMMOBJS:.o=.c))
-WSTSRC=		$(addprefix x11/, $(WSTOBJS:.o=.c)) gra/graphstate.c
+XCOMMSRC=	$(addprefix $(srcdir)/x11/, $(XCOMMOBJS:.o=.c))
+WSTSRC=		$(addprefix $(srcdir)/x11/, $(WSTOBJS:.o=.c)) gra/graphstate.c
 
 x11/wstproto.h:	$(WSTSRC)
 		$(MKPROTO) $(WSTSRC) | $(CLPROTO) | grep -v '^XImage' > $@
 
-x11/proto.h:	$(XCOMMSRC)
+$(srcdir)/x11/proto.h:	$(XCOMMSRC)
 		$(MKPROTO) $(XCOMMSRC) | $(CLPROTO) > $@
 
 ################################################################$
