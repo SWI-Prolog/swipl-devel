@@ -18,6 +18,7 @@
 ! the default here.
 
 !key_binding.style:	cua
+!key_binding.style:	emacs
 
 ! By default, the editors are case-insensitive in search and replace.  Set to
 ! @on to use case-sensitive search and replace
@@ -29,3 +30,29 @@
 
 !ispell.spell_program:	'ispell -d british -t -l'
 
+! Indicate warnings by blinking (@on, default) or using a beep (@off)
+
+!*.visual_bell:	@off
+
+! Binding for the logical font-names.  You can bind any name to any
+! font here.
+
+!display.system_fonts:	[ normal    := font(helvetica, roman,   12), \
+! 			  bold      := font(helvetica, bold,    12), \
+! 			  italic    := font(helvetica, oblique, 12), \
+! 			  small     := font(helvetica, roman,   10), \
+! 			  large     := font(helvetica, roman,   14), \
+! 			  boldlarge := font(helvetica, bold,    14), \
+! 			  huge      := font(helvetica, roman,   18), \
+! 			  boldhuge  := font(helvetica, bold,    18), \
+! 			  fixed     := font(screen,    roman,   13), \
+! 			  tt        := font(screen,    roman,   13), \
+! 			  boldtt    := font(screen,    bold,    13), \
+! 			  symbol    := font(symbol,    roman,   12)  \
+! 			]
+
+! On Windows, specified font sizes are multiplied by the factor below to
+! get more or less the same behaviour as for X11.  You can change this scale
+! to rescale all your fonts.
+
+!font.scale: 1.4
