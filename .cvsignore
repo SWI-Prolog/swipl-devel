@@ -13,7 +13,8 @@ linux
 solaris
 mt
 nosegv
-public
+Public
+g
 runtime
 syncall
 packages/objects
