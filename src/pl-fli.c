@@ -1840,6 +1840,7 @@ cont:
 	  } else
 	  { tos--;
 	    seekBuffer(&buf, tos, work);
+	    break;
 	  }
 	case w_list:
 	{ if ( w->value.list.len > 0 )

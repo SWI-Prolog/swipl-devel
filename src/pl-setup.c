@@ -421,6 +421,7 @@ set_sighandler(int sig, handler_t func)
 #endif
 
 
+#ifndef NO_SEGV_HANDLING
 static handler_t
 set_stack_guard_handler(int sig, void *func)
 {
@@ -445,6 +446,7 @@ set_stack_guard_handler(int sig, void *func)
   return signal(sig, func);
 #endif
 }
+#endif /*NO_SEGV_HANDLING*/
 
 
 static SigHandler

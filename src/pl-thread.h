@@ -94,11 +94,15 @@ extern pthread_mutex_t _PL_mutexes[];	/* Prolog mutexes */
 
 #ifdef O_DEBUG_MT
 #define PL_LOCK(id) \
-	do { Sdprintf("%s:%d: LOCK(%s)\n", __BASE_FILE__, __LINE__, #id); \
+	do { Sdprintf("[%s] %s:%d: LOCK(%s)\n", \
+		      threadName(0), \
+		      __BASE_FILE__, __LINE__, #id); \
              pthread_mutex_lock(&_PL_mutexes[id]); \
 	   } while(0)
 #define PL_UNLOCK(id) \
-	do { Sdprintf("%s:%d: UNLOCK(%s)\n", __BASE_FILE__, __LINE__, #id); \
+	do { Sdprintf("[%s] %s:%d: UNLOCK(%s)\n", \
+		      threadName(0), \
+		      __BASE_FILE__, __LINE__, #id); \
 	     pthread_mutex_unlock(&_PL_mutexes[id]); \
 	   } while(0)
 #else

@@ -369,12 +369,22 @@ PL_thread_self()
 
 const char *
 threadName(int id)
-{ PL_thread_info_t *info = &threads[id];
+{ PL_thread_info_t *info;
+  char tmp[16];
+    
+
+  if ( id == 0 )
+    id = PL_thread_self();
+  if ( id < 0 )
+    return "[Not a prolog thread]";
+
+  info = &threads[id];
 
   if ( info->thread_data->thread.name )
     return PL_atom_chars(info->thread_data->thread.name);
 
-  return NULL;
+  sprintf(tmp, "%d", id);
+  return buffer_string(tmp, BUF_RING);
 }
 
 

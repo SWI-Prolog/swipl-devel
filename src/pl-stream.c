@@ -158,17 +158,18 @@ Slock(IOSTREAM *s)
 
 int
 Sunlock(IOSTREAM *s)
-{ SUNLOCK(s);
-
-  if ( s->locks )
+{ if ( s->locks )
   { if ( --s->locks == 0 )
     { if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
-	return S__removebuf(s);
+	S__removebuf(s);
     }
   }
 
+  SUNLOCK(s);
+
   return 0;
 }
+
 
 		 /*******************************
 		 *	     FLUSH/FILL		*

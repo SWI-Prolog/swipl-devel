@@ -214,8 +214,6 @@ freeStream(IOSTREAM *s)
     freeHeap(ctx, sizeof(*ctx));
     deleteSymbolHTable(streamContext, symb);
   }
-  UNLOCK();
-
 					/* if we are a standard stream */
 					/* reassociate with standard I/O */
 					/* NOTE: there may be more! */
@@ -231,6 +229,7 @@ freeStream(IOSTREAM *s)
 	*sp = Soutput;
     }
   }
+  UNLOCK();
 }
 
 
@@ -332,8 +331,9 @@ PL_release_stream(IOSTREAM *s)
 }
 
 
-#define SH_ERRORS 0x1			/* generate errors */
-#define SH_ALIAS  0x2			/* allow alias */
+#define SH_ERRORS   0x01		/* generate errors */
+#define SH_ALIAS    0x02		/* allow alias */
+#define SH_UNLOCKED 0x04		/* don't lock the stream */
 
 static int
 get_stream_handle(term_t t, IOSTREAM **s, int flags)
@@ -345,22 +345,28 @@ get_stream_handle(term_t t, IOSTREAM **s, int flags)
 
     PL_get_arg(1, t, a);
     if ( PL_get_pointer(a, &p) )
-    { LOCK();
+    { if ( flags & SH_UNLOCKED )
+      { if ( ((IOSTREAM *)p)->magic == SIO_MAGIC )
+	{ *s = p;
+	  return TRUE;
+	}
+	goto noent;
+      }
+
+      LOCK();
       if ( ((IOSTREAM *)p)->magic == SIO_MAGIC )
       { *s = getStream(p);
         UNLOCK();
         return TRUE;
-      } else
-      { UNLOCK();
-	if ( flags & SH_ERRORS )
-	  return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_stream, t);
-	fail;
       }
+      UNLOCK();
+      goto noent;
     }
   } else if ( PL_get_atom(t, &alias) )
   { Symbol symb;
 
-    LOCK();
+    if ( !(flags & SH_UNLOCKED) )
+      LOCK();
     if ( (symb=lookupHTable(streamAliases, (void *)alias)) )
     { IOSTREAM *stream;
       unsigned long n = (unsigned long)symb->value;
@@ -372,22 +378,31 @@ get_stream_handle(term_t t, IOSTREAM **s, int flags)
       
       if ( stream )
       { assert(stream->magic == SIO_MAGIC);
-	*s = getStream(stream);
-	UNLOCK();
-	return TRUE;
+	if ( (flags & SH_UNLOCKED) )
+	{ *s = stream;
+	  return TRUE;
+	} else
+	{ *s = getStream(stream);
+	  UNLOCK();
+	  return TRUE;
+	}
       }
     }
-    UNLOCK();
+    if ( !(flags & SH_UNLOCKED) )
+      UNLOCK();
 
-    if ( flags & SH_ERRORS )
-      return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_stream, t);
-    fail;
+    goto noent;
   }
       
   if ( flags & SH_ERRORS )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 		    (flags&SH_ALIAS) ? ATOM_stream_or_alias : ATOM_stream, t);
 
+  fail;
+
+noent:
+  if ( flags & SH_ERRORS )
+    PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_stream, t);
   fail;
 }
 
@@ -1513,11 +1528,13 @@ pl_see(term_t f)
   atom_t a;
   term_t mode;
 
-  if ( get_stream_handle(f, &s, SH_ALIAS) )
+  LOCK();
+  if ( get_stream_handle(f, &s, SH_ALIAS|SH_UNLOCKED) )
   { Scurin = s;
-    releaseStream(s);
+    UNLOCK();
     succeed;
   }
+  UNLOCK();
   if ( PL_get_atom(f, &a) && a == ATOM_user )
   { Scurin = Suser_input;
     succeed;
@@ -1557,9 +1574,10 @@ do_tell(term_t f, atom_t m)
   atom_t a;
   term_t mode;
 
-  if ( get_stream_handle(f, &s, FALSE) )
+  LOCK();
+  if ( get_stream_handle(f, &s, SH_ALIAS|SH_UNLOCKED) )
   { Scurout = s;
-    releaseStream(s);
+    UNLOCK();
     succeed;
   }
   if ( PL_get_atom(f, &a) && a == ATOM_user )
@@ -1934,7 +1952,9 @@ pl_stream_property(term_t stream, term_t property, word h)
 	pe->p = sprop_list;
 
 	break;
-      } else if ( get_stream_handle(stream, &s, SH_ERRORS) )
+      }
+      LOCK();
+      if ( get_stream_handle(stream, &s, SH_ERRORS|SH_UNLOCKED) )
       { functor_t f;
 
 	if ( PL_is_variable(property) )	/* generate properties */
@@ -1943,7 +1963,7 @@ pl_stream_property(term_t stream, term_t property, word h)
 	  pe->e = NULL;
 	  pe->s = s;
 	  pe->p = sprop_list;
-	  releaseStream(s);		/* no locked stream? */
+	  UNLOCK();
 
 	  break;
 	} else if ( PL_get_functor(property, &f) )
@@ -1968,15 +1988,18 @@ pl_stream_property(term_t stream, term_t property, word h)
 		  assert(0);
 		  rval = FALSE;
 	      }
-	      releaseStream(s);
+	      UNLOCK();
 	      return rval;
 	    }
 	  }
 	} else
+	{ UNLOCK();
 	  return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 			  ATOM_stream_property, property);
-      } else
-	fail;				/* bad stream handle */
+	}
+      }
+      UNLOCK();
+      fail;				/* bad stream handle */
     case FRG_REDO:
     { pe = ForeignContextPtr(h);
       a1 = PL_new_term_ref();
@@ -2454,11 +2477,15 @@ pl_size_file(term_t name, term_t len)
 word
 pl_size_stream(term_t stream, term_t len)
 { IOSTREAM *s;
+  int rval;
 
   if ( !PL_get_stream_handle(stream, &s) )
     fail;
 
-  return PL_unify_integer(len, Ssize(s));
+  rval = PL_unify_integer(len, Ssize(s));
+  PL_release_stream(s);
+
+  return rval;
 }
 
 
