@@ -2190,6 +2190,8 @@ information is wanted. The  options are given in \tabref{query}.
 			       can be created in this version.  Return
 			       values of PL_thread_self() are between 0
 			       and this number. \\
+\const{PL_QUERY_ENCODING}    & Return the default stream encoding of
+			       Prolog (of type \ctype{IOENC}). \\
 \hline
 \end{tabular}\end{quote}
 

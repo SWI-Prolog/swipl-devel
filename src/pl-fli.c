@@ -3563,6 +3563,13 @@ PL_query(int query)
 #else
       return 1;
 #endif
+    case PL_QUERY_ENCODING:		
+    { GET_LD
+
+      if ( LD )
+	return LD->encoding;
+      return PL_local_data.encoding;	/* Default: of main thread? */
+    }
     default:
       sysError("PL_query: Illegal query: %d", query);
       /*NOTREACHED*/

@@ -24,9 +24,22 @@
 
 #include <h/kernel.h>
 
+static Name encoding_to_name(IOENC enc);
+
 status
 initialiseSourceSink(SourceSink ss)
-{ succeed;
+{ PceCValue val;
+
+  if ( hostQuery(HOST_ENCODING, &val) )
+  { Name en;
+    IOENC enc;
+  
+    enc = (IOENC)val.integer;
+    if ( (en = encoding_to_name(enc)) )
+      assign(ss, encoding, en);
+  }
+
+  succeed;
 }
 
 
@@ -44,24 +57,50 @@ encodingSourceSink(SourceSink ss, Name encoding)
 }
 
 
+typedef struct encname
+{ Name  name;
+  IOENC code;
+} encname;
+
+
+static const encname enc_names[] = 
+{ { NAME_binary,	ENC_NONE },
+  { NAME_iso_latin_1,   ENC_ISO_LATIN_1 },
+  { NAME_utf8,		ENC_UTF8 },
+  { NAME_unicodeBe,	ENC_UNICODE_BE },
+  { NAME_unicodeLe,	ENC_UNICODE_LE },
+  { NAME_wchar,		ENC_WCHAR },
+  { 0, 0 }
+};
+
+
+static Name
+encoding_to_name(IOENC enc)
+{ const encname *en;
+
+  for(en=enc_names; en->name; en++)
+  { if ( en->code == enc )
+    { return en->name;
+    }
+  }
+
+  return NIL;
+}
+
+
+
 status
 setStreamEncodingSourceSink(SourceSink ss, IOSTREAM *fd)
-{ if ( ss->encoding == NAME_binary )
-    fd->encoding = ENC_NONE;
-  else if ( ss->encoding == NAME_iso_latin_1 )
-    fd->encoding = ENC_ISO_LATIN_1;
-  else if ( ss->encoding == NAME_utf8 )
-    fd->encoding = ENC_UTF8;
-  else if ( ss->encoding == NAME_unicodeBe )
-    fd->encoding = ENC_UNICODE_BE;
-  else if ( ss->encoding == NAME_unicodeLe )
-    fd->encoding = ENC_UNICODE_LE;
-  else if ( ss->encoding == NAME_wchar )
-    fd->encoding = ENC_WCHAR;
-  else
-    fail;
+{ const encname *en;
 
-  succeed;
+  for(en=enc_names; en->name; en++)
+  { if ( ss->encoding == en->name )
+    { fd->encoding = en->code;
+      succeed;
+    }
+  }
+
+  return errorPce(ss, NAME_unknownEncoding, ss->encoding);
 }
 
 

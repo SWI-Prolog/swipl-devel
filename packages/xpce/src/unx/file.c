@@ -59,7 +59,8 @@ initialiseFile(FileObj f, Name name, Name encoding)
     encoding = NAME_text;
 
   if ( encoding == NAME_text )
-  { assign(f, encoding, getClassVariableValueObject(f, NAME_encoding));
+  { if ( !isName(f->encoding) )
+      assign(f, encoding, getClassVariableValueObject(f, NAME_encoding));
     assign(f, kind, NAME_text);
   } else if ( encoding == NAME_binary )
   { assign(f, kind, NAME_binary);

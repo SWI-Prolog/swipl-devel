@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: PL_query() option PL_QUERY_ENCODING to synchronise default
+    encoding towards XPCE.
+
   * ADDED: library(unicode/blocks): naming of the various unicode code
     blocks.
 

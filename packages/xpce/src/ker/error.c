@@ -702,7 +702,9 @@ static const error_def errors[] =
   { NAME_notInitialised,	0,
     "%O: Object is not initialised"
   },
-
+  { NAME_unknownEncoding,	0,
+    "%O: Unknown encoding: %s"
+  },
 					/* Tables/layout managament */
   { NAME_spannedRow,	0,	/* tables */
     "%O: Table contains row-spanned cell %O in sort range"

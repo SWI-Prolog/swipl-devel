@@ -2908,6 +2908,14 @@ PrologQuery(int what, PceCValue *value)
 	return PCE_SUCCEED;
       return PCE_FAIL;
 #endif
+    case HOST_ENCODING:
+    { IOENC enc;
+
+      enc = (IOENC)PL_query(PL_QUERY_ENCODING);
+      value->integer = enc;
+
+      return PCE_SUCCEED;
+    }
     default:
       return PCE_FAIL;
   }

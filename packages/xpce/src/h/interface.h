@@ -313,6 +313,7 @@ __pce_export int	pceMTdetach(void);
 #define HOST_ATEXIT	10		/* Callback on exit */
 #define HOST_CONSOLE	11		/* Win32: query HWND of console */
 #define HOST_CHECK_INTERRUPT 12		/* Win32: periodic check for ^C */
+#define HOST_ENCODING	13		/* Query default encoding of the host */
 
 #define PCE_METHOD_INFO_HANDLE_ONLY	0x01
 #define PCE_METHOD_INFO_TRACE_ENTER	0x02
