@@ -2,11 +2,11 @@
 
 .SUFFIXES: .cxx
 
-ITF1OBJS=	c.o host.o interface.o cpointer.o asfile.o console.o
+ITF1OBJS=	c.o host.o interface.o cpointer.o asfile.o console.o \
+		stub.o xmalloc.o main.o
 ITF2OBJS=	cpp.o
-ITF3OBJS=	action.o query.o send.o get.o main.o xmalloc.o
-ITFOBJS=	$(ITF1OBJS) $(ITF2OBJS) $(ITF3OBJS)
-ITFSRC=		$(ITF1OBJS:.o=.c) $(ITF2OBJS:.o=.cxx) stub.c
+ITFOBJS=	$(ITF1OBJS) $(ITF2OBJS)
+ITFSRC=		$(ITF1OBJS:.o=.c) $(ITF2OBJS:.o=.cxx)
 
 objects:	$(ITFOBJS)
 
@@ -22,28 +22,3 @@ clean:
 
 .cxx.o:
 		$(CXX) -c $(CFLAGS) -I../../include $*.cxx
-
-action.o:	stub.c
-		$(RM) -f $(@:.o=.c)
-	        ln -s stub.c $(@:.o=.c)
-		$(CC) -c -DHOSTACTION $(CFLAGS) $(@:.o=.c)
-query.o:	stub.c
-		$(RM) -f $(@:.o=.c)
-	        ln -s stub.c $(@:.o=.c)
-		$(CC) -c -DHOSTQUERY $(CFLAGS) $(@:.o=.c)
-send.o:		stub.c
-		$(RM) -f $(@:.o=.c)
-	        ln -s stub.c $(@:.o=.c)
-		$(CC) -c -DHOSTSEND $(CFLAGS) $(@:.o=.c)
-get.o:		stub.c
-		$(RM) -f $(@:.o=.c)
-	        ln -s stub.c $(@:.o=.c)
-		$(CC) -c -DHOSTGET $(CFLAGS) $(@:.o=.c)
-main.o:		stub.c
-		$(RM) -f $(@:.o=.c)
-	        ln -s stub.c $(@:.o=.c)
-		$(CC) -c -DMAIN $(CFLAGS) $(@:.o=.c)
-xmalloc.o:	stub.c
-		$(RM) -f $(@:.o=.c)
-	        ln -s stub.c $(@:.o=.c)
-		$(CC) -c -DXMALLOC $(CFLAGS) $(@:.o=.c)

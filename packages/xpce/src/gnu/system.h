@@ -32,6 +32,10 @@ char *alloca ();
 #endif
 #endif
 
+#ifdef HAVE_MALLOC_H
+#include <malloc.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #ifndef S_ISREG			/* Doesn't have POSIX.1 stat stuff. */
@@ -184,8 +188,10 @@ extern int errno;
 char *getcwd ();
 #endif
 #else
+#ifdef HAVE_SYS_FILE_H			/* added (JW) */
 #include <sys/file.h>
 char *getwd ();
+#endif
 #endif
 
 #ifndef SEEK_SET

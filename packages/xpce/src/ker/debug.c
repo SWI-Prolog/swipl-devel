@@ -228,7 +228,7 @@ int depth, sigpc;
 
 #endif
 
-void
+export void
 pcePrintStack(int depth)
 { _pcePrintStack(depth, 0);
 }

@@ -22,6 +22,10 @@ public:
     PceObject(ClassBitmap, image)
   {
   }
+  PceBitmap(PceArg image, PceArg transparent) :
+    PceObject(ClassBitmap, image, transparent)
+  {
+  }
 };
 
 inline PceBitmap

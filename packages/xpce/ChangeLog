@@ -1,5 +1,16 @@
 [VERSION 4.8.8]
 
+* CHANGED: Library structure for demo and contrib modules.  Instead of
+  library('demo/something') or library('contrib/something'), you should
+  now use deme(something) or contrib(something).  Part of ProWindows
+  integration.
+
+* FIXED: event-processing for normal graphical objects displayed on
+  instances of class tree using `tree->display'.
+
+* FIXED: redraw problems when modifying the area of graphicals displayed
+  on a figure with a defined outline or background.
+
 * CONFIG: All references to stdin/stdout/stderr in the library have been
   wrapped into a small layer defined in itf/console.c to allow for window
   based I/O.

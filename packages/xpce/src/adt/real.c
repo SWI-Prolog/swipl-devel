@@ -39,6 +39,8 @@ initialiseReal(Real r, Any arg)
   } else
     return errorPce(ClassReal, NAME_cannotConvert, arg);
 
+  setFlag(r, F_ISREAL);
+
   succeed;
 }
 

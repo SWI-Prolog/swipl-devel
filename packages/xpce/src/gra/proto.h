@@ -45,7 +45,7 @@ status		requestComputeDevice(Device dev, Any val);
 status		computeGraphicalsDevice(Device dev);
 status		computeDevice(Any obj);
 status		computeBoundingBoxDevice(Device dev);
-status		changedUnionDevice(Device dev, Area a);
+status		changedUnionDevice(Device dev, Int ox, Int oy, Int ow, Int oh);
 status		RedrawAreaDevice(Device dev, Area a);
 status		displayDevice(Any Dev, Any Gr, Point pos);
 status		appendDevice(Device dev, Graphical gr);

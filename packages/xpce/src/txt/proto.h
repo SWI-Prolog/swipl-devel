@@ -132,7 +132,7 @@ status		capitaliseTextBuffer(TextBuffer tb, Int from, Int len);
 Int		getScanTextBuffer(TextBuffer tb, Int from, Name unit, Int amount, Name az);
 StringObj	getContentsTextBuffer(TextBuffer tb, Int from, Int length);
 status		parsep_line_textbuffer(TextBuffer tb, int here);
-int		scan_textbuffer(TextBuffer tb, int from, Name unit, int amount, char az);
+int		scan_textbuffer(TextBuffer tb, int from, Name unit, int amount, int az);
 Int		getMatchingBracketTextBuffer(TextBuffer tb, Int idx, Int bracket);
 Int		getSkipBlanksTextBuffer(TextBuffer tb, Int where, Name direction, Bool skipnl);
 Int		getLineNumberTextBuffer(TextBuffer tb, Int i);

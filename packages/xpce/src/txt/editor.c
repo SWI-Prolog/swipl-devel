@@ -629,7 +629,8 @@ indexFragmentCache(FragmentCache fc, Editor e, long int i)
       if ( s->attributes & TXT_HIDDEN )
       { Fragment fr = cell->fragment;
 	
-	return indexFragmentCache(fc, e, fr->start + fr->length);
+	indexFragmentCache(fc, e, fr->start + fr->length);
+	return;
       }
 
       attributes |= s->attributes;

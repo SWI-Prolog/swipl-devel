@@ -12,8 +12,6 @@
 #include <h/interface.h>
 #include <h/graphics.h>
 
-forwards char *get_line(char *);
-
 void
 resetDebugger(void)
 { CurrentGoal = NULL;
@@ -166,7 +164,7 @@ again:
 
       Trace(TRACE_NEVER,
 	    writef(" ? ");
-	    s = get_line(buf));
+	    s = Cgetline(buf, sizeof(buf)));
 
       if ( s )
       { int argc = 0;
@@ -452,47 +450,3 @@ getModeGoal(Any obj)
 
   return MODE_SYSTEM;
 }
-
-
-		/********************************
-		*            SUPPORT		*
-		********************************/
-#ifndef O_RUNTIME
-
-static char *
-get_line(char *buf)
-{ char *s = buf;
-  int c;
-
-  ws_ungrab_all();
-#ifdef __WINDOWS__
-  ws_expose_console();
-#endif
-  hostAction(HOST_FLUSH);
-
-  for(;;)
-  { c = hostGetc();
-
-    if ( !isblank(c) )
-      break;
-  }
-
-  for(;;)
-  { switch(c)
-    { case EOF:
-      case 04:
-	return NULL;
-      case '\n':
-      case '\r':
-	while(s > buf && isblank(s[-1]))
-	  s--;
-	*s = EOS;
-	return buf;
-      default:
-	*s++ = c;
-    }
-    c = hostGetc();
-  }
-}
-
-#endif /*O_RUNTIME*/

@@ -718,7 +718,7 @@ r_andpattern(Image i)
 
 
 Any
-r_default_colour(Colour c)
+r_default_colour(Any c)
 { Any old = context.default_colour;
   
   if ( notDefault(c) )
@@ -730,7 +730,7 @@ r_default_colour(Colour c)
 }
 
 
-Colour
+Any
 r_colour(Any c)
 { Colour old = context.gcs->colour;
 

@@ -254,9 +254,11 @@ expose_window(Widget w, XtPointer xsw, XtPointer xregion)
 static void
 resize_window(Widget w, XtPointer xsw, XtPointer data)
 { PceWindow sw = (PceWindow) xsw;
+  Area a = sw->area;
+  Int ow = a->w, oh = a->h;
 
   qadSendv(sw, NAME_resize, 0, NULL);
-  changedUnionWindow(sw, sw->area);
+  changedUnionWindow(sw, a->x, a->y, ow, oh);
 }
 
 

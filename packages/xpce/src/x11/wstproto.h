@@ -66,8 +66,8 @@ void		r_thickness(int pen);
 void		r_dash(Name name);
 void		r_fillpattern(Any fill);
 void		r_arcmode(Name mode);
-Any		r_default_colour(Colour c);
-Colour		r_colour(Any c);
+Any		r_default_colour(Any c);
+Any		r_colour(Any c);
 Any		r_background(Any c);
 void		r_swap_background_and_foreground(void);
 void		r_subwindow_mode(Bool val);
@@ -190,6 +190,7 @@ void		ws_raise_window(PceWindow sw);
 void		ws_lower_window(PceWindow sw);
 
 /* x11.c */
+void		ws_initialise(int argc, char **argv);
 int		ws_version(void);
 int		ws_revision(void);
 status		ws_expose_console(void);

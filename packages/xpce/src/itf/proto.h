@@ -52,7 +52,8 @@ Any		cToPceInteger(long int i);
 Any		cToPceReal(double f);
 Any		cToPceString(char *assoc, char *s);
 Any		cToPceName(char *s);
-Any		CtoPcePointer(void *ptr);
+Any		cToPcePointer(void *ptr);
+void *		pcePointerToC(PceObject obj);
 Any		cToPceAssoc(char *s);
 Any		cToPceReference(ulong val);
 int		pceExistsReference(long int ref);
@@ -75,12 +76,22 @@ Any		pceNew(char *assoc, Any class, int argc, Any *argv);
 int		pceDispatch(int fd, int time);
 void		pceRedraw(void);
 char *		getHostSymbolTable(void);
-int		hostGetc(void);
 void		pceReset(void);
 void		pceTrace(int on);
 void		pceTraceBack(int depth);
 void		pceWriteCurrentGoal(void);
 void		pceWriteErrorGoal(void);
+void		pceRegisterCallbacks(pce_callback_functions *fs);
+int		hostSend(PceObject host, PceName selector, int argc, PceObject argv []);
+PceObject	hostGet(PceObject host, PceName selector, int argc, PceObject argv []);
+int		hostCallProc(PceObject handle, PceObject receiver, int argc, PceObject argv []);
+PceObject	hostCallFunc(PceObject handle, PceObject receiver, int argc, PceObject argv []);
+int		hostQuery(int what, PceCValue *value);
+int		hostAction(int what, ...);
+void		Cprintf(const char *fmt, ...);
+void		Cvprintf(const char *fmt, va_list args);
+int		Cputchar(int chr);
+char *		Cgetline(char *line, int size);
 
 /* cpointer.c */
 CPointer	CtoCPointer(void *ptr);
@@ -95,9 +106,25 @@ int		pceRead(int handle, char *buf, int size);
 const char *	pceOsError(void);
 
 /* console.c */
-void		Cprintf(const char *fmt, ...);
-int		Cputchar(int chr);
-char *		Cgetline(char *line, int size);
+void		Stub__vCprintf(const char *fmt, va_list args);
+int		Stub__Cputchar(int chr);
+char *		Stub__Cgetline(char *line, int size);
+
+/* stub.c */
+void		on_exit(OnExitFunction f, char *s);
+int		Stub__HostActionv(int action, va_list args);
+int		Stub__HostQuery(int what, PceCValue *value);
+int		Stub__HostSend(PceObject prolog, PceName sel, int argc, PceObject *argv);
+PceObject	Stub__HostGet(PceObject prolog, PceName sel, int argc, PceObject *argv);
+int		Stub__HostCallProc(PceObject handle, PceObject rec, int argc, PceObject *argv);
+PceObject	Stub__HostCallFunc(PceObject handle, PceObject rec, int argc, PceObject *argv);
+
+/* xmalloc.c */
+void *		xmalloc(size_t nbytes);
+void *		xrealloc(void *ptr, size_t nbytes);
+
+/* main.c */
+int		main(int argc, char *argv []);
 
 /* cpp.cxx */
 PceStatus	callCPlusPlusProc(Any f, int ac, const Any av []);
@@ -107,13 +134,3 @@ Any		callCPlusPlusMethodFunc(Any obj, Any f, int ac, const Any av []);
 PceStatus	callCPlusPlusPceMethodProc(Any obj, Any f, int ac, const Any av []);
 Any		callCPlusPlusPceMethodFunc(Any obj, Any f, int ac, const Any av []);
 void		initCPlusPlusGlobals(void);
-
-/* stub.c */
-void		on_exit(OnExitFunction f, char *s);
-int		hostAction(int action, ...);
-int		hostQuery(int what, PceCValue *value);
-int		hostSend(PceObject prolog, PceObject sel, int argc, PceObject argv []);
-PceObject	hostGet(PceObject prolog, PceObject sel, int argc, PceObject argv []);
-int		main(int argc, char *argv []);
-void *		xmalloc(size_t nbytes);
-void *		xrealloc(void *ptr, size_t nbytes);

@@ -12,7 +12,9 @@
 #include "alloc.h"
 #include <h/graphics.h>
 #include <h/unix.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 
 /* (AA)	isqrt(a).  Returns the square root of a as an integer.  The 
 	algorithm only uses bit-shifts (multiplication by a power of 2) and
@@ -297,6 +299,10 @@ writef(char *fm, ...)
 	  else \
 	    sprintf(q, fmtbuf, arg, _s); \
 	}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Comment to avoid mkproto not generating the prototype for this function
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 status
 swritefv(char *buf, CharArray format, int argc, Any *argv)
@@ -818,7 +824,7 @@ sysPce(char *fm, ...)
   catchErrorSignalsPce(PCE, OFF);
 
   Cprintf("[PCE system error: ");
-  vprintf(fm, args);
+  Cvprintf(fm, args);
 
 #ifndef O_RUNTIME
   Cprintf("\n\tStack:\n");
@@ -835,7 +841,9 @@ sysPce(char *fm, ...)
   hostAction(HOST_BACKTRACE, 10);
   hostAction(HOST_RECOVER_FROM_FATAL_ERROR);
 
+#ifdef HAVE_GETPID
   Cprintf("[pid = %d]\n", (int) getpid());
+#endif
   if (confirmTerminal("Continue", "n"))
     return PCE_FAIL;
   if (confirmTerminal("Save core image", "n"))
@@ -869,6 +877,7 @@ msleep(int time)
 
 #else  /* !defined(__WATCOMC__) */
 
+#ifdef HAVE_SELECT
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #endif
@@ -896,6 +905,16 @@ msleep(int time)
   DEBUG(NAME_flash, Cprintf("ok\n"));
 }
 
+#else /*HAVE_SELECT*/
+
+extern void ws_msleep(int time);
+
+void
+msleep(int time)
+{ ws_msleep(time);
+}
+
+#endif /*HAVE_SELECT*/
 #endif /*__WATCOMC__*/
 
 #ifdef __msdos__

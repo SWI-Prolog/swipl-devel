@@ -10,6 +10,7 @@
 #define INLINE_UTILITIES 1
 #include <h/kernel.h>
 #include <h/trace.h>
+#include <h/interface.h>
 #include <itf/c.h>
 #include <h/unix.h>
 
@@ -142,7 +143,6 @@ getArgumentTypeMethod(Method m, Int n)
 }
   
 
-
 #define isBinding(obj)	(isObject(obj) && onFlag(obj, F_ISBINDING))
 
 Any
@@ -163,7 +163,7 @@ invokeMethod(Method m, Name c, Any receiver, int argc, const Any argv[])
 #ifdef __WINDOWS__
   { static int tick;
 
-    if ( !(++tick & 0xf) )
+    if ( !(++tick & 0xff) )
       ws_check_intr();			/* check for interrupt */
   }
 #endif
@@ -345,10 +345,17 @@ invokeMethod(Method m, Name c, Any receiver, int argc, const Any argv[])
     RECEIVER->value = receiver;
     RECEIVER_CLASS->value = m->context;
 
-    if ( c == NAME_send )
-      rval = (Any) forwardCodev(m->message, ntypes, av);
-    else
-      rval = getForwardFunctionv((Function) m->message, ntypes, av);
+    if ( instanceOfObject(m->message, ClassCode) )
+    { if ( c == NAME_send )
+	rval = (Any) forwardCodev(m->message, ntypes, av);
+      else
+	rval = getForwardFunctionv((Function) m->message, ntypes, av);
+    } else
+    { if ( c == NAME_send )
+	rval = (Any) hostCallProc(m->message, receiver, ntypes, av);
+      else
+	rval = hostCallFunc(m->message, receiver, ntypes, av);
+    }
 
     RECEIVER_CLASS->value = receiver_class_save;
     RECEIVER->value = receiver_save;
@@ -641,7 +648,7 @@ makeClassMethod(Class class)
   localClass(class, NAME_source, NAME_manual, "source_location*", NAME_both,
 	     "Location of definition in the sources");
 #endif
-  localClass(class, NAME_message, NAME_implementation, "code*", NAME_both,
+  localClass(class, NAME_message, NAME_implementation, "code|any*", NAME_both,
 	     "If implemented in PCE: the code object");
   localClass(class, NAME_function, NAME_implementation, "alien:Func", NAME_none,
 	     "If implemented in C: function pointer");
@@ -657,7 +664,7 @@ makeClassMethod(Class class)
   cloneStyleVariableClass(class, NAME_message, NAME_reference);
 
   sendMethod(class, NAME_initialise, DEFAULT, 6,
-	     "name=name", "types=[vector]", "implementation=code",
+	     "name=name", "types=[vector]", "implementation=code|any",
 	     "summary=[string]*", "source=[source_location]*", "group=[name]*",
 	     "Create from name, types, code and doc",
 	     initialiseMethod);

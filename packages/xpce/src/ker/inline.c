@@ -63,7 +63,7 @@ isProperObject(const Any obj)
 
 
 INLINE Any
-getMemberHashTable(HashTable ht, Any name)
+getMemberHashTable(const HashTable ht, const Any name)
 { int hashkey = hashKey(name, ht->buckets);
   Symbol s = &ht->symbols[hashkey];
 
@@ -235,8 +235,8 @@ CheckType(Any val, Type t, Any ctx)
 
 status	 constf instanceOfObject(const Any, const Class);
 status		isProperObject(const Any);
-Any		getSendMethodClass(const Class, const Name);
-Any		getGetMethodClass(const Class, const Name);
+Any		getSendMethodClass(Class, Name);
+Any		getGetMethodClass(Class, Name);
 Any		getMemberHashTable(const HashTable, const Any);
 status		executeCode(Code);
 Any		getExecuteFunction(Function);

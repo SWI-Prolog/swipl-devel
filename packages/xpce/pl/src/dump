@@ -34,7 +34,18 @@ send(@pce, home, Home).
 
 assert((library_directory(PceLib) :-
 	get(@pce, home, Home),
-	concat(Home, '/prolog/lib', PceLib))).
+	concat(Home, '/prolog/lib', RawLib),
+	absolute_file_name(RawLib, PceLib))).
+
+assert((file_search_path(demo, DemoDir) :-
+	get(@pce, home, Home),
+	concat(Home, '/prolog/demo', Raw),
+	absolute_file_name(Raw, DemoDir))).
+
+assert((file_search_path(contrib, ContribDir) :-
+	get(@pce, home, Home),
+	concat(Home, '/prolog/contrib', Raw),
+	absolute_file_name(Raw, ContribDir))).
 
 use_module(library(pce_manual)).
 

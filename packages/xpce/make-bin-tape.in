@@ -56,6 +56,8 @@ if [ "$binonly" != "t" ]; then
 	xpce-$version/Pce xpce-$version/bitmaps xpce-$version/postscript \
 	xpce-$version/prolog/lib \
 	xpce-$version/prolog/boot \
+	xpce-$version/prolog/contrib \
+	xpce-$version/prolog/demo \
 	xpce-$version/pl/load.pl \
 	xpce-$version/pl/library \
 	xpce-$version/pl/boot \

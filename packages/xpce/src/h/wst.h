@@ -10,8 +10,10 @@
 #ifndef _PCE_WST_INCLUDED
 #define _PCE_WST_INCLUDED
 
-
-
 #include <x11/wstproto.h>
+
+#ifdef __WINDOWS__			/* additional ones */
+#include <msw/msproto.h>
+#endif
 
 #endif /* _PCE_WST_INCLUDED */

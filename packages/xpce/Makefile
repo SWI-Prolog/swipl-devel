@@ -29,7 +29,7 @@ SHELL=/bin/sh
 
 prefix=/usr/local
 exec_prefix=${prefix}
-PCEHOME=/swi03/jan/src/xpce
+PCEHOME=/staff/jan/src/xpce
 XINCLUDES=/usr/include
 XLIB=/usr/lib
 
@@ -49,7 +49,7 @@ LDFLAGS=-static
 
 LIBS=	$(XLIBS) $(PLLIBS) $(NETLIBS) $(STATICLIBS)
 COFLAGS=-O2
-CWFLAGS=-Wall
+CWFLAGS=
 CIFLAGS=-I..
 CMFLAGS=-funsigned-char -DHAVE_CONFIG_H
 
@@ -74,7 +74,7 @@ ETAGS=etags
 SED=sed
 RM=rm
 
-VERSION=4.8.7, Feb. 1995
+VERSION=4.8.8, March. 1995
 RTSUFFIX=
 ARCH=sparc
 OS=sunos4.1.3
@@ -114,6 +114,12 @@ xpce:	$(RESOURCE_CLASS)
 	cd src; $(MAKE) WST=x11 xpcelib
 
 xpce-pl: xpce xpce-client
+	cd pl/src; \
+	CANONICAL_PATHS=$(PCEHOME); export CANONICAL_PATHS; \
+	$(MAKE) TARGET=$(TARGET)
+
+state:
+	$(RM) -f $(TARGET)
 	cd pl/src; \
 	CANONICAL_PATHS=$(PCEHOME); export CANONICAL_PATHS; \
 	$(MAKE) TARGET=$(TARGET)

@@ -54,6 +54,15 @@ RedrawAreaFigure(Figure f, Area area)
 }
 
 
+static status
+changedUnionFigure(Figure f, Int ox, Int oy, Int ow, Int oh)
+{ if ( f->pen != ZERO || notNil(f->background) || notNil(f->elevation) )
+    changedAreaGraphical((Graphical)f, ox, oy, ow, oh);
+       
+  return changedUnionDevice((Device) f, ox, oy, ow, oh);
+}
+
+
 		 /*******************************
 		 *	     OUTLINE		*
 		 *******************************/
@@ -287,6 +296,10 @@ makeClassFigure(Class class)
   sendMethod(class, NAME_shadow, NAME_appearance, 1, "0..",
 	     "Attach `shadow' elevation object",
 	     shadowFigure);
+  sendMethod(class, NAME_changedUnion, NAME_resize, 4,
+	     "ox=int", "oy=int", "ow=int", "oh=int",
+	     "Trap changes to the union of all graphicals",
+	     changedUnionFigure);
   sendMethod(class, NAME_convertOldSlot, NAME_compatibility, 2,
 	     "slot=name", "value=any",
 	     "Translate old shadow into elevation",

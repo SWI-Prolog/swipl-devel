@@ -39,7 +39,7 @@ if [ -r $PWD/Pce ]; then
 	    done
 	fi
     done
-    if [ "$PCEHOME" = "" ]; then
+    if test "$PCEHOME" = ""; then
 	PCEHOME="$PWD"
     else
 	if [ ! -r $PCEHOME/Pce ]; then PCEHOME="$PWD"; fi

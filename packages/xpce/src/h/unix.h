@@ -13,6 +13,10 @@
 #include <h/graphics.h>
 #include <unx/proto.h>
 
+#ifdef HAVE_UXNT_H
+#include <uxnt.h>
+#endif
+
 
 		 /*******************************
 		 *	   AUTOCONF STUFF	*

@@ -18,6 +18,10 @@ public:
     PceObject(ClassFile, path)
   {
   }
+  PceFile(PceArg path, PceArg kind) :
+    PceObject(ClassFile, path, kind)
+  {
+  }
 };
 
 inline PceFile

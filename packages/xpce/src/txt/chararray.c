@@ -8,6 +8,7 @@
 */
 
 #include <h/kernel.h>
+#include <h/unix.h>			/* storeCharpFile() prototype */
 
 		/********************************
 		*         CREATE/CONVERT	*

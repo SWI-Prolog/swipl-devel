@@ -13,6 +13,12 @@
 #include "include.h"
 
 
+void
+ws_initialise(int argc, char **argv)
+{
+}
+
+
 int
 ws_version()
 { return XT_VERSION;

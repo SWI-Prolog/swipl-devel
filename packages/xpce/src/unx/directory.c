@@ -530,8 +530,19 @@ getWorkingDirectoryPce(Pce pce)
 } 
 
 
-#define isAbsolutePath(p) ( IsDirSep(p[0]) || p[0] == '~' )
+
+int
+isAbsolutePath(const char *p)
+{
+#ifdef O_XOS
+  return _xos_is_absolute_filename(p);
+#else
+  return IsDirSep(p[0]) || p[0] == '~';
+#endif
+}
+
 #define isRelativePath(p) ( p[0] == '.' )
+
 
 char *
 absolutePath(char *file)

@@ -14,6 +14,10 @@ extern Any ClassWhile;
 class PceWhile :public PceObject
 {
 public:
+  PceWhile(PceArg condition) :
+    PceObject(ClassWhile, condition)
+  {
+  }
   PceWhile(PceArg condition, PceArg statement) :
     PceObject(ClassWhile, condition, statement)
   {

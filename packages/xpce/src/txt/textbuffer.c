@@ -597,7 +597,7 @@ parsep_line_textbuffer(TextBuffer tb, int here)
 
 
 int
-scan_textbuffer(TextBuffer tb, int from, Name unit, int amount, char az)
+scan_textbuffer(TextBuffer tb, int from, Name unit, int amount, int az)
 { int here;
   int size = tb->size;
   SyntaxTable syntax = tb->syntax;

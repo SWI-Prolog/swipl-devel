@@ -9,7 +9,9 @@
 
 #include <h/kernel.h>
 #include <h/graphics.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 
 static status	runningTimer(Timer tm, Bool val);
 

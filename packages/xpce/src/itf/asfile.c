@@ -70,6 +70,10 @@ allocFileHandle()
 }
 
 
+#ifndef ENOSR				/* WIN32: what to reply? */
+#define ENOSR EINVAL
+#endif
+
 int
 pceOpen(Any obj, int flags)
 { int handle = allocFileHandle();

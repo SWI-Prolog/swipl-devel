@@ -8,8 +8,8 @@
 */
 
 #include <h/kernel.h>
-#include <h/graphics.h>
 #include <h/unix.h>
+#include <h/graphics.h>
 
 static status
 initialisePixmap(PixmapObj pm, Any from, Colour fg, Colour bg, Int w, Int h)
@@ -110,7 +110,7 @@ getSourcePixmap(PixmapObj pm)
 }
 
 
-#ifdef __WINDOWS__
+#if defined(__WINDOWS__) || defined(__WIN32__)
 Colour
 getReplacementColourPixmap(PixmapObj pm)
 { Colour c;

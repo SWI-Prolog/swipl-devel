@@ -480,15 +480,15 @@ computeBoundingBoxDevice(Device dev)
 { if ( dev->badBoundingBox == ON )
   { Cell cell;
     Area a = dev->area;
-    Int ax, ay, aw, ah;
+    Int od[4];				/* ax, ay, aw, ah */
+    od[0] = a->x; od[1] = a->y; od[2] = a->w; od[3] = a->h;
 
-    ax = a->x; ay = a->y; aw = a->w; ah = a->h;
     clearArea(a);
 
     DEBUG(NAME_compute,
 	  Cprintf("computeBoundingBoxDevice(%s) %ld %ld %ld %ld\n",
 		  pp(dev),
-		  valInt(ax), valInt(ay), valInt(aw), valInt(ah)));
+		  valInt(od[0]), valInt(od[1]), valInt(od[3]), valInt(od[4])));
 
 
     for_cell(cell, dev->graphicals)
@@ -500,7 +500,7 @@ computeBoundingBoxDevice(Device dev)
 
     relativeMoveArea(a, dev->offset);
 
-    if ( ax != a->x || ay != a->y || aw != a->w || ah != a->h )
+    if ( od[0] != a->x || od[1] != a->y || od[3] != a->w || od[4] != a->h )
     { DEBUG(NAME_compute,
 	    Cprintf("                          --> %ld %ld %ld %ld\n",
 		    valInt(a->x), valInt(a->y), valInt(a->w), valInt(a->h)));
@@ -510,7 +510,7 @@ computeBoundingBoxDevice(Device dev)
       	updateConnectionsGraphical((Graphical) dev, sub(dev->level, ONE));
       }
 
-      send(dev, NAME_changedUnion, a, 0);
+      qadSendv(dev, NAME_changedUnion, 4, od);
     }
 
     if ( notNil(dev->clip_area) )
@@ -530,7 +530,7 @@ computeBoundingBoxDevice(Device dev)
 
 
 status
-changedUnionDevice(Device dev, Area a)
+changedUnionDevice(Device dev, Int ox, Int oy, Int ow, Int oh)
 { succeed;
 }
 
@@ -1777,7 +1777,8 @@ makeClassDevice(Class class)
   sendMethod(class, NAME_updatePointed, NAME_event, 1, "event",
 	     "Update <-pointed, sending area_enter and area_exit events",
 	     updatePointedDevice);
-  sendMethod(class, NAME_changedUnion, NAME_resize, 1, "area",
+  sendMethod(class, NAME_changedUnion, NAME_resize, 4,
+	     "ox=int", "oy=int", "ow=int", "oh=int",
 	     "Trap changes to the union of all graphicals",
 	     changedUnionDevice);
   sendMethod(class, NAME_reparent, NAME_organisation, 0,

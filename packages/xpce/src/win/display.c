@@ -952,11 +952,11 @@ makeClassDisplay(Class class)
 
   attach_font_families(class);
 
-#ifdef __WINDOWS__
+#ifdef _WINDOWS
 					/* @nil     --> no handling */
 					/* @default --> task-level handling */
 					/* name	    --> external dll */
-  attach_resource(class, "wh_mouse_dll", "[name]*", "pcewh.dll",
+  attach_resource(class, "wh_mouse_dll", "[name]*", "xpcemh.dll",
 		  "DLL to generate area_enter/area_exit events");
 #endif
 

@@ -67,7 +67,9 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     case WM_SIZE:			/* window changed size */
     { int w = LOWORD(lParam);
       int h = HIWORD(lParam);
-
+      Area a = sw->area;
+      Int ow = a->w, oh = a->h;
+      
       if ( notNil(sw->device) )		/* subwindow */
       { int p2 = valInt(sw->pen) * 2;
 
@@ -75,10 +77,10 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	h += p2;
       }
 
-      assign(sw->area, w, toInt(w));
-      assign(sw->area, h, toInt(h));
+      assign(a, w, toInt(w));
+      assign(a, h, toInt(h));
       qadSendv(sw, NAME_resize, 0, NULL);
-      changedUnionWindow(sw, sw->area);
+      changedUnionWindow(sw, a->x, a->y, ow, oh);
       return 0;
     }
 

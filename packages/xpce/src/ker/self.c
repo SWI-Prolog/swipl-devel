@@ -14,7 +14,9 @@
 #include <h/trace.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 #include <time.h>
 #include <h/graphics.h>
 #include <h/unix.h>
@@ -368,7 +370,7 @@ exceptionPce(Pce pce, Name kind, ...)
 		********************************/
 
 #ifndef HAVE_GETDTABLESIZE
-#ifdef(HAVE_SYS_RESOURCE_H)
+#ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
 #if defined(__sun__) && !defined(STDC_HEADERS)
 extern int getrlimit(int resource, struct rlimit *rlp);
@@ -395,7 +397,7 @@ getdtablesize(void)
 static Int
 getFdPce(Pce pce)
 {
-#ifdef __WINDOWS__
+#ifndef __unix__
   return toInt(ws_free_file_descriptors());
 #else
   int i, cntr = 0;
@@ -605,19 +607,11 @@ getDatePce(Pce pce)
   answer(CtoString(tmp));
 }
 
-#ifdef __msdos__
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Define getlogin() and gethostname() for the DOS/Windows version.
-These functions are renamed to fool mkproto adding a possibly
-conflicting prototype for them.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define gethostname _dosemu_gethostname
-#define getlogin _dosemu_getlogin
+#ifndef HAVE_GETLOGIN
+#define getlogin _emu_getlogin
 
 static char *
-_dosemu_getlogin()
+_emu_getlogin()
 { char *user = getenv("USER");
 
   if ( !user )
@@ -625,9 +619,13 @@ _dosemu_getlogin()
 
   return user;
 }
+#endif /*HAVE_GETLOGIN*/
+
+#ifndef HAVE_GETHOSTNAME
+#define gethostname _emu_gethostname
 
 static int
-_dosemu_gethostname(char *buf, int len)
+_emu_gethostname(char *buf, int len)
 { char *s;
   
   if ( (s = getenv("HOSTNAME")) != NULL )
@@ -638,7 +636,7 @@ _dosemu_gethostname(char *buf, int len)
   return 0;
 }
 
-#endif /*__msdos__*/
+#endif /*HAVE_GETHOSTNAME*/
 
 #ifdef HAVE_PWD_H
 #include <pwd.h>
@@ -710,7 +708,12 @@ getHostnamePce(Pce pce)
 
 static Int
 getPidPce(Pce pce)
-{ answer(toInt(getpid()));
+{ 
+#ifdef HAVE_GETPID
+  answer(toInt(getpid()));
+#else
+  answer(toInt(ws_getpid()));
+#endif
 }
 
 /* (JW)	When switched on pce will catch all normal error signals, print the
@@ -762,22 +765,30 @@ confirmPce(Pce pce, CharArray fmt, int argc, Any *argv)
   strcat(buf, " (y/n) ? ");
   
   for(try = 0; try < 3; try++)
-  { int c;
+  { char line[256];
 
     hostAction(HOST_WRITE, buf);
     hostAction(HOST_FLUSH);
 
-    switch(c = hostGetc())
-    { case EOF:
-      case 04:
-	break;
-      case 'n':
-	fail;
-      case 'y':
-	succeed;
-      default:
-	writef("Please answer `y' or `n'\n");
+    if ( Cgetline(line, sizeof(line)) )
+    { char *s = line;
+      
+      while( *s && isblank(*s) )
+	s++;
+
+      switch(*s)
+      { case 'n':
+	  fail;
+	case 'y':
+	  succeed;
+	default:
+	  writef("Please answer `y' or `n'\n");
+      }
+
+      continue;
     }
+
+    break;
   }
   
   hostAction(HOST_HALT);
@@ -1288,7 +1299,7 @@ makeClassPce(Class class)
 Reinitialise after restoring from some kind of saved-state
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-status
+export status
 pceReInitialise(int argc, char **argv)
 { PCEargc = argc;
   PCEargv = argv;
@@ -1301,7 +1312,7 @@ pceReInitialise(int argc, char **argv)
 }
 
 
-status
+export status
 pceInitialise(int handles, int argc, char **argv)
 { AnswerMark mark;
 
@@ -1427,7 +1438,7 @@ pceInitialise(int handles, int argc, char **argv)
 	      sizeof(struct method),
 	      5,
 	      initialiseMethod,
-	      6, "name", "[vector]", "code", "[string]*",
+	      6, "name", "[vector]", "code|any", "[string]*",
 	         "[source_location]*", "[name]*");
 
   ClassSendMethod =
@@ -1436,7 +1447,7 @@ pceInitialise(int handles, int argc, char **argv)
 	      sizeof(struct send_method),
 	      0,
 	      initialiseMethod,
-	      6, "name", "[vector]", "code",
+	      6, "name", "[vector]", "code|any",
 	         "[string]*", "[source_location]*", "[name]*");
 
   ClassGetMethod =
@@ -1445,7 +1456,7 @@ pceInitialise(int handles, int argc, char **argv)
 	      sizeof(struct get_method),
 	      0,
 	      initialiseGetMethod,
-	      7, "name", "[type]", "[vector]", "code",
+	      7, "name", "[type]", "[vector]", "code|any",
 	         "[string]*", "[source_location]*", "[name]*");
 
   ClassCharArray =
@@ -1580,9 +1591,7 @@ pceInitialise(int handles, int argc, char **argv)
   rewindAnswerStack(mark, NIL);
   inBoot = FALSE;
 
-#ifdef __WINDOWS__
-  rlc_word_char('@', TRUE);
-#endif
+  ws_initialise(argc, argv);
 
   DEBUG_BOOT(Cprintf("Pce initialisation complete.\n"));
   succeed;

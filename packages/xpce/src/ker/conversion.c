@@ -214,9 +214,9 @@ int sig;
 char *
 pcePP(Any obj)
 { char *s;
-  RETSIGTYPE (*old_segv)() = signal(SIGSEGV, pp_sig);
+  RETSIGTYPE (*old_segv)(int) = signal(SIGSEGV, pp_sig);
 #ifdef SIGBUS
-  RETSIGTYPE (*old_bus)() = signal(SIGBUS, pp_sig);
+  RETSIGTYPE (*old_bus)(int) = signal(SIGBUS, pp_sig);
 #endif
 #ifndef O_RUNTIME
   int old = PCEdebugging;

@@ -10,28 +10,42 @@
 #define NDEBUG				/* delete assert() */
 #define MODULE	1			/* Tag selector with module */
 
-#include <SWI-Prolog.h>			/* SWI-Prolog <-> C interface */
 #include <SWI-Stream.h>			/* SWI-Prolog streams */
+#include <SWI-Prolog.h>			/* SWI-Prolog <-> C interface */
 #include "../../prolog/c/interface.h"	/* generic Prolog <->PCE part */
+#include <stdlib.h>			/* exit() */
 
 #define pl_get0		pce_get0	/* avoid name-conflicts */
 #define pl_get2		pce_get2
 
-typedef term	Term;			/* generic Prolog term */
+typedef term_t	Term;			/* generic Prolog term */
 typedef void (*OnExitFunction)(int, void *);
 
-static foreign_t pl_pce_open(Term t, Term mode, Term plhandle);
+static foreign_t	pl_pce_open(Term t, Term mode, Term plhandle);
+static foreign_t	pl_pce_predicate_reference(term_t pred, term_t ref);
+static void		init_pce_callbacks(void);
 
-static atomic	ATOM_call;		/* call */
-static atomic	FUNCTOR_ref1;		/* @/1 */
-static atomic	FUNCTOR_new1;		/* new/1 */
-static atomic	FUNCTOR_new2;		/* new/2 */
-static atomic	FUNCTOR_string1;	/* string/1 */
-static atomic	ATOM_read;		/* read */
-static atomic	ATOM_write;		/* write */
-static atomic	ATOM_append;		/* append */
-static module   MODULE_user;		/* Global module */
+#ifdef __WIN32__
+static IOSTREAM *S__iob;		/* Windows DLL version */
 
+#define PROLOG_ITF_INIT() { S__iob = S__getiob(); }
+
+install_t
+install()
+{ prolog_pce_init();
+}
+#endif
+
+static atomic	 ATOM_call;		/* call */
+static atomic	 ATOM_read;		/* read */
+static atomic	 ATOM_write;		/* write */
+static atomic	 ATOM_append;		/* append */
+static functor_t FUNCTOR_ref1;		/* @/1 */
+static functor_t FUNCTOR_new1;		/* new/1 */
+static functor_t FUNCTOR_new2;		/* new/2 */
+static functor_t FUNCTOR_string1;	/* string/1 */
+static functor_t FUNCTOR_module2;	/* :/2 */
+static module_t  MODULE_user;		/* Global module */
 
 #define GetType(term)		PL_type(term)
 
@@ -106,15 +120,17 @@ static module   MODULE_user;		/* Global module */
 #define PROLOG_ONEXIT(f, a)	PL_on_halt(f, a)
 
 #define PROLOG_INSTALL_REINIT_FUNCTION(f) \
-				{ PL_foreign_reinit_function = (void (*)())f; }
+				{ PL_reinit_hook((PL_reinit_hook_t)(f)); }
 #define PROLOG_INSTALL_RESET_FUNCTION(f) \
-				{ PL_abort_handle(f); }
-#ifdef __WATCOMC__
+				{ PL_abort_hook(f); }
+#if defined(__WATCOMC__) || defined(__WIN32__)
 #define PROLOG_INSTALL_DISPATCH_FUNCTION(f) {}
 #else
 #define PROLOG_INSTALL_DISPATCH_FUNCTION(f) \
-				{ PL_dispatch_events = f; }
+				{ PL_dispatch_hook(f); }
 #endif
+
+#define PROLOG_INSTALL_CALLBACKS() init_pce_callbacks()
 
 #define PROLOG_DISPATCH_INPUT   PL_DISPATCH_INPUT
 #define PROLOG_DISPATCH_TIMEOUT PL_DISPATCH_TIMEOUT
@@ -131,23 +147,19 @@ static module   MODULE_user;		/* Global module */
 
 
 static void
-_Warning(fm, args)
-char *fm;
-va_list args;
-{ fprintf(stderr, "[Prolog/PCE interface: ");
-  vfprintf(stderr, fm, args);
-  fprintf(stderr, "]\n");
+_Warning(char *fm, va_list args)
+{ Sdprintf("[Prolog/PCE interface: ");
+  Svdprintf(fm, args);
+  Sdprintf("]\n");
   PROLOG_TRACE();
 }
 
 
 static void
-_FatalError(fm, args)
-char *fm;
-va_list args;
-{ fprintf(stderr, "[Prolog/PCE interface FATAL ERROR: ");
-  vfprintf(stderr, fm, args);
-  fprintf(stderr, "]\n");
+_FatalError(char *fm, va_list args)
+{ Sdprintf("[Prolog/PCE interface FATAL ERROR: ");
+  Svdprintf(fm, args);
+  Sdprintf("]\n");
 
   PROLOG_ABORT();
   
@@ -177,10 +189,7 @@ FatalError(char *fm, ...)
 
 
 static void
-GetCompound(t, n, a)
-Term t;
-char **n;
-int *a;
+GetCompound(Term t, char **n, int *a)
 { functor f = PL_functor(t);
   *n = PL_atom_value(PL_functor_name(f));
   *a = PL_functor_arity(f);
@@ -188,16 +197,13 @@ int *a;
 
 
 static char *
-ListToCharp(t)
-Term t;
+ListToCharp(Term t)
 { return PL_list_string_value(t);
 }
 
 
 static inline Term
-StripModuleTag(t, m)
-Term t;
-char **m;
+StripModuleTag(Term t, char **m)
 { if ( *m != NULL )
   { module mod = (module) -1;		/* terrible hack ... */
 
@@ -216,7 +222,7 @@ char **m;
 
 
 static void
-InitPrologConstants()
+InitPrologConstants(void)
 { ATOM_call		= PL_new_atom("call");
   ATOM_read		= PL_new_atom("read");
   ATOM_write		= PL_new_atom("write");
@@ -226,10 +232,14 @@ InitPrologConstants()
   FUNCTOR_new1		= PL_new_functor(PL_new_atom("new"), 1);
   FUNCTOR_new2		= PL_new_functor(PL_new_atom("new"), 2);
   FUNCTOR_string1	= PL_new_functor(PL_new_atom("string"), 1);
+  FUNCTOR_module2	= PL_new_functor(PL_new_atom(":"), 2);
 
   MODULE_user		= PL_new_module(PL_new_atom("user"));
 
-  PL_register_foreign("pce_open", 3, pl_pce_open, 0);
+  PL_register_foreign("pce_open", 3,
+		      pl_pce_open, 0);
+  PL_register_foreign("pce_predicate_reference", 2,
+		      pl_pce_predicate_reference, PL_FA_TRANSPARENT);
 }
 
 
@@ -243,12 +253,7 @@ extra variable for the result. NULL is returned on failure.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Term
-vectorToGoal(sel, argc, argv, send, m)
-PceObject sel;
-int argc;
-PceObject *argv;
-bool send;
-module *m;
+vectorToGoal(PceObject sel, int argc, PceObject *argv, bool send, module *m)
 { Term goal = PL_new_term();
   Term st = goal;
   atomic f;
@@ -286,18 +291,14 @@ module *m;
 }  
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-hostSend() is called by PCE to invoke behaviour in Prolog.  As the terms
-built by vectorToGoal() and the actual calling are not related to  other
-material  we  can savely reset the global stack's top pointer to discard
-these terms.
+PrologSend() is called by PCE to  invoke   behaviour  in Prolog.  As the
+terms built by vectorToGoal() and the actual  calling are not related to
+other material we can savely reset  the   global  stack's top pointer to
+discard these terms.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
-hostSend(prolog, sel, argc, argv)
-PceObject prolog;
-PceObject sel;
-int argc;
-PceObject *argv;
+static int
+PrologSend(PceObject prolog, PceObject sel, int argc, PceObject *argv)
 { Term goal;
   module m;
   bktrk_buf buf;
@@ -315,16 +316,12 @@ PceObject *argv;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-hostGet()  calls  prolog  and  transforms  the  last  argument  of   the
+PrologGet()  calls  prolog  and  transforms  the  last  argument  of   the
 (succeeded) goal into an object.  It then returns this object to PCE.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-PceObject
-hostGet(prolog, sel, argc, argv)
-PceObject prolog;
-PceObject sel;
-int argc;
-PceObject argv[];
+static PceObject
+PrologGet(PceObject prolog, PceObject sel, int argc, PceObject *argv)
 { Term goal;
   module m;
   bktrk_buf buf;
@@ -343,6 +340,232 @@ PceObject argv[];
   return answer;
 }
 
+
+		 /*******************************
+		 *    DIRECT CALLBACK SUPPORT	*
+		 *******************************/
+
+static foreign_t
+pl_pce_predicate_reference(term_t pred, term_t ref)
+{ if ( PL_is_var(pred) )
+  { PceObject obj;
+    void *ptr;
+
+    if ( (obj = termToObject(ref, NULL, FALSE)) &&
+	 (ptr = pcePointerToC(obj)) )
+    { predicate_t predicate = ptr;
+      atomic_t modname  = PL_module_name(PL_predicate_module(predicate));
+      functor_t functor = PL_predicate_functor(predicate);
+      
+      if ( PL_unify_functor(pred, FUNCTOR_module2) &&
+	   PL_unify_atomic(PL_arg(pred, 1), modname) &&
+	   PL_unify_functor(PL_arg(pred, 2), functor) )
+	PL_succeed;
+    }
+
+    PL_fail;
+  } else
+  { module_t module = MODULE_user;
+
+    if ( (pred = PL_strip_module(pred, &module)) )
+    { functor_t functor;
+      predicate_t predicate;
+
+      if ( PL_is_term(pred) )
+	functor = PL_functor(pred);
+      else if ( PL_is_atom(pred) )
+	functor = PL_new_functor(PL_atomic(pred), 0);
+      else
+      { Warning("pce_predicate_reference/2: illegal predicate specification");
+	PL_fail;
+      }
+
+      if ( (predicate = PL_predicate(functor, module)) )
+      { PceObject pceref = cToPcePointer(predicate);
+	
+	return unifyObject(ref, pceref, FALSE);
+      }
+
+      PL_fail;
+    }
+  }
+}
+
+
+static term_t
+pushObject(PceObject obj)
+{ PceCValue value;
+  int pltype, pcetype;
+  char *s;
+  atomic_t avalue;
+  term_t rval;
+  extern term_t alloc_global(int size);
+
+  switch( pcetype = pceToC(obj, &value) )
+  { case PCE_REFERENCE:
+      avalue = PL_new_integer(value.integer);
+      goto ref_val;
+    case PCE_ASSOC:
+      { PceITFSymbol symbol = value.itf_symbol;
+
+	if ( symbol->handle[0] != NULL )
+	  avalue = (atomic_t) symbol->handle[0];
+	else
+	  avalue = PL_new_atom(pceCharArrayToC(symbol->name));
+      }
+      goto ref_val;
+    ref_val:
+      rval = alloc_global(2);
+      rval[0] = (atomic_t) FUNCTOR_ref1;
+      rval[1] = avalue;
+      
+      return rval;
+    case PCE_INTEGER:
+      avalue = PL_new_integer(value.integer);
+      goto atomic_val;
+    case PCE_NAME:
+      { PceITFSymbol symbol = value.itf_symbol;
+
+	if ( symbol->handle[0] != NULL )
+	  avalue = (atomic_t) symbol->handle[0];
+	else
+	  avalue = PL_new_atom(pceCharArrayToC(symbol->name));
+      }
+      goto atomic_val;
+    case PCE_REAL:
+      avalue = PL_new_float(value.real);
+      goto atomic_val;
+    atomic_val:
+      rval = alloc_global(1);
+      *rval = avalue;
+
+      return rval;
+
+    default:
+      assert(0);
+  }
+
+  return NULL;
+}
+
+
+
+static int
+PrologCallProc(PceObject handle, PceObject rec, int argc, PceObject objv[])
+{ void *ptr = pcePointerToC(handle);
+
+  if ( ptr != PCE_NO_POINTER )
+  { predicate_t pred = ptr;
+    int arity = PL_predicate_arity(pred);
+    TermVector(termv, arity+1);
+    int i, rval;
+    bktrk_buf buf;
+
+    if ( argc+1 != arity )
+    { Warning("PrologCallProc(): inconsistent arity");
+      return PCE_FAIL;
+    }
+
+    PL_mark(&buf);
+    termv[0] = pushObject(rec);
+    for(i=0; i<argc; i++)
+      termv[i+1] = pushObject(objv[i]);
+
+    rval = PL_call_predicate(NULL, TRUE, pred, termv) ? PCE_SUCCEED : PCE_FAIL;
+out:
+    PL_bktrk(&buf);
+
+    return rval;
+  }
+
+  Warning("PrologCallProc(): bad predicate reference");
+  return PCE_FAIL;
+}
+
+
+static PceObject
+PrologCallFunc(PceObject handle, PceObject rec, int argc, PceObject objv[])
+{ void *ptr = pcePointerToC(handle);
+
+  if ( ptr != PCE_NO_POINTER )
+  { predicate_t pred = ptr;
+    int arity = PL_predicate_arity(pred);
+    TermVector(termv, arity);
+    int i;
+    PceObject answer;
+    bktrk_buf buf;
+
+    if ( argc+2 != arity )
+    { Warning("PrologCallFunc(): inconsistent arity");
+      return PCE_FAIL;
+    }
+
+    PL_mark(&buf);
+    termv[0] = pushObject(rec);
+    for(i=0; i<argc; i++)
+      termv[i+1] = pushObject(objv[i]);
+    termv[arity-1] = PL_new_term();
+
+    if ( PL_call_predicate(NULL, TRUE, pred, termv) )
+    { answer = termToObject(termv[arity-1], NULL, FALSE);
+    } else
+      answer = PCE_FAIL;
+  out:
+    PL_bktrk(&buf);
+
+    return answer;
+  }
+
+  Warning("PrologCallFunc(): bad predicate reference");
+  return PCE_FAIL;
+}
+
+
+
+		 /*******************************
+		 *	      I/O		*
+		 *******************************/
+
+static void
+pl_vCprintf(const char *fmt, va_list args)
+{ Svprintf(fmt, args);
+
+  Sflush(Soutput);
+}
+
+
+static int
+pl_Cputchar(int chr)
+{ return Sputchar(chr);
+}
+
+
+static char *
+pl_Cgetline(char *line, int size)
+{ return Sfgets(line, size, Sinput);
+}
+
+		 /*******************************
+		 *     CALLBACK REGISTRATION	*
+		 *******************************/
+
+static pce_callback_functions callbackfunction =
+{ PrologSend,
+  PrologGet,
+  PrologCallProc,
+  PrologCallFunc,
+  PrologQuery,
+  PrologAction,
+  pl_vCprintf,
+  pl_Cputchar,
+  pl_Cgetline
+};
+
+
+static void
+init_pce_callbacks()
+{ pceRegisterCallbacks(&callbackfunction);
+}
 
 		 /*******************************
 		 *	 STREAM CONNECTION	*

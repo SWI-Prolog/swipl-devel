@@ -7,12 +7,33 @@
     Copyright (C) 1994 University of Amsterdam. All rights reserved.
 */
 
-#define  RedrawWindow WinRedrawWindow
+#define RedrawWindow WinRedrawWindow
 #include <windows.h>
 #undef RedrawWindow
+#undef hyper				/* don't need this */
+#undef islower				/* we have these ourselves */
+#undef isupper
+#undef isdigit
+#undef isalnum
+#undef isalpha
+#undef iscntrl
+#undef isprint
+#undef isspace
+#undef ispunct
+#undef isxdigit
 
 #include "pcewh.h"
+
+#ifdef __WIN32__
+#define CONSOLE_PROVIDE_WINMAIN 1	/* rlc_hinstance() and rlc_hwnd() */
+#include <console.h>
+#define WinAPI		int PASCAL
+#define MK_FP32(x) x
+#else /*__WIN32__*/
+
 #include "..\..\..\readline\console.h"
+#define WinAPI		long FAR PASCAL _export
+#endif /*__WIN32__*/
 
 #define PceHInstance	rlc_hinstance()
 
@@ -68,6 +89,7 @@ HWND		getHwndWindow(PceWindow sw);
 void		setHwndWindow(PceWindow sw, HWND ref);
 EventObj	messageToEvent(HWND hwnd, UINT msg, UINT wParam, LONG lParam);
 status		d_mswindow(PceWindow sw, IArea a, int clear);
+void		d_hdc(HDC hdc, Colour fg, Colour bg);
 void		initDraw(void);
 void		exitDraw(void);
 void *		ws_image_bits(Image image);
@@ -82,12 +104,15 @@ status		start_big_cursor(CursorObj c);
 		 *******************************/
 
 static int _dobj;
-static int _hcur;
+static HCURSOR _hcur;
 
 #define ZSelectObject(hdc, obj)	\
 	(assert(obj), SelectObject(hdc, obj))
 #define ZDeleteObject(obj) \
-	(_dobj = DeleteObject(obj), assert(_dobj), _dobj)
+	(_dobj = DeleteObject(obj), \
+	 (!_dobj?(void)Cprintf("%s:%d: DeleteObject(0x%x) failed\n",\
+			       __FILE__,__LINE__,obj):(void)0),\
+	 _dobj)
 #define ZSetCursor(h) \
 	(_hcur = SetCursor(h), \
 	 (PCEdebugging && memberChain(PCEdebugSubjects, NAME_cursor)) ? \

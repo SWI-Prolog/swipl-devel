@@ -105,7 +105,7 @@ void		changed_window(PceWindow sw, int x, int y, int w, int h, int clear);
 status		redrawWindow(PceWindow sw, Area a);
 status		RedrawWindow(PceWindow sw);
 status		RedrawAreaWindow(PceWindow sw, IArea a, int clear);
-status		changedUnionWindow(PceWindow sw, Area a);
+status		changedUnionWindow(PceWindow sw, Int ox, Int oy, Int ow, Int oh);
 status		bubbleScrollBarWindow(PceWindow sw, ScrollBar sb);
 status		pointerWindow(PceWindow sw, Point pos);
 status		focusCursorWindow(PceWindow sw, CursorObj cursor);

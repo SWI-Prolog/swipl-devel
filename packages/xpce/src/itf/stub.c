@@ -8,11 +8,12 @@
 */
 
 #include "md.h"
-#include <h/interface.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <signal.h>
+#include <h/interface.h>
+#include "stub.h"
 
 #ifndef FALSE
 #define FALSE 0
@@ -24,12 +25,11 @@
 #endif
 
 typedef void (*VoidFunc)();
-
-#if HOSTACTION
+typedef void (*sig_handler_t)(int);
 typedef void (*OnExitFunction)(int, void *);
 
-#if HAVE_atexit && !HAVE_on_exit
-#define HAVE_on_exit 1
+#if defined(HAVE_ATEXIT) && !defined(HAVE_ON_EXIT)
+#define HAVE_ON_EXIT 1
 typedef struct on_exit_cell * OnExitCell;
 static OnExitCell OnExitList;
 
@@ -62,15 +62,12 @@ on_exit(OnExitFunction f, char *s)
     initialised = TRUE;
   }
 }
-#endif
+#endif /*HAVE_on_exit*/
 
 int
-hostAction(int action, ...)
-{ va_list args;
-  int rval = PCE_SUCCEED;
+Stub__HostActionv(int action, va_list args)
+{ int rval = PCE_SUCCEED;
 
-  va_start(args, action);
-  
   switch(action)
   { case HOST_ONEXIT:
 #if HAVE_ON_EXIT
@@ -94,7 +91,7 @@ hostAction(int action, ...)
       exit(va_arg(args, int));
       break;
     case HOST_SIGNAL:
-      signal(va_arg(args, int), va_arg(args, VoidFunc));
+      signal(va_arg(args, int), va_arg(args, sig_handler_t));
       break;
     case HOST_WRITE:
       printf("%s", va_arg(args, char *));
@@ -107,105 +104,52 @@ hostAction(int action, ...)
       rval = PCE_FAIL;
   }
 
-  va_end(args);
-
   return rval;
 }
 
-#endif /*HOSTACTION*/
-
-#if HOSTQUERY
 
 int
-hostQuery(what, value)
+Stub__HostQuery(what, value)
 int what;
 PceCValue *value;
 { switch(what)
   { case HOST_SYMBOLFILE:
 	return PCE_FAIL;
-    case HOST_GETC:
-	value->character = getchar();
-	return PCE_SUCCEED;
     default:
 	fprintf(stderr, "Unknown query from PCE: %d", what);
 	return PCE_FAIL;
   }
 }
 
-#endif /*HOSTQUERY*/
-
-#if HOSTSEND
 
 int
-hostSend(PceObject prolog, PceObject sel, int argc, PceObject argv[])
+Stub__HostSend(PceObject prolog, PceName sel, int argc, PceObject *argv)
 { fprintf(stderr, "hostSend() not implemented.  See class `c'\n");
 
   return PCE_FAIL;
 }
 
-#endif /*HOSTSEND*/
-
-#if HOSTGET
 
 PceObject
-hostGet(PceObject prolog, PceObject sel, int argc, PceObject argv[])
+Stub__HostGet(PceObject prolog, PceName sel, int argc, PceObject *argv)
 { fprintf(stderr, "hostGet() not implemented.  See class `c'\n");
 
   return PCE_FAIL;
 }
 
-#endif /*HOSTGET*/
-
-#if MAIN
-
-extern int pceInitApplication(int argc, char **argv);
 
 int
-main(int argc, char* argv[])
-{ if ( !pceInitialise(0, argc, argv) )
-  { fprintf(stderr, "Sorry, failed to initialise XPCE\n");
-    exit(1);
-  }
-  
-  if ( !pceInitApplication(argc, argv) )
-  { fprintf(stderr, "Failed to run pceInitApplication()\n");
-    exit(1);
-  }
+Stub__HostCallProc(PceObject handle, PceObject rec, int argc, PceObject *argv)
+{ Cprintf("hostCallProc() not implemented\n");
 
-  for(;;)
-    pceDispatch(0, 1000);
-}
-
-#endif /*MAIN*/
-
-#ifdef XMALLOC
-		/********************************
-		*        XMALLOC/XREALLOC	*
-		********************************/
-
-void *
-xmalloc(size_t nbytes)
-{ void *rval = malloc(nbytes);
-
-  if ( !rval )
-  { fprintf(stderr, "[PCE: Not enough memory]\n");
-    exit(1);
-  }
-
-  return rval;
+  return PCE_FAIL;
 }
 
 
-void *
-xrealloc(void *ptr, size_t nbytes)
-{ void *rval = realloc(ptr, nbytes);
+PceObject
+Stub__HostCallFunc(PceObject handle, PceObject rec, int argc, PceObject *argv)
+{ Cprintf("hostCallFunc() not implemented\n");
 
-  if ( !rval )
-  { fprintf(stderr, "[PCE: Not enough memory]\n");
-    exit(1);
-  }
-
-  return rval;
+  return PCE_FAIL;
 }
 
-#endif /*XMALLOC*/

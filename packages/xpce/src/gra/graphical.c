@@ -2423,7 +2423,12 @@ Any
 getMasterGraphical(Graphical gr)
 { if ( instanceOfObject(gr->device, ClassTree) )
   { Tree t = (Tree) gr->device;
-    answer(getFindNodeNode(t->displayRoot, gr));
+    Any master;
+
+    if ( (master=getFindNodeNode(t->displayRoot, gr)) )
+      answer(master);
+    else
+      answer(gr);			/* graphical displayed on tree */
   }
 
   answer(gr);

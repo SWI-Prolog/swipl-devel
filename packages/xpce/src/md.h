@@ -14,10 +14,14 @@ autoconf/config.h based machine-binding file.
 #ifndef _MD_INCLUDED
 #define _MD_INCLUDED
 
-#ifdef __WINDOWS__
-#include "md/md-mswin.h"
+#if defined(WIN32) || defined(__WIN32__)
+# include "md/md-win32.h"
 #else
-#include "../config.h"
+# ifdef __WINDOWS__
+# include "md/md-mswin.h"
+# else
+# include "../config.h"
+# endif
 #endif
 		 /*******************************
 		 *	      ALLOCA		*

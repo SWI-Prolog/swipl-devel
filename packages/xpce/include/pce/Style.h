@@ -46,6 +46,22 @@ public:
     PceObject(ClassStyle, icon, font, colour, highlight, underline, bold, grey)
   {
   }
+  PceStyle(PceArg icon, PceArg font, PceArg colour, PceArg highlight, PceArg underline, PceArg bold, PceArg grey, PceArg background) :
+    PceObject(ClassStyle, icon, font, colour, highlight, underline, bold, grey, background)
+  {
+  }
+  PceStyle(PceArg icon, PceArg font, PceArg colour, PceArg highlight, PceArg underline, PceArg bold, PceArg grey, PceArg background, PceArg hidden) :
+    PceObject(ClassStyle, icon, font, colour, highlight, underline, bold, grey, background, hidden)
+  {
+  }
+  PceStyle(PceArg icon, PceArg font, PceArg colour, PceArg highlight, PceArg underline, PceArg bold, PceArg grey, PceArg background, PceArg hidden, PceArg left_margin) :
+    PceObject(ClassStyle, icon, font, colour, highlight, underline, bold, grey, background, hidden, left_margin)
+  {
+  }
+  PceStyle(PceArg icon, PceArg font, PceArg colour, PceArg highlight, PceArg underline, PceArg bold, PceArg grey, PceArg background, PceArg hidden, PceArg left_margin, PceArg right_margin) :
+    PceObject(ClassStyle, icon, font, colour, highlight, underline, bold, grey, background, hidden, left_margin, right_margin)
+  {
+  }
 };
 
 inline PceStyle

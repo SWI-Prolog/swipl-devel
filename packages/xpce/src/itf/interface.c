@@ -14,6 +14,7 @@
 #include <h/interface.h>
 #include <h/graphics.h>
 #include <h/unix.h>
+#include "stub.h"
 
 #if !defined(FD_ZERO) && HAVE_SELECT
 #include <sys/select.h>
@@ -56,8 +57,20 @@ cToPceName(char *s)
 
 
 Any
-CtoPcePointer(void *ptr)
+cToPcePointer(void *ptr)
 { return (Any) answerObjectv(ClassCPointer, 1, &ptr);
+}
+
+
+void *
+pcePointerToC(PceObject obj)
+{ if ( instanceOfObject(obj, ClassCPointer) )
+  { CPointer ptr = (CPointer)obj;
+
+    return ptr->pointer;
+  }
+
+  return PCE_NO_POINTER;
 }
 
 
@@ -149,27 +162,23 @@ pceToC(Any obj, PceCValue *rval)
     return PCE_INTEGER;
   }
 
-  assert(isObject(obj));
+  assert(obj);
 
-  if ( onFlag(obj, F_ASSOC) )
-  { rval->itf_symbol = getMemberHashTable(ObjectToITFTable, obj);
-
-    return PCE_ASSOC;
-  } else
-  { Class class = classOfObject(obj);
-
-    if ( isAClass(class, ClassName) )
-    { rval->itf_symbol = getITFSymbolName(obj);
-
-      return PCE_NAME;
-    } else if ( class == ClassReal )
-    { rval->real = ((Real)obj)->value;
-
-      return PCE_REAL;
-    } else
-    { rval->integer = valInt(PointerToInt(obj));
-      return PCE_REFERENCE;
+  if ( onFlag(obj, F_ASSOC|F_ISNAME|F_ISREAL) )
+  { if ( onFlag(obj, F_ASSOC) )
+    { rval->itf_symbol = getMemberHashTable(ObjectToITFTable, obj);
+      return PCE_ASSOC;
     }
+    if ( onFlag(obj, F_ISNAME) )
+    { rval->itf_symbol = getITFSymbolName(obj);
+      return PCE_NAME;
+    }
+    { rval->real = ((Real)obj)->value;
+      return PCE_REAL;
+    }    
+  } else
+  { rval->integer = PointerToCInt(obj);
+    return PCE_REFERENCE;
   }
 }
 
@@ -354,7 +363,7 @@ pceRedraw(void)
 
 
 		/********************************
-		*   hostAction()/hostQuesry()	*
+		*   HOSTACTION()/HOSTQUERY()	*
 		********************************/
 
 char *
@@ -365,17 +374,6 @@ getHostSymbolTable(void)
     return value.string;
 
   return NULL;
-}
-
-
-int
-hostGetc(void)
-{ PceCValue value;
-
-  if ( hostQuery(HOST_GETC, &value) )
-    return value.character;
-
-  return getchar();
 }
 
 
@@ -431,3 +429,130 @@ pceWriteErrorGoal(void)
     writef("\t<No exception goal>\n");
 #endif
 }
+
+		 /*******************************
+		 *	    DLL CALLBACK	*
+		 *******************************/
+
+pce_callback_functions CallbackFunctions =
+{ Stub__HostSend,			/* hostSend() */
+  Stub__HostGet,			/* hostGet() */
+  Stub__HostCallProc,			/* hostCallProc() */
+  Stub__HostCallFunc,			/* hostCallFunc() */
+  Stub__HostQuery,			/* hostQuery() */
+  Stub__HostActionv,			/* hostActionv() */
+  Stub__vCprintf,			/* console IO */
+  Stub__Cputchar,
+  Stub__Cgetline
+};
+
+
+void
+pceRegisterCallbacks(pce_callback_functions *fs)
+{ CallbackFunctions = *fs;		/* structure copy! */
+}
+
+
+int
+hostSend(PceObject host, PceName selector, int argc, PceObject argv[])
+{ if ( CallbackFunctions.hostSend )
+    return (*CallbackFunctions.hostSend)(host, selector, argc, argv);
+
+  return FAIL;
+}
+
+
+PceObject
+hostGet(PceObject host, PceName selector, int argc, PceObject argv[])
+{ if ( CallbackFunctions.hostGet )
+    return (*CallbackFunctions.hostGet)(host, selector, argc, argv);
+
+  return FAIL;
+}
+
+
+int
+hostCallProc(PceObject handle, PceObject receiver, int argc, PceObject argv[])
+{ if ( CallbackFunctions.hostCallProc )
+    return (*CallbackFunctions.hostCallProc)(handle, receiver, argc, argv);
+
+  return FAIL;
+}
+
+
+PceObject
+hostCallFunc(PceObject handle, PceObject receiver, int argc, PceObject argv[])
+{ if ( CallbackFunctions.hostCallFunc )
+    return (*CallbackFunctions.hostCallFunc)(handle, receiver, argc, argv);
+
+  return FAIL;
+}
+
+
+int
+hostQuery(int what, PceCValue *value)
+{ if ( CallbackFunctions.hostQuery )
+    return (*CallbackFunctions.hostQuery)(what, value);
+
+  return FAIL;
+}
+
+
+int
+hostAction(int what, ...)
+{ if ( CallbackFunctions.hostActionv )
+  { va_list args;
+    int rval;
+
+    va_start(args, what);
+    rval = (*CallbackFunctions.hostActionv)(what, args);
+    va_end(args);
+    return rval;
+  }
+
+  return FAIL;
+}
+
+
+void
+Cprintf(const char *fmt, ...)
+{ if ( CallbackFunctions.vCprintf )
+  { va_list args;
+
+    va_start(args, fmt);
+    (*CallbackFunctions.vCprintf)(fmt, args);
+    va_end(args);
+  }
+}
+
+
+void
+Cvprintf(const char *fmt, va_list args)
+{ if ( CallbackFunctions.vCprintf )
+  { (*CallbackFunctions.vCprintf)(fmt, args);
+  }
+}
+
+
+int
+Cputchar(int chr)
+{ if ( CallbackFunctions.Cputchar )
+    return (*CallbackFunctions.Cputchar)(chr);
+  else
+  { Cprintf("%c", chr);
+    return chr;
+  }
+}
+
+
+char *
+Cgetline(char *line, int size)
+{ if ( CallbackFunctions.Cgetline )
+    return (*CallbackFunctions.Cgetline)(line, size);
+  else
+  { size = 0;				/* signal end-of-file */
+    line[0] = '\0';
+    return NULL;
+  }
+}
+

@@ -9,7 +9,6 @@
 
 #include <h/kernel.h>
 #include <h/graphics.h>
-#include <unistd.h>
 
 TileObj		getTileFrame(FrameObj);
 forwards int	get_position_from_center_frame(FrameObj, Point, int *, int *);

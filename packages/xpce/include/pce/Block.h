@@ -18,40 +18,40 @@ public:
     PceObject(ClassBlock)
   {
   }
-  PceBlock(PceArg test) :
-    PceObject(ClassBlock, test)
+  PceBlock(PceArg a) :
+    PceObject(ClassBlock, a)
   {
   }
-  PceBlock(PceArg test, PceArg test2) :
-    PceObject(ClassBlock, test, test2)
+  PceBlock(PceArg a, PceArg a2) :
+    PceObject(ClassBlock, a, a2)
   {
   }
-  PceBlock(PceArg test, PceArg test2, PceArg test3) :
-    PceObject(ClassBlock, test, test2, test3)
+  PceBlock(PceArg a, PceArg a2, PceArg a3) :
+    PceObject(ClassBlock, a, a2, a3)
   {
   }
-  PceBlock(PceArg test, PceArg test2, PceArg test3, PceArg test4) :
-    PceObject(ClassBlock, test, test2, test3, test4)
+  PceBlock(PceArg a, PceArg a2, PceArg a3, PceArg a4) :
+    PceObject(ClassBlock, a, a2, a3, a4)
   {
   }
-  PceBlock(PceArg test, PceArg test2, PceArg test3, PceArg test4, PceArg test5) :
-    PceObject(ClassBlock, test, test2, test3, test4, test5)
+  PceBlock(PceArg a, PceArg a2, PceArg a3, PceArg a4, PceArg a5) :
+    PceObject(ClassBlock, a, a2, a3, a4, a5)
   {
   }
-  PceBlock(PceArg test, PceArg test2, PceArg test3, PceArg test4, PceArg test5, PceArg test6) :
-    PceObject(ClassBlock, test, test2, test3, test4, test5, test6)
+  PceBlock(PceArg a, PceArg a2, PceArg a3, PceArg a4, PceArg a5, PceArg a6) :
+    PceObject(ClassBlock, a, a2, a3, a4, a5, a6)
   {
   }
-  PceBlock(PceArg test, PceArg test2, PceArg test3, PceArg test4, PceArg test5, PceArg test6, PceArg test7) :
-    PceObject(ClassBlock, test, test2, test3, test4, test5, test6, test7)
+  PceBlock(PceArg a, PceArg a2, PceArg a3, PceArg a4, PceArg a5, PceArg a6, PceArg a7) :
+    PceObject(ClassBlock, a, a2, a3, a4, a5, a6, a7)
   {
   }
-  PceBlock(PceArg test, PceArg test2, PceArg test3, PceArg test4, PceArg test5, PceArg test6, PceArg test7, PceArg test8) :
-    PceObject(ClassBlock, test, test2, test3, test4, test5, test6, test7, test8)
+  PceBlock(PceArg a, PceArg a2, PceArg a3, PceArg a4, PceArg a5, PceArg a6, PceArg a7, PceArg a8) :
+    PceObject(ClassBlock, a, a2, a3, a4, a5, a6, a7, a8)
   {
   }
-  PceBlock(PceArg test, PceArg test2, PceArg test3, PceArg test4, PceArg test5, PceArg test6, PceArg test7, PceArg test8, PceArg test9) :
-    PceObject(ClassBlock, test, test2, test3, test4, test5, test6, test7, test8, test9)
+  PceBlock(PceArg a, PceArg a2, PceArg a3, PceArg a4, PceArg a5, PceArg a6, PceArg a7, PceArg a8, PceArg a9) :
+    PceObject(ClassBlock, a, a2, a3, a4, a5, a6, a7, a8, a9)
   {
   }
 };

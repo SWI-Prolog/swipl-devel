@@ -18,6 +18,38 @@ public:
     PceObject(ClassParser, tokeniser)
   {
   }
+  PceParser(PceArg tokeniser, PceArg operators) :
+    PceObject(ClassParser, tokeniser, operators)
+  {
+  }
+  PceParser(PceArg tokeniser, PceArg operators, PceArg operators2) :
+    PceObject(ClassParser, tokeniser, operators, operators2)
+  {
+  }
+  PceParser(PceArg tokeniser, PceArg operators, PceArg operators2, PceArg operators3) :
+    PceObject(ClassParser, tokeniser, operators, operators2, operators3)
+  {
+  }
+  PceParser(PceArg tokeniser, PceArg operators, PceArg operators2, PceArg operators3, PceArg operators4) :
+    PceObject(ClassParser, tokeniser, operators, operators2, operators3, operators4)
+  {
+  }
+  PceParser(PceArg tokeniser, PceArg operators, PceArg operators2, PceArg operators3, PceArg operators4, PceArg operators5) :
+    PceObject(ClassParser, tokeniser, operators, operators2, operators3, operators4, operators5)
+  {
+  }
+  PceParser(PceArg tokeniser, PceArg operators, PceArg operators2, PceArg operators3, PceArg operators4, PceArg operators5, PceArg operators6) :
+    PceObject(ClassParser, tokeniser, operators, operators2, operators3, operators4, operators5, operators6)
+  {
+  }
+  PceParser(PceArg tokeniser, PceArg operators, PceArg operators2, PceArg operators3, PceArg operators4, PceArg operators5, PceArg operators6, PceArg operators7) :
+    PceObject(ClassParser, tokeniser, operators, operators2, operators3, operators4, operators5, operators6, operators7)
+  {
+  }
+  PceParser(PceArg tokeniser, PceArg operators, PceArg operators2, PceArg operators3, PceArg operators4, PceArg operators5, PceArg operators6, PceArg operators7, PceArg operators8) :
+    PceObject(ClassParser, tokeniser, operators, operators2, operators3, operators4, operators5, operators6, operators7, operators8)
+  {
+  }
 };
 
 inline PceParser

@@ -9,6 +9,7 @@
 
 #define INLINE_UTILITIES 1
 #include <h/kernel.h>
+#include <h/interface.h>
 #include <itf/c.h>
 
 
@@ -90,7 +91,11 @@ sendSendMethod(SendMethod m, Any receiver, int argc, const Any argv[])
 	}
 	
 	withReceiver(receiver, m->context,
-		     withArgs(0, (Any *)NULL, rval = executeCode(m->message)));
+		     if ( instanceOfObject(m->message, ClassCode) )
+		     { withArgs(0, (Any *)NULL, rval=executeCode(m->message));
+		     } else
+		     { rval = hostCallProc(m->message, receiver, 0, NULL);
+		     });
       }
     }
   } else if ( m->types->size == ONE &&
@@ -138,7 +143,10 @@ sendSendMethod(SendMethod m, Any receiver, int argc, const Any argv[])
 	rval = FAIL;
       } else
       { withReceiver(receiver, m->context,
-		     rval = forwardCodev(m->message, 1, &arg));
+		     if ( instanceOfObject(m->message, ClassCode) )
+		       rval = forwardCodev(m->message, 1, &arg);
+		     else
+		       rval = hostCallProc(m->message, receiver, 1, &arg));
       }
     }
   } else
@@ -164,6 +172,10 @@ makeClassSendMethod(Class class)
 	     "receiver=object", "argument=unchecked ...",
 	     "Invoke send method on object",
 	     sendSendMethod);
+
+					/* fix up bootClass stuff */
+  assign(class, initialise_method,
+	 getSendMethodClass(ClassMethod, NAME_initialise));
 
   succeed;
 }

@@ -14,12 +14,12 @@ extern Any ClassTokeniser;
 class PceTokeniser :public PceObject
 {
 public:
-  PceTokeniser(PceArg input) :
-    PceObject(ClassTokeniser, input)
+  PceTokeniser() :
+    PceObject(ClassTokeniser)
   {
   }
-  PceTokeniser(PceArg input, PceArg syntax) :
-    PceObject(ClassTokeniser, input, syntax)
+  PceTokeniser(PceArg syntax) :
+    PceObject(ClassTokeniser, syntax)
   {
   }
 };

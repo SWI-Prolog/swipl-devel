@@ -18,8 +18,8 @@
 #include <malloc.h>
 #endif
 
-#if O_XOS
-#include <xos/xos.h>
+#ifdef HAVE_XOS_H
+#include <xos.h>
 #endif
 
 #ifdef HAVE_SYS_FILE_H
@@ -30,6 +30,10 @@
 
 #ifndef GLOBAL
 #define GLOBAL extern			/* global variables */
+#endif
+
+#ifndef export				/* WIN32 DLL export stuff */
+#define export
 #endif
 
 		 /********************************
@@ -218,9 +222,10 @@ typedef struct dCell 	      **DelegateList;   /* See msg-passing.c */
 #define POINTER_OFFSET (0L)
 #endif
 
-#define PointerToInt(p)	toInt(((ulong)(p) - POINTER_OFFSET)/sizeof(int))
+#define PointerToCInt(p) (((ulong)(p) - POINTER_OFFSET)/sizeof(int))
+#define PointerToInt(p)	 toInt(PointerToCInt(p))
 #define longToPointer(i) ((Any) (i * sizeof(int) + POINTER_OFFSET))
-#define IntToPointer(i) longToPointer(valInt(i))
+#define IntToPointer(i)  longToPointer(valInt(i))
 
 
 		/********************************
@@ -417,6 +422,7 @@ extern struct name builtin_names[];	/* object-array of built-in's */
 #define F_TEMPLATE_METHOD	makeFlag(19) /* method<-instantiate_template */
 #define F_ISBINDING		makeFlag(20) /* instanceOf(x, ClassBinding) */
 #define F_ISNAME		makeFlag(21) /* instanceOf(x, ClassName) */
+#define F_ISREAL		makeFlag(22) /* instanceOf(x, ClassReal) */
 
 #define initHeaderObj(obj, cl) \
   { obj->class	      = cl; \
@@ -1284,8 +1290,9 @@ typedef long	AnswerMark;
 #include "../msg/proto.h"
 #include "../adt/proto.h"
 
-					/* console IO */
+					/* Interface callback stubs */
 void		Cprintf(const char *fmt, ...);
+void		Cvprintf(const char *fmt, va_list args);
 int		Cputchar(int chr);
 char *		Cgetline(char *line, int size);
 

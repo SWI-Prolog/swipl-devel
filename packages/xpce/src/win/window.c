@@ -689,7 +689,7 @@ computeBoundingBoxWindow(PceWindow sw)
     relativeMoveArea(a, sw->offset);
 
     if ( ax != a->x || ay != a->y || aw != a->w || ah != a->h )
-      send(sw, NAME_changedUnion, a, 0);
+      send(sw, NAME_changedUnion, ax, ay, aw, ah, 0);
 
     assign(sw, badBoundingBox, OFF);
   }
@@ -1163,7 +1163,7 @@ updateScrollbarValuesWindow(PceWindow sw)
 
 
 status
-changedUnionWindow(PceWindow sw, Area a)
+changedUnionWindow(PceWindow sw, Int ox, Int oy, Int ow, Int oh)
 { return updateScrollbarValuesWindow(sw);
 }
 
@@ -1959,7 +1959,8 @@ makeClassWindow(Class class)
   sendMethod(class, NAME_bubbleScrollBar, NAME_scroll, 1, "scroll_bar",
 	     "Update bubble of given scroll_bar object",
 	     bubbleScrollBarWindow);
-  sendMethod(class, NAME_changedUnion, NAME_scroll, 1, "area",
+  sendMethod(class, NAME_changedUnion, NAME_scroll, 4,
+	     "ox=int", "oy=int", "ow=int", "oh=int",
 	     "Request scroll_bar update",
 	     changedUnionWindow);
   sendMethod(class, NAME_decorate, NAME_appearance, 6,

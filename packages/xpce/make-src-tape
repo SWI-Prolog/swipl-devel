@@ -19,7 +19,10 @@ EOF
   echo "done"
 fi
 
-grep -v src/msw/ srcfiles | sed "s@^\./@xpce-$version/@" > tapefiles
+grep -v src/msw/ srcfiles | \
+grep -v prolog/pwboot/ srcfiles | \
+grep -v quintus/ srcfiles | \
+	sed "s@^\./@xpce-$version/@" > tapefiles
 
 cd ..
 ln -s xpce xpce-$version

@@ -11,7 +11,9 @@
 #include <h/unix.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
@@ -364,8 +366,10 @@ accessFile(FileObj f, Name mode)
       m = R_OK;
     else if ( equalName(mode, NAME_write) || equalName(mode, NAME_append) )
       m = W_OK;
+#ifdef X_OK
     else /*if ( equalName(mode, NAME_execute) )*/
       m = X_OK;
+#endif
   
     if ( access(strName(name), m) == 0 )
       succeed;
@@ -451,7 +455,7 @@ openFile(FileObj f, Name mode, Name filter, CharArray extension)
     f->fd = fopen(strName(path), fdmode);
   } else
 #ifndef HAVE_POPEN
-  { return errorPce(f, NAME_noPopen));
+  { return errorPce(f, NAME_noPopen);
   }
 #else
   { char cmd[LINESIZE];
@@ -756,7 +760,7 @@ checkErrorFile(FileObj f)
 
 
 status
-storeCharFile(FileObj f, char c)
+storeCharFile(FileObj f, int c)
 { putc(c, f->fd);
 
   return checkErrorFile(f);
@@ -819,6 +823,10 @@ storeIntFile(FileObj f, Int i)
 		*             PATHS		*
 		********************************/
 
+#ifndef X_OK
+#define X_OK 0
+#endif
+
 status
 findFile(FileObj f, CharArray path, Name mode)
 { char *exp = expandFileName(strName(f->name));
@@ -830,7 +838,7 @@ findFile(FileObj f, CharArray path, Name mode)
   if ( !exp )
     fail;
 
-  if ( exp[0] == '/' || (exp[0] == '.' && exp[1] == '/') )
+  if ( isAbsolutePath(exp) || exp[0] == '.' )
     succeed;
 
   if ( isDefault(mode) || equalName(mode, NAME_read) )

@@ -14,8 +14,12 @@ extern Any ClassTextCursor;
 class PceTextCursor :public PceObject
 {
 public:
-  PceTextCursor(PceArg width, PceArg heigth) :
-    PceObject(ClassTextCursor, width, heigth)
+  PceTextCursor() :
+    PceObject(ClassTextCursor)
+  {
+  }
+  PceTextCursor(PceArg for) :
+    PceObject(ClassTextCursor, for)
   {
   }
 };

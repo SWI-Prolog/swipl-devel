@@ -90,7 +90,7 @@ Name		getCFunctionNamePce(Pce pce, Int address);
 
 /* debug.c */
 void		catchErrorSignals(Bool yes);
-void		pcePrintStack(int depth);
+export void	pcePrintStack(int depth);
 status		confirmTerminal(char *question, char *def);
 
 /* declarations.c */
@@ -105,8 +105,8 @@ status		errorPce(Any obj, Name id, ...);
 /* gc.c */
 void		pushAnswerObject(Any obj);
 void		deleteAnswerObject(Any obj);
-void		_markAnswerStack(AnswerMark *mark);
-void		_rewindAnswerStack(AnswerMark *mark, Any obj);
+export void	_markAnswerStack(AnswerMark *mark);
+export void	_rewindAnswerStack(AnswerMark *mark, Any obj);
 void		initAnswerStack(void);
 void		resetAnswerStack(void);
 Int		countAnswerStack(void);
@@ -143,6 +143,7 @@ status		swritefv(char *buf, CharArray format, int argc, Any *argv);
 status		str_writefv(String s, CharArray format, int argc, Any *argv);
 Int		scanstr(char *str, char *fmt, Any *r);
 status		sysPce(char *fm, ...);
+void		msleep(int time);
 void		msleep(int time);
 void		msleep(int time);
 int		getdtablesize(void);
@@ -305,8 +306,8 @@ status		catchErrorSignalsPce(Pce pce, Bool val);
 status		resetPce(Pce pce);
 Any		getObjectFromReferencePce(Pce pce, Any ref);
 status		makeClassPce(Class class);
-status		pceReInitialise(int argc, char **argv);
-status		pceInitialise(int handles, int argc, char **argv);
+export status	pceReInitialise(int argc, char **argv);
+export status	pceInitialise(int handles, int argc, char **argv);
 
 /* sendmethod.c */
 SendMethod	createSendMethod(Name name, Vector types, StringObj doc, SendFunc action);

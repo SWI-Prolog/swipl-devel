@@ -9,6 +9,7 @@
 
 
 #include <h/kernel.h>
+#include <h/interface.h>		/* export for _markAnswerStack() */
 
 static struct to_cell AnswerStackBaseCell;
 
@@ -56,13 +57,13 @@ deleteAnswerObject(Any obj)
 }
 
 
-void
+export void
 _markAnswerStack(AnswerMark *mark)
 { *mark = AnswerStack->index;
 }
 
 
-void
+export void
 _rewindAnswerStack(AnswerMark *mark, Any obj)
 { ToCell c, n;
   ToCell preserve = NULL;

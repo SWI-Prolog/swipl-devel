@@ -18,14 +18,16 @@
     '../prolog/boot/pce_pl'
    ].
 
-:- absolute_file_name('../prolog/boot', Dir),
-   assert(library_directory(Dir), Ref),
+:- prolog_load_context(directory, Here),
+   concat(Here, '../prolog/boot', Dir),
+   absolute_file_name(Dir, CanonocalDir),
+   assert(library_directory(CanonocalDir), Ref),
    consult('../prolog/lib/pce'),
    erase(Ref).
 
 
 :- feature(version, PlVersion),
-   send(@pce, catch_error_signals, @on),
+%  send(@pce, catch_error_signals, @on),
    concat('SWI-Prolog version ', PlVersion, PlId),
    send(@prolog, system, PlId).
    
@@ -34,10 +36,8 @@
 		*           SET PCE HOME	*
 		********************************/
 
-:- feature(symbol_file, EXE),
-   absolute_file_name(EXE, ABSEXE),
-   '$file_dir_name'(ABSEXE, EXEDir),
-   '$file_dir_name'(EXEDir, Home),
+:- prolog_load_context(directory, Dir),
+   '$file_dir_name'(Dir, Home),
    send(@pce, home, Home).
 
 
@@ -54,7 +54,8 @@
 
 library_directory(PceLib) :-
 	get(@pce, home, Home),
-	concat(Home, '/prolog/lib', PceLib).
+	concat(Home, '/prolog/lib', RawPceLib),
+	absolute_file_name(RawPceLib, PceLib).
 
 %:- ensure_loaded(library(pce_manual)).
 

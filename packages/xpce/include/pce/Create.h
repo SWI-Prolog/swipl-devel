@@ -14,10 +14,6 @@ extern Any ClassCreate;
 class PceCreate :public PceObject
 {
 public:
-  PceCreate(char *clname) :
-    PceObject(ClassCreate, XPCE_to_name(clname))
-  {
-  }
   PceCreate(PceArg cl) :
     PceObject(ClassCreate, cl)
   {
