@@ -267,7 +267,7 @@ comment(TextId) :-
 		 *	       REQUEST		*
 		 *******************************/
 
-request_location('/staff/jan/src/pl/packages/sgml/RDF/Online-requests').
+request_location('Online-requests').
 
 %	Save the request and return a local identifier for it.
 

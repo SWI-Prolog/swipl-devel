@@ -6,7 +6,7 @@
 #
 # The RDF parser itself is just a Prolog library.  See rdf2pl.{html,pdf}.
 
-base=/staff/jan/src/pl/packages/sgml/RDF
+base=/projects/rdf/pl/packages/sgml/RDF
 tmp=/tmp/rdf-parser-$$
 export ERROR_FILE=$tmp
 
