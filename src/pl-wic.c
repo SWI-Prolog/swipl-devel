@@ -22,7 +22,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-/*#define O_DEBUG 1*/
+#define O_DEBUG 1
 #include "pl-incl.h"
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
@@ -741,7 +741,8 @@ loadStatement(int c, IOSTREAM *fd, int skip ARG_LD)
       source_line_no   = getNum(fd);
       
       loadQlfTerm(goal, fd PASS_LD);
-      DEBUG(1, Sdprintf("Directive: ");
+      DEBUG(1, Sdprintf("%s:%d: Directive: ",
+			PL_atom_chars(source_file_name), source_line_no);
 	       pl_write(goal);
 	       Sdprintf("\n"));
       if ( !skip )
