@@ -144,7 +144,6 @@ COMMON(void *)	xmalloc(size_t nbytes);
 COMMON(void *)	xrealloc(void *ptr, size_t nbytes);
 
 /* /staff/jan/src/pl/packages/xpce/src/itf/iostream.c */
-COMMON(IOSTREAM *) Sopen_FILE(FILE *fd, int flags);
 COMMON(IOSTREAM *) Sopen_object(Any obj, const char *mode);
 
 /* /staff/jan/src/pl/packages/xpce/src/itf/srcsink.c */

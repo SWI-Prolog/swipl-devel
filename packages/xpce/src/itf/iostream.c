@@ -26,56 +26,6 @@
 #include <h/unix.h>
 #include <errno.h>
 
-		 /*******************************
-		 *      FILE --> IOSTREAM	*
-		 *******************************/
-
-static int
-Sread_FILE(void *handle, char *buf, int size)
-{ FILE *fd = handle;
-
-  return fread(buf, sizeof(char), size, fd);
-}
-
-
-static int
-Swrite_FILE(void *handle, char *buf, int size)
-{ FILE *fd = handle;
-
-  return fwrite(buf, sizeof(char), size, fd);
-}
-
-
-static long
-Sseek_FILE(void *handle, long pos, int whence)
-{ FILE *fd = handle;
-
-  if ( fseek(fd, pos, whence) == 0 )
-    return ftell(fd);
-
-  return -1;
-}
-
-
-static int
-Sclose_FILE(void *handle)
-{ return 0;
-}
-
-
-static IOFUNCTIONS SFILEfunctions =
-{ Sread_FILE,
-  Swrite_FILE,
-  Sseek_FILE,
-  Sclose_FILE
-};
-
-
-
-IOSTREAM *
-Sopen_FILE(FILE *fd, int flags)
-{ return Snew(fd, flags, &SFILEfunctions);
-}
 
 		 /*******************************
 		 *      OBJECT --> IOSTREAM	*

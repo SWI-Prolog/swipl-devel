@@ -120,17 +120,11 @@ ws_store_image(Image image, FileObj file)
     d = CurrentDisplay(image);
 
   if ( (bm = getXrefObject(image, d)) )
-  { IOSTREAM *fd = Sopen_FILE(file->fd, SIO_OUTPUT); /* HACK */
-
-    Sputc('P', fd);
+  { Sputc('P', file->fd);
     DEBUG(NAME_ppm, Cprintf("Saving PNM image from index %d\n",
-			    ftell(file->fd)));
-    if ( write_pnm_file(fd, bm, 0, 0, PNM_RUNLEN) < 0 )
-    { Sclose(fd);
+			    Stell(file->fd)));
+    if ( write_pnm_file(file->fd, bm, 0, 0, PNM_RUNLEN) < 0 )
       fail;
-    }
-
-    Sclose(fd);
   }
 
   succeed;
