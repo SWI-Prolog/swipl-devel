@@ -69,9 +69,9 @@ ARFLAGS=ru
 ETAGS=@ETAGS@
 SED=sed
 RM=rm
-INSTALL=./install
-INSTALL_PROGRAM=./install -m 755
-INSTALL_DATA=./install -m 644
+INSTALL=./xpce-install
+INSTALL_PROGRAM=./xpce-install -m 755
+INSTALL_DATA=./xpce-install -m 644
 
 # LIBRARIES
 
@@ -173,12 +173,12 @@ MANINDEX=../man/reference/index.obj
 # MAIN TARGETS
 ################################################################
 
-all:		banner ./install @ALLTARGET@
+all:		banner ./xpce-install @ALLTARGET@
 
 everything:	proto tags xpce-pl
 
-./install:	install.c
-		$(CC) $(CFLAGS) -o install $(srcdir)/install.c
+./xpce-install:	xpce-install.c
+		$(CC) $(CFLAGS) -o $@ $(srcdir)/xpce-install.c
 
 banner:
 		@echo "****************"
@@ -642,6 +642,8 @@ DVLIBDIRS=	lib lib/compatibility lib/dialog lib/draw lib/emacs lib/man \
 DVBOOTDIRS=	boot
 DVMISCFILES=	ChangeLog LICENCE
 RTMISC=		Defaults RT-LICENCE README README.RT
+
+install:	dv-install
 
 rt-install:	rt-home rt-misc rt-bitmaps rt-bins rt-link
 
