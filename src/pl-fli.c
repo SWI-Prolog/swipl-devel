@@ -2160,12 +2160,13 @@ PL_unify_termv(term_t t, va_list args)
   tmp_buffer buf;
   int tos = 0;				/* Top-of-stack */
   int rval;
+  int op;
 
   t = PL_copy_term_ref(t);
   initBuffer(&buf);
   
 cont:
-  switch(va_arg(args, int))
+  switch((op=va_arg(args, int)))
   { case PL_VARIABLE:
       rval = TRUE;
       break;
@@ -2209,6 +2210,7 @@ cont:
       break;
     }
     case PL_UTF8_CHARS:
+    case PL_UTF8_STRING:
     { PL_chars_t txt;
 
       txt.text.t    = va_arg(args, char *);
@@ -2217,7 +2219,8 @@ cont:
       txt.encoding  = ENC_UTF8;
       txt.canonical = FALSE;
 
-      rval = PL_unify_text(t, &txt, PL_ATOM);
+      rval = PL_unify_text(t, &txt,
+			   op == PL_UTF8_STRING ? PL_STRING : PL_ATOM);
       break;
     }
   { functor_t ft;

@@ -340,10 +340,14 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
 		    PL_INT, source_line_pos,
 		    PL_LONG, source_char_no);
   } else if ( isStringStream(rb.stream) )
-  { PL_unify_term(loc,
+  { int pos;
+
+    pos = utf8_strlen(rdbase, last_token_start-rdbase);
+
+    PL_unify_term(loc,
 		  PL_FUNCTOR, FUNCTOR_string2,
-		    PL_STRING, rdbase,
-		    PL_LONG, last_token_start-rdbase);
+		    PL_UTF8_STRING, rdbase,
+		    PL_INTEGER, pos);
   } else				/* any stream */
   { term_t stream = PL_new_term_ref();
 
