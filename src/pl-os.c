@@ -251,6 +251,7 @@ CpuTime(cputime_kind which)
       used = (double) t.tms_utime / MTOK_hz;
       break;
     case CPU_SYSTEM:
+    default:				/* make compiler happy */
       used = (double) t.tms_stime / MTOK_hz;
   }
 

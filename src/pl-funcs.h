@@ -897,4 +897,5 @@ bool		systemMode(bool accept);
 
 /* pl-thread.c */
 foreign_t	pl_with_mutex(term_t mutex, term_t goal);
+foreign_t	pl_thread_self(term_t self);
 
