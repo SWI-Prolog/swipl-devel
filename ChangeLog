@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PERFORMANCE: better implementation finding clauses, much faster
+    shallow backtracking code
+
   * FIXED: bug loosing clause-indexing after abolish on an undefined
     predicate (caused by MT redesign).
 

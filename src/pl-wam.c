@@ -4226,9 +4226,52 @@ cases to get here. We leave that   it for documentation purposes as well
 as to investigate optimisation in the future.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+				MARK(BKTRK);
+clause_failed:				/* shallow backtracking */
+{ Choice ch = BFR;
 
-body_failed:				MARK(BKTRK);
-clause_failed:
+  if ( FR == ch->frame && ch->type == CHP_CLAUSE )
+  { ClauseRef next;
+    Undo(ch->mark);
+    aTop = aFloor;
+
+    ARGP = argFrameP(FR, 0);
+    if ( !(CL = findClause(ch->value.clause, ARGP, FR, DEF, &next PASS_LD)) )
+      FRAME_FAILED;			/* should not happen */
+    PC = CL->clause->codes;
+
+    if ( ch == (Choice)argFrameP(FR, CL->clause->variables) )
+    { if ( next )
+      { ch->value.clause = next;
+	lTop = addPointer(ch, sizeof(*ch));
+	NEXT_INSTRUCTION;
+      } else if ( debugstatus.debugging )
+      { ch->type = CHP_DEBUG;
+	lTop = addPointer(ch, sizeof(*ch));
+	NEXT_INSTRUCTION;
+      }
+
+      BFR = ch->parent;
+      lTop = (LocalFrame)ch;
+      NEXT_INSTRUCTION;
+    } else
+    { BFR = ch->parent;
+      lTop = (LocalFrame)argFrameP(FR, CL->clause->variables);
+      
+      if ( next )
+      { ch = newChoice(CHP_CLAUSE, FR PASS_LD);
+	ch->value.clause = next;
+      } else if ( debugstatus.debugging )
+      { ch = newChoice(CHP_DEBUG, FR PASS_LD);
+      }
+
+      requireStack(local, (int)argFrameP((LocalFrame)NULL, MAXARITY));
+      NEXT_INSTRUCTION;
+    }
+  }  
+}
+
+body_failed:
 frame_failed:
 
 {
@@ -4300,7 +4343,7 @@ next_choice:
       lTop = (LocalFrame)ch;
       ARGP = argFrameP(lTop, 0);
       NEXT_INSTRUCTION;
-    case CHP_CLAUSE:
+    case CHP_CLAUSE:			/* try next clause */
     { ClauseRef next;
       Clause clause;
 
