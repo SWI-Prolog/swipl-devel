@@ -1457,6 +1457,10 @@ pl_thread_peek_message(term_t msg)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Deletes the contents of the message-queue as well as the queue itself.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 freeThreadMessages(PL_local_data_t *ld)
 { thread_message *msgp;
@@ -1468,6 +1472,9 @@ freeThreadMessages(PL_local_data_t *ld)
     PL_erase(msgp->message);
     freeHeap(msgp, sizeof(*msgp));
   }
+
+  pthread_mutex_destroy(&ld->thread.queue_mutex);
+  pthread_cond_destroy(&ld->thread.cond_var);
 }
 
 		 /*******************************

@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Lost mutex and condition variable after destroying a thread.
+
   * FIXED: text-buffering rules for strings (Sebastian Sardina).
 
   * FIXED: plld: properly quote arguments holding "
