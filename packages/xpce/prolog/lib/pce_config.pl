@@ -460,6 +460,13 @@ current_config_type(TypeSpec, pce_config, Attributes) :-
 	strip_module(TypeSpec, _Module, Type),
 	builtin_config_type(Type, Attributes).
 
+%	pce_object_type(+Type)
+%
+%	Succeed if Type denotes an XPCE type
+
+pce_object_type(Var) :-
+	var(Var), !,
+	fail.
 pce_object_type(setof(Type)) :- !,
 	pce_object_type(Type).
 pce_object_type(Type) :-
