@@ -350,6 +350,8 @@ moveAfterNode(Node n, Node n2)
 
 	if ( tail && tail != n )
 	  rval = moveAfterChain(parent->sons, n, tail);
+	else if ( tail && tail == n )
+	  succeed;			/* is already the last */
 	else
 	  rval = FAIL;
       }

@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: `node->move_after' to succeed silently if the node is already the
+  last.
+
 * FIXED: redraw problems in class tree (using ->direction: list) when moving
   nodes between branches.
 
