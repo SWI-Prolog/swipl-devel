@@ -4,6 +4,8 @@
 VERSION 3.3.0 (release-3)
 =========================
 
+  * FIXED: Windows installation to add icons to the program manager.
+
   * PORT: Win32: renamed console.dll to plterm.dll to avoid name-conflict
     with Windows 2000 system DLL.
 
