@@ -27,6 +27,13 @@ CO-ROUTING AND CALL/1
 	    - including the use as `setarg' to restore on backtracking
 	    
 	
+SCRIPT
+======
+
+On Solaris #!/usr/bin/pl -q -t main -f calls Prolog as
+/usr/bin/pl "-q" <file>
+
+
 =======
 INPUT HANDLING:
 ---------------
