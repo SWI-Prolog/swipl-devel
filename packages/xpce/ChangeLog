@@ -1,3 +1,17 @@
+* ProWindows 3.2 intergration
+	* Updated :- require statements
+	* Included expandgoal.pl expandmath.pl in pce_qpc.qof to deal with
+	  arithmetic expressions such as `A is sqrt(A**2+B**2)'.
+	* Deleted biff.pl and dialog.pl demo programs.
+	* FIXED: pl_getn() for if the XPCE method fails.
+	* FIXED: force screen-update using message_hook/3 interface in
+	  pce_principal.pl.  This ensures proper update of ProWindows
+	  windows after user-queries that modify them.
+
+* FIXED: byte-order problem in socket->bind, registering the address.  Found
+  and patched by Frank Cornelissen.  Only applies to little-endian machines
+  (Intel).
+
 * FIXED: Using XPCE objects in Prolog streams: report IO-error if the object
   was freed.
 
