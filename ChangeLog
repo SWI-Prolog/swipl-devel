@@ -4,6 +4,9 @@
 Version 2.5.4
 =============
 
+  * FIXED: read/1 for reading negative floating point numbers (2.5.x bug),
+    thanks to Bill Jones.
+
   * FIXED: read/1, etc. for reading a single variable.  Found by Luu Tran.
 
   * FIXED: DCG expansion error found by Keith Whitwell.
