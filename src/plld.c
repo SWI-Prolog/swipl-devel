@@ -47,6 +47,7 @@ embedded application.
 #define PROG_LD cc
 #define PROG_OUT "a.out"
 #define LIB_PL	"-lpl"
+#define LIB_PLMT "-lplmt"
 #define EXT_OBJ "o"
 #define OPT_DEBUG "-g"
 #ifndef O_BINARY
@@ -787,6 +788,7 @@ getPrologOptions()
 	else if ( streq(name, "PLTHREADS") && streq(v, "true") )
 	{ ensureOption(&coptions, "-D_REENTRANT");
 	  ensureOption(&cppoptions, "-D_REENTRANT");
+	  pllib = LIB_PLMT;
 	} else
 	  continue;
 
