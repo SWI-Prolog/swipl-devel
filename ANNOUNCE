@@ -49,6 +49,8 @@ Patches in 5.5.5 relative to 5.5.4
     cleanup for more flexible building on Unix systems.  This supports
     packagers, such as the MacOS 'port' utility.
     
+  * Binary: Windows binary version is now compiled using MSVC 6.0.  This
+    should not have any consequences, but you never know ...
 
 Packages
 ========
