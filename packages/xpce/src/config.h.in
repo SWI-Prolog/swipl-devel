@@ -103,6 +103,12 @@
 /* Define if we can cast to va_list (say no if you are not sure) */
 #undef HAVE_CAST_VA_LIST
 
+/* Define to use XPM without X11 (Cygwin) */
+#undef XPM_NO_X
+
+/* Define to use WIN32 graphics interface */
+#undef WIN32_GRAPHICS
+
 /* Define if you have the XInitThreads function.  */
 #undef HAVE_XINITTHREADS
 

@@ -18,7 +18,6 @@ static int WINAPI window_wnd_proc(HWND win, UINT msg, UINT wP, LONG lP);
 
 static int clearing_update;		/* from ws_redraw_window() */
 static int invert_window = FALSE;	/* invert the window */
-static int drawnest;			/* Draw nesting */
 
 #ifndef MAXPATHLEN
 #define MAXPATHLEN 512			/* drag-and-drop */
@@ -32,7 +31,7 @@ WinWindowClass()
   if ( !winclassname )
   { char buf[50];
 
-    sprintf(buf, "PceWindow%d", PceHInstance);
+    sprintf(buf, "PceWindow%ld", (long)PceHInstance);
     winclassname = CtoName(buf);
 
     wndClass.style		= 0/*CS_HREDRAW|CS_VREDRAW*/;
@@ -327,7 +326,7 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	   wfr->hbusy_cursor )
       { ZSetCursor(wfr->hbusy_cursor);
       } else
-      { if ( w = sw->ws_ref )
+      { if ( (w = sw->ws_ref) )
 	{ if ( !w->hcursor )
 	    w->hcursor = LoadCursor(NULL, IDC_ARROW);
 	  ZSetCursor(w->hcursor);
@@ -682,7 +681,7 @@ ws_window_cursor(PceWindow sw, CursorObj c)
 
 
 void
-ws_window_background(PceWindow sw, Colour c)
+ws_window_background(PceWindow sw, Any c)
 { HWND hwnd;
 
   if ( (hwnd = getHwndWindow(sw)) && sw->displayed == ON )

@@ -157,6 +157,8 @@ Name		getWinFileNameDisplay(DisplayObj d,
 				      CharArray file,
 				      Directory dir);
 
+#include "msproto.h"
+
 		 /*******************************
 		 *	    PNM FORMATS		*
 		 *******************************/

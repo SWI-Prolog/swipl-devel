@@ -77,9 +77,10 @@ PLLIBS=@PLLIBS@
 XLIBS=@XLIBS@
 LDFLAGS=-L$(XLIB) @LDFLAGS@
 GCCLIB=@GCCLIB@
-LDSOFLAGS=@LDSOFLAGS@ $(LDFLAGS)
+LDSOFLAGS=@LDSOFLAGS@ -L$(XLIB)
 SOEXTRAOBJ=@SOEXTRAOBJ@
 SO=@SO@
+VWS=@VWS@
 
 LIBS=	$(XLIBS) $(PLLIBS) $(NETLIBS)
 
@@ -278,7 +279,7 @@ MODULES=	adt ari evt gnu gra itf ker men fmt msg prg rel \
 # PROTOTYPES (must be made in the source directory)
 ################################################################
 
-proto:		$(foreach m, $(MODULES) x11, $(srcdir)/$(m)/proto.h)
+proto:		$(foreach m, $(MODULES) $(VWS), $(srcdir)/$(m)/proto.h)
 
 ################################################################
 # Building the directories
@@ -286,9 +287,9 @@ proto:		$(foreach m, $(MODULES) x11, $(srcdir)/$(m)/proto.h)
 
 prepare:	directories names version h/interface.h
 
-directories:	h $(MODULES) x11
+directories:	h $(MODULES) $(VWS)
 
-$(MODULES) bin lib x11:
+$(MODULES) bin lib $(VWS):
 		mkdir $@
 
 h:		
@@ -323,7 +324,7 @@ names/built:	names Names.Gen Names.X
 
 tags:		
 		cd $(srcdir); \
-		fs="h/*.h x11/*.c"; \
+		fs="h/*.h $(VWS)/*.c"; \
 		for d in $(MODULES); do fs="$$fs $$d/*.c"; done; \
 		$(ETAGS) $$fs
 
@@ -593,6 +594,19 @@ $(srcdir)/x11/wstproto.h: $(WSTSRC)
 $(srcdir)/x11/proto.h:	$(XCOMMSRC)
 		$(MKPROTO) $(XCOMMSRC) | $(CLPROTO) > $@
 
+################################################################
+# MSW 		--- MS-Windows implementation of the
+#		    XPCE Virtual Window Interface
+################################################################
+
+MSWOBJS=	mscolour.o mscursor.o msdisplay.o msdraw.o msevent.o \
+		msfont.o msframe.o msimage.o msstream.o mstimer.o \
+		mswindow.o msmenu.o mswin.o msppm.o msprinter.o \
+		mscommon.o msmetafile.o msreadimage.o msjpeg.o \
+		mscygwin.o
+
+MSWSRC=		$(addprefix $(srcdir)/msw/, $(MSWOBJS:.o=.c))
+
 ################################################################$
 # LIBRARY TARGET
 ################################################################
@@ -614,19 +628,28 @@ OBJECTS=	$(addprefix adt/, $(ADTOBJS)) \
 		$(addprefix unx/, $(UNXOBJS)) \
 		$(addprefix win/, $(WINOBJS))
 
-XOBJECTS=	$(addprefix x11/, $(X11OBJS)) \
-		$(addprefix img/, $(IMGOBJS))
 
-libXPCE:	version.h $(OBJECTS) doxobjs
+ifeq ($(VWS),x11)
+WSOBJECTS=	$(addprefix x11/, $(X11OBJS)) \
+		$(addprefix img/, $(IMGOBJS))
+else
+WSOBJECTS=	$(addprefix msw/, $(MSWOBJS)) \
+		$(addprefix img/, $(IMGOBJS))
+endif
+
+libXPCE:	version.h $(OBJECTS) dowsobjs
 		@echo "Running ar ru $(LIB) objects ..."
-		@$(AR) ru $(LIB) $(OBJECTS) $(XOBJECTS)
+		@$(AR) ru $(LIB) $(OBJECTS) $(WSOBJECTS)
 		$(RANLIB) $(LIB)
 
-doxobjs:
+dowsobjs:
+ifeq ($(VWS),x11)
 		$(MAKE) CIFLAGS="$(CIFLAGS) -I$(XINCLUDES)" xobjs
+else
+		$(MAKE) CIFLAGS="$(CIFLAGS) -I$(XINCLUDES) -DWIN32" msobjs
+endif
 
-xobjs:		$(XOBJECTS)
-
+wsobjs:		$(WSOBJECTS)
 
 ################################################################
 # INSTALLATION

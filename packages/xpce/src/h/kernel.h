@@ -42,8 +42,8 @@
 #define PUBLIC_GLOBAL extern		/* exported global variables */
 #endif
 
-#ifdef __WINDOWS__
-#define __pce_export _declspec(dllexport)
+#if defined(WIN32) || defined(__CYGWIN32__)
+#define __pce_export __declspec(dllexport)
 #else
 #define __pce_export extern
 #endif
@@ -888,7 +888,11 @@ typedef struct _classdecl
 #define RCEntries(l)		(sizeof(l) / sizeof(classvardecl))
 
 #ifndef UXWIN
+#ifdef WIN32_GRAPHICS
+#define UXWIN(unx, win) win
+#else
 #define UXWIN(unx, win) unx
+#endif
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

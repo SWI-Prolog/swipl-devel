@@ -15,7 +15,7 @@
 
 #include <x11/wstproto.h>
 
-#ifdef __WINDOWS__			/* additional ones */
+#ifdef WIN32_GRAPHICS			/* additional ones */
 #include <msw/msproto.h>
 #endif
 

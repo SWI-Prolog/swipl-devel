@@ -11,8 +11,10 @@
 */
 
 #define OEMRESOURCE 1			/* get OBM_* constants */
+#define Bool PceBool
 #include "include.h"
 #include <h/unix.h>
+#undef Bool
 #include <math.h>
 
 #ifndef M_PI
@@ -23,7 +25,11 @@
 
 #ifdef O_XPM
 #define FOR_MSW 1
+#ifdef __CYGWIN32__XXX
+#include <xpm.h>
+#else
 #include <msw/xpm.h>
+#endif
 #endif
 
 #undef offset
@@ -37,6 +43,17 @@
 static int	ws_sizeof_bits(int w, int h);
 static status	ws_attach_xpm_image(Image image, XpmImage* xpmimg,
 				    XpmInfo* xpminfo);
+
+#define rfloat inline_float		/* local inline version */
+
+static inline int
+rfloat(float f)
+{ if (f > 0.0)
+    return (int) (f+0.4999999);
+
+  return (int) (f-0.4999999);
+}
+
 
 void
 ws_init_image(Image image)
@@ -214,8 +231,7 @@ register_colours(BITMAPINFO *bmi)
 	      colours->rgbBlue);
 
       if ( (c = checkType(CtoKeyword(xcolorname), TypeColour, NIL)) )
-      { COLORREF rgb = (COLORREF)getXrefObject(c, d); /* open it */
-      }
+	(void)getXrefObject(c, d); /* open it */
     }
   }
 }
@@ -476,7 +492,7 @@ ws_std_xpm_image(Name name, Image *global, char **data)
 static status
 ws_attach_xpm_image(Image image, XpmImage* xpmimg, XpmInfo* xpminfo)
 { XImage *img, *shape;
-  HDC hdc, dhdc = NULL;
+  HDC hdc;
   DisplayObj d = image->display;
   int as = XpmAttributesSize();
   XpmAttributes *atts = (XpmAttributes *)alloca(as);
@@ -521,8 +537,7 @@ of that, and left the code for later.  This is the XPMTODIB.
 	continue;			/* the transparent colour */
 
       if ( (c = checkType(CtoKeyword(xpmc->c_color), TypeColour, NIL)) )
-      { COLORREF rgb = (COLORREF)getXrefObject(c, d); /* open it */
-      }
+	(void)getXrefObject(c, d); /* open it */
     }
 
     if ( (atts->colormap = getPaletteColourMap(d->colour_map)) )
@@ -720,7 +735,8 @@ ws_save_image_file(Image image, SourceSink into, Name fmt)
     if ( hpal )
     { ohpal = SelectPalette(hdc, hpal, FALSE);
       RealizePalette(hdc);
-    }
+    } else
+      ohpal = NULL;
 
     memset(atts, 0, as);
     ximg.width  = atts->width  = valInt(image->size->w);
@@ -823,8 +839,10 @@ ws_save_image_file(Image image, SourceSink into, Name fmt)
       if ( (fd = Sopen_object(into, "wbr")) )
       { if ( write_pnm_file(fd, bm, 0, 0, PNM_RAWBITS) < 0 )
 	  rval = errorPce(image, NAME_xError);
+	else
+	  rval = SUCCEED;
       } else
-	rval = SUCCEED;
+	rval = FAIL;
 
       Sclose(fd);
     } else
@@ -1239,15 +1257,6 @@ The copy_bits() gives much better  results   then  the  Windows-NT (4.0)
 world transform and is thus both on Windows 95 and NT.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static inline int
-rfloat(float f)
-{ if (f > 0.0)
-    return (int) (f+0.4999999);
-
-  return (int) (f-0.4999999);
-}
-
-
 static void
 copy_bits(HDC dst, int dx0, int dy0, int dx1, int dy1,
 	  HDC src, int sx0, int sy0,
@@ -1502,7 +1511,6 @@ postscriptDC(HDC hdc,				/* HDC to print from */
   int bits, bytes;
   int c;
   int bmdepth  = GetDeviceCaps(hdc, BITSPIXEL);
-  int bmbright = 256;
 
   if ( depth == 0 )			/* PostScript depth is 1, 2, 4, or 8 */
   { depth = bmdepth;
@@ -1547,19 +1555,6 @@ ws_sizeof_bits(int w, int h)
 }
 
 
-static void
-print_bits(unsigned long *addr)
-{ unsigned long bits = *addr;
-  int i;
-
-  Cprintf("Bits at %p: ", addr);
-  for(i=0; i<32; i++)
-  { Cputchar(bits & 0x80000000 ? '1' : '0');
-    bits <<= 1;
-  }
-}
-
-
 static unsigned int
 mirror_byte(unsigned int b)
 { unsigned int copy = 0;
@@ -1589,7 +1584,7 @@ ws_create_image_from_x11_data(Image image, unsigned char *data, int w, int h)
 
   for(y=0; y<h; y++)
   { int x;
-    unsigned short s;
+    unsigned short s = 0;		/* make compiler happy */
 
     for(x=0; x<w; x+=8)
     { unsigned char b = ~mirror_byte(*data++);

@@ -10,6 +10,11 @@
     Copyright (C) 1990-2001 SWI, University of Amsterdam. All rights reserved.
 */
 
+#ifdef __CYGWIN32__
+#define __USE_W32_SOCKETS
+#define HAVE_WINSOCK 1
+#endif
+
 #include <md.h>				/* get HAVE_'s */
 #if defined(HAVE_SOCKET) || defined(HAVE_WINSOCK)
 
@@ -44,7 +49,7 @@ extern int errno;
 #include <h/kernel.h>
 #include <h/unix.h>
 #include <h/interface.h>
-#ifdef HAVE_SYS_TIME_H
+#if defined(HAVE_SYS_TIME_H) && !defined(__USE_W32_SOCKETS)
 #include <sys/time.h>
 #endif
 #ifdef HAVE_SYS_UN_H

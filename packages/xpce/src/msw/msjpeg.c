@@ -19,6 +19,10 @@ by msimage.c, which in  turn  implements   the  OS  specific  version of
 gra/image.c implementing class image.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef __CYGWIN32__
+#define XMD_H
+#endif
+
 #ifdef HAVE_LIBJPEG
 #define boolean jpeg_boolean
 #undef GLOBAL				/* conflict */

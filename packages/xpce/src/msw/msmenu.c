@@ -329,8 +329,6 @@ ws_entry_field(int x, int y, int w, int h, int flags)
     }
     if ( flags & TEXTFIELD_STEPPER )
     { int iw = valInt(WinCombo->size->w);
-      int ih = valInt(WinCombo->size->h);
-      int iy = y+2 + (h-4-valInt(WinCombo->size->h))/2;
       int cw = iw + 4;
       int bh = (h-4)/2;
       COLORREF *b1colors = thumb_colours;

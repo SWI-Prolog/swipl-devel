@@ -673,13 +673,11 @@ static const error_def errors[] =
     "%O: cannot change layout-interface"
   },
 
-#ifdef __WINDOWS__
+#ifdef WIN32_GRAPHICS
 					/* MS-Windows errors */
-  { NAME_failedToLoadDll,	EF_REPORT,
-    "%N: Failed to load DLL %s: (error %d)" },
   { NAME_moreThanOneIcon,	0,
     "%N: Contains more than 1 icon.  Using first" },
-#endif /*__WINDOWS__*/
+#endif /*WIN32_GRAPHICS*/
 
   { NAME_threadsInitialised,		0,
     "%N: Cannot change threading after initialisation" },

@@ -48,6 +48,12 @@ AC_SUBST(QPENTRIES)
 AC_SUBST(QPBIN)
 AC_SUBST(QPPATH)
 AC_SUBST(SP_PATH)
+AC_SUBST(VWS)
+
+dnl Link to X11.  Only Cygwin version doesn't do this
+
+WITHX11=true
+VWS=x11
 
 RTSUFFIX=""
 QPENTRIES=""
@@ -174,6 +180,7 @@ if test "$swipl" != "no"; then
     AC_MSG_RESULT("		PLARCH=$PLARCH")
     AC_MSG_RESULT("		PLLIBS=$PLLIBS")
     AC_MSG_RESULT("		PLLDFLAGS=$PLLDFLAGS")
+    AC_MSG_RESULT("		PLSOEXT=$PLSOEXT")
     AC_MSG_RESULT("		MAKE_SHARED_OBJECT=$MAKE_SHARED_OBJECT")
     
     case "$PLARCH" in
@@ -223,13 +230,17 @@ if test "$MAKE_SHARED_OBJECT" = "yes"; then
   BOOTPL=pl
   
   AC_MSG_CHECKING("Extension for shared objects")
-  SO=so
-  case "$OS" in
-    *aix*)	SO="o"
-    	        ;;
-    *hpux*)	SO="sl"
-		;;
-  esac
+  if test ! -z "$PLSOEXT"; then
+    SO="$PLSOEXT"
+  else
+    SO=so
+    case "$OS" in
+      *aix*)	SO="o"
+		  ;;
+      *hpux*)	SO="sl"
+		  ;;
+    esac
+  fi
   AC_MSG_RESULT("$SO")
 
   if test ! -z "$GCC"; then
@@ -374,6 +385,22 @@ EOF
     *hpux*)
     	SO="sl"
 	LDSOFLAGS="-b"
+	;;
+    *cygwin*)
+	AC_MSG_CHECKING("Setup for CygWin")
+	WITHX11=false
+	VWS=msw
+	AC_DEFINE(WIN32_GRAPHICS)
+	AC_DEFINE(XPM_NO_X)
+	LIBS="-L/usr/lib/noX $LIBS"
+	XINCLUDES=/home/jan/cygwin/include
+	XLIBS="-lwsock32 -lcomdlg32 -lkernel32 -luser32 -lgdi32"
+	XLIB=/home/jan/cygwin/lib
+	LD=plld
+	GCCLIB=""
+	LDSOFLAGS="-shared"
+	CMFLAGS=`echo $CMFLAGS | sed 's/-fPIC//'`
+	AC_MSG_RESULT(ok)
 	;;
     *)
 	;;
@@ -683,6 +710,7 @@ main()
    AC_MSG_RESULT(no),
    AC_MSG_RESULT(assuming no))
 
+if test "$WITHX11" = true; then
 BEFOREXLIBS="$LIBS"
 
 AC_PATH_X
@@ -728,6 +756,8 @@ case "$OS" in
   *sunos*) LIBS="$BEFOREXLIBS -lX11 $XSMLIBS";;
 esac
 
+fi dnl WITHX11
+
 dnl Check the critical but not very standard libXpm and libjpeg libraries
 dnl and make sure they required headers can be found.
 
@@ -763,11 +793,11 @@ if test "$ac_cv_header_jpeglib_h" != yes; then unset ac_cv_header_jpeglib_h; fi
 if test "$ac_cv_header_jerror_h" != yes; then unset ac_cv_header_jerror_h; fi
 	
 AC_CHECK_LIB(jpeg, main,
-	     [XLIBS="$XLIBS -ljpeg"]
+	     [XLIBS="-ljpeg $XLIBS"]
 	     AC_DEFINE(HAVE_LIBJPEG))
 
 AC_CHECK_LIB(Xpm, main,
-	     [XLIBS="$XLIBS -lXpm"]
+	     [XLIBS="-lXpm $XLIBS"]
 	     AC_DEFINE(HAVE_LIBXPM))
 
 if test "$ac_cv_lib_Xpm_main" != "yes"; then
@@ -825,9 +855,10 @@ _EOM_
 exit 1
 fi
 
-
-AC_CHECK_FUNCS(XtPopupSpringLoaded XmIsMotifWMRunning XInitThreads)
-LIBS="$ac_oldlibs"
+if test "$WITHX11" = true; then
+  AC_CHECK_FUNCS(XtPopupSpringLoaded XmIsMotifWMRunning XInitThreads)
+  LIBS="$ac_oldlibs"
+fi
 
 AC_MSG_CHECKING("memory model")
 echo '#include "confdefs.h"' > conftest.c
@@ -864,3 +895,4 @@ for f in $OptionalMakefiles; do
 done
 
 AC_OUTPUT($Makefiles)
+

@@ -236,7 +236,7 @@ hemfLoadMetafile(WinMF mf, const char *szFile)
   UINT            uiSize;
   LPVOID          pvData;
   HDC             hDCDrawSurf;
-  HENHMETAFILE    hemf;
+  HENHMETAFILE    hemf = NULL;
 
   HANDLE          hFile, hMapFile;
   LPVOID          pMapFile;
@@ -409,9 +409,13 @@ getMhfWinMF(WinMF mf)
 
     if ( findFile(mf->file, path ? path : (CharArray) DEFAULT, NAME_read) )
     { char *rawfn = strName(getOsNameFile(mf->file));
-      char fn[MAXPATHLEN];
 
+#if O_XOS
+      char fn[MAXPATHLEN];
       _xos_os_filename(rawfn, fn);
+#else
+      char *fn = rawfn;
+#endif
 
       if ( (mf->hmf = hemfLoadMetafile(mf, fn)) )
 	succeed;
@@ -680,12 +684,16 @@ convert_enh_metafile(WinMF mf, HDC hdc)
 static status
 saveWinMF(WinMF mf, FileObj file, Name format)
 { char *rawfn = strName(getOsNameFile(file));
+#if O_XOS
   char fn[MAXPATHLEN];
+  _xos_os_filename(rawfn, fn);
+#else
+  char *fn = rawfn;
+#endif
 
   if ( !mf->hmf )
     fail;
 
-  _xos_os_filename(rawfn, fn);
 
   if ( isDefault(format) )
   { if ( suffixCharArray((CharArray)file->name,
@@ -703,7 +711,7 @@ saveWinMF(WinMF mf, FileObj file, Name format)
   if ( format == NAME_wmf || format == NAME_aldus )
   { HDC hdc = GetDC(NULL);
     HMETAFILE ohmf = convert_enh_metafile(mf, hdc);
-    HMETAFILE ohmf2;
+    HMETAFILE ohmf2 = NULL;
     status rval = SUCCEED;
 
     ReleaseDC(NULL, hdc);

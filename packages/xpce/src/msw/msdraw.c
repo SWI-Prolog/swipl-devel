@@ -792,7 +792,6 @@ void
 d_clip_done(void)
 { RECT *rect;
 /*HRGN hrgn;*/
-  int ox=0, oy=0;
 
   if ( context.clip_depth-- < 0 )
     sysPce("Clip stack underfow!");
@@ -1144,7 +1143,8 @@ add_brush(Any fill, HBRUSH brush)
     }
   }
 
-  leastused = NULL;
+  leastusage = 1000000;
+  leastused  = NULL;
 
   for(i=0, e=brush_cache; i<BRUSH_CACHE_SIZE; i++, e++)
   { if ( e->brush != context.hbrush )
@@ -1224,7 +1224,7 @@ r_fillbrush(Any fill)
 	  HBITMAP bm2;
 	  HDC hdc = CreateCompatibleDC(context.hdc);
 	  HDC mhdc = CreateCompatibleDC(context.hdc);
-	  HPALETTE opal1, opal2;
+	  HPALETTE opal1 = 0, opal2 = 0;
 	  HBITMAP obm1, obm2;
 	  int x = 0, y = 0;
 
@@ -3145,7 +3145,7 @@ static void
 str_stext(String s, int f, int len, Style style)
 { if ( len > 0 )
   { Any ofg = NULL;
-    int w;
+    int w = 0;				/* make compiler happy */
     POINT here;
 
     if ( notNil(style) )
@@ -3169,7 +3169,7 @@ str_stext(String s, int f, int len, Style style)
     { Cprintf("16-bits characters are not supported on XPCE for Windows\n");
     }
 
-    if ( style->attributes & TXT_UNDERLINED )
+    if ( notNil(style) && (style->attributes & TXT_UNDERLINED) )
       r_line(here.x, here.y, here.x+w, here.y);
 
     if ( ofg )

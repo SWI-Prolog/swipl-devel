@@ -31,7 +31,7 @@ WinFrameClass()
   if ( !winclassname )
   { char buf[50];
 
-    sprintf(buf, "PceFrame%d", PceHInstance);
+    sprintf(buf, "PceFrame%ld", (unsigned long)PceHInstance);
     winclassname = CtoName(buf);
 
     wndClass.style		= 0;
@@ -60,7 +60,7 @@ WinPopupFrameClass()
   if ( !winclassname )
   { char buf[50];
 
-    sprintf(buf, "PcePopupFrame%d", PceHInstance);
+    sprintf(buf, "PcePopupFrame%ld", (unsigned long)PceHInstance);
     winclassname = CtoName(buf);
 
     wndClass.style		= /*CS_HREDRAW|CS_VREDRAW|*/CS_SAVEBITS;
@@ -720,9 +720,7 @@ ws_place_frame(FrameObj fr)
   }
 
   if ( last_x + fw > dw - PLACE_MARGIN )
-  { int xborder = GetSystemMetrics(SM_CXBORDER);
-
-    last_x = PLACE_MARGIN;
+  { last_x = PLACE_MARGIN;
     if ( last_x + fw > dw )
       last_x = 0;
   }
@@ -817,7 +815,7 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
     default:				/* [<Sign>]X<Sign>Y */
       if ( sscanf(s, "%[+-]%d%[+-]%d", signx, &x, signy, &y) != 4 )
       { signx[0] = '+';
-	if ( sscanf(s, "%d%[+-]%d", signx, &x, signy, &y) != 3 )
+	if ( sscanf(s, "%d%[+-]%d", &x, signy, &y) != 3 )
 	  break;
       }
 

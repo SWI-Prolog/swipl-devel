@@ -13,12 +13,10 @@
 #ifndef __WIN32__
 #define __WIN32__
 #endif
-#ifndef __WINDOWS__
-#define __WINDOWS__
-#endif
 
 #pragma warning(4:4244 4305 4018 4550)
 
+#define WIN32_GRAPHICS 1		/* Use Win32 graphics API */
 #define UXWIN(unx, win) win
 
 #define HAVE_UXNT_H 1

@@ -28,6 +28,9 @@
 
 #ifdef HAVE_LIBJPEG
 
+#if defined(__CYGWIN32__)		/* avoid redefinition of INT32 */
+#define XMD_H
+#endif
 #include <jpeglib.h>
 #include <jerror.h>
 #ifdef HAVE_STRING_H

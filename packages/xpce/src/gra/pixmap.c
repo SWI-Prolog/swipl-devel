@@ -140,7 +140,7 @@ getSourcePixmap(PixmapObj pm)
 }
 
 
-#if defined(__WINDOWS__) || defined(__WIN32__)
+#ifdef WIN32_GRAPHICS
 Colour
 getReplacementColourPixmap(PixmapObj pm)
 { Colour c;
@@ -153,7 +153,7 @@ getReplacementColourPixmap(PixmapObj pm)
        instanceOfObject(i, ClassImage) &&
        (grey = getAttributeObject(i, NAME_postscriptGrey)) )
   { char buf[100];
-    sprintf(buf, "grey%d", 100-valInt(grey));
+    sprintf(buf, "grey%d", 100-(int)valInt(grey));
     c = newObject(ClassColour, CtoName(buf), EAV);
   } else
     c = BLACK_COLOUR;
@@ -163,7 +163,7 @@ getReplacementColourPixmap(PixmapObj pm)
 
   answer(c);
 }
-#endif /*__WINDOWS__*/
+#endif /*WIN32_GRAPHICS*/
 
 
 		 /*******************************

@@ -971,9 +971,9 @@ combine_changes_window(PceWindow sw)
 Redraw an area of the picture due to an exposure or resize.  The area is
 given in the coordinate system of the widget realizing the picture.
 
-__WINDOWS__ note: this function is called  both from resize/exposure (in
-the X11 version) and from global changes   to the window that require it
-to be repainted entirely.  In the   Windows  version, the first bypasses
+WIN32_GRAPHICS note: this function is   called both from resize/exposure
+(in the X11 version) and from global  changes to the window that require
+it to be repainted entirely. In the  Windows version, the first bypasses
 this function, so we just trap the latter  to cause the entire window to
 be repainted.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -981,7 +981,7 @@ be repainted.
 status
 redrawWindow(PceWindow sw, Area a)
 {
-#ifdef __WINDOWS__
+#ifdef WIN32_GRAPHICS
   ws_invalidate_window(sw, DEFAULT);
 #else
   int ox, oy, dw, dh;
@@ -1051,7 +1051,7 @@ RedrawWindow(PceWindow sw)
 	      Cprintf("\tUpdate %d %d %d %d (%s)\n",
 		      a->area.x, a->area.y, a->area.w, a->area.h,
 		      a->clear ? "clear" : "no clear"));
-#ifdef __WINDOWS__
+#ifdef WIN32_GRAPHICS
         ws_redraw_window(sw, &a->area, a->clear);
 #else
 	RedrawAreaWindow(sw, &a->area, a->clear);
@@ -1160,10 +1160,9 @@ scrollWindow(PceWindow sw, Int x, Int y, Bool ax, Bool ay)
     updateScrollbarValuesWindow(sw);
     updatePositionSubWindowsDevice((Device) sw);
 
-#ifdef __WINDOWS__
+#ifdef WIN32_GRAPHICS
     ws_scroll_window(sw, nx-ox, ny-oy);
 #else
-#if 1
   { int x, y, w, h; 
     int p = valInt(sw->pen);
 
@@ -1176,9 +1175,6 @@ scrollWindow(PceWindow sw, Int x, Int y, Bool ax, Bool ay)
     changed_window(sw, x, y, w, h, TRUE);
     addChain(ChangedWindows, sw);
   }
-#else
-    redrawWindow(sw, DEFAULT);
-#endif
 #endif
   }
 
@@ -2072,7 +2068,7 @@ static vardecl var_window[] =
 
 /* Send Methods */
 
-#ifdef __WINDOWS__
+#ifdef WIN32_GRAPHICS
 extern status winHandleWindow(PceWindow sw, Int handle);
 extern Int    getWinHandleWindow(PceWindow sw);
 #endif
@@ -2170,7 +2166,7 @@ static senddecl send_window[] =
      NAME_stacking, "Expose (raise) related frame"),
   SM(NAME_hide, 0, NULL, hideWindow,
      NAME_stacking, "Hide (lower) related frame"),
-#ifdef __WINDOWS__
+#ifdef WIN32_GRAPHICS
   SM(NAME_winHandle, 1, "hwnd=int", winHandleWindow,
      NAME_windows, "Associate this XPCE window with the given MS-Window"),
 #endif
@@ -2201,7 +2197,7 @@ static getdecl get_window[] =
      NAME_cursor, "Currently displayed cursor"),
   GM(NAME_confirm, 3, "any", T_confirm, getConfirmWindow,
      NAME_modal, "Run sub event-loop until ->return"),
-#ifdef __WINDOWS__
+#ifdef WIN32_GRAPHICS
   GM(NAME_winHandle, 0, "int", NULL, getWinHandleWindow,
      NAME_windows, "Fetch the MS-Windows HWND of the window (if any)"),
 #endif

@@ -228,6 +228,7 @@ typedef struct
 } cursor_glyph_set, *CursorGlyphSet;
 
 
+#ifndef USE_C_CONVERTED_CURSORS
 static CursorGlyphSet
 read_cursor_glyphs(FILE *in)
 { CursorGlyphSet set = pceMalloc(sizeof(cursor_glyph_set));
@@ -267,6 +268,7 @@ read_cursor_glyphs(FILE *in)
 
   return set;
 }
+#endif /*USE_C_CONVERTED_CURSORS*/
 
 
 static int

@@ -111,7 +111,7 @@ iswin32s()
 os_platform
 ws_platform(void)
 { static int done = FALSE;
-  os_platform platform;
+  os_platform platform = WINUNKNOWN;
 
   if ( !done )
   { OSVERSIONINFO info;
@@ -161,6 +161,8 @@ ws_os(void)
       return "win95";			/* doesn't really make a difference */
     case NT:
       return "winnt";
+    default:
+      return "winunknown";
   }
 }
 
@@ -283,7 +285,7 @@ WinStrError(int error, ...)
 		      GetUserDefaultLangID(),
 		      msg,
 		      sizeof(msg),
-		      (char **)args) )
+		      args) )
   { sprintf(msg, "Unknown WINAPI error %d", error);
   }
   va_end(args);
@@ -302,6 +304,9 @@ get_logical_drive_strings(int bufsize, char *buf)
 		 *******************************/
 
 #include <h/unix.h>
+#ifndef _MAX_PATH
+#define _MAX_PATH 1024
+#endif
 #ifndef MAXPATHLEN
 #define MAXPATHLEN _MAX_PATH
 #endif
@@ -403,8 +408,7 @@ getWinFileNameDisplay(DisplayObj d,
   ofn.lpstrFile    = buffer;
   ofn.nMaxFile     = sizeof(buffer)-1;
   if ( notDefault(dir) )
-  { char tmp[MAXPATHLEN];
-    char *s;
+  { 
 #ifdef O_XOS				/* should always be true */
     if ( (s = expandFileName(strName(dir->path), tmp)) )
       ofn.lpstrInitialDir =_xos_os_filename(s, cwdbin);

@@ -103,12 +103,17 @@ eventQueuedDisplayManager(DisplayManager dm)
   fail;
 }
 
-#define TestBreakDraw(dm) if ( eventQueuedDisplayManager(dm) ) fail;
+#define TestBreakDraw(dm) \
+	if ( dm->test_queue == ON && \
+	     eventQueuedDisplayManager(dm) ) \
+	  fail;
 
 static status
 redrawDisplayManager(DisplayManager dm)
 { if ( ChangedWindows && !emptyChain(ChangedWindows) )
   { PceWindow sw = WindowOfLastEvent();
+
+    obtainClassVariablesObject(dm);
 
     TestBreakDraw(dm);
     if ( sw && memberChain(ChangedWindows, sw) )
@@ -197,7 +202,9 @@ static vardecl var_displayManager[] =
 { IV(NAME_members, "chain", IV_GET,
      NAME_display, "Available displays"),
   IV(NAME_current, "chain", IV_NONE,
-     NAME_current, "Stack with current displays")
+     NAME_current, "Stack with current displays"),
+  IV(NAME_testQueue, "bool", IV_BOTH,
+     NAME_event, "Test queue in event-loop")
 };
 
 /* Send Methods */
@@ -230,12 +237,9 @@ static getdecl get_displayManager[] =
 
 /* Resources */
 
-#define rc_displayManager NULL
-/*
 static classvardecl rc_displayManager[] =
-{ 
+{ RC(NAME_testQueue, "bool", "@on", NULL)
 };
-*/
 
 /* Class Declaration */
 

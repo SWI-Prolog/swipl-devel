@@ -361,8 +361,6 @@ get_clipboard_data(DisplayObj d, Name type)
 
     rval = CtoWinMetafile(copy);
     DeleteEnhMetaFile(hmf);
-
-    GlobalUnlock(mem);
   }
   CloseClipboard();
 

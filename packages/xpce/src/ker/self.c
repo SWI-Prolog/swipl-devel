@@ -75,7 +75,7 @@ initialisePce(Pce pce)
   assign(pce, version,                CtoName(PCE_VERSION));
   assign(pce, machine,                CtoName(MACHINE));
   assign(pce, operating_system,       CtoName(OS));
-#ifdef __WINDOWS__
+#ifdef WIN32_GRAPHICS
   assign(pce, window_system,	      NAME_windows);
 #else
   assign(pce, window_system,	      CtoName("X"));
@@ -278,7 +278,7 @@ getEnvironmentVariablePce(Pce pce, Name name)
 
   if ( (s = getenv(strName(name))) )
     answer(CtoName(s));
-#if defined(__DOS__) || defined(__WINDOWS__)
+#if defined(WIN32)			/* case-insensitive files */
   if ( stricmp(strName(name), "PCEHOME") == 0 )
 #else
   if ( streq(strName(name), "PCEHOME") )
@@ -622,7 +622,7 @@ infoPce(Pce pce)
   writef("	Release:            %s\n", pce->version);
   writef("	System:             %s\n", pce->machine);
   writef("	Operating System:   %s\n", pce->operating_system);
-#ifdef __WINDOWS__
+#ifdef WIN32				/* TBD: CygWin? */
   writef("	Window System:      windows %s.%s\n",
 	 pce->window_system_version,
 	 pce->window_system_revision);

@@ -152,6 +152,7 @@ setupWinPrinter(WinPrinter prt, FrameObj fr)
   } else
     psd->Flags |= PD_NOPAGENUMS;
 
+/* Keep them here are reminder
   psd->hDC; 
   psd->Flags; 
   psd->nFromPage; 
@@ -167,6 +168,7 @@ setupWinPrinter(WinPrinter prt, FrameObj fr)
   psd->lpSetupTemplateName; 
   psd->hPrintTemplate; 
   psd->hSetupTemplate; 
+*/
   psd->nCopies = 1;
 #else
 /* 

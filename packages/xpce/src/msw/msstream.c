@@ -10,6 +10,8 @@
     Copyright (C) 1990-2001 SWI, University of Amsterdam. All rights reserved.
 */
 
+#define __USE_W32_SOCKETS		/* Use Win32 sockets for cygwin */
+
 #include "include.h"
 #include <h/unix.h>
 #include <h/interface.h>
@@ -58,7 +60,7 @@ findSocketObject(SOCKET sock)
     }
   }
 
-  DEBUG(NAME_stream, ("No socket??\n"));
+  DEBUG(NAME_stream, Cprintf("No socket??\n"));
   return NIL;
 }
 
@@ -170,7 +172,7 @@ HiddenFrameClass()
   if ( !winclassname )
   { char buf[50];
 
-    sprintf(buf, "PceSocketWin%d", PceHInstance);
+    sprintf(buf, "PceSocketWin%d", (int)PceHInstance);
     winclassname = CtoName(buf);
 
     wndClass.style		= 0;
@@ -327,7 +329,7 @@ ws_write_stream_data(Stream s, void *data, int len)
     }
 #define send sendPCE
   } else				/* process */
-  { int written;
+  { DWORD written;
     HANDLE fd = (HANDLE) s->wrfd;
 
     if ( !WriteFile(fd, data, len, &written, NULL) )
@@ -367,7 +369,7 @@ process_thread(void *context)
 { Process p = (Process) context;
   DWORD avail;
   HWND hwnd = PceHiddenWindow();
-  int peekok;
+  int peekok = FALSE;
   DWORD status;
   PROCESS_INFORMATION *pi = p->ws_ref;
       
@@ -432,7 +434,7 @@ eof_process(Process p, int status)
 static int
 ws_read_process(Process p, char *buffer, int size, Int timeout)
 { if ( p->rdfd >= 0 )
-  { int avail, n = 0;
+  { DWORD avail;
     int peekok;
     long endtime = (isDefault(timeout) ? 0 : mclock() + valInt(timeout));
       
@@ -458,7 +460,7 @@ ws_read_process(Process p, char *buffer, int size, Int timeout)
 
     if ( peekok && avail )
     { int toread = min(size, avail);
-      int done;
+      DWORD done;
 
       DEBUG(NAME_process, Cprintf("%s: %d bytes available\n", pp(p), avail));
 
@@ -493,14 +495,14 @@ ws_read_line_stream(Stream s, Int timeout)
 
     for(;;)
     { if ( p->input_buffer )
-      { char *q;
+      { unsigned char *q;
 	int n;
 
 	DEBUG(NAME_process, Cprintf("Scanning %d chars\n", p->input_p));
 	for(n=p->input_p, q = p->input_buffer; n > 0; n--, q++)
 	{ if ( *q == '\n' )
 	  { string str;
-	    int len = q-p->input_buffer+1;
+	    int len = (q-p->input_buffer)+1;
 	    StringObj rval;
 
 	    str_set_n_ascii(&str, len, p->input_buffer);

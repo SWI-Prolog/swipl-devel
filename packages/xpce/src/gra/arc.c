@@ -77,7 +77,7 @@ RedrawAreaArc(Arc a, Area area)
   r_thickness(valInt(a->pen));
   r_dash(a->texture);
 
-#if !defined(__WINDOWS__) && !defined(__WIN32__)
+#ifndef WIN32_GRAPHICS
   r_arcmode(a->close == NAME_none ? NAME_pieSlice : a->close);
   r_arc(valInt(a->position->x) - aw, valInt(a->position->y) - ah,
 	2*aw, 2*ah,
@@ -93,7 +93,7 @@ RedrawAreaArc(Arc a, Area area)
     }
   }
 
-#else /*__WIN32__*/
+#else /*WIN32_GRAPHICS*/
 
 { int ax, ay, bx, by;
 

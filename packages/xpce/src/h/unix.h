@@ -25,6 +25,7 @@
 		 *	   AUTOCONF STUFF	*
 		 *******************************/
 
+#ifndef __USE_W32_SOCKETS		/* Cygwin using winsock */
 #ifdef TIME_WITH_SYS_TIME
 #include <sys/time.h>
 #include <time.h>
@@ -35,6 +36,7 @@
 #include <time.h>
 #endif
 #endif
+#endif /*__USE_W32_SOCKETS*/
 
 		 /*******************************
 		 *	 DOS/UNIX PROBLEMS	*

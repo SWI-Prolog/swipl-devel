@@ -487,7 +487,7 @@ selectionOwnerDisplay(DisplayObj d, Any owner, Name selection,
     attributeObject(h, NAME_looseMessage, loose);
     attributeObject(h, NAME_type, type);
 
-#ifndef __WINDOWS__
+#ifndef WIN32_GRAPHICS
     if ( !old )
 #endif
     { if ( !ws_own_selection(d, selection, type) )
@@ -1012,7 +1012,7 @@ static char *T_name_any_XXX[] =
 static char *T_selectionOwner[] =
         { "owner=object*", "which=[name]", "convert=[function]",
 	  "loose=[code]",
-#ifdef __WINDOWS__
+#ifdef WIN32_GRAPHICS
 	  "type=[{text,emf,wmf}]"	/* metafile types */
 #else
 	  "type=[{text}]"
@@ -1022,7 +1022,7 @@ static char *T_getSelection[] =
         { "which=[name]", "target=[name]", "type=[type]" };
 static char *T_selection[] =
         { "which=[name]", "value=char_array" };
-#ifdef __WINDOWS__
+#ifdef WIN32_GRAPHICS
 extern Name getWinFileNameDisplay(DisplayObj obj,
 				  Name mode,
 				  Chain filters,
@@ -1177,7 +1177,7 @@ static getdecl get_display[] =
      NAME_selection, "Get the current selection timeout time (seconds)"),
   GM(NAME_paste, 0, "string", NULL, getPasteDisplay,
      NAME_selection, "Simple interface to get clipboard value"),
-#ifdef __WINDOWS__
+#ifdef WIN32_GRAPHICS
   GM(NAME_winFileName, 5, "name", T_win_file_name, getWinFileNameDisplay,
      NAME_prompt, "Ask for a filename using Windows standard dialog"),
 #endif
@@ -1220,14 +1220,6 @@ static classvardecl rc_display[] =
      "Default volume of ->bell"),
   RC(NAME_windowManager, "[name]", "@default",
      "Window manager running on this display")
-#ifdef _WINDOWS
-  ,
-					/* @nil     --> no handling */
-					/* @default --> task-level handling */
-					/* name	    --> external dll */
-  RC(NAME_whMouseDll, "[name]*", "xpcemh.dll",
-     "DLL to generate area_enter/area_exit events")
-#endif
 };
 
 /* Class Declaration */
@@ -1260,7 +1252,7 @@ makeClassDisplay(Class class)
 }
   
 
-#ifdef __WINDOWS__
+#ifdef WIN32_GRAPHICS
 #define PFONT(n, p, x) { n, p }
 #define ENDFONTLIST    { NULL, 0 }
 #else
@@ -1271,7 +1263,7 @@ makeClassDisplay(Class class)
 typedef struct
 { Name style;
   int  points;
-#ifndef __WINDOWS__
+#ifndef WIN32_GRAPHICS
   char *xname;
 #endif
 } fontdef, *FontDef;
@@ -1414,7 +1406,7 @@ default_font_list(Name fam, FontDef defs)
   
   while(defs->style)
   {
-#ifdef __WINDOWS__
+#ifdef WIN32_GRAPHICS
     sprintf(s, "font(%s, %s, %d)",
 	    strName(fam),
 	    strName(defs->style),

@@ -17,13 +17,13 @@ autoconf/config.h based machine-binding file.
 #ifndef _MD_INCLUDED
 #define _MD_INCLUDED
 
-#if defined(WIN32) || defined(__WIN32__)
-# include "md/md-win32.h"
-#else
-# ifdef __WINDOWS__
-# include "md/md-mswin.h"
-# else
+#ifdef HAVE_CONFIG_H
 # include <config.h>
+#else
+# if defined(WIN32) || defined(__WIN32__)
+#  include "md/md-win32.h"
+# else
+#  error("No config")
 # endif
 #endif
 
