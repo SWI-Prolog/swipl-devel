@@ -75,21 +75,26 @@ emit([H|T]) :- !,
 	emit(H),
 	emit(T).
 emit(Fmt-Args) :- !,
-	format(Fmt, Args).
+	format(Fmt, Args),
+	retractall(nl_done(_)).
 emit(#Term) :- !,
 	#Term.
 emit(#Term::Content) :- !,
 	#Term::Content.
 emit(Atom) :-
-	write(Atom).
+	write(Atom),
+	retractall(nl_done(_)).
 
 #Term::Content :-
 	Term =.. [Name|Attributes],
+	layout(before(open, Name)),
 	format('<~w', [Name]),
 	attlist(Attributes),
 	format('>', []),
+	retractall(nl_done(_)),
+	layout(after(open, Name)),
 	emit(Content),
-	format('</~w>', [Name]).
+	end_tag(Name).
 #pre(Text) :- !,
 	sgml_quote(Text, Quoted),
 	#pre::Quoted.
@@ -99,10 +104,67 @@ emit(Atom) :-
 	box(Text, Colour).
 #Term :-
 	Term =.. [Name|Attributes],
+	layout(before(open, Name)),
 	format('<~w', [Name]),
 	attlist(Attributes),
 	format('>', []),
-	format('</~w>', [Name]).
+	retractall(nl_done(_)),
+	layout(after(open, Name)),
+	end_tag(Name).
+
+end_tag(Name) :-
+	blines(Name, _, o), !.
+end_tag(Name) :-
+	layout(before(close, Name)),
+	format('</~w>', [Name]),
+	retractall(nl_done(_)),
+	layout(after(close, Name)).
+
+
+layout(before(open, Name)) :-
+	blines(Name, N-_, _), !,
+	nls(N).
+layout(after(open, Name)) :-
+	blines(Name, _-N, _), !,
+	nls(N).
+layout(before(close, Name)) :-
+	blines(Name, _, N-_), !,
+	nls(N).
+layout(after(close, Name)) :-
+	blines(Name, _, _-N), !,
+	nls(N).
+layout(_) :-
+	retractall(nl_done(_)).
+
+:- dynamic
+	nl_done/1.
+
+nls(N) :-
+	(   nl_done(Done)
+	->  true
+	;   Done = 0
+	),
+	ToDo is N - Done,
+	New is max(N, Done),
+	retractall(nl_done(Done)),
+	assert(nl_done(New)),
+	do_nl(ToDo).
+
+do_nl(N) :-
+	N > 0, !,
+	nl,
+	NN is N - 1,
+	do_nl(NN).
+do_nl(_).
+
+blines(tr,    1-0, 0-0).
+blines(table, 2-1, 1-1).
+blines(form,  2-1, 1-1).
+blines(h1,    2-0, 0-1).
+blines(h2,    2-0, 0-2).
+blines(h3,    2-0, 0-2).
+blines(h4,    2-0, 0-2).
+blines(p,     2-1, o).			% omitted end-tag
 
 attlist([]).
 attlist([Name=Value|T]) :- !,
@@ -200,6 +262,7 @@ parsed(Time, Triples) :-
 
 rdf_table(Triples) :-
 	maplist(triple_row, Triples, TripleRows),
+	#p,
 	#table(caption='RDF triples',
 	       align=center, border=2, cellpadding=3)::
 	  [ #tr::[#th::'Subject', #th::'Predicate', #th::'Object']
