@@ -86,6 +86,7 @@ initialise(F) :->
 	send(ReportDialog, resize_message,
 	     message(ReportDialog, layout, @arg2)),
 
+	send(ButtonDialog, name, button_dialog),
 	send(ButtonDialog, append,
 	     button(up, message(F, up))),
 	send(ButtonDialog, append,
@@ -106,7 +107,7 @@ initialise(F) :->
 	send(L, style, file,      style(icon := resource(file))),
 	send(L, style, drive,     style(icon := resource(drive))),
 	send(L, select_message, message(F, select, @arg1?key, @arg1?style)),
-	send(L, open_message, DoOK),
+	send(L, open_message, message(F, open_entry, @arg1?key, @arg1?style)),
 	send(L, recogniser,
 	     handler(area_enter, message(F, keyboard_focus, L))),
 	send(FI, message, DoOK),
@@ -126,15 +127,21 @@ directory_item(F, DI:text_item) :<-
 	get(ID, member, directory, DI).
 
 
-select(F, Name:string, Type:{directory,file,drive}) :->
+select(F, Name:string, _Type:{directory,file,drive}) :->
 	"Handle selection from browser"::
 	get(F, file_item, FI),
+	send(FI, selection, Name).
+
+open_entry(F, Name:string, Type:{directory,file,drive}) :->
+	"Hangle double-click from browser"::
 	(   Type == directory
 	->  get(F, directory_item, DI),
 	    send(F, directory, string('%s/%s', DI?selection, Name))
 	;   Type == drive
 	->  send(F, directory, Name)
-	;   send(FI, selection, Name)
+	;   get(F, member, button_dialog, BD),
+	    get(BD, member, ok, Ok),
+	    send(Ok, execute)
 	).
 
 
@@ -318,6 +325,18 @@ select_drive(F) :->
 file(F, Exists:exists=[bool], Ext0:extension=[name|chain],
      Dir:directory=[directory], Default:default=[file], File:name) :<-
  	"Get [existing] file with [extension]"::
+	get_file(F, Exists, Ext0, Dir, Default, File).
+
+get_file(_, Exists, Ext, Dir, Default, File) :-
+	send(@display, has_get_method, win_file_name), !,
+	(   Exists == @on
+	->  Mode = open
+	;   Mode = save
+	),
+	win_filter(Ext, Filters),
+	get(@display, win_file_name, Mode, Filters,
+	    @default, Default, Dir, File).
+get_file(F, Exists, Ext0, Dir, Default, File) :-
 	send(F, report, status, ''),
 	(   Exists \== @default
 	->  send(F, exists, Exists)
@@ -346,6 +365,33 @@ file(F, Exists:exists=[bool], Ext0:extension=[name|chain],
 	send(F, application, @nil),
 	send(F, show, @off),
 	File \== @nil.
+
+win_filter(@default, @default).
+win_filter(Atom, Filter) :-
+	atom(Atom), !,
+	new(C, chain(Atom)),
+	win_filter(C, Filter).
+win_filter(Chain, Filter) :-
+	get(Chain, map, ?(@prolog, file_filter, @arg1), Filter).
+
+file_filter(Ext0, Filter) :-
+	atom_concat('.', Ext, Ext0), !,
+	file_filter(Ext, Filter).
+file_filter(Ext, tuple(Name, Pattern)) :-
+	file_type(Ext, Name), !,
+	atom_concat('*.', Ext, Pattern).
+file_filter(Ext, Pattern) :-
+	atom_concat('*.', Ext, Pattern).
+
+%	Allow the user to add rules to this
+
+:- multifile
+	file_type/2.
+
+file_type(pl, 'Prolog file').
+file_type(pd, 'PceDraw file').
+file_type(ps, 'PostScript file').
+file_type(eps, 'Encapsulated PostScript file').
 
 :- pce_end_class.
 

@@ -365,7 +365,7 @@ uninstall::
 
 clean::
 		for %d in ($(MODULES)) do \
-		  $(CMD) /c "chdir %p & del *~ *.obj"
+		  $(CMD) /c "chdir %d & del *~ *.obj"
 		$(CMD) /c "chdir ..\pl\src & del *~ *.obj"
 		del *~ *.obj xpce-install.exe
 
