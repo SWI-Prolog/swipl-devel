@@ -19,12 +19,6 @@
 #include <sys/select.h>
 #endif
 
-#ifdef SOME_MISSING_LIB_PROTOTYPES
-extern int select (int width,
-		   fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
-		   struct timeval *timeout);
-#endif
-
 		/********************************
 		*           C --> PCE		*
 		********************************/

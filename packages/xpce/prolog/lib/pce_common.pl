@@ -197,6 +197,11 @@ shell(Cmd) :-
 %	Provide (prolog-part) PCE interface error message
 
 pce_error(Fmt, Args) :-
+	source_location(File, Line), !,
+	format(user_error, '[PCE/Prolog: ~w/~d: ', [File, Line]),
+	format(user_error, Fmt, Args),
+	format(user_error, ']~n', []).
+pce_error(Fmt, Args) :-
 	format(user_error, '[PCE/Prolog: ', []),
 	format(user_error, Fmt, Args),
 	format(user_error, ']~n', []).

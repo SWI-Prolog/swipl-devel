@@ -22,7 +22,7 @@ Prerequisites:
   with many operating systems won't.
 
 * If you want to link to SWI-Prolog to create XPCE/SWI-Prolog, SWI-Prolog
-  version 1.9.2 or later must be installed (using make install) as one of
+  version 1.9.5 or later must be installed (using make install) as one of
   `pl', `swipl' or `swi-prolog'.  The automatic configuration script will
   call SWI-Prolog to determine system parameters of it.
 
@@ -33,6 +33,10 @@ Preparation:
 * Run ./configure.  On some systems this requires
 
 	% sh configure [--prefix=<installation dir>]
+
+  If you donot want to install XPCE with SWI-Prolog, you should do
+
+	% sh configure --without-pl [--prefix=<installation dir>]
 
   The default installation prefix is /usr/local, installing XPCE/SWI-Prolog
   in
@@ -68,13 +72,21 @@ Preparation:
   libraries.  Some ld's
 
 
-    XPCE/SICStus Prolog (make target `xpce-sicstus'):
-    -------------------------------------------------
+XPCE/SICStus Prolog (make target `xpce-sicstus'):
+-------------------------------------------------
+
+Either first install using SWI-Prolog, or configure using:
+
+	% ./configure --without-pl
+
+edit the Makefile to fix the definition of:
 
 	# SICSHOME
 	Absolute path to the installation directory of SICS Prolog
 	(Version 2.1#9 or later).
 
+	# SICSTARGET
+	Place where the binary should be dumped
 
 Compilation:
 ============
@@ -91,23 +103,27 @@ Compilation:
   and gnu-make 3.71):
 
   ================================================================
-  % cd ~/src/xpce-4.8/
-  % make
+  cd ~/src/xpce-4.8.4/
+  make
+  ****************
+  Making XPCE 4.8.4, Nov 1994 for sparc-solaris2.3
+  ****************
+  sed "s/\<Pce\./Pce./" Pce.in > Pce
   cd src; make  WST=x11 xpcelib
-  make[1]: Entering directory `/lri2/jan/src/xpce-4.8/src'
-  gcc -Wall -O2 -I.. -funsigned-char -I. -o Names.Gen Names.Gen.c
-  gcc -Wall -O2 -I.. -funsigned-char -I. -o Names.X Names.X.c
+  make[1]: Entering directory `/lri2/jan/src/xpce-4.8.4/src'
+  gcc -Wall -O2 -I.. -funsigned-char -DHAVE_CONFIG_H -I. -o Names.Gen Names.Gen.c
+  gcc -Wall -O2 -I.. -funsigned-char -DHAVE_CONFIG_H -I. -o Names.X Names.X.c
   if [ ! -d names ]; then mkdir names; fi
   ./FN -a h/*.h ???/*.c
-  make[2]: Entering directory `/lri2/jan/src/xpce-4.8/src/adt'
-  gcc -Wall -O2 -I.. -funsigned-char   -c area.c -o area.o
-  gcc -Wall -O2 -I.. -funsigned-char   -c atable.c -o atable.o
-  ...
+  make[2]: Entering directory `/lri2/jan/src/xpce-4.8.4/src/adt'
+  gcc -Wall -O2 -I.. -funsigned-char -DHAVE_CONFIG_H   -c area.c -o area.o
+  gcc -Wall -O2 -I.. -funsigned-char -DHAVE_CONFIG_H   -c atable.c -o atable.o
   ...
   ================================================================
 
 * If you just want XPCE.a, use the target `make xpce' instead of just
-  `make', which is equivalent to `make xpce-pl'
+  `make', which is equivalent to `make xpce-pl'.  NOTE: if you ran configure
+  with the option `--without-pl', the default target is just `xpce'.
 
 * If you want XPCE connected to SICStus Prolog, you need SICStus Prolog
   version 2.1#9 (tested) or later.  Edit the Makefile variables
@@ -161,20 +177,17 @@ short overview of the compilation process:
     XPCE.a
     ------
 
-	1) Establish a link from src/md.h to src/md/md-$(ARCH).h to get
-	a description of the machine.
-
-	2) Build a table for C-code used XPCE atoms.  This compiles
+	1) Build a table for C-code used XPCE atoms.  This compiles
 	Names.Gen.c and Names.X.c and next runs the shell-script src/FN
 	to create a database in the directory `src/names' and C-files in
 	`src/h/names.ic' and `src/h/names.ih'.
 
-	3) make is fired in each of the directories below src with
+	2) make is fired in each of the directories below src with
 	the target `addlib'.  This will make the object files of the
 	module and next run `ar ru ../XPCE.a <object files> to add/update
 	the main XPCE library.
 
-	4) a change of XPCE.a is detected and ranlib(1) is ran if XPCE.a
+	5) a change of XPCE.a is detected and ranlib(1) is ran if XPCE.a
 	has changed and ranlib can be found in /bin or /usr/bin.
 
     XPCE/SWI-Prolog
@@ -218,7 +231,7 @@ Problems:
 		gcc version 2.5.8
 
 	- Any local overrules of include files, libraries, shell utilities?
-	  XPCE should built using both native Unix and GNU-Project utilities,
+	  XPCE should build using both native Unix and GNU-Project utilities,
 	  except for make and (g)cc that should be the GNU versions.
 
 

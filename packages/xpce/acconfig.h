@@ -43,3 +43,5 @@
 /* Define if text-pointer is in high memory */
 #undef TEXT_OFFSET
 
+/* Define to "file.h" to include additional system prototypes */
+#undef SYSLIB_H

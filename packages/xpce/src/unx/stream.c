@@ -19,13 +19,6 @@
 #include <sys/select.h>
 #endif
 
-#if SOME_MISSING_LIB_PROTOTYPES
-extern int select (int width,
-		   fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
-		   struct timeval *timeout);
-#endif
-
-
 static status recordSeparatorStream(Stream s, Regex re);
 static status closeStream(Stream s);
 

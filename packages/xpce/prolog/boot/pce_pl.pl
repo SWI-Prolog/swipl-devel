@@ -20,6 +20,7 @@
 	, 'pceloadcxx'/1
 	, 'pceloadcxx'/2
 	, '$call_atom'/1
+	, pce_error/2
 	]).
 
 
@@ -134,6 +135,25 @@ pce_banner :-
 '$call_atom'(Atom) :-
 	term_to_atom(Term, Atom),
 	user:Term.
+
+
+		 /*******************************
+		 *	    WARNINGS		*
+		 *******************************/
+
+pce_error(Fmt, Args) :-
+	source_location(File, Line), !,
+	sformat(Str, Fmt, Args),
+	(   user:exception(warning, warning(File, Line, Str), _)
+	->  true
+	;   format(user_error,
+		   '[PCE/Prolog: (~w:~d)~n~t~8|~w]~n',
+		   [File, Line, Str])
+        ).
+pce_error(Fmt, Args) :-
+        format(user_error, '[PCE/Prolog: ', []),
+        format(user_error, Fmt, Args),
+        format(user_error, ']~n', []).
 
 
 		/********************************

@@ -14,12 +14,6 @@
 #include <h/unix.h>
 #include <unistd.h>
 
-#ifdef SOME_MISSING_LIB_PROTOTYPES
-extern int select (int width,
-		   fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
-		   struct timeval *timeout);
-#endif
-
 /* (AA)	isqrt(a).  Returns the square root of a as an integer.  The 
 	algorithm only uses bit-shifts (multiplication by a power of 2) and
 	3.5 integer multiplications on average.

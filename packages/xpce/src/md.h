@@ -62,9 +62,4 @@ char *alloca ();
 		 *	SOME SYSTEM STUFF	*
 		 *******************************/
 
-#if defined(sun) && !defined(HAVE_LIBELF) /* i.e. not solaris */
-#define SOME_MISSING_LIB_PROTOTYPES 1
-#define O_EXTRA_SYSTEM_TYPES <h/sunlib.h>
-#endif
-
 #endif /*_MD_INCLUDED*/

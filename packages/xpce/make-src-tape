@@ -6,22 +6,21 @@ compress=gzip
 
 rm -f xpce-$version
 if [ ! "o$1" = "o-q" ]; then
-  rm -f srcfiles-0 srcfiles-1
-  cp /dev/null srcfiles-0
+  cp /dev/null srcfiles
   echo -n "Collecting distribution files "
   for d in `find . -name CVS -type d -print`; do
       echo -n "."
       dir=`dirname $d`
-      awk -F/ '{printf("%s/%s\n", "'$dir'", $2)}' $dir/CVS/Entries >> srcfiles-0
+      awk -F/ '{printf("%s/%s\n", "'$dir'", $2)}' $dir/CVS/Entries >> srcfiles
   done
   echo "done"
 fi
 
-grep -v src/msw/ srcfiles-0 | sed "s@^\./@xpce-$version/@" > srcfiles
+grep -v src/msw/ srcfiles | sed "s@^\./@xpce-$version/@" > tapefiles
 
 cd ..
 ln -s xpce xpce-$version
-tar cvfT - xpce/srcfiles | $compress > $out
+tar cvfT - xpce/tapefiles | $compress > $out
 rm -f xpce-$version
 
 

@@ -1,4 +1,21 @@
+[VERSION 4.8.5]
+
+* Added warning for some common class-compiler misusages.
+
+* Implemented pce_error/2 in pce_pl.pl (SWI-Prolog binding) to exploit the
+  generic source-location an warning system of SWI-Prolog.
+
+
 [VERSION 4.8.4]
+
+* SYNCHRONISED MS-Windows 3.1 and Unix versions.
+
+* FIXED: `editor ->kill' for `adjecent' kills that exceed more than 10K
+  characters (crashed).
+  
+* Various minor memory management problems (found with strict checking version
+  of the alloc.c module).  Most of them just `unelegant', a few could cause
+  trouble in rare circumstances.
 
 * FIXED: Class menu_bar and class scroll_bar look-and-feel for non-open-look
   styles.

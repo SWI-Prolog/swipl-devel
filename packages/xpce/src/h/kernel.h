@@ -32,14 +32,18 @@
 #define GLOBAL extern			/* global variables */
 #endif
 
-
 		 /*******************************
 		 *	SOME SYSTEM STUFF	*
 		 *******************************/
 
-#ifdef O_EXTRA_SYSTEM_TYPES
-#include O_EXTRA_SYSTEM_TYPES
+#ifdef SYSLIB_H
+#include SYSLIB_H
 #endif
+
+#ifndef HAVE_GETDTABLESIZE		/* avoid clash with SWI-Prolog */
+#define getdtablesize PCE_getdtablesize
+#endif
+
 		/********************************
 		*             LIMITS		*
 		********************************/

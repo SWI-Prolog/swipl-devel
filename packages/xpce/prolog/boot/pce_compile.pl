@@ -30,8 +30,11 @@
 
 :- use_module(pce_principal).
 :- use_module(pce_operator).
-:- require([ concat/3
+:- require([ between/3
+	   , concat/3
 	   , concat_atom/2
+	   , forall/2
+	   , genarg/3
 	   , ignore/1
 	   , pce_error/2
 	   , source_location/2
@@ -236,12 +239,37 @@ current_group(@default).		% should not happen
 
 pce_term_expansion(Term, Expanded) :-
 	class_term(Term),
-	compiling(_),
+	compiling(_), !,
 	(   do_expand(Term, Expanded)
 	->  true
 	;   pce_error('Failed to expand ~w', [Term]),
 	    Expanded = []
 	).
+pce_term_expansion(Term, _) :-
+	compiling(_),
+	(   Term = (_Head :- [A|B] :: _Body),
+	    is_string([A|B])
+	;   Term = (Head :- _Body),
+	    typed_head(Head)
+	),
+	pce_error('Method intended?', []),
+	fail.
+	
+is_string([]).
+is_string([H|T]) :-
+	between(0, 255, H),
+	is_string(T).
+
+typed_head(T) :-
+	functor(T, _, Arity),
+	Arity > 1,
+	forall(genarg(N, T, A),
+	       (   N > 1
+	       ->  nonvar(A),
+		   A = TP:_,
+		   ground(TP)
+	       ;   true
+	       )).
 
 class_term(variable(_Name, _Type, _Access)).
 class_term(variable(_Name, _Type, _Access, _Doc)).
@@ -310,11 +338,7 @@ do_expand((Head :-> DocBody),			% Prolog send
 		  send_method(Selector, Types, Cascade, Doc, Loc, Group)))
 	, (PlHead :- Body)
 	]) :- !,
-	(   DocBody = (DocText::Body)
-	->  Doc = string(DocText)
-	;   DocBody = Body,
-	    Doc = @nil
-	),
+	extract_documentation(DocBody, Doc, Body),
 	source_location_term(Loc),
 	current_class(Class),
 	current_group(Group),
@@ -329,11 +353,7 @@ do_expand((Head :<- DocBody),			% Prolog get
 			      Cascade, Doc, Loc, Group)))
 	, (PlHead :- Body)
 	]) :- !,
-	(   DocBody = (DocText::Body)
-	->  Doc = string(DocText)
-	;   DocBody = Body,
-	    Doc = @nil
-	),
+	extract_documentation(DocBody, Doc, Body),
 	source_location_term(Loc),
 	current_class(Class),
 	current_group(Group),
@@ -341,6 +361,12 @@ do_expand((Head :<- DocBody),			% Prolog get
 	return_type(Head, RType),
 	prolog_head(get, Head, Selector, Types, PlHead, Cascade),
 	feedback('~t~8|~w :<-~w ... ok~n', [ClassName, Selector]).
+
+extract_documentation((DocText::Body), string(DocText), Body) :- !.
+extract_documentation((DocText,Body), string(DocText), Body) :-
+	is_string(DocText), !,
+	pce_error('Summary not closed by "::"', []).
+extract_documentation(Body, @nil, Body).
 
 
 return_type(Term, RType) :-

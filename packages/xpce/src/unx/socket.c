@@ -29,7 +29,7 @@
 
 extern int errno;
 
-#ifdef SOME_MISSING_LIB_PROTOTYPES
+#if defined(SYSLIB_H) && defined(sun)
 extern int socket(int domain, int type, int protocol);
 extern int bind(int s, struct sockaddr *name, int namelen);
 extern int accept(int s, struct sockaddr *addr, int *addrlen);
