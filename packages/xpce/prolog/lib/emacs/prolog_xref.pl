@@ -355,6 +355,7 @@ xref_meta(call_cleanup(A, B),	[A, B]).
 xref_meta(call_cleanup(A, _, B),[A, B]).
 xref_meta(on_signal(_,_,A),	[A+1]).
 xref_meta(with_mutex(_,A),	[A]).
+xref_meta(assume(G),		[G]).	% library(debug)
 
 					% XPCE meta-predicates
 xref_meta(pce_global(_, new(_)), _) :- !, fail.
