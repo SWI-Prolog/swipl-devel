@@ -2018,7 +2018,8 @@ insert_file_textbuffer(TextBuffer tb, int where, int times, SourceSink file)
       if ( c == EOF )
 	goto done;
       if ( c > 0xff )
-      { promoteTextBuffer(tb);
+      { Sungetcode(c, fd);
+	promoteTextBuffer(tb);
 	break;
       }
       tb->tb_bufferA[tb->gap_start++] = c;
