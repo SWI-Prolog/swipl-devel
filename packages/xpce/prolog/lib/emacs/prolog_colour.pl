@@ -301,7 +301,14 @@ colour_method_head(SGHead, TB, Pos) :-
 	colour_item(method(SG), TB, FPos),
 	colourise_term_args(Head, TB, Pos).
 
+%	functor_position(+Term, -FunctorPos, -ArgPosList)
+%	
+%	Get the position of a functor   and  its argument. Unfortunately
+%	this goes wrong for lists, who have two `functor-positions'.
+
 functor_position(term_position(_,_,FF,FT,ArgPos), FF-FT, ArgPos) :- !.
+functor_position(list_position(F,_T,Elms,none), F-FT, Elms) :- !,
+	FT is F + 1.
 functor_position(Pos, Pos, []).
 
 %	colourise_body(+Body, +TB, +Pos)
@@ -753,6 +760,7 @@ goal_colours(thread_local(_),	     built_in-[predicates]).
 goal_colours(multifile(_),	     built_in-[predicates]).
 goal_colours(volatile(_),	     built_in-[predicates]).
 goal_colours(consult(_),	     built_in-[file]).
+goal_colours([_|_],		     built_in-file).
 goal_colours(include(_),	     built_in-[file]).
 goal_colours(ensure_loaded(_),	     built_in-[file]).
 goal_colours(load_files(_,_),	     built_in-[file,classify]).
