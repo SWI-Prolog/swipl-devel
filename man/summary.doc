@@ -444,6 +444,7 @@ suggest predicates from a keyword.
 \predicatesummary{thread_get_message}{1}{Wait for message}
 \predicatesummary{thread_get_message}{2}{Wait for message in a queue}
 \predicatesummary{thread_join}{2}{Wait for Prolog task-completion}
+\predicatesummary{thread_local}{1}{Declare thread-specific clauses for a predicate}
 \predicatesummary{thread_peek_message}{1}{Test for message}
 \predicatesummary{thread_peek_message}{2}{Test for message in a queue}
 \predicatesummary{thread_self}{1}{Get identifier of current thread}
@@ -608,6 +609,7 @@ suggest predicates from a keyword.
 \opsummary{1150}{fx}{dynamic}{Predicate}
 \opsummary{1150}{fx}{module_transparent}{Predicate}
 \opsummary{1150}{fx}{multifile}{Predicate}
+\opsummary{1150}{fx}{thread_local}{Predicate}
 \opsummary{1150}{fx}{volatile}{Predicate}
 \opsummary{1150}{fx}{initialization}{Predicate}
 \opsummary{1200}{fx}{:-}{Introduces a directive}

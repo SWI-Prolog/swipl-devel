@@ -321,13 +321,47 @@ happens of the thread is waiting for (user-)input.
 
 \subsection{Threads and dynamic predicates}	\label{sec:threadlocal}
 
-The multi-threaded version knows about two types of dynamic predicates.
+Besides queues (\secref{sec:msgqueue}) threads can share and exchange
+data using dynamic predicates. The multi-threaded version knows about
+two types of dynamic predicates. By default, a predicate declared
+\jargon{dynamic} (see dynamic/1) is shared by all threads. Each thread
+may assert, retract and run the dynamic predicate. Synchronisation
+inside Prolog guarantees the consistency of the predicate. Updates are
+\jargon{logical}: choice-points are not affected by later
+assert/retract. In many cases primitive from \secref{threadsync} should
+be used to ensure application invariants on the predicate are
+maintained.
 
+Besides shared predicates, dynamic predicates can be declared with the
+thread_local/1 directive. Such predicates share their attributes, but
+the clause-list is different in each thread.
 
+\begin{description}
+    \prefixop{thread_local}{+Functor/+Arity, \ldots}
+This directive is related to the dynamic/1 directive.  It tells the
+system that the predicate may be modified using assert/1, retract/1,
+etc.\ during execution of the program.  Unlike normal shared dynamic
+data however each thread has its own clause-list for the predicate.
+As a thread starts, this clause list is empty.  If there are still
+clauses as the thread terminates these are automatically reclaimed
+by the system (see also volatile/1).  The thread_local property
+implies the properties dynamic and volatile.
 
+Thread-local dynamic predicates are intended for maintaining
+thread-specific state or intermediate results of a computation.
 
+It is not recommended to put clauses for a thread-local predicate into
+a file as in the example below as the clause is only visible from the
+thread that loaded the source-file.  All other threads start with an
+empty clause-list.
 
+\begin{code}
+:- thread_local
+	foo/1.
 
+foo(gnat).
+\end{code}
+\end{description}
 
 
 \section{Thread synchronisation}		\label{sec:threadsync}

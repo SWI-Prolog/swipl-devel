@@ -1629,17 +1629,21 @@ you want to maintain portability to other Prolog implementations.
 \begin{description}
     \prefixop{dynamic}{+Functor/+Arity, \ldots}
 Informs the interpreter that the definition of the predicate(s) may change
-during execution (using assert/1 and/or retract/1).  Currently dynamic/1
-only stops the interpreter from complaining about undefined predicates (see
-unknown/2).  Future releases might prohibit assert/1 and retract/1 for
-not-dynamic declared procedures.
+during execution (using assert/1 and/or retract/1). In the
+multi-threaded version, the clauses of dynamic predicates are shared
+between the threads. The directive thread_local/1 provides an
+alternative where each threads has its own clause-list for the
+predicate.
+
     \prefixop{multifile}{+Functor/+Arity, \ldots}
 Informs the system that the specified predicate(s) may be defined over
 more than one file. This stops consult/1 from redefining a predicate
 when a new definition is found.
+
     \prefixop{discontiguous}{+Functor/+Arity, \ldots}
 Informs the system that the clauses of the specified predicate(s) might
 not be together in the source file.  See also style_check/1.
+
     \predicate{index}{1}{+Head}
 Index the clauses of the predicate with the same name and arity as
 \arg{Head} on the specified arguments. \arg{Head} is a term of which all
@@ -1721,48 +1725,69 @@ available about the current program. \arg{Property} is one of:
 Is true if the predicate is defined in Prolog. We return true on this
 because, although the code is actually compiled, it is completely
 transparent, just like interpreted code.
+
     \termitem{built_in}{}
 Is true if the predicate is locked as a built-in predicate. This
 implies it cannot be redefined in its definition module and it can
 normally not be seen in the tracer.
+
     \termitem{foreign}{}
 Is true if the predicate is defined in the C language.
+
     \termitem{dynamic}{}
-Is true if the predicate is declared dynamic using the dynamic/1
-declaration.
+Is true if assert/1 and retract/1 may be used to modify the predicate.
+This property is set using dynamic/1.
+
+    \termitem{volatile}{}
+If true, the clauses are not saved into a saved-state
+by qsave_program/[1,2].  This property is set using volatile/1.
+
+    \termitem{thread_local}{}
+If true (only possible on the multi-threaded version) each thread has
+its own clauses for the predicate. This property is set using
+thread_local/1.
+
     \termitem{multifile}{}
-Is true if the predicate is declared multifile using the multifile/1
-declaration.
+Is true there may be multiple (or no) file providing clauses for the
+predicate.  This property is set using multifile/1.
+
     \termitem{undefined}{}
-Is true if a procedure definition block for the predicate exists, 
-but there are no clauses in it and it is not declared dynamic. This is
-true if the predicate occurs in the body of a loaded predicate, an
-attempt to call it has been made via one of the meta-call predicates or
-the predicate had a definition in the past.  See the library package
-\arg{check} for example usage.
+Is true if a procedure definition block for the predicate exists, but
+there are no clauses for it and it is not declared dynamic or multifile.
+This is true if the predicate occurs in the body of a loaded predicate,
+an attempt to call it has been made via one of the meta-call predicates
+or the predicate had a definition in the past. See the library package
+\pllib{check} for example usage.
+
     \termitem{transparent}{}
 Is true if the predicate is declared transparent using the
 module_transparent/1 declaration.
+
     \termitem{exported}{}
 Is true if the predicate is in the public list of the context module.
     \termitem{imported_from}{Module}
 Is true if the predicate is imported into the context module from
 module \arg{Module}.
+
     \termitem{indexed}{Head}
 Predicate is indexed (see index/1) according to \arg{Head}. \arg{Head}
 is a term whose name and arity are identical to the predicate. The
 arguments are unified with `1' for indexed arguments, `0' otherwise.
+
     \termitem{file}{FileName}
 Unify \arg{FileName} with the name of the source file in which the
 predicate is defined.  See also source_file/2.
+
     \termitem{line_count}{LineNumber}
 Unify \arg{LineNumber} with the line number of the first clause of the
 predicate.  Fails if the predicate is not associated with a file.  See
 also source_file/2.
+
     \termitem{number_of_clauses}{ClauseCount}
 Unify \arg{ClauseCount} to the number of clauses associated with the
 predicate.  Fails for foreign predicates.
 \end{description}
+
     \predicate{dwim_predicate}{2}{+Term, -Dwim}
 `Do What I Mean' (`dwim') support predicate. \arg{Term} is a term, 
 which name and arity are used as a predicate specification.  \arg{Dwim}
