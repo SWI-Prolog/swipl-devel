@@ -702,7 +702,12 @@ RedrawArea(Any obj, Area area)
 status
 paintSelectedGraphical(Graphical gr)
 { PceWindow sw = getWindowGraphical(gr);
-  Any feedback = sw->selection_feedback;
+  Any feedback;
+
+  if ( sw )
+    feedback = sw->selection_feedback;
+  else
+    fail;
 
   if ( notNil(feedback) )
   { int x, y, w, h;

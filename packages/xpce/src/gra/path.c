@@ -157,9 +157,8 @@ RedrawAreaPath(Path p, Area a)
 static status
 paintSelectedPath(Path p)
 { PceWindow sw = getWindowGraphical((Graphical) p);
-  Any feedback = sw->selection_feedback;
 
-  if ( feedback == (Any) NAME_handles )
+  if ( sw && sw->selection_feedback == (Any) NAME_handles )
   { int x, y, w, h;
     int ox, oy;
     Cell cell;
