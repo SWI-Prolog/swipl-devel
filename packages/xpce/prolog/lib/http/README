@@ -1,0 +1,37 @@
+			     XPCE HTTP LIBRARY
+
+This library provides some useful starting point to make XPCE/SWI-Prolog
+act as a web-server. This package is   designed with the following goals
+in mind:
+
+	* Document export
+	Applications that need to export documents may choose to do so
+ 	in HTML format.  This allows you to use your browser to preview,
+	print and export the document to other applications.
+
+	* Sharing documents over the web
+	You can have other people looking at data from your running
+	application!
+
+	* Web-server application prototyping.
+
+Files:
+------
+
+	# httpd.pl
+	Generic HTTPD class.  To be subclassed to achieve a real server
+
+	# html_write.pl
+	Emit HTML pages from a structured description based on
+	grammarrules
+
+	# http_man.pl
+	Small demo exporting XPCE classes.
+
+
+Status:
+-------
+
+This library is a dmontrator. The bahaviour  of html_write and httpd are
+incomplete and will  be  expanded.   Minor  incompatibilities  should be
+expected, but not a large redesign.
