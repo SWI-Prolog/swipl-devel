@@ -2,7 +2,7 @@
 			   ==============
 
 
-* FIXED: frame->geomtry for transient frames (MS-Windows).  Jocelyn Paine.
+* FIXED: frame->geomtry for transient frames (MS-Windows).  Holger Kanwischer.
 
 * FIXED: PceEmacs crash on `revert-buffer'.  Pierpaolo Bernardi.
 
