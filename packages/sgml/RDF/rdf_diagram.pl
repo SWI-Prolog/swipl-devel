@@ -84,24 +84,25 @@ fill_popup(D) :->
 
 append(D, Triple:prolog) :->
 	"Append and rdf(Subject, Predicate, Object) triple"::
-	subject_name(Triple, SubjectName),
-	get(D, resource, SubjectName, Subject),
-	(   get(D, type_in_node, @on),
-	    is_type(Triple)
-	->  object_resource(Triple, ObjectName),
-	    send(Subject, type, ObjectName)
-	;   predicate_name(Triple, PredName),
-	    (   object_resource(Triple, ObjectName)
-	    ->  get(D, resource, ObjectName, Object)
-	    ;   object_literal(Triple, Literal)
-	    ->  get(D, literal, Literal, Object)
-	    ),
-	    send(Subject, connect, PredName, Object)
+	(   subject_name(Triple, SubjectName),
+	    get(D, resource, SubjectName, Subject),
+	    (   get(D, type_in_node, @on),
+		is_type(Triple)
+	    ->  object_resource(Triple, ObjectName),
+		send(Subject, type, ObjectName)
+	    ;   predicate_name(Triple, PredName),
+		(   object_resource(Triple, ObjectName)
+		->  get(D, resource, ObjectName, Object)
+		;   object_literal(Triple, Literal)
+		->  get(D, literal, Literal, Object)
+		),
+		send(Subject, connect, PredName, Object)
+	    )
+	->  true
+	;   term_to_atom(Triple, Atom),
+	    ignore(send(D, report, error,
+			'Failed to display triple: %s', Atom))
 	).
-append(D, Triple:prolog) :->
-	term_to_atom(Triple, Atom),
-	ignore(send(D, report, error,
-		    'Failed to display triple: %s', Atom)).
 	
 triples(D, Triples:prolog) :->
 	"Show disgram from Prolog triples"::
