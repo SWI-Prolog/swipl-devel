@@ -1022,23 +1022,20 @@ noarg_call(M, Selector:name, Times:[int]) :->
 	    send(M, open_history, Impl, @on),
 	    get(M, interactive_arguments, Impl, Times, Argv),
 	    send(M, report, status, ''),
-	    result(send(M, send_vector, Selector, Argv), YesNo),
-	    (	object(M)
-	    ->  send(M, close_history, Argv),
-		send(M, mark_undo),
-		(   YesNo == no
+	    send(M, close_history, Argv),
+	    (	send(M, send_vector, Selector, Argv)
+	    ->	(   object(M)
+		->  send(M, mark_undo)
+		;   true
+		)
+	    ;	(   object(M)
 		->  send(M, report, status, '%s command failed', Selector)
 		;   true
 		)
-	    ;	true
 	    )
 	;   send(M, report, error, 'No implementation for ``%s''''', Selector)
 	).
 
-
-result(Goal, yes) :-
-	Goal, !.
-result(_, no).
 
 arg_call(M, Selector:name, Arg:any) :->
 	"Invoke method from pullright menu"::
