@@ -424,7 +424,9 @@ getReadLineStream(Stream s, Real timeout)
     tmo = (unsigned long)(v * 1000.0);
     use_timeout = TRUE;
   } else
-    use_timeout = FALSE;
+  { use_timeout = FALSE;
+    epoch = tmo = left = 0L;		/* keep compiler happy */
+  }
 
   while(s->rdfd >= 0)
   { if ( s->input_buffer )
