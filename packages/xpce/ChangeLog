@@ -1,3 +1,9 @@
+* ADDED: library(gradient) defining class gradient for making gradient
+  fill-patterns.
+
+* MODIFIED: Images are only turned read-only if a named image is created
+  from a data object.
+
 * ADDED: Handling of HSV colour model.  See `colour->initialise'.
 
 * FIXED: Allow .bm (old X11 bitmaps) the contain CRLF rather than plain

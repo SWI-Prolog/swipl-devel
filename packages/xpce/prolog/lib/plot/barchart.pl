@@ -121,6 +121,7 @@ center_end(BS, End:point) :<-
 :- use_class_template(bar_template).
 
 class_variable(thickness, '0..', 20, "Default thickness of the bar").
+class_variable(pen,       '0..', 0,  "Drawing pen for the bar").
 
 variable(low,		real*,			get, "Minimum value").
 variable(high,		real*,			get, "Maximum value").
@@ -132,7 +133,7 @@ variable(drag_message,	code*,			both, "Executed on drags").
 initialise(B,
 	   Name:name=name,
 	   Value:value=real,
-	   Colour:colour=[colour],
+	   Colour:colour=[colour|image],
 	   Orientation:orientation=[{horizontal,vertical}]) :->
 	default(Value, 0, TheValue),
 	default(Colour, white, TheColour),
@@ -143,6 +144,7 @@ initialise(B,
 	send(B, slot, value, TheValue),
 	send(B, slot, orientation, TheOrientation),
 	send(B, request_compute),
+	send(B, fill_offset, point(0,0)),
 	send(B, colour, TheColour).
 
 value(B, Val:real) :->
@@ -163,10 +165,10 @@ range(B, Low:low=real*, High:high=real*) :->
 	send(B, slot, low, Low),
 	send(B, slot, high, High).
 
-colour(B, Colour:colour) :->
+colour(B, Colour:'colour|image') :->
 	"Colour of the interior"::
 	send(B, fill_pattern, Colour).
-colour(B, Colour:colour) :<-
+colour(B, Colour:'colour|image') :<-
 	"Colour of the interior"::
 	get(B, fill_pattern, Colour).
 

@@ -28,7 +28,6 @@ static status drawInImage(Image image, Graphical gr, Point pos);
 status
 initialiseImage(Image image, SourceSink data, Int w, Int h, Name kind)
 { Name name = FAIL;
-  Name access;
 
   if ( isDefault(data) )
     data = (SourceSink) NIL;
@@ -37,12 +36,10 @@ initialiseImage(Image image, SourceSink data, Int w, Int h, Name kind)
     name = get(data, NAME_name, 0);
   if ( !name )
     name = NIL;
-  access = (isNil(name) ? NAME_both : NAME_read);
     
   assign(image, name,       name);
   assign(image, background, DEFAULT);
   assign(image, foreground, DEFAULT);
-  assign(image, access,	    access);
   ws_init_image(image);
 
   if ( isNil(data) || notDefault(w) || notDefault(h) || notDefault(kind) )
@@ -54,12 +51,14 @@ initialiseImage(Image image, SourceSink data, Int w, Int h, Name kind)
     assign(image, file,   NIL);
     assign(image, depth,  kind == NAME_bitmap ? ONE : (Int) DEFAULT);
     assign(image, size,	  newObject(ClassSize, w, h, 0));
+    assign(image, access, NAME_both);
   } else
   { assign(image, kind,	  NAME_bitmap);
     assign(image, file,	  data);
     assign(image, depth,  ONE);
     assign(image, size,	  newObject(ClassSize, 0));
     TRY(loadImage(image, DEFAULT, DEFAULT));
+    assign(image, access, NAME_read);
   }
 
   if ( notNil(name) )
