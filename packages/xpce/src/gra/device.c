@@ -1471,29 +1471,32 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
     { for(y=0; y<max_y; y++)
       { Unit u = &m.units[x][y];
 
-	if ( notNil(gr = u->item) )
-	{ if ( gr->displayed == ON )
-	  { Point reference = get(gr, NAME_reference, 0);
-	    int rx = (reference ? valInt(reference->x) : 0);
-	    int ry = (reference ? valInt(reference->y) : 0);
-	    Int hs = get(gr, NAME_horStretch, 0);
-	    Int vs = get(gr, NAME_verStretch, 0);
-	  
-	    if ( !hs ) hs = ZERO;
-	    if ( !vs ) vs = ZERO;
+	if ( notNil(gr = u->item) && gr->displayed == ON )
+	{ Point reference = get(gr, NAME_reference, 0);
+	  int rx = (reference ? valInt(reference->x) : 0);
+	  int ry = (reference ? valInt(reference->y) : 0);
+	  Int hs = get(gr, NAME_horStretch, 0);
+	  Int vs = get(gr, NAME_verStretch, 0);
+	
+	  if ( !hs ) hs = ZERO;
+	  if ( !vs ) vs = ZERO;
 
-	    u->left     = rx;
-	    u->height   = ry;
-	    u->depth    = valInt(gr->area->h) - ry;
-	    u->right    = valInt(gr->area->w) - rx;
-	    u->hstretch = valInt(hs);
-	    u->vstretch = valInt(vs);
-	  } else
-	  { u->left     = 0;
-	    u->height   = 0;
-	    u->depth    = 0;
-	    u->right    = 0;
-	  }
+	  u->left     = rx;
+	  u->height   = ry;
+	  u->depth    = valInt(gr->area->h) - ry;
+	  u->right    = valInt(gr->area->w) - rx;
+	  u->hstretch = valInt(hs);
+	  u->vstretch = valInt(vs);
+
+	  DEBUG(NAME_layout,
+		Cprintf("%d,%d %s lrhd=%d %d %d %d\n",
+			x+1, y+1, pp(gr),
+			u->left, u->right, u->height, u->depth));
+	} else
+	{ u->left     = 0;
+	  u->height   = 0;
+	  u->depth    = 0;
+	  u->right    = 0;
 	}
       }
     }
@@ -1529,6 +1532,8 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
       { if ( m.units[x][y].height > h ) h = m.units[x][y].height;
 	if ( m.units[x][y].depth  > d ) d = m.units[x][y].depth;
       }
+      DEBUG(NAME_layout,
+	    Cprintf("Row %d +ascent-descent +%d-%d\n", y+1, h, d));
       for(x=0; x<max_x; x++)
       { m.units[x][y].height = h;
 	m.units[x][y].depth = d;
