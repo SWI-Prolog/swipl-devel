@@ -1552,7 +1552,7 @@ PopTty()
     Restore the tty state.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if O_SAVE
+#if O_SAVE && !O_SAVE_STDIO
 static void
 ResetStdin()
 {
