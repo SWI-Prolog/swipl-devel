@@ -1,6 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: a few type conversions for the 64-bit versions. Just making
+    the compiler silent.
+
+  * FIXED: Changed singleton error to singleton warning using a direct
+    call to printMessage() rather then the out-of-date warning().  Reported
+    by Pierre Nugues.
+
 VERSION 3.3.0 (final)
 =====================
 
