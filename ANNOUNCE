@@ -1,36 +1,41 @@
-SWI-Prolog 5.0.2/XPCE 6.0.2 Summary of changes
+SWI-Prolog 5.0.4/XPCE 6.0.4 Summary of changes
 
 SWI-Prolog
 ==========
 
-	* Souces compile flawlessly on MacOS X (well, on a few systems
-	  at least :-), including building shared objects and embedded
-	  executables using plld.  All standard packages build fine.
+	* Added options to load_files/2 to make it possible to load sources
+	  from non-file-objects, such as databases, HTTP servers, etc.
 
-	  Binaries using the Flink (debian) packages are expected
-	  shortly.
+	* Fixed PLWIN.EXE console-position problems, causing the window to
+	  `walk' on some systems.  Fixed code to guarantee the console is
+	  never outside the desktop-area.
 
-	* Fixed various issues in multi-threading and signal handling
+	* Various minor issues to streamline the Windows installation.
 
-	* Added library(time) to the clib package to deal with scheduled
-	  alarms on both Unix and Windows systems.
+	* Fixed qsave_program/2 with foreign libraries involved.
 
-	* Better expansion of ~ on windows systems
+	* Modified library(socket) to deal with event-handling during a
+	  blocked read-operation for better cooperation with GUI environments.
 
-	* Many fixes to the graphical tracer
 
-	* Many additions to colour-mode of the built-in editor: more
-	  categories, better handling of meta-calls, right-button menu
-	  to many fragments (jump to source/documentation) and feedback
- 	  in the status line.
+Development Environment
+=======================
+
+	* Various patches to the GUI tracer, notably for handling DCG rules.
+
+	* Fixed `explain' in the presence of debugger break-points (crash).
+
+	* Avoid a crash in PceEmacs handling singleton variables.
+
 
 XPCE
 ====
 
-	* Fixes tab-ed dialogs (broken is last release)
+	* Various issues handling setting and restoring frame-positions,
+	  notably affecting destruction of iconised frames on Windows.
+	  Some more safety to avoid 0-sized windows, windows outside
+	  the desktop, etc.
 
-	* Improvements in focus handling on Unix/X11 version
+	* Added send(@pce, show_console, full_screen) (PLWIN.EXE only).
 
-	* Port to MacOS X (using X11).
-
-	* Many minor issues.
+	* Various minor issues.
