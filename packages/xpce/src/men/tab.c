@@ -37,10 +37,10 @@ computeLabelTab(Tab t)
 { if ( notNil(t->label) && t->label != NAME_ && notNil(t->label_size) )
   { int w, h;
     Size minsize = getResourceValueObject(t, NAME_labelSize);
-    int ex = 2*valInt(getExFont(t->label_font));
+    int ex = valInt(getExFont(t->label_font));
 
-    str_size(&t->label->data, t->label_font, &w, &h);
-    w += ex;
+    compute_label_size_dialog_group((DialogGroup) t, &w, &h);
+    w += 2*ex;
     w = max(w, valInt(minsize->w));
     h = max(h, valInt(minsize->h));
 
@@ -215,8 +215,10 @@ RedrawAreaTab(Tab t, Area a)
 
     r_3d_rectangular_polygon(p-pts, pts, e, DRAW_3D_FILLED|DRAW_3D_CLOSED);
 
-    str_string(&t->label->data, t->label_font,
-	       x+loff+ex, y, lw-2*ex, lh, t->label_format, NAME_center);
+    RedrawLabelDialogGroup((DialogGroup)t, 0,
+			   x+loff+ex, y, lw-2*ex, lh,
+			   t->label_format, NAME_center,
+			   0);
 
     { Cell cell;
       Int ax = a->x, ay = a->y;
@@ -252,8 +254,10 @@ RedrawAreaTab(Tab t, Area a)
 
     r_3d_rectangular_polygon(p-pts, pts, e, DRAW_3D_FILLED);
 
-    str_string(&t->label->data, t->label_font,
-	       x+loff+ex, y, lw-2*ex, lh, t->label_format, NAME_center);
+    RedrawLabelDialogGroup((DialogGroup)t, 0,
+			   x+loff+ex, y, lw-2*ex, lh,
+			   t->label_format, NAME_center,
+			   0);
   }
 
   return RedrawAreaGraphical(t, a);

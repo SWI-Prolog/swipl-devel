@@ -47,17 +47,33 @@ initialiseDialogGroup(DialogGroup g, Name name, Name kind)
 		 *	      COMPUTE		*
 		 *******************************/
 
+void
+compute_label_size_dialog_group(DialogGroup g, int *w, int *h)
+{ if ( isDefault(g->label_font) )
+    obtainResourcesObject(g);
+
+  if ( instanceOfObject(g->label, ClassImage) )
+  { Image i = g->label;
+
+    *w = valInt(i->size->w);
+    *h = valInt(i->size->h);
+  } else
+  { if ( instanceOfObject(g->label, ClassCharArray) )
+    { CharArray ca = g->label;
+
+      str_size(&ca->data, g->label_font, w, h);
+    } else
+    { *w = *h = 0;
+    }
+  }
+}
+
+
 static void
 compute_label(DialogGroup g, int *x, int *y, int *w, int *h)
 { int tw, th;
 
-  if ( isDefault(g->label_font) )
-    obtainResourcesObject(g);
-
-  if ( g->label != NAME_ )
-    str_size(&g->label->data, g->label_font, &tw, &th);
-  else
-    tw = th = 0;
+  compute_label_size_dialog_group(g, &tw, &th);
 
   if ( w ) *w = tw;
   if ( h ) *h = th;
@@ -80,9 +96,10 @@ computeDialogGroup(DialogGroup g)
   { int x, y, w, h;
     int lx, ly, lw, lh;
     Area a = g->area;
-    Size border = (isDefault(g->border) ? g->gap : g->border);
+    Size border;
 
     obtainResourcesObject(g);
+    border = (isDefault(g->border) ? g->gap : g->border);
     computeGraphicalsDevice((Device) g);
     compute_label(g, &lx, &ly, &lw, &lh);
     
@@ -246,6 +263,22 @@ labelFontDialogGroup(DialogGroup g, FontObj font)
 }
 
 
+static status
+showLabelDialogGroup(DialogGroup g, Bool show)
+{ if ( (show == OFF && isNil(g->label)) ||
+       (show == ON  && notNil(g->label)) )
+    succeed;
+  
+  if ( show == OFF )
+    labelDialogGroup(g, NIL);
+  else
+    nameDialogGroup(g, g->name);
+
+  succeed;
+}
+
+
+
 status
 labelFormatDialogGroup(DialogGroup g, Name fmt)
 { if ( g->label_format != fmt )
@@ -259,7 +292,10 @@ labelFormatDialogGroup(DialogGroup g, Name fmt)
 
 static CharArray
 getLabelNameDialogGroup(DialogGroup g, Name name)
-{ Any label = get(name, NAME_labelName, 0);
+{ Any suffix, label = get(name, NAME_labelName, 0);
+
+  if ( label && (suffix = getResourceValueObject(g, NAME_labelSuffix)) )
+    label = getEnsureSuffixCharArray(label, suffix);
 
   answer(label);
 }
@@ -302,12 +338,48 @@ kindDialogGroup(DialogGroup g, Name kind)
 		*             REDRAW		*
 		********************************/
 
+status
+RedrawLabelDialogGroup(DialogGroup g, int acc,
+		       int x, int y, int w, int h,
+		       Name hadjust, Name vadjust, int flags)
+{ if ( instanceOfObject(g->label, ClassImage) )
+  { Image i = g->label;
+    int iw = valInt(i->size->w);
+    int ih = valInt(i->size->h);
+    int ix, iy;
+
+    if ( hadjust == NAME_left )
+      ix = x;
+    else if ( hadjust == NAME_center )
+      ix = x + (w-iw)/2;
+    else 
+      ix = x + w-iw;
+    
+    if ( vadjust == NAME_top )
+      iy = y;
+    else if ( vadjust == NAME_center )
+      iy = y + (h-ih)/2;
+    else 
+      iy = y + h-ih;
+    
+    r_image(i, 0, 0, ix, iy, iw, ih, ON);
+  } else if ( instanceOfObject(g->label, ClassCharArray) )
+  { CharArray label = g->label;
+
+    str_label(&label->data, acc, g->label_font,
+	      x, y, w, h,
+	      hadjust, vadjust, flags);
+  }
+
+  succeed;
+}
+
+
 static status
 RedrawAreaDialogGroup(DialogGroup g, Area a)
 { int x, y, w, h;
   int lx, ly, lw, lh;
   int eh;
-  int ex = valInt(getExFont(g->label_font));
   Any obg = NIL, bg = NIL;
 
   initialiseDeviceGraphical(g, &x, &y, &w, &h);
@@ -348,10 +420,11 @@ RedrawAreaDialogGroup(DialogGroup g, Area a)
   } else
     eh = 0;
 
-  if ( g->label != NAME_ )
-  { r_clear(x+lx-ex/2, y, lw+ex, lh);
-    str_string(&g->label->data, g->label_font,
-	       x+lx, y, lw, lh, NAME_center, NAME_center);
+  if ( notNil(g->label) && g->label != NAME_ )
+  { int ex = valInt(getExFont(g->label_font));
+
+    r_clear(x+lx-ex/2, y, lw+ex, lh);
+    RedrawLabelDialogGroup(g, 0, x+lx, y, lw, lh, NAME_center, NAME_center, 0);
   }
 
   { Cell cell;
@@ -464,11 +537,20 @@ static status
 modifiedItemDialogGroup(DialogGroup g, Graphical gr, Bool m)
 { Button b;
 
-  if ( (b = get(g, NAME_defaultButton, 0)) )
-    return send(b, NAME_active, ON, 0);
+  if ( m == ON )
+  { if ( (b = get(g, NAME_defaultButton, 0)) )
+      return send(b, NAME_active, ON, 0);
+    if ( notNil(g->device) )
+      return send(g->device, NAME_modifiedItem, g, ON, 0); /* or gr? */
+  }
 
   fail;
 }
+
+
+
+
+
 
 		 /*******************************
 		 *	       DIALOG		*
@@ -499,10 +581,10 @@ static char *T_modifiedItem[] =
 /* Instance Variables */
 
 static vardecl var_diagroup[] =
-{ IV(NAME_label, "name", IV_GET,
-     NAME_label, "Text displayed for the label"),
+{ IV(NAME_label, "name|image*", IV_GET,
+     NAME_label, "Displayed label"),
   SV(NAME_labelFont, "font", IV_GET|IV_STORE, labelFontDialogGroup,
-     NAME_appearance, "Font used to display the label"),
+     NAME_appearance, "Font used to display textual label"),
   SV(NAME_labelFormat, "{top,center,bottom}", IV_GET|IV_STORE,
      labelFormatDialogGroup,
      NAME_appearance, "Alignment of label with top"),
@@ -532,9 +614,9 @@ static senddecl send_diagroup[] =
   SM(NAME_position, 1, "point", positionGraphical,
      NAME_area, "Top-left corner of tab"),
   SM(NAME_x, 1, "int", xGraphical,
-     NAME_area, "Left-side of tab"),
+     NAME_area, "Left-side of object"),
   SM(NAME_y, 1, "int", yGraphical,
-     NAME_area, "Top-side of tab"),
+     NAME_area, "Top-side of object"),
   SM(NAME_size, 1, "[size]", sizeDialogGroup,
      NAME_area, "Size, @default implies minimal size"),
   SM(NAME_layoutDialog, 0, NULL, layoutDialogDialogGroup,
@@ -560,7 +642,9 @@ static senddecl send_diagroup[] =
   SM(NAME_modifiedItem, 2, T_modifiedItem, modifiedItemDialogGroup,
      NAME_apply, "Indicates item has changed state"),
   SM(NAME_restore, 0, NULL, restoreDialogGroup,
-     NAME_apply, "->restore all items to their <-default")
+     NAME_apply, "->restore all items to their <-default"),
+  SM(NAME_showLabel, 1, "bool", showLabelDialogGroup,
+     NAME_appearance, "Whether label is visible")
 };
 
 /* Get Methods */
@@ -596,6 +680,8 @@ static resourcedecl rc_diagroup[] =
      "Font used to display the label"),
   RC(NAME_labelFormat, "{top,center,bottom}", "center",
      "Alignment of label with top-line"),
+  RC(NAME_labelSuffix, "name", "",
+     "Ensured suffix of label")
 };
 
 /* Class Declaration */

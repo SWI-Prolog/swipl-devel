@@ -2054,7 +2054,7 @@ static senddecl send_menu[] =
      NAME_active, "Evaluate each item's condition"),
   SM(NAME_apply, 1, "always=[bool]", applyMenu,
      NAME_apply, "->execute if <-modified or @on"),
-  SM(NAME_default, 1, "value=int|function", defaultMenu,
+  SM(NAME_default, 1, "value=any|chain|function", defaultMenu,
      NAME_apply, "Set variable -default and ->selection"),
   SM(NAME_modified, 1, "modified=bool", modifiedMenu,
      NAME_apply, "Reset modified flag"),

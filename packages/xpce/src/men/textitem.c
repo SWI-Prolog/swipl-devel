@@ -16,18 +16,15 @@ static Type	getSelectionTypeTextItem(TextItem);
 static Bool	getModifiedTextItem(TextItem);
 static Any	getDefaultTextItem(TextItem);
 static void	compute_label_text_item(TextItem, int *, int *);
-static status	applyTextItem(TextItem, Bool);
 static status	WantsKeyboardFocusTextItem(TextItem);
 static status	restoreTextItem(TextItem ti);
 static status	selectionTextItem(TextItem ti, Any selection);
 static status	resetTextItem(TextItem ti);
-static status	displayedValueTextItem(TextItem ti, CharArray txt);
-static status	valueWidthTextItem(TextItem ti, Int val);
 static int	combo_width(TextItem ti);
 static int	combo_flags(TextItem ti);
 
 
-static status
+status
 initialiseTextItem(TextItem ti, Name name, Any val, Code msg)
 { CharArray str;
 
@@ -68,7 +65,7 @@ initialiseTextItem(TextItem ti, Name name, Any val, Code msg)
 }
 
 
-static status
+status
 RedrawAreaTextItem(TextItem ti, Area a)
 { int x, y, w, h;
   int al, av, am;
@@ -176,7 +173,7 @@ activateTextItem(TextItem ti, Bool val)
 }
 
 
-static status
+status
 statusTextItem(TextItem ti, Name stat)
 { if ( ti->status != stat )
   { assign(ti, status, stat);
@@ -204,7 +201,7 @@ compute_label_text_item(TextItem ti, int *lw, int *lh)
 }
 
 
-static status
+status
 computeTextItem(TextItem ti)
 { if ( notNil(ti->request_compute) )
   { int lw, lh, w, h;
@@ -727,7 +724,7 @@ getPointedTextItem(TextItem ti, Point pos)
 }
 
 
-static status
+status
 eventTextItem(TextItem ti, EventObj ev)
 { static Int origin;			/* Multithread dubious! */
 
@@ -865,7 +862,7 @@ keyTextItem(TextItem ti, Name key)
 }
 
 
-static status
+status
 typedTextItem(TextItem ti, EventId id)
 { return typedKeyBinding(ti->editable == ON ? KeyBindingTextItem()
 			 		    : KeyBindingTextItemView(),
@@ -957,7 +954,7 @@ restoreTextItem(TextItem ti)
 }
 
 
-static status
+status
 applyTextItem(TextItem ti, Bool always)
 { Any val;
 
@@ -1094,7 +1091,7 @@ resetTextItem(TextItem ti)
 }
 
 
-static status
+status
 displayedValueTextItem(TextItem ti, CharArray txt)
 { if ( !equalCharArray(ti->value_text->string, txt) )
   { TRY(stringText(ti->value_text, txt));
@@ -1186,7 +1183,7 @@ labelWidthTextItem(TextItem ti, Int w)
 }
 
 
-static status
+status
 valueWidthTextItem(TextItem ti, Int val)
 { assign(ti, value_width, val);
 

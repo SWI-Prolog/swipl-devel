@@ -57,10 +57,19 @@ status		makeClassPopup(Class class);
 status		makeClassSlider(Class class);
 
 /* men/textitem.c */
+status		initialiseTextItem(TextItem ti, Name name, Any val, Code msg);
+status		RedrawAreaTextItem(TextItem ti, Area a);
+status		statusTextItem(TextItem ti, Name stat);
+status		computeTextItem(TextItem ti);
 Browser		CompletionBrowser(void);
 status		completerShownDialogItem(Any di);
 status		quitCompleterDialogItem(Any di);
 status		selectCompletionDialogItem(Any item, Chain matches, CharArray searchstring, Int autohide);
+status		eventTextItem(TextItem ti, EventObj ev);
+status		typedTextItem(TextItem ti, EventId id);
+status		applyTextItem(TextItem ti, Bool always);
+status		displayedValueTextItem(TextItem ti, CharArray txt);
+status		valueWidthTextItem(TextItem ti, Int val);
 status		makeClassTextItem(Class class);
 
 /* men/tab.c */
@@ -68,9 +77,17 @@ status		makeClassTab(Class class);
 
 /* men/diagroup.c */
 status		initialiseDialogGroup(DialogGroup g, Name name, Name kind);
+void		compute_label_size_dialog_group(DialogGroup g, int *w, int *h);
 status		labelFormatDialogGroup(DialogGroup g, Name fmt);
+status		RedrawLabelDialogGroup(DialogGroup g, int acc, int x, int y, int w, int h, Name hadjust, Name vadjust, int flags);
 status		eventDialogGroup(DialogGroup g, EventObj ev);
 status		makeClassDialogGroup(Class class);
 
 /* men/tabstack.c */
 status		makeClassTabStack(Class class);
+
+/* men/labelbox.c */
+status		makeClassLabelBox(Class class);
+
+/* men/intitem.c */
+status		makeClassIntItem(Class class);
