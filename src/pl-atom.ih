@@ -203,3 +203,5 @@
 #define ATOM_dforeign_registered (&atoms[202])
 #define ATOM_exist        (&atoms[203])
 #define ATOM_none         (&atoms[204])
+#define ATOM_volatile     (&atoms[205])
+#define ATOM_initialization (&atoms[206])

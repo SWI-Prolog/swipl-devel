@@ -7,6 +7,7 @@
     Purpose: Procedure (re) allocation
 */
 
+/*#define O_DEBUG 1*/
 #include "pl-incl.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -15,7 +16,6 @@ finding source files, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 forwards void	resetReferencesModule(Module);
-forwards bool	autoImport(FunctorDef, Module);
 
 SourceFile sourceFileTable = (SourceFile) NULL;
 SourceFile tailSourceFileTable = (SourceFile) NULL;
@@ -499,7 +499,7 @@ code  perhaps,  calls  indirect via C? (I do recall once conciously have
 decided its not save, but can't recall why ...)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static bool
+bool
 autoImport(FunctorDef f, Module m)
 { Procedure proc, p;
 					/* Defined: no problem */
@@ -522,18 +522,23 @@ autoImport(FunctorDef f, Module m)
   succeed;
 }
 
+static int undefined_nesting;
+
 void
 trapUndefined(Procedure proc)
 { int retry_times = 0;
 
   retry:
 					/* Auto import */
-  if ( autoImport(proc->functor, proc->definition->module) == TRUE )
+  if ( autoImport(proc->functor, proc->definition->module) )
     return;
 					/* Pred/Module does not want to trap */
   if ( true(proc->definition, DYNAMIC) ||
        false(proc->definition->module, UNKNOWN) )
     return;
+
+  DEBUG(1, Sdprintf("trapUndefined(%s)\n", procedureName(proc)));
+
 					/* Trap via exception/3 */
   if ( status.autoload )
   { word goal;
@@ -541,6 +546,12 @@ trapUndefined(Procedure proc)
     bool rval;
     Atom sfn = source_file_name;	/* needs better solution! */
     int  sln = source_line_no;
+
+    if ( undefined_nesting++ == 1000 )
+    { undefined_nesting = 1;
+      sysError("trapUndefined(): undefined: %s", procedureName(proc));
+      return;
+    }
 
     Mark(m);
     goal = globalFunctor(FUNCTOR_undefinterc3);
@@ -555,6 +566,7 @@ trapUndefined(Procedure proc)
     source_line_no   = sln;
 
     Undo(m);
+    undefined_nesting--;
 
     if ( rval == TRUE )
     { extern int trace_continuation;	/* from pl-trace.c */
@@ -579,6 +591,29 @@ trapUndefined(Procedure proc)
   warning("Undefined predicate: %s", procedureName(proc) );
 }
 
+		 /*******************************
+		 *	  REQUIRE SUPPORT	*
+		 *******************************/
+
+word
+pl_require(Word pred)
+{ FunctorDef fd;
+  Module module = (Module) NULL;
+
+  pred = stripModule(pred, &module);
+  if ( isAtom(*pred) )
+    fd = lookupFunctorDef((Atom) *pred, 0);
+  else if ( isTerm(*pred) )
+    fd = functorTerm(*pred);
+  else
+    fail;
+
+  lookupProcedureToDefine(fd, module);
+  
+  succeed;
+}
+
+
 		/********************************
 		*            RETRACT            *
 		*********************************/
@@ -600,7 +635,7 @@ pl_retract(Word term, word h)
   if ((term = stripModule(term, &m)) == (Word) NULL)
     fail;
  
-  if (splitClause(term, &head, &body) == FALSE)
+  if ( !splitClause(term, &head, &body, NULL) )
     return warning("retract/1: illegal specification");
 
   if ( ForeignControl(h) == FRG_FIRST_CALL )
@@ -836,6 +871,7 @@ attribute_mask(Atom key)
   if (key == ATOM_hide_childs)	 return HIDE_CHILDS;
   if (key == ATOM_transparent)	 return TRANSPARENT;
   if (key == ATOM_discontiguous) return DISCONTIGUOUS;
+  if (key == ATOM_volatile)	 return VOLATILE;
 
   return 0;
 }
@@ -892,7 +928,7 @@ pl_get_predicate_attribute(Word pred, Word what, Word value)
   } else if ( (att = attribute_mask(key)) )
   { return unifyAtomic(value, consNum((def->flags & att) ? 1 : 0));
   } else
-  { return warning("$get_predicate_attribute/4: unknown key: %s",
+  { return warning("$get_predicate_attribute/3: unknown key: %s",
 		   stringAtom(key));
   }
 }
@@ -945,11 +981,26 @@ pl_set_predicate_attribute(Word pred, Word what, Word value)
 }
 
 
+word
+pl_default_predicate(Word d1, Word d2)
+{ Procedure p1, p2;
+
+  if ( (p1 = findProcedure(d1)) && (p2 = findProcedure(d2)) )
+  { if ( p1->definition == p2->definition || !isDefinedProcedure(p1) )
+      succeed;
+  }
+
+  fail;
+}
+
+
 void
-reindexProcedure(Procedure proc)
+reindexDefinition(Definition def)
 { register Clause cl;
 
-  for(cl = proc->definition->definition.clauses; cl; cl = cl->next)
+  def->indexPattern &= ~NEED_REINDEX;
+  def->indexCardinality = cardinalityPattern(def->indexPattern);
+  for(cl = def->definition.clauses; cl; cl = cl->next)
     reindexClause(cl);
 }
 
@@ -957,6 +1008,7 @@ reindexProcedure(Procedure proc)
 word
 pl_index(Word pred)
 { Procedure proc = findCreateProcedure(pred);
+  Definition def = proc->definition;
   Module module = (Module) NULL;
   Word head = stripModule(pred, &module);
   Word arg;
@@ -970,7 +1022,7 @@ pl_index(Word pred)
   if (!isTerm(*head) )			/* :- index(foo) */
     succeed;
   arity = proc->functor->arity;
-  for(a = 0; a < arity; a++)
+  for(a = 0; a < arity && a < 31; a++)
   { arg = argTermP(*head, a);
     deRef(arg);
     if (!isInteger(*arg) || valNum(*arg) > 1 || valNum(*arg) < 0)
@@ -983,17 +1035,14 @@ pl_index(Word pred)
     }
   }
 
-  if (proc->definition->indexPattern == pattern)
+  if (def->indexPattern == pattern)
     succeed;
 
-  if (true(proc->definition, FOREIGN))
+  if (true(def, FOREIGN))
     return warning("index/1: cannot index foreign predicate %s", 
-					procedureName(proc));
+		   procedureName(proc));
 
-  proc->definition->indexPattern = pattern;
-  proc->definition->indexCardinality = card;
-
-  reindexProcedure(proc);
+  def->indexPattern = (pattern | NEED_REINDEX);
 
   succeed;
 }

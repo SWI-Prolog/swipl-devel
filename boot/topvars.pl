@@ -15,7 +15,7 @@
 :- dynamic
 	verbose/0.
 
-:- op(1, fx, $).
+:- initialization op(1, fx, $).
 
 expand_query(Query, Expanded, Bindings, ExpandedBindings) :-
 	expand_vars(Bindings, Query, Expanded),
@@ -107,9 +107,12 @@ verbose_expansion(on) :- !,
 verbose_expansion(off) :-
 	retractall(verbose).
 
+:- multifile
+	user:expand_query/4,
+	user:expand_answer/2.
 
-:- user:assert((expand_query(A, B, C, D) :-
-	       toplevel_variables:(expand_query(A, B, C, D)))).
-:- user:assert((expand_answer(A, B) :-
-	       toplevel_variables:(expand_answer(A, B)))).
+user:expand_query(A, B, C, D) :-
+	toplevel_variables:expand_query(A, B, C, D).
+user:expand_answer(A, B) :-
+	toplevel_variables:expand_answer(A, B).
 

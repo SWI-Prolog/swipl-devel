@@ -170,7 +170,7 @@ grep(_, _) :-
 	flag(grep_, 1, 1).
 
 grep_(File, S) :-
-	'$file_base_name'(File, Base),
+	file_base_name(File, Base),
 	'$grep'(File, S, Line),
 	    flag(grep_, _, 1),
 	    format('~w: ~w~n', [Base, Line]),

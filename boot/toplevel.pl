@@ -16,13 +16,17 @@
 	, prolog/0 			% user toplevel predicate
 	, time/1			% time query
 	, $set_prompt/1			% set the main prompt
-	, at_initialisation/1		% goals to run at initialisation
+	, at_initialization/1		% goals to run at initialization
+	, (initialization)/1		% initialization goal (directive)
 	]).
 
 
 		/********************************
 		*         INITIALISATION        *
 		*********************************/
+
+:- dynamic
+	loaded_init_file/1.		% already loaded init files
 
 $welcome :-
 	feature(version, Version),
@@ -32,16 +36,22 @@ $welcome :-
 
 $load_init_file(none) :- !.
 $load_init_file(Base) :-
+	loaded_init_file(Base), !.
+$load_init_file(Base) :-
 	member(Prefix, ['', '~/']),
 	concat(Prefix, Base, InitFile), 
-	exists_file(InitFile), !, 
+	access_file(InitFile, read), !, 
+	asserta(loaded_init_file(Base)),
 	user:ensure_loaded(InitFile).
 $load_init_file(_).
 
 $load_system_init_file :-
+	loaded_init_file(system), !.
+$load_system_init_file :-
 	feature(home, Home),
 	concat(Home, '/plrc', File),
 	access_file(File, read),
+	asserta(loaded_init_file(system)),
 	$consult_file(user:File, []), !. % silent consult
 $load_system_init_file.
 
@@ -66,22 +76,100 @@ $load_gnu_emacs_interface.
 		 *******************************/
 
 :- module_transparent
-	at_initialisation/1.
+	at_initialization/1,
+	(initialization)/1.
 :- dynamic
-	$at_initialisation/1.
+	$at_initialization/1.
 
-at_initialisation(Spec) :-
+at_initialization(Spec) :-
 	$strip_module(Spec, Module, Goal),
-	'$toplevel':assert($at_initialisation(Module:Goal)).
+	'$toplevel':assert($at_initialization(Module:Goal)).
 
-$run_at_initialisation :-
-	$at_initialisation(Goal),
-	(   Goal
-	->  fail
-	;   $warning('at_initialisation goal ~p failed~n', [Goal]),
-	    fail
+$run_at_initialization :-
+	\+ feature(saved_program, true), !.
+$run_at_initialization :-
+	$argv(Argv),
+	memberchk('-d', Argv), !,
+	(   $at_initialization(Goal),
+	    (   $feedback('initialization(~p) ... ', [Goal]),
+		Goal
+	    ->  $feedback('ok~n', []),
+		fail
+	    ;   $feedback('FAILED~n', []),
+		$warning('at_initialization goal ~p failed~n', [Goal]),
+		fail
+	    )
+	;   true
 	).
-$run_at_initialisation.
+$run_at_initialization :-
+	(   $at_initialization(Goal),
+	    (   Goal
+	    ->  fail
+	    ;   $warning('at_initialization goal ~p failed~n', [Goal]),
+		fail
+	    )
+	;   true
+	).
+
+$feedback(Fmt, Args) :-
+	format(Fmt, Args),
+	flush_output(user_output).
+
+%	initialization(+Goal)
+%
+%	Runs `Goal' both a load and initialization time.
+
+initialization(Goal) :-
+	at_initialization(Goal),
+	Goal.
+
+
+		 /*******************************
+		 *     FILE SEARCH PATH (-p)	*
+		 *******************************/
+
+$set_file_search_paths :-
+	$argv(Argv),
+	append(H, ['-p', Path|_], Argv),
+	\+ member(H, '--'),
+	(   atom_chars(Path, Chars),
+	    (	phrase($search_path(Name, Aliases), Chars)
+	    ->	reverse(Aliases, Aliases1),
+	        forall(member(Alias, Aliases1),
+		       asserta(user:file_search_path(Name, Alias)))
+	    ;	$warning('-p: failed to parse ~w', [Path]),
+	        nodebug
+	    )
+	->  true
+	),
+	fail ; true.
+
+$search_path(Name, Aliases) -->
+	$string(NameChars),
+	"=", !,
+	{atom_chars(Name, NameChars)},
+	$search_aliases(Aliases).
+
+$search_aliases([Alias|More]) -->
+	$string(AliasChars),
+	":", !,
+	{ $make_alias(AliasChars, Alias) },
+	$search_aliases(More).
+$search_aliases([Alias]) -->
+	$string(AliasChars),
+	[], !,
+	{ $make_alias(AliasChars, Alias) }.
+
+$string(X) --> {X=[_|_]}, X.
+
+$make_alias(Chars, Alias) :-
+	term_to_atom(Alias, Chars),
+	(   atom(Alias)
+	;   functor(Alias, F, 1),
+	    F \== /
+	), !.
+$make_alias(Chars, Alias) :-
+	atom_chars(Alias, Chars).
 
 
 		/********************************
@@ -93,11 +181,12 @@ $run_at_initialisation.
 $initialise :-
 	$check_novice, 
 	$clean_history,
+	$set_file_search_paths,
+	$run_at_initialization,
 	$load_system_init_file,
 	$load_gnu_emacs_interface,
 	$option(init_file, File, File), 
 	$load_init_file(File), 
-	$run_at_initialisation,
 	$option(goal, GoalAtom, GoalAtom), 
 	term_to_atom(Goal, GoalAtom), 
 	(   Goal == $welcome

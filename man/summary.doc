@@ -1,0 +1,499 @@
+\chapter{Summary}
+
+\newcommand{\lib}[1]{library({\tt #1}):}
+\newcommand{\hook}[1]{(hook)}		% module ignored
+
+\section{Predicates}
+\begin{tabbing} %% here it's still better than \tabular
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
+   \verb"! /0"				\> Cut (discard choicepoints)
+\\ \verb"! /1"				\> Cut block. See \verb"block/3"
+\\ \verb",    /2{xfy 1000}"		\> Conjuction of goals
+\\ \verb"->   /2{xfy 1050}"		\> If-then-else
+\\ \verb". /2"				\> Consult. Also list constructor
+\\ \verb";    /2{xfy 1100}"		\> Disjunction of goals. Same as \verb"| /2"
+\\ \verb"<    /2{xfx  700}"		\> Arithmetic smaller
+\\ \verb"=    /2{xfx  700}"		\> Unification
+\\ \verb"=..  /2{xfx  700}"		\> ``Univ.'' Term to list conversion
+\\ \verb"=:=  /2{xfx  700}"		\> Arithmetic equal
+\\ \verb"=<   /2{xfx  700}"		\> Arithmetic smaller or equal
+\\ \verb"==   /2{xfx  700}"		\> Identical
+\\ \verb"=@=  /2{xfx  700}"		\> Structural identical
+\\ \verb"=\=  /2{xfx  700}"		\> Arithmetic not equal
+\\ \verb">    /2{xfx  700}"		\> Arithmetic larger
+\\ \verb">=   /2{xfx  700}"		\> Arithmetic larger or equal
+\\ \verb"@<   /2{xfx  700}"		\> Standard order smaller
+\\ \verb"@=<  /2{xfx  700}"		\> Standard order smaller or equal
+\\ \verb"@>   /2{xfx  700}"		\> Standard order larger
+\\ \verb"@>=  /2{xfx  700}"		\> Standard order larger or equal
+\\ \verb"\+   /1{ fy  900}"		\> Negation by failure (argument not provable). Same as \verb"not/1"
+\\ \verb"\=   /2{xfx  700}"		\> Not unifyable
+\\ \verb"\==  /2{xfx  700}"		\> Not identical
+\\ \verb"\=@= /2{xfx  700}"		\> Not structural identical
+\\ \verb"^    /2{xfy  200}"		\> Existential quantification (\verb"bagof/3", \verb"setof/3")
+\\ \verb"|    /2{xfy 1100}"		\> Disjunction of goals. Same as \verb"; /2"
+\\
+\\ \verb"abolish/2"			\> Remove predicate definition from the database
+\\ \verb"abort/0"			\> Abort execution, return to top level
+\\ \verb"absolute_file_name/2"		\> Get absolute path name
+\\ \verb"absolute_file_name/3"		\> Get absolute path name with options
+\\ \verb"access_file/2"			\> Check access permissions of a file
+\\ \verb"append/1"			\> Append to a file
+\\ \verb"append/3"			\> Concatenate lists
+\\ \verb"apply/2"			\> Call goal with additional arguments
+\\ \verb"apropos/1"			\> \lib{online_help} Show related predicates and manual sections
+\\ \verb"arg/3"				\> Access argument of a term
+\\ \verb"arithmetic_function/1"		\> Register an evaluable function
+\\ \verb"assert/1"			\> Add a clause to the database
+\\ \verb"assert/2"			\> Add a clause to the database, give reference
+\\ \verb"asserta/1"			\> Add a clause to the database (first)
+\\ \verb"asserta/2"			\> Add a clause to the database (first)
+\\ \verb"assertz/1"			\> Add a clause to the database (last)
+\\ \verb"assertz/2"			\> Add a clause to the database (last)
+\\ \verb"at_halt/1"			\> Register goal to run at \verb"halt/1"
+\\ \verb"at_initialization/1"		\> Register goal to run at start-up
+\\ \verb"atom/1"			\> Type check for an atom
+\\ \verb"atom_char/2"			\> Convert between atom and ASCII value
+\\ \verb"atom_chars/2"			\> Convert between atom and list of ASCII values
+\\ \verb"atom_length/2"			\> Determine length of an atom
+\\ \verb"atom_to_term/3"		\> Convert between atom and term
+\\ \verb"atomic/1"			\> Type check for primitive
+\\ \verb"autoload/0"			\> Autoload all predicates now
+\\
+\\ \verb"bagof/3"			\> Find all solutions to a goal
+\\ \verb"between/3"			\> Integer range checking/generating
+\\ \verb"block/3"			\> Start a block (`catch'/`throw')
+\\ \verb"break/0"			\> Start interactive toplevel
+\\
+\\ \verb"call/1"			\> Call a goal
+\\ \verb"call/[2..]"			\> Call with aditional arguments
+\\ \verb"call_dll_function/2"		\> Win32: Call function in dynamic link library (.dll file)
+\\ \verb"call_shared_object_function/2"	\> UNIX:  Call C-function in shared (.so) file
+\\ \verb"character_count/2"		\> Get character index on a stream
+\\ \verb"chdir/1"			\> Change working directory
+\\ \verb"checklist/2"			\> Invoke goal on all members of a list
+\\ \verb"clause/2"			\> Get clauses of a predicate
+\\ \verb"clause/3"			\> Get clauses of a predicate
+\\ \verb"clause_property/2"		\> Get properties of a clause
+\\ \verb"close/1"			\> Close stream
+\\ \verb"close_dde_conversation/1"	\> Win32: Close DDE channel
+\\ \verb"close_dll/1"			\> Win32: Close dynamic link library (.dll file)
+\\ \verb"close_shared_object/1"		\> UNIX:  Close shared library (.so file)
+\\ \verb"compare/3"			\> Compare, using a predicate to determine the order
+\\ \verb"compiling/0"			\> Is this a compilation run?
+\\ \verb"compound/1"			\> Test for compound term
+\\ \verb"concat/3"			\> Append two atoms
+\\ \verb"concat_atom/2"			\> Append a list of atoms
+\\ \verb"consult/1"			\> Read (compile) a Prolog source file
+\\ \verb"context_module/1"		\> Get context module of current goal
+\\ \verb"convert_time/8"		\> Convert time stamp
+\\ \verb"copy_term/2"			\> Make a copy of a term
+\\ \verb"current_arithmetic_function/1"	\> Examine evaluable functions
+\\ \verb"current_atom/1"		\> Examine existing atoms
+\\ \verb"current_flag/1"		\> Examine existing flags
+\\ \verb"current_foreign_library/2"	\> \lib{shlib} Examine loaded shared libraries (.so files)
+\\ \verb"current_functor/2"		\> Examine existing name/arity pairs
+\\ \verb"current_input/1"		\> Get current input stream
+\\ \verb"current_key/1"			\> Examine existing database keys
+\\ \verb"current_module/1"		\> Examine existing modules
+\\ \verb"current_module/2"		\> Examine existing modules
+\\ \verb"current_op/3"			\> Examine current operator declaractions
+\\ \verb"current_output/1"		\> Get the current output stream
+\\ \verb"current_predicate/2"		\> Examine existing predicates
+\\ \verb"current_stream/3"		\> Examine open streams
+\\
+\\ \verb"dde_current_connection/2"	\> Win32: Examine open DDE connections
+\\ \verb"dde_current_service/2"		\> Win32: Examine DDE services provided
+\\ \verb"dde_execute/2"			\> Win32: Execute command on DDE server
+\\ \verb"dde_register_service/2"	\> Win32: Become a DDE server
+\\ \verb"dde_request/3"			\> Win32: Make a DDE request
+\\ \verb"dde_unregister_service/1"	\> Win32: Terminate a DDE service
+\\ \verb"debug/0"			\> Test for debugging mode
+\\ \verb"debugging/0"			\> Show debugger status
+\\ \verb"default_module/2"		\> Get the default modules of a module
+\\ \verb"delete/3"			\> Delete all matching members from a list
+\\ \verb"delete_file/1"			\> Remove a file from the file system
+\\ \verb"discontiguous/1{fx 1150}"	\> Indicate distributed definition of a predicate
+\\ \verb"display/1"			\> Write a term, ignore operators
+\\ \verb"display/2"			\> Write a term, ignore operators on a stream
+\\ \verb"displayq/1"			\> Write a term with quotes, ignore operators
+\\ \verb"displayq/2"			\> Write a term with quotes, ignore operators on a stream
+\\ \verb"dwim_match/2"			\> Atoms match in ``Do What I Mean'' sense
+\\ \verb"dwim_match/3"			\> Atoms match in ``Do What I Mean'' sense
+\\ \verb"dwim_predicate/2"		\> Find predicate in ``Do What I Mean'' sense
+\\ \verb"dynamic/1{fx 1150}"		\> Indicate predicate definition may change 
+\\
+\\ \verb"ed/0"				\> Edit last edited predicate
+\\ \verb"ed/1"				\> Edit a predicate
+\\ \verb"edit/0"			\> Edit last edited file
+\\ \verb"edit/1"			\> Edit a file
+\\ \verb"edit_source/1"			\> \hook{user} Intercept editing
+\\ \verb"ensure_loaded/1"		\> Consult a file if that has not yet been done
+\\ \verb"erase/1"			\> Erase a database record or clause
+\\ \verb"exception/3"			\> \hook{user} Handle runtime exceptions
+\\ \verb"exists_directory/1"		\> Check existence of directory
+\\ \verb"exists_file/1"			\> Check existence of file
+\\ \verb"exit/2"			\> Exit from named block. See block/3
+\\ \verb"expand_file_name/2"		\> Wildcard expansion of file names
+\\ \verb"expand_file_search_path/2"	\> Wildcard expansion of file paths
+\\ \verb"expand_term/2"			\> Compiler: expand read term into clause(s)
+\\ \verb"explain/1"			\> \lib{explain} Explain argument
+\\ \verb"explain/2"			\> \lib{explain} 2nd argument is expalanation of first
+\\ \verb"export/1"			\> Export a predicate from a module
+\\ \verb"export_list/2"			\> List of public predicates of a module
+\\
+\\ \verb"fail/0"			\> Always false
+\\ \verb"fail/1"			\> Immediately fail named block. See block/3
+\\ \verb"feature/2"			\> Get system configuration parameters
+\\ \verb"file_base_name/2"		\> Get file part of path
+\\ \verb"file_directory_name/2"		\> Get directory part of path
+\\ \verb"file_search_path/2"		\> Define path-aliases for locating files
+\\ \verb"fileerrors/2"			\> Do/Don't warn on file errors
+\\ \verb"findall/3"			\> Find all solutions to a goal
+\\ \verb"flag/3"			\> Simple global variable system
+\\ \verb"flatten/2"			\> Transform nested list into flat list
+\\ \verb"float/1"			\> Type check for a floating point number
+\\ \verb"flush/0"			\> Output pending characters on current stream
+\\ \verb"flush_output/1"		\> Output pending characters on specified stream
+\\ \verb"forall/2"			\> Prove goal for all solutions of another goal
+\\ \verb"foreign_file/1"		\> Examine loaded foreign files
+\\ \verb"format/1"			\> Formatted output
+\\ \verb"format/2"			\> Formatted output with arguments
+\\ \verb"format/3"			\> Formatted output on a stream
+\\ \verb"format_predicate/2"		\> Program \verb"format/[1,2]"
+\\ \verb"free_variables/2"		\> Find unbound variables in a term
+\\ \verb"functor/3"			\> Get name and arity of a term or construct a term 
+\\
+\\ \verb"garbage_collect/0"		\> Invoke the garbage collector
+\\ \verb"gensym/2"			\> Generate unique atoms from a base
+\\ \verb"get/1"				\> Read first non-blank character
+\\ \verb"get/2"				\> Read first non-blank character from a stream
+\\ \verb"get0/1"			\> Read next character
+\\ \verb"get0/2"			\> Read next character from a stream
+\\ \verb"get_single_char/1"		\> Read next character from the terminal
+\\ \verb"get_time/1"			\> Get current time
+\\ \verb"getenv/2"			\> Get shell environment variable
+\\ \verb"ground/1"			\> Verify term holds no unbound variables
+\\
+\\ \verb"halt/0"			\> Exit from Prolog
+\\ \verb"halt/1"			\> Exit from Prolog with status
+\\ \verb"hash_term/2"			\> Hash-value of ground term
+\\ \verb"help/0"			\> Give help on help
+\\ \verb"help/1"			\> Give help on predicates and show parts of manual
+\\ \verb"history_depth/1"		\> Number of remembered queries
+\\
+\\ \verb"ignore/1"			\> Call the argument, but always succeed
+\\ \verb"import/1"			\> Import a predicate from a module
+\\ \verb"index/1"			\> Change clause indexing
+\\ \verb"initialization/1"		\> Initialization directive
+\\ \verb"int_to_atom/2"			\> Convert from integer to atom
+\\ \verb"int_to_atom/3"			\> Convert from integer to atom (non-decimal)
+\\ \verb"integer/1"			\> Type check for integer
+\\ \verb"intersection/3"		\> Set intersection
+\\ \verb"is/2{xfx 700}"			\> Evaluate arithmetic expression
+\\ \verb"is_absolute_file_name/1"	\> True if arg defines an absolute path
+\\ \verb"is_list/1"			\> Type check for a list
+\\ \verb"is_set/1"			\> Type check for a set
+\\
+\\ \verb"keysort/2"			\> Sort, using a key
+\\
+\\ \verb"last/2"			\> Last element of a list
+\\ \verb"leash/1"			\> Change ports visited by the tracer
+\\ \verb"length/2"			\> Length of a list
+\\ \verb"library_directory/1"		\> \hook{user} Directories holding Prolog libraries
+\\ \verb"limit_stack/2"			\> Limit stack expansion
+\\ \verb"line_count/2"			\> Line number on stream
+\\ \verb"line_position/2"		\> Character position in line on stream
+\\ \verb"list_to_set/2"			\> Remove duplicates
+\\ \verb"listing/0"			\> List program in current module
+\\ \verb"listing/1"			\> List predicate
+\\ \verb"load_foreign/2"		\> Load foreign (C) module
+\\ \verb"load_foreign/5"		\> Load foreign (C) module
+\\ \verb"load_foreign_library/1"	\> \lib{shlib} Load shared library (.so file)
+\\ \verb"load_foreign_library/2"	\> \lib{shlib} Load shared library (.so file)
+\\
+\\ \verb"make/0"			\> Reconsult all changed source files
+\\ \verb"make_fat_filemap/1"		\> Win32: Create file containing non-FAT filenames
+\\ \verb"make_library_index/1"		\> Create autoload file INDEX.pl
+\\ \verb"maplist/3"			\> Transform all elements of a list
+\\ \verb"member/2"			\> Element is member of a list
+\\ \verb"memberchk/2"			\> Deterministic \verb"member/2"
+\\ \verb"merge/3"			\> Merge two sorted lists
+\\ \verb"merge_set/3"			\> Merge two sorted sets
+\\ \verb"module/1"			\> Query/set current type-in module
+\\ \verb"module/2"			\> Declare a module
+\\ \verb"module_transparent/1{fx 1150}"	\> Indicate module based meta predicate
+\\ \verb"msort/2"			\> Sort, do not remove duplicates
+\\ \verb"multifile/1{fx 1150}"		\> Indicate distributed definition of predicate
+\\
+\\ \verb"name/2"			\> Convert between atom and list of ASCII characters
+\\ \verb"nl/0"				\> Generate a newline
+\\ \verb"nl/1"				\> Generate a newline on a stream
+\\ \verb"nodebug/0"			\> Disable debugging
+\\ \verb"nonvar/1"			\> Type check for bound term
+\\ \verb"noprotocol/0"			\> Disable logging of user interaction
+\\ \verb"nospy/1"			\> Remove spy point
+\\ \verb"nospyall/0"			\> Remove all spy points
+\\ \verb"not/1{fy 900}"			\> Negation by failure (argument not provable). Same as \verb"\+ /1"
+\\ \verb"notrace/0"			\> Stop tracing
+\\ \verb"nth0/3"			\> N-th element of a list (0-based)
+\\ \verb"nth1/3"			\> N-th element of a list (1-based)
+\\ \verb"nth_clause/3"			\> N-th clause of a predicate
+\\ \verb"number/1"			\> Type check for integer or float
+\\ \verb"number_chars/2"		\> Convert between number and atom
+\\ \verb"numbervars/4"			\> Enumerate unbound variables of a term using a given base
+\\
+\\ \verb"once/1"			\> Call a goal deterministicaly
+\\ \verb"op/3"				\> Declare an operator
+\\ \verb"open/3"			\> Open a file (creating a stream)
+\\ \verb"open_dde_conversation/3"	\> Win32: Open DDE channel
+\\ \verb"open_null_stream/1"		\> Open a stream to discard output
+\\ \verb"open_shared_object/2"		\> UNIX:  Open shared library (.so file)
+\\
+\\ \verb"phrase/2"			\> Activate grammar-rule set
+\\ \verb"phrase/3"			\> Activate grammar-rule set (returning rest)
+\\ \verb"please/3"			\> Query/change environment parameters
+\\ \verb"plus/3"			\> Logical integer addition
+\\ \verb"portray/1"			\> \hook{user} Modify behaviour of \verb"print/1"
+\\ \verb"portray_clause/1"		\> Pretty print a clause
+\\ \verb"predicate_property/2"		\> Query predicate attributes
+\\ \verb"predsort/3"			\> Sort, using a predicate to determine the order
+\\ \verb"preprocessor/2"		\> Install a preprocessor before the compiler
+\\ \verb"print/1"			\> Print a term
+\\ \verb"print/2"			\> Print a term on a stream
+\\ \verb"profile/3"			\> Obtain execution statistics
+\\ \verb"profile_count/3"		\> Obtain profile results on a predicate
+\\ \verb"profiler/2"			\> Obtain/change status of the profiler
+\\ \verb"prolog/0"			\> Run interactive toplevel
+\\ \verb"prolog_current_frame/1"	\> Reference to goal's environment stack
+\\ \verb"prolog_frame_attribute/3"	\> Obtain information on a goal environment
+\\ \verb"prolog_load_context/2"		\> Context information for directives
+\\ \verb"prolog_skip_level/2"		\> Indicate deepest recursion to trace
+\\ \verb"prolog_to_os_filename/2"	\> Convert between Prolog and OS filenames
+\\ \verb"prolog_trace_interception/3"	\> \lib{user} Intercept the Prolog tracer
+\\ \verb"prompt1/1"			\> Change prompt for 1 line
+\\ \verb"prompt/2"			\> Change the prompt used by read/1
+\\ \verb"proper_list/1"			\> Type check for list
+\\ \verb"protocol/1"			\> Make a log of the user interaction
+\\ \verb"protocola/1"			\> Append log of the user interaction to file
+\\ \verb"protocolling/1"		\> On what file is user interaction logged
+\\ \verb"put/1"				\> Write a character
+\\ \verb"put/2"				\> Write a character on a stream
+\\
+\\ \verb"qcompile/1"			\> Compile source to Quick Load File
+\\ \verb"qload/1"			\> Load Quick Load File as consult/1
+\\ \verb"qsave_program/1"		\> Create runtime application
+\\ \verb"qsave_program/2"		\> Create runtime application
+\\ \verb"read/1"			\> Read Prolog term
+\\ \verb"read/2"			\> Read Prolog term from stream
+\\ \verb"read_clause/1"			\> Read clause
+\\ \verb"read_clause/2"			\> Read clause from stream
+\\ \verb"read_history/6"		\> Read using history substitution
+\\ \verb"read_link/3"			\> Read a symbolic link
+\\ \verb"read_variables/2"		\> Read clause including variable names
+\\ \verb"read_variables/3"		\> Read clause including variable names from stream 
+\\ \verb"recorda/2"			\> Record term in the database (first)
+\\ \verb"recorda/3"			\> Record term in the database (first)
+\\ \verb"recorded/2"			\> Obtain term from the database
+\\ \verb"recorded/3"			\> Obtain term from the database
+\\ \verb"recordz/2"			\> Record term in the database (last)
+\\ \verb"recordz/3"			\> Record term in the database (last)
+\\ \verb"redefine_system_predicate/1"	\> Abolish system definition
+\\ \verb"rename_file/2"			\> Change name of file
+\\ \verb"repeat/0"			\> Succeed, leaving infinite backtrackpoints
+\\ \verb"require/1"			\> This file requires these predicates
+\\ \verb"reset_profiler/0"		\> Clear statistics obtained by the profiler
+\\ \verb"restore/1"			\> Restore saved-state (\verb"save/1", \verb"save_program/1")
+\\ \verb"retract/1"			\> Remove clause from the database
+\\ \verb"retractall/1"			\> Remove unifying clauses from the database
+\\ \verb"reverse/2"			\> Inverse the order of the elements in a list
+\\
+\\ \verb"same_file/2"			\> Succeeds if arguments refer to same file
+\\ \verb"save/1"			\> Save program including current goal
+\\ \verb"save/2"			\> Save program including current goal
+\\ \verb"save_program/1"		\> Save the current program on a file
+\\ \verb"save_program/2"		\> Save the current program on a file
+\\ \verb"see/1"				\> Change the current input stream
+\\ \verb"seeing/1"			\> Query the current input stream
+\\ \verb"seen/0"			\> Close the current input stream
+\\ \verb"select/3"			\> Select element of a list
+\\ \verb"set_feature/2"			\> Define a system feature
+\\ \verb"set_input/1"			\> Set current input stream from a stream
+\\ \verb"set_output/1"			\> Set current output stream from a stream
+\\ \verb"set_tty/2"			\> Set `tty' stream
+\\ \verb"setarg/3"			\> Destructive assignment on term
+\\ \verb"setenv/2"			\> Set shell environment variable
+\\ \verb"setof/3"			\> Find all unique solutions to a goal
+\\ \verb"sformat/2"			\> Format on a string
+\\ \verb"sformat/3"			\> Format on a string
+\\ \verb"shell/0"			\> Execute interactive subshell
+\\ \verb"shell/1"			\> Execute OS command
+\\ \verb"shell/2"			\> Execute OS command
+\\ \verb"show_profile/1"		\> Show results of the profiler
+\\ \verb"size_file/2"			\> Get size of a file in characters
+\\ \verb"skip/1"			\> Skip to character in current input
+\\ \verb"skip/2"			\> Skip to character on stream
+\\ \verb"sleep/1"			\> Suspend execution for specified time
+\\ \verb"sort/2"			\> Sort elements in a list
+\\ \verb"source_file/1"			\> Examine currently loaded source files
+\\ \verb"source_file/2"			\> Obtain source file of predicate
+\\ \verb"source_location/2"		\> Location of last read term
+\\ \verb"spy/1"				\> Force tracer on specified predicate
+\\ \verb"stack_parameter/4"		\> Some systems: Query/Set runtime stack parameter
+\\ \verb"statistics/0"			\> Show execution statistics
+\\ \verb"statistics/2"			\> Obtain collected statistics
+\\ \verb"stream_position/3"		\> Get/seek to position in file
+\\ \verb"string/1"			\> Type check for string
+\\ \verb"string_length/2"		\> Determine length of a string
+\\ \verb"string_to_atom/2"		\> Conversion between string and atom
+\\ \verb"string_to_list/2"		\> Conversion between string and list of ASCII
+\\ \verb"style_check/1"			\> Change level of warnings
+\\ \verb"sublist/3"			\> Determine elements that meet condition
+\\ \verb"subset/2"			\> Generate/check subset relation
+\\ \verb"substring/4"			\> Get part of a string
+\\ \verb"subtract/3"			\> Delete elements that do not meet condition
+\\ \verb"succ/2"			\> Logical integer successor relation
+\\ \verb"swritef/2"			\> Formatted write on a string
+\\ \verb"swritef/3"			\> Formatted write on a string
+\\
+\\ \verb"tab/1"				\> Output number of spaces
+\\ \verb"tab/2"				\> Output number of spaces on a stream
+\\ \verb"tell/1"			\> Change current output stream
+\\ \verb"telling/1"			\> Query current output stream
+\\ \verb"term_expansion/2"		\> \hook{user} Convert term before compilation
+\\ \verb"term_to_atom/2"		\> Convert between term and atom
+\\ \verb"time/1"			\> Determine time needed to execute goal
+\\ \verb"time_file/2"			\> Get last modification time of file
+\\ \verb"tmp_file/2"			\> Create a temporary filename
+\\ \verb"told/0"			\> Close current output
+\\ \verb"trace/0"			\> Start the tracer
+\\ \verb"trace/1"			\> Set trace-point on predicate
+\\ \verb"trace/2"			\> Set/Clear trace-point on ports
+\\ \verb"tracing/0"			\> Query status of the tracer
+\\ \verb"trim_stacks/0"			\> Release unused memory resources
+\\ \verb"true/0"			\> Succeed
+\\ \verb"tty_get_capability/3"		\> Get terminal parameter
+\\ \verb"tty_goto/2"			\> Goto position on screen
+\\ \verb"tty_put/2"			\> Write control string to terminal
+\\ \verb"ttyflush/0"			\> Flush output on terminal
+\\
+\\ \verb"union/3"			\> Union of two sets
+\\ \verb"unknown/2"			\> Trap undefined predicates
+\\ \verb"unload_foreign_library/1"	\> \lib{shlib} Detach shared library (.so file)
+\\ \verb"unsetenv/1"			\> Delete shell environment variable
+\\ \verb"use_module/1"			\> Import a module
+\\ \verb"use_module/2"			\> Import predicates from a module
+\\
+\\ \verb"var/1"				\> Type check for unbound variable
+\\ \verb"visible/1"			\> Ports that are visible in the tracer
+\\ \verb"volatile/1{fx 1150}"		\> Predicates that are not saved
+\\
+\\ \verb"wait_for_input/3"		\> Wait for input with optional timeout
+\\ \verb"wildcard_match/2"		\> Csh(1) style wildcard match
+\\ \verb"write/1"			\> Write term
+\\ \verb"write/2"			\> Write term to stream
+\\ \verb"write_ln/1"			\> Write term, followed by a newline
+\\ \verb"writef/1"			\> Formatted write
+\\ \verb"writef/2"			\> Formatted write on stream
+\\ \verb"writeq/1"			\> Write term, insert quotes
+\\ \verb"writeq/2"			\> Write term, insert quotes on stream
+\end{tabbing}
+
+\section{Artihmetic Functions}
+\begin{tabbing}
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
+   \verb"*  /2{yfx 400}"		\> Multiplication
+\\ \verb"+  /2{yfx 500}"		\> Addition
+\\ \verb"-  /1{ fx 500}"		\> Unary minus
+\\ \verb"-  /2{yfx 500}"		\> Subtraction
+\\ \verb"/  /2{yfx 400}"		\> Division
+\\ \verb"// /2{yfx 400}"		\> Integer division
+\\ \verb"/\ /2{yfx 500}"		\> Bitwise and
+\\ \verb"<< /2{yfx 400}"		\> Bitwise left shift
+\\ \verb">> /2{yfx 400}"		\> Bitwise right shift
+\\ \verb$"C"/1$ (list of one character)	\> Character code
+\\ \verb"\  /1{ fx 500}"		\> Bitwise negation
+\\ \verb"\/ /2{yfx 500}"		\> Bitwise or
+\\ \verb"^  /2{xfy 200}"		\> Power function
+\\ \verb"abs/1"				\> Absolute value
+\\ \verb"acos/1"			\> Inverse (arc) cosine
+\\ \verb"asin/1"			\> Inverse (arc) sine
+\\ \verb"atan/1"			\> Inverse (arc) tangent
+\\ \verb"atan/2"			\> Rectangular to polar conversion
+\\ \verb"ceil/1"			\> Smallest integer larger than argument
+\\ \verb"cos/1"				\> Cosine
+\\ \verb"cputime/0"			\> Get CPU time
+\\ \verb"e/0"				\> Mathematical constant
+\\ \verb"exp/1"				\> Exponent (base $e$)
+\\ \verb"floor/1"			\> Largest integer below argument
+\\ \verb"integer/1"			\> Round to nearest integer
+\\ \verb"log/1"				\> Natural logarithm
+\\ \verb"log10/1"			\> 10 base logarithm
+\\ \verb"max/2"				\> Maximum of two numbers
+\\ \verb"min/2"				\> Minimum of two numbers
+\\ \verb"mod/2{xfx 300}"		\> Remainder of division
+\\ \verb"random/1"			\> Generate random number
+\\ \verb"pi/0"				\> Mathematical constant
+\\ \verb"sin/1"				\> Sine
+\\ \verb"sqrt/1"			\> Square root
+\\ \verb"tan/1"				\> Tangent
+\\ \verb"xor/2{yfx 400}"		\> Bitwise exclusive or
+\end{tabbing}
+
+\section{Operators}
+\begin{tabbing}
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
+   \verb"   1   fx  $"			\> Bind toplevel variable
+\\ \verb" 200  xfy  ^"			\> (1) Predicate
+\\ \verb" 200  xfy  ^"			\> (2) Arithmetic function
+\\ \verb" 300  xfx  mod"		\> Arithmetic function
+\\ \verb" 400  yfx  *"			\> Arithmetic function
+\\ \verb" 400  yfx  /"			\> Arithmetic function
+\\ \verb" 400  yfx  //"			\> Arithmetic function
+\\ \verb" 400  yfx  <<"			\> Arithmetic function
+\\ \verb" 400  yfx  >>"			\> Arithmetic function
+\\ \verb" 400  yfx  xor"		\> Arithmetic function
+\\ \verb" 500   fx  +"			\> Arithmetic function
+\\ \verb" 500   fx  -"			\> Arithmetic function
+\\ \verb" 500   fx  ?"			\> XPCE: obtainer
+\\ \verb" 500   fx  \"			\> Arithmetic function
+\\ \verb" 500  yfx  +"			\> Arithmetic function
+\\ \verb" 500  yfx  -"			\> Arithmetic function
+\\ \verb" 500  yfx  /\"			\> Arithmetic function
+\\ \verb" 500  yfx  \/"			\> Arithmetic function
+\\ \verb" 600  xfy  :"			\> module:term separator
+\\ \verb" 700  xfx  <"			\> Predicate
+\\ \verb" 700  xfx  ="			\> Predicate
+\\ \verb" 700  xfx  =.."		\> Predicate
+\\ \verb" 700  xfx  =:="		\> Predicate
+\\ \verb" 700  xfx  =<"			\> Predicate
+\\ \verb" 700  xfx  =="			\> Predicate
+\\ \verb" 700  xfx  =@="		\> Predicate
+\\ \verb" 700  xfx  =\="		\> Predicate
+\\ \verb" 700  xfx  >"			\> Predicate
+\\ \verb" 700  xfx  >="			\> Predicate
+\\ \verb" 700  xfx  @<"			\> Predicate
+\\ \verb" 700  xfx  @=<"		\> Predicate
+\\ \verb" 700  xfx  @>"			\> Predicate
+\\ \verb" 700  xfx  @>="		\> Predicate
+\\ \verb" 700  xfx  is"			\> Predicate
+\\ \verb" 700  xfx  \="			\> Predicate
+\\ \verb" 700  xfx  \=="		\> Predicate
+\\ \verb" 700  xfx  \=@="		\> Predicate
+\\ \verb" 900   fy  not"		\> Predicate
+\\ \verb" 900   fy  \+"			\> Predicate
+\\ \verb"1000  xfy  ,"			\> Predicate
+\\ \verb"1050  xfy  ->"			\> Predicate
+\\ \verb"1100  xfy  ;"			\> Predicate
+\\ \verb"1100  xfy  |"			\> Predicate
+\\ \verb"1150   fx  discontiguous"	\> Predicate
+\\ \verb"1150   fx  dynamic"		\> Predicate
+\\ \verb"1150   fx  module_transparent"	\> Predicate
+\\ \verb"1150   fx  multifile"		\> Predicate
+\\ \verb"1150   fx  volatile"		\> Predicate
+\\ \verb"1150   fx  initialization"	\> Predicate
+\\ \verb"1200   fx  :-"			\> Introduces a directive
+\\ \verb"1200   fx  ?-"			\> Introduces a directive
+\\ \verb"1200  xfx  -->"		\> DCGrammar: rewrite
+\\ \verb"1200  xfx  :-"			\> head :- body. separator
+\end{tabbing}

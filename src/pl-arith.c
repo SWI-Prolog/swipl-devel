@@ -354,10 +354,11 @@ realExceptionHandler(int sig, int type, SignalContext scp, char *addr)
 #endif
   if ( status.arithmetic > 0 )
   { warning("Floating point exception");
+#ifndef O_RUNTIME
     Sfprintf(Serror, "[PROLOG STACK:\n");
     backTrace(NULL, 10);
     Sfprintf(Serror, "]\n");
-
+#endif
     pl_abort();
   } else
   { deliverSignal(sig, type, scp, addr);

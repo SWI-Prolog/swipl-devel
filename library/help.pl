@@ -12,7 +12,7 @@
 	, apropos/1
 	]).
 
-:- use_module(library(help_index)).
+:- use_module(library(helpidx)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module  defines the  online  help  facility of   SWI-Prolog.   It
@@ -140,7 +140,7 @@ pager_stream(Stream) :-
 	open(pipe(Pager), write, Stream).
 
 find_manual(Path) :-
-	'$chk_file'(library('MANUAL'), [''], Path).
+	absolute_file_name(library('MANUAL'), [access(read)], Path).
 
 find_pager(Pager) :-
 	getenv('PAGER', Pager), !.

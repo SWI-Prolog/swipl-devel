@@ -421,15 +421,23 @@ distribution over these atoms.  Note that size equals 2^n.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-stringHashValue(register char *s, register int size)
-{ register int value = 0;
-  register int shift = 0;
+unboundStringHashValue(char *t)
+{ unsigned int value = 0;
+  unsigned int shift = 5;
 
-  while(*s)
-    value += (((int)(*s++)) << ((++shift) & 0x7));
+  while(*t)
+  { unsigned int c = *t++;
+    
+    c -= 'a';
+    value ^= c << shift;
+    shift += 3;
+    if ( shift > 24 )
+      shift = 1;
+  }
 
-  return value & (size-1);
+  return value;
 }
+
 
 		 /*******************************
 		 *	     GNU MALLOC		*

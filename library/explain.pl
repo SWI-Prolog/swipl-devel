@@ -8,7 +8,7 @@
 	  [ explain/1,
 	    explain/2
 	  ]).
-:- use_module(library(help_index)).
+:- use_module(library(helpidx)).
 
 explain(Item) :-
 	explain(Item, Explanation),
@@ -38,6 +38,11 @@ explain(A, Explanation) :-
 	atom(A),
 	utter(Explanation, '"~w" is an atom', [A]).
 explain(A, Explanation) :-
+	current_op(Pri, F, A),
+	op_type(F, Type),
+	utter(Explanation, '"~w" is a ~w (~w) operator of priority ~d',
+	      [A, Type, F, Pri]).
+explain(A, Explanation) :-
 	atom(A), !,
 	explain_atom(A, Explanation).
 explain([H|T], Explanation) :-
@@ -63,6 +68,13 @@ explain(Term, Explanation) :-
 explain(Term, Explanation) :-
 	explain_functor(Term, Explanation).
 	
+op_type(X, prefix) :-
+	atom_chars(X, [0'f, _]).
+op_type(X, infix) :-
+	atom_chars(X, [_, 0'f, _]).
+op_type(X, postfix) :-
+	atom_chars(X, [_, 0'f]).
+
 		/********************************
 		*             ATOMS             *
 		*********************************/
@@ -146,6 +158,7 @@ referenced(Term, Explanation) :-
 	nth_clause(Module:Head, N, Ref),
 	'$xr_member'(Ref, Term),
 	functor(Head, Name, Arity),
+	\+ (Name == '$user_query', Arity == 1),
 	utter(Explanation, '~t~8|Referenced from ~d-th clause of ~w:~w/~d',
 	                   [N, Module, Name, Arity]).
 

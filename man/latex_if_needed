@@ -1,0 +1,9 @@
+#!/bin/sh
+
+#PATH=/bin:/usr/bin
+
+$1 $2
+
+while grep -e'^LaTeX Warning' -e'^No file '$2'\.toc' -e'^No file '$2'\.aux' $2.log;
+  do $1 $2;
+done

@@ -72,11 +72,20 @@ discontiguous(Spec) :-
 	functor(Term, Name, Arity),
 	$set_predicate_attribute(Module:Term, (discontiguous), 1).
 
+volatile((Spec, More)) :- !,
+	volatile(Spec),
+	volatile(More).
+volatile(Spec) :-
+	$strip_module(Spec, Module, Name/Arity),
+	functor(Term, Name, Arity),
+	$set_predicate_attribute(Module:Term, (volatile), 1).
+
 :- module_transparent
 	(dynamic)/1,
 	(multifile)/1,
 	(module_transparent)/1,
 	(discontiguous)/1,
+	(volatile)/1,
 	$hide/2,
 	$show_childs/2.
 
@@ -396,11 +405,17 @@ $predicate_name(Goal, String) :-
 		 *	 FILE_SEARCH_PATH	*
 		 *******************************/
 
-:- user:dynamic file_search_path/2.
-:- user:multifile file_search_path/2.
+:- dynamic user:file_search_path/2.
+:- multifile user:file_search_path/2.
 
-:- user:assert((file_search_path(library, Dir) :-
-	library_directory(Dir))).
+user:file_search_path(library, Dir) :-
+	library_directory(Dir).
+user:file_search_path(swi, Home) :-
+	feature(home, Home).
+user:file_search_path(foreign, swi(ArchLib)) :-
+	feature(arch, Arch),
+	concat('lib/', Arch, ArchLib).
+user:file_search_path(foreign, swi(lib)).
 
 expand_file_search_path(Spec, Expanded) :-
 	functor(Spec, Alias, 1),
@@ -429,62 +444,98 @@ $check_file(0, _) :- !, fail.			% deal with variables
 $check_file(user, user) :- !.
 $check_file(File, Absolute) :-
 	flag($compiling, database, database), !,
-	$chk_file(File, ['.qlf', '.pl', ''], Absolute).
+	$chk_file(File, ['.qlf', '.pl', ''], exists, Absolute).
 $check_file(File, Absolute) :-
-	$chk_file(File, ['.pl', ''], Absolute).
+	$chk_file(File, ['.pl', ''], exists, Absolute).
 
-$chk_file(Spec, Extensions, FullName) :-
+$chk_file(Spec, Extensions, Cond, FullName) :-
 	functor(Spec, Alias, 1),
 	user:file_search_path(Alias, _), !,
-	$chk_alias_file(Spec, Extensions, FullName).
-$chk_file(Term, Ext, FullName) :-	% allow a/b, a-b, etc.
+	$chk_alias_file(Spec, Extensions, Cond, FullName).
+$chk_file(Term, Ext, Cond, FullName) :-	% allow a/b, a-b, etc.
 	\+ atomic(Term), !,
 	term_to_atom(Term, Raw),
-	name(Raw, S0),
+	atom_chars(Raw, S0),
 	delete(S0, 0' , S1),
-	name(Atom, S1),
-	$chk_file(Atom, Ext, FullName).
-$chk_file(File, Exts, FullName) :-
+	atom_chars(Atom, S1),
+	$chk_file(Atom, Ext, Cond, FullName).
+$chk_file(File, Exts, Cond, FullName) :-
 	is_absolute_file_name(File), !,
-	member(Ext, Exts),
-	ensure_extension(File, Ext, Extended),
-	exists_file(Extended),
+	$extend_file(File, Exts, Extended),
+	$file_condition(Cond, Extended),
 	$absolute_file_name(Extended, FullName).
-$chk_file(File, Exts, FullName) :-
+$chk_file(File, Exts, Cond, FullName) :-
 	source_location(ContextFile, _Line),
-	$file_dir_name(ContextFile, ContextDir),
+	file_directory_name(ContextFile, ContextDir),
 	$concat_atom([ContextDir, /, File], AbsFile),
-	member(Ext, Exts),
-	ensure_extension(AbsFile, Ext, Extended),
-	exists_file(Extended), !,
+	$extend_file(AbsFile, Exts, Extended),
+	$file_condition(Cond, Extended), !,
 	$absolute_file_name(Extended, FullName).
-$chk_file(File, Exts, FullName) :-
-	member(Ext, Exts),
-	ensure_extension(File, Ext, Extended),
-	exists_file(Extended),
+$chk_file(File, Exts, Cond, FullName) :-
+	$extend_file(File, Exts, Extended),
+	$file_condition(Cond, Extended),
 	$absolute_file_name(Extended, FullName).
-
-ensure_extension(File, Ext, Extended) :-
-	(   concat(_, Ext, File)
-	->  Extended = File
-	;   concat(File, Ext, Extended)
-	).
 
 :- dynamic
-	$search_path_file_cache/3.
+	$search_path_file_cache/4.
+:- volatile
+	$search_path_file_cache/4.
 
-$chk_alias_file(Spec, Exts, FullFile) :-
-	$search_path_file_cache(Spec, FullFile, Ext),
+$chk_alias_file(Spec, Exts, Cond, FullFile) :-
+	$search_path_file_cache(Spec, Cond, FullFile, Ext),
 	memberchk(Ext, Exts).
-$chk_alias_file(Spec, Exts, FullFile) :-
+$chk_alias_file(Spec, Exts, Cond, FullFile) :-
 	expand_file_search_path(Spec, Expanded),
-	member(Ext, Exts),
-	ensure_extension(Expanded, Ext, LibFile),
-	exists_file(LibFile),
-	\+ exists_directory(LibFile),
+	$extend_file(Expanded, Exts, LibFile),
+	$file_condition(Cond, LibFile),
 	$absolute_file_name(LibFile, FullFile),
-	asserta($search_path_file_cache(Spec, FullFile, Ext)).
+	concat(Expanded, Ext, LibFile),
+	\+ $search_path_file_cache(Spec, Cond, FullFile, Ext),
+	asserta($search_path_file_cache(Spec, Cond, FullFile, Ext)).
 	
+$file_condition([], _) :- !.
+$file_condition([H|T], File) :- !,
+	$file_condition(H, File),
+	$file_condition(T, File).
+$file_condition(exists, File) :- !,
+	exists_file(File).
+$file_condition(file_type(directory), File) :- !,
+	exists_directory(File).
+$file_condition(file_type(file), File) :- !,
+	exists_file(File),
+	\+ exists_directory(File).
+$file_condition(access(Access), File) :- !,
+	access_file(File, Access).
+
+$extend_file(File, Exts, FileEx) :-
+	$ensure_extensions(Exts, File, Fs),
+	$list_to_set(Fs, FsSet),
+	member(FileEx, FsSet).
+	
+$ensure_extensions([], _, []).
+$ensure_extensions([E|E0], F, [FE|E1]) :-
+	$ensure_extension(E, F, FE),
+	$ensure_extensions(E0, F, E1).
+
+$ensure_extension('', File, FileEx) :- !,
+	FileEx = File.
+$ensure_extension(Ext, File, FileEx) :-
+	concat('.', _, Ext), !,
+	(   concat(_, Ext, File)
+	->  FileEx = File
+	;   concat(File, Ext, FileEx)
+	).
+$ensure_extension(Ext, File, FileEx) :-
+	concat('.', Ext, DotExt),
+	$ensure_extension(DotExt, File, FileEx).
+
+$list_to_set([], []).
+$list_to_set([H|T], R) :-
+	memberchk(H, T), !, 
+	$list_to_set(T, R).
+$list_to_set([H|T], [H|R]) :-
+	$list_to_set(T, R).
+
 
 		/********************************
 		*            CONSULT            *
@@ -598,8 +649,16 @@ ensure_loaded(Spec) :-
 	    fail
 	).
 
-$ensure_loaded(_Spec, FullFile) :-
-	source_file(FullFile), !.
+$ensure_loaded(Spec, FullFile) :-
+	source_file(FullFile), !,
+	$strip_module(Spec, Context, _),
+	(   $current_module(Module, FullFile)
+	->  $import_list(Context, Module, all)
+	;   (   Context == user
+	    ->	true
+	    ;   consult(FullFile)
+	    )
+	).
 $ensure_loaded(Spec, _) :-
 	$consult_file(Spec, [verbose]).
 
@@ -838,11 +897,12 @@ $export_list(Module, [Term|Rest]) :-
 		 [Term]),
 	$export_list(Module, Rest).
 
-$consult_clause(end_of_file, _) :- !.
 $consult_clause(Clause, File) :-
 	expand_term(Clause, Expanded),
-	$store_clause(Expanded, File), !,
-	fail.
+	(   $store_clause(Expanded, File)
+	->  Clause == end_of_file
+	;   fail
+	).
 
 $execute_directive(Goal) :-
 	compiling, !,
@@ -929,6 +989,7 @@ $store_clause([], _) :- !.
 $store_clause([C|T], F) :- !,
 	$store_clause(C, F),
 	$store_clause(T, F).
+$store_clause(end_of_file, _) :- !.
 $store_clause((:- Goal), _) :- !,
 	$execute_directive(Goal).
 $store_clause((?- Goal), _) :- !,
@@ -963,20 +1024,23 @@ $store_clause(Term, File) :-
  ** Thu Sep  1 15:57:59 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 $translate_rule((LP-->List), H) :-
-	nonvar(List),
-	(  List = []
-	-> $t_head(LP, S, S, H)
-	;  List = [X]
-	-> $t_head(LP, [X|S], S, H)
-	;  List = [_|_]
-	-> append(List, SR, S),
-	   $extend([S, SR], LP, H)
-	).
+	proper_list(List), !,
+	(   List = []
+	->  $t_head(LP, S, S, H)
+	;   List = [X]
+	->  $t_head(LP, [X|S], S, H)
+	;   append(List, SR, S),
+	    $extend([S, SR], LP, H)
+	), !.
 $translate_rule((LP-->RP), (H:-B)):-
 	$t_head(LP, S, SR, H),
 	$t_body(RP, S, SR, B1),
 	$t_tidy(B1, B).
 
+$tailvar(X, X) :-
+	var(X), !.
+$tailvar([_|T], V) :-
+	$tailvar(T, V).
 
 $t_head((LP, List), S, SR, H):- !,
 	append(List, SR, List2),
@@ -987,11 +1051,18 @@ $t_head(LP, S, SR, H) :-
 
 $t_body(Var, S, SR, phrase(Var, S, SR)) :-
 	var(Var), !.
+$t_body(List, S, SR, C) :-
+	proper_list(List), !,
+	(   List = []
+	->  C = (S=SR)
+	;   List = [X]
+	->  C = 'C'(S, X, SR)
+	;   C = append(List, SR, S)
+	).
+$t_body(List, S, SR, C) :-
+	List = [_|_], !,
+	C = append(List, SR, S).
 $t_body(!, S, S, !) :- !.
-$t_body([], S, S1, S=S1) :- !.
-$t_body([X], S, SR, $char(S, X, SR)) :- !.
-$t_body([X|R], S, SR, ($char(S, X, SR1), RB)) :- !,
-	$t_body(R, SR1, SR, RB).
 $t_body({T}, S, S, T) :- !.
 $t_body((T, R), S, SR, (Tt, Rt)) :- !,
 	$t_body(T, S, SR1, Tt),
@@ -1013,6 +1084,8 @@ $t_body((C->T|E), S, SR, (Ct->Tt;Et)) :- !,
 $t_body((C->T), S, SR, (Ct->Tt)) :- !,
 	$t_body(C, S, SR1, Ct),
 	$t_body(T, SR1, SR, Tt).
+$t_body((\+ C), S, SR, (\+ Ct)) :- !,
+	$t_body(C, S, SR, Ct).
 $t_body(T, S, SR, Tt) :-
 	$extend([S, SR], T, Tt).
 
@@ -1041,7 +1114,7 @@ $t_tidy((P1, P2), (Q1, Q2)) :- !,
 	$t_tidy(P2, Q2).
 $t_tidy(A, A).
 
-$char([X|S], X, S).
+'C'([X|S], X, S).
 
 :- module_transparent
 	phrase/2,
@@ -1075,7 +1148,8 @@ $compile_wic :-
 	$compile_wic(Files, Wic).
 
 $compile_wic(FileList, Wic) :-
-	$open_wic(Wic),
+	$open_wic(Wic, []),
+	$qlf_put_states,		% `W state' directives
 	flag($compiling, Old, wic),
 	    $style_check(Style, Style),
 	    $execute_directive($style_check(_, Style)),
@@ -1161,7 +1235,7 @@ $load_additional_boot_files :-
 
 '$:-'	format('Loading Prolog startup files~n', []),
 	source_location(File, _Line),
-	$file_dir_name(File, Dir),
+	file_directory_name(File, Dir),
 	concat(Dir, '/load.pl', LoadFile),
 	$load_wic_files(system, [LoadFile]),
 	format('SWI-Prolog boot files loaded~n', []),

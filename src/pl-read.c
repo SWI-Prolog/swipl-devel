@@ -142,12 +142,42 @@ stopRead(void)
 		*         ERROR HANDLING        *
 		*********************************/
 
+static int give_syntaxerrors = TRUE;
+
+int
+syntaxerrors(int new)
+{ int old = give_syntaxerrors;
+  give_syntaxerrors = new;
+
+  return old;
+}
+
+word
+pl_syntaxerrors(Word old, Word new)
+{ TRY(unifyAtomic(old, (give_syntaxerrors ? ATOM_on : ATOM_off)) );
+
+  if ( *new == (word) ATOM_on )       give_syntaxerrors = TRUE;
+  else if ( *new == (word) ATOM_off ) give_syntaxerrors = FALSE;
+  else                                fail;
+
+  succeed;
+}
+
+
+
+
+
 #define syntaxError(what) { errorWarning(what); fail; }
 
 static void
 errorWarning(char *what)
-{ unsigned int c = *token_start;
+{ unsigned int c;
   
+  if ( !give_syntaxerrors )
+    return;
+
+  c = *token_start;
+
   if ( !ReadingSource )			/* not reading from a file */
   { Sfprintf(Serror, "\n[WARNING: Syntax error: %s \n", what);
     *token_start = EOS;
@@ -293,6 +323,7 @@ raw_read2(void)
 { int c;
   bool something_read = FALSE;
   int newlines;
+  bool dotseen = FALSE;
 
   clearBuffer();				/* clear input buffer */
   source_line_no = -1;
@@ -318,15 +349,12 @@ raw_read2(void)
 		if (something_read)
 		{ rawSyntaxError("Unexpected end of file");
 		}
-      e_o_f:
 		strcpy(rb.base, "end_of_file. ");
 		return rb.base;
-      case '*':	if ( rb.here-rb.base >= 1 && rb.here[-1] == '/' )
-		{ register Char last;
+      case '/': c = getchr();
+		if ( c == '*' )
+		{ Char last;
 		  int level = 1;
-
-		  rb.here--, rb.left++;	/* delete read '/' */
-
 		  if ((last = getchr()) == EOF)
 		    rawSyntaxError("End of file in ``/* ... */'' comment");
 		  for(;;)
@@ -340,7 +368,7 @@ raw_read2(void)
 		      case '/':
 			if ( last == '*' && --level == 0 )
 			{ c = ' ';
-			  goto case_default; /* hack */
+			  goto handle_c;
 			}
 			break;
 		      case '\n':
@@ -349,20 +377,20 @@ raw_read2(void)
 		    }
 		    last = c;
 		  }
+		} else
+		{ addToBuffer('/');
+		  if ( char_type[c] == SY )
+		  { while( c != EOF && char_type[c] == SY )
+		    { addToBuffer(c);
+		      c = getchr();
+		    }
+		  }
+		  dotseen = FALSE;
+		  goto handle_c;
 		}
-
-		set_start_line;
-		addToBuffer(c);
-		break;
       case '%': while((c=getchr()) != EOF && c != '\n') ;
-		if (c == EOF)
-		{ if (something_read)
-		    rawSyntaxError("Unexpected end of file")
-		  else
-		    goto e_o_f;		  
-		}
-		ensure_space(c);
-		break;
+		c = ' ';
+		goto handle_c;
      case '\'': if ( rb.here > rb.base && isDigit(rb.here[-1]) )
 		{ addToBuffer(c);			/* <n>' */
 		  if ( rb.here[-2] == '0' )		/* 0'<c> */
@@ -372,6 +400,7 @@ raw_read2(void)
 		    }
 		    rawSyntaxError("Unexpected end of file");
 		  }
+		  dotseen = FALSE;
 		  break;
 		}
 
@@ -388,6 +417,7 @@ raw_read2(void)
 		if (c == EOF)
 		  rawSyntaxError("End of file in quoted atom");
 		addToBuffer(c);
+		dotseen = FALSE;
 		break;
       case '"':	set_start_line;
 		newlines = 0;
@@ -402,41 +432,42 @@ raw_read2(void)
 		if (c == EOF)
 		  rawSyntaxError("End of file in string");
 		addToBuffer(c);
+		dotseen = FALSE;
 		break;
       case '.': addToBuffer(c);
 		set_start_line;
+		dotseen++;
 		c = getchr();
-		if ( isBlank(c) )
-		{ if ( rb.here - rb.base == 1 )
-		    rawSyntaxError("Unexpected end of file");
-		  ensure_space(c);
-		  addToBuffer(EOS);
-		  return rb.base;
-		}
-		while( c != EOF && char_type[c] == SY )
-		{ addToBuffer(c);
-		  c = getchr();
+		if ( char_type[c] == SY )
+		{ while( c != EOF && char_type[c] == SY )
+		  { addToBuffer(c);
+		    c = getchr();
+		  }
+		  dotseen = FALSE;
 		}
 		goto handle_c;
-      case_default:			/* Hack, needs fixing */
       default:	switch(char_type[c])
 		{ case SP:
+		    if ( dotseen )
+		    { if ( rb.here - rb.base == 1 )
+			rawSyntaxError("Unexpected end of file");
+		      ensure_space(c);
+		      addToBuffer(EOS);
+		      return rb.base;
+		    }
 		    do
 		    { ensure_space(c);
 		      c = getchr();
 		    } while( c != EOF && char_type[c] == SP );
 		    goto handle_c;
 		  case SY:
-		    if ( c != '/' )	/* watch comment start */
-		    { set_start_line;
-		      do
-		      { addToBuffer(c);
-			c = getchr();
-		      } while( c != EOF && char_type[c] == SY );
-		      goto handle_c;
-		    }
-		    addToBuffer(c);
-		    break;
+		    set_start_line;
+		    do
+		    { addToBuffer(c);
+		      c = getchr();
+		    } while( c != EOF && char_type[c] == SY );
+		    dotseen = FALSE;
+		    goto handle_c;
 		  case LC:
 		  case UC:
 		    set_start_line;
@@ -445,9 +476,11 @@ raw_read2(void)
 		      c = getchr();
 		    } while( c != EOF &&
 			     (char_type[c] == LC || char_type[c] == UC) );
+		    dotseen = FALSE;
 		    goto handle_c;
 		  default:
 		    addToBuffer(c);
+		    dotseen = FALSE;
 		    set_start_line;
 		}
     }

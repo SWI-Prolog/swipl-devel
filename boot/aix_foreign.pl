@@ -32,7 +32,7 @@ load_foreign(File) :-
 	statistics(heapused, OldHeap),
 	statistics(cputime, OldTime),
 
-	(   $chk_file(File, [''], Path)
+	(   absolute_file_name(File, [access(read)], Path)
 	->  true
 	;   $warning('~w: No such foreign file', [File]),
 	    fail
@@ -136,7 +136,10 @@ check_files([F|R], [A|T]) :- !,
 	check_files(F, A),
 	check_files(R, T).
 check_files(F, A) :-
-	$chk_file(F, ['.o', '.a', '.c', ''], A), !.
+	absolute_file_name(F,
+			   [ extensions(['.o', '.a', '.c', '']),
+			     access(read)
+			   ], A), !.
 check_files(F, _) :-
 	$warning('~w: No such foreign file', [F]),
 	fail.

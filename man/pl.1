@@ -1,0 +1,175 @@
+.TH PL 1L "July 31, 1995"
+.SH NAME
+pl \- SWI-Prolog
+.SH SYNOPSIS
+.BR pl " [\|" \-help "\|]"
+.br
+.BR pl " [\|" options "\|]"
+.br
+.BR pl " [\|" options "\|] [\|" "\-o output" "\|]"
+.BI "\-c" " file ..."
+.br
+.BR pl " [\|" options "\|] [\|" "\-o output" "\|]"
+.BI "\-b" " initfile ..."
+.SH DESCRIPTION
+SWI-Prolog is an implementation of Prolog in the Edinburgh tradition.
+It is based on a restricted form of the WAM (RISC-WAM?). It has a good
+collection of built-in predicates, a large set of which it shares with
+C-Prolog, Quintus Prolog and SICStus Prolog. It has a fairly good
+performance, with a fast compiler. It includes a Quintus-like module
+system, a library autoload facility, a garbage collector, on-line help,
+a trasparent and fast C interface (in both directions), and a profiler.
+.SS Options
+.TP
+.BI \-help
+Gives a summary of the usage of this command.
+.TP
+.BI \-A "size"
+Give the argument stack size on K bytes (default 5K). For machines
+with dynamic stack allocation, the default is 1M. See
+.B -L
+for more details.
+.TP
+.BI \-G "size"
+Give the global stack size on K bytes (default 100K). For machines
+with dynamic stack allocation, the default is 4M. See
+.B -L
+for more details.
+.TP
+.BI \-L "size"
+Give the local stack size on K bytes (default 200K). Note that there
+is no space between the size option and its argument. For machines
+with dynamic stack allocation, this flag sets the maximum value to
+which the stack is allowed to grow (default 2M). A maximum is useful
+to prevent buggy programs from claiming all the memory resources.
+.B -L0
+sets the limit to the highest possible value.
+.TP
+.BI \-O
+Optimised compilation. See
+.B please/\|3
+in the SWI-Prolog Reference Manual.
+.TP
+.BI \-T "size"
+Give the trail stack size on K bytes (default 50K). For machines
+with dynamic stack allocation, the default is 4M. See
+.B -L
+for more details.
+.TP
+.BI \-b " initfile ... " -c " file ..."
+Boot compilation.
+.I "initfile ..."
+are compiled by the C written bootstrap compiler,
+.I "file ..."
+by the normal Prolog compiler into an intermediate code file. This
+option is for system maintenance and is given for reference only.
+.TP
+.BI \-c " file ..."
+Compiles
+.I "file ..."
+into an intermediate code file.
+.TP
+.BI \-d " level"
+Set debug level to
+.IR level .
+This option is for system maintenance and is given for reference only.
+.TP
+.BI \-f " file"
+Use
+.I "file"
+as initialisation file instead of
+.RB "`" .plrc "'. `" "-f none" "'"
+stops SWI-Prolog from searching for an initialisation file.
+.TP
+.BI \-g " goal"
+.I Goal
+is executed just before entering the top level. The default is a
+predicate which prints the welcome message. The welcome message
+can thus be supressed by giving
+.BR "-g true" .
+.I goal
+can be a complex term. In this case, quotes are normally needed
+to protect it from being expanded by the Unix shell.
+.TP
+.BI \-o " output"
+Used in combination with
+.B \-b
+or
+.B \-c
+to determine the output file for compilation.
+.TP
+.BI \-t " goal"
+Use
+.I goal
+as an interactive top level instead of the default goal
+.BR prolog/\|0 "."
+.I goal
+can be a complex term. If the top level goal succeeds, SWI-Prolog
+exits with status 0. If it fails, the exit status is 1. This flag
+also determines the goal started by
+.BR break/\|0 " and"
+.BR abort/\|0 "."
+If you want to stop the user from entering interactive mode, start
+the application with
+.RB "`" \-g
+.IR goal "'"
+and give
+.RB "`" halt "'"
+as the top level.
+.TP
+.BI \-x state
+Load from an intermediate code file resulting from a Prolog compilation
+using the
+.B \-b
+or
+.B -c
+option.
+.TP
+.BI [\|\+/\|\-]\|tty
+Switches tty control (using ioctl(2)) on
+.RB "(" "+tty" ") or off ("  "-tty" ")."
+Normally tty control is switched on. This default depends on the
+installation. You may wish to switch tty control off if SWI-Prolog is
+used from an editor such as GNU EMACS. If switched off,
+.B get_single_char/\|1
+and the tracer will wait for a carriage return.
+.SS On-line Help
+SWI-Prolog has on-line help. This provides a fast lookup and browsing
+facility to the SWI-Prolog Reference manual. The on-line manual can
+show predicate definitions as well as entire sections of the manual.
+.TP
+.B help
+Equivalent to
+.BR "help(help/1)" .
+.TP
+.BI "help(\fI" "+What\fB)"
+Show a specified part of the manual.
+.I What
+is one of:
+.RS
+.TP
+Name/Arity
+give help on the specified predicate
+.TP
+Name
+give help on the named predicate with any arity or a C interface
+function with that name.
+.TP
+Section
+display the specified section of the SWI-Prolog Reference Manual.
+Section numbers are dash separated numbers: e.g.
+.B "2-3"
+refers to section 2-3 of the manual.
+.RE
+.SH "SEE ALSO"
+Jan Wielemaker
+.I SWI-Prolog 2.1 Reference Manual,
+University of Amsterdam, Dept. of Social Science and Informatics (SWI).
+.PP
+W. F. Clocksin & C. S. Mellish,
+.I Programming in Prolog, fourth edition,
+Springer Verlag, Berlin 1994.
+.SH COPYRIGHT
+Copyright (C) 1990\-1995, Jan Wielemaker
+.SH AUTHOR
+Jan Wielemaker

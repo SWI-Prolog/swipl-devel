@@ -1,0 +1,533 @@
+\chapter{Using Modules}			\label{sec:modules}
+
+\section{Why Using Modules?}
+
+In traditional Prolog systems the predicate space was flat.  This
+approach is not very suitable for the development of large
+applications, certainly not if these applications are developed by
+more than one programmer.  In many cases, the definition of a Prolog
+predicate requires sub-predicates that are intented only to complete
+the definition of the main predicate.  With a flat and global
+predicate space these support predicates will be visible from the
+entire program.
+
+For this reason, it is desirable that each source module has it's own
+predicate space.  A module consists of a declaration for it's name,
+it's {\em public} predicates and the predicates themselves.  This
+approach allow the programmer to use short (local) names for support
+predicates without worrying about name conflicts with the support
+predicates of other modules.  The module declaration also makes
+explicit which predicates are meant for public usage and which for
+private purposes.  Finally, using the module information, cross
+reference programs can indicate possible problems much better.
+
+
+\section{Name-based versus Predicate-based Modules}
+
+Two approaches to realise a module system are commonly used in Prolog
+and other languages.  The first one is the {\em name based} module
+system.  In these systems, each atom read is tagged (normally
+prefixed) with the module name, with the exception of those atoms that
+are defined {\em public}.  In the second approach, each module
+actually implements its own predicate space.
+
+A critical problem with using modules in Prolog is introduced by the
+meta-predicates that transform between Prolog data and Prolog
+predicates.  Consider the case where we write:
+
+\begin{boxed}\begin{code}
+:- module(extend, [add_extension/3]).
+
+add_extension(Extension, Plain, Extended) :-
+	maplist(extend_atom(Extension), Plain, Extended).
+
+extend_atom(Extension, Plain, Extended) :-
+	concat(Plain, Extension, Extended).
+\end{code}\end{boxed}
+
+In this case we would like maplist to call extend_atom/3 in the module
+{\tt extend}.  A name based module system will do this correctly. It
+will tag the atom {\tt extend_atom} with the module and maplist will
+use this to construct the tagged term extend_atom/3.  A name based
+module however, will not only tag the atoms that will eventually be
+used to refer to a predicate, but {\em all} atoms that are not declared
+public.  So, with a name based module system also data is local to the
+module.  This introduces another serious problem:
+
+\begin{boxed}\begin{code}
+:- module(action, [action/3]).
+
+action(Object, sleep, Arg) :- ....
+action(Object, awake, Arg) :- ....
+
+:- module(process, [awake_process/2]).
+
+awake_process(Process, Arg) :-
+	action(Process, awake, Arg).
+\end{code}\end{boxed}
+
+This code uses a simple object-oriented implementation technique
+were atoms are used as method selectors.  Using a name based module
+system, this code will not work, unless we declare the selectors
+public atoms in all modules that use them.  Predicate based module
+systems do not require particular precautions for handling this case.
+
+It appears we have to choose either to have local data, or to have
+trouble with meta-predicates.  Probably it is best to choose for
+the predicate based approach as novice users will not often write
+generic meta-predicates that have to be used across multiple modules,
+but are likely to write programs that pass data around across
+modules.  Experienced Prolog programmers should be able to deal with 
+the complexities of meta-predicates in a predicate based module
+system.
+
+
+\section{Defining a Module}
+
+Modules normally are created by loading a {\em module file}.  A module
+file is a file holding a module/2 directive as its first term.  The
+module/2 directive declares the name and the public (i.e.\
+externally visible) predicates of the module.  The rest of the file
+is loaded into the module.  Below is an example of a module file,
+defining reverse/2. 
+
+\begin{boxed}\begin{code}
+:- module(reverse, [reverse/2]).
+
+reverse(List1, List2) :-
+	rev(List1, [], List2).
+
+rev([], List, List).
+rev([Head|List1], List2, List3) :-
+	rev(List1, [Head|List2], List3).
+\end{code}\end{boxed}
+
+
+\section{Importing Predicates into a Module}
+
+As explained before, in the predicate based approach adapted by
+SWI-Prolog, each module has it's own predicate space.  In SWI-Prolog,
+a module initially is completely empty.  Predicates can be added
+to a module by loading a module file as demonstrated in the previous
+section, using assert or by {\em importing} them from another module.
+
+Two mechanisms for importing predicates explicitely from another module
+exist.  The use_module/[1,2] predicates load a module file and import
+(part of the) public predicates of the file.  The import/1 predicate
+imports any predicate from any module.
+
+.BD
+.C use_module 1 +File
+Load the file(s) specified with {\em File} just like ensure_loaded/1.
+The files should all be module files.  All exported predicates from the
+loaded files are imported into the context module.  The difference
+between this predicate and ensure_loaded/1 becomes apparent if the file
+is already loaded into another module.  In this case ensure_loaded/1
+does nothing; use_module will import all public predicates of the module
+into the current context module.
+.C use_module 2 +File, +ImportList
+Load the file specified with {\em File} (only one file is accepted).
+{\em File} should be a module file. {\em ImportList} is a list of
+name/arity pairs specifying the predicates that should be imported from
+the loaded module.  If a predicate is specified that is not exported from
+the loaded module a warning will be printed.  The predicate will
+nevertheless be imported to simplify debugging.
+.C import 1 +Head
+Import predicate {\em Head} into the current context module. {\em Head}
+should specify the source module using the {\em $<$module$>$:$<$term$>$}
+construct. Note that predicates are normally imported using one of the
+directives use_module/[1,2]. import/1 is meant for handling imports
+into dynamically created modules.
+.ED
+
+
+It would be rather inconvient to have to import each predicate
+refered to by the module, including the system predicates.  For this
+reason each module is assigned a {\em default} module.  All predicates
+in the default module are available without extra declarations.  Their
+definition however can be overruled in the local module.  This schedule
+is implemented by the exception handling mechanism of SWI-Prolog:  if
+an undefined predicate exception is raised for a predicate in some
+module, the exception handler first tries to import the predicate from
+the module's default module.  On success, normal execution is resumed.
+
+
+\subsection{Reserved Modules}
+
+SWI-Prolog contains two special modules.  The first one is the module
+{\tt system}.  This module contains all built-in predicates described
+in this manual.  Module {\tt system} has no default module assigned to
+it.  The second special module is the module {\tt user}.  This module
+forms the initial working space of the user.  Initially it is empty.
+The default module of module {\tt user} is {\tt system}, making all
+built-in predicate definitions available as defaults.  Built-in
+predicates thus can be overruled by defining them in module {\tt user}
+before they are used.
+
+All other modules default to module {\tt user}.  This implies they can
+use all predicates imported into {\tt user} without explicitely
+importing them.
+
+
+\section{Using the Module System}
+
+The current structure of the module system has been designed with some
+specific organisations for large programs in mind.  Many large
+programs define a basic library layer on top of which the actual
+program itself is defined.  The module {\em user}, acting as the
+default module for all other modules of the program can be used to
+distribute these definitions over all program module without
+introducing the need to import this common layer each time
+explicitely.  It can also be used to redefine built-in predicates
+if this is required to maintain compatibility to some other Prolog
+implementation.  Typically, the loadfile of a large application
+looks like this:
+
+\begin{boxed}\begin{code}
+:- use_module(compatibility).	% load XYZ prolog compatibility
+
+:- use_module(			% load generic parts
+	[ error			% errors and warnings
+	, goodies		% general goodies (library extensions)
+	, debug			% application specific debugging
+	, virtual_machine	% virtual machine of application
+	, ...			% more generic stuff
+	]).
+
+:- ensure_loaded(
+	[ ...			% the application itself
+	]).
+\end{code}\end{boxed}
+
+The `use_module' declarations will import the public predicates from
+the generic modules into the {\tt user} module.  The `ensure_loaded'
+directive loads the modules that constitute the actual application.
+It is assumed these modules import predicates from each other using
+use_module/[1,2] as far as necessary.
+
+In combination with the object-oriented schema described below it is
+possible to define a neat modular architecture.  The generic code
+defines general utilities and the message passing predicates (invoke/3
+in the example below).  The application modules define classes that
+communicate using the message passing predicates.
+
+
+\subsection{Object Oriented Programming}
+
+Another typical way to use the module system is for defining classes
+within an object oriented paradigm.  The class structure and the
+methods of a class can be defined in a module and the explicit
+module-boundary  overruling describes in section~\ref{sec:overrule}
+can by used by the message passing code to invoke the behaviour.  An
+outline of this mechanism is given below.
+
+\begin{boxed}\begin{code}
+%	Define class point
+
+:- module(point, []).		% class point, no exports
+
+%	 name		type,		default	access
+%					value
+
+variable(x,		integer,	0,	both).
+variable(y,		integer,	0,	both).
+
+%	  method name	predicate name	arguments
+
+behaviour(mirror,	mirror,		[]).
+
+mirror(P) :-
+	fetch(P, x, X),
+	fetch(P, y, Y),
+	store(P, y, X),
+	store(P, x, Y).
+\end{code}\end{boxed}
+
+
+The predicates fetch/3 and store/3 are predicates that change instance
+variables of instances.  The figure below indicates how message
+passing can easily be implemented:
+
+\begin{boxed}\begin{code}
+%	invoke(+Instance, +Selector, ?ArgumentList)
+%	send a message to an instance
+
+invoke(I, S, Args) :-
+	class_of_instance(I, Class),
+	Class:behaviour(S, P, ArgCheck), !,
+	convert_arguments(ArgCheck, Args, ConvArgs),
+	Goal =.. [P|ConvArgs],
+	Class:Goal.
+
+\end{code}\end{boxed}
+
+
+The construct {\em `Module:Goal'} explicitely calls {\em Goal} in
+module {\em Module}.  It is discussed in more detail in
+section~\ref{sec:metacall}.
+
+
+\section{Meta-Predicates in Modules}
+
+As indicated in the introduction, the problem with a predicate based
+module system lies in the difficulty to find the correct predicate
+from a Prolog term.  The predicate `solution(Solution)' can exist in
+more than one module, but `assert(solution(4))' in some module is
+supposed to refer to the correct version of solution/1.
+
+Various approaches are possible to solve this problem.  One is to add
+an extra argument to all predicates (e.g.\ `assert(Module, Term)').
+Another is to tag the term somehow to indicate which module is desired
+(e.g.\ `assert(Module:Term)').  Both approaches are not very
+attractive as they make the user responsible for chosing the correct
+module, inviting unclear programming by asserting in other modules.
+The predicate assert/1 is supposed to assert in the module it is
+called from and should do so without being told explicitely.  For
+this reason, the notion {\em context module} has been introduced.
+
+
+\subsection{Definition and Context Module}
+
+Each predicate of the program is assigned a module, called it's {\em
+definition module}.  The definition module of a predicate is always the
+module in which the predicate was originally defined.  Each active goal
+in the Prolog system has a {\em context module} assigned to it.
+
+The context module is used to find predicates from a Prolog term.  By
+default, this module is the definition module of the predicate running
+the goal.  For meta-predicates however, this is the context module of
+the goal that invoked them.  We call this {\em module_transparent} in
+SWI-Prolog.  In the `using maplist' example above, the predicate
+maplist/3 is declared module_transparent. This implies the context
+module remains {\tt extend}, the context module of add_extension/3.
+This way maplist/3 can decide to call extend_atom in module {\tt
+extend} rather than in it's own definition module.
+
+All built-in predicates that refer to predicates via a Prolog term are
+declared module_transparent.  Below is the code defining maplist.
+
+\begin{boxed}\begin{code}
+:- module(maplist, maplist/3).
+
+:- module_transparent maplist/3.
+
+%	maplist(+Goal, +List1, ?List2)
+%	True if Goal can succesfully be applied to all succesive pairs
+%	of elements of List1 and List2.
+
+maplist(_, [], []).
+maplist(Goal, [Elem1|Tail1], [Elem2|Tail2]) :-
+	apply(Goal, [Elem1, Elem2]), 
+	maplist(Goal, Tail1, Tail2).
+\end{code}\end{boxed}
+
+\subsection{Overruling Module Boundaries}	\label{sec:overrule}
+
+The mechanism above is sufficient to create an acceptable module
+system.  There are however cases in which we would like to be able to
+overrule this schema and explicitely call a predicate in some module
+or assert explicitly in some module.  The first is useful to invoke
+goals in some module from the user's toplevel or to implement a
+object-oriented system (see above).  The latter is useful to create
+and modify {\em dynamic} modules (see section~\ref{sec:dynamic-modules}). 
+
+For this purpose, the reserved term \verb$:/2$ has been introduced.
+All built-in predicates that transform a term into a predicate
+reference will check whether this term is of the form
+\mbox{`$<$Module$>$:$<$Term$>$'}.  If so, the predicate is searched
+for in {\em Module} instead of the goal's context module.  The
+\verb$:/2$ operator may be nested, in which case the inner-most module
+is used.
+
+The special calling construct \mbox{$<$Module$>$:$<$Goal$>$} pretends
+{\em Goal} is called from {\em Module} instead of the context module.
+Examples:
+
+\begin{code}
+?- assert(world:done).	% asserts done/0 into module world
+?- world:assert(done).	% the same
+?- world:done.		% calls done/0 in module world
+\end{code}
+
+
+\section{Dynamic Modules}		\label{sec:dynamic-modules}
+
+Sofar, we discussed modules that were created by loading a
+module-file.  These modules have been introduced on facilitate the
+development of large applications.  The modules are fully defined at
+load-time of the application and normally will not change during 
+execution.  Having the notion of a set of predicates as a
+self-contained world can be attractive for other purposes as well.
+For example, assume an application that can reason about multiple
+worlds.  It is attractive to store the data of a particular world in a
+module, so we extract information from a world simply by invoking
+goals in this world.
+
+Dynamic modules can easily be created.  Any built-in predicate that
+tries to locate a predicate in a specific module will create this
+module as a side-effect if it did not yet exist.  Example:
+
+\begin{code}
+?- assert(world_a, consistent),
+   world_a:unknown(_, fail).
+\end{code}
+
+These calls create a module called `world_a' and make the call
+`world_a:consistent' succeed.  Undefined predicates will not start the
+tracer or autoloader for this module (see unknown/2).
+
+Import and export from dynamically created world is arranged via the
+predicates import/1 and export/1:
+
+\begin{code}
+?- world_b:export(solve(_,_)).		% exports solve/2 from world_b
+?- world_c:import(world_b:solve(_,_)).	% and import it to world_c
+\end{code}
+
+
+\section{Module Handling Predicates}
+
+This section gives the predicate definitions for the remaining
+built-in predicates that handle modules.
+
+.BD
+.D module 2 +Module, +PublicList
+This directive can only be used as the first term of a source file. It
+declares the file to be a {\em module file}, defining {\em Module} and
+exporting the predicates of {\em PublicList}. {\em PublicList} is a
+list of name/arity pairs.
+.P module_transparent +Preds
+{\em Preds} is a comma separated list of name/arity pairs (like
+dynamic/1).  Each goal associated with a transparent declared predicate
+will inherit the {\em context module} from its parent goal.
+.C context_module 1 -Module
+Unify {\em Module} with the context module of the current goal.
+context_module/1 itself is transparent.
+.C export 1 +Head
+Add a predicate to the public list of the context module.  This implies
+the predicate will be imported into another module if this module is
+imported with use_module/[1,2].  Note that predicates are normally
+exported using the directive module/2. export/1 is meant to handle
+export from dynamically created modules.
+.C export_list 2 +Module, ?Exports
+Unifies {\em Exports} with a list of terms.  Each term has the name and
+arity of a public predicate of {\em Module}.  The order of the terms in
+{\em Exports} is not defined.  See also predicate_property/2.
+.ED
+
+.S Compatibility of the Module System
+
+The principles behind the module system of SWI-Prolog differ in a
+number of aspects from the Quintus Prolog module system.
+
+\begin{itemize}
+    \item
+The SWI-Prolog module system allows the user to redefine system
+predicates.
+    \item
+All predicates that are available in the {\em system} and {\em user}
+modules are visible in all other modules as well.
+    \item
+Quintus has the `meta_predicate/1' declaration were SWI-Prolog has the
+module_transparent/1 declaration.
+\end{itemize}
+
+The meta_predicate/1 declaration causes the compiler to tag arguments
+that pass module sensitive information with the module using the
+\verb$:/2$ operator.  This approach has some disadvantages:
+
+\begin{itemize}
+    \item
+Changing a meta_predicate declaration implies all predicates {\em
+calling} the predicate need to be reloaded. This can cause serious
+consistency problems.
+    \item
+It does not help for dynamically defined predicates calling module
+sensitive predicates.
+    \item
+It slows down the compiler (at least in the SWI-Prolog architecture).
+    \item
+At least within the SWI-Prolog architecture the run-time overhead is
+larger than the overhead introduced by the transparent mechanism.
+\end{itemize}
+
+Unfortunately the transparent predicate approach also has some
+disadvantages. If a predicate {\em A} passes module sensitive information
+to a predicate {\em B}, passing the same information to a module
+sensitive system predicate both {\em A} and {\em B} should be declared
+transparent. Using the Quintus approach only {\em A} needs to be
+treated special (i.e. declared with meta_predicate/1)%
+    \footnote{Although this would make it impossible to call {\it B}
+	      directly.}.
+A second problem arises if the body of a transparent predicate uses
+module sensitive predicates for which it wants to refer to its own
+module. Suppose we want to define findall/3 using assert/1 and
+retract/1%
+    \footnote{The system version uses recordz/2 and recorded/3.}.
+The example in figure~\ref{fig:findall} gives the solution.
+
+\begin{figure}
+\begin{boxed}
+\begin{code}
+:- module(findall, [findall/3]).
+
+:- dynamic
+	solution/1.
+
+:- module_transparent
+	findall/3, 
+	store/2.
+
+findall(Var, Goal, Bag) :-
+	assert(findall:solution('$mark')), 
+	store(Var, Goal), 
+	collect(Bag).
+
+store(Var, Goal) :-
+	Goal, 			% refers to context module of
+				% caller of findall/3
+	assert(findall:solution(Var)), 
+	fail.
+store(_, _).
+
+collect(Bag) :-
+	..., 
+\end{code}
+\end{boxed}
+    \caption{{\tt findall} using modules}
+    \label{fig:findall}
+\end{figure}
+
+The Quintus meta_predicate/1 directive can in many cases be replaced by
+the transparent declaration.  Figure~\ref{fig:meta} gives a definition
+of meta_predicate/1 as available from the `quintus' library package.
+
+\begin{figure}
+\begin{boxed}
+\begin{code}
+:- op(1150, fx, (meta_predicate)).
+
+meta_predicate((Head, More)) :- !, 
+	meta_predicate1(Head), 
+	meta_predicate(More).
+meta_predicate(Head) :-
+	meta_predicate1(Head).
+
+meta_predicate1(Head) :-
+	Head =.. [Name|Arguments], 
+	member(Arg, Arguments), 
+	module_expansion_argument(Arg), !, 
+	functor(Head, Name, Arity), 
+	module_transparent(Name/Arity).
+meta_predicate1(_).		% just a mode declaration
+
+module_expansion_argument(:).
+module_expansion_argument(N) :- integer(N).
+\end{code}
+\end{boxed}
+    \caption{Definition of meta_predicate/1}
+    \label{fig:meta}
+\end{figure}
+
+The discussion above about the problems with the transparent mechanism
+show the two cases in which this simple transformation does not work.

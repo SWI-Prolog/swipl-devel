@@ -303,13 +303,15 @@ static struct operator operators[] = {
   OP(ATOM_hat,		OP_XFY,		200),		/* ^ */
   OP(ATOM_discontiguous,OP_FX,	       1150),		/* discontiguous */
   OP(ATOM_dynamic,	OP_FX,	       1150),		/* dynamic */
+  OP(ATOM_volatile,	OP_FX,	       1150), 		/* volatile */
+  OP(ATOM_initialization,OP_FX,	       1150), 		/* initialization */
   OP(ATOM_is,		OP_XFX,		700),		/* is */
   OP(ATOM_mod,		OP_XFX,		300),		/* mod */
   OP(ATOM_module_transparent,OP_FX,    1150),		/* module_transparent */
   OP(ATOM_multifile,	OP_FX,	       1150),		/* multifile */
   OP(ATOM_not,		OP_FY,		900),		/* not */
   OP(ATOM_xor,		OP_YFX,		400),		/* xor */
-  OP(ATOM_tilde,	OP_FX,		900),		/* ~ */
+/*OP(ATOM_tilde,	OP_FX,		900),*/		/* ~ */
 
   OP((Atom)NULL,	0,		0)
 };

@@ -60,13 +60,14 @@ static struct foreign {
   ADD("expand_file_name",	2, pl_expand_file_name,		TRACE_ME),
   ADD("$absolute_file_name",	2, pl_absolute_file_name,	TRACE_ME),
   ADD("is_absolute_file_name",	1, pl_is_absolute_file_name,	TRACE_ME),
-  ADD("$file_base_name",	2, pl_file_base_name,		TRACE_ME),
-  ADD("$file_dir_name",		2, pl_file_dir_name,		TRACE_ME),
+  ADD("file_base_name",		2, pl_file_base_name,		TRACE_ME),
+  ADD("file_directory_name",	2, pl_file_dir_name,		TRACE_ME),
   ADD("prolog_to_os_filename",	2, pl_prolog_to_os_filename,	TRACE_ME),
 #if defined(O_XOS) && defined(__WIN32__)
   ADD("make_fat_filemap",	1, pl_make_fat_filemap,		TRACE_ME),
 #endif
   ADD("fileerrors",		2, pl_fileerrors,		TRACE_ME),
+  ADD("$syntaxerrors",		2, pl_syntaxerrors,		TRACE_ME),
   ADD("chdir",			1, pl_chdir,			TRACE_ME),
 
   ADD("halt",			1, pl_halt,			TRACE_ME),
@@ -113,20 +114,21 @@ static struct foreign {
   ADD("atom_char",		2, pl_atom_char,		TRACE_ME),
   ADD("number_chars",		2, pl_number_chars,		TRACE_ME),
   ADD("int_to_atom",		3, pl_int_to_atom,		TRACE_ME),
-  ADD("format_number",		3, pl_format_number,		TRACE_ME),
+  ADD("$format_number",		3, pl_format_number,		TRACE_ME),
   ADD("concat",			3, pl_concat,			TRACE_ME),
   ADD("$concat_atom",		2, pl_concat_atom,		TRACE_ME),
   ADD("atom_length",		2, pl_atom_length,		TRACE_ME),
-  ADD("$term_to_atom",		3, pl_term_to_atom,		TRACE_ME),
+  ADD("$term_to_atom",		4, pl_term_to_atom,		TRACE_ME),
   ADD("numbervars",		4, pl_numbervars,		TRACE_ME),
   ADD("free_variables",		2, pl_free_variables,		TRACE_ME),
   ADD("$e_free_variables",	2, pl_e_free_variables,		TRACE_ME),
 
-  ADD("$open_wic",		1, pl_open_wic,			TRACE_ME),
+  ADD("$open_wic",		2, pl_open_wic,			TRACE_ME),
   ADD("$close_wic",		0, pl_close_wic,		TRACE_ME),
   ADD("$add_directive_wic",	1, pl_add_directive_wic,	TRACE_ME),
   ADD("$import_wic",		2, pl_import_wic,		TRACE_ME),
 
+  ADD("$qlf_put_states",	0, pl_qlf_put_states,		TRACE_ME),
   ADD("$qlf_start_module",	1, pl_qlf_start_module,		TRACE_ME),
   ADD("$qlf_start_sub_module",	1, pl_qlf_start_sub_module,	TRACE_ME),
   ADD("$qlf_start_file",	1, pl_qlf_start_file,		TRACE_ME),
@@ -164,10 +166,12 @@ static struct foreign {
   ADD("$set_predicate_attribute", 3, pl_set_predicate_attribute,TRANSPARENT|TRACE_ME),
   ADD("$get_predicate_attribute", 3, pl_get_predicate_attribute,TRANSPARENT|TRACE_ME),
   ADD("$get_clause_attribute",  3, pl_get_clause_attribute,	TRACE_ME),
-  ADD("$source_file",		2, pl_source_file,	  TRANSPARENT|TRACE_ME),
-  ADD("$time_source_file",	2, pl_time_source_file,	  NONDETERMINISTIC|TRACE_ME),
+  ADD("$require",		1, pl_require,		 TRANSPARENT|TRACE_ME),
+  ADD("$source_file",		2, pl_source_file,	 TRANSPARENT|TRACE_ME),
+  ADD("$time_source_file",	2, pl_time_source_file,	 NONDETERMINISTIC|TRACE_ME),
   ADD("$start_consult",		1, pl_start_consult,		TRACE_ME),
   ADD("$make_system_source_files",0,pl_make_system_source_files,TRACE_ME),
+  ADD("$default_predicate",	2, pl_default_predicate, TRANSPARENT|TRACE_ME),
 
   ADD("var",			1, pl_var,			TRACE_ME),
   ADD("nonvar",			1, pl_nonvar,			TRACE_ME),
@@ -177,6 +181,7 @@ static struct foreign {
   ADD("atom",			1, pl_atom,			TRACE_ME),
   ADD("atomic",			1, pl_atomic,			TRACE_ME),
   ADD("ground",			1, pl_ground,			TRACE_ME),
+  ADD("compound",		1, pl_compound,			TRACE_ME),
 
   ADD("==",			2, pl_equal,			TRACE_ME),
   ADD("\\==",			2, pl_nonequal,			TRACE_ME),
@@ -264,6 +269,9 @@ static struct foreign {
   ADD("$check_export",		0, pl_check_export,	TRANSPARENT|TRACE_ME),
   ADD("export_list",		2, pl_export_list,		TRACE_ME),
   ADD("index",			1, pl_index,		TRANSPARENT|TRACE_ME),
+#ifdef O_HASHTERM
+  ADD("hash_term",		2, pl_hash_term,		TRACE_ME),
+#endif
 #if O_AIX_FOREIGN
   ADD("$load_foreign",		1, pl_load_foreign1,	TRANSPARENT|TRACE_ME),
 #else

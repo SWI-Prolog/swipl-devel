@@ -3,7 +3,7 @@ BEGIN	{ atom = functor = 0;
 /^#/	{ next;
 	}
 /^A/	{ printf "#define ATOM_%-12s (&atoms[%d])\n",$2,atom  > "pl-atom.ih"
-	  printf "{ (Atom)NULL, ATOM_TYPE, %s },\n",$3  > "pl-atom.ic"
+	  printf "ATOM(%s),\n",$3  > "pl-atom.ic"
 	  atom++;
 	  next;
 	}

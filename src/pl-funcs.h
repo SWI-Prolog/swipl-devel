@@ -28,7 +28,7 @@ void		stopAllocLocal(void);
 char *		store_string_local(char *s);
 char *		store_string(char *s);
 void		remove_string(char *s);
-int		stringHashValue(char *s, int size);
+int		unboundStringHashValue(char *t);
 void *		xmalloc(size_t size);
 void *		xrealloc(void *mem, size_t size);
 
@@ -82,7 +82,7 @@ word		pl_collect_bag(Word bindings, Word bag);
 
 /* pl-comp.c */
 void		initWamTable(void);
-bool		splitClause(Word term, Word *head, Word *body);
+bool		splitClause(Word term, Word *head, Word *body, Module *m);
 Clause		assert_term(Word term, char where, Atom file);
 word		pl_assertz(Word term);
 word		pl_asserta(Word term);
@@ -103,6 +103,10 @@ word		saveProgram(Word new);
 word		pl_save_program(Word new, Word args);
 word		pl_save(Word file, Word restore);
 word		pl_restore(Word file);
+word		parseSaveProgramOptions(Word args,
+			int *local, int *global, int *trail, int *argument,
+			char **goal, char **toplevel, char **init_file,
+			bool *tty);
 
 /* pl-index.c */
 int		cardinalityPattern(unsigned long pattern);
@@ -353,6 +357,10 @@ word		pl_number(Word k);
 word		pl_atom(Word k);
 word		pl_atomic(Word k);
 word		pl_ground(Word term);
+word		pl_compound(Word term);
+#ifdef O_HASHTERM
+word		pl_hash_term(Word term, Word hval);
+#endif
 word		pl_unify(Word t1, Word t2);
 word		pl_notunify(Word t1, Word t2);
 word		pl_equal(Word t1, Word t2);
@@ -398,7 +406,7 @@ word		pl_substring(Word str, Word offset, Word length, Word sub);
 word		pl_write_on_atom(Word goal, Word atom);
 word		pl_write_on_string(Word goal, Word string);
 word		pl_write_on_list(Word goal, Word string);
-word		pl_term_to_atom(Word term, Word atom, Word bindings);
+word		pl_term_to_atom(Word term, Word atom, Word bindings, Word e);
 word		pl_repeat(word h);
 word		pl_fail(void);
 word		pl_true(void);
@@ -449,7 +457,7 @@ word		pl_list_active_procedures(void);
 word		pl_get_clause_attribute(Word ref, Word att, Word value);
 word		pl_get_predicate_attribute(Word pred, Word what, Word value);
 word		pl_set_predicate_attribute(Word pred, Word what, Word value);
-void		reindexProcedure(Procedure proc);
+void		reindexDefinition(Definition def);
 void		startConsult(SourceFile f);
 word		pl_index(Word pred);
 SourceFile	lookupSourceFile(Atom name);
@@ -461,7 +469,9 @@ word		pl_source_file(Word descr, Word file);
 word		pl_time_source_file(Word file, Word time, word h);
 word		pl_start_consult(Word file);
 Definition	findDefinition(FunctorDef f, Module m);
-
+word		pl_default_predicate(Word d1, Word d2);
+bool		autoImport(FunctorDef f, Module m);
+word		pl_require(Word pred);
 
 /* pl-prof.c */
 void		stopItimer(void);
@@ -472,6 +482,8 @@ word		pl_reset_profiler(void);
 
 /* pl-read.c */
 void		resetRead(void);
+int		syntaxerrors(int new);
+word		pl_syntaxerrors(Word old, Word new);
 word		charpToNumber(char *s);
 word		pl_raw_read(Word term);
 word		pl_read_variables(Word term, Word variables);
@@ -568,13 +580,14 @@ void		systemMode(bool accept);
 
 /* pl-wic.c */
 bool		loadWicFile(char *file, bool toplevel, bool load_options);
-word		pl_open_wic(Word name);
+word		pl_open_wic(Word name, Word options);
 word		pl_close_wic(void);
 word		pl_add_directive_wic(Word term);
 word		pl_import_wic(Word module, Word head);
 bool		compileFileList(char *out, int argc, char **argv);
 bool		appendState(char *name);
 
+word		pl_qlf_put_states(void);
 word		pl_qlf_start_module(Word name);
 word		pl_qlf_start_sub_module(Word name);
 word		pl_qlf_start_file(Word name);

@@ -1,6 +1,6 @@
 # Generated automatically from Makefile.in by configure.
 ################################################################
-# Makefile for SWI-Prolog 1.9
+# Makefile for SWI-Prolog 2.1
 # $Id$
 #
 # Author:	Jan Wielemaker
@@ -20,6 +20,8 @@ PLVERSION=2.1.4
 PL=pl
 prefix=/staff/jan
 exec_prefix=${prefix}
+srcdir=.
+vpath %.c .
 bindir=$(exec_prefix)/bin
 PLBASE=$(prefix)/lib/pl-$(PLVERSION)
 mansec=1
@@ -77,7 +79,10 @@ SRC=	$(OBJ:.o=.c) $(DEPOBJ:.o=.c) $(EXT:.o=.c) pl-index.c pl-alloc.c
 HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h pl-itf.h pl-main.h \
 	pl-os.h pl-save.h
 
-all:	banner headers system startup index runtime pl-bite
+all:	banner headers system startup index runtime pl-bite chpl
+
+.c.o:
+	$(CC) -c -I. -I$(srcdir) $(CFLAGS) $< -o $@
 
 system:		$(PL)
 startup:	$(STARTUPPATH)
@@ -113,21 +118,21 @@ index:
 $(INCLUDEDIR):
 		if [ ! -d $@ ]; then mkdir $@; fi
 
-$(EXPORTS):	Makefile pl-itf.h $(INCLUDEDIR)
+$(EXPORTS):	Makefile $(srcdir)/pl-itf.h $(INCLUDEDIR)
 		echo \#\!$(bindir)/$(PL) > $(EXPORTS)
-		grep '^__pl_export' pl-itf.h | \
+		grep '^__pl_export' $(srcdir)/pl-itf.h | \
 			$(SED) 's/.*\(PL_[a-zA-Z0-9_]*\).*/\1/' | \
 			grep -v '_t$$' | \
 			sort -u >> $(EXPORTS)
 
-$(CINCLUDE):	pl-itf.h $(INCLUDEDIR)
-		cp pl-itf.h $(CINCLUDE)
+$(CINCLUDE):	$(srcdir)/pl-itf.h $(INCLUDEDIR)
+		cp $(srcdir)/pl-itf.h $(CINCLUDE)
 
-$(STREAMH):	pl-stream.h $(INCLUDEDIR)
-		cp pl-stream.h $@
+$(STREAMH):	$(srcdir)/pl-stream.h $(INCLUDEDIR)
+		cp $(srcdir)/pl-stream.h $@
 
-$(STUBC):	pl-extend.c $(INCLUDEDIR)
-		$(SED) 's/"pl-itf.h"/<SWI-Prolog.h>/' pl-extend.c > $@
+$(STUBC):	$(srcdir)/pl-extend.c $(INCLUDEDIR)
+		$(SED) 's/"pl-itf.h"/<SWI-Prolog.h>/' $(srcdir)/pl-extend.c > $@
 		
 
 parms.h:	Makefile
@@ -143,18 +148,21 @@ parms.h:	Makefile
 
 pl-main.o:	parms.h
 pl-setup.o:	parms.h
-pl-funct.o:	pl-funct.ih
-pl-atom.o:	pl-funct.ih
+pl-funct.o:	$(srcdir)/pl-funct.ih
+pl-atom.o:	$(srcdir)/pl-funct.ih
 pl-wam.o:	pl-alloc.c pl-index.c
 
-pl-funct.ih:	ATOMS
-		$(AWK) -f defatom.awk < ATOMS
+$(srcdir)/pl-funct.ih:	$(srcdir)/ATOMS
+		cd $(srcdir) ; $(AWK) -f defatom.awk < ATOMS
 
-pl-atom.ih:	ATOMS
-		$(AWK) -f defatom.awk < ATOMS
+$(srcdir)/pl-atom.ih:	$(srcdir)/ATOMS
+		cd $(srcdir) ; $(AWK) -f defatom.awk < ATOMS
 
-pl-bite:	pl-bite.c
-		$(CC) $(CFLAGS) -o pl-bite pl-bite.c
+pl-bite:	$(srcdir)/pl-bite.c
+		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $<
+
+chpl:		$(srcdir)/chpl.c
+		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $<
 
 tags:		TAGS
 
@@ -175,6 +183,7 @@ install:	idirs iboot ilib iinclude iruntime iman
 		fi
 		$(INSTALL_PROGRAM) $(PL) $(bindir)
 		$(INSTALL_PROGRAM) pl-bite $(bindir)
+		-$(INSTALL_PROGRAM) chpl $(bindir)
 		cd $(PLBASE)/library; \
 		   $(bindir)/$(PL) \
 			-f none \
@@ -222,7 +231,34 @@ iinclude:
 
 iman:
 		-$(SED) 's/PL/$(PL)/' pl.1 > $(mandir)/$(PL).$(mansec)
+		-$(INSTALL_DATA) chpl.1 $(mandir)/chpl.$(mansec)
  
+#
+# runtime-only environment installation
+#
+
+RTHOME=		$(prefix)/lib/rt-pl-$(PLVERSION)
+RTDIRS=		$(RTHOME) $(RTHOME)/bin $(RTHOME)/lib $(RTHOME)/lib/$(ARCH) \
+		$(RTHOME)/man
+
+rt-install:
+		@echo "****************"
+		@echo "Creating runtime environment in $(RTHOME)"
+		@echo "****************"
+		@for d in $(RTDIRS); do \
+		    if [ ! -d $$d ]; then \
+			echo mkdir $$d; \
+			mkdir $$d; \
+		    fi; \
+		done
+		$(INSTALL_PROGRAM) $(PL) $(RTHOME)/bin/pl
+		$(INSTALL_PROGRAM) chpl $(RTHOME)/bin/chpl
+		$(INSTALL_DATA) $(srcdir)/pl.1 $(RTHOME)/man/pl.1
+		$(INSTALL_DATA) $(srcdir)/chpl.1 $(RTHOME)/man/chpl.1
+		@-echo . > swipl
+		$(INSTALL_DATA) swipl $(RTHOME)/swipl
+		$(INSTALL_DATA) $(srcdir)/README.RT $(RTHOME)
+
 #
 # Cleanup
 #

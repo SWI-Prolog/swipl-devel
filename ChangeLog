@@ -4,10 +4,68 @@
 Version 2.1.4
 =============
 
+  * MODIFIED: Changed definition of absolute_file_name/2.  Moved
+    absolute_file_name/3 from library(quintus) to a built-in predicate.
+
+  * ADDED: file_directory_name/2 and file_base_name/2.
+
+  * ADDED: end_of_file is now passed to term_expansion/2.
+
+  * DOC: Many updates.
+
+  * FIXED: read/1 for foo.%comment (i.e. no space between the . and the
+    comment).  Note that foo./*comment*/ doesn't work as this will be
+    tokenised as `foo', `./*', `comment', `*/'.
+
+  * ADDED: lazy recomputation of clause indexing.  This notably speeds
+    up loading .qlf and bootfiles.
+
+  * ADDED: hash_term/2 for advanced indexing of databases.
+
+  * ADDED: setting file_search_path through the command line using:
+    pl -p mydir=/foo/bar.
+
+  * FIXED: Semantics of ensure_loaded/1 if the file is already loaded,
+    combined with the module system.  See ensure_loaded/1.
+
+  * FIXED: Grammar rule compiler's handling of non-proper lists in the
+    head or body (lists ending in a variable).  Lists of more then one
+    element are now translated into append/3.  The following now compiles
+    ok: string([H|T]) --> [H|T].
+
+  * MODIFIED: term_to_atom/2 and atom_to_term/3 to fail silently on a
+    syntax error.  Both predicates now also accept a string in the place
+    of the atom to parse strings: term_to_atom(X, "foo(bar)") works as
+    expected.
+
+  * ADDED: `swi' and `foreign' aliases to file_search_path/2.
+
+  * MODIFIED: Grammar rule translator now uses 'C'/3 instead of '$char'/3
+    to extract the head.  Compatibility.
+
+  * MODIFIED: at_initialisation/1 is now called at_initialization/1.
+
+  * INSTALL: Fixed Makefile and configure to be able to build the system
+    for multiple platforms.
+
+  * ADDED: Infra-structure for making portable saved-states (equivalents
+    of boot files):
+
+	+ initialization/1	(goals to run at initialization)
+	+ volatile/1		(predicates for which not to save clauses)
+	+ require/1		(define we require this predicate)
+	+ autoload/[0,1]	(autoload needed things now)
+	+ qsave_program/[1,2]	(make a quick-loadable state)
+
+  * ADDED: compound/1 to test for compound terms.
+
+  * FIXED: compilation of ``foo:Head :- Body'' to be equivalent to
+    foo:(Head :- Body).
+
   * FIXED: problem in read/1 and number_chars/2 that may have lead to 
     garbage collection errors.
 
-  * FIXED: setarg/3 to be integrated in the trail-system.  Removes its
+  * FIXED: setarg/3 integrated in the trail-system.  Removes its
     choicepoint and ensures data consistency.
 
 Version 2.1.3

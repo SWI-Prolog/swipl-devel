@@ -253,23 +253,42 @@ about the :-/2 operator.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-splitClause(register Word term, Word *head, Word *body)
-{ if (isAtom(*term) )
+splitClause(Word term, Word *head, Word *body, Module *module)
+{ Word h, b;
+
+  if ( isAtom(*term) )
   { *head = term;
     *body = (Word) NULL;
     succeed;
+
   }
-  if (!isTerm(*term) )
+  if ( !isTerm(*term) )
     fail;
-  if (functorTerm(*term) != FUNCTOR_prove2)		/* :-/2 */
+
+  if ( functorTerm(*term) != FUNCTOR_prove2 )		/* :-/2 */
   { *head = term;
     *body = (Word) NULL;
     succeed;
   }
-  *head = argTermP(*term, 0);
-  *body = argTermP(*term, 1);
-  deRef(*head);
-  deRef(*body);
+
+  h = argTermP(*term, 0);
+  b = argTermP(*term, 1);
+  deRef(h);
+  deRef(b);
+
+  if ( module && isTerm(*h) && functorTerm(*h) == FUNCTOR_module2 )
+  { Word m = argTermP(*h, 0);
+    
+    deRef(m);
+    if ( isAtom(*m) )
+    { *module = lookupModule((Atom) *m);
+      h = argTermP(*h, 1);
+      deRef(h);
+    }
+  }
+
+  *head = h;
+  *body = b;
 
   succeed;
 }
@@ -433,7 +452,7 @@ forwards bool	isFirstVar(struct vartable *vt, int n);
 forwards void	balanceVars(struct vartable *, struct vartable *, compileInfo *);
 forwards void	orVars(struct vartable *, struct vartable *);
 forwards void	setVars(Word t, struct vartable *);
-forwards Clause	compile(Word, Module);
+forwards Clause	compile(Word, Word, Module);
 #if O_COMPILE_ARITH
 forwards int	compileArith(Word, compileInfo *);
 forwards bool	compileArithArgument(Word, compileInfo *);
@@ -506,9 +525,8 @@ setVars(register Word t, register struct vartable *vt)
 
 
 static Clause
-compile(Word term, Module module)
+compile(Word head, Word body, Module module)
 { compileInfo ci;			/* data base for the compiler */
-  Word head, body;
   Procedure proc;
   Clause clause;
   int nvars;
@@ -518,10 +536,6 @@ Split the clause into its head and body and determine the procedure  the
 clause should belong to.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  if (splitClause(term, &head, &body) == FALSE)
-  { warning("compiler: illegal clause");
-    return (Clause) NULL;
-  }
   if (isAtom(*head) )
     proc = lookupProcedureToDefine(lookupFunctorDef((Atom)*head, 0), module);
   else if (isTerm(*head) )
@@ -555,7 +569,7 @@ Allocate the clause and fill initialise the field we already know.
 
   { register Definition def = proc->definition;
 
-    if ( def->indexPattern )
+    if ( def->indexPattern && !(def->indexPattern & NEED_REINDEX) )
       clause->index = getIndex(argTermP(*head, 0), def->indexPattern, 
 						   def->indexCardinality);
     else
@@ -1207,11 +1221,16 @@ assert_term(Word term, char where, Atom file)
   Definition def;
   Module source_module = (file ? modules.source : (Module) NULL);
   Module module = source_module;
+  Word head, body;
 
   term = stripModule(term, &module);
+  if ( !splitClause(term, &head, &body, &module) )
+  { warning("compiler: illegal clause");
+    return (Clause) NULL;
+  }
 
   DEBUG(9, Sdprintf("compiling "); pl_write(term); Sdprintf(" ... "););
-  if ((clause = compile(term, module)) == (Clause) NULL)
+  if ((clause = compile(head, body, module)) == (Clause) NULL)
     return (Clause) NULL;
   DEBUG(9, Sdprintf("ok\n"));
   clause->line_no = source_line_no;
@@ -1584,6 +1603,11 @@ decompile(Clause clause, Word term)
   register decompileInfo *di = &dinfo;
   Word head, body;
 
+#ifdef O_RUNTIME
+  if ( false(clause->procedure->definition, DYNAMIC) )
+    fail;
+#endif
+
   deRef(term);
 
   if ((clause->subclauses) == 0)			/* fact */
@@ -1915,7 +1939,7 @@ pl_clause(Word p, Word term, Word ref, word h)
       }
     }
 
-    TRY(splitClause(term, &head, &body));
+    TRY(splitClause(term, &head, &body, NULL));
     return pl_unify(p, head);
   }
 

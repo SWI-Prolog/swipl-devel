@@ -1,4 +1,3 @@
-
 /*  $Id$
 
     Copyright (c) 1990 Jan Wielemaker. All rights reserved.
@@ -379,6 +378,17 @@ pl_import(Word pred)
   else
     return warning("import/1: illegal predicate specification");
 
+  if ( !isDefinedProcedure(proc) )
+  { autoImport(proc->functor, proc->definition->module);
+/*  does this matter?
+    if ( !autoImport(proc->functor, proc->definition->module) )
+    { warning("%s: importing undefined predicate %s",
+	      stringAtom(destination->name),
+	      procedureName(proc));
+    }
+*/
+  }
+
   if ((old = isCurrentProcedure(proc->functor, destination)) != NULL)
   { if ( old->definition == proc->definition )
       succeed;			/* already done this! */
@@ -394,7 +404,7 @@ pl_import(Word pred)
 		     procedureName(proc), 
 		     stringAtom(destination->name) );
 
-    if (old->definition->module != source)
+    if ( old->definition->module != source )
     { warning("Cannot import %s into module %s: already imported from %s", 
 	      procedureName(proc), 
 	      stringAtom(destination->name), 
@@ -408,7 +418,7 @@ pl_import(Word pred)
     fail;
   }
 
-  if (isPublicModule(source, proc) == FALSE)
+  if ( !isPublicModule(source, proc) )
   { warning("import/1: %s is not declared public (still imported)", 
 	    procedureName(proc));
   }

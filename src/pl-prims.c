@@ -107,6 +107,89 @@ pl_ground(register Word term)
   succeed;
 }
 
+
+word
+pl_compound(Word term)
+{ if ( isTerm(*term) )
+    succeed;
+
+  fail;
+}
+
+#ifdef O_HASHTERM
+		 /*******************************
+		 *	    HASH-TERM		*
+		 *******************************/
+
+bool
+termHashValue(word term, word *hval)
+{ if ( isVar(term) )
+    fail;
+
+  if ( isMasked(term) )
+  { if ( isInteger(term) )
+    { *hval = term;
+      succeed;
+    }
+
+    if ( isReal(term) )
+    { union { real f;
+	      unsigned long l[2];
+	    } v;
+
+      v.f = valReal(term);
+      *hval = v.l[0] ^ v.l[1];
+
+      succeed;
+    }
+
+    if ( isString(term) )
+    { *hval = unboundStringHashValue(valString(term));
+      succeed;
+    }
+  }
+
+  if ( isAtom(term) )
+  { *hval = (((Atom)(term))->hash_value);
+    succeed;
+  }
+
+  assert(isTerm(term));
+
+  { FunctorDef fd = functorTerm(term);
+    int arity = fd->arity;
+    Word a, a2;
+
+    *hval = fd->name->hash_value + arity;
+    for(a = argTermP(term, 0); arity; arity--, a++)
+    { word av;
+
+      deRef2(a, a2);
+      if ( termHashValue(*a2, &av) )
+	*hval += av << (arity % 8);
+      else
+	fail;
+    }
+    succeed;
+  }
+}
+
+
+word
+pl_hash_term(Word term, Word hval)
+{ word hraw;
+
+  if ( termHashValue(*term, &hraw) )
+  { hraw = hraw & PLMAXINT;		/* ensure positive */
+    return unifyAtomic(hval, consNum(hraw));
+  }
+
+  succeed;
+}
+
+#endif /*O_HASHTERM*/
+
+
 		/********************************
 		*           EQUALITY            *
 		*********************************/
@@ -992,10 +1075,10 @@ pl_format_number(Word format, Word number, Word string)
   word list;
 
   if (!isAtom(*format) )
-    return warning("format_number/2: instantiation fault");
+    return warning("$format_number/2: instantiation fault");
   fmt = stringAtom(*format);
   if (*fmt == EOS)
-    return warning("format_number/3: illegal format");
+    return warning("$format_number/3: illegal format");
   arg = atoi(fmt);
   conv = fmt[strlen(fmt)-1];
 
@@ -1026,14 +1109,14 @@ pl_format_number(Word format, Word number, Word string)
 	if (fmt[1] == EOS)
 	  arg = 6;
 	if (wordToReal(*number, &f) == FALSE)
-	  return warning("format_number/3: 2nd argument is not a float");
+	  return warning("$format_number/3: 2nd argument is not a float");
 	Ssprintf(form2, "%%.%d%c", arg, conv);
 	Ssprintf(tmp, form2, f);
 	list = stringToList(tmp);
 	return pl_unify(string, &list);
       }
     default:
-      return warning("format_number/3: illegal conversion code");
+      return warning("$format_number/3: illegal conversion code");
   }
 }
 
@@ -1395,7 +1478,7 @@ pl_write_on_list(Word goal, Word string)
 } 
 
 word
-pl_term_to_atom(Word term, Word atom, Word bindings)
+pl_term_to_atom(Word term, Word atom, Word bindings, Word errors)
 { char *s;
 
   if ( isVar(*atom) )
@@ -1413,14 +1496,17 @@ pl_term_to_atom(Word term, Word atom, Word bindings)
     return unifyAtomic(atom, lookupAtom(s) );
   }
 
-  if ( (s = primitiveToString(*atom, FALSE)) )
+  if ( (s = toString(*atom)) )
   { word rval;
+    int ose;
 
     seeString(s);
+    ose = syntaxerrors(isInteger(*errors) && valNum(*errors));
     if ( isVar(*bindings) )
       rval = pl_read_variables(term, bindings);
     else
       rval = pl_read(term);
+    syntaxerrors(ose);
     seenString();
     return rval;
   }

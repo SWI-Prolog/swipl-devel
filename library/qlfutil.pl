@@ -20,7 +20,11 @@ qlf_make_dir(Dir) :-
 	chdir(Cwd).
 
 qlf_make(Base) :-
-	'$chk_file'(Base, ['.qlf'], QlfFile),
+	absolute_file_name(Base,
+			   [ extensions(['.qlf']),
+			     access(read)
+			   ],
+			   QlfFile),
 	'$qlf_info'(QlfFile, V, V, Sources), !,
 	(   time_file(QlfFile, QlfStamp),
 	    \+ ( member(Source, Sources),

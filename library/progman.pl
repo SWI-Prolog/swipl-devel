@@ -114,8 +114,8 @@ progman_setup :-
 
 	feature(symbol_file, EXE),
 	feature(home, PlHomeDir),
-	'$file_dir_name'(EXE, Bindir),
-	'$file_dir_name'(Bindir, PceHomeDir),
+	file_directory_name(EXE, Bindir),
+	file_directory_name(Bindir, PceHomeDir),
 	concat(PlHomeDir, '/bin/pl.exe', PlExe),
 	prolog_to_os_filename(PlExe, OsPlExe),
 	prolog_to_os_filename(EXE, OsPceExe),

@@ -28,7 +28,7 @@ forwards void	putNum(long, IOSTREAM *);
 forwards void	putReal(real, IOSTREAM *);
 forwards void	saveWicClause(Clause, IOSTREAM *);
 forwards void	closeProcedureWic(IOSTREAM *);
-forwards bool	openWic(char *);
+forwards bool	openWic(char *, Word);
 forwards bool	closeWic(void);
 forwards bool	addClauseWic(Word, Atom);
 forwards bool	addDirectiveWic(word, IOSTREAM *fd);
@@ -157,7 +157,7 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define VERSION 24			/* save version number */
+#define VERSION 25			/* save version number */
 
 #define XR_REF     0			/* reference to previous */
 #define XR_ATOM	   1			/* atom */
@@ -590,15 +590,16 @@ loadWicFd(char *file, IOSTREAM *fd, bool toplevel, bool load_options)
   char mbuf[100];
   char *savedhome;
 
-#if OS2
-  for(n=0; n<5; n++)                    /* skip first five lines */
-#else
-  for(n=0; n<2; n++)			/* skip first two lines */
-#endif
-  { while( (c=(Char)Getc(fd)) != '\n' && c != EOF ) ;
-    if ( c == EOF )
+  for(n=0; n<100; n++)			/* max first 10 lines is script */
+  { char line[256];
+
+    if ( Sfgets(line, sizeof(line), fd) < 0 )
       return fatalError("%s is not a SWI-Prolog intermediate code file", file);
+    if ( streq(line, "# End Header\n") )
+      break;
   }
+  if ( n >= 10 )
+    return fatalError("%s: header script too long (> 100 lines)", file);
 
   s = getMagicString(fd, mbuf, sizeof(mbuf));
   if ( !s || !streq(s, saveMagic) )
@@ -703,6 +704,9 @@ loadStatement(int c, IOSTREAM *fd, int skip)
       
       Mark(m);
       goal = loadQlfTerm(fd);
+      DEBUG(1, Sdprintf("Directive: ");
+	       pl_write(&goal);
+	       Sdprintf("\n"));
       if ( !skip )
       { if ( !callGoal(MODULE_user, goal, FALSE) )
 	{ Sfprintf(Serror,
@@ -744,11 +748,13 @@ loadPredicate(IOSTREAM *fd, int skip)
   proc = lookupProcedure(f, modules.source);
   DEBUG(3, Putf("Loading %s ", procedureName(proc)));
   def = proc->definition;
+  def->indexPattern |= NEED_REINDEX;
   if ( !skip )
   { if ( SYSTEM_MODE )
     { set(def, SYSTEM|HIDE_CHILDS|LOCKED);
     }
-    addProcedureSourceFile(currentSource, proc);
+    if ( currentSource )
+      addProcedureSourceFile(currentSource, proc);
   }
 
   for(;;)
@@ -756,12 +762,7 @@ loadPredicate(IOSTREAM *fd, int skip)
     { case 'X':
       { unsigned long pattern = getNum(fd);
 
-	if ( def->indexPattern != pattern && !skip )
-	{ def->indexPattern = pattern;
-	  def->indexCardinality = cardinalityPattern(def->indexPattern);
-	  if ( pattern != 0x1 )
-	    reindexProcedure(proc);
-	}
+	def->indexPattern = (pattern | NEED_REINDEX);
 
 	DEBUG(3, Putf("ok\n"));
 	succeed;
@@ -779,7 +780,7 @@ loadPredicate(IOSTREAM *fd, int skip)
 	clause->variables = (short) getNum(fd);
 	clause->subclauses = (short) getNum(fd);
 	clause->procedure = proc;
-	clause->source_no = currentSource->index;
+	clause->source_no = (currentSource ? currentSource->index : 0);
 	clause->code_size = (short) getNum(fd);
 	statistics.codes += clause->code_size;
 	clause->codes = (Code) allocHeap(clause->code_size * sizeof(code));
@@ -814,7 +815,6 @@ loadPredicate(IOSTREAM *fd, int skip)
 	  freeClause(clause);
 	else
 	{ assertProcedure(proc, clause, 'z');
-	  reindexClause(clause);
 	}
       }
     }
@@ -1273,15 +1273,35 @@ static void
 closeProcedureWic(IOSTREAM *fd)
 { if ( currentProc != (Procedure) NULL )
   { Putc('X', fd);
-    putNum(currentProc->definition->indexPattern, fd);
+    putNum(currentProc->definition->indexPattern & ~NEED_REINDEX, fd);
     currentProc = (Procedure) NULL;
   }
 }
 
 
 static bool
-openWic(char *file)
+openWic(char *file, Word args)
 { char *exec;
+
+  int   localSize    = options.localSize;
+  int   globalSize   = options.globalSize;
+  int   trailSize    = options.trailSize;
+  int   argumentSize = options.argumentSize;
+  char *goal         = options.goal;
+  char *topLevel     = options.topLevel;
+  char *initFile     = options.initFile;
+
+  if ( args )
+  { TRY(parseSaveProgramOptions(args,
+				&localSize,
+				&globalSize,
+				&trailSize,
+				&argumentSize,
+				&goal,
+				&topLevel,
+				&initFile,
+			        NULL));
+  }
 
   wicFile = file;
 
@@ -1303,26 +1323,26 @@ openWic(char *file)
 #if OS2
   Sfprintf(wicFd, "/* Compiled SWI-Prolog Program */\r\n'@ECHO OFF'\r\nparse source . . name\r\n\"%s -x \" name arg(1)\r\nexit\r\n", exec);
 #else
-  Sfprintf(wicFd, "#!/bin/sh\nexec %s -x $0 $*\n", exec);
+  Sfprintf(wicFd, "#!/bin/sh\n");
+  Sfprintf(wicFd, "# SWI-Prolog version: %s\n",      PLVERSION);
+  Sfprintf(wicFd, "# SWI-Prolog save-version: %d\n", VERSION);
+  Sfprintf(wicFd, "exec ${SWIPL-%s} -x $0 \"$@\"\n", exec);
+  Sfprintf(wicFd, "# End Header\n");
 #endif /* OS2 */
   DEBUG(2, Sdprintf("Magic  ...\n"));
   putString( saveMagic,            wicFd);
   DEBUG(2, Sdprintf("Numeric options ...\n"));
-  putNum(    VERSION,              wicFd);
-  putNum(    options.localSize,    wicFd);
-  putNum(    options.globalSize,   wicFd);
-  putNum(    options.trailSize,    wicFd);
-  putNum(    options.argumentSize, wicFd);
-  putNum(    options.lockSize,     wicFd);
+  putNum(   VERSION,              wicFd);
+  putNum(   localSize,    	  wicFd);
+  putNum(   globalSize,   	  wicFd);
+  putNum(   trailSize,    	  wicFd);
+  putNum(   argumentSize, 	  wicFd);
+  putNum(   options.lockSize,     wicFd);
   DEBUG(2, Sdprintf("String options ...\n"));
-  putString(options.goal,          wicFd);
-  putString(options.topLevel,      wicFd);
-  putString(options.initFile, 	   wicFd);
-
-  putString(systemDefaults.home,   wicFd);
-
-  DEBUG(2, Sdprintf("States ...\n"));
-  putStates(wicFd);
+  putString(goal,          	  wicFd);
+  putString(topLevel,      	  wicFd);
+  putString(initFile, 	   	  wicFd);
+  putString(systemDefaults.home,  wicFd);
 
   currentProc    = (Procedure) NULL;
   currentSource  = (SourceFile) NULL;
@@ -1807,11 +1827,19 @@ pl_qlf_load(Word file, Word module)
 		*********************************/
 
 word
-pl_open_wic(Word name)
-{ if (!isAtom(*name) )
+pl_open_wic(Word name, Word options)
+{ if ( !isAtom(*name) )
     fail;
 
-  return openWic(stringAtom(*name));
+  return openWic(stringAtom(*name), options);
+}
+
+word
+pl_qlf_put_states()
+{ if ( wicFd )
+    putStates(wicFd);
+
+  succeed;
 }
 
 word
@@ -1996,7 +2024,7 @@ compileFile(char *file)
 bool
 compileFileList(char *out, int argc, char **argv)
 { newOp("$:-", OP_FX, 1200);
-  TRY(openWic(out) );
+  TRY(openWic(out, NULL) );
   
   systemMode(TRUE);
 

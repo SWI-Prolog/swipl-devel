@@ -130,8 +130,10 @@ getIndex(register Word argv, register unsigned long pattern, int card)
 }
 
 Clause
-findClause(register Clause cl, register Word argv, register Definition def, bool *deterministic)
+findClause(Clause cl, Word argv, Definition def, bool *deterministic)
 { *deterministic = FALSE;
+
+again:
 
   if ( def->indexPattern == 0x0L )
   { DEBUG(9, Sdprintf("Not indexed.\n"));
@@ -144,7 +146,7 @@ findClause(register Clause cl, register Word argv, register Definition def, bool
       *deterministic = TRUE;
     return cl;
   } else if ( def->indexPattern == 0x1L )
-  { register word key;
+  { word key;
 
     deRef(argv);
     if (isVar(*argv) || isIndirect(*argv))
@@ -169,6 +171,9 @@ findClause(register Clause cl, register Word argv, register Definition def, bool
       }
     }
     return (Clause) NULL;
+  } else if ( def->indexPattern & NEED_REINDEX )
+  { reindexDefinition(def);
+    goto again;
   } else
   { struct index argIndex;
 
@@ -233,7 +238,7 @@ reindexClause(Clause clause)
 bool
 indexPatternToTerm(Procedure proc, Word value)
 { Word argp;
-  unsigned long pattern = proc->definition->indexPattern;
+  unsigned long pattern = (proc->definition->indexPattern & ~NEED_REINDEX);
   int n, arity = proc->functor->arity;
 
   if (pattern == 0)

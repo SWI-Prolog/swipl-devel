@@ -25,6 +25,7 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #endif
 
 forwards void	usage(void);
+static void	version();
 
 #define	optionString(s) { if (argc > 1) \
 			  { s = argv[1]; argc--; argv++; \
@@ -316,6 +317,8 @@ startProlog(int argc, char **argv, char **env)
   
   if ( argc >= 1 && streq(argv[0], "-help") )
     usage();
+  if ( argc >= 1 && streq(argv[0], "-v") )
+    version();
 
 #define K * 1024L
 
@@ -453,10 +456,11 @@ static void
 usage()
 { static char *lines[] = {
     "%s: Usage:\n",
-    "    1) %s -help\n",
-    "    2) %s [options]\n",
-    "    3) %s [options] [-o output] -c file ...\n",
-    "    4) %s [options] [-o output] -b bootfile -c file ...\n",
+    "    1) %s -help     Display this message\n",
+    "    2) %s -v        Display version information\n",
+    "    3) %s [options]\n",
+    "    4) %s [options] [-o output] -c file ...\n",
+    "    5) %s [options] [-o output] -b bootfile -c file ...\n",
     "Options:\n",
     "    -x state        Start from state (must be first)\n",
     "    -[LGTAP]kbytes  Specify {Local,Global,Trail,Argument,Lock} stack sizes\n",
@@ -475,6 +479,14 @@ usage()
 
   Halt(1);
 }
+
+static void
+version()
+{ Sprintf("SWI-Prolog version %s for %s\n", PLVERSION, ARCH);
+
+  Halt(0);
+}
+
 
 #include <stdarg.h>
 

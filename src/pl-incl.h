@@ -11,10 +11,10 @@
 #define _PL_INCLUDE_H
 
 #ifdef __WIN32__
-#define MD "config/win32.h"
+#define MD	     "config/win32.h"
 #define PLHOME       "c:/pl"
 #define DEFSTARTUP   ".plrc"
-#define PLVERSION    "2.1.3"
+#define PLVERSION    "2.1.4"
 #define ARCH	     "i386-win32"
 #define C_LIBS	     "-lreadline -lconsole -luxnt"
 #define C_STATICLIBS ""
@@ -33,7 +33,7 @@ for -DMD="md-mswin.h"
 #ifdef MD
 #include MD
 #else
-#include "config.h"
+#include <config.h>
 #endif
 #endif
 
@@ -86,6 +86,7 @@ handy for it someone wants to add a data type to the system.
 #define O_DEBUGGER		1
 #define O_INTERRUPT		1
 #define O_DESTRUCTIVE_ASSIGNMENT 1
+#define O_HASHTERM		1
 
 #ifndef O_LABEL_ADDRESSES
 #if __GNUC__ == 2
@@ -297,6 +298,7 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 #define FLAGHASHSIZE		256	/* global flag/3 table */
 #define ARITHHASHSIZE		64	/* arithmetic function table */
 
+#define stringHashValue(s, n) (unboundStringHashValue(s) & ((n)-1))
 #define pointerHashValue(p, size) ((int)(((long)(p)>>2) & ((size)-1)))
 
 #define for_table(s, t) for(s = firstHTable(t); s; s = nextHTable(t, s))
@@ -306,6 +308,8 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 	    succeed; \
 	  ForeignRedo(v); \
 	}
+
+#define NEED_REINDEX 0x80000000L	/* defenition needs reindexing */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Foreign language interface definitions.  Note that these macros MUST  be
@@ -792,6 +796,7 @@ with one operation, it turns out to be faster as well.
 					/* This may be changed later ... */
 #define LOCKED			(SYSTEM)      /* predicate */
 #define FILE_ASSIGNED		(0x00010000L) /* predicate */
+#define VOLATILE		(0x00020000L) /* predicate */
 
 #define ERASED			(0x0001) /* clause */
 #define UNKNOWN			(0x0002) /* module */
@@ -917,7 +922,7 @@ Handling references.
 Handling dereferenced arbitrary Prolog runtime objects.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define isMasked(w)	(mask(w) != (word) NULL)
+#define isMasked(w)	(mask(w))
 #define isIndirect(w)	((w) & INDIRECT_MASK)
 #define isInteger(w)	((w) & INT_MASK)
 #define isReal(w)	(isIndirect(w) && \
@@ -994,6 +999,9 @@ Structure declarations that must be shared across multiple files.
 struct atom
 { Atom		next;		/* next in chain */
   int		type;		/* ATOM_TYPE */
+#ifdef O_HASHTERM
+  int		hash_value;	/* hash-key value */
+#endif
   char *	name;		/* name associated with atom */
 };
 
@@ -1007,7 +1015,7 @@ struct functorDef
   int		type;		/* FUNCTOR_TYPE */
   Atom		name;		/* Name of functor */
   int		arity;		/* arity of functor */
-  unsigned short	flags;		/* Flag field holding: */
+  unsigned short	flags;	/* Flag field holding: */
 		/* INLINE_F	   Inlined foreign (system) predicate */
 };
 
@@ -1088,6 +1096,7 @@ struct definition
 		/*	TRACE_REDO	   Trace redo-port */
 		/*	TRACE_EXIT	   Trace exit-port */
 		/*	TRACE_FAIL	   Trace fail-port */
+		/*	VOLATILE	   Don't save my clauses */
   char		indexCardinality;	/* cardinality of index pattern */
 };
 
@@ -1496,7 +1505,7 @@ GLOBAL State stateList;			/* list of loaded states */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Include debugging info to make it (very) verbose.  SECURE adds  code  to
-check  consistency mainly in the WAM interpreter.  Prolog Sgets VERY slow
+check  consistency mainly in the WAM interpreter.  Prolog gets VERY slow
 if SECURE is  used.   DEBUG  is  not  too  bad  (about  20%  performance
 decrease).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */

@@ -7,12 +7,13 @@
 */
 
 :- module(shlib,
-	  [ load_foreign_library/1,	% +LibFile
-	    load_foreign_library/2,	% +LibFile, +InstallFunc
+	  [ load_foreign_library/1,	% :LibFile
+	    load_foreign_library/2,	% :LibFile, +InstallFunc
 	    unload_foreign_library/1,	% +LibFile
 	    unload_foreign_library/1,	% +LibFile, +UninstallFunc
 	    current_foreign_library/2,	% ?LibFile, ?Public
-	    find_and_open_shared_object/3
+	    find_and_open_shared_object/3,
+	    reload_foreign_libraries/0
 	  ]).
 
 :- module_transparent
@@ -20,13 +21,19 @@
 	load_foreign_library/2.
 
 :- dynamic
-	current_library/5,		% Lib x Entry x Path x Handle x Public
+	current_library/6,		% Lib x Entry x Path x
+					% Module x Handle x Public
+	fpublic/1.
+:- volatile
+	current_library/6,
 	fpublic/1.
 
 
 :- (   (feature(dll, true) ; feature(open_shared_object, true))
    ->  true
-   ;   '$warning'('library(shlib): Need .dll or .so based interface')
+   ;   format(user_error,
+	      'library(shlib): warning: need .dll or .so based interface',
+	      [])
    ).
 
 		 /*******************************
@@ -57,7 +64,11 @@ close_goal(Handle, close_shared_object(Handle)) :-
 	find_and_open_shared_object/3.
 
 find_and_open_shared_object(Lib, Path, Handle) :-
-	'$chk_file'(Lib, ['.so'], Path), !,
+	absolute_file_name(Lib,
+			   [ extensions(['.so']),
+			     access(exist)
+			   ],
+			   Path), !,
 	open_shared_object(Path, Handle).
 find_and_open_shared_object(Lib, _Path, _Handle) :-
 	'$warning'('open_shared_object/2: Cannot find ~w: no such file', [Lib]),
@@ -71,15 +82,19 @@ find_and_open_shared_object(Lib, _Path, _Handle) :-
 load_foreign_library(Library) :-
 	load_foreign_library(Library, install).
 
-load_foreign_library(LibFile, Entry) :-
-	current_library(LibFile, Entry, _, _, _), !.
-load_foreign_library(LibFile, Entry) :-
+load_foreign_library(LibFileSpec, Entry) :-
+	'$strip_module'(LibFileSpec, Module, LibFile),
+	load_foreign_library(LibFile, Module, Entry).
+
+load_foreign_library(LibFile, _Module, Entry) :-
+	current_library(LibFile, Entry, _, _, _, _), !.
+load_foreign_library(LibFile, Module, Entry) :-
 	open_goal(LibFile, Path, Handle, OpenGoal),
 	OpenGoal,
 	(   clean_fpublic,		% safety
 	    call_goal(Handle, Entry, CallGoal),
-	    CallGoal
-	->  assert_shlib(LibFile, Entry, Path, Handle),
+	    Module:CallGoal
+	->  assert_shlib(LibFile, Entry, Path, Module, Handle),
 	    clean_fpublic
 	;   '$warning'('~w: failed to call entry point ~w', [LibFile, Entry]),
 	    close_goal(Handle, CloseGoal),
@@ -91,8 +106,8 @@ unload_foreign_library(LibFile) :-
 	unload_foreign_library(LibFile, uninstall).
 
 unload_foreign_library(LibFile, Uninstall) :-
-	current_library(LibFile, _, _, Public, Handle),
-	retractall(current_library(LibFile, _, _, _, _)),
+	current_library(LibFile, _, _, _, Public, Handle),
+	retractall(current_library(LibFile, _, _, _, _, _)),
 	call_goal(Handle, Uninstall, CallGoal),
 	ignore(CallGoal),
 	forall(member(Module:Head, Public),
@@ -111,10 +126,10 @@ foreign_registered(M, H) :-
 clean_fpublic :-
 	retractall(fpublic(_)).
 
-assert_shlib(File, Entry, Path, Handle) :-
+assert_shlib(File, Entry, Path, Module, Handle) :-
 	findall(P, fpublic(P), Public),
-	retractall(current_library(File, _, _, _, _)),
-	asserta(current_library(File, Entry, Path, Public, Handle)).
+	retractall(current_library(File, _, _, _, _, _)),
+	asserta(current_library(File, Entry, Path, Module, Public, Handle)).
 
 
 		 /*******************************
@@ -126,7 +141,24 @@ assert_shlib(File, Entry, Path, Handle) :-
 %	Query currently loaded shared libraries
 
 current_foreign_library(File, Public) :-
-	current_library(File, _Entry, _Path, Public, _Handle).
+	current_library(File, _Entry, _Path, _Module, Public, _Handle).
+
+		 /*******************************
+		 *	      RELOAD		*
+		 *******************************/
+
+%	reload_foreign_libraries
+%
+%	Reload all foreign libraries loaded (after restore of state)
+
+reload_foreign_libraries :-
+	forall(retract(current_library(File, Entry, _, Module, _, _)),
+	       (   load_foreign_library(File, Module, Entry)
+	       ->  true
+	       ;   '$warning'('reload_foreign_libraries/0: failed to load ~w',
+		   	      [File])
+	       )).
+
 
 		 /*******************************
 		 *     CLEANUP (WINDOWS ...)	*

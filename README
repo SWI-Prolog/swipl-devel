@@ -39,7 +39,7 @@ running ./configure.  Finally, INSTALL.problems contains  some hints for
 if things go wrong.
 
 If SWI-Prolog does not automatically configure, you may wish to download
-swi.psy.uva.nl/pub/SWI-Prolog/old-md-files.tgz  to  check    the  manual
+ftp://swi.psy.uva.nl/pub/SWI-Prolog/old-md-files.tgz to check the manual
 configuration.
 
 

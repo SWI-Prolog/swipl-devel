@@ -14,6 +14,7 @@
 	, sin/2
 	, cos/2
 	, tan/2
+	, log/2
 	, random/3
 
 	, genarg/3
@@ -23,8 +24,6 @@
 	, (meta_predicate)/1
 	, no_style_check/1
 	, otherwise/0
-	, (initialization)/1
-	, absolute_file_name/3
 	, numbervars/3
 	, statistics/2
 	]).
@@ -67,33 +66,6 @@ file_exists(File) :-
 	exists_file(File).
 
 
-%	absolute_file_name(+File, +Conditions, -Path).
-
-absolute_file_name(File, Conditions, Path) :-
-	(   memberchk(extensions(Exts), Conditions)
-	->  true
-	;   Exts = []
-	),
-	member(Ext, [''|Exts]),
-	ensure_extension(File, Ext, F2),
-	absolute_file_name(F2, Path),
-	(   memberchk(access(Access), Conditions)
-	->  access_file(Path, Access)
-	;   true
-	), !.
-
-
-ensure_extension(X, '', X) :- !.
-ensure_extension(Base, Ext, Name) :-
-	concat('.', Ext, Ext2),
-	ensure_extension_(Base, Ext2, Name).
-
-ensure_extension_(Base, Ext, Base) :-
-	concat(_, Ext, Base), !.
-ensure_extension_(Base, Ext, Name) :-
-	concat(Base, Ext, Name).
-
-
 		/********************************
 		*        META PREDICATES        *
 		*********************************/
@@ -119,6 +91,7 @@ abs(Number, Absolute) :-
 sin(A, V) :- V is sin(A).
 cos(A, V) :- V is cos(A).
 tan(A, V) :- V is tan(A).
+log(A, V) :- V is log(A).
 
 %	random(+Min, +Max, -Value)
 
@@ -188,13 +161,6 @@ no_style_check(QOption) :-
 mode(_).
 public(_).
 
-:- op(1199, fx, initialization).
-
-:- module_transparent
-	(initialization)/1.
-
-initialization(Goal) :-
-	Goal.
 
 		 /*******************************
 		 *	TERM MANIPULATION	*
@@ -208,7 +174,7 @@ numbervars(Term, From, To) :-
 		*            MODULES            *
 		*********************************/
 
-:- op(1150, fx, (meta_predicate)).
+:- initialization op(1150, fx, (meta_predicate)).
 
 :- module_transparent
 	(meta_predicate)/1, 

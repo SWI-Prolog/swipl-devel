@@ -13,10 +13,14 @@
 	, $update_library_index/0
 	, make_library_index/1
 	, make_library_index/2
+	, autoload/0
+	, autoload/1
 	]).
 
 :- dynamic
 	library_index/3.			% Head x Module x Path
+:- volatile
+	library_index/3.
 
 %	$find_library(+Module, +Name, +Arity, -LoadModule, -Library)
 %
@@ -69,33 +73,12 @@ $define_predicate(Term) :-
 		********************************/
 
 $update_library_index :-
-	user:library_directory(Dir),
-	    update_library_index(Dir),
+	$check_file(library('INDEX.pl'), IndexFile),
+	file_directory_name(IndexFile, Dir),
+	update_library_index(Dir),
 	fail.
 $update_library_index.
 
-update_library_index(Dir) :-
-	concat_atom([Dir, '/Make.pl'], MakeFile),
-	access_file(MakeFile, read), !,
-	forall(current_predicate(_, $make:Head),
-	       (   functor(Head, Name, Arity),
-		   abolish($make:Name, Arity)
-	       )),
-	absolute_file_name('', CWD),
-	chdir(Dir),
-	seeing(Old), see('Make.pl'),
-	repeat,
-		read(Term),
-		(   Term == end_of_file
-		->  !
-		;   Term = (:- Directive),
-		    $make:Directive,
-		    fail
-		;   $make:assert(Term),
-		    fail
-		),
-	seen, see(Old),
-	chdir(CWD).
 update_library_index(Dir) :-
 	concat_atom([Dir, '/INDEX.pl'], IndexFile),
 	access_file(IndexFile, write),
@@ -111,9 +94,8 @@ clear_library_index :-
 load_library_index :-
 	library_index(_, _, _), !.		% loaded
 load_library_index :-
-	user:library_directory(Dir),
-	    concat_atom([Dir, '/', 'INDEX.pl'], Index),
-	    exists_file(Index),
+	$check_file(library('INDEX'), Index),
+	    file_directory_name(Index, Dir),
 	    read_index(Index, Dir),
 	fail.
 load_library_index.
@@ -205,3 +187,45 @@ index_header(Fd):-
 	format(Fd, '    Creator: make/0~n~n', []),
 	format(Fd, '    Purpose: Provide index for autoload~n', []),
 	format(Fd, '*/~n~n', []).
+
+		 /*******************************
+		 *	   DO AUTOLOAD		*
+		 *******************************/
+
+%	autoload([options ...])
+%
+%	Force all necessary autoloading to be done now.
+
+autoload :-
+	autoload([]).
+
+autoload(Options) :-
+	option(Options, verbose/on, Verbose),
+	$style_check(Old, Old), 
+	style_check(+dollar), 
+	please(autoload, OldAutoLoad, off),
+	findall(Pred, needs_autoloading(Pred), Preds),
+	please(autoload, _, OldAutoLoad),
+	$style_check(_, Old),
+	(   Preds == []
+	->  true
+	;   please(verbose_autoload, OldVerbose, Verbose),
+	    please(autoload, OldAutoLoad2, on),
+	    checklist($define_predicate, Preds),
+	    please(autoload, _, OldAutoLoad2),
+	    please(verbose_autoload, _, OldVerbose),
+	    autoload(Verbose)
+	).
+	
+needs_autoloading(Module:Head) :-
+	predicate_property(Module:Head, undefined), 
+	\+ predicate_property(Module:Head, imported_from(_)), 
+	functor(Head, Functor, Arity), 
+	$in_library(Functor, Arity).
+
+option(Options, Name/Default, Value) :-
+	(   memberchk(Name = Value, Options)
+	->  true
+	;   Value = Default
+	).
+

@@ -9,6 +9,93 @@
 
 #include "pl-incl.h"
 
+static bool
+sizeOption(int *i, word v)
+{ if ( !isInteger(v) )
+    return warning("save_program/2: illegal option argument");
+  *i = valNum(v);
+
+  succeed;
+}
+
+static bool
+stringOption(char **s, word v)
+{ if ( !isAtom(v) )
+    return warning("save_program/2: illegal option argument");
+  *s = stringAtom(v);
+
+  succeed;
+}
+
+static bool
+boolOption(bool *b, word v)
+{ if ( v == (word) ATOM_on )
+    *b = TRUE;
+  else if ( v == (word) ATOM_off )
+    *b = FALSE;
+  else
+    return warning("save_program/2: illegal option argument");
+
+  succeed;
+}
+
+word
+parseSaveProgramOptions(Word args,
+			int *local, int *global, int *trail, int *argument,
+			char **goal, char **toplevel, char **init_file,
+			bool *tty)
+{ Word a;
+  Word Option, Value;
+  Atom option;
+  word value;
+
+  while( isList(*args) )
+  { a = HeadList(args);
+    deRef(a);
+    if ( !isTerm(*a) || functorTerm(*a) != FUNCTOR_equals2 )
+      return warning("save_program/2: Illegal option list");
+
+    Option = argTermP(*a, 0); deRef(Option);
+    Value  = argTermP(*a, 1); deRef(Value);
+    if ( !isAtom(*Option) )
+      return warning("save_program/2: Illegal option list");
+
+    option = (Atom) *Option;
+    value = *Value;
+    if        ( option == ATOM_local )
+    { TRY( sizeOption(local, value) );
+    } else if ( option == ATOM_global )
+    { TRY( sizeOption(global, value) );
+    } else if ( option == ATOM_trail )
+    { TRY( sizeOption(trail, value) );
+    } else if ( option == ATOM_argument )
+    { TRY( sizeOption(argument, value) );
+    } else if ( option == ATOM_goal )
+    { TRY( stringOption(goal, value) );
+    } else if ( option == ATOM_toplevel )
+    { TRY( stringOption(toplevel, value) );
+    } else if ( option == ATOM_init_file )
+    { TRY( stringOption(init_file, value) );
+    } else if ( option == ATOM_tty )
+    { if ( tty )
+      { TRY( boolOption(tty, value) );
+	*tty = !(*tty);
+      }
+    } else
+    { return warning("save_program/2: Unknown option: %s", stringAtom(option));
+    }
+
+    args = TailList(args);
+    deRef(args);
+  }
+
+  if ( !isNil(*args) )
+    return warning("save_program/2: Illegal option list");
+
+  succeed;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Creating of saved states of the program (the  stacks  are  lost).   This
 module takes the currently running program and generates a complete Unix
@@ -80,85 +167,17 @@ saveProgram(Word new)
   succeed;
 }
 
-static
-bool
-sizeOption(int *i, word v)
-{ if ( !isInteger(v) )
-    return warning("save_program/2: illegal option argument");
-  *i = valNum(v);
-
-  succeed;
-}
-
-static
-bool
-stringOption(char **s, word v)
-{ if ( !isAtom(v) )
-    return warning("save_program/2: illegal option argument");
-  *s = stringAtom(v);
-
-  succeed;
-}
-
-static
-bool
-boolOption(bool *b, word v)
-{ if ( v == (word) ATOM_on )
-    *b = TRUE;
-  else if ( v == (word) ATOM_off )
-    *b = FALSE;
-  else
-    return warning("save_program/2: illegal option argument");
-
-  succeed;
-}
-
 word
-pl_save_program(Word new, Word args)
-{ Word a;
-  Word Option, Value;
-  Atom option;
-  word value;
-
-  while( isList(*args) )
-  { a = HeadList(args);
-    deRef(a);
-    if ( !isTerm(*a) || functorTerm(*a) != FUNCTOR_equals2 )
-      return warning("save_program/2: Illegal option list");
-
-    Option = argTermP(*a, 0); deRef(Option);
-    Value  = argTermP(*a, 1); deRef(Value);
-    if ( !isAtom(*Option) )
-      return warning("save_program/2: Illegal option list");
-
-    option = (Atom) *Option;
-    value = *Value;
-    if        ( option == ATOM_local )
-    { TRY( sizeOption(&systemDefaults.local, value) );
-    } else if ( option == ATOM_global )
-    { TRY( sizeOption(&systemDefaults.global, value) );
-    } else if ( option == ATOM_trail )
-    { TRY( sizeOption(&systemDefaults.trail, value) );
-    } else if ( option == ATOM_argument )
-    { TRY( sizeOption(&systemDefaults.argument, value) );
-    } else if ( option == ATOM_goal )
-    { TRY( stringOption(&systemDefaults.goal, value) );
-    } else if ( option == ATOM_toplevel )
-    { TRY( stringOption(&systemDefaults.toplevel, value) );
-    } else if ( option == ATOM_init_file )
-    { TRY( stringOption(&systemDefaults.startup, value) );
-    } else if ( option == ATOM_tty )
-    { TRY( boolOption(&systemDefaults.notty, value) );
-      systemDefaults.notty = !systemDefaults.notty;
-    } else
-    { return warning("save_program/2: Unknown option: %s", stringAtom(option));
-    }
-
-    args = TailList(args);
-    deRef(args);
-  }
-  if ( !isNil(*args) )
-    return warning("save_program/2: Illegal option list");
+pl_save_program(Word new, Word options)
+{ TRY(parseSaveProgramOptions(options,
+			      &systemDefaults.local,
+			      &systemDefaults.global,
+			      &systemDefaults.trail,
+			      &systemDefaults.argument,
+			      &systemDefaults.goal,
+			      &systemDefaults.toplevel,
+			      &systemDefaults.startup,
+			      &systemDefaults.notty));
 
   return saveProgram(new);
 }

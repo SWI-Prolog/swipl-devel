@@ -14,7 +14,8 @@ static Atom atomTable[ATOMHASHSIZE];
 
 Atom
 lookupAtom(char *s)
-{ int v = stringHashValue(s, ATOMHASHSIZE);
+{ int v0 = unboundStringHashValue(s);
+  int v = v0 & (ATOMHASHSIZE-1);
   register Atom a;
 
   for(a = atomTable[v]; a && !isRef((word)a); a = a->next)
@@ -22,10 +23,13 @@ lookupAtom(char *s)
       return a;
   }
   a = (Atom)allocHeap(sizeof(struct atom));
-  a->next = atomTable[v];
-  a->type = ATOM_TYPE;
-  a->name = store_string(s);
-  atomTable[v] = a;
+  a->next       = atomTable[v];
+  a->type       = ATOM_TYPE;
+#ifdef O_HASHTERM
+  a->hash_value = v0;
+#endif
+  a->name       = store_string(s);
+  atomTable[v]  = a;
   statistics.atoms++;
 
   return a;
@@ -45,11 +49,17 @@ pl_atom_hashstat(Word i, Word n)
   return unifyAtomic(n, consNum(m));
 }
 
+#ifdef O_HASHTERM
+#define ATOM(s) { (Atom)NULL, ATOM_TYPE, 0L, s }
+#else
+#define ATOM(s) { (Atom)NULL, ATOM_TYPE, s }
+#endif
 
 struct atom atoms[] = {
 #include "pl-atom.ic"
-{ (Atom)NULL,	ATOM_TYPE,	(char *)NULL }
+  ATOM((char *)NULL)
 };
+#undef ATOM
 
 /* Note that the char * of the atoms is copied to the data segment.  This
    is done because some functions temporary change the char string associated
@@ -61,19 +71,23 @@ void
 initAtoms(void)
 { register int n;
 
-  { register Atom *a;
+  { Atom *a;
     for(n=0, a=atomTable; n < (ATOMHASHSIZE-1); n++, a++)
       *a = (Atom) makeRef(a+1);
   }
 
-  { register Atom a;
-    register int v;
+  { Atom a;
 
     for( a = &atoms[0]; a->name; a++)
-    { a->name = store_string(a->name);
-      v = stringHashValue(a->name, ATOMHASHSIZE);
-      a->next = atomTable[v];
-      atomTable[v] = a;
+    { int v0 = unboundStringHashValue(a->name);
+      int v = v0 & (ATOMHASHSIZE-1);
+
+      a->name = store_string(a->name);
+      a->next       = atomTable[v];
+#ifdef O_HASHTERM
+      a->hash_value = v0;
+#endif
+      atomTable[v]  = a;
       statistics.atoms++;
     }
   }    

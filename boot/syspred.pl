@@ -17,7 +17,6 @@
 	, trace/2
 	, nospyall/0
 	, debugging/0
-%	, setarg/3
 	, concat_atom/2
 	, term_to_atom/2
 	, atom_to_term/3
@@ -54,6 +53,8 @@
 	, save_program/2
 	, save/1
 	, absolute_file_name/2
+	, absolute_file_name/3
+	, require/1
 	]).	
 
 		/********************************
@@ -249,18 +250,6 @@ show_trace_ports(Head) :-
 	fail.
 show_trace_ports(_).
 
-		 /*******************************
-		 *	   TERM HACKING		*
-		 *******************************/
-
-/*
-setarg(N, Term, Arg) :-
-	arg(N, Term, Old),
-	(   '$setarg'(N, Term, Arg)
-	;   '$setarg'(N, Term, Old)
-	).
-*/
-	  
 
 		/********************************
 		*             ATOMS             *
@@ -272,11 +261,11 @@ concat_atom(L, Atom) :-
 	$concat_atom(L, Atom).
 
 term_to_atom(Term, Atom) :-
-	$term_to_atom(Term, Atom, 0).
+	$term_to_atom(Term, Atom, 0, 0).
 
 atom_to_term(Atom, Term, Bindings) :-
 	var(Bindings),
-	$term_to_atom(Term, Atom, Bindings).
+	$term_to_atom(Term, Atom, Bindings, 0).
 
 int_to_atom(Int, Atom) :-
 	int_to_atom(Int, 10, Atom).
@@ -326,7 +315,7 @@ prolog_load_context(stream, S) :-
 	current_input(S).
 prolog_load_context(directory, D) :-
 	source_location(F, _),
-	$file_dir_name(F, D).
+	file_directory_name(F, D).
 prolog_load_context(term_position, '$stream_position'(0,L,0,0,0)) :-
 	source_location(_, L).
 
@@ -415,6 +404,8 @@ $predicate_property(Pred, foreign) :-
 	$get_predicate_attribute(Pred, foreign, 1).
 $predicate_property(Pred, (dynamic)) :-
 	$get_predicate_attribute(Pred, (dynamic), 1).
+$predicate_property(Pred, (volatile)) :-
+	$get_predicate_attribute(Pred, (volatile), 1).
 $predicate_property(Pred, (multifile)) :-
 	$get_predicate_attribute(Pred, (multifile), 1).
 $predicate_property(Pred, imported_from(Module)) :-
@@ -427,6 +418,11 @@ $predicate_property(Pred, file(File)) :-
 	source_file(Pred, File).
 $predicate_property(Pred, line_count(LineNumber)) :-
 	$get_predicate_attribute(Pred, line_count, LineNumber).
+$predicate_property(Pred, notrace) :-
+	$get_predicate_attribute(Pred, trace, 0).
+$predicate_property(Pred, show_childs) :-
+	$get_predicate_attribute(Pred, system, 1),
+	$get_predicate_attribute(Pred, hide_childs, 0).
 
 :- index(clause_property(0, 1)).
 
@@ -467,6 +463,21 @@ recordz(Key, Value) :-
 recorded(Key, Value) :-
 	recorded(Key, Value, _).
 
+		 /*******************************
+		 *	       REQUIRE		*
+		 *******************************/
+
+:- module_transparent
+	require/1.
+
+require([]).
+require([N/A|T]) :- !,
+	functor(Head, N, A),
+	$require(Head),
+	require(T).
+require([H|T]) :-
+	$warning('require/1: Illegal predicate specifier: ~w', [H]),
+	require(T).
 
 		/********************************
 		*            MODULES            *
@@ -583,18 +594,24 @@ sformat(String, Format) :-
 		 *	      FILES		*
 		 *******************************/
 
+%	absolute_file_name(+Term, +Args, -AbsoluteFile)
+
+absolute_file_name(Spec, Args, Path) :-
+	(   select(Args, extensions(Exts), Conditions)
+	->  true
+	;   Conditions = Args,
+	    Exts = ['']
+	),
+	$chk_file(Spec, Exts, Conditions, Path).
+
+%	absolute_file_name(+Term, -AbsoluteFile)
+
 absolute_file_name(Name, Abs) :-
 	atomic(Name), !,
 	$absolute_file_name(Name, Abs).
-absolute_file_name(V, _) :-
-	var(V), !,
-	$warning('absolute_file_name/2: instantiation fault'),
-	fail.
-absolute_file_name(library(Name), Abs) :-
-	user:library_directory(Dir),
-	concat_atom([Dir, '/', Name], LibFile),
-	absolute_file_name(LibFile, Abs),
-	exists_file(Abs), !.
+absolute_file_name(Term, Abs) :-
+	$chk_file(Term, [''], [], File),
+	$absolute_file_name(File, Abs).
 
 
 		/********************************

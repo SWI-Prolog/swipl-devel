@@ -1,0 +1,2901 @@
+\chapter{Built-In Predicates}
+
+.S Notation of Predicate Descriptions
+
+We have tried to keep the predicate descriptions clear and concise.
+First the predicate name is printed in bold face, followed by the
+arguments in italics.  Arguments are preceded by a `+', `--' or `?' sign.
+`+' indicates the argument is input to the predicate, `--' denotes output
+and `?' denotes `either input or output'.%
+    \footnote{These marks do NOT suggest instanstiation (e.g. var(+Var)).}
+Constructs like `op/3' refer to the predicate `op' with arity `3'.
+
+.S Consulting Prolog Source files
+\label{sec:consulting}
+
+SWI-Prolog source files normally have a suffix `\tty{.pl}'.  Specifying
+the suffix is optional.  All predicates that handle source files first
+check whether a file with suffix `\tty{.pl}' exists.  If not the plain
+file name is checked for existence.  Library files are specified by
+embedding the file name using the functor library/1.  Thus `\tty{foo}'
+refers to `\tty{foo.pl}' or `\tty{foo}' in the current directory, 
+`\tty{library(foo)}' refers to `\tty{foo.pl}' or `\tty{foo}' in one of the
+library directories specified by the dynamic predicate
+library_directory/1.
+
+SWI-Prolog recognises grammar rules as defined in \cite{Clocksin:81}.  The
+user may define additional compilation of the source file by defining
+the dynamic predicate term_expansion/2.  Transformations by this
+predicate overrule the systems grammar rule transformations.  It is not
+allowed to use assert/1, retract/1 or any other database predicate in
+term_expansion/2 other than for local computational purposes.%
+    \footnote{
+	It does work for consult, but makes it impossible to compile
+	programs into a stand alone executable (see
+	section~\ref{compilation})}
+
+Directives may be placed anywhere in a source file, invoking any
+predicate.  They are executed when encountered.  If the directive fails,
+a warning is printed.  Directives are specified by :-/1 or ?-/1.  There
+is no difference between the two.
+
+SWI-Prolog does not have a separate reconsult/1 predicate. Reconsulting
+is implied automatically by the fact that a file is consulted which is
+already loaded.
+
+.BD
+.C consult 1 +File
+Read {\em File} as a Prolog source file.  {\em File} may be a list of
+files, in which case all members are consulted in turn.  {\em File} may
+start with the csh(1) special sequences \verb+~+, \verb+~<user>+ and
+\verb+$<var>+. {\em File} may also be \tty{library(Name)}, in which case
+the libraries are searched for a file with the specified name.  See also
+library_directory/1 and file_search_path/2.  consult/1 may be
+abbreviated by just typing a number of file names in a list.  Examples:
+\begin{center}\begin{tabular}{ll}
+\tt ?- consult(load).		& \% consult `load' or `load.pl'	\\
+\tt ?- [library(quintus)].	& \% load Quintus compatibility library	\\
+\end{tabular}\end{center}
+.C ensure_loaded 1 +File
+If the file is not already loaded, this is equivalent to consult/1.
+Otherwise, if the file defines a module, import all public predicates.
+Finally, if the file is already loaded, is not a module file and the
+context module is not the global user module, ensure_loaded/1 will
+call consult/1.
+
+With the semantics, we hope to get as closely possible to the clear
+semantics without the presence of a module system.  Applications using
+modules should consider using use_module/[1,2].
+.C require 1 +ListOfNameAndArity
+Declare that this file/module requires the specified predicates to be
+defined ``with their commonly accepted definition''.  This predicate
+originates from the Prolog portability layer for XPCE.  It is intended
+to provide a portable mechanism for specifying that this module requires
+the specified predicates.
+
+The implementation normally first verifies whether the predicate is
+already defined.  If not, it will search the libraries and load the
+required library.
+
+SWI-Prolog, having autoloading, does {\bf not} load the library. Instead
+it creates a procedure header for the predicate if this does not exist.
+This will flag the predicate as `undefined'.  See also check/0 and
+autoload/0.
+.C make 0
+Consult all source files that have been changed since they were
+consulted.  It checks {\em all} loaded source files: files loaded into a
+compiled state using {\tt pl -c ...} and files loaded using consult or
+one of its derivates.  make/0 is normally invoked by the edit/[0,1] and
+ed/[0,1] predicates.  make/0 can be combined with the compiler to speed
+up the development of large packages.  In this case compile the package
+using
+
+\begin{code}
+sun% pl -g make -o my_program -c file ...
+\end{code}
+
+If `my_program' is started it will first reconsult all source files
+that have changed since the compilation.
+.C library_directory 1 -Atom
+Dynamic predicate used to specify library directories.  Default
+\tty{.}, \tty{./lib}, \verb$~/lib/prolog$ and the system's library
+(in this order) are defined.  The user may add library directories
+using assert/1, asserta/1 or remove system defaults using retract/1.
+.C file_search_path 2 +Alias, -Path
+Dynamic predicate used to specify `path-aliases'.  This feature is
+best described using an example.  Given the definition
+
+\begin{code}
+file_search_path(demo, '~/demo').
+\end{code}
+
+the file specification \tty{demo(myfile)} will be expanded to
+\tty{'~/demo/myfile'}.  The second argument of file_search_path/2 may
+be another alias.
+
+Below is the initial definition of the file search path.  This path
+implies {\tt swi(Path)} refers to a file in the SWI-Prolog home
+directory.  The alias {\tt foreign(Path)} is intended for storing
+shared libraries ({\tt .so} or {\tt .dll} files).  See also
+load_foreign_library/[1,2].
+
+\begin{code}
+file_search_path(library, X) :-
+	library_directory(X).
+user:file_search_path(swi, Home) :-
+	feature(home, Home).
+user:file_search_path(foreign, swi(ArchLib)) :-
+	feature(arch, Arch),
+	concat('lib/', Arch, ArchLib).
+user:file_search_path(foreign, swi(lib)).
+\end{code}
+
+The file_search_path/2 expansion is used by all loading predicates as
+well as by absolute_file_name/2.
+.C source_file 1 -File
+Succeeds if {\em File} was loaded using consult/1 or ensure_loaded/1.
+{\em File} refers to the full path name of the file (see
+expand_file_name/2). Source_file/1 backtracks over all loaded source
+files.
+.C source_file 2 ?Pred, ?File
+Is true if the predicate specified by {\em Pred} was loaded from file
+{\em File}, where {\em File} is an absolute path name (see
+expand_file_name/2).  Can be used with any instantiation pattern, but the
+database only maintains the source file for each predicate.  Predicates
+declared {\em multifile} (see multifile/1) cannot be found this way.
+.C prolog_load_context 2 ?Key, ?Value
+Determine loading context.  The following keys are defined:
+\begin{center}
+\begin{tabular}{|l|p{4in}|}
+\hline
+\bf Key		& \bf Description \\
+\hline
+\tt module	& Module into which file is loaded \\
+\tt file	& File loaded \\
+\tt stream	& Stream identifier (see current_stream/1) \\
+\tt directory	& Directory in which {\em File} lives. \\
+\tt term_position & Postion of last term read.  Term
+		  of the form '\$stream_position'(0,Line,0,0,0) \\
+\hline
+\end{tabular}
+\end{center}
+Quintus compatibility predicate.  See also source_location/2.
+.C source_location 2 -File, -Line
+If the last term has been read from a physical file (i.e.\ not from the
+file {\tt user} or a string), unify {\em File} with an absolute path to
+the file and {\em Line} with the line-number in the file. New code
+should use prolog_load_context/2.
+.C term_expansion 2 +Term1, -Term2
+Dynamic predicate, normally not defined.  When defined by the user all
+terms read during consulting that are given to this predicate.  If the
+predicate succeeds Prolog will assert {\em Term2} in the database rather
+then the read term ({\em Term1}).  {\em Term2} may be a term of a the
+form `?- {\em Goal}' or `:- {\em Goal}'.  {\em Goal} is then treated as
+a directive.  {\em Term2} may also be a list, in which case all terms of
+the list are stored in the database or called (for directives).  See
+also expand_term/2.
+.C expand_term 2 +Term1, -Term2
+This predicate is normally called by the compiler to perform preprocessing.
+First it calls term_expansion/2.  If this predicate fails it performs
+a grammar-rule translation.  If this fails it returns the first argument.
+.C at_initialization 1 +Goal
+Register {\em Goal} to be ran when the system initialises.
+Initialisation takes place after reloading a .qlf (formerly .wic) file
+as well as after reloading a saved-state.  The hooks are ran in the
+order they were registered.  A warning message is issued if {\em Goal}
+fails, but execution continues.  See also at_halt/1
+.C at_halt 1 +Goal
+Register {\em Goal} to be ran when the system halts. The hooks are ran
+in the order they were registered.  Success or failure executing a hook
+is ignored.  These hooks may not call halt/[0,1].
+.C initialization 1 +Goal
+Call {\em Goal} and register it using at_initialization/1.  Directives
+that do other things that creating clauses, records, flags or setting
+predicate attributes should normally be written using this tag to
+ensure the initialisation is executed when a saved system starts.
+See also qsave_program/[1,2].
+.C compiling 0
+Succeeds if the system is compiling source files with the \tty{-c}
+option into an intermediate code file.  Can be used to perform code
+optimisations in expand_term/2 under this condition.
+.C preprocessor 2 -Old, +New
+Read the input file via a Unix process that acts as preprocessor. A
+preprocessor is specified as an atom. The first occurrence of the string
+`\verb+%f+' is replaced by the name of the file to be loaded. The
+resulting atom is called as a Unix command and the standard output of
+this command is loaded. To use the Unix C preprocessor one should
+define:
+
+\begin{code}
+?- preprocessor(Old, '/lib/cpp -C -P %f'), consult(...).
+
+Old = none
+\end{code}
+.ED
+
+.SS Quick Load Files
+
+The features described in this section should be regarded {\bf alpha}.
+
+As of version 2.0.0, SWI-Prolog supports compilation of individual
+or multiple Prolog sourcefiles into `Quick Load Files'.  A `Quick
+Load Files' ({\tt .qlf} file) stores the contents of the file in
+a precompiled format very similar to compiled files created using
+the {\tt -b} and {\tt -c} flags (see section~\ref{compilation}).
+
+These files load considerably faster than sourcefiles and are normally
+more compact.  They are machine independent and may thus be loaded
+on any implementation of SWI-Prolog.  Note however that clauses are
+stored as virtual machine instructions.  Changes to the compiler will
+generally make old compiled files unusable.
+
+Quick Load Files are created using qcompile/1.  They may be loaded
+explicitely using qload/1 or implicitely using consult/1 or one
+of the other file-loading predicates described in
+section~\ref{sec:consulting}.  If consult is given the explicit
+{\tt .pl} file, it will load the Prolog source.  When given the
+{\tt .qlf} file, it will call qload/1 to load the file.  When no
+extension is specified, it will load the {\tt .qlf} file when present
+and the {\tt .pl} file otherwise.
+
+.BD
+.C qcompile 1 +File
+Takes a single file specification like consult/1 (i.e. accepts
+constructs like {\em library(LibFile)} and creates a Quick Load
+File from {\em File}.  The file-extension of this file is {\tt .qlf}.
+The base name of the Quick Load File is the same as the input file.
+
+If the file contains `:- consult(+File)' or `:- [+File]' statements,
+the referred files are compiled into the same .qlf file.  Other
+directives will be stored in the {\tt .qlf} file and executed in
+the same fashion as when loading the {\tt .pl} file.
+
+For term_expansion/2, the same rules as described in
+section~\ref{compilation} apply.
+
+Source references (source_file/2) in the Quick Load File refer to
+the Prolog source file from which the compiled code originates. 
+.C qload 1 +File
+Loads the `Quick Load File'.  It has the same semantics as consult/1
+for a normal sourcefile.  Equivalent to consult(File) iff {\em File}
+refers to a `Quick Load File'.
+.ED
+
+
+.S Listing Predicates and Editor Interface
+\label{listing}
+
+SWI-Prolog offers an interface to the Unix {\em vi} editor (vi(1)),
+Richard O'Keefe's {\em top} editor \cite{TOP:manual} and the GNU-EMACS
+invocations {\tt emacs} and {\tt emacsclient}.  Which editor is
+used is determined by the Unix environment variable \tty{EDITOR}, which
+should hold the full pathname of the editor.  If this variable is not
+defined, vi(1) is used.
+
+After the user quits the editor make/0 is invoked to reload all modified
+source files using consult/1.  If the editor can be quit such that an
+exit status non-equal to 0 is returned make/0 will not be invoked.  {\em
+top} can do this by typing control-C, {\em vi} cannot do this.
+
+A predicate specification is either a term with the same functor and arity
+as the predicate wanted, a term of the form \tty{Functor/Arity} or a
+single atom.  In the latter case the database is searched for a
+predicate of this name and arbitrary arity (see current_predicate/2).
+When more than one such predicate exists the system will prompt for
+confirmation on each of the matched predicates. Predicates specifications
+are given to the `Do What I Mean' system (see dwim_predicate/2) if the
+requested predicate does not exist.
+
+.BD
+.C ed 1 +Pred
+Invoke the user's preferred editor on the source file of {\em Pred}, 
+providing a search specification which searches for the predicate at
+the start of a line.
+.C ed 0
+Invoke ed/1 on the predicate last edited using ed/1.  Asks the user to
+confirm before starting the editor.
+.C edit 1 +File
+Invoke the user's preferred editor on {\em File}.  {\em File} is a file
+specification as for consult/1 (but not a list).  Note that the file
+should exist.
+.C edit 0
+Invoke edit/1 on the file last edited using edit/1.  Asks the user to
+confirm before starting the editor.
+.C listing 1 +Pred
+List specified predicates (when an atom is given all predicates with
+this name will be listed).  The listing is produced on the basis of the
+internal representation, thus loosing user's layout and variable name
+information.  See also portray_clause/1.
+.C listing 0
+List all predicates of the database using listing/1.
+.C portray_clause 1 +Clause
+Pretty print a clause as good as we can.  A clause should be specified
+as a term `\tty{Head :- Body}' (put brackets around it to avoid operator
+precedence problems).  Facts are represented as `\tty{Head :- true}'.
+.ED
+
+.S Verify Type of a Term
+
+.BD
+.C var 1 +Term
+Succeeds if {\em Term} currently is a free variable.
+.C nonvar 1 +Term
+Succeeds if {\em Term} currently is not a free variable.
+.C integer 1 +Term
+Succeeds if {\em Term} is bound to an integer.
+.C float 1 +Term
+Succeeds if {\em Term} is bound to a floating point number.
+.C number 1 +Term
+Succeeds if {\em Term} is bound to an integer or a floating point number.
+.C atom 1 +Term
+Succeeds if {\em Term} is bound to an atom.
+.C string 1 +Term
+Succeeds if {\em Term} is bound to a string.
+.C atomic 1 +Term
+Succeeds if {\em Term} is bound to an atom, string, integer or floating
+point number.
+.C compound 1 +Term
+Succeeds if {\em Term} is bound to a compound term.  See also functor/3
+and =../2.
+.C ground 1 +Term
+Succeeds if {\em Term} holds no free variables.
+.ED
+
+.S Comparison and Unification or Terms
+\label{sec:compare}
+
+\subsection{Standard Order of Terms}
+
+Comparison and unification of arbitrary terms. Terms are ordered in the
+so called ``standard order''. This order is defined as follows:
+
+\begin{enumerate}
+\setlength{\itemsep}{-2pt}
+    \item ${\it Variables} < {\it Atoms} < {\it Strings}%
+    \footnote{Strings might be considered atoms in future versions. See
+	      also section~\ref{sec:strings}}
+	  < {\it Numbers} < {\it Terms}$
+    \item $\it Old~Variable < New~Variable$%
+	\footnote{In fact the variables are compared on their (dereferenced)
+		  addresses. Variables living on the global stack are always
+		  $<$ than variables on the local stack.  Programs
+		  should not rely on the order in which variables are sorted.}
+    \item {\it Atoms} are compared alphabetically.
+    \item {\it Strings} are compared alphabetically.
+    \item {\it Numbers} are compared by value. Integers and floats are
+          treated identically.
+    \item {\it Terms} are first checked on their functor
+	  (alphabetically), then on their arity and finally recursively on
+	  their arguments, leftmost argument first.	
+\end{enumerate}
+
+.BD
+.IT +Term1 == +Term2
+Succeeds if {\em Term1} is equivalent to {\em Term2}. A variable is only
+identical to a sharing variable.
+.IT +Term1 \== +Term2
+Equivalent to `\verb"\+ Term1 == Term2"'.
+.IT +Term1 = +Term2
+Unify {\em Term1} with {\em Term2}. Succeeds if the unification succeeds.
+.IT +Term1 \= +Term2
+Equivalent to `\verb"\+ Term1 = Term2"'.
+.IT +Term1 =@= +Term2
+Succeeds if {\em Term1} is `structurally equal' to {\em Term2}.
+Structural equivalence is weaker than equivalence ({\tt ==}/2), but
+stronger than unification ({\tt =}/2).  Two terms are structurally equal if
+their tree representation is identical and they have the same `pattern'
+of variables.  Examples:
+
+\begin{quote}
+\begin{tabular}{r@{ \tt=@= }lc}
+\tt a		& \tt		A 	& false \\
+\tt A		& \tt		B	& true \\
+\tt x(A,A)	& \tt		x(B,C)	& false \\
+\tt x(A,A)	& \tt		x(B,B)	& true \\
+\tt x(A,B)	& \tt		x(C,D)	& true \\
+\end{tabular}
+\end{quote}
+.IT +Term1 \=@= +Term2
+Equivalent to \verb$`\+ Term1 =@= Term2'$.
+.IT +Term1 @< +Term2
+Succeeds if {\em Term1} is before {\em Term2} in the standard order of terms.
+.IT +Term1 @=< +Term2
+Succeeds if both terms are equal ({\tt ==}) or {\em Term1} is before {\em Term2} in
+the standard order of terms.
+.IT +Term1 @> +Term2
+Succeeds if {\em Term1} is after {\em Term2} in the standard order of terms.
+.IT +Term1 @>= +Term2
+Succeeds if both terms are equal ({\tt ==}) or {\em Term1} is after {\em Term2} in
+the standard order of terms.
+.ED
+
+.S Control Predicates
+
+The predicates of this section implement control structures.  Normally
+these constructs are translated into virtual machine instructions by
+the compiler.  It is still necessary to implement these constructs
+as true predicates to support meta-calls, as demonstrated in the
+example below. The predicate finds all currently defined atoms of 1
+character long. Note that the cut has no effect when called via one
+of these predicates (see !/0).
+
+\begin{code}
+one_character_atoms(As) :-
+	findall(A, (current_atom(A), atom_length(A, 1)), As).
+\end{code}
+
+.BD
+.C fail 0
+Always fail.  The predicate fail/0 is translated into a single virtual
+machine instruction.
+.C true 0
+Always succeed. The predicate true/0 is translated into a single virtual
+machine instruction.
+.C repeat 0
+Always succeed, provide an infinite number of choice points.
+.C ! 0
+Cut.  Discard choice points of parent frame and frames created after the
+parent frame.  Note that the control structures \verb";/2", \verb"|/2"
+\verb"->/2" and \verb"\+/1" are normally handled by the compiler and do
+not create a frame, which implies the cut operates through these
+predicates.  Some examples are given below.  Note the difference between
+t3/1 and t4/1.  Also note the effect of call/1 in t5/0.  As the argument
+of call/1 is evaluated by predicates rather than the compiler the cut
+has no effect.
+
+\begin{center}\begin{tabular}{ll}
+\tt t1 :- (a, !, fail ; b).          & \% cuts a/0 and t1/0 \\
+\tt t2 :- (a -> b, ! ; c).           & \% cuts b/0 and t2/0 \\
+\tt t3(G) :- a, G, fail.	     & \% if `G = !' cuts a/0 and t1/1 \\
+\tt t4(G) :- a, call(G), fail.       & \% if `G = !' cut has no effect \\
+\tt t5 :- call((a, !, fail ; b)).    & \% Cut has no effect \\
+\tt t6 :- \verb$\+$ (a, !, fail ; b).& \% cuts a/0 and t6/0 \\
+\end{tabular}\end{center}
+.I +Goal1 , +Goal2
+Conjunction.  Succeeds if both `Goal1' and `Goal2' can be proved.  It is
+defined as (this definition does not lead to a loop as the second comma
+is handled by the compiler):
+\begin{code}
+Goal1, Goal2 :- Goal1, Goal2.
+\end{code}
+.I +Goal1 ; +Goal2
+The `or' predicate is defined as:
+\begin{code}
+Goal1 ; _Goal2 :- Goal1.
+_Goal1 ; Goal2 :- Goal2.
+\end{code}
+.IT +Goal1 | +Goal2
+Equivalent to \tty{;/2}.  Retained for compatibility only.  New code
+should use \verb$;/2$. Still nice though for grammar rules.
+.IT +Condition -> +Action
+If-then and If-Then-Else. Implemented as:
+\begin{code}
+If -> Then; _Else :- If, !, Then.
+If -> _Then; Else :- !, Else.
+If -> Then :- If, !, Then.
+\end{code}
+.PT \+ +Goal
+Succeeds if `Goal' cannot be proven (mnemnonic: + refers to {\em provable}
+and the backslash is normally used to indicate negation).
+.ED
+
+.S Meta-Call Predicates
+\label{sec:metacall}
+
+Meta call predicates are used to call terms constructed at run time.
+The basic meta-call mechanism offered by SWI-Prolog is to use
+variables as a subclause (which should of course be bound to a valid
+goal at runtime).  A meta-call is slower than a normal call as it
+involves actually searching the database at runtime for the predicate,
+while for normal calls this search is done at compile time.
+
+.BD
+.C call 1 +Goal
+Invoke {\em Goal} as a goal. Note that clauses may have variables as
+subclauses, which is identical to call/1, except when the argument is
+bound to the cut. See !/0.
+.C call [2..] +Goal, +ExtraArg1, ...
+Append {\em ExtraArg1, ExtraArg2, ...} to the argument list of {\em
+Goal} and call the result.  For example, \tty{call(plus(1), 2, X)}
+will call plus/3, binding {\em X} to 3.
+ 
+The call/[2..] construct is handled by the compiler, which implies that
+redefinition as a predicate has no effect.  The predicates call/[2-6]
+are defined as true predicates, so they can be handled by interpreted
+code.
+.C apply 2 +Term, +List
+Append the members of {\em List} to the arguments of {\em Term} and call the
+resulting term. For example: `\tty{apply(plus(1), [2, X])}' will call
+`\tty{plus(1, 2, X)}'. Apply/2 is incorporated in the virtual machine of
+SWI-Prolog. This implies that the overhead can be compared to the
+overhead of call/1.
+.P not +Goal
+Succeeds when {\em Goal} cannot be proven.  Retained for compatibility
+only. New code should use \verb$\+/1$.
+.C once 1 +Goal
+Defined as:
+\begin{code}
+once(Goal) :-
+	Goal, !.
+\end{code}
+Once/1 can in many cases be replaced with \verb$->/2$. The only
+difference is how the cut behaves (see !/0). The following two clauses
+are identical:
+\begin{code}
+1) a :- once((b, c)), d.
+2) a :- b, c -> d.
+\end{code}
+.C ignore 1 +Goal
+Calls {\em Goal} as once/1, but succeeds, regardless of whether {\em
+Goal} succeeded or not.  Defined as:
+\begin{code}
+ignore(Goal) :-
+	Goal, !.
+ignore(_).
+\end{code}
+.ED
+
+.S Advanced control-structures: blocks
+
+\index{exception-handling}
+The predicates of this section form a tightly related set for
+realising premature successfull or failing exits from a {\em block}.
+These predicates are first of all useful for error-recovery.  They
+were primarily implemented for compatibily reasons.
+
+.BD
+.C block 3 +Label, +Goal, -ExitValue
+Execute {\em Goal} in a {\em block}.  {\em Label} is the name of the
+block.  {\em Label} is normally an atom, but the system imposes
+no type constraints and may even be a variable.  {\em ExitValue}
+is normally unified to the second argument of an exit/2 call
+invoked by {\em Goal}.
+.C exit 2 +Label, +Value
+Calling exit/2 makes the innermost {\em block} which {\em Label}
+unifies exit.  The block's {\em ExitValue} is unified with {\em
+Value}.  If this unification fails the block fails.
+.C fail 1 +Label
+Calling fail/1 makes the innermost {\em block} which {\em Label}
+unifies fail immediately.  Implemented as
+\begin{code}
+fail(Label) :- !(Label), fail.
+\end{code}
+.C ! 1 +Label
+Cut all choice-points created since the entry of the innermost
+{\em block} which {\em Label} unifies.
+.ED
+
+The example below illustrate these constructs to immediately report a
+syntax-error from a `deep-down' procedure to the outside world without
+passing it as an argument `all-over-the-place'.
+
+\begin{boxed}
+\begin{code}
+parse(RuleSet, InputList, Rest) :-
+	block(syntaxerror, phrase(RuleSet, InputList, Rest), Error),
+	(   var(Error)
+	->  true
+	;   format('Syntax-error: ~w~n', Error),
+	    fail
+	).
+
+integer(N) -->
+	digit(D1), !, digits(Ds),
+	{ name(N, [D1|Ds]) }.
+
+digits([D|R]) --> digit(D), digits(R).
+digits(_) --> letter(_), !, { exit(syntaxerror, 'Illegal number') }.
+digits([]) --> [].
+
+digit(D, [D|R], R)  :- between(0'0, 0'9, D).
+letter(D, [D|R], R) :- between(0'a, 0'z, D).
+\end{code}
+\end{boxed}
+
+.S Grammar rule interface (phrase)
+
+The predicates below may be called to activate a grammar-rule set:
+
+.BD
+.C phrase 2 +RuleSet, +InputList
+Equivalent to phrase(RuleSet, InputList, []).
+.C phrase 3 +RuleSet, +InputList, -Rest
+Activate the rule-set with given name.  `InputList' is the list of tokens
+to parse, `Rest' is unified with the remaining tokens if the sentence is
+parsed correctly.
+.ED
+
+
+.S Database
+
+SWI-Prolog offers three different database mechanisms. The first one is
+the common assert/retract mechanism for manipulating the clause
+database. As facts and clauses asserted using assert/1 or one of it's
+derivates become part of the program these predicates compile the term
+given to them. Retract/1 and retractall/1 have to unify a term and
+therefore have to decompile the program. For these reasons the
+assert/retract mechanism is expensive. On the other hand, once compiled, 
+queries to the database are faster than querying the recorded database
+discussed below.  See also dynamic/1.
+
+The second way of storing arbitrary terms in the database is using the
+``recorded database''. In this database terms are associated with a
+{\em key}. A key can be an atom, integer or term. In the last case
+only the functor and arity determine the key. Each key has a chain of
+terms associated with it. New terms can be added either at the head or
+at the tail of this chain. This mechanism is considerably faster than
+the assert/retract mechanism as terms are not compiled, but just copied
+into the heap.
+
+The third mechanism is a special purpose one.  It associates an integer
+or atom with a key, which is an atom, integer or term.  Each key can
+only have one atom or integer associated with it.  It again is
+considerably faster than the mechanisms described above, but can only be
+used to store simple status information like counters, etc.
+
+.BD
+.C abolish 2 +Functor, +Arity
+Removes all clauses of a predicate with functor {\em Functor} and arity
+{\em Arity} from the database.  Unlike version 1.2, all predicate attributes
+(dynamic, multifile, index, etc.) are reset to their defaults.  Abolishing
+an imported predicate only removes the import link; the predicate
+will keep its old definition in its definition module.  For `cleanup' of
+the dynamic database, one should use retractall/1 rather than abolish/2.
+.C redefine_system_predicate 1 +Head
+This directive may be used both in module {\tt user} and in normal
+modules to redefine any system predicate.  If the system definition is
+redefined in module {\tt user}, the new definition is the default
+definition for all sub-modules.  Otherwise the redefinition is local
+to the module.  The system definition remains in the module {\tt
+system}.
+
+Redefining system predicate facilates the definition of compatibility
+packages.  Use in other context is discouraged.
+.C retract 1 +Term
+When {\em Term} is an atom or a term it is unified with the first unifying fact
+or clause in the database. The fact or clause is removed from the database.
+.C retractall 1 +Head
+Allfacts or clauses in the database for which the {\em head}
+unifies with {\em Head} are removed.%
+    \footnote{Note that the definition has changed since version 2.0.6.
+	      See release notes.}
+.C assert 1 +Term
+Assert a fact or clause in the database. {\em Term} is asserted as the last
+fact or clause of the corresponding predicate.
+.C asserta 1 +Term
+Equivalent to assert/1, but {\em Term} is asserted as first clause or fact
+of the predicate.
+.C assertz 1 +Term
+Equivalent to assert/1.
+.C assert 2 +Term, -Reference
+Equivalent to assert/1, but {\em Reference} is unified with a unique
+reference to the asserted clause. This key can later be used with
+clause/3 or erase/1.
+.C asserta 2 +Term, -Reference
+Equivalent to assert/2, but {\em Term} is asserted as first clause or fact
+of the predicate.
+.C assertz 2 +Term, -Reference
+Equivalent to assert/2.
+.C recorda 3 +Key, +Term, -Reference
+Assert {\em Term} in the recorded database under key {\em Key}. {\em Key} is an
+integer, atom or term. {\em Reference} is unified with a unique reference
+to the record (see erase/1).
+.C recorda 2 +Key, +Term
+Equivalent to \tty{recorda(Key, Value, _)}.
+.C recordz 3 +Key, +Term, -Reference
+Equivalent to recorda/3, but puts the {\em Term} at the tail of the terms
+recorded under {\em Key}.
+.C recordz 2 +Key, +Term
+Equivalent to \tty{recordz(Key, Value, _)}.
+.C recorded 3 +Key, -Value, -Reference
+Unify {\em Value} with the first term recorded under {\em Key} which does
+unify. {\em Reference} is unified with the memory location of the record.
+.C recorded 2 +Key, -Value
+Equivalent to \tty{recorded(Key, Value, _)}.
+.C erase 1 +Reference
+Erase a record or clause from the database.  {\em Reference} is an
+integer returned by recorda/3 or recorded/3, clause/3, assert/2,
+asserta/2 or assertz/2.  Other integers might conflict with the internal
+consistency of the system.  Erase can only be called once on a record or
+clause.  A second call also might conflict with the internal consistency
+of the system.%
+\bug{The system should have a special type for pointers, thus avoiding
+the Prolog user having to worry about consistency matters. Currently some
+simple heuristics are used to determine whether a reference is valid.}
+.C flag 3 +Key, -Old, +New
+{\em Key} is an atom, integer or term.  Unify {\em Old} with the old
+value associated with {\em Key}.  If the key is used for the first time
+{\em Old} is unified with the integer 0.  Then store the value of {\em
+New}, which should be an integer, atom or arithmetic integer
+expression, under {\em Key}.  flag/3 is a very fast mechanism for
+storing simple facts in the database.  Example:
+\begin{code}
+:- module_transparent succeeds_n_times/2.
+
+succeeds_n_times(Goal, Times) :-
+	flag(succeeds_n_times, _, 0),
+	Goal,
+	flag(succeeds_n_times, N, N+1),
+	fail ; flag(succeeds_n_times, Times, Times).
+\end{code}
+.ED
+
+.SS Indexing databases
+
+By default, SWI-Prolog, as most other implementations, indexes
+predicates on their first argument.  SWI-Prolog allows indexing
+on other and multiple arguments using the declaration index/1.
+
+For advanced database indexing, it defines hash_term/2:
+
+.BD
+.C hash_term 2 +Term, -HashKey
+If {\em Term} is a ground term (see ground/1), {\em HashKey} is
+unified with a positive integer value that may be used as a hash-key
+to the value.  If {\em Term} is not ground, the predicate succeeds
+immediately, leaving {\em HashKey} an unbound variable.
+
+This predicate may be used to build hash-tables as well as to exploit
+argument-indexing to find complex terms more quickly.
+
+The hash-key does not rely on temporary information like addresses of
+atoms and may be assumed constant over different invokations of
+SWI-Prolog.
+.ED
+
+
+.S Declaring Properties of Predicates
+\label{ch:dynamic}
+\label{sec:declare}
+
+This section describes directives which manipulate attributes of
+predicate definitions.  The functors dynamic/1, multifile/1 and
+discontiguous/1 are operators of priority 1150 (see op/3), which
+implies the list of predicates they involve can just be a comma
+separated list: 
+
+\begin{code}
+:- dynamic
+        foo/0, 
+        baz/2.
+\end{code}
+
+On SWI-Prolog all these directives are just predicates. This implies
+they can also be called by a program.  Do not rely on this feature if
+you want to maintain portability to other Prolog implementations.
+
+.BD
+.P dynamic +Functor/+Arity, ...
+Informs the interpreter that the definition of the predicate(s) may change
+during execution (using assert/1 and/or retract/1).  Currently dynamic/1
+only stops the interpreter from complaining about undefined predicates (see
+unknown/2).  Future releases might prohibit assert/1 and retract/1 for
+not-dynamic declared procedures.
+.P multifile +Functor/+Arity, ...
+Informs the system that the specified predicate(s) may be defined over
+more than one file. This stops consult/1 from redefining a predicate
+when a new definition is found.
+.P discontiguous +Functor/+Arity, ...
+Informs the system that the clauses of the specified predicate(s) might
+not be together in the source file.  See also style_check/1.
+.C index 1 +Head
+Index the clauses of the predicate with the same name and arity as {\em
+Head} on the specified arguments. {\em Head} is a term of which all
+arguments are either `1' (denoting `index this argument') or `0'
+(denoting `do not index this argument'). Indexing has no implications
+for the semantics of a predicate, only on its performance. If indexing
+is enabled on a predicate a special purpose algorithm is used to select
+candidate clauses based on the actual arguments of the goal. This
+algorithm checks whether indexed arguments might unify in the clause
+head. Only atoms, integers and functors (e.g. name and arity of a term)
+are considered. Indexing is very useful for predicates with many
+clauses representing facts.
+
+Due to the representation technique used at most 4 arguments can be
+indexed. All indexed arguments should  be in the first 32 arguments of
+the predicate. If more than 4 arguments are specified for indexing only
+the first 4 will be accepted. Arguments above 32 are ignored for indexing.
+
+By default all predicates with ${\rm arity} \ge 1$ are indexed on their
+first argument.  It is possible to redefine indexing on predicates that
+already have clauses attached to them.  This will initiate a scan
+through the predicate's clause list to update the index summary
+information stored with each clause.
+
+If --for example-- one wants to represents sub-types using a fact list
+\mbox{`sub_type(Sub, Super)'} that should be used both to determine sub- and
+super types one should declare sub_type/2 as follows:
+\begin{boxed}
+\begin{code}
+:- index(sub_type(1, 1)).
+
+sub_type(horse, animal).
+...
+...
+\end{code}
+\end{boxed}
+.ED
+
+.S Examining the Program
+
+.BD
+.C current_atom 1 -Atom
+Successively unifies {\em Atom} with all atoms known to the system.
+Note that current_atom/1 always succeeds if {\em Atom} is intantiated to
+an atom.
+.C current_functor 1 ?Name, ?Arity
+Successively unifies {\em Name} with the name and {\em Arity} with the
+arity of functors known to the system.
+.C current_flag 1 -FlagKey
+Successively unifies {\em FlagKey} with all keys used for flags (see
+flag/3).
+.C current_key 1 -Key
+Successively unifies {\em Key} with all keys used for records (see
+recorda/3, etc.).
+.C current_predicate 2 ?Name, ?Head
+Successively unifies {\em Name} with the name of predicates currently
+defined and {\em Head} with the most general term built from {\em
+Name} and the arity of the predicate.  This predicate succeeds for all
+predicates defined in the specified module, imported to it, or in one
+of the modules from which the predicate will be imported if it is
+called.
+.C predicate_property 2 ?Head, ?Property
+Succeeds if {\em Head} refers to a predicate that has property {\em
+Property}. Can be used to test whether a predicate has a certain
+property, obtain all properties known for {\em Head}, find all
+predicates having {\em property} or even obtaining all information
+available about the current program. {\em Property} is one of:
+
+\begin{description}
+    \item[interpreted]\mbox{}\\
+Is true if the predicate is defined in Prolog. We return true on this
+because, although the code is actually compiled, it is completely
+transparent, just like interpreted code.
+    \item[built_in]\mbox{}\\
+Is true if the predicate is locked as a built-in predicate. This
+implies it cannot be redefined in it's definition module and it can
+normally not be seen in the tracer.
+    \item[foreign]\mbox{}\\
+Is true if the predicate is defined in the C language.
+    \item[dynamic]\mbox{}\\
+Is true if the predicate is declared dynamic using the dynamic/1
+declaration.
+    \item[multifile]\mbox{}\\
+Is true if the predicate is declared multifile using the multifile/1
+declaration.
+    \item[undefined]\mbox{}\\
+Is true if a procedure definition block for the predicate exists, 
+but there are no clauses in it and it is not declared dynamic. This is
+true if the predicate occurs in the body of a loaded predicate, an
+attempt to call it has been made via one of the meta-call predicates or
+the predicate had a definition in the past.  See the library package
+{\em check} for example usage.
+    \item[transparent]\mbox{}\\
+Is true if the predicate is declared transparent using the
+module_transparent/1 declaration.
+    \item[exported]\mbox{}\\
+Is true if the predicate is in the public list of the context module.
+    \item[imported_from({\em Module})]\mbox{}\\
+Is true if the predicate is imported into the context module from
+module {\em Module}.
+    \item[indexed({\em Head})]\mbox{}\\
+Predicate is indexed (see index/1) according to {\em Head}. {\em Head}
+is a term whose name and arity are identical to the predicate. The
+arguments are unified with `1' for indexed arguments, `0' otherwise.
+    \item[file({\em FileName})]\mbox{}\\
+Unify {\em FileName} with the name of the sourcefile in which the
+predicate is defined.  See also source_file/2.
+    \item[line_count({\em LineNumber})]\mbox{}\\
+Unify {\em LineNumber} with the line number of the first clause of the
+predicate.  Fails if the predicate is not associated with a file.  See
+also source_file/2.
+\end{description}
+.C dwim_predicate 2 +Term, -Dwim
+`Do What I Mean' (`dwim') support predicate. {\em Term} is a term, 
+which name and arity are used as a predicate specification.  {\em Dwim}
+is instantiated with the most general term built from {\em Name} and the
+arity of a defined predicate that matches the predicate specified by
+{\em Term} in the `Do What I Mean' sence.  See dwim_match/2 for `Do
+What I Mean' string matching.  Internal system predicates are
+not generated, unless \mbox{style_check(+dollar)} is active.  Backtracking
+provides all alternative matches.
+.C clause 2 ?Head, ?Body
+Succeeds when {\em Head} can be unified with a clause head and {\em
+Body} with the corresponding clause body.  Gives alternative clauses on
+backtracking.  For facts {\em Body} is unified with the atom {\em true}.
+Normally clause/2 is used to find clause definitions for a predicate, but it
+can also be used to find clause heads for some body template.
+.C clause 3 ?Head, ?Body, ?Reference
+Equivalent to clause/2, but unifies {\em Reference} with a unique reference to
+the clause (see also assert/2, erase/1). If {\em Reference} is instantiated
+to a reference the clause's head and body will be unified with {\em
+Head} and {\em Body}.
+.C nth_clause 3 ?Pred, ?Index, ?Reference
+Provides access to the clauses of a predicate using their index number.
+Counting starts at 1.  If {\em Reference} is specified it unifies {\em Pred}
+with the most general term with the same name/arity as the predicate and
+{\em Index} with the index-number of the clause.  Otherwise the name and
+arity of {\em Pred} are used to determine the predicate.  If {\em Index}
+is provided {\em Reference} will be unified with the clause reference.
+If {\em Index} is unbound, backtracking will yield both the indices and
+the references of all clauses of the predicate.  The following example
+finds the 2nd clause of member/2:
+
+\begin{code}
+?- nth_clause(member(_,_), 2, Ref), clause(Head, Body, Ref).
+
+Ref = 160088
+Head = system : member(G575, [G578|G579]) 
+Body = member(G575, G579)
+\end{code}
+.C clause_property 2 +ClauseRef, -Property
+Queries properties of a clause.  {\em ClauseRef} is a reference to a
+clause as produced by clause/3, nth_clause/3 or prolog_frame_attribute/3.
+{\em Property} is one of the following:
+\begin{description}
+    \item[file({\em FileName})]\mbox{}\\
+Unify {\em FileName} with the name of the sourcefile in which the
+clause is defined.   Fails if the clause is not associated to a file.
+    \item[line_count({\em LineNumber})]\mbox{}\\
+Unify {\em LineNumber} with the line number of the clause.  Fails if
+the clause is not associated to a file.
+\end{description}
+.ED
+
+.S Input and Output
+
+SWI-Prolog provides two different packages for input and output.  One
+confirms to the Edinburgh standard.  This package has a notion of
+`current-input' and `current-output'.  The reading and writing
+predicates implicitely refer to these streams.  In the second package,
+streams are opened explicitely and the resulting handle is used as
+an argument to the reading and writing predicate to specify the source
+or destination.  Both packages are fully integrated; the user may
+switch freely between them.
+
+.SS Input and Output Using Implicit Source and Destination
+
+The package for implicit input and output destination is upwards
+compatible to DEC-10 and C-Prolog.  The reading and writing predicates
+refer to resp.  the current input- and output stream.  Initially these
+streams are connected to the terminal.  The current output stream is
+changed using tell/1 or append/1.  The current input stream is changed
+using see/1.  The stream's current value can be obtained using telling/1
+for output- and seeing/1 for input streams.  The table below shows the
+valid stream specifications.  The reserved names \tty{user_input},
+\tty{user_output} and \tty{user_error} are for neat integration with
+the explicit streams.
+
+\begin{center}
+\begin{tabular}{|l|p{3in}|}
+\hline
+\tt user		& This reserved name refers to the terminal \\
+\tt user_input		& Input from the terminal \\
+\tt user_output		& Output to the terminal \\
+\tt stderr or user_error& Unix error stream (output only) \\
+\em Atom		& Name of a Unix file \\
+\tt pipe({\em Atom})	& Name of a Unix command \\
+\hline
+\end{tabular}
+\end{center}
+
+Source and destination are either a file, one of the reserved words
+above, or a term `pipe({\em Command})'.  In the predicate descriptions
+below we will call the source/destination argument `{\em SrcDest}'.
+Below are some examples of source/destination specifications.
+
+\begin{center}\begin{tabular}{ll}
+\tt ?- see(data).	& \% Start reading from file `data'. \\
+\tt ?- tell(stderr).	& \% Start writing on the error stream. \\
+\tt ?- tell(pipe(lpr)).	& \% Start writing to the printer.
+\end{tabular}\end{center}
+
+Another example of using the pipe/1 construct is shown on in
+figure~\ref{fig:getwd}.  Note that the pipe/1 construct is not part of
+Prolog's standard I/O reportoire.
+
+\begin{figure}
+\begin{boxed}\begin{code}
+getwd(Wd) :-
+	seeing(Old), see(pipe(pwd)), 
+	collect_wd(String), 
+	seen, see(Old), 
+	name(Wd, String).
+
+collect_wd([C|R]) :-
+	get0(C), C \== -1, !, 
+	collect_wd(R).
+collect_wd([]).
+\end{code}\end{boxed}
+    \caption{Get the working directory}
+    \label{fig:getwd}
+\end{figure}
+
+.BD
+.C see 1 +SrcDest
+Make {\em SrcDest} the current input stream.  If {\em SrcDest} was already opened for
+reading with see/1 and has not been closed since, reading will be
+resumed.  Otherwise {\em SrcDest} will be opened and the file pointer is
+positioned at the start of the file.
+.C tell 1 +SrcDest
+Make {\em SrcDest} the current output stream.  If {\em SrcDest} was already opened for
+writing with tell/1 or append/1 and has not been closed since, writing
+will be resumed.  Otherwise the file is created or --when existing--
+truncated. See also append/1.
+.C append 1 +File
+Similar to tell/1, but positions the file pointer at the end of {\em File}
+rather than truncating an existing file. The pipe construct is not
+accepted by this predicate.
+.C seeing 1 ?SrcDest
+Unify the name of the current input stream with {\em SrcDest}.
+.C telling 1 ?SrcDest
+Unify the name of the current output stream with {\em SrcDest}.
+.C seen 0
+Close the current input stream. The new input stream becomes
+{\em user}.
+.C told 0
+Close the current output stream. The new output stream becomes
+{\em user}.
+.ED
+
+.SS Explicit Input and Output Streams
+
+The predicates below are part of the Quintus compatible stream-based
+I/O package.  In this package streams are explicitely created using the
+predicate open/3.  The resulting stream identifier is then passed as a
+parameter to the reading and writing predicates to specify the source
+or destination of the data.
+
+.BD
+.C open 3 +SrcDest, +Mode, ?Stream
+{\em SrcDest} is either an atom, specifying a Unix file, or a term
+`pipe({\em Command})', just like see/1 and tell/1.  {\em Mode} is one
+of \tty{read}, \tty{write} or \tty{append}.  {\em Stream} is either a
+variable, in which case it is bound to a small integer identifying the
+stream, or an atom, in which case this atom will be the stream
+indentifier.  In the latter case the atom cannot be an already existing
+stream identifier.  Examples:
+
+\begin{center}\begin{tabular}{ll}
+\tt ?- open(data, read, Stream). 	& \% Open `data' for reading. \\
+\tt ?- open(pipe(lpr), write, printer).	& \% `printer' is a stream to `lpr'. \\
+\end{tabular}\end{center}
+.C open_null_stream 1 ?Stream
+On Unix systems, this is  equivalent  to  \tty{open('/dev/null',  write,
+Stream)}.   Characters  written  to this stream are lost, but the stream
+information (see character_count/2, etc.) is maintained.
+.C close 1 +Stream
+Close the specified stream.  If {\em Stream} is not open an error
+message is displayed.  If the closed stream is the current input or
+output stream the terminal is made the current input or output.
+.C current_stream 3 ?File, ?Mode, ?Stream
+Is true if a stream with file specification {\em File}, mode {\em Mode}
+and stream identifier {\em Stream} is open.  The reserved streams {\em
+user} and {\em user_error} are not generated by this predicate.  If a
+stream has been opened with mode \tty{append} this predicate will
+generate mode {\em write}.
+.C stream_position 3 +Stream, -Old, +New
+Unify the position parameters of {\em Stream} with {\em Old} and set them to
+{\em New}.  A position is represented by the following term:
+\begin{code}
+'$stream_position'(CharNo, LineNo, LinePos).
+\end{code}
+It is only possible to change the position parameters if the stream is
+connected to a disk file. If the position is changed, the {\em CharNo}
+field determines the new position in the file.  The {\em LineNo} and
+{\em LinePos} are copied in the stream administration.
+.ED
+
+.SS Switching Between Implicit and Explicit I/O
+
+The predicates below can be used for switching between the implicit-
+and the explicit stream based I/O predicates.
+
+.BD
+.C set_input 1 +Stream
+Set the current input stream to become {\em Stream}.  Thus, open(file,
+read, Stream), set_input(Stream) is equivalent to see(file).
+.C set_output 1 +Stream
+Set the current output stream to become {\em Stream}.
+.C current_input 1 -Stream
+Get the current input stream.  Useful to get access to the status
+predicates associated with streams.
+.C current_output 1 -Stream
+Get the current output stream.
+.ED
+
+.S Status of Input and Output Streams
+
+.BD
+.C wait_for_input 3 +ListOfStreams, -ReadyList, +TimeOut
+Wait for input on one of the streams in {\em ListOfStreams} and return
+a list of streams on which input is available in {\em ReadyList}.
+wait_for_input/3 waits for at most {\em TimeOut} seconds.  {\em
+Timeout} may be specified as a floating point number to specify
+fractions of a second. If {\em Timeout} equals 0, wait_for_input/3
+waits indefinetely.  This predicate can be used to implement
+timeout while reading and to handle input from multiple sources. The
+following example will wait for input from the user and an
+explicitely opened second terminal.  On return, {\em Inputs} may hold
+\tty{user} or {\em P4} or both.
+
+\begin{code}
+?- open('/dev/ttyp4', read, P4),
+   wait_for_input([user, P4], Inputs, 0).
+\end{code}
+
+.C character_count 2 +Stream, -Count
+Unify {\em Count} with the current character index.  For input streams
+this is the number of characters read since the open, for output
+streams this is the number of characters written. Counting starts at 0.
+.C line_count 2 +Stream, -Count
+Unify {\em Count} with the number of lines read or written.  Counting
+starts at 1.
+.C line_position 2 +Stream, -Count
+Unify {\em Count} with the position on the current line. Note that this
+assumes the position is 0 after the open.  Tabs are assumed to be
+defined on each 8-th character and backspaces are assumed to reduce the
+count by one, provided it is positive.
+.C fileerrors 2 -Old, +New
+Define error behaviour on errors when opening a file for reading or
+writing. Valid values are the atoms \tty{on} (default) and \tty{off}.
+First {\em Old} is unified with the current value. Then the new value is
+set to {\em New}.%
+    \footnote{Note that Edinburgh Prolog defines fileerrors/0 and
+	      nofileerrors/0.  As this does not allow you to switch back
+	      to the old mode I think this definition is better.}
+.ED
+
+.S Primitive Character Input and Output
+
+.BD
+.C nl 0
+Write a newline character to the current output stream.  On Unix systems
+{\em nl/0} is equivalent to \tty{put(10)}.
+.C nl 1 +Stream
+Write a newline to {\em Stream}.
+.C put 1 +Char
+Write {\em Char} to the current output stream, {\em Char} is either an
+integer-expression evaluating to an ASCII value ($0 \leq {\em Char}
+\leq 255$) or an atom of one character.
+.C put 2 +Stream, +Char
+Write {\em Char} to {\em Stream}.
+.C tab 1 +Amount
+Writes {\em Amount} spaces on the current output stream.  {\em Amount}
+should be an expression that evaluates to a positive integer (see
+section~\ref{sec:arith}).
+.C tab 2 +Stream, +Amount
+Writes {\em Amount} spaces to {\em Stream}.
+.C flush 0
+Flush pending output on current output stream.  flush/0 is automatically
+generated by read/1 and derivates if the current input stream is {\em
+user} and the cursor is not at the left margin.
+.C flush_output 1 +Stream
+Flush output on the specified stream.  The stream must be open for
+writing.
+.C ttyflush 0
+Flush pending output on stream {\em user}. See also flush/0.
+.C get0 1 -Char
+Read the current input stream and unify the next character with {\em Char}.
+{\em Char} is unified with -1 on end of file.
+.C get0 2 +Stream, -Char
+Read the next character from {\em Stream}.
+.C get 1 -Char
+Read the current input stream and unify the next non-blank character
+with {\em Char}. {\em Char} is unified with -1 on end of file.
+.C get 2 +Stream, -Char
+Read the next non-blank character from {\em Stream}.
+.C skip 1 +Char
+Read the input until {\em Char} or the end of the file is encountered.
+A subsequent call to get0/1 will read the first character after {\em
+Char}.
+.C skip 2 +Stream, +Char
+Skip input (as skip/1) on {\em Stream}.
+.C get_single_char 1 -Char
+Get a single character from input stream `user' (regardless of the
+current input stream). Unlike get0/1 this predicate does not wait for a
+return. The character is not echoed to the user's terminal. This
+predicate is meant for keyboard menu selection etc.. If SWI-Prolog was
+started with the \verb$-tty$ flag this predicate reads an entire line of
+input and returns the first non-blank character on this line, or the
+ASCII code of the newline (10) if the entire line consisted of blank
+characters.
+.ED
+
+.S Term Reading and Writing
+
+.BD
+.C display 1 +Term
+Write {\em Term} on the current output stream using standard
+parenthesised prefix notation (i.e. ignoring operator declarations).
+Display is normally used to examine the internal representation for
+terms holding operators.
+.C display 2 +Stream, +Term
+Display {\em Term} on {\em Stream}.
+.C displayq 1 +Term
+Write {\em Term} on the current output stream using standard
+parenthesised prefix notation (i.e. ignoring operator declarations).
+Atoms that need quotes are quoted.  Terms written with this predicate
+can always be read back, regardless of current operator declarations.
+.C displayq 2 +Stream, +Term
+Display {\em Term} on {\em Stream}.  Equivalent to Quintus
+write_canonical/2.
+.C write 1 +Term
+Write {\em Term} to the current output, using brackets and operators where
+appropriate.
+.C write 2 +Stream, +Term
+Write {\em Term} to {\em Stream}.
+.C writeq 1 +Term
+Write {\em Term} to the current output, using brackets and operators where
+appropriate. Atoms that need quotes are quoted. Terms written with this
+predicate can be read back with read/1 provided the currently active
+operator declarations are identical.
+.C writeq 2 +Stream, +Term
+Write {\em Term} to {\em Stream}, inserting quotes.
+.C print 1 +Term
+Prints {\em Term} on the current output stream similar to write/1, 
+but for each (sub)term of {\em Term} first the dynamic predicate
+portray/1 is called.  If this predicate succeeds {\em print} assumes the
+(sub)term has been written.  This allows for user defined term writing.
+.C print 2 +Stream, +Term
+Print {\em Term} to {\em Stream}.
+.C portray 1 +Term
+A dynamic predicate, which can be defined by the user to change the
+behaviour of print/1 on (sub)terms.  For each subterm encountered that
+is not a variable print/1 first calls portray/1 using the term as
+argument.  For lists only the list as a whole is given to portray/1.  If
+portray succeeds print/1 assumes the term has been written.
+.C read 1 -Term
+Read the next Prolog term from the current input stream and unify it
+with {\em Term}.  On a syntax error read/1 displays an error message, 
+attempts to skip the erroneous term and fails.  On reaching end-of-file
+{\em Term} is unified with the atom \verb+end_of_file+.
+.C read 2 +Stream, -Term
+Read {\em Term} from {\em Stream}.
+.C read_clause 1 -Term
+Equivalent to read/1, but warns the user for variables only occurring
+once in a term (singleton variables) which do not start with an
+underscore if \tty{style_check(singleton)} is active (default).
+Used to read Prolog source files (see consult/1).
+.C read_clause 2 +Stream, -Term
+Read a clause from {\em Stream}.
+.C read_variables 2 -Term, -Bindings
+Similar to read/1, but {\em Bindings} is unified with a list of
+`${\it Name} = {\it Var}$' tuples, thus providing access to the actual
+variable names.
+.C read_variables 3 +Stream, -Term, -Bindings
+Read, returning term and bindings from {\em Stream}.
+.C read_history 6 +Show, +Help, +Special, +Prompt, -Term, -Bindings
+Similar to read_variables/2, but allows for history substitutions.
+history_read/6 is used by the top level to read the user's actions.
+{\em Show} is the command the user should type to show the saved events.
+{\em Help} is the command to get an overview of the capabilities.  {\em
+Special} is a list of commands that are not saved in the history.  {\em
+Prompt} is the first prompt given.  Continuation prompts for more lines
+are determined by prompt/2.  A \verb+%w+ in the prompt is substituted by
+the event number.  See section~\ref{sec:history} for available
+substitutions.
+
+SWI-Prolog calls history_read/6 as follows:
+
+\begin{code}
+read_history(h, '!h', [trace], '%w ?- ', Goal, Bindings)
+\end{code}
+
+.C history_depth 1 -Int
+Dynamic predicate, normally not defined. The user can define this
+predicate to set the history depth. It should unify the argument with a
+positive integer. When not defined 15 is used as the default.
+.C prompt 2 -Old, +New
+Set prompt associated with read/1 and its derivates.  {\em Old}
+is first unified with the current prompt.  On success the prompt will be
+set to {\em New} if this is an atom.  Otherwise an error message is
+displayed.  A prompt is printed if one of the read predicates is
+called and the cursor is at the left margin.  It is also printed
+whenever a newline is given and the term has not been terminated.
+Prompts are only printed when the current input stream is {\em user}.
+.ED
+
+.S Analysing and Constructing Terms
+
+.BD
+.C functor 3 ?Term, ?Functor, ?Arity
+Succeeds if {\em Term} is a term with functor {\em Functor} and arity
+{\em Arity}.  If {\em Term} is a variable it is unified with a new term
+holding only variables.  functor/3 silently fails on instantiation
+faults%
+    \footnote{In version 1.2 instantiation faults led to error messages.
+	      The new version can be used to do type testing without the
+	      need to catch illegal instantiations first.}
+If {\em Term} is an atom or number, {\em Functor} will be unified with
+{\em Term} and arity will be unified with the integer 0 (zero).
+.C arg 3 ?Arg, ?Term, ?Value
+{\em Term} should be instantiated to a term, {\em Arg} to an integer
+between 1 and the arity of {\em Term}. {\em Value} is unified with the
+{\em Arg}-th argument of {\em Term}.  {\em Arg} may also be unbound.
+In this {\em Value} will be unified with the successive arguments of
+the term.  On successfull unification, {\em Arg} is unified with the
+argument number.  Backtracking yields alternative solutions.%
+    \footnote{The instantion pattern (-, +, ?) is an extension to
+	      `standard' Prolog.}
+.C setarg 3 +Arg, +Term, +Value
+Extra-logical predicate.  Assigns the {\em Arg}-th argument of the
+compound term {\em Term} with the given {\em Value}.  The assignment
+is undone if backtracking brings the state back into a position before
+the setarg/3 call.
+
+This predicate may be used for destructive assignment to terms, using
+them as and extra-logical storage bin.
+.I ?Term =.. ?List
+{\em List} is a list which head is the functor of {\em Term} and the
+remaining arguments are the arguments of the term. Each of the
+arguments may be a variable, but not both.  This predicate is called
+`Univ'.  Examples:
+\begin{boxed}\begin{code}
+?- foo(hello, X) =.. List.
+
+List = [foo, hello, X]
+
+?- Term =.. [baz, foo(1)]
+
+Term = baz(foo(1))
+\end{code}\end{boxed}
+.C numbervars 4 +Term, +Functor, +Start, -End
+Unify the free variables of {\em Term} with a term constructed from the
+atom {\em Functor} with one argument.  The argument is the number of the
+variable.  Counting starts at {\em Start}.  {\em End} is unified with
+the number that should be given to the next variable. Example:
+\begin{code}
+?- numbervars(foo(A, B, A), this_is_a_variable, 0, End).
+
+A = this_is_a_variable(0)
+B = this_is_a_variable(1)
+End = 2
+\end{code}
+In Edinburgh Prolog the second argument is missing.  It is fixed to be
+\verb+'$VAR'+.
+.C free_variables 2 +Term, -List
+Unify {\em List} with a list of variables, each sharing with a unique variable
+of {\em Term}. For example:
+\begin{code}
+?- free_variables(a(X, b(Y, X), Z), L).
+
+L = [G367, G366, G371]
+X = G367
+Y = G366
+Z = G371
+\end{code}
+.C copy_term 2 +In, -Out
+Make a copy of term {\em In} and unify the result with {\em Out}.
+Ground parts of {\em In} are shared by {\em Out}.  Provided {\em In} and
+{\em Out} have no sharing variables before this call they will have no
+sharing variables afterwards.  copy_term/2 is semantically equivalent
+to:
+\begin{code}
+copy_term(In, Out) :-
+	recorda(copy_key, In, Ref),
+	recorded(copy_key, Out, Ref),
+	erase(Ref).
+\end{code}
+.ED
+
+.S Analysing and Constructing Atoms
+
+These predicates convert between Prolog constants and lists of ASCII
+values. The predicates atom_chars/2, number_chars/2 and number/2 behave
+the same when converting from a constant to a list of ASCII values. When
+converting the other way around, atom_chars/2 will generate an atom,
+number_chars will generate a number or fail and name/2 will return a
+number if possible and an atom otherwise.
+
+.BD
+.C atom_chars 2 ?Atom, ?String
+Convert between an atom and a list of ASCII values.  If {\em Atom} is
+instantiated, if will be translated into a list of ASCII values and the
+result is unified with {\em String}. If {\em Atom} is unbound and {\em
+String} is a list of ASCII values, it will {\em Atom} will be unified
+with an atom constructed from this list.
+.C atom_char 2 ?Atom, ?ASCII
+Convert between character and ASCII value for a single character.
+.C number_chars 2 ?Number, ?String
+Similar to atom_chars/2, but converts between a number and its
+representation as a list of ASCII values.  Fails silently if {\em Atom}
+is unbound and {\em String} does not describe a number.
+.C name 2 ?AtomOrInt, ?String
+{\em String} is a list of ASCII values describing {\em Atom}. Each of the
+arguments may be a variable, but not both. When {\em String} is bound to an
+ASCII value list describing an integer and {\em Atom} is a variable {\em Atom}
+will be unified with the integer value described by {\em String} (e.g.
+`\tty{name(N, "300"), 400 is N + 100}' succeeds).
+.C int_to_atom 3 +Int, +Base, -Atom
+Convert {\em Int} to an ascii representation using base {\em Base} and unify
+the result with {\em Atom}. If ${\em Base} \not= 10$ the base will be
+prepended to {\em Atom}.  ${\em Base} = 0$ will try to interpret
+{\em Int} as an ASCII value and return \verb+0'c+.  Otherwise
+$2 \leq {\em Base} \leq 36$.
+ Some examples are
+given below.
+
+\begin{center}\begin{tabular}{l@{\hspace{20pt}$\longrightarrow$\hspace{20pt}}l}
+int_to_atom(45, 2, A)     &  $A = 2'101101$ \\
+int_to_atom(97, 0, A)     &  $A = 0'a$ \\
+int_to_atom(56, 10, A)    &  $A = 56$ \\
+\end{tabular}\end{center}
+
+.C int_to_atom 2 +Int, -Atom
+Equivalent to \verb+int_to_atom(Int, 10, Atom)+.
+.C term_to_atom 2 ?Term, ?Atom
+Succeeds if {\em Atom} describes a term that unifies with {\em Term}. When
+{\em Atom} is instantiated {\em Atom} is converted and then unified with
+{\em Term}. Otherwise {\em Term} is ``written'' on {\em Atom} using write/1.
+.C atom_to_term 3 +Atom, -Term, -Bindings
+Use {\em Atom} as input to read_variables/2 and return the read term in
+{\em Term} and the variable bindings in {\em Bindings}.  {\em Bindings}
+is a list of ${\it Name} = {\it Var}$ couples, thus providing access to
+the actual variable names.  See also read_variables/2.
+.C concat 3 ?Atom1, ?Atom2, ?Atom3
+{\em Atom3} forms the concatenation of {\em Atom1} and {\em Atom2}.  At
+least two of the arguments must be instantiated to atoms, intergers or
+floating point numbers.
+.C concat_atom 2 +List, -Atom
+{\em List} is a list of atoms, integers or floating point numbers. Succeeds
+if {\em Atom} can be unified with the concatenated elements of {\em List}. If
+{\em List} has exactly 2 elements it is equivalent to concat/3, allowing
+for variables in the list.
+.C atom_length 2 +Atom, -Length
+Succeeds if {\em Atom} is an atom of {\em Length} characters long. This
+predicate also works for integers and floats, expressing the number of
+characters output when given to write/1.
+.ED
+
+.S Representing Text in Strings
+
+\label{sec:strings}
+SWI-Prolog supports the data type {\em string}.  Strings are a time
+and space efficient mechanism to handle text in Prolog.  Atoms are
+under some circumstances not suitable because garbage collection on
+them is next to impossible (Although it is possible: BIM_prolog does
+it).  Representing text as a list of ASCII values is, from the logical
+point of view, the cleanest solution.  It however has two drawbacks:
+1) they cannot be distinguished from a list of (small) integers; and
+2) they consume (in SWI-Prolog) 12 bytes for each character stored.
+
+Within strings each character only requires 1 byte storage. Strings
+live on the global stack and their storage is thus reclaimed on
+backtracking.  Garbage collection can easily deal with strings.
+
+The ISO standard proposes \verb$"..."$ is transformed into a string
+object by read/1 and derivates. This poses problems as in the old
+convention \verb$"..."$ is transformed into a list of ascii characters.
+For this reason the style check option `{\em string}' is available
+(see style_check/2).
+
+The set of predicates associated with strings is incomplete and
+tentative.  Names and definitions might change in the future to
+confirm to the emerging standard.
+
+.BD
+.C string_to_atom 2 ?String, ?Atom
+Logical conversion between a string and an atom. At least one of the
+two arguments must be instantiated. {\em Atom} can also be an integer
+or floating point number.
+.C string_to_list 2 ?String, ?List
+Logical conversion between a string and a list of ASCII characters. At
+least one of the two arguments must be instantiated.
+.C string_length 2 +String, -Length
+Unify {\em Length} with the number of characters in {\em String}. This
+predicate is functonally equivalent to atom_length/2 and also accepts
+atoms, integers and floats as its first argument.
+.C substring 4 +String, +Start, +Length, -Sub
+Create a substring of {\em String} that starts at character {\em Start}
+(1 base) and has {\em Length} characters. Unify this substring with
+{\em Sub}.%
+    \footnote{Future versions probably will provide a more logical
+	      variant of this predicate.}
+.ED
+
+.S Operators
+
+.BD
+.C op 3 +Precedence, +Type, +Name
+Declare {\em Name} to be an operator of type {\em Type} with precedence
+{\em Precedence}.  {\em Name} can also be a list of names, in which case
+all elements of the list are declared to be identical operators.  {\em
+Precedence} is an integer between 0 and 1200.  Precedence 0 removes
+the declaration.  {\em Type} is one of: \tty{xf}, \tty{yf}, 
+\tty{xfx}, \tty{xfy}, \tty{yfx}, \tty{yfy}, \tty{fy} or \tty{fx}.  The
+`\tty{f}' indicates the position of the functor, while \tty{x} and \tty{y}
+indicate the position of the arguments.  `\tty{y}' should be interpreted
+as ``on this position a term with precedence lower or equal to the
+precedence of the functor should occur''.  For `\tty{x}' the precedence of
+the argument must be strictly lower.
+The precedence of a term is 0, unless its principal functor
+is an operator, in which case the precedence is the precedence of this
+operator. A term enclosed in brackets (\tty{(...)}) has precedence 0.
+
+The predefined operators are shown in table~\ref{operators}. Note that
+all operators can be redefined by the user.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|r|c|p{3in}|}
+\hline
+1200 & xfx & \tty{-->}, \tty{:-} \\
+1200 & fx & \tty{:-}, \tty{?-} \\
+1150 & fx & \tty{dynamic}, \tty{multifile}, \verb$module_transparent$,
+	    \verb$discontiguous$, \verb$volatile$,
+	    \verb$initialization$\\
+1100 & xfy & \tty{;}, \tty{|} \\
+1050 & xfy & \tty{->} \\
+1000 & xfy & \tty{, } \\
+954 & xfy & \verb|\\| \\
+900 & fy & \verb|\+|, \tty{not} \\
+900 & fx & \verb|~| \\
+700 & xfx & \tty{<}, \tty{=}, \tty{=..}, \verb+=@=+, \tty{=:=}, \tty{=<}, \tty{==}, 
+            \verb+=\=+, \verb+>+, \verb+>=+, \verb+@<+, \verb+@=<+, \verb+@>+, 
+	    \verb+@>=+, \verb+\=+, \verb+\==+, \tty{is} \\
+600 & xfy & \tty{:} \\
+500 & yfx & \tty{+}, \tty{-}, \verb+/\+, \verb+\/+, \verb+xor+ \\
+500 & fx & \tty{+}, \tty{-}, \tty{?}, \verb+\+ \\
+400 & yfx & \verb+*+, \tty{/}, \tty{//}, \tty{<<}, \tty{>>} \\
+300 & xfx & \tty{mod} \\
+200 & xfy & \verb+^+ \\
+\hline
+\end{tabular}
+\end{center}
+    \caption{System operators}
+    \label{operators}
+\end{table}
+
+.C current_op 3 ?Precedence, ?Type, ?Name
+Succeeds when {\em Name} is currently defined as an operator of type {\em Type}
+with precedence {\em Precedence}. See also op/3.
+.ED
+
+.S Arithmetic
+\label{sec:arith}
+
+Arithmetic can be divided into some special purpose integer predicates
+and a series of general predicates for floating point and integer
+arithmetic as appropriate.  The integer predicates are as ``logical'' as
+possible.  Their usage is recommended whenever applicable, resulting in
+faster and more ``logical'' programs.
+
+The general arithmic predicates are optionaly compiled now (see
+please/3 and the \tty{-O} command line option).  Compiled arithmetic
+reduces global stack requirements and improves performance.
+Unfortunately compiled arithmetic cannot be traced, which is why it is
+optional.
+
+The general arithmetic predicates all handle {\em expressions}.  An
+expression is either a simple number or a {\em function}.  The arguments
+of a function are expressions.  The functions are described in
+section~\ref{functions}.
+
+.BD
+.C between 3 +Low, +High, ?Value
+{\em Low} and {\em High} are integers, ${\em High} \geq {\em Low}$. If
+{\em Value} is an integer, ${\it Low} \leq {\it Value} \leq {\it High}$.
+When {\em Value} is a variable it is successively  bound to all
+integers between {\em Low} and {\em High}.
+.C succ 2 ?Int1, ?Int2
+Succeeds if ${\em Int2} = {\em Int1} + 1$. At least one of the arguments
+must be instantiated to an integer.
+.C plus 3 ?Int1, ?Int2, ?Int3
+Succeeds if ${\em Int3} = {\em Int1} + {\em Int2}$. At least two of the
+three arguments must be instantiated to integers.
+.IT +Expr1 > +Expr2
+Succeeds when expression {\em Expr1} evaluates to a larger number than {\em Expr2}.
+.IT +Expr1 < +Expr2
+Succeeds when expression {\em Expr1} evaluates to a smaller number than {\em Expr2}.
+.IT +Expr1 =< +Expr2
+Succeeds when expression {\em Expr1} evaluates to a smaller or equal number
+to {\em Expr2}.
+.IT +Expr1 >= +Expr2
+Succeeds when expression {\em Expr1} evaluates to a larger or equal number
+to {\em Expr2}.
+.IT +Expr1 =\= +Expr2
+Succeeds when expression {\em Expr1} evaluates to a number non-equal to
+{\em Expr2}.
+.IT +Expr1 =:= +Expr2
+Succeeds when expression {\em Expr1} evaluates to a number equal to {\em
+Expr2}.
+.I -Number is +Expr
+Succeeds when {\em Number} has successfully been unified with the number
+{\em Expr} evaluates to.
+.ED
+
+.S Arithmetic Functions
+\label{functions}
+
+Arithmetic functions are terms which are evaluated by the arithmetic
+predicates described above.  SWI-Prolog tries to hide the difference
+between integer arithmetic and floating point arithmetic from the Prolog
+user.  Arithmetic is done as integer arithmetic as long as possible and
+converted to floating point arithmetic whenever one of the arguments or
+the combination of them requires it.  If a function returns a floating
+point value which is whole it is automatically transformed into an
+integer.  There are three types of arguments to functions:
+
+\begin{center}\begin{tabular}{lp{4in}}
+\it Expr & Arbitrary expression, returning either a floating
+    	   point value or an integer. \\
+\it IntExpr & Arbitrary expression that should evaluate into
+		  an integer. \\
+    \it Int & An integer.
+\end{tabular}\end{center}
+
+In case integer addition, subtraction and multiplication would lead to
+an integer overflow the operands are automatically converted to
+floating point numbers.  The floating point functions (sin/1, exp/1,
+etc.)  form a direct interface to the corresponding C library
+functions used to compile SWI-Prolog.  Please refer to the C library
+documentation for details on percision, error handling, etc.
+
+.BD
+.PT - +Expr
+${\em Result} = -{\em Expr}$
+.IT +Expr1 + +Expr2
+${\em Result} = {\em Expr1} + {\em Expr2}$
+.IT +Expr1 - +Expr2
+${\em Result} = {\em Expr1} - {\em Expr2}$
+.IT +Expr1 * +Expr2
+${\em Result} = {\em Expr1} \times {\em Expr2}$
+.IT +Expr1 / +Expr2
+${\em Result} = \frac{\em Expr1}{\em Expr2}$
+.I +IntExpr1 mod +IntExpr2
+${\em Result} = {\em Expr1}~mod~{\em Expr2}$ (remainder of division).
+.IT +IntExpr1 // +IntExpr2
+${\em Result} = {\em Expr1}~div~{\em Expr2}$ (integer division).
+.C abs 1 +Expr
+Evaluate {\em Expr} and return the absolute value of it.
+.C max 2 +Expr1, +Expr2
+Evaluates to the largest of both {\em Expr1} and {\em Expr2}.
+.C min 2 +Expr1, +Expr2
+Evaluates to the smallest of both {\em Expr1} and {\em Expr2}.
+.C . 2 +Int, []
+A list of one element evaluates to the element.  This implies \tty{"a"}
+evaluates to the ASCII value of the letter \tty{a} (97). This option is
+available for compatibility only.  It will not work if
+`style_check(+string)' is active as \tty{"a"} will then be tranformed
+into a string object. The recommended way to specify the ASCII value of
+the letter `a' is \tty{0'a}.
+.C random 1 +Int
+Evaluates to a random integer {\em i} for which $0 \leq i < {\it Int}$.
+The seed of this random generator is determined by the system clock when
+SWI-Prolog was started.
+.C integer 1 +Expr
+Evaluates {\em Expr} and rounds the result to the nearest integer.
+.C floor 1 +Expr
+Evaluates {\em Expr} and returns the largest integer smaller or equal
+to the result of the evaluation.
+.C ceil 1 +Expr
+Evaluates {\em Expr} and returns the smallest integer larger or equal
+to the result of the evaluation.
+.IT +IntExpr >> +IntExpr
+Bitwise shift {\em IntExpr1} by {\em IntExpr2} bits to the right. Note
+that integers are only 27 bits.
+.IT +IntExpr << +IntExpr
+Bitwise shift {\em IntExpr1} by {\em IntExpr2} bits to the left.
+.IT +IntExpr \/ +IntExpr
+Bitwise `or' {\em IntExpr1} and {\em IntExpr2}.
+.IT +IntExpr /\ +IntExpr
+Bitwise `and' {\em IntExpr1} and {\em IntExpr2}.
+.I +IntExpr xor +IntExpr
+Bitwise `exclusive or' {\em IntExpr1} and {\em IntExpr2}.
+.PT \ +IntExpr
+Bitwise negation.
+.C sqrt 1 +Expr
+${\em Result} = \sqrt{{\em Expr}}$
+.C sin 1 +Expr
+${\em Result} = \sin{{\em Expr}}$. {\em Expr} is the angle in radials.
+.C cos 1 +Expr
+${\em Result} = \cos{{\em Expr}}$. {\em Expr} is the angle in radials.
+.C tan 1 +Expr
+${\em Result} = \tan{{\em Expr}}$. {\em Expr} is the angle in radials.
+.C asin 1 +Expr
+${\em Result} = \arcsin{{\em Expr}}$. {\em Result} is the angle in radials.
+.C acos 1 +Expr
+${\em Result} = \arccos{{\em Expr}}$. {\em Result} is the angle in radials.
+.C atan 1 +Expr
+${\em Result} = \arctan{{\em Expr}}$. {\em Result} is the angle in radials.
+.C atan 2 +YExpr, +XExpr
+${\em Result} = \arctan{\frac{\em YExpr}{\em XExpr}}$. {\em Result} is the
+angle in radials.  The return value is in the range $-\pi ... \pi$.
+Used to convert between rectangular and polar coordinate system.
+.C log 1 +Expr
+${\em Result} = \ln{{\em Expr}}$
+.C log10 1 +Expr
+${\em Result} = \lg{{\em Expr}}$
+.C exp 1 +Expr
+${\it Result} = \pow{e}{\it Expr}$
+.IT +Expr1 ^ +Expr2
+${\em Result} = \pow{\em Expr1}{\em Expr2}$
+.C pi 0
+Evaluates to the mathematical constant $\pi$ (3.141593).
+.C e 0
+Evaluates to the mathematical constant $e$ (2.718282).
+.C cputime 0
+Evaluates to a floating point number expressing the cpu time (in seconds)
+used by Prolog up till now. See also statistics/2 and time/1.
+.ED
+
+.S Adding Arithmetic Functions
+
+Prolog predicates can be given the role of arithmetic function.  The
+last argument is used to return the result, the arguments before the
+last are the inputs.  Arithmetic functions are added using the
+predicate arithmetic_function/1, which takes the head as its argument.
+Arithmetic functions are module sensitive, that is they are only
+visible from the module in which the function is defined and delared.
+Global arithmetic functions should be defined and registered from
+module {\tt user}.  Global definitions can be overruled locally in
+modules.  The builtin functions described above can be redefined as
+well.
+
+.BD
+.C arithmetic_function 1 +Head
+Register a Prolog predicate as an arithmetic function (see is/2, \verb$>/2$,
+etc.).  The Prolog predicate should have one more argument than
+specified by {\em Head}, which it either a term {\em Name/Arity}, an
+atom or a complex term.  This last argument is an unbound variable at
+call time and should be instantiated to an integer or floating point
+number. The other arguments are the parameters.  This predicate is
+module sensitive and will declare the arithmetic function only for the
+context module, unless declared from module {\tt user}.  Example: 
+
+\begin{boxed}\begin{code}
+1 ?- [user].
+:- arithmetic_function(mean/2).
+
+mean(A, B, C) :-
+	C is (A+B)/2.
+user compiled, 0.07 sec, 440 bytes.
+
+Yes
+2 ?- A is mean(4, 5).
+
+A = 4.500000
+\end{code}\end{boxed}
+.C current_arithmetic_function 1 ?Head
+Succesively unifies all arithmetic functions that are visible from
+the context module with {\em Head}.
+.ED
+
+
+.S List Manipulation
+
+.BD
+.C is_list 1 +Term
+Succeeds if {\em Term} is bound to the empty list (\tty{[]}) or a term with
+functor `\tty{.}' and arity~2.
+.C proper_list 1 +Term
+Equivalent to is_list/1, but also requires the tail of the list to be
+a list (recursively). Examples:
+\begin{code}
+is_list([x|A])		% true
+proper_list([x|A])	% false
+\end{code}
+.C append 3 ?List1, ?List2, ?List3
+Succeeds when {\em List3} unifies with the concatenation of {\em List1}
+and {\em List2}. The predicate can be used with any instantiation
+pattern (even three variables).
+.C member 2 ?Elem, ?List
+Succeeds when {\em Elem} can be unified with one of the members of {\em
+List}. The predicate can be used with any instantiation
+pattern.
+.C memberchk 2 ?Elem, +List
+Equivalent to member/2, but leaves no choice point.
+.C delete 3 +List1, ?Elem, ?List2
+Delete all members of {\em List1} that simultaneously unify with {\em
+Elem} and unify the result with {\em List2}.
+.C select 3 ?List1, ?Elem, ?List2
+Select an element of {\em List1} that unifies with {\em Elem}. {\em
+List2} is unified with the list remaining from {\em List1} after
+deleting the selected element. Normally used with the instantiation
+pattern {\em +List1, -Elem, -List2}, but can also be used to insert an
+element in a list using {\em -List1, +Elem, +List2}.
+.C nth0 3 ?Index, ?List, ?Elem
+Succeeds when the {\em Index}-th element of {\em List} unifies with
+{\em Elem}. Counting starts at 0.
+.C nth1 3 ?Index, ?List, ?Elem
+Succeeds when the {\em Index}-th element of {\em List} unifies with
+{\em Elem}. Counting starts at 1.
+.C last 2 ?Elem, ?List
+Succeeds if {\em Elem} unifies with the last element of {\em List}.
+.C reverse 2 +List1, -List2
+Reverse the order of the elements in {\em List1} and unify the result
+with the elements of {\em List2}.
+.C flatten 2 +List1, -List2
+Transform {\em List1}, possibly holding lists as elements into a `flat'
+list by replacing each list with its elements (recursively). Unify the
+resulting flat list with {\em List2}. Example:
+\begin{code}
+?- flatten([a, [b, [c, d], e]], X).
+
+X = [a, b, c, d, e]
+\end{code}
+.C length 2 ?List, ?Int
+Succeeds if {\em Int} represents the number of elements of list {\em
+List}. Can be used to create a list holding only variables.
+.C merge 3 +List1, +List2, -List3
+{\it List1} and {\it List2} are lists, sorted to the standard order of
+terms (see section~\ref{sec:compare}).  {\it List3} will be unified with an
+ordered list holding the both the elements of {\it List1} and {\it
+List2}. Duplicates are {\bf not} removed.
+.ED
+
+.S Set Manipulation
+
+.BD
+.C is_set 1 +Set
+Succeeds if {\em Set} is a proper list (see proper_list/1) without duplicates.
+.C list_to_set 2 +List, -Set
+Succeeds if {\em Set} holds the same elements as {\em List} in the same
+order, but has no duplicates. See also sort/1.
+.C intersection 3 +Set1, +Set2, -Set3
+Succeeds if {\em Set3} unifies with the intersection of {\em Set1} and
+{\em Set2}. {\em Set1} and {\em Set2} are lists without duplicates.
+They need not be ordered.
+.C subtract 3 +Set, +Delete, -Result
+Delete all elements of set `Delete' from `Set' and unify the resulting
+set with `Result'.
+.C union 3 +Set1, +Set2, -Set3
+Succeeds if {\em Set3} unifies with the union of {\em Set1} and
+{\em Set2}. {\em Set1} and {\em Set2} are lists without duplicates.
+They need not be ordered.
+.C subset 2 +Subset, +Set
+Succeeds if all elements of {\em Subset} are elements of {\em Set} as well.
+.C merge_set 3 +Set1, +Set2, -Set3
+{\it Set1} and {\it Set2} are lists without duplicates, sorted to the
+standard order of terms.  {\it Set3} is unified with an ordered
+list without duplicates holding the union of the elements of {\it Set1}
+and {\it Set2}.
+.ED
+
+.S Sorting Lists
+
+.BD
+.C sort 2 +List, -Sorted
+Succeeds if {\em Sorted} can be unified with a list holding the
+elements of {\em List}, sorted to the standard order of terms (see
+section~\ref{sec:compare}). Duplicates are removed. 
+.C msort 2 +List, -Sorted
+Equivalent to sort/2, but does not remove duplicates.
+.C keysort 2 +List, -Sorted
+{\em List} is a list of \tty{Key-Value} pairs (e.g. terms of the
+functor `\tty{-}' with arity 2). keysort/2 sorts {\em List} like msort/2, 
+but only compares the keys. Can be used to sort terms not on standard
+order, but on any criterion that can be expressed on a multi-dimensional
+scale. Sorting on more than one criterion can be done using terms as
+keys, putting the first criterion as argument 1, the second as argument
+2, etc.
+.C predsort 3 +Pred, +List, -Sorted
+Sorts similar to msort/2, but determines the order of two terms by
+applying {\em Pred} to pairs of elements from {\em List} (see apply/2).
+The predicate should succeed if the first element should be before the
+second.
+.ED
+
+.S Finding all Solutions to a Goal
+
+.BD
+.C findall 3 +Var, +Goal, -Bag
+Creates a list of the instantiations {\em Var} gets successively on
+backtracking over {\em Goal} and unifies the result with {\em Bag}.
+Succeeds with an empty list if {\em Goal} has no solutions. findall/3 is
+equivalent to bagof/3 with all free variables bound with the existence
+operator (\verb+^+), except that bagof/3 fails when goal has no
+solutions.
+.C bagof 3 +Var, +Goal, -Bag
+Unify {\em Bag} with the alternatives of {\em Var}, if {\em Goal} has
+free variables besides the one sharing with {\em Var} bagof will
+backtrack over the alternatives of these free variables, unifying {\em
+Bag} with the corresponding alternatives of {\em Var}. The construct
+\verb+Var^Goal+ tells bagof not to bind {\em Var} in {\em Goal}.
+Bagof/3 fails if {\em Goal} has no solutions.
+
+The example below illustrates bagof/3 and the \verb+^+ operator. The
+variable bindings are printed together on one line to save paper.
+\begin{boxed}
+\begin{code}
+2 ?- listing(foo).
+
+foo(a, b, c).
+foo(a, b, d).
+foo(b, c, e).
+foo(b, c, f).
+foo(c, c, g).
+
+Yes
+3 ?- bagof(C, foo(A, B, C), Cs).
+
+A = a, B = b, C = G308, Cs = [c, d] ;
+A = b, B = c, C = G308, Cs = [e, f] ;
+A = c, B = c, C = G308, Cs = [g] ;
+
+No
+4 ?- bagof(C, A^foo(A, B, C), Cs).
+
+A = G324, B = b, C = G326, Cs = [c, d] ;
+A = G324, B = c, C = G326, Cs = [e, f, g] ;
+
+No
+5 ?-
+\end{code}
+\end{boxed}
+.C setof 3 +Var, +Goal, -Set
+Equivalent to bagof/3, but sorts the result using sort/2 to get a sorted
+list of alternatives without duplicates.
+.ED
+
+.S Invoking Predicates on all Members of a List
+
+All the predicates in this section call a predicate on all members of a
+list or until the predicate called fails.  The predicate is called via
+apply/2, which implies common arguments can be put in front of the
+arguments obtained from the list(s). For example:
+
+\begin{code}
+?- maplist(plus(1), [0, 1, 2], X).
+
+X = [1, 2, 3]
+\end{code}
+
+we will phrase this as ``{\em Predicate} is applied on ...''
+
+.BD
+.C checklist 2 +Pred, +List
+{\em Pred} is applied successively on each element of {\em List} until
+the end of the list or {\em Pred} fails. In the latter case the
+checklist/2 fails.
+.C maplist 3 +Pred, ?List1, ?List2
+Apply {\em Pred} on all successive pairs of elements from {\em List1}
+and {\em List2}. Fails if {\em Pred} can not be applied to a pair. See
+the example above.
+.C sublist 3 +Pred, +List1, ?List2
+Unify {\em List2} with a list of all elements of {\em List1} to which
+{\em Pred} applies.
+.ED
+
+.S Forall
+
+.BD
+.C forall 2 +Cond, +Action
+For all alternative bindings of {\em Cond} {\em Action} can be proven.
+The example verifies that all arithmic statements in the list {\em L}
+are correct. It does not say which is wrong if one proves wrong.
+\begin{boxed}\begin{code}
+?- forall(member(Result = Formula, [2 = 1 + 1, 4 = 2 * 2]),
+		 Result =:= Formula).
+\end{code}\end{boxed}
+.ED
+
+.S Formatted Write
+
+The current version of SWI-Prolog provides two formatted
+write predicates.  The first is writef/[1,2], which is compatible with
+Edinburgh C-Prolog.  The second is format/[1,2], which is compatible
+with Quintus Prolog.  We hope the Prolog community will once define a
+standard formatted write predicate.  If you want performance use
+format/[1,2] as this predicate is defined in C.  Otherwise
+compatibility reasons might tell you which predicate to use.
+
+.SS Writef
+
+.BD
+.C write_ln 1 +Term
+Equivalent to \tty{write(Term), nl.}
+.C writef 1 +Atom
+Equivalent to \tty{writef(Atom, []).}
+.C writef 2 +Format, +Arguments
+Formatted write.  {\em Format} is an atom whose characters will be printed.
+{\em Format} may contain certain special character sequences which specify
+certain formatting and substitution actions.  {\em Arguments} then provides
+all the terms required to be output.
+	
+Escape sequences to generate a single special character:
+
+\begin{center}
+\begin{tabular}{|l|p{3.5in}|}
+\hline
+\verb+\n+   &  \verb+<NL>+ is output \\
+\verb+\l+   &  \verb+<LF>+ is output \\
+\verb+\r+   &  \verb+<CR>+ is output \\
+\verb+\t+   &  \verb+<TAB>+ is output \\
+\verb+\\+   &  The character `\verb+\+' is output \\
+\verb+\%+   &  The character `\verb+%+' is output \\
+\verb+\nnn+ &  where \tty{nnn} is an integer (1-3 digits) the
+	       character with ASCII code \tty{nnn} is output
+	       (NB : \tty{nnn} is read as DECIMAL) \\
+\hline
+\end{tabular}
+\end{center}
+
+Escape sequences to include arguments from {\em Arguments}. Each time a
+\% escape sequence is found in {\em Format} the next argument from {\em
+Arguments} is formatted according to the specification.
+
+\begin{center}
+\begin{tabular}{|l|p{3.5in}|}
+\hline
+\verb+%t+  &  print/1 the next item (mnemonic: term) \\
+\verb+%w+  &  write/1 the next item \\
+\verb+%q+  &  writeq/1 the next item \\
+\verb+%d+  &  display/1 the next item \\
+\verb+%p+  &  print/1 the next item (identical to \verb+%t+) \\
+\verb+%n+  &  put the next item as a character (i.e. it is
+	      an ASCII value) \\
+\verb+%r+  &  write the next item N times where N is the
+	      second item (an integer) \\
+\verb+%s+  &  write the next item as a String (so it must
+	      be a list of characters) \\
+\verb+%f+  &  perform a ttyflush/0 (no items used) \\
+\verb+%Nc+ &  write the next item Centered in N columns. \\
+\verb+%Nl+ &  write the next item Left justified in N columns. \\
+\verb+%Nr+ &  write the next item Right justified in N columns.
+	      N is a decimal number with at least one digit.
+	      The item must be an atom, integer, float or string. \\
+\hline
+\end{tabular} 
+\end{center}
+.C swritef 3 -String, +Format, +Arguments
+Equivalent to writef/3, but ``writes'' the result on {\em String} instead
+of the current output stream. Example:
+\begin{code}
+?- swritef(S, '%15L%w', ['Hello', 'World']).
+
+S = "Hello          World"
+\end{code}
+.C swritef 2 -String, +Format
+Equivalent to \verb+swritef(String, Format, []).+
+.ED
+
+.SS Format
+
+.BD
+.C format 1 +Format
+Defined as `\verb$format(Format) :- format(Format, []).$'
+.C format 2 +Format, +Arguments
+{\em Format} is an atom, list of ASCII values, or a Prolog string.
+{\em Arguments} provides the arguments required by the format
+specification.  If only one argument is required and this is not a list
+of ASCII values the argument need not be put in a list.  Otherwise the
+arguments are put in a list.
+
+Special sequences start with the tilde (\verb$~$), followed by an optional
+numeric argument, followed by a character describing the action to be
+undertaken.  A numeric argument is either a sequence of digits,
+representing a positive decimal number, a sequence \verb$`<character>$,
+representing the ASCII value of the character (only useful for
+\verb$~t$) or a asterisk (*), in when the numeric argument is taken
+from the next argument of the argument list, which should be a positive
+integer.  Actions are:
+
+\begin{itemize}
+    \item[\Large\bf\raisebox{-1ex}{$\tilde{\mbox{}}$}]
+Output the tilde itself.
+    \item[\bf a]
+Output the next argument, which should be an atom. This option is
+equivalent to {\bf w}. Compatibility reasons only.
+    \item[\bf c]
+Output the next argument as an ASCII value. This argument should be an
+integer in the range [0, ..., 255] (including 0 and 255).
+    \item[\bf d]
+Output next argument as a decimal number.  It should be an integer.  If
+a numeric argument is specified a dot is inserted {\em argument}
+positions from the right (useful for doing fixed point arithmetic with
+integers, such as handling amounts of money).
+    \item[\bf D]
+Same as {\bf d}, but makes large values easier to read by inserting a
+comma every three digits left to the dot or right.
+    \item[\bf e]
+Output next argument as a floating point number in exponentional
+notation.  The numeric argument specifies the precission.  Default is 6
+digits.  Exact representation depends on the C library function
+printf(). This function is invoked with the format
+\verb$%.<percission>e$.
+    \item[\bf E]
+Equivalent to {\bf e}, but outputs a capital E to indicate the exponent.
+    \item[\bf f]
+Floating point in non-exponentional notation. See C library function
+printf().
+    \item[\bf g]
+Floating point in {\bf e} or {\bf f} notation, whichever is shorter.
+    \item[\bf G]
+Floating point in {\bf E} or {\bf f} notation, whichever is shorter.
+    \item[\bf i]
+Ignore next argument of the argument list. Produces no output.
+    \item[\bf k]
+Give the next argument to displayq/1 (canonical write).
+    \item[\bf n]
+Output a newline character.
+    \item[\bf N]
+Only output a newline if the last character output on this stream was
+not a newline. Not properly implemented yet.
+    \item[\bf p]
+Give the next argument to print/1.
+    \item[\bf q]
+Give the next argument to writeq/1.
+    \item[\bf r]
+Print integer in radix the numeric argument notation. Thus \verb$~16r$
+prints its argument hexadecimal. The argument should be in the range
+\mbox{[2, ... 36]}. Lower case letters are used for digits above 9.
+    \item[\bf R]
+Same as {\bf r}, but uses upper case letters for digits above 9.
+    \item[\bf s]
+Output a string of ASCII characters from the next argument.
+    \item[\bf t]
+All remaining space between 2 tabstops is distributed equaly over
+\verb$~t$ statements between the tabstops.  This space is padded with
+spaces by default.  If an argument is supplied this is taken to be the
+ASCII value of the character used for padding.  This can be used to do
+left or right alignment, centering, distributing, etc.  See also
+\verb$~|$ and \verb$~+$ to set tab stops.  A tabstop is assumed at the
+start of each line.
+    \item[\rule{1pt}{2ex}]
+Set a tabstop on the current position. If an argument is supplied set a
+tabstop on the position of that argument. This will cause all \verb$~t$'s
+to be distributed between the previous and this tabstop.
+    \item[\bf +]
+Set a tabstop relative to the current position. Further the same as
+\verb$~|$.
+    \item[\bf w]
+Give the next argument to write/1.
+\end{itemize}
+
+Example:
+
+\begin{boxed}\begin{code}
+simple_statistics :-
+    <obtain statistics>		% left to the user
+    format('~tStatistics~t~72|~n~n'),
+    format('Runtime: ~`.t ~2f~34|  Inferences: ~`.t ~D~72|~n',
+					    [RunT, Inf]),
+    ....
+\end{code}\end{boxed}
+
+Will output
+
+\begin{boxed}\begin{code}
+			     Statistics
+
+Runtime: .................. 3.45  Inferences: .......... 60,345
+\end{code}\end{boxed}
+.C sformat 3 -String, +Format, +Arguments
+Equivalent to format/3, but ``writes'' the result on {\em String} instead
+of the current output stream. Example:
+\begin{code}
+?- sformat(S, '~w~t~15|~w', ['Hello', 'World']).
+
+S = "Hello          World"
+\end{code}
+.C sformat 2 -String, +Format
+Equivalent to `\verb+sformat(String, Format, []).+'
+.ED
+
+.SS Programming Format
+
+.BD
+.C format_predicate 2 +Char, +Head
+If a sequence \verb|~c| (tilde, followed by some character) is
+found, the format derivates will first check whether the user has
+defined a predicate to handle the format. If not, the built in
+formatting rules described above are used. {\em Char} is either an
+ascii value, or a one character atom, specifying the letter to be
+(re)defined.  {\em Head} is a term, whose name and arity are used
+to determine the predicate to call for the redefined formatting
+character.  The first argument to the predicate is the numeric
+argument of the format command, or the atom \tty{default} if no
+argument is specified.  The remaining arguments are filled from the
+argument list.  The example below redefines \verb|~n| to produce {
+\em Arg} times return followed by linefeed (so a (Grr.) DOS machine is 
+happy with the output).
+
+\begin{boxed}\begin{code}
+:- format_predicate(n, dos_newline(_Arg)).
+
+dos_newline(Arg) :-
+	between(1, Ar, _), put(13), put(10), fail ; true.
+\end{code}\end{boxed}
+.ED
+
+.S Terminal Control
+
+The following predicates form a simple access mechanism to the Unix termcap
+library to provide terminal independant I/O for screen terminals.  The
+library package \tty{tty} builds on top of these predicates.
+
+.BD
+.C tty_get_capability 3 +Name, +Type, -Result
+Get the capability named {\em Name} from the termcap library.  See
+termcap(5) for the capability names. {\em Type} specifies the type of
+the expected result, and is one of \tty {string}, \tty{number} or
+\tty{bool}.  String results are returned as an atom, number result as
+an integer and bool results as the atom \tty{on} or \tty{off}.  If
+an option cannot be found this predicate fails silently.  The
+results are only computed once. Succesive queries on the same
+capability are fast. 
+.C tty_goto 2 +X, +Y
+Goto position {\em(X, Y)} on the screen.  Note that the predicates
+line_count/2 and line_position/2 will not have a well defined
+behaviour while using this predicate.
+.C tty_put 2 +Atom, +Lines
+Put an atom via the termcap library function tputs().  This function
+decodes padding information in the strings returned by tty_get_capability/3
+and should be used to output these strings. {\em Lines} is the
+number of lines affected by the operation, or 1 if not applicable (as
+in almost all cases).
+.C set_tty 2 -OldStream, +NewStream
+Set the output stream, used by tty_put/2 and tty_goto/2 to a
+specific stream. Default is user_output.
+.ED
+
+.S Unix Interaction
+
+.BD
+.C shell 2 +Command, -Status
+Execute {\em Command} on the operating system. {\em Command} is given to the
+bourne shell (/bin/sh). {\em Status} is unified with the exit status of
+the command.
+.C shell 1 +Command
+Equivalent to `\tty{shell(Command, 0)}'.
+.C shell 0
+Start an interactive Unix shell.  Default is \tty{/bin/sh}, the
+environment variable \tty{SHELL} overrides this default.
+.C getenv 2 +Name, -Value
+Get Unix environment variable (see csh(1) and sh(1)). Fails if the
+variable does not exist.
+.C setenv 2 +Name, +Value
+Set Unix environment variable.  {\em Name} and {\em Value} should be
+instantiated to atoms or integers.  The environment variable will be
+passed to shell/[0-2] and can be requested using getenv/2.
+.C unsetenv 1 +Name
+Remove Unix environment variable from the environment.
+.C get_time 1 -Time
+Return the number of seconds that elapsed since the epoch of Unix,
+1 January 1970, 0 hours.  {\em Time} is a floating point number. Its
+granularity is system dependant.  On SUN, this is 1/60 of a second.
+.C convert_time 8 +Time, -Year, -Month, -Day, -Hour, -Minute, -Second, -MilliSeconds
+Convert a time stamp, provided by get_time/1, file_time/2, etc.  {\em
+Year} is unified with the year, {\em Month} with the month number
+(January is 1), {\em Day} with the day of the month (starting with 1),
+{\em Hour} with the hour of the day (0--23), {\em Minute} with the
+minute (0--59). {\em Second} with the second (0--59) and {\em
+MilliSecond} with the milli seconds (0--999).  Note that the latter
+might not be acurate or might always be 0, depending on the timing
+capabilities of the system.
+.ED
+
+.S File System Interaction
+
+.BD
+.C access_file 2 +File, +Mode
+Succeeds when {\em File} exists and can be accessed by this prolog
+process under mode {\em Mode}.  {\em Mode} is one of the atoms
+\tty{read}, \tty{write}, \tty{append}, \tty{exist}, \tty{none} or
+\tty{execute}. {\em File} may also be the name of a directory. Fails
+silently otherwise.  \tty{access_file(File, none)} simply succeeds
+without testing anything.
+.C exists_file 1 +File
+Succeeds when {\em File} exists. This does not imply the user has read
+and/or write permission for the file.
+.C file_directory_name 2 +File, -Directory
+Extracts the directory-part of {\em File}. The resulting {\em Directory}
+name ends with the directory separator character {\tt /}. If {\em File}
+is an atom that does not contain any directory separator characters, the
+empty atom {\tt ''} is returned.  See also file_base_name/2.
+.C file_base_name 2 +File, -BaseName
+Extracts the filename part from a path specification. If {\em File} does
+not contain any directory separators, {\em File} is returned.
+.C same_file 2 +File1, +File2
+Succeeds if both filenames refer to the same physical file.  That is,
+if {\em File1} and {\em File2} are the same string or both names exist
+and point to the same file (due to hard or symbolic links and/or
+relative vs. absolute paths).
+.C exists_directory 1 +Directory
+Succeeds if {\em Directory} exists. This does not imply the user has read,
+search and or write permission for the directory.
+.C delete_file 1 +File
+Unlink {\em File} from the Unix file system.
+.C rename_file 2 +File1, +File2
+Rename {\em File1} into {\em File2}. Currently files cannot be moved
+across devices.
+.C size_file 2 +File, -Size
+Unify {\em Size} with the size of {\em File} in characters.
+.C time_file 2 +File, -Time
+Unify the last modification time of {\em File} with {\em Time}. {\em
+Time} is a floating point number expressing the seconds elapsed since
+Jan~1, 1970.
+.C absolute_file_name 2 +File, -Absolute
+Expand Unix file specification into an absolute path.  User home
+directory expansion (\verb+~+ and \verb+~user+) and variable expansion
+is done.  The absolute path is canonised: references to `.' and `..' are
+deleted.  SWI-Prolog uses absolute file names to register source files
+independant of the current working directory.
+.C absolute_file_name 3 +Spec, +Options, -Absolute
+Converts the given file specification into an absolute path. {\em
+Option} is a list of options to guide the conformation process:
+
+\begin{quote}
+\begin{description}
+\setlength{\itemsep}{-2pt}
+\newcommand{\option}[1]{\item[\tt #1]\mbox{}\\}
+    \option{extensions(ListOfExtensions)}
+List of file-extensions to try.  Default is \verb$['']$.  For each
+extension, absolute_file_name/3 will first add the extension and then
+verify the conditions imposed by the other options.  If the condition
+fails, the next extension of the list is tried.  Extensions may be
+specified both as {\tt '.ext'} or plain {\tt 'ext'}.
+    \option{access(Mode)}
+Imposes the condition access_file({\em File}, {\em Mode}).  {\em Mode}
+is on of {\tt read}, {\tt write}, {\tt append}, {\tt exist} or {\tt
+none}.  See also access_file/2.
+\end{description}
+\end{quote}
+.C is_absolute_file_name 1 +File
+True if {\em File} specifies and absolute path-name.  On Unix systems,
+this implies the path starts with a `/'.  For MicroSoft based systems
+this implies the path starts with $<$letter$>$:. This predicate is
+intended to provide platform-independent checking for absolute paths.
+See also absolute_file_name/2 and prolog_to_os_filename/2.
+.C expand_file_name 2 +WildChart, -List
+Unify {\em List} with a sorted list of files or directories matching
+{\em WildChart}.  The normal Unix wildchart constructs `\verb+?+',
+`\verb+*+', `\verb+[...]+' and `\verb+{...}+' are recognised.  The
+interpretation of `\verb+{...}+' is interpreted slightly different from
+the C shell (csh(1)).  The comma separated argument can be arbitrary
+patterns, including `\verb+{...}+' patterns.  The empty pattern is legal
+as well: `\verb+{.pl,}+' matches either `\verb+.pl+' or the empty
+string.
+.C prolog_to_os_filename 2 ?PrologPath, ?OsPath
+Converts between the internal Prolog pathname conventions and the
+operating-system pathname conventions.  The internal conventions are
+Unix and this predicates is equivalent to =/2 (unify) on Unix systems.
+On DOS systems it will change the directory-separator, limit the
+filename length map dots, except for the last one, onto underscores.
+.C read_link 3 +File, -Link, -Target
+If {\em File} points to a symbolic link, unify {\em Link} with the
+value of the link and {\em Target} to the file the link is pointing to.
+{\em Target} points to a file, directory or non-existing entry in the
+file system, but never to a link.  Fails if {\em File} is not a link.
+Fails always on systems that donot support symbolic links.
+.C tmp_file 2 +Base, -TmpName
+Create a name for a temporary file.  {\em Base} is an identifier for
+the category of file.  The {\em TmpName} is guaranteed to be unique.
+If the system halts, it will automatically remove all created temporary
+files.
+.C chdir 1 +Path
+Change working directory to {\em Path}.
+.ED
+
+.S User Toplevel Manipulation
+
+.BD
+.C break 0
+Recursively start a new Prolog top level. This Prolog top level has
+it's own stacks, but shares the heap with all break environments and
+the top level. Debugging is switched off on entering a break and
+restored on leaving one. The break environment is terminated by typing
+the system's \mbox{end-of-file} character (control-D). If the \tty{-t
+toplevel} command line option is given this goal is started instead of
+entering the default interactive top level (prolog/0).
+.C abort 0
+Abort the Prolog execution and start a new top level.  If the
+\tty{-t toplevel} command line options is given this goal is started
+instead of entering the default interactive top level.  Break
+environments are aborted as well.  All open files except for the
+terminal related files are closed.  The input- and output stream again refers
+to {\em user}.%
+\bug{Erased clauses which could not actually be removed from the
+database, because they are active in the interpreter, will never be
+garbage collected after an abort.}
+.C halt 0
+Terminate Prolog execution.  Open files are closed and if the command
+line option \tty{-tty} is not active the terminal status (see Unix
+stty(1)) is restored.  Hooks may be registered both in Prolog and in
+foreign code.  Prolog hooks are registered using at_halt/1.  halt/0
+is equivalent to halt(0).
+.C halt 1 +Status
+Terminate Prolog execution with given status.  Status is an integer.
+See also halt/0.
+.C prolog 0
+This goal starts the default interactive top level. prolog/0
+is terminated (succeeds) by typing control-D.
+.ED
+
+.S Creating a Protocol of the User Interaction
+
+SWI-Prolog offers the possibility to log the interaction with the user
+on a file.%
+    \footnote{A similar facility was added to Edinburgh C-Prolog by
+	      Wouter Jansweijer.}
+All Prolog interaction, including warnings and tracer output, are written
+on the protocol file.
+
+.BD
+.C protocol 1 +File
+Start protocolling on file {\em File}. If there is already a protocol
+file open then close it first. If {\em File} exists it is truncated.
+.C protocola 1 +File
+Equivalent to protocol/1, but does not truncate the {\em File} if it
+exists.
+.C noprotocol 0
+Stop making a protocol of the user interaction.  Pending output is
+flushed on the file.
+.C protocolling 1 -File
+Succeeds if a protocol was started with protocol/1 or protocola/1 and
+unifies {\em File} with the current protocol output file.
+.ED
+
+.S Debugging and Tracing Programs
+\label{sec:debugger}
+
+.BD
+.C trace 0
+Start the tracer. trace/0 itself cannot be seen in the tracer.  Note that
+the Prolog toplevel treats trace/0 special; it means `trace the next goal'.
+.C tracing 0
+Succeeds when the tracer is currently switched on.  tracing/0 itself can
+not be seen in the tracer.
+.C notrace 0
+Stop the tracer. notrace/0 itself cannot be seen in the tracer.
+.C trace 1 +Pred
+Equivalent to trace({\em Pred}, +all).
+.C trace 2 +Pred, +Ports
+Put a trace-point on all predicates meeting the predicate specification
+{\em Pred}.  {\em Ports} is a list of portnames ({\tt call, redo, exit,
+fail}).  The atom {\tt all} refers to all ports.  If the port is
+predeced by a `-' sign the trace-point is cleared for the port.  If it
+is predeced by a `+' the trace-point is set.
+
+The predicate trace/2 activates debug mode (see debug/0).  Each time
+a port (of the 4-port model) is passed that has a trace-point set the
+goal is printed as with trace/0.  Unlike trace/0 however, the execution
+is continued without asking for further information.  Examples:
+
+\begin{center}
+\begin{tabular}{lp{3in}}
+\tt ?- trace(hello).	& Trace all ports of hello with any arity
+			  in any module. \\
+\tt ?- trace(foo/2, +fail) & Trace failures of foo/2 in any module. \\
+\tt ?- trace(bar/1, -all)  & Stop tracing bar/1.
+\end{tabular}
+\end{center}
+
+The predicate debugging/0 shows all currently defined trace-points.
+.C debug 0
+Start debugger (stop at spy points).
+.C nodebug 0
+Stop debugger (do not trace, nor stop at spy points).
+.C debugging 0
+Print debug status and spy points on current output stream.
+.C spy 1 +Pred
+Put a spy point on all predicates meeting the predicate specification
+{\em Pred}. See section~\ref{listing}.
+.C nospy 1 +Pred
+Remove spy point from all predicates meeting the predicate specification
+{\em Pred}.
+.C nospyall 0
+Remove all spy points from the entire program.
+.C leash 1 ?Ports
+Set/query leashing (ports which allow for user interaction). {\em Ports} is
+one of \tty{+Name}, \tty{-Name}, \tty{?Name} or a list of these.
+\tty{+Name} enables leashing on that port, \tty{-Name} disables it and
+\tty{?Name} succeeds or fails according to the current setting.
+Recognised ports are: \tty{call}, \tty{redo}, \tty{exit}, \tty{fail} and
+\tty{unify}. The special shorthand \tty{all} refers to all ports, 
+\tty{full} refers to all ports except for the unify port (default).
+\tty{half} refers to the \tty{call}, \tty{redo} and \tty{fail}
+port.
+.C visible 1 +Ports
+Set the ports shown by the debugger. See leash/1 for a description of
+the port specification. Default is \tty{full}.
+.C unknown 2 -Old, +New
+Unify {\em Old} with the current value of the unknown system flag.  On
+success {\em New} will be used to specify the new value. {\em New} should be
+instantiated to either \tty{fail} or \tty{trace} and determines the
+interpreter's action when an undefined predicate which is not declared
+dynamic is encountered (see dynamic/1). \tty{fail} implies the predicate
+just fails silently. \tty{trace} implies the tracer is started. Default is
+\tty{trace}.  The unknown flag is local to each module and unknown/2
+is module transparent.  Using it as a directive in a module file will
+only change the unknown flag for that module.  Using the :/2 construct
+the behaviour on trapping an undefined predicate can be changed for
+any module.  Note that if the unknown flag for a module equals \tty
+{fail} the system will not call exception/3 and will {\bf not} try
+to resolve the predicate via the dynamic library system.  The system
+will still try to import the predicate from the public module.
+.C style_check 1 +Spec
+Set style checking options.  {\em Spec} is either \verb|+<option>|, 
+\verb|-<option>|, \verb|?<option>| or a list of such options.
+\verb|+<option>| sets a style checking option, \verb|-<option>| clears
+it and \verb|?<option>| succeeds or fails according to the current
+setting. consult/1 and derivates resets the style checking options to
+their value before loading the file. If --for example-- a file containing
+long atoms should be loaded the user can start the file with:
+\begin{code}
+:- style_check(-atom).
+\end{code}
+
+Currently available options are:
+
+\begin{center}
+\begin{tabular}{|l|c|p{3.5in}|}
+\hline
+Name & Default & Description \\
+\hline
+\tty{singleton}  & on & read_clause/1 (used by consult/1) warns
+		        on variables only appearing once in a term (clause)
+		        which have a name not starting with an underscore. \\
+\tty{atom}	 & on & read/1 and derivates will produce an
+		        error message on quoted atoms or strings longer
+		        than 5 lines. \\
+\tty{dollar}	 & off & Accept dollar as a lower case character, thus
+		        avoiding the need for quoting atoms with dollar signs.
+		        System maintenance use only. \\		
+\tty{discontiguous} & on & Warn if the clauses for a predicate are not
+		        together in the same source file. \\
+\tty{string}	 & off & Read and derivates transform \verb$"..."$ into
+			a prolog string instead of a list of ASCII
+			characters. \\
+\hline
+\end{tabular}
+\end{center}
+
+.ED
+
+.S Obtaining Runtime Statistics
+
+.BD
+.C statistics 2 +Key, -Value
+Unify system statistics determined by {\em Key} with {\em Value}. The
+possible keys are given in the table~\ref{tab:statistics}.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|l|p{4in}|}
+\hline
+cputime		& (User) cpu time since Prolog was started in seconds \\
+inferences	& Total number of passes via the call and redo ports
+		  since Prolog was started. \\
+heapused	& Bytes heap in use. \\
+local		& Allocated size of the local stack in bytes. \\
+localused	& Number of bytes in use on the local stack. \\
+locallimit	& Size to which the local stack is allowed to grow \\
+global		& Allocated size of the global stack in bytes. \\
+globalused	& Number of bytes in use on the global stack. \\
+globallimit	& Size to which the global stack is allowed to grow \\
+trail		& Allocated size of the trail stack in bytes. \\
+trailused	& Number of bytes in use on the trail stack. \\
+traillimit	& Size to which the trail stack is allowed to grow \\
+atoms		& Total number of defined atoms. \\
+functors	& Total number of defined name/arity pairs. \\
+predicates	& Total number of predicate definitions. \\
+modules		& Total number of module definitions. \\
+externals	& Total number of {\em external references} in all
+		  clauses. \\
+codes		& Total amount of byte codes in all clauses. \\
+\hline
+\end{tabular}
+\end{center}
+    \caption{Keys for statistics/2}
+    \label{tab:statistics}
+\end{table}
+
+.C statistics 0
+Display a table of system statistics on the current output stream.
+.C time 1 +Goal
+Execute {\em Goal} just like once/1 (i.e. leaving no choice points),
+but print used time, number of logical inferences and the average
+number of {\em lips} (logical inferences per second).  Note that
+SWI-Prolog counts the actual executed number of inferences rather than
+the number of passes through the call- and redo ports of the
+theoretical 4-port model.
+.ED
+
+.S Finding Performance Bottlenecks
+
+SWI-Prolog offers a statistical program profiler similar to Unix prof(1)
+for C and some other languages.  A profiler is used as an aid to find
+performance pigs in programs.  It provides information on the time spent
+in the various Prolog predicates.
+
+The profiler is based on the assumption that if we monitor the functions
+on the execution stack on time intervals not correlated to the program's
+execution the number of times we find a procedure on the environment
+stack is a measure of the time spent in this procedure.  It is
+implemented by calling a procedure each time slice Prolog is active.
+This procedure scans the local stack and either just counts the
+procedure on top of this stack (\tty{plain} profiling) or all procedures
+on the stack (\tty{cummulative} profiling).  To get accurate results
+each procedure one is interested in should have a reasonable number of
+counts.  Typically a minute runtime will suffice to get a rough overview
+of the most expensive procedures.
+
+.BD
+.C profile 3 +Goal, +Style, +Number
+Execute {\em Goal} just like time/1. Collect profiling statistics
+according to style (see profiler/2) and show the top {\em Number}
+procedures on the current output stream (see show_profile/1). The
+results are kept in the database until reset_profiler/0 or profile/3
+is called and can be displayed again with show_profile/1. profile/3
+is the normal way to invoke the profiler. The predicates below
+are low-level predicates that can be used for special cases.
+.C show_profile 1 +Number
+Show the collected results of the profiler. Stops the profiler first to
+avoid interference from show_profile/1. It shows the top {\em Number}
+predicates according the percentage cpu-time used%
+    \footnote{show_profile/1 is defined in Prolog and takes a
+	      considerable amount of memory.}.
+.C profiler 2 -Old, +New
+Query or change the status of the profiler. The status is one of
+\tty{off}, \tty{plain} or \tty{cummulative}. \tty{plain} implies the
+time used by children of a predicate is not added to the time of the
+predicate. For status \tty{cummulative} the time of childs is added
+(except for recursive calls). Cummulative profiling implies the stack
+is scanned upto the top on each time slice to find all active
+predicates.  This implies the overhead grows with the number of active
+frames on the stack.  Cummulative profiling starts debugging mode
+to disable tail recursion optimisation, which would otherwise
+remove the necessary parent environments.  Switching status from
+\tty{plain} to \tty{cummulative} resets the profiler.  Switching to and
+from status \tty{off} does not reset the collected statistics, thus
+allowing to suspend profiling for certain parts of the program.
+.C reset_profiler 0
+Switches the profiler to \tty{off} and clears all collected statistics.
+.C profile_count 3 +Head, -Calls, -Promilage
+Obtain profile statistics of the predicate specified by {\em Head}.
+{\em Head} is an atom for predicates with arity 0 or a term with the
+same name and arity as the predicate required (see
+current_predicate/2). {\em Calls} is unified with the number of `calls'
+and `redos' while the profiler was active. {\em Promilage} is unified
+with the relative number of counts the predicate was active
+(\tty{cummulative}) or on top of the stack (\tty{plain}). {\em Promilage}
+is an integer between 0 and 1000.
+.ED
+
+.S Memory Management
+
+Note: limit_stack/2 and trim_stacks/0 have no effect on machines that do
+not offer dynamic stack expansion.  On these machines these predicates
+simply succeed to improve portability.
+
+.BD
+.C garbage_collect 0
+Invoke the global- and trail stack garbage collector.  Normally the
+garbage collector is invoked automatically if necessary.  Explicit
+invokation might be useful to reduce the need for garbage collections in
+time critical segments of the code.  After the garbage collection
+trim_stacks/0 is invoked to release the collected memory resources.
+.C limit_stack 2 +Key, +Kbytes
+Limit one of the stack areas to the specified value. {\em Key} is one
+of \tty{local}, \tty{global} or \tty{trail}. The limit is an integer,
+expressing the desired stack limit in K bytes.  If the desired limit is
+smaller than the currently used value, the limit is set to the
+nearest legal value above the currently used value.  If the desired
+value is larger than the maximum, the maximum is taken.  Finally, if
+the desired value is either 0 or the atom \tty{unlimited} the limit
+is set to its maximum.  The maximum and initial limit is determined
+by the command line options \tty{-L}, \tty{-G} and \tty{-T}.
+.C trim_stacks 0
+Release stack memory resources that are not in use at this moment,
+returning them to the operating system.  Trim stack is a relatively
+cheap call.  It can be used to release memory resources in a
+backtracking loop, where the iterations require typically seconds of
+execution time and very different, potentionally large, amounts of
+stack space.  Such a loop should be written as follows:
+
+\begin{boxed}\begin{code}
+loop :-
+	generator,
+	    trim_stacks,
+	    potentionally_expensive_operation,
+	stop_condition, !.
+\end{code}\end{boxed}
+
+The prolog top level loop is written this way, reclaiming memory
+resources after every user query.
+.C stack_parameter 4 +Stack, +Key, -Old, +New
+Query/set a parameter for the runtime stacks.  {\em Stack} is one
+of {\tt local}, {\tt global}, {\tt trail}, {\tt argument} or {\tt lock}.
+The table below describes the {\em Key}/Value pairs.  Old is first
+unified with the current value.
+
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+\tt limit	& Maximum size of the stack in bytes \\
+\tt min_free	& Minimum free space at entry of foreign predicate \\
+\hline
+\end{tabular}
+\end{center}
+
+This predicate is currently only available on versions that use the
+stack-shifter to enlarge the runtime stacks when necessary.  It's
+definition is subject to change.
+.ED
+
+
+.S Windows DDE interface		\label{sec:DDE}
+
+The predicates in this section deal with MS-Windows `Dynamic Data
+Exchange' or DDE protocol.%
+	\footnote{This interface is contributed by Don Dwiggins.}
+A Windows DDE conversation is a form of interprocess communication
+based on sending reserved window-events between the communicating
+processes.  
+
+See also section~\ref{sec:DLL} for loading Windows DLL's into
+SWI-Prolog.
+
+
+.SS DDE client interface
+
+The DDE client interface allows Prolog to talk to DDE server programs.
+We will demonstrate the use of the DDE interface using the Windows
+PROGMAN (Program Manager) application:
+
+\begin{boxed}
+\begin{code}
+1 ?- open_dde_conversation(progman, progman, C).
+
+C = 0
+2 ?- dde_request(0, groups, X)
+
+--> Unifies X with description of groups
+
+3 ?- dde_execute(0, '[CreateGroup("DDE Demo")]').
+
+Yes
+
+4 ?- close_dde_conversation(0).
+
+Yes
+\end{code}
+\end{boxed}
+
+
+For details on interacting with PROGMAN, use the SDK online manual
+section on the Shell DDE interface. See also the Prolog library
+progman.pl, which may be used to write simple Windows setup scripts in
+Prolog.
+
+
+.BD
+.C open_dde_conversation 3 +Service, +Topic, -Handle
+Open a conversation with a server supporting the given service name and
+topic (atoms).  If successful, {\em Handle} may be used to send
+transactions to the server.  If no willing server is found this
+predicate fails silently.
+.C close_dde_conversation 1 +Handle
+Close the conversation associated with {\em Handle}.  All opened
+conversations should be closed when they're no longer needed, although
+the system will close any that remain open on process termination.
+.C dde_request 3 +Handle, +Item, -Value
+Request a value from the server.  {\em Item} is an atom that identifies
+the requested data, and {\em Value} will be an atom ({\tt CF_TEXT} data
+in DDE parlance) representing that data, if the request is successful.
+If unsuccessful, {\em Value} will be unified with a term of form
+error(reason), identifying the problem.%
+\bug{It could be argued that the atoms above should be strings.}
+.C dde_execute 2 +Handle, +Command
+Request the DDE server to execute the given command-string.  Succeeds
+if the command could be executed and fails with error message otherwise.
+.ED
+
+
+.SS DDE server mode
+
+The (autoload) library {\tt dde.pl} defines primitives to realise simple
+DDE server applications in SWI-Prolog.  These features are provided as
+of version 2.0.6 and should be regarded prototypes.  The C-part of
+the DDE server can handle some more primitives, so if you need features
+not provided by this interface, please study the library {\tt dde.pl}.
+
+
+.BD
+.C dde_register_service 2 +Template, +Goal
+Register a server to handle DDE request or DDE execute requests from
+other applications. To register a service for a DDE request, {\em
+Template} is of the form:
+\begin{quote}
++Service(+Topic, +Item, +Value)
+\end{quote}
+{\em Service} is the name of the DDE service provided (like {\tt
+progman} in the client example above).  {\em Topic} is either an
+atom, indicating {\em Goal} only handles requests on this topic
+or a variable that also appears in {\em Goal}. {\em Item} and {\em
+Value} are variables that also appear in {\em Goal}.
+
+The example below registers the Prolog feature/2 predicate to be
+accessible from other applications.  The request may be given from
+the same Prolog as well as from another application.
+
+\begin{boxed}
+\begin{code}
+?- dde_register_service(prolog(feature, F, V),
+			feature(F, V)).
+
+?- open_dde_conversation(prolog, feature, Handle),
+   dde_request(Handle, home, Home),
+   close_dde_conversation(Handle).
+
+Home = '/usr/local/lib/pl-2.0.6/'
+\end{code}
+\end{boxed}
+
+Handling DDE {\tt execute} requests is very similar.  In this case the
+template is of the form:
+
+\begin{quote}
++Service(+Topic, +Item)
+\end{quote}
+
+Passing a {\em Value} argument is not needed as execute requests either
+succeed or fail.  If {\em Goal} fails, a `not processed' is passed back
+to the caller of the DDE request.
+.C dde_unregister_service 1 +Service
+Stop responding to {\em Service}. If Prolog is halted, it will
+automatially call this on all open services.
+.C dde_current_service 2 -Service, -Topic
+Find currently registered services and the topics served on them.
+.C dde_current_connection 2 -Service, -Topic
+Find currently open conversations.
+.ED
+
+
+.S Miscellaneous
+
+.BD
+.C dwim_match 2 +Atom1, +Atom2
+Succeeds if {\em Atom1} matches {\em Atom2} in `Do What I Mean' sence.
+Both {\em Atom1} and {\em Atom2} may also be integers or floats.
+The two atoms match if:
+\begin{shortlist}
+    \item They are identical
+    \item They differ by one character (spy $\equiv$ spu)
+    \item One character is insterted/deleted (debug $\equiv$ deug)
+    \item Two characters are transposed (trace $\equiv$ tarce)
+    \item `Sub-words' are glued differently (existsfile $\equiv$ existsFile $\equiv$ exists_file)
+    \item Two adjacent sub words are transposed (existsFile $\equiv$ fileExists)
+\end{shortlist}
+.C dwim_match 3 +Atom1, +Atom2, -Difference
+Equivalent to dwim_match/2, but unifies {\em Difference} with an atom
+identifying the the difference between {\em Atom1} and {\em Atom2}.  The
+return values are (in the same order as above): \tty{equal},
+\tty{mismatched_char}, \tty{inserted_char}, \tty{transposed_char},
+\tty{separated} and \tty{transposed_word}.
+.C wildcard_match 2 +Pattern, +String
+Succeeds if {\em String} matches the wildcard pattern {\em Pattern}. {\em
+Pattern} is very similar the the Unix csh pattern matcher.  The patterns
+are given below:
+\begin{center}\begin{tabular}{ll}
+\tt ?		& Matches one arbitrary character \\
+\tt *		& Matches any number of arbitrary characters \\
+\tt [...]	& Matches one of the characters specified at \verb|...|
+		  \verb|<char>-<char>| indicates a range. \\
+\tt \{...\}	& Matches any of the patterns of the comma separated list
+		  between the brackets.
+\end{tabular}\end{center}
+Example:
+\begin{code}
+?- wildcard_match('[a-z]*.{pro,pl}[%~]', 'a_hello.pl%').
+
+Yes.
+\end{code}
+.C gensym 2 +Base, -Unique
+Generate a unique atom from base {\em Base} and unify it with {\em Unique}.
+{\em Base} should be an atom. The first call will return \verb+<base>1+, 
+the next \verb+<base>2+, etc. Note that this is no warrant that the atom
+is unique in the system.%
+\bug{I plan to supply a real gensym/2 which does give this warrant for
+future versions.}
+.C sleep 1 +Time
+Suspend execution {\em Time} seconds.  {\em Time} is either a floating
+point number or an integer.  Granularity is dependent on the system's
+timer granularity (1/60 seconds on most Unix systems).  A negative
+time causes the timer to return immediately.  As Unix is a multi-tasking
+environment we can only ensure execution is suspended for {\sl at least}
+{\em Time} seconds.
+.ED

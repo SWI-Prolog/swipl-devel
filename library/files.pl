@@ -31,7 +31,7 @@ can_open_file(File, both) :-
 	access_file(File, write).
 
 path_dir_name(File, Dir) :-
-	'$file_base_name'(File, Base),
+	file_base_name(File, Base),
 	concat(RawDir, Base, File),
 	(   RawDir == ''
 	->  Dir = '.'

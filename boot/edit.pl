@@ -110,7 +110,7 @@ $edit(File) :-
 
 edit_command(Editor, File, _Line, $nopredicate, Command) :- !,
 	prolog_to_os_filename(File, OsFile),
-	$file_base_name(Editor, Base),
+	file_base_name(Editor, Base),
 	(   edit_command(Base, nosearch, Cmd)
 	->  name(Cmd, S0),
 	    substitute("%e", Editor, S0, S1),
@@ -120,7 +120,7 @@ edit_command(Editor, File, _Line, $nopredicate, Command) :- !,
 	).
 edit_command(Editor, File, Line, Pred, Command) :-
 	prolog_to_os_filename(File, OsFile),
-	$file_base_name(Editor, Base),
+	file_base_name(Editor, Base),
 	(   edit_command(Base, search, Cmd)
 	->  name(Cmd, S0),
 	    substitute("%e", Editor, S0, S1),
@@ -196,6 +196,5 @@ reload(File) :-
 	->  consult(Module:File)
 	;   Modules = [First|_Rest],
 	    consult(First:File)
-	).
 	).
 	

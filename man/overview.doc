@@ -1,0 +1,986 @@
+\chapter{Overview}
+
+\section{Starting SWI-Prolog from the Unix Shell}
+
+It is advised to install SWI-Prolog as `pl' in the local binary
+directory. SWI-Prolog can then be started from the Unix shell by typing
+`\tty{pl}'.  The system will boot from the system's default boot file, 
+perform the necessary initialisations and then enter the interactive top
+level.
+
+After the necessary system initialisation the system consults (see
+consult/1) the user's initialisation file.  This initialisation file
+should be named `$verb.plrc$'%
+    \footnote{Windows: `\verb$_plrc$' as files cannot be named
+	      `\verb$.plrc$'.}
+and reside either in the current directory or in the user's home
+directory.  If both exist the initialisation file from the current
+directory is loaded.  The name of the initialisation file can be changed
+with the `\tty{-f file}' option.  After loading the initialisation file
+SWI-Prolog executes a user initialisation goal.  The default goal is a
+system predicate that prints the banner message.  The default can be
+modified with the `\tty{-g goal}' option.  Next the toplevel goal is
+started.  Default is the interactive Prolog loop (see prolog/0).  The
+user can overwrite this default with the `\tty{-t toplevel}' option.
+
+\subsection{Command Line Options}
+
+The full set of command line options is given below:
+
+\begin{quote}
+\begin{description}
+\setlength{\itemsep}{-2pt}
+\newcommand{\option}[1]{\item[\tt #1]\mbox{}\\}
+    \option{-help}
+When given as the only option, it summarises the most important options.
+    \option{-v}
+When given as the only option, it summarises the version and the
+architecture identifier.
+    \option{-Lsize}
+Give local stack size in K bytes (200 K default). Note that there is no
+space between the size option and its argument.  For machines with
+dynamic stack allocation this flag sets the maximum value to which the
+stack is allowed to grow (2 Mbytes default).  A maximum is useful to
+stop buggy programs from claiming all memory resources.  \tty{-L0} sets
+the limit to the highest possible value.
+    \option{-Gsize}
+Give global stack size in K bytes (100 K default).  For machines with
+dynamic stack allocation the default is 4 Mbytes. See \tty{-L} for more
+details.
+    \option{-Tsize}
+Give trail stack size in K bytes (50 K default).  For machines with
+dynamic stack allocation the default is 4 Mbytes. See \tty{-L} for more
+details.
+    \option{-Asize}
+Give argument stack size in K bytes (5 K default).  For machines with
+dynamic stack allocation the default is 1 Mbytes. See \tty{-L} for more
+details.
+    \option{-c file ...}
+Compile files into an `intermediate code file'. See section~\ref{compilation}.
+    \option{-o output}
+Used in combination with \tty{-c} or \tty{-b} to determine output file
+for compilation.
+    \option{-O}
+Optimised compilation. See please/3.
+    \option{-f file}
+Use {\em file} as initialisation file instead of `\tty{.plrc}'. `\tty{-f
+none}' stops SWI-Prolog from searching for an initialisation file.
+    \option{-g goal}
+{\em Goal} is executed just before entering the top level. Default is a
+predicate which prints the welcome message. The welcome message can
+thus be suppressed by giving \tty{-g true}. {\em goal} can be a complex
+term. In this case quotes are normally needed to protect it from
+being expanded by the Unix shell. 
+    \option{-t goal}
+Use {\em goal} as interactive toplevel instead of the default goal
+prolog/0. {\em goal} can be a complex term. If the toplevel goal
+succeeds SWI-Prolog exits with status 0. If it fails the exit status is 1.
+This flag also determines the goal started by break/0 and abort/0. If
+you want to stop the user from entering interactive mode start the
+application with `\tty{-g goal}' and give `halt' as toplevel.
+    \option{+/-tty}
+Switches tty control (using ioctl(2)) on (\verb$+tty$) or off
+(\verb$-tty$). Normally tty control is switched on. This default
+depends on the installation.  You may wish to switch tty control off if
+Prolog is used from an editor such as Emacs.  If switched off
+get_single_char/1 and the tracer will wait for a return.
+    \option{-x bootfile}
+Boot from {\em bootfile} instead of the system's default boot file. A
+bootfile is a file resulting from a Prolog compilation using the
+\tty{-b} or \tty{-c} option or a program saved using
+qsave_program/[1,2].
+    \option{-r restorefile}
+Restore a state created by save_program/[1,2] or save/[1,2] using
+the new-style saved-states.  Equivalent to {\tt restore(restorefile)} from
+Prolog.
+    \option{-p alias=path1[path2 ...]}
+Define a path alias for file_search_path. {\em alias} is the name of
+the alias, {\em path1 ...} is a {\tt :} separated list of values for
+the alias.  A value is either a term of the form \mbox{alias(value)}
+or pathname.  The computed aliases are added to file_search_path/2
+using asserta/1, so they preceed predefined values for the alias.  See
+file_search_path/2 for details on using this file-location mechanism.
+    \option{--}
+Stops scanning for more arguments, so you can pass arguments for your
+application after this one.
+\end{description}
+\end{quote}
+
+The following options are for system maintenance. They are given
+for reference only.
+
+\begin{quote}
+\begin{description}
+\setlength{\itemsep}{-2pt}
+\newcommand{\option}[1]{\item[\tt #1]\mbox{}\\}
+    \option{-b initfile ... -c file ...}
+Boot compilation.  \tty{initfile ...} are compiled by the C-written
+bootstrap compiler, \tty{file ...} by the normal Prolog compiler.
+System maintenance only.
+    \option{-d level}
+Set debug level to {\em level}. System maintenance only.
+\end{description}
+\end{quote}
+
+
+\section{GNU Emacs Interface}
+
+\index{GNU-Emacs}\index{Emacs}
+A provisional interface to GNU-Emacs has been included since version 1.6 of
+SWI-Prolog.  The interface is based on the freely distributed interface
+delivered with Quintus Prolog.  When running Prolog as an inferior
+process under GNU-Emacs, there is support for finding predicate definitions,
+completing atoms, finding the locations of compilation-warnings and
+many more.  For details, see the files {\tt pl/lisp/README} and
+{\tt pl/lisp/swi-prolog.el}.  
+
+
+\section{Online Help}
+
+Online help provides a fast lookup and browsing facility to this
+manual. The online manual can show predicate definitions as well as
+entire sections of the manual.
+
+.BD
+.C help 0
+Equivalent to \tty{help(help/1)}.
+.C help 1 +What
+Show specified part of the manual.  {\em What} is one of:
+\begin{center}\begin{tabular}{lp{3.5in}}
+Name/Arity	& give help on specified predicate \\
+Name		& give help on named predicate with any arity
+		  or C interface function with that name \\
+Section		& display specified section. section numbers are
+		  dash-separated numbers: \tty{2-3} refers to
+		  section 2.3 of the manual.  Section numbers are
+		  obtained using apropos/1.
+\end{tabular}\end{center}
+
+Examples
+\begin{center}\begin{tabular}{lp{3.5in}}
+\tt ?- help(assert).	& give help on predicate assert \\
+\tt ?- help(3-4).	& display section 3.4 of the manual \\
+\tt ?- help('PL_retry').& give help on interface function PL_retry() \\
+\end{tabular}\end{center}
+.C apropos 1 +Pattern
+Display all predicates, functions and sections that have {\em
+Pattern} in their name or summary description.  Lowercase letters in
+{\em Pattern} also match a corresponding uppercase letter. Example:
+\begin{center}\begin{tabular}{lp{3.5in}}
+\tt ?- apropos(file).	& Display predicates, functions and sections
+			  that have `file' (or `File', etc.) in their
+			  summary description. \\
+\end{tabular}\end{center}
+.C explain 1 +ToExplain
+Give an explanation on the given `object'.  The argument may be
+any Prolog data object.  If the argument is an atom, a term of
+the form {\em Name/Arity} or a term of the form {\em
+Module:Name/Arity}, explain will try to explain the predicate
+as well as possible references to it.
+.C explain 2 +ToExplain, -Explanation
+Unify {\em Explanation} with an explanation for {\em ToExplain}.
+Backtracing yields further explanations.
+.ED
+
+
+\section{Query Substitutions}
+\label{sec:history}
+
+SWI-Prolog offers a query substitution mechanism similar to that
+of Unix csh (csh(1)), called `history'. It allows the user to compose
+new queries from those typed before and remembered by the system. It
+also allows to correct queries and syntax errors. SWI-Prolog does not
+offer the Unix csh capabilities to include arguments. This is omitted
+as it is unclear how the first, second, etc.\ argument should be
+defined.%
+    \footnote{One could choose words, defining words as a sequence of
+	      alpha-numeric characters and the word separators as
+	      anything else, but one could also choose Prolog
+	      arguments}
+
+The available history commands are shown in table~\ref{tab:history}.
+Figure~\ref{fig:history} gives some examples.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+\verb+!!.+            & Repeat last query \\
+\verb+!nr.+           & Repeat query numbered \verb+<nr>+ \\
+\verb+!str.+          & Repeat last query starting with \verb+<str>+ \\
+\verb+!?str.+         & Repeat last query holding \verb+<str>+ \\
+\verb+^old^new.+      & Substitute \verb+<old>+ into \verb+<new>+ of
+		        last query \\
+\verb+!nr^old^new.+   & Substitute in query numbered \verb+<nr>+ \\
+\verb+!str^old^new.+  & Substitute in query starting with \verb+<str>+ \\
+\verb+!?str^old^new.+ & Substitute in query holding \verb+<str>+ \\
+\verb+h.+             & Show history list \\
+\verb+!h.+            & Show this list \\
+\hline
+\end{tabular}
+\end{center}
+    \caption{History commands}
+    \label{tab:history}
+\end{table}
+
+\begin{figure}
+\begin{boxed}
+\begin{code}
+/u4/staff/jan/.plrc consulted, 0.066667 seconds, 591 bytes
+.VERSION
+
+1 ?- append("Hello ", "World", L).
+
+L = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100] 
+
+Yes
+2 ?- !!, writef('L = %s\n', [L]).
+append("Hello ", "World", L), writef('L = %s\n', [L]).
+L = Hello World
+
+L = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100] 
+
+Yes
+3 ?- sublist(integer, [3, f, 3.4], L).
+
+L = [3] 
+
+Yes
+4 ?- ^integer^number.
+sublist(number, [3, f, 3.4], L).
+
+L = [3, 3.400000] 
+
+Yes
+5 ?- h.
+    1	append("Hello ", "World", L).
+    2	append("Hello ", "World", L), writef('L = %s\n', [L]).
+    3	sublist(integer, [3, f, 3.4], L).
+    4	sublist(number, [3, f, 3.4], L).
+
+5 ?- !2^World^Universe.
+append("Hello ", "Universe", L), writef('L = %s\n', [L]).
+L = Hello Universe
+
+L = [72, 101, 108, 108, 111, 32, 85, 110, 105, 118, 101, 114, 115, 101] 
+
+Yes
+6 ?- halt.
+\end{code}
+\end{boxed}
+
+    \caption{Some examples of the history facility}
+    \label{fig:history}
+\end{figure}
+
+\subsection{Limitations of the History System}
+
+When in top level SWI-Prolog reads the user's queries using
+history_read/6 rather than read/1.  This predicate first reads the
+current input stream up to a full stop.  While doing so it maps all
+contiguous blank space onto a single space and deletes \verb+/* ...
+*/+ and \verb+% ... <cr>+ comments.  Parts between double quotes
+(\tty{"}) or single quotes (\tty{'}) are left unaltered.  Note that a
+Prolog full stop consists of a `non-symbol' character, followed by a
+period (\tty{.}), followed by a blank character.  `Symbol' characters
+are: \verb!#$&*+-./:<=>?@^`~!. A single quote immediately preceded by
+a digit (\tty{0-9}) is considered part of the \verb+<digit>'<digit>...+
+(e.g. \verb+2'101+; binary number 101) sequence.
+
+After this initial parsing the result is first checked for the special
+\verb+^old^new.+ construction. If this fails the string is checked for
+all occurrences of the \tty{!}, followed by a \tty{!}, \tty{?}, a
+digit, a letter or an underscore. These special sequences are analysed
+and the appropriate substitution from the history list is made.
+
+From the above it follows that it is hard or impossible to
+correct quotation with single or double quotes, comment delimiters and
+spacing.
+
+
+\section{Reuse of toplevel bindings}	\label{sec:topvars}
+
+Bindings resulting from the successfull execution of a toplevel goal
+are asserted in a database.  These values may be reused in further
+toplevel queries as \$Var.  Only the latest binding is available.
+Example:
+
+\begin{figure}
+\begin{boxed}
+\begin{code}
+1 ?- maplist(plus(1), "hello", X).
+
+X = [105,102,109,109,112] 
+
+2 ?- format('~s~n', [$X]).
+ifmmp
+\end{code}
+\end{boxed}
+    \caption{Reusing toplevel bindings}
+    \label{fig:topevelvars}
+\end{figure} 
+
+Note that variables may be set by executing =/2:
+
+\begin{boxed}
+\begin{code}
+6 ?- X = statistics.
+
+X = statistics
+
+7 ?- $X.
+28.00 seconds cpu time for 183,128 inferences
+4,016 atoms, 1,904 functors, 2,042 predicates, 52 modules
+55,915 byte codes; 11,239 external references
+
+                      Limit    Allocated       In use
+Heap         :                                624,820 Bytes
+Local  stack :    2,048,000        8,192          404 Bytes
+Global stack :    4,096,000       16,384          968 Bytes
+Trail  stack :    4,096,000        8,192          432 Bytes
+\end{code}
+\end{boxed}
+
+\section{Overview of the Debugger}
+
+SWI-Prolog has a standard 4-port tracer \cite{Clocksin:81} with an
+optional fifth port.  This fifth port, called {\em unify} allows the
+user to inspect the result after unification of the head.  The ports are
+called {\em call}, {\em exit}, {\em redo}, {\em fail} and {\em unify}.
+The tracer is started by the trace/0 command, when a spy point is
+reached and the system is in debugging mode (see spy/1 and debug/1) or
+when an error is detected at run time.  Note that in the interactive
+toplevel goal trace/0 means ``trace the next query''.  The tracer
+shows the port, displaying the port name, the current depth of the
+recursion and the goal.  The goal is printed using the Prolog predicate
+print/1 (default), write/1 or display/1.  An example using all five
+ports is shown in figure~\ref{fig:tracer}.
+
+\begin{figure}
+\begin{boxed}
+\begin{code}
+Yes
+2 ?- visible(+all), leash(-exit).
+
+Yes
+3 ?- trace, min([3, 2], X).
+  Call:  ( 3) min([3, 2], G235) ? creep
+  Unify: ( 3) min([3, 2], G235)
+  Call:  ( 4) min([2], G244) ? creep
+  Unify: ( 4) min([2], 2)
+  Exit:  ( 4) min([2], 2)
+  Call:  ( 4) min(3, 2, G235) ? creep
+  Unify: ( 4) min(3, 2, G235)
+  Call:  ( 5) 3 < 2 ? creep
+  Fail:  ( 5) 3 < 2 ? creep
+  Redo:  ( 4) min(3, 2, G235) ? creep
+  Exit:  ( 4) min(3, 2, 2)
+  Exit:  ( 3) min([3, 2], 2)
+\end{code}
+\end{boxed}
+    \caption{Example trace}
+    \label{fig:tracer}
+\end{figure}
+
+On {\em leashed ports} (set with the predicate leash/1, default are {\em
+call}, {\em exit}, {\em redo} and {\em fail}) the user is prompted for
+an action.  All actions are single character commands which are executed
+{\sc without} waiting for a return (Unix `cbreak' mode), unless the
+command line option \verb$-tty$ is active.  Tracer options:
+
+{\parskip 0pt
+\begin{description}
+\newcommand{\option}[4]{\item[{%
+		\makebox[1cm][l]{\tt #1}%
+		\makebox[3cm][l]{\it #2}%
+		\makebox[3cm][c]{\rm #3}}]\mbox{}\\ #4}
+    \option{$+$}{Spy}{all}{
+Set a spy point (see spy/1) on the current predicate.} 
+    \option{$-$}{No spy}{all}{
+Remove the spy point (see nospy/1) from the current predicate.} 
+    \option{/}{Find}{all}{
+Search for a port.  After the `/', the user can enter a line
+to specify the port to search for.  This line consists of a set of
+letters indicating the port type, followed by an optional term,
+that should unify with the goal run by the port.  If no term is
+specified it is taken as a variable, searching for any port of the
+specified type.  If an atom is given, any goal whose functor has a
+name equal to that atom matches.  Examples:
+\begin{center}\begin{tabular}{lp{3in}}
+\tt /f			& Search for any fail port \\
+\tt /fe solve		& Search for a fail or exit port of any goal with
+			  name {\tt solve} \\
+\tt /c solve(a, _)	& Search for a call to solve/2 whose first argument
+			  is a variable or the atom {\tt a} \\
+\tt /a member(_, _)	& Search for any port on member/2. This is equivalent
+			  to setting a spy point on member/2. \\
+\end{tabular}\end{center}}
+    \option{.}{Repeat find}{all}{
+Repeat the last find command (see `/')}
+    \option{A}{Alternatives}{all}{
+Show all goals that have alternatives.} 
+    \option{C}{Context}{all}{
+Toggle `Show Context'. If {\em on} the context module of the goal is
+displayed between square brackets (see section~\ref{sec:modules}).
+Default is {\em off}.} 
+    \option{L}{Listing}{all}{
+List the current predicate with listing/1.} 
+    \option{a}{Abort}{all}{
+Abort Prolog execution (see abort/0).} 
+    \option{b}{Break}{all}{
+Enter a Prolog break environment (see break/0).} 
+    \option{c}{Creep}{all}{
+Continue execution, stop at next port. (Also return, space).} 
+    \option{d}{Display}{all}{
+Write goals using the Prolog predicate display/1.} 
+    \option{e}{Exit}{all}{
+Terminate Prolog (see halt/0).} 
+    \option{f}{Fail}{call, redo, exit}{
+Force failure of the current goal} 
+    \option{g}{Goals}{all}{
+Show the list of parent goals (the execution stack). Note that due to tail
+recursion optimization a number of parent goals might not exist any more.} 
+    \option{h}{Help}{all}{
+Show available options (also `?').} 
+    \option{i}{Ignore}{call, redo, fail}{
+Ignore the current goal, pretending it succeeded.} 
+    \option{l}{Leap}{all}{
+Continue execution, stop at next spy point.} 
+    \option{n}{No debug}{all}{
+Continue execution in `no debug' mode.} 
+    \option{p}{Print}{all}{
+Write goals using the Prolog predicate print/1 (default).} 
+    \option{r}{Retry}{redo, exit, fail}{
+Undo all actions (except for database and i/o actions) back to the call
+port of the current goal and resume execution at the call port.} 
+    \option{s}{Skip}{call, redo}{
+Continue execution, stop at the next port of {\em this} goal (thus skipping
+all calls to children of this goal).} 
+    \option{u}{Up}{all}{
+Continue execution, stop at the next port of {\em the parent} goal (thus
+skipping this goal and all calls to children of this goal). This option
+is useful to stop tracing a failure driven loop.} 
+    \option{w}{Write}{all}{
+Write goals using the Prolog predicate write/1.} 
+\end{description}}
+
+The ideal 4 port model as described in many Prolog books
+\cite{Clocksin:81} is not visible in many Prolog implementations because
+code optimisation removes part of the choice- and exit points.
+Backtrack points are not shown if either the goal succeeded
+deterministically or its alternatives were removed using the cut.  When
+running in debug mode (debug/0) choice points are only destroyed when
+removed by the cut.  In debug mode tail recursion optimisation is
+switched off.%
+    \footnote{This implies the system can run out of local stack in debug
+	      mode, while no problems arise when running in non-debug mode.}
+
+\section{Compilation}
+\label{compilation}
+
+Collections of SWI-Prolog source files can be compiled into an {\em
+intermediate code file}.  An intermediate code file is a data file from
+which SWI-Prolog can be started.  The command to compile a bundle of
+source files is:
+
+\begin{code}
+pl [options] [-o output] -c file ...
+\end{code}
+
+The individual source files may include other files using the standard
+list notation, consult/1, ensure_loaded/1 and use_module/[1,2].  When
+the \tty{-o file} option is omitted a file named \tty{a.out} is created
+that holds the intermediate code file.
+
+Intermediate code files start with the BSD Unix magic code \verb$#!$
+and are executable. This implies they can be started as a command:
+
+\begin{code}
+sun% pl -o my_program -c ...
+...
+sun% my_program [options]
+\end{code}
+
+Alternatively, {\tt my_program} can be started with
+\begin{code}
+sun% pl -x my_program [options]
+\end{code}
+
+The following restrictions apply to source files that are to be
+compiled with `\tty{-c}':
+
+\begin{itemize}
+    \item
+term_expansion/2 should not use assert/1 and or retract/1 other than
+for local computational purposes.
+    \item
+Files can only be included by the standard include directives: [...],
+consult/1, ensure_loaded/1 and use_module/[1,2].  User defined loading
+predicate invocations will not be compiled.
+\end{itemize}
+
+Directives are executed both when compiling the program and when
+loading the intermediate code file.
+
+\section{Environment Control}
+
+The current system defines 3 different mechanisms to query and/or set
+properties of the environment: please/3, flag/3 and feature/2 as well as
+a number of special purpose predicates of which unknown/2, fileerrors/2
+are examples.  The ISO standard defines prolog_flag.  It is likely that
+all these global features will be merged into a single in the future.
+
+.BD
+.C please 3 +Key, -Old, +New
+The predicate please/3%
+    \footnote{The idea comes from BIM_Prolog. The options supported by
+	      this predicate are not compatible with those for
+	      BIM_Prolog however.}
+is a solution to avoid large numbers of environment control
+predicates. Later versions will support other environment control as
+now provided via the predicates style_check/2, leash/1, unknown/2, the
+tracer predicates, etc. These predicates are then moved into a library
+for backwards compatibility. The currently available options are:
+
+\begin{description}
+\newcommand{\option}[3]{\item[#1 \it#2 \rm(default: \it #3)]\mbox{}\\}
+    \option{optimise}{on/off}{off}
+Switch optimise mode for the compiler \tty{on} or \tty{off} (see also
+the command line option \tty{-O}). Currently optimised compilation only
+implies compilation of arithmetic, making it fast, but invisible to the
+tracer.  Later versions might imply various other optimisations such as
+incorporating a number of basic predicates in the virtual machine
+(var/1, fail/0, =/2, etc.)  to gain speed at the cost of crippling the
+debugger.  Also source level optimisations such as integrating small
+predicates into their callers, eliminating constant expressions and
+other predictable constructs.  Source code optimisation is never
+applied to predicates that are declared dynamic (see dynamic/1).
+    \option{autoload}{on/off}{on}
+If \tty{on} autoloading of library functions is enabled. If
+\tty{off} autoloading is disabled. See section~\ref{sec:autoload}.
+    \option{verbose_autoload}{on/off}{off}
+If \tty{on} the normal consult message will be printed if a library is
+autoloaded.  By default this message is suppressed.  Intended to be used
+for debugging purposes (e.g.\ where does this predicate come from?).
+\end{description}
+.C feature 2 ?Key, -Value
+The predicate feature/2 defines an interface to installation features:
+options compiled in, version, home, etc.  With both arguments unbound,
+it will generate all defined features.  With the `Key' instantiated it
+unify the value of the feature.  Features come in three types: boolean
+features, features with an atom value and features with an integer
+value. A boolean feature is true iff the feature is present {\bf and}
+the {\em Value} is the atom {\tt true}. Currently defined keys:
+
+\begin{description}
+\newcommand{\option}[2]{\item[#1 ({\it#2})]\mbox{}\\}
+    \option{arch}{atom}
+Identifier for the hardware and operating system SWI-Prolog is running
+on.  Used to determine the startup file as well as to select foreign
+files for the right architecture.  See also load_foreign/5.
+    \option{version}{atom}
+The version identifier is an atom consisting of 3 numeric values
+separated by dots (e.g.\ {\tt 1.9.2}).
+    \option{home}{atom}
+SWI-Prolog's notion of the home-directory.  SWI-Prolog uses it's home
+directory to find its startup file as $<$home$>$/startup/startup.$<$arch$>$
+and to find its library as $<$home$>$/library.
+    \option{pipe}{bool}
+If true, tell(pipe(command)), etc.\ are supported.
+    \option{load_foreign}{bool}
+If true, load_foreign/[2,5] are implemented.
+    \option{open_shared_object}{bool}
+If true, open_shared_object/2 and friends are implemented, providing
+access to shared libraries (.so files).  This requires the C-library
+functions dlopen() and friends as well as the configuration option
+{\tt --with-dlopen}.
+    \option{dynamic_stacks}{bool}
+If true, the system provides virtual memory based stack expansion.  This
+makes stack-expansion safe when called from C and while running
+C-defined functions without these functions taking any precautions.
+Pure Prolog programs are not affected by this feature as the system
+will use stack-shifting to expand the stacks at runtime.
+    \option{c_libs}{atom}
+Libraries passed to the C-linker when SWI-Prolog was linked.  May be used
+to determine the libraries needed to create statically linked extensions
+for SWI-Prolog.
+    \option{c_staticlibs}{atom}
+On some machines, the SWI-Prolog executable is dynamically linked, but
+requires some libraries to be statically linked.
+    \option{c_cc}{atom}
+Name of the C-compiler used to compile SWI-Prolog.  Normally either gcc
+or cc.
+    \option{c_ldflags}{atom}
+Special linker flags passed to link SWI-Prolog.
+    \option{save}{bool}
+If true, save/[1,2] is implemented.
+    \option{save_program}{bool}
+If true, save_program/[1,2] is implemented.
+    \option{readline}{bool}
+If true, SWI-Prolog is linked with the readline library.  This is done
+by default if you have this library installed on your system.
+    \option{saved_program}{bool}
+If true, Prolog is started from a state saved with qsave_program/[1,2].
+    \option{runtime}{bool}
+If true, SWI-Prolog is compiled with -DO_RUNTIME, disabling various
+useful development features (currently the tracer and profiler).
+    \option{max_integer}{integer}
+Maximum integer value.  Most arithmetic operations will automatically
+convert to floats if integer values above this are returned.
+    \option{min_integer}{integer}
+Minimum integer value.
+\end{description}
+.C set_feature 2 +Key, +Value
+Define a new feature or change its value.  Both arguments must be atoms.
+.ED
+
+
+\section{Saved States}
+
+
+\subsection{Types of Saved States and Portability}
+
+On some architectures, SWI-Prolog allows for the creation of saved
+states.  Currently, the C-sources define two alternative
+implementations for them.  The old implementation%
+  \footnote{This implementation is based on GNU's unexec() function,
+	    creating a new executable from the running process.  It
+	    is selected using the \tty{O_STORE_PROGRAM} option in the
+	    machine-description file.}
+creates an entirely self-contained executable.  It supports only the
+save_program/[1,2] predicates.  The new implementation%
+  \footnote{This implementation is selected by the O_SAVE option in
+	    the machine-description file.}
+creates a file that is read by the `base' program.  This file contains
+the data-area of the SWI-Prolog process and optionally the Prolog-
+and C stacks.  This implementation supports save_program/[1,2],
+save/[1,2] and restore/1.  The state-file depends entirely on {\em
+exactly} the Unix program-file used to create it.
+
+
+\subsection{Save Predicates}
+
+.BD
+.C save_program 2 +NewProgram, +ListOfOptions
+Create a new executable wich will be named {\em NewProgram}.  {\em
+ListOfOptions} is a list of \mbox{\em Key = Value} pairs that specify
+the default command line options that will be saved into the new
+program.  If a default is not specified the default compiled into the
+currently running Prolog executable is used.%
+    \footnote{These are NOT the defaults compiled into an intermediate
+	      code file created with pl -c ...}
+The available keys are given in table~\ref{tab:save-options}
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|l|c|c|l|}
+\hline
+\bf Key	& \bf Option	& \bf Type	& \bf Description \\
+\hline
+local	& \bf -L	& K-bytes	& Size (Limit) of local stack \\
+global	& \bf -G	& K-bytes	& Size (Limit) of global stack \\
+trail	& \bf -T	& K-bytes	& Size (Limit) of trail stack \\
+argument& \bf -A	& K-bytes	& Size (Limit) of argument stack \\
+goal	& \bf -g	& atom		& Initialisation goal \\
+toplevel& \bf -t	& atom		& Prolog toplevel goal \\
+init_file& \bf -f	& atom		& Personal initialisation file \\
+tty	& \bf +/--tty	& on/off	& Use ioctl(2) calls \\
+\hline
+\end{tabular}
+\end{center}
+
+    \caption{Key = Value pairs for save_program/2}
+    \label{tab:save-options}
+\end{table}
+
+As the entire data image of the current process will be saved on the new
+executable it is desirable to keep this small.  Notably the Prolog
+machine stacks should be kept small.  The best way to do this is first
+to compile the program using the \tty{-c} option.  If this is not
+possible try to find the smallest possible stack sizes to compile the
+program.  On machines with dynamic stack allocation the stacks are {\bf
+not} written to file and so their size does not matter.
+Figure~\ref{fig:create-stand} shows a possible session.  Note the use of
+`initialise', which is supposed to be a predicate of the application
+doing time consuming initialisation.
+
+\begin{figure}
+\begin{boxed}
+\begin{code}
+sun% pl -c load
+foreign file dbase loaded 0.066667 seconds, 1578 bytes.
+setup consulted, 0.500000 seconds, 5091 bytes.
+main consulted, 0.333333 seconds, 3352 bytes.
+load consulted, 1.000000 seconds, 9867 bytes.
+sun% a.out -f none -L10 -G10 -T5
+foreign file dbase loaded 0.066667 seconds, 1578 bytes.
+.VERSION
+
+1 ?- initialise.
+
+Yes
+2 ?- save_program(my_program,
+	[ local     = 500
+	, goal      = go
+	, init_file = none
+	]).
+Running executable: /usr/local/bin/pl
+Saving to my_program; text: 204800 ... data: 357000 ... symbols ... done.
+Yes
+2 ?- halt.
+sun%
+\end{code}
+\end{boxed}
+    \caption{Create a stand-alone executable}
+    \label{fig:create-stand}
+\end{figure}
+
+The resulting program can be used for incremental compilation using
+\tty{-c} or another save_program/2.
+.C save_program 1 +NewProgram
+Equivalent to `\verb$save_program(NewProgram, [])$'.
+.C save 1 +State
+Writes the current status on the program, Prolog- and C-stacks to
+the file {\em State}.  When this file is restored, save/1 succeeds
+in the restored state and execution continues as illustrated by the
+following example:
+
+\begin{boxed}\begin{code}
+1 ?- save(state), format('Hello World~n').
+Hello World
+
+Yes
+2 ?- halt.
+machine% ./state
+Hello World
+
+Yes
+2 ?- h.
+    1   save(state), format('Hello World~n').
+2 ?- 
+\end{code}\end{boxed}
+
+The save/1 predicate is normally used for debugging purposes.
+save_program/[1,2] is the preferred way to create a new program.
+.C save 2 +State, -Rval
+Like save/1, but unifies {\em Rval} with 0 when save/2 returns from a
+real save and with 1 when save/2 returns from a restore.
+.C restore 1 +State
+Equivalent to restarting {\em State}.
+.ED
+
+
+\section{Automatic loading of libraries}
+\label{sec:autoload}
+
+If ---at runtime--- an undefined predicate is trapped the system will
+first try to import the predicate from the module's default module.
+If this fails the {\em auto loader} is activated.  On first activation
+an index to all library files in all library directories is loaded in
+core (see library_directory/1).  If the undefined predicate can be
+located in the one of the libraries that library file is automatically
+loaded and the call to the (previously undefined) predicate is
+resumed.  By default this mechanism loads the file silently.  The
+please/3 option \tty{verbose_autoload} is provided to get verbose
+loading. The please option \tty{autoload} can be used to
+enable/disable the entire auto load system.
+
+Autoloading only handles (library) source files that use the module
+mechanism described in chapter~\ref{sec:modules}.  The files are loaded
+with use_module/2 and only the trapped undefined predicate will be imported
+to the module where the undefined predicate was called.  Each library
+directory must hold a file \tty{INDEX.pl} that contains an index to all
+library files in the directory.  This file consists of lines of the 
+following format:
+
+\begin{code}
+index(Name, Arity, Module, File).
+\end{code}
+
+The predicate make/0 scans the autoload libraries and updates the
+index if it exists, is writable and out-of-date.  It is adviced to
+create an empty file called \tty{INDEX.pl} in a library directory
+meant for auto loading before doing anything else.  This index file
+can then be updated by running the prolog make_library_index/1 (`\%' is
+the Unix prompt):
+
+\begin{boxed}\begin{code}
+% mkdir ~/lib/prolog
+% cd !$
+% pl -g true -t 'make_library_index(.)'
+\end{code}\end{boxed}
+
+If there are more than one library files containing the desired predicate
+the following search schema is followed:
+
+\begin{enumerate}
+  \item If a there is a library file that defines the module in which
+        the undefined predicate is trapped, this file is used.
+  \item Otherwise library files are considered in the order they appear
+        in the library_directory/1 predicate and within the directory
+	alphabetically.
+\end{enumerate}
+
+.BD
+.C make_library_index 1 +Directory
+Create an index for this directory.  The index is written to the file
+'INDEX.pl' in the specified directory.  Fails with a warning if the
+directory does not exist or is write protected.
+.ED
+
+
+\subsection{Notes on Automatic Loading}
+
+The autoloader is a new feature to SWI-Prolog.  Its aim is to simplify
+program development and program management.  Common lisp has a similar
+feature, but here the user has to specify which library is to be
+loaded if a specific function is called which is not defined.  The
+advantage of the SWI-Prolog schema is that the user does not have to
+specify this.  The disadvantage however is that the user might be
+wondering ``where the hell this predicate comes from''.  Only
+experience can learn whether the functionality of the autoloader is
+appropriate.  Comments are welcome.
+
+The autoloader only works if the unknown flag (see unknown/2) is set to
+\tty{trace} (default).  A more appropriate interaction with this flag
+will be considered.
+
+
+\section{Garbage Collection}
+
+SWI-Prolog version 1.4 was the first release to support garbage
+collection.  Together with tail-recursion optimisation this guaranties
+forward chaining programs do not waste indefinite amounts of memory.
+Previous releases of this manual stressed on using failure-driven
+loops in those cases that no information needed to be passed to the
+next iteration via arguments.  This to avoid large amounts of garbage.
+This is no longer strictly necessary, but it should be noticed that
+garbage collection is a time consuming activity.  Failure driven loops
+tend to be faster for this reason.%
+\bug{The garbage collector is deactivated when Prolog is called back
+from a foreign language predicate.  This implies there is no garbage
+collection within a break environment.  More seriously, there is no
+garbage collection when handling call-backs from ---for example---
+the XPCE package.}
+
+
+\section{Syntax Notes}
+
+SWI-Prolog uses standard `Edinburgh' syntax. A description of this
+syntax can be found in the Prolog books referenced in the introduction.
+Below are some non-standard or non-common constructs that are accepted
+by SWI-Prolog:
+
+\begin{itemize}
+    \item \verb+0'<char>+\mbox{}\\%
+This construct is not accepted by all Prolog systems that claim to have
+Edinburgh compatible syntax. It describes the ASCII value of \verb+<char>+.
+To test whether {\em C} is a lower case character one can use
+`\verb+between(0'a, 0'z, C)+'.
+    \item \verb+/* ... /* .... */ ... */+\mbox{}\\%
+The \verb+/* ... */+ comment statement can be nested. This is useful
+if some code with \verb+/* ... */+ comment statements in it should be
+commented out.
+\end{itemize}
+
+\section{System Limits}
+
+\subsection{Limits on Memory Areas}
+
+SWI-Prolog has a number of memory areas which are not enlarged at run
+time, unless you have a version with dynamic stack allocation.  The
+default sizes for these areas should suffice for small applications, but
+most serious application require larger ones.  They all can be modified
+by command line options.  The table below shows these areas.  The first
+column gives the option name to modify the size of the area.  This
+option character should be followed immediately by a number and
+expresses the number of kilo bytes to use for the area.  There are no
+other limits than the available memory of the machine to the sizes of
+the areas.  The areas are described in table~\ref{tab:areas}.
+
+The heap is a memory area to store atoms, clauses, records, flags, etc.
+This area is dynamically enlarged at runtime on all versions of SWI-Prolog.
+
+\begin{table}
+\begin{center}
+\begin{minipage}{\textwidth}
+\begin{tabular}{|c|c|l|p{5cm}|}
+\hline
+Option & Default\footnote{Defaults may depend on local installation.
+The value between brackets is the default limit for machines that allow
+for dynamic stack allocation.}
+ & Area name & Description \\
+\hline
+-L & 200K (2M) & \bf local stack & The local stack is used to store
+		       the execution environments of procedure
+		       invocations. The space for an environment is
+		       reclaimed when it fails, exits without leaving
+		       choice points, the alternatives are cut of with
+		       the \tty{!} predicate or no choice points have
+		       been created since the invocation and the last
+		       subclause is started (tail recursion optimisation). \\
+-G & 100K (4M) & \bf global stack & The global stack is used
+		       to store terms created during Prolog's
+		       execution. Terms on this stack will be reclaimed
+		       by backtracking to a point before the term
+		       was created or by garbage collection (provided the
+		       term is no longer referenced). \\
+-T & 50K (4M) & \bf trail stack & The trail stack is used to store
+		       assignments during execution.  Entries on this
+		       stack remain alive until backtracking before the
+		       point of creation or the garbage collector 
+		       determines they are nor needed any longer. \\
+-A & 5K (1M) & \bf argument stack & The argument stack is used to
+		       store one of the intermediate code interpreter's 
+		       registers. The amount of space needed on this
+		       stack is determined entirely by the depth in
+		       which terms are nested in the clauses that
+		       constitute the program. Overflow is most likely
+		       when using long strings in a clause. \\
+\hline
+\end{tabular}
+\end{minipage}
+\end{center}
+    \caption{Memory areas}
+    \label{tab:areas}
+\end{table}
+
+\subsection{Other Limits}
+
+\begin{description}
+    \item[Clauses]
+Currently the following limitations apply to clauses.  The arity may
+not be more than 128, the number of links to the `outside world'
+(predicates, atoms, (large) integers, etc) may not exceed 512 and
+the number of variables should be less than 256.%
+    \footnote{I plan to raise all these limits to 65536, the maximum
+	      addressable range by the 16 bits virtual machine codes.}
+    \item[Atoms and Strings]
+SWI-Prolog has no limits on the sizes of atoms and strings.  read/1 and
+its derivates however normally limit the number of newlines in an atom
+or string to 5 to improve error detection and recovery.  This can be
+switched off with style_check/1.
+    \item[Address space]
+SWI-Prolog uses tagged pointers internally. This limits the number of
+available bits for addressing memory to 29 (512 Mb).
+    \item[Integers]
+Integers are tagged values. Their value is limited between
+$-2^{26}$ and $2^{26} - 1$.
+    \item[Floats]
+Floating point numbers are C-doubles with a 12 bit reduction of the
+mantisse.  For machines using IEEE floating point format, this implies
+the range is about $\pm 10^{308}$ and the accurracy about 10 digits.
+\end{description}
+
+\subsection{Reserved Names}
+
+The boot compiler (see \tty{-b} option) does not support the module
+system (yet).  As large parts of the system are written in Prolog itself
+we need some way to avoid name clashes with the user's predicates, 
+database keys, etc.  Like Edinburgh C-Prolog \cite{CPROLOG:manual} all
+predicates, database keys, etc.\ that should be hidden from the user
+start with a dollar ({\tt \$}) sign (see style_check/2).
+
+The compiler uses the special functor {\tt \$VAR\$/1} while analysing the
+clause to compile.  Using this functor in a program causes unpredictable
+behaviour of the compiler and resulting program.

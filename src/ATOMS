@@ -214,6 +214,8 @@ A file			"file"
 A dforeign_registered    "$foreign_registered"
 A exist			"exist"
 A none			"none"
+A volatile		"volatile"
+A initialization	"initialization"
 
 F apply			2
 F call			1

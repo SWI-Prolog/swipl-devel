@@ -1,0 +1,155 @@
+%	SWI-Prolog manual macros
+
+
+%	PAGE SIZE DECLARATIONS FOR `LARGE' PAGE
+
+\oddsidemargin  1cm
+\evensidemargin 1cm
+\marginparwidth 0pt
+\topmargin 0pt			% Nominal distance from top of page to top of
+				% box containing running head.
+\headheight 12pt		% Height of box containing running head.
+\headsep 25pt			% Space between running head and text.
+% \topskip = 10pt		% '\baselineskip' for first line of page.
+				% Bottom of page:
+\footheight 12pt		% Height of box containing running foot.
+\footskip 30pt			% Distance from baseline of box containing foot 
+				% to baseline of last line of text.
+\textheight 8.5in		% Height of text (including footnotes and figures, 
+				% excluding running head and foot).
+\textwidth 6in			% Width of text line.
+
+%	PARAGRAPHS
+
+\setlength{\parindent}{0in}	% paragraphs not indented
+\setlength{\parskip}{5pt}	% space between paragraphs
+
+%	TABLE OF CONTENTS
+
+\newlength{\captionskip}\setlength{\captionskip}{0pt}
+\long\def\@caption#1[#2]#3{\addcontentsline{\csname
+  ext@#1\endcsname}{#1}{\protect\numberline{\csname 
+  the#1\endcsname}{\ignorespaces #2}}%
+  \begingroup
+    \parskip 0pt%
+    \addvspace{\captionskip}%
+    \par
+    \@parboxrestore
+    \normalsize
+    \@makecaption{\csname fnum@#1\endcsname}{\ignorespaces #3}\par
+  \endgroup}
+
+%	FLOATS
+
+\setcounter{topnumber}{100}
+\renewcommand{\topfraction}{0.9}
+\setcounter{totalnumber}{100}
+\renewcommand{\bottomfraction}{0.9}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\dbltopfraction}{0.9}
+\renewcommand{\dblfloatpagefraction}{0.8}
+\renewcommand{\floatpagefraction}{0.8}
+
+\def\fps@figure{htbp}
+\def\fps@table{htbp}
+
+%
+%	CODE environment
+%	just like verbatim, but indents like quote.
+%
+
+{\catcode`\^^I=\active
+    \gdef^^I{\mbox{}\space\space\space\space\space\space\space\space}}
+
+\begingroup \catcode `|=0 \catcode `[= 1
+\catcode`]=2 \catcode `\{=12 \catcode `\}=12
+\catcode`\\=12
+|gdef|@xcode#1\end{code}[#1|end[code]]
+|endgroup
+
+\def\@code{\trivlist \item[]\if@minipage\else\vskip\parskip\fi
+\leftskip\@totalleftmargin\rightskip\z@
+\parindent\z@\parfillskip\@flushglue\parskip\z@
+\@tempswafalse \def\par{\if@tempswa\hbox{}\fi\@tempswatrue\@@par}
+\obeylines \catcode`\^^I=\active \tt \let\do\@makeother \dospecials}
+
+\def\code{\list{}{\rightmargin -5in}\item[]\@code \frenchspacing\@vobeyspaces \@xcode}
+\def\@endcode{\endtrivlist\mbox{}\endlist}
+\let\endcode=\@endcode
+
+%	BOXED environment
+
+\catcode`\@=11\relax
+\newbox\@curboxed
+\def\boxed{\global\setbox\@curboxed\vbox\bgroup
+	 \boxmaxdepth\z@
+	 \addtolength{\columnwidth}{-2\fboxsep}%
+	 \addtolength{\columnwidth}{-2\fboxrule}%
+	 \addtolength{\columnwidth}{-\@totalleftmargin}%
+	 \hsize\columnwidth\@parboxrestore}
+\def\endboxed{\egroup\par\fbox{\vbox{\unvbox\@curboxed}}\par}
+
+%	AUTHOR
+
+\author{Jan Wielemaker}
+
+\newcommand{\tag}[1]{\item[\em #1]\mbox{}\\}
+\newcommand{\tick}[1]{\item {\em #1}\\}
+\newenvironment{shortlist}{%
+	\begin{itemize}%
+	    \setlength{\parsep}{0pt}
+	    \setlength{\itemsep}{0pt}}{%
+	\end{itemize}}
+
+%	TRADEMARK
+
+\newcommand{\TM}[1]{$\mbox{#1}^{\mbox{\tiny TM}}$}
+
+%	LOGOS
+
+% \UvA{Height}
+
+\newcommand{\UvA}[1]{\psfig{figure=uva.ps,height=#1}}
+
+% \SWI{Height}
+
+\newcommand{\SWI}[1]{\psfig{figure=swi.ps,height=#1}}
+
+%	SPECIAL CHARACTERS
+
+\newcommand{\bsl}{$\backslash$}
+\newcommand{\half}{\raisebox{3pt}{\tiny$\frac{1}{2}$}}
+\newcommand{\quarter}{\raisebox{3pt}{\tiny$\frac{1}{4}$}}
+\newcommand{\threequarter}{\raisebox{3pt}{\tiny$\frac{3}{4}$}}
+
+%	MAKE _ BEHAVE NORMALLY
+
+\catcode`\^^A=8
+\catcode`\_=\active
+\def_{\ifmmode\else\_\fi}
+
+%	PAGESTYLE
+%
+%       Chapter                         version
+%       ---------------------------------------
+%
+%	bla, bla, bla, ...
+%	
+%       \bottomleft    - page -    \bottomright
+
+\def\arabicday{\number\year-\number\month-\number\day}
+\def\ps@esprit{\let\@mkboth\markboth
+\def\@oddfoot{\makebox[0pt][l]{\sl \bottomleft} \hfil
+		-- \thepage\ -- \hfil
+	      \makebox[0pt][r]{\sl \bottomright}}%
+\def\@evenfoot{\makebox[0pt][l]{\sl \bottomleft} \hfil
+		-- \thepage\ -- \hfil
+	      \makebox[0pt][r]{\sl \bottomright}}%
+\def\@oddhead{\parbox{\textwidth}{%
+	    \makebox[\textwidth]{\rightmark \hfill \rm\arabicday}
+	    \vspace{-7pt}\hrule}}%
+\def\@evenhead{\parbox{\textwidth}{%
+	    \makebox[\textwidth]{\rightmark \hfill \rm\arabicday}
+	    \vspace{-7pt}\hrule}}%
+\def\chaptermark##1{\markright {\uppercase{\ifnum \c@secnumdepth >\m@ne
+  \@chapapp\ \thechapter. \ \fi ##1}}}}

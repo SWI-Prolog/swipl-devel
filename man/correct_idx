@@ -1,0 +1,11 @@
+#!/bin/sh
+
+PATH=/bin:/usr/bin
+
+sed '
+s/(\*PL_signal.*}))/PL_signal/1
+s/!/"!/g
+s/@/"@/g
+s/|/"|/g
+s/{\(.*\W\)\/\([0-9]\)}/{\1 \/\2}/1
+' "$@"
