@@ -23,6 +23,10 @@
 */
 
 #define O_DEBUG 1
+
+#define _GNU_SOURCE 1			/* get recursive mutex stuff to */
+					/* compile clean with glibc.  Can */
+					/* this to any harm? */
 #include "pl-incl.h"
 #include <stdio.h>
 #ifdef O_PLMT
@@ -1818,11 +1822,11 @@ recursiveMutexInit(recursiveMutex *m)
   pthread_mutexattr_t attr;
 
   pthread_mutexattr_init(&attr);
-#ifdef HAVE_PTHREAD_MUTEXATTR_SETKIND_NP
-  pthread_mutexattr_setkind_np(&attr, PTHREAD_MUTEX_RECURSIVE_NP);
-#else
 #ifdef HAVE_PTHREAD_MUTEXATTR_SETTYPE
   pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+#else
+#ifdef HAVE_PTHREAD_MUTEXATTR_SETKIND_NP
+  pthread_mutexattr_setkind_np(&attr, PTHREAD_MUTEX_RECURSIVE_NP);
 #endif
 #endif
   pthread_mutex_init(m, &attr);
