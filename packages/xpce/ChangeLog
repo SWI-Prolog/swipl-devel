@@ -1,7 +1,12 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Help-balloons on loc-still
+
+* FIXED: make rpm-install: install the manual search index.
+
 * FIXED: Search form of the XPCE HTTP manual (from xpce/prolog/lib/http)
+
 
 VERSION 6.0.2, distributed with SWI-Prolog 5.0.2
 ================================================
