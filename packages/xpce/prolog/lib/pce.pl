@@ -208,6 +208,8 @@ prolog:help_hook(help(What)) :- !,
 		********************************/
 
 pce_welcome :-
+	current_prolog_flag(verbose, silent), !.
+pce_welcome :-
 	send(@pce, banner),
 	(   get(@pce, is_runtime_system, @(off))
 	->  format('~nFor HELP on prolog, please type help. or apropos(topic).~n'),

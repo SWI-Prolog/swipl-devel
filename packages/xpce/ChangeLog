@@ -1,3 +1,6 @@
+* ADDED: Honour `verbose' prolog flag to suppress the banner if this flag
+  is `silent'.
+
 * FIXED: sh script error in FN script, making build fail on many Unix
   platforms (FN was ported from csh to sh in 5.1.4).
 
