@@ -22,12 +22,17 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#define WITH_MD5 1
+
 #include <SWI-Stream.h>
 #include <SWI-Prolog.h>
 #include "rdf_db.h"
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
+#ifdef WITH_MD5
+#include "md5.h"
+#endif
 
 #ifdef _REENTRANT
 #include <pthread.h>
@@ -1472,6 +1477,83 @@ rdf_load_db(term_t stream)
 
   return load_db(in);
 }
+
+
+#ifdef WITH_MD5
+		 /*******************************
+		 *	     MD5 SUPPORT	*
+		 *******************************/
+
+static void
+md5_triple(triple *t, md5_byte_t *digest)
+{ md5_state_t state;
+  unsigned int len;
+  char tmp[2];
+  const char *s;
+
+  md5_init(&state);
+  s = PL_atom_nchars(t->subject, &len);
+  md5_append(&state, (const md5_byte_t *)s, len);
+  md5_append(&state, "P", 1);
+  s = PL_atom_nchars(t->predicate->name, &len);
+  md5_append(&state, (const md5_byte_t *)s, len);
+  tmp[0] = 'O';
+  tmp[1] = (char)t->objtype;
+  md5_append(&state, tmp, 2);
+  s = PL_atom_nchars(t->object, &len);
+  md5_append(&state, (const md5_byte_t *)s, len);
+  
+  md5_finish(&state, digest);
+}
+
+
+static void
+sum_digest(md5_byte_t *digest, md5_byte_t *add)
+{ md5_byte_t *p, *q;
+  int n;
+
+  for(p=digest, q=add, n=16; --n>=0; )
+    *p++ += *q++;
+}
+
+
+static foreign_t
+rdf_md5(term_t source, term_t md5)
+{ atom_t src;
+  triple *t;
+  md5_byte_t digest[16];
+  char hex_output[16*2];
+  int di;
+  char *pi;
+  static char hexd[] = "0123456789abcdef";
+
+  if ( !get_atom_or_var_ex(source, &src) )
+    return FALSE;
+
+  memset(&digest, 0, sizeof(digest));
+
+  LOCK();
+  for(t = by_none; t; t = t->next[BY_NONE])
+  { if ( !t->erased &&
+	 (!src || t->source == src) )
+    { md5_byte_t tmp[16];
+
+      md5_triple(t, tmp);
+      sum_digest(digest, tmp);
+    }
+  }
+  UNLOCK();
+
+  for(pi=hex_output, di = 0; di < 16; ++di)
+  { *pi++ = hexd[(digest[di] >> 4) & 0x0f];
+    *pi++ = hexd[digest[di] & 0x0f];
+  }
+
+  return PL_unify_atom_nchars(md5, 16, hex_output);
+}
+
+
+#endif /*WITH_MD5*/
 
 
 		 /*******************************
@@ -2960,5 +3042,8 @@ install_rdf_db()
   PL_register_foreign("rdf_reset_db_",  0, rdf_reset_db,    0);
 #ifdef O_DEBUG
   PL_register_foreign("rdf_debug",      1, rdf_debug,       0);
+#endif
+#ifdef WITH_MD5
+  PL_register_foreign("rdf_md5",	2, rdf_md5,	    0);
 #endif
 }

@@ -1,3 +1,7 @@
+Sep 27, 2003
+
+  * ADDED: 1st version of MD5 digest from loaded sources
+
 Sep 24, 2003
 
   * ADDED: internal administration of triples associated with each source.

@@ -59,6 +59,8 @@
 	    rdf_save/2,			% +File, +DB
 	    rdf_unload/1,		% +File
 
+	    rdf_md5/2,			% +DB, -MD5
+
 	    rdf_source/1,		% ?File
 	    rdf_make/0,			% Reload modified databases
 

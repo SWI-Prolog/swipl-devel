@@ -51,7 +51,7 @@ LIBPL=		rdf_db.pl rdfs.pl rdf_edit.pl
 DATA=		rdfs.rdfs dc.rdfs eor.rdfs
 TARGETS=	rdf_db.@SO@
 
-RDFDBOBJ=	rdf_db.o
+RDFDBOBJ=	rdf_db.o md5.o
 
 all:		$(TARGETS)
 
