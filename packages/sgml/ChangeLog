@@ -1,3 +1,7 @@
+May 8, 2003
+
+  * Fix registering catalog files
+
 May 5, 2003
 
   * Incorporated better CATALOG parsing by Richard O'Keefe.  May be incomplete

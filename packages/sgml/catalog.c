@@ -144,6 +144,7 @@ register_catalog_file(const char *file, catalog_location where)
   }
 
   cf = sgml_malloc(sizeof(*cf));
+  memset(cf, 0, sizeof(*cf));
   cf->file = strdup(file);
   if (!cf->file)
     sgml_nomem();
