@@ -39,9 +39,9 @@ PLSOLIBS=	bnode.$(SO) dispatch.$(SO) getenv.$(SO) global.$(SO) \
 
 all:		
 		@echo Use one of
-		@for p in $(PROGS);    do echo "    make $$p"; done
+		@for p in $(PROGS);    do echo "    $(MAKE) $$p"; done
 		@echo Or
-		@for p in $(PLSOLIBS); do echo "    make $$p"; done
+		@for p in $(PLSOLIBS); do echo "    $(MAKE) $$p"; done
 		@echo ""
 		@echo "Before running an application, do (in sh)"
 		@echo ""
