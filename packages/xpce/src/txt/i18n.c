@@ -259,6 +259,12 @@ nameToUTF8(Name nm)
 }
 
 
+char *
+nameToWC(Name nm, size_t *len)
+{ return charArrayToWC((CharArray)nm, len);
+}
+
+
 		 /*******************************
 		 *	    <-- NAME	  	*
 		 *******************************/
