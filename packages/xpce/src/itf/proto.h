@@ -1,5 +1,5 @@
 
-/* ../src/itf/c.c */
+/* itf/c.c */
 status		makeClassC(Class class);
 void		XPCE_initialise(void);
 XPCE_Object	XPCE_to_string(char *text);
@@ -44,12 +44,12 @@ XPCE_Object	XPCE_funcallCPlusPlusMethodv(XPCE_Function function, void *obj, int 
 XPCE_Object	XPCE_callCPlusPlusv(XPCE_Procedure f, int argc, const XPCE_Object argv []);
 XPCE_Object	XPCE_funcallCPlusPlusv(XPCE_Function f, int argc, const XPCE_Object argv []);
 
-/* ../src/itf/host.c */
+/* itf/host.c */
 status		initialiseHost(Host h, Name which);
 status		makeClassHost(Class class);
 Host		HostObject(void);
 
-/* ../src/itf/interface.c */
+/* itf/interface.c */
 Any		cToPceInteger(long int i);
 Any		cToPceReal(double f);
 Any		cToPceString(Name assoc, char *s, int translate);
@@ -108,11 +108,11 @@ void *		pceAlloc(int bytes);
 void		pceUnAlloc(int bytes, void *p);
 int		pceEnumElements(PceObject collection, int (*enumfunc)(PceObject,void *), void *closure);
 
-/* ../src/itf/cpointer.c */
+/* itf/cpointer.c */
 CPointer	CtoCPointer(void *ptr);
 status		makeClassCPointer(Class class);
 
-/* ../src/itf/asfile.c */
+/* itf/asfile.c */
 int		pceOpen(Any obj, int flags);
 int		pceClose(int handle);
 int		pceWrite(int handle, const char *buf, int size);
@@ -120,43 +120,43 @@ long		pceSeek(int handle, long offset, int whence);
 int		pceRead(int handle, char *buf, int size);
 const char *	pceOsError(void);
 
-/* ../src/itf/console.c */
+/* itf/console.c */
 void		Stub__vCprintf(const char *fmt, va_list args);
 int		Stub__Cputchar(int chr);
 char *		Stub__Cgetline(char *line, int size);
 void		Stub__Cflush(void);
 
-/* ../src/itf/stub.c */
+/* itf/stub.c */
 int		Stub__HostActionv(int action, va_list args);
 int		Stub__HostQuery(int what, PceCValue *value);
 int		Stub__HostSend(PceObject prolog, PceName sel, int argc, PceObject *argv);
 PceObject	Stub__HostGet(PceObject prolog, PceName sel, int argc, PceObject *argv);
 int		Stub__HostCall(PceGoal goal);
 
-/* ../src/itf/xmalloc.c */
+/* itf/xmalloc.c */
 void *		xmalloc(size_t nbytes);
 void *		xrealloc(void *ptr, size_t nbytes);
 
-/* ../src/itf/iostream.c */
+/* itf/iostream.c */
 IOSTREAM *	Sopen_FILE(FILE *fd, int flags);
 IOSTREAM *	Sopen_object(Any obj, const char *mode);
 
-/* ../src/itf/srcsink.c */
+/* itf/srcsink.c */
 status		initialiseSourceSink(SourceSink ss);
 status		checkErrorSourceSink(SourceSink ss, IOSTREAM *fd);
 status		makeClassSourceSink(Class class);
 
-/* ../src/itf/rc.c */
+/* itf/rc.c */
 status		makeClassRC(Class class);
 
-/* ../src/itf/hostdata.c */
+/* itf/hostdata.c */
 HostData	CtoHostData(Class class, void *h, int flags);
 void		setHostDataHandle(HostData hd, void *h);
 void *		getHostDataHandle(HostData hd);
 int		freeHostData(HostData hd);
 status		makeClassHostData(Class class);
 
-/* ../src/itf/cpp.cxx */
+/* itf/cpp.cxx */
 PceStatus	callCPlusPlusProc(Any f, int ac, const Any av []);
 Any		callCPlusPlusFunc(Any f, int ac, const Any av []);
 PceStatus	callCPlusPlusMethodProc(Any obj, Any f, int ac, const Any av []);

@@ -1313,6 +1313,10 @@ event_editor(Editor e, EventObj ev)
     endIsearchEditor(e);
     assign(e, focus_function, NIL);
   }
+
+  if ( mapWheelMouseEvent(ev, e) )
+    succeed;
+    
 					/* @editor_recogniser is a hook */
 					/* to allow for host-language */
 					/* level redefinition */

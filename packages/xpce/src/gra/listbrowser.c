@@ -934,6 +934,9 @@ eventListBrowser(ListBrowser lb, EventObj ev)
   if ( isAEvent(ev, NAME_keyboard) )
     return send(lb, NAME_typed, getIdEvent(ev), 0);
 
+  if ( mapWheelMouseEvent(ev, lb) )
+    succeed;
+
   if ( isAEvent(ev, NAME_button) )
   { DictItem di = getDictItemListBrowser(lb, ev);
 

@@ -1,5 +1,5 @@
 
-/* ../src/unx/directory.c */
+/* unx/directory.c */
 status		cdDirectory(Directory d);
 status		makeClassDirectory(Class class);
 char *		dirName(const char *f);
@@ -8,7 +8,7 @@ int		isAbsolutePath(const char *p);
 char *		absolutePath(char *file);
 char *		expandFileName(char *pattern, char *bin);
 
-/* ../src/unx/file.c */
+/* unx/file.c */
 Name		getOsNameFile(FileObj f);
 status		closeFile(FileObj f);
 status		existsFile(FileObj f, Bool mustbefile);
@@ -30,18 +30,18 @@ status		storeIntFile(FileObj f, Int i);
 status		findFile(FileObj f, CharArray path, Name mode);
 status		makeClassFile(Class class);
 
-/* ../src/unx/process.c */
+/* unx/process.c */
 void		killAllProcesses(int status);
 status		pidProcess(Process p, Int pid);
 status		closeInputProcess(Process p);
 status		makeClassProcess(Class class);
 
-/* ../src/unx/socket.c */
+/* unx/socket.c */
 Name		SockError(void);
 status		acceptSocket(Socket s);
 status		makeClassSocket(Class class);
 
-/* ../src/unx/stream.c */
+/* unx/stream.c */
 status		initialiseStream(Stream s, Int rfd, Int wfd, Code input, Any sep);
 status		closeStream(Stream s);
 status		closeInputStream(Stream s);

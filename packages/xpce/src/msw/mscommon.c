@@ -318,6 +318,8 @@ messageToEvent(HWND hwnd, UINT message, UINT wParam, LONG lParam)
   Any window = getObjectFromHWND(hwnd);
   int mouse_ev = FALSE;
   int double_click = FALSE;
+  Name ctx_name = NULL;
+  Any ctx = NULL;
 
   DEBUG(NAME_event,
 	Cprintf("messageToEvent(%s(0x%04x), 0x%04x, 0x%04x, 0x%08lx)\n",
@@ -430,6 +432,16 @@ messageToEvent(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       mouse_ev++;
       break;
     }
+#ifdef WM_MOUSEWHEEL
+    case WM_MOUSEWHEEL
+    { id = NAME_wheel;
+      ctx_name = NAME_rotation;
+      ctx = toInt(HIWORD(wParam));
+
+      mouse_ev++;
+      break;
+    }
+#endif
 					/* END MOUSE STUFF */
     case WM_WINENTER:
       id = NAME_areaEnter;
@@ -470,17 +482,23 @@ messageToEvent(HWND hwnd, UINT message, UINT wParam, LONG lParam)
   }
 
   if ( notNil(id) )
-  { setLastEventTime((unsigned long) GetTickCount());
+  { EventObj ev;
+    setLastEventTime((unsigned long) GetTickCount());
 
     DEBUG(NAME_event, Cprintf("\t--> %s at %s,%s on %s\n",
 			      pp(id), pp(x), pp(y), pp(window)));
 
-    return answerObject(ClassEvent,
-			id, 
-			window,
-			x, y,
-			buttons,
-			0);
+    ev = answerObject(ClassEvent,
+		      id, 
+		      window,
+		      x, y,
+		      buttons,
+		      0);
+
+    if ( ctx_name )
+      attributeObject(ev, ctx_name, ctx);
+
+    return ev;
   } else
     fail;
 }

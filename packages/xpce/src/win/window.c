@@ -653,13 +653,14 @@ eventWindow(PceWindow sw, EventObj ev)
   }
 
   if ( sw->focus != (Graphical) sw || notNil(sw->focus_recogniser) )
-    rval = eventDevice((Device)sw, ev);
+  { rval = eventDevice((Device)sw, ev);
+  }
 
-  if ( rval == FAIL &&
-       notNil(sw->popup) &&
-       isDownEvent(ev) &&
-       (rval = postEvent(ev, (Graphical) sw, popupGesture())) )
-    goto out;
+  if ( !rval )
+    rval = mapWheelMouseEvent(ev, sw);
+    
+  if ( !rval && notNil(sw->popup) && isDownEvent(ev) )
+    rval = postEvent(ev, (Graphical) sw, popupGesture());
 
 out:
   if ( rval == FAIL && isAEvent(ev, NAME_keyboard) )

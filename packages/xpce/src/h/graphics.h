@@ -844,18 +844,20 @@ End;
 		 *	      EVENTS		*
 		 *******************************/
 
-#define BUTTON_mask		(0x3f)
-#define BUTTON_control		(0x1)
-#define BUTTON_shift		(0x2)
-#define BUTTON_meta		(0x4)
-#define BUTTON_ms_left		(0x8)
-#define BUTTON_ms_middle	(0x10)
-#define BUTTON_ms_right		(0x20)
+#define BUTTON_mask		(0x0ff)
+#define BUTTON_control		(0x001)
+#define BUTTON_shift		(0x002)
+#define BUTTON_meta		(0x004)
+#define BUTTON_ms_left		(0x008)
+#define BUTTON_ms_middle	(0x010)
+#define BUTTON_ms_right		(0x020)
+#define BUTTON_ms_button4	(0x040)
+#define BUTTON_ms_button5	(0x080)
 					/* buttons bit mask */
-#define CLICK_TYPE_mask		(0xC0)
-#define CLICK_TYPE_single	(0x40)
-#define CLICK_TYPE_double	(0x80)
-#define CLICK_TYPE_triple	(0xC0)
+#define CLICK_TYPE_mask		(0x700)
+#define CLICK_TYPE_single	(0x100)
+#define CLICK_TYPE_double	(0x200)
+#define CLICK_TYPE_triple	(0x400)
 
 		/********************************
 		*      X-WINDOW REFERENCES	*
@@ -990,6 +992,7 @@ GLOBAL Modifier MODIFIER_allup;		/* Demands all modifiers up */
 
 GLOBAL PopupGesture GESTURE_popup;	/* Displays a popup menu */
 GLOBAL ClickGesture GESTURE_button;	/* Gesture for handling buttons */
+GLOBAL Recogniser   GESTURE_wheelMouse;	/* Wheelmouse translation */
 
 GLOBAL Chain ChangedWindows;		/* Windows that have changed */
 

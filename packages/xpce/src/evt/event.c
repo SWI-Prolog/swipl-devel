@@ -276,7 +276,12 @@ allButtonsUpLastEvent(void)
 
 status
 allButtonsUpEvent(EventObj e)
-{ if ( valInt(e->buttons) & (BUTTON_ms_left|BUTTON_ms_middle|BUTTON_ms_right) )
+{ if ( valInt(e->buttons) &
+       (BUTTON_ms_left|
+	BUTTON_ms_middle|
+	BUTTON_ms_right|
+	BUTTON_ms_button4|
+	BUTTON_ms_button5) )
     fail;
 
   succeed;
@@ -287,7 +292,9 @@ status
 isUpEvent(EventObj e)
 { if ( isName(e->id) && (equalName(e->id, NAME_msLeftUp) ||
 			 equalName(e->id, NAME_msMiddleUp) ||
-			 equalName(e->id, NAME_msRightUp)) )
+			 equalName(e->id, NAME_msRightUp) ||
+			 equalName(e->id, NAME_msButton4Up) ||
+			 equalName(e->id, NAME_msButton5Up)) )
     succeed;
   fail;
 }
@@ -297,7 +304,9 @@ status
 isDownEvent(EventObj e)
 { if ( isName(e->id) && (equalName(e->id, NAME_msLeftDown) ||
 			 equalName(e->id, NAME_msMiddleDown) ||
-			 equalName(e->id, NAME_msRightDown)) )
+			 equalName(e->id, NAME_msRightDown) ||
+			 equalName(e->id, NAME_msButton4Down) ||
+			 equalName(e->id, NAME_msButton5Down)) )
     succeed;
   fail;
 }
@@ -311,6 +320,10 @@ getButtonEvent(EventObj e)
     answer(NAME_middle);
   if ( isAEvent(e, NAME_msRight) )
     answer(NAME_right);
+  if ( isAEvent(e, NAME_msButton4) )
+    answer(NAME_button4);
+  if ( isAEvent(e, NAME_msButton5) )
+    answer(NAME_button5);
 
   errorPce(e, NAME_noButtonEvent);
   fail;
@@ -321,7 +334,9 @@ status
 isDragEvent(EventObj ev)
 { if ( isAEvent(ev, NAME_msLeftDrag) ||
        isAEvent(ev, NAME_msMiddleDrag) ||
-       isAEvent(ev, NAME_msRightDrag) )
+       isAEvent(ev, NAME_msRightDrag) ||
+       isAEvent(ev, NAME_msButton4Drag) ||
+       isAEvent(ev, NAME_msButton5Drag) )
     succeed;
 
   fail;
@@ -750,6 +765,57 @@ getDisplayEvent(EventObj ev)
 }
 
 		 /*******************************
+		 *	     SCROLLING		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Deal with scroll-mice in X11. Such  mice   normally  report the wheel as
+Z-axis motion events. As very  few   applications  know  about this, the
+X-server normally maps  these  to  the   pointer-buttons  4  and  5. The
+function below is called from editor, list_browser and window.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+status
+mapWheelMouseEvent(EventObj ev, Any rec)
+{ if ( ev->id == NAME_wheel )
+  { Name dir, unit;
+    Int count;
+    Int rot = getAttributeObject(ev, NAME_rotation);
+
+    if ( !rot )
+      fail;				/* Error? */
+
+    if ( isDefault(rec) )
+      rec = ev->receiver;
+
+    if ( !hasSendMethodObject(rec, NAME_scrollVertical) )
+      fail;
+  
+    if ( valInt(rot) > 0 )
+      dir = NAME_backwards;
+    else
+      dir = NAME_forwards;
+      
+    if ( valInt(ev->buttons) & BUTTON_shift )
+    { unit = NAME_line;
+      count = toInt(1);
+    } else if ( valInt(ev->buttons) & BUTTON_control )
+    { unit = NAME_page;
+      count = toInt(990);
+    } else
+    { unit = NAME_page;
+      count = toInt(200);
+    }
+  
+    send(rec, NAME_scrollVertical, dir, unit, count, 0);
+    succeed;				/* Or return? */
+  }
+
+  fail;
+}
+
+
+		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/
 
@@ -841,12 +907,10 @@ static getdecl get_event[] =
 
 /* Resources */
 
-#define rc_event NULL
-/*
 static classvardecl rc_event[] =
-{ 
+{ RC(NAME_x11WheelMouse, "bool", UXWIN("@on", "@off"),
+     "Enable/disable wheel-mouse emulation on button 4 and 5")
 };
-*/
 
 /* Class Declaration */
 
@@ -923,9 +987,12 @@ static struct namepair
   { NAME_keyTop_10,	NAME_keyTop },
 					/* Mouse button events */
   { NAME_button,	NAME_mouse },
+  { NAME_wheel,		NAME_mouse },
   { NAME_msLeft,	NAME_button },
   { NAME_msMiddle,	NAME_button },
   { NAME_msRight,	NAME_button },
+  { NAME_msButton4,	NAME_button },
+  { NAME_msButton5,	NAME_button },
   { NAME_msLeftDown,	NAME_msLeft },
   { NAME_msLeftUp,	NAME_msLeft },
   { NAME_msLeftDrag,	NAME_msLeft },
@@ -935,6 +1002,13 @@ static struct namepair
   { NAME_msMiddleDown,	NAME_msMiddle },
   { NAME_msMiddleUp,	NAME_msMiddle },
   { NAME_msMiddleDrag,	NAME_msMiddle },
+  { NAME_msButton4Down,	NAME_msButton4 },
+  { NAME_msButton4Up,	NAME_msButton4 },
+  { NAME_msButton4Drag,	NAME_msButton4 },
+  { NAME_msButton5Down,	NAME_msButton5 },
+  { NAME_msButton5Up,	NAME_msButton5 },
+  { NAME_msButton5Drag,	NAME_msButton5 },
+
 
   { NAME_select,	NAME_namedFunction },
   { NAME_print,		NAME_namedFunction },

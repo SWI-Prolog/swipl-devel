@@ -78,6 +78,7 @@ status		makeClassChain(Class class);
 
 /* ../src/adt/chaintable.c */
 status		appendChainTable(ChainTable ct, Any name, Any value);
+status		addChainTable(ChainTable ct, Any name, Any value);
 status		makeClassChainTable(Class class);
 
 /* ../src/adt/constant.c */

@@ -35,6 +35,7 @@ Any		getReceiverEvent(EventObj ev);
 status		postEvent(EventObj ev, Graphical obj, Recogniser rec);
 Any		getMasterEvent(EventObj ev);
 DisplayObj	getDisplayEvent(EventObj ev);
+status		mapWheelMouseEvent(EventObj ev, Any rec);
 status		makeClassEvent(Class class);
 
 /* ../src/evt/eventnode.c */

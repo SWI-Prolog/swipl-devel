@@ -8,9 +8,10 @@
 */
 
 :- module(pce_main,
-	  [ pce_loop/2,
-	    pce_loop/1,
-	    pce_main_loop/1
+	  [ pce_loop/2,			% :Goal, +Argv
+	    pce_loop/1,			% :Goal
+	    pce_main_loop/1,		% :Goal
+	    dispatch_for_frames/1	% +FrameList
 	  ]).
 
 :- meta_predicate
@@ -52,7 +53,7 @@ pce_loop(Goal, Argv) :-
 	get(FramesNew, copy, FrameChain),
 	send(FrameChain, subtract, FramesOld),
 	chain_list(FrameChain, Frames),
-	dispatch_till_all_gone(Frames).
+	dispatch_for_frames(Frames).
 
 application_flags(Argv, Appl) :-
 	append(_, ['--'|Appl], Argv), !.
@@ -61,8 +62,8 @@ application_flags(Argv, Appl) :-
 application_flags([_|Appl], Appl).
 
 
-dispatch_till_all_gone([]) :- !.
-dispatch_till_all_gone(Frames) :-
+dispatch_for_frames([]) :- !.
+dispatch_for_frames(Frames) :-
 	(   catch(send(@display, dispatch), E,
 		  (   term_to_atom(E, Msg),
 		      send(@display, inform, Msg)
@@ -71,7 +72,7 @@ dispatch_till_all_gone(Frames) :-
 	;   true
 	),
 	existing_frames(Frames, Existing),
-	dispatch_till_all_gone(Existing).
+	dispatch_for_frames(Existing).
 
 existing_frames([], []).
 existing_frames([H|T0], [H|T]) :-

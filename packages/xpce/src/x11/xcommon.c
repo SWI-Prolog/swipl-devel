@@ -618,22 +618,32 @@ state_to_buttons(unsigned int state, Name name)
   if ( state & Button1Mask )	r |= BUTTON_ms_left;
   if ( state & Button2Mask )	r |= BUTTON_ms_middle;
   if ( state & Button3Mask )	r |= BUTTON_ms_right;
+  if ( state & Button4Mask )	r |= BUTTON_ms_button4;
+  if ( state & Button5Mask )	r |= BUTTON_ms_button5;
   if ( state & ShiftMask )	r |= BUTTON_shift;
   if ( state & ControlMask )	r |= BUTTON_control;
   if ( state & Mod1Mask )	r |= BUTTON_meta;
 
-  if ( equalName(name, NAME_msLeftDown) )
+  if ( name == NAME_msLeftDown )
     r |= BUTTON_ms_left;
-  else if ( equalName(name, NAME_msMiddleDown) )
+  else if ( name == NAME_msMiddleDown )
     r |= BUTTON_ms_middle;
-  else if ( equalName(name, NAME_msRightDown) )
+  else if ( name == NAME_msRightDown )
     r |= BUTTON_ms_right;
-  else if ( equalName(name, NAME_msLeftUp) )
+  else if ( name == NAME_msButton4Down )
+    r |= BUTTON_ms_button4;
+  else if ( name == NAME_msButton5Down )
+    r |= BUTTON_ms_button5;
+  else if ( name == NAME_msLeftUp )
     r &= ~BUTTON_ms_left;
-  else if ( equalName(name, NAME_msMiddleUp) )
+  else if ( name == NAME_msMiddleUp )
     r &= ~BUTTON_ms_middle;
-  else if ( equalName(name, NAME_msRightUp) )
+  else if ( name == NAME_msRightUp )
     r &= ~BUTTON_ms_right;
+  else if ( name == NAME_msButton4Up )
+    r &= ~BUTTON_ms_button4;
+  else if ( name == NAME_msButton5Up )
+    r &= ~BUTTON_ms_button5;
 
   return toInt(r);
 }
@@ -642,9 +652,11 @@ state_to_buttons(unsigned int state, Name name)
 static Name
 button_to_name(int press, unsigned int button)
 { switch( button )
-  { case Button1:	return press ? NAME_msLeftDown   : NAME_msLeftUp;
-    case Button2:	return press ? NAME_msMiddleDown : NAME_msMiddleUp;
-    case Button3:	return press ? NAME_msRightDown  : NAME_msRightUp;
+  { case Button1:	return press ? NAME_msLeftDown     : NAME_msLeftUp;
+    case Button2:	return press ? NAME_msMiddleDown   : NAME_msMiddleUp;
+    case Button3:	return press ? NAME_msRightDown    : NAME_msRightUp;
+    case Button4:	return press ? NAME_msButton4Down  : NAME_msButton4Up;
+    case Button5:	return press ? NAME_msButton5Down  : NAME_msButton5Up;
   }
 
   fail;
@@ -658,7 +670,13 @@ CtoEvent(Any window, XEvent *event)	/* window or frame */
   int state = 0;
   int x;
   int y;
-  Any name;
+  Name ctx_name = NULL;
+  Any name, ctx = NULL;
+  static Bool do_wheel;
+  EventObj ev;
+
+  if ( !do_wheel )
+    do_wheel = getClassVariableValueClass(ClassEvent, NAME_x11WheelMouse);
 
   switch( event->xany.type )
   { case KeyPress:			/* Key pressed */
@@ -678,8 +696,25 @@ CtoEvent(Any window, XEvent *event)	/* window or frame */
       y     = event->xbutton.y;
       state = event->xbutton.state;
       time  = event->xbutton.time;
+
+      if ( do_wheel )			/* Map button4 and 5 to wheel */
+      { if ( event->xbutton.button == Button4 ||
+	     event->xbutton.button == Button5 )
+	{ if ( event->xany.type == ButtonPress )
+	  { name = NAME_wheel;
+	    ctx_name = NAME_rotation;
+	    if ( event->xbutton.button == Button4 )
+	      ctx = toInt(120);
+	    else
+	      ctx = toInt(-120);
+	    break;
+	  }
+	  fail;
+	}
+      }
+
       name  = button_to_name(event->xany.type == ButtonPress,
-				   event->xbutton.button);
+			     event->xbutton.button);
       if ( name == FAIL )
         fail;
 
@@ -727,13 +762,18 @@ CtoEvent(Any window, XEvent *event)	/* window or frame */
 
   setLastEventTime(time);
 
-  return answerObject(ClassEvent,
-		      name, 
-		      window,
-		      toInt(x), toInt(y),
-		      state_to_buttons(state, name),
-		      0);		   
+  ev = answerObject(ClassEvent,
+		    name, 
+		    window,
+		    toInt(x), toInt(y),
+		    state_to_buttons(state, name),
+		    0);		   
+  if ( ctx_name )
+    attributeObject(ev, ctx_name, ctx);
+
+  return ev;
 }
+
 
 		 /*******************************
 		 *      COMPATIBILITY HACKS	*

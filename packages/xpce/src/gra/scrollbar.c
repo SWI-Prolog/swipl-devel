@@ -1146,7 +1146,10 @@ updateCursorScrollBar(ScrollBar s, Name which)
 
 static status
 eventScrollBar(ScrollBar s, EventObj ev)
-{ if ( s->look == NAME_x )
+{ if ( mapWheelMouseEvent(ev, s->object) )
+    succeed;
+
+  if ( s->look == NAME_x )
   { if ( equalName(s->status, NAME_inactive) )
     { if ( isAEvent(ev, NAME_areaEnter) )
       { assign(s, status,	 NAME_active);
