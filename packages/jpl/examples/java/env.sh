@@ -98,6 +98,10 @@ compile()
 # run Class
 # 
 # Compiles Class if the .class file does not exsist and runs it
+# Note that some systems (Linux, ...) find the libjpl.xxx from
+# LD_LIBRARY_PATH.  MacOS finds this only when named libjpl.jnilib
+# and using -Djava.library.path=<Path>.  We pass both, hoping to
+# satisfy most systems ...
 ################################################################
 
 run()
@@ -108,7 +112,7 @@ run()
     echo "JPL demo: $1"
     echo ""
 
-    java $1
+    java -Djava.library.path=$PLLIBDIR $1
   fi
 }
 
