@@ -2547,9 +2547,9 @@ pl_statistics_ld(term_t k, term_t value ARG_LD)
   else if (key == ATOM_inferences)			/* inferences */
     result = makeNum(LD->statistics.inferences);
   else if (key == ATOM_local)				/* local stack */
-    result = makeNum((long)lMax - (long)lBase);
+    result = makeNum(sizeStack(local));
   else if (key == ATOM_localused)
-    result = makeNum((long)lTop - (long)lBase);
+    result = makeNum(usedStack(local));
   else if (key == ATOM_locallimit)
     result = makeNum(limitStack(local));
   else if (key == ATOM_heaplimit)			/* heap */
