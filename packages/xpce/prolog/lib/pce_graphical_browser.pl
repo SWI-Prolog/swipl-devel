@@ -53,7 +53,8 @@ initialise(B, W:[int], H:[int], RF:[function], UF:[function]) :->
 	send(B, slot, unrender_function, UF),
 	send(B, scrollbars, vertical),
 	send(B, resize_message, message(B, resized, @arg2)),
-	send(B?decoration, attribute, hor_stretch, 100).
+	send(B?decoration, attribute, hor_stretch, 100),
+	send(B, recogniser, @graphical_browser_recogniser).
 
 
 resized(B, Size:size) :->
@@ -158,12 +159,6 @@ selection(B, Sel:'any|chain') :<-
 				click_gesture(left, '', double,
 					      message(@receiver, clicked,
 						      open_message, @event))))).
-
-event(B, Ev:event) :->
-	"Handle event"::
-	(   send(@graphical_browser_recogniser, event, Ev)
-	;   send(B, send_super, event, Ev)
-	).
 
 clicked(B, MsgName:name, Ev:event) :->
 	"Select item and forward message"::
