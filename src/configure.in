@@ -143,11 +143,16 @@ AC_MSG_CHECKING("whether LDFLAGS need -rdynamic")
 main()
 { exit(0);
 },
-	     AC_MSG_RESULT(yes),
-	     AC_MSG_RESULT(no)
-	     LDFLAGS="$old_ldflags",
-	     AC_MSG_RESULT(no)
-	     LDFLAGS="$old_ldflags")
+     if grep 'unrecognized option `-rdynamic'"'" config.log >/dev/null; then
+       AC_MSG_RESULT(no)
+       LDFLAGS="$old_ldflags"
+     else
+       AC_MSG_RESULT(yes)
+     fi,
+     AC_MSG_RESULT(no)
+     LDFLAGS="$old_ldflags",
+     AC_MSG_RESULT(no)
+     LDFLAGS="$old_ldflags")
 else
   configloadforeign=yes
 fi
