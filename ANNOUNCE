@@ -1,51 +1,33 @@
-SWI-Prolog 5.2.9/XPCE 6.2.9 stable release
+SWI-Prolog 5.2.10/XPCE 6.2.10 stable release
 
 Status
 ======
   
   * Stable release integrating shared-database multi-threaded execution.
 
-Brief summary of changes since 5.2.8
-====================================
+Brief summary of changes since 5.2.10
+=====================================
 
 SWI-Prolog
 ----------
 
-  * Many small fixes.  None is likely to affect many users.
+  * Fix call/1 exception handling when called with a non-callable argument.
 
 Packages
 --------
 
-  * XPCE: Many small fixes.  The most important ones affect trees using the
-    `list' visualisation (layout and redraw problems).
+  * XPCE: Added library(pce_grapher) supporting visualisation of Prolog
+    exploring a search-tree and other nice graph handling stuff.
 
-    Added in_pce_thread(:Goal) to allow background threads making calls 
-    synchronous to the XPCE event-loop.
-
-  * Semweb: various extensions.  Generation of MD5 digests on triple sets.
-
-  * ODBC: Some driver errors could crash the interface.  Bug in
-    odbc_free_statement/1 that could crash the interface.
+    Extended graphical->layout to support incremental layout.
+    Fixed combobox event/focus handling.
 
 Development environment
 -----------------------
 
-  * Various fixes and improvements to the debugger.  Notably improved 
-    redo and failure handling.
+  (none)
 
 INCOMPATIBILITIES
 =================
 
   (none)
-
-Donations
-=========
-
-Donations, small and big, are well appreciated, as are critisism and plans
-to turn SWI-Prolog in a self-supporting project.  Please visit
-
-	http://www.swi-prolog.org/donate.html
-
-	Thanks
-
-		--- Jan

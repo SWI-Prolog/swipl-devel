@@ -9,6 +9,9 @@ VERSION 6.2.10, distributed with SWI-Prolog 5.2.10
 * ADDED: library(pce_grapher) to support creating and managing simple Prolog
   graphs.  Especially useful for educational purposes.
 
+* ADDED: extra argument to `graphical->layout' to extend existing graphs.
+  (incremental layout).
+
 * ADDED: library(pce_tagged_connection): allow ->tag: @nil to remove the
   associated tag.
 
