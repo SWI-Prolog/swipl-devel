@@ -1474,10 +1474,13 @@ assert_term(term_t term, int where, SourceLoc loc)
   deRef(h);
   deRef(b);
 
-  DEBUG(9, Sdprintf("compiling "); pl_write(term); Sdprintf(" ... "););
+  DEBUG(2,
+	Sdprintf("compiling ");
+	PL_write_term(Serror, term, 1200, PL_WRT_QUOTED);
+	Sdprintf(" ... "););
   if ( !(clause = compileClause(h, b, proc, module)) )
     return NULL;
-  DEBUG(9, Sdprintf("ok\n"));
+  DEBUG(2, Sdprintf("ok\n"));
   def = proc->definition;
 
   if ( def->indexPattern && !(def->indexPattern & NEED_REINDEX) )

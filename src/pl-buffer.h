@@ -42,10 +42,11 @@ void	growBuffer(Buffer, long);
   
 #define addMultipleBuffer(b, ptr, times, type) \
 	do \
-	{ int _len = (times); \
+	{ int _tms = (times); \
+          int _len = _tms * sizeof(type); \
 	  if ( (b)->top + _len > (b)->max ) \
 	    growBuffer((Buffer)b, _len); \
-          while ( --_len >= 0 ) \
+          while ( --_tms >= 0 ) \
 	  { *((type *)(b)->top) = *ptr++; \
 	    (b)->top += sizeof(type); \
 	  } \
