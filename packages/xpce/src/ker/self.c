@@ -722,20 +722,6 @@ getMclockPce(Pce pce)
 }
 
 
-#ifndef HAVE_GETLOGIN
-#define getlogin _emu_getlogin
-
-static char *
-_emu_getlogin()
-{ char *user = getenv("USER");
-
-  if ( !user )
-    user = "unknown";
-
-  return user;
-}
-#endif /*HAVE_GETLOGIN*/
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Linux sysinfo() is something completely  different from Solaris sysinfo,
 for which this code was designed.
@@ -779,7 +765,7 @@ static Name
 getUserPce(Pce pce)
 { char *s;
 
-  if ( (s = getlogin()) )
+  if ( (s = ws_user()) )
     answer(CtoName(s));
 #if HAVE_PWD_H
   { struct passwd *pwd;
@@ -789,7 +775,7 @@ getUserPce(Pce pce)
   }
 #endif
 
-  fail;
+  answer(NAME_unknown);
 }
 
 

@@ -587,7 +587,7 @@ $(srcdir)/img/proto.h:	$(IMGSRC)
 XCOMMOBJS=	canvas.o fshell.o xcommon.o xconvert.o x11-compat.o xppm.o
 WSTOBJS=	xcolour.o xcursor.o xdisplay.o xdraw.o xevent.o xfont.o \
 		xframe.o ximage.o xstream.o xtimer.o xwindow.o x11.o xmenu.o \
-		xdnd.o
+		xdnd.o xunix.o
 X11OBJS=	$(XCOMMOBJS) $(WSTOBJS)
 
 XCOMMSRC=	$(addprefix $(srcdir)/x11/, $(XCOMMOBJS:.o=.c))

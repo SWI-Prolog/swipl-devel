@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Win32: `@pce<-user' to obtain the name of the currently logged
+  on user.
+
 * ADDED: PceEmacs: report key-bindings in replace mode.
 
 * FIXED: `frame->set' force negative and 0-width/height frames to be
@@ -11,7 +14,7 @@
 * FIXED: Access of freed memory in `display->inspect', used by the
   balloon system (probably harmless, but spotted in allocation debug-mode).
 
-* FIXED: Disable drabbrev_expand in read-only editor.
+* FIXED: Disable dabbrev_expand in read-only editor.
 
 * FIXED: PceEmacs Prolog mode: avoid an XPCE crash when replacing
   singletons.

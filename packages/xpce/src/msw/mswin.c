@@ -252,6 +252,21 @@ ws_getpid()
 } 
 
 
+char *
+ws_user()
+{ char buf[256];
+  char *user;
+  DWORD len = sizeof(buf);
+
+  if ( GetUserName(buf, &len) )
+    return strName(CtoName(buf));	/* force static storage */
+  else if ( (user = getenv("USER")) )
+    return user;
+  else
+    return NULL;
+}
+
+
 int
 ws_mousebuttons()
 { return GetSystemMetrics(SM_CMOUSEBUTTONS);

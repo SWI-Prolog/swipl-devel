@@ -238,6 +238,7 @@ int		ws_revision(void);
 status		ws_show_console(Name how);
 status		ws_console_label(CharArray label);
 Int		ws_default_scrollbar_width(void);
+char *		ws_user(void);
 
 /* ../src/x11/xmenu.c */
 status		ws_draw_scrollbar_arrow(ScrollBar s, int x, int y, int w, int h, Name which, int up);
