@@ -1,3 +1,8 @@
+Mar 11, 2005
+
+  * TS: Improved head reordering heuristic.
+  * TS: Added support primitive for alternate built-in solver dependency.
+
 Mar 4, 2005
 
   * TS: Fixed bug that causes wrong output in chr_show_store.

@@ -475,7 +475,8 @@ store_management_preds(Constraints,Clauses) :-
 insert_declarations(Clauses0, Clauses) :-
 	append(Clauses0, 
 		  [ :- use_module(chr(chr_runtime)) 
-		  , :- use_module(chr(chr_hashtable_store))
+		  , :- use_module(chr(chr_hashtable_store)),
+		  , :- use_module(library('clp/clp_events'))
 		  ],
 		  Clauses).
 
@@ -1217,6 +1218,8 @@ option_definition(observation,ai,Flags) :-
 			ai_observation_analysis - on
 		].
 
+option_definition(solver_events,NMod,Flags) :-
+	Flags =	[solver_events - NMod].
 
 init_chr_pp_flags :-
 	chr_pp_flag_definition(Name,[DefaultValue|_]),
@@ -1251,6 +1254,7 @@ chr_pp_flag_definition(check_impossible_rules,[off,on]).
 chr_pp_flag_definition(occurrence_subsumption,[off,on]).
 chr_pp_flag_definition(observation,[off,on]).
 chr_pp_flag_definition(show,[off,on]).
+chr_pp_flag_definition(solver_events,[none,_]).
 
 chr_pp_flag(Name,Value) :-
 	atom_concat('$chr_pp_',Name,GlobalVar),
@@ -1306,9 +1310,18 @@ generate_attach_a_constraint_1_1(FA,Clause) :-
 	generate_attach_body_1(FA,Var,Susp,AttachBody),
 	make_name('attach_',FA,Fct),
 	RecursiveCall =.. [Fct,Vars,Susp],
+	chr_pp_flag(solver_events,NMod),
+	( NMod \== none ->
+		Args = [[Var|_],Susp],
+		get_target_module(Mod),
+		Subscribe = clp_events:subscribe(Var,NMod,Mod,chr_runtime:'chr run_suspensions'([Susp]))
+	;
+		Subscribe = true
+	),
 	Body =
 	(
 		AttachBody,
+		Subscribe,
 		RecursiveCall
 	).
 
@@ -1328,9 +1341,18 @@ generate_attach_a_constraint_t_p(FA,Clause) :-
 	make_name('attach_',FA,Fct),
 	RecursiveCall =.. [Fct,Vars,Susp],
 	generate_attach_body_n(FA,Var,Susp,AttachBody),
+	chr_pp_flag(solver_events,NMod),
+	( NMod \== none ->
+		Args = [[Var|_],Susp],
+		get_target_module(Mod),
+		Subscribe = clp_events:subscribe(Var,NMod,Mod,chr_runtime:'chr run_suspensions'([Susp]))
+	;
+		Subscribe = true
+	),
 	Body =
 	(
 		AttachBody,
+		Subscribe,
 		RecursiveCall
 	).
 
@@ -4780,11 +4802,10 @@ final_data(Entry) :-
 
 expand_data(Entry,NEntry,Cost) :-
 	Entry = entry(Heads,IDs,Vars,NHeads,NIDs,RuleNb),
-	term_variables(Entry,EVars),
-	NEntry = entry([Head1|Heads],[ID1|IDs],Vars1,NHeads1,NIDs1,RuleNb),
 	select2(Head1,ID1,NHeads,NIDs,NHeads1,NIDs1),
-	order_score(Head1,ID1,Vars,NHeads1,RuleNb,Cost),
-	term_variables([Head1|Vars],Vars1).
+	term_variables([Head1|Vars],Vars1),
+	NEntry = entry([Head1|Heads],[ID1|IDs],Vars1,NHeads1,NIDs1,RuleNb),
+	order_score(Head1,ID1,Vars,NHeads1,RuleNb,Cost).
 
 	% Assigns score to head based on known variables and heads to lookup
 order_score(Head,ID,KnownVars,RestHeads,RuleNb,Score) :-
@@ -4795,7 +4816,7 @@ order_score(Head,ID,KnownVars,RestHeads,RuleNb,Score) :-
 order_score(default,Head,_ID,KnownVars,RestHeads,RuleNb,Score) :-
 	term_variables(Head,HeadVars),
 	term_variables(RestHeads,RestVars),
-	order_score_vars(HeadVars,KnownVars,RestHeads,0,Score).
+	order_score_vars(HeadVars,KnownVars,RestVars,Score).
 order_score(multi_hash(Indexes),Head,_ID,KnownVars,RestHeads,RuleNb,Score) :-
 	order_score_indexes(Indexes,Head,KnownVars,0,Score).
 order_score(global_ground,Head,ID,_KnownVars,_RestHeads,RuleNb,Score) :-
@@ -4831,21 +4852,30 @@ order_score_indexes([I|Is],Head,KnownVars,Score,NScore) :-
 	),
 	order_score_indexes(Is,Head,KnownVars,Score1,NScore).
 
-order_score_vars([],_,_,Score,NScore) :-
-	( Score == 0 ->
-		NScore = 0
-	;
-		NScore = Score
-	).
-order_score_vars([V|Vs],KnownVars,RestVars,Score,NScore) :-
+order_score_vars(Vars,KnownVars,RestVars,Score) :-
+	order_score_count_vars(Vars,KnownVars,RestVars,K-R-O),
+	( K-R-O == 0-0-0 ->
+		Score = 0
+	; K > 0 ->
+		Score is max(10 - K,0)
+	; R > 0 ->
+		Score is max(10 - R,1) * 10
+	; 
+		Score is max(10-O,1) * 100
+	).	
+order_score_count_vars([],_,_,0-0-0).
+order_score_count_vars([V|Vs],KnownVars,RestVars,NK-NR-NO) :-
+	order_score_count_vars(Vs,KnownVars,RestVars,K-R-O),
 	( memberchk_eq(V,KnownVars) ->
-		TScore is Score + 10
+		NK is K + 1,
+		NR = R, NO = O
 	; memberchk_eq(V,RestVars) ->
-		TScore is Score + 100
+		NR is R + 1,
+		NK = K, NO = O
 	;
-		TScore = Score
-	),
-	order_score_vars(Vs,KnownVars,RestVars,TScore,NScore).
+		NO is O + 1,
+		NK = K, NR = R
+	).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%  ___       _ _       _             

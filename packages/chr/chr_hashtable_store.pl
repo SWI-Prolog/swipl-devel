@@ -142,7 +142,32 @@ value_ht(I,N,Table,Value) :-
 		J is I + 1,
 		value_ht(J,N,Table,Value)
 	).
-		 	
+
+values_ht(HT,Values) :-
+	HT = ht(Capacity,_,Table),
+	values_ht(1,Capacity,Table,Values).
+values_ht(I,N,Table,Values) :-
+	( I =< N ->
+		arg(I,Table,Bucket),
+		( nonvar(Bucket) ->
+			( Bucket = _-Vs ->
+				append(Vs,Tail,Values)
+			;
+				append_snd(Bucket,Tail,Values)
+			)
+		;
+			Values = Tail
+		),
+		J is I + 1,
+		values_ht(J,N,Table,Tail)
+	;
+		Values = []
+	).
+
+append_snd([],L,L).
+append_snd([_-H|Ps],L,NL) :-
+	append(H,T,NL),
+	append_snd(Ps,L,T).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 expand_ht(HT) :-
