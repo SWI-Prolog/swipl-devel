@@ -786,11 +786,17 @@ has_help(M) :->
 	    send(Var, has_help)
 	).
 
-
 help(M) :->
 	"Open manual browser on method"::
 	manpce(M).
 
+edit(M) :->
+	"Edit source of method"::
+	(   get(M, source, Location)
+	->  edit(Location)
+	;   send(M, report, warning, 'No source'),
+	    fail
+	).
 
 man_creator(M, Creator:name) :<-
 	"<-creator of the <-context"::
