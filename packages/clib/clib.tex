@@ -525,31 +525,31 @@ the XPCE primitive \index{pce_open/3}\predref{pce_open}{3}.
 
 
 \begin{description}
-    \predicate{new_memory_file}{-Handle}
+    \predicate{new_memory_file}{1}{-Handle}
 Create a new memory file and return a unique opaque handle to it.
 
-    \predicate{free_memory_file}{+Handle}
+    \predicate{free_memory_file}{1}{+Handle}
 Discard the memory file and its contents.  If the file is open it
 is first closed.
 
-    \predicate{open_memory_file}{+Handle, +Mode, -Stream}
+    \predicate{open_memory_file}{3}{+Handle, +Mode, -Stream}
 Open the memory-file.  \arg{Mode} is currently one of \const{read}
 or \const{write}.  The resulting handling is closed
 using \index{close/1}\predref{close}{1}.
 
-    \predicate{size_memory_file}{+Handle, -Bytes}
+    \predicate{size_memory_file}{2}{+Handle, -Bytes}
 Return the content-length of the memory-file it \arg{Bytes}.  The
 file should be closed and contain data.
 
-    \predicate{atom_to_memory_file}{+Atom, -Handle}
+    \predicate{atom_to_memory_file}{2}{+Atom, -Handle}
 Turn an atom into a read-only memory-file containing the (shared)
 characters of the atom.  Opening this memory-file in mode \const{write}
 yields a permission error.
 
-    \predicate{memory_file_to_atom}{+Handle, -Atom}
+    \predicate{memory_file_to_atom}{2}{+Handle, -Atom}
 Return the content of the memory-file in \arg{Atom}.
 
-    \predicate{memory_file_to_codes}{+Handle, -Codes}
+    \predicate{memory_file_to_codes}{2}{+Handle, -Codes}
 Return the content of the memory-file as a list of character-codes
 in \arg{Codes}.
 \end{description}

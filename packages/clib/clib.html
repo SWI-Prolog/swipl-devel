@@ -629,42 +629,42 @@ and the XPCE primitive <A NAME="idx:pceopen3:38"></A><B>pce_open/3</B>.
 <DL>
 
 <P>
-<DT><A NAME="new_memory_file/-Handle"><STRONG>new_memory_file</STRONG>(<VAR>-Handle</VAR>)</A><DD>
-reate a new memory file and return a unique opaque handle to it.
+<DT><A NAME="new_memory_file/1"><STRONG>new_memory_file</STRONG>(<VAR>-Handle</VAR>)</A><DD>
+Create a new memory file and return a unique opaque handle to it.
 
 <P>
-<DT><A NAME="free_memory_file/+Handle"><STRONG>free_memory_file</STRONG>(<VAR>+Handle</VAR>)</A><DD>
-iscard the memory file and its contents. If the file is open it is first 
-closed.
+<DT><A NAME="free_memory_file/1"><STRONG>free_memory_file</STRONG>(<VAR>+Handle</VAR>)</A><DD>
+Discard the memory file and its contents. If the file is open it is 
+first closed.
 
 <P>
-<DT><A NAME="open_memory_file/+Handle, +Mode, -Stream"><STRONG>open_memory_file</STRONG>(<VAR>+Handle, 
+<DT><A NAME="open_memory_file/3"><STRONG>open_memory_file</STRONG>(<VAR>+Handle, 
 +Mode, -Stream</VAR>)</A><DD>
-pen the memory-file. <VAR>Mode</VAR> is currently one of <CODE>read</CODE> 
+Open the memory-file. <VAR>Mode</VAR> is currently one of <CODE>read</CODE> 
 or <CODE>write</CODE>. The resulting handling is closed using <A NAME="idx:close1:39"></A><B>close/1</B>.
 
 <P>
-<DT><A NAME="size_memory_file/+Handle, -Bytes"><STRONG>size_memory_file</STRONG>(<VAR>+Handle, 
+<DT><A NAME="size_memory_file/2"><STRONG>size_memory_file</STRONG>(<VAR>+Handle, 
 -Bytes</VAR>)</A><DD>
-eturn the content-length of the memory-file it <VAR>Bytes</VAR>. The 
+Return the content-length of the memory-file it <VAR>Bytes</VAR>. The 
 file should be closed and contain data.
 
 <P>
-<DT><A NAME="atom_to_memory_file/+Atom, -Handle"><STRONG>atom_to_memory_file</STRONG>(<VAR>+Atom, 
+<DT><A NAME="atom_to_memory_file/2"><STRONG>atom_to_memory_file</STRONG>(<VAR>+Atom, 
 -Handle</VAR>)</A><DD>
-urn an atom into a read-only memory-file containing the (shared) 
+Turn an atom into a read-only memory-file containing the (shared) 
 characters of the atom. Opening this memory-file in mode <CODE>write</CODE> 
 yields a permission error.
 
 <P>
-<DT><A NAME="memory_file_to_atom/+Handle, -Atom"><STRONG>memory_file_to_atom</STRONG>(<VAR>+Handle, 
+<DT><A NAME="memory_file_to_atom/2"><STRONG>memory_file_to_atom</STRONG>(<VAR>+Handle, 
 -Atom</VAR>)</A><DD>
-eturn the content of the memory-file in <VAR>Atom</VAR>.
+Return the content of the memory-file in <VAR>Atom</VAR>.
 
 <P>
-<DT><A NAME="memory_file_to_codes/+Handle, -Codes"><STRONG>memory_file_to_codes</STRONG>(<VAR>+Handle, 
+<DT><A NAME="memory_file_to_codes/2"><STRONG>memory_file_to_codes</STRONG>(<VAR>+Handle, 
 -Codes</VAR>)</A><DD>
-eturn the content of the memory-file as a list of character-codes in <VAR>Codes</VAR>.
+Return the content of the memory-file as a list of character-codes in <VAR>Codes</VAR>.
 </DL>
 
 <H2><A NAME="sec:8">8 Time and alarm library</A></H2>
