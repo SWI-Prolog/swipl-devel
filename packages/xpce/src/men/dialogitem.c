@@ -626,7 +626,7 @@ static classvardecl rc_dialogItem[] =
      "Alignment of the label in its box"),
   RC(NAME_labelSuffix, "name", ":",
      "Ensured suffix of label"),
-  RC(NAME_look, "{x,open_look,motif,win}",
+  RC(NAME_look, "{x,open_look,motif,win,gtk}",
      UXWIN("open_look", "win"),
      "Look-and-feel switch"),
   RC(NAME_selectionHandles, RC_REFINE, "@nil",

@@ -42,33 +42,6 @@ accelerator_code(Name a)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Get a highlighted elevation for the background.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static Elevation
-getGtkButtonElevation(Button b)
-{ Any bg = r_background(DEFAULT);
-  static Any cbg = NIL;
-  static Elevation ce  = NULL;
-  
-  if ( bg == cbg )
-    return ce;
-
-  if ( instanceOfObject(bg, ClassColour) )
-  { Colour face = getHiliteColour(bg);
-
-    if ( ce )
-      freeObject(ce);
-
-    ce = newObject(ClassElevation, NIL, ONE, face, EAV);
-    answer(ce);
-  }
-  
-  fail;
-}
-
-
 static status
 RedrawMenuBarButton(Button b, Area a)
 { int x, y, w, h;
@@ -82,7 +55,8 @@ RedrawMenuBarButton(Button b, Area a)
   { Elevation e;
 
     if ( b->look == NAME_gtkMenuBar &&
-	 (e = getGtkButtonElevation(b)) )
+	 (e = getClassVariableValueObject(b, NAME_previewElevation)) &&
+	 notNil(e) )
     { r_3d_box(x, y, w, h, 0, e, TRUE);
     } else /* if ( b->look == NAME_winMenuBar ) */
     { Any fg = getClassVariableValueObject(b, NAME_selectedForeground);
@@ -681,6 +655,9 @@ static classvardecl rc_button[] =
      "Shadow shown around the box"),
   RC(NAME_size, "size", UXWIN("size(50,20)", "size(80,24)"),
      "Minimum size in pixels"),
+  RC(NAME_previewElevation, "elevation*",
+     "elevation(preview, 1, hilited)",
+     "Elevation of item in preview mode"),
   RC(NAME_elevation, RC_REFINE,
      UXWIN("when(@colour_display, button, @nil)",
 	   "elevation(@nil, 2, @_dialog_bg)"),

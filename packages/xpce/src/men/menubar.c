@@ -701,7 +701,7 @@ static classvardecl rc_menuBar[] =
      "Format items {left,center,right}"),
   RC(NAME_gap, "int", UXWIN("10", "5"),
      "Distance between buttons"),
-  RC(NAME_look, "name", UXWIN("gtk", "win"),
+  RC(NAME_look, RC_REFINE, UXWIN("gtk", "win"),
      NULL),
   RC(NAME_labelFont, "font", "normal",
      "Default font for labels"),
