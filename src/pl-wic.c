@@ -97,7 +97,9 @@ Below is an informal description of the format of a `.qlf' file:
 <statement>	::=	'W' <string>			% include wic file
 		      | 'P' <XR/functor>
 			    {<clause>} <pattern>	% predicate
-		      | 'D' <term>			% directive
+		      | 'D' 
+		        <lineno>			% source line number
+			<term>				% directive
 		      | 'E' <XR/functor>		% export predicate
 		      | 'I' <XR/procedure>		% import predicate
 		      | 'Q' <qlf-module>		% include module
@@ -136,7 +138,7 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define VERSION 16			/* save version number */
+#define VERSION 17			/* save version number */
 
 #define XR_REF     0			/* reference to previous */
 #define XR_ATOM	   1			/* atom */
@@ -516,6 +518,7 @@ loadWicFile(char *file, bool toplevel, bool load_options)
 { FILE *fd;
   bool rval = TRUE;
   bool tablealloced = FALSE;
+  char *owf = wicFile;
 
   if ((fd = Fopen(file, STREAM_OPEN_BIN_READ)) == (FILE *) NULL)
   { fatalError("Can't open %s: %s", file, OsError());
@@ -523,6 +526,7 @@ loadWicFile(char *file, bool toplevel, bool load_options)
     goto out;
   }
 
+  wicFile = file;
   notifyLoad(file);
 
   if ( toplevel && !load_options )
@@ -548,6 +552,7 @@ out:
   { popXrIdTable();
   }
 
+  wicFile = owf;
   notifyLoaded();
 
   return rval;
@@ -640,16 +645,25 @@ loadStatement(int c, FILE *fd)
     case 'D':
     { mark m;
       word goal;
+      Atom osf = source_file_name;
+      int  oln = source_line_no;
+
+      source_file_name = currentSource->name;
+      source_line_no   = getNum(fd);
       
       Mark(m);
       goal = loadQlfTerm(fd);
       if ( !callGoal(MODULE_user, goal, FALSE) )
-      { printf("[WARNING: directive failed: ");
+      { printf("[WARNING: %s:%d: (loading %s) directive failed: ",
+	       stringAtom(source_file_name), source_line_no, wicFile);
 	pl_write(&goal);
 	printf("]\n");
       }
       Undo(m);
       
+      source_file_name = osf;
+      source_line_no   = oln;
+
       succeed;
     }	  
 
@@ -1224,6 +1238,7 @@ static bool
 addDirectiveWic(word term, FILE *fd)
 { closeProcedureWic(fd);
   Putc('D', fd);
+  putNum(source_line_no, fd);
   saveQlfTerm(&term, fd);
 
   succeed;

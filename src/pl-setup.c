@@ -135,13 +135,16 @@ initFeatures()
   CSetFeature("save_program",  "true");
 #endif
 #ifdef O_STORE_PROGRAM
-  CSetFeature("save_program", "true");
+  CSetFeature("save_program",	"true");
 #endif
 #if defined(O_FOREIGN) || defined(O_MACH_FOREIGN) || defined(O_AIX_FOREIGN)
   CSetFeature("load_foreign",  "true");
 #endif
-#ifdef HAVE_LDOPEN
+#ifdef HAVE_DLOPEN
   CSetFeature("open_shared_object", "true");
+#endif
+#if O_DYNAMIC_STACKS
+  CSetFeature("dynamic_stacks",	"true");
 #endif
 #if defined(HAVE_LIBREADLINE)
   CSetFeature("readline",	"true");
@@ -301,9 +304,15 @@ removed on exit.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef HAVE_MAP_ANON
+#if !defined(MAP_ANON) && defined(MAP_ANONYMOUS)
+#define MAP_ANON MAP_ANONYMOUS
+#endif
+
 #define get_map_fd() (-1)
 #define STACK_MAP_TYPE MAP_ANON|MAP_PRIVATE|MAP_FIXED
-#else
+
+#else /*HAVE_MAP_ANON*/
+
 #define STACK_MAP_TYPE MAP_PRIVATE|MAP_FIXED
 
 static int
@@ -340,7 +349,7 @@ get_map_fd()
 
   return fd;
 }
-#endif /*MAP_ANON*/
+#endif /*HAVE_MAP_ANON*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Expand stack `s' by one page.  This might not be  enough,  but  in  this

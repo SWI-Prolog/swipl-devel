@@ -15,7 +15,9 @@
 #include <unistd.h>
 #endif
 
-/*#undef MAP_ANON*/
+#if !defined(MAP_ANON) && defined(MAP_ANONYMOUS)
+#define MAP_ANON MAP_ANONYMOUS
+#endif
 
 #ifndef SIGRETTYPE
 #define SIGRETTYPE void

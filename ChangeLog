@@ -1,6 +1,17 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.0.3
+=============
+
+  * Fixed: loading qlf files now push the source context while running
+    a directive, so source_location/2 should work while executing a
+    directive from a .qlf file.
+  * Fixed: recognise MAP_ANONYMOUS for configuring mmap() based stacks.
+  * Added feature(dynamic_stacks, Bool) for detection of virtual memory
+    based stack management.
+  * Fixed feature(open_shared_object, Bool) (Michael Kauschke)
+
 Version 2.0.2
 =============
 
