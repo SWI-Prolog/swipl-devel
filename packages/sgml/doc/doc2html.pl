@@ -141,7 +141,7 @@ mktoc([element(E, A0, C0)|T0], Doc, Prefix, N, Toc) :-
 	;   RN = SecId,
 	    A = [name=RN|A0]
 	),
-	atom_concat('#', RN, HREF),
+	atom_concat('#sec:', RN, HREF),
 	mktoc(Body0, Body, SecId, 0, SubToc),
 	(   SubToc == []
 	->  mktoc(T0, T, Prefix, N1, CT)
