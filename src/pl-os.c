@@ -1,4 +1,4 @@
-/*  $Id$
+/*  pl-os.c,v 1.23 1993/05/06 13:57:47 jan Exp
 
     Copyright (c) 1990 Jan Wielemaker. All rights reserved.
     See ../LICENCE to find out about your rights.
@@ -1255,7 +1255,7 @@ char *spec;
 
 #if unix
 #if O_GETCWD
-char	*getcwd P((char *));
+char	*getcwd P((char *, size_t));
 
 char *
 getwd(buf)
