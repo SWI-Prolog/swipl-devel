@@ -335,8 +335,8 @@ get_file(F, Exists, Ext, Dir, Default, File) :-
 	),
 	win_filter(Ext, Filters),
 	(   Dir == @default
-	->  DefDir = Dir
-	;   get(F, directory, DefDir)
+	->  get(F, directory, DefDir)
+	;   DefDir = Dir
 	),
 	get(@display, win_file_name, Mode, Filters,
 	    @default, Default, DefDir, File),
