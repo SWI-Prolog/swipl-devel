@@ -32,6 +32,7 @@
 	get_object(+, :, +, +, +, +, +, +, +, +, -),
 	get_object(+, :, +, +, +, +, +, +, +, +, +, -),
 	get_object(+, :, +, +, +, +, +, +, +, +, +, +, -),
+	pce_get_object(+, :, +, -),
 
 	send_list(:, +),
 	send_list(:, +, +),
@@ -43,9 +44,17 @@
 
 :- use_module(library(pce)).
 
-:- use_module(library('../boot/pce_principal'),
-	      [ '$pce_get_object'/4
-	      ]).
+pce_ifhostproperty(prolog(quintus),
+		   (   pce_get_object(Obj, Sel, Args, Rval) :-
+		       pce_principal:'$pce_get_object'(Obj, Sel, Args, Rval)),
+		   [
+
+(:- use_module(library('../boot/pce_principal'),
+	       [ '$pce_get_object'/4
+	       ])),
+
+(pce_get_object(Obj, Sel, Args, Rval) :-
+	'$pce_get_object'(Obj, Sel, Args, Rval))]).
 
 
 %   get_object(+@Object, +Selector, ...+Argument, ..., -Output)
@@ -56,39 +65,39 @@
 %   object descriptions and object names.
 
 get_object(Obj, Sel, Out) :-
-	'$pce_get_object'(Obj, Sel,
-			  arguments, Out).
+	pce_get_object(Obj, Sel,
+		       arguments, Out).
 get_object(Obj, Sel, A1, Out) :-
-	'$pce_get_object'(Obj, Sel,
-			  arguments(A1), Out).
+	pce_get_object(Obj, Sel,
+		       arguments(A1), Out).
 get_object(Obj, Sel, A1, A2, Out) :-
-	'$pce_get_object'(Obj, Sel,
-			  arguments(A1, A2), Out).
+	pce_get_object(Obj, Sel,
+		       arguments(A1, A2), Out).
 get_object(Obj, Sel, A1, A2, A3, Out) :-
-	'$pce_get_object'(Obj, Sel,
-			  arguments(A1, A2, A3), Out).
+	pce_get_object(Obj, Sel,
+		       arguments(A1, A2, A3), Out).
 get_object(Obj, Sel, A1, A2, A3, A4, Out) :-
-	'$pce_get_object'(Obj, Sel,
-			  arguments(A1, A2, A3, A4), Out).
+	pce_get_object(Obj, Sel,
+		       arguments(A1, A2, A3, A4), Out).
 get_object(Obj, Sel, A1, A2, A3, A4, A5, Out) :-
-	'$pce_get_object'(Obj, Sel,
-			  arguments(A1, A2, A3, A4, A5), Out).
+	pce_get_object(Obj, Sel,
+		       arguments(A1, A2, A3, A4, A5), Out).
 get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, Out) :-
-	'$pce_get_object'(Obj, Sel,
-			  arguments(A1, A2, A3, A4, A5, A6), Out).
+	pce_get_object(Obj, Sel,
+		       arguments(A1, A2, A3, A4, A5, A6), Out).
 get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, Out) :-
-	'$pce_get_object'(Obj, Sel,
-			  arguments(A1, A2, A3, A4, A5, A6, A7), Out).
+	pce_get_object(Obj, Sel,
+		       arguments(A1, A2, A3, A4, A5, A6, A7), Out).
 get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, Out) :-
-	'$pce_get_object'(Obj, Sel,
-			  arguments(A1, A2, A3, A4, A5, A6, A7, A8), Out).
+	pce_get_object(Obj, Sel,
+		       arguments(A1, A2, A3, A4, A5, A6, A7, A8), Out).
 get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, A9, Out) :-
-	'$pce_get_object'(Obj, Sel,
-			  arguments(A1, A2, A3, A4, A5, A6, A7, A8, A9), Out).
+	pce_get_object(Obj, Sel,
+		       arguments(A1, A2, A3, A4, A5, A6, A7, A8, A9), Out).
 get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, Out) :-
-	'$pce_get_object'(Obj, Sel,
-			  arguments(A1, A2, A3, A4, A5, A6, A7, A8, A9, A10),
-			  Out).
+	pce_get_object(Obj, Sel,
+		       arguments(A1, A2, A3, A4, A5, A6, A7, A8, A9, A10),
+		       Out).
 
 
 %	send_list(+ListOfObjs, +ListOfSels)
@@ -96,11 +105,13 @@ get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, Out) :-
 %	Send a messages to the carthesian product of ListOfObjs and
 %	ListOfSels.
 
-send_list([], _) :- !.
+pce_ifhostproperty(prolog(quintus), [],
+(   send_list([], _) :- !)).
 send_list(_, []) :- !.
-send_list([Object|Objects], Selectors) :- !, 
+pce_ifhostproperty(prolog(quintus), [],
+(   send_list([Object|Objects], Selectors) :- !, 
         send_list(Object, Selectors), 
-        send_list(Objects, Selectors).
+        send_list(Objects, Selectors))).
 send_list(Object, [Selector|Selectors]) :- !, 
         send_list(Object, Selector), 
         send_list(Object, Selectors).
@@ -130,12 +141,14 @@ send_list_module(Object, Selector, Module) :-
 %       Send a messages to the carthesian product of ListOfObjs and
 %       ListOfSels.
 
-send_list([], _,  _) :- !.
+pce_ifhostproperty(prolog(quintus), [],
+(   send_list([], _,  _) :- !)).
 send_list(_, [], _) :- !.
 send_list(_, _, []) :- !.
-send_list([Object|Objects], Selectors, Arguments) :- !, 
+pce_ifhostproperty(prolog(quintus), [],
+(   send_list([Object|Objects], Selectors, Arguments) :- !, 
         send_list(Object, Selectors, Arguments), 
-        send_list(Objects, Selectors, Arguments).
+        send_list(Objects, Selectors, Arguments))).
 send_list(Objects, [Selector|Selectors], Arguments) :- !, 
         send_list(Objects, Selector, Arguments), 
         send_list(Objects, Selectors, Arguments).

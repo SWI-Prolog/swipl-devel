@@ -114,16 +114,18 @@ recogniser(Class, Recogniser:recogniser) :->
 :- pce_end_class.
 
 
-draw_begin_shape(Name, Super, Summary, Recognisers) :-
-	get(@pce, convert, Super, class, SuperClass),
-	(   send(SuperClass, instance_of, draw_shape_class)
-	->  pce_begin_class(Name, Super, Summary)
-	;   new(_, draw_shape_class(Name, Super)),
-	    pce_begin_class(Name, Super, Summary),
-	    use_class_template(Name, draw_shape)
+associate_recognisers(Recognisers) :-	% qpc callback!
+	(   send(@class, has_send_method, draw_shape_template)
+	->  true
+	;   use_class_template(draw_shape)
 	),
 	forall(member(R, Recognisers),
 	       send(@class, recogniser, R)).
+
+draw_begin_shape(Name, Super, Summary, Recognisers) :-
+	new(_, draw_shape_class(Name, Super)),
+	pce_begin_class(Name, Super, Summary),
+	associate_recognisers(Recognisers).
 
 draw_end_shape :-
 	pce_end_class.
@@ -226,6 +228,13 @@ mode(Gr, Mode:name) :<-
 	"Request <-window's <-mode"::
 	get(Gr, window, Window),
 	get(Window, mode, Mode).
+
+
+:- pce_group(template).
+
+draw_shape_template(_) :->
+	"Test for this method to see if template is associated"::
+	true.
 
 :- pce_end_class.
 

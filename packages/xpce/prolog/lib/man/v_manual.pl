@@ -14,7 +14,6 @@
 :- use_module(library(pce)).
 :- use_module(util).
 :- require([ checkpce/0
-	   , pcedemo/0
 	   , auto_call/1
 	   , concat/3
 	   , ignore/1
@@ -450,7 +449,7 @@ changelog(_M) :->
 	get(string('%s/ChangeLog', Home), value, Path),
 	send(@emacs, goto_source_location, Path).
 
-:- pce_help_file(pce_faq, '../../../man/faq/pce.hlp').
+:- initialization pce_help_file(pce_faq, '../../../man/faq/pce.hlp').
 
 faq(_M) :->
 	"Start @helper on faq-database"::
@@ -536,8 +535,8 @@ mailing_list(M) :->
 
 start_demo(M) :->
 	send(M, report, progress, 'Starting demo tool ...'),
-	ensure_loaded(library(pce_demo)),
-	pcedemo,
+	ensure_loaded(demo(pce_demo)),
+	Goal = pcedemo, Goal,		% fool require generation
 	send(M, report, done).
 
 
@@ -599,10 +598,9 @@ manual(M, Object:'class|variable|method|resource') :->
 :- pce_global(@man_classification, load_man_classification).
 
 load_man_classification(C) :-
-	user:library_directory(D),
-	concat(D, '/man/classification.obj', FileName),
+	absolute_file_name(library('man/classification.obj'),
+			   [access(read)], FileName),
 	new(F, file(FileName)),
-	send(F, access, read),
 	get(F, object, C),
 	send(C, attribute, file, file(F?absolute_path)),
 	send(C, attribute, modified, @off).

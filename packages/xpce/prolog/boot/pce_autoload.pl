@@ -14,6 +14,9 @@
 	]).
 
 :- use_module(pce_principal, [get/4, send/3]).
+:- require([ concat/3
+	   , concat_atom/2
+	   ]).
 
 :- dynamic
 	autoload/2.
@@ -24,35 +27,21 @@
 %	file `FileSpec'.  This will actually be done if either the class
 %	is actually needed by PCE or pce_autoload_all/0 is called.
 
-pce_autoload(Class, library(Library)) :- !,
+pce_autoload(Class, library(Library)) :-
 	retractall(autoload(Class, _)),
 	assert(autoload(Class, library(Library))).
 pce_autoload(Class, Abs) :-
-	concat('/', _, Abs), !,
+	is_absolute_file_name(Abs), !,
+	absolute_file_name(Abs, Canonical),
 	retractall(autoload(Class, _)),
-	assert(autoload(Class, Abs)).
-pce_autoload(Class, Abs) :-
-	concat('$', _, Abs), !,
-	retractall(autoload(Class, _)),
-	assert(autoload(Class, Abs)).
+	assert(autoload(Class, Canonical)).
 pce_autoload(Class, Local) :-
 	prolog_load_context(directory, Dir),
+	concat_atom([Dir, /, Local], File),
 	pce_host:property(file_extensions(Exts)),
-	member(E, Exts),
-	ensure_extension(Local, E, Extended),
-	concat_atom([Dir, /, Extended], File),
-	exists_file(File), !,
-	absolute_file_name(File, Abs),
+	absolute_file_name(File, [extensions(Exts),access(exist)], Abs),
 	retractall(autoload(Class, _)),
 	assert(autoload(Class, Abs)).
-	
-ensure_extension(File, Ext, Extended) :-
-	concat('.', Ext, E),
-	(   concat(_, E, File)
-	->  Extended = File
-	;   concat(File, E, Extended)
-	).
-
 
 %	pce_autoload_all/0
 %

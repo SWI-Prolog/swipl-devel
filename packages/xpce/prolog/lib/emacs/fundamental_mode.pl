@@ -10,8 +10,7 @@
 :- module(emacs_fundamental_mode, []).
 :- use_module(library(pce)).
 :- use_module(library(pce_selection)).
-:- require([ manpce/0
-	   , auto_call/1
+:- require([ auto_call/1
 	   , between/3
 	   , ignore/1
 	   ]).
@@ -385,7 +384,8 @@ command_names(M, Names:chain) :<-
 	get(Chain, map, @arg1?name, Names).
 
 
-:- (   object(@emacs_mode_command)
+:- initialization
+   (   object(@emacs_mode_command)
    ->  true
    ;   new(@emacs_mode_command,
 	   type(emacs_mode_command, value_set,
@@ -644,7 +644,7 @@ customise(_) :->
 manpce(_M, Class:'behaviour|class*') :->
 	"Start XPCE manual on behaviour or class"::
 	(   Class == @nil
-	->  manpce
+	->  auto_call(manpce)
 	;   auto_call(manpce(Class))
 	).
 

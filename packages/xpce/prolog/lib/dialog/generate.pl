@@ -15,7 +15,6 @@
 	   , chain_list/2
 	   , concat/3
 	   , delete/3
-	   , (discontiguous)/1
 	   , forall/2
 	   , genarg/3
 	   , get_chain/3

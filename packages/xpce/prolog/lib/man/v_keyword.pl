@@ -94,11 +94,11 @@ dialog(D) :-
 edit_mode(KB, Val:bool) :->
 	"Switch edit mode on/off"::
 	get(KB, dialog_member, Dialog),
-	ignore(send_list([ Dialog?create_member
-			 , Dialog?keyword_member
-			 , Dialog?sort_member
-			 , Dialog?stars_member
-			 ], active, Val)).
+	ifmaintainer(ignore(send_list([ Dialog?create_member
+				      , Dialog?keyword_member
+				      , Dialog?sort_member
+				      , Dialog?stars_member
+				      ], active, Val))).
 	
 
 selected(CB, Obj:object*) :->

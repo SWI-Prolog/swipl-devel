@@ -8,11 +8,11 @@ built_in([_|_]).
 built_in(\+ _).
 built_in(_ is _).
 built_in((_,_)).
-built_in(_->_).
-built_in(_:-_).
+built_in((_->_)).
+built_in((_:-_)).
 built_in(_:_).
-built_in(_;_).
-built_in(_|_).
+built_in((_;_)).
+built_in((_|_)).
 built_in(_<_).
 built_in(_=.._).
 built_in(_=:=_).
@@ -71,7 +71,8 @@ built_in(debugging).
 built_in(depth(_)).
 built_in(dif(_,_)).
 built_in(display(_)).
-built_in(dynamic _).
+built_in(discontiguous(_)).
+built_in(dynamic(_)).
 built_in(ensure_loaded(_)).
 built_in(erase(_)).
 built_in(expand_term(_,_)).
@@ -112,11 +113,11 @@ built_in(listing).
 built_in(load(_)).
 built_in(load_foreign_files(_,_)).
 built_in(maxdepth(_)).
-built_in(meta_predicate _).
+built_in(meta_predicate(_)).
 built_in(mode(_)).
 built_in(module(_)).
 built_in(module(_,_)).
-built_in(multifile _).
+built_in(multifile(_)).
 built_in(name(_,_)).
 built_in(nl(_)).
 built_in(nl).

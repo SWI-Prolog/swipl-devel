@@ -12,16 +12,21 @@
 	    declare_emacs_mode/3,
 	    emacs_begin_mode/5,
 	    emacs_extend_mode/2,
-	    emacs_end_mode/0
+	    emacs_end_mode/0,
+	    emacs_mode_bindings/3
 	  ]).
+:- meta_predicate
+	emacs_begin_mode(:, +, +, +, +),
+	emacs_extend_mode(:, +),
+	emacs_mode_bindings(:, +, +).
+
 :- use_module(library(pce)).
-:- require([ forall/2
+:- require([ concat/3
+	   , forall/2
 	   , member/2
 	   , strip_module/3
 	   ]).
 
-:- meta_predicate
-	emacs_begin_mode(:, +, +, +, +).
 
 %	declare_emacs_mode(+ModeName, +FileSpec).
 %
@@ -70,9 +75,19 @@ emacs_begin_mode(Mode0, Super, Summary, Bindings, Syntax) :-
 	get(string('emacs_%s_mode', Mode), value, PceClass),
 	get(string('emacs_%s_mode', Super), value, PceSuperClass),
 	pce_begin_class(Module:PceClass, PceSuperClass, Summary),
-	new(KB, emacs_key_binding(Mode, Super)),
-	new(MM, emacs_mode_menu(Mode, Super)),
-	new(ST, syntax_table(Mode, Super)),
+	emacs_mode_bindings(Mode0, Bindings, Syntax).
+
+emacs_mode_bindings(Mode0, Bindings, Syntax) :-
+	strip_module(Mode0, Module, Mode),
+	get(string('emacs_%s_mode', Mode), value, PceClass),
+	get(@pce, convert, PceClass, class, ClassObject),
+	get(ClassObject, super_class, SuperClass),
+	get(SuperClass, name, SuperName),
+	concat(emacs_, M0, SuperName),
+	concat(SuperMode, '_mode', M0),
+	new(KB, emacs_key_binding(Mode, SuperMode)),
+	new(MM, emacs_mode_menu(Mode, SuperMode)),
+	new(ST, syntax_table(Mode, SuperMode)),
 	make_bindings(Bindings, Module, KB, MM),
 	make_syntax(Syntax, ST).
 
@@ -111,14 +126,15 @@ syntax(sentence_end(Regex), ST) :-
 %
 %	Extend an existing emacs mode
 
-emacs_extend_mode(Mode, Bindings) :-
+emacs_extend_mode(Mode0, Bindings) :-
+	strip_module(Mode0, Module, Mode),
 	get(string('emacs_%s_mode', Mode), value, PceClass),
 	get(@pce, convert, PceClass, class, _), % force	loading
 	pce_extend_class(PceClass),
 	get(@pce, convert, Mode, emacs_key_binding, KB),
 	get(@pce, convert, Mode, emacs_mode_menu, MM),
 	forall(member((Selector = Term), Bindings),
-	       bind(Term, Selector, KB, MM)).
+	       bind(Term, Selector, Module, KB, MM)).
 
 
 %	emacs_end_mode/0

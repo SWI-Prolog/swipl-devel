@@ -11,8 +11,7 @@
 	  [ generate_cpp_class_header_file/0
 	  ]).
 :- use_module(library(pce)).
-:- require([ append/1
-	   , apply/2
+:- require([ apply/2
 	   , between/3
 	   , concat/3
 	   , concat_atom/2
@@ -26,19 +25,26 @@
 
 itf_max_arg(9).
 
+:- dynamic
+	m4_stream/1.
+
 m4_file(M4) :-
 	get(string('%s/include/pce-cpp.m4', @pce?home), value, M4).
 cpp_header_dir(Dir) :-
 	get(string('%s/include/pce', @pce?home), value, Dir).
 
 generate_cpp_class_header_file :-
-	m4_file(M4), telling(Old), tell(M4),
+	m4_file(M4), current_output(Old),
+	open(M4, write, M4Stream),
+	retractall(m4_stream(_)),
+	assert(m4_stream(M4Stream)),
+	set_output(M4Stream),
 	output('divert(-1)\n'),
 	m4('Global'),
 	m4('Object'),
 	m4('Chain'),
 	m4('Class'),
-	tell(Old),
+	set_output(Old),
 
 	new(X, chain),
 	send(@classes, for_all, if(@arg2?creator == built_in,
@@ -53,9 +59,9 @@ generate_cpp_class_header_file :-
 	send(X, sort),
 	send(X, for_all, message(@prolog, cpp_class, @arg1)),
 
-	m4_file(M4), telling(Old), tell(M4),
+	set_output(M4Stream),
 	output('divert(0)\n'),
-	told, tell(Old).
+	close(M4Stream), set_output(Old).
 
 cpp_class(ClassName) :-
 	cpp_header_dir(Dir),
@@ -107,10 +113,11 @@ m4(CppName) :-
 	output('define(`Pce%s'', `ifelse($#, 1, ``$0(PceArg($1))'''', $#, 0, ``$0'''', ``$0($*)'''')'')\n', CppName).
 
 constructor(_, CppName, 1) :-
-	m4_file(File),
-	(   telling(Old), append(File),
+	m4_stream(Stream),
+	(   current_output(Old),
+	    set_output(Stream),
 	    m4(CppName),
-	    tell(Old)
+	    set_output(Old)
 	->  fail
 	).
 constructor(InitMethod, CppName, N) :-

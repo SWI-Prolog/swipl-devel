@@ -34,7 +34,6 @@ standard XPCE library directory.
 	   , pce_help_file/2
 	   , pce_image_directory/1
 	   , postscript/2
-	   , prompter/2
 	   , send_list/3
 	   ]).
 

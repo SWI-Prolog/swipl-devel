@@ -30,16 +30,13 @@
 
 :- use_module(pce_principal).
 :- use_module(pce_operator).
+pce_ifhostproperty(prolog(quintus),
+		   (:- use_module(pce_utils))).
 :- require([ between/3
 	   , concat/3
 	   , concat_atom/2
 	   , forall/2
 	   , genarg/3
-	   , ignore/1
-	   , pce_error/2
-	   , source_location/2
-	   , strip_module/3
-	   , term_to_atom/2
 	   ]).
 
 
@@ -81,7 +78,7 @@ pce_begin_class_(TermDef, Super, Doc) :-
 	class_name(Class, ClassName),
 	object(Class), !,			% redefined existing class
 	(   get(Class, creator, built_in)
-	->  pce_error('Cannot redefine built-in class: ~w', [ClassName]),
+	->  pce_error(builtin_class_not_redefined(ClassName)),
 	    fail
 	;   true
 	),
@@ -92,29 +89,28 @@ pce_begin_class_(TermDef, Super, Doc) :-
 		class_name(SuperClass, Super)
 	    )
 	->  true
-        ;   pce_error('Cannot change super-class of Class ~w', [ClassName])
+        ;   pce_error(superclass_not_changed(ClassName))
     	),
 	term_names(Class, TermArgs),
 	set_source_location(Class),
 	get(Class, delegate, Delegates),
 	send(Delegates, clear),
 	send(Delegates, merge, SuperClass?delegate),
-	feedback('Reloading PCE class ~w ...~n', [ClassName]),
+	feedback(reloading_class(ClassName)),
 	start_class(ClassName, Doc).
 pce_begin_class_(TermDef, SuperName, Doc) :-
 	TermDef =.. [ClassName|TermArgs],
 	source_location_term(Source),
 	(   get(@pce, convert, SuperName, class, Super)
 	->  true
-	;   pce_error('Superclass ~w of ~w does not exist',
-		      [SuperName, ClassName])
+	;   pce_error(superclass_not_exist(SuperName, ClassName))
 	),
 	get(Super, class_name, ClassClass),
 	ClassTerm =.. [ClassClass, ClassName, Super],
 	new(Class, ClassTerm),
 	term_names(Class, TermArgs),
 	send(Class, source, Source),
-	feedback('Loading PCE class ~w ...~n', [ClassName]),
+	feedback(loading_class(ClassName)),
 	start_class(ClassName, Doc).
 
 
@@ -137,7 +133,7 @@ pce_extend_class(ClassName) :-
 	asserta(pce_compile:load_module(Module)),
 	class_name(Class, CN),
 	object(Class),
-	feedback('Extending PCE class ~w ...~n', [ClassName]),
+	feedback(extending_class(ClassName)),
 	start_class(CN).
 
 
@@ -164,19 +160,18 @@ start_class(ClassName) :-
 
 pce_end_class :-
 	(   compiling(ClassName)
-	->  true
-	;   pce_error(':- pce_end_class: No class definition to end', [])
-	),
-	retract(load_module(_)),
-	retractall(compiling(ClassName)),
-	ignore(retractall(current_group_(_))),
-	(   compiling(Outer)
-	->  class_name(OuterClass, Outer),
-	    send(@class, assign, OuterClass, global)
-	;   true
-	),
-	pop_compile_operators,
-	feedback('Class ~w loaded~n', [ClassName]).
+	->  retract(load_module(_)),
+	    retractall(compiling(ClassName)),
+	    ignore(retractall(current_group_(_))),
+	    (   compiling(Outer)
+	    ->  class_name(OuterClass, Outer),
+		send(@class, assign, OuterClass, global)
+	    ;   true
+	    ),
+	    pop_compile_operators,
+	    feedback(loaded_class(ClassName))
+	;   pce_error(context_error((:- pce_end_class), noclass, declaration))
+	).
 
 %	push_compile_operators.
 %	Push the current 
@@ -223,8 +218,7 @@ pce_group(GroupName) :-
 	ignore(retract(current_group_(_))),
 	asserta(current_group_(GroupName)).
 pce_group(GroupName) :-
-	pce_error(':- pce_group/1: ~w is not an atom', [GroupName]),
-	fail.
+	pce_error(type_error((:- pce_group(GroupName)),1,atom,GroupName)).
 
 current_group(GroupName) :-
 	current_group_(GroupName), !.
@@ -242,7 +236,7 @@ pce_term_expansion(Term, Expanded) :-
 	compiling(_), !,
 	(   do_expand(Term, Expanded)
 	->  true
-	;   pce_error('Failed to expand ~w', [Term]),
+	;   pce_error(expand_failed(Term)),
 	    Expanded = []
 	).
 pce_term_expansion(Term, _) :-
@@ -252,7 +246,7 @@ pce_term_expansion(Term, _) :-
 	;   Term = (Head :- _Body),
 	    typed_head(Head)
 	),
-	pce_error('Method intended?', []),
+	pce_error(context_error(Term, nomethod, clause)),
 	fail.
 	
 is_string([]).
@@ -345,7 +339,7 @@ do_expand((Head :-> DocBody),			% Prolog send
 	current_group(Group),
 	class_name(Class, ClassName),
 	prolog_head(send, Head, Selector, Types, PlHead, Cascade),
-	feedback('~t~8|~w :->~w ... ok~n', [ClassName, Selector]).
+	feedback(expand_send(ClassName, Selector)).
 
 
 do_expand((Head :<- DocBody),			% Prolog get
@@ -361,12 +355,12 @@ do_expand((Head :<- DocBody),			% Prolog get
 	class_name(Class, ClassName),
 	return_type(Head, RType),
 	prolog_head(get, Head, Selector, Types, PlHead, Cascade),
-	feedback('~t~8|~w :<-~w ... ok~n', [ClassName, Selector]).
+	feedback(expand_get(ClassName, Selector)).
 
 extract_documentation((DocText::Body), string(DocText), Body) :- !.
 extract_documentation((DocText,Body), string(DocText), Body) :-
 	is_string(DocText), !,
-	pce_error('Summary not closed by "::"', []).
+	pce_error(summary_not_closed(DocText)).
 extract_documentation(Body, @default, Body).
 
 
@@ -434,8 +428,7 @@ class_name(Class, ClassName) :-
 	atom(ClassName), !,
 	get(@classes, member, ClassName, Class).
 class_name(Class, ClassName) :-
-	pce_error('class_name(~w, ~w): Instantiation fault',
-		  [Class, ClassName]),
+	pce_error(instantiation_error(class_name(Class, ClassName))),
 	fail.
 
 %	access(?Access)
@@ -469,23 +462,10 @@ to_atom(Term, Atom) :-
 	send(S, translate, 0' , @nil),
 	get(S, value, Atom).
 to_atom(Term, any) :-
-	pce_error('Illegal (non-ground) type specifier: ~w', [Term]).
+	pce_error(type_error(to_atom(Term, any), 1, ground, Term)).
 
 
 :- pop_compile_operators.
-
-		/********************************
-		*            FEEDBACK		*
-		********************************/
-
-%	feedback(+Format, +Arguments)
-%	Print standard feedback message.
-
-feedback(Format, Arguments) :-
-	verbose, !,
-	format(user_output, Format, Arguments),
-	flush_output(user_output).
-feedback(_, _).
 
 		/********************************
 		*           UTILITIES		*
@@ -505,6 +485,15 @@ term_member(N, El, Term) :-
 term_member(N, El, Term) :-
 	NN is N - 1,
 	term_member(NN, El, Term).
+
+%	feedback(+Term)
+%	Only print if verbose is asserted (basically debugging).
+
+feedback(Term) :-
+	(   verbose
+	->  pce_info(Term)
+	;   true
+	).
 
 
 		/********************************
@@ -527,9 +516,8 @@ term_member(N, El, Term) :-
 default(@default, resource(Obj, Name), Value) :- !, 
 	(   get(Obj, resource_value, Name, Value)
 	->  true
-	;   format(user_error, 
-		   'Failed to get resource ~p of ~p~n', [Name, Obj]), 
-	    trace, fail
+	;   pce_error(get_resource_failed(Name, Obj)),
+	    fail
 	).
 default(@default, Default, Default) :- !.
 default(Value,    _Default, Value).

@@ -15,8 +15,8 @@
 	  ]).
 
 :- use_module(library(pce)).
-:- require([ '$warning'/2
-	   , append/3
+:- consult('xref/quintus.def').		% built-in's
+:- require([ append/3
 	   , call_emacs/2
 	   , concat_atom/2
 	   , exists_file/1
@@ -24,11 +24,12 @@
 	   , forall/2
 	   , ignore/1
 	   , member/2
+	   , pce_error/1
 	   , sformat/3
 	   ]).
 
+
 target_prolog(quintus).
-:- consult('xref/quintus.def').		% built-in's
 
 :- dynamic
 	called/1,			% called head
@@ -230,6 +231,7 @@ process_called_list([H|T]) :-
 	process_called_list(T).
 
 process_meta(A+N) :- !,
+	nonvar(A),
 	A =.. List,
 	length(Rest, N),
 	append(List, Rest, NList),
@@ -441,4 +443,4 @@ output_compatibility(Fmt, Args) :-
 	source_warning(Fmt, Args).
 
 source_warning(Fmt, Args) :-
-	'$warning'(Fmt, Args).
+	pce_error(preformatted(Fmt, Args)).

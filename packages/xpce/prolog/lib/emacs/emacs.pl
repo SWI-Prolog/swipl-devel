@@ -18,17 +18,18 @@
 		*         DECLARE MODES		*
 		********************************/
 
-:- pce_global(@mode_name_type,
-	      new(type(mode_name, name_of, new(chain)))).
+fix_mode_name_type :-
+	get(@pce, convert, mode_name, type, Type),
+	send(Type, name_reference, mode_name_type),
+	send(Type, kind, name_of),
+	send(Type, slot, context, new(Ctx, chain)),
+	send_list(Ctx, append,
+		  [ fundamental
+		  , prolog
+		  , shell
+		  ]).
 
-:- initialization
-   get(@mode_name_type, context, Ctx),
-   send(Ctx, clear),
-   send_list(Ctx, append,
-	     [ fundamental
-	     , prolog
-	     , shell
-	     ]).
+:- initialization fix_mode_name_type.
 
 
 		 /*******************************
