@@ -1,9 +1,0 @@
-#! /bin/sh
-
-PATH=/bin:/usr/bin:/usr/local/bin
-
-$1 $2
-
-while egrep -q -e'^LaTeX Warning: .*Rerun' $2.log;
-  do $1 $2;
-done
