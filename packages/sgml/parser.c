@@ -3340,14 +3340,22 @@ static void
 init_decoding(dtd_parser *p)
 {
 #ifdef UTF8
+  int decode;
   dtd *dtd = p->dtd;
 
   if ( dtd->encoding == ENC_UTF8 &&
        p->encoding   == ENC_ISO_LATIN1 )
-  { p->utf8_decode = TRUE;
-    fprintf(stderr, "Converting UTF-8 to ISO-Latin-1\n");
-  } else
-    p->utf8_decode = FALSE;
+    decode = TRUE;
+  else
+    decode = FALSE;
+
+  if ( p->utf8_decode != decode )
+  { DEBUG(fprintf(stderr, "%s UTF-8 decoding on %p\n",
+		  decode ? "Enable" : "Disable",
+		  p));
+
+    p->utf8_decode = decode;
+  }
 #endif
 }
 
@@ -4606,7 +4614,7 @@ reprocess:
     { if ( (chr & 0xc0) != 0x80 )	/* TBD: recover */
 	gripe(ERC_SYNTAX_ERROR, "Bad UTF-8 sequence", "");
       p->utf8_char <<= 6;
-      p->utf8_char |= (chr & 0xc0);
+      p->utf8_char |= (chr & ~0xc0);
       if ( --p->utf8_left == 0 )
       { add_cdata(p, p->utf8_char);	/* verbatim? */
 	p->state = p->saved_state;

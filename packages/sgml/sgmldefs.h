@@ -26,10 +26,7 @@
 #include <dmalloc.h>
 #endif
 
-#if 0
 #define UTF8 1				/* Include UTF-8 decoding */
-#endif
-
 #define XMLNS 1				/* support XML namespaces */
 
 		 /*******************************
