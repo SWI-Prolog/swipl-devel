@@ -51,6 +51,31 @@ day.
 #include <excpt.h>
 #endif
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+On some machines, notably  FreeBSD  upto   version  3.x,  floating point
+operations raise signals rather then leaving an error condition and this
+behaviour can be changed to be   IEEE754  using fpsetmask() and friends.
+Here  we  test  whether  this  interface  is   present  and  set  it  up
+accordingly.
+
+With many thanks to NIDE  Naoyuki  for   the  clear  explanation  of the
+problem.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if defined(HAVE_FLOATINGPOINT_H) && defined(HAVE_FPSETMASK) && defined(HAVE_FPRESETSTICKY)
+#define O_INHIBIT_FP_SIGNALS
+#include <floatingpoint.h>
+#ifndef FP_X_DZ
+#define FP_X_DZ 0
+#endif
+#ifndef FP_X_INV
+#define FP_X_INV 0
+#endif
+#ifndef FP_X_OFL
+#define FP_X_OFL 0
+#endif
+#endif
+
 typedef int (*ArithF)();
 
 struct arithFunction
@@ -1345,12 +1370,21 @@ initArith(void)
   }
 
   registerBuiltinFunctions();
+
+#ifdef O_INHIBIT_FP_SIGNALS
+  fpsetmask(fpgetmask() & ~(FP_X_DZ|FP_X_INV|FP_X_OFL));
+#endif
 }
 
 
 void
 cleanupArith(void)
 { discardBuffer(function_array);
+
+#ifdef O_INHIBIT_FP_SIGNALS
+  fpresetsticky(FP_X_DZ|FP_X_INV|FP_X_OFL);
+  fpsetmask(FP_X_DZ|FP_X_INV|FP_X_OFL);
+#endif
 }
 
 

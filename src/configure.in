@@ -388,6 +388,7 @@ AC_CHECK_HEADERS(sys/select.h sys/param.h sys/file.h sys/resource.h)
 AC_CHECK_HEADERS(malloc.h sys/malloc.h)
 AC_CHECK_HEADERS(sys/termios.h sys/termio.h bstring.h sys/mman.h)
 AC_CHECK_HEADERS(mach-o/rld.h locale.h)
+AC_CHECK_HEADERS(floatingpoint.h)
 
 AC_CHECK_FUNCS(access fchmod chmod dossleep fstat readlink getwd getcwd)
 AC_CHECK_FUNCS(getpagesize getpwnam getrlimit gettimeofday opendir sysconf)
@@ -396,7 +397,7 @@ AC_CHECK_FUNCS(signal sigset sigprocmask sleep usleep srand srandom stat)
 AC_CHECK_FUNCS(memmove stricmp strlwr sigaction sigsetmask siggetmask sigblock)
 AC_CHECK_FUNCS(rint aint floor ceil isnan tcsetattr cfmakeraw)
 AC_CHECK_FUNCS(strerror tgetent times unsetenv grantpt)
-AC_CHECK_FUNCS(setlocale)
+AC_CHECK_FUNCS(setlocale fpgetmask fpresetsticky)
 AC_CHECK_FUNCS(mmap)
 AC_HEADER_TIME
 AC_HEADER_DIRENT

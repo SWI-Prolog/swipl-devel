@@ -185,6 +185,12 @@
 /* Define if you have the floor function.  */
 #undef HAVE_FLOOR
 
+/* Define if you have the fpgetmask function.  */
+#undef HAVE_FPGETMASK
+
+/* Define if you have the fpresetsticky function.  */
+#undef HAVE_FPRESETSTICKY
+
 /* Define if you have the fstat function.  */
 #undef HAVE_FSTAT
 
@@ -358,6 +364,9 @@
 
 /* Define if you have the <dlfcn.h> header file.  */
 #undef HAVE_DLFCN_H
+
+/* Define if you have the <floatingpoint.h> header file.  */
+#undef HAVE_FLOATINGPOINT_H
 
 /* Define if you have the <locale.h> header file.  */
 #undef HAVE_LOCALE_H

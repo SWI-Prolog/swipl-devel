@@ -1,6 +1,22 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORT: On machines using FPE rather then IEEE754 math error reporting
+    supporting the fpsetmask() interface, use this interface to make math
+    errors IEEE754 compliant.  This applies to FreeBSD upto 3.x.  Thanks
+    to NIDE Naoyuki for a clear explanation and fix.
+
+  * MODIFIED: Windows.  If Prolog was started as <exe> <file.pl> and file.pl
+    is a script file, change directory to the directory holding the <file.pl>.
+    This makes starting a script by opening it from the explorer and dragging
+    a script on plwin.exe behave the same.
+
+  * FIXED: Mistake handling script arguments (#!): forgotten string
+    termination.
+
+  * FIXED: "nmake /f makefile.mak DBG=true install" to install .PDB files for
+    all .EXE and .DLL files making up SWI-Prolog.
+
   * ADDED: Allow single-keystroke selection of edit/1 with upto 10
     alternatives.
 
