@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Detection of mmap() for regular files (Sergey Tikhonov).
+
   * FIXED: Avoid calling flatten from library(lists) in toplevel.pl.
     Wouter Jansweijer.
 

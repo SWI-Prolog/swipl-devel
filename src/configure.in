@@ -815,7 +815,7 @@ rm -fr conftest*
 
 
 if test "$ac_cv_func_mmap" = "yes"; then
-  AC_MSG_CHECKING("whether mmap() maps regular files")
+  AC_MSG_CHECKING("whether mmap maps regular files")
   echo "dummy file" >> conftest.dummy
   AC_TRY_RUN(
   [
@@ -847,6 +847,7 @@ if test "$ac_cv_func_mmap" = "yes"; then
 
       if ( ptr == MAP_FAILED )
         exit(1);
+      exit(0);
     }
   ],
   AC_MSG_RESULT(yes)
