@@ -18,7 +18,7 @@
 \linkimage{next}{next.gif}
 \linkimage{summary}{info.gif}
 
-\includeonly{ide}
+%\includeonly{ide}
 
 #ifdef ONLINE
 \usepackage{txt}
