@@ -34,6 +34,7 @@
 	    pce_make_manual_index/1	% +File
 	  , pce_make_manual_index/2	% +File, -Reference
 	  ]).
+:- use_module(user:library(pce)).	% HACK: needed for build process
 :- use_module(library(pce)).
 :- use_module(library(pce_manual)).
 :- require([ concat_atom/2

@@ -35,13 +35,13 @@
 
 :- use_module(library(pce)).
 :- use_module(library(persistent_frame)).
+:- use_module(library(pce_help_file)).
 :- use_module(util).
 :- require([ absolute_file_name/3
 	   , auto_call/1
 	   , default/3
 	   , forall/2
 	   , ignore/1
-	   , pce_help_file/2
 	   , send_list/3
 	   ]).
 
