@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Removed trace of rl_add_history()
+
   * FIXED: Handling of :- dynamic Module:Name/Arity in PceEmacs
     cross-referencer.
 

@@ -286,22 +286,22 @@ read_query(Prompt, Goal, Bindings) :-
 	remove_history_prompt(Prompt, Prompt1),
 	repeat,				% over syntax errors
 	prompt1(Prompt1),
-	(   current_prolog_flag(readline, true)
-	->  catch($raw_read(user_input, Line), E,
-		  (print_message(error, E),
-		   (   E = error(syntax_error(_), _)
-		   ->  fail
-		   ;   throw(E)
-		   ))),
-	    atom_codes(Line, LineChars),
-	    append(LineChars, ".", CompleteLine),
-	    catch(user:rl_add_history(CompleteLine), _, true),
-	    catch(atom_to_term(Line, Goal, Bindings), E,
-		  (   print_message(error, E),
-		      fail
-		  ))
-	;   read_term(user_input, Goal, [variable_names(Bindings)])
-	), !.
+	catch($raw_read(user_input, Line), E,
+	      (print_message(error, E),
+	       (   E = error(syntax_error(_), _)
+	       ->  fail
+	       ;   throw(E)
+	       ))),
+	atom_codes(Line, LineChars),
+	append(LineChars, ".", CompleteLine),
+	(   current_predicate(_, user:rl_add_history(_))
+	->  call(user:rl_add_history(CompleteLine))
+	;   true
+	),
+	catch(atom_to_term(Line, Goal, Bindings), E,
+	      (   print_message(error, E),
+		  fail
+	      )), !.
 read_query(Prompt, Goal, Bindings) :-
 	seeing(Old), see(user_input),
 	(   read_history(h, '!h', 
