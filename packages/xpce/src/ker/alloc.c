@@ -81,7 +81,7 @@ allocate(int size)
 { unsigned char *p;
   long top, base;
   Zone z;
-  int alloc_size = size + offset(struct zone, start);
+  unsigned int alloc_size = size + offset(struct zone, start);
 
   if ( alloc_size <= spacefree )
   { z = (Zone) spaceptr;
@@ -155,7 +155,7 @@ count_zone_chain(Zone z)
 
 
 Any
-alloc(int n)
+alloc(unsigned int n)
 { void *ptr;
 
   n = roundAlloc(n);
@@ -222,14 +222,14 @@ alloc(int n)
 
 
 void
-unalloc(int n, Any p)
+unalloc(unsigned int n, Any p)
 { Zone z = p;
   n = roundAlloc(n);
   allocbytes -= n;
   
   if ( n <= ALLOCFAST )
   { int m = n / sizeof(Zone);
-    assert((long)z >= allocBase && (long)z <= allocTop);
+    assert((unsigned long)z >= allocBase && (unsigned long)z <= allocTop);
 
 #if ALLOC_DEBUG
     assert((unsigned long)z % 4 == 0);
@@ -315,7 +315,7 @@ checkFreeChains()
 
 status
 listWastedCorePce(Pce pce, Bool ppcells)
-{ int n;
+{ unsigned int n;
   Zone z;
   int total = 0;
 

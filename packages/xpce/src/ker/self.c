@@ -1146,7 +1146,7 @@ getVersionPce(Pce pce, Name how)
     }
     if ( q > s && q[-1] == '.' )
       q--;
-    assert(q+1-s < sizeof(v));
+    assert(q+1-s < (long)sizeof(v));
     strncpy(v, s, q-s);
     v[q-s] = EOS;
 

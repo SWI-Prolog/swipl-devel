@@ -388,7 +388,7 @@ createSocket(Socket s)
 
 #ifdef UNIX_DOMAIN_SOCKETS
 static status
-unix_address_socket(Socket s, struct sockaddr_un *address, int *len)
+unix_address_socket(Socket s, struct sockaddr_un *address, unsigned int *len)
 { Name name = getOsNameFile((FileObj) s->address);
   char *path;
 
@@ -397,7 +397,8 @@ unix_address_socket(Socket s, struct sockaddr_un *address, int *len)
   
   path = strName(name);
   address->sun_family = PF_UNIX;
-  if ( (*len = strlen(path)+1) > MAX_UN_ADDRESS_LEN )
+  *len = strlen(path)+1;
+  if ( *len > MAX_UN_ADDRESS_LEN )
     return errorPce(s, NAME_socket, NAME_address, CtoName("Name too long"));
 
   memcpy(address->sun_path, path, *len);
@@ -449,7 +450,7 @@ bindSocket(Socket s, Bool reuse)
 #ifdef UNIX_DOMAIN_SOCKETS
   if ( s->domain == NAME_unix )
   { struct sockaddr_un address;
-    int len;
+    unsigned int len;
     TRY( unix_address_socket(s, &address, &len) );
     rval = bind(SocketHandle(s), (struct sockaddr *) &address, len);
   } else /*if ( s->domain == NAME_inet )*/
@@ -613,7 +614,7 @@ connectSocket(Socket s)
 #ifdef UNIX_DOMAIN_SOCKETS
   if ( s->domain == NAME_unix )
   { struct sockaddr_un address;
-    int len;
+    unsigned int len;
     TRY( unix_address_socket(s, &address, &len) );
     rval = connect(SocketHandle(s), (struct sockaddr *) &address, len);
   } else /*if ( s->domain == NAME_inet )*/

@@ -155,13 +155,13 @@ extern char  char_context[];		/* Initial context table */
 		*        CASE CONVERSION	*
 		********************************/
 
-extern char  char_lower[];
-extern char  char_upper[];
+extern unsigned char  char_lower[];
+extern unsigned char  char_upper[];
 
 #define tolower(c)		(Is8char(c) ? char_lower[(unsigned int)(c)] \
-					    : (c))
+					    : (unsigned)(c))
 #define toupper(c)		(Is8char(c) ? char_upper[(unsigned int)(c)] \
-				 	    : (c))
+				 	    : (unsigned)(c))
 
 		/********************************
 		*     HOST-LANGUAGE SYMBOLS	*

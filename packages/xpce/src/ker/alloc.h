@@ -26,7 +26,7 @@
 #define ALLOCFAST	1024
 
 GLOBAL char    *spaceptr;	/* allocation space */
-GLOBAL int	spacefree;	/* Free bytes in space */
+GLOBAL unsigned int	spacefree;	/* Free bytes in space */
 
 GLOBAL long	allocbytes;	/* number of bytes allocated */
 GLOBAL long	wastedbytes;	/* core in allocation chains */

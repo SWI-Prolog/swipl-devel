@@ -1,7 +1,7 @@
 
 /* ../src/ker/alloc.c */
-Any		alloc(int n);
-void		unalloc(int n, Any p);
+Any		alloc(unsigned int n);
+void		unalloc(unsigned int n, Any p);
 void		initAlloc(void);
 void		allocRange(void *low, int size);
 void		checkFreeChains(void);

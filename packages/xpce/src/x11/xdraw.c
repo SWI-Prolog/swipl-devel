@@ -2147,7 +2147,7 @@ r_image(Image image,
       } else				/* pixmap on bitmap */
       { unsigned long fpixel, bpixel;
 	unsigned long plane = 1L;
-	int i;
+	unsigned int i;
 	
 	if ( isDefault(image->foreground) )
 	  assign(image, foreground, context.pceDisplay->foreground);
@@ -2425,15 +2425,15 @@ s_char_struct(XFontStruct *info, int c)
 { if ( info->per_char == NULL )
     return &info->max_bounds;
   else if ( info->min_byte1 == 0 && info->max_byte1 == 0 ) /* 8-bit */
-  { int b2 = c % 256;
+  { unsigned int b2 = (unsigned)c % 256;
 
     if ( b2 < info->min_char_or_byte2 || b2 > info->max_char_or_byte2 )
       return NULL;
 
     return &info->per_char[b2 - info->min_char_or_byte2];
   } else				/* 16-bit font */
-  { int b2 = c % 256;
-    int b1 = c / 256;
+  { unsigned int b2 = c % 256;
+    unsigned int b1 = c / 256;
 
     if ( b2 < info->min_char_or_byte2 || b2 > info->max_char_or_byte2 ||
 	 b1 < info->min_byte1 || b1 > info->max_byte1 )
@@ -3081,7 +3081,7 @@ str_draw_text_lines(int acc, FontObj font,
       { int c  = str_fetch(&line->text, cn);
 	int cw = c_width(c, font);
 
-	if ( tolower(c) == acc )
+	if ( tolower(c) == (unsigned)acc )
 	{			/* not r_line to avoid double Translate() */
 	  XDrawLine(context.display, context.drawable, context.gcs->workGC,
 		    cx, line->y+baseline+1, cx+cw-2, line->y+baseline+1);

@@ -98,7 +98,7 @@ End;
 NewClass(directory)
   Name		name;			/* name of directory */
   Name		path;			/* full path name */
-  unsigned long modified;		/* time stamp */
+  time_t        modified;		/* time stamp */
 End;
 
 

@@ -56,7 +56,7 @@ used in saved object (object ->save_in_file).
 #endif
 
 #define BRIGHT ((1L<<16)-1)
-#define NOPIXEL (~0L)
+#define NOPIXEL (~0UL)
 
 #undef roundup
 #define valdigit(d)		((d) - '0')
@@ -378,7 +378,7 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, IOSTREAM *fd)
   
 	  for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
-	    { unsigned int g;
+	    { int g;
 	      unsigned long pixel;
   
 	      if ( Sfeof(fd) || (g=Sgetc(fd)) > scale )
@@ -399,7 +399,7 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, IOSTREAM *fd)
   
 	  for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
-	    { unsigned int r, g, b;
+	    { int r, g, b;
 	      unsigned long pixel;
   
 	      if ( Sfeof(fd) ||
@@ -442,7 +442,7 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, IOSTREAM *fd)
 	    { if ( rlen-- > 0 )
 	      { XPutPixel(img, x, y, cpixel);
 	      } else
-	      { unsigned int g;
+	      { int g;
   
 		if ( (g=Sgetc(fd)) > scale ||
 		     (rlen = Sgetc(fd)) == EOF )
@@ -469,7 +469,7 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, IOSTREAM *fd)
 	    { if ( rlen-- > 0 )
 	      { XPutPixel(img, x, y, cpixel);
 	      } else
-	      { unsigned int r, g, b;
+	      { int r, g, b;
   
 		if ( (r=Sgetc(fd)) > scale ||
 		     (g=Sgetc(fd)) > scale ||

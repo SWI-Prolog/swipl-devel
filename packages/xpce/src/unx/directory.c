@@ -70,7 +70,7 @@ static Name  ExpandProblem;
 static char *	canonisePath(char *);
 static Name	getWorkingDirectoryPce(Pce pce);
 
-#define MODIFIED_NOT_SET ((unsigned long) ~0L)
+#define MODIFIED_NOT_SET ((time_t) ~0L)
 
 /*  Sun Common Lisp 3.0 apparently redefines readdir(3) and associated
     functions by redefining the dirent structure.  In order to avoid

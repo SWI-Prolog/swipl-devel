@@ -185,7 +185,7 @@ static int initialized = FALSE;		/* easier to fill in at run time */
  */
 static void
 initHexTable(void)
-{ int i;
+{ unsigned int i;
 
   for(i=0; i<(sizeof(hexTable)/sizeof(short)); i++)
     hexTable[i] = -HT_NODIGIT;

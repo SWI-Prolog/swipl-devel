@@ -69,7 +69,7 @@ typedef struct undo_change	* UndoChange;
 #define COMMON_CELL \
   UndoCell	previous;	/* previous cell */ \
   UndoCell	next;		/* next in chain */ \
-  int		size;		/* size in chars */ \
+  unsigned int	size;		/* size in chars */ \
   char		marked;		/* marked as interactive cell */ \
   char		type;		/* type of action */
 
@@ -375,13 +375,13 @@ new_undo_cell(UndoBuffer ub, unsigned int size)
     { if ( SizeAfter(ub, size) )
 	break;
       ub->free = ub->buffer;
-    } else if ( size <= Distance(ub->tail, ub->free) )
+    } else if ( (int)size <= Distance(ub->tail, ub->free) )
       break;
 
     destroy_oldest_undo(ub);
   }
 
-  if ( ub->lastmark && Between(ub, ub->free, ub->lastmark) >= ub->size/2 )
+  if ( ub->lastmark && Between(ub, ub->free, ub->lastmark) >= (int)ub->size/2 )
   { errorPce(ub->client, NAME_undoOverflow);
 
     ub->aborted = TRUE;
@@ -421,11 +421,11 @@ resize_undo_cell(UndoBuffer ub, UndoCell cell, unsigned int size)
   if ( cell->size == size )
     return TRUE;
 
-  while( ub->tail > cell && size > Distance(ub->tail, cell) && ub->head )
+  while( ub->tail > cell && (int)size > Distance(ub->tail, cell) && ub->head )
     destroy_oldest_undo(ub);
 
   if ( ub->head &&
-       ((ub->tail > cell && size < Distance(ub->tail, cell)) ||
+       ((ub->tail > cell && (int)size < Distance(ub->tail, cell)) ||
 	(ub->tail < cell && SizeAfter(ub, size))) )
   { cell->size = size;
     ub->free = (UndoCell) ((char *) cell + size);

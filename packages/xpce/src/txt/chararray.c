@@ -611,14 +611,14 @@ getBase64DecodeCharArray(CharArray in)
       break;
     }
     v |= base64_code(c);
-    if ( v == ~0L )
+    if ( v == ~(unsigned long)0 )
       fail;
     str_store(buf, o++, (v>>16) & 0xff);
     str_store(buf, o++, (v>>8) & 0xff);
     str_store(buf, o++, (v>>0) & 0xff);
   }
 
-  if ( i != size || v == ~0L )
+  if ( i != size || v == ~(unsigned long)0 )
     fail;
 
   buf->size = o;
