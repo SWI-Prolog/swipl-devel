@@ -51,12 +51,13 @@
 listing :-
 	context_module(Context),
 	current_predicate(_, Pred), 
-	\+ predicate_property(Pred, built_in), 
 	'$strip_module'(Pred, Module, Head),
 	functor(Head, Name, _Arity),
-	(   style_check(?dollar)
-	->  true
-	;   \+ sub_atom(Name, 0, _, _, $)
+	(   (   predicate_property(Pred, built_in)
+	    ;	sub_atom(Name, 0, _, _, $)
+	    )
+	->  style_check(?dollar)
+	;   true
 	),
 	nl, 
 	list_predicate(Module:Head, Context),
