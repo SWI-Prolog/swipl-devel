@@ -148,6 +148,7 @@ typedef struct
     OnHalt		on_halt_list;	/* list of onhalt hooks */
     int			halting;	/* process is shutting down */
     int			prompt_next;	/* prompt on next read operation */
+    int			gui_app;	/* Win32: Application is a gui app */
     IOFUNCTIONS		iofunctions;	/* initial IO functions */
     IOFUNCTIONS 	org_terminal;	/* IO+Prolog terminal functions */
     IOFUNCTIONS		rl_functions;	/* IO+Terminal+Readline functions */

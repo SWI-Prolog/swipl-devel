@@ -1,0 +1,40 @@
+This directory contains two examples of foreign-language extensions.
+
+	# dlltest.dll
+	Simple code illustrating very basic functionality of the
+	interface.  Load it using:
+
+		?- load_foreign_library(dlltest).
+
+	It defines the following predicates:
+
+		say_hello(+Text)
+			Shows a simple Windows message-box containing
+			Text.
+		mclock(-MilliSeconds)
+			Return the number of milli-seconds elapsed since
+			the library was loaded.
+		rlc_color(+Which, +R, +G, +B)
+			Set the color of the plwin window. Which is one
+			of {window, text, highlight, highlighttext}, RGB
+			are integers between 0 and 255 for the color
+			components.
+
+	In addition, it illustrates how to hook into a Prolog abort.
+
+	# plregtry.dll
+	Defines predicates to access the Windows registry.  It is a much
+	more elaborate example, and also a useful library. Its not
+	documented, but with some knowledge of the Windows API it should
+	be fairly easy to figure out how it works.
+
+The .dsp files are Microsoft Visual C++ 5.0 project files. Basically, to
+compile them:
+
+	* Ensure the compile has the SWI-Prolog include directory		in the search-path for header-files.
+	
+	* Ensure the compiler has the SWI-Prolog lib directory in
+	the search-path for libraries.
+
+	* Ensure WIN32 is a defined symbol (-DWIN32).  MSVC normally
+	defines this for you.

@@ -322,5 +322,7 @@
 		 *	     FUNCTIONS		*
 		 *******************************/
 
+#if 0
 #define strncasecmp(a, b, len) _strnicmp((a), (b), (len))
 #define getpid()	       (int)GetCurrentThreadId()
+#endif

@@ -23,17 +23,27 @@
 		 *	    MESSAGE BOX		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+There is no way to tell which subsystem   an app belongs too, except for
+peeking in its executable-header. This is a bit too much ...
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 hasConsole(void)
 { HANDLE h;
 
+  if ( GD->os.gui_app == FALSE )	/* has been set explicitly */
+    succeed;
+
+					/* I found a console */
   if ( (h = GetStdHandle(STD_OUTPUT_HANDLE)) != INVALID_HANDLE_VALUE )
   { DWORD mode;
 
-    return GetConsoleMode(h, &mode);
-					/* CloseHandle() closes stdout! */
+    if ( GetConsoleMode(h, &mode) )
+      succeed;
   }
 
+					/* assume we are GUI */
   fail;
 }
 
@@ -296,11 +306,11 @@ initHeapDebug(void)
 { int tmpFlag = _CrtSetDbgFlag( _CRTDBG_REPORT_FLAG );
 
   if ( !(tmpFlag & _CRTDBG_CHECK_ALWAYS_DF) )
-  { PlMessage("Setting malloc() debugging");
+  { /*PlMessage("Setting malloc() debugging");*/
     tmpFlag |= _CRTDBG_CHECK_ALWAYS_DF;
     _CrtSetDbgFlag(tmpFlag);
-  } else
-    PlMessage("Malloc debugging already set");
+  } /*else
+    PlMessage("Malloc debugging already set");*/
 }
 #endif
 

@@ -1,9 +1,6 @@
 		    SWI-Prolog Distribution Directory
 
-** Last update: Fri Dec 18 13:57:18 1992 (1.6.7)
-		Mon Jun 28 14:42:06 1993 (1.7.0)
-		Mon Nov 22 15:23:54 1993 (1.8.5)
-		Thu Nov 10 10:03:46 1994 (1.9.4)
+** Last update: Tue Jan 26 13:57:32 1999 (3.2.0)
 
 AUTHOR
 ======
@@ -32,32 +29,37 @@ The SWI-Prolog source tree consists of the following directories:
 BUILDING SWI-Prolog
 ===================
 
-As from version 1.9.2, SWI-Prolog is configured using GNU autoconf.  The
-file  INSTALL  gives  the  generic    autoconf  installation  procedure.
-INSTALL.notes contains some SWI-Prolog specific hints.  Read this before
-running ./configure.  Finally, INSTALL.problems contains  some hints for
-if things go wrong.
+Unix
+----
 
-If SWI-Prolog does not automatically configure, you may wish to download
-ftp://swi.psy.uva.nl/pub/SWI-Prolog/old-md-files.tgz to check the manual
-configuration.
+SWI-Prolog configuration under  Unix  is   driven  by  the  GNU-autoconf
+package. Please check INSTALL for the   generic installation options and
+INSTALL.notes for some SWI-Prolog specific things.
+
+SWI-Prolog should compile using any Unix-type   system with 32 or larger
+(64) word-length and an ANSI-compliant C-compiler.
+
+If SWI-Prolog crashes during the installation,  the most likely cause is
+that  the  detection  of  mmap()   for  stack-memory  management  wasn't
+configured properly. If you are knowledgeable   in  mmap() issues, check
+src/test/mmap.c and src/pl-setup.c. Otherwise, run   configure using the
+option below to use malloc() based stacks.
+
+	./configure --disable-mapped-stacks
 
 
-SWI-Prolog and 8-bit CHARACTERS
-===============================
+MS-Windows
+----------
 
-If you built SWI-Prolog  using  the   readline  library,  by default you
-cannot enter 8-bit characters from  the   terminal  as  the GNU readline
-library  maps  any   character   with   the    high-bit   set   to   ESC
-<character-with-8bit-cleared>. To fix this, create a file ~/.inputrc and
-add the following lines:
+Unless there is a special reason, please  use the binary distribution on
+MS-Windows.
 
-################################################################
-set convert-meta off
-set output-meta  on
-################################################################
-
-See readline(3) for details.
+If you insist using the sources, the windows version is build using MSVC
+5.0. If you have this version, load src\pl.dsw and recompile those parts
+of the system you  need.  The  executables   are  created  in  the `bin'
+directory, the import-libraries in the `lib'  directory. They can be run
+from  this  location.  It  is  adviced  to   copy  them  into  a  binary
+distribution to arrive at a properly configured system.
 
 
 GNU-EMACS INTERFACE

@@ -2,239 +2,119 @@
 			    Jan Wielemaker
 			       06/06/94
 
-			  (Updated: 14/06/96)
-			   (Version 2.7.8)
+		  (Updated: 25/01/99) (Version 3.2.0)
 
 
-This distribution contains SWI-Prolog for   Windows-'95,  Windows-NT and
-Windows 3.1/Win32s. SWI-Prolog runs  in   a  simple  MS-Window providing
-traditional stream-based interaction or as a Win32 console application.
+This distribution contains SWI-Prolog for Windows-'95-'98 and Windows-NT
+SWI-Prolog runs in a simple MS-Window providing traditional stream-based
+interaction or as a Win32 console application.
 
 
 Installation:
 =============
 
-Unpack the archive anywhere  you  like.   You  can  start  SWI-Prolog by
-starting the executable bin\plwin.exe. *DO NOT*   move  plwin.exe, as it
-uses the path-name of the executable to find its home directory. You may
-wish to create an ICON for it. Either   do this by hand using the normal
-program-manager UI or start SWI-Prolog by double clicking the executable
-and typing:
+Run the self-extracting executable pl.exe   and follow the instructions.
+The installation program prompts for the  installation directory. If you
+have a previous version of SWI-Prolog, it   will  suggest to use the old
+installation directory. This will  destroy   your  installed  SWI-Prolog
+version.
 
-	?- progman_setup.
+MSVCRT.DLL
+==========
 
-which  will  create  the  program  group  SWI-Prolog  and  an  icon  for
-SWI-Prolog in this group.  The default working directory is set to C:
+There are many versions of this DLL,   most of which are compatible, but
+some not. The SWI-Prolog installation  makes   a  copy of the msvcrt.dll
+shipped with the compiler I use (MSVC 5.0) into the pl\bin directory. If
+there is no copy in the system  directory,   it  will copy the same file
+there too.
+
+To improve sharing, you may  wish  to   remove  this  file  from pl\bin,
+forcing SWI-Prolog to use the system  version.   You  can  also move the
+version shipped with SWI-Prolog  to  your   system  directory,  but this
+*might* break other applications.
+
+
+Further Installation
+--------------------
+
+For normal Prolog operation, no further   installation is required. When
+using the foreign language interface, one may  wish to set the following
+environment variables:
+
+	set SWI_HOME_DIR=<Path to SWI-Prolog>
+	set LIB=%LIB%;%SWI_HOME_DIR%\lib
+	set PATH=%PATH%;%SWI_HOME_DIR%\bin
+	set INCLUDE=%INCLUDE%;%SWI_HOME_DIR%\include
+
+In Windows 95, environment variables  are   set  in  autoexec.bat (after
+which the system needs to be rebooted).   In Windows-NT using the System
+properties from the Control-panel.
 
 
 Redoing the boot compilation
 ============================
 
-The system normally loads the Prolog code from the file startup\startup.
-If you changed anything to the Prolog   sources in the boot directory or
-the system appears to have path-problems   with system related files, it
-may be wise to redo the boot compilation.  To do this, run the command
+The system normally loads the Prolog code  from the file boot.prc If you
+changed anything to the Prolog sources  in   the  boot  directory or the
+system appears to have path-problems with   system related files, it may
+be wise to redo the boot compilation.   To  do this, run mkboot.bat from
+the pl\bin directory, which executes:
 
-	bin\plwin.exe -O -o startup\startup -b boot\init.pl
-
-The current working directory must  be   the  Prolog base directory.  In
-both Windows-95 as NT, you can run this   from a DOS-box, in Windows 3.1
-you will have to use the "Run ..." option from the program manager.
+	cd ..
+	plwin.exe -O -o boot.prc -b boot/init.pl
 
 
-SWI-Prolog and 8-bit characters (programming readline)
-======================================================
+Version 3.2.0 Release Notes
+===========================
 
-If you built SWI-Prolog  using  the   readline  library,  by default you
-cannot enter 8-bit characters from  the   terminal  as  the GNU readline
-library  maps  any   character   with   the    high-bit   set   to   ESC
-<character-with-8bit-cleared>. To fix this, create a file ~/.inputrc and
-add the following lines:
-
-################################################################
-set convert-meta off
-set output-meta  on
-################################################################
-
-Actually, the readline version underlying  the   Win32  version  is 1.2,
-which does not define the  "output-meta"   variable,  but  this does not
-harm.
-
-Note that ~/.inputrc is the file named .inputrc in the directory pointed
-to by the variable %HOME%.  This  does   not  work  under  Win32s, where
-.inputrc is an  invalid  filename.  Instead,   create  a  file  using an
-arbitrary name (inputrc for the example) and run:
-
-	?- rl_read_init_file(inputrc).
-
-See readline(3) for details.
-
-Status:
-=======
-
-The first four releases were based  on   the  WATCOM 32-bit extender for
-Windows 3.1. The 5th release has   been  developed with Microsoft Visual
-C/C++ 2.0 under Windows-NT 3.5.  This   release  was compiled and tested
-under Windows-'95 using MSVC 2.0. It has been used in the development of
-XPCE for quite a while and appears  to   run  stable  on '95 and -NT and
-reasonable (compared to the operating system :-) under win32s.
-
-This version has Virtual Memory Management   based stack expansion (i.e.
-no stack-shifter and thus no bugs therein :-).
-
-This version also handles crashes often gracefully.
+As of version 3.2.0, SWI-Prolog is compiled   using MSVC 5.0 rather then
+4.2. This appears to  provide  a   significant  performance  boost.  The
+sources include MSVC 5.0 workspace and  project   files,  as well as the
+entire  source-tree  required.  To  rebuild    the   system,  just  load
+pl\src\pl.dsw and recompile it. The binaries   will  be placed in pl\bin
+and the libraries in pl\lib.
 
 
-Version 2.5.[0-2] windows-specific changes
-======================================
+Version 3.1.0 Release Notes
+===========================
 
-	None sofar!
+Version 3.1.0 has modified the directory   layout  of the installation a
+bit. The import libraries  *.LIB   (only  required  for foreign-language
+extensions) are moved from the bin to   the  lib directory. plld.exe has
+been modified to deal with this modification.
 
-
-Version 2.1.14 windows-specific changes
-=======================================
-
-	* Fixed bug in the garbage collector, which is certainly
-	relevant on win32s, but maybe relevant under NT and '95 too.
-	This but is irrelevant for the Unix versions.
-
-
-Version 2.1.13 windows-specific changes
-=======================================
-
-	* Changed statistics(cputime, X) to use the Win32
-	GetProcessTimes() call when supported (NT only, it appears).
-	This implies that the system returns quite accurate process
-	user time under NT and wall-clock time minus the time waiting
-	for user-input under Windows '95 and Windows 3.1/win32s.
+The initial startup file is now boot.prc   in the main directory, rather
+than startup/startup. The format  has   changed  radically, dealing with
+resources as defined with resource/3 and open_resource/3.
 
 
-Version 2.1.10 windows-specific changes
-=======================================
+Mailing list
+============
 
-	* added ISO compliant open/4 that allows you to open files
-	  both in text and binary mode.
-
-	* Added ISO compliant character-escape codes for reading
-	  quoted atoms.  This is notably problematic when using
-	  DOS filenames: ?- ['c:\new.pl'] will cause the system to look
-	  for the file
-
-		c:
-		ew.pl
-
-	  which, of course, it cannot find.  Either use \\ or the Unix /
-	  to separate path-components.  Note that
-	  set_feature(character_escapes, false) may be used to switch
-	  back to the old behaviour.
-
-	* Added proper color handling to the console window (reading
-	  the users color-settings).  Changed font to be the stock
-	  ANSI fixed font rather then the system font.  Not that
-	  colors may be changed using:
-
-		?- load_foreign_library(dlltest).
-		?- rlc_color(window, 255, 0, 0).
-
-	  The first argument is window, text, highlight or
-	  highlighttext.  See also dlldemo\dlltest.c.
-
-	* Fixed filename completion from the console window.
-
-	* The console window now signals end-of-file both on the
-	  Unix Control-D as the DOS Control-Z.
-
-	* Fixed expand_file_name/2 to be case-insensitive.  This fixes
-	  make/0.
-
-	* Added support for name-associations.  If a file is saved using
-	  qsave_program/2 with the extension .QLX, associating plwin.exe
-	  with .QLX files will make them self-starting.
-
-	  Associating plwin.exe with .PL files will cause Prolog to
-	  start, change directory to the directory holding the file and
-	  load the file.
-
-	* Handle Control-C to interrupt execution correctly in most
-	  cases.
-
-	* Fixed name/2 and friends to use 8-bit characters properly
-	  if compiled on a compiler treating char as signed (MSVC++).
+There  is  a  mailing  for  SWI-Prolog.  You  subscribe,  send  mail  to
+prolog-request@swi.psy.uva.nl, using the subject `subscribe' and no text
+in  the  body.  To  send   mail   to    the   list,   use   the  address
+prolog@swi.psy.uva.nl
 
 
-Version 2.0.6 windows-specific changes
-======================================
+Documentation and further info
+==============================
 
-	* Added DDE server interface and some more options to the DDE
-	  client interface.
+Documentation is available  in  three   formats:  PDF  (Adobes  Portable
+Document Format), PostScript and  HTML.  The   source  is  in  LaTeX and
+included in the source distribution, available from the main ftp site.
 
-	* Added DLL interface.  I know it loads 32-bit NT DLL's, I don't
-	  think it will load 16-bit Windows DLL's, but I'm not sure.
-
-	* The console may now be used with 2-button mice.  `Paste',
-	  normally assigned to the middle button may be activated using
-	  Alt-Y or pressing both buttons at the same time (three-button
-	  emulation as done by many X-servers).
-
-	* Long-filename handling is (as yet) based on how NT handles
-	  long filenames on FAT partitions.  Only activated for Win32s;
-	  NT has long filenames.
-
-	* Representation of absolute paths has changed from /c:/... to
-	  the more natural c:/...  Use is_absolute_file_name/1 to test
-	  whether a filename is absolute.  The old /c:/... is accepted
-	  as well.
-
-	* Installation is now very simple: just unpack the whole lot
-	  any place you like and start the binary (.../bin/plwin.exe).
-	  You can make an icon for it.  *DON'T* move plwin.exe and the
-	  DLL files to another directory as the pathname of the 
-	  executable is used to determine the home directory.
-
-
-Version 1.9.5 windows-specific changes
-======================================
-
-	* Fixed floating-point representation problem
-	* Fixed DDE interface (my mistake, to which Don Dwiggens pointed
- 	  me).
-	* Added dde_execute/2 to give DDE execution commands.
-
-Version 1.9.4 windows-specific changes
-======================================
-
-	* Compiled for floating-point emulations on machines that
-	  lack floating point hardware.
-	* Fixed memory management bug in stack-expander.
-	* Added DDE interface.
-	* Added editor declaration for Windows notepad.
-	* Fixed problem in file-name mapping that caused existing
-	  files to be reported as non-existing sometimes.
-
-Version 1.9.0 windows-specific changes
-======================================
-
-	* Filename conversion and finding the home-directory is
-	  fixed.
-	* The drive's root directory is now handled properly.
-	* Fatal errors will now often :-( show a Windows message-box
-	  instead of just quiting Prolog.  This allows you to read
-	  the message :-)
-	* Control-C break is tested in the main virtual machine loop.
-	  A few procent slower, but it does allow you to break a
-	  looping program ...
-	* Cut-and-paste is implemented in the console-window, allowing
-	  for xterm-like cut-and-paste (left/right to start/extend the
-	  selection and middle to paste it).
-	* Improved error reporting.
-	* Now Writes files in DOS text-format rather then using binary
-	  mode.
-	* Installation has changed a bit.  Read it!
-	  ============
+Main URL:	http://swi.psy.uva.nl/usr/jan/SWI-Prolog.html
+Main FTP:	ftp://swi.psy.uva.nl/pub/SWI-Prolog/
+Doc FTP:	ftp://swi.psy.uva.nl/pub/SWI-Prolog/refman/refman.pdf
+		ftp://swi.psy.uva.nl/pub/SWI-Prolog/refman/refman.ps.tar.gz
+		ftp://swi.psy.uva.nl/pub/SWI-Prolog/refman/HTMLmanual.tar.gz
+E-mail:		prolog-request@swi.psy.uva.nl
 
 
 Copyright:
 ==========
 
-SWI-Prolog may be  distributed  freely   for  non-commercial  use.   See
-pl\licence for a more complete description of your rights.
+SWI-Prolog  may  be  distributed  freely  for  non-commercial  use.  See
+pl\LICENCE for a more complete description of your rights.
+

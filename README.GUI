@@ -1,0 +1,28 @@
+SWI-Prolog itself does not provide any   GUI  (Graphical User Interface)
+capabilities. For building graphical  applications,   there  are roughly
+speaking 3 options:
+
+	# Embedding
+	SWI-Prolog can be embedded in a C-program, and therefore any
+	interface toolkit that can be accessed from C can be used this
+	way.  
+
+	# Using Tk/Tcl
+	This provides a well understood portable GUI framework, where
+	Prolog communicates to Tk/Tcl using I/O streams.
+
+	# Using XPCE
+	XPCE is a C-based library that can be used to add a
+	dynamically typed object-oriented system to Prolog and
+	other dynamically typed languages.  Features:
+
+		* Efficient Object-system that can be extended using
+	 	  Prolog-defined classes.
+		* Many built-in classes offering high-level graphical
+		  primitives.
+		* Portable accross X11 (Unix) and Win32 (Windows 95, 98
+	 	  and NT). Note that SWI-Prolog saved-states are
+		  platform independent!
+		* Runs on SWI-Prolog, Quintus and shortly SICStus 
+
+	See http://www.swi.psy.uva.nl/projects/xpce/home.html

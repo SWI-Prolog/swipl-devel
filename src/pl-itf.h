@@ -510,6 +510,7 @@ __pl_export void PL_handle_signals(void);
 #define PL_ACTION_SYMBOLFILE	7	/* make arg. the symbol file */
 #define PL_ACTION_WRITE		8	/* write via Prolog i/o buffer */
 #define PL_ACTION_FLUSH		9	/* Flush Prolog i/o buffer */
+#define PL_ACTION_GUIAPP	10	/* Win32: set wether this is a gui */
 
 __pl_export int	 PL_action(int, ...);	/* perform some action */
 __pl_export void PL_on_halt(void (*)(int, void *), void *);

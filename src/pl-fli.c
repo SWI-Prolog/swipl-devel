@@ -2297,6 +2297,12 @@ PL_action(int action, ...)
       rval = TRUE;
       break;
     }
+    case PL_ACTION_GUIAPP:
+    { int guiapp = va_arg(args, int);
+      GD->os.gui_app = guiapp;
+      rval = TRUE;
+      break;
+    }
     case PL_ACTION_WRITE:
     { char *s = va_arg(args, char *);
       Putf("%s", (char *)s);

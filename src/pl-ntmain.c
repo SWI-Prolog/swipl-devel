@@ -365,6 +365,7 @@ win32main(int argc, char **argv)
 
   PL_register_extensions(extensions);
   PL_initialise_hook(install_readline);
+  PL_action(PL_ACTION_GUIAPP, TRUE);
   if ( !PL_initialise(argc, argv) )
     PL_halt(1);
   
