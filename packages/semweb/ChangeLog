@@ -1,3 +1,8 @@
+Sep 29, 2004
+
+  * FIXED: Avoid continuous recomputation of `direct' (rdf) branching
+    factors.
+
 Sep 28, 2004
 
   * FIXED: complexity estimate for not-indexed queries (crash).

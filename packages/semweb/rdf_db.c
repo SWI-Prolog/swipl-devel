@@ -758,6 +758,14 @@ update_predicate_counts(predicate *p, int which)
 
     if ( changed < p->distinct_updated[DISTINCT_DIRECT] )
       return TRUE;
+
+    if ( p->triple_count == 0 )
+    { p->distinct_count[which]    = 0;
+      p->distinct_subjects[which] = 0;
+      p->distinct_objects[which]  = 0;
+
+      return TRUE;
+    }
   } else
   { long changed = generation - p->distinct_updated[DISTINCT_SUB];
 
