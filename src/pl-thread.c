@@ -526,7 +526,7 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
     }
   }
 
-  if ( i < 0 || i >= MAX_THREADS || !threads[i].tid )
+  if ( i < 0 || i >= MAX_THREADS || !threads[i].thread_data )
   { if ( warn )
       return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_thread, t);
     else

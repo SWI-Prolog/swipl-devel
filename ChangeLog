@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Multi-threaded version: make sure the thread itself thinks
+    it exists right from the start (Lyosha Ilyukhin).
+
   * ENHANCED rl_add_history/1 does not add a line to the history if it is
     the same as the last line added (Anjo Anjewierden).
 
