@@ -1,13 +1,16 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ENHANCED: indirection in class editable_text to make it easier to modify
+  edit-mode feedback in subclasses.
+
 * FIXED: Bug #14: printer handling for PceDraw (Lourens van der Meij).
 
 * FIXED: Object-reference counting problem that may cause colour objects
   to be garbage collected early.  (Lourens van der Meij).
 
 * ADDED: PceEmacs: provisional RDF, RDFS and OWL modes to insert the lengthy
-  header and draw a tripple diagram from small files.
+  header and draw a triple diagram from small files.
 
 * PceEmacs: added .owl to map to xml-mode
 

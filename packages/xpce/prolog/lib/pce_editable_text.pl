@@ -81,9 +81,10 @@ obtain_focus(T) :->
 	"Called when focus is obtained: show the caret"::
 	(   get(T, attribute, edit_saved_parms, _)  % pointer in/out of window
 	->  true
-	;   get(T, pen, OldPen),
+	;   send(T, save_parameter, pen),
+	    send(T, save_parameter, border),
+	    get(T, pen, OldPen),
 	    get(T, border, OldBorder),
-	    send(T, attribute, edit_saved_parms, chain(OldPen, OldBorder)),
 	    NewPen is OldPen+1,
 	    send(T, pen, NewPen),
 	    NewBorder is max(2, OldBorder),
@@ -92,11 +93,21 @@ obtain_focus(T) :->
 	send(T, show_caret, @on).
 
 
+save_parameter(T, Parm:name) :->
+	"Save some property to be restored after edit"::
+	get(T, Parm, Value),
+	(   get(T, attribute, edit_saved_parms, Sheet)
+	->  true
+	;   send(T, attribute, edit_saved_parms, new(Sheet, sheet))
+	),
+	send(Sheet, value, Parm, Value).
+
+
 release_focus(T) :->
 	"Called when focus is lost: remove the caret"::
-	(   get(T, attribute, edit_saved_parms, chain(OldPen, OldBorder))
-	->  send(T, pen, OldPen),
-	    send(T, border, OldBorder),
+	(   get(T, attribute, edit_saved_parms, Sheet)
+	->  send(Sheet, for_all,
+		 message(T, @arg1?name, @arg1?value)),
 	    send(T, delete_attribute, edit_saved_parms)
 	;   true
 	),
