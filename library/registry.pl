@@ -25,7 +25,7 @@ dlldemo directory.
 	    shell_register_dde/6,	% +Type, +Action,
 					% +Service, Topic, +DDECommand
 					% +IfNotRunning
-	    shell_register_prolog/0
+	    shell_register_prolog/1	% +Extension
 	  ]).
 
 :- load_foreign_library(swi('bin/plregtry')).	% load plregtry.ddl
@@ -34,10 +34,10 @@ dlldemo directory.
 		 *	 REGISTER PROLOG	*
 		 *******************************/
 
-shell_register_prolog :-
+shell_register_prolog(Ext) :-
 	current_prolog_flag(argv, [Me|_]),
 	concat_atom(['"', Me, '" "%1"'], OpenCommand),
-	shell_register_file_type(pl, 'prolog.type', 'Prolog Source',
+	shell_register_file_type(Ext, 'prolog.type', 'Prolog Source',
 				 OpenCommand),
 	shell_register_dde('prolog.type', consult,
 			   prolog, control, 'consult(''%1'')', Me), 

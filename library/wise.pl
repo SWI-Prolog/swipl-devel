@@ -40,7 +40,13 @@ ensure_group(Group) :-
 
 
 wise_install :-
-	shell_register_prolog,
+	(   get_wise_variable('EXT', Ext)
+	->  true
+	;   Ext = pl
+	),
+	shell_register_prolog(Ext),
+	current_prolog_flag(argv, [Me|_]),
+	format('Registered "~w" files to start ~w~n', [Ext, Me]),
 	(   get_wise_variable('GROUP', GroupString),
 	    get_wise_variable('PLCWD', CwdString),
 	    string_to_atom(GroupString, Group),
@@ -57,6 +63,8 @@ wise_install :-
 	    progman_make_item(Group, Item, CmdLine, Cwd)
 	;   true
 	), !,
+	format('~N~nAll done.', []),
+	sleep(2),
 	halt(0).
 wise_install :-
 	halt(1).

@@ -17,8 +17,8 @@
 #define inline __inline
 
 /* Define if you want to associate states */
-#define ASSOCIATE_STATE ".qlx"
-#define ASSOCIATE_SRC	".pl"
+#define ASSOCIATE_STATE "qlx"
+#define ASSOCIATE_SRC	"pl"
 
 #ifdef __LCC__
 #define NO_MS_EXTENSIONS 1

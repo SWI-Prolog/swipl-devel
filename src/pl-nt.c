@@ -397,6 +397,97 @@ dlclose(void *handle)
 
 #endif /*EMULATE_DLOPEN*/
 
+		 /*******************************
+		 *	      REGISTRY		*
+		 *******************************/
+
+static HKEY
+reg_open_key(const char *which, int create)
+{ HKEY key = HKEY_CURRENT_USER;
+  DWORD disp;
+  LONG rval;
+
+  while(*which)
+  { char buf[256];
+    char *s;
+    HKEY tmp;
+
+    for(s=buf; *which && !(*which == '/' || *which == '\\'); )
+      *s++ = *which++;
+    *s = '\0';
+    if ( *which )
+      which++;
+
+    if ( streq(buf, "HKEY_CLASSES_ROOT") )
+    { key = HKEY_CLASSES_ROOT;
+      continue;
+    } else if ( streq(buf, "HKEY_CURRENT_USER") )
+    { key = HKEY_CURRENT_USER;
+      continue;
+    } else if ( streq(buf, "HKEY_LOCAL_MACHINE") )
+    { key = HKEY_LOCAL_MACHINE;
+      continue;
+    } else if ( streq(buf, "HKEY_USERS") )
+    { key = HKEY_USERS;
+      continue;
+    }
+
+    DEBUG(2, Sdprintf("Trying %s\n", buf));
+    if ( RegOpenKeyEx(key, buf, 0L, KEY_READ, &tmp) == ERROR_SUCCESS )
+    { RegCloseKey(key);
+      key = tmp;
+      continue;
+    }
+
+    if ( !create )
+      return NULL;
+
+    rval = RegCreateKeyEx(key, buf, 0, "", 0,
+			  KEY_ALL_ACCESS, NULL, &tmp, &disp);
+    RegCloseKey(key);
+    if ( rval == ERROR_SUCCESS )
+      key = tmp;
+    else
+      return NULL;
+  }
+
+  return key;
+}
+
+#define MAXREGSTRLEN 1024
+
+foreign_t
+pl_get_registry_value(term_t Key, term_t Name, term_t Value)
+{ DWORD type;
+  BYTE  data[MAXREGSTRLEN];
+  DWORD len = sizeof(data);
+  char *k;
+  char *name;
+  HKEY key;
+
+  if ( !PL_get_chars_ex(Key, &k, CVT_ATOM) ||
+       !PL_get_chars_ex(Name, &name, CVT_ATOM) )
+    return FALSE;
+  if ( !(key=reg_open_key(k, FALSE)) )
+    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, PL_new_atom("key"), Key);
+
+  DEBUG(9, Sdprintf("key = %p, name = %s\n", key, name));
+  if ( RegQueryValueEx(key, name, NULL, &type, data, &len) == ERROR_SUCCESS )
+  { RegCloseKey(key);
+
+    switch(type)
+    { case REG_SZ:
+	return PL_unify_atom_chars(Value, data);
+      case REG_DWORD:
+	return PL_unify_integer(Value, *((DWORD *)data));
+      default:
+	return warning("get_registry_value/2: Unknown registery-type");
+    }
+  }
+
+  return FALSE;
+}
+
 #endif /*__WINDOWS__*/
 
 

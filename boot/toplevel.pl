@@ -157,6 +157,7 @@ $make_alias(Chars, Alias) :-
 		 *******************************/
 
 $load_associated_file :-
+	$set_prolog_file_extension,
 	current_prolog_flag(associate, Ext),
 	current_prolog_flag(argv, Argv),
 	append(_, [OsFile], Argv),
@@ -170,6 +171,20 @@ $load_associated_file :-
 	catch(user:window_title(_, Title), _, true),
 	nl.				% why?
 $load_associated_file.
+
+hkey('HKEY_CURRENT_USER/Software/SWI/Prolog').
+hkey('HKEY_LOCAL_MACHINE/Software/SWI/Prolog').
+
+$set_prolog_file_extension :-
+	hkey(Key),
+	catch(win_registry_get_value(Key, fileExtension, Ext0),
+	      _, fail), !,
+	(   atom_concat('.', Ext, Ext0)
+	->  true
+	;   Ext = Ext0
+	),
+	set_prolog_flag(associate, Ext).
+$set_prolog_file_extension.
 
 
 		/********************************

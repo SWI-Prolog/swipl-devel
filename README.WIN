@@ -2,22 +2,45 @@
 			    Jan Wielemaker
 			       06/06/94
 
-		  (Updated: 25/01/99) (Version 3.2.0)
+		(Last Updated: 08/03/00) (Version 3.3.3)
+		  
 
 
-This distribution contains SWI-Prolog for Windows-'95-'98 and Windows-NT
-SWI-Prolog runs in a simple MS-Window providing traditional stream-based
-interaction or as a Win32 console application.
+This distribution contains  SWI-Prolog  for   Windows-'95-'98,  -NT  and
+-2000.  SWI-Prolog  runs  in  a   simple  Window  providing  traditional
+stream-based interaction (plwin.exe) or as   a Win32 console application
+(plcon.exe).
 
 
 Installation:
 =============
 
-Run the self-extracting executable pl.exe   and follow the instructions.
-The installation program prompts for the  installation directory. If you
-have a previous version of SWI-Prolog, it   will  suggest to use the old
-installation directory. This will  destroy   your  installed  SWI-Prolog
-version.
+Run   the   self-extracting    executable     pl.exe    (often    called
+w32pl<version>.exe)  and  follow  the   instructions.  The  installation
+program prompts for the installation directory.   If you have a previous
+version of SWI-Prolog, it  will  suggest   to  use  the old installation
+directory. This will destroy your installed SWI-Prolog version.
+
+File name extension (Perl conflict)
+===================================
+
+Traditionally, Prolog source files use the  extension .PL. The extension
+is  registered  with  the  Windows   shell    to   start  SWI-Prolog  on
+double-click, opening the clicked file and  provide `edit' and `consult'
+commands on the running Prolog system.
+
+PL unfortunately has been kidnapped by Perl and  if you use both on your
+system you have a problem.
+
+SWI-Prolog can be told during the installation to use another extension.
+This implies that this extension is  what   Windows  thinks  is bound to
+SWI-Prolog. When loading files, SWI-Prolog will   look  for files of the
+given extension in addition to .PL files.
+
+If you use this feature, we suggest   to  use the selected extension for
+the `loadfile' only and use .PL for  all libraries and indirectly loaded
+files to ensure easy porting to other machines.
+
 
 MSVCRT.DLL
 ==========
@@ -51,6 +74,17 @@ which the system needs to be rebooted).   In Windows-NT using the System
 properties from the Control-panel.
 
 
+Windows Registry
+----------------
+
+SWI-Prolog stores information on the current installation on the key
+
+	# HKEY_LOCAL_MACHINE\Software\SWI\Prolog
+	Installation directory, working directory, file-extension
+
+	# HKEY_CURREN_USER\Software\SWI\plwin
+	Current settings for the console window
+
 Redoing the boot compilation
 ============================
 
@@ -61,7 +95,7 @@ be wise to redo the boot compilation.   To  do this, run mkboot.bat from
 the pl\bin directory, which executes:
 
 	cd ..
-	plwin.exe -O -o boot.prc -b boot/init.pl
+	bin\plwin.exe -O -o boot.prc -b boot/init.pl
 
 
 Version 3.2.0 Release Notes
@@ -91,10 +125,14 @@ resources as defined with resource/3 and open_resource/3.
 Mailing list
 ============
 
-There  is  a  mailing  for  SWI-Prolog.  You  subscribe,  send  mail  to
-prolog-request@swi.psy.uva.nl, using the subject `subscribe' and no text
-in  the  body.  To  send   mail   to    the   list,   use   the  address
-prolog@swi.psy.uva.nl
+There is a mailing for SWI-Prolog. You can subscribe using your web
+browser from
+
+	http://swi.psy.uva.nl/projects/SWI-Prolog/index.html#mailinglist
+	
+Or using E-main by  sending   a  mail  to prolog-request@swi.psy.uva.nl,
+using the subject `subscribe' and no text in   the body. To send mail to
+the list, use the address prolog@swi.psy.uva.nl
 
 
 Documentation and further info
@@ -104,10 +142,9 @@ Documentation is available  in  three   formats:  PDF  (Adobes  Portable
 Document Format), PostScript and  HTML.  The   source  is  in  LaTeX and
 included in the source distribution, available from the main ftp site.
 
-Main URL:	http://swi.psy.uva.nl/usr/jan/SWI-Prolog.html
+Main URL:	http://swi.psy.uva.nl/projects/SWI-Prolog/
 Main FTP:	ftp://swi.psy.uva.nl/pub/SWI-Prolog/
 Doc FTP:	ftp://swi.psy.uva.nl/pub/SWI-Prolog/refman/refman.pdf
-		ftp://swi.psy.uva.nl/pub/SWI-Prolog/refman/refman.ps.tar.gz
 		ftp://swi.psy.uva.nl/pub/SWI-Prolog/refman/HTMLmanual.tar.gz
 E-mail:		prolog-request@swi.psy.uva.nl
 
@@ -115,6 +152,8 @@ E-mail:		prolog-request@swi.psy.uva.nl
 Copyright:
 ==========
 
-SWI-Prolog  may  be  distributed  freely  for  non-commercial  use.  See
-pl\LICENCE for a more complete description of your rights.
+SWI-Prolog is distributed under the GPL-2  (General Public License). For
+further information, see the file COPYING or www.gnu.org.
 
+Special licenses for use with proprietary   software  are available. See
+the WWW home page for further information.
