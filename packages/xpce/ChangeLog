@@ -1,3 +1,10 @@
+* ADDED: Lots of extras to the class win_printer, providing printing
+  support in Windows.  Added this to PceDraw.
+
+* FIXED: Add extension on Windows display<-win_file_name
+
+* FIXED: Handling of recent-file menu in PceDraw.
+
 * FIXED: Class text_buffer generation when making first change was not
   incremented, causing colourisation inconsistencies.
 
