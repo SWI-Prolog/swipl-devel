@@ -53,6 +53,9 @@ uninstall:
 		(cd $(PLBASE)/library && rm -f $(LIBPL))
 		$(PL) -f none -g make -t halt
 
+check::
+		$(PL) -f rdf_test.pl -g test,halt -t 'halt(1)'
+
 ################################################################
 # CGI INSTALL
 ################################################################

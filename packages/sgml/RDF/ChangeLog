@@ -1,3 +1,9 @@
+Sep 16, 2002 
+
+  * ADDED: "make check"
+
+Older entries
+
   * FIXED: Type-exception in atom_chars/2
 
   * FIXED: handling mixed <name>literal</name> and <name>object</name>
