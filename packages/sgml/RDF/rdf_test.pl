@@ -12,6 +12,7 @@
 
 :- module(rdf_test,
 	  [ suite/1,			% +Test-number
+	    test_dir/1,			% +Directory
 	    test_file/1,		% +File
 	    time_file/1,		% +File
 	    passed/1,			% +Test-numberOrFile
@@ -21,6 +22,7 @@
 :- use_module(library(sgml)).
 :- use_module(rdf_parser).
 :- use_module(rdf_triple).
+:- use_module(rdf).
 :- use_module(pretty_print).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -91,7 +93,11 @@ passed(File) :-
 	format('Saved ~d triples to ~w~n', [N, OkFile]).
 
 test :-
-	expand_file_name('suite/*.rdf', TestFiles),
+	test_dir(suite).
+
+test_dir(Dir) :-
+	atom_concat(Dir, '/*.rdf', Pattern),
+	expand_file_name(Pattern, TestFiles),
 	checklist(test, TestFiles).
 
 test(File) :-
