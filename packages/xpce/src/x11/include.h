@@ -158,7 +158,6 @@ Atom		WmProtocols(FrameObj fr);
 XtAppContext	pceXtAppContext(XtAppContext ctx);
 EventObj	CtoEvent(Any window, XEvent *event);
 unsigned long   getPixelColour(Colour c, DisplayObj d);
-Window		getWMFrameFrame(FrameObj fr);
 void		setXImageImage(Image image, XImage *i);
 status		postscriptXImage(XImage *im,
 				 int x, int y, int w, int h,

@@ -791,11 +791,60 @@ updateAreaFrame(FrameObj fr, Int border)
 }
 
 
+static Window
+getWMFrameFrame(FrameObj fr, int *dxp, int *dyp)
+{ Widget wdg;
+  Window w = 0;
+  int dx = 0, dy = 0;
+
+  if ( (wdg = widgetFrame(fr)) )
+  { DisplayWsXref r = fr->display->ws_ref;
+    Display *d = r->display_xref;
+
+    w = XtWindow(wdg);
+    if ( fr->kind != NAME_popup )
+    { Window root, parent, *children;
+      unsigned int nchildren;
+      int m = 5;
+
+      while(--m >= 0)			/* avoid a loop */
+      { if ( !XQueryTree(d, w, &root, &parent,
+			 &children, &nchildren) )
+	  break;
+	XFree((char *) children);	/* declared char * ???? */
+
+	DEBUG(NAME_frame, Cprintf("w = %ld; root = %ld; parent = %ld\n",
+				  w, root, parent));
+	if ( parent == root )
+	  break;
+
+	if ( dxp || dyp )
+	{ unsigned int x, y, width, h, bw, depth;
+
+	  XGetGeometry(d, w, &root, &x, &y, &width, &h, &bw, &depth);
+	  dx += x;
+	  dy += y;
+	}
+
+	w = parent;
+      }
+    }
+  }
+
+  if ( dxp )
+    *dxp = dx;
+  if ( dyp )
+    *dyp = dy;
+
+  return w;
+}
+
+
 status
 ws_frame_bb(FrameObj fr, int *x, int *y, int *w, int *h)
 { Window win;
 
-  if ( (win = getWMFrameFrame(fr)) )
+  if ( (win = getWMFrameFrame(fr, NULL, NULL)) )
   { DisplayWsXref r = fr->display->ws_ref;
     XWindowAttributes atts;
     int bw = isDefault(fr->border) ? 1 : valInt(fr->border);
@@ -817,6 +866,9 @@ void
 ws_x_geometry_frame(FrameObj fr, Name spec)
 { Widget wdg = widgetFrame(fr);
   
+  DEBUG(NAME_frame, Cprintf("ws_x_geometry_frame(%s, %s)\n",
+			    pp(fr), pp(spec)));
+
   if ( wdg )
   { int x, y, w, h, mask;
     Int X, Y, W, H;
@@ -824,6 +876,8 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
     Area a = fr->area;
     DisplayWsXref r = fr->display->ws_ref;
     Display *d = r->display_xref;
+    Window wm, me;
+    int dx, dy;
 
     sprintf(def,
 	    "%ldx%ld+%ld+%ld",
@@ -837,10 +891,10 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
 		     0, 0,
 		     &x, &y, &w, &h);
   
-    if ( fr->status == NAME_open )
-    { Window me = XtWindow(wdg);
-      Window wm = getWMFrameFrame(fr);
-      Window root;
+    if ( (wm = getWMFrameFrame(fr, &dx, &dy)) &&
+	 (me = XtWindow(wdg)) &&
+	 me != wm )
+    { Window root;
       int mex, mey, wmx, wmy;
       unsigned int mew, meh, wmw, wmh, mebw, wmbw;
       unsigned depth;
@@ -848,17 +902,19 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
       XGetGeometry(d, me, &root, &mex, &mey, &mew, &meh, &mebw, &depth);
       XGetGeometry(d, wm, &root, &wmx, &wmy, &wmw, &wmh, &wmbw, &depth);
 
-      DEBUG(NAME_frame, Cprintf("wmbw %d; wmw %d; wmh %d; mex %d; mey %d\n",
-				wmbw, wmw, wmh, mex, mey));
+      DEBUG(NAME_frame,
+	    Cprintf("wmbw %d; mew %d; meh %d; wmw %d; wmh %d; mex %d; mey %d\n",
+		    wmbw, mew, meh, wmw, wmh, mex, mey));
 
-      if ( mask & XValue )
-      { if ( mask & XNegative )
-	  x -= mex;
-      }
-      if ( mask & YValue )
-      { if ( mask & YNegative )
-	  y -= mey;
-      }
+/*    if ( (mask & XValue) && (mask & XNegative) ) */
+	x -= dx;
+/*    if ( (mask & YValue) && (mask & YNegative) ) */
+	y -= dy;
+
+      w -= wmw-mew;
+      h -= wmh-meh;
+    } else
+    { DEBUG(NAME_frame, Cprintf("No WM frame yet\n"));
     }
 
     X = ( mask & XValue      ? toInt(x) : (Int) DEFAULT );
@@ -1172,7 +1228,7 @@ Image
 ws_image_of_frame(FrameObj fr)
 { Window win;
 
-  if ( (win = getWMFrameFrame(fr)) )
+  if ( (win = getWMFrameFrame(fr, NULL, NULL)) )
   { Window root, child;
     DisplayWsXref r = fr->display->ws_ref;
     Display *d = r->display_xref;
@@ -1230,7 +1286,7 @@ status
 ws_postscript_frame(FrameObj fr)
 { Window win;
 
-  if ( (win = getWMFrameFrame(fr)) )
+  if ( (win = getWMFrameFrame(fr, NULL, NULL)) )
   { Window root, child;
     DisplayWsXref r = fr->display->ws_ref;
     Display *d = r->display_xref;

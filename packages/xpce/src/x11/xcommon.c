@@ -160,42 +160,6 @@ WmProtocols(FrameObj fr)
 { return FrameAtom(fr, CtoName("WM_PROTOCOLS"));
 }
 
-		 /*******************************
-		 *	  FRAME THINGS		*
-		 *******************************/
-
-Window
-getWMFrameFrame(FrameObj fr)
-{ Widget wdg;
-
-  if ( (wdg = widgetFrame(fr)) )
-  { Window w = XtWindow(wdg);
-    DisplayWsXref r = fr->display->ws_ref;
-
-    if ( equalName(fr->kind, NAME_popup) )
-      return w;
-    else
-    { Window root, parent, *children;
-      unsigned int nchildren;
-      int m = 5;
-
-      while(--m >= 0)			/* avoid a loop */
-      { if ( !XQueryTree(r->display_xref, w, &root, &parent,
-			 &children, &nchildren) )
-	  return w;
-	XFree((char *) children);	/* declared char * ???? */
-	DEBUG(NAME_frame, Cprintf("w = %ld; root = %ld; parent = %ld\n",
-				  w, root, parent));
-	if ( parent == root )
-	  return w;
-
-	w = parent;
-      }
-    }
-  }
-
-  return 0;
-}
 
 		 /*******************************
 		 *	     POSTSCRIPT		*
