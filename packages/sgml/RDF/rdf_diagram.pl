@@ -108,13 +108,17 @@ triples(D, Triples:prolog) :->
 	       send(D, append, T)),
 	send(D, layout).
 
+resource(D, Resource:name) :->
+	"Add Resource to diagram"::
+	get(D, resource, Resource, @on, _).
+
 resource(D, Resource:name, Create:[bool], Subject:rdf_resource) :<-
 	"Get reference for a subject or create one"::
 	(   get(D, member, Resource, Subject)
 	->  true
 	;   Create \== @off,
-	    send(D, display, new(Subject, rdf_resource(Resource)),
-		 D?visible?center)
+	    get(D, create_resource, Resource, Subject),
+	    send(D, display, Subject, D?visible?center)
 	).
 
 literal(D, Value:prolog, Gr:rdf_literal) :<-
@@ -122,9 +126,19 @@ literal(D, Value:prolog, Gr:rdf_literal) :<-
 	(   literal_name(Value, Name),
 	    get(D, member, Name, Gr)
 	->  true
-	;   send(D, display, new(Gr, rdf_literal(Value)),
-		 D?visible?center)
+	;   get(D, create_literal, Value, Gr),
+	    send(D, display, Gr, D?visible?center)
 	).
+
+
+create_resource(_D, Resource:name, Subject:rdf_resource) :<-
+	"Create visualisation of Resource"::
+	new(Subject, rdf_resource(Resource)).
+
+
+create_literal(_D, Value:prolog, Gr:rdf_literal) :<-
+	"Create visualisation of literal"::
+	new(Gr, rdf_literal(Value)).
 
 
 :- pce_group(layout).
@@ -217,15 +231,24 @@ connect(F, Pred:name, Object:graphical) :->
 
 :- pce_global(@rdf_any_recogniser,
 	      make_rdf_any_recogniser).
+:- pce_global(@rdf_any_popup,
+	      make_rdf_any_popup).
 
 make_rdf_any_recogniser(G) :-
 	new(M1, move_gesture(left)),
 	new(M2, move_network_gesture(left, c)),
-	new(P, popup_gesture(new(Popup, popup))),
+	new(P, popup_gesture(@receiver?popup)),
+	new(G, handler_group(M1, M2, P)).
+
+popup(_F, Popup:popup) :<-
+	"Create popup menu"::
+	Popup = @rdf_any_popup.
+	
+make_rdf_any_popup(Popup) :-
+	new(Popup, popup),
 	Gr = @arg1,
 	send(Popup, append,
-	     menu_item(layout, message(Gr, layout))),
-	new(G, handler_group(M1, M2, P)).
+	     menu_item(layout, message(Gr, layout))).
 
 event(F, Ev:event) :->
 	(   send_super(F, event, Ev)
@@ -348,7 +371,7 @@ initialise(F, Ref:name) :->
 
 type(F, Type:name) :->
 	send(F, display, new(TL, rdf_label(Type, small))),
-	send(TL, center, point(0,12)),
+	send(TL, center, point(0,14)),
 	get(F, member, ellipse, E),
 	send(E, shadow, 2).
 
@@ -361,8 +384,11 @@ identify(F) :->
 :- pce_begin_class(rdf_literal, rdf_any,
 		   "Represent an RDF literal value").
 
+variable(value,	prolog, get, "Represented literal value").
+
 initialise(F, Value:prolog) :->
 	"Create visualisation"::
+	send(F, slot, value, Value),
 	literal_label(Value, Label),
 	atom_concat('__lit:', Label, Id),
 	send_super(F, initialise, Id),
@@ -420,7 +446,7 @@ resource_name(rdf:Local, Name) :- !,	% known namespaces
 	concat_atom([rdf, :, Local], Name).
 resource_name(NS:Local, Name) :- !,
 	atom_concat(NS, Local, Name).
-resource_name(node(Anon), Name) :-	% not for predicates
+resource_name(node(Anon), Name) :-	% Not for predicates
 	atom_concat('_:', Anon, Name).
 
 is_type(rdf(_, rdf:type, _)) :- !.	% our parser

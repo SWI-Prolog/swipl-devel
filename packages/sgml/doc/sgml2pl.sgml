@@ -743,6 +743,9 @@ if the parser is used in the call-back mode. Currently defined options:
 Current file-name. Note that this may be different from the provided 
 file if an external entity is being loaded. 
 
+    <termitem>line(-Line)
+Line-offset from where the parser started its processing in the file-object. 
+
     <termitem>charpos(-CharPos)
 Offset from where the parser started its processing in the file-object. 
 See <ref sec/indexaccess/. 

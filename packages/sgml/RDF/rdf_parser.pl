@@ -331,9 +331,8 @@ globalid(Id, Base) ::=
 	A,
 	{   Base \== []
 	->  concat_atom([Base, A], #, Id)
-	;   sub_atom(A, 0, _, _, #)		% Protege 1.3 -hack
-	->  sub_atom(A, 1, _, 0, Id),
-	    print_message(warning, rdf(protege(id, A)))
+	;   sub_atom(A, 0, _, _, #)
+	->  sub_atom(A, 1, _, 0, Id)
 	;   Id = A
 	}.
 

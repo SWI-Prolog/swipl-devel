@@ -98,7 +98,7 @@ member_attribute(A) :-
 		 *	     BIG FILES		*
 		 *******************************/
 
-:- dynamic
+:- thread_local
 	in_rdf/1,			% BaseURI
 	object_handler/2.
 
@@ -123,7 +123,7 @@ process_rdf(File, BaseURI, OnObject) :-
 
 on_end(NS:'RDF', _) :-
 	rdf_name_space(NS),
-	retractall(in_rdf).
+	retractall(in_rdf(_)).
 
 on_begin(NS:'RDF', Attr, _) :-
 	rdf_name_space(NS),
@@ -135,6 +135,8 @@ on_begin(NS:'RDF', Attr, _) :-
 	).		   
 on_begin(Tag, Attr, Parser) :-
 	in_rdf(BaseURI), !,
+	get_sgml_parser(Parser, line(Start)),
+	get_sgml_parser(Parser, file(File)),
 	sgml_parse(Parser,
 		   [ document(Content),
 		     parse(content)
@@ -142,7 +144,7 @@ on_begin(Tag, Attr, Parser) :-
 	object_handler(_, OnTriples),
 	element_to_plrdf(element(Tag, Attr, Content), BaseURI, Objects),
 	rdf_triples(Objects, Triples),
-	call(OnTriples, Triples).
+	call(OnTriples, Triples, File:Start).
 
 
 		 /*******************************

@@ -522,6 +522,11 @@ pl_get_sgml_parser(term_t parser, term_t option)
 
     PL_get_arg(1, option, a);
     return PL_unify_integer(a, file_location(p, &p->startloc)->charpos);
+  } else if ( PL_is_functor(option, FUNCTOR_line1) )
+  { term_t a = PL_new_term_ref();
+
+    PL_get_arg(1, option, a);
+    return PL_unify_integer(a, file_location(p, &p->startloc)->line);
   } else if ( PL_is_functor(option, FUNCTOR_charpos2) )
   { term_t a = PL_new_term_ref();
 
