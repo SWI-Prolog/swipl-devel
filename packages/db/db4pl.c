@@ -39,7 +39,11 @@
 #include <assert.h>
 #include <signal.h>
 
+#if 1
 #define DEBUG(g) (void)0
+#else
+#define DEBUG(g) g
+#endif
 
 static atom_t ATOM_read;
 static atom_t ATOM_update;
