@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 			
+  * FIXED: Memory leak when an exception is thrown from the generator
+    of findall/3, bagof/3 or setof/3.  Reported by Bart Demoen.
+
   * FIXED: Possible infinite loop looking for attached state.  Spotted with
     fix by NIDE Naoyuki.   Thanks!
 
