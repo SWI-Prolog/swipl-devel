@@ -224,7 +224,6 @@ _output(char *fm, va_list args)
 			char *s = pp(obj);
 
 			putString(s);
-			free_string(s);
 
 			continue;
 		      }

@@ -7,7 +7,9 @@
     Copyright (C) 1992 University of Amsterdam. All rights reserved.
 */
 
+#ifndef __WIN32__
 #include <version.h>			/* get MACHINE and PCE_VERSION */
+#endif
 #include <h/kernel.h>
 #include "alloc.h"
 #include <h/interface.h>
@@ -97,7 +99,6 @@ writePcev(Pce pce, int argc, Any *argv)
     else
     { char *s = pp(argv[i]);
       Cprintf("%s", s);
-      free_string(s);
     }
   }
 

@@ -421,14 +421,11 @@ swritefv(char *buf, CharArray format, int argc, Any *argv)
 	    }
 	    case 's':
 	    { char *a;
-	      int free = 0;
 
 	      if ( argc <= 0 )
 	      	a = "(nil)";
 	      else if ( !(a = toCharp(argv[0])) )
-	      { a = pp(argv[0]);
-		free++;
-	      }
+		a = pp(argv[0]);
 
 	      *r++ = *s++;
 	      *r = EOS;
@@ -437,21 +434,16 @@ swritefv(char *buf, CharArray format, int argc, Any *argv)
 	      else
 	      	sprintf(q, fmtbuf, arg, a);
 	      Skip(q);
-	      if ( free ) 
-		free_string(a);
 	      argc--, argv++;
 	      continue;
 	    }
 	    case 'O':			/* object via pp() */
 	    { char *a;
-	      int free = 0;
 
 	      if ( argc <= 0 )
 	      	a = save_string("(nil)");
 	      else
-	      { free++;
 	      	a = pp(argv[0]);
-	      }
 
 	      *r++ = 's';
 	      *r = EOS;
@@ -461,14 +453,11 @@ swritefv(char *buf, CharArray format, int argc, Any *argv)
 	      else
 	      	sprintf(q, fmtbuf, arg, a);
 	      Skip(q);
-	      if ( free ) 
-		free_string(a);
 	      argc--, argv++;
 	      continue;
 	    }
 	    case 'N':			/* object via <-print_name */
 	    { char *a;
-	      int free = 0;
 
 	      if ( argc <= 0 )
 	      	a = "(nil)";
@@ -477,9 +466,7 @@ swritefv(char *buf, CharArray format, int argc, Any *argv)
 
 		Trace(TRACE_NEVER, pn = get(argv[0], NAME_printName, 0));
 		if ( !(a = toCharp(pn)) )
-		{ free++;
 		  a = pp(argv[0]);
-		}
 	      }
 
 	      *r++ = 's';
@@ -490,8 +477,6 @@ swritefv(char *buf, CharArray format, int argc, Any *argv)
 	      else
 	      	sprintf(q, fmtbuf, arg, a);
 	      Skip(q);
-	      if ( free )
-		free_string(a);
 	      argc--, argv++;
 	      continue;
 	    }
