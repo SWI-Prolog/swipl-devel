@@ -1,3 +1,22 @@
+VERSION 5.0.9
+=============
+
+* FIXED: XPCE's library for the modified definition of select/3 in SWI-Prolog
+  3.3.11.
+
+* FIXED: Properly report an error when adding graphicals to a device that
+  has not yet been initialised.  This fixes the case where class device
+  is subclassed and the programmer omits send_super(Dev, initialise) before
+  adding graphicals.
+
+* CHANGED: pce_error/1, pce_warn/1 and pce_info/1 now all hook directly into
+  the SWI-Prolog print_message/3 predicate.  XPCE message rules are added to
+  the Prolog message rules.  This allows us using message_hook/3 for XPCE
+  messages.
+
+* FIXED: library(swi_prolog.pl) (editor hooks): declare message_hook/3 as
+  dynamic.
+
 * FIXED: Set CVS binary mode on documentation of classes lbox and
   resize_table_slice_gesture (crashed manual tool on Windows due to
   corrupted file).
