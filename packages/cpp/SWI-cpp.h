@@ -118,45 +118,45 @@ public:
   const char *name();
 
 					/* UNIFY */
-  operator =(const PlTerm &t2)		/* term */
+  int operator =(const PlTerm &t2)	/* term */
   { return PL_unify(ref, t2.ref);
   }
-  operator =(const PlAtom &a)		/* atom */
+  int operator =(const PlAtom &a)	/* atom */
   { return PL_unify_atom(ref, a.handle);
   }
-  operator =(const char *v)		/* atom (from char *) */
+  int operator =(const char *v)		/* atom (from char *) */
   { return PL_unify_atom_chars(ref, v);
   }
-  operator =(long v)			/* integer */
+  int operator =(long v)		/* integer */
   { return PL_unify_integer(ref, v);
   }
-  operator =(int v)			/* integer */
+  int operator =(int v)			/* integer */
   { return PL_unify_integer(ref, v);
   }
-  operator =(double v)			/* float */
+  int operator =(double v)		/* float */
   { return PL_unify_float(ref, v);
   }
-  operator =(const PlFunctor &f)	/* functor */
+  int operator =(const PlFunctor &f)	/* functor */
   { return PL_unify_functor(ref, f.functor);
   }
 
 					/* Comparison standard order terms */
-  operator ==(const PlTerm &t2)
+  int operator ==(const PlTerm &t2)
   { return PL_compare(ref, t2.ref) == 0;
   }
-  operator !=(const PlTerm &t2)
+  int operator !=(const PlTerm &t2)
   { return PL_compare(ref, t2.ref) != 0;
   }
-  operator <(const PlTerm &t2)
+  int operator <(const PlTerm &t2)
   { return PL_compare(ref, t2.ref) < 0;
   }
-  operator >(const PlTerm &t2)
+  int operator >(const PlTerm &t2)
   { return PL_compare(ref, t2.ref) > 0;
   }
-  operator <=(const PlTerm &t2)
+  int operator <=(const PlTerm &t2)
   { return PL_compare(ref, t2.ref) <= 0;
   }
-  operator >=(const PlTerm &t2)
+  int operator >=(const PlTerm &t2)
   { return PL_compare(ref, t2.ref) >= 0;
   }
 					/* comparison (long) */
