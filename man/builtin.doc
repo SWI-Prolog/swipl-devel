@@ -4644,7 +4644,11 @@ other applications. To register a service for a DDE request, \arg{Template} is o
 \program{progman} in the client example above). \arg{Topic} is either an
 atom, indicating \arg{Goal} only handles requests on this topic or a
 variable that also appears in \arg{Goal}. \arg{Item} and \arg{Value} are
-variables that also appear in \arg{Goal}.
+variables that also appear in \arg{Goal}. \arg{Item} represents the
+request data as a Prolog atom.%
+    \footnote{Upto version 3.4.5 this was a list of character codes.
+	      As recent versions have atom garbage collection there is
+	      no need for this anymore.}
 
 The example below registers the Prolog current_prolog_flag/2 predicate
 to be accessible from other applications. The request may be given from
