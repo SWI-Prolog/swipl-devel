@@ -116,7 +116,8 @@ static atdef attrs[] = {
   {AT_NUTOKEN,	"nutoken",  FALSE},
   {AT_NUTOKENS,	"nutoken",  TRUE},
   {AT_NOTATION,	"notation", FALSE},
-  {0,		(char *) 0, FALSE}
+
+  {AT_CDATA,	(char *) 0, FALSE}
 };
 
 

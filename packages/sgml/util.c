@@ -413,7 +413,7 @@ str_summary(char const *s, int len)
 		 *	      FILES		*
 		 *******************************/
 
-char *
+ichar *
 load_file_to_charp(const char *file, int *length)
 { int fd;
 
@@ -445,7 +445,7 @@ load_file_to_charp(const char *file, int *length)
 
 	*s = '\0';			/* ensure closing EOS */
 	close(fd);
-	return r;
+	return (ichar *)r;
       }
     }
   }

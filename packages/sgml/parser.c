@@ -163,7 +163,7 @@ dec_location(dtd_srcloc *l, int chr)
 #define HasClass(dtd, chr, mask) \
 	(dtd->charclass->class[(chr)] & (mask))
 
-static const char *
+static const ichar *
 isee_func(dtd *dtd, const ichar *in, charfunc func)
 { if ( dtd->charfunc->func[func] == *in )
     return ++in;
@@ -323,7 +323,7 @@ entity_file(dtd *dtd, dtd_entity *e)
 	if ( is_absolute_path(f) ||
 	     !e->baseurl ||
 	     !(b=isee_text(dtd, e->baseurl, "file:")) )
-	return f;
+	return (char *)f;
       
         return localpath(b, f);
       }
@@ -3605,7 +3605,7 @@ For the purpose of <!DOCTYPE spec [additions]> we switch to S_GROUP if
 
 static void
 process_marked_section(dtd_parser *p)
-{ char buf[MAXDECL];
+{ ichar buf[MAXDECL];
   dtd *dtd = p->dtd;
   const ichar *decl = p->buffer->data;
   const ichar *s;

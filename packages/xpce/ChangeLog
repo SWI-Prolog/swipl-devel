@@ -1,3 +1,6 @@
+* FIXED: sh script error in FN script, making build fail on many Unix
+  platforms (FN was ported from csh to sh in 5.1.4).
+
 * ADDED: Handling of GNU-Emacs compliant mode-specification on first line
   of the file using -*- Mode -*- or -*- mode: Mode; ... -*-.  Other variables
   are (still) ignored.

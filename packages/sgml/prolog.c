@@ -75,8 +75,9 @@ atomType(char const *s, int len)
 
 
 static const char *
-atom(const char *name)
-{ int len = strlen(name);
+atom(const ichar *text)
+{ const char *name = (const char *)text;
+  int len = strlen(name);
 
   switch(atomType(name, len))
   { case AT_QUOTE:
@@ -248,16 +249,16 @@ istrblank(const ichar *s)
 
 
 static void
-print_listval(attrtype type, int len, const char *text)
+print_listval(attrtype type, int len, const ichar *text)
 { char *t = sgml_malloc(len+1);
 
-  strncpy(t, text, len);
+  strncpy(t, (char *)text, len);
   t[len] = '\0';
 
   if ( type == AT_NUMBERS )
     printf("%s", t);
   else
-    printf("%s", atom(t));
+    printf("%s", atom((ichar *)t));
 
   sgml_free(t);
 }
@@ -377,7 +378,7 @@ prolog_print_attribute(dtd_element *e, dtd_attr *at)
 	    }
             if ( an++ > 0 )
 	      printf(", ");
-	    print_listval(at->type, strlen(val), val);
+	    print_listval(at->type, istrlen(val), val);
 	    printf("]");
 	    break;
 	  }

@@ -104,7 +104,6 @@ static functor_t FUNCTOR_dialect1;
 static functor_t FUNCTOR_document1;
 static functor_t FUNCTOR_dtd1;
 static functor_t FUNCTOR_dtd2;
-static functor_t FUNCTOR_element1;
 static functor_t FUNCTOR_element3;
 static functor_t FUNCTOR_entity1;
 static functor_t FUNCTOR_equal2;
@@ -142,8 +141,6 @@ static functor_t FUNCTOR_context1;
 static functor_t FUNCTOR_defaults1;
 static functor_t FUNCTOR_shorttag1;
 
-static atom_t ATOM_sgml;
-static atom_t ATOM_dtd;
 static atom_t ATOM_true;
 static atom_t ATOM_false;
 static atom_t ATOM_cdata;
@@ -161,7 +158,6 @@ initConstants()
   FUNCTOR_sgml_parser1	 = mkfunctor("sgml_parser", 1);
   FUNCTOR_equal2	 = mkfunctor("=", 2);
   FUNCTOR_dtd1		 = mkfunctor("dtd", 1);
-  FUNCTOR_element1	 = mkfunctor("element", 1);
   FUNCTOR_element3	 = mkfunctor("element", 3);
   FUNCTOR_entity1	 = mkfunctor("entity", 1);
   FUNCTOR_document1	 = mkfunctor("document", 1);
@@ -204,8 +200,6 @@ initConstants()
   FUNCTOR_defaults1	 = mkfunctor("defaults", 1);
   FUNCTOR_shorttag1	 = mkfunctor("shortag", 1);
 
-  ATOM_dtd  = PL_new_atom("dtd");
-  ATOM_sgml = PL_new_atom("sgml");
   ATOM_true = PL_new_atom("true");
   ATOM_false = PL_new_atom("false");
   ATOM_cdata = PL_new_atom("cdata");
@@ -1805,7 +1799,7 @@ static plattrdef plattrs[] =
   { AT_NUTOKENS, "nutoken",  TRUE },
   { AT_NOTATION, "notation", FALSE },
 
-  { 0, NULL }
+  { AT_CDATA,    NULL,       FALSE }
 };
 
 
@@ -2014,7 +2008,7 @@ dtd_prop_notation(dtd *dtd, term_t nname, term_t desc)
   if ( !PL_get_atom_chars(nname, &s) )
     return sgml2pl_error(ERR_TYPE, "atom", nname);
 
-  if ( (id=dtd_find_symbol(dtd, s)) )
+  if ( (id=dtd_find_symbol(dtd, (ichar *)s)) )
   { dtd_notation *n;
 
     for(n=dtd->notations; n; n=n->next)

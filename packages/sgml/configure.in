@@ -53,10 +53,10 @@ if test "$PLSHARED" = "yes"; then
   fi
 
   SO="so"				 # Default shared object extension
-  LD="gcc"				 # Default linking through gcc
+  LD="$CC"				 # Default linking through gcc
   LDSOFLAGS="-shared"			 # Create a shared object
 
-  case "$OS" in
+  case "$PLARCH" in
     *solaris* | *sunos5*)	LD=/usr/ccs/bin/ld
 				LDSOFLAGS="-G"
     				;;
@@ -64,7 +64,10 @@ if test "$PLSHARED" = "yes"; then
 				LDSOFLAGS="-assert nodefinitions"
 				;;
     *linux*)                    ;;
-    *irix*)			;;
+    *irix*)			if test -z "$GCC"; then
+				  CWFLAGS="-woff 1164"
+				fi
+				;;
     *osf*)			if test -z "$GCC"; then
 				  LD=ld
 				  LDSOFLAGS="-shared -expect_unresolved \*"
@@ -105,10 +108,9 @@ if test ! -z "$GCC"; then
     else
 	COFLAGS=-O2
     fi
-    CWFLAGS=-Wall
+    CWFLAGS="$CWFLAGS -Wall"
 else
     COFLAGS=-O
-    CWFLAGS=
 fi
 CFLAGS="$CMFLAGS"
 AC_C_BIGENDIAN

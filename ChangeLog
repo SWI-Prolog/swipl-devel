@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORT: Many C-compiler warnings, making the native IRIX cc compile
+    SWI-Prolog silently.  Improved detection of wait() variations.
+    Thanks to Jean Wang for providing me with access to their machine.
+
   * ENHANCED: Handling of prolog_edit:select_location/3.  Enhancement
     exploited by XPCE to use GUI-based selection if running from GUI.
 

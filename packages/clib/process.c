@@ -23,6 +23,9 @@
 #include <signal.h>
 #include <string.h>
 #include <errno.h>
+#ifdef HAVE_ALLOCA_H
+#include <alloca.h>
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Unix process management.

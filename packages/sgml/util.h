@@ -83,7 +83,7 @@ void		empty_ocharbuf(ocharbuf *buf);
 const char *	str_summary(const char *s, int len);
 char *		str2ring(const char *in);
 char *		ringallo(size_t);
-char *		load_file_to_charp(const char *file, int *len);
+ichar *		load_file_to_charp(const char *file, int *len);
 
 #if defined(USE_STRING_FUNCTIONS) && !defined(UTIL_H_IMPLEMENTATION)
 
