@@ -1192,7 +1192,7 @@ if test "$MKSHARED" = yes; then
   MKLIBS="$MKLIBS sharedlib"
   CMFLAGS="$CMFLAGS $SO_PIC"
   LDFLAGS="$LDFLAGS -Wl,-rpath=$PLBASE/lib/$ARCH"
-  LNLIBS=$(USEPLLIB)
+  LNLIBS="$USEPLLIB"
 else
   LNLIBS="$LIBS"
 fi dnl MKSHARED
