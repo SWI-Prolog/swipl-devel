@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.2.3 (Jul 04, 2003)
+============================
+
   * ENHANCED: make trace/0 work while skipping, so an explicit trace command
     always works.  Alan Baljeu.
 

@@ -526,6 +526,7 @@ A system_thread_id 	"system_thread_id"
 A dprof_node		"$profile_node"
 A profile_node		"profile_node"
 A arity_not_less_than_one "arity_not_less_than_one"
+A start			"start"
 
 F abs			1
 F access		1

@@ -173,7 +173,7 @@ notify_changed(Pred) :-
 	'$strip_module'(Pred, user, Head),
 	'$c_current_predicate'(_, system:Head),
 	\+ ( predicate_property(user:Head, imported_from(System)),
-	     (System == system ; '$default_module'(System, system, system))
+	     (System == system ; import_module(System, system))
 	   ),
 	\+ predicate_property(system:Head, (dynamic)), !,
 	functor(Head, Name, Arity),

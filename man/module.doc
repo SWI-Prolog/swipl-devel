@@ -42,7 +42,7 @@ add_extension(Extension, Plain, Extended) :-
         maplist(extend_atom(Extension), Plain, Extended).
 
 extend_atom(Extension, Plain, Extended) :-
-        concat(Plain, Extension, Extended).
+        atom_concat(Plain, Extension, Extended).
 \end{code}
 
 In this case we would like maplist to call {extend_atom}/3 in the module
@@ -149,23 +149,24 @@ definition however can be overruled in the local module.  This schedule
 is implemented by the exception handling mechanism of SWI-Prolog:  if
 an undefined predicate exception is raised for a predicate in some
 module, the exception handler first tries to import the predicate from
-the module's default module.  On success, normal execution is resumed.
+one of the module's \jargon{import modules}. On success, normal
+execution is resumed.
 
 
 \subsection{Reserved Modules}
 
-SWI-Prolog contains two special modules.  The first one is the module
-\const{system}.  This module contains all built-in predicates described
-in this manual.  Module \const{system} has no default module assigned to
-it.  The second special module is the module \const{user}.  This module
-forms the initial working space of the user.  Initially it is empty.
-The default module of module \const{user} is \const{system}, making all
-built-in predicate definitions available as defaults.  Built-in
+SWI-Prolog contains two special modules. The first one is the module
+\const{system}. This module contains all built-in predicates described
+in this manual. Module \const{system} has no default module assigned to
+it. The second special module is the module \const{user}. This module
+forms the initial working space of the user. Initially it is empty. The
+import module of module \const{user} is \const{system}, making all
+built-in predicate definitions available as defaults. Built-in
 predicates thus can be overruled by defining them in module \const{user}
 before they are used.
 
-All other modules default to module \const{user}.  This implies they can
-use all predicates imported into \const{user} without explicitly
+All other modules import from the module \const{user}. This implies they
+can use all predicates imported into \const{user} without explicitly
 importing them.
 
 
@@ -432,12 +433,29 @@ Unifies \arg{Exports} with a list of terms.  Each term has the name and
 arity of a public predicate of \arg{Module}.  The order of the terms in
 \arg{Exports} is not defined.  See also predicate_property/2.
  
+    \predicate{import_module}{2}{+Module, -Import}
+True if \arg{Import} is defined as an import module for \arg{Module}.
+All normal modules only import from \const{user}, which imports from
+\const{system}. The predicates add_import_module/3 and
+delete_import_module/2 can be used to manipulate the import list.
+
+    \predicate{add_import_module}{3}{+Module, +Import, +StartOrEnd}
+If \arg{Import} is not already an import module for \arg{Module}, add
+it to this list at the \const{start} or \const{end} depending on
+\arg{StartOrEnd}.  See also import_module/2 and delete_import_module/2.
+
+    \predicate{delete_import_module}{2}{+Module, +Import}
+Delete \arg{Import} from the list of import modules for \arg{Module}.
+Fails silently if \arg{Import} is not in the list.
+
     \predicate{default_module}{2}{+Module, -Default}
 Succesively unifies \arg{Default} with the module names from which
 a call in \arg{Module} attempts to use the definition.  For the
 module \const{user}, this will generate \const{user} and \const{system}.
 For any other module, this will generate the module itself, followed
 by \const{user} and \const{system}.
+
+Backward compatibility.  New code should use import_module/2.
 
     \predicate{module}{1}{+Module}
 The call \exam{module(\arg{Module})} may be used to switch the default

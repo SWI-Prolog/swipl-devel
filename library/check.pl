@@ -166,7 +166,7 @@ list_redefined_ :-
 	Module \== system,
 	current_predicate(_, Module:Head),
 	\+ predicate_property(Module:Head, imported_from(_)),
-	(   $default_module(Module, Super, Super),
+	(   import_module(Module, Super),
 	    $c_current_predicate(_, Super:Head),
 	    $syspreds:$defined_predicate(Super:Head),
 	    \+ predicate_property(Super:Head, (dynamic)),

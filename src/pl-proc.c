@@ -40,6 +40,7 @@ static void	resetProcedure(Procedure proc, bool isnew);
 static void	removeClausesProcedure(Procedure proc, int sfindex);
 static atom_t	autoLoader(LocalFrame fr, Code PC, Definition def);
 static void	registerDirtyDefinition(Definition def);
+static Procedure visibleProcedure(functor_t f, Module m);
 
 Procedure
 lookupProcedure(functor_t f, Module m)
@@ -367,11 +368,9 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
       }
       goto notfound;
     case GP_FIND:
-      for( ; m; m = m->super )
-      { if ( (p = isCurrentProcedure(fdef, m)) && isDefinedProcedure(p) )
-	{ *proc = p;
-	  goto out;
-	}
+      if ( (p=visibleProcedure(fdef, m)) )
+      { *proc = p;
+        goto out;
       }
       goto notfound;
     case GP_DEFINE:
@@ -492,16 +491,29 @@ typedef struct
 } cur_enum;
 
 
-static int
+static Procedure
 visibleProcedure(functor_t f, Module m)
-{ for(; m ; m = m->super)
-  { Procedure p;
+{ ListCell c;
+  Procedure p;
+
+  for(;;)
+  { next:
 
     if ( (p = isCurrentProcedure(f, m)) && isDefinedProcedure(p) )
-      succeed;
-  }
+      return p;
 
-  fail;
+    for(c=m->supers; c; c=c->next)
+    { if ( c->next )
+      { if ( (p=visibleProcedure(f, c->value)) )
+	  return p;
+      } else
+      { m = c->value;
+	goto next;
+      }
+    }
+ 
+    return NULL;
+  }
 }
 
 
@@ -665,8 +677,9 @@ pl_current_predicate1(term_t spec, control_t ctx)
 	e->super = e->module = sm->value;
       else
 	break;
-    } else if ( !e->functor && e->super && e->super->super )
-    { e->super = e->super->super;	/* advance to user-modules */
+    } else if ( !e->functor && e->super && e->super->supers )
+    { e->super = e->super->supers->value;	/* advance to user-modules */
+					/* TBD: handle multiple supers */
     } else
       break;				/* finished all modules */
 
@@ -1304,20 +1317,17 @@ error message (or link the procedure from the library via autoload).
 Procedure
 resolveProcedure(functor_t f, Module module)
 { Procedure proc;
-  Module m;
 
-  for( m = module; m; m = m->super )
-  { if ( (proc = isCurrentProcedure(f, m)) && isDefinedProcedure(proc) )
-      return proc;
-  }
+  if ( (proc = visibleProcedure(f, module)) )
+    return proc;
 
   return lookupProcedure(f, module);
 }
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-autoImport() tries to autoimport f into module `m' and  returns  success
-if this is possible.
+autoImport() tries to autoimport  f  into   module  `m'  and returns the
+definition if this is possible.
 
 PROBLEM: I'm not entirely  sure  it  is  save  to  deallocated  the  old
 definition  structure  in  all  cases.   It  is  not  member of any heap
@@ -1337,16 +1347,18 @@ autoImport(functor_t f, Module m)
 { GET_LD
   Procedure proc;
   Definition def;
+  ListCell c;
 					/* Defined: no problem */
   if ( (proc = isCurrentProcedure(f, m)) && isDefinedProcedure(proc) )
     return proc->definition;
   
-  if ( !m->super )			/* No super: can't import */
-    return NULL;
+  for(c=m->supers; c; c=c->next)
+  { if ( (def = autoImport(f, c->value)) )
+      goto found;
+  }
+  return NULL;
 
-  if ( !(def = autoImport(f, m->super)) )
-    return NULL;
-
+found:
   if ( proc == NULL )			/* Create header if not there */
     proc = lookupProcedure(f, m);
 					/* Safe? See above */

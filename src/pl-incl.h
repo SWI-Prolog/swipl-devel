@@ -1415,7 +1415,7 @@ struct module
   Table		procedures;	/* predicates associated with module */
   Table		public;		/* public predicates associated */
   Table		operators;	/* local operator declarations */
-  Module	super;		/* Import predicates from here */
+  ListCell	supers;		/* Import predicates from here */
 #ifdef O_PLMT
   counting_mutex *mutex;	/* Mutex to guard procedures */
 #endif

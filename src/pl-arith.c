@@ -341,12 +341,8 @@ isCurrentArithFunction(functor_t f, Module m)
   for(a = arithFunctionTable[functorHashValue(f, ARITHHASHSIZE)];
       !isTableRef(a) && a; a = a->next)
   { if ( a->functor == f )
-    { Module m2;
-
-      for(m2 = m; m2; m2 = m2->super)
-      { if ( m2 == a->module )
-	  return a;
-      }
+    { if ( isSuperModule(a->module, m) )
+	return a;
     }
   }
 
@@ -1311,11 +1307,15 @@ pl_current_arithmetic_function(term_t f, control_t h)
         fail;
     }
 
-    for(m2 = m; m2; m2 = m2->super)
+    for(m2 = m; m2; )
     { if ( m2 == a->module && a == isCurrentArithFunction(a->functor, m) )
       { if ( PL_unify_functor(f, a->functor) )
 	  return_next_table(ArithFunction, a, ;);
       }
+      if ( m2->supers )			/* TBD: multiple supers! */
+      { m2 = m2->supers->value;
+      } else
+	fail;
     }
   }
 

@@ -41,10 +41,13 @@ the  global  module  for  the  user  and imports from `system' all other
 modules import from `user' (and indirect from `system').
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static void	addSuperModule(Module m, Module s, int where);
+
+
 static Module
 _lookupModule(atom_t name)
 { Symbol s;
-  Module m;
+  Module m, super;
 
   if ((s = lookupHTable(GD->tables.modules, (void*)name)) != (Symbol) NULL)
     return (Module) s->value;
@@ -71,19 +74,25 @@ _lookupModule(atom_t name)
 
   m->public = newHTable(PUBLICHASHSIZE);
 
+  m->supers = NULL;
   if ( name == ATOM_user )
-  { m->super = MODULE_system;
+  { super = MODULE_system;
   } else if ( name == ATOM_system )
   { set(m, SYSTEM);
-    m->super = NULL;
+    super = NULL;
   } else if ( stringAtom(name)[0] == '$' )
   { set(m, SYSTEM);
-    m->super = MODULE_system;
+    super = MODULE_system;
   } else
-  { m->super = MODULE_user;
+  { super = MODULE_user;
   }
 
-  m->level = (m->super ? m->super->level+1 : 0);
+  if ( super )
+  { addSuperModule(m, super, 'A');
+    m->level = super->level+1;		/* TBD: check usage as this is */
+  } else				/* no longer unique */
+    m->level = 0;
+
   addHTable(GD->tables.modules, (void *)name, m);
   GD->statistics.modules++;
   PL_register_atom(name);
@@ -133,16 +142,80 @@ initModules(void)
   UNLOCK();
 }
 
+
 int
-isSuperModule(Module s, Module m)
-{ while(m)
-  { if ( m == s )
+isSuperModule(Module s, Module m)	/* s is a super-module of m */
+{ for(;;)
+  { ListCell c;
+
+  next:
+    if ( m == s )
       succeed;
-    m = m->super;
+    
+    for(c=m->supers; c; c=c->next)
+    { if ( c->next )
+      { if ( isSuperModule(s, c->value) )
+	  succeed;
+      } else
+      { m = c->value;
+	goto next;
+      }
+    }
+    fail;
+  }
+}
+
+
+/* MT: Must be locked by caller
+*/
+
+static void
+addSuperModule(Module m, Module s, int where)
+{ GET_LD
+  ListCell c;
+
+  for(c=m->supers; c; c=c->next)
+  { if ( c->value == s )
+      return;				/* already a super-module */
+  }
+
+  c = allocHeap(sizeof(*c));
+  c->value = s;
+
+  if ( where == 'A' )
+  { c->next = m->supers;
+    m->supers = c;
+  } else
+  { ListCell *p = &m->supers;
+
+    while(*p)
+    { p = &(*p)->next;
+    }
+    c->next = NULL;
+    *p = c;
+  }
+}
+
+
+static int
+delSuperModule(Module m, Module s)
+{ GET_LD
+  ListCell *p;
+
+  for(p = &m->supers; *p; p = &(*p)->next)
+  { ListCell c = *p;
+
+    if ( c->value == s )
+    { *p = c->next;
+      freeHeap(c, sizeof(*c));
+
+      succeed;
+    }
   }
 
   fail;
 }
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 stripModule() takes an atom or term, possible embedded in the :/2 module
@@ -186,29 +259,102 @@ isPublicModule(Module module, Procedure proc)
 		*       PROLOG CONNECTION       *
 		*********************************/
 
-word
-pl_default_module(term_t me, term_t old, term_t new)
-{ GET_LD
-  Module m, s;
-  atom_t a;
+static int
+get_module(term_t t, Module *m, int create)
+{ atom_t name;
 
-  if ( PL_is_variable(me) )
-  { m = contextModule(environment_frame);
-    TRY(PL_unify_atom(me, m->name));
-  } else if ( PL_get_atom(me, &a) )
-  { m = lookupModule(a);
-  } else
-    return warning("super_module/2: instantiation fault");
+  if ( !PL_get_atom_ex(t, &name) )
+    fail;
+  if ( create )
+  { *m = lookupModule(name);
+    succeed;
+  }
+  if ( (*m = isCurrentModule(name)) )
+    succeed;
+  fail;
+}
 
-  TRY(PL_unify_atom(old, m->super ? m->super->name : ATOM_nil));
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Note that this predicate uses integers to   avoid crashes due to changes
+to the linked list while processing.  This leads to quadratic behaviour,
+but given the low number of supers this shouldn't be too bad.
 
-  if ( !PL_get_atom(new, &a) )
-    return warning("super_module/2: instantiation fault");
+import_module
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  s = (a == ATOM_nil ? NULL : lookupModule(a));
-  m->super = s;
+static
+PRED_IMPL("import_module", 2, import_module,
+	  PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+  int i, n;
+  ListCell c;
+  Module m;
+
+  switch(ForeignControl(PL__ctx))
+  { case FRG_FIRST_CALL:
+      i = 0;
+      break;
+    case FRG_REDO:
+      i = ForeignContextInt(PL__ctx);
+      break;
+    default:
+      succeed;
+  }
+
+  if ( !get_module(A1, &m, TRUE) )
+    fail;
+
+  for(n=0, c=m->supers; c; c=c->next, n++)
+  { Module s = c->value;
+
+    if ( n == i )
+    { int ndet = c->next != NULL && PL_is_variable(A2);
+
+      if ( PL_unify_atom(A2, s->name) )
+      { if ( ndet )
+	  ForeignRedoInt(i+1);
+	else
+	  succeed;
+      }
+    }
+  }
+
+  fail;
+}
+
+
+static
+PRED_IMPL("add_import_module", 3, add_import_module, 0)
+{ Module me, super;
+  atom_t where;
+
+  if ( !get_module(A1, &me, TRUE) ||
+       !get_module(A2, &super, TRUE) ||
+       !PL_get_atom_ex(A3, &where) )
+    fail;
+
+  LOCK();
+  addSuperModule(me, super, where == ATOM_start ? 'A' : 'Z');
+  UNLOCK();
 
   succeed;
+}
+
+
+static
+PRED_IMPL("delete_import_module", 2, delete_import_module, 0)
+{ Module me, super;
+  int rval;
+
+  if ( !get_module(A1, &me, TRUE) ||
+       !get_module(A2, &super, TRUE) )
+    fail;
+
+  LOCK();
+  rval = delSuperModule(me, super);
+  UNLOCK();
+
+  return rval;
 }
 
 
@@ -694,4 +840,8 @@ BeginPredDefs(module)
 	   PL_FA_NONDETERMINISTIC)
   PRED_DEF("$goal_expansion_module", 1, goal_expansion_module,
 	   PL_FA_NONDETERMINISTIC)
+  PRED_DEF("import_module", 2, import_module,
+	   PL_FA_NONDETERMINISTIC)
+  PRED_DEF("add_import_module", 3, add_import_module, 0)
+  PRED_DEF("delete_import_module", 2, delete_import_module, 0)
 EndPredDefs

@@ -49,6 +49,7 @@ suggest predicates from a keyword.
 \predicatesummary{absolute_file_name}{2}{Get absolute path name}
 \predicatesummary{absolute_file_name}{3}{Get absolute path name with options}
 \predicatesummary{access_file}{2}{Check access permissions of a file}
+\predicatesummary{add_import_module}{3}{Add module to the auto-import list}
 \predicatesummary{append}{1}{Append to a file}
 \predicatesummary{apply}{2}{Call goal with additional arguments}
 \predicatesummary{apropos}{1}{\pllib{online_help} Search manual}
@@ -151,6 +152,7 @@ suggest predicates from a keyword.
 \predicatesummary{default_module}{2}{Get the default modules of a module}
 \predicatesummary{delete_directory}{1}{Remove a folder from the file system}
 \predicatesummary{delete_file}{1}{Remove a file from the file system}
+\predicatesummary{delete_import_module}{2}{Remove module from import list}
 \predicatesummary{deterministic}{1}{Test deterministicy of current clause}
 \oppredsummary{discontiguous}{1}{fx}{1150}{Indicate distributed definition of a predicate}
 \predicatesummary{downcase_atom}{2}{Convert atom to lower-case}
@@ -224,6 +226,7 @@ suggest predicates from a keyword.
 \predicatesummary{help_hook}{1}{\hook{prolog} User-hook in the help-system}
 \predicatesummary{ignore}{1}{Call the argument, but always succeed}
 \predicatesummary{import}{1}{Import a predicate from a module}
+\predicatesummary{import_module}{2}{Query import modules}
 \predicatesummary{include}{1}{Include a file with declarations}
 \predicatesummary{index}{1}{Change clause indexing}
 \predicatesummary{initialization}{1}{Initialization directive}

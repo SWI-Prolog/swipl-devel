@@ -738,8 +738,7 @@ arithmetic_function(Spec) :-
 
 default_module(Me, Me).
 default_module(Me, Super) :-
-	$default_module(Me, S, S),
-	S \== [],
+	import_module(Me, S),
 	default_module(S, Super).
 
 

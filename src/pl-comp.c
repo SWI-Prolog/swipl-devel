@@ -3142,7 +3142,9 @@ wouldBindToDefinition(Definition from, Definition to)
   Procedure proc;
 
   for(;;)
-  { if ( def )
+  { ListCell c;
+
+    if ( def )
     { if ( def == to )			/* found it */
 	succeed;
 
@@ -3152,8 +3154,9 @@ wouldBindToDefinition(Definition from, Definition to)
 	fail;
     }
 
-    if ( (m = m->super) )
-    { proc = isCurrentProcedure(from->functor->functor, m);
+    if ( (c = m->supers) )
+    { m = c->value;			/* TBD: multiple supers */
+      proc = isCurrentProcedure(from->functor->functor, m);
       def = proc ? getProcDefinition(proc) : (Definition)NULL;
     } else
       break;

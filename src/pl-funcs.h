@@ -426,7 +426,6 @@ int		isSuperModule(Module s, Module m);
 Word		stripModule(Word term, Module *module ARG_LD);
 bool		isPublicModule(Module module, Procedure proc);
 int		declareModule(atom_t name, SourceFile sf);
-word		pl_default_module(term_t me, term_t old, term_t new);
 word		pl_current_module(term_t module, term_t file, control_t h);
 word		pl_strip_module(term_t spec, term_t module, term_t term);
 word		pl_module(term_t old, term_t new);
