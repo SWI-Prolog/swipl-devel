@@ -1259,7 +1259,7 @@ Svprintf(const char *fm, va_list args)
 
 
 #define OUTCHR(s, c)	do { printed++; \
-			     if ( Sputc((c), (s)) < 0 ) goto error; \
+			     if ( Sputcode((c), (s)) < 0 ) goto error; \
 			   } while(0)
 #define valdigit(c)	((c) - '0')
 #define A_LEFT	0			/* left-aligned field */
@@ -1488,6 +1488,7 @@ Svsprintf(char *buf, const char *fm, va_list args)
   s.handle    = NULL;
   s.functions = NULL;
   s.mutex     = NULL;
+  s.encoding  = ENC_ISO_LATIN_1;
   
   if ( (rval = Svfprintf(&s, fm, args)) >= 0 )
     *s.bufp = '\0';

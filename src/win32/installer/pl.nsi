@@ -212,6 +212,7 @@ SectionEnd
 Section "XPCE graphics library"
   SectionIn 1 3
   SetOutPath $INSTDIR
+  Delete pl\xpce\prolog\lib\pce_common.pl
   File /r pl\xpce
   File pl\plwin.rc
   SetOutPath $INSTDIR\bin
