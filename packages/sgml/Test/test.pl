@@ -130,7 +130,9 @@ okfile(File, OkFile) :-
 	concat_atom([Dir, '/ok/', Base, '.ok'], OkFile).
 
 load_prolog_file(File, Term, Errors) :-
-	open(File, read, Fd),
+	open(File, read, Fd,
+	     [ encoding(utf8)
+	     ]),
 	read(Fd, Term),
 	(   read(Fd, Errors),
 	    Errors \== end_of_file

@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<test>
+  <li>Some cyrillic chars: &#1080;&#1081;</li>
+  <li>This a an sizzors symbol: &#9988;</li>
+  <a att="Cirle with 1: &#10112;"/>
+</test>
+

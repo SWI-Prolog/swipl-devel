@@ -1,0 +1,2 @@
+[element(test, [], ['\n  ', element(li, [], ['Some cyrillic chars: ий']), '\n  ', element(li, [], ['This a an sizzors symbol: ✄']), '\n  ', element(a, [att='Cirle with 1: ➀'], []), '\n'])].
+[].
