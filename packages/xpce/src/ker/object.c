@@ -31,6 +31,30 @@
 static int	check_object(Any, Bool, HashTable, int);
 static status	makeTempObject(Any obj);
 
+		 /*******************************
+		 *	  DELETE OBJECTS	*
+		 *******************************/
+
+void
+unreferencedObject(Any obj)
+{ Instance i = obj;
+
+  if ( noRefsObj(i) )
+  { if ( isFreedObj(i) )
+    { DEBUG(NAME_free,
+	    Cprintf("Doing (code-)deferred unalloc on %s\n", pp(i)));
+      unallocObject(i);
+      deferredUnalloced--;
+    }
+  } else
+  { if ( onFlag(i, F_CREATING|F_FREEING|F_FREED) )
+      errorPce(PCE, NAME_negativeRefCountInCreate, i);
+    else
+      errorPce(PCE, NAME_negativeRefCount, i);
+  }
+}
+
+
 		/********************************
 		*        SLOT ASSIGNMENT	*
 		********************************/
@@ -52,31 +76,16 @@ addRefObject(Any from, Any to)
 
 inline void
 delRefObject(Any from, Any to)
-{ delRefObj(to);
-
-  if ( onFlag(to, F_INSPECT) )
+{ if ( onFlag(to, F_INSPECT) )
   { addCodeReference(to);
     addCodeReference(from);
+    delRefObj(to);
     changedObject(to, NAME_delReference, from, EAV);
     delCodeReference(from);
     delCodeReference(to);
-  }
-
-  if ( refsObject(to) <= 0 )
-  { if ( refsObject(to) == 0 )
-    { if ( isFreedObj(to) )
-      { DEBUG(NAME_free, Cprintf("Doing deferred unalloc on %s\n", pp(to)));
-	unallocObject(to);
-	deferredUnalloced--;
-      } else
-      { freeableObj(to);
-      }
-    } else
-    { if ( onFlag(to, F_CREATING|F_FREEING|F_FREED) )
-	errorPce(PCE, NAME_negativeRefCountInCreate, to);
-      else
-	errorPce(PCE, NAME_negativeRefCount, to);
-    }
+  } else
+  { delRefObj(to);
+    checkDeferredUnalloc(to);
   }
 }
 
@@ -623,8 +632,9 @@ freeObject(Any obj)
     unallocObject(inst);
   else
   { deferredUnalloced++;
-    DEBUG(NAME_free, Cprintf("%s has %ld refs.  Deferring unalloc\n",
-			     pp(inst), refsObject(inst)));
+    DEBUG(NAME_free,
+	  Cprintf("%s has %ld.%ld refs.  Deferring unalloc\n",
+		  pp(inst), refsObject(inst), codeRefsObject(inst)));
   }
 
   succeed;

@@ -49,8 +49,8 @@ variable(allow_default,	bool := @off, get,  "'' <-> @default").
 variable(step,		real*,	      get,  "Step for up/down").
 variable(apply_step,	bool := @on,  both, "Apply stepping immediately").
 
-initialise(RI, Label:name, Default:[real], Msg:[code]*,
-	   Low:[real], High:[real]*) :->
+initialise(RI, Label:label=name, Default:default=[real], Msg:message=[code]*,
+	   Low:low=[real], High:high=[real]*) :->
 	send_super(RI, initialise, Label, '', Msg),
 	send(RI, type, real),
 	send(RI, length, 10),
@@ -179,6 +179,10 @@ increment(RI) :->
 	get(RI, step, Step),
 	Step \== @nil,
 	get(RI, value, Now),
+	(   get(RI, high, High), High \== @nil
+	->  NewVal is min(High, Now+Step)
+	;   NewVal is Now+Step
+	),
 	NewVal is Now+Step,
 	send(RI, value, NewVal),
 	(   get(RI, apply_step, @on)
@@ -191,7 +195,10 @@ decrement(RI) :->
 	get(RI, step, Step),
 	Step \== @nil,
 	get(RI, value, Now),
-	NewVal is Now-Step,
+	(   get(RI, low, Low), Low \== @nil
+	->  NewVal is max(Low, Now-Step)
+	;   NewVal is Now-Step
+	),
 	send(RI, value, NewVal),
 	(   get(RI, apply_step, @on)
 	->  send(RI, apply)

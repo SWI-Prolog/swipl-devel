@@ -1052,18 +1052,20 @@ DeleteFrame(FrameObj fr, PceWindow sw)
   if ( sw->frame != fr )
     return errorPce(fr, NAME_noMember, sw);
 
+  addCodeReference(fr);
   deleteChain(fr->members, sw);
   assign(sw, frame, NIL);		/* may kill the frame */
 
   if ( !isFreedObj(fr) && createdFrame(fr) )
   { ws_unmanage_window(sw);
-    TRY(send(sw, NAME_uncreate, EAV));
+    send(sw, NAME_uncreate, EAV);
     unrelateTile(sw->tile);
     if ( getClassVariableValueObject(fr, NAME_fitAfterAppend) == ON )
       send(fr, NAME_fit, EAV);
     else
       send(fr, NAME_resize, EAV);
   }
+  delCodeReference(fr);
 
   succeed;
 }

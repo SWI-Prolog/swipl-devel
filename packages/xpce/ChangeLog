@@ -4,6 +4,17 @@
 VERSION 6.0.10, distributed with SWI-Prolog 5.0.10
 ==================================================
 
+* FIXED: below mentioned memory-management fixes, causing new problems in
+  especially the source-level debugger.  Wouter Jansweijer and a few
+  related messages.
+
+* ADDED/FIXED: named attributes to class float_item and checking low/high
+  in the stepper functions of this class.
+
+
+VERSION 6.0.10a, distributed with SWI-Prolog 5.0.10a
+====================================================
+
 * FIXED: memory-management problem in `code-referenced' objects.  This
   can be the cause of some hard-to-reproduce crashes.
 

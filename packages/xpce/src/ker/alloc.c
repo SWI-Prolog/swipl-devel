@@ -39,6 +39,10 @@
 #endif /*ALLOC_DEBUG*/
 #include "alloc.h"
 
+/* Use this to revert to plain malloc() and use external malloc
+   debuggers */
+/*#define ALLOCFAST 0*/
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Debugging note: This module can run at three debugging levels:
 
@@ -59,7 +63,8 @@ Debugging note: This module can run at three debugging levels:
 	occasions where unalloc'ed memory is changed afterwards.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define ALLOC_MAGIC_BYTE 0xcc
+#define ALLOC_MAGIC_FREE 0xcc
+#define ALLOC_MAGIC_USED 0xbf
 #define ALLOC_MAGIC_WORD 0xdf6556fd
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -112,7 +117,7 @@ allocate(int size)
   p = pceMalloc(ALLOCSIZE);
 
 #if ALLOC_DEBUG
-  memset(p, ALLOC_MAGIC_BYTE, ALLOCSIZE);
+  memset(p, ALLOC_MAGIC_FREE, ALLOCSIZE);
 #endif
 
   top       = (long) p + ALLOCSIZE - 1;
@@ -127,6 +132,7 @@ allocate(int size)
   z->size   = size;
   z->in_use = TRUE;
   z->magic  = ALLOC_MAGIC_WORD;
+  memset(&z->start, ALLOC_MAGIC_USED, size);
 
   return (Zone) &z->start;
 #else
@@ -149,8 +155,10 @@ count_zone_chain(Zone z)
 
 
 Any
-alloc(register int n)
-{ n = roundAlloc(n);
+alloc(int n)
+{ void *ptr;
+
+  n = roundAlloc(n);
   allocbytes += n;
 
   if ( n <= ALLOCFAST )
@@ -176,7 +184,7 @@ alloc(register int n)
 	e = (unsigned char *)&z->next + sizeof(z->next);
 
 	for(p = (unsigned char *)&z->start + n; --p >= e; )
-	  assert(*p == ALLOC_MAGIC_BYTE);
+	  assert(*p == ALLOC_MAGIC_FREE);
       }
 #else
 #if ALLOC_DEBUG
@@ -190,7 +198,9 @@ alloc(register int n)
 		    n, count_zone_chain(freeChains[m])));
 #endif
 
-      return &z->start;
+      ptr = &z->start;
+      memset(ptr, ALLOC_MAGIC_USED, n);
+      return ptr;
     }
 
 #if ALLOC_DEBUG
@@ -200,14 +210,14 @@ alloc(register int n)
     return allocate(n);			/* new memory */
   }
 
+  ptr = pceMalloc(n);
+  allocRange(ptr, n);
+
 #if ALLOC_DEBUG > 1
-{ Any p = pceMalloc(n);
-  memset(p, ALLOC_MAGIC_BYTE, n);
-  return p;
-}
-#else
-  return pceMalloc(n);			/* malloc() it */
+  memset(ptr, ALLOC_MAGIC_USED, n);
 #endif
+
+  return ptr;
 }
 
 
@@ -224,7 +234,7 @@ unalloc(int n, Any p)
 #if ALLOC_DEBUG
     assert((unsigned long)z % 4 == 0);
 #if ALLOC_DEBUG > 1
-    memset(p, ALLOC_MAGIC_BYTE, n);
+    memset(p, ALLOC_MAGIC_FREE, n);
 #endif
     z = (Zone) ((char *)z - offset(struct zone, start));
     assert(z->magic  == ALLOC_MAGIC_WORD);
@@ -247,7 +257,7 @@ unalloc(int n, Any p)
   }
 
 #if ALLOC_DEBUG > 1
-  memset(p, ALLOC_MAGIC_BYTE, n);
+  memset(p, ALLOC_MAGIC_FREE, n);
 #endif
 
   pceFree(z);

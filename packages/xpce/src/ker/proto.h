@@ -1,6 +1,6 @@
 
 /* ../src/ker/alloc.c */
-Any		alloc(register int n);
+Any		alloc(int n);
 void		unalloc(int n, Any p);
 void		initAlloc(void);
 void		allocRange(void *low, int size);
@@ -119,11 +119,13 @@ status		initialiseGetMethod(GetMethod m, Name name, Type rtype, Vector types, Fu
 status		makeClassGetMethod(Class class);
 
 /* ../src/ker/glob.c */
+int		IAmAGlobalFunctionToMakeMeLoad(void);
 
 /* ../src/ker/global.c */
 Any		findGlobal(Name name);
 
 /* ../src/ker/goodies.c */
+long		rdouble(double f);
 int		isqrt(long a);
 int		distance(int x1, int y1, int x2, int y2);
 int		rfloat(double f);
@@ -156,6 +158,8 @@ void		at_pce_exit(atexit_function f, int flags);
 void		run_pce_exit_hooks(int rval);
 
 /* ../src/ker/passing.c */
+void		pceMTLock(int lock);
+void		pceMTUnlock(int lock);
 status		vm_send(Any receiver, Name selector, Class class, int argc, const Any argv []);
 Any		vm_get(Any receiver, Name selector, Class class, int argc, const Any argv []);
 status		sendSendMethod(SendMethod sm, Any receiver, int argc, const Any argv []);
@@ -193,6 +197,7 @@ char *		saveStringName(Name n);
 status		makeClassName(Class class);
 
 /* ../src/ker/object.c */
+void		unreferencedObject(Any obj);
 void		addRefObject(Any from, Any to);
 void		delRefObject(Any from, Any to);
 void		assignField(Instance instance, Any *field, Any value);
@@ -309,7 +314,6 @@ status		resetPce(Pce pce);
 Any		getObjectFromReferencePce(Pce pce, Any ref);
 status		makeClassPce(Class class);
 export status	pceInitialise(int handles, const char *home, int argc, char **argv);
-int		check_licence(void);
 
 /* ../src/ker/sendmethod.c */
 SendMethod	createSendMethod(Name name, Vector types, StringObj doc, SendFunc action);

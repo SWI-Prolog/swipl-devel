@@ -35,7 +35,8 @@
 :- require([ default/3
 	   ]).
 
-:- pce_begin_class(plotter, device, "A plot").
+:- pce_begin_class(plotter, device,
+		   "Diagram for graphs and barcharts").
 
 axis(P, Axe:plot_axis) :->
 	"Associate an axis with the plotter"::

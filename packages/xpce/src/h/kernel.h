@@ -178,7 +178,9 @@ different types when passed to a vararg function.
 
 #ifdef __GNUC__
 #if !__STRICT_ANSI__			/* gcc -ansi */
+#ifndef O_INLINE
 #define O_INLINE 1
+#endif
 #define O_CONST_FUNCTION 1
 #endif
 #define Promote(type) int
@@ -570,6 +572,8 @@ extern struct name builtin_names[];	/* object-array of built-in's */
 				 !onFlag(o, F_LOCKED|F_PROTECTED|F_ANSWER))
 #define freeableObj(o)		if ( isVirginObj(o) ) \
   				  freeObject(o)
+#define checkDeferredUnalloc(o)	if ( (((Instance)o)->references) <= 0 ) \
+				  unreferencedObject(o)
 
 #define GcProtect(o, g)		do { \
 				addCodeReference(o); \
@@ -1644,13 +1648,15 @@ extern char *T_report[];		/* ->report: kind, format, args... */
     Cell _cell = ch->head; \
 	\
     for( ; notNil(_cell); _cell = _cell->next, _i++ ) \
-      _array[_i] = _cell->value; \
-	\
+    { _array[_i] = _cell->value; \
+      if ( isObject(_array[_i]) ) addCodeReference(_array[_i]); \
+    } \
     for(_i = 0; _i < _size; _i++) \
     { (val) = _array[_i]; \
       if ( nonObject(val) || !isFreedObj(val) ) \
       { code; \
       } \
+      if ( isObject(val) ) delCodeReference(val); \
     } \
   }
 	

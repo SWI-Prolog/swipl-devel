@@ -126,18 +126,7 @@ delCodeReference(Any obj)
 { Instance i = obj;
 
   i->references -= ONE_CODE_REF;
-  if ( i->references <= 0 )
-  { if ( noRefsObj(i) )
-    { if ( isFreedObj(i) )
-      { DEBUG(NAME_free,
-	      Cprintf("Doing (code-)deferred unalloc on %s\n", pp(i)));
-	unallocObject(i);
-	deferredUnalloced--;
-      }
-    } else
-    { errorPce(PCE, NAME_negativeRefCount, i);
-    }
-  }
+  checkDeferredUnalloc(i);
 }
 
 		/********************************
