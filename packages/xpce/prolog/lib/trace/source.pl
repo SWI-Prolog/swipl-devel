@@ -55,14 +55,7 @@ initialise(V) :->
 	send(V, send_super, initialise),
 	send(V, mode, prolog),
 	send(V, margin_width, 22),
-	send(V?margin, recogniser,
-	     click_gesture(left, '', single,
-			   if(?(@event?receiver, fragment, @event),
-			      message(V, selected_fragment,
-				      ?(@event?receiver, fragment, @event)),
-			      message(V, selected_fragment, @nil)))),
-	forall(style(Name, Style),
-	       send(V, style, Name, Style)),
+	forall(style(Name, Style), send(V, style, Name, Style)),
 	send(V, editable, @off),
 	send(V, update_label).
 
@@ -226,6 +219,7 @@ mark_special(_, Buffer) :-
 mark_special(File, Buffer) :-
 	canonical_source_file(File, Source),
 	send(Buffer, attribute, debugger_marks_done, @on),
+	send(Buffer, margin_width, 22),
 	mark_stop_points(Buffer, Source).
 
 mark_stop_points(_, Source) :-
@@ -242,10 +236,10 @@ mark_stop_points(_, _).
 %	Mark stop-points using a breakpoint fragment.
 
 mark_stop_point(ClauseRef, PC) :-
-	stop_fragment(ClauseRef, PC, _), !. 		% alredy got this one
+	stop_fragment(ClauseRef, PC, _), !. 		% already got this one
 mark_stop_point(ClauseRef, PC) :-
 	break_location(ClauseRef, PC, File, A-Z),
-	buffer(File, Buffer),
+	current_source_buffer(File, Buffer),
 	new(F, fragment(Buffer, A, Z-A, breakpoint)),
 	send(F, attribute, clause, ClauseRef),
 	send(F, attribute, pc, PC),

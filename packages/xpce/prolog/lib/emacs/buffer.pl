@@ -30,6 +30,7 @@ variable(auto_save_count, number,	get,  "Auto-save at expiration").
 variable(saved_caret,	  int,		both, "Saved caret on last quit").
 variable(saved_fill,	  bool,		both, "Saved fill_mode on quit").
 variable(pool,		  [name],	both, "Window pool I belong too").
+variable(margin_width,	  '0..' := 0,	get,  "Margin width of editors").
 variable(coloured_generation,
 	 int := -1,
 	 both,
@@ -95,9 +96,11 @@ attach(B, E:editor) :->
 	;   get(Editors?head, caret, Caret),
 	    get(Editors?head, fill_mode, Fill)
 	),
+	get(B, margin_width, MW),
 	send(B, send_super, attach, E),
 	send(E, caret, Caret),
-	send(E, fill_mode, Fill).
+	send(E, fill_mode, Fill),
+	send(E, margin_width, MW).
 
 
 detach(B, E:editor) :->
@@ -358,6 +361,16 @@ update_label(B) :->
 	;   true
 	).
 
+
+		 /*******************************
+		 *	      MARGINS		*
+		 *******************************/
+
+margin_width(B, W:'0..') :->
+	"Set width of the margin for associated editors"::
+	send(B, slot, margin_width, W),
+	send(B?editors, for_all,
+	     message(@arg1, margin_width, W)).
 
 
 		 /*******************************

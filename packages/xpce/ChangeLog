@@ -1,3 +1,11 @@
+* ENHANCED: `frame->return' and `frame<-confirm' type-check to unchecked,
+  so Prolog terms can be returned using this mechanism.
+
+* ADDED: text_margin->event to handle the fragment selection.
+
+* FIXED: Placement of scrollbar on editor when attaching a margin to an
+  open editor.
+
 * ADDED: `code<->debug_class: service' to hide everything executed by a
   code object from the tracer.  Used by PceEmacs, Visual Hierarchy and
   Inspector to hide idle events and changes-tracking from the Prolog

@@ -33,6 +33,7 @@ pce_ifhostproperty(prolog(quintus),
 		   (:- use_module(library(strings), [concat_chars/2]))).
 
 resource(mode_pl_icon, image, image('32x32/doc_pl.xpm')).
+resource(breakpoint,   image, image('16x16/stop.xpm')).
 
 :- emacs_begin_mode(prolog, language,
 		    "Mode for editing XPCE/Prolog sources",
@@ -96,7 +97,7 @@ setup_mode(M) :->
 	"Attach styles for errors, warnings, etc."::
 	send(M, send_super, setup_mode),
 	send(M, style, singleton,  style(bold := @on)),
-	send(M,	style, breakpoint, style(background := cyan)),
+	send(M,	style, breakpoint, style(icon := resource(breakpoint))),
 	send(M,	style, error,	   style(background := red)),
 	send(M,	style, warning,	   style(background := orange)),
 	send(M,	style, info,	   style(background := grey80)),
@@ -869,7 +870,11 @@ break_at(M) :->
 	->  get(M, caret, Caret),
 	    get(M, line_number, M?caret, Line),
 	    (	auto_call(prolog_break_at(Source, Line, Caret))
-	    ->	send(M, report, status, 'Break-point set')
+	    ->	(   get(TB, margin_width, 0)
+		->  send(TB, margin_width, 22)
+		;   true
+		),
+		send(M, report, status, 'Break-point set')
 	    ;	send(M, report, warning, 'Failed to set break-point')
 	    )
 	;   send(M, report, error, 'Source file is not loaded')

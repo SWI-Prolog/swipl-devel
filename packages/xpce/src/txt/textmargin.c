@@ -230,6 +230,28 @@ scan_fragment_icons(TextMargin m, SendFunc func, Name how, Any ctx)
 }
 
 
+static status
+eventTextMargin(TextMargin m, EventObj ev)
+{ Editor e = (Editor)m->device;
+
+  if ( notNil(e) &&
+       isAEvent(ev, NAME_msLeftUp) &&
+       getMulticlickEvent(ev) == NAME_single &&
+       valInt(getClickDisplacementEvent(ev)) < 5 )
+  { Fragment f = getFragmentTextMargin(m, ev);
+
+    if ( f )
+      send(e, NAME_selectedFragment, f, 0);
+    else
+      send(e, NAME_selectedFragment, NIL, 0);
+
+    succeed;
+  }
+  
+  fail;
+}
+
+
 		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/
@@ -254,7 +276,9 @@ static vardecl var_textMargin[] =
 
 static senddecl send_textMargin[] =
 { SM(NAME_initialise, 3, T_initialise, initialiseTextMargin,
-     DEFAULT, "Create from editor, width and height")
+     DEFAULT, "Create from editor, width and height"),
+  SM(NAME_event, 1, "event", eventTextMargin,
+     NAME_event, "Handle fragment-selection")
 };
 
 /* Get Methods */

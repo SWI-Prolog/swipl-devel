@@ -345,10 +345,9 @@ goal_expansion(G0, G, P, P) :-
 
 :- module_transparent
 	predicate_name/2.
-:- dynamic
-	user:prolog_predicate_name/2.	% hook!
 :- multifile
-	user:prolog_predicate_name/2.
+	user:prolog_predicate_name/2,
+	user:prolog_clause_name/2.
 
 hidden_module(user).
 hidden_module(system).
@@ -375,6 +374,8 @@ predicate_name(Predicate, PName) :-
 %
 %	Provide a suitable description of the indicated clause.
 
+clause_name(Ref, Name) :-
+	user:prolog_clause_name(Ref, Name), !.
 clause_name(Ref, Name) :-
 	nth_clause(Head, N, Ref),
 	predicate_name(Head, PredName),

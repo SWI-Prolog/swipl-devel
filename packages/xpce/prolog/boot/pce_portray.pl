@@ -16,11 +16,10 @@
 :- multifile
 	user:portray/1,
 	user:prolog_list_goal/1,
-	user:prolog_predicate_name/2.
+	user:prolog_predicate_name/2,
+	user:prolog_clause_name/2.
 :- dynamic
-	user:portray/1,
-	user:prolog_list_goal/1,
-	user:prolog_predicate_name/2.
+	user:portray/1.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 XPCE portray rules. These rules print object references indicating their
@@ -87,6 +86,15 @@ clean_id(Term, Id) :-
 	compound(Term),
 	arg(1, Term, Id0),
 	clean_id(Id0, Id).
+
+%	user:prolog_clause_name(+ClauseRef, -Name)
+%
+%	Translate the reference to a method-clause into the corresponding
+%	method.
+
+user:prolog_clause_name(Ref, Name) :-
+	clause(Head, _, Ref),
+	prolog_predicate_name(Head, Name).
 
 
 		 /*******************************

@@ -262,6 +262,13 @@ source_typed(Frame, Typed:event_id) :->
 		 *	     ACTIONS		*
 		 *******************************/
 
+window_pos_for_button(F, ButtonName:name, Pos:point) :<-
+	"Return position for transient window reacting on Button"::
+	get(F, member, buttons, Dialog),
+	get(Dialog, button, ButtonName, Button),
+	get(Button, display_position, ButtonPos),
+	get(ButtonPos, plus, point(0, 25), Pos).
+
 action(Frame, Action:name) :<-
 	"Wait for the user to return an action"::
 	action(Frame, Action).
@@ -315,15 +322,16 @@ edit(F) :->
 spy(F) :->
 	"Set a spy-point"::
 	new(D, dialog('Set spy point')),
-	send(D, append, new(TI, text_item(predicate, ''))),
+	send(D, append, new(TI, prolog_predicate_item(predicate, ''))),
 	send(D, append, button(ok, message(D, return, TI?selection))),
 	send(D, append, button(cancel, message(D, return, @nil))),
 	send(D, default_button, ok),
-	get(D, confirm_centered, F?area?center, Answer),
+	get(F, window_pos_for_button, spy, Pos),
+	send(D, transient_for, F),
+	get(D, confirm, Pos, Answer),
 	send(D, destroy),
 	Answer \== @nil,
-	term_to_atom(Term, Answer),
-	user:spy(Term).
+	user:spy(Answer).
 
 goal(F, Goal:prolog) :<-
 	"Return qualitied term for selected frame"::
@@ -390,10 +398,7 @@ abort(_) :->
 
 query(F) :->
 	"Enter and run a query"::
-	get(F, member, buttons, Dialog),
-	get(Dialog, button, query, Button),
-	get(Button, display_position, ButtonPos),
-	get(ButtonPos, plus, point(0, 25), Pos),
+	get(F, window_pos_for_button, query, Pos),
 	new(PQ, prolog_query),
 	send(new(report_dialog), below, PQ),
 	get(PQ, frame, Frame),
