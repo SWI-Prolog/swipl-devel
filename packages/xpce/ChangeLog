@@ -1,3 +1,12 @@
+* FIXED: SWI-Prolog help interface for syntax errors on `explain'.
+
+* FIXED: library(compatibility/resource) to handle resources correctly
+  if demand-loading traps loading another file while loading a class.
+  This notably leads to trouble if PceEmacs is demand-loaded on an error
+  inside a class.
+
+* FIXED: `dialog_group->size: @default' (had no effect).
+
 * FIXED: Error message printed from failing goals in pce_global/2.
 
 * ADDED: library(http_client) to fetch HTTP headers and data.
