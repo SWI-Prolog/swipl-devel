@@ -382,7 +382,7 @@ pl_set_sgml_parser(term_t parser, term_t option)
   { term_t a = PL_new_term_ref();
 
     PL_get_arg(1, option, a);
-    if ( !PL_get_integer(a, &p->location.charpos) )
+    if ( !PL_get_long(a, &p->location.charpos) )
       return sgml2pl_error(ERR_TYPE, "integer", a);
   } else if ( PL_is_functor(option, FUNCTOR_dialect1) )
   { term_t a = PL_new_term_ref();
