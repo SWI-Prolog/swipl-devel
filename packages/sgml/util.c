@@ -66,7 +66,7 @@ istrcpy(ichar *d, const ichar *s)
 
 
 int
-icstrcaseeq(ichar const *s1, char const *s2)
+istrcaseeq(const ichar *s1, const ichar *s2)
 { ichar c;
 
   while ((c = *s1++) != '\0')

@@ -39,7 +39,6 @@ ichar *		istrlower(ichar *s);
 int             istrprefix(const ichar *pref, const ichar *s);
 int             istreq(const ichar *s1, const ichar *s2);
 int             istrcaseeq(const ichar *s1, const ichar *s2);
-int		icstrcaseeq(ichar const *s1, char const *s2);
 int		istrncaseeq(const ichar *s1, const ichar *s2, int len);
 int             istrhash(const ichar *t, int tsize);
 int             istrcasehash(const ichar *t, int tsize);
