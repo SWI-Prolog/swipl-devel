@@ -9,6 +9,7 @@
 
 #include <h/kernel.h>
 #include <h/graphics.h>
+#include <unistd.h>
 
 static status	runningTimer(Timer tm, Bool val);
 
