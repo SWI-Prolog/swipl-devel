@@ -82,7 +82,7 @@ distance(int x1, int y1, int x2, int y2)
 
 
 int
-rfloat(float f)
+rfloat(double f)
 { if (f > 0.0)
     return (int) (f+0.4999999);
 

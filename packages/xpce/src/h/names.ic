@@ -2076,6 +2076,7 @@
   BUILTIN_NAME("table_slice")
   BUILTIN_NAME("tables")
   BUILTIN_NAME("tail")
+  BUILTIN_NAME("targets")
   BUILTIN_NAME("tbox")
   BUILTIN_NAME("template")
   BUILTIN_NAME("term")
@@ -2361,4 +2362,3 @@
   BUILTIN_NAME("yref")
   BUILTIN_NAME("yref_var")
   BUILTIN_NAME("zoom")
-  BUILTIN_NAME("targets")

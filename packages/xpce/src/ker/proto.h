@@ -126,7 +126,7 @@ Any		findGlobal(Name name);
 /* ../src/ker/goodies.c */
 int		isqrt(long a);
 int		distance(int x1, int y1, int x2, int y2);
-int		rfloat(float f);
+int		rfloat(double f);
 char *		strcpyskip(char *t, char *f);
 status		substr(register char *str, register char *sb);
 status		prefixstr(char *s1, char *s2);

@@ -519,7 +519,7 @@ getLengthLine(Line ln)
 
 
 static void
-parms_line(Line ln, int *a, float *b)			/* y = a + bx */
+parms_line(Line ln, int *a, double *b)			/* y = a + bx */
 { int x1 = valInt(ln->start_x);
   int x2 = valInt(ln->end_x);
   int y1 = valInt(ln->start_y);
@@ -529,8 +529,8 @@ parms_line(Line ln, int *a, float *b)			/* y = a + bx */
   { *b = INFINITE;			/* vertical */
     *a = 0;
   } else
-  { *b = (float)(y2 - y1) / (float)(x2 - x1);
-    *a = y1 - rfloat(*b * (float)x1);
+  { *b = (double)(y2 - y1) / (double)(x2 - x1);
+    *a = y1 - rfloat(*b * (double)x1);
   }
 
   DEBUG(NAME_intersection, Cprintf("%d,%d --> %d,%d: y = %d + %2fx\n",
@@ -540,9 +540,9 @@ parms_line(Line ln, int *a, float *b)			/* y = a + bx */
 
 Point
 getIntersectionLine(Line l1, Line l2)
-{ float b1, b2;
+{ double b1, b2;
   int a1, a2;
-  float xx;
+  double xx;
   int xy;
 
   parms_line(l1, &a1, &b1);
@@ -551,13 +551,13 @@ getIntersectionLine(Line l1, Line l2)
   if ( b1 == b2 )
     fail;				/* parallel */
   if ( b1 == INFINITE )			/* l1 is vertical */
-  { xx = (float) valInt(l1->end_x);
+  { xx = (double) valInt(l1->end_x);
     xy = a2 + rfloat(b2 * xx);
   } else if ( b2 == INFINITE )		/* l2 is vertical */
-  { xx = (float) valInt(l2->end_x);
+  { xx = (double) valInt(l2->end_x);
     xy = a1 + rfloat(b1 * xx);
   } else
-  { xx = (float)(a2 - a1) / (b1 - b2);
+  { xx = (double)(a2 - a1) / (b1 - b2);
     xy = a1 + rfloat(b1 * xx);
   }
 
@@ -571,7 +571,7 @@ getAngleLine(Line ln, Point p)
   int x2 = valInt(ln->end_x);
   int y1 = valInt(ln->start_y);
   int y2 = valInt(ln->end_y);
-  float angle;
+  double angle;
   int rte = 0;				/* relative-to-end */
 
   if ( notDefault(p) &&
@@ -579,9 +579,9 @@ getAngleLine(Line ln, Point p)
     rte++;
 
   if ( rte )
-    angle = atan2((float)(y2-y1), (float)(x1-x2));
+    angle = atan2((double)(y2-y1), (double)(x1-x2));
   else
-    angle = atan2((float)(y1-y2), (float)(x2-x1));
+    angle = atan2((double)(y1-y2), (double)(x2-x1));
   if ( angle < 0 )
     angle = 2.0 * M_PI + angle;
 
