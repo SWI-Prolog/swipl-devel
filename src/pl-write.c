@@ -76,7 +76,7 @@ atomType(atom_t a)
   { if ( isSolo(*s) )
       return AT_SOLO;
     switch( *s )
-    { case ',':
+    { /*case ',':*/
       case '|':
 	return AT_SOLO;
     }
@@ -536,7 +536,11 @@ writeTerm2(term_t t, int prec, write_options *options)
 			op_type == OP_XFX || op_type == OP_XFY
 				? op_pri-1 : op_pri, 
 			options));
-	  TRY(writeAtom(functor, options));
+	  if ( functor == ATOM_comma )
+	  { TRY(Putc(',', out));
+	  } else
+	  { TRY(writeAtom(functor, options));
+	  }
 	  if ( functor == ATOM_comma )
 	    TRY(Putc(' ', out));
 	  TRY(writeTerm(r, 
@@ -558,7 +562,7 @@ writeTerm2(term_t t, int prec, write_options *options)
       { if (n > 0)
 	  TRY(PutString(", ", out));
 	PL_get_arg(n+1, t, a);
-	TRY(writeTerm(a, 999, options));
+	TRY(writeTerm(a, 1000, options));
       }
       return Putc(')', out);
     }
