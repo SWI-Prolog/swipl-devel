@@ -166,5 +166,7 @@ install::
 
 windows.pdf:	windows.tex
 		./runtex --pdf windows
+windows.html:	windows.tex
+		latex2html windows
 
 # EOF #

@@ -6,9 +6,9 @@
 \makeindex
 
 \onefile
-\htmloutput{Windows}				% Output directory
-\htmlmainfile{READWIN.html}			% Main document file
-\bodycolor{white}				% Page colour
+\htmloutput{.}				% Output directory
+\htmlmainfile{windows}			% Main document file
+\bodycolor{white}			% Page colour
 
 \renewcommand{\runningtitle}{SWI-Prolog for MS-Windows}
 
@@ -24,8 +24,13 @@
 \maketitle
 
 \begin{abstract}
-This document summarises the most important issues to get you started
-using SWI-Prolog on MS-Windows.
+This document should get you started using SWI-Prolog on MS-Windows. It
+also describes the components and issues that are specific to
+MS-Windows. It is by no means a manual or Prolog tutorial. The reference
+manual is available online or can be downloaded in HTML and PDF format
+from the \url[SWI-Prolog website]{http://www.swi-prolog.org/}, which
+also provides links to books, online tutorials and other Prolog related
+material.
 \end{abstract}
 
 
@@ -102,25 +107,54 @@ default font gives redraw and cursor dislocation problems.  In this case
 you may wish to select an alternative.  Some built-in commands assume
 non-proportional fonts.
 
-    \definition{User init file ...}
+    \definition{Settings/User init file ...}
 Edits the user personalisation file.  If no such file exists it first
 installes a default file as \file{pl.ini} that contains commonly used
 settings in comments.
 
-    \definition{Stack sizes ...}
+    \definition{Settings/Stack sizes ...}
 Allows to define the maximum size to which the various Prolog stacks are
-allowed to grow. The system defaults suffice for many applications. 
+allowed to grow. The system defaults are chosen to make errornous
+programs fail quickly on modest hardware.  Programs with large data
+structures or many choicepoints often need larger stacks.  Note that
+an active Prolog process growing over the size of the physical memory of
+your computer can make the system extremely slow.
+
+    \definition{Run/Interrupt}
+Try to interrupt the running Prolog process.  This is the same as
+using \emph{Control-C}.  Sometimes interrupts are not honoured or
+take very long to process.  Closing the window twice provides a
+way to force Prolog to stop.
+
+    \definition{Run/New thread}
+Creates a new interactor window running in a separate thread of
+execution.  This may be used to inspect the database or program
+while the main task continues.
+
+    \definition{Debug/Edit spy points ...}
+Edit break-points on predicates. From the PceEmacs editor (see
+\secref{edit}) break-points can also be set on specific calls from
+specific clauses.
+
+    \definition{Debug/Graphical debugger ...}
+Use the source-level debugger on the next spy- or break-point or
+other call that enables the debugger.
+
+    \definition{Help}
+The help menu provides various starting point to related documents.
+Items flagged with {\sf (on www)} open your default internet
+browser on a page of the SWI-Prolog website.
 \end{description}
 
 
-\subsection{Editing Prolog programs}
+\subsection{Editing Prolog programs}		\label{sec:edit}
 
 There are three options for editing.  One is to run an editor of choice
-in a seperate window and use the below described make/0 command to
+in a separate window and use the below described make/0 command to
 reload modified files.  In addition to this option Prolog can be used
 to locate predicates, modules and loaded files by specifying the editor
 of choice for use with the edit/1 command described below.  This is
-achieved by editing the personalisation file (see \sectref{menu}) and
+achieved by editing the personalisation file (see \secref{menu}) and
 follow the instructions in the comments.
 
 Finally, you may wish to use the built-in editor called \emph{PceEmacs}.
@@ -132,6 +166,8 @@ personalisation file.
 
 \subsection{Some useful commands}
 
+This section provides a very brief overview of important or
+commonly used SWI-Prolog predicates to control the environment.
 
 \begin{description}
     \predicate{consult}{1}{+File}
@@ -171,7 +207,103 @@ items are named \arg{Spec} it prompts for the desired alternative.
     \predicate{make}{0}{}
 Reload all files that have been changed since they where last loaded.
 Normally used after editing one or more files.
+
+    \predicate{trace}{0}{}
+Start the interactive debugger.  There are three ways to use this.
+Entered as a single goal at the toplevel, the next query will be
+traced.  Alternatively it can be used in conjunction with the goal
+to be debugged: \exam{?- trace, run.} and finally you can include it
+in your program to start tracing at a particular point or under a
+particular condition:
+
+\begin{code}
+	...,
+	(var(X) -> trace ; true),
+	...,
+\end{code}
+
+    \predicate{gtrace}{0}{}
+Same as trace, but forces the use of the graphical (source-level)
+debugger.
+
+    \predicate{apropos}{1}{+Keyword}
+Search for all predicates that contain \arg{Keyword} in their name
+or short description.  If a gui environment is available the results
+are hyperlinks.  Otherwise use help/1 to get details on selected
+hits.
+
+    \predicate{help}{1}{+Spec}
+Give help on \arg{Spec}, which is normally the name of a predicate or
+C interface function.
 \end{description}
+
+
+\section{Using SWI-Prolog with C/C++}
+
+Using MSVC or a compiler with compatible calling format you can write
+C or C++ code that can be loaded into SWI-Prolog and called as a
+predicate.  You can also embed SWI-Prolog in C/C++ applications.
+
+Details on how to interact with Prolog are in the SWI-Prolog reference
+manual.  The mailing list archives and TWiki web provide problems and
+solutions to the many problems that may occur. This section only
+discusses some Windows specific issues.
+
+\subsection{Using DevStudio}
+
+First of all, add the \file{include} folder of the installation to
+the search-path for headers and the \file{lib} folder to the search-path
+for libraries.  Both DLLs (extensions) or embedded executables should
+link to \file{libpl.lib} and, if appropriate, to \file{msvcrt.lib}, the
+multi-threaded DLL version of the MSVC runtime library.
+
+To create extensions, simply use the Win32 DLL project template.  To
+embed Prolog, care should be taken that Prolog can find the Prolog
+installation. For \emph{development}, the simplest way to ensure this is
+by adding the installation \file{bin} folder to the \verb|%PATH%|
+environment and call PL_inifialise() as illustrated below.
+PL_inifialise() uses the path of the loaded \file{libpl.dll} module
+to find the Prolog installation folder.
+
+\begin{code}
+  { static char *av[] = { "libpl.dll", NULL };
+
+    if ( !PL_inifialise(1, av) )
+    { <error>
+    }
+  }
+\end{code}
+
+To create an executable that does not rely on Prolog one must create
+a saved-state of the required Prolog code and attach this to the
+executable.  Creating saved-states is described with qsave_program/2
+in the reference manual.  This can be attached to a state using the
+DOS command below to create \file{final.exe} from the executable
+produced by MSVC and the generated saved-state.
+
+\begin{code}
+> copy /b file.exe+file.state final.exe
+\end{code}
+
+
+\subsection{Using plld.exe}
+
+The \program{plld.exe} automates most of the above complications and
+provides compatibility for common tasks on many platforms supported
+by SWI-Prolog.  To use it with MSVC, set the PATH, INCLUDE and LIB
+environment to find the DevStudio tools, headers and libraries as
+well as the Prolog ones described above. Now, an extension
+\file{myext.dll} is created from the source \file{myext.c} using
+
+\begin{code}
+> plld -shared -o myext myext.c
+\end{code}
+
+An embedded executable is created from C, C++ and Prolog files using
+
+\begin{code}
+> plld -o myexe file.c ... file.pl ...
+\end{code}
 
 
 \section{The installation}
@@ -241,8 +373,8 @@ The following tools and programs are installed:
 
 \subsection{Installed Registry keys and menus}
 
-The filetype \fileext{pl} or choosen alternative (see \secref{ext}) is
-associated to \program{plwin.exe}.  A choosen folder (default SWI-Prolog)
+The filetype \fileext{pl} or chosen alternative (see \secref{ext}) is
+associated to \program{plwin.exe}.  A chosen folder (default SWI-Prolog)
 is added to the start-menu holding shortcuts to Prolog and some related
 utilities. The following registry keys are in use:
 
@@ -321,7 +453,7 @@ C-compiler runtime library.
 
 There are several ways to support SWI-Prolog:
 
-\begin{itemlist}
+\begin{itemize}
     \item Extend the system with contributions
     \item Improve the system by submitting bug reports and patches.
     \item Link to \url{http://www.swi-prolog.org} and refer to SWI-Prolog
@@ -330,6 +462,6 @@ There are several ways to support SWI-Prolog:
           \url{http://www.cognitivetools.com/SWI-Prolog.html}
     \item Support development financially at 
           \url{http://www.swi-prolog.org/donate.html}.
-\end{itemlist}
+\end{itemize}
 
 \end{document}

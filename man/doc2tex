@@ -21,6 +21,7 @@ sub printTeX
   s/\\file{([^}]*\\bnfmeta[^}]*)}/\\metafile{\1}/g;
   s/\\file{([^}]*\\arg[^}]*)}/\\metafile{\1}/g;
   s/\\file{([^}]+)}/\\file@\1@/g;
+  s/\\htmloutput{([^}]+)}/\\htmloutput@\1@/g;
 
   s/{#!}/{\\Sexe}/g;
   s/{!}/{\\Scut}/g;
@@ -70,6 +71,7 @@ sub printTeX
   s/{%}/{\\Spercent}/g;
 
   s/\\file@([^@]+)@/\\file{\1}/g;
+  s/\\htmloutput@([^@]+)@/\\htmloutput{\1}/g;
 
   print;
 }
