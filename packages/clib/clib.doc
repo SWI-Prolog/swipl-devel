@@ -32,9 +32,13 @@ form-data if Prolog is used for CGI-scripting, the \pllib{crypt}
 library provides access to Unix password encryption and finally, the
 \pllib{socket} library provides access to TCP/IP communication.
 
-Currently only the \pllib{socket} library is available on MS-Windows
-based systems.  Providing \pllib{cgi} would be a trivial exercise.
-The \pllib{unix} and \pllib{crypt} are very Unix-specific.
+Currently only \pllib{socket} and \pllib{cgi} are available on
+MS-Windows based systems. The \pllib{unix} is very Unix specific,
+though it might be possible to compile it using the Cygnus win32
+tool-chain.  The \pllib{crypt} could be ported using one of the
+available open-source implementations of the crypt() function, but
+as it implements Unix password encryption it isn't worth much on
+non-Unix systems.
 \end{abstract}
 
 \vfill
@@ -68,7 +72,7 @@ deal with process management. These primitives are useful for many
 tasks, including server management, parallel computation, exploiting and
 controlling other processes, etc.
 
-The predicatea are modelled closely after their native Unix
+The predicates are modelled closely after their native Unix
 counterparts. Higher-level primitives, especially to make this library
 portable to non-Unix systems are desirable. Using these primitives and
 considering that process manipulation is not a very time-critical
@@ -180,7 +184,9 @@ controlling terminal.
 The \pllib(socket) library provides TCP inet-domain sockets from
 SWI-Prolog, both client and server-side communication. The interface of
 this library is very close to the Unix socket interface, also supported
-by the MS-Windows {\em winsock} API.
+by the MS-Windows {\em winsock} API.  Since SWI-Prolog 4.0, XPCE is part
+of SWI-Prolog and offers \class{socket}.  XPCE provides an event-driven
+interface to sockets, handling multiple open sockets in paralel.
 
 In the future we hope to provide a more high-level socket interface
 defined in Prolog and based on these primitives.
@@ -194,7 +200,7 @@ yet initialised, this will also initialise the library.
     \predicate{tcp_close_socket}{1}{+SocketId}
 Closes the indicated socket, making \arg{SocketId} invalid.  Normally,
 sockets are closed by closing both stream handles returned by
-open_socket/3.  There are two cases where close_socket/1 is used
+open_socket/3.  There are two cases where tcp_close_socket/1 is used
 because there are no stream-handles:
 
 \begin{itemize}
@@ -219,7 +225,7 @@ together with tcp_listen/2 and tcp_accept/3 implement the {\em server}-side of
 the socket interface.
 
     \predicate{tcp_listen}{2}{+Socket, +Backlog}
-Tells, after tcp_bind/2, the socket to listen for incomming requests for
+Tells, after tcp_bind/2, the socket to listen for incoming requests for
 connections.  \arg{Backlog} indicates how many pending connection
 requests are allowed.  Pending requests are requests that are not yet
 acknowledged using tcp_accept/3.  If the indicated number is exceeded, the
@@ -234,7 +240,7 @@ IP-address of the client.
 
     \predicate{tcp_connect}{+Socket. +Host:+Port}
 Client-interface to connect a socket to a given \arg{Port} on a given
-\arg{Host}.  After successfull completion, tcp_open_socket/3 can be used to
+\arg{Host}.  After successful completion, tcp_open_socket/3 can be used to
 create I/O-Streams to the remote socket.
 
     \predicate{tcp_fcntl}{3}{+Stream, +Action, ?Argument}
@@ -295,7 +301,7 @@ dispatch(AcceptFd) :-
 	    close(In),
 	    close(Out),
 	    halt
-	;   close_socket(Socket)
+	;   tcp_close_socket(Socket)
 	),
 	dispatch(AcceptFd).
 \end{code}
@@ -366,24 +372,8 @@ print_args([A0|T]) :-
 \subsection{Some considerations}
 
 Printing an HTML document using format/2 is not really a neat way
-of producing HTML.  We are considering two alternatives.  One is to
-define a library that provides for macro-expansion as well as keeping
-track of open environments.  This makes the code more robust and allows
-for writing generic infrastructure to finish a page in a neat way should
-anything go wrong during its construction.  We have used this in some
-internal projects with a certain degree of success.  The above code
-would look like this:
-
-\begin{verbatim}
-main :-
-	cgi_get_form(Arguments),
-	#open_document('text/html'),
-	#head([#title('Simple SWI-Prolog CGI script output')]),
-	...
-\end{verbatim}
-
-Recently, we are considering to represent the HTML document as a
-complex Prolog term and provide a library for decent printing thereof.
+of producing HTML.  A high-level alternative is provided by
+\pllib{http/html_write} from the XPCE package.
 
 
 \section{Unix password encryption library}
@@ -403,7 +393,7 @@ predicate succeeds iff \arg{Encrypted} is a valid encryption of
 \arg{Plain}.
 
 \arg{Plain} is either an atom, SWI-Prolog string, list of characters
-or list of character-codes.  It is not adviced to use atoms, as this
+or list of character-codes.  It is not advised to use atoms, as this
 implies the password will be available from the Prolog heap as a
 defined atom.
 \end{description}

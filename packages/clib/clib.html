@@ -42,10 +42,13 @@ encryption and finally, the
 <CODE>library(socket)</CODE> library provides access to TCP/IP 
 communication.
 
-<P>Currently only the <CODE>library(socket)</CODE> library is available 
-on MS-Windows based systems. Providing <CODE>library(cgi)</CODE> would 
-be a trivial exercise. The <CODE>library(unix)</CODE> and <CODE>library(crypt)</CODE> 
-are very Unix-specific.
+<P>Currently only <CODE>library(socket)</CODE> and <CODE>library(cgi)</CODE> 
+are available on MS-Windows based systems. The <CODE>library(unix)</CODE> 
+is very Unix specific, though it might be possible to compile it using 
+the Cygnus win32 tool-chain. The <CODE>library(crypt)</CODE> could be 
+ported using one of the available open-source implementations of the 
+crypt() function, but as it implements Unix password encryption it isn't 
+worth much on non-Unix systems.
 </TABLE>
 
 <H1><A NAME="document-contents">Table of Contents</A></H1>
@@ -93,7 +96,7 @@ Unix primitives to deal with process management. These primitives are
 useful for many tasks, including server management, parallel 
 computation, exploiting and controlling other processes, etc.
 
-<P>The predicatea are modelled closely after their native Unix 
+<P>The predicates are modelled closely after their native Unix 
 counterparts. Higher-level primitives, especially to make this library 
 portable to non-Unix systems are desirable. Using these primitives and 
 considering that process manipulation is not a very time-critical 
@@ -217,7 +220,10 @@ controlling terminal.
 <P>The <CODE>library(Socket library)</CODE>socket) library provides TCP 
 inet-domain sockets from SWI-Prolog, both client and server-side 
 communication. The interface of this library is very close to the Unix 
-socket interface, also supported by the MS-Windows <EM>winsock</EM> API.
+socket interface, also supported by the MS-Windows <EM>winsock</EM> API. 
+Since SWI-Prolog 4.0, XPCE is part of SWI-Prolog and offers . XPCE 
+provides an event-driven interface to sockets, handling multiple open 
+sockets in paralel.
 
 <P>In the future we hope to provide a more high-level socket interface 
 defined in Prolog and based on these primitives.
@@ -235,8 +241,8 @@ library is not yet initialised, this will also initialise the library.
 Closes the indicated socket, making <VAR>SocketId</VAR> invalid. 
 Normally, sockets are closed by closing both stream handles returned by
 <A NAME="idx:opensocket3:11"></A><B>open_socket/3</B>. There are two 
-cases where <A NAME="idx:closesocket1:12"></A><B>close_socket/1</B> is 
-used because there are no stream-handles:
+cases where <A NAME="idx:tcpclosesocket1:12"></A><A HREF="#tcp_close_socket/1">tcp_close_socket/1</A> 
+is used because there are no stream-handles:
 
 <P>
 <UL>
@@ -269,7 +275,7 @@ implement the <EM>server</EM>-side of the socket interface.
 <DT><A NAME="tcp_listen/2"><STRONG>tcp_listen</STRONG>(<VAR>+Socket, 
 +Backlog</VAR>)</A><DD>
 Tells, after <A NAME="idx:tcpbind2:21"></A><A HREF="#tcp_bind/2">tcp_bind/2</A>, 
-the socket to listen for incomming requests for connections. <VAR>Backlog</VAR> 
+the socket to listen for incoming requests for connections. <VAR>Backlog</VAR> 
 indicates how many pending connection requests are allowed. Pending 
 requests are requests that are not yet acknowledged using <A NAME="idx:tcpaccept3:22"></A><A HREF="#tcp_accept/3">tcp_accept/3</A>. 
 If the indicated number is exceeded, the requesting client will be 
@@ -289,7 +295,7 @@ IP-address of the client.
 +Host:+Port</VAR>)</A><DD>
 lient-interface to connect a socket to a given <VAR>Port</VAR> on a 
 given
-<VAR>Host</VAR>. After successfull completion, <A NAME="idx:tcpopensocket3:23"></A><A HREF="#tcp_open_socket/3">tcp_open_socket/3</A> 
+<VAR>Host</VAR>. After successful completion, <A NAME="idx:tcpopensocket3:23"></A><A HREF="#tcp_open_socket/3">tcp_open_socket/3</A> 
 can be used to create I/O-Streams to the remote socket.
 
 <P>
@@ -364,7 +370,7 @@ dispatch(AcceptFd) :-
             close(In),
             close(Out),
             halt
-        ;   close_socket(Socket)
+        ;   tcp_close_socket(Socket)
         ),
         dispatch(AcceptFd).
 </PRE>
@@ -446,27 +452,9 @@ print_args([A0|T]) :-
 <H3><A NAME="sec:4.1">4.1 Some considerations</A></H3>
 
 <P>Printing an HTML document using <A NAME="idx:format2:33"></A><B>format/2</B> 
-is not really a neat way of producing HTML. We are considering two 
-alternatives. One is to define a library that provides for 
-macro-expansion as well as keeping track of open environments. This 
-makes the code more robust and allows for writing generic infrastructure 
-to finish a page in a neat way should anything go wrong during its 
-construction. We have used this in some internal projects with a certain 
-degree of success. The above code would look like this:
-
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
-main :-
-        cgi_get_form(Arguments),
-        #open_document('text/html'),
-        #head([#title('Simple SWI-Prolog CGI script output')]),
-        ...
-</PRE>
-</TABLE>
-
-<P>Recently, we are considering to represent the HTML document as a 
-complex Prolog term and provide a library for decent printing thereof.
+is not really a neat way of producing HTML. A high-level alternative is 
+provided by
+<CODE>library(http/html_write)</CODE> from the XPCE package.
 
 <H2><A NAME="sec:5">5 Unix password encryption library</A></H2>
 
@@ -487,7 +475,7 @@ is a valid encryption of
 <VAR>Plain</VAR>.
 
 <P><VAR>Plain</VAR> is either an atom, SWI-Prolog string, list of 
-characters or list of character-codes. It is not adviced to use atoms, 
+characters or list of character-codes. It is not advised to use atoms, 
 as this implies the password will be available from the Prolog heap as a 
 defined atom.
 </DL>
