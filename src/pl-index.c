@@ -243,7 +243,8 @@ findClause(ClauseRef cref, Word argv,
     }
     return NULL;
   } else if ( def->indexPattern & NEED_REINDEX )
-  { reindexDefinition(def);
+  { assert(def->hash_info == NULL);
+    reindexDefinition(def);
     return findClause(cref, argv, fr, def, next);
   } else
   { struct index argIndex;
@@ -547,13 +548,15 @@ gcClauseChain(ClauseChain ch, int dirty)
 { ClauseRef cref = ch->head, prev = NULL;
   int deleted = 0;
 
-  while( cref && dirty )
+  while( cref && dirty != 0 )
   { if ( true(cref->clause, ERASED) )
     { ClauseRef c = cref;
       
-      if ( c->clause->index.varmask != 0 ) /* indexed and only in this */
-	deleted++;			   /* chain */
-      dirty--;
+      if ( dirty > 0 )
+      { assert(c->clause->index.varmask != 0); /* must be indexed */
+	deleted++;
+	dirty--;
+      }
 
       cref = cref->next;
       if ( !prev )
@@ -588,7 +591,7 @@ gcClauseIndex(ClauseIndex ci)
     
   if ( ci->alldirty )
   { for(; n; n--, ch++)
-      ci->size -= gcClauseChain(ch, INFINT);
+      ci->size -= gcClauseChain(ch, -1); /* do them all */
   } else
   { for(; n; n--, ch++)
     { if ( ch->dirty )
@@ -617,6 +620,11 @@ addClauseToIndex(Definition def, Clause cl, int where)
   if ( cl->index.varmask == 0 )		/* a non-indexable field */
   { int n = ci->buckets;
     
+    DEBUG(1,
+	  if ( def->indexPattern == 0x1 )
+	    Sdprintf("Adding unindexed clause to index of %s\n",
+		     predicateName(def)));
+
     for(; n; n--, ch++)
       appendClauseChain(ch, cl, where);
   } else
