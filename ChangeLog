@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: Support for deeply nested right-recursive terms to the
+    compiler.  Limit (stack-overflow) spotted by Bob Wielinga.
+
 VERSION 3.3.0 (release-9)
 =========================
 

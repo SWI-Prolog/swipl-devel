@@ -910,6 +910,8 @@ compileArgument(Word arg, int where, compileInfo *ci)
 
   deRef(arg);
 
+right_recursion:
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A void.  Generate either B_VOID or H_VOID.  Note that the  return  value
 ISVOID  is reserved for head variables only (B_VOID sets the location to
@@ -1037,18 +1039,29 @@ isvar:
     lastnonvoid = PC(ci);
     ar = arityFunctor(fdef);
     where &= ~A_RIGHT;
-    for(arg = argTermP(*arg, 0); ar > 0; ar--, arg++)
-    { where |= A_ARG;
+    where |= A_ARG;
 
-      if ( ar == 1 )
-	where |= A_RIGHT;
-
-      if ( compileArgument(arg, where, ci) == NONVOID )
+    for(arg = argTermP(*arg, 0); --ar > 0; arg++)
+    { if ( compileArgument(arg, where, ci) == NONVOID )
 	lastnonvoid = PC(ci);
     }
-    seekBuffer(&ci->codes, lastnonvoid, code);
-    if ( !isright )
+
+    where |= A_RIGHT;
+    deRef(arg);
+
+    if ( tag(*arg) == TAG_VAR && !(where & A_BODY) )
+    { seekBuffer(&ci->codes, lastnonvoid, code);
+      if ( !isright )
+	Output_0(ci, I_POPF);
+      return NONVOID;
+    }
+
+    if ( isright )
+      goto right_recursion;
+    else
+    { compileArgument(arg, where, ci);
       Output_0(ci, I_POPF);
+    }
 
     return NONVOID;
   }
