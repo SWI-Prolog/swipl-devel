@@ -1089,8 +1089,8 @@ background.
 \begin{code}
 :- pce_begin_class(text_box, device, "Box with centered text").
 
-resource(size,		size,	'100x50',		"Default size").
-resource(label_font,	font,	'@helvetica_bold_12'	"Font for text").
+resource(size,		size,	'size(100, 50)',	"Default size").
+resource(label_font,	font,	'@helvetica_bold_12',	"Font for text").
 
 initialise(TB, Label:[name]) :->
 	"Create a box with centered editable text"::
@@ -1152,7 +1152,7 @@ allows us to add new text-boxes to it using a background popup.  We
 will prompt for the text to be put in the box.
 
 \begin{code}
-:- use_module(library(prompt)).
+:- use_module(library(pce_prompter)).
 
 make_graph_editor(E) :-
 	new(E, picture('Graph Editor')),
@@ -1170,9 +1170,9 @@ make_graph_editor(E) :-
 
 
 add_new_box(E, Pos) :-
-	prompt('Name of box',
-	       [ name:name = Name
-	       ]),
+	prompter('Name of box',
+		 [ name:name = Name
+	         ]),
 	send(E, display, text_box(Name), Pos).
 \end{code}
 
@@ -1220,15 +1220,15 @@ make_text_box_recogniser(R) :-
 event(TB, Ev:event) :->
 	(   send(TB, send_super, event, Ev)
 	->  true
-	;   send(@move_resize_recogniser, event, Ev)
+	;   send(@text_box_recogniser, event, Ev)
 	).
 
 
 rename(TB) :->
 	"Prompt for new name"::
-	prompt('Rename text box',
-	       [ name:name = Name/TB?string
-	       ]),
+	prompter('Rename text box',
+	         [ name:name = Name/TB?string
+	         ]),
 	send(TB, string, Name).
 
 :- pce_end_class.
@@ -1257,7 +1257,7 @@ handle(w/2, h,	link,	south).
 
 event(TB, Ev:event) :->
 	(   send(TB, send_super, event, Ev)
-	;   send(@move_resize_recogniser, event, Ev)
+	;   send(@text_box_recogniser, event, Ev)
 	;   send(@link_recogniser, event, Ev)
 	).
 
@@ -1286,7 +1286,7 @@ assert_graph(E, Predicate) :-
 		message(@prolog, assert_link,
 			Predicate,
 			@arg1?from?string?value,
-			@arg2?from?string?value))).
+			@arg1?to?string?value))).
 
 assert_link(Predicate, From, To) :-
 	Term =.. [Predicate, From, To],
