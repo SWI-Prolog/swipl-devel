@@ -19,7 +19,8 @@
 		   drag_and_drop_gesture,
 		   "Drag and drop items from a browser").
 
-resource(button, button_name, middle, "By default drag-and-drop from middle").
+class_variable(button, button_name, middle,
+	       "By default drag-and-drop from middle").
 
 set_source(G, Ev:event) :->
 	"Set <-source to dict_item or <-get_source(dict_item)"::

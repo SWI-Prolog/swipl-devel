@@ -1,3 +1,6 @@
+* FIXED: Class text_buffer generation when making first change was not
+  incremented, causing colourisation inconsistencies.
+
 * ENHANCED: PceEmacs Prolog mode \C-l only to re-colour the buffer if
   it was modified.
 

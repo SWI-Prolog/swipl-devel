@@ -360,7 +360,7 @@ getSizeTextBuffer(TextBuffer tb)
 status
 CmodifiedTextBuffer(TextBuffer tb, Bool val)
 { if ( tb->modified != val )
-    return sendv(tb, NAME_modified, 1, (Any *) &val);
+    sendv(tb, NAME_modified, 1, (Any *) &val);
   
   if ( val == ON )
     tb->generation = toInt(valInt(tb->generation)+1);

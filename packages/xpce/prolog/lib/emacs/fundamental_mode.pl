@@ -133,9 +133,18 @@ auto_colourise_buffer(M) :->
 	).
 
 
+colourisation_up_to_date(M) :->
+	"True if the colourisation is up-to-date"::
+	get(M, generation, Generation),
+	get(M, coloured_generation, Coloured),
+	Generation == Coloured.
+
+
 colourise_buffer(M) :->
 	"Colour buffer using syntax-rules"::
-	send(M, remove_syntax_fragments).
+	send(M, remove_syntax_fragments),
+	get(M, generation, Generation),
+	send(M, slot, coloured_generation, Generation).
 
 
 remove_syntax_fragments(M, From:[int], To:[int]) :->

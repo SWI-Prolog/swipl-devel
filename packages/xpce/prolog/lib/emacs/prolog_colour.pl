@@ -25,7 +25,7 @@ User extension hooks.
 	goal_classification/2.
 
 :- emacs_extend_mode(prolog,
-		     [ colourise_and_recenter = key('\\C-l'),
+		     [ colourise_or_recenter = key('\\C-l'),
 		       colourise_buffer = button(prolog)
 		     ]).
 
@@ -79,8 +79,8 @@ colourise_buffer(M) :->
 	new(Class, class(emacs_colour_fragment)),
 	get(Class, no_created, OldCreated),
 
+	send_super(M, colourise_buffer),
 	send(M, setup_styles),
-	send(M, remove_syntax_fragments),
 
 	get(M, text_buffer, TB),
 	send(M, report, progress, 'Cross-referencing buffer ...'),
@@ -100,10 +100,12 @@ colourise_comments(M, From:[int], To:[int]) :->
 	     message(@prolog, colour_item, comment, TB, @arg1, @arg2),
 	     From, To).
 
-colourise_and_recenter(M) :->
+colourise_or_recenter(M) :->
 	"Colour according to syntax and recenter"::
-	send(M, auto_colourise_buffer),	% only if modified
-	send(M, recenter).
+	(   send(M, colourisation_up_to_date)
+	->  send(M, recenter)
+	;   send(M, colourise_buffer)
+	).
 
 		 /*******************************
 		 *	     PREDICATES		*

@@ -69,7 +69,7 @@ system_predicate(Head) :-
 :- dynamic
 	verbose/0.
 
-verbose.
+%verbose.
 
 xref_source(Source) :-
 	verbose, !,				% do not suppress messages
