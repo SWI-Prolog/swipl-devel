@@ -525,19 +525,6 @@ extern void jpeg_iostream_dest(j_compress_ptr cinfo, IOSTREAM *outfile);
 		 *	   WRITING JPEG		*
 		 *******************************/
 
-static int
-shift_for_mask(unsigned long mask)
-{ unsigned long m = 0x1;
-  int shift = 0;
-
-  while((mask&m) == 0)
-  { m <<= 1;
-    shift++;
-  }
-
-  return shift;
-}
-
 #define RESCALE(v, o, n)	((v) * (n) / (o))
 
 int
