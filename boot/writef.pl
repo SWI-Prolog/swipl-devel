@@ -179,7 +179,7 @@ $padout(l, Size, Length, 0, Right) :- !,
 $padout(r, Size, Length, Left, 0) :- !,
 	Left is max(1, Size-Length).
 $padout(c, Size, Length, Left, Right) :-
-	Left is max(1, (Size - Length)/2),
+	Left is max(1, round((Size - Length)/2)),
 	Right is max(1, Size - Length - Left).
 
 				%   $padout(Str) writes a string.
