@@ -329,6 +329,7 @@ xref_meta(predsort(A,_,_),	[A+3]).
 xref_meta(call_cleanup(A, B),	[A, B]).
 xref_meta(call_cleanup(A, _, B),[A, B]).
 xref_meta(on_signal(_,_,A),	[A+1]).
+xref_meta(with_mutex(_,A),	[A]).
 
 					% XPCE meta-predicates
 xref_meta(pce_global(_, new(_)), _) :- !, fail.
