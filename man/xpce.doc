@@ -2,7 +2,7 @@
 
 \index{GUI}\index{XPCE}\index{Graphics}\index{Window interface}%
 \index{X11}%
-The \url[XPCE GUI system]{http://www.swi-prolog.org/projects/xpce/} for
+The \url[XPCE GUI system]{http://www.swi-prolog.org/packages/xpce/} for
 dynamically typed languages has been with SWI-Prolog for a long time. It
 is developed by Anjo Anjewierden and Jan Wielemaker from the department
 of SWI, University of Amsterdam. It aims at a high-productive
@@ -65,6 +65,6 @@ standardisation in the the Prolog community.  If adequate standards
 emerge we are happy to actively support other Prolog implementations.
 
 \paragraph{Info.} further information is available from
-\url{http://www.swi-prolog.org/projects/xpce/} or by E-mail to
+\url{http://www.swi-prolog.org/packages/xpce/} or by E-mail to
 \email{info@www.swi-prolog.org}.
 
