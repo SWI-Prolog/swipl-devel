@@ -636,6 +636,15 @@ completeTextItem(TextItem ti, EventId id)
 }
 
 
+static status
+completeOrNextTextItem(TextItem ti, EventId id)
+{ if ( ti->style == NAME_comboBox )
+    return send(ti, NAME_complete, id, 0);
+  else
+    return send(ti, NAME_next, 0);
+}
+
+
 static CharArray
 getSplitCompletionTextItem(TextItem ti, CharArray base)
 { answer(base);
@@ -1581,6 +1590,8 @@ static senddecl send_textItem[] =
      DEFAULT, "Set style or termine default style"),
   SM(NAME_complete, 1, "[event_id]", completeTextItem,
      NAME_complete, "Complete current value"),
+  SM(NAME_completeOrNext, 1, "[event_id]", completeOrNextTextItem,
+     NAME_complete, "->complete or advance to next item"),
   SM(NAME_indicateDirectory, 1, "text=string", indicateDirectoryTextItem,
      NAME_complete, "Indicate current value is a `directory'"),
   SM(NAME_keyboardQuit, 0, NULL, keyboardQuitTextItem,
