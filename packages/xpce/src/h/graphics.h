@@ -268,6 +268,7 @@ NewClass(box)
   Int        radius;			/* if displayed as a rounded box */
   Int	     shadow;			/* shadow displayed around box */
   Image	     fill_pattern;		/* fill box with this */
+  Point	     fill_offset;		/* Offset for filling */
 End;
 
 NewClass(arrow)
@@ -961,6 +962,11 @@ typedef struct
   Int 	w;
   Int	h;
 } device_draw_context, *DeviceDrawContext;
+
+typedef struct
+{ int   x;				/* fill-offset-x */
+  int   y;				/* fill-offset-y */
+} fill_state;
 
 
 		/********************************

@@ -18,7 +18,9 @@ initialiseBox(Box b, Int w, Int h)
 { initialiseGraphical(b, ZERO, ZERO, w, h);
   assign(b, radius,	  ZERO);
   assign(b, shadow,	  ZERO);
-  assign(b, fill_pattern, NIL);
+/*assign(b, fill_pattern, NIL);
+  assign(b, fill_offset,  NIL);
+*/
 
   succeed;
 }
@@ -27,13 +29,16 @@ initialiseBox(Box b, Int w, Int h)
 static status
 RedrawAreaBox(Box b, Area a)
 { int x, y, w, h;
+  fill_state state;
 
   initialiseDeviceGraphical(b, &x, &y, &w, &h);
 
+  r_filloffset(b->fill_offset, x, y, &state);
   r_thickness(valInt(b->pen));
   r_dash(b->texture);
   r_shadow_box(x, y, w, h,
 	       valInt(b->radius), valInt(b->shadow), b->fill_pattern);
+  r_fillrestore(&state);
 
   return RedrawAreaGraphical(b, a);
 }
@@ -67,7 +72,9 @@ static vardecl var_box[] =
   SV(NAME_shadow, "int", IV_GET|IV_STORE, shadowGraphical,
      NAME_appearance, "Shadow at bottom-right of box"),
   SV(NAME_fillPattern, "image|colour*", IV_GET|IV_STORE, fillPatternGraphical,
-     NAME_appearance, "Fill pattern for internals")
+     NAME_appearance, "Fill pattern for internals"),
+  SV(NAME_fillOffset, "point*", IV_GET|IV_STORE, fillOffsetGraphical,
+     NAME_appearance, "Offset for using <-fill_pattern")
 };
 
 /* Send Methods */

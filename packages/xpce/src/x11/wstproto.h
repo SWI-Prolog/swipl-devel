@@ -22,6 +22,7 @@ void		ws_bell_display(DisplayObj d, int volume);
 void		ws_get_size_display(DisplayObj d, int *w, int *h);
 Name		ws_get_visual_type_display(DisplayObj d);
 int		ws_depth_display(DisplayObj d);
+int		ws_resolution_display(DisplayObj d, int *rx, int *ry);
 void		ws_activate_screen_saver(DisplayObj d);
 void		ws_deactivate_screen_saver(DisplayObj d);
 void		ws_init_display(DisplayObj d);
@@ -49,12 +50,13 @@ void		ws_synchronous(DisplayObj d);
 void		ws_asynchronous(DisplayObj d);
 status		ws_postscript_display(DisplayObj d);
 Image		ws_grab_image_display(DisplayObj d, int x, int y, int width, int height);
-int		ws_resolution_display(DisplayObj d, int *rx, int *ry);
 
 /* ../src/x11/xdraw.c */
 void		resetDraw(void);
 void		d_offset(int x, int y);
 void		r_offset(int x, int y);
+void		r_filloffset(Point offset, int x0, int y0, fill_state *state);
+void		r_fillrestore(fill_state *state);
 DisplayObj	d_display(DisplayObj d);
 void		d_ensure_display(void);
 void		d_flush(void);
@@ -159,13 +161,13 @@ void		ws_set_icon_frame(FrameObj fr);
 void		ws_set_icon_label_frame(FrameObj fr);
 void		ws_set_icon_position_frame(FrameObj fr, int x, int y);
 status		ws_get_icon_position_frame(FrameObj fr, int *x, int *y);
+void		ws_enable_modal(FrameObj fr, Bool val);
 void		ws_status_frame(FrameObj fr, Name status);
 void		ws_topmost_frame(FrameObj fr, Bool topmost);
 void		ws_set_label_frame(FrameObj fr);
 Image		ws_image_of_frame(FrameObj fr);
 void		ws_transient_frame(FrameObj fr, FrameObj fr2);
 status		ws_postscript_frame(FrameObj fr);
-void		ws_enable_modal(FrameObj fr, Bool val);
 
 /* ../src/x11/ximage.c */
 void		ws_init_image(Image image);
@@ -176,7 +178,7 @@ status		loadPNMImage(Image image, IOSTREAM *fd);
 status		ws_load_old_image(Image image, IOSTREAM *fd);
 status		ws_load_image_file(Image image);
 Image		ws_std_xpm_image(Name name, Image *global, char **data);
-status		ws_save_image_file(Image image, SourceSink file, Name fmt);
+status		ws_save_image_file(Image image, SourceSink into, Name fmt);
 status		ws_open_image(Image image, DisplayObj d);
 void		ws_close_image(Image image, DisplayObj d);
 status		ws_resize_image(Image image, Int w, Int h);

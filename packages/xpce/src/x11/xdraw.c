@@ -113,6 +113,8 @@ static struct d_context
   int		offset_y;		/* Paint offset in Y direction */
   int		origin_x;		/* Origin-X relative to drawable */
   int		origin_y;
+  int		fill_offset_x;		/* X-offset for filling */
+  int		fill_offset_y;		/* Y-offset for filling */
   int		fixed_colours;		/* The colours are fixed */
 					/* Save over d_image()/d_done() */
   Any		colour;
@@ -180,6 +182,46 @@ r_offset(int x, int y)
   context.offset_y += y;
 }
 
+
+static void
+d_set_filloffset()
+{ int tsx, tsy;
+
+  tsx = context.fill_offset_x + context.offset_x;
+  tsy = context.fill_offset_y + context.offset_y;
+
+  XSetTSOrigin(context.display, context.gcs->fillGC,  tsx, tsy);
+  XSetTSOrigin(context.display, context.gcs->clearGC, tsx, tsy);
+  XSetTSOrigin(context.display, context.gcs->workGC,  tsx, tsy);
+
+  DEBUG(NAME_fillOffset, Cprintf("set_filloffset() to %d, %d\n", tsx, tsy));
+}
+
+
+void
+r_filloffset(Point offset, int x0, int y0, fill_state *state)
+{ state->x = context.fill_offset_x;
+  state->y = context.fill_offset_y;
+
+  if ( notNil(offset) )
+  { context.fill_offset_x = valInt(offset->x) + x0;
+    context.fill_offset_y = valInt(offset->y) + y0;
+
+    d_set_filloffset();
+  }
+}
+
+
+void
+r_fillrestore(fill_state *state)
+{ if ( state->x != context.fill_offset_x ||
+       state->y != context.fill_offset_y )
+  { context.fill_offset_x = state->x;
+    context.fill_offset_y = state->y;
+
+    d_set_filloffset();
+  }
+}
 
 
 DisplayObj
@@ -293,14 +335,7 @@ d_window(PceWindow sw, int x, int y, int w, int h, int clear, int limit)
     context.cache = NULL;
   }
 
-  { int tsx = context.origin_x-context.cache_x;
-    int tsy = context.origin_y-context.cache_y;
-
-    XSetTSOrigin(context.display, context.gcs->fillGC, tsx, tsy);
-    XSetTSOrigin(context.display, context.gcs->clearGC, tsx, tsy);
-    XSetTSOrigin(context.display, context.gcs->workGC, tsx, tsy);
-  }
-
+  d_set_filloffset();
   d_clip(x, y, w, h);
 
   r_background(sw->background);
@@ -364,7 +399,8 @@ d_image(Image i, int x, int y, int w, int h)
   env->area.w   = valInt(i->size->w);
   env->area.h   = valInt(i->size->h);
 
-  XSetTSOrigin(context.display, context.gcs->fillGC, 0, 0);
+  XSetTSOrigin(context.display, context.gcs->fillGC,
+	       context.fill_offset_x, context.fill_offset_y);
 
   d_clip(x, y, w, h);
 }

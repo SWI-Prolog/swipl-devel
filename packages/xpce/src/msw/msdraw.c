@@ -52,6 +52,8 @@ typedef struct
   int		offset_y;		/* same */
   int		r_offset_x;		/* r_offset() */
   int		r_offset_y;		/* r_offset() */
+  int		fill_offset_x;		/* filling offset */
+  int		fill_offset_y;		/* filling offset */
   int		fixed_colours;		/* The colours are fixed */
 
   int		open;			/* is context opened? */
@@ -266,6 +268,38 @@ r_offset(int x, int y)
 			    &old);
     assert(rval);
     DEBUG(NAME_offset, Cprintf("\told = %d, %d\n", old.x, old.y));
+  }
+}
+
+
+static void
+d_set_filloffset()
+{ Cprintf("d_set_filloffset() not yet implemented\n");
+}
+
+
+void
+r_filloffset(Point offset, int x0, int y0, fill_state *state)
+{ state->x = context.fill_offset_x;
+  state->y = context.fill_offset_y;
+
+  if ( notNil(offset) )
+  { context.fill_offset_x = valInt(offset->x) + x0;
+    context.fill_offset_y = valInt(offset->y) + y0;
+
+    d_set_filloffset();
+  }
+}
+
+
+void
+r_fillrestore(fill_state *state)
+{ if ( state->x != context.fill_offset_x ||
+       state->y != context.fill_offset_y )
+  { context.fill_offset_x = state->x;
+    context.fill_offset_y = state->y;
+
+    d_set_filloffset();
   }
 }
 

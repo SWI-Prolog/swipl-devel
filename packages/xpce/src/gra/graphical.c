@@ -1714,6 +1714,12 @@ fillPatternGraphical(Graphical gr, Image pattern)
 }
 
 
+status
+fillOffsetGraphical(Graphical gr, Point pattern)
+{ return assignGraphical(gr, NAME_fillOffset, pattern);
+}
+
+
 static status
 textureGraphical(Graphical gr, Name texture)
 { if (gr->texture != texture)

@@ -783,6 +783,7 @@
   BUILTIN_NAME("fill")
   BUILTIN_NAME("fill_arguments_and_execute")
   BUILTIN_NAME("fill_mode")
+  BUILTIN_NAME("fill_offset")
   BUILTIN_NAME("fill_paragraph")
   BUILTIN_NAME("fill_pattern")
   BUILTIN_NAME("fill_region")

@@ -155,6 +155,7 @@ status		referenceGraphical(Graphical gr, Point ref);
 status		penGraphical(Graphical gr, Int pen);
 status		shadowGraphical(Graphical gr, Int s);
 status		fillPatternGraphical(Graphical gr, Image pattern);
+status		fillOffsetGraphical(Graphical gr, Point pattern);
 status		colourGraphical(Graphical gr, Any c);
 Any		getDisplayColourGraphical(Graphical gr);
 Handle		getHandleGraphical(Graphical gr, Name name);

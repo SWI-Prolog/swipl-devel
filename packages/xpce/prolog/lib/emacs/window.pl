@@ -296,7 +296,7 @@ fix_rval(Type, RawRval, RVal) :-
 	\+ send(Type, includes, directory),
 	atom(RawRval),
 	send(directory(RawRval), exists), !,
-	get(@finder, file, directory := RawRval, RVal).
+	get(@finder, file, @on, directory := RawRval, RVal).
 fix_rval(_, Rval, Rval).
 
 
