@@ -1885,25 +1885,39 @@ capitalise_textbuffer(TextBuffer tb, int from, int len)
 
 static status
 save_textbuffer(TextBuffer tb, int from, int len, SourceSink file)
-{ int unitsize = (istbA(tb) ? sizeof(charA) : sizeof(charW));
-  IOSTREAM *fd;
-  status rval;
+{ IOSTREAM *fd;
 
   room(tb, tb->size, 0);		/* move the gap to the end */
 
   if ( !(fd = Sopen_object(file, "wr")) )
-    fail;				/* error message? */
+    return errorPce(file, NAME_openFile, NAME_write, getOsErrorPce(PCE));
 
   from = NormaliseIndex(tb, from);
   if ( (from + len) > tb->size )
     len = tb->size - from;
 
-  Sfwrite(Address(tb, from), unitsize, len, fd);
+  if ( istbA(tb) )
+  { const charA *f = &tb->tb_bufferA[from];
+    const charA *e = &f[len];
 
-  rval = checkErrorSourceSink(file, fd);
-  Sclose(fd);
+    for( ; f<e; f++)
+    { if ( Sputcode(*f, fd) < 0 )
+	break;
+    }
+  } else
+  { const charW *f = &tb->tb_bufferW[from];
+    const charW *e = &f[len];
 
-  return rval;
+    for( ; f<e; f++)
+    { if ( Sputcode(*f, fd) < 0 )
+	break;
+    }
+  }
+
+  if ( Sclose(fd) < 0 )
+    return errorPce(file, NAME_ioError, getOsErrorPce(PCE));
+
+  succeed;
 }
   
 
@@ -1966,44 +1980,80 @@ promoteTextBuffer(TextBuffer tb)
 }
 
 
-/*  Insert the contents of file `file' into the text buffer at position
-    `where' `times' times. Returns SUCCEED if everything was ok, FAIL
-    otherwise.
-*/
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+insert_file_textbuffer()
+
+Insert the contents of file `file'  into   the  text  buffer at position
+`where' `times' times. Returns  SUCCEED  if   everything  was  ok,  FAIL
+otherwise.
+
+The most common case for this function is  to read an entire file simply
+once into the buffer. The simplest apprach is   to  read the file into a
+string and use the string insertion function   below, but the price is a
+potential duplication of memory usage.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 
 static int
 insert_file_textbuffer(TextBuffer tb, int where, int times, SourceSink file)
-{ int size;
-  charA *addr;
-  int unitsize = (istbA(tb) ? sizeof(charA) : sizeof(charW));
-  int grow, here;
+{ long grow, here, size;
   IOSTREAM *fd;
-  status rval;
 
   if ( times <= 0 )
     succeed;
 
   if ( !(fd = Sopen_object(file, "rr")) )
     fail;
-  size = Ssize(fd);
+  size = Ssize(fd);			/* size in bytes */
 
-  room(tb, where, times*size);
+  room(tb, where, size);		/* always enough */
+  where = tb->gap_start;		/* normalised */
   start_change(tb, tb->gap_start);
-  addr = Address(tb, tb->gap_start);
+  
+  if ( istbA(tb) )
+  { for(;;)
+    { wint_t c = Sgetcode(fd);
 
-  size = Sfread(addr, unitsize, size, fd);
-  rval = checkErrorSourceSink(file, fd);
-  Sclose(fd);
-  TRY(rval);
+      if ( c == EOF )
+	goto done;
+      if ( c > 0xff )
+      { promoteTextBuffer(tb);
+	break;
+      }
+      tb->tb_bufferA[tb->gap_start++] = c;
+      tb->size++;
+    }
+  }
+					/* promoted or already the case */
+  if ( !istbA(tb) && !Sfeof(fd) )
+  { for(;;)
+    { wint_t c = Sgetcode(fd);
 
+      if ( c == EOF )
+	goto done;
+      tb->tb_bufferW[tb->gap_start++] = c;
+      tb->size++;
+    }
+  }
+    
+done:
+  if ( Sferror(fd) )
+  { tb->gap_start = where;		/* forget about it */
+    Sclose(fd);
+
+    return errorPce(file, NAME_ioError, getOsErrorPce(PCE));
+  }
+
+  size = tb->gap_start - where;
   grow = times*size;
   register_insert_textbuffer(tb, where, grow);
 
-  tb->gap_start += size;
-  tb->size += size;
   times--;
+  room(tb, tb->gap_start, times*size);	/* enough for the copies */
   while(times-- > 0)
-  { memmove(Address(tb, tb->gap_start), addr, istbA(tb) ? size : size*2);
+  { memmove(Address(tb, tb->gap_start),
+	    Address(tb, where),
+	    istbA(tb) ? size : size*sizeof(charW));
     tb->gap_start += size;
     tb->size += size;
   }

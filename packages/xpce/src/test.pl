@@ -173,6 +173,29 @@ srcsink(read-1) :-
 
 
 		 /*******************************
+		 *	    TEXT-BUFFER		*
+		 *******************************/
+
+textbuffer(promote-1) :-
+	new(TB, text_buffer),
+	send(TB, append, hello),
+	watom(Wide),
+	send(TB, append, Wide),
+	get(TB, contents, string(New)),
+	atom_concat(hello, Wide, New).
+textbuffer(file-1) :-
+	new(TB, text_buffer),
+	numlist(32, 1000, L),
+	atom_codes(WAtom, L),
+	send(TB, append, WAtom),
+	tmp_file(test, Tmp),
+	send(TB, save, file(Tmp, utf8)),
+	get(file(Tmp, utf8), contents, string(Copy)),
+	delete_file(Tmp),
+	Copy == WAtom.
+
+
+		 /*******************************
 		 *	      SCRIPTS		*
 		 *******************************/
 
@@ -249,6 +272,7 @@ testset(wname).				% Names holding wide characters
 testset(wstring).			% Strings holding wide characters
 testset(fmt).				% Formatting actions
 testset(srcsink).			% Source/Sink operations
+testset(textbuffer).
 
 %	testdir(Dir)
 %	
