@@ -39,9 +39,6 @@ map the brightness values and call XPutPixel().
 It would be nice to avoid the indirect  call to XPutPixel() as well, but
 this depends on the byte-order. Maybe we   should do so for some popular
 formats and use XPutPixel() as backup.
-
-We could also try to use three  arrays for mapping the brightness values
-from the common 256 input scale to the visual output.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include <h/kernel.h>
@@ -116,6 +113,53 @@ freshXImage(Display *dsp, int depth, int width, int height)
   return i;
 }
 
+		 /*******************************
+		 *	      RESCALING		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Re-scaling and packaging implies a   multiplication,  division and shift
+for each color component. As there are   only 256 input values, it seems
+worthwhile to use static arrays  and  limit   the  job  to  or'ing three
+entries in an array. The difference varies   per processor. On an AMD it
+saves about 10% on the whole process.  This   will  get a lot more if we
+improve XPutPixel()
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int r_b, g_b, b_b;		/* map parameters */
+
+static unsigned long r_map[256];	/* the maps themselves */
+static unsigned long g_map[256];
+static unsigned long b_map[256];
+
+static void
+init_map(unsigned long *map, int bright, int shift)
+{ int i;
+
+  for(i=0; i<256; i++)
+    map[i] = (RESCALE(i, 255, bright) << shift);
+}
+
+static void
+init_maps(int r_bright, int g_bright, int b_bright,
+	  int r_shift,  int g_shift,  int b_shift)
+{ if ( !(r_bright==r_b && g_bright==g_b && b_bright == b_b) )
+  { init_map(r_map, r_bright, r_shift);
+    init_map(g_map, g_bright, g_shift);
+    init_map(b_map, b_bright, b_shift);
+
+    r_b = r_bright;
+    g_b = g_bright;
+    b_b = b_bright;
+  }
+}
+
+#define MKPIXEL(r,g,b) (r_map[r] | g_map[g] | b_map[b])
+
+
+		 /*******************************
+		 *	     READ JPEG		*
+		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Try to load a JPEG file directly into memory.
@@ -198,6 +242,9 @@ staticColourReadJPEGFile(Image image, IOSTREAM *fd, XImage **return_image)
   g_bright = img->green_mask >> g_shift;
   b_bright = img->blue_mask  >> b_shift;
 
+  init_maps(r_bright, g_bright, b_bright,
+	    r_shift,  g_shift,  b_shift);
+
   for( y=0; cinfo.output_scanline < cinfo.output_height; y++ )
   { JSAMPLE *i;
     int x;
@@ -208,11 +255,9 @@ staticColourReadJPEGFile(Image image, IOSTREAM *fd, XImage **return_image)
     { case 1:
 	for(x=0, i=line; x<cinfo.output_width; x++)
 	{ unsigned long pixel;
-	  unsigned long g = *i++;
+	  int g = *i++;
 	  
-	  pixel = ( (RESCALE(g, 255, r_bright) << r_shift) |
-		    (RESCALE(g, 255, g_bright) << g_shift) |
-		    (RESCALE(g, 255, b_bright) << b_shift) );
+	  pixel = MKPIXEL(g, g, g);
       
 	  XPutPixel(img, x, y, pixel);
 	}
@@ -220,13 +265,11 @@ staticColourReadJPEGFile(Image image, IOSTREAM *fd, XImage **return_image)
       case 3:
 	for(x=0, i=line; x<cinfo.output_width; x++)
 	{ unsigned long pixel;
-	  unsigned long r = *i++;
-	  unsigned long g = *i++;
-	  unsigned long b = *i++;
+	  int r = *i++;
+	  int g = *i++;
+	  int b = *i++;
 	  
-	  pixel = ( (RESCALE(r, 255, r_bright) << r_shift) |
-		    (RESCALE(g, 255, g_bright) << g_shift) |
-		    (RESCALE(b, 255, b_bright) << b_shift) );
+	  pixel = MKPIXEL(r, g, b);
       
 	  XPutPixel(img, x, y, pixel);
 	}
