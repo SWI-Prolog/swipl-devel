@@ -830,10 +830,31 @@ static  char    CWDdir[MAXPATHLEN];	   /* current directory */
 static void
 initExpand()
 { char *dir;
+  char *cpaths;
 
   CWDdir[0] = EOS;
 
 #if unix
+  if ( cpaths = getenv("CANONICAL_PATHS") )
+  { char buf[MAXPATHLEN];
+
+    while(*cpaths)
+    { char *e;
+
+      if ( e = index(cpaths, ':') )
+      { int l = e-cpaths;
+
+	strncpy(buf, cpaths, l);
+	buf[l] = EOS;
+	cpaths += l+1;
+	canoniseDir(buf);
+      } else
+      { canoniseDir(cpaths);
+	break;
+      }
+    }
+  }
+
   if ( dir = getenv("HOME") ) canoniseDir(dir);
   if ( dir = getenv("PWD")  ) canoniseDir(dir);
 #endif

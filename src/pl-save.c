@@ -21,13 +21,13 @@ functionality.
 
 HOW DOES IT WORK?
 
-This program  tries to find all parts   of  memory that contains valid
-information,  with  except for the  text-segment.   These sections are
-saved  on   file  together   with  some administrative    information.
-Restoring a  state implies memory areas  are set-up equivalent  to the
-state when the state is saved; all the sections are read back in place
-and the system performs  a  longjmp(), either to   the start  of   the
-program, or to where it was.
+This program tries  to find all  parts of memory  that contains  valid
+information, except for the text-segment.  These sections are saved on
+file together with some administrative information.  Restoring a state
+implies memory areas are set-up equivalent to the state when the state
+is  saved; all the  sections are read back  in  place and  the  system
+performs a longjmp(), either to the start of the  program, or to where
+it was.
 
 
 ASSUMPTIONS
@@ -85,6 +85,8 @@ PORTABILITY/OPTIONS
 int	brk P((caddr_t));
 caddr_t sbrk P((int));
 #endif
+
+extern char **environ;
 
 #ifndef DATA_START
 #ifndef FIRST_DATA_SYMBOL
