@@ -1,6 +1,12 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Memory leak in class code_vector.
+
+* PORT: Included some portability issues in unx/process.c, socket handling
+  and make version detection for NetBSD 1.5.2.  Contributed by John Towler.
+  Incomplete.
+
 * MAINTAIN: Unix Makefile: fixed pl-static target to call xpce dependency
 
 * ADDED: Avoid opening the display during XPCE's initialisation.  This
