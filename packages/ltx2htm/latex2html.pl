@@ -1353,9 +1353,10 @@ clean_tt(Raw, Clean) :-
 	;   S3 = S2
 	),
         clean_specials(S3, S4),
-	delete_all(S4, "\\string", S5),
-	delete_all(S5, " ", S6),
-	atom_codes(Clean, S6).
+	replace_all(S4, "\\bsl{}", "\\", S5),
+	delete_all(S5, "\\string", S6),
+	delete_all(S6, " ", S7),
+	atom_codes(Clean, S7).
 
 clean_specials([], []).
 clean_specials([0'\\, Special|T0], [Special|T]) :-
@@ -1372,6 +1373,17 @@ delete_all(S0, D, S) :-
 	    ;	S = S0
 	    )
 	).
+
+replace_all(S0, F, T, S) :-
+	(   append(F, Post, P2)
+	->  (   append(P1, P2, S0)
+	    ->	append(P1, T, S1),
+		append(S1, Post, S2),
+		replace_all(S2, F, T, S)
+	    ;	S = S0
+	    )
+	).
+
 
 		 /*******************************
 		 *	     CASE (\SC)		*
