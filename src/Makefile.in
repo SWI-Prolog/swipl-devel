@@ -338,18 +338,12 @@ iinclude::
 		    $(INSTALL_DATA) ../include/SWI-Stream.h $(prefix)/include; \
 		fi
 
-iman:		@INSTALLRLMAN@
+iman::
 		-if [ ! -d $(mandir) ]; then $(MKDIR) $(mandir); fi
 		-if [ ! -d $(smandir)  ];    then $(MKDIR) $(smandir);     fi
 		-$(INSTALL_DATA) pl.1 $(smandir)/$(PL).$(mansec)
 		-$(INSTALL_DATA) $(srcdir)/plrc.1 $(smandir)/plrc.$(mansec)
 		-$(INSTALL_DATA) $(srcdir)/plld.1 $(smandir)/plld.$(mansec)
-
-install_rlman:
-		-if [ ! -d $(lmandir) ]; then $(MKDIR) $(lmandir); fi
-		-if [ ! -r $(lmandir)/readline.$(lmansec) ]; then \
-		  $(INSTALL_DATA) $(srcdir)/readline.3 $(lmandir)/readline.$(lmansec); \
-		fi
 
 install-lman::
 		$(INSTALL_DATA) pl.1 $(plmandir)/$(PL).$(mansec)

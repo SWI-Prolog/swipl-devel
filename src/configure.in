@@ -20,7 +20,6 @@ AC_SUBST(PLVERSION)
 AC_SUBST(VPATH)
 AC_SUBST(COUTOPT)
 AC_SUBST(INSTALLTARGET)
-AC_SUBST(INSTALLRLMAN)
 AC_SUBST(EXTRAOBJ)
 AC_SUBST(BOOTFILE)
 AC_SUBST(PLLIB)			dnl libpl.a
@@ -379,19 +378,6 @@ if test ! "$runtime" = "yes" -a "$configreadline" = "yes"; then
       AC_CHECK_FUNCS(rl_set_prompt rl_clear_pending_input rl_done)
       AC_CHECK_FUNCS(rl_event_hook rl_cleanup_after_signal)
       AC_CHECK_FUNCS(rl_filename_completion_function)
-      AC_MSG_CHECKING(whether to install readline.3)
-      INSTALLRLMAN=install_rlman
-      if test -z "$MANPATH"; then MANPATH=/usr/man; fi
-      for d in `echo $MANPATH | sed 's/:/ /g'`; do
-	if test -r $d/man3/readline.3; then
-	  INSTALLRLMAN=""
-	fi
-      done
-      if test -z "$INSTALLRLMAN"; then
-	AC_MSG_RESULT(Already present)
-      else
-	AC_MSG_RESULT(yes)
-      fi
     fi
   fi
 else
