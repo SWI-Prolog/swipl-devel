@@ -452,7 +452,6 @@ is_on(L, OnOff:bool) :->
 
 \section{Debugging and goal-stack examination}
 
-\incompatible{}
 The class \class{vmi} and its instances @vmi_send, @vmi_get, @vmi_new
 and @vmi_free are deleted.  With this, `vmi->parent_goal', a method
 to validate some goal is executing higher in the goal-stack has been
@@ -625,9 +624,9 @@ initialise(MG) :->
 	send(MG, display(box(100, 50))),
 	...
 \end{code}
-    \predicate{get}{2}{+Object, :Message, -Answer}
-Similar to send/2, but get-behaviour returns a value.  There are roughly
-the following cases that require attention.
+    \predicate{get}{3}{+Object, :Message, -Answer}
+Similar to send/2, but get-behaviour returns a value. The following
+cases require attention.
 
 \begin{itemlist}
     \item[A fresh `attribute' object is returned]
@@ -746,12 +745,6 @@ Graphical tables have been tested quite extensively on a couple of
 applications now. The basic functionality is stable, but both new
 functionality (scrolling column/row subregions, 3D look) and utility
 functions will be added. Suggestions are welcome.
-
-
-\section{Future plans}
-
-XML? More layout managers (page/paragraph rendering)? Unifying frame and
-window?
 
 
 \appendix

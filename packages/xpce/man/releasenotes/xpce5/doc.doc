@@ -4,12 +4,25 @@
 \usepackage{xpce}
 \usepackage{html}
 \usepackage{qp}
+\usepackage{a4}
 \renewcommand{\cleardoublepage}{\clearpage}
 
-\onefile
-\makepw
-\usepackage{a4}
+% Some HTML stuff
+%\onefile
+\htmlfiledepth{1}
+\htmloutput{ReleaseNotes}			% Output directory
+\htmlmainfile{index}				% Main document file
+\bodycolor{white}
+\linkimage{home}{home.gif}			% Images for links
+\linkimage{index}{yellow_pages.gif}
+\linkimage{contents}{index.gif}
+\linkimage{up}{up.gif}
+\linkimage{previous}{prev.gif}
+\linkimage{next}{next.gif}
+\linkimage{summary}{info.gif}
 
+
+% Titles and versions
 \renewcommand{\runningtitle}{\product{} \productversion}
 \lfoot[\bf \runningtitle]{\bf Release Notes}
 \rfoot[\bf Release Notes]{\bf \runningtitle}
