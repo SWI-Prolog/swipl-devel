@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Enh#21: hide details of library debug from the tracer.
+    Holger Kanwischer.
+
   * FIXED: compiler error causing crashes on some weird variable patterns.
     With fix from Sergey Tikhonov.  Thanks!
 
