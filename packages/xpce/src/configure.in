@@ -110,9 +110,8 @@ AC_ARG_ENABLE(mt, [  --enable-mt		  Enable Multi-threading],
 	       esac])
 
 
-if test -z "$PWD"; then
-  PWD=`pwd`
-fi
+# Sometimes this is wrong !
+PWD=`pwd`
 
 AC_MSG_CHECKING("Path to installation")
 PCEHOME=`dirname $PWD`
