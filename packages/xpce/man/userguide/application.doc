@@ -1,0 +1,107 @@
+\section{Relating frames}			\label{sec:application}
+
+Applications may consist of multiple \classs{frame}, either permanent,
+or temporary such as for opening a `settings' window. This section
+discusses how frame references can be found, as well as how frames
+can force the user to deal with this frame first, in favor of all
+the other frames of the application: \idx{modal} frames.
+
+\subsection{Class application}
+
+The class \class{application} is the key to this section. An
+\class{application} is a subclass of \class{visual}, and optionally
+located between \class{display} and \class{frame} in the visual
+consists-of hierarchy. It defines the `application <-member' method to
+located named frames, and thus supports locating frames similar to other
+graphicals as described in \secref{whoiswho}.
+
+A \class{frame} is made part of an \class{application} using the method
+`frame ->application'.  The application to which a frame is related may
+be changed.  Frames are not required to be part of an application.
+
+\begin{description}
+    \sendmethod{frame}{application}{application*}
+Changes the application object the receiver belongs too. Combining
+multiple frame objects in an application allows for finding frames as
+well as defining modal relations between frames. See `frame->modal'.
+
+The application to which a frame belongs may be changed at any time.
+Using the @nil argument, to frame is detached from any application.
+
+This method invokes `application ->delete' to the application currently
+holding the frame (if any) and `application ->append' to the application
+receiving the frame.  These methods may be redefined if an application
+wants to keep track of its associated frames.
+    \getmethod{application}{member}{name}{frame}
+Return the frame for which `frame <-name' returns the argument name. See
+also `device <-member' and \secref{whoiswho}.
+\end{description}
+
+
+\subsection{Transient frames}
+
+\index{transient,frame}%
+The term \jargon{transient} window is taken from X11. A transient window
+(frame) is a frame that supports another frame.  Transient windows are
+normally used for prompting.  The related method is:
+
+\begin{description}
+    \sendmethod{frame}{transient_for}{frame}
+Make the receiver a transient window for the argument.  This notion is
+handed to the X11 window manager, but the support varies.  Therefore
+XPCE ensures that:
+    \begin{itemlist}
+	\item [The transient window stays on top]
+	Whenever the main window is raised, the transient window is
+	raised too, ensuring the transient window does not get hidden
+	behind the main window.
+	\item [Synchronise status change and destruction]
+	Status change (see `frame ->status: \{unmapped,hidden,iconic,open\}')
+	of the main window are forwarded to the transient windows. If
+	the main window is destroyed, so is the transient window.
+    \end{itemlist}
+\end{description}
+
+
+\subsection{Modal operation}
+
+\index{modal}%
+The method `frame ->modal' works in combination with class
+\class{application} and transient frames to define what frames are
+temporary insensitive to events, forcing the user to operate on the
+modal frame first.
+
+\begin{description}
+    \sendmethod{frame}{modal}{\{application,transient\}*}
+Operate as a modal frame for all frames in the <-application, the frame
+I am <-transient_for, or none. A common sequence to display a modal
+dialog window centered on a frame is below. Note that, instead of `frame
+->open_centered', one could also have used `frame <-confirm_centered'.
+
+\begin{code}
+settings(Frame) :->
+	"Open settings dialog"::		      
+	new(D, dialog(settings)),
+	send(D, transient_for, Frame),
+	send(D, modal, transient),
+	...,
+	<fill the dialog>,
+	...,
+	send(D, open_centered, Frame?area?center).
+\end{code}
+
+Instead of using the center of a frame, the method can also use the
+location of @event to position itself.  The code fragment for that is:
+
+\begin{code}
+	...,
+	(   send(@event, instance_of, event)
+	->  get(@event, position, @display, EventPos)
+	;   EventPos = @default)
+	),
+	send(D, open_centered, EventPos).
+\end{code}
+\end{description}
+
+
+

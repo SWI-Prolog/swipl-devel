@@ -108,6 +108,7 @@ goto_source_location(_Emacs, Location:source_location) :->
 	get(Location, file_name, File),
 	new(B, emacs_buffer(File)),
 	send(B, open),
+	send(B, check_modified_file),
 	(   get(Location, line_no, Line),
 	    Line \== @nil
 	->  get(B?editors, head, E),

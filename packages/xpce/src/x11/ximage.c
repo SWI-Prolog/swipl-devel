@@ -280,6 +280,7 @@ ws_save_image_file(Image image, FileObj file, Name fmt)
   {
 #ifdef HAVE_LIBXPM
     Pixmap pix = (Pixmap) getXrefObject(image, d);
+    Pixmap pmsk = 0;
     int as = XpmAttributesSize();
     XpmAttributes *atts = (XpmAttributes *)alloca(as);
 
@@ -288,15 +289,23 @@ ws_save_image_file(Image image, FileObj file, Name fmt)
     atts->height    = valInt(image->size->h);
     atts->valuemask = XpmSize;
 
+    if ( notNil(image->hot_spot) )
+    { atts->x_hotspot = valInt(image->hot_spot->x);
+      atts->y_hotspot = valInt(image->hot_spot->y);
+      atts->valuemask |= XpmHotspot;
+    }
+    if ( notNil(image->mask) )
+      pmsk = (Pixmap) getXrefObject(image->mask, d);
+
     if ( XpmWriteFileFromPixmap(r->display_xref,
 				strName(file->name),
 				pix,
-				0,	/* shape */
+				pmsk,
 				atts) != XpmSuccess )
       return errorPce(image, NAME_xError);
-#else
+#else /*HAVE_LIBXPM*/
     return errorPce(image, NAME_noImageFormat, NAME_xpm);
-#endif
+#endif /*HAVE_LIBXPM*/
   } else
   { int pnm_fmt;
     XImage *i;

@@ -101,13 +101,6 @@ getCatchAllHostv(Host h, Name selector, int argc, Any *argv)
 }
 
 
-/* (AA)	If Host returns a message from the queue it can not be
- *	deleted as it would be garbage collected immediately.
- *	So, we set a flag to indicate we should delete the message
- *	the next time we enter getMessageHost() again.
- */
-int	HostDeleteHeadFirst = FALSE;
-
 static Message
 getMessageHost(Host h)
 { Message msg;
@@ -115,16 +108,18 @@ getMessageHost(Host h)
 
   assign(h, callBack, OFF);
 
-  if (HostDeleteHeadFirst)
-    deleteHeadChain(h->messages);
-  HostDeleteHeadFirst = FALSE;
-
   for (;;)
-  { if ((msg = getHeadChain(h->messages)) != FAIL)
-    { HostDeleteHeadFirst = TRUE;
-      assign(h, callBack, oldBack);
+  { if ( (msg = getHeadChain(h->messages)) )
+    { assign(h, callBack, oldBack);
+
+      addCodeReference(msg);
+      deleteHeadChain(h->messages);
+      delCodeReference(msg);
+      pushAnswerObject(msg);
+
       answer(msg);
     }
+
     dispatchDisplayManager(TheDisplayManager(), DEFAULT, DEFAULT);
   }
 }

@@ -721,8 +721,69 @@ ws_save_image_file(Image image, FileObj file, Name fmt)
     d = CurrentDisplay(image);
 
   if ( fmt == NAME_xbm )
-  { Cprintf("No support for writing XBM files, try format PNM\n");
+  { return errorPce(image, NAME_noImageFormat, NAME_xbm);
     fail;
+  } else if ( fmt == NAME_xpm )
+  {
+#ifdef O_XPM
+    int as = XpmAttributesSize();
+    XpmAttributes *atts = (XpmAttributes *)alloca(as);
+    char *fname = strName(getOsNameFile(file));
+    DisplayObj d = image->display;
+    HPALETTE ohpal, hpal;
+    XImage ximg, xmsk, *xmskp = NULL;
+    HDC hdc;
+    int rval;
+    
+    if ( isNil(d) )
+      d = CurrentDisplay(image);
+    if ( instanceOfObject(d->colour_map, ClassColourMap) )
+      hpal = getPaletteColourMap(d->colour_map);
+    else
+      hpal = NULL;
+
+    hdc = CreateCompatibleDC(NULL);
+    if ( hpal )
+    { ohpal = SelectPalette(hdc, hpal, FALSE);
+      RealizePalette(hdc);
+    }
+
+    memset(atts, 0, as);
+    ximg.width  = atts->width  = valInt(image->size->w);
+    ximg.height = atts->height = valInt(image->size->h);
+    ximg.depth  = valInt(image->depth);
+    ximg.bitmap = (HBITMAP) getXrefObject(image, d);
+    atts->valuemask = XpmSize;
+
+    if ( notNil(image->hot_spot) )
+    { atts->x_hotspot = valInt(image->hot_spot->x);
+      atts->y_hotspot = valInt(image->hot_spot->y);
+      atts->valuemask |= XpmHotspot;
+    }
+    if ( notNil(image->mask) )
+    { Image mask = image->mask;
+
+      xmsk.width  = valInt(mask->size->w);
+      xmsk.height = valInt(mask->size->h);
+      xmsk.depth  = valInt(mask->depth);
+      xmsk.bitmap = (HBITMAP) getXrefObject(mask, d);
+      xmskp = &xmsk;
+    }
+
+    rval = XpmWriteFileFromImage(&hdc,
+				 fname,
+				 &ximg,
+				 xmskp,
+				 atts);
+    if ( hpal )
+      SelectPalette(hdc, ohpal, FALSE);
+    DeleteDC(hdc);
+
+    if ( rval != XpmSuccess )
+      return errorPce(image, NAME_xError);
+#else
+    return errorPce(image, NAME_noImageFormat, NAME_xpm);
+#endif
   } else
   { int pnm_fmt;
     HBITMAP bm;

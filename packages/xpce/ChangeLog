@@ -1,5 +1,9 @@
 [VERSION 4.9.2]
 
+* ADDED: Win32: save image as XPM file.
+
+* ADDED: Save image<-mask and <-hot_spot when writing an XPM file.
+
 * ADDED: Documentation for pce_open/3 (see Predicate Browser).
 
 * PERFORMANCE: Improved change combination algorithm, providing less

@@ -1,0 +1,267 @@
+\section{Executable objects}		\label{sec:exeobjects}
+
+\index{statement,as object}\index{executable,object}
+\index{program,as object}\index{lambda functions}
+PCE defines {\em executable} objects.  Executable objects (often
+called \idx{code object}s) can be compared to lambda functions in Lisp.
+They are used in the contexts given below.
+
+\begin{itemize}
+    \tick{Definition of `\idx{call-back}' actions}
+The most common usage of executable objects is to specify the action
+undertaken by interactive UI components when they are activated.  We
+have seen examples of this in \secref{fileviewer}.
+    \tick{As implementation of a \class{method} object} 
+A method describes an action associated with a class or individual
+object.  It maps a {\em selector} onto an action.  This action is
+either a C-function (used for most internal methods) or an
+executable object. See also \chapref{udc}.
+    \tick{As parameter to a method}
+Various methods take an executable object as a parameter to
+specify the action undertaken.  Suppose we want to remove all graphicals
+in the selection of a graphical device.  The method `device <-selection'
+returns a \class{chain} object containing all grahicals currently
+selected on the device.  The implementation is:
+
+\begin{code}
+	...,
+	send(Dev?graphicals, for_all, message(@arg1, free)).
+	...
+\end{code}
+
+The method `chain ->for_all' will execute the argument \class{message}
+object in a loop for all elements in the chain.  It will bind @arg1 to
+the currently processed element of the chain.
+\end{itemize}
+
+Two major groups of code objects are distinguished: {\em procedures}
+and {\em functions}.  The first only returns status information
+similar to the send-operation.  The latter returns a value or failure
+status information similar to the get-operation.
+
+\subsection{Procedures}
+
+Procedures perform an action when executed.  Similar to Prolog, the
+execution of a procedure either returns successful or failed completion.
+Procedures are normally executed by the object or method they are handed
+to.  For example, the procedure associated to a \class{button} object is
+executed when the button is pressed.  The procedure handed to the
+`chain->for_all' method we have seen above is executed by this method
+for each element of the chain.
+
+Procedures can also be executed explicitly using the method `code
+->execute' and `code->forward'.  The first simply executes the
+procedure.  The latter binds the argument-forwarding objects @arg1, ...,
+then ->execute{}s the procedure and restores the old bindings of @arg1,
+....
+
+
+\begin{shortlist}
+    \tick{message(Receiver, Selector, Argument ...)}
+A \class{message} object starts a send-operation when executed.  The
+arguments of a message are either objects or {\em functions}.  In the
+latter case these are evaluated before the message itself is evaluated.
+If the evaluation of one of the argument functions fails, the message
+is not executed.  The {\em Receiver} of a the message can be @prolog to
+invoke a predicate in the Prolog environment.
+    \tick{and(Statement, ...)}
+An \class{and} is a sequence of code objects.  It fails if one of the
+members fails and succeeds otherwise.  If a statement is a function,
+it will be evaluated.  Functions fail only if they return the fail
+control-value.  Notably, a function that returned the boolean @off (false)
+is considered to have succeeded.
+    \tick{if(Condition, [Then], [Else])}
+An \class{if} implements a branch.  It first evaluates {\em Condition}
+and then either of {\em Then} or {\em Else}.  The success of the entire
+if is determined by the success of the executed {\em Then} or {\em
+Else}.  Either or both of these statements may be omitted.  The construct
+\mbox{\tt if({\em Statement})} may be used to force success of a code
+object.
+    \tick{Conditions: (A {\tt\string==} B, A {\tt\string\==} B, A {\tt\string<} B, ...)}
+These executable objects are commonly used as conditions for the
+\class{if} object.
+\end{shortlist}
+
+\noindent
+The online manual may be used to get an overview of the other available
+code objects.  See section~\ref{sec:classhierarchy}.
+
+
+\subsection{Functions}		\label{sec:function}
+
+Functions are code objects which ---when executed--- evaluate to a
+value.  They are commonly used as arguments to other code objects or as
+arguments to any method.  A function is automatically evaluated iff:
+
+\begin{shortlist}
+    \item{It appears as part of a code object that is executed}
+    \item{Type checking demands execution} 
+\end{shortlist}
+
+\noindent
+The most important function objects are:
+
+\begin{itemize}
+    \tick{?(Receiver, Selector, Argument, ...)}
+Class \class{?} starts a get-operation when executed (= evaluated).  The
+classname is pronounced as {\em \idx{obtainer}}.  All the arguments may
+be functions.  These will be evaluated before the get-operation is
+performed.  As with \class{message}, a failing evaluation of one of the
+arguments forces failure of the whole.
+    \tick{var}
+Class \class{var} describes a variable.  The objects @arg1, @arg2, ...,
+@arg10, @receiver and @event are the most commonly used var objects.
+
+The objects @arg1, ...  are the message {\em forwarding} arguments.
+Assume the following message.
+
+\begin{code}
+?- new(@m, message(@pce, format, 'Hello %s\n', @arg1)).
+\end{code}
+
+When executed, @arg1 (a \class{function}) is first evaluated.
+The method `code ->forward: argument, ...' binds these \class{var}
+objects locally:
+
+\begin{code}
+?- send(@m, execute),
+   send(@m, forward, world),
+   send(@m, execute).
+@default
+world
+@default
+\end{code}
+
+The objects @receiver and @event are functions referring to the receiver
+of the currently executing method and the current user-event.  Var
+objects are rarely created explicitly by application programmers.
+    \tick{arithmetic functions (+, -, *, /)}
+\index{arithmetic}%
+These functions define {\em integer} arithmetic and are commonly used
+to deal with graphical computations in code objects.
+    \tick{create(Class, InitArg, ...)}
+This function evaluates to a new instance of {\em Class} from the given
+{\em InitArg} initialisation arguments.  Its usage is best explained
+using an example.  Consider we want to iterate over all boxes in a
+graphical device, writing a file with lines of the form
+
+\begin{code}
+BOX <name> at X, Y
+\end{code}
+
+A naive approach and common beginners mistake is to write:
+
+\begin{code}
+	...,
+	new(F, file(Output)),
+	send(F, open, write),
+	send(Dev?graphicals, for_all,
+	     if(message(@arg1, instance_of, box),
+		message(F, append,
+			string('BOX %s at %d,%d\n',
+			       @arg1?name, @arg1?x, @arg1?y)))),
+	send(F, close),
+	...
+\end{code}
+
+This example will yield a warning:
+
+\begin{code}
+[PCE error: get: No implementation for: @default/constant <-x
+        in: get(@default/constant, x)]
+PCE:  4 fail: get(@default/constant, x) ? 
+\end{code}
+
+The reason for this is that the {\em interface} will translate
+string(...) into an instance of class \class{string}, instead of
+the execution of the ->for_all method's body creating different
+strings for each box displayed on the device.  The correct solution
+is to use:
+
+\begin{code}
+	...,
+	new(F, file(Output)),
+	send(F, open, write),
+	send(Dev?graphicals, for_all,
+	     if(message(@arg1, instance_of, box),
+		message(F, append,
+			create(string, 'BOX %s at %d,%d\n',
+			       @arg1?name, @arg1?x, @arg1?y)))),
+	send(F, close),
+	...
+\end{code}
+
+The construct `create(...)' will create an instance of class
+\class{create}.  `message ->execute' will first evaluate all
+functions in the message and thus create an instance of class
+\class{string}.
+\end{itemize}
+
+
+\subsection{Example}
+
+Code objects are most commonly used to specify the internal behaviour of
+dialog windows, such that the call-back predicate can concentrate on the
+real function.  We have seen an example of this in \secref{fileviewer}.
+
+\index{PostScript}%
+Below there is another example.  {\em Data} is assumed to be an XPCE
+\class{string} object containing a PostScript\tm\ description of a
+graphical object as can be obtained using
+
+\begin{code}
+	...,
+	get(Graphical, postscript, PostScriptString),
+	...,
+\end{code}
+
+In this example both the internal dynamics of the dialog window (the
+label of the text-entry fields changes if the user switches from
+file to printer) and grabbing the arguments from the various
+dialog items is written using XPCE executable objects.  Prolog
+will only be called to do the real work: printing the data to
+the requested destination.
+
+Note that XPCE/Prolog does not {\bf require} you to use XPCE executable
+objects this way.  It is also possible to call Prolog from both the menu
+and the buttons, passing the dialog window as argument and write all
+behaviour in Prolog.  We leave this as an exercise to the user.
+
+
+\begin{pcecode}
+postscript(Data) :-
+	  new(D, dialog('Print destination')),
+	  send(D, append, new(T, menu(destination, marked))),
+	  send_list(T, append, [printer, file]),
+	  send(T, layout, horizontal),
+	  send(D, append, new(A, text_item(printer_name, 'PostScript'))),
+	  send(T, message,
+	       if(T?selection == printer,
+		  message(A, label, ?(A, label_name, printer_name)),
+		  message(A, label, ?(A, label_name, file_name)))),
+	  send(D, append,
+	       button(ok, and(message(@prolog, print_postscript,
+				      T?selection, A?selection, Data),
+			      message(D, destroy)))),
+	  send(D, append,
+	       button(cancel, message(D, destroy))),
+	  send(D, default_button, ok),
+	  send(D, open).
+	  
+print_postscript(printer, Address, Data) :- !,
+	  new(F, file),
+	  send(F, open, write),
+	  send(F, append, Data),
+	  send(F, close),
+	  get(F, name, TmpFile),
+	  get(string('lpr -P%s %s &', Address, TmpFile),
+	      value, Command),
+	  unix(shell(Command)).
+print_postscript(file, Address, Data) :-
+	  new(F, file(Address)),
+	  send(F, open, write),
+	  send(F, append, Data),
+	  send(F, close).
+\end{pcecode}
+
+% do not remove this line ...

@@ -11,6 +11,7 @@
 #include <h/unix.h>
 
 static HashTable ColourNames;		/* name --> rgb (packed in Int) */
+static HashTable X11ColourNames;	/* rgb --> X11-name */
 
 static status	ws_alloc_colour(ColourMap cm, Colour c);
 
@@ -61,8 +62,45 @@ LoadColourNames()
   return ColourNames;
 }
 
-
 #if O_XPM
+static HashTable
+LoadX11ColourNames()
+{ if ( !X11ColourNames )
+  { FileObj f = answerObject(ClassFile, CtoName("$PCEHOME/lib/rgb.txt"), 0);
+    X11ColourNames = globalObject(CtoName("_x11_colour_names"),
+				  ClassHashTable, 0);
+    
+    if ( send(f, NAME_open, NAME_read, 0) )
+    { char line[256];
+      int r, g, b;
+      char name[80];
+
+      while( fgets(line, sizeof(line), f->fd) )
+      { switch( sscanf(line, "%d%d%d%[^\n]", &r, &g, &b, name) )
+	{ case 4:
+	  { char *s;
+	    char *e;
+	    COLORREF rgb;
+
+	    for(s=name; *s && *s <= ' '; s++)
+	      ;
+	    for(e = s + strlen(s); e > s && e[-1] <= ' '; e--)
+	      ;
+	    *e = EOS;
+	    rgb = RGB(r, g, b);
+	    appendHashTable(X11ColourNames, toInt(rgb), CtoName(s));
+	    break;
+	  }
+	}
+      }
+
+      send(f, NAME_close, 0);
+    }
+  }
+
+  return X11ColourNames;
+}
+
 int
 xpmGetRGBfromName(char *inname, int *r, int *g, int *b)
 { char name[256];
@@ -88,13 +126,44 @@ xpmGetRGBfromName(char *inname, int *r, int *g, int *b)
     *g = GetGValue(rgb);
     *b = GetBValue(rgb);
   } else
-  { *r = 255;
+  { *r = 255;				/* nothing there, return red */
     *g = *b = 0;
   }
 
   return 1;				/* we have it */
 }
-#endif
+
+
+int
+xpmReadRgbNames(char *rgb_fname, void *rgbn)
+{ return valInt(LoadX11ColourNames()->size);
+}
+
+
+void
+xpmFreeRgbNames(void *rgbn, int rgbn_max)
+{
+}
+
+
+char *
+xpmGetRgbName(void *rgbn, int rgbn_max, int red, int green, int blue)
+{ Int rgb = toInt(RGB(red, green, blue));
+  HashTable ht = LoadX11ColourNames();
+  Name name;
+
+  if ( rgb == ZERO )
+    return "black";			/* otherwise these come as gray0 */
+  if ( rgb == toInt(RGB(255,255,255)) )
+    return "white";			/* and gray100 */
+
+  if ( (name = getMemberHashTable(ht, rgb)) )
+    return strName(name);
+
+  return NULL;
+}
+
+#endif /*O_XPM*/
 
 
 static Name

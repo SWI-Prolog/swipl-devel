@@ -31,6 +31,15 @@ tag(C, Tag:graphical) :->
 	).
 
 
+unlink(C) :->
+	"Destroy tags"::
+	send(C, send_super, unlink),
+	get(C, tag, Tag),
+	(   Tag \== @nil
+	->  free(Tag)
+	;   true
+	).
+
 device(C, Dev:device*) :->
 	"Update the tag"::
 	send(C, send_super, device, Dev),
