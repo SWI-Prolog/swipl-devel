@@ -26,12 +26,8 @@ initialise(R) :->
 	send(R, reference, point(0, R?height)).
 
 report(R, Status:name, Fmt:[char_array], Args:any ...) :->
-	(   current_predicate(_, send_class(_, _, _))
-	->  Msg =.. [report, Status, Fmt | Args], % new xpce-5
-	    send_super(R, Msg)
-	;   Goal =.. [send, R, send_super, report, Status, Fmt | Args],
-	    Goal
-	),
+	Msg =.. [report, Status, Fmt | Args], % new xpce-5
+	send_super(R, Msg),
 	colour(Status, Colour),
 	send(R, colour, Colour).
 	

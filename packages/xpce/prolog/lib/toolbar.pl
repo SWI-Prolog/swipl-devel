@@ -24,8 +24,8 @@ the tool_bar.
 
 Below is a typical example:
 
-resource(printer,	image,	image('printer.xpm')).
-resource(floppy,	image,	image('floppy.xpm')).
+resource(printer,	image,	image('16x16/print.xpm')).
+resource(floppy,	image,	image('16x16/save.xpm')).
 
 :- pce_begin_class(myapp, frame).
 
