@@ -509,8 +509,19 @@ swap_parents(Node n, Node n2, Chain intersection)
 
 
 static status
+sortSonsNode(Node parent, Code cmp)
+{ if ( notNil(parent->sons) )
+  { sortChain(parent->sons, cmp, OFF);
+
+    return requestComputeTree(parent->tree);
+  }
+
+  succeed;
+}
+
+
+static status
 swapNode(Node n, Node n2)			/* swap images of two nodes */
-           
 { Graphical gr;
 
   if ( n->tree != n2->tree || isNil(n->tree) )
@@ -831,6 +842,8 @@ static senddecl send_node[] =
      NAME_edit, "Swap images of two nodes"),
   SM(NAME_swapTree, 1, "node", swapTreeNode,
      NAME_edit, "Swap positions of two entire trees"),
+  SM(NAME_sortSons, 1, "code", sortSonsNode,
+     NAME_order, "Sort sons using code and recompute"),
   SM(NAME_unrelate, 1, "node", unrelateNode,
      NAME_edit, "Delete (direct) relation to argument"),
   SM(NAME_isParent, 1, "node", isParentNode,

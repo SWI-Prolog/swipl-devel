@@ -1027,8 +1027,10 @@ End;
   Modifier	modifier;		/* shift-control-meta */ \
   Code		condition;		/* Additional conditions */ \
   Name		status;			/* {inactive, ...} */ \
-  Any		cursor;			/* Cursor while acitive */
-  
+  Any		cursor;			/* Cursor while acitive */ \
+  Name		drag_scroll;		/* Scroll when dragging out */ \
+  Timer		drag_scroll_timer;	/* Associated timer */ \
+  EventObj	drag_scroll_event;	/* Last event for drag-scroll */
 
 NewClass(gesture)
   ABSTRACT_GESTURE

@@ -561,8 +561,8 @@ NewClass(list_browser)
   Style		selection_style;	/* Style object for selection */
   Bool		multiple_selection;	/* Multiple selections (def: OFF) */
   Code		select_message;		/* Message on left button click */
-  Code		select_middle_message;	/* Message on middle button click */
   Code		open_message;		/* Message on left-double click */
+  Code		cancel_message;		/* Send on drag with `up' outside */
   PopupObj	popup;			/* Associated popup */
   FontObj	font;			/* Font for text */
   Sheet		styles;			/* Name --> style mapping */
@@ -571,6 +571,8 @@ NewClass(list_browser)
   Int		search_origin;		/* Origin of incremental search */
   Int		search_hit;		/* Current item found */
   StringObj	search_string;		/* Incremental search string */
+  Int		caret;			/* Index of `caret' item */
+  Int		selection_origin;	/* Origin of select-range */
 					/* Start private data */
   Cell		start_cell;		/* Cell corresponding to <-start */
 End;
@@ -842,6 +844,11 @@ typedef struct
 #define BUTTON_ms_left		(0x8)
 #define BUTTON_ms_middle	(0x10)
 #define BUTTON_ms_right		(0x20)
+					/* buttons bit mask */
+#define CLICK_TYPE_mask		(0xC0)
+#define CLICK_TYPE_single	(0x40)
+#define CLICK_TYPE_double	(0x80)
+#define CLICK_TYPE_triple	(0xC0)
 
 		/********************************
 		*      X-WINDOW REFERENCES	*

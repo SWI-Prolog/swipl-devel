@@ -16,15 +16,14 @@ static status clearSelectionListBrowser(ListBrowser);
 static status ChangeItemListBrowser(ListBrowser, DictItem);
 static status ChangedListBrowser(ListBrowser);
 static status geometryListBrowser(ListBrowser, Int, Int, Int, Int);
-static status forwardListBrowser(ListBrowser, DictItem, Name);
 static status deselectListBrowser(ListBrowser, DictItem);
 static status showLabelListBrowser(ListBrowser, Bool);
-static status openListBrowser(ListBrowser, DictItem);
 static status selectListBrowser(ListBrowser, DictItem);
 static status scrollUpListBrowser(ListBrowser, Int);
 static status scrollDownListBrowser(ListBrowser, Int);
 static status extendPrefixListBrowser(ListBrowser);
 
+#define swap(x, y)	{ int z; z=x; x=y; y=z; }
 
 		/********************************
 		*            CREATE		*
@@ -54,8 +53,8 @@ initialiseListBrowser(ListBrowser lb, Dict dict, Int w, Int h)
   assign(lb,   key_binding,	      newObject(ClassKeyBinding, NIL,
 						NAME_listBrowser, 0));
   assign(lb,   select_message,        NIL);
-  assign(lb,   select_middle_message, NIL);
   assign(lb,   open_message,          NIL);
+  assign(lb,   cancel_message,	      NIL);
   assign(lb,   multiple_selection,    OFF);
   assign(lb,   selection,             NIL);
   assign(lb,   start,	              ZERO);
@@ -64,7 +63,8 @@ initialiseListBrowser(ListBrowser lb, Dict dict, Int w, Int h)
   assign(lb,   search_hit,	      toInt(-1));
   assign(lb,   label_text,	      NIL);
   assign(lb,   styles,		      newObject(ClassSheet, 0));
-  assign(lb, selection_style, getClassVariableValueObject(lb, NAME_selectionStyle));
+  assign(lb,   selection_style,       getClassVariableValueObject(lb,
+						      NAME_selectionStyle));
 
   lb->start_cell = NIL;
 
@@ -871,13 +871,15 @@ static status
 enterListBrowser(ListBrowser lb)
 { DictItem di;
 
-  TRY( notNil(lb->dict) && (di=getFindIndexDict(lb->dict, lb->search_hit)) );
+  if ( isNil(lb->dict) )
+    fail;
 
-  send(lb, NAME_changeSelection, NAME_set, di, 0);
-  forwardListBrowser(lb, di, NAME_left);
-  openListBrowser(lb, di);
+  if ( (di=getFindIndexDict(lb->dict, lb->search_hit)) )
+  { send(lb, NAME_changeSelection, NAME_set, di, 0);
+    return forwardListBrowser(lb, NAME_open);
+  }
 
-  succeed;
+  return forwardListBrowser(lb, NAME_open);
 }
 
 		/********************************
@@ -891,7 +893,7 @@ typedListBrowser(ListBrowser lb, EventId id)
 }
 
 
-static DictItem
+DictItem
 getDictItemListBrowser(ListBrowser lb, EventObj ev)
 { Int where = getIndexTextImage(lb->image, ev);
 
@@ -901,6 +903,18 @@ getDictItemListBrowser(ListBrowser lb, EventObj ev)
 
   fail;
 }
+
+
+Any
+selectBrowserGesture()
+{ static Any g = NULL;
+
+  if ( !g )
+    g = globalObject(NAME_browserSelectGesture, ClassBrowserSelectGesture, 0);
+  
+  return g;
+}
+
 
 
 static status
@@ -923,42 +937,15 @@ eventListBrowser(ListBrowser lb, EventObj ev)
   if ( isAEvent(ev, NAME_button) )
   { DictItem di = getDictItemListBrowser(lb, ev);
 
-    if ( di != FAIL && notNil(lb->popup) && isAEvent(ev, NAME_msRightDown) )
+    if ( di && notNil(lb->popup) && isAEvent(ev, NAME_msRightDown) )
     { send(popupGesture(), NAME_context, di, 0);
-      if ( postEvent(ev, (Graphical) lb, popupGesture()) == FAIL )
+
+      if ( !postEvent(ev, (Graphical) lb, popupGesture()) )
 	send(popupGesture(), NAME_context, NIL, 0);
       else
 	succeed;
-    } else if ( isAEvent(ev, NAME_msLeftDown) ||
-	        isAEvent(ev, NAME_msMiddleDown) )
-    { succeed;
-    } else if ( isAEvent(ev, NAME_msLeftUp) ||
-	        isAEvent(ev, NAME_msMiddleUp) )
-    { Name multi = getMulticlickEvent(ev);
-
-      if ( di == FAIL )
-      { send(lb, NAME_changeSelection, NAME_clear, 0);
-	succeed;
-      }
-
-      if ( multi == NAME_double && notNil(lb->open_message) )
-	return openListBrowser(lb, di);
-
-					  /* Single selection selection */
-      if ( lb->multiple_selection == OFF )
-      { send(lb, NAME_changeSelection, NAME_set, di, 0);
-	return forwardListBrowser(lb, di, getButtonEvent(ev));
-      } else				/* Multiple selection */
-      { if ( hasModifierEvent(ev, findGlobal(NAME_ModifierShift)) )
-	  send(lb, NAME_changeSelection, NAME_extend, di, 0);
-        else if ( hasModifierEvent(ev, findGlobal(NAME_ModifierControl)) )
-	  send(lb, NAME_changeSelection, NAME_toggle, di, 0);
-	else
-	  send(lb, NAME_changeSelection, NAME_set, di, 0);
-
-	return forwardListBrowser(lb, di, getButtonEvent(ev));
-      }
-    }
+    } else
+      return postEvent(ev, (Graphical)lb, selectBrowserGesture());
   }
   
   fail;
@@ -969,30 +956,29 @@ eventListBrowser(ListBrowser lb, EventObj ev)
 		********************************/
 
 static status
-forwardListBrowser(ListBrowser lb, DictItem di, Name button)
-{ Code msg = NIL;
-  Bool val = selectedListBrowser(lb, di) ? ON : OFF;
-
-  if ( button == NAME_middle )
-  { if ( notNil(lb->select_middle_message) )
-      msg = lb->select_middle_message;
-    else if ( notNil(lb->select_message) )
-      msg = lb->select_message;
-  } else
-  { if ( notNil(lb->select_message) )
-      msg = lb->select_message;
-  }
-
-  if ( notNil(msg) )
-    forwardReceiverCode(msg, lbReceiver(lb), di, val, 0);
-
-  succeed;
-}
-
-
-static status
 changeSelectionListBrowser(ListBrowser lb, Name action, DictItem di)
 { cancelSearchListBrowser(lb);
+
+  if ( action == NAME_cancel )
+  { assign(lb, selection_origin, NIL);
+
+    clearSelectionListBrowser(lb);
+    if ( instanceOfObject(di, ClassChain) )
+    { Cell cell;
+
+      for_cell(cell, (Chain)di)
+      { selectListBrowser(lb, cell->value);
+      }
+    } else if ( instanceOfObject(di, ClassDictItem) )
+      selectListBrowser(lb, di);
+
+    if ( instanceOfObject(lb->cancel_message, ClassCode) )
+      forwardReceiverCode(lb->cancel_message,
+			  lbReceiver(lb),
+			  0);
+
+    succeed;
+  }
 
   if ( action != NAME_clear && isDefault(di) )
     return errorPce(di, NAME_unexpectedType, nameToType(NAME_dictItem));
@@ -1000,68 +986,80 @@ changeSelectionListBrowser(ListBrowser lb, Name action, DictItem di)
   if ( action == NAME_set )
   { clearSelectionListBrowser(lb);
     selectListBrowser(lb, di);
+    assign(lb, selection_origin, di->index);
   } else if ( action == NAME_toggle )
   { if ( selectedListBrowser(lb, di) )
       deselectListBrowser(lb, di);
     else
-      selectListBrowser(lb, di);
+    { selectListBrowser(lb, di);
+      assign(lb, selection_origin, di->index);
+    }
   } else if ( action == NAME_extend )
-  { if ( isNil(lb->selection) )
-      selectListBrowser(lb, di);
-    else
+  { if ( isNil(lb->selection) || isNil(lb->selection_origin) )
+    { selectListBrowser(lb, di);
+      assign(lb, selection_origin, di->index);
+    } else
     { Chain ch = lb->selection;
-      if ( getSizeChain(ch) == ONE )
-      { DictItem start = getHeadChain(ch);
+      Cell cell, c2;
+      int low, high;
 
-	if ( start->index == di->index )
-	  deselectListBrowser(lb, di);	/* toggle */
-	else
-	{ DictItem f, t;
-	  Cell cell;
+      low = valInt(di->index);
+      high = valInt(lb->selection_origin);
+      if ( low > high )
+	swap(low, high);
 
-	  if ( valInt(start->index) < valInt(di->index) )
-	  { f = start;
-	    t = di;
-	  } else
-	  { t = start;
-	    f = di;
-	  }
+      for_cell_save(cell, c2, ch)
+      { DictItem di2 = cell->value;
 
-	  if ( (cell = find_cell_dict(lb->dict, f->index)) )
-	  { for( ; notNil(cell); cell = cell->next )
-	    { DictItem di2 = cell->value;
+	if ( valInt(di2->index) < low || valInt(di2->index) > high )
+	  deselectListBrowser(lb, di2);
+      }
 
-	      selectListBrowser(lb, di2);
-	      if ( di2 == t )
-		break;
-	    }
-	  }
+      if ( (cell = find_cell_dict(lb->dict, toInt(low))) )
+      { for( ; notNil(cell); cell = cell->next )
+	{ DictItem di2 = cell->value;
+
+	  selectListBrowser(lb, di2);
+	  if ( valInt(di2->index) == high )
+	    break;
 	}
       } else
       { clearSelectionListBrowser(lb);
 	selectListBrowser(lb, di);
+	assign(lb, selection_origin, di->index);
       }
     }
   } else /* clear */
   { clearSelectionListBrowser(lb);
+    assign(lb, selection_origin, NIL);
   }
 
   succeed;
 }
 
 
-static status
-openListBrowser(ListBrowser lb, DictItem di)
-{ if ( notNil(lb->open_message) )
-  { DisplayObj d = getDisplayGraphical((Graphical)lb);
+status
+forwardListBrowser(ListBrowser lb, Name action)
+{ if ( notNil(lb->selection) )
+  { if ( notNil(lb->select_message) )
+      forwardReceiverCode(lb->select_message, lbReceiver(lb),
+			  lb->selection, 0);
 
-    busyCursorDisplay(d, DEFAULT, DEFAULT);
-    forwardReceiverCode(lb->open_message, lbReceiver(lb), di, 0);
-    busyCursorDisplay(d, NIL, DEFAULT);
+    if ( action == NAME_open )
+    { if ( notNil(lb->open_message) )
+      { DisplayObj d = getDisplayGraphical((Graphical)lb);
+
+	busyCursorDisplay(d, DEFAULT, DEFAULT);
+	forwardReceiverCode(lb->open_message, lbReceiver(lb),
+			    lb->selection, 0);
+	busyCursorDisplay(d, NIL, DEFAULT);
+      }
+    }
   }
 
   succeed;
 }
+
 
 		/********************************
 		*       SELECTION HANDLING	*
@@ -1265,13 +1263,26 @@ showScrollBarListBrowser(ListBrowser lb, Bool show, ScrollBar sb)
 		 *	  LINE UP/DOWN		*
 		 *******************************/
 
+static int
+onPage(DictItem di, int start, int end)
+{ if ( valInt(di->index) >= start &&
+       valInt(di->index) <= end )
+    succeed;
+
+  fail;
+}
+
+
 static status
 nextLineListBrowser(ListBrowser lb, Int lines)
 { if ( notNil(lb->dict) )
   { int times = isDefault(lines) ? 1 : valInt(lines);
     DictItem di = NULL;
 
-    if ( valInt(lb->search_hit) >= 0 )
+    if ( times == 0 )
+      succeed;
+
+    if ( valInt(lb->search_hit) >= 0 )			/* Searching */
     { Int newi = normalise_index(lb, toInt(valInt(lb->search_hit) + times));
 
       di = getNth0Chain(lb->dict->members, newi);
@@ -1289,33 +1300,55 @@ nextLineListBrowser(ListBrowser lb, Int lines)
 	}
 	assign(lb, search_hit, newi);
       }
-    } else if ( lb->multiple_selection == OFF )
-    { Int newi;
-      int start = valInt(lb->image->start) / BROWSER_LINE_WIDTH;
+    } else
+    { int start = valInt(lb->image->start) / BROWSER_LINE_WIDTH;
       int last  = (valInt(lb->image->end) - 1) / BROWSER_LINE_WIDTH;
-      
-      if ( notNil(lb->selection) )
-      { di   = lb->selection;
+      int oldcaret = -1;
+      int caret = -1;
 
-	if ( valInt(di->index) >= start &&
-	     valInt(di->index) <= last )
-	{ ChangeItemListBrowser(lb, di);
-	  newi = normalise_index(lb, toInt(valInt(di->index) + times));
-	  di = getNth0Chain(lb->dict->members, newi);
-	} else
-	  goto topofpage;
-      } else
-      { topofpage:
-	newi = toInt(start);
-	di   = getNth0Chain(lb->dict->members, newi);
+      if ( notNil(lb->caret) )
+      { caret = valInt(lb->caret);
+      } else if ( instanceOfObject(lb->selection, ClassDictItem) )
+      { if ( onPage(lb->selection, start, last) )
+	{ DictItem di2 = lb->selection;
+
+	  caret = valInt(di2->index);
+	}
+      } else if ( instanceOfObject(lb->selection, ClassChain) )
+      { Cell cell;
+
+	for_cell(cell, (Chain)lb->selection)
+	{ DictItem di2 = cell->value;
+
+	  if ( onPage(di2, start, last) )
+	  { caret = valInt(di2->index);
+	    break;
+	  }
+	}
       }
+      if ( caret >= 0 )
+      { caret = valInt(normalise_index(lb, toInt(caret)));
+	oldcaret = caret;
+      } else
+	caret = start;
+	
+      caret += times;
+      caret = valInt(normalise_index(lb, toInt(caret)));
+      di   = getNth0Chain(lb->dict->members, toInt(caret));
 
       if ( di )
-      { assign(lb, search_origin, newi);
-	assign(lb, search_hit, newi);
-	assign(lb, search_string,
-	       newObject(ClassString, name_procent_s,
-			 getLabelDictItem(di), 0));
+      { assign(lb, caret, toInt(caret));
+
+	if ( lb->multiple_selection == ON &&
+	     instanceOfObject(EVENT->value, ClassEvent) )
+	{ EventObj ev = EVENT->value;
+
+	  if ( valInt(ev->buttons) & BUTTON_shift )
+	    send(lb, NAME_changeSelection, NAME_extend, di, 0);
+	  else
+	    send(lb, NAME_changeSelection, NAME_set, di, 0);
+	} else
+	  send(lb, NAME_changeSelection, NAME_set, di, 0);
       }
     }
 
@@ -1553,7 +1586,8 @@ static char *T_scrollVertical[] =
 static char *T_showScrollBar[] =
         { "show=[bool]", "which=[scroll_bar]" };
 static char *T_changeSelection[] =
-        { "action={set,toggle,extend,clear}", "context=[dict_item]" };
+        { "action={set,toggle,extend,clear,cancel}",
+	  "context=[dict_item|chain]" };
 static char *T_initialise[] =
         { "dict=[dict]", "width=[int]", "height=[int]" };
 static char *T_style[] =
@@ -1587,10 +1621,10 @@ static vardecl var_listBrowser[] =
      NAME_selection, "If @on, multiple items may be selected"),
   IV(NAME_selectMessage, "code*", IV_BOTH,
      NAME_action, "Send on left-click on item"),
-  IV(NAME_selectMiddleMessage, "code*", IV_BOTH,
-     NAME_action, "Send on middle-click on item"),
   IV(NAME_openMessage, "code*", IV_BOTH,
      NAME_action, "Send on keyboard selection or double click"),
+  IV(NAME_cancelMessage, "code*", IV_BOTH,
+     NAME_action, "Send on drag-select with `up' outside browser"),
   IV(NAME_popup, "popup*", IV_BOTH,
      NAME_menu, "Associated popup menu"),
   SV(NAME_font, "font", IV_GET|IV_STORE, fontListBrowser,
@@ -1607,6 +1641,10 @@ static vardecl var_listBrowser[] =
      NAME_search, "Current hit"),
   IV(NAME_searchString, "char_array*", IV_NONE,
      NAME_search, "Current search string"),
+  IV(NAME_caret, "int*", IV_NONE,
+     NAME_keyboard, "Location for ->next_line"),
+  IV(NAME_selectionOrigin, "int*", IV_NONE,
+     NAME_keyboard, "Origin for ->change_selection: extend"),
   IV(NAME_startCell, "alien:Cell", IV_NONE,
      NAME_cache, "Cell reference to top-row of display")
 };

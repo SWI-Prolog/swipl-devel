@@ -272,6 +272,7 @@ PUBLIC_GLOBAL Class ClassBlock;
 PUBLIC_GLOBAL Class ClassBox;
 PUBLIC_GLOBAL Class ClassBool;
 PUBLIC_GLOBAL Class ClassBrowser;
+PUBLIC_GLOBAL Class ClassBrowserSelectGesture;
 PUBLIC_GLOBAL Class ClassButton;
 PUBLIC_GLOBAL Class ClassChain;
 PUBLIC_GLOBAL Class ClassChainTable;
