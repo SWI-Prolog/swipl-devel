@@ -52,7 +52,8 @@ struct rubber
 #define format_predicates (GD->format.predicates)
 
 static int	update_column(int, Char);
-static bool	do_format(IOSTREAM *fd, const char *fmt, int ac, term_t av);
+static bool	do_format(IOSTREAM *fd,
+			  const char *fmt, unsigned len, int ac, term_t av);
 static void	distribute_rubber(struct rubber *, int, int);
 static void	emit_rubber(IOSTREAM *fd, char *, int, struct rubber *, int);
 
@@ -137,11 +138,12 @@ pl_format3(term_t stream, term_t fmt, term_t Args)
   term_t args = PL_copy_term_ref(Args);
   IOSTREAM *out;
   int rval;
+  unsigned len;
 
   if ( !getOutputStream(stream, &out) )
     fail;
 
-  if ( !PL_get_chars(fmt, &f, CVT_ALL|BUF_RING) )
+  if ( !PL_get_nchars(fmt, &len, &f, CVT_ALL|BUF_RING) )
     return PL_error("format", 3, NULL, ERR_TYPE, ATOM_text, fmt);
 
   if ( (argc = lengthList(args, FALSE)) >= 0 )
@@ -158,7 +160,7 @@ pl_format3(term_t stream, term_t fmt, term_t Args)
     PL_put_term(argv, args);
   }
   
-  rval = do_format(out, f, argc, argv);
+  rval = do_format(out, f, len, argc, argv);
   PL_release_stream(out);
 
   return rval;
@@ -186,7 +188,7 @@ update_column(int col, int c)
 
 
 static bool
-do_format(IOSTREAM *fd, const char *fmt, int argc, term_t argv)
+do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 { char buffer[BUFSIZE];			/* to store chars with tabs */
   int index = 0;			/* index in buffer */
   int column;				/* current output column */
@@ -194,6 +196,7 @@ do_format(IOSTREAM *fd, const char *fmt, int argc, term_t argv)
   int pending_rubber = 0;		/* number of not-filled ~t's */
   struct rubber rub[MAXRUBBER];
   Symbol s;
+  const char *end = fmt+len;
 
   Slock(fd);				/* buffer locally */
 
@@ -202,7 +205,7 @@ do_format(IOSTREAM *fd, const char *fmt, int argc, term_t argv)
   else
     column = 0;
 
-  while(*fmt)
+  while(fmt < end)
   { switch(*fmt)
     { case '~':
 	{ int arg = DEFAULT;		/* Numeric argument */
