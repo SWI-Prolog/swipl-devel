@@ -184,14 +184,16 @@ do_state_allows_for(dtd_state *here, dtd_element **allow, int *n,
   for(t=state_transitions(here); t; t=t->next)
   { int i;
 
-    if ( t->element == NULL && visit(t->state, visited) )
-      do_state_allows_for(t->state, allow, n, visited);
-
-    for(i=0; i<*n; i++)
-    { if ( allow[i] == t->element )
-	goto next;
+    if ( t->element == NULL )
+    { if ( visit(t->state, visited) )
+	do_state_allows_for(t->state, allow, n, visited);
+    } else
+    { for(i=0; i<*n; i++)
+      { if ( allow[i] == t->element )
+	  goto next;
+      }
+      allow[(*n)++] = t->element;
     }
-    allow[(*n)++] = t->element;
   next:
     ;
   }

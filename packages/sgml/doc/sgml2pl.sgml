@@ -645,11 +645,11 @@ If <c/token/ (default), attributes of type number are passed as a Prolog atom.
 If <c/integer/, such attributes are translated into Prolog integers.  If
 the conversion fails (e.g. due to overflow) a warning is issued and the
 value is passed as an atom.
-    <termitem>first_element(Element)
+    <termitem>doctype(Element)
 Defines the toplevel element expected. If a <verb><!DOCTYPE</verb>
 declaration has been parsed, the default is the defined doctype. The
 parser can be instructed to accept the first element encountered as the
-toplevel element using <xmp>first_element(_)</xmp>. This feature is
+toplevel using <xmp>doctype(_)</xmp>. This feature is especially
 useful when parsing part of a document (see the <c/parse/ option to
 <pref>sgml_parse/2</pref>.
 </argdef>
@@ -658,22 +658,28 @@ useful when parsing part of a document (see the <c/parse/ option to
     <summary>Get parser options
 Retrieve infomation on the current status of the parser. Notably useful 
 if the parser is used in the call-back mode. Currently defined options: 
+
 <argdef>
     <termitem>file(-File)
 Current file-name. Note that this may be different from the provided 
 file if an external entity is being loaded. 
+
     <termitem>charpos(-CharPos)
 Offset from where the parser started its processing in the file-object. 
 See <ref sec/indexaccess/. 
+
     <termitem>charpos(-Start, -End)
 Character offsets of the start and end of the source processed causing the
 current call-back.  Used in <ref exe/PceEmacs/ to for colouring text in
 SGML and XML modes.
+
     <termitem>source(-Stream)
 Prolog stream being processed. May be used in the <c/on_begin/, etc. 
 callbacks from <pref>sgml_parse/2</pref>. 
+
     <termitem>dialect(-Dialect)
 Return the current dialect used by the parser (<c/sgml/, <c/xml/ or <c/xmlns/).
+
     <termitem>event_class(-Class)
 The <jargon/event class/ can be requested in call-back events. It
 denotes the cause of the event, providing useful information for syntax
@@ -694,6 +700,45 @@ highlighting.  Defined values are:
 	<jargon/shortref/. This allows for highlighting shortref strings
 	in the source-text.
     </argdef>
+
+    <termitem>doctype(-Element)
+Return the defined document-type (= toplevel element).  See also
+<pref>set_sgml_parser/2</pref>.
+
+    <termitem>dtd(-DTD)
+Return the currently used DTD.  See dtd_property/2 for obtaining information
+on the DTD such as element and attribute properties.
+
+    <termitem>allowed(-Elements)
+Determines which elements may be inserted at the current location.  This
+information is returned as a list of element-names. If character data is
+allowed in the current location, <c/#pcdata/ is part of <aref/Elements/.
+If no element is open, the <jargon/doctype/ is returned.
+
+<p>
+This option is intended to support syntax-sensitive editors.  Such an
+editor should load the DTD, find an appropriate starting point and then
+feed all data between the starting point and the caret into the parser.
+Next it can use this option to determine the elements allowed at this
+point.  Below is a code fragment illustrating this use given a parser
+with loaded DTD, an input stream and a start-location.
+
+<code>
+	...,
+	seek(In, Start, bof, _),
+	set_sgml_parser(Parser, charpos(Start)),
+	set_sgml_parser(Parser, doctype(_)),
+	Len is Caret - Start,
+	sgml_parse(Parser,
+		   [ goal(feed(In, Len)),
+		     parse(input)	% do not complete document
+		   ]),
+        get_sgml_parser(Parser, allowed(Allowed)),
+	...
+
+feed(In, Len, Parser) :-
+	copy_stream_data(In, Parser, Len).
+</code>
 </argdef>
 
 <p>
@@ -746,19 +791,34 @@ X = [element(h1, [], ['hello world'])]
 </code>
 
     <termitem>parse(Unit)
-If <c/file/ (default), parse everything upto the end of the input. If
-<c/element/, the parser will stop after reading the first element. Using
-<term> source(Stream)</term>, this implies reading is stopped as soon as
-the element is complete, and another call may be issued on the same
-stream to read the next element. Using <term>goal(Goal)</term> as input,
-the stream reports an I/O error after completing the first element. This
+Defines how much of the input is parsed.  This option is used to parse
+only parts of a file.
+    <argdef>
+	<termitem><c/file/
+Default.  Parse everything upto the end of the input.
+	<termitem><c/element/
+The parser stops after reading the first element. Using <term>
+source(Stream)</term>, this implies reading is stopped as soon as the
+element is complete, and another call may be issued on the same stream
+to read the next element. Using <term>goal(Goal)</term> as input, the
+stream reports an I/O error after completing the first element. This
 exception destroyes the built <term>document(Term)</term>, making this
-option useless using `Goal' driven input. The value <c/content/ may be
-used in a call-back from <term>call(<c/on_begin/, Pred)</term> to parse
-individual elements after validating their headers.  Finally, the value
-<c/declaration/ may be used to stop the parser after reading the first
+option useless using `Goal' driven input.
+	<termitem><c/content/
+The value <c/content/ is like <c/element/ but assumes the element has
+already been opened. It may be used in a call-back from
+<term>call(<c/on_begin/, Pred)</term> to parse individual elements after
+validating their headers.
+	<termitem><c/declaration/
+This may be used to stop the parser after reading the first
 declaration.  This is especially useful to parse only the <xmp/doctype/
 declaration.
+	<termitem><c/input/
+This option is intended to be used in conjunction with the
+<term>allowed(Elements)</term> option of <pref>get_sgml_parser/2</pref>.
+It disables the parser's default to complete the parse-tree by closing
+all open elements.
+    </argdef>
 
     <termitem>max_errors(+MaxErrors)
 Set the maximum number of errors. If this number is exceeded further 

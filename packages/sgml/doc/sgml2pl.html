@@ -949,31 +949,37 @@ useful when parsing part of a document (see the <a name="const:parse"><b><tt>par
 Retrieve infomation on the current status of the parser. Notably useful 
 if the parser is used in the call-back mode. Currently defined options: 
 
+
 <dl>
 <dt>&nbsp;<br>
 <b>file(<var>-File</var>)</b><dd>
 Current file-name. Note that this may be different from the provided 
 file if an external entity is being loaded. 
+
     
 <dt>&nbsp;<br>
 <b>charpos(<var>-CharPos</var>)</b><dd>
 Offset from where the parser started its processing in the file-object. 
 See <a href="#sec:indexaccess">indexaccess</a>. 
+
     
 <dt>&nbsp;<br>
 <b>charpos(<var>-Start, -End</var>)</b><dd>
 Character offsets of the start and end of the source processed causing the
 current call-back.  Used in <b>PceEmacs</b> to for colouring text in
 SGML and XML modes.
+
     
 <dt>&nbsp;<br>
 <b>source(<var>-Stream</var>)</b><dd>
 Prolog stream being processed. May be used in the <a name="const:on_begin"><b><tt>on_begin</tt></b></a>, etc. 
 callbacks from <a href="#sgml_parse/2"><b>sgml_parse/2</b></a>. 
+
     
 <dt>&nbsp;<br>
 <b>dialect(<var>-Dialect</var>)</b><dd>
 Return the current dialect used by the parser (<a name="const:sgml%5"><b><tt>sgml</tt></b></a>, <a name="const:xml%4"><b><tt>xml</tt></b></a> or <a name="const:xmlns%6"><b><tt>xmlns</tt></b></a>).
+
     
 <dt>&nbsp;<br>
 <b>event_class(<var>-Class</var>)</b><dd>
@@ -1005,6 +1011,13 @@ The current event is caused by the expansion of a
 	in the source-text.
     
 </dl>
+
+
+    
+<dt>&nbsp;<br>
+<b>dtd(<var>-DTD</var>)</b><dd>
+Return the currently used DTD.  See dtd_property/2 for obtaining information
+on the DTD such as element and attribute properties.
 </dl>
 
 

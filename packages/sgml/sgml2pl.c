@@ -18,6 +18,7 @@
 
 #include "dtd.h"
 #include "catalog.h"
+#include "model.h"
 #include <SWI-Stream.h>
 #include <SWI-Prolog.h>
 #include <errno.h>
@@ -41,6 +42,7 @@
 
 typedef enum
 { SA_FILE = 0,				/* Stop at end-of-file */
+  SA_INPUT,				/* Do not complete input */
   SA_ELEMENT,				/* Stop after first element */
   SA_CONTENT,				/* Stop after close */
   SA_DECL				/* Stop after declaration */
@@ -134,7 +136,8 @@ static functor_t FUNCTOR_syntax_errors1;
 static functor_t FUNCTOR_minus2;
 static functor_t FUNCTOR_positions1;
 static functor_t FUNCTOR_event_class1;
-static functor_t FUNCTOR_first_element1;
+static functor_t FUNCTOR_doctype1;
+static functor_t FUNCTOR_allowed1;
 
 static atom_t ATOM_sgml;
 static atom_t ATOM_dtd;
@@ -191,7 +194,8 @@ initConstants()
   FUNCTOR_minus2 	 = mkfunctor("-", 2);
   FUNCTOR_positions1 	 = mkfunctor("positions", 1);
   FUNCTOR_event_class1 	 = mkfunctor("event_class", 1);
-  FUNCTOR_first_element1 = mkfunctor("first_element", 1);
+  FUNCTOR_doctype1       = mkfunctor("doctype", 1);
+  FUNCTOR_allowed1       = mkfunctor("allowed", 1);
 
   ATOM_dtd  = PL_new_atom("dtd");
   ATOM_sgml = PL_new_atom("sgml");
@@ -425,7 +429,7 @@ pl_set_sgml_parser(term_t parser, term_t option)
       p->dtd->number_mode = NU_INTEGER;
     else
       return sgml2pl_error(ERR_DOMAIN, "number", a);
-  } else if ( PL_is_functor(option, FUNCTOR_first_element1) )
+  } else if ( PL_is_functor(option, FUNCTOR_doctype1) )
   { term_t a = PL_new_term_ref();
     char *s;
 
@@ -520,6 +524,60 @@ pl_get_sgml_parser(term_t parser, term_t option)
       case EV_SHORTREF:
 	return PL_unify_atom_chars(a, "shortref");
     }
+  } else if ( PL_is_functor(option, FUNCTOR_dtd1) )
+  { term_t a = PL_new_term_ref();
+
+    PL_get_arg(1, option, a);
+
+    return unify_dtd(a, p->dtd);
+  } else if ( PL_is_functor(option, FUNCTOR_doctype1) )
+  { term_t a = PL_new_term_ref();
+
+    PL_get_arg(1, option, a);
+    if ( p->enforce_outer_element )
+      return PL_unify_atom_chars(a, p->enforce_outer_element->name);
+    else
+      return TRUE;			/* leave variable */
+  } else if ( PL_is_functor(option, FUNCTOR_allowed1) )
+  { term_t tail = PL_new_term_ref();
+    term_t head = PL_new_term_ref();
+    term_t tmp = PL_new_term_ref();
+    sgml_environment *env = p->environments;
+      
+    PL_get_arg(1, option, tail);
+
+    if ( env )
+    { for( ; env; env = env->parent)
+      { dtd_element *buf[256];		/* MAX_VISITED! */
+	int n = sizeof(buf)/sizeof(dtd_element *); /* not yet used! */
+	int i;
+  
+	state_allows_for(env->state, buf, &n);
+  
+	for(i=0; i<n; i++)
+	{ if ( buf[i] == CDATA_ELEMENT )
+	    PL_put_atom_chars(tmp, "#pcdata");
+	  else
+	    PL_put_atom_chars(tmp, buf[i]->name->name);
+  
+	  if ( !PL_unify_list(tail, head, tail) ||
+	       !PL_unify(head, tmp) )
+	    return FALSE;
+	}
+  
+	if ( !env->element->structure ||
+	     !env->element->structure->omit_close )
+	  break;
+      }
+    } else if ( p->enforce_outer_element )
+    { PL_put_atom_chars(tmp, p->enforce_outer_element->name);
+
+      if ( !PL_unify_list(tail, head, tail) ||
+	       !PL_unify(head, tmp) )
+	    return FALSE;
+    }
+
+    return PL_unify_nil(tail);
   } else
     return sgml2pl_error(ERR_DOMAIN, "parser_option", option);
 
@@ -1359,6 +1417,8 @@ pl_sgml_parse(term_t parser, term_t options)
 	pd->stopat = SA_CONTENT;
       else if ( streq(s, "file") )
 	pd->stopat = SA_FILE;
+      else if ( streq(s, "input") )
+	pd->stopat = SA_INPUT;
       else if ( streq(s, "declaration") )
 	pd->stopat = SA_DECL;
       else
@@ -1460,7 +1520,7 @@ pl_sgml_parse(term_t parser, term_t options)
     PL_cut_query(qid);
     if ( rval &&
 	 Sflush(s) == 0 &&
-	 end_document_dtd_parser(p) )
+	 (pd->stopat == SA_INPUT || end_document_dtd_parser(p)) )
     { Sclose(s);
       PL_close_foreign_frame(fid);
       return TRUE;

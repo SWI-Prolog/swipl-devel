@@ -11,7 +11,7 @@
 <!ENTITY % Font  	"b|em">
 <!ENTITY % Extra 	"jargon|fn">
 <!ENTITY % HtmlList	"dl|ul">
-<!ENTITY % Ref   	"aref|pref|ref">
+<!ENTITY % Ref   	"aref|pref|ref|cite">
 <!ENTITY % Obj		"c|var|term|elem|xmp|sh">
 <!ENTITY % Layout	"quote">
 <!ENTITY % Text  	"#PCDATA|%Font;|%Ref;|%Obj;|%Extra;|verb">
@@ -54,10 +54,10 @@
 	name	nmtoken #IMPLIED
 >
 
-<!ELEMENT s1 - o (title,body1)>
-<!ELEMENT s2 - o (title,body2)>
-<!ELEMENT s3 - o (title,body3)>
-<!ELEMENT s4 - o (title,body4)>
+<!ELEMENT s1 - o (title,body1?)>
+<!ELEMENT s2 - o (title,body2?)>
+<!ELEMENT s3 - o (title,body3?)>
+<!ELEMENT s4 - o (title,body4?)>
 <!ELEMENT appendix - o (title,body1)>
 
 <!ELEMENT body1	o o (%SectionBody|s2)+>
@@ -113,6 +113,7 @@
 <!-- REFERENCES -->
 
 <!ELEMENT ref	       - - CDATA>
+<!ELEMENT cite	       - - CDATA>
 <!ELEMENT aref         - - (%Title)>
 <!ELEMENT pref	       - - (name,arity)>
 <!ELEMENT arity	       - o (#PCDATA)>
