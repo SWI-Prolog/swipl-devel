@@ -136,18 +136,6 @@ initialiseFile(FileObj f, Name name, Name encoding)
 }
 
 
-static const char *
-nameToUTF8(Name n)
-{ return charArrayToUTF8((CharArray)n);
-}
-
-
-static const char *
-nameToFN(Name n)
-{ return charArrayToFN((CharArray)n);
-}
-
-
 Name
 expandFileName(Name in)
 { wchar_t expanded[MAXPATHLEN];

@@ -247,6 +247,18 @@ charArrayToMB(CharArray ca)
 }
 
 
+char *
+nameToMB(Name nm)
+{ return stringToMB(&nm->data);
+}
+
+
+char *
+nameToUTF8(Name nm)
+{ return stringToUTF8(&nm->data);
+}
+
+
 		 /*******************************
 		 *	    <-- NAME	  	*
 		 *******************************/
@@ -426,4 +438,10 @@ stringToFN(String s)
 #else
    return stringToMB(s);
 #endif
+}
+
+
+char *
+nameToFN(Name nm)
+{ return stringToFN(&nm->data);
 }

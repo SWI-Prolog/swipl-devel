@@ -74,18 +74,6 @@ static Name	getWorkingDirectoryPce(Pce pce);
 #define MODIFIED_NOT_SET ((time_t) ~0L)
 
 
-static const char *
-nameToUTF8(Name n)
-{ return charArrayToUTF8((CharArray)n);
-}
-
-
-static const char *
-nameToFN(Name n)
-{ return charArrayToFN((CharArray)n);
-}
-
-
 static status
 initialiseDirectory(Directory d, Name name)
 { char path[MAXPATHLEN];
