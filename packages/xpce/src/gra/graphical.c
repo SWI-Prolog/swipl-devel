@@ -2271,14 +2271,41 @@ getNetworkGraphical(Graphical gr, Link link, Name from, Name to)
 	placed at random.
  */
 
-#define MAX_DISTANCE	500+1	/* maximum distance still relevant */
+/*	Attraction of connected vertices is given by:	C1 * log(d/C2)
+	Repelling of unconnected vertices is given by: -C3 / sqrt(d)
+	where d is the distance between the vertices.
+
+ **	Tue Sep 15 15:14:42 1987   anjo@swivax.uucp (Anjo Anjewierden) */
+
+static int
+forceAttract(int d, float C1, float C2)
+{ if ( d < 10 )
+    d = 10;
+
+  return (int) (2048.0 * C1 * log((float)d/C2)) / d;
+}
+
+
+static int
+forceRepel(int d, float C3)
+{ if ( d < 10 )
+    d = 10;
+
+  return (int) (-2048.0 * C3 / sqrt((float)d)) / d;
+}
+
+
 
 static status
-layoutGraphical(Graphical gr, Real argC1, Real argC2, Real argC3, Int argC4, Int argC5)
+layoutGraphical(Graphical gr,
+		Real argC1,		/* strength of connections */
+		Real argC2,		/* natural distance */
+		Real argC3,		/* strength of not-connected */
+		Int  argC4,		/* addaption-speed */
+		Int  argC5)		/* max iterations */
 { int **x, **y;		/* x[i][j] = force in x-direction on i, j */
-  int **r;		/* r[i][j] = SUCCEED if graphicals i, j are connected */
+  int **r;		/* r[i][j] = TRUE if graphicals i, j are connected */
   Graphical *g;		/* g[i] = graphicals in the graph */
-  Picture p;
   int *fx, *fy, *fw, *fh, *m;
   int force;
   int dx, dy, d;
@@ -2292,34 +2319,7 @@ layoutGraphical(Graphical gr, Real argC1, Real argC2, Real argC3, Int argC4, Int
   int moved;
   Chain network;
 
-  static float	PreviousC1 = 73464.347327;
-  static float	PreviousC2 = 73464.347327;
-  static float	PreviousC3 = 73464.347327;
-  static int forceAttract[MAX_DISTANCE];
-  static int forceRepel[MAX_DISTANCE];
-  int IdealDistance = (int) C2;
-
-/*	Attraction of connected vertices is given by:	C1 * log(d/C2)
-	Repelling of unconnected vertices is given by: -C3 / sqrt(d)
-	where d is the distance between the vertices.
-
- **	Tue Sep 15 15:14:42 1987   anjo@swivax.uucp (Anjo Anjewierden) */
-
-  if (C1 != PreviousC1 || C2 != PreviousC2 || C3 != PreviousC3)
-  { for (d=0; d<=10; d++)
-    { forceAttract[d] = ((int) (2048.0 * C1 * log((float)10/C2)) / 10);
-      forceRepel[d] = ((int) (-2048.0 * C3 / sqrt((float)10)) / 10);
-    }
-    for (d=11; d<MAX_DISTANCE; d++)
-    { forceAttract[d] = ((int) (2048.0 * C1 * log((float)d/C2)) / d);
-      forceRepel[d] = ((int) (-2048.0 * C3 / sqrt((float)d)) / d);
-    }
-    PreviousC1 = C1;
-    PreviousC2 = C2;
-    PreviousC3 = C3;
-  }
-
-  if (isNil(p = (Picture) gr->device))
+  if ( isNil(gr->device) )
     fail;
 
   network = get(gr, NAME_network, EAV);
@@ -2366,15 +2366,18 @@ layoutGraphical(Graphical gr, Real argC1, Real argC2, Real argC3, Int argC4, Int
 	  continue;
 	d = distance_area(fx[i],fy[i],fw[i],fh[i],fx[j],fy[j],fw[j],fh[j]);
 	if (d == 0)
-	{ x[j][i] = -(x[i][j] = (IdealDistance << 10)/6);
-	  y[j][i] = -(y[i][j] = (IdealDistance << 10)/6);
+	{ int f = ((int)C2<<10)/6;
+
+	  x[j][i] = -(x[i][j] = f);
+	  y[j][i] = -(y[i][j] = f);
+
 	  continue;
 	}
 	dx = ((fx[j] + fw[j]/2) - (fx[i] + fw[i]/2)) << 10;
 	dy = ((fy[j] + fh[j]/2) - (fy[i] + fh[i]/2)) << 10;
-	if (d > 500)
-	  d = 500;
-	force = (r[i][j] ? forceAttract[d] : forceRepel[d]);
+
+	force = (r[i][j] ? forceAttract(d, C1, C2) : forceRepel(d, C3));
+
 	x[j][i] = -(x[i][j] = (dx * force) >> 11);
 	y[j][i] = -(y[i][j] = (dy * force) >> 11);
       }
@@ -2396,7 +2399,7 @@ layoutGraphical(Graphical gr, Real argC1, Real argC2, Real argC3, Int argC4, Int
       m[i] = moved = TRUE;
       fx[i] += dx;
       fy[i] += dy;
-      if (fx[i] < 5)
+      if (fx[i] < 5)			/* bounce on Window */
 	fx[i] = 5;
       if (fy[i] < 5)
 	fy[i] = 5;
