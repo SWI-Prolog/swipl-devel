@@ -52,6 +52,7 @@ variable(offset,	point,		get,  "Offset X-y <->caret pointer").
 variable(get_source,	function*,	both, "Function to map the source").
 variable(source, 	any,	        get,  "Current source").
 variable(active_cursor,	cursor*,	get,  "@nil: activated").
+variable(select_popup,  popup*,		get,  "Popup for selecting command").
 
 class_variable(warp,   bool,        '@on',
 	       "Pointer in center?").
@@ -75,6 +76,15 @@ initialise(G, But:button=[button_name],
 	send(G, slot, offset, new(point)),
 	get(G, class_variable_value, cursor, Cursor),
 	send(G, cursor, Cursor).
+
+
+event(G, Ev:event) :->
+	"Pass events to <-select_popup"::
+	(   get(G, select_popup, P),
+	    P \== @nil
+	->  send(P, event, Ev)
+	;   send_super(G, event, Ev)
+	).
 
 
 verify(_G, Ev:event) :->
@@ -223,14 +233,74 @@ terminate(G, Ev:event) :->
 		    get(Pos, copy, P2),
 		    send(P2, minus, G?offset),
 		    send(Display, busy_cursor),
-		    ignore(send(Target, drop, Src, P2)),
+		    forward(G, Target, Src, P2),
 		    send(Display, busy_cursor, @nil)
 		;   send(Display, busy_cursor, @default),
-		    ignore(send(Target, drop, Src)),
+		    forward(G, Target, Src),
 		    send(Display, busy_cursor, @nil)
 		)
 	    ),
 	    send(G, slot, source, @nil)
 	).
+
+%	forward(+G, +Target, +Src, +Pos)
+
+forward(G, Target, Src, Pos) :-
+	(   catch(send(message(@arg1, drop, @arg2, @arg3),
+		       forward_receiver, G, Target, Src, Pos), E, true)
+	->  (   nonvar(E)
+	    ->  print_message(error, E)
+	    ;   true
+	    )
+	;   true
+	).
+	     
+forward(G, Target, Src) :-
+	(   catch(send(message(@arg1, drop, @arg2),
+		       forward_receiver, G, Target, Src), E, true)
+	->  (   nonvar(E)
+	    ->  print_message(error, E)
+	    ;   true
+	    )
+	;   true
+	).
+
+
+:- pce_group(command).
+
+
+%	<-select_command: Commands:chain --> Cmd:name
+%	
+%	This method is to support menu selection of a command often
+%	associated with right-dragging instead of left-dragging. It
+%	is called from the ->drop at the receiving graphical:
+%	
+%		drop(Me, Obj:any) :->
+%			(   send(@event, is_a, ms_right_up)
+%			->  get(@receiver, select_command,
+%			        chain(move, copy), Command),
+%			    <move or copy Obj>
+%			;   <Perform default action>
+%			).
+
+select_command(G, Commands:chain, Cmd:name) :<-
+	"Select a command (normally right-button drag)"::
+	send(@display, busy_cursor, @nil),
+	new(P, popup(command)),
+	send(P, members, Commands),
+	get(@event, receiver, Gr),
+	get(@event, position, Gr, Pos),
+	send(P, open, Gr, Pos),
+	send(G, slot, select_popup, P),
+	repeat,
+	    send(@display, dispatch),
+	    get(P, displayed, @off), !,
+	(   get(P, selected_item, SI),
+	    SI \== @nil
+	->  get(SI, value, Cmd)
+	;   Cmd = @nil
+	),
+	send(G, slot, select_popup, @nil),
+	Cmd \== @nil.
 
 :- pce_end_class.

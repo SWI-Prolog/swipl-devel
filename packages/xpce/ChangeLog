@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: drag_and_drop_gesture<-select_command to deal with command selection
+  in right-dragging.
+
 * ADDED: popup_gesture->max_drag_distance to get a popup that opens at
   the `Up' event.
 
