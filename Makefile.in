@@ -40,7 +40,7 @@ distclean::
 # Build the whole default set of tools
 ################################################################
 
-world:	lite mt .pkg-config packages
+world:	lite .pkg-config packages
 
 .pkg-config:
 	cd packages && ./configure
