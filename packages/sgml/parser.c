@@ -2660,7 +2660,9 @@ open_element(dtd_parser *p, dtd_element *e, int warn)
 
     if ( env->element->structure &&
 	 env->element->structure->type == C_ANY )
-    { push_element(p, e, FALSE);
+    { if ( e->undefined )
+	gripe(ERC_EXISTENCE, "Element", e->name->name);
+      push_element(p, e, FALSE);
       return TRUE;
     }
 
@@ -3300,6 +3302,7 @@ local:
     dtdstate  oldstate = p->state;
     locbuf oldloc;
     const ichar *q;
+    icharbuf *saved_ibuf = p->buffer;
 
     push_location(p, &oldloc);
 					/* try to find start-location. */
@@ -3311,7 +3314,7 @@ local:
       inc_location(&p->location, *q);
     p->dmode = DM_DTD;
     p->state = S_PCDATA;
-    empty_icharbuf(p->buffer);		/* dubious */
+    p->buffer = new_icharbuf();
 
     for( ; *s; s++ )
     { if ( isee_func(dtd, s, CF_DSC) && --grouplevel == 0 )
@@ -3322,6 +3325,8 @@ local:
 
     p->state    = oldstate;
     p->dmode    = oldmode;
+    free_icharbuf(p->buffer);
+    p->buffer = saved_ibuf;
     pop_location(p, &oldloc);
   }
 

@@ -1,4 +1,11 @@
-* FIXED: Call nomem() after strdup in case of out-of-memory (Richard O'Keefe).
+* FIXED: Data overwriting in <DOCTYPE ... [local stuff]> if local stuff
+  is too long (Andrew Dadakov).
+
+* FIXED: Report elements not in the DTD allowed by the ANY model
+  as error (Andrew Dadakov).
+
+* FIXED: Call sgml_nomem() after strdup in case of out-of-memory
+  (Richard O'Keefe).
 
 * PORT: Removed alloca() usage (Richard O'Keefe).
 
