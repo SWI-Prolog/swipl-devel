@@ -25,6 +25,7 @@
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+
 #ifdef _REENTRANT
 #include <pthread.h>
 
@@ -34,6 +35,16 @@ static pthread_mutex_t pce_dispatch_mutex = PTHREAD_MUTEX_INITIALIZER;
 #else
 #define DLOCK()
 #define DUNLOCK()
+#define pthread_cleanup_push(h,a)
+#define pthread_cleanup_pop(e)
+#endif
+
+#ifdef HAVE_SCHED_H
+#include <sched.h>
+#endif
+
+#ifndef streq
+#define streq(s, q) (strcmp(s, q) == 0)
 #endif
 
 typedef struct
@@ -44,30 +55,37 @@ typedef struct
 
 typedef struct
 { int		     owner;		/* owning thread */
-  PL_dispatch_hook_t hook;		/* saved Prolog dispatch hook */
   int		     pipe[2];		/* pipe to talk to main process */
+  int		     flags;		/* general options */
+  PL_dispatch_hook_t hook;		/* saved Prolog dispatch hook */
+  PL_thread_attr_t   thread_options;	/* options for the thread */
 } dispatch_context;
+
+#define DISPATCH_CONSOLE 0x0001		/* Attach a console window */
 
 static dispatch_context context;
 
+static int end_dispatch(int id);	/* stop dispatch-loop */
+
 static void
 undispatch(void *closure)
-{ DLOCK();
+{ dispatch_context *ctx = closure;
 
-  if ( context.owner )
-  { PL_dispatch_hook(context.hook);
-    context.hook = NULL;
+  DLOCK();
 
-    if ( context.pipe[0] >= 0 )
-    { close(context.pipe[0]);
-      context.pipe[0] = -1;
+  if ( ctx->owner )
+  { ctx->hook = NULL;
+
+    if ( ctx->pipe[0] >= 0 )
+    { close(ctx->pipe[0]);
+      ctx->pipe[0] = -1;
     }
-    if ( context.pipe[1] >= 0 )
-    { close(context.pipe[1]);
-      context.pipe[1] = -1;
+    if ( ctx->pipe[1] >= 0 )
+    { close(ctx->pipe[1]);
+      ctx->pipe[1] = -1;
     }
 
-    context.owner = 0;
+    ctx->owner = 0;
   }
 
   DUNLOCK();
@@ -116,32 +134,47 @@ type_error(term_t actual, const char *expected)
 }
 
 
-static foreign_t
-pl_pce_dispatch(term_t options)
-{ DLOCK();
+static int
+domain_error(term_t actual, const char *expected)
+{ term_t ex = PL_new_term_ref();
 
-  if ( context.owner )
-    return permission_error("dispatch_loop", "create", "pce");
+  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
+		      PL_FUNCTOR, FUNCTOR_domain_error2,
+		        PL_CHARS, expected,
+		        PL_TERM, actual,
+		      PL_VARIABLE);
 
-  if ( pipe(context.pipe) == -1 )
-    return resource_error("open_files");
+  return PL_raise_exception(ex);
+}
 
-  context.owner = PL_thread_self();
-  context.hook = PL_dispatch_hook(NULL);
-  DUNLOCK();
 
-				/* force creation of application context */
-  pceXtAppContext(NULL);
-  pceExistsAssoc(cToPceName("display_manager"));
+static int
+input_on_fd(int fd)
+{ fd_set rfds;
+  struct timeval tv;
 
-  pthread_cleanup_push(undispatch, &context);
+  FD_ZERO(&rfds);
+  FD_SET(fd, &rfds);
+  tv.tv_sec = 0;
+  tv.tv_usec = 0;
+
+  return select(fd+1, &rfds, NULL, NULL, &tv) != 0;
+}
+
+
+static void
+dispatch(dispatch_context *context)
+{ pthread_cleanup_push(undispatch, context);
+
   for(;;)
-  { Sdprintf("Dispatch\n");
-    if ( pceDispatch(context.pipe[0], 0) == PCE_DISPATCH_INPUT )
+  { DEBUG(Sdprintf("Dispatch\n"));
+
+    if ( pceDispatch(context->pipe[0], 250) == PCE_DISPATCH_INPUT &&
+	 input_on_fd(context->pipe[0]) )
     { prolog_goal g;
       int n;
 
-      if ( (n=read(context.pipe[0], &g, sizeof(g))) == sizeof(g) )
+      if ( (n=read(context->pipe[0], &g, sizeof(g))) == sizeof(g) )
       { fid_t fid = PL_open_foreign_frame();
 	term_t t = PL_new_term_ref();
 	static predicate_t pred = NULL;
@@ -158,9 +191,111 @@ pl_pce_dispatch(term_t options)
       }
     }
   }
-  pthread_cleanup_pop(0);
 
-  undispatch(&context);
+  DEBUG(Sdprintf("dispatch loop ended\n"));
+
+  pthread_cleanup_pop(0);
+  undispatch(context);
+}
+
+
+static void *
+dispatch_thread_function(void *closure)
+{ dispatch_context *ctx = closure;
+
+  ctx->thread_options.cancel = end_dispatch;
+  PL_thread_attach_engine(&ctx->thread_options);
+  if ( ctx->flags & DISPATCH_CONSOLE )
+    PL_action(PL_ACTION_ATTACH_CONSOLE);
+  dispatch(ctx);
+  PL_thread_destroy_engine();
+
+  return NULL;
+}
+
+
+static int
+set_options(dispatch_context *ctx, term_t options)
+{ term_t tail = PL_copy_term_ref(options);
+  term_t head = PL_new_term_ref();
+  term_t arg = PL_new_term_ref();
+
+  memset(&ctx->thread_options, 0, sizeof(ctx->thread_options));
+  ctx->thread_options.alias = "pce";
+
+  while(PL_get_list(tail, head, tail))
+  { atom_t name;
+    int arity;
+
+    if ( PL_get_name_arity(head, &name, &arity) && arity == 1 )
+    { long v;
+      int b;
+      const char *s = PL_atom_chars(name);
+
+      PL_get_arg(1, head, arg);
+
+      if ( streq(s, "console") )
+      { if ( !PL_get_bool(arg, &b) )
+	  return type_error(arg, "boolean");
+	ctx->flags |= DISPATCH_CONSOLE;
+	continue;
+      }
+
+      if ( !PL_get_long(arg, &v) )
+	return type_error(arg, "integer");
+
+      if ( streq(s, "local") )
+	ctx->thread_options.local_size = v;
+      else if ( streq(s, "global") )
+	ctx->thread_options.global_size = v;
+      else if ( streq(s, "trail") )
+	ctx->thread_options.trail_size = v;
+      else
+	return domain_error(head, "thread_option");
+    } else
+      return domain_error(head, "thread_option");
+  }
+
+  if ( !PL_get_nil(tail) )
+    return type_error(tail, "list");
+
+  return TRUE;
+}
+
+
+
+static foreign_t
+pl_pce_dispatch(term_t options)
+{ DLOCK();
+
+  if ( context.owner )
+    return permission_error("dispatch_loop", "create", "pce");
+  context.flags = 0;
+  if ( !set_options(&context, options) )
+    return FALSE;
+
+  if ( pipe(context.pipe) == -1 )
+    return resource_error("open_files");
+
+  context.owner = PL_thread_self();
+  context.hook = PL_dispatch_hook(NULL);
+  DUNLOCK();
+
+				/* force creation of application context */
+  pceXtAppContext(NULL);
+  pceExistsAssoc(cToPceName("display_manager"));
+
+  if ( context.owner > 0 )		/* threaded environment */
+  { pthread_t tid;
+    pthread_attr_t attr;
+
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+    pthread_create(&tid, &attr, dispatch_thread_function, &context);
+  } else
+  { dispatch(&context);
+  }
 
   return TRUE;
 }
@@ -202,12 +337,27 @@ pl_pce_end_dispatch()
   { context.pipe[1] = -1;
     DUNLOCK();
 
+    PL_dispatch_hook(context.hook);
     close(fd);
+
     return TRUE;
   }
   DUNLOCK();
 
   return FALSE;
+}
+
+
+static int
+end_dispatch(int id)
+{ DEBUG(Sdprintf("Close down %d\n", id));
+
+  pl_pce_end_dispatch();
+#ifdef HAVE_SCHED_YIELD
+  sched_yield();
+#endif
+
+  return TRUE;
 }
 
 
