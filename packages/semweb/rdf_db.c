@@ -1711,7 +1711,10 @@ case_insensitive_atom_hash(atom_t a)
     return string_hashA(s, len);
   else if ( (w = PL_atom_wchars(a, &len)) )
     return string_hashW(w, len);
-
+  else
+  { assert(0);
+    return 0;
+  }
 }
 
 
@@ -2504,7 +2507,9 @@ load_atom(IOSTREAM *in, ld_context *ctx)
       return a;
     }
     default:
-      assert(0);
+    { assert(0);
+      return 0;
+    }
   }
 }
 

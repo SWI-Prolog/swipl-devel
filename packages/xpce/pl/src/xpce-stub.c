@@ -49,7 +49,7 @@ ok(const char *msg, ...)
 
 
 int PASCAL
-WinMain(HANDLE hInstance, HANDLE hPrevInstance,
+WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	LPSTR lpszCmdLine, int nCmdShow)
 { char *	argv[100];
   int		argc;
@@ -242,6 +242,7 @@ ask_attach(int read)
       use_console = C_READ;
       return FALSE;
     case IDIGNORE:
+    default:
       return FALSE;
   }
 }

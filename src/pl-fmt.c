@@ -175,7 +175,9 @@ outtext(format_state *state, PL_chars_t *txt)
       return TRUE;
     }
     default:
-      assert(0);
+    { assert(0);
+      return FALSE;
+    }
   }
 }
 

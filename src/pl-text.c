@@ -302,7 +302,10 @@ PL_unify_text(term_t term, PL_chars_t *text, int type)
 	    break;
 	  }
 	  default:
-	    assert(0);
+	  { assert(0);
+
+	    return FALSE;
+	  }
 	}
 	p[-1] = ATOM_nil;
 
@@ -312,7 +315,10 @@ PL_unify_text(term_t term, PL_chars_t *text, int type)
       }
     }
     default:
-      assert(0);
+    { assert(0);
+
+      return FALSE;
+    }
   }
 }
 

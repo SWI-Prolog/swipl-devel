@@ -74,7 +74,9 @@ typedef DWORD SQLLEN;
 #define NULL 0
 #endif
 #define MAX_NOGETDATA 1024		/* use SQLGetData() on wider columns */
+#ifndef STRICT
 #define STRICT
+#endif
 
 #define NameBufferLength 256
 #define CVNERR -1			/* conversion error */
