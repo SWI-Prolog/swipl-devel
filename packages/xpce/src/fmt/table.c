@@ -949,19 +949,29 @@ slice_stretchability(TableSlice slice, stretch *s)
 
 
 static void
-cell_h_stretchability(TableCell cell, stretch *s)
-{ if ( notNil(cell->image) )
-  { s->ideal   = valInt(cell->image->area->w);
+cell_stretchability(TableCell cell, Name which, stretch *s)
+{ Rubber r;
+
+  if ( notNil(cell->image) )
+  { int px, py;
+
+    table_cell_padding(cell, &px, &py);
+
+    if ( which == NAME_column )
+      s->ideal = valInt(cell->image->area->w) + 2*px;
+    else
+      s->ideal = valInt(cell->image->area->h) + 2*py;
+      
     s->minimum = s->ideal;
     s->maximum = INT_MAX;
     s->stretch = 100;
     s->shrink  = 0;
   }
 
-  if ( notNil(cell->hrubber) )
-  { Rubber r = cell->hrubber;
+  r = (which == NAME_column ? cell->hrubber : cell->vrubber);
 
-    if ( notDefault(r->natural) )
+  if ( notNil(r) )
+  { if ( notDefault(r->natural) )
       s->ideal = valInt(r->natural);
     if ( notDefault(r->minimum) )
       s->minimum = valInt(r->minimum);
@@ -974,21 +984,23 @@ cell_h_stretchability(TableCell cell, stretch *s)
 
 
 static void
-stretch_table_slices(Table tab, Vector v,
-		     int from, int span, int width, int spacing,
-		     int always)
+stretch_table_slices(Table tab, Vector v, /* table and <-rows or <-columns */
+		     int from, int span, /* range */
+		     stretch *into,	/* desired total width */
+		     int spacing,	/* desired distance between slices */
+		     int always)	/* do not negotiate */
 { int i, to = from+span;
   stretch *stretches = alloca(span * sizeof(stretch));
-  int tw = 0;
   int ngaps, nslices = 0;
-  stretch sum;
+  stretch tmp[2];
+  stretch joined;
+  int width;
   
   for(i=from; i<to; i++)
   { TableSlice slice = getElementVector(v, toInt(i));
 
     if ( slice && notNil(slice) )
     { slice_stretchability(slice, &stretches[i-from]);
-      tw += stretches[i-from].ideal;
       nslices++;
     }
   }
@@ -996,13 +1008,13 @@ stretch_table_slices(Table tab, Vector v,
   if ( nslices == 0 )
     return;
 
-  sum_stretches(stretches, nslices, &sum);
-  /*TBD*/
+  sum_stretches(stretches, nslices, &tmp[0]);
+  tmp[1] = *into;
+  join_stretches(tmp, 2, &joined);
 
   ngaps = nslices-1;
-  width -= ngaps*spacing;
+  width = joined.ideal - ngaps*spacing;
 
-  if ( tw < width || always )
   { distribute_stretches(stretches, nslices, width);
 
     for(i=from; i<to; i++)
@@ -1040,15 +1052,13 @@ stretchColsSpannedCell(TableCell cell)
 { if ( notNil(cell->image) )
   { int x    = valInt(cell->column);
     int span = valInt(cell->col_span);
-    int px, py;
-    int wreq;
     Table tab = (Table)cell->layout_manager;
     int colspacing = valInt(tab->cell_spacing->w);
+    stretch s;
 
-    table_cell_padding(cell, &px, &py);
-    wreq = valInt(cell->image->area->w) + 2*px;
+    cell_stretchability(cell, NAME_column, &s);
 
-    stretch_table_slices(tab, tab->columns, x, span, wreq, colspacing, FALSE);
+    stretch_table_slices(tab, tab->columns, x, span, &s, colspacing, FALSE);
   }
 }
 
@@ -1058,15 +1068,13 @@ stretchRowsSpannedCell(TableCell cell)
 { if ( notNil(cell->image) )
   { int y    = valInt(cell->row);
     int span = valInt(cell->row_span);
-    int px, py;
-    int hreq;
     Table tab = (Table)cell->layout_manager;
     int rowspacing = valInt(tab->cell_spacing->w);
+    stretch s;
 
-    table_cell_padding(cell, &px, &py);
-    hreq = valInt(cell->image->area->h) + 2*py;
+    cell_stretchability(cell, NAME_row, &s);
 
-    stretch_table_slices(tab, tab->rows, y, span, hreq, rowspacing, FALSE);
+    stretch_table_slices(tab, tab->rows, y, span, &s, rowspacing, FALSE);
   }
 }
 
@@ -1136,12 +1144,19 @@ computeColsTable(Table tab)
 
   if ( notDefault(tab->width) )
   { int wc = valInt(tab->width) - lborder - rborder - 2*colspacing;
+    stretch s;
+
+    s.ideal   = wc;
+    s.minimum = wc;
+    s.maximum = wc;
+    s.stretch = 0;
+    s.shrink  = 0;
 
     stretch_table_slices(tab,
 			 tab->columns,	/* column vector */
 			 xmin,		/* first column */
 			 xmax-xmin+1,	/* last column */
-			 wc,		/* width to distribute */
+			 &s,		/* width to distribute */
 			 colspacing,	/* distance between columns */
 			 TRUE);		/* force alignment */
   } else

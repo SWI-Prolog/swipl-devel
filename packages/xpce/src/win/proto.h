@@ -64,6 +64,7 @@ status		unrelateTile(TileObj t);
 TileObj		getRootTile(TileObj t);
 status		distribute_stretches(stretch *s, int n, int w);
 void		sum_stretches(stretch *sp, int len, stretch *r);
+void		join_stretches(stretch *stretches, int len, stretch *r);
 status		setTile(TileObj t, Int x, Int y, Int w, Int h);
 status		enforceTile(TileObj t, Bool val);
 TileObj		getSubTileToResizeTile(TileObj t, Point pos);

@@ -551,6 +551,71 @@ sum_stretches(stretch *sp, int len, stretch *r)
   }
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Join a sequence of stretches that have to be forced to be the same width.
+
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+join_stretches(stretch *stretches, int len, stretch *r)
+{ stretch *sp;
+  int i;
+  int avg, stretchavg, shrinkavg;
+  int maxloop;
+
+  r->minimum = 0;
+  r->maximum = INT_MAX;
+
+  for(sp=stretches, i=len ; i-- > 0; sp++)
+  { r->minimum = max(r->minimum, sp->minimum);
+    r->maximum = min(r->maximum, sp->maximum);
+  }
+    
+  for(avg=0, sp=stretches, i=len; i-- > 0; sp++)
+    avg += sp->ideal;
+  avg /= len;
+
+  for(maxloop = 4; maxloop-- > 0;)
+  { int wavg = 0;
+    int tw = 0;
+
+    for(sp=stretches, i=len; i-- > 0; sp++)
+    { int w0;
+
+      w0 = (sp->ideal < avg ? sp->stretch : sp->shrink);
+
+      if ( w0 != 0 )
+	w0 = 1000/w0;
+      else
+	w0 = 100000;
+
+      wavg += sp->ideal*w0;
+      tw   += w0;
+    }
+    wavg /= tw;
+    if ( wavg == avg )
+      break;
+    avg = wavg;
+  }
+
+  r->ideal = avg;
+
+  for(stretchavg=shrinkavg=0, sp=stretches, i=len; i-- > 0; sp++)
+  { stretchavg += sp->stretch;
+    shrinkavg  += sp->shrink;
+  }
+  stretchavg /= len;
+  shrinkavg  /= len;
+
+  r->shrink  = shrinkavg;
+  r->stretch = stretchavg;
+}
+
+
+
 status
 setTile(TileObj t, Int x, Int y, Int w, Int h)
 { TileObj super;
