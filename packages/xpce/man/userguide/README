@@ -1,0 +1,16 @@
+			    The XPCE UserGuide
+
+
+This directory contains the sources to   the XPCE userguide. To generate
+it you have to be a  bit  courageous.   By  default  it uses pdflatex to
+generate a PDF document. For success you  have   to  make sure to have a
+machine with recent copies of
+
+	* epstopsf (>= 2.6)
+	* pdflatex (>= 0.14f)
+
+You should enlarge the pool_size of TeX   to 250000. This is a parameter
+in texmf.cnf in modern teTeX based installations.
+
+You also need to install xpce first as  this is used for generating part
+of the PostScript diagrams on the fly.
