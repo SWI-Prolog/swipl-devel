@@ -844,11 +844,10 @@ skipLong(CopyInfo b)
 
 static void
 unregisterAtomsRecord(CopyInfo b)
-{ int tag;
-
+{ 
 right_recursion:
 
-  switch( (tag = fetchOpCode(b)) )
+  switch( fetchOpCode(b) )
   { case PL_TYPE_VARIABLE:
     { skipSizeInt(b);
       return;

@@ -443,7 +443,7 @@ static const int double_byte_order[] = { 0,1,2,3,4,5,6,7 };
 static real
 getReal(IOSTREAM *fd)
 { real f;
-  unsigned char *cl = (char *)&f;
+  unsigned char *cl = (unsigned char *)&f;
   int i;
 
   for(i=0; i<BYTES_PER_DOUBLE; i++)
@@ -1043,11 +1043,9 @@ loadPart(IOSTREAM *fd, Module *module, int skip)
 	  break;
 	}
 	case 'F':
-	{ atom_t fname;
-	  Module m;
+	{ Module m;
 
 	  qlfLoadSource(fd);
-	  fname = currentSource->name;
 
 	  m = lookupModule(mname);
 	  if ( m->file && m->file != currentSource )
@@ -1249,7 +1247,7 @@ putNum(long n, IOSTREAM *fd)
 
 static void
 putReal(real f, IOSTREAM *fd)
-{ unsigned char *cl = (char *)&f;
+{ unsigned char *cl = (unsigned char *)&f;
   int i;
 
   DEBUG(3, Sdprintf("putReal(%f)\n", f));

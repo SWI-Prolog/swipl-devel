@@ -173,9 +173,11 @@ PutCloseBrace(IOSTREAM *s)
 
 
 static bool
-writeQuoted(IOSTREAM *stream, const unsigned char *s, int len, int quote,
+writeQuoted(IOSTREAM *stream, const char *text, int len, int quote,
 	    write_options *options)
-{ TRY(Putc(quote, stream));
+{ const unsigned char *s = (const unsigned char *)text;
+
+  TRY(Putc(quote, stream));
 
   while(len-- > 0)
   { int c = *s++;
@@ -240,9 +242,6 @@ writeQuoted(IOSTREAM *stream, const unsigned char *s, int len, int quote,
 static bool
 writeAtom(atom_t a, write_options *options)
 { Atom atom = atomValue(a);
-  unsigned char *s = atom->name;
-  unsigned int len = atom->length;
-  IOSTREAM *stream = options->out;
 
   if ( true(options, PL_WRT_QUOTED) )
   { switch( atomType(a) )
@@ -250,14 +249,17 @@ writeAtom(atom_t a, write_options *options)
       case AT_SYMBOL:
       case AT_SOLO:
       case AT_SPECIAL:
-	return PutToken(s, stream);
+	return PutToken(atom->name, options->out);
       case AT_QUOTE:
       case AT_FULLSTOP:
       default:
-	return writeQuoted(stream, s, len, '\'', options);
+	return writeQuoted(options->out,
+			   atom->name,
+			   atom->length,
+			   '\'', options);
     }
   } else
-    return PutTokenN(s, len, stream);
+    return PutTokenN(atom->name, atom->length, options->out);
 }
 
 
@@ -271,7 +273,7 @@ writePrimitive(term_t t, write_options *options)
 { double f;
   char *s;
   atom_t a;
-  int n;
+  unsigned int n;
   char buf[16];
   IOSTREAM *out = options->out;
 
@@ -319,7 +321,7 @@ writePrimitive(term_t t, write_options *options)
 #if O_STRING
   if ( PL_get_string(t, &s, &n) )
   { if ( true(options, PL_WRT_QUOTED) )
-      return writeQuoted(out, (const unsigned char *)s, n, '"', options);
+      return writeQuoted(out, s, n, '"', options);
     else
       return PutString(s, out);
   }

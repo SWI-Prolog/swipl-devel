@@ -493,7 +493,7 @@ raw_read_quoted(int q, ReadData _PL_rd)
 
 
 
-static char *
+static unsigned char *
 raw_read2(ReadData _PL_rd)
 { int c;
   bool something_read = FALSE;
@@ -530,7 +530,7 @@ raw_read2(ReadData _PL_rd)
 		  return NULL;
 		}
 		set_start_line;
-		strcpy(rb.base, "end_of_file. ");
+		strcpy((char *)rb.base, "end_of_file. ");
 		rb.here = rb.base + 14;
 		return rb.base;
       case '/': c = getchr();
@@ -666,10 +666,10 @@ raw_read2(ReadData _PL_rd)
 }
 
 
-static char *
+static unsigned char *
 raw_read(ReadData _PL_rd)
 { if ( rb.stream->flags & SIO_ISATTY )
-  { char *s;
+  { unsigned char *s;
     ttybuf tab;
     
     PushTty(rb.stream, &tab, TTY_SAVE);		/* make sure tty is sane */
@@ -842,9 +842,11 @@ bind_variables(ReadData _PL_rd)
 #define unget_token()	{ unget = TRUE; }
 
 forwards Token	get_token(bool, ReadData _PL_rd);
+typedef const unsigned char * cucharp;
+typedef       unsigned char * ucharp;
 
 static int
-scan_number(char **s, int b, Number n)
+scan_number(cucharp *s, int b, Number n)
 { int d;
   unsigned long maxi = PLMAXINT/b;	/* cache? */
   unsigned long t = 0;
@@ -887,11 +889,9 @@ scan_number(char **s, int b, Number n)
 static void
 get_string(unsigned char *in, unsigned char **end, Buffer buf,
 	   ReadData _PL_rd)
-{ int n;
-  int quote;
+{ int quote;
   char c;
 
-  n = 0;
   quote = *in++;
 
   for(;;)
@@ -975,10 +975,9 @@ get_string(unsigned char *in, unsigned char **end, Buffer buf,
 
 
 int
-get_number(const unsigned char *cin, unsigned char **end, Number value)
+get_number(cucharp in, ucharp *end, Number value)
 { int negative = FALSE;
   unsigned int c;
-  char *in = (char *)cin;		/* const hack */
 
   if ( *in == '-' )			/* skip optional sign */
   { negative = TRUE;
@@ -996,7 +995,7 @@ get_number(const unsigned char *cin, unsigned char **end, Number value)
 	value->value.i = (long)in[2] & 0xff;
 	if ( negative )			/* -0'a is a bit dubious! */
 	  value->value.i = -value->value.i;
-	*end = in+3;
+	*end = (ucharp)in+3;
 	value->type = V_INTEGER;
 	succeed;
       }
@@ -1015,7 +1014,7 @@ get_number(const unsigned char *cin, unsigned char **end, Number value)
     { int rval;
       in += 2;
       rval = scan_number(&in, base, value);
-      *end = in;
+      *end = (ucharp)in;
       if ( negative )
 	 value->value.i = -value->value.i;
       return rval;
@@ -1044,7 +1043,7 @@ get_number(const unsigned char *cin, unsigned char **end, Number value)
 	value->value.f = -value->value.f;
     }
 
-    *end = in;
+    *end = (ucharp)in;
     succeed;
   }
 					/* Real numbers */
@@ -1101,7 +1100,7 @@ get_number(const unsigned char *cin, unsigned char **end, Number value)
       value->value.f = -value->value.f;
   }
 
-  *end = in;
+  *end = (ucharp)in;
   succeed;
 }
 
@@ -1125,7 +1124,8 @@ get_token(bool must_be_op, ReadData _PL_rd)
 		  while(isAlpha(*rdhere) )
 		    rdhere++;
 		  c = *rdhere;
-		  cur_token.value.atom = lookupAtom(start, rdhere-start);
+		  cur_token.value.atom = lookupAtom((char *)start,
+						    rdhere-start);
 		  cur_token.type = (c == '(' ? T_FUNCTOR : T_NAME);
 		  DEBUG(9, Sdprintf("%s: %s\n", c == '(' ? "FUNC" : "NAME",
 				    stringAtom(cur_token.value.atom)));
@@ -1138,7 +1138,8 @@ get_token(bool must_be_op, ReadData _PL_rd)
 		  c = *rdhere;
 		  *rdhere = EOS;
 		  if ( c == '(' && trueFeature(ALLOW_VARNAME_FUNCTOR) )
-		  { cur_token.value.atom = lookupAtom(start, rdhere-start);
+		  { cur_token.value.atom = lookupAtom((char *)start,
+						      rdhere-start);
 		    cur_token.type = T_FUNCTOR;
 		    *rdhere = c;
 		    break;
@@ -1149,7 +1150,8 @@ get_token(bool must_be_op, ReadData _PL_rd)
 		  { DEBUG(9, Sdprintf("VOID\n"));
 		    cur_token.type = T_VOID;
 		  } else
-		  { cur_token.value.variable = lookupVariable(start, _PL_rd);
+		  { cur_token.value.variable = lookupVariable((char *)start,
+							      _PL_rd);
 		    DEBUG(9, Sdprintf("VAR: %s\n",
 				      cur_token.value.variable->name));
 		    cur_token.type = T_VARIABLE;
@@ -1544,7 +1546,7 @@ can_reduce(out_entry *out, op_entry *op)
 
 static int
 bad_operator(out_entry *out, op_entry *op, ReadData _PL_rd)
-{ term_t t;
+{ /*term_t t;*/
   char *opname = stringAtom(op->op);
 
   last_token_start = op->token_start;
@@ -1552,17 +1554,19 @@ bad_operator(out_entry *out, op_entry *op, ReadData _PL_rd)
   switch(op->kind)
   { case OP_INFIX:
       if ( op->left_pri < out[0].pri )
-	t = out[0].term;
-      else
+      { /*t = out[0].term;*/
+	;
+      } else
       { last_token_start += strlen(opname);
-	t = out[1].term;
+	/*t = out[1].term;*/
       }
       break;
     case OP_PREFIX:
       last_token_start += strlen(opname);
       /*FALL THROUGH*/
     default:
-      t = out[0].term;
+      /*t = out[0].term;*/
+      ;
   }
 
 /* might use this to improve the error message!?
@@ -2016,7 +2020,7 @@ failed:
 
 word
 pl_raw_read2(term_t from, term_t term)
-{ char *s, *top;
+{ unsigned char *s, *top;
   read_data rd;
   word rval;
   IOSTREAM *in;
@@ -2041,7 +2045,7 @@ pl_raw_read2(term_t from, term_t term)
   for(; s < top && isBlank(*s); s++)
     ;
 
-  rval = PL_unify_atom_nchars(term, top-s, s);
+  rval = PL_unify_atom_nchars(term, top-s, (char *)s);
 
 out:
   PL_release_stream(in);

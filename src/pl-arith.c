@@ -1108,7 +1108,6 @@ pl_arithmetic_function(term_t descr)
 { GET_LD
 
   Procedure proc;
-  Definition def;
   functor_t fd;
   FunctorDef fdef;
   ArithFunction f;
@@ -1124,7 +1123,6 @@ pl_arithmetic_function(term_t descr)
     return warning("arithmetic_function/1: Illegal arity");
 
   proc = lookupProcedure(fd, m);
-  def = proc->definition;
   fd = lookupFunctorDef(fdef->name, fdef->arity - 1);
   if ( (f = isCurrentArithFunction(fd, m)) && f->module == m )
     succeed;				/* already registered */

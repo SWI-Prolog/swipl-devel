@@ -757,7 +757,7 @@ pl_on_signal(term_t sig, term_t name, term_t old, term_t new)
     if ( PL_get_pointer(a, &f) )
     { sh = prepareSignal(sign);
       clear(sh, PLSIG_THROW);
-      sh->handler = f;
+      sh->handler = (handler_t)f;
       sh->predicate = NULL;
 
       succeed;
@@ -887,7 +887,6 @@ extern int errno;
 #endif /*WIN32*/
 
 static int size_alignment;	/* Stack sizes must be aligned to this */
-static int base_alignment;	/* Stack bases must be aligned to this */
 
 #undef MB
 #define MB * (1024L * 1024L)
@@ -1051,7 +1050,6 @@ allocStacks(long local, long global, long trail, long argument)
   size_alignment = getpagesize();
   while(size_alignment < 16 K)
     size_alignment *= 2;
-  base_alignment = size_alignment;
   mapfd  = get_map_fd();
 
 #ifdef NO_SEGV_HANDLING
@@ -1215,12 +1213,6 @@ unmap(Stack s)
 }
 
 
-static long
-align_base(long int x)
-{ return x % base_alignment ? (x / base_alignment + 1) * base_alignment : x;
-}
-
-
 static void
 allocStacks(long local, long global, long trail, long argument)
 { caddress lbase, gbase, tbase, abase;
@@ -1231,7 +1223,6 @@ allocStacks(long local, long global, long trail, long argument)
 
   GetSystemInfo(&info);
   size_alignment = info.dwPageSize;
-  base_alignment = size_alignment;
 
 #ifdef NO_SEGV_HANDLING
   lsep = tsep = 0;

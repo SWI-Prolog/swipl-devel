@@ -2659,7 +2659,7 @@ pl_same_file(term_t file1, term_t file2)
 
   if ( (n1 = PL_get_filename(file1, name1, sizeof(name1))) &&
        (n2 = PL_get_filename(file2, NULL, 0)) )
-    return SameFile(name1, n2);
+    return SameFile(n1, n2);
 
   fail;
 }
@@ -2672,7 +2672,7 @@ pl_rename_file(term_t old, term_t new)
 
   if ( (o = PL_get_filename(old, ostore, sizeof(ostore))) &&
        (n = PL_get_filename(new, NULL, 0)) )
-  { if ( RenameFile(ostore, n) )
+  { if ( RenameFile(o, n) )
       succeed;
 
     if ( fileerrors )
@@ -2802,10 +2802,7 @@ pl_file_name_extension(term_t base, term_t ext, term_t full)
       { TRY(PL_unify_atom_chars(ext, &s[1]));
       }
       if ( s-f > MAXPATHLEN )
-      { maxpath:
-	return PL_error("file_name_extension", 3, NULL, ERR_REPRESENTATION,
-			ATOM_max_path_length);
-      }
+	goto maxpath;
       strncpy(buf, f, s-f);
       buf[s-f] = EOS;
 
@@ -2843,6 +2840,10 @@ pl_file_name_extension(term_t base, term_t ext, term_t full)
 		    ATOM_atom, base);
   return PL_error("file_name_extension", 3, NULL, ERR_TYPE,
 		  ATOM_atom, ext);
+
+maxpath:
+  return PL_error("file_name_extension", 3, NULL, ERR_REPRESENTATION,
+		  ATOM_max_path_length);
 }
 
 

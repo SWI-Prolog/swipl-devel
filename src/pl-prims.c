@@ -125,7 +125,7 @@ termHashValue(word term, long *hval)
         succeed;
       case TAG_FLOAT:
       { int i;
-	long *p = valIndirectP(term);
+	long *p = (long *)valIndirectP(term);
 	
 	*hval = *p;
 	for(p++, i=WORDS_PER_DOUBLE-1; --i >= 0; )
@@ -1319,7 +1319,7 @@ end_analysis:
 word
 pl_atom_length(term_t w, term_t n)
 { char *s;
-  int len;
+  unsigned int len;
   int flags;
 
   if ( trueFeature(ISO_FEATURE) )
@@ -1712,7 +1712,7 @@ pl_atom_concat(term_t a1, term_t a2, term_t a3, control_t ctx)
 static int
 split_atom(term_t list, term_t sep, term_t atom)
 { char *sp, *text;
-  int splen, tlen;
+  unsigned int splen, tlen;
   int i, last;
   term_t tail = PL_copy_term_ref(list);
   term_t head = PL_new_term_ref();
@@ -1746,7 +1746,7 @@ pl_concat_atom3(term_t list, term_t sep, term_t atom)
   term_t head = PL_new_term_ref();
   int first = TRUE;
   char *sp;
-  int splen;
+  unsigned int splen;
   tmp_buffer b;
   
   if ( sep )
@@ -1760,7 +1760,7 @@ pl_concat_atom3(term_t list, term_t sep, term_t atom)
   initBuffer(&b);
   while( PL_get_list(l, head, l) )
   { char *s;
-    int slen;
+    unsigned int slen;
 
     if ( !PL_get_nchars(head, &slen, &s, CVT_ATOMIC) )
     { discardBuffer(&b);
@@ -1902,8 +1902,8 @@ sub_text(term_t atom,
 	 int (*out)(term_t h, unsigned int len, const char *s))
 { char *aa, *s = NULL;			/* the string */
   int b = -1, l = -1, a = -1;		/* the integers */
-  int la;				/* length of `atom' */
-  int ls;				/* length of `sub' */
+  unsigned int la;			/* length of `atom' */
+  unsigned int ls;			/* length of `sub' */
   sub_state *state;			/* non-deterministic state */
 
   switch( ForeignControl(h) )

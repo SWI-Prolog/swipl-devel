@@ -50,15 +50,6 @@ changequote(,)dnl
 ARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)/\1-\2/'`
 changequote([,])dnl
 
-AC_ARG_ENABLE(syslibh, [  --enable-syslibh	  Prototype file to enable gcc -Wall],
-	      [case "$enableval" in
-	          yes)	AC_DEFINE(SYSLIB_H, "syslib.h")
-			syslibh=yes ;;
-		  no)   ;;
-		  *)	AC_DEFINE(SYSLIB_H, "$enableval")
-			syslibh=yes ;;
-	      esac])
-
 AC_ARG_ENABLE(runtime, [  --enable-runtime	  Runtime system only],
 	      [case "$enableval" in
 		   yes) AC_DEFINE(O_RUNTIME)
@@ -133,7 +124,7 @@ AC_ISC_POSIX
 AC_HEADER_STDC
 if test "$GCC" = "yes"; then
     COFLAGS=-O2
-    if test "$ac_cv_header_stdc" = "yes" || test "$syslibh" = "yes"; then
+    if test "$ac_cv_header_stdc" = "yes" ; then
         CWFLAGS=-Wall
     else
 	CWFLAGS=
@@ -143,6 +134,12 @@ else
     COFLAGS=-O
     CWFLAGS=
     CMFLAGS=
+
+    case "$ARCH" in
+	*mips-irix*)
+	    COFLAGS="-O -OPT:Olimit_opt=on"
+	    ;;
+    esac
 fi
 
 dnl ****************************************************************
@@ -580,10 +577,10 @@ AC_TRY_COMPILE(
 [
 #include <sys/wait.h>
 ],
-[ union wait status;
+[ int status;
   waitpid(1, &status, WNOHANG);
-], AC_DEFINE(UNION_WAIT)
-   AC_MSG_RESULT(yes),
+], AC_MSG_RESULT(yes),
+   AC_DEFINE(UNION_WAIT)
    AC_MSG_RESULT(no))
 if test "$GCC" = "yes"; then CFLAGS="$ac_oldcflags"; fi
 

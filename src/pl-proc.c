@@ -502,10 +502,7 @@ pl_current_predicate1(term_t spec, word ctx)
       PL_cons_functor(a, FUNCTOR_divide2, nt, at);
       PL_unify(pi, a);
     } else
-    { typeerror:
-      return PL_error(NULL, 0, NULL, ERR_TYPE,
-		      ATOM_predicate_indicator, spec);
-    }
+      goto typeerror;
   }
 
   switch( ForeignControl(ctx) )
@@ -643,6 +640,10 @@ clean:
   }
 
   return rval;
+  
+typeerror:
+  return PL_error(NULL, 0, NULL, ERR_TYPE,
+		  ATOM_predicate_indicator, spec);
 }
 
 

@@ -587,7 +587,7 @@ rc_seek(RcObject o, rc_offset to, int whence)
       /*FALLTHROUGH*/
     case SEEK_SET:
     set:
-      if ( to < 0 || to > o->member->size )
+      if ( to > o->member->size )
 	return (rc_offset) -1L;
       o->offset = to;
       return o->offset;

@@ -1907,9 +1907,10 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
 	  continue;
 	}
       case H_FUNCTOR:
-	{ functor_t fdef = (functor_t) XR(*PC++);
+	{ functor_t fdef;
 	  term_t t2;
 
+	  fdef = (functor_t) XR(*PC++);
       common_functor:
 	  t2 = PL_new_term_ref();
 	  TRY(PL_unify_functor(argp, fdef));
@@ -1923,8 +1924,9 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
           goto common_functor;
 	}
       case H_RFUNCTOR:
-	{ functor_t fdef = (functor_t) XR(*PC++);
+	{ functor_t fdef;
 
+	  fdef = (functor_t) XR(*PC++);
       common_rfunctor:
 	  TRY(PL_unify_functor(argp, fdef));
           get_arg_ref(argp, argp);
@@ -2129,8 +2131,9 @@ decompileBody(decompileInfo *di, code end, Code until)
 			    setVar(*ARGP++);
 			    continue;
       case B_FUNCTOR:
-      { functor_t fdef = (functor_t)XR(*PC++);
+      { functor_t fdef;
 
+	fdef = (functor_t)XR(*PC++);
       common_bfunctor:
 	*ARGP = globalFunctor(fdef);
         *aTop++ = ARGP + 1;
@@ -2143,8 +2146,9 @@ decompileBody(decompileInfo *di, code end, Code until)
         goto common_bfunctor;
       }
       case B_RFUNCTOR:
-      { functor_t fdef = (functor_t)XR(*PC++);
+      { functor_t fdef;
 
+	fdef = (functor_t)XR(*PC++);
       common_brfunctor:
 	*ARGP = globalFunctor(fdef);
 	ARGP = argTermP(*ARGP, 0);
@@ -3175,8 +3179,9 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
         continue;
     { Code endloc;
       case C_OR:			/* C_OR <jmp1> <A> C_JMP <jmp2> <B> */
-      { Code jmploc = PC + *PC++ + 1;
+      { Code jmploc;
 
+	jmploc = PC + *PC++ + 1;
 	endloc = jmploc + jmploc[-1];
 
 	DEBUG(1, Sdprintf("jmp = %d, end = %d\n",

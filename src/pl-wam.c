@@ -656,7 +656,7 @@ retry:
 }
 
 
-static void
+static int
 discardForeignFrame(LocalFrame fr)
 { Definition def = fr->predicate;
   int argc       = def->functor->arity;
@@ -673,6 +673,8 @@ discardForeignFrame(LocalFrame fr)
   CALLNDETFN(result, argc, context);
 #undef A
 #undef F
+
+  return result;
 }
 
 
@@ -2914,9 +2916,10 @@ to give the compiler a hint to put ARGP not into a register.
       }
 
     VMI(A_VAR) MARK(AVARN);
-    { int offset = *PC++;
+    { int offset;
       term_t v;
       Number n;
+      offset = *PC++;
 
     a_var_n:
       v = consTermRef(varFrameP(FR, offset));
