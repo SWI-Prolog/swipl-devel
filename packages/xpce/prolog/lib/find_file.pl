@@ -197,7 +197,8 @@ ok(F) :->
 	(   get(F, selection, File)
 	->  (   get(F, exists, @on)
 	    ->  (   send(File, exists)
-		->  send(F, return, File?name)
+		->  get(File, name, Name),
+		    send(F, return, Name)
 		;   send(F, report, error, '%s: No such file', File?name)
 		)
 	    ;   send(F, return, File?name)
