@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Center alignment in writef (thanks to Lyosha Ilyukhin).
+
 VERSION 3.3.9
 =============
 
