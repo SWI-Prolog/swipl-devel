@@ -126,7 +126,7 @@ split_completion(_FI, Value, Tuple:tuple) :<-
 	),
 	
 	(   send(S, suffix, /)
-	->  Path = S,
+	->  get(S, value, Path),
 	    BaseName = ''
 	;   new(F, file(S)),
 	    get(F, directory_name, DirName),
