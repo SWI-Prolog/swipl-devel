@@ -380,6 +380,7 @@ special('Seq', =).
 special('Suniv', =..).
 special('Saeq', =:=).
 special('Sle', =<).
+special('Sel', <=).
 special('Sequal', ==).
 special('Sstructeq', =@=).
 special('Sstructneq', \=@=).

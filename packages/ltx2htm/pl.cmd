@@ -158,6 +158,7 @@
 \Suniv
 \Saeq
 \Sle
+\Sel
 \Sequal
 \Sstructeq
 \Sstructneq
