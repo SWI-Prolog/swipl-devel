@@ -56,13 +56,19 @@ server_action((A,B), Socket) :- !,
 	server_action(A, Socket),
 	server_action(B, Socket).
 server_action(edit(File), Socket) :- !,
+	server_action(edit(File, []), Socket).
+server_action(edit(File, Line), Socket) :- !,
 	new(B, emacs_buffer(File)),
 	new(W, emacs_window(B)),
 	send(W, sticky_window),
 	get(W, editor, Editor),
 	new(H, hyper(Socket, Editor, editor, server)),
 	send(H, send_method, @emacs_server_method),
-	send(B, check_modified_file).
+	send(B, check_modified_file),
+	(   Line == []
+	->  true
+	;   send(W?editor, goto_line, Line)
+	).
 server_action(gdb(File), Socket) :- !,
 	file_directory_name(File, Dir),
 	file_base_name(File, Exe),

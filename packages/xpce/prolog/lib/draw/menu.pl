@@ -240,6 +240,11 @@ delete(M, Icon0:[draw_icon]) :->
 	send(Icon, free),
 	send(M, modified, @on).
 
+clear(M) :->
+	"Remove all prototypes"::
+	get(M, member, proto, TheMenu),
+	send(TheMenu, clear).
+
 
 		/********************************
 		*           SAVE/LOAD		*
@@ -480,7 +485,7 @@ paint_outline(MI) :->
 	get(MI, label, I),
 	get(MI, mode, Mode),
 	outline_image(Mode, ImageFile),
-	send(I, copy, image(ImageFile)).
+	send(I, copy, image(resource(ImageFile))).
 
 outline_image(select,	     'select.bm').
 outline_image(draw_text,     'draw_text.bm').
@@ -490,6 +495,14 @@ outline_image(draw_path,     'draw_path.bm').
 outline_image(draw_connect,  'draw_connect.bm').
 outline_image(draw_cconnect, 'draw_cconnect.bm').
 outline_image(draw_proto,    'draw_proto.bm').
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Hook to find the resource.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+resource(Name, image, image(Name)) :-
+	outline_image(_, Name).
+
 
 		/********************************
 		*           ATTRIBUTES		*
