@@ -133,9 +133,9 @@ edit(PL, What:sheet) :->
 	->  send(PL, report, error, 'No matching predicates'),
 	    fail
 	;   Preds = [Pred],
-	    ed(Pred)
+	    edit(Pred)
 	;   select_predicate(PL, view, Preds, Pred),
-	    ed(Pred)
+	    edit(Pred)
 	).
 
 

@@ -1,6 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Handling of :- dynamic Module:Name/Arity in PceEmacs
+    cross-referencer.
+
+  * FIXED: Cleanup of code for setting break-points.  Make this code
+    work again from PceEmacs.
+
   * ENHANCED: prolog_to_os_filename(-Pl, +Os) to convert 8+3 filenames
     to long filenames.
 

@@ -401,6 +401,7 @@ assert_export(Src, Name/Arity) :-
 assert_dynamic(Src, (A, B)) :- !,
 	assert_dynamic(Src, A),
 	assert_dynamic(Src, B).
+assert_dynamic(_, _M:_Name/_Arity) :- !. % not local
 assert_dynamic(Src, Name/Arity) :-
 	functor(Term, Name, Arity),
 	assert(dynamic(Term, Src)).

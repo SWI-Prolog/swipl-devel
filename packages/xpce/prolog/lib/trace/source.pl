@@ -10,7 +10,11 @@
     Copyright (C) 1990-2001 SWI, University of Amsterdam. All rights reserved.
 */
 
-:- module(prolog_source_view, []).
+:- module(prolog_source_view,
+	  [ mark_stop_point/2,		% +ClauseRef, +PC
+	    unmark_stop_point/2,	% +ClauseRef, +PC
+	    current_source_buffer/2	% +File, -Buffer
+	  ]).
 :- use_module(library(pce)).
 :- use_module(break).
 :- use_module(util).
@@ -249,13 +253,13 @@ listing(V, Module:name, Predicate:name, Arity:int) :->
 
 :- dynamic
 	user:message_hook/3,
-	buffer_pool/2.			% +File, -Buffer
+	current_source_buffer/2.			% +File, -Buffer
 :- multifile
 	user:message_hook/3.
 
 user:message_hook(load_file(start(_Level, file(_Spec, Path))), _, _Lines) :-
-	prolog_source_view:buffer_pool(Path, Buffer),
-	prolog_source_view:reload_buffer(Buffer),
+	current_source_buffer(Path, Buffer),
+	reload_buffer(Buffer),
 	fail.
 
 buffer(File, Buffer) :-
@@ -264,7 +268,7 @@ buffer(File, Buffer) :-
 	new(Buffer, emacs_buffer(File)),
 	mark_special(File, Buffer).
 buffer(File, Buffer) :-
-	buffer_pool(File, Buffer), !.
+	current_source_buffer(File, Buffer), !.
 buffer(File, Buffer) :-
 	new(FileObj, file(File)),
 	new(Buffer, text_buffer),
@@ -272,14 +276,14 @@ buffer(File, Buffer) :-
 	send(Buffer, attribute, time_stamp, FileObj?time),
 	send(Buffer, insert_file, 0, FileObj, 1),
 	send(Buffer, lock_object, @on),
-	asserta(buffer_pool(File, Buffer)),
+	asserta(current_source_buffer(File, Buffer)),
 	mark_special(File, Buffer).
 
 reload_buffer(Buffer) :-
 	get(@pce, convert, emacs_buffer, class, _),
 	send(Buffer, instance_of, emacs_buffer), !,
 	send(Buffer, revert),
-	buffer_pool(File, Buffer),
+	current_source_buffer(File, Buffer),
 	mark_special(File, Buffer),
 	send(Buffer, report, status, 'Reloaded %s', File).
 reload_buffer(Buffer) :-
@@ -291,7 +295,7 @@ reload_buffer(Buffer) :-
 	send(Buffer, report, status, 'Reloaded %s', File).
 
 destroy_buffers :-
-	forall(retract(buffer_pool(_, Buffer)),
+	forall(retract(current_source_buffer(_, Buffer)),
 	       free(Buffer)).
 
 mark_special(_, Buffer) :-
@@ -304,9 +308,31 @@ mark_special(File, Buffer) :-
 mark_stop_points(_, Source) :-
 	'$current_break'(ClauseRef, PC),
 	clause_property(ClauseRef, file(Source)),
-	prolog_break:break(ClauseRef, PC), % TBD
+	mark_stop_point(ClauseRef, PC),
 	fail.
 mark_stop_points(_, _).
+
+%	mark_stop_point(+ClauseRef, +PC)
+%
+%	Mark stop-points using a breakpoint fragment.
+
+mark_stop_point(ClauseRef, PC) :-
+	break_location(ClauseRef, PC, File, A-Z),
+	buffer(File, Buffer),
+	new(F, fragment(Buffer, A, Z-A, breakpoint)),
+	send(F, attribute, clause, ClauseRef),
+	send(F, attribute, pc, PC),
+	new(_, hyper(@prolog_debugger, F, break, debugger)).
+
+unmark_stop_point(ClauseRef, PC) :-
+	(   get(@prolog_debugger, find_hyper, break,
+		and(@arg3?clause == ClauseRef,
+		    @arg3?pc == PC),
+		Hyper)
+	->  get(Hyper, to, Fragment),
+	    free(Fragment)
+	;   true
+	).
 
 
 		 /*******************************

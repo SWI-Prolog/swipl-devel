@@ -12,7 +12,8 @@
 
 :- module(gui_tracer,
 	  [ guitracer/0,
-	    noguitracer/0		% Switch it off
+	    noguitracer/0,		% Switch it off
+	    prolog_break_at/3		% +File, +Line, +Pos
 	  ]).
 
 guitracer :-
@@ -30,6 +31,14 @@ noguitracer :-
 	set_prolog_flag(gui_tracer, false),
 	print_message(informational, gui_tracer(false)).
 noguitracer.
+
+%	prolog_break_at(+File, +Line, +Pos)
+%
+%	Set a Prolog break-point.  Used to set break-points from PceEmacs.
+
+prolog_break_at(File, Line, Pos) :-
+	guitracer,
+	prolog_break:break_at(File, Line, Pos).
 
 :- multifile
 	prolog:message/3.

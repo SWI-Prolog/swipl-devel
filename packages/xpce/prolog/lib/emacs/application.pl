@@ -115,7 +115,7 @@ goto_source_location(_Emacs, Location:source_location) :->
 	send(B, check_modified_file),
 	(   get(Location, line_no, Line),
 	    Line \== @nil
-	->  get(B?editors, head, E),
+	->  get(B?editors, find, message(@arg1, instance_of, emacs_editor), E),
 	    send(E?mode, select_line, Line),
 	    get(E, slot, selection_start, Caret), % without slot, fails
 	    send(E, caret, Caret)		  % on empty line!

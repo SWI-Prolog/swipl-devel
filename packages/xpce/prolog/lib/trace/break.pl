@@ -11,11 +11,13 @@
 */
 
 :- module(prolog_break,
-	  [ break_at/3
+	  [ break_at/3,			% +File, +Line, +CharPos
+	    break_location/4		% +ClauseRef, +PC, -File, -A-Z
 	  ]).
 :- use_module(trace).			% clause_info
 :- use_module(util).
 :- use_module(clause).
+:- use_module(source).
 
 :- dynamic
 	user:prolog_event_hook/1.
@@ -37,11 +39,15 @@ break_at(File, Line, Char) :-
 	'$clause_from_source'(File, Line, ClauseRef),
 	clause_info(ClauseRef, _File, TermPos, _NameOffset),
 	'$break_pc'(ClauseRef, PC, NextPC),
+	debug('NextPC = ~w~n', [NextPC]),
 	'$clause_term_position'(ClauseRef, NextPC, List),
+	debug('Location = ~w~n', [List]),
 	range(List, TermPos, A, Z),
-	between(A, Z, Char),
+	debug('Term from ~w-~w~n', [A, Z]),
+	between(A, Z, Char), !,
 	debug('Break at clause ~w, PC=~w~n', [ClauseRef, PC]),
-	'$break_at'(ClauseRef, PC, true).
+	'$break_at'(ClauseRef, PC, true),
+	debug.
 
 range([], Pos, A, Z) :-
 	arg(1, Pos, A),
@@ -56,31 +62,58 @@ range([H|T], term_position(_, _, _, _, PosL), A, Z) :-
 
 :- pce_global(@prolog_debugger, new(object)).
 
-user:prolog_event_hook(break(ClauseRef, PC, true)) :-
-	prolog_break:break(ClauseRef, PC).
-user:prolog_event_hook(break(ClauseRef, PC, false)) :-
-	prolog_break:nobreak(ClauseRef, PC).
+user:prolog_event_hook(break(ClauseRef, PC, Set)) :-
+	break(Set, ClauseRef, PC).
 
-break(ClauseRef, PC) :-
-	debug('Trap in Clause ~d, PC ~d~n', [ClauseRef, PC]),
+break(SetClear, ClauseRef, PC) :-
+	print_message(informational, break(SetClear, ClauseRef, PC)),
+	(   SetClear == true
+	->  debug('Trap in Clause ~d, PC ~d~n', [ClauseRef, PC]),
+	    clause_property(ClauseRef, file(File)),
+	    current_source_buffer(File, _Buffer),
+	    mark_stop_point(ClauseRef, PC)
+	;   debug('Deleted break at clause ~d, PC ~d~n', [ClauseRef, PC]),
+	    unmark_stop_point(ClauseRef, PC)
+	).
+
+%	break_location(+ClauseRef, +PC, -File, -A-Z)
+%
+%	Determine source-code location of a break-point.
+
+break_location(ClauseRef, PC, File, A-Z) :-
 	clause_info(ClauseRef, File, TermPos, _NameOffset),
 	'$fetch_vm'(ClauseRef, PC, NPC, _VMI),
 	'$clause_term_position'(ClauseRef, NPC, List),
 	debug('ClausePos = ~w~n', [List]),
-	prolog_break:range(List, TermPos, A, Z),
-	debug('Range: ~d .. ~d~n', [A, Z]),
-	prolog_source_view:buffer(File, Buffer),
-	debug('Buffer = ~p~n', [Buffer]),
-	new(F, fragment(Buffer, A, Z-A, breakpoint)),
-	send(F, attribute, clause, ClauseRef),
-	send(F, attribute, pc, PC),
-	new(_, hyper(@prolog_debugger, F, break, debugger)).
+	range(List, TermPos, A, Z),
+	debug('Range: ~d .. ~d~n', [A, Z]).
 
-nobreak(ClauseRef, PC) :-
-	debug('Deleted break-point at clause ~d, PC ~d~n', [ClauseRef, PC]),
-	get(@prolog_debugger, find_hyper, break,
-	    and(@arg3?clause == ClauseRef,
-		@arg3?pc == PC),
-	    Hyper),
-	get(Hyper, to, Fragment),
-	free(Fragment).
+
+		 /*******************************
+		 *	      MESSAGES		*
+		 *******************************/
+
+:- multifile
+	prolog:message/3.
+
+prolog:message(break(SetClear, ClauseRef, _PC)) -->
+	setclear(SetClear),
+	clause_location(ClauseRef).
+
+setclear(true) -->
+	['Breakpoint at '].
+setclear(false) -->
+	['Cleared breakpoint from '].
+
+clause_location(ClauseRef) -->
+	{ clause_property(ClauseRef, file(File)),
+	  clause_property(ClauseRef, line(Line)), !,
+	  clause_name(ClauseRef, Name)
+	},
+	['~w at ~w:~d'-[Name, File, Line] ].
+clause_location(ClauseRef) -->
+	{ clause_name(ClauseRef, Name)
+	},
+	['~w'-[Name] ].
+	
+	
