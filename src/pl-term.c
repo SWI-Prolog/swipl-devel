@@ -58,11 +58,9 @@ resetTerm()
 { if ( capabilities == NULL )
   { capabilities = newHTable(16);
   } else
-  { Symbol s;
-
-    term_initialised = STAT_START;
-    for_table(s, capabilities)
-      freeHeap((Entry)s->value, sizeof(entry));
+  { term_initialised = STAT_START;
+    for_table(capabilities, s,
+	      freeHeap(s->value, sizeof(entry)));
     clearHTable(capabilities);
   }
 

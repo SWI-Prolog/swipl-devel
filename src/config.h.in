@@ -281,6 +281,9 @@
 /* Define if you have the times function.  */
 #undef HAVE_TIMES
 
+/* Define if you have the usleep function.  */
+#undef HAVE_USLEEP
+
 /* Define if you have the <bstring.h> header file.  */
 #undef HAVE_BSTRING_H
 
@@ -356,11 +359,11 @@
 /* Define if you have the m library (-lm).  */
 #undef HAVE_LIBM
 
-/* Define if you have the main library (-lmain).  */
-#undef HAVE_LIBMAIN
-
 /* Define if you have the ncurses library (-lncurses).  */
 #undef HAVE_LIBNCURSES
+
+/* Define if you have the pthread library (-lpthread).  */
+#undef HAVE_LIBPTHREAD
 
 /* Define if you have the readline library (-lreadline).  */
 #undef HAVE_LIBREADLINE

@@ -410,7 +410,7 @@ language_map(table,	'Table').
 #(center(Text),		[html('<CENTER>'), Text, html('</CENTER>')]).
 #(right(Text),		[html('<RIGHT>'),  Text, html('</RIGHT>')]).
 #(quote(Text),		[html('<BLOCKQUOTE>'), Text, html('</BLOCKQUOTE>')]).
-#(listing(Text),	[html('<TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>'), Text,
+#(listing(Text),	[html('<P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>'), Text,
 			 html('</TABLE>')]).
 #(abstract(Text),	[html('<CENTER><H3>Abstract</H3></Center>'),
 			 html('<TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>'), Text,
@@ -1003,6 +1003,7 @@ cmd(email([Text], {Address}), #url(URL, +Text)) :-
 	sformat(URL, 'mailto:~w', [Address]).
 cmd(url([], {Address}), #url(Address, Address)).
 cmd(url([Text], {Address}), #url(Address, +Text)).
+cmd(file({File}), #tt(File)).
 cmd(strong(		{A1}), #strong(+A1)).
 cmd(tick({Tokens}),
     [ html('<LI>'), html('<I>'), Tag, html('</I>'), html('<BR>') ]) :-
@@ -1164,6 +1165,9 @@ cmd(rightarrow, ['->']).
 cmd('Rightarrow', ['=>']).
 cmd('Leftrightarrow', ['<=>']).
 cmd(pi, math, 'pi').
+%cmd(circ, math, html('&omicron;')).		% not in Netscape 4.51
+cmd(circ, math, o).
+cmd(rhd, math, html('&gt;')).
 cmd(leq, math, '=<').
 cmd(equiv, math, '==').
 cmd(longrightarrow, math, '-->').
@@ -1426,7 +1430,7 @@ translate_section(Level, -, TeXTitle,
 	),
 	sformat(RefName, 'sec:~w', [Tag]),
 	assert(section(Level, Tag, Title)).
-translate_section(Level, *, Title, #h(Level, Title)).
+translate_section(Level, *, Title, #h(Level, +Title)).
 
 h(1, '<H1>', '</H1>').
 h(2, '<H2>', '</H2>').
@@ -1766,6 +1770,13 @@ step_counter(Name, NewVal) :-
 	),
 	asserta(counter(Name, NewVal)).
 
+		 /*******************************
+		 *	       RULES		*
+		 *******************************/
+
+cmd(rule({'\linewidth'}, {_H}), [html('<hr>')]) :- !.
+cmd(rule({_W}, {_H}), []) :-
+	format('_W = ~w, H = ~w~n', [_W, _H]).
 
 		 /*******************************
 		 *	      TABLES		*

@@ -1881,9 +1881,7 @@ qlfSaveSource(SourceFile f, IOSTREAM *fd)
 
 static bool
 qlfStartModule(Module m, IOSTREAM *fd)
-{ Symbol s;
-
-  closeProcedureWic(fd);
+{ closeProcedureWic(fd);
   Putc('Q', fd);
   Putc('M', fd);
   saveXR(m->name, fd);
@@ -1892,12 +1890,12 @@ qlfStartModule(Module m, IOSTREAM *fd)
   else
     Putc('-', fd);
 
-  for_table(s, m->public)
-  { functor_t f = (functor_t)s->name;
+  for_unlocked_table(m->public, s,
+		     { functor_t f = (functor_t)s->name;
 
-    Putc('E', fd);
-    saveXRFunctor(f, fd);
-  } 
+		       Putc('E', fd);
+		       saveXRFunctor(f, fd);
+		     })
 
   Putc('X', fd);
 

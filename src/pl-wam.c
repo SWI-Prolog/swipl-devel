@@ -1337,7 +1337,11 @@ Is there a way to make the compiler keep its mouth shut!?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   if ( setjmp(QF->exception_jmp_env) != 0 )
-  { FliFrame ffr = fli_context;
+  { FliFrame ffr;
+#ifdef O_PLMT
+    __PL_ld = GLOBAL_LD;		/* might be clobbered */
+#endif
+    ffr = fli_context;
 
     FR = environment_frame;
     while(ffr && (void *)ffr > (void *)FR) /* discard foreign contexts */

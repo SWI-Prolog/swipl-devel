@@ -82,7 +82,7 @@ specified files.
 Read \arg{File} as a Prolog source file. \arg{File} may be a list of
 files, in which case all members are consulted in turn. \arg{File} may
 start with the csh(1) special sequences \file{~}, \file{~<user>} and
-\file{$<var>}. \arg{File} may also be \file{library(Name)}, in which
+\file{\$<var>}. \arg{File} may also be \file{library(Name)}, in which
 case the libraries are searched for a file with the specified name. See
 also library_directory/1 and file_search_path/2. consult/1 may be
 abbreviated by just typing a number of file names in a list. Examples:
@@ -2355,11 +2355,15 @@ $\arg{Result} = \arg{Expr1} \times \arg{Expr2}$
 \infixop{/}{+Expr1}{+Expr2}
 $\arg{Result} = \frac{\arg{Expr1}}{\arg{Expr2}}$
 \infixop{mod}{+IntExpr1}{+IntExpr2}
-$\arg{Result} = \mod{\arg{Expr1}}{\arg{Expr2}}$ (remainder of division).
+Modulo:
+\arg{Result} = \arg{IntExpr1} - (\arg{IntExpr1} // \arg{IntExpr2})
+$\times$ \arg{IntExpr1}
 \infixop{rem}{+IntExpr1}{+IntExpr2}
-$\arg{Result} = \rem{\arg{Expr1}}{\arg{Expr2}}$ (remainder of division).
+Remainder of division:
+\mbox{\arg{Result} = float_fractional_part(\arg{IntExpr1}/\arg{IntExpr2})}
 \infixop{//}{+IntExpr1}{+IntExpr2}
-$\arg{Result} = \arg{Expr1} \div \arg{Expr2}$ (integer division).
+Integer division:
+\mbox{\arg{Result} = truncate(\arg{Expr1}/\arg{Expr2})}
 \predicate{abs}{1}{+Expr}
 Evaluate \arg{Expr} and return the absolute value of it.
 \predicate{sign}{1}{+Expr}
@@ -2754,7 +2758,7 @@ Escape sequences to generate a single special character:
 \end{tabular}
 \end{center}
 
-Note that \fmtseq{\l}, \fmtseq{\<nnn>} and \fmtseq{\\}
+Note that \fmtseq{\l}, \fmtseq{\nnn} and \fmtseq{\\}
 are interpreted differently when character-escapes are in effect. See
 \secref{charescapes}.
 
@@ -3179,7 +3183,7 @@ arbitrary patterns, including `\const{\{\ldots\}}' patterns. The empty
 pattern is legal as well: `\file{\{.pl,\}}' matches either `\file{.pl}'
 or the empty string.
 
-Before expanding wildchards, the construct \file{$\arg{var}} is expanded
+Before expanding wildchards, the construct \file{\$\arg{var}} is expanded
 to the value of the environment variable \var{var} and a possible
 leading \verb$~$ character is expanded to the user's home directory.%
     \footnote{On Windows, the home directory is determined as follows:
@@ -3314,18 +3318,19 @@ exception (see throw/1 and catch/3).
 
     \predicate{thread_join}{2}{+Id, -Status}
 Wait for the termination of thread with given \arg{Id}.  Then unify
-the resultp-status of the thread with \arg{Status}.  After this call,
-\arg{Id} becomes invalid and all resources associated with the thread
-are reclaimed.  See also current_thread/2.
+the result-status (see thread_exit/1) of the thread with \arg{Status}.
+After this call, \arg{Id} becomes invalid and all resources associated
+with the thread are reclaimed. See also current_thread/2.
 
 A thread that has been completed without thread_join/2 being called on
 it is partly reclaimed: the Prolog stacks are released and the C-thread
-is destroyed.  A small structure represening the exit-status of the
+is destroyed.  A small data-structure represening the exit-status of the
 thread is retained until thread_join/2 is called on the thread.
 
     \predicate{thread_exit}{1}{+Term}
 Terminates the thread immediately, leaving \term{exited}{Term} as
 result-state.  The Prolog stacks and C-thread are reclaimed.
+
 \end{description}
 
 \section{User Toplevel Manipulation}

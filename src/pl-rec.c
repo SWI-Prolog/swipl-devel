@@ -19,14 +19,8 @@ forwards RecordList isCurrentRecordList(word);
 
 static RecordList recordTable[RECORDHASHSIZE];
 
-#if O_PLMT
-static pthread_mutex_t rec_mutex = PTHREAD_MUTEX_INITIALIZER;
-#define LOCK()   pthread_mutex_lock(&rec_mutex)
-#define UNLOCK() pthread_mutex_unlock(&rec_mutex)
-#else
-#define LOCK()
-#define UNLOCK()
-#endif
+#define LOCK()   PL_LOCK(L_RECORD)
+#define UNLOCK() PL_UNLOCK(L_RECORD)
 
 void
 initRecords(void)
@@ -860,12 +854,17 @@ right_recursion:
 }
 
 
+#ifndef INT_MAX
+#define INT_MIN ((int)1<<(sizeof(int)*8-1))
+#define INT_MAX (-(INT_MIN+1))
+#endif
+
 word
 pl_term_complexity(term_t t, term_t mx, term_t count)
 { int c, m;
 
   if ( !PL_get_integer(mx, &m) )
-    m = PLMAXINT;
+    m = INT_MAX;
 
   c = count_term(valTermRef(t), m);
   if ( c < 0 || c > m )

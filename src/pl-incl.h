@@ -90,7 +90,6 @@ handy for it someone wants to add a data type to the system.
 #define O_BLOCK			1
 #define O_CATCHTHROW		1
 #define O_INLINE_FOREIGNS	1
-#define O_PCE			1	/* doesn't depend any longer */
 #define O_DEBUGGER		1
 #define O_INTERRUPT		1
 #define O_DESTRUCTIVE_ASSIGNMENT 1
@@ -382,7 +381,6 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 #define makeTableRef(p)		((void*)((unsigned long)(p) | TABLE_REF_MASK))
 #define unTableRef(s, p)	(*((s*)((unsigned long)(p) & ~TABLE_REF_MASK)))
 
-#define for_table(s, t) for(s = firstHTable(t); s; s = nextHTable(t, s))
 #define return_next_table(t, v, clean) \
 	{ for((v) = (v)->next; isTableRef(v) && (v); (v) = unTableRef(t, v)) \
 	  if ( (v) == (t)NULL ) \
@@ -390,6 +388,29 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 	    succeed; \
 	  } \
 	  ForeignRedoPtr(v); \
+	}
+
+#define for_table(ht, s, code) \
+	{ int _k; \
+	  PL_LOCK(L_TABLE); \
+	  for(_k = 0; _k < (ht)->buckets; _k++) \
+	  { Symbol _n, s; \
+	    for(s=(ht)->entries[_k]; s; s = _n) \
+	    { _n = s->next; \
+	      code; \
+	    } \
+	  } \
+          PL_UNLOCK(L_TABLE); \
+	}
+#define for_unlocked_table(ht, s, code) \
+	{ int _k; \
+	  for(_k = 0; _k < (ht)->buckets; _k++) \
+	  { Symbol _n, s; \
+	    for(s=(ht)->entries[_k]; s; s = _n) \
+	    { _n = s->next; \
+	      code; \
+	    } \
+	  } \
 	}
 
 /* Definition->indexPattern is set to NEED_REINDEX if the definition's index
@@ -730,6 +751,7 @@ typedef struct sourceFile *	SourceFile;	/* file adminitration */
 typedef struct list_cell *	ListCell;	/* Anonymous list */
 typedef struct table *		Table;		/* (numeric) hash table */
 typedef struct symbol *		Symbol;		/* symbol of hash table */
+typedef struct table_enum *	TableEnum; 	/* Enumerate table entries */
 typedef struct localFrame *	LocalFrame;	/* environment frame */
 typedef struct queryFrame *	QueryFrame;     /* toplevel query frame */
 typedef struct fliFrame *	FliFrame; 	/* FLI interface frame */
@@ -869,9 +891,13 @@ Handling environment (or local stack) frames.
 				      (f)->clause->clause->prolog_vars)
 #define contextModule(f)	((f)->context)
 
+#define enterDefinition(def)	{ PL_LOCK(L_MISC); \
+				  def->references++; \
+				  PL_UNLOCK(L_MISC); \
+				}
 #if O_DEBUG
-#define enterDefinition(def)	{ def->references++; }
-#define leaveDefinition(def)	{ if ( --def->references == 0 && \
+#define leaveDefinition(def)	{ PL_LOCK(L_MISC); \
+				  if ( --def->references == 0 && \
 				       true(def, NEEDSCLAUSEGC) ) \
 				    gcClausesDefinition(def); \
 				  if ( def->references < 0 ) \
@@ -879,12 +905,14 @@ Handling environment (or local stack) frames.
 					     predicateName(def)); \
 				    def->references = 0; \
 				  } \
+				  PL_UNLOCK(L_MISC); \
 				}
 #else /*O_DEBUG*/
-#define enterDefinition(def)	{ def->references++; }
-#define leaveDefinition(def)	{ if ( --def->references == 0 && \
+#define leaveDefinition(def)	{ PL_LOCK(L_MISC); \
+				  if ( --def->references == 0 && \
 				       true(def, NEEDSCLAUSEGC) ) \
 				    gcClausesDefinition(def); \
+				  PL_UNLOCK(L_MISC); \
 				}
 #endif /*O_DEBUG*/
 
@@ -1192,15 +1220,23 @@ struct gc_trail_entry
 struct table
 { int		buckets;	/* size of hash table */
   int		size;		/* # symbols in the table */
-  int		locked;		/* locked for resize */
+  TableEnum	enumerators;	/* Handles for enumeration */
   Symbol	*entries;	/* array of hash symbols */
 };
 
 struct symbol
 { Symbol	next;		/* next in chain */
-  word		name;		/* name entry of symbol */
-  word		value;		/* associated value with name */
+  void *	name;		/* name entry of symbol */
+  void *	value;		/* associated value with name */
 };
+
+struct table_enum
+{ Table		table;		/* Table we are working on */
+  int		key;		/* Index of current symbol-chain */
+  Symbol	current;	/* The current symbol */
+  TableEnum	next;		/* More choice points */
+};
+
 
 
 		 /*******************************

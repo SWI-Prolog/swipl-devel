@@ -255,13 +255,9 @@ singletonWarning(atom_t *vars, int nvars)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Scan the input, give prompts when necessary and return a char *  holding
-a  stripped  version of the next term.  Contigeous white space is mapped
+a  stripped  version of the next term.  Contiguous white space is mapped
 on a single space, block and % ... \n comment  is  deleted.   Memory  is
 claimed automatically en enlarged if necessary.
-
-Earlier versions used to local stack for   building the term.  This does
-not work with O_PCE as we might be  called back via the notifier while
-reading.
 
 (char *) NULL is returned on a syntax error.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */

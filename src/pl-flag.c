@@ -27,14 +27,8 @@ struct flag
 };
 
 #define flagTable (GD->flags.table)
-#if O_PLMT
-static pthread_mutex_t flag_mutex = PTHREAD_MUTEX_INITIALIZER;
-#define LOCK()   pthread_mutex_lock(&flag_mutex)
-#define UNLOCK() pthread_mutex_unlock(&flag_mutex)
-#else
-#define LOCK()
-#define UNLOCK()
-#endif
+#define LOCK()   PL_LOCK(L_FLAG)
+#define UNLOCK() PL_UNLOCK(L_FLAG)
 
 void
 initFlags(void)
@@ -129,6 +123,7 @@ out:
 word
 pl_current_flag(term_t k, term_t h)
 { Symbol symb;
+  TableEnum e;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
@@ -140,30 +135,32 @@ pl_current_flag(term_t k, term_t h)
 	fail;
       }
       if ( PL_is_variable(k) )
-      {	symb = firstHTable(flagTable);
+      {	e = newTableEnum(flagTable);
 	break;
       }
       return PL_error("current_flag", 2, NULL, ERR_TYPE, ATOM_key, key);
     }
     case FRG_REDO:
-      symb = ForeignContextPtr(h);
+      e = ForeignContextPtr(h);
       break;
     case FRG_CUTTED:
+      e = ForeignContextPtr(h);
+      freeTableEnum(e);
     default:
       succeed;
   }
 
-  for( ; symb; symb = nextHTable(flagTable, symb) )
-  { Flag f = (Flag)symb->value;
+  while( (symb = advanceTableEnum(e)) )
+  { Flag f = symb->value;
 
     if ( !unifyKey(k, f->key) )
       continue;
 
-    if ( !(symb = nextHTable(flagTable, symb)) )
-      succeed;
-
-    ForeignRedoPtr(symb);
+    ForeignRedoPtr(e);
   }
 
+  freeTableEnum(e);
   fail;
 }
+
+

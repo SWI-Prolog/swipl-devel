@@ -15,6 +15,9 @@ General  handling  of  procedures:  creation;  adding/removing  clauses;
 finding source files, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define LOCK()   PL_LOCK(L_PREDICATE)
+#define UNLOCK() PL_UNLOCK(L_PREDICATE)
+
 forwards void		resetReferencesModule(Module);
 forwards void		resetProcedure(Procedure proc);
 
@@ -26,8 +29,11 @@ lookupProcedure(functor_t f, Module m)
   register Definition def;
   Symbol s;
   
+  LOCK();
   if ( (s = lookupHTable(m->procedures, (void *)f)) )
+  { UNLOCK();
     return (Procedure) s->value;
+  }
 
   proc = (Procedure)  allocHeap(sizeof(struct procedure));
   def  = (Definition) allocHeap(sizeof(struct definition));
@@ -50,6 +56,7 @@ lookupProcedure(functor_t f, Module m)
   clearFlags(def);
   def->references = 0;
   resetProcedure(proc);
+  UNLOCK();
 
   return proc;
 }
@@ -319,7 +326,8 @@ to C.
 
 word
 pl_current_predicate(term_t name, term_t spec, word h)
-{ atom_t n;
+{ TableEnum e;
+  atom_t n;
   functor_t f;
   Module m = (Module) NULL;
   Procedure proc;
@@ -327,7 +335,10 @@ pl_current_predicate(term_t name, term_t spec, word h)
   term_t functor = PL_new_term_ref();
 
   if ( ForeignControl(h) == FRG_CUTTED )
+  { e = ForeignContextPtr(h);
+    freeTableEnum(e);
     succeed;
+  }
 
   if ( !PL_strip_module(spec, &m, functor) )
     fail;
@@ -351,14 +362,14 @@ pl_current_predicate(term_t name, term_t spec, word h)
 	return PL_unify_atom(name, nameFunctor(f));
       fail;
     }
-    symb = firstHTable(m->procedures);
+    e = newTableEnum(m->procedures);
   } else
-    symb = ForeignContextPtr(h);
+    e = ForeignContextPtr(h);
 
-  for(; symb; symb = nextHTable(m->procedures, symb) )
+  while( (symb=advanceTableEnum(e)) )
   { FunctorDef fdef;
     
-    proc = (Procedure) symb->value;
+    proc = symb->value;
     fdef = proc->definition->functor;
 
     if ( (n && n != fdef->name) ||
@@ -366,12 +377,11 @@ pl_current_predicate(term_t name, term_t spec, word h)
 	 !PL_unify_functor(functor, fdef->functor) )
       continue;
 
-    if ( (symb = nextHTable(m->procedures, symb)) )
-      ForeignRedoPtr(symb);
-
+    ForeignRedoPtr(e);
     succeed;
   }
 
+  freeTableEnum(e);
   fail;
 }
 
@@ -403,8 +413,7 @@ assertProcedure(Procedure proc, Clause clause, int where)
 { Definition def = proc->definition;
   ClauseRef cref = newClauseRef(clause);
 
-  startCritical;
-
+  LOCK();
   if ( def->references && (debugstatus.styleCheck & DYNAMIC_STYLE) )
     warning("assert/[1,2]: %s has %d references",
 	    predicateName(def), def->references);
@@ -429,8 +438,7 @@ assertProcedure(Procedure proc, Clause clause, int where)
   { if ( def->number_of_clauses == 25 && true(def, AUTOINDEX) )
       def->indexPattern |= NEED_REINDEX;
   }
-
-  endCritical;  
+  UNLOCK();
 
   succeed;
 }
@@ -448,6 +456,7 @@ bool
 abolishProcedure(Procedure proc, Module module)
 { Definition def = proc->definition;
 
+  LOCK();
   if ( def->module != module )		/* imported predicate; remove link */
   { Definition ndef	     = allocHeap(sizeof(struct definition));
 
@@ -466,21 +475,14 @@ abolishProcedure(Procedure proc, Module module)
     clearFlags(ndef);
     ndef->references         = 0;
     resetProcedure(proc);
-
-    succeed;
-  }
-
-  if ( true(def, FOREIGN) )
-  { startCritical;
-    def->definition.clauses = def->lastClause = NULL;
+  } else if ( true(def, FOREIGN) )	/* foreign: make normal */
+  { def->definition.clauses = def->lastClause = NULL;
     resetProcedure(proc);
-    endCritical;
-
-    succeed;
+  } else				/* normal Prolog procedure */
+  { removeClausesProcedure(proc, 0);
+    resetProcedure(proc);
   }
-
-  removeClausesProcedure(proc, 0);
-  resetProcedure(proc);
+  UNLOCK();
 
   succeed;
 }
@@ -588,9 +590,16 @@ freeClause(Clause c)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+gcClausesDefinition()
+    Called from leaveDefinition().  Its task is to garbage collect all
+    clauses marked as ERASED.  leaveDefinition() is locked for
+    multi-threading, so there is no reason to do that here.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 gcClausesDefinition(Definition def)
-{ ClauseRef cref = def->definition.clauses, prev = NULL;
+{ ClauseRef cref, prev = NULL;
   int rehash = 0;
 #if O_DEBUG
   int left = 0, removed = 0;
@@ -598,7 +607,7 @@ gcClausesDefinition(Definition def)
 
   DEBUG(1, Sdprintf("gcClausesDefinition(%s) --> ", predicateName(def)));
 
-  startCritical;
+  cref = def->definition.clauses;
 
   if ( def->hash_info )
   { if ( false(def, NEEDSREHASH) )
@@ -648,8 +657,6 @@ gcClausesDefinition(Definition def)
     hashDefinition(def, rehash);
 
   clear(def, NEEDSCLAUSEGC|NEEDSREHASH);
-
-  endCritical;
 }
 
 
@@ -661,24 +668,27 @@ Erased clauses will be removed as well.
 static void
 resetReferencesModule(Module m)
 { Definition def;
-  Symbol s;
 
-  for_table(s, m->procedures)
-  { def = ((Procedure) s->value)->definition;
 #ifdef O_PROFILE
-    clear(def, PROFILE_TICKED);
-#endif /* O_PROFILE */
-    def->references = 1;
-    leaveDefinition(def);
-  }
+#define ClearProfileTicked(def) clear(def, PROFILE_TICKED)
+#else
+#define ClearProfileTicked(def)
+#endif
+
+  for_unlocked_table(m->procedures, s,
+		     { def = ((Procedure) s->value)->definition;
+		       ClearProfileTicked(def);
+		       def->references = 1;
+		       leaveDefinition(def);
+		     })
 }
 
 void
 resetReferences(void)
-{ Symbol s;
-
-  for_table(s, GD->tables.modules)
-    resetReferencesModule((Module) s->value);
+{ LOCK();
+  for_unlocked_table(GD->tables.modules, s,
+		     resetReferencesModule((Module) s->value));
+  UNLOCK();
 }
 
 		 /*******************************
@@ -1234,10 +1244,20 @@ pl_default_predicate(term_t d1, term_t d2)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+reindexDefinition()
+    Rebuilds the clause index for the predicate.  This predicate is prepared
+    for multi-threading just by using enterDefinition()/leaveDefinition().
+    This implies two threads may do the same job at the same time, but I
+    think this is fully safe: they will create the same data and both
+    threads are guaranteed not to continue before this is completed.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 reindexDefinition(Definition def)
 { ClauseRef cref;
   int do_hash = 0;
+  unsigned long pattern;
 
   DEBUG(2, if ( def->definition.clauses )
 	   { Procedure proc = def->definition.clauses->clause->procedure;
@@ -1249,14 +1269,19 @@ reindexDefinition(Definition def)
   { int canindex = 0;
     int cannotindex = 0;
     
+    enterDefinition(def);
     for(cref = def->definition.clauses; cref; cref = cref->next)
     { word key;
+
+      if ( true(cref->clause, ERASED) )
+	continue;
 
       if ( arg1Key(cref->clause, &key) )
 	canindex++;
       else
 	cannotindex++;
     }
+    leaveDefinition(def);
 
     if ( canindex == 0 )
     { DEBUG(2, if ( def->definition.clauses )
@@ -1272,10 +1297,13 @@ reindexDefinition(Definition def)
     }
   }
 
-  def->indexPattern &= ~NEED_REINDEX;
-  def->indexCardinality = cardinalityPattern(def->indexPattern);
+  enterDefinition(def);
+  pattern = def->indexPattern & ~NEED_REINDEX;
+  def->indexCardinality = cardinalityPattern(pattern);
   for(cref = def->definition.clauses; cref; cref = cref->next)
     reindexClause(cref->clause);
+  def->indexPattern = pattern;
+  leaveDefinition(def);
 
   if ( do_hash )
   { DEBUG(1,
@@ -1388,13 +1416,16 @@ lookupSourceFile(atom_t name)
 { SourceFile file;
   Symbol s;
 
+  LOCK();
   if ( !sourceTable )
     sourceTable = newHTable(32);
 
   if ( (s=lookupHTable(sourceTable, (void*)name)) )
+  { UNLOCK();
     return (SourceFile) s->value;
+  }
 
-  file = (SourceFile) allocHeap(sizeof(struct sourceFile) );
+  file = (SourceFile) allocHeap(sizeof(struct sourceFile));
   file->name = name;
   file->count = 0;
   file->time = 0L;
@@ -1405,6 +1436,7 @@ lookupSourceFile(atom_t name)
   registerSourceFile(file);
 
   addHTable(sourceTable, (void*)name, file);
+  UNLOCK();
 
   return file;
 }
@@ -1426,20 +1458,22 @@ void
 addProcedureSourceFile(SourceFile sf, Procedure proc)
 { ListCell cell;
 
+  LOCK();
   if ( true(proc->definition, FILE_ASSIGNED) )
   { for(cell=sf->procedures; cell; cell = cell->next)
     { if ( cell->value == proc )
+      { UNLOCK();
 	return;
+      }
     }
   }
 
-  startCritical;
   cell = allocHeap(sizeof(struct list_cell));
   cell->value = proc;
   cell->next = sf->procedures;
   sf->procedures = cell;
   set(proc->definition, FILE_ASSIGNED);
-  endCritical;
+  UNLOCK();
 }
 
 

@@ -162,6 +162,7 @@
 \and
 \leavevmode
 \/
+\rule{d}{d}
 
 % Special characters
 
@@ -174,12 +175,14 @@
 \"{-}
 \#
 \copyright
+\circ
 \year
 \LaTeX
 \TeX
 
 % Arithmetic (math mode)
 
+\rhd
 \times
 \equiv
 \pi
@@ -266,6 +269,7 @@
 \raggedright
 \email[+]{-}
 \url[+]{-}
+\file{-}
 
 % Output control commands
 

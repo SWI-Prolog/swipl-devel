@@ -22,7 +22,7 @@
 \cmdlineoptionitem*{+}{+}=item	1 0
 \cmdlineoption{+}
 \longoption{+}{+}
-\longoption{+}{+}=item		1 0
+\longoptionitem{+}{+}=item	1 0
 \termitem{+}{+}=item		1 0
 \term{+}{+}
 \errorterm{+}{+}
@@ -49,7 +49,8 @@
 \ctype{+}
 \cglobalvar{+}
 \exam{+}
-\file{+}
+\file{-}
+\metafile{+}
 \pllib{+}
 \clib{+}
 \env{+}

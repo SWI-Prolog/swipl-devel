@@ -33,7 +33,7 @@ Decode a HTML tag, returning a pointer to the end of it
 
 static char *
 skipblanks(const char *s)
-{ while ( isspace(*s) )
+{ while ( isspace((int)*s) )
     s++;
 
   return (char *)s;
@@ -42,7 +42,7 @@ skipblanks(const char *s)
 
 static char *
 skipidentifier(const char *s)
-{ while ( isalnum(*s) || *s == '_' )
+{ while ( isalnum((int)*s) || *s == '_' )
     s++;
 
   return (char *)s;
@@ -61,7 +61,7 @@ html_find_tag(const char *data, const char *end, const char *tag)
       return NULL;
 
     if ( strncasecmp(data+1, tag, len) == 0 &&
-	 (isspace(data[len+1]) || data[len+1] == '>') )
+	 (isspace((int)data[len+1]) || data[len+1] == '>') )
       return (char *)data+len+1;
 
     data++;

@@ -82,7 +82,7 @@ pl_format_predicate(term_t chr, term_t descr)
     format_predicates = newHTable(8);
   
   if ( (s = lookupHTable(format_predicates, (void *)c)) )
-    s->value = (word) proc;
+    s->value = proc;
   else
     addHTable(format_predicates, (void *)c, proc);
 
@@ -93,34 +93,36 @@ pl_format_predicate(term_t chr, term_t descr)
 word
 pl_current_format_predicate(term_t chr, term_t descr, control_t h)
 { Symbol s = NULL;
+  TableEnum e;
   mark m;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
       if ( !format_predicates )
 	fail;
-      s = firstHTable(format_predicates);
+      e = newTableEnum(format_predicates);
+      break;
+    case FRG_REDO:
+      e = ForeignContextPtr(h);
       break;
     case FRG_CUTTED:
+      e = ForeignContextPtr(h);
+      freeTableEnum(e);
+    default:
       succeed;
-    case FRG_REDO:
-      s = ForeignContextPtr(h);
-      break;
   }
 
-  while(s)
+  while( (s=advanceTableEnum(e)) )
   { Mark(m);
 
     if ( PL_unify_integer(chr, (int)s->name) &&
 	 unify_definition(descr, ((Procedure)s->value)->definition, 0, 0) )
-    { if ( (s = nextHTable(format_predicates, s)) )
-	ForeignRedoPtr(s);
-      succeed;
+    { ForeignRedoPtr(e);
     }
     Undo(m);
-    s = nextHTable(format_predicates, s);
   }
 
+  freeTableEnum(e);
   fail;
 }
 

@@ -8,6 +8,8 @@
 */
 
 #include "pl-incl.h"
+#define LOCK()   PL_LOCK(L_MODULE)
+#define UNLOCK() PL_UNLOCK(L_MODULE)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Definition of modules.  A module consists of a  set  of  predicates.   A
@@ -27,8 +29,11 @@ lookupModule(atom_t name)
 { Symbol s;
   Module m;
 
+  LOCK();
   if ((s = lookupHTable(GD->tables.modules, (void*)name)) != (Symbol) NULL)
+  { UNLOCK();
     return (Module) s->value;
+  }
 
   m = allocHeap(sizeof(struct module));
   m->name = name;
@@ -55,6 +60,7 @@ lookupModule(atom_t name)
 
   addHTable(GD->tables.modules, (void *)name, m);
   GD->statistics.modules++;
+  UNLOCK();
   
   return m;
 }
@@ -160,47 +166,51 @@ pl_default_module(term_t me, term_t old, term_t new)
 
 word
 pl_current_module(term_t module, term_t file, word h)
-{ Symbol symb = firstHTable(GD->tables.modules);
+{ TableEnum e;
+  Symbol symb;
   atom_t name;
 
   if ( ForeignControl(h) == FRG_CUTTED )
+  { e = ForeignContextPtr(h);
+    freeTableEnum(e);
     succeed;
-
+  }
 					/* deterministic cases */
   if ( PL_get_atom(module, &name) )
-  { for(; symb; symb = nextHTable(GD->tables.modules, symb) )
-    { Module m = (Module) symb->value;
+  { Module m;
 
-      if ( name == m->name )
-      { atom_t f = (!m->file ? ATOM_nil : m->file->name);
-	return PL_unify_atom(file, f);
-      }
+    if ( (m=isCurrentModule(name)) )
+    { atom_t f = (!m->file ? ATOM_nil : m->file->name);
+      return PL_unify_atom(file, f);
     }
 
     fail;
   } else if ( PL_get_atom(file, &name) )
-  { for( ; symb; symb = nextHTable(GD->tables.modules, symb) )
-    { Module m = (Module) symb->value;
+  { int rval = FALSE;
+    for_table(GD->tables.modules, s,
+	      { Module m = s->value;
 
-      if ( m->file && m->file->name == name )
-	return PL_unify_atom(module, m->name);
-    }
-
-    fail;
+		if ( m->file && m->file->name == name )
+		{ rval = PL_unify_atom(module, m->name);
+		  break;
+		}
+	      })
+    return rval;
   }
 
-  switch( ForeignControl(h) )
+  switch(ForeignControl(h))
   { case FRG_FIRST_CALL:
+      e = newTableEnum(GD->tables.modules);
       break;
     case FRG_REDO:
-      symb = ForeignContextPtr(h);
+      e = ForeignContextPtr(h);
       break;
     default:
       assert(0);
   }
 
-  for( ; symb; symb = nextHTable(GD->tables.modules, symb) )
-  { Module m = (Module) symb->value;
+  while( (symb = advanceTableEnum(e)) )
+  { Module m = symb->value;
 
     if ( stringAtom(m->name)[0] == '$' &&
 	 !SYSTEM_MODE && PL_is_variable(module) )
@@ -211,16 +221,14 @@ pl_current_module(term_t module, term_t file, word h)
 
       if ( PL_unify_atom(module, m->name) &&
 	   PL_unify_atom(file, f) )
-      { if ( !(symb = nextHTable(GD->tables.modules, symb)) )
-	  succeed;
-
-	ForeignRedoPtr(symb);
+      { ForeignRedoPtr(e);
       }
 
       PL_discard_foreign_frame(cid);
     }
   }
 
+  freeTableEnum(e);
   fail;
 }
 
@@ -245,7 +253,9 @@ pl_module(term_t old, term_t new)
   { atom_t name;
 
     if ( !PL_get_atom(new, &name) )
-      return warning("module/2: argument should be an atom");
+      return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		      PL_new_atom("module"), /* ATOM_module = ":" */
+		      new);
 
     LD->modules.typein = lookupModule(name);
     succeed;
@@ -261,7 +271,9 @@ pl_set_source_module(term_t old, term_t new)
   { atom_t name;
 
     if ( !PL_get_atom(new, &name) )
-      return warning("$source_module/2: argument should be an atom");
+      return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		      PL_new_atom("module"), /* ATOM_module = ":" */
+		      new);
 
     LD->modules.source = lookupModule(name);
     succeed;
@@ -333,9 +345,10 @@ in it are abolished.
 
 int
 declareModule(atom_t name, SourceFile sf)
-{ Module module = lookupModule(name);
-  Symbol s;
+{ Module module;
 
+  module = lookupModule(name);
+  LOCK();
   if ( module->file && module->file != sf)
   { warning("module/2: module %s already loaded from file %s (abandoned)", 
 	    stringAtom(module->name), 
@@ -346,14 +359,15 @@ declareModule(atom_t name, SourceFile sf)
   module->file = sf;
   LD->modules.source = module;
 
-  for_table(s, module->procedures)
-  { Procedure proc = (Procedure) s->value;
-    Definition def = proc->definition;
-    if ( def->module == module &&
-	 !true(def, DYNAMIC|MULTIFILE|FOREIGN) )
-      abolishProcedure(proc, module);
-  }
+  for_table(module->procedures, s,
+	    { Procedure proc = s->value;
+	      Definition def = proc->definition;
+	      if ( def->module == module &&
+		   !true(def, DYNAMIC|MULTIFILE|FOREIGN) )
+		abolishProcedure(proc, module);
+	    })
   clearHTable(module->public);
+  UNLOCK();
   
   succeed;
 }
@@ -380,26 +394,33 @@ word
 pl_export_list(term_t modulename, term_t public)
 { Module module;
   atom_t mname;
-  Symbol s;
 
   if ( !PL_get_atom(modulename, &mname) )
-    return warning("export_list/2: instantiation fault");
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		    PL_new_atom("module"), /* ATOM_module = ":" */
+		    modulename);
   
   if ( !(module = isCurrentModule(mname)) )
     fail;
   
   { term_t head = PL_new_term_ref();
     term_t list = PL_copy_term_ref(public);
+    int rval = TRUE;
 
-    for_table(s, module->public)
-    { if ( !PL_unify_list(list, head, list) ||
-	   !PL_unify_functor(head, (functor_t)s->name) )
-	fail;
-    }
+    LOCK();
+    for_table(module->public, s,
+	      { if ( !PL_unify_list(list, head, list) ||
+		     !PL_unify_functor(head, (functor_t)s->name) )
+		{ rval = FALSE;
+		  break;
+		}
+	      })
+    UNLOCK();
+    if ( rval )
+      return PL_unify_nil(list);
 
-    return PL_unify_nil(list);
+    fail;
   }
-  
 }
 
 
@@ -416,11 +437,14 @@ pl_export(term_t pred)
 
   PL_strip_module(pred, &module, head);
   if ( PL_get_functor(head, &fd) )
-  { Procedure proc = lookupProcedure(fd, module);
+  { Procedure proc;
 
+    LOCK();
+    proc = lookupProcedure(fd, module);
     addHTable(module->public,
 	      (void *)proc->definition->functor->functor,
 	      proc);
+    UNLOCK();
     succeed;
   }
 
@@ -430,19 +454,20 @@ pl_export(term_t pred)
 word
 pl_check_export()
 { Module module = contextModule(environment_frame);
-  Symbol s;
 
-  for_table(s, module->public)
-  { Procedure proc = (Procedure) s->value;
-    Definition def = proc->definition;
+  LOCK();
+  for_table(module->public, s,
+	    { Procedure proc = (Procedure) s->value;
+	      Definition def = proc->definition;
 
-    if ( !isDefinedProcedure(proc) )
-    { warning("Exported procedure %s:%s/%d is not defined", 
-				  stringAtom(module->name), 
-				  stringAtom(def->functor->name), 
-				  def->functor->arity);
-    }
-  }
+	      if ( !isDefinedProcedure(proc) )
+	      { warning("Exported procedure %s:%s/%d is not defined", 
+			stringAtom(module->name), 
+			stringAtom(def->functor->name), 
+			def->functor->arity);
+	      }
+	    })
+  UNLOCK();
 
   succeed;
 }
@@ -516,9 +541,13 @@ pl_import(term_t pred)
     nproc->type = PROCEDURE_TYPE;
     nproc->definition = proc->definition;
   
+    LOCK();
     addHTable(destination->procedures,
 	      (void *)proc->definition->functor->functor, nproc);
+    UNLOCK();
   }
 
   succeed;
 }
+
+

@@ -364,8 +364,27 @@ signal_index(const char *name)
       return sn->sig;
   }
 
-  return 0;
+  return -1;
 }
+
+
+int
+_PL_get_signum(term_t sig, int *n)
+{ char *s;
+  int i = -1;
+
+  if ( !PL_get_integer(sig, &i) )
+  { if ( PL_get_atom_chars(sig, &s) )
+      i = signal_index(s);
+  }
+  if ( i > 0 && i < 32 )		/* where to get these? */
+  { *n = i;
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -640,7 +659,7 @@ pl_on_signal(term_t sig, term_t name, term_t old, term_t new)
 
   if ( PL_get_integer(sig, &sign) && sign >= 1 && sign <= MAXSIGNAL )
   { TRY(PL_unify_atom_chars(name, signal_name(sign)));
-  } else if ( PL_get_atom_chars(name, &sn) && (sign = signal_index(sn)) )
+  } else if ( PL_get_atom_chars(name, &sn) && (sign = signal_index(sn)) != -1 )
   { TRY(PL_unify_integer(sig, sign));
   } else
     return PL_error("signal", 4, NULL, ERR_TYPE, ATOM_signal, sig);

@@ -9,6 +9,9 @@
 
 #include "pl-incl.h"
 
+#define LOCK()   PL_LOCK(L_PREDICATE)
+#define UNLOCK() PL_UNLOCK(L_PREDICATE)
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Clause indexing.  Clauses store an  `index  structure',  which  provides
 summary information on the unification behaviour of the clause (e.i. its
@@ -349,7 +352,7 @@ part of the stacks (e.g. backtrailing is not needed).
 bool
 reindexClause(Clause clause)
 { Procedure proc = clause->procedure;
-  unsigned long pattern = proc->definition->indexPattern;
+  unsigned long pattern = proc->definition->indexPattern & ~NEED_REINDEX;
 
   if ( pattern == 0x0 )
     succeed;
@@ -610,10 +613,12 @@ hashDefinition(Definition def, int buckets)
   if ( def->indexPattern != 0x1 )
     fail;
 
+  LOCK();
   def->hash_info = newClauseIndexTable(buckets);
 
   for(cref = def->definition.clauses; cref; cref = cref->next)
     addClauseToIndex(def, cref->clause, CL_END);
+  UNLOCK();
 
   succeed;
 

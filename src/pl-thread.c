@@ -59,6 +59,22 @@ STEPS
 static PL_thread_info_t *alloc_thread(void);
 
 pthread_key_t PL_ldata;			/* key for thread PL_local_data */
+pthread_mutex_t _PL_mutexes[] =
+{ PTHREAD_MUTEX_INITIALIZER,		/* L_MISC */
+  PTHREAD_MUTEX_INITIALIZER,		/* L_ALLOC */
+  PTHREAD_MUTEX_INITIALIZER,		/* L_ATOM */
+  PTHREAD_MUTEX_INITIALIZER,		/* L_FLAG */
+  PTHREAD_MUTEX_INITIALIZER,		/* L_FUNCTOR */
+  PTHREAD_MUTEX_INITIALIZER,		/* L_RECORD */
+  PTHREAD_MUTEX_INITIALIZER,		/* L_THREAD */
+  PTHREAD_MUTEX_INITIALIZER,		/* L_PREDICATE */
+  PTHREAD_MUTEX_INITIALIZER,		/* L_MODULE */
+  PTHREAD_MUTEX_INITIALIZER,		/* L_TABLE */
+  PTHREAD_MUTEX_INITIALIZER		/* L_BREAK */
+};
+
+#define LOCK()   PL_LOCK(L_THREAD)
+#define UNLOCK() PL_UNLOCK(L_THREAD)
 
 PL_local_data_t *
 allocPrologLocalData()
@@ -72,14 +88,16 @@ allocPrologLocalData()
 
 int
 PL_initialise_thread(PL_thread_info_t *info)
-{ if ( !info->thread_data )
+{ if ( !info )
+    info = alloc_thread();
+
+  if ( !info->thread_data )
   { info->thread_data = allocHeap(sizeof(PL_local_data_t));
     memset(info->thread_data, 0, sizeof(PL_local_data_t));
     info->thread_data->thread.info = info;
   }
 
   pthread_setspecific(PL_ldata, info->thread_data);
-  info->status = PL_THREAD_RUNNING;
 
   if ( !info->local_size    ) info->local_size    = GD->options.localSize;
   if ( !info->global_size   ) info->global_size   = GD->options.globalSize;
@@ -123,7 +141,6 @@ initPrologThreads()
   info = alloc_thread();
   info->tid = pthread_self();
   pthread_setspecific(PL_ldata, info->thread_data);
-  info->status = PL_THREAD_RUNNING;
 }
 
 
@@ -137,6 +154,7 @@ static PL_thread_info_t *
 alloc_thread()
 { int i;
 
+  LOCK();
   for(i=1; i<MAX_THREADS; i++)
   { if ( threads[i].tid == 0 )
     { PL_local_data_t *ld = allocHeap(sizeof(PL_local_data_t));
@@ -145,12 +163,15 @@ alloc_thread()
       memset(&threads[i], 0, sizeof(PL_thread_info_t));
       threads[i].pl_tid = i;
       threads[i].thread_data = ld;
+      threads[i].status = PL_THREAD_RUNNING;
       ld->thread.info = &threads[i];
       ld->thread.magic = PL_THREAD_MAGIC;
 
+      UNLOCK();
       return &threads[i];
     }
   }
+  UNLOCK();
 
   return NULL;				/* out of threads */
 }
@@ -329,6 +350,27 @@ pl_thread_exit(term_t retcode)
   pthread_exit(NULL);
   fail;					/* should not happen */
 }
+
+
+word
+pl_thread_kill(term_t t, term_t sig)
+{ PL_thread_info_t *info;
+  int s;
+
+  if ( !get_thread(t, &info) )
+    fail;
+  if ( !_PL_get_signum(sig, &s) )
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_signal, sig);
+
+  if ( pthread_kill(info->tid, s) )
+  { assert(errno == ESRCH);
+
+    return PL_error("thread_kill", 2, NULL, ERR_EXISTENCE, ATOM_thread, t);
+  }
+
+  succeed;
+}
+
 
 
 word

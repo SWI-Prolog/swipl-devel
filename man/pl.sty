@@ -36,14 +36,15 @@
 
 \newcommand{\tm}{$^{tm}$}
 
+\newcommand{\reffont}{\tt}
 \newcommand{\predref}[2]{%		% functor/arity
-	\mbox{\tt #1/#2}}
+	\mbox{\reffont #1/#2}}
 \newcommand{\functor}[2]{%		% functor/arity (no predicate)
-	\mbox{\tt #1/#2}}
+	\mbox{\reffont #1/#2}}
 \newcommand{\manref}[2]{%		% page(n)
-	\mbox{{\tt #1(}{\rm #2}{\tt )}}}
+	\mbox{{\reffont #1(}{\rm #2}{\tt )}}}
 \newcommand{\funcref}[2]{%		% function(Args...)
-	\mbox{{\tt #1(}{\it #2}{\tt )}}}
+	\mbox{{\reffont #1(}{\it #2}{\tt )}}}
 
 %	Descriptions (definitions) of various things
 
@@ -59,6 +60,14 @@
 \def\@gluedcmdoptitem#1#2{\definition{#1\var{#2}}}
 \def\@cmdoptitem#1#2{\definition{#1 \var{#2}}}
 \makeatother
+\newcommand{\longoptionitem}[2]{%
+	\ifthenelse{\equal{}{#2}}{%
+	    \definition{-{}-#1}}{%
+	    \definition{-{}-#1={\it #2}}}\ignorespaces}
+\newcommand{\longoption}[2]{%
+	\ifthenelse{\equal{}{#2}}{%
+	    \mbox{\reffont -{}-#1}}{%
+	    \mbox{\reffont -{}-#1={\it #2}}}}
 
 \newcommand{\traceoption}[3]{%
 	\definition{{\tt #1} (#2)}#3%
@@ -95,9 +104,10 @@
 	    \definition{#1({\it #2})}}\ignorespaces}
 \def\term{}
 \renewcommand{\term}[2]{%
-	\ifthenelse{\equal{}{#2}}{%
-	    #1}{%
-	    #1({\it #1})}}
+	\ifthenelse{\equal{}{\protect #2}}{%
+	    {\reffont #1}}{%
+	    {\reffont #1}({\it #2})}}
+\newcommand{\infixterm}[3]{{\it #2} #1 {\it #2}}
 \newcommand{\errorterm}[2]{\mbox{\tt%
 	\ifthenelse{\equal{}{#2}}{%
 	    #1}{%
@@ -123,22 +133,21 @@
 \newcommand{\pllib}[1]{library({\tt #1})\index{#1 \string\idxtype{library}}}
 \newcommand{\clib}[1]{{\tt #1}\index{#1 \string\idxtype{library}}}
 \newcommand{\tool}[1]{{\em #1}\index{#1 \string\idxtype{tool}}}
-\newcommand{\constf}[1]{{\tt #1}}
+\newcommand{\constf}[1]{{\reffont #1}}
 \newcommand{\const}[1]{{\tt #1}}
-\newcommand{\type}[1]{{\tt #1}}
+\newcommand{\type}[1]{{\reffont #1}}
 \newcommand{\idx}[1]{#1\index{#1}}
 \newcommand{\foreseen}[1]{\footnote{#1}}
-\newcommand{\email}[1]{\mbox{\tt #1}}
-%\newcommand{\url}[1]{\mbox{\tt #1}}
+\newcommand{\metafile}[1]{\mbox{\tt #1}}
+\newcommand\file{\begingroup \urlstyle{tt}\Url}
+\newcommand\email{\begingroup \urlstyle{tt}\Url}
 \newcommand{\env}[1]{\mbox{\tt #1}}
 \newcommand{\exam}[1]{\mbox{\tt #1}}
-\newcommand{\file}[1]{\mbox{\tt #1}}
-\newcommand{\module}[1]{\mbox{\tt #1}}
+\newcommand{\module}[1]{\mbox{\reffont #1}}
 \newcommand{\fileext}[1]{\mbox{\tt .#1}}
 \newcommand{\option}[1]{\mbox{\tt #1}}
 \newcommand{\cmdlineoption}[1]{\mbox{\tt #1}}
 \newcommand{\argoption}[2]{\mbox{\tt #1 \em #2}}
-\newcommand{\longoption}[2]{\mbox{{\bf --#1=}\em #2}}
 \newcommand{\ctype}[1]{{\tt #1}}
 \newcommand{\op}[1]{{\tt #1}}
 \newcommand{\program}[1]{{\tt #1}}
@@ -153,7 +162,6 @@
 
 \newcommand\satom{\begingroup \urlstyle{tt}\Url}
 \newcommand\fmtseq{\begingroup \urlstyle{tt}\Url}
-%\newcommand\file{\begingroup \urlstyle{tt}\Url}
 
 \urldef{\Sexe}\satom{#!}		% #!
 \urldef{\Scut}\satom{!}			% !
@@ -234,6 +242,15 @@
 %			CODE environment			%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+\newlength{\codeindent}
+\setlength{\codeindent}{\leftmargin}
+\newenvironment{codequote}%
+	{\begin{list}{}{\setlength{\leftmargin}{0pt}%
+			\setlength{\rightmargin}{0pt}}%
+			\item[]\small\ignorespaces}%
+  	{\end{list}}
+
+
 %	just like verbatim, but indents like quote.
 %	allows also the use of leading tabs
 
@@ -247,14 +264,16 @@
 |gdef|@xcode#1\end{code}[#1|end[code]]
 |endgroup
 
-\def\@code{\trivlist \item[]\if@minipage\else\vskip\parskip\fi
+\def\@code{\trivlist\setlength{\leftmargin}{\codeindent}%
+		    \setlength{\rightmargin}{\codeindent}%
+		    \item[]\if@minipage\else\vskip\parskip\fi
 \leftskip\@totalleftmargin\rightskip\z@
 \parindent\z@\parfillskip\@flushglue\parskip\z@
 \@tempswafalse \def\par{\if@tempswa\hbox{}\fi\@tempswatrue\@@par}
 \obeylines \catcode`\^^I=\active \tt \let\do\@makeother \dospecials}
 
-\def\code{\quote \@code \frenchspacing\@vobeyspaces \@xcode}
-\def\@endcode{\endtrivlist\mbox{}\endquote}
+\def\code{\@code \frenchspacing\@vobeyspaces \@xcode}
+\def\@endcode{\endtrivlist}
 \let\endcode=\@endcode
 
 
@@ -264,18 +283,29 @@
 \def\postscriptfig{\@ifnextchar[{\@scaledpostscriptfig}{\@postscriptfig}}
 \def\@scaledpostscriptfig[#1]#2#3{%
 	\begin{figure}%
-	    \centerline{\psfig{figure=figs/#2.ps,#1}}
+	    \centerline{\psfig{figure=figs/#2.eps,#1}}
 	    \caption{#3}
 	    \label{fig:#2}
 	\end{figure}}
 \def\@postscriptfig#1#2{%
 	\begin{figure}%
-	    \centerline{\psfig{figure=figs/#1.ps}}
+	    \centerline{\psfig{figure=figs/#1.eps}}
 	    \caption{#2}
 	    \label{fig:#1}
 	\end{figure}}
 \makeatletter
 
+%	\begin{tabularlp}{longest-text}
+
+\newlength{\tabDright}
+\newlength{\tabDleft}
+\newcommand{\PreserveBackslash}[1]{\let\temp=\\#1\let\\=\temp}
+\newcommand{\raggedrightcolumn}{\PreserveBackslash\raggedright\hspace{0pt}}
+\newenvironment{tabularlp}[1]%
+	{\settowidth{\tabDleft}{#1}%
+	 \setlength{\tabDright}{\linewidth-\columnsep*3-\tabDleft}%
+	 \begin{tabular}{|p{\tabDleft}|>{\raggedrightcolumn}p{\tabDright}|}}%
+	{\end{tabular}}
 
 %	PAGESTYLE
 %
@@ -288,8 +318,10 @@
 
 \def\arabicday{\number\year-\number\month-\number\day}
 
-\providecommand{\runningtitle}{SWI-Prolog \versionshort}
+\providecommand{\runningtitle}{none}
 
+\ifthenelse{\equal{\runningtitle}{none}}{%
+	\relax}{%
 \pagestyle{fancyplain}
 \headheight 14pt
 \def\chaptermark{\mbox{}}
@@ -301,4 +333,4 @@
 \footrulewidth 0.2pt
 \lfoot[\tiny \runningtitle]{}
 \rfoot[]{\tiny \runningtitle}
-\cfoot{}
+\cfoot{}}

@@ -16,14 +16,8 @@ Functor (name/arity) handling.  A functor is a unique object (like atoms).
 See pl-atom.c for many useful comments on the representation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if O_PLMT
-static pthread_mutex_t functor_mutex = PTHREAD_MUTEX_INITIALIZER;
-#define LOCK()   pthread_mutex_lock(&functor_mutex)
-#define UNLOCK() pthread_mutex_unlock(&functor_mutex)
-#else
-#define LOCK()
-#define UNLOCK()
-#endif
+#define LOCK()   PL_LOCK(L_FUNCTOR)
+#define UNLOCK() PL_UNLOCK(L_FUNCTOR)
 
 #define functor_buckets (GD->functors.buckets)
 #define functorDefTable (GD->functors.table)

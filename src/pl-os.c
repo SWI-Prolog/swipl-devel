@@ -2645,7 +2645,23 @@ Which(const char *program, char *fullname)
     point,  expressing  the  time  to sleep in seconds.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if defined(HAVE_SELECT) && !defined(WIN32)
+#ifdef WIN32
+#define PAUSE_DONE 1			/* see pl-nt.c */
+#endif
+
+#if !defined(PAUSE_DONE) && defined(HAVE_USLEEP)
+#define PAUSE_DONE 1
+
+void
+Pause(real t)
+{ usleep((unsigned long)(t * 1000000.0));
+}
+
+#endif /*HAVE_USLEEP*/
+
+
+#if !defined(PAUSE_DONE) && defined(HAVE_SELECT)
+#define PAUSE_DONE 1
 
 void
 Pause(real time)
@@ -2662,8 +2678,10 @@ Pause(real time)
     sleep( (int)(time+0.5) );
 }
 
-#else /*!HAVE_SELECT*/
-#ifdef HAVE_DOSSLEEP
+#endif /*HAVE_SELECT*/
+
+#if !defined(PAUSE_DONE) && defined(HAVE_DOSSLEEP)
+#define PAUSE_DONE 1
 
 void                            /* a millisecond granualrity. */
 Pause(time)                     /* the EMX function sleep uses a seconds */
@@ -2675,8 +2693,10 @@ real time;                      /* granularity only. */
   DosSleep((ULONG)(time * 1000));
 }
 
-#else /*HAVE_DOSSLEEP*/
-#ifdef HAVE_SLEEP
+#endif /*HAVE_DOSSLEEP*/
+
+#if !defined(PAUSE_DONE) && defined(HAVE_SLEEP)
+#define PAUSE_DONE 1
 
 void
 Pause(real t)
@@ -2685,8 +2705,11 @@ Pause(real t)
 
   sleep((int)(t + 0.5));
 }
-#else /*HAVE_SLEEP*/
-#ifdef HAVE_DELAY
+
+#endif /*HAVE_SLEEP*/
+
+#if !defined(PAUSE_DONE) && defined(HAVE_DELAY)
+#define PAUSE_DONE 1
 
 void
 Pause(real t)
@@ -2694,11 +2717,10 @@ Pause(real t)
 }
 
 #endif /*HAVE_DELAY*/
-#endif /*HAVE_SLEEP*/
-#endif /*HAVE_DOSSLEEP*/
-#endif /*HAVE_SELECT*/
 
-#if tos
+#if !defined(PAUSE_DONE) && defined(tos)
+#define PAUSE_DONE 1
+
 void
 Pause(t)
 real t;
@@ -2715,5 +2737,13 @@ real t;
   }
 
   wait_ticks += end_tick - start_tick;
+}
+
+#endif /*tos*/
+
+#ifndef PAUSE_DONE
+void
+Pause(real t)
+{ Sdprintf("Pause(): not implemented\n");
 }
 #endif

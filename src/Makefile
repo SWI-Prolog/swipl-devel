@@ -32,7 +32,7 @@
 PLVERSION=3.2.8
 
 PL=pl
-prefix=/usr/local
+prefix=/staff/jan
 exec_prefix=${prefix}
 srcdir=.
 vpath %.c .
@@ -58,7 +58,7 @@ INSTALL_PROGRAM=${INSTALL}
 INSTALL_DATA=${INSTALL} -m 644
 MKDIR=mkdir -p
 
-COFLAGS=-O2
+COFLAGS=-O2 -g
 CWFLAGS=-Wall
 CIFLAGS=
 CMFLAGS=

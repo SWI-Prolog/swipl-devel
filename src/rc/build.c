@@ -157,7 +157,7 @@ rc_save_member(RcMember m, FILE *fd)
 { fprintf(fd, "\n<FILE NAME=\"%s\" CLASS=\"%s\" ENCODING=\"%s\" SIZE=%ld",
 	  m->name, m->rc_class, m->encoding, m->size);
   if ( m->modified )
-    fprintf(fd, " MODIFIED=%ld", m->modified);
+    fprintf(fd, " MODIFIED=%ld", (long)m->modified);
   fprintf(fd, ">\n");
 
   if ( !rc_save_data(m, fd) )

@@ -15,10 +15,12 @@ sub printTeX
   s/==>/\$\\longrightarrow\$/g;
   s/(PL_\w+)\(([^)]*)\)/\\funcref{\1}{\2}/g;
   s/^((\\index{[^}]+})+) *$/\1%/;
-  s/(\\file{[^}]*)~([^}]*})/\1\\Stilde\2/g;
-  s/(\\file{[^}]*)\$([^}]*})/\1\\Sdollar\2/g;
 
 # Prolog special arguments ...
+
+  s/\\file{([^}]*\\bnfmeta[^}]*)}/\\metafile{\1}/g;
+  s/\\file{([^}]*\\arg[^}]*)}/\\metafile{\1}/g;
+  s/\\file{([^}]+)}/\\file@\1@/g;
 
   s/{#!}/{\\Sexe}/g;
   s/{!}/{\\Scut}/g;
@@ -66,6 +68,8 @@ sub printTeX
   s/{-->}/{\\Sdcg}/g;
   s/{~}/{\\Stilde}/g;
   s/{%}/{\\Spercent}/g;
+
+  s/\\file@([^@]+)@/\\file{\1}/g;
 
   print;
 }

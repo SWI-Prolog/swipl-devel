@@ -75,6 +75,8 @@ man:		doc.tex $(TEXFILES) doc.bbl doc.ind
 
 tex:		$(TEXFILES)
 
+$(TEXFILES):	doc2tex
+
 .doc.tex:	
 		./doc2tex $*.doc > $*.tex
 

@@ -549,6 +549,12 @@ parseOptions(int argc, char **argv)
     } else if ( streq(opt, "-g") )		/* -g */
     { appendArgList(&coptions, OPT_DEBUG);
       appendArgList(&cppoptions, OPT_DEBUG);
+#ifdef WIN32					/* MSVC DEBUG OPTIONS */
+      appendArgList(&coptions, "/ZI");
+      appendArgList(&coptions, "/Od");
+      appendArgList(&cppoptions, "/ZI");
+      appendArgList(&cppoptions, "/Od");
+#endif
       appendArgList(&ldoptions, OPT_DEBUG);
 #ifdef WIN32
 	  pllib = LIB_PL_DEBUG;

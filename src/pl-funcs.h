@@ -617,7 +617,7 @@ word		pl_trim_stacks(void);
 word		pl_limit_stack(term_t s, term_t l);
 word		pl_stack_parameter(term_t s, term_t k, term_t o, term_t n);
 void		ensureRoomStack(Stack s, int n);
-
+int		_PL_get_signum(term_t sig, int *n);
 
 /* pl-sys.c */
 word		pl_shell(term_t command, term_t status);
@@ -634,15 +634,16 @@ word		pl_get_time(term_t t);
 word		pl_sleep(term_t time);
 
 /* pl-table.c */
+void		initTables();
 Table		newHTable(int size);
 void		destroyHTable(Table ht);
-Symbol		lookupHTable(Table ht, Void name);
-bool		addHTable(Table ht, Void name, Void value);
+Symbol		lookupHTable(Table ht, void *name);
+bool		addHTable(Table ht, void *name, void *value);
 void		deleteSymbolHTable(Table ht, Symbol s);
-Symbol		nextHTable(Table ht, Symbol s);
-Symbol		firstHTable(Table ht);
 void		clearHTable(Table ht);
-void		initTables();
+TableEnum	newTableEnum(Table ht);
+void		freeTableEnum(TableEnum e);
+Symbol		advanceTableEnum(TableEnum e);
 
 /* pl-trace.c */
 int		tracePort(LocalFrame frame, LocalFrame bfr, int port, Code PC);

@@ -515,8 +515,8 @@ module(Module) :-
 	current_module(Module), !,
 	$module(_, Module).
 module(Module) :-
-	$break($warning('~w is not a current module', [Module])),
-	$module(_, Module).
+	$module(_, Module),
+	$break($warning('~w is not a current module', [Module])).
 
 		/********************************
 		*          STATISTICS           *

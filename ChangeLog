@@ -1,6 +1,20 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Documentation of mod/2 and rem/2 (arithmetic).  Spotted by
+    Koos Dering.
+
+  * FIXED: plld -g to add /ZI /Od to the compiler options.  Thanks to
+    Lutz Wohlrab.  He also mentiones that a MSVC can't debug the joined
+    emulator+state: use plld -nostate, make the state separately and
+    use -x state to PL_initialise() in the emulator to associate the
+    state.  All this only if you want to debug the C-code.
+
+  * IMPLEMENTATION: Base sleep/1 on usleep() if present.
+
+  * PORTABILITY: Fixed various compiler warnings on Alpha under Digital
+    Unix 4.0D, using egcs-1.1b.
+
   * PORTABILITY: Added patches required for MSVC 6.0 (Windows), contributed
     by Lutz Wohlrab.
 

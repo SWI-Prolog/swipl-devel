@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <sys/types.h>
+#include <stdlib.h>
 #include <malloc.h>
 #include <errno.h>
 #define RC_KERNEL 1

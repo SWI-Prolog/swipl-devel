@@ -3177,17 +3177,22 @@ setBreak(Clause clause, int offset)
 
 static int
 clearBreak(Clause clause, int offset)
-{ Code PC = clause->codes + offset;
+{ Code PC;
   BreakPoint bp;
   Symbol s;
 
+  PL_LOCK(L_BREAK);
+  PC = clause->codes + offset;
   if ( !breakTable || !(s=lookupHTable(breakTable, PC)) )
+  { PL_UNLOCK(L_BREAK);
     fail;
+  }
 
   bp = (BreakPoint)s->value;
   *PC = bp->saved_instruction;
   freeHeap(bp, sizeof(*bp));
   deleteSymbolHTable(breakTable, s);
+  PL_UNLOCK(L_BREAK);
 
   callEventHook(PLEV_NOBREAK, clause, offset);
   succeed;
@@ -3197,16 +3202,12 @@ clearBreak(Clause clause, int offset)
 void
 clearBreakPointsClause(Clause clause)
 { if ( breakTable )
-  { Symbol s, n;
+  { for_table(breakTable, s,
+	      { BreakPoint bp = (BreakPoint)s->value;
 
-    for( s = firstHTable(breakTable); s; s = n )
-    { BreakPoint bp = (BreakPoint)s->value;
-
-      n = nextHTable(breakTable, s);
-
-      if ( bp->clause == clause )
-	clearBreak(bp->clause, bp->offset);
-    }    
+		if ( bp->clause == clause )
+		  clearBreak(bp->clause, bp->offset);
+	      });
   }
 
   clear(clause, HAS_BREAKPOINTS);
@@ -3248,40 +3249,41 @@ pl_break_at(term_t ref, term_t pc, term_t set)
 
 word
 pl_current_break(term_t ref, term_t pc, control_t h)
-{ Symbol symb;
+{ TableEnum e;
+  Symbol symb;
   
   if ( !breakTable )
     fail;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
-      symb = firstHTable(breakTable);
+      e = newTableEnum(breakTable);
       break;
     case FRG_REDO:
-      symb = ForeignContextPtr(h);
+      e = ForeignContextPtr(h);
       break;
     case FRG_CUTTED:
+      e = ForeignContextPtr(h);
+      freeTableEnum(e);
     default:
-      succeed;
+      assert(0);
   }
 
-  for( ; symb; symb = nextHTable(breakTable, symb) )
+  while( (symb = advanceTableEnum(e)) )
   { BreakPoint bp = (BreakPoint) symb->value;
 
     { fid_t cid = PL_open_foreign_frame();
 
       if ( PL_unify_pointer(ref, bp->clause) &&
 	   PL_unify_integer(pc,  bp->offset) )
-      { if ( !(symb = nextHTable(breakTable, symb)) )
-	  succeed;
-
-	ForeignRedoPtr(symb);
+      { ForeignRedoPtr(e);
       }
 
       PL_discard_foreign_frame(cid);
     }
   }
 
+  freeTableEnum(e);
   fail;
 }
 

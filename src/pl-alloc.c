@@ -31,14 +31,8 @@ corresponding  unalloc()  call if memory need to be freed.  This saves a
 word to store the size of the memory segment.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if O_PLMT
-static pthread_mutex_t alloc_mutex = PTHREAD_MUTEX_INITIALIZER;
-#define LOCK()   pthread_mutex_lock(&alloc_mutex)
-#define UNLOCK() pthread_mutex_unlock(&alloc_mutex)
-#else
-#define LOCK()
-#define UNLOCK()
-#endif
+#define LOCK()   PL_LOCK(L_ALLOC)
+#define UNLOCK() PL_UNLOCK(L_ALLOC)
 
 typedef struct chunk *	Chunk;
 #ifndef ALIGN_SIZE
@@ -657,19 +651,5 @@ xrealloc(void *mem, size_t size)
   return NULL;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#undef LOCK()
+#undef UNLOCK()

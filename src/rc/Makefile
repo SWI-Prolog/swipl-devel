@@ -14,7 +14,7 @@
 # Copyright (c) 1996, SWI, University of Amsterdam, all rights reserved
 ################################################################
 
-prefix=/usr/local
+prefix=/staff/jan
 exec_prefix=${prefix}
 srcdir=.
 vpath %.c .

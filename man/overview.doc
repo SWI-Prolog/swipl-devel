@@ -26,10 +26,10 @@ below shows the default value for this search-path.
 		& \bf Unix 	& \bf Windows \\
 \hline
 \bf local	& \file{.} 	& \file{.} \\
-\bf home	& \file{~} 	& \file{\%HOME\%} or
-                        	  \file{\%HOMEDRIVE\%/\%HOMEPATH\%} \\
+\bf home	& \file{~} 	& \file{%HOME%} or
+                        	  \file{%HOMEDRIVE%\%HOMEPATH%} \\
 global		& 		& SWI-Home directory or
-				  \file{\%WINDIR\%} or \file{\%SYSTEMROOT\%} \\
+				  \file{%WINDIR%} or \file{%SYSTEMROOT%} \\
 \hline
 \end{tabular}
 \end{center}
@@ -882,7 +882,7 @@ If {\tt true}, print error messages, otherwise suppress them.  May be
 changed.  See also the {\tt debug_on_error} feature.  Default is {\tt
 true}, except for the runtime version.  
     \featureoption{file_name_variables}{bool}
-If \const{true} (default \const{false}), expand \file{$\arg{varname}}
+If \const{true} (default \const{false}), expand \file{\$\arg{varname}}
 and \file{~} in arguments of builtin-predicates that accept a file name
 (open/3, exists_file/1, access_file/2, etc.).   The predicate
 expand_file_name/2 should be used to expand environment variables

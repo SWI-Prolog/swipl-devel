@@ -182,9 +182,13 @@ pl_dwim_predicate(term_t pred, term_t dwim, word h)
   Procedure proc;
   Symbol symb;
   term_t head = PL_new_term_ref();
+  TableEnum e;
 
   if ( ForeignControl(h) == FRG_CUTTED )
+  { e = ForeignContextPtr(h);
+    freeTableEnum(e);
     succeed;
+  }
 
   if ( !PL_strip_module(pred, &module, head) )
     fail;
@@ -192,15 +196,15 @@ pl_dwim_predicate(term_t pred, term_t dwim, word h)
     return warning("dwim_predicate/2: instantiation fault");
   	
   if ( ForeignControl(h) == FRG_FIRST_CALL )
-    symb = firstHTable(module->procedures);
+    e = newTableEnum(module->procedures);
   else
-    symb = ForeignContextPtr(h);
+    e = ForeignContextPtr(h);
 
-  for(; symb; symb = nextHTable(module->procedures, symb))
+  while( (symb = advanceTableEnum(e)) )
   { Definition def;
     char *name;
 
-    proc = (Procedure) symb->value;
+    proc = symb->value;
     def  = proc->definition;
     name = stringAtom(def->functor->name);
 
@@ -209,12 +213,11 @@ pl_dwim_predicate(term_t pred, term_t dwim, word h)
          (name[0] != '$' || SYSTEM_MODE) )
     { if ( !PL_unify_functor(dwim, def->functor->functor) )
 	continue;
-      if ( (symb = nextHTable(module->procedures, symb)) )
-	ForeignRedoPtr(symb);
 
-      succeed;
+      ForeignRedoPtr(e);
     }
   }
 
+  freeTableEnum(e);
   fail;
 }

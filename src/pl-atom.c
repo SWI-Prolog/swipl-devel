@@ -100,14 +100,8 @@ static void	rehashAtoms();
 #define	cmps	GD->atoms.cmps
 #endif
 
-#if O_PLMT
-static pthread_mutex_t atom_mutex = PTHREAD_MUTEX_INITIALIZER;
-#define LOCK()   pthread_mutex_lock(&atom_mutex)
-#define UNLOCK() pthread_mutex_unlock(&atom_mutex)
-#else
-#define LOCK()
-#define UNLOCK()
-#endif
+#define LOCK()   PL_LOCK(L_ATOM)
+#define UNLOCK() PL_UNLOCK(L_ATOM)
 
 		 /*******************************
 		 *      BUILT-IN ATOM TABLE	*

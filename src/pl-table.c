@@ -9,15 +9,26 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#define LOCK()   PL_LOCK(L_TABLE)
+#define UNLOCK() PL_UNLOCK(L_TABLE)
+
+static inline Symbol rawAdvanceTableEnum(TableEnum e);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Anonymous hash-tables.  This  is  rather  straightforward.   A  peculiar
-thing  on these and a number of dedicated hashtables build in the system
-is that the last symbol of  a  specific  hash  value  is  not  the  NULL
-pointer,  but  a reference pointer to the next entry.  This allows us to
-enumerate  all  entries  of  the  table  with  only  one   word   status
-information.   This  is  more  efficient  and  simple to handle with the
-interface for non-deterministic C functions (current_predicate/2, ...).
+This file provides generic hash-tables. Most   of  the implementation is
+rather  straightforward.  Special  are  the  *TableEnum()  functions  to
+create, advance over and destroy enumerator   objects. These objects are
+used to enumerate the symbols of these   tables,  used primarily for the
+pl_current_* predicates.
+
+The  enumerators  cause  two  things:  (1)    as  long  enumerators  are
+associated, the table will not  be  rehashed   and  (2)  if  symbols are
+deleted  that  are  referenced  by  an  enumerator,  the  enumerator  is
+automatically advanced to the next free symbol.  This, in general, makes
+the enumeration of hash-tables safe.
+
+TODO: abort should delete  any  pending   enumerators.  This  should  be
+thread-local, as thread_exit/1 should do the same.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -27,9 +38,8 @@ allocHTableEntries(Table ht)
 
   ht->entries = allocHeap(ht->buckets * sizeof(Symbol));
 
-  for(n=0, p = &ht->entries[0]; n < ht->buckets-1; n++, p++)
-    *p = makeTableRef(p+1);
-  *p = (Symbol) NULL;
+  for(n=0, p = &ht->entries[0]; n < ht->buckets; n++, p++)
+    *p = NULL;
 }
 
 
@@ -37,10 +47,10 @@ Table
 newHTable(int buckets)
 { Table ht;
 
-  ht = (Table) allocHeap(sizeof(struct table));
-  ht->buckets = buckets;
-  ht->size    = 0;
-  ht->locked  = 0;
+  ht		  = allocHeap(sizeof(struct table));
+  ht->buckets	  = buckets;
+  ht->size	  = 0;
+  ht->enumerators = NULL;
 
   allocHTableEntries(ht);
   return ht;
@@ -77,80 +87,75 @@ initTables()
 
 
 Symbol
-lookupHTable(Table ht, Void name)
+lookupHTable(Table ht, void *name)
 { Symbol s = ht->entries[pointerHashValue(name, ht->buckets)];
 
   HASHSTAT(lookups++);
-  for(;s && !isTableRef(s); s = s->next)
+  for( ; s; s = s->next)
   { HASHSTAT(cmps++);
-    if (s->name == (word)name)
-    { DEBUG(9, Sdprintf("lookupHTable(0x%x, 0x%x --> 0x%x\n",
-			ht, name, s->value));
+    if ( s->name == name )
       return s;
-    }
   }
 
-  DEBUG(9, Sdprintf("lookupHTable(0x%x, 0x%x --> FAIL\n", ht, name));
-  return (Symbol) NULL;
+  return NULL;
 }
 
+/* MT: Locked by calling addHTable()
+*/
 
 static void
 rehashHTable(Table ht)
-{ Symbol *oldtab  = ht->entries;
-  int    oldbucks = ht->buckets;
-  Symbol s, n;
-  int done = 0;
-  int i = 0;
+{ Symbol *oldtab;
+  int    oldbucks;
+  int    i;
 
-  startCritical;
+  oldtab   = ht->entries;
+  oldbucks = ht->buckets;
   ht->buckets *= 2;
   allocHTableEntries(ht);
 
-  DEBUG(1, Sdprintf("Rehashing table 0x%x to %d entries\n",
-		    ht, ht->buckets));
+  DEBUG(1, Sdprintf("Rehashing table %p to %d entries\n", ht, ht->buckets));
 
-  for(s = oldtab[0]; s; s = n)
-  { int v;
+  for(i=0; i<oldbucks; i++)
+  { Symbol s, n;
 
-    while( isTableRef(s) )
-    { s = unTableRef(Symbol, s);
-      assert(s == oldtab[++i]);
-      if ( !s )
-	goto out;
+    for(s=oldtab[i]; s; s = n)
+    { int v = pointerHashValue(s->name, ht->buckets);
+
+      n = s->next;
+      s->next = ht->entries[v];
+      s->next = ht->entries[v];
+      ht->entries[v] = s;
     }
-    done++;
-    n = s->next;
-    v = pointerHashValue(s->name, ht->buckets);
-    s->next = ht->entries[v];
-    ht->entries[v] = s;
   }
 
-out:
-  assert(done == ht->size);
   freeHeap(oldtab, oldbucks * sizeof(Symbol));
-  endCritical;
 }
 
 
 bool
-addHTable(Table ht, Void name, Void value)
+addHTable(Table ht, void *name, void *value)
 { Symbol s;
-  int v = pointerHashValue(name, ht->buckets);
+  int v;
 
+  LOCK();
+  v = pointerHashValue(name, ht->buckets);
   if ( lookupHTable(ht, name) )
+  { UNLOCK();
     fail;
-  s = (Symbol) allocHeap(sizeof(struct symbol));
-  s->name = (word)name;
-  s->value = (word)value;
-  s->next = ht->entries[v];
+  }
+  s = allocHeap(sizeof(struct symbol));
+  s->name  = name;
+  s->value = value;
+  s->next  = ht->entries[v];
   ht->entries[v] = s;
   ht->size++;
   DEBUG(9, Sdprintf("addHTable(0x%x, 0x%x, 0x%x) --> size = %d\n",
 		    ht, name, value, ht->size));
 
-  if ( ht->buckets * 2 < ht->size && !ht->locked )
+  if ( ht->buckets * 2 < ht->size && !ht->enumerators )
     rehashHTable(ht);
+  UNLOCK();
 
   succeed;
 }  
@@ -162,56 +167,138 @@ Note: s must be in the table!
 
 void
 deleteSymbolHTable(Table ht, Symbol s)
-{ int v = pointerHashValue(s->name, ht->buckets);
-  Symbol *h = &ht->entries[v];
+{ int v;
+  Symbol *h;
+  TableEnum e;
 
-  for( ; *h != s; h = &(*h)->next )
+  LOCK();
+  v = pointerHashValue(s->name, ht->buckets);
+  h = &ht->entries[v];
+
+  for( e=ht->enumerators; e; e = e->next )
+  { if ( e->current == s )
+      rawAdvanceTableEnum(e);
+  }
+
+  for( ; *h; h = &(*h)->next )
   { if ( *h == s )
     { *h = (*h)->next;
 
       freeHeap(s, sizeof(struct symbol));
       ht->size--;
 
-      return;
+      break;
     }
   }
+
+  UNLOCK();
 }
 
-
-Symbol
-nextHTable(Table ht, Symbol s)
-{ s = s->next;
-  while(s != (Symbol) NULL && isTableRef(s) )
-    s = unTableRef(Symbol, s);
-
-  return s;
-}
-
-Symbol
-firstHTable(Table ht)
-{ Symbol s = ht->entries[0];
-
-  while(s != (Symbol) NULL && isTableRef(s) )
-    s = unTableRef(Symbol, s);
-
-  return s;
-}  
 
 void
 clearHTable(Table ht)
 { int n;
-  Symbol s;
+  TableEnum e;
+
+  LOCK();
+  for( e=ht->enumerators; e; e = e->next )
+  { e->current = NULL;
+    e->key     = ht->buckets;
+  }
 
   for(n=0; n < ht->buckets; n++)
-  { s = ht->entries[n];
-    while(s && !isTableRef(s))
-    { Symbol q = s->next;
+  { Symbol s, q;
+
+    for(s = ht->entries[n]; s; s = q)
+    { q = s->next;
+
       freeHeap(s, sizeof(struct symbol));
-      s = q;
     }
-    ht->entries[n] = s;
+
+    ht->entries[n] = NULL;
   }
 
   ht->size = 0;
+  UNLOCK();
 }
 
+
+		 /*******************************
+		 *	    ENUMERATING		*
+		 *******************************/
+
+TableEnum
+newTableEnum(Table ht)
+{ TableEnum e = allocHeap(sizeof(struct table_enum));
+  Symbol n;
+
+  LOCK();
+  e->table	  = ht;
+  e->key	  = 0;
+  e->next	  = ht->enumerators;
+  ht->enumerators = e;
+
+  n = ht->entries[0];
+  while(!n && ++e->key < ht->buckets)
+    n=ht->entries[e->key];
+  e->current = n;
+  UNLOCK();
+
+  return e;
+}
+
+
+void
+freeTableEnum(TableEnum e)
+{ TableEnum *ep;
+  Table ht;
+
+  LOCK();
+
+  ht = e->table;
+  for( ep=&ht->enumerators; *ep ; ep = &(*ep)->next )
+  { if ( *ep == e )
+    { *ep = (*ep)->next;
+
+      freeHeap(e, sizeof(*e));
+      break;
+    }
+  }
+
+  UNLOCK();
+}
+
+
+static inline Symbol
+rawAdvanceTableEnum(TableEnum e)
+{ Symbol s, n;
+  Table ht = e->table;
+
+  if ( !(s = e->current) )
+    return s;
+  n = s->next;
+
+  while(!n)
+  { if ( ++e->key >= ht->buckets )
+    { e->current = NULL;
+      return NULL;
+    }
+
+    n=ht->entries[e->key];
+  }
+  e->current = n;
+
+  return s;
+}
+
+
+Symbol
+advanceTableEnum(TableEnum e)
+{ Symbol s;
+
+  LOCK();
+  s = rawAdvanceTableEnum(e);
+  UNLOCK();
+
+  return s;
+}

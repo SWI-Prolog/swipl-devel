@@ -140,25 +140,23 @@ pl_profile_box(term_t head,
 
 word
 pl_reset_profiler(void)
-{ Module module;
-  Procedure proc;
-  Symbol sm, sp;
-
-  if (LD->statistics.profiling != NO_PROFILING)
+{ if (LD->statistics.profiling != NO_PROFILING)
     stopProfiler();
 
-  for_table(sm, GD->tables.modules)
-  { module = (Module) sm->value;
-    for_table(sp, module->procedures)
-    { proc = (Procedure) sp->value;
+  for_table(GD->tables.modules, sm,
+	    { Module module = sm->value;
 
-      proc->definition->profile_calls = 0;
-      proc->definition->profile_redos = 0;
-      proc->definition->profile_fails = 0;
-      proc->definition->profile_ticks = 0;
-      clear(proc->definition, PROFILE_TICKED);
-    }
-  }
+	      for_unlocked_table(module->procedures, sp,
+				 { Procedure proc = sp->value;
+				   Definition def = proc->definition;
+
+				   def->profile_calls = 0;
+				   def->profile_redos = 0;
+				   def->profile_fails = 0;
+				   def->profile_ticks = 0;
+				   clear(def, PROFILE_TICKED);
+				 })
+	    })
   LD->statistics.profile_ticks = 0;
 
   succeed;

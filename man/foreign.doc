@@ -1555,7 +1555,7 @@ asserta/1 or recorda/3 or friends.
 
 SWI-Prolog offers both a C and Prolog interface to deal with software
 interrupts (signals). The Prolog mapping is defined in
-\secref{sec:signal}. This subsection deals with handling signals from C.
+\secref{signal}. This subsection deals with handling signals from C.
 
 If a signal is not used by Prolog and the handler does not call Prolog
 in any way, the native signal interface routines may be used.

@@ -58,6 +58,22 @@ may wish to write:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 extern pthread_key_t PL_ldata;		/* key to local data */
+extern pthread_mutex_t _PL_mutexes[];	/* Prolog mutexes */
+
+#define L_MISC		0
+#define L_ALLOC		1
+#define L_ATOM		2
+#define L_FLAG	        3
+#define L_FUNCTOR	4
+#define L_RECORD	5
+#define L_THREAD	6
+#define L_PREDICATE	7
+#define L_MODULE	8
+#define L_TABLE		9
+#define L_BREAK	       10
+
+#define PL_LOCK(id)   pthread_mutex_lock(&_PL_mutexes[id])
+#define PL_UNLOCK(id) pthread_mutex_unlock(&_PL_mutexes[id])
 
 #if 0
 #define GET_LD    PL_local_data_t *__PL_ld = GLOBAL_LD;
@@ -80,6 +96,7 @@ extern word		pl_thread_self(term_t self);
 extern word		pl_thread_join(term_t thread, term_t retcode);
 extern word		pl_thread_exit(term_t retcode);
 extern word		pl_current_thread(term_t id, term_t status, word h);
+extern word		pl_thread_kill(term_t thread, term_t sig);
 
 #else /*O_PLMT*/
 
@@ -91,6 +108,9 @@ extern word		pl_current_thread(term_t id, term_t status, word h);
 #define LOCAL_LD  (&PL_local_data)
 #define GLOBAL_LD (&PL_local_data)
 #define LD	  GLOBAL_LD
+
+#define PL_LOCK(id)
+#define PL_UNLOCK(id)
 
 #endif /*O_PLMT*/
 
