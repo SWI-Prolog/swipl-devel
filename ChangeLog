@@ -1,6 +1,24 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version  1.8.7  includes   the    catch/throw-like   control  structures
+block(+Label,  +Goal,  -Rval),  fail(+Label),  exit(+Label,  +Rval)  and
+!(+Label).  Also new is explain(+Anything) which will  try to tell you a
+lot of what the system knows about  the term you entered.  Additions and
+suggesions are welcome.  Also new: library(bim): A partial Prolog-by-BIM
+(tm) compatibility package by Henk Vandecasteele.  Thanks.
+
+Further fixes:
+
+	* Bug in detecting stack-overflow for the PC/linux version.
+	* Handling of SWI_HOME_DIR (fixes installation problem for
+ 	  XPCE/SWI-Prolog).
+	* atom_length/2: give warning (instead of crash) on invalid
+	  data-type (e.g. unbound, term).
+	* nth_clause/3: Removed errornous warning when cut-off and
+	  fixed returning 0-reference for defined predicates without
+	  clauses.
+
 Version 1.8.6 defines phrase/[2,3] for accessing grammar rules and fixes
 name/2 for numbers outside the  integer   range  (yielding  a float).  A
 predicate nth_clause/3 is added to provide access to specific clauses of
