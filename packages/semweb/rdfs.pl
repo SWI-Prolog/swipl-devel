@@ -146,7 +146,8 @@ rdfs_label(Resource, Label) :-
 %	
 %	Present label with  namespace  indication.   This  predicate  is
 %	indented  to  provide  meaningful  short   names  applicable  to
-%	ontology maintainers.
+%	ontology maintainers.  Note that this predicate is non-deterministic
+%	if the resource has multiple rdfs:label properties
 
 rdfs_ns_label(Resource, Label) :-
 	rdfs_label(Resource, Label0),
@@ -256,6 +257,55 @@ rdfs_list_to_prolog_list(Set, [H|T]) :-
 
 rdfs_find(String, Domain, Fields, Method, Subject) :-
 	globalise_list(Fields, GlobalFields),
+	For =.. [Method,String],
+	rdf_has(Subject, Field, literal(For, _)),
+	member(F, GlobalFields),
+	rdfs_subproperty_of(Field, F),
+	owl_satisfies(Domain, Subject).
+
+owl_satisfies(Domain, _) :-
+	rdf_equal(rdfs:'Resource', Domain), !.
+					% Descriptions
+owl_satisfies(class(Domain), Resource) :- !,
+	rdfs_subclass_of(Resource, Domain).
+owl_satisfies(union_of(Domains), Resource) :- !,
+	member(Domain, Domains),
+	owl_satisfies(Domain, Resource), !.
+owl_satisfies(intersection_of(Domains), Resource) :- !,
+	in_all_domains(Domains, Resource).
+owl_satisfies(complement_of(Domain), Resource) :- !,
+	\+ owl_satisfies(Domain, Resource).
+owl_satisfies(one_of(List), Resource) :- !,
+	memberchk(Resource, List).
+					% Restrictions
+owl_satisfies(all_values_from(Domain), Resource) :-
+	(   rdf_equal(Domain, rdfs:'Resource')
+	->  true
+	;   rdfs_individual_of(Resource, Domain)
+	), !.
+owl_satisfies(some_values_from(_Domain), _Resource) :- !.
+owl_satisfies(has_value(Value), Resource) :-
+	rdf_equal(Value, Resource).
+
+
+in_all_domains([], _).
+in_all_domains([H|T], Resource) :-
+	owl_satisfies(H, Resource),
+	in_all_domains(T, Resource).
+
+globalise_list([], []) :- !.
+globalise_list([H0|T0], [H|T]) :- !,
+	globalise_list(H0, H),
+	globalise_list(T0, T).
+globalise_list(X, G) :-
+	rdf_global_id(X, G).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+TOP-DOWN
+
+
+rdfs_find(String, Domain, Fields, Method, Subject) :-
+	globalise_list(Fields, GlobalFields),
 	generate_domain(Domain, Subject),
 	member(Field, GlobalFields),
 	(   rdf_equal(Field, rdfs:label)
@@ -264,13 +314,6 @@ rdfs_find(String, Domain, Fields, Method, Subject) :-
 	),
 	rdf_match_label(Method, String, Arg).
 	
-globalise_list([], []) :- !.
-globalise_list([H0|T0], [H|T]) :- !,
-	globalise_list(H0, H),
-	globalise_list(T0, T).
-globalise_list(X, G) :-
-	rdf_global_id(X, G).
-
 %	generate_domain(+Domain, -Resource)
 %	
 %	Generate all resources that satisfy some a domain specification.
@@ -299,4 +342,5 @@ in_all_domains([], _).
 in_all_domains([H|T], Resource) :-
 	generate_domain(H, Resource),
 	in_all_domains(T, Resource).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
