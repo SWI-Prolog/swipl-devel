@@ -80,7 +80,8 @@ draw_generic_button_face(Button b,
 			 int x, int y, int w, int h,
 			 int up, int defb, int focus)
 { Elevation z = getClassVariableValueObject(b, NAME_elevation);
-  
+  int r = valInt(b->radius);
+
   if ( z && notNil(z) )			/* 3-d style */
   { int up = (b->status == NAME_inactive || b->status == NAME_active);
      
@@ -95,14 +96,14 @@ draw_generic_button_face(Button b,
 	    e = newObject(ClassElevation, ONE, 0);
   
 	  bx -= 4; by -= 4; bw += 8; bh += 8;
-	  r_3d_box(bx, by, bw, bh, valInt(b->radius), e, FALSE);
+	  r_3d_box(bx, by, bw, bh, r, e, FALSE);
 	}
 	if ( focus )			/* was kbf && focus */
 	{ int pen = valInt(b->pen);
   
 	  bx -= pen; by -= pen; bw += 2*pen; bh += 2*pen;
 	  r_thickness(pen);
-	  r_box(bx, by, bw, bh, valInt(b->radius), NIL);
+	  r_box(bx, by, bw, bh, r, NIL);
 	}
       } else
       { if ( defb )
@@ -110,12 +111,19 @@ draw_generic_button_face(Button b,
   
 	  bx -= pen; by -= pen; bw += 2*pen; bh += 2*pen;
 	  r_thickness(pen);
-	  r_box(bx, by, bw, bh, valInt(b->radius), NIL);
+	  r_box(bx, by, bw, bh, r, NIL);
 	}
       }
     }
 
-    r_3d_box(x, y, w, h, valInt(b->radius), z, up);
+    r_3d_box(x, y, w, h, r, z, up);
+    if ( b->look == NAME_openLook && defb )
+    { Any old;
+
+      old = r_colour(r_elevation_shadow(z));
+      r_box(x+2, y+2, w-4, h-4, r, NIL);
+      r_colour(old);
+    }
   } else				/* 2-d style */
   { int swapc  = 0;
     int pen    = valInt(b->pen);
