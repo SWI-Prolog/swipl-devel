@@ -4982,7 +4982,7 @@ fetch(const text *txt, int i)
 
 
 static unsigned int
-nextword(text *txt, int i)
+nextword(text *txt, unsigned int i)
 { while(i<txt->length && iswalnum(fetch(txt, i)))
     i++;
   while(i<txt->length && !iswalnum(fetch(txt, i)))
