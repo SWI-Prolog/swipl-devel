@@ -1158,13 +1158,15 @@ prepare_result(context *ctxt)
     { DWORD ival;
 
       ptr_result->source.column = PL_new_atom_nchars(nameLength, nameBuffer);
-      if ( SQLColAttributes(ctxt->hstmt, i,
-			    SQL_COLUMN_TABLE_NAME,
-			    nameBuffer, NameBufferLength, &nameLength,
-			    &ival) == SQL_SUCCESS )
+      if ( (ctxt->rc=SQLColAttributes(ctxt->hstmt, i,
+				      SQL_COLUMN_TABLE_NAME,
+				      nameBuffer,
+				      NameBufferLength, &nameLength,
+				      &ival)) == SQL_SUCCESS )
       { ptr_result->source.table = PL_new_atom_nchars(nameLength, nameBuffer);
       } else
-      { ptr_result->source.table = ATOM_;
+      { report_status(ctxt);
+	ptr_result->source.table = ATOM_;
 	PL_register_atom(ATOM_);
       }
     }

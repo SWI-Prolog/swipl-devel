@@ -261,6 +261,17 @@ timestamp_to_integer('$null$', '$null$') :- !.
 timestamp_to_integer(timestamp(Y,M,D,H,Mn,S,0), Sec) :-
 	get(date(S,Mn,H,D,M,Y), slot, date, Sec).
 
+		 /*******************************
+		 *	    SHOW SOURCE		*
+		 *******************************/
+
+list(Name) :-
+	open_db,
+	(   odbc_query(test, 'select * from ~w'-[Name], Row, [source(true)]),
+	    writeln(Row),
+	    fail
+	;   true
+	).
 
 		 /*******************************
 		 *	    CURSOR TEST		*
