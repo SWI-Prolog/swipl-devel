@@ -669,7 +669,7 @@ RTBINDIR=	$(RTHOME)/bin/$(PLARCH)
 DVHOME=		$(RTHOME)
 DVLIBDIRS=	lib lib/compatibility lib/dialog lib/draw lib/emacs lib/man \
 		lib/xref lib/english demo contrib contrib/rubik lib/trace \
-		lib/http lib/plot lib/doc lib/math
+		lib/http lib/swi lib/plot lib/doc lib/math
 DVIMGDIRS=	lib/dialog/bitmaps lib/trace/icons lib/trace/icons/16x16
 DVBOOTDIRS=	boot
 DVMISCFILES=	ChangeLog 
