@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * DELETED: library(whereis).  Function is obsolete using the new
+    edit/1 interface (was not documented anyway).
+
   * FIXED: saving numbers like 0x00ff0000 to saved-state (numbers with
     more than 22 bits, all whose bytes are either 00 or ff).  Found by
     Stefan Mueller.
