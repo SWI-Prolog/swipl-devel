@@ -347,7 +347,7 @@ layout(frame,	   1-1, empty).
 layout(col,	   0-0, empty).
 
 layout(p,	   2-1, -).		% omited close
-layout(td,	   0-0, -).
+layout(td,	   0-0, 0-0).
 
 
 		 /*******************************

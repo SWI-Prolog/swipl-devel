@@ -1,3 +1,6 @@
+* ADDED: PceEmacs: Added the (fairly experimental) HTML, SGML and XML modes
+  to the standard library.
+
 * FIXED: Make GUI-tracer use library(prolog_predicate_item), avoiding
   a name-clash with private variation of this library.
 

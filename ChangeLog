@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: absolute_file_name/3 not to trust its cache.
+
   * ADDED: callable/1 for better compatibility.
 
   * FIXED: $qlf_info/4 to request information on QLF files.  Also turned

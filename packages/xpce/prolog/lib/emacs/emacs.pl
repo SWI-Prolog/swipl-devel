@@ -87,18 +87,21 @@ pce_ifhostproperty(prolog(swi),
 
 
 
-%:- declare_emacs_mode(outline,		library('emacs/outline_mode')).
-%:- declare_emacs_mode(language,	library('emacs/language_mode')).
-:- declare_emacs_mode(prolog,		library('emacs/prolog_mode')).
-:- declare_emacs_mode(latex,		library('emacs/latex_mode')).
-:- declare_emacs_mode(html,		library('emacs/html_mode')).
-:- declare_emacs_mode(c,		library('emacs/c_mode')).
-:- declare_emacs_mode(cpp,		library('emacs/cpp_mode')).
-:- declare_emacs_mode(script,		library('emacs/script_mode')).
-:- declare_emacs_mode(man,		library('emacs/man_mode')).
-:- declare_emacs_mode(text,		library('emacs/text_mode')).
-:- declare_emacs_mode(annotate,		library('emacs/annotate_mode')).
-:- declare_emacs_mode(gdb,		library('emacs/gdb')).
+%:- declare_emacs_mode(outline, library('emacs/outline_mode')).
+%:- declare_emacs_mode(language,library('emacs/language_mode')).
+:- declare_emacs_mode(prolog,	library('emacs/prolog_mode')).
+:- declare_emacs_mode(latex,	library('emacs/latex_mode')).
+:- declare_emacs_mode(html,	library('emacs/html_mode')).
+:- declare_emacs_mode(c,	library('emacs/c_mode')).
+:- declare_emacs_mode(cpp,	library('emacs/cpp_mode')).
+:- declare_emacs_mode(script,	library('emacs/script_mode')).
+:- declare_emacs_mode(man,	library('emacs/man_mode')).
+:- declare_emacs_mode(text,	library('emacs/text_mode')).
+:- declare_emacs_mode(annotate,	library('emacs/annotate_mode')).
+:- declare_emacs_mode(gdb,	library('emacs/gdb')).
+:- declare_emacs_mode(sgml,	library(sgml_mode)).
+:- declare_emacs_mode(xml,	library(sgml_mode)).
+:- declare_emacs_mode(html,	library(sgml_mode)).
 
 
 		 /*******************************
@@ -135,7 +138,9 @@ default_emacs_mode('\\.\\(pl\\|xpce\\|pceemacs\\)rc~?', prolog).
 default_emacs_mode('.*\\.\\(tex\\|sty\\)~?$', 		latex).
 default_emacs_mode('.*\\.doc~?$',	 		latex).
 default_emacs_mode('.*\\.html~?$',	 		html).
-default_emacs_mode('.*\\.chml~?$',	 		html).
+default_emacs_mode('.*\\.php[0-9]?~?$',	 		html).
+default_emacs_mode('.*\\.sgml~?$',	 		sgml).
+default_emacs_mode('.*\\.xml~?$',	 		xml).
 default_emacs_mode('.*\\.ann~?$',	 		annotate).
 default_emacs_mode('.*\\.[ch]~?$', 			c).
 default_emacs_mode('.*\\.C$',				cpp).

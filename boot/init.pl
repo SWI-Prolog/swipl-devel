@@ -470,7 +470,8 @@ $dochk_file(File, Exts, Cond, FullName) :-
 	$search_path_file_cache/4.
 
 $chk_alias_file(Spec, Exts, Cond, FullFile) :-
-	$search_path_file_cache(Spec, Cond, FullFile, Exts).
+	$search_path_file_cache(Spec, Cond, FullFile, Exts),
+	$file_condition(Cond, FullFile).
 $chk_alias_file(Spec, Exts, Cond, FullFile) :-
 	expand_file_search_path(Spec, Expanded),
 	$extend_file(Expanded, Exts, LibFile),
