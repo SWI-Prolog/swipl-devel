@@ -1,6 +1,11 @@
 			   XPCE ChangeLog
 			   ==============
 
+
+* Fixed forcing loading of swi_compatibility.pl to ensure registration of
+  messages.
+
+
 VERSION 6.4.0, distributed with SWI-Prolog 5.4.0
 ================================================
 
