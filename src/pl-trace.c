@@ -1045,7 +1045,7 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
       PL_unify_functor(arg, fr->predicate->functor);
       for(n=0; n < arity; n++)
       { PL_get_arg(n+1, arg, a);
-	unify_ptrs(valTermRef(arg), argFrameP(fr, n));
+	unify_ptrs(valTermRef(a), argFrameP(fr, n));
       }
     }
   } else

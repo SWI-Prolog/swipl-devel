@@ -1537,8 +1537,8 @@ Then we create a term, back up and fill the arguments.
 
 typedef struct
 { Code	 pc;				/* pc for decompilation */
-  Word   xr;				/* xr table for decompilation */
   Word	 argp;				/* argument pointer */
+  int	 nvars;				/* size of var block */
   term_t *variables;			/* variable table */
 } decompileInfo;
 
@@ -1614,8 +1614,8 @@ valHandle(term_t r)
 bool
 decompileHead(Clause clause, term_t head)
 { decompileInfo di;
-  di.variables = alloca((VAROFFSET(1) + clause->prolog_vars) *
-			sizeof(term_t));
+  di.nvars     = VAROFFSET(1) + clause->prolog_vars;
+  di.variables = alloca(di.nvars * sizeof(term_t));
 
   return decompile_head(clause, head, &di);
 }
@@ -1639,12 +1639,8 @@ next_arg_ref(term_t argp)
 static bool
 unifyVar(Word var, term_t *vars, int i)
 { DEBUG(3, Sdprintf("unifyVar(%d, %d, %d)\n", var, vars, i) );
-  if ( !vars[i] )
-  { term_t v = PL_new_term_ref();
-    setHandle(v, makeRef(var));
-    vars[i] = v;
-    succeed;
-  }
+
+  assert(vars[i]);
 
   return unify_ptrs(var, valTermRef(vars[i]));
 }
@@ -1662,8 +1658,8 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
     term_t *p;
 
     l = VAROFFSET(0);
-    m = VAROFFSET(clause->variables);	/* index of highest var + 1 */
-    for(p = di->variables + l; m-- > l;)
+    m = VAROFFSET(clause->prolog_vars) - l; /* # prolog vars (+arguments) */
+    for(p = di->variables + l; m-- > 0;)
       *p++ = PL_new_term_ref();
   }
 
@@ -1789,8 +1785,8 @@ decompile(Clause clause, term_t term)
   decompileInfo *di = &dinfo;
   Word body;
 
-  di->variables = alloca((VAROFFSET(1) + clause->prolog_vars) *
-			 sizeof(term_t));
+  di->nvars     = VAROFFSET(1) + clause->prolog_vars;
+  di->variables = alloca(di->nvars * sizeof(term_t));
 
 #ifdef O_RUNTIME
   if ( false(clause->procedure->definition, DYNAMIC) )

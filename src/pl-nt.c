@@ -250,6 +250,12 @@ System(char *command)
     {
 #if !defined(MAKE_PL_DLL)
       rlc_dispatch(NULL);		/* TBD */
+#else
+       MSG msg;
+       if ( GetMessage(&msg, NULL, 0, 0) )
+       { TranslateMessage(&msg);
+	 DispatchMessage(&msg);
+       }
 #endif
     }
     CloseHandle(pinfo.hProcess);

@@ -4,6 +4,24 @@
 Version 2.7.13
 ==============
 
+  * FIXED: prolog_frame_attribute/3 to include the arguments in the
+    goal.  Found by Andreas Schlemminger.
+
+  * FIXED: listing (clause/2) for predicates holding if->then;else or
+    a;b in their body.  Found by Andreas Schlemminger.
+
+  * FIXED: shell/1 for Windows platforms (waited almost indefinitely
+    before executing the program).
+
+  * ADDED: plregtry.dll and registry.dll, providing access to the
+    Win32 registry database.  
+
+  * ADDED: setting up a DDE server for better interaction with the
+    Windows 95 shell (direct edit and consult from the explorer).
+
+Version 2.7.13 (ALPHA)
+======================
+
   * ADDED: mode update for open/[3,4] to write at any location in an
     existing file. 
 
