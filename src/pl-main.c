@@ -526,7 +526,7 @@ PL_initialise(int argc, char **argv)
     succeed;
   }
 
-#if defined(_DEBUG) && defined(WIN32)
+#if defined(_DEBUG) && defined(WIN32) && 0
   extern void initHeapDebug(void);
   initHeapDebug();
 #endif
@@ -683,7 +683,11 @@ properly on Linux. Don't bother with it.
   }
 }
 
+#ifdef __GNUC__
 typedef const char *cline;
+#else
+typedef char *cline;
+#endif
 
 static int
 usage()
