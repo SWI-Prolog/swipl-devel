@@ -428,9 +428,10 @@ show_buffer_menu(_M) :->
 	"Expose the buffer-menu window"::
 	send(@emacs, show_buffer_menu).
 
-switch_to_buffer(_M, Buffer:emacs_buffer) :->
-	"Switch to named buffer"::
-	send(Buffer, open).
+
+switch_to_buffer(M, Buffer:emacs_buffer) :->
+	"Switch this window to named buffer"::
+	send(M, text_buffer, Buffer).
 
 
 kill_buffer(M) :->
