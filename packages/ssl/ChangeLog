@@ -1,3 +1,7 @@
+Dec 14, 2004
+
+  * FIXED: Non-blocking I/O issues.   Matt Lilley.
+
 Jun 29, 2004
 
   * MODIFIED: use true/false for boolean options.

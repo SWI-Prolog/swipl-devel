@@ -955,7 +955,13 @@ ssl_ssl(PL_SSL *config, int sock_inst)
                         continue;
 
                     case SSL_SOCK_ERROR:
-                        return NULL;
+                       if (SSL_get_error(instance->ssl, ssl_ret) == 2)
+                       {
+                          nbio_wait(sock_inst, REQ_READ);
+                          continue;
+                       }
+                       else
+                          return NULL;
                 }
             } while (1);
             break;
