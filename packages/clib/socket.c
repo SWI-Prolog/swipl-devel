@@ -111,6 +111,9 @@ pl_host_to_address(term_t Host, term_t Ip)
   struct hostent *host;
   char *host_name;
 
+  if ( !nbio_init("socket") )
+    return FALSE;
+
   if ( PL_get_atom_chars(Host, &host_name) )
   { if ( (host = gethostbyname(host_name)) )
     { if ( sizeof(ip) == host->h_length )
