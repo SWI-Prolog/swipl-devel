@@ -22,16 +22,22 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+According to the linux manpage for   select(), modern POSIX systems only
+need sys/select.h and old systems need sys/time.h and sys/types.h. Seems
+at least MacOS X has all three, but   one  needs the latter two (what is
+sys/select.h doing then??)  Thanks to Kuniaki Mukai.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
-#else
+#endif
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
 #endif
-#endif /*HAVE_SYS_SELECT_H*/
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
