@@ -971,7 +971,7 @@ ar_ceil(Number n1, Number r)
 #else
     r->value.i = (long)n1->value.f;
     if ( (real)r->value.i < n1->value.f )
-       r->value.i)++;
+       r->value.i++;
     r->type = V_INTEGER;
 #endif
   }

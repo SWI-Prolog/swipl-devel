@@ -344,6 +344,10 @@ A float_overflow	"float_overflow"
 A float_underflow	"float_underflow"
 A case_sensitive_file_names "case_sensitive_file_names"
 A allow_variable_name_as_functor "allow_variable_name_as_functor"
+A close_on_abort	"close_on_abort"
+A buffer		"buffer"
+A line			"line"
+A full			"full"
 
 F abs			1
 F acos			1

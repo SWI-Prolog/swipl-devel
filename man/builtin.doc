@@ -685,7 +685,7 @@ The overhead of calling a goal through catch/3 is very comparable to
 call/1.  Recovery from an exception has a similar overhead.
     \predicate{throw}{1}{+Exception}
 Raise an exception. The system will look for the innermost catch/3
-ancestor for which \arg{Exception} unifies with the \arg{Cather}
+ancestor for which \arg{Exception} unifies with the \arg{Catcher}
 argument of the catch/3 call.  See catch/3 for details.
 
 If there is no catch/3 willing to catch the error in the current Prolog
@@ -1315,10 +1315,10 @@ list can contain the following options:
 
 \begin{description}
     \termitem{type}{Type}
-Using type {\tt text} (default), Prolog will write a text-file in an
-operating-system compatible way. Using type {\tt binary} the bytes will
-be read or written without any translation. Note there is no difference
-between the two on Unix systems.
+Using type \const{text} (default), Prolog will write a text-file in
+an operating-system compatible way. Using type \const{binary} the
+bytes will be read or written without any translation. Note there is no
+difference between the two on Unix systems.
 
     \termitem{alias}{Atom}
 Gives the stream a name. The following two calls are identical, but only
@@ -1335,6 +1335,20 @@ return the atom \const{end_of_file}. Repetitive reading keeps yielding the
 same result. Action \const{error} is like \const{eof_code}, but repetitive
 reading will raise an error. With action \const{reset}, Prolog will
 examine the file again and return more data if the file has grown.
+
+    \termitem{buffer}{Buffering}
+Defines output buffering. The atom \const{fullf} (default) defines full
+buffering, \const{line} buffering by line, and \const{false} implies the
+stream is fully unbuffered.  Smaller buffering is useful if another
+process or the user is waiting for the output as it is being produced.
+See also flush/0 and flush_output/1.  This option is not an ISO option.
+
+    \termitem{close_on_abort}{Bool}
+If \const{true} (default), the stream is closed on an abort (see
+abort/0). If \const{false}, the stream is not closed. If it is an output
+stream, it will be flushed however.  Useful for logfiles and if the
+stream is associated to a process (using the \functor{pipe}{1}
+construct).
 \end{description}
 
 
@@ -1346,6 +1360,7 @@ Equivalent to open/4 with an empty option-list.
 Open a stream that produces no output.  All counting functions are
 enabled on such a stream.  An attempt to read from a null-stream will
 immediately signal end-of-file.  Similar to Unix \file{/dev/null}.
+\arg{Stream} can be an atom, giving the null-stream an alias name.
 \predicate{close}{1}{+Stream}
 
 Close the specified stream.  If \arg{Stream} is not open an error
@@ -1385,6 +1400,26 @@ Get the current input stream.  Useful to get access to the status
 predicates associated with streams.
 \predicate{current_output}{1}{-Stream}
 Get the current output stream.
+\predicate{dup_stream}{2}{+From, +To}
+Duplicate the underlying data from stream \arg{From} to stream{To}, so
+actions performed on either stream have the same effect.  The primary
+goal of this predicate is to facilitate redirection of the user
+interaction to allow for `interactor' windows.  For example, the
+following code will redirect output to \const{user_output} and
+\const{user_error} to an XPCE text window:
+
+\begin{code}
+	...,
+	pce_open(Window, append, Fd),
+	dup_stream(user_output, Fd),
+	dup_stream(user_error, Fd),
+	...
+\end{code}
+
+The old status of a stream can be stored by duplicating to a null-stream
+as obtained using open_null_stream/1.
+
+This predicate is SWI-Prolog specific.
 \end{description}
 
 \section{Status of Input and Output Streams}

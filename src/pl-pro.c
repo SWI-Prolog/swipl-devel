@@ -56,8 +56,7 @@ pl_break1(term_t goal)
   Input = 0;
   Output = 1;
 
-  debugstatus.skiplevel = 0;
-  debugstatus.suspendTrace = 0;
+  resetTracer();
 
   { fid_t cid = PL_open_foreign_frame();
 
@@ -156,7 +155,7 @@ pl_abort()
     PopTty(&ttytab);
   LD->outofstack = FALSE;
   resetRead();
-  closeFiles();
+  closeFiles(FALSE);
   resetReferences();
 #ifdef O_PROFILE
   pl_reset_profiler();

@@ -59,8 +59,8 @@ static struct plfile
 { atom_t	name;			/* name of file */
   atom_t	stream_name;		/* stream identifier name */
   IOSTREAM *	stream;			/* IOSTREAM package descriptor */
-  int		status;			/* F_CLOSED, F_READ, F_WRITE */
-  int		type;			/* ST_FILE, ST_PIPE, ST_STRING */
+  char		status;			/* F_CLOSED, F_READ, F_WRITE */
+  char		type;			/* ST_FILE, ST_PIPE, ST_STRING */
 } *fileTable = (PlFile) NULL;		/* Our file table */
 
 int 	Input;				/* current input */
@@ -170,31 +170,31 @@ without the Unix assumptions?
 
     switch(n)
     { case 0:
-	f->name	       = ATOM_user;
-	f->stream_name = ATOM_user_input;
-	f->stream      = Sinput;
-	f->status      = F_READ;
-	f->type	       = ST_TERMINAL;
+	f->name	          = ATOM_user;
+	f->stream_name    = ATOM_user_input;
+	f->stream         = Sinput;
+	f->status         = F_READ;
+	f->type	          = ST_TERMINAL;
 	break;
       case 1:
-	f->name        = ATOM_user;
-	f->stream_name = ATOM_user_output;
-	f->stream      = Soutput;
-	f->status      = F_WRITE;
-	f->type	       = ST_TERMINAL;
+	f->name           = ATOM_user;
+	f->stream_name    = ATOM_user_output;
+	f->stream         = Soutput;
+	f->status         = F_WRITE;
+	f->type	          = ST_TERMINAL;
 	break;
       case 2:
-	f->name        = ATOM_stderr;
-	f->stream_name = ATOM_user_error;
-	f->stream      = Serror;
-	f->status      = F_WRITE;
-	f->type	       = ST_TERMINAL;
+	f->name           = ATOM_stderr;
+	f->stream_name    = ATOM_user_error;
+	f->stream         = Serror;
+	f->status         = F_WRITE;
+	f->type	          = ST_TERMINAL;
 	break;
       default:
-	f->name        = NULL_ATOM;
-        f->stream      = NULL_ATOM;
-	f->type        = ST_FILE;
-	f->status      = F_CLOSED;
+	f->name           = NULL_ATOM;
+        f->stream         = NULL_ATOM;
+	f->type           = ST_FILE;
+	f->status         = F_CLOSED;
     }
   }
 
@@ -218,7 +218,7 @@ void
 dieIO()
 { if ( GD->io_initialised )
   { pl_noprotocol();
-    closeFiles();
+    closeFiles(TRUE);
     PopTty(&ttytab);
   }
 }
@@ -254,16 +254,23 @@ closeStream(int n)
 
 
 void
-closeFiles(void)
-{ int n;
+closeFiles(int all)
+{ volatile int n;
 #if O_PCE
   extern int read_nesting;
   read_nesting = 0;
 #endif
 
   for(n=0; n<maxfiles; n++)
-  { if ( n != protocolStream )
-      closeStream(n);
+  { IOSTREAM *s;
+
+    if ( (s=fileTable[n].stream) )
+    { if ( all || !(s->flags & SIO_NOCLOSE) )
+	closeStream(n);
+      else if ( fileTable[n].status == F_WRITE )
+      {	TRYPIPE(n, ATOM_write, Sflush(s), (void)0);
+      }
+    }
   }
 
   Input = 0;
@@ -515,7 +522,8 @@ PutOpenToken(int c)
 
   if ( s->lastc != EOF &&
        ((isAlpha(s->lastc) && isAlpha(c)) ||
-	(isSymbol(s->lastc) && isSymbol(c))) )
+	(isSymbol(s->lastc) && isSymbol(c)) ||
+	c == '(') )
     return Put(' ');
 
   succeed;
@@ -587,6 +595,26 @@ PL_current_output()
 }
 
 
+word
+pl_dup_stream(term_t from, term_t to)
+{ int fn, tn;
+  PlFile f, t;
+
+  if ( (fn = streamNo(from, F_ANY)) < 0 ||
+       (tn = streamNo(to, F_ANY)) < 0 )
+    fail;
+
+  f = &fileTable[fn];
+  t = &fileTable[tn];
+
+  t->stream = f->stream;
+  t->status = f->status;
+  t->type   = f->type;
+
+  succeed;
+}
+
+
 bool
 PL_open_stream(term_t handle, IOSTREAM *s)
 { int n;
@@ -602,7 +630,7 @@ PL_open_stream(term_t handle, IOSTREAM *s)
       else
 	f->status = F_WRITE;
 
-      return PL_unify_integer(handle, n);
+      return setUnifyStreamNo(handle, n);
     }
   }
 
@@ -728,10 +756,10 @@ openStream(term_t file, int mode, int flags)
   if ( n >= maxfiles )			/* non-ISO */
     return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_files);
 
-  fileTable[n].name = name;
+  fileTable[n].name        = name;
   fileTable[n].stream_name = NULL_ATOM;
-  fileTable[n].type = type;
-  fileTable[n].stream = stream;
+  fileTable[n].type        = type;
+  fileTable[n].stream      = stream;
 
   switch(mode)
   { case F_READ:
@@ -854,7 +882,10 @@ openProtocol(term_t f, bool appnd)
   pl_noprotocol();
 
   if ( openStream(f, appnd ? F_APPEND : F_WRITE, OPEN_TEXT|OPEN_OPEN) )
-  { protocolStream = Output;
+  { IOSTREAM *s = fileTable[Output].stream;
+
+    s->flags |= SIO_NOCLOSE;
+    protocolStream = Output;
     Output = out;
 
     succeed;
@@ -1322,11 +1353,13 @@ setUnifyStreamNo(term_t stream, int n)
       
 
 static const opt_spec open4_options[] = 
-{ { ATOM_type,       OPT_ATOM },
-  { ATOM_reposition, OPT_BOOL },
-  { ATOM_alias,	     OPT_ATOM },
-  { ATOM_eof_action, OPT_ATOM },
-  { NULL_ATOM,	     0 }
+{ { ATOM_type,		 OPT_ATOM },
+  { ATOM_reposition,     OPT_BOOL },
+  { ATOM_alias,	         OPT_ATOM },
+  { ATOM_eof_action,     OPT_ATOM },
+  { ATOM_close_on_abort, OPT_BOOL },
+  { ATOM_buffer,	 OPT_ATOM },
+  { NULL_ATOM,	         0 }
 };
 
 
@@ -1335,14 +1368,17 @@ pl_open4(term_t file, term_t mode,
 	 term_t stream, term_t options)
 { int m = -1;
   atom_t mname;
-  atom_t type       = ATOM_text;
-  bool reposition = FALSE;
-  atom_t alias	  = NULL_ATOM;
-  atom_t eof_action = ATOM_eof_code;
-  int flags = OPEN_OPEN;
+  atom_t type           = ATOM_text;
+  bool   reposition     = FALSE;
+  atom_t alias	        = NULL_ATOM;
+  atom_t eof_action     = ATOM_eof_code;
+  atom_t buffer         = ATOM_full;
+  bool   close_on_abort = TRUE;
+  int	 flags          = OPEN_OPEN;
 
   if ( !scan_options(options, 0, ATOM_stream_option, open4_options,
-		     &type, &reposition, &alias, &eof_action) )
+		     &type, &reposition, &alias, &eof_action,
+		     &close_on_abort, &buffer) )
     fail;
 
   if ( alias )
@@ -1371,13 +1407,16 @@ pl_open4(term_t file, term_t mode,
 
     if ( openStream(file, m, flags) )
     { if ( setUnifyStreamNo(stream, Input) )
-      { if ( eof_action != ATOM_eof_code )
-	{ IOSTREAM *s = fileTable[Input].stream;
-	  if ( eof_action == ATOM_reset )
+      { IOSTREAM *s = fileTable[Input].stream;
+	  
+	if ( eof_action != ATOM_eof_code )
+	{ if ( eof_action == ATOM_reset )
 	    s->flags |= SIO_NOFEOF;
 	  else if ( eof_action == ATOM_error )
 	    s->flags |= SIO_FEOF2ERR;
 	}
+	if ( !close_on_abort )
+	  s->flags |= SIO_NOCLOSE;
 	Input = in;
 	pushInputContext();
         succeed;
@@ -1393,7 +1432,19 @@ pl_open4(term_t file, term_t mode,
   { int out = Output;
     if ( openStream(file, m, flags) )
     { if ( setUnifyStreamNo(stream, Output) )
-      { Output = out;
+      { IOSTREAM *s = fileTable[Output].stream;
+
+	if ( !close_on_abort )
+	  s->flags |= SIO_NOCLOSE;
+	if ( buffer != ATOM_full )
+	{ s->flags &= ~SIO_FBUF;
+	  if ( buffer == ATOM_line )
+	    s->flags |= SIO_LBUF;
+	  if ( buffer == ATOM_false )
+	    s->flags |= SIO_NBUF;
+	}
+
+	Output = out;
         succeed;
       }
       closeStream(Output);

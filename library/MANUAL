@@ -1259,39 +1259,51 @@ ffeeaattuurree((_?_K_e_y_, _-_V_a_l_u_e))
          as the configuration option --with-dlopen.
 
     ddyynnaammiicc__ssttaacckkss ((_b_o_o_l))
-         If  true,  the  system  provides  virtual  memory  based  stack
-         expansion.  This makes stack-expansion safe when  called from C
-         and while running  C-defined functions without these  functions
-         taking any precautions.  Pure Prolog programs  are not affected
-         by  this feature  as  the  system will  use  stack-shifting  to
-         expand the stacks at runtime.
+         If true,  the system uses some  form of `sparse-memory  manage-
+         ment' to realise the stacks.  If  false, malloc()/realloc() are
+         used for  the stacks.   In earlier  days this had  consequenses
+         for foreign code.   As  of version 2.5,  this is no longer  the
+         case.
+
+         Systems using  `sparse-memory management' are  a bit faster  as
+         there is no  stack-shifter, and checking the stack-boundary  is
+         often realised  by the hardware  using a  `guard-page'.   Also,
+         memory  is actually  returned to  the  system after  a  garbage
+         collection or call  to ttrriimm__ssttaacckkss//00 (called by pprroolloogg//00  after
+         finishing a user-query).
 
     cc__lliibbss ((_a_t_o_m))
          Libraries passed  to the C-linker  when SWI-Prolog was  linked.
          May  be  used to  determine  the  libraries  needed  to  create
-         statically linked extensions for SWI-Prolog.
+         statically linked extensions for SWI-Prolog.  See section 5.7.
 
     cc__ssttaattiicclliibbss ((_a_t_o_m))
          On  some machines,  the  SWI-Prolog executable  is  dynamically
-         linked, but requires some libraries to be statically linked.
+         linked, but  requires some libraries  to be statically  linked.
+         Obsolete.
 
     cc__cccc ((_a_t_o_m))
          Name of the  C-compiler used to  compile SWI-Prolog.   Normally
-         either gcc or cc.
+         either gcc or cc.  See section 5.7.
 
     cc__llddffllaaggss ((_a_t_o_m))
-         Special linker flags passed to link SWI-Prolog.
+         Special  linker  flags  passed   to  link  SWI-Prolog.      See
+         section 5.7.
 
     ssaavvee ((_b_o_o_l))
-         If true, ssaavvee//[[11,,22]] is implemented.
+         If true,  ssaavvee//[[11,,22]] is implemented.    Saving using ssaavvee//00  is
+         obsolete.  See qqssaavvee__pprrooggrraamm//[[11,,22]].
 
     ssaavvee__pprrooggrraamm ((_b_o_o_l))
-         If true, ssaavvee__pprrooggrraamm//[[11,,22]]is implemented.
+         If  true,  ssaavvee__pprrooggrraamm//[[11,,22]] is  implemented.    Saving  using
+         ssaavvee__pprrooggrraamm//00is obsolete.  See qqssaavvee__pprrooggrraamm//[[11,,22]].
 
     rreeaaddlliinnee ((_b_o_o_l))
-         If true, SWI-Prolog is linked with the readline library.   This
-         is done by default  if you have this library installed  on your
-         system.
+         If  true,  SWI-Prolog  is linked  with  the  readline  library.
+         This is  done by  default if  you have  this library  installed
+         on your  system.    It is  also true  for  the Win32  plwin.exe
+         version of SWI-Prolog, which realises a subset  of the readline
+         functionality.
 
     ssaavveedd__pprrooggrraamm ((_b_o_o_l))
          If  true,   Prolog  is   started  from   a  state  saved   with
@@ -2513,7 +2525,7 @@ ccaattcchh((_:_G_o_a_l_, _+_C_a_t_c_h_e_r_, _:_R_e_c_o
 
 tthhrrooww((_+_E_x_c_e_p_t_i_o_n))
     Raise an exception.   The system will look for the innermost ccaattcchh//33
-    ancestor  for which  _E_x_c_e_p_t_i_o_n unifies with  the _C_a_t_h_e_r argument  of
+    ancestor  for which _E_x_c_e_p_t_i_o_n unifies  with the _C_a_t_c_h_e_r argument  of
     the ccaattcchh//33 call.  See ccaattcchh//33 for details.
 
     If  there is no  ccaattcchh//33 willing to catch  the error in the  current
@@ -3236,6 +3248,21 @@ ooppeenn((_+_S_r_c_D_e_s_t_, _+_M_o_d_e_, _-_S_t_r_e_a
          action reset,  Prolog will  examine the file  again and  return
          more data if the file has grown.
 
+    bbuuffffeerr((_B_u_f_f_e_r_i_n_g))
+         Defines output  buffering.   The atom  fullf (default)  defines
+         full buffering, line buffering  by line, and false implies  the
+         stream is  fully unbuffered.   Smaller  buffering is useful  if
+         another process or the user is waiting for the output  as it is
+         being produced.   See  also fflluusshh//00  and fflluusshh__oouuttppuutt//11.    This
+         option is not an ISO option.
+
+    cclloossee__oonn__aabboorrtt((_B_o_o_l))
+         If  true (default),  the  stream is  closed  on an  abort  (see
+         aabboorrtt//00).   If  false, the  stream is  not closed.    If it  is
+         an output  stream,  it will  be flushed  however.   Useful  for
+         logfiles and if  the stream is  associated to a process  (using
+         the ppiippee//11 construct).
+
     The  option reposition is not supported in SWI-Prolog.   All streams
     connected to a file may be repositioned.
 
@@ -3247,7 +3274,8 @@ ooppeenn((_+_S_r_c_D_e_s_t_, _+_M_o_d_e_, _?_S_t_r_e_a
 ooppeenn__nnuullll__ssttrreeaamm((_?_S_t_r_e_a_m))
     Open  a stream that produces no output.  All counting  functions are
     enabled  on such a stream.   An attempt  to read from a  null-stream
-    will immediately signal end-of-file.  Similar to Unix /dev/null.
+    will  immediately signal  end-of-file.   Similar to Unix  /dev/null.
+    _S_t_r_e_a_m can be an atom, giving the null-stream an alias name.
 
 
 cclloossee((_+_S_t_r_e_a_m))
@@ -3299,6 +3327,26 @@ ccuurrrreenntt__iinnppuutt((_-_S_t_r_e_a_m))
 
 ccuurrrreenntt__oouuttppuutt((_-_S_t_r_e_a_m))
     Get the current output stream.
+
+
+dduupp__ssttrreeaamm((_+_F_r_o_m_, _+_T_o))
+    Duplicate  the  underlying data  from stream  _F_r_o_m to  streamTo,  so
+    actions  performed  on either  stream have  the same  effect.    The
+    primary  goal  of this  predicate is  to  facilitate redirection  of
+    the  user  interaction  to allow  for  `interactor'  windows.    For
+    example,  the following code will redirect output to user_output and
+    user_error to an XPCE text window:
+
+            ...,
+            pce_open(Window, append, Fd),
+            dup_stream(user_output, Fd),
+            dup_stream(user_error, Fd),
+            ...
+
+    The  old  status of  a stream  can  be stored  by duplicating  to  a
+    null-stream as obtained using ooppeenn__nnuullll__ssttrreeaamm//11.
+
+    This predicate is SWI-Prolog specific.
 
 
 33..1155 SSttaattuuss ooff IInnppuutt aanndd OOuuttppuutt SSttrreeaammss
@@ -9106,14 +9154,15 @@ suggest predicates from a keyword.
  delete_file/1                 Remove a file from the file system
  discontiguous/1               Indicate distributed definition of a predicate
 
+ dup_stream/2                  Duplicate I/O streams
  dwim_match/2                  Atoms match in ``Do What I Mean'' sense
  dwim_match/3                  Atoms match in ``Do What I Mean'' sense
  dwim_predicate/2              Find predicate in ``Do What I Mean'' sense
  dynamic/1                     Indicate predicate definition may change
  ed/0                          Edit last edited predicate
  ed/1                          Edit a predicate
- edit/0                        Edit last edited file
 
+ edit/0                        Edit last edited file
  edit/1                        Edit a file
  edit_source/1                 (hook) Intercept editing
  ensure_loaded/1               Consult a file if that has not yet been done
@@ -9121,16 +9170,16 @@ suggest predicates from a keyword.
  exception/3                   (hook) Handle runtime exceptions
  exists_directory/1            Check existence of directory
  exists_file/1                 Check existence of file
- exit/2                        Exit from named block.  See bblloocckk//33
 
+ exit/2                        Exit from named block.  See bblloocckk//33
  expand_answer/2               Expand answer of query
  expand_file_name/2            Wildcard expansion of file names
  expand_file_search_path/2     Wildcard expansion of file paths
  expand_query/4                Expanded entered query
  expand_term/2                 Compiler:  expand read term into clause(s)
  explain/1                     library(explain) Explain argument
- explain/2                     library(explain) 2nd argument is explanation of first
 
+ explain/2                     library(explain) 2nd argument is explanation of first
  export/1                      Export a predicate from a module
  export_list/2                 List of public predicates of a module
  fail/0                        Always false
@@ -9138,16 +9187,16 @@ suggest predicates from a keyword.
  feature/2                     Get system configuration parameters
  file_base_name/2              Get file part of path
  file_directory_name/2         Get directory part of path
- file_name_extension/3         Add, remove or test file extensions
 
+ file_name_extension/3         Add, remove or test file extensions
  file_search_path/2            Define path-aliases for locating files
  fileerrors/2                  Do/Don't warn on file errors
  findall/3                     Find all solutions to a goal
  flag/3                        Simple global variable system
  flatten/2                     Transform nested list into flat list
  float/1                       Type check for a floating point number
- flush/0                       Output pending characters on current stream
 
+ flush/0                       Output pending characters on current stream
  flush_output/1                Output pending characters on specified stream
  forall/2                      Prove goal for all solutions of another goal
  foreign_file/1                Examine loaded foreign files
@@ -9155,16 +9204,16 @@ suggest predicates from a keyword.
  format/2                      Formatted output with arguments
  format/3                      Formatted output on a stream
  format_predicate/2            Program ffoorrmmaatt//[[11,,22]]
- free_variables/2              Find unbound variables in a term
 
+ free_variables/2              Find unbound variables in a term
  functor/3                     Get name and arity of a term or construct a term
  garbage_collect/0             Invoke the garbage collector
  gensym/2                      Generate unique atoms from a base
  get/1                         Read first non-blank character
  get/2                         Read first non-blank character from a stream
  get0/1                        Read next character
- get0/2                        Read next character from a stream
 
+ get0/2                        Read next character from a stream
  get_single_char/1             Read next character from the terminal
  get_time/1                    Get current time
  getenv/2                      Get shell environment variable
@@ -9172,16 +9221,16 @@ suggest predicates from a keyword.
  halt/0                        Exit from Prolog
  halt/1                        Exit from Prolog with status
  hash_term/2                   Hash-value of ground term
- help/0                        Give help on help
 
+ help/0                        Give help on help
  help/1                        Give help on predicates and show parts of manual
  ignore/1                      Call the argument, but always succeed
  import/1                      Import a predicate from a module
  index/1                       Change clause indexing
  initialization/1              Initialization directive
  int_to_atom/2                 Convert from integer to atom
- int_to_atom/3                 Convert from integer to atom (non-decimal)
 
+ int_to_atom/3                 Convert from integer to atom (non-decimal)
  integer/1                     Type check for integer
  intersection/3                Set intersection
  is/2                          Evaluate arithmetic expression
@@ -9189,16 +9238,16 @@ suggest predicates from a keyword.
  is_list/1                     Type check for a list
  is_set/1                      Type check for a set
  keysort/2                     Sort, using a key
- last/2                        Last element of a list
 
+ last/2                        Last element of a list
  leash/1                       Change ports visited by the tracer
  length/2                      Length of a list
  library_directory/1           (hook) Directories holding Prolog libraries
  limit_stack/2                 Limit stack expansion
  line_count/2                  Line number on stream
  line_position/2               Character position in line on stream
- list_to_set/2                 Remove duplicates
 
+ list_to_set/2                 Remove duplicates
  listing/0                     List program in current module
  listing/1                     List predicate
  load_files/2                  Load source files with options
@@ -9206,16 +9255,16 @@ suggest predicates from a keyword.
  load_foreign/5                Load foreign (C) module
  load_foreign_library/1        library(shlib) Load shared library (.so file)
  load_foreign_library/2        library(shlib) Load shared library (.so file)
- make/0                        Reconsult all changed source files
 
+ make/0                        Reconsult all changed source files
  make_fat_filemap/1            Win32:  Create file containing non-FAT filenames
  make_library_index/1          Create autoload file INDEX.pl
  maplist/3                     Transform all elements of a list
  member/2                      Element is member of a list
  memberchk/2                   Deterministic mmeemmbbeerr//22
  merge/3                       Merge two sorted lists
- merge_set/3                   Merge two sorted sets
 
+ merge_set/3                   Merge two sorted sets
  message_hook/3                Intercept pprriinntt__mmeessssaaggee//22
  meta_predicate/1              Quintus compatibility
  module/1                      Query/set current type-in module
@@ -9223,16 +9272,16 @@ suggest predicates from a keyword.
  module_transparent/1          Indicate module based meta predicate
  msort/2                       Sort, do not remove duplicates
  multifile/1                   Indicate distributed definition of predicate
- name/2                        Convert between atom and list of ASCII characters
 
+ name/2                        Convert between atom and list of ASCII characters
  nl/0                          Generate a newline
  nl/1                          Generate a newline on a stream
  nodebug/0                     Disable debugging
  nonvar/1                      Type check for bound term
  noprotocol/0                  Disable logging of user interaction
  nospy/1                       Remove spy point
- nospyall/0                    Remove all spy points
 
+ nospyall/0                    Remove all spy points
  not/1                         Negation by failure (argument not provable).  Same as \+//11
  notrace/0                     Stop tracing
  notrace/1                     Do not debug argument goal
@@ -9240,16 +9289,16 @@ suggest predicates from a keyword.
  nth1/3                        N-th element of a list (1-based)
  nth_clause/3                  N-th clause of a predicate
  number/1                      Type check for integer or float
- number_chars/2                Convert between number and atom
 
+ number_chars/2                Convert between number and atom
  numbervars/4                  Enumerate unbound variables of a term using a given base
  once/1                        Call a goal deterministically
  op/3                          Declare an operator
  open/3                        Open a file (creating a stream)
  open/4                        Open a file (creating a stream)
  open_dde_conversation/3       Win32:  Open DDE channel
- open_null_stream/1            Open a stream to discard output
 
+ open_null_stream/1            Open a stream to discard output
  open_shared_object/2          UNIX: Open shared library (.so file)
  open_shared_object/3          UNIX: Open shared library (.so file)
  peek_byte/1                   Read character without removing
@@ -9257,16 +9306,16 @@ suggest predicates from a keyword.
  phrase/2                      Activate grammar-rule set
  phrase/3                      Activate grammar-rule set (returning rest)
  please/3                      Query/change environment parameters
- plus/3                        Logical integer addition
 
+ plus/3                        Logical integer addition
  portray/1                     (hook) Modify behaviour of pprriinntt//11
  portray_clause/1              Pretty print a clause
  predicate_property/2          Query predicate attributes
  predsort/3                    Sort, using a predicate to determine the order
  preprocessor/2                Install a preprocessor before the compiler
  print/1                       Print a term
- print/2                       Print a term on a stream
 
+ print/2                       Print a term on a stream
  print_message/2               Print message from (exception) term
  profile/3                     Obtain execution statistics
  profile_count/3               Obtain profile results on a predicate
@@ -9274,16 +9323,16 @@ suggest predicates from a keyword.
  prolog/0                      Run interactive toplevel
  prolog_current_frame/1        Reference to goal's environment stack
  prolog_frame_attribute/3      Obtain information on a goal environment
- prolog_load_context/2         Context information for directives
 
+ prolog_load_context/2         Context information for directives
  prolog_skip_level/2           Indicate deepest recursion to trace
  prolog_to_os_filename/2       Convert between Prolog and OS filenames
  prolog_trace_interception/4   library(user) Intercept the Prolog tracer
  prompt1/1                     Change prompt for 1 line
  prompt/2                      Change the prompt used by rreeaadd//11
  proper_list/1                 Type check for list
- protocol/1                    Make a log of the user interaction
 
+ protocol/1                    Make a log of the user interaction
  protocola/1                   Append log of the user interaction to file
  protocolling/1                On what file is user interaction logged
  put/1                         Write a character
@@ -9291,16 +9340,16 @@ suggest predicates from a keyword.
  qcompile/1                    Compile source to Quick Load File
  qload/1                       Load Quick Load File as ccoonnssuulltt//11
  qsave_program/1               Create runtime application
- qsave_program/2               Create runtime application
 
+ qsave_program/2               Create runtime application
  read/1                        Read Prolog term
  read/2                        Read Prolog term from stream
  read_clause/1                 Read clause
  read_clause/2                 Read clause from stream
  read_history/6                Read using history substitution
  read_link/3                   Read a symbolic link
- read_term/2                   Read term with options
 
+ read_term/2                   Read term with options
  read_term/3                   Read term with options from stream
  read_variables/2              Read clause including variable names
  read_variables/3              Read clause including variable names from stream
@@ -9308,16 +9357,16 @@ suggest predicates from a keyword.
  recorda/3                     Record term in the database (first)
  recorded/2                    Obtain term from the database
  recorded/3                    Obtain term from the database
- recordz/2                     Record term in the database (last)
 
+ recordz/2                     Record term in the database (last)
  recordz/3                     Record term in the database (last)
  redefine_system_predicate/1   Abolish system definition
  rename_file/2                 Change name of file
  repeat/0                      Succeed, leaving infinite backtrack points
  require/1                     This file requires these predicates
  reset_profiler/0              Clear statistics obtained by the profiler
- restore/1                     Restore saved-state (ssaavvee//11, ssaavvee__pprrooggrraamm//11)
 
+ restore/1                     Restore saved-state (ssaavvee//11, ssaavvee__pprrooggrraamm//11)
  retract/1                     Remove clause from the database
  retractall/1                  Remove unifying clauses from the database
  reverse/2                     Inverse the order of the elements in a list
@@ -9325,16 +9374,16 @@ suggest predicates from a keyword.
  save/1                        Save program including current goal
  save/2                        Save program including current goal
  save_program/1                Save the current program on a file
- save_program/2                Save the current program on a file
 
+ save_program/2                Save the current program on a file
  see/1                         Change the current input stream
  seeing/1                      Query the current input stream
  seen/0                        Close the current input stream
  select/3                      Select element of a list
  set_feature/2                 Define a system feature
  set_input/1                   Set current input stream from a stream
- set_output/1                  Set current output stream from a stream
 
+ set_output/1                  Set current output stream from a stream
  set_tty/2                     Set `tty' stream
  setarg/3                      Destructive assignment on term
  setenv/2                      Set shell environment variable
@@ -9342,16 +9391,16 @@ suggest predicates from a keyword.
  sformat/2                     Format on a string
  sformat/3                     Format on a string
  shell/0                       Execute interactive subshell
- shell/1                       Execute OS command
 
+ shell/1                       Execute OS command
  shell/2                       Execute OS command
  show_profile/1                Show results of the profiler
  size_file/2                   Get size of a file in characters
  skip/1                        Skip to character in current input
  skip/2                        Skip to character on stream
  rl_add_history/1              Add line to readline(3) history
- rl_read_init_file/1           Read readline(3) init file
 
+ rl_read_init_file/1           Read readline(3) init file
  sleep/1                       Suspend execution for specified time
  sort/2                        Sort elements in a list
  source_file/1                 Examine currently loaded source files
@@ -9359,16 +9408,16 @@ suggest predicates from a keyword.
  source_location/2             Location of last read term
  spy/1                         Force tracer on specified predicate
  stack_parameter/4             Some systems:  Query/Set runtime stack parameter
- statistics/0                  Show execution statistics
 
+ statistics/0                  Show execution statistics
  statistics/2                  Obtain collected statistics
  stream_position/3             Get/seek to position in file
  string/1                      Type check for string
  string_concat/3               ccoonnccaatt//33 for strings (non-deterministic)
  string_length/2               Determine length of a string
  string_to_atom/2              Conversion between string and atom
- string_to_list/2              Conversion between string and list of ASCII
 
+ string_to_list/2              Conversion between string and list of ASCII
  style_check/1                 Change level of warnings
  sublist/3                     Determine elements that meet condition
  subset/2                      Generate/check subset relation
@@ -9376,16 +9425,16 @@ suggest predicates from a keyword.
  subtract/3                    Delete elements that do not meet condition
  succ/2                        Logical integer successor relation
  swritef/2                     Formatted write on a string
- swritef/3                     Formatted write on a string
 
+ swritef/3                     Formatted write on a string
  tab/1                         Output number of spaces
  tab/2                         Output number of spaces on a stream
  tell/1                        Change current output stream
  telling/1                     Query current output stream
  term_expansion/2              (hook) Convert term before compilation
  term_to_atom/2                Convert between term and atom
- throw/1                       Raise an exception (see ccaattcchh//33)
 
+ throw/1                       Raise an exception (see ccaattcchh//33)
  time/1                        Determine time needed to execute goal
  time_file/2                   Get last modification time of file
  tmp_file/2                    Create a temporary filename
@@ -9393,16 +9442,16 @@ suggest predicates from a keyword.
  trace/0                       Start the tracer
  trace/1                       Set trace-point on predicate
  trace/2                       Set/Clear trace-point on ports
- tracing/0                     Query status of the tracer
 
+ tracing/0                     Query status of the tracer
  trim_stacks/0                 Release unused memory resources
  true/0                        Succeed
  tty_get_capability/3          Get terminal parameter
  tty_goto/2                    Goto position on screen
  tty_put/2                     Write control string to terminal
  ttyflush/0                    Flush output on terminal
- union/3                       Union of two sets
 
+ union/3                       Union of two sets
  unknown/2                     Trap undefined predicates
  unload_foreign_library/1      library(shlib) Detach shared library (.so file)
  unsetenv/1                    Delete shell environment variable
@@ -9410,16 +9459,16 @@ suggest predicates from a keyword.
  use_module/2                  Import predicates from a module
  var/1                         Type check for unbound variable
  visible/1                     Ports that are visible in the tracer
- volatile/1                    Predicates that are not saved
 
+ volatile/1                    Predicates that are not saved
  wait_for_input/3              Wait for input with optional timeout
  wildcard_match/2              Csh(1) style wildcard match
  win_exec/2                    Win32:  spawn Windows task
  write/1                       Write term
  write/2                       Write term to stream
  write_ln/1                    Write term, followed by a newline
- write_canonical/1             Write a term with quotes, ignore operators
 
+ write_canonical/1             Write a term with quotes, ignore operators
  write_canonical/2             Write a term with quotes, ignore operators on a stream
  write_term/2                  Write term with options
  write_term/3                  Write term with options to stream
@@ -9604,4 +9653,4 @@ Bibliography
                                   New York, 1983.  Major revision  March
                                   1984.
 
-                                  721
+                                  722

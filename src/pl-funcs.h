@@ -158,7 +158,7 @@ char *		tostr(char *buf, const char *fmt, ...);
 /* pl-file.c */
 void		initIO(void);
 void		dieIO(void);
-void		closeFiles(void);
+void		closeFiles(int all);
 void		protocol(char *s, int n);
 int		currentLinePosition(void);
 void		setCurrentSourceLocation(void);
@@ -169,6 +169,7 @@ bool		LockStream(void);
 bool		UnlockStream(void);
 bool		Put(int c);
 bool		PutOpenToken(int c);
+word		pl_dup_stream(term_t from, term_t to);
 IOSTREAM *	PL_current_input(void);
 IOSTREAM *	PL_current_output(void);
 word		Putf(char *fm, ...);

@@ -333,3 +333,7 @@
 #define ATOM_float_underflow MK_ATOM(332)
 #define ATOM_case_sensitive_file_names MK_ATOM(333)
 #define ATOM_allow_variable_name_as_functor MK_ATOM(334)
+#define ATOM_close_on_abort MK_ATOM(335)
+#define ATOM_buffer       MK_ATOM(336)
+#define ATOM_line         MK_ATOM(337)
+#define ATOM_full         MK_ATOM(338)

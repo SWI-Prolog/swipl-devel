@@ -400,6 +400,7 @@ static const struct foreign {
   FRG("set_output",		1, pl_set_output,		TRACE_ME),
   FRG("current_input",		1, pl_current_input,		TRACE_ME),
   FRG("current_output",		1, pl_current_output,		TRACE_ME),
+  FRG("dup_stream",		2, pl_dup_stream,		TRACE_ME),
   FRG("character_count",	2, pl_character_count,		TRACE_ME),
   FRG("line_count",		2, pl_line_count,		TRACE_ME),
   FRG("line_position",		2, pl_line_position,		TRACE_ME),

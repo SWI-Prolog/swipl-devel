@@ -94,3 +94,5 @@
 /* Define max size of mmapp()ed stacks.  See test/mmap.c */
 #undef MMAP_STACKSIZE
 
+/* Define if the type rlim_t is defined by <sys/resource.h> */
+#undef HAVE_RLIM_T

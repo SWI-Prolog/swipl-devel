@@ -748,30 +748,39 @@ access to shared libraries (.so files).  This requires the C-library
 functions dlopen() and friends as well as the configuration option
 {\tt --with-dlopen}.
     \featureoption{dynamic_stacks}{bool}
-If true, the system provides virtual memory based stack expansion.  This
-makes stack-expansion safe when called from C and while running
-C-defined functions without these functions taking any precautions.
-Pure Prolog programs are not affected by this feature as the system
-will use stack-shifting to expand the stacks at runtime.
+If true, the system uses some form of `sparse-memory management' to
+realise the stacks.  If false, malloc()/realloc() are used for the stacks.
+In earlier days this had consequenses for foreign code.  As of version
+2.5, this is no longer the case.
+
+Systems using `sparse-memory management' are a bit faster as there is no
+stack-shifter, and checking the stack-boundary is often realised by the
+hardware using a `guard-page'. Also, memory is actually returned to the
+system after a garbage collection or call to trim_stacks/0 (called by
+prolog/0 after finishing a user-query).
     \featureoption{c_libs}{atom}
 Libraries passed to the C-linker when SWI-Prolog was linked.  May be used
 to determine the libraries needed to create statically linked extensions
-for SWI-Prolog.
+for SWI-Prolog.  See \secref{plld}.
     \featureoption{c_staticlibs}{atom}
 On some machines, the SWI-Prolog executable is dynamically linked, but
-requires some libraries to be statically linked.
+requires some libraries to be statically linked.  Obsolete.
     \featureoption{c_cc}{atom}
 Name of the C-compiler used to compile SWI-Prolog.  Normally either gcc
-or cc.
+or cc.  See \secref{plld}.
     \featureoption{c_ldflags}{atom}
-Special linker flags passed to link SWI-Prolog.
+Special linker flags passed to link SWI-Prolog.  See \secref{plld}.
     \featureoption{save}{bool}
-If true, save/[1,2] is implemented.
+If true, save/[1,2] is implemented.  Saving using save/0 is obsolete.  See
+qsave_program/[1,2].
     \featureoption{save_program}{bool}
-If true, save_program/[1,2] is implemented.
+If true, save_program/[1,2] is implemented.  Saving using save_program/0
+is obsolete.  See qsave_program/[1,2].
     \featureoption{readline}{bool}
 If true, SWI-Prolog is linked with the readline library.  This is done
-by default if you have this library installed on your system.
+by default if you have this library installed on your system.  It is
+also true for the Win32 plwin.exe version of SWI-Prolog, which realises
+a subset of the readline functionality.
     \featureoption{saved_program}{bool}
 If true, Prolog is started from a state saved with qsave_program/[1,2].
     \featureoption{runtime}{bool}

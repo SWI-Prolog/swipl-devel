@@ -81,6 +81,26 @@ PutToken(const char *s)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+PutOpenBrace()/PutCloseBrace() are used to put  additional braces around
+a term to avoid an operator  precedence   problem.  If  the last emitted
+character  is  alphanumerical,  there  should  be  a  space  before  the
+openbrace to avoid interpretation as a term.   E.g. not (a,b) instead of
+not(a,b).  Reported by Stefan.Mueller@dfki.de.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static bool
+PutOpenBrace()
+{ return PutOpenToken('(') && Put('(');
+}
+
+
+static bool
+PutCloseBrace()
+{ return Put(')');
+}
+
+
 static bool
 writeAtom(atom_t a, bool quote)
 { char *s = stringAtom(a);
@@ -266,9 +286,9 @@ writeTerm2(term_t t, int prec, bool style)
 
   if ( PL_get_atom(t, &a) )
   { if ( priorityOperator(a) > prec )
-    { if ( Put('(') &&
+    { if ( PutOpenBrace() &&
 	   writeAtom(a, quote) &&
-	   Put(')') )
+	   PutCloseBrace() )
 	succeed;
     } else
       return writeAtom(a, quote);
@@ -321,12 +341,12 @@ writeTerm2(term_t t, int prec, bool style)
   
 	  PL_get_arg(1, t, arg);
 	  if ( op_pri > prec )
-	  { TRY(Put('('));
+	  { TRY(PutOpenBrace());
 	  }
 	  TRY(writeAtom(functor, quote));
 	  TRY(writeTerm2(arg, op_type == OP_FX ? op_pri-1 : op_pri, style));
 	  if ( op_pri > prec )
-	  { TRY(Put(')'));
+	  { TRY(PutCloseBrace());
 	  }
 
 	  succeed;
@@ -338,11 +358,11 @@ writeTerm2(term_t t, int prec, bool style)
   
 	  PL_get_arg(1, t, arg);
 	  if ( op_pri > prec )
-	    TRY(Put('('));
+	    TRY(PutOpenBrace());
 	  TRY(writeTerm2(arg, op_type == OP_XF ? op_pri-1 : op_pri, style));
 	  TRY(writeAtom(functor, quote));
 	  if (op_pri > prec)
-	    TRY(Put(')'));
+	    TRY(PutCloseBrace());
   
 	  succeed;
 	}
@@ -377,7 +397,7 @@ writeTerm2(term_t t, int prec, bool style)
 	  PL_get_arg(2, t, r);
   
 	  if ( op_pri > prec )
-	    TRY(Put('('));
+	    TRY(PutOpenBrace());
 	  TRY(writeTerm2(l, 
 			op_type == OP_XFX || op_type == OP_XFY
 				? op_pri-1 : op_pri, 
@@ -390,7 +410,7 @@ writeTerm2(term_t t, int prec, bool style)
 				? op_pri-1 : op_pri, 
 			style));
 	  if ( op_pri > prec )
-	    TRY(Put(')'));
+	    TRY(PutCloseBrace());
 	  succeed;
 	}
       }

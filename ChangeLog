@@ -2,6 +2,24 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 2.9.10
+==============
+
+  * ADDED: dup_stream/2 to copy stream handles.
+
+  * ADDED: Allow for specifying stream alias-name to PL_open_stream(),
+    also used by open_null_stream/1, so open_null_stream(null) will make
+    `null' an aliased null-stream.
+
+  * UPDATED: Some parts of the documentation.
+
+  * FIXED: Control-C handling on some platforms (notably Solaris 2.5).
+
+  * ADDED: options close_on_abort and buffer to open/4.
+
+  * FIXED: write(not (a,b)) ommited the space and wrote not(a,b).  Thanks
+    to Stefan Mueller.
+
 VERSION 2.9.9
 =============
 

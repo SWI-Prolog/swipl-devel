@@ -129,6 +129,7 @@ suggest predicates from a keyword.
 \predicatesummary{delete}{3}{Delete all matching members from a list}
 \predicatesummary{delete_file}{1}{Remove a file from the file system}
 \oppredsummary{discontiguous}{1}{fx}{1150}{Indicate distributed definition of a predicate}
+\predicatesummary{dup_stream}{2}{Duplicate I/O streams}
 \predicatesummary{dwim_match}{2}{Atoms match in ``Do What I Mean'' sense}
 \predicatesummary{dwim_match}{3}{Atoms match in ``Do What I Mean'' sense}
 \predicatesummary{dwim_predicate}{2}{Find predicate in ``Do What I Mean'' sense}

@@ -59,6 +59,7 @@ forwards void		alternatives(LocalFrame);
 forwards void		listProcedure(Definition);
 forwards int		traceInterception(LocalFrame, LocalFrame, int, Code);
 forwards void		writeFrameGoal(LocalFrame frame, int how);
+forwards void		interruptHandler(int sig);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 redoFrame() returns the latest skipped frame or NULL if  no  such  frame
@@ -815,6 +816,38 @@ pl_trace_continuation(term_t what)
 { return PL_get_integer(what, &trace_continuation);
 }
 
+void
+resetTracer(void)
+{
+#ifdef O_INTERRUPT
+#if defined(HAVE_SIGACTION) && defined(SA_RESTART) && defined(SA_NOMASK)
+  struct sigaction set;
+
+  memset(&set, 0, sizeof(set));
+  set.sa_handler = interruptHandler;
+  set.sa_flags   = SA_RESTART|SA_NOMASK;
+
+  sigaction(SIGINT, &set, NULL);
+#else
+#ifdef HAVE_SIGSET
+  sigset(SIGINT, interruptHandler);
+#else
+#ifndef BSD_SIGNALS
+#define REINSTATE_INTERRUPT_HANDLER
+#endif
+  signal(SIGINT, interruptHandler);
+#endif
+#endif
+#endif
+
+  debugstatus.tracing      =
+  debugstatus.debugging    = FALSE;
+  debugstatus.suspendTrace = FALSE;
+  debugstatus.skiplevel    = 0;
+  debugstatus.retryFrame   = NULL;
+}
+
+
 #ifdef O_INTERRUPT
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -856,19 +889,27 @@ interruptHandler(int sig)
 #endif
   lTop = (LocalFrame)addPointer(lTop, sizeof(struct localFrame) +
 				      MAXARITY * sizeof(word));
-
 again:
   Putf("\nAction (h for help) ? ");
   pl_flush();
   ResetTty();                           /* clear pending input -- atoenne -- */
   c = getSingleChar();
 
-#ifndef BSD_SIGNALS
+#ifdef REINSTATE_INTERRUPT_HANDLER
 #ifdef SIG_ACK
   signal(SIGINT, SIG_ACK);
 #else
   signal(SIGINT, interruptHandler);	/* reinsert handler */
 #endif
+#endif
+
+#if defined(SIG_UNBLOCK)
+{ sigset_t set;
+
+  sigemptyset(&set);
+  sigaddset(&set, SIGINT);
+  sigprocmask(SIG_UNBLOCK, &set, NULL);
+}
 #endif
 
   switch(c)
@@ -918,21 +959,6 @@ PL_interrupt(int sig)
 #ifdef O_INTERRUPT
    interruptHandler(sig);
 #endif
-}
-
-
-void
-resetTracer(void)
-{
-#ifdef O_INTERRUPT
-  signal(SIGINT, interruptHandler);
-#endif
-
-  debugstatus.tracing      =
-  debugstatus.debugging    = FALSE;
-  debugstatus.suspendTrace = FALSE;
-  debugstatus.skiplevel    = 0;
-  debugstatus.retryFrame   = NULL;
 }
 
 
