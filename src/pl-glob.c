@@ -79,7 +79,7 @@ intermediate representation:
   ANYOF		Next 16 bytes are bitmap
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define MAXEXPAND	1024
+#define MAXEXPAND	2048
 #define NextIndex(i)	((i) < MAXEXPAND-1 ? (i)+1 : 0)
 
 #define MAXCODE 1024
@@ -336,6 +336,20 @@ pl_wildcard_match(term_t pattern, term_t string)
 }
 
 
+static char*
+struesccpy(char *dest, const char *src)
+{ char *d0 = dest;
+
+  while(*src)
+  { if ( *src == '\\' && src[1] )
+      ++src;
+    *dest++ = *src++;
+  }
+  *dest = EOS;
+  
+  return d0;
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 File Name Expansion.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -362,8 +376,10 @@ pl_expand_file_name(term_t f, term_t list)
 
   for( v = vector; filled > 0; filled--, v++ )
   { if ( rval )
-    { if ( !PL_unify_list(l, head, l) ||
-	   !PL_unify_atom_chars(head, *v) )
+    { struesccpy(spec, *v);
+
+      if ( !PL_unify_list(l, head, l) ||
+	   !PL_unify_atom_chars(head, spec) )
 	rval = FALSE;
     }
     remove_string(*v);
@@ -428,6 +444,45 @@ freeStringsBag(struct bag *b)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+strcat, escapting the bits we attach to it.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static char *
+stresccat(char *dest, const char *src)
+{ char *d0 = dest;
+
+  while(*dest)
+    dest++;
+
+  while(*src)
+  { switch(*src)
+    { case '\\':
+      case '?':
+      case '*':
+      case '[':
+      case ']':
+      case '{':
+      case '}':
+	*dest++ = '\\';
+    }
+    *dest++ = *src++;
+  }
+  
+  *dest = EOS;
+
+  return d0;
+}
+
+
+static int
+existsUnescapedFile(const char *n)
+{ char tmp[MAXPATHLEN];
+  
+  return ExistsFile(struesccpy(tmp, n));
+}
+
+
 static bool
 expandBag(struct bag *b)
 { int high = b->in;
@@ -445,7 +500,7 @@ expandBag(struct bag *b)
       switch( (c = *s++) )
       { case EOS:				/* no special characters */
 #ifdef O_EXPANDS_TESTS_EXISTS
-	  if ( b->expanded == FALSE || ExistsFile(current) )
+	  if ( b->expanded == FALSE || existsUnescapedFile(current) )
 	  { b->bag[b->in] = current;
 	    b->in = NextIndex(b->in);
 	  } else
@@ -462,6 +517,12 @@ expandBag(struct bag *b)
 	case '?':
 	case '*':
 	  break;
+        case '\\':
+	  if ( *s == '[' || *s == '{' || *s == '?' || *s == '*' )
+	  { s++;
+	    continue;
+	  }
+	/*FALLTHROUGH*/
 	default:
 	  if ( IS_DIR_SEPARATOR(c) )
 	    head = s;
@@ -518,7 +579,7 @@ expandBag(struct bag *b)
 	    if ( (dot || e->d_name[0] != '.') &&
 		 matchPattern(e->d_name, &cbuf) )
 	    { strcpy(expanded, prefix);
-	      strcat(expanded, e->d_name);
+	      stresccat(expanded, e->d_name);
 
 	      if ( *tail && !ExistsDirectory(expanded) )
 		continue;
@@ -529,7 +590,8 @@ expandBag(struct bag *b)
 	      b->in = NextIndex(b->in);
 	      b->size++;
 	      if ( b->in == b->out )
-		return warning("Too many matches");
+		return PL_error("expand_file_name", 2, NULL,
+				ERR_REPRESENTATION, ATOM_matches);
 	    }
 	  }
 	  closedir(d);

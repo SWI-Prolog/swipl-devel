@@ -477,6 +477,7 @@ A co			"co"
 A ioctl			"ioctl"
 A stack_parameter	"stack_parameter"
 A hash			"hash"
+A matches		"matches"
 
 F abs			1
 F acos			1
