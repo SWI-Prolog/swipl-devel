@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Avoid the usage of the appearently badly supported Win32 function
+    GetFileInformationByHandle(), now using GetFileSize().  This fixes some
+    false-alarm about not being able to find the system resources.
+
   * REMOVED: ed/1, also from the backward compatibility module.  Edit/1
     is the generic editing front-end.
 
