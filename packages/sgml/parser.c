@@ -1769,9 +1769,8 @@ process_begin_element(dtd_parser *p, const ichar *decl)
     open_element(p, e);
 
     decl=s;
-    if ( !(s=process_attributes(p, e, decl, atts, &natts)) )
-      gripe(ERC_SYNTAX_ERROR, "Bad attribute list", decl);
-    decl=s;
+    if ( (s=process_attributes(p, e, decl, atts, &natts)) )
+      decl=s;
 
     if ( dtd->dialect != DL_SGML )
     { if ( (s=isee_func(dtd, decl, CF_ETAGO2)) )
@@ -2849,7 +2848,7 @@ gripe(dtd_error_id e, ...)
     { const char *elem = va_arg(args, char *); /* element */
       const char *attr = va_arg(args, char *); /* attribute */
 
-      sprintf(buf, "Element <%s> does has no attribute %s", elem, attr);
+      sprintf(buf, "Element <%s> does has no attribute \"%s\"", elem, attr);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
 
@@ -2860,7 +2859,7 @@ gripe(dtd_error_id e, ...)
     { const char *elem  = va_arg(args, char *); /* element */
       const char *value = va_arg(args, char *); /* attribute value */
 
-      sprintf(buf, "Element <%s> has no attribute with value %s", elem, value);
+      sprintf(buf, "Element <%s> has no attribute with value \"%s\"", elem, value);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
 

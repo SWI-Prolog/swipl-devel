@@ -648,6 +648,7 @@ on_error(dtd_parser *p, dtd_error *error)
       severity = "warning";
       break;
     case ERS_ERROR:
+    default:				/* make compiler happy */
       pd->errors++;
       severity = "error";
       break;
