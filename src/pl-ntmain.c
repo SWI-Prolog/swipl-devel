@@ -27,7 +27,7 @@
 #include "pl-stream.h"
 #include "pl-itf.h"
 #include <ctype.h>
-#include <console.h>
+#include "win32/console/console.h"
 #include <signal.h>
 #ifdef O_PLMT
 #include <pthread.h>

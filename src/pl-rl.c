@@ -61,7 +61,7 @@ SWI-Prolog.h (pl-itf.h) and SWI-Stream.h (pl-strea.h).
 #include <io.h>
 #endif
 #ifdef O_RLC
-#include <console.h>
+#include "win32/console/console.h"
 #endif
 
 #ifdef HAVE_RL_INSERT_CLOSE

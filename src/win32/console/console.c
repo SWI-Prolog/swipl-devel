@@ -325,6 +325,8 @@ If %PLTERM_CLASS% is in the environment, this   value is used as Windows
 class identifier for the console window.   This allows external programs
 to start PLWIN.EXE and find the window it  has started in order to embed
 it.
+
+In old versions this was fixed to "RlcConsole"
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static char *
