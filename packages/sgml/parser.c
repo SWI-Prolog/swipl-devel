@@ -222,7 +222,8 @@ expand_pentities(dtd *dtd, const ichar *in, ichar *out, int len)
 
 	continue;
       } else
-	return gripe(ERC_SYNTAX_ERROR, "Illegal parameter entity reference");
+	return gripe(ERC_SYNTAX_ERROR,
+		     "Illegal parameter entity reference", s);
     }
 
     if ( --len <= 0 )
@@ -1881,6 +1882,37 @@ process_doctype(dtd_parser *p, const ichar *decl)
 }
 
 
+static void
+init_decoding(dtd_parser *p)
+{
+#ifdef UTF8
+  dtd *dtd = p->dtd;
+
+  if ( dtd->encoding == ENC_UTF8 &&
+       p->encoding   == ENC_ISO_LATIN1 )
+  { p->utf8_decode = TRUE;
+    fprintf(stderr, "Converting UTF-8 to ISO-Latin-1\n");
+  } else
+    p->utf8_decode = FALSE;
+#endif
+}
+
+
+static void
+set_encoding(dtd_parser *p, const ichar *enc)
+{ dtd *dtd = p->dtd;
+
+  if ( istrcaseeq(enc, "iso-8859-1") )
+  { dtd->encoding = ENC_ISO_LATIN1;
+  } else if ( istrcaseeq(enc, "utf-8") )
+  { dtd->encoding = ENC_UTF8;
+  } else
+    gripe(ERC_EXISTENCE, "character encoding", enc);
+
+  init_decoding(p);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Process <? ... ?>
 
@@ -1893,7 +1925,36 @@ process_pi(dtd_parser *p, const ichar *decl)
   dtd *dtd = p->dtd;
 
   if ( (s=isee_identifier(dtd, decl, "xml")) ) /* <?xml version="1.0"?> */
-  { switch(dtd->dialect)
+  { decl = s;
+
+    while(*decl && *decl != '?')
+    { dtd_symbol *nm;
+
+      if ( (s=itake_name(dtd, decl, &nm)) &&
+	   (s=isee_func(dtd, s, CF_VI)) )
+      { ichar buf[MAXSTRINGLEN];
+	const ichar *end;
+
+	if ( !(end=itake_string(dtd, s, buf, sizeof(buf))) )
+	  end=itake_nmtoken_chars(dtd, s, buf, sizeof(buf));
+
+	if ( end )
+	{ decl = end;
+
+	  if ( istrcaseeq(nm->name, "encoding") )
+	    set_encoding(p, buf);
+
+	  /* fprintf(stderr, "XML %s = %s\n", nm->name, buf); */
+
+	  continue;
+	}
+      }
+
+      gripe(ERC_SYNTAX_ERROR, "Illegal XML parameter", decl);
+      break;
+    }
+
+    switch(dtd->dialect)
     { case DL_SGML:
 	set_dialect_dtd(dtd, DL_XML);
         break;
@@ -2284,17 +2345,7 @@ end_document_dtd_parser(dtd_parser *p)
 
 int
 begin_document_dtd_parser(dtd_parser *p)
-{
-#ifdef UTF8
-  dtd *dtd = p->dtd;
-
-  if ( dtd->encoding == ENC_UTF8 &&
-       p->encoding   == ENC_ISO_LATIN1 )
-  { p->utf8_decode = TRUE;
-    fprintf(stderr, "Converting UTF-8 to ISO-Latin-1\n");
-  } else
-    p->utf8_decode = FALSE;
-#endif
+{ init_decoding(p);
 
   return TRUE;
 }
