@@ -2655,10 +2655,16 @@ This predicate can also be used to split atoms by instantiating
 
 L = [gnu, gnat]
 \end{code}
+
     \predicate{atom_length}{2}{+Atom, -Length}
 Succeeds if \arg{Atom} is an atom of \arg{Length} characters long. This
-predicate also works for integers and floats, expressing the number of
-characters output when given to write/1.
+predicate also works for strings (see \secref{string}). If the prolog
+flag \const{iso} is \emph{not} set, it also accepts integers and floats,
+expressing the number of characters output when given to write/1 as well
+as code-lists and character-lists, expressing the length of the list.%
+    \bug{Note that \const{[]} is both an atom an empty code/character
+	 list.  The predicate atom_length/2 returns 2 for this atom.}
+
     \predicate{atom_prefix}{2}{+Atom, +Prefix}
 Succeeds if \arg{Atom} starts with the characters from \arg{Prefix}.
 Its behaviour is equivalent to \exam{?- concat(\arg{Prefix}, _, \arg{Atom})}, but avoids the construction of an atom for the `remainder'.
