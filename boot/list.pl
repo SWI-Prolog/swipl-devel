@@ -100,10 +100,15 @@ nth1(Index, List, Elem) :-
 
 %	last(?Elem, ?List)
 %	Succeeds if `Last' unifies with the last element of `List'.
+%	Modified after discussion on the comp.lang.prolog.  This version
+%	is a little faster and deterministic as well as logical.
 
-last(Elem, [Elem]).
-last(Elem, [_|List]) :-
-	last(Elem, List).
+last(Elem, [H|T]) :-
+	last(T, H, Elem).
+
+last([], X, X).
+last([H|T], _, X) :-
+	last(T, H, X).
 
 %	reverse(?List1, ?List2)
 %	Is true when the elements of List2 are in reverse order compared to
