@@ -36,8 +36,9 @@ XPCE/SWI-Prolog.
 progman_groups(Groups) :-
 	open_dde_conversation(progman, progman, DDE),
 	dde_request(DDE, groups, Lines),
-	lines_to_atoms(Lines, Groups0),
 	close_dde_conversation(DDE),
+	check_error(Lines),
+	lines_to_atoms(Lines, Groups0),
 	Groups = Groups0.
 
 %	progman_group_info(+Group, -File, -Items)
@@ -49,6 +50,7 @@ progman_group_info(Group, File, Items) :-
 	open_dde_conversation(progman, progman, DDE),
 	dde_request(DDE, Group, Info),
 	close_dde_conversation(DDE),
+	check_error(Info),
 	lines_to_atoms(Info, [GrounInfo|ItemLines]),
 	line_to_args(GrounInfo, [_,File|_]),
 	maplist(map_item_info, ItemLines, Items).
@@ -109,12 +111,26 @@ program_group(Default, Group) :-
 	).
 program_group(Default, Default).
 
+		 /*******************************
+		 *     ERRORS AND WARNINGS	*
+		 *******************************/
+
+%	check_error(+Return)
+%
+%	Map return-codes into exeptions.
+
+check_error(error(Error)) :-
+	throw(error(dde_error, Error)).
+check_error(_).
+
+
 :- multifile
 	prolog:message/3.
 
 prolog:message(progman_replace(Default)) -->
 	[ 'Put (replace) items in existing group ~w? '-[Default], flush ].
-
+prolog:message(error(dde_error, Msg)) -->
+	[ 'DDE error: ~w'-[Msg] ].
 
 		 /*******************************
 		 *	       INSTALL		*

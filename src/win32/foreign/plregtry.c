@@ -10,6 +10,7 @@
 #include <SWI-Prolog.h>
 #include <windows.h>
 #include <malloc.h>
+#include <assert.h>
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This file serves two purposes. It  both   provides  a  reasonable set of
@@ -116,6 +117,65 @@ again:
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define CompoundArg(name, arity) \
+	PL_FUNCTOR, PL_new_functor(PL_new_atom(name), (arity))
+#define AtomArg(name) \
+	PL_CHARS, name
+#define IntArg(i) \
+	PL_INTEGER, (i)
+#define TermArg(t) \
+	PL_TERM, (t)
+
+#include <winerror.h>
+
+static int
+api_exception(DWORD err, const char *action, term_t key)
+{ term_t except = PL_new_term_ref();
+  term_t formal = PL_new_term_ref();
+  term_t swi	= PL_new_term_ref();
+  const char *msg = NULL;
+
+  switch(err)
+  { case ERROR_ACCESS_DENIED:
+    { PL_unify_term(formal,
+		    CompoundArg("permission_error", 3),
+		    AtomArg(action),
+		    AtomArg("key"),
+		    TermArg(key));
+      break;
+    }
+    default:
+      PL_unify_atom_chars(formal, "system_error");
+      msg = APIError(err);
+      break;
+  }
+
+  if ( msg )
+  { term_t msgterm  = PL_new_term_ref();
+
+    if ( msg )
+    { PL_put_atom_chars(msgterm, msg);
+    }
+
+    PL_unify_term(swi,
+		  CompoundArg("context", 2),
+		    PL_VARIABLE,
+		    PL_TERM, msgterm);
+  }
+
+  PL_unify_term(except,
+		CompoundArg("error", 2),
+		  PL_TERM, formal,
+		  PL_TERM, swi);
+
+  return PL_raise_exception(except);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Translate a term, that  is  either  an   atom,  indicating  one  of  the
 predefined roots of the registry, or an integer that is an open registry
 handle. Integers are 32-bit wide, so it is generally ok to store handles
@@ -188,7 +248,7 @@ pl_reg_subkeys(term_t h, term_t l)
     } else if ( rval == ERROR_NO_MORE_ITEMS )
     { return PL_unify_nil(tail);
     } else
-    { return PL_warning("reg_subkeys/2: %s", APIError(rval));
+    { return api_exception(rval, "enum_subkeys", h);
     }
   }
 }
@@ -274,7 +334,7 @@ pl_reg_open_key(term_t parent, term_t name, term_t access, term_t handle)
   if ( rval == ERROR_FILE_NOT_FOUND )
     PL_fail;
 
-  return PL_warning("reg_open_key/4: (%d), %s", rval, APIError(rval));
+  return api_exception(rval, "open", name);
 }
 
 
@@ -308,7 +368,7 @@ pl_reg_delete_key(term_t h, term_t sub)
   if ( (rval = RegDeleteKey(k, s)) == ERROR_SUCCESS )
     PL_succeed;
 
-  return PL_warning("reg_delete_key/2: %s", APIError(rval));
+  return api_exception(rval, "delete", sub);
 }
 
 		 /*******************************
@@ -338,7 +398,7 @@ pl_reg_value_names(term_t h, term_t names)
     } else if ( rval == ERROR_NO_MORE_ITEMS )
     { return PL_unify_nil(tail);
     } else
-      return PL_warning("reg_value_names/2: %s", APIError(rval));
+      return api_exception(rval, "names", h);
   }
 }
 
@@ -430,8 +490,10 @@ pl_reg_value(term_t h, term_t name, term_t value)
 	return PL_unify_atom_chars(value, (char *)data);
     }
   } else
-    return PL_warning("reg_value/3: %s", APIError(rval));
-  return PL_warning("reg_value/3: reached dead end in C Code");
+    return api_exception(rval, "write", h);
+
+  assert(0);
+  return FALSE;
 }
 
 
@@ -483,7 +545,15 @@ pl_reg_set_value(term_t h, term_t name, term_t value)
     }
     default:
     error:
-      return PL_warning("reg_set_value/3: instantiation error");
+    { term_t ex = PL_new_term_ref();
+
+      PL_unify_term(ex,
+		    CompoundArg("error", 2),
+		      AtomArg("instantiation_error"),
+		      PL_VARIABLE);
+
+      PL_raise_exception(ex);
+    }
   }
 
 
@@ -491,7 +561,7 @@ pl_reg_set_value(term_t h, term_t name, term_t value)
   if ( rval == ERROR_SUCCESS )
     PL_succeed;
 
-  return PL_warning("reg_set_value/3: %s", APIError(rval));
+  return api_exception(rval, "write", h);
 }
 
 
@@ -507,7 +577,7 @@ pl_reg_delete_value(term_t h, term_t name)
   if ( (rval = RegDeleteValue(k, vname)) == ERROR_SUCCESS )
     PL_succeed;
 
-  return PL_warning("reg_delete_value/2: %s", APIError(rval));
+  return api_exception(rval, "delete", name);
 }
 
 
@@ -523,7 +593,7 @@ pl_reg_flush(term_t h)
     if ( (rval = RegFlushKey(k)) == ERROR_SUCCESS )
       PL_succeed;
 
-    return PL_warning("reg_flush/1: %s", APIError(rval));
+    return api_exception(rval, "flush", h);
   }
 
   PL_fail;
@@ -570,7 +640,7 @@ pl_reg_create_key(term_t h, term_t name,
   if ( rval == ERROR_SUCCESS )
     return PL_unify_integer(key, (long)skey);
   else
-    return PL_warning("reg_create_key/6: %s", APIError(rval));
+    return api_exception(rval, "create", name);
 }
 
 
