@@ -1804,38 +1804,67 @@ match_map(dtd *dtd, dtd_map *map, ocharbuf *buf)
 { if ( buf->encoding == SGML_ENC_ISO )
   { ichar *data = (ichar*)buf->data.t;
     ichar *e = data+buf->size-1;
-  ichar *m = map->from+map->len-1;
-
-  while( m >= map->from )
-  { if ( e < data )
+    ichar *m = map->from+map->len-1;
+  
+    while( m >= map->from )
+    { if ( e < data )
+	return 0;
+  
+      if ( *m == *e )
+      { m--;
+	e--;
+	continue;
+      }
+      if ( *m == CHR_DBLANK )
+      { if ( e>data && HasClass(dtd, *e, CH_WHITE) )
+	  e--;
+	else
+	  return FALSE;
+	goto blank;
+      }
+      if ( *m == CHR_BLANK )
+      { blank:
+	while( e>data && HasClass(dtd, *e, CH_WHITE) )
+	  e--;
+	m--;
+	continue;
+      }
       return 0;
-
-    if ( *m == *e )
-    { m--;
-      e--;
-      continue;
     }
-    if ( *m == CHR_DBLANK )
-    { if ( e>data && HasClass(dtd, *e, CH_WHITE) )
-	e--;
-      else
-	return FALSE;
-      goto blank;
-    }
-    if ( *m == CHR_BLANK )
-    { blank:
-      while( e>data && HasClass(dtd, *e, CH_WHITE) )
-	e--;
-      m--;
-      continue;
-    }
-    return 0;
-  }
 
     return data+buf->size-1-e;
   } else
-  { assert(0);
-    return 0;				/* TBD */
+  { wchar_t *data = buf->data.w;
+    wchar_t *e    = data+buf->size-1;
+    ichar *m      = map->from+map->len-1;
+  
+    while( m >= map->from )
+    { if ( e < data )
+	return 0;
+  
+      if ( *m == *e )
+      { m--;
+	e--;
+	continue;
+      }
+      if ( *m == CHR_DBLANK )
+      { if ( e>data && HasClass(dtd, *e, CH_WHITE) )
+	  e--;
+	else
+	  return FALSE;
+	goto wblank;
+      }
+      if ( *m == CHR_BLANK )
+      { wblank:
+	while( e>data && HasClass(dtd, *e, CH_WHITE) )
+	  e--;
+	m--;
+	continue;
+      }
+      return 0;
+    }
+
+    return data+buf->size-1-e;
   }
 }
 
@@ -3821,7 +3850,7 @@ new_dtd_parser(dtd *dtd)
   p->state	 = S_PCDATA;
   p->mark_state	 = MS_INCLUDE;
   p->dmode       = DM_DTD;
-  p->encoded	 = TRUE;		/* encoded octed stream */
+  p->encoded	 = TRUE;		/* encoded octet stream */
   p->buffer	 = new_icharbuf();
   p->cdata	 = new_ocharbuf();
   p->event_class = EV_EXPLICIT;
@@ -4557,7 +4586,7 @@ add_cdata(dtd_parser *p, int chr)
     add_ocharbuf(buf, chr);
   
     if ( p->map &&
-	 p->map->ends[chr]  &&
+	 chr <= 0xff && p->map->ends[chr] &&
 	 match_shortref(p) )
       return;
 

@@ -10,7 +10,7 @@
 <center>
 
 <h1>SWI-Prolog SGML/XML parser<br>
-<font size="+0"><em>Version 2.0, December 2004</em></font></h1>
+<font size="+0"><em>Version 2.0.2, February 2005</em></font></h1>
 
 <br>
 <a href="mailto:jan@science.uva.nl"><em>Jan Wielemaker</em></a><br>
@@ -60,19 +60,20 @@ DTD. The parser is designed to be small, fast and flexible.
 <li><a href="#sec:sec-3.6.1">Partial Parsing</a>
 </ul>
 </ul>
+<li><a href="#sec:encoding">Stream encoding issues</a>
 <li><a href="#sec:indexaccess">Processing Indexed Files</a>
-<li><a href="#sec:sec-5">External entities</a>
-<li><a href="#sec:sec-6">Writing markup</a>
+<li><a href="#sec:sec-6">External entities</a>
+<li><a href="#sec:sec-7">Writing markup</a>
 <ul>
-<li><a href="#sec:sec-6.1">Writing documents</a>
-<li><a href="#sec:sec-6.2">Simplify quoting</a>
+<li><a href="#sec:sec-7.1">Writing documents</a>
+<li><a href="#sec:sec-7.2">Simplify quoting</a>
 </ul>
-<li><a href="#sec:sec-7">Unsupported features</a>
-<li><a href="#sec:sec-8">Installation</a>
+<li><a href="#sec:sec-8">Unsupported features</a>
+<li><a href="#sec:sec-9">Installation</a>
 <ul>
-<li><a href="#sec:sec-8.1">Unix systems</a>
+<li><a href="#sec:sec-9.1">Unix systems</a>
 </ul>
-<li><a href="#sec:sec-9">Acknowledgements</a>
+<li><a href="#sec:sec-10">Acknowledgements</a>
 </ul>
 
 <p>
@@ -1361,6 +1362,25 @@ on_begin(Tag, Attr, Parser) :-
 <p>
 &nbsp;
 
+<h1><a name="sec:encoding">Stream encoding issues</a></h1>
+
+<p>
+The parser can deal with ISO Latin-1 and UTF-8 encoded files, doing
+decoding based on the encoding argument provided to
+<a href="#set_sgml_parser/2"><b>set_sgml_parser/2</b></a> or, for XML, based on the <a name="const:encoding"><b><tt>encoding</tt></b></a>
+attribute of the XML header.  The parser reads from SWI-Prolog streams,
+which also provide encoding handling.  Therefore, there are two modes
+for parsing.  If the SWI-Prolog stream has encoding <a name="const:octet"><b><tt>octet</tt></b></a> (which
+is the default for binary streams), the decoder of the SGML parser will 
+be used and positions reported by the parser are octet offsets in the
+stream.  In other cases, the Prolog stream decoder is used and offsets
+are character code counts.
+
+
+
+<p>
+&nbsp;
+
 <h1><a name="sec:indexaccess">Processing Indexed Files</a></h1>
 
 <p>
@@ -1440,7 +1460,7 @@ rdf_element(Id, Term) :-
 <p>
 &nbsp;
 
-<h1><a name="sec:sec-5">External entities</a></h1>
+<h1><a name="sec:sec-6">External entities</a></h1>
 
 <p>
 While processing an SGML document the document may refer to external 
@@ -1512,12 +1532,12 @@ resources can be used to store external entities.
 <p>
 &nbsp;
 
-<h1><a name="sec:sec-6">Writing markup</a></h1>
+<h1><a name="sec:sec-7">Writing markup</a></h1>
 
 <p>
 &nbsp;
 
-<h2><a name="sec:sec-6.1">Writing documents</a></h2>
+<h2><a name="sec:sec-7.1">Writing documents</a></h2>
 
 <p>
 The library <b>sgml_write</b> provides the inverse of the parser,
@@ -1572,7 +1592,7 @@ from <a href="#dtd/2"><b>dtd/2</b></a>. The <var>Options</var> are described wit
 <p>
 &nbsp;
 
-<h2><a name="sec:sec-6.2">Simplify quoting</a></h2>
+<h2><a name="sec:sec-7.2">Simplify quoting</a></h2>
 
 <p>
 The <b>sgml2pl</b> package is a parser.  Output is generally much easier
@@ -1601,7 +1621,7 @@ a valid XML element or attribute name.
 <p>
 &nbsp;
 
-<h1><a name="sec:sec-7">Unsupported features</a></h1>
+<h1><a name="sec:sec-8">Unsupported features</a></h1>
 
 <p>
 The current parser is rather limited. While it is able to deal with many
@@ -1671,12 +1691,12 @@ attributes yet, let alone details.
 <p>
 &nbsp;
 
-<h1><a name="sec:sec-8">Installation</a></h1>
+<h1><a name="sec:sec-9">Installation</a></h1>
 
 <p>
 &nbsp;
 
-<h2><a name="sec:sec-8.1">Unix systems</a></h2>
+<h2><a name="sec:sec-9.1">Unix systems</a></h2>
 
 <p>
 Installation on Unix system uses the commonly found <code>configure</code>,
@@ -1707,7 +1727,7 @@ the Prolog library files in <b>$PLBASE/library</b>, where
 <p>
 &nbsp;
 
-<h1><a name="sec:sec-9">Acknowledgements</a></h1>
+<h1><a name="sec:sec-10">Acknowledgements</a></h1>
 
 <p>
 The Prolog representation for parsed documents is based on the 
@@ -1799,6 +1819,7 @@ encoding technique as well as entities defined in the DTD
 <li><a href="#dtd_property/2"><b>dtd_property/2</b></a>
 <li><a href="#const:element"><b><tt>element</tt></b></a> [ <a href="#const:element%2">2</a>]
 <li><a href="#const:empty"><b><tt>empty</tt></b></a>
+<li><a href="#const:encoding"><b><tt>encoding</tt></b></a>
 <li><a href="#const:end"><b><tt>end</tt></b></a> [ <a href="#const:end%2">2</a>]
 <li><a href="#const:entity"><b><tt>entity</tt></b></a>
 <li><a href="#const:error"><b><tt>error</tt></b></a>
@@ -1830,6 +1851,7 @@ encoding technique as well as entities defined in the DTD
 <li><a href="#const:notation"><b><tt>notation</tt></b></a>
 <li><a href="#const:number"><b><tt>number</tt></b></a>
 <li><a href="#const:nutoken"><b><tt>nutoken</tt></b></a>
+<li><a href="#const:octet"><b><tt>octet</tt></b></a>
 <li><a href="#const:omitted"><b><tt>omitted</tt></b></a>
 <li><a href="#const:on_begin"><b><tt>on_begin</tt></b></a> [ <a href="#const:on_begin%2">2</a>]
 <li><a href="#open_dtd/3"><b>open_dtd/3</b></a>

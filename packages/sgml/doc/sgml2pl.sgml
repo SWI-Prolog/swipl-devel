@@ -2,8 +2,8 @@
 
 <pldoc>
 <head>
-<version>2.0
-<release-date>December 2004
+<version>2.0.2
+<release-date>February 2005
 <package>sgml2pl
 </head>
 
@@ -998,6 +998,21 @@ on_begin(Tag, Attr, Parser) :-
                    ]),
         process_rdf_description(element(Tag, Attr, Content)).
 </code>
+
+
+<s1 name="encoding">Stream encoding issues</title>
+
+<p>
+The parser can deal with ISO Latin-1 and UTF-8 encoded files, doing
+decoding based on the encoding argument provided to
+<pref>set_sgml_parser/2</pref> or, for XML, based on the <c/encoding/
+attribute of the XML header.  The parser reads from SWI-Prolog streams,
+which also provide encoding handling.  Therefore, there are two modes
+for parsing.  If the SWI-Prolog stream has encoding <c/octet/ (which
+is the default for binary streams), the decoder of the SGML parser will 
+be used and positions reported by the parser are octet offsets in the
+stream.  In other cases, the Prolog stream decoder is used and offsets
+are character code counts.
 
 
 <s1 name="indexaccess">Processing Indexed Files</title>

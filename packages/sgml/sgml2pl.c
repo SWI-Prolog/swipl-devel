@@ -1623,10 +1623,10 @@ pl_sgml_parse(term_t parser, term_t options)
   if ( in )
   { int eof = FALSE;
 
-    if ( (in->flags & SIO_TEXT) )
-      p->encoded = FALSE;		/* already decoded */
-    else
+    if ( in->encoding == ENC_OCTET )
       p->encoded = TRUE;		/* parser must decode */
+    else
+      p->encoded = FALSE;		/* already decoded */
 
     if ( !recursive )
     { pd->source = in;
@@ -1639,16 +1639,11 @@ pl_sgml_parse(term_t parser, term_t options)
       if ( has_content_length )
       { if ( content_length <= 0 )
 	  c = EOF;
-	else if ( p->encoded == TRUE )
-	  c = Sgetc(in);
 	else
 	  c = Sgetcode(in);
 	ateof = (--content_length <= 0);
       } else
-      { if ( p->encoded == TRUE )
-	  c = Sgetc(in);
-	else
-	  c = Sgetcode(in);
+      { c = Sgetcode(in);
 	ateof = Sfeof(in);
       }
 
