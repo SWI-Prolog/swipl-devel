@@ -73,6 +73,7 @@ rpm-install:	install
 html-install::
 		mkdir -p $(PKGDOC)
 		$(INSTALL) -m 644 $(DOC).html $(PKGDOC)
+		$(INSTALL) -m 644 modules.gif $(PKGDOC)
 
 pdf-install::
 		mkdir -p $(PKGDOC)

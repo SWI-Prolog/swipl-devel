@@ -39,6 +39,7 @@ ilib::
 
 html-install::
 		copy semweb.html "$(PKGDOC)"
+		copy modules.gif "$(PKGDOC)"
 pdf-install:	
 		copy semweb.pdf "$(PKGDOC)"
 
