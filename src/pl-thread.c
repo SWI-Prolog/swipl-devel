@@ -466,9 +466,11 @@ exitPrologThreads()
   int me = PL_thread_self();
   int canceled = 0;
 
+  DEBUG(1, Sdprintf("exitPrologThreads(): me = %d\n", me));
+
   sem_init(&sem_canceled, USYNC_THREAD, 0);
 
-  for(t=threads, i=1; i<MAX_THREADS; i++, t++)
+  for(t=&threads[1], i=1; i<MAX_THREADS; i++, t++)
   { if ( t->thread_data && i != me )
     { switch(t->status)
       { case PL_THREAD_FAILED:
@@ -492,6 +494,7 @@ exitPrologThreads()
   	  t->thread_data->exit_requested = TRUE;
 	  t->thread_data->pending_signals |= (1L << (SIGINT-1));
 	  PostThreadMessage(t->w32id, WM_QUIT, 0, 0);
+	  DEBUG(1, Sdprintf("Cancelled %d\n", i));
 	  canceled++;
 #else
 	{ int rc;
