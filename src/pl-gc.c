@@ -1100,8 +1100,8 @@ sweep_environments(LocalFrame fr)
 	   fr->parent )
       { fr->mark.trailtop = INVALID_TRAILTOP;
 	fr->mark.globaltop = INVALID_GLOBALTOP;
-	SECURE(trailtops_marked--);
       }
+      SECURE(trailtops_marked--);	/* ... but counted anyway */
     } else
       clear(fr, FR_CHOICEPT);
 
