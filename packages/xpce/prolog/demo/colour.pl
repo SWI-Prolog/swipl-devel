@@ -90,6 +90,8 @@ make_colour_browser(CB, DataBase) :-
 					% Make a picture with some different
 					% graphicals for preview
 	send(new(P, picture(size := size(100, 25))), below, CB),
+	send(P, ver_stretch, 0),
+	send(P, ver_shrink, 0),
 	send(P, format, new(Fmt, format(vertical, 1, @on))),
 	send(Fmt, adjustment, vector(center)),
 	send(P, display, graphical(0, 0, 0, 25)),
