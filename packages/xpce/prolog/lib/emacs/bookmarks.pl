@@ -327,7 +327,13 @@ sub_directory(Path, File, SubPath) :-
 
 save(F, Fd:prolog) :->
 	"Save bookmarks to file"::
-	send(F?sons, for_all, message(@arg1, save, Fd)).
+	get_chain(F, sons, Sons),
+	save_sons(Sons, Fd).
+
+save_sons([], _).
+save_sons([H|T], Fd) :-
+	send(H, save, Fd),
+	save_sons(T, Fd).
 
 loaded_buffer(F, TB:emacs_buffer) :->
 	"PceEmacs has loaded this buffer"::
