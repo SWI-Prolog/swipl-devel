@@ -68,7 +68,8 @@ PCEQOFS=	pce_boot.qof \
 OBJS=		../../quintus/src/$(BIN)/libpce.so
 
 BINFILES=	libpce.$(SO) \
-		libXPCE.a libXPCEmain.a
+		libXPCE.a
+#		libXPCEmain.a
 #		libXPCE.$(SO) libXPCE.$(SO).$(PCEMAJOR) \
 #		libXPCE.$(SO).$(PCEMAJOR).$(PCEMINOR).$(PCEPATCH)
 
@@ -325,7 +326,7 @@ release_misc:	$(PCEHOME)/Pce $(PCEHOME)/bitmaps $(PCELIB)/dialog/bitmaps \
 		$(PCEHOME)/include $(PCEHOME)/man $(PCEHOME)/postscript \
 		$(PCELIB)/xref/common.pl $(PCELIB)/xref/quintus.pl
 
-pceshare:	$(PCESHARE)
+pceshare:	$(PCESHARE) english
 
 pce_editor.pl: ../boot/pce_editor.pl
 	$(LN) $< $@
@@ -345,6 +346,8 @@ pce_accelerator.pl: ../boot/pce_accelerator.pl
 	$(LN) $< $@
 pce_autoload.pl: ../boot/pce_autoload.pl
 	$(LN) $< $@
+english:
+	$(LN) ../lib/english $@
 
 $(PCELIB)/pce.pl:	../pwboot/pce.pl
 	$(CP) ../pwboot/pce.pl $(PCELIB)/pce.pl

@@ -240,11 +240,12 @@ typedef struct dCell 	      **DelegateList;   /* See msg-passing.c */
 		*	    POINTERS	 	*
 		********************************/
 
-#ifndef POINTER_OFFSET
 #ifdef VARIABLE_POINTER_OFFSET
+#undef POINTER_OFFSET
 GLOBAL unsigned long pce_data_pointer_offset;
 #define POINTER_OFFSET pce_data_pointer_offset
 #else
+#ifndef POINTER_OFFSET
 #define POINTER_OFFSET (0L)
 #endif
 #endif
