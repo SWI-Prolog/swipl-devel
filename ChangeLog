@@ -1,6 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.1.13
+==============
+
+  * FIXED: added a flush() after completing the user-query.  This gives
+    better output for ?- write(hello).
+
+  * FIXED: file-name conversion cache management.  This cache is used
+    by absolute_file_name/3.
+
 Version 2.1.12
 ==============
 
