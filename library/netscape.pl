@@ -85,16 +85,16 @@ user:url_path(swi,	   'http://www.swi.psy.uva.nl').
 user:url_path(pl,	   'http://www.swi-prolog.org').
 user:url_path(pl_twiki,	   'http://gollem.swi.psy.uva.nl/twiki/pl/bin/view').
 
-user:url_path(pl_project,  swi('projects/SWI-Prolog')).
+user:url_path(pl_at_swi,   swi('projects/SWI-Prolog')).
 user:url_path(pl_faq,	   pl_twiki('FAQ/WebHome')).
-user:url_path(pl_man,	   pl_project('Manual')).
-user:url_path(pl_mail,	   pl_project('#mailinglist')).
-user:url_path(pl_download, pl_project('download.html')).
-user:url_path(pl_bugs,	   pl_project('bugreport.html')).
+user:url_path(pl_man,	   pl_at_swi('Manual')).
+user:url_path(pl_mail,	   pl('mailinglist.html')).
+user:url_path(pl_download, pl('download.html')).
+user:url_path(pl_bugs,	   pl('bugreport.html')).
 user:url_path(pl_quick,	   pl_man('quickstart.html')).
 
-user:url_path(xpce,	   swi('projects/xpce')).
-user:url_path(xpce_man,	   xpce('UserGuide')).
+user:url_path(xpce,	   pl('packages/xpce')).
+user:url_path(xpce_man,	   swi('projects/xpce/UserGuide')).
 
 expand_url(URL, URL) :-
 	atom(URL), !.
