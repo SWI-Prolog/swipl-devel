@@ -417,6 +417,7 @@ read_jpeg_file(IOSTREAM *fd, Image image)
 #ifdef O_GIFWRITE
 #include <img/gifwrite.h>
 typedef unsigned char GSAMPLE;
+static GSAMPLE *mask_bits(HBITMAP mask); /* forwards */
 
 #define ROUND(p, n)		((((p) + (n) - 1) & ~((n) - 1)))
 
@@ -425,6 +426,10 @@ Old versions used GetPixel(). Now it   uses  GetDIBits(), which probably
 gives a big performance boost. Unfortutanely   though we need packed RGB
 and GetDIBits() returns a word-aligned array of RGB triples Billy nicely
 orders as BGR. Hence the shifting and swapping ...
+
+Note that the height field  of  the   structure  is  set to the negative
+height, the bits are  extracted  top-to-bottom   rather  than  MS native
+bottom-to-top.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
@@ -433,7 +438,7 @@ write_gif_file(IOSTREAM *fd, Image image, HBITMAP bm, HBITMAP mask)
   int height = valInt(image->size->h);
   int rval, sl;
   HDC hdc;
-  GSAMPLE *data;
+  GSAMPLE *data, *maskdata = NULL;
   DisplayObj d = image->display;
   HPALETTE ohpal=0, hpal;
   BITMAPINFO info;
@@ -454,13 +459,13 @@ write_gif_file(IOSTREAM *fd, Image image, HBITMAP bm, HBITMAP mask)
   memset(&info, 0, sizeof(info));
   info.bmiHeader.biSize = sizeof(info);
   info.bmiHeader.biWidth = width;
-  info.bmiHeader.biHeight = height;
+  info.bmiHeader.biHeight = -height;	/* work top-down */
   info.bmiHeader.biPlanes = 1;
   info.bmiHeader.biBitCount = 24;
   info.bmiHeader.biCompression = BI_RGB;
 
   if ( !(sl = GetDIBits(hdc, bm,
-			0, valInt(image->size->h),
+			0, height,
 			NULL,
 			&info,
 			DIB_RGB_COLORS)) )
@@ -477,8 +482,11 @@ write_gif_file(IOSTREAM *fd, Image image, HBITMAP bm, HBITMAP mask)
 	  });
 
     data = pceMalloc(info.bmiHeader.biSizeImage);
+    height = -info.bmiHeader.biHeight;
+    width  = info.bmiHeader.biWidth;
+
     if ( !GetDIBits(hdc, bm,
-		    0, info.bmiHeader.biHeight,
+		    0, height,
 		    data,
 		    &info,
 		    DIB_RGB_COLORS) )
@@ -486,18 +494,18 @@ write_gif_file(IOSTREAM *fd, Image image, HBITMAP bm, HBITMAP mask)
       return FALSE;
     }
 
-    if ( info.bmiHeader.biWidth*3 % sizeof(DWORD) )
-    { int outlensl = info.bmiHeader.biWidth*3;
+    if ( width*3 % sizeof(DWORD) )
+    { int outlensl = width*3;
       int inlensl  = ROUND(outlensl, sizeof(DWORD));
       int y;
 
-      for(y=0; y<info.bmiHeader.biHeight; y++)
+      for(y=0; y<height; y++)
       { GSAMPLE *p = data+y*outlensl;
 	int x;
 
 	memcpy(p, data+y*inlensl, outlensl);
 					/* swap blue/red */
-	for(x=0; x<info.bmiHeader.biWidth; x++, p+=3)
+	for(x=0; x<width; x++, p+=3)
 	{ GSAMPLE tmp = p[0];
 	  p[0] = p[2];
 	  p[2] = tmp;
@@ -506,10 +514,13 @@ write_gif_file(IOSTREAM *fd, Image image, HBITMAP bm, HBITMAP mask)
     }
   }
 
-  rval = gifwrite_rgb(fd, data, NULL,
-		      info.bmiHeader.biWidth,
-		      info.bmiHeader.biHeight);
+  if ( mask )
+    maskdata = mask_bits(mask);
+
+  rval = gifwrite_rgb(fd, data, maskdata, width, height);
   pceFree(data);
+  if ( maskdata )
+    pceFree(maskdata);
 
   if ( ohpal )
     SelectPalette(hdc, ohpal, FALSE);
@@ -517,5 +528,94 @@ write_gif_file(IOSTREAM *fd, Image image, HBITMAP bm, HBITMAP mask)
 
   return rval;
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+mask_bits() returns a bitmask for  gifwrite_rgb().   This  mask  is 1 at
+transparent pixels and scanlines  are   byte-aligned.  MS  scanlines are
+word-aligned.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static GSAMPLE *
+mask_bits(HBITMAP mask)
+{ HDC hdc = CreateCompatibleDC(NULL);
+  GSAMPLE *data = NULL;
+  BITMAPINFO *info = alloca(sizeof(BITMAPINFOHEADER)+2*sizeof(RGBQUAD));
+  BITMAP bitmap;
+  int outlensl, inlensl;		/* scanline lengths */
+  int width, height, y;
+
+  if ( !GetObject(mask, sizeof(BITMAP), &bitmap) )
+  { Cprintf("mask_bits(): GetObject() failed\n");
+    goto out;
+  }
+  /*Cprintf("Mask is %dx%d\n", bitmap.bmWidth, bitmap.bmHeight);*/
+
+  memset(info, 0, sizeof(*info));
+  info->bmiHeader.biSize = sizeof(*info);
+  info->bmiHeader.biWidth = bitmap.bmWidth;
+  info->bmiHeader.biHeight = -bitmap.bmHeight;
+  info->bmiHeader.biPlanes = 1;
+  info->bmiHeader.biBitCount = 1;
+  info->bmiHeader.biCompression = BI_RGB;
+					/* get info */
+  if ( !GetDIBits(hdc, mask,
+		  0, bitmap.bmHeight,
+		  NULL,
+		  info,
+		  DIB_RGB_COLORS) )
+  { Cprintf("%d: mask_bits(): GetDIBits() failed\n", __LINE__);
+    goto out;
+  }
+  /*Cprintf("Mask: %d bytes\n", info->bmiHeader.biSizeImage);*/
+
+					/* get the bits */
+  data = pceMalloc(info->bmiHeader.biSizeImage);
+  height = -info->bmiHeader.biHeight;
+  width  = info->bmiHeader.biWidth;
+
+  if ( !GetDIBits(hdc, mask,
+		  0, height,
+		  data,
+		  info,
+		  DIB_RGB_COLORS) )
+  { Cprintf("Mask: GetDIBits() failed to get mask bits\n");
+    return FALSE;
+  }
+
+  inlensl  = ROUND(width, sizeof(DWORD)*8)/8;
+  outlensl = (width+7)/8;
+
+  for(y=0; y<height; y++)
+  { GSAMPLE *in  = data + y * inlensl;
+    GSAMPLE *out = data + y * outlensl;
+
+    memcpy(out, in, outlensl);
+
+#if 0
+    { int x;
+      int m = 0x80;
+      GSAMPLE *p = data + y * outlensl;
+
+      for(x=0; x<info->bmiHeader.biWidth; x++)
+      { Cprintf("%c", p[0]&m ? '.' : '*');
+	m>>=1;
+	if ( !m )
+	{ m = 0x80;
+	  p++;
+	}
+      }
+      Cprintf("\n");
+    }
+#endif
+  }
+
+out:
+  DeleteDC(hdc);
+
+  return data;
+}
+
+
 
 #endif /*HAVE_LIBJPEG*/
