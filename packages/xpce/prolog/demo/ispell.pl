@@ -98,20 +98,24 @@ options and attaching message objects.
 :- pce_begin_class(ispell, frame).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Create a resource defining  the spell  program used to  get an initial
-list of errors.   The user may choose another  spell program by adding
-the following line to his/her ~/.Xdefaults file:
+Create a class-variable defining  the  spell   program  used  to  get an
+initial list of errors. The user  may   choose  another spell program by
+adding the following line to his/her ~/.xpce/Defaults file:
 
-	Pce.Ispell.spell_program: myspell
+	ispell.spell_program: myspell
 
 The  variables `word'  and  `fragment'   define the  word    currently
 examined/replaced  and the current fragment.   They are manipulated by
 `ispell ->select'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-resource(spell_program,		name,	'''ispell -t -l''', "Spell command").
-resource(error_style,		style,
-	 'when(@colour_display, style(colour := red), style(bold := @on))').
+class_variable(spell_program, name, 'ispell -t -l', "Spell command").
+class_variable(error_style,   style,
+	       when(@colour_display,
+		    style(colour := red),
+		    style(bold := @on)),
+	       "Style used to highlight errors").
+
 variable(word,	   name*,	get,	"Currently handled word").
 variable(fragment, fragment*,	get,	"Currently handled fragment").
 variable(ispell,   process*,	none,	"The ispell -a process").
@@ -158,7 +162,7 @@ initialise(F, File:[file]) :->
 	send(B?list_browser, label, 'Errors'),
 	send(C?list_browser, label, 'Corrections'),
 
-	get(F, resource_value, error_style, ErrorStyle),
+	get(F, error_style, ErrorStyle),
 	send(V, style, error, ErrorStyle),
 	send(V, selected_fragment_style, style(underline := @on)),
 	send(V?image, recogniser,
@@ -359,7 +363,7 @@ using `process ->wait'.
 spell(F) :->
 	send(F, clear_errors),
 
-	get(F, resource_value, spell_program, Prog),
+	get(F, spell_program, Prog),
 	new(P, process('/bin/sh', '-c', string('%s | sort -u', Prog))),
 	send(P, use_tty, @off),
 	send(P, input_message, message(F, mark_word, @arg1)),

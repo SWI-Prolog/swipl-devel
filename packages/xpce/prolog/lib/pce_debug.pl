@@ -12,16 +12,11 @@
 	, debugpce/1
 	, nodebugpce/0
 	, nodebugpce/1
-	, tracepce/0
-	, notracepce/0
 	, tracepce/1			% Trace a pce method
 	, notracepce/1			% UnTrace a pce method
-	, breakpce/1			% Break on a pce method
-	, nobreakpce/1			% UnBreak on a pce method
 	, spypce/1			% Trace a pce method
 	, nospypce/1			% UnTrace a pce method
 	, checkpce/0			% Check all global pce objects
-%	, pcecalls/1			% Print statistics on methods
 	, show_slots/1			% Show all pce slot-values
 	, pcerefer/1			% Print objects refering to me
 	, pcerefer/2			% Print objects refering to me
@@ -35,16 +30,6 @@
 	   ]).
 
 :- op(100, xfx, <-).
-
-%   tracepce/0
-%   notracepce/0
-
-tracepce :-
-	send(class(vmi), trace, @on).
-notracepce :-
-	send(class(vmi), trace, @default),
-	send(@pce, trace, never).
-
 
 %   debugpce/0
 %   nodebugpce/0
@@ -78,62 +63,32 @@ nodebugpce(Subject) :-
 
 tracepce(Spec) :-
 	method(Spec, Method),
-	send(Method, trace, @on),
-	trace_feedback('Trace', Method).
+	send(Method, trace, full),
+	trace_feedback('Tracing', Method).
 
 notracepce(Spec) :- !,
 	method(Spec, Method),
-	send(Method, trace, @default),
-	trace_feedback('No trace', Method).
-
-breakpce(Spec) :-
-	method(Spec, Method),
-	send(Method, break, @on),
-	trace_feedback('Break', Method).
-
-nobreakpce(Spec) :- !,
-	method(Spec, Method),
-	send(Method, break, @default),
-	trace_feedback('No break', Method).
+	send(Method, trace, full, @off),
+	trace_feedback('Stopped tracing', Method).
 
 %	(no)spypce(+ClassName ->|<- +Selector)
 %
-%	Put a Prolog spy-point on the refered method.
+%	Put a spy-point on the Prolog implementation or XPCE method object
 
 spypce(Spec) :-
-	predicate(Spec, Head),
-	spy(Head).
+	method(Spec, Method),
+	send(Method, break, full),
+	(   prolog_method(Method)
+	->  debug
+	;   true
+	),
+	trace_feedback('Spying', Method).
 
 nospypce(Spec) :-
-	predicate(Spec, Head),
-	nospy(Head).
-
-
-predicate(Spec, Module:Pred/Arity) :-
 	method(Spec, Method),
-	get(Method, message, Message),		  % @prolog, call, selector, ..
-	(   send(Method, instance_of, code)
-	->  get(Message, '_slot', receiver, @prolog),
-	    get(Message, '_slot', arguments, ArgVector),
-	    get(ArgVector, element, 1, Selector),
-	    (	name(Selector, C0),
-		append(C1, [0':|C2], C0)
-	    ->  name(Module, C1),
-	        name(Pred, C2)
-	    ;   Module = user,
-	        Pred = Selector
-	    ),
-	    get(ArgVector, size, Args),
-	    (   send(Message, '_instance_of', ?)
-	    ->  Arity = Args
-	    ;   Arity is Args - 1
-	    )
-	;   send(Message, instance_of, c_pointer),
-	    pce_predicate_reference(PredRef, Message),
-	    PredRef = Module:Head,
-	    functor(Head, Pred, Arity)
-	).
-		
+	send(Method, break, full, @off),
+	trace_feedback('Stopped spying', Method).
+
 method(->(Receiver, Selector), Method) :- !,
 	(   atom(Receiver)
 	->  get(@pce, convert, Receiver, class, Class),
@@ -159,15 +114,23 @@ method((Receiver-Selector), Method) :- !,
 	).
 
 
-trace_feedback(OnOff, Obj) :-
+%	succeed if the method is implemented in Prolog (dubious test).
+
+prolog_method(Implementation) :-
+	send(Implementation, instance_of, method),
+	get(Implementation, message, Msg),
+	send(Msg, instance_of, c_pointer).
+
+trace_feedback(Action, Obj) :-
+	(   prolog_method(Obj)
+	->  Type = 'Prolog implementation of'
+	;   get(Obj?class_name, label_name, Type)
+	),
 	get(Obj?context, name, ClassName),
 	get(Obj, name, Selector),
 	get(Obj, access_arrow, Arrow),
-	(   send(Obj, instance_of, method)
-	->  format('~w method: ~w ~w~w~n', [OnOff, ClassName, Arrow, Selector])
-	;   format('~w variable: ~w ~w~w~n',
-		   [OnOff, ClassName, Arrow, Selector])
-	).
+	format('~w ~w: ~w ~w~w~n', [Action, Type, ClassName, Arrow, Selector]).
+
 
 		/********************************
 		*       CHECK PCE DATABASE	*

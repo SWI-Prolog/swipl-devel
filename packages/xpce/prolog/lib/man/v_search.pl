@@ -244,7 +244,7 @@ id(Obj) -->				% resource
 	{ atom_chars(ClassName, C),
 	  atom_chars(ResName, N),
 	  get(@pce, convert, ClassName, class, Class),
-	  get(Class, resource, ResName, Obj)
+	  get(Class, class_variable, ResName, Obj)
 	}.
 id(Obj) -->				% classes
 	"C.", string(C), eos, !,

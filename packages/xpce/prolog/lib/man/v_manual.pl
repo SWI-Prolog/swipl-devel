@@ -74,10 +74,10 @@ and possible broadcasted by ManualTool.  These messages are:
 :- pce_begin_class(man_manual, frame,
 		   "PCE manual main object").
 
-resource(geometry,	geometry,		'+0+0').
-resource(user_scope,	chain,			'[basic, user]',
+class_variable(geometry,	geometry,		'+0+0').
+class_variable(user_scope,	chain,			chain(basic, user),
 	 "Default scoping of manual material").
-resource(edit,		bool,			@off).
+class_variable(edit,		bool,			@off).
 
 variable(selection,		object*,	get,
 	 "Currently selected object").
@@ -114,8 +114,8 @@ initialise(M, Dir:[directory]) :->
 	send(M, send_super, initialise, 'PCE Manual'),
 	send(M, done_message, message(M, quit)),
 	default(Dir, directory('$PCEHOME/man/reference'), Directory),
-	get(M, resource_value, user_scope, Scope),
-	get(M, resource_value, edit, Edit),
+	get(M, class_variable_value, user_scope, Scope),
+	get(M, class_variable_value, edit, Edit),
 	send(M, slot, maintainer, Edit),
 	send(M, check_directory, Directory),
 	send(M, slot, space, new(Space, man_space(reference, Directory))),
@@ -197,11 +197,6 @@ fill_dialog(M, D) :->
 			 message(M, about))
 	     , menu_item(help,
 			 message(M, help))
-	     , menu_item(mailing_list,
-			 message(M, mailing_list))
-	     , menu_item(printed_copy,
-			 message(M, printed_copy),
-			 end_group := @on)
 	     , menu_item(demo_programs,
 			 message(M, start_demo),
 			 @default, @on)
@@ -248,7 +243,6 @@ fill_dialog(M, D) :->
 			 message(M, library_overview),
 			 end_group := @on)
 	     , menu_item(search)
-	     , menu_item(keywords)
 	     , menu_item(group_overview)
 	     , menu_item(examples,	    end_group := @on)
 	     ]),
@@ -332,7 +326,6 @@ create_tool(M, Name, Tool) :-
 tool_class(class_browser,	M, man_class_browser(M)).
 tool_class(class_finder,	M, man_class_browser(M)).
 tool_class(class_hierarchy,	M, man_class_hierarchy(M)).
-tool_class(keywords,		M, man_keyword_browser(M)).
 tool_class(search,		M, man_search_tool(M)).
 tool_class(topics,		M, man_topic_browser(M)).
 tool_class(card_viewer,		M, man_card_editor(M)).
@@ -496,7 +489,7 @@ library_overview(_M) :->
 pce_ifhostproperty(prolog(quintus),
 (   about(Fmt, Font) :- pce_host:about(Fmt, Font)),
 [ about('XPCE version %s'+[@pce?version], boldhuge),
-  about('Copyright 1992-1996, University of Amsterdam', normal),
+  about('Copyright 1992-1998, University of Amsterdam', normal),
   about('xpce-request@swi.psy.uva.nl', bold),
   about('Jan Wielemaker\nAnjo Anjewierden', italic),
   about('SWI\nUniversity of Amsterdam\nRoetersstraat 15\n1018 WB  Amsterdam\nThe Netherlands', normal),
@@ -531,65 +524,6 @@ help(M) :->
 	"Give help on the overall manual"::
 	give_help(M, @nil, manual).
 
-
-printed_copy(_M) :->
-	"Where to obtain printed copies"::
-	send(@display, inform,
-	     '%s\n%s\n%s\n',
-	     'TeX generated PostScript of the printed Reference Manual',
-	     'Is available using anonymous ftp to swi.psy.uva.nl',
-	     '(145.18.114.17), directory pub/xpce/doc/refman').
-
-mailing_list(M) :->
-	"(Un)Subscribe on the XPCE mailing lists"::
-	new(D, dialog('Mailing list')),
-	send(D, append,
-	     label(reporter,
-		   '(Un)Subscribe to mailing list xpce@swi.psy.uva.nl')),
-	send(D, append,
-	     new(A, text_item(your_mail_address, string('%s@', @pce?user)))),
-	send(D, append,
-	     button(subscribe,
-		    message(D, return,
-			    create(tuple, subscribe, A?selection)))),
-	send(D, append,
-	     button(unsubscribe,
-		    message(D, return,
-			    create(tuple, unsubscribe, A?selection)))),
-	send(D, append,
-	     button(cancel, message(D, return, @nil))),
-	get(D, confirm_centered, Answer),
-	send(D, destroy),
-	(   Answer \== @nil, send(@pce, has_feature, process)
-	->  object(Answer, tuple(Op, Address)),
-	    new(P, process(mail, '-s', Op,
-			   'xpce-request@swi.psy.uva.nl')),
-	    send(P, use_tty, @off),
-	    send(P, open),
-	    send(P, format, 'Please %s %s\n', Op, Address),
-	    send(P, close),
-	    repeat,
-	    (	get(P, read_line, Out),
-		send(M, report, progress, Out)
-	    ->  fail
-	    ;	!,
-	        get(P, code, Code),
-		(   Code == 0
-		->  send(M, report, status,
-			 'Request sent to xpce-request@swi.psy.uva.nl')
-		;   send(M, report, error,
-			 '%N failed with status %s', P, Code)
-		)
-	    )
-	;   Answer \== @nil
-	->  send(@display, inform,
-		 '%s\n%s\n%s',
-		 'Cannot send E-mail directly.  Please send an E-mail',
-		 'to xpce-request@swi.psy.uva.nl.  The subject field',
-		 'should be "subscribe"')
-	;   true
-	).
-	
 
 		/********************************
 		*              DEMO		*
@@ -643,15 +577,13 @@ inspect(M, V:object) :->
 		 *	 EXTERNAL INVOKES	*
 		 *******************************/
 
-manual(M, Object:'class|variable|method|resource|object') :->
+manual(M, Object:'class|behaviour|object') :->
 	"Open manual on object"::
 	send(M, open),
 	(   send(Object, instance_of, class)
 	->  send(M, start_tool, class_browser),
 	    send(M, request_tool_focus, Object)
-	;   (   send(Object, instance_of, variable)
-	    ;	send(Object, instance_of, method)
-	    ;	send(Object, instance_of, resource)
+	;   (   send(Object, instance_of, behaviour)
 	    ;	send(Object, instance_of, man_global)
 	    )
 	->  send(M, request_selection, @nil, Object, @on)
@@ -722,17 +654,14 @@ request_selection(M, Frame:man_frame*, Obj:any*, Open:[bool]) :->
 	send(M, slot, selection, Obj),
 	send(M, update_history, selection_history, Obj),
 	send(M?tools, for_some, message(@arg1?value, selected, Obj)),
-	(   send(Obj, instance_of, man_keyword_card)
-	->  true
-	;   (   \+ get(M?tools, value, card_viewer, _)
-	    ->  (   Open == @on
-		->  send(M, report, progress, 'Starting Card Viewer ...'),
-		    send(M, start_tool, card_viewer),
-		    send(M, report, done)
-		;   true
-		)
-	    ;   send(M, expose_tool, card_viewer)  % exposes it?
+	(   \+ get(M?tools, value, card_viewer, _)
+	->  (   Open == @on
+	    ->  send(M, report, progress, 'Starting Card Viewer ...'),
+		send(M, start_tool, card_viewer),
+		send(M, report, done)
+	    ;   true
 	    )
+	;   send(M, expose_tool, card_viewer)  % exposes it?
 	).
 	
 
@@ -786,9 +715,12 @@ update_history_menu(M, History, Menu) :->
 			    when(message(@arg1, instance_of, chain),
 				 ?(@pce, instance, string, 'G %s:%s',
 				   when(message(@arg1?head, instance_of,
-						class),
+						man_card),
 					@arg1?head?name,
-					@arg1?head?context?name),
+					when(message(@arg1?head, instance_of,
+						     class),
+					     @arg1?head?name,
+					     @arg1?head?context?name)),
 				   @arg1?head?group),
 				 progn(assign(new(X, var),
 					      create(string, '%s',
@@ -831,19 +763,6 @@ request_relate(M, CD, Obj) :-
 
 relate(_, _-_, create, Obj, Obj) :- !,
 	send(@display, inform, 'Can''t relate %s to itself', Obj?man_name).
-relate(M, man_keyword_card-man_keyword_card, CD, Kwd1, Kwd2) :- !,
-	send(@display, confirm,
-	     '%s %s <-> %s', CD, Kwd1?name, Kwd2?name),
-	send(M, create_relation, CD, Kwd1, see_also, Kwd2),
-	send(M, create_relation, CD, Kwd2, see_also, Kwd1).
-relate(M, _-man_keyword_card, CD, Selection, Kwd) :- !,
-	send(@display, confirm,
-	     '%s %s -> %s', CD, Kwd?name, Selection?man_name),
-	send(M, create_relation, CD, Kwd, see_also, Selection).
-relate(M, man_keyword_card-_, CD, Kwd, Object) :- !,
-	send(@display, confirm,
-	     '%s %s -> %s', CD, Kwd?name, Object?man_name),
-	send(M, create_relation, CD, Kwd, see_also, Object).
 relate(M, _-_, CD, Selection, Obj) :-
 	send(@display, confirm,
 	     '%s %s <-> %s', CD, Selection?man_name, Obj?man_name),
@@ -1042,3 +961,4 @@ give_help(Manual, Frame, ToolName) :-
 	;   send(@display, inform, 'Sorry, Can''t find help card ...')
 	).
 
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                

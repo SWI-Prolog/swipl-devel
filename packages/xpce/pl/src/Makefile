@@ -46,11 +46,12 @@ XPCESO= 	$(LIBDIR)/pl2xpce.$(SO)
 SOEXTR=		$(addprefix $(OBJDIR)/, $(SOEXTRAOBJ))
 CITFFLAGS=	-DSWI -DHAVE_CONFIG_H
 
-CFLAGS= 	$(COFLAGS) $(CMFLAGS) $(CPLIFLAGS) $(CITFFLAGS)
+CFLAGS= 	$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CPLIFLAGS) $(CITFFLAGS)
 
 PCEPLS=		pce_expand.pl ../lib/english/pce_messages.pl pce_pl.pl \
 		pce_principal.pl pce_error.pl pce_autoload.pl pce_global.pl \
-		pce_operator.pl pce_expansion.pl pce_realise.pl pce_editor.pl
+		pce_operator.pl pce_expansion.pl pce_realise.pl pce_editor.pl \
+		pce_goal_expansion.pl
 BOOTQLF=	pce.qlf
 LIBQLFS=	pce_manual.qlf dialog/dialog.qlf emacs/emacs.qlf pcedraw.qlf
 

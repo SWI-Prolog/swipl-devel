@@ -32,6 +32,7 @@
 %	frames created by this call to be invisible.  Then it will halt/0.
 
 pce_main_loop(Goal) :-
+	setup_runtime,
 	unix(argv(Argv)),
 	application_flags(Argv, ApplArgv),
 	pce_loop(Goal, ApplArgv),
@@ -62,7 +63,13 @@ application_flags([_|Appl], Appl).
 
 dispatch_till_all_gone([]) :- !.
 dispatch_till_all_gone(Frames) :-
-	ignore(send(@display, dispatch)),
+	(   catch(send(@display, dispatch), E,
+		  (   term_to_atom(E, Msg),
+		      send(@display, inform, Msg)
+		  ))
+	->  true
+	;   true
+	),
 	existing_frames(Frames, Existing),
 	dispatch_till_all_gone(Existing).
 
@@ -75,3 +82,10 @@ existing_frames([H|T0], [H|T]) :-
 	existing_frames(T0, T).
 existing_frames([_|T0], T) :-
 	existing_frames(T0, T).
+
+setup_runtime :-
+	(   get(@pce, is_runtime_system, @on)
+	->  true
+	;   send(@pce, trap_errors, @off)
+	),
+	set_feature(debug_on_error, false).	

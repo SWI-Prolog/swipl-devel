@@ -572,7 +572,7 @@ equal_on_remaining_proto_args([_|T], O1, O2) :-
 object_attributes(Object, List) :-
 	new_term(Object, NewTerm),
 	new(Tmp, NewTerm),
-	send(Tmp, obtain_resources),
+	send(Tmp, obtain_class_variables),
 	findall(Attr := Value,
 		object_attribute(Object, Tmp, Attr, Value),
 		List),

@@ -9,8 +9,7 @@
 
 :- module(pce_help_file,
 	  [ pce_help_file/2,
-	    pce_help/2,
-	    pce_registered_help_file/2
+	    pce_help/2
 	  ]).
 :- use_module(library(pce)).
 :- require([ concat_atom/2
@@ -28,7 +27,7 @@ user:file_search_path(pce_help,	pce('appl-help')).
 :- pce_global(@helper, new(helper)).
 
 :- dynamic
-	pce_registered_help_file/2.
+	resource/3.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module is closely  connected  to   library(pce_helper).   It  is  a
@@ -54,8 +53,8 @@ pce_help_file(Id, FileName) :-
 	    concat_atom([Cwd, /, FileName], Path)
 	;   Path = FileName
 	),
-	retractall(pce_registered_help_file(Id, _)),
-	assert(pce_registered_help_file(Id, Path)).
+	retractall(resource(Id, help, Path)),
+	asserta(resource(Id, help, Path)).
 
 %	pce_help(+DataBaseId, +Label)
 %	

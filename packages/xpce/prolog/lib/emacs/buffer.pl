@@ -28,7 +28,7 @@ variable(saved_caret,	  int,		both, "Saved caret on last quit").
 variable(saved_fill,	  bool,		both, "Saved fill_mode on quit").
 variable(pool,		  [name],	both, "Window pool I belong too").
 
-resource(undo_buffer_size, int,	20000).
+class_variable(undo_buffer_size, int, 40000).
 
 initialise(B, File:file*, Name:[name]) :->
 	"Create from file and name"::
@@ -359,7 +359,7 @@ modified(B, Val:bool) :->
 	send(B, update_label).
 
 
-check_modified_file(B) :->
+check_modified_file(B, Confirm:[bool]) :->
 	"Check if file has been modified after buffer"::
 	(   get(B, file, File),
 	    File \== @nil,
@@ -368,21 +368,25 @@ check_modified_file(B) :->
 	    get(File, time, FileStamp),
 	    \+ send(Stamp, equal, FileStamp),
 	    \+ object(@emacs_reverting)
-	->  new(D, dialog('Modified file')),
-	    send(D, append,
-		 label(title,  string('File %N was modified', File))),
-	    send(D, append,
-		 button(reload_file, message(D, return, reload_file))),
-	    send(D, append,
-		 button(edit_buffer, message(D, return, edit_buffer))),
-	    get(D, confirm_centered, RVal),
-	    send(D, destroy),
-	    (   RVal == reload_file
-	    ->  send(B, revert)
-	    ;   true
+	->  (   confirm_reload(Confirm, File)
+	    ->	send(B, revert)
+	    ;	true
 	    )
 	;   true
 	).
+
+confirm_reload(@off, _) :- !.
+confirm_reload(_, File) :-
+	new(D, dialog('Modified file')),
+	send(D, append,
+	     label(title,  string('File %N was modified', File))),
+	send(D, append,
+	     button(reload_file, message(D, return, reload_file))),
+	send(D, append,
+	     button(edit_buffer, message(D, return, edit_buffer))),
+	get(D, confirm_centered, RVal),
+	send(D, destroy),
+	RVal == reload_file.
 
 
 		 /*******************************

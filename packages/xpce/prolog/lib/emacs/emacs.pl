@@ -133,6 +133,7 @@ default_emacs_mode('.*\.[ch]~?$', 			c).
 default_emacs_mode('.*\.C$',				cpp).
 default_emacs_mode('.*\.cc$',				cpp).
 default_emacs_mode('.*\.cpp$',				cpp).
+default_emacs_mode('.*\.idl$',				cpp).
 default_emacs_mode('[Cc]ompose\|README',		text).
 
 :- free(@loading_emacs).

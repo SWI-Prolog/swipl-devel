@@ -475,7 +475,7 @@ paste(Canvas, At:[point]) :->
 		 *	 WINDOWS CLIPBOARD	*
 		 *******************************/
 
-map_format(aldus, mwf) :- !.
+map_format(aldus, wmf) :- !.
 map_format(Fmt, Fmt).
 
 export_win_metafile(Canvas, What:[{selection,drawing}], Format:[{wmf,emf}]) :->
@@ -766,7 +766,7 @@ save_as(Canvas) :->
 	new(File, file(FileName)),
 	send(Canvas, save, File),
 	get(File, absolute_path, Path),
-	add_config(draw_config:history/recent_files, Path).
+	register_recent_file(Path).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Actual saving to file.  The  toplevel-object  saved  is a sheet.  This
@@ -894,21 +894,33 @@ load(Canvas, File:file, Clear:[bool]) :->
 	send(Canvas, convert_old_drawing, SaveVersion),
 	send(Canvas, report, status, 'Loaded %s', File?base_name),
 	get(File, absolute_path, Path),
-	add_config(draw_config:history/recent_files, Path),
+	register_recent_file(Path),
 	send(Sheet, done).
 
+%	register_recent_file(+Path)
+%
+%	Register a file with the recent file list.  Allows the list to
+%	grow up to 20.
+
+register_recent_file(Path) :-
+	Key = draw_config:history/recent_files,
+	(   get_config(Key, Set0)
+	;   Set0 = []
+	),
+	first_n(20, [Path|Set0], Set),
+	set_config(Key, Set).
+
+first_n(0, _, []) :- !.
+first_n(_, [], []) :- !.
+first_n(N, [H|T0], [H|T]) :-
+	NN is N - 1,
+	first_n(NN, T0, T).
 
 file(Canvas, File:file*) :->
 	"Set file attribute"::
 	send(Canvas, slot, file, File),
         get(Canvas, frame, Draw),
-        get(Draw, title, Title),
-	(   File \== @nil
-	->  send(Draw, label,
-		 string('%s: %s', Title, File?name),
-		 string('%s: %s', Title, File?base_name))
-	;   send(Draw, label, Title)
-	).
+	send(Draw, update_label).
 
 
 		 /*******************************

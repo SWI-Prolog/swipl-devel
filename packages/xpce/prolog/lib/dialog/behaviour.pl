@@ -199,7 +199,7 @@ connect(_G, F:graphical, T:graphical, L:link, FH:[name], TH:[name]) :->
 
 :- pce_begin_class(msg_connection, tagged_connection).
 
-resource(tag_font,	font,	bold, "Font for the tag").
+class_variable(tag_font,	font,	bold, "Font for the tag").
 
 :- pce_global(@argument_handle,
 	      new(handle(w/2, h/2, argument, argument_center))).
@@ -218,7 +218,7 @@ initialise(C, F:graphical, T:graphical, L:[link], FH:[name], TH:[name]) :->
 	    new(N, number(0)),
 	    send(Chain, for_all,
 		 if(@arg1?name == argument, message(N, plus, 1))),
-	    get(C, resource_value, tag_font, Font),
+	    get(C, tag_font, Font),
 	    new(Tag, editable_text(string('%d', N), center, Font)),
 	    send(C, tag, Tag),
 	    send(C, handle, @argument_handle)
@@ -439,11 +439,11 @@ port_handle(Type, Handle) :-
 
 :- pce_begin_class(msg_port, editable_text, "Graphical programming port").
 
-resource(port_font,	font,	small,	"Default font").
+class_variable(port_font,	font,	small,	"Default font").
 
 initialise(P, Name:[name]) :->
 	default(Name, '', Nm),
-	get(P, resource_value, port_font, Font),
+	get(P, port_font, Font),
 	send(P, send_super, initialise, Name, left, Font),
 	send(P, name, Nm),
 	send(P, background, colour(white)), % dynamic?
@@ -1313,8 +1313,8 @@ place_x(O, MinX, MaxX, Gr) :-
 :- pce_begin_class(msg_object, figure, "Graphical programming object").
 :- use_class_template(msg_object_template).
 
-resource(size,		size,	size(120, 60),  "Default size of object").
-resource(label_font,	font,	bold,		"Default name-font").
+class_variable(size,       size, size(120, 60), "Default size of object").
+class_variable(label_font, font, bold,		"Default name-font").
 
 :- pce_global(@dia_component_elevation,
 	      new(elevation(@nil, 2, grey80))).
@@ -1322,8 +1322,8 @@ resource(label_font,	font,	bold,		"Default name-font").
 initialise(O, Name:name) :->
 	send(O, send_super, initialise),
 	send(O, name, Name),
-	get(O, resource_value, size, size(W, H)),
-	get(O, resource_value, label_font, Font),
+	get(O, class_variable_value, size, size(W, H)),
+	get(O, label_font, Font),
 	send(O, display, new(B, box(W, H))),
 	send(B, name, shape),
 	ifcolour(send(O, elevation, @dia_component_elevation),
@@ -1535,7 +1535,7 @@ drop(O, Obj:any, Pos:point) :->
 
 variable(file,	file,	get,	"Associated source-file").
 
-resource(file_font, font, normal, "Font for file id").
+class_variable(file_font, font, normal, "Font for file id").
 
 :- pce_global(@dia_center_below_spatial,
 	      new(spatial(xref = x + w/2, yref = y+h,
@@ -1546,7 +1546,7 @@ initialise(Host, HostObject:host, File:[file]) :->
 	send(Host, send_super, initialise, Name),
 	default(File, file('scratch.pl'), TheFile),
 	send(Host, slot, file, TheFile),
-	get(Host, resource_value, file_font, Font),
+	get(Host, file_font, Font),
 	send(Host, display,
 	     new(T, editable_text(TheFile?name, center, Font))),
 	send(T, name, file),
@@ -1892,12 +1892,13 @@ initialise_new_slot(F, Var:variable) :-> % temporary
 report(F, Kind:name, Format:char_array, Args:any ...) :->
 	"Make sure errors are reported for a while"::
 	(   Kind == error
-	->  send(F, send_super_vector, report, Kind,
-		 ?('ERROR: ', append, Format), Args),
-	    send(F?last_error_time, current)
+	->  Msg =.. [report, Kind, ?('ERROR: ', append, Format) | Args],
+	    send(F?last_error_time, current),
+	    send_super(F, Msg)
 	;   get(new(date), difference, F?last_error_time, second, Diff),
 	    Diff > 4,
-	    send(F, send_super_vector, report, Kind, Format, Args)
+	    Msg =.. [report, Kind, Format | Args],
+	    send_super(F, Msg)
 	).
 
 

@@ -287,6 +287,7 @@ has_popup(B, V:bool) :<-
 
 
 :- pce_begin_class(dia_proto_menu, menu).
+:- use_class_template(dia_proto).
 
 members(M, Items:chain) :->
 	send(M, clear),
@@ -295,8 +296,8 @@ members(M, Items:chain) :->
 feedback(M, Feedback:{box,invert,image}) :->
 	"Limit available feedbacks"::
 	(   Feedback == image
-	->  send(M, on_image,  ?(M, resource_value, on_image)),
-	    send(M, off_image, ?(M, resource_value, off_image))
+	->  send(M, on_image,  ?(M, class_variable_value, on_image)),
+	    send(M, off_image, ?(M, class_variable_value, off_image))
 	;   send(M, on_image,  @nil),
 	    send(M, off_image, @nil)
 	),
@@ -310,6 +311,7 @@ feedback(M, Feedback:{box,invert,image}) :->
 
 :- pce_begin_class(dia_proto_menu_item, menu_item,
 		   "Editable menu-item").
+:- use_class_template(dia_proto).
 
 variable(proto,		name := menu_item,	get, "Prototype").
 
@@ -324,6 +326,7 @@ behaviour_model(DI, Model:object) :<-
 :- pce_end_class.
 
 :- pce_begin_class(dia_proto_text_item, text_item).
+:- use_class_template(dia_proto).
 
 dia_argument_type(TI, Selector:name, Type:type) :<-
 	"The type of the <-selection is <-type"::
@@ -336,6 +339,7 @@ dia_argument_type(TI, Selector:name, Type:type) :<-
 
 :- pce_begin_class(dia_proto_list_browser, list_browser,
 		   "Editable list_browser").
+:- use_class_template(dia_proto).
 
 name(LB, Name:name) :->
 	"Update ->label too"::
@@ -359,13 +363,50 @@ dia_argument_type(LB, Selector:name, Type:type) :<-
 
 :- pce_end_class.
 
+:- pce_begin_class(dia_proto_label, label, "Editable label").
+:- use_class_template(dia_proto).
+:- pce_end_class.
+
+:- pce_begin_class(dia_proto_slider, slider, "Editable slider").
+:- use_class_template(dia_proto).
+:- pce_end_class.
+
+:- pce_begin_class(dia_proto_button, button, "Editable button").
+:- use_class_template(dia_proto).
+:- pce_end_class.
+
+:- pce_begin_class(dia_proto_editor, editor, "Editable editor").
+:- use_class_template(dia_proto).
+:- pce_end_class.
+
+
+
+%	make_proto_class(+Class, -ProtoClassName)
+%
+%	Create a prototype class by inserting the dia_proto template.  As
+%	(of xpce-5.x.y), use_class_template/2 can only be used as a directive,
+%	this must be done using a temporary file.
 
 make_proto_class(ClassSpec, ProtoClassName) :-
 	get(@pce, convert, ClassSpec, class, Class),
 	get(Class, name, ClassName),
 	get(dia_proto_, append, ClassName, ProtoClassName),
-	new(ProtoClass, class(ProtoClassName, Class)),
-	use_class_template(ProtoClass, dia_proto).
+	(   get(@pce, convert, ProtoClassName, class, _)
+	->  true
+	;   new(F, file),
+	    get(F, name, TmpFile),
+	    open(TmpFile, write, Fd),
+	    format(Fd, ':- module(''~w'', []).~n~n', [ProtoClassName]),
+	    format(Fd, ':- use_module(library(pce)).~n', []),
+	    format(Fd, ':- use_module(library(pce_template)).~n~n', []),
+	    format(Fd, ':- pce_begin_class(~w, ~w, "Dialog prototype").~n',
+		   [ProtoClassName, ClassName]),
+	    format(Fd, ':- use_class_template(dia_proto).~n', []),
+	    format(Fd, ':- pce_end_class.~n', []),
+	    close(Fd),
+	    use_module(TmpFile),
+	    send(F, remove)
+	).
 
 
 		 /*******************************
@@ -388,10 +429,10 @@ initialise(D, Label:[name], Size:[size]) :->
 
 :- pce_begin_class(dia_target_dialog, dia_dialog, "Target dialog").
 
-resource(size,	size, size(400, 200)).
+class_variable(size, size, size(400, 200)).
 
 initialise(D, Label:[name], Size:[size]) :->
-	default(Size, resource(D, size), Sz),
+	default(Size, class_variable(D, size), Sz),
 	send(D, send_super, initialise, Label),
 	send(D, size, Sz).		% force explicit size
 

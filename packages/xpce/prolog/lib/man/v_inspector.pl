@@ -607,13 +607,6 @@ clear(MP) :->
 	send(MP, for_some, @default, message(@arg1, quit)).
 
 
-print(MP) :->
-	new(F, file('PostScript')),
-	send(F, open, write),
-	send(F, append, MP?postscript),
-	send(F, close).
-
-
 inspect_atom(MP, What:string) :->
 	"Create a card, target is a string"::
 	send(What, strip),
@@ -705,7 +698,6 @@ initialise(F, Manual:man_manual) :->
 	send(D, append, label(reporter,
 			      'META_SHIFT_CONTROL-I adds object')),
 	send(D, append, button(clear, message(Inspector, clear))),
-	send(D, append, button(print, message(Inspector, print))),
 	send(D, append, button(help, message(F, help))),
 	send(D, append, button(quit, message(F, quit))),
 	send(D, append,

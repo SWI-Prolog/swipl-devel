@@ -16,7 +16,7 @@
 :- pce_begin_class(emacs_buffer_menu, frame,
 		   "List showing all PceEmacs buffers").
 
-resource(geometry,	geometry,	'211x190+0+125').
+class_variable(geometry,	geometry,	'211x190+0+125').
 
 initialise(BM, Emacs:emacs) :->
 	"Create menu for buffer-list"::

@@ -45,6 +45,14 @@ initialise(M) :->
 		 *	COMMENT; HEADERS	*
 		 *******************************/
 
+line_comment(E, CS:name) :<-
+	"Fetch the line-comment start sequence"::
+	get(E, syntax, Syntax),
+	member(CSlen, [1, 2]),
+	get(Syntax, comment_start, CSlen, CS),
+	get(Syntax, comment_end, CSlen, CE),
+	send(CE, equal, string('\n')).
+
 insert_line_comment(E) :->
 	"Insert (line) comment"::
 	member(CSlen, [1, 2]),
@@ -68,6 +76,33 @@ insert_line_comment(E) :->
 	    )
 	).
 
+
+comment_region(E) :->
+	"Toggle-Comment the region using line-comments"::
+	get(E, line_comment, Comment),
+	get(E, region, tuple(Start, End)),
+	get(E, text_buffer, TB),
+	get(TB, scan, Start, line, 0, start, S0),
+	comment_lines(TB, S0, End, Comment).
+
+comment_lines(_TB, S0, End, _Comment) :-
+	S0 >= End, !.
+comment_lines(TB, S0, End, Comment) :-
+	atom_length(Comment, L),
+	(   get(regex(''), quote, Comment, RE),
+	    send(regex(RE), match, TB, S0)
+	->  send(TB, delete, S0, L),
+	    S1 = S0,
+	    End1 is End - L
+	;   send(TB, insert, S0, Comment),
+	    S1 is S0 + L,
+	    End1 is End + L
+	),
+	(   get(TB, scan, S1, line, 1, start, S2)
+	->  comment_lines(TB, S2, End1, Comment)
+	;   true
+	).
+	
 
 insert_comment_block(E) :->
 	"Insert header/footer for long comment"::
@@ -101,7 +136,7 @@ indent_line(E) :->
 	).
 
 
-indent_close_bracket_line(E, Brackets:[name]) :->
+indent_close_bracket_line(E, Brackets:[name], Base:[int]) :->
 	"Indent a line holding a bracket"::
 	default(Brackets, ')}]', B1),
 	get(E, text_buffer, TB),
@@ -109,20 +144,27 @@ indent_close_bracket_line(E, Brackets:[name]) :->
 	get(TB, character, Caret, Char),
 	get(B1, index, Char, _),
 	get(TB, matching_bracket, Caret, OpenPos),
+	(   Base \== @default
+	->  OpenPos >= Base
+	;   true
+	),
 	get(E, column, OpenPos, Col),
 	send(E, align_line, Col).
 
 
-
-indent_expression_line(E, Brackets:[name]) :->
+indent_expression_line(E, Brackets:[name], Base:[int]) :->
 	"Indent current line according to expression"::
 	default(Brackets, ')}]', B1),
-	name(B1, B2),
+	atom_chars(B1, B2),
 	get(E, text_buffer, TB),
 	member(Bracket, B2),
 	    pce_catch_error(mismatched_bracket,
 			    get(TB, matching_bracket, E?caret,
 				Bracket, OpenPos)), !,
+	    (	Base \== @default
+	    ->  OpenPos >= Base
+	    ;	true
+	    ),
 	    get(TB, scan, OpenPos, line, 0, end, EOL),
 	    (	send(E, looking_at, '[,|]')
 	    ->	get(E, column, OpenPos, Col)
@@ -152,13 +194,15 @@ align_close_bracket(E, Times:[int], Id:[event_id]) :->
 	"Insert and align with matching open bracket"::
 	send(E, insert_self, Times, Id),
 	get(E, caret, Caret),
-	send(E, beginning_of_line),
-	(   send(E, looking_at, string('\\s *%c', Id))
+	get(E, scan, Caret, line, 0, start, SOL),
+	get(E, scan, Caret, line, 0, end,   EOL),
+	(   get(E, skip_comment, SOL, EOL, P0),
+	    Caret =:= P0+1
 	->  get(E, matching_bracket, Caret-1, Open),
 	    get(E, column, Open, Col),
 	    send(E, caret, Caret),
 	    send(E, align, Col, Caret-1)
-	;   send(E, caret, Caret)
+	;   true
 	).
 
 

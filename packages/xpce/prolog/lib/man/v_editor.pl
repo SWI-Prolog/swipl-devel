@@ -56,32 +56,31 @@ variable(object, object*, both, "Related object").
 
 :- pce_begin_class(man_editor, view).
 
-resource(man_font,     font,   normal,		"Font for running text").
-resource(out_font,     font,   italic,		"Font outside frags").
-resource(title_font,   font,   bold,		"Font for titles").
-resource(section_font, font,   huge,      	"Font for sections").
-resource(tag_font,     font,   italic,		"Font for tags").
-resource(code_font,    font,   fixed,		"Font for code att").
-resource(jump_style,   style,  when(@colour_display,
-				    style(colour := dark_green,
-					  underline := @on),
-				    style(font := bold)),
-	 "Style for `jump' fragment").
-resource(search_style, style,  when(@colour_display,
-				    style(background := green),
-				    style(highlight := @on))).
-resource(size,	       size,   size(80,15),	"Size in chars").
-
+class_variable(man_font,     font,   normal, "Font for running text").
+class_variable(out_font,     font,   italic, "Font outside frags").
+class_variable(title_font,   font,   bold,   "Font for titles").
+class_variable(section_font, font,   huge,   "Font for sections").
+class_variable(tag_font,     font,   italic, "Font for tags").
+class_variable(code_font,    font,   fixed,  "Font for code att").
+class_variable(jump_style,   style,  when(@colour_display,
+					  style(colour := dark_green,
+						underline := @on),
+					  style(font := bold)),
+	       "Style for `jump' fragment").
+class_variable(search_style, style,  when(@colour_display,
+					  style(background := green),
+					  style(highlight := @on))).
+class_variable(size,	     size,   size(80,15), "Size in chars").
 
 initialise(E) :->
-	get(E, resource_value, out_font, OutFont),
-	get(E, resource_value, man_font, ManFont),
-	get(E, resource_value, title_font, TitleFont),
-	get(E, resource_value, section_font, SectionFont),
-	get(E, resource_value, code_font, CodeFont),
-	get(E, resource_value, tag_font, TagFont),
-	get(E, resource_value, jump_style, JumpStyle),
-	get(E, resource_value, search_style, SearchStyle),
+	get(E, out_font, OutFont),
+	get(E, man_font, ManFont),
+	get(E, title_font, TitleFont),
+	get(E, section_font, SectionFont),
+	get(E, code_font, CodeFont),
+	get(E, tag_font, TagFont),
+	get(E, jump_style, JumpStyle),
+	get(E, search_style, SearchStyle),
 
 	send(E, send_super, initialise),
 	send(E, font, OutFont),
@@ -219,14 +218,14 @@ show_key_bindings(E, _Arg:[int]) :->
 
 consult(E, F:fragment) :->
 	"Consult fragment of editor"::
-	new(File, file(string('/tmp/xpce-%s', @pce?pid))),
+	new(File, file),
 	send(File, open, write),
 	send(File, append, F?string),
 	send(File, newline),
 	send(File, close),
 	send(@prolog, consult, File?name),
-	send(E, report, status, 'Fragment consulted').
-%	send(File, remove).
+	send(E, report, status, 'Fragment consulted'),
+	send(File, remove).
 
 
 describe(_E, TF:fragment) :->
@@ -276,7 +275,7 @@ display_group(E, Group:name, Members:chain) :->
 
 %	Display a cluster of objects with the same description.  First
 %	The cluster is expanded with the source of the description.  If
-%	the cluster contains variables that have resources, these are
+%	the cluster contains variables that have class-variables, these are
 %	appended too.
 
 display_cluster(E, Members:chain) :->
@@ -288,7 +287,7 @@ display_cluster(E, Members:chain) :->
 	send(Members, for_all,
 	     if(and(message(@arg1, instance_of, variable),
 		    message(Members, add,
-			    ?(@arg1?context, resource, @arg1?name))))),
+			    ?(@arg1?context, class_variable, @arg1?name))))),
 	send(Members, sort, ?(@prolog, compare_cluster_elements,
 			      @arg1?class_name, @arg2?class_name)),
 	send(Members, for_all,
@@ -302,7 +301,7 @@ display_cluster(E, Members:chain) :->
 	      new(chain(class,
 			delegate_variable,
 			variable,
-			resource,
+			class_variable,
 			get_method,
 			send_method))).
 
@@ -430,6 +429,8 @@ jump_pattern('\W\(<?->?\w+\)').
 	      new(regex('\b[Cc]lass\s +\(\w+\|[-+*/?\=]\)'))).
 :- pce_global(@man_objectclass_regex,
 	      new(regex('\(\w+\|[-+*/?\=]\)[ \t\n]object'))).
+:- pce_global(@man_classvar_regex,
+	      new(regex('\(\w+\)\.\(\w+\)'))).
 :- pce_global(@man_example_code_regex,
 	      new(regex(string('\n\\s *\\(\\(\n\t\t+[^\t#*0-9].*\\|\n\\s *\\)+\\)\n')))).
 :- pce_global(@man_example_regex,
@@ -451,6 +452,8 @@ mark_jumpable(E) :->
 	     if(message(E, mark_class, @arg1))),
 	send(@man_objectclass_regex, for_all, TB,
 	     if(message(E, mark_class, @arg1))),
+	send(@man_classvar_regex, for_all, TB,
+	     if(message(E, mark_classvar, @arg1))),
 	send(@man_local_method_regex, for_all, TB,
 	     if(message(E, mark_local_method, @arg1))),
 	send(@man_example_code_regex, for_all, TB,
@@ -483,10 +486,17 @@ mark_example(E, Re:regex) :->
 
 
 mark_object(E, Re:regex) :->
-	get(Re, register_value, E, 1, RefString),
-	get(RefString, value, Ref),
+	get(Re, register_value, E, 1, name, Ref),
 	get(@pce, object_from_reference, Ref, _Target),
 	new(_, man_button_fragment(E, Re, 0, man_global(Ref))).
+
+
+mark_classvar(E, Re:regex) :->
+	get(Re, register_value, E, 1, name, ClassName),
+	get(Re, register_value, E, 2, name, ClassVarName),
+	get(@pce, convert, ClassName, class, Class),
+	get(Class, class_variable, ClassVarName, ClassVar),
+	new(_, man_button_fragment(E, Re, 0, ClassVar)).
 
 
 mark_global_method(E, Re:regex) :->

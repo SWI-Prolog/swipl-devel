@@ -40,7 +40,8 @@ arguments.
 %
 %	Open a channel for listening for events of the given `Templ'.
 
-listen(Listener, Templ, Goal) :-
+listen(Listener0, Templ, Goal) :-
+	canonical_listener(Listener0, Listener),
 	strip_module(Goal, Module, TheGoal),
 	assert_listener(Templ, Listener, Module, TheGoal).
 
@@ -53,11 +54,14 @@ listen(Templ, Goal) :-
 %
 %	Destroy a channel.  Arguments may be variables
 
-unlisten(Listener) :-
+unlisten(Listener0) :-
+	canonical_listener(Listener0, Listener),
 	retractall(listener(_, Listener, _, _)).
-unlisten(Listener, Templ) :-
+unlisten(Listener0, Templ) :-
+	canonical_listener(Listener0, Listener),
 	retractall(listener(Templ, Listener, _, _)).
-unlisten(Listener, Templ, Goal) :-
+unlisten(Listener0, Templ, Goal) :-
+	canonical_listener(Listener0, Listener),
 	(   var(Goal)
 	->  true
 	;   strip_module(Goal, Module, TheGoal)
@@ -69,7 +73,8 @@ unlisten(Listener, Templ, Goal) :-
 %
 %	returns currently open channels
 
-listening(Listener, Templ, Module:Goal) :-
+listening(Listener0, Templ, Module:Goal) :-
+	canonical_listener(Listener0, Listener),
 	listener(Templ, Listener, Module, Goal).
 
 
@@ -101,10 +106,24 @@ broadcast_request(Templ) :-
 %	{assert,retract}_listener(+Templ, +Listener, +Module, +Goal)
 %	
 %	Implemented as sub-predicate to ensure storage in this module.
+%	Second registration is ignored.  Is this ok?  It avoids problems
+%	using multiple registration of global listen channels.
 
-
+assert_listener(Templ, Listener, Module, TheGoal) :-
+	listener(Templ, Listener, Module, TheGoal), !.
 assert_listener(Templ, Listener, Module, TheGoal) :-
 	asserta(listener(Templ, Listener, Module, TheGoal)).
 
 retract_listener(Templ, Listener, Module, TheGoal) :-
 	retractall(listener(Templ, Listener, Module, TheGoal)).
+
+%	canonical_listener(+Raw, -Canonical)
+%
+%	Entry for later optimization.
+
+canonical_listener(Templ, Templ).
+
+
+
+
+

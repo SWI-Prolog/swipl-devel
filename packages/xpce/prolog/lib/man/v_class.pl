@@ -25,9 +25,9 @@
 :- pce_begin_class(man_class_browser(label), man_frame,
 		   "Online manual for a class").
 
-resource(value_font,	font,	normal).
-resource(label_font,	font,	bold).
-resource(active_font,	font,	italic).
+class_variable(value_font,	font,	normal).
+class_variable(label_font,	font,	bold).
+class_variable(active_font,	font,	italic).
 
 variable(tool_focus,	 class,		get,
 	 "Currently displayed class").
@@ -105,7 +105,7 @@ fill_dialog(D) :-
 	send(DM, layout, horizontal),
 	send(DM, columns, 3),
 	send_list(DM, append, [ self, sub_class
-			      , variable, resource
+			      , variable, class_var
 			      , send_method, get_method
 			      ]),
 	send(DM, selection,
@@ -136,7 +136,7 @@ fill_picture(P) :-
 	send(P, gap, size(5,3)),
 	send(P, hor_stretch, 100),
 	send(P, hor_shrink, 100),
-	get(P?frame, resource_value, label_font, Font),
+	get(P?frame, label_font, Font),
 	send(P, append, new(T, label(title, '', Font))),
 	send(T, recogniser,
 	     click_gesture(left, '', double,

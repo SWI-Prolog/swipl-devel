@@ -23,13 +23,14 @@ pce.qlf:	.pwd pce.pl ../boot/pce_expand.pl ../boot/pce_pl.pl \
 		../boot/pce_error.pl ../boot/pce_operator.pl \
 		../boot/pce_global.pl ../boot/pce_expansion.pl \
 		../boot/pce_realise.pl ../boot/pce_autoload.pl \
-		../boot/pce_editor.pl
+		../boot/pce_editor.pl ../boot/pce_portray.pl
 
 pce_manual.qlf:	.pwd pce_manual.pl man/util.pl man/p_card.pl man/p_data.pl \
 		man/classmap.pl man/v_manual.pl
 
 pcedraw.qlf:	.pwd pcedraw.pl draw/draw.pl draw/gesture.pl draw/shapes.pl \
-		draw/canvas.pl draw/align.pl draw/menu.pl draw/config.pl
+		draw/canvas.pl draw/align.pl draw/menu.pl draw/config.pl \
+		draw/exportpl.pl
 
 dialog/dialog.qlf:	.pwd dialog/dialog.pl dialog/proto.pl \
 			dialog/layout.pl dialog/generate.pl \

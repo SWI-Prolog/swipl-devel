@@ -113,14 +113,16 @@ label(length,		'16x16/arrow_length.xpm').
 label(select_colour,	'16x16/cpalette2.xpm').
 label(pen,		'16x16/pen.xpm').
 
+resource(Name, image, image(File)) :-
+	label(Name, File).
+
 fix_labels(AI) :-
 	send(AI?graphicals, for_all, message(@prolog, fix_label, @arg1)).
 
 fix_label(Gr) :-
 	get(Gr, name, Name),
-	label(Name, ImageName),
-	new(I, image),
-	send(I, load, ImageName), !,
+	label(Name, _),
+	new(I, image(resource(Name))),
 	send(Gr, label, I).
 fix_label(_).
 

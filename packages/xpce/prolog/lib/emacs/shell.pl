@@ -26,7 +26,7 @@ variable(history,	   chain,	get,	"Chain of commands send").
 
 delegate_to(process).
 
-resource(prompt_regex,	   regex*,	'@nil',	"Default prompt").
+class_variable(prompt_regex, regex*, @nil, "Default prompt").
 
 initialise(B, Process:[process]*, Name:[name]) :->
 	"Create from process and name"::
@@ -37,14 +37,13 @@ initialise(B, Process:[process]*, Name:[name]) :->
 
 	send(B, send_super, initialise, @nil, BufName),
 	send(B, slot, process_fragment, fragment(B, 0, 0)),
-	send(B, slot, prompt_regex, @default),
 	send(B, slot, history, new(chain)),
 	send(B, mode, shell),
 	(   Process \== @default
 	->  send(B, process, Process)
 	;   true
 	),
-	send(B, obtain_resources).
+	send(B, obtain_class_variables).
 
 
 unlink(B) :->
@@ -199,8 +198,8 @@ send_input(B, Caret:int) :->
 
 format_data(B, Fmt:char_array, Args:any...) :->
 	"Send formatted data to process"::
-	new(S, string),
-	send(S, send_vector, format, Fmt, Args),
+	StringTerm =.. [string,Fmt|Args],
+	new(S, StringTerm),
 	send(B, append, S),
 	get(B, size, Size),
 	send(B?editors, for_some, message(@arg1, caret, Size)),

@@ -26,9 +26,11 @@
 variable(outlined,	bool := @off,	get,	"Is in outline mode?").
 variable(outline_regex_list, [chain],	send,	"Associated regexes").
 
-resource(header_style,  style,
-	 'when(@colour_display, style(colour := blue), style(bold := @on))',
-	 "Style for outline-headers").
+class_variable(header_style, style,
+	       when(@colour_display,
+		    style(colour := blue),
+		    style(bold := @on)),
+	       "Style for outline-headers").
 
 initialise(M) :->
 	"Associate class <-outline_regex_list or empty"::
@@ -61,7 +63,7 @@ outline_on(M) :->
 	    send(Ch, empty)
 	->  send(M, report, warning, 'No outline definition'),
 	    fail
-	;   get(M, resource_value, header_style, Header),
+	;   get(M, header_style, Header),
 	    send(M, style, outline_header, Header),
 	    send(M, style, outline_hidden, style(hidden := @on)),
 	    send(M, slot, outlined, @on),

@@ -27,6 +27,8 @@
 pce_ifhostproperty(prolog(quintus),
 		   (:- use_module(library(strings), [concat_chars/2]))).
 
+:- pce_autoload(prolog_predicate_item, library(prolog_predicate_item)).
+
 :- emacs_begin_mode(prolog, language,
 		    "Mode for editing XPCE/Prolog sources",
 					% BINDINGS
@@ -35,10 +37,13 @@ pce_ifhostproperty(prolog(quintus),
 	  insert_if_then_else	       = key('(') + key(';') + key('>'),
 
 	  prolog_manual		       = button(prolog),
+	  (spy)			       = button(prolog),
+	  trace			       = button(prolog),
 	  break_at		       = key('\C-cb') + button(prolog),
 	  check_clause		       = key('\C-c\C-s') + button(prolog),
 	  insert_full_stop	       = key(.),
 	  find_definition	       = key('\e.') + button(prolog),
+	  explain		       = key('\C-ce') + button(prolog),
 	  make			       = key('\C-cRET') + button(prolog),
 	  compile_buffer	       = key('\C-c\C-b') + button(prolog),
 	  consult_selection	       = button(compile) + button(prolog),
@@ -70,6 +75,14 @@ pce_ifhostproperty(prolog(quintus),
 	  '*'  + comment_end('/')
 	]).
 		 
+setup_mode(M) :->
+	"Attach styles for errors, warnings, etc."::
+	send(M, send_super, setup_mode),
+	send(M, style, error,   style(background := red)),
+	send(M, style, warning, style(background := orange)),
+	send(M, style, info,    style(background := grey80)).
+
+
 :- send(@class, attribute, outline_regex_list,
 	chain(regex(string('\\(^\\w+.*:<?->?\\)\\([^.]+\\.\\(\\s *\n\\)*\\)\\s ')))).
 
@@ -109,8 +122,11 @@ expand_path(Term, D) :-
 indent_line(E) :->
 	"Indent current line (Prolog indentation)"::
 	send(E, beginning_of_text_on_line),
-	(   send(E, indent_if_then_else)
-	;   send(E, indent_expression_line)
+	get(E, caret, Caret),
+	get(E, beginning_of_clause, Caret, Base),
+	(   send(E, indent_close_bracket_line, ')}]', Base)
+	;   send(E, indent_if_then_else)
+	;   send(E, indent_expression_line, ')}]', Base)
 	;   send(E, indent_clause_line)
 	;   send(E, align_line, 8)
 	).
@@ -144,7 +160,8 @@ beginning_of_if_then_else(E, Pos:int) :<-
 	get(TB, character, Pos-1, Before),
 	\+ send(E?syntax, has_syntax, Before, word),
 	Before \== 0'?,				% '?(' for xpce
-	get(E, beginning_of_clause, Pos, BegOfPred),
+	get(E, beginning_of_clause, Caret, BegOfPred),
+	BegOfPred < Pos,
 	get(TB, scan_syntax, BegOfPred, Pos, code).
 
 
@@ -246,29 +263,20 @@ compile_buffer(E) :->
 		*       FINDING PREDICATES	*
 		********************************/
 
+explain(E) :->
+	"Explain predicate (find references)"::
+	current_name_arity(E, Name, Arity),
+	(   var(Arity)
+	->  prolog_explain(Name)
+	;   functor(Head, Name, Arity),
+	    prolog_explain(Head)
+	).
+
+
 find_definition(E) :->
 	"Find definition of predicate"::
-	get(E, caret, Caret),
-	(   get(E, name_and_arity, Caret, tuple(Name, Arity))
-	->  true
-	;   Name = '',
-	    Arity = @default
-	),
-	(   Arity == @default
-	->  Def = Name
-	;   Def = string('%s/%d', Name, Arity)
-	),
-	get(E?frame, prompt, 'Name/Arity', Def, NameAndArity),
-	new(NameAndArityRegex, regex('\s *\(.+\)/\(\sd+\)\s *$')),
-	(   send(NameAndArityRegex, match, NameAndArity)
-	->  get(NameAndArityRegex, register_value, NameAndArity, 1, NameStr),
-	    get(NameAndArityRegex, register_value, NameAndArity, 2, ArityStr),
-	    get(type(name), check, NameStr, PredName),
-	    get(type(int), check, ArityStr, PredArity)
-	;   get(NameAndArity, value, PredName)
-	),
-
-	find_predicate(PredName, PredArity, Preds),
+	current_name_arity(E, Module, PredName, PredArity),
+	find_predicate(Module, PredName, PredArity, Preds),
 	(   Preds = []
 	->  ignore(PredArity = '?'),
 	    send(E, report, warning,
@@ -280,21 +288,44 @@ find_definition(E) :->
 	    ;	send(E, report, warning,
 		     'Cannot locate %s/%d', PredName, PredArity)
 	    )
-	;   mark_predicates(Preds, NameAndArity)
+	;   (   var(PredArity)
+	    ->	Label = PredName
+	    ;	new(Label, string('%s/%d', [PredName, PredArity]))
+	    ),
+	    mark_predicates(Preds, Label)
 	).
 
+
+current_name_arity(E, Module, PredName, PredArity) :-
+	get(E, caret, Caret),
+	(   get(E, name_and_arity, Caret, tuple(Name, Arity))
+	->  true
+	;   Name = '',
+	    Arity = @default
+	),
+	(   Arity == @default
+	->  Def = Name
+	;   Def = string('%s/%d', Name, Arity)
+	),
+	new(Item, prolog_predicate_item('[Module:]Name[/Arity]', Def)),
+	get(E?frame, prompt_using, Item, Selection),
+	free(Item),
+	(   Selection = Module:PredName/PredArity
+	->  true
+	;   Selection = PredName/PredArity
+	).
 	
 %	Finding predicates (SWI-Prolog specific)
 
-find_predicate(Name, Arity, Preds) :-
+find_predicate(Module, Name, Arity, Preds) :-
 	(   integer(Arity)
 	->  functor(Head, Name, Arity)
 	;   true
 	),
-	findall(H, find_predicate_(Name, Head, H), Hs),
+	findall(H, find_predicate_(Module, Name, Head, H), Hs),
 	list_to_set(Hs, Preds).			% remove duplicates
 
-find_predicate_(Name, Head, TheModule:Head) :-
+find_predicate_(Module, Name, Head, TheModule:Head) :-
 	current_predicate(Name, Module:Head),
 	(   predicate_property(Module:Head, imported_from(TheModule))
 	->  true
@@ -350,18 +381,26 @@ locate(E, Name, Arity) :->
 	locate(TB, Name, Arity, Index),
 	send(E, caret, Index).
 
+class_regex(':-\s *pce_begin_class(\(\w+\)',
+	    ':-\s *pce_end_class\s *.',
+	    A-[A]).
+class_regex(':-\s *emacs_begin_mode(\(\w+\)',
+	    ':-\s *emacs_end_mode\s *.',
+	    A-[emacs_, A, '_mode']).
+
 what_class(E, ClassName:name) :<-
 	"Find current XPCE class"::
 	get(E, caret, Caret),
 	get(E, text_buffer, TB),
-	new(BG, regex(':-\s *pce_begin_class(\(\w+\)')),
+	class_regex(Begin, End, Raw-Parts),
+	new(BG, regex(Begin)),
 	get(BG, search, TB, Caret, 0, BeginClass),
-	(   get(regex(':-\s *pce_end_class\s *.'), search,
-		TB, Caret, 0, EndClass)
+	(   get(regex(End), search, TB, Caret, 0, EndClass)
 	->  EndClass < BeginClass
 	;   true
-	),
-	get(BG, register_value, TB, 1, name, ClassName).
+	), !,
+	get(BG, register_value, TB, 1, name, Raw),
+	concat_atom(Parts, ClassName).
 
 what_class(E) :->
 	"Display current class"::
@@ -376,6 +415,21 @@ source_file(E, F:file) :->
 	"Switch to named source_file"::
 	send(E, find_file, F).
 
+
+prolog_module(M, Module:name) :<-
+	  "Return module defined in this class"::
+	  get(M, prolog_term, 0, ModuleTerm),
+	  ModuleTerm = (:- module(Module, _)).
+
+
+what_module(M) :->
+	  "Report the Prolog module defined in this file"::
+	  (   get(M, prolog_module, Module)
+	  ->  send(M, report, status,
+		   'File defines Prolog module "%s"', Module)
+	  ;   send(M, report, status,
+		   'Not a module file')
+	  ).
 
 
 		 /*******************************
@@ -443,30 +497,101 @@ no_check(library('xref/quintus')).
 no_check(library('xref/sicstus')).
 
 do_not_check(File) :-
-	  no_check(Spec),
-	  absolute_file_name(Spec, [access(read), extensions([pl])], Expanded),
-	  send(File, same, Expanded).
+	no_check(Spec),
+	absolute_file_name(Spec, [access(read), extensions([pl])], Expanded),
+	send(File, same, Expanded).
 
 pce_check_require(M, File:file) :->
-	  "Open of there is no :- require"::
-	  (   do_not_check(File)
-	  ->  true
-	  ;   get(File, name, Name),
-	      send(M, report, status, 'Checking %s', Name),
-	      send(M, synchronise),
-	      auto_call(pce_require(Name, _Directive, Message)),
-	      (   send(Message, sub, 'up-to-date')
-	      ->  true
-	      ;   new(B, emacs_buffer(File)),
-		  (   get(regex('^:-\s *require('), search, B, Index)
-		  ->  true
-		  ;   Index = 0
-		  ),
-		  send(@emacs_mark_list, append_hit, B, Index)
-	      ),
-	      send(M, report, done)
-	  ).
+	"Open of there is no :- require"::
+	(   do_not_check(File)
+	->  true
+	;   get(File, name, Name),
+	    send(M, report, status, 'Checking %s', Name),
+	    send(M, synchronise),
+	    auto_call(pce_require(Name, _Directive, Message)),
+	    (   send(Message, sub, 'up-to-date')
+	    ->  true
+	    ;   new(B, emacs_buffer(File)),
+		(   get(regex('^:-\s *require('), search, B, Index)
+		->  true
+		;   Index = 0
+		),
+		send(@emacs_mark_list, append_hit, B, Index)
+	    ),
+	    send(M, report, done)
+	).
 
+spy(M) :->
+	"Set spy-point on implementation"::
+	get(M, prolog_term, Term),
+	(   do_spy(Term, M, Feedback)
+	->  term_to_atom(Feedback, Atom),
+	    send(M, report, status,
+		 'Placed spy-point on "%s"', Atom)
+	;   send(M, report, warning, 
+		 'Can''t find anything to spy from caret location')
+	).
+
+do_spy((Head :-> _Body), M, (Class->Name)) :- !,
+	get(M, what_class, Class),
+	functor(Head, Name, _Arity),
+	spypce((Class->Name)).
+do_spy((Head :<- _Body), M, <-(Class, Name)) :- !,
+	get(M, what_class, Class),
+	functor(Head, Name, _Arity),
+	spypce(<-(Class, Name)).
+do_spy(variable(Name, _Type, _Access), M, (Class-Name)) :-
+	get(M, what_class, Class),
+	spypce((Class-Name)).
+do_spy(variable(Name, _Type, _Access, _Doc), M, (Class-Name)) :-
+	get(M, what_class, Class),
+	spypce((Class-Name)).
+do_spy((Head :- _Body), M, Spec) :-
+	prolog_debug_spec(M, Head, Spec),
+	user:spy(Spec).
+do_spy(Head, M, Spec) :-
+	prolog_debug_spec(M, Head, Spec),
+	user:spy(Spec).
+
+
+trace(M) :->
+	"Set trace-point on implementation"::
+	get(M, prolog_term, Term),
+	(   do_trace(Term, M, Feedback)
+	->  term_to_atom(Feedback, Atom),
+	    send(M, report, status,
+		 'Placed trace-point on "%s"', Atom)
+	;   send(M, report, warning, 
+		 'Can''t find anything to trace from caret location')
+	).
+
+do_trace((Head :-> _Body), M, (Class->Name)) :- !,
+	get(M, what_class, Class),
+	functor(Head, Name, _Arity),
+	tracepce((Class->Name)).
+do_trace((Head :<- _Body), M, <-(Class, Name)) :- !,
+	get(M, what_class, Class),
+	functor(Head, Name, _Arity),
+	tracepce(<-(Class, Name)).
+do_trace(variable(Name, _Type, _Access), M, (Class-Name)) :-
+	get(M, what_class, Class),
+	tracepce((Class-Name)).
+do_trace(variable(Name, _Type, _Access, _Doc), M, (Class-Name)) :-
+	get(M, what_class, Class),
+	tracepce((Class-Name)).
+do_trace((Head :- _Body), M, Spec) :-
+	prolog_debug_spec(M, Head, Spec),
+	user:trace(Spec).
+do_trace(Head, M, Spec) :-
+	prolog_debug_spec(M, Head, Spec),
+	user:trace(Spec).
+
+prolog_debug_spec(M, Head, Spec) :-
+	catch(functor(Head, Name, Arity), _, fail),
+	(   get(M, prolog_module, Module)
+	->  Spec = (Module:Name/Arity)
+	;   Spec = Name/Arity
+	).
 	    
 		 /*******************************
 		 *	       DROP		*
@@ -721,6 +846,31 @@ pce_ifhostproperty(prolog(swi),		% should become built-in
 	stream_position(Fd,
 			'$stream_position'(Old, _, _),
 			'$stream_position'(Pos, 0, 0)))).
+
+
+		 /*******************************
+		 *        TERM-READING		*
+		 *******************************/
+
+prolog_term(M, From:[int], Clause:prolog) :<-
+	  "Read clause start at <From> or around caret"::
+	  (   From == @default
+	  ->  get(M, caret, Caret),
+	      get(M, beginning_of_clause, Caret, Start)
+	  ;   Start = From
+	  ),
+	  get(M, text_buffer, TB),
+	  pce_open(TB, read, Fd),
+	  read_term_from_stream(Fd, Start, Clause, Error, _S, _P),
+	  close(Fd),
+	  (   Error == none
+	  ->  true
+	  ;   Error = EPos:Msg,
+	      send(M, caret, EPos),
+	      send(M, report, warning, 'Syntax error: %s', Msg),
+	      fail
+	  ).
+
 
 		 /*******************************
 		 *       SOURCE DEBUGGER	*

@@ -128,7 +128,7 @@ update_order(Ref) :-
 
 make_alignments(Rows) :-
 	forall(item(Item, Rows),
-	       (   get(Item, resource_value, alignment, Alignment),
+	       (   get(Item, class_variable_value, alignment, Alignment),
 		   Alignment \== column
 	       ->  send(Item, alignment, Alignment)
 	       ;   send(Item, alignment, left)

@@ -17,9 +17,19 @@
 :- use_module(pce_principal).
 
 
-%	pce_catch_error(Errors, Goal)
-%	Run goal, fail silently on indicated errors.
+%	pce_catch_error(?Errors, Goal)
+%
+%	Run goal, fail silently on indicated errors.  If the first argument
+%	is a variable, any error will be catched.
 
+pce_catch_error(Error, Goal) :-
+	var(Error), !,
+	send(@pce, catch_error, @default),
+	(   Goal
+	->  send(@pce, catch_pop)
+	;   send(@pce, catch_pop),
+	    fail
+	).
 pce_catch_error(Errors, Goal) :-
 	send(@pce, catch_error, Errors),
 	(   Goal

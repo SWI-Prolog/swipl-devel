@@ -55,6 +55,15 @@ strip_module(Raw, Module, Term) :-
 	term_to_atom(Term, Atom),
 	user:Term.
 
+		 /*******************************
+		 *	     ERRORS		*
+		 *******************************/
+
+:- multifile
+	prolog:message/3.
+
+prolog:message(T) -->
+	pce_messages:pce_message(T).
 
 		/********************************
 		*             ENTRY		*
@@ -67,27 +76,27 @@ pce_home(PceHome) :-
 	getenv('XPCEHOME', PceHome),
 	exists_directory(PceHome), !.
 pce_home(PceHome) :-
-	feature(home, PlHome),
 	(   feature(xpce_version, Version),
 	    concat('/xpce-', Version, Suffix)
 	;   Suffix = '/xpce'
 	),
-	concat(PlHome, Suffix, RawHome),
-	exists_directory(RawHome), !,
-	absolute_file_name(RawHome, PceHome).
+	absolute_file_name(swi(Suffix), [file_type(directory)], PceHome),
+	exists_directory(PceHome), !.
+pce_home(PceHome) :-
+	feature(runtime, true), !,
+	(   feature(home, PceHome)
+	->  true
+	;   feature(symbol_file, Exe)
+	->  file_directory_name(Exe, PceHome)
+	;   PceHome = '.'
+	).
 pce_home(_) :-
 	$warning('Cannot find XPCE home directory'),
 	halt(1).
 
 '$load_pce' :-
 	'$c_current_predicate'('$pce_init', user:'$pce_init'(_)), !,
-	(   pce_home(PceHome),
-	    pce_principal:'$pce_init'(PceHome),
-	    set_feature(xpce, true)
-	->  true
-	;   format(user_error, '[PCE ERROR: Failed to initialise XPCE]~n', []),
-	    halt(1)
-	).
+	init_pce.
 '$load_pce' :-
 	(   feature(dll, true)
 	;   feature(open_shared_object, true)
@@ -98,10 +107,12 @@ pce_home(_) :-
 		   '[PCE ERROR: Failed to load XPCE foreign library]~n', []),
 	    halt(1)
 	),
-	(   absolute_file_name(pce(.), [file_type(directory)], PceHome),
+	init_pce.
+
+init_pce :-
+	(   pce_home(PceHome),
 	    pce_principal:'$pce_init'(PceHome)
-	->  true
+	->  set_feature(xpce, true)
 	;   format(user_error, '[PCE ERROR: Failed to initialise XPCE]~n', []),
 	    halt(1)
-	),
-	set_feature(xpce, true), !.
+	).

@@ -33,6 +33,20 @@ example-:
 
 See also the ImageViewer demo  tool  to   get  an  overview of available
 images in a directory.
+
+Images and program resources
+----------------------------
+
+pce_image_directory/1   prepends   the   given     directory    to   the
+file_search_path/2 declarations using the alias   `image'. Especially if
+the application should (eventually)  be  turned   into  a  runtime,  the
+following skeleton for using images as program resources is adviced:
+
+resource(cute,	image, image('cute.xpm')).
+
+	...
+	new(I, image(resource(cute)),
+	...
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 pce_image_directory(Dir) :-
@@ -41,12 +55,14 @@ pce_image_directory(Dir) :-
 	        prolog_load_context(directory, Cwd)
 	    ->	concat_atom([Cwd, /, Dir], DirPath)
 	    ;	DirPath = Dir
-	    )
-	;   absolute_file_name(Dir,
+	    ),
+	    asserta(user:file_search_path(image, DirPath))
+	;   asserta(user:file_search_path(image, Dir)),
+	    absolute_file_name(Dir,
 			       [ file_type(directory),
 				 access(read)
 			       ], DirPath)
 	),
-	get(class(image), resource, path, PathResource),
-	get(PathResource, value, Path),
-	send(PathResource, value, string('%s:%s', DirPath, Path)).
+	get(class(image), class_variable, path, PathVar),
+	get(PathVar, value, Path),
+	send(PathVar, value, string('%s:%s', DirPath, Path)).

@@ -84,11 +84,7 @@ edit_mode(CE, Val:bool) :->
 
 selected(CE, Obj:object) :->
 	"Display selected object"::
-	(   send(Obj, instance_of, man_keyword_card)
-	->  true
-	;   send(CE?editor, selection, Obj)
-	).
-
+	send(CE?editor, selection, Obj).
 
 :- pce_end_class.
 

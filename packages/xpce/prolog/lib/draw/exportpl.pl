@@ -22,7 +22,7 @@
 	   , sformat/3
 	   ]).
 
-:- pce_autoload(drag_and_drop_gesture, library(pce_drag_and_drop)).
+:- pce_autoload(drag_and_drop_gesture, library(dragdrop)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Translate a PceDraw drawing into a Prolog term for later display.
@@ -266,11 +266,13 @@ simplify_attributes(Term, Term).
 		 *	      CLASSES		*
 		 *******************************/
 
+resource(drawing, image, image('16x16/drawing.xpm')).
+
 :- pce_begin_class(draw_drag_drawing, bitmap,
 		   "Draw to drop the drawing in a PceEmacs Window").
 
 initialise(DD) :->
-	send(DD, send_super, initialise, '16x16/drawing.xpm'),
+	send(DD, send_super, initialise, resource(drawing)),
 	send(DD, help_message, tag, 'Export drawing as Prolog Source').
 
 :- pce_global(@draw_drag_drawing_recogniser,

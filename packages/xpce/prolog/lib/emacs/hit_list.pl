@@ -24,7 +24,7 @@ variable(used, 		   bool := @off, both,
 variable(message,	   name := caret, both,
 	 "Method to apply").
 
-resource(confirm_done, 	bool, '@off').
+class_variable(confirm_done, bool, @off).
 
 initialise(L, Label:[string]) :->
 	"Create from label"::

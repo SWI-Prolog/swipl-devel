@@ -231,10 +231,22 @@ equal_attributes([A|T], O1, O2) :-
 
 make_fill_pattern_menu(_Draw, Menu) :-
 	get_config(draw_config:resources/fill_palette, PatternsChain),
-	chain_list(PatternsChain, Patterns),
+	chain_list(PatternsChain, Patterns0),
+	realise_patterns(Patterns0, Patterns),
 	new(Proto, box(30, 16)),
 	make_proto_menu(Menu, Proto, fill_pattern, Patterns),
 	send(Proto, done).
+
+realise_patterns([], []).
+realise_patterns([Image|T0], [Image|T]) :-
+	object(Image),
+	send(Image, instance_of, image), !,
+	realise_patterns(T0, T).
+realise_patterns([Name|T0], [Image|T]) :-
+	pce_catch_error(_Error, new(Image, image(Name))), !,
+	realise_patterns(T0, T).
+realise_patterns([_|T0], T) :-
+	realise_patterns(T0, T).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

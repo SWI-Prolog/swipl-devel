@@ -17,6 +17,9 @@
 	   , ignore/1
 	   ]).
 
+resource(pinned,	image,	image('pinned.xpm')).
+resource(not_pinned,	image,	image('pin.xpm')).
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 @current_emacs_mode is a variable  pointing   to  the current emacs-mode
 object.  Pushed by `emacs_key_binding  ->fill_arguments_and_execute' and
@@ -31,8 +34,8 @@ various others.
 	      new(handler(button,
 			  message(@receiver?device?(mode), event, @event)))).
 
-resource(confirm_done,	bool,	false,	     "Donot confirm emacs-windows").
-resource(size,		size,	size(80,32), "Size of text-field").
+class_variable(confirm_done, bool, false,       "Donot confirm emacs-windows").
+class_variable(size,         size, size(80,32), "Size of text-field").
 
 variable(sticky_window, bool,   get,  "When @on, window won't be killed").
 variable(pool,		[name], both, "Window pool I belong too").
@@ -51,7 +54,7 @@ initialise(F, B:emacs_buffer) :->
 	send(MBD, pen, 0),
 	send(MBD, display, new(menu_bar)),
 
-	get(F, resource_value, size, Size),
+	get(F, class_variable_value, size, Size),
 	send(new(V, view(@default, @default, @default,
 			 new(E, emacs_editor(B, Size?width, Size?height)))),
 	     below, MBD),
@@ -126,8 +129,8 @@ sticky_window(F, Val:[bool]) :->
 	get(F, member, mini_window, WM),
 	get(WM, member, sticky_indicator, Bitmap),
 	(   get(F, sticky_window, @on)
-	->  send(Bitmap, image, @emacs_pinned_image)
-	;   send(Bitmap, image, @emacs_pin_image)
+	->  send(Bitmap, image, resource(pinned))
+	;   send(Bitmap, image, resource(not_pinned))
 	).
 
 
@@ -152,21 +155,18 @@ keyboard_focus(F, W:window) :->
 		 *	    PROMPTING		*
 		 *******************************/
 
-:- pce_global(@emacs_nil,
-	      new(constant(emacs_nil,
-			   string("Nil that does not match @nil")))).
 :- pce_global(@prompt_recogniser, make_prompt_binding).
 
 make_prompt_binding(G) :-
 	new(G, key_binding(emacs_prompter, text_item)),
 	send(G, function, 'TAB',  complete),
 	send(G, function, 'SPC',  insert_self),
-	send(G, function, 'RET',  message(@receiver, apply, @on)),
+	send(G, function, 'RET',  if(message(@receiver, apply, @on))),
 	send(G, function, '\C-g', and(message(@receiver, keyboard_quit),
 				      message(@receiver?frame, return,
-					      @emacs_nil))).
+					      canceled))).
 
-prompt_using(F, Item:dialog_item, Rval:any) :<-
+prompt_using(F, Item:dialog_item, Rval:unchecked) :<-
 	"Prompt for value in dialog using Item"::
 	get(F, member, mini_window, W),
 	get(F, member, dialog, Dialog),
@@ -174,25 +174,25 @@ prompt_using(F, Item:dialog_item, Rval:any) :<-
 
 	send(MB, active, @off),
 	send(W, prompter, Item),
-	send(Item, message, message(F, return, @receiver?selection)),
+	send(Item, message, message(F, return, ok)),
 	(   send(Item, instance_of, text_item)
 	->  send(Item, recogniser, @prompt_recogniser),
 	    send(Item, value_font, fixed)
 	;   true
 	),
 	send(F, keyboard_focus, W),
-	get(F, confirm, RawVal),
+	get(F, confirm, Return),
 	object(F),			% may be freed!
 
-	send(RawVal, lock_object, @on),	% protect for gc
 	send(Item, message, @nil),
 	send(W, prompter, @nil),
 	get(F, member, view, View),
 	send(F, keyboard_focus, View),
 	send(MB, active, @on),
-	RawVal \== @emacs_nil,		% must be able to pass @nil!
 
-	Rval = RawVal.
+	Return \== canceled,
+
+	get(Item, selection, Rval).
 
 reset(F) :->
 	"Remove prompter"::
@@ -262,8 +262,15 @@ prompt(F, Label:char_array, Default:[any], Type:[type], History:[chain],
 	send(Item, pen, 0),
 	
 	get(F, prompt_using, Item, RawRval),
-	free(Item),
-	fix_rval(Type, RawRval, Rval).
+	fix_rval(Type, RawRval, Rval),
+	(   object(Rval),
+	    get(Rval, lock_object, @off)
+	->  send(Rval, lock_object, @on), 	% protect during deletion!
+	    free(Item),
+	    get(Rval, unlock, Rval)
+	;   free(Item)
+	).
+
 
 %	If the user entered a directory while requested for a file,
 %	start the finder in the specified directory to provide the file.
@@ -300,16 +307,6 @@ selection(TI, Name:name) :<-
 :- pce_end_class.
 
 
-:- pce_global(@emacs_pin_image,    make_image('pin.xpm')).	      
-:- pce_global(@emacs_pinned_image, make_image('pinned.xpm')).	      
-
-make_image(File, Ref) :-
-	new(Ref, image(File)), !.
-make_image(File, Ref) :-
-	new(T, text(File)),
-	new(Ref, image(@nil, T?width, T?height)),
-	send(Ref, draw_in, T).
-
 :- pce_begin_class(emacs_mini_window, dialog, "Prompt and feedback window").
 
 variable(prompter, 	 dialog_item*,  get,	"Current prompter").
@@ -321,7 +318,7 @@ initialise(D) :->
 	send(D, slot, report_count, number(0)),
 	send(D, gap, size(10, 2)),
 	send(D, pen, 0),
-	send(D, display, new(StickyIndicator, bitmap(@emacs_pin_image, @on))),
+	send(D, display, new(StickyIndicator, bitmap(resource(not_pinned)))),
 	send(StickyIndicator, name, sticky_indicator),
 	send(StickyIndicator, recogniser,
 	     click_gesture(left, '', single,
@@ -345,12 +342,13 @@ report(D, Type:name, Fmt:[char_array], Args:any ...) :->
 	    (   Fmt == '', Type == status	% clear
 	    ->  send(Label, clear),
 		send(RC, value, 0)
-	    ;   (	get(D, prompter, Prompter), Prompter \== @nil
-		->	send(Label, x, Prompter?width + 10)
-		;	send(Label, x, 25)
+	    ;   (   get(D, prompter, Prompter), Prompter \== @nil
+		->  send(Label, x, Prompter?width + 10)
+		;   send(Label, x, 25)
 		),
 		send(Label, displayed, @on),
-		send(Label, send_vector, report, Type, Fmt, Args),
+		Msg =.. [report, Type, Fmt|Args],
+		send(Label, Msg),
 		send(RC, value, 10)
 	    )
 	;   true
@@ -479,6 +477,19 @@ typed(E, Id:event_id) :->
 	ignore(send(Mode, typed, Id, E)). % don't delegate to frame
 
 
+caret(E, Caret:[int]) :->
+	send(E, send_super, caret, Caret),
+	get(E, mode, Mode),
+	(   send(Mode, has_send_method, new_caret_position)
+	->  (   Caret == @default
+	    ->  get(E, caret, NewCaret)
+	    ;   NewCaret = Caret
+	    ),
+	    send(Mode, new_caret_position, NewCaret)
+	;   true
+	).
+
+
 event(E, Ev:event) :->
 	(   send(Ev, is_a, area_enter)
 	->  send(E?frame, keyboard_focus, E?window)
@@ -543,7 +554,8 @@ catch_all(E, Selector:name, Args:unchecked ...) :->
         get(E, mode, Mode),
 	get(Mode?class, send_method, Selector, _),
         send(@pce, last_error, @nil),
-        send(Mode, send_vector, Selector, Args).
+	Msg =.. [Selector|Args],
+        send(Mode, Msg).
 
 
 		 /*******************************
@@ -674,6 +686,25 @@ mode_name(Mode, Name) :-
 table_name(ClassName, TableName) :-
 	concat(TableName, '_mode', ClassName).
 
+new_caret_position(M, Caret:int) :->
+	"Called after any caret movement"::
+	get(M, text_buffer, TB),
+	get(TB, find_all_fragments,
+	    message(@arg1, overlap, Caret),
+	    Fragments),
+	(   send(Fragments, empty)
+	->  send(M, report, status, '')
+	;   send(Fragments, for_some,
+		 message(M, in_fragment, @arg1))
+	).
+
+in_fragment(M, Fragment:fragment) :->
+	"Called after a caret movement brings the caret in fragment"::
+	(   get(Fragment, attribute, message, Message)
+	->  get(Fragment, style, StyleName),
+	    send(M, report, status, '%s: %s', StyleName, Message)
+	;   true
+	).
 
 bindings(M) :->
 	"Associate key_binding table"::
@@ -1070,19 +1101,30 @@ convert(_, Name:name, MM:emacs_mode_menu) :<-
 	).
 
 
+action_name(Name, Name) :-
+	atomic(Name), !.
+action_name(MenuItem, Name) :-
+	get(MenuItem?value?print_name, value, Name).
+
+locate_action(Chain, Action, Cell) :-
+	action_name(Action, Name),
+	get(Chain, find, message(@prolog, action_name, @arg1, Name), Cell).
+
 append(MM, Name:name, Action:'name|menu_item', Before:[name]) :->
 	"Append item for specified menu"::
 	(   get(MM, value, Name, Chain)
 	->  true
 	;   send(MM, value, Name, new(Chain, chain))
 	),
-        (   send(Chain, member, Action)
-	->  true
-	;   send(Chain, append, Action)
-	),
-	(   Before \== @default
-	->  ignore(send(Chain, move_before, Action, Before))
-	;   true
+        (   locate_action(Chain, Action, Old)
+	->  send(Chain, replace, Old, Action)
+	;   send(Chain, append, Action),
+	    (   Before \== @default,
+		locate_action(Chain, Before, CellValue),
+		send(Chain, move_before, Action, CellValue)
+	    ->	true
+	    ;   true
+	    )
 	).
 
 :- pce_end_class.
@@ -1131,16 +1173,19 @@ fill_arguments_and_execute(KB, Id:event_id, Receiver:emacs_mode,
 	->  send(Receiver, open_history, Impl, @on)
 	;   send(Receiver, close_history)
 	),
-	send(KB, send_super_vector,
-	     fill_arguments_and_execute, Id, Receiver, Selector, Argv).
+	Message =.. [ fill_arguments_and_execute,
+		      Id, Receiver, Selector | Argv],
+	send_super(KB, Message).
 
 execute(KB, Receiver:emacs_mode, Selector:name, Argv:any ...) :->
 	"Push history if available"::
 	(   get(Receiver, m_x_history, @nil)
 	->  true
-	;   send(Receiver, close_history, Argv?copy)
+	;   VectorTerm =.. [code_vector|Argv], % do not create references!
+	    send(Receiver, close_history, new(VectorTerm))
 	),
-	send(KB, send_super_vector, execute, Receiver, Selector, Argv).
+	Message =.. [execute, Receiver, Selector | Argv],
+	send_super(KB, Message).
 
 :- pce_end_class.
 

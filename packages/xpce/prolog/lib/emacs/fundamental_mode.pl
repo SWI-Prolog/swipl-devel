@@ -76,10 +76,13 @@
 	[
 	]).
 
-resource(grep_command,	string, 'grep -n %s /dev/null',
-	 "Command of M-x grep").
-resource(shell_command,	chain*, ['/bin/sh', '-c'],
-	 "Command for running grep, make, etc.").
+class_variable(grep_command,	string, 'grep -n %s /dev/null',
+	       "Command of M-x grep").
+class_variable(shell_command,	chain*,
+	       when(@pce?window_system == windows,
+		    @nil,
+		    chain('/bin/sh', '-c')),
+	       "Command for running grep, make, etc.").
 
 		 /*******************************
 		 *	GLOBAL UTILITIES	*
@@ -306,8 +309,8 @@ kill_buffer(M) :->
 
 /*
 print(M) :->
-	"Print on resource Pce.EmacsFundamentalMode.print_command"::
-	get(M, resource_value, print_command, Cmd),
+	"Print on emacs_fundamental_mode.print_command"::
+	get(M, print_command, Cmd),
 	send(M, save_if_modified),
 	get(M, file, File),
 	get(File, name, Name).
@@ -470,7 +473,7 @@ execute_extended_command(M,
 	result(send(M, send_vector, CmdName, Argv), YesNo),
 	(   object(M)			% may be ->free'd!
 	->  send(M, close_history, Argv),
-	    (	\+ YesNo
+	    (	YesNo == fail
 	    ->  send(M, report, status, no)
 	    ;	true
 	    )
@@ -515,7 +518,7 @@ compile(M, Command:shell_command=string, Label:[name], Pool:[name]) :->
 	    Status == ok
 	;   true
 	),
-	get(M, resource_value, shell_command, ShellCommandChain),
+	get(M, shell_command, ShellCommandChain),
 	(   ShellCommandChain \== @nil
 	->  chain_list(ShellCommandChain, List),
 	    append(List, [Command], ArgList),
@@ -541,9 +544,7 @@ compile(M, Command:shell_command=string, Label:[name], Pool:[name]) :->
 
 grep(M, GrepArgs:grep_arguments=string) :->
 	"Run Unix grep in compilation buffer"::
-	send(@emacs, save_some_buffers),
-	send(M, has_processes),
-	get(M, resource_value, grep_command, GrepCommad),
+	get(M, grep_command, GrepCommad),
 	send(M, compile,
 	     string(GrepCommad, GrepArgs),
 	     string('grep %s', GrepArgs),

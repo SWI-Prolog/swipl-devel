@@ -93,6 +93,9 @@ members(B, Objs:chain) :<-
 	"Chain holding member graphicals"::
 	get(B?graphicals, map, ?(B, unrender, @arg1), Objs).
 
+member(B, Obj:any) :->
+	"Test membership"::
+	get(B?graphicals, find, message(B, represents, @arg1, Obj), _Gr).
 
 :- pce_group(selection).
 

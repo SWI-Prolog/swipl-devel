@@ -286,6 +286,9 @@ fill_dialog(Draw, D:dialog) :->
 	new(Selection, Canvas?selection),
 	new(NonEmptySelection, not(message(Selection, empty))),
 	new(OneSelected, Selection?size == 1),
+	new(SelectionIsConnection,
+	    and(OneSelected,
+		message(Selection?head, instance_of, connection))),
 	new(NonEmptyDrawing, not(message(Canvas?graphicals, empty))),
 	new(HasCurrentFile, Canvas?file \== @nil),
 	new(HasMetaFile, ?(@pce, convert, win_metafile, class)),
@@ -372,7 +375,8 @@ fill_dialog(Draw, D:dialog) :->
 		  [ menu_item(as_is,
 			      message(Menu, create_proto, Selection, as_is),
 			      @default, @off,
-			      NonEmptySelection),
+			      and(NonEmptySelection,
+				  not(SelectionIsConnection))),
 		    menu_item(virgin,
 			      message(Menu, create_proto, Selection, virgin),
 			      @default, @off,
@@ -611,6 +615,18 @@ about(_Draw) :->
 	     Version,
 	     'Author: Jan Wielemaker',
 	     'E-mail: jan@swi.psy.uva.nl').
+
+
+update_label(Draw) :->
+	"Update the label of the window"::
+	get(Draw?canvas, file, File),
+	get(Draw, title, Title),
+	(   File \== @nil
+	->  send(Draw, label,
+		 string('%s: %s', Title, File?name),
+		 string('%s', File?base_name))
+	;   send(Draw, label, Title)
+	).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

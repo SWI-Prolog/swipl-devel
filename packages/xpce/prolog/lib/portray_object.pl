@@ -15,7 +15,7 @@
 %		portray_object(+@Object)
 
 
-:- module(pce_portray,
+:- module(pce_portray_object,
 	[ portray_object/1
 	, portray_object/2
 	]).

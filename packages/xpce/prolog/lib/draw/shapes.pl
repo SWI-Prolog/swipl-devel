@@ -26,6 +26,7 @@
 user:pce_pre_expansion_hook((:- draw_begin_shape(Name, Super,
 						 Summary, Recognisers)),
 	       [(:- pce_begin_class(draw_shape_class:Name, Super, Summary)),
+		(:- use_class_template(draw_shape)),
 		(:- pce_class_directive(draw_shapes:associate_recognisers(Recognisers)))
 	       ]).
 user:pce_pre_expansion_hook((:- draw_end_shape), (:- pce_end_class)).
@@ -161,10 +162,6 @@ rather then the default
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 associate_recognisers(Recognisers) :-
-	(   get(@class, send_method, draw_shape_template, _)
-	->  true
-	;   use_class_template(draw_shape)
-	),
 	forall(member(R, Recognisers),
 	       send(@class, recogniser, R)).
 
@@ -305,12 +302,6 @@ mode(Gr, Mode:name) :<-
 	get(Gr, window, Window),
 	get(Window, mode, Mode).
 
-
-:- pce_group(template).
-
-draw_shape_template(_) :->
-	"Test for this method to see if template is associated"::
-	true.
 
 :- pce_group(edit).
 

@@ -15,6 +15,8 @@
 	   , ignore/1
 	   ]).
 
+resource(dir,	image, image('16x16/closedir.xpm')).
+
 :- pce_begin_class(image_browser, window,
 		   "Browser for image files").
 
@@ -61,11 +63,13 @@ make_imgbrowser_file_recogniser(G) :-
 
 initialise(IB, Dir:[directory], Exts:[chain]) :->
 	default(Exts, @nil, TheExts),
-	default(Dir,  directory('.'), TheDir),
 	send(IB, send_super, initialise),
 	send(IB, scrollbars, vertical),
 	send(IB, slot, extensions, TheExts),
-	send(IB, directory, TheDir),
+	(   Dir \== @default
+	->  send(IB, directory, Dir)
+	;   true
+	),
 	send(IB, resize_message,
 	     message(IB, format,
 		     create(format, horizontal, @arg2?width, @off))).
@@ -123,7 +127,7 @@ selected_dir(IB, Dir:directory) :->
 report_image(IB, Image:image*) :->
 	(   Image == @nil
 	->  send(IB, report, status, '')
-	;   get(Image?file, base_name, File),
+	;   image_name(Image, Name),
 	    get(Image, kind, Kind),
 	    get(Image, size, size(W, H)),
 	    (	get(Image, mask, Mask),
@@ -133,9 +137,19 @@ report_image(IB, Image:image*) :->
 	    ),
 	    send(IB, report, status,
 		 '%s containing a %d * %d %s%s',
-		 File, W, H, Kind, Comment)
+		 Name, W, H, Kind, Comment)
 	).
 
+
+image_name(Image, Name) :-
+	get(Image, name, Name),
+	Name \== @nil, !.
+image_name(Image, Name) :-
+	get(Image, file, File),
+	(   send(File, instance_of, file)
+	->  get(File, base_name, Name)
+	;   get(File, name, Name)
+	).
 
 :- pce_group(render).
 
@@ -170,7 +184,7 @@ show_dir(IB, Dir:directory, Label:[name]) :->
 	),
 	new(F, device),
 	send(F, format, @imgbrowser_icon_format),
-	send(F, display, bitmap('closedir.xpm')),
+	send(F, display, bitmap(resource(dir))),
 	send(F, recogniser, @imgbrowser_dir_recogniser),
 	send(F, display, text(BaseName)),
 	send(F, attribute, directory, Dir),
@@ -188,10 +202,19 @@ show_file(IB, File:file) :->
 	ignore(send(IB, report, progress, 'Checking %s ...', BaseName)),
 	new(Img, image),
 	(   pce_catch_error(bad_file, send(Img, load, File))
-	->  send(IB, display, image_browser_file_item(Img)),
+	->  new(I, image_browser_file_item(Img)),
+	    send(I, show_file_label, IB?show_file_labels),
+	    send(IB, display, I),
 	    send(IB, flush)
 	;   true
 	).
+
+
+append(IB, Img:image) :->
+	"Append a plain image"::
+	new(I, image_browser_file_item(Img)),
+	send(I, show_file_label, IB?show_file_labels),
+	send(IB, display, I).
 
 
 show_file_labels(IB, Show:bool) :->
@@ -260,11 +283,10 @@ event(D, Ev:event) :->
 :- pce_end_class.
 
 
-
-
 		 /*******************************
 		 *	    TEST (DEMO)		*
 		 *******************************/
+/*
 
 test :-
 	pce_autoload(directory_item, library(file_item)),
@@ -281,3 +303,5 @@ test :-
 	send(new(D2, dialog), below, IB),
 	send(D2, append, label(reporter)),
 	send(IB, open).
+
+*/

@@ -31,12 +31,12 @@ variable(get_source,	function*,	both, "Function to map the source").
 variable(source, 	any,	        get,  "Current source").
 variable(active_cursor,	cursor*,	get,  "@nil: activated").
 
-resource(warp,   bool,        '@on',
-	 "Pointer in center?").
-resource(button, button_name, left,
-	 "Button on which gesture operates").
-resource(cursor, cursor*,     cross_reverse,
-	 "Cursor to display.  @nil: use graphical").
+class_variable(warp,   bool,        '@on',
+	       "Pointer in center?").
+class_variable(button, button_name, left,
+	       "Button on which gesture operates").
+class_variable(cursor, cursor*,     cross_reverse,
+	       "Cursor to display.  @nil: use graphical").
 
 active_distance(_G, D) :-
 	D > 5.
@@ -46,7 +46,7 @@ initialise(G, But:button=[button_name],
 	   S:get_source=[function]*) :->
 	"Create from button, modifiers and warp"::
 	send(G, send_super, initialise, But, M),
-	default(W, resource(G, warp), Warp),
+	default(W, class_variable(G, warp), Warp),
 	default(S, @nil, GS),
 	send(G, warp, Warp),
 	send(G, get_source, GS),
@@ -81,7 +81,11 @@ set_source(G, Ev:event) :->
 
 cursor(G, Gr, Cursor:cursor) :<-
 	"Create cursor from the graphical"::
-	(   get(G, resource_value, cursor, Cursor), Cursor \== @nil
+	(   get(G, slot, cursor, Cursor),
+	    send(Cursor, instance_of, cursor)
+	->  true
+	;   get(G, class_variable_value, cursor, Cursor),
+	    Cursor \== @nil
 	->  true
 	;   get(Gr?area, size, size(W, H)),
 	    (   get(G, warp, @on)
@@ -175,7 +179,7 @@ terminate(G, Ev:event) :->
 	    send(G, cancel)
 	;   get(G, slot, target, Target),
 	    send(Ev?window, focus_cursor, @nil),
-	    send(G, cursor, @default),
+%	    send(G, cursor, @default),
 	    get(G, source, Source),
 	    (   Target == @nil
 	    ->  true

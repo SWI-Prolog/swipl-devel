@@ -15,6 +15,7 @@
 :- require([ between/3
 	   , concat/3
 	   , send_list/3
+	   , ignore/1
 	   ]).
 
 
@@ -185,12 +186,12 @@ make_draw_shape_select_recogniser(G) :-
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The `warp_gesture' allows  the user to  indicate an area by dragging a
-button and then selects all objects inside the indicated  area.  It is
-a rather typical   example of a  gesture definition.   The  resource/3
-declarations   define the  X-resources  that  apply:  the  button that
-activates the gesture,  the modifiers required (shift, control,  meta)
-and the  cursor that indicates the  gesture is active.  These resource
+The `warp_gesture' allows the user to  indicate   an  area by dragging a
+button and then selects all objects inside   the indicated area. It is a
+rather typical example of  a   gesture  definition. The class_variable/3
+declarations define the defaults that apply:   the button that activates
+the gesture, the modifiers  required  (shift,   control,  meta)  and the
+cursor that indicates the  gesture  is   active.  These  class variables
 values are handled by the super-class gesture.
 
 The variable `outline' keeps track of the box that is used to indicate
@@ -200,9 +201,9 @@ a time.
 
 :- pce_begin_class(draw_warp_select_gesture, gesture).
 
-resource(button,	button_name,	left).
-resource(modifier,	modifier,	'').
-resource(cursor,	cursor,		hand2).
+class_variable(button,		button_name,	left).
+class_variable(modifier,	modifier,	'').
+class_variable(cursor,		cursor,		hand2).
 
 variable(outline,	box,		get,
 	 "Outline to `warp' objects").
@@ -314,11 +315,11 @@ bottom-right-corner at the mouse-up location.
 
 :- pce_begin_class(draw_create_resize_gesture,	gesture).
 
-resource(button,	button_name,	left).
-resource(modifier,	modifier,	'').
-resource(cursor,	cursor,		bottom_right_corner).
-resource(minimum_size,  int,		3,
-	 "Mimimum width/height of the object").
+class_variable(button,	     button_name, left).
+class_variable(modifier,     modifier,	  '').
+class_variable(cursor,	     cursor,      bottom_right_corner).
+class_variable(minimum_size,  int, 	  3,
+	       "Mimimum width/height of the object").
 
 variable(object,	graphical*,	both,
 	 "Object created").
@@ -380,7 +381,7 @@ terminate(G, Ev:event) :->
 	send(G, object, @nil),
 	get(Obj, width, W),
 	get(Obj, height, H),
-	get(G, resource_value, minimum_size, S),
+	get(G, minimum_size, S),
 	(   (abs(W) < S ; abs(H) < S)
 	->  send(Obj, cut)
 	;   send(Canvas, auto_align, Obj, create),
@@ -403,7 +404,7 @@ height.
 
 :- pce_begin_class(draw_create_line_gesture, draw_create_resize_gesture).
 
-resource(cursor,	 cursor,	plus).
+class_variable(cursor,	 cursor,	plus).
 
 verify(_G, Ev:event) :->
 	"Only active when in create_line_mode"::
@@ -424,7 +425,7 @@ terminate(G, Ev:event) :->
 	get(G, object, Line),
 	send(G, object, @nil),
 	get(Line, length, L),
-	get(G, resource_value, minimum_size, MS),
+	get(G, minimum_size, MS),
 	get(Ev, receiver, Canvas),
 	(   L < MS
 	->  send(Line, cut)
@@ -442,8 +443,8 @@ end-points.
 
 :- pce_begin_class(draw_change_line_gesture, gesture).
 
-resource(button,	button_name,	middle).
-resource(cursor,	cursor,		plus).
+class_variable(button,	button_name,	middle).
+class_variable(cursor,	cursor,		plus).
 
 variable(side,		name*,		both,
 	 "Start or end").
@@ -504,8 +505,8 @@ subsequent control-point.
 
 :- pce_begin_class(draw_create_path_gesture, gesture).
 
-resource(cursor,	 cursor,	cross).
-resource(button,	 button_name,	left).
+class_variable(cursor,	 cursor,	cross).
+class_variable(button,	 button_name,	left).
 
 variable(path, path*, both, "Currently painted path").
 variable(line, line,  get,  "Line segment for last").
@@ -594,7 +595,7 @@ setting this button to @nil, the focus will not be released.  See also
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 terminate(G, Ev:event) :->
-	send(G, move),
+	send(G, move, Ev),
 	(   get(G, path, Path),
 	    Path \== @nil
 	->  get(G?line, end, point(X0, Y0)),
@@ -637,8 +638,8 @@ find the control-point.
 
 :- pce_begin_class(draw_modify_path_gesture, gesture).
 
-resource(cursor,	cursor,		plus).
-resource(button,	button_name,	middle).
+class_variable(cursor,	cursor,		plus).
+class_variable(button,	button_name,	middle).
 
 variable(point,		point*,		both,	"Point to move").
 
@@ -811,7 +812,7 @@ moved.
 
 This gesture illustrates how another gesture can be  encapsulated.  It
 is a  subclass  of `move_gesture' to inherit the  button  and modifier
-resources.
+class_variables.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- pce_begin_class(draw_move_selection_gesture, move_gesture).
@@ -824,10 +825,10 @@ variable(origin,	point,  get,
 	 "Start origin of selection").
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The gesture maintains an outline, the  selection   to  be  moved and the
-position where the move orginiated. The outline itself is given a normal
-move_gesture to make it  move  on   dragging.  This  move_gesture should
-operate on the same button and modifier.
+The  gesture maintains  an outline, the selection to  be moved and the
+positon  where  the move orginiated.    The outline  itself is given a
+normal  move_gesture to make  it move on  dragging.  This move_gesture
+should operate on the same button and modifier.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 initialise(G, B:[button_name], M:[modifier]) :->
@@ -1031,7 +1032,7 @@ y_resize(A0, A1, Y0, Yfactor) :-
 
 verify(G, Ev:event) :->
 	"Verify target is editable"::
-	send(G, send_super, verify),
+	send(G, send_super, verify, Ev),
 	get(Ev, receiver, Shape),
 	\+ ( send(Shape, has_get_method, editable),
 	     get(Shape, editable, @off)
@@ -1142,10 +1143,8 @@ variable(to_indicator,		bitmap,		get,
 variable(to,			graphical*,	get,
 	 "Graphical to connect to").
 
-resource(button,		button_name,	left,
-	 "Button used to connect (left)").
-resource(modifier,		modifier,	'',
-	 "Modifier used to connect").
+class_variable(button,   button_name, left, "Button used to connect (left)").
+class_variable(modifier, modifier,    '',   "Modifier used to connect").
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Initialise the line and markers of the gesture.

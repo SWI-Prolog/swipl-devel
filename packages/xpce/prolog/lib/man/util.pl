@@ -281,7 +281,7 @@ apropos_type_attribute(Att, Class, Flds, Regex, Match) :-
 
 type_to_class_attribute(send_method, send_methods) :- !.
 type_to_class_attribute(get_method,  get_methods) :- !.
-type_to_class_attribute(resource,    resources) :- !.
+type_to_class_attribute(class_var,   class_variables) :- !.
 type_to_class_attribute(sub_class,   sub_classes).
 
 %	apropos_class_attribute(+Class, +Att, +Flds, +Kwd, +Match)
@@ -324,9 +324,8 @@ class_of(Obj, ClassName) :-
 	send(Context, instance_of, class), !,
 	get(Context, name, ClassName).
 class_of(Obj, ClassName) :-
-	send(Obj, instance_of, resource),
-	get(Obj, context, Context),
-	send(Context, instance_of, class), !,
+	send(Obj, instance_of, class_variable),
+	get(Obj, context, Context), !,
 	get(Context, name, ClassName).
 class_of(_, '').
 

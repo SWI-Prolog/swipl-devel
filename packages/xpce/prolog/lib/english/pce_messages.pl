@@ -17,6 +17,15 @@
 :- require([ append/3
 	   ]).
 
+:- multifile
+	pce_message/3.
+
+pce_message(error(pce(Error, Args), _Context)) -->
+	{ Msg =.. [format|Args],
+	  get(Error, Msg, String),
+	  get(String, value, Text)
+	},
+	[Text].
 					% Messages from the interface
 pce_message(pce(bad_object_description, Culprit)) -->
 	['Illegal object description: `~w'''-[Culprit], nl].
@@ -29,7 +38,7 @@ pce_message(pce(bad_integer_reference, Culprit)) -->
 pce_message(pce(bad_string_argument, Culprit)) -->
 	['Cannot create string from: `~w'''-[Culprit], nl].
 pce_message(pce(unknown_reference, Culprit)) -->
-	['Unknown object reference: `@~w'''-[Culprit], nl].
+	['Unknown object reference: `~w'''-[Culprit], nl].
 pce_message(pce(open_qeury)) -->
 	['Internal interface error: open_query() failed'-[], nl].
 pce_message(pce(inconsistent_argc)) -->
@@ -60,6 +69,8 @@ pce_message(summary_not_closed(Text)) -->
 	['Class summary "~s" not closed by `::'''-[Text],nl].
 pce_message(get_resource_failed(Name, Obj)) -->
 	['Failed to get resource ~p of ~p'-[Name,Obj],nl]. 
+pce_message(get_class_variable_failed(Name, Obj)) -->
+	['Failed to get class_variable ~p of ~p'-[Name,Obj],nl]. 
 
 pce_message(loading_class(ClassName)) -->
 	['Loading PCE class ~w'-[ClassName],nl].
@@ -96,8 +107,29 @@ pce_message(loaded_library_index(File)) -->
 pce_message(no_pw3_predicate(P/N)) -->
 	['XPCE/Prolog predicate ~w/~d not part of ProWindows'-[P,N],nl].
 
+pce_message(trace(Port, Goal)) -->
+	['XPCE ~w: ~p'-[Port, pce_principal:Goal],nl].
+pce_message(spy(Port, Goal)) -->
+	['XPCE ~w: ~p'-[Port, pce_principal:Goal],nl].
+
 pce_message(preformatted(Fmt, Args)) -->
 	[Fmt-Args, nl].
 
-pce_message_context(noclass) --> ['outside any class definition'-[]].
-pce_message_context(nomethod) --> ['to be an incomplete method'-[]].
+%	Resource --> class-variable compatibility messages
+
+pce_message(compatibility(resource)) -->
+	['Class resource has been renamed to class_variable'-[],nl]. 
+pce_message(compatibility(resource(Value, NewVal))) -->
+	['Converted class-variable value:'-[], nl,
+	 '    From: ~q'-[Value], nl,
+	 '    Into: ~q'-[NewVal], nl
+	].
+
+		 /*******************************
+		 *	     CONTEXT		*
+		 *******************************/
+
+pce_message_context(noclass)     --> ['outside any class definition'-[]].
+pce_message_context(nomethod)    --> ['to be an incomplete method'-[]].
+pce_message_context(nodirective) --> ['can only be used as directive'-[]].
+pce_message_context(nosuper)     --> ['can only be used in a method'-[]].

@@ -26,10 +26,10 @@
 
 :- pce_begin_class(man_inheritance_tree, tree).
 
-resource(delegation_attributes, vector,
-	 'when(@colour_display,
-	       vector(colour := green),
-	       vector(texture := dotted))').
+class_variable(delegation_attributes, vector,
+	       when(@colour_display,
+		    vector(colour := green),
+		    vector(texture := dotted))).
 
 variable(showed,		name, get, "Name of ->show'ed class").
 variable(delegation_link,	link, get, "Link for delegation relation").
@@ -39,7 +39,7 @@ initialise(IT) :->
 	send(IT, send_super, initialise, man_inheritance_node(object)),
 	send(IT?link, pen, 2),
 	send(IT, slot, delegation_link, new(DL, link(parent, son))),
-	get(IT, resource_value, delegation_attributes, Vector),
+	get(IT, delegation_attributes, Vector),
 	send(Vector, for_all, message(DL, @arg1?name, @arg1?value)),
 	send(IT, node_handler, @man_inheritance_tree_recogniser),
 	send(IT, level_gap, 20).

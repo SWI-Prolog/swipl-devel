@@ -15,7 +15,8 @@
 		   drag_and_drop_gesture,
 		   "Drag and drop items from a browser").
 
-resource(button, button_name, left, "By default drag-and-drop from left").
+class_variable(button, button_name, left,
+	       "By default drag-and-drop from left").
 
 set_source(G, Ev:event) :->
 	"Set <-source to dict_item or <-get_source(dict_item)"::
@@ -31,7 +32,7 @@ set_source(G, Ev:event) :->
 
 cursor(G, LB:list_browser, Ev:event, Cursor:cursor) :<-
 	"Make cursor for the dict_item"::
-	(   get(G, resource_value, cursor, Cursor), Cursor \== @nil
+	(   get(G, class_variable_value, cursor, Cursor), Cursor \== @nil
 	->  send(G?offset, set, 0, 0)
 	;   get(LB, dict_item, Ev, DI),
 	    get(DI, label, Label),
@@ -71,6 +72,7 @@ font(DI, Font) :-
 
 :- pce_end_class.
 
+/*
 test :-
 	send(new(B, browser), open),
 	send(@classes, for_all, message(B, append, @arg1)),
@@ -78,4 +80,4 @@ test :-
 	send(B?list_browser, recogniser,
 	     new(G, drag_and_drop_dict_item_gesture)),
 	send(G, warp, @off).
-
+*/

@@ -36,8 +36,17 @@ config_attribute(Key, Attribute) :-
 	(   memberchk(Attribute, Attributes)
 	->  true
 	;   memberchk(type(Type), Attributes),
-	    current_config_type(Type, TypeAttributes),
+	    current_config_type(Type, _DefModule, TypeAttributes),
 	    memberchk(Attribute, TypeAttributes)
+	).
+
+config_icon(Key, Icon) :-
+	config_attributes(Key, Attributes),
+	memberchk(type(Type), Attributes),
+	current_config_type(Type, DefModule, TypeAttributes),
+	memberchk(icon(Name), TypeAttributes),
+	(   new(Icon, DefModule:resource(Name, image))
+	;   Icon = Name
 	).
 
 
@@ -269,9 +278,10 @@ expand_nodes([H|T], Done, Tree, Parent) :-
 	send(Id, append, H),
 	chain_to_path(Id, Path),
 	get(Tree, module, M),
-	(   config_attribute(M:Path, icon(Icon))
-	->  new(Image, image),
-	    send(Image, load, Icon)
+	(   config_icon(M:Path, Source),
+	    new(Image, image),
+	    send(Image, load, Source)
+	->  true
 	;   Image = @default
 	),
 	send(Tree, son, Parent, toc_file(H?label_name, Id, Image)),
@@ -340,7 +350,7 @@ make_item(Type, Label, Value, Item) :-
 	).
 
 config_editor_class(Type, Class) :-
-	current_config_type(Type, Attributes),
+	current_config_type(Type, _, Attributes),
 	memberchk(editor(Class), Attributes).
 
 

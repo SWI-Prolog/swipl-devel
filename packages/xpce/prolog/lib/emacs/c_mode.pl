@@ -210,7 +210,8 @@ tell_gdb(M, Fmt:char_array, Args:any ...) :->
 	    ActiveGdbBuffers),
 	(   get(ActiveGdbBuffers, size, 1)
 	->  get(ActiveGdbBuffers, head, Buffer),
-	    send(Buffer, send_vector, format_data, Fmt, Args)
+	    Msg =.. [format_data, Fmt|Args],
+	    send(Buffer, Msg)
 	;   send(M, report, warning, 'No or multiple GDB buffers')
 	).
 

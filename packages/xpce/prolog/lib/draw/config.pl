@@ -142,19 +142,22 @@ config(history/geometry/attributes,
 	 editable(false)
        ]).
 
+resource(arrows,	image, image('16x16/arrows.bm')).
+resource(fillpattern,	image, image('16x16/fillpattern.bm')).
+
 :- register_config_type(arrow,		[ editor(arrow_item),
 					  term([ length,
 						 wing,
 						 style,
 						 fill_pattern
 					       ]+pen+colour),
-					  icon('16x16/arrows.bm')
+					  icon(arrows)
 					]).
 :- register_config_type(setof(arrow),	[ editor(arrow_set_item),
-					  icon('16x16/arrows.bm')
+					  icon(arrows)
 					]).
 :- register_config_type(setof(image),	[ editor(image_set_item),
-					  icon('16x16/fillpattern.bm')
+					  icon(fillpattern)
 					]).
 
 :- register_config(config).
@@ -199,15 +202,33 @@ initialise(ASI, Name:[name], Default:[chain], Msg:[code]*) :->
 	send(ASI, send_super, initialise, new(II, image_item), Name, Msg, B),
 	(   absolute_file_name(pce('bitmaps/patterns'),
 			       [ file_type(directory),
-				 access(read)
+				 access(read),
+				 file_errors(fail)
 			       ], PatternDir)
 	->  send(II, directory, PatternDir)
 	;   true
 	),
 	(   Default \== @default
-	->  send(ASI, selection, Default)
+	->  good_patterns(Default, Patterns),
+	    send(ASI, selection, Patterns)
 	;   true
 	).
+
+good_patterns(ChainIn, ChainOut) :-
+	chain_list(ChainIn, ListIn),
+	realise_patterns(ListIn, ListOut),
+	chain_list(ChainOut, ListOut).
+
+realise_patterns([], []).
+realise_patterns([Image|T0], [Image|T]) :-
+	object(Image),
+	send(Image, instance_of, image), !,
+	realise_patterns(T0, T).
+realise_patterns([Name|T0], [Image|T]) :-
+	pce_catch_error(_Error, new(Image, image(Name))), !,
+	realise_patterns(T0, T).
+realise_patterns([_|T0], T) :-
+	realise_patterns(T0, T).
 
 selection(ASI, Sel:chain) :<-
 	get(ASI, get_super, selection, Sel0),
@@ -218,7 +239,7 @@ map_selected_image(@Named, @Named) :-
 map_selected_image(Image, Named) :-
 	get(Image, name, @nil),
 	get(Image, file, File),
-	get(Image, resource_value, path, SearchPath),
+	get(Image, path, SearchPath),
 	local_name(SearchPath, File, Name), !,
 	new(Named, image(Name)).
 map_selected_image(Image, Image).

@@ -14,6 +14,14 @@
 	size of the browser in the dialog.
 
 	Automatically ajusts to case-insensitive completion if necessary.
+
+	# May 28 1998
+	Changed required images to use resources.
+
+	# August 13, 1998 
+	Complete rewrite to use multiple dialog windows.  This acheives
+	a resizeable version of the finder without hacky layout code.
+	The external interface remains the same.
 */
 
 
@@ -39,6 +47,10 @@ finder in an application is:
 	   , send_list/3
 	   ]).
 
+resource(dir,	image,	image('16x16/closedir.xpm')).
+resource(file,	image,	image('16x16/doc.xpm')).
+resource(drive,	image,	image('16x16/drive.xpm')).
+
 		 /*******************************
 		 *         CLASS FINDER		*
 		 *******************************/
@@ -63,64 +75,70 @@ initialise(F) :->
 	send(F, slot, extension, ''),
 	send(F, slot, directory, new(directory('.'))),
 
-	send(F, append, new(D, dialog)),
-	send(F, fill_dialog, D),
+	send(new(ButtonDialog, dialog), left,
+	     new(L, browser(size := size(30, 15)))),
+	send(new(ReportDialog, dialog), below, ButtonDialog),
+	send(new(ItemDialog, dialog), above, ButtonDialog),
+	send(ItemDialog, name, item_dialog),
+	send(F, append, L),
+	send_list([ItemDialog, ButtonDialog, ReportDialog], pen, 0),
+
+	send(ButtonDialog, resize_message,
+	     message(ButtonDialog, layout_dialog,
+		     size(5, 0), @arg2, size(0,0))),
+	send(ButtonDialog, ver_stretch, 100),
+	send(ButtonDialog, ver_shrink, 100),
+	send(L, hor_stretch, 100),
+	send(L, hor_shrink, 100),
+	send(ItemDialog, gap, size(0, 8)),
+	send(ItemDialog, resize_message,
+	     message(ItemDialog, layout, @arg2)),
+
+	send(ReportDialog, append, new(R, label(reporter))),
+	send(ReportDialog, gap, size(0,0)),
+	send(R, attribute, hor_stretch, 100),
+	send(R, elevation, -1),
+	send(ReportDialog, resize_message,
+	     message(ReportDialog, layout, @arg2)),
+
+	send(ButtonDialog, append,
+	     button(up, message(F, up))),
+	send(ButtonDialog, append,
+	     new(OK, button(ok, message(F, ok))), next_row),
+	send(ButtonDialog, append,
+	     button(cancel, message(F, cancel)), next_row),
+	send(OK, default_button, @on),
+	new(DoOK, message(OK, execute)),
+
+	send(ItemDialog, append,
+	     new(DI, finder_directory_item(directory, '',
+					   message(F, directory, @arg1)))),
+	send(ItemDialog, append,
+	     new(FI, text_item(file, ''))),
+	send(DI, style, normal),
+
+	send(L, style, directory, style(icon := resource(dir))),
+	send(L, style, file,      style(icon := resource(file))),
+	send(L, style, drive,     style(icon := resource(drive))),
+	send(L, select_message, message(F, select, @arg1?key, @arg1?style)),
+	send(L, open_message, DoOK),
+	send(L, recogniser,
+	     handler(area_enter, message(F, keyboard_focus, L))),
+	send(FI, message, DoOK),
+
 	send(F, create),
 	send(F, center).
 
 
-dialog(F, W:dialog) :<-
-	"Return main dialog"::
-	get(F, member, dialog, W).
+file_item(F, FI:text_item) :<-
+	"Item showing the current file"::
+	get(F, member, item_dialog, ID),
+	get(ID, member, file, FI).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This  is  a  difficult  layout.  The   original  version  used  explicit
-positions. In the  meanwhile  the  layout   system  of  XPCE  has become
-powerful enough to use automatic layout and a few tricks:
-
-To get the three buttons stacked next to the dialog, we first place them
-in a device. As we want them to  be far apart, we use explicit positions
-here. This isn't too bad as we only   assume  a distance of 60 pixels is
-enough to separate two buttons vertically. Next  we append all the items
-the normal way to the dialog. This will do the job, but the browser will
-not be nicely alligned. Therefore we align the right and bottom sides of
-the browser with the text-items and the buttons.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-fill_dialog(F, D) :->
-	send(D, append, label(reporter)),
-
-	send(D, append,
-	     new(DI, finder_directory_item(directory, '',
-					   message(F, directory, @arg1)))),
-	send(DI, style, normal),
-	send(D, append, new(FI, text_item(file, ''))),
-	     
-	send_list([DI, FI], width, 50),
-
-	send(FI, value_set,
-	     ?(F, complete_file, DI?selection, F?extension, @arg1)),
-	send(FI, style, normal),	% just use it for completion
-
-	new(Sub, device),
-	send(Sub, display, button(up, message(F, up)), point(0, 0)),
-	send(Sub, display, new(OK, button(ok, message(F, ok))), point(0, 60)),
-	send(Sub, display, button(cancel, message(F, cancel)), point(0,120)),
-	send(OK, default_button, @on),
-	send(D, append, Sub),
-
-	new(DoOK, message(OK, execute)),
-	send(D, append, new(L, list_browser), right),
-	send(L, style, directory, style(icon := '16x16/closedir.xpm')),
-	send(L, style, file,      style(icon := '16x16/doc.xpm')),
-	send(L, select_message, message(F, select, @arg1?key, @arg1?style)),
-	send(L, open_message, DoOK),
-	send(L, recogniser,
-	     handler(area_enter, message(D, keyboard_focus, L))),
-	send(FI, message, DoOK),
-	send(D, layout),
-	send(L, right_side, DI?right_side),
-	send(L, bottom_side, Sub?bottom_side).
+directory_item(F, DI:text_item) :<-
+	"Item showing the current directory"::
+	get(F, member, item_dialog, ID),
+	get(ID, member, directory, DI).
 
 
 complete_file(_F,
@@ -137,38 +155,36 @@ complete_file(_F,
 
 extension_regex('', '') :- !.
 extension_regex(Ext, Re) :-
-	     concat('.', _, Ext), !,
-	     concat(\, Ext, Re).
-extension_regex(Ext, Re) :-
-	     concat('\.', Ext, Re).
+	get(regex(''), quote, Ext, Re).
 
 
-select(F, Name:string, Type:{directory,file}) :->
+select(F, Name:string, Type:{directory,file,drive}) :->
 	"Handle selection from browser"::
-	get(F?dialog, file_member, FI),
+	get(F, file_item, FI),
 	(   Type == directory
-	->  get(F?dialog, directory_member, DI),
+	->  get(F, directory_item, DI),
 	    send(F, directory, string('%s/%s', DI?selection, Name))
+	;   Type == drive
+	->  send(F, directory, Name)
 	;   send(FI, selection, Name)
 	).
 
 
 up(F) :->
 	"Goto parent directory"::
-	(   send(F, directory, F?directory?parent)
+	get(F, directory, Dir),
+	(   send(F, directory, Dir?parent)
 	->  true
-	;   send(F, report, error, 'Can''t find parent directory')
+	;   send(F, select_drive)
 	).
 
 
 selection(F, File:file) :<-
 	"Get the currently selected file"::
-	get(F, dialog, P),
-	get(P?directory_member, selection, DirName),
-	get(P?file_member, selection, FileName),
+	get(F?file_item, selection, FileName),
 	FileName \== '',
+	get(F?directory_item, selection, DirName),
 	get(F, extension, Ext),
-	(Ext == '' -> Extension = '' ; concat(',', Ext, Extension)),
 	clean_name(DirName, /, CleanDir),
 	clean_name(FileName, Ext, CleanFile),
 	send(F, slot, directory, DirName),
@@ -188,13 +204,20 @@ clean_name(Name, Ext, Clean) :-
 
 ok(F) :->
 	"User pressed ok"::
-	get(F, selection, File),
-	(   get(F, exists, @on)
-	->  (   send(File, exists)
-	    ->  send(F, return, File?name)
-	    ;   send(F, report, error, '%s: No such file', File?name)
+	send(F, report, status, ''),
+	(   get(F, selection, File)
+	->  (   get(F, exists, @on)
+	    ->  (   send(File, exists)
+		->  send(F, return, File?name)
+		;   send(F, report, error, '%s: No such file', File?name)
+		)
+	    ;   send(F, return, File?name)
 	    )
-	;   send(F, return, File?name)
+	;   get(F, directory_item, DI),
+	    get(DI, modified, @on)
+	->  send(DI, apply)
+	;   send(F, report, warning, 'Please select or type a file name'),
+	    fail
 	).
 
 
@@ -204,16 +227,25 @@ cancel(F) :->
 	send(F, show, @off),			  % savety to get rid of it
 	send(F, transient_for, @nil).
 
+ensure_dot('', '') :- !.
+ensure_dot(Ext, Ext) :-
+	concat('.', _, Ext), !.
+ensure_dot(Ext0, Ext) :-
+	concat('.', Ext0, Ext).
 
-directory(F, Dir:[directory], Ext:[name]) :->
+directory(F, Dir:[directory], Ext0:[name]) :->
 	"Set current directory and fill browser"::
 	(   Dir \== @default -> send(F, slot, directory, Dir) ; true ),
-	(   Ext \== @default -> send(F, slot, extension, Ext) ; true ),
-	get(F, dialog, P),
-	get(P, member, list_browser, B),
+	(   Ext0 \== @default
+	->  ensure_dot(Ext0, Ext),
+	    send(F, slot, extension, Ext)
+	;   true
+	),
+	get(F, directory_item, DI),
+	get(F, member, browser, B),
 	get(F, directory, D),
 
-	send(P?directory_member, selection, D?path),
+	send(DI, selection, D?path),
 	send(B, clear),
 	(   send(D, exists)
 	->  true
@@ -229,7 +261,7 @@ directory(F, Dir:[directory], Ext:[name]) :->
 	(   Extension == ''
 	->  Files = AllFiles
 	;   new(R, regex('')),
-	    send(R, pattern, string('.*%s', ?(R, quote, Extension))),
+	    send(R, pattern, string('.*%s$', ?(R, quote, Extension))),
 	    (	send(class(file), has_feature, case_sensitive, @off)
 	    ->	send(R, ignore_case, @on)
 	    ;	true
@@ -246,18 +278,33 @@ directory(F, Dir:[directory], Ext:[name]) :->
 	send(Dirs, done),
 	send(Files, done),
 	
-	send(P?file_member, clear).
+	send(F?file_item, clear).
 
 
-file(F, Exists:exists=[bool], Ext:extension=[name],
+select_drive(F) :->
+	"Prepare for drive selection"::
+	get(directory('.'), roots, Roots),
+	(   get(Roots, size, 1)
+	->  send(F, directory, Roots?head)
+	;   get(F, member, browser, B),
+	    get(F, directory_item, DI),
+	    send(DI, clear),
+	    send(B, clear),
+	    send(Roots, for_all,
+		 message(B, append,
+		     create(dict_item, @arg1, @default, @nil, drive)))
+	).
+
+
+file(F, Exists:exists=[bool], Ext0:extension=[name],
      Dir:directory=[directory], Default:default=[file], File:name) :<-
  	"Get [existing] file with [extension]"::
 	send(F, report, status, ''),
 	(   Exists \== @default -> send(F, exists, Exists) ; true ),
-	default(Ext, '', Extension),
-	ignore(send(F, directory, Dir, Extension)),
+	default(Ext0, '', Ext1),
+	ignore(send(F, directory, Dir, Ext1)),
 	(   Default \== @default
-	->  send(F?dialog?file_member, selection, Default?base_name)
+	->  send(F?file_item, selection, Default?base_name)
 	;   true
 	),
 	send(F, show, @on),
@@ -285,5 +332,17 @@ file(F, Exists:exists=[bool], Ext:extension=[name],
 selected_completion(DI, Item:char_array, _Apply:[bool]) :->
 	send(DI, send_super, selected_completion, Item, @off),
 	send(DI, apply, @on).
+
+apply(DI, IfModified:[bool]) :->
+	(   (   IfModified == @on
+	    ;   get(DI, modified, @on)
+	    )
+	->  get(DI, selection, Text),
+	    get(Text, strip, Stripped),
+	    (	send(Stripped, equal, '')
+	    ->	send(DI?frame, select_drive)
+	    ;	send(DI?frame, directory, Stripped)
+	    )
+	).
 
 :- pce_end_class.

@@ -11,7 +11,8 @@
 	  [ prolog_help/0,
 	    prolog_help/1,
 	    prolog_apropos/1,
-	    prolog_help_topic/1
+	    prolog_help_topic/1,
+	    prolog_explain/1
 	  ]).
 
 :- use_module(library(pce)).
@@ -39,6 +40,11 @@
 	   , (volatile)/1
 	   ]).
 
+resource(manual,	image,	image('16x16/manual.xpm')).
+resource(book,		image,  image('16x16/book2.xpm')).
+resource(cfunction,	image,  image('16x16/funcdoc.xpm')).
+resource(predicate,	image,  image('16x16/preddoc.xpm')).
+
 
 		 /*******************************
 		 *	      TOPLEVEL		*
@@ -62,6 +68,14 @@ prolog_help(Topic) :-
 prolog_apropos(Keywd) :-
 	get(@pui_help_window, member, pui_editor, Editor),
 	give_apropos(Editor, Keywd),
+	send(@pui_help_window?frame, expose).
+
+
+prolog_explain(Term) :-
+	get(@pui_help_window, member, pui_editor, Editor),
+	send(Editor, editable, @on),
+	do_explain(Editor, Term),
+	send(Editor, editable, @off),
 	send(@pui_help_window?frame, expose).
 
 
@@ -103,7 +117,7 @@ apropos(F, Atom:name) :->
 explain(F, Text:name) :->
 	get(F, member, pui_editor, Editor),
 	send(Editor, editable, @on),
-	do_explain(Editor, Text),
+	do_explain_text(Editor, Text),
 	send(Editor, editable, @off).
 
 about(_F) :->
@@ -683,10 +697,19 @@ apropos_match(A, B) :-
 		 *	       EXPLAIN		*
 		 *******************************/
 
-do_explain(V, TextToExplain) :-
+do_explain_text(V, Text) :-
+	term_to_atom(Term, Text), !,
+	do_explain(V, Term).
+do_explain_text(V, Text) :-
 	send(V, clear),
-	send(V, insert_section, string('Explanation for "%s"', TextToExplain)),
-	term_to_atom(Term, TextToExplain), !,
+	send(V, insert_section, string('Explanation for "%s"', Text)),
+	send(V, format,
+	     '"%s" is not correct Prolog syntax.', Text).
+
+do_explain(V, Term) :-
+	send(V, clear),
+	term_to_atom(Term, Atom),
+	send(V, insert_section, string('Explanation for "%s"', Atom)),
 	findall(Explanation, explain(Term, Explanation), Explanations),
 	get(V, caret, Start),
 	forall(member(E, Explanations),
@@ -697,10 +720,7 @@ do_explain(V, TextToExplain) :-
 	send(V, markup, Start, End),
 	send(V, caret, 0),
 	send(V, scroll_to, 0).
-do_explain(V, TextToExplain) :-
-	send(V, format,
-	     '"%s" is not correct Prolog syntax.', TextToExplain).
-	       
+
 
 		 /*******************************
 		 *	    EDIT/SOURCE		*
@@ -763,9 +783,7 @@ source(File, Line) -->			% XPCE method
 initialise(PT) :->
 	send(PT, send_super, initialise),
 	send(PT, root,
-	     toc_folder('Manual', manual,
-			image('16x16/manual.xpm'),
-			image('16x16/book2.xpm'))).
+	     toc_folder('Manual', manual, resource(manual), resource(book))).
 
 		 /*******************************
 		 *	       OPEN		*
@@ -798,11 +816,11 @@ expand_node(PT, Section) :-
 	forall(predicate_in_section(List, Name/Arity),
 	       (   concat_atom([Name, /, Arity], Id),
 		   send(PT, son, Section,
-			toc_file(Id, Id, image('16x16/preddoc.xpm')))
+			toc_file(Id, Id, resource(predicate)))
 	       )),
 	forall(function_in_section(List, Name),
 	       send(PT, son, Section,
-		    toc_file(Name, Name, image('16x16/funcdoc.xpm')))).
+		    toc_file(Name, Name, resource(cfunction)))).
 
 add_section(PT, Parent, Title, Son) :-
 	(   can_expand(Son)
@@ -812,9 +830,9 @@ add_section(PT, Parent, Title, Son) :-
 	concat_atom(Son, '.', Id),
 	send(PT, son, Parent,
 	     toc_folder(Title, Id,
-			image('16x16/manual.xpm'),
-			image('16x16/book2.xpm'),
+			resource(manual), resource(book),
 			CanExpand)).
+
 
 can_expand(Section) :-
 	subsection(Section, Sub),

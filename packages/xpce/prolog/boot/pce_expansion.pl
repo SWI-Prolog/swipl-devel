@@ -15,6 +15,7 @@
 	  pce_end_recording/0
 	]).
 :- use_module(pce_operator).
+:- use_module(pce_principal).
 :- require([ append/3
 	   , between/3
 	   , concat/3
@@ -36,8 +37,7 @@
 	compiling/1,			% -ClassName
 	attribute/3,			% ClassName, Attribute, Value
 	verbose/0,
-	recording/2,			% items recorded
-	dynamic_declared/2.		% +Head, +Path
+	recording/2.			% items recorded
 
 pce_ifhostproperty(prolog(swi), (:- index(attribute(1,1,0)))).
 
@@ -123,6 +123,7 @@ do_term_expand((Head :- Body), _) :-	% check for :- instead of :-> or :<-
 	
 is_string([]).
 is_string([H|T]) :-
+	integer(H),
 	between(0, 255, H),
 	is_string(T).
 
@@ -163,14 +164,12 @@ do_pce_pre_expand((:- pce_begin_class(Class, Super)),
 do_pce_pre_expand(variable(Name, Type, Access),
 		  variable(Name, Type, Access, @default)) :-
 	pce_compiling.
-do_pce_pre_expand(resource(Name, Type, Default),
-		  resource(Name, Type, Default, @default)) :-
+do_pce_pre_expand(class_variable(Name, Type, Default),
+		  class_variable(Name, Type, Default, @default)) :-
 	pce_compiling.
 do_pce_pre_expand(handle(X, Y, Kind),
 		  handle(X, Y, Kind, @default)) :-
 	pce_compiling.
-do_pce_pre_expand((:- use_class_template(Template)),
-		  (:- pce_class_directive(use_class_template(Template)))).
 do_pce_pre_expand((:- ClassDirective), D) :-
 	functor(ClassDirective, send, _),
 	arg(1, ClassDirective, @class), !,
@@ -207,11 +206,12 @@ pce_post_expand(T, T).
 pce_expandable((:- pce_begin_class(_Class, _Super, _Doc))).
 pce_expandable((:- pce_extend_class(_Class))).
 pce_expandable((:- pce_end_class)).
+pce_expandable((:- use_class_template(_TemplateClass))).
 pce_expandable((:- pce_group(_))).
 pce_expandable((:- pce_class_directive(_))).
 pce_expandable(variable(_Name, _Type, _Access, _Doc)) :-
 	pce_compiling.
-pce_expandable(resource(_Name, _Type, _Default, _Doc)) :-
+pce_expandable(class_variable(_Name, _Type, _Default, _Doc)) :-
 	pce_compiling.
 pce_expandable(delegate_to(_VarName)) :-
 	pce_compiling.
@@ -219,7 +219,6 @@ pce_expandable(handle(_X, _Y, _Kind, _Name)) :-
 	pce_compiling.
 pce_expandable((_Head :-> _Body)).
 pce_expandable((_Head :<- _Body)).
-pce_expandable(end_of_file).
 
 
 %	do_expand(In, Out)
@@ -236,51 +235,40 @@ do_expand((:- pce_begin_class(Spec, Super, Doc)), []) :-
 	term_names(ClassName, TermArgs).
 do_expand((:- pce_extend_class(ClassName)), []) :-
 	push_class(ClassName),
-	set_attribute(ClassName, extending, true),
-	prolog_load_context(file, SourceFile),
-	file_base_name(SourceFile, SourceTag),
-	set_attribute(ClassName, method_tag, SourceTag).
-do_expand((:- pce_end_class), Result) :-
+	set_attribute(ClassName, extending, true).
+do_expand((:- pce_end_class),
+	  [ pce_principal:pce_class(ClassName, MetaClass, Super,
+				    Variables,
+				    Resources,
+				    Directs),
+	    RegisterDecl
+	  ]) :-
 	pce_compiling(ClassName),
-	findall(M, retract(attribute(ClassName, send_method, M)), SMS),
-	findall(M, retract(attribute(ClassName, get_method,  M)), SGS),
 	findall(V, retract(attribute(ClassName, variable, V)),  Variables),
-	findall(R, retract(attribute(ClassName, resource, R)),  Resources),
+	findall(R, retract(attribute(ClassName, classvar, R)),  Resources),
 	findall(D, retract(attribute(ClassName, directive, D)), Directs),
-	dynamic_declaration(SMS, Decl1),
-	dynamic_declaration(SGS, Decl2),
-	method_clauses(ClassName, Clauses),
 	(   attribute(ClassName, extending, true)
-	->  ClassFact = class(ClassName, -, -,
-			      Variables,
-			      Resources,
-			      Directs),
-	    dynamic_declaration([ClassFact], ClassDecl),
-	    term_expand((:- initialization(pce_extended_class(ClassName))),
-			ExtendDecl),
-	    flatten([ Clauses,
-		      Decl1,     SMS,
-		      Decl2,     SGS,
-		      ClassDecl, ClassFact,
-		      ExtendDecl
-		    ], Result)
+	->  MetaClass = '-',
+	    Super = '-',
+	    expand_term((:- initialization(pce_extended_class(ClassName))),
+			RegisterDecl)
 	;   retract(attribute(ClassName, super, Super)),
 	    retract(attribute(ClassName, meta, MetaClass)),
-	    ClassFact = class(ClassName, MetaClass, Super,
-			      Variables,
-			      Resources,
-			      Directs),
-	    dynamic_declaration([ClassFact], ClassDecl),
-	    term_expand((:- initialization(pce_register_class(ClassName))),
-			RegisterDecl),
-	    flatten([ Clauses,
-		      Decl1,	 SMS,
-		      Decl2,	 SGS,
-		      ClassDecl, ClassFact,
-		      RegisterDecl
-		    ], Result)
+	    expand_term((:- initialization(pce_register_class(ClassName))),
+			RegisterDecl)
 	),
 	pop_class.
+do_expand((:- use_class_template(Template)), []) :-
+	used_class_template(Template), !.
+do_expand((:- use_class_template(Template)),
+	  [ pce_principal:pce_uses_template(ClassName, Template)
+	  | LinkClauses
+	  ]) :-
+	pce_compiling(ClassName),
+	use_template_class_attributes(Template),
+	use_template_send_methods(Template, SendClauses),
+	use_template_get_methods(Template, GetClauses),
+	append(SendClauses, GetClauses, LinkClauses).
 do_expand((:- pce_group(Group)), []) :-
 	pce_compiling(ClassName),
 	set_attribute(ClassName, group, Group).
@@ -293,13 +281,12 @@ do_expand(variable(Name, Type, Access, Doc), []) :-
 	strip_defaults([Initial, Group, PceDoc], Defs),
 	Var =.. [variable, Name, PceType, Access | Defs],
 	add_attribute(ClassName, variable, Var).
-do_expand(resource(Name, Type, Default, Doc), []) :-
+do_expand(class_variable(Name, Type, Default, Doc), []) :-
 	pce_compiling(ClassName),
 	pce_type(Type, PceType),
-	pce_default(Default, PceDefault),
 	pce_summary(Doc, PceDoc),
-	add_attribute(ClassName, resource,
-		      resource(Name, PceType, PceDefault, PceDoc)).
+	add_attribute(ClassName, classvar,
+		      class_variable(Name, Default, PceType, PceDoc)).
 do_expand(handle(X, Y, Kind, Name), []) :-
 	pce_compiling(ClassName),
 	add_attribute(ClassName, directive,
@@ -313,91 +300,52 @@ do_expand((:- pce_class_directive(Goal)), [(:- Goal)]) :-
 	realised_class(ClassName), !.
 do_expand((:- pce_class_directive(Goal)), []) :-
 	pce_compiling(ClassName),
-	add_attribute(ClassName, directive, Goal).
-do_expand((Head :-> DocBody), []) :-
+	prolog_load_context(module, M),
+	add_attribute(ClassName, directive, M:Goal).
+do_expand((Head :-> DocBody),
+	  [ pce_principal:pce_lazy_send_method(Selector, ClassName, LSM)
+	  | Clauses
+	  ]) :-
 	extract_documentation(DocBody, Doc, Body),
 	source_location_term(Loc),
 	pce_compiling(ClassName),
 	current_group(ClassName, Group),
 	prolog_head(send, Head, Selector, Types, PlHead),
-	functor(PlHead, PredName, _),
 	strip_defaults([Group, Loc, Doc], NonDefArgs),
-	LSM =.. [bind_send_method, PredName, Types | NonDefArgs],
-	make_clause(PlHead, Body, Clause),
-	add_attribute(ClassName, method_clause, Clause),
-	add_attribute(ClassName, send_method,
-		      lazy_send_method(Selector, ClassName, LSM)),
+	LSM =.. [bind_send_method, Types | NonDefArgs],
+	Clause = (PlHead :- Body),
+	(   attribute(ClassName, super, template)
+	->  template_clause(Clause, Clauses)
+	;   Clauses = [Clause]
+	),
+	(   realised_class(ClassName)	% force a reload (TBD: move to realise)
+	->  send(@class, delete_send_method, Selector)
+	;   true
+	),
 	feedback(expand_send(ClassName, Selector)).
-do_expand((Head :<- DocBody), []) :-
+do_expand((Head :<- DocBody),
+	  [ pce_principal:pce_lazy_get_method(Selector, ClassName, LGM)
+	  | Clauses
+	  ]) :-
 	extract_documentation(DocBody, Doc, Body),
 	source_location_term(Loc),
 	pce_compiling(ClassName),
 	current_group(ClassName, Group),
 	return_type(Head, RType),
 	prolog_head(get, Head, Selector, Types, PlHead),
-	functor(PlHead, PredName, _),
 	strip_defaults([Group, Loc, Doc], NonDefArgs),
-	LGM =.. [bind_get_method, RType, PredName, Types | NonDefArgs],
-	make_clause(PlHead, Body, Clause),
-	add_attribute(ClassName, method_clause, Clause),
-	add_attribute(ClassName, get_method,
-		      lazy_get_method(Selector, ClassName, LGM)),
-	feedback(expand_get(ClassName, Selector)).
-do_expand(end_of_file, end_of_file) :-
-	(   prolog_load_context(file, Path)
-	->  retractall(dynamic_declared(_, Path))
+	LGM =.. [bind_get_method, RType, Types | NonDefArgs],
+	Clause = (PlHead :- Body),
+	(   attribute(ClassName, super, template)
+	->  template_clause(Clause, Clauses)
+	;   Clauses = [Clause]
+	),
+	(   realised_class(ClassName)	% force a reload
+	->  send(@class, delete_get_method, Selector)
 	;   true
-	).
+	),
+	feedback(expand_get(ClassName, Selector)).
 
-term_expand(T0, T) :-
-	user:term_expansion(T0, T), !.
-term_expand(T0, T0).
-
-%	method_clauses(+ClassName, -Clauses)
-%
-%	Collect the method_clause attributes and sort them such that
-%	discontiguous declarations are not necessary and declarations
-%	may thus be minimised.
-
-method_clauses(ClassName, Clauses) :-
-	findall(C, keyed_method_clause(ClassName, C), C0),
-	keysort(C0, C1),
-	make_extern(C1, Clauses).
-
-keyed_method_clause(ClassName, NameArity-C) :-
-	retract(attribute(ClassName, method_clause, C)),
-	predicate_name_and_arity(C, NameArity).
-
-make_extern([], []).
-make_extern([NA-C|T0], [C|T]) :-
-	make_extern(NA, T0, T).
-
-make_extern(NA, [NA-C|T0], [C|T]) :- !,
-	make_extern(NA, T0, T).
-make_extern(NA, T0, [E|T]) :-
-	extern_decl(NA, E),
-	make_extern(T0, T).
-
-predicate_name_and_arity('$source_location'(_,_):Term, NameArity) :- !,
-	predicate_name_and_arity(Term, NameArity).
-predicate_name_and_arity((H:-_), N/A) :- !,
-	functor(H, N, A).
-predicate_name_and_arity(H, N/A) :-
-	functor(H, N, A).
-	
-pce_ifhostproperty(need_extern_declaration, [
-(   extern_decl(Name/Arity, (:-extern(EH))) :-
-	functor(EH, Name, Arity),
-	extern_arg(0, Arity, EH)),
-
-(   extern_arg(N, N, _) :- !),
-(   extern_arg(N, A, T) :-
-	NN is N + 1,
-	arg(NN, T, +term),
-	extern_arg(NN, A, T))], 
-extern_decl(_, [])).
-
-	
 strip_defaults([@default|T0], T) :- !,
 	strip_defaults(T0, T).
 strip_defaults(L, LV) :-
@@ -409,43 +357,168 @@ break_class_specification(Term, ClassName, @default, TermArgs) :-
 	Term =.. [ClassName|TermArgs].
 
 
-pce_ifhostproperty(prolog(swi),
-(make_clause(Head, Body, '$source_location'(File, Line):(Head :- Body)) :-
-	source_location(File, Line))).
-make_clause(Head, Body, (Head :- Body)).
-
-
-
 		 /*******************************
-		 *	   DECLARATIONS		*
+		 *       TEMPLATE SUPPORT	*
 		 *******************************/
 
-dynamic_declaration([], []).
-dynamic_declaration([Head|_], []) :-
-	functor(Head, Name, Arity),
-	declared(Name, Arity), !.
-pce_ifhostproperty(no_discontiguous,
-(   dynamic_declaration([Head|_],
-		    [ (:- multifile(Name/Arity))%,
-%		      (:- dynamic(Name/Arity))
-		    ]) :-
-	functor(Head, Name, Arity)),
-(   dynamic_declaration([Head|_],
-		    [ (:- multifile(Name/Arity)),
-%		      (:- dynamic(Name/Arity)),
-		      (:- discontiguous(Name/Arity))
-		    ]) :-
-	functor(Head, Name, Arity))).
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+When compiling a template, calls to   send_class/3 and get_class/4 refer
+to the template  classes.  This  is   not  correct.  Therefore,  we will
+translate  the  method  implementation   into    a   parameterized  real
+implementation and a normal implementation  that calls the parameterized
+one. On method instantiation, we create additional clauses for the class
+to which we attach the method.
 
-declared(Name, Arity) :-
-	functor(Head, Name, Arity),
-	prolog_load_context(file, Path),
-	(   dynamic_declared(Head, Path)
-	->  true
-	;   assert(dynamic_declared(Head, Path)),
-	    fail
+Importing the template (pce_use_class_template/1):
+
+	+ Put binding in bind_lazy by searching the templates.
+	+ Expand the directive itself into the wrapper-implementations.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+template_clause((M:send_implementation(Id, Msg, R) :- Body),
+		[ (M:send_implementation(Tid, ClassMsg, R) :- ClassBody),
+		  (M:(send_implementation(Id, Msg, R) :-
+		  	send_implementation(Tid, IClassMsg, R)))
+		]) :- !,
+	concat('T-', Id, Tid),
+	Msg =.. Args,
+	append(Args, [Class], Args2),
+	ClassMsg =.. Args2,
+	append(Args, [template], Args3),
+	IClassMsg =.. Args3,
+	template_body(Body, template, Class, ClassBody).
+template_clause((M:get_implementation(Id, Msg, R, V) :- Body),
+		[ (M:get_implementation(Tid, ClassMsg, R, V) :- ClassBody),
+		  (M:(get_implementation(Id, Msg, R, V) :-
+		  	get_implementation(Tid, IClassMsg, R, V)))
+		]) :- !,
+	concat('T-', Id, Tid),
+	Msg =.. Args,
+	append(Args, [Class], Args2),
+	ClassMsg =.. Args2,
+	append(Args, [template], Args3),
+	IClassMsg =.. Args3,
+	template_body(Body, template, Class, ClassBody).
+template_clause(Clause, Clause).
+
+template_body(G0, T, C, G) :-
+	compound(G0),
+	functor(G0, Name, Arity),
+	functor(M, Name, Arity),
+	meta(M), !,
+	functor(G, Name, Arity),
+	convert_meta(0, Arity, G0, M, T, C, G).
+template_body(G, T, C, send_class(R, C, Msg)) :-
+	expand_goal(G, send_class(R, T, Msg)), !.
+template_body(G, T, C, get_class(R, C, Msg, V)) :-
+	expand_goal(G, get_class(R, T, Msg, V)), !.
+template_body(G, _, _, G).
+
+convert_meta(A, A, _, _, _, _, _) :- !.
+convert_meta(I, Arity, G0, M, T, C, G) :-
+	A is I + 1,
+	arg(A, M, :), !,
+	arg(A, G0, GA0),
+	arg(A, G,  GA),
+	template_body(GA0, T, C, GA),
+	convert_meta(A, Arity, G0, M, T, C, G).
+convert_meta(I, Arity, G0, M, T, C, G) :-
+	A is I + 1,
+	arg(A, G0, GA),
+	arg(A, G,  GA),
+	convert_meta(A, Arity, G0, M, T, C, G).
+
+meta(','(:, :)).	
+meta(;(:, :)).	
+meta(->(:, :)).	
+meta(*->(:, :)).	
+meta(\+(:)).	
+meta(not(:)).	
+meta(forall(:, :)).	
+meta(call(:)).	
+
+%	use_template_class_attributes(+Template)
+%
+%	Insert variables, class-variables and directives as if they appeared
+%	in the current class definition.
+
+use_template_class_attributes(Template) :-
+	pce_class(Template, _, template, Variables, ClassVars, Directs),
+	assert_attributes(Variables, variable),
+	assert_attributes(ClassVars, classvar),
+	assert_attributes(Directs,   directive).
+
+assert_attributes([], _).
+assert_attributes([H|T], Att) :-
+	pce_compiling(ClassName),
+	add_attribute(ClassName, Att, H),
+	assert_attributes(T, Att).
+
+use_template_send_methods(Template, Clauses) :-
+	findall(C, use_template_send_method(Template, C), Clauses).
+
+use_template_send_method(Template, pce_principal:Clause) :-
+	pce_compiling(ClassName),
+	pce_lazy_send_method(Sel, Template, Binder),
+	(   Clause = pce_lazy_send_method(Sel, ClassName, Binder)
+	;   Clause = (send_implementation(Id, Msg, R) :-
+		     	send_implementation(Tid, IClassMsg, R)),
+	    attribute(ClassName, super, SuperClass), % TBD: pce_extend_class/1
+	    arg(1, Binder, Types),
+	    type_arity(Types, Arity),
+	    functor(Msg, Sel, Arity),
+	    Msg =.. Args,
+	    append(Args, [SuperClass], Args1),
+	    IClassMsg =.. Args1,
+	    concat_atom([ClassName, '->', Sel], Id),
+	    concat_atom(['T-', Template, '->', Sel], Tid)
 	).
-		   
+	  
+use_template_get_methods(Template, Clauses) :-
+	findall(C, use_template_get_method(Template, C), Clauses).
+
+use_template_get_method(Template, pce_principal:Clause) :-
+	pce_compiling(ClassName),
+	pce_lazy_get_method(Sel, Template, Binder),
+	(   Clause = pce_lazy_get_method(Sel, ClassName, Binder)
+	;   Clause = (get_implementation(Id, Msg, R, V) :-
+		     	get_implementation(Tid, IClassMsg, R, V)),
+	    attribute(ClassName, super, SuperClass), % TBD: pce_extend_class/1
+	    arg(2, Binder, Types),
+	    type_arity(Types, Arity),
+	    functor(Msg, Sel, Arity),
+	    Msg =.. Args,
+	    append(Args, [SuperClass], Args1),
+	    IClassMsg =.. Args1,
+	    concat_atom([ClassName, '<-', Sel], Id),
+	    concat_atom(['T-', Template, '<-', Sel], Tid)
+	).
+
+type_arity(@default, 0) :- !.
+type_arity(Atom, 1) :-
+	atom(Atom), !.
+type_arity(Vector, A) :-
+	functor(Vector, _, A).
+
+%	used_class_template(+Template)
+%
+%	Succeeds if any of my (Prolog-defined) super classes
+%	has imported the named template.
+
+used_class_template(Template) :-
+	pce_compiling(Class),
+	isa_prolog_class(Class, Super),
+	Super \== Class,
+	pce_uses_template(Super, Template), !.
+
+isa_prolog_class(Class, Class).
+isa_prolog_class(Class, Super) :-
+	attribute(Class, super, Super0), !,	% Prolog class being loaded
+	isa_prolog_class(Super0, Super).
+isa_prolog_class(Class, Super) :-		% Loaded Prolog class
+	pce_class(Class, _, Super0, _, _, _), !,
+	isa_prolog_class(Super0, Super).
+
 
 		 /*******************************
 		 *   PUSH/POP CLASS STRUCTURE	*
@@ -649,15 +722,6 @@ var_type(Type, PceType, @default) :-
 
 
 		 /*******************************
-		 *	       RESOURCE		*
-		 *******************************/
-
-pce_default(Term, Term) :-
-	atomic(Term), !.
-pce_default(Term, PceTerm) :-
-	term_to_atom(Term, PceTerm).
-
-		 /*******************************
 		 *	  METHOD SUPPORT	*
 		 *******************************/
 
@@ -679,48 +743,44 @@ return_type(Term, RType) :-
 	;   RType = @default
 	).
 
-
-prolog_head(SendGet, Head, Selector, TypeVector, PlHead) :-
+prolog_head(send, Head, Selector,
+	    TypeVector, pce_principal:PlHead) :- !,
+	pce_compiling(ClassName),
 	Head =.. [Selector, Receiver | Args],
-	predicate_name(SendGet, Selector, PredName),
-	pl_head_args(SendGet, Args, Types, PlArgs),
+	concat_atom([ClassName, '->', Selector], MethodId),
+	prolog_send_arguments(Args, Types, PlArgs),
 	create_type_vector(Types, TypeVector),
-	PlHead =.. [PredName, Selector, Receiver | PlArgs].
-
+	CallArgs =.. [Selector | PlArgs],
+	PlHead =.. [send_implementation, MethodId, CallArgs, Receiver].
+prolog_head(get, Head, Selector,
+	    TypeVector, pce_principal:PlHead) :- !,
+	pce_compiling(ClassName),
+	Head =.. [Selector, Receiver | Args],
+	concat_atom([ClassName, '<-', Selector], MethodId),
+	prolog_get_arguments(Args, Types, PlArgs, Rval),
+	create_type_vector(Types, TypeVector),
+	CallArgs =.. [Selector | PlArgs],
+	PlHead =.. [get_implementation, MethodId, CallArgs, Receiver, Rval].
 
 create_type_vector([],      @default) :- !.
 create_type_vector(List,    VectorTerm) :-
 	VectorTerm =.. [vector|List].
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Predicates implementing methods are  normally called {send,get}_<class>,
-which is fine for :-   pce_begin_class/:- pce_end_class defined classes.
-Class  extension  however,  could  force   multiple  occurences  of  the
-predicate. To avoid this, the predicate is tagged with the *basename* of
-the sourcefile. Older versions used  the   full  pathname,  but symbolic
-links can cause trouble reloading in this  case. The current schema only
-fails if a class is defined  in   multiple  files with the same basename
-that are not module files.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+prolog_send_arguments([], [], []) :- !.
+prolog_send_arguments([ArgAndType|RA], [T|RT], [Arg|TA]) :- !,
+	head_arg(ArgAndType, Arg, Type),
+	pce_type(Type, T),
+	prolog_send_arguments(RA, RT, TA).
 
-predicate_name(SendGet, _Selector, Name) :-
-	pce_compiling(ClassName),
-	(   attribute(ClassName, method_tag, Tag)
-	->  concat_atom([SendGet, '_', ClassName, '_', Tag], Name)
-	;   concat_atom([SendGet, '_', ClassName], Name)
-	).
-
-
-pl_head_args(send, [], [], []) :- !.
-pl_head_args(get,  [Return], [], [ReturnVar]) :- !,
+prolog_get_arguments([Return], [], [], ReturnVar) :- !,
 	(   var(Return)
 	->  ReturnVar = Return
 	;   Return = ReturnVar:_Type
 	).
-pl_head_args(SG, [ArgAndType|RA], [T|RT], [Arg|TA]) :- !,
+prolog_get_arguments([ArgAndType|RA], [T|RT], [Arg|TA], ReturnVar) :- !,
 	head_arg(ArgAndType, Arg, Type),
 	pce_type(Type, T),
-	pl_head_args(SG, RA, RT, TA).
+	prolog_get_arguments(RA, RT, TA, ReturnVar).
 
 
 head_arg(Var, Var, any) :-

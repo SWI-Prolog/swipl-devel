@@ -97,7 +97,7 @@ pce_info(Term) :-
 	format(user_output, '~w~n', [Str]).
 
 message_to_string(Term, Str) :-
-	xpce_message(Term, Actions, []),
+	xpce_message(Term, Actions, []), !,
 	actions_to_format(Actions, Fmt, Args),
 	sformat(Str, Fmt, Args).
 

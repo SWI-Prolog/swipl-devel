@@ -438,8 +438,11 @@ delete_unreferenced(C) :->
 	(   pce_catch_error(bad_return_value, get(C, object, _))
 	->  true
 	;   get(C, identifier, Id),
-	    format(user_error, 'Deleting card ~w~n', [Id]),
-	    free(C)
+	    (	send(Id, sub, '.win_')	% windows-specific card
+	    ->	true
+	    ;   format(user_error, 'Deleting card ~w~n', [Id]),
+		free(C)
+	    )
 	).
 
 :- pce_end_class.

@@ -40,9 +40,9 @@ BOOTPL=pl
 BPL=		bin/$(PLARCH)/$(BOOTPL)
 PWD=`pwd`
 
-STARTUP=	startup/startup
+STARTUP=	boot.prc
 BOOTPLS=	boot/aix_foreign.pl boot/apply.pl boot/autoload.pl \
-		boot/bags.pl boot/dwim.pl boot/edit.pl boot/foreign.pl \
+		boot/bags.pl boot/dwim.pl boot/make.pl boot/foreign.pl \
 		boot/history.pl boot/init.pl boot/list.pl boot/listing.pl \
 		boot/load.pl boot/parms.pl boot/profile.pl \
 		boot/qlf.pl boot/sort.pl boot/syspred.pl boot/toplevel.pl \

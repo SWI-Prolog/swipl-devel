@@ -19,14 +19,14 @@ label. The selection is expressed as a boolean.
 
 :- pce_begin_class(tick_box, menu, "Simple boolean tick-box").
 
-resource(item_elevation, elevation*, @nil, "Elevation of the label").
+class_variable(item_elevation, elevation*, @nil, "Elevation of the label").
 
 initialise(TB, Name:name, Value:[bool], Message:[code]*) :->
 	default(Value, @off, Def),
 	send(TB, send_super, initialise, Name, marked, Message),
 	send(TB, multiple_selection, @on),
 	send(TB, send_super, show_label, @off),
-	get(TB, resource_value, label_font, Font),
+	get(TB, label_font, Font),
 	send(TB, value_font, Font),
 	send(TB, append, menu_item(Name,
 				   message(@receiver, forward))),

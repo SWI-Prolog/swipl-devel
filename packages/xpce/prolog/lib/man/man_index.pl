@@ -31,7 +31,7 @@ make_index(_IM, IndexFile:name, Index:chain_table) :<-
 %	a chain of card identifiers.
 %
 %	At the moment only all class-related cards (classes, variables,
-%	methods and resources are processed.
+%	methods and class-variables are processed.
 
 
 pce_ifhostproperty(prolog(quintus),
@@ -61,7 +61,14 @@ pce_make_manual_index(File) :-
 	send(@man_tmp_view, synchronise),
 	send(@man_tmp_index, save_in_file, File),
 	send(@man_tmp_view, format, '%d bytes. Finished.\n', file(File)?size),
-	send(@man_tmp_view, synchronise).
+	send(@man_tmp_view, synchronise),
+	(   get(@man_tmp_view?frame, member, dialog, D),
+	    get(D, member, quit, Quit),
+	    get(D, member, abort, Abort)
+	->  send(Quit, active, @on),
+	    send(Abort, active, @off)
+	;   true
+	).
 make_manual_index(File) :-
 	send(file(File), report, error, 'Cannot write %s', File),
 	fail.
@@ -83,7 +90,7 @@ make_class_index(Class) :-
 		message(Objs, delete, @arg1))),
 	send(Class?instance_variables, for_all,
 	     message(Objs, append, @arg1)),
-	send(Objs, merge, Class?resources),
+	send(Objs, merge, Class?class_variables),
 	send(Objs, append, Class),
 	send(Objs, for_all,
 	     message(@prolog, make_card_index, @arg1)),
@@ -114,7 +121,8 @@ make_index_regex(R) :-
 make_man_tmp_view(V) :-
 	new(V, view('Build PCE manual index')),
 	send(new(D, dialog), below, V),
-	send(D, append, button(quit, message(D, destroy))),
+	send(D, append, new(Quit, button(quit, message(D, destroy)))),
+	send(Quit, active, @off),
 	send(D, append,
 	     button(abort,
 		    and(message(@display, confirm,
@@ -220,3 +228,5 @@ clean_index(Table) :-
 	fail.
 clean_index(Table) :-
 	send(Table, for_all, message(@arg2, unique)).
+
+

@@ -32,8 +32,8 @@ juggle_demo :-
 variable(timer, timer, get, "Timer for animation").
 variable(speed, int,   get, "Animations/second").
 
-resource(geometry,	geometry,	'72x72+0+0',	"Default geometry").
-resource(speed,		int,		10,		"Animations/second").
+class_variable(geometry, geometry,	'72x72+0+0',	"Default geometry").
+class_variable(speed,    int,		10,		"Animations/second").
 
 :- pce_global(@juggler_popup, make_juggler_popup).
 
@@ -67,7 +67,7 @@ initialise(F) :->
 
 	send(F, slot, timer, new(T, timer(0.1, message(Fig, next_status)))),
 	send(T, start),
-  	get(F, resource_value, speed, Speed),
+  	get(F, class_variable_value, speed, Speed),
 	send(F, speed, Speed),
 	
 	send(F, open).

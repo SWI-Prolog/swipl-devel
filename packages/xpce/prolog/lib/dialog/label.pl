@@ -70,8 +70,7 @@ kind(LI, Kind:{text,image}) :->
 	->  send(TextItem, type, name),
 	    send(TextItem, value_set, @default)
 	;   send(TextItem, type, image),
-	    get(class(image), resource, path, R),
-	    get(R, value, Path),
+	    get(class(image), class_variable_value, path, Path),
 	    new(ValueSet, chain),
 	    send(@path_regex, for_all, Path,
 		 and(assign(new(Dir, var),

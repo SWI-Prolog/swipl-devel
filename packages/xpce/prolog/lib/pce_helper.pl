@@ -10,20 +10,18 @@
 :- module(pce_help, []).
 :- use_module(library(pce)).
 :- use_module(library(pce_prompter)).
-:- require([ absolute_file_name/3
-	   , atom_to_term/3
-	   , auto_call/1
-	   , concat/3
-	   , default/3
-	   , forall/2
+:- require([ auto_call/1
 	   , ignore/1
-	   , manpce/1
+	   , forall/2
 	   , member/2
 	   , pce_help_file/2
-	   , pce_registered_help_file/2
+	   , term_to_atom/2
+	   , absolute_file_name/3
+	   , atom_to_term/3
+	   , concat/3
+	   , default/3
 	   , send_list/3
 	   , sformat/3
-	   , term_to_atom/2
 	   ]).
 
 
@@ -71,37 +69,47 @@ help_file(Helper, Name:name, File:file) :->
 	).
 
 
-give_help(Helper, Database:name, Label:name) :->
+give_help(Helper, Database:name, Label:[name]) :->
 	"View given database at label"::
 	(   get(Helper?buffers, value, Database, Buffer)
 	->  (	get(Buffer?editors, head, Editor)
 	    ->	true
 	    ;	get(Buffer, open, Editor)
 	    ),
-	    send(Editor, goto, Label),
+	    (	Label == @default
+	    ->	send(Editor, caret, 0)
+	    ;   send(Editor, goto, Label)
+	    ),
 	    send(Editor?frame, expose)
-	;   (	get(Helper, value, Database, File)
-	    ;	pce_registered_help_file(Database, Path),
-		absolute_file_name(Path, FileName),
-		new(File, file(FileName))
+	;   (	get(Helper, value, Database, RC)
+	    ;	new(RC, pce_help_file:resource(Database, help))
 	    )
-	->  (   \+ send(File, exists),
-		send(@display, confirm,
-		     'No help-file %N, Create empty one?', File),
+	->  (   pce_help_file:resource(Database, help, FileSpec),
+	        absolute_file_name(FileSpec, Path)
+	    ->  new(File, file(Path))
+	    ;	File = @nil
+	    ),
+	    (	send(RC, exists)
+	    ->	(   send(RC, check_object),
+		    get(RC, object, Buffer),
+		    send(Buffer, instance_of, hlp_buffer)
+		->  send(Helper?buffers, value, Database, Buffer),
+		    send(Buffer, file, File),
+		    get(Buffer, open, Editor),
+		    (	Label == @default
+		    ->	send(Editor, caret, 0)
+		    ;   send(Editor, goto, Label)
+		    )
+		;   send(Helper, report, error,
+			 'Illegal data-format in "%N"', RC),
+		    fail
+		)
+	    ;	send(@display, confirm,
+		     'No help-database "%s"\n\nCreate it?', Database),
 		new(Buffer, hlp_buffer),
 		send(Buffer, file, File),
 		get(Buffer, open, Editor),
 		send(Editor, editable, @on)
-	    ;	send(File, check_object),
-	    	get(File, object, Buffer),
-		send(Buffer, instance_of, hlp_buffer)
-	    ->	send(Helper?buffers, value, Database, Buffer),
-		send(Buffer, file, File),
-		get(Buffer, open, Editor),
-		send(Editor, goto, Label)
-	    ;	send(Helper, report, error,
-		     'Illegal data-format in %N', File),
-		fail
 	    )
 	;   term_to_atom(DBTerm, Database),
 	    functor(DBTerm, _, 1),
@@ -168,14 +176,14 @@ number_section(Frag, I:vector) :->
 	    send(Frag, insert, 0, Str)
 	).
 
-
 emptied(F) :->
-	(   get(F, style, section_heading)
-	;   get(F, style, subsection_heading)
-	),
-	get(F, text_buffer, TB),
-	send(F, free),
-	send(TB, request_renumber, @on).
+	(   get(F, style, Style),
+	    level(Style, _, _)
+	->  get(F, text_buffer, TB),
+	    free(F),
+	    send(TB, request_renumber, @on)
+	;   true
+	).
 
 :- pce_end_class.
 
@@ -239,37 +247,37 @@ open(TB) :->
 
 :- pce_begin_class(hlp_editor, editor, "Simple hyper-text editor").
 
-resource(title_font,	     font,  '@helvetica_bold_24').
-resource(section_font,	     font,  '@helvetica_bold_18').
-resource(subsection_font,    font,  '@helvetica_bold_14').
-resource(subsubsection_font, font,  '@helvetica_bold_12').
-resource(subsubsubsection_font, font,  '@helvetica_bold_12').
-resource(example_font,	     font,  '@screen_roman_13').
-resource(text_font,	     font,  '@helvetica_roman_12').
-resource(bold_font,	     font,  '@helvetica_bold_12').
-resource(emphasize_font,     font,  '@helvetica_oblique_12').
-resource(size,		     size,  'size(88,20)').
-resource(jump_style,	     style, 'when(@colour_display,
-					  style(colour := dark_green,
-						underline := @on),
-					  style(underline := @on))').
-resource(keyword_style,	     style, 'style(font := @helvetica_bold_12)').
+class_variable(title_font,	      font,  font(helvetica, bold, 24)).
+class_variable(section_font,	      font,  boldhuge).
+class_variable(subsection_font,       font,  boldlarge).
+class_variable(subsubsection_font,    font,  bold).
+class_variable(subsubsubsection_font, font,  bold).
+class_variable(example_font,	      font,  fixed).
+class_variable(text_font,	      font,  normal).
+class_variable(bold_font,	      font,  bold).
+class_variable(emphasize_font,	      font,  italic).
+class_variable(size,		      size,  size(88, 20)).
+class_variable(jump_style,	      style, when(@colour_display,
+						  style(colour := dark_green,
+							underline := @on),
+						  style(underline := @on))).
+class_variable(keyword_style,	      style, style(font := bold)).
 						    
 
 initialise(E, Data:[file|text_buffer]) :->
 	"Create hyper-text editor for help-system"::
 	send(E, send_super, initialise, new(hlp_buffer)),
-	get(E, resource_value, title_font, TitleFont),
-	get(E, resource_value, section_font, SectionFont),
-	get(E, resource_value, subsection_font, SubSectionFont),
-	get(E, resource_value, subsubsection_font, SubSubSectionFont),
-	get(E, resource_value, subsubsubsection_font, SubSubSubSectionFont),
-	get(E, resource_value, example_font, ExampleFont),
-	get(E, resource_value, text_font, TextFont),
-	get(E, resource_value, bold_font, BoldFont),
-	get(E, resource_value, emphasize_font, EmFont),
-	get(E, resource_value, jump_style, JumpStyle),
-	get(E, resource_value, keyword_style, KeywordStyle),
+	get(E, title_font, 	      TitleFont),
+	get(E, section_font, 	      SectionFont),
+	get(E, subsection_font,	      SubSectionFont),
+	get(E, subsubsection_font,    SubSubSectionFont),
+	get(E, subsubsubsection_font, SubSubSubSectionFont),
+	get(E, example_font,	      ExampleFont),
+	get(E, text_font,	      TextFont),
+	get(E, bold_font,	      BoldFont),
+	get(E, emphasize_font,	      EmFont),
+	get(E, jump_style,	      JumpStyle),
+	get(E, keyword_style,	      KeywordStyle),
 
 	send(E, font, TextFont),
 	send(E, bindings, hlp_editor),
@@ -703,7 +711,6 @@ ispell(E) :->
 
 :- pce_global(@hlp_external_regex, new(regex('^\(.+\):\(\w+$\)'))).
 :- pce_global(@hlp_prolog_regex, new(regex('^prolog://\(.*\)$'))).
-:- pce_global(@hlp_manpce_regex, new(regex('^manpce://\(.*\)$'))).
 
 button(E, Button:hlp_fragment) :<-
 	"Find button at caret"::
@@ -739,15 +746,6 @@ goto(E, Label, _) :-
 	    )
 	;   send(E, report, error, 'Syntax error in %s', GoalAtom)
 	).
-goto(_, Label, Button) :-
-	send(@hlp_manpce_regex, match, Label), !,
-	get(@hlp_manpce_regex, register_value, Label, 1, name, Dest0),
-	(   Dest0 == ''
-	->  get(Button, string, Dest1),
-	    get(Dest1, value, Dest)
-	;   Dest = Dest0
-	),
-	manpce(Dest).
 goto(_, Label, _) :-
 	send(@hlp_external_regex, match, Label), !,
 	get(@hlp_external_regex, register_value, Label, 1, name, DB),

@@ -7,10 +7,9 @@
     Copyright (C) 1992 University of Amsterdam. All rights reserved.
 */
 
-
 :- module(pce_visual, []).
-
 :- use_module(library(pce)).
+:- use_module(pce_op).			% should move
 :- require([ concat_atom/2
 	   , ignore/1
 	   , portray_object/2
@@ -20,346 +19,254 @@
 	   ]).
 
 :- pce_autoload(tile_hierarchy, library('man/v_tile')).
+:- pce_autoload(toc_window,	library(pce_toc)).
 
 		/********************************
 		*        ICON GENERATION	*
 		********************************/
 
+resource(builtin_class,       image, image('16x16/builtin_class.xpm')).
+resource(user_class,          image, image('16x16/user_class.xpm')).
+resource(builtin_class_flash, image, image('16x16/builtin_classflash.xpm')).
+resource(user_class_flash,    image, image('16x16/user_classflash.xpm')).
+
 :- pce_extend_class(visual).
 
-vis_image(V, Node) :<-
-	new(Node, text(V?class_name)).
+rc(built_in, flash,   builtin_class_flash).
+rc(built_in, noflash, builtin_class).
+rc(host,     flash,   user_class_flash).
+rc(host,     noflash, user_class).
 
-:- pce_end_class.
-
-		/********************************
-		*             NODE		*
-		********************************/
-
-:- pce_begin_class(vis_node, node).
-
-variable(visual,	visual*,	get, "Visual object represented").
-
-initialise(N, Gr:graphical, V:visual) :->
-	send(N, send_super, initialise, Gr),
-	send(N, slot, visual, V).
-
-
-unlink(N) :->
-	ignore(send(N?frame, selection, @nil)),
-	ignore(send(N?window?nodes, delete, N?visual)),
-	send(N, send_super, unlink).
-
-
-expand(N) :->
-	"Expand to the next level"::
-	get(N, visual, Visual),
-	get(N, tree, Tree),
-	(   get(Visual, frame, VFrame),
-	    get(Tree, frame, VFrame)
-	->  send(Visual, report, warning, 'Can''t visualise myself')
-	;   get(Visual, contains, Sons),
-	    send(Sons, for_all, message(N, son, @arg1)),
-	    send(Tree?window, normalise, N?sons),
-	    send(Sons, done)
-	).
-
-
-tile_hierarchy(N) :->
-	"Display a frame's tile hierarchy"::
-	get(N, visual, Visual),
-	send(Visual, instance_of, frame),
-	get(Visual, tile, Root),
-	new(_, tile_hierarchy(Root)).
-
-
-son(N, V:visual) :->
-	(    get(N?sons, find, @arg1?visual == V, _)
-	->   true
-	;    send(N, send_super, son, new(S, vis_node(V?vis_image, V))),
-	     send(N?tree?window, prepare, S, V)
-	).
-
-
-
-expand_tree(N) :->
-	"Expand all levels"::
-	(   send(N, expand)
-	->  send(N?sons, for_some, message(@arg1, expand_tree))
-	;   true
-	).
-
-
-collapse(N) :->
-	"Destroy all subtrees"::
-	send(N?frame, selection, N),
-	send(N?sons, for_all, message(@arg1, delete_tree)).
-
-delete(N) :->
-	"Delete subtree"::
-	send(N?frame, selection, @nil),
-	send(N, delete_tree).
-
-
-:- pce_end_class.
-
-		/********************************
-		*            TREE		*
-		********************************/
-
-:- pce_global(@vis_node_handler, make_vis_node_handler).
-
-make_vis_node_handler(H) :-
-	new(Text, @event?receiver),
-	new(Node, Text?node),
-	new(Visual, Node?visual),
-	new(CanFlash, ?(Visual?class, send_method, flash)),
-	new(CanExpand, ?(Visual, contains)),
-	new(Tool, Node?frame),
-	new(Manual, Tool?manual),
-
-	new(H, handler_group(
-		popup_gesture(new(P, popup)),
-		click_gesture(left, '', single,
-			      and(message(Tool, selection, Node),
-				  message(Tool, portray, Visual),
-				  if(CanFlash,
-				     message(Visual, flash)))),
-		click_gesture(left, '', double,
-			      and(message(Tool, selection, Node),
-				  message(Node, expand))))),
-	
-	send_list(P, append,
-		  [ menu_item(flash,
-			      block(message(Tool, selection, Node),
-				    message(Visual, flash)),
-			      @default, @on,
-			      CanFlash)
-		  , menu_item(expand,
-			      block(message(Tool, selection, Node),
-				    message(Node, expand)),
-			      @default, @off,
-			      CanExpand)
-		  , menu_item(expand_tree,
-			      block(message(Tool, selection, Node),
-				    message(Node, expand_tree)),
-			      @default, @off,
-			      CanExpand)
-		  , menu_item(collapse,
-			      message(Node, collapse),
-			      @default, @off,
-			      not(message(Node?sons, empty)))
-		  , menu_item(delete,
-			      message(Node, delete),
-			      @default, @on,
-			      Visual \== @display_manager)
-		  , menu_item(source,
-			      and(message(Tool, selection, Node),
-				  message(Manual, request_source,
-					  Visual?class)))
-		  , menu_item(inspect,
-			      and(message(Tool, selection, Node),
-				  message(Manual, inspect, Visual)),
-			      @default, @off)
-		  , menu_item(tile_hierarchy,
-			      and(message(Tool, selection, Node),
-				  message(Node, tile_hierarchy)),
-			      @default, @off,
-			      message(Visual, instance_of, frame))
-		  , menu_item(class_browser,
-			      and(message(Tool, selection, Node),
-				  message(Tool, request_tool_focus,
-					  Visual?class)),
-			      @default, @on)
-		  , menu_item(free,
-			      block(message(Tool, selection, Node),
-				    message(Visual, free)),
-			      @default, @on,
-			      Visual?protect == @off)
-		  , menu_item(postscript,
-			      block(message(Tool, selection, Node),
-				    message(Tool, postscript, Visual)),
-			      @default, @on)
-		  ]).
-
-
-:- pce_begin_class(vis_window, picture).
-
-variable(freed_message, message,	get, "Message to trap destruction").
-variable(nodes,		hash_table,	get, "V --> Node table").
-
-resource(selection_feedback, any,
-	 'when(@colour_display, colour(red), invert)').
-
-initialise(W) :->
-	send(W, send_super, initialise),
-	send(W, display, new(T, tree)),
-	send(W, slot, freed_message, message(W, freed, @arg2)),
-	send(W, slot, nodes, new(hash_table)),
-	send(T, node_handler, @vis_node_handler),
-	send(T, root, new(Root, vis_node(@display_manager?vis_image,
-					 @display_manager))),
-	send(W?nodes, append, @display_manager, Root).
-	
-
-unlink(W) :->
-	"Remove trap-messages from classes"::
-	get(W, freed_message, Msg),
-	send(@classes, for_some,
-	     if(@arg2?freed_messages \== @nil,
-		message(@arg2?freed_messages, delete, Msg))),
-	send(W, send_super, unlink).
-
-
-node(W, V:visual, Node) :<-
-	(   get(W?nodes, member, V, Node)
-	->  true
-	;   get(V, contained_in, Super),
-	    get(W, node, Super, SuperNode),
-	    send(SuperNode, son, V),
-	    get(W?nodes, member, V, Node)
-	).
-
-
-visual(W, V:visual) :->
-	"Add Visual to the tree"::
-	(   get(W?nodes, member, V, _)
-	->  true
-	;   get(V, contained_in, Super),
-	    get(W, node, Super, SuperNode),
-	    send(SuperNode, son, V)
+vis_icon(V, Icon:image) :<-
+	Creator = V->>class->>creator,
+	(   V->>has_send_method(flash)
+	->  Flash = flash
+	;   Flash = noflash
 	),
-	get(W?nodes, member, V, Node),
-	send(W?frame, selection, Node).
+	rc(Creator, Flash, RC),
+	new(Icon, image(resource(RC))).
 
-
-visual_atom(W, Text:string) :->
-	"->visual from text_item"::
-	(   get(Text, scan, '@%[a-zA-Z0-9_]', vector(string(Ref))),
-	    (	object(@Ref)
-	    ->	Obj = @Ref
-	    ;	get(@pce, convert, Ref, int, IRef),
-		object(@IRef)
-	    ->	Obj = @IRef
-	    ),
-	    send(Obj, instance_of, visual)
-	->  send(W, visual, Obj)
-	;   send(@pce, inform, 'No such visual object: %s', Text),
-	    fail
+vis_icon_label(V, Label:name) :<-
+	(   object(V, Term)
+	->  term_to_atom(Term, Label)
+	;   Label = V->>class_name
 	).
 
-
-prepare(W, N:vis_node, V:visual) :->
-	"Prepare for destruction of visual"::
-	send(W?nodes, append, V, N),
-	get(V, '_class', Class),
-	get(W, freed_message, Msg),
-	send(Class, freed_message, Msg).
-
-
-freed(W, V) :->
-	get(W?nodes, member, V, Node),
-	send(Node, delete_tree).
+vis_expandable(V) :->
+	\+ (ContainsMethod = class(graphical)->>get_method(contains),
+	    ContainsMethod = V->>class->>get_method(contains)).
 
 :- pce_end_class.
 
 
-		/********************************
-		*            MAIN TOOL		*
-		********************************/
+		 /*******************************
+		 *	     VIS-WINDOW		*
+		 *******************************/
 
-:- pce_begin_class(vis_frame, man_frame).
+:- pce_begin_class(vis_window, toc_window,
+		   "Visual Hierarchy Window").
 
-variable(selection,	vis_node*,	get, "Currently selected node").
+variable(freed_message,   message, get, "Message to trap destruction").
+variable(changed_message, message, get, "Message to trap change").
+
+class_variable(size, size, size(300, 300)).
+
+initialise(V, Root:[visual]) :->
+	default(Root, @display_manager, TheRoot),
+	V*>>initialise,
+	V=>>freed_message(message(V, freed, @arg2)),
+	V=>>changed_message(message(V, changed, @arg1)),
+	Id    = TheRoot->>object_reference,
+	Label = TheRoot->>vis_icon_label,
+	Icon  = TheRoot->>vis_icon,
+	V->>root(toc_folder(Label, Id, Icon, Icon)).
+
+unlink(V) :->
+	FMsg = V->>freed_message,
+	CMsg = V->>changed_message,
+	@classes->>for_some(if(@arg2?freed_messages \== @nil,
+			       message(@arg2?freed_messages, delete, FMsg))),
+	@classes->>for_some(if(@arg2?changed_messages \== @nil,
+			       message(@arg2?changed_messages, delete, CMsg))),
+	V*>>unlink.
+
+vis_expandable(_V) :->
+	fail.
+
+expand_node(V, Id:'name|int') :->
+	Ref  = @pce->>object_from_reference(Id),
+	(   Subs = Ref->>contains,
+	    \+ Subs->>empty,
+	    V->>report(status, '')
+	->  Subs->>for_all(message(V, add_visual, @arg1, Id))
+	;   V->>report(status, '%O: Empty', Ref)
+	).
+%	V*>>expand_node(Id).
+
+add_visual(V, Visual:visual, SuperId:[name|int]) :->
+	"Add a visual object to the tree"::
+	Id = Visual->>object_reference,
+	(   _ = V->>node(Id)  
+	->  true
+	;   (   SuperId == @default
+	    ->	TheSuperId = Visual->>contained_in->>object_reference
+	    ;	TheSuperId = SuperId
+	    ),
+	    Label = Visual->>vis_icon_label,
+	    Icon  = Visual->>vis_icon,
+	    (   Visual->>vis_expandable
+	    ->  V->>son(TheSuperId, toc_folder(Label, Id, Icon, Icon))
+	    ;   V->>son(TheSuperId, toc_file(Label, Id, Icon))
+	    ),
+	    V->>prepare(Visual)
+	).
+	
+
+prepare(V, Visual:visual) :->
+	"Ensure the freed-message is trapped"::
+	Visual->>'_inspect'(@on),
+	Class = Visual->>class,
+	FreedMsg   = V->>freed_message,
+	ChangedMsg = V->>changed_message,
+	Class->>freed_message(FreedMsg),
+	Class->>changed_message(ChangedMsg).
+
+
+freed(V, Visual:visual) :->
+	"Handle a freed node"::
+	Id   = Visual->>object_reference,
+	Node = V->>node(Id),
+	Node->>delete_tree.
+
+
+changed(V, Visual:visual) :->
+	"Handle a changed node"::
+	Id    = Visual->>object_reference,
+	Node  = V->>node(Id),
+	Label = Visual->>vis_icon_label,
+	Node->>image->>label(Label).
+
+
+visualise(V, Visual:visual) :->
+	"Add this object to the tree"::
+	(   Node = V->>node(Visual)
+	->  V->>selection(Node)
+	;   (   make_path(V, Visual)
+	    ->	true
+	    ;	V->report(warning, '%O is not displayed', Visual)
+	    )
+	).
+
+make_path(V, Visual) :-
+	Id = Visual->>object_reference,
+	_  = V->>node(Id), !.
+make_path(V, Visual) :-
+	Super	= Visual->>contained_in,
+	SuperId = Super->>object_reference,
+	make_path(V, Super),
+	V->>add_visual(Visual, SuperId),
+	V*>>expand_node(SuperId).
+
+select_node(V, Id:'name|int') :->
+	"A node has been selected"::
+	Visual = @pce->>object_from_reference(Id),
+	(   Visual->>has_send_method(flash)
+	->  Visual->>flash
+	;   true
+	),
+	term_to_atom(Visual, Copy),
+	@display->>copy(Copy),
+	ClassName = Visual->>class_name,
+	V->>report(status, 'Class: %s, Reference: @%s', ClassName, Id).
+
+:- free(@vis_node_popup).		% development
+:- pce_global(@vis_node_popup, make_vis_node_popup).
+
+make_vis_node_popup(P) :-
+	new(V, @arg1?window),
+	new(Visual, V?selection),
+	new(P, popup(visual, message(@arg2?window, @arg1))),
+%	P->>append(menu_item(copy_reference,
+%			     end_group := @on)),
+	P->>append(menu_item(source,
+			     condition := Visual?class?creator == host)),
+	P->>append(class_details),
+	P->>append(inspect).
+
+popup(_V, _Id:'name|int', @vis_node_popup:popup) :<-
+	true.
+
+selection(V, Visual:visual) :<-
+	Ref    = V->>tree->>selection->>head->>identifier,
+	Visual = @pce->>object_from_reference(Ref).
+
+copy_reference(V) :->
+	Visual = V->>selection,
+	term_to_atom(Visual, Copy),
+	@display->>copy(Copy),
+	V->>report(status, 'Copied: "%s"', Copy).
+
+source(V) :->
+	Class = V->>selection->>class,
+	V->>request_source(Class).
+
+class_details(V) :->
+	Class = V->>selection->>class,
+	V->>request_tool_focus(Class).
+
+inspect(V) :->
+	Visual = V->>selection,
+	V->>frame->>manual->>inspect(Visual).
+
+:- pce_end_class.
+
+		 /*******************************
+		 *               TOOL		*
+		 *******************************/
+
+:- pce_begin_class(vis_frame, man_frame,
+		   "Visual Hierarchy Tool").
+
 variable(handler,	handler,	get, "Inspect handler used").
 
-resource(postscript_print_command, name, lpr,
-	 "Shell command to send a file to the printer").
-
 initialise(F, Manual:man_manual) :->
-	send(F, send_super, initialise, Manual, 'PCE Visual'),
-	send(F, append, new(V, vis_window)),
-	send(new(D, dialog), below, V),
-
-	send(D, append, label(reporter,
-			      'META-SHIFT-CONTROL-V adds object to tree')),
-	send(D, append, button(help, message(F, help))),
-	send(D, append, button(print, message(F, print))),
-	send(D, append, button(quit, message(F, quit))),
-	send(D, append,
-	     new(TI, text_item(visual, '',
-			       and(message(V, visual_atom, @arg1),
-				   message(@receiver, clear)))),
-	     right),
-	send(TI, length, 20),
-	send(F?display, inspect_handler,
-	     new(H, handler('M-\C-v', message(V, visual, @arg1)))),
-	send(F, slot, handler, H).
-
-
+	F*>>initialise(Manual, 'Visual Hierarchy'),
+	F->>append(new(V, vis_window)),
+	new(D, dialog)->>below(V),
+	D->>append(label(reporter,
+			 'META-SHIFT-CONTROL-V adds object to tree')),
+	D->>append(button(help)),
+	D->>append(button(quit)),
+	D->>append(text_item(add, '', message(F, visualise_from_atom, @arg1)),
+		   right),
+	F->>keyboard_focus(D),
+	F->>display->>inspect_handler(new(H, handler('M-\C-v',
+						     message(V, visualise,
+							     @arg1)))),
+	F=>>handler(H).
+	
 unlink(F) :->
-	get(F?display, inspect_handlers, Chain),
-	get(F, handler, H),
-	send(Chain, delete_all, H),
-	send(H, free),
-	send(F, send_super, unlink).
+	H = F->>handler,
+	F->>display->>inspect_handlers->>delete_all(H),
+	F*>>unlink.
 
+window(F, Window:vis_window) :<-
+	Window = F->>member(vis_window).
 
-window(F, Window) :<-
-	get(F, member, vis_window, Window).
-
-
-tree(F, Tree:tree) :<-
-	"Tree displaying hierarchy"::
-	get(F?window, member, tree, Tree).
-
-
-selection(F, Node:vis_node*) :->
-	(   get(F, selection, Old), Old \== @nil
-	->  send(Old, selected, @off)
-	;   true
-	),
-	send(F, slot, selection, Node),
-	(   Node \== @nil
-	->  send(Node, selected, @on),
-	    get(Node, visual, @Ref),
-	    new(Selection, string('@%s', Ref)),
-	    send(F?display, copy, Selection),
-	    send(F?dialog_member?visual_member, selection, Selection),
-	    send(F?window, normalise, Node)
-	;   true
+visualise_from_atom(F, Atom:name) :->
+	"Handle description of an object as atom"::
+	(   term_to_atom(Term, Atom)
+	->  (	object(Term)
+	    ->  (   Term->>instance_of(visual)
+		->  F->>window->>visualise(Term)
+		;   F->>report(warning, '%O is not a visual object', Term)
+		)
+	    ;	F->>report(warning, '%s is not an object', Atom)
+	    )
+	;   F->>report(warning, '%s: syntax error', Atom)
 	).
-
-
-print(F) :->
-	"Print on Postscript printer"::
-	new(File, file),
-	send(File, open, write),
-	send(File, append, F?tree?postscript),
-	send(File, append, showpage),
-	send(File, close),
-	get(F, resource_value, postscript_print_command, Lpr),
-	get(File, name, FileName),
-	concat_atom([Lpr, ' ', FileName], Cmd),
-	(   shell(Cmd)
-	->  send(File, remove),
-	    fail
-	;   send(F, report, error, 'Command failed: %s', Cmd)
-	).
-
-
-postscript(_F, V:visual) :->
-	"Create postscript description of visual on file PostScript"::
-	new(File, file('PostScript')),
-	send(File, open, write),
-	send(File, append, V?postscript),
-	send(File, close),
-	send(File, done).
-
-
-portray(F, V:visual) :->
-	portray_object(V, Term),
-	term_to_atom(Term, Atom),
-	send(F, report, inform, Atom).
+		    
+vis_expandable(_V) :->
+	fail.
 
 :- pce_end_class.

@@ -106,8 +106,8 @@ object(C, Method:method) :<-
 :- pce_end_class.
 
 
-:- pce_begin_class(man_resource_card(identifier), man_card,
-		   "Manual card of a class resource").
+:- pce_begin_class(man_class_variable_card(identifier), man_card,
+		   "Manual card of a class variable").
 
 variable(defaults,	string*,	get,
 	 "Default value").
@@ -116,7 +116,7 @@ initialise(C, R:resource) :->
 	"Initialise from resource"::
 	send(C, send_super, initialise, R?man_module, R?name, R?man_id).
 
-object(C, R:resource) :<-
+object(C, R:class_variable) :<-
 	"Get associated resource"::
 	get(C, identifier, Name),
 	name(Name, [0'R, 0'. |S0]),
@@ -124,8 +124,13 @@ object(C, R:resource) :<-
 	name(ClassName, S1),
 	name(ResName, S2),
 	get(@classes, member, ClassName, Class),
-	get(Class, resource, ResName, R).
+	get(Class, class_variable, ResName, R).
 
+:- pce_end_class.
+
+
+:- pce_begin_class(man_resource_card, man_class_variable_card,
+		   "Backward compatibility handling").
 :- pce_end_class.
 
 
@@ -173,21 +178,6 @@ object(G, Name:name) :<-
 		*      OTHER MANUAL CARDS	*
 		********************************/
 
-:- pce_begin_class(man_keyword_card(name), man_card,
-		   "Keyword organisation").
-
-man_id(_Card, Id) :<-
-	"Identifier of card type"::
-	Id = 'K'.
-
-man_summary(Kwd, Summary) :<-
-	"Get manual summary description"::
-	new(Summary, string),
-	send(Summary, format, 'K\t%s', Kwd?name).
-
-:- pce_end_class.
-
-
 :- pce_begin_class(man_topic_card(name), man_card,
 		   "Hierarchical organisation on topics").
 
@@ -218,7 +208,7 @@ object(C, O:man_global) :<-
 	"Get associated global object"::
 	get(C, identifier, Name),
 	concat('O.', Reference, Name),
-	get(@man_globals, member, Reference, O).
+	new(O, man_global(Reference)).
 
 delete_unreferenced(C) :->
 	get(C, identifier, Name),
@@ -349,7 +339,7 @@ man_id(_Card, Id) :<-
 :- pce_begin_class(man_global(reference), object).
 
 variable(reference,	name,	 get,	"Reference name of object").
-variable(man_summary,	string,  get,	"Summary string (when available)").
+variable(man_summary,	string,  get,	"Summary string (if available)").
 
 initialise(G, Name:name, Summary:[string]*) :->
 	"Create from name"::
@@ -455,7 +445,7 @@ man_module(Obj, Create:[bool], Module) :<-
 man_card(Obj, Create:[bool], Card) :<-
 	"Manual card for object"::
 	get(Obj, man_module, @on, Module),
-	(   get(Module, card, ?(Obj, get_sub, man_id), Card)
+	(   get(Module, card, Obj?man_id, Card)
 	->  true
 	;   Create == @on
 	->  get(Obj, man_create_card, Card)
@@ -480,7 +470,7 @@ man_create_card(Obj, Card) :<-
 
 man_attribute(Obj, Slot:name, Value:string*) :->
 	"Store a slot of the manual card"::
-	send(?(Obj, get_sub, man_card, @on), store, Slot, Value).
+	send(?(Obj, man_card, @on), store, Slot, Value).
 
 
 man_attribute(Obj, Slot:name, Value) :<-
@@ -511,31 +501,31 @@ man_inherit_object(_Obj, _Att:name, _Obj2:object) :<-
 
 man_relate(Obj1, Type:name, Obj2:object) :->
 	"Create a manual relation"::
-	send(?(Obj1, get_sub, man_card, @on), relate,
+	send(?(Obj1, man_card, @on), relate,
 	     Type, ?(Obj2, man_card, @on)).
 
 
 man_unrelate(Obj1, Type:name, Obj2:object) :->
 	"Destroy a manual relation"::
-	send(?(Obj1, get_sub, man_card, @on), unrelate,
+	send(?(Obj1, man_card, @on), unrelate,
 	     Type, ?(Obj2, man_card, @on)).
 
 
 man_related(Obj1, Type:name, Obj2:object) :->
 	"Create a manual relation"::
-	send(?(Obj1, get_sub, man_card), related, Type, Obj2?man_card).
+	send(?(Obj1, man_card), related, Type, Obj2?man_card).
 
 
 man_related(Obj, Type:name, Chain) :<-
 	"New chain with related objects"::
-	get(?(?(Obj, get_sub, man_card), related, Type), map,
+	get(?(?(Obj, man_card), related, Type), map,
 	    new(?(@arg1, object)), Chain).
 
 
 man_name(Obj, Name) :<-
 	"Name for relation browser"::
 	new(Name, string),
-	send(Name, format, 'O\t@%s', Obj?name_reference).
+	send(Name, format, 'O\t@%s', Obj?object_reference).
 
 man_creator(_Obj, _) :<-
 	"Global default"::
@@ -682,10 +672,10 @@ source(Var, Src) :<-
 	get(Var, context, Class), Class \== @nil,
 	get(Class, source, Src).
 
-man_inherit_object(Var, Att:name, R:resource) :<-
-	"Lookup default in resource"::
+man_inherit_object(Var, Att:name, R:class_variable) :<-
+	"Lookup default in class-variable"::
 	Att == defaults,
-	get(Var?context, resource, Var?name, R).
+	get(Var?context, class_variable, Var?name, R).
 
 man_creator(Var, Creator:name) :<-
 	"<-creator of the <-context"::
@@ -723,42 +713,6 @@ source(M, Loc) :<-
 	get(M, slot, source, Loc), Loc \== @nil,
 	get(Loc, line_no, LineNo), LineNo \== @nil,
 	fix_source_path(Loc).
-
-
-spy(M) :->
-	"Set spy-point on Prolog predicate for method"::
-	get(M, message, Msg),
-	(   Msg \== @nil,
-	    (	send(Msg, instance_of, message)
-	    ->  get(Msg, receiver, @prolog),
-		get(Msg?arguments, size, Args),
-		(   get(Msg, selector, call)
-		->  new(S, string('%s', ?(Msg, argument, 1))),
-		    Arity is Args - 1
-		;   new(S, string('%s', Msg?selector)),
-		    Arity = Args
-		),
-		(   get(S, scan, '%[^:]:%s',
-			vector(string(Module), string(Name)))
-		->  true
-		;   get(S, value, Name),
-		    Module = user
-		),
-		send(S, free),
-		spy(Module:Name/Arity)
-	    ;	send(Msg, instance_of, c_pointer),
-		pce_predicate_reference(Pred, Msg),
-		(   Pred = Module : Head
-		->  true
-		;   Module = user,
-		    Head = Pred
-		),
-		functor(Head, Name, Arity),
-		spy(Module:Name/Arity)
-	    )
-	->  true
-	;   send(@display, inform, 'Not implemented as a Prolog predicate')
-	).
 
 
 man_documented(M) :->
@@ -858,7 +812,7 @@ man_header(M, Header:string) :<-
 	method_types(M, Header).
 
 
-man_inherit_object(M, Att:name, Impl:'variable|method|resource') :<-
+man_inherit_object(M, Att:name, Impl:behaviour) :<-
 	"Inherit from variable if not available"::
 	get(M, context, Class),
 	get(M, name, Selector),
@@ -913,7 +867,7 @@ man_inherit_object(M, Att:name, Impl:'variable|method') :<-
 
 :- pce_end_class.
 
-:- pce_extend_class(resource).
+:- pce_extend_class(class_variable).
 :- pce_group(manual).
 
 man_module_name(R, Module) :<-
@@ -923,14 +877,16 @@ man_module_name(R, Module) :<-
 
 man_card_class(_R, Class:class) :<-
 	"Manual card type"::
-	get(@pce, convert, man_resource_card, class, Class).
+	get(@pce, convert, man_class_variable_card, class, Class).
 
 
 man_name(R, Name) :<-
 	"Name for relation browser"::
-	new(Name, string),
-	send(Name, format, 'R\tPce.%s.%s: %s',
-	     R?resource_class_name, R?name, R?string_value).
+	get(R, value, Value),
+	portray_object(Value, Term),
+	term_to_atom(Term, ValueDescription),
+	new(Name, string('R\t%s.%s: %s',
+			 R?context?name, R?name, ValueDescription)).
 	
 
 has_source(_R) :->
@@ -939,7 +895,7 @@ has_source(_R) :->
 
 
 man_attribute(R, Att:name, Value) :<-
-	"Get default value of resource"::
+	"Get default value of class variable"::
 	(   Att == defaults
 	->  get(R, default, Value)
 	;   get(R, get_super, man_attribute, Att, Value)
@@ -958,7 +914,7 @@ man_inherited_attribute(R, Att:name, Tuple:tuple) :<-
 
 source(R, Src) :<-
 	"Find source (same as related class"::
-	get(R, context, Class), Class \== @nil,
+	get(R, context, Class),
 	get(Class, source, Src).
 
 

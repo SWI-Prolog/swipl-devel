@@ -15,6 +15,10 @@
 
 :- pce_autoload(drag_and_drop_gesture, library(dragdrop)).
 
+resource(file,		image, image('16x16/doc.xpm')).
+resource(opendir,	image, image('opendir.xpm')).
+resource(closedir,	image, image('closedir.xpm')).
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Status and aim
 ==============
@@ -27,7 +31,7 @@ is desined for the contents browser of   the SWI-Prolog manual, but with
 the intention to grow into a more widely usable library.
 
 The objective is that the   application programmer subclasses toc_window
-and (re)defines the virtual methods  there   to  tailure this package to
+and (re)defines the virtual methods  there   to  tailor  this package to
 his/her application. The other classes in   this package should normally
 not be affected.
 
@@ -81,11 +85,22 @@ tree(TW, Tree:toc_tree) :<-
 	"Get the toc_tree"::
 	get(TW, member, toc_tree, Tree).
 
+
+root(TW, Root:node) :<-
+	"Get the root-node of the tree"::
+	get(TW, member, toc_tree, Tree),
+	get(Tree, root, Root).
+
+
 node(TW, Id:any, Node:toc_node) :<-
 	"Find node from identifier"::
 	get(TW, member, toc_tree, Tree),
 	get(Tree, nodes, Table),
-	get(Table, member, Id, Node).
+	(   get(Table, member, Id, Node)
+	->  true
+	;   send(Id, instance_of, toc_node),
+	    Node = Id
+	).
 
 :- pce_group(virtual).
 
@@ -100,7 +115,11 @@ select_node(_TW, _Id:any) :->
 expand_node(TW, Id:any) :->
 	"Define expansion of node 'id'"::
 	get(TW, node, Id, Node),
-	send(Node, slot, collapsed, @off). % HAXK!!
+	send(Node, slot, collapsed, @off). % HACK!!
+
+popup(_TW, _Id:any, _Popup:popup) :<-
+	"Return a menu for this node"::
+	fail.
 
 :- pce_group(build).
 
@@ -193,7 +212,11 @@ root(TC, Root:toc_folder) :->
 selection(TC, SelectedNodes:chain) :<-
 	"Find all toc_nodes that are selected"::
 	get(TC?contains, find_all, @arg1?selected == @on, SelectedNodes).
-	
+
+selection(TC, Nodes:'graphical|chain') :->
+	"Select the given nodes"::
+	send(TC, compute),
+	send(TC, send_super, selection, Nodes).
 
 :- pce_end_class.
 	  
@@ -201,14 +224,24 @@ selection(TC, SelectedNodes:chain) :<-
 :- pce_begin_class(toc_node, node,
 		   "Node for the table-of-contents package").
 
-variable(identifier, any, 		get, "Identification handle").
+variable(identifier, [any], 		none, "Identification handle").
 
 initialise(TN, Id:any, Image:toc_image) :->
 	send(TN, slot, identifier, Id),
 	send(TN, send_super, initialise, Image).
 
 
+identifier(TN, Id:any) :<-
+	"Get given identifier or <-self"::
+	get(TN, slot, identifier, Id0),
+	(   Id0 == @default
+	->  Id = TN
+	;   Id = Id0
+	).
+
+
 son(TN, Son:toc_node) :->
+	"Add a son below this node"::
 	send(TN, send_super, son, Son),
 	get(Son, identifier, Id),
 	get(TN?tree, nodes, Nodes),
@@ -217,10 +250,11 @@ son(TN, Son:toc_node) :->
 
 unlink(TN) :->
 	(   get(TN, tree, Tree),
-	    Tree \== @nil
-	->  get(Tree, nodes, Table),
+	    Tree \== @nil,
+	    get(Tree, nodes, Table),
 	    get(TN, identifier, Id),
 	    send(Table, delete, Id)
+	->  true
 	;   true
 	),
 	send(TN, send_super, unlink).
@@ -231,7 +265,7 @@ collapsed(Node, Val:bool*) :->
 	(   get(Node, collapsed, Val)
 	->  true
 	;   (	Val == @on
-	    ->	send(Node?sons, for_all, message(@arg1, delete_tree))
+	    ->	send(Node, hide_sons)
 	    ;	Val == @off
 	    ->	get(Node?tree, window, TocWindow),
 		get(Node, identifier, Id),
@@ -246,6 +280,10 @@ collapsed(Node, Val:bool*) :->
 	    send(Node, send_super, collapsed, Val),
 	    send(Node, update_image)
 	).
+
+hide_sons(Node) :->
+	"Hide (delete) sons on a collapse"::
+	send(Node?sons, for_all, message(@arg1, delete_tree)).
 
 can_expand(TF, Val:bool) :->
 	"Whether or not the node can be expanded"::
@@ -275,7 +313,6 @@ select(Node, Modified:[bool]) :->
 	(   Modified == @on
 	->  send(Node, toggle_selected)
 	;   get(Node, tree, Tree),
-	    send(Tree, compute),
 	    send(Tree, selection, Node?image),
 	    send(Node, flush),
 	    send(Tree?window, select_node, Node?identifier)
@@ -300,7 +337,12 @@ open(Node) :->
 				click_gesture(left, c, single,
 					      message(@toc_node, select, @on)),
 				click_gesture(left, '', double,
-					      message(@toc_node, open))))).
+					      message(@toc_node, open)),
+				handler(ms_right_down,
+					and(message(@toc_node, select),
+					    new(or))),
+				popup_gesture(?(@receiver?window, popup,
+						@toc_node?identifier))))).
 
 
 :- pce_global(@toc_drag_and_drop_recogniser,
@@ -370,10 +412,8 @@ drop_target(TF, DTG:'chain|any') :<-
 
 :- pce_end_class.
 
-image(folder, _, 'dir.bm') :-
-	get(@display, visual_type, monochrome), !.
-image(folder, @off, 'opendir.xpm') :- !.
-image(folder, _,    'closedir.xpm').
+image(folder, @off, resource(opendir)) :- !.
+image(folder, _,    resource(closedir)).
 
 
 		 /*******************************
@@ -388,11 +428,12 @@ variable(expanded_image,	[image], get, "Icon if expanded [-]").
 initialise(TF,
 	   Label:label=char_array,
 	   Id:identifier=[any],
-	   CollapsedImg:image=[image],
-	   ExpandedImg:image=[image],
+	   CollapsedImg:collapsed_image=[image],
+	   ExpandedImg:expanded_image=[image],
 	   CanExpand:can_expand=[bool]) :->
 	send(TF, slot, collapsed_image, CollapsedImg),
-	send(TF, slot, expanded_image, ExpandedImg),
+	default(ExpandedImg, CollapsedImg, TheExpandedImg),
+	send(TF, slot, expanded_image, TheExpandedImg),
 	(   CollapsedImg == @default
 	->  image(folder, closed, I)
 	;   I = CollapsedImg
@@ -452,7 +493,7 @@ open(TF) :->
 :- pce_begin_class(toc_file, toc_node, "TOC file object").
 
 initialise(TF, Label:char_array, Id:[any], Img:[image]) :->
-	default(Img, 'file.bm', I),
+	default(Img, resource(file), I),
 	send(TF, send_super, initialise, Id, toc_image(Label, I)),
 	send(TF, collapsed, @nil).
 

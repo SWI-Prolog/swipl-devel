@@ -24,8 +24,7 @@ initialise(I, Name:[name], Default:[any|function], Msg:[code]*) :->
 	"Initialise the value-set"::
 	send(I, send_super, initialise, Name, Default, Msg),
 	send(I, type, image),
-	get(class(image), resource, path, R),
-	get(R, value, Path),
+	get(class(image), class_variable_value, path, Path),
 	new(ValueSet, chain),
 	send(ValueSet, lock_object, @on),
 	send(@image_path_regex, for_all, Path,

@@ -56,7 +56,7 @@ make_editor_recogniser(R) :-
 			      message(Editor, selection_origin, DownIndex)),
 			  and(message(R, saved_caret, Editor?caret),
 			      message(R, down_index, Index),
-			      if(?(Editor, resource_value,
+			      if(?(Editor, class_variable_value,
 				   caret_moves_on_select) == @on,
 				 message(Editor, caret, DownIndex)))))),
 	send(L, max_drag_distance, 25),			  
@@ -83,7 +83,7 @@ make_make_selection_gesture(R, G) :-
 		 and(message(Editor, selection_unit,
 			     when(@arg1?multiclick == single,
 				  character,
-				  progn(if(?(Editor, resource_value,
+				  progn(if(?(Editor, class_variable_value,
 					     caret_moves_on_select) == @off,
 					   message(Editor, caret,
 						   R?saved_caret)),
@@ -96,7 +96,7 @@ make_make_selection_gesture(R, G) :-
 	send(G, send_method,
 	     send_method(terminate, vector(event),
 			 and(message(Editor, selection_extend, Index),
-			     if(?(Editor, resource_value, auto_copy) == @on,
+			     if(?(Editor, class_variable_value, auto_copy) == @on,
 				message(Editor, copy))))).
 					 
 
@@ -122,6 +122,6 @@ make_extend_selection_gesture(G) :-
 	send(G, send_method,
 	     send_method(terminate, vector(event),
 			 and(message(Editor, selection_extend, Index),
-			     if(?(Editor, resource_value, auto_copy) == @on,
+			     if(?(Editor, class_variable_value, auto_copy) == @on,
 				message(Editor, copy))))).
 					 

@@ -19,8 +19,8 @@
 
 :- pce_begin_class(man_summary_browser(displayed_attribute, size), browser).
 
-resource(header_font,	font,	bold).
-resource(list_font,	font,	normal).
+class_variable(header_font,	font,	bold).
+class_variable(list_font,	font,	normal).
 
 variable(displayed_attribute, name, get,
 	 "Get method for getting string").
@@ -46,8 +46,8 @@ initialise(S, Att:name, Size:size) :->
 	new(Selection, Manual?selection),
 	new(Obj, DI?object),
 
-	get(S, resource_value, list_font, ListFont),
-	get(S, resource_value, header_font, HeaderFont),
+	get(S, list_font, ListFont),
+	get(S, header_font, HeaderFont),
 
 	send(S, send_super, initialise, @default, Size),
 	send(S, slot, displayed_attribute, Att),
@@ -77,17 +77,25 @@ initialise(S, Att:name, Size:size) :->
 			      and(message(Obj, has_send_method, has_source),
 				  message(Obj, has_source)))
 		  , menu_item(spy,
-			      message(Obj, spy),
+			      message(Obj, break, full, @on),
 			      @default, @off,
-			      message(Obj, instance_of, method))
+			      and(message(Obj, has_send_method, break),
+				  Obj?break == @off))
+		  , menu_item(nospy,
+			      message(Obj, break, full, @off),
+			      @default, @off,
+			      and(message(Obj, has_send_method, break),
+				  Obj?break == @on))
 		  , menu_item(trace,
-			      message(Obj, trace, @on, full),
+			      message(Obj, trace, full, @on),
 			      @default, @off,
-			      message(Obj, has_send_method, trace))
+			      and(message(Obj, has_send_method, trace),
+				  Obj?trace == @off))
 		  , menu_item(notrace,
-			      message(Obj, trace, @off, full),
+			      message(Obj, trace, full, @off),
 			      @default, @on,
-			      message(Obj, has_send_method, trace))
+			      and(message(Obj, has_send_method, trace),
+				  Obj?trace == @on))
 		  , new(CM, menu_item(class,
 				     end_group := @on))
 			      

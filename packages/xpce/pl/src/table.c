@@ -62,7 +62,6 @@ rehashTable(Table t, int aton)
   free(old);
 }
 
-
 static PceName
 atomToName(Atom a)
 { int k = AtomKey(&atom_to_name, a);

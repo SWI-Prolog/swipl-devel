@@ -21,8 +21,8 @@
 
 :- pce_begin_class(dia_attribute_editor, dialog).
 
-resource(activate, '{displayed,active}', active,
-	 "Handle inappropriate items").
+class_variable(activate, '{displayed,active}', active,
+	       "Handle inappropriate items").
 
 client(DE, Client:object, Ats:'name|tuple ...') :->
 	"Prepare for editing object"::
@@ -64,7 +64,7 @@ modified_item(DE, Item:graphical, _Modified:bool) :->
 
 evaluate_conditions(DE) :->
 	"Switch instances off/on"::
-	get(DE, resource_value, activate, How),
+	get(DE, activate, How),
 	send(DE?graphicals, for_all,
 	     if(?(@arg1, attribute, condition),
 		message(@arg1, How,

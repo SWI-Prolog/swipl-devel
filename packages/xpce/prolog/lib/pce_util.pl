@@ -198,7 +198,7 @@ chain_list(Chain, List) :-
 	;   to_object(Chain, ChainObject),
 	    send(ChainObject, instance_of, chain),
 	    (   send(ChainObject, current_no, 1)
-	    ->  'chain list 2'(ChainObject, List)
+	    ->  chain_to_list_(ChainObject, List)
 	    ;   List = []
 	    )
 	).
@@ -206,13 +206,14 @@ chain_list(Chain, List) :-
 	new(Chain, chain),
 	send_list(Chain, append, List).
 
-'chain list 2'(Chain, [El|Rest]) :-
+chain_to_list_(Chain, [El|Rest]) :-
 	get(Chain, next, El), !, 
-	'chain list 2'(Chain, Rest).
-'chain list 2'(Chain, []) :-
+	chain_to_list_(Chain, Rest).
+chain_to_list_(Chain, []) :-
 	\+ get(Chain, current, _).
 
-to_object(@Ref, @Ref) :- !.
+to_object(Ref, Ref) :-
+	object(Ref), !.
 to_object(Term, Obj) :-
 	new(Obj, Term).
 
@@ -222,12 +223,19 @@ to_object(Term, Obj) :-
 		********************************/
 
 %	default(+Argument, +Default, -Value)
-%	default(+Argument, resource(+Object, +Name), -Value)
+%	default(+Argument, class_variable(+Object, +Name), -Value)
 %
 %	Get the default value for an argument.
 
+default(@default, class_variable(Obj, Name), Value) :- !, 
+	(   get(Obj, class_variable_value, Name, Value)
+	->  true
+	;   pce_error(get_class_variable_failed(Name, Obj)),
+	    fail
+	).
 default(@default, resource(Obj, Name), Value) :- !, 
-	(   get(Obj, resource_value, Name, Value)
+	pce_warn(compatibility(resource)),
+	(   get(Obj, class_variable_value, Name, Value)
 	->  true
 	;   pce_error(get_resource_failed(Name, Obj)),
 	    fail
