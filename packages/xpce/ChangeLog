@@ -1,3 +1,11 @@
+* ADDED: Class variable text_item.combo_box_heigth to define the maximum
+  height of completer/combox box windows (default 6).
+
+* FIXED: Sometimes wrong assumption of control-key in XPCE editors (notably
+  after incremental search.
+
+* FIXED: `@pce->console_label' to deal with renamed console.dll --> plterm.dll
+
 * FIXED: `image->draw_in' for selected graphicals.  Reported by Frank
   Cornelissen.
 

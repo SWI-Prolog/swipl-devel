@@ -391,7 +391,8 @@ selectCompletionDialogItem(Any item, Chain matches,
   int lw;
   int fw;
   PceWindow sw;
-  int lines;				/* lines of the browser */
+  Int ml;
+  int lines, maxlines;			/* lines of the browser */
   int bh;				/* height of the browser */
 
   ComputeGraphical(di);
@@ -418,8 +419,14 @@ selectCompletionDialogItem(Any item, Chain matches,
   }
 
   lines = valInt(getSizeChain(c->list_browser->dict->members));
-  if ( lines > 6 )
-    lines = 6;				/* class-variable? */
+  if ( (ml = getClassVariableValueObject(item, NAME_comboBoxHeigth)) &&
+       isInteger(ml) )
+    maxlines = max(1, valInt(ml));
+  else
+    maxlines = 6;
+
+  if ( lines > maxlines )
+    lines = maxlines;			/* class-variable? */
   bh = lines * valInt(getHeightFont(c->list_browser->font));
   bh += 2 * TXT_X_MARGIN + 2;
 
@@ -1658,7 +1665,9 @@ static classvardecl rc_textItem[] =
      "Interval between repeats"),
   RC(NAME_look, RC_REFINE, UXWIN("open_look", "win"), NULL),
   RC(NAME_elevation, RC_REFINE,
-     UXWIN("when(@colour_display, 1, @nil)", "@_txt_height"), NULL)
+     UXWIN("when(@colour_display, 1, @nil)", "@_txt_height"), NULL),
+  RC(NAME_comboBoxHeigth, "1..", "6",
+     "Maximum height of the combo-box shown for completions")
 };
 
 /* Class Declaration */

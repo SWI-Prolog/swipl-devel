@@ -463,6 +463,7 @@ keyboard_event_frame(FrameObj fr, Any id, unsigned long bmask)
   AnswerMark mark;
   status rval = FALSE;
   Any receiver;
+  unsigned long m;
 
   get_point_frame(fr, &pt);
   if ( !(sw = get_window_holding_point(fr, &pt)) &&
@@ -478,7 +479,10 @@ keyboard_event_frame(FrameObj fr, Any id, unsigned long bmask)
     pt.y -= valInt(sw->area->y) + valInt(sw->pen);
   }
   ev = answerObject(ClassEvent, id, receiver, toInt(pt.x), toInt(pt.y), 0);
-  assign(ev, buttons, toInt(valInt(ev->buttons)|bmask));
+  m = valInt(ev->buttons);
+  m &= ~(BUTTON_shift|BUTTON_control|BUTTON_meta);
+  m |= bmask;
+  assign(ev, buttons, toInt(m));
 
   addCodeReference(ev);
   rval = postEvent(ev, receiver, DEFAULT);

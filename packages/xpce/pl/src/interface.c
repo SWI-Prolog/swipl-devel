@@ -526,7 +526,7 @@ static void *
 getConsoleFunction(const char *name)
 { HMODULE hconsole;
 
-  if ( (hconsole=GetModuleHandle("console")) )
+  if ( (hconsole=GetModuleHandle("plterm")) )
   { return GetProcAddress(hconsole, name);
   }
 
