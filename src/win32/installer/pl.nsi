@@ -7,7 +7,7 @@
 !define DEFCWD $6 ; Default working directory
 !define SHCTX  $7 ; Shell context (current/all)
 
-!system "pl\bin\plcon.exe -f mkinstaller.pl"
+!system "pl\bin\plcon.exe -f mkinstaller.pl -g true -t main" = 0
 !include "version.nsi"
 
 SetCompressor bzip2
@@ -46,7 +46,6 @@ Section "Base system (required)"
 
   File pl\bin\pthreadVC.dll
   SetOutPath $INSTDIR
-  File /r pl\library
   File /r pl\custom
   File pl\boot32.prc
   File pl\COPYING.TXT
@@ -73,7 +72,7 @@ Section "Base system (required)"
   File pl\library\quintus.pl
   File pl\library\files.pl
 
-; `STANDARD LIBRAIES'
+; `STANDARD LIBRARIES'
   File pl\library\ctypes.pl
   File pl\library\gensym.pl
   File pl\library\lists.pl
@@ -123,6 +122,8 @@ Section "Base system (required)"
 SectionEnd
 
 Section "Documentation and Help-system"
+  SetOutPath $INSTDIR
+  File pl\ChangeLog.TXT
   SetOutPath $INSTDIR\library
   File pl\library\MANUAL
   File pl\library\helpidx.pl
@@ -132,6 +133,8 @@ SectionEnd
 Section "Demo files"
   SetOutPath $INSTDIR
   File /r pl\demo
+  SetOutPath $INSTDIR\bin
+  File pl\bin\dlltest.dll
 SectionEnd
 
 Section "C/C++ Interface"
@@ -151,6 +154,7 @@ Section "XPCE graphics library"
   File pl\plwin.rc
   SetOutPath $INSTDIR\bin
   File pl\bin\pl2xpce.dll
+  File pl\bin\xpce-stub.exe
 SectionEnd
 
 Section "Package CLIB"
@@ -203,6 +207,7 @@ Section "RDF and Semantic Web Library"
   SetOutPath $INSTDIR\doc\packages
   File pl\doc\packages\rdf2pl.html
   File pl\doc\packages\semweb.html
+  File pl\doc\packages\modules.gif
 SectionEnd
 
 Section "HTTP Client/Server package"
@@ -211,6 +216,8 @@ Section "HTTP Client/Server package"
   SetOutPath $INSTDIR\doc\packages
   File pl\doc\packages\http.html
   File pl\doc\packages\httpserver.gif
+  SetOutPath $INSTDIR\doc\packages\examples
+  File /r pl\doc\packages\examples\http
 SectionEnd
 
 Section "Table package"

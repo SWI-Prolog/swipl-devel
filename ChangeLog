@@ -7,6 +7,11 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.2.1 (re-distributed on Jun 17, 2003)
+==============================================
+
+  * FIXED: Added files forgotten in the Windows installer.  PacoG.
+
   * FIXED: Bug#66: thread_statistics/2 returning illegal values on floats
     and large integers.  Mike Elston.
 
