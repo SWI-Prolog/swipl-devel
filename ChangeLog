@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: MT: Initial thread has wrong status, causing trouble with
+    atom garbage collection.  Sergey Tikhonov.
+
   * ADDED: reload_library_index/0 and automatic reloading if the set of
     library directories changes and predicates cannot be found.  After
     comments by Tolga Konik.

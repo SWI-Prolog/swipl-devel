@@ -425,7 +425,7 @@ initPrologThreads()
   info->tid = pthread_self();
   info->pl_tid = 1;
   info->thread_data = &PL_local_data;
-  info->status = PL_THREAD_CREATED;
+  info->status = PL_THREAD_RUNNING;
   PL_local_data.thread.info = info;
   PL_local_data.thread.magic = PL_THREAD_MAGIC;
 #ifdef WIN32
