@@ -1071,6 +1071,13 @@ ar_random(Number n1, Number r)
 { if ( !toIntegerNumber(n1) )
     return PL_error("random", 1, NULL, ERR_AR_TYPE, ATOM_integer, n1);
 
+  if ( n1->value.i < 1 )
+  { term_t i = PL_new_term_ref();
+    PL_put_integer(i, n1->value.i);
+
+    return PL_error("random", 1, NULL, ERR_DOMAIN, ATOM_not_less_than_zero, i);
+  }
+
   r->value.i = Random() % n1->value.i;
   r->type = V_INTEGER;
 

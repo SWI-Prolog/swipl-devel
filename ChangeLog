@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Check argument domain of random/1 and properly report error.
+    Spotted by Pablo Lopez.
+
   * FIXED: Avoid absolute_file_name/[2,3] to dig indefinitely for
     non-existing paths if there is a recursive definition in the search
     paths (Bob Wielinga).
