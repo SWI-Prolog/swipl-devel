@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORT: Various MacOS X (darwin) issues.  Work in progress.
+
   * MODIFIED: compiling/0 now also succeed during execution of all directives
     when compiling a state or qlf file.
 

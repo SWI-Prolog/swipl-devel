@@ -133,6 +133,9 @@
 /* Flags to use for linking shared objects */
 #undef SO_LDFLAGS
 
+/* Arguments to pass to sprintf() to create SO_LDFLAGS */
+#undef SO_FORMAT_LDFLAGS
+
 /* Flags for compiling position-independent BIG object */
 #undef SO_PIC
 
@@ -148,5 +151,5 @@
 /* String used to prefix all symbols requested through dlsym() */
 #undef LD_SYMBOL_PREFIX
 
-/* Name of the SWI-Prolog executable (normally pl)
+/* Name of the SWI-Prolog executable (normally pl) */
 #undef PROG_PL

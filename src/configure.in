@@ -921,8 +921,8 @@ case "$ARCH" in
   *darwin*)
 	PL=swipl
 	SO_pic="-fPIC"
-	SO_LDFLAGS="-bundle -bundle_loader \"%s\""
 	AC_DEFINE(LD_SYMBOL_PREFIX, "_")
+	AC_DEFINE(SO_FORMAT_LDFTAGS, "-bundle -bundle_loader \"%s\"", plexe)
 	CMFLAGS="-no-cpp-precomp"
 	;;
   *cygwin*)

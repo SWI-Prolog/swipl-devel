@@ -1147,10 +1147,14 @@ linkSharedObject()
   concatArgList(&ldoptions, "-l", &libs);	/* libraries */
   concatArgList(&ldoptions, "-l", &lastlibs);	/* libraries */
 #else /*__CYGWIN32__*/
-{ char tmp[MAXPATHLEN];
-  sprintf(tmp, SO_LDFLAGS, plexe);
-  prependArgList(&ldoptions, tmp);
-}
+#ifdef SO_FORMAT_LDFLAGS
+  { char tmp[MAXPATHLEN];
+    sprintf(tmp, SO_FORMAT_LDFLAGS);
+    prependArgList(&ldoptions, tmp);
+  }
+#else
+  prependArgList(&ldoptions, SO_LDFLAGS);
+#endif
   prependArgList(&ldoptions, soout);
   prependArgList(&ldoptions, "-o");		/* -o ctmp */
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
