@@ -202,7 +202,9 @@ swiplbin:
 pl-funcs.h:	$(SRC)
 		mkproto -p $(SRC) > $@
 
-install:	install-arch install-libs install-bins
+install:	@INSTALLTARGET@
+
+dv-install:	install-arch install-libs install-bins
 
 install-bins:	install-arch
 		if [ -r $(bindir)/$(PL) ]; then \

@@ -19,7 +19,9 @@ AC_SUBST(RT)
 AC_SUBST(PLVERSION)
 AC_SUBST(VPATH)
 AC_SUBST(COUTOPT)
+AC_SUBST(INSTALLTARGET)
 
+INSTALLTARGET=dv-install
 PL=pl
 RT=""
 PLVERSION=`cat ../VERSION`
@@ -45,6 +47,7 @@ AC_ARG_ENABLE(runtime, [  --enable-runtime	  Runtime system only],
 		   yes) AC_DEFINE(O_RUNTIME)
 		        runtime=yes
 			RT=rt ;;
+			INSTALLTARGET=rt-install
 		   *)  ;;
 	       esac])
 
