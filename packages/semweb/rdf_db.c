@@ -276,7 +276,7 @@ WRLOCK(rdf_db *db, int allow_readers)
   if ( db->read_by_thread[self] > 0 )
   { LeaveCriticalSection(&db->mutex);
     return permission_error("write", "rdf_db", "default",
-			    "Operation would block");
+			    "Operation would deadlock");
   }
 
   db->waiting_writers++;
@@ -509,7 +509,7 @@ WRLOCK(rdf_db *db, int allow_readers)
 		      self, db->read_by_thread[self]));
     pthread_mutex_unlock(&db->mutex);
     return permission_error("write", "rdf_db", "default",
-			    "Operation would block");
+			    "Operation would deadlock");
   }
 
   db->waiting_writers++;
@@ -677,7 +677,7 @@ static int
 WRLOCK(rdf_db *db, int allow_readers)
 { if ( db->readers )
     return permission_error("write", "rdf_db", "default",
-			    "Operation would block");
+			    "Operation would deadlock");
 
   db->writer = 0;
 

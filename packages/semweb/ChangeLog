@@ -1,3 +1,8 @@
+Oct 19, 2004
+
+  * Do goal expansion on the argument of rdf_transaction/1.  Sandro
+    Hawke.
+
 Oct 18, 2004 (version 2.2.0)
 
   * ADDED: rdf_transaction/1
