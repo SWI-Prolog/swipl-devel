@@ -270,9 +270,10 @@ debugging this is just great,  as   the  problem  generally appear after
 generating an exception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef HAVE_EXECINFO_H
 #define BACKTRACE 1
 
-#ifdef BACKTRACE
+#if BACKTRACE
 #include <execinfo.h>
 #include <string.h>
 
@@ -286,7 +287,13 @@ print_trace (void)
   size = backtrace(array, sizeof(array)/sizeof(void *));
   strings = backtrace_symbols(array, size);
      
-  Sdprintf("on_alarm() context:\n");
+  Sdprintf("on_alarm() Prolog-context:\n");
+  { int old = systemMode(TRUE);
+    backTrace(0, 3);
+    systemMode(old);
+  }
+
+  Sdprintf("on_alarm() C-context:\n");
   
   for(i = 0; i < size; i++)
   { if ( !strstr(strings[i], "checkData") )
@@ -296,6 +303,7 @@ print_trace (void)
   free(strings);
 }
 #endif /*BACKTRACE*/
+#endif /*HAVE_EXECINFO_H*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This one is  asynchronously  called  from   the  hook  registered  using

@@ -127,12 +127,21 @@ AC_TRY_COMPILE(
    AC_MSG_RESULT(no))
 
 AC_CHECK_HEADERS(malloc.h alloca.h unistd.h sys/time.h fcntl.h)
+AC_CHECK_HEADERS(execinfo.h)
 AC_CHECK_FUNCS(setsid strerror setitimer)
 
-if test "$ac_cv_func_setitimer" = "yes"; then
-  TARGETS="$TARGETS time.$SO"
-else
-  echo "WARNING: no setitimer(); dropping time.pl from targets"
+AC_ARG_WITH(time, [  --with-time		  Include alarm library],
+	    [case "$withval" in
+		yes)	with_time=yes ;;
+		no)     with_time=no ;;
+	     esac])
+
+if test "$with_time" = yes; then
+  if test "$ac_cv_func_setitimer" = "yes"; then
+    TARGETS="$TARGETS time.$SO"
+  else
+    echo "WARNING: no setitimer(); dropping time.pl from targets"
+  fi
 fi
 
 AC_OUTPUT(Makefile)
