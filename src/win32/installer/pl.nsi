@@ -26,7 +26,7 @@ DirText "This program will install SWI-Prolog on your computer.\
          Choose a directory"
 
 LicenseData pl\COPYING.TXT
-LicenseText "SWI-Prolog is govered by the LGPL"
+LicenseText "SWI-Prolog is governed by the LGPL"
 
 Page license
 Page components
