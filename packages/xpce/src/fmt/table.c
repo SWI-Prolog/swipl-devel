@@ -348,12 +348,12 @@ collector.  For now we will destroy them if they are not locked.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
  
 static status
-removeCellImageTable(Table tab, TableCell cell)
+removeCellImageTable(Table tab, TableCell cell, Bool keep)
 { Graphical gr = cell->image;
 
   if ( notNil(gr) )
   { DeviceGraphical(gr, NIL);
-    if ( !onFlag(gr, F_PROTECTED|F_LOCKED|F_FREED) )
+    if ( keep != ON && !onFlag(gr, F_PROTECTED|F_LOCKED|F_FREED) )
       qadSendv(gr, NAME_destroy, 0, NULL);
   }
 
@@ -362,13 +362,13 @@ removeCellImageTable(Table tab, TableCell cell)
 
 
 static status
-deleteCellTable(Table tab, TableCell cell)
+deleteCellTable(Table tab, TableCell cell, Bool keep)
 { if ( cell->layout_manager == (LayoutManager)tab )
   { int tx = valInt(cell->column) + valInt(cell->col_span);
     int ty = valInt(cell->row) + valInt(cell->row_span);
     int x, y;
 
-    removeCellImageTable(tab, cell);
+    removeCellImageTable(tab, cell, keep);
   
     for(y=valInt(cell->row); y<ty; y++)
     { TableRow row = getRowTable(tab, toInt(y), OFF);
@@ -400,7 +400,7 @@ deletion, so they span the same columns.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static status
-deleteRowTable(Table tab, TableRow row)
+deleteRowTable(Table tab, TableRow row, Bool keep)
 { int i, rown = valInt(row->index);
   int rmin, rmax;
 
@@ -415,7 +415,7 @@ deleteRowTable(Table tab, TableRow row)
 		     assign(cell, row_span, dec(cell->row_span));
 		   } else if ( cell->row == row->index &&
 			       notNil(cell->image) )
-		   { removeCellImageTable(tab, cell);
+		   { removeCellImageTable(tab, cell, keep);
 		   }
 		   freeObject(cell);
 		 }
@@ -443,7 +443,7 @@ deleteRowTable(Table tab, TableRow row)
 
 
 static status
-deleteColumnTable(Table tab, TableColumn col)
+deleteColumnTable(Table tab, TableColumn col, Bool keep)
 { int coln = valInt(col->index);
   int y, rmin, rmax;
   int x, cmax;
@@ -469,7 +469,7 @@ deleteColumnTable(Table tab, TableColumn col)
 	  { if ( !isFreeingObj(col) )
 	      elementVector((Vector)col, toInt(y), cell);
 
-	    removeCellImageTable(tab, cell);
+	    removeCellImageTable(tab, cell, keep);
 	  }
 	}
       }
@@ -508,13 +508,13 @@ deleteColumnTable(Table tab, TableColumn col)
 
 
 static status
-deleteTable(Table tab, Any obj)
+deleteTable(Table tab, Any obj, Bool keep)
 { if ( instanceOfObject(obj, ClassTableCell) )
-    return deleteCellTable(tab, obj);
+    return deleteCellTable(tab, obj, keep);
   if ( instanceOfObject(obj, ClassTableRow) )
-    return deleteRowTable(tab, obj);
+    return deleteRowTable(tab, obj, keep);
   if ( instanceOfObject(obj, ClassTableColumn) )
-    return deleteColumnTable(tab, obj);
+    return deleteColumnTable(tab, obj, keep);
 
   fail;
 }
@@ -526,7 +526,7 @@ partial delete requires a lot of work to deal properly with spanning.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static status
-deleteRowsTable(Table tab, Int from, Int to)
+deleteRowsTable(Table tab, Int from, Int to, Bool keep)
 { int y, rmin, rmax, f, t;
 
   table_row_range(tab, &rmin, &rmax);
@@ -552,7 +552,7 @@ deleteRowsTable(Table tab, Int from, Int to)
 		 { if ( i == valInt(cell->column) &&
 			cell->row == r->index &&
 			notNil(cell->image) )
-		   { removeCellImageTable(tab, cell);
+		   { removeCellImageTable(tab, cell, keep);
 		     freeObject(cell);
 		   }
 		 });
@@ -572,7 +572,7 @@ deleteRowsTable(Table tab, Int from, Int to)
     { TableRow r = getRowTable(tab, toInt(y), OFF);
 
       if ( r )
-	deleteRowTable(tab, r);
+	deleteRowTable(tab, r, keep);
     }
 
     return setPoint(tab->current, ONE, toInt(f));
@@ -1776,7 +1776,7 @@ static char *T_col[] =
 static char *T_sort[] =
 	{ "compare=code", "from=[int]", "to=[int]" };
 static char *T_deleteRows[] =
-	{ "from=[int]", "to=[int]" };
+	{ "from=[int]", "to=[int]", "keep=[bool]" };
 static char *T_insert_column[] =
 	{ "at=int", "new=table_column" };
 static char T_frame[] = "{void,above,below,hsides,vsides,box}";
@@ -1789,6 +1789,10 @@ static char *T_resizeSlice[] =
 	{ "slice=table_slice", "size=int" };
 static char *T_getCell[] =
 	{ "at=point|event", "allow_border=[bool]" };
+static char *T_delete[] =
+	{ "what=table_cell|table_row|table_column",
+	  "keep=[bool]"
+	};
 
 /* Instance Variables */
 
@@ -1833,9 +1837,9 @@ static senddecl send_table[] =
      NAME_cell, "Insert new row at the specified index"),
   SM(NAME_insertColumn, 2, T_insert_column, insertColumnTable,
      NAME_cell, "Insert new column at the specified index"),
-  SM(NAME_delete, 1, "table_cell|table_row|table_column", deleteTable,
+  SM(NAME_delete, 2, T_delete, deleteTable,
      NAME_cell, "Delete a cell, row or column"),
-  SM(NAME_deleteRows, 2, T_deleteRows, deleteRowsTable,
+  SM(NAME_deleteRows, 3, T_deleteRows, deleteRowsTable,
      NAME_cell, "Delete a all rows"),
   SM(NAME_sortRows, 3, T_sort, sortRowsTable,
      NAME_order, "Sort rows in indicated range"),
