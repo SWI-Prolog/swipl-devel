@@ -71,7 +71,9 @@ locate_preferences(prolog, File) :-
 			     file_errors(fail),
 			     solutions(all)
 			   ], File),
-	File \== Here, !.
+	(   File \== Here
+	;   Access == write
+	), !.
 	
 %	default_preferences(+Id, -File)
 %
