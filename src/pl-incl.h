@@ -843,6 +843,7 @@ Handling environment (or local stack) frames.
 #define FR_MARKED		(0x08L)
 #define FR_CHOICEPT		(0x10L)
 #define FR_WATCHED		(0x20L)
+#define FR_CATCHED		(0x40L)
 
 #define ARGOFFSET		((int) sizeof(struct localFrame))
 

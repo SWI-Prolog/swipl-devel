@@ -808,13 +808,25 @@ findBlock(LocalFrame fr, Word block)
 		*        EXCEPTION SUPPORT      *
 		*********************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Find the frame running catch/3. If we found  it, we will mark this frame
+and not find it again, as a catcher   can  only catch once from the 1-st
+argument goal. Exceptions from the  recover   goal  should be passed (to
+avoid a loop and allow for re-throwing).   With  thanks from Gertjan van
+Noord.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static LocalFrame
 findCatcher(LocalFrame fr, Word catcher)
 { Definition catch3 = PROCEDURE_catch3->definition;
 
   for(; fr; fr = fr->parent)
-  { if ( fr->predicate == catch3 && unify_ptrs(argFrameP(fr, 1), catcher) )
+  { if ( fr->predicate == catch3 &&
+	 false(fr, FR_CATCHED) &&
+	 unify_ptrs(argFrameP(fr, 1), catcher) )
+    { set(fr, FR_CATCHED);
       return fr;
+    }
   }
 
   return NULL;
