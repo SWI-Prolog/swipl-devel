@@ -227,11 +227,19 @@ static
 PRED_IMPL("mutex_statistics", 0, mutex_statistics, 0)
 { counting_mutex *cm;
 
+#ifdef O_CONTENTION_STATISTICS
   Sdprintf("Name                               locked collisions\n"
 	   "----------------------------------------------------\n");
+#else
+  Sdprintf("Name                               locked\n"
+	   "-----------------------------------------\n");
+#endif
   PL_LOCK(L_THREAD);
   for(cm = GD->thread.mutexes; cm; cm = cm->next)
-  { Sdprintf("%-32s %8d", cm->name, cm->count);
+  { if ( cm->count == 0 )
+      continue;
+
+    Sdprintf("%-32s %8d", cm->name, cm->count);
 #ifdef O_CONTENTION_STATISTICS
     Sdprintf(" %8d", cm->collisions);
 #endif
