@@ -249,8 +249,7 @@ install-vbins:	install-arch
 		-if [ ! -d $(bindir)  ]; then $(MKDIR) $(bindir); fi
 		$(REL_LN) $(PLBASE)/bin/$(ARCH)/$(PL) $(bindir)/$(PLV)
 		for f in plld plrc; do \
-		    rm -f $(bindir)/$$f
-		    $(INSTALL_PROGRAM) $$f $(bindir)
+		    $(REL_LN) $(PLBASE)/bin/$(ARCH)/$$f $(bindir); \
 		done
 
 install-arch:	idirs iruntime

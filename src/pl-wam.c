@@ -1379,7 +1379,6 @@ PL_next_solution(qid_t qid)
   LocalFrame FR;			/* current frame */
   Word	     ARGP = NULL;		/* current argument pointer */
   Code	     PC;			/* program counter */
-//LocalFrame BFR = NULL;		/* last backtrack frame */
   Definition DEF = NULL;		/* definition of current procedure */
   Word *     aFloor = aTop;		/* don't overwrite old arguments */
 #define	     CL (FR->clause)		/* clause of current frame */

@@ -7,15 +7,19 @@
 #	Avoid use of ln -sf (GNU specific)
 #	Avoid use of GNU sed extensions
 #	If all fails due to other links, make an absolute link.
+# Modified: Thu Mar  9 2000 (JW)
+#	Avoid using grep -q (GNU specific)
 #
 # Purpose: Make relative links between the binary and lib directory to
 # achieve a relocatable object.  Notably useful for generating RPM files.
 
 check_path()
-{ if ! echo $1|grep -q ^/ ; then
-    echo "Error: $1 isn't absolute path" >&2
-    exit 1
-  fi
+{ case "$1" in
+    /*) ;;
+    *)  echo "Error: $1 isn't absolute path" >&2
+        exit 1
+        ;;
+  esac
 }
 
 compare()
