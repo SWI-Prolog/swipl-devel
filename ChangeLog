@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORT: Deal with missing rl_done declarations from older readline
+    libraries (NIDE Naoyuki).
+
+  * FIXED: Language setting for test.pl (NIDE Naoyuki).
+
   * FIXED: Check argument domain of random/1 and properly report error.
     Spotted by Pablo Lopez.
 
