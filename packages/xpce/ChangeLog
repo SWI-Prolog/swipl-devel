@@ -1,6 +1,12 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: `table->insert_row' to allow adding a the row to be inserted.
+  This allows for subclassing class table_row and play around with rows.
+
+* ADDED: Object Inspector to display non-member slots of subclasses
+  of chain and vector.
+
 * MODIFIED: Control-I is now distinct from TAB, as is Control-M from
   RETURN.  This has been accomplished by passing the raw event to the
   ->typed methods and change the calculation of the key-name in class
