@@ -113,6 +113,7 @@ Section "Base system (required)"
   File pl\library\readln.pl
   File pl\library\readutil.pl
   File pl\library\streampool.pl
+  File pl\library\option.pl
 
   SetOutPath $INSTDIR\doc
   File pl\doc\windows.html
