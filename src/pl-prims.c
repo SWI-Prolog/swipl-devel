@@ -2484,9 +2484,11 @@ sub_text(term_t atom,
 	  fail;
 	}
 	if ( a >= 0 )			/* after given: test */
-	{ if ( PL_cmp_text(&ta, la-a-ls, &ts, 0, ls) == 0 )
+	{ int off = la-a-ls;
+
+	  if ( off >= 0 && PL_cmp_text(&ta, (unsigned)off, &ts, 0, ls) == 0 )
 	  { return (PL_unify_integer(len, ls) &&
-		    PL_unify_integer(before, la-ls-a)) ? TRUE : FALSE;
+		    PL_unify_integer(before, off)) ? TRUE : FALSE;
 	  }
 	  fail;
 	}

@@ -11,6 +11,8 @@
 VERSION 5.5.0 (December 1, 2004)
 ===============================
 
+  * FIXED: sub_atom/5 in mode +, -, -, +, +) mode.  Servey Tikhonov.
+
   * ADDED: wide character support for plwin.exe console.
 
   * FIXED: (a)cyclic_term/1.  Paul Singleton.
