@@ -22,11 +22,15 @@
 	    html_print_length/2		% +List, -Length
 	  ]).
 
+:- meta_predicate
+	html(:, -, +),
+	page(:, :, -, +).
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 library(html_write)
 
 The purpose of this library  is  to   simplify  writing  HTML  pages. Of
-course, it is posible to use format/[2,3]   to  write to the HTML stream
+course, it is possible to use format/[2,3]   to write to the HTML stream
 directly, but this is generally not very satisfactory:
 
 	* It is a lot of typing
@@ -56,48 +60,60 @@ page(Head, Contents) -->
 	].
 
 
-html([]) --> !,
+html(Spec) -->
+	{ strip_module(Spec, M, T)
+	},
+	html(T, M).
+
+html([], _) --> !,
 	[].
-html([H|T]) --> !,
-	(   do_expand(H)
+html([H|T], M) --> !,
+	(   do_expand(H, M)
 	->  []
 	;   { print_message(error, html(expand_failed(H)))
 	    }
 	),
-	html(T).
-html(X) -->
-	do_expand(X).
+	html(T, M).
+html(X, M) -->
+	do_expand(X, M).
 
 :- multifile
 	expand/3.
 
-do_expand(Token) -->			% call user hooks
+do_expand(Token, _) -->			% call user hooks
 	expand(Token), !.
-do_expand(Token) -->
+do_expand(Token, _) -->
 	{ atomic(Token)
 	}, !,
 	html_quoted(Token).
-do_expand(Fmt-Args) --> !,
+do_expand(Fmt-Args, _) --> !,
 	{ sformat(String, Fmt, Args)
 	},
 	html_quoted(String).
-do_expand(Module:Term, In, Rest) :- !,
+do_expand(\Term, Module, In, Rest) :- !,
 	call(Module:Term, In, Rest).
-do_expand(Term) -->
+do_expand(Module:Term, _, In, Rest) :- !,
+	call(Module:Term, In, Rest).
+do_expand(script(Content), _) --> !,	% general CDATA declared content elements?
+	html_begin(script),
+	[ Content
+	],
+	html_end(script).
+do_expand(Term, M) -->
 	{ Term =.. [Env, Contents]
 	}, !,
 	(   { layout(Env, _, empty)
 	    }
 	->  html_begin(Env, Contents)
 	;   html_begin(Env),
-	    html(Contents),
+	    html(Contents, M),
 	    html_end(Env)
 	).
-do_expand(Term) -->
+do_expand(Term, M) -->
 	{ Term =.. [Env, Attributes, Contents]
 	}, !,
 	html_begin(Env, Attributes),
-	html(Contents),
+	html(Contents, M),
 	html_end(Env).
 
 	
@@ -206,7 +222,7 @@ quote_att_char(<, '&lt;') :- !.
 quote_att_char(>, '&gt;') :- !.
 quote_att_char(&, '&amp;') :- !.
 quote_att_char('"', '&quot;') :- !.
-quote_att_char('''', '&apos;') :- !.
+%quote_att_char('''', '&apos;') :- !.
 quote_att_char(X, X).
 
 
@@ -255,6 +271,7 @@ layout(form,	   2-1,	1-2).
 
 layout(head,	   1-1,	1-1).
 layout(body,	   1-1,	1-1).
+layout(script,	   1-1,	1-1).
 
 layout(tr,	   1-0,	0-1).
 layout(title,	   1-0,	0-1).

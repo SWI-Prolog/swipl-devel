@@ -13,6 +13,7 @@
 
 :- use_module(httpd).
 :- use_module(html_write).
+:- use_module(html_hierarchy).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Demo for the XPCE HTTP Deamon. This  demo   simply  lists a table of all
@@ -50,10 +51,20 @@ request(HTTPD, Request:sheet) :->
 
 %	/
 %
-%	For now redirect to the class index
 
 reply(/, @nil, HTTPD) :-
-	send(HTTPD, moved, '/class/').
+	send(HTTPD, reply_html, pce_http_man:index).
+
+index -->
+	page(title('XPCE web-manual'),
+	     [ h1([align(center)], 'XPCE web-manual'),
+	       ul([ li(a([href('/class/')],
+			 'Class Summary Table')),
+		    li(a([href('/classhierarchy')],
+			 'Class Hierarchy'))
+		  ])
+	     ]).
+
 
 %	/class/
 %
@@ -75,7 +86,7 @@ classindex(Classes) -->
 		     [ tr([ th('Name'),
 			    th('Summary')
 			  ])
-		     | pce_http_man:classrows(Classes)
+		     | \classrows(Classes)
 		     ])
 	     ]).
 
@@ -89,10 +100,15 @@ classrow(Name) -->
 	{ get(@pce, convert, Name, class, Class),
 	  get(Class, summary, Summary)
 	},
-	html(tr([ td(pce_http_man:class_name(Name)),
+	html(tr([ td(\class_name(Name)),
 		  td(Summary)
 		])).
 
+class_name(Class) -->
+	{ object(Class), !,
+	  get(Class, name, Name)
+	},
+	class_name(Name).
 class_name(Name) -->
 	{ www_form_encode(Name, Encoded),
 	  atom_concat('/class?name=', Encoded, URL)
@@ -114,7 +130,7 @@ classdoc(Class) -->
 	page([ title(['XPCE class ', Name])
 	     ],
 	     [ h1([align(center)], ['XPCE class ', em(Name)]),
-	       pce_http_man:instance_variables(Class)
+	       \instance_variables(Class)
 	     ]).
 
 instance_variables(Class) -->
@@ -131,7 +147,7 @@ instance_variables(Class) -->
 			    th('Type'),
 			    th('Summary')
 			  ])
-		     | pce_http_man:variables(Vars)
+		     | \variables(Vars)
 		     ])
 	     ]).
 
@@ -142,9 +158,42 @@ variables([H|T]) -->
 	  get(H, type, Type),
 	  get(H, summary, Summary)
 	},
-	html([ tr([td(Name), td(pce_http_man:type(Type)), td(Summary)])
+	html([ tr([td(Name), td(\type(Type)), td(Summary)])
 	     ]),
 	variables(T).
+
+%	/classhierarchy
+%	/classhierarchy?root=name
+%
+%	Emit the class hierarchy
+
+reply('/classhierarchy', Form, HTTPD) :-
+	(   Form \== @nil,
+	    get(Form, value, root, Root)
+	->  true
+	;   Root = object
+	),
+	get(HTTPD, request, Request),
+	(   get(Request, value, 'Cookie', Cookie)
+	;   Cookie = []
+	),
+	send(HTTPD, reply_html, pce_http_man:classhierarchy(Root, Cookie)).
+reply(Path, @nil, HTTPD) :-
+	html_hierarchy_image(Path, Image), !,
+	send(HTTPD, reply, Image).
+
+classhierarchy(Root, Cookie) -->
+	page(title('XPCE Class Hierarchy'),
+	     [ h1('XPCE Class Hierarchy')
+	     | \html_hierarchy(Root, gen_subclass, class_name, Cookie)
+	     ]).
+
+gen_subclass(Super, Sub) :-
+	get(@pce, convert, Super, class, Class),
+	get(Class, sub_classes, Chain),
+	chain_list(Chain, List),
+	member(SubClass, List),
+	get(SubClass, name, Sub).
 
 %	Catch all.  Do not add clauses for reply below this line
 
