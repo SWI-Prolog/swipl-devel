@@ -666,10 +666,10 @@ x_event_frame(Widget w, FrameObj fr, XEvent *event)
 					/* to be no easy way out */
       if ( notNil(fr->modal) )
       { Display *d = getXDisplayFrame(fr);
-	Window me = XtWindow(widgetFrame(fr));
+	Widget wfr = widgetFrame(fr);
 
-	if ( d && me )
-	  XSetInputFocus(d, me, RevertToParent, CurrentTime);
+	if ( d && wfr )
+	  XSetInputFocus(d, XtWindow(w), RevertToParent, CurrentTime);
       }
 
       return;
