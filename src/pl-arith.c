@@ -182,7 +182,7 @@ pl_succ(term_t n1, term_t n2)
 
 
 static int
-var_or_long(term_t t, long *l, int which, int *mask)
+var_or_long(term_t t, long *l, int which, int *mask ARG_LD)
 { if ( PL_get_long(t, l) )
   { *mask |= which;
     succeed;
@@ -200,9 +200,9 @@ pl_plus(term_t a, term_t b, term_t c)
   long m, n, o;
   int mask = 0;
 
-  if ( !var_or_long(a, &m, 0x1, &mask) ||
-       !var_or_long(b, &n, 0x2, &mask) ||
-       !var_or_long(c, &o, 0x4, &mask) )
+  if ( !var_or_long(a, &m, 0x1, &mask PASS_LD) ||
+       !var_or_long(b, &n, 0x2, &mask PASS_LD) ||
+       !var_or_long(c, &o, 0x4, &mask PASS_LD) )
     fail;
 
   switch(mask)

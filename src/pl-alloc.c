@@ -566,9 +566,8 @@ newTerm(void)
 		 *******************************/
 
 word
-globalLong(long l)
-{ GET_LD
-  Word p = allocGlobal(3);
+globalLong(long l ARG_LD)
+{ Word p = allocGlobal(3);
   word r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   word m = mkIndHdr(1, TAG_INTEGER);
 

@@ -58,6 +58,9 @@ handling times must be cleaned, but that not only holds for this module.
 #define LOCK()   PL_LOCK(L_FILE)	/* MT locking */
 #define UNLOCK() PL_UNLOCK(L_FILE)
 
+#undef LD				/* fetch LD once per function */
+#define LD LOCAL_LD
+
 const atom_t standardStreams[] =
 { ATOM_user_input,			/* 0 */
   ATOM_user_output,			/* 1 */
@@ -84,7 +87,8 @@ standardStreamIndexFromName(atom_t name)
 
 static int
 standardStreamIndexFromStream(IOSTREAM *s)
-{ IOSTREAM **sp = LD->IO.streams;
+{ GET_LD
+  IOSTREAM **sp = LD->IO.streams;
   int i = 0;
 
   for( ; i<6; i++, sp++ )
@@ -219,7 +223,8 @@ unaliasStream(IOSTREAM *s, atom_t name)
 
 static void
 freeStream(IOSTREAM *s)
-{ Symbol symb;
+{ GET_LD
+  Symbol symb;
   int i;
   IOSTREAM **sp;
 
@@ -277,7 +282,8 @@ fileNameStream(IOSTREAM *s)
 
 void
 initIO()
-{ const atom_t *np;
+{ GET_LD
+  const atom_t *np;
   int i;
 
   streamAliases = newHTable(16);
@@ -367,14 +373,14 @@ PL_release_stream(IOSTREAM *s)
 #define SH_UNLOCKED 0x04		/* don't lock the stream */
 
 static int
-get_stream_handle(term_t t, IOSTREAM **s, int flags)
+get_stream_handle__LD(term_t t, IOSTREAM **s, int flags ARG_LD)
 { atom_t alias;
 
   if ( PL_is_functor(t, FUNCTOR_dstream1) )
   { void *p;
     term_t a = PL_new_term_ref();
 
-    PL_get_arg(1, t, a);
+    _PL_get_arg(1, t, a);
     if ( PL_get_pointer(a, &p) )
     { if ( flags & SH_UNLOCKED )
       { if ( ((IOSTREAM *)p)->magic == SIO_MAGIC )
@@ -437,16 +443,20 @@ noent:
   fail;
 }
 
+#define get_stream_handle(t, sp, flags) \
+	get_stream_handle__LD(t, sp, flags PASS_LD)
 
 int
 PL_get_stream_handle(term_t t, IOSTREAM **s)
-{ return get_stream_handle(t, s, SH_ERRORS|SH_ALIAS);
+{ GET_LD
+  return get_stream_handle(t, s, SH_ERRORS|SH_ALIAS);
 }
 
 
 int
 PL_unify_stream_or_alias(term_t t, IOSTREAM *s)
-{ int rval;
+{ GET_LD
+  int rval;
   stream_context *ctx;
   int i;
 
@@ -473,7 +483,8 @@ PL_unify_stream_or_alias(term_t t, IOSTREAM *s)
 
 int
 PL_unify_stream(term_t t, IOSTREAM *s)
-{ stream_context *ctx;
+{ GET_LD
+  stream_context *ctx;
   term_t a = PL_new_term_ref();
 
   LOCK();
@@ -500,7 +511,8 @@ PL_open_stream(term_t handle, IOSTREAM *s)
 
 IOSTREAM **				/* provide access to Suser_input, */
 _PL_streams(void)			/* Suser_output and Suser_error */
-{ return &Suser_input;
+{ GET_LD
+  return &Suser_input;
 }
 
 
@@ -520,7 +532,8 @@ getOutputStream(term_t t, IOSTREAM **s)
 
 bool
 getOutputStream(term_t t, IOSTREAM **stream)
-{ atom_t a;
+{ GET_LD
+  atom_t a;
   IOSTREAM *s;
 
   if ( t == 0 )
@@ -546,7 +559,7 @@ getOutputStream(term_t t, IOSTREAM **stream)
 
 
 bool
-getInputStream(term_t t, IOSTREAM **stream)
+getInputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
 { atom_t a;
   IOSTREAM *s;
 
@@ -558,7 +571,7 @@ getInputStream(term_t t, IOSTREAM **stream)
     return TRUE;
   }
 
-  if ( !PL_get_stream_handle(t, &s) )
+  if ( !get_stream_handle(t, &s, SH_ERRORS|SH_ALIAS) )
     fail;
 
   if ( !(s->flags &SIO_INPUT) )
@@ -599,7 +612,8 @@ streamStatus(IOSTREAM *s)
        && !isConsoleStream(s)
 #endif
      )
-  { atom_t op;
+  { GET_LD
+    atom_t op;
     term_t stream = PL_new_term_ref();
 
     PL_unify_stream_or_alias(stream, s);
@@ -695,7 +709,8 @@ closeStream(IOSTREAM *s)
 
 void
 closeFiles(int all)
-{ TableEnum e;
+{ GET_LD
+  TableEnum e;
   Symbol symb;
 
   e = newTableEnum(streamContext);
@@ -755,7 +770,8 @@ openFileDescriptors(unsigned char *buf, int size)
 
 void
 protocol(const char *str, int n)
-{ IOSTREAM *s;
+{ GET_LD
+  IOSTREAM *s;
 
   if ( (s = getStream(Sprotocol)) )
   { while( --n >= 0 )
@@ -767,7 +783,8 @@ protocol(const char *str, int n)
 
 word
 pl_push_input_context()
-{ InputContext c = allocHeap(sizeof(struct input_context));
+{ GET_LD
+  InputContext c = allocHeap(sizeof(struct input_context));
 
   c->stream           = Scurin;
   c->term_file        = source_file_name;
@@ -781,7 +798,8 @@ pl_push_input_context()
 
 word
 pl_pop_input_context()
-{ InputContext c = input_context_stack;
+{ GET_LD
+  InputContext c = input_context_stack;
 
   if ( c )
   { Scurin              = c->stream;
@@ -800,7 +818,8 @@ pl_pop_input_context()
 
 void
 pushOutputContext()
-{ OutputContext c = allocHeap(sizeof(struct output_context));
+{ GET_LD
+  OutputContext c = allocHeap(sizeof(struct output_context));
 
   c->stream            = Scurout;
   c->previous          = output_context_stack;
@@ -810,7 +829,8 @@ pushOutputContext()
 
 void
 popOutputContext()
-{ OutputContext c = output_context_stack;
+{ GET_LD
+  OutputContext c = output_context_stack;
 
   if ( c )
   { if ( c->stream->magic == SIO_MAGIC )
@@ -828,7 +848,8 @@ popOutputContext()
 
 void
 PL_write_prompt(int dowrite)
-{ IOSTREAM *s = getStream(Suser_output);
+{ GET_LD
+  IOSTREAM *s = getStream(Suser_output);
 
   if ( s )
   { if ( dowrite )
@@ -851,7 +872,8 @@ and including the newline.
 
 int
 getSingleChar(IOSTREAM *stream)
-{ int c;
+{ GET_LD
+  int c;
   ttybuf buf;
     
   debugstatus.suspendTrace++;
@@ -898,7 +920,8 @@ readLine() reads a line from the terminal.  It is used only by the tracer.
 
 bool
 readLine(IOSTREAM *in, IOSTREAM *out, char *buffer)
-{ int c;
+{ GET_LD
+  int c;
   char *buf = &buffer[strlen(buffer)];
   ttybuf tbuf;
 
@@ -937,19 +960,22 @@ readLine(IOSTREAM *in, IOSTREAM *out, char *buffer)
 
 IOSTREAM *
 PL_current_input()
-{ return getStream(Scurin);
+{ GET_LD
+  return getStream(Scurin);
 }
 
 
 IOSTREAM *
 PL_current_output()
-{ return getStream(Scurout);
+{ GET_LD
+  return getStream(Scurout);
 }
 
 
 static word
 openProtocol(term_t f, bool appnd)
-{ IOSTREAM *s;
+{ GET_LD
+  IOSTREAM *s;
   term_t mode = PL_new_term_ref();
 
   pl_noprotocol();
@@ -966,7 +992,8 @@ openProtocol(term_t f, bool appnd)
 
 word
 pl_noprotocol()
-{ IOSTREAM *s;
+{ GET_LD
+  IOSTREAM *s;
 
   if ( (s = getStream(Sprotocol)) )
   { closeStream(s);
@@ -984,7 +1011,8 @@ pl_noprotocol()
 
 foreign_t
 pl_set_stream(term_t stream, term_t attr)
-{ IOSTREAM *s;
+{ GET_LD
+  IOSTREAM *s;
   atom_t aname;
   int arity;
 
@@ -1108,7 +1136,8 @@ extern IOFUNCTIONS Smemfunctions;
 
 bool
 tellString(char **s, int *size)
-{ IOSTREAM *stream;
+{ GET_LD
+  IOSTREAM *stream;
   
   stream = Sopenmem(s, size, "w");
   pushOutputContext();
@@ -1120,7 +1149,8 @@ tellString(char **s, int *size)
 
 bool
 toldString()
-{ IOSTREAM *s = getStream(Scurout);
+{ GET_LD
+  IOSTREAM *s = getStream(Scurout);
 
   if ( s && s->functions == &Smemfunctions )
   { Sputc(EOS, s);
@@ -1141,7 +1171,8 @@ toldString()
 word
 pl_wait_for_input(term_t streams, term_t available,
 		  term_t timeout)
-{ return notImplemented("wait_for_input", 3);
+{ GET_LD
+  return notImplemented("wait_for_input", 3);
 }
 
 #else
@@ -1149,7 +1180,8 @@ pl_wait_for_input(term_t streams, term_t available,
 word
 pl_wait_for_input(term_t Streams, term_t Available,
 		  term_t timeout)
-{ fd_set fds;
+{ GET_LD
+  fd_set fds;
   struct timeval t, *to;
   double time;
   int n, max = 0;
@@ -1250,7 +1282,8 @@ PL_unify_char(term_t chr, int c, int how)
 
 int
 PL_unify_char(term_t chr, int c, int how)
-{ int c2;
+{ GET_LD
+  int c2;
 
   if ( PL_is_variable(chr) )
   { switch(how)
@@ -1295,7 +1328,8 @@ pl_put(term_t chr)
 
 word
 pl_get2(term_t in, term_t chr)
-{ IOSTREAM *s;
+{ GET_LD
+  IOSTREAM *s;
 
   if ( getInputStream(in, &s) )
   { int c;
@@ -1327,7 +1361,8 @@ pl_get(term_t chr)
 
 word
 pl_skip2(term_t in, term_t chr)
-{ int c;
+{ GET_LD
+  int c;
   int r;
   IOSTREAM *s;
 
@@ -1351,7 +1386,8 @@ pl_skip(term_t chr)
 
 word
 pl_get_single_char(term_t chr)
-{ IOSTREAM *s = getStream(Suser_input);
+{ GET_LD
+  IOSTREAM *s = getStream(Suser_input);
   int c = getSingleChar(s);
 
   if ( c == EOF )
@@ -1366,7 +1402,8 @@ pl_get_single_char(term_t chr)
 
 word
 pl_get_byte2(term_t in, term_t chr)
-{ IOSTREAM *s;
+{ GET_LD
+  IOSTREAM *s;
 
   if ( getInputStream(in, &s) )
   { int c = Sgetc(s);
@@ -1392,7 +1429,8 @@ pl_get_byte(term_t c)
 
 word
 pl_get_char2(term_t in, term_t chr)
-{ IOSTREAM *s;
+{ GET_LD
+  IOSTREAM *s;
 
   if ( getInputStream(in, &s) )
   { int c = Sgetc(s);
@@ -1417,7 +1455,8 @@ pl_get_char(term_t c)
 
 word
 pl_ttyflush()
-{ IOSTREAM *s = getStream(Suser_output);
+{ GET_LD
+  IOSTREAM *s = getStream(Suser_output);
 
   Sflush(s);
 
@@ -1439,7 +1478,8 @@ pl_protocola(term_t file)
 
 word
 pl_protocolling(term_t file)
-{ IOSTREAM *s;
+{ GET_LD
+  IOSTREAM *s;
 
   if ( (s = Sprotocol) )
   { atom_t a;
@@ -1456,7 +1496,8 @@ pl_protocolling(term_t file)
 
 word
 pl_prompt(term_t old, term_t new)
-{ atom_t a;
+{ GET_LD
+  atom_t a;
 
   if ( PL_unify_atom(old, LD->prompt.current) &&
        PL_get_atom(new, &a) )
@@ -1473,7 +1514,8 @@ pl_prompt(term_t old, term_t new)
 
 void
 prompt1(char *prompt)
-{ if ( LD->prompt.first )
+{ GET_LD
+  if ( LD->prompt.first )
     remove_string(LD->prompt.first);
   LD->prompt.first = store_string(prompt);
   LD->prompt.first_used = FALSE;
@@ -1495,7 +1537,8 @@ pl_prompt1(term_t prompt)
 
 char *
 PrologPrompt()
-{ if ( !LD->prompt.first_used && LD->prompt.first )
+{ GET_LD
+  if ( !LD->prompt.first_used && LD->prompt.first )
   { LD->prompt.first_used = TRUE;
 
     return LD->prompt.first;
@@ -1510,7 +1553,8 @@ PrologPrompt()
 
 word
 pl_tab2(term_t out, term_t spaces)
-{ number n;
+{ GET_LD
+  number n;
 
   if ( valueExpression(spaces, &n PASS_LD) &&
        toIntegerNumber(&n) )
@@ -1555,7 +1599,8 @@ static const opt_spec open4_options[] =
 
 IOSTREAM *
 openStream(term_t file, term_t mode, term_t options)
-{ atom_t mname;
+{ GET_LD
+  atom_t mname;
   atom_t type           = ATOM_text;
   bool   reposition     = TRUE;
   atom_t alias	        = NULL_ATOM;
@@ -1714,7 +1759,8 @@ findStreamFromFile(atom_t name, unsigned int flags)
 
 word
 pl_see(term_t f)
-{ IOSTREAM *s;
+{ GET_LD
+  IOSTREAM *s;
   atom_t a;
   term_t mode;
 
@@ -1750,7 +1796,8 @@ ok:
 
 word
 pl_seeing(term_t f)
-{ if ( Scurin == Suser_input )
+{ GET_LD
+  if ( Scurin == Suser_input )
     return PL_unify_atom(f, ATOM_user);
 
   return pl_current_input(f);
@@ -1758,7 +1805,8 @@ pl_seeing(term_t f)
 
 word
 pl_seen()
-{ IOSTREAM *s = Scurin;
+{ GET_LD
+  IOSTREAM *s = Scurin;
 
   pl_pop_input_context();
 
@@ -1770,7 +1818,8 @@ pl_seen()
 
 static word
 do_tell(term_t f, atom_t m)
-{ IOSTREAM *s;
+{ GET_LD
+  IOSTREAM *s;
   atom_t a;
   term_t mode;
 
@@ -1818,7 +1867,8 @@ pl_append(term_t f)
 
 word
 pl_telling(term_t f)
-{ if ( Scurout == Suser_output )
+{ GET_LD
+  if ( Scurout == Suser_output )
     return PL_unify_atom(f, ATOM_user);
 
   return pl_current_output(f);
@@ -1826,7 +1876,8 @@ pl_telling(term_t f)
 
 word
 pl_told()
-{ IOSTREAM *s = Scurout;
+{ GET_LD
+  IOSTREAM *s = Scurout;
 
   popOutputContext();
 
@@ -1938,18 +1989,19 @@ pl_close2(term_t stream, term_t options)
 		 *******************************/
 
 static int
-stream_file_name_propery(IOSTREAM *s, term_t prop)
+stream_file_name_propery(IOSTREAM *s, term_t prop ARG_LD)
 { atom_t name;
 
   if ( (name = getStreamContext(s)->filename) )
-    return PL_unify_atom(prop, name);
+  { return PL_unify_atom(prop, name);
+  }
 
   fail;
 }
 
 
 static int
-stream_mode_property(IOSTREAM *s, term_t prop)
+stream_mode_property(IOSTREAM *s, term_t prop ARG_LD)
 { atom_t mode;
 
   if ( s->flags & SIO_INPUT )
@@ -1970,13 +2022,13 @@ stream_mode_property(IOSTREAM *s, term_t prop)
 
 
 static int
-stream_input_prop(IOSTREAM *s)
+stream_input_prop(IOSTREAM *s ARG_LD)
 { return (s->flags & SIO_INPUT) ? TRUE : FALSE;
 }
 
 
 static int
-stream_output_prop(IOSTREAM *s)
+stream_output_prop(IOSTREAM *s ARG_LD)
 { return (s->flags & SIO_OUTPUT) ? TRUE : FALSE;
 }
 
@@ -1986,7 +2038,7 @@ Incomplete: should be non-deterministic if the stream has multiple aliases!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-stream_alias_prop(IOSTREAM *s, term_t prop)
+stream_alias_prop(IOSTREAM *s, term_t prop ARG_LD)
 { atom_t name;
   stream_context *ctx = getStreamContext(s);
   
@@ -2009,7 +2061,7 @@ stream_alias_prop(IOSTREAM *s, term_t prop)
 
 
 static int
-stream_position_prop(IOSTREAM *s, term_t prop)
+stream_position_prop(IOSTREAM *s, term_t prop ARG_LD)
 { if ( s->position )
   { return PL_unify_term(prop,
 			 PL_FUNCTOR, FUNCTOR_stream_position3,
@@ -2023,9 +2075,10 @@ stream_position_prop(IOSTREAM *s, term_t prop)
 
 
 static int
-stream_end_of_stream_prop(IOSTREAM *s, term_t prop)
+stream_end_of_stream_prop(IOSTREAM *s, term_t prop ARG_LD)
 { if ( s->flags & SIO_INPUT )
-  { atom_t val;
+  { GET_LD
+    atom_t val;
 
     if ( s->flags & SIO_FEOF2 )
       val = ATOM_past;
@@ -2042,7 +2095,7 @@ stream_end_of_stream_prop(IOSTREAM *s, term_t prop)
 
 
 static int
-stream_eof_action_prop(IOSTREAM *s, term_t prop)
+stream_eof_action_prop(IOSTREAM *s, term_t prop ARG_LD)
 { atom_t val;
 
   if ( s->flags & SIO_NOFEOF )
@@ -2061,7 +2114,7 @@ stream_eof_action_prop(IOSTREAM *s, term_t prop)
 #endif
 
 static int
-stream_reposition_prop(IOSTREAM *s, term_t prop)
+stream_reposition_prop(IOSTREAM *s, term_t prop ARG_LD)
 { atom_t val;
 
   if ( s->functions->seek )
@@ -2085,19 +2138,19 @@ stream_reposition_prop(IOSTREAM *s, term_t prop)
 
 
 static int
-stream_close_on_abort_prop(IOSTREAM *s, term_t prop)
+stream_close_on_abort_prop(IOSTREAM *s, term_t prop ARG_LD)
 { return PL_unify_bool_ex(prop, !(s->flags & SIO_NOCLOSE));
 }
 
 
 static int
-stream_type_prop(IOSTREAM *s, term_t prop)
+stream_type_prop(IOSTREAM *s, term_t prop ARG_LD)
 { return PL_unify_atom(prop, s->flags & SIO_TEXT ? ATOM_text : ATOM_binary);
 }
 
 
 static int
-stream_file_no_prop(IOSTREAM *s, term_t prop)
+stream_file_no_prop(IOSTREAM *s, term_t prop ARG_LD)
 { int fd;
 
   if ( (fd = Sfileno(s)) >= 0 )
@@ -2108,7 +2161,7 @@ stream_file_no_prop(IOSTREAM *s, term_t prop)
 
 
 static int
-stream_buffer_prop(IOSTREAM *s, term_t prop)
+stream_buffer_prop(IOSTREAM *s, term_t prop ARG_LD)
 { atom_t b;
 
   if ( s->flags & SIO_FBUF )
@@ -2155,7 +2208,8 @@ typedef struct
 
 foreign_t
 pl_stream_property(term_t stream, term_t property, word h)
-{ IOSTREAM *s;
+{ GET_LD
+  IOSTREAM *s;
   prop_enum *pe;
   mark m;
   term_t a1;
@@ -2209,13 +2263,13 @@ pl_stream_property(term_t stream, term_t property, word h)
 
 	      switch(arityFunctor(f))
 	      { case 0:
-		  rval = (*p->function)(s);
+		  rval = (*p->function)(s PASS_LD);
 		  break;
 		case 1:
 		{ term_t a1 = PL_new_term_ref();
 
 		  _PL_get_arg(1, property, a1);
-		  rval = (*p->function)(s, a1);
+		  rval = (*p->function)(s, a1 PASS_LD);
 		  break;
 		}
 		default:
@@ -2274,12 +2328,12 @@ pl_stream_property(term_t stream, term_t property, word h)
 
 	  switch(arityFunctor(pe->p->functor))
 	  { case 0:
-	      rval = (*pe->p->function)(pe->s);
+	      rval = (*pe->p->function)(pe->s PASS_LD);
 	      break;
 	    case 1:
 	    { _PL_get_arg(1, property, a1);
 
-	      rval = (*pe->p->function)(pe->s, a1);
+	      rval = (*pe->p->function)(pe->s, a1 PASS_LD);
 	      break;
 	    }
 	    default:
@@ -2367,7 +2421,8 @@ getStreamWithPosition(term_t stream, IOSTREAM **sp)
 
 static int
 getRepositionableStream(term_t stream, IOSTREAM **sp)
-{ IOSTREAM *s;
+{ GET_LD
+  IOSTREAM *s;
 
   if ( get_stream_handle(stream, &s, SH_ERRORS) )
   { if ( !s->position || !s->functions || !s->functions->seek )
@@ -2387,7 +2442,8 @@ getRepositionableStream(term_t stream, IOSTREAM **sp)
 
 word
 pl_set_stream_position(term_t stream, term_t pos)
-{ IOSTREAM *s;
+{ GET_LD
+  IOSTREAM *s;
   long charno, linepos, lineno;
   term_t a = PL_new_term_ref();
 
@@ -2422,7 +2478,8 @@ pl_set_stream_position(term_t stream, term_t pos)
 
 word
 pl_seek(term_t stream, term_t offset, term_t method, term_t newloc)
-{ atom_t m;
+{ GET_LD
+  atom_t m;
   int whence = -1;
   long off, new;
   IOSTREAM *s;
@@ -2462,7 +2519,8 @@ pl_seek(term_t stream, term_t offset, term_t method, term_t newloc)
 
 word
 pl_set_input(term_t stream)
-{ IOSTREAM *s;
+{ GET_LD
+  IOSTREAM *s;
 
   if ( getInputStream(stream, &s) )
   { Scurin = s;
@@ -2476,7 +2534,8 @@ pl_set_input(term_t stream)
 
 word
 pl_set_output(term_t stream)
-{ IOSTREAM *s;
+{ GET_LD
+  IOSTREAM *s;
 
   if ( getOutputStream(stream, &s) )
   { Scurout = s;
@@ -2490,19 +2549,22 @@ pl_set_output(term_t stream)
 
 word
 pl_current_input(term_t stream)
-{ return PL_unify_stream(stream, Scurin);
+{ GET_LD
+  return PL_unify_stream(stream, Scurin);
 }
 
 
 word
 pl_current_output(term_t stream)
-{ return PL_unify_stream(stream, Scurout);
+{ GET_LD
+  return PL_unify_stream(stream, Scurout);
 }
 
 
 word
 pl_character_count(term_t stream, term_t count)
-{ IOSTREAM *s;
+{ GET_LD
+  IOSTREAM *s;
 
   if ( getStreamWithPosition(stream, &s) )
   { long n = s->position->charno;
@@ -2517,7 +2579,8 @@ pl_character_count(term_t stream, term_t count)
 
 word
 pl_line_count(term_t stream, term_t count)
-{ IOSTREAM *s;
+{ GET_LD
+  IOSTREAM *s;
 
   if ( getStreamWithPosition(stream, &s) )
   { long n = s->position->lineno;
@@ -2532,7 +2595,8 @@ pl_line_count(term_t stream, term_t count)
 
 word
 pl_line_position(term_t stream, term_t count)
-{ IOSTREAM *s;
+{ GET_LD
+  IOSTREAM *s;
 
   if ( getStreamWithPosition(stream, &s) )
   { long n = s->position->linepos;
@@ -2547,7 +2611,8 @@ pl_line_position(term_t stream, term_t count)
 
 word
 pl_source_location(term_t file, term_t line)
-{ if ( ReadingSource &&
+{ GET_LD
+  if ( ReadingSource &&
        PL_unify_atom(file, source_file_name) &&
        PL_unify_integer(line, source_line_no) )
     succeed;
@@ -2558,7 +2623,8 @@ pl_source_location(term_t file, term_t line)
 
 word
 pl_at_end_of_stream1(term_t stream)
-{ IOSTREAM *s;
+{ GET_LD
+  IOSTREAM *s;
 
   if ( getInputStream(stream, &s) )
   { int rval = Sfeof(s);
@@ -2584,7 +2650,8 @@ pl_at_end_of_stream0()
 
 word
 peek(term_t stream, term_t chr, int how)
-{ IOSTREAM *s;
+{ GET_LD
+  IOSTREAM *s;
   IOPOS pos;
   int c;
 
@@ -2649,7 +2716,8 @@ unifyTime(term_t t, long time)
 
 static void
 add_option(term_t options, functor_t f, atom_t val)
-{ term_t head = PL_new_term_ref();
+{ GET_LD
+  term_t head = PL_new_term_ref();
 
   PL_unify_list(options, head, options);
   PL_unify_term(head, PL_FUNCTOR, f, PL_ATOM, val);
@@ -2659,7 +2727,8 @@ add_option(term_t options, functor_t f, atom_t val)
 
 int
 PL_get_file_name(term_t n, char **namep, int flags)
-{ char *name;
+{ GET_LD
+  char *name;
   char tmp[MAXPATHLEN];
   char ospath[MAXPATHLEN];
 
@@ -2753,7 +2822,8 @@ pl_time_file(term_t name, term_t t)
 
 word
 pl_size_file(term_t name, term_t len)
-{ char *n;
+{ GET_LD
+  char *n;
 
   if ( PL_get_file_name(name, &n, 0) )
   { long size;
@@ -2771,7 +2841,8 @@ pl_size_file(term_t name, term_t len)
 
 word
 pl_size_stream(term_t stream, term_t len)
-{ IOSTREAM *s;
+{ GET_LD
+  IOSTREAM *s;
   int rval;
 
   if ( !PL_get_stream_handle(stream, &s) )
@@ -2786,7 +2857,8 @@ pl_size_stream(term_t stream, term_t len)
 
 word
 pl_access_file(term_t name, term_t mode)
-{ char *n;
+{ GET_LD
+  char *n;
   int md;
   atom_t m;
 
@@ -2870,7 +2942,8 @@ pl_exists_directory(term_t name)
 
 word
 pl_tmp_file(term_t base, term_t name)
-{ char *n;
+{ GET_LD
+  char *n;
 
   if ( !PL_get_chars(base, &n, CVT_ALL) )
     return PL_error("tmp_file", 2, NULL, ERR_TYPE, ATOM_atom, base);
@@ -2934,7 +3007,8 @@ pl_same_file(term_t file1, term_t file2)
 
 word
 pl_rename_file(term_t old, term_t new)
-{ char *o, *n;
+{ GET_LD
+  char *o, *n;
 
   if ( PL_get_file_name(old, &o, 0) &&
        PL_get_file_name(new, &n, 0) )
@@ -2953,7 +3027,8 @@ pl_rename_file(term_t old, term_t new)
 
 word
 pl_fileerrors(term_t old, term_t new)
-{ return setBoolean(&fileerrors, old, new);
+{ GET_LD
+  return setBoolean(&fileerrors, old, new);
 }
 
 
@@ -2984,7 +3059,8 @@ pl_is_absolute_file_name(term_t name)
 
 word
 pl_working_directory(term_t old, term_t new)
-{ const char *wd;
+{ GET_LD
+  const char *wd;
 
   if ( !(wd = PL_cwd()) )
     fail;
@@ -3036,7 +3112,8 @@ pl_file_dir_name(term_t f, term_t b)
 
 static int
 has_extension(const char *name, const char *ext)
-{ const char *s = name + strlen(name);
+{ GET_LD
+  const char *s = name + strlen(name);
 
   if ( ext[0] == EOS )
     succeed;
@@ -3058,7 +3135,8 @@ has_extension(const char *name, const char *ext)
 
 word
 pl_file_name_extension(term_t base, term_t ext, term_t full)
-{ char *b = NULL, *e = NULL, *f;
+{ GET_LD
+  char *b = NULL, *e = NULL, *f;
   char buf[MAXPATHLEN];
 
   if ( PL_get_chars(full, &f, CVT_ALL) )
@@ -3150,6 +3228,7 @@ pl_prolog_to_os_filename(term_t pl, term_t os)
   return PL_error("prolog_to_os_filename", 2, NULL, ERR_TYPE,
 		  ATOM_atom, os);
 #else /*O_XOS*/
+  GET_LD
   return PL_unify(pl, os);
 #endif /*O_XOS*/
 }
@@ -3169,7 +3248,8 @@ pl_mark_executable(term_t path)
 #if defined(O_XOS) && defined(__WIN32__)
 word
 pl_make_fat_filemap(term_t dir)
-{ char *n;
+{ GET_LD
+  char *n;
 
   if ( PL_get_file_name(dir, &n, 0) )
   { if ( _xos_make_filemap(n) == 0 )
@@ -3196,7 +3276,8 @@ copy_stream_data(+StreamIn, +StreamOut, [Len])
 
 foreign_t
 pl_copy_stream_data3(term_t in, term_t out, term_t len)
-{ IOSTREAM *i, *o;
+{ GET_LD
+  IOSTREAM *i, *o;
   int c;
 
   if ( !getInputStream(in, &i) ||

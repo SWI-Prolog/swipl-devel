@@ -310,7 +310,8 @@ PL_functor_arity(functor_t f)
 
 bool
 PL_cvt_i_integer(term_t p, long *c)
-{ return PL_get_long(p, c);
+{ GET_LD
+  return PL_get_long(p, c);
 }
 
 
@@ -373,7 +374,8 @@ PL_cvt_o_string(const char *c, term_t p)
 
 bool
 PL_cvt_o_atom(atom_t c, term_t p)
-{ return PL_unify_atom(p, c);
+{ GET_LD
+  return PL_unify_atom(p, c);
 }
 
 
@@ -406,21 +408,22 @@ PL_same_compound(term_t t1, term_t t2)
 		 *******************************/
 
 static inline word
-__makeNum(long i)
+__makeNum(long i ARG_LD)
 { word w = consInt(i);
 
   if ( valInt(w) == i )
     return w;
 
-  return globalLong(i);
+  return globalLong(i PASS_LD);
 }
 
 word
-makeNum(long i)
-{ return __makeNum(i);
+makeNum__LD(long i ARG_LD)
+{ return __makeNum(i PASS_LD);
 }
 
-#define makeNum(i) __makeNum(i)
+#undef makeNum
+#define makeNum(i) __makeNum(i PASS_LD)
 
 
 		 /*******************************
@@ -962,9 +965,8 @@ PL_get_integer(term_t t, int *i)
 
 
 int
-PL_get_long(term_t t, long *i)
-{ GET_LD
-  word w = valHandle(t);
+PL_get_long__LD(term_t t, long *i ARG_LD)
+{ word w = valHandle(t);
   
   if ( isTaggedInt(w) )
   { *i = valInt(w);
@@ -993,6 +995,15 @@ PL_get_long(term_t t, long *i)
 } 
 
 
+#undef PL_get_long
+int
+PL_get_long(term_t t, long *i)
+{ GET_LD
+  return PL_get_long__LD(t, i PASS_LD);
+}
+#define PL_get_long(t, i) PL_get_long__LD(t, i PASS_LD)
+
+
 int
 PL_get_float(term_t t, double *f)
 { GET_LD
@@ -1015,7 +1026,7 @@ PL_get_float(term_t t, double *f)
 
 
 int
-PL_get_pointer(term_t t, void **ptr)
+PL_get_pointer__LD(term_t t, void **ptr ARG_LD)
 { long p;
 
   if ( PL_get_long(t, &p) )
@@ -1026,6 +1037,15 @@ PL_get_pointer(term_t t, void **ptr)
 
   fail;
 } 
+
+
+#undef PL_get_pointer
+int
+PL_get_pointer(term_t t, void **ptr)
+{ GET_LD
+  return PL_get_pointer__LD(t, ptr PASS_LD);
+}
+#define PL_get_pointer(t, ptr) PL_get_pointer__LD(t, ptr PASS_LD)
 
 
 
@@ -1069,9 +1089,8 @@ _PL_get_name_arity(term_t t, atom_t *name, int *arity)
 
 
 int
-PL_get_functor(term_t t, functor_t *f)
-{ GET_LD
-  word w = valHandle(t);
+PL_get_functor__LD(term_t t, functor_t *f ARG_LD)
+{ word w = valHandle(t);
 
   if ( isTerm(w) )
   { *f = functorTerm(w);
@@ -1085,6 +1104,14 @@ PL_get_functor(term_t t, functor_t *f)
   fail;
 }
 
+
+#undef PL_get_functor
+int
+PL_get_functor(term_t t, functor_t *f)
+{ GET_LD
+  return PL_get_functor__LD(t, f PASS_LD);
+}
+#define PL_get_functor(t, f) PL_get_functor__LD(t, f PASS_LD)
 
 int
 PL_get_module(term_t t, module_t *m)
@@ -1297,6 +1324,18 @@ PL_is_compound(term_t t)
 
 
 int
+PL_is_functor__LD(term_t t, functor_t f ARG_LD)
+{ word w = valHandle(t);
+
+  if ( hasFunctor(w, f) )
+    succeed;
+
+  fail;
+}
+
+
+#undef PL_is_functor
+int
 PL_is_functor(term_t t, functor_t f)
 { GET_LD
   word w = valHandle(t);
@@ -1306,6 +1345,7 @@ PL_is_functor(term_t t, functor_t f)
 
   fail;
 }
+#define PL_is_functor(t, f) PL_is_functor__LD(t, f PASS_LD)
 
 
 int
@@ -1377,10 +1417,18 @@ PL_put_variable(term_t t)
 
 
 void
+PL_put_atom__LD(term_t t, atom_t a ARG_LD)
+{ setHandle(t, a);
+}
+
+
+#undef PL_put_atom
+void
 PL_put_atom(term_t t, atom_t a)
 { GET_LD
   setHandle(t, a);
 }
+#define PL_put_atom(t, a) PL_put_atom__LD(t, a PASS_LD)
 
 
 void
@@ -1476,14 +1524,22 @@ PL_put_list_chars(term_t t, const char *chars)
 
 
 void
+PL_put_integer__LD(term_t t, long i ARG_LD)
+{ setHandle(t, makeNum(i));
+}
+
+
+#undef PL_put_integer
+void
 PL_put_integer(term_t t, long i)
 { GET_LD
   setHandle(t, makeNum(i));
 }
+#define PL_put_integer(t, i) PL_put_integer__LD(t, i PASS_LD)
 
 
 void
-_PL_put_number(term_t t, Number n)
+_PL_put_number__LD(term_t t, Number n ARG_LD)
 { if ( intNumber(n) )
     PL_put_integer(t, n->value.i);
   else
@@ -1493,7 +1549,8 @@ _PL_put_number(term_t t, Number n)
 
 void
 PL_put_pointer(term_t t, void *ptr)
-{ PL_put_integer(t, pointerToLong(ptr));
+{ GET_LD
+  PL_put_integer(t, pointerToLong(ptr));
 }
 
 
@@ -1542,12 +1599,22 @@ PL_put_nil(term_t l)
 
 
 void
+PL_put_term__LD(term_t t1, term_t t2 ARG_LD)
+{ Word p2 = valHandleP(t2);
+
+  setHandle(t1, linkVal(p2));
+}
+
+
+#undef PL_put_term
+void
 PL_put_term(term_t t1, term_t t2)
 { GET_LD
   Word p2 = valHandleP(t2);
 
   setHandle(t1, linkVal(p2));
 }
+#define PL_put_term(t1, t2) PL_put_term__LD(t1, t2 PASS_LD)
 
 
 void
@@ -1577,10 +1644,17 @@ _PL_put_xpce_reference_a(term_t t, atom_t name)
 		 *******************************/
 
 int
+PL_unify_atom__LD(term_t t, atom_t a ARG_LD)
+{ return unifyAtomic(t, a PASS_LD);
+}
+
+#undef PL_unify_atom
+int
 PL_unify_atom(term_t t, atom_t a)
 { GET_LD
   return unifyAtomic(t, a PASS_LD);
 }
+#define PL_unify_atom(t, a) PL_unify_atom__LD(t, a PASS_LD)
 
 
 int
@@ -1756,13 +1830,23 @@ PL_unify_integer(term_t t, long i)
 }
 #define PL_unify_integer(t, i)	PL_unify_integer__LD(t, i PASS_LD)
 
+
 int
-PL_unify_pointer(term_t t, void *ptr)
-{ GET_LD
-  word w = makeNum(pointerToLong(ptr));
+PL_unify_pointer__LD(term_t t, void *ptr ARG_LD)
+{ word w = makeNum(pointerToLong(ptr));
 
   return unifyAtomic(t, w PASS_LD);
 }
+
+
+#undef PL_unify_pointer
+int
+PL_unify_pointer(term_t t, void *ptr)
+{ GET_LD
+
+  return PL_unify_pointer__LD(t, ptr PASS_LD);
+}
+#define PL_unify_pointer(t, ptr) PL_unify_pointer__LD(t, ptr PASS_LD)
 
 
 int
@@ -2170,9 +2254,8 @@ PL_unify(term_t t1, term_t t2)
 		 *******************************/
 
 int
-PL_strip_module(term_t raw, module_t *m, term_t plain)
-{ GET_LD
-  Word p = valTermRef(raw);
+PL_strip_module__LD(term_t raw, module_t *m, term_t plain ARG_LD)
+{ Word p = valTermRef(raw);
   
   deRef(p);
   if ( hasFunctor(*p, FUNCTOR_colon2) )
@@ -2187,6 +2270,14 @@ PL_strip_module(term_t raw, module_t *m, term_t plain)
 
   succeed;
 }
+
+#undef PL_strip_module
+int
+PL_strip_module(term_t raw, module_t *m, term_t plain)
+{ GET_LD
+  return PL_strip_module__LD(raw, m, plain PASS_LD);
+}
+#define PL_strip_module(q, m, t) PL_strip_module__LD(q, m, t PASS_LD)
 
 module_t
 PL_context()

@@ -37,7 +37,7 @@ word		globalNString(long len, const char *s);
 Word		newTerm(void);
 void		doublecpy(void *to, void *from);
 word		globalReal(real f);
-word		globalLong(long i);
+word		globalLong(long i ARG_LD);
 double		valReal(word w);
 word		globalIndirect(word in);
 int		equalIndirect(word r1, word r2);
@@ -123,10 +123,11 @@ foreign_t	pl_except_bag(term_t ex);
 /* pl-comp.c */
 void		initWamTable(void);
 void		get_head_and_body_clause(term_t clause,
-					 term_t head, term_t body, Module *m);
+					 term_t head, term_t body,
+					 Module *m ARG_LD);
 Clause		compileClause(Word head, Word body,
-			      Procedure proc, Module module);
-Clause		assert_term(term_t term, int where, SourceLoc loc);
+			      Procedure proc, Module module ARG_LD);
+Clause		assert_term(term_t term, int where, SourceLoc loc ARG_LD);
 void		unregisterAtomsClause(Clause clause);
 word		pl_assertz(term_t term);
 word		pl_asserta(term_t term);
@@ -221,7 +222,7 @@ void		dieIO(void);
 void		closeFiles(int all);
 int		openFileDescriptors(unsigned char *buf, int size);
 void		protocol(const char *s, int n);
-bool		getInputStream(term_t t, IOSTREAM **s);
+bool		getInputStream__LD(term_t t, IOSTREAM **s ARG_LD);
 bool		getOutputStream(term_t t, IOSTREAM **s);
 bool		streamStatus(IOSTREAM *s);
 atom_t		fileNameStream(IOSTREAM *s);
@@ -340,9 +341,9 @@ void		initFeatureTable(void);
 void		initFeatures(void);
 
 /* pl-fli.c */
-word		makeNum(long i);
+word		makeNum__LD(long i ARG_LD);
 void		finish_foreign_frame(ARG1_LD);
-void		_PL_put_number(term_t t, Number n);
+void		_PL_put_number__LD(term_t t, Number n ARG_LD);
 predicate_t	_PL_predicate(const char *name, int arity, const char *module,
 			      predicate_t *bin);
 void		initialiseForeign(int argc, char **argv);
@@ -358,6 +359,17 @@ term_t		PL_new_term_refs__LD(int n ARG_LD);
 int		PL_unify__LD(term_t t1, term_t t2 ARG_LD);
 int		PL_unify_integer__LD(term_t t1, long i ARG_LD);
 int		PL_get_atom__LD(term_t t1, atom_t *a ARG_LD);
+void		PL_put_atom__LD(term_t t1, atom_t a ARG_LD);
+void		PL_put_integer__LD(term_t t1, long i ARG_LD);
+int		PL_is_functor__LD(term_t t, functor_t f ARG_LD);
+int		PL_strip_module__LD(term_t q, module_t *m, term_t t ARG_LD);
+int		PL_get_long__LD(term_t t, long *i ARG_LD);
+int		PL_get_pointer__LD(term_t t, void **ptr ARG_LD);
+void		PL_put_term__LD(term_t t1, term_t t2 ARG_LD);
+int		PL_get_functor__LD(term_t t, functor_t *f ARG_LD);
+int		PL_unify_atom__LD(term_t t, atom_t a ARG_LD);
+int		PL_unify_pointer__LD(term_t t, void *ptr ARG_LD);
+
 void		registerForeignLicenses(void);
 
 /* pl-fmt.c */
@@ -379,8 +391,8 @@ word		pl_current_functor(term_t name, term_t arity, word h);
 void		considerGarbageCollect(Stack s);
 void		garbageCollect(LocalFrame fr, Choice ch);
 word		pl_garbage_collect(term_t d);
-void		blockGC(void);
-void		unblockGC(void);
+void		blockGC(ARG1_LD);
+void		unblockGC(ARG1_LD);
 Word		findGRef(int n);
 int		growStacks(LocalFrame fr, Choice ch, Code PC,
 			   int l, int g, int t);
@@ -688,7 +700,7 @@ void		copyRecordToGlobal(term_t copy, Record term ARG_LD);
 int		structuralEqualArg1OfRecord(term_t t, Record r ARG_LD);
 bool		freeRecord(Record record);
 bool		unifyKey(term_t key, word val);
-int		getKeyEx(term_t key, word *k);
+int		getKeyEx(term_t key, word *k ARG_LD);
 word		pl_current_key(term_t k, word h);
 word		pl_recorda(term_t key, term_t term, term_t ref);
 word		pl_recordz(term_t key, term_t term, term_t ref);

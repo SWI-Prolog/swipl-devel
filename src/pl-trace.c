@@ -347,10 +347,10 @@ We are in searching mode; should we actually give this port?
 Do the Prolog trace interception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  blockGC();
+  blockGC(PASS_LD1);
   action = traceInterception(frame, bfr, port, PC);
   if ( action >= 0 )
-  { unblockGC();
+  { unblockGC(PASS_LD1);
     return action;
   }
 
@@ -398,7 +398,7 @@ again:
   } else
     Sputc('\n', Sdout);
 
-  unblockGC();
+  unblockGC(PASS_LD1);
 
   return action;
 }
@@ -1610,7 +1610,7 @@ callEventHook(int ev, ...)
     fid_t fid;
     term_t arg;
 
-    blockGC();
+    blockGC(PASS_LD1);
     fid = PL_open_foreign_frame();
     arg = PL_new_term_ref();
 
@@ -1666,7 +1666,7 @@ callEventHook(int ev, ...)
     PL_call_predicate(MODULE_user, FALSE, PROCEDURE_event_hook1, arg);
   out:
     PL_discard_foreign_frame(fid);
-    unblockGC();
+    unblockGC(PASS_LD1);
     va_end(args);
   }
 }

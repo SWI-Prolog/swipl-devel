@@ -340,7 +340,7 @@ getVarDef(int i ARG_LD)
 
 void
 get_head_and_body_clause(term_t clause,
-			 term_t head, term_t body, Module *m)
+			 term_t head, term_t body, Module *m ARG_LD)
 { Module m0;
 
   if ( !m )
@@ -349,8 +349,8 @@ get_head_and_body_clause(term_t clause,
   }
 
   if ( PL_is_functor(clause, FUNCTOR_prove2) )
-  { PL_get_arg(1, clause, head);
-    PL_get_arg(2, clause, body);
+  { _PL_get_arg(1, clause, head);
+    _PL_get_arg(2, clause, body);
     PL_strip_module(head, m, head);
   } else
   { PL_put_term(head, clause);		/* facts */
@@ -711,9 +711,8 @@ play around with variable tables.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Clause
-compileClause(Word head, Word body, Procedure proc, Module module)
-{ GET_LD
-  compileInfo ci;			/* data base for the compiler */
+compileClause(Word head, Word body, Procedure proc, Module module ARG_LD)
+{ compileInfo ci;			/* data base for the compiler */
   struct clause clause;
   Clause cl;
 
@@ -1731,9 +1730,8 @@ The warnings should help explain what is going on here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Clause
-assert_term(term_t term, int where, SourceLoc loc)
-{ GET_LD
-  Clause clause;
+assert_term(term_t term, int where, SourceLoc loc ARG_LD)
+{ Clause clause;
   Procedure proc;
   Definition def;
   Module source_module = (loc ? LD->modules.source : (Module) NULL);
@@ -1747,16 +1745,11 @@ assert_term(term_t term, int where, SourceLoc loc)
 
   PL_strip_module(term, &module, tmp);
   mhead = module;
-  get_head_and_body_clause(tmp, head, body, &mhead);
+  get_head_and_body_clause(tmp, head, body, &mhead PASS_LD);
   if ( !get_head_functor(head, &fdef, 0) )
     return NULL;			/* not callable, arity too high */
   if ( !(proc = lookupProcedureToDefine(fdef, mhead)) )
     return NULL;			/* redefine a system predicate */
-
-  h = valTermRef(head);
-  b = valTermRef(body);
-  deRef(h);
-  deRef(b);
 
 #ifdef O_PROLOG_HOOK
   if ( mhead->hook && isDefinedProcedure(mhead->hook) )
@@ -1788,7 +1781,12 @@ assert_term(term_t term, int where, SourceLoc loc)
 	Sdprintf("compiling ");
 	PL_write_term(Serror, term, 1200, PL_WRT_QUOTED);
 	Sdprintf(" ... "););
-  if ( !(clause = compileClause(h, b, proc, module)) )
+
+  h = valTermRef(head);
+  b = valTermRef(body);
+  deRef(h);
+  deRef(b);
+  if ( !(clause = compileClause(h, b, proc, module PASS_LD)) )
     return NULL;
   DEBUG(2, Sdprintf("ok\n"));
   def = proc->definition;
@@ -1862,18 +1860,21 @@ mode, the predicate is still undefined and is not dynamic or multifile.
 
 word
 pl_assertz(term_t term)
-{ return assert_term(term, CL_END, NULL) == NULL ? FALSE : TRUE;
+{ GET_LD
+  return assert_term(term, CL_END, NULL PASS_LD) == NULL ? FALSE : TRUE;
 }
 
 word
 pl_asserta(term_t term)
-{ return assert_term(term, CL_START, NULL) == NULL ? FALSE : TRUE;
+{ GET_LD
+  return assert_term(term, CL_START, NULL PASS_LD) == NULL ? FALSE : TRUE;
 }
 
 
 word
 pl_assertz2(term_t term, term_t ref)
-{ Clause clause = assert_term(term, CL_END, NULL);
+{ GET_LD
+  Clause clause = assert_term(term, CL_END, NULL PASS_LD);
 
   if (clause == (Clause)NULL)
     fail;
@@ -1884,7 +1885,8 @@ pl_assertz2(term_t term, term_t ref)
 
 word
 pl_asserta2(term_t term, term_t ref)
-{ Clause clause = assert_term(term, CL_START, NULL);
+{ GET_LD
+  Clause clause = assert_term(term, CL_START, NULL PASS_LD);
 
   if (clause == (Clause)NULL)
     fail;
@@ -1912,7 +1914,7 @@ pl_record_clause(term_t term, term_t file, term_t ref)
       fail;
   }
 
-  if ( (clause = assert_term(term, CL_END, &loc)) )
+  if ( (clause = assert_term(term, CL_END, &loc PASS_LD)) )
     return PL_unify_pointer(ref, clause);
   
   fail;
@@ -2157,7 +2159,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 	  continue;
 	}
       case H_INTEGER:
-        { word copy = globalLong(XR(*PC++));
+        { word copy = globalLong(XR(*PC++) PASS_LD);
 	  TRY(_PL_unify_atomic(argp, copy));
 	  NEXTARG;
 	  continue;
@@ -2768,7 +2770,7 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings, word ctx)
 	    if ( !unify_definition(head, def, tmp, 0) )
 	      fail;
 	  }
-	  get_head_and_body_clause(term, h, b, NULL);
+	  get_head_and_body_clause(term, h, b, NULL PASS_LD);
 	  if ( unify_head(tmp, h PASS_LD) && PL_unify(body, b) )
 	    succeed;
 	  fail;
@@ -2826,7 +2828,7 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings, word ctx)
   Mark(m);
   while(cref)
   { if ( decompile(cref->clause, term, bindings) )
-    { get_head_and_body_clause(term, h, b, NULL);
+    { get_head_and_body_clause(term, h, b, NULL PASS_LD);
       if ( unify_head(head, h PASS_LD) &&
 	   PL_unify(b, body) &&
 	   (!ref || PL_unify_pointer(ref, cref->clause)) )
@@ -3112,7 +3114,8 @@ pl_xr_member(term_t ref, term_t term, word h)
 
     fail;
   } else				/* instantiated */
-  { Procedure proc;
+  { GET_LD
+    Procedure proc;
     functor_t fd;
 
     if ( PL_is_atomic(term) )

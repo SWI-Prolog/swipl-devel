@@ -763,9 +763,8 @@ developers issue. Cleanup seems reasoanble too.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-frameFinished(LocalFrame fr, enum finished reason)
-{ GET_LD
-  fid_t cid;
+frameFinished(LocalFrame fr, enum finished reason ARG_LD)
+{ fid_t cid;
 
   cid  = PL_open_foreign_frame();
 
@@ -777,9 +776,9 @@ frameFinished(LocalFrame fr, enum finished reason)
       term_t ex;
       int rval;
       
-      blockGC();
+      blockGC(PASS_LD1);
       rval = callProlog(fr->context, clean, PL_Q_CATCH_EXCEPTION, &ex);
-      unblockGC();
+      unblockGC(PASS_LD1);
 
       if ( !rval && ex )
 	PL_throw(ex);
@@ -1455,19 +1454,19 @@ copyFrameArguments(LocalFrame from, LocalFrame to, int argc ARG_LD)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-leaveFrame(LocalFrame fr)
+leaveFrame(LocalFrame fr ARG_LD)
 { Definition def = fr->predicate;
 
   if ( false(def, FOREIGN) )
     leaveDefinition(def);
 
   if ( true(fr, FR_WATCHED) )
-    frameFinished(fr, FINISH_FAIL);
+    frameFinished(fr, FINISH_FAIL PASS_LD);
 }
 
 
 static void
-discardFrame(LocalFrame fr, enum finished reason)
+discardFrame(LocalFrame fr, enum finished reason ARG_LD)
 { Definition def = fr->predicate;
 
   DEBUG(3, Sdprintf("discard #%d running %s\n",
@@ -1481,7 +1480,7 @@ discardFrame(LocalFrame fr, enum finished reason)
     leaveDefinition(def);
 
   if ( true(fr, FR_WATCHED) )
-    frameFinished(fr, reason);
+    frameFinished(fr, reason PASS_LD);
 
   fr->clause = NULL;
 }
@@ -1520,7 +1519,7 @@ discardChoicesAfter(LocalFrame fr ARG_LD)
     for(fr2 = BFR->frame;    
 	fr2 && fr2->clause && fr2 > fr;
 	fr2 = fr2->parent)
-      discardFrame(fr2, FINISH_CUT);
+      discardFrame(fr2, FINISH_CUT PASS_LD);
   }
 
   DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(BFR)));
@@ -1689,7 +1688,7 @@ discard_query(QueryFrame qf)
   LocalFrame FR  = &qf->frame;
 
   discardChoicesAfter(FR PASS_LD);
-  discardFrame(FR, FINISH_CUT);
+  discardFrame(FR, FINISH_CUT PASS_LD);
 }
 
 
@@ -2536,7 +2535,7 @@ call the 1-st argument.  See also I_CATCH.
 	  DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(BFR->parent)));
 	  BFR = BFR->parent;
 
-	  frameFinished(FR, FINISH_EXIT);
+	  frameFinished(FR, FINISH_EXIT PASS_LD);
 	}
 
 	NEXT_INSTRUCTION;		/* goto i_exit? */
@@ -2657,7 +2656,7 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	    }
 
 	    discardChoicesAfter(FR PASS_LD);
-	    discardFrame(FR, FINISH_EXCEPT);
+	    discardFrame(FR, FINISH_EXCEPT PASS_LD);
 	  }
 	} else
 #endif /*O_DEBUGGER*/
@@ -2665,7 +2664,7 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	  { SECURE(checkData(catcher));
 	    discardChoicesAfter(FR PASS_LD);
 	    SECURE(checkData(catcher));
-	    discardFrame(FR, FINISH_EXCEPT);
+	    discardFrame(FR, FINISH_EXCEPT PASS_LD);
 	  }
 	}
 
@@ -2751,7 +2750,7 @@ exit(Block, RVal).  First does !(Block).
 	{ for( ; ; FR = FR->parent )
 	  { SECURE(assert(FR > blockfr));
 	    discardChoicesAfter(FR PASS_LD);
-	    discardFrame(FR, FINISH_CUT);
+	    discardFrame(FR, FINISH_CUT PASS_LD);
 	    if ( FR->parent == blockfr )
 	    { PC = FR->programPointer;
 	      break;
@@ -2796,7 +2795,7 @@ exit(Block, RVal).  First does !(Block).
           for(fr2 = ch->frame;
               fr2 && fr2->clause && fr2 > FR;
 	      fr2 = fr2->parent)
-	      discardFrame(fr2, FINISH_CUT);
+	      discardFrame(fr2, FINISH_CUT PASS_LD);
 	}
         BFR = ch;
 
@@ -2938,7 +2937,7 @@ conditions should be rare (I hope :-).
 	  for(fr2 = ch->frame;    
 	      fr2 && fr2->clause && fr2 > fr;
 	      fr2 = fr2->parent)
-	    discardFrame(fr2, FINISH_CUT);
+	    discardFrame(fr2, FINISH_CUT PASS_LD);
 	}
 	assert(och == ch);
 	BFR = och;
@@ -3226,7 +3225,7 @@ the result (a word) and the number holding the result.  For example:
 	  { if ( inTaggedNumRange(n->value.i) )
 	      *k = consInt(n->value.i);
 	    else
-	      *k = globalLong(n->value.i);
+	      *k = globalLong(n->value.i PASS_LD);
 	  } else
 	    *k = globalReal(n->value.f);
 	  NEXT_INSTRUCTION;
@@ -3321,7 +3320,8 @@ atom is referenced by the goal-term anyway.
 		       lTop = ot;
 		     });
 	    lTop = next;
-	    if ( !(cl = compileClause(NULL, a, PROCEDURE_dcall1, module)) )
+	    if ( !(cl = compileClause(NULL, a, PROCEDURE_dcall1,
+				      module PASS_LD)) )
 	      goto b_throw;
 
 	    DEF			 = next->predicate;
@@ -3812,7 +3812,7 @@ execution can continue at `next_instruction'
 	  if ( true(FR, FR_WATCHED) )
 	  { LocalFrame lSave = lTop;
 	    lTop = (LocalFrame)argFrameP(lTop, arity);
-	    frameFinished(FR, FINISH_EXIT);
+	    frameFinished(FR, FINISH_EXIT PASS_LD);
 	    lTop = lSave;
 	  }
 
@@ -4159,7 +4159,7 @@ bit more careful.
 	    lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
 
 	    if ( true(FR, FR_WATCHED) )
-	      frameFinished(FR, FINISH_EXIT);
+	      frameFinished(FR, FINISH_EXIT PASS_LD);
 	  }
 
 	  succeed;
@@ -4181,7 +4181,7 @@ bit more careful.
 
 #if O_DEBUGGER
 	if ( leave )
-	  frameFinished(leave, FINISH_EXIT);
+	  frameFinished(leave, FINISH_EXIT PASS_LD);
 #endif
       }
 	NEXT_INSTRUCTION;
@@ -4303,13 +4303,13 @@ next_choice:
       }
 
       Profile(FR->predicate->profile_fails++);
-      leaveFrame(FR);
+      leaveFrame(FR PASS_LD);
     }
   } else
 #endif /*O_DEBUGGER*/
   { for(; (void *)FR > (void *)ch; FR = FR->parent)
     { Profile(FR->predicate->profile_fails++);
-      leaveFrame(FR);
+      leaveFrame(FR PASS_LD);
     }
   }
 

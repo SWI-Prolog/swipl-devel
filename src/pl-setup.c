@@ -360,7 +360,7 @@ dispatch_signal(int sig, int sync)
     return;
   }
 
-  blockGC();
+  blockGC(PASS_LD1);
   LD->current_signal = sig;
   fid = PL_open_signal_foreign_frame();
 
@@ -379,7 +379,7 @@ dispatch_signal(int sig, int sync)
 			sigterm);
     if ( !PL_next_solution(qid) && (except = PL_exception(qid)) )
     { PL_cut_query(qid);
-      unblockGC();
+      unblockGC(PASS_LD1);
       PL_throw(except);
       return;				/* make sure! */
     } else
@@ -397,7 +397,7 @@ dispatch_signal(int sig, int sync)
     }
       
     PL_error(predname, arity, NULL, ERR_SIGNALLED, sig, signal_name(sig));
-    unblockGC();
+    unblockGC(PASS_LD1);
 
     PL_throw(exception_term);		/* throw longjmp's */
     return;				/* make sure! */
@@ -415,7 +415,7 @@ dispatch_signal(int sig, int sync)
   PL_discard_foreign_frame(fid);
   lTop = lTopSave;
 
-  unblockGC();
+  unblockGC(PASS_LD1);
 }
 
 

@@ -138,7 +138,7 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
     int n, rval;
 
     for(n=0; n<arity; n++)
-      PL_get_arg(n+1, g, args+n);
+      _PL_get_arg(n+1, g, args+n);
 
     qid  = PL_open_query(module, flags, proc, args);
     rval = PL_next_solution(qid);

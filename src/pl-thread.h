@@ -230,12 +230,25 @@ void			PL_atomic_dec(int *addr);
 		 *******************************/
 
 #define allocGlobal(n)		allocGlobal__LD(n PASS_LD)
+#define makeNum(n)		makeNum__LD(n PASS_LD)
+#define getInputStream(t, s)	getInputStream__LD(t, s PASS_LD)
 
 #define _PL_get_arg(n, t, a)	_PL_get_arg__LD(n, t, a PASS_LD)
+#define _PL_put_number(t, n) 	_PL_put_number__LD(t, n PASS_LD)
 #define PL_new_term_ref()	PL_new_term_ref__LD(PASS_LD1)
 #define PL_new_term_refs(n)	PL_new_term_refs__LD(n PASS_LD)
 #define PL_unify(t1, t2)	PL_unify__LD(t1, t2 PASS_LD)
 #define PL_unify_integer(t, i)	PL_unify_integer__LD(t, i PASS_LD)
 #define PL_get_atom(t, a)	PL_get_atom__LD(t, a PASS_LD)
+#define PL_put_atom(t, a)	PL_put_atom__LD(t, a PASS_LD)
+#define PL_is_functor(t, f)	PL_is_functor__LD(t, f PASS_LD)
+#define PL_put_integer(t, i) 	PL_put_integer__LD(t, i PASS_LD)
+#define PL_strip_module(q, m, t) PL_strip_module__LD(q, m, t PASS_LD)
+#define PL_get_long(t, i)	PL_get_long__LD(t, i PASS_LD)
+#define PL_get_pointer(t, ptr)	PL_get_pointer__LD(t, ptr PASS_LD)
+#define PL_put_term(t1, t2)	PL_put_term__LD(t1, t2 PASS_LD)
+#define PL_get_functor(t, f)	PL_get_functor__LD(t, f PASS_LD)
+#define PL_unify_atom(t, a)	PL_unify_atom__LD(t, a PASS_LD)
+#define PL_unify_pointer(t, p)	PL_unify_pointer__LD(t, p PASS_LD)
 
 #endif /*PL_THREAD_H_DEFINED*/

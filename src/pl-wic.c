@@ -611,7 +611,7 @@ do_load_qlf_term(IOSTREAM *fd, term_t vars[], term_t term)
 
     PL_unify_functor(term, f);
     for(n=0; n < arity; n++)
-    { PL_get_arg(n+1, term, c2);
+    { _PL_get_arg(n+1, term, c2);
       do_load_qlf_term(fd, vars, c2);
     }
   } else
@@ -1641,7 +1641,7 @@ addClauseWic(term_t term, atom_t file)
   loc.file = file;
   loc.line = source_line_no;
 
-  if ( (clause = assert_term(term, CL_END, &loc)) )
+  if ( (clause = assert_term(term, CL_END, &loc PASS_LD)) )
   { IOSTREAM *s = wicFd;
 
 #ifdef O_DEBUGGER

@@ -261,10 +261,10 @@ get_functor(term_t descr, functor_t *fdef, Module *m, term_t h, int how)
     atom_t name;
     int arity;
 
-    PL_get_arg(1, head, a);
+    _PL_get_arg(1, head, a);
     if ( !PL_get_atom_ex(a, &name) )
       fail;
-    PL_get_arg(2, head, a);
+    _PL_get_arg(2, head, a);
     if ( !get_arity(a, (how&GF_PROCEDURE) ? MAXARITY : -1, &arity ) )
       fail;
     *fdef = PL_new_functor(name, arity);
@@ -1384,7 +1384,7 @@ pl_retract(term_t term, word h)
     term_t r0;
 
     PL_strip_module(term, &m, cl);
-    get_head_and_body_clause(cl, head, body, NULL);
+    get_head_and_body_clause(cl, head, body, NULL PASS_LD);
     if ( PL_get_atom(body, &b) && b == ATOM_true )
       PL_put_term(cl, head);
 

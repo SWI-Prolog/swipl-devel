@@ -85,7 +85,7 @@ pl_flag(term_t name, term_t old, term_t new)
   number n;
   word rval;
 
-  if ( !getKeyEx(name, &key) )
+  if ( !getKeyEx(name, &key PASS_LD) )
     fail;
   rval = FALSE;
 
@@ -163,7 +163,7 @@ pl_current_flag(term_t k, term_t h)
       {	e = newTableEnum(flagTable);
 	break;
       }
-      if ( getKeyEx(k, &key) &&
+      if ( getKeyEx(k, &key PASS_LD) &&
 	   lookupHTable(flagTable, (void *)key) )
 	succeed;
       fail;

@@ -1649,7 +1649,7 @@ garbageCollect(LocalFrame fr, Choice ch)
     return;
 
   blockSignals(&mask);
-  blockGC();				/* avoid recursion due to */
+  blockGC(PASS_LD1);				/* avoid recursion due to */
   gc_status.requested = FALSE;		/* printMessage() */
 
   gc_status.active = TRUE;
@@ -1731,7 +1731,7 @@ garbageCollect(LocalFrame fr, Choice ch)
 		     PL_LONG, usedStack(trail),
 		     PL_LONG, roomStack(global),
 		     PL_LONG, roomStack(trail));
-  unblockGC();
+  unblockGC(PASS_LD1);
   unblockSignals(&mask);
 }
 
@@ -1761,9 +1761,8 @@ pl_garbage_collect(term_t d)
 
 
 void
-blockGC()
-{ GET_LD
-  gc_status.blocked++;
+blockGC(ARG1_LD)
+{ gc_status.blocked++;
 #if O_SHIFT_STACKS
   shift_status.blocked++;
 #endif
@@ -1771,9 +1770,8 @@ blockGC()
 
 
 void
-unblockGC()
-{ GET_LD
-  gc_status.blocked--;
+unblockGC(ARG1_LD)
+{ gc_status.blocked--;
 #if O_SHIFT_STACKS
   shift_status.blocked--;
 #endif

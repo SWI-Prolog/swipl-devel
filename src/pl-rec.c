@@ -1264,9 +1264,8 @@ unifyKey(term_t key, word val)
 
 
 int
-getKeyEx(term_t key, word *w)
-{ GET_LD
-  Word k = valTermRef(key);
+getKeyEx(term_t key, word *w ARG_LD)
+{ Word k = valTermRef(key);
   deRef(k);
 
   if ( isAtom(*k) || isTaggedInt(*k) )
@@ -1318,12 +1317,13 @@ pl_current_key(term_t k, word h)
 
 static bool
 record(term_t key, term_t term, term_t ref, int az)
-{ RecordList l;
+{ GET_LD
+  RecordList l;
   RecordRef r;
   Record copy;
   word k;
 
-  if ( !getKeyEx(key, &k) )
+  if ( !getKeyEx(key, &k PASS_LD) )
     fail;
   if ( !PL_is_variable(ref) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_variable, ref);
@@ -1377,6 +1377,7 @@ pl_recorded(term_t key, term_t term, term_t ref, word h)
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
+    { GET_LD
       if ( PL_get_pointer(ref, (void **)&record) )
       { LOCK();
 	if ( isRecordRef(record) )
@@ -1392,13 +1393,14 @@ pl_recorded(term_t key, term_t term, term_t ref, word h)
 	UNLOCK();
 	return rval;
       }
-      if ( !getKeyEx(key, &k) ||
+      if ( !getKeyEx(key, &k PASS_LD) ||
 	   !(rl = isCurrentRecordList(k)) )
 	fail;
       LOCK();
       rl->references++;
       record = rl->firstRecord;
       break;
+    }
     case FRG_REDO:
     { record = ForeignContextPtr(h);
       rl = record->list;

@@ -2384,7 +2384,6 @@ the `atoms' key that is defined by both and this ambiguous.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define QP_STATISTICS 1
-#define makeNum(n)	((n) < PLMAXTAGGEDINT ? consInt(n) : globalLong(n))
 
 word
 pl_statistics(term_t k, term_t value)
