@@ -171,8 +171,8 @@ set_parser_options(Parser, Options, RestOptions) :-
 set_parser_options(_, Options, Options).
 
 
-load_structure(File, Term, Options) :-
-	open(File, read, In, [type(binary)]),
+load_structure(In, Term, Options) :-
+	In = '$stream'(_), !,
 	(   select_option(offset(Offset), Options, Options1)
 	->  seek(In, Offset, bof, _)
 	;   Options1 = Options
@@ -185,14 +185,12 @@ load_structure(File, Term, Options) :-
 	new_sgml_parser(Parser,
 			[ dtd(DTD)
 			]),
-	set_sgml_parser(Parser, file(File)),
 	set_parser_options(Parser, Options2, Options3),
 	sgml_parse(Parser,
 		  [ document(Term),
 		    source(In)
 		  | Options3
 		  ]),
-	close(In),
 	(   ExplicitDTD == true
 	->  (   DTD = dtd(_, DocType),
 	        dtd_property(DTD, doctype(DocType))
@@ -201,6 +199,10 @@ load_structure(File, Term, Options) :-
 	    )
 	;   free_dtd(DTD)
 	).
+load_structure(File, Term, Options) :-
+	open(File, read, In, [type(binary)]),
+	load_structure(In, Term, [file(File)|Options]),
+	close(In).
 
 
 		 /*******************************

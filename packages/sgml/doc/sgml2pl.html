@@ -1109,14 +1109,12 @@ with loaded DTD, an input stream and a start-location.
 	set_sgml_parser(Parser, doctype(_)),
 	Len is Caret - Start,
 	sgml_parse(Parser,
-		   [ goal(feed(In, Len)),
+		   [ source(In),
+		     content_length(Len),
 		     parse(input)	% do not complete document
 		   ]),
         get_sgml_parser(Parser, allowed(Allowed)),
 	...
-
-feed(In, Len, Parser) :-
-	copy_stream_data(In, Parser, Len).
 </pre>
 </td></tr>
 </table>
@@ -1139,8 +1137,7 @@ documents.
 
 
 <p>
-Input is either a stream or an goal that pushes characters into the 
-parser. A full description of the option-list is below.
+Input is a stream. A full description of the option-list is below.
 
 <dl>
 <dt>&nbsp;<br>
@@ -1150,57 +1147,12 @@ the document (see <a href="#load_structure/2"><b>load_structure/2</b></a>).
     
 <dt>&nbsp;<br>
 <b>source(<var>+Stream</var>)</b><dd>
-An input stream that is read. Either this option or the <code>goal(Goal)</code>
-option must be provided. 
+An input stream that is read.  This option <em>must</em> be given.
     
 <dt>&nbsp;<br>
-<b>goal(<var>+Goal</var>)</b><dd>
-<var>Goal</var> is a callable term. The predicate <a href="#sgml_parse/2"><b>sgml_parse/2</b></a> 
-opens an output stream to the parser and invokes
-<code>call(Goal, Stream)</code>, where <var>Goal</var> should write the data
-to be parsed to <var>Stream</var>. This option is not compatible with
-<code>parse(element)</code>. This option can be used, for example, to
-parse a Prolog atom:
-
-
-
-<p>
-<table width="90%" align="center" border="2" bgcolor="#f0f0f0">
-<tr><td>
-<pre>
-parse_atom(Atom, Term) :-
-        new_sgml_parser(Parser, []),
-        sgml_parse(Parser,
-                   [ document(Term),
-                     goal(provide_atom(Atom))
-                   ]),
-        free_sgml_parser(Parser).
-
-provide_atom(Atom, ParserStream) :-
-        write(ParserStream, Atom).
-</pre>
-</td></tr>
-</table>
-
-
-
-
-<p>
-For example:
-
-
-<p>
-<table width="90%" align="center" border="2" bgcolor="#f0f0f0">
-<tr><td>
-<pre>
-?- parse_atom('&lt;h1&gt;hello world&lt;/h1&gt;', X).
-
-X = [element(h1, [], ['hello world'])] 
-</pre>
-</td></tr>
-</table>
-
-
+<b>content_length(<var>+Characters</var>)</b><dd>
+Stop parsing after <var>Characters</var>.  This option is useful to parse
+input embedded in <em>envelopes</em>, such as the HTTP protocol.
     
 <dt>&nbsp;<br>
 <b>parse(<var>Unit</var>)</b><dd>
@@ -1216,10 +1168,7 @@ Default.  Parse everything upto the end of the input.
 <b><a name="const:element"><b><tt>element</tt></b></a></b><dd>
 The parser stops after reading the first element. Using <code>source(Stream)</code>, this implies reading is stopped as soon as the
 element is complete, and another call may be issued on the same stream
-to read the next element. Using <code>goal(Goal)</code> as input, the
-stream reports an I/O error after completing the first element. This
-exception destroyes the built <code>document(Term)</code>, making this
-option useless using `Goal' driven input.
+to read the next element. 
 	
 <dt>&nbsp;<br>
 <b><a name="const:content"><b><tt>content</tt></b></a></b><dd>

@@ -4015,8 +4015,8 @@ Deal with end of input.  We should give a proper error message depending
 on the state and the start-location of the error.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
-end_document_dtd_parser(dtd_parser *p)
+static int
+end_document_dtd_parser_(dtd_parser *p)
 { int rval;
 
   switch(p->state)
@@ -4095,6 +4095,16 @@ end_document_dtd_parser(dtd_parser *p)
       close_element(p, e, FALSE);
     }
   }
+
+  return rval;
+}
+
+
+int
+end_document_dtd_parser(dtd_parser *p)
+{ int rval;
+
+  WITH_PARSER(p, rval = end_document_dtd_parser_(p));
 
   return rval;
 }

@@ -816,14 +816,12 @@ with loaded DTD, an input stream and a start-location.
 	set_sgml_parser(Parser, doctype(_)),
 	Len is Caret - Start,
 	sgml_parse(Parser,
-		   [ goal(feed(In, Len)),
+		   [ source(In),
+		     content_length(Len),
 		     parse(input)	% do not complete document
 		   ]),
         get_sgml_parser(Parser, allowed(Allowed)),
 	...
-
-feed(In, Len, Parser) :-
-	copy_stream_data(In, Parser, Len).
 </code>
 </argdef>
 
@@ -838,46 +836,17 @@ while the latter provides a primitive means for handling very large
 documents.
 
 <p>
-Input is either a stream or an goal that pushes characters into the 
-parser. A full description of the option-list is below.
+Input is a stream. A full description of the option-list is below.
 
 <argdef>
     <termitem>document(+Term)
 A variable that will be unified with a list describing the content of 
 the document (see <pref>load_structure/2</pref>). 
     <termitem>source(+Stream)
-An input stream that is read. Either this option or the <term>goal(Goal)</term>
-option must be provided. 
-    <termitem>goal(+Goal)
-<aref/Goal/ is a callable term. The predicate <pref>sgml_parse/2</pref> 
-opens an output stream to the parser and invokes
-<term>call(Goal, Stream)</term>, where <aref/Goal/ should write the data
-to be parsed to <aref/Stream/. This option is not compatible with
-<term>parse(element)</term>. This option can be used, for example, to
-parse a Prolog atom:
-
-<code>
-parse_atom(Atom, Term) :-
-        new_sgml_parser(Parser, []),
-        sgml_parse(Parser,
-                   [ document(Term),
-                     goal(provide_atom(Atom))
-                   ]),
-        free_sgml_parser(Parser).
-
-provide_atom(Atom, ParserStream) :-
-        write(ParserStream, Atom).
-</code>
-
-<p>
-For example:
-
-<code>
-?- parse_atom('<h1>hello world</h1>', X).
-
-X = [element(h1, [], ['hello world'])] 
-</code>
-
+An input stream that is read.  This option <em/must/ be given.
+    <termitem>content_length(+Characters)
+Stop parsing after <aref/Characters/.  This option is useful to parse
+input embedded in <em/envelopes/, such as the HTTP protocol.
     <termitem>parse(Unit)
 Defines how much of the input is parsed.  This option is used to parse
 only parts of a file.
@@ -888,10 +857,7 @@ Default.  Parse everything upto the end of the input.
 The parser stops after reading the first element. Using <term>
 source(Stream)</term>, this implies reading is stopped as soon as the
 element is complete, and another call may be issued on the same stream
-to read the next element. Using <term>goal(Goal)</term> as input, the
-stream reports an I/O error after completing the first element. This
-exception destroyes the built <term>document(Term)</term>, making this
-option useless using `Goal' driven input.
+to read the next element. 
 	<termitem><c/content/
 The value <c/content/ is like <c/element/ but assumes the element has
 already been opened. It may be used in a call-back from

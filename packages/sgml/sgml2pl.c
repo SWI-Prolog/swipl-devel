@@ -109,7 +109,6 @@ static functor_t FUNCTOR_entity1;
 static functor_t FUNCTOR_equal2;
 static functor_t FUNCTOR_file1;
 static functor_t FUNCTOR_fixed1;
-static functor_t FUNCTOR_goal1;
 static functor_t FUNCTOR_line1;
 static functor_t FUNCTOR_list1;
 static functor_t FUNCTOR_max_errors1;
@@ -122,6 +121,7 @@ static functor_t FUNCTOR_rep1;
 static functor_t FUNCTOR_sgml_parser1;
 static functor_t FUNCTOR_parse1;
 static functor_t FUNCTOR_source1;
+static functor_t FUNCTOR_content_length1;
 static functor_t FUNCTOR_call2;
 static functor_t FUNCTOR_charpos1;
 static functor_t FUNCTOR_charpos2;
@@ -161,7 +161,6 @@ initConstants()
   FUNCTOR_element3	 = mkfunctor("element", 3);
   FUNCTOR_entity1	 = mkfunctor("entity", 1);
   FUNCTOR_document1	 = mkfunctor("document", 1);
-  FUNCTOR_goal1		 = mkfunctor("goal", 1);
   FUNCTOR_dtd2		 = mkfunctor("dtd", 2);
   FUNCTOR_omit2		 = mkfunctor("omit", 2);
   FUNCTOR_and2		 = mkfunctor("&", 2);
@@ -181,6 +180,7 @@ initConstants()
   FUNCTOR_max_errors1	 = mkfunctor("max_errors", 1);
   FUNCTOR_parse1	 = mkfunctor("parse", 1);
   FUNCTOR_source1	 = mkfunctor("source", 1);
+  FUNCTOR_content_length1= mkfunctor("content_length", 1);
   FUNCTOR_call2		 = mkfunctor("call", 2);
   FUNCTOR_charpos1	 = mkfunctor("charpos", 1);
   FUNCTOR_charpos2	 = mkfunctor("charpos", 2);
@@ -1393,9 +1393,9 @@ pl_sgml_parse(term_t parser, term_t options)
   parser_data *oldpd;
   term_t head = PL_new_term_ref();
   term_t tail = PL_copy_term_ref(options);
-  term_t goal = 0;
-  IOSTREAM *in = NULL, *s = NULL;
+  IOSTREAM *in = NULL;
   int recursive;
+  int content_length = -1;		/* content_length(Len) */
 
   if ( !get_parser(parser, &p) )
     return FALSE;
@@ -1441,16 +1441,18 @@ pl_sgml_parse(term_t parser, term_t options)
       PL_get_arg(1, head, pd->list);
       pd->tail  = PL_copy_term_ref(pd->list);
       pd->stack = NULL;
-    } else if ( PL_is_functor(head, FUNCTOR_goal1) )
-    { goal = PL_new_term_ref();
-
-      PL_get_arg(1, head, goal);
     } else if ( PL_is_functor(head, FUNCTOR_source1) )
     { term_t a = PL_new_term_ref();
 
       PL_get_arg(1, head, a);
       if ( !PL_get_stream_handle(a, &in) )
 	return FALSE;
+    } else if ( PL_is_functor(head, FUNCTOR_content_length1) )
+    { term_t a = PL_new_term_ref();
+
+      PL_get_arg(1, head, a);
+      if ( !PL_get_integer(a, &content_length) )
+	return sgml2pl_error(ERR_TYPE, "integer", a);
     } else if ( PL_is_functor(head, FUNCTOR_call2) )
     { if ( !set_callback_predicates(pd, head) )
 	return FALSE;
@@ -1521,7 +1523,7 @@ pl_sgml_parse(term_t parser, term_t options)
     { pd->source = in;
       begin_document_dtd_parser(p);
     }
-    while( (chr = Sgetc(in)) != EOF )
+    while( (chr = Sgetc(in)) != EOF && content_length-- != 0 )
     { putchar_dtd_parser(p, chr);
 
       if ( pd->errors > pd->max_errors && pd->max_errors >= 0 )
@@ -1552,37 +1554,6 @@ pl_sgml_parse(term_t parser, term_t options)
     return TRUE;
   }
 
-					/* Parsing data from a goal */
-  if ( goal )
-  { fid_t fid = PL_open_foreign_frame();
-    term_t av = PL_new_term_refs(2);
-    predicate_t pred = PL_predicate("call", 2, "user");
-    qid_t qid;
-    int rval;
-
-    PL_put_term(av+0, goal);
-    s = Snew(pd, SIO_OUTPUT, &sgml_stream_functions);
-    PL_open_stream(av+1, s);
-
-    begin_document_dtd_parser(p);
-    qid = PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, pred, av);
-    rval = PL_next_solution(qid);
-    PL_cut_query(qid);
-    if ( rval &&
-	 Sflush(s) == 0 &&
-	 (pd->stopat == SA_INPUT || end_document_dtd_parser(p)) )
-    { Sclose(s);
-      PL_close_foreign_frame(fid);
-      return TRUE;
-    }
-    PL_discard_foreign_frame(fid);
-    Sclose(s);
-
-    if ( pd->errors > pd->max_errors && pd->max_errors >= 0 )
-      return sgml2pl_error(ERR_LIMIT, "max_errors", (long)pd->max_errors);
-
-    return sgml2pl_error(ERR_FAIL, goal);
-  }
   reset_url_cache();
 
   return TRUE;

@@ -936,7 +936,8 @@ allowed_elements(M, Allowed:prolog) :<-
 	    set_sgml_parser(Parser, charpos(From)),
 	    Len is Caret - From,
 	    catch(sgml_parse(Parser,
-			     [ goal(emacs_sgml_mode:feed(In, Len)),
+			     [ source(In),
+			       content_length(Len),
 			       syntax_errors(quiet),
 			       parse(input)	% do not complete document
 			     ]),
@@ -951,9 +952,6 @@ allowed_elements(M, Allowed:prolog) :<-
 	),
 	close(In),
 	free_sgml_parser(Parser).
-
-feed(In, Len, Parser) :-
-	copy_stream_data(In, Parser, Len).
 
 report_allowed(M) :->			% DEBUGGING
 	"Report allowed elements at point"::
