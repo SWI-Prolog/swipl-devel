@@ -23,6 +23,9 @@
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+History
+=======
+
 This module defines the bottom layer for dealing with TCP stream-sockets
 from SWI-Prolog, both server and client side.
 
@@ -32,6 +35,25 @@ Prolog exceptions instead of special return-values.
 
 The   tcp_select()   call   has   been     replaced    by   SWI-Prolog's
 wait_for_input/3.
+
+
+Issues
+======
+
+This  module  is  designed  to  provide  relyable  and  portable  TCP/IP
+connections and. In addition, if  the  system   is  embedded  in  an GUI
+even-driven application we try  to  handle   events  on  behalf  of this
+application while blocked in a socket operation.
+
+Windows issues
+--------------
+
+We operate our sockets in non-blocking  mode and use WSAAsyncSelect() to
+a dummy window to make sure events are   generated. After that we call a
+function. If it returns WSAEWOULDBLOCK we   call waitMsg() to dispatch a
+message (for example a socket message  to   our  hidden  window) and try
+again. This design ensures other  parts   of  the application running on
+normal event-dispatching keep working while blocked.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef HAVE_CONFIG_H
