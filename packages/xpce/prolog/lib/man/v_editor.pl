@@ -219,15 +219,17 @@ show_key_bindings(E, _Arg:[int]) :->
 	show_key_bindings(E).
 
 
+:- pce_global(@man_demo_file, new(file)).
+
 consult(E, F:fragment) :->
 	"Consult fragment of editor"::
-	new(File, file),		% temporary file
+	File = @man_demo_file,
 	send(File, open, write),
 	send(File, append, F?string),
 	send(File, newline),
 	send(File, close),
 	get(File, name, FileName),
-	consult(FileName),
+	consult(user:FileName),
 	send(E, report, status, 'Fragment consulted'),
 	send(File, remove).
 

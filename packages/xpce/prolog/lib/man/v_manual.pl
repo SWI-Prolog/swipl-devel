@@ -268,7 +268,7 @@ fill_dialog(M, D) :->
 	       menu_item(xpce_predicates,
 			 @default,
 			 'XPCE/Prolog predicates'),
-	       menu_item(prolog_predicates,
+	       menu_item(prolog_manual,
 			 message(M, help_on_prolog),
 			 end_group := @on),
 	       menu_item(search),

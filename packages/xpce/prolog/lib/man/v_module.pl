@@ -63,6 +63,14 @@ initialise(MB, Manual:man_manual, ModuleName:name, CreateClass:[name]*,
 	send(MB, view, ModuleName, CreateClass).
 
 
+module_name(MB, Name:name) :<-
+	get(MB, module, Module),
+	(   Module \== @nil
+	->  get(Module, name, Name)
+	;   Name = '(nil)'
+	).
+
+
 browser(MB, Browser) :<-
 	"Get the browser"::
 	get(MB, member, man_summary_browser, Browser).
