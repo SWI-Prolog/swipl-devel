@@ -527,13 +527,17 @@ fi
 
 
 
+# Do not cache this, it changes too often in many configurations
+unset ac_cv_prog_PL
+
+if test -z "$PLINCL"; then
 plcandidates="pl swipl swi-prolog"
 for ac_prog in $plcandidates
 do
 # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:537: checking for $ac_word" >&5
+echo "configure:541: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_PL'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -567,21 +571,19 @@ if test $PL = "none"; then
    { echo "configure: error: "Cannot find SWI-Prolog. SWI-Prolog must be installed first"" 1>&2; exit 1; }
 else
    echo "checking "Running $PL -dump-runtime-variables"" 1>&6
-echo "configure:571: checking "Running $PL -dump-runtime-variables"" >&5
+echo "configure:575: checking "Running $PL -dump-runtime-variables"" >&5
    eval `$PL -dump-runtime-variables`
-fi
-if test "$PLSHARED" = "yes"; then
-   MAKE_SHARED_OBJECT=yes
 fi
 echo "$ac_t"""		PLBASE=$PLBASE"" 1>&6
 echo "$ac_t"""		PLARCH=$PLARCH"" 1>&6
+fi
 
 for ac_prog in gmake make
 do
 # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:585: checking for $ac_word" >&5
+echo "configure:587: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_MAKE'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -642,7 +644,7 @@ ac_configure=$ac_aux_dir/configure # This should be Cygnus configure.
 # SVR4 /usr/ucb/install, which tries to use the nonexistent group "staff"
 # ./install, which can be erroneously created by make from ./install.sh.
 echo $ac_n "checking for a BSD compatible install""... $ac_c" 1>&6
-echo "configure:646: checking for a BSD compatible install" >&5
+echo "configure:648: checking for a BSD compatible install" >&5
 if test -z "$INSTALL"; then
 if eval "test \"`echo '$''{'ac_cv_path_install'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
