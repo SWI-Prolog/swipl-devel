@@ -2730,35 +2730,6 @@ c_width(unsigned int c, FontObj font)
   return context.wsf->widths[c];
 }
 
-				/* should move out of window module! */
-
-
-String
-str_bits_as_font(String s, FontObj f, int *shift)
-{ static string s2;
-
-  Bool iswide = getB16Font(f);
-  if ( iswide == ON && isstrA(s) )
-  { s2 = *s;
-    s2.iswide = TRUE;
-    s2.size /= 2;
-    if ( shift )
-      *shift = -1;
-    return &s2;
-  } else if ( iswide != ON && !isstrA(s) )
-  { s2 = *s;
-    s2.iswide = FALSE;
-    s2.size *= 2;
-    if ( shift )
-      *shift = 1;
-    return &s2;
-  }
-  
-  if ( shift )
-    *shift = 0;
-  return s;
-}
-
 
 static inline int
 s_width_(String s, int from, int to)

@@ -2541,16 +2541,6 @@ lbearing(unsigned int c, XFontStruct *info)
 }
 
 
-#if 0
-static int
-rbearing(unsigned int c, XFontStruct *info)
-{ XCharStruct *def = s_char_struct(info, c);
-
-  return def ? def->rbearing : info->max_bounds.width;
-}
-#endif
-
-
 int
 c_width(unsigned int c, FontObj font)
 { s_font(font);
@@ -2559,33 +2549,6 @@ c_width(unsigned int c, FontObj font)
     return context.gcs->char_widths[c];
 
   return context.gcs->font_info->max_bounds.width;
-}
-
-
-String
-str_bits_as_font(String s, FontObj f, int *shift)
-{ static string s2;
-
-  Bool iswide = getB16Font(f);
-  if ( iswide == ON && isstrA(s) )
-  { s2 = *s;
-    s2.iswide = TRUE;
-    s2.size /= 2;
-    if ( shift )
-      *shift = -1;
-    return &s2;
-  } else if ( iswide != ON && !isstrA(s) )
-  { s2 = *s;
-    s2.iswide = FALSE;
-    s2.size *= 2;
-    if ( shift )
-      *shift = 1;
-    return &s2;
-  }
-  
-  if ( shift )
-    *shift = 0;
-  return s;
 }
 
 

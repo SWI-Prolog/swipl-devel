@@ -120,7 +120,6 @@ int		s_ascent(FontObj f);
 int		s_descent(FontObj f);
 int		s_height(FontObj f);
 int		c_width(unsigned int c, FontObj font);
-String		str_bits_as_font(String s, FontObj f, int *shift);
 int		str_width(String s, int from, int to, FontObj f);
 int		str_advance(String s, int from, int to, FontObj f);
 void		s_print8(charA *s, int l, int x, int y, FontObj f);

@@ -125,15 +125,30 @@ typedef struct
 		 *	      FONTS		*
 		 *******************************/
 
-typedef char cwidth;
+//#define USE_XFONTSET 1
 
 typedef struct xpce_font_info *XpceFontInfo;
+
+#ifdef USE_XFONTSET
+
+struct xpce_font_info
+{ XFontSet	*font_set;		/* FontSet structure */
+  char	       **missing;		/* Missing charsets */
+  int		nmissing;		/* # missing charsets */
+  char 	        *def_string;		/* Default for missing glyphs */
+};
+
+#else /*USE_XFONTSET*/
+
+typedef char cwidth;
 
 struct xpce_font_info
 { XFontStruct  *info;			/* the X info structure */
   cwidth       *widths;			/* array of ints for the widths */
   int		maxchar;		/* maximum char value */
 };
+
+#endif /*USE_XFONTSET*/
 
 		/********************************
 		*        GRAPHICS CONTEXT	*

@@ -565,12 +565,8 @@ get_char_pos_text(TextObj t, Int chr, int *X, int *Y)
   int w   = abs(valInt(t->area->w));
   int ch  = valInt(getHeightFont(t->font));
   int cx, cy = 0, lw, sl;
-  int shift;
-  String s = str_bits_as_font(&t->string->data, t->font, &shift);
+  String s = &t->string->data;
   int b = valInt(t->border);
-
-  if ( shift )
-    caret = (shift > 0 ? caret << shift : caret >> -shift);
 
   if ( Wrapped(t) )
   { LocalString(buf, s, Wrapped(t) ? s->size + MAX_WRAP_LINES : 0);
@@ -625,7 +621,6 @@ get_pointed_text(TextObj t, int x, int y)
   int cw, w;
   int caret = 0, el;
   int line = (y-b) / ch;			/* line for caret */
-  int shift;
   string buf; 
 
   if ( s->size == 0 )
@@ -637,8 +632,6 @@ get_pointed_text(TextObj t, int x, int y)
     str_format(&buf, s, valInt(t->margin), t->font);
     s = &buf;
   }
-
-  s = str_bits_as_font(s, t->font, &shift);
 
   /* Find the start of the line pointed at by pos. */
 
@@ -677,9 +670,6 @@ get_pointed_text(TextObj t, int x, int y)
     }
   }
   
-  if ( shift )
-    caret = (shift > 0 ? caret >> shift : caret << -shift);
-
   answer(toInt(caret));
 }
 
