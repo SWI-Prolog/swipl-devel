@@ -53,7 +53,17 @@ element(S, _, Content) -->
 	[ element(H, [], Title)
 	| Body
 	].
+
 	 
+element(body1, [], Content) -->
+	Content.
+element(body2, [], Content) -->
+	Content.
+element(body3, [], Content) -->
+	Content.
+element(body4, [], Content) -->
+	Content.
+
 element(quote, A, Content) -->
 	[ element(blockquote, A, Content)
 	].
@@ -76,9 +86,15 @@ element(code, A, Content) -->
 	].
 element(name, [], Content) -->
 	Content.
+element(version, [], Content) -->
+	Content.
+element(arity, [], Content) -->
+	Content.
 element(jargon, A, Content) -->
 	[ element(i, A, Content) ].
 element(ref, _, Content) -->
+	[ element(b, [], Content) ].
+element(pref, _, Content) -->
 	[ element(b, [], Content) ].
 element(sh, _, Content) -->
 	[ element(tt, [], Content) ].
