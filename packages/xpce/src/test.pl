@@ -229,6 +229,13 @@ dir(cwd-1) :-
 	new(D, directory(.)),
 	get(D, path, Path),
 	same_file(Path, '.').
+dir(parent-1) :-
+	new(D, directory(.)),
+	get(D, parent, PD),
+	get(PD, path, Parent),
+	working_directory(CWD, CWD),
+	file_directory_name(CWD, PlParent),
+	same_file(Parent, PlParent).
 dir(members-1) :-
 	new(D, directory(.)),
 	get_chain(D, files, Files),
@@ -251,6 +258,27 @@ dir(foreign-1) :-
 	new(D, directory(Name)),
 	send(D, make),
 	send(D, exists),
+	delete_directory(Name).
+dir(foreign-2) :-
+	foreign(Name),
+	new(D, directory(Name)),
+	send(D, make),
+	send(D, exists),
+	new(D2, directory(.)),
+	get_chain(D2, directories, Dirs),
+	member(Name, Dirs),
+	delete_directory(Name).
+dir(foreign-3) :-
+	foreign(Name),
+	new(D, directory(Name)),
+	send(D, make),
+	send(D, exists),
+	send(D, cd),
+	new(D2, directory(.)),
+	get(D2, path, PD2),
+	file_directory_name(PD2, Old),
+	working_directory(_, ..),
+	same_file(Old, '.'),
 	delete_directory(Name).
 
 

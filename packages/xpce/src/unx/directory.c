@@ -153,7 +153,7 @@ makeDirectory(Directory d)
 
 static status
 removeDirectory(Directory d)
-{ if ( rmdir(nameToUTF8(d->path)) != 0 )
+{ if ( rmdir(nameToFN(d->path)) != 0 )
   { if ( existsDirectory(d) )
       return errorPce(d, NAME_rmdir, getOsErrorPce(PCE));
   }
@@ -164,7 +164,7 @@ removeDirectory(Directory d)
 
 status
 cdDirectory(Directory d)
-{ if ( chdir(nameToUTF8(d->path)) )
+{ if ( chdir(nameToFN(d->path)) )
     return errorPce(d, NAME_chdir, d->path, getOsErrorPce(PCE));
 
   succeed;
