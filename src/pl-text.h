@@ -75,5 +75,6 @@ atom_t	textToAtom(PL_chars_t *text);
 COMMON(int)		PL_get_text_ex(term_t t, PL_chars_t *txt,
 				       unsigned int flags);
 COMMON(IOSTREAM *)	Sopen_text(PL_chars_t *text, const char *mode);
+COMMON(void)		PL_text_recode(PL_chars_t *text, IOENC encoding);
 
 #endif /*PL_TEXT_H_INCLUDED*/

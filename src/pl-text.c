@@ -580,6 +580,79 @@ PL_free_text(PL_chars_t *text)
 }
 
 
+void
+PL_text_recode(PL_chars_t *text, IOENC encoding)
+{ if ( text->encoding != encoding )
+  { switch(encoding)
+    { case ENC_UTF8:
+      { switch(text->encoding)
+	{ case ENC_ASCII:
+	    text->encoding = ENC_UTF8;
+	    break;
+	  case ENC_ISO_LATIN_1:
+	  { Buffer b = findBuffer(BUF_RING);
+	    const unsigned char *s = (const unsigned char *)text->text.t;
+	    const unsigned char *e = &s[text->length];
+	    char tmp[8];
+
+	    for( ; s<e; s++)
+	    { if ( *s&0x80 )
+	      { const char *end = utf8_put_char(tmp, *s);
+		const char *q = tmp;
+
+		for(q=tmp; q<end; q++)
+		  addBuffer(b, *q, char);
+	      } else
+	      { addBuffer(b, *s, char);
+	      }
+	    }
+	    PL_free_text(text);
+            text->length   = entriesBuffer(b, char);
+	    addBuffer(b, EOS, char);
+	    text->text.t   = baseBuffer(b, char);
+	    text->encoding = ENC_UTF8;
+	    text->storage  = PL_CHARS_RING;
+
+	    break;
+	  }
+	  case ENC_WCHAR:
+	  { Buffer b = findBuffer(BUF_RING);
+	    const pl_wchar_t *s = text->text.w;
+	    const pl_wchar_t *e = &s[text->length];
+	    char tmp[8];
+
+	    for( ; s<e; s++)
+	    { if ( *s > 0x7f )
+	      { const char *end = utf8_put_char(tmp, *s);
+		const char *q = tmp;
+
+		for(q=tmp; q<end; q++)
+		  addBuffer(b, *q, char);
+	      } else
+	      { addBuffer(b, *s, char);
+	      }
+	    }
+	    PL_free_text(text);
+            text->length   = entriesBuffer(b, char);
+	    addBuffer(b, EOS, char);
+	    text->text.t   = baseBuffer(b, char);
+	    text->encoding = ENC_UTF8;
+	    text->storage  = PL_CHARS_RING;
+
+	    break;
+	  }
+	  default:
+	    assert(0);
+	}
+	break;
+	default:
+	  assert(0);
+      }
+    }
+  }
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PL_cmp_text(PL_chars_t *t1, unsigned o1,
 	    PL_chars_t *t2, unsigned o2,

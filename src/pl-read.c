@@ -2456,7 +2456,7 @@ pl_raw_read2(term_t from, term_t term)
   t2 = backSkipUTF8(s, top, &chr);
   if ( chr == '.' )
     top = backSkipBlanks(s, t2);
-  *++top = EOS;
+  *top = EOS;
   s = skipSpaces(s);
   
   txt.text.t    = s;
