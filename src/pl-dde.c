@@ -70,11 +70,14 @@ static FunctorDef FUNCTOR_dde_request4;
 static FunctorDef FUNCTOR_dde_execute3;
 static FunctorDef FUNCTOR_error1;
 
-static word
-dde_warning(char *cmd)
+static char *
+dde_error_message(int errn)
 { char *err;
 
-  switch( DdeGetLastError(ddeInst) )
+  if ( errn <= 0 )
+    errn = DdeGetLastError(ddeInst);
+
+  switch(errn)
   { case DMLERR_ADVACKTIMEOUT:
     case DMLERR_DATAACKTIMEOUT:		
     case DMLERR_EXECACKTIMEOUT:
@@ -90,7 +93,16 @@ dde_warning(char *cmd)
     case DMLERR_POSTMSG_FAILED:		err = "PostMessage() failed";	break;
     case DMLERR_REENTRANCY:		err = "Reentrance";		break;
     case DMLERR_SERVER_DIED:		err = "Server died";		break;
+    default:				err = "Unknown error";		break;
   }
+
+  return err;
+}
+
+
+static word
+dde_warning(char *cmd)
+{ char *err = dde_error_message(-1);
 
   return warning("%s: DDE operation failed: %s", cmd, err);
 }
@@ -456,34 +468,23 @@ pl_dde_request(term_t handle, term_t item,
   ddeErr = DdeGetLastError(ddeInst);
   DdeFreeStringHandle(ddeInst, Hitem);
 
-  if ( ddeErr == DMLERR_NO_ERROR)
+  if ( Hvalue)
   { char * valuebuf;
     char * valuedata;
     valuedata = DdeAccessData(Hvalue, &valuelen);
     valuebuf = (char *)malloc((size_t)valuelen+1);
     strncpy(valuebuf, valuedata, valuelen+1);
     DdeUnaccessData(Hvalue);
-    valuebuf[valuelen] = '\0';
-    rval = PL_unify_atom_chars(value, valuebuf);
+    valuebuf[valuelen] = EOS;
+    rval = PL_unify_string_chars(value, valuebuf);
     free(valuebuf);
     return rval;
   } else
-  { char * errmsg;
-    term_t a = PL_new_term_ref();
+  { char * errmsg = dde_error_message(ddeErr);
 
-    switch (ddeErr)
-    { case DMLERR_BUSY:            errmsg = "Server busy"; break;
-      case DMLERR_DATAACKTIMEOUT:  errmsg = "Request timed out"; break;
-      case DMLERR_SERVER_DIED:     errmsg = "Server disconnected"; break;
-      default:                     errmsg = "Unknown error"; break;
-    }
-
-    if ( PL_unify_functor(value, FUNCTOR_error1) &&
-	 PL_get_arg(1, value, a) &&
-	 PL_unify_atom_chars(a, errmsg) )
-      succeed;
-
-    fail;
+    return PL_unify_term(value,
+			 PL_FUNCTOR, FUNCTOR_error1, /* error(Message) */
+			 PL_CHARS,   errmsg);
   }
 }
 
@@ -518,6 +519,36 @@ pl_dde_execute(term_t handle, term_t command, term_t timeout)
     succeed;
 
   return dde_warning("dde_execute/2");
+}
+
+
+word
+pl_dde_poke(term_t handle, term_t item, term_t data, term_t timeout)
+{ int hdl;
+  char *datastr;
+  HDDEDATA Hvalue;
+  HSZ Hitem;
+  DWORD tmo;
+
+  if ( !get_conv_handle(handle, &hdl) )
+    return warning("dde_poke/4: invalid handle");
+  if ( !get_hsz(item, &Hitem) )
+    return warning("dde_poke/4: invalid item");
+  if ( !PL_get_chars(data, &datastr, CVT_ALL) )
+    return warning("dde_poke/4: invalid data");
+  if ( !PL_get_integer(timeout, &tmo) )
+    return warning("dde_poke/4: invalid timeout");
+
+  if ( tmo <= 0 )
+    tmo = TIMEOUT_VERY_LONG;
+
+  Hvalue = DdeClientTransaction(datastr, strlen(datastr)+1,
+				conv_handle[hdl], Hitem, CF_TEXT,
+				XTYP_POKE, tmo, NULL);
+  if ( !Hvalue )
+    return dde_warning("dde_poke/2");
+
+  succeed;
 }
 
 #endif /*O_DDE*/

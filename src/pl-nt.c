@@ -13,6 +13,7 @@
 #include <process.h>
 #undef TRANSPARENT
 #include "pl-incl.h"
+#include "pl-ctype.h"
 #include <stdio.h>
 #include <stdarg.h>
 #include "pl-stream.h"
@@ -143,6 +144,42 @@ CpuTime()
 		 *     SUPPORT FOR SHELL/2	*
 		 *******************************/
 
+static char *
+win_exec(const char *cmd, const char *how)
+{ UINT show;
+  char *msg;
+  int rval;
+
+  if ( streq(how, "iconic") )
+    show = SW_MINIMIZE;
+  else /*if ( streq(how, "normal") )*/
+    show = SW_NORMAL;
+
+  switch((rval = WinExec(cmd, show)))
+  { case 0:
+      msg = "Not enough memory";
+      break;
+    case ERROR_BAD_FORMAT:
+      msg = "Bad format";
+      break;
+    case ERROR_FILE_NOT_FOUND:
+      msg = "File not found";
+      break;
+    case ERROR_PATH_NOT_FOUND:
+      msg = "Path not found";
+      break;
+    default:
+      if ( rval > 31 )
+	msg = NULL;
+      else
+	msg = "Unknown error";
+      break;
+  }
+
+  return msg;
+}
+
+
 static int shell_finished;
 static int shell_rval;
 
@@ -161,10 +198,33 @@ waitthread(void *handle)
   shell_finished = TRUE;
 }
 
+
 int
 System(char *command)
 { STARTUPINFO sinfo;
   PROCESS_INFORMATION pinfo;
+  char *e = command + strlen(command);
+
+  while(e > command && isBlank(e[-1]))
+    e--;
+
+  if ( e > command && e[-1] == '&' )	/* notepad & */
+  { char *tmp = alloca(e-command);
+    char *msg;
+    memcpy(tmp, command, e-command);
+
+    e = tmp + (e-command-1);
+    while(e > tmp && isBlank(e[-1]))
+      e--;
+    *e = EOS;
+
+    if ( (msg = win_exec(tmp, "normal")) )
+    { warning("shell('%s') failed: %s", command, msg);
+      return -1;
+    }
+
+    return 0;
+  }
 
   memset(&sinfo, 0, sizeof(sinfo));
   sinfo.cb = sizeof(sinfo);
@@ -199,6 +259,24 @@ System(char *command)
   { warning("shell('%s') failed: %s\n", command, WinError());
     return -1;
   }
+}
+
+
+word
+pl_win_exec(term_t cmd, term_t how)
+{ char *s;
+  char *h;
+
+  if ( PL_get_chars(cmd, &s, CVT_ALL) &&
+       PL_get_atom_chars(how, &h) )
+  { char *msg = win_exec(s, h);
+
+    if ( msg )
+      return warning("win_exec/2: %s", msg);
+    else
+      succeed;
+  } else
+    return warning("win_exec/2: instantiation fault");
 }
 
 

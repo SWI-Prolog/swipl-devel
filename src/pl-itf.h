@@ -26,7 +26,7 @@ before loading this file.  See end of this file.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef PLVERSION
-#define PLVERSION "2.7.4, May 1996"
+#define PLVERSION "2.7.7, June 1996"
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -457,6 +457,7 @@ __pl_export void PL_on_halt(void (*)(int, void *), void *);
 #define PL_QUERY_MIN_INTEGER	7	/* smallest integer */
 #define PL_QUERY_MAX_TAGGED_INT	8	/* largest tagged integer */
 #define PL_QUERY_MIN_TAGGED_INT	9	/* smallest tagged integer */
+#define PL_QUERY_VERSION       10	/* 207006 = 2.7.6 */
 
 __pl_export long	PL_query(int);	/* get information from Prolog */
 

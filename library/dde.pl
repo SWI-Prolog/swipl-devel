@@ -9,6 +9,7 @@
 :- module(win_dde,
 	  [ dde_request/3,		% +Handle, +Key, -Value
 	    dde_execute/2,		% +Handle, +Command
+	    dde_poke/3			% +Handle, +Item, +Data
 	    dde_register_service/2,	% +Template, +Goal
 	    dde_unregister_service/1,	% +Service
 	    dde_current_service/2,	% -Service, -Topic
@@ -29,6 +30,11 @@ dde_request(Handle, Key, Value) :-
 
 dde_execute(Handle, Command) :-
 	dde_execute(Handle, Command, 0).
+
+%	Make a DDE poke request with default timeout value.
+
+dde_poke(Handle, Item, Data) :-
+	dde_poke(Handle, Item, Data, 0).
 
 
 		 /*******************************

@@ -110,6 +110,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
 \\ \verb"dde_execute/2"			\> Win32: Execute command on DDE server
 \\ \verb"dde_register_service/2"	\> Win32: Become a DDE server
 \\ \verb"dde_request/3"			\> Win32: Make a DDE request
+\\ \verb"dde_poke/3"			\> Win32: POKE operation on DDE server
 \\ \verb"dde_unregister_service/1"	\> Win32: Terminate a DDE service
 \\ \verb"debug/0"			\> Test for debugging mode
 \\ \verb"debugging/0"			\> Show debugger status
@@ -404,6 +405,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
 \\
 \\ \verb"wait_for_input/3"		\> Wait for input with optional timeout
 \\ \verb"wildcard_match/2"		\> Csh(1) style wildcard match
+\\ \verb"win_exec/2"			\> Win32: spawn Windows task
 \\ \verb"write/1"			\> Write term
 \\ \verb"write/2"			\> Write term to stream
 \\ \verb"write_ln/1"			\> Write term, followed by a newline

@@ -1632,8 +1632,8 @@ avoid a function call.
 	requireStack(argument, sizeof(Word));
 	*aTop++ = ARGP+1;
     VMI(B_RFUNCTOR, COUNT(b_rfunctor), ("b_rfunctor %d\n", *PC)) MARK(BRFUNC);
-	requireStack(global, sizeof(word) * (1+fdef->arity));
 	fdef = (FunctorDef) *PC++;
+	requireStack(global, sizeof(word) * (1+fdef->arity));
 	*ARGP = consPtr(gTop, TAG_COMPOUND|STG_GLOBAL);
 	*gTop++ = fdef->functor;
 	ARGP = gTop;

@@ -1222,8 +1222,6 @@ expandVars(char *pattern, char *expanded)
 #ifdef HAVE_GETPWNAM
     static char fred[20];
     static char fredLogin[MAXPATHLEN];
-#else
-    char plp[MAXPATHLEN];
 #endif
     char *user;
     char *value;
@@ -1231,9 +1229,27 @@ expandVars(char *pattern, char *expanded)
 
     pattern++;
     user = takeWord(&pattern);
+    if ( user[0] == EOS )		/* ~/bla */
+    {
+#ifdef O_XOS
+      value = _xos_home();
+#else /*O_XOS*/
+      static char myhome[MAXPATHLEN];
 
+      if ( myhome[0] == EOS )
+      { char plp[MAXPATHLEN];
+
+	if ( (value = getenv("HOME")) )
+	{ strcpy(myhome, PrologPath(value, plp));
+	}
+	if ( myhome[0] == EOS )
+	  strcpy(myhome, "/");
+      }
+	
+      value = myhome;
+#endif /*O_XOS*/
+    } else				/* ~fred */
 #ifdef HAVE_GETPWNAM
-    if ( user[0] != EOS || (value = getenv("HOME")) == (char *) NULL )
     { struct passwd *pwent;
 
       if ( !streq(fred, user) )
@@ -1248,12 +1264,11 @@ expandVars(char *pattern, char *expanded)
       value = fredLogin;
     }	  
 #else
-    if ( user[0] != EOS || (value = getenv("HOME")) == (char *) NULL )
-    { value = "/";	/* top directory of current drive */
-    } else
-    { value = PrologPath(value, plp);
+    { if ( fileerrors )
+	warning("~%s: No user information");
+      fail;
     }
-#endif /*HAVE_GETPWNAM*/
+#endif
     size += (l = (int) strlen(value));
     if ( size >= MAXPATHLEN )
       return warning("Path name too long");

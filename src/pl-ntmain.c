@@ -123,8 +123,12 @@ initSignals()
 static void
 set_window_title()
 { char title[256];
+  long v = PL_query(PL_QUERY_VERSION);
+  int major = v / 10000;
+  int minor = (v / 100) % 100;
+  int patch = v % 100;
 
-  Ssprintf(title, "SWI-Prolog (version %s)", PLVERSION);
+  Ssprintf(title, "SWI-Prolog (version %d.%d.%d)", major, minor, patch);
   rlc_title(title, NULL, 0);
 }
 

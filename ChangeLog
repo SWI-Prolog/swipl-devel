@@ -4,6 +4,22 @@
 Version 2.7.7
 =============
 
+  * ADDED: PL_query(PL_QUERY_VERSION) to find the version of Prolog
+    running.  Used by plwin.exe to display the correct version in the
+    window titlebar.
+
+  * WIN32 Process creation: added win_exec/2 and changed shell/1 such
+    that shell('<Command> &') behaves as win_exec(<Command>, normal).
+
+  * WIN32 DDE: Added dde_poke/[3,4] to support DDE poke operation required to
+    communicate with the sybase database for Windows.  MODIFIED
+    dde_request/3 to return a string object rather then an atom to
+    avoid filling the atom-space.
+
+  * WIN32: For filenames, ~ is expanded to %home%.  When not present,
+    %homedrive%%homepath% is used, which expands to NT's notion of the
+    home directory.  Finally, '/' is used as fallback.
+
   * MODIFIED: Changed directory structure of make rt-install to be
     the same as normal installation.
 

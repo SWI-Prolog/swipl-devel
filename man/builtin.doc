@@ -2418,18 +2418,31 @@ Set the output stream, used by tty_put/2 and tty_goto/2 to a
 specific stream. Default is user_output.
 .ED
 
-.S Unix Interaction
+.S Operating System Interaction
 
 .BD
 .C shell 2 +Command, -Status
 Execute {\em Command} on the operating system. {\em Command} is given to the
 bourne shell (/bin/sh). {\em Status} is unified with the exit status of
 the command.
+
+On {\em Win32} systems, shell/[1,2] executes the command using
+the CreateProcess() API and waits for the command to terminate. This
+does not work under Win32s (Windows 3.1), which does not support this
+call. If the command ends with a {\tt \&} sign, the command is handed to
+the WinExec() API, which does not wait for the new task to terminate and
+also works for Win32s.  See also win_exec/2.
 .C shell 1 +Command
 Equivalent to `\tty{shell(Command, 0)}'.
 .C shell 0
 Start an interactive Unix shell.  Default is \tty{/bin/sh}, the
-environment variable \tty{SHELL} overrides this default.
+environment variable \tty{SHELL} overrides this default.  Not available
+for Win32 platforms.
+.C win_exec 2 +Command, +Show
+Win32 systems only. Spawns a Windows task without waiting for its
+completion.  {\em Show} is either {\tt iconic} or {\tt normal} and
+dictates the initial status of the window.  The {\tt iconic} option
+is notably handy to start (DDE) servers.
 .C getenv 2 +Name, -Value
 Get Unix environment variable (see csh(1) and sh(1)). Fails if the
 variable does not exist.
@@ -2989,14 +3002,19 @@ conversations should be closed when they're no longer needed, although
 the system will close any that remain open on process termination.
 .C dde_request 3 +Handle, +Item, -Value
 Request a value from the server.  {\em Item} is an atom that identifies
-the requested data, and {\em Value} will be an atom ({\tt CF_TEXT} data
+the requested data, and {\em Value} will be a string ({\tt CF_TEXT} data
 in DDE parlance) representing that data, if the request is successful.
 If unsuccessful, {\em Value} will be unified with a term of form
-error(reason), identifying the problem.%
-\bug{It could be argued that the atoms above should be strings.}
+{\tt error({\em Reason})}, identifying the problem.  This call uses
+SWI-Prolog string objects to return the value rather then atoms to
+reduce the load on the atom-space.  See section~\ref{sec:strings} for
+a discussion on this datatype.
 .C dde_execute 2 +Handle, +Command
 Request the DDE server to execute the given command-string.  Succeeds
 if the command could be executed and fails with error message otherwise.
+.C dde_poke 4 +Handle, +Item, +Command
+Issue a {\tt POKE} command to the server on the specified {\em Item}.
+Command is passed as data of type {\tt CF_TEXT}.
 .ED
 
 

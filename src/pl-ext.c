@@ -89,9 +89,13 @@ static struct foreign {
   FRG("file_directory_name",	2, pl_file_dir_name,		TRACE_ME),
   FRG("file_name_extension",	3, pl_file_name_extension,	TRACE_ME),
   FRG("prolog_to_os_filename",	2, pl_prolog_to_os_filename,	TRACE_ME),
-#if defined(O_XOS) && defined(__WIN32__)
+#ifdef __WIN32__
+  FRG("win_exec",		2, pl_win_exec,			TRACE_ME),
+#ifdef O_XOS
   FRG("make_fat_filemap",	1, pl_make_fat_filemap,		TRACE_ME),
 #endif
+#endif
+
   FRG("fileerrors",		2, pl_fileerrors,		TRACE_ME),
   FRG("$syntaxerrors",		2, pl_syntaxerrors,		TRACE_ME),
   FRG("chdir",			1, pl_chdir,			TRACE_ME),
@@ -320,6 +324,7 @@ static struct foreign {
   FRG("close_dde_conversation",	1, pl_close_dde_conversation,	TRACE_ME),
   FRG("dde_request",		4, pl_dde_request,		TRACE_ME),
   FRG("dde_execute",		3, pl_dde_execute,		TRACE_ME),
+  FRG("dde_poke",		4, pl_dde_poke,			TRACE_ME),
   FRG("$dde_register_service",	2, pl_dde_register_service,	TRACE_ME),
 #endif /*O_DDE*/
 

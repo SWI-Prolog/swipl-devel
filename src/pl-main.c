@@ -210,7 +210,8 @@ basename of the running program, taking all the leading alnum characters.
 
 static char *
 defaultSystemInitFile(char *a0)
-{ char *base = BaseName(a0);
+{ char plp[MAXPATHLEN];
+  char *base = BaseName(PrologPath(a0, plp));
   char buf[256];
   char *s = buf;
 

@@ -688,6 +688,7 @@ word		pl_close_dde_conversation(term_t handle);
 word		pl_dde_request(term_t h, term_t it, term_t value, term_t tmo);
 word		pl_dde_execute(term_t handle, term_t cmd, term_t tmo);
 word		pl_dde_register_service(term_t service, term_t onoff);
+word		pl_dde_poke(term_t h, term_t item, term_t data, term_t tmo);
 
 /* pl-dll.c */
 word		pl_open_dll(term_t name, term_t handle);
@@ -698,3 +699,4 @@ word		pl_call_dll_function(term_t handle, term_t funcname);
 
 void		PlMessage(const char *buf, ...);
 word		pl_window_title(term_t old, term_t new);
+word		pl_win_exec(term_t command, term_t show);
