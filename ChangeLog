@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORT: Included some patches from the SuSE team.
+
   * ENHANCED: MT-Version: install libpl.a as libplmt.a for the
     multi-threaded version.
 
