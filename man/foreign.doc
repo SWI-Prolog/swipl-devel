@@ -1204,6 +1204,10 @@ as in PL_unify_atom_chars().
 Unify the argument with a compound term.  This specification should be
 followed by exactly as many specifications as the number of arguments of
 the compound term.
+   \definition{\const{PL_FUNCTOR_CHARS}
+	       \arg{const char *name, int arity, \ldots}}
+Create a functor from the given name and arity and then behave as
+\const{PL_FUNCTOR}.
    \definition{\const{PL_LIST} \arg{int length, \ldots}}
 Create a list of the indicated length.  The following arguments contain
 the elements of the list.
@@ -1603,9 +1607,9 @@ pl_hello(term_t to)
   { term_t except = PL_new_term_ref();
 
     PL_unify_term(except,
-		  PL_FUNCTOR, PL_new_functor(PL_new_atom("type_error"), 2),
+		  PL_FUNCTOR_CHARS, "type_error", 2,
 		    PL_CHARS, "atom",
-		    PL_TERM,  to);
+		    PL_TERM, to);
 
     return PL_raise_exception(except);
   }
