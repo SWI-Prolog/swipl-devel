@@ -434,7 +434,7 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 #define MODULEHASHSIZE		16	/* global module table */
 #define PUBLICHASHSIZE		8	/* Module export table */
 #define FLAGHASHSIZE		16	/* global flag/3 table */
-#define ARITHHASHSIZE		32	/* arithmetic function table */
+#define ARITHHASHSIZE		64	/* arithmetic function table */
 
 #define pointerHashValue(p, size) ((((long)(p) >> LMASK_BITS) ^ \
 				    ((long)(p) >> (LMASK_BITS+5)) ^ \
@@ -1401,6 +1401,7 @@ struct module
 #ifdef O_PROLOG_HOOK
   Procedure	hook;		/* Hooked module */
 #endif
+  int		level;		/* Distance to root (root=0) */
   unsigned int  flags;		/* booleans: */
 		/*	SYSTEM	   system module */
   		/*	DBLQ_INHERIT inherit from default module */

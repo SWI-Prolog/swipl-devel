@@ -68,16 +68,19 @@ _lookupModule(atom_t name)
 
   m->public = newHTable(PUBLICHASHSIZE);
 
-  if ( name == ATOM_user || stringAtom(name)[0] == '$' )
-    m->super = MODULE_system;
-  else if ( name == ATOM_system )
+  if ( name == ATOM_user )
+  { m->super = MODULE_system;
+  } else if ( name == ATOM_system )
+  { set(m, SYSTEM);
     m->super = NULL;
-  else
-    m->super = MODULE_user;
+  } else if ( stringAtom(name)[0] == '$' )
+  { set(m, SYSTEM);
+    m->super = MODULE_system;
+  } else
+  { m->super = MODULE_user;
+  }
 
-  if ( name == ATOM_system || stringAtom(name)[0] == '$' )
-    set(m, SYSTEM);
-
+  m->level = (m->super ? m->super->level+1 : 0);
   addHTable(GD->tables.modules, (void *)name, m);
   GD->statistics.modules++;
   PL_register_atom(name);

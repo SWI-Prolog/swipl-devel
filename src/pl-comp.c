@@ -339,6 +339,30 @@ getVarDef(int i ARG_LD)
   return vd;
 }
 
+
+static void
+resetVarDefs(int n ARG_LD)		/* set addresses of first N to NULL */
+{ VarDef *vd;
+  int nvd = LD->comp.nvardefs;
+
+  if ( n > nvd )			/* allocates them */
+    getVarDef(n-1 PASS_LD);
+
+  vd = LD->comp.vardefs;
+  for( ; --n>0 ; vd++ )
+  { VarDef v;
+
+    if ( (v = *vd) )
+    { v->address = NULL;
+    } else
+    { *vd = v = allocHeap(sizeof(vardef));
+      memset(v, 0, sizeof(vardef));
+      v->functor = FUNCTOR_var1;
+    }
+  }
+}
+
+
 void
 get_head_and_body_clause(term_t clause,
 			 term_t head, term_t body, Module *m ARG_LD)
@@ -470,8 +494,8 @@ analyse_variables(Word head, Word body, CompileInfo ci ARG_LD)
   int body_voids = 0;
   int arity = ci->arity;
 
-  for(n=0; n<arity; n++)
-    getVarDef(n PASS_LD)->address = NULL;
+  if ( arity > 0 )
+    resetVarDefs(arity PASS_LD);
 
   if ( head )
     nvars = analyseVariables2(head, 0, arity, -1, ci PASS_LD);
@@ -575,15 +599,14 @@ clearVarTable(compileInfo *ci)
 }
 
 static bool
-isFirstVar(VarTable vt, register int n)
-{ register int m  = 1 << (n % BITSPERINT);
-  register int *p = &vt->entry[n / BITSPERINT];
-  register int result;
+isFirstVar(VarTable vt, int n)
+{ int m  = 1 << (n % BITSPERINT);
+  int *p = &vt->entry[n / BITSPERINT];
   
-  result = ((*p & m) == 0);
+  if ( (*p & m) )
+    return FALSE;
   *p |= m;
-
-  return result;
+  return TRUE;
 }
 
 

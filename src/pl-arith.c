@@ -95,6 +95,7 @@ struct arithFunction
   functor_t	functor;	/* Functor defined */
   ArithF	function;	/* Implementing function */
   Module	module;		/* Module visibility module */
+  int		level;		/* Level of the module */
 #if O_PROLOG_FUNCTIONS
   Procedure	proc;		/* Prolog defined functions */
 #endif
@@ -312,29 +313,35 @@ PRED_IMPL("=:=", 2, eq, PL_FA_TRANSPARENT)
 		*           FUNCTIONS           *
 		*********************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+isCurrentArithFunction(functor_t f, Module m)
+    Find existing arithmetic function definition for f using m as
+    context.  
+
+    The one we are looking for is the function that is in the most
+    local module.  As the entries are sorted such that more specific
+    functions are before global functions, we can pick the first
+    one that is in our module path.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
 static ArithFunction
 isCurrentArithFunction(functor_t f, Module m)
 { ArithFunction a;
-  ArithFunction r = NULL;
-  int level = 30000;
 
   for(a = arithFunctionTable[functorHashValue(f, ARITHHASHSIZE)];
-      a && !isTableRef(a); a = a->next)
+      !isTableRef(a) && a; a = a->next)
   { if ( a->functor == f )
     { Module m2;
-      int l;
 
-      for( m2 = m, l = 0; m2; m2 = m2->super, l++ )
-      { if ( m2 == a->module && l < level )
-	{ r = a;
-	  level = l;
-	  break;
-	}
+      for(m2 = m; m2; m2 = m2->super)
+      { if ( m2 == a->module )
+	  return a;
       }
     }
   }
 
-  return r;
+  return NULL;
 }
 
 #if O_PROLOG_FUNCTIONS
@@ -1162,13 +1169,19 @@ PRED_IMPL("is", 2, is, PL_FA_TRANSPARENT)	/* -Value is +Expr */
 
 
 #if O_PROLOG_FUNCTIONS
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Functions are module-sensitive. We has the arithmetic functions on their
+functor and keep them sorted in   the chain, most-specific module first.
+See also isCurrentArithFunction()
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 word
 pl_arithmetic_function(term_t descr)
 { GET_LD
   Procedure proc;
   functor_t fd;
   FunctorDef fdef;
-  ArithFunction f;
+  ArithFunction f, a, *ap;
   Module m = NULL;
   term_t head = PL_new_term_ref();
   int v;
@@ -1190,11 +1203,16 @@ pl_arithmetic_function(term_t descr)
   f->functor  = fd;
   f->function = NULL;
   f->module   = m;
+  f->level    = m->level;
   f->proc     = proc;
 
   startCritical;
-  f->next     = arithFunctionTable[v];
-  arithFunctionTable[v] = f;  
+  for(ap = &arithFunctionTable[v], a=*ap; ; ap = &a->next)
+  { if ( !a || isTableRef(a) || a->level >= f->level )
+    { f->next = a;
+      *ap = f;
+    }
+  }
   registerFunction(f);
   endCritical;
 
@@ -1381,6 +1399,7 @@ registerBuiltinFunctions()
     f->functor  = d->functor;
     f->function = d->function;
     f->module   = MODULE_system;
+    f->level    = 0;			/* level of system module */
     f->next     = arithFunctionTable[v];
     arithFunctionTable[v] = f;
     registerFunction(f);

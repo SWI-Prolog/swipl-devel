@@ -2,7 +2,8 @@
 			====================
 
   * PERFORMANCE: better implementation finding clauses, much faster
-    shallow backtracking code
+    shallow backtracking code.  Faster lookup of arithmetic and small
+    improvements to the compiler.
 
   * FIXED: bug loosing clause-indexing after abolish on an undefined
     predicate (caused by MT redesign).
