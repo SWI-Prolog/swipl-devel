@@ -14,6 +14,7 @@
 :- use_module(httpd).
 :- use_module(html_write).
 :- use_module(html_hierarchy).
+:- use_module(html_refman).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Demo for the XPCE HTTP Deamon. This  demo   simply  lists a table of all
@@ -53,18 +54,19 @@ request(HTTPD, Request:sheet) :->
 %
 
 reply(/, @nil, HTTPD) :-
-	send(HTTPD, reply_html, pce_http_man:index).
+	send(HTTPD, reply_html, pce_http_man:frames).
 
-index -->
-	page(title('XPCE web-manual'),
-	     [ h1([align(center)], 'XPCE web-manual'),
-	       ul([ li(a([href('/class/')],
-			 'Class Summary Table')),
-		    li(a([href('/classhierarchy')],
-			 'Class Hierarchy'))
-		  ])
-	     ]).
-
+frames -->
+	html(html([ head(title('XPCE web-manual')),
+		    frameset([cols('20%,80%')],
+			     [ frame([ src('/classhierarchy'),
+				       name(hierarchy)
+				     ]),
+			       frame([ src('/welcome'),
+				       name(description)
+				     ])
+			     ])
+		  ])).
 
 %	/class/
 %
@@ -113,7 +115,15 @@ class_name(Name) -->
 	{ www_form_encode(Name, Encoded),
 	  atom_concat('/class?name=', Encoded, URL)
 	},
-	html(a([href(URL)], Name)).
+	html(a([href(URL), target(description)], Name)).
+
+classlist([], _) -->
+	[].
+classlist([H], _) -->
+	class_name(H).
+classlist([H|T], S) -->
+	html([\class_name(H), S]),
+	classlist(T, S).
 
 %	/class?name=classname
 %
@@ -130,25 +140,84 @@ classdoc(Class) -->
 	page([ title(['XPCE class ', Name])
 	     ],
 	     [ h1([align(center)], ['XPCE class ', em(Name)]),
-	       \instance_variables(Class)
+	       p([]),
+	       \description(Class),
+	       p([]),
+	       \classtable(Class)
 	     ]).
 
+description(Obj) -->
+	{ html_description(Obj, String),
+	  get(String, value, HTML)
+	},
+	[HTML].
+	
+
+classtable(Class) -->
+	html_begin(table(border(2),
+			 align(center),
+			 width('100%'))),
+	summary_row(Class),
+	meta_class_row(Class),
+	super_class_row(Class),
+	subclasses_row(Class),
+	instance_variables(Class),
+	html_end(table).
+
+summary_row(Class) -->
+	{ get(Class, summary, Summary),
+	  Summary \== @nil
+	}, !,
+	head_row('Summary', Summary).
+summary_row(_) -->
+	[].
+
+meta_class_row(Class) -->
+	{ get(Class, class, MetaClass),
+	  \+ get(MetaClass, name, class)
+	}, !,
+	head_row('Meta Class', \class_name(MetaClass)).
+meta_class_row(_) -->
+	[].
+
+super_class_row(Class) -->
+	{ get(Class, super_class, Super),
+	  Super \== @nil
+	}, !,
+	head_row('Super Class', \class_name(Super)).
+super_class_row(_) -->
+	[].
+
+subclasses_row(Class) -->
+	{ get(Class, sub_classes, Subs),
+	  Subs \== @nil,
+	  chain_list(Subs, List)
+	}, !,
+	head_row('Sub Classes', \classlist(List, ', ')).
+subclasses_row(_) -->
+	[].
+
+head_row(Name, Value) -->
+	html(tr([ th([align(right), colspan(2)], Name),
+		  td(Value)
+		])).
+
+
 instance_variables(Class) -->
-	{ get(Class, name, Name),
-	  get(Class, instance_variables, Vector),
+	{ get(Class, instance_variables, Vector),
 	  object(Vector, Term),
 	  Term =.. [_|Vars]
 	},
-	html([ h2(['Instance variables for ', em(Name)]),
-	       table([ border(2),
-		       align(center)
-		     ],
-		     [ tr([ th('Name'),
-			    th('Type'),
-			    th('Summary')
-			  ])
-		     | \variables(Vars)
-		     ])
+	html([ tr([ th([ colspan(3),
+			 bgcolor(yellow)
+		       ],
+		       'Instance variables')
+		  ]),
+	       tr([ th('Name'),
+		    th('Type'),
+		    th('Summary')
+		  ])
+	     | \variables(Vars)
 	     ]).
 
 variables([]) -->
@@ -184,7 +253,7 @@ reply(Path, @nil, HTTPD) :-
 
 classhierarchy(Root, Cookie) -->
 	page(title('XPCE Class Hierarchy'),
-	     [ h1('XPCE Class Hierarchy')
+	     [ h3('Class Hierarchy')
 	     | \html_hierarchy(Root, gen_subclass, class_name, Cookie)
 	     ]).
 
@@ -194,6 +263,151 @@ gen_subclass(Super, Sub) :-
 	chain_list(Chain, List),
 	member(SubClass, List),
 	get(SubClass, name, Sub).
+
+%	/man?for=Spec
+%
+%	As manpce/1: handle @ref, class, class->method, class<-method, etc.
+
+reply('/man', Form, HTTPD) :-
+	get(Form, for, String),
+	atom_to_method(String, Object),
+	send(HTTPD, reply_html, pce_http_man:objpage(Object)).
+	
+objpage(Object) -->
+	page([title('XPCE Manual')],
+	     [\objdoc(Object)
+	     ]).
+
+objdoc(Object) -->
+	{ send(Object, instance_of, class)
+	}, !,
+	classdoc(Object).
+objdoc(SendMethod) -->
+	{ send(SendMethod, instance_of, behaviour)
+	}, !,
+	html(dl(\behaviour(SendMethod))).
+objdoc(Object) -->
+	html(dl(\object(Object))).
+
+
+behaviour(M) -->
+	html([ dt(\headline(M)),
+	       dd(\description(M))
+	     ]).
+
+object(@Ref) -->
+	html([ dt(b([@, Ref])),
+	       dd(\description(@Ref))
+	     ]).
+
+headline(SM) -->
+	{ send(SM, instance_of, send_method)
+	}, !,
+	html([ \contextclass(SM),
+	       '->',
+	       b(\name(SM)),
+	       '(',
+	       \argv(SM),
+	       ')'
+	     ]).
+headline(GM) -->
+	{ send(GM, instance_of, get_method),
+	  get(GM, return_type, Return)
+	}, !,
+	html([ \contextclass(GM),
+	       '->',
+	       b(\name(GM)),
+	       '(',
+	       \argv(GM),
+	       ') --> ',
+	       \type(Return)
+	     ]).
+headline(V) -->
+	{ send(V, instance_of, variable),
+	  get(V, access_arrow, Arrow),
+	  get(V, type, Type)
+	}, !,
+	html([ \contextclass(V),
+	       Arrow,
+	       b(\name(V)),
+	       ': ',
+	       \type(Type)
+	     ]).
+	       
+contextclass(SM) -->
+	{ get(SM, context, Class),
+	  send(Class, instance_of, class)
+	},
+	class_name(Class).
+
+name(Obj) -->
+	{ send(Obj, has_get_method, name), !,
+	  get(Obj, name, Name)
+	},
+	html(Name).
+name(Obj) -->
+	html(Obj).
+
+argv(Method) -->
+	{ get(Method, types, Argv),
+	  get(Argv, size, Size)
+	},
+	argv(1, Size, Argv).
+	
+argv(I, AC, V) -->
+	{ I =< AC, !,
+	  get(V, element, I, Type)
+	},
+	(   { get(Type, argument_name, ArgName),
+	      ArgName \== @nil
+	    }
+	->  html([ var(ArgName),
+		   =,
+		   \type(Type)
+		 ])
+	;   type(Type)
+	),
+	(   { I < AC
+	    }
+	->  [ ', ' ]
+	;   []
+	),
+	{ NI is I + 1
+	},
+	argv(NI, AC, V).
+argv(_, _, _) -->
+	[].
+
+
+
+
+%	/welcome
+%
+%	Temporary stuff
+
+reply('/welcome', @nil, HTTPD) :-
+	send(HTTPD, reply_html, pce_http_man:welcome).
+
+welcome -->
+	page([ title('Welcome')
+	     ],
+	     [ form([ action('/man'),
+		      method('GET')
+		    ],
+		    [ input([name(for)]),
+		      input([type(submit)])
+		    ])
+	     ]).
+
+%	/blank
+%
+%	Just emit a blank page
+
+reply('/blank', @nil, HTTPD) :-
+	send(HTTPD, reply_html, pce_http_man:blankpage).
+
+blankpage -->
+	page([title(blank)], []).
 
 %	Catch all.  Do not add clauses for reply below this line
 

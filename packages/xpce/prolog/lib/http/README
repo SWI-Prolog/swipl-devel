@@ -25,6 +25,9 @@ Files:
 	Emit HTML pages from a structured description based on
 	grammarrules
 
+	# html_hierarchy.pl
+	Display a hierarchy as an explorer-like tree in HTML.
+
 	# http_man.pl
 	Small demo exporting XPCE classes.
 
@@ -32,6 +35,6 @@ Files:
 Status:
 -------
 
-This library is a dmontrator. The bahaviour  of html_write and httpd are
-incomplete and will  be  expanded.   Minor  incompatibilities  should be
+This library is a demonstrator. The   bahaviour  of html_write and httpd
+are incomplete and will be expanded.   Minor incompatibilities should be
 expected, but not a large redesign.

@@ -90,6 +90,10 @@ do_expand(Fmt-Args, _) --> !,
 	{ sformat(String, Fmt, Args)
 	},
 	html_quoted(String).
+do_expand(\List, _) -->
+	{ is_list(List)
+	}, !,
+	List.
 do_expand(\Term, Module, In, Rest) :- !,
 	call(Module:Term, In, Rest).
 do_expand(Module:Term, _, In, Rest) :- !,
@@ -268,6 +272,7 @@ layout(center,	   2-1,	1-2).
 layout(dl,	   2-1,	1-2).
 layout(ul,	   2-1,	1-2).
 layout(form,	   2-1,	1-2).
+layout(frameset,   2-1,	1-2).
 
 layout(head,	   1-1,	1-1).
 layout(body,	   1-1,	1-1).
@@ -288,6 +293,7 @@ layout(meta,	   1-1, empty).
 layout(base,	   1-1, empty).
 layout(link,	   1-1, empty).
 layout(input,	   0-0, empty).
+layout(frame,	   1-1, empty).
 
 layout(p,	   2-1, -).		% omited close
 layout(td,	   0-0, -).

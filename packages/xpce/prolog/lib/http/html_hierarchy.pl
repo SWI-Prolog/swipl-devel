@@ -91,7 +91,7 @@ script -->
   }
 
   document.cookie = r;
-  window.location.reload(true);
+  window.location.reload();
 }
 
 function expand(name)
@@ -100,7 +100,7 @@ function expand(name)
   } else
   { document.cookie += name + \'&\';
   }
-  window.location.reload(true);
+  window.location.reload();
 }
 
 function expandall()
