@@ -104,6 +104,7 @@ bool		told P((void)),
 		readLine P((char *, int)),
 		unifyTime P((Word, long));
 int		currentInputLine P((void));
+int		currentLinePosition P((void));
 Atom		currentStreamName P((void));
 bool		put_character P((Char));
 #if AIX

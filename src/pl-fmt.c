@@ -219,7 +219,7 @@ int argc;
 Word argv;
 { char buffer[BUFSIZE];			/* to store chars with tabs */
   int index = 0;			/* index in buffer */
-  int column = 0;			/* current output column */
+  int column = currentLinePosition();	/* current output column */
   int tab_stop = 0;			/* padded tab stop */
   int pending_rubber = 0;		/* number of not-filled ~t's */
   struct rubber rub[MAXRUBBER];

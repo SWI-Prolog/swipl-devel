@@ -1245,7 +1245,8 @@ char *path;
 { extern int chdir(/*char**/);
   char *ospath = OsPath(path);
 
-  if ( streq(ospath, CWDdir) ||
+  if ( ospath[0] == EOS ||
+       streq(ospath, CWDdir) ||
        streq(ospath, ".") )		/* Same directory */
     succeed;
 

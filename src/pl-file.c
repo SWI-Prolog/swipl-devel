@@ -325,6 +325,16 @@ register File f;
   }
 }
 
+
+int
+currentLinePosition()
+{ if ( outStringDepth > 0 )
+  { return 0;				/* TBD */
+  } else
+    return fileTable[Output].isatty ? ttyLinePos : fileTable[Output].linepos;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Get a character from the current input stream, which is either a file or
 a string.  Reading from strings is used to implement predicates such  as

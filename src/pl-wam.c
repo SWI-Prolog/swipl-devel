@@ -461,7 +461,18 @@ bool debug;
 
 #if O_VMCODE_IS_ADDRESS
   interpreter_jmp_table = jmp_table;	/* make it globally known */
-#endif
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+If the assertion below fails, addresses cannot be  stored in VM codes.
+Add #define O_VMCODE_IS_ADDRESS 0 to your md.h file.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  DEBUG(0, { int i;
+
+	     for(i=0; i<=I_HIGHEST; i++)
+	       assert((long) jmp_table[i] >= (1 << (sizeof(code)*8)));
+	   });
+#endif O_VMCODE_IS_ADDRESS
 
   DEBUG(1, Putf("Interpret: "); pl_write(&Goal); Putf("\n") );
 
