@@ -4416,6 +4416,9 @@ omited, the limit of the calling thread is used. See also the
 Set the limit to which the argument stack of this thread may grow.  If
 omited, the limit of the calling thread is used. See also the
 \cmdlineoption{-A} commandline option.
+    \termitem{stack}{K-Bytes}
+Set the limit to which the system stack of this thread may grow.  The
+default, mimimum and maximum values are system-dependant.
     \termitem{alias}{AliasName}
 Associate an `alias-name' with the thread.  This named may be used to
 refer to the thread and remains valid until the thread is joined
