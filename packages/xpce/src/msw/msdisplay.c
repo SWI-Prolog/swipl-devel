@@ -143,8 +143,6 @@ ws_quit_display(DisplayObj d)
 { exitDraw(0);
 }
 
-#ifdef HOOK_BASED_MOUSE_HANDLING
-#ifdef __WATCOMC__
 		 /*******************************
 		 *	  MOUSE TRACKING	*
 		 *******************************/
@@ -163,157 +161,6 @@ Therefore we first try to load the pcewh.dll module which does the same,
 but in a dll, so it can do the   job system-wide.  If this fails we will
 do the job locally, which in any case is better than not at all.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static HHOOK defhook	  = NULL;
-static HINSTANCE pcewhdll = NULL;
-static FARPROC PceWhEntry = NULL;
-static HINDIR PceWhIH	  = NULL;
-static HWND cwin;
-static int  cwin_deleted;
-
-static DWORD _export FAR PASCAL
-xpce_mouse_hook(int code, WPARAM wParam, LPARAM lParam)
-{ if ( code >= 0 )
-  { MOUSEHOOKSTRUCT FAR* data = lParam;
-
-    if ( data->hwnd != cwin )
-    { if ( cwin && !cwin_deleted )
-	SendMessage(cwin, WM_WINEXIT, 0, 0L);
-      cwin         = data->hwnd;
-      cwin_deleted = FALSE;
-      if ( cwin )
-	SendMessage(cwin, WM_WINENTER, 0, 0L);
-    }
-  }
-
-  return CallNextHookEx(defhook, code, wParam, lParam);
-}
-
-
-static void
-unhook_xpce_mouse_hook()
-{ if ( defhook )
-    UnhookWindowsHookEx(defhook);
-}
-
-
-static void
-PceWhAddTask(HTASK task)
-{ if ( PceWhEntry )
-    InvokeIndirectFunction(PceWhIH, task, 1);
-}
-
-
-static void
-PceWhDeleteTask(HTASK task)
-{ if ( PceWhEntry )
-    InvokeIndirectFunction(PceWhIH, task, 2);
-}
-
-
-void
-PceWhDeleteWindow(HWND win)
-{ if ( PceWhEntry )
-    InvokeIndirectFunction(PceWhIH, win, 3);
-  else if ( win == cwin )
-    cwin_deleted = TRUE;
-}
-
-
-static void
-unload_pcewhdll()
-{ if ( pcewhdll )
-  { PceWhDeleteTask(GetCurrentTask());
-    PceWhEntry = NULL;
-    PceWhIH = NULL;
-    FreeLibrary(pcewhdll);
-  }
-}
-
-
-static void
-init_area_enter_exit_handling(DisplayObj d)
-{ Name dllname;
-  FARPROC hookf;
-  
-  if ( isName(dllname = getClassVariableValueObject(d, NAME_whMouseDll)) )
-  { HINSTANCE hlib;
-
-    DEBUG(NAME_dll, Cprintf("loading DLL %s\n", strName(dllname)));
-
-    if ( (hlib = LoadLibrary(strName(dllname))) >= HINSTANCE_ERROR )
-    { pcewhdll = hlib;
-      DEBUG(NAME_dll, Cprintf("loaded; lookup of \"Win386LibEntry\"\n"));
-      PceWhEntry = GetProcAddress(hlib, "Win386LibEntry");
-      DEBUG(NAME_dll, Cprintf("yields 0x%lx\n", PceWhEntry));
-      PceWhIH    = GetIndirectFunctionHandle(PceWhEntry,
-					     INDIR_WORD, INDIR_WORD,
-					     INDIR_ENDLIST);
-      DEBUG(NAME_dll, Cprintf("indirect fhandle = 0x%x\n", PceWhIH));
-      PceWhAddTask(GetCurrentTask());
-      DEBUG(NAME_dll, Cprintf("DLL loaded and initialised\n"));
-      at_pce_exit(unload_pcewhdll, ATEXIT_FIFO);
-      return;
-    } else
-      errorPce(d, NAME_failedToLoadDll, dllname, toInt(hlib));
-  } 
-
-  if ( isDefault(dllname) )
-  { if ( !(hookf = MakeProcInstance(xpce_mouse_hook, PceHInstance)) )
-      sysPce("Failed to create instance of xpce_mouse_hook()");
-    if ( !(defhook = SetWindowsHookEx(WH_MOUSE, hookf, PceHInstance,
-				      GetCurrentTask())) )
-      sysPce("Failed to install xpce_mouse_hook()");
-    
-    at_pce_exit(unhook_xpce_mouse_hook, ATEXIT_FIFO);
-  }
-}
-
-#else /*__WATCOMC__*/
-
-typedef void (*mhdw_t)(HWND win);
-
-static HINSTANCE xpcemh_id;
-static mhdw_t MouseHookDeleteWindow = NULL;
-
-void
-PceWhDeleteWindow(HWND win)
-{ if ( MouseHookDeleteWindow )
-    (*MouseHookDeleteWindow)(win);
-}
-
-
-static void
-unload_xpcemhdll(void)
-{ if ( xpcemh_id )
-    FreeLibrary(xpcemh_id);
-}
-
-
-static void
-init_area_enter_exit_handling(DisplayObj d)
-{ Name dllname;
-  
-  if ( isName(dllname = getClassVariableValueObject(d, NAME_whMouseDll)) )
-  { HINSTANCE hlib;
-
-    DEBUG(NAME_dll, Cprintf("loading DLL %s\n", strName(dllname)));
-
-    if ( (hlib = LoadLibrary(strName(dllname))) )
-    { xpcemh_id = hlib;
-
-      MouseHookDeleteWindow = (mhdw_t) GetProcAddress(hlib,
-						      "MouseHookDeleteWindow");
-      at_pce_exit(unload_xpcemhdll, ATEXIT_FIFO);
-      DEBUG(NAME_dll, Cprintf("%s loaded, hook = 0x%lx\n",
-			      MouseHookDeleteWindow));
-    }
-  }
-}
-
-#endif /*__WATCOMC__*/
-
-#else /*HOOK_BASED_MOUSE_HANDLING*/
 
 static HWND current_window;
 
@@ -350,8 +197,6 @@ init_area_enter_exit_handling(DisplayObj d)
 {
 }
 
-
-#endif /*HOOK_BASED_MOUSE_HANDLING*/
 
 #ifdef USE_RLC_FUNCTIONS
 static RlcUpdateHook system_update_hook;

@@ -34,8 +34,6 @@
 #undef ispunct
 #undef isxdigit
 
-#include "pcewh.h"
-
 #define PceHInstance ThePceHInstance
 
 #define Ellipse PceEllipse
