@@ -43,21 +43,12 @@ variable(message,	'name|code*',	both,	"Action on enter").
 :- pce_global(@editable_text_key_binding, make_key_binding).
 
 make_edit_text_recogniser(R) :-
-	new(Text, @event?receiver),
-	new(Window, Text?window),
-	new(Pointed, ?(Text, pointed, @event?position)),
-	new(C, click_gesture(left, '', single,
-			     and(message(Text, caret, Pointed),
-				 message(Window, keyboard_focus, Text)),
-			     Text?editable == @on)),
-	new(R, handler_group(handler(obtain_keyboard_focus,
-				     message(Text, obtain_focus)),
-			     handler(release_keyboard_focus,
-				     message(Text, release_focus)),
-			     C)).
+	new(R, edit_text_gesture).
+
 
 make_key_binding(KB) :-
 	new(KB, key_binding(editable_text, text)),
+	send(KB, function, '\\C-a', select_all),
 	send(KB, function, 'TAB', advance),
 	send(KB, function, '\\e',  enter),
 	send(KB, function, 'RET', enter).
@@ -77,6 +68,15 @@ cancel(T) :->
 	send(T?window, keyboard_focus, @nil).
 
 
+show_caret(T, Val:bool) :->
+	"Show/hide caret"::
+	(   Val == @on
+	->  send(T, obtain_focus)
+	;   send(T, release_focus)
+	),
+	send_super(T, show_caret, Val).
+
+
 obtain_focus(T) :->
 	"Called when focus is obtained: show the caret"::
 	(   get(T, attribute, edit_saved_parms, _)  % pointer in/out of window
@@ -89,8 +89,7 @@ obtain_focus(T) :->
 	    send(T, pen, NewPen),
 	    NewBorder is max(2, OldBorder),
 	    send(T, border, NewBorder)
-	),
-	send(T, show_caret, @on).
+	).
 
 
 save_parameter(T, Parm:name) :->
@@ -110,8 +109,7 @@ release_focus(T) :->
 		 message(T, @arg1?name, @arg1?value)),
 	    send(T, delete_attribute, edit_saved_parms)
 	;   true
-	),
-	send(T, show_caret, @off).
+	).
 
 
 enter(T) :->
@@ -145,6 +143,12 @@ typed(T, Id:event_id) :->
 	"Handle keyboard input"::
 	get(T, show_caret, @on),
 	send(@editable_text_key_binding, typed, Id, T).
+
+
+select_all(T) :->
+	"Select the whole text"::
+	get(T?string, size, End),
+	send(T, selection, 0, End).
 
 
 event(T, Ev:event) :->

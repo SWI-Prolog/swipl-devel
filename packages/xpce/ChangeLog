@@ -1,6 +1,11 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: library(pce_editable_text) to use text_edit_gesture, adding
+  selection handling.
+
+* ADDED: Selection management for class text if the text is wrapped.
+
 VERSION 6.2.8, distributed with SWI-Prolog 5.2.8
 ================================================
 

@@ -711,9 +711,9 @@ static kbDef text[] =
 { { SUPER,		NAME_emacsBasics },
 
   { "\\C-u",		NAME_clear },
-  { "\\C-c",		NAME_formatCenter },
-  { "\\C-l",		NAME_formatLeft },
-  { "\\C-r",		NAME_formatRight },
+  { "\\C-c",		NAME_copy },
+  { "\\C-v",		NAME_paste },
+  { "\\C-y",		NAME_paste },
 
   { NULL,		NULL }
 };
@@ -724,6 +724,7 @@ static kbDef text_item[] =
 
   { "\\C-c",		NAME_copy },
   { "\\C-v",		NAME_paste },
+  { "\\C-y",		NAME_paste },
   { "\\C-u",		NAME_clear },
   { "\\C-g",		NAME_keyboardQuit },
   { "RET",		NAME_enter },

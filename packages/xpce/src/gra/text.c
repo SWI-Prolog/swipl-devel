@@ -173,11 +173,11 @@ str_format(String out, const String in, const int width, const FontObj font)
 
       if ( x > width )
       { if ( lb )
-	{ s -= o-lb-2;
-	  while( islayout(*s) )
-	    s++;
-	  s--;
-	  o = lb;
+	{ o = lb;
+	  s = in->s_text8 + (lb-out->s_text8);
+	  
+	  while( islayout(s[1]) )
+	    s++, o++;			/* map (<sp>*)<sp> --> \1\n */
 	  *o++ = '\n';
 	  lb = NULL;
 	  x = 0;
@@ -209,11 +209,11 @@ str_format(String out, const String in, const int width, const FontObj font)
 
       if ( x > width )
       { if ( lb )
-	{ s -= o-lb-2;
-	  while( islayout(*s) )
-	    s++;
-	  s--;
-	  o = lb;
+	{ o = lb;
+	  s = in->s_text8 + (lb-out->s_text8);
+	  
+	  while( islayout(s[1]) )
+	    s++, o++;			/* map (<sp>*)<sp> --> \1\n */
 	  *o++ = '\n';
 	  lb = NULL;
 	  x = 0;
@@ -302,10 +302,15 @@ repaintText(TextObj t, int x, int y, int w, int h)
   }
 
   if ( Wrapped(t) )
-  { LocalString(buf, s, s->size + MAX_WRAP_LINES);
+  { LocalString(buf, s, s->size);
 
     str_format(buf, s, valInt(t->margin), t->font);
-    str_string(buf, t->font,
+    if ( notNil(t->selection) )
+      str_selected_string(buf, t->font, sf, st, style,
+			  x+valInt(t->x_offset), y, w, h,
+			  t->format, NAME_top);
+    else
+      str_string(buf, t->font,  
 	       x+valInt(t->x_offset), y, w, h,
 	       t->format, NAME_top, flags);
   } else
@@ -616,11 +621,17 @@ get_pointed_text(TextObj t, int x, int y)
   int caret = 0, el;
   int line = (y-b) / ch;			/* line for caret */
   int shift;
+  string buf; 
 
   if ( s->size == 0 )
     answer(ZERO);
 
   x -= b;
+  if ( Wrapped(t) )
+  { str_init(&buf, s, alloca(str_allocsize(s)));
+    str_format(&buf, s, valInt(t->margin), t->font);
+    s = &buf;
+  }
 
   s = str_bits_as_font(s, t->font, &shift);
 
@@ -1695,7 +1706,7 @@ static senddecl send_text[] =
   SM(NAME_deleteChar, 1, "times=[int]", deleteCharText,
      NAME_delete, "Delete characters forwards (\\C-d)"),
   SM(NAME_cutOrDeleteChar, 1, "times=[int]", cutOrDeleteCharText,
-     NAME_delete, "Cur or delete characters forwards (DEL)"),
+     NAME_delete, "Cut or delete characters forwards (DEL)"),
   SM(NAME_cutOrBackwardDeleteChar, 1, "times=[int]",
      cutOrBackwardDeleteCharText,
      NAME_delete, "Cut or delete characters backward (BS)"),
