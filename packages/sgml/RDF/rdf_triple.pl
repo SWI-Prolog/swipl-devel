@@ -201,6 +201,11 @@ property(Pred0 = Object, N, NN, BagH, BagT, Subject) --> % inlined object
 	{ li_pred(Pred0, Pred, N, NN)
 	},
 	statement(Subject, Pred, Id, _, BagH, BagT).
+property(Pred0 = collection(Elems), N, NN, BagH, BagT, Subject) --> !,
+	{ li_pred(Pred0, Pred, N, NN)
+	},
+	statement(Subject, Pred, Object, _Id, BagH, BagT),
+	collection(Elems, Object).
 property(Pred0 = Object, N, NN, BagH, BagT, Subject) --> !,
 	{ li_pred(Pred0, Pred, N, NN)
 	},
@@ -210,6 +215,11 @@ property(id(Id, Pred0 = Object), N, NN, BagH, BagT, Subject) -->
 	{ li_pred(Pred0, Pred, N, NN)
 	},
 	statement(Subject, Pred, ObjectId, Id, BagH, BagT).
+property(id(Id, Pred0 = collection(Elems)), N, NN, BagH, BagT, Subject) --> !,
+	{ li_pred(Pred0, Pred, N, NN)
+	},
+	statement(Subject, Pred, Object, Id, BagH, BagT),
+	collection(Elems, Object).
 property(id(Id, Pred0 = Object), N, NN, BagH, BagT, Subject) -->
 	{ li_pred(Pred0, Pred, N, NN)
 	},
@@ -252,6 +262,23 @@ li_pred(rdf:li, rdf:Pred, N, NN) :- !,
 	atom_concat('_', N, Pred).
 li_pred(Pred, Pred, N, N).
 	
+%	collection(+Elems, -Id)
+%	
+%	Handle the elements of a collection and return the identifier
+%	for the whole collection in Id.
+
+collection([], rdf:nil) -->
+	[].
+collection([H|T], Id) -->
+	triples(H, HId),
+	{ gensym('List__', Id)
+	},
+	[ rdf(Id, rdf:type, rdf:'List'),
+	  rdf(Id, rdf:first, HId),
+	  rdf(Id, rdf:rest, TId)
+	],
+	collection(T, TId).
+
 
 		 /*******************************
 		 *	       UTIL		*

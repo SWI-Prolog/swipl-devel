@@ -1,3 +1,8 @@
+Nov 14, 2002
+
+  * ADDED: parseType="Collection", satisfying the W3C Working Draft
+    8 November 2002.
+
 ################################################################
 # Sumary of incompatibilities:
 #

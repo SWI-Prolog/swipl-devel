@@ -190,6 +190,12 @@ propertyElt(_, Name, literal(Value), _Base) ::=
 	{ !,
 	  literal_value(Content, Value)
 	}.
+propertyElt(Id, Name, collection(Elements), Base) ::=
+	element(Name,
+		\attrs([ \parseCollection,
+			 \?idAttr(Id, Base)
+		       ]),
+		\nodeElementList(Elements, Base)).
 propertyElt(Id, Name, literal(Value), Base) ::=
 	element(Name,
 		\attrs([ \?idAttr(Id, Base)
@@ -414,8 +420,9 @@ memberAttrs([H|T]) ::=
 memberAttr(li(Id, Value)) ::=		% Id should be _<n>
 	\rdf(Id) = Value.
 
-parseLiteral  ::= \rdf_or_unqualified(parseType) = 'Literal'.
-parseResource ::= \rdf_or_unqualified(parseType) = 'Resource'.
+parseLiteral    ::= \rdf_or_unqualified(parseType) = 'Literal'.
+parseResource   ::= \rdf_or_unqualified(parseType) = 'Resource'.
+parseCollection ::= \rdf_or_unqualified(parseType) = 'Collection'.
 
 
 		 /*******************************
