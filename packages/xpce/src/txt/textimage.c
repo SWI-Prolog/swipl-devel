@@ -1807,7 +1807,7 @@ wrapTextImage(TextImage ti, Name wrap)
 }
 
 
-static status
+status
 backgroundTextImage(TextImage ti, Any bg)
 { if ( ti->background != bg )
   { assign(ti, background, bg);

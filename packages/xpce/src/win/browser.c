@@ -149,6 +149,13 @@ getSizeBrowser(Browser b)
 { answer(getSizeListBrowser(b->list_browser));
 }
 
+
+static status
+backgroundBrowser(Browser b, Any bg)
+{ return backgroundListBrowser(b->list_browser, bg);
+}
+
+
 		/********************************
 		*            VISUAL		*
 		********************************/
@@ -203,7 +210,10 @@ static senddecl send_browser[] =
   SM(NAME_selected, 1, "member:dict_item", selectedBrowser,
      NAME_selection, "Test if object is selected"),
   SM(NAME_selection, 1, "member:dict_item|chain*", selectionBrowser,
-     NAME_selection, "Set selected items")
+     NAME_selection, "Set selected items"),
+  SM(NAME_background, 1, "[colour|pixmap]", backgroundBrowser,
+     NAME_appearance, "Background colour")
+
 };
 
 /* Get Methods */

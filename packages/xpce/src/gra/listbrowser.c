@@ -1561,6 +1561,14 @@ tabStopsListBrowser(ListBrowser lb, Vector v)
   
   succeed;
 }
+
+
+status
+backgroundListBrowser(ListBrowser lb, Any bg)
+{ return backgroundTextImage(lb->image, bg);
+  
+  succeed;
+}
 					/* avoid capture by device */
 
 static status
@@ -1704,6 +1712,8 @@ static senddecl send_listBrowser[] =
      NAME_appearance, "Set style associated with name"),
   SM(NAME_tabStops, 1, "vector*", tabStopsListBrowser,
      NAME_appearance, "Set tab-stops (pixels)"),
+  SV(NAME_background, 1, "[colour|pixmap]", backgroundListBrowser,
+     NAME_appearance, "Background colour"),
   SM(NAME_Size, 1, "pixels=size", SizeListBrowser,
      NAME_area, "Set size in pixels (trap window resize)"),
   SM(NAME_extendPrefixOrNext, 0, NULL, extendPrefixOrNextListBrowser,

@@ -166,6 +166,7 @@ status		computeTextImage(TextImage ti);
 status		startTextImage(TextImage ti, Int start, Int skip);
 status		centerTextImage(TextImage ti, Int position, Int screen_line);
 Int		getStartTextImage(TextImage ti, Int line);
+status		backgroundTextImage(TextImage ti, Any bg);
 status		tabDistanceTextImage(TextImage ti, Int tab);
 status		tabStopsTextImage(TextImage ti, Vector v);
 Int		getViewTextImage(TextImage ti);

@@ -241,6 +241,7 @@ status		selectionListBrowser(ListBrowser lb, Any obj);
 Any		getSelectionListBrowser(ListBrowser lb);
 status		scrollToListBrowser(ListBrowser lb, Int index);
 status		normaliseListBrowser(ListBrowser lb, DictItem di);
+status		backgroundListBrowser(ListBrowser lb, Any bg);
 DictItem	getMemberListBrowser(ListBrowser lb, Any key);
 Chain		getContainsListBrowser(ListBrowser lb);
 status		makeClassListBrowser(Class class);
