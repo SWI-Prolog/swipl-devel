@@ -2008,6 +2008,11 @@ Sopenmem(char **buffer, int *size, const char* mode)
       if ( s != buf )			(appearently moved)
 	free(s);
     }
+
+Note: Its is NOT allows to access   streams  created with this call from
+multiple threads. This is ok for all   usage inside Prolog itself (often
+through tellString()/toldString(). This call is   intented  to use write
+and other output predicates to create strings.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 IOSTREAM *

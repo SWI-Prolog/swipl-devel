@@ -7,8 +7,12 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
-VERSION 5.2.5 (Jul 31, 2003)
+VERSION 5.2.5 (Aug 01, 2003)
 ============================
+
+  * FIXED: Bug#81 memory leak issues around recursive mutex creation.  Also
+    provide faster initialisation of recursive mutex objects.  Thanks to
+    Ross Johnson (pthread-win32 maintainer).
 
   * ADDED: Option SIO_NOMUTEX to make faster temporary streams that are
     not shared between threads.  Provides a work-around for Bug#81 causes

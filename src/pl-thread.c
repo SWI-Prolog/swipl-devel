@@ -1916,28 +1916,68 @@ PRED_IMPL("thread_peek_message", 2, thread_peek_message, 0)
 
 #ifdef NEED_RECURSIVE_MUTEX_INIT
 
+#ifdef RECURSIVE_MUTEXES
+static int
+recursive_attr(pthread_mutexattr_t **ap)
+{ static int done;
+  static pthread_mutexattr_t attr;
+  int rc;
+
+  if ( done )
+  { *ap = &attr;
+    return 0;
+  }
+
+  LOCK();
+  if ( done )
+  { UNLOCK();
+
+    *ap = &attr;
+    return 0;
+  }
+  if ( (rc=pthread_mutexattr_init(&attr)) )
+    goto error;
+#ifdef HAVE_PTHREAD_MUTEXATTR_SETTYPE
+  if ( (rc=pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE)) )
+    goto error;
+#else
+#ifdef HAVE_PTHREAD_MUTEXATTR_SETKIND_NP
+  if ( (rc=pthread_mutexattr_setkind_np(&attr, PTHREAD_MUTEX_RECURSIVE_NP)) )
+    goto error;
+#endif
+#endif
+
+  done = TRUE;
+  UNLOCK();
+  *ap = &attr;
+
+  return 0;
+
+error:
+  UNLOCK();
+  return rc;
+}
+#endif
+
 int
 recursiveMutexInit(recursiveMutex *m)
 { 
 #ifdef RECURSIVE_MUTEXES
-  pthread_mutexattr_t attr;
+  pthread_mutexattr_t *attr;
+  int rc;
+  
+  if ( (rc=recursive_attr(&attr)) )
+    return rc;
+  
+  return pthread_mutex_init(m, attr);
 
-  pthread_mutexattr_init(&attr);
-#ifdef HAVE_PTHREAD_MUTEXATTR_SETTYPE
-  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-#else
-#ifdef HAVE_PTHREAD_MUTEXATTR_SETKIND_NP
-  pthread_mutexattr_setkind_np(&attr, PTHREAD_MUTEX_RECURSIVE_NP);
-#endif
-#endif
-  pthread_mutex_init(m, &attr);
 #else /*RECURSIVE_MUTEXES*/
+
   m->owner = 0;
   m->count = 0;
-  pthread_mutex_init(&(m->lock),NULL);
-#endif /* RECURSIVE_MUTEXES */
+  return pthread_mutex_init(&(m->lock), NULL);
 
-  return 0;
+#endif /* RECURSIVE_MUTEXES */
 }
 
 #endif /*NEED_RECURSIVE_MUTEX_INIT*/

@@ -830,6 +830,8 @@ pce_profile_hooks PceProfile =
 int
 pceSetProfileHooks(pce_profile_hooks *hooks)
 { PceProfile = *hooks;			/* structure copy */
+
+  return TRUE;
 }
 
 
