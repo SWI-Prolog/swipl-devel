@@ -52,7 +52,6 @@
 	   , chain_list/2
 	   , concat_atom/2
 	   , delete/3
-	   , expand_file_name/2
 	   , file_directory_name/2
 	   , forall/2
 	   , is_absolute_file_name/1
@@ -70,8 +69,7 @@
 :- dynamic   user:file_search_path/2.
 
 user:file_search_path(config, ConfigHome) :-
-	expand_file_name(~, [Home]),
-	concat_atom([Home, /, '.xpce'], ConfigHome).
+        get(file('~/.xpce'), absolute_path, ConfigHome).
 
 config_version(1).			% version of the config package
 
@@ -241,7 +239,8 @@ save_file(Key, File) :-
 save_file(Key, File) :-
 	absolute_file_name(config(Key),
 			   [ access(write),
-			     extensions([cnf])
+			     extensions([cnf]),
+			     file_errors(fail)
 			   ], File), !.
 save_file(Key, File) :-
 	absolute_file_name(config(Key),
@@ -347,7 +346,8 @@ load_file(Key, File) :-
 load_file(Key, File) :-
 	absolute_file_name(config(Key),
 			   [ access(read),
-			     extensions([cnf])
+			     extensions([cnf]),
+			     file_errors(fail)
 			   ], File).
 
 load_key(_DB, Key) :-
@@ -465,7 +465,8 @@ current_config_type(TypeSpec, Attributes) :-
 	;   config_type(Type, _, Attributes)
 	).
 current_config_type(TypeSpec, Attributes) :-
-	builtin_config_type(TypeSpec, Attributes).
+	strip_module(TypeSpec, _Module, Type),
+	builtin_config_type(Type, Attributes).
 
 pce_object_type(setof(Type)) :- !,
 	pce_object_type(Type).
@@ -545,7 +546,7 @@ config_attributes_to_term(Attribute, Obj, Term) :-
 term_description(Type, TermDescription) :-
 	current_config_type(Type, Attributes),
 	member(term(TermDescription), Attributes),
-	TermDescription \= if(_,_).
+	\+ TermDescription = if(_,_).
 term_description(Type, TermDescription, Condition) :-
 	current_config_type(Type, Attributes),
 	member(term(if(Condition, TermDescription)), Attributes).

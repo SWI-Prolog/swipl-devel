@@ -304,8 +304,11 @@ notrace(Goal) :-
 % atom_length(+Atom, -Length)
 
 atom_length(Atom, Length) :-
+	atomic(Atom), !,
 	name(Atom, List),
 	length(List, Length).
+atom_length(String, Length) :-
+	length(String, Length).
 
 % free_variables(+Term, -ListOfUnBound)
 %

@@ -10,6 +10,7 @@
 :- module(emacs_language_mode, []).
 :- use_module(library(pce)).
 :- require([ auto_call/1
+	   , chain_list/2
 	   , default/3
 	   , ignore/1
 	   , member/2
@@ -306,7 +307,9 @@ pce_ifhostproperty(prolog(swi),
 	;   help(What)
 	))
 ],
-[ (do_help(M, What) :-
+[ (:- initialization get(type(name), copy, prolog_help_topic, _)),
+
+  (do_help(M, What) :-
 	send(M, report, warning, 'No manual interface for this Prolog'))
 ]).
 

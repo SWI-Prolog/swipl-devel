@@ -90,7 +90,7 @@ modified(M, Value:[bool]) :->
 Attach   a new prototype. 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-proto(M, Proto:proto='graphical|link*', Mode:mode=name,
+proto(M, Proto:proto='graphical|link*', Mode:'mode=name',
       Cursor:cursor=cursor, Icon:icon=[image], Tag:tag=[name],
       UserProto:user_proto=[bool]) :->
 	"Attach a new prototype"::

@@ -25,6 +25,10 @@
 	   , send_list/2
 	   ]).
 
+:- require([ pow/3,		% Needed for handling Quintus expanded math
+	     sqrt/2
+	   ]).
+
 verbose(off).
 %verbose(on).
 

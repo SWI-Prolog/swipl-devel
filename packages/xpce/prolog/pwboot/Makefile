@@ -13,14 +13,16 @@ SO=so
 builddir=linux
 PCEMAJOR=4
 PCEMINOR=10
-PCEPATCH=0
+PCEPATCH=1
 
-PWVERSION=3.1
+PWVERSION=3.2
+QPVERSION=3.4
 QPC=qpc
 QLD=qld
 
 CP=cp -p
 LN=ln -s
+SUM=sum -r
 
 #Deliver Version
 #DELFLAGS = -h
@@ -31,6 +33,8 @@ CDEBUGFLAGS=
 #CDEBUGFLAGS= -g
 
 PCEHOME=../../prowindows$(PWVERSION)
+LINSTALLD=installd$(QPVERSION)/pw3
+INSTALLD=../../$(LINSTALLD)
 PCEHLP=$(PCEHOME)/appl-help
 PCELIB=$(PCEHOME)/library
 PCEDEMO=$(PCEHOME)/demo
@@ -41,6 +45,23 @@ PCECONTRIB=$(PCEHOME)/contrib
 .pl.qof:
 	$(QPC) -L . -i pce_qpc.qof -N $(DELFLAGS) -cH $*.pl -o $*.qof
 
+RELDIRS=	$(PCEHOME) \
+		$(PCEHLP) \
+		$(PCEHLP)/lib \
+		$(PCELIB) \
+		$(PCELIB)/$(BIN) \
+		$(PCELIB)/dialog \
+		$(PCELIB)/dialog/lib \
+		$(PCELIB)/draw \
+		$(PCELIB)/emacs \
+		$(PCELIB)/english \
+		$(PCELIB)/man \
+		$(PCELIB)/xref \
+		$(PCEDEMO) \
+		$(PCECONTRIB) \
+		$(PCECONTRIB)/rubik \
+		$(PCEDEMO)/dialog \
+		$(PCEDEMO)/pw2
 
 PCESHARE=	pce_editor.pl \
 		pce_realise.pl \
@@ -68,7 +89,10 @@ PCEQOFS=	pce_boot.qof \
 OBJS=		../../quintus/src/$(BIN)/libpce.$(SO)
 
 BINFILES=	libpce.$(SO) \
-		libpce.a
+		libpce.a \
+		libjpeg.a \
+		libXpm.a
+
 #		libXPCEmain.a
 #		libXPCE.$(SO) libXPCE.$(SO).$(PCEMAJOR) \
 #		libXPCE.$(SO).$(PCEMAJOR).$(PCEMINOR).$(PCEPATCH)
@@ -80,54 +104,64 @@ BOOTPLS=	pce_qux.pl \
 		QPINDEX.pl \
 		english/pce_messages.pl
 
-LIBPLS=		pce.pl \
-		pce_util.pl \
-		area.pl \
-		pce_emacs.pl \
-		emacs_tags.pl \
+LIBPLS=		area.pl \
+		broadcast.pl \
+		dragdict.pl \
+		dragdrop.pl \
+		edit_dialog.pl \
 		emacs_extend.pl \
+		emacs_tags.pl \
 		file_item.pl \
 		find_file.pl \
+		help_message.pl \
 		keybinding.pl \
+		make_dialog.pl \
+		pce.pl \
+		pce_arrow_item.pl \
+		pce_config.pl \
+		pce_configeditor.pl \
+		pce_colour_item.pl \
+		pce_cxx_headers.pl \
 		pce_debug.pl \
+		pce_drag_and_drop.pl \
+		pce_drag_and_drop_dict_item.pl \
 		pce_edit.pl \
+		pce_editable_text.pl \
+		pce_emacs.pl \
+		pce_font_item.pl \
+		pce_graphical_browser.pl \
+		pce_help_file.pl \
+		pce_helper.pl \
+		pce_image.pl \
+		pce_image_browser.pl \
+		pce_image_item.pl \
+		pce_loadcxx.pl \
+		pce_main.pl \
 		pce_manual.pl \
 		pce_objects.pl \
 		pce_portray.pl \
 		pce_postscript.pl \
+		pce_prompter.pl \
+		pce_renew.pl \
+		pce_require.pl \
+		pce_selection.pl \
 		pce_server.pl \
+		pce_set_item.pl \
+		pce_shell.pl \
+		pce_style_item.pl \
+		pce_tagged_connection.pl \
+		pce_template.pl \
+		pce_tick_box.pl \
+		pce_toc.pl \
+		pce_util.pl \
 		pcedraw.pl \
 		portray_object.pl \
+		pw3.pl \
 		scan_arguments.pl \
 		stayup_popup.pl \
-		twm_resize_button.pl \
-		twm_geometry_box.pl \
 		subframe.pl \
-		pce_renew.pl \
-		pce_font_item.pl \
-		pce_style_item.pl \
-		pce_cxx_headers.pl \
-		pce_selection.pl \
-		pce_drag_and_drop.pl \
-		dragdrop.pl \
-		pce_drag_and_drop_dict_item.pl \
-		dragdict.pl \
-		pce_require.pl \
-		pce_shell.pl \
-		pce_main.pl \
-		pce_toc.pl \
-		pce_tick_box.pl \
-		edit_dialog.pl \
-		make_dialog.pl \
-		pce_editable_text.pl \
-		pce_helper.pl \
-		pce_help_file.pl \
-		help_message.pl \
-		pce_image.pl \
-		pce_prompter.pl \
-		pce_template.pl \
-		pce_tagged_connection.pl \
-		pce_loadcxx.pl
+		twm_geometry_box.pl \
+		twm_resize_button.pl
 
 MANPLS= 	man/p_card.pl \
 		man/p_data.pl \
@@ -166,7 +200,9 @@ RBIKPLS=	rubik/maplist.pl \
 DRAWPLS=	draw/align.pl \
 		draw/attribute.pl \
 		draw/canvas.pl \
+		draw/config.pl \
 		draw/draw.pl \
+		draw/exportpl.pl \
 		draw/gesture.pl \
 		draw/menu.pl \
 		draw/shapes.pl \
@@ -210,15 +246,12 @@ DIALOGPLS=	dialog/attribute.pl \
 
 LANGPLS=	english/pce_messages.pl
 
-DEMOPLS= 	biff.pl \
-		pce_demo.pl \
+DEMOPLS= 	pce_demo.pl \
 		chess.pl \
 		constraint.pl \
 		cursor.pl \
-		dialog.pl \
 		event_hierarchy.pl \
 		fontviewer.pl \
-		ftplog.pl \
 		graph.pl \
 		imageviewer.pl \
 		ispell.pl \
@@ -239,13 +272,13 @@ PW2DEMOS=	pw2/README \
 		pw2/thermo.pl \
 		pw2/verb
 
-HLPFILES=	help.hlp dialog.hlp customise.hlp emacs.hlp pcedraw.hlp \
-		pcefaq.hlp
+HLPFILES=	help.hlp dialog.hlp customise.hlp emacs.hlp pcedraw.hlp
 LIBHLPFILES=	dragdrop.hlp findfile.hlp overview.hlp
 
-INFOFILES=	ChangeLog README.customise README.font
+INFOFILES=	ChangeLog README
 
-all:	binfiles qofs release
+all:	binfiles qofs
+	$(MAKE) release
 
 binfiles:
 	(cd ../../quintus/src; $(MAKE))
@@ -261,7 +294,7 @@ pw.qui: $(OBJS)
 		-L `pwd`/../lib 'library(qui)' \
 		$(EXTRALIBS)
 
-pce_qpc.qof: pce_qpc.pl
+pce_qpc.qof: pce_qpc.pl expandgoal.pl expandmath.pl
 	$(QPC) -L . -c pce_qux.pl
 	$(QPC) -L . -i pce_qpc.pl -c pce_qpc.pl -o pce_qpc0.qof
 	$(QLD) -L . -dr pce_qpc0.qof -o $@
@@ -277,29 +310,67 @@ require.qof: require.pl
 
 $(PCEQOFS):	pce_qpc.qof
 
-release: directories release_lib release_demo release_contrib \
-	 release_bin release_makes release_misc info_files help_files
+release:	release_directories \
+		release_lib \
+		release_demo \
+		release_contrib \
+		release_bin \
+		release_makes \
+		release_misc \
+		info_files \
+		help_files \
+		lib_qof \
+		demo_qof \
+		installd
+
+lib_qof:
 	cd $(PCELIB); $(MAKE)
+demo_qof:
 	cd $(PCEDEMO); $(MAKE)
 
-directories:
-	@[ -d $(PCEHOME) ] || mkdir $(PCEHOME)
-	@[ -d $(PCEHLP) ] || mkdir $(PCEHLP)
-	@[ -d $(PCEHLP)/lib ] || mkdir $(PCEHLP)/lib
-	@[ -d $(PCELIB) ] || mkdir $(PCELIB)
-	@[ -d $(PCELIB)/$(BIN) ] || mkdir $(PCELIB)/$(BIN)
-	@[ -d $(PCELIB)/dialog ] || mkdir $(PCELIB)/dialog
-	@[ -d $(PCELIB)/dialog/lib ] || mkdir $(PCELIB)/dialog/lib
-	@[ -d $(PCELIB)/draw ] || mkdir $(PCELIB)/draw
-	@[ -d $(PCELIB)/emacs ] || mkdir $(PCELIB)/emacs
-	@[ -d $(PCELIB)/english ] || mkdir $(PCELIB)/english
-	@[ -d $(PCELIB)/man ] || mkdir $(PCELIB)/man
-	@[ -d $(PCELIB)/xref ] || mkdir $(PCELIB)/xref
-	@[ -d $(PCEDEMO) ] || mkdir $(PCEDEMO)
-	@[ -d $(PCECONTRIB) ] || mkdir $(PCECONTRIB)
-	@[ -d $(PCECONTRIB)/rubik ] || mkdir $(PCECONTRIB)/rubik
-	@[ -d $(PCEDEMO)/dialog ] || mkdir $(PCEDEMO)/dialog
-	@[ -d $(PCEDEMO)/pw2 ] || mkdir $(PCEDEMO)/pw2
+installd:	$(INSTALLD) \
+		$(INSTALLD)/postinstall \
+		$(INSTALLD)/info \
+		$(INSTALLD)/map
+
+release_directories:	$(RELDIRS)
+
+$(PCEHOME):
+	mkdir $@
+$(PCEHLP):
+	mkdir $@
+$(PCEHLP)/lib:
+	mkdir $@
+$(PCELIB):
+	mkdir $@
+$(PCELIB)/$(BIN):
+	mkdir $@
+$(PCELIB)/dialog:
+	mkdir $@
+$(PCELIB)/dialog/lib:
+	mkdir $@
+$(PCELIB)/draw:
+	mkdir $@
+$(PCELIB)/emacs:
+	mkdir $@
+$(PCELIB)/english:
+	mkdir $@
+$(PCELIB)/man:
+	mkdir $@
+$(PCELIB)/xref:
+	mkdir $@
+$(PCEDEMO):
+	mkdir $@
+$(PCECONTRIB):
+	mkdir $@
+$(PCECONTRIB)/rubik:
+	mkdir $@
+$(PCEDEMO)/dialog:
+	mkdir $@
+$(PCEDEMO)/pw2:
+	mkdir $@
+$(INSTALLD):
+	mkdir -p $@
 
 
 release_lib:		$(addprefix $(PCELIB)/, $(BOOTQOFS)) \
@@ -323,13 +394,12 @@ info_files:		$(addprefix $(PCEHOME)/, $(INFOFILES))
 help_files:		$(addprefix $(PCEHLP)/, $(HLPFILES)) \
 			$(addprefix $(PCEHLP)/lib/, $(LIBHLPFILES))
 
-release_bin:	$(addprefix $(PCELIB)/$(BIN)/, $(BINFILES)) \
-		$(PCELIB)/$(BIN)/libXt.so.4.0
+release_bin:	$(addprefix $(PCELIB)/$(BIN)/, $(BINFILES))
 
-release_makes:	$(PCEHOME)/Makefile $(PCELIB)/Makefile $(PCEDEMO)/Makefile
+release_makes:	$(PCELIB)/Makefile $(PCEDEMO)/Makefile
 
 release_misc:	$(PCEHOME)/Pce $(PCEHOME)/bitmaps $(PCELIB)/dialog/bitmaps \
-		$(PCEHOME)/man $(PCEHOME)/postscript \
+		$(PCEHOME)/man $(PCEHOME)/postscript $(PCEHOME)/makepw3 \
 		$(PCELIB)/xref/common.pl $(PCELIB)/xref/quintus.pl \
 		$(PCEHOME)/include $(PCEHOME)/CXX
 
@@ -390,6 +460,12 @@ $(PCEHOME)/%:	../../%
 $(PCEHOME)/Makefile: install_make
 	$(CP) $< $@
 
+$(PCEHOME)/README: ../../README.pw3
+	$(CP) $< $@
+
+$(PCEHOME)/makepw3: ../../make_pw3
+	$(CP) $< $@
+
 $(PCELIB)/Makefile:  lib_make
 	$(CP) $< $@
 
@@ -399,7 +475,7 @@ $(PCEDEMO)/Makefile: demo_make
 $(PCELIB)/$(BIN)/libpce.$(SO):	../../quintus/src/$(BIN)/libpce.$(SO)
 	$(CP) $< $@
 
-$(PCELIB)/$(BIN)/libpce.a:	../../quintus/src/$(BIN)/libpce.a
+$(PCELIB)/$(BIN)/%:	../../quintus/src/$(BIN)/%
 	$(CP) $< $@
 
 $(PCELIB)/$(BIN)/%:	../../$(builddir)/%
@@ -409,19 +485,11 @@ $(PCELIB)/$(BIN)/libXPCE.$(SO).$(PCEMAJOR):
 $(PCELIB)/$(BIN)/libXPCE.$(SO).$(PCEMAJOR).$(PCEMINOR).$(PCEPATCH):
 	$(LN) libXPCE.$(SO) $@
 
-ifeq "$(BIN)" "sun4-4"
-$(PCELIB)/$(BIN)/libXt.so.4.0:	../../quintus/src/$(BIN)/libXt.so.4.0
-	$(CP) $< $@
-else
-.PHONY: $(PCELIB)/$(BIN)/libXt.so.4.0
-endif
-
-
 # copy directories
 
 $(PCEHOME)/bitmaps:
 	mkdir $@
-	$(CP) ../../bitmaps/*.bm $@
+	$(CP) -r ../../bitmaps/* $@
 
 $(PCELIB)/dialog/bitmaps:
 	mkdir $@
@@ -440,16 +508,24 @@ $(PCEHOME)/CXX:
 $(PCEHOME)/man:
 	mkdir $@
 	$(CP) -r ../../man/reference $@
-	$(CP) -r ../../man/faq $@
-	$(CP) -r ../../man/xpce.1 $@
 	$(CP) -r ../../man/xpce-client.1 $@
 	rm -fr $@/CVS $@/*/CVS $@/*/*/CVS $@/*/*/*/CVS
-	rm -f $@/releasenotes/*.fm*
 
 $(PCEHOME)/postscript:
 	mkdir $@
 	$(CP) -r ../../postscript/* $@
 	rm -fr $@/CVS
+
+$(INSTALLD)/postinstall:	postinstall
+	$(CP) $< $@
+$(INSTALLD)/info:	info
+	$(CP) $< $@
+$(INSTALLD)/map:
+	cd ../.. && \
+	rm -f $(LINSTALLD)/map && \
+	for f in `find prowindows$(PWVERSION) -type f`; do \
+	    echo "`$(SUM) $$f` $$f" >> $(LINSTALLD)/map; \
+	done
 
 clean:
 	rm -fr $(PCEHOME)

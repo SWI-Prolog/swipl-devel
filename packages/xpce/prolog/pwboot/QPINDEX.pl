@@ -15,6 +15,14 @@ SWI-Prolog.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 index((side_pattern), 3, area, area).
+index((listen), 3, broadcast, broadcast).
+index((listen), 2, broadcast, broadcast).
+index((unlisten), 1, broadcast, broadcast).
+index((unlisten), 2, broadcast, broadcast).
+index((unlisten), 3, broadcast, broadcast).
+index((listening), 3, broadcast, broadcast).
+index((broadcast), 1, broadcast, broadcast).
+index((broadcast_request), 1, broadcast, broadcast).
 index((dialog), 0, dia_main, edit_dialog).
 index((declare_emacs_mode), 2, emacs_extend, emacs_extend).
 index((declare_emacs_mode), 3, emacs_extend, emacs_extend).
@@ -50,6 +58,7 @@ index((get), 12, pce, pce).
 index((get), 13, pce, pce).
 index((object), 1, pce, pce).
 index((object), 2, pce, pce).
+index((pce_open), 3, pce, pce).
 index((pce_global), 2, pce, pce).
 index((pce_autoload), 2, pce, pce).
 index((pce_autoload_all), 0, pce, pce).
@@ -68,6 +77,20 @@ index((pce_send_method_message), 2, pce, pce).
 index((pce_get_method_message), 2, pce, pce).
 index((pce_catch_error), 2, pce, pce).
 index((require), 1, pce, pce).
+index((register_config), 1, pce_config, pce_config).
+index((register_config_type), 2, pce_config, pce_config).
+index((get_config), 2, pce_config, pce_config).
+index((set_config), 2, pce_config, pce_config).
+index((add_config), 2, pce_config, pce_config).
+index((del_config), 2, pce_config, pce_config).
+index((edit_config), 1, pce_config, pce_config).
+index((save_config), 1, pce_config, pce_config).
+index((load_config), 1, pce_config, pce_config).
+index((ensure_loaded_config), 1, pce_config, pce_config).
+index((config_term_to_object), 2, pce_config, pce_config).
+index((config_term_to_object), 3, pce_config, pce_config).
+index((config_attributes), 2, pce_config, pce_config).
+index((current_config_type), 2, pce_config, pce_config).
 index((generate_cpp_class_header_file), 0, pce_cpp_header, pce_cxx_headers).
 index((debugpce), 0, pce_debug, pce_debug).
 index((debugpce), 1, pce_debug, pce_debug).
@@ -95,6 +118,7 @@ index((pce_help_file), 2, pce_help_file, pce_help_file).
 index((pce_help), 2, pce_help_file, pce_help_file).
 index((pce_registered_help_file), 2, pce_help_file, pce_help_file).
 index((pce_image_directory), 1, pce_image, pce_image).
+index((pce_load_cxx), 1, pce_load_cxx, pce_loadcxx).
 index((pce_loop), 2, pce_main, pce_main).
 index((pce_loop), 1, pce_main, pce_main).
 index((pce_main_loop), 1, pce_main, pce_main).
@@ -111,7 +135,6 @@ index((pce_warn), 1, pce_qux, pce_qux).
 index((pce_info), 1, pce_qux, pce_qux).
 index((ignore), 1, pce_qux, pce_qux).
 index((auto_call), 1, pce_qux, pce_qux).
-index((notrace), 1, pce_qux, pce_qux).
 index((concat), 3, pce_qux, pce_qux).
 index((free_variables), 2, pce_qux, pce_qux).
 index((atom_length), 2, pce_qux, pce_qux).
@@ -121,7 +144,6 @@ index((pce_arg), 3, pce_qux, pce_qux).
 index((sublist), 3, pce_qux, pce_qux).
 index((exists_file), 1, pce_qux, pce_qux).
 index((make), 0, pce_qux, pce_qux).
-index((pce_load_cxx), 1, pce_loadcxx, pce_loadcxx).
 index((source_warning), 2, pce_qux, pce_qux).
 index((sformat), 3, pce_qux, pce_qux).
 index((is_absolute_file_name), 1, pce_qux, pce_qux).
@@ -131,6 +153,7 @@ index((file_name_extension), 3, pce_qux, pce_qux).
 index((expand_file_name), 2, pce_qux, pce_qux).
 index((callable_predicate), 1, pce_qux, pce_qux).
 index((modified_since_last_loaded), 1, pce_qux, pce_qux).
+index((notrace), 1, pce_qux, pce_qux).
 index((xpce_loop), 0, pce_qux, pce_qux).
 index((pce_renew), 1, pce_renew, pce_renew).
 index((pce_require), 1, pce_require, pce_require).
@@ -157,12 +180,11 @@ index((chain_list), 2, pce_util, pce_util).
 index((default), 3, pce_util, pce_util).
 index((pcedraw), 0, pce_draw, pcedraw).
 index((pcedraw), 1, pce_draw, pcedraw).
-index((draw_toplevel), 0, pce_draw, pcedraw).
+index((save_pcedraw), 1, pce_draw, pcedraw).
 index((portray_object), 1, pce_portray, portray_object).
 index((portray_object), 2, pce_portray, portray_object).
 index((scan_arguments), 2, scan_arguments, scan_arguments).
 index((scan_arguments), 3, scan_arguments, scan_arguments).
-
 
 		 /*******************************
 		 *	 QUINTUS LIBRARY	*

@@ -82,6 +82,8 @@ foreign(setup_input, c,
 	setup_input(+integer, +integer, +integer, [-integer])).
 foreign(qp_pce_reset, c, 
 	pce_reset).
+foreign(qp_pce_redraw, c, 
+	pce_redraw).
 foreign(qp_pce_exit, c,
 	pce_exit).
 foreign(qp_pce_open, c,
@@ -97,6 +99,7 @@ foreign_file(system(libpce),
 	       setup_input,
 	       qp_pce_open,
 	       qp_pce_reset,
+	       qp_pce_redraw,
 	       qp_pce_exit,
 	       pce_xt_appcontext,
 	       xt_create_app_context
@@ -244,14 +247,25 @@ pce_open(Object, Mode, Stream) :-
 		 *	       HOOKS		*
 		 *******************************/
 
-:- multifile user:message_hook/3.
+:- multifile
+	user:message_hook/3,
+	user:query_hook/6.
 %:- dynamic   user:message_hook/3.
 
 user:message_hook(execution_aborted,error,[['Execution aborted'-[]]]):-
-     write('Aborting ...'),
-     nl,
-     pce_reset,
-     fail.
+	write('Aborting ...'),
+	nl,
+	pce_reset,
+	fail.
+user:message_hook(term_reading, silent, []) :-
+	pce_redraw,
+	fail.
+
+%	This is called by the toplevel when prompting for more answers (;)
+
+user:query_hook(toplevel, _, _, _, _, _) :-
+	pce_redraw,
+	fail.
 
 % callbacks from XPCE call user:call/1 with the goal term to call
  
@@ -273,7 +287,7 @@ add_input_callback :-
 	get(@pce, window_system, windows), !.
 add_input_callback :-
 	predicate_property(qui:'QP_GetQuiAppContext'(_), _), !,
-	qui:'QP_GetQuiAppContext'(XtAppContext),
+	call(qui:'QP_GetQuiAppContext'(XtAppContext)),
         pce_appcontext(XtAppContext, XtAppContext),
 	send(@display, open),
 	get(@display, connection_fd, FD),
@@ -290,11 +304,11 @@ prowindows_version :-
 	->  true
 	;   atom_chars(NL, [10]),
 	    pce_host:pwversion(PwVersion),
-	    List = [ 'Quintus ProWindows ', PwVersion,
+	    List = [ 'ProWindows ', PwVersion,
 		     ' (XPCE ', PceVersion, ') Interface',
 		     NL,
-		     'Copyright (C) 1997, ',
-		     'AIIL / University of Amsterdam. All Rights Reserved.'],
+		     'Copyright (C) 1998, ',
+		     'SICS/University of Amsterdam. All Rights Reserved.'],
 	    get(@pce, version, PceVersion),
 	    concat_chars(List, VersionChars),
 	    atom_chars(VersionAtom, VersionChars),

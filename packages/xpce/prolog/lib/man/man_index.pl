@@ -12,8 +12,7 @@
 	  , pce_make_manual_index/2	% +File, -Reference
 	  ]).
 :- use_module(library(pce)).
-:- require([ access_file/2
-	   , concat_atom/2
+:- require([ concat_atom/2
 	   ]).
 
 :- pce_begin_class(man_index_manager, object,

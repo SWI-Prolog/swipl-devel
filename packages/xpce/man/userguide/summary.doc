@@ -859,6 +859,12 @@ send(Device?graphicals, for_all,
 ...
 \end{code}
 
+#class int_item "int_item(name, default, message, low, high)"
+Class \class{int_item} is a subclass of class \class{text_item},
+specialised for editing integer values, optionally in a specified range.
+It takes care of additional type-checking and displays {\em increment}-
+and {\em decrement} buttons at the right-side of the value.
+
 #class image "image(name)"
 An \class{image} is a two-dimensional array of pixels.  Images come in
 two flavours: monochrome, where each pixel represents a boolean and
@@ -895,6 +901,16 @@ report messages for all windows of the \class{frame} in which the
 send(Dialog, append, label(reporter)),
 ...
 \end{code}
+
+#class layout_interface "layout_interface(graphical)"
+Abstract super-class of classes that act as an interface between
+\class{graphical} objects and the device's <-layout_manager.  See also
+class \class{table_cell}. 
+
+#class layout_manager "layout_manager()"
+Abstract super-class of classes that manage the layout for a graphical
+\class{device}.  A \class{layout_manager} is attached to a \class{device}
+using the method `device->layout_manager'.  See also class \class{table}.
 
 #class line "line(start_x, start_y, end_x, end_y, arrows)"
 A \class{line} is a straight line-segment with optional arrows,
@@ -1297,6 +1313,11 @@ Class \class{relation} is the super-class of \class{identity} and
 \classs{constraint}.  Class \class{relation} may be sub-classed to
 define new relation-types.
 
+#class relation_table "relation_table(names, keys)"
+A \class{table} defines a multi-column table data object that can have
+one or more indexed {\em key} fields. They are (infrequently) used for
+storing complex relational data as \product{} objects.
+
 #class resize_gesture "resize_gesture(button, modifier)"
 A \class{resize_gesture} handles mouse-drag events to resize a graphical
 object on the corners or edges.  See also \class{move_gesture} and
@@ -1468,10 +1489,72 @@ displayed on a \class{dialog}.  Skeleton:
 Defines a stack of tagged sub-dialogs (\class{tab} objects) that can
 be displayed on a \class{dialog}.  See \class{tab} for an example.
 
-#class table "table(names, keys)"
-A \class{table} defines a multi-column table data object that can have
-one or more indexed {\em key} fields. They are (infrequently) used for
-storing complex relational data as \product{} objects.
+#class table "table()"
+A \class{table} object is a \class{layout_manager} that realises a
+tabular layout, optionally with rules and a frame.  \product{} tables
+are modelled after HTML-3 tables, and provide column/row {\em spanning},
+top/left, bottom/right, center and {\em reference} alignment, etc.
+
+Class \class{table_cell} provides the interface between tables and the
+managed \class{graphical} obejcts.
+
+Example:
+
+\begin{code}
+	send(Device, layout_manager, new(T, table)),
+	...
+\end{code}
+
+#class table_cell "table_cell(graphical)"
+A \class{layout_interface} providing cell information for tables. See
+also class{table}. Graphicals may be embedded explicitely in a
+\class{table_cell}, or simply added to a \class{table}, in which case
+implicit embedding with a default \class{table_cell} will take place.
+Examples:
+
+\begin{code}
+	send(Table, append, new(Text, text)),
+	...,
+	get(Text?layout_interface, row, Row),
+\end{code}
+
+#class table
+
+#class table_column "table_column()"
+Specialisation of class \class{vector}, used by a \class{table} to
+represent the contents of a column. In many cases managed implicitely by
+the \class{table}. It is used to define default attributes of the cells
+or to delete the column and all its cells from the \class{table}.
+
+Please note that the cells are members of the table through the rows
+in the table.  Class \class{table_column} is just used to manipulate
+entire columns of the table.  Columns are created and updated by
+`table ->compute'.
+
+The following code centers the 2nd column of the table:
+
+\begin{code}
+	get(Table, column, 2, @on, Column),
+	send(Column, halign, center),
+\end{code}
+
+#class table_row "table_row()"
+Specialisation of class \class{vector}, used by a \class{table} to
+represent the contents of a row. In many cases managed implicitely by
+the \class{table}. It is used to define default attributes of the cells
+or to delete the row and all its cells from the \class{table}.
+
+The following code deletes the 3th row from the table, or fails if the
+table has no 3th row.
+
+\begin{code}
+	get(Table. row, 3, Row),
+	send(Table. delete, Row),
+\end{code}
+
+#class table_slice "table_slice()"
+Almost empty abstract super-class for the classes \class{table_row} and
+\class{table_column}.
 
 #class text "text(string, format, font)"
 Graphical representing a string in a specified font.  Class text

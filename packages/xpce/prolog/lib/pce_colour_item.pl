@@ -18,6 +18,13 @@
 	   , send_list/3
 	   ]).
 
+%	The following are the result of expanded math for Quintus
+%	Prolog
+
+:- require([sqrt/2,
+	    ceiling/2
+	   ]).
+
 default_palette_colour(red).
 default_palette_colour(darkorange).
 default_palette_colour(blue).
@@ -274,7 +281,8 @@ palette_dimensions(Entries, Width, Height) :- % perfect divisors
 	OK < 0.4,
 	Width is Entries / Height.
 palette_dimensions(Entries, Width, Height) :-
-	Width is integer(sqrt(Entries)*1.1),
+        sqrt(Entries, E2),
+	Width is integer(E2*1.1),
 	Height is (Entries+Width-1)//Width.
 
 best_divisor([H|T], Entries, Ok0/I0, R) :-
@@ -313,7 +321,7 @@ user:file_search_path(x11, PceLib) :-
 	concat(PceHome, '/lib', PceLib).
 
 
-:- pce_global(@colour_table,     make_colour_table).
+:- pce_global(@colour_names,     make_colour_table).
 :- pce_global(@colour_name_list, make_colour_name_list).
 :- pce_global(@rgb_table,        make_rgb_table).
 
@@ -321,7 +329,8 @@ make_colour_table(DB) :-
 	new(DB, hash_table),
 	absolute_file_name(x11(rgb),
 			   [ extensions([txt]),
-			     access(read)
+			     access(read),
+			     file_errors(fail)
 			   ], DataBase),
 	new(F, file(DataBase)),
 	(   send(F, open, read)
@@ -332,7 +341,7 @@ make_colour_table(DB) :-
 		send(Name, translate, ' ', '_'),
 		send(Name, downcase),
 		get(Name, value, Atom),
-		RGB is R<<16 + G<<8 + B,
+		RGB is B<<16 + G<<8 + R,
 		(   get(DB, member, Atom, _)
 		->  true
 		;   send(DB, append, Atom, RGB)
@@ -347,12 +356,12 @@ make_colour_table(DB) :-
 
 make_colour_name_list(N) :-
 	new(N, chain),
-	send(@colour_table, for_all, message(N, append, @arg1)),
+	send(@colour_names, for_all, message(N, append, @arg1)),
 	send(N, sort).			% ???
 	
 make_rgb_table(DB) :-
 	new(DB, hash_table),
-	send(@colour_table, for_all,
+	send(@colour_names, for_all,
 	     message(DB, append,
 		     ?(@prolog, quant_rgb, @arg2),
 		     @arg1)).
@@ -398,9 +407,9 @@ standardise_colour_name(Colour, XName) :-
 	Mask is (1<<Bits)-1,
 	EBits is 16-Bits,
 	Mask16 is Mask << EBits,
-	RGB is (((R/\Mask16)>>EBits)<<(2*Bits)) +
+	RGB is (((B/\Mask16)>>EBits)<<(2*Bits)) +
 	       (((G/\Mask16)>>EBits)<<Bits) +
-	       ((B/\Mask16)>>EBits),
+	       ((R/\Mask16)>>EBits),
 	get(@rgb_table, member, RGB, XName), !.
 standardise_colour_name(Colour, Name) :-
 	get(Colour, name, Name).

@@ -11,7 +11,7 @@
 :- use_module(language(pce_messages)).
 :- use_module(library(strings), [concat_atom/2]).
 
-pwversion('3.1').
+pwversion('3.2').
 
 :- multifile 'QU_messages':generate_message/3.
 :- multifile 'QU_messages':context_type/3.
@@ -69,13 +69,15 @@ about('ProWindows version %s'+[Version], boldhuge) :-
 	pwversion(Version).
 about('Based on', italic).
 about('XPCE version %s'+[@pce?version], huge).
-about('Copyright 1992-1996, AIIL / University of Amsterdam', normal).
+about('Copyright 1992-1998, SICS / University of Amsterdam', normal).
 about('Contact:', italic).
-about('AI International ltd.', huge).
-about('Castle Chambers\nHigh Street, Berkhamsted\nHerts, HP4 2DF', normal).
-about('Tel: 01442 873873, Fax: 01442 860200', normal).
-about('E-mail:', italic).
-about('support@aiil.co.uk\ninfo@aiil.co.uk', normal).
+about('Swedish Institute of Computer Science', huge).
+about('P.O. Box 1263\nSE-164 29 Kista\nSweden', normal).
+about('Tel: +46-8-752-1500, Fax: +46-8-751-7230', normal).
+about('Support: qpsupport@sics.se', normal).
+about('Sales: qpsales@sics.se', normal).
+about('WWW:', italic).
+about('http://www.sics.se/quintus/', normal).
 
 		 /*******************************
 		 *	     PROPERTIES		*
@@ -87,6 +89,10 @@ property(repeat_meta_declaraction).
 property(need_extern_declaration).
 property(use_predicate_references).
 property(register_source_locations).
+property(system_source_prefix(Package)) :-
+	pwversion(Version),
+	concat_atom(['/prowindows', Version, '/'], Package).
+
 
 		/********************************
 		*       REINITIALISATION	*

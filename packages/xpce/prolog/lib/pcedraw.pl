@@ -15,11 +15,9 @@
 	  ]).
 
 :- use_module(library(pce)).
-:- require([ feature/2
-	   , file_name_extension/3
+:- require([ file_name_extension/3
 	   , is_list/1
 	   , member/2
-	   , qsave_program/2
 	   ]).
 
 :- consult(library('draw/draw')).
@@ -39,7 +37,8 @@ pcedraw(Files) :-
 pcedraw(File) :-
 	draw(File).
 
-save_pcedraw(File) :-
+pce_ifhostproperty(prolog(swi),
+(   save_pcedraw(File) :-
 	(   feature(windows, true)
 	->  file_name_extension(File, exe, Exe)
 	;   Exe = File
@@ -50,4 +49,6 @@ save_pcedraw(File) :-
 		      [ goal=pce_main_loop(pcedraw),
 			stand_alone=true,
 			map=map
-		      ]).
+		      ])),
+(   save_pcedraw(File) :-
+	format(user_error, 'SWI-Prolog only~n', []))).

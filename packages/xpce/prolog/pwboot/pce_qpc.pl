@@ -136,10 +136,13 @@ property(qpc).
 :- use_module(pce_utils).
 :- use_module(pce_expansion).
 :- use_module(language(pce_messages)).
+:- use_module(library(expandmath)).
 
 		 /*******************************
 		 *	 WHAT WE RECORD		*
 		 *******************************/
 
+/*
 :- initialization pce_begin_recording(-documentation).
 :- initialization pce_begin_recording(-source).
+*/

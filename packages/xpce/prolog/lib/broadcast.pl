@@ -17,18 +17,17 @@
 	    broadcast/1,	% Templ
 	    broadcast_request/1	% Templ
 	  ]).
+:- meta_predicate
+	listen(+, :),
+	listen(+, +, :),
+	unlisten(+, +, :).
+
 :- use_module(library(pce)).		% actually, only for require/1
 :- require([ strip_module/3
 	   ]).
 
 :- dynamic
 	listener/4.
-
-:- meta_predicate
-	listen(+, :),
-	listen(+, +, :),
-	unlisten(+, +, :).
-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Generic broadcasting service. Broadcasts are   made  using the predicate

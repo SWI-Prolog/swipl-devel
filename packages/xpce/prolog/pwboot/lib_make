@@ -4,7 +4,8 @@
 	@rm -f $@
 	qpc -L . -i pce_qpc.qof -NcH $*.pl
 
-LIBQOFS= area.qof \
+LIBQOFS= pw3.qof \
+	area.qof \
 	pce_emacs.qof \
 	emacs_tags.qof \
 	emacs_extend.qof \
@@ -52,6 +53,15 @@ LIBQOFS= area.qof \
 	pce_template.qof \
 	pce_style_item.qof \
 	pce_loadcxx.qof \
+	broadcast.qof \
+	pce_arrow_item.qof \
+	pce_colour_item.qof \
+	pce_config.qof \
+	pce_configeditor.qof \
+	pce_graphical_browser.qof \
+	pce_image_browser.qof \
+	pce_image_item.qof \
+	pce_set_item.qof \
 	english/pce_messages.qof
 
 MANQOFS=man/p_card.qof \

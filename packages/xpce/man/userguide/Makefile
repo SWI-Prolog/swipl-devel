@@ -4,6 +4,7 @@ DOCTOTEX=../../bin/doc2tex
 PLTOTEX=../../bin/pl2tex
 CORRECTINDEX=../../bin/correctindex
 MAKEINDEX=makeindex -s ../../TeX/makeindex.ist
+PWDOC=../../prowindows3.2/doc
 
 
 COMMON=	intro.tex starting.tex globalarch.tex online.tex debug.tex \
@@ -15,7 +16,7 @@ COMMON=	intro.tex starting.tex globalarch.tex online.tex debug.tex \
 	images.tex mlingual.tex summary.tex body.tex
 
 XPCETEX=	xpceusg.tex $(COMMON)
-PWTEX=		pwusg.tex pwinfo.tex $(COMMON)
+PWTEX=		pwusg.tex pwinfo.tex pwcomp.tex $(COMMON)
 
 LOGO=	figs/uva.eps figs/swi.eps
 
@@ -25,11 +26,29 @@ all:	$(XPCETEX) $(LOGO)
 	touch xpceusg.ind
 	(TEXINPUTS=../../TeX:$$TEXINPUTS; export TEXINPUTS; latex xpceusg)
 
+pwusg:	$(PWTEX)
+	-$(CORRECTINDEX) pwusg.idx
+	-$(MAKEINDEX) pwusg.idx
+	touch pwusg.ind
+	(TEXINPUTS=../../TeX:$$TEXINPUTS; export TEXINPUTS; latex pwusg)
+
 html:	$(XPCETEX)
 	latex2html xpceusg
 
 pwhtml:	$(PWTEX)
 	latex2html pwusg
+
+pwusg.ps:	pwusg.dvi
+	dvips -o $@ pwusg.dvi
+
+pwusg.pdf:	pwusg.ps
+	pstill -cgipt -o $@ pwusg.ps
+
+pwinstall:
+	mv pwusg.pdf $(PWDOC)/PDF/userguide.pdf
+	mv pwusg.ps  $(PWDOC)/PostScript/userguide.ps
+	rm -f $(PWDOC)/HTML/userguide
+	mv pwusg $(PWDOC)/HTML/userguide
 
 pwtex:	$(PWTEX)
 tex:	$(XPCETEX)

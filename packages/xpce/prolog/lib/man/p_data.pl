@@ -16,12 +16,10 @@
 :- use_module(library(pce)).
 :- use_module(util).
 :- consult(classmap).
-:- require([ append/3
+:- require([ absolute_file_name/3
+	   , append/3
 	   , between/3
 	   , concat/3
-	   , emacs_init_tags/1
-	   , emacs_tag/3
-	   , ignore/1
 	   , term_to_atom/2
 	   ]).
 
@@ -572,36 +570,29 @@ has_source(Class) :->
 	\+ get(Class, creator, built_in).
 
 
-source(Class, Loc) :<-
+source(Class, Loc:source_location) :<-
 	"Find souce location of class definition"::
 	get(Class, slot, source, Loc), Loc \== @nil,
-	(   get(Loc, line_no, LineNo), LineNo \== @nil
-	->  true
-	;   ignore(find_system_source(Class))
+	get(Loc, line_no, LineNo), LineNo \== @nil,
+	fix_source_path(Loc).
+
+fix_source_path(Loc) :-
+	get(Loc, file_name, Name),
+	send(file(Name), exists, @on), !.
+fix_source_path(Loc) :-
+	(   pce_host:property(system_source_prefix(Prefix)),
+	    atom_chars(Prefix, PrefixChars),
+	    get(Loc, file_name, Name),
+	    atom_chars(Name, Chars),
+	    append(_, S1, Chars),
+	    append(PrefixChars, PwLocalChars, S1)
+	->  atom_chars(PwLocal, PwLocalChars),
+	    absolute_file_name(pce(PwLocal),
+			       [ access(read)
+			       ],
+			       Path),
+	    send(Loc, slot, file_name, Path)
 	).
-
-
-find_system_source(Class) :-
-	get(Class, slot, make_class_function, Pointer),
-	Pointer \== 0,
-	get(@pce, c_function_name, Pointer, Function),
-	get(Class, slot, source, Loc),
-	init_pce_tags,
-	emacs_tag(Function, Path, LineNo),
-	send(Loc, file_name, Path),
-	send(Loc, line_no, LineNo).
-
-
-init_pce_tags :-
-	get(@pce, home, Home),
-	concat(Home, '/src', Sources),
-	(   send(directory(Sources), exists)
-	->  emacs_init_tags(Sources)
-	;   send(@display, inform, 'Source directory %s doesn''t exist'),
-	    fail
-	).
-	
-
 
 man_header(Class, Str:string) :<-
 	"Header for class browser"::
@@ -726,14 +717,12 @@ has_source(M) :->
 	get(M, slot, source, Loc), Loc \== @nil,
 	get(Loc, line_no, LineNo), LineNo \== @nil.
 
+
 source(M, Loc) :<-
 	"Find source definition"::
-	(   get(M, slot, source, Loc), Loc \== @nil,
-	    get(Loc, line_no, LineNo), LineNo \== @nil
-	->  true
-	;   find_method_system_source(M),
-	    get(M, slot, source, Loc)
-	).
+	get(M, slot, source, Loc), Loc \== @nil,
+	get(Loc, line_no, LineNo), LineNo \== @nil,
+	fix_source_path(Loc).
 
 
 spy(M) :->
@@ -770,14 +759,6 @@ spy(M) :->
 	->  true
 	;   send(@display, inform, 'Not implemented as a Prolog predicate')
 	).
-
-
-find_method_system_source(M) :-
-	get(M, slot, function, Pointer),
-	get(@pce, c_function_name, Pointer, Function),
-	init_pce_tags,
-	emacs_tag(Function, Path, LineNo),
-	send(M, slot, source, source_location(Path, LineNo)).
 
 
 man_documented(M) :->

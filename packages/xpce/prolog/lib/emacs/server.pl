@@ -12,6 +12,8 @@
 	  ]).
 :- use_module(library(pce)).
 :- require([ concat/3
+	   , file_base_name/2
+	   , file_directory_name/2
 	   , term_to_atom/2
 	   ]).
 
@@ -61,6 +63,25 @@ server_action(edit(File), Socket) :- !,
 	new(H, hyper(Socket, Editor, editor, server)),
 	send(H, send_method, @emacs_server_method),
 	send(B, check_modified_file).
+server_action(gdb(File), Socket) :- !,
+	file_directory_name(File, Dir),
+	file_base_name(File, Exe),
+	new(X, emacs_gdb_buffer(Exe)),
+	get(X, process, Process),
+	(   Process \== @nil,
+	    get(Process, status, inactive)
+	->  send(Process, directory, Dir),
+	    send(X, directory, Dir)
+	;   true
+	),
+	new(W, emacs_window(X)),
+	get(W, editor, Editor),
+	new(H, hyper(Socket, Editor, editor, server)),
+	send(H, send_method, @emacs_server_method),
+	send(X, start_process),
+	send(X, open).
+
+
 server_action(Cmd, Socket) :-
 	Cmd =.. [Sel|Args],
 	Msg =.. [send, Socket, hyper_send, editor, Sel | Args],

@@ -27,6 +27,7 @@ fontviewer :-
 					    P, B?selection?object)))),
 	send(D, append,
 	     button(quit, message(FontViewer, destroy))),
+	send(D, append, label(reporter), right),
 	send(D, default_button, open),
 
 	send(B, tab_stops, vector(80, 180)),
@@ -77,9 +78,23 @@ show_font(P, Font) :-
 		send(A, character, 0, C),
 		send(S, append, A),
 		fail
-	    ;   send(P, display, text(S, left, Font))
+	    ;   send(P, display, font_text(S, left, Font))
 	    ),
 	    fail
 	;   true
 	).
 
+:- pce_begin_class(font_text, text,
+		   "Show current character").
+
+event(FT, Ev:event) :->
+	(   send(FT, send_super, event, Ev)
+	->  true
+	;   send(Ev, is_a, area_exit)
+	->  send(FT, report, status, '')
+	;   get(FT, pointed, Ev, Index),
+	    get(FT?string, character, Index, C),
+	    send(FT, report, status, '%c = %03o/0x%02x/%03d', C, C, C, C)
+	).
+
+:- pce_end_class.

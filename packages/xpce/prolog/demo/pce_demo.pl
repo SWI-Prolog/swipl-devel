@@ -166,11 +166,6 @@ demo('ChessTool',
 	send(@pce, has_feature, process),
 	send(file('/usr/games/chess'), access, execute).
 
-demo('Example Dialog',
-     'Dialog showing all dialog components',
-     demo(dialog),
-     demo_dialog).
-
 demo('Constraints',
      'Using constraints and relations',
      demo(constraint),
@@ -186,8 +181,3 @@ demo('Juggler',
      demo(juggler),			  
      juggle_demo).				  
 
-
-demo('Biff',
-     'Notify incoming mail',
-     demo(biff),
-     biff).

@@ -13,6 +13,7 @@
 :- use_module(library(pce_template)).
 :- require([ default/3
 	   , forall/2
+	   , get_config/2
 	   , ignore/1
 	   , member/2
 	   ]).

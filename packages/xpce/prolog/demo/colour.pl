@@ -42,7 +42,8 @@ colour_browser :-
 make_colour_browser(CB) :-
 	absolute_file_name(x11(rgb),
 			   [ extensions([txt]),
-			     access(read)
+			     access(read),
+			     file_errors(fail)
 			   ], DataBase), !,
 	make_colour_browser(CB, DataBase).
 make_colour_browser(CB) :-

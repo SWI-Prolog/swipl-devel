@@ -824,10 +824,10 @@ variable(origin,	point,  get,
 	 "Start origin of selection").
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The  gesture maintains  an outline, the selection to  be moved and the
-positon  where  the move orginiated.    The outline  itself is given a
-normal  move_gesture to make  it move on  dragging.  This move_gesture
-should operate on the same button and modifier.
+The gesture maintains an outline, the  selection   to  be  moved and the
+position where the move orginiated. The outline itself is given a normal
+move_gesture to make it  move  on   dragging.  This  move_gesture should
+operate on the same button and modifier.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 initialise(G, B:[button_name], M:[modifier]) :->
@@ -864,7 +864,7 @@ initiate(G, Ev:event) :->
 	send(Outline, area, Union),
 	send(Union, done),
 	send(Dev, display, Outline),
-	send(Ev, post, Outline).
+	ignore(send(Ev, post, Outline)).
 
 drag(G, Ev) :->
 	send(Ev, post, G?outline).
@@ -877,7 +877,7 @@ this amount.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 terminate(G, Ev:event) :->
-	send(G, drag, Ev),
+	ignore(send(G, drag, Ev)),
 	get(G, outline, Outline),
 	send(Outline, device, @nil),
 	get(Outline?area?position, difference, G?origin, Offset),	
