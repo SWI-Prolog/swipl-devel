@@ -1,7 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
-  * FIXED: handling exceptions from make while updating the library index.
+  * FIXED: Test for existence of files and directories in expand_file_name/2.
+
+  * FIXED: Handling exceptions from make while updating the library index.
     Thanks to Bob Wielinga.
 
 VERSION 3.3.2
