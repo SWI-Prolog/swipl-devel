@@ -164,11 +164,22 @@ static PceType		cToPceType(const char *name);
 
 
 		 /*******************************
-		 *	     CONSTANTS		*
+		 *	      PROFILER		*
+		 *******************************/
+
+static int prof_active;			/* activated */
+static PL_prof_type_t pceProfType;	/* registration */
+
+		 /*******************************
+		 *	       CONTEXT		*
 		 *******************************/
 
 static Module 	 DefaultModule;		/* For module handling */
 static PceObject DefaultContext;	/* Executing context */
+
+		 /*******************************
+		 *	     CONSTANTS		*
+		 *******************************/
 
 static Atom ATOM_append;		/* "append" */
 static Atom ATOM_argument;		/* "argument" */
@@ -1896,6 +1907,7 @@ invoke(Term rec, Term cl, Term msg, Term ret)
 	  term_t mav = PL_new_term_refs(pcd->argc);
 	  term_t tmp, tmp2, tail;
 	  int n;
+	  void *prof_node;
 	  
 	  goal.flags |= PCE_GF_HOSTARGS;
 	  pceInitArgumentsGoal(&goal);
@@ -1959,6 +1971,10 @@ invoke(Term rec, Term cl, Term msg, Term ret)
 						/* push @Receiver */
 	  put_object(av+2, goal.receiver);
 
+	  if ( prof_active )
+	    prof_node = PL_prof_call(goal.implementation, &pceProfType);
+	  else
+	    prof_node = NULL;
 	  if ( ret )
 	  { rval = PL_call_predicate(MODULE_user,
 				     DebugMode|PL_Q_PASS_EXCEPTION,
@@ -1979,6 +1995,8 @@ invoke(Term rec, Term cl, Term msg, Term ret)
 	    rval = PL_call_predicate(MODULE_user,
 				     DebugMode|PL_Q_PASS_EXCEPTION,
 				     PREDICATE_send_implementation, av);
+	  if ( prof_node )
+	    PL_prof_exit(prof_node);
 
 	  PL_close_foreign_frame(fid);	/* keep bindings */
 	  goto out;
@@ -2886,8 +2904,6 @@ PrologOpenResource(const char *name, const char *rc_class, const char *mode)
 		 *	      PROFILING		*
 		 *******************************/
 
-static PL_prof_type_t pceProfType;
-
 static int
 unify_prof_node(term_t t, void *impl)
 { return unifyObject(t, impl, FALSE);
@@ -2922,6 +2938,7 @@ prof_activate(int active)
   }
 
   pceSetProfileHooks(&hooks);
+  prof_active = active;
 }
 
 static void
