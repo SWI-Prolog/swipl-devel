@@ -197,7 +197,7 @@ formatString(StringObj s, CharArray fmt, int argc, Any *argv)
 
 status
 valueString(StringObj s1, CharArray s2)
-{ if ( equalCharArray((CharArray) s1, s2) )
+{ if ( equalCharArray((CharArray) s1, s2, OFF) )
     succeed;
 
   return setString(s1, &s2->data);

@@ -635,7 +635,8 @@ completeTextItem(TextItem ti, EventId id)
 	if ( unique && dirmode )
 	  send(ti, NAME_indicateDirectory, path, EAV);
 	if ( equalCharArray((CharArray) path,
-			    (CharArray) ti->value_text->string) )
+			    (CharArray) ti->value_text->string,
+			    ignore_case) )
 	{ if ( unique )
 	    errorPce(path, NAME_soleCompletion);
 	  else
@@ -1117,7 +1118,7 @@ enterTextItem(TextItem ti, EventId id)
 static Bool
 getModifiedTextItem(TextItem ti)
 { answer(equalCharArray((CharArray) ti->print_name,
-			(CharArray) ti->value_text->string) ? OFF : ON);
+			(CharArray) ti->value_text->string, OFF) ? OFF : ON);
 }
 
 
@@ -1225,7 +1226,7 @@ getSelectionTextItem(TextItem ti)
       { CharArray pn;
 
 	if ( (pn = getv(ti, NAME_printNameOfValue, 1, &cell->value)) &&
-	     equalCharArray(ti->value_text->string, pn) )
+	     equalCharArray(ti->value_text->string, pn, OFF) )
 	{ valueString(ti->print_name, ti->value_text->string);
 	  assign(ti, selection, cell->value);
 	  ok++;
@@ -1292,7 +1293,7 @@ resetTextItem(TextItem ti)
 { quitCompleterDialogItem(ti);
     
   if ( !equalCharArray((CharArray)ti->value_text->string,
-		       (CharArray)ti->print_name) )
+		       (CharArray)ti->print_name, OFF) )
   { stringText(ti->value_text, (CharArray) ti->print_name);
     requestComputeGraphical(ti, DEFAULT);
   }
@@ -1303,7 +1304,7 @@ resetTextItem(TextItem ti)
 
 status
 displayedValueTextItem(TextItem ti, CharArray txt)
-{ if ( !equalCharArray(ti->value_text->string, txt) )
+{ if ( !equalCharArray(ti->value_text->string, txt, OFF) )
   { TRY(stringText(ti->value_text, txt));
     requestComputeGraphical(ti, DEFAULT);
     if ( hasSendMethodObject(ti->device, NAME_modifiedItem) )

@@ -2,7 +2,7 @@
 /* ../src/txt/chararray.c */
 status		initialiseCharArray(CharArray n, CharArray value);
 Name		getValueCharArray(CharArray n);
-status		equalCharArray(CharArray n1, CharArray n2);
+status		equalCharArray(CharArray n1, CharArray n2, Bool ign_case);
 status		prefixCharArray(CharArray n1, CharArray n2, Bool ign_case);
 status		suffixCharArray(CharArray n, CharArray s, Bool ign_case);
 CharArray	getCopyCharArray(CharArray n);

@@ -107,11 +107,11 @@ getValueCharArray(CharArray n)
 		********************************/
 
 status
-equalCharArray(CharArray n1, CharArray n2)
-{ if ( str_eq(&n1->data, &n2->data) )
-    succeed;
-
-  fail;
+equalCharArray(CharArray n1, CharArray n2, Bool ign_case)
+{ if ( ign_case == ON )
+    return str_icase_eq(&n1->data, &n2->data);
+  else
+    return str_eq(&n1->data, &n2->data);
 }
 
 
@@ -849,13 +849,11 @@ stringToCharArray(String s)
 
 /* Type declarations */
 
-static char *T_compare[] =
-        { "char_array", "ignore_case=[bool]" };
 static char *T_ofAchar_fromADintD[] =
         { "of=char", "from=[int]" };
 static char *T_gsub[] =
         { "start=int", "end=[int]" };
-static char *T_cmpcase[] =
+static char *T_match[] =
         { "text=char_array", "ignore_case=[bool]" };
 static char *T_readAsFile[] =
         { "from=int", "size=int" };
@@ -876,17 +874,17 @@ static senddecl send_charArray[] =
      DEFAULT, "Create from other char_array"),
   SM(NAME_unlink, 0, NULL, unlinkCharArray,
      DEFAULT, "Free the char *"),
-  SM(NAME_equal, 1, "char_array", equalCharArray,
+  SM(NAME_equal, 2, T_match, equalCharArray,
      NAME_compare, "Test if names represent same text"),
   SM(NAME_larger, 1, "than=char_array", largerCharArray,
      NAME_compare, "Test if I'm alphabetically after arg"),
   SM(NAME_smaller, 1, "than=char_array", smallerCharArray,
      NAME_compare, "Test if I'm alphabetically before arg"),
-  SM(NAME_prefix, 2, T_cmpcase, prefixCharArray,
+  SM(NAME_prefix, 2, T_match, prefixCharArray,
      NAME_test, "Test if receiver has prefix argument"),
-  SM(NAME_sub, 2, T_cmpcase, subCharArray,
+  SM(NAME_sub, 2, T_match, subCharArray,
      NAME_test, "Test if argument is a substring"),
-  SM(NAME_suffix, 2, T_cmpcase, suffixCharArray,
+  SM(NAME_suffix, 2, T_match, suffixCharArray,
      NAME_test, "Test if receiver has suffix argument")
 };
 
@@ -907,7 +905,7 @@ static getdecl get_charArray[] =
      NAME_case, "Map all lowercase letters to uppercase"),
   GM(NAME_strip, 1, "char_array", "[{canonise,leading,trailing,both}]", getStripCharArray,
      NAME_content, "Strip leading/trailing blanks"),
-  GM(NAME_compare, 2, "{smaller,equal,larger}", T_compare, getCompareCharArray,
+  GM(NAME_compare, 2, "{smaller,equal,larger}", T_match, getCompareCharArray,
      NAME_compare, "Alphabetical comparison"),
   GM(NAME_append, 1, "char_array", "char_array ...", getAppendCharArrayv,
      NAME_content, "Concatenation of me and the argument(s)"),
