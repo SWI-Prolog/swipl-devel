@@ -229,7 +229,9 @@ openFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
   { x = pos->x;
     y = pos->y;
 
+#ifdef WIN32
   setpos:
+#endif
     if ( normalise == ON )
     { Size s = getSizeDisplay(fr->display);
       int dw = valInt(s->w), dh = valInt(s->h);
