@@ -1649,9 +1649,7 @@ GetChar(void)
   if ( ttymode == TTY_RAW )
   { c = GetRawChar();
   } else if ( status.notty )
-  { unsigned char chr;
-
-    if ( !line )
+  { if ( !line )
     { extern int Output;
       int old = Output;
       Output = 1;
