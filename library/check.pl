@@ -92,9 +92,17 @@ undefined_predicate(Module:Head) :-
 
 system_undefined(user:prolog_trace_interception/4).
 
+%	find_references(+Heads, -Head-Refs)
+%	
+%	Find references to the given  predicates.   For  speedup we only
+%	look for references from the  same   module.  This  isn't really
+%	correct, but as Module:Head  is  at   the  moment  only  handled
+%	through meta-calls, it isn't too bad either.
+
 find_references([], []).
 find_references([H|T0], [H-Refs|T]) :-
-	findall(Ref, referenced(H, _, Ref), Refs),
+	ignore(H = M:_),
+	findall(Ref, referenced(H, M, Ref), Refs),
 	Refs \== [], !,
 	find_references(T0, T).
 find_references([_|T0], T) :-
@@ -183,7 +191,7 @@ prolog:message(check(pass(N, Comment))) -->
 prolog:message(check(find_references(Preds))) -->
 	{ length(Preds, N)
 	},
-	[ 'Scanning references to undefined predicates'-[N] ].
+	[ 'Scanning references for ~D undefined predicates'-[N] ].
 prolog:message(check(undefined_predicates)) -->
 	[ 'The predicates below are not defined. If these are defined', nl,
 	  'at runtime using assert/1, use :- dynamic Name/Arity.', nl, nl
