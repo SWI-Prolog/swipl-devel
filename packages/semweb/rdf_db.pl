@@ -92,7 +92,9 @@
 	ns/2.
 :- dynamic
 	ns/2,				% ID, URL
-	rdf_source/3.			% File, ModTimeAtLoad, Triples
+	rdf_source/4.			% File, ModTimeAtLoad, Triples, MD5
+:- volatile
+	rdf_source/4.
 
 
 		 /*******************************
@@ -302,7 +304,7 @@ rdf_source_location(Subject, Source) :-
 %	Obtain some statistics
 
 rdf_statistics(sources(Count)) :-
-	predicate_property(rdf_source(_,_,_), number_of_clauses(Count)).
+	predicate_property(rdf_source(_,_,_,_), number_of_clauses(Count)).
 rdf_statistics(subjects(Count)) :-
 	rdf_statistics_(subjects(Count)).
 rdf_statistics(properties(Count)) :-
@@ -322,8 +324,11 @@ rdf_statistics(lookup(Index, Count)) :-
 rdf_statistics(searched_nodes(Count)) :-
 	rdf_statistics_(searched_nodes(Count)).
 rdf_statistics(triples_by_file(File, Count)) :-
-	rdf_source(File),
-	rdf_statistics_(triples(File, Count)).
+	(   var(File)
+	->  rdf_source(File),
+	    rdf_statistics_(triples(File, Count))
+	;   rdf_statistics_(triples(File, Count))
+	).
 rdf_statistics(duplicates(Count)) :-
 	rdf_statistics_(duplicates(Count)).
 
@@ -389,16 +394,17 @@ rdf_load_db(File) :-
 %	Load RDF file.  Options provides additional processing options.
 %	Currently defined options are:
 %	
-%	    result(-Action, -Triples)
+%	    result(-Action, -Triples, -MD5)
 %	    	Return action taken (load, reload, none) and number
-%	    	of triples loaded from the file
+%	    	of triples loaded from the file as well as the MD5
+%	    	digest.
 
 rdf_load(Spec) :-
 	rdf_load(Spec, []).
 
 rdf_load(Spec, Options) :-
 	statistics(cputime, CpuOld),
-	(   memberchk(result(Action, Triples), Options)
+	(   memberchk(result(Action, Triples, MD5), Options)
 	->  true
 	;   true
 	),
@@ -411,7 +417,7 @@ rdf_load(Spec, Options) :-
 				 extensions([rdf,rdfs,owl,''])
 			       ], File),
 	    time_file(File, Modified),
-	    (	rdf_source(File, WhenLoaded, _)
+	    (	rdf_source(File, WhenLoaded, _, _)
 	    ->	(   Modified > WhenLoaded
 		->  rdf_retractall(_,_,_,File:_),
 		    Action = reload
@@ -421,7 +427,7 @@ rdf_load(Spec, Options) :-
 	    ),
 	    (	Action \== none
 	    ->  atom_concat('file:', File, BaseURI),
-		retractall(rdf_source(File, _, _)),
+		retractall(rdf_source(File, _, _, _)),
 		(   cache_file(File, Cache)
 		->  (   time_file(Cache, CacheTime),
 		        time_file(File, FileTime),
@@ -436,8 +442,9 @@ rdf_load(Spec, Options) :-
 		    Load = parsed(ParseTime)
 		),
 		rdf_statistics_(triples(File, Triples)),
-		assert(rdf_source(File, Modified, Triples))
-	    ;	rdf_source(File, Modified, Triples)
+		rdf_md5(File, MD5),
+		assert(rdf_source(File, Modified, Triples, MD5))
+	    ;	rdf_source(File, _Modified, Triples, MD5)
 	    )
 	),
 	(   Action \== none
@@ -462,7 +469,7 @@ rdf_unload(Spec) :-
 				 extensions([rdf,rdfs,owl,''])
 			       ], File),
 	    rdf_retractall(_,_,_,File:_),
-	    retractall(rdf_source(File, _, _))
+	    retractall(rdf_source(File, _, _, _))
 	).
 	
 
@@ -471,7 +478,7 @@ rdf_unload(Spec) :-
 %	Query the loaded sources
 
 rdf_source(File) :-
-	rdf_source(File, _, _).
+	rdf_source(File, _, _, _).
 
 %	rdf_make
 %	
@@ -479,7 +486,7 @@ rdf_source(File) :-
 %	time they were loaded.
 
 rdf_make :-
-	forall(rdf_source(File, _Time, _Triples),
+	forall(rdf_source(File, _Time, _Triples, _),
 	       rdf_load(File)).
 
 
@@ -535,7 +542,7 @@ assert_triples([H|_], _) :-
 
 rdf_reset_db :-
 	rdf_reset_db_,
-	retractall(rdf_source(_,_,_)).
+	retractall(rdf_source(_,_,_,_)).
 
 
 		 /*******************************

@@ -67,6 +67,7 @@
 :- use_module(rdf_db).
 :- use_module(library(broadcast)).
 :- use_module(library(lists)).
+:- use_module(library(debug)).
 
 :- meta_predicate
 	rdfe_transaction(:),
@@ -214,6 +215,11 @@ delete(Subject) :-
 	rdfe_retractall(_, Subject, _),
 	rdfe_retractall(_, _, Subject).
 
+
+		 /*******************************
+		 *	   FILE HANDLING	*
+		 *******************************/
+
 %	rdfe_load(+File)
 %	
 %	Load an RDF file and record this action including version information
@@ -226,7 +232,7 @@ rdfe_load(File) :-
 			     extensions([rdf,rdfs,owl,''])
 			   ], Path),
 	rdf_load(Path,
-		 [ result(_Action, Triples)
+		 [ result(_Action, Triples, MD5)
 		 ]),
 	absolute_file_name('.', PWD),
 	size_file(Path, Size),
@@ -239,14 +245,56 @@ rdfe_load(File) :-
 			   size(Size),
 			   modified(SecTime),
 			   triples(Triples),
+			   md5(MD5),
 			   from(File)
-			 ])).
+			 ])),
+	ensure_snapshot(Path).
+
 
 rdfe_unload(Path) :-
 	rdfe_current_transaction(TID),
 	rdf_unload(Path),
 	assert_action(TID, unload_file(Path), -, -, -),
 	journal(rdf_unload(TID, Path)).
+
+
+%	ensure_snapshot(+Path)
+%	
+%	Ensure we have a snapshot of Path if we are making a journal, so
+%	we can always reload the snapshot to ensure exactly the same
+%	state.
+
+ensure_snapshot(Path) :-
+	rdfe_current_journal(_),
+	rdf_md5(Path, MD5),
+	(   snapshot_file(Path, MD5,
+			  [ access(read),
+			    file_errors(fail)
+			  ],
+			  File)
+	->  debug(snapshot, 'Existing snapshot for ~w on ~w', [Path, File])
+	;   snapshot_file(Path, MD5,
+			  [ access(write)
+			  ],
+			  File),
+	    debug(snapshot, 'Saving snapshot for ~w to ~w', [Path, File]),
+	    rdf_save_db(File, Path)
+	).
+ensure_snapshot(_).
+
+
+%	snapshot_file(+Path, +MD5, +Access, -File)
+%	
+%	Find existing snapsnot file or location to save a new one.
+
+snapshot_file(Path, MD5, Options, SnapShot) :-
+	file_base_name(Path, Base),
+	concat_atom([Base, @, MD5], File),
+	absolute_file_name(snapshot(File),
+			   [ extensions([trp])
+			   | Options
+			   ],
+			   SnapShot).
 
 
 		 /*******************************
@@ -806,12 +854,25 @@ replay_action(assert(_, Subject, Predicate, Object, PayLoad)) :-
 replay_action(update(_, Subject, Predicate, Object, Action)) :-
 	rdf_update(Subject, Predicate, Object, Action).
 replay_action(rdf_load(_, File, Options)) :-
+	memberchk(md5(MD5), Options),
+	snapshot_file(File, MD5,
+		      [ access(read),
+			file_errors(fail)
+		      ],
+		      Path), !,
+	debug(snapshot, 'Reloading snapshot ~w~n', [Path]),
+	rdf_load_db(Path),
+	rdf_statistics(triples_by_file(File, Triples)),
+					% 1e10: modified far in the future
+	assert(rdf_db:rdf_source(File, 1e10, Triples, MD5)).
+replay_action(rdf_load(_, File, Options)) :-
 	find_file(File, Options, Path),
 	(   memberchk(triples(0), Options),
 	    memberchk(modified(Modified), Options)
 	->  rdf_retractall(_,_,_,Path:_),
-	    retractall(rdf_db:rdf_source(Path, _)),
-	    assert(rdf_db:rdf_source(Path, Modified))
+	    retractall(rdf_db:rdf_source(Path, _, _, _)),	% TBD: move
+	    rdf_md5(Path, MD5),
+	    assert(rdf_db:rdf_source(Path, Modified, 0, MD5))
 	;   rdf_load(Path)
 	).
 replay_action(ns(_, register(ID, URI))) :- !,

@@ -32,6 +32,10 @@
 #include <ctype.h>
 #ifdef WITH_MD5
 #include "md5.h"
+
+static void md5_triple(triple *t, md5_byte_t *digest);
+static void sum_digest(md5_byte_t *digest, md5_byte_t *add);
+static void dec_digest(md5_byte_t *digest, md5_byte_t *add);
 #endif
 
 #ifdef _REENTRANT
@@ -732,17 +736,50 @@ erase_sources()
 
 
 static void
-inc_source_count(atom_t name, int add)
+register_source(triple *t)
 { source *src;
 
-  if ( last_source && last_source->name == name )
-  { last_source->triple_count++;
+  if ( !t->source )
     return;
-  }
 
-  src = lookup_source(name, TRUE);
-  src->triple_count += add;
-  last_source = src;
+  if ( last_source && last_source->name == t->source )
+  { src = last_source;
+  } else
+  { src = lookup_source(t->source, TRUE);
+    last_source = src;
+  } 
+
+  src->triple_count++;
+#ifdef WITH_MD5
+{ md5_byte_t digest[16];
+  md5_triple(t, digest);
+  sum_digest(src->digest, digest);
+}
+#endif
+}
+
+
+static void
+unregister_source(triple *t)
+{ source *src;
+
+  if ( !t->source )
+    return;
+
+  if ( last_source && last_source->name == t->source )
+  { src = last_source;
+  } else
+  { src = lookup_source(t->source, TRUE);
+    last_source = src;
+  } 
+
+  src->triple_count--;
+#ifdef WITH_MD5
+{ md5_byte_t digest[16];
+  md5_triple(t, digest);
+  dec_digest(src->digest, digest);
+}
+#endif
 }
 
 
@@ -940,8 +977,7 @@ link_triple(triple *t)
 
 ok:
   created++;
-  if ( t->source )
-    inc_source_count(t->source, 1);
+  register_source(t);
 }
 
 
@@ -1032,8 +1068,7 @@ erase_triple(triple *t)
 	subjects--;
     }
     erased++;
-    if ( t->source )
-      inc_source_count(t->source, -1);
+    unregister_source(t);
   }
 }
 
@@ -1517,39 +1552,70 @@ sum_digest(md5_byte_t *digest, md5_byte_t *add)
 }
 
 
-static foreign_t
-rdf_md5(term_t source, term_t md5)
-{ atom_t src;
-  triple *t;
-  md5_byte_t digest[16];
-  char hex_output[16*2];
+static void
+dec_digest(md5_byte_t *digest, md5_byte_t *add)
+{ md5_byte_t *p, *q;
+  int n;
+
+  for(p=digest, q=add, n=16; --n>=0; )
+    *p++ -= *q++;
+}
+
+
+static int
+md5_unify_digest(term_t t, md5_byte_t digest[16])
+{ char hex_output[16*2];
   int di;
   char *pi;
   static char hexd[] = "0123456789abcdef";
-
-  if ( !get_atom_or_var_ex(source, &src) )
-    return FALSE;
-
-  memset(&digest, 0, sizeof(digest));
-
-  LOCK();
-  for(t = by_none; t; t = t->next[BY_NONE])
-  { if ( !t->erased &&
-	 (!src || t->source == src) )
-    { md5_byte_t tmp[16];
-
-      md5_triple(t, tmp);
-      sum_digest(digest, tmp);
-    }
-  }
-  UNLOCK();
 
   for(pi=hex_output, di = 0; di < 16; ++di)
   { *pi++ = hexd[(digest[di] >> 4) & 0x0f];
     *pi++ = hexd[digest[di] & 0x0f];
   }
 
-  return PL_unify_atom_nchars(md5, 16, hex_output);
+  return PL_unify_atom_nchars(t, 16*2, hex_output);
+}
+
+
+static foreign_t
+rdf_md5(term_t file, term_t md5)
+{ atom_t src;
+  int rc;
+
+  if ( !get_atom_or_var_ex(file, &src) )
+    return FALSE;
+
+  if ( src )
+  { source *s;
+
+    LOCK();
+    if ( (s = lookup_source(src, FALSE)) )
+      rc = md5_unify_digest(md5, s->digest);
+    else
+      rc = FALSE;
+    UNLOCK();
+  } else
+  { md5_byte_t digest[16];
+    source **ht;
+    int i;
+    
+    memset(&digest, 0, sizeof(digest));
+
+    LOCK();
+
+    for(i=0,ht = source_table; i<source_table_size; i++, ht++)
+    { source *s;
+      
+      for( s = *ht; s; s = s->next )
+	sum_digest(digest, s->digest);
+    }
+
+    rc = md5_unify_digest(md5, digest);
+    UNLOCK();
+  }
+
+  return rc;
 }
 
 
@@ -2118,12 +2184,12 @@ update_triple(term_t action, triple *t)
       return TRUE;
     LOCK();
     if ( t->source )
-      inc_source_count(t->source, -1);
-    if ( t2.source )
-      inc_source_count(t2.source, 1);
-    UNLOCK();
+      unregister_source(t);
     t->source = t2.source;
     t->line = t2.line;
+    if ( t2.source )
+      register_source(t);
+    UNLOCK();
 
     return TRUE;			/* considered no change */
   } else

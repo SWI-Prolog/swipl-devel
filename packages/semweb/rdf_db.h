@@ -6,6 +6,9 @@
 
 #ifndef RDFDB_H_INCLUDED
 #define RDFDB_H_INCLUDED
+#ifdef WITH_MD5
+#include "md5.h"
+#endif
 
 #define URL_subPropertyOf \
 	"http://www.w3.org/2000/01/rdf-schema#subPropertyOf"
@@ -63,6 +66,9 @@ typedef struct source
 { struct source    *next;		/* next in table */
   atom_t	    name;		/* name of the source */
   int		    triple_count;	/* # triples associated to it */
+#ifdef WITH_MD5
+  md5_byte_t 	    digest[16];		/* MD5 digest */
+#endif
 } source;  
 
 
