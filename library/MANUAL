@@ -13,7 +13,7 @@
                          SSWWII--PPrroolloogg 55..55
                         RReeffeerreennccee MMaannuuaall
 
-            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._5_._7_, _F_e_b_r_u_a_r_i _2_0_0_5
+            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._5_._8_, _F_e_b_r_u_a_r_i _2_0_0_5
 
                          _J_a_n _W_i_e_l_e_m_a_k_e_r
                        jan@swi.psy.uva.nl
@@ -604,11 +604,12 @@ Version 5.4 consolidates the 5.3.x beta series.
 11..66..1199 VVeerrssiioonn 55..55 RReelleeaassee NNootteess
 
 Version  5.5.x provides  support  for  _w_i_d_e _c_h_a_r_a_c_t_e_r_s  with  UTF-8  and
-UNICODE I/O.  On both 32  and 64-bit hardware  Prolog integers are  noew
-represented as 64-bit integers, improving portability  and allow integer
-representations of  most things we can  count in the  real world.   This
-version  also incorporates  clp(r)  by Christian  Holzbaur,  brought  to
-SWI-Prolog by Tom Schrijver and Leslie De Koninck.
+UNICODE I/O  (section 2.17.1).   On both 32  and 64-bit hardware  Prolog
+integers are now  represented as 64-bit integers, improving  portability
+and  allow  integer representations  of  most  things we  can  count  in
+the real  world.   This  version also incorporates  clp(r) by  Christian
+Holzbaur, brought to  SWI-Prolog by Tom Schrijver and Leslie  De Koninck
+(section 11.9).
 
 
 11..77 DDoonnaattee ttoo tthhee SSWWII--PPrroolloogg pprroojjeecctt
@@ -1656,8 +1657,9 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          environment variable EMACS is t and INFERIOR is yes.
 
     eennccooddiinngg _(_a_t_o_m_, _c_h_a_n_g_e_a_b_l_e_)
-         Default encoding used for opening files.  The  initial value is
-         deduced from the environment.  See section 2.17.1 for details.
+         Default  encoding  used   for  opening  files  in  text   mode.
+         The  initial value  is  deduced  from  the environment.     See
+         section 2.17.1 for details.
 
     eexxeeccuuttaabbllee _(_a_t_o_m_)
          Path-name of the  running executable.  Used  by qsave_program/2
@@ -2309,6 +2311,10 @@ encoding/1 directive that  can be used to  switch between UTF-8 and  ISO
 Latin-1 inside the file.
 
 SWI-Prolog currently defines and supports the following encodings:
+
+oocctteedd
+    Default  encoding for binary streams.  This causes the stream  to be
+    read and written fully untranslated.
 
 aasscciiii
     7-bit  encoding  in 8-bit  bytes.   Equivalent  to  iso_latin_1,  but
@@ -5151,8 +5157,10 @@ ooppeenn((_+_S_r_c_D_e_s_t_, _+_M_o_d_e_, _-_S_t_r_e_a
 
     eennccooddiinngg((_E_n_c_o_d_i_n_g))
          Define the encoding used  for reading and writing text  to this
-         stream.  The  default encoding is derived from the  Prolog flag
-         encoding.  For details on encoding issues, see section 2.17.1.
+         stream.   The default  encoding for type  text is derived  from
+         the Prolog  flag  encoding.   For  binary  streams the  default
+         encoding  is octed.     For details  on  encoding  issues,  see
+         section 2.17.1.
 
     eeooff__aaccttiioonn((_A_c_t_i_o_n))
          Defines  what  happens  if the  end  of  the  input  stream  is
