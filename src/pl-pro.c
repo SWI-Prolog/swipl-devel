@@ -380,6 +380,9 @@ word
 checkData(Word p)
 { int arity; int n;
   Word p2;
+  word key = 0L;
+
+last_arg:
 
   while(isRef(*p))
   { p2 = unRef(*p);
@@ -388,14 +391,14 @@ checkData(Word p)
     if ( !onLocal(p2) && !onGlobal(p2) )
       printk("Illegal reference pointer at 0x%x --> 0x%x", p, p2);
 
-    return checkData(p2);
+    p = p2;
   }
 
   if ( isVar(*p) )
-    return 0x737473;			/* just a random number */
+    return key+0x737473;		/* just a random number */
 
   if ( isTaggedInt(*p) )
-    return *p;
+    return key + *p;
 
   if ( isIndirect(*p) )
   { Word a = addressIndirect(*p);
@@ -405,9 +408,9 @@ checkData(Word p)
     if ( storage(*p) != STG_GLOBAL )
       printk("Indirect data not on global");
     if ( isBignum(*p) )
-      return (word) valBignum(*p);
+      return key+(word) valBignum(*p);
     if ( isReal(*p) )
-      return (word) valReal(*p);
+      return key+(word) valReal(*p);
     if ( isString(*p) )
     { long sz, len;
 
@@ -415,28 +418,28 @@ checkData(Word p)
       { if ( sz < len )
 	  printk("String has inconsistent length: 0x%x", *p);
 	else if ( valString(*p)[sz] )
-	  printk("String not not followed by NUL-char: 0x%x", *p);
+	  printk("String not followed by NUL-char: 0x%x", *p);
 /*	else
 	  printf("String contains NUL-chars: 0x%x", *p);
 */
       }
-      return *addressIndirect(*p);
+      return key + *addressIndirect(*p);
     }
     printk("Illegal indirect datatype");
+    return key;
   }
 
   if ( isAtom(*p) )
   { if ( storage(*p) != STG_STATIC )
       printk("Atom doesn't have STG_STATIC");
-    return *p;
+    return key + *p;
   }
 					/* now it should be a term */
   if ( tag(*p) != TAG_COMPOUND ||
        storage(*p) != STG_GLOBAL )
     printk("Illegal term at: %p: 0x%x", p, *p);
 
-  { word key = 0L;
-    Functor f = valueTerm(*p);
+  { Functor f = valueTerm(*p);
 
     if ( !onGlobal(f) )
       printk("Term at %p not on global stack", f);
@@ -447,10 +450,11 @@ checkData(Word p)
     arity = arityFunctor(f->definition);
     if (arity <= 0 || arity > 256)
       printk("Dubious arity (%d)", arity);
-    for(n=0; n<arity; n++)
+    for(n=0; n<arity-1; n++)
       key += checkData(&f->arguments[n]);
-
-    return key;
+	
+    p = &f->arguments[n];
+    goto last_arg;
   }
 }
 #endif /* TEST */
