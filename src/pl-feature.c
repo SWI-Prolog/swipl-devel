@@ -696,7 +696,7 @@ initFeatures()
 	     ALLOW_VARNAME_FUNCTOR);
   defFeature("toplevel_var_size", FT_INTEGER, 1000);
   defFeature("file_name_variables", FT_BOOL, FALSE, FILEVARS_FEATURE);
-#if defined(__unix__) || defined(unix)
+#ifdef __unix__
   defFeature("unix", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
 

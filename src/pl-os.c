@@ -229,7 +229,7 @@ OsError(void)
 #else /*HAVE_STRERROR*/
 static char errmsg[64];
 
-#if unix
+#ifdef __unix__
   extern int sys_nerr;
 #if !EMX
   extern char *sys_errlist[];
@@ -438,7 +438,7 @@ TemporaryFile(const char *id)
 	 (tmpdir = getenv3("TMP",  envbuf, sizeof(envbuf)))) )
     tmpdir = DEFTMPDIR;
 
-#if unix
+#ifdef __unix__
 { static int MTOK_temp_counter = 0;
 
   Ssprintf(temp, "%s/pl_%s_%d_%d",
@@ -640,7 +640,7 @@ OsPath(const char *plpath, char *path)
 } 
 #endif /* O_HPFS */
 
-#if unix
+#ifdef __unix__
 char *
 PrologPath(const char *p, char *buf)
 { strcpy(buf, p);
@@ -654,7 +654,7 @@ OsPath(const char *p, char *buf)
 
   return buf;
 }
-#endif /*unix*/
+#endif /*__unix__*/
 
 #if O_XOS
 char *
@@ -880,7 +880,7 @@ SameFile(const char *f1, const char *f2)
       succeed;
   }
 
-#ifdef unix				/* doesn't work on most not Unix's */
+#ifdef __unix__				/* doesn't work on most not Unix's */
   { struct stat buf1;
     struct stat buf2;
     char tmp[MAXPATHLEN];
@@ -2241,7 +2241,7 @@ Unsetenv(char *name)
     an alternative.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef unix
+#ifdef __unix__
 #define SPECIFIC_SYSTEM 1
 #if defined(HAVE_SYS_RESOURCE_H)
 #include <sys/resource.h>
@@ -2345,7 +2345,7 @@ System(char *cmd)
 
   return rval;
 }
-#endif /* unix */
+#endif /* __unix__ */
 
 #ifdef tos
 #define SPECIFIC_SYSTEM 1
@@ -2545,7 +2545,7 @@ findExecutable(const char *av0, char *buffer)
 #endif /*__WIN32__*/
 
 
-#if unix
+#ifdef __unix__
 static char *
 okToExec(const char *s)
 { struct stat stbuff;
@@ -2558,7 +2558,7 @@ okToExec(const char *s)
     return (char *) NULL;
 }
 #define PATHSEP	':'
-#endif /* unix */
+#endif /* __unix__ */
 
 #ifdef tos
 #define EXEC_EXTENSIONS { ".ttp", ".prg", NULL }

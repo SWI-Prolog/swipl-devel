@@ -1,6 +1,16 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Win32 notion of `home' to use <currentdrive>:/ instead of just
+    /, avoiding some trouble in pl-os.c
+
+  * PORTABILITY: Replaced all references to #ifdef unix with #ifdef __unix__
+    to avoid warnings by the latest BSD release on old-fashioned use of
+    the unix macro.
+
+  * FIXED: Call dieIO() before detaching loaded foreign libraries as the
+    file-handlers may be defined in foreign code.
+
   * FIXED: abolish on running predicates.  Thanks to Andrew V. Diatchkov.
 
   * FIXED: at_end_of_stream/[0,1] to succeed if the next character to
@@ -25,7 +35,7 @@ VERSION 3.3.10
   * ADDED: plld: if the default linker is the C-compiler and there are
     C++ files, make the default linker the C++ compiler.
 
-  * ADDED: PL_same_compound( to test whether two compound terms are
+  * ADDED: PL_same_compound() to test whether two compound terms are
     the same term. 
 
   * MODIFIED: deleted the export of Quintus compatible statistics/2,

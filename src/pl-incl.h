@@ -161,8 +161,8 @@ hard to write and maintain code that runs on both old and new compilers.
 This has worked on TURBO_C not very long ago.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if (defined(__unix__) || defined(_AIX)) && !defined(unix)
-#define unix 1
+#if defined(_AIX) && !defined(__unix__)
+#define __unix__ 1
 #endif
 
 /* AIX requires this to be the first thing in the file.  */
