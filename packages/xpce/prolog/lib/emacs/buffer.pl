@@ -54,6 +54,10 @@ variable(coloured_generation,
 	 int := -1,
 	 both,
 	 "Last generation of the text-buffer that was coloured").
+variable(xref_generation,
+	 int := -1,
+	 both,
+	 "Last generation we analysed").
 
 class_variable(undo_buffer_size, int, 40000).
 

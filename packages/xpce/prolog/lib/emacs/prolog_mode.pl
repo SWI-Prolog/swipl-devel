@@ -364,20 +364,40 @@ find_definition(M, For:prolog_predicate, NewWindow:[bool]) :->
 	"Find definition of predicate [in new window]"::
 	get(M, text_buffer, TB),
 	get(For, head, @off, Head),
-	(   xref_defined(TB, Head, local(Line))
+	(   xref_defined(TB, Head, local(Line))		% local
 	->  (   NewWindow == @on
 	    ->	get(M, text_buffer, TB),
 		new(W2, emacs_frame(TB)),
 		send(W2?editor, goto_line, Line)
 	    ;	send(M, goto_line, Line)
 	    )
-	;   get(For, source, SourceLocation)
+	;   xref_defined(TB, Head, imported(File))	% imported
+	->  new(B, emacs_buffer(File)),
+	    get(B, open, NewWindow, EmacsFrame),
+	    get(EmacsFrame, mode, Mode),
+	    send(Mode, instance_of, emacs_prolog_mode),
+	    send(Mode, find_local_definition, For)
+	;   get(For, source, SourceLocation) 		% From Prolog DB
 	->  send(@emacs, goto_source_location, SourceLocation, NewWindow)
 	;   send(For, has_property, foreign)
 	->  send(M, report, warning,
 		 'Predicate is defined in a foreign language')
 	;   send(M, report, warning,
 		 'Cannot find source')
+	).
+
+
+find_local_definition(M, For:prolog_predicate) :->
+	"Find Prolog predicate in local buffer"::
+	get(M, text_buffer, TB),
+	get(For, head, @off, Head),
+	(   (   xref_defined(TB, Head, local(Line))
+	    ->  true
+	    ;   send(M, xref_buffer),
+		xref_defined(TB, Head, local(Line))
+	    )
+	->  send(M, goto_line, Line)
+	;   send(M, report, warning, 'Cannot find %N', For)
 	).
 
 

@@ -35,6 +35,7 @@
 	    xref_called/3,		% ?Source, ?Callable, ?By
 	    xref_defined/3,		% ?Source. ?Callable, -How
 	    xref_exported/2,		% ?Source, ?Callable
+	    xref_module/2,		% ?Source, ?Module
 	    xref_clean/1,		% +Source
 	    xref_current_source/1,	% ?Source
 	    xref_built_in/1,		% ?Callable
@@ -52,6 +53,7 @@
 	defined/3,			% Head, Src, Line
 	imported/3,			% Head, Src, From
 	exported/2,			% Head, Src
+	xmodule/2,			% Module, Src
 	source/1.			% Src
 
 		 /*******************************
@@ -187,6 +189,15 @@ xref_exported(Source, Called) :-
 	canonical_source(Source, Src),
 	exported(Called, Src).
 
+%	xref_module(?Source, ?Module)
+%	
+%	Module(s) defined in Source.
+
+xref_module(Source, Module) :-
+	canonical_source(Source, Src),
+	xmodule(Module, Src).
+
+
 xref_built_in(Head) :-
 	system_predicate(Head).
 
@@ -279,7 +290,8 @@ process_directive(dynamic(Dynamic), Src) :-
 	assert_dynamic(Src, Dynamic).
 process_directive(multifile(Dynamic), Src) :-
 	assert_multifile(Src, Dynamic).
-process_directive(module(_Module, Export), Src) :-
+process_directive(module(Module, Export), Src) :-
+	assert_module(Src, Module),
 	assert_export(Src, Export).
 
 process_directive(op(P, A, N), _) :-
@@ -463,6 +475,12 @@ xref_public_list(File, Path, Public, Src) :-
 
 assert_called(_, _, Var) :-
 	var(Var), !.
+assert_called(Src, Origin, M:G) :- !,
+	(   atom(M),
+	    xmodule(M, Src)
+	->  assert_called(Src, Origin, G)
+	;   true			% call to other module
+	).
 assert_called(_, _, Goal) :-
 	system_predicate(Goal), !.
 assert_called(Src, Origin, Goal) :-
@@ -490,6 +508,11 @@ assert_import(Src, [H|T], From) :-
 assert_import(Src, Name/Arity, From) :-
 	functor(Term, Name, Arity),
 	assert(imported(Term, Src, From)).
+
+assert_module(Src, Module) :-
+	xmodule(Module, Src), !.
+assert_module(Src, Module) :-
+	assert(xmodule(Module, Src)).
 
 assert_export(_, []) :- !.
 assert_export(Src, [H|T]) :-

@@ -100,10 +100,7 @@ colourise_buffer(M) :->
 
 	send_super(M, colourise_buffer),
 	send(M, setup_styles),
-
-	get(M, text_buffer, TB),
-	send(M, report, progress, 'Cross-referencing buffer ...'),
-	xref_source(TB),
+	send(M, xref_buffer),
 	send(M, report, progress, 'Colourising buffer ...'),
 	do_colourise_buffer(M),
 	send(M, colourise_comments),
@@ -126,6 +123,23 @@ colourise_or_recenter(M) :->
 	->  send(M, recenter)
 	;   send(M, colourise_buffer)
 	).
+
+xref_buffer(M, Always:[bool]) :->
+	"Run the cross-referencer on buffer"::
+	get(M, text_buffer, TB),
+	get(TB, generation, G),
+	(   (   Always == @on
+	    ->  true
+	    ;   get(TB, xref_generation, GRef),
+		GRef \== G
+	    )
+	->  send(M, report, progress, 'Cross-referencing buffer ...'),
+	    xref_source(TB),
+	    send(TB, xref_generation, G),
+	    send(M, report, done)
+	;   true
+	).
+
 
 		 /*******************************
 		 *	     PREDICATES		*
@@ -1179,9 +1193,16 @@ has_source(F) :->
 	get(F, head, Head),
 	(   xref_defined(TB, Head, local(_Line))
 	->  true
+	;   xref_defined(TB, Head, imported(_From))
+	->  true
 	;   get(prolog_predicate(Head), source, _)
 	).
 
+
+%	->edit
+%	
+%	Find the predicate and invoke ->find_definition on the
+%	@emacs_mode, which is the mode object of the current editor.
 
 edit(F, NewWindow:[bool]) :->
 	"Open Prolog predicate [in new window]"::
