@@ -165,7 +165,7 @@ l2c([X|Xs],Conj) :-
 		l2c(Xs,Xc)
 	).
 
-% proper_varlist(Lst)
+% proper_varlist(List)
 %
 % Returns whether Lst is a list of variables. 
 % First predicate is to avoid unification of a variable with a list.
