@@ -73,7 +73,7 @@ getCopyPoint(Point p)
 status
 setPoint(Point pt, Int x, Int y)
 { if ( notDefault(x) ) assign(pt, x, x);
-  if ( notDefault(x) ) assign(pt, y, y);
+  if ( notDefault(y) ) assign(pt, y, y);
 
   succeed;
 }

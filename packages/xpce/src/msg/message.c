@@ -7,6 +7,7 @@
     Copyright (C) 1992 University of Amsterdam. All rights reserved.
 */
 
+#define INLINE_UTILITIES 1
 #include <h/kernel.h>
 
 
@@ -82,9 +83,10 @@ ExecuteMessage(Message msg)
     int argc = valInt(msg->arguments->size);
     ArgVector(argv, argc);
     Any *elms = msg->arguments->elements;
+    Any *av = argv;
 
-    for(n = 0; n < argc; n++)
-      TRY(argv[n] = expandCodeArgument(elms[n]));
+    for(n = argc; --n >=0 ; )
+      TRY(*av++ = expandCodeArgument(*elms++));
 
     return sendv(receiver, msg->selector, argc, argv);
   }

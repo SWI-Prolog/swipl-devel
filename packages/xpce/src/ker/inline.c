@@ -124,9 +124,9 @@ forwardBlockv(Block b, int argc, const Any argv[])
 
 			 for(i=0; i<argc; i++)
 			 { if ( i < nvars )
-			     assignVar(vars[i], argv[i], NAME_local);
+			     assignVar(vars[i], argv[i], DEFAULT);
 			   else
-			     assignVar(Arg(i-nvars+1), argv[i], NAME_local);
+			     assignVar(Arg(i-nvars+1), argv[i], DEFAULT);
 			 }
 			 rval = executeCode((Code) b);
 		        }));
@@ -140,7 +140,8 @@ INLINE status
 forwardCodev(Code c, int argc, const Any argv[])
 { status rval;
 
-  if ( instanceOfObject(c, ClassBlock) )
+/*if ( instanceOfObject(c, ClassBlock) )*/
+  if ( c->class == ClassBlock )
     return forwardBlockv((Block) c, argc, argv);
 
   Mode(onDFlag(c, D_SYSTEM) ? MODE_SYSTEM : MODE_USER,

@@ -460,7 +460,7 @@ static Chain	 restoreMessages;	/* messages for restoration */
 long
 loadWord(FILE *fd)
 {
-#if defined(__i386__) && !defined(__WATCOMC__) /* correct for byte-order */
+#ifndef WORDS_BIGENDIAN
   union
   { ulong         l;
     unsigned char c[4];
@@ -474,9 +474,9 @@ loadWord(FILE *fd)
 	  cvrt.c[3];
   DEBUG(NAME_byteOrder, printf("loadWord(0x%lx) --> %ld\n", cvrt.l, rval));
   return rval;
-#else
+#else /*WORDS_BIGENDIAN*/
   return getw(fd);
-#endif
+#endif /*WORDS_BIGENDIAN*/
 }
 
 

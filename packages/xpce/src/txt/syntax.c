@@ -52,7 +52,7 @@ initialiseSyntaxTable(SyntaxTable t, Name name, SyntaxTable def)
 }
 
 
-#ifdef __i386__
+#ifndef WORDS_BIGENDIAN
 static void
 swapBytesTable(SyntaxTable t)
 {
@@ -65,9 +65,9 @@ swapBytesTable(SyntaxTable t)
     }
   }
 }
-#else
+#else /*WORDS_BIGENDIAN*/
 #define swapBytesTable(t)
-#endif
+#endif /*WORDS_BIGENDIAN*/
 
 
 static status

@@ -1203,13 +1203,45 @@ struct var_extension
 
 
 #define withArgs(ac, av, code) \
-  withLocalVars({ int _i; \
+  { struct var_environment _var_env; \
+    int _i; \
  \
-		  for(_i=0; _i<ac; _i++) \
-		    assignVar(Arg(_i+1), av[_i], NAME_local); \
+    _var_env.parent = varEnvironment; \
+    _var_env.extension = NULL; \
+    varEnvironment = &_var_env; \
  \
-		  code; \
-		})
+    if ( ac <= BINDINGBLOCKSIZE ) \
+    { Var *_v = &ARG[0]; \
+      VarBinding _b = &_var_env.bindings[0]; \
+      const Any *_val = (av); \
+      for( _i=ac; --_i >= 0; _b++, _v++, _val++) \
+      { _b->variable = *_v; \
+	_b->value = _b->variable->value; \
+	_b->variable->value = *_val; \
+	if ( isObject(*_val) ) \
+	  addCodeReference(*_val); \
+      } \
+      _var_env.size = (ac); \
+    } else \
+    { _var_env.size = 0; \
+      for(_i=0; _i<ac; _i++) \
+        assignVar(Arg(_i+1), (av)[_i], DEFAULT); \
+    } \
+ \
+    code; \
+ \
+    popVarEnvironment(); \
+  }
+
+#define withReceiver(r, c, code) \
+  { Any _rs = RECEIVER->value; \
+    Any _rc = RECEIVER_CLASS->value; \
+    RECEIVER->value = (r); \
+    RECEIVER_CLASS->value = (c); \
+    code; \
+    RECEIVER_CLASS->value = _rc; \
+    RECEIVER->value = _rs; \
+  }
 
 
 		/********************************
@@ -1484,4 +1516,11 @@ GLOBAL int hash_resizes;		/* # resizes done */
 
 
 #include "../ker/inline.c"
+
+		 /*******************************
+		 *	 SPEEDUP MACROS		*
+		 *******************************/
+
+#define sendv(rec, sel, ac, av) vm_send((rec), (sel), NULL, (ac), (av))
+#define getv(rec, sel, ac, av) vm_get((rec), (sel), NULL, (ac), (av))
 

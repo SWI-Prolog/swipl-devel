@@ -1,5 +1,8 @@
 [VERSION 4.8.7]
 
+* CONFIG: added WORDS_BIG_ENDIAN configure option to replace __i386__
+  dependency.
+
 * FIXED: `regex->for_all' for regexes that can match the empty string to avoid
   loops.
 

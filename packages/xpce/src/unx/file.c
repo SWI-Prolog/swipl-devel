@@ -778,7 +778,7 @@ storeCharFile(FileObj f, char c)
 void
 putstdw(ulong w, FILE *fd)
 {
-#if defined(__i386__) && !defined(__WATCOMC__)
+#ifndef WORDS_BIGENDIAN
   union
   { ulong         l;
     unsigned char c[4];
@@ -791,9 +791,9 @@ putstdw(ulong w, FILE *fd)
 	 (cvrt.c[2] << 8) |
 	  cvrt.c[3];
   putw(rval, fd);
-#else
+#else /*WORDS_BIGENDIAN*/
   putw(w, fd);
-#endif
+#endif /*WORDS_BIGENDIAN*/
 }
 
 

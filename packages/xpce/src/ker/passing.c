@@ -361,6 +361,7 @@ out:
 }
 
 
+#undef sendv
 status
 sendv(Any receiver, Name selector, int argc, Any *argv)
 { return vm_send(receiver, selector, NULL, argc, argv);
@@ -482,6 +483,7 @@ out:
 }
 
 
+#undef getv
 Any
 getv(Any receiver, Name selector, int argc, Any *argv)
 { return vm_get(receiver, selector, NULL, argc, argv);
