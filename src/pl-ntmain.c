@@ -24,8 +24,8 @@
 
 #include <windows.h>
 #include <stdio.h>
-#include "pl-itf.h"
 #include "pl-stream.h"
+#include "pl-itf.h"
 #include <ctype.h>
 #include <console.h>
 #include <signal.h>
@@ -39,9 +39,20 @@ Main program for running SWI-Prolog from   a window. The window provides
 X11-xterm like features: scrollback for a   predefined  number of lines,
 cut/paste and the GNU readline library for command-line editing.
 
-Basically, this module combines libpl.dll and console.dll with some glue
-to produce the final executable plwin.exe.
+This module combines libpl.dll and plterm.dll  with some glue to produce
+the final executable plwin.exe.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static rlc_console	current_console();
+static int		type_error(term_t actual, const char *expected);
+static int		domain_error(term_t actual, const char *expected);
+static HWND		create_prolog_hidden_window(rlc_console c);
+static int		get_chars_arg_ex(int a, term_t t, char **v, unsigned flags);
+
+#define RLC_PROLOG_WINDOW	RLC_VALUE(0) /* GetCurrentThreadID() */
+#define RLC_PROLOG_INPUT	RLC_VALUE(1) /* Input  stream (IOSTREAM*) */
+#define RLC_PROLOG_OUTPUT	RLC_VALUE(2) /* Output stream (IOSTREAM*) */
+#define RLC_PROLOG_ERROR	RLC_VALUE(3) /* Error  stream (IOSTREAM*) */
 
 
 		 /*******************************
@@ -55,44 +66,166 @@ streams.
 
 static int
 Srlc_read(void *handle, char *buffer, int size)
-{ int fd = (int) handle;
-  int ttymode = PL_ttymode(fd);
+{ rlc_console c = handle;
+  int bytes;
 
-  if ( ttymode == PL_RAWTTY )
-  { int chr = getkey();
+  PL_write_prompt(TRUE);
+
+  if ( Suser_input->handle == c && PL_ttymode(Suser_input) == PL_RAWTTY )
+  { int chr = getkey(c);
       
     if ( chr == 04 || chr == 26 || chr == -1 )
-      return 0;			/* EOF */
-
-    buffer[0] = chr & 0xff;
-    return 1;
+    { bytes = 0;
+    } else
+    { buffer[0] = chr & 0xff;
+      bytes = 1;
+    }
+  } else
+  { bytes = rlc_read(c, buffer, size);
   }
 
-  return rlc_read(buffer, size);
+  if ( bytes == 0 || buffer[bytes-1] == '\n' )
+    PL_prompt_next(0);
+
+  return bytes;
 }
 
 
 static int
 Srlc_write(void *handle, char *buffer, int size)
-{ return rlc_write(buffer, size);
+{ rlc_console c = handle;
+
+  return rlc_write(c, buffer, size);
 }
 
+
+static int
+Srlc_close(void *handle)
+{ rlc_console c = handle;
+  unsigned long v;
+  int closed = 0;
+
+  if ( rlc_get(handle, RLC_PROLOG_INPUT, &v) && v &&
+       ((IOSTREAM *)v)->flags && SIO_CLOSING )
+  { rlc_set(handle, RLC_PROLOG_INPUT, 0L, NULL);
+    closed++;
+  } else if ( rlc_get(handle, RLC_PROLOG_OUTPUT, &v) && v &&
+	      ((IOSTREAM *)v)->flags && SIO_CLOSING )
+  { rlc_set(handle, RLC_PROLOG_OUTPUT, 0L, NULL);
+    closed++;
+  } else if ( rlc_get(handle, RLC_PROLOG_ERROR, &v) && v &&
+	      ((IOSTREAM *)v)->flags && SIO_CLOSING )
+  { rlc_set(handle, RLC_PROLOG_ERROR, 0L, NULL);
+  }
+
+  if ( closed &&
+       rlc_get(handle, RLC_PROLOG_INPUT, &v)  && v == 0L &&
+       rlc_get(handle, RLC_PROLOG_OUTPUT, &v) && v == 0L )
+    rlc_close(c);
+
+  return 0;
+}
+
+static IOFUNCTIONS rlc_functions;
 
 static void
-rlc_bind_terminal()
-{ static IOFUNCTIONS funcs;
+rlc_bind_terminal(rlc_console c)
+{ rlc_functions	      = *Sinput->functions;
+  rlc_functions.read  = Srlc_read;
+  rlc_functions.write = Srlc_write;
+  rlc_functions.close = Srlc_close;
 
-  funcs = *Sinput->functions;
-  funcs.read     = Srlc_read;
-  funcs.write    = Srlc_write;
-
-  Sinput->functions  = &funcs;
-  Soutput->functions = &funcs;
-  Serror->functions  = &funcs;
+  Sinput->functions  = &rlc_functions;
+  Soutput->functions = &rlc_functions;
+  Serror->functions  = &rlc_functions;
+  
+  Sinput->handle  = c;
+  Soutput->handle = c;
+  Serror->handle  = c;
 }
 
 
-#ifndef HAVE_LIBREADLINE
+static int
+process_console_options(rlc_console_attr *attr, term_t options)
+{ term_t tail = PL_copy_term_ref(options);
+  term_t opt = PL_new_term_ref();
+
+  while(PL_get_list(tail, opt, tail))
+  { atom_t name;
+    const char *s;
+    int arity;
+
+    if ( !PL_get_name_arity(opt, &name, &arity) )
+      return type_error(opt, "compound");
+    s = PL_atom_chars(name);
+    if ( streq(s, "registry_key") && arity == 1 )
+    { if ( !get_chars_arg_ex(1, opt, (char **)&attr->key, CVT_ALL|BUF_RING) )
+	return FALSE;
+    } else
+      return domain_error(opt, "window_option");
+  }
+  if ( !PL_get_nil(tail) )
+    return type_error(tail, "list");
+}
+
+
+static void				/* handle console destruction */
+free_stream(unsigned long handle)
+{ IOSTREAM *s = (IOSTREAM*) handle;
+
+  Sclose(s);
+}
+
+
+static foreign_t
+pl_win_open_console(term_t title, term_t input, term_t output, term_t error,
+		    term_t options)
+{ rlc_console_attr attr;
+  rlc_console c;
+  IOSTREAM *in, *out, *err;
+  char *s;
+
+  memset(&attr, 0, sizeof(attr));
+  if ( !PL_get_chars(title, &s, CVT_ALL|BUF_RING) )
+    return type_error(title, "text");
+  attr.title = (const char *) s;
+
+  if ( !process_console_options(&attr, options) )
+    return FALSE;
+
+  c = rlc_create_console(&attr);
+  create_prolog_hidden_window(c);	/* for sending messages */
+
+#define STREAM_COMMON (SIO_TEXT|	/* text-stream */ 		\
+		       SIO_NOCLOSE|	/* do no close on abort */	\
+		       SIO_ISATTY|	/* terminal */			\
+		       SIO_NOFEOF)	/* reset on end-of-file */
+
+  in  = Snew(c,  SIO_INPUT|SIO_LBUF|STREAM_COMMON, &rlc_functions);
+  out = Snew(c, SIO_OUTPUT|SIO_LBUF|STREAM_COMMON, &rlc_functions);
+  err = Snew(c, SIO_OUTPUT|SIO_NBUF|STREAM_COMMON, &rlc_functions);
+
+  in->position  = &in->posbuf;		/* record position on same stream */
+  out->position = &in->posbuf;
+  err->position = &in->posbuf;
+
+  if ( !PL_unify_stream(input, in) ||
+       !PL_unify_stream(output, out) ||
+       !PL_unify_stream(error, err) )
+  { Sclose(in);
+    Sclose(out);
+    Sclose(err);
+    rlc_close(c);
+
+    return FALSE;
+  }
+
+  rlc_set(c, RLC_PROLOG_INPUT,  (unsigned long)in,  NULL);
+  rlc_set(c, RLC_PROLOG_OUTPUT, (unsigned long)out, NULL);
+  rlc_set(c, RLC_PROLOG_ERROR,  (unsigned long)err, free_stream);
+
+  return TRUE;
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Note: actually rlc_add_history() removes  duplicates   and  empty lines.
@@ -113,7 +246,7 @@ pl_rl_add_history(term_t text)
       last = a;
       PL_register_atom(last);
 
-      rlc_add_history(PL_atom_chars(a));
+      rlc_add_history(current_console(), PL_atom_chars(a));
     }
 
     return TRUE;
@@ -199,11 +332,18 @@ do_complete(RlcCompleteData data)
 }
 
 
-#endif /*HAVE_LIBREADLINE*/
-
 		 /*******************************
 		 *	   CONSOLE STUFF	*
 		 *******************************/
+
+static rlc_console
+current_console()
+{ if ( Suser_input->functions->read = Srlc_read )
+    return Suser_input->handle;
+
+  return NULL;
+}
+
 
 foreign_t
 pl_window_title(term_t old, term_t new)
@@ -213,7 +353,7 @@ pl_window_title(term_t old, term_t new)
   if ( !PL_get_atom_chars(new, &n) )
     return PL_warning("window_title/2: instantiation fault");
 
-  rlc_title(n, buf, sizeof(buf));
+  rlc_title(current_console(), n, buf, sizeof(buf));
 
   return PL_unify_atom_chars(old, buf);
 }
@@ -244,6 +384,18 @@ domain_error(term_t actual, const char *expected)
 
   return PL_raise_exception(ex);
 }
+
+static int
+get_chars_arg_ex(int a, term_t t, char **v, unsigned flags)
+{ term_t arg = PL_new_term_ref();
+
+  PL_get_arg(a, t, arg);
+  if ( PL_get_chars(arg, v, flags) )
+    return TRUE;
+
+  return type_error(arg, "text");
+}
+
 
 static int
 get_int_arg_ex(int a, term_t t, int *v)
@@ -332,7 +484,7 @@ pl_window_pos(term_t options)
   if ( !PL_get_nil(tail) )
    return type_error(tail, "list");
 
-  rlc_window_pos(z, x, y, w, h, flags);
+  rlc_window_pos(current_console(), z, x, y, w, h, flags);
 
   return TRUE;
 }
@@ -344,7 +496,7 @@ call_menu(const char *name)
   predicate_t pred = PL_predicate("on_menu", 1, "prolog");
   module_t m = PL_new_module(PL_new_atom("prolog"));
   term_t a0 = PL_new_term_ref();
-
+  
   PL_put_atom_chars(a0, name);
   PL_call_predicate(m, PL_Q_NORMAL, pred, a0);
 
@@ -366,7 +518,7 @@ pl_win_insert_menu_item(foreign_t menu, foreign_t label, foreign_t before)
   if ( strcmp(l, "--") == 0 )
     l = NULL;				/* insert a separator */
     
-  return rlc_insert_menu_item(m, l, b);
+  return rlc_insert_menu_item(current_console(), m, l, b);
 }
 
 
@@ -381,15 +533,44 @@ pl_win_insert_menu(foreign_t label, foreign_t before)
   if ( strcmp(b, "-") == 0 )
     b = NULL;
     
-  return rlc_insert_menu(l, b);
+  return rlc_insert_menu(current_console(), l, b);
 }
 
+		 /*******************************
+		 *	      THREADS		*
+		 *******************************/
+
+#ifdef O_PLMT
+
+static void *
+run_interactor(void *closure)
+{ predicate_t pred;
+
+  PL_thread_attach_engine(NULL);
+  
+  pred = PL_predicate("thread_run_interactor", 0, "user");
+  PL_call_predicate(NULL, PL_Q_NORMAL, pred, 0);
+
+  PL_thread_destroy_engine();
+  return NULL;
+}
+
+
+static void
+create_interactor()
+{ pthread_attr_t attr;
+  pthread_t child;
+
+  pthread_attr_init(&attr);
+  pthread_create(&child, &attr, run_interactor, NULL);
+}
+
+#endif /*O_PLMT*/
 
 		 /*******************************
 		 *	      SIGNALS		*
 		 *******************************/
 
-static DWORD main_thread_id;		/* ThreadId of main thread */
 #define WM_SIGNALLED (WM_USER+1)
 #define WM_MENU	     (WM_USER+2)
 
@@ -440,27 +621,27 @@ HiddenFrameClass()
 
 
 static void
-destroy_hidden_window(int status, void *data)
-{ HWND win = (HWND) data;
-
-  DestroyWindow(win);
+destroy_hidden_window(unsigned long hwnd)
+{ DestroyWindow((HWND)hwnd);
 }
 
 
-HWND
-PL_hidden_window()
-{ static HWND window;
+static HWND
+create_prolog_hidden_window(rlc_console c)
+{ unsigned long hwnd;
 
-  if ( !window )
-  { window = CreateWindow(HiddenFrameClass(),
-			  "SWI-Prolog hidden window",
-			  0,
-			  0, 0, 32, 32,
-			  NULL, NULL, rlc_hinstance(), NULL);
-    PL_on_halt(destroy_hidden_window, (void *)window);
-  }
+  if ( rlc_get(c, RLC_PROLOG_WINDOW, &hwnd) && hwnd )
+    return (HWND)hwnd;
 
-  return window;
+  hwnd = (unsigned long)CreateWindow(HiddenFrameClass(),
+				     "SWI-Prolog hidden window",
+				     0,
+				     0, 0, 32, 32,
+				     NULL, NULL, rlc_hinstance(), NULL);
+
+  rlc_set(c, RLC_PROLOG_WINDOW, hwnd, destroy_hidden_window);
+
+  return (HWND)hwnd;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -499,31 +680,41 @@ initSignals()
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-If we are in  the  same  thread,   we  can  call  the interrupt-handling
-rountine immediately. Otherwise we will   use  Prolog's signal scheduler
-and wait for it to be raised.
-
-Maybe we should wait for a little until the signal is handled by Prolog,
-and indicate if this is not the case within a few seconds.
+Callbacks from the console. Trouble is that these routines are called in
+the thread updating the console rather   than the thread running Prolog.
+We can inform Prolog using  the  hidden   window  which  is  in Prolog's
+thread. For the interrupt to work if Prolog   is  working we need to set
+the signalled mask in the  proper   thread.  This  is accomplished using
+PL_w32thread_raise(ID, sig). In the single-threaded   version  this call
+simply calls PL_raise(sig).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-interrupt(int sig)
-{ if ( GetCurrentThreadId() == main_thread_id )
-    PL_interrupt(sig);
-  else
-  { PL_raise(sig);
-    PostMessage(PL_hidden_window(), WM_SIGNALLED, 0, 0);
+interrupt(rlc_console c, int sig)
+{ DWORD tid;
+
+  if ( rlc_get(c, RLC_APPLICATION_THREAD_ID, &tid) )
+  { unsigned long hwnd;
+
+    PL_w32thread_raise((DWORD)tid, sig);
+    if ( rlc_get(c, RLC_PROLOG_WINDOW, &hwnd) )
+      PostMessage((HWND)hwnd, WM_SIGNALLED, 0, 0);
   }
 }
 
 
 static void
-menu_select(const char *name)
-{ if ( GetCurrentThreadId() == main_thread_id )
-    call_menu(name);
-  else
-  { PostMessage(PL_hidden_window(), WM_MENU, 0, (LONG)name);
+menu_select(rlc_console c, const char *name)
+{ 
+#ifdef O_PLMT
+  if ( streq(name, "&New thread") )
+  { create_interactor();
+  } else
+#endif /*O_PLMT*/
+  { unsigned long hwnd;
+
+    if ( rlc_get(c, RLC_PROLOG_WINDOW, &hwnd) )
+      PostMessage((HWND)hwnd, WM_MENU, 0, (LONG)name);
   }
 }
 
@@ -534,15 +725,19 @@ menu_select(const char *name)
 
 
 static void
-set_window_title()
+set_window_title(rlc_console c)
 { char title[256];
   long v = PL_query(PL_QUERY_VERSION);
   int major = v / 10000;
   int minor = (v / 100) % 100;
   int patch = v % 100;
 
+#ifdef O_PLMT
+  Ssprintf(title, "SWI-Prolog (Multi-threaded, version %d.%d.%d)", major, minor, patch);
+#else
   Ssprintf(title, "SWI-Prolog (version %d.%d.%d)", major, minor, patch);
-  rlc_title(title, NULL, 0);
+#endif
+  rlc_title(c, title, NULL, 0);
 }
 
 
@@ -559,17 +754,13 @@ PL_extension extensions[] =
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This function is called back from the   console.dll main loop to provide
-the main for the application.
+win32main() is called back from the plterm.dll  main loop to provide the
+main for the application.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-install_readline(int argc, char **argv)
-{ 
-#ifdef HAVE_LIBREADLINE
-  PL_install_readline();
-#else /*HAVE_LIBREADLINE*/  
-  rlc_init_history(FALSE, 50);
+install_readline(rlc_console c)
+{ rlc_init_history(c, 50);
   file_completer = rlc_complete_hook(do_complete);
 
   PL_register_foreign("system:rl_add_history",    1, pl_rl_add_history,    0);
@@ -577,34 +768,44 @@ install_readline(int argc, char **argv)
 
   PL_set_feature("tty_control", PL_BOOL, TRUE);
   PL_set_feature("readline",    PL_BOOL, TRUE);
-#endif /*HAVE_LIBREADLINE*/
 }
 
 static void
 closeWin(int s, void *a)
-{ rlc_close();
+{ rlc_console c = a;
+
+  rlc_close(c);
+}
+
+void
+atexitfunc(void)
+{ rlc_close(NULL);
 }
 
 int
-win32main(int argc, char **argv)
-{ set_window_title();
-  rlc_bind_terminal();
+win32main(rlc_console c, int argc, char **argv)
+{ set_window_title(c);
+  rlc_bind_terminal(c);
 
   PL_register_extensions(extensions);
-  PL_initialise_hook(install_readline);
+  install_readline(c);
   PL_action(PL_ACTION_GUIAPP, TRUE);
-  PL_on_halt(closeWin, NULL);
-  atexit(rlc_close);
+  PL_on_halt(closeWin, c);
+  atexit(atexitfunc);
 
-  PL_hidden_window();			/* create in main thread */
-  main_thread_id = GetCurrentThreadId();
-  PL_set_feature("hwnd", PL_INTEGER, (long)rlc_hwnd());
+  create_prolog_hidden_window(c);
+  PL_set_feature("hwnd", PL_INTEGER, (long)rlc_hwnd(c));
   rlc_interrupt_hook(interrupt);
   rlc_menu_hook(menu_select);
   PL_set_feature("console_menu", PL_BOOL, TRUE);
+#ifdef O_PLMT
+  rlc_insert_menu_item(c, "&Run", "&New thread", NULL);
+#endif
 #if !defined(O_DEBUG) && !defined(_DEBUG)
   initSignals();
 #endif
+  PL_register_foreign("system:win_open_console", 5,
+		      pl_win_open_console, 0);
 
   if ( !PL_initialise(argc, argv) )
     PL_halt(1);

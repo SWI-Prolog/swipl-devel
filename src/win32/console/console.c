@@ -98,7 +98,6 @@ static void initHeapDebug(void);
 #include <signal.h>
 #include <ctype.h>
 #include <stdio.h>
-#define OQSIZE 4096			/* output queue size */
 
 #ifndef isletter
 #define isletter(c) (isalpha(c) || (c) == '_')
@@ -113,7 +112,6 @@ static void initHeapDebug(void);
 #endif
 
 #define MAXLINE	     1024		/* max chars per line */
-#define MAXPROMPT      80		/* max size of prompt */
 
 #define CMD_INITIAL	0
 #define CMD_ESC		1
@@ -153,105 +151,27 @@ static void initHeapDebug(void);
 
 #define streq(s, q) (strcmp((s), (q)) == 0)
 
-static HANDLE _rlc_hinstance;		/* Global instance */
-static HICON  _rlc_hicon;		/* Global icon */
-
-typedef struct lqueued
-{ char *	  line;			/* Lines in queue */
-  struct lqueued* next;			/* Next in queue */
-} lqueued, *LQueued;
-
-typedef struct
-{ char *	 text;			/* the storage */
-  unsigned short size;			/* #characters in line */
-  unsigned	 adjusted : 1;		/* line has been adjusted? */
-  unsigned	 changed : 1;		/* line needs redraw */
-  unsigned	 softreturn : 1;	/* wrapped line */
-} text_line, *TextLine;
-
-#define ANSI_MAX_ARGC 10
-
-typedef struct
-{ int		height;			/* number of lines in buffer */
-  int		width;			/* #characters ler line */
-  int		first;			/* first line of ring */
-  int		last;			/* last line of ring */
-  int		caret_x;		/* cursor's x-position */
-  int		caret_y;		/* its line */
-  int		window_start;		/* start line of the window */
-  int		window_size;		/* #lines on the window */
-  TextLine 	lines;			/* the actual lines */
-  int		sel_unit;		/* SEL_CHAR, SEL_WORD, SEL_LINE */
-  int		sel_org_line;		/* line origin of the selection */
-  int		sel_org_char;		/* char origin of the selection */
-  int		sel_start_line;		/* starting line for selection */
-  int		sel_start_char;		/* starting char for selection */
-  int		sel_end_line;		/* ending line for selection */
-  int		sel_end_char;		/* ending char for selection */
-  int		cmdstat;		/* for parsing ANSI escape */
-  int		argstat;		/* argument status ANSI */
-  int		argc;			/* argument count for ANSI */
-  int		argv[ANSI_MAX_ARGC];	/* argument vector for ANSI */
-  int		scaret_x;		/* saved-caret X */
-  int		scaret_y;		/* saved-caret Y */
-  HWND		window;			/* MS-Window window handle */
-  int		has_focus;		/* Application has the focus */
-  HFONT		hfont;			/* Windows font handle */
-  int		fixedfont;		/* Font is fixed */
-  COLORREF	foreground;		/* Foreground (text) color */
-  COLORREF	background;		/* Background color */
-  COLORREF	sel_foreground;		/* Selection foreground */
-  COLORREF	sel_background;		/* Selection background */
-  int		cw;			/* character width */
-  int		ch;			/* character height */
-  int		cb;			/* baseline */
-  int		changed;		/* changes to the whole screen */
-  int		sb_lines;		/* #lines the scrollbar thinks */
-  int		sb_start;		/* start-line scrollbar thinks */
-  int		caret_is_shown;		/* is caret in the window? */
-					/* output queue */
-  char	        output_queue[OQSIZE];	/* The output queue */
-  int		output_queued;		/* # characters in the queue */
-					/* input queuing */
-  int		imode;			/* input mode */
-  int		imodeswitch;		/* switching imode */
-  RlcQueue	queue;			/* input stream */
-  LQueued	lhead;			/* line-queue head */
-  LQueued	ltail;			/* line-queue tail */
-  char		promptbuf[MAXPROMPT];	/* Buffer for building prompt */
-  char		prompt[MAXPROMPT];	/* The prompt */
-  int		promptlen;		/* length of the prompt */
-  int		closing;		/* closing status */
-  int		modified_options;	/* OPT_ */
-
-  HANDLE	console_thread;		/* I/O thread  */
-  HANDLE	application_thread;	/* The application I work for */
-  DWORD		console_thread_id;	/* I/O thread id */
-  DWORD		application_thread_id;
-  HWND		kill_window;		/* window in app thread for destroy */
-} rlc_data, *RlcData;
+#include "console_i.h"			/* internal package stuff */
 
 #define OPT_SIZE	0x01
 #define OPT_POSITION	0x02
 
-static RlcData  _rlc_stdio = NULL;	/* the main buffer */
-static RlcQueue	_rlc_queue;		/* Current Character Queue */
-					/* options */
-static HKEY	rlc_reg_key;		/* registry key */
-static int	rlc_x = CW_USEDEFAULT;	/* X-position (pixels) */
-static int	rlc_y = CW_USEDEFAULT;	/* Y-position (pixels) */
-static int	rlc_rows = 24;		/* #rows of the window */
-static int	rlc_cols = 80;		/* #columns of the window */
-static int	rlc_savelines = 200;	/* #saved lines */
-static char    *rlc_face_name = NULL;
-static int	rlc_font_family;
-static int	rlc_font_size;
-static int	rlc_font_weight;
-static int	rlc_font_charset;
-static char    *deftitle;		/* default title */
-static int      _rlc_show;		/* initial show */
+		 /*******************************
+		 *	       DATA		*
+		 *******************************/
 
+       RlcData  _rlc_stdio = NULL;	/* the main buffer */
+static int      _rlc_show;		/* initial show */
 static char	_rlc_word_chars[CHAR_MAX]; /* word-characters (selection) */
+static const char *	_rlc_program;		/* name of the program */
+static HANDLE   _rlc_hinstance;		/* Global instance */
+static HICON    _rlc_hicon;		/* Global icon */
+
+
+
+		 /*******************************
+		 *	     FUNCTIONS		*
+		 *******************************/
 
 static WINAPI	rlc_wnd_proc(HWND win, UINT msg, UINT wP, LONG lP);
 
@@ -264,8 +184,9 @@ static void	rlc_open_line(RlcData b);
 static void	rlc_update_scrollbar(RlcData b);
 static void	rlc_paste(RlcData b);
 static void	rlc_init_text_dimensions(RlcData b, HFONT f);
-static void	rlc_save_font_options(HFONT f);
-static void	rlc_get_options(const char *path);
+static void	rlc_save_font_options(HFONT f, rlc_console_attr *attr);
+static void	rlc_get_options(rlc_console_attr *attr);
+static HKEY	rlc_option_key(rlc_console_attr *attr, int create);
 static void	rlc_progbase(char *path, char *base);
 static int	rlc_add_queue(RlcData b, RlcQueue q, int chr);
 static int	rlc_add_lines(RlcData b, int here, int add);
@@ -281,11 +202,18 @@ static void	rlc_resize(RlcData b, int w, int h);
 static void	rlc_adjust_line(RlcData b, int line);
 static int	text_width(RlcData b, HDC hdc, const char *text, int len);
 static void	rlc_queryfont(RlcData b);
-static void	rlc_flush_output(RlcData b);
 static void     rlc_do_write(RlcData b, char *buf, int count);
 static void     rlc_reinit_line(RlcData b, int line);
 static void	rlc_free_line(RlcData b, int line);
 static int	rlc_between(RlcData b, int f, int t, int v);
+static void	free_user_data(RlcData b);
+
+static RlcQueue	rlc_make_queue(int size);
+static void	rlc_free_queue(RlcQueue q);
+static int	rlc_from_queue(RlcQueue q);
+static int	rlc_is_empty_queue(RlcQueue q);
+static void	rlc_empty_queue(RlcQueue q);
+
 extern int	main();
 
 static RlcUpdateHook	_rlc_update_hook;
@@ -317,8 +245,6 @@ rlc_assert() and all functions normally.
 rlc_check_assertions() is a (very) incomplete   check that everything we
 expect to be true about the data is indeed the case.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define assert(g) if ( !(g) ) rlc_assert(#g)
 
 void
 rlc_assert(const char *msg)
@@ -430,11 +356,12 @@ int
 rlc_main(HANDLE hInstance, HANDLE hPrevInstance,
 	 LPSTR lpszCmdLine, int nCmdShow,
 	 RlcMain mainfunc, HICON icon)
-{ char *	argv[100];
-  int		argc;
-  char		program[MAXPATHLEN];
-  char	 	progbase[100];
-  RlcData       b;
+{ char *	    argv[100];
+  int		    argc;
+  char		    program[MAXPATHLEN];
+  char	 	    progbase[100];
+  RlcData           b;
+  rlc_console_attr  attr;
 
   initHeapDebug();
 
@@ -445,16 +372,43 @@ rlc_main(HANDLE hInstance, HANDLE hPrevInstance,
   GetModuleFileName(hInstance, program, sizeof(program));
   rlc_long_name(program);
   rlc_progbase(program, progbase);
-  deftitle = progbase;
-  rlc_get_options(progbase);
-  _rlc_stdio = b = rlc_make_buffer(rlc_cols, rlc_savelines);
-  rlc_init_text_dimensions(b, NULL);
+
+  memset(&attr, 0, sizeof(attr));
+  _rlc_program = attr.title = progbase;
+  _rlc_stdio = b = rlc_create_console(&attr);
 
   argc = rlc_breakargs(program, lpszCmdLine, argv);
 
-{ MSG msg;
+  if ( mainfunc )
+    return (*mainfunc)(b, argc, argv);
+  else
+    return 0;
+}
 
+
+rlc_console
+rlc_create_console(rlc_console_attr *attr)
+{ RlcData b;
+  MSG msg;
+  const char *title;
+
+  rlc_get_options(attr);
+
+  if ( attr->title )
+    title = attr->title;
+  else
+    title = "Untitled";
+
+  b = rlc_make_buffer(attr->width, attr->savelines);
+  b->create_attributes = attr;
+  strcpy(b->current_title, title);
+  if ( attr->key )
+  { b->regkey_name = strdup(attr->key);
+  }
+
+  rlc_init_text_dimensions(b, NULL);
   _rlc_create_kill_window(b);
+
   DuplicateHandle(GetCurrentProcess(),
 		  GetCurrentThread(),
 		  GetCurrentProcess(),
@@ -465,38 +419,42 @@ rlc_main(HANDLE hInstance, HANDLE hPrevInstance,
   b->application_thread_id = GetCurrentThreadId();
   b->console_thread = CreateThread(NULL,			/* security */
 				   2048,			/* stack */
-				   window_loop, _rlc_stdio,	/* proc+arg */
+				   window_loop, b,		/* proc+arg */
 				   0,				/* flags */
 				   &b->console_thread_id);	/* id */
 					/* wait till the window is created */
   GetMessage(&msg, NULL, WM_RLC_READY, WM_RLC_READY);
-}
+  b->create_attributes = NULL;		/* release this data */
 
-  if ( mainfunc )
-    return (*mainfunc)(argc, argv);
-  else
-    return 0;
+  return b;
 }
 
 
 static void
 rlc_create_window(RlcData b)
 { HWND hwnd;
+  rlc_console_attr *a = b->create_attributes;
 
   int xwidth  = GetSystemMetrics(SM_CXVSCROLL) +
 		2 * GetSystemMetrics(SM_CXBORDER);
   int xheight = GetSystemMetrics(SM_CYCAPTION) +
 		2 * GetSystemMetrics(SM_CYBORDER);
 
-  hwnd = CreateWindow(rlc_window_class(_rlc_hicon), deftitle,
+  hwnd = CreateWindow(rlc_window_class(_rlc_hicon), b->current_title,
 		      WS_OVERLAPPEDWINDOW|WS_VSCROLL,
-		      rlc_x, rlc_y,
-		      (rlc_cols+3) * b->cw + xwidth,
-		      (rlc_rows+1) * b->ch + xheight,
+		      a->x, a->y, 
+		      (a->width+3) * b->cw + xwidth,
+		      (a->height+1) * b->ch + xheight,
 		      NULL, NULL, _rlc_hinstance, NULL);
 
   b->window = hwnd;
   SetWindowLong(hwnd, GWL_DATA, (LONG) b);
+  SetScrollRange(hwnd, SB_VERT, 0, b->sb_lines, FALSE);
+  SetScrollPos  (hwnd, SB_VERT, b->sb_start, TRUE);
+
+  b->queue    = rlc_make_queue(256);
+  b->sb_lines = rlc_count_lines(b, b->first, b->last); 
+  b->sb_start = rlc_count_lines(b, b->first, b->window_start); 
 
   b->foreground = GetSysColor(COLOR_WINDOWTEXT);
   b->background = GetSysColor(COLOR_WINDOW);
@@ -612,43 +570,46 @@ reg_save_str(HKEY key, const char *name, char *value)
 
 static void
 rlc_save_options(RlcData b)
-{ if ( b && rlc_reg_key )
-  { HKEY key = rlc_reg_key;
-    
-    rlc_savelines = b->height;
-    rlc_rows      = b->window_size;
-    rlc_cols      = b->width;
-    rlc_save_font_options(b->hfont);
+{ HKEY key;
+  rlc_console_attr attr;
 
-    reg_save_int(key, "SaveLines",  rlc_savelines);
-    if ( b->modified_options & OPT_SIZE )
-    { reg_save_int(key, "Width",      rlc_cols);
-      reg_save_int(key, "Height",     rlc_rows);
-    }
-    if ( b->modified_options & OPT_POSITION )
-    { reg_save_int(key, "X",	    rlc_x);
-      reg_save_int(key, "Y",	    rlc_y);
-    }
+  memset(&attr, 0, sizeof(attr));
+  attr.key = b->regkey_name;
 
-    if ( rlc_face_name )
-    { reg_save_str(key, "FaceName",    rlc_face_name);
-      reg_save_int(key, "FontFamily",  rlc_font_family);
-      reg_save_int(key, "FontSize",    rlc_font_size);
-      reg_save_int(key, "FontWeight",  rlc_font_weight);
-      reg_save_int(key, "FontCharSet", rlc_font_charset);
-    }
+  if ( !(key = rlc_option_key(&attr, TRUE)) )
+    return;
 
-    RegCloseKey(key);
-    rlc_reg_key = NULL;
+  reg_save_int(key, "SaveLines",  b->height);
+  if ( b->modified_options & OPT_SIZE )
+  { reg_save_int(key, "Width",    b->width);
+    reg_save_int(key, "Height",   b->window_size);
   }
+  if ( b->modified_options & OPT_POSITION )
+  { reg_save_int(key, "X",	  b->win_x);
+    reg_save_int(key, "Y",	  b->win_y);
+  }
+
+  rlc_save_font_options(b->hfont, &attr);
+  if ( attr.face_name[0] )
+  { reg_save_str(key, "FaceName",    attr.face_name);
+    reg_save_int(key, "FontFamily",  attr.font_family);
+    reg_save_int(key, "FontSize",    attr.font_size);
+    reg_save_int(key, "FontWeight",  attr.font_weight);
+    reg_save_int(key, "FontCharSet", attr.font_char_set);
+  }
+
+  RegCloseKey(key);
 }
 
 
 static void
-reg_get_int(HKEY key, const char *name, int mn, int mx, int *value)
+reg_get_int(HKEY key, const char *name, int mn, int def, int mx, int *value)
 { DWORD type;
   BYTE  data[8];
   DWORD len = sizeof(data);
+
+  if ( *value )
+    return;				/* use default */
 
   if ( RegQueryValueEx(key, name, NULL, &type, data, &len) == ERROR_SUCCESS )
   { switch(type)
@@ -667,22 +628,26 @@ reg_get_int(HKEY key, const char *name, int mn, int mx, int *value)
 	*value = v;
       }
     }
-  }
+  } else
+    *value = def;
 }
 
 
 static void
-reg_get_str(HKEY key, const char *name, char **value)
+reg_get_str(HKEY key, const char *name, char *value, int length)
 { DWORD type;
   BYTE  data[MAXREGSTRLEN];
   DWORD len = sizeof(data);
+
+  if ( *value )
+    return;				/* use default */
 
   if ( RegQueryValueEx(key, name, NULL, &type, data, &len) == ERROR_SUCCESS )
   { switch(type)
     { case REG_SZ:
       { char *val = data;
-	*value = rlc_malloc(strlen(val)+1);
-	strcpy(*value, val);
+	strncpy(value, val, length-1);
+	value[length-1] = '\0';
       }
     }
   }
@@ -690,7 +655,7 @@ reg_get_str(HKEY key, const char *name, char **value)
 
 
 HKEY
-reg_open_key(char **which)
+reg_open_key(char **which, int create)
 { HKEY key = HKEY_CURRENT_USER;
   DWORD disp;
   LONG rval;
@@ -698,10 +663,14 @@ reg_open_key(char **which)
   for( ; *which; which++)
   { HKEY tmp;
 
-    if ( which[1] &&
-	 RegOpenKeyEx(key, which[0], 0L, KEY_READ, &tmp) == ERROR_SUCCESS )
-    { key = tmp;
-      continue;
+    if ( which[1] )
+    { if ( RegOpenKeyEx(key, which[0], 0L, KEY_READ, &tmp) == ERROR_SUCCESS )
+      { key = tmp;
+	continue;
+      }
+
+      if ( !create )
+	return NULL;
     }
 
     rval = RegCreateKeyEx(key, which[0], 0, "", 0,
@@ -717,30 +686,41 @@ reg_open_key(char **which)
 }
 
 
-static void
-rlc_get_options(const char *prog)
-{ HKEY key;
-  char Prog[256];
+static HKEY
+rlc_option_key(rlc_console_attr *attr, int create)
+{ char Prog[256];
   char *address[] = { "Software",
   		      RLC_VENDOR,
 		      Prog,
 		      "Console",
+		      (char *)attr->key,	/* possible secondary key */
 		      NULL
 		    };
   const char *s;
   char *q;
 
-  for(s=prog, q=Prog; *s; s++, q++)	/* capitalise the program name */
-  { *q = (s==prog ? toupper(*s) : tolower(*s));
+  for(s=_rlc_program, q=Prog; *s; s++, q++) /* capitalise the key */
+  { *q = (s==_rlc_program ? toupper(*s) : tolower(*s));
   }
   *q = EOS;
 
-  if ( !(key = reg_open_key(address)) )
+  return reg_open_key(address, create);
+}
+
+
+static void
+rlc_get_options(rlc_console_attr *attr)
+{ HKEY key;
+
+  if ( !(key = rlc_option_key(attr, FALSE)) )
+  { if ( !attr->width  )    attr->width = 80;
+    if ( !attr->height )    attr->height = 24;
+    if ( !attr->savelines ) attr->savelines = 200;
+
     return;
+  }
 
 { int minx, miny, maxx, maxy;
-
-#if 1
   RECT rect;
 
   SystemParametersInfo(SPI_GETWORKAREA, 0, &rect, 0);
@@ -748,29 +728,21 @@ rlc_get_options(const char *prog)
   miny = rect.left;
   maxx = rect.right  - 40;
   maxy = rect.bottom - 40;
-#else
-  HDC hdc = GetDC(NULL);
 
-  minx = miny = 0;
-  maxx = GetDeviceCaps(hdc, HORZRES) - 40;
-  maxy = GetDeviceCaps(hdc, VERTRES) - 60; /* must be above the task-bar */
-  ReleaseDC(NULL, hdc);
-#endif
-
-  reg_get_int(key, "SaveLines",   200, 100000, &rlc_savelines);
-  reg_get_int(key, "Width",        20,	  300, &rlc_cols);
-  reg_get_int(key, "Height",        5,	  100, &rlc_rows);
-  reg_get_int(key, "X",		 minx,	 maxx, &rlc_x);
-  reg_get_int(key, "Y",	         miny,   maxy, &rlc_y);
+  reg_get_int(key, "SaveLines",   200,  200, 100000, &attr->savelines);
+  reg_get_int(key, "Width",        20,	 80,    300, &attr->width);
+  reg_get_int(key, "Height",        5,	 24,    100, &attr->height);
+  reg_get_int(key, "X",		 minx, minx,   maxx, &attr->x);
+  reg_get_int(key, "Y",	         miny, miny,   maxy, &attr->y);
 }
 
-  reg_get_str(key, "FaceName",                 &rlc_face_name);
-  reg_get_int(key, "FontFamily",    0,      0, &rlc_font_family);
-  reg_get_int(key, "FontSize",      0,      0, &rlc_font_size);
-  reg_get_int(key, "FontWeight",    0,      0, &rlc_font_weight);
-  reg_get_int(key, "FontCharSet",   0,      0, &rlc_font_charset);
+  reg_get_str(key, "FaceName", attr->face_name, sizeof(attr->face_name));
+  reg_get_int(key, "FontFamily",    0,  0,  0, &attr->font_family);
+  reg_get_int(key, "FontSize",      0,  0,  0, &attr->font_size);
+  reg_get_int(key, "FontWeight",    0,  0,  0, &attr->font_weight);
+  reg_get_int(key, "FontCharSet",   0,  0,  0, &attr->font_char_set);
 
-  rlc_reg_key = key;
+  RegCloseKey(key);
 }
 
 
@@ -827,10 +799,10 @@ rlc_breakargs(char *program, char *line, char **argv)
 		 *******************************/
 
 COLORREF
-rlc_color(int which, COLORREF c)
+rlc_color(rlc_console con, int which, COLORREF c)
 { HDC hdc;
   COLORREF old;
-  RlcData b = _rlc_stdio;
+  RlcData b = rlc_get_data(con);
 
   hdc = GetDC(NULL);
   c = GetNearestColor(hdc, c);
@@ -857,26 +829,25 @@ rlc_color(int which, COLORREF c)
       return (COLORREF)-1;
   }
 
-  if ( _rlc_stdio->window )
-    InvalidateRect(_rlc_stdio->window, NULL, TRUE);
+  if ( b->window )
+    InvalidateRect(b->window, NULL, TRUE);
 
   return old;
 }
 
 
 static int
-rlc_kill()
+rlc_kill(RlcData b)
 { DWORD result;
-  RlcData b = _rlc_stdio;
 
-  switch(_rlc_stdio->closing++)
+  switch(b->closing++)
   { case 0:
       b->queue->flags |= RLC_EOF;
       PostThreadMessage(b->application_thread_id, WM_RLC_INPUT, 0, 0);
       return TRUE;
     case 1:
       if ( _rlc_interrupt_hook )
-      { (*_rlc_interrupt_hook)(SIGINT);
+      { (*_rlc_interrupt_hook)(b, SIGINT);
 	return TRUE;
       }
     default:
@@ -886,7 +857,7 @@ rlc_kill()
 			       SMTO_ABORTIFHUNG,
 			       5000,
 			       &result) )
-      { if ( _rlc_stdio->window )
+      { if ( b->window )
 	{ switch( MessageBox(b->window,
 			     "Main task is not responding."
 			     "Click \"OK\" to terminate it",
@@ -907,9 +878,9 @@ rlc_kill()
 
 
 static void
-rlc_interrupt()
+rlc_interrupt(RlcData b)
 { if ( _rlc_interrupt_hook )
-    (*_rlc_interrupt_hook)(SIGINT);
+    (*_rlc_interrupt_hook)((rlc_console)b, SIGINT);
   else
     raise(SIGINT);
 }
@@ -918,11 +889,9 @@ rlc_interrupt()
 static void
 typed_char(RlcData b, int chr)
 { if ( chr == Control('C') )
-    rlc_interrupt();
+    rlc_interrupt(b);
   else if ( chr == Control('V') || chr == Control('Y') )
     rlc_paste(b);
-  else if ( _rlc_queue )
-    rlc_add_queue(b, _rlc_queue, chr);
   else if ( b->queue )
     rlc_add_queue(b, b->queue, chr);
 }
@@ -953,16 +922,9 @@ IsDownKey(code)
 static WINAPI
 rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 { RlcData b = (RlcData) GetWindowLong(hwnd, GWL_DATA);
-  if ( !b )
-    b = _rlc_stdio;
 
   switch(message)
   { case WM_CREATE:
-      b->queue    = rlc_make_queue(256);
-      b->sb_lines = rlc_count_lines(b, b->first, b->last); 
-      b->sb_start = rlc_count_lines(b, b->first, b->window_start); 
-      SetScrollRange(hwnd, SB_VERT, 0, b->sb_lines, FALSE);
-      SetScrollPos  (hwnd, SB_VERT, b->sb_start, TRUE);
       return 0;
 
     case WM_SIZE:
@@ -979,8 +941,8 @@ rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       GetWindowPlacement(hwnd, &placement);
       
       if ( placement.showCmd == SW_SHOWNORMAL )
-      { rlc_x = placement.rcNormalPosition.left;
-  	rlc_y = placement.rcNormalPosition.top;
+      { b->win_x = placement.rcNormalPosition.left;
+  	b->win_y = placement.rcNormalPosition.top;
 
 	b->modified_options |= OPT_POSITION;
       }
@@ -1018,20 +980,20 @@ rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	case IDM_CUT:
 	  break;			/* TBD: cut */
 	case IDM_BREAK:
-	  rlc_interrupt();
+	  rlc_interrupt(b);
 	  break;
 	case IDM_FONT:
 	  rlc_queryfont(b);
 	  return 0;
 	case IDM_EXIT:
-	  if ( rlc_kill() )
+	  if ( rlc_kill(b) )
 	    return 0;
 	  break;
       }
 
       if ( (name = lookupMenuId(item)) )
       { if ( _rlc_menu_hook )
-	{ (*_rlc_menu_hook)(name);
+	{ (*_rlc_menu_hook)(b, name);
 	}
 
 	return 0;
@@ -1305,7 +1267,7 @@ rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       return 0;
 
     case WM_CLOSE:
-      if ( rlc_kill() )
+      if ( rlc_kill(b) )
         return 0;
       break;
 
@@ -1319,25 +1281,18 @@ rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 }
 
 
-void
-rlc_dispatch(RlcQueue q)
+static void
+rlc_dispatch(RlcData b)
 { MSG msg;
-  RlcQueue oldq = _rlc_queue;
-
-  if ( q )
-    _rlc_queue = q;
 
   if ( GetMessage(&msg, NULL, 0, 0) && msg.message != WM_RLC_CLOSEWIN )
   { DEBUG(Dprintf("Got message 0x%04x", msg.message));
     TranslateMessage(&msg);
     DispatchMessage(&msg);
-    rlc_flush_output(_rlc_stdio);
-    _rlc_queue = oldq;
+    rlc_flush_output(b);
     return;
   } else
-    _rlc_queue->flags |= RLC_EOF;
-
-  _rlc_queue = oldq;
+    b->queue->flags |= RLC_EOF;
 }
 
 
@@ -1350,13 +1305,6 @@ rlc_yield()
     DispatchMessage(&msg);
   }
 }
-
-
-RlcQueue
-rlc_input_queue()
-{ return _rlc_stdio->queue;
-}
-
 
 		 /*******************************
 		 *	 CHARACTER TYPES	*
@@ -1991,24 +1939,26 @@ rlc_init_text_dimensions(RlcData b, HFONT font)
 
   if ( font )
   { b->hfont = font;
-  } else
-  { if ( !rlc_face_name )
+  } else if ( b->create_attributes )
+  { rlc_console_attr *a = b->create_attributes;
+    if ( !a->face_name[0] )
       b->hfont = GetStockObject(ANSI_FIXED_FONT);
     else
     { LOGFONT lfont;
   
       memset(&lfont, 0, sizeof(lfont));
   
-      lfont.lfHeight          = rlc_font_size;
-      lfont.lfWeight          = rlc_font_weight;
-      lfont.lfPitchAndFamily  = rlc_font_family;
-      lfont.lfCharSet	      = rlc_font_charset;
-      strncpy(lfont.lfFaceName, rlc_face_name, 31);
+      lfont.lfHeight          = a->font_size;
+      lfont.lfWeight          = a->font_weight;
+      lfont.lfPitchAndFamily  = a->font_family;
+      lfont.lfCharSet	      = a->font_char_set;
+      strncpy(lfont.lfFaceName, a->face_name, 31);
     
       if ( !(b->hfont = CreateFontIndirect(&lfont)) )
 	b->hfont = GetStockObject(ANSI_FIXED_FONT);
     }
-  }
+  } else
+    b->hfont = GetStockObject(ANSI_FIXED_FONT);
 
 					/* test for fixed?*/
   hdc = GetDC(NULL);
@@ -2048,20 +1998,19 @@ text_width(RlcData b, HDC hdc, const char *text, int len)
 
 
 static void
-rlc_save_font_options(HFONT font)
+rlc_save_font_options(HFONT font, rlc_console_attr *attr)
 { if ( font == GetStockObject(ANSI_FIXED_FONT) )
-  { rlc_face_name = NULL;
+  { attr->face_name[0] = '\0';
   } else
   { LOGFONT lf;
 
     if ( GetObject(font, sizeof(lf), &lf) )
-    { rlc_face_name = rlc_malloc(strlen(lf.lfFaceName)+1);
-      strcpy(rlc_face_name, lf.lfFaceName);
+    { strncpy(attr->face_name, lf.lfFaceName, sizeof(attr->face_name)-1);
 
-      rlc_font_family  = lf.lfPitchAndFamily;
-      rlc_font_size    = lf.lfHeight;
-      rlc_font_weight  = lf.lfWeight;
-      rlc_font_charset = lf.lfCharSet;
+      attr->font_family   = lf.lfPitchAndFamily;
+      attr->font_size     = lf.lfHeight;
+      attr->font_weight   = lf.lfWeight;
+      attr->font_char_set = lf.lfCharSet;
     }
   }
 }
@@ -2115,6 +2064,7 @@ rlc_make_buffer(int w, int h)
   int i;
 
   memset(b, 0, sizeof(*b));
+  b->magic = RLC_MAGIC;
 
   b->height         = h;
   b->width          = w;
@@ -2661,7 +2611,7 @@ rlc_paste(RlcData b)
     if ( (mem = GetClipboardData(CF_TEXT)) )
     { char far *data = GlobalLock(mem);
       int i;
-      RlcQueue q = (_rlc_queue ? _rlc_queue : b->queue);
+      RlcQueue q = b->queue;
   
       if ( q )
       { for(i=0; data[i]; i++)
@@ -2682,8 +2632,8 @@ rlc_paste(RlcData b)
 		 *******************************/
 
 void
-rlc_get_mark(RlcMark m)
-{ RlcData b = _rlc_stdio;
+rlc_get_mark(rlc_console c, RlcMark m)
+{ RlcData b = rlc_get_data(c);
 
   m->mark_x = b->caret_x;
   m->mark_y = b->caret_y;
@@ -2691,8 +2641,8 @@ rlc_get_mark(RlcMark m)
 
 
 void
-rlc_goto_mark(RlcMark m, const char *data, int offset)
-{ RlcData b = _rlc_stdio;
+rlc_goto_mark(rlc_console c, RlcMark m, const char *data, int offset)
+{ RlcData b = rlc_get_data(c);
   
   b->caret_x = m->mark_x;
   b->caret_y = m->mark_y;
@@ -2714,8 +2664,8 @@ rlc_goto_mark(RlcMark m, const char *data, int offset)
 
 
 void
-rlc_erase_from_caret()
-{ RlcData b = _rlc_stdio;
+rlc_erase_from_caret(rlc_console c)
+{ RlcData b = rlc_get_data(c);
   int i = b->caret_y;
   int x = b->caret_x;
   int last = rlc_add_lines(b, b->window_start, b->window_size);
@@ -2735,16 +2685,16 @@ rlc_erase_from_caret()
 
 
 void
-rlc_putchar(int chr)
-{ RlcData b = _rlc_stdio;
+rlc_putchar(rlc_console c, int chr)
+{ RlcData b = rlc_get_data(c);
 
-  rlc_putansi(_rlc_stdio, chr);
+  rlc_putansi(b, chr);
 }
 
 
 char *
-rlc_read_screen(RlcMark f, RlcMark t)
-{ RlcData b = _rlc_stdio;
+rlc_read_screen(rlc_console c, RlcMark f, RlcMark t)
+{ RlcData b = rlc_get_data(c);
   char *buf;
 
   buf = rlc_read_from_window(b, f->mark_y, f->mark_x, t->mark_y, t->mark_x);
@@ -2754,8 +2704,8 @@ rlc_read_screen(RlcMark f, RlcMark t)
 
 
 void
-rlc_update()
-{ RlcData b = _rlc_stdio;
+rlc_update(rlc_console c)
+{ RlcData b = rlc_get_data(c);
 
   if ( b->window )
   { rlc_normalise(b);
@@ -2785,7 +2735,7 @@ window_loop(LPVOID arg)
   while(!b->closing)
   { switch( b->imode )
     { case IMODE_COOKED:
-      { char *line = read_line();
+      { char *line = read_line(b);
 
 	if ( line != RL_CANCELED_CHARP )
 	{ LQueued lq = rlc_malloc(sizeof(lqueued));
@@ -2822,10 +2772,12 @@ window_loop(LPVOID arg)
     }
   }
 
+  if ( b->closing <= 2 )
   { MSG msg;
-    char *waiting = "\r\nWaiting for Prolog. Close again to force termination ..";
+    char *waiting = "\r\nWaiting for Prolog. "
+      		    "Close again to force termination ..";
       
-    rlc_write(waiting, strlen(waiting));
+    rlc_write(b, waiting, strlen(waiting));
 
     while ( b->closing <= 2 && GetMessage(&msg, NULL, 0, 0) )
     { TranslateMessage(&msg);
@@ -2849,8 +2801,8 @@ out:
 		 *******************************/
 
 int
-getch()
-{ RlcData b = _rlc_stdio;
+getch(rlc_console c)
+{ RlcData b = rlc_get_data(c);
   RlcQueue q = b->queue;
   int fromcon = (GetCurrentThreadId() == b->console_thread_id);
 
@@ -2867,9 +2819,9 @@ getch()
       } else
 	return EOF;
     } else
-    { rlc_dispatch(q);
-      if ( _rlc_stdio->imodeswitch )
-      { _rlc_stdio->imodeswitch = FALSE;
+    { rlc_dispatch(b);
+      if ( b->imodeswitch )
+      { b->imodeswitch = FALSE;
 	return IMODE_SWITCH_CHAR;
       }
     }
@@ -2880,10 +2832,11 @@ getch()
 
 
 int
-getche()
-{ int chr = getch();
+getche(rlc_console c)
+{ RlcData b = rlc_get_data(c);
+  int chr = getch(b);
 
-  rlc_putansi(_rlc_stdio, chr);
+  rlc_putansi(b, chr);
   return chr;
 }
 
@@ -2893,9 +2846,9 @@ getche()
 		 *******************************/
 
 int
-getkey()
+getkey(rlc_console con)
 { int c;
-  RlcData b = _rlc_stdio;
+  RlcData b = rlc_get_data(con);
   int fromcon = (GetCurrentThreadId() == b->console_thread_id);
 
   if ( !fromcon && b->imode != IMODE_RAW )
@@ -2903,31 +2856,27 @@ getkey()
 
     b->imode = IMODE_RAW;
     b->imodeswitch = TRUE;
-    c = getch();
+    c = getch(b);
     b->imode = old;
     b->imodeswitch = TRUE;
   } else
-    c = getch();
+    c = getch(b);
 
   return c;
 }
 
 
-void
-ScreenInit()
-{
-}
-
-
 int
-kbhit()
-{ return !rlc_is_empty_queue(_rlc_stdio->queue);
+kbhit(rlc_console c)
+{ RlcData b = rlc_get_data(c);
+
+  return !rlc_is_empty_queue(b->queue);
 }
 
 
 void
-ScreenGetCursor(int *row, int *col)
-{ RlcData b = _rlc_stdio;
+ScreenGetCursor(rlc_console c, int *row, int *col)
+{ RlcData b = rlc_get_data(c);
 
   *row = rlc_count_lines(b, b->window_start, b->caret_y) + 1;
   *col = b->caret_x + 1;
@@ -2935,22 +2884,26 @@ ScreenGetCursor(int *row, int *col)
 
 
 void
-ScreenSetCursor(int row, int col)
-{ RlcData b = _rlc_stdio;
+ScreenSetCursor(rlc_console c, int row, int col)
+{ RlcData b = rlc_get_data(c);
 
   rlc_set_caret(b, col-1, row-1);
 }
 
 
 int
-ScreenCols()
-{ return _rlc_stdio->width;
+ScreenCols(rlc_console c)
+{ RlcData b = rlc_get_data(c);
+
+  return b->width;
 }
 
 
 int
-ScreenRows()
-{ return _rlc_stdio->window_size;
+ScreenRows(rlc_console c)
+{ RlcData b = rlc_get_data(c);
+
+  return b->window_size;
 }
 
 		 /*******************************
@@ -3039,12 +2992,9 @@ rlc_from_queue(RlcQueue q)
 		 *******************************/
 
 int
-rlc_read(char *buf, int count)
-{ static char *line = NULL;
-  static int len = 0;
-  static int given = 0;
+rlc_read(rlc_console c, char *buf, unsigned int count)
+{ RlcData d = rlc_get_data(c);
   int give;
-  RlcData d = _rlc_stdio;
   MSG msg;
 
   if ( d->closing )
@@ -3059,10 +3009,10 @@ rlc_read(char *buf, int count)
   d->promptbuf[d->promptlen] = EOS;
   strcpy(d->prompt, d->promptbuf);
 
-  if ( given >= len )
-  { if ( line )
-    { rlc_free(line);
-      line = NULL;
+  if ( d->read_buffer.given >= d->read_buffer.length )
+  { if ( d->read_buffer.line )
+    { rlc_free(d->read_buffer.line);
+      d->read_buffer.line = NULL;
     }
 
     if ( d->imode != IMODE_COOKED )
@@ -3079,7 +3029,7 @@ rlc_read(char *buf, int count)
     }
 
     { LQueued lq = d->lhead;
-      line = lq->line;
+      d->read_buffer.line = lq->line;
       if ( lq->next )
 	d->lhead = lq->next;
       else
@@ -3088,17 +3038,17 @@ rlc_read(char *buf, int count)
       rlc_free(lq);
     }
 
-    len   = strlen(line);
-    given = 0;
+    d->read_buffer.length = strlen(d->read_buffer.line);
+    d->read_buffer.given = 0;
   }
 
-  if ( len - given > count )
+  if ( d->read_buffer.length - d->read_buffer.given > count )
     give = count;
   else
-    give = len - given;
+    give = d->read_buffer.length - d->read_buffer.given;
 
-  memcpy(buf, line+given, give);
-  given += give;
+  memcpy(buf, d->read_buffer.line+d->read_buffer.given, give);
+  d->read_buffer.given += give;
 
   return give;
 }
@@ -3127,21 +3077,25 @@ rlc_do_write(RlcData b, char *buf, int count)
 }
 
 
-static void
-rlc_flush_output(RlcData b)
-{ if ( b->output_queued )
+int
+rlc_flush_output(rlc_console c)
+{ RlcData b = rlc_get_data(c);
+
+  if ( b->output_queued )
   { rlc_do_write(b, b->output_queue, b->output_queued);
 
     b->output_queued = 0;
   }
+
+  return 0;
 }
 
 
 int
-rlc_write(char *buf, unsigned int count)
+rlc_write(rlc_console c, char *buf, unsigned int count)
 { DWORD result;
   char *e, *s;
-  RlcData b = _rlc_stdio;
+  RlcData b = rlc_get_data(c);
 
   for(s=buf, e=&buf[count]; s<e; s++)
   { if ( *s == '\n' )
@@ -3150,15 +3104,15 @@ rlc_write(char *buf, unsigned int count)
       b->promptbuf[b->promptlen++] = *s;
   }
 
-  if ( _rlc_stdio->window )
-  { if ( SendMessageTimeout(_rlc_stdio->window,
+  if ( b->window )
+  { if ( SendMessageTimeout(b->window,
 			    WM_RLC_WRITE,
 			    (WPARAM)count, 
 			    (LPARAM)buf,
 			    SMTO_NORMAL,
 			    10000,
 			    &result) )
-    { PostMessage(_rlc_stdio->window,
+    { PostMessage(b->window,
 		  WM_RLC_FLUSH,
 		  0, 0);
       return count;
@@ -3168,6 +3122,26 @@ rlc_write(char *buf, unsigned int count)
   return -1;				/* I/O error */
 }
 
+
+static void
+free_rlc_data(RlcData b)
+{ b->magic = 42;			/* so next gets errors */
+
+  if ( b->lines )
+  { int i;
+
+    for(i=0; i<b->height; i++)
+    { if ( b->lines[i].text )
+	free(b->lines[i].text);
+    }
+
+    free(b->lines);
+  }
+  if ( b->read_buffer.line )
+    free(b->read_buffer.line);
+
+  free(b);
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 rlc_close() tries to gracefully get rid of   the console thread. It does
@@ -3180,13 +3154,14 @@ and proved to be sound on Windows-NT, but not on 95 and '98.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-rlc_close(void)
-{ MSG msg;
+rlc_close(rlc_console c)
+{ RlcData b = rlc_get_data(c);
+  MSG msg;
   int i;
 
-  rlc_save_options(_rlc_stdio);
-  _rlc_stdio->closing = 3;
-  PostMessage(_rlc_stdio->window, WM_RLC_CLOSEWIN, 0, 0);
+  rlc_save_options(b);
+  b->closing = 3;
+  PostMessage(b->window, WM_RLC_CLOSEWIN, 0, 0);
 
 					/* wait for termination */
   for(i=0; i<30; i++)
@@ -3195,13 +3170,16 @@ rlc_close(void)
     Sleep(50);
   }
 
+  free_user_data(c);
+  free_rlc_data(b);
+
   return 0;
 }
 
 
 const char *
-rlc_prompt(const char *new)
-{ RlcData b = _rlc_stdio;
+rlc_prompt(rlc_console c, const char *new)
+{ RlcData b = rlc_get_data(c);
 
   if ( b )
   { if ( new )
@@ -3217,10 +3195,12 @@ rlc_prompt(const char *new)
 
 
 void
-rlc_clearprompt()
-{ if ( _rlc_stdio )
-  { _rlc_stdio->promptlen = 0;
-    _rlc_stdio->prompt[0] = EOS;
+rlc_clearprompt(rlc_console c)
+{ RlcData b = rlc_get_data(c);
+
+  if ( b )
+  { b->promptlen = 0;
+    b->prompt[0] = EOS;
   }
 }
 
@@ -3229,36 +3209,36 @@ rlc_clearprompt()
 		 *	    MISC STUFF		*
 		 *******************************/
 
-#define RLC_TITLE_MAX 256
-
 static char current_title[RLC_TITLE_MAX];
 
 void
-rlc_title(char *title, char *old, int size)
-{ if ( old )
-    memmove(old, current_title, size);
+rlc_title(rlc_console c, char *title, char *old, int size)
+{ RlcData b = rlc_get_data(c);
+
+  if ( old )
+    memmove(old, b->current_title, size);
 
   if ( title )
-  { if ( _rlc_stdio->window )
-      SetWindowText(_rlc_stdio->window, title);
+  { if ( b->window )
+      SetWindowText(b->window, title);
 
-    memmove(current_title, title, RLC_TITLE_MAX);
-    deftitle = current_title;
+    memmove(b->current_title, title, RLC_TITLE_MAX);
   }
 }
 
 
 void
-rlc_icon(HICON icon)
-{ SetClassLong(rlc_hwnd(), GCL_HICON, (LONG) icon);
+rlc_icon(rlc_console c, HICON icon)
+{ SetClassLong(rlc_hwnd(c), GCL_HICON, (LONG) icon);
 }
 
 
 int
-rlc_window_pos(HWND hWndInsertAfter,
+rlc_window_pos(rlc_console c,
+	       HWND hWndInsertAfter,
 	       int x, int y, int w, int h,
 	       UINT flags)
-{ RlcData b = _rlc_stdio;
+{ RlcData b = rlc_get_data(c);
 
   if ( b )
   { w *= b->cw;
@@ -3282,8 +3262,10 @@ rlc_hinstance()
 
 
 HWND
-rlc_hwnd()
-{ return _rlc_stdio ? _rlc_stdio->window : (HWND)NULL;
+rlc_hwnd(rlc_console c)
+{ RlcData b = rlc_get_data(c);
+
+  return b ? b->window : (HWND)NULL;
 }
 
 		 /*******************************
@@ -3353,6 +3335,63 @@ rlc_menu_hook(RlcMenuHook new)
 
   _rlc_menu_hook = new;
   return old;
+}
+
+
+int
+rlc_set(rlc_console c, int what, unsigned long data, RlcFreeDataHook hook)
+{ RlcData b = rlc_get_data(c);
+
+  switch(what)
+  { default:
+      if ( what >= RLC_VALUE(0) &&
+	   what <= RLC_VALUE(MAX_USER_VALUES) )
+      { b->values[what-RLC_VALUE(0)].data = data;
+	b->values[what-RLC_VALUE(0)].hook = hook;
+        return TRUE;
+      }
+      return FALSE;
+  }
+}
+
+
+int
+rlc_get(rlc_console c, int what, unsigned long *data)
+{ RlcData b = rlc_get_data(c);
+
+  switch(what)
+  { case RLC_APPLICATION_THREAD:
+      *data = (unsigned long)b->application_thread;
+      return TRUE;
+    case RLC_APPLICATION_THREAD_ID:
+      *data = (unsigned long)b->application_thread_id;
+      return TRUE;
+    default:
+      if ( what >= RLC_VALUE(0) &&
+	   what <= RLC_VALUE(MAX_USER_VALUES) )
+      { *data = b->values[what-RLC_VALUE(0)].data;
+        return TRUE;
+      }
+      return FALSE;
+  }
+}
+
+
+static void
+free_user_data(RlcData b)
+{ user_data *d = b->values;
+  int i;
+
+  for(i=0; i<MAX_USER_VALUES; i++, d++)
+  { RlcFreeDataHook hook;
+
+    if ( (hook=d->hook) )
+    { unsigned long data = d->data;
+      d->hook = NULL;
+      d->data = 0L;
+      (*hook)(data);
+    }
+  }
 }
 
 		 /*******************************

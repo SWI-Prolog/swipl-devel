@@ -30,7 +30,8 @@
 */
 
 :- module(thread_util,
-	  [ threads/0,			% List available threads
+	  [ thread_run_interactor/0,	% interactor main loop
+	    threads/0,			% List available threads
 	    interactor/0,		% Create a new interactor
 	    attach_console/0		% Create an xterm-console for thread.
 	  ]).
@@ -62,11 +63,13 @@ rip_thread(_Status, Id) :-
 %	Run a Prolog toplevel in another thread with a new console window.
 
 interactor :-
-	thread_create(run_interactor, _Id, []).
+	thread_create(thread_run_interactor, _Id,
+		      [ detached(true)
+		      ]).
 
-run_interactor :-
+thread_run_interactor :-
 	attach_console,
-	'$welcome',
+	print_message(banner, thread_welcome),
 	run_prolog.
 
 run_prolog :-
@@ -87,21 +90,37 @@ has_console(main).			% we assume main has one.
 has_console(Id) :-
 	has_console(Id, _, _).
 
-attach_console :-
+has_console :-
 	thread_self(Id),
 	has_console(Id), !.
+
+attach_console :-
+	has_console, !.
 attach_console :-
 	thread_self(Id),
-	'$get_pid'(Pid),
-	sformat(Title, 'SWI-Prolog Thread ~w (pid ~d) interactor', [Id, Pid]),
-	open_xterm(Title, In, Out),
+	current_prolog_flag(system_thread_id, SysId),
+	sformat(Title,
+		'SWI-Prolog Thread ~w (~d) Interactor',
+		[Id, SysId]),
+	(   current_prolog_flag(windows, true)
+	->  regkey(Id, Key),
+	    win_open_console(Title, In, Out, Err,
+			     [ registry_key(Key)
+			     ])
+	;   open_xterm(Title, In, Out),
+	    Err = Out
+	),
 	assert(has_console(Id, In, Out)),
 	set_stream(In,  alias(user_input)),
 	set_stream(Out, alias(user_output)),
-	set_stream(Out, alias(user_error)),
+	set_stream(Err, alias(user_error)),
 	set_stream(In,  alias(current_input)),
 	set_stream(Out, alias(current_output)),
 	thread_at_exit(detach_console(Id)).
+
+regkey(Key, Key) :-
+	atom(Key).
+regkey(_, 'Anonymous').
 
 detach_console(Id) :-
 	retract(has_console(Id, In, Out)),
@@ -117,6 +136,16 @@ detach_console(Id) :-
 	user:message_hook/3.
 
 user:message_hook(trace_mode(on), _, Lines) :-
+	\+ has_console,
 	attach_console,
 	print_message_lines(user_error, '% ', Lines).
 	
+:- multifile
+	prolog:message/3.
+
+prolog:message(thread_welcome) -->
+	{ thread_self(Self)
+	},
+	[ 'SWI-Prolog console for thread ~w'-[Self],
+	  nl, nl
+	].

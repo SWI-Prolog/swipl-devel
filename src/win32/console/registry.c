@@ -87,15 +87,3 @@ RegOpenKeyFromPath(const char *path, REGSAM access)
 
   return reg_open_key(sep, root, REGSAM);
 }
-
-
-static char *
-local_path(const char *key)
-{
-}
-
-
-int
-rlc_get_profile_int(const char *name)
-{ 
-}

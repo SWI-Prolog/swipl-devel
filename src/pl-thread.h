@@ -47,6 +47,9 @@ typedef struct _PL_thread_info_t
 #ifdef __linux__
   pid_t		    pid;		/* for identifying */
 #endif
+#ifdef WIN32
+  unsigned long	    w32id;		/* Win32 thread HANDLE */
+#endif
   PL_local_data_t  *thread_data;	/* The thread-local data  */
   module_t	    module;		/* Module for starting goal */
   record_t	    goal;		/* Goal to start thread */
@@ -145,7 +148,6 @@ extern PL_local_data_t *_LD(void) __attribute((const));
 #define LD	  GLOBAL_LD
 
 
-extern PL_local_data_t *allocPrologLocalData(void);
 extern void		initPrologThreads(void);
 extern void		exitPrologThreads(void);
 extern bool		aliasThread(int tid, atom_t name);

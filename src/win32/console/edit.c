@@ -24,8 +24,9 @@
 
 #define _MAKE_DLL 1
 #undef _export
+#include <windows.h>
 #include "console.h"
-#include "history.h"
+#include "console_i.h"
 #include "common.h"
 #include <memory.h>
 #include <string.h>
@@ -41,7 +42,7 @@ static function dispatch_table[256];	/* general dispatch-table */
 static function dispatch_meta[256];	/* ESC-char dispatch */
 static RlcCompleteFunc _rlc_complete_function = rlc_complete_file_function;
 
-static void	init_line_package(void);
+static void	init_line_package(RlcData b);
 static void	bind_actions(void);
 
 #ifndef min
@@ -336,14 +337,14 @@ interrupt(Line ln, int chr)
 		 *******************************/
 
 static void
-add_history(const char *data)
+add_history(rlc_console c, const char *data)
 { const char *s = data;
 
   while(*s && *s <= ' ')
     s++;
 
   if ( *s )
-    rlc_add_history(s);
+    rlc_add_history(c, s);
 }
 
 
@@ -351,12 +352,12 @@ static void
 backward_history(Line ln, int chr)
 { const char *h;
 
-  if ( rlc_at_head_history() && ln->size > 0 )
+  if ( rlc_at_head_history(ln->console) && ln->size > 0 )
   { terminate(ln);
-    add_history(ln->data);
+    add_history(ln->console, ln->data);
   }
 
-  if ( (h = rlc_bwd_history()) )
+  if ( (h = rlc_bwd_history(ln->console)) )
   { set_line(ln, h);
     ln->point = ln->size;
   }
@@ -365,8 +366,8 @@ backward_history(Line ln, int chr)
 
 static void
 forward_history(Line ln, int chr)
-{ if ( !rlc_at_head_history() )
-  { const char *h = rlc_fwd_history();
+{ if ( !rlc_at_head_history(ln->console) )
+  { const char *h = rlc_fwd_history(ln->console);
 
     if ( h )
     { set_line(ln, h);
@@ -486,7 +487,7 @@ list_completions(Line ln, int chr)
 	{ char *msg = "\r\n! Too many matches\r\n";
 	  
 	  while(*msg)
-	    rlc_putchar(*msg++);
+	    rlc_putchar(ln->console, *msg++);
 	  ln->reprompt = TRUE;
 	  data->call_type = COMPLETE_CLOSE;
 	  (*data->function)(data);
@@ -496,9 +497,9 @@ list_completions(Line ln, int chr)
       data->call_type = COMPLETE_CLOSE;
       (*data->function)(data);
 
-      cols = ScreenCols() / longest;
-      rlc_putchar('\r');
-      rlc_putchar('\n');
+      cols = ScreenCols(ln->console) / longest;
+      rlc_putchar(ln->console, '\r');
+      rlc_putchar(ln->console, '\n');
 
       for(n=0; n<nmatches; )
       { char *s = buf[n];
@@ -506,22 +507,22 @@ list_completions(Line ln, int chr)
 
 	while(*s)
 	{ len++;
-	  rlc_putchar(*s++);
+	  rlc_putchar(ln->console, *s++);
 	}
 	
 	rlc_free(buf[n++]);
 
 	if ( n % cols == 0 )
-	{ rlc_putchar('\r');
-	  rlc_putchar('\n');
+	{ rlc_putchar(ln->console, '\r');
+	  rlc_putchar(ln->console, '\n');
 	} else
 	{ while( len++ < longest )
-	  rlc_putchar(' ');
+	  rlc_putchar(ln->console, ' ');
 	}
       }
       if ( nmatches % cols != 0 )
-      { rlc_putchar('\r');
-	rlc_putchar('\n');
+      { rlc_putchar(ln->console, '\r');
+	rlc_putchar(ln->console, '\n');
       }
 
       ln->reprompt = TRUE;
@@ -535,11 +536,11 @@ list_completions(Line ln, int chr)
 		 *******************************/
 
 static void
-output(char *s, int len)
+output(rlc_console b, char *s, int len)
 { while(len-- > 0)
   { if ( *s == '\n' )
-      rlc_putchar('\r');
-    rlc_putchar(*s++);
+      rlc_putchar(b, '\r');
+    rlc_putchar(b, *s++);
   }
 }
 
@@ -547,24 +548,25 @@ output(char *s, int len)
 static void
 update_display(Line ln)
 { if ( ln->reprompt )
-  { const char *prompt = rlc_prompt(NULL);
+  { const char *prompt = rlc_prompt(ln->console, NULL);
     const char *s = prompt;
       
-    rlc_putchar('\r');
+    rlc_putchar(ln->console, '\r');
     while(*s)
-      rlc_putchar(*s++);
+      rlc_putchar(ln->console, *s++);
 
-    rlc_get_mark(&ln->origin);
+    rlc_get_mark(ln->console, &ln->origin);
 
     ln->change_start = 0;
     ln->reprompt = FALSE;
   }
 
-  rlc_goto_mark(&ln->origin, ln->data, ln->change_start);
-  output(&ln->data[ln->change_start], ln->size - ln->change_start);
-  rlc_erase_from_caret();
-  rlc_goto_mark(&ln->origin, ln->data, ln->point);
-  rlc_update();
+  rlc_goto_mark(ln->console, &ln->origin, ln->data, ln->change_start);
+  output(ln->console,
+	 &ln->data[ln->change_start], ln->size - ln->change_start);
+  rlc_erase_from_caret(ln->console);
+  rlc_goto_mark(ln->console, &ln->origin, ln->data, ln->point);
+  rlc_update(ln->console);
 
   ln->change_start = ln->size;
 }
@@ -574,21 +576,22 @@ update_display(Line ln)
 		 *******************************/
 
 char *
-read_line()
+read_line(rlc_console b)
 { line ln;
 
-  init_line_package();
+  init_line_package(b);
 
   memset(&ln, 0, sizeof(line));
-  rlc_get_mark(&ln.origin);
+  ln.console = b;
+  rlc_get_mark(b, &ln.origin);
 
   while(!ln.complete)
   { int c;
     rlc_mark m0, m1;
     function *table;
 
-    rlc_get_mark(&m0);
-    if ( (c = getch()) == IMODE_SWITCH_CHAR )
+    rlc_get_mark(b, &m0);
+    if ( (c = getch(b)) == IMODE_SWITCH_CHAR )
       return RL_CANCELED_CHARP;
 
     if ( c == EOF )
@@ -596,22 +599,22 @@ read_line()
       update_display(&ln);
       break;
     } else if ( c == ESC )
-    { if ( (c = getch()) == IMODE_SWITCH_CHAR )
+    { if ( (c = getch(b)) == IMODE_SWITCH_CHAR )
 	return RL_CANCELED_CHARP;
       table = dispatch_meta;
     } else
       table = dispatch_table;
 
-    rlc_get_mark(&m1);
+    rlc_get_mark(b, &m1);
 
     (*table[c & 0xff])(&ln, c);
     if ( m0.mark_x != m1.mark_x || m0.mark_y != m1.mark_y )
       ln.reprompt = TRUE;
     update_display(&ln);
   }
-  rlc_clearprompt();
+  rlc_clearprompt(b);
 
-  add_history(ln.data);
+  add_history(b, ln.data);
 
   return ln.data;
 }
@@ -623,28 +626,29 @@ read_line()
 
 static void
 init_dispatch_table()
-{ int n;
+{ static int done;
 
-  for(n=0; n<32; n++)
-    dispatch_table[n] = undefined;
-  for(n=32; n<256; n++)
-    dispatch_table[n] = insert_self;
-  for(n=0; n<256; n++)
-    dispatch_meta[n] = undefined;
+  if ( !done )
+  { int n;
+
+    for(n=0; n<32; n++)
+      dispatch_table[n] = undefined;
+    for(n=32; n<256; n++)
+      dispatch_table[n] = insert_self;
+    for(n=0; n<256; n++)
+      dispatch_meta[n] = undefined;
       
-  bind_actions();
+    bind_actions();
+
+    done = TRUE;
+  }
 }
 
 
 static void
-init_line_package()
-{ static int done;
-
-  if ( !done )
-  { init_dispatch_table();
-    rlc_init_history(TRUE, 50);
-    done = TRUE;
-  }
+init_line_package(RlcData b)
+{ init_dispatch_table();
+  rlc_init_history(b, 50);
 }
 
 		 /*******************************

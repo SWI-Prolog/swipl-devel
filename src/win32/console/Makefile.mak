@@ -37,3 +37,7 @@ clean:
 
 distclean:	clean
 		del $(OUTLIB) $(OUTDLL)
+
+# dependencies
+
+$(OBJ):		console_i.h

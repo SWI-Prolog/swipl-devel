@@ -24,7 +24,9 @@
 
 #define _MAKE_DLL 1
 #undef _export
-#include "console.h"
+#include <windows.h>
+#include "console.h"			/* public stuff */
+#include "console_i.h"			/* internal stuff */
 #include <string.h>
 
 #ifndef TRUE
@@ -32,20 +34,9 @@
 #define FALSE 0
 #endif
 
-typedef struct _history
-{ int		size;			/* size of the history */
-  int		tail;			/* oldest position */
-  int		head;			/* newest position */
-  int		current;		/* for retrieval */
-  char **	lines;			/* the lines */
-} history, *History;
-
-static history	hist;			/* the history */
-int 		_rlc_auto_history = TRUE;
-
 static __inline int
-next(int i)
-{ if ( ++i == hist.size )
+next(RlcData b, int i)
+{ if ( ++i == b->history.size )
     return 0;
 
   return i;
@@ -53,41 +44,42 @@ next(int i)
 
 
 static __inline int
-prev(int i)
+prev(RlcData b, int i)
 { if ( --i < 0 )
-    return hist.size-1;
+    return b->history.size-1;
 
   return i;
 }
 
 
 void
-rlc_init_history(int auto_add, int size)
-{ int oldsize;
+rlc_init_history(rlc_console c, int size)
+{ RlcData b = rlc_get_data(c);
+  int oldsize;
   int i;
 
-  _rlc_auto_history = auto_add;
-
-  if ( hist.lines )
-  { hist.lines = rlc_realloc(hist.lines, sizeof(char *) * size);
-    oldsize = hist.size;
+  if ( b->history.lines )
+  { b->history.lines = rlc_realloc(b->history.lines, sizeof(char *) * size);
+    oldsize = b->history.size;
   } else
-  { hist.lines = rlc_malloc(sizeof(char *) * size);
+  { b->history.lines = rlc_malloc(sizeof(char *) * size);
     oldsize = 0;
   }
 
   for(i=oldsize; i<size; i++)
-    hist.lines[i] = NULL;
+    b->history.lines[i] = NULL;
 
-  hist.size    = size;
-  hist.current = -1;
+  b->history.size    = size;
+  b->history.current = -1;
 }
 
 
 void
-rlc_add_history(const char *line)
-{ if ( hist.size )
-  { int i = next(hist.head);
+rlc_add_history(rlc_console c, const char *line)
+{ RlcData b = rlc_get_data(c);
+
+  if ( b->history.size )
+  { int i = next(b, b->history.head);
     int len = strlen(line);
 
     while(*line && *line <= ' ')	/* strip leading white-space */
@@ -98,51 +90,51 @@ rlc_add_history(const char *line)
       len--;
 
     if ( len == 0 )
-    { hist.current = -1;
+    { b->history.current = -1;
       return;
     }
 
-    if ( hist.lines[hist.head] &&
-	 strncmp(hist.lines[hist.head], line, len) == 0 )
-    { hist.current = -1;
+    if ( b->history.lines[b->history.head] &&
+	 strncmp(b->history.lines[b->history.head], line, len) == 0 )
+    { b->history.current = -1;
       return;				/* same as last line added */
     }
     
-    if ( i == hist.tail )		/* this one is lost */
-      hist.tail = next(hist.tail);
-    hist.head = i;
-    hist.current = -1;
+    if ( i == b->history.tail )		/* this one is lost */
+      b->history.tail = next(b, b->history.tail);
+    b->history.head = i;
+    b->history.current = -1;
 
-    if ( hist.lines[i] )
-      hist.lines[i] = rlc_realloc(hist.lines[i], len+1);
+    if ( b->history.lines[i] )
+      b->history.lines[i] = rlc_realloc(b->history.lines[i], len+1);
     else
-      hist.lines[i] = rlc_malloc(len+1);
+      b->history.lines[i] = rlc_malloc(len+1);
 
-    if ( hist.lines[i] )
-    { memcpy(hist.lines[i], line, len);
-      hist.lines[i][len] = '\0';
+    if ( b->history.lines[i] )
+    { memcpy(b->history.lines[i], line, len);
+      b->history.lines[i][len] = '\0';
     }
   }
 }
 
 
 int
-rlc_at_head_history()
-{ return hist.current == -1 ? TRUE : FALSE;
+rlc_at_head_history(RlcData b)
+{ return b->history.current == -1 ? TRUE : FALSE;
 }
 
 
 const char *
-rlc_bwd_history()
-{ if ( hist.size )
-  { if ( hist.current == -1 )
-      hist.current = hist.head;
-    else if ( hist.current == hist.tail )
+rlc_bwd_history(RlcData b)
+{ if ( b->history.size )
+  { if ( b->history.current == -1 )
+      b->history.current = b->history.head;
+    else if ( b->history.current == b->history.tail )
       return NULL;
     else
-      hist.current = prev(hist.current);
+      b->history.current = prev(b, b->history.current);
 
-    return hist.lines[hist.current];
+    return b->history.lines[b->history.current];
   }
 
   return NULL;
@@ -150,14 +142,14 @@ rlc_bwd_history()
 
 
 const char *
-rlc_fwd_history()
-{ if ( hist.size && hist.current != -1 )
+rlc_fwd_history(RlcData b)
+{ if ( b->history.size && b->history.current != -1 )
   { const char *s;
 
-    hist.current = next(hist.current);
-    s = hist.lines[hist.current];
-    if ( hist.current == hist.head )
-      hist.current = -1;
+    b->history.current = next(b, b->history.current);
+    s = b->history.lines[b->history.current];
+    if ( b->history.current == b->history.head )
+      b->history.current = -1;
 
     return s;
   }

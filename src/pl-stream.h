@@ -159,6 +159,7 @@ typedef struct io_stream
 #define SIO_APPEND	SmakeFlag(20)	/* opened in append-mode */
 #define SIO_UPDATE	SmakeFlag(21)	/* opened in update-mode */
 #define SIO_ISATTY	SmakeFlag(22)	/* Stream is a tty */
+#define SIO_CLOSING	SmakeFlag(23)	/* We are closing the stream */
 
 #define	SIO_SEEK_SET	0	/* From beginning of file.  */
 #define	SIO_SEEK_CUR	1	/* From current position.  */

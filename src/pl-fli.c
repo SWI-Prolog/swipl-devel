@@ -2341,8 +2341,7 @@ notify_registered_foreign(functor_t fd, Module m)
 
 bool
 PL_register_foreign(const char *name, int arity, Func f, int flags)
-{ GET_LD
-  Procedure proc;
+{ Procedure proc;
   Definition def;
   Module m;
   functor_t fdef;
@@ -2360,9 +2359,10 @@ PL_register_foreign(const char *name, int arity, Func f, int flags)
   { m = PL_new_module(PL_new_atom_nchars(s-name, name));
     aname = PL_new_atom(s+1);
   } else
-  { aname = PL_new_atom(name);
-    m = (environment_frame ? contextModule(environment_frame)
-			   : MODULE_user);
+  { GET_LD
+    aname = PL_new_atom(name);
+    m = (LD && environment_frame ? contextModule(environment_frame)
+			         : MODULE_user);
   }
 
   fdef = lookupFunctorDef(aname, arity);
@@ -2385,10 +2385,16 @@ PL_register_foreign(const char *name, int arity, Func f, int flags)
   def->indexCardinality = 0;
   def->flags = 0;
 
-  if ( m == MODULE_system || SYSTEM_MODE )
+  if ( m == MODULE_system )
     set(def, FOREIGN|SYSTEM|TRACE_ME);
   else
-    set(def, FOREIGN|TRACE_ME);
+  { GET_LD
+    
+    if ( SYSTEM_MODE )
+      set(def, FOREIGN|SYSTEM|TRACE_ME);
+    else
+      set(def, FOREIGN|TRACE_ME);
+  }
 
   if ( (flags & PL_FA_NOTRACE) )	  clear(def, TRACE_ME);
   if ( (flags & PL_FA_TRANSPARENT) )	  set(def, METAPRED);
@@ -2508,11 +2514,15 @@ PL_open_resource(Module m,
 		*            SIGNALS            *
 		*********************************/
 
-void
+int
 PL_raise(int sig)
 { GET_LD
   if ( sig > 0 && sig <= MAXSIGNAL && LD )
-    LD->pending_signals |= (1L << (sig-1));
+  { LD->pending_signals |= (1L << (sig-1));
+    return TRUE;
+  }
+
+  return FALSE;
 }
 
 
@@ -2642,10 +2652,10 @@ PL_prompt1(const char *s)
 
 
 int
-PL_ttymode(int fd)
+PL_ttymode(IOSTREAM *s)
 { GET_LD
 
-  if ( fd == 0 )
+  if ( s == Suser_input )
   { if ( !trueFeature(TTY_CONTROL_FEATURE) ) /* -tty in effect */
       return PL_NOTTY;
     if ( ttymode == TTY_RAW )		/* get_single_char/1 and friends */

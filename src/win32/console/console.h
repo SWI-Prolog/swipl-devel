@@ -29,6 +29,8 @@
 #define RLC_VENDOR "SWI"
 #endif
 
+#define RLC_TITLE_MAX 256		/* max length of window title */
+
 #ifndef _export
 #ifdef _MAKE_DLL
 #define _export _declspec(dllexport)
@@ -56,14 +58,32 @@ typedef struct
   int		mark_y;
 } rlc_mark, *RlcMark;
 
+typedef struct
+{ const char   *title;			/* window title */
+  const char   *key;			/* Last part of registry-key */
+  int		width;			/* # characters(0: default) */
+  int		height;			/* # characters (0: default) */
+  int		x;			/* # pixels (0: default) */
+  int		y;			/* # pixels (0: default) */
+  int		savelines;		/* # lines to save (0: default) */
+  char 		face_name[32];		/* font name */
+  int		font_family;		/* family id */
+  int		font_size;
+  int		font_weight;
+  int		font_char_set;
+} rlc_console_attr;
+
+typedef void * rlc_console;		/* console handle */
+
 typedef void	(*RlcUpdateHook)(void);	/* Graphics update hook */
 typedef void	(*RlcTimerHook)(int);	/* Timer fireing hook */
 typedef int	(*RlcRenderHook)(int);	/* Render one format */
 typedef void	(*RlcRenderAllHook)(void); /* Render all formats */
-typedef int	(*RlcMain)(int, char**); /* the main() function */
-typedef void	(*RlcInterruptHook)(int); /* Hook for Control-C */
+typedef int	(*RlcMain)(rlc_console c, int, char**); /* main() */
+typedef void	(*RlcInterruptHook)(rlc_console, int); /* Hook for Control-C */
 typedef void	(*RlcResizeHook)(int, int); /* Hook for window change */
-typedef void	(*RlcMenuHook)(const char *id); /* Hook for menu-selection */
+typedef void	(*RlcMenuHook)(rlc_console, const char *id); /* Hook for menu-selection */
+typedef void	(*RlcFreeDataHook)(unsigned long data); /* release data */
 
 #ifdef _WINDOWS_			/* <windows.h> is included */
 					/* rlc_color(which, ...) */
@@ -73,14 +93,15 @@ typedef void	(*RlcMenuHook)(const char *id); /* Hook for menu-selection */
 #define RLC_HIGHLIGHTTEXT (3)		/* selected text */
 
 _export HANDLE	rlc_hinstance(void);	/* hInstance of WinMain() */
-_export HWND	rlc_hwnd(void);		/* HWND of console window */
-_export int	rlc_window_pos(HWND hWndInsertAfter,
+_export HWND	rlc_hwnd(rlc_console c); /* HWND of console window */
+_export int	rlc_window_pos(rlc_console c,
+			       HWND hWndInsertAfter,
 			       int x, int y, int w, int h,
 			       UINT flags); /* resize/reposition window */
 _export int	rlc_main(HANDLE hI, HANDLE hPrevI,
 			 LPSTR cmd, int show, RlcMain main, HICON icon);
-_export void	rlc_icon(HICON icon);	/* Change icon of main window */
-_export COLORREF rlc_color(int which, COLORREF color);
+_export void	rlc_icon(rlc_console c, HICON icon);	/* Change icon */
+_export COLORREF rlc_color(rlc_console c, int which, COLORREF color);
 #endif /*_WINDOWS_*/
 
 _export RlcUpdateHook	rlc_update_hook(RlcUpdateHook updatehook);
@@ -92,51 +113,53 @@ _export RlcResizeHook	rlc_resize_hook(RlcResizeHook resizehook);
 _export RlcMenuHook	rlc_menu_hook(RlcMenuHook menuhook);
 _export int		rlc_copy_output_to_debug_output(int docopy);
 
-_export void		rlc_title(char *title, char *old, int size);
-_export void		rlc_dispatch(RlcQueue q);
+_export rlc_console	rlc_create_console(rlc_console_attr *attr);
+_export void		rlc_title(rlc_console c,
+				  char *title, char *old, int size);
 _export void		rlc_yield(void);
-_export RlcQueue	rlc_input_queue(void); /* libs stdin queue */
-_export RlcQueue	rlc_make_queue(int size);
-_export void		rlc_free_queue(RlcQueue q);
-_export int		rlc_from_queue(RlcQueue q);
-_export int		rlc_is_empty_queue(RlcQueue q);
-_export void		rlc_empty_queue(RlcQueue q);
 _export void		rlc_word_char(int chr, int isword);
 _export int		rlc_is_word_char(int chr);
 _export int		rlc_iswin32s(void);	/* check for Win32S */
-
-_export void		rlc_get_mark(RlcMark mark);
-_export void		rlc_goto_mark(RlcMark mark, const char *data, int offset);
-_export void		rlc_erase_from_caret();
-_export void		rlc_putchar(int chr);
-_export char *		rlc_read_screen(RlcMark from, RlcMark to);
-_export void		rlc_update(void);
 
 _export void		rlc_free(void *ptr);
 _export void *		rlc_malloc(int size);
 _export void *		rlc_realloc(void *ptr, int size);
 
-_export int		rlc_read(char *buf, int count);
-_export int		rlc_write(char *buf, unsigned int count);
-_export int		rlc_close(void);
+_export int		rlc_read(rlc_console c, char *buf, unsigned int cnt);
+_export int		rlc_write(rlc_console c, char *buf, unsigned int cnt);
+_export int		rlc_close(rlc_console c);
+_export int		rlc_flush_output(rlc_console c);
 
-_export int		getch(void);
-_export int		getche(void);
-_export int		getkey(void);
-_export int		kbhit(void);
-_export void		ScreenInit(void);
-_export void		ScreenGetCursor(int *row, int *col);
-_export void		ScreenSetCursor(int row, int col);
-_export int		ScreenCols(void);
-_export int		ScreenRows(void);
-_export const char *	rlc_prompt(const char *prompt);
-_export void		rlc_clearprompt(void);
+_export int		getch(rlc_console c);
+_export int		getche(rlc_console c);
+_export int		getkey(rlc_console c);
+_export int		kbhit(rlc_console c);
+_export void		ScreenGetCursor(rlc_console c, int *row, int *col);
+_export void		ScreenSetCursor(rlc_console c, int row, int col);
+_export int		ScreenCols(rlc_console c);
+_export int		ScreenRows(rlc_console c);
 
-_export int		rlc_insert_menu_item(const char *menu,
+_export int		rlc_insert_menu_item(rlc_console c,
+					     const char *menu,
 					     const char *label,
 					     const char *before);
-_export int		rlc_insert_menu(const char *label,
+_export int		rlc_insert_menu(rlc_console c,
+					const char *label,
 					const char *before);
+
+		 /*******************************
+		 *	  GET/SET VALUES	*
+		 *******************************/
+
+#define RLC_APPLICATION_THREAD		0 /* thread-handle of application */
+#define RLC_APPLICATION_THREAD_ID	1 /* thread id of application */
+#define RLC_VALUE(N)			(1000+(N))
+
+_export int		rlc_get(rlc_console c, int what,
+				unsigned long *val);
+_export int		rlc_set(rlc_console c, int what,
+				unsigned long val,
+				RlcFreeDataHook hook);
 
 
 		 /*******************************
@@ -152,6 +175,7 @@ typedef struct _line
   int		complete;		/* line is completed */
   int		reprompt;		/* repeat the prompt */
   char	       *data;			/* the data (malloc'ed) */
+  rlc_console	console;		/* console I belong to */
 } line, *Line;
 
 #define COMPLETE_MAX_WORD_LEN 256
@@ -178,10 +202,10 @@ typedef struct _complete_data
 
 _export RlcCompleteFunc rlc_complete_hook(RlcCompleteFunc func);
 
-_export char	*read_line(void);
+_export char	*read_line(rlc_console console);
 _export int	rlc_complete_file_function(RlcCompleteData data);
-_export void	rlc_init_history(int auto_add, int size);
-_export void	rlc_add_history(const char *line);
+_export void	rlc_init_history(rlc_console c, int size);
+_export void	rlc_add_history(rlc_console c, const char *line);
 _export int	rlc_bind(int chr, const char *fname);
 
 #endif /* _CONSOLE_H_INCLUDED */

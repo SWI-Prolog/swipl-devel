@@ -700,6 +700,7 @@ Sclose(IOSTREAM *s)
     s->buffer = NULL;
   }
 
+  s->flags |= SIO_CLOSING;
   if ( s->functions->close && (*s->functions->close)(s->handle) < 0 )
     rval = -1;
   run_close_hooks(s);
@@ -1443,7 +1444,9 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
     s->position = &s->posbuf;
 #ifdef O_PLMT
   if ( !(s->mutex = newRecursiveMutex()) )
+  { free(s);
     return NULL;
+  }
 #endif
   if ( (fd = Sfileno(s)) >= 0 && isatty(fd) )
     s->flags |= SIO_ISATTY;

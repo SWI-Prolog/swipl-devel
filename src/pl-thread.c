@@ -22,6 +22,9 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#ifdef WIN32
+#include <windows.h>
+#endif
 #include "pl-incl.h"
 #include <stdio.h>
 #ifdef O_PLMT
@@ -81,7 +84,6 @@ static sema_t sem_canceled;		/* used on halt */
 #endif /*HAVE_SEMA_INIT*/
 #endif /*HAVE_SEM_INIT*/
 
-
 		 /*******************************
 		 *	    GLOBAL DATA		*
 		 *******************************/
@@ -137,21 +139,12 @@ static void	freeThreadSignals(PL_local_data_t *ld);
 static void	unaliasThread(atom_t name);
 static void	run_thread_exit_hooks();
 static void	free_thread_info(PL_thread_info_t *info);
+static void	set_system_thread_id(PL_thread_info_t *info);
 
 
 		 /*******************************
 		 *	 THREAD ALLOCATION	*
 		 *******************************/
-
-PL_local_data_t *
-allocPrologLocalData()
-{ PL_local_data_t *ld = allocHeap(sizeof(PL_local_data_t));
-  memset(ld, 0, sizeof(PL_local_data_t));
-  pthread_setspecific(PL_ldata, ld);
-
-  return ld;
-}
-
 
 int
 PL_initialise_thread(PL_thread_info_t *info)
@@ -223,6 +216,7 @@ free_prolog_thread(void *data)
   UNLOCK();
 
   if ( info->status == PL_THREAD_CANCELED )
+  {
 #ifdef HAVE_SEM_INIT
     sem_post(&sem_canceled);
 #else
@@ -230,6 +224,8 @@ free_prolog_thread(void *data)
     sema_post(&sem_canceled);
 #  endif
 #endif
+    ;					/* make sure syntax is ok */
+  }
 
   if ( info->detached )
     free_thread_info(info);
@@ -243,7 +239,12 @@ initPrologThreads()
   pthread_key_create(&PL_ldata, free_prolog_thread);
   info = alloc_thread();
   info->tid = pthread_self();
+#ifdef WIN32
+  info->w32id = GetCurrentThreadId();
+#endif
   pthread_setspecific(PL_ldata, info->thread_data);
+  set_system_thread_id(info);
+
   GD->statistics.thread_cputime = 0.0;
   GD->statistics.threads_created = 1;
 }
@@ -409,12 +410,44 @@ PL_thread_self()
 }
 
 
+#ifdef WIN32
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+PL_w32thread_raise(DWORD id, int sig)
+    Sets the signalled mask for a specific Win32 thread. This is a
+    partial work-around for the lack of proper asynchronous signal
+    handling in the Win32 platform.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+PL_w32thread_raise(DWORD id, int sig)
+{ PL_thread_info_t *info;
+  int i;
+
+  if ( sig < 0 || sig > MAXSIGNAL )
+    return FALSE;			/* illegal signal */
+
+  LOCK();
+  for(i = 0, info = threads; i < MAX_THREADS; i++, info++)
+  { if ( info->w32id == id && info->thread_data )
+    { info->thread_data->pending_signals |= (1L << (sig-1));
+      UNLOCK();
+      return TRUE;
+    }
+  }
+  UNLOCK();
+
+  return FALSE;				/* can't find thread */
+}
+
+#endif /*WIN32*/
+
+
 const char *
 threadName(int id)
 { PL_thread_info_t *info;
   char tmp[16];
     
-
   if ( id == 0 )
     id = PL_thread_self();
   if ( id < 0 )
@@ -427,6 +460,35 @@ threadName(int id)
 
   sprintf(tmp, "%d", id);
   return buffer_string(tmp, BUF_RING);
+}
+
+
+static void
+set_system_thread_id(PL_thread_info_t *info)
+{ long id;
+
+#ifdef __linux__
+  id = info->pid = getpid();
+#else
+#ifdef WIN32
+  id = info->w32id = GetCurrentThreadId();
+#else
+  id = (long)pthread_self();
+#endif
+#endif
+
+  if ( GD->statistics.threads_created > 1 )
+  { fid_t fid = PL_open_foreign_frame();
+    term_t name = PL_new_term_ref();
+    term_t value = PL_new_term_ref();
+
+    PL_put_atom_chars(name, "system_thread_id");
+    PL_put_integer(value, id);
+    pl_set_feature(name, value);
+    PL_discard_foreign_frame(fid);
+  } else
+  { PL_set_feature("system_thread_id", PL_INTEGER, id);
+  }
 }
 
 
@@ -449,16 +511,12 @@ start_thread(void *closure)
 
   blockSignal(SIGINT);			/* only the main thread processes */
 					/* Control-C */
-
-#ifdef __linux__
-  info->pid = getpid();
-#endif
-
   LOCK();
   info->status = PL_THREAD_RUNNING;
   UNLOCK();
 
   PL_initialise_thread(info);
+  set_system_thread_id(info);
   pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 
@@ -467,7 +525,7 @@ start_thread(void *closure)
   PL_recorded(info->goal, goal);
   rval  = callProlog(info->module, goal, PL_Q_CATCH_EXCEPTION, &ex);
 
-    LOCK();
+  LOCK();
   if ( rval )
   { info->status = PL_THREAD_SUCCEEDED;
   } else
@@ -1496,6 +1554,9 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
 
   PL_initialise_thread(info); 
   info->tid = pthread_self();		/* we are complete now */
+#ifdef WIN32
+  info->w32id = GetCurrentThreadId();
+#endif
 
   return info->pl_tid;
 }
@@ -1595,10 +1656,6 @@ threadMarkAtoms(int sig)
 #define SIG_MARKATOMS SIGHUP
 
 #ifdef WIN32
-#undef FD_SET
-#undef FD_ZERO
-#undef FD_ISSET
-#include <windows.h>
 
 void					/* For comments, see above */
 threadMarkAtomsOtherThreads()
@@ -1737,6 +1794,13 @@ int
 PL_thread_destroy_engine()
 { return FALSE;
 }
+
+#ifdef WIN32
+int
+PL_w32thread_raise(DWORD id, int sig)
+{ return PL_raise(sig);
+}
+#endif
 
 foreign_t
 pl_thread_self(term_t id)

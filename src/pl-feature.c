@@ -124,10 +124,14 @@ defFeature(const char *name, int flags, ...)
     { int  val           = va_arg(args, int);
       unsigned long mask = va_arg(args, unsigned long);
 
-      if ( !s )
+      if ( s && mask && f->index < 0 )		/* type definition */
+      { f->index = indexOfBoolMask(mask);
+	val = (f->value.a == ATOM_true);
+      } else if ( !s )				/* 1st definition */
       { f->index = indexOfBoolMask(mask);
 	DEBUG(2, Sdprintf("Feature %s at 0x%08lx\n", name, mask));
       }
+
       f->value.a = (val ? ATOM_true : ATOM_false);
       if ( f->index >= 0 )
       { mask = 1L << (f->index-1);

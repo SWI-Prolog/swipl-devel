@@ -473,7 +473,12 @@ PL_unify_stream_or_alias(term_t t, IOSTREAM *s)
 
 int
 PL_unify_stream(term_t t, IOSTREAM *s)
-{ term_t a = PL_new_term_ref();
+{ stream_context *ctx;
+  term_t a = PL_new_term_ref();
+
+  LOCK();
+  ctx = getStreamContext(s);
+  UNLOCK();
 
   PL_put_pointer(a, s);
   PL_cons_functor(a, FUNCTOR_dstream1, a);
@@ -490,6 +495,12 @@ PL_unify_stream(term_t t, IOSTREAM *s)
 bool					/* old FLI name (compatibility) */
 PL_open_stream(term_t handle, IOSTREAM *s)
 { return PL_unify_stream(handle, s);
+}
+
+
+IOSTREAM **				/* provide access to Suser_input, */
+_PL_streams(void)			/* Suser_output and Suser_error */
+{ return &Suser_input;
 }
 
 

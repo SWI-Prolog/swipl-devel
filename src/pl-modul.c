@@ -115,8 +115,6 @@ initModules(void)
     GD->tables.modules = newHTable(MODULEHASHSIZE);
     GD->modules.system = _lookupModule(ATOM_system);
     GD->modules.user   = _lookupModule(ATOM_user);
-    LD->modules.typein = MODULE_user;
-    LD->modules.source = MODULE_user;
   }
   UNLOCK();
 }

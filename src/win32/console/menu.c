@@ -25,6 +25,7 @@
 #include <windows.h>
 #define _MAKE_DLL
 #include "console.h"
+#include "console_i.h"
 #include "menu.h"
 
 #ifndef EOS
@@ -140,8 +141,8 @@ Find popup with given name.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static HMENU
-findPopup(const char *name, int *pos)
-{ HMENU mb = GetMenu(rlc_hwnd());
+findPopup(RlcData b, const char *name, int *pos)
+{ HMENU mb = GetMenu(rlc_hwnd(b));
 
   if ( mb )
   { int i;
@@ -213,10 +214,12 @@ rlc_add_menu_bar(HWND cwin)
 
 
 int
-rlc_insert_menu_item(const char *menu, const char *label, const char *before)
-{ HMENU popup;
+rlc_insert_menu_item(rlc_console c,
+		     const char *menu, const char *label, const char *before)
+{ RlcData b = rlc_get_data(c);
+  HMENU popup;
 
-  if ( (popup = findPopup(menu, NULL)) )
+  if ( (popup = findPopup(b, menu, NULL)) )
     return insertMenu(popup, label, before);
       
   return FALSE;
@@ -224,19 +227,20 @@ rlc_insert_menu_item(const char *menu, const char *label, const char *before)
 
 
 int
-rlc_insert_menu(const char *label, const char *before)
-{ HMENU mb;
-  HWND hwnd = rlc_hwnd();
+rlc_insert_menu(rlc_console c, const char *label, const char *before)
+{ RlcData b = rlc_get_data(c);
+  HMENU mb;
+  HWND hwnd = rlc_hwnd(c);
 
   if ( !(mb = GetMenu(hwnd)) )
     return FALSE;
 
-  if ( !findPopup(label, NULL) )	/* already there */
+  if ( !findPopup(b, label, NULL) )	/* already there */
   { MENUITEMINFO info;
     int bid = -1;
 
     if ( before )
-      findPopup(before, &bid);
+      findPopup(b, before, &bid);
 
     memset(&info, 0, sizeof(info));
     info.cbSize = sizeof(info);

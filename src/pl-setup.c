@@ -97,6 +97,10 @@ setupProlog(void)
   DEBUG(1, Sdprintf("Modules ...\n"));
   initTables();
   initModules();
+					/* initModules may be called before */
+					/* LD is present in the MT version */
+  LD->modules.typein = MODULE_user;
+  LD->modules.source = MODULE_user;
   DEBUG(1, Sdprintf("Records ...\n"));
   initRecords();
   DEBUG(1, Sdprintf("Flags ...\n"));

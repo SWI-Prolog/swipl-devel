@@ -528,6 +528,13 @@ __pl_export IOSTREAM *PL_open_resource(module_t m,
 				       const char *rc_class,
 				       const char *mode);
 
+__pl_export IOSTREAM **_PL_streams(void);	/* base of streams */
+#ifndef PL_KERNEL
+#define Suser_input  (_PL_streams()[0])
+#define Suser_output (_PL_streams()[1])
+#define Suser_error  (_PL_streams()[2])
+#endif
+
 #define PL_WRT_QUOTED		0x01	/* quote atoms */
 #define PL_WRT_IGNOREOPS	0x02	/* ignore list/operators */
 #define PL_WRT_NUMBERVARS	0x04	/* print $VAR(N) as a variable */
@@ -538,7 +545,15 @@ __pl_export int PL_write_term(IOSTREAM *s,
 			      term_t term,
 			      int precedence,
 			      int flags);
-#endif
+
+					/* PL_ttymode() results */
+#define PL_NOTTY	0		/* -tty in effect */
+#define PL_RAWTTY	1		/* get_single_char/1 */
+#define PL_COOKEDTTY	2		/* normal input */
+
+__pl_export int		PL_ttymode(IOSTREAM *s);
+
+#endif /*SIO_MAGIC*/
 
 __pl_export int PL_chars_to_term(const char *chars,
 				 term_t term);
@@ -571,13 +586,7 @@ readline overhead.
 #define PL_DISPATCH_WAIT      1		/* Dispatch till input available */
 #define PL_DISPATCH_INSTALLED 2		/* dispatch function installed? */
 
-					/* PL_ttymode() results */
-#define PL_NOTTY	0		/* -tty in effect */
-#define PL_RAWTTY	1		/* get_single_char/1 */
-#define PL_COOKEDTTY	2		/* normal input */
-
 __pl_export int		PL_dispatch(int fd, int wait);
-__pl_export int		PL_ttymode(int fd);
 __pl_export void	PL_add_to_protocol(const char *buf, int count);
 __pl_export char *	PL_prompt_string(int fd);
 __pl_export void	PL_write_prompt(int dowrite);
@@ -623,7 +632,7 @@ __pl_export PL_agc_hook_t      PL_agc_hook(PL_agc_hook_t);
 
 __pl_export void (*PL_signal(int sig, void (*func)(int)))(int);
 __pl_export void PL_interrupt(int sig);
-__pl_export void PL_raise(int sig);
+__pl_export int  PL_raise(int sig);
 __pl_export int  PL_handle_signals(void);
 
 		/********************************
@@ -678,7 +687,9 @@ typedef struct
 __pl_export int	PL_thread_self(void);	/* Prolog thread id (-1 if none) */
 __pl_export int PL_thread_attach_engine(PL_thread_attr_t *attr);
 __pl_export int PL_thread_destroy_engine(void);
-
+#if defined(_WINDOWS_)			/* <windows.h> is included */
+__pl_export int PL_w32thread_raise(DWORD dwTid, int sig);
+#endif
 
 		 /*******************************
 		 *       FAST XPCE SUPPORT	*
