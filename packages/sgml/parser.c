@@ -2467,6 +2467,8 @@ open_element(dtd_parser *p, dtd_element *e, int warn)
     if ( warn )
     { if ( e == CDATA_ELEMENT )
 	gripe(ERC_VALIDATE, "#PCDATA not allowed here");
+      else if ( e->undefined )
+	gripe(ERC_EXISTENCE, "Element", e->name->name);
       else
 	gripe(ERC_NOT_ALLOWED, e->name->name);
     }
@@ -2734,9 +2736,6 @@ process_begin_element(dtd_parser *p, const ichar *decl)
 
     if ( !e->structure )
     { dtd_edef *def;
-      if ( !dtd->implicit )
-	gripe(ERC_EXISTENCE, "element", e->name->name);
-
       e->undefined = TRUE;
       def_element(dtd, id);
       def = e->structure;
@@ -4287,7 +4286,7 @@ gripe(dtd_error_id e, ...)
     case ERC_OMITTED_CLOSE:
     { const char *element = va_arg(args, const char *); 
 
-      sprintf(buf, "Inserted omitted end-tag for `%s'", element);
+      sprintf(buf, "Inserted omitted end-tag for \"%s\"", element);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
       e = ERC_VALIDATE;
@@ -4296,7 +4295,7 @@ gripe(dtd_error_id e, ...)
     case ERC_OMITTED_OPEN:
     { const char *element = va_arg(args, const char *); 
 
-      sprintf(buf, "Inserted omitted start-tag for `%s'", element);
+      sprintf(buf, "Inserted omitted start-tag for \"%s\"", element);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
       e = ERC_VALIDATE;
@@ -4305,7 +4304,7 @@ gripe(dtd_error_id e, ...)
     case ERC_NOT_OPEN:
     { const char *element = va_arg(args, const char *); 
 
-      sprintf(buf, "Ignored end-tag for `%s' which is not open", element);
+      sprintf(buf, "Ignored end-tag for \"%s\" which is not open", element);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
       e = ERC_VALIDATE;
@@ -4314,7 +4313,7 @@ gripe(dtd_error_id e, ...)
     case ERC_NOT_ALLOWED:
     { const char *element = va_arg(args, const char *); 
 
-      sprintf(buf, "Element `%s' not allowed here", element);
+      sprintf(buf, "Element \"%s\" not allowed here", element);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
       e = ERC_VALIDATE;
@@ -4324,7 +4323,7 @@ gripe(dtd_error_id e, ...)
     { const char *elem = va_arg(args, char *); /* element */
       const char *attr = va_arg(args, char *); /* attribute */
 
-      sprintf(buf, "Element `%s' does has no attribute \"%s\"", elem, attr);
+      sprintf(buf, "Element \"%s\" does has no attribute \"%s\"", elem, attr);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
 
@@ -4335,7 +4334,7 @@ gripe(dtd_error_id e, ...)
     { const char *elem  = va_arg(args, char *); /* element */
       const char *value = va_arg(args, char *); /* attribute value */
 
-      sprintf(buf, "Element <%s> has no attribute with value \"%s\"",
+      sprintf(buf, "Element \"%s\" has no attribute with value \"%s\"",
 	      elem, value);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
@@ -4355,7 +4354,7 @@ gripe(dtd_error_id e, ...)
     { const char *doctype = va_arg(args, char *); /* element */
       const char *file    = va_arg(args, char *); /* DTD file */
 
-      sprintf(buf, "No <!DOCTYPE ...>, assuming `%s' from DTD file `%s'",
+      sprintf(buf, "No <!DOCTYPE ...>, assuming \"%s\" from DTD file \"%s\"",
 	      doctype, file);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
