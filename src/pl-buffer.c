@@ -25,9 +25,9 @@
 #include "pl-incl.h"
 
 void
-growBuffer(Buffer b, long int minfree)
-{ long osz = b->max - b->base, sz = osz;
-  long top = b->top - b->base;
+growBuffer(Buffer b, size_t minfree)
+{ size_t osz = b->max - b->base, sz = osz;
+  size_t top = b->top - b->base;
 
   if ( sz < 512 )
     sz = 512;				/* minimum reasonable size */

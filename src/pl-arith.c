@@ -146,7 +146,7 @@ pl_between(term_t low, term_t high, term_t n, control_t ctx)
 	if ( h < l )
 	  fail;
 
-	PL_unify_integer(n, l);
+	PL_unify_int64(n, l);
 	if ( l == h )
 	  succeed;
 	
@@ -160,7 +160,7 @@ pl_between(term_t low, term_t high, term_t n, control_t ctx)
 	state = ForeignContextPtr(ctx);
 	(*state)++;
 
-	PL_unify_integer(n, *state);
+	PL_unify_int64(n, *state);
 	PL_get_int64(high, &h);
 	if ( *state == h )
 	{ freeHeap(state, sizeof(*state));
@@ -179,8 +179,7 @@ pl_between(term_t low, term_t high, term_t n, control_t ctx)
 
 word
 pl_succ(term_t n1, term_t n2)
-{ GET_LD
-  int64_t i1, i2;
+{ int64_t i1, i2;
 
   if ( PL_get_int64(n1, &i1) )
   { if ( i1 < 0L )
@@ -188,7 +187,7 @@ pl_succ(term_t n1, term_t n2)
 		      ATOM_not_less_than_zero, n1);
     if ( PL_get_int64(n2, &i2) )
       return i1+1 == i2 ? TRUE : FALSE;
-    else if ( PL_unify_integer(n2, i1+1) )
+    else if ( PL_unify_int64(n2, i1+1) )
       succeed;
 
     return PL_error("succ", 2, NULL, ERR_TYPE, ATOM_integer, n2);
@@ -199,7 +198,7 @@ pl_succ(term_t n1, term_t n2)
 		      ATOM_not_less_than_zero, n2);
     if ( i2 == 0L )
       fail;
-    if ( PL_unify_integer(n1, i2-1) )
+    if ( PL_unify_int64(n1, i2-1) )
       succeed;
   }
 
@@ -235,11 +234,11 @@ pl_plus(term_t a, term_t b, term_t c)
   { case 0x7:
       return m+n == o ? TRUE : FALSE;
     case 0x3:				/* +, +, - */
-      return PL_unify_integer(c, m+n);
+      return PL_unify_int64(c, m+n);
     case 0x5:				/* +, -, + */
-      return PL_unify_integer(b, o-m);
+      return PL_unify_int64(b, o-m);
     case 0x6:				/* -, +, + */
-      return PL_unify_integer(a, o-n);
+      return PL_unify_int64(a, o-n);
     default:
       return PL_error("succ", 2, NULL, ERR_INSTANTIATION);
   }
@@ -1029,7 +1028,7 @@ ar_msb(Number n1, Number r)
   { GET_LD
     term_t t = PL_new_term_ref();
 
-    PL_put_integer(t, i);
+    PL_put_int64(t, i);
     return PL_error("msb", 1, NULL, ERR_DOMAIN, ATOM_not_less_than_zero, t);
   }
 
@@ -1202,7 +1201,7 @@ ar_random(Number n1, Number r)
   { GET_LD
     term_t i = PL_new_term_ref();
 
-    PL_put_integer(i, n1->value.i);
+    PL_put_int64(i, n1->value.i);
 
     return PL_error("random", 1, NULL, ERR_DOMAIN, ATOM_not_less_than_zero, i);
   }
@@ -1408,7 +1407,7 @@ PRED_IMPL("$prolog_arithmetic_function", 2, prolog_arithmetic_function,
 		       PL_FUNCTOR, FUNCTOR_colon2,
 		         PL_ATOM, f->module->name,
 		         PL_TERM, tmp) &&
-	 PL_unify_integer(A2, f->index) )
+	 PL_unify_integer(A2, (long)f->index) )
     { if ( ++i == mx )
 	succeed;
       ForeignRedoInt(i);

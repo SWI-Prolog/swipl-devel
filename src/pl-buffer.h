@@ -42,7 +42,7 @@ typedef struct
   char		static_buffer[sizeof(char *)];
 } buffer, *Buffer;
 
-void	growBuffer(Buffer, long);
+void	growBuffer(Buffer b, size_t minfree);
 
 #define addBuffer(b, obj, type) \
 	do \

@@ -472,14 +472,14 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 #define ARITHHASHSIZE		64	/* arithmetic function table */
 
 #define TABLE_UNLOCKED		0x10000000L /* do not create mutex for table */
-#define TABLE_MASK		0xf0000000L
+#define TABLE_MASK		0xf0000000UL
 
 #define pointerHashValue(p, size) ((((long)(p) >> LMASK_BITS) ^ \
 				    ((long)(p) >> (LMASK_BITS+5)) ^ \
 				    ((long)(p))) & \
 				   ((size)-1))
 
-#define TABLE_REF_MASK		0x1L
+#define TABLE_REF_MASK		0x1UL
 #define isTableRef(p)		((unsigned long)(p) & TABLE_REF_MASK)
 #define makeTableRef(p)		((void*)((unsigned long)(p) | TABLE_REF_MASK))
 #define unTableRef(s, p)	(*((s*)((unsigned long)(p) & ~TABLE_REF_MASK)))
