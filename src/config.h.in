@@ -158,6 +158,9 @@
 /* Define if struct rusage contains the field ru_idrss */
 #undef HAVE_RU_IDRSS
 
+/* Define if you have atomic_inc() and atomic_dec() with atomic_t == int */
+#undef HAVE_ATOMIC_INC
+
 /* Define to one of `_getb67', `GETB67', `getb67' for Cray-2 and Cray-YMP
    systems. This function is required for `alloca.c' support on those systems.
    */
@@ -177,6 +180,9 @@
 
 /* Define if you have <alloca.h> and it should be used (not on Ultrix). */
 #undef HAVE_ALLOCA_H
+
+/* Define if you have the <asm/atomic.h> header file. */
+#undef HAVE_ASM_ATOMIC_H
 
 /* Define if you have the <bstring.h> header file. */
 #undef HAVE_BSTRING_H

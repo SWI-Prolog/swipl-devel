@@ -199,12 +199,19 @@ static void	set_system_thread_id(PL_thread_info_t *info);
 void
 PL_atomic_inc(int *addr)
 {
-#ifdef HAVE_ASM_ATOMIC_H
+#ifdef HAVE_ATOMIC_INC		/* only if sizeof(int) == sizeof(atomic_t) */
   atomic_inc((atomic_t *)addr);
 #else
-  PL_LOCK(L_MISC);
-  (*addr)++;
-  PL_UNLOCK(L_MISC);
+#ifdef WIN32
+  if ( sizeof(int) == sizeof(long) )
+    InterlockedIncrement((long *)addr);
+  else
+#else
+  { PL_LOCK(L_MISC);
+    (*addr)++;
+    PL_UNLOCK(L_MISC);
+  }
+#endif
 #endif
 }
 
@@ -212,12 +219,19 @@ PL_atomic_inc(int *addr)
 void
 PL_atomic_dec(int *addr)
 {
-#ifdef HAVE_ASM_ATOMIC_H
+#ifdef HAVE_ATOMIC_INC
   atomic_dec((atomic_t *)addr);
 #else
-  PL_LOCK(L_MISC);
-  (*addr)--;
-  PL_UNLOCK(L_MISC);
+#ifdef WIN32
+  if ( sizeof(int) == sizeof(long) )
+    InterlockedDecrement((long *)addr);
+  else
+#else
+  { PL_LOCK(L_MISC);
+    (*addr)--;
+    PL_UNLOCK(L_MISC);
+  }
+#endif
 #endif
 }
 

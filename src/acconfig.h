@@ -156,3 +156,6 @@
 
 /* Define if struct rusage contains the field ru_idrss */
 #undef HAVE_RU_IDRSS
+
+/* Define if you have atomic_inc() and atomic_dec() with atomic_t == int */
+#undef HAVE_ATOMIC_INC
