@@ -39,6 +39,7 @@ faster operation.
 
 
 \section{Creating and destroying Prolog threads}
+\label{sec:threadcreate}
 
 \begin{description}
     \predicate{thread_create}{3}{:Goal, -Id, +Options}
@@ -258,7 +259,7 @@ additional synchronisation.
 %	Create a pool with given Id and number of workers.
 
 create_workers(Id, N) :-
-	thread_message_queue_create(Id),
+	message_queue_create(Id),
 	forall(between(1, N, _),
 	       thread_create(do_work(Id), _, [])).
 
@@ -447,6 +448,7 @@ following sequence starts the tracer on this thread:
 
 
 \section{Multi-threaded mixed C and Prolog applications}
+\label{sec:foreignthread}
 
 All foreign-code linked to the multi-threading version of SWI-Prolog
 should be thread-safe (\jargon{reentrant}) or guarded in Prolog using
@@ -524,6 +526,7 @@ the same queue as used by thread_at_exit/1.
 
 
 \section{Multithreading and the XPCE graphics system}	\label{sec:mt-xpce}
+\label{sec:xpcethread}
 
 GUI applications written in XPCE can benefit from the multi-threaded
 version of XPCE/SWI-Prolog if they need to do expensive computations
@@ -532,17 +535,36 @@ that block to UI in the single-threaded version.
 Due to various technical problems on both Windows and Unix/X11 threading
 is best exploited by handing long computations to their own thread.
 
-TBD: how should background threads report their results?
-
 The XPCE message passing system is guarded with a single \jargon{mutex},
 which synchronises both access from Prolog and activation through the
-GUI. In MS-Windows, GUI actions are processed by the thread that created
-the window, whereas in Unix/X11 they are processed by the thread that
-dispatches messages, which is normally the thread holding the main
-console.
+GUI. In MS-Windows, GUI events are processed by the thread that
+created the window in which the event occurred, whereas in Unix/X11 they
+are processed by the thread that dispatches messages.
 
+Some tentative work is underway to improve the integration between XPCE
+and multi-threaded SWI-Prolog.  
+
+\begin{description}
+    \predicate{pce_dispatch}{1}{+Options}
+Create a Prolog thread with the alias-name \const{pce} for XPCE
+event-handling. In the X11 version this call creates a thread that
+executes the X11 event-dispatch loop. In MS-Windows it creates a thread
+that executes a windows event-dispatch loop.
+
+    \predicate{pce_call}{1}{:Goal}
+Post \arg{Goal} to the \const{pce} thread, executing it synchronous
+with the thread's event-loop.  The pce_call/1 predicate returns
+immediately without waiting.  Note that \arg{Goal} is \emph{copied}
+to the \const{pce} thread.
+\end{description}
+
+For further information about XPCE in threaded applications, please
+visit
+\url{http://gollem.swi.psy.uva.nl/twiki/pl/bin/view/Development/MultiThreadsXPCE}
 
 \section{Threaded Prolog: Status and plans}
+\label{sec:threadplans}
+
 
 With SWI-Prolog 5.1.0 Prolog threads have become portable and the
 performance gap between the single and multi-threaded version has

@@ -1,9 +1,9 @@
-SWI-Prolog 5.1.2/XPCE 6.1.2 Summary of changes
+SWI-Prolog 5.1.3/XPCE 6.1.3 Summary of changes
 
 Status
 ======
   
-  * 3th beta-release.  Suitable for research and development.
+  * 4th beta-release.  Suitable for research and development.
     Discouraged for production usage.  It has a few 5.0.10 bugs
     fixed but surely introduced new ones.
 
@@ -11,36 +11,40 @@ Status
 SWI-Prolog
 ==========
 
-  * Added thread_statistics/3: get statistics on other threads.
-    
-  * Fixed a large number of multithreaded I/O locking issues, something
-    that would never have succeeded without help from Sergey Tikhonov.
-    Seems most pressing problems in this area are now resolved.
+  * Provide message-queues as first class objects, so one queue can
+    serve multiple threads for simple realisation of the `worker pool'
+    design.
 
-  * Fixed important bug in negative integer context of non-deterministic
-    foreign code (result from new representation in 5.1.x).
+  * Avoid leaking mutexes and condition-variables when creating and
+    destroying threads.
 
-  * Fixes to abort (exceptions), listing, and many more.
+  * Added a set_stream(Stream, timeout(Seconds)) to cause input from
+    the stream to generate an exception if no input arrives.
 
-  * Fixed wait_for_input/3 on Windows 2000 machines, as well as for
-    other architectures with many open I/O channals.
+  * Various issues when managing threads from C.
+
+  * Various minor bug-fixes
 
 
 Packages
 ========
 
-  * ODBC: Fixed silent operation of odbc_connect.
+  * CLIB: Many bugfixes for the Windows implementation of the
+    socket library.  I shouldn't forget to acknowlegde Peter Marks and
+    Mike Elston for their determinism in creating yet another program
+    illustrating a problem.  Thanks!
 
-  * CLIB: Added library(rlimit), providing access to the POSIX
-    resource limitations (limit memory, filesize, CPUtime, etc).
+  * RDF: Make process_rdf work again.
 
-  * XPCE: Fixed incremental GC leaking objects.
+  * XPCE: Forgotten mutex unlock, causing the GUI to freeze in some
+    MT usage.  Various minor problems fixed.
 
 
 Development environment
 =======================
 
-  * More flexible presentation of variable-bindings in the GUI debugger.
+  * Added ?- prolog_ide(thread_monitor). as well as menu-options for
+    this, showing status of running threads graphically.
 
 
 Short-term Plans
