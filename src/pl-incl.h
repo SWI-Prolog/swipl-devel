@@ -144,7 +144,7 @@ The ia64 says setjmp()/longjmp() buffer must be aligned at 128 bits
 #endif
 #endif
 
-#if MMAP_STACK || HAVE_VIRTUAL_ALLOC
+#if MMAP_STACK || HAVE_VIRTUALALLOC
 #define O_DYNAMIC_STACKS 1		/* sparse memory management */
 #else
 #ifndef O_SHIFT_STACKS
