@@ -667,7 +667,7 @@ rpm-bins::
 		$(INSTALL_PROGRAM) xpce-client $(bindir)
 rpm-link::
 		rm -f $(PLBASE)/xpce
-		$(REL_LN) $(RTHOME) $(PLBASE)/xpce
+		(cd $(PLBASE) && ln -s xpce-$(PCEVERSION) xpce)
 
 #	runtime only stuff
 
