@@ -212,21 +212,18 @@ predicate_apropos(Pattern) :-
 	findall(Name-Arity-Summary,
 		apropos_predicate(Pattern, Name, Arity, Summary),
 		Names),
-	Names \== [],
 	forall(member(Name-Arity-Summary, Names),
 	       format('~w/~w~t~30|~w~n', [Name, Arity, Summary])).
 
 function_apropos(Pattern) :-
 	findall(Name, (function(Name, _, _),
 		       apropos_match(Pattern, Name)), Names),
-	Names \== [],
 	forall(member(Name, Names),
 	       format('Interface Function~t~30|~w()~n', Name)).
 
 section_apropos(Pattern) :-
 	findall(Index-Name, (section(Index, Name, _, _),
 		       apropos_match(Pattern, Name)), Names),
-	Names \== [],
 	forall(member(Index-Name, Names),
 	       (user_index(Index, UserIndex),
 		format('Section ~w~t~30|"~w"~n', [UserIndex, Name]))).

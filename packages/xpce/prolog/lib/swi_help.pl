@@ -579,8 +579,12 @@ manual_range(What, Ranges) :-
 	phrase(manual_spec(Ranges), S).
 
 manual_spec(From-To) -->
-	name_and_arity(Name, Arity),
-	{ predicate(Name, Arity, _Summary, From, To)
+	name_and_arity(Name, SArity),
+	{ predicate(Name, Arity, _Summary, From, To),
+	  (   var(SArity)
+	  ->  var(Arity)
+	  ;   SArity = Arity
+	  )
 	}.
 manual_spec(From-To) -->
 	pl_function(Name), !,
@@ -629,7 +633,10 @@ section_separator -->
 name_and_arity(Name, Arity) -->
 	[C1|CT],
 	"/",
-	integer(Arity), !,
+	(   integer(Arity)
+	->  []
+	;   "_"
+	), !,
 	{ atom_codes(Name, [C1|CT])
 	}.
 
@@ -696,7 +703,10 @@ alnum(C) -->
 
 
 help_atom(Name/Arity, Atom) :- !,
-	concat_atom([Name, /, Arity], Atom).
+	(   var(Arity)
+	->  atom_concat(Name, '/_', Atom)
+	;   concat_atom([Name, /, Arity], Atom)
+	).
 help_atom(S1-S0, Atom) :- !,
 	help_atom(S1, A0),
 	concat_atom([A0, '.', S0], Atom).
@@ -704,8 +714,7 @@ help_atom(C, C) :-
 	integer(C), !.
 help_atom(F, F) :-
 	atom(F),
-	append("PL_", _, Prefix),
-	atom_codes(F, Prefix), !.
+	sub_atom(F, 0, _, _, 'PL_'), !.
 help_atom(Name, List) :-
 	findall(Name/Arity, predicate(Name, Arity, _, _, _), Preds),
 	Preds \== [],
@@ -738,7 +747,7 @@ predicate_apropos(V, Pattern) :-
 	send(V, insert_section,
 	     string('Predicates from "%s":', Pattern)),
 	forall(member(triple(Name, Arity, Summary), Names),
-	       (   concat_atom([Name, /, Arity], Jump),
+	       (   help_atom(Name/Arity, Jump),
 		   append_apropos(V, Jump, Summary)
 	       )).
 
@@ -1007,9 +1016,10 @@ select_range(N, Ranges:prolog) :->
 variable(start,	int, get, "Start index").
 variable(end,	int, get, "End index").
 
-initialise(N, Name:name, Arity:int) :->
-	predicate(Name, Arity, _Summary, Start, End),
-	concat_atom([Name, Arity], '/', Id),
+initialise(N, Name:name, Arity:prolog) :->
+	predicate(Name, SArity, _Summary, Start, End),
+	SArity =@= Arity,
+	help_atom(Name/Arity, Id),
 	send_super(N, initialise, Id, Id, resource(predicate)),
 	send(N, slot, start, Start),
 	send(N, slot, end, End).

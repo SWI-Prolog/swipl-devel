@@ -184,7 +184,8 @@ get_line([C|R]) -->
 type(predicate(Name, Arity, Summary)) -->
 	predicate_line(Name, Arity),
 	end_of_input, !,
-	{ (   summary(Name, Arity, Summary)
+	{ (   summary(Name, SArity, Summary),
+	      SArity =@= Arity
 	  ->  true
 	  ;   format('ERROR: No summary for ~w/~w~n', [Name, Arity]),
 	      Summary = ''
@@ -210,8 +211,6 @@ type(unknown) -->
 	{ % trace,
           format('Unidentified: ~s~n', [Line])
 	}.
-type(_, _) -->
-	{ fail }.
 
 end_of_input([], []).
 skipall(Line, Line, []).
@@ -226,7 +225,11 @@ predicate_line(Name, Arity) -->
 	{   (   integer(Arity),
 		functor(T, Name, Arity),
 		user:current_predicate(_, T)
-	    ;	user:current_predicate(Name, _)
+	    ;	findall(A, (system:current_predicate(Name, T),
+		            functor(T, _, A)
+			   ),
+			[Arity])
+	    ;	system:current_predicate(Name, _)
 	    ;   current_arithmetic_function(T)
 	    )
 	->  true
@@ -576,7 +579,11 @@ parse_summary(Name, Arity, Summary) -->
 	->atom_codes(Name, Chars1)
 	; Name = Name0
 	},
-	tex_arg(Arity),
+	tex_arg(Arity0),
+	{   integer(Arity0)
+	->  Arity = Arity0
+	;   true
+	},
 	tex_string(Summary),
 	tex_comment.
 parse_summary(Name, Arity, Summary) -->

@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#77, manual tools handling call/[2..].  Holger Kanwischer.
+
   * FIXED: Bug#76, deadlock in see/1 if the argument file does not exist.
     Holger Kanwischer.
 
