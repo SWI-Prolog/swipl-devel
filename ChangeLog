@@ -7,6 +7,11 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED/FIXED: Bug#46: loading .qlf files using use_module/1 and friends.
+    Holger Kanwischer.
+
+  * PORT: Patch to rc/access.c for HPUX-11 (and possibly more).  Tim Brown.
+
   * ENHANCED: messages printed with set_prolog_flag(verbose_autoload, true)
 
   * MODIFIED: Argument order of last/2.  Compatibility to other Prolog

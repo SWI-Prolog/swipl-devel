@@ -517,6 +517,7 @@ user:prolog_file_type(pl,	prolog).
 user:prolog_file_type(Ext,	prolog) :-
 	current_prolog_flag(associate, Ext),
 	Ext \== pl.
+user:prolog_file_type(qlf,	prolog).
 user:prolog_file_type(qlf,	qlf).
 user:prolog_file_type(Ext,	executable) :-
 	current_prolog_flag(shared_object_extension, Ext).
