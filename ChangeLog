@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: Messages for new error(limit_exceeded(Limit, Max), _) and
+    error(goal_failed(Goal), _).
+
   * FIXED: Proper reporting of I/O errors reading/writing streams.
 
   * FIXED: writeq to handle | as a solo-char and avoid extra space

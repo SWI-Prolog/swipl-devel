@@ -20,7 +20,7 @@
 
 translate_message(Term) -->
 	{var(Term)}, !,
-	[ 'Unknown exception term: ~p'-[Term] ].
+	[ 'Unknown message: ~p'-[Term] ].
 translate_message(Term) -->
 	prolog:message(Term).
 translate_message(Term) -->
@@ -150,6 +150,10 @@ swi_message(format(Fmt, Args)) -->
 	[ Fmt-Args ].
 swi_message(signal(Name, Num)) -->
 	[ 'Caught signal ~d (~w)'-[Num, Name] ].
+swi_message(limit_exceeded(Limit, MaxVal)) -->
+	[ 'Exceeded ~w limit (~w)'-[Limit, MaxVal] ].
+swi_message(goal_failed(Goal)) -->
+	[ 'goal (~p) failed'-[Goal] ].
 
 
 swi_context(X) -->
