@@ -50,6 +50,7 @@
 \newcommand{\definition}[1]{%
 	\onlinebreak%
 	\item[\mbox{#1}]\hfill\mbox{}\linebreak}
+\newcommand{\defentry}[1]{\definition{#1}}
 \newcommand{\emptydefinition}[1]{%
 	\makebox[-\leftmargin]{\mbox{}}\mbox{\bf #1}\\}
 
@@ -75,18 +76,18 @@
 	\item[\tt #1]%
 	\ignorespaces}
 \newcommand{\directive}[3]{%
-	\definition{:- #1({\it #3})}%
+	\defentry{:- #1({\it #3})}%
 	\index{#1/#2}\ignorespaces}
 \newcommand{\predicate}[3]{%
 	\ifthenelse{\equal{#2}{0}}{%
-	    \definition{#1}}{%
-	    \definition{#1({\it #3})}}%
+	    \defentry{#1}}{%
+	    \defentry{#1({\it #3})}}%
 	\index{#1/#2}\ignorespaces}
 \newcommand{\infixop}[3]{%
-	\definition{{\it #2} #1 {\it #3}}%
+	\defentry{{\it #2} #1 {\it #3}}%
 	\index{#1/2}\ignorespaces}
 \newcommand{\prefixop}[2]{%
-	\definition{#1 {\it #2}}%
+	\defentry{#1 {\it #2}}%
 	\index{#1/1}\ignorespaces}
 \newcommand{\termitem}[2]{%
 	\ifthenelse{\equal{}{#2}}{%
@@ -102,11 +103,11 @@
 	    #1}{%
 	    #1(#2)}}}
 \newcommand{\cfunction}[3]{%
-	\definition{{\tt #1} #2{\rm (}{\it #3}{\rm )}}%
+	\defentry{{\tt #1} #2{\rm (}{\it #3}{\rm )}}%
 	\index{#2()}\ignorespaces}
 \newcommand{\cdecl}[2]{{\tt #1} {\em #2}}
 \newcommand{\cmacro}[3]{%
-	\definition{{\it #1} #2({\it #3})}%
+	\defentry{{\it #1} #2({\it #3})}%
 	\index{#2()}\ignorespaces}
 \newcommand{\cglobalvar}[1]{{\tt #1}}
 
