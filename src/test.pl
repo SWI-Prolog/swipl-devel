@@ -840,7 +840,7 @@ global_overflow(X) :-
 resource(stack-1) :-
 	catch(local_overflow, E, true),
 	E = error(resource_error(stack), local).
-resource(stack-2) :-
+resource(stack-2) :-			% VERY slow with -DO_SECURE
 	catch(global_overflow(0), E, true),
 	E = error(resource_error(stack), global).
 
