@@ -1,0 +1,18 @@
+<!DOCTYPE text [
+<!ENTITY new.page STARTTAG "page">
+<!ENTITY new.line STARTTAG "line">
+<!SHORTREF for.text
+    "&#RS;" new.line>
+<!ELEMENT text O O (page+)>
+<!ATTLIST text original CDATA #IMPLIED>
+<!USEMAP for.text text>
+<!ELEMENT page O O (line+)>
+<!ELEMENT line O O (#PCDATA)>
+]>
+SGML does NOT add record start characters at the beginning or
+record end characters at the end of entities unless they are
+already there.  In this document, there IS a record start
+character for the first line of text and there IS a record end
+character for the last line of text.  The #RS character reference
+should match at the beginning of each line except possibly the
+first one, so we expect SEVEN (LINE) elements for this file.
