@@ -188,10 +188,14 @@ geometryDialogGroup(DialogGroup g, Int x, Int y, Int w, Int h)
 
 static status
 sizeDialogGroup(DialogGroup g, Size s)
-{ if ( notDefault(g->size) && equalSize(g->size, s) )
+{ if ( g->size == s )
+    succeed;
+  if ( notDefault(g->size) &&
+       notDefault(s) &&
+       equalSize(g->size, s) )
     succeed;
 
-  if ( notDefault(g->size) )
+  if ( notDefault(g->size) && notDefault(s) )
     copySize(g->size, s);
   else
     assign(g, size, s);
