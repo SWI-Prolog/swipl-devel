@@ -684,7 +684,7 @@ report_no_journal :-
 report_no_journal :-
 	new(D, dialog('No project')),
 	send(D, append,
-	     text('No project has created or opened.  Your modifications\n\
+	     text('No project has been created or opened.  Your modifications\n\
 	           are not saved unless you create or open a project.')),
 	send(D, append, button('Ok, all data will be lost',
 			       message(D, return, ok))),
