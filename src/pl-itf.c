@@ -8,7 +8,6 @@
 */
 
 #include "pl-incl.h"
-#include "pl-flicomp.h"
 
 #define setHandle(h, w)		(*valTermRef(h) = (w))
 #define valHandleP(h)		valTermRef(h)
