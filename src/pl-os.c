@@ -1315,10 +1315,10 @@ canonisePath(char *path)
 
 
 static char *
-takeWord(const char **string, char *wrd)
+takeWord(const char **string, char *wrd, int maxlen)
 { const char *s = *string;
   char *q = wrd;
-  int left = MAXPATHLEN-1;
+  int left = maxlen-1;
 
   while( isAlpha(*s) || *s == '_' )
   { if ( --left < 0 )
@@ -1338,7 +1338,7 @@ takeWord(const char **string, char *wrd)
 bool
 expandVars(const char *pattern, char *expanded, int maxlen)
 { int size = 0;
-  char word[MAXPATHLEN];
+  char wordbuf[MAXPATHLEN];
 
   if ( *pattern == '~' )
   { char *user;
@@ -1346,7 +1346,7 @@ expandVars(const char *pattern, char *expanded, int maxlen)
     int l;
 
     pattern++;
-    user = takeWord(&pattern, word);
+    user = takeWord(&pattern, wordbuf, sizeof(wordbuf));
     LOCK();
 
     if ( user[0] == EOS )		/* ~/bla */
@@ -1358,7 +1358,7 @@ expandVars(const char *pattern, char *expanded, int maxlen)
       { char envbuf[MAXPATHLEN];
 
 	if ( (value = getenv3("HOME", envbuf, sizeof(envbuf))) )
-	{ value = GD->os.myhome = store_string(PrologPath(value, word));
+	{ value = GD->os.myhome = store_string(PrologPath(value, wordbuf));
 	} else
 	{ value = GD->os.myhome = "/";
 	}
@@ -1418,7 +1418,7 @@ expandVars(const char *pattern, char *expanded, int maxlen)
 	break;
       case '$':
 	{ char envbuf[MAXPATHLEN];
-	  char *var = takeWord(&pattern, word);
+	  char *var = takeWord(&pattern, wordbuf, sizeof(wordbuf));
 	  char *value;
 	  int l;
 

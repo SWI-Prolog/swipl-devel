@@ -571,7 +571,7 @@ pl_expand_file_name(term_t f, term_t list)
 
   if ( !PL_get_chars_ex(f, &s, CVT_ALL) )
     fail;
-  if ( strlen(s) > MAXPATHLEN-1 )
+  if ( strlen(s) > sizeof(spec)-1 )
     return PL_error(NULL, 0, "File name too long",
 		    ERR_DOMAIN, ATOM_pattern, f);
 

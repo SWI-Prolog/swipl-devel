@@ -232,26 +232,37 @@ setupGNUEmacsInferiorMode()
 
 static void
 initPaths()
-{ char plp1[MAXPATHLEN];
-  char plp[MAXPATHLEN];
-  char *symbols = NULL;			/* The executable */
+{ char plp[MAXPATHLEN];
 
-  if ( !(symbols = findExecutable(GD->cmdline.argv[0], plp1)) ||
-       !(symbols = DeRefLink(symbols, plp)) )
-    symbols = GD->cmdline.argv[0];
+  if ( GD->cmdline.argc > 0 )
+  { char plp1[MAXPATHLEN];
+    char *symbols = NULL;		/* The executable */
 
-  DEBUG(2, Sdprintf("rc-module: %s\n", symbols));
-
-  systemDefaults.home	     = findHome(symbols);
-
+    if ( !(symbols = findExecutable(GD->cmdline.argv[0], plp1)) ||
+	 !(symbols = DeRefLink(symbols, plp)) )
+      symbols = GD->cmdline.argv[0];
+  
+    DEBUG(2, Sdprintf("rc-module: %s\n", symbols));
+  
+    systemDefaults.home	       = findHome(symbols);
+  
 #ifdef __WIN32__			/* we want no module but the .EXE */
-  GD->paths.module	     = store_string(symbols);
-  symbols = findExecutable(NULL, plp);
-  DEBUG(2, Sdprintf("Executable: %s\n", symbols));
+    GD->paths.module	       = store_string(symbols);
+    symbols = findExecutable(NULL, plp);
+    DEBUG(2, Sdprintf("Executable: %s\n", symbols));
 #endif
-  GD->paths.executable	     = store_string(symbols);
-  systemDefaults.startup     = store_string(PrologPath(DEFSTARTUP, plp));
-  GD->options.systemInitFile = defaultSystemInitFile(GD->cmdline.argv[0]);
+    GD->paths.executable       = store_string(symbols);
+    GD->options.systemInitFile = defaultSystemInitFile(GD->cmdline.argv[0]);
+  } else
+  { Sdprintf("No initialisation arguments\n");
+    systemDefaults.home	       = findHome(NULL);
+    GD->options.systemInitFile = store_string("none");
+#ifdef __WIN32__			/* we want no module but the .EXE */
+    GD->paths.module	       = store_string("libpl.dll");
+#endif
+  }
+
+  systemDefaults.startup = store_string(PrologPath(DEFSTARTUP, plp));
 
 #ifdef O_XOS
   if ( systemDefaults.home )
@@ -893,11 +904,7 @@ properly on Linux. Don't bother with it.
 }
 
 
-#ifdef __GNUC__
 typedef const char *cline;
-#else
-typedef char *cline;
-#endif
 
 static int
 usage()
@@ -927,9 +934,15 @@ usage()
     NULL
   };
   const cline *lp = lines;
+  char *prog;
+
+  if ( GD->cmdline.argc > 0 )
+    prog = BaseName(GD->cmdline.argv[0]);
+  else
+    prog = "pl";
 
   for(lp = lines; *lp; lp++)
-    Sfprintf(Serror, *lp, BaseName(GD->cmdline.argv[0]));
+    Sfprintf(Serror, *lp, prog);
 
   return TRUE;
 }
