@@ -1,3 +1,12 @@
+Tue Jan  5 17:50:50 1993  Jan Wielemaker  (jan at swi)
+
+VERSION 1.6.8
+
+* Fixed declaration of wam_table[] in pl-incl.h 
+
+* Added CANONICAL_PATHS environment variable to tailor processing
+  of canonical paths.
+
 Tue Oct 20 14:32:24 1992  Jan Wielemaker  (jan at swi)
 
 * Added expand_term/2 system predicate for compatibility with

@@ -236,7 +236,7 @@ register LocalFrame frame;
 			A(8), B); break;
     case 10: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
 			A(8), A(9), B); break;
-#if !mips				/* MIPS doesn't handle tah many */
+#if !mips				/* MIPS doesn't handle that many */
     case 11: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
 			A(8), A(9), A(10), B); break;
     case 12: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),

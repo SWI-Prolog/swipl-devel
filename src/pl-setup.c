@@ -144,8 +144,10 @@ initSignals()
     
     pl_signal(SIGTTOU, SIG_IGN);
     pl_signal(SIGSEGV, fatal_signal_handler);
-    pl_signal(SIGBUS,  fatal_signal_handler);
     pl_signal(SIGILL,  fatal_signal_handler);
+#ifdef SIGBUS				/* not on LINUX */
+    pl_signal(SIGBUS,  fatal_signal_handler);
+#endif
   } else
   { for( n = 0; n < MAXSIGNAL; n++ )
       if ( signalHandlers[n].os != SIG_DFL )

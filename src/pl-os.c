@@ -1670,7 +1670,7 @@ ResetTty()
 #ifdef RESET_STDIN
   RESET_STDIN;
 #else
-#if unix
+#if unix && !LINUX
   stdin->_ptr = stdin->_base;
   stdin->_cnt = 0;
 #endif

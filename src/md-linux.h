@@ -11,13 +11,19 @@
 The   port to LINUX   was made  by   Pieter  Olivier.   It   has  been
 incorperated  into the most  recent   version  (1.5.5) of  the  common
 sources, but not tested afterwards.
+
+Updated version 1.6.8 after an important fix sent to me by Peter Barth
+(barth@mpi-sb.mpg.de)     and   minor  fixes     from   Philip  Perucc
+(dsc3pzp@nmrdc1.nmrdc.nnmc.navy.mil).  LINUX versions:
+
+	gcc 2.3.3, libc 4.2, Linux 0.99pl2:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define M_CC			cc
-#define M_OPTIMIZE	        -O
+#define M_CC			gcc
+#define M_OPTIMIZE	        -O2
 #define M_LDFLAGS		
 #define M_CFLAGS		
-#define M_LIBS			
+#define M_LIBS			-lm -ltermcaps
 
 #define LINUX			1	/* Remaining #if's for linux */
 #define v7			1	/* Mostly v7 unix */
@@ -28,11 +34,11 @@ sources, but not tested afterwards.
 #define O_NO_LEFT_CAST		0
 #define O_NO_VOID_POINTER	0
 #define O_SHORT_SYMBOLS		0
-#define O_UCHAR_PREDEFINED	1	/* type uchar is predefined */
+#define O_UCHAR_PREDEFINED	0	/* type uchar is predefined */
 #define O_ULONG_PREDEFINED	1	/* type ulong is predefined */
 
 			/* Operating system */
-#define O_PROFILE		0
+#define O_PROFILE		1
 #define O_SIG_AUTO_RESET	0
 #define O_SHARED_MEMORY		0
 #define O_CAN_MAP		0
