@@ -8,12 +8,14 @@
 */
 
 #include "include.h"
+#include <h/interface.h>
 #include <h/unix.h>
-#ifdef HAVE_XOS_H
-#include <xos.h>
-#endif
 
+#ifdef USE_RLC_FUNCTIONS
 static void init_render_hooks(void);
+#else
+#define init_render_hooks()
+#endif
 
 void
 ws_flush_display(DisplayObj d)
@@ -108,13 +110,6 @@ ws_open_display(DisplayObj d)
 
 
 void
-check_redraw(void)
-{ DEBUG(NAME_typed, Cprintf("check_redraw() called\n"));
-
-  RedrawDisplayManager(TheDisplayManager());
-}
-
-void
 ws_quit_display(DisplayObj d)
 { exitDraw();
 }
@@ -150,7 +145,7 @@ static int  cwin_deleted;
 static DWORD _export FAR PASCAL
 xpce_mouse_hook(int code, WPARAM wParam, LPARAM lParam)
 { if ( code >= 0 )
-  { MOUSEHOOKSTRUCT FAR* data = MK_FP32(lParam);
+  { MOUSEHOOKSTRUCT FAR* data = lParam;
 
     if ( data->hwnd != cwin )
     { if ( cwin && !cwin_deleted )
@@ -329,19 +324,23 @@ init_area_enter_exit_handling(DisplayObj d)
 
 #endif /*HOOK_BASED_MOUSE_HANDLING*/
 
-
+#ifdef USE_RLC_FUNCTIONS
 static RlcUpdateHook system_update_hook;
 
 static void
 exit_update_hook(void)
 { rlc_update_hook(system_update_hook);
 }
+#endif /*USE_RLC_FUNCTIONS*/
 
 
 status
 ws_init_graphics_display(DisplayObj d)
-{ system_update_hook = rlc_update_hook(check_redraw);
+{
+#ifdef USE_RLC_FUNCTIONS
+  system_update_hook = rlc_update_hook(pceRedraw);
   at_pce_exit(exit_update_hook, ATEXIT_FILO);
+#endif
   initDraw();
 
   ws_system_colours(d);
@@ -403,6 +402,12 @@ ws_events_queued_display(DisplayObj d)
 		 *     SELECTION HANDLING	*
 		 *******************************/
 
+#ifdef USE_RLC_FUNCTIONS
+#define CLIPBOARDWIN	rlc_hwnd()
+#else
+#define CLIPBOARDWIN	PceHiddenWindow()
+#endif
+
 static HGLOBAL
 ws_string_to_global_mem(String s)
 { int bytes = str_datasize(s);
@@ -414,7 +419,7 @@ ws_string_to_global_mem(String s)
   { Cprintf("Cannot allocate\n");
     return 0;
   }
-  data = MK_FP32(GlobalLock(mem));
+  data = GlobalLock(mem);
 
   for(i=0; i<bytes; i++)
     *data++ = s->s_text8[i];
@@ -431,7 +436,7 @@ ws_set_cutbuffer(DisplayObj d, int n, String s)
 { if ( n == 0 )
   { HGLOBAL mem = ws_string_to_global_mem(s);
 
-    OpenClipboard(rlc_hwnd());
+    OpenClipboard(CLIPBOARDWIN);
     EmptyClipboard();
     SetClipboardData(CF_TEXT, mem);
     CloseClipboard();
@@ -450,9 +455,9 @@ ws_get_cutbuffer(DisplayObj d, int n)
   { HGLOBAL mem;
     StringObj rval = FAIL;
 
-    OpenClipboard(rlc_hwnd());
+    OpenClipboard(CLIPBOARDWIN);
     if ( (mem = GetClipboardData(CF_TEXT)) )
-    { char far *data = MK_FP32(GlobalLock(mem));
+    { char far *data = GlobalLock(mem);
       char *copy, *q;
       int i;
 
@@ -494,9 +499,9 @@ ws_get_selection(DisplayObj d, Name which, Name target)
 }
 
 
-static void
+void
 ws_renderall(void)
-{ HWND hwnd = rlc_hwnd();
+{ HWND hwnd = CLIPBOARDWIN;
   
   OpenClipboard(hwnd);
   EmptyClipboard();
@@ -510,7 +515,7 @@ ws_disown_selection(DisplayObj d, Name selection)
 }
 
 
-static int
+int
 ws_provide_selection(int format)
 { DisplayObj d = CurrentDisplay(NIL);
   Hyper h;
@@ -543,7 +548,7 @@ ws_provide_selection(int format)
 
 status
 ws_own_selection(DisplayObj d, Name selection)
-{ HWND hwnd = rlc_hwnd();
+{ HWND hwnd = CLIPBOARDWIN;
   
   OpenClipboard(hwnd);
   EmptyClipboard();
@@ -555,6 +560,7 @@ ws_own_selection(DisplayObj d, Name selection)
 }
 
 
+#ifdef USE_RLC_FUNCTIONS
 static RlcRenderHook	system_render_hook;
 static RlcRenderAllHook system_render_all_hook;
 static int 		render_hooks_initialised;
@@ -580,6 +586,7 @@ init_render_hooks(void)
     at_pce_exit(exit_render_hooks, ATEXIT_FIFO);
   }
 }
+#endif
 
 
 Name
@@ -588,15 +595,28 @@ ws_window_manager(DisplayObj d)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+These    may    be    useful    to    debug    the    graphics    stuff.
+rlc_copy_output_to_debug_output() inplies that all output to the console
+is also written to the debugger output,   making the relation with debug
+output clear.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 ws_synchronous(DisplayObj d)
-{ rlc_copy_output_to_debug_output(TRUE);
+{ 
+#ifdef USE_RLC_FUNCTIONS
+  rlc_copy_output_to_debug_output(TRUE);
+#endif
 }
 
 
 void
 ws_asynchronous(DisplayObj d)
-{ rlc_copy_output_to_debug_output(FALSE);
+{
+#ifdef USE_RLC_FUNCTIONS
+  rlc_copy_output_to_debug_output(FALSE);
+#endif
 }
 
 

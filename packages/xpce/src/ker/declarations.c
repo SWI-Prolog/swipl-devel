@@ -301,6 +301,9 @@ static struct class_definition classdefs[] =
   { NAME_pce, NAME_object, makeClassPce,
     &ClassPce, "Environment control" },
 
+  { NAME_pen, NAME_object, makeClassPen,
+    &ClassPen, "Drawing pen" },
+
   { NAME_picture, NAME_window, makeClassPicture,
     &ClassPicture, "Graphics window" },
 

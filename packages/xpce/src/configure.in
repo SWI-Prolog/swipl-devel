@@ -70,7 +70,12 @@ AC_ARG_ENABLE(runtime, [  --enable-runtime	  Runtime system only],
 			RTSUFFIX=rt ;;
 		   no)  runtime=no ;;
 	       esac])
-
+AC_ARG_ENABLE(passwd, [  --enable-passwd	  Password protected version],
+	      [case "$enableval" in
+		   yes) AC_DEFINE(O_LICENCE)
+		        licence=yes ;;
+		   no)  licence=no ;;
+	       esac])
 
 if test -z "$PWD"; then
   PWD=`pwd`

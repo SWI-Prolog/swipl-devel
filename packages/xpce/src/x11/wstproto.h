@@ -1,17 +1,17 @@
 
-/* xcolour.c */
+/* x11/xcolour.c */
 status		ws_create_colour(Colour c, DisplayObj d);
 void		ws_uncreate_colour(Colour c, DisplayObj d);
 status		ws_colour_name(DisplayObj d, Name name);
 Colour		ws_pixel_to_colour(DisplayObj d, ulong pixel);
 
-/* xcursor.c */
+/* x11/xcursor.c */
 void		ws_init_cursor_font(void);
 Int		ws_cursor_font_index(Name name);
 status		ws_create_cursor(CursorObj c, DisplayObj d);
 void		ws_destroy_cursor(CursorObj c, DisplayObj d);
 
-/* xdisplay.c */
+/* x11/xdisplay.c */
 void		ws_flush_display(DisplayObj d);
 void		ws_synchronise_display(DisplayObj d);
 void		ws_bell_display(DisplayObj d, int volume);
@@ -46,7 +46,7 @@ void		ws_asynchronous(DisplayObj d);
 status		ws_postscript_display(DisplayObj d);
 StringObj	ws_get_resource_value(DisplayObj d, Name cc, Name cn, Name rc, Name rn);
 
-/* xdraw.c */
+/* x11/xdraw.c */
 void		resetDraw(void);
 void		d_offset(int x, int y);
 void		r_offset(int x, int y);
@@ -65,6 +65,7 @@ void		r_complement(int x, int y, int w, int h);
 void		r_and(int x, int y, int w, int h, Image pattern);
 void		r_thickness(int pen);
 void		r_dash(Name name);
+void		d_pen(Pen pen);
 void		r_fillpattern(Any fill);
 void		r_arcmode(Name mode);
 Any		r_default_colour(Any c);
@@ -109,22 +110,23 @@ String		str_bits_as_font(String s, FontObj f, int *shift);
 int		str_width(String s, int from, int to, FontObj f);
 void		s_print8(char8 *s, int l, int x, int y, FontObj f);
 void		s_print16(char16 *s, int l, int x, int y, FontObj f);
+void		s_print(String s, int x, int y, FontObj f);
 void		str_size(String s, FontObj font, int *width, int *height);
 void		str_string(String s, FontObj font, int x, int y, int w, int h, Name hadjust, Name vadjust);
 void		ps_string(String s, FontObj font, int x, int y, int w, Name format);
 void		str_label(char8 *s, char8 acc, FontObj font, int x, int y, int w, int h, Name hadjust, Name vadjust);
 
-/* xevent.c */
+/* x11/xevent.c */
 status		ws_dispatch(Int FD, Int timeout);
 void		ws_discard_input(const char *msg);
 Any		ws_event_in_subwindow(EventObj ev, Any root);
 
-/* xfont.c */
+/* x11/xfont.c */
 status		ws_create_font(FontObj f, DisplayObj d);
 void		ws_destroy_font(FontObj f, DisplayObj d);
 status		ws_system_fonts(DisplayObj d);
 
-/* xframe.c */
+/* x11/xframe.c */
 status		ws_created_frame(FrameObj fr);
 void		ws_uncreate_frame(FrameObj fr);
 status		ws_create_frame(FrameObj fr);
@@ -151,7 +153,7 @@ Image		ws_image_of_frame(FrameObj fr);
 void		ws_transient_frame(FrameObj fr, FrameObj fr2);
 status		ws_postscript_frame(FrameObj fr);
 
-/* ximage.c */
+/* x11/ximage.c */
 void		ws_init_image(Image image);
 void		ws_destroy_image(Image image);
 status		ws_store_image(Image image, FileObj file);
@@ -166,7 +168,7 @@ status		ws_resize_image(Image image, Int w, Int h);
 void		ws_postscript_image(Image image, Int depth);
 void		ws_create_image_from_x11_data(Image image, unsigned char *data, int w, int h);
 
-/* xstream.c */
+/* x11/xstream.c */
 void		ws_close_input_stream(Stream s);
 void		ws_close_output_stream(Stream s);
 void		ws_close_stream(Stream s);
@@ -177,10 +179,10 @@ int		ws_read_stream_data(Stream s, void *data, int len);
 StringObj	ws_read_line_stream(Stream s, Int timeout);
 void		ws_done_process(Process p);
 
-/* xtimer.c */
+/* x11/xtimer.c */
 void		ws_status_timer(Timer tm, Name status);
 
-/* xwindow.c */
+/* x11/xwindow.c */
 status		ws_created_window(PceWindow sw);
 void		ws_uncreate_window(PceWindow sw);
 status		ws_create_window(PceWindow sw, PceWindow parent);
@@ -193,18 +195,23 @@ void		ws_grab_keyboard_window(PceWindow sw, Bool val);
 void		ws_grab_pointer_window(PceWindow sw, Bool val);
 void		ws_grab_keyboard_window(PceWindow sw, Bool val);
 void		ws_ungrab_all(void);
+void		ws_flash_window(PceWindow sw, int msecs);
 void		ws_move_pointer(PceWindow sw, int x, int y);
 void		ws_window_cursor(PceWindow sw, CursorObj cursor);
 void		ws_window_background(PceWindow sw, Any c);
 void		ws_raise_window(PceWindow sw);
 void		ws_lower_window(PceWindow sw);
-void		ws_flash_window(PceWindow sw, int msecs);
 
-/* x11.c */
+/* x11/x11.c */
 void		ws_initialise(int argc, char **argv);
 int		ws_version(void);
 int		ws_revision(void);
 status		ws_expose_console(void);
 status		ws_iconify_console(void);
 status		ws_console_label(CharArray label);
-Int		ws_default_scrollbar_width();
+Int		ws_default_scrollbar_width(void);
+
+/* gra/graphstate.c */
+void		g_save(void);
+void		g_restore(void);
+int		g_level(void);

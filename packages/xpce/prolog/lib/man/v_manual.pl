@@ -15,6 +15,7 @@
 :- use_module(util).
 :- require([ checkpce/0
 	   , default/3
+	   , forall/2
 	   , ignore/1
 	   , pce_help_file/2
 	   , send_list/3

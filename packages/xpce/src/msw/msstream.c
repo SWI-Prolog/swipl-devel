@@ -53,7 +53,7 @@ findSocketObject(SOCKET sock)
 }
 
 
-static WinAPI
+static int WINAPI
 socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 { switch( message )
   { case WM_SOCKET:
@@ -109,6 +109,15 @@ socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       pceRedraw();
       return 0;
     }
+#ifndef USE_RLC_FUNCTIONS
+    case WM_RENDERALLFORMATS:
+      ws_renderall();
+      return 0;
+    case WM_RENDERFORMAT:
+      if ( ws_provide_selection(wParam) )
+	return 0;
+      break;
+#endif /*USE_RLC_FUNCTIONS*/
   }
   
   return DefWindowProc(hwnd, message, wParam, lParam);
@@ -116,7 +125,7 @@ socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 
 
 static char *
-SockFrameClass()
+HiddenFrameClass()
 { static Name winclassname = NULL;
   static WNDCLASS wndClass;
 
@@ -144,30 +153,30 @@ SockFrameClass()
 }
 
 
-static HWND sock_win;
+static HWND pce_hidden_window;
 
 static void
-destroySocketWindow(void)
-{ if ( sock_win )
-  { DestroyWindow(sock_win);
-    sock_win = 0;
+destroyHiddenWindow(void)
+{ if ( pce_hidden_window )
+  { DestroyWindow(pce_hidden_window);
+    pce_hidden_window = 0;
   }
 }
 
 
-static HWND
-socketHwnd()
-{ if ( !sock_win )
-  { sock_win = CreateWindow(SockFrameClass(),
-			    "XPCE socket handler",
-			    WS_POPUP,
-			    0, 0, 32, 32,
-			    NULL, NULL, PceHInstance, NULL);
-    at_pce_exit(destroySocketWindow, ATEXIT_FIFO);
-    assert(sock_win);
+HWND
+PceHiddenWindow()
+{ if ( !pce_hidden_window )
+  { pce_hidden_window = CreateWindow(HiddenFrameClass(),
+				     "XPCE hidden main window",
+				     WS_POPUP,
+				     0, 0, 32, 32,
+				     NULL, NULL, PceHInstance, NULL);
+    at_pce_exit(destroyHiddenWindow, ATEXIT_FIFO);
+    assert(pce_hidden_window);
   }
 
-  return sock_win;
+  return pce_hidden_window;
 }
 
 		 /*******************************
@@ -180,7 +189,7 @@ ws_close_input_stream(Stream obj)
   { SOCKET s = (SOCKET) obj->ws_ref;
 
     if ( s != INVALID_SOCKET )
-    { WSAAsyncSelect(s, socketHwnd(), 0, 0);
+    { WSAAsyncSelect(s, PceHiddenWindow(), 0, 0);
       shutdown(s, 0);
       obj->ws_ref = (WsRef) INVALID_SOCKET;
     }
@@ -228,14 +237,14 @@ ws_listen_socket(Socket s)
 { SOCKET sock = (SOCKET) s->ws_ref;
 
   if ( sock != INVALID_SOCKET )
-  { WSAAsyncSelect(sock, socketHwnd(), WM_SOCKET, FD_ACCEPT);
+  { WSAAsyncSelect(sock, PceHiddenWindow(), WM_SOCKET, FD_ACCEPT);
   }
 }
 
 
 void
 ws_input_stream(Stream s)
-{ HWND hwnd = socketHwnd();	/* make sure to create in main thread */
+{ HWND hwnd = PceHiddenWindow();	/* make sure to create in main thread */
 
   if ( instanceOfObject(s, ClassSocket) )
   { SOCKET sock = (SOCKET) s->ws_ref;
@@ -311,7 +320,7 @@ static void
 process_thread(void *context)
 { Process p = context;
   DWORD avail;
-  HWND hwnd = socketHwnd();
+  HWND hwnd = PceHiddenWindow();
   int peekok;
   DWORD status;
   PROCESS_INFORMATION *pi = p->ws_ref;

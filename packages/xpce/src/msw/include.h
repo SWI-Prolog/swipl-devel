@@ -24,18 +24,7 @@
 
 #include "pcewh.h"
 
-#ifdef __WIN32__
-#define CONSOLE_PROVIDE_WINMAIN 1	/* rlc_hinstance() and rlc_hwnd() */
-#include <console.h>
-#define WinAPI		int PASCAL
-#define MK_FP32(x) x
-#else /*__WIN32__*/
-
-#include <console.h>
-#define WinAPI		long FAR PASCAL _export
-#endif /*__WIN32__*/
-
-#define PceHInstance	rlc_hinstance()
+#define PceHInstance ThePceHInstance
 
 #define GWL_DATA	(0)		/* client-handle offset */
 
@@ -47,6 +36,8 @@
 #undef Ellipse
 
 #define APIError() WinStrError(GetLastError())
+
+extern HINSTANCE ThePceHInstance;	/* HINSTANCE from pceDLLEntry() */
 
 typedef char	cwidth;			/* width of a character */
 
@@ -85,6 +76,9 @@ typedef struct
 
 #define EXACT_COLOUR_MASK 0x80000000L	/* Avoid rounding the colour */
 
+void		ws_renderall(void);
+int		ws_provide_selection(int format);
+HWND		PceHiddenWindow(void);
 HBITMAP		read_ppm_file(FILE *fd, Name *kind);
 int		write_pnm_file(FILE *fd, HBITMAP bm,
 			       int scale, int fmt, int encode);

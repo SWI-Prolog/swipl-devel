@@ -150,14 +150,16 @@ demo('FtpLog',
      'Examine /usr/adm/xferlog (ftp log file)',
      demo(ftplog),
      ftplog('/usr/adm/xferlog')) :-
-	send(@pce, has_feature, process).
+	send(@pce, has_feature, process),
+	send(file('/usr/adm/xferlog'), access, read).
 
 
 demo('ChessTool',
      'Simple frontend for /usr/games/chess',
      demo(chess),
      chess) :-
-	send(@pce, has_feature, process).
+	send(@pce, has_feature, process),
+	send(file('/usr/games/chess'), access, execute).
 
 demo('Example Dialog',
      'Dialog showing all dialog components',

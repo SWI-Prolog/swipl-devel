@@ -121,6 +121,8 @@ static struct d_context
 #define Translate(x, y)	 { (x) = X(x); (y) = Y(y); }
 #define Clip(x, y, w, h) clip_area(&x, &y, &w, &h)
 
+#include <gra/graphstate.c>
+
 void
 resetDraw(void)
 { struct environment *e;
@@ -645,8 +647,20 @@ r_dash(Name name)
 
 
 void
+d_pen(Pen pen)
+{ r_thickness(valInt(pen->thickness));
+  r_dash(pen->texture);
+  if ( notDefault(pen->colour) )
+    r_colour(pen->colour);
+}
+
+
+void
 r_fillpattern(Any fill)		/* image or colour */
 { DEBUG(NAME_fillPattern, Cprintf("r_fillpattern(%s) ", pp(fill)));
+
+  if ( isDefault(fill) )
+    fill = context.gcs->colour;
 
   if ( fill != context.gcs->fill )
   { XGCValues values;
@@ -1602,27 +1616,24 @@ r_line(int x1, int y1, int x2, int y2)
 
 void
 r_polygon(IPoint pts, int n, int close)
-{ XPoint points[MAX_POLYGON_POINTS];
-  int i;
+{ if ( context.gcs->pen > 0 )
+  { XPoint *points = alloca(n * sizeof(XPoint));
+    int i;
 
-  if ( n > MAX_POLYGON_POINTS-1 )
-  { errorPce(NIL, NAME_polyTooManyPoints, toInt(MAX_POLYGON_POINTS));
-    return;
-  }
-
-  for(i=0; i<n; i++)
-  { points[i].x = X(pts[i].x);
-    points[i].y = Y(pts[i].y);
-  }
+    for(i=0; i<n; i++)
+    { points[i].x = X(pts[i].x);
+      points[i].y = Y(pts[i].y);
+    }
   
-  if ( close )
-  { points[i].x = points[0].x;
-    points[i].y = points[0].y;
-    i++;
-  }
+    if ( close )
+    { points[i].x = points[0].x;
+      points[i].y = points[0].y;
+      i++;
+    }
 
-  XDrawLines(context.display, context.drawable, context.gcs->workGC,
-	     points, i, CoordModeOrigin);
+    XDrawLines(context.display, context.drawable, context.gcs->workGC,
+	       points, i, CoordModeOrigin);
+  }
 }
 
 
@@ -1867,13 +1878,8 @@ This is all we need sofar (cursors and arrow heads).
 
 void
 r_fill_polygon(IPoint pts, int n)
-{ XPoint points[MAX_POLYGON_POINTS];
+{ XPoint *points = alloca(n * sizeof(XPoint));
   int i;
-
-  if ( n > MAX_POLYGON_POINTS )
-  { errorPce(NIL, NAME_polyTooManyPoints, toInt(MAX_POLYGON_POINTS));
-    return;
-  }
 
   for(i=0; i<n; i++)
   { points[i].x = X(pts[i].x);
@@ -2275,6 +2281,15 @@ s_print16(char16 *s, int l, int x, int y, FontObj f)
     XDrawString16(context.display, context.drawable, context.gcs->workGC,
 		  x, y, (XChar2b *)s, l);
   }
+}
+
+
+void
+s_print(String s, int x, int y, FontObj f)
+{ if ( isstr8(s) )
+    s_print8(s->s_text8, s->size, x, y, f);
+  else
+    s_print16(s->s_text16, s->size, x, y, f);
 }
 
 

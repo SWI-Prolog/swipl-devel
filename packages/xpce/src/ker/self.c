@@ -22,6 +22,10 @@
 #include <h/unix.h>
 #include <errno.h>
 
+#ifdef O_LICENCE
+#include "../../../licence/licence.h"
+#endif
+
 #ifdef __WIN32__
 #undef MACHINE
 #define MACHINE "i386"
@@ -709,7 +713,7 @@ static int
 _emu_gethostname(char *buf, int len)
 {
 #ifdef HAVE_SYSINFO
-  return sysinfo(SI_HOSTNAME, buf, len);
+  return sysinfo(SI_HOSTNAME, buf, len) > 0 ? 0 : -1;
 #else
   char *s;
   

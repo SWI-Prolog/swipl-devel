@@ -100,6 +100,8 @@ static void	push_context(void);
 static void	empty_brush_cache(void);
 static void	make_default_context(void);
 
+#include <gra/graphstate.c>
+
 static void
 reset_context()
 { context.fill_pattern       = WHITE_IMAGE;
@@ -653,7 +655,6 @@ r_complement(int x, int y, int w, int h)
   rect.bottom = y + h;
 
   InvertRect(context.hdc, &rect);
-/*BitBlt(context.hdc, x, y, w, h, context.hdc, 0, 0, DSTINVERT);*/
 }
 
 
@@ -1167,6 +1168,12 @@ sin64(int angle, int radius)
     angle += 360*64;
 
   return cos64(angle, radius);
+}
+
+
+void
+r_arc(int x, int y, int w, int h, int s, int e, Any fill)
+{ Cprintf("r_arc() not implemented yet\n");
 }
 
 
@@ -2059,6 +2066,15 @@ s_print8(char8 *s, int l, int x, int y, FontObj f)
 void
 s_print16(char16 *s, int l, int x, int y, FontObj f)
 { Cprintf("16-bits characters are not (yet) supported on XPCE for Windows\n");
+}
+
+
+void
+s_print(String s, int x, int y, FontObj f)
+{ if ( isstr8(s) )
+    s_print8(s->s_text8, s->size, x, y, f);
+  else
+    s_print16(s->s_text16, s->size, x, y, f);
 }
 
 

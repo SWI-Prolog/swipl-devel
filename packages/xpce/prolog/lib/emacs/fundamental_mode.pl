@@ -10,7 +10,9 @@
 :- module(emacs_fundamental_mode, []).
 :- use_module(library(pce)).
 :- use_module(library(pce_selection)).
-:- require([ between/3
+:- require([ append/3
+	   , between/3
+	   , chain_list/2
 	   , default/3
 	   , ignore/1
 	   ]).

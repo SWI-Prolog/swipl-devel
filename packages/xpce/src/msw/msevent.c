@@ -9,6 +9,8 @@
 
 #include "include.h"
 
+#ifdef USE_RLC_FUNCTIONS
+
 status
 ws_dispatch(Int FD, Int timeout)
 { static RlcQueue discard_queue = NULL;
@@ -24,6 +26,26 @@ ws_dispatch(Int FD, Int timeout)
 
   fail;					/* signal no input */
 }
+
+
+#else /*USE_RLC_FUNCTIONS*/
+
+status
+ws_dispatch(Int FD, Int timeout)
+{ MSG msg;
+  
+  if ( GetMessage(&msg, NULL, 0, 0) )
+  { TranslateMessage(&msg);
+    DispatchMessage(&msg);
+
+    fail;				/* signal no input? */
+  }
+
+  ExitProcess(0);			/* WM_QUIT received */
+  fail;					/* make compiler happy */
+}
+
+#endif /*USE_RLC_FUNCTIONS*/
 
 
 Any

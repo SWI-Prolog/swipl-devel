@@ -8,10 +8,73 @@
 */
 
 #include "include.h"
-#ifndef __WIN32__
-#include <stress.h>
-#endif
+#include <h/interface.h>
 
+		 /*******************************
+		 *	  HINSTANCE STUFF	*
+		 *******************************/
+
+HINSTANCE ThePceHInstance;		/* Global handle */
+
+#ifdef USE_DLL_ENTRY
+#define initHinstance(argc, argv)
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This is a mistery. Earlier versions of this used rlc_hinstance() to find
+the HInstance parameter to  pass  to   the  various  Win32 API functions
+requesting one. As we want  to   disconnect  from console.dll, I changed
+this to make a DLL entry-point. First   of  all, this yields the symbold
+_main() as undefined. See below.
+
+I then tested without this function, and   guess what: it doesn't appear
+to matter what you use for PceHInstance. I tried 0 and 42 and the system
+has no noticable problems????
+
+More fun: using a DLL entry point   makes  malloc() crash. Now trying to
+exploit the initialisation. Hoping that a  HINSTANCE   is  the same as a
+HMODULE ...
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+BOOL WINAPI
+pceDLLEntry(HINSTANCE instance, DWORD reason, LPVOID reserved)
+{ switch(reason)
+  { case DLL_PROCESS_ATTACH:
+      pceinst = instance;
+  }
+
+  return TRUE;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+If I don't define this, an  undefined   reference  is generated.  Who is
+calling this?  Is this is MSVC++ bug?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+main()
+{ /*Cprintf("%s:%d: xpce.dll: main() called???\n", __FILE__, __LINE__);*/
+
+  return 0;
+}
+
+#else /*USE_DLL_ENTRY*/
+
+void
+initHinstance(int argc, char **argv)
+{ if ( argc > 0 && (ThePceHInstance = GetModuleHandle(argv[0])) )
+    return;
+    
+  ThePceHInstance = GetModuleHandle("xpce");
+}
+
+
+#endif /*USE_DLL_ENTRY*/
+
+
+		 /*******************************
+		 *	      VERSIONS		*
+		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Get Windows Version/Revision info
@@ -47,14 +110,34 @@ ws_os(void)
 }
 
 
+#ifdef USE_RLC_FUNCTIONS
+
+#define ConsoleWindow() rlc_hwnd()
+
+#else /*USE_RLC_FUNCTIONS*/
+
+static HWND
+ConsoleWindow()
+{ PceCValue val;
+
+  if ( hostQuery(HOST_CONSOLE, &val) )
+    return (HWND) val.pointer;
+
+  return NULL;
+}
+
+#endif /*USE_RLC_FUNCTIONS*/
+
 status
 ws_expose_console()
-{ HWND hwnd = rlc_hwnd();
+{ HWND hwnd = ConsoleWindow();
 
-  if ( IsIconic(hwnd) )
-    ShowWindow(hwnd, SW_RESTORE);
-  else
-    ShowWindow(hwnd, SW_SHOW);
+  if ( hwnd )
+  { if ( IsIconic(hwnd) )
+      ShowWindow(hwnd, SW_RESTORE);
+    else
+      ShowWindow(hwnd, SW_SHOW);
+  }
 
   succeed;
 }
@@ -62,7 +145,7 @@ ws_expose_console()
 
 status
 ws_iconify_console()
-{ HWND hwnd = rlc_hwnd();
+{ HWND hwnd = ConsoleWindow();
   
   if ( hwnd )
     ShowWindow(hwnd, SW_SHOWMINIMIZED);
@@ -73,7 +156,10 @@ ws_iconify_console()
 
 status
 ws_console_label(CharArray label)
-{ rlc_title(strName(label), NULL, 0);
+{ HWND hwnd = ConsoleWindow();
+
+  if ( hwnd )
+    SetWindowText(hwnd, strName(label));
 
   succeed;
 }
@@ -81,7 +167,7 @@ ws_console_label(CharArray label)
 
 void
 ws_check_intr()
-{ rlc_check_intr();
+{ hostAction(HOST_CHECK_INTERRUPT);
 }
 
 
@@ -93,7 +179,12 @@ ws_msleep(int time)
 
 int
 ws_getpid()
-{ return (int) GetCurrentProcessId();
+{ DEBUG(NAME_instance, Cprintf("HINSTANCE is %d\n", PceHInstance));
+/*DEBUG(NAME_instance, Cprintf("CONSOLE's HINSTANCE is %d\n",
+			       rlc_hinstance()));
+*/
+
+  return (int) GetCurrentProcessId();
 } 
 
 
@@ -105,10 +196,10 @@ ws_mousebuttons()
 
 void
 ws_initialise(int argc, char **argv)
-{ if ( ws_mousebuttons() == 2 )
-    ws_emulate_three_buttons(100);
+{ initHinstance(argc, argv);
 
-  rlc_word_char('@', TRUE);
+  if ( ws_mousebuttons() == 2 )
+    ws_emulate_three_buttons(100);
 }
 
 

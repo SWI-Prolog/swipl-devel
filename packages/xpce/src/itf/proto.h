@@ -120,9 +120,6 @@ PceObject	Stub__HostCallFunc(PceObject handle, PceObject rec, PceObject sel, int
 void *		xmalloc(size_t nbytes);
 void *		xrealloc(void *ptr, size_t nbytes);
 
-/* itf/main.c */
-int		main(int argc, char *argv []);
-
 /* itf/cpp.cxx */
 PceStatus	callCPlusPlusProc(Any f, int ac, const Any av []);
 Any		callCPlusPlusFunc(Any f, int ac, const Any av []);

@@ -35,7 +35,6 @@
 #include <X11/StringDefs.h>
 #include <X11/Xatom.h>
 #include <X11/Shell.h>
-#include <xversion.h>
 #undef Bool				/* X11 defines this too */
 #undef index				/* X11 defines this too */
 #undef String

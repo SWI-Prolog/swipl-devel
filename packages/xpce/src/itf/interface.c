@@ -375,7 +375,12 @@ pceDispatch(int fd, int time)
 
 void
 pceRedraw(void)
-{ RedrawDisplayManager(TheDisplayManager());
+{ static DisplayManager dm = NULL;
+
+  if ( !dm && !(dm = getObjectAssoc(NAME_displayManager)) )
+    return;
+
+  RedrawDisplayManager(dm);
 }
 
 

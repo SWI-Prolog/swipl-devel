@@ -1,4 +1,15 @@
-* FIXED: Editor: honour textcolour of selection_style resource.
+* FIXED: `path->geometry' for paths containing no points.
+
+* BUILD: Removed obsolete xversion.h stuff from Makefiles and x11 directory.
+
+* ADDED: User-defined graphics.  Allow for the redefinition of _redraw_area
+  and added ->clip, ->unclip, ->save_graphics_state, ->restore_graphics_state,
+  ->graphics_state, ->draw_line, ->draw_poly, ->draw_arc, ->draw_box,
+  ->draw_fill, ->draw_text and ->draw_image.
+
+* FIXED: Removed maximum number of points for a polygon.
+
+* FIXED: Editor: honour text-colour of selection_style resource.
 
 * WIN32: Fixed look of browsers having a label.  Added ->pen to list_browser
   and editor.  Changed resources to exploit these.

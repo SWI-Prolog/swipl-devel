@@ -273,7 +273,8 @@ find_data(Goal) :-
 pce_ifhostproperty(prolog(swi),
 		   (:- '$hide'('_bind_lazy', 4)),
 		   (notrace(G) :- G)).
-pce_ifhostproperty(need_extern_declaration, (:- extern('_bind_lazy', 4))).
+pce_ifhostproperty(need_extern_declaration,
+		   (:- extern('_bind_lazy'(+term, +term, +term, +term)))).
 
 '_bind_lazy'(_Class, Type, Class, Selector) :-
 	notrace(do_bind_lazy(Type, Class, Selector)).

@@ -90,6 +90,9 @@
 /* Define if you want the C++ interface compiled in */
 #undef O_CPLUSPLUS
 
+/* Define to include the password checking code */
+#undef O_LICENCE
+
 /* Define if you have the XmIsMotifWMRunning function.  */
 #undef HAVE_XMISMOTIFWMRUNNING
 

@@ -232,9 +232,11 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
   { status rval = FAIL;
 
     if ( isName(cmd) )
-    { argv[argc++] = id;
-      argv[argc++] = receiver;
-      argv[argc++] = cmd;
+    { int cmdi;
+
+      argv[argc++]        = id;
+      argv[argc++]        = receiver;
+      argv[(cmdi=argc++)] = cmd;
 
       if ( cmd == NAME_prefix )		/* Prefix (multikey)  */
 	assign(kb, prefix, key);
@@ -278,6 +280,7 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
 	  assign(kb, argument, toInt(valInt(kb->argument) * 10 +
 				     valInt(id) - '0'));
 	cmd = NAME_universalArgument;
+	argv[cmdi] = cmd;
       } else if ( cmd == NAME_quotedInsert )
       { assign(kb, status, NAME_quotedInsert );
       } else 

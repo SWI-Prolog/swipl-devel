@@ -9,9 +9,9 @@
 
 #include "include.h"
 
-static WinAPI frame_wnd_proc(HWND win, UINT msg, UINT wP, LONG lP);
-static status keyboard_event_frame(FrameObj fr, Any id);
-static void   paint_icon(FrameObj fr);
+static int WINAPI frame_wnd_proc(HWND win, UINT msg, UINT wP, LONG lP);
+static status     keyboard_event_frame(FrameObj fr, Any id);
+static void       paint_icon(FrameObj fr);
 
 #define MainWindow(fr)	     ( isNil(fr->members->head) ? (Any) fr : \
 			       fr->members->head->value )
@@ -96,7 +96,7 @@ IsDownMeta(LONG lParam)
 
 
 
-static WinAPI
+static int WINAPI
 frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 { FrameObj fr = (FrameObj) GetWindowLong(hwnd, GWL_DATA);
 

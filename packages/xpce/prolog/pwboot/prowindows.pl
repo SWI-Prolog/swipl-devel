@@ -43,11 +43,10 @@ user:file_search_path(contrib, 	pce(contrib)).
 	  '$Quintus: check_license'(prowindows, '3.0')
 	; true  % no checking in runtimes
 	),
-	pce_init,
-	prowindows_version,
         absolute_file_name(quintus('prowindows3.0'), Home),
+	pce_init(Home),
+	prowindows_version,
 	pl_send(@host, name_reference, prolog, 1),
-        pl_send(@pce, home, Home, 1),
 	add_input_callback.
 
 
@@ -104,7 +103,7 @@ add_input_callback :-
 
 
 foreign(setup_input, c, setup_input(+integer, +integer, [-integer])).
-foreign(prolog_pce_init, c, pce_init).
+foreign(prolog_pce_init, c, pce_init(+string)).
 foreign(pceDispatch, c, pce_dispatch(+integer, +integer)).
 foreign(pceXtAppContext, c, pce_appcontext(+integer, [-integer])).
 foreign(pl_send0, c, pl_send(+term, +term, [-integer])).

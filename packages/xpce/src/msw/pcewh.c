@@ -163,7 +163,7 @@ isPceWindow(HWND hwnd)
 DWORD _export FAR PASCAL
 mouse_hook(int code, WPARAM wParam, LPARAM lParam)
 { if ( code >= 0 )
-  { MOUSEHOOKSTRUCT FAR* data = MK_FP32(lParam);
+  { MOUSEHOOKSTRUCT FAR* data = lParam;
 
     if ( data->hwnd != cwin )
     { int ispce = isPceWindow(data->hwnd);

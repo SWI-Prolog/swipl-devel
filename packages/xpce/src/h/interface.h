@@ -132,6 +132,7 @@ typedef union
   long		integer;		/* Value of PCE int or reference */
   float 	real;			/* Value of PCE real */
   char *	string;			/* Value is a C char * */
+  void *	pointer;		/* Anonymous pointer */
   PceITFSymbol	itf_symbol;		/* Interface symbol */
 } PceCValue;
 
@@ -163,18 +164,20 @@ __pce_export PceObject	pceGet __P((PceObject, PceName, int, PceObject *));
 		*          PCE CALLING C	*
 		********************************/
 
-#define HOST_QUERY	0	/* execute interactive query on host */
-#define HOST_TRACE	1	/* start debugger on host */
-#define HOST_BACKTRACE	2	/* give stack trace on host */
-#define HOST_HALT	3	/* exit host */
-#define HOST_BREAK	4	/* start interactive session with host */
-#define HOST_SYMBOLFILE	5	/* query symbol table */
-#define HOST_ABORT	6	/* abort current query, return to toplevel */
-#define HOST_SIGNAL	7	/* signal() replacement */
+#define HOST_QUERY	0		/* execute interactive query */
+#define HOST_TRACE	1		/* start debugger on host */
+#define HOST_BACKTRACE	2		/* give stack trace on host */
+#define HOST_HALT	3		/* exit host */
+#define HOST_BREAK	4		/* start interactive session */
+#define HOST_SYMBOLFILE	5		/* query symbol table */
+#define HOST_ABORT	6		/* abort, return to toplevel */
+#define HOST_SIGNAL	7		/* signal() replacement */
 #define HOST_RECOVER_FROM_FATAL_ERROR 9 /* Error: don't return */
-#define HOST_WRITE	10	/* Write a char * on the terminal */
-#define HOST_FLUSH	11	/* Flush terminal */
-#define HOST_ATEXIT	12	/* Callback on exit */
+#define HOST_WRITE	10		/* Write a char * on the terminal */
+#define HOST_FLUSH	11		/* Flush terminal */
+#define HOST_ATEXIT	12		/* Callback on exit */
+#define HOST_CONSOLE	13		/* Win32: query HWND of console */
+#define HOST_CHECK_INTERRUPT 14		/* Win32: periodic check for ^C */
 
 typedef struct
 { int       (*hostSend)    __P((PceObject, PceName, int, PceObject *));
@@ -272,6 +275,10 @@ __pce_export const char *pceOsError();
 #define PCE_SEEK_SET	0
 #define PCE_SEEK_CUR	1
 #define PCE_SEEK_END	2
+
+		 /*******************************
+		 *	    CALL-BACK		*
+		 *******************************/
 
 #ifdef PCE_INCLUDED
 extern pce_callback_functions TheCallbackFunctions;

@@ -390,8 +390,6 @@ static struct error_def errors[] =
     "%O: Must be ->create'd before `%s'" },
   { NAME_badTexture,		0,
     "%N: Unknown texture" },
-  { NAME_polyTooManyPoints,	0,
-    "%N: Cannot draw polygons with more than %d points" },
   { NAME_tooManyScreenLines,	0,
     "%N: More than 500 lines???" },
 					/* Dialog Items */

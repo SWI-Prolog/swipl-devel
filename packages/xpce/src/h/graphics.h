@@ -370,6 +370,12 @@ NewClass(menu_bar)
   Int	     radius;			/* radius for the buttons */
 End;
 
+NewClass(pen)
+  Int		thickness;		/* drawing pen thickness */
+  Name		texture;		/* dash-pattern */
+  Any		colour;			/* look */
+End;
+
 NewClass(node)
   ABSTRACT_VISUAL
   Graphical	image;			/* image displayed as the node */

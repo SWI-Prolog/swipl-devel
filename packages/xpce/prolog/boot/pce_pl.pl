@@ -187,14 +187,27 @@ actions_to_format([Fmt0-Args0|Tail], Fmt, Args) :-
 		********************************/
 
 pce_home(PceHome) :-
-	absolute_file_name(pce('.'), [file_type(directory)], PceHome), !.
+	absolute_file_name(pce('.'), [file_type(directory)], PceHome),
+	exists_directory(PceHome), !.
+pce_home(PceHome) :-
+	getenv('XPCEHOME', PceHome),
+	exists_directory(PceHome), !.
+pce_home(PceHome) :-
+	feature(home, PlHome),
+	(   feature(xpce_version, Version),
+	    concat('/xpce-', Version, Suffix)
+	;   Suffix = '/xpce'
+	),
+	concat(PlHome, Suffix, RawHome),
+	exists_directory(RawHome), !,
+	absolute_file_name(RawHome, PceHome).
 pce_home(_) :-
 	$warning('Cannot find XPCE home directory'),
 	fail.
 
 '$load_pce' :-
 	'$c_current_predicate'('$pce_init', user:'$pce_init'(_)), !,
-	absolute_file_name(pce(.), [file_type(directory)], PceHome),
+	pce_home(PceHome),
 	pce_principal:'$pce_init'(PceHome),
 	set_feature(xpce, true).
 '$load_pce' :-

@@ -305,15 +305,6 @@ decorateWindow(PceWindow sw, Name how, Int lb, Int tb, Int rb, Int bb,
 		*        GRAPHICAL ROLE		*
 		********************************/
 
-static status
-RedrawAreaWindowAsGraphical(PceWindow sw, Area a)
-{ if ( !createdWindow(sw) )
-    updatePositionWindow(sw);
-
-  return RedrawAreaGraphical(sw, a);
-}
-
-
 status
 updatePositionWindow(PceWindow sw)
 { PceWindow parent = getWindowGraphical((Graphical) sw->device);
@@ -947,8 +938,7 @@ RedrawAreaWindow(PceWindow sw, IArea a, int clear)
     succeed;
 
   if ( a->w != 0 && a->h != 0 )
-  { Cell cell;
-    int ox, oy, dw, dh;
+  { int ox, oy, dw, dh;
     AnswerMark mark;
 
     markAnswerStack(mark);
@@ -970,15 +960,25 @@ RedrawAreaWindow(PceWindow sw, IArea a, int clear)
     assign(oa, w, toInt(a->w));
     assign(oa, h, toInt(a->h));
 
-    for_cell(cell, sw->graphicals)
-    { Graphical gr = cell->value;
-
-      if ( gr->displayed == ON && overlapArea(oa, gr->area) )
-	RedrawArea(gr, oa);
-    }
+    qadSendv(sw, NAME_RedrawArea, 1, (Any *)&oa);
 
     d_done();
     rewindAnswerStack(mark, NIL);
+  }
+
+  succeed;
+}
+
+
+static status
+redrawAreaWindow(PceWindow sw, Area a)
+{ Cell cell;
+
+  for_cell(cell, sw->graphicals)
+  { Graphical gr = cell->value;
+
+    if ( gr->displayed == ON && overlapArea(a, gr->area) )
+      RedrawArea(gr, a);
   }
 
   succeed;
@@ -1814,7 +1814,7 @@ makeClassWindow(Class class)
   saveStyleVariableClass(class, NAME_device, NAME_normal);
   saveStyleVariableClass(class, NAME_currentEvent, NAME_nil);
   saveStyleVariableClass(class, NAME_focusEvent, NAME_nil);
-  setRedrawFunctionClass(class, RedrawAreaWindowAsGraphical);
+  setRedrawFunctionClass(class, redrawAreaWindow);
 
   storeMethod(class, NAME_resizeMessage, resizeMessageWindow);
   storeMethod(class, NAME_pen, penWindow);

@@ -11,7 +11,7 @@
 
 static PceWindow current_window; /* hack to avoid Windows timing problem */
 
-static WinAPI window_wnd_proc(HWND win, UINT msg, UINT wP, LONG lP);
+static int WINAPI window_wnd_proc(HWND win, UINT msg, UINT wP, LONG lP);
 
 static int clearing_update;		/* from ws_redraw_window() */
 static int invert_window = FALSE;	/* invert the window */
@@ -59,7 +59,7 @@ getExistingFrameWindow(PceWindow sw)
 
 
 
-static WinAPI
+static int WINAPI
 window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 { PceWindow sw = (PceWindow) GetWindowLong(hwnd, GWL_DATA);
   FrameObj fr;

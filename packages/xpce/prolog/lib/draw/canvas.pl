@@ -16,6 +16,7 @@
 	   , concat/3
 	   , concat_atom/2
 	   , default/3
+	   , forall/2
 	   , ignore/1
 	   , send_list/3
 	   , shell/1

@@ -80,6 +80,7 @@ initialiseEditor(Editor e, TextBuffer tb, Int w, Int h, Int tmw)
   if ( notDefault(h) ) assign(e->size, h, h);
 
   initialiseDevice((Device) e);
+  assign(e, pen, getResourceValueObject(e, NAME_pen));
   assign(e, text_buffer, tb);
   assign(e, font, getResourceValueObject(e, NAME_font));
   fw = getExFont(e->font);
@@ -4414,6 +4415,8 @@ makeClassEditor(Class class)
 		  "Style for incremental search");
   attach_resource(class, "background", "colour|pixmap", "white",
 		  "Colour/fill pattern of the background");
+  attach_resource(class, "pen", "0..", "0",
+		  "Thickness of box around editor");
 
   succeed;
 }
