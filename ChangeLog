@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 3.3.0 (release-13)
+==========================
+
   * FIXED: Handling of ! in call/1 (was disabled for debugging purposes).
 
   * FIXED: retractall/1: could crash.
