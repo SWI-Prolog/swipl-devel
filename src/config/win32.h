@@ -223,7 +223,7 @@
 #define HAVE_RL_INSERT_CLOSE 1
 
 /* Define if you have the select function.  */
-#undef HAVE_SELECT
+#define HAVE_SELECT 1
 
 /* Define if you have the signal function.  */
 #define HAVE_SIGNAL 1
