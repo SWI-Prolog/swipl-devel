@@ -10,7 +10,7 @@
     Copyright (C) 1990-2000 SWI, University of Amsterdam. All rights reserved.
 */
 
-#if defined(__WINDOWS__) || defined(__WIN32__)
+#if defined(__WINDOWS__) || defined(__WIN32__) || defined(WIN32)
 
 #include <windows.h>
 #include <crtdbg.h>

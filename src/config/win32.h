@@ -159,6 +159,15 @@ typedef unsigned long sigset_t;		/* we don't have this */
 /* Define to "file.h" to include additional system prototypes */
 /* #undef SYSLIB_H */
 
+/* Name of the file to boot from */
+#define BOOTFILE "boot32.prc"
+
+/* The number of bytes in a int.  */
+#define SIZEOF_INT 4
+
+/* The number of bytes in a long.  */
+#define SIZEOF_LONG 4
+
 /* Define if you have the access function.  */
 #define HAVE_ACCESS 1
 

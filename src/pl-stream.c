@@ -10,6 +10,10 @@
     Copyright (C) 1990-2000 SWI, University of Amsterdam. All rights reserved.
 */
 
+#if defined(WIN32) && !defined(__WIN32__)
+#define __WIN32__ 1
+#endif
+
 #ifdef __WIN32__
 #include <uxnt.h>
 #define MD "config/win32.h"

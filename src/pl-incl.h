@@ -13,6 +13,10 @@
 #ifndef _PL_INCLUDE_H
 #define _PL_INCLUDE_H
 
+#if defined(WIN32) && !defined(__WIN32__)
+#define __WIN32__ 1
+#endif
+
 #ifdef __WIN32__
 #define MD	     "config/win32.h"
 #define PLHOME       "c:/Program Files/pl"
