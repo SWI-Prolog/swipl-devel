@@ -137,6 +137,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
 	checklast.pl checkselect.pl operators.pl \
 	prolog_stack.pl
 CLP=	bounds.pl
+UNICODE=blocks.pl
 PLWIN=	wise.pl dde.pl progman.pl registry.pl
 builddirs = ../lib ../lib/$(ARCH)
 
@@ -307,7 +308,7 @@ install-libs:	idirs iboot ilib iruntime iinclude iman idot
 			-t halt
 
 installdirs=	bin bin/$(ARCH) lib lib/$(ARCH) man boot library \
-		library/clp include dotfiles
+		library/clp library/unicode include dotfiles
 
 iruntime::
 		$(INSTALL_DATA) $(RUNTIME) $(PLBASE)/lib/$(ARCH)
@@ -334,7 +335,7 @@ iboot::
 		cd ../boot; \
 		for f in *.pl; do $(INSTALL_DATA) $$f $(PLBASE)/boot; done
 
-ilib:		iclp
+ilib:		iclp iunicode
 		cd ../library; \
 		for f in $(PLLIBS); do \
 			$(INSTALL_DATA) $$f $(PLBASE)/library; \
@@ -344,6 +345,13 @@ iclp::
 		cd ../library/clp; \
 		for f in $(CLP); do \
 			$(INSTALL_DATA) $$f $(PLBASE)/library/clp; \
+		done
+
+
+iunicode::
+		cd ../library/unicode; \
+		for f in $(UNICODE); do \
+			$(INSTALL_DATA) $$f $(PLBASE)/library/unicode; \
 		done
 
 idot::

@@ -90,6 +90,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
 PLLIBS=$(PLLIBS) threadutil.pl
 !ENDIF
 CLP=	bounds.pl
+UNICODE=blocks.pl
 
 all:	lite packages
 
@@ -227,7 +228,8 @@ install-libs:	idirs iinclude iboot ilib
 
 IDIRS=		"$(BINDIR)" "$(LIBDIR)" "$(PLBASE)\include" \
 		"$(PLBASE)\boot" "$(PLBASE)\library" "$(PKGDOC)" \
-		"$(PLCUSTOM)" "$(PLBASE)\demo" "$(PLBASE)\library\clp"
+		"$(PLCUSTOM)" "$(PLBASE)\demo" "$(PLBASE)\library\clp" \
+		"$(PLBASE)\library\unicode"
 
 $(IDIRS):
 		if not exist $@/$(NULL) $(MKDIR) $@
@@ -245,6 +247,10 @@ ilib:		iclp
 iclp::
 		chdir $(PLHOME)\library\clp & \
 			for %f in ($(CLP)) do copy %f "$(PLBASE)\library\clp"
+
+iunicode::
+		chdir $(PLHOME)\library\unicode & \
+		  for %f in ($(UNICODE)) do copy %f "$(PLBASE)\library\unicode"
 
 iinclude:       
 		$(INSTALL_DATA) $(PLHOME)\include\SWI-Prolog.h "$(PLBASE)\include"
