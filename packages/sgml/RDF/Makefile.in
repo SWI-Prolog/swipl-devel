@@ -16,8 +16,8 @@ PCEHOME=../../xpce
 
 CGISCRIPT=rdf-parser
 CGIDIR=/etc/httpd/cgi-bin
-CGIURL=http://gollem.swi.psy.uva.nl/cgi-bin
-WEBPAGE=~www/projects/SWI-Prolog/packages/sgml/online.html
+CGIURL=http://gollem.science.uva.nl/cgi-bin
+WEBPAGE=/swi40/prolog/packages/rdf-online.html
 CGIGRP=www
 
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
@@ -83,7 +83,7 @@ Online-requests:
 $(WEBPAGE):	online.html
 		sed 's%@ACTION@%$(CGIURL)/$(CGISCRIPT)%' online.html > $@
 
-$(CGIDIR)/$(CGISCRIPT): rdf-parser
+$(CGIDIR)/$(CGISCRIPT): rdf-parser Makefile
 		sed -e "s%@BASEDIR@%`pwd`%" -e s%@SWI@%$(PL)% rdf-parser > $@
 		chmod 755 $@
 
