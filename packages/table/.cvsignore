@@ -4,5 +4,7 @@ table.exp
 table.lib
 table.dll
 Makefile
+config.status
+config.cache
 config.log
 config.h

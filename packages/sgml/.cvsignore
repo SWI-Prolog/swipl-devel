@@ -20,6 +20,8 @@ t.pl
 html
 ldoc.sh
 Makefile
+config.status
+config.cache
 config.log
 config.h
 .coflags

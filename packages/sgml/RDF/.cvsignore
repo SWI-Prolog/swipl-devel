@@ -5,3 +5,5 @@ Literature
 Tests
 Makefile
 config.log
+config.status
+config.cache
