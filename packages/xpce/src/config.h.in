@@ -316,6 +316,9 @@
 /* "Define to prepare for multi-threading" */
 #undef _REENTRANT
 
+/* Define for threaded code on FreeBSD */
+#undef _THREAD_SAFE
+
 /* Define to 1 if type `char' is unsigned and you are not using gcc.  */
 #ifndef __CHAR_UNSIGNED__
 # undef __CHAR_UNSIGNED__

@@ -109,8 +109,10 @@ AC_ARG_ENABLE(mt, [  --enable-mt		  Enable Multi-threading],
 	      [case "$enableval" in
 		   yes) AC_DEFINE(_REENTRANT, 1,
 				  "Define to prepare for multi-threading")
+			MT=true
 			;;
-		   *)  ;;
+		   *)   MT=false
+		        ;;
 	       esac])
 
 
@@ -162,6 +164,9 @@ if test "$swipl" != "no"; then
      if test -z "$PLINCL"; then
          AC_CHECKING("Running $PL -dump-runtime-variables")
          eval `$PL -dump-runtime-variables`
+     else
+	 dnl relative to pl/packages/xpce/pl/src
+         if [ ! -x $PL ]; then PL=../../../../$BUILDDIR/$PL; fi
      fi
   fi
   if test "$swipl" = yes; then
@@ -185,6 +190,14 @@ if test "$swipl" != "no"; then
   fi
 else
   ALLTARGET=xpce
+fi
+
+if test "$MT" = true; then
+  case "$OS" in
+      *freebsd*)	AC_DEFINE(_THREAD_SAFE, 1,
+				  [Define for threaded code on FreeBSD])
+			;;
+  esac
 fi
 
 dnl Frank C: find the pl development include dir, should be same
