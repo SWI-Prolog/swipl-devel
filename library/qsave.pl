@@ -28,7 +28,8 @@ qsave_program(File) :-
 
 qsave_program(FileSpec, Options0) :-
 	check_options(Options0),
-	'$strip_module'(FileSpec, Module, File),
+	'$strip_module'(FileSpec, Module, FileBase),
+	exe_file(FileBase, File),
 	option(Options0, autoload/true, Autoload,  Options1),
 	option(Options1, map/[],        Map,       Options2),
 	option(Options2, goal/[],       GoalTerm,  Options3),
@@ -74,6 +75,13 @@ qsave_program(FileSpec, Options0) :-
 	$mark_executable(File),
 	close_map.
 
+exe_file(Base, Exe) :-
+	feature(windows, true),
+	file_name_extension(_, '', Base), !,
+	file_name_extension(Base, exe, Exe).
+exe_file(Exe, Exe).
+
+
 		 /*******************************
 		 *	     HEADER		*
 		 *******************************/
@@ -84,7 +92,11 @@ make_header(RC, _, Options) :-
 	absolute_file_name(OptVal, [access(read)], Emulator),
 	$rc_append_file(RC, $header, $rc, none, Emulator).
 make_header(RC, _, Options) :-
-	option(Options, stand_alone/false, OptVal, _),
+	(   feature(windows, true)
+	->  DefStandAlone = true
+	;   DefStandAlone = false
+	),
+	option(Options, stand_alone/DefStandAlone, OptVal, _),
 	OptVal == true, !,
 	feature(symbol_file, Executable),
 	$rc_append_file(RC, $header, $rc, none, Executable).

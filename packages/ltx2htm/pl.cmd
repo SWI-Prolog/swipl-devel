@@ -40,6 +40,8 @@
 \url[+]{-}
 \email[+]{-}
 \const{+}
+\module{+}
+\infixterm{-}{+}{+}
 \fmtseq{-}
 \ctype{+}
 \cglobalvar{+}

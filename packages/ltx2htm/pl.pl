@@ -41,10 +41,10 @@ cmd(exam(		{A1}), #code(+A1)).
 cmd(jargon(		{A1}), #em(+A1)).
 cmd(chr(		{A1}), #code(+A1)).
 cmd(const(		{A1}), #code(+A1)).
+cmd(module(		{A1}), #code(+A1)).
 cmd(op(			{A1}), #strong(+A1)).
 cmd(cmdlineoption(	{A1}), #strong(+A1)).
 cmd(fmtseq(		{A1}), #code(A1)).
-
 cmd(versionshort,		 _, nospace(Version)) :-
 	feature(version, V),
 	Major is V // 10000,
@@ -65,6 +65,8 @@ cmd(functor({RawName}, {Arity}), Text) :-
 	sformat(Text, '~w/~w', [Name, Arity]).
 cmd(compound({Name}, {Args}), #code([+Name, #embrace(+Args)])).
 cmd(term({Name}, {Args}), #code([+Name, #embrace(+Args)])).
+cmd(infixterm({RawName},{A1},{A2}), #code([+A1, Name, +A2])) :-
+	clean_name(RawName, Name).
 cmd(manref({RawName}, {Section}),
     [#strong(Name), #embrace(Section)]) :-
 	clean_tt(RawName, Name).

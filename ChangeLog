@@ -4,6 +4,19 @@
 VERSION 3.1.3
 =============
 
+  * WIN32: moved to MSVC 5.0 platform.  Added win32 specific source
+    (console, uxnt libraries) to the main source-tree.  Added MSVC
+    workspace to manage the whole building process.  Good news is
+    the MSVC 5.0 produces considerably faster code.  The Windows
+    and Linux versions now perform about equally on the same hardware
+    (SuSE 5.3 linux using egcc 1.03 vs. NT 4.0/SP4 using MSVC 5.0).
+
+  * FIXED: Win32 console (plwin.exe), various patches: a startup
+    threat-synchronisation problem which might explain why SWI-Prolog
+    crashes immediately at startup sometimes on windows 95/98 (NT appears
+    more robust for invalid API calls), two memory management problems in
+    the window-resize code and some small glitches.
+
   * ADDED: Win32 version: exported _PL_get_arg() (non-checking PL_get_arg()).
 
   * FIXED: more patches to PL_Q_PASS_EXCEPTION handling of PL_open_query()

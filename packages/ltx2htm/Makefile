@@ -29,7 +29,7 @@ INSTALL_PROGRAM=$(INSTALL) -m 755
 INSTALL_DATA=$(INSTALL) -m 644
 
 OBJ=	tex.o psfile.o
-LIB=	latex2html.pl latex.cmd pl.pl pl.cmd
+LIB=	latex2html.pl latex.cmd pl.pl pl.cmd xpce.pl xpce.cmd
 
 all:
 	@echo "==============================================================="
