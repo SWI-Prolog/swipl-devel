@@ -928,7 +928,8 @@ of garbage on this clause.
 	}
 #define leaveDefinition(def) \
 	{ PL_LOCK(L_MISC); \
-	  if ( --def->references == 0 && true(def, NEEDSCLAUSEGC) ) \
+	  if ( --def->references == 0 && \
+	       true(def, NEEDSCLAUSEGC|NEEDSREHASH) ) \
 	    gcClausesDefinition(def); \
 	  DEBUG(0, assert(def->references >= 0)); \
 	  PL_UNLOCK(L_MISC); \
@@ -936,7 +937,7 @@ of garbage on this clause.
 #define leaveDefinitionCL(def, cl) \
 	{ PL_LOCK(L_MISC); \
           if ( --def->references == 0 ) \
-	  { if ( true(def, NEEDSCLAUSEGC) ) \
+	  { if ( true(def, NEEDSCLAUSEGC|NEEDSREHASH) ) \
               gcClausesDefinition(def); \
 	  } else if ( def == PROCEDURE_dcall1->definition ) \
 	    retractClauseDefinition(def, cl->clause); \
