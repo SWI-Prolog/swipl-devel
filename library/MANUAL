@@ -1004,9 +1004,15 @@ feature(?Key, -Value)
          select foreign files for the right architecture. See also
          load_foreign/5.
 
-     version (atom)
-         The version identifier is an atom consisting of 3 numeric
-         values separated by dots (e.g. 1.9.2).
+     version (integer)
+         The version identifier is an integer with value:
+
+                     10000*Major + 100*Minor + Patch
+
+         Note that in releases upto 2.7.10 this feature yielded an atom
+         holding the three numbers separated by dots. The current
+         representation is much easier for implementing
+         version-conditional statements.
 
      home (atom)
          SWI-Prolog's notion of the home-directory. SWI-Prolog uses
@@ -3611,7 +3617,7 @@ percision, error handling, etc.
 
 
 +Expr1 * +Expr2
-     Result = Expr1Expr2times
+     Result = Expr1Expr2
 
 
 +Expr1 / +Expr2
@@ -7130,11 +7136,10 @@ C_type  PL_query(int)
          PL_MAX_INTEGER               Return a long, representing the maximal integer value
                                       represented by Prolog's tagged integers.
          PL_MIN_INTEGER               Return a long, represented the minimal integer value.
-         PL_QUERY_VERSION             Return         a         long,           represent-
-                                      ing the version as 10; 000Mtimes + 100mtimes + p,
-                                      where M is the major, m the minor version number
-                                      and p the patch-level. For example, the current version
-                                      yields 207070.
+         PL_QUERY_VERSION             Return a long, representing the version as 10; 000M
+                                      +100m  +p, where M is the major, m the minor ver-
+                                      sion number and p the patch-level.  For example, the
+                                      current version yields 207070.
 
                       Table 5.2: PL_query() options
 

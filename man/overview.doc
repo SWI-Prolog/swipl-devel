@@ -590,9 +590,12 @@ the {\em Value} is the atom {\tt true}. Currently defined keys:
 Identifier for the hardware and operating system SWI-Prolog is running
 on.  Used to determine the startup file as well as to select foreign
 files for the right architecture.  See also load_foreign/5.
-    \option{version}{atom}
-The version identifier is an atom consisting of 3 numeric values
-separated by dots (e.g.\ {\tt 1.9.2}).
+    \option{version}{integer}
+The version identifier is an integer with value: $$10000 \times
+\mbox{\it Major} + 100 \times \mbox{\it Minor} + \mbox{\it Patch}$$
+Note that in releases upto 2.7.10 this feature yielded an atom holding
+the three numbers separated by dots. The current representation is much
+easier for implementing version-conditional statements.
     \option{home}{atom}
 SWI-Prolog's notion of the home-directory.  SWI-Prolog uses it's home
 directory to find its startup file as $<$home$>$/startup/startup.$<$arch$>$
