@@ -14,7 +14,7 @@ if [ ! "o$1" = "o-q" ]; then
       awk -F/ '{printf("%s/%s\n", "'$dir'", $2)}' $dir/CVS/Entries >> srcfiles
   done
 
-find ./bitmaps \( -name '*.bm' -o -name '*.xpm' \) -print >> srcfiles
+find ./bitmaps \( -name '*.bm' -o -name '*.xpm' -o -name '*.xbm' \) -print >> srcfiles
 echo ./bitmaps/README >> srcfiles
 find ./appl-help -name '*.hlp' -print >> srcfiles
 

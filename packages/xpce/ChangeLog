@@ -1,5 +1,19 @@
 [VERSION 4.9.7]
 
+* ADDED: Various libraries:
+
+	library(pce_arrow_item)		Show/define arrow-head
+	library(pce_config)		Configuration access
+	library(pce_configeditor)	Edit configurations
+	library(pce_graphical_browser)	Browse graphicals
+	library(pce_image_browser)	Find images
+	library(pce_image_item)		Show/browse image
+	library(pce_set_item)		Edit set, based on editor for single
+
+* PCEDRAW: many changes: added export of drawings as Prolog term, interface
+  to the configuration library, new format for prototypes, which are now
+  saved with the image, etc. etc.
+
 * ADDED: `path ->points' and an optional additional argument to
   `path->initialise' for specifying the points as new() arguments.
 

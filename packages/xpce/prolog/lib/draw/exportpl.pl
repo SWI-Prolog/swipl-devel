@@ -18,7 +18,7 @@ Translate a PceDraw drawing into a Prolog term for later display.
 A drawing is a term, informally described as:
 
 	Drawing		::= drawing([Element])
-	Element		::= display(Term, point(X, Y))
+	Element		::= display(Term [, point(X, Y)])
 			  | connect(Class(From, To,
 					  FromHandle, ToHandle,
 					  Link))
@@ -51,6 +51,9 @@ class_map(draw_connection,
 class_map(draw_compound,
 	  figure,
 	  [pen, texture, radius, colour]).
+class_map(arrow,
+	  arrow(length, wing, style, fill_pattern),
+	  [ pen, colour]).
 class_map(font,
 	  font(family, style, points),
 	  []).
@@ -68,6 +71,9 @@ class_map(-, -(left, right), []).
 class_map(/, /(left, right), []).
 class_map(*, *(left, right), []).
 	  
+no_position(line).
+no_position(path).
+
 describe_drawing(Canvas, drawing(Terms)) :-
 	get_chain(Canvas, graphicals, Graphicals),
 	name_connected_graphicals(Graphicals, Mapping),
@@ -97,6 +103,10 @@ describe_object(Mapping, Obj, compound(Term, Drawing, point(X,Y))) :-
 	get(Obj, position, point(X, Y)),
 	object_to_term(Obj, Mapping, Term),
 	describe_drawing(Obj, Drawing).
+describe_object(Mapping, Obj, display(Term)) :-
+	no_position(NoPosClass),
+	send(Obj, instance_of, NoPosClass), !,
+	object_to_term(Obj, Mapping, Term).
 describe_object(Mapping, Obj, display(Term, point(X,Y))) :-
 	get(Obj, position, point(X, Y)),
 	object_to_term(Obj, Mapping, Term).

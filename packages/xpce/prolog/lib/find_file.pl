@@ -111,8 +111,8 @@ fill_dialog(F, D) :->
 
 	new(DoOK, message(OK, execute)),
 	send(D, append, new(L, list_browser), right),
-	send(L, style, directory, style(icon := 'dir.bm')),
-	send(L, style, file,      style(icon := 'file.bm')),
+	send(L, style, directory, style(icon := '16x16/closedir.xpm')),
+	send(L, style, file,      style(icon := '16x16/doc.xpm')),
 	send(L, select_message, message(F, select, @arg1?key, @arg1?style)),
 	send(L, open_message, DoOK),
 	send(L, recogniser,

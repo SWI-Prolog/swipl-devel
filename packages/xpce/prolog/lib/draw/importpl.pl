@@ -42,6 +42,10 @@ draw([display(Term, Point)|T], Device) :-
 	term_to_object(Term, Object),
 	send(Device, display, Object, Point),
 	draw(T, Device).
+draw([display(Term)|T], Device) :-
+	term_to_object(Term, Object),
+	send(Device, display, Object),
+	draw(T, Device).
 draw([connect(Term)|T], Device) :-
 	term_to_connection(Term, _Connection),
 	draw(T, Device).
@@ -54,7 +58,8 @@ draw([compound(Term, Contents, Point)|T], Device) :-
 	
 term_to_object(Term+Attribute, Object) :- !,
 	term_to_object(Term, Object),
-	Attribute =.. [Selector|Args],
+	Attribute =.. [Selector|PlArgs],
+	maplist(term_to_object, PlArgs, Args),
 	Goal =.. [send, Object, Selector | Args],
 	Goal.
 term_to_object(Atomic, Atomic) :-
@@ -67,7 +72,8 @@ term_to_object(Term, Object) :-
 
 term_to_connection(Term+Attribute, Connection) :- !,
 	term_to_connection(Term, Connection),
-	Attribute =.. [Selector|Args],
+	Attribute =.. [Selector|PlArgs],
+	maplist(term_to_object, PlArgs, Args),
 	Goal =.. [send, Connection, Selector | Args],
 	Goal.
 term_to_connection(Term, Connection) :-

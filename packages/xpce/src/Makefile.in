@@ -136,7 +136,7 @@ SICSTARGET=xpce-sicstus
 VMAJOR=@VMAJOR@
 VMINOR=@VMINOR@
 VPATCH=@VPATCH@
-PCEVERSIONDATE=November 1997
+PCEVERSIONDATE=December 1997
 RESOURCE_CLASS=Pce
 
 SOMAJOR=$(VMAJOR)
@@ -636,7 +636,7 @@ rt-home:
 		if [ ! -d $(RTHOME) ]; then mkdir $(RTHOME); fi
 
 rt-bitmaps:
-	BMFS=`find ../bitmaps \( -name '*.bm' -o -name '*.xpm' \) -print` && \
+	BMFS=`find ../bitmaps \( -name '*.bm' -o -name '*.xpm' -o -name '*.xbm' \) -print` && \
 	$(INSTALL_DATA) -vp1 ../bitmaps/README $$BMFS $(RTHOME) >> $(RTFILES)
 
 rt-postscript:

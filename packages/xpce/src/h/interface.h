@@ -16,7 +16,7 @@
 		********************************/
 
 #ifndef PCE_VERSION
-#define PCE_VERSION "4.9.7, November 1997"
+#define PCE_VERSION "4.9.7, December 1997"
 #endif
 
 #ifndef OS_VERSION
