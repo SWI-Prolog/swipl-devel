@@ -1171,7 +1171,8 @@ static classvardecl rc_display[] =
      "  boldlarge := font(helvetica, bold, 14),\n"
      "  huge      := font(helvetica, roman, 18),\n"
      "  boldhuge  := font(helvetica, bold, 18),\n"
-     "  fixed     := font(screen, roman, 13)\n"
+     "  fixed     := font(screen, roman, 13),\n"
+     "  symbol    := font(symbol, roman, 12)\n"
      "]",
      "Predefined font-aliases"),
   RC(NAME_noFont, "font", "fixed",
@@ -1359,6 +1360,15 @@ static fontdef times_fonts[] =
 };
 
 
+static fontdef symbol_fonts[] =
+{ PFONT(NAME_roman, 10, "-adobe-symbol-*-*-*-*-10-*-*-*-*-*-*-*"),
+  PFONT(NAME_roman, 12, "-adobe-symbol-*-*-*-*-12-*-*-*-*-*-*-*"),
+  PFONT(NAME_roman, 14, "-adobe-symbol-*-*-*-*-14-*-*-*-*-*-*-*"),
+  PFONT(NAME_roman, 18, "-adobe-symbol-*-*-*-*-18-*-*-*-*-*-*-*"),
+  PFONT(NAME_roman, 24, "-adobe-symbol-*-*-*-*-24-*-*-*-*-*-*-*"),
+
+  ENDFONTLIST
+};
 
 static char *
 default_font_list(Name fam, FontDef defs)
@@ -1407,11 +1417,13 @@ static void
 attach_font_families(Class class)
 { attach_class_variable(class, NAME_fontFamilies,  "chain",
 			"[screen_fonts, courier_fonts," /* concat */
-			"helvetica_fonts, times_fonts]",
+			"helvetica_fonts, times_fonts," /* concat */
+			"symbol_fonts]",
 			"Predefined font families");
 
-  attach_fonts(class, "screen_fonts", NAME_screen, screen_fonts);
-  attach_fonts(class, "courier_fonts", NAME_courier, courier_fonts);
+  attach_fonts(class, "screen_fonts",	 NAME_screen,	 screen_fonts);
+  attach_fonts(class, "courier_fonts",	 NAME_courier,	 courier_fonts);
   attach_fonts(class, "helvetica_fonts", NAME_helvetica, helvetica_fonts);
-  attach_fonts(class, "times_fonts", NAME_times, times_fonts);
+  attach_fonts(class, "times_fonts",	 NAME_times,	 times_fonts);
+  attach_fonts(class, "symbol_fonts",	 NAME_symbol,	 symbol_fonts);
 }
