@@ -213,8 +213,6 @@ pl-static:	xpce pl
 pl:
 		mkdir $@
 
-man-index:	$(MANINDEX)
-
 $(MANINDEX):	$(shell find ../man/reference -name '*.doc')
 		-$(PL) \
 		  -F none \
@@ -684,9 +682,9 @@ dv-install:	rt-install dv-home dv-lib dv-boot dv-help \
 	        dv-link dv-pl-files dv-manual dv-man \
 		dv-misc cxx-install dv-qlf dv-bins dv-online
 
-rpm-install:	manindex rt-home rt-misc rt-bitmaps rt-bins rpm-link \
+rpm-install:	rt-home rt-misc rt-bitmaps rt-bins rpm-link \
 		dv-lib dv-boot dv-help dv-link dv-pl-files dv-manual dv-man \
-		dv-misc cxx-install rpm-bins
+		dv-misc cxx-install rpm-bins dv-online
 
 manindex:	$(MANINDEX)
 
@@ -798,7 +796,7 @@ dv-manual:
 		$(INSTALL_DATA) -p1 ../man/reference/class/*.doc $(DVHOME)
 		$(INSTALL_DATA) -p1 ../man/faq/*.html $(DVHOME)
 
-dv-online:	man-index
+dv-online:	manindex
 		if [ -r $(MANINDEX) ]; then \
 		    $(INSTALL_DATA) -p1 $(MANINDEX) $(DVHOME); \
 		fi
