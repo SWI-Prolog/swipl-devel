@@ -3011,6 +3011,8 @@ static char *T_drawBox[] =
 	  "fill=[image|colour|elevation]", "up=[bool]" };
 static char *T_flash[] =
 	{ "area=[area]", "time=[int]" };
+static char *T_containerSizeChanged[] =
+	{ "width=[int]", "height=[int]" };
 
 /* Instance Variables */
 
@@ -3231,7 +3233,10 @@ static senddecl send_graphical[] =
   SM(NAME_compute, 0, NULL, computeGraphical,
      NAME_update, "Update status of graphical"),
   SM(NAME_requestCompute, 1, "[any]*", requestComputeGraphical,
-     NAME_update, "Request a ->compute on next repaint")
+     NAME_update, "Request a ->compute on next repaint"),
+  SM(NAME_containerSizeChanged, 2, T_containerSizeChanged,
+     virtualObject,
+     NAME_area, "<-width or <-height of <-contained_in changed")
 };
 
 /* Get Methods */
