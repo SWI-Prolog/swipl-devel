@@ -31,7 +31,7 @@ static int	isParentNode2(Node, Node);
 static status	unrelate_node(Node, Node);
 static status	unlinkParentsNode(Node n);
 static status	unlinkSonsNode(Node n);
-static status	relateNode(Node n, Node n2);
+static status	relateNode(Node n, Node n2, Node before);
 static status	unrelateImageNode(Node n, Node n2);
 static status	unrelateImagesNode(Node n);
 static status	relateImagesNode(Node n);
@@ -78,7 +78,7 @@ unlinkNode(Node n)
     } else				/* just remove this node */
     { for_cell(cell1, n->parents)
 	for_cell(cell2, n->sons)
-	  relateNode(cell1->value, cell2->value);
+	  relateNode(cell1->value, cell2->value, NIL);
 
       if ( n == tree->root )
       { if ( emptyChain(n->sons) )
@@ -367,7 +367,7 @@ moveNode(Node n, Node n2)		/* n2 becomes a son of n */
     succeed;
 
   unlinkParentsNode(n2);
-  relateNode(n, n2);
+  relateNode(n, n2, NIL);
   requestComputeTree(n->tree);
 
   succeed;
@@ -375,7 +375,7 @@ moveNode(Node n, Node n2)		/* n2 becomes a son of n */
 
 
 static status
-sonNode(Node n, Node n2)		/* make n2 a son of n */
+sonNode(Node n, Node n2, Node before)		/* make n2 a son of n */
 { if ( notNil(n2->tree) && n2->tree != n->tree )
     return errorPce(n, NAME_alreadyShown, n2, n2->tree);
 
@@ -385,7 +385,7 @@ sonNode(Node n, Node n2)		/* make n2 a son of n */
   if ( isParentNode(n, n2) || n2 == n )
     return errorPce(n, NAME_wouldBeCyclic);
 
-  relateNode(n, n2);
+  relateNode(n, n2, before);
 
   if ( notNil(n->tree) )
   { if ( isNil(n2->tree) )
@@ -565,8 +565,11 @@ swapNode(Node n, Node n2)			/* swap images of two nodes */
 
 
 static status
-relateNode(Node n, Node n2)
-{ appendChain(n->sons, n2);
+relateNode(Node n, Node n2, Node before)
+{ if ( isNil(before) || isDefault(before) )
+    appendChain(n->sons, n2);
+  else
+    insertBeforeChain(n->sons, n2, before);
   appendChain(n2->parents, n);
   if ( notNil(n->tree) )
     relateImageNode(n, n2);
@@ -856,6 +859,8 @@ static char *T_computeLevel[] =
         { "int", "[bool]" };
 static char *T_computeLayout[] =
         { "int", "int", "int" };
+static char *T_son[] =
+        { "son=node", "before=[node]*" };
 
 /* Instance Variables */
 
@@ -897,8 +902,8 @@ static senddecl send_node[] =
      NAME_edit, "Move argument to become a son of me"),
   SM(NAME_moveAfter, 1, "[node]*", moveAfterNode,
      NAME_edit, "Move node to be just after (below) arg"),
-  SM(NAME_son, 1, "node", sonNode,
-     NAME_edit, "Add argument to my sons"),
+  SM(NAME_son, 2, T_son, sonNode,
+     NAME_edit, "Add a new child-node"),
   SM(NAME_swap, 1, "node", swapNode,
      NAME_edit, "Swap images of two nodes"),
   SM(NAME_swapTree, 1, "node", swapTreeNode,

@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: optional `before' argument to `node->son' for efficient insertion
+  of nodes at arbitrary locations.
+
 * FIXED: Bug#27 icon directory prolog/lib/doc/icons was not installed.
   Lourens van der Meij.
 
