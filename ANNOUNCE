@@ -1,4 +1,4 @@
-SWI-Prolog 5.5.6/XPCE 6.5.6 development release
+SWI-Prolog 5.5.11/XPCE 6.5.11 development release
 
 Planned features in 5.5.x relative to 5.4.x and their status
 ============================================================
@@ -19,7 +19,8 @@ Planned features in 5.5.x relative to 5.4.x and their status
 
 	- Updated the MS-Windows console (plwin.exe/plterm.dll) to run
 	  in MS UNICODE mode
-
+	- Updated `XOS' layer around MS-Windows to access Windows UNICODE
+	  filenames through UTF-8 encoding.
 	- Support wide characters in SGML/XML parser.
 	- Support wide characters in most of XPCE.
 
@@ -29,7 +30,7 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- No support for input methods (XIM, ...)
 	- Incomplete support in packages
 		- ODBC
-		- Filenames, window titles, etc. in XPCE
+		- window titles, etc. in XPCE
 
   * More constraint libraries
 
@@ -52,27 +53,25 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- Possible alignment problems on some platforms
 	- Option to disable it on platforms that cannot support it.
 
-Patches in 5.5.10 relative to 5.5.9
-===================================
+Patches in 5.5.11 relative to 5.5.10
+====================================
 
-  * Provide file-I/O using text-files in the current locale (encoding
-    `text').
+  * Rewrote most of the `xos' layer providing better POSIX functionality
+    for Windows to provide UTF-8 access to Windows UNICODE filenames.
 
-  * Add PL_get_chars() to get text of atoms in various representations.
-
-  * Allow accessing filenames in other languages (at least on Unix,
-    untested on Windows).
-
-  * Fixed conversion of term to string (using by C++ interface).
+  * Added setlocale/3
 
 
 Packages
 ========
 
-  * xml_write/3 and semweb library: provide full support for XMLLiterals
+  * XPCE: rewrote most of the file access to access filesnames according
+    to the locale and to the new XOS layer for MS-Windows, accessing
+    files using UNICODE names.
 
 
 Incompatible changes
 ====================
 
-  (none)
+  * XPCE class file expands $VAR, etc as the file object is created instead
+    of when it is accessed.  Should not affect many users.
