@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.2.4 (Jul 17, 2003)
+============================
+
   * FIXED: Bug#74, call_cleanup/3 handler not called if it must be autoloaded
     and is called due to an exception.  Mike Elston.
 

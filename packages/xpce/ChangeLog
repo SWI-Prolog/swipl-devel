@@ -1,11 +1,15 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.2.4, distributed with SWI-Prolog 5.2.4
+================================================
+
 * ENHANCED: pce_global messages and handling of changed definitions.
 
 * ADDED: Support for new SWI-Prolog profiler hooks.
 
 * FIXED: Issues resulting from the :: priority change.  Anders Bouwer.
+
 
 VERSION 6.2.3, distributed with SWI-Prolog 5.2.3
 ================================================
