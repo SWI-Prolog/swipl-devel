@@ -1303,7 +1303,7 @@ static IOFUNCTIONS writeFunctions =
 
 
 foreign_t
-<tcp_open_socket(term_t Socket, term_t Read, term_t Write)
+tcp_open_socket(term_t Socket, term_t Read, term_t Write)
 { IOSTREAM *in, *out;
   int socket;
   plsocket *pls;
