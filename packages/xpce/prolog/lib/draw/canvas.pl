@@ -179,6 +179,7 @@ make_draw_canvas_recogniser(G) :-
 	new(ST, handler(keyboard, message(@receiver, start_typing, @event))),
 	new(G, handler_group(@draw_create_resize_gesture,
 			     @draw_create_line_gesture,
+			     @draw_create_bezier_gesture,
 			     @draw_create_path_gesture,
 			     @draw_create_text_recogniser,
 			     @draw_create_proto_recogniser,

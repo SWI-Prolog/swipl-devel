@@ -216,6 +216,7 @@ status		computeLine(Line ln);
 status		copyLine(Line l1, Line l2);
 status		paintSelectedLine(Line ln);
 status		pointsLine(Line ln, Int sx, Int sy, Int ex, Int ey);
+int		distanceLineToPoint(int x1, int y1, int x2, int y2, int px, int py);
 Point		getIntersectionLine(Line l1, Line l2);
 Real		getAngleLine(Line ln, Point p);
 status		makeClassLine(Class class);

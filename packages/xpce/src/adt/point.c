@@ -109,6 +109,15 @@ getDistancePoint(Point p, Point q)
 }
 
 
+Point
+getMidPoint(Point p, Point q)
+{ answer(answerObject(ClassPoint,
+		      toInt((valInt(p->x)+valInt(q->x)+1)/2),
+		      toInt((valInt(p->y)+valInt(q->y)+1)/2),
+		      0));
+}
+
+
 status
 plusPoint(Point p, Point q)
 { assign(p, x, add(p->x,q->x));
@@ -215,6 +224,8 @@ static getdecl get_point[] =
      NAME_calculate, "New point that reflects distance"),
   GM(NAME_distance, 1, "int", "to=point", getDistancePoint,
      NAME_calculate, "Integer for distance between points"),
+  GM(NAME_mid, 1, "point", "to=point", getMidPoint,
+     NAME_calculate, "New point in the middle between points"),
   GM(NAME_minus, 1, "point", "point", getMinusPoint,
      NAME_calculate, "New point p1 - p2"),
   GM(NAME_mirror, 1, "point", "origin=[point]", getMirrorPoint,

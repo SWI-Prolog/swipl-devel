@@ -453,6 +453,13 @@ paint_proto(MI) :->
 	    send(Clone, append, point(30,15)),
 	    send(Clone, append, point(15,21)),
 	    send(I, draw_in, Clone)
+	;   send(Proto, instance_of, bezier_curve)
+	->  get(Proto, clone, Clone),
+	    send(Clone, start, point(5,23)),
+	    send(Clone, end, point(35,23)),
+	    send(Clone, control1, point(15,0)),
+	    send(Clone, control2, point(48,0)),
+	    send(I, draw_in, Clone)
 	;   get(Proto, clone, Clone),		% general case
 	    (   send(Clone, has_send_method, menu_text)
 	    ->  send(Clone, menu_text)
@@ -491,6 +498,7 @@ outline_image(select,	     'select.bm').
 outline_image(draw_text,     'draw_text.bm').
 outline_image(draw_resize,   'draw_resize.bm').
 outline_image(draw_line,     'draw_line.bm').
+outline_image(draw_bezier,   'draw_line.bm').
 outline_image(draw_path,     'draw_path.bm').
 outline_image(draw_connect,  'draw_connect.bm').
 outline_image(draw_cconnect, 'draw_cconnect.bm').

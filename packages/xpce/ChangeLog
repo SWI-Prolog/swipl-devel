@@ -1,3 +1,8 @@
+* ADDED: Class bezier_curve: both Quadradic and Cubic Bezier curves.
+
+* ADDED: `point<-mid: point -->point' to find the point in the middle between
+  two points.
+
 * MODIFIED: `dialog_group->reference' is now equivalent to
   `graphical->reference', rather then `device->reference' for proper
   integration with dialog items.

@@ -354,7 +354,7 @@ resizeLine(Line ln, Real xfactor, Real yfactor, Point origin)
 	(x1, y1) and (x2, y2) to the point (px, py).
  */
 
-static int
+int
 distanceLineToPoint(int x1, int y1, int x2, int y2, int px, int py)
 { float a;
 

@@ -13,7 +13,7 @@
 	, draw/1				  % Start editing file
 	]).
 
-draw_version(4.0).
+draw_version(4.1).
 
 		/********************************
 		*      LINKING OTHER FILES	*
@@ -517,6 +517,8 @@ fill_menu(Draw) :->
 	     draw_line, crosshair, tag:='Add line'),
 	send(M, proto, new(draw_path),
 	     draw_path, cross, tag:='Add multi-part/smooth line'),
+	send(M, proto, draw_bezier(point(0,0), point(0,0), point(0,0)),
+	     draw_bezier, crosshair, tag:='Add Bezier curve'),
 	send(M, proto, link(link),
 	     draw_connect, plus, tag:='Link two objects'),
 	send(M, proto, link(unique),

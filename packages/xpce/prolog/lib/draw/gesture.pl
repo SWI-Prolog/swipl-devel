@@ -72,6 +72,8 @@ recogniser.
 	      new(draw_create_resize_gesture)).
 :- pce_global(@draw_create_line_gesture,
 	      new(draw_create_line_gesture)).
+:- pce_global(@draw_create_bezier_gesture,
+	      new(draw_create_bezier_gesture)).
 :- pce_global(@draw_create_path_gesture,
 	      new(draw_create_path_gesture)).
 :- pce_global(@draw_connect_gesture,
@@ -141,6 +143,14 @@ recogniser.
 				draw_modify_path_gesture(left),
 				@draw_edit_path_gesture,
 				@draw_resize_gesture,
+				@draw_move_outline_gesture,
+				new(draw_move_gesture)))).
+:- pce_global(@draw_bezier_recogniser,
+	      new(handler_group(@draw_shape_select_recogniser,
+				@draw_shape_popup_gesture,
+				new(draw_modify_bezier_gesture),
+				draw_modify_bezier_gesture(left),
+				new(draw_edit_bezier_gesture),
 				@draw_move_outline_gesture,
 				new(draw_move_gesture)))).
 
@@ -489,6 +499,135 @@ terminate(_, Ev:event) :->
 	send(Canvas, close_undo_group).
 
 :- pce_end_class.
+
+
+		/********************************
+		*	  BEZIER CURVE		*
+		********************************/
+
+:- pce_begin_class(draw_create_bezier_gesture, draw_create_resize_gesture).
+
+class_variable(cursor,	 cursor,	plus).
+
+verify(_G, Ev:event) :->
+	"Only active when in create_line_mode"::
+	get(Ev?receiver, mode, draw_bezier).
+
+initiate(G, Ev:event) :->
+	 send(G, send_super, initiate, Ev),
+	 get(G, object, Bezier),
+	 get(Ev, position, Pos),
+	 send(Bezier, start, Pos),
+	 send(Bezier, end, Pos),
+	 send(Bezier, control1, Pos),
+	 send(Bezier, selected, @on).
+
+drag(G, Ev:event) :->
+	get(G, object, Bezier),
+	send(Bezier, end, Ev?position),
+	get(Bezier, start, point(SX, SY)),
+	get(Bezier, end, point(EX, EY)),
+	MX is (SX+EX)//2,
+	MY is (SY+EY)//2,
+	CX is MX + (EY-SY)//2,
+	CY is MY - (EX-SX)//2,
+	send(Bezier, control1, point(CX, CY)).
+
+terminate(G, Ev:event) :->
+	send(G, drag, Ev),
+	get(G, object, Bezier),
+	send(G, object, @nil),
+	get(Bezier, start, point(SX, SY)),
+	get(Bezier, end, point(EX, EY)),
+	L is sqrt((EX-SX)**2 + (EY-SY)**2),
+	get(G, minimum_size, MS),
+	get(Ev, receiver, Canvas),
+	(   L < MS
+	->  send(Bezier, cut)
+	;   true
+	    /*send(Canvas, auto_align, Bezier, create)*/
+	),
+	send(Canvas, close_undo_group).
+
+:- pce_end_class.
+
+
+:- pce_begin_class(draw_modify_bezier_gesture, gesture).
+
+class_variable(cursor,	cursor,		plus).
+class_variable(button,	button_name,	middle).
+
+variable(point,		point*,		both,	"Point to move").
+
+verify(G, Ev:event) :->
+	"Start if event is close to point"::
+	get(Ev, receiver, Bezier),
+	(   get(G, button, left)
+	->  get(Bezier, selected, @on)
+	;   true
+	),
+	get(Bezier, point, Ev, Point),
+	send(G, point, Point).
+
+initiate(G, Ev:event) :->
+	"Move pointer to point"::
+	get(Ev, window, Canvas),
+	send(Canvas, open_undo_group),
+	get(Ev, receiver, Bezier),
+	get(G, point, Point),
+	send(Bezier?device, pointer, Point).
+
+drag(G, Ev:event) :->
+	"Move point to pointer"::
+	get(Ev, receiver, Bezier),
+	get(Bezier, device, Dev),
+	get(Ev, position, Dev, Pos),
+	send(Bezier, set_point, G?point, Pos?x, Pos?y).
+
+terminate(G, Ev:event) :->
+	send(G, drag, Ev),
+	get(Ev, window, Canvas),
+	send(Canvas, close_undo_group).
+
+:- pce_end_class.
+
+
+:- pce_begin_class(draw_edit_bezier_gesture, click_gesture,
+		   "Add/delete control point").
+
+initialise(G) :->
+	send_super(G, initialise,
+		   left, c, single, message(G, execute, @event)).
+		   
+
+execute(G, Ev:event) :->
+	get(Ev, receiver, Bezier),
+	(   get(Bezier, point, Ev, 5, Point) % trying to delete
+	->  (   get(Bezier, control2, Point)
+	    ->	send(Bezier, control2, @nil)
+	    ;	get(Bezier, control1, Point),
+		get(Bezier, control2, C2),
+		C2 \== @nil
+	    ->	send(Bezier, control1, C2),
+		send(Bezier, control2, @nil)
+	    ;	send(G, report, warning,
+		     'Can only delete control-point of cubic Bezier curve')
+	    )
+	;   get(Ev, position, Bezier?device, Pos),
+	    get(Bezier?start, mid, Bezier?control1, M1),
+	    get(Bezier?end,   mid, Bezier?control1, M2),
+	    get(M1, distance, Pos, D1),
+	    get(M2, distance, Pos, D2),
+	    (	D1 < D2
+	    ->	get(Bezier, control1, C1),
+		send(Bezier, control2, C1),
+		send(Bezier, control1, Pos)
+	    ;	send(Bezier, control2, Pos)
+	    )
+	).
+
+
+:-pce_end_class.
 
 
 		/********************************

@@ -1334,10 +1334,18 @@ drawPostScriptBezier(Bezier b)
     if ( b->pen != ZERO )
     { ps_output("newpath ~d ~d moveto\n", b->start->x, b->start->y);
       ps_output("~T ~p pen\n", b, b);
-      ps_output("~d ~d ~d ~d ~d ~d curveto draw\n",
-		b->control->x, b->control->y,
-		b->control->x, b->control->y,
-		b->end->x, b->end->y);
+      if ( isNil(b->control2) )
+      { /* TBD: This is not correct! */
+	ps_output("~d ~d ~d ~d ~d ~d curveto draw\n",
+		  b->control1->x, b->control1->y,
+		  b->control1->x, b->control1->y,
+		  b->end->x, b->end->y);
+      } else
+      { ps_output("~d ~d ~d ~d ~d ~d curveto draw\n",
+		  b->control1->x, b->control1->y,
+		  b->control2->x, b->control2->y,
+		  b->end->x, b->end->y);
+      }
     }
 
     if ( adjustFirstArrowBezier(b) )

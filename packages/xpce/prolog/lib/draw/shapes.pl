@@ -623,7 +623,8 @@ delete(Path, P:point) :->
 		     message(Path, insert, P, @nil))
 	    )
 	;   true
-	).
+	),
+	send_super(Path, delete, P).
 	    
 insert(Path, P:point, After:point*) :->
 	send(Path, send_super, insert, P, After),
@@ -645,6 +646,24 @@ set_point(Path, P:point, X:int, Y:int) :->
 
 :- draw_end_shape.
 
+
+		 /*******************************
+		 *	   BEZIER CURVE		*
+		 *******************************/
+
+:- draw_begin_shape(draw_bezier, bezier_curve, "PceDraw editable Bezier curve",
+		    [@draw_bezier_recogniser]).
+
+set_point(Path, P:point, X:int, Y:int) :->
+	(   get(Path, window, Window),
+	    send(Window, has_send_method, undo_action)
+	->  object(P, point(OX, OY)),
+	    send(Window, undo_action, message(Path, set_point, P, OX, OY))
+	;   true
+	),
+	send(Path, send_super, set_point, P, X, Y).
+
+:- draw_end_shape.
 
 
 		/********************************

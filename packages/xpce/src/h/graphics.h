@@ -255,8 +255,9 @@ End;
 NewClass(bezier)
   ABSTRACT_JOINT
   Point	start;
-  Point control;
   Point end;
+  Point control1;			/* Quadratic Bezier Curve */
+  Point control2;			/* Cubic Bezier Curve */
 End;
 
 NewClass(box)
