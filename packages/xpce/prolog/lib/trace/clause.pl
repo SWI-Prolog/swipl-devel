@@ -30,7 +30,7 @@
 */
 
 :- module(prolog_clause,
-	  [ clause_info/4,		% +ClaseRef, -File, -TermPos, -VarNames
+	  [ clause_info/4,		% +ClauseRef, -File, -TermPos, -VarNames
 	    clear_clause_info_cache/0,
 
 	    predicate_name/2,		% +Head, -Name
