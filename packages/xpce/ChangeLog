@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Completion (TAB) in file_item (library(pce_file_item)).
+
 * FIXED: `graphical->draw_image': correctly handle non-rectangular images.
 
 * MODIFIED: PceEmacs command M-x insert_date to insert just the date, not
