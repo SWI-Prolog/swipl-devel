@@ -818,10 +818,12 @@ rdf_save_list(Out, List, DefNS, Indent, DB) :-
 %	anonymous_subject(+Subject)
 %	
 %	Test if a resource is anonymous. This is highly dubious.
-%	Probably we need to store this in the database.
+%	Probably we need to store this in the database.  The current
+%	release of the RDF parser guarantees that all anonymous ids
+%	start with __.
 
 anonymous_subject(S) :-
-	sub_atom(S, _, _, _, '__'), !.
+	sub_atom(S, 0, _, _, '__'), !.
 
 %	rdf_id(+Resource, +DefNS, -NSLocal)
 %	

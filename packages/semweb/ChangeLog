@@ -1,3 +1,7 @@
+Aug 18, 2003
+
+  * MODIFIED: Assume ids starting with __ are anonymous
+
 Aug 6, 2003
 
   * FIXED: namespace generation in rdf_save/2.  Laura Hollink
