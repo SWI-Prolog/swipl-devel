@@ -159,10 +159,10 @@ $(srcdir)/pl-atom.ih:	$(srcdir)/ATOMS
 		cd $(srcdir) ; $(AWK) -f defatom.awk < ATOMS
 
 pl-bite:	$(srcdir)/pl-bite.c
-		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $<
+		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/pl-bite.c
 
 chpl:		$(srcdir)/chpl.c
-		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $<
+		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/chpl.c
 
 tags:		TAGS
 

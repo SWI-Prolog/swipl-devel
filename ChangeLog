@@ -1,6 +1,18 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.1.15
+==============
+
+  * FIXED: read/1 to push the load context when reading end-of-file, so
+    the following works:
+
+	term_expansion(end_of_file, end_of_file) :-
+	    	prolog_load_context(file, Path),
+		format('Finished loading ~w~n', [Path]).
+
+  * FIXED: abolish/2 on imported procedures.  Reported by Peter Barth.
+
 Version 2.1.14
 ==============
 

@@ -323,16 +323,18 @@ abolishProcedure(Procedure proc, Module module)
 { register Definition def = proc->definition;
 
   if ( def->module != module )		/* imported predicate; remove link */
-  { def  = (Definition) allocHeap(sizeof(struct definition));
-    proc->definition = def;
-    def->module = module;
-    def->definition.clauses = NULL;
-    def->lastClause = NULL;
+  { Definition ndef	     = allocHeap(sizeof(struct definition));
+
+    proc->definition         = ndef;
+    ndef->functor            = def->functor;
+    ndef->module             = module;
+    ndef->definition.clauses = NULL;
+    ndef->lastClause         = NULL;
 #ifdef O_PROFILE
-    def->profile_ticks = 0;
-    def->profile_calls = 0;
-    def->profile_redos = 0;
-    def->profile_fails = 0;
+    ndef->profile_ticks      = 0;
+    ndef->profile_calls      = 0;
+    ndef->profile_redos      = 0;
+    ndef->profile_fails      = 0;
 #endif /* O_PROFILE */
     resetProcedure(proc);
 

@@ -361,6 +361,7 @@ raw_read2(void)
 		{ warning("Attempt to read past end-of-file");
 		  return NULL;
 		}
+		set_start_line;
 		strcpy(rb.base, "end_of_file. ");
 		return rb.base;
       case '/': c = getchr();
