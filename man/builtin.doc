@@ -266,7 +266,9 @@ compiled state using \exam{pl -c \ldots} and files loaded using consult
 or one of its derivatives. The predicate make/0 is called after
 edit/1, automatically reloading all modified files.  It the user uses
 an external editor (in a separate window), make/0 is normally used to
-update the program after editing.
+update the program after editing.  In addition, make/0 updates the
+autoload indices (see \secref{autoload}) and runs list_undefined/0
+from the \pllib{check} library to report on undefined predicates.
 
     \predicate{library_directory}{1}{?Atom}
 Dynamic predicate used to specify library directories.  Default

@@ -3140,10 +3140,13 @@ mmaakkee
     Consult  all source  files that  have been changed  since they  were
     consulted.   It checks _a_l_l  loaded source files:  files loaded  into
     a  compiled state  using pl -c ...  and files  loaded using  consult
-    or  one of its  derivatives.  The  predicate make/0 is called  after
-    edit/1,  automatically reloading all  modified files.   It the  user
-    uses  an external editor (in a separate window), make/0  is normally
-    used to update the program after editing.
+    or  one  of  its  derivatives.    The  predicate  make/0  is  called
+    after  edit/1, automatically reloading all  modified files.  It  the
+    user  uses an  external editor  (in  a separate  window), make/0  is
+    normally  used to update  the program after  editing.  In  addition,
+    make/0  updates the  autoload indices  (see section  2.13) and  runs
+    list_undefined/0  from  the check  library  to report  on  undefined
+    predicates.
 
 
 lliibbrraarryy__ddiirreeccttoorryy((_?_A_t_o_m))
@@ -13017,14 +13020,25 @@ lliisstt__uunnddeeffiinneedd
     predicate  is  considered defined  if it  has clauses,  is  declared
     using  dynamic/1 or  multifile/1.   As a  program is compiled  calls
     are  translated to predicates.   If the called predicate is not  yet
-    defined  it is created as a predicate without definition.   The same
-    happens  with runtime  generated calls.   This  predicate lists  all
-    such undefined predicates that  are not defined in the library.  See
-    also list_autoload/0.
+    defined  it  is created  as a  predicate without  definition.    The
+    same  happens with runtime  generated calls.   This predicate  lists
+    all  such undefined predicates that  are referenced and not  defined
+    in  the library.   See  also list_autoload/0.   Below is an  example
+    from a real  program and an illustration how to edit the referencing
+    predicate using edit/1.
 
-    Note:   undefined  predicates are never  removed from the  database.
-    For  proper results  it is  therefore adviced to  run check/0  right
-    after loading your program.
+    ?- list_undefined.
+    Warning: The predicates below are not defined. If these are defined
+    Warning: at runtime using assert/1, use :- dynamic Name/Arity.
+    Warning:
+    Warning: rdf_edit:rdfe_retract/4, which is referenced by
+    Warning:         1-st clause of rdf_edit:undo/4
+    Warning: rdf_edit:rdfe_retract/3, which is referenced by
+    Warning:         1-st clause of rdf_edit:delete_object/1
+    Warning:         1-st clause of rdf_edit:delete_subject/1
+    Warning:         1-st clause of rdf_edit:delete_predicate/1
+
+    ?- edit(rdf_edit:undo/4).
 
 
 lliisstt__aauuttoollooaadd
@@ -14850,13 +14864,14 @@ suggest predicates from a keyword.
 
  dynamic            1150    fx   Predicate
  module_transparent 1150    fx   Predicate
+ meta_predicate     1150    fx   Head
  multifile          1150    fx   Predicate
  thread_local       1150    fx   Predicate
  volatile           1150    fx   Predicate
  initialization     1150    fx   Predicate
  :-                 1200    fx   Introduces a directive
- ?-                 1200    fx   Introduces a directive
 
+ ?-                 1200    fx   Introduces a directive
  -->                1200   xfx   DCGrammar:  rewrite
  :-                 1200   xfx   head :- body.  separator
 
@@ -15074,8 +15089,8 @@ char_conversion/2, 56, 385             PL_unify_functor(), 810
 char_type/2, 370--372                  PL_unify_integer(), 807
 character_count/2, 277                 PL_unify_list(), 811
 chdir/1, 546, 547                      PL_unify_list_chars(), 804
-check _l_i_b_r_a_r_y, 243, 915, 984           PL_unify_list_nchars(), 774
-check/0, 107, 915--917                 PL_unify_list_ncodes(), 773
+check _l_i_b_r_a_r_y, 108, 243, 915, 984      PL_unify_list_nchars(), 774
+check/0, 107, 915, 916                 PL_unify_list_ncodes(), 773
 check_old_select/0, 22                 PL_unify_nil(), 812
 checklist/2, 478                       PL_unify_pointer(), 809
 checkselect _l_i_b_r_a_r_y, 22                PL_unify_string_chars(), 805
@@ -15206,7 +15221,7 @@ e/0, 441                               read_stream_to_codes/2,r931ead_term/2,  4
 edit/0, 130                                  338, 361
 edit/1, 23,  56, 58, 82,  85, 90,      read_term/3, 336, 384, 554
       98,   108,  128--131,  133,      read_term/[2
-      982                                 3], 336
+      917, 982                            3], 336
 edit_source/1, 134                     readutil _l_i_b_r_a_r_y, 80, 927, 985
 editor _c_l_a_s_s, 81, 86                   reconsult/1, 102
 Emacs, 37                              recorda/2, 221
@@ -15390,7 +15405,7 @@ list_undefined/0, 917                  true/0, 56, 167, 183
 list_autoload/0, 916, 917              truncate/1, 417
 list_debug_topics/0, 920               tty_get_capability/3, 500
 list_redefined/0, 916                  tty_goto/2, 501
-list_undefined/0, 916, 918             tty_put/2, 502
+list_undefined/0, 108, 916, 918        tty_put/2, 502
 listing/0, 137                         tty_size/2, 504
 listing/1, 47, 136, 137                tty_get_capability/2, 504
 load_files/2, 103, 982                 tty_get_capability/3, 502

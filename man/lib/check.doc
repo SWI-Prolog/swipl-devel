@@ -20,11 +20,24 @@ multifile/1.  As a program is compiled calls are translated to
 predicates.  If the called predicate is not yet defined it is created
 as a predicate without definition. The same happens with runtime
 generated calls.  This predicate lists all such undefined predicates
-that are not defined in the library.  See also list_autoload/0.
+that are referenced and not defined in the library. See also
+list_autoload/0. Below is an example from a real program and an
+illustration how to edit the referencing predicate using edit/1.
 
-Note: undefined predicates are never removed from the database.  For
-proper results it is therefore adviced to run check/0 right after
-loading your program.
+\begin{code}
+?- list_undefined.
+Warning: The predicates below are not defined. If these are defined
+Warning: at runtime using assert/1, use :- dynamic Name/Arity.
+Warning: 
+Warning: rdf_edit:rdfe_retract/4, which is referenced by
+Warning:         1-st clause of rdf_edit:undo/4
+Warning: rdf_edit:rdfe_retract/3, which is referenced by
+Warning:         1-st clause of rdf_edit:delete_object/1
+Warning:         1-st clause of rdf_edit:delete_subject/1
+Warning:         1-st clause of rdf_edit:delete_predicate/1
+
+?- edit(rdf_edit:undo/4).
+\end{code}
 
     \predicate{list_autoload}{0}{}
 Lists all undefined (see list_undefined/0) predicates that have a
