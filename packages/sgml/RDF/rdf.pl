@@ -246,11 +246,22 @@ modify_state([H|T], Options0, Options) :-
 	modify_state1(H, Options0, Options1),
 	modify_state(T, Options1, Options).
 
-modify_state1(xml:base = Base, Options0, Options) :- !,
+modify_state1(xml:base = Base0, Options0, Options) :- !,
+	remove_fragment(Base0, Base),
 	set_option(base_uri(Base), Options0, Options).
 modify_state1(xml:lang = Lang, Options0, Options) :- !,
 	set_option(lang(Lang), Options0, Options).
 modify_state1(_, Options, Options).
+
+%	remove_fragment(+URI, -WithoutFragment)
+%	
+%	When handling xml:base, we must delete the possible fragment.
+
+remove_fragment(URI, Plain) :-
+	sub_atom(URI, B, _, _, #), !,
+	sub_atom(URI, 0, B, _, Plain).
+remove_fragment(URI, URI).
+
 
 set_option(Opt, Options0, [Opt|Options]) :-
 	functor(Opt, F, A),
