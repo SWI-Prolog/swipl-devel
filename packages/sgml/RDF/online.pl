@@ -355,6 +355,7 @@ go :-
 error(E) :-
 	message_to_string(E, Msg),
 	head('Failed to parse'),
+	show_errors,
 	#p::[ 'An exception was raised while parsing your request:' ],
 	#pre(Msg),
 	foot,

@@ -1,3 +1,5 @@
+  * CGI Demo: report errors generated before a fatal exception.
+
   * FIXED: handling of propertyElt of the form
     rdf:ID="myid" rdf:parseType="Resource" 
 
