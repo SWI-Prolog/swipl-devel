@@ -23,6 +23,11 @@ SWI-Prolog
     IRIX style MAP_AUTOGROW maps.  Provides mmap-based stacks for more
     platforms.
 
+  * ADDED: Make it possible for signals to break blocking (I/O) calls.  This
+    makes it possible to use call_with_time_limit/2 on socket operations and
+    more.  This mechanism is not yet exploited for all operations where it
+    makes sense.
+
   * Quite a few minor patches.
 
 Packages
