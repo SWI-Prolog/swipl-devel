@@ -327,8 +327,14 @@ getReferenceTextItem(TextItem ti)
 
 static status
 pasteTextItem(TextItem ti, Int buffer)
-{ TRY( pasteText(ti->value_text, buffer) );
+{ Bool oldm, newm;
+
+  oldm = getModifiedTextItem(ti);
+  TRY( pasteText(ti->value_text, buffer) );
+  newm = getModifiedTextItem(ti);
   requestComputeGraphical(ti, DEFAULT);
+  if ( oldm != newm && hasSendMethodObject(ti->device, NAME_modifiedItem) )
+    send(ti->device, NAME_modifiedItem, ti, newm, EAV);
 
   succeed;
 }
@@ -1305,10 +1311,14 @@ resetTextItem(TextItem ti)
 status
 displayedValueTextItem(TextItem ti, CharArray txt)
 { if ( !equalCharArray(ti->value_text->string, txt, OFF) )
-  { TRY(stringText(ti->value_text, txt));
+  { Bool oldm, newm;
+
+    oldm = getModifiedTextItem(ti);
+    TRY(stringText(ti->value_text, txt));
+    newm = getModifiedTextItem(ti);
     requestComputeGraphical(ti, DEFAULT);
-    if ( hasSendMethodObject(ti->device, NAME_modifiedItem) )
-      send(ti->device, NAME_modifiedItem, ti, ON, EAV);
+    if ( oldm != newm && hasSendMethodObject(ti->device, NAME_modifiedItem) )
+      send(ti->device, NAME_modifiedItem, ti, newm, EAV);
   }
 
   succeed;
