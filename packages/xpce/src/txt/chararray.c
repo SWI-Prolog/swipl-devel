@@ -165,9 +165,11 @@ subCharArray(CharArray n1, CharArray n2, Bool ign_case)
 }
 
 
-static status
-isWideCharArray(CharArray s)
-{ return str_iswide(&s->data);
+status
+isWideCharArray(Any s)
+{ CharArray ca = s;
+
+  return str_iswide(&ca->data);
 }
 
 

@@ -1941,6 +1941,30 @@ str_sub_text_buffer(TextBuffer tb, String s, int start, int len)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The promoteTextBuffer() function transforms an 8-bit textbuffer into a
+wide character one.  Otherwise nothing is changed.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static status
+promoteTextBuffer(TextBuffer tb)
+{ if ( istbA(tb) )
+  { charW *w = pceMalloc(tb->allocated * sizeof(charW));
+    const charA *f = Address(tb, 0);
+    const charA *e = &f[tb->allocated];
+    charW *t = w;
+
+    while(f<e)
+      *t++ = *f++;
+
+    pceFree(tb->tb_bufferA);
+    tb->tb_bufferW = w;
+    tb->buffer.iswide = TRUE;
+  }
+
+  succeed;
+}
+
 
 /*  Insert the contents of file `file' into the text buffer at position
     `where' `times' times. Returns SUCCEED if everything was ok, FAIL
@@ -1962,11 +1986,6 @@ insert_file_textbuffer(TextBuffer tb, int where, int times, SourceSink file)
   if ( !(fd = Sopen_object(file, "rr")) )
     fail;
   size = Ssize(fd);
-  if ( !istbA(tb) )
-  { if ( size % 2 )
-      errorPce(tb, NAME_oddDataSize);
-    size /= 2;
-  }
 
   room(tb, where, times*size);
   start_change(tb, tb->gap_start);
@@ -2003,32 +2022,34 @@ insert_file_textbuffer(TextBuffer tb, int where, int times, SourceSink file)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Insert a string into a textbuffer. If  the textbuffer is ISO Latin-1 and
+the string is wide, the textbuffer is promoted. This could be improved a
+bit by checking whether the string really contains wide characters.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static status
 insert_textbuffer_shift(TextBuffer tb, int where, int times,
 			String s, int shift)
 { int grow;
-  int unitsize;
-  int size;
   int here;
 
-  if ( istbA(tb) )
-  { unitsize = sizeof(charA);
-    size = (isstrA(s) ? s->size : s->size * 2);
-  } else
-  { unitsize = sizeof(charW);
-    size = (isstrA(s) ? s->size/2 : s->size);
-  }
+  if ( s->size == 0 )
+    succeed;
 
-  grow = times * size;
+  if ( istbA(tb) && s->iswide )
+    promoteTextBuffer(tb);
+
+  grow = times * s->size;
   where = NormaliseIndex(tb, where);
   room(tb, where, grow);
 
   register_insert_textbuffer(tb, where, grow);
   start_change(tb, tb->gap_start);
   while(times-- > 0)
-  { memmove(Address(tb, tb->gap_start), s->s_text, istbA(tb) ? size : size*2);
-    tb->gap_start += size;
-    tb->size += size;
+  { memmove(Address(tb, tb->gap_start), s->s_text, str_datasize(s));
+    tb->gap_start += s->size;
+    tb->size += s->size;
   }
   end_change(tb, tb->gap_start);  
 
@@ -2219,12 +2240,13 @@ room(TextBuffer tb, int where, int grow)
     int ag = tb->allocated - tb->gap_end - 1;
 
     shift = s - tb->allocated;
-    tb->tb_bufferA = pceRealloc(tb->tb_bufferA, istbA(tb) ? s : s*2);
+    tb->tb_bufferA = pceRealloc(tb->tb_bufferA,
+				istbA(tb) ? s : s*sizeof(charW));
     tb->allocated = s;
     
     memmove(Address(tb, tb->gap_end + 1 + shift),
 	    Address(tb, tb->gap_end + 1),
-	    istbA(tb) ? ag : ag*2);
+	    istbA(tb) ? ag : ag*sizeof(charW));
     tb->gap_end += shift;
   }
 
@@ -2232,11 +2254,11 @@ room(TextBuffer tb, int where, int grow)
   if ( shift < 0 )				/* move gap towards start */
   { memmove(Address(tb, tb->gap_end + shift + 1),
 	    Address(tb, where),
-	    istbA(tb) ? -shift : 2 * -shift);
+	    istbA(tb) ? -shift : sizeof(charW) * -shift);
   } else if ( shift > 0 )			/* move gap towards end */
   { memmove(Address(tb, tb->gap_start),
 	    Address(tb, tb->gap_end + 1),
-	    istbA(tb) ? shift : 2 * shift);
+	    istbA(tb) ? shift : sizeof(charW) * shift);
   }    
   tb->gap_start += shift;			/* move the gap pointers */
   tb->gap_end += shift;
@@ -2244,83 +2266,6 @@ room(TextBuffer tb, int where, int grow)
   succeed;
 }
 
-#if 0
-
-		 /*******************************
-		 *	    EVENT VIEW		*
-		 *******************************/
-
-#define endFragment(f) ((f)->start + (f)->length)
-
-static void
-forCharsInTextBuffer(TextBuffer tb, TextEventFunction f, text_event *ev)
-{ Fragment *open_fragments = alloca(sizeof(Fragment) * 4);
-  Fragment current_fragment, next_close_fragment = NULL;
-  int open_allocated = 4;
-  int open_count = 0;
-  int size = tb->size;
-  int i;
-
-  current_fragment = tb->first_fragment; /* sorted by start-index */
-  if ( isNil(current_fragment) )
-    current_fragment = NULL;
-
-  for(i=0; i<size; i++)
-  { int n, m;
-
-    if ( current_fragment && current_fragment->start == i )
-    { ev->type = TXT_FRAGMENT_START;
-      ev->value.fragment = current_fragment;
-      (*f)(ev);
-      
-					/* ensure space */
-      if ( open_count + 1 > open_allocated )
-      { Fragment *new = alloca(sizeof(Fragment)*open_allocated*2);
-	
-	memcpy(new, open_fragments, sizeof(Fragment)*open_allocated);
-	open_allocated *= 2;
-	open_fragments = new;
-      }
-
-					/* insert fragment by close index */
-      for( n=0;
-	   n<open_count &&
-	   endFragment(open_fragments[n]) > endFragment(current_fragment);
-	   n++)
-	;
-      for(m=open_count; m > n; m--)
-	open_fragments[m+1] = open_fragments[m];
-      open_fragments[n] = current_fragment;
-      next_close_fragment = open_fragments[open_count++];
-      current_fragment = notNil(current_fragment->next)
-				? current_fragment->next
-				: (Fragment)NULL;
-    }
-
-    if ( next_close_fragment && endFragment(next_close_fragment) == i )
-    { ev->type = TXT_FRAGMENT_END;
-      ev->value.fragment = next_close_fragment;
-      (*f)(ev);
-
-      for( n=0; open_fragments[n] != next_close_fragment; n++ )
-	;
-      open_count--;
-      for( ; n < open_count; n++ )
-	open_fragments[n] = open_fragments[n+1];
-      if ( open_count > 0 )
-	next_close_fragment = open_fragments[open_count-1];
-      else
-	next_close_fragment = NULL;
-    }
-
-    ev->type = TXT_FRAGMENT_CHAR;
-    ev->value.character = fetch_textbuffer(tb, i);
-
-    (*f)(ev);
-  }
-}
-
-#endif /*0*/
 
 		 /*******************************
 		 *	 ASFILE INTERFACE	*

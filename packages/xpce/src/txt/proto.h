@@ -2,6 +2,7 @@
 
 /* /staff/jan/src/pl/packages/xpce/src/txt/chararray.c */
 COMMON(status)	initialiseCharArray(CharArray n, CharArray value);
+COMMON(status)	isWideCharArray(Any ca);
 COMMON(Name)	getValueCharArray(CharArray n);
 COMMON(status)	equalCharArray(CharArray n1, CharArray n2, Bool ign_case);
 COMMON(status)	prefixCharArray(CharArray n1, CharArray n2, Bool ign_case);

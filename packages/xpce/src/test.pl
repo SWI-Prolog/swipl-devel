@@ -150,7 +150,7 @@ srcsink(contents-1) :-
 	numlist(32, 1000, L),
 	tmp_file(test, Tmp),
 	open(Tmp, write, Out, [encoding(utf8)]),
-	checklist(put_code(Out), L),
+	maplist(put_code(Out), L),
 	close(Out),
 	new(File, file(Tmp, utf8)),
 	get(File, contents, String),
@@ -161,7 +161,7 @@ srcsink(read-1) :-
 	numlist(32, 1000, L),
 	tmp_file(test, Tmp),
 	open(Tmp, write, Out, [encoding(utf8)]),
-	checklist(put_code(Out), L),
+	maplist(put_code(Out), L),
 	close(Out),
 	new(File, file(Tmp, utf8)),
 	send(File, open, read),
@@ -170,9 +170,6 @@ srcsink(read-1) :-
 	delete_file(Tmp),
 	get(String, value, Atom),
 	atom_codes(Atom, L).
-
-
-
 
 
 		 /*******************************

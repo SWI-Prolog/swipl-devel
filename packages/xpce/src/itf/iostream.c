@@ -166,7 +166,9 @@ Sopen_object(Any obj, const char *mode)
     IOSTREAM *s;
 
     if ( (s=Sopen_file(strName(name), mode)) )
+    { setStreamEncodingSourceSink(obj, s);
       return s;
+    }
     
     errorPce(obj, NAME_openFile,
 	     mode[0] == 'r' ? NAME_read : NAME_write,
