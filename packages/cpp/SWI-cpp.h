@@ -26,6 +26,10 @@
 #include <string.h>
 #include <malloc.h>
 
+#ifdef __BORLANDC__
+#define __inline inline 
+#endif 
+
 class PlTerm;
 class PlTermv;
 
