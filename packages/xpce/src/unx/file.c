@@ -947,7 +947,7 @@ makeClassFile(Class class)
 	     "Name of the file");
   localClass(class, NAME_path, NAME_path, "path=[name]", NAME_both,
 	     "Full path-name of the file");
-  localClass(class, NAME_kind, NAME_text, "{text,binary}", NAME_get,
+  localClass(class, NAME_kind, NAME_fileType, "{text,binary}", NAME_get,
 	     "Text or binary file");
   localClass(class, NAME_status, NAME_open, "{closed,read,write}", NAME_get,
 	     "One of {closed,read,write}");

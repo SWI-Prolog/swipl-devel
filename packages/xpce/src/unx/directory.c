@@ -333,10 +333,10 @@ makeClassDirectory(Class class)
   sendMethod(class, NAME_access, NAME_test, 1, "{read,write}",
 	     "Test if directory has access {read, write}",
 	     accessDirectory);
-  sendMethod(class, NAME_make, NAME_unix, 0,
+  sendMethod(class, NAME_make, NAME_edit, 0,
 	     "Create the OS counterpart",
 	     makeDirectory);
-  sendMethod(class, NAME_remove, NAME_delete, 0,
+  sendMethod(class, NAME_remove, NAME_edit, 0,
 	     "Delete the OS counterpart",
 	     removeDirectory);
   sendMethod(class, NAME_cd, NAME_workingDirectory, 0,

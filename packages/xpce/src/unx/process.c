@@ -703,7 +703,7 @@ copyTty(Process p, char *pty, int fd)
     buf.c_oflag = 0;
     buf.c_cflag = CLOCAL|HUPCL|CREAD|CS8|B38400;
     buf.c_lflag = ISIG|ICANON|ECHOCTL;
-#if !_AIX && !hpux && !solaris
+#if !_AIX && !hpux && !solaris && !sgi
     buf.c_line  = 0;
 #endif
 
