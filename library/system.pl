@@ -46,6 +46,12 @@
 %	once be fixed by defining all of them in a module ($system), so
 %	the user can savely remove them from module user.
 
+system_mode(X) :-
+	var(X), !,
+	(   style_check(?dollar)
+	->  X = on
+	;   X = off
+	).
 system_mode(on) :-
 	style_check(+dollar).
 system_mode(off) :-
