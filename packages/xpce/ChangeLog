@@ -1,6 +1,9 @@
 VERSION 5.1.4
 =============
 
+* FIXED: Install the GUI tracer 16x16 icons (Unix version), reported by
+  Frank Schilder.
+
 * FIXED: Clip-handling on Windows, notably using class win_printer.
 
 * FIXED: Line-texture (dashes, etc) in Windows NT/2000.  Slightly enhanced
