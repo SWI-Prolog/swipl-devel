@@ -1210,6 +1210,14 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
   int shadow = valInt(e->height);
   int fill;				/* fill interior */
 
+  NormaliseArea(x, y, w, h);
+  if ( radius > 0 )
+  { int maxr = min(w,h)/2;
+
+    if ( radius > maxr )
+      radius = maxr;
+  }
+
   if ( e->kind == NAME_shadow )
   { XSegment s[2 * MAX_SHADOW];
     int is = 0;				/* # segments */

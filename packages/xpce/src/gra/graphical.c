@@ -590,7 +590,8 @@ selection_bubble(int x, int y, int w, int h, int wx, int wy)
   int bx = x + (w - bw) * wx / 2;
   int by = y + (h - bh) * wy / 2;
 
-  r_complement(bx, by, bw, bh);
+  r_fill(bx, by, bw, bh, BLACK_COLOUR);
+/*r_complement(bx, by, bw, bh);*/
 }
 
 

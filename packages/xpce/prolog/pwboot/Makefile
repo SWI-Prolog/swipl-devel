@@ -8,9 +8,9 @@
 
 MAKE=make
 SHELL=bash
-BIN=sun4-4
+BIN=sun4-5
 SO=so
-builddir=sun4
+builddir=linux
 PCEMAJOR=4
 PCEMINOR=9
 PCEPATCH=7

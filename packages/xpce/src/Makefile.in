@@ -636,7 +636,7 @@ rt-home:
 		if [ ! -d $(RTHOME) ]; then mkdir $(RTHOME); fi
 
 rt-bitmaps:
-	BMFS=`find ../bitmaps \( -name '*.bm' -o -name '*.xpm' -o -name '*.xbm' \) -print` && \
+	BMFS=`find ../bitmaps/ \( -name '*.bm' -o -name '*.xpm' -o -name '*.xbm' \) -print` && \
 	$(INSTALL_DATA) -vp1 ../bitmaps/README $$BMFS $(RTHOME) >> $(RTFILES)
 
 rt-postscript:
@@ -687,8 +687,12 @@ dv-lib:
 		    fi; \
 		    echo -n "Installing library files for prolog/$$d ..."; \
 		    $(INSTALL_DATA) ../prolog/$$d/*.pl $(DVHOME)/prolog/$$d; \
+		    if [ -r ../prolog/$$d/README ]; then \
+		        $(INSTALL_DATA) ../prolog/$$d/README $(DVHOME)/prolog/$$d; \
+		    fi; \
 		    echo done; \
 		done
+		$(INSTALL_DATA) ../prolog/lib/Overview $(DVHOME)/prolog/lib
 		@if [ ! -d $(DVHOME)/prolog/lib/dialog/bitmaps ]; then \
 		    mkdir $(DVHOME)/prolog/lib/dialog/bitmaps; \
 		fi

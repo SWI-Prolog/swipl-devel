@@ -1,5 +1,12 @@
 [VERSION 4.9.7]
 
+* FIXED: Displaying 3-d rectangles with radius > min(w,h)/2 (Unix/X11 version)
+
+* FIXED: Displaying windows on tab objects (Unix/X11 version)
+
+* FIXED: Avoid r_complement() for drawing `selection-bubbles' on graphical
+  objects.
+
 * FIXED: CtoNumber(), which could raise the error `number->initialise has
   1 argument'.  This function was incorrectly called on evaluation of
   expressions in the Windows version.  The error lead to performance

@@ -345,7 +345,9 @@ updatePositionWindow(PceWindow sw)
 
     ws_geometry_window(sw, x, y, w, h, pen);
   } else
-    uncreateWindow(sw);
+  { uncreateWindow(sw);
+    assign(sw, displayed, ON);
+  }
 
   succeed;
 }
