@@ -43,8 +43,10 @@ unlink(I) :->
 event(I, Ev:event) :->
 	get(I, shadow, Shadow),
 	(   get(Shadow, message, @default),
-	    get(Ev, id, 13)
+	    get(Ev, id, 13)		% RET
 	->  send_super(I, event)
+	;   get(Ev, id, 9)		% TAB
+	->  send_super(I, event, Ev)
 	;   send(Shadow, event, Ev),
 	    send(I, update),
 	    (   send(Ev, is_a, keyboard)
