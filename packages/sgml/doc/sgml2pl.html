@@ -211,7 +211,11 @@ Same as <code>load_structure(File, ListOfContent, [dialect(xml)])</code>.
     
 <dt>&nbsp;<br>
 <b><a name="load_html_file/2">load_html_file(<var>+File, -Content</var>)</a></b><dd>
-Load <var>File</var> and parse as HTML. Implemented as:
+Load <var>File</var> and parse as HTML. Implemented as below.  Note that
+<a href="#load_html_file/2"><b>load_html_file/2</b></a> re-uses a cached DTD object as defined
+by <a href="#dtd/2"><b>dtd/2</b></a>.  As DTD objects may be corrupted while loading
+errornous documents sharing is undesirable if the documents are not
+known to be correct.  See <a href="#dtd/2"><b>dtd/2</b></a> for details.
 
 
 
@@ -677,6 +681,13 @@ absolute_file_name(dtd(Type),
 </td></tr>
 </table>
 
+
+Note that DTD objects may be modified while processing errornous
+documents. For example, loading an SGML document starting with
+<code>&lt;?xml ...?&gt;</code> switches the DTD to XML mode and encountering
+unknown elements adds these elements to the DTD object. Re-using a DTD
+object to parse multiple documents should be restricted to situations
+where the documents processed are known to be error-free.
 
     
 <dt>&nbsp;<br>

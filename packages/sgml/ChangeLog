@@ -1,3 +1,8 @@
+Jan 17, 2004
+
+  * FIXED: handling <?xml ...?> switching from SGML to XML mode.
+    Fabien Todescato.
+
 Jan 9, 2004
 
   * FIXED: avoid sharing DTD objects between threads.  Fabien Todescato.

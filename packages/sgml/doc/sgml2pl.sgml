@@ -143,7 +143,11 @@ Same as <term>load_structure(File, ListOfContent, [dialect(sgml)])</term>.
 Same as <term>load_structure(File, ListOfContent, [dialect(xml)])</term>.
     <pred>load_html_file(+File, -Content)
     <summary>Parse HTML file into Prolog term
-Load <aref/File/ and parse as HTML. Implemented as:
+Load <aref/File/ and parse as HTML. Implemented as below.  Note that
+<pref>load_html_file/2</pref> re-uses a cached DTD object as defined
+by <pref>dtd/2</pref>.  As DTD objects may be corrupted while loading
+errornous documents sharing is undesirable if the documents are not
+known to be correct.  See <pref>dtd/2</pref> for details.
 
 <code>
 load_html_file(File, Term) :-
@@ -511,6 +515,13 @@ absolute_file_name(dtd(Type),
                    ], DtdFile),
 ...
 </code>
+
+Note that DTD objects may be modified while processing errornous
+documents. For example, loading an SGML document starting with
+<verb><?xml ...?></verb> switches the DTD to XML mode and encountering
+unknown elements adds these elements to the DTD object. Re-using a DTD
+object to parse multiple documents should be restricted to situations
+where the documents processed are known to be error-free.
 
     <pred>dtd_property(+DTD, ?Property)
     <summary>Query elements, entities and attributes in a DTD

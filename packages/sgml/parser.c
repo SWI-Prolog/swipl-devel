@@ -3560,6 +3560,15 @@ process_pi(dtd_parser *p, const ichar *decl)
   if ( (s=isee_identifier(dtd, decl, "xml")) ) /* <?xml version="1.0"?> */
   { decl = s;
 
+    switch(dtd->dialect)
+    { case DL_SGML:
+	set_dialect_dtd(dtd, DL_XML);
+        break;
+      case DL_XML:
+      case DL_XMLNS:
+	break;
+    }
+
     while(*decl)
     { dtd_symbol *nm;
 
@@ -3587,14 +3596,6 @@ process_pi(dtd_parser *p, const ichar *decl)
       break;
     }
 
-    switch(dtd->dialect)
-    { case DL_SGML:
-	set_dialect_dtd(dtd, DL_XML);
-        break;
-      case DL_XML:
-      case DL_XMLNS:
-	break;
-    }
     return TRUE;
   }
 
