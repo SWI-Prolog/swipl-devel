@@ -747,7 +747,8 @@ distribute_selection(Canvas) :->
 	"Distribute selected objects"::
 	get(Canvas, selection, Selection),
 	send(Selection, for_all,
-	     if(message(@arg1, instance_of, connection),
+	     if(or(message(@arg1, instance_of, connection),
+		   ?(@arg1, hypered, supports)),
 		message(Selection, delete, @arg1))),
 	get(Selection, size, Size),
 	(   Size < 3
@@ -764,7 +765,8 @@ distribute_selection(Canvas) :->
 	    chain_list(Selection, List),
 	    send(Canvas, open_undo_group),
 	    distribute(List, Y0, Dir, 0, Sep),
-	    send(Canvas, close_undo_group)
+	    send(Canvas, close_undo_group),
+	    send(Canvas, report, status, 'Distributed in %s-direction', Dir)
 	;   send(Canvas, report, warning, 'Cannot determine direction')
 	).
 

@@ -194,7 +194,7 @@ make_vis_node_popup(P) :-
 	P->>append(menu_item(source,
 			     condition := Visual?class?creator == host)),
 	P->>append(class_details),
-	P->>append(inspect).
+	P->>append(object_details).
 
 popup(_V, _Id:'name|int', @vis_node_popup:popup) :<-
 	true.
@@ -217,7 +217,7 @@ class_details(V) :->
 	Class = V->>selection->>class,
 	V->>request_tool_focus(Class).
 
-inspect(V) :->
+object_details(V) :->
 	Visual = V->>selection,
 	V->>frame->>manual->>inspect(Visual).
 
