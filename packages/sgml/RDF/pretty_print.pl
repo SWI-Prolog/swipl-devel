@@ -45,10 +45,10 @@ pp(Module:Term, Indent) :-
 	atomic(Module), !,
 	writeq(Module), write(:),
 	pp(Term, Indent).
-pp([A1 := V1|ArgList], Indent) :-	% [] is done by `atomic'!
+pp([A1 = V1|ArgList], Indent) :-	% [] is done by `atomic'!
 	is_list(ArgList),
-	forall(member(A, ArgList), A = (_ := _)), !,
-	longest_attribute([A1 := V1|ArgList], 0, L),
+	forall(member(A, ArgList), A = (_ = _)),
+	longest_attribute([A1 = V1|ArgList], 0, L), !,
 	NewIndent is Indent + 2,
 	(   L > 9, Indent < 25, length(ArgList, Args), Args > 1
 	->  ArgIndent is Indent + 4,
@@ -58,13 +58,13 @@ pp([A1 := V1|ArgList], Indent) :-	% [] is done by `atomic'!
 	),
 	write('[ '),
 	pp(A1, Indent), term_length(A1, L1),
-	tab(L-L1), write(' :='), ValGoal,
+	tab(L-L1), write(' ='), ValGoal,
 	pp(V1, ArgIndent),
-	forall(member(A := V, ArgList),
+	forall(member(A = V, ArgList),
 	       (write(','), nl,
 		indent(NewIndent),
 		pp(A, Indent), term_length(A, LA), tab(L-LA),
-		write(' :='), ValGoal, pp(V, ArgIndent))),
+		write(' ='), ValGoal, pp(V, ArgIndent))),
 	nl,
 	indent(Indent),
 	write(']').
@@ -117,7 +117,7 @@ pparg(_, Term, _, Indent) :-
 	pp(Term, Indent).
 
 longest_attribute([], L, L).
-longest_attribute([A := _|T], L0, L) :-
+longest_attribute([A = _|T], L0, L) :-
 	term_length(A, AL),
 	max(L0, AL, L1),
 	longest_attribute(T, L1, L).

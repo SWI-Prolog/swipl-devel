@@ -1,0 +1,134 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+
+<html>
+<head>
+<title>Online SWI-Prolog RDF parser demo</title>
+</head>
+<body>
+
+<h1 align=center>Online SWI-Prolog RDF parser demo</h1>
+
+<p>
+This page provides an online demonstration of an RDF parser written in
+<a href="http://www.swi.psy.uva.nl/projects/SWI-Prolog/">SWI-Prolog</a>.
+This RDF parser has a couple of attractive properties:
+
+<dl>
+    <dt><b>Small</b><dd>
+Both in terms of source-code (&lt; 700 lines) and executable.
+    <dt><b>Fast</b><dd>
+Parses about 400 Kbytes/sec on a Pentium-II/450.
+    <dt><b>Conforming</b><dd>
+This parser conforms to <a href="http://www.w3.org/TR/REC-rdf-syntax">
+http://www.w3.org/TR/REC-rdf-syntax</a>.
+    <dt><b>Prolog based</b><dd>
+Many people regard the Prolog programming language a good vehicle to
+reason about RDF statements. Having a simple and fast Prolog-based RDF
+parser makes life easier.
+    <dt><b>Portability</b><dd>
+The RDF parser itself is written in ISO Prolog.  The XML parser is
+written in ANSI-C.  There is no standard for interfacing Prolog and C,
+but the interface is relatively small.
+</dl>
+
+A more detailed description of this packages is available in <a
+href="rdf2pl.html">in this document</a>. The sources of the parser are
+included into the <a
+href="http://www.swi.psy.uva.nl/projects/SWI-Prolog/packages/sgml/">sgml</a>
+packages for SWI-Prolog. The individual source files can also be
+examined through the <a
+href="http://gollem.swi.psy.uva.nl/cgi-bin/pl-cvsweb/packages/sgml/RDF">
+cvsweb service</a>.
+
+<p>
+<hr>
+Please write your RDF description into the text-area below or select a
+local file using the <b>File:</b> item and submit it. If anything goes
+wrong, please mail <a href="mailto:jan@swi.psy.uva.nl">Jan
+Wielemaker</a>.
+
+<p>
+<em>The RDF-data submitted is kept <b>anonymously</b> on our server and
+might be used by us to examine problems with our RDF parser.  We do not
+publish this material.</em> The result-page provides a form for
+attaching a comment to the stored RDF statement.
+
+<p>
+<form
+  name=rdf
+  method=post
+  enctype="multipart/form-data"
+  action="http://localhost/cgi-bin/rdf-parser">
+<table align=center>
+<tr><td colspan=2>
+  <textarea name=rdf rows=15 cols=72 wrap=off></textarea>
+<tr><td>File: <input name=attachment type=file>
+    <td align=right>
+      <input type=button value='Example 1' onClick="ex1()">
+      <input type=button value='Example 2' onClick="ex2()">
+      <input type=button value='Example 3' onClick="ex3()">
+<tr><td align=left><input type=reset value="Clear Text">
+    <td align=right><input type=submit value="Parse RDF">
+</table>
+</form>
+
+<!---------------------------------------------------------------->
+<!-- EXAMPLES -->
+<!---------------------------------------------------------------->
+
+<script language="JavaScript">
+
+function ex1()
+{ document.rdf.rdf.value='<?xml version="1.0"?>\
+\
+<!-- Example 1 from REC-rdf-syntax -->\
+\
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"\
+         xmlns:s="http://description.org/schema/">\
+  <rdf:Description about="http://www.w3.org/Home/Lassila">\
+     <s:Creator>Ora Lassila</s:Creator>\
+  </rdf:Description>\
+</rdf:RDF>';
+}
+
+function ex2()
+{ document.rdf.rdf.value='<?xml version="1.0"?>\
+\
+<!-- Example from REC-rdf-syntax, demonstrating reification -->\
+\
+<rdf:RDF\
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"\
+  xmlns:s="http://description.org/schema/">\
+  <rdf:Description about="http://www.w3.org/Home/Lassila" bagID="D_001">\
+    <s:Creator>Ora Lassila</s:Creator>\
+    <s:Title>Ora\'s Home Page</s:Title>\
+  </rdf:Description>\
+</rdf:RDF>';
+}
+
+function ex3()
+{ document.rdf.rdf.value='<?xml version="1.0"?>\
+\
+<!-- Example from REC-rdf-syntax, demonstrating typed nodes -->\
+\
+<RDF\
+  xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"\
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"\
+  xmlns:n="http://www.nist.gov/units/">\
+  <Description about="John_Smith">\
+    <n:weight rdf:parseType="Resource">\
+      <rdf:value>200</rdf:value>\
+      <n:units rdf:resource="http://www.nist.gov/units/Pounds"/>\
+    </n:weight>\
+  </Description>\
+</RDF>';
+}
+</script>
+</body>
+</html>
+
+
+
+
+
+

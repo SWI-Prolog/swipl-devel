@@ -23,12 +23,13 @@
 \maketitle
 
 \begin{abstract}
-RDF ({\bf R}esource {\bf D}escription {\bf F}ormat) is a W3C standard
-for expressing meta-data about web-resources. It has three 
-representations providing the same semantics. RDF documents are
-normally transferred as XML documents using the RDF-XML syntax.  This
-format is very unsuitable for processing.  The parser defined here
-converts an RDF-XML document into the triple notation.
+\url[RDF]{http://www.w3.org/RDF/} ({\bf R}esource {\bf D}escription {\bf
+F}ormat) is a \url[W3C]{http://www.w3.org/} standard for expressing
+meta-data about web-resources. It has three representations providing
+the same semantics. RDF documents are normally transferred as XML
+documents using the RDF-XML syntax. This format is unsuitable for
+processing. The parser defined here converts an RDF-XML document into
+the \jargon{triple} notation.
 \end{abstract}
 
 \vfill
@@ -43,36 +44,37 @@ converts an RDF-XML document into the triple notation.
 \section{Introduction}
 
 RDF is a promising standard for representing meta-data about documents
-on the web as well as exchanging ontologies. RDF is often associated
-with `semantics on the web'. It consists of a formal data-model defined
-in terms of \jargon{triples}. In addition, a \jargon{graph} model is
-defined for visualisation and an XML application is defined for
-exchange.
+on the web as well as exchanging frame-based data (e.g. ontologies). RDF
+is often associated with `semantics on the web'. It consists of a formal
+data-model defined in terms of \jargon{triples}. In addition, a
+\jargon{graph} model is defined for visualisation and an XML application
+is defined for exchange.
 
-`Semantics on the web' is often associated with the Prolog programming
+`Semantics on the web' is also associated with the Prolog programming
 language. It is assumed that Prolog is a suitable vehicle to reason with
 the data expressed in RDF models. Most of the related web-infra
 structure (e.g. XML parsers, DOM implementations) are defined in Java,
-Perl, C or C++.
+Perl, C or C+{+}.
 
 Various routes are available to the Prolog user. Low-level XML parsing
-is due to its nature best done in C or C++. These languages produce fast
-code. As XML/SGML are the basis of most of the other web-related formats
-we will benefit most here. XML and SGML being very stable specifications
-make this even more attractive.
+is due to its nature best done in C or C+{+}. These languages produce
+fast code. As XML/SGML are at the basis of most of the other web-related
+formats we will benefit most here. XML and SGML, being very stable
+specifications, make fast compiled languages even more attractive.
 
-But what about RDF?  RDF-XML is defined in XML, and provided with a
-Prolog term representing the XML document processing it according to
-the RDF syntax is quick and easy in Prolog.  The alternative, getting
-yet another library and language attached to the system, is getting
-less attractive.
+But what about RDF? RDF-XML is defined in XML, and provided with a
+Prolog term representing the XML document processing it according to the
+RDF syntax is quick and easy in Prolog. The alternative, getting yet
+another library and language attached to the system, is getting less
+attractive. In this document we explore the suitability of Prolog for
+processing XML documents in general and into RDF in particular. 
 
 
 \section{Parsing RDF in Prolog}
 
-To demonstrate this, we realised an RDF compiler in Prolog on top of
-the sgml2pl package (providing a name-space sensitive XML parser).
-The transformation is realised in two passes.
+We realised an RDF compiler in Prolog on top of the {\bf sgml2pl}
+package (providing a name-space sensitive XML parser). The
+transformation is realised in two passes.
 
 The first pass rewrites the XML term into a Prolog term conveying the
 same information in a more friendly manner.  This transformation is
@@ -81,7 +83,7 @@ Prolog with properties similar to DCG (Definite Clause Grammar).
 
 The source of this translation is very close to the BNF notation used by
 the \url[specification]{http://www.w3.org/TR/REC-rdf-syntax/}, so
-correctness is `obvious'. Below is a part of the definition of RDF
+correctness is `obvious'. Below is a part of the definition for RDF
 containers. Note that XML elements are represented using a term of the
 format:
 
@@ -150,7 +152,7 @@ description(description, About, BagID, Properties) ::=
 
 \section{Predicates}
 
-The parser is designed to operate on various environments and therefore
+The parser is designed to operate in various environments and therefore
 provides interfaces at various levels. First we describe the top level
 defined in \pllib{rdf}, simply parsing a PDF-XML file into a list of
 triples. Please note these are {\em not} asserted into the database
@@ -191,7 +193,7 @@ either a plain atom or a parsed XML term (list of atoms and elements).
 
 XML name spaces are identified using a URI. Unfortunately various URI's
 are in common use to refer to RDF. The \file{rdf_parser.pl} module
-therefore defined the namespace as a multifile/1 predicate, that can be
+therefore defines the namespace as a multifile/1 predicate, that can be
 extended by the user. For example, to parse the \url[Netscape
 OpenDirectory]{http://www.mozilla.org/rdf/doc/inference.html}
 \file{structure.rdf} file, the following declarations are used:
@@ -215,12 +217,13 @@ rdf_name_space('http://www.w3.org/TR/REC-rdf-syntax').
 
 \subsection{Low-level access}
 
-The above defined load_rdf/[2,3] is not always suitable.  For example,
-it cannot deal with documents where the RDF statement is embedded an
-XML document. It also cannot deal with really big documents (e.g.\
-the Netscape OpenDirectory project), without huge amounts of memory.
+The above defined load_rdf/[2,3] is not always suitable. For example, it
+cannot deal with documents where the RDF statement is embedded in an XML
+document. It also cannot deal with really large documents (e.g.\ the
+Netscape OpenDirectory project, currently about 90 MBytes), without huge
+amounts of memory.
 
-For really big documents, the {\bf sgml2pl} parser can be programmed
+For really large documents, the {\bf sgml2pl} parser can be programmed
 to handle the content of a specific element (i.e. \elem{rdf:RDF})
 element-by-element.  The parsing primitives defined in this section
 can be used to process these one-by-one.

@@ -22,8 +22,8 @@
 term_expansion(F, T) :- rew_term_expansion(F, T).
 goal_expansion(F, T) :- rew_goal_expansion(F, T).
 
-:- multifile
-	rdf_name_space/1.
+:- multifile rdf_name_space/1.
+:- dynamic   rdf_name_space/1.
 
 rdf_name_space('http://www.w3.org/1999/02/22-rdf-syntax-ns#').
 rdf_name_space('http://www.w3.org/TR/REC-rdf-syntax').

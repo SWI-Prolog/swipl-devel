@@ -48,7 +48,7 @@ rew_goal_expansion(rewrite(To, From), Goal) :-
 %	Invoke the term-rewriting system
 
 rewrite(To, From) :-
-	strip_module(To, M, T),
+	'$strip_module'(To, M, T),
 	(   var(T)
 	->  From = T
 	;   T = \Rule

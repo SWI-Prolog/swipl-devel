@@ -1,0 +1,29 @@
+#!/bin/bash
+
+base=/staff/jan/src/pl/packages/sgml/RDF
+tmp=/tmp/rdf-parser-$$
+export ERROR_FILE=$tmp
+
+ulimit -t 20			# seconds CPU time limit
+
+function error()
+{ cat << _EOM_
+Content-type: text/plain
+
+Sorry, an internal error occurred.  For details, see below.
+
+_EOM_
+  cat $tmp
+  rm -r $tmp
+  exit 0
+}
+
+cd $base > $tmp 2>&1
+/staff/jan/bin/pl -f none -F none -t halt \
+	  -g "load_files(online,[silent(true)]),go" 2>$tmp
+
+case $? in
+    0)	rm -f $tmp
+        exit 0 ;;
+    *)  error ;;
+esac
