@@ -859,7 +859,7 @@ getPrologOptions()
 	  appendArgList(&ldoptions, v);
 	else if ( streq(name, "PLSOEXT") )
 	  soext = strdup(v);
-	else if ( streq(name, "PLTHREADS") && streq(v, "true") )
+	else if ( streq(name, "PLTHREADS") && streq(v, "yes") )
 	{ ensureOption(&coptions, "-D_REENTRANT");
 	  ensureOption(&cppoptions, "-D_REENTRANT");
 	  pllib = LIB_PLMT;
