@@ -1,3 +1,8 @@
+Jul 8, 2003
+
+  * FIXED: handling &#X, where 128<=X<256 with UTF-8 decoding enabled.
+    C. M. Sperberg-McQueen.
+
 Jun 9, 2003
 
   * FIXED: SGML SHORTREF declaration performed case-insensitive entity

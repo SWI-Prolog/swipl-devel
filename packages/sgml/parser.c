@@ -368,6 +368,22 @@ entity_value(dtd_parser *p, dtd_entity *e, int *len)
   return e->value;
 }
 
+/* Can we represent this character in a normal CDATA string?
+*/
+
+static int
+representable_char(dtd_parser *p, int chr)
+{ if ( chr < 0 )
+    return FALSE;			/* should not happen */
+  if ( chr < 128 )			/* basic ASCII set */
+    return TRUE;
+  if ( p->utf8_decode )
+    return FALSE;
+  if ( chr < OUTPUT_CHARSET_SIZE )
+    return TRUE;
+  return FALSE;
+}
+
 
 static int
 expand_pentities(dtd_parser *p, const ichar *in, ichar *out, int len)
@@ -414,7 +430,7 @@ expand_pentities(dtd_parser *p, const ichar *in, ichar *out, int len)
     { int chr;
 
       if ( (s=isee_character_entity(dtd, in, &chr)) &&
-	   chr > 0 && chr < OUTPUT_CHARSET_SIZE )
+	   representable_char(p, chr) )
       { *out++ = chr;
         in = s;
         continue;
