@@ -874,16 +874,41 @@ getDirectoryNameFile(FileObj f)
 
 static StringObj
 getReadLineFile(FileObj f)
-{ char tmp[LINESIZE];
+{ char tmp[1024];
+  char *s = tmp;
+  int allocated = sizeof(tmp);
+  int len = 0;
+  string str;
+  StringObj rval;
 
   TRY( check_file(f, NAME_read) );
 
-  if (fgets(tmp, LINESIZE, f->fd) == NULL)
-  { closeFile(f);
-    fail;
-  }
+  for(;;)
+  { int c = getc(f->fd);
 
-  answer(CtoString(tmp));
+    if ( c == EOF )
+      break;
+    if ( len >= allocated )
+    { allocated *= 2;
+
+      if ( s == tmp )
+      { s = pceMalloc(allocated);
+	memcpy(s, tmp, sizeof(tmp));
+      } else
+      { s = pceRealloc(s, allocated);
+      }
+    }
+    s[len++] = c;
+    if ( c == '\n' )
+      break;
+  }
+      
+  str_set_n_ascii(&str, len, s);
+  rval = StringToString(&str);
+  if ( s != tmp )
+    pceFree(s);
+
+  return rval;
 }
 
 
