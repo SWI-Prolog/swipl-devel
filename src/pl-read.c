@@ -211,7 +211,7 @@ errorWarning(char *what)
       PL_get_arg(2, argv+1, a); PL_unify_integer(a, source_line_no);
       PL_get_arg(3, argv+1, a); PL_unify_atom_chars(a, what);
 	       
-      qid = PL_open_query(MODULE_user, FALSE, pred, argv);
+      qid = PL_open_query(MODULE_user, PL_Q_NODEBUG, pred, argv);
       rval = PL_next_solution(qid);
       PL_close_query(qid);
       PL_discard_foreign_frame(cid);
@@ -248,7 +248,7 @@ singletonWarning(atom_t *vars, int nvars)
   }
   PL_unify_nil(a);
 
-  qid = PL_open_query(MODULE_user, FALSE, pred, argv);
+  qid = PL_open_query(MODULE_user, PL_Q_NODEBUG, pred, argv);
   rval = PL_next_solution(qid);
   PL_close_query(qid);
   PL_discard_foreign_frame(cid);
@@ -1958,7 +1958,7 @@ pl_read_term(term_t term, term_t options)
   int rval;
   atom_t w;
 
-  if ( !scan_options(options, 0, read_term_options,
+  if ( !scan_options(options, 0, ATOM_read_option, read_term_options,
 		     &syntax_errors, &varnames, &singles, &tpos, &subtpos) )
     return warning("read_term/2: illegal option list");
 

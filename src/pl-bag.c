@@ -68,18 +68,6 @@ pl_record_bag(term_t t)
 This predicate will fail if no more records are left before the mark.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if O_SECURE
-checkBags()
-{ Assoc a;
-
-  for(a=bags; a; a = a->next)
-  { checkData(&a->key->term, TRUE);
-    checkData(&a->value->term, TRUE);
-  }
-}
-#endif
-
-
 word
 pl_collect_bag(term_t bindings, term_t bag)
 { term_t var_term = PL_new_term_ref();	/* v() term on global stack */
@@ -122,7 +110,7 @@ pl_collect_bag(term_t bindings, term_t bag)
       PL_unify(tmp, bindings);
       PL_get_arg(2, binding, tmp);
       PL_cons_list(list, tmp, list);
-      SECURE(checkData(&list, FALSE));
+      SECURE(checkData(&list));
       freeAssoc(prev, a);
     }
   }

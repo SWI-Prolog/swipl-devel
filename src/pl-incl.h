@@ -81,6 +81,7 @@ handy for it someone wants to add a data type to the system.
 #define O_STRING		1
 #define O_PROLOG_FUNCTIONS	1
 #define O_BLOCK			1
+#define O_CATCHTHROW		1
 #define O_INLINE_FOREIGNS	1
 #define O_PCE			1	/* doesn't depend any longer */
 #define O_DEBUGGER		1
@@ -287,7 +288,7 @@ GLOBAL struct
 #endif
 #define succeed			return TRUE
 #define fail			return FALSE
-#define TRY(goal)		{ if ((goal) == FALSE) fail; }
+#define TRY(goal)		if ((goal) == FALSE) fail
 
 #define CL_START		0	/* asserta */
 #define CL_END			1	/* assertz */
@@ -540,7 +541,11 @@ codes.
 #define I_EXITFACT	((code)75)		/* exit from a fact */
 #define D_BREAK		((code)76)		/* Debugger break-point */
 
-#define I_HIGHEST	((code)76)		/* largest WAM code !!! */
+#if O_CATCHTHROW
+#define B_THROW		((code)77)		/* throw(Exception) */
+#endif
+
+#define I_HIGHEST	((code)77)		/* largest WAM code !!! */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Arithmetic comparison
@@ -704,6 +709,7 @@ REFERENCES
 Common Prolog objects typedefs.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+typedef unsigned long		term_t;		/* external term-reference */
 typedef unsigned long		word;		/* Anonimous 4 byte object */
 typedef word *			Word;		/* a pointer to anything */
 typedef word			atom_t;		/* encoded atom */
@@ -767,6 +773,9 @@ typedef struct
 #define GP_CREATE	2		/* create (in this module) */
 #define GP_DEFINE	4		/* define a procedure */
 #define GP_RESOLVE	5		/* find defenition */
+
+#define GP_HOW_MASK	0x0ff
+#define GP_NAMEARITY	0x100		/* or'ed mask */
 
 		 /*******************************
 		 *	      FLAGS		*
@@ -1079,6 +1088,10 @@ struct localFrame
 };  
 
 
+#define QF_NODEBUG		0x0001	/* debug-able query */
+#define QF_DETERMINISTIC	0x0002	/* deterministic success */
+#define	QF_INTERACTIVE		0x0004	/* interactive goal (prolog()) */
+
 struct queryFrame
 { long		magic;			/* Magic code for security */
 #if O_SHIFT_STACKS
@@ -1091,11 +1104,13 @@ struct queryFrame
   long		saved_depth_limit;	/* saved values of these */
   long		saved_depth_reached;
 #endif
-  int		debug;			/* FALSE: nondebugging call */
+#if O_CATCHTHROW
+  term_t	exception;		/* Exception term */
+#endif
+  unsigned long	flags;
   int		debugSave;		/* saved debugstatus.debugging */
   Word	       *aSave;			/* saved argument-stack */
   int		solutions;		/* # of solutions produced */
-  int		deterministic;		/* Last success was deterministic */
   LocalFrame	bfr;			/* BacktrackFrame */
   LocalFrame	saved_environment;	/* Parent local-frame */
   struct localFrame frame;		/* The local frame */
@@ -1204,7 +1219,6 @@ struct symbol
 		 *	   FLI INTERNALS	*
 		 *******************************/
 
-typedef unsigned long term_t;		/* external term-reference */
 typedef unsigned long qid_t;		/* external query-id */
 typedef unsigned long PL_fid_t;		/* external foreign context-id */
 
@@ -1409,6 +1423,10 @@ GLOBAL int	  source_line_no;	/* Current source line_no */
 GLOBAL long	  source_char_no;	/* Current source charno */
 GLOBAL bool	  fileerrors;		/* Report file errors? */
 GLOBAL atom_t	  float_format;		/* Default floating point format */
+GLOBAL term_t	  exception_term;	/* Current (latest) exception */
+GLOBAL term_t	  exception_bin;	/* Temp storage for exception term */
+GLOBAL term_t	  exception_printed;	/* We already printed this one! */
+GLOBAL unsigned long signalled;		/* PL_kill() signals */
 
 #define ReadingSource (source_line_no > 0 && \
 		       source_file_name != NULL_ATOM)
@@ -1508,9 +1526,11 @@ GLOBAL Table	moduleTable;		/* hash table of available modules */
 GLOBAL Procedure	PROCEDURE_alt1;	/* $alt/1, see C_OR */
 GLOBAL Procedure	PROCEDURE_garbage_collect0;
 GLOBAL Procedure	PROCEDURE_block3;
+GLOBAL Procedure	PROCEDURE_catch3;
 GLOBAL Procedure	PROCEDURE_true0;
 GLOBAL Procedure	PROCEDURE_fail0;
 GLOBAL Procedure	PROCEDURE_event_hook1;
+GLOBAL Procedure	PROCEDURE_print_message2;
 
 extern struct code_info	codeTable[];
 
@@ -1528,14 +1548,15 @@ Tracer communication declarations.
 #define ACTION_IGNORE	3
 #define ACTION_AGAIN	4
 
-#define CALL_PORT	0x01		/* port masks */
-#define EXIT_PORT	0x02
-#define FAIL_PORT	0x04
-#define REDO_PORT	0x08
-#define UNIFY_PORT	0x10
-#define BREAK_PORT	0x20
-#define CUT_CALL_PORT   0x40
-#define CUT_EXIT_PORT   0x80
+#define CALL_PORT	0x001		/* port masks */
+#define EXIT_PORT	0x002
+#define FAIL_PORT	0x004
+#define REDO_PORT	0x008
+#define UNIFY_PORT	0x010
+#define BREAK_PORT	0x020
+#define CUT_CALL_PORT   0x040
+#define CUT_EXIT_PORT   0x080
+#define EXCEPTION_PORT	0x100
 #define CUT_PORT	(CUT_CALL_PORT|CUT_EXIT_PORT)
 #define VERY_DEEP	1000000000L	/* deep skiplevel */
 
@@ -1642,6 +1663,7 @@ decrease).
 
 #include "pl-funcs.h"			/* global functions */
 #include "pl-main.h"			/* Declarations needed by pl-main.c */
+#include "pl-error.h"			/* Exception generation */
 
 extern struct atom atoms[];
 extern struct functorDef functors[];

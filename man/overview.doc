@@ -381,7 +381,7 @@ Trail  stack :    4,096,000        8,192          432 Bytes
 
 \section{Overview of the Debugger}
 
-SWI-Prolog has a standard 4-port tracer \cite{Clocksin:81} with an
+SWI-Prolog has a standard 4-port tracer \cite{Clocksin:87} with an
 optional fifth port. This fifth port, called \arg{unify} allows the user
 to inspect the result after unification of the head. The ports are
 called \const{call}, \const{exit}, \const{redo}, \const{fail} and
@@ -496,7 +496,7 @@ Write goals using the Prolog predicate write/1.}
 \end{description}
 
 The ideal 4 port model as described in many Prolog books
-\cite{Clocksin:81} is not visible in many Prolog implementations because
+\cite{Clocksin:87} is not visible in many Prolog implementations because
 code optimisation removes part of the choice- and exit points.
 Backtrack points are not shown if either the goal succeeded
 deterministically or its alternatives were removed using the cut.  When

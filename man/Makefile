@@ -59,6 +59,8 @@ $(MANUAL):	latex_if_needed doc.tex $(TEXFILES) doc.bbl doc.ind
 man:		doc.tex $(TEXFILES) doc.bbl doc.ind
 		$(LATEX) doc
 
+tex:		$(TEXFILES)
+
 .doc.tex:	
 		./doc2tex $*.doc > $*.tex
 

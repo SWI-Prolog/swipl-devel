@@ -22,4 +22,4 @@ install:
 distclean:	clean
 
 clean:
-	rm *.o dvi2tty
+	rm -f *.o dvi2tty

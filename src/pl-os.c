@@ -708,7 +708,7 @@ char *
 OsPath(const char *p)
 { return (char *) p;
 }
-#endif
+#endif /*unix*/
 
 #if O_XOS
 char *
@@ -966,14 +966,24 @@ MarkExecutable(char *name)
   um = umask(0777);
   umask(um);
   if ( statfunc(name, &buf) == -1 )
-    return warning("Can't stat(2) `%s': %s", name, OsError());
+  { term_t file = PL_new_term_ref();
+
+    PL_put_atom_chars(file, name);
+    PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+	     ATOM_stat, ATOM_file, file);
+  }
 
   if ( (buf.st_mode & 0111) == (~um & 0111) )
     succeed;
 
   buf.st_mode |= 0111 & ~um;
   if ( chmod(name, buf.st_mode) == -1 )
-    return warning("Couldn't turn %s into an executable: %s", name, OsError());
+  { term_t file = PL_new_term_ref();
+
+    PL_put_atom_chars(file, name);
+    PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+	     ATOM_chmod, ATOM_file, file);
+  }
 #endif /* defined(HAVE_STAT) && defined(HAVE_CHMOD) */
 
   succeed;
@@ -1220,7 +1230,8 @@ takeWord(char **string)
 
   while( isalnum(*s) || *s == '_' )
   { if ( --left < 0 )
-    { warning("Variable or user name too long");
+    { PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
+	       ATOM_max_variable_length);
       return (char *) NULL;
     }
     *q++ = *s++;
@@ -1275,7 +1286,11 @@ expandVars(char *pattern, char *expanded)
       if ( !streq(fred, user) )
       { if ( (pwent = getpwnam(user)) == (struct passwd *) NULL )
 	{ if ( fileerrors )
-	    warning("%s: Unknown user", user);
+	  { term_t name = PL_new_term_ref();
+
+	    PL_put_atom_chars(name, user);
+	    PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_user, name);
+	  }
 	  fail;
 	}
 	strcpy(fred, user);
@@ -1285,13 +1300,14 @@ expandVars(char *pattern, char *expanded)
     }	  
 #else
     { if ( fileerrors )
-	warning("~%s: No user information", user);
+	PL_error(NULL, 0, NULL, ERR_NOTIMPLEMENTED, PL_new_atom("user_info"));
+
       fail;
     }
 #endif
     size += (l = (int) strlen(value));
     if ( size >= MAXPATHLEN )
-      return warning("Path name too long");
+      return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
     strcpy(expanded, value);
     expanded += l;
   }
@@ -1307,12 +1323,18 @@ expandVars(char *pattern, char *expanded)
 
 	  if ( value == (char *) NULL )
 	  { if ( fileerrors )
-	      warning("%s: Undefined variable", var);
+	    { term_t name = PL_new_term_ref();
+
+	      PL_put_atom_chars(name, var);
+	      PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_variable, name);
+	    }
+
 	    fail;
 	  }
 	  size += (l = (int)strlen(value));
 	  if ( size >= MAXPATHLEN )
-	    return warning("Path name too long");
+	    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
+			    ATOM_max_path_length);
 	  strcpy(expanded, value);
 	  expanded += l;
 
@@ -1320,7 +1342,8 @@ expandVars(char *pattern, char *expanded)
 	}
       default:
 	if ( ++size >= MAXPATHLEN )
-	  return warning("Path name too long");
+	  return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
+			  ATOM_max_path_length);
 	*expanded++ = c;
 
 	continue;
@@ -1329,7 +1352,8 @@ expandVars(char *pattern, char *expanded)
   }
 
   if ( ++size >= MAXPATHLEN )
-    return warning("Path name too long");
+    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
+		    ATOM_max_path_length);
   *expanded = EOS;
 
   succeed;
@@ -1359,14 +1383,22 @@ ExpandOneFile(char *spec)
   { case -1:
 	return (char *) NULL;
     case 0:
-	warning("%s: No match", spec);
-	return (char *) NULL;
+    { term_t tmp = PL_new_term_ref();
+      
+      PL_put_atom_chars(tmp, spec);
+      PL_error(NULL, 0, "no match", ERR_EXISTENCE, ATOM_file, tmp);
+    }
+      return (char *) NULL;
     case 1:
-	strcpy(file, vector[0]);
-	return file;
+      strcpy(file, vector[0]);
+      return file;
     default:
-	warning("%s: Ambiguous", spec);
-	return (char *) NULL;
+    { term_t tmp = PL_new_term_ref();
+      
+      PL_put_atom_chars(tmp, spec);
+      PL_error(NULL, 0, "ambiguous", ERR_EXISTENCE, ATOM_file, tmp);
+    }
+      return (char *) NULL;
   }
 }
 
@@ -1445,7 +1477,7 @@ AbsoluteFile(char *spec)
 #ifdef O_HASDRIVES
   if ( isDriveRelativePath(file) )	/* /something  --> d:/something */
   { if ((strlen(file) + 3) > MAXPATHLEN)
-    { warning("path name too long");
+    { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
       return (char *) NULL;
     }
     path[0] = GetCurrentDriveLetter();
@@ -1471,7 +1503,12 @@ to be implemented directly.  What about other Unixes?
     rval = getcwd(buf, MAXPATHLEN);
 #endif
     if ( !rval )
-      warning("getcwd() failed: %s", OsError());
+    { term_t tmp = PL_new_term_ref();
+
+      PL_put_atom(tmp, ATOM_dot);
+      PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+	       ATOM_getcwd, ATOM_directory, tmp);
+    }
     strcpy(CWDdir, canonisePath(buf));
     CWDlen = strlen(CWDdir);
     CWDdir[CWDlen++] = '/';
@@ -1479,7 +1516,7 @@ to be implemented directly.  What about other Unixes?
   }
 
   if ( (CWDlen + strlen(file) + 1) >= MAXPATHLEN )
-  { warning("path name too long");
+  { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
     return (char *) NULL;
   }
   
@@ -1958,7 +1995,7 @@ Setenv(char *name, char *value)
     rval = store_string(rval);
   Ssprintf(buf, "%s=%s", name, value);
   if ( putenv(store_string(buf)) < 0 )
-    warning("setenv/2: %s", OsError());
+    PL_error("setenv", 2, NULL, ERR_NOMEM);
 
   return rval;
 }
@@ -2031,13 +2068,10 @@ growEnviron(char **e, int amount)
   return e;
 }
 
+
 static void
 initEnviron(void)
-{
-#ifdef tos
-  environ = mainEnv;
-#endif
-  growEnviron(environ, 0);
+{ growEnviron(environ, 0);
 }
 
 
@@ -2174,7 +2208,7 @@ System(char *cmd)
   Setenv("PROLOGCHILD", "yes");
 
   if ( (pid = vfork()) == -1 )
-  { return warning("Fork failed: %s\n", OsError());
+  { return PL_error("shell", 2, OsError(), ERR_SYSCALL, ATOM_fork);
   } else if ( pid == 0 )		/* The child */
   { int i;
 
@@ -2197,13 +2231,21 @@ System(char *cmd)
 
     while((n = Wait(&status)) != -1 && n != pid);
     if (n == -1)
-    { warning("Failed to execute %s", cmd);
+    { term_t tmp = PL_new_term_ref();
+      
+      PL_put_atom_chars(tmp, cmd);
+      PL_error("shell", 2, NULL, ERR_SHELL_FAILED, tmp);
+
       rval = 1;
     } else if (WIFEXITED(status))
     { rval = WEXITSTATUS(status);
 #ifdef WIFSIGNALED
     } else if (WIFSIGNALED(status))
-    { warning("Child %s catched signal %d\n", cmd, WTERMSIG(status));
+    { term_t tmp = PL_new_term_ref();
+      int sig = WTERMSIG(status);
+      
+      PL_put_atom_chars(tmp, cmd);
+      PL_error("shell", 2, NULL, ERR_SHELL_SIGNALLED, tmp, sig);
       rval = 1;
 #endif
     } else

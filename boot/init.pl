@@ -44,41 +44,31 @@ dynamic((Spec, More)) :- !,
 	dynamic(Spec),
 	dynamic(More).
 dynamic(Spec) :-
-	$strip_module(Spec, Module, Name/Arity),
-	functor(Term, Name, Arity),
-	$set_predicate_attribute(Module:Term, (dynamic), 1).
+	$set_predicate_attribute(Spec, (dynamic), 1).
 
 multifile((Spec, More)) :- !,
 	multifile(Spec),
 	multifile(More).
 multifile(Spec) :-
-	$strip_module(Spec, Module, Name/Arity),
-	functor(Term, Name, Arity),
-	$set_predicate_attribute(Module:Term, (multifile), 1).
+	$set_predicate_attribute(Spec, (multifile), 1).
 
 module_transparent((Spec, More)) :- !,
 	module_transparent(Spec),
 	module_transparent(More).
 module_transparent(Spec) :-
-	$strip_module(Spec, Module, Name/Arity),
-	functor(Term, Name, Arity),
-	$set_predicate_attribute(Module:Term, transparent, 1).
+	$set_predicate_attribute(Spec, transparent, 1).
 
 discontiguous((Spec, More)) :- !,
 	discontiguous(Spec),
 	discontiguous(More).
 discontiguous(Spec) :-
-	$strip_module(Spec, Module, Name/Arity),
-	functor(Term, Name, Arity),
-	$set_predicate_attribute(Module:Term, (discontiguous), 1).
+	$set_predicate_attribute(Spec, (discontiguous), 1).
 
 volatile((Spec, More)) :- !,
 	volatile(Spec),
 	volatile(More).
 volatile(Spec) :-
-	$strip_module(Spec, Module, Name/Arity),
-	functor(Term, Name, Arity),
-	$set_predicate_attribute(Module:Term, (volatile), 1).
+	$set_predicate_attribute(Spec, (volatile), 1).
 
 :- module_transparent
 	(dynamic)/1,
@@ -98,16 +88,14 @@ volatile(Spec) :-
 %	Predicates protected this way are never visible in the tracer.
 
 $hide(Name, Arity) :-
-	functor(Head, Name, Arity),
-	$set_predicate_attribute(Head, trace, 0).
+	$set_predicate_attribute(Name/Arity, trace, 0).
 
 %	$show_childs(+Name, +Arity)
 %	Normally system predicates hide their childs frames if these are
 %	system predicates as well.  $show_childs suppresses this.
 
 $show_childs(Name, Arity) :-  
-	functor(Head, Name, Arity),
-        $set_predicate_attribute(Head, hide_childs, 0).
+        $set_predicate_attribute(Name/Arity, hide_childs, 0).
 
 		/********************************
 		*       CALLING, CONTROL        *
@@ -130,6 +118,7 @@ $show_childs(Name, Arity) :-
 	once/1,
 	ignore/1,
 	block/3,
+	catch/3,
 	apply/2.
 
 %   ->/2, ;/2, |/2 and \+/1 are normally compiled. These predicate catch them
@@ -205,6 +194,18 @@ fail(Label) :-
 	$cut(Label),				% handled by compiler
 	fail.
 
+%	catch(:Goal, +Catcher, :Recover)
+%	throw(+Exception)
+%
+%	ISO compliant exception handling.  $throw/1 is compiled to
+%	rhe virtual instruction B_THROW.  See pl-wam.c for details.
+
+catch(Goal, _Catcher, _Recover) :-
+	Goal.
+
+throw(Exception) :-
+	$throw(Exception).
+
 :-
 	$hide((';'), 2),
 	$hide(('|'), 2),
@@ -274,14 +275,7 @@ $undefined_procedure(Module, Name, Arity, retry) :-
 	),
 	flag($autoloading, _, Old),
 	$c_current_predicate(_, Module:Head).
-$undefined_procedure(Module, Name, Arity, fail) :-
-	$prefix_module(Module, user, Name, MName),
-	findall(Dwim, dwim_predicate(MName, Dwim), Dwims),
-	Dwims \== [],
-	functor(Goal, Name, Arity),
-	$prefix_module(Module, user, Goal, Pred),
-	$warn_undefined(Pred, Dwims),
-	trace.
+$undefined_procedure(_, _, _, fail).
 
 $calleventhook(Term) :-
 	(   notrace(user:prolog_event_hook(Term))
@@ -394,6 +388,12 @@ $predicate_name(Goal, String) :-
 	;   sformat(String, '~w:~w/~w',	[Module, Name, Arity])
 	).
 
+
+:- dynamic
+	user:portray/1.
+:- multifile
+	user:portray/1.
+	
 
 		 /*******************************
 		 *	 FILE_SEARCH_PATH	*
@@ -945,13 +945,17 @@ $execute_directive(Goal) :-
 
 $execute_directive2(Goal) :-
 	$set_source_module(Module, Module),
-	Module:Goal, !.
+	catch(Module:Goal, Term, $exception_in_directive(Term)), !.
 $execute_directive2(Goal) :-
 	$set_source_module(Module, Module),
 	(   Module == user
 	->  $warning('Directive failed: ~w', [Goal])
 	;   $warning('Directive failed: ~w:~w', [Module, Goal])
         ),
+	fail.
+
+$exception_in_directive(Term) :-
+	print_message(error, Term),
 	fail.
 
 %	Note that the list, consult and ensure_loaded directives are already

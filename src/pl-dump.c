@@ -28,7 +28,7 @@ parseSaveProgramOptions(term_t args,
 			int *local, int *global, int *trail, int *argument,
 			char **goal, char **toplevel, char **init_file,
 			bool *tty, bool *standalone)
-{ return scan_options(args, 0, save_options,
+{ return scan_options(args, 0, ATOM_save_option, save_options,
 		      local, global, trail, argument,
 		      goal, toplevel, init_file,
 		      tty, standalone);

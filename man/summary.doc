@@ -43,6 +43,7 @@ suggest predicates from a keyword.
 \oppredsummary{\=@=}{2}{xfx}{700}{Not structural identical}
 \oppredsummary{^}{2}{xfy}{200}{Existential quantification (bagof/3, setof/3)}
 \oppredsummary{|}{2}{xfy}{1100}{Disjunction of goals. Same as \predref{;}{2}}
+\predicatesummary{abolish}{1}{Remove predicate definition from the database}
 \predicatesummary{abolish}{2}{Remove predicate definition from the database}
 \predicatesummary{abort}{0}{Abort execution, return to top level}
 \predicatesummary{absolute_file_name}{2}{Get absolute path name}
@@ -81,6 +82,7 @@ suggest predicates from a keyword.
 \predicatesummary{call_dll_function}{2}{Win32: Call function in dynamic link library (.dll file)}
 \predicatesummary{call_shared_object_function}{2}{UNIX:  Call C-function in shared (.so) file}
 \predicatesummary{call_with_depth_limit}{3}{Prove goal with bounded depth}
+\predicatesummary{catch}{3}{Call goal, watching for exceptions}
 \predicatesummary{character_count}{2}{Get character index on a stream}
 \predicatesummary{chdir}{1}{Change working directory}
 \predicatesummary{checklist}{2}{Invoke goal on all members of a list}
@@ -127,10 +129,6 @@ suggest predicates from a keyword.
 \predicatesummary{delete}{3}{Delete all matching members from a list}
 \predicatesummary{delete_file}{1}{Remove a file from the file system}
 \oppredsummary{discontiguous}{1}{fx}{1150}{Indicate distributed definition of a predicate}
-\predicatesummary{display}{1}{Write a term, ignore operators}
-\predicatesummary{display}{2}{Write a term, ignore operators on a stream}
-\predicatesummary{displayq}{1}{Write a term with quotes, ignore operators}
-\predicatesummary{displayq}{2}{Write a term with quotes, ignore operators on a stream}
 \predicatesummary{dwim_match}{2}{Atoms match in ``Do What I Mean'' sense}
 \predicatesummary{dwim_match}{3}{Atoms match in ``Do What I Mean'' sense}
 \predicatesummary{dwim_predicate}{2}{Find predicate in ``Do What I Mean'' sense}
@@ -376,6 +374,7 @@ suggest predicates from a keyword.
 \predicatesummary{telling}{1}{Query current output stream}
 \predicatesummary{term_expansion}{2}{\hook{user} Convert term before compilation}
 \predicatesummary{term_to_atom}{2}{Convert between term and atom}
+\predicatesummary{throw}{1}{Raise an exception (see catch/3)}
 \predicatesummary{time}{1}{Determine time needed to execute goal}
 \predicatesummary{time_file}{2}{Get last modification time of file}
 \predicatesummary{tmp_file}{2}{Create a temporary filename}
@@ -405,6 +404,10 @@ suggest predicates from a keyword.
 \predicatesummary{write}{1}{Write term}
 \predicatesummary{write}{2}{Write term to stream}
 \predicatesummary{write_ln}{1}{Write term, followed by a newline}
+\predicatesummary{write_canonical}{1}{Write a term with quotes, ignore operators}
+\predicatesummary{write_canonical}{2}{Write a term with quotes, ignore operators on a stream}
+\predicatesummary{write_term}{2}{Write term with options}
+\predicatesummary{write_term}{3}{Write term with options to stream}
 \predicatesummary{writef}{1}{Formatted write}
 \predicatesummary{writef}{2}{Formatted write on stream}
 \predicatesummary{writeq}{1}{Write term, insert quotes}

@@ -77,18 +77,19 @@ $map_bits(Pred, ?Name, Old, Old) :-		% ask a bit
 	call(Pred, Name, Bits),
 	Old /\ Bits > 0.
 
-$port_bit(     call, 2'00000001).
-$port_bit(     exit, 2'00000010).
-$port_bit(     fail, 2'00000100).
-$port_bit(     redo, 2'00001000).
-$port_bit(    unify, 2'00010000).
-$port_bit(    break, 2'00100000).
-$port_bit( cut_call, 2'01000000).
-$port_bit( cut_exit, 2'10000000).
-$port_bit(      cut, 2'11000000).
-$port_bit(      all, 2'00111111).
-$port_bit(     full, 2'00101111).
-$port_bit(     half, 2'00101101).
+$port_bit(      call, 2'000000001).
+$port_bit(      exit, 2'000000010).
+$port_bit(      fail, 2'000000100).
+$port_bit(      redo, 2'000001000).
+$port_bit(     unify, 2'000010000).
+$port_bit(     break, 2'000100000).
+$port_bit(  cut_call, 2'001000000).
+$port_bit(  cut_exit, 2'010000000).
+$port_bit( exception, 2'100000000).
+$port_bit(       cut, 2'011000000).
+$port_bit(       all, 2'000111111).
+$port_bit(      full, 2'000101111).
+$port_bit(      half, 2'000101101).
 
 leash(Ports) :-
 	$leash(Old, Old),

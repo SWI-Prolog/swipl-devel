@@ -9,7 +9,6 @@
 
 GLOBAL int	mainArgc;		/* arguments to main() */
 GLOBAL char  ** mainArgv;
-GLOBAL char  ** mainEnv;
 
 		/********************************
 		*           STRUCTURES		*

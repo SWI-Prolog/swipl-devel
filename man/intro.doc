@@ -38,10 +38,10 @@ if-then (\predref{->}{2}) and not (\predref{\+}{1}).
 This manual does not describe the full syntax and semantics of
 SWI-Prolog, nor how one should write a program in Prolog.  These
 subjects have been described extensively in the literature.  See
-\cite{Bratko:86}, \cite{Sterling:86}, and \cite{Clocksin:81}.  For more
+\cite{Bratko:86}, \cite{Sterling:86}, and \cite{Clocksin:87}.  For more
 advanced Prolog material see \cite{Keefe:90}. Syntax and standard
 operator declarations confirm to the `Edinburgh standard'.  Most built
-in predicates are compatible with those described in \cite{Clocksin:81}.
+in predicates are compatible with those described in \cite{Clocksin:87}.
 SWI-Prolog also offers a number of primitive predicates compatible with
 Quintus Prolog%
     \footnote{Quintus is a trademark of Quintus Computer Systems Inc., USA} 
@@ -49,6 +49,8 @@ Quintus Prolog%
     \footnote{BIM is a trademark of BIM sa/nv., Belgium}
 \cite{BIMPROLOG:manual}.
 
+ISO compliant predicates are based on ``Prolog: The Standard'',
+\cite{Deransart:96}.
 
 \section{Status}
 
@@ -361,6 +363,20 @@ terms on the heap are now represented in a compiled format. SWI-Prolog
 no longer limits the use of \funcref{malloc}{} or uses assumptions on
 the addresses returned by this function.
 
+\section{Version 2.9 Release Notes}
+
+Version 2.9 is the next step towards version 3.0, improving ISO
+compliance and introducing ISO compliant exception handling. New are
+catch/3, throw/1, abolish/1, write_term/[2,3], write_canonical/[1,2] and
+the C-functions PL_exception() and PL_throw(). The predicates
+display/[1,2] and displayq/[1,2] have been moved to \pllib{backcomp}, so
+old code referring to them will autoload them.
+
+The interface to PL_open_query() has changed.  The \arg{debug} argument
+is replaced by a bitwise or'ed \arg{flags} argument.  The values
+\const{FALSE} and \const{TRUE} have their familiar meaning, making old
+code using these constants compatible. Non-zero values other than
+\const{TRUE} (1) will be interpreted different.
 
 \section{Acknowledgements}
 

@@ -1,11 +1,3 @@
-%%
-%% Note that this file may safely be included in `doc.tex'
-%% \bibliographystyle{whichever} and \bibliography{whatever} are
-%% only useful, if one also has the .bib sources
-%%
-%% comments begin with `%', uncertain subjects are labelled `??'
-%%
-
 \begin{thebibliography}{Anjewierden \& Wielemaker, 1989}
 
 \bibitem[Anjewierden \& Wielemaker, 1989]{P1098:C1.6}
@@ -15,58 +7,58 @@ A.~Anjewierden and J.~Wielemaker.
   Amsterdam, March 1989.
 
 \bibitem[BIM, 1989]{BIMPROLOG:manual}
-{\em BIM_Prolog release 2.4}.
+{\em BIM Prolog release 2.4}.
 \newblock Everberg, Belgium, 1989.
 
 \bibitem[Bowen \& Byrd, 1983]{Bowen:83}
-D.\,L.~Bowen and L.\,M.~Byrd.
-\newblock A portable Prolog compiler.
-\newblock In L.\,M. Pereira, ed., {\em Proceedings of the Logic Programming
+D.~L. Bowen and L.~M. Byrd.
+\newblock A portable {Prolog} compiler.
+\newblock In L.~M. Pereira, editor, {\em Proceedings of the Login Programming
   Workshop 1983}, Lisabon, Portugal, 1983. Universidade nova de Lisboa.
 
 \bibitem[Bratko, 1986]{Bratko:86}
 I.~Bratko.
 \newblock {\em Prolog Programming for Artificial Intelligence}.
-\newblock Addison-Wesley, Reading~MA, 1986.
+\newblock Addison-Wesley, Reading, Massachusetts, 1986.
 
-\bibitem[Clocksin \& Mellish, 1981]{Clocksin:81}
-W.\,F.~Clocksin and C.\,S.~Mellish.
+\bibitem[Clocksin \& Melish, 1987]{Clocksin:87}
+W.~F. Clocksin and C.~S. Melish.
 \newblock {\em Programming in Prolog}.
-\newblock Springer-Verlag, New York, 1981.
-\newblock (4th~ed. 1994)
+\newblock Springer-Verlag, New York, {T}hird, {R}evised and {E}xtended edition,
+  1987.
+
+\bibitem[Deransart {\em et al.}, 1996]{Deransart:96}
+P.~Deransart, A.~Ed-Dbali, and L.~Cervoni.
+\newblock {\em Prolog: The Standard}.
+\newblock Springer-Verlag, New York, 1996.
 
 \bibitem[Kernighan \& Ritchie, 1978]{Kernighan:78}
-B.\,W.~Kernighan and D.\,M.~Ritchie.
-\newblock {\em The C Programming Language}.
-\newblock Prentice-Hall, Englewood Cliffs~NJ, 1978.
-%\newblock (2nd ed., ANSI-C, 1988)
+B.~W. Kernighan and D.~M. Ritchie.
+\newblock {\em The {C} Programming Language}.
+\newblock Prentice-Hall, Englewood Cliffs, New Jersey, 1978.
 
-\bibitem[O'Keefe, 1990]{Keefe:90}
-R.\,A.~O'Keefe.
+\bibitem[OKeefe, 1990]{Keefe:90}
+R.~A. OKeefe.
 \newblock {\em The Craft of Prolog}.
-\newblock MIT Press, Cambridge~MA, 1990.
+\newblock MIT Press, Massachussetts, 1990.
 
 \bibitem[Pereira, 1986]{CPROLOG:manual}
 F.~Pereira.
 \newblock {\em C-Prolog User's Manual}, 1986.
 
-\bibitem[Qui, 1987]{QUINTUS:manual}
-{\em Quintus Prolog%				 release 2.??
-, User Guide and Reference Manual}.
-\newblock%					 Quintus Corp.,
- Mountain View~CA, 1987.
-%\newblock [Release 3.1, Palo Alto~CA, 1991]	% latest ??
+\bibitem[Qui, 1997]{QUINTUS:manual}
+{\em Quintus Prolog, User Guide and Reference Manual}.
+\newblock Berkhamsted, UK, 1997.
 
 \bibitem[Sterling \& Shapiro, 1986]{Sterling:86}
 L.~Sterling and E.~Shapiro.
 \newblock {\em The Art of Prolog}.
-\newblock MIT Press, Cambridge~MA, 1986.
-\newblock (2nd~ed. 1994)
+\newblock MIT Press, Cambridge, Massachusetts, 1986.
 
 \bibitem[Warren, 1983]{Warren:83b}
-D.\,H.\,D.~Warren.
-\newblock The runtime environment for a Prolog compiler using a copy algorithm.
-\newblock Technical Report 83/052, SUNY at Stony Brook, New York, 1983.
+D.~H.~D. Warren.
+\newblock The runtime environment for a prolog compiler using a copy algorithm.
+\newblock Technical Report 83/052, SUNY and Stone Brook, New York, 1983.
 \newblock Major revision March 1984.
 
 \end{thebibliography}

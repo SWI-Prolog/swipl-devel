@@ -180,7 +180,8 @@ tracePort(LocalFrame frame, LocalFrame bfr, int port, Code PC)
     }
   }
 
-  if ( port != BREAK_PORT &&
+  if ( (port != BREAK_PORT) &&
+       /*(port != EXCEPTION_PORT) &&*/
        ((!debugstatus.tracing &&
 	 (false(def, SPY_ME) || (port & CUT_PORT)))	|| /* non-tracing */
 	debugstatus.skiplevel < levelFrame(frame)	|| /* skipped */
@@ -252,14 +253,15 @@ again:
   Put( true(def, TRANSPARENT) ? '^' : ' ');
 
   switch(port)
-  { case CALL_PORT:	Putf(" Call:  ");	break;
-    case REDO_PORT:	Putf(" Redo:  ");	break;
-    case FAIL_PORT:	Putf(" Fail:  ");	break;
-    case EXIT_PORT:	Putf(" Exit:  ");	break;
-    case UNIFY_PORT:	Putf(" Unify: ");	break;
-    case BREAK_PORT:	Putf(" Break: ");	break;
-    case CUT_CALL_PORT:	Putf(" Cut call: ");	break;
-    case CUT_EXIT_PORT:	Putf(" Cut exit: ");	break;
+  { case CALL_PORT:	 Putf(" Call:  ");	break;
+    case REDO_PORT:	 Putf(" Redo:  ");	break;
+    case FAIL_PORT:	 Putf(" Fail:  ");	break;
+    case EXIT_PORT:	 Putf(" Exit:  ");	break;
+    case UNIFY_PORT:	 Putf(" Unify: ");	break;
+    case BREAK_PORT:	 Putf(" Break: ");	break;
+    case EXCEPTION_PORT: Putf(" Exception: ");	break;
+    case CUT_CALL_PORT:	 Putf(" Cut call: ");	break;
+    case CUT_EXIT_PORT:	 Putf(" Cut exit: ");	break;
   }
   Putf("(%3ld) ", levelFrame(frame));
   writeFrameGoal(frame, debugstatus.style);
@@ -434,7 +436,7 @@ traceAction(char *cmd, int port, LocalFrame frame, bool interactive)
 		} else
 		  Warn("Can't ignore goal at this port\n");
 		return ACTION_CONTINUE;
-    case 'r':	if (port & (REDO_PORT|FAIL_PORT|EXIT_PORT))
+    case 'r':	if (port & (REDO_PORT|FAIL_PORT|EXIT_PORT|EXCEPTION_PORT))
 		{ FeedBack("retry\n[retry]\n");
 		  return ACTION_RETRY;
 		} else
@@ -453,7 +455,7 @@ traceAction(char *cmd, int port, LocalFrame frame, bool interactive)
     case 'p':	FeedBack("print\n");
 		debugstatus.style = W_PRINT;
 		return ACTION_AGAIN;
-    case 'd':	FeedBack("display\n");
+    case 'd':	FeedBack("write canonical\n");
 		debugstatus.style = W_DISPLAY;
 		return ACTION_AGAIN;
     case 'l':	FeedBack("leap\n");
@@ -585,7 +587,7 @@ writeFrameGoal(LocalFrame frame, int how)
 	pl_writeq(goal);
 	break;
     case W_DISPLAY:
-	pl_display(goal);
+	pl_write_canonical(goal);
 	break;
   }
 
@@ -618,9 +620,9 @@ listProcedure(Definition def)
   term_t argv = PL_new_term_refs(1);
   Procedure proc = lookupProcedure(FUNCTOR_listing1, MODULE_system);
 
-  unify_definition(argv, def, 0);	/* module:name(args) */
+  unify_definition(argv, def, 0, 0);	/* module:name(args) */
   Output = 1;
-  qid = PL_open_query(MODULE_user, FALSE, proc, argv);
+  qid = PL_open_query(MODULE_user, PL_Q_NODEBUG, proc, argv);
   PL_next_solution(qid);
   PL_close_query(qid);
   Output = OldOut;
@@ -745,7 +747,7 @@ traceInterception(LocalFrame frame, LocalFrame bfr, int port, Code PC)
     PL_put_integer(argv+2, PrologRef(bfr));
     PL_put_variable(rarg);
 
-    qid = PL_open_query(MODULE_user, FALSE, proc, argv);
+    qid = PL_open_query(MODULE_user, PL_Q_NODEBUG, proc, argv);
     if ( PL_next_solution(qid) )
     { atom_t a;
 
@@ -928,7 +930,7 @@ initTracer(void)
 
   debugstatus.visible      = 
   debugstatus.leashing     = CALL_PORT|FAIL_PORT|REDO_PORT|EXIT_PORT|
-			     BREAK_PORT;
+			     BREAK_PORT|EXCEPTION_PORT;
   debugstatus.tracing      =
   debugstatus.debugging    = FALSE;
   debugstatus.suspendTrace = FALSE;
@@ -1166,7 +1168,7 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
 
 #ifdef O_DEBUGLOCAL			/* see pl-wam.c */
     assert( *argFrameP(fr, argn-1) != (word)(((char*)ATOM_nil) + 1) );
-    checkData(argFrameP(fr, argn-1), FALSE);
+    checkData(argFrameP(fr, argn-1));
 #endif
 
    deRef(p);

@@ -1510,8 +1510,9 @@ PL_predicate_info(predicate_t pred, atom_t *name, int *arity, module_t *m)
 int
 PL_call_predicate(Module ctx, int debug, predicate_t pred, term_t h0)
 { int rval;
+  int flags = (debug ? PL_Q_NORMAL : PL_Q_NODEBUG);
 
-  qid_t qid = PL_open_query(ctx, debug, pred, h0);
+  qid_t qid = PL_open_query(ctx, flags, pred, h0);
   rval = PL_next_solution(qid);
   PL_cut_query(qid);
 
@@ -1526,7 +1527,7 @@ PL_call(term_t t, Module m)
 
 
 		/********************************
-		*   UNDETERMINISTIC FOREIGNS    *
+		*	 FOREIGNS RETURN        *
 		********************************/
 
 foreign_t
@@ -1560,6 +1561,15 @@ PL_foreign_control(control_t h)
 { return ForeignControl(h);
 }
 
+
+int
+PL_throw(term_t exception)
+{ PL_put_term(exception_bin, exception);
+
+  exception_term = exception_bin;
+
+  fail;
+}
 
 		/********************************
 		*      REGISTERING FOREIGNS     *
@@ -1691,7 +1701,7 @@ void
 (*PL_signal(int sig, void (*func) (int)))(int)
 { void (*old)(int);
 
-  if ( sig < 0 || sig >= MAXSIGNAL )
+  if ( sig < 1 || sig > MAXSIGNAL )
   { fatalError("PL_signal(): illegal signal number: %d", sig);
     return NULL;
   }
@@ -1709,6 +1719,12 @@ void
   return old;
 }
 #endif
+
+void
+PL_raise(int sig)
+{ if ( sig > 0 && sig <= MAXSIGNAL )
+    signalled |= (1L << (sig-1));
+}
 
 
 		/********************************

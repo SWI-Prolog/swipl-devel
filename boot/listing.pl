@@ -118,7 +118,7 @@ notify_changed(_, _).
 %	various calls via meta-call predicates.
 
 portray_clause(Term) :-
-	numbervars(Term, $$VAR, 0, _), 
+	numbervars(Term, $VAR, 0, _), 
 	$portray_clause(Term), 
 	fail.					% undo bindings		
 portray_clause(_).
@@ -232,4 +232,4 @@ $n_times(N, Goal) :-
 $n_times(_, _).	
 
 pprint(Term) :-
-	$print(Term, $portray_variable).
+	writeq(Term).

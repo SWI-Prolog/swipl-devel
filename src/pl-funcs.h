@@ -107,7 +107,7 @@ word		pl_wam_list(term_t ref);
 word		pl_fetch_vm(term_t ref, term_t offset, term_t noffset,
 			    term_t instruction);
 int		unify_definition(term_t head, Definition def,
-				 term_t thehead);
+				 term_t thehead, int flags);
 word		pl_clause_term_position(term_t ref, term_t pc, term_t locterm);
 word		pl_break_pc(term_t ref, term_t pc, term_t nextpc, control_t h);
 word		pl_break_at(term_t ref, term_t pc, term_t set);
@@ -147,6 +147,12 @@ word		pl_dwim_predicate(term_t term, term_t dwim, word h);
 
 /* pl-ext.c */
 void		initBuildIns(void);
+
+/* pl-error.c */
+
+int		PL_error(const char *pred, int arity, const char *msg,
+			 int id, ...);
+char *		tostr(const char *fmt, ...);
 
 /* pl-file.c */
 void		initIO(void);
@@ -476,7 +482,7 @@ word		pl_abort(void);
 bool		prolog(atom_t toplevel);
 word		pl_metacut(void);
 int 		trap_gdb(void);
-word		checkData(Word p, int on_heap);
+word		checkData(Word p);
 
 /* pl-proc.c */
 Procedure	lookupProcedure(FunctorDef f, Module m);
@@ -498,6 +504,7 @@ Definition	trapUndefined(Definition def);
 word		pl_retract(term_t term, word h);
 word		pl_retractall(term_t head);
 word		pl_abolish(term_t atom, term_t arity);
+word		pl_abolish1(term_t pred);
 word		pl_get_clause_attribute(term_t ref, term_t att, term_t value);
 word		pl_get_predicate_attribute(term_t pred, term_t k, term_t v);
 word		pl_set_predicate_attribute(term_t pred, term_t k, term_t v);
@@ -562,11 +569,13 @@ void		install_rl(void);
 void		setupProlog(void);
 handler_t	pl_signal(int sig, handler_t func);
 void		resetSignals(void);
+void		handleSignals(void);
 void		deliverSignal(int sig, int tp, SignalContext scp, char *addr);
 void		deallocateStacks(void);
 bool		restoreStack(Stack s);
 void		trimStacks(void);
 void		resetStacks(void);
+void		emptyStacks(void);
 word		pl_trim_stacks(void);
 word		pl_limit_stack(term_t s, term_t l);
 word		pl_stack_parameter(term_t s, term_t k, term_t o, term_t n);
@@ -635,7 +644,8 @@ bool		strprefix(char *string, char *prefix);
 bool		strpostfix(char *string, char *postfix);
 bool		stripostfix(char *string, char *postfix);
 void		systemMode(bool accept);
-bool		scan_options(term_t list, int flags, OptSpec specs, ...);
+bool		scan_options(term_t list, int flags,
+			     atom_t name, OptSpec specs, ...);
 #ifndef HAVE_STRICMP
 int		stricmp(const char *s1, const char *s2);
 #endif
@@ -667,14 +677,14 @@ word		pl_qlf_info(term_t file, term_t cvers, term_t fvers, term_t i);
 char *		varName(term_t var);
 word		pl_nl(void);
 word		pl_nl1(term_t stream);
-word		pl_display(term_t term);
-word		pl_displayq(term_t term);
-word		pl_display2(term_t stream, term_t term);
-word		pl_displayq2(term_t stream, term_t term);
+word		pl_write_canonical(term_t term);
+word		pl_write_canonical2(term_t stream, term_t term);
+word		pl_write_term(term_t term, term_t options);
+word		pl_write_term3(term_t stream,
+			       term_t term, term_t options);
 word		pl_write(term_t term);
 word		pl_writeq(term_t term);
 word		pl_print(term_t term);
-word		pl_dprint(term_t term, term_t g);
 word		pl_write2(term_t stream, term_t term);
 word		pl_writeq2(term_t stream, term_t term);
 word		pl_print2(term_t stream, term_t term);
@@ -687,7 +697,7 @@ word		pl_tty_put(term_t a, term_t affcnt);
 word		pl_set_tty(term_t old, term_t new);
 
 /* pl-main.c */
-int		startProlog(int argc, char **argv, char **env);
+int		startProlog(int argc, char **argv);
 bool		sysError(const char *fm, ...);
 bool		fatalError(const char *fm, ...);
 bool		warning(const char *fm, ...);

@@ -495,8 +495,7 @@ structuralEqualArg1OfRecord(term_t t, Record r)
 
 bool
 freeRecord(Record record)
-{ SECURE(checkData(&record->term, TRUE));
-  freeHeap(record, record->size);
+{ freeHeap(record, record->size);
 
   succeed;
 }

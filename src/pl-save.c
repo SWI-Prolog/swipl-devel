@@ -276,7 +276,7 @@ topOfCStack(void)
 }
 
 static caddr
-baseOfCStack(int *argc, char **argv, char **env)
+baseOfCStack(int *argc, char **argv)
 { 
 #ifdef BASE_OF_C_STACK
   return (caddr) BASE_OF_C_STACK;
@@ -295,8 +295,6 @@ baseOfCStack(int *argc, char **argv, char **env)
   for(p = argv; *p; p++)
     base = BoundStack(base, (unsigned long)*p);
   base = BoundStack(base, (unsigned long)env);
-  for(p = env; *p; p++)
-    base = BoundStack(base, (unsigned long)*p);
 
 #if STACK_DIRECTION > 0
   return (caddr) (base & ~(STACK_BASE_ALIGN-1));
@@ -598,7 +596,7 @@ main() stub
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-PL_initialise(int argc, char **argv, char **env)
+PL_initialise(int argc, char **argv)
 { int rval;
 
 #ifdef FORCED_MALLOC_BASE
@@ -606,12 +604,11 @@ PL_initialise(int argc, char **argv, char **env)
   fprintf(stderr, "FORCED_MALLOC_BASE at 0x%08x\n", FORCED_MALLOC_BASE);
 #endif
 
-  c_stack_base = baseOfCStack(&argc, argv, env);
+  c_stack_base = baseOfCStack(&argc, argv);
 
   if ( setjmp(ret_main_ctx) )
   { DEBUG(1, Sdprintf("Restarting startProlog()\n"));
-    environ = env;
-    rval = startProlog(argc, argv, env);
+    rval = startProlog(argc, argv);
   } else
   { char **av;
 
@@ -634,7 +631,7 @@ PL_initialise(int argc, char **argv, char **env)
     }
 #endif
 
-    rval = startProlog(argc, argv, env);
+    rval = startProlog(argc, argv);
   }
 
   return(rval);
@@ -647,14 +644,14 @@ PL_initialise(int argc, char **argv, char **env)
 #endif
 
 int
-PL_initialise(int argc, char **argv, char **env)
+PL_initialise(int argc, char **argv)
 { 
 #ifdef FORCED_MALLOC_BASE
   start_memory((void *)FORCED_MALLOC_BASE);
   Sdprintf("FORCED_MALLOC_BASE at 0x%08x\n", FORCED_MALLOC_BASE);
 #endif
 
-  return startProlog(argc, argv, env);
+  return startProlog(argc, argv);
 }
 
 #endif /*O_SAVE*/
@@ -699,7 +696,7 @@ OsError()
 
 
 int
-startProlog(int argc, char **argv, char **env)
+startProlog(int argc, char **argv)
 { char *interpreter = argv[0];
 
   argc--; argv++;

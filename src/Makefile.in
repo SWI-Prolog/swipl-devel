@@ -42,6 +42,7 @@ mansec=1
 lmansec=3
 mandir=$(man_prefix)/man$(mansec)
 lmandir=$(man_prefix)/man$(lmansec)
+plmandir=$(PLBASE)/man
 
 CC=@CC@
 LIBS=@LIBS@
@@ -79,8 +80,8 @@ RUNTIME=$(RUNTIMEDIR)/$(PLLIB)
 LIBRARYDIR=${PLBASE}/library
 
 
-OBJ=	pl-wam.o pl-save.o pl-stream.o \
-	pl-atom.o pl-arith.o pl-bag.o pl-comp.o pl-dump.o \
+OBJ=	pl-atom.o pl-wam.o pl-save.o pl-stream.o pl-error.o \
+	pl-arith.o pl-bag.o pl-comp.o pl-dump.o \
 	pl-dwim.o pl-ext.o pl-file.o pl-flag.o pl-fli.o pl-fmt.o pl-funct.o \
 	pl-gc.o pl-glob.o pl-itf.o pl-list.o pl-load.o \
 	pl-modul.o pl-op.o pl-os.o pl-prims.o pl-pro.o pl-proc.o \
@@ -99,9 +100,9 @@ HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h pl-itf.h pl-main.h \
 PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/listing.pl \
 	../boot/edit.pl ../boot/sort.pl ../boot/bags.pl ../boot/apply.pl \
 	../boot/list.pl ../boot/writef.pl ../boot/history.pl \
-	../boot/portray.pl ../boot/profile.pl ../boot/dwim.pl \
+	../boot/profile.pl ../boot/dwim.pl \
 	../boot/foreign.pl ../boot/parms.pl ../boot/autoload.pl \
-	../boot/qlf.pl ../boot/topvars.pl
+	../boot/qlf.pl ../boot/topvars.pl ../boot/messages.pl
 
 all:	banner headers system startup index runtime pl-bite chpl swipl swiplbin
 
@@ -282,17 +283,19 @@ iinclude:
 		fi
 
 iman:
-		$(INSTALL_DATA) pl.1 $(PLBASE)/man/$(PL).$(mansec)
-		$(INSTALL_DATA) $(srcdir)/chpl.1 $(PLBASE)/man/chpl.$(mansec)
-		$(INSTALL_DATA) $(srcdir)/plld.1 $(PLBASE)/man/plld.$(mansec)
-		$(INSTALL_DATA) $(srcdir)/readline.3 $(PLBASE)/man/readline.$(lmansec)
+		$(INSTALL_DATA) pl.1 $(plmandir)/$(PL).$(mansec)
+		$(INSTALL_DATA) $(srcdir)/chpl.1 $(plmandir)/chpl.$(mansec)
+		$(INSTALL_DATA) $(srcdir)/plld.1 $(plmandir)/plld.$(mansec)
+		$(INSTALL_DATA) $(srcdir)/readline.3 $(plmandir)/readline.$(lmansec)
 		-if [ ! -d $(man_prefix) ]; then mkdir $(man_prefix); fi
 		-if [ ! -d $(mandir)  ];    then mkdir $(mandir);     fi
 		-if [ ! -d $(lmandir) ];    then mkdir $(lmandir);    fi
-		-$(INSTALL_DATA) $(PLBASE)/man/$(PL).$(mansec) $(mandir)
-		-$(INSTALL_DATA) $(PLBASE)/man/chpl.$(mansec) $(mandir)
-		-$(INSTALL_DATA) $(PLBASE)/man/plld.$(mansec) $(mandir)
-		-$(INSTALL_DATA) $(PLBASE)/man/readline.$(lmansec) $(lmandir)
+		-$(INSTALL_DATA) $(plmandir)/$(PL).$(mansec) $(mandir)
+		-$(INSTALL_DATA) $(plmandir)/chpl.$(mansec) $(mandir)
+		-$(INSTALL_DATA) $(plmandir)/plld.$(mansec) $(mandir)
+		-if [ ! -r $(lmandir)/readline.$(lmansec) ]; then \
+		  $(INSTALL_DATA) $(plmandir)/readline.$(lmansec) $(lmandir); \
+		fi
  
 #
 # runtime-only environment installation

@@ -606,7 +606,11 @@ pl_arg(term_t n, term_t term, term_t arg, word b)
     { int idx;
 
       if ( !PL_get_name_arity(term, &name, &arity) )
-	return warning("arg/3: second argument in not a term");
+      { if ( PL_is_variable(term) )
+	  return PL_error("arg", 3, NULL, ERR_INSTANTIATION);
+	else
+	  return PL_error("arg", 3, NULL, ERR_TYPE, ATOM_compound, term);
+      }
   
       if ( PL_get_integer(n, &idx) )
       { if ( idx >= 0 && idx <= arity )
@@ -615,7 +619,9 @@ pl_arg(term_t n, term_t term, term_t arg, word b)
 	  PL_get_arg(idx, term, a);
 	  return PL_unify(arg, a);
 	}
-
+	if ( idx < 0 )
+	  return PL_error("arg", 3, NULL, ERR_DOMAIN,
+			  ATOM_not_less_than_zero, n);
 	fail;
       } 
       if ( PL_is_variable(n) )
@@ -633,14 +639,13 @@ pl_arg(term_t n, term_t term, term_t arg, word b)
 	}
 	fail;
       }
-      return warning("arg/3: first argument in not an integer or unbound");
+      return PL_error("arg", 3, NULL, ERR_TYPE, ATOM_integer, n);
     }
     case FRG_REDO:
     { int argn = ForeignContextInt(b) + 1;
       term_t a = PL_new_term_ref();
 
-      if ( !PL_get_name_arity(term, &name, &arity) )
-	return warning("arg/3: second argument in not a term");
+      PL_get_name_arity(term, &name, &arity);
 
       for(; argn <= arity; argn++)
       { PL_get_arg(argn, term, a);

@@ -78,7 +78,7 @@ $writefs([Char|Rest], List) :-		%   <ordinary character>
 $action(0't, [Head|Tail], Tail) :-	%   Term
 	print(Head).
 $action(0'd, [Head|Tail], Tail) :-	%   Display
-	display(Head).
+	write_canonical(Head).
 $action(0'w, [Head|Tail], Tail) :-	%   Write
 	write(Head).
 $action(0'q, [Head|Tail], Tail) :-	%   Quoted

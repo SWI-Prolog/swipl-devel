@@ -110,6 +110,9 @@ prolog_complete(RlcCompleteData data)
     { int start = ln->point;
       int c;
 
+      if ( !ln->data )			/* we donot want to complete on all atoms */
+	return FALSE;
+
       while(start > 0 && (isalnum((c=ln->data[start-1])) || c == '_') )
 	start--;
       if ( start > 0 )
@@ -184,6 +187,72 @@ pl_window_title(term_t old, term_t new)
 		 *	      SIGNALS		*
 		 *******************************/
 
+static DWORD main_thread_id;		/* ThreadId of main thread */
+#define WM_SIGNALLED (WM_USER+1)
+
+static WINAPI
+pl_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
+{ switch(message)
+  { case WM_SIGNALLED:
+      PL_handle_signals();
+      return 0;
+  }
+
+  return DefWindowProc(hwnd, message, wParam, lParam);
+}
+
+
+static char *
+HiddenFrameClass()
+{ static char winclassname[32];
+  static WNDCLASS wndClass;
+  HINSTANCE instance = rlc_hinstance();
+
+  if ( !winclassname[0] )
+  { sprintf(winclassname, "SWI-Prolog-hidden-win%d", instance);
+
+    wndClass.style		= 0;
+    wndClass.lpfnWndProc	= (LPVOID) pl_wnd_proc;
+    wndClass.cbClsExtra		= 0;
+    wndClass.cbWndExtra		= 0;
+    wndClass.hInstance		= instance;
+    wndClass.hIcon		= NULL;
+    wndClass.hCursor		= NULL;
+    wndClass.hbrBackground	= GetStockObject(WHITE_BRUSH);
+    wndClass.lpszMenuName	= NULL;
+    wndClass.lpszClassName	= winclassname;
+
+    RegisterClass(&wndClass);
+  }
+
+  return winclassname;
+}
+
+
+static void
+destroy_hidden_window(int status, void *data)
+{ HWND win = (HWND) data;
+
+  DestroyWindow(win);
+}
+
+
+HWND
+PL_hidden_window()
+{ static HWND window;
+
+  if ( !window )
+  { window = CreateWindow(HiddenFrameClass(),
+			  "SWI-Prolog hidden window",
+			  0,
+			  0, 0, 32, 32,
+			  NULL, NULL, rlc_hinstance(), NULL);
+    PL_on_halt(destroy_hidden_window, (void *)window);
+  }
+
+  return window;
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Capturing fatal signals doesn't appear to work   inside  a DLL, hence we
 cpature them in the application and tell   Prolog to print the stack and
@@ -207,7 +276,6 @@ fatalSignal(int sig)
   PL_action(PL_ACTION_BACKTRACE, (void *)10);
   signal(sig, fatalSignal);
   PL_action(PL_ACTION_ABORT, NULL);
-
 }
 
 
@@ -218,6 +286,27 @@ initSignals()
   signal(SIGILL,  fatalSignal);
   signal(SIGSEGV, fatalSignal);
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+If we are in  the  same  thread,   we  can  call  the interrupt-handling
+rountine immediately. Otherwise we will   use  Prolog's signal scheduler
+and wait for it to be raised.
+
+Maybe we should wait for a little until the signal is handled by Prolog,
+and indicate if this is not the case within a few seconds.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+interrupt(int sig)
+{ if ( GetCurrentThreadId() == main_thread_id )
+    PL_interrupt(sig);
+  else
+  { PL_raise(sig);
+    PostMessage(PL_hidden_window(), WM_SIGNALLED, 0, 0);
+  }
+}
+
 
 		 /*******************************
 		 *	       MAIN		*
@@ -270,18 +359,22 @@ install_readline(int argc, char **argv)
 
 
 int
-win32main(int argc, char **argv, char **env)
+win32main(int argc, char **argv)
 { set_window_title();
   rlc_bind_terminal();
 
   PL_register_extensions(extensions);
   PL_initialise_hook(install_readline);
-  if ( !PL_initialise(argc, argv, env) )
+  if ( !PL_initialise(argc, argv) )
     PL_halt(1);
   
-  PL_async_hook(4000, rlc_check_intr);
-  rlc_interrupt_hook(PL_interrupt);
+/*PL_async_hook(4000, rlc_check_intr);*/
+  PL_hidden_window();			/* create in main thread */
+  main_thread_id = GetCurrentThreadId();
+  rlc_interrupt_hook(interrupt);
+#if !defined(O_DEBUG) && !defined(_DEBUG)
   initSignals();
+#endif
   PL_halt(PL_toplevel() ? 0 : 1);
 
   return 0;

@@ -154,7 +154,7 @@ Variable argument list:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-scan_options(term_t options, int flags, OptSpec specs, ...)
+scan_options(term_t options, int flags, atom_t optype, OptSpec specs, ...)
 { va_list args;
   OptSpec s;
   term_t list = PL_copy_term_ref(options);
@@ -176,14 +176,18 @@ scan_options(term_t options, int flags, OptSpec specs, ...)
       { PL_get_arg(1, head, tmp);
 
 	if ( !PL_get_atom(tmp, &name) )
-	  fail;
+	  goto itemerror;
 	PL_get_arg(2, head, val);
       } else if ( arity == 1 )
       { PL_get_arg(1, head, val);
       } else if ( arity == 0 )
 	PL_put_atom(val, ATOM_true);
+    } else if ( PL_is_variable(head) )
+    { return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
     } else
-      fail;
+    { itemerror:
+      return PL_error(NULL, 0, NULL, ERR_DOMAIN, optype, head);
+    }
 
     for( s = specs; s->name; s++ )
     { if ( s->name == name )
@@ -198,12 +202,12 @@ scan_options(term_t options, int flags, OptSpec specs, ...)
 	    else if ( aval == ATOM_false || aval == ATOM_off )
 	      *s->value.b = FALSE;
 	    else
-	      fail;
+	      goto itemerror;
 	    break;
 	  }
 	  case OPT_INT:
 	  { if ( !PL_get_long(val, s->value.i) )
-	      fail;
+	      goto itemerror;
 
 	    break;
 	  }
@@ -211,7 +215,7 @@ scan_options(term_t options, int flags, OptSpec specs, ...)
 	  { char *str;
 
 	    if ( !PL_get_chars(val, &str, CVT_ALL) ) /* copy? */
-	      fail;
+	      goto itemerror;
 	    *s->value.s = str;
 	    break;
 	  }
@@ -219,7 +223,7 @@ scan_options(term_t options, int flags, OptSpec specs, ...)
 	  { atom_t a;
 
 	    if ( !PL_get_atom(val, &a) )
-	      fail;
+	      goto itemerror;
 	    *s->value.a = a;
 	    break;
 	  }
@@ -229,16 +233,20 @@ scan_options(term_t options, int flags, OptSpec specs, ...)
 	    break;
 	  }
 	  default:
+	    assert(0);
 	    fail;
 	}
       }
     }
     
     if ( !s->name && (flags & OPT_ALL) )
-      fail;
+      goto itemerror;
   }
 
-  return PL_get_nil(list);		/* tail must now be [] */
+  if ( !PL_get_nil(list) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, options);
+  
+  succeed;
 }
 
 

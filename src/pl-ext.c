@@ -121,12 +121,12 @@ static struct foreign {
   FRG("$depth_limit_false",	4, pl_depth_limit_false,	TRACE_ME),
 #endif
 
-  FRG("display",		1, pl_display,			TRACE_ME),
-  FRG("displayq",		1, pl_displayq,			TRACE_ME),
+  FRG("write_canonical",	1, pl_write_canonical,		TRACE_ME),
+  FRG("write_term",		2, pl_write_term,		TRACE_ME),
+  FRG("write_term",		3, pl_write_term3,		TRACE_ME),
   FRG("write",			1, pl_write,			TRACE_ME),
   FRG("writeq",			1, pl_writeq,			TRACE_ME),
   FRG("print",			1, pl_print,			TRACE_ME),
-  FRG("$print",			2, pl_dprint,		   META|TRACE_ME),
 
   FRG("read_variables",		2, pl_read_variables,		TRACE_ME),
   FRG("read_term",		2, pl_read_term,		TRACE_ME),
@@ -181,6 +181,7 @@ static struct foreign {
   FRG("$qlf_assert_clause",	1, pl_qlf_assert_clause,	TRACE_ME),
   FRG("$qlf_info",		4, pl_qlf_info,			TRACE_ME),
 
+  FRG("abolish",    		1, pl_abolish1,		   META|TRACE_ME),
   FRG("abolish",    		2, pl_abolish,		   META|TRACE_ME),
   FRG("$clause",    		3, pl_clause,	      NDET|META|TRACE_ME),
   FRG("$clause",	        4, pl_clause4,	      NDET|META|TRACE_ME),
@@ -421,8 +422,7 @@ static struct foreign {
   FRG("write",			2, pl_write2,			TRACE_ME),
   FRG("writeq",			2, pl_writeq2,			TRACE_ME),
   FRG("print",			2, pl_print2,			TRACE_ME),
-  FRG("display",		2, pl_display2,			TRACE_ME),
-  FRG("displayq",		2, pl_displayq2,		TRACE_ME),
+  FRG("write_canonical",	2, pl_write_canonical2,		TRACE_ME),
   FRG("format",			3, pl_format3,			TRACE_ME),
 
   FRG("tty_get_capability",	3, pl_tty_get_capability,	TRACE_ME),
@@ -517,12 +517,15 @@ initBuildIns(void)
       set(fdef, INLINE_F);
   }
 
-  PROCEDURE_alt1 = lookupProcedure(FUNCTOR_alt1, MODULE_system);
+  PROCEDURE_alt1	     = lookupProcedure(FUNCTOR_alt1, MODULE_system);
   PROCEDURE_garbage_collect0 = lookupProcedure(FUNCTOR_dgarbage_collect1,
 					       MODULE_system);
-  PROCEDURE_block3 = lookupProcedure(FUNCTOR_block3, MODULE_system);
-  PROCEDURE_true0  = lookupProcedure(FUNCTOR_true0, MODULE_system);
-  PROCEDURE_fail0  = lookupProcedure(FUNCTOR_fail0, MODULE_system);
+  PROCEDURE_block3	     = lookupProcedure(FUNCTOR_block3, MODULE_system);
+  PROCEDURE_catch3           = lookupProcedure(FUNCTOR_catch3, MODULE_system);
+  PROCEDURE_true0            = lookupProcedure(FUNCTOR_true0, MODULE_system);
+  PROCEDURE_fail0            = lookupProcedure(FUNCTOR_fail0, MODULE_system);
+  PROCEDURE_print_message2   = lookupProcedure(FUNCTOR_print_message2,
+					       MODULE_system);
 
   bindExtensions(PL_extensions);
   extensions_loaded = TRUE;

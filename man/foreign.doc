@@ -1,4 +1,4 @@
-\chapter{Foreign Language Interface}
+\chapter{Foreign Language Interface}		\label{sec:foreign}
 
 \newlength{\tableft}
 \settowidth{\tableft}{\const{PL_QUERY_ORGSYMBOLFILE}}
@@ -1194,21 +1194,45 @@ opened before opening the next or returning control back to Prolog.
 
 
 \begin{description}
-\cfunction{qid_t}{PL_open_query}{module_t ctx, int debug, predicate_t p, term_t +t0}
-Opens a query and returns an identifier for it.  This function always
-succeeds, regardless whether the predicate is defined or not.
-\arg{ctx} is the {\em context module} of the goal.  When \const{NULL}, the
-context module of the calling context will be used, or \const{user}
-if there is no calling context (as may happen in embedded systems).
-Note that the context module only matters for \jargon{module_transparent}
-predicates.  See context_module/1 and module_transparent/1.
-The \arg{debug} argument is normally \const{TRUE}.  If \const{FALSE}
-is specified, the goal is run in `nodebug' mode, regardless of
-the current debug mode.  The \arg{p} argument specifies the predicate,
-and should be the result of a call to PL_pred() or PL_predicate().  Note
-that it is allowed to store this handle as global data and reuse it
-for future queries.  The term-reference \arg{t0} is the first of a
-vector of term-references as returned by PL_new_term_refs(n).
+\cfunction{qid_t}{PL_open_query}{module_t ctx, int flags,
+				 predicate_t p, term_t +t0}
+
+Opens a query and returns an identifier for it. This function always
+succeeds, regardless whether the predicate is defined or not. \arg{ctx}
+is the {\em context module} of the goal. When \const{NULL}, the context
+module of the calling context will be used, or \const{user} if there is
+no calling context (as may happen in embedded systems). Note that the
+context module only matters for \jargon{module_transparent} predicates.
+See context_module/1 and module_transparent/1. The \arg{p} argument
+specifies the predicate, and should be the result of a call to PL_pred()
+or PL_predicate(). Note that it is allowed to store this handle as
+global data and reuse it for future queries. The term-reference \arg{t0}
+is the first of a vector of term-references as returned by
+PL_new_term_refs(n).
+
+The \arg{flags} arguments provides some additional options concerning
+debugging and exception handling.  It is a bitwise or of the following
+values:
+
+\begin{description}
+    \definition{\const{PL_Q_NORMAL}}
+Normal operation.  The debugger inherits its settings from the environment.
+If an exception occurs that is not handled in Prolog, a message is printed
+and the tracer is started to debug the error.%
+	\footnote{Do not pass the integer 0 for normal operation, as
+		  this is interpreted as \const{PL_Q_NODEBUG} for
+		  backward compatibility reasons.}
+    \definition{\const{PL_Q_NODEBUG}}
+Switch off the debugger while executing the goal.  This option is used
+by many calls to hook-predicates to avoid tracing the hooks.  An example
+is print/1 calling portray/1 from foreign code.
+    \definition{\const{PL_Q_CATCH_EXCEPTION}}
+If an exception is raised while executing the goal, do not report it, but
+make it available for PL_exception().
+    \definition{\const{PL_Q_PASS_EXCEPTION}}
+As \const{PL_Q_CATCH_EXCEPTION}, but do not invalidate the exception-term
+while calling PL_close_query().  This option is experimental.
+\end{description}
 
 The example below opens a query to the predicate {is_a}/2 to find the
 ancestor of for some name.
@@ -1237,14 +1261,14 @@ until it fails to generate all solutions to the query.
 Discards the query, but does not delete any of the data created by the
 query.  It just invalidate \arg{qid}, allowing for a new call to
 PL_open_query() in this context.
-\cfunction{void}{PL_close_query}{qid}
+    \cfunction{void}{PL_close_query}{qid}
 As PL_cut_query(), but all data and bindings created by the query are
 destroyed.
-\cfunction{int}{PL_call_predicate}{module_t m, int debug, predicate_t pred, term_t +t0}
+    \cfunction{int}{PL_call_predicate}{module_t m, int debug, predicate_t pred, term_t +t0}
 Shorthand for PL_open_query(), PL_next_solution(), PL_cut_query(),
 generating a single solution.  The arguments are the same as for
 PL_open_query(), the return value is the same as PL_next_solution().
-\cfunction{int}{PL_call}{term_t, module_t}
+    \cfunction{int}{PL_call}{term_t, module_t}
 Call term just like the Prolog predicate once/1. \arg{Term} is called
 in the specified module, or in the context module if module_t = NULL.
 Returns \const{TRUE} if the call succeeds, \const{FALSE} otherwise.
@@ -1342,6 +1366,113 @@ Return the name of \arg{module} as an atom.
 \cfunction{module_t}{PL_new_module}{atom_t name}
 Find an existing or create a new module with name specified by the atom
 \arg{name}.
+\end{description}
+
+
+\subsection{Prolog exceptions in foreign code}
+
+This section discusses PL_exception() and PL_throw(), the interface
+functions to detect and generate Prolog exceptions from C-code.
+PL_throw() is similar to throw/1, and may be used to return an
+exception from a foreign predicate.  After calling PL_throw(), the
+function implementing a foreign predicate should return failure.
+If success is returned, the exception is simply discarded.  Calling
+PL_throw() outside the context of a function implementing a foreign
+predicate results in undefined behaviour.
+
+PL_exception() may be used after a call to PL_next_solution() fails,
+and returns a term reference to an exception term if an exception
+was raised, and 0 otherwise.
+
+If a C-function, implementing a predicate calls Prolog and detects
+an exception using PL_exception(), it can handle this exception, or
+return with the exception.  Some caution is required though.  It is
+\strong{not} allowed to call PL_close_query() or
+PL_discard_foreign_frame() afterwards, as this will invalidate the
+exception term.  Below is the code that calls a Prolog defined
+arithmetic function (see arithmethic_function/1).
+
+If PL_next_solution() succeeds, the result is analysed and translated
+to a number, after which the query is closed and all Prolog data created
+after PL_open_foreign_frame() is destroyed.  On the other hand, if
+PL_next_solution() fails and if an exception was raised, just pass it.
+Otherwise generate an exception (PL_error() is an internal call for
+building the standard error terms and calling PL_throw()).  After this,
+the Prolog environment should be discarded using PL_cut_query() and
+PL_close_foreign_frame() to avoid invalidating the exception term.
+
+\begin{code}
+static int
+prologFunction(ArithFunction f, term_t av, Number r)
+{ int arity = f->proc->definition->functor->arity;
+  fid_t fid = PL_open_foreign_frame();
+  qid_t qid;
+  int rval;
+
+  qid = PL_open_query(NULL, TRUE, f->proc, av);
+
+  if ( PL_next_solution(qid) )
+  { rval = valueExpression(av+arity-1, r);
+    PL_close_query(qid);
+    PL_discard_foreign_frame(fid);
+  } else
+  { term_t except;
+
+    if ( (except = PL_exception(qid)) )
+    { rval = PL_throw(except);		/* pass exception */
+    } else
+    { char *name = stringAtom(f->proc->definition->functor->name);
+
+					/* generate exception */
+      rval = PL_error(name, arity-1, NULL, ERR_FAILED, f->proc);
+    }
+
+    PL_cut_query(qid);			/* donot destroy data */
+    PL_close_foreign_frame(fid);	/* same */
+  }
+
+  return rval;
+}
+\end{code}
+
+
+\begin{description}
+    \cfunction{int}{PL_throw}{term_t exception}
+Generate an exception (as throw/1) and return \const{FALSE}.  Below is
+an example returning an exception from foreign predicate:
+
+\begin{code}
+foreign_t
+pl_hello(term_t to)
+{ char *s;
+
+  if ( PL_get_atom_chars(to, &s) )
+  { Sprintf("Hello \"%s\"\n", s);
+
+    PL_succeed;
+  } else
+  { term_t except = PL_new_term_ref();
+
+    PL_unify_term(except,
+		  PL_FUNCTOR, PL_new_functor(PL_new_atom("type_error"), 2),
+		    PL_ATOM,    "atom",
+		    PL_TERM,    to);
+
+    return PL_throw(except);
+  }
+}
+\end{code}
+    \cfunction{term_t}{PL_exception}{qid_t qid}
+If PL_next_solution() fails, this can be due to normal failure of the
+Prolog call, or because an exception was raised using throw/1.  This
+function returns a handle to the exception term if an exception was
+raised, or 0 if the Prolog goal simply failed.%
+    \footnote{This interface differs in two ways from Quintus.  The
+	      calling predicates simp,y signal failure if an exception
+	      was raised, and a term referenced is returned, rather 
+	      passed and filled with the error term.   Exceptions
+	      can only be handled using the PL_next_solution() interface,
+	      as a handle to the query is required}.
 \end{description}
 
 

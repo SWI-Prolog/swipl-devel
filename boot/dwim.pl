@@ -27,6 +27,10 @@ $dwim_correct_goal(Goal, _, Goal) :-		% Not instantiated. Hope it
 $dwim_correct_goal((A,B), Bindings, (NA,NB)) :- !,
 	$dwim_correct_goal(A, Bindings, NA),
 	$dwim_correct_goal(B, Bindings, NB).
+$dwim_correct_goal((A->B;C), Bindings, (NA->NB;NC)) :- !,
+	$dwim_correct_goal(A, Bindings, NA),
+	$dwim_correct_goal(B, Bindings, NB),
+	$dwim_correct_goal(C, Bindings, NC).
 $dwim_correct_goal((A*->B;C), Bindings, (NA*->NB;NC)) :- !,
 	$dwim_correct_goal(A, Bindings, NA),
 	$dwim_correct_goal(B, Bindings, NB),
@@ -34,6 +38,8 @@ $dwim_correct_goal((A*->B;C), Bindings, (NA*->NB;NC)) :- !,
 $dwim_correct_goal((A;B), Bindings, (NA;NB)) :- !,
 	$dwim_correct_goal(A, Bindings, NA),
 	$dwim_correct_goal(B, Bindings, NB).
+$dwim_correct_goal(\+(A), Bindings, \+(NA)) :- !,
+	$dwim_correct_goal(A, Bindings, NA).
 $dwim_correct_goal(Module:Goal, _, Module:Goal) :-
 	(var(Module) ; var(Goal)), !.
 $dwim_correct_goal(Goal, _, Goal) :-		% is defined

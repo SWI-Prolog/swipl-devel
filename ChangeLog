@@ -1,10 +1,48 @@
 
 			SWI-Prolog ChangeLog
 			====================
+VERSION 2.9.0
+=============
+
+  * ADDED/MODIFIED: The interface to PL_open_query() has changed.
+    The debug argument is replaced by a bitwise or'ed flags argument.
+    The values FALSE and TRUE have their familiar meaning, making old
+    code using these constants compatible. Non-zero values other than
+    TRUE (1) will be interpreted different.
+
+  * DELETED: display/[1,2] and displayq/[1,2].  Added emulation into
+    library(backcomp).
+
+  * ADDED: ISO/Quintus compliant write_canonical/[1,2].
+
+  * FIXED: recorded database bug for very large terms.
+
+  * ADDED: Lots of exception codes.  Roughly, file i/o, external program
+    invocation and arithmetic now use exceptions.
+
+  * IMPROVED: write/1 and friends now check the return code of the
+    low-level I/O functions and fail with exception on read/write
+    errors.
+
+  * REMOVED: $print/2.  Doesn't appear to be used anywhere.
+
+  * ADDED: write_term/[2,3], ISO compliant
+
+  * ADDED: ISO compliant exception handling using catch/3 and throw/1,
+    including a C-interface for these (PL_throw() and PL_exception())
+    Added exception port to the tracer.
+
+  * ADDED: abolish/1, ISO compliant.
+
+  * FIXED: A is "a" (list as abbreviation for a character).
+
+
 VERSION 2.8.7
 =============
 
-  * FIXED passing ldflags in plld script.
+  * FIXED: require/1 to be silent on already defined system predicates.
+
+  * FIXED: passing ldflags in plld script.
 
   * CONFIG: Removed checking for -lelf if the system is not asked
     to configure old save/1.

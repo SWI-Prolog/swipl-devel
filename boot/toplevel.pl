@@ -495,6 +495,14 @@ $time_call(Goal, yes) :-
 	Goal, !.
 $time_call(_Goal, no).
 
+unhandled_exception(false, Term) :- !,
+        $warning('Unhandled exception'),
+	print_message(error, Term),
+	$ttyformat('~nNo~n').
+unhandled_exception(true, _Term) :-
+	$warning('Unhandled exception'),
+	$ttyformat('~nNo~n').
+
 
 		 /*******************************
 		 *	    EXPANSION		*

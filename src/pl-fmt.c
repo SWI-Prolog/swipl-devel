@@ -224,7 +224,8 @@ do_format(const char *fmt, int argc, term_t argv)
 	    }
 
 	    tellString(&str, BUFSIZE);
-	    qid = PL_open_query(proc->definition->module, FALSE, proc, av);
+	    qid = PL_open_query(proc->definition->module, PL_Q_NODEBUG,
+				proc, av);
 	    PL_next_solution(qid);
 	    PL_close_query(qid);
 	    toldString();
@@ -323,12 +324,15 @@ do_format(const char *fmt, int argc, term_t argv)
 		  char buf[BUFSIZE];
 		  char *str;
 
-	      case 'k':			/* displayq */
-		  f = pl_displayq;	goto pl_common;
+	      case 'k':			/* write_canonical */
+		  f = pl_write_canonical; 
+	          goto pl_common;
 	      case 'p':			/* print */
-		  f = pl_print;		goto pl_common;
+		  f = pl_print;
+	          goto pl_common;
 	      case 'q':			/* writeq */
-		  f = pl_writeq;	goto pl_common;
+		  f = pl_writeq;
+	          goto pl_common;
 	      case 'w':			/* write */
 		  f = pl_write;
 		  pl_common:

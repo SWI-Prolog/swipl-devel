@@ -1279,7 +1279,7 @@ LocalFrame fr;
     slots   = (PC == NULL ? fr->predicate->functor->arity : slotsFrame(fr));
     sp = argFrameP(fr, 0);
     for( n=0; n < slots; n++ )
-    { key += checkData(&sp[n], FALSE);
+    { key += checkData(&sp[n]);
     }
     checked += slots;
     DEBUG(3, Sdprintf(" 0x%lx\n", key));

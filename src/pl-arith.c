@@ -35,6 +35,11 @@ day.
 #define M_E (2.7182818284590452354)
 #endif
 
+#if !defined(HAVE_ISNAN) && defined(NaN)
+#define isnan(f)  ((f) == NaN)
+#define HAVE_ISNAN
+#endif
+
 #ifdef WIN32
 #include <excpt.h>
 #endif
@@ -75,9 +80,10 @@ pl_between(term_t low, term_t high, term_t n, word b)
   { case FRG_FIRST_CALL:
       { long l, h, i;
 
-	if ( !PL_get_long(low, &l) ||
-	     !PL_get_long(high, &h) )
-	  return warning("between/3: instantiation fault");
+	if ( !PL_get_long(low, &l) )
+	  return PL_error("between", 3, NULL, ERR_TYPE, ATOM_integer, low);
+	if ( !PL_get_long(high, &h) )
+	  return PL_error("between", 3, NULL, ERR_TYPE, ATOM_integer, high);
 
 	if ( PL_get_long(n, &i) )
 	{ if ( i >= l && i <= h )
@@ -85,7 +91,7 @@ pl_between(term_t low, term_t high, term_t n, word b)
 	  fail;
 	}
 	if ( !PL_is_variable(n) )
-	  return warning("between/3: instantiation fault");
+	  return PL_error("between", 3, NULL, ERR_TYPE, ATOM_integer, n);
 	if ( h < l )
 	  fail;
 
@@ -111,31 +117,60 @@ pl_between(term_t low, term_t high, term_t n, word b)
 
 word
 pl_succ(term_t n1, term_t n2)
-{ long i;
+{ long i1, i2;
 
-  if ( PL_get_long(n1, &i) )
-    return PL_unify_integer(n2, i+1);
-  if ( PL_get_long(n2, &i) )
-    return PL_unify_integer(n1, i-1);
+  if ( PL_get_long(n1, &i1) )
+  { if ( PL_get_long(n2, &i2) )
+      return i1+1 == i2 ? TRUE : FALSE;
+    else if ( PL_unify_integer(n2, i1+1) )
+      succeed;
 
-  return warning("succ/2: instantiation fault");
+    return PL_error("succ", 2, NULL, ERR_TYPE, ATOM_integer, n2);
+  }
+  if ( PL_get_long(n2, &i2) )
+  { if ( PL_unify_integer(n1, i2-1) )
+      succeed;
+  }
+
+  return PL_error("succ", 2, NULL, ERR_TYPE, ATOM_integer, n1);
 }
+
+
+static int
+var_or_long(term_t t, long *l, int which, int *mask)
+{ if ( PL_get_long(t, l) )
+  { *mask |= which;
+    succeed;
+  } 
+  if ( PL_is_variable(t) )
+    succeed;
+    
+  return PL_error("plus", 3, NULL, ERR_TYPE, ATOM_integer, t);
+}
+
 
 word
 pl_plus(term_t a, term_t b, term_t c)
 { long m, n, o;
+  int mask = 0;
 
-  if ( PL_get_long(a, &m) )
-  { if ( PL_get_long(b, &n) )
+  if ( !var_or_long(a, &m, 0x1, &mask) ||
+       !var_or_long(b, &n, 0x2, &mask) ||
+       !var_or_long(c, &o, 0x4, &mask) )
+    fail;
+
+  switch(mask)
+  { case 0x7:
+      return m+n == o ? TRUE : FALSE;
+    case 0x3:				/* +, +, - */
       return PL_unify_integer(c, m+n);
-    if ( PL_get_long(c, &o) )
+    case 0x5:				/* +, -, + */
       return PL_unify_integer(b, o-m);
-  } else
-  { if ( PL_get_long(b, &n) && PL_get_long(c, &o) )
+    case 0x6:				/* -, +, + */
       return PL_unify_integer(a, o-n);
+    default:
+      return PL_error("succ", 2, NULL, ERR_INSTANTIATION);
   }
-
-  return warning("plus/3: instantiation fault");
 }
 
 
@@ -302,21 +337,30 @@ calling convention required by ar_func_n() below.
 static int
 prologFunction(ArithFunction f, term_t av, Number r)
 { int arity = f->proc->definition->functor->arity;
-  fid_t cid = PL_open_foreign_frame();
+  fid_t fid = PL_open_foreign_frame();
   qid_t qid;
   int rval;
 
-  qid = PL_open_query(NULL, TRUE, f->proc, av);
+  qid = PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, f->proc, av);
 
   if ( PL_next_solution(qid) )
-    rval = valueExpression(av+arity-1, r);
-  else
-  { warning("Arithmetic function %s failed", procedureName(f->proc));
-    rval = FALSE;
-  }
+  { rval = valueExpression(av+arity-1, r);
+    PL_close_query(qid);
+    PL_discard_foreign_frame(fid);
+  } else
+  { term_t except;
 
-  PL_close_query(qid);
-  PL_discard_foreign_frame(cid);
+    if ( (except = PL_exception(qid)) )
+    { rval = PL_throw(except);		/* pass exception */
+    } else
+    { char *name = stringAtom(f->proc->definition->functor->name);
+
+      rval = PL_error(name, arity-1, NULL, ERR_FAILED, f->proc);
+    }
+
+    PL_cut_query(qid);			/* donot destroy data */
+    PL_close_foreign_frame(fid);	/* same */
+  }
 
   return rval;
 }
@@ -343,7 +387,7 @@ valueExpression(term_t t, Number r)
       r->type = V_REAL;
       succeed;
     case TAG_VAR:
-      return warning("Unbound variable in arithmetic expression");
+      return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
     case TAG_ATOM:
       fDef = lookupFunctorDef(w, 0);
       break;
@@ -351,30 +395,35 @@ valueExpression(term_t t, Number r)
       fDef = functorTerm(w);
       break;
     default:
-      return warning("Illegal data type in arithmetic expression");
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_number, t);
   }
 
   if ( !(f = isCurrentArithFunction(fDef, contextModule(environment_frame))))
   { if ( fDef == FUNCTOR_dot2 )		/* handle "a" (make function) */
-    { Word a, p = valTermRef(t);
+    { Word a, b, p = valTermRef(t);
 
       deRef(p);
       a = argTermP(*p, 0);
       deRef(a);
       if ( isTaggedInt(*a) )
-      { a = argTermP(*p, 1);
-	deRef(a);
-	if ( *a == ATOM_nil )
+      { b = argTermP(*p, 1);
+	deRef(b);
+	if ( *b == ATOM_nil )
 	{ r->value.i = valInt(*a);
 	  r->type = V_INTEGER;
 	  succeed;
+	} else
+	{ term_t a2 = PL_new_term_ref();
+	  PL_get_arg(2, t, a2);
+	  return PL_error(".", 2, NULL, ERR_TYPE, ATOM_nil, a2);
 	}
+      } else
+      { term_t a1 = PL_new_term_ref();
+	PL_get_arg(1, t, a1);
+	return PL_error(".", 2, NULL, ERR_TYPE, ATOM_integer, a1);
       }
-      return warning("./2: Bad character code");
     } else
-    { return warning("Unknown arithmetic operator: %s/%d",
-		     stringAtom(fDef->name), fDef->arity);
-    }
+      return PL_error(NULL, 0, NULL, ERR_NOT_EVALUABLE, fDef);
   }
 
 #if O_PROLOG_FUNCTIONS
@@ -457,6 +506,18 @@ valueExpression(term_t t, Number r)
 #else
     status.arithmetic--;
 #endif
+
+    if ( r->type == V_REAL )
+    {
+#ifdef HUGE_VAL
+      if ( r->value.f == HUGE_VAL )
+	return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
+#endif
+#ifdef HAVE_ISNAN
+      if ( isnan(r->value.f) )
+	return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
+#endif
+    }
 
     return rval;
   }
@@ -583,10 +644,13 @@ overflow:
 
 /* Binary functions requiring integer argument */
 
-#define BINAIRY_INT_FUNCTION(name, op) \
+#define BINAIRY_INT_FUNCTION(name, plop, op) \
   static int \
   name(Number n1, Number n2, Number r) \
-  { TRY(toIntegerNumber(n1) && toIntegerNumber(n2)); \
+  { if ( !toIntegerNumber(n1) ) \
+      return PL_error(plop, 2, NULL, ERR_AR_TYPE, ATOM_integer, n1); \
+    if ( !toIntegerNumber(n2) ) \
+      return PL_error(plop, 2, NULL, ERR_AR_TYPE, ATOM_integer, n2); \
     r->value.i = n1->value.i op n2->value.i; \
     r->type = V_INTEGER; \
     succeed; \
@@ -602,27 +666,91 @@ overflow:
     succeed; \
   }
 
-UNAIRY_FLOAT_FUNCTION(ar_sqrt, sqrt)
 UNAIRY_FLOAT_FUNCTION(ar_sin, sin)
 UNAIRY_FLOAT_FUNCTION(ar_cos, cos)
 UNAIRY_FLOAT_FUNCTION(ar_tan, tan)
-UNAIRY_FLOAT_FUNCTION(ar_asin, asin)
-UNAIRY_FLOAT_FUNCTION(ar_acos, acos)
 UNAIRY_FLOAT_FUNCTION(ar_atan, atan)
-UNAIRY_FLOAT_FUNCTION(ar_log, log)
 UNAIRY_FLOAT_FUNCTION(ar_exp, exp)
-UNAIRY_FLOAT_FUNCTION(ar_log10, log10)
 
 BINAIRY_FLOAT_FUNCTION(ar_atan2, atan2)
 BINAIRY_FLOAT_FUNCTION(ar_pow, pow)
 
-BINAIRY_INT_FUNCTION(ar_mod, %)
-BINAIRY_INT_FUNCTION(ar_div, /)
-BINAIRY_INT_FUNCTION(ar_disjunct, |)
-BINAIRY_INT_FUNCTION(ar_conjunct, &)
-BINAIRY_INT_FUNCTION(ar_shift_right, >>)
-BINAIRY_INT_FUNCTION(ar_shift_left, <<)
-BINAIRY_INT_FUNCTION(ar_xor, ^)
+BINAIRY_INT_FUNCTION(ar_mod, "mod", %)
+BINAIRY_INT_FUNCTION(ar_disjunct, "\\/", |)
+BINAIRY_INT_FUNCTION(ar_conjunct, "/\\", &)
+BINAIRY_INT_FUNCTION(ar_shift_right, ">>", >>)
+BINAIRY_INT_FUNCTION(ar_shift_left, "<<", <<)
+BINAIRY_INT_FUNCTION(ar_xor, "xor", ^)
+
+static int
+ar_sqrt(Number n1, Number r)
+{ promoteToRealNumber(n1);
+  if ( n1->value.f < 0 )
+    return PL_error("sqrt", 1, NULL, ERR_AR_UNDEF);
+  r->value.f = sqrt(n1->value.f);
+  r->type    = V_REAL;
+  succeed;
+}
+
+
+static int
+ar_asin(Number n1, Number r)
+{ promoteToRealNumber(n1);
+  if ( n1->value.f < -1.0 || n1->value.f > 1.0 )
+    return PL_error("asin", 1, NULL, ERR_AR_UNDEF);
+  r->value.f = asin(n1->value.f);
+  r->type    = V_REAL;
+  succeed;
+}
+
+
+static int
+ar_acos(Number n1, Number r)
+{ promoteToRealNumber(n1);
+  if ( n1->value.f < -1.0 || n1->value.f > 1.0 )
+    return PL_error("acos", 1, NULL, ERR_AR_UNDEF);
+  r->value.f = acos(n1->value.f);
+  r->type    = V_REAL;
+  succeed;
+}
+
+
+static int
+ar_log(Number n1, Number r)
+{ promoteToRealNumber(n1);
+  if ( n1->value.f <= 0.0 )
+    return PL_error("log", 1, NULL, ERR_AR_UNDEF);
+  r->value.f = log(n1->value.f);
+  r->type    = V_REAL;
+  succeed;
+}
+
+
+static int
+ar_log10(Number n1, Number r)
+{ promoteToRealNumber(n1);
+  if ( n1->value.f <= 0.0 )
+    return PL_error("log10", 1, NULL, ERR_AR_UNDEF);
+  r->value.f = log10(n1->value.f);
+  r->type    = V_REAL;
+  succeed;
+}
+
+
+static int
+ar_div(Number n1, Number n2, Number r)
+{ if ( !toIntegerNumber(n1) )
+    return PL_error("//", 2, NULL, ERR_AR_TYPE, ATOM_integer, n1);
+  if ( !toIntegerNumber(n2) )
+    return PL_error("//", 2, NULL, ERR_AR_TYPE, ATOM_integer, n2);
+  if ( n2->value.i == 0 )
+    return PL_error("//", 2, NULL, ERR_DIV_BY_ZERO);
+
+  r->value.i = n1->value.i / n2->value.i;
+  r->type = V_INTEGER;
+
+  succeed;
+}
 
 static int
 ar_sign(Number n1, Number r)
@@ -640,9 +768,10 @@ static int
 ar_rem(Number n1, Number n2, Number r)
 { real f;
 
-  if ( !toIntegerNumber(n1) ||
-       !toIntegerNumber(n2) )
-    return warning("rem/2: arguments must be integers");
+  if ( !toIntegerNumber(n1) )
+    return PL_error("rem", 2, NULL, ERR_AR_TYPE, ATOM_integer, n1);
+  if ( !toIntegerNumber(n2) )
+    return PL_error("rem", 2, NULL, ERR_AR_TYPE, ATOM_integer, n2);
 
   f = (real)n1->value.i / (real)n2->value.i;
   r->value.f = f - (real)((long) f);
@@ -654,7 +783,10 @@ ar_rem(Number n1, Number n2, Number r)
 static int
 ar_divide(Number n1, Number n2, Number r)
 { if ( intNumber(n1) && intNumber(n2) )
-  { if ( n1->value.i % n2->value.i == 0)
+  { if ( n2->value.i == 0 )
+      return PL_error("/", 2, NULL, ERR_DIV_BY_ZERO);
+
+    if ( n1->value.i % n2->value.i == 0)
     { r->value.i = n1->value.i / n2->value.i;
       r->type = V_INTEGER;
       succeed;
@@ -663,6 +795,8 @@ ar_divide(Number n1, Number n2, Number r)
 
   promoteToRealNumber(n1);
   promoteToRealNumber(n2);
+  if ( n2->value.f == 0.0 )
+      return PL_error("/", 2, NULL, ERR_DIV_BY_ZERO);
 
   r->value.f = n1->value.f / n2->value.f;
   r->type = V_REAL;
@@ -729,7 +863,7 @@ ar_min(Number n1, Number n2, Number r)
 static int
 ar_negation(Number n1, Number r)
 { if ( !toIntegerNumber(n1) )
-    return warning("is/2: argument to \\/1 should be an integer");
+    return PL_error("\\", 1, NULL, ERR_AR_TYPE, ATOM_integer, n1);
 
   r->value.i = ~n1->value.i;
   r->type = V_INTEGER;
@@ -785,7 +919,7 @@ ar_integer(Number n1, Number r)
     r->type = V_REAL;
     succeed;
 #else
-    return warning("integer/1: argument too large");
+    return PL_error("integer", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
 #endif
   }
 }
@@ -885,7 +1019,7 @@ ar_truncate(Number n1, Number r)
 static int
 ar_random(Number n1, Number r)
 { if ( !toIntegerNumber(n1) )
-    return warning("random/1: n1->valueument should be an integer");
+    return PL_error("random", 1, NULL, ERR_AR_TYPE, ATOM_integer, n1);
 
   r->value.i = Random() % n1->value.i;
   r->type = V_INTEGER;
@@ -1188,7 +1322,19 @@ ar_func_n(code n, int argc, Number *stack)
   }
 
   if ( rval )
-  { *sp++ = result;
+  { if ( result.type == V_REAL )
+    {
+#ifdef HUGE_VAL
+      if ( result.value.f == HUGE_VAL )
+	return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
+#endif
+#ifdef HAVE_ISNAN
+      if ( isnan(result.value.f) )
+	return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
+#endif
+    }
+
+    *sp++ = result;
     *stack = sp;
   }
 

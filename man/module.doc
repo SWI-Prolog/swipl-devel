@@ -369,7 +369,7 @@ tries to locate a predicate in a specific module will create this
 module as a side-effect if it did not yet exist.  Example:
 
 \begin{code}
-?- assert(world_a, consistent),
+?- assert(world_a:consistent),
    world_a:unknown(_, fail).
 \end{code}
 

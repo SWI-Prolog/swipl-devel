@@ -96,6 +96,9 @@ struct code_info codeTable[] = {
 #endif
   CODE(I_EXITFACT,	"i_exitfact",	0, 0),
   CODE(D_BREAK,		"d_break",	0, 0),
+#if O_CATCHTHROW
+  CODE(B_THROW,		"b_throw",	0, 0),
+#endif
 /*List terminator */
   CODE(0,		NULL,		0, 0)
 };
@@ -1151,6 +1154,11 @@ operator.
       { Output_0(ci, B_EXIT);
 	succeed;
 #endif
+#if O_CATCHTHROW
+      } else if ( fdef == FUNCTOR_dthrow1 )
+      { Output_0(ci, B_THROW);
+	succeed;
+#endif
       }
       Output_1(ci, call, (code) proc);
 
@@ -2035,6 +2043,9 @@ decompileBody(register decompileInfo *di, code end, Code until)
 	case I_CUT_BLOCK:   f = FUNCTOR_dcut1;		goto f_common;
 	case B_EXIT:	    f = FUNCTOR_dexit2;		goto f_common;
 #endif
+#if O_CATCHTHROW
+	case B_THROW:	    f = FUNCTOR_dthrow1;	goto f_common;
+#endif
         case I_USERCALLN:   f = lookupFunctorDef(ATOM_call, *PC++ + 1);
 							goto f_common;
 	case I_APPLY:	    f = FUNCTOR_apply2;		f_common:
@@ -2192,7 +2203,7 @@ build_term(register FunctorDef f, register decompileInfo *di)
 #undef ARGP
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-unify_definition(?Head, +Def, -TheHead)
+unify_definition(?Head, +Def, -TheHead, flags)
     Given some definition, unify its Prolog reference (i.e. its head with
     optional module specifier) with ?Head.  If TheHead is specified, the
     plain head (i.e. without module specifier) will be referenced from
@@ -2201,11 +2212,24 @@ unify_definition(?Head, +Def, -TheHead)
     This function properly deals with module-inheritance, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static int
+unify_functor(term_t t, FunctorDef fd, int how)
+{ if ( how&GP_NAMEARITY )
+  { return PL_unify_term(t,
+			 PL_FUNCTOR, FUNCTOR_divide2,
+			   PL_ATOM, fd->name,
+			   PL_INTEGER, fd->arity);
+  } else
+  { return PL_unify_functor(t, fd);
+  }
+}
+
+
 int
-unify_definition(term_t head, Definition def, term_t thehead)
+unify_definition(term_t head, Definition def, term_t thehead, int how)
 { if ( PL_is_variable(head) )
   { if ( def->module == MODULE_user )
-    { PL_unify_functor(head, def->functor);
+    { unify_functor(head, def->functor, how);
       if ( thehead )
 	PL_put_term(thehead, head);
     } else
@@ -2215,7 +2239,7 @@ unify_definition(term_t head, Definition def, term_t thehead)
       PL_get_arg(1, head, tmp);
       PL_unify_atom(tmp, def->module->name);
       PL_get_arg(2, head, tmp);
-      PL_unify_functor(tmp, def->functor);
+      unify_functor(tmp, def->functor, how);
       if ( thehead )
 	PL_put_term(thehead, tmp);
     }
@@ -2229,7 +2253,7 @@ unify_definition(term_t head, Definition def, term_t thehead)
 	 !isSuperModule(def->module, m) )
       fail;
 
-    if ( PL_unify_functor(h, def->functor) )
+    if ( unify_functor(h, def->functor, how) )
     { if ( thehead )
 	PL_put_term(thehead, h);
       succeed;
@@ -2274,7 +2298,7 @@ pl_clause4(term_t p, term_t term, term_t ref, term_t bindings, word h)
 	fail;
     }
 
-    if ( !unify_definition(p, def, tmp) )
+    if ( !unify_definition(p, def, tmp, 0) )
       fail;
 
     get_head_and_body_clause(term, head, body, NULL);
@@ -2366,7 +2390,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, word h)
     for( cref = def->definition.clauses, i=1; cref; cref = cref->next, i++)
     { if ( cref->clause == clause )
       { if ( !PL_unify_integer(n, i) ||
-	     !unify_definition(p, def, 0) )
+	     !unify_definition(p, def, 0, 0) )
 	  fail;
 
 	succeed;
@@ -2512,7 +2536,7 @@ pl_xr_member(term_t ref, term_t term, word h)
       switch(codeTable[op].argtype)
       { case CA1_PROC:
 	{ Procedure proc = (Procedure) *PC;
-	  rval = unify_definition(term, proc->definition, 0);
+	  rval = unify_definition(term, proc->definition, 0, 0);
 	  break;
 	}
 	case CA1_FUNC:

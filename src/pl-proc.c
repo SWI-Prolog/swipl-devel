@@ -150,6 +150,80 @@ lookupProcedureToDefine(FunctorDef def, Module m)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+get_functor() translates term  of  the   format  +Name/+Arity  into  the
+internal functor represenation. It fails and  raises an exception on the
+various possible format or represenation errors.  ISO compliant.
+
+The return value is 1 normally, -1  if no functor exists and GF_EXISTING
+is defined, and 0 if an error was raised.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define GF_EXISTING	1
+#define GF_PROCEDURE	2		/* check for max arity */
+
+static int
+get_functor(term_t descr, FunctorDef *fdef, Module *m, term_t h, int how)
+{ term_t head = PL_new_term_ref();
+
+  if ( !PL_strip_module(descr, m, head) )
+    fail;
+
+  if ( PL_is_functor(head, FUNCTOR_divide2) )
+  { term_t a = PL_new_term_ref();
+    atom_t name;
+    int arity;
+
+    PL_get_arg(1, head, a);
+    if ( PL_get_atom(a, &name) )
+    { PL_get_arg(2, head, a);
+      if ( PL_get_integer(a, &arity) )
+      { if ( arity < 0 )
+	{ return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			  ATOM_not_less_than_zero, a);
+	} else if ( (how&GF_PROCEDURE) && arity > MAXARITY )
+	{ return PL_error(NULL, 0,
+			  tostr("limit is %d, request = %d",
+				MAXARITY, arity),
+			  ERR_REPRESENTATION, ATOM_max_arity);
+	} else
+	{ *fdef = PL_new_functor(name, arity);
+	  
+	  if ( h )
+	    PL_put_term(h, head);
+	  
+	  succeed;
+	}
+      } else
+      { if ( PL_is_variable(a) )
+	  goto ierror;
+
+	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, a);
+      }
+    } else
+    { if ( PL_is_variable(a) )
+	goto ierror;
+
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, a);
+    }
+  } else if ( PL_get_functor(head, fdef) )
+  { if ( h )
+      PL_put_term(h, head);
+	  
+    succeed;
+  } else
+  { if ( PL_is_variable(head) )
+    { ierror:
+      return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+    } else
+      return PL_error(NULL, 0, NULL, ERR_TYPE,
+		      ATOM_predicate_indicator, head);
+  }
+
+  fail;
+}
+
+      
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Get the specified procedure from a   Prolog  argument.  This argument is
 either a head or a term of the form module:head.  If `create' is TRUE, a
 procedure is created in the module.  Otherwise, the system traverses the
@@ -159,16 +233,31 @@ module-inheritance chain to find the existing procedure.
 int
 get_procedure(term_t descr, Procedure *proc, term_t h, int how)
 { Module m = (Module) NULL;
-  term_t head = PL_new_term_ref();
   FunctorDef fdef;
   Procedure p;
 
-  if ( !PL_strip_module(descr, &m, head) )
-    fail;
-  if ( !PL_get_functor(head, &fdef) )
-    return warning("Illegal predicate specification");
+  if ( (how&GP_NAMEARITY) )
+  { if ( !get_functor(descr, &fdef, &m, h, GF_PROCEDURE) )
+      fail;
+  } else
+  { term_t head = PL_new_term_ref();
   
-  switch( how )
+    if ( !PL_strip_module(descr, &m, head) )
+      fail;
+
+    if ( h )
+      PL_put_term(h, head);
+
+    if ( !PL_get_functor(head, &fdef) )
+      return warning("Illegal predicate specification");
+    if ( fdef->arity > MAXARITY )
+      return PL_error(NULL, 0,
+			  tostr("limit is %d, request = %d",
+				MAXARITY, fdef->arity),
+			  ERR_REPRESENTATION, ATOM_max_arity);
+  }
+  
+  switch( how & GP_HOW_MASK )
   { case GP_CREATE:
       *proc = lookupProcedure(fdef, m);
       break;
@@ -203,8 +292,6 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
   }
 
 out:
-  if ( h )
-    PL_put_term(h, head);
 
   succeed;
 }
@@ -739,7 +826,7 @@ trapUndefined(Definition def)
       PL_put_variable(argv+3);
 
       undefined_nesting++;
-      qid = PL_open_query(MODULE_system, FALSE, pred, argv);
+      qid = PL_open_query(MODULE_system, PL_Q_NODEBUG, pred, argv);
       if ( PL_next_solution(qid) )
 	PL_get_atom(argv+3, &answer);
       PL_close_query(qid);
@@ -776,7 +863,10 @@ word
 pl_require(term_t pred)
 { Procedure proc;
 
-  return get_procedure(pred, &proc, 0, GP_DEFINE);
+  if ( !get_procedure(pred, &proc, 0, GP_RESOLVE) )
+    return get_procedure(pred, &proc, 0, GP_DEFINE);
+
+  succeed;
 }
 
 
@@ -949,7 +1039,34 @@ pl_abolish(term_t atom, term_t arity)
     succeed;
 
   if ( true(proc->definition, LOCKED) && !SYSTEM_MODE && m == MODULE_system )
-    return warning("abolish/2: attempt to abolish a system predicate");
+    return PL_error("abolish", 2, NULL, ERR_MODIFY_STATIC_PROC, proc);
+
+  return abolishProcedure(proc, m);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+abolish(Name/Arity)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+word
+pl_abolish1(term_t spec)
+{ Procedure proc;
+  FunctorDef f;
+  Module m = NULL;
+
+  switch( get_functor(spec, &f, &m, 0, GF_PROCEDURE|GF_EXISTING) )
+  { case FALSE:				/* exception */
+      fail;
+    case -1:				/* no functor */
+      succeed;
+  }
+
+  if ( !(proc = isCurrentProcedure(f, m)) )
+    succeed;
+
+  if ( true(proc->definition, LOCKED) && !SYSTEM_MODE && m == MODULE_system )
+    return PL_error("abolish", 1, NULL, ERR_MODIFY_STATIC_PROC, proc);
 
   return abolishProcedure(proc, m);
 }
@@ -1058,7 +1175,6 @@ pl_set_predicate_attribute(term_t pred,
   atom_t key;
   int val;
   unsigned long att;
-  int nodef;				/* does not define pred */
 
   if ( !PL_get_atom(what, &key) ||
        !PL_get_integer(value, &val) || val & ~1 )
@@ -1066,10 +1182,13 @@ pl_set_predicate_attribute(term_t pred,
   if ( !(att = attribute_mask(key)) )
     return warning("$set_predicate_attribute/4: unknown key: %s",
 		   stringAtom(key));
-
-  nodef = (att & (TRACE_ANY|SPY_ME));
-  if ( !get_procedure(pred, &proc, 0, nodef ? GP_RESOLVE : GP_DEFINE) )
-    fail;
+  if ( att & (TRACE_ANY|SPY_ME) )
+  { if ( !get_procedure(pred, &proc, 0, GP_RESOLVE) )
+      fail;
+  } else
+  { if ( !get_procedure(pred, &proc, 0, GP_DEFINE|GP_NAMEARITY) )
+      fail;
+  }
   def = proc->definition;
 
   if ( !val )
@@ -1359,7 +1478,7 @@ pl_source_file(term_t descr, term_t file, control_t h)
     Definition def = proc->definition;
     fid_t cid = PL_open_foreign_frame();
 
-    if ( unify_definition(descr, def, 0) )
+    if ( unify_definition(descr, def, 0, 0) )
     { PL_close_foreign_frame(cid);
 
       if ( cell->next )

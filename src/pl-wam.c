@@ -295,6 +295,7 @@ PL_discard_foreign_frame(fid_t id)
 }
 
 
+
 		/********************************
 		*         FOREIGN CALLS         *
 		*********************************/
@@ -416,7 +417,8 @@ callForeign(const Definition def, LocalFrame frame)
 
   lTop = (LocalFrame) argFrameP(frame, argc);
   cid  = PL_open_foreign_frame();
-    
+  exception_term = 0;
+
 #define A(n) (h0+n)
   if ( false(def, NONDETERMINISTIC) )	/* deterministic */
   { CALLDETFN(result, argc);
@@ -426,11 +428,13 @@ callForeign(const Definition def, LocalFrame frame)
   }
 #undef A
 
-  PL_close_foreign_frame(cid);
+  PL_close_foreign_frame(cid);		/* invalidates exception_term! */
   RestoreLocalPtr(s1, frame);
 
   if ( result <= 1 )			/* FALSE || TRUE */
   { frame->clause = NULL;
+    if ( result == 1 )
+      exception_term = 0;
     return (bool) result;
   } else
   { if ( true(def, NONDETERMINISTIC) )
@@ -782,6 +786,24 @@ findBlock(LocalFrame fr, Word block)
 
 #endif /*O_BLOCK*/
 
+#if O_CATCHTHROW
+		/********************************
+		*        EXCEPTION SUPPORT      *
+		*********************************/
+
+static LocalFrame
+findCatcher(LocalFrame fr, Word catcher)
+{ for(; fr; fr = fr->parent)
+  { if ( fr->predicate == PROCEDURE_catch3->definition &&
+	 unify_ptrs(argFrameP(fr, 1), catcher) )
+      return fr;
+  }
+
+  return NULL;
+}
+
+#endif /*O_CATCHTHROW*/
+
 		 /*******************************
 		 *	  TAIL-RECURSION	*
 		 *******************************/
@@ -892,7 +914,7 @@ copyFrameArguments(LocalFrame from, LocalFrame to, int argc)
 #endif
 
 qid_t
-PL_open_query(Module ctx, bool debug, Procedure proc, term_t args)
+PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 { QueryFrame qf     = (QueryFrame) lTop;
   LocalFrame fr     = &qf->frame;
   Definition def    = proc->definition;
@@ -906,21 +928,19 @@ PL_open_query(Module ctx, bool debug, Procedure proc, term_t args)
 
   finish_foreign_frame();		/* adjust the size of the context */
 
+  if ( flags == TRUE )			/* compatibility */
+    flags = PL_Q_NORMAL;
+  else if ( flags == FALSE )
+    flags = PL_Q_NODEBUG;
+  flags &= 0x1f;			/* mask reserved flags */
+
   qf->magic		= QID_MAGIC;
+  qf->flags		= flags;
   qf->saved_environment = environment_frame;
   qf->aSave             = aTop;
   qf->solutions         = 0;
-  qf->deterministic     = FALSE;	/* last solution was deterministic */
   qf->bfr		= fr;
-  qf->debug		= debug;
-
-#ifdef O_LIMIT_DEPTH
-  if ( !debug )
-  { qf->saved_depth_limit   = depth_limit;
-    qf->saved_depth_reached = depth_reached;
-    depth_limit = (unsigned long)DEPTH_NO_LIMIT;
-  }
-#endif
+  qf->exception		= 0;
 
   DEBUG(1, { extern int Output;		/* --atoenne-- */
 	     FunctorDef f = proc->definition->functor;
@@ -975,11 +995,16 @@ PL_open_query(Module ctx, bool debug, Procedure proc, term_t args)
 
   clearFlags(fr);
   setLevelFrame(fr, !parentFrame(fr) ? 0L : levelFrame(parentFrame(fr)) + 1);
-  if ( !debug )
+  if ( true(qf, PL_Q_NODEBUG) )
   { set(fr, FR_NODEBUG);
     debugstatus.suspendTrace++;
     qf->debugSave = debugstatus.debugging;
     debugstatus.debugging = FALSE;
+#ifdef O_LIMIT_DEPTH
+    qf->saved_depth_limit   = depth_limit;
+    qf->saved_depth_reached = depth_reached;
+    depth_limit = (unsigned long)DEPTH_NO_LIMIT;
+#endif
   }
   fr->backtrackFrame = (LocalFrame) NULL;
   fr->predicate = def;
@@ -1008,18 +1033,26 @@ discard_query(QueryFrame qf)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Restore the environment.  If an exception was raised by the query, and no
+new exception has been thrown, consider it handled.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 restore_after_query(QueryFrame qf)
-{ environment_frame = qf->saved_environment;
+{ if ( qf->exception && !exception_term )
+    *valTermRef(exception_printed) = 0;
+
+  environment_frame = qf->saved_environment;
   aTop		    = qf->aSave;
   lTop		    = (LocalFrame)qf;
-  if ( !qf->debug )
+  if ( true(qf, PL_Q_NODEBUG) )
   { debugstatus.suspendTrace--;
     debugstatus.debugging = qf->debugSave;
 #ifdef O_LIMIT_DEPTH
     depth_limit   = qf->saved_depth_limit;
     depth_reached = qf->saved_depth_reached;
-#endif O_LIMIT_DEPTH
+#endif /*O_LIMIT_DEPTH*/
   }
   SECURE(checkStacks(environment_frame));
 }
@@ -1032,7 +1065,7 @@ PL_cut_query(qid_t qid)
   SECURE(assert(qf->magic == QID_MAGIC));
   qf->magic = 0;			/* disqualify the frame */
 
-  if ( !qf->deterministic )
+  if ( false(qf, PL_Q_DETERMINISTIC) )
     discard_query(qf);
 
   restore_after_query(qf);
@@ -1047,13 +1080,23 @@ PL_close_query(qid_t qid)
   SECURE(assert(qf->magic == QID_MAGIC));
   qf->magic = 0;			/* disqualify the frame */
 
-  if ( !qf->deterministic )
+  if ( false(qf, PL_Q_DETERMINISTIC) )
     discard_query(qf);
 
-  Undo(fr->mark);
+  if ( !(qf->exception && true(qf, PL_Q_PASS_EXCEPTION)) )
+    Undo(fr->mark);
 
   restore_after_query(qf);
 }
+
+
+term_t
+PL_exception(qid_t qid)
+{ QueryFrame qf = QueryFromQid(qid);
+
+  return qf->exception;
+}
+
 
 #if O_SHIFT_STACKS
 #define SAVE_REGISTERS(qid) \
@@ -1188,6 +1231,9 @@ pl-comp.c
 #endif
     &&I_EXITFACT_LBL,
     &&D_BREAK_LBL,
+#if O_CATCHTHROW
+    &&B_THROW_LBL,
+#endif
     NULL
   };
 
@@ -1223,7 +1269,7 @@ depart_continue() to do the normal thing or to the backtrack point.
   QF  = QueryFromQid(qid);
   SECURE(assert(QF->magic == QID_MAGIC));
   FR  = &QF->frame;
-  if ( QF->deterministic )		/* last one succeeded */
+  if ( true(QF, PL_Q_DETERMINISTIC) )	/* last one succeeded */
   { Undo(FR->mark);			/* undo */
     fail;
   }
@@ -1237,10 +1283,10 @@ depart_continue() to do the normal thing or to the backtrack point.
       if ( debugstatus.debugging )
       { switch( tracePort(FR, BFR, REDO_PORT, NULL) )
 	{ case ACTION_FAIL:
-	    QF->deterministic = TRUE;
+	    set(QF, PL_Q_DETERMINISTIC);
 	    fail;
 	  case ACTION_IGNORE:
-	    QF->deterministic = TRUE;
+	    set(QF, PL_Q_DETERMINISTIC);
 	    succeed;
 	  case ACTION_RETRY:
 	    CL->clause = NULL;
@@ -1794,6 +1840,106 @@ backtrack without showing the fail ports explicitely.
         NEXT_INSTRUCTION;
       }
 
+#if O_CATCHTHROW
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ISO-Compliant catch/3, throw/1  support  in   the  virtual  machine. See
+boot/init.pl for the definion of these predicates.
+
+The B_THROW code is the implementation for   throw/1.  The call walks up
+the stack, looking for a frame running catch/3 on which it can unify the
+exception code. It then cuts all  choicepoints created since throw/3. If
+throw/3 is not found, it sets  the   query  exception  field and returns
+failure. Otherwise, it will simulate an I_USERCALL0 instruction: it sets
+the FR and lTop as it it  was   running  the  throw/3 predicate. Then it
+pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    b_throw:
+    VMI(B_THROW, COUNT(b_throw), ("b_throw")) MARK(B_THROW);
+      { Word catcher;
+	word except;
+	LocalFrame catchfr, fr, fr2;
+
+	if ( exception_term )		/* PL_throw() generated */
+	  catcher = valTermRef(exception_term);
+	else				/* throw/1 generated */
+	  catcher = argFrameP(lTop, 0);
+	deRef(catcher);
+	except = *catcher;
+        catchfr = findCatcher(FR, catcher);
+
+	SECURE(checkData(catcher));	/* verify all data on stacks stack */
+
+#if O_DEBUGGER
+	if ( !catchfr &&
+	     hasFunctor(except, FUNCTOR_error2) &&
+	     *valTermRef(exception_printed) != except )
+	{ QF = QueryFromQid(qid);	/* reload for relocation */
+
+	  if ( false(QF, PL_Q_CATCH_EXCEPTION|PL_Q_PASS_EXCEPTION) ||
+	       trueFeature(DEBUG_ON_ERROR_FEATURE) )
+	  { fid_t fid = PL_open_foreign_frame();
+	    term_t t0 = PL_new_term_refs(2);
+	    
+	    PL_put_atom(t0+0, ATOM_error);
+	    *valTermRef(t0+1) = except;
+	    PL_call_predicate(NULL, FALSE, PROCEDURE_print_message2, t0);
+	    PL_close_foreign_frame(fid);
+	    *valTermRef(exception_printed) = except;
+
+	    pl_trace();
+	  }
+	}
+#endif /*O_DEBUGGER*/
+
+	for( ; FR && FR > catchfr; FR = FR->parent )
+	{ /* Destroy older choicepoints */
+	  for(fr = BFR; fr && fr > FR; fr = fr->backtrackFrame)
+	  { for(fr2 = fr; fr2 && fr2->clause && fr2 > FR; fr2 = fr2->parent)
+	    { DEBUG(3, Sdprintf("discard %d\n", (Word)fr2 - (Word)lBase) );
+	      leaveFrame(fr2);
+	      fr2->clause = NULL;
+	    }
+	  }
+	  SetBfr(FR->mark.trailtop != INVALID_TRAILTOP ?
+		 FR : FR->backtrackFrame);
+
+#if O_DEBUGGER
+	  if ( debugstatus.debugging )
+	  { switch(tracePort(FR, BFR, EXCEPTION_PORT, PC))
+	    { case ACTION_RETRY:
+		*valTermRef(exception_printed) = 0;
+		goto retry;
+	    }
+	  }
+#endif
+	  leaveFrame(FR);
+	  FR->clause = NULL;
+	}
+
+	if ( catchfr )
+	{ assert(catchfr == FR);
+	  SetBfr(FR->mark.trailtop != INVALID_TRAILTOP ?
+		 FR : FR->backtrackFrame);
+	  environment_frame = FR;
+	  lTop = (LocalFrame) argFrameP(FR, 3); /* above the catch/3 */
+	  argFrame(lTop, 0) = argFrame(FR, 2);  /* copy recover goal */
+	  *valTermRef(exception_printed) = 0;   /* consider it handled */
+	  goto i_usercall0;
+	} else
+	{ QF = QueryFromQid(qid);	/* may be shifted: recompute */
+	  set(QF, PL_Q_DETERMINISTIC);
+	  FR = environment_frame = &QF->frame;
+	  lTop = (LocalFrame) argFrameP(FR, 3); /* ??? */
+					/* needs a foreign frame? */
+	  QF->exception = PL_new_term_ref();
+
+	  *valTermRef(QF->exception) = except;
+
+	  fail;
+	}
+      }
+#endif /*O_CATCHTHROW*/
+
 #if O_BLOCK
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 exit(Block, RVal).  First does !(Block).
@@ -2340,6 +2486,9 @@ frame with the arguments of the term.
 BUG: have to find out how to proceed in case of failure (I am afraid the
 `goto frame_failed' is a bit dangerous here).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+#if O_CATCHTHROW
+    i_usercall0:			/* from B_THROW */
+#endif
     VMI(I_USERCALL0, COUNT(i_usercall0), ("user_call0\n")) MARK(USRCL0);
       { word goal;
 	int arity;
@@ -2642,6 +2791,9 @@ The VMI for these calls are ICALL_FVN, proc, var-index ...
 	*ARGP++ = (isVar(*v) ? makeRefLG(v) : *v);
 
       common_call_fv:
+	if ( signalled )
+	  PL_handle_signals();
+
 	{ Definition def = fproc->definition;
 	  Func f = def->definition.function;
 	  int rval;
@@ -2656,7 +2808,7 @@ If we are debugging, just build a normal  frame and do the normal thing,
 so the inline call is expanded to a normal call and may be traced.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-	  if (
+	  if ( !f ||
 #ifdef O_DEBUGGER
 	       debugstatus.debugging ||
 #endif
@@ -2701,6 +2853,7 @@ increase lTop too to prepare for asynchronous interrupts.
 	    environment_frame = next;
 	    Mark(next->mark);
 
+	    exception_term = 0;
 	    SAVE_REGISTERS(qid);
 	    fid = PL_open_foreign_frame();
 	    switch(nvars)
@@ -2723,8 +2876,12 @@ increase lTop too to prepare for asynchronous interrupts.
 	    lTop = oldtop;
 
 	    if ( rval )
-	    { NEXT_INSTRUCTION;
+	    { exception_term = 0;
+	      NEXT_INSTRUCTION;
 	    }
+
+	    if ( exception_term )
+	      goto b_throw;
 
 	    Undo(next->mark);
 	    statistics.inferences++;	/* is a redo! */
@@ -2909,15 +3066,6 @@ Note: we are working above `lTop' here!
       }
 #endif
 
-#if tos
-	{ static int tick;
-
-	  if ( (++tick & 0x7f) == 0 )
-	  { if ( kbhit() )
-	      TtyAddChar(getch());
-	  }	    
-	}
-#endif
 	incLevel(FR);
 #ifdef O_DEBUGGER
       retry_continue:
@@ -2926,6 +3074,9 @@ Note: we are working above `lTop' here!
 
 	statistics.inferences++;
 	Mark(FR->mark);
+
+	if ( signalled )
+	  PL_handle_signals();
 
 #if O_ASYNC_HOOK			/* Asynchronous hooks */
 	{ if ( async.hook &&
@@ -2951,7 +3102,15 @@ Testing is suffices to find out that the predicate is defined.
 
 	if ( !DEF->definition.clauses && false(DEF, DYNAMIC) )	
 	{ lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
+
 	  FR->predicate = DEF = trapUndefined(DEF);
+
+	  if ( !DEF->definition.clauses &&
+	       false(DEF, DYNAMIC) &&
+	       true(DEF->module, UNKNOWN) )
+	  { PL_error(NULL, 0, NULL, ERR_UNDEFINED_PROC, DEF);
+	    goto b_throw;
+	  }
 	}
 
 	if ( false(DEF, TRANSPARENT) )
@@ -3025,6 +3184,12 @@ Testing is suffices to find out that the predicate is defined.
 	  if ( rval )
 	    goto exit_builtin;
 
+#if O_CATCHTHROW
+	  if ( exception_term )
+	  { goto b_throw;
+	  }
+#endif
+
 	  goto frame_failed;
 	} 
 
@@ -3067,7 +3232,7 @@ values found in the clause,  give  a   reference  to  the clause and set
 	int argc; int n;
 	argc = DEF->functor->arity;
 	for(n=0; n<argc; n++)
-	  checkData(argFrameP(FR, n), FALSE);
+	  checkData(argFrameP(FR, n));
 	);
 
 	NEXT_INSTRUCTION;
@@ -3178,13 +3343,13 @@ bit more careful.
 	{ QF = QueryFromQid(qid);	/* may be shifted: recompute */
 	  QF->solutions++;
 	  QF->bfr = BFR;
-	  QF->deterministic = (BFR ? FALSE : TRUE);
 
 	  assert(FR == &QF->frame);
 
-	  if ( QF->deterministic )	/* No alternatives */
+	  if ( !BFR )			/* No alternatives */
 	  { LocalFrame fr, fr2;
 
+	    set(QF, PL_Q_DETERMINISTIC);
 	    set(FR, FR_CUT);		/* execute I_CUT */
 	    for(fr = BFR; fr > FR; fr = fr->backtrackFrame)
 	    { for(fr2 = fr; fr2->clause && fr2 > FR; fr2 = fr2->parent)
@@ -3402,7 +3567,7 @@ visited for dereferencing.
         leaveFrame(fr);
 
       QF = QueryFromQid(qid);
-      QF->deterministic = TRUE;
+      set(QF, PL_Q_DETERMINISTIC);
 
       fail;
     }
@@ -3456,6 +3621,9 @@ Finaly restart.  If it is a Prolog frame this is the same as  restarting
 as  resuming  a  frame after unification of the head failed.  If it is a
 foreign frame we have to set BFR and do data backtracking.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+    if ( signalled )
+      PL_handle_signals();
 
     if ( false(DEF, FOREIGN) )
       goto resume_frame;

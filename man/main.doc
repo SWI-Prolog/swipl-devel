@@ -5,6 +5,12 @@
 \sloppy
 \makeindex
 
+#ifdef ONLINE
+\usepackage{txt}
+\usepackage{plonline}
+\setcounter{secnumdepth}{3}
+\sloppy
+#else
 \usepackage{times}
 \usepackage{fancyheadings}
 \renewcommand{\runningtitle}{SWI-Prolog \versionshort{} Reference Manual}
@@ -19,6 +25,7 @@
 \rfoot[]{\tiny \runningtitle}
 \cfoot{}
 \pagestyle{fancyplain}
+#endif
 
 \newcommand{\vmajor}{2}
 \newcommand{\vminor}{9}
@@ -58,6 +65,7 @@ built-in predicates.
 
 Copyright \copyright\ 1990--\year, University of Amsterdam
 \end{htmlonly}
+
 
 \begin{document}
 

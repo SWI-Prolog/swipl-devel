@@ -28,7 +28,7 @@ before loading this file.  See end of this file.
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
 
 #ifndef PLVERSION
-#define PLVERSION 20806
+#define PLVERSION 20900
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -173,6 +173,17 @@ __pl_export int		PL_strip_module(term_t in, module_t *m, term_t out);
 		 *	     CALL-BACK		*
 		 *******************************/
 
+#ifdef PL_KERNEL
+#define PL_Q_DEBUG		0x01	/* = TRUE for backward compatibility */
+#endif
+#define PL_Q_NORMAL		0x02	/* normal usage */
+#define PL_Q_NODEBUG		0x04	/* use this one */
+#define PL_Q_CATCH_EXCEPTION	0x08	/* handle exceptions in C */
+#define PL_Q_PASS_EXCEPTION	0x10	/* pass to parent environment */
+#ifdef PL_KERNEL
+#define PL_Q_DETERMINISTIC	0x20	/* call was deterministic */
+#endif
+
 			/* Foreign context frames */
 __pl_export fid_t	PL_open_foreign_frame(void);
 __pl_export void	PL_close_foreign_frame(fid_t cid);
@@ -187,7 +198,7 @@ __pl_export int		PL_predicate_info(predicate_t pred,
 					  module_t *module);
 
 			/* Call-back */
-__pl_export qid_t	PL_open_query(module_t m, int debug,
+__pl_export qid_t	PL_open_query(module_t m, int flags,
 				      predicate_t pred, term_t t0);
 __pl_export int		PL_next_solution(qid_t qid);
 __pl_export void	PL_close_query(qid_t qid);
@@ -197,6 +208,8 @@ __pl_export void	PL_cut_query(qid_t qid);
 __pl_export int		PL_call(term_t t, module_t m);
 __pl_export int		PL_call_predicate(module_t m, int debug,
 					  predicate_t pred, term_t t0);
+__pl_export term_t	PL_exception(qid_t qid);
+__pl_export int		PL_throw(term_t exception);
 
 		 /*******************************
 		 *        TERM-REFERENCES	*
@@ -368,7 +381,7 @@ __pl_export int PL_open_stream(term_t t, IOSTREAM *s);
 		 *	    EMBEDDING		*
 		 *******************************/
 
-__pl_export int		PL_initialise(int argc, char **argv, char **env);
+__pl_export int		PL_initialise(int argc, char **argv);
 install_t		PL_install_readline(void);
 __pl_export int		PL_toplevel(void);
 __pl_export void	PL_halt(int status);
@@ -431,6 +444,8 @@ __pl_export PL_getkey_hook_t   PL_getkey_hook(PL_getkey_hook_t);
 
 __pl_export void (*PL_signal(int sig, void (*func)(int)))(int);
 __pl_export void PL_interrupt(int sig);
+__pl_export void PL_raise(int sig);
+__pl_export void PL_handle_signals(void);
 
 		/********************************
 		*      PROLOG ACTION/QUERY      *

@@ -52,6 +52,7 @@ setupProlog(void)
 
   critical = 0;
   aborted = FALSE;
+  signalled = 0;
 
   startCritical;
 #if HAVE_SIGNAL
@@ -93,7 +94,7 @@ setupProlog(void)
   depth_reached = 0;
 #endif
 
-  PL_open_foreign_frame();
+  emptyStacks();
 
   if ( status.dumped == FALSE )
   { DEBUG(1, Sdprintf("Atoms ...\n"));
@@ -216,9 +217,10 @@ initFeatures()
   CSetFeature("runtime",	"true");
   CSetFeature("debug_on_error",	"false");
   CSetFeature("report_error",	"false");
-#endif
-  CSetFeature("debug_on_error",	"true");
+#else
+  CSetFeature("debug_on_error",	"false"); /* ??? */
   CSetFeature("report_error",	"true");
+#endif
 					/* ISO features */
   CSetIntFeature("max_integer", PLMAXINT);
   CSetIntFeature("min_integer", PLMININT);
@@ -301,7 +303,7 @@ initSignals(void)
 #ifdef SIGTTOU
     pl_signal(SIGTTOU, SIG_IGN);
 #endif
-#if !O_DEBUG				/* just crash when debugging */
+#if !O_DEBUG && !defined(_DEBUG)	/* just crash when debugging */
     pl_signal(SIGSEGV, (handler_t)fatal_signal_handler);
     pl_signal(SIGILL,  (handler_t)fatal_signal_handler);
 #ifdef SIGBUS
@@ -330,6 +332,8 @@ resetSignals()
 #ifdef HAVE_SIGSETMASK			/* fixes Linux repeated ^C */
   sigsetmask(defsigmask);
 #endif
+
+  signalled = 0L;
 }
 
 
@@ -373,7 +377,59 @@ deliverSignal(int sig, int type, SignalContext scp, char *addr)
   sysError("Unexpected signal: %d\n", sig);
 }
 
+
+void
+PL_handle_signals()
+{ typedef RETSIGTYPE (*uhandler_t)(int);
+
+  while(signalled)
+  { ulong mask = 1L;
+    int sig = 1;
+
+    for( ; ; mask <<= 1, sig++ )
+    { if ( signalled & mask )
+      { signalled &= ~mask;
+
+	if ( signalHandlers[sig].os == SIG_DFL )
+	{ fatalError("Unhandled signal: %d\n", sig);
+	} else if ( signalHandlers[sig].os != SIG_IGN )
+	{ uhandler_t uh = (uhandler_t)signalHandlers[sig].os;
+
+	  (*uh)(sig);
+	}				/* SIG_IGN: ignored */
+
+	break;
+      }
+    }
+  }
+}
+
 #endif /*HAVE_SIGNAL*/
+
+		 /*******************************
+		 *	       STACKS		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Create nice empty stacks. exception_bin   and  exception_printed are two
+term-references that must be low on  the   stack  to  ensure they remain
+valid while the stack is unrolled after an exception.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+emptyStacks()
+{ environment_frame = NULL;
+  fli_context       = NULL;
+  lTop = lBase;
+  tTop = tBase;
+  gTop = gBase;
+  aTop = aBase;
+
+  PL_open_foreign_frame();
+  exception_bin     = PL_new_term_ref();
+  exception_printed = PL_new_term_ref();
+}
+
 
 #if O_DYNAMIC_STACKS
 
@@ -429,7 +485,7 @@ system-V shared memory primitives (if they meet certain criteria).
 #include <errno.h>
 #ifndef WIN32
 extern int errno;
-#endif
+#endif /*WIN32*/
 
 static int size_alignment;	/* Stack sizes must be aligned to this */
 static int base_alignment;	/* Stack bases must be aligned to this */
@@ -987,18 +1043,12 @@ Reset the stacks after an abort
 
 void
 resetStacks()
-{ environment_frame = NULL;
-  fli_context       = NULL;
-  lTop = lBase;
-  tTop = tBase;
-  gTop = gBase;
-  aTop = aBase;
+{ emptyStacks();
 
 #ifndef NO_SEGV_HANDLING
   pl_signal(SIGSEGV, (handler_t) segv_handler);
 #endif
   trimStacks();
-  PL_open_foreign_frame();
 }
 
 #endif /*HAVE_VIRTUAL_ALLOC*/
@@ -1223,18 +1273,12 @@ initStacks(long local, long global, long trail, long argument)
 
 void
 resetStacks()
-{ environment_frame = NULL;
-  fli_context       = NULL;
-  lTop = lBase;
-  tTop = tBase;
-  gTop = gBase;
-  aTop = aBase;
+{ emptyStacks();
 
 #ifndef NO_SEGV_HANDLING
   pl_signal(SIGSEGV, (handler_t) segv_handler);
 #endif
   trimStacks();
-  PL_open_foreign_frame();
 }
 
 
@@ -1385,14 +1429,7 @@ initStacks(long local, long global, long trail, long argument)
 
 void
 resetStacks()
-{ environment_frame = NULL;
-  fli_context       = NULL;
-  lTop = lBase;
-  tTop = tBase;
-  gTop = gBase;
-  aTop = aBase;
-
-  PL_open_foreign_frame();
+{ emptyStacks();
 }
 
 #endif /* O_DYNAMIC_STACKS */

@@ -105,6 +105,7 @@ callProlog(Module module, term_t goal, int debug)
 { term_t g = PL_new_term_ref();
   FunctorDef fd;
   Procedure proc;
+  int flags = (debug ? PL_Q_NORMAL : PL_Q_NODEBUG);
 
   PL_strip_module(goal, &module, g);
   if ( !PL_get_functor(g, &fd) )
@@ -120,7 +121,7 @@ callProlog(Module module, term_t goal, int debug)
     for(n=0; n<arity; n++)
       PL_get_arg(n+1, g, args+n);
 
-    qid  = PL_open_query(module, debug, proc, args);
+    qid  = PL_open_query(module, flags, proc, args);
     rval = PL_next_solution(qid);
     PL_cut_query(qid);
 
@@ -145,7 +146,7 @@ pl_abort()
     Halt(1);
   }
 
-  if (critical > 0)			/* abort in critical region: delay */
+  if ( critical > 0 )			/* abort in critical region: delay */
   { aborted = TRUE;
     succeed;
   }
@@ -186,18 +187,11 @@ prolog(volatile atom_t goal)
   { debugstatus.debugging = FALSE;
   }
 
-  environment_frame = NULL;
-  fli_context       = NULL;
-  lTop = lBase;
-  tTop = tBase;
-  gTop = gBase;
-  aTop = aBase;
+  emptyStacks();
 
 #ifdef O_LIMIT_DEPTH
   depth_limit   = (unsigned long)DEPTH_NO_LIMIT;
 #endif
-
-  PL_open_foreign_frame();
 
   gc_status.blocked    = 0;
   gc_status.requested  = FALSE;
@@ -211,12 +205,41 @@ prolog(volatile atom_t goal)
   debugstatus.suspendTrace = 0;
 
   can_abort = TRUE;
-  { fid_t cid = PL_open_foreign_frame();
+  { fid_t fid = PL_open_foreign_frame();
     Procedure p = lookupProcedure(lookupFunctorDef(goal, 0), MODULE_system);
-    qid_t qid  = PL_open_query(MODULE_system, TRUE, p, 0);
-    rval = PL_next_solution(qid);
-    PL_close_query(qid);
-    PL_discard_foreign_frame(cid);
+
+    for(;;)
+    { qid_t qid;
+      term_t except;
+
+      *valTermRef(exception_printed) = 0;
+      qid = PL_open_query(MODULE_system, PL_Q_NORMAL, p, 0);
+      rval = PL_next_solution(qid);
+      if ( !rval && (except = PL_exception(qid)) )
+      { Word p1 = valTermRef(exception_printed);
+	Word p2 = valTermRef(except);
+	predicate_t pred = PL_predicate("unhandled_exception", 2, "$toplevel");
+	
+	deRef(p1);
+	deRef(p2);
+
+	{ fid_t fid2 = PL_open_foreign_frame();
+	  term_t t0 = PL_new_term_refs(2);
+
+	  PL_put_atom(t0,   *p1 == *p2 ? ATOM_true : ATOM_false);
+	  PL_put_term(t0+1, except);
+
+	  PL_call_predicate(NULL, FALSE, pred, t0);
+	  PL_close_foreign_frame(fid2);
+	  pl_notrace();
+	}
+	PL_close_query(qid);
+	continue;
+      }
+      PL_close_query(qid);
+      break;
+    }
+    PL_discard_foreign_frame(fid);
   }
   can_abort = FALSE;
 
@@ -273,23 +296,19 @@ printk(char *fm, ...)
 
 
 word
-checkData(p, on_heap)
-register Word p;
-int on_heap;
+checkData(p)
+Word p;
 { int arity; int n;
-  register Word p2;
+  Word p2;
 
   while(isRef(*p))
   { p2 = unRef(*p);
-    if ( !on_heap )
-    { if ( p2 > p )
-	printk("Reference to higher address");
-      if ( !onLocal(p2) && !onGlobal(p2) )
-	printk("Illegal reference pointer at 0x%x --> 0x%x", p, p2);
-    } else if ( !onHeap(p2) )
+    if ( p2 > p )
+      printk("Reference to higher address");
+    if ( !onLocal(p2) && !onGlobal(p2) )
       printk("Illegal reference pointer at 0x%x --> 0x%x", p, p2);
 
-    return checkData(p2, on_heap);
+    return checkData(p2);
   }
 
   if ( isVar(*p) )
@@ -326,7 +345,7 @@ int on_heap;
     if (arity <= 0 || arity > 100)
       printk("Illegal arity");
     for(n=0; n<arity; n++)
-      key += checkData(&f->arguments[n], on_heap);
+      key += checkData(&f->arguments[n]);
 
     return key;
   }

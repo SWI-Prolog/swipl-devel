@@ -100,16 +100,49 @@ forwards bool	setUnifyStreamNo(term_t, int);
 forwards bool	unifyStreamMode(term_t, int);
 forwards int	Get0();
 
+static jmp_buf pipe_context;		/* jmp buffer for pipe operations */
+static int inpipe;			/* doing a pipe operation */
+
+
 #ifdef SIGPIPE
 static void
 pipeHandler(int sig)
-{ warning("Broken pipe\n");
+{ if ( inpipe )
+  { longjmp(pipe_context, 1);
+  }
+
+  warning("Broken pipe\n");		/* Unexpected broken pipe */
   pl_abort();
 
   signal(SIGPIPE, SIG_DFL);		/* should abort fail. */
   kill(getpid(), SIGPIPE);		/* Unix has both pipes and kill() */
 }
 #endif /* SIGPIPE */
+
+static void
+brokenPipe(int n, atom_t rw)
+{ term_t stream = PL_new_term_ref();
+  unifyStreamNo(stream, n);
+  if ( rw == ATOM_write && n == Output )
+    Output = 1;
+  PL_error(NULL, 0, "Broken pipe", ERR_STREAM_OP, rw, stream);
+}
+
+#define TRYPIPE(no, rw, code, err) \
+	if ( fileTable[(no)].type == ST_PIPE ) \
+	{ if ( setjmp(pipe_context) != 0 ) \
+	  { inpipe--; \
+	    brokenPipe(no, rw); \
+	    err; \
+	  } else \
+	  { inpipe++; \
+	    code; \
+	    inpipe--; \
+	  } \
+	} else \
+	{ code; \
+	}
+
 
 void
 initIO(void)
@@ -206,7 +239,10 @@ closeStream(int n)
 	Sflush(f->stream);
         break;
       default:
-        Sclose(f->stream);
+	if ( f->status == F_WRITE )
+	{ TRYPIPE(n, ATOM_write, Sclose(f->stream), (void)0);
+	} else
+	  Sclose(f->stream);
         f->stream = NULL_ATOM;
 	f->name   = NULL_ATOM;
 	f->status = F_CLOSED;
@@ -453,16 +489,45 @@ UnlockStream()
 bool
 Put(int c)
 { IOSTREAM *s = fileTable[Output].stream;
+  int rval;
 
-  return (s && Sputc(c, s)) < 0 ? FALSE : TRUE;
+  if ( !s )
+    fail;
+
+  TRYPIPE(Output, ATOM_write, rval = Sputc(c, s), rval = -1);
+
+  return rval < 0 ? FALSE : TRUE;
 }
 
 
 bool
 Puts(const char *str)
 { IOSTREAM *s = fileTable[Output].stream;
+  int rval;
 
-  return (s && Sfputs(str, s)) < 0 ? FALSE : TRUE;
+  if ( !s )
+    fail;
+
+  TRYPIPE(Output, ATOM_write, rval = Sfputs(str, s), rval = -1);
+
+  return rval < 0 ? FALSE : TRUE;
+}
+
+
+word
+Putf(char *fm, ...)
+{ IOSTREAM *s = fileTable[Output].stream;
+  va_list args;
+  int rval;
+
+  if ( !s )
+    fail;
+
+  va_start(args, fm);
+  TRYPIPE(Output, ATOM_write, rval = Svfprintf(s, fm, args), rval = -1);
+  va_end(args);
+
+  return rval < 0 ? FALSE : TRUE;
 }
 
 
@@ -472,10 +537,15 @@ Get0()
   int c;
   
   if ( s )
-  { c = Sgetc(s);
+  { TRYPIPE(Input, ATOM_read, c=Sgetc(s), c=EOF);
     
     if ( c == EOF && Sfpasteof(s) )
-      warning("Attempt to read past end-of-file");
+    { term_t stream = PL_new_term_ref();
+
+      unifyStreamNo(stream, Input);
+      PL_error(NULL, 0, NULL, ERR_PERMISSION,
+	       ATOM_input, ATOM_past_end_of_stream, stream);
+    }
   } else
     c = EOF;
 
@@ -494,24 +564,6 @@ PL_current_output()
 { return fileTable[Output].stream;
 }
 
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Formated put.  It would be better to define our own formated  write  for
-this  which  accepts  both  Prolog data structures (ints, floats, atoms,
-etc) and C data structures.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-word
-Putf(char *fm, ...)
-{ va_list args;
-  int rval;
-
-  va_start(args, fm);
-  rval = Svfprintf(fileTable[Output].stream, fm, args);
-  va_end(args);
-
-  return rval < 0 ? FALSE : TRUE;
-}
 
 bool
 PL_open_stream(term_t handle, IOSTREAM *s)
@@ -532,7 +584,7 @@ PL_open_stream(term_t handle, IOSTREAM *s)
     }
   }
 
-  return warning("Out of IO streams");
+  return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_files);
 }
 
 
@@ -557,14 +609,14 @@ openStream(term_t file, int mode, int flags)
     
     if ( !PL_get_arg(1, file, an) ||
 	 !PL_get_atom(an, &name) )
-      return warning("Illegal argument to pipe(Command)");
+      return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_source_sink, file);
 
     signal(SIGPIPE, pipeHandler);
 #else
-    return warning("Pipes are not supported on this OS");
+    return PL_error(NULL, 0, NULL, ERR_NOTIMPLEMENTED, ATOM_pipe);
 #endif /*SIGPIPE*/
   } else
-    return warning("Illegal stream specification");
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_source_sink, file);
 
   DEBUG(3, Sdprintf("File/command name = %s\n", name));
   if ( type == ST_FILE )
@@ -584,7 +636,11 @@ openStream(term_t file, int mode, int flags)
       }
     }
   } else if ( type == ST_PIPE && (mode == F_APPEND || mode == F_WRNOTRUNC) )
-    return warning("Cannot open a pipe in `append' or `update' mode");
+  { term_t tmp = PL_new_term_ref();
+    
+    PL_put_atom(tmp, (mode == F_APPEND ? ATOM_append : ATOM_update));
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_io_mode, tmp);
+  }
     
   if ( !(flags & OPEN_OPEN) )		/* see/1, tell/1, append/1 */
   { for( n=0; n<maxfiles; n++ )
@@ -621,10 +677,7 @@ openStream(term_t file, int mode, int flags)
 #ifdef HAVE_POPEN
   if ( type == ST_PIPE )
   { if ( !(stream=Sopen_pipe(stringAtom(name), cmode)) )
-    { if ( fileerrors )
-	warning("Cannot open pipe %s: %s", stringAtom(name), OsError());
-      fail;
-    }
+      goto err;
   } else
 #endif /*HAVE_POPEN*/
   { char *fn;
@@ -633,17 +686,24 @@ openStream(term_t file, int mode, int flags)
       fail;
 
     if ( !(stream=Sopen_file(fn, cmode)) )
-    { if ( fileerrors )
-	warning("Cannot open %s: %s", fn, OsError());
+    {
+#ifdef HAVE_POPEN
+      err:
+#endif
+      if ( fileerrors )
+      { PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+		 ATOM_open, ATOM_source_sink, file);
+      }
       fail;
     }
   }
 
   for(n=3; n<maxfiles; n++)
-    if ( !fileTable[n].stream )
+  { if ( !fileTable[n].stream )
       break;
-  if ( n >= maxfiles )
-    return warning("Cannot handle more than %d open files", maxfiles);
+  }
+  if ( n >= maxfiles )			/* non-ISO */
+    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_files);
 
   fileTable[n].name = name;
   fileTable[n].stream_name = NULL_ATOM;
@@ -672,13 +732,14 @@ unifyStreamName(term_t f, int n)
 { if ( fileTable[n].status == F_CLOSED )
     fail;
 
+  if ( !(PL_is_variable(f) || PL_is_atom(f)) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_variable, f);
+
 #ifdef HAVE_POPEN
   if ( fileTable[n].type == ST_PIPE )
-  { term_t a = PL_new_term_ref();
-
-    return (PL_unify_functor(f, FUNCTOR_pipe1) &&
-	    PL_get_arg(1, f, a) &&
-	    PL_unify_atom(a, fileTable[n].name));
+  { return PL_unify_term(f,
+			 FUNCTOR_pipe1,
+			   PL_ATOM, fileTable[n].name);
   }
 #endif /*HAVE_POPEN*/
 
@@ -812,7 +873,7 @@ seeString(char *s)
     }
   }
 
-  return warning("Out of IO streams");
+  return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_files);
 }
 
 
@@ -860,7 +921,7 @@ tellString(char **s, int size)
     }
   }
 
-  return warning("Out of IO streams");
+  return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_files);
 }
 
 
@@ -954,9 +1015,10 @@ pl_wait_for_input(term_t Streams, term_t Available,
     if ( fd > max )
       max = fd;
   }
-  if ( !PL_get_nil(streams) ||
-       !PL_get_float(timeout, &time) )
-    return warning("wait_for_input/3: instantiation fault");
+  if ( !PL_get_nil(streams) )
+    return PL_error("wait_for_input", 3, NULL, ERR_TYPE, ATOM_list, Streams);
+  if ( !PL_get_float(timeout, &time) )
+    return PL_error("wait_for_input", 3, NULL, ERR_TYPE, ATOM_float, timeout);
   
   if ( time > 0.0 )
   { t.tv_sec  = (int)time;
@@ -996,12 +1058,14 @@ pl_put(term_t c)
 
   if ( PL_get_integer(c, &chr) )
   { if (chr < 0 || chr > 255)
-      return warning("put/1: argument is not an ascii character");
+      goto err;
     Put(chr);
   } else if ( PL_get_chars(c, &s, CVT_ATOM|CVT_LIST|CVT_STRING) )
   { Puts(s);
   } else
-    return warning("put/1: instantiation fault");
+  { err:
+    return PL_error("put", 1, NULL, ERR_TYPE, ATOM_character, c);
+  }
 
   succeed;
 }
@@ -1028,9 +1092,8 @@ pl_skip(term_t chr)
 { int c;
   int r;
 
-  if ( !PL_get_integer(chr, &c) )
-    return warning("skip/1: instantiation fault");
-  c &= 0xff;
+  if ( !PL_get_integer(chr, &c) || c < 0 || c > 255 )
+    return PL_error("skip", 1, NULL, ERR_TYPE, ATOM_character, chr);
 
   while((r=Get0()) != c && r != EOF )
     ;
@@ -1159,7 +1222,7 @@ pl_prompt1(term_t prompt)
     succeed;
   }
 
-  return warning("prompt1/1: instantiation fault");
+  return PL_error("prompt1", 1, NULL, ERR_TYPE, ATOM_atom, prompt);
 }
 
 
@@ -1177,7 +1240,7 @@ pl_tab(term_t spaces)
     succeed;
   }
 
-  return warning("tab/1: instantiation fault");
+  return PL_error("tab", 1, NULL, ERR_TYPE, ATOM_integer, spaces);
 }
 
 
@@ -1215,7 +1278,13 @@ setUnifyStreamNo(term_t stream, int n)
     for(i = 0; i < maxfiles; i++ )
     { if ( fileTable[i].status != F_CLOSED &&
 	   fileTable[i].stream_name == a )
-	return warning("Stream name %s already in use", stringAtom(a));
+      { term_t obj = PL_new_term_ref();
+
+	PL_unify_term(obj, PL_FUNCTOR, FUNCTOR_alias1, PL_ATOM, a);
+
+	return PL_error(NULL, 0, NULL,
+			ERR_PERMISSION, ATOM_open, ATOM_source_sink, obj);
+      }
     }
     fileTable[n].stream_name = a;
     succeed;
@@ -1245,9 +1314,9 @@ pl_open4(term_t file, term_t mode,
   atom_t eof_action = ATOM_eof_code;
   int flags = OPEN_OPEN;
 
-  if ( !scan_options(options, 0, open4_options,
+  if ( !scan_options(options, 0, ATOM_stream_option, open4_options,
 		     &type, &reposition, &alias, &eof_action) )
-    return warning("open/4: illegal option list");
+    fail;
 
   if ( alias )
     TRY(PL_unify_atom(stream, alias));
@@ -1263,9 +1332,12 @@ pl_open4(term_t file, term_t mode,
       m = F_WRNOTRUNC;
     else if ( mname == ATOM_read )
       m = F_READ;
+
+    if ( m < 0 )
+      return PL_error("open", 4, NULL, ERR_DOMAIN, ATOM_io_mode, mode);
+  } else
+  { return PL_error("open", 4, NULL, ERR_TYPE, ATOM_atom, mode);
   }
-  if ( m < 0 )
-    return warning("open/3: Invalid mode specification");
 
   if ( m == F_READ )
   { int in = Input;
@@ -1398,8 +1470,12 @@ streamNo(term_t spec, int mode)
     }
   }
 
-  if ( n < 0 || n >= maxfiles || fileTable[n].status == F_CLOSED )
-  { warning("Illegal I/O stream specification");
+  if ( n < 0 || n >= maxfiles )
+  { PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_stream_or_alias, spec);
+    return -1;
+  }
+  if ( fileTable[n].status == F_CLOSED )
+  { PL_error(NULL, 0, "closed", ERR_EXISTENCE, ATOM_stream, spec);
     return -1;
   }
 
@@ -1408,13 +1484,17 @@ streamNo(term_t spec, int mode)
       return n;
     case F_READ:
       if ( fileTable[n].status != F_READ )
-	return warning("Stream is not open for reading");
+      { PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		 ATOM_input, ATOM_stream, spec);
+	return -1;
+      }
       break;
     case F_APPEND:
     case F_WRNOTRUNC:
     case F_WRITE:	
       if ( fileTable[n].status != F_WRITE )
-      { warning("Stream is not open for writing");
+      { PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		 ATOM_output, ATOM_stream, spec);
         return -1;
       }
   }
@@ -1504,7 +1584,8 @@ ioStreamWithPosition(term_t stream)
     fail;
   s = fileTable[n].stream;
   if ( !s->position )
-  { warning("Stream doesn't maintain position");
+  { PL_error(NULL, 0, NULL, ERR_PERMISSION, /* non-ISO */
+	     ATOM_property, ATOM_position, stream);
     return NULL;
   }
   
@@ -1543,10 +1624,12 @@ pl_stream_position(term_t stream, term_t old, term_t new)
        !PL_get_long(a, &lineno) ||
        !PL_get_arg(3, new, a) ||
        !PL_get_long(a, &linepos) )
-    return warning("stream_position/3: Invalid position specifier");
+    return PL_error("stream_position", 3, NULL,
+		    ERR_DOMAIN, ATOM_stream_position, new);
 
   if ( charno != oldcharno && Sseek(s, charno, 0) < 0 )
-    return warning("Failed to set stream position: %s", OsError());
+    return PL_error("stream_position", 3, OsError(),
+		    ERR_STREAM_OP, ATOM_position, stream);
 
   s->position->charno  = charno;
   s->position->lineno  = lineno;
@@ -1704,20 +1787,24 @@ char *
 PL_get_filename(term_t n, char *buf, unsigned int size)
 { char *name;
 
-  if ( PL_get_chars(n, &name, CVT_ALL) &&
-       (name = ExpandOneFile(name)) )
-  { if ( buf )
-    { if ( strlen(name) < size )
-      { strcpy(buf, name);
-	return buf;
-      }
-
-      warning("File name too long");
-    } else
-      return name;
+  if ( !PL_get_chars(n, &name, CVT_ALL) )
+  { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, n);
+    return NULL;
   }
+  if ( !(name = ExpandOneFile(name)) )
+    return NULL;
 
-  return NULL;
+  if ( buf )
+  { if ( strlen(name) < size )
+    { strcpy(buf, name);
+      return buf;
+    }
+
+    PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
+	     ATOM_max_path_length);
+    return NULL;
+  } else
+    return name;
 }
 
 
@@ -1734,7 +1821,7 @@ pl_time_file(term_t name, term_t t)
     return unifyTime(t, time);
   }
 
-  return warning("time_file/2: instantiation fault");
+  fail;
 }
 
 
@@ -1746,12 +1833,13 @@ pl_size_file(term_t name, term_t len)
   { long size;
 
     if ( (size = SizeFile(n)) < 0 )
-      return warning("size_file/2: %s", OsError());
+      return PL_error("size_file", 2, OsError(), ERR_FILE_OPERATION,
+		      ATOM_size, ATOM_file, name);
 
     return PL_unify_integer(len, size);
   }
 
-  return warning("exists_file/1: instantiation fault");
+  fail;
 }
 
 
@@ -1761,9 +1849,10 @@ pl_access_file(term_t name, term_t mode)
   int md;
   atom_t m;
 
-  if ( !PL_get_atom(mode, &m) ||
-       !(n=PL_get_filename(name, NULL, 0)) )
-    return warning("access_file/2: instantiation fault");
+  if ( !PL_get_atom(mode, &m) )
+    return PL_error("access_file", 2, NULL, ERR_TYPE, ATOM_atom, mode);
+  if ( !(n=PL_get_filename(name, NULL, 0)) )
+    fail;
 
   if ( m == ATOM_none )
     succeed;
@@ -1777,9 +1866,7 @@ pl_access_file(term_t name, term_t mode)
   else if ( m == ATOM_exist )
     md = ACCESS_EXIST;
   else
-  { warning("access_file/2: mode: {read,write,append,execute,exist,none}");
-    fail;
-  }
+    return PL_error("access_file", 2, NULL, ERR_DOMAIN, ATOM_io_mode, mode);
 
   if ( AccessFile(n, md) )
     succeed;
@@ -1800,7 +1887,7 @@ pl_read_link(term_t file, term_t link, term_t to)
 { char *n, *l, *t;
 
   if ( !(n = PL_get_filename(file, NULL, 0)) )
-    return warning("read_link/2: instantiation fault");
+    fail;
 
   if ( (l = ReadLink(n)) &&
        PL_unify_atom_chars(link, l) &&
@@ -1817,7 +1904,7 @@ pl_exists_file(term_t name)
 { char *n;
 
   if ( !(n = PL_get_filename(name, NULL, 0)) )
-    return warning("exists_file/1: instantiation fault");
+    fail;
   
   return ExistsFile(n);
 }
@@ -1828,7 +1915,7 @@ pl_exists_directory(term_t name)
 { char *n;
 
   if ( !(n = PL_get_filename(name, NULL, 0)) )
-    return warning("exists_directory/1: instantiation fault");
+    fail;
   
   return ExistsDirectory(n);
 }
@@ -1839,7 +1926,7 @@ pl_tmp_file(term_t base, term_t name)
 { char *n;
 
   if ( !PL_get_chars(base, &n, CVT_ALL) )
-    return warning("tmp_file/2: instantiation fault");
+    return PL_error("tmp_file", 2, NULL, ERR_TYPE, ATOM_atom, base);
 
   return PL_unify_atom(name, TemporaryFile(n));
 }
@@ -1850,7 +1937,7 @@ pl_delete_file(term_t name)
 { char *n;
 
   if ( !(n = PL_get_filename(name, NULL, 0)) )
-    return warning("delete_file/1: instantiation fault");
+    fail;
   
   return RemoveFile(n);
 }
@@ -1865,7 +1952,7 @@ pl_same_file(term_t file1, term_t file2)
        (n2 = PL_get_filename(file2, NULL, 0)) )
     return SameFile(name1, n2);
 
-  return warning("same_file/2: instantiation fault");
+  fail;
 }
 
 
@@ -1880,12 +1967,12 @@ pl_rename_file(term_t old, term_t new)
       succeed;
 
     if ( fileerrors )
-      warning("rename_file/2: could not rename %s --> %s: %s\n",
-	      ostore, n, OsError());
+      return PL_error("rename_file", 2, OsError(), ERR_FILE_OPERATION,
+		      ATOM_rename, ATOM_file, old);
     fail;
   }
 
-  return warning("rename_file/2: instantiation fault");
+  fail;
 }
 
 
@@ -1903,7 +1990,7 @@ pl_absolute_file_name(term_t name, term_t expanded)
        (n = AbsoluteFile(n)) )
     return PL_unify_atom_chars(expanded, n);
 
-  return warning("absolute_file_name/2: instantiation fault");
+  fail;
 }
 
 
@@ -1928,11 +2015,12 @@ pl_chdir(term_t dir)
       succeed;
 
     if ( fileerrors )
-      warning("chdir/1: cannot change directory to %s: %s", n, OsError());
+      return PL_error("chdir", 1, NULL, ERR_FILE_OPERATION,
+		      ATOM_chdir, ATOM_directory, dir);
     fail;
   }
 
-  return warning("chdir/1: instantiation fault");
+  fail;
 }
 
 
@@ -1941,7 +2029,7 @@ pl_file_base_name(term_t f, term_t b)
 { char *n;
 
   if ( !PL_get_chars(f, &n, CVT_ALL) )
-    return warning("file_base_name/2: instantiation fault");
+    return PL_error("file_base_name", 2, NULL, ERR_TYPE, ATOM_atom, f);
 
   return PL_unify_atom_chars(b, BaseName(n));
 }
@@ -1952,7 +2040,7 @@ pl_file_dir_name(term_t f, term_t b)
 { char *n;
 
   if ( !PL_get_chars(f, &n, CVT_ALL) )
-    return warning("file_dir_name/2: instantiation fault");
+    return PL_error("file_dir_name", 2, NULL, ERR_TYPE, ATOM_atom, f);
 
   return PL_unify_atom_chars(b, DirName(n));
 }
@@ -1982,7 +2070,7 @@ has_extension(const char *name, const char *ext)
 
 word
 pl_file_name_extension(term_t base, term_t ext, term_t full)
-{ char *b, *e, *f;
+{ char *b = NULL, *e = NULL, *f;
   char buf[MAXPATHLEN];
 
   if ( PL_get_chars(full, &f, CVT_ALL) )
@@ -2003,7 +2091,10 @@ pl_file_name_extension(term_t base, term_t ext, term_t full)
       { TRY(PL_unify_atom_chars(ext, &s[1]));
       }
       if ( s-f > MAXPATHLEN )
-	return warning("file_extension/2: file too long");
+      { maxpath:
+	return PL_error("file_name_extension", 3, NULL, ERR_REPRESENTATION,
+			ATOM_max_path_length);
+      }
       strncpy(buf, f, s-f);
       buf[s-f] = EOS;
 
@@ -2014,7 +2105,9 @@ pl_file_name_extension(term_t base, term_t ext, term_t full)
       PL_succeed;
 
     PL_fail;
-  }
+  } else if ( !PL_is_variable(full) )
+    return PL_error("file_name_extension", 3, NULL, ERR_TYPE,
+		    ATOM_atom, full);
 
   if ( PL_get_chars(base, &b, CVT_ALL|BUF_RING) &&
        PL_get_chars(ext, &e, CVT_ALL) )
@@ -2025,7 +2118,7 @@ pl_file_name_extension(term_t base, term_t ext, term_t full)
     if ( has_extension(b, e) )
       return PL_unify(base, full);
     if ( strlen(b) + 1 + strlen(e) + 1 > MAXPATHLEN )
-      return warning("file_extension/2: file too long");
+      goto maxpath;
     strcpy(buf, b);
     s = buf + strlen(buf);
     *s++ = '.';
@@ -2034,7 +2127,11 @@ pl_file_name_extension(term_t base, term_t ext, term_t full)
     return PL_unify_atom_chars(full, buf);
   }
 
-  return warning("file_extension/2: instantiation fault");
+  if ( !b )
+    return PL_error("file_name_extension", 3, NULL, ERR_TYPE,
+		    ATOM_atom, base);
+  return PL_error("file_name_extension", 3, NULL, ERR_TYPE,
+		  ATOM_atom, ext);
 }
 
 
@@ -2048,11 +2145,18 @@ pl_prolog_to_os_filename(term_t pl, term_t os)
   if ( PL_get_chars(pl, &n, CVT_ALL) )
   { _xos_os_filename(n, buf);
     return PL_unify_atom_chars(os, buf);
-  } else if ( PL_get_chars(os, &n, CVT_ALL) )
+  }
+  if ( !PL_is_variable(pl) )
+    return PL_error("prolog_to_os_filename", 2, NULL, ERR_TYPE,
+		    ATOM_atom, pl);
+
+  if ( PL_get_chars(os, &n, CVT_ALL) )
   { _xos_canonical_filename(n, buf);
     return PL_unify_atom_chars(pl, buf);
-  } else
-    return warning("prolog_to_os_filename/2: instantiation fault");
+  }
+
+  return PL_error("prolog_to_os_filename", 2, NULL, ERR_TYPE,
+		  ATOM_atom, os);
 #else /*O_XOS*/
   return PL_unify(pl, os);
 #endif /*O_XOS*/
@@ -2069,11 +2173,12 @@ pl_make_fat_filemap(term_t dir)
       succeed;
 
     if ( fileerrors )
-      warning("make_fat_filemap/1: failed: %s", OsError());
+      return PL_error("make_fat_filemap", 1, NULL, ERR_FILE_OPERATION,
+		      ATOM_write, ATOM_file, dir);
 
     fail;
   }
   
-  return warning("make_fat_filemap/1: instantiation fault");
+  fail;
 }
 #endif

@@ -5,6 +5,7 @@
 */
 
 :-	[ syspred
+	, messages
 	, toplevel
 	, listing
 	, edit
@@ -14,7 +15,6 @@
 	, list
 	, writef
 	, history
-	, portray
 	, profile
 	, dwim
 	, foreign

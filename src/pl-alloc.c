@@ -101,6 +101,9 @@ alloc_heap(register size_t n)
   if ( (f = malloc(n)) == NULL )
     outOfCore();
 
+  SetHBase(f);
+  SetHTop((char *)f + n);
+
   DEBUG(9, Sdprintf("(b) %ld\n", (unsigned long)f));
 #if ALLOC_DEBUG
   memset((char *) f, ALLOC_MAGIC, n);

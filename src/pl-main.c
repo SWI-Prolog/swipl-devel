@@ -284,7 +284,7 @@ pl_pce_init()
 #endif
 
 int
-startProlog(int argc, char **argv, char **env)
+startProlog(int argc, char **argv)
 { char *s;
   int n;
   char *state = NULL, *symbols = NULL;
@@ -295,7 +295,6 @@ startProlog(int argc, char **argv, char **env)
 
   mainArgc			= argc;
   mainArgv			= argv;
-  mainEnv			= env;
 
   DEBUG(1, Sdprintf("System compiled at %s %s\n", __TIME__, __DATE__));
 
@@ -769,7 +768,7 @@ vwarning(const char *fm, va_list args)
       PL_get_arg(2, argv+1, a); PL_unify_integer(a, source_line_no);
       PL_get_arg(3, argv+1, a); PL_unify_string_chars(a, message);
       
-      qid = PL_open_query(MODULE_user, FALSE, pred, argv);
+      qid = PL_open_query(MODULE_user, PL_Q_NODEBUG, pred, argv);
       rval = PL_next_solution(qid);
       PL_close_query(qid);
       PL_discard_foreign_frame(cid);

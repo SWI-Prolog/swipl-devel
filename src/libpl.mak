@@ -34,8 +34,8 @@ NULL=nul
 # Begin Project
 # PROP Target_Last_Scanned "libpl - Win32 Release"
 CPP=cl.exe
-RSC=rc.exe
 MTL=mktyplib.exe
+RSC=rc.exe
 
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
@@ -62,6 +62,7 @@ CLEAN :
 	-@erase "$(INTDIR)\pl-dll.obj"
 	-@erase "$(INTDIR)\pl-dump.obj"
 	-@erase "$(INTDIR)\pl-dwim.obj"
+	-@erase "$(INTDIR)\pl-error.obj"
 	-@erase "$(INTDIR)\pl-ext.obj"
 	-@erase "$(INTDIR)\pl-file.obj"
 	-@erase "$(INTDIR)\pl-flag.obj"
@@ -128,10 +129,10 @@ BSC32_SBRS= \
 	
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386
-# ADD LINK32 uxnt.lib user32.lib /nodefaultlib:libc.lib /nologo /subsystem:windows /dll /machine:I386 /nodefaultlib:"libcmt.lib"
-LINK32_FLAGS=uxnt.lib user32.lib /nodefaultlib:libc.lib /nologo\
- /subsystem:windows /dll /incremental:no /pdb:"$(OUTDIR)/libpl.pdb"\
- /machine:I386 /nodefaultlib:"libcmt.lib" /out:"$(OUTDIR)/libpl.dll"\
+# ADD LINK32 uxnt.lib user32.lib /nologo /subsystem:windows /dll /machine:I386 /nodefaultlib:"libc.lib" /nodefaultlib:"libcmt.lib"
+LINK32_FLAGS=uxnt.lib user32.lib /nologo /subsystem:windows /dll\
+ /incremental:no /pdb:"$(OUTDIR)/libpl.pdb" /machine:I386\
+ /nodefaultlib:"libc.lib" /nodefaultlib:"libcmt.lib" /out:"$(OUTDIR)/libpl.dll"\
  /implib:"$(OUTDIR)/libpl.lib" 
 LINK32_OBJS= \
 	"$(INTDIR)\pl-arith.obj" \
@@ -143,6 +144,7 @@ LINK32_OBJS= \
 	"$(INTDIR)\pl-dll.obj" \
 	"$(INTDIR)\pl-dump.obj" \
 	"$(INTDIR)\pl-dwim.obj" \
+	"$(INTDIR)\pl-error.obj" \
 	"$(INTDIR)\pl-ext.obj" \
 	"$(INTDIR)\pl-file.obj" \
 	"$(INTDIR)\pl-flag.obj" \
@@ -208,6 +210,7 @@ CLEAN :
 	-@erase "$(INTDIR)\pl-dll.obj"
 	-@erase "$(INTDIR)\pl-dump.obj"
 	-@erase "$(INTDIR)\pl-dwim.obj"
+	-@erase "$(INTDIR)\pl-error.obj"
 	-@erase "$(INTDIR)\pl-ext.obj"
 	-@erase "$(INTDIR)\pl-file.obj"
 	-@erase "$(INTDIR)\pl-flag.obj"
@@ -258,9 +261,9 @@ CLEAN :
 
 $(OUTDIR)/libpl.bsc : $(OUTDIR)  $(BSC32_SBRS)
 # ADD BASE CPP /nologo /MT /W3 /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /c
-# ADD CPP /nologo /W3 /Gm /GX /Zi /Od /I "d:\development\pl\include" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "MAKE_PL_DLL" /YX /c
+# ADD CPP /nologo /MD /W3 /Gm /GX /Zi /Od /I "d:\development\pl\include" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "MAKE_PL_DLL" /YX /c
 # SUBTRACT CPP /Fr
-CPP_PROJ=/nologo /MLd /W3 /Gm /GX /Zi /Od /I "d:\development\pl\include" /D\
+CPP_PROJ=/nologo /MD /W3 /Gm /GX /Zi /Od /I "d:\development\pl\include" /D\
  "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "MAKE_PL_DLL"\
  /Fp"$(INTDIR)/libpl.pch" /YX /Fo"$(INTDIR)/" /Fd"$(INTDIR)/" /c 
 CPP_OBJS=d:\development\objects\pl\debug/
@@ -294,6 +297,7 @@ LINK32_OBJS= \
 	"$(INTDIR)\pl-dll.obj" \
 	"$(INTDIR)\pl-dump.obj" \
 	"$(INTDIR)\pl-dwim.obj" \
+	"$(INTDIR)\pl-error.obj" \
 	"$(INTDIR)\pl-ext.obj" \
 	"$(INTDIR)\pl-file.obj" \
 	"$(INTDIR)\pl-flag.obj" \
@@ -359,6 +363,7 @@ CLEAN :
 	-@erase "$(INTDIR)\pl-dll.obj"
 	-@erase "$(INTDIR)\pl-dump.obj"
 	-@erase "$(INTDIR)\pl-dwim.obj"
+	-@erase "$(INTDIR)\pl-error.obj"
 	-@erase "$(INTDIR)\pl-ext.obj"
 	-@erase "$(INTDIR)\pl-file.obj"
 	-@erase "$(INTDIR)\pl-flag.obj"
@@ -406,9 +411,9 @@ CLEAN :
 $(OUTDIR)/libpl.bsc : $(OUTDIR)  $(BSC32_SBRS)
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /I "c:\jan\pl\include" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "MAKE_PL_DLL" /YX /c
 # SUBTRACT BASE CPP /Fr
-# ADD CPP /nologo /W3 /GX /O2 /I "d:\development\pl\include" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "MAKE_PL_DLL" /D "O_RUNTIME" /YX /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "d:\development\pl\include" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "MAKE_PL_DLL" /D "O_RUNTIME" /YX /c
 # SUBTRACT CPP /Fr
-CPP_PROJ=/nologo /ML /W3 /GX /O2 /I "d:\development\pl\include" /D "NDEBUG" /D\
+CPP_PROJ=/nologo /MD /W3 /GX /O2 /I "d:\development\pl\include" /D "NDEBUG" /D\
  "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "MAKE_PL_DLL" /D "O_RUNTIME"\
  /Fp"$(INTDIR)/libpl.pch" /YX /Fo"$(INTDIR)/" /c 
 CPP_OBJS=d:\development\objects\pl\runtime/
@@ -442,6 +447,7 @@ LINK32_OBJS= \
 	"$(INTDIR)\pl-dll.obj" \
 	"$(INTDIR)\pl-dump.obj" \
 	"$(INTDIR)\pl-dwim.obj" \
+	"$(INTDIR)\pl-error.obj" \
 	"$(INTDIR)\pl-ext.obj" \
 	"$(INTDIR)\pl-file.obj" \
 	"$(INTDIR)\pl-flag.obj" \
@@ -526,6 +532,7 @@ DEP_CPP_PL_DW=\
 	".\pl-buffer.h"\
 	".\pl-ctype.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -568,6 +575,7 @@ DEP_CPP_PL_UT=\
 	".\pl-buffer.h"\
 	".\pl-ctype.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -609,6 +617,7 @@ DEP_CPP_PL_RE=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -650,6 +659,7 @@ DEP_CPP_PL_CO=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -692,6 +702,7 @@ DEP_CPP_PL_WR=\
 	".\pl-buffer.h"\
 	".\pl-ctype.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -733,6 +744,7 @@ DEP_CPP_PL_TA=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -774,6 +786,7 @@ DEP_CPP_PL_PR=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -815,6 +828,7 @@ DEP_CPP_PL_IT=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -856,6 +870,7 @@ DEP_CPP_PL_TE=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -898,6 +913,7 @@ DEP_CPP_PL_FI=\
 	".\pl-buffer.h"\
 	".\pl-ctype.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -941,6 +957,7 @@ DEP_CPP_PL_PRI=\
 	".\pl-buffer.h"\
 	".\pl-ctype.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -982,6 +999,7 @@ DEP_CPP_PL_DD=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -1056,6 +1074,7 @@ DEP_CPP_PL_BA=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -1097,6 +1116,7 @@ DEP_CPP_PL_FL=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -1139,6 +1159,7 @@ DEP_CPP_PL_NT=\
 	".\pl-buffer.h"\
 	".\pl-ctype.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -1181,6 +1202,7 @@ DEP_CPP_PL_EX=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -1222,6 +1244,7 @@ DEP_CPP_PL_PRO=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -1264,6 +1287,7 @@ DEP_CPP_PL_WA=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -1306,6 +1330,7 @@ DEP_CPP_PL_SY=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -1348,6 +1373,7 @@ DEP_CPP_PL_MA=\
 	".\pl-buffer.h"\
 	".\pl-ctype.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -1390,6 +1416,7 @@ DEP_CPP_PL_LO=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -1432,6 +1459,7 @@ DEP_CPP_PL_OS=\
 	".\pl-buffer.h"\
 	".\pl-ctype.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -1474,6 +1502,7 @@ DEP_CPP_PL_REA=\
 	".\pl-buffer.h"\
 	".\pl-ctype.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -1516,6 +1545,7 @@ DEP_CPP_PL_GL=\
 	".\pl-buffer.h"\
 	".\pl-ctype.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -1558,6 +1588,7 @@ DEP_CPP_PL_MO=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -1600,6 +1631,7 @@ DEP_CPP_PL_TR=\
 	".\pl-buffer.h"\
 	".\pl-ctype.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -1667,6 +1699,7 @@ DEP_CPP_PL_SE=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -1709,6 +1742,7 @@ DEP_CPP_PL_SA=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -1751,6 +1785,7 @@ DEP_CPP_PL_PROC=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -1792,6 +1827,7 @@ DEP_CPP_PL_DL=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -1833,6 +1869,7 @@ DEP_CPP_PL_DU=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -1878,6 +1915,7 @@ DEP_CPP_PL_OP=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -1919,6 +1957,7 @@ DEP_CPP_PL_FU=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ic"\
 	".\pl-funct.ih"\
@@ -1961,6 +2000,7 @@ DEP_CPP_PL_LI=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -2003,6 +2043,7 @@ DEP_CPP_PL_FM=\
 	".\pl-buffer.h"\
 	".\pl-ctype.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -2044,6 +2085,7 @@ DEP_CPP_PL_AR=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -2085,6 +2127,7 @@ DEP_CPP_PL_FLI=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -2126,6 +2169,7 @@ DEP_CPP_PL_WI=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -2167,6 +2211,7 @@ DEP_CPP_PL_BU=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -2208,6 +2253,7 @@ DEP_CPP_PL_GC=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -2251,6 +2297,7 @@ DEP_CPP_PL_AT=\
 	".\pl-buffer.h"\
 	".\pl-ctype.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-incl.h"\
@@ -2279,6 +2326,48 @@ DEP_CPP_PL_AT=\
 
 
 "$(INTDIR)\pl-atom.obj" : $(SOURCE) $(DEP_CPP_PL_AT) "$(INTDIR)"
+
+
+!ENDIF 
+
+# End Source File
+################################################################################
+# Begin Source File
+
+SOURCE=".\pl-error.c"
+DEP_CPP_PL_ER=\
+	".\pl-atom.ih"\
+	".\pl-buffer.h"\
+	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-incl.h"\
+	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
+	".\pl-stream.h"\
+	"d:\development\pl\include\uxnt.h"\
+	{$(INCLUDE)}"\sys\STAT.H"\
+	{$(INCLUDE)}"\sys\TYPES.H"\
+	
+
+!IF  "$(CFG)" == "libpl - Win32 Release"
+
+
+"$(INTDIR)\pl-error.obj" : $(SOURCE) $(DEP_CPP_PL_ER) "$(INTDIR)"
+
+
+!ELSEIF  "$(CFG)" == "libpl - Win32 Debug"
+
+
+"$(INTDIR)\pl-error.obj" : $(SOURCE) $(DEP_CPP_PL_ER) "$(INTDIR)"
+
+
+!ELSEIF  "$(CFG)" == "libpl - Win32 Runtime"
+
+
+"$(INTDIR)\pl-error.obj" : $(SOURCE) $(DEP_CPP_PL_ER) "$(INTDIR)"
 
 
 !ENDIF 

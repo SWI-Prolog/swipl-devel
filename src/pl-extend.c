@@ -14,7 +14,7 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 C-extensions can either be loaded through the foreign language interface
 using load_foreign_library/[1,2] or they can   be statically linked with
-the Prolog kernel.`
+the Prolog kernel.
 
 In the latter case, proceed as follows:
 
@@ -33,12 +33,6 @@ In the latter case, proceed as follows:
 	plld -o myprog myprog.c myprog.pl
 
      See main plld and/or the SWI-Prolog manuals for further details.
-
-NOTE:
-
-     Passing the 3-th argument (env) is only necessary if your system
-     does not provide the environment using the global variable `environ'.
-     So, on almost any modern system you can pass NULL.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 PL_extension PL_extensions [] =
@@ -57,14 +51,14 @@ install_readline(int argc, char**argv)
 #endif
 
 int
-main(int argc, char **argv, char **env)
+main(int argc, char **argv)
 {
 
 #ifdef READLINE
   PL_initialise_hook(install_readline);
 #endif
 
-  if ( !PL_initialise(argc, argv, env) )
+  if ( !PL_initialise(argc, argv) )
     PL_halt(1);
 
   PL_halt(PL_toplevel() ? 0 : 1);
