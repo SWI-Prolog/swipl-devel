@@ -17,7 +17,7 @@ OBJ=		odbc.obj
 all:		$(PKGDLL).dll
 
 $(PKGDLL).dll:	$(OBJ)
-		$(LD) /dll /out:$@ $(LDFLAGS) $(OBJ) $(PLLIB) $(LIBS)
+		$(LD) /dll /out:$@ $(LDFLAGS) $(OBJ) $(PLLIB) $(LIBS) odbc32.lib
 
 !IF "$(CFG)" == "rt"
 install:	idll

@@ -47,6 +47,10 @@ Stefano  De  Giorgi  (s.degiorgi@tin.it).
 #include <time.h>
 #include <limits.h>			/* LONG_MAX, etc. */
 
+#ifdef WIN32
+typedef DWORD SQLLEN;
+#endif
+
 #include <SWI-Stream.h>
 #include <SWI-Prolog.h>
 #include <stdio.h>
@@ -876,7 +880,7 @@ clone_context(context *in)
       }
 
       TRY(new, SQLBindParameter(new->hstmt,		/* hstmt */
-				pn,			/* ipar */
+				(SWORD)pn,			/* ipar */
 				SQL_PARAM_INPUT, 	/* fParamType */
 				p->cTypeID, 		/* fCType */
 				p->sqlTypeID,		/* fSqlType */
@@ -906,7 +910,7 @@ clone_context(context *in)
 	else
 	  p->ptr_value = (SQLPOINTER)p->buf;
 
-	TRY(new, SQLBindCol(new->hstmt, i,
+	TRY(new, SQLBindCol(new->hstmt, (SWORD)i,
 			    p->cTypeID,
 			    p->ptr_value,
 			    p->len_value,
@@ -1207,7 +1211,7 @@ pl_odbc_column(term_t dsn, term_t db, term_t row, control_t handle)
 	return FALSE;
       ctxt = new_context(cn);
       TRY(ctxt, SQLColumns(ctxt->hstmt, NULL, 0, NULL, 0,
-			   (SQLCHAR*)s, len, NULL, 0));
+			   (SQLCHAR*)s, (SWORD)len, NULL, 0));
       
       return odbc_row(ctxt, row);
     }
@@ -1403,7 +1407,7 @@ declare_parameters(context *ctxt, term_t parms)
 	cbColDef = val;
     } else
     { TRY(ctxt, SQLDescribeParam(ctxt->hstmt,		/* hstmt */
-				 pn,			/* ipar */
+				 (SWORD)pn,		/* ipar */
 				 &sqlType,
 				 &cbColDef,
 				 &params->scale,
@@ -1441,7 +1445,7 @@ declare_parameters(context *ctxt, term_t parms)
 
 
     TRY(ctxt, SQLBindParameter(ctxt->hstmt,		/* hstmt */
-			       pn,			/* ipar */
+			       (SWORD)pn,		/* ipar */
 			       SQL_PARAM_INPUT,		/* fParamType */
 			       params->cTypeID,		/* fCType */
 			       params->sqlTypeID,	/* fSqlType */
