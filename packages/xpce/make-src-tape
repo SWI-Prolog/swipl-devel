@@ -14,6 +14,7 @@ if [ ! "o$1" = "o-q" ]; then
       awk -F/ '{printf("%s/%s\n", "'$dir'", $2)}' $dir/CVS/Entries >> srcfiles
   done
 cat >> srcfiles << EOF
+./man/faq/pce.hlp
 ./prolog/lib/man/classification.obj
 EOF
   echo "done"

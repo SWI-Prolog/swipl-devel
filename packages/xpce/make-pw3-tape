@@ -1,0 +1,20 @@
+#!/bin/sh
+
+version=`cat VERSION`
+out=pw3-$version.tar.gz
+compress=gzip
+
+if [ ! "o$1" = "o-q" ]; then
+  cp /dev/null pw3files
+  echo -n "Collecting distribution files "
+  for d in `find quintus prolog/pwboot -name CVS -type d -print`; do
+      echo -n "."
+      dir=`dirname $d`
+      awk -F/ '{printf("%s/%s\n", "'$dir'", $2)}' $dir/CVS/Entries >> pw3files
+  done
+  echo "done"
+fi
+
+tar cvfT - pw3files | $compress > $out
+
+
