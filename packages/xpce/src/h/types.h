@@ -331,6 +331,7 @@ PUBLIC_GLOBAL Class ClassHashTable;
 PUBLIC_GLOBAL Class ClassHost;
 PUBLIC_GLOBAL Class ClassHostData;
 PUBLIC_GLOBAL Class ClassHyper;
+PUBLIC_GLOBAL Class ClassChainHyper;
 PUBLIC_GLOBAL Class ClassIdentity;
 PUBLIC_GLOBAL Class ClassIf;
 PUBLIC_GLOBAL Class ClassImage;

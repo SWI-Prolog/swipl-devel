@@ -239,6 +239,9 @@ static struct class_definition classdefs[] =
   { NAME_hyper, NAME_programObject, makeClassHyper,
     &ClassHyper, "Named binary association (hyper link)" },
 
+  { NAME_chainHyper, NAME_hyper, makeClassChainHyper,
+    &ClassChainHyper, "Binary dependency association" },
+
   { NAME_identity, NAME_relation, makeClassIdentity,
     &ClassIdentity, "Identity between attributes" },
 

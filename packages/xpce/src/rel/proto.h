@@ -7,6 +7,7 @@ status		makeClassConstraint(Class class);
 
 /* ../src/rel/hyper.c */
 status		makeClassHyper(Class class);
+status		makeClassChainHyper(Class class);
 
 /* ../src/rel/identity.c */
 status		makeClassIdentity(Class class);

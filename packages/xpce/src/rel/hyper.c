@@ -155,3 +155,89 @@ makeClassHyper(Class class)
 
   succeed;
 }
+
+
+		 /*******************************
+		 *	    CHAIN-HYPER		*
+		 *******************************/
+
+static status
+unlinkFromChainHyper(Hyper h)
+{ if ( isObject(h->to) && !isFreeingObj(h->to) )
+  { if ( hasSendMethodObject(h->to, NAME_destroy) )
+      send(h->to, NAME_destroy, 0);
+    else
+      freeObject(h->to);
+  }
+
+  return freeObject(h);
+}
+
+
+static status
+unlinkToChainHyper(Hyper h)
+{ if ( isObject(h->from) && !isFreeingObj(h->from) )
+  { if ( hasSendMethodObject(h->from, NAME_destroy) )
+      send(h->from, NAME_destroy, 0);
+    else
+      freeObject(h->from);
+  }
+
+  return freeObject(h);
+}
+
+
+/* Instance Variables */
+
+#define var_chain_hyper NULL
+/*
+static vardecl var_chain_hyper[] =
+{ 
+};
+*/
+
+/* Send Methods */
+
+static senddecl send_chain_hyper[] =
+{ SM(NAME_unlinkFrom, 0, NULL, unlinkFromChainHyper,
+     NAME_internal, "->free <-to"),
+  SM(NAME_unlinkTo, 0, NULL, unlinkToChainHyper,
+     NAME_internal, "->free <-from")
+};
+
+/* Get Methods */
+
+#define get_chain_hyper NULL
+/*
+static getdecl get_chain_hyper[] =
+{ 
+};
+*/
+
+/* Resources */
+
+#define rc_chain_hyper NULL
+/*
+static classvardecl rc_chain_hyper[] =
+{ 
+};
+*/
+
+/* Class Declaration */
+
+ClassDecl(chain_hyper_decls,
+          var_chain_hyper, send_chain_hyper, get_chain_hyper, rc_chain_hyper,
+          0, NULL,
+          "$Rev$");
+
+status
+makeClassChainHyper(Class class)
+{ return declareClass(class, &chain_hyper_decls);
+}
+
+
+
+
+
+
+
