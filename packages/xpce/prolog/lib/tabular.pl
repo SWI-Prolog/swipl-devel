@@ -44,6 +44,8 @@ initialise(TD) :->
 :- pce_group(appearance).
 
 
+:- pce_group(event).
+
 :- pce_global(@tabular_device_recogniser,
 	      new(resize_table_slice_gesture(column, left))).
 

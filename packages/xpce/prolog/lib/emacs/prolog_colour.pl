@@ -1463,7 +1463,7 @@ classify_class(_, Name, user(File)) :-
 	get(Class, source, source_location(File, _Line)).
 classify_class(_, Name, user(File)) :-
 	pce_prolog_class(Name),
-	pce_principal:pce_class(Name, _Meta, _Super, Attributes),
+	pce_principal:pce_class(Name, _Meta, _Super, _Vars, _Res, Attributes),
 	memberchk(send(@class, source, source_location(File, _Line)),
 		  Attributes), !.
 classify_class(_, Name, user) :-
