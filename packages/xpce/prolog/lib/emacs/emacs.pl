@@ -133,6 +133,9 @@ pce_ifhostproperty(prolog(swi),
 :- declare_emacs_mode(sgml,	library('emacs/sgml_mode')).
 :- declare_emacs_mode(xml,	library('emacs/sgml_mode')).
 :- declare_emacs_mode(html,	library('emacs/sgml_mode')).
+:- declare_emacs_mode(rdf,	library('emacs/rdf_mode')).
+:- declare_emacs_mode(rdfs,	library('emacs/rdf_mode')).
+:- declare_emacs_mode(owl,	library('emacs/rdf_mode')).
 
 
 		 /*******************************
@@ -173,8 +176,9 @@ default_emacs_mode('.*\\.html~?$',	 		html).
 default_emacs_mode('.*\\.php[0-9]?~?$',	 		html).
 default_emacs_mode('.*\\.sgml~?$',	 		sgml).
 default_emacs_mode('.*\\.xml~?$',	 		xml).
-default_emacs_mode('.*\\.rdfs?~?$',	 		xml).
-default_emacs_mode('.*\\.owl~?$',	 		xml).
+default_emacs_mode('.*\\.rdf~?$',	 		rdf).
+default_emacs_mode('.*\\.rdfs~?$',	 		rdfs).
+default_emacs_mode('.*\\.owl~?$',	 		owl).
 default_emacs_mode('.*\\.ann~?$',	 		annotate).
 default_emacs_mode('.*\\.[ch]~?$', 			c).
 default_emacs_mode('.*\\.C$',				cpp).

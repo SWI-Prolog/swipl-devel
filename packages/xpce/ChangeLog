@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: PceEmacs: provisional RDF, RDFS and OWL modes to insert the lengthy
+  header and draw a tripple diagram from small files.
+
 * PceEmacs: added .owl to map to xml-mode
 
 VERSION 6.1.6, distributed with SWI-Prolog 5.1.6
