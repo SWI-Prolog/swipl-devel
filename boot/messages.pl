@@ -718,13 +718,13 @@ prefix(warning,	      Prefix,      user_error) :-
 	thread_self(Id),
 	(   Id == main
 	->  Prefix = 'Warning: '
-	;   concat_atom(['Warning: [Thread ', Id, ']'], Prefix)
+	;   concat_atom(['Warning: [Thread ', Id, '] '], Prefix)
 	).
 prefix(error,	      Prefix,   user_error) :-
 	thread_self(Id),
 	(   Id == main
 	->  Prefix = 'ERROR: '
-	;   concat_atom(['ERROR: [Thread ', Id, ']'], Prefix)
+	;   concat_atom(['ERROR: [Thread ', Id, '] '], Prefix)
 	).
 prefix(banner,	      '',	   user_error).
 prefix(informational, '% ',        user_error).
