@@ -155,6 +155,9 @@
 /* Name of the SWI-Prolog executable (normally pl) */
 #undef PROG_PL
 
+/* Define if struct rusage contains the field ru_idrss */
+#undef HAVE_RU_IDRSS
+
 /* Define to one of `_getb67', `GETB67', `getb67' for Cray-2 and Cray-YMP
    systems. This function is required for `alloca.c' support on those systems.
    */

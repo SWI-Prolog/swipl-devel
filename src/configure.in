@@ -528,6 +528,23 @@ AC_TRY_COMPILE(
    AC_MSG_RESULT(no))
 fi
 
+if test "$ac_cv_func_getrusage" = "yes"; then
+AC_MSG_CHECKING("ru_idrss in struct rusage")
+AC_TRY_COMPILE(
+[
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <unistd.h>
+],
+[ static struct rusage usage;
+  unsigned long rss;
+
+  rss = usage.ru_idrss;
+], AC_DEFINE(HAVE_RU_IDRSS)
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+fi
+
 AC_MSG_CHECKING("whether assert.h needs stdio.h")
 AC_TRY_COMPILE(
 [

@@ -311,7 +311,7 @@ WallTime(void)
 ulong
 UsedMemory(void)
 {
-#ifdef HAVE_GETRUSAGE
+#if defined(HAVE_GETRUSAGE) && defined(HAVE_RU_IDRSS)
   struct rusage usage;
 
   if ( getrusage(RUSAGE_SELF, &usage) == 0 &&

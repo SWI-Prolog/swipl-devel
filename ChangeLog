@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORT: Fixed detection of ru_idrss in struct rusage (not around in BeOS,
+    reported by Axel ?).
+
   * FIXED: Documentation on obsolete prolog_navigator/1 replaced by new
     prolog_ide/1.  Fixed prolog_ide(open_navigator(Dir)) (Tolga Konik).
 

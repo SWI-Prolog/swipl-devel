@@ -153,3 +153,6 @@
 
 /* Name of the SWI-Prolog executable (normally pl) */
 #undef PROG_PL
+
+/* Define if struct rusage contains the field ru_idrss */
+#undef HAVE_RU_IDRSS
