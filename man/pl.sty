@@ -1,16 +1,39 @@
 %			SWI-Prolog document-style
 
+% Test for PDF generation using pdflatex
+
+\newif\ifpdf
+\ifx\pdfoutput\undefined
+   \pdffalse
+\else
+   \pdfoutput=1
+   \pdftrue
+\fi
+
+% Get hyperrefs to work
+
+\usepackage{makeidx}
+\usepackage{url}
+
+\ifpdf
+  \usepackage[pdftex,colorlinks=true,urlcolor=blue,pdfstartview=FitH]{hyperref}
+  \pdfcompresslevel=9
+  \usepackage[pdftex]{graphicx}
+  \DeclareGraphicsExtensions{.pdf,.png,.jpeg}
+\else
+  \usepackage[dvips]{graphhicx}
+  \DeclareGraphicsExtensions{.eps,.png,.jpeg}
+\fi
+
 %	Other styles
 
 \input logo.sty
 \usepackage{a4wide}
 \usepackage{fancyheadings}
 \usepackage{fancychap}
-\usepackage{makeidx}
 \usepackage{longtable}
 \usepackage{ifthen}
 \usepackage{dcolumn}
-\usepackage{url}
 \setlongtables
 
 \catcode`\^^A=8% downarrow are for subscripts

@@ -26,6 +26,12 @@
 #define HAVE___TRY 1
 #endif
 
+/* Define for emulating dlopen(), etc. using LoadLibrary */
+#define EMULATE_DLOPEN 1
+
+/* Define to extension used for shared objects if not "so" */
+#define SO_EXT "dll"
+
 /* Define for the _xos_... functions */
 #define O_XOS 1
 

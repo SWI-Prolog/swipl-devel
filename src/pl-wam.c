@@ -310,6 +310,17 @@ PL_close_foreign_frame(fid_t id)
 
 
 void
+PL_rewind_foreign_frame(fid_t id)
+{ GET_LD
+  FliFrame fr = (FliFrame) valTermRef(id);
+
+  Undo(fr->mark);
+  lTop = addPointer(fr, sizeof(struct fliFrame));
+  fr->size = 0;
+}
+
+
+void
 PL_discard_foreign_frame(fid_t id)
 { GET_LD
   FliFrame fr = (FliFrame) valTermRef(id);
@@ -446,14 +457,18 @@ callForeign(const Definition def, LocalFrame frame)
   exception_term = 0;
 
 #define F (*function)    
+  if ( true(def, P_VARARG) )
+  { result = F(h0, argc, (word) frame->clause);
+  } else
 #define A(n) (h0+n)
-  if ( false(def, NONDETERMINISTIC) )	/* deterministic */
-  { CALLDETFN(result, argc);
-  } else				/* non-deterministic */
-  { word context = (word) frame->clause;
-    CALLNDETFN(result, argc, context);
-  }
+  { if ( false(def, NONDETERMINISTIC) )	/* deterministic */
+    { CALLDETFN(result, argc);
+    } else				/* non-deterministic */
+    { word context = (word) frame->clause;
+      CALLNDETFN(result, argc, context);
+    }
 #undef A
+  }
 #undef F
 
   PL_close_foreign_frame(cid);		/* invalidates exception_term! */
@@ -958,6 +973,14 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 	     } else
 	       Sdprintf("PL_open_query in unitialized environment.\n");
 	   });
+
+					/* should be struct alignment, */
+					/* but for now, I think this */
+					/* is always the same */
+#ifdef DOUBLE_ALIGNMENT
+  while ( (ulong)lTop % DOUBLE_ALIGNMENT )
+    lTop = addPointer(lTop, sizeof(word));
+#endif
 
   qf	= (QueryFrame) lTop;
   fr    = &qf->frame;

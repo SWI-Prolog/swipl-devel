@@ -251,10 +251,10 @@ prolog_completion(char *text, int start, int end)
 
   if ( (start == 1 && rl_line_buffer[0] == '[') )	/* [file */
     matches = completion_matches(text,
-				 (Function *) filename_completion_function);
+				 (void *) filename_completion_function);
   else if (start == 2 && strncmp(rl_line_buffer, "['", 2))
     matches = completion_matches(text,
-				 (Function *) filename_completion_function);
+				 (void *) filename_completion_function);
   else
     matches = completion_matches(text, atom_generator);
 

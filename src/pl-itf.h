@@ -28,7 +28,7 @@ before loading this file.  See end of this file.
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
 
 #ifndef PLVERSION
-#define PLVERSION 30209
+#define PLVERSION 30300
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -118,11 +118,14 @@ typedef union
 #define PL_STRING	(5)		/* const char * */
 #define PL_TERM		(6)
 
+					/* PL_unify_term() */
 #define PL_FUNCTOR	(10)		/* functor_t, arg ... */
 #define PL_LIST		(11)		/* length, arg ... */
 #define PL_CHARS	(12)		/* const char * */
 #define PL_POINTER	(13)		/* void * */
-
+					/* PlArg::PlArg(text, type) */
+#define PL_CODE_LIST	(14)		/* [ascii...] */
+#define PL_CHAR_LIST	(15)		/* [h,e,l,l,o] */
 
 		/********************************
 		*    DETERMINISTIC CALL/RETURN  *
@@ -169,6 +172,7 @@ typedef struct _PL_extension
 #define PL_FA_NOTRACE		(0x01)	/* foreign cannot be traced */
 #define PL_FA_TRANSPARENT	(0x02)	/* foreign is module transparent */
 #define PL_FA_NONDETERMINISTIC	(0x04)	/* foreign is non-deterministic */
+#define PL_FA_VARARGS		(0x08)	/* call using t0, ac, ctx */
 
 extern			PL_extension PL_extensions[]; /* not Win32! */
 __pl_export void	PL_register_extensions(const PL_extension *e);
@@ -203,6 +207,7 @@ __pl_export int		PL_strip_module(term_t in, module_t *m, term_t out);
 
 			/* Foreign context frames */
 __pl_export fid_t	PL_open_foreign_frame(void);
+__pl_export void	PL_rewind_foreign_frame(fid_t cid);
 __pl_export void	PL_close_foreign_frame(fid_t cid);
 __pl_export void	PL_discard_foreign_frame(fid_t cid);
 
@@ -225,6 +230,7 @@ __pl_export void	PL_cut_query(qid_t qid);
 __pl_export int		PL_call(term_t t, module_t m);
 __pl_export int		PL_call_predicate(module_t m, int debug,
 					  predicate_t pred, term_t t0);
+			/* Handling exceptions */
 __pl_export term_t	PL_exception(qid_t qid);
 __pl_export int		PL_raise_exception(term_t exception);
 __pl_export int		PL_throw(term_t exception);
@@ -266,6 +272,7 @@ __pl_export int		PL_get_head(term_t l, term_t h);
 __pl_export int		PL_get_tail(term_t l, term_t t);
 __pl_export int		PL_get_nil(term_t l);
 __pl_export int		PL_get_term_value(term_t t, term_value_t *v);
+__pl_export char *	PL_quote(int chr, const char *data);
 
 			/* Verify types */
 __pl_export int		PL_term_type(term_t t);
@@ -289,6 +296,7 @@ __pl_export void	PL_put_string_nchars(term_t t,
 					     unsigned int len,
 					     const char *chars);
 __pl_export void	PL_put_list_chars(term_t t, const char *chars);
+__pl_export void	PL_put_list_codes(term_t t, const char *chars);
 __pl_export void	PL_put_integer(term_t t, long i);
 __pl_export void	PL_put_pointer(term_t t, void *ptr);
 __pl_export void	PL_put_float(term_t t, double f);
@@ -307,6 +315,7 @@ __pl_export int		PL_unify(term_t t1, term_t t2);
 __pl_export int		PL_unify_atom(term_t t, atom_t a);
 __pl_export int		PL_unify_atom_chars(term_t t, const char *chars);
 __pl_export int		PL_unify_list_chars(term_t t, const char *chars);
+__pl_export int		PL_unify_list_codes(term_t t, const char *chars);
 __pl_export int		PL_unify_string_chars(term_t t, const char *chars);
 __pl_export int		PL_unify_string_nchars(term_t t,
 					       unsigned int len,
@@ -395,7 +404,9 @@ __pl_export void	_PL_get_arg(int index, term_t t, term_t a);
 #define CVT_VARIABLE	0x0020
 #define CVT_NUMBER	(CVT_INTEGER|CVT_FLOAT)
 #define CVT_ATOMIC	(CVT_NUMBER|CVT_ATOM|CVT_STRING)
-#define CVT_ALL		0x00ff
+#define CVT_WRITE	0x0040		/* as of version 3.2.10 */
+#define CVT_ALL		(CVT_ATOMIC|CVT_NUMBER|CVT_LIST)
+#define CVT_MASK	0x00ff
 
 #define BUF_DISCARDABLE	0x0000
 #define BUF_RING	0x0100
@@ -423,8 +434,10 @@ __pl_export int PL_write_term(IOSTREAM *s,
 			      term_t term,
 			      int precedence,
 			      int flags);
-
 #endif
+
+__pl_export int PL_chars_to_term(const char *chars,
+				 term_t term);
 
 
 		 /*******************************
@@ -507,7 +520,7 @@ __pl_export void PL_handle_signals(void);
 #define PL_ACTION_BREAK		4	/* create a break environment */
 #define PL_ACTION_HALT		5	/* halt Prolog execution */
 #define PL_ACTION_ABORT		6	/* generate a Prolog abort */
-#define PL_ACTION_SYMBOLFILE	7	/* make arg. the symbol file */
+					/* 7: Obsolete PL_ACTION_SYMBOLFILE */
 #define PL_ACTION_WRITE		8	/* write via Prolog i/o buffer */
 #define PL_ACTION_FLUSH		9	/* Flush Prolog i/o buffer */
 #define PL_ACTION_GUIAPP	10	/* Win32: set when this is a gui */
@@ -521,14 +534,14 @@ __pl_export void PL_on_halt(void (*)(int, void *), void *);
 
 #define PL_QUERY_ARGC		1	/* return main() argc */
 #define PL_QUERY_ARGV		2	/* return main() argv */
-#define PL_QUERY_SYMBOLFILE	3	/* return current symbol file */
-#define PL_QUERY_ORGSYMBOLFILE	4	/* symbol file before first load */
+					/* 3: Obsolete PL_QUERY_SYMBOLFILE */
+					/* 4: Obsolete PL_QUERY_ORGSYMBOLFILE*/
 #define PL_QUERY_GETC		5	/* Read character from terminal */
 #define PL_QUERY_MAX_INTEGER	6	/* largest integer */
 #define PL_QUERY_MIN_INTEGER	7	/* smallest integer */
 #define PL_QUERY_MAX_TAGGED_INT	8	/* largest tagged integer */
 #define PL_QUERY_MIN_TAGGED_INT	9	/* smallest tagged integer */
-#define PL_QUERY_VERSION       10	/* 207006 = 2.7.6 */
+#define PL_QUERY_VERSION        10	/* 207006 = 2.7.6 */
 
 __pl_export long	PL_query(int);	/* get information from Prolog */
 

@@ -177,7 +177,7 @@ interpreter with the toplevel goal.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-prolog(volatile atom_t goal)
+prologToplevel(volatile atom_t goal)
 { bool rval;
 
   if ( setjmp(abort_context) != 0 )
@@ -322,7 +322,10 @@ checkData(Word p)
   }
 
   if ( isAtom(*p) )
+  { if ( storage(*p) != STG_STATIC )
+      printk("Atom doesn't have STG_STATIC");
     return *p;
+  }
 					/* now it should be a term */
   if ( tag(*p) != TAG_COMPOUND ||
        storage(*p) != STG_GLOBAL )

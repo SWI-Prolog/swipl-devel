@@ -43,7 +43,7 @@ wise_install :-
 	->  Item = 'SWI-Prolog',
 	    format('Installing icons in group ~w, for CWD=~w~n', [Group, Cwd]),
 	    ensure_group(Group),
-	    feature(symbol_file, PlFileName),
+	    feature(executable, PlFileName),
 	    prolog_to_os_filename(PlFileName, CmdLine0),
 	    concat_atom(['"', CmdLine0, '"'], CmdLine),
 	    progman_make_item(Group, Item, CmdLine, Cwd)
@@ -64,7 +64,7 @@ wise_install_xpce :-
 	->  Item = 'XPCE',
 	    format('Installing icons in group ~w, for CWD=~w~n', [Group, Cwd]),
 	    ensure_group(Group),
-	    feature(symbol_file, PlFileName),
+	    feature(executable, PlFileName),
 	    prolog_to_os_filename(PlFileName, Prog),
 	    concat_atom(['"', Prog, '" -- -pce'], CmdLine),
 	    progman_make_item(Group, Item, CmdLine, Cwd, Prog:1)

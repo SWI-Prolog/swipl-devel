@@ -134,13 +134,13 @@ $set_file_search_paths :-
 
 $search_path(Name, Aliases) -->
 	$string(NameChars),
-	"=", !,
+	[=], !,
 	{atom_chars(Name, NameChars)},
 	$search_aliases(Aliases).
 
 $search_aliases([Alias|More]) -->
 	$string(AliasChars),
-	":", !,
+	[:], !,
 	{ $make_alias(AliasChars, Alias) },
 	$search_aliases(More).
 $search_aliases([Alias]) -->
@@ -175,7 +175,7 @@ $load_associated_file :-
 	file_directory_name(File, Dir),
 	chdir(Dir),
 	consult(user:File), !,
-	concat('SWI-Prolog -- ', File, Title),
+	atom_concat('SWI-Prolog -- ', File, Title),
 	G = user:window_title(_, Title),
 	(   current_predicate(_, G)
 	->  G
@@ -282,9 +282,9 @@ read_query(Prompt, Goal, Bindings) :-
 	prompt1(Prompt1),
 	(   feature(readline, true)
 	->  $raw_read(user_input, Line),
-	    atom_chars(Line, LineChars),
+	    atom_codes(Line, LineChars),
 	    append(LineChars, ".", CompleteLine),
-	    call(rl_add_history(CompleteLine)),
+	    catch(user:rl_add_history(CompleteLine), _, true),
 	    $term_to_atom(Goal, Line, Bindings, 1)
 	;   read_term(user_input, Goal, [variable_names(Bindings)])
 	), !.
@@ -305,11 +305,11 @@ remove_history_prompt(Prompt0, Prompt) :-
 	atom_chars(Prompt, Chars).
 
 clean_history_prompt_chars([], []).
-clean_history_prompt_chars([0'%, 0'!|T], T) :- !.
+clean_history_prompt_chars(['%', !|T], T) :- !.
 clean_history_prompt_chars([H|T0], [H|T]) :-
 	clean_history_prompt_chars(T0, T).
  
-delete_leading_blanks([32|T0], T) :- !,
+delete_leading_blanks([' '|T0], T) :- !,
 	delete_leading_blanks(T0, T).
 delete_leading_blanks(L, L).
 
@@ -333,7 +333,7 @@ set_default_history :-
 $prompt("%m%d%l%! ?- ").
 
 $set_prompt(P) :-
-	atom_chars(P, S),
+	atom_codes(P, S),
 	retractall($prompt(_)),
 	assert($prompt(S)).
 

@@ -53,7 +53,7 @@ The virtual machine interpreter now should ensure the stack  frames  are
 in  a predicatable state.  For the moment, this implies that all frames,
 except for the current one (which only has its arguments filled)  should
 be  initialised fully.  I'm not yet sure whether we can't do better, but
-this is simple and save and allows us to  debug  the  garbage  collector
+this is simple and safe and allows us to  debug  the  garbage  collector
 first before starting on the optimisations.
 
 
@@ -232,7 +232,7 @@ print_adr(Word adr, char *buf)
 
 static char *
 print_val(word val, char *buf)
-{ char *tag_name[] = { "var", "int", "float", "atom",
+{ char *tag_name[] = { "var", "float", "int", "atom",
 		       "string", "list", "term", "ref" };
   char *stg_name[] = { "static/inline/trail", "global", "local", "reserved" };
 
@@ -354,9 +354,9 @@ last-argument-first).
 
 static void
 mark_variable(Word start)
-{ register Word current;		/* current cell examined */
-  register word val;			/* old value of current cell */
-  register Word next;			/* cell to be examined */
+{ Word current;				/* current cell examined */
+  word val;				/* old value of current cell */
+  Word next;				/* cell to be examined */
 
   DEBUG(3, Sdprintf("marking 0x%p\n", start));
 
@@ -472,7 +472,7 @@ mark_term_refs()
     int n = fr->size;
 
     for( ; n-- > 0; sp++ )
-    { if ( !marked(sp) )
+    { if ( !marked(sp) )		/* can this be marked?? */
       { if ( isGlobalRef(*sp) )
 	  mark_variable(sp);
 	else
@@ -843,7 +843,8 @@ compact_trail(void)
 #if O_SECURE
     else
     { Symbol s;
-      if ( (s=lookupHTable(check_table, current)) != NULL && s->value == TRUE )
+      if ( (s=lookupHTable(check_table, current)) != NULL &&
+	   s->value == (void *)TRUE )
         sysError("0x%p was supposed to be relocated (*= 0x%p)",
 		 current, current->address);
     }

@@ -98,8 +98,8 @@ help_history(Show, Help) :-
 prompt_history(Prompt) :-
 	flag($last_event, Old, Old), 
 	succ(Old, This), 
-	name(Prompt, SP),
-	name(This, ST),
+	atom_codes(Prompt, SP),
+	atom_codes(This, ST),
 	(   substitute("%!", ST, SP, String)
 	->  prompt1(String)
 	;   prompt1(Prompt)
@@ -112,7 +112,7 @@ prompt_history(Prompt) :-
 save_history_line(Line) :-
 	feature(readline, true),
 	string_concat(Line, '.', CompleteLine),
-	call(rl_add_history(CompleteLine)), !.
+	catch(user:rl_add_history(CompleteLine), _, fail), !.
 save_history_line(_).
 
 save_event(Dont, Event) :-
@@ -156,21 +156,21 @@ history_depth_(15).
 %    avoid problems with the cut.
 
 expand_history(Raw, Expanded, Changed) :-
-	name(Raw, RawString), 
+	atom_chars(Raw, RawString), 
 	expand_history2(RawString, ExpandedString, Changed), 
 	atom_chars(Expanded, ExpandedString), !.
 
-expand_history2([0'^|Rest], Expanded, true) :- !, 
+expand_history2([^|Rest], Expanded, true) :- !, 
 	get_last_event(Last), 
 	old_new(Rest, Old, New, []), 
 	substitute_warn(Old, New, Last, Expanded).
 expand_history2(String, Expanded, Changed) :-
 	expand_history3(String, Expanded, Changed).
 
-expand_history3([0'!, C|Rest], [0'!|Expanded], Changed) :-
+expand_history3([!, C|Rest], [!|Expanded], Changed) :-
 	not_event_char(C), !, 
 	expand_history3([C|Rest], Expanded, Changed).
-expand_history3([0'!|Rest], Expanded, true) :- !, 
+expand_history3([!|Rest], Expanded, true) :- !, 
 	match_event(Rest, Event, NewRest), 
 	append(Event, RestExpanded, Expanded), !, 
 	expand_history3(NewRest, RestExpanded, _).
@@ -183,13 +183,13 @@ expand_history3([], [], false).
 %   returns the Old and New substitute patterns as well s possible text
 %   left.
 
-old_new([0'^|Rest], [], New, Left) :- !, 
+old_new([^|Rest], [], New, Left) :- !, 
 	new(Rest, New, Left).
 old_new([H|Rest], [H|Old], New, Left) :-
 	old_new(Rest, Old, New, Left).
 
 new([], [], []) :- !.
-new([0'^|Left], [], Left) :- !.
+new([^|Left], [], Left) :- !.
 new([H|T], [H|New], Left) :-
 	new(T, New, Left).
 
@@ -198,7 +198,7 @@ new([H|T], [H|New], Left) :-
 
 get_last_event(Event) :-
 	recorded($history_list, _/Atom), 
-	name(Atom, Event), !.
+	atom_chars(Atom, Event), !.
 get_last_event(_) :-
 	$ttyformat('! No such event~n'),
 	fail.
@@ -229,16 +229,16 @@ match_event(_, _, _) :-
 	$ttyformat('! No such event~n'),
 	fail.
 
-substitute_event([0'^|Spec], RawEvent, Event, Rest) :- !, 
+substitute_event([^|Spec], RawEvent, Event, Rest) :- !, 
 	old_new(Spec, Old, New, Rest), 
 	substitute(Old, New, RawEvent, Event).
 substitute_event(Rest, Event, Event, Rest).
 
-alpha(C) :- between(0'a, 0'z, C).
-alpha(C) :- between(0'A, 0'Z, C).
-alpha(0'_).
+alpha(A) :- atom_char(A, C), between(0'a, 0'z, C).
+alpha(A) :- atom_char(A, C), between(0'A, 0'Z, C).
+alpha('_').
 
-digit(C) :- between(0'0, 0'9, C).
+digit(A) :- atom_char(A, C), between(0'0, 0'9, C).
 
 alpha_digit(C) :-
 	alpha(C).
@@ -246,21 +246,21 @@ alpha_digit(C) :-
 	digit(C).
 
 not_event_char(C) :- alpha_digit(C), !, fail.
-not_event_char(0'?) :- !, fail.
-not_event_char(0'!) :- !, fail.
+not_event_char(?) :- !, fail.
+not_event_char(!) :- !, fail.
 not_event_char(_).
 
-find_event([0'?|Rest], Event, Left) :- !, 
+find_event([?|Rest], Event, Left) :- !, 
 	take_string(Rest, String, Left), 
 	matching_event(substring, String, Event).
-find_event([0'!|Left], Event, Left) :- !, 
+find_event([!|Left], Event, Left) :- !, 
 	get_last_event(Event).
 find_event([N|Rest], Event, Left) :-
 	digit(N), !, 
 	take_number([N|Rest], String, Left), 
-	name(Number, String), 
+	number_chars(Number, String), 
 	recorded($history_list, Number/Atom), 
-	name(Atom, Event).
+	atom_chars(Atom, Event).
 find_event(Spec, Event, Left) :-
 	take_string(Spec, String, Left), 
 	matching_event(prefix, String, Event).
@@ -282,10 +282,10 @@ take_number([], [], []).
 
 matching_event(prefix, String, Event) :-
 	recorded($history_list, _/AtomEvent), 
-	name(AtomEvent, Event), 
+	atom_chars(AtomEvent, Event), 
 	append(String, _, Event), !.
 matching_event(substring, String, Event) :-
 	recorded($history_list, _/AtomEvent), 
-	name(AtomEvent, Event), 
+	atom_chars(AtomEvent, Event), 
 	append(_, MatchAndTail, Event), 
 	append(String, _, MatchAndTail), !.	

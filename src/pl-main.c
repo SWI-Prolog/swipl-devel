@@ -123,24 +123,6 @@ findHome(char *symbols)
        ExistsDirectory(home) )
     return store_string(home);
 
-#if tos || __DOS__ || __WINDOWS__
-#if tos
-#define HasDrive(c) (Drvmap() & (1 << (c - 'a')))
-#else
-#define HasDrive(c) 1
-#endif
-  { char *drv;
-    static char drvs[] = "cdefghijklmnopab";
-    char home[MAXPATHLEN];
-
-    for(drv = drvs; *drv; drv++)
-    { Ssprintf(home, "/%c:/pl", *drv);
-      if ( HasDrive(*drv) && ExistsDirectory(home) )
-        return store_string(home);
-    }
-  }
-#endif
-
   return NULL;
 }
 
@@ -223,12 +205,16 @@ initPaths()
 { char plp[MAXPATHLEN];
   char *symbols = NULL;			/* The executable */
 
-  if ( !(symbols = Symbols(plp)) ||
+  if ( !(symbols = findExecutable(GD->cmdline.argv[0], plp)) ||
        !(symbols = DeRefLink(symbols, plp)) )
     symbols = GD->cmdline.argv[0];
 
-  GD->paths.executable	     = store_string(symbols);
   systemDefaults.home	     = findHome(symbols);
+
+#ifdef __WIN32__			/* we want no module but the .EXE */
+  symbols = findExecutable(NULL, plp);
+#endif
+  GD->paths.executable	     = store_string(symbols);
   systemDefaults.startup     = store_string(PrologPath(DEFSTARTUP, plp));
   GD->options.systemInitFile = defaultSystemInitFile(GD->cmdline.argv[0]);
 
@@ -543,7 +529,8 @@ properly on Linux. Don't bother with it.
 
   if ( !GD->resourceDB ||
        !streq(GD->options.saveclass, "runtime") )
-  { argc--; argv++;
+  { int done;
+    argc--; argv++;
 
     if ( argc == 1 && giveVersionInfo(argv[0]) ) /* -help, -v, etc */
       exit(0);
@@ -560,17 +547,16 @@ properly on Linux. Don't bother with it.
     DEBUG(1, if (GD->bootsession) Sdprintf("Boot session\n"););
 
     if ( !GD->resourceDB )
-    { int done;
-
-      if ( !(GD->resourceDB = openResourceDB(argc, argv)) )
+    { if ( !(GD->resourceDB = openResourceDB(argc, argv)) )
 	fatalError("Could not find system resources");
       rcpath = ((RcArchive)GD->resourceDB)->path;
 
       initDefaultOptions();
-      done = parseCommandLineOptions(argc, argv, &compile);
-      argc -= done;
-      argv += done;
     }
+
+    done = parseCommandLineOptions(argc, argv, &compile);
+    argc -= done;
+    argv += done;
   }
 
   setupProlog();
@@ -628,10 +614,10 @@ properly on Linux. Don't bother with it.
   DEBUG(1, Sdprintf("Starting Prolog Part of initialisation\n"));
 
   if ( compile )
-  { Halt(prolog(lookupAtom("$compile")) ? 0 : 1);
+  { Halt(prologToplevel(lookupAtom("$compile")) ? 0 : 1);
   }
     
-  return prolog(lookupAtom("$initialise"));
+  return prologToplevel(lookupAtom("$initialise"));
 }
 
 typedef const char *cline;
@@ -650,7 +636,7 @@ usage()
     "    7) %s [options] [-o output] -b bootfile -c file ...\n",
     "Options:\n",
     "    -x state         Start from state (must be first)\n",
-    "    -[LGTAH]size[KM] Specify {Local,Global,Trail,Argument,Heap} limits\n",
+    "    -[LGTA]size[KM]  Specify {Local,Global,Trail,Argument} limits\n",
     "    -t toplevel      Toplevel goal\n",
     "    -g goal          Initialisation goal\n",
     "    -f file          Initialisation file\n",

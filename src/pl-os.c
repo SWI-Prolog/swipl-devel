@@ -1096,8 +1096,13 @@ canoniseDir(char *path)
     }
   }
 
+					/* we need to use malloc() here */
+					/* because allocHeap() only ensures */
+					/* alignment for `word', and inode_t */
+					/* is sometimes bigger! */
+
   if ( statfunc(OsPath(path, tmp), &buf) == 0 )
-  { CanonicalDir dn = allocHeap(sizeof(struct canonical_dir));
+  { CanonicalDir dn = malloc(sizeof(struct canonical_dir));
     char dirname[MAXPATHLEN];
     char *e = path + strlen(path);
 
@@ -1126,6 +1131,7 @@ canoniseDir(char *path)
 	  strcat(dirname, e);
 	  strcpy(path, dirname);
 	  dn->canonical = store_string(path);
+	  canonical_dirlist = dn;
 	  DEBUG(1, Sdprintf("(replace) %s\n", path));
 	  return path;
 	}
@@ -2487,12 +2493,12 @@ char *command;
 #ifndef __WIN32__			/* Win32 version in pl-nt.c */
 
 char *
-Symbols(char *buffer)
+findExecutable(const char *av0, char *buffer)
 { char *file;
   char buf[MAXPATHLEN];
   char tmp[MAXPATHLEN];
 
-  PrologPath(GD->cmdline.argv[0], buf);
+  PrologPath(av0, buf);
   file = Which(buf, tmp);
 
 #if __unix__				/* argv[0] can be an #! script! */

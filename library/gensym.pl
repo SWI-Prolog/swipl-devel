@@ -14,12 +14,12 @@
 :- style_check(+dollar).
 
 gensym(Base, Atom) :-
-	concat($gs_, Base, Key), 
+	atom_concat($gs_, Base, Key), 
 	flag(Key, Old, Old), 
 	record_gensym(Key, Old),
 	succ(Old, New), 
 	flag(Key, _, New), 
-	concat(Base, New, Atom).
+	atom_concat(Base, New, Atom).
 
 record_gensym(Key, 0) :- !,
 	recordz($gensym, Key).

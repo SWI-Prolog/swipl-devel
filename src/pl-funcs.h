@@ -179,7 +179,7 @@ word		pl_flush(void);
 word		pl_see(term_t f);
 word		pl_seen(void);
 word		pl_noprotocol(void);
-bool		seeString(char *s);
+bool		seeString(const char *s);
 bool		seeingString(void);
 bool		seenString(void);
 bool		tellString(char **s, int *size);
@@ -272,6 +272,7 @@ predicate_t	_PL_predicate(const char *name, int arity, const char *module,
 			      predicate_t *bin);
 void		initialiseForeign(int argc, char **argv);
 char *		buffer_string(const char *s, int flags);
+atom_t		codeToAtom(int code);
 
 /* pl-fmt.c */
 word		pl_format_predicate(term_t chr, term_t descr);
@@ -316,12 +317,6 @@ word		pl_msort(term_t list, term_t sorted);
 word		pl_sort(term_t list, term_t sorted);
 
 /* pl-load.c */
-bool		getSymbols(void);
-void		resetLoader(void);
-long		allocText(long int size);
-word		pl_load_foreign(term_t file, term_t entry, term_t options,
-				term_t libraries, term_t size);
-word		pl_load_foreign1(term_t file);
 word		pl_open_shared_object(term_t file, term_t h, term_t flags);
 word		pl_close_shared_object(term_t plhandle);
 word		pl_call_shared_object_function(term_t plhandle, term_t name);
@@ -401,7 +396,7 @@ int		getenvl(const char *);
 int		Setenv(char *name, char *value);
 int		Unsetenv(char *name);
 int		System(char *cmd);
-char *		Symbols(char *buf);
+char *		findExecutable(const char *module, char *buf);
 void		Pause(real time);
 #if __WIN32__
 int		iswin32s(void);
@@ -452,13 +447,13 @@ char *		formatInteger(bool split, int div, int radix,
 			      bool small, long n, char *out);
 word		pl_format_number(term_t format, term_t number,
 				 term_t string);
-atom_t		code_to_atom(unsigned int code);
 word		pl_name(term_t atom, term_t string);
 word		pl_atom_chars(term_t atom, term_t string);
+word		pl_atom_codes(term_t atom, term_t string);
 word		pl_number_chars(term_t number, term_t string);
 word		pl_atom_char(term_t atom, term_t chr);
 word		pl_atom_prefix(term_t atom, term_t prefix);
-word		pl_concat(term_t a1, term_t a2, term_t a3);
+word		pl_atom_concat(term_t a1, term_t a2, term_t a3, control_t ctx);
 word		pl_concat_atom(term_t list, term_t atom);
 word		pl_concat_atom3(term_t list, term_t sep, term_t atom);
 word		pl_apropos_match(term_t a1, term_t a2);
@@ -500,7 +495,7 @@ word		pl_depth_limit_false(term_t limit,
 #endif /*O_LIMIT_DEPTH*/
 int		callProlog(Module module, term_t goal, int flags, term_t *ex);
 word		pl_abort(void);
-bool		prolog(atom_t toplevel);
+bool		prologToplevel(atom_t toplevel);
 word		pl_metacut(void);
 int 		trap_gdb(void);
 word		checkData(Word p);
@@ -761,6 +756,12 @@ word		pl_call_dll_function(term_t handle, term_t funcname);
 void		PlMessage(const char *buf, ...);
 word		pl_window_title(term_t old, term_t new);
 word		pl_win_exec(term_t command, term_t show);
+#ifdef EMULATE_DLOPEN
+void *		dlopen(const char *file, int flags);
+const char *	dlerror(void);
+void *		dlsym(void *handle, char *symbol);
+int		dlclose(void *handle);
+#endif /*EMULATE_DLOPEN*/
 
 /* pl-rc.c */
 IOSTREAM *      SopenRC(void *rca,

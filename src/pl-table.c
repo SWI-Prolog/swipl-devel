@@ -82,7 +82,16 @@ exitTables(int status, void *arg)
 
 void
 initTables()
-{ HASHSTAT(PL_on_halt(exitTables, NULL));
+{ static int done = FALSE;
+
+  LOCK();
+  if ( !done )
+  { done = TRUE;
+    
+    initMemAlloc();
+    HASHSTAT(PL_on_halt(exitTables, NULL));
+  }
+  UNLOCK();
 }
 
 

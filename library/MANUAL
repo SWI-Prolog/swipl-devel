@@ -798,13 +798,24 @@ reference only.
 
 22..55 GGNNUU EEmmaaccss IInntteerrffaaccee
 
-A provisional  interface to emacs  has been  included since version  1.6
-of  SWI-Prolog.    The interface  is  based  on the  freely  distributed
-interface  delivered  with Quintus  Prolog.    When  running  Prolog  as
-an  inferior process  under  GNU-Emacs,  there  is support  for  finding
-predicate  definitions,  completing  atoms,  finding  the  locations  of
-compilation-warnings  and  many  more.    For  details,  see  the  files
-pl/lisp/README and pl/lisp/swi-prolog.el.
+Once  upon a  time,  there  was port  of  the Quintus  Prolog  GNU-Emacs
+package  for GNU-Emacs  18.   This  package has  been  dropped from  the
+distribution because it didn't work on Emacs 19 and 20.
+
+The default  Prolog mode for  GNU-Emacs can be  activated by adding  the
+following rules to your Emacs initialisation file:
+
+(setq auto-mode-alist
+      (append
+       '(("\\.pl" . prolog-mode))
+       auto-mode-alist))
+(setq prolog-program-name "pl")
+(setq prolog-consult-string "[user].\n")
+;If you want this.  Indentation is either poor or I don't use
+;it as intended.
+;(setq prolog-indent-width 8)
+
+If anyone has a better suggestion, please make this public.
 
 
 22..66 OOnnlliinnee HHeellpp
@@ -1323,6 +1334,10 @@ ffeeaattuurree((_?_K_e_y_, _-_V_a_l_u_e))
          <_h_o_m_e>/startup/startup.<_a_r_c_h> and  to   find  its  library   as
          <_h_o_m_e>/library.
 
+    eexxeeccuuttaabbllee ((_a_t_o_m))
+         Path-name of the  running executable.  Used  by qsave_program/2
+         as default emulator.
+
     ppiippee ((_b_o_o_l))
          If true, tell(pipe(command)), etc. are supported.
 
@@ -1334,6 +1349,12 @@ ffeeaattuurree((_?_K_e_y_, _-_V_a_l_u_e))
          providing  access  to shared  libraries  (.so  files).     This
          requires the C-library  functions dlopen() and friends as  well
          as the configuration option --with-dlopen.
+
+    sshhaarreedd__oobbjjeecctt__eexxtteennssiioonn ((_a_t_o_m))
+         Extension used  by  the operating  system for  shared  objects.
+         so  for most  Unix systems  and  dll for  Windows.    Used  for
+         locating  files using  the  file_type  executable.    See  also
+         absolute_file_name/3.
 
     ddyynnaammiicc__ssttaacckkss ((_b_o_o_l))
          If true,  the system uses some  form of `sparse-memory  manage-
@@ -2021,7 +2042,7 @@ ffiillee__sseeaarrcchh__ppaatthh((_+_A_l_i_a_s_, _?_P_
             feature(home, Home).
     user:file_search_path(foreign, swi(ArchLib)) :-
             feature(arch, Arch),
-            concat('lib/', Arch, ArchLib).
+            atom_concat('lib/', Arch, ArchLib).
     user:file_search_path(foreign, swi(lib)).
 
     The  file_search_path/2expansion  is used by all loading  predicates
@@ -3463,7 +3484,7 @@ getwd(Wd) :-
         seeing(Old), see(pipe(pwd)),
         collect_wd(String),
         seen, see(Old),
-        atom_chars(Wd, String).
+        atom_codes(Wd, String).
 
 collect_wd([C|R]) :-
         get0(C), C \== -1, !,
@@ -4150,19 +4171,39 @@ ccooppyy__tteerrmm((_+_I_n_, _-_O_u_t))
 33..2200 AAnnaallyyssiinngg aanndd CCoonnssttrruuccttiinngg AAttoommss
 
 These predicates  convert between  Prolog constants and  lists of  ASCII
-values.   The predicates atom_chars/2, number_chars/2 and name/2  behave
+values.   The predicates atom_codes/2, number_chars/2 and name/2  behave
 the same  when converting  from a constant  to a  list of ASCII  values.
-When  converting the  other way  around, atom_chars/2  will generate  an
-atom, number_chars will generate a  number or fail and name/2 will return
-a number if possible and an atom otherwise.
+When  converting the  other way  around, atom_codes/2  will generate  an
+atom,  number_chars/2 will generate  a number  or fail  and name/2  will
+return a number if possible and an atom otherwise.
+
+The  ISO  standard  defines atom_chars/2  to  describe  the  `broken-up'
+atom  as a  list of  one-character atoms  instead of  a  list of  codes.
+Upto  version 3.2.x,  SWI-Prolog's atom_chars/2 behaved,  compatible  to
+Quintus and  SICStus Prolog,  like atom_codes.    As of 3.3.x  SWI-Prolog
+atom_codes/2 and atom_chars/2are compliant to the ISO standard.
+
+To  ease  the pain  of  all  variations in  the  Prolog  community,  all
+SWI-Prolog predicates  behave as  flexible as  possible.   This  implies
+the  `list-side' accepts  either  a code-list  or  a char-list  and  the
+`atom-side' accept all atomic types (atom, number and string).
 
 
-aattoomm__cchhaarrss((_?_A_t_o_m_, _?_S_t_r_i_n_g))
+aattoomm__ccooddeess((_?_A_t_o_m_, _?_S_t_r_i_n_g))
     Convert  between an atom  and a list  of ASCII values.   If _A_t_o_m  is
     instantiated, if will  be translated into a list of ASCII values and
     the  result is unified with _S_t_r_i_n_g.   If _A_t_o_m is unbound  and _S_t_r_i_n_g
     is  a list of  ASCII values, it  will _A_t_o_m will  be unified with  an
     atom constructed from this list.
+
+
+aattoomm__cchhaarrss((_?_A_t_o_m_, _?_C_h_a_r_L_i_s_t))
+    As  atom_codes/2, but  _C_h_a_r_L_i_s_t  is a  list of  one-character  atoms
+    rather than a list of ASCII values.
+
+    ?- atom_chars(hello, X).
+
+    X = [h, e, l, l, o]
 
 
 aattoomm__cchhaarr((_?_A_t_o_m_, _?_A_S_C_I_I))
@@ -4212,10 +4253,14 @@ aattoomm__ttoo__tteerrmm((_+_A_t_o_m_, _-_T_e_r_m_, _-
     names.  See also read_variables/2.
 
 
-ccoonnccaatt((_?_A_t_o_m_1_, _?_A_t_o_m_2_, _?_A_t_o_m_3))
+aattoomm__ccoonnccaatt((_?_A_t_o_m_1_, _?_A_t_o_m_2_, _?_A_t_o_m_3))
     _A_t_o_m_3  forms the concatenation of _A_t_o_m_1 and _A_t_o_m_2.  At least  two of
     the  arguments must be instantiated  to atoms, integers or  floating
-    point numbers.
+    point  numbers.    For  ISO  compliance,  the  instantiation-pattern
+    -, -, +  is allowed  too, non-deterministically  splitting the  3-th
+    argument  into two parts (as append/3  does for lists).  Note  that,
+    as  SWI-Prolog does not  yet have  an atom-garbage collector,  using
+    this polutes the atom-database.  See also string_concat/3.
 
 
 ccoonnccaatt__aattoomm((_+_L_i_s_t_, _-_A_t_o_m))
@@ -5481,8 +5526,7 @@ aabbssoolluuttee__ffiillee__nnaammee((_+_S_p_e_c_, _+_
 
     ffiillee__eerrrroorrss((_f_a_i_l_/_e_r_r_o_r))
          If error (default), throw and  existence_error exception  if the
-         file cannot  be found.    If  fail, stay  silent.footnoteSilent
-         operation was the default upto version 3.2.6.
+         file cannot be found.  If fail, stay silent.
 
     ssoolluuttiioonnss((_f_i_r_s_t_/_a_l_l))
          If  first (default),  the  predicates leaves  no  choice-point.
@@ -6871,22 +6915,10 @@ Microsoft platforms) and loaded into the the running Prolog process..
 55..22..11 WWhhaatt lliinnkkiinngg iiss pprroovviiddeedd??
 
 The _s_t_a_t_i_c  _l_i_n_k_i_n_g schema can  be used on  all versions of  SWI-Prolog.
-The  feature/2 predicate  may be  used to  find out  what other  linking
-methods are provided for this version.
-
-  o _f_e_a_t_u_r_e_(_o_p_e_n___s_h_a_r_e_d___o_b_j_e_c_t_, _t_r_u_e_)
-    If  this succeeds the  system provides  the open_shared_object/2 and
-    related predicates that  allow for handling Unix shared object files
-    based  on the  Unix library functions  dlopen(2) and  friends.   See
-    section 5.4.
-
-  o _f_e_a_t_u_r_e_(_d_l_l_, _t_r_u_e_)
-    If  this succeeds the system provides an interface for  loading .DLL
-    files by means of open_dll/2 and friends.  See section 5.4.
-
-If either  the feature  open_shared_object  or dll is  true, the  library
-library(shlib) provides  a common  interface for  loading foreign  files
-from Prolog.
+Whether or  not dynamic  linking is  supported can be  deduced from  the
+feature  open_shared_object  (see feature/2).    If  this feature  yields
+true,  open_shared_object/2 and related  predicates are  defined.    See
+section 5.4 for a suitable high-level interface to these predicates.
 
 
 55..22..22 WWhhaatt kkiinndd ooff llooaaddiinngg sshhoouulldd II bbee uussiinngg??
@@ -6894,12 +6926,13 @@ from Prolog.
 All  described  approaches  have  their  advantages  and  disadvantages.
 Static linking  is portable and allows  for debugging on all  platforms.
 It is relatively  cumbersome and the libraries  you need to pass to  the
-linker may vary from system to system.
+linker may vary from  system to system, though the utility  program plld
+described in section 5.7 often hides these problems from the user.
 
-Loading  shared objects  or DLL  files provides  sharing and  protection
-and is  generally the best choice.   If  a saved-state is created  using
-qsave_program/[1,2], an initialization/1 directive  may be used to  load
-the appropriate library at startup.
+Loading  shared objects  (DLL  files on  Windows) provides  sharing  and
+protection  and is  generally the  best choice.    If  a saved-state  is
+created using qsave_program/[1,2], an initialization/1 directive  may be
+used to load the appropriate library at startup.
 
 Note  that  the  definition of  the  foreign  predicates  is  the  same,
 regardless of the linking type used.
@@ -6908,11 +6941,11 @@ regardless of the linking type used.
 55..33 DDyynnaammiicc LLiinnkkiinngg ooff sshhaarreedd lliibbrraarriieess
 
 The interface  defined in this  section allows the  user to load  shared
-libraries (.so files on most Unix systems).   This interface is portable
-to  all machines  providing  the function  dlopen(2) or  an  equivalent,
-normally  from the  library -ldl.    These functions  provide the  basic
-interface layer.   It is advised to use the predicates from  section 5.4
-in your application.
+libraries  (.so files  on most  Unix systems,  .dll  files on  Windows).
+This  interface is  portable to  Windows  as well  as to  Unix  machines
+providing  dlopen(2)  (Solaris,  Linux,  FreeBSD, Irix  and  many  more)
+or  shl_open(2) (HP/UX).  It  is  advised to  use  the  predicates  from
+section 5.4 in your application.
 
 
 ooppeenn__sshhaarreedd__oobbjjeecctt((_+_F_i_l_e_, _-_H_a_n_d_l_e))
@@ -6930,7 +6963,8 @@ ooppeenn__sshhaarreedd__oobbjjeecctt((_+_F_i_l_e_, _+_
     symbols of the  loaded object are visible while loading other shared
     objects (by default they  are local).  Note that these flags may not
     be  supported by your operating system.  Check the  documentation of
-    dlopen() or equivalent on your operating system.
+    dlopen() or equivalent  on your operating system.  Unsupported flags
+    are silently ignored.
 
 
 cclloossee__sshhaarreedd__oobbjjeecctt((_+_H_a_n_d_l_e))
@@ -6947,13 +6981,8 @@ ccaallll__sshhaarreedd__oobbjjeecctt__ffuunnccttiioon
 55..44 UUssiinngg tthhee lliibbrraarryy sshhlliibb ffoorr .DLL aanndd .so ffiilleess
 
 This  section discusses  the  functionality  of the  (autoload)  library
-shlib.pl,  providing an interface  to shared  libraries.   Currently  it
-supports MS-Windows  DLL (.DLL) libraries and  Unix .so (shared  object)
-files.
-
-
-llooaadd__ffoorreeiiggnn__lliibbrraarryy((_+_L_i_b))
-    Equivalent to load_foreign_library(Lib, install).
+shlib.pl, providing an interface to shared libraries.   This library can
+only be used if the feature open_shared_object is enabled.
 
 
 llooaadd__ffoorreeiiggnn__lliibbrraarryy((_+_L_i_b_, _+_E_n_t_r_y))
@@ -6975,12 +7004,20 @@ llooaadd__ffoorreeiiggnn__lliibbrraarryy((_+_L_i_b_, _
     declare functions in the library as foreign predicates.
 
 
+llooaadd__ffoorreeiiggnn__lliibbrraarryy((_+_L_i_b))
+    Equivalent  to load_foreign_library/2.   For  the entry-point,  this
+    function  first identifies the `base-name' of the library,  which is
+    defined  to be the file-name with path nor extension.  It  will then
+    try  the  entry-point install-<_b_a_s_e>.    On  failure it  will try  to
+    function install().  Otherwise no install function will be called.
+
+
 uunnllooaadd__ffoorreeiiggnn__lliibbrraarryy((_+_L_i_b))
-    If  the  foreign  library defines  the  function  uninstall(),  this
-    function  will be called without  arguments and its return value  is
-    ignored.    Next,  abolish/2 is  used to  remove  all known  foreign
-    predicates  defined in the library.   Finally the library itself  is
-    detached from the process.
+    If  the foreign  library defines  the function  uninstall_<_b_a_s_e>() or
+    uninstall(),  this  function will  be called  without arguments  and
+    its  return value is  ignored.   Next, abolish/2  is used to  remove
+    all  known foreign predicates defined in  the library.  Finally  the
+    library itself is detached from the process.
 
 
 ccuurrrreenntt__ffoorreeiiggnn__lliibbrraarryy((_-_L_i_b_, _-_P_r_e_d_i_c_a_t_e_s))
@@ -7071,38 +7108,6 @@ Now, a new executable may be created by compiling  this file and linking
 it to libpl.a from  the runtime directory and the libraries  required by
 both the  extensions and the  SWI-Prolog kernel.   This  may be done  by
 hand, or using the plld utility described in secrefplld.
-
-
-55..44..22 DDyynnaammiicc LLiinnkkiinngg bbaasseedd oonn load_foreign/[2,5]
-
-The  predicates  below  are considered  obsolete.     They  are  briefly
-described here  for compatibility  purposes.   New code  should use  the
-predicates from the library(shlib).
-
-
-llooaadd__ffoorreeiiggnn((_+_F_i_l_e_, _+_E_n_t_r_y))
-    Load  a  foreign file  or list  of files  specified by  _F_i_l_e.    The
-    files  are searched for similar to consult/1.  Except that  the `.o'
-    extension is used rather than `.pl'.
-
-    _E_n_t_r_y  defines the  entry point of  the resulting  executable.   The
-    entry  point  will  be  called  by Prolog  to  install  the  foreign
-    predicates.
-
-
-llooaadd__ffoorreeiiggnn((_+_F_i_l_e_, _+_E_n_t_r_y_, _+_O_p_t_i_o_n_s_, _+_L_i_b_r_a_r_i_e_s_, _+_S_i_z_e))
-    The  first two arguments  are identical to those  of load_foreign/2.
-    _O_p_t_i_o_n_s is (a list  of) additional option to be given to the loader.
-    The  options are inserted  just before the files.   _L_i_b_r_a_r_i_e_s is  (a
-    list  of) libraries to be passed to  the loader.  They  are inserted
-    just  after the files.   If _S_i_z_e  is specified Prolog first  assumes
-    that  the resulting  executable will fit  in _S_i_z_e  bytes and do  the
-    loading in one pass.
-
-
-ffoorreeiiggnn__ffiillee((_?_F_i_l_e))
-    Is  true if  _F_i_l_e is  the absolute  path name  of a  file loaded  as
-    foreign file.
 
 
 55..55 IInntteerrffaaccee DDaattaa ttyyppeess
@@ -7563,9 +7568,9 @@ int PPLL__ggeett__cchhaarrss(_t_e_r_m___t _+_t_, _c_h_a_
     specifies  which term-types should converted and the second  how the
     argument  is stored.  Below  is a specification of these  constants.
     BUF_RING implies, if  the data is not static (as from an  atom), the
-    data  is copied to the next buffer from a ring of four  (4) buffers.
-    This is a  convenient way of converting multiple arguments passed to
-    a  foreign predicate to C-strings.   If BUF_MALLOC is used,  the data
+    data  is copied to the next buffer from a ring of 16 buffers.   This
+    is  a convenient way  of converting multiple  arguments passed to  a
+    foreign  predicate to C-strings.    If BUF_MALLOC  is used, the  data
     must be freed using free() when not needed any longer.
     ___________________________________________________________________
     | CVT_ATOM               |Convert if term is an atom               |
@@ -7578,10 +7583,14 @@ int PPLL__ggeett__cchhaarrss(_t_e_r_m___t _+_t_, _c_h_a_
     | CVT_NUMBER             |Convert if term is a integer or float    |
     | CVT_ATOMIC             |Convert if term is atomic                |
     | CVT_VARIABLE           |Convert variable to print-name           |
-    | CVT_ALL                |Convert  if term  is  any  of the  above,|
-    |________________________|except_for_variables_____________________|
-    | BUF_DISCARDABLE        |Data must copied immediately             |
+    | CVT_WRITE              |Convert any  term that  is not  converted|
+    |                        |by any of the  other flags using write/1.|
+    |                        |If  no  BUF_*  is  provided,  BUF_RING  is|
 
+    |                        |implied.                                 |
+    | CVT_ALL                |Convert  if term  is  any  of the  above,|
+    |________________________|except_for_CVT_VARIABLE_and_CVT_WRITE____|
+    | BUF_DISCARDABLE        |Data must copied immediately             |
     | BUF_RING               |Data is stored in a ring of buffers      |
     | BUF_MALLOC             |Data is  copied to a new  buffer returned|
     |________________________|by_malloc(3)_____________________________|
@@ -8060,6 +8069,46 @@ int PPLL__uunniiffyy__tteerrmm(_t_e_r_m___t _?_t_, _._._
     { PL_register_foreign("get_lang", 1, pl_get_lang, 0);
       init_constants();
     }
+
+
+int PPLL__cchhaarrss__ttoo__tteerrmm(_c_o_n_s_t _c_h_a_r _*_c_h_a_r_s_, _t_e_r_m___t _-_t)
+    Parse  the string _c_h_a_r_s  and put the  resulting Prolog term into  _t.
+    _c_h_a_r_s  may  or may  not be  closed using  a  Prolog full-stop  (i.e.
+    a  dot  followed by  a blank).    Returns FALSE  if  a syntax  error
+    was  encountered and  TRUE after  successful completion.   See  also
+    term_to_atom/2.
+
+    The following example build a goal-term from a string and calls it.
+
+    int
+    call_chars(const char *goal)
+    { fid_t fid = PL_open_foreign_frame();
+      term_t g = PL_new_term_ref();
+      BOOL rval;
+
+      if ( PL_string_to_term(goal, g) )
+        rval = PL_call(goal, NULL);
+      else
+        rval = FALSE;
+
+      PL_discard_foreign_frame(fid);
+      return rval;
+    }
+
+      ...
+      call_chars("consult(load)");
+      ...
+
+
+char * PPLL__qquuoottee(_i_n_t _c_h_r_, _c_o_n_s_t _c_h_a_r _*_s_t_r_i_n_g)
+    Return a quoted version of  _s_t_r_i_n_g.  If _c_h_r is '\'', the result is a
+    quoted  atom.  If _c_h_r  is '"', the result is  a string.  The  result
+    string  is stored in the same ring of buffers as described  with the
+    BUF_RING argument of PL_get_chars();
+
+    In  the current implementation, the string is surrounded by  _c_h_r and
+    any  occurence of _c_h_r is doubled.  In the future the  behaviour will
+    depend on the character_escape feature.  See feature/2.
 
 
 55..66..66 CCaalllliinngg PPrroolloogg ffrroomm CC
@@ -8570,17 +8619,25 @@ C_type PPLL__qquueerryy(_i_n_t)
 55..66..1155 RReeggiisstteerriinngg FFoorreeiiggnn PPrreeddiiccaatteess
 
 
-int PPLL__rreeggiisstteerr__ffoorreeiiggnn(_n_a_m_e_, _a_r_i_t_y_, _f_u_n_c_t_i_o_n_, _f_l_a_g_s)
-    Register  a C-function to implement a Prolog predicate.   After this
-    call returns successfully  a predicate with name _n_a_m_e (a char *) and
-    arity  _a_r_i_t_y (a C int)  is created.   When called in Prolog,  Prolog
-    will  call _f_u_n_c_t_i_o_n.  _f_l_a_g_s forms bitwise or'ed list of  options for
-    the installation.  These are:
+int PPLL__rreeggiisstteerr__ffoorreeiiggnn(_c_o_n_s_t _c_h_a_r _*_n_a_m_e_, _i_n_t _a_r_i_t_y_, _f_o_r_e_i_g_n___t _(_*_f_u_n_c_t_i_o_n_)_(_)_, _i_n_t _f_l_a_g_s)
+
+    Register   a   C-function   to   implement   a   Prolog   predicate.
+    After  this call  returns successfully  a predicate  with name  _n_a_m_e
+    (a  char *) and  arity _a_r_i_t_y  (a C int)  is created.   As a  special
+    case,  _n_a_m_e may consist of a sequence of  alpha-numerical characters
+    followed  by the colon (:).   In this case the name uptil  the colon
+    is  taken to be the destination module and the rest of the  name the
+    predicate name.
+
+    When  called in  Prolog, Prolog  will call  _f_u_n_c_t_i_o_n.   _f_l_a_g_s  forms
+    bitwise or'ed list of options for the installation.  These are:
     ___________________________________________________________________
     | PL_FA_NOTRACE          |Predicate cannot be seen in the tracer   |
     | PL_FA_TRANSPARENT      |Predicate is module transparent          |
     | PL_FA_NONDETERMINISTIC |Predicate  is  non-deterministic.     See|
-    |________________________|also_PL_retry()._________________________|
+    |                        |also PL_retry().                         |
+
+    |_PL_FA_VARARGS__________|Use_alternative_calling_convention.______|
 
 
 void PPLL__rreeggiisstteerr__eexxtteennssiioonnss(_P_L___e_x_t_e_n_s_i_o_n _*_e)
@@ -8875,14 +8932,57 @@ PL_initialise() interprets  all the command-line  arguments, except  for
 the -t toplevel flag that is interpreted by PL_toplevel().
 
 
-int PPLL__iinniittiiaalliissee(_i_n_t _a_r_g_c_, _c_h_a_r _*_*_a_r_g_v_, _c_h_a_r _*_*_e_n_v_i_r_o_n)
+int PPLL__iinniittiiaalliissee(_i_n_t _a_r_g_c_, _c_h_a_r _*_*_a_r_g_v)
     Initialises  the SWI-Prolog heap and  stacks, restores the boot  QLF
     file,  loads the system and personal initialisation files,  runs the
     at_initialization/1 hooks and finally runs the -g goal hook.
 
+    Special  consideration  is required  for argv[0].    On  UUnniixx,  this
+    argument  passes the part of the commandline that is used  to locate
+    the  executable.   Prolog  uses this to  find the  file holding  the
+    running executable.   The WWiinnddoowwss version uses this to find a _m_o_d_u_l_e
+    of  the  running executable.    If the  specified  module cannot  be
+    found, it tries  the module libpl.dll, containing the Prolog runtime
+    kernel.   In  all these cases,  the resulting file  is used for  two
+    purposes
+
+      o  See whether a Prolog saved-state  is appended to the file.   If
+         this is  the case,  this state  will be loaded  instead of  the
+         default boot.prc file from the SWI-Prolog home directory.   See
+         also qsave_program/[1,2] and section 5.7.
+
+      o  Find the Prolog home  directory.  This process is  described in
+         detail in section 5.8.
+
     PL_initialise()  returns 1  if all  initialisation  succeeded and  0
-    otherwise.    Various fatal errors  may cause  PL_initialise to  call
-    PL_halt(_1), preventing it from returning at all.
+    otherwise.
+
+    In  most cases, _a_r_g_c and _a_r_g_v will be passed from the  main program.
+    It  is allowed to create your own argument vector,  provided argv[0]
+    is constructed according to the rules above.  For example:
+
+    int
+    main(int argc, char **argv)
+    { char *av[10];
+      int ac = 0;
+
+      av[ac++] = argv[0];
+      av[ac++] = "-x";
+      av[ac++] = "mystate";
+      av[ac]   = NULL;
+
+      if ( !PL_initialise(ac, av) )
+        PL_halt(1);
+      ...
+    }
+
+    Please  note that the  passed argument vector  may be referred  from
+    Prolog  at any time  and should  therefore be valid  as long as  the
+    Prolog engine is used.
+
+    A  good setup  in Windows is  to add  SWI-Prolog's bin directory  to
+    your  PATH  and  either pass  a  module holding  a  saved-state,  or
+    "libpl.dll" as argv[0].
 
 
 void PPLL__iinnssttaallll__rreeaaddlliinnee()
@@ -9087,7 +9187,41 @@ The following indicates the usage of the application:
 1.5708
 
 
-55..88 EExxaammppllee ooff UUssiinngg tthhee FFoorreeiiggnn IInntteerrffaaccee
+55..88 TThhee PPrroolloogg ``hhoommee'' ddiirreeccttoorryy
+
+Executables  embedding SWI-Prolog  should  be able  to find  the  `home'
+directory  of  the  development  environment  unless   a  self-contained
+saved-state has  been added to  the executable  (see qsave_program/[1,2]
+and section 5.7).
+
+If Prolog starts up, it will try to  locate the development environment.
+To do so, it will try the following steps until one succeeds.
+
+ 1. If  the environment variable  SWI_HOME_DIRis  defined and points  to
+    an existing directory, use this.
+
+ 2. If  the  environment variable  SWIPL  is defined  and points  to  an
+    existing directory, use this.
+
+ 3. Locate  the  primary   executable  or  (Windows  only)  a  component
+    (_m_o_d_u_l_e)  thereof  and check  whether the  parent  directory of  the
+    directory  holding this file contains the  file swipl.  If so,  this
+    file  contains the (relative) path to  the home directory.  If  this
+    directory  exists, use this.   This is the normal mechanism  used by
+    the binary distribution.
+
+ 4. If  the precompiled path exists, use it.  This is only  useful for a
+    source installation.
+
+If  all fails  and  there is  no state  attached  to the  executable  or
+provided Windows module (see PL_initialise()), SWI-Prolog gives up.   If
+a state is attached, the current working directory is used.
+
+The file_search_path/2 alias swi is set  to point to the home  directory
+located.
+
+
+55..99 EExxaammppllee ooff UUssiinngg tthhee FFoorreeiiggnn IInntteerrffaaccee
 
 Below is an example  showing all stages of the declaration of  a foreign
 predicate that transforms atoms possibly holding  uppercase letters into
@@ -9149,10 +9283,10 @@ Yes
     Figure 5.7:  Compiling the C-source and loading the object file
 
 
-55..99 NNootteess oonn UUssiinngg FFoorreeiiggnn CCooddee
+55..1100 NNootteess oonn UUssiinngg FFoorreeiiggnn CCooddee
 
 
-55..99..11 MMeemmoorryy AAllllooccaattiioonn
+55..1100..11 MMeemmoorryy AAllllooccaattiioonn
 
 SWI-Prolog's  memory  allocation  is  based  on  the  malloc(3)  library
 routines.   Foreign  applications can safely  use malloc(3),  realloc(3)
@@ -9160,7 +9294,7 @@ and free(3).   Memory allocation using brk(2) or sbrk(2) is  not allowed
 as these calls conflict with malloc(3).
 
 
-55..99..22 DDeebbuuggggiinngg FFoorreeiiggnn CCooddee
+55..1100..22 DDeebbuuggggiinngg FFoorreeiiggnn CCooddee
 
 Statically  linked foreign  code  or embedded  systems can  be  debugged
 normally.     Most  modern  environments  provide  debugging  tools  for
@@ -9185,7 +9319,7 @@ For help, use ?- help(Topic). or ?- apropos(Word).
 ?- lowercase('HELLO', X).
 
 
-55..99..33 NNaammee CCoonnfflliiccttss iinn CC mmoodduulleess
+55..1100..33 NNaammee CCoonnfflliiccttss iinn CC mmoodduulleess
 
 In  the  current  version  of the  system  all  public  C  functions  of
 SWI-Prolog are in the symbol table.  This can lead  to name clashes with
@@ -9203,7 +9337,7 @@ library loader  will only look  for symbols in  the main executable  for
 symbols that are not defined in the library itself.
 
 
-55..99..44 CCoommppaattiibbiilliittyy ooff tthhee FFoorreeiiggnn IInntteerrffaaccee
+55..1100..44 CCoommppaattiibbiilliittyy ooff tthhee FFoorreeiiggnn IInntteerrffaaccee
 
 The term-reference  mechanism was first used  by Quintus Prolog  version
 3.     SICStus  Prolog version  3  is  strongly  based  on  the  Quintus
@@ -9275,7 +9409,7 @@ _________________________________________________________________________
 
 |            |      |               |kernel,  lock  all   predicates  as |
 |            |      |               |system predicates  If  development, |
-|            |      |               |change  the  predicates  in   their |
+|            |      |               |save  the   predicates   in   their |
 |            |      |               |current  state  and  keep   reading |
 |            |      |               |resources  from  their  source  (if |
 |            |      |               |present).  See also resource/3.     |
@@ -9943,17 +10077,18 @@ suggest predicates from a keyword.
  at_initialization/1           Register goal to run at start-up
  atom/1                        Type check for an atom
  atom_char/2                   Convert between atom and ASCII value
- atom_chars/2                  Convert between atom and list of ASCII values
- atom_length/2                 Determine length of an atom
+ atom_chars/2                  Convert between atom and list of characters
+ atom_codes/2                  Convert between atom and list of ASCII values
 
+ atom_length/2                 Determine length of an atom
  atom_prefix/2                 Test for start of atom
  atom_to_term/3                Convert between atom and term
  atomic/1                      Type check for primitive
  autoload/0                    Autoload all predicates now
  bagof/3                       Find all solutions to a goal
  between/3                     Integer range checking/generating
- block/3                       Start a block (`catch'/`throw')
 
+ block/3                       Start a block (`catch'/`throw')
  break/0                       Start interactive toplevel
  call/1                        Call a goal
  call/[2..]                    Call with additional arguments
@@ -9961,33 +10096,33 @@ suggest predicates from a keyword.
  call_shared_object_function/2 UNIX: Call C-function in shared (.so) file
  call_with_depth_limit/3       Prove goal with bounded depth
  catch/3                       Call goal, watching for exceptions
- character_count/2             Get character index on a stream
 
+ character_count/2             Get character index on a stream
  chdir/1                       Change working directory
  checklist/2                   Invoke goal on all members of a list
  clause/2                      Get clauses of a predicate
  clause/3                      Get clauses of a predicate
  clause_property/2             Get properties of a clause
  close/1                       Close stream
- close_dde_conversation/1      Win32:  Close DDE channel
 
+ close_dde_conversation/1      Win32:  Close DDE channel
  close_dll/1                   Win32:  Close dynamic link library (.dll file)
  close_shared_object/1         UNIX: Close shared library (.so file)
  compare/3                     Compare, using a predicate to determine the order
  compiling/0                   Is this a compilation run?
  compound/1                    Test for compound term
- concat/3                      Append two atoms
+ atom_concat/3                 Append two atoms
  concat_atom/2                 Append a list of atoms
- concat_atom/3                 Append a list of atoms with separator
 
+ concat_atom/3                 Append a list of atoms with separator
  consult/1                     Read (compile) a Prolog source file
  context_module/1              Get context module of current goal
  convert_time/8                Break time stamp into fields
  convert_time/2                Convert time stamp to string
  copy_term/2                   Make a copy of a term
  current_arithmetic_function/1 Examine evaluable functions
- current_atom/1                Examine existing atoms
 
+ current_atom/1                Examine existing atoms
  current_flag/1                Examine existing flags
  current_foreign_library/2     library(shlib) Examine loaded shared libraries (.so files)
  current_format_predicate/2    Enumerate user-defined format codes
@@ -9995,16 +10130,16 @@ suggest predicates from a keyword.
  current_input/1               Get current input stream
  current_key/1                 Examine existing database keys
  current_module/1              Examine existing modules
- current_module/2              Examine existing modules
 
+ current_module/2              Examine existing modules
  current_op/3                  Examine current operator declarations
  current_output/1              Get the current output stream
  current_predicate/2           Examine existing predicates
  current_signal/3              Current software signal mapping
  current_stream/3              Examine open streams
  current_thread/2              Examine Prolog threads
- dde_current_connection/2      Win32:  Examine open DDE connections
 
+ dde_current_connection/2      Win32:  Examine open DDE connections
  dde_current_service/2         Win32:  Examine DDE services provided
  dde_execute/2                 Win32:  Execute command on DDE server
  dde_register_service/2        Win32:  Become a DDE server
@@ -10012,16 +10147,16 @@ suggest predicates from a keyword.
  dde_poke/3                    Win32:  POKE operation on DDE server
  dde_unregister_service/1      Win32:  Terminate a DDE service
  debug/0                       Test for debugging mode
- debugging/0                   Show debugger status
 
+ debugging/0                   Show debugger status
  default_module/2              Get the default modules of a module
  delete/3                      Delete all matching members from a list
  delete_file/1                 Remove a file from the file system
  discontiguous/1               Indicate distributed definition of a predicate
  dup_stream/2                  Duplicate I/O streams
  dwim_match/2                  Atoms match in ``Do What I Mean'' sense
- dwim_match/3                  Atoms match in ``Do What I Mean'' sense
 
+ dwim_match/3                  Atoms match in ``Do What I Mean'' sense
  dwim_predicate/2              Find predicate in ``Do What I Mean'' sense
  dynamic/1                     Indicate predicate definition may change
  edit/1                        Edit a file
@@ -10029,16 +10164,16 @@ suggest predicates from a keyword.
  erase/1                       Erase a database record or clause
  exception/3                   (hook) Handle runtime exceptions
  exists_directory/1            Check existence of directory
- exists_file/1                 Check existence of file
 
+ exists_file/1                 Check existence of file
  exit/2                        Exit from named block.  See block/3
  expand_answer/2               Expand answer of query
  expand_file_name/2            Wildcard expansion of file names
  expand_file_search_path/2     Wildcard expansion of file paths
  expand_goal/2                 Compiler:  expand goal in clause-body
  expand_query/4                Expanded entered query
- expand_term/2                 Compiler:  expand read term into clause(s)
 
+ expand_term/2                 Compiler:  expand read term into clause(s)
  explain/1                     library(explain) Explain argument
  explain/2                     library(explain) 2nd argument is explanation of first
  export/1                      Export a predicate from a module
@@ -10046,16 +10181,16 @@ suggest predicates from a keyword.
  fail/0                        Always false
  fail/1                        Immediately fail named block.  See block/3
  feature/2                     Get system configuration parameters
- file_base_name/2              Get file part of path
 
+ file_base_name/2              Get file part of path
  file_directory_name/2         Get directory part of path
  file_name_extension/3         Add, remove or test file extensions
  file_search_path/2            Define path-aliases for locating files
  fileerrors/2                  Do/Don't warn on file errors
  findall/3                     Find all solutions to a goal
  flag/3                        Simple global variable system
- flatten/2                     Transform nested list into flat list
 
+ flatten/2                     Transform nested list into flat list
  float/1                       Type check for a floating point number
  flush/0                       Output pending characters on current stream
  flush_output/1                Output pending characters on specified stream
@@ -10063,16 +10198,16 @@ suggest predicates from a keyword.
  foreign_file/1                Examine loaded foreign files
  format/1                      Formatted output
  format/2                      Formatted output with arguments
- format/3                      Formatted output on a stream
 
+ format/3                      Formatted output on a stream
  format_predicate/2            Program format/[1,2]
  free_variables/2              Find unbound variables in a term
  functor/3                     Get name and arity of a term or construct a term
  garbage_collect/0             Invoke the garbage collector
  gensym/2                      Generate unique atoms from a base
  get/1                         Read first non-blank character
- get/2                         Read first non-blank character from a stream
 
+ get/2                         Read first non-blank character from a stream
  get0/1                        Read next character
  get0/2                        Read next character from a stream
  get_single_char/1             Read next character from the terminal
@@ -10080,16 +10215,16 @@ suggest predicates from a keyword.
  getenv/2                      Get shell environment variable
  goal_expansion/2              Hook for macro-expanding goals
  ground/1                      Verify term holds no unbound variables
- halt/0                        Exit from Prolog
 
+ halt/0                        Exit from Prolog
  halt/1                        Exit from Prolog with status
  hash_term/2                   Hash-value of ground term
  help/0                        Give help on help
  help/1                        Give help on predicates and show parts of manual
  ignore/1                      Call the argument, but always succeed
  import/1                      Import a predicate from a module
- index/1                       Change clause indexing
 
+ index/1                       Change clause indexing
  initialization/1              Initialization directive
  int_to_atom/2                 Convert from integer to atom
  int_to_atom/3                 Convert from integer to atom (non-decimal)
@@ -10097,34 +10232,32 @@ suggest predicates from a keyword.
  intersection/3                Set intersection
  is/2                          Evaluate arithmetic expression
  is_absolute_file_name/1       True if arg defines an absolute path
- is_list/1                     Type check for a list
 
+ is_list/1                     Type check for a list
  is_set/1                      Type check for a set
  keysort/2                     Sort, using a key
  last/2                        Last element of a list
  leash/1                       Change ports visited by the tracer
  length/2                      Length of a list
  library_directory/1           (hook) Directories holding Prolog libraries
- limit_stack/2                 Limit stack expansion
 
+ limit_stack/2                 Limit stack expansion
  line_count/2                  Line number on stream
  line_position/2               Character position in line on stream
  list_to_set/2                 Remove duplicates
  listing/0                     List program in current module
  listing/1                     List predicate
  load_files/2                  Load source files with options
- load_foreign/2                Load foreign (C) module
- load_foreign/5                Load foreign (C) module
-
  load_foreign_library/1        library(shlib) Load shared library (.so file)
+
  load_foreign_library/2        library(shlib) Load shared library (.so file)
  make/0                        Reconsult all changed source files
  make_fat_filemap/1            Win32:  Create file containing non-FAT filenames
  make_library_index/1          Create autoload file INDEX.pl
  maplist/3                     Transform all elements of a list
  member/2                      Element is member of a list
-
  memberchk/2                   Deterministic member/2
+
  merge/3                       Merge two sorted lists
  merge_set/3                   Merge two sorted sets
  message_hook/3                Intercept print_message/2
@@ -10132,16 +10265,16 @@ suggest predicates from a keyword.
  module/1                      Query/set current type-in module
  module/2                      Declare a module
  module_transparent/1          Indicate module based meta predicate
-
  msort/2                       Sort, do not remove duplicates
+
  multifile/1                   Indicate distributed definition of predicate
  name/2                        Convert between atom and list of ASCII characters
  nl/0                          Generate a newline
  nl/1                          Generate a newline on a stream
  nodebug/0                     Disable debugging
  nonvar/1                      Type check for bound term
-
  noprotocol/0                  Disable logging of user interaction
+
  nospy/1                       Remove spy point
  nospyall/0                    Remove all spy points
  not/1                         Negation by failure (argument not provable).  Same as \+/1
@@ -10149,16 +10282,16 @@ suggest predicates from a keyword.
  notrace/1                     Do not debug argument goal
  nth0/3                        N-th element of a list (0-based)
  nth1/3                        N-th element of a list (1-based)
-
  nth_clause/3                  N-th clause of a predicate
+
  number/1                      Type check for integer or float
  number_chars/2                Convert between number and atom
  numbervars/4                  Enumerate unbound variables of a term using a given base
  on_signal/3                   Handle a software signal
  once/1                        Call a goal deterministically
  op/3                          Declare an operator
-
  open/3                        Open a file (creating a stream)
+
  open/4                        Open a file (creating a stream)
  open_dde_conversation/3       Win32:  Open DDE channel
  open_null_stream/1            Open a stream to discard output
@@ -10166,16 +10299,16 @@ suggest predicates from a keyword.
  open_shared_object/2          UNIX: Open shared library (.so file)
  open_shared_object/3          UNIX: Open shared library (.so file)
  peek_byte/1                   Read character without removing
-
  peek_byte/2                   Read character without removing
+
  phrase/2                      Activate grammar-rule set
  phrase/3                      Activate grammar-rule set (returning rest)
  please/3                      Query/change environment parameters
  plus/3                        Logical integer addition
  portray/1                     (hook) Modify behaviour of print/1
  portray_clause/1              Pretty print a clause
-
  predicate_property/2          Query predicate attributes
+
  predsort/3                    Sort, using a predicate to determine the order
  preprocessor/2                Install a preprocessor before the compiler
  print/1                       Print a term
@@ -10183,16 +10316,16 @@ suggest predicates from a keyword.
  print_message/2               Print message from (exception) term
  profile/3                     Obtain execution statistics
  profile_count/3               Obtain profile results on a predicate
-
  profiler/2                    Obtain/change status of the profiler
+
  prolog/0                      Run interactive toplevel
  prolog_current_frame/1        Reference to goal's environment stack
  prolog_edit:locate/2          Locate targets for edit/1
  prolog_edit:locate/3          Locate targets for edit/1
  prolog_edit:edit_source/1     Call editor for edit/1
  prolog_edit:edit_command/2    Specify editor activation
-
  prolog_edit:load/0            Load edit/1 extensions
+
  prolog_file_type/2            Define meaning of file extension
  prolog_frame_attribute/3      Obtain information on a goal environment
  prolog_list_goal/1            Hook.  Intercept tracer 'L' command
@@ -10200,16 +10333,16 @@ suggest predicates from a keyword.
  prolog_skip_level/2           Indicate deepest recursion to trace
  prolog_to_os_filename/2       Convert between Prolog and OS filenames
  prolog_trace_interception/4   library(user) Intercept the Prolog tracer
-
  prompt1/1                     Change prompt for 1 line
+
  prompt/2                      Change the prompt used by read/1
  proper_list/1                 Type check for list
  protocol/1                    Make a log of the user interaction
  protocola/1                   Append log of the user interaction to file
  protocolling/1                On what file is user interaction logged
  put/1                         Write a character
-
  put/2                         Write a character on a stream
+
  qcompile/1                    Compile source to Quick Load File
  qload/1                       Load Quick Load File as consult/1
  qsave_program/1               Create runtime application
@@ -10217,16 +10350,16 @@ suggest predicates from a keyword.
  read/1                        Read Prolog term
  read/2                        Read Prolog term from stream
  read_clause/1                 Read clause
-
  read_clause/2                 Read clause from stream
+
  read_history/6                Read using history substitution
  read_link/3                   Read a symbolic link
  read_term/2                   Read term with options
  read_term/3                   Read term with options from stream
  read_variables/2              Read clause including variable names
  read_variables/3              Read clause including variable names from stream
-
  recorda/2                     Record term in the database (first)
+
  recorda/3                     Record term in the database (first)
  recorded/2                    Obtain term from the database
  recorded/3                    Obtain term from the database
@@ -10234,16 +10367,16 @@ suggest predicates from a keyword.
  recordz/3                     Record term in the database (last)
  redefine_system_predicate/1   Abolish system definition
  rename_file/2                 Change name of file
-
  repeat/0                      Succeed, leaving infinite backtrack points
+
  require/1                     This file requires these predicates
  reset_profiler/0              Clear statistics obtained by the profiler
  resource/3                    Declare a program resource
  restore/1                     Restore saved-state (save/1, save_program/1)
  retract/1                     Remove clause from the database
  retractall/1                  Remove unifying clauses from the database
-
  reverse/2                     Inverse the order of the elements in a list
+
  same_file/2                   Succeeds if arguments refer to same file
  see/1                         Change the current input stream
  seeing/1                      Query the current input stream
@@ -10251,16 +10384,16 @@ suggest predicates from a keyword.
  seen/0                        Close the current input stream
  select/3                      Select element of a list
  set_feature/2                 Define a system feature
-
  set_input/1                   Set current input stream from a stream
+
  set_output/1                  Set current output stream from a stream
  set_tty/2                     Set `tty' stream
  setarg/3                      Destructive assignment on term
  setenv/2                      Set shell environment variable
  setof/3                       Find all unique solutions to a goal
  sformat/2                     Format on a string
-
  sformat/3                     Format on a string
+
  shell/0                       Execute interactive subshell
  shell/1                       Execute OS command
  shell/2                       Execute OS command
@@ -10268,16 +10401,16 @@ suggest predicates from a keyword.
  size_file/2                   Get size of a file in characters
  skip/1                        Skip to character in current input
  skip/2                        Skip to character on stream
-
  rl_add_history/1              Add line to readline(3) history
+
  rl_read_init_file/1           Read readline(3) init file
  sleep/1                       Suspend execution for specified time
  sort/2                        Sort elements in a list
  source_file/1                 Examine currently loaded source files
  source_file/2                 Obtain source file of predicate
  source_location/2             Location of last read term
-
  spy/1                         Force tracer on specified predicate
+
  stack_parameter/4             Some systems:  Query/Set runtime stack parameter
  statistics/0                  Show execution statistics
  statistics/2                  Obtain collected statistics
@@ -10285,16 +10418,16 @@ suggest predicates from a keyword.
  string/1                      Type check for string
  string_concat/3               concat/3 for strings (non-deterministic)
  string_length/2               Determine length of a string
-
  string_to_atom/2              Conversion between string and atom
+
  string_to_list/2              Conversion between string and list of ASCII
  style_check/1                 Change level of warnings
  sublist/3                     Determine elements that meet condition
  subset/2                      Generate/check subset relation
  substring/4                   Get part of a string
  subtract/3                    Delete elements that do not meet condition
-
  succ/2                        Logical integer successor relation
+
  swritef/2                     Formatted write on a string
  swritef/3                     Formatted write on a string
  tab/1                         Output number of spaces
@@ -10302,16 +10435,16 @@ suggest predicates from a keyword.
  tell/1                        Change current output stream
  telling/1                     Query current output stream
  term_expansion/2              (hook) Convert term before compilation
-
  term_to_atom/2                Convert between term and atom
+
  thread_create/3               Create a new Prolog task
  thread_exit/1                 Terminate Prolog task with value
  thread_join/2                 Wait for Prolog task-completion
  throw/1                       Raise an exception (see catch/3)
  time/1                        Determine time needed to execute goal
  time_file/2                   Get last modification time of file
-
  tmp_file/2                    Create a temporary filename
+
  told/0                        Close current output
  trace/0                       Start the tracer
  trace/1                       Set trace-point on predicate
@@ -10319,16 +10452,16 @@ suggest predicates from a keyword.
  tracing/0                     Query status of the tracer
  trim_stacks/0                 Release unused memory resources
  true/0                        Succeed
-
  tty_get_capability/3          Get terminal parameter
+
  tty_goto/2                    Goto position on screen
  tty_put/2                     Write control string to terminal
  ttyflush/0                    Flush output on terminal
  union/3                       Union of two sets
  unix/1                        OS interaction (get command-line arguments)
  unknown/2                     Trap undefined predicates
-
  unload_foreign_library/1      library(shlib) Detach shared library (.so file)
+
  unsetenv/1                    Delete shell environment variable
  use_module/1                  Import a module
  use_module/2                  Import predicates from a module
@@ -10336,16 +10469,16 @@ suggest predicates from a keyword.
  visible/1                     Ports that are visible in the tracer
  volatile/1                    Predicates that are not saved
  wait_for_input/3              Wait for input with optional timeout
-
  wildcard_match/2              Csh(1) style wildcard match
+
  win_exec/2                    Win32:  spawn Windows task
  write/1                       Write term
  write/2                       Write term to stream
  write_ln/1                    Write term, followed by a newline
  write_canonical/1             Write a term with quotes, ignore operators
  write_canonical/2             Write a term with quotes, ignore operators on a stream
-
  write_term/2                  Write term with options
+
  write_term/3                  Write term with options to stream
  writef/1                      Formatted write
  writef/2                      Formatted write on stream

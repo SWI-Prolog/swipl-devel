@@ -1,9 +1,9 @@
 Summary:	SWI-Prolog - Edinburgh compatible Prolog compiler
 Name:		pl
-Version:	3.2.9
+Version:	3.3.0
 Release:	1
 Copyright:	Distributable, free for non-commercial use
-Source:		ftp://swi.psy.uva.nl/pub/SWI-Prolog/pl-3.2.9.tar.gz
+Source:		ftp://swi.psy.uva.nl/pub/SWI-Prolog/pl-3.3.0.tar.gz
 Vendor:		Jan Wielemaker <jan@swi.psy.uva.nl>
 Url:		http://www.swi.psy.uva.nl/projects/SWI-Prolog/
 Packager:	Tony Nugent <Tony.Nugent@usq.edu.au>
@@ -37,15 +37,15 @@ cp README.bin ..
 %doc ChangeLog INSTALL INSTALL.notes LICENSE LSM PORTING
 %doc README README.bin README.GUI
 %doc VERSION
-%attr(755,root,root)/usr/lib/pl-3.2.9/bin/*
-%attr(644,root,root)/usr/lib/pl-3.2.9/boot/*
-%attr(644,root,root)/usr/lib/pl-3.2.9/include/*
-%attr(-,root,root)/usr/lib/pl-3.2.9/lib/*
-%attr(644,root,root)/usr/lib/pl-3.2.9/library/*
-%attr(644,root,root)/usr/lib/pl-3.2.9/man/*
-%attr(-,root,root)/usr/lib/pl-3.2.9/runtime/*
-%attr(644,root,root)/usr/lib/pl-3.2.9/swipl
-%attr(644,root,root)/usr/lib/pl-3.2.9/boot.prc
+%attr(755,root,root)/usr/lib/pl-3.3.0/bin/*
+%attr(644,root,root)/usr/lib/pl-3.3.0/boot/*
+%attr(644,root,root)/usr/lib/pl-3.3.0/include/*
+%attr(-,root,root)/usr/lib/pl-3.3.0/lib/*
+%attr(644,root,root)/usr/lib/pl-3.3.0/library/*
+%attr(644,root,root)/usr/lib/pl-3.3.0/man/*
+%attr(-,root,root)/usr/lib/pl-3.3.0/runtime/*
+%attr(644,root,root)/usr/lib/pl-3.3.0/swipl
+%attr(644,root,root)/usr/lib/pl-3.3.0/boot.prc
 %attr(644,root,root)/usr/man/man1/pl.1
 %attr(644,root,root)/usr/man/man1/plrc.1
 %attr(644,root,root)/usr/man/man1/plld.1
@@ -58,7 +58,7 @@ cp README.bin ..
 cd $RPM_INSTALL_PREFIX/bin
 for f in pl plrc plld pl-bite; do
     rm -f $f
-    ln -s $RPM_INSTALL_PREFIX/lib/pl-3.2.9/bin/i?86-linux/$f .
+    ln -s $RPM_INSTALL_PREFIX/lib/pl-3.3.0/bin/i?86-linux/$f .
 done
 
 %postun

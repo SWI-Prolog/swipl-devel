@@ -51,7 +51,6 @@ typedef struct
   char *base_of_heap;			/* lowest allocated heap address */
   ulong rounded_heap_base;		/* heap-base rounded downwards */
   int	critical;			/* heap is being modified */
-  pl_loaderstatus_t _loaderstatus;	/* status of foreign code loader */
   pl_defaults_t	    defaults;		/* system default settings */
   pl_options_t	    options;		/* command-line options */
   State		stateList;		/* list of loaded states */
@@ -108,6 +107,7 @@ typedef struct
     Atom *	table;			/* hash-table */
     int		lookups;		/* # atom lookups */
     int		cmps;			/* # string compares for lookup */
+    atom_t	for_code[256];		/* code --> one-char-atom */
   } atoms;
 
   struct
@@ -171,8 +171,6 @@ typedef struct
     Procedure	prolog_trace_interception4;
     Procedure	portray;		/* portray/1 */
   } procedures;
-
-  atom_t code_to_atom[256];		/* map codes to atoms */
 
   struct
   { buffer	source_files;
@@ -337,7 +335,6 @@ GLOBAL PL_local_data_t  PL_local_data;
 #define hTop			(GD->top_of_heap)
 #define hBase			(GD->base_of_heap)
 #define heap_base		(GD->rounded_heap_base)
-#define loaderstatus		(GD->_loaderstatus)
 #define functor_array		(GD->functors.array)
 #define atom_array		(GD->atoms.array)
 #define systemDefaults		(GD->defaults)

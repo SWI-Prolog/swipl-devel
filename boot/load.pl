@@ -17,7 +17,6 @@
 	, history
 	, profile
 	, dwim
-	, foreign
 	, parms
 	, autoload
 	, qlf

@@ -132,11 +132,11 @@ external_edit_command(Location, Command) :-
 	file_name_extension(Base, _, EditorFile),
 	edit_command(Base, Cmd),
 	prolog_to_os_filename(File, OsFile),
-	atom_chars(Cmd, S0),
+	atom_codes(Cmd, S0),
 	substitute("%e", Editor, S0, S1),
 	substitute("%f", OsFile, S1, S2),
 	substitute("%d", Line,   S2, S), !,
-	atom_chars(Command, S).
+	atom_codes(Command, S).
 external_edit_command(Location, Command) :-
 	memberchk(file(File), Location),
 	editor(Editor),
@@ -144,11 +144,11 @@ external_edit_command(Location, Command) :-
 	file_name_extension(Base, _, EditorFile),
 	edit_command(Base, Cmd),
 	prolog_to_os_filename(File, OsFile),
-	atom_chars(Cmd, S0),
+	atom_codes(Cmd, S0),
 	substitute("%e", Editor, S0, S1),
 	substitute("%f", OsFile, S1, S),
 	\+ substitute("%d", 1, S, _), !,
-	atom_chars(Command, S).
+	atom_codes(Command, S).
 external_edit_command(Location, Command) :-
 	memberchk(file(File), Location),
 	editor(Editor),
@@ -311,14 +311,14 @@ short_filename(Path, Spec) :-
 			   [ file_type(directory),
 			     file_errors(fail)
 			   ], Prefix),
-	concat(Prefix, Local0, Path), !,
+	atom_concat(Prefix, Local0, Path), !,
 	remove_leading_slash(Local0, Local),
 	Spec =.. [Id, Local].
 short_filename(Path, Path).
 	
 
 remove_leading_slash(Path, Local) :-
-	concat(/, Local, Path), !.
+	atom_concat(/, Local, Path), !.
 remove_leading_slash(Path, Path).
 
 

@@ -178,7 +178,7 @@ menu(Title, List, Choice) :-
 
 show_title(Title) :-
 	to_text(Title, T),
-	format('~T~l~T~2l', [home, center(T)]).
+	format('~T~l~T~2l', [clear, center(T)]).
 
 build_menu(List) :-
 	build_menu(List, 1),
@@ -197,7 +197,7 @@ to_text(Text, Text).
 
 get_answer(List, Choice) :-
 	flag('$menu_feedback', _, 0),
-	get_answer(List, "", Choice).
+	get_answer(List, [], Choice).
 
 get_answer(List, Prefix, Choice) :-
 	get_single_char(A),
@@ -207,14 +207,14 @@ get_answer(List, Prefix, Choice) :-
 	;   get_answer(List, NewPrefix, Choice)
 	).
 
-process_answer(127, _, _, "", _, no) :- !,
+process_answer(127, _, _, [], _, no) :- !,
 	feedback('').
 process_answer(D, List, _, _, Choice, yes) :-
 	is_digit(D),
 	name(N, [D]),
 	nth1(N, List, Choice:Name), !,
 	feedback(Name).
-process_answer(N, _, _, "", _, no) :-
+process_answer(N, _, _, [], _, no) :-
 	is_digit(N), !,
 	feedback(''),
 	tty_flash.

@@ -232,9 +232,10 @@
 \rfoot[-]{-}
 \footrulewidth{d}
 
-% package{psfig} support
+% graphics support
 
 \psfig{-}
+\includegraphics[-]{-}
 
 % Changebar support
 

@@ -1359,7 +1359,7 @@ pl_format_number(term_t format, term_t number, term_t string)
 	else
 	  formatInteger(FALSE, 0, arg, conv == 'r', i, result);
 
-	return PL_unify_list_chars(string, result);
+	return PL_unify_list_codes(string, result);
       }
     case 'e':
     case 'E':
@@ -1377,7 +1377,7 @@ pl_format_number(term_t format, term_t number, term_t string)
 	Ssprintf(form2, "%%.%d%c", arg, conv);
 	Ssprintf(tmp, form2, f);
 
-	return PL_unify_list_chars(string, tmp);
+	return PL_unify_list_codes(string, tmp);
       }
     default:
       return warning("$format_number/3: illegal conversion code");
@@ -1385,20 +1385,35 @@ pl_format_number(term_t format, term_t number, term_t string)
 }
 
 
-#define X_AUTO   0
-#define X_ATOM   1
-#define X_NUMBER 2
+#define X_AUTO   0x00
+#define X_ATOM   0x01
+#define X_NUMBER 0x02
+#define X_MASK   0x0f
+#define X_CHARS  0x10
 
 static word
 x_chars(const char *pred, term_t atom, term_t string, int how)
 { char *s;
 
   if ( PL_get_chars(atom, &s, CVT_ATOMIC) ) /* atomic --> "list" */
-    return PL_unify_list_chars(string, s);
+  { if ( how & X_CHARS )
+      return PL_unify_list_chars(string, s);
+    else
+      return PL_unify_list_codes(string, s);
+  }
 
   if ( PL_is_variable(atom) )
   { if ( !PL_get_list_chars(string, &s, 0) )
-      return warning("%s/2: instantiation fault", pred);
+    { if ( !PL_is_list(string) )
+	return PL_error(pred, 2, NULL,
+			ERR_TYPE, ATOM_list, string);
+      else
+	return PL_error(pred, 2, NULL,
+			ERR_REPRESENTATION,
+			lookupAtom("character_code"));
+    }
+
+    how &= X_MASK;
 
     switch(how)
     { case X_ATOM:
@@ -1418,12 +1433,14 @@ x_chars(const char *pred, term_t atom, term_t string, int how)
 	if ( how == X_AUTO )
 	  return PL_unify_atom_chars(atom, s);
 	else
-	  fail;
+	  return PL_error(pred, 2, NULL,
+			  ERR_REPRESENTATION,
+			  lookupAtom("number"));
       }
     }
   }
 
-  return warning("%s/2: instantiation fault", pred);
+  return PL_error(pred, 2, NULL, ERR_TYPE, ATOM_atom, atom);
 }
 
 
@@ -1435,7 +1452,13 @@ pl_name(term_t atom, term_t string)
 
 word
 pl_atom_chars(term_t atom, term_t string)
-{ return x_chars("atom_chars", atom, string, X_ATOM);
+{ return x_chars("atom_chars", atom, string, X_ATOM|X_CHARS);
+}
+
+
+word
+pl_atom_codes(term_t atom, term_t string)
+{ return x_chars("atom_codes", atom, string, X_ATOM);
 }
 
 
@@ -1455,37 +1478,15 @@ pl_atom_char(term_t atom, term_t chr)
 
     return PL_unify_integer(chr, i);
   } else if ( PL_get_integer(chr, &n) )
-  { char buf[2];
+  { if ( n >= 0 && n < 256 )
+      return PL_unify_atom(atom, codeToAtom(n));
 
-    if ( n >= 0 && n < 256 )
-    { buf[0] = n;
-      buf[1] = '\0';
-      return PL_unify_atom_chars(atom, buf);
-    }
+    return PL_error("atom_char", 2, NULL,
+		    ERR_REPRESENTATION,
+		    lookupAtom("character_code"));
   }
 
   return warning("atom_char/2: instantiation fault");
-}
-
-
-atom_t
-code_to_atom(unsigned int code)
-{ if ( code < 256 )
-  { atom_t a;
-
-    if ( !(a=GD->code_to_atom[code]) )
-    { char tmp[2];
-      tmp[0] = code;
-      tmp[1] = EOS;
-
-      a = GD->code_to_atom[code] = lookupAtom(tmp);
-    }
-
-    return a;
-  }
-
-  assert(0);
-  return ATOM_nil;
 }
 
 
@@ -1513,7 +1514,10 @@ pl_atom_prefix(term_t atom, term_t prefix)
 
 
 static word
-concat(term_t a1, term_t a2, term_t a3, int (*out)(term_t, const char *))
+concat(const char *pred,
+       term_t a1, term_t a2, term_t a3, 
+       word ctx,
+       int (*out)(term_t, const char *))
 { char *s1 = NULL, *s2 = NULL, *s3 = NULL;
   long l1, l2, l3;
   char *tmp;
@@ -1521,6 +1525,15 @@ concat(term_t a1, term_t a2, term_t a3, int (*out)(term_t, const char *))
   PL_get_chars(a1, &s1, CVT_ATOMIC|BUF_RING);
   PL_get_chars(a2, &s2, CVT_ATOMIC|BUF_RING);
   PL_get_chars(a3, &s3, CVT_ATOMIC|BUF_RING);
+
+  if ( !s1 && !PL_is_variable(a1) )
+    return PL_error(pred, 3, NULL, ERR_INSTANTIATION, ATOM_atomic, a1);
+  if ( !s2 && !PL_is_variable(a2) )
+    return PL_error(pred, 3, NULL, ERR_INSTANTIATION, ATOM_atomic, a1);
+  if ( !s3 && !PL_is_variable(a3) )
+  { err3:
+    return PL_error(pred, 3, NULL, ERR_INSTANTIATION, ATOM_atomic, a1);
+  }
 
   if (s1 && s2)
   { l1 = strlen(s1);
@@ -1531,16 +1544,14 @@ concat(term_t a1, term_t a2, term_t a3, int (*out)(term_t, const char *))
     return (*out)(a3, tmp);
   }
 
-  if (!s3)
-    return warning("concat/3: instantiation fault");
+  if ( !s3 ) 
+    goto err3;
 
-  if (s1)
+  if ( s1 )
   { if (isPrefix(s1, s3) )
       return (*out)(a2, s3+strlen(s1));
     fail;
-  }
-
-  if (s2)
+  } else if ( s2 )
   { int ld;				/* fixed 13/09/93 for: */
     char *q;				/* concat(X, ' ', 'xxx  ') */
 
@@ -1553,15 +1564,46 @@ concat(term_t a1, term_t a2, term_t a3, int (*out)(term_t, const char *))
     strncpy(q, s3, ld);
     q[ld] = EOS;
     return (*out)(a1, q);
-  }
+  } else				/* -, -, + */
+  { int at_n;
+    mark m;
 
-  return warning("concat/3: instantiation fault");
+    switch ( ForeignControl(ctx) )
+    { case FRG_FIRST_CALL:
+        if ( !s3[0] )
+	  fail;				/* empty string */
+	at_n = 0;
+        break;
+      case FRG_REDO:
+	at_n = ForeignContextInt(ctx);
+        break;
+      default:
+	succeed;
+    }
+
+    Mark(m);
+    for(; s3[at_n]; at_n++)
+    { if ( (*out)(a2, s3+at_n) )
+      { char *q = alloca(at_n+1);
+	strncpy(q, s3, at_n);
+	q[at_n] = EOS;
+	if ( (*out)(a1, q) )
+	{ ForeignRedoInt(at_n+1);
+	} 
+      }
+
+      Undo(m);
+    }
+    if ( (*out)(a1, s3) && (*out)(a2, "") )
+      succeed;
+    fail;
+  }    
 }
 
 
 word
-pl_concat(term_t a1, term_t a2, term_t a3)
-{ return concat(a1, a2, a3, PL_unify_atom_chars);
+pl_atom_concat(term_t a1, term_t a2, term_t a3, control_t ctx)
+{ return concat("atom_concat", a1, a2, a3, ctx, PL_unify_atom_chars);
 }
 
 
@@ -1659,32 +1701,8 @@ pl_string_length(term_t str, term_t l)
 
 
 word
-pl_string_concat(term_t a1, term_t a2, term_t a3, word h)
-{ if ( h || (PL_is_variable(a1) && PL_is_variable(a2)) )
-  { char *s;
-    int n;
-
-    switch(ForeignControl(h))
-    { case FRG_FIRST_CALL:
-	n = 0;
-        goto cont;
-      case FRG_REDO:
-	n = ForeignContextInt(h);
-      cont:
-	if ( !PL_get_chars(a3, &s, CVT_ALL) )
-	  fail;
-        PL_unify_string_nchars(a1, n, s);
-	PL_unify_string_chars(a2, &s[n]);
-	if ( s[n] )
-	  ForeignRedoInt(n+1);
-	else
-	  succeed;
-      case FRG_CUTTED:
-      default:
-	succeed;
-    }
-  } else
-    return concat(a1, a2, a3, PL_unify_string_chars);
+pl_string_concat(term_t a1, term_t a2, term_t a3, control_t h)
+{ return concat("string_concat", a1, a2, a3, h, PL_unify_string_chars);
 }
 
 
@@ -1706,7 +1724,7 @@ pl_string_to_list(term_t str, term_t list)
 { char *s;
 
   if ( PL_get_chars(str, &s, CVT_ALL) )
-    return PL_unify_list_chars(list, s);
+    return PL_unify_list_codes(list, s);
   if ( PL_get_list_chars(list, &s, 0) )	/* string_to_list(S, []). */
     return PL_unify_string_chars(str, s);
   if ( PL_get_chars(list, &s, CVT_ALL) )
@@ -1767,7 +1785,7 @@ write_on(term_t goal, int how, term_t target)
       break;
     case WR_LIST:
       default:
-      rval = PL_unify_list_chars(target, string);
+      rval = PL_unify_list_codes(target, string);
   }
 
   if ( string != buf )

@@ -160,7 +160,7 @@ make_library_index(Dir, _) :-
 
 source_file_pattern(Pattern) :-
 	user:prolog_file_type(PlExt, prolog),
-	concat('*.', PlExt, Pattern).
+	atom_concat('*.', PlExt, Pattern).
 
 expand_index_file_patterns(Patterns, Files) :-
 	maplist(expand_file_name, Patterns, NestedFiles),

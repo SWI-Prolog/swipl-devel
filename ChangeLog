@@ -1,7 +1,68 @@
 			SWI-Prolog ChangeLog
 			====================
 
-  * ADDED: pl.spec to taball to allow for rpm -tb pl-x.y.z.tar.gz
+  * COMPATIBILITY/ISO: Introduced atom_codes/2 and modified atom_chars/2
+    to return a list of one-char atoms rather than a list of codes.
+    The atom-breaking routines now generate exceptions rather than
+    warnings.
+
+    Renamed concat/3 to atom_concat/3 and also allow for the pattern
+    -, -, +.  Added concat/3 to the autoload backcomp.pl library.
+
+  * MODIFIED: PL_register_foreign() can be called with first argument
+    of the form <module>:<predicate> to register a predicate into a
+    specific module.
+
+  * ADDED: PL_FA_VARARGS flag to PL_register_foreign(), allowing for an
+    alternative, arity-independent calling convention to foreign-defined
+    predicates used by the new C++ interface.
+
+  * ADDED: Allow PL_register_foreign() to be called before PL_initialise().
+    This function now does lazy initialisation of the modules required to
+    register foreign predicates (allocation, atoms, functors, tables and
+    modules).
+
+  * MODIFIED: Unified Prolog-side of Unix and Windows foreign library
+    (.so/.dll) interface.  Updated library(shlib) and manual accordingly.
+    The predicates dll_open/2 and friends have been deleted.  Please use
+    open_shared_object/2 and friends, also on Windows.
+
+  * MODIFIED: PL_initialise() handling of argv[0].  Updated documentation
+    on how and why this argument is used.  The feature symbol_file has been
+    deleted and replaced by the feature executable.
+
+  * DELETED: load_foreign/[2,5], symbolfile related foreign interface
+    primitves.  On all modern OS'es we should have some form of shared
+    object or DLL interface for dealing with loading dynamic code.  On
+    others, static relinking of the kernel can be used.
+
+  * FIXED: Bug in PL_get_chars() handlings lists of ascii characters and
+    variables.  Also bug in SWI-Prolog.h.  PACKAGES USING CVT_ALL OPTION
+    SHOULD BE RECOMPILED!
+
+  * ADDED: CVT_WRITE option to PL_get_chars() C-interface function to
+    get the printed representation of a term.
+
+  * FIXED: Memory alignment problem.  Affects RISC/Unix machines where
+    inode_t and/or dev_t are larger than `word'.  Same for longjmp()
+    data saved on the Prolog stack.  With help of Johan van Rijn.
+
+  * ADDED: PL_chars_to_term() to transform a C-string into a term by
+    parsing.
+
+  * ADDED: -class option to plld to allow for setting the save-class
+    (see qsave_program/2).
+
+  * FIXED: check for prolog options if save-class is not "runtime".
+  
+  * FIXED: library(tty) to be robust against style_check(+string) and
+    menu/3 to clear instead of simply `home'.  Reported by Robert van
+    Engelen.
+
+  * FIXED: Parser error, failing to read /\ = X if it is the start
+    of a term.  Reported by Robert van Engelen.
+
+  * ADDED: pl.spec to tarball to allow for rpm -tb pl-x.y.z.tar.gz
     (also Jan Nieuwenhuizen)
 
   * FIXED: Proper cleanup using `make distclean', suggested by

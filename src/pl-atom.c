@@ -242,14 +242,23 @@ exitAtoms(int status, void *arg)
 
 void
 initAtoms(void)
-{ atom_buckets = ATOMHASHSIZE;
-  atomTable = allocHeap(atom_buckets * sizeof(Atom));
+{ static int done = FALSE;
 
-  memset(atomTable, 0, atom_buckets * sizeof(Atom));
-  initBuffer(&atom_array);
-  registerBuiltinAtoms();
+  LOCK();
+  if ( !done )
+  { done = TRUE;
 
-  DEBUG(0, PL_on_halt(exitAtoms, NULL));
+    initMemAlloc();
+    atom_buckets = ATOMHASHSIZE;
+    atomTable = allocHeap(atom_buckets * sizeof(Atom));
+
+    memset(atomTable, 0, atom_buckets * sizeof(Atom));
+    initBuffer(&atom_array);
+    registerBuiltinAtoms();
+
+    DEBUG(0, PL_on_halt(exitAtoms, NULL));
+  }
+  UNLOCK();
 }
 
 
@@ -356,7 +365,7 @@ pl_complete_atom(term_t prefix, term_t common, term_t unique)
 
   if ( extendAtom(p, &u, cmm) )
   { strcat(buf, cmm);
-    if ( PL_unify_list_chars(common, buf) &&
+    if ( PL_unify_list_codes(common, buf) &&
 	 PL_unify_atom(unique, u ? ATOM_unique : ATOM_not_unique) )
       succeed;
   }

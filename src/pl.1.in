@@ -127,27 +127,6 @@ terms, floating point numbers, big integers and strings. See also the
 .B \-L
 option.
 .TP
-.BI \-H size [km]
-Determines the size reserved for the
-.I malloc()
-heap.  The heap is used to store atoms, functors, predicates and their
-clauses, records and flags.  The heap is also used for external packages
-using
-.B malloc().
-This flag is only relevant on machines where the stacks are
-allocated using the
-.I mmap()
-function.  Among these systems are
-.B Linux, SunOS/Solaris
-and
-.B OSF/1.
-By default, the Prolog stacks are allocated from the top of the
-heap downwards.  Using the
-.B \-H
-option allocates the Prolog stack at the indicated distance from
-the current top of the heap upwards.  See also
-.I statistics/0.
-.TP
 .BI \-L size [km]
 Sets the local stack size to
 .I size.

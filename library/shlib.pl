@@ -28,31 +28,16 @@
 	fpublic/1.
 
 
-:- (   (feature(dll, true) ; feature(open_shared_object, true))
+:- (   feature(open_shared_object, true)
    ->  true
    ;   format(user_error,
-	      'library(shlib): warning: need .dll or .so based interface',
+	      'library(shlib): warning: Emulator does not support foreign libraries',
 	      [])
    ).
 
 		 /*******************************
 		 *	     DISPATCHING	*
 		 *******************************/
-
-open_goal(Lib, Handle, open_dll(Lib, Handle)) :-
-	feature(dll, true), !.
-open_goal(Lib, Handle, open_shared_object(Lib, Handle)) :-
-	feature(open_shared_object, true).
-
-call_goal(Handle, Function, call_dll_function(Handle, Function)) :-
-	feature(dll, true), !.
-call_goal(Handle, Function, call_shared_object_function(Handle, Function)) :-
-	feature(open_shared_object, true), !.
-
-close_goal(Handle, close_dll(Handle)) :-
-	feature(dll, true), !.
-close_goal(Handle, close_shared_object(Handle)) :-
-	feature(open_shared_object, true), !.
 
 find_library(Spec, Lib) :-
 	absolute_file_name(Spec,
@@ -67,54 +52,65 @@ find_library(foreign(Spec), Spec) :-
 find_library(Spec, _) :-
 	throw(error(existence_error(source_sink, Spec), _)).
 
+base(Path, Base) :-
+	file_base_name(Path, File),
+	file_name_extension(Base, _Ext, File).
+
+entry(_, Function, Function) :-
+	Function \= default(_), !.
+entry(Path, default(FuncBase), Function) :-
+	base(Path, Base),
+	concat_atom([FuncBase, Base], '_', Function).
+entry(_, default(Function), Function).
 
 		 /*******************************
 		 *	    (UN)LOADING		*
 		 *******************************/
 
 load_foreign_library(Library) :-
-	load_foreign_library(Library, install).
+	load_foreign_library(Library, default(install)).
 
 load_foreign_library(LibFileSpec, Entry) :-
 	'$strip_module'(LibFileSpec, Module, LibFile),
 	load_foreign_library(LibFile, Module, Entry).
 
-load_foreign_library(LibFile, _Module, Entry) :-
-	current_library(LibFile, Entry, _, _, _, _), !.
-load_foreign_library(LibFile, Module, Entry) :-
+load_foreign_library(LibFile, _Module, _) :-
+	current_library(LibFile, _, _, _, _, _), !.
+load_foreign_library(LibFile, Module, DefEntry) :-
 	find_library(LibFile, Path),
-	open_goal(Path, Handle, OpenGoal),
-	OpenGoal,
 	(   clean_fpublic,		% safety
-	    call_goal(Handle, Entry, CallGoal),
-	    Module:CallGoal
+	    Module:open_shared_object(Path, Handle),
+	    (	entry(Path, DefEntry, Entry),
+		Module:call_shared_object_function(Handle, Entry)
+	    ->	true
+	    ;	DefEntry == default(install)
+	    )
 	->  assert_shlib(LibFile, Entry, Path, Module, Handle),
 	    clean_fpublic
-	;   '$warning'('~w: failed to call entry point ~w', [LibFile, Entry]),
-	    close_goal(Handle, CloseGoal),
-	    CloseGoal,
+	;   '$warning'('~w: failed to call entry point ~w',
+		       [LibFile, DefEntry]),
+	    close_shared_object(Handle),
 	    fail
 	).
 
 unload_foreign_library(LibFile) :-
-	unload_foreign_library(LibFile, uninstall).
+	unload_foreign_library(LibFile, default(uninstall)).
 
-unload_foreign_library(LibFile, Uninstall) :-
+unload_foreign_library(LibFile, DefUninstall) :-
 	current_library(LibFile, _, _, _, Public, Handle),
-	retractall(current_library(LibFile, _, _, _, _, _)),
-	call_goal(Handle, Uninstall, CallGoal),
-	ignore(CallGoal),
+	retractall(current_library(LibFile, _, Path, _, _, _)),
+	(   entry(Path, DefUninstall, Uninstall),
+	    Module:call_shared_object_function(Handle, Uninstall)
+	->  true
+	;   true
+	),
 	forall(member(Module:Head, Public),
 	       (   functor(Head, Name, Arity),
 		   abolish(Module:Name, Arity)
 	       )),
-	close_goal(Handle, CloseGoal),
-	CloseGoal.
+	close_shared_object(Handle).
 	    
-:- system:asserta(('$foreign_registered'(M, H) :-
-		  	shlib:foreign_registered(M, H))).
-
-foreign_registered(M, H) :-
+system:'$foreign_registered'(M, H) :-
 	assert(fpublic(M:H)).
 
 clean_fpublic :-

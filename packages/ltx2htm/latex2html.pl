@@ -61,6 +61,7 @@ user:file_search_path(foreign, library(Lib)) :-
 	feature(arch, Arch),
 	concat('lib/', Arch, Lib).
 user:file_search_path(psfig, tex(figs)).
+user:file_search_path(includegraphics, tex(figs)).
 user:file_search_path(tex, '.').
 user:file_search_path(img, '.').
 user:file_search_path(img, icons).
@@ -1089,6 +1090,24 @@ cmd(psfig({Spec}), html(Img)) :-
 	    ;	FileSpec = tex(Base)
 	    ),
 	    ps2gif(FileSpec, OutFile)
+	).
+cmd(includegraphics(_Options, {File}), html(Img)) :-
+	ps_extension(Ext),
+	absolute_file_name(includegraphics(File),
+			   [ extensions([Ext]),
+			     access(read)
+			   ], PsFile),
+	file_name_extension(Base, Ext, PsFile),
+	file_base_name(Base, GifBase),
+	file_name_extension(GifBase, gif, GifFile),
+	sformat(Img, '<IMG SRC="~w">', GifFile),
+	make_output_directory,
+	html_output_dir(Dir),
+	concat_atom([Dir, '/', GifFile], OutFile),
+	(   keep_figures(true),
+	    exists_file(OutFile)
+	->  true
+	;   ps2gif(PsFile, OutFile)
 	).
 cmd(postscript({_Width}, {File}, Title),
     [ LabelHTML,

@@ -155,12 +155,13 @@ static const struct foreign {
   FRG("=..",			2, pl_univ,			TRACE_ME),
   FRG("name",			2, pl_name,			TRACE_ME),
   FRG("atom_chars",		2, pl_atom_chars,		TRACE_ME),
+  FRG("atom_codes",		2, pl_atom_codes,		TRACE_ME),
   FRG("atom_char",		2, pl_atom_char,		TRACE_ME),
   FRG("number_chars",		2, pl_number_chars,		TRACE_ME),
   FRG("int_to_atom",		3, pl_int_to_atom,		TRACE_ME),
   FRG("$format_number",		3, pl_format_number,		TRACE_ME),
   FRG("atom_prefix",		2, pl_atom_prefix,		TRACE_ME),
-  FRG("concat",			3, pl_concat,			TRACE_ME),
+  FRG("atom_concat",		3, pl_atom_concat,	   NDET|TRACE_ME),
   FRG("$concat_atom",		2, pl_concat_atom,		TRACE_ME),
   FRG("concat_atom",		3, pl_concat_atom3,		TRACE_ME),
   FRG("atom_length",		2, pl_atom_length,		TRACE_ME),
@@ -336,14 +337,9 @@ static const struct foreign {
 #ifdef O_HASHTERM
   FRG("hash_term",		2, pl_hash_term,		TRACE_ME),
 #endif
-#if O_AIX_FOREIGN
-  FRG("$load_foreign",		1, pl_load_foreign1,	   META|TRACE_ME),
-#else
-  FRG("$load_foreign",		5, pl_load_foreign,	   META|TRACE_ME),
-#endif
-  FRG("$open_shared_object",	3, pl_open_shared_object,	TRACE_ME),
-#if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD)
-  FRG("close_shared_object",	1, pl_close_shared_object,	TRACE_ME),
+  FRG("$open_shared_object",	3, pl_open_shared_object,  META|TRACE_ME),
+#if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
+  FRG("close_shared_object",	1, pl_close_shared_object, META|TRACE_ME),
   FRG("call_shared_object_function",
 				2, pl_call_shared_object_function,
 							   META|TRACE_ME),
@@ -498,6 +494,7 @@ bindExtensions(const PL_extension *e)
     if ( e->flags & PL_FA_NOTRACE )	     flags &= ~TRACE_ME;
     if ( e->flags & PL_FA_TRANSPARENT )	     flags |= METAPRED;
     if ( e->flags & PL_FA_NONDETERMINISTIC ) flags |= NONDETERMINISTIC;
+    if ( e->flags & PL_FA_VARARGS )	     flags |= P_VARARG;
 
     def = lookupProcedure(lookupFunctorDef(lookupAtom(e->predicate_name),
 					   e->arity), 

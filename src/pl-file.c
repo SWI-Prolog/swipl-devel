@@ -917,8 +917,8 @@ pl_noprotocol()
 
 
 bool
-seeString(char *s)
-{ IOSTREAM *stream = Sopen_string(NULL, s, -1, "r");
+seeString(const char *s)
+{ IOSTREAM *stream = Sopen_string(NULL, (char *)s, -1, "r");
   PlFile f;
   int n;
   

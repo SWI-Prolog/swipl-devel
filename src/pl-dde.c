@@ -154,7 +154,7 @@ unify_hdata(term_t t, HDDEDATA data)
       
       DdeGetData(data, b2, len, 0);
       b2[len] = '\0';
-      rval = PL_unify_list_chars(t, b2);
+      rval = PL_unify_list_codes(t, b2);
       free(b2);
 
       return rval;
@@ -163,7 +163,7 @@ unify_hdata(term_t t, HDDEDATA data)
     dde_warning("data handle");
   }
 
-  return PL_unify_list_chars(t, buf);
+  return PL_unify_list_codes(t, buf);
 }
 
 

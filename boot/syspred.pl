@@ -254,7 +254,7 @@ show_trace_ports(_).
 		*********************************/
 
 concat_atom([A, B], C) :- !,
-	concat(A, B, C).
+	atom_concat(A, B, C).
 concat_atom(L, Atom) :-
 	$concat_atom(L, Atom).
 
@@ -269,11 +269,11 @@ int_to_atom(Int, Atom) :-
 	int_to_atom(Int, 10, Atom).
 
 gensym(Base, Atom) :-
-	concat($gs_, Base, Key),
+	atom_concat($gs_, Base, Key),
 	flag(Key, Old, Old),
 	succ(Old, New),
 	flag(Key, _, New),
-	concat(Base, New, Atom).
+	atom_concat(Base, New, Atom).
 
 dwim_match(A1, A2) :-
 	dwim_match(A1, A2, _).
@@ -626,6 +626,10 @@ current_signal(Name, Id, Handler) :-
 		 /*******************************
 		 *	      DLOPEN		*
 		 *******************************/
+
+:- module_transparent
+	open_shared_object/2,
+	open_shared_object/3.
 
 dlopen_flag(now,	2'01).		% see pl-load.c for these constants
 dlopen_flag(global,	2'10).		% Solaris only

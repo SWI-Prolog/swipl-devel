@@ -138,6 +138,7 @@ static char *plarch;			/* Prolog architecture id */
 static char *plgoal;			/* -g goal */
 static char *pltoplevel;		/* -t goal */
 static char *plinitfile;		/* -f file */
+static char *plclass;			/* -class <class> */
 
 static char *ctmp;			/* base executable */
 static char *pltmp;			/* base saved state */
@@ -520,6 +521,7 @@ usage()
 	  "       -goal goal       (Prolog) entry point\n"
 	  "       -toplevel goal   (Prolog) abort toplevel goal\n"
 	  "       -initfile file   (Prolog) profile file to load\n"
+	  "       -class class     {runtime,kernel,development}\n"
 	  "\n"
 	  "       -Dmacro          Define macro (C/C++)\n"
 	  "       -Umacro          Undefine macro (C/C++)\n"
@@ -584,6 +586,18 @@ parseOptions(int argc, char **argv)
     } else if ( streq(opt, "-initfile") ) 	/* -initfile goal */
     { if ( argc > 1 )
       { plinitfile = argv[1];
+	argc--, argv++;
+      } else
+	usage();
+    } else if ( streq(opt, "-class") ) 		/* -class runtime,kernel,
+    							  development */
+    { if ( argc > 1 )
+      { plclass = argv[1];
+	if ( !streq(plclass, "runtime") &&
+	     !streq(plclass, "kernel") &&
+	     !streq(plclass, "development")
+	   )
+	  usage();
 	argc--, argv++;
       } else
 	usage();
@@ -1023,6 +1037,10 @@ createSavedState()
   e = put_pl_option(e, "toplevel", pltoplevel);
   *e++ = ',';
   e = put_pl_option(e, "initfile", plinitfile);
+  if ( plclass )
+  { *e++ = ',';
+    e = put_pl_option(e, "class", plclass);
+  }
   strcpy(e, "])");
   e += strlen(e);
 

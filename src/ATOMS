@@ -373,6 +373,7 @@ A record		"record"
 A db_reference		"db_reference"
 A erase			"erase"
 A flag_value		"flag_value"
+A atomic		"atomic"
 
 F abs			1
 F acos			1

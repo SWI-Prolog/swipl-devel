@@ -3,7 +3,7 @@
     Designed and implemented by Jan Wielemaker
     E-mail: jan@swi.psy.uva.nl
 
-    Copyright: GPL version 2
+    Copyright: LGPL (Lesser GNU Public License)
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -13,7 +13,7 @@ part of SWI-Prolog, but unlike the  base   system  which is not free for
 commercial usage, the console code  is   distributed  under  the GNU GPL
 version 2 licence terms.
 
-The SWI-Prolog source is at ftp://swi.psy.uva.nl/pub/SWI-Prolog/
+The SWI-Prolog source is at http://swi.psy.uva.nl/projects/SWI-Prolog/
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

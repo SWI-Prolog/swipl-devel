@@ -24,16 +24,13 @@ the  global  module  for  the  user  and imports from `system' all other
 modules import from `user' (and indirect from `system').
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-Module
-lookupModule(atom_t name)
+static Module
+_lookupModule(atom_t name)
 { Symbol s;
   Module m;
 
-  LOCK();
   if ((s = lookupHTable(GD->tables.modules, (void*)name)) != (Symbol) NULL)
-  { UNLOCK();
     return (Module) s->value;
-  }
 
   m = allocHeap(sizeof(struct module));
   m->name = name;
@@ -60,6 +57,17 @@ lookupModule(atom_t name)
 
   addHTable(GD->tables.modules, (void *)name, m);
   GD->statistics.modules++;
+  
+  return m;
+}
+
+
+Module
+lookupModule(atom_t name)
+{ Module m;
+
+  LOCK();
+  m = _lookupModule(name);
   UNLOCK();
   
   return m;
@@ -79,11 +87,22 @@ isCurrentModule(atom_t name)
 
 void
 initModules(void)
-{ GD->tables.modules = newHTable(MODULEHASHSIZE);
-  GD->modules.system = lookupModule(ATOM_system);
-  GD->modules.user   = lookupModule(ATOM_user);
-  LD->modules.typein = MODULE_user;
-  LD->modules.source = MODULE_user;
+{ static int done = FALSE;
+
+  LOCK();
+  if ( !done )
+  { done = TRUE;
+
+    initTables();
+    initFunctors();
+
+    GD->tables.modules = newHTable(MODULEHASHSIZE);
+    GD->modules.system = _lookupModule(ATOM_system);
+    GD->modules.user   = _lookupModule(ATOM_user);
+    LD->modules.typein = MODULE_user;
+    LD->modules.source = MODULE_user;
+  }
+  UNLOCK();
 }
 
 int

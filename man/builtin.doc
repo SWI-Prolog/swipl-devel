@@ -524,10 +524,10 @@ Comparison and unification of arbitrary terms. Terms are ordered in the
 so called ``standard order''. This order is defined as follows:
 
 \begin{enumerate}
-    \item $\arg{Variables} < \arg{Atoms} < \arg{Strings}%
-    \footnote{Strings might be considered atoms in future versions. See
-              also \secref{strings}}
-          < \arg{Numbers} < \arg{Terms}$
+    \item $\arg{Variables} < \arg{Atoms} < \arg{Strings}
+          < \arg{Numbers} < \arg{Terms}$%
+	\footnote{Strings might be considered atoms in future versions. See
+		  also \secref{strings}}
     \item $\arg{Old~Variable} < \arg{New~Variable}$%
         \footnote{In fact the variables are compared on their (dereferenced)
                   addresses. Variables living on the global stack are always
@@ -864,7 +864,7 @@ This predicate is modelled after the Quintus predicate with the same
 name, though its current implementation is incomplete.  It is used
 only for printing messages from exceptions from built-in predicates.
 \arg{Kind} is one of \const{informational}, \const{warning},
-const{error}, \const{help} or \const{silent}.  Currently only
+\const{error}, \const{help} or \const{silent}.  Currently only
 \const{error} is defined.  \arg{Term} is an \funcref{error}{2}
 term described in \secref{exceptterm}.  A human-readable message
 is printed to the stream \const{user_error}.

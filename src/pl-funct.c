@@ -166,10 +166,19 @@ registerBuiltinFunctors()
 
 void
 initFunctors(void)
-{ functor_buckets = FUNCTORHASHSIZE;
-  initBuffer(&functor_array);
-  allocFunctorTable();
-  registerBuiltinFunctors();
+{ static int done = FALSE;
+
+  LOCK();
+  if ( !done )
+  { done = TRUE;
+
+    initAtoms();
+    functor_buckets = FUNCTORHASHSIZE;
+    initBuffer(&functor_array);
+    allocFunctorTable();
+    registerBuiltinFunctors();
+  }
+  UNLOCK();
 }
 
 

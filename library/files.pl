@@ -32,7 +32,7 @@ can_open_file(File, both) :-
 
 path_dir_name(File, Dir) :-
 	file_base_name(File, Base),
-	concat(RawDir, Base, File),
+	atom_concat(RawDir, Base, File),
 	(   RawDir == ''
 	->  Dir = '.'
 	;   Dir = RawDir

@@ -98,7 +98,7 @@ load_foreign(Files, Entry) :-
 
 import_file(File) :-
 	feature(home, Home),
-	concat(Home, '/include/SWI-Exports', File).
+	atom_concat(Home, '/include/SWI-Exports', File).
 
 %	foreign_file(?File)
 %	Is true if 'File' is loaded as a foreign file.

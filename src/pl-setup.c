@@ -95,10 +95,6 @@ setupProlog(void)
   initWamTable();
   DEBUG(1, Sdprintf("IO ...\n"));
   initIO();
-  DEBUG(1, Sdprintf("Loader ...\n"));
-  resetLoader();
-  DEBUG(1, Sdprintf("Symbols ...\n"));
-  getSymbols();
   DEBUG(1, Sdprintf("Term ...\n"));
   resetTerm();
   GD->io_initialised = TRUE;
@@ -136,6 +132,10 @@ CSetIntFeature(const char *name, long value)
 { setFeature(lookupAtom(name), FT_INTEGER, value);
 }
 
+#ifndef SO_EXT
+#define SO_EXT "so"
+#endif
+
 static void
 initFeatures()
 { CSetFeature("arch",		ARCH);
@@ -147,6 +147,9 @@ initFeatures()
   CSetIntFeature("version",	PLVERSION);
   if ( systemDefaults.home )
     CSetFeature("home",		systemDefaults.home);
+  if ( GD->paths.executable )
+    CSetFeature("executable",	GD->paths.executable);
+
   CSetFeature("optimise",	GD->cmdline.optimise == TRUE ? "true" 
 							     : "false");
   CSetFeature("c_libs",		C_LIBS);
@@ -154,17 +157,9 @@ initFeatures()
   CSetFeature("c_ldflags",	C_LDFLAGS);
   CSetFeature("gc",		"true");
   CSetFeature("trace_gc",	"false");
-#ifdef O_STORE_PROGRAM
-  CSetFeature("save_program",	"true");
-#endif
-#if defined(O_FOREIGN) || defined(O_MACH_FOREIGN) || defined(O_AIX_FOREIGN)
-  CSetFeature("load_foreign",  "true");
-#endif
-#if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD)
+#if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
   CSetFeature("open_shared_object", "true");
-#endif
-#ifdef O_DLL
-  CSetFeature("dll", "true");
+  CSetFeature("shared_object_extension", SO_EXT);
 #endif
 #if O_DYNAMIC_STACKS
   CSetFeature("dynamic_stacks",	"true");
@@ -209,6 +204,10 @@ initFeatures()
   CSetFeature("file_name_variables", "false");
 #if defined(__unix__) || defined(unix)
   CSetFeature("unix", "true");
+#endif
+
+#if defined(__WIN32__) && defined(_DEBUG)
+  CSetFeature("kernel_compile_mode", "debug");
 #endif
 
 #if defined(__DATE__) && defined(__TIME__)

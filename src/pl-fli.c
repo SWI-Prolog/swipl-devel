@@ -10,6 +10,7 @@
 /*#define O_SECURE 1*/
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-ctype.h"
 #include <errno.h>
 
 #undef LD
@@ -167,6 +168,7 @@ PL_new_term_ref()
 void
 PL_reset_term_refs(term_t r)
 { GET_LD
+
   lTop = (LocalFrame) valTermRef(r);
 }
 
@@ -631,20 +633,28 @@ PL_get_list_chars(term_t l, char **s, unsigned flags)
   Buffer b = findBuffer(flags);
   word list = valHandle(l);
   Word arg, tail;
-  int c;
   char *r;
 
   while( isList(list) && !isNil(list) )
-  { arg = argTermP(list, 0);
+  { int c = -1;
+
+    arg = argTermP(list, 0);
     deRef(arg);
-    if ( isTaggedInt(*arg) && (c=(int)valInt(*arg)) > 0 && c < 256)
-    { addBuffer(b, c, char);
-      tail = argTermP(list, 1);
-      deRef(tail);
-      list = *tail;
-      continue;
+    if ( isTaggedInt(*arg) )
+    { c = valInt(*arg);
+    } else if ( isAtom(*arg) )
+    { char *s = stringAtom(*arg);
+      if ( s[0] && !s[1] )
+	c = s[0] & 0xff;
     }
-    return unfindBuffer(flags);
+
+    if ( c == -1 )
+      return unfindBuffer(flags);
+
+    addBuffer(b, c, char);
+    tail = argTermP(list, 1);
+    deRef(tail);
+    list = *tail;
   }
   if (!isNil(list))
     return unfindBuffer(flags);
@@ -668,6 +678,9 @@ PL_get_chars(term_t l, char **s, unsigned flags)
   char tmp[100];
   char *r;
   int type;
+  IOSTREAM *fd = NULL;
+
+  DEBUG(7, pl_write(l); pl_nl());
 
   if ( (flags & CVT_ATOM) && isAtom(w) )
   { type = PL_ATOM;
@@ -685,16 +698,39 @@ PL_get_chars(term_t l, char **s, unsigned flags)
   { type = PL_STRING;
     r = valString(w);
 #endif
-  } else if ( (flags & CVT_LIST) )
-  { return PL_get_list_chars(l, s, flags);
-  } else if ( (flags & CVT_VARIABLE) )
-  { type = PL_VARIABLE;
+  } else if ( (flags & CVT_LIST) &&
+	      (isList(w) || isNil(w)) &&
+	      PL_get_list_chars(l, s, flags) )
+  { DEBUG(7, Sdprintf("--> %s\n", *s));
+    succeed;
+  } else if ( (flags & CVT_VARIABLE) && isVar(w) )
+  { trap_gdb();
+    type = PL_VARIABLE;
     r = varName(l, tmp);
-  } else
-    fail;
+  } else if ( (flags & CVT_WRITE) )
+  { int size = 0;
     
+    type = PL_STRING;			/* hack to get things below ok */
+
+    if ( !(flags & (BUF_MALLOC|BUF_RING)) )
+      flags |= BUF_RING;
+
+    r = NULL;
+    fd = Sopenmem(&r, &size, "w");
+    PL_write_term(fd, l, 1200, 0);
+    Sputc(EOS, fd);
+    Sflush(fd);
+  } else
+  { DEBUG(7, Sdprintf("--> fail\n"));
+    fail;
+  }
+    
+  DEBUG(7, Sdprintf("--> %s\n", r));
+
   if ( flags & BUF_MALLOC )
   { *s = malloc_string(r);
+    if ( fd )
+      Sclose(fd);
   } else if ( ((flags & BUF_RING) && type != PL_ATOM) || /* never atoms */
 	      (type == PL_STRING) ||	/* always buffer strings */
 	      r == tmp )		/* always buffer tmp */
@@ -703,10 +739,29 @@ PL_get_chars(term_t l, char **s, unsigned flags)
 
     addMultipleBuffer(b, r, l, char);
     *s = baseBuffer(b, char);
+    if ( fd )
+      Sclose(fd);
   } else
     *s = r;
 
   succeed;
+}
+
+
+char *
+PL_quote(int chr, const char *s)
+{ Buffer b = findBuffer(BUF_RING);
+  
+  addBuffer(b, chr, char);
+  for(; *s; s++)
+  { if ( *s == chr )
+      addBuffer(b, chr, char);
+    addBuffer(b, *s, char);
+  }
+  addBuffer(b, chr, char);
+  addBuffer(b, EOS, char);
+  
+  return baseBuffer(b, char);
 }
 
 
@@ -1175,7 +1230,7 @@ PL_put_string_nchars(term_t t,  unsigned int len, const char *s)
 
 
 void
-PL_put_list_chars(term_t t, const char *chars)
+PL_put_list_codes(term_t t, const char *chars)
 { GET_LD
   int len = strlen(chars);
   
@@ -1194,6 +1249,29 @@ PL_put_list_chars(term_t t, const char *chars)
     p[-1] = ATOM_nil;
   }
 }
+
+
+void
+PL_put_list_chars(term_t t, const char *chars)
+{ GET_LD
+  int len = strlen(chars);
+  
+  if ( len == 0 )
+  { setHandle(t, ATOM_nil);
+  } else
+  { Word p = allocGlobal(len*3);
+    setHandle(t, consPtr(p, TAG_COMPOUND|STG_GLOBAL));
+
+    for( ; *chars ; chars++)
+    { *p++ = FUNCTOR_dot2;
+      *p++ = codeToAtom(*chars & 0xff);
+      *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
+      p++;
+    }
+    p[-1] = ATOM_nil;
+  }
+}
+
 
 void
 PL_put_integer(term_t t, long i)
@@ -1356,6 +1434,51 @@ PL_unify_atom_chars(term_t t, const char *chars)
 }
 
 
+atom_t
+codeToAtom(int code)
+{ atom_t a;
+  code &= 0xff;				/* mask for signedness */
+
+  if ( !(a=GD->atoms.for_code[code]) )
+  { char tmp[2];
+
+    tmp[0] = code;
+    tmp[1] = EOS;
+    a = lookupAtom(tmp);
+    GD->atoms.for_code[code] = a;
+  }
+  
+  return a;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+TBD: of `l' is a variable, it is a  very good idea to build the list the
+other way around. That avoids calling unify() twice for each element.
+
+If we are really in a  hurry:  make   sure  the  global stack has enough
+space, put the list on the stack and call unify()!
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+PL_unify_list_codes(term_t l, const char *chars)
+{ term_t head = PL_new_term_ref();
+  term_t t    = PL_copy_term_ref(l);
+  int rval;
+
+  for( ; *chars; chars++ )
+  { if ( !PL_unify_list(t, head, t) ||
+	 !PL_unify_integer(head, (int)*chars & 0xff) )
+      fail;
+  }
+
+  rval = PL_unify_nil(t);
+  PL_reset_term_refs(head);
+
+  return rval;
+}
+
+
 int
 PL_unify_list_chars(term_t l, const char *chars)
 { term_t head = PL_new_term_ref();
@@ -1364,7 +1487,7 @@ PL_unify_list_chars(term_t l, const char *chars)
 
   for( ; *chars; chars++ )
   { if ( !PL_unify_list(t, head, t) ||
-	 !PL_unify_integer(head, (int)*chars & 0xff) )
+	 !PL_unify_atom(head, codeToAtom(*chars & 0xff)) )
       fail;
   }
 
@@ -1909,12 +2032,32 @@ PL_register_foreign(const char *name, int arity, Func f, int flags)
   Procedure proc;
   Definition def;
   Module m;
-  functor_t fdef = lookupFunctorDef(lookupAtom(name), arity);
+  functor_t fdef;
+  atom_t aname;
+  const char *s;
 
-  m = (environment_frame ? contextModule(environment_frame)
-			 : MODULE_system);
+  if ( !GD->initialised )
+    initModules();			/* Before PL_initialise()! */
 
-  proc = lookupProcedure(lookupFunctorDef(lookupAtom(name), arity), m);
+					/* check for module:name */
+  for(s=name; isAlpha(*s); s++)
+    ;
+
+  if ( *s == ':' )
+  { LocalArray(char, mbuf, (s-name)+1);
+
+    strncpy(mbuf, name, s-name);
+    mbuf[s-name] = EOS;
+    m = PL_new_module(PL_new_atom(mbuf));
+    aname = PL_new_atom(s+1);
+  } else
+  { aname = PL_new_atom(name);
+    m = (environment_frame ? contextModule(environment_frame)
+			   : MODULE_user);
+  }
+
+  fdef = lookupFunctorDef(aname, arity);
+  proc = lookupProcedure(fdef, m);
   def = proc->definition;
 
   if ( true(def, LOCKED) )
@@ -1940,6 +2083,7 @@ PL_register_foreign(const char *name, int arity, Func f, int flags)
   if ( (flags & PL_FA_NOTRACE) )	  clear(def, TRACE_ME);
   if ( (flags & PL_FA_TRANSPARENT) )	  set(def, METAPRED);
   if ( (flags & PL_FA_NONDETERMINISTIC) ) set(def, NONDETERMINISTIC);
+  if ( (flags & PL_FA_VARARGS) )	  set(def, P_VARARG);
 
   notify_registered_foreign(fdef, m);
 
@@ -1958,12 +2102,13 @@ PL_load_extensions(PL_extension *ext)
 
   for(e = ext; e->predicate_name; e++)
   { short flags = TRACE_ME;
-    register Definition def;
-    register Procedure proc;
+    Definition def;
+    Procedure proc;
 
     if ( e->flags & PL_FA_NOTRACE )	     flags &= ~TRACE_ME;
     if ( e->flags & PL_FA_TRANSPARENT )	     flags |= METAPRED;
     if ( e->flags & PL_FA_NONDETERMINISTIC ) flags |= NONDETERMINISTIC;
+    if ( e->flags & PL_FA_VARARGS )	     flags |= P_VARARG;
 
     proc = lookupProcedure(lookupFunctorDef(lookupAtom(e->predicate_name),
 					    e->arity), 
@@ -1996,7 +2141,7 @@ PL_load_extensions(PL_extension *ext)
 
 int
 PL_toplevel(void)
-{ return prolog(lookupAtom("$toplevel"));
+{ return prologToplevel(lookupAtom("$toplevel"));
 }
 
 
@@ -2382,12 +2527,6 @@ PL_action(int action, ...)
     case PL_ACTION_ABORT:
       rval = pl_abort();
       break;
-    case PL_ACTION_SYMBOLFILE:
-    { char *name = va_arg(args, char *);
-      loaderstatus.symbolfile = lookupAtom(name);
-      rval = TRUE;
-      break;
-    }
     case PL_ACTION_GUIAPP:
     { int guiapp = va_arg(args, int);
       GD->os.gui_app = guiapp;
@@ -2466,14 +2605,6 @@ PL_query(int query)
     case PL_QUERY_ARGV:
       init_c_args();
       return (long) c_argv;
-    case PL_QUERY_SYMBOLFILE:
-      if ( !getSymbols() )
-	return (long) NULL;
-      return (long) stringAtom(loaderstatus.symbolfile);
-    case PL_QUERY_ORGSYMBOLFILE:
-      if ( getSymbols() == FALSE )
-	return (long) NULL;
-      return (long) stringAtom(loaderstatus.orgsymbolfile);
     case PL_QUERY_MAX_INTEGER:
       return PLMAXINT;
     case PL_QUERY_MIN_INTEGER:
@@ -2496,3 +2627,4 @@ PL_query(int query)
 
 #undef LD
 #define LD GLOBAL_LD
+

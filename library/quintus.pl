@@ -15,6 +15,7 @@
 	, cos/2
 	, tan/2
 	, log/2
+	, sqrt/2
 	, random/3
 
 	, genarg/3

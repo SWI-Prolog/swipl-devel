@@ -32,7 +32,7 @@ emacs_tmp_file(File) :-
 	tmp_file(Argv, File).
 
 tmp_file(['+C', Raw|_], File) :- !,
-	concat('Emacs:', File, Raw).
+	atom_concat('Emacs:', File, Raw).
 tmp_file([_|T], File) :-
 	tmp_file(T, File).
 
@@ -135,7 +135,7 @@ emacs_warning_file(user, _) :- !,
 	fail.					  % donot give warnings here
 emacs_warning_file(Path, File) :-
 	compilation_base_dir(Cwd),
-	concat(Cwd, File, Path), !.
+	atom_concat(Cwd, File, Path), !.
 emacs_warning_file(Path, Path).
 	
 

@@ -91,16 +91,16 @@ pwd :-
 
 dir_name('/', '/') :- !.
 dir_name(Path, Name) :-
-	concat(P, /, Path), !,
+	atom_concat(P, /, Path), !,
 	dir_name(P, Name).
 dir_name(Path, Name) :-
 	feature(unix, true),
 	absolute_file_name('~', Home0),
-	(   concat(Home, /, Home0)
+	(   atom_concat(Home, /, Home0)
 	->  true
 	;   Home = Home0
 	),
-	concat(Home, FromHome, Path), !,
+	atom_concat(Home, FromHome, Path), !,
 	sformat(Name, '~~~w', [FromHome]).
 dir_name(Path, Path).
 
@@ -135,7 +135,7 @@ ls__(Files) :-
 
 tag_file(File, Dir) :-
 	exists_directory(File),	
-	concat(File, /, Dir).
+	atom_concat(File, /, Dir).
 tag_file(File, File).
 
 %	mv(+From, +To)	--- Move (Rename) a file

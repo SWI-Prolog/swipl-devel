@@ -362,3 +362,4 @@
 #define ATOM_db_reference MK_ATOM(361)
 #define ATOM_erase        MK_ATOM(362)
 #define ATOM_flag_value   MK_ATOM(363)
+#define ATOM_atomic       MK_ATOM(364)

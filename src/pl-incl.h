@@ -321,7 +321,7 @@ them.  Descriptions:
 	version (just costs virtual memory).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define BUFFER_RING_SIZE 	4	/* foreign buffer ring (pl-fli.c) */
+#define BUFFER_RING_SIZE 	16	/* foreign buffer ring (pl-fli.c) */
 #define LINESIZ			1024	/* size of a data line */
 #define MAXARITY		1024	/* arity of predicate */
 #define MAXVARIABLES		65536	/* number of variables/clause */
@@ -847,7 +847,7 @@ with one operation, it turns out to be faster as well.
 #define AUTOINDEX		(0x00040000L) /* predicate */
 #define NEEDSCLAUSEGC		(0x00080000L) /* predicate */
 #define NEEDSREHASH		(0x00100000L) /* predicate */
-#define ISCASE			(0x00200000L) /* predicate */
+#define P_VARARG		(0x00200000L) /* predicate */
 #define PROC_DEFINED		(DYNAMIC|FOREIGN|MULTIFILE|DISCONTIGUOUS)
 
 #define ERASED			(0x0001) /* clause */
@@ -1105,7 +1105,7 @@ struct definition
 		/*	AUTOINDEX	   Automatically guess index */
 		/*	NEEDSCLAUSEGC	   Clauses have been erased */
 		/*	NEEDSREHASH	   Hash-table is out-of-date */
-		/*	ISCASE		   Unused.  What is this? */
+		/*	P_VARARG	   Foreign called using t0, ac, ctx */
   unsigned	indexCardinality : 8;	/* cardinality of index pattern */
   short		number_of_clauses;	/* number of associated clauses */
 };
@@ -1493,12 +1493,6 @@ typedef struct
   int		trail_shifts;		/* Shifts of the trail stack */
 } pl_shift_status_t;
 
-
-typedef struct
-{ atom_t	symbolfile;		/* current symbol file */
-  atom_t	orgsymbolfile;		/* symbol file we started with */
-  atom_t	restored_state;		/* -r/restore state restored */
-} pl_loaderstatus_t;
 
 #define NO_PROFILING		0
 #define CUMULATIVE_PROFILING	1

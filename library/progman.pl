@@ -117,7 +117,7 @@ progman_setup :-
 	explain(start),
 
 	program_group('SWI-Prolog', Group),
-	feature(symbol_file, PlExe),
+	feature(executable, PlExe),
 	prolog_to_os_filename(PlExe, OsPlExe),
 
 	progman_make_group(Group),

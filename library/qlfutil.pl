@@ -33,7 +33,7 @@ qlf_make(Base) :-
 	->  true
 	;   (   forall(member(Source, Sources),
 		       access_file(Source, read))
-	    ->	concat(PlBase, '.qlf', QlfFile),
+	    ->	atom_concat(PlBase, '.qlf', QlfFile),
 	        user:qcompile(PlBase)
 	    ;	'$warning'('Cannot update ~w: no access to sourcefile ~w',
 			   [ QlfFile, Source ])

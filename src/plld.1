@@ -47,6 +47,7 @@ are ignored, and so are the options
 .BI \-goal
 .BI \-toplevel
 .BI \-initfile.
+.BI \-class
 This is the preferred way to attach external modules to Prolog if
 dynamic loading is not supported on your system.
 .TP
@@ -66,6 +67,20 @@ flag for the new executable.
 The file that is loaded by the toplevel.  E.i. the default.
 .BI \-f
 flag for the new executable.
+.TP
+.BI \-class " {runtime,kernel,development}"
+Set the save-class of the Prolog saved-state that is created.  If
+.B runtime
+(default), the resulting system leave interpretation of all arguments
+to the application.  If
+.B kernel
+all predicates will be locked for the tracer.  Finally, if
+.B development
+the state is saved `as-is' and the resulting system processes options
+just as the basic SWI-Prolog executable does.  See also
+.B "qsave_program/2"
+in the
+.IR "SWI-Prolog reference manual".
 .TP
 .BI \-v
 Verbose operation.  This will echo the commands before executing them.
@@ -164,9 +179,9 @@ rely on the C-code added by the user.
 .SH "SEE ALSO"
 Jan Wielemaker
 .I pl(1)
-.I SWI-Prolog 2.9 Reference Manual,
+.I SWI-Prolog 3.2 Reference Manual,
 University of Amsterdam, Dept. of Social Science and Informatics (SWI).
 .SH COPYRIGHT
-Copyright (C) 1991-1997, Jan Wielemaker
+Copyright (C) 1991-1999, SWI, University of Amsterdam
 .SH AUTHOR
 Jan Wielemaker

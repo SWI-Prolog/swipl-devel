@@ -107,11 +107,11 @@ make_header(RC, _, Options) :-
 	),
 	option(Options, stand_alone/DefStandAlone, OptVal, _),
 	OptVal == true, !,
-	feature(symbol_file, Executable),
+	feature(executable, Executable),
 	$rc_append_file(RC, $header, $rc, none, Executable).
 make_header(RC, SaveClass, _Options) :-
 	feature(unix, true),
-	feature(symbol_file, Executable),
+	feature(executable, Executable),
 	$rc_open(RC, $header, $rc, write, Fd),
 	format(Fd, '#!/bin/sh~n', []),
 	format(Fd, '# SWI-Prolog saved state~n', []),
@@ -397,6 +397,7 @@ c_feature(c_staticlibs).
 c_feature(compiled_at).
 c_feature(dynamic_stacks).
 c_feature(home).
+c_feature(executable).
 c_feature(integer_rounding_function).
 c_feature(max_arity).
 c_feature(max_integer).
@@ -409,11 +410,13 @@ c_feature(readline).
 c_feature(resource_database).
 c_feature(save).
 c_feature(save_program).
-c_feature(symbol_file).
 c_feature(tty_control).
 c_feature(unix).
 c_feature(version).
 c_feature(windows).
+c_feature(open_shared_object).
+c_feature(shared_object_extension).
+
 
 		 /*******************************
 		 *	     OPERATORS		*

@@ -6,6 +6,7 @@ DVITOTTY=	./dvi2tty
 DVITOTTY-HOME=	txt/dvi2tty
 INDEX=  	makeindex
 LATEX=		latex
+PDFTEX=		pdflatex
 MANUAL=		./MANUAL.dvi
 PDF=		MANUAL.pdf
 ONLINE=		../library/MANUAL
@@ -64,11 +65,18 @@ distclean:	clean
 
 $(MANUAL):	latex_if_needed doc.tex $(TEXFILES) doc.bbl doc.ind
 		./latex_if_needed $(LATEX) doc
-		mv doc.dvi $(MANUAL)
+		mv doc.dvi $@
 
-$(PDF):		$(MANUAL)
-		dvips -o MANUAL.ps $(MANUAL)
-		pstill -cgipt -o $@ MANUAL.ps
+$(PDF):		latex_if_needed doc.tex $(TEXFILES) doc.bbl doc.ind
+		./latex_if_needed $(PDFTEX) doc
+		mv doc.pdf $@
+
+# pstill is nice, but pdflatex is a lot quicker and produces hyperlinks
+# for free.  Also the produced PDF file is considerably smaller.
+
+#$(PDF):	$(MANUAL)
+#		dvips -o MANUAL.ps $(MANUAL)
+#		pstill -cgipt -o $@ MANUAL.ps
 
 man:		doc.tex $(TEXFILES) doc.bbl doc.ind
 		$(LATEX) doc

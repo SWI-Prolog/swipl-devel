@@ -85,11 +85,11 @@ explain(Term, Explanation) :-
 	explain_functor(Term, Explanation).
 	
 op_type(X, prefix) :-
-	atom_chars(X, [0'f, _]).
+	atom_chars(X, [f, _]).
 op_type(X, infix) :-
-	atom_chars(X, [_, 0'f, _]).
+	atom_chars(X, [_, f, _]).
 op_type(X, postfix) :-
-	atom_chars(X, [_, 0'f]).
+	atom_chars(X, [_, f]).
 
 printable(C) :-
 	integer(C),

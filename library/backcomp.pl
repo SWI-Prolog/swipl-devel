@@ -14,7 +14,8 @@
 	    display/2,
 	    displayq/1,
 	    displayq/2,
-	    (ed)/1
+	    (ed)/1,
+	    concat/3
 	  ]).
 
 '$arch'(Arch, unknown) :-
@@ -45,3 +46,8 @@ ed(PredName) :-
 	edit(PredName/_Arity).
 ed(Pred) :-
 	edit(Pred).
+
+%	concat/3 is superseeded by ISO atom_concat/3
+
+concat(A, B, C) :-
+	atom_concat(A, B, C).

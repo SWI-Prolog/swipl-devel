@@ -117,7 +117,7 @@ inttoatom(Int, Atom):-
 	int_to_atom(Int, Atom).
 
 atomconcat(Atom1, Atom2, Atom3):-
-	concat(Atom1, Atom2, Atom3).
+	atom_concat(Atom1, Atom2, Atom3).
 
 :- module_transparent update/1.
 

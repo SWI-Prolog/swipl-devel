@@ -386,7 +386,8 @@ raw_read2(ReadData _PL_rd)
 		    last = c;
 		  }
 		} else
-		{ addToBuffer('/', _PL_rd);
+		{ set_start_line;
+		  addToBuffer('/', _PL_rd);
 		  if ( isSymbol(c) )
 		  { while( c != EOF && isSymbol(c) )
 		    { addToBuffer(c, _PL_rd);
@@ -1083,7 +1084,7 @@ get_token(bool must_be_op, ReadData _PL_rd)
 		    PL_put_string_chars(t, s);
 		  else
 #endif
-		    PL_put_list_chars(t, s);
+		    PL_put_list_codes(t, s);
 
   		  cur_token.value.term = t;
 		  cur_token.type = T_STRING;
@@ -1759,7 +1760,7 @@ term is to be written.
 	  case ']':
 	  default:
 	    *name = TRUE;
-	    PL_put_atom(term, code_to_atom(token->value.character));
+	    PL_put_atom(term, codeToAtom(token->value.character));
 
 	    succeed;
 	}
@@ -1774,6 +1775,21 @@ term is to be written.
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+read_term(?term, ReadData rd)
+    Common part of all read variations. Please note that the
+    variable-handling code uses terms of the type STG_GLOBAL|TAG_ATOM,
+    which are not valid Prolog terms. Some of the temporary
+    term-references will even be initialised to this data after
+    read has completed.  Hence the PL_reset_term_refs() in this
+    function, which not only saves memory, but also guarantees the
+    stacks are in a sane state after read has completed.
+
+    Should one ever think of it, the garbage collector cannot be
+    activated during read for this reason, unless it is programmed
+    to deal with this intermediate type!
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static bool
 read_term(term_t term, ReadData rd)
 { Token token;
@@ -1786,23 +1802,32 @@ read_term(term_t term, ReadData rd)
   rd->here = rd->base;
 
   result = PL_new_term_ref();
-  TRY(complex_term(NULL, result, rd->subtpos, rd));
+  if ( !complex_term(NULL, result, rd->subtpos, rd) )
+    goto failed;
   p = valTermRef(result);
   if ( isVarAtom(*p, rd) )		/* reading a single variable */
     readValHandle(result, p, rd);
 
   if ( !(token = get_token(FALSE, rd)) )
-    fail;
+    goto failed;
   if ( token->type != T_FULLSTOP )
-    syntaxError("End of clause expected", rd);
+  { errorWarning("End of clause expected", rd);
+    goto failed;
+  }
 
-  TRY(PL_unify(term, result));
-  if ( rd->varnames )
-    TRY(bind_variables(rd));
-  if ( rd->singles )
-    TRY(check_singletons(rd));
+  if ( !PL_unify(term, result) )
+    goto failed;
+  if ( rd->varnames && !bind_variables(rd) )
+    goto failed;
+  if ( rd->singles && !check_singletons(rd) )
+    goto failed;
 
+  PL_reset_term_refs(result);
   succeed;
+
+failed:
+  PL_reset_term_refs(result);
+  fail;
 }
 
 		/********************************
@@ -2019,5 +2044,19 @@ pl_term_to_atom(term_t term, term_t atom,
 }
 
 
+int
+PL_chars_to_term(const char *s, term_t t)
+{ read_data rd;
+  int rval;
 
+  init_read_data(&rd);
+
+  seeString(s);
+  PL_put_variable(t);
+  rval = read_term(t, &rd);
+  free_read_data(&rd);
+  seenString();
+
+  return rval;
+}
 

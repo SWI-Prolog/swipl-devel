@@ -161,24 +161,33 @@ CpuTime()
 
 
 char *
-Symbols(char *syms)
+findExecutable(const char *module, char *exe)
 { int n;
   char buf[MAXPATHLEN];
+  HMODULE hmod;
 
-  if ( (n = GetModuleFileName(NULL, buf, sizeof(buf))) > 0 )
+  if ( module )
+    hmod = GetModuleHandle(module);
+  else
+    hmod = NULL;
+  
+  if ( !hmod )
+    hmod = GetModuleHandle("libpl.dll");
+
+  if ( (n = GetModuleFileName(hmod, buf, sizeof(buf))) > 0 )
   { char buf2[MAXPATHLEN];
 
     buf[n] = EOS;
     _xos_long_file_name(buf, buf2);
 
-    strcpy(syms, buf2);
+    strcpy(exe, buf2);
   } else
-  { PrologPath(GD->cmdline.argv[0], buf);
+  { PrologPath(module, buf);
 
-    strcpy(syms, buf);
+    strcpy(exe, buf);
   }
 
-  return syms;
+  return exe;
 }
 
 		 /*******************************
@@ -314,6 +323,64 @@ initHeapDebug(void)
 }
 #endif
 
+		 /*******************************
+		 *	DLOPEN AND FRIENDS	*
+		 *******************************/
+
+#ifdef EMULATE_DLOPEN
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+These functions emulate the bits from the ELF shared object interface we
+need. They are used  by  pl-load.c,   which  defines  the  actual Prolog
+interface.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static char *dlmsg;
+
+void *
+dlopen(const char *file, int flags)
+{ HINSTANCE h;
+
+  if ( (h = LoadLibrary(file)) )
+  { dlmsg = "No Error";
+    return (void *)h;
+  }
+
+  dlmsg = WinError();
+  return NULL;
+}
+
+
+const char *
+dlerror()
+{ return dlmsg;
+}
+
+
+void *
+dlsym(void *handle, char *symbol)
+{ void *addr = GetProcAddress(handle, symbol);
+
+  if ( addr )
+  { dlmsg = "No Error";
+    return addr;
+  }
+  
+  dlmsg = WinError();
+  return NULL;
+}
+
+
+int
+dlclose(void *handle)
+{ FreeLibrary(handle);
+
+  return 0;
+}
+
+#endif /*EMULATE_DLOPEN*/
+
 #endif /*__WINDOWS__*/
+
 
 

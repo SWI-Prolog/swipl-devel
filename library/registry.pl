@@ -65,9 +65,9 @@ shell_register_file_type(Ext, Type, Name, Open) :-
 	registry_set_key(classes_root/Type/shell/open/command, Open).
 
 ensure_dot(Ext, Ext) :-
-	concat('.', _, Ext), !.
+	atom_concat('.', _, Ext), !.
 ensure_dot(Ext, DExt) :-
-	concat('.', Ext, DExt).
+	atom_concat('.', Ext, DExt).
 
 %	Register a DDE command for the type.  The example below will
 %	send DDE_EXECUTE command `consult('<File>') to the service

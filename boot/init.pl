@@ -410,7 +410,7 @@ user:file_search_path(swi, Home) :-
 	feature(home, Home).
 user:file_search_path(foreign, swi(ArchLib)) :-
 	feature(arch, Arch),
-	concat('lib/', Arch, ArchLib).
+	atom_concat('lib/', Arch, ArchLib).
 user:file_search_path(foreign, swi(lib)).
 user:file_search_path(user_profile, '.').
 user:file_search_path(user_profile, UserHome) :-
@@ -429,8 +429,8 @@ expand_file_search_path(Spec, Spec) :-
 	atomic(Spec).
 
 $make_path(Dir, File, Path) :-
-	concat(_, /, Dir), !,
-	concat(Dir, File, Path).
+	atom_concat(_, /, Dir), !,
+	atom_concat(Dir, File, Path).
 $make_path(Dir, File, Path) :-
 	$concat_atom([Dir, '/', File], Path).
 
@@ -490,10 +490,8 @@ user:prolog_file_type(Ext,	prolog) :-
 	feature(associate, Ext),
 	Ext \== pl.
 user:prolog_file_type(qlf,	qlf).
-user:prolog_file_type(so,	executable) :-
-	feature(open_shared_object, true).
-user:prolog_file_type(dll,	executable) :-
-	feature(dll, true).
+user:prolog_file_type(Ext,	executable) :-
+	feature(shared_object_extension, Ext).
 
 %	File is a specification of a Prolog source file. Return the full
 %	path of the file.
@@ -510,7 +508,7 @@ $dochk_file(Term, Ext, Cond, FullName) :-	% allow a/b, a-b, etc.
 	\+ atomic(Term), !,
 	term_to_atom(Term, Raw),
 	atom_chars(Raw, S0),
-	delete(S0, 0' , S1),
+	delete(S0, ' ', S1),
 	atom_chars(Atom, S1),
 	$dochk_file(Atom, Ext, Cond, FullName).
 $dochk_file(File, Exts, Cond, FullName) :-
@@ -595,9 +593,9 @@ $canonise_extensions(E, [CE]) :-
 
 $canonise_extension('', '') :- !.
 $canonise_extension(DotAtom, DotAtom) :-
-	concat('.', _, DotAtom), !.
+	atom_concat('.', _, DotAtom), !.
 $canonise_extension(Atom, DotAtom) :-
-	concat('.', Atom, DotAtom).
+	atom_concat('.', Atom, DotAtom).
 
 
 		/********************************
@@ -865,7 +863,7 @@ $confirm_file(File, _, File).
 $confirm_module(user, '') :- !.
 $confirm_module(Module, Message) :-
 	atom(Module), !,
-	concat(' into ', Module, Message).
+	atom_concat(' into ', Module, Message).
 $confirm_module(_, '').
 
 $read_clause(Clause) :-				% get the first non-syntax
@@ -1349,8 +1347,8 @@ $get_files_argv([_|Rest], Files) :-
 
 $translate_options([], []).
 $translate_options([O|T0], [Opt|T]) :-
-	atom_chars(O, [0'-,0'-|Rest]),
-	$split(Rest, "=", Head, Tail), !,
+	atom_chars(O, [-,-|Rest]),
+	$split(Rest, [=], Head, Tail), !,
 	atom_chars(Name, Head),
 	name(Value, Tail),
 	Opt =.. [Name, Value],
@@ -1440,7 +1438,7 @@ $load_additional_boot_files :-
 	format('Loading Prolog startup files~n', []),
 	source_location(File, _Line),
 	file_directory_name(File, Dir),
-	concat(Dir, '/load.pl', LoadFile),
+	atom_concat(Dir, '/load.pl', LoadFile),
 	$load_wic_files(system, [LoadFile]),
 	format('SWI-Prolog boot files loaded~n', []),
 	flag($compiling, OldC, wic),

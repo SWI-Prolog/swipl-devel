@@ -198,14 +198,22 @@ allocate(size_t n)
 
 void
 initMemAlloc()
-{ void *hbase;
-  assert(ALIGN_SIZE >= ALLOC_MIN);
+{ static int done = FALSE;
 
-  hBase = (char *)(~0L);
-  hTop  = (char *)NULL;
-  hbase = allocHeap(sizeof(word));
-  heap_base = (ulong)hbase & ~0x007fffffL; /* 8MB */
-  freeHeap(hbase, sizeof(word));
+  LOCK();
+  if ( !done )
+  { void *hbase;
+
+    done = TRUE;
+
+    assert(ALIGN_SIZE >= ALLOC_MIN);
+    hBase = (char *)(~0L);
+    hTop  = (char *)NULL;
+    hbase = allocHeap(sizeof(word));
+    heap_base = (ulong)hbase & ~0x007fffffL; /* 8MB */
+    freeHeap(hbase, sizeof(word));
+  }
+  UNLOCK();
 }
 
 		/********************************
