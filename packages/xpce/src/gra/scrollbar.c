@@ -364,53 +364,6 @@ sb_init_draw_data(ScrollBar s, Area a, SbDrawData d, Any bg)
   d->arrow -= 2*m;
 }
 
-#define X1 pts[0]
-#define Y1 pts[1]
-#define X2 pts[2]
-#define Y2 pts[3]
-#define X3 pts[4]
-#define Y3 pts[5]
-
-static void
-compute_arrow_corners(int x, int y, int w, int h,
-		      Name which,
-		      int aw, int ah,
-		      int *pts)
-{ int aw2;
-
-  aw = (aw+1) & ~1;				/* make even */
-  ah = aw/2;
-  aw2 = (aw+1)/2;
-
-  DEBUG(NAME_arrow, Cprintf("ScrollBar arrow: %d x %d\n", aw, ah));
-
-  if ( which == NAME_down )
-  { int mx = x + w/2 - 1;
-    int dy = (h-ah)/2;
-      
-    X1 = mx-aw2; Y1 = y+dy; X2 = mx+aw2; Y2 = Y1; X3 = mx, Y3 = Y1+ah;
-  } else if ( which == NAME_up )
-  { int mx = x + w/2 - 1;
-    int dy = (1+h-ah)/2;
-
-    X1 = mx-aw2; Y1 = y+h-dy; X2 = mx+aw2; Y2 = Y1; X3 = mx, Y3 = Y1-ah;
-  } else if ( which == NAME_left )
-  { int dx = (w-ah)/2;
-    int my = y + h/2 - 1;
-      
-    X1 = x+dx+ah, Y1 = my-aw2; X2 = X1; Y2 = my+aw2; X3 = X1-ah; Y3 = my;
-  } else /* if ( which == NAME_right ) */
-  { int dx = (w-ah)/2;
-    int my = y + h/2 - 1;
-
-    X1 = x+dx, Y1 = my-aw2; X2 = X1; Y2 = my+aw2; X3=X1+ah; Y3 = my;
-  }
-
-  DEBUG(NAME_arrow, Cprintf("arrow(%d, %d, %d, %d, %d, %d)\n",
-			    X1, Y1, X2, Y2, X3, Y3));
-}
-
-
 static Elevation
 getElevationScrollBar(ScrollBar s)
 { Elevation z = getClassVariableValueObject(s, NAME_elevation);
@@ -429,7 +382,8 @@ draw_arrow(ScrollBar s, int x, int y, int w, int h, Name which, int up)
 
     if ( s->look == NAME_win ||
          s->look == NAME_gtk )
-    { int pts[6];
+    { Image img;
+      int iw, ih;
 
       r_thickness(valInt(s->pen));
 
@@ -438,20 +392,20 @@ draw_arrow(ScrollBar s, int x, int y, int w, int h, Name which, int up)
       else
 	r_box(x, y, w, h, 0, isDefault(z->colour) ? NIL : (Any) z->colour);
 
-      compute_arrow_corners(x, y, w, h, which, (w*2)/3, h/4, pts);
-      r_triangle(X1, Y1, X2, Y2, X3, Y3, BLACK_COLOUR);
+           if ( which == NAME_up )       img = SCROLL_UP_IMAGE;
+      else if ( which == NAME_down )     img = SCROLL_DOWN_IMAGE;
+      else if ( which == NAME_left )     img = SCROLL_LEFT_IMAGE;
+      else /* ( which == NAME_right ) */ img = SCROLL_RIGHT_IMAGE;
+
+      iw = valInt(img->size->w);
+      ih = valInt(img->size->h);
+
+      r_image(img, 0, 0, x+(w-iw)/2, y+(h-ih)/2, iw, ih, ON);
     } else				/* motif */
     {
     }
   }
 }
-
-#undef X1
-#undef Y1
-#undef X2
-#undef Y2
-#undef X3
-#undef Y3
 
 
 static void
