@@ -18,541 +18,541 @@ predicate(help, 1, 'Give help on predicates and show parts of manual', 43946, 45
 predicate(apropos, 1, 'library(online_help) Search manual', 45110, 45591).
 predicate(explain, 1, 'library(explain) Explain argument', 45594, 45996).
 predicate(explain, 2, 'library(explain) 2nd argument is explanation of first', 45999, 46243).
-predicate(current_prolog_flag, 2, 'Get system configuration parameters', 62517, 81195).
-predicate(set_prolog_flag, 2, 'Define a system feature', 81198, 81823).
-predicate(make_library_index, 1, 'Create autoload file INDEX.pl', 86424, 86720).
-predicate(make_library_index, 2, 'Create selective autoload file INDEX.pl', 86723, 87771).
-predicate(guitracer, 0, 'Install hooks for the graphical debugger', 125172, 125558).
-predicate(noguitracer, 0, 'Disable the graphical debugger', 125561, 125700).
-predicate(prolog_navigator, 1, 'Graphical overview of project', 126002, 126327).
-predicate(load_files, 2, 'Load source files with options', 134537, 137820).
-predicate(consult, 1, 'Read (compile) a Prolog source file', 137823, 138768).
-predicate(ensure_loaded, 1, 'Consult a file if that has not yet been done', 138771, 139423).
-predicate(include, 1, 'Include a file with declarations', 139426, 139743).
-predicate(require, 1, 'This file requires these predicates', 139746, 140597).
-predicate(make, 0, 'Reconsult all changed source files', 140600, 141103).
-predicate(library_directory, 1, 'Hook (user) Directories holding Prolog libraries', 141106, 141455).
-predicate(file_search_path, 2, 'Define path-aliases for locating files', 141458, 142831).
-predicate(expand_file_search_path, 2, 'Wildcard expansion of file paths', 142834, 143089).
-predicate(prolog_file_type, 2, 'Define meaning of file extension', 143092, 144153).
-predicate(source_file, 1, 'Examine currently loaded source files', 144156, 144352).
-predicate(source_file, 2, 'Obtain source file of predicate', 144355, 144777).
-predicate(prolog_load_context, 2, 'Context information for directives', 144780, 145732).
-predicate(source_location, 2, 'Location of last read term', 145735, 146087).
-predicate(term_expansion, 2, 'Hook (user) Convert term before compilation', 146090, 147511).
-predicate(expand_term, 2, 'Compiler: expand read term into clause(s)', 147514, 147846).
-predicate(goal_expansion, 2, 'Hook for macro-expanding goals', 147849, 148726).
-predicate(expand_goal, 2, 'Compiler: expand goal in clause-body', 148729, 148987).
-predicate(at_initialization, 1, 'Register goal to run at start-up', 148990, 149432).
-predicate(at_halt, 1, 'Register goal to run at halt/1', 149435, 149691).
-predicate((initialization), 1, 'Initialization directive', 149694, 150101).
-predicate(compiling, 0, 'Is this a compilation run?', 150104, 150441).
-predicate(preprocessor, 2, 'Install a preprocessor before the compiler', 150444, 150981).
-predicate(qcompile, 1, 'Compile source to Quick Load File', 151976, 152958).
-predicate(edit, 1, 'Edit a file', 154784, 155193).
-predicate(locate, 3, 'Locate targets for edit/1', 155196, 156157).
-predicate(locate, 2, 'Locate targets for edit/1', 156160, 156353).
-predicate(edit_source, 1, 'Call editor for edit/1', 156356, 157134).
-predicate(edit_command, 2, 'Specify editor activation', 157137, 158039).
-predicate(load, 0, 'Load edit/1 extensions', 158042, 158577).
-predicate(listing, 1, 'List predicate', 158580, 158901).
-predicate(listing, 0, 'List program in current module', 158904, 158983).
-predicate(portray_clause, 1, 'Pretty print a clause', 158986, 159221).
-predicate(var, 1, 'Type check for unbound variable', 159293, 159383).
-predicate(nonvar, 1, 'Type check for bound term', 159386, 159489).
-predicate(integer, 1, 'Type check for integer', 159492, 159588).
-predicate(float, 1, 'Type check for a floating point number', 159591, 159694).
-predicate(number, 1, 'Type check for integer or float', 159697, 159817).
-predicate(atom, 1, 'Type check for an atom', 159820, 159904).
-predicate(string, 1, 'Type check for string', 159907, 159998).
-predicate(atomic, 1, 'Type check for primitive', 160001, 160140).
-predicate(compound, 1, 'Test for compound term', 160143, 160285).
-predicate(callable, 1, 'Test for atom or compound term', 160288, 160480).
-predicate(ground, 1, 'Verify term holds no unbound variables', 160483, 160577).
-predicate(==, 2, 'Identical', 161641, 161812).
-predicate(\==, 2, 'Not identical', 161815, 161893).
-predicate(=, 2, 'Unification', 161896, 162023).
-predicate(unify_with_occurs_check, 2, 'Logically sound unification', 162026, 162757).
-predicate(\=, 2, 'Not unifyable', 162760, 162836).
-predicate(=@=, 2, 'Structural identical', 162839, 163402).
-predicate(\=@=, 2, 'Not structural identical', 163405, 163487).
-predicate(@<, 2, 'Standard order smaller', 163490, 163621).
-predicate(@=<, 2, 'Standard order smaller or equal', 163624, 163792).
-predicate(@>, 2, 'Standard order larger', 163795, 163925).
-predicate(@>=, 2, 'Standard order larger or equal', 163928, 164096).
-predicate(compare, 3, 'Compare, using a predicate to determine the order', 164099, 164351).
-predicate(fail, 0, 'Always false', 164971, 165090).
-predicate(true, 0, 'Succeed', 165093, 165212).
-predicate(repeat, 0, 'Succeed, leaving infinite backtrack points', 165215, 165299).
-predicate(!, 0, 'Cut (discard choicepoints)', 165302, 165945).
-predicate((','), 2, 'Conjunction of goals', 165948, 166215).
-predicate((;), 2, 'Disjunction of goals. Same as |/2', 166218, 166355).
-predicate((|), 2, 'Disjunction of goals. Same as ;/2', 166358, 166491).
-predicate((->), 2, 'If-then-else', 166494, 167333).
-predicate((*->), 2, 'Soft-cut', 167336, 167991).
-predicate(\+, 1, 'Negation by failure. Same as not/1', 167994, 168190).
-predicate(call, 1, 'Call a goal', 168681, 168904).
-predicate(call, 1, 'Call a goal', 168907, 169463).
-predicate(apply, 2, 'Call goal with additional arguments', 169466, 170045).
-predicate(not, 1, 'Negation by failure (argument not provable). Same as \+/1', 170048, 170197).
-predicate(once, 1, 'Call a goal deterministically', 170200, 170517).
-predicate(ignore, 1, 'Call the argument, but always succeed', 170520, 170741).
-predicate(call_with_depth_limit, 3, 'Prove goal with bounded depth', 170744, 172181).
-predicate(call_cleanup, 3, 'Guard a goal with a cleaup-handler', 172184, 174428).
-predicate(call_cleanup, 2, 'Guard a goal with a cleaup-handler', 174431, 174842).
-predicate(catch, 3, 'Call goal, watching for exceptions', 175312, 176102).
-predicate(throw, 1, 'Raise an exception (see catch/3)', 176105, 177365).
-predicate(print_message, 2, 'Print message from (exception) term', 181179, 182295).
-predicate(print_message_lines, 3, 'Print message to stream', 182298, 183339).
-predicate(message_hook, 3, 'Intercept print_message/2', 183342, 183882).
-predicate(message_to_string, 2, 'Translate message-term to string', 183885, 184173).
-predicate(on_signal, 3, 'Handle a software signal', 184997, 187693).
-predicate(current_signal, 3, 'Current software signal mapping', 187696, 188022).
-predicate(block, 3, 'Start a block (`catch''/`throw'')', 189906, 190337).
-predicate(exit, 2, 'Exit from named block. See block/3', 190340, 190620).
-predicate(fail, 1, 'Immediately fail named block. See block/3', 190623, 190822).
-predicate(!, 1, 'Cut block. See block/3', 190825, 190975).
-predicate(phrase, 2, 'Activate grammar-rule set', 192508, 192641).
-predicate(phrase, 3, 'Activate grammar-rule set (returning rest)', 192644, 193093).
-predicate(abolish, 1, 'Remove predicate definition from the database', 194634, 195626).
-predicate(abolish, 2, 'Remove predicate definition from the database', 195629, 195829).
-predicate(redefine_system_predicate, 1, 'Abolish system definition', 195832, 196446).
-predicate(retract, 1, 'Remove clause from the database', 196449, 196677).
-predicate(retractall, 1, 'Remove unifying clauses from the database', 196680, 196848).
-predicate(assert, 1, 'Add a clause to the database', 196851, 197028).
-predicate(asserta, 1, 'Add a clause to the database (first)', 197031, 197182).
-predicate(assertz, 1, 'Add a clause to the database (last)', 197185, 197256).
-predicate(assert, 2, 'Add a clause to the database, give reference', 197259, 197522).
-predicate(asserta, 2, 'Add a clause to the database (first)', 197525, 197710).
-predicate(assertz, 2, 'Add a clause to the database (last)', 197713, 197818).
-predicate(recorda, 3, 'Record term in the database (first)', 197821, 198141).
-predicate(recorda, 2, 'Record term in the database (first)', 198144, 198246).
-predicate(recordz, 3, 'Record term in the database (last)', 198249, 198453).
-predicate(recordz, 2, 'Record term in the database (last)', 198456, 198558).
-predicate(recorded, 3, 'Obtain term from the database', 198561, 198852).
-predicate(recorded, 2, 'Obtain term from the database', 198855, 198964).
-predicate(erase, 1, 'Erase a database record or clause', 198967, 199442).
-predicate(flag, 3, 'Simple global variable system', 199445, 200230).
-predicate(hash_term, 2, 'Hash-value of ground term', 201779, 202455).
-predicate((dynamic), 1, 'Indicate predicate definition may change', 203128, 203590).
-predicate((multifile), 1, 'Indicate distributed definition of predicate', 203593, 203872).
-predicate((discontiguous), 1, 'Indicate distributed definition of a predicate', 203875, 204118).
-predicate(index, 1, 'Change clause indexing', 204121, 205998).
-predicate(current_atom, 1, 'Examine existing atoms', 206077, 206307).
-predicate(current_functor, 2, 'Examine existing name/arity pairs', 206310, 206524).
-predicate(current_flag, 1, 'Examine existing flags', 206527, 206694).
-predicate(current_key, 1, 'Examine existing database keys', 206697, 206850).
-predicate(current_predicate, 2, 'Examine existing predicates', 206853, 207332).
-predicate(current_predicate, 1, 'Examine existing predicates (ISO)', 207335, 207671).
-predicate(predicate_property, 2, 'Query predicate attributes', 207674, 210998).
-predicate(dwim_predicate, 2, 'Find predicate in ``Do What I Mean'''' sense', 211001, 211665).
-predicate(clause, 2, 'Get clauses of a predicate', 211668, 212143).
-predicate(clause, 3, 'Get clauses of a predicate', 212146, 212543).
-predicate(nth_clause, 3, 'N-th clause of a predicate', 212546, 213552).
-predicate(clause_property, 2, 'Get properties of a clause', 213555, 214543).
-predicate(open, 4, 'Open a file (creating a stream)', 215825, 219797).
-predicate(open, 3, 'Open a file (creating a stream)', 219800, 219939).
-predicate(open_null_stream, 1, 'Open a stream to discard output', 219942, 220314).
-predicate(close, 1, 'Close stream', 220317, 220579).
-predicate(close, 2, 'Close stream (forced)', 220582, 220875).
-predicate(stream_property, 2, 'Get stream properties', 220878, 223562).
-predicate(current_stream, 3, 'Examine open streams', 223565, 224098).
-predicate(set_stream_position, 2, 'Seek stream to position', 224101, 224399).
-predicate(seek, 4, 'Modify the current position in a stream', 224402, 225279).
-predicate(set_stream, 2, 'Set stream attribute', 225282, 227034).
-predicate(see, 1, 'Change the current input stream', 230029, 230333).
-predicate(tell, 1, 'Change current output stream', 230336, 230643).
-predicate(append, 1, 'Append to a file', 230646, 230879).
-predicate(seeing, 1, 'Query the current input stream', 230882, 231021).
-predicate(telling, 1, 'Query current output stream', 231024, 231166).
-predicate(seen, 0, 'Close the current input stream', 231169, 231291).
-predicate(told, 0, 'Close current output', 231294, 231419).
-predicate(set_input, 1, 'Set current input stream from a stream', 231672, 231877).
-predicate(set_output, 1, 'Set current output stream from a stream', 231880, 232002).
-predicate(current_input, 1, 'Get current input stream', 232005, 232185).
-predicate(current_output, 1, 'Get the current output stream', 232188, 232293).
-predicate(wait_for_input, 3, 'Wait for input with optional timeout', 232360, 233754).
-predicate(character_count, 2, 'Get character index on a stream', 233757, 234091).
-predicate(line_count, 2, 'Line number on stream', 234094, 234274).
-predicate(line_position, 2, 'Character position in line on stream', 234277, 234642).
-predicate(fileerrors, 2, 'Do/Don''t warn on file errors', 234645, 235182).
-predicate(nl, 0, 'Generate a newline', 235340, 235463).
-predicate(nl, 1, 'Generate a newline on a stream', 235466, 235543).
-predicate(put, 1, 'Write a character', 235546, 235777).
-predicate(put, 2, 'Write a character on a stream', 235780, 235882).
-predicate(put_byte, 1, 'Write a byte', 235885, 235952).
-predicate(put_byte, 2, 'Write a byte on a stream', 235955, 236046).
-predicate(put_char, 1, 'Write a character', 236049, 236116).
-predicate(put, 2, 'Write a character on a stream', 236119, 236195).
-predicate(put_code, 1, 'Write a character-code', 236198, 236265).
-predicate(put_code, 2, 'Write a character-code on a stream', 236268, 236359).
-predicate(tab, 1, 'Output number of spaces', 236362, 236588).
-predicate(tab, 2, 'Output number of spaces on a stream', 236591, 236713).
-predicate(flush_output, 0, 'Output pending characters on current stream', 236716, 236966).
-predicate(flush_output, 1, 'Output pending characters on specified stream', 236969, 237119).
-predicate(ttyflush, 0, 'Flush output on terminal', 237122, 237226).
-predicate(get_byte, 1, 'Read next byte (ISO)', 237229, 237436).
-predicate(get_byte, 2, 'Read next byte from a stream (ISO)', 237439, 237558).
-predicate(get_code, 1, 'Read next character (ISO)', 237561, 237801).
-predicate(get_code, 2, 'Read next character from a stream (ISO)', 237804, 237933).
-predicate(get_char, 1, 'Read next character as an atom (ISO)', 237936, 238202).
-predicate(get_char, 2, 'Read next character from a stream (ISO)', 238205, 238442).
-predicate(get0, 1, 'Read next character', 238445, 238534).
-predicate(get0, 2, 'Read next character from a stream', 238537, 238651).
-predicate(get, 1, 'Read first non-blank character', 238654, 238840).
-predicate(get, 2, 'Read first non-blank character from a stream', 238843, 238962).
-predicate(peek_byte, 1, 'Read byte without removing', 238965, 239114).
-predicate(peek_byte, 2, 'Read byte without removing', 239117, 239285).
-predicate(peek_code, 1, 'Read character-code without removing', 239288, 239437).
-predicate(peek_code, 2, 'Read character-code without removing', 239440, 239608).
-predicate(peek_char, 1, 'Read character without removing', 239611, 239764).
-predicate(peek_char, 2, 'Read character without removing', 239767, 239939).
-predicate(skip, 1, 'Skip to character in current input', 239942, 240137).
-predicate(skip, 2, 'Skip to character on stream', 240140, 240249).
-predicate(get_single_char, 1, 'Read next character from the terminal', 240252, 240870).
-predicate(at_end_of_stream, 0, 'Test for end of file on input', 240873, 241080).
-predicate(at_end_of_stream, 1, 'Test for end of file on stream', 241083, 241420).
-predicate(copy_stream_data, 3, 'Copy n bytes from stream to stream', 241423, 241649).
-predicate(copy_stream_data, 2, 'Copy all data from stream to stream', 241652, 241872).
-predicate(write_term, 2, 'Write term with options', 242646, 245043).
-predicate(write_term, 3, 'Write term with options to stream', 245046, 245256).
-predicate(write_canonical, 1, 'Write a term with quotes, ignore operators', 245259, 245726).
-predicate(write_canonical, 2, 'Write a term with quotes, ignore operators on a stream', 245729, 245885).
-predicate(write, 1, 'Write term', 245888, 246113).
-predicate(write, 2, 'Write term to stream', 246116, 246224).
-predicate(writeq, 1, 'Write term, insert quotes', 246227, 246556).
-predicate(writeq, 2, 'Write term, insert quotes on stream', 246559, 246688).
-predicate(print, 1, 'Print a term', 246691, 247035).
-predicate(print, 2, 'Print a term on a stream', 247038, 247146).
-predicate(portray, 1, 'Hook (user) Modify behaviour of print/1', 247149, 247570).
-predicate(read, 1, 'Read Prolog term', 247573, 247901).
-predicate(read, 2, 'Read Prolog term from stream', 247904, 248010).
-predicate(read_clause, 1, 'Read clause', 248013, 248417).
-predicate(read_clause, 2, 'Read clause from stream', 248420, 248563).
-predicate(read_term, 2, 'Read term with options', 248566, 253309).
-predicate(read_term, 3, 'Read term with options from stream', 253312, 253484).
-predicate(read_history, 6, 'Read using history substitution', 253487, 254449).
-predicate(prompt, 2, 'Change the prompt used by read/1', 254452, 255031).
-predicate(prompt1, 1, 'Change prompt for 1 line', 255034, 255211).
-predicate(functor, 3, 'Get name and arity of a term or construct a term ', 255321, 255829).
-predicate(arg, 3, 'Access argument of a term', 255832, 256559).
-predicate(setarg, 3, 'Destructive assignment on term', 256562, 257025).
-predicate(=.., 2, '``Univ.'''' Term to list conversion', 257028, 257428).
-predicate(numbervars, 4, 'Enumerate unbound variables of a term using a given base', 257431, 258092).
-predicate(free_variables, 2, 'Find unbound variables in a term', 258095, 258415).
-predicate(copy_term, 2, 'Make a copy of a term', 258418, 258919).
-predicate(atom_codes, 2, 'Convert between atom and list of ASCII values', 260092, 260546).
-predicate(atom_chars, 2, 'Convert between atom and list of characters', 260549, 260816).
-predicate(char_code, 2, 'Convert between atom and ASCII value', 260819, 260960).
-predicate(number_chars, 2, 'Convert between number and one-char atoms', 260963, 261329).
-predicate(number_codes, 2, 'Convert between number and ASCII values', 261332, 261669).
-predicate(name, 2, 'Convert between atom and list of ASCII characters', 261672, 262153).
-predicate(int_to_atom, 3, 'Convert from integer to atom (non-decimal)', 262156, 262776).
-predicate(int_to_atom, 2, 'Convert from integer to atom', 262779, 262896).
-predicate(term_to_atom, 2, 'Convert between term and atom', 262899, 263316).
-predicate(atom_to_term, 3, 'Convert between atom and term', 263319, 263854).
-predicate(atom_concat, 3, 'Append two atoms', 263857, 264375).
-predicate(concat_atom, 2, 'Append a list of atoms', 264378, 264758).
-predicate(concat_atom, 3, 'Append a list of atoms with separator', 264761, 265254).
-predicate(atom_length, 2, 'Determine length of an atom', 265257, 265746).
-predicate(atom_prefix, 2, 'Test for start of atom', 265749, 266048).
-predicate(sub_atom, 5, 'Take a substring from an atom', 266051, 266677).
-predicate(char_type, 2, 'Classify characters', 267299, 270713).
-predicate(code_type, 2, 'Classify a character-code', 270716, 271212).
-predicate(string_to_atom, 2, 'Conversion between string and atom', 272973, 273254).
-predicate(string_to_list, 2, 'Conversion between string and list of ASCII', 273257, 273479).
-predicate(string_length, 2, 'Determine length of a string', 273482, 273806).
-predicate(string_concat, 3, 'atom_concat/3 for strings', 273809, 274588).
-predicate(sub_string, 5, 'Take a substring from a string', 274591, 274958).
-predicate(op, 3, 'Declare an operator', 276204, 278755).
-predicate(current_op, 3, 'Examine current operator declarations', 278758, 279026).
-predicate(char_conversion, 2, 'Provide mapping of input characters', 279227, 279711).
-predicate(current_char_conversion, 2, 'Query input character mapping', 279714, 279947).
-predicate(between, 3, 'Integer range checking/generating', 280891, 281247).
-predicate(succ, 2, 'Logical integer successor relation', 281250, 281423).
-predicate(plus, 3, 'Logical integer addition', 281426, 281632).
-predicate(>, 2, 'Arithmetic larger', 281635, 281779).
-predicate(<, 2, 'Arithmetic smaller', 281782, 281926).
-predicate(=<, 2, 'Arithmetic smaller or equal', 281929, 282084).
-predicate(>=, 2, 'Arithmetic larger or equal', 282087, 282242).
-predicate(=\=, 2, 'Arithmetic not equal', 282245, 282391).
-predicate(=:=, 2, 'Arithmetic equal', 282394, 282540).
-predicate(is, 2, 'Evaluate arithmetic expression', 282543, 283683).
-predicate(-, 1, 'Unary minus', 285054, 285110).
-predicate(+, 2, 'Addition', 285113, 285210).
-predicate(-, 2, 'Subtraction', 285213, 285310).
-predicate(*, 2, 'Multiplication', 285313, 285401).
-predicate(/, 2, 'Division', 285404, 285500).
-predicate(mod, 2, 'Remainder of division', 285503, 286057).
-predicate(rem, 2, 'Remainder of division', 286060, 286248).
-predicate(//, 2, 'Integer division', 286251, 286396).
-predicate(abs, 1, 'Absolute value', 286399, 286493).
-predicate(sign, 1, 'Extract sign of value', 286496, 286616).
-predicate(max, 2, 'Maximum of two numbers', 286619, 286749).
-predicate(min, 2, 'Minimum of two numbers', 286752, 286883).
-predicate('.', 2, 'Consult. Also list constructor', 286886, 287317).
-predicate(random, 1, 'Generate random number', 287320, 287537).
-predicate(round, 1, 'Round to nearest integer', 287540, 287650).
-predicate(integer, 1, 'Type check for integer', 287653, 287742).
-predicate(float, 1, 'Type check for a floating point number', 287745, 288062).
-predicate(float_fractional_part, 1, 'Fractional part of a float', 288065, 288275).
-predicate(float_integer_part, 1, 'Integer part of a float', 288278, 288490).
-predicate(truncate, 1, 'Truncate float to integer', 288493, 288611).
-predicate(floor, 1, 'Largest integer below argument', 288614, 288766).
-predicate(ceiling, 1, 'Smallest integer larger than arg', 288769, 288927).
-predicate(ceil, 1, 'Smallest integer larger than arg', 288930, 289012).
-predicate(>>, 2, 'Bitwise right shift', 289015, 289158).
-predicate(<<, 2, 'Bitwise left shift', 289161, 289303).
-predicate(\/, 2, 'Bitwise or', 289306, 289431).
-predicate(/\, 2, 'Bitwise and', 289434, 289560).
-predicate(xor, 2, 'Bitwise exclusive or', 289563, 289705).
-predicate(\, 1, 'Bitwise negation', 289708, 289757).
-predicate(sqrt, 1, 'Square root', 289760, 289846).
-predicate(sin, 1, 'Sine', 289849, 289965).
-predicate(cos, 1, 'Cosine', 289968, 290086).
-predicate(tan, 1, 'Tangent', 290089, 290207).
-predicate(asin, 1, 'Inverse (arc) sine', 290210, 290343).
-predicate(acos, 1, 'Inverse (arc) cosine', 290346, 290481).
-predicate(atan, 1, 'Inverse (arc) tangent', 290484, 290619).
-predicate(atan, 2, 'Rectangular to polar conversion', 290622, 290933).
-predicate(log, 1, 'Natural logarithm', 290936, 291025).
-predicate(log10, 1, '10 base logarithm', 291028, 291123).
-predicate(exp, 1, 'Exponent (base $e$)', 291126, 291209).
-predicate(**, 2, 'Power function', 291212, 291322).
-predicate(^, 2, 'Existential quantification (bagof/3, setof/3)', 291325, 291410).
-predicate(pi, 0, 'Mathematical constant', 291413, 291478).
-predicate(e, 0, 'Mathematical constant', 291481, 291542).
-predicate(cputime, 0, 'Get CPU time', 291545, 291725).
-predicate(arithmetic_function, 1, 'Register an evaluable function', 292471, 293377).
-predicate(current_arithmetic_function, 1, 'Examine evaluable functions', 293380, 293598).
-predicate(is_list, 1, 'Type check for a list', 293667, 294049).
-predicate(append, 3, 'Concatenate lists', 294052, 294343).
-predicate(member, 2, 'Element is member of a list', 294346, 294556).
-predicate(memberchk, 2, 'Deterministic member/2', 294559, 294683).
-predicate(delete, 3, 'Delete all matching members from a list', 294686, 294904).
-predicate(select, 3, 'Select element of a list', 294907, 295250).
-predicate(nth0, 3, 'N-th element of a list (0-based)', 295253, 295453).
-predicate(nth1, 3, 'N-th element of a list (1-based)', 295456, 295656).
-predicate(last, 2, 'Last element of a list', 295659, 295946).
-predicate(reverse, 2, 'Inverse the order of the elements in a list', 295949, 296142).
-predicate(flatten, 2, 'Transform nested list into flat list', 296145, 296495).
-predicate(length, 2, 'Length of a list', 296498, 296698).
-predicate(merge, 3, 'Merge two sorted lists', 296701, 297073).
-predicate(is_set, 1, 'Type check for a set', 297139, 297248).
-predicate(list_to_set, 2, 'Remove duplicates', 297251, 297579).
-predicate(intersection, 3, 'Set intersection', 297582, 297877).
-predicate(subtract, 3, 'Delete elements that do not meet condition', 297880, 298079).
-predicate(union, 3, 'Union of two sets', 298082, 298336).
-predicate(subset, 2, 'Check subset relation for unordered sets', 298339, 298487).
-predicate(merge_set, 3, 'Merge two sorted sets', 298490, 298830).
-predicate(sort, 2, 'Sort elements in a list', 298887, 299378).
-predicate(msort, 2, 'Sort, do not remove duplicates', 299381, 299501).
-predicate(keysort, 2, 'Sort, using a key', 299504, 300286).
-predicate(predsort, 3, 'Sort, using a predicate to determine the order', 300289, 300693).
-predicate(findall, 3, 'Find all solutions to a goal', 300796, 301279).
-predicate(bagof, 3, 'Find all solutions to a goal', 301282, 302378).
-predicate(setof, 3, 'Find all unique solutions to a goal', 302381, 302575).
-predicate(checklist, 2, 'Invoke goal on all members of a list', 303109, 303358).
-predicate(maplist, 3, 'Transform all elements of a list', 303361, 303649).
-predicate(sublist, 3, 'Determine elements that meet condition', 303652, 303853).
-predicate(forall, 2, 'Prove goal for all solutions of another goal', 303891, 304297).
-predicate(writeln, 1, 'Write term, followed by a newline', 304887, 304965).
-predicate(writef, 1, 'Formatted write', 304968, 305044).
-predicate(writef, 2, 'Formatted write on stream', 305047, 308224).
-predicate(swritef, 3, 'Formatted write on a string', 308227, 308546).
-predicate(swritef, 2, 'Formatted write on a string', 308549, 308670).
-predicate(format, 1, 'Formatted output', 308714, 308815).
-predicate(format, 2, 'Formatted output with arguments', 308818, 313595).
-predicate(format, 3, 'Formatted output on a stream', 313598, 313774).
-predicate(sformat, 3, 'Format on a string', 313777, 314100).
-predicate(sformat, 2, 'Format on a string', 314103, 314226).
-predicate(format_predicate, 2, 'Program format/[1,2]', 314304, 315419).
-predicate(current_format_predicate, 2, 'Enumerate user-defined format codes', 315422, 315898).
-predicate(tty_get_capability, 3, 'Get terminal parameter', 316247, 316877).
-predicate(tty_goto, 2, 'Goto position on screen', 316880, 317119).
-predicate(tty_put, 2, 'Write control string to terminal', 317122, 317530).
-predicate(set_tty, 2, 'Set `tty'' stream', 317533, 317744).
-predicate(tty_size, 2, 'Get row/column size of the terminal', 317747, 318262).
-predicate(shell, 2, 'Execute OS command', 318362, 319356).
-predicate(shell, 1, 'Execute OS command', 319359, 319444).
-predicate(shell, 0, 'Execute interactive subshell', 319447, 319634).
-predicate(win_exec, 2, 'Win32: spawn Windows task', 319637, 319966).
-predicate(win_shell, 2, 'Win32: open document through Shell', 319969, 320504).
-predicate(win_registry_get_value, 3, 'Win32: get registry value', 320507, 321585).
-predicate(getenv, 2, 'Get shell environment variable', 321588, 321864).
-predicate(setenv, 2, 'Set shell environment variable', 321867, 322200).
-predicate(unsetenv, 1, 'Delete shell environment variable', 322203, 322303).
-predicate(unix, 1, 'OS interaction', 322306, 324119).
-predicate(get_time, 1, 'Get current time', 324565, 324830).
-predicate(convert_time, 8, 'Break time stamp into fields', 324833, 325689).
-predicate(convert_time, 2, 'Convert time stamp to string', 325692, 326019).
-predicate(win_insert_menu, 2, 'plwin.exe: add menu', 326447, 327097).
-predicate(win_insert_menu_item, 4, 'plwin.exe: add item to menu', 327100, 327532).
-predicate(access_file, 2, 'Check access permissions of a file', 327617, 328223).
-predicate(exists_file, 1, 'Check existence of file', 328226, 328404).
-predicate(file_directory_name, 2, 'Get directory part of path', 328407, 328812).
-predicate(file_base_name, 2, 'Get file part of path', 328815, 329059).
-predicate(same_file, 2, 'Succeeds if arguments refer to same file', 329062, 329410).
-predicate(exists_directory, 1, 'Check existence of directory', 329413, 329649).
-predicate(delete_file, 1, 'Remove a file from the file system', 329652, 329753).
-predicate(rename_file, 2, 'Change name of file', 329756, 329942).
-predicate(size_file, 2, 'Get size of a file in characters', 329945, 330081).
-predicate(time_file, 2, 'Get last modification time of file', 330084, 330377).
-predicate(absolute_file_name, 2, 'Get absolute path name', 330380, 330980).
-predicate(absolute_file_name, 3, 'Get absolute path name with options', 330983, 332760).
-predicate(is_absolute_file_name, 1, 'True if arg defines an absolute path', 332763, 333262).
-predicate(file_name_extension, 3, 'Add, remove or test file extensions', 333265, 333888).
-predicate(expand_file_name, 2, 'Wildcard expansion of file names', 333891, 334950).
-predicate(prolog_to_os_filename, 2, 'Convert between Prolog and OS filenames', 334953, 335463).
-predicate(read_link, 3, 'Read a symbolic link', 335466, 335947).
-predicate(tmp_file, 2, 'Create a temporary filename', 335950, 336276).
-predicate(make_directory, 1, 'Create a folder on the file system', 336279, 336583).
-predicate(delete_directory, 1, 'Remove a folder from the file system', 336586, 336851).
-predicate(working_directory, 2, 'Query/change CWD', 336854, 337223).
-predicate(chdir, 1, 'Compatibility: change working directory', 337226, 337334).
-predicate(thread_create, 3, 'Create a new Prolog task', 339830, 342237).
-predicate(thread_self, 1, 'Get identifier of current thread', 342240, 342415).
-predicate(current_thread, 2, 'Examine Prolog threads', 342418, 343555).
-predicate(thread_join, 2, 'Wait for Prolog task-completion', 343558, 344238).
-predicate(thread_exit, 1, 'Terminate Prolog task with value', 344241, 344442).
-predicate(thread_at_exit, 1, 'Register goal to be called at exit', 344445, 344857).
-predicate(thread_send_message, 2, 'Send message to another thread', 345410, 345850).
-predicate(thread_get_message, 1, 'Wait for message', 345853, 346610).
-predicate(thread_peek_message, 1, 'Test for message in queue', 346613, 347011).
-predicate(thread_signal, 2, 'Execute goal in another thread', 347014, 347910).
-predicate(mutex_create, 1, 'Create a thread-synchronisation device', 349288, 349593).
-predicate(mutex_destroy, 1, 'Destroy a mutex', 349596, 349812).
-predicate(mutex_lock, 1, 'Become owner of a mutex', 349815, 350795).
-predicate(mutex_trylock, 1, 'Become owner of a mutex (non-blocking)', 350798, 350976).
-predicate(mutex_unlock, 1, 'Release ownership of mutex', 350979, 351217).
-predicate(mutex_unlock_all, 0, 'Release ownership of all mutexes', 351220, 351458).
-predicate(current_mutex, 3, 'Examine existing mutexes', 351461, 351890).
-predicate(with_mutex, 2, 'Run goal while holding mutex', 351893, 352526).
-predicate(threads, 0, 'List running threads', 352813, 353036).
-predicate(interactor, 0, 'Start new thread with console and toplevel', 353039, 353184).
-predicate(attach_console, 0, 'Attach I/O console to thread', 353187, 353894).
-predicate(break, 0, 'Start interactive toplevel', 354299, 354823).
-predicate(abort, 0, 'Abort execution, return to top level', 354826, 355790).
-predicate(halt, 0, 'Exit from Prolog', 355793, 356135).
-predicate(halt, 1, 'Exit from Prolog with status', 356138, 356282).
-predicate(prolog, 0, 'Run interactive toplevel', 356285, 356805).
-predicate(expand_query, 4, 'Expanded entered query', 356808, 357520).
-predicate(expand_answer, 2, 'Expand answer of query', 357523, 357995).
-predicate(protocol, 1, 'Make a log of the user interaction', 358321, 358524).
-predicate(protocola, 1, 'Append log of the user interaction to file', 358527, 358669).
-predicate(noprotocol, 0, 'Disable logging of user interaction', 358672, 358801).
-predicate(protocolling, 1, 'On what file is user interaction logged', 358804, 359003).
-predicate(trace, 0, 'Start the tracer', 359386, 359575).
-predicate(tracing, 0, 'Query status of the tracer', 359578, 359715).
-predicate(notrace, 0, 'Stop tracing', 359718, 359809).
-predicate(guitracer, 0, 'Install hooks for the graphical debugger', 359812, 360111).
-predicate(noguitracer, 0, 'Disable the graphical debugger', 360114, 360188).
-predicate(trace, 1, 'Set trace-point on predicate', 360191, 360265).
-predicate(trace, 2, 'Set/Clear trace-point on ports', 360268, 361354).
-predicate(notrace, 1, 'Do not debug argument goal', 361357, 361677).
-predicate(debug, 0, 'Test for debugging mode', 361680, 361970).
-predicate(nodebug, 0, 'Disable debugging', 361973, 362081).
-predicate(debugging, 0, 'Show debugger status', 362084, 362217).
-predicate(spy, 1, 'Force tracer on specified predicate', 362220, 362374).
-predicate(nospy, 1, 'Remove spy point', 362377, 362519).
-predicate(nospyall, 0, 'Remove all spy points', 362522, 362598).
-predicate(leash, 1, 'Change ports visited by the tracer', 362601, 363210).
-predicate(visible, 1, 'Ports that are visible in the tracer', 363213, 363381).
-predicate(unknown, 2, 'Trap undefined predicates', 363384, 363673).
-predicate(style_check, 1, 'Change level of warnings', 363676, 365775).
-predicate(statistics, 2, 'Obtain collected statistics', 365875, 370498).
-predicate(statistics, 0, 'Show execution statistics', 370501, 370603).
-predicate(time, 1, 'Determine time needed to execute goal', 370606, 371051).
-predicate(profile, 3, 'Obtain execution statistics', 372199, 372818).
-predicate(show_profile, 1, 'Show results of the profiler', 372821, 373105).
-predicate(profiler, 2, 'Obtain/change status of the profiler', 373108, 374102).
-predicate(reset_profiler, 0, 'Clear statistics obtained by the profiler', 374105, 374218).
-predicate(profile_count, 3, 'Obtain profile results on a predicate', 374221, 374902).
-predicate(garbage_collect, 0, 'Invoke the garbage collector', 375168, 375611).
-predicate(garbage_collect_atoms, 0, 'Invoke the atom garbage collector', 375614, 375787).
-predicate(limit_stack, 2, 'Limit stack expansion', 375790, 376497).
-predicate(trim_stacks, 0, 'Release unused memory resources', 376500, 377216).
-predicate(stack_parameter, 4, 'Some systems: Query/Set runtime stack parameter', 377219, 377972).
-predicate(open_dde_conversation, 3, 'Win32: Open DDE channel', 379101, 379503).
-predicate(close_dde_conversation, 1, 'Win32: Close DDE channel', 379506, 379848).
-predicate(dde_request, 3, 'Win32: Make a DDE request', 379851, 380539).
-predicate(dde_execute, 2, 'Win32: Execute command on DDE server', 380542, 380800).
-predicate(dde_poke, 3, 'Win32: POKE operation on DDE server', 380803, 381022).
-predicate(dde_register_service, 2, 'Win32: Become a DDE server', 381437, 383095).
-predicate(dde_unregister_service, 1, 'Win32: Terminate a DDE service', 383098, 383332).
-predicate(dde_current_service, 2, 'Win32: Examine DDE services provided', 383335, 383515).
-predicate(dde_current_connection, 2, 'Win32: Examine open DDE connections', 383518, 383676).
-predicate(dwim_match, 2, 'Atoms match in ``Do What I Mean'''' sense', 383735, 384387).
-predicate(dwim_match, 3, 'Atoms match in ``Do What I Mean'''' sense', 384390, 384831).
-predicate(wildcard_match, 2, 'Csh(1) style wildcard match', 384834, 385550).
-predicate(gensym, 2, 'Generate unique atoms from a base', 385553, 385909).
-predicate(sleep, 1, 'Suspend execution for specified time', 385912, 386340).
-predicate(use_module, 1, 'Import a module', 391608, 392176).
-predicate(use_module, 2, 'Import predicates from a module', 392179, 392726).
-predicate(import, 1, 'Import a predicate from a module', 392729, 393812).
-predicate(module, 2, 'Declare a module', 403868, 404271).
-predicate((module_transparent), 1, 'Indicate module based meta predicate', 404274, 404598).
-predicate(meta_predicate, 1, 'Quintus compatibility', 404601, 404822).
-predicate(current_module, 1, 'Examine existing modules', 404825, 404938).
-predicate(current_module, 2, 'Examine existing modules', 404941, 405197).
-predicate(context_module, 1, 'Get context module of current goal', 405200, 405399).
-predicate(export, 1, 'Export a predicate from a module', 405402, 405790).
-predicate(export_list, 2, 'List of public predicates of a module', 405793, 406128).
-predicate(default_module, 2, 'Get the default modules of a module', 406131, 406540).
-predicate(module, 1, 'Query/set current type-in module', 406543, 406938).
-predicate(open_shared_object, 2, 'UNIX: Open shared library (.so file)', 414718, 415336).
-predicate(open_shared_object, 3, 'UNIX: Open shared library (.so file)', 415339, 416019).
-predicate(close_shared_object, 1, 'UNIX:  Close shared library (.so file)', 416022, 416170).
-predicate(call_shared_object_function, 2, 'UNIX:  Call C-function in shared (.so) file', 416173, 416568).
-predicate(load_foreign_library, 2, 'library(shlib) Load shared library (.so file)', 416903, 418002).
-predicate(load_foreign_library, 1, 'library(shlib) Load shared library (.so file)', 418005, 418456).
-predicate(unload_foreign_library, 1, 'library(shlib) Detach shared library (.so file)', 418459, 418894).
-predicate(current_foreign_library, 2, 'library(shlib) Examine loaded shared libraries (.so files)', 418897, 419842).
-predicate(qsave_program, 2, 'Create runtime application', 537490, 541295).
-predicate(qsave_program, 1, 'Create runtime application', 541298, 541402).
-predicate(autoload, 0, 'Autoload all predicates now', 541405, 543069).
-predicate((volatile), 1, 'Predicates that are not saved', 543072, 543425).
-predicate(resource, 3, 'Declare a program resource', 548419, 550201).
-predicate(open_resource, 3, 'Open a program resource as a stream', 550204, 551347).
-predicate(check, 0, 'Program completeness and consistency', 558552, 558930).
-predicate(list_undefined, 0, 'List undefined predicates', 558933, 559692).
-predicate(list_autoload, 0, 'List predicates that require autoload', 559695, 559937).
-predicate(list_redefined, 0, 'List locally redefined predicates', 559940, 560185).
-predicate(read_line_to_codes, 2, 'Read line from a stream', 560409, 560815).
-predicate(read_line_to_codes, 3, 'Read line from a stream', 560818, 561748).
-predicate(read_stream_to_codes, 2, 'Read contents of stream', 561751, 561939).
-predicate(read_stream_to_codes, 3, 'Read contents of stream', 561942, 562126).
-predicate(read_file_to_codes, 3, 'Read contents of file', 562129, 562611).
-predicate(read_file_to_terms, 3, 'Read contents of file to Prolog terms', 562614, 563126).
-predicate(www_open_url, 1, 'Open a web-page in a browser', 563371, 564235).
-predicate(registry_get_key, 2, 'Get principal value of key', 565208, 565413).
-predicate(registry_get_key, 3, 'Get associated value of key', 565416, 565573).
-predicate(registry_set_key, 2, 'Set principal value of key', 565576, 565785).
-predicate(registry_set_key, 3, 'Set associated value of key', 565788, 566008).
-predicate(registry_delete_key, 1, 'Remove a key', 566011, 566120).
-predicate(shell_register_file_type, 4, 'Register a file-type', 566123, 566659).
-predicate(shell_register_dde, 6, 'Register DDE action', 566662, 567373).
-predicate(shell_register_prolog, 1, 'Register Prolog', 567376, 568186).
-predicate(parse_url, 2, 'Analyse or construct a URL', 569078, 571555).
-predicate(parse_url, 3, 'Analyse or construct a relative URL', 571558, 571861).
-predicate(global_url, 3, 'Make relative URL global', 571864, 572040).
-predicate(http_location, 2, 'Analyse or construct location', 572043, 572498).
-predicate(www_form_encode, 2, 'Encode or decode form-data', 572501, 572993).
-predicate(prolog_current_frame, 1, 'Reference to goal''s environment stack', 573588, 573997).
-predicate(prolog_frame_attribute, 3, 'Obtain information on a goal environment', 574000, 576943).
-predicate(deterministic, 0, 'Test deterministicy of current goal', 576946, 577077).
-predicate(prolog_trace_interception, 4, 'library(user) Intercept the Prolog tracer', 577159, 580734).
-predicate(prolog_skip_level, 2, 'Indicate deepest recursion to trace', 580737, 581397).
-predicate(exception, 3, 'Hook (user) Handle runtime exceptions', 582015, 583490).
-predicate(prolog_list_goal, 1, 'Hook (user) Intercept tracer ''L'' command', 583976, 584395).
-predicate(debug_control_hook, 1, 'Hook (prolog) Extend spy/1, etc.', 584398, 585641).
-predicate(help_hook, 1, 'Hook (prolog) User-hook in the help-system', 585644, 586300).
-predicate(prolog_load_file, 2, 'Hook (user) Program load_files/2', 586592, 587039).
-predicate(rl_read_init_file, 1, 'Read readline(3) init file', 587346, 587600).
-predicate(rl_add_history, 1, 'Add line to readline(3) history', 587603, 587762).
-predicate(eval_license, 0, 'Evaluate licenses of loaded modules', 605885, 606264).
-predicate(license, 2, 'Define license for named module', 606267, 608625).
-predicate(license, 1, 'Define license for current file', 608628, 608801).
+predicate(current_prolog_flag, 2, 'Get system configuration parameters', 62517, 81392).
+predicate(set_prolog_flag, 2, 'Define a system feature', 81395, 82020).
+predicate(make_library_index, 1, 'Create autoload file INDEX.pl', 86841, 87137).
+predicate(make_library_index, 2, 'Create selective autoload file INDEX.pl', 87140, 88188).
+predicate(guitracer, 0, 'Install hooks for the graphical debugger', 125589, 125975).
+predicate(noguitracer, 0, 'Disable the graphical debugger', 125978, 126117).
+predicate(prolog_navigator, 1, 'Graphical overview of project', 126419, 126744).
+predicate(load_files, 2, 'Load source files with options', 134954, 138237).
+predicate(consult, 1, 'Read (compile) a Prolog source file', 138240, 139185).
+predicate(ensure_loaded, 1, 'Consult a file if that has not yet been done', 139188, 139840).
+predicate(include, 1, 'Include a file with declarations', 139843, 140160).
+predicate(require, 1, 'This file requires these predicates', 140163, 141014).
+predicate(make, 0, 'Reconsult all changed source files', 141017, 141520).
+predicate(library_directory, 1, 'Hook (user) Directories holding Prolog libraries', 141523, 141872).
+predicate(file_search_path, 2, 'Define path-aliases for locating files', 141875, 143248).
+predicate(expand_file_search_path, 2, 'Wildcard expansion of file paths', 143251, 143506).
+predicate(prolog_file_type, 2, 'Define meaning of file extension', 143509, 144570).
+predicate(source_file, 1, 'Examine currently loaded source files', 144573, 144769).
+predicate(source_file, 2, 'Obtain source file of predicate', 144772, 145194).
+predicate(prolog_load_context, 2, 'Context information for directives', 145197, 146149).
+predicate(source_location, 2, 'Location of last read term', 146152, 146504).
+predicate(term_expansion, 2, 'Hook (user) Convert term before compilation', 146507, 147928).
+predicate(expand_term, 2, 'Compiler: expand read term into clause(s)', 147931, 148263).
+predicate(goal_expansion, 2, 'Hook for macro-expanding goals', 148266, 149143).
+predicate(expand_goal, 2, 'Compiler: expand goal in clause-body', 149146, 149404).
+predicate(at_initialization, 1, 'Register goal to run at start-up', 149407, 149849).
+predicate(at_halt, 1, 'Register goal to run at halt/1', 149852, 150108).
+predicate((initialization), 1, 'Initialization directive', 150111, 150518).
+predicate(compiling, 0, 'Is this a compilation run?', 150521, 150858).
+predicate(preprocessor, 2, 'Install a preprocessor before the compiler', 150861, 151398).
+predicate(qcompile, 1, 'Compile source to Quick Load File', 152393, 153375).
+predicate(edit, 1, 'Edit a file', 155201, 155610).
+predicate(locate, 3, 'Locate targets for edit/1', 155613, 156574).
+predicate(locate, 2, 'Locate targets for edit/1', 156577, 156770).
+predicate(edit_source, 1, 'Call editor for edit/1', 156773, 157814).
+predicate(edit_command, 2, 'Specify editor activation', 157817, 158719).
+predicate(load, 0, 'Load edit/1 extensions', 158722, 159257).
+predicate(listing, 1, 'List predicate', 159260, 159581).
+predicate(listing, 0, 'List program in current module', 159584, 159663).
+predicate(portray_clause, 1, 'Pretty print a clause', 159666, 159901).
+predicate(var, 1, 'Type check for unbound variable', 159973, 160063).
+predicate(nonvar, 1, 'Type check for bound term', 160066, 160169).
+predicate(integer, 1, 'Type check for integer', 160172, 160268).
+predicate(float, 1, 'Type check for a floating point number', 160271, 160374).
+predicate(number, 1, 'Type check for integer or float', 160377, 160497).
+predicate(atom, 1, 'Type check for an atom', 160500, 160584).
+predicate(string, 1, 'Type check for string', 160587, 160678).
+predicate(atomic, 1, 'Type check for primitive', 160681, 160820).
+predicate(compound, 1, 'Test for compound term', 160823, 160965).
+predicate(callable, 1, 'Test for atom or compound term', 160968, 161160).
+predicate(ground, 1, 'Verify term holds no unbound variables', 161163, 161257).
+predicate(==, 2, 'Identical', 162321, 162492).
+predicate(\==, 2, 'Not identical', 162495, 162573).
+predicate(=, 2, 'Unification', 162576, 162703).
+predicate(unify_with_occurs_check, 2, 'Logically sound unification', 162706, 163437).
+predicate(\=, 2, 'Not unifyable', 163440, 163516).
+predicate(=@=, 2, 'Structural identical', 163519, 164082).
+predicate(\=@=, 2, 'Not structural identical', 164085, 164167).
+predicate(@<, 2, 'Standard order smaller', 164170, 164301).
+predicate(@=<, 2, 'Standard order smaller or equal', 164304, 164472).
+predicate(@>, 2, 'Standard order larger', 164475, 164605).
+predicate(@>=, 2, 'Standard order larger or equal', 164608, 164776).
+predicate(compare, 3, 'Compare, using a predicate to determine the order', 164779, 165031).
+predicate(fail, 0, 'Always false', 165651, 165770).
+predicate(true, 0, 'Succeed', 165773, 165892).
+predicate(repeat, 0, 'Succeed, leaving infinite backtrack points', 165895, 165979).
+predicate(!, 0, 'Cut (discard choicepoints)', 165982, 166625).
+predicate((','), 2, 'Conjunction of goals', 166628, 166895).
+predicate((;), 2, 'Disjunction of goals. Same as |/2', 166898, 167035).
+predicate((|), 2, 'Disjunction of goals. Same as ;/2', 167038, 167171).
+predicate((->), 2, 'If-then-else', 167174, 168013).
+predicate((*->), 2, 'Soft-cut', 168016, 168675).
+predicate(\+, 1, 'Negation by failure. Same as not/1', 168678, 168884).
+predicate(call, 1, 'Call a goal', 169375, 169598).
+predicate(call, 1, 'Call a goal', 169601, 170157).
+predicate(apply, 2, 'Call goal with additional arguments', 170160, 170739).
+predicate(not, 1, 'Negation by failure (argument not provable). Same as \+/1', 170742, 170891).
+predicate(once, 1, 'Call a goal deterministically', 170894, 171211).
+predicate(ignore, 1, 'Call the argument, but always succeed', 171214, 171435).
+predicate(call_with_depth_limit, 3, 'Prove goal with bounded depth', 171438, 172875).
+predicate(call_cleanup, 3, 'Guard a goal with a cleaup-handler', 172878, 175122).
+predicate(call_cleanup, 2, 'Guard a goal with a cleaup-handler', 175125, 175536).
+predicate(catch, 3, 'Call goal, watching for exceptions', 176006, 176796).
+predicate(throw, 1, 'Raise an exception (see catch/3)', 176799, 178059).
+predicate(print_message, 2, 'Print message from (exception) term', 181873, 182989).
+predicate(print_message_lines, 3, 'Print message to stream', 182992, 184033).
+predicate(message_hook, 3, 'Intercept print_message/2', 184036, 184576).
+predicate(message_to_string, 2, 'Translate message-term to string', 184579, 184867).
+predicate(on_signal, 3, 'Handle a software signal', 185691, 188387).
+predicate(current_signal, 3, 'Current software signal mapping', 188390, 188716).
+predicate(block, 3, 'Start a block (`catch''/`throw'')', 190600, 191031).
+predicate(exit, 2, 'Exit from named block. See block/3', 191034, 191314).
+predicate(fail, 1, 'Immediately fail named block. See block/3', 191317, 191516).
+predicate(!, 1, 'Cut block. See block/3', 191519, 191669).
+predicate(phrase, 2, 'Activate grammar-rule set', 193202, 193335).
+predicate(phrase, 3, 'Activate grammar-rule set (returning rest)', 193338, 193787).
+predicate(abolish, 1, 'Remove predicate definition from the database', 195328, 196320).
+predicate(abolish, 2, 'Remove predicate definition from the database', 196323, 196523).
+predicate(redefine_system_predicate, 1, 'Abolish system definition', 196526, 197140).
+predicate(retract, 1, 'Remove clause from the database', 197143, 197371).
+predicate(retractall, 1, 'Remove unifying clauses from the database', 197374, 197542).
+predicate(assert, 1, 'Add a clause to the database', 197545, 197722).
+predicate(asserta, 1, 'Add a clause to the database (first)', 197725, 197876).
+predicate(assertz, 1, 'Add a clause to the database (last)', 197879, 197950).
+predicate(assert, 2, 'Add a clause to the database, give reference', 197953, 198216).
+predicate(asserta, 2, 'Add a clause to the database (first)', 198219, 198404).
+predicate(assertz, 2, 'Add a clause to the database (last)', 198407, 198512).
+predicate(recorda, 3, 'Record term in the database (first)', 198515, 198835).
+predicate(recorda, 2, 'Record term in the database (first)', 198838, 198940).
+predicate(recordz, 3, 'Record term in the database (last)', 198943, 199147).
+predicate(recordz, 2, 'Record term in the database (last)', 199150, 199252).
+predicate(recorded, 3, 'Obtain term from the database', 199255, 199546).
+predicate(recorded, 2, 'Obtain term from the database', 199549, 199658).
+predicate(erase, 1, 'Erase a database record or clause', 199661, 200136).
+predicate(flag, 3, 'Simple global variable system', 200139, 200924).
+predicate(hash_term, 2, 'Hash-value of ground term', 202473, 203149).
+predicate((dynamic), 1, 'Indicate predicate definition may change', 203822, 204284).
+predicate((multifile), 1, 'Indicate distributed definition of predicate', 204287, 204566).
+predicate((discontiguous), 1, 'Indicate distributed definition of a predicate', 204569, 204812).
+predicate(index, 1, 'Change clause indexing', 204815, 206692).
+predicate(current_atom, 1, 'Examine existing atoms', 206771, 207001).
+predicate(current_functor, 2, 'Examine existing name/arity pairs', 207004, 207218).
+predicate(current_flag, 1, 'Examine existing flags', 207221, 207388).
+predicate(current_key, 1, 'Examine existing database keys', 207391, 207544).
+predicate(current_predicate, 2, 'Examine existing predicates', 207547, 208026).
+predicate(current_predicate, 1, 'Examine existing predicates (ISO)', 208029, 208365).
+predicate(predicate_property, 2, 'Query predicate attributes', 208368, 211692).
+predicate(dwim_predicate, 2, 'Find predicate in ``Do What I Mean'''' sense', 211695, 212359).
+predicate(clause, 2, 'Get clauses of a predicate', 212362, 212837).
+predicate(clause, 3, 'Get clauses of a predicate', 212840, 213237).
+predicate(nth_clause, 3, 'N-th clause of a predicate', 213240, 214246).
+predicate(clause_property, 2, 'Get properties of a clause', 214249, 215237).
+predicate(open, 4, 'Open a file (creating a stream)', 216519, 220491).
+predicate(open, 3, 'Open a file (creating a stream)', 220494, 220633).
+predicate(open_null_stream, 1, 'Open a stream to discard output', 220636, 221008).
+predicate(close, 1, 'Close stream', 221011, 221273).
+predicate(close, 2, 'Close stream (forced)', 221276, 221569).
+predicate(stream_property, 2, 'Get stream properties', 221572, 224256).
+predicate(current_stream, 3, 'Examine open streams', 224259, 224792).
+predicate(set_stream_position, 2, 'Seek stream to position', 224795, 225093).
+predicate(seek, 4, 'Modify the current position in a stream', 225096, 225973).
+predicate(set_stream, 2, 'Set stream attribute', 225976, 227728).
+predicate(see, 1, 'Change the current input stream', 230723, 231027).
+predicate(tell, 1, 'Change current output stream', 231030, 231337).
+predicate(append, 1, 'Append to a file', 231340, 231573).
+predicate(seeing, 1, 'Query the current input stream', 231576, 231715).
+predicate(telling, 1, 'Query current output stream', 231718, 231860).
+predicate(seen, 0, 'Close the current input stream', 231863, 231985).
+predicate(told, 0, 'Close current output', 231988, 232113).
+predicate(set_input, 1, 'Set current input stream from a stream', 232366, 232571).
+predicate(set_output, 1, 'Set current output stream from a stream', 232574, 232696).
+predicate(current_input, 1, 'Get current input stream', 232699, 232879).
+predicate(current_output, 1, 'Get the current output stream', 232882, 232987).
+predicate(wait_for_input, 3, 'Wait for input with optional timeout', 233054, 234448).
+predicate(character_count, 2, 'Get character index on a stream', 234451, 234785).
+predicate(line_count, 2, 'Line number on stream', 234788, 234968).
+predicate(line_position, 2, 'Character position in line on stream', 234971, 235336).
+predicate(fileerrors, 2, 'Do/Don''t warn on file errors', 235339, 235876).
+predicate(nl, 0, 'Generate a newline', 236034, 236157).
+predicate(nl, 1, 'Generate a newline on a stream', 236160, 236237).
+predicate(put, 1, 'Write a character', 236240, 236471).
+predicate(put, 2, 'Write a character on a stream', 236474, 236576).
+predicate(put_byte, 1, 'Write a byte', 236579, 236646).
+predicate(put_byte, 2, 'Write a byte on a stream', 236649, 236740).
+predicate(put_char, 1, 'Write a character', 236743, 236810).
+predicate(put, 2, 'Write a character on a stream', 236813, 236889).
+predicate(put_code, 1, 'Write a character-code', 236892, 236959).
+predicate(put_code, 2, 'Write a character-code on a stream', 236962, 237053).
+predicate(tab, 1, 'Output number of spaces', 237056, 237282).
+predicate(tab, 2, 'Output number of spaces on a stream', 237285, 237407).
+predicate(flush_output, 0, 'Output pending characters on current stream', 237410, 237660).
+predicate(flush_output, 1, 'Output pending characters on specified stream', 237663, 237813).
+predicate(ttyflush, 0, 'Flush output on terminal', 237816, 237920).
+predicate(get_byte, 1, 'Read next byte (ISO)', 237923, 238130).
+predicate(get_byte, 2, 'Read next byte from a stream (ISO)', 238133, 238252).
+predicate(get_code, 1, 'Read next character (ISO)', 238255, 238495).
+predicate(get_code, 2, 'Read next character from a stream (ISO)', 238498, 238627).
+predicate(get_char, 1, 'Read next character as an atom (ISO)', 238630, 238896).
+predicate(get_char, 2, 'Read next character from a stream (ISO)', 238899, 239136).
+predicate(get0, 1, 'Read next character', 239139, 239228).
+predicate(get0, 2, 'Read next character from a stream', 239231, 239345).
+predicate(get, 1, 'Read first non-blank character', 239348, 239534).
+predicate(get, 2, 'Read first non-blank character from a stream', 239537, 239656).
+predicate(peek_byte, 1, 'Read byte without removing', 239659, 239808).
+predicate(peek_byte, 2, 'Read byte without removing', 239811, 239979).
+predicate(peek_code, 1, 'Read character-code without removing', 239982, 240131).
+predicate(peek_code, 2, 'Read character-code without removing', 240134, 240302).
+predicate(peek_char, 1, 'Read character without removing', 240305, 240458).
+predicate(peek_char, 2, 'Read character without removing', 240461, 240633).
+predicate(skip, 1, 'Skip to character in current input', 240636, 240831).
+predicate(skip, 2, 'Skip to character on stream', 240834, 240943).
+predicate(get_single_char, 1, 'Read next character from the terminal', 240946, 241564).
+predicate(at_end_of_stream, 0, 'Test for end of file on input', 241567, 241774).
+predicate(at_end_of_stream, 1, 'Test for end of file on stream', 241777, 242114).
+predicate(copy_stream_data, 3, 'Copy n bytes from stream to stream', 242117, 242343).
+predicate(copy_stream_data, 2, 'Copy all data from stream to stream', 242346, 242566).
+predicate(write_term, 2, 'Write term with options', 243340, 245737).
+predicate(write_term, 3, 'Write term with options to stream', 245740, 245950).
+predicate(write_canonical, 1, 'Write a term with quotes, ignore operators', 245953, 246420).
+predicate(write_canonical, 2, 'Write a term with quotes, ignore operators on a stream', 246423, 246579).
+predicate(write, 1, 'Write term', 246582, 246807).
+predicate(write, 2, 'Write term to stream', 246810, 246918).
+predicate(writeq, 1, 'Write term, insert quotes', 246921, 247250).
+predicate(writeq, 2, 'Write term, insert quotes on stream', 247253, 247382).
+predicate(print, 1, 'Print a term', 247385, 247729).
+predicate(print, 2, 'Print a term on a stream', 247732, 247840).
+predicate(portray, 1, 'Hook (user) Modify behaviour of print/1', 247843, 248264).
+predicate(read, 1, 'Read Prolog term', 248267, 248595).
+predicate(read, 2, 'Read Prolog term from stream', 248598, 248704).
+predicate(read_clause, 1, 'Read clause', 248707, 249111).
+predicate(read_clause, 2, 'Read clause from stream', 249114, 249257).
+predicate(read_term, 2, 'Read term with options', 249260, 254003).
+predicate(read_term, 3, 'Read term with options from stream', 254006, 254178).
+predicate(read_history, 6, 'Read using history substitution', 254181, 255143).
+predicate(prompt, 2, 'Change the prompt used by read/1', 255146, 255725).
+predicate(prompt1, 1, 'Change prompt for 1 line', 255728, 255905).
+predicate(functor, 3, 'Get name and arity of a term or construct a term ', 256015, 256523).
+predicate(arg, 3, 'Access argument of a term', 256526, 257253).
+predicate(setarg, 3, 'Destructive assignment on term', 257256, 257719).
+predicate(=.., 2, '``Univ.'''' Term to list conversion', 257722, 258122).
+predicate(numbervars, 4, 'Enumerate unbound variables of a term using a given base', 258125, 258786).
+predicate(free_variables, 2, 'Find unbound variables in a term', 258789, 259109).
+predicate(copy_term, 2, 'Make a copy of a term', 259112, 259613).
+predicate(atom_codes, 2, 'Convert between atom and list of ASCII values', 260786, 261240).
+predicate(atom_chars, 2, 'Convert between atom and list of characters', 261243, 261510).
+predicate(char_code, 2, 'Convert between atom and ASCII value', 261513, 261654).
+predicate(number_chars, 2, 'Convert between number and one-char atoms', 261657, 262023).
+predicate(number_codes, 2, 'Convert between number and ASCII values', 262026, 262363).
+predicate(name, 2, 'Convert between atom and list of ASCII characters', 262366, 262847).
+predicate(int_to_atom, 3, 'Convert from integer to atom (non-decimal)', 262850, 263470).
+predicate(int_to_atom, 2, 'Convert from integer to atom', 263473, 263590).
+predicate(term_to_atom, 2, 'Convert between term and atom', 263593, 264010).
+predicate(atom_to_term, 3, 'Convert between atom and term', 264013, 264548).
+predicate(atom_concat, 3, 'Append two atoms', 264551, 265069).
+predicate(concat_atom, 2, 'Append a list of atoms', 265072, 265452).
+predicate(concat_atom, 3, 'Append a list of atoms with separator', 265455, 265948).
+predicate(atom_length, 2, 'Determine length of an atom', 265951, 266440).
+predicate(atom_prefix, 2, 'Test for start of atom', 266443, 266742).
+predicate(sub_atom, 5, 'Take a substring from an atom', 266745, 267371).
+predicate(char_type, 2, 'Classify characters', 267993, 271407).
+predicate(code_type, 2, 'Classify a character-code', 271410, 271906).
+predicate(string_to_atom, 2, 'Conversion between string and atom', 273667, 273948).
+predicate(string_to_list, 2, 'Conversion between string and list of ASCII', 273951, 274173).
+predicate(string_length, 2, 'Determine length of a string', 274176, 274500).
+predicate(string_concat, 3, 'atom_concat/3 for strings', 274503, 275282).
+predicate(sub_string, 5, 'Take a substring from a string', 275285, 275652).
+predicate(op, 3, 'Declare an operator', 276898, 279449).
+predicate(current_op, 3, 'Examine current operator declarations', 279452, 279720).
+predicate(char_conversion, 2, 'Provide mapping of input characters', 279921, 280405).
+predicate(current_char_conversion, 2, 'Query input character mapping', 280408, 280641).
+predicate(between, 3, 'Integer range checking/generating', 281585, 281941).
+predicate(succ, 2, 'Logical integer successor relation', 281944, 282117).
+predicate(plus, 3, 'Logical integer addition', 282120, 282326).
+predicate(>, 2, 'Arithmetic larger', 282329, 282473).
+predicate(<, 2, 'Arithmetic smaller', 282476, 282620).
+predicate(=<, 2, 'Arithmetic smaller or equal', 282623, 282778).
+predicate(>=, 2, 'Arithmetic larger or equal', 282781, 282936).
+predicate(=\=, 2, 'Arithmetic not equal', 282939, 283085).
+predicate(=:=, 2, 'Arithmetic equal', 283088, 283234).
+predicate(is, 2, 'Evaluate arithmetic expression', 283237, 284377).
+predicate(-, 1, 'Unary minus', 285748, 285804).
+predicate(+, 2, 'Addition', 285807, 285904).
+predicate(-, 2, 'Subtraction', 285907, 286004).
+predicate(*, 2, 'Multiplication', 286007, 286095).
+predicate(/, 2, 'Division', 286098, 286194).
+predicate(mod, 2, 'Remainder of division', 286197, 286751).
+predicate(rem, 2, 'Remainder of division', 286754, 286942).
+predicate(//, 2, 'Integer division', 286945, 287090).
+predicate(abs, 1, 'Absolute value', 287093, 287187).
+predicate(sign, 1, 'Extract sign of value', 287190, 287310).
+predicate(max, 2, 'Maximum of two numbers', 287313, 287443).
+predicate(min, 2, 'Minimum of two numbers', 287446, 287577).
+predicate('.', 2, 'Consult. Also list constructor', 287580, 288011).
+predicate(random, 1, 'Generate random number', 288014, 288231).
+predicate(round, 1, 'Round to nearest integer', 288234, 288344).
+predicate(integer, 1, 'Type check for integer', 288347, 288436).
+predicate(float, 1, 'Type check for a floating point number', 288439, 288756).
+predicate(float_fractional_part, 1, 'Fractional part of a float', 288759, 288969).
+predicate(float_integer_part, 1, 'Integer part of a float', 288972, 289184).
+predicate(truncate, 1, 'Truncate float to integer', 289187, 289305).
+predicate(floor, 1, 'Largest integer below argument', 289308, 289460).
+predicate(ceiling, 1, 'Smallest integer larger than arg', 289463, 289621).
+predicate(ceil, 1, 'Smallest integer larger than arg', 289624, 289706).
+predicate(>>, 2, 'Bitwise right shift', 289709, 289852).
+predicate(<<, 2, 'Bitwise left shift', 289855, 289997).
+predicate(\/, 2, 'Bitwise or', 290000, 290125).
+predicate(/\, 2, 'Bitwise and', 290128, 290254).
+predicate(xor, 2, 'Bitwise exclusive or', 290257, 290399).
+predicate(\, 1, 'Bitwise negation', 290402, 290451).
+predicate(sqrt, 1, 'Square root', 290454, 290540).
+predicate(sin, 1, 'Sine', 290543, 290659).
+predicate(cos, 1, 'Cosine', 290662, 290780).
+predicate(tan, 1, 'Tangent', 290783, 290901).
+predicate(asin, 1, 'Inverse (arc) sine', 290904, 291037).
+predicate(acos, 1, 'Inverse (arc) cosine', 291040, 291175).
+predicate(atan, 1, 'Inverse (arc) tangent', 291178, 291313).
+predicate(atan, 2, 'Rectangular to polar conversion', 291316, 291627).
+predicate(log, 1, 'Natural logarithm', 291630, 291719).
+predicate(log10, 1, '10 base logarithm', 291722, 291817).
+predicate(exp, 1, 'Exponent (base $e$)', 291820, 291903).
+predicate(**, 2, 'Power function', 291906, 292016).
+predicate(^, 2, 'Existential quantification (bagof/3, setof/3)', 292019, 292104).
+predicate(pi, 0, 'Mathematical constant', 292107, 292172).
+predicate(e, 0, 'Mathematical constant', 292175, 292236).
+predicate(cputime, 0, 'Get CPU time', 292239, 292419).
+predicate(arithmetic_function, 1, 'Register an evaluable function', 293165, 294071).
+predicate(current_arithmetic_function, 1, 'Examine evaluable functions', 294074, 294292).
+predicate(is_list, 1, 'Type check for a list', 294361, 294743).
+predicate(append, 3, 'Concatenate lists', 294746, 295037).
+predicate(member, 2, 'Element is member of a list', 295040, 295250).
+predicate(memberchk, 2, 'Deterministic member/2', 295253, 295377).
+predicate(delete, 3, 'Delete all matching members from a list', 295380, 295598).
+predicate(select, 3, 'Select element of a list', 295601, 295944).
+predicate(nth0, 3, 'N-th element of a list (0-based)', 295947, 296147).
+predicate(nth1, 3, 'N-th element of a list (1-based)', 296150, 296350).
+predicate(last, 2, 'Last element of a list', 296353, 296640).
+predicate(reverse, 2, 'Inverse the order of the elements in a list', 296643, 296836).
+predicate(flatten, 2, 'Transform nested list into flat list', 296839, 297189).
+predicate(length, 2, 'Length of a list', 297192, 297392).
+predicate(merge, 3, 'Merge two sorted lists', 297395, 297767).
+predicate(is_set, 1, 'Type check for a set', 297833, 297942).
+predicate(list_to_set, 2, 'Remove duplicates', 297945, 298273).
+predicate(intersection, 3, 'Set intersection', 298276, 298571).
+predicate(subtract, 3, 'Delete elements that do not meet condition', 298574, 298773).
+predicate(union, 3, 'Union of two sets', 298776, 299030).
+predicate(subset, 2, 'Check subset relation for unordered sets', 299033, 299181).
+predicate(merge_set, 3, 'Merge two sorted sets', 299184, 299524).
+predicate(sort, 2, 'Sort elements in a list', 299581, 300072).
+predicate(msort, 2, 'Sort, do not remove duplicates', 300075, 300195).
+predicate(keysort, 2, 'Sort, using a key', 300198, 300980).
+predicate(predsort, 3, 'Sort, using a predicate to determine the order', 300983, 301387).
+predicate(findall, 3, 'Find all solutions to a goal', 301490, 301973).
+predicate(bagof, 3, 'Find all solutions to a goal', 301976, 303072).
+predicate(setof, 3, 'Find all unique solutions to a goal', 303075, 303269).
+predicate(checklist, 2, 'Invoke goal on all members of a list', 303803, 304052).
+predicate(maplist, 3, 'Transform all elements of a list', 304055, 304343).
+predicate(sublist, 3, 'Determine elements that meet condition', 304346, 304547).
+predicate(forall, 2, 'Prove goal for all solutions of another goal', 304585, 304991).
+predicate(writeln, 1, 'Write term, followed by a newline', 305581, 305659).
+predicate(writef, 1, 'Formatted write', 305662, 305738).
+predicate(writef, 2, 'Formatted write on stream', 305741, 308918).
+predicate(swritef, 3, 'Formatted write on a string', 308921, 309240).
+predicate(swritef, 2, 'Formatted write on a string', 309243, 309364).
+predicate(format, 1, 'Formatted output', 309408, 309509).
+predicate(format, 2, 'Formatted output with arguments', 309512, 314289).
+predicate(format, 3, 'Formatted output on a stream', 314292, 314468).
+predicate(sformat, 3, 'Format on a string', 314471, 314794).
+predicate(sformat, 2, 'Format on a string', 314797, 314920).
+predicate(format_predicate, 2, 'Program format/[1,2]', 314998, 316113).
+predicate(current_format_predicate, 2, 'Enumerate user-defined format codes', 316116, 316592).
+predicate(tty_get_capability, 3, 'Get terminal parameter', 316941, 317571).
+predicate(tty_goto, 2, 'Goto position on screen', 317574, 317813).
+predicate(tty_put, 2, 'Write control string to terminal', 317816, 318224).
+predicate(set_tty, 2, 'Set `tty'' stream', 318227, 318438).
+predicate(tty_size, 2, 'Get row/column size of the terminal', 318441, 318956).
+predicate(shell, 2, 'Execute OS command', 319056, 320050).
+predicate(shell, 1, 'Execute OS command', 320053, 320138).
+predicate(shell, 0, 'Execute interactive subshell', 320141, 320328).
+predicate(win_exec, 2, 'Win32: spawn Windows task', 320331, 320660).
+predicate(win_shell, 2, 'Win32: open document through Shell', 320663, 321198).
+predicate(win_registry_get_value, 3, 'Win32: get registry value', 321201, 322279).
+predicate(getenv, 2, 'Get shell environment variable', 322282, 322558).
+predicate(setenv, 2, 'Set shell environment variable', 322561, 322894).
+predicate(unsetenv, 1, 'Delete shell environment variable', 322897, 322997).
+predicate(unix, 1, 'OS interaction', 323000, 324813).
+predicate(get_time, 1, 'Get current time', 325259, 325524).
+predicate(convert_time, 8, 'Break time stamp into fields', 325527, 326383).
+predicate(convert_time, 2, 'Convert time stamp to string', 326386, 326713).
+predicate(win_insert_menu, 2, 'plwin.exe: add menu', 327141, 327791).
+predicate(win_insert_menu_item, 4, 'plwin.exe: add item to menu', 327794, 328226).
+predicate(access_file, 2, 'Check access permissions of a file', 328311, 328917).
+predicate(exists_file, 1, 'Check existence of file', 328920, 329098).
+predicate(file_directory_name, 2, 'Get directory part of path', 329101, 329506).
+predicate(file_base_name, 2, 'Get file part of path', 329509, 329753).
+predicate(same_file, 2, 'Succeeds if arguments refer to same file', 329756, 330104).
+predicate(exists_directory, 1, 'Check existence of directory', 330107, 330343).
+predicate(delete_file, 1, 'Remove a file from the file system', 330346, 330447).
+predicate(rename_file, 2, 'Change name of file', 330450, 330636).
+predicate(size_file, 2, 'Get size of a file in characters', 330639, 330775).
+predicate(time_file, 2, 'Get last modification time of file', 330778, 331071).
+predicate(absolute_file_name, 2, 'Get absolute path name', 331074, 331674).
+predicate(absolute_file_name, 3, 'Get absolute path name with options', 331677, 333454).
+predicate(is_absolute_file_name, 1, 'True if arg defines an absolute path', 333457, 333956).
+predicate(file_name_extension, 3, 'Add, remove or test file extensions', 333959, 334582).
+predicate(expand_file_name, 2, 'Wildcard expansion of file names', 334585, 335644).
+predicate(prolog_to_os_filename, 2, 'Convert between Prolog and OS filenames', 335647, 336157).
+predicate(read_link, 3, 'Read a symbolic link', 336160, 336641).
+predicate(tmp_file, 2, 'Create a temporary filename', 336644, 336970).
+predicate(make_directory, 1, 'Create a folder on the file system', 336973, 337277).
+predicate(delete_directory, 1, 'Remove a folder from the file system', 337280, 337545).
+predicate(working_directory, 2, 'Query/change CWD', 337548, 337917).
+predicate(chdir, 1, 'Compatibility: change working directory', 337920, 338028).
+predicate(thread_create, 3, 'Create a new Prolog task', 340524, 342931).
+predicate(thread_self, 1, 'Get identifier of current thread', 342934, 343109).
+predicate(current_thread, 2, 'Examine Prolog threads', 343112, 344249).
+predicate(thread_join, 2, 'Wait for Prolog task-completion', 344252, 344932).
+predicate(thread_exit, 1, 'Terminate Prolog task with value', 344935, 345136).
+predicate(thread_at_exit, 1, 'Register goal to be called at exit', 345139, 345551).
+predicate(thread_send_message, 2, 'Send message to another thread', 346104, 346544).
+predicate(thread_get_message, 1, 'Wait for message', 346547, 347304).
+predicate(thread_peek_message, 1, 'Test for message in queue', 347307, 347705).
+predicate(thread_signal, 2, 'Execute goal in another thread', 347708, 348604).
+predicate(mutex_create, 1, 'Create a thread-synchronisation device', 349982, 350287).
+predicate(mutex_destroy, 1, 'Destroy a mutex', 350290, 350506).
+predicate(mutex_lock, 1, 'Become owner of a mutex', 350509, 351489).
+predicate(mutex_trylock, 1, 'Become owner of a mutex (non-blocking)', 351492, 351670).
+predicate(mutex_unlock, 1, 'Release ownership of mutex', 351673, 351911).
+predicate(mutex_unlock_all, 0, 'Release ownership of all mutexes', 351914, 352152).
+predicate(current_mutex, 3, 'Examine existing mutexes', 352155, 352584).
+predicate(with_mutex, 2, 'Run goal while holding mutex', 352587, 353220).
+predicate(threads, 0, 'List running threads', 353507, 353730).
+predicate(interactor, 0, 'Start new thread with console and toplevel', 353733, 353878).
+predicate(attach_console, 0, 'Attach I/O console to thread', 353881, 354588).
+predicate(break, 0, 'Start interactive toplevel', 354993, 355517).
+predicate(abort, 0, 'Abort execution, return to top level', 355520, 356484).
+predicate(halt, 0, 'Exit from Prolog', 356487, 356829).
+predicate(halt, 1, 'Exit from Prolog with status', 356832, 356976).
+predicate(prolog, 0, 'Run interactive toplevel', 356979, 357499).
+predicate(expand_query, 4, 'Expanded entered query', 357502, 358214).
+predicate(expand_answer, 2, 'Expand answer of query', 358217, 358689).
+predicate(protocol, 1, 'Make a log of the user interaction', 359015, 359218).
+predicate(protocola, 1, 'Append log of the user interaction to file', 359221, 359363).
+predicate(noprotocol, 0, 'Disable logging of user interaction', 359366, 359495).
+predicate(protocolling, 1, 'On what file is user interaction logged', 359498, 359697).
+predicate(trace, 0, 'Start the tracer', 360080, 360269).
+predicate(tracing, 0, 'Query status of the tracer', 360272, 360409).
+predicate(notrace, 0, 'Stop tracing', 360412, 360503).
+predicate(guitracer, 0, 'Install hooks for the graphical debugger', 360506, 360805).
+predicate(noguitracer, 0, 'Disable the graphical debugger', 360808, 360882).
+predicate(trace, 1, 'Set trace-point on predicate', 360885, 360959).
+predicate(trace, 2, 'Set/Clear trace-point on ports', 360962, 362048).
+predicate(notrace, 1, 'Do not debug argument goal', 362051, 362371).
+predicate(debug, 0, 'Test for debugging mode', 362374, 362664).
+predicate(nodebug, 0, 'Disable debugging', 362667, 362775).
+predicate(debugging, 0, 'Show debugger status', 362778, 362911).
+predicate(spy, 1, 'Force tracer on specified predicate', 362914, 363068).
+predicate(nospy, 1, 'Remove spy point', 363071, 363213).
+predicate(nospyall, 0, 'Remove all spy points', 363216, 363292).
+predicate(leash, 1, 'Change ports visited by the tracer', 363295, 363904).
+predicate(visible, 1, 'Ports that are visible in the tracer', 363907, 364075).
+predicate(unknown, 2, 'Trap undefined predicates', 364078, 364367).
+predicate(style_check, 1, 'Change level of warnings', 364370, 366469).
+predicate(statistics, 2, 'Obtain collected statistics', 366569, 371192).
+predicate(statistics, 0, 'Show execution statistics', 371195, 371297).
+predicate(time, 1, 'Determine time needed to execute goal', 371300, 371745).
+predicate(profile, 3, 'Obtain execution statistics', 372893, 373512).
+predicate(show_profile, 1, 'Show results of the profiler', 373515, 373799).
+predicate(profiler, 2, 'Obtain/change status of the profiler', 373802, 374796).
+predicate(reset_profiler, 0, 'Clear statistics obtained by the profiler', 374799, 374912).
+predicate(profile_count, 3, 'Obtain profile results on a predicate', 374915, 375596).
+predicate(garbage_collect, 0, 'Invoke the garbage collector', 375862, 376305).
+predicate(garbage_collect_atoms, 0, 'Invoke the atom garbage collector', 376308, 376481).
+predicate(limit_stack, 2, 'Limit stack expansion', 376484, 377191).
+predicate(trim_stacks, 0, 'Release unused memory resources', 377194, 377910).
+predicate(stack_parameter, 4, 'Some systems: Query/Set runtime stack parameter', 377913, 378666).
+predicate(open_dde_conversation, 3, 'Win32: Open DDE channel', 379795, 380197).
+predicate(close_dde_conversation, 1, 'Win32: Close DDE channel', 380200, 380542).
+predicate(dde_request, 3, 'Win32: Make a DDE request', 380545, 381233).
+predicate(dde_execute, 2, 'Win32: Execute command on DDE server', 381236, 381494).
+predicate(dde_poke, 3, 'Win32: POKE operation on DDE server', 381497, 381716).
+predicate(dde_register_service, 2, 'Win32: Become a DDE server', 382131, 383789).
+predicate(dde_unregister_service, 1, 'Win32: Terminate a DDE service', 383792, 384026).
+predicate(dde_current_service, 2, 'Win32: Examine DDE services provided', 384029, 384209).
+predicate(dde_current_connection, 2, 'Win32: Examine open DDE connections', 384212, 384370).
+predicate(dwim_match, 2, 'Atoms match in ``Do What I Mean'''' sense', 384429, 385081).
+predicate(dwim_match, 3, 'Atoms match in ``Do What I Mean'''' sense', 385084, 385525).
+predicate(wildcard_match, 2, 'Csh(1) style wildcard match', 385528, 386244).
+predicate(gensym, 2, 'Generate unique atoms from a base', 386247, 386603).
+predicate(sleep, 1, 'Suspend execution for specified time', 386606, 387034).
+predicate(use_module, 1, 'Import a module', 392302, 392870).
+predicate(use_module, 2, 'Import predicates from a module', 392873, 393420).
+predicate(import, 1, 'Import a predicate from a module', 393423, 394506).
+predicate(module, 2, 'Declare a module', 404562, 404965).
+predicate((module_transparent), 1, 'Indicate module based meta predicate', 404968, 405292).
+predicate(meta_predicate, 1, 'Quintus compatibility', 405295, 405516).
+predicate(current_module, 1, 'Examine existing modules', 405519, 405632).
+predicate(current_module, 2, 'Examine existing modules', 405635, 405891).
+predicate(context_module, 1, 'Get context module of current goal', 405894, 406093).
+predicate(export, 1, 'Export a predicate from a module', 406096, 406484).
+predicate(export_list, 2, 'List of public predicates of a module', 406487, 406822).
+predicate(default_module, 2, 'Get the default modules of a module', 406825, 407234).
+predicate(module, 1, 'Query/set current type-in module', 407237, 407632).
+predicate(open_shared_object, 2, 'UNIX: Open shared library (.so file)', 415412, 416030).
+predicate(open_shared_object, 3, 'UNIX: Open shared library (.so file)', 416033, 416713).
+predicate(close_shared_object, 1, 'UNIX:  Close shared library (.so file)', 416716, 416864).
+predicate(call_shared_object_function, 2, 'UNIX:  Call C-function in shared (.so) file', 416867, 417262).
+predicate(load_foreign_library, 2, 'library(shlib) Load shared library (.so file)', 417597, 418696).
+predicate(load_foreign_library, 1, 'library(shlib) Load shared library (.so file)', 418699, 419150).
+predicate(unload_foreign_library, 1, 'library(shlib) Detach shared library (.so file)', 419153, 419588).
+predicate(current_foreign_library, 2, 'library(shlib) Examine loaded shared libraries (.so files)', 419591, 420536).
+predicate(qsave_program, 2, 'Create runtime application', 538184, 541989).
+predicate(qsave_program, 1, 'Create runtime application', 541992, 542096).
+predicate(autoload, 0, 'Autoload all predicates now', 542099, 543763).
+predicate((volatile), 1, 'Predicates that are not saved', 543766, 544119).
+predicate(resource, 3, 'Declare a program resource', 549113, 550895).
+predicate(open_resource, 3, 'Open a program resource as a stream', 550898, 552041).
+predicate(check, 0, 'Program completeness and consistency', 559246, 559624).
+predicate(list_undefined, 0, 'List undefined predicates', 559627, 560386).
+predicate(list_autoload, 0, 'List predicates that require autoload', 560389, 560631).
+predicate(list_redefined, 0, 'List locally redefined predicates', 560634, 560879).
+predicate(read_line_to_codes, 2, 'Read line from a stream', 561103, 561509).
+predicate(read_line_to_codes, 3, 'Read line from a stream', 561512, 562442).
+predicate(read_stream_to_codes, 2, 'Read contents of stream', 562445, 562633).
+predicate(read_stream_to_codes, 3, 'Read contents of stream', 562636, 562820).
+predicate(read_file_to_codes, 3, 'Read contents of file', 562823, 563305).
+predicate(read_file_to_terms, 3, 'Read contents of file to Prolog terms', 563308, 563820).
+predicate(www_open_url, 1, 'Open a web-page in a browser', 564065, 564929).
+predicate(registry_get_key, 2, 'Get principal value of key', 565902, 566107).
+predicate(registry_get_key, 3, 'Get associated value of key', 566110, 566267).
+predicate(registry_set_key, 2, 'Set principal value of key', 566270, 566479).
+predicate(registry_set_key, 3, 'Set associated value of key', 566482, 566702).
+predicate(registry_delete_key, 1, 'Remove a key', 566705, 566814).
+predicate(shell_register_file_type, 4, 'Register a file-type', 566817, 567353).
+predicate(shell_register_dde, 6, 'Register DDE action', 567356, 568067).
+predicate(shell_register_prolog, 1, 'Register Prolog', 568070, 568880).
+predicate(parse_url, 2, 'Analyse or construct a URL', 569772, 572249).
+predicate(parse_url, 3, 'Analyse or construct a relative URL', 572252, 572555).
+predicate(global_url, 3, 'Make relative URL global', 572558, 572734).
+predicate(http_location, 2, 'Analyse or construct location', 572737, 573192).
+predicate(www_form_encode, 2, 'Encode or decode form-data', 573195, 573687).
+predicate(prolog_current_frame, 1, 'Reference to goal''s environment stack', 574282, 574691).
+predicate(prolog_frame_attribute, 3, 'Obtain information on a goal environment', 574694, 577637).
+predicate(deterministic, 0, 'Test deterministicy of current goal', 577640, 577771).
+predicate(prolog_trace_interception, 4, 'library(user) Intercept the Prolog tracer', 577853, 581428).
+predicate(prolog_skip_level, 2, 'Indicate deepest recursion to trace', 581431, 582091).
+predicate(exception, 3, 'Hook (user) Handle runtime exceptions', 582709, 584184).
+predicate(prolog_list_goal, 1, 'Hook (user) Intercept tracer ''L'' command', 584670, 585089).
+predicate(debug_control_hook, 1, 'Hook (prolog) Extend spy/1, etc.', 585092, 586335).
+predicate(help_hook, 1, 'Hook (prolog) User-hook in the help-system', 586338, 586994).
+predicate(prolog_load_file, 2, 'Hook (user) Program load_files/2', 587286, 587733).
+predicate(rl_read_init_file, 1, 'Read readline(3) init file', 588040, 588294).
+predicate(rl_add_history, 1, 'Add line to readline(3) history', 588297, 588456).
+predicate(eval_license, 0, 'Evaluate licenses of loaded modules', 606579, 606958).
+predicate(license, 2, 'Define license for named module', 606961, 609319).
+predicate(license, 1, 'Define license for current file', 609322, 609495).
 
 
 %   Predicate section/4
@@ -582,7 +582,7 @@ section([1, 6, 12], 'Version 3.4 Release Notes', 25323, 26407).
 section([1, 6, 13], 'Version 4.0 Release Notes', 26409, 27294).
 section([1, 6, 14], 'Version 5.0 Release Notes', 27296, 27966).
 section([1, 7], 'Acknowledgements', 27968, 29113).
-section([2], 'OVERVIEW', 29115, 100965).
+section([2], 'OVERVIEW', 29115, 101382).
 section([2, 1], 'Getting started quickly', 29173, 32325).
 section([2, 1, 1], 'Starting SWI-Prolog', 29252, 31614).
 section([2, 1, 1, 1], 'Starting SWI-Prolog on Unix', 29327, 30605).
@@ -604,365 +604,365 @@ section([2, 10, 2, 1], 'Using PrologScript', 57093, 59274).
 section([2, 10, 2, 2], 'Creating a shell-script', 59276, 60277).
 section([2, 10, 2, 3], 'Creating a saved-state', 60279, 60952).
 section([2, 10, 2, 4], 'Compilation using the -c commandline option', 60954, 61949).
-section([2, 11], 'Environment Control (Prolog flags)', 61951, 81824).
-section([2, 12], 'An overview of hook predicates', 81826, 83741).
-section([2, 13], 'Automatic loading of libraries', 83743, 87772).
-section([2, 14], 'Garbage Collection', 87774, 88017).
-section([2, 15], 'Syntax Notes', 88019, 92472).
-section([2, 15, 1], 'ISO Syntax Support', 88771, 92472).
-section([2, 15, 1, 1], 'Character Escape Syntax', 88914, 91927).
-section([2, 15, 1, 2], 'Syntax for non-decimal numbers', 91929, 92472).
-section([2, 16], 'System limits', 92474, 100965).
-section([2, 16, 1], 'Limits on memory areas', 92528, 99090).
-section([2, 16, 1, 1], 'The heap', 98399, 99090).
-section([2, 16, 2], 'Other Limits', 99092, 100510).
-section([2, 16, 3], 'Reserved Names', 100512, 100965).
-section([3], 'INITIALISING AND MANAGING A PROLOG PROJECT', 100967, 128166).
-section([3, 1], 'The project source-files', 101785, 107320).
-section([3, 1, 1], 'File Names and Locations', 102281, 105894).
-section([3, 1, 1, 1], 'File Name Extensions', 102367, 103396).
-section([3, 1, 1, 2], 'Project Directories', 103398, 104483).
-section([3, 1, 1, 3], 'Sub-projects using search-paths', 104485, 105894).
-section([3, 1, 2], 'Project Special Files', 105896, 107320).
-section([3, 2], 'Using modules', 107322, 109472).
-section([3, 3], 'The test-edit-reload cycle', 109474, 112332).
-section([3, 3, 1], 'Locating things to edit', 110255, 110912).
-section([3, 3, 2], 'Editing and incremental compilation', 110914, 112332).
-section([3, 4], 'Using the PceEmacs built-in editor', 112334, 123806).
-section([3, 4, 1], 'Activating PceEmacs', 112442, 113021).
-section([3, 4, 2], 'Bluffing through PceEmacs', 113023, 118525).
-section([3, 4, 2, 1], 'Edit modes', 113643, 114664).
-section([3, 4, 2, 2], 'Frequently used editor commands', 114666, 118525).
-section([3, 4, 3], 'Prolog Mode', 118527, 123806).
-section([3, 4, 3, 1], 'Finding your way around', 123171, 123806).
-section([3, 5], 'The Graphical Debugger', 123808, 125701).
-section([3, 5, 1], 'Invoking the window-based debugger', 124661, 125701).
-section([3, 6], 'The Prolog Navigator', 125703, 126328).
-section([3, 7], 'Summary of the iDE', 126330, 128166).
-section([4], 'BUILT-IN PREDICATES', 128168, 386341).
-section([4, 1], 'Notation of Predicate Descriptions', 128257, 128787).
-section([4, 2], 'Character representation', 128789, 131734).
-section([4, 3], 'Loading Prolog source files', 131736, 152959).
-section([4, 3, 1], 'Quick load files', 150984, 152959).
-section([4, 4], 'Listing and Editor Interface', 152961, 159222).
-section([4, 5], 'Verify Type of a Term', 159224, 160578).
-section([4, 6], 'Comparison and Unification or Terms', 160580, 164352).
-section([4, 6, 1], 'Standard Order of Terms', 160691, 164352).
-section([4, 7], 'Control Predicates', 164354, 168191).
-section([4, 8], 'Meta-Call Predicates', 168193, 174843).
-section([4, 9], 'ISO compliant Exception handling', 174845, 184174).
-section([4, 9, 1], 'Debugging and exceptions', 177368, 179449).
-section([4, 9, 2], 'The exception term', 179451, 180304).
-section([4, 9, 3], 'Printing messages', 180306, 184174).
-section([4, 10], 'Handling signals', 184176, 189466).
-section([4, 10, 1], 'Notes on signal handling', 188025, 189466).
-section([4, 11], 'The `block'' control-structure', 189468, 190976).
-section([4, 12], 'DCG Grammar rules', 190978, 193094).
-section([4, 13], 'Database', 193096, 202456).
-section([4, 13, 1], 'Update view', 200233, 201438).
-section([4, 13, 2], 'Indexing databases', 201440, 202456).
-section([4, 14], 'Declaring predicates properties', 202458, 205999).
-section([4, 15], 'Examining the program', 206001, 214544).
-section([4, 16], 'Input and output', 214546, 232294).
-section([4, 16, 1], 'ISO Input and Output Streams', 215223, 227035).
-section([4, 16, 2], 'Edinburgh-style I/O', 227037, 231420).
-section([4, 16, 3], 'Switching Between Edinburgh and ISO I/O', 231422, 232294).
-section([4, 17], 'Status of streams', 232296, 235183).
-section([4, 18], 'Primitive character I/O', 235185, 241873).
-section([4, 19], 'Term reading and writing', 241875, 255212).
-section([4, 20], 'Analysing and Constructing Terms', 255214, 258920).
-section([4, 21], 'Analysing and Constructing Atoms', 258922, 266678).
-section([4, 22], 'Classifying characters', 266680, 271213).
-section([4, 23], 'Representing text in strings', 271215, 274959).
-section([4, 24], 'Operators', 274961, 279027).
-section([4, 25], 'Character Conversion', 279029, 279948).
-section([4, 26], 'Arithmetic', 279950, 283684).
-section([4, 27], 'Arithmetic Functions', 283686, 291726).
-section([4, 28], 'Adding Arithmetic Functions', 291728, 293599).
-section([4, 29], 'List Manipulation', 293601, 297074).
-section([4, 30], 'Set Manipulation', 297076, 298831).
-section([4, 31], 'Sorting Lists', 298833, 300694).
-section([4, 32], 'Finding all Solutions to a Goal', 300696, 302576).
-section([4, 33], 'Invoking Predicates on all Members of a List', 302578, 303854).
-section([4, 34], 'Forall', 303856, 304298).
-section([4, 35], 'Formatted Write', 304300, 315899).
-section([4, 35, 1], 'Writef', 304846, 308671).
-section([4, 35, 2], 'Format', 308673, 314227).
-section([4, 35, 3], 'Programming Format', 314229, 315899).
-section([4, 36], 'Terminal Control', 315901, 318263).
-section([4, 37], 'Operating System Interaction', 318265, 327533).
-section([4, 37, 1], 'Dealing with time and date', 324122, 326020).
-section([4, 37, 2], 'Handling the menu in programPLWIN.EXE', 326022, 327533).
-section([4, 38], 'File System Interaction', 327535, 337335).
-section([4, 39], 'Multi-threading (alpha code)', 337337, 354206).
-section([4, 39, 1], 'Thread communication', 344860, 347911).
-section([4, 39, 2], 'Thread synchronisation', 347913, 352527).
-section([4, 39, 3], 'Thread-support library(threadutil)', 352529, 353895).
-section([4, 39, 4], 'Status of the thread implementation', 353897, 354206).
-section([4, 40], 'User Toplevel Manipulation', 354208, 357996).
-section([4, 41], 'Creating a Protocol of the User Interaction', 357998, 359004).
-section([4, 42], 'Debugging and Tracing Programs', 359006, 365776).
-section([4, 43], 'Obtaining Runtime Statistics', 365778, 371052).
-section([4, 44], 'Finding Performance Bottlenecks', 371054, 374903).
-section([4, 45], 'Memory Management', 374905, 377973).
-section([4, 46], 'Windows DDE interface', 377975, 383677).
-section([4, 46, 1], 'DDE client interface', 378373, 381023).
-section([4, 46, 2], 'DDE server mode', 381025, 383677).
-section([4, 47], 'Miscellaneous', 383679, 386341).
-section([5], 'USING MODULES', 386343, 410384).
-section([5, 1], 'Why Using Modules?', 386414, 387644).
-section([5, 2], 'Name-based versus Predicate-based Modules', 387646, 390234).
-section([5, 3], 'Defining a Module', 390236, 390864).
-section([5, 4], 'Importing Predicates into a Module', 390866, 394598).
-section([5, 4, 1], 'Reserved Modules', 393815, 394598).
-section([5, 5], 'Using the Module System', 394600, 398215).
-section([5, 5, 1], 'Object Oriented Programming', 396586, 398215).
-section([5, 6], 'Meta-Predicates in Modules', 398217, 402234).
-section([5, 6, 1], 'Definition and Context Module', 399303, 400892).
-section([5, 6, 2], 'Overruling Module Boundaries', 400894, 402234).
-section([5, 7], 'Dynamic Modules', 402236, 403672).
-section([5, 8], 'Module Handling Predicates', 403674, 406939).
-section([5, 9], 'Compatibility of the Module System', 406941, 410384).
-section([5, 9, 1], 'Emulating meta_predicate/1', 409445, 410384).
-section([6], 'FOREIGN LANGUAGE INTERFACE', 410386, 536212).
-section([6, 1], 'Overview of the Interface', 411432, 412280).
-section([6, 2], 'Linking Foreign Modules', 412282, 414206).
-section([6, 2, 1], 'What linking is provided?', 412851, 413343).
-section([6, 2, 2], 'What kind of loading should I be using?', 413345, 414206).
-section([6, 3], 'Dynamic Linking of shared libraries', 414208, 416569).
-section([6, 4], 'Using the library shlib for .DLL and .so files', 416571, 421846).
-section([6, 4, 1], 'Static Linking', 419845, 421846).
-section([6, 5], 'Interface Data types', 421848, 429761).
-section([6, 5, 1], 'Type term_t:  a reference to a Prolog term', 421918, 427769).
-section([6, 5, 1, 1], 'Interaction with the garbage collector and stack-shifter', 426981, 427769).
-section([6, 5, 2], 'Other foreign interface types', 427771, 429761).
-section([6, 6], 'The Foreign Include File', 429763, 523292).
-section([6, 6, 1], 'Argument Passing and Control', 429843, 435406).
-section([6, 6, 1, 1], 'Non-deterministic Foreign Predicates', 430608, 435406).
-section([6, 6, 2], 'Atoms and functors', 435408, 438478).
-section([6, 6, 2, 1], 'Atoms and atom-garbage collection', 436973, 438478).
-section([6, 6, 3], 'Analysing Terms via the Foreign Interface', 438480, 455007).
-section([6, 6, 3, 1], 'Testing the type of a term', 439233, 442588).
-section([6, 6, 3, 2], 'Reading data from a term', 442590, 449559).
-section([6, 6, 3, 3], 'Exchanging text using length and string', 449561, 452495).
-section([6, 6, 3, 4], 'Reading a list', 452497, 453805).
-section([6, 6, 3, 5], 'An example:  defining write/1 in C', 453807, 455007).
-section([6, 6, 4], 'Constructing Terms', 455009, 460763).
-section([6, 6, 5], 'Unifying data', 460765, 471790).
-section([6, 6, 6], 'Calling Prolog from C', 471792, 478800).
-section([6, 6, 6, 1], 'Predicate references', 472476, 474000).
-section([6, 6, 6, 2], 'Initiating a query from C', 474002, 478800).
-section([6, 6, 7], 'Discarding Data', 478802, 481109).
-section([6, 6, 8], 'Foreign Code and Modules', 481111, 482811).
-section([6, 6, 9], 'Prolog exceptions in foreign code', 482813, 487026).
-section([6, 6, 10], 'Foreign code and Prolog threads', 487028, 490494).
-section([6, 6, 11], 'Miscellaneous', 490496, 495341).
-section([6, 6, 11, 1], 'Term Comparison', 490558, 491050).
-section([6, 6, 11, 2], 'Recorded database', 491052, 495341).
-section([6, 6, 12], 'Catching Signals (Software Interrupts)', 495343, 498525).
-section([6, 6, 13], 'Errors and warnings', 498527, 499196).
-section([6, 6, 14], 'Environment Control from Foreign Code', 499198, 502036).
-section([6, 6, 15], 'Querying Prolog', 502038, 503664).
-section([6, 6, 16], 'Registering Foreign Predicates', 503666, 506772).
-section([6, 6, 17], 'Foreign Code Hooks', 506774, 509729).
-section([6, 6, 18], 'Storing foreign data', 509731, 518326).
-section([6, 6, 18, 1], 'Examples for storing foreign data', 513239, 518326).
-section([6, 6, 19], 'Embedding SWI-Prolog in a C-program', 518328, 523292).
-section([6, 7], 'Linking embedded applications using plld', 523294, 529685).
-section([6, 7, 1], 'A simple example', 528015, 529685).
-section([6, 8], 'The Prolog `home'' directory', 529687, 531163).
-section([6, 9], 'Example of Using the Foreign Interface', 531165, 532641).
-section([6, 10], 'Notes on Using Foreign Code', 532643, 536212).
-section([6, 10, 1], 'Memory Allocation', 532733, 533063).
-section([6, 10, 2], 'Debugging Foreign Code', 533065, 533931).
-section([6, 10, 3], 'Name Conflicts in C modules', 533933, 534804).
-section([6, 10, 4], 'Compatibility of the Foreign Interface', 534806, 536212).
-section([7], 'GENERATING RUNTIME APPLICATIONS', 536214, 556844).
-section([7, 1], 'Limitations of qsave_program', 543428, 544226).
-section([7, 2], 'Runtimes and Foreign Code', 544228, 546636).
-section([7, 3], 'Using program resources', 546638, 552306).
-section([7, 3, 1], 'Predicates Definitions', 548335, 551348).
-section([7, 3, 2], 'The plrc program', 551350, 552306).
-section([7, 4], 'Finding Application files', 552308, 554168).
-section([7, 4, 1], 'Passing a path to the application', 553585, 554168).
-section([7, 5], 'The Runtime Environment', 554170, 556844).
-section([7, 5, 1], 'The Runtime Emulator', 554249, 556844).
-section([8], 'THE SWI-PROLOG LIBRARY', 556846, 572994).
-section([8, 1], 'library(check):  Elementary completeness checks', 558300, 560186).
-section([8, 2], 'library(readutil):  Reading lines, streams and files', 560188, 563127).
-section([8, 3], 'library(netscape):  Activating your Web-browser', 563129, 564236).
-section([8, 4], 'library(registry):  Manipulating the Windows registry', 564238, 568187).
-section([8, 5], 'library(url):  Analysing and constructing URL', 568189, 572994).
-section([9], 'HACKERS CORNER', 572996, 587763).
-section([9, 1], 'Examining the Environment Stack', 573487, 577078).
-section([9, 2], 'Intercepting the Tracer', 577080, 581398).
-section([9, 3], 'Hooks using the exception/3 predicate', 581400, 583491).
-section([9, 4], 'Hooks for integrating libraries', 583493, 586301).
-section([9, 5], 'Hooks for loading files', 586303, 587040).
-section([9, 6], 'Readline Interaction', 587042, 587763).
-section([10], 'GLOSSARY OF TERMS', 587765, 600659).
-section([11], 'SWI-PROLOG LICENSE CONDITIONS AND TOOLS', 600661, 609095).
-section([11, 1], 'The SWI-Prolog kernel and foreign libraries', 602149, 604649).
-section([11, 1, 1], 'The SWI-Prolog Prolog libraries', 602968, 604649).
-section([11, 2], 'Contributing to the SWI-Prolog project', 604651, 605217).
-section([11, 3], 'Software support to keep track of license conditions', 605219, 609095).
-section([12], 'SUMMARY', 609097, 644715).
-section([12, 1], 'Predicates', 609155, 638483).
-section([12, 2], 'Library predicates', 638485, 640021).
-section([12, 2, 1], 'library(check)', 638554, 638815).
-section([12, 2, 2], 'library(readutil)', 638817, 639168).
-section([12, 2, 3], 'library(netscape)', 639170, 639272).
-section([12, 2, 4], 'library(registry)', 639274, 639727).
-section([12, 2, 5], 'library(url)', 639729, 640021).
-section([12, 3], 'Arithmetic Functions', 640023, 642110).
-section([12, 4], 'Operators', 642112, 644715).
-section([13], 'Bibliography', 644717, 679250).
+section([2, 11], 'Environment Control (Prolog flags)', 61951, 82021).
+section([2, 12], 'An overview of hook predicates', 82023, 84158).
+section([2, 13], 'Automatic loading of libraries', 84160, 88189).
+section([2, 14], 'Garbage Collection', 88191, 88434).
+section([2, 15], 'Syntax Notes', 88436, 92889).
+section([2, 15, 1], 'ISO Syntax Support', 89188, 92889).
+section([2, 15, 1, 1], 'Character Escape Syntax', 89331, 92344).
+section([2, 15, 1, 2], 'Syntax for non-decimal numbers', 92346, 92889).
+section([2, 16], 'System limits', 92891, 101382).
+section([2, 16, 1], 'Limits on memory areas', 92945, 99507).
+section([2, 16, 1, 1], 'The heap', 98816, 99507).
+section([2, 16, 2], 'Other Limits', 99509, 100927).
+section([2, 16, 3], 'Reserved Names', 100929, 101382).
+section([3], 'INITIALISING AND MANAGING A PROLOG PROJECT', 101384, 128583).
+section([3, 1], 'The project source-files', 102202, 107737).
+section([3, 1, 1], 'File Names and Locations', 102698, 106311).
+section([3, 1, 1, 1], 'File Name Extensions', 102784, 103813).
+section([3, 1, 1, 2], 'Project Directories', 103815, 104900).
+section([3, 1, 1, 3], 'Sub-projects using search-paths', 104902, 106311).
+section([3, 1, 2], 'Project Special Files', 106313, 107737).
+section([3, 2], 'Using modules', 107739, 109889).
+section([3, 3], 'The test-edit-reload cycle', 109891, 112749).
+section([3, 3, 1], 'Locating things to edit', 110672, 111329).
+section([3, 3, 2], 'Editing and incremental compilation', 111331, 112749).
+section([3, 4], 'Using the PceEmacs built-in editor', 112751, 124223).
+section([3, 4, 1], 'Activating PceEmacs', 112859, 113438).
+section([3, 4, 2], 'Bluffing through PceEmacs', 113440, 118942).
+section([3, 4, 2, 1], 'Edit modes', 114060, 115081).
+section([3, 4, 2, 2], 'Frequently used editor commands', 115083, 118942).
+section([3, 4, 3], 'Prolog Mode', 118944, 124223).
+section([3, 4, 3, 1], 'Finding your way around', 123588, 124223).
+section([3, 5], 'The Graphical Debugger', 124225, 126118).
+section([3, 5, 1], 'Invoking the window-based debugger', 125078, 126118).
+section([3, 6], 'The Prolog Navigator', 126120, 126745).
+section([3, 7], 'Summary of the iDE', 126747, 128583).
+section([4], 'BUILT-IN PREDICATES', 128585, 387035).
+section([4, 1], 'Notation of Predicate Descriptions', 128674, 129204).
+section([4, 2], 'Character representation', 129206, 132151).
+section([4, 3], 'Loading Prolog source files', 132153, 153376).
+section([4, 3, 1], 'Quick load files', 151401, 153376).
+section([4, 4], 'Listing and Editor Interface', 153378, 159902).
+section([4, 5], 'Verify Type of a Term', 159904, 161258).
+section([4, 6], 'Comparison and Unification or Terms', 161260, 165032).
+section([4, 6, 1], 'Standard Order of Terms', 161371, 165032).
+section([4, 7], 'Control Predicates', 165034, 168885).
+section([4, 8], 'Meta-Call Predicates', 168887, 175537).
+section([4, 9], 'ISO compliant Exception handling', 175539, 184868).
+section([4, 9, 1], 'Debugging and exceptions', 178062, 180143).
+section([4, 9, 2], 'The exception term', 180145, 180998).
+section([4, 9, 3], 'Printing messages', 181000, 184868).
+section([4, 10], 'Handling signals', 184870, 190160).
+section([4, 10, 1], 'Notes on signal handling', 188719, 190160).
+section([4, 11], 'The `block'' control-structure', 190162, 191670).
+section([4, 12], 'DCG Grammar rules', 191672, 193788).
+section([4, 13], 'Database', 193790, 203150).
+section([4, 13, 1], 'Update view', 200927, 202132).
+section([4, 13, 2], 'Indexing databases', 202134, 203150).
+section([4, 14], 'Declaring predicates properties', 203152, 206693).
+section([4, 15], 'Examining the program', 206695, 215238).
+section([4, 16], 'Input and output', 215240, 232988).
+section([4, 16, 1], 'ISO Input and Output Streams', 215917, 227729).
+section([4, 16, 2], 'Edinburgh-style I/O', 227731, 232114).
+section([4, 16, 3], 'Switching Between Edinburgh and ISO I/O', 232116, 232988).
+section([4, 17], 'Status of streams', 232990, 235877).
+section([4, 18], 'Primitive character I/O', 235879, 242567).
+section([4, 19], 'Term reading and writing', 242569, 255906).
+section([4, 20], 'Analysing and Constructing Terms', 255908, 259614).
+section([4, 21], 'Analysing and Constructing Atoms', 259616, 267372).
+section([4, 22], 'Classifying characters', 267374, 271907).
+section([4, 23], 'Representing text in strings', 271909, 275653).
+section([4, 24], 'Operators', 275655, 279721).
+section([4, 25], 'Character Conversion', 279723, 280642).
+section([4, 26], 'Arithmetic', 280644, 284378).
+section([4, 27], 'Arithmetic Functions', 284380, 292420).
+section([4, 28], 'Adding Arithmetic Functions', 292422, 294293).
+section([4, 29], 'List Manipulation', 294295, 297768).
+section([4, 30], 'Set Manipulation', 297770, 299525).
+section([4, 31], 'Sorting Lists', 299527, 301388).
+section([4, 32], 'Finding all Solutions to a Goal', 301390, 303270).
+section([4, 33], 'Invoking Predicates on all Members of a List', 303272, 304548).
+section([4, 34], 'Forall', 304550, 304992).
+section([4, 35], 'Formatted Write', 304994, 316593).
+section([4, 35, 1], 'Writef', 305540, 309365).
+section([4, 35, 2], 'Format', 309367, 314921).
+section([4, 35, 3], 'Programming Format', 314923, 316593).
+section([4, 36], 'Terminal Control', 316595, 318957).
+section([4, 37], 'Operating System Interaction', 318959, 328227).
+section([4, 37, 1], 'Dealing with time and date', 324816, 326714).
+section([4, 37, 2], 'Handling the menu in programPLWIN.EXE', 326716, 328227).
+section([4, 38], 'File System Interaction', 328229, 338029).
+section([4, 39], 'Multi-threading (alpha code)', 338031, 354900).
+section([4, 39, 1], 'Thread communication', 345554, 348605).
+section([4, 39, 2], 'Thread synchronisation', 348607, 353221).
+section([4, 39, 3], 'Thread-support library(threadutil)', 353223, 354589).
+section([4, 39, 4], 'Status of the thread implementation', 354591, 354900).
+section([4, 40], 'User Toplevel Manipulation', 354902, 358690).
+section([4, 41], 'Creating a Protocol of the User Interaction', 358692, 359698).
+section([4, 42], 'Debugging and Tracing Programs', 359700, 366470).
+section([4, 43], 'Obtaining Runtime Statistics', 366472, 371746).
+section([4, 44], 'Finding Performance Bottlenecks', 371748, 375597).
+section([4, 45], 'Memory Management', 375599, 378667).
+section([4, 46], 'Windows DDE interface', 378669, 384371).
+section([4, 46, 1], 'DDE client interface', 379067, 381717).
+section([4, 46, 2], 'DDE server mode', 381719, 384371).
+section([4, 47], 'Miscellaneous', 384373, 387035).
+section([5], 'USING MODULES', 387037, 411078).
+section([5, 1], 'Why Using Modules?', 387108, 388338).
+section([5, 2], 'Name-based versus Predicate-based Modules', 388340, 390928).
+section([5, 3], 'Defining a Module', 390930, 391558).
+section([5, 4], 'Importing Predicates into a Module', 391560, 395292).
+section([5, 4, 1], 'Reserved Modules', 394509, 395292).
+section([5, 5], 'Using the Module System', 395294, 398909).
+section([5, 5, 1], 'Object Oriented Programming', 397280, 398909).
+section([5, 6], 'Meta-Predicates in Modules', 398911, 402928).
+section([5, 6, 1], 'Definition and Context Module', 399997, 401586).
+section([5, 6, 2], 'Overruling Module Boundaries', 401588, 402928).
+section([5, 7], 'Dynamic Modules', 402930, 404366).
+section([5, 8], 'Module Handling Predicates', 404368, 407633).
+section([5, 9], 'Compatibility of the Module System', 407635, 411078).
+section([5, 9, 1], 'Emulating meta_predicate/1', 410139, 411078).
+section([6], 'FOREIGN LANGUAGE INTERFACE', 411080, 536906).
+section([6, 1], 'Overview of the Interface', 412126, 412974).
+section([6, 2], 'Linking Foreign Modules', 412976, 414900).
+section([6, 2, 1], 'What linking is provided?', 413545, 414037).
+section([6, 2, 2], 'What kind of loading should I be using?', 414039, 414900).
+section([6, 3], 'Dynamic Linking of shared libraries', 414902, 417263).
+section([6, 4], 'Using the library shlib for .DLL and .so files', 417265, 422540).
+section([6, 4, 1], 'Static Linking', 420539, 422540).
+section([6, 5], 'Interface Data types', 422542, 430455).
+section([6, 5, 1], 'Type term_t:  a reference to a Prolog term', 422612, 428463).
+section([6, 5, 1, 1], 'Interaction with the garbage collector and stack-shifter', 427675, 428463).
+section([6, 5, 2], 'Other foreign interface types', 428465, 430455).
+section([6, 6], 'The Foreign Include File', 430457, 523986).
+section([6, 6, 1], 'Argument Passing and Control', 430537, 436100).
+section([6, 6, 1, 1], 'Non-deterministic Foreign Predicates', 431302, 436100).
+section([6, 6, 2], 'Atoms and functors', 436102, 439172).
+section([6, 6, 2, 1], 'Atoms and atom-garbage collection', 437667, 439172).
+section([6, 6, 3], 'Analysing Terms via the Foreign Interface', 439174, 455701).
+section([6, 6, 3, 1], 'Testing the type of a term', 439927, 443282).
+section([6, 6, 3, 2], 'Reading data from a term', 443284, 450253).
+section([6, 6, 3, 3], 'Exchanging text using length and string', 450255, 453189).
+section([6, 6, 3, 4], 'Reading a list', 453191, 454499).
+section([6, 6, 3, 5], 'An example:  defining write/1 in C', 454501, 455701).
+section([6, 6, 4], 'Constructing Terms', 455703, 461457).
+section([6, 6, 5], 'Unifying data', 461459, 472484).
+section([6, 6, 6], 'Calling Prolog from C', 472486, 479494).
+section([6, 6, 6, 1], 'Predicate references', 473170, 474694).
+section([6, 6, 6, 2], 'Initiating a query from C', 474696, 479494).
+section([6, 6, 7], 'Discarding Data', 479496, 481803).
+section([6, 6, 8], 'Foreign Code and Modules', 481805, 483505).
+section([6, 6, 9], 'Prolog exceptions in foreign code', 483507, 487720).
+section([6, 6, 10], 'Foreign code and Prolog threads', 487722, 491188).
+section([6, 6, 11], 'Miscellaneous', 491190, 496035).
+section([6, 6, 11, 1], 'Term Comparison', 491252, 491744).
+section([6, 6, 11, 2], 'Recorded database', 491746, 496035).
+section([6, 6, 12], 'Catching Signals (Software Interrupts)', 496037, 499219).
+section([6, 6, 13], 'Errors and warnings', 499221, 499890).
+section([6, 6, 14], 'Environment Control from Foreign Code', 499892, 502730).
+section([6, 6, 15], 'Querying Prolog', 502732, 504358).
+section([6, 6, 16], 'Registering Foreign Predicates', 504360, 507466).
+section([6, 6, 17], 'Foreign Code Hooks', 507468, 510423).
+section([6, 6, 18], 'Storing foreign data', 510425, 519020).
+section([6, 6, 18, 1], 'Examples for storing foreign data', 513933, 519020).
+section([6, 6, 19], 'Embedding SWI-Prolog in a C-program', 519022, 523986).
+section([6, 7], 'Linking embedded applications using plld', 523988, 530379).
+section([6, 7, 1], 'A simple example', 528709, 530379).
+section([6, 8], 'The Prolog `home'' directory', 530381, 531857).
+section([6, 9], 'Example of Using the Foreign Interface', 531859, 533335).
+section([6, 10], 'Notes on Using Foreign Code', 533337, 536906).
+section([6, 10, 1], 'Memory Allocation', 533427, 533757).
+section([6, 10, 2], 'Debugging Foreign Code', 533759, 534625).
+section([6, 10, 3], 'Name Conflicts in C modules', 534627, 535498).
+section([6, 10, 4], 'Compatibility of the Foreign Interface', 535500, 536906).
+section([7], 'GENERATING RUNTIME APPLICATIONS', 536908, 557538).
+section([7, 1], 'Limitations of qsave_program', 544122, 544920).
+section([7, 2], 'Runtimes and Foreign Code', 544922, 547330).
+section([7, 3], 'Using program resources', 547332, 553000).
+section([7, 3, 1], 'Predicates Definitions', 549029, 552042).
+section([7, 3, 2], 'The plrc program', 552044, 553000).
+section([7, 4], 'Finding Application files', 553002, 554862).
+section([7, 4, 1], 'Passing a path to the application', 554279, 554862).
+section([7, 5], 'The Runtime Environment', 554864, 557538).
+section([7, 5, 1], 'The Runtime Emulator', 554943, 557538).
+section([8], 'THE SWI-PROLOG LIBRARY', 557540, 573688).
+section([8, 1], 'library(check):  Elementary completeness checks', 558994, 560880).
+section([8, 2], 'library(readutil):  Reading lines, streams and files', 560882, 563821).
+section([8, 3], 'library(netscape):  Activating your Web-browser', 563823, 564930).
+section([8, 4], 'library(registry):  Manipulating the Windows registry', 564932, 568881).
+section([8, 5], 'library(url):  Analysing and constructing URL', 568883, 573688).
+section([9], 'HACKERS CORNER', 573690, 588457).
+section([9, 1], 'Examining the Environment Stack', 574181, 577772).
+section([9, 2], 'Intercepting the Tracer', 577774, 582092).
+section([9, 3], 'Hooks using the exception/3 predicate', 582094, 584185).
+section([9, 4], 'Hooks for integrating libraries', 584187, 586995).
+section([9, 5], 'Hooks for loading files', 586997, 587734).
+section([9, 6], 'Readline Interaction', 587736, 588457).
+section([10], 'GLOSSARY OF TERMS', 588459, 601353).
+section([11], 'SWI-PROLOG LICENSE CONDITIONS AND TOOLS', 601355, 609789).
+section([11, 1], 'The SWI-Prolog kernel and foreign libraries', 602843, 605343).
+section([11, 1, 1], 'The SWI-Prolog Prolog libraries', 603662, 605343).
+section([11, 2], 'Contributing to the SWI-Prolog project', 605345, 605911).
+section([11, 3], 'Software support to keep track of license conditions', 605913, 609789).
+section([12], 'SUMMARY', 609791, 645409).
+section([12, 1], 'Predicates', 609849, 639177).
+section([12, 2], 'Library predicates', 639179, 640715).
+section([12, 2, 1], 'library(check)', 639248, 639509).
+section([12, 2, 2], 'library(readutil)', 639511, 639862).
+section([12, 2, 3], 'library(netscape)', 639864, 639966).
+section([12, 2, 4], 'library(registry)', 639968, 640421).
+section([12, 2, 5], 'library(url)', 640423, 640715).
+section([12, 3], 'Arithmetic Functions', 640717, 642804).
+section([12, 4], 'Operators', 642806, 645409).
+section([13], 'Bibliography', 645411, 679978).
 
 
 %   Predicate function/3
 
-function('PL_new_term_ref', 425060, 425433).
-function('PL_new_term_refs', 425436, 425995).
-function('PL_copy_term_ref', 425998, 426295).
-function('PL_reset_term_refs', 426298, 426978).
-function('PL_succeed', 430350, 430470).
-function('PL_fail', 430473, 430605).
-function('PL_retry', 432911, 433370).
-function('PL_retry_address', 433373, 433588).
-function('PL_foreign_control', 433591, 433956).
-function('PL_foreign_context', 433959, 434324).
-function('PL_foreign_context_address', 434327, 435405).
-function('PL_new_atom', 435562, 435821).
-function('PL_atom_chars', 435824, 436397).
-function('PL_new_functor', 436400, 436686).
-function('PL_functor_name', 436689, 436838).
-function('PL_functor_arity', 436841, 436970).
-function('PL_register_atom', 437615, 437875).
-function('PL_unregister_atom', 437878, 438477).
-function('PL_term_type', 439327, 441156).
-function('PL_is_variable', 441159, 441278).
-function('PL_is_atom', 441281, 441385).
-function('PL_is_string', 441388, 441499).
-function('PL_is_integer', 441502, 441618).
-function('PL_is_float', 441621, 441728).
-function('PL_is_compound', 441731, 441855).
-function('PL_is_functor', 441858, 442171).
-function('PL_is_list', 442174, 442323).
-function('PL_is_atomic', 442326, 442462).
-function('PL_is_number', 442465, 442587).
-function('PL_get_atom', 442878, 443397).
-function('PL_get_atom_chars', 443400, 443798).
-function('PL_get_string_chars', 443801, 444305).
-function('PL_get_chars', 444308, 446564).
-function('PL_get_list_chars', 446567, 446867).
-function('PL_get_integer', 446870, 447162).
-function('PL_get_long', 447165, 447488).
-function('PL_get_pointer', 447491, 447937).
-function('PL_get_float', 447940, 448103).
-function('PL_get_functor', 448106, 448413).
-function('PL_get_name_arity', 448416, 448756).
-function('PL_get_module', 448759, 449027).
-function('PL_get_arg', 449030, 449279).
-function('_PL_get_arg', 449282, 449558).
-function('PL_get_atom_nchars', 450070, 450227).
-function('PL_get_list_nchars', 450230, 450387).
-function('PL_get_nchars', 450390, 450586).
-function('PL_put_atom_nchars', 450589, 450759).
-function('PL_put_string_nchars', 450762, 450938).
-function('PL_put_list_ncodes', 450941, 451111).
-function('PL_put_list_nchars', 451114, 451284).
-function('PL_unify_atom_nchars', 451287, 451463).
-function('PL_unify_string_nchars', 451466, 451648).
-function('PL_unify_list_ncodes', 451651, 451827).
-function('PL_unify_list_nchars', 451830, 452098).
-function('PL_new_atom_nchars', 452101, 452320).
-function('PL_atom_nchars', 452323, 452494).
-function('PL_get_list', 453124, 453352).
-function('PL_get_head', 453355, 453525).
-function('PL_get_tail', 453528, 453698).
-function('PL_get_nil', 453701, 453804).
-function('PL_put_variable', 455613, 455971).
-function('PL_put_atom', 455974, 456178).
-function('PL_put_atom_chars', 456181, 456481).
-function('PL_put_string_chars', 456484, 456747).
-function('PL_put_string_nchars', 456750, 457147).
-function('PL_put_list_chars', 457150, 457339).
-function('PL_put_integer', 457342, 457485).
-function('PL_put_pointer', 457488, 457730).
-function('PL_put_float', 457733, 457882).
-function('PL_put_functor', 457885, 458301).
-function('PL_put_list', 458304, 458502).
-function('PL_put_nil', 458505, 458613).
-function('PL_put_term', 458616, 458767).
-function('PL_cons_functor', 458770, 459611).
-function('PL_cons_functor_v', 459614, 459999).
-function('PL_cons_list', 460002, 460762).
-function('PL_unify', 461806, 461956).
-function('PL_unify_atom', 461959, 462120).
-function('PL_unify_atom_chars', 462123, 462361).
-function('PL_unify_list_chars', 462364, 462584).
-function('PL_unify_string_chars', 462587, 462922).
-function('PL_unify_string_nchars', 462925, 463381).
-function('PL_unify_integer', 463384, 463530).
-function('PL_unify_float', 463533, 463677).
-function('PL_unify_pointer', 463680, 463907).
-function('PL_unify_functor', 463910, 464272).
-function('PL_unify_list', 464275, 465550).
-function('PL_unify_nil', 465553, 465653).
-function('PL_unify_arg', 465656, 465859).
-function('PL_unify_term', 465862, 470136).
-function('PL_chars_to_term', 470139, 471136).
-function('PL_quote', 471139, 471789).
-function('PL_pred', 472826, 473126).
-function('PL_predicate', 473129, 473411).
-function('PL_predicate_info', 473414, 473999).
-function('PL_open_query', 474668, 477198).
-function('PL_next_solution', 477201, 477559).
-function('PL_cut_query', 477562, 477804).
-function('PL_close_query', 477807, 477959).
-function('PL_call_predicate', 477962, 478381).
-function('PL_call', 478384, 478799).
-function('PL_open_foreign_frame', 479216, 479595).
-function('PL_close_foreign_frame', 479598, 479911).
-function('PL_discard_foreign_frame', 479914, 480138).
-function('PL_rewind_foreign_frame', 480141, 481108).
-function('PL_context', 481318, 481463).
-function('PL_strip_module', 481466, 482496).
-function('PL_module_name', 482499, 482629).
-function('PL_new_module', 482632, 482810).
-function('PL_raise_exception', 485785, 486459).
-function('PL_throw', 486462, 486663).
-function('PL_exception', 486666, 487025).
-function('PL_thread_self', 488438, 488722).
-function('PL_thread_attach_engine', 488725, 489728).
-function('PL_thread_destroy_engine', 489731, 490493).
-function('PL_compare', 490630, 490831).
-function('PL_same_compound', 490834, 491049).
-function('PL_record', 491887, 492217).
-function('PL_recorded', 492220, 492520).
-function('PL_erase', 492523, 494115).
-function('PL_record_external', 494118, 494785).
-function('PL_recorded_external', 494788, 495139).
-function('PL_erase_external', 495142, 495340).
-function('PL_signal', 496311, 497870).
-function('PL_handle_signals', 497873, 498524).
-function('PL_warning', 498836, 499195).
-function('PL_action', 499324, 502035).
-function('PL_query', 502104, 503663).
-function('PL_register_foreign', 503775, 505103).
-function('PL_load_extensions', 505106, 505795).
-function('PL_register_extensions', 505798, 506771).
-function('PL_dispatch_hook', 506906, 507524).
-function('PL_abort_hook', 507527, 507999).
-function('PL_abort_unhook', 508002, 508212).
-function('PL_on_halt', 508215, 508677).
-function('PL_agc_hook', 508680, 509728).
-function('PL_initialise', 519348, 521515).
-function('PL_is_initialised', 521518, 521972).
-function('PL_install_readline', 521975, 522233).
-function('PL_toplevel', 522236, 522391).
-function('PL_cleanup', 522394, 523128).
-function('PL_halt', 523131, 523291).
-function('PL_license', 608804, 609094).
+function('PL_new_term_ref', 425754, 426127).
+function('PL_new_term_refs', 426130, 426689).
+function('PL_copy_term_ref', 426692, 426989).
+function('PL_reset_term_refs', 426992, 427672).
+function('PL_succeed', 431044, 431164).
+function('PL_fail', 431167, 431299).
+function('PL_retry', 433605, 434064).
+function('PL_retry_address', 434067, 434282).
+function('PL_foreign_control', 434285, 434650).
+function('PL_foreign_context', 434653, 435018).
+function('PL_foreign_context_address', 435021, 436099).
+function('PL_new_atom', 436256, 436515).
+function('PL_atom_chars', 436518, 437091).
+function('PL_new_functor', 437094, 437380).
+function('PL_functor_name', 437383, 437532).
+function('PL_functor_arity', 437535, 437664).
+function('PL_register_atom', 438309, 438569).
+function('PL_unregister_atom', 438572, 439171).
+function('PL_term_type', 440021, 441850).
+function('PL_is_variable', 441853, 441972).
+function('PL_is_atom', 441975, 442079).
+function('PL_is_string', 442082, 442193).
+function('PL_is_integer', 442196, 442312).
+function('PL_is_float', 442315, 442422).
+function('PL_is_compound', 442425, 442549).
+function('PL_is_functor', 442552, 442865).
+function('PL_is_list', 442868, 443017).
+function('PL_is_atomic', 443020, 443156).
+function('PL_is_number', 443159, 443281).
+function('PL_get_atom', 443572, 444091).
+function('PL_get_atom_chars', 444094, 444492).
+function('PL_get_string_chars', 444495, 444999).
+function('PL_get_chars', 445002, 447258).
+function('PL_get_list_chars', 447261, 447561).
+function('PL_get_integer', 447564, 447856).
+function('PL_get_long', 447859, 448182).
+function('PL_get_pointer', 448185, 448631).
+function('PL_get_float', 448634, 448797).
+function('PL_get_functor', 448800, 449107).
+function('PL_get_name_arity', 449110, 449450).
+function('PL_get_module', 449453, 449721).
+function('PL_get_arg', 449724, 449973).
+function('_PL_get_arg', 449976, 450252).
+function('PL_get_atom_nchars', 450764, 450921).
+function('PL_get_list_nchars', 450924, 451081).
+function('PL_get_nchars', 451084, 451280).
+function('PL_put_atom_nchars', 451283, 451453).
+function('PL_put_string_nchars', 451456, 451632).
+function('PL_put_list_ncodes', 451635, 451805).
+function('PL_put_list_nchars', 451808, 451978).
+function('PL_unify_atom_nchars', 451981, 452157).
+function('PL_unify_string_nchars', 452160, 452342).
+function('PL_unify_list_ncodes', 452345, 452521).
+function('PL_unify_list_nchars', 452524, 452792).
+function('PL_new_atom_nchars', 452795, 453014).
+function('PL_atom_nchars', 453017, 453188).
+function('PL_get_list', 453818, 454046).
+function('PL_get_head', 454049, 454219).
+function('PL_get_tail', 454222, 454392).
+function('PL_get_nil', 454395, 454498).
+function('PL_put_variable', 456307, 456665).
+function('PL_put_atom', 456668, 456872).
+function('PL_put_atom_chars', 456875, 457175).
+function('PL_put_string_chars', 457178, 457441).
+function('PL_put_string_nchars', 457444, 457841).
+function('PL_put_list_chars', 457844, 458033).
+function('PL_put_integer', 458036, 458179).
+function('PL_put_pointer', 458182, 458424).
+function('PL_put_float', 458427, 458576).
+function('PL_put_functor', 458579, 458995).
+function('PL_put_list', 458998, 459196).
+function('PL_put_nil', 459199, 459307).
+function('PL_put_term', 459310, 459461).
+function('PL_cons_functor', 459464, 460305).
+function('PL_cons_functor_v', 460308, 460693).
+function('PL_cons_list', 460696, 461456).
+function('PL_unify', 462500, 462650).
+function('PL_unify_atom', 462653, 462814).
+function('PL_unify_atom_chars', 462817, 463055).
+function('PL_unify_list_chars', 463058, 463278).
+function('PL_unify_string_chars', 463281, 463616).
+function('PL_unify_string_nchars', 463619, 464075).
+function('PL_unify_integer', 464078, 464224).
+function('PL_unify_float', 464227, 464371).
+function('PL_unify_pointer', 464374, 464601).
+function('PL_unify_functor', 464604, 464966).
+function('PL_unify_list', 464969, 466244).
+function('PL_unify_nil', 466247, 466347).
+function('PL_unify_arg', 466350, 466553).
+function('PL_unify_term', 466556, 470830).
+function('PL_chars_to_term', 470833, 471830).
+function('PL_quote', 471833, 472483).
+function('PL_pred', 473520, 473820).
+function('PL_predicate', 473823, 474105).
+function('PL_predicate_info', 474108, 474693).
+function('PL_open_query', 475362, 477892).
+function('PL_next_solution', 477895, 478253).
+function('PL_cut_query', 478256, 478498).
+function('PL_close_query', 478501, 478653).
+function('PL_call_predicate', 478656, 479075).
+function('PL_call', 479078, 479493).
+function('PL_open_foreign_frame', 479910, 480289).
+function('PL_close_foreign_frame', 480292, 480605).
+function('PL_discard_foreign_frame', 480608, 480832).
+function('PL_rewind_foreign_frame', 480835, 481802).
+function('PL_context', 482012, 482157).
+function('PL_strip_module', 482160, 483190).
+function('PL_module_name', 483193, 483323).
+function('PL_new_module', 483326, 483504).
+function('PL_raise_exception', 486479, 487153).
+function('PL_throw', 487156, 487357).
+function('PL_exception', 487360, 487719).
+function('PL_thread_self', 489132, 489416).
+function('PL_thread_attach_engine', 489419, 490422).
+function('PL_thread_destroy_engine', 490425, 491187).
+function('PL_compare', 491324, 491525).
+function('PL_same_compound', 491528, 491743).
+function('PL_record', 492581, 492911).
+function('PL_recorded', 492914, 493214).
+function('PL_erase', 493217, 494809).
+function('PL_record_external', 494812, 495479).
+function('PL_recorded_external', 495482, 495833).
+function('PL_erase_external', 495836, 496034).
+function('PL_signal', 497005, 498564).
+function('PL_handle_signals', 498567, 499218).
+function('PL_warning', 499530, 499889).
+function('PL_action', 500018, 502729).
+function('PL_query', 502798, 504357).
+function('PL_register_foreign', 504469, 505797).
+function('PL_load_extensions', 505800, 506489).
+function('PL_register_extensions', 506492, 507465).
+function('PL_dispatch_hook', 507600, 508218).
+function('PL_abort_hook', 508221, 508693).
+function('PL_abort_unhook', 508696, 508906).
+function('PL_on_halt', 508909, 509371).
+function('PL_agc_hook', 509374, 510422).
+function('PL_initialise', 520042, 522209).
+function('PL_is_initialised', 522212, 522666).
+function('PL_install_readline', 522669, 522927).
+function('PL_toplevel', 522930, 523085).
+function('PL_cleanup', 523088, 523822).
+function('PL_halt', 523825, 523985).
+function('PL_license', 609498, 609788).
 
 
