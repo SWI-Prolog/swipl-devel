@@ -2039,7 +2039,8 @@ void
 reindexDefinition(Definition def)
 { ClauseRef cref;
   int do_hash = 0;
-  unsigned long pattern;
+  int canindex = 0;
+  int cannotindex = 0;
 
   assert(def->references == 1 || !def->hash_info);
 
@@ -2049,25 +2050,25 @@ reindexDefinition(Definition def)
 	     Sdprintf("reindexDefinition(%s)\n", procedureName(proc));
 	   });
 
-  if ( true(def, AUTOINDEX) )
-  { int canindex = 0;
-    int cannotindex = 0;
-    
-    enterDefinition(def);
-    for(cref = def->definition.clauses; cref; cref = cref->next)
-    { word key;
+  enterDefinition(def);
+  def->indexPattern &= ~NEED_REINDEX;
 
+  if ( true(def, AUTOINDEX) || def->indexPattern == 0x1 )
+  { for(cref = def->definition.clauses; cref; cref = cref->next)
+    { word key;
+      
       if ( true(cref->clause, ERASED) )
 	continue;
-
+    
       if ( arg1Key(cref->clause, &key) )
 	canindex++;
       else
 	cannotindex++;
     }
-    leaveDefinition(def);
+  }
 
-    if ( canindex == 0 )
+  if ( true(def, AUTOINDEX) )
+  { if ( canindex == 0 )
     { DEBUG(2, if ( def->definition.clauses )
 	       { Procedure proc = def->definition.clauses->clause->procedure;
 
@@ -2076,17 +2077,16 @@ reindexDefinition(Definition def)
       def->indexPattern = 0x0;
     } else
     { def->indexPattern = 0x1;
-      if ( canindex > 5 && cannotindex <= 2 )
-	do_hash = canindex / 2;
     }
   }
 
-  enterDefinition(def);
-  pattern = def->indexPattern & ~NEED_REINDEX;
-  def->indexCardinality = cardinalityPattern(pattern);
+  if ( def->indexPattern == 0x1 &&
+       canindex > 5 && cannotindex <= 2 )
+    do_hash = canindex / 2;
+
+  def->indexCardinality = cardinalityPattern(def->indexPattern);
   for(cref = def->definition.clauses; cref; cref = cref->next)
     reindexClause(cref->clause);
-  def->indexPattern = pattern;
   leaveDefinition(def);
 
   if ( do_hash )
