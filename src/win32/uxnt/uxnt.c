@@ -156,7 +156,7 @@ _xos_home()				/* expansion of ~ */
 	strcat(tmp, "\\");
       } else if ( havep )
       { strcpy(tmp, p);
-      } else
+      } else if ( GetWindowsDirectory(tmp, sizeof(tmp)) == 0 )
       { int drv = _getdrive();		/* A=1 */
 
 	home[0] = drv-1+'a';
@@ -164,7 +164,7 @@ _xos_home()				/* expansion of ~ */
       }
 
       _xos_canonical_filename(tmp, home);
-
+#if 0
       if ( !existsAndWriteableDir(tmp) )
       { MessageBox(NULL,
 		   "Could not find suitable folder for storing profile information\n"
@@ -176,6 +176,7 @@ _xos_home()				/* expansion of ~ */
 		   "SWI-Prolog: no home (~)",
 		   MB_ICONWARNING);
       }
+#endif
     }
 
     done = TRUE;

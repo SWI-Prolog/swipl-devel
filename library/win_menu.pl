@@ -36,9 +36,12 @@
 :- op(100, fx, @).
 
 menu('&File',
-     [ '&Consult ...' = action(consult(+file(open, 'Load file into Prolog'))),
-       '&Edit ...'    = action(edit(+file(open, 'Edit existing file'))),
-       '&New ...'     = action(edit_new(+file(save, 'Create new Prolog source'))),
+     [ '&Consult ...' = action(user:consult(+file(open,
+						  'Load file into Prolog'))),
+       '&Edit ...'    = action(user:edit(+file(open,
+					       'Edit existing file'))),
+       '&New ...'     = action(edit_new(+file(save,
+					      'Create new Prolog source'))),
        --,
        '&Reload modified files' = user:make,
        --,
