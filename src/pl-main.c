@@ -562,7 +562,12 @@ runtime_vars()
 	  "PLARCH=\"%s\";\n"
 	  "PLLIBS=\"%s\";\n"
 	  "PLLDFLAGS=\"%s\";\n"
-	  "PLVERSION=\"%d\";\n",
+	  "PLVERSION=\"%d\";\n"
+#if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD)
+	  "PLSHARED=\"yes\";\n",
+#else
+	  "PLSHARED=\"no\";\n",
+#endif
 	  C_CC,
 	  systemDefaults.home ? systemDefaults.home : "<no home>",
 	  ARCH,

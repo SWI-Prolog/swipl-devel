@@ -308,6 +308,7 @@ rt-install:
 		$(INSTALL_DATA) swipl $(RTHOME)/swipl
 		$(INSTALL_DATA) swiplbin $(RTHOME)/bin/swipl
 		$(INSTALL_DATA) $(srcdir)/README.RT $(RTHOME)
+#		-cd $(bindir); rm -f plrt; ln -s $(RTHOME)/bin/$(ARCH)/pl plrt
 
 #
 # Cleanup
