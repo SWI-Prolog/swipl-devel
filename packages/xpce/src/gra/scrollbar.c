@@ -75,6 +75,7 @@ initialiseScrollBar(ScrollBar s, Any obj, Name orientation, Message msg)
     w = ws_default_scrollbar_width();
 
   initialiseGraphical(s, ZERO, ZERO, w, toInt(100));
+  assign(s, cursor, getClassVariableValueObject(s, NAME_cursor));
   assign(s, orientation,   NAME_vertical);
 
   assign(s, view,	   toInt(-1));	/* length of view */
@@ -1500,7 +1501,8 @@ static classvardecl rc_scrollBar[] =
   RC(NAME_width, "[int]", UXWIN("18", "@default"),
      "Width of the scroll_bar"),
   RC(NAME_autoHide, "bool", "@on",
-     "Automatically hide bar if all is shown")
+     "Automatically hide bar if all is shown"),
+  RC(NAME_cursor, "cursor", UXWIN("top_left_arrow", "win_arrow"), NULL)
 };
 
 /* Class Declaration */
