@@ -115,7 +115,7 @@ mp_add_to_form(const char *name, const char *value, int len,
 
 static foreign_t
 pl_cgi_get_form(term_t form)
-{ int len;
+{ int len = 0;
   char *data = get_raw_form_data(&len);
   term_t list = PL_copy_term_ref(form);
   char *ct, *boundary;
