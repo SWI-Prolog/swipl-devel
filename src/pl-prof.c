@@ -820,7 +820,6 @@ prof_call(void *handle, PL_prof_type_t *type ARG_LD)
 { call_node *node = current;
 
   accounting = TRUE;
-  DEBUG(1, Sdprintf("profCall(%s)\n", predicateName(def)));
 
   if ( !node )				/* root-node of the profile */
   { for(node = roots; node; node=node->next)
@@ -922,12 +921,8 @@ profExit(struct call_node *node ARG_LD)
   accounting = TRUE;
   assert(!node || node->magic == PROFNODE_MAGIC);
 
-  DEBUG(1, Sdprintf("profExit(%s)\n",
-		    node ? predicateName(node->def) : "NULL"));
-
   for(n=current; n && n != node; n=n->parent)
-  { DEBUG(1, Sdprintf("\texit %s\n", predicateName(n->def)));
-    n->exits++;
+  { n->exits++;
   }
   accounting = FALSE;
 
@@ -940,8 +935,7 @@ profRedo(struct call_node *node ARG_LD)
 { assert(!node || node->magic == PROFNODE_MAGIC);
 
   if ( node )
-  { DEBUG(1, Sdprintf("profRedo(%s)\n", predicateName(node->def)));
-    node->redos++;
+  { node->redos++;
   }
   current = node;
 }
