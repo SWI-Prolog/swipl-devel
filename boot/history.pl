@@ -242,18 +242,7 @@ substitute_event([^|Spec], RawEvent, Event, Rest) :- !,
 	substitute(Old, New, RawEvent, Event).
 substitute_event(Rest, Event, Event, Rest).
 
-alpha(A) :- atom_char(A, C), between(0'a, 0'z, C).
-alpha(A) :- atom_char(A, C), between(0'A, 0'Z, C).
-alpha('_').
-
-digit(A) :- atom_char(A, C), between(0'0, 0'9, C).
-
-alpha_digit(C) :-
-	alpha(C).
-alpha_digit(C) :-
-	digit(C).
-
-not_event_char(C) :- alpha_digit(C), !, fail.
+not_event_char(C) :- code_type(C, csym), !, fail.
 not_event_char(?) :- !, fail.
 not_event_char(!) :- !, fail.
 not_event_char(_).
@@ -264,7 +253,7 @@ find_event([?|Rest], Event, Left) :- !,
 find_event([!|Left], Event, Left) :- !, 
 	get_last_event(Event).
 find_event([N|Rest], Event, Left) :-
-	digit(N), !, 
+	code_type(N, digit), !, 
 	take_number([N|Rest], String, Left), 
 	number_codes(Number, String), 
 	recorded($history_list, Number/Atom), 
@@ -274,13 +263,13 @@ find_event(Spec, Event, Left) :-
 	matching_event(prefix, String, Event).
 
 take_string([C|Rest], [C|String], Left) :-
-	alpha_digit(C), !, 
+	code_type(C, csym), !, 
 	take_string(Rest, String, Left).
 take_string([C|Rest], [], [C|Rest]) :- !.	
 take_string([], [], []).
 	
 take_number([C|Rest], [C|String], Left) :-
-	digit(C), !, 
+	code_type(C, digit), !, 
 	take_string(Rest, String, Left).
 take_number([C|Rest], [], [C|Rest]) :- !.	
 take_number([], [], []).
