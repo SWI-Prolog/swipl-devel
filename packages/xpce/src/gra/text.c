@@ -1728,6 +1728,8 @@ static getdecl get_text[] =
      NAME_calculate, "Convert index to position of character"),
   GM(NAME_column, 0, "pixels=int", NULL, getColumnText,
      NAME_caret, "Current X-location of caret (pixels)"),
+  GM(NAME_upDownColumn, 0, "pixels=int", NULL, getColumnText,
+     NAME_caret, "Current X-location of caret (pixels)"),
   GM(NAME_transparent, 0, "bool", NULL, getTransparentText,
      NAME_compatibility, "Map <-background"),
   GM(NAME_pointed, 1, "index=int", "at=point", getPointedText,
