@@ -1121,6 +1121,34 @@ getTailChain(Chain ch)
 }
 
 
+static Chain
+getSubChain(Chain ch, Int start, Int end)
+{ int f, t;
+  Chain r = answerObject(classOfObject(ch), 0);
+  int i = 0;
+  Cell cell;
+
+  if ( isDefault(end) )
+    end = ch->size;
+  f = valInt(start);
+  t = valInt(end);
+
+  for_cell(cell, ch)
+  { if ( i>=f )
+    { if ( i >= t )
+	break;
+
+      appendChain(r, cell->value);
+    }
+
+    i++;
+  }
+
+  answer(r);
+}
+
+
+
 static status
 uniqueChain(Chain ch)
 { Cell cell, cell2;
@@ -1437,6 +1465,8 @@ static char *T_swap[] =
         { "value_1=any", "value_2=any" };
 static char *T_sort[] =
 	{ "compare=[code|function]", "unique=[bool]" };
+static char *T_gsub[] =
+        { "start=int", "end=[int]" };
 
 /* Instance Variables */
 
@@ -1584,7 +1614,9 @@ static getdecl get_chain[] =
   GM(NAME_Arg, 1, "any", "index=int", getArgChain,
      NAME_term, "Nth-1 argument for object description"),
   GM(NAME_Arity, 0, "int", NULL, getArityChain,
-     NAME_term, "Number of arguments for object description")
+     NAME_term, "Number of arguments for object description"),
+  GM(NAME_sub, 2, "chain", T_gsub, getSubChain,
+     NAME_list, "Get sub-chain from 0-based start and end")
 };
 
 /* Resources */
