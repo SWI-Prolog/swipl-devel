@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Allow unbound value as default in default/3.
+
+* ADDED: `path<-distance' to compute distance to a point or event.
+
 * ADDED: `menu->insert_before' for easily adding menu items in the middle
   of existing menus.
 

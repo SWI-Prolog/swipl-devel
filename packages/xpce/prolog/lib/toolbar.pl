@@ -75,7 +75,7 @@ variable(orientation, 	{horizontal,vertical},	get,  "Stacking direction").
 variable(client,	object*,		both, "Receiving object").
 
 initialise(BG, Client:[object]*, Orientation:[{horizontal,vertical}]) :->
-	default(C, @nil, Client),
+	default(Client, @nil, C),
 	default(Orientation, horizontal, O),
 	send(BG, send_super, initialise, @default, group),
 	send(BG, slot, client, C),

@@ -824,6 +824,78 @@ getSegmentPath(Path p, Point pos)
 }
 
 
+static Int
+getDistancePath(Path p, Any to)
+{ ComputeGraphical(p);
+
+
+  if ( instanceOfObject(to, ClassEvent) && notNil(p->device) )
+  { to = getPositionEvent((EventObj) to, (Graphical) p->device);
+    minusPoint(to, p->offset);
+  }
+
+  if ( instanceOfObject(to, ClassPoint) )
+  { Point p0 = NIL;
+    Point pt = to;
+    int bestd = PCE_MAX_INT;
+    Chain ch = (p->kind == NAME_smooth ? p->interpolation : p->points);
+    Cell cell;
+    int d0 = 0;				/* keep gcc happy */
+    int tx = valInt(pt->x);
+    int ty = valInt(pt->y);
+
+    if ( ch->size == ZERO )		/* no points */
+      fail;
+    if ( ch->size == ONE )		/* one point? */
+      answer(getDistancePoint(to, getHeadChain(ch)));
+
+    for_cell(cell, ch)
+    { if ( isNil(p0) )
+      { p0 = cell->value;
+	d0 = valInt(getDistancePoint(p0, pt));
+      } else
+      { Point p1 = cell->value;
+	int   d1 = valInt(getDistancePoint(p1, pt));
+	int   dl = distanceLineToPoint(valInt(p0->x), valInt(p0->y),
+				       valInt(p1->x), valInt(p1->y),
+				       tx, ty);
+	int d;
+
+	if ( d0 < d1 )
+	{ if ( dl >= d0 && dl <= d1 )
+	    d = dl;
+	  else
+	    d = d0;
+	} else
+	{ if ( dl >= d1 && dl <= d0 )
+	    d = dl;
+	  else
+	    d = d1;
+	}
+
+	bestd = min(bestd, d);
+	
+	p0 = p1;
+	d0 = d1;
+      }
+    }
+
+    answer(toInt(bestd));
+  } else
+    return getDistanceArea(p->area, ((Graphical)to)->area);
+}
+
+
+
+
+
+
+
+
+		 /*******************************
+		 *	    SAVE/LOAD		*
+		 *******************************/
+
 static status
 initialiseNewSlotPath(Path p, Variable var)
 { if ( var->name == NAME_offset )
@@ -918,6 +990,8 @@ static getdecl get_path[] =
      NAME_event, "Find closest point"),
   GM(NAME_segment, 1, "point", "near=point|event", getSegmentPath,
      NAME_event, "Return start-point of closest line-segment"),
+  GM(NAME_distance, 1, "int", "point|event|graphical", getDistancePath,
+     NAME_compute, "Closest distance to line"),
   GM(NAME_radiusOrInterval, 0, "int", NULL, getRadiusOrIntervalPath,
      NAME_term, "Radius (`poly') or intervals (`smooth')"),
   GM(NAME_end, 0, "point", NULL, getEndPath,

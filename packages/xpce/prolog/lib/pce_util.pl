@@ -249,18 +249,16 @@ to_object(Term, Obj) :-
 %
 %	Get the default value for an argument.
 
-default(@default, class_variable(Obj, Name), Value) :- !, 
-	(   get(Obj, class_variable_value, Name, Value)
-	->  true
-	;   pce_error(get_class_variable_failed(Name, Obj)),
-	    fail
+default(@default, Default, Value) :- !,
+	(   var(Default)
+	->  Value = Default
+	;   (   Default = class_variable(Obj, Name)
+	    ;	Default = resource(Obj, Name)
+	    )
+	->  (   get(Obj, class_variable_value, Name, Value)
+	    ->	true
+	    ;	pce_error(get_class_variable_failed(Name, Obj))
+	    )
+	;   Value = Default
 	).
-default(@default, resource(Obj, Name), Value) :- !, 
-	pce_warn(compatibility(resource)),
-	(   get(Obj, class_variable_value, Name, Value)
-	->  true
-	;   pce_error(get_resource_failed(Name, Obj)),
-	    fail
-	).
-default(@default, Default, Default) :- !.
-default(Value,    _Default, Value).
+default(Value, _Default, Value).
