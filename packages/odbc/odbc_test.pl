@@ -293,7 +293,7 @@ mark(mary,  7).
 make_mark_table :-
 	open_db,
 	delete_statements,
-	odbc_query(test, 'drop table if exists marks'),
+	catch(odbc_query(test, 'drop table marks'), _, true),
 	odbc_query(test, 'create table marks (name char(25), mark integer)'),
 	odbc_prepare(test,
 		     'insert into marks (name,mark) values (?,?)',
