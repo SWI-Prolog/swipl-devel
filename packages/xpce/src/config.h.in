@@ -166,6 +166,9 @@
 /* Define if you have the setsid function.  */
 #undef HAVE_SETSID
 
+/* Define if you have the shutdown function.  */
+#undef HAVE_SHUTDOWN
+
 /* Define if you have the sigaction function.  */
 #undef HAVE_SIGACTION
 

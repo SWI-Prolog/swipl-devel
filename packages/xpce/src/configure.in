@@ -484,6 +484,7 @@ AC_CHECK_FUNCS(vsscanf on_exit memmove select popen strerror timelocal)
 AC_CHECK_FUNCS(getdtablesize socket fork ftime getpid select getlogin)
 AC_CHECK_FUNCS(getcwd setsid grantpt gethostname fstat gettimeofday)
 AC_CHECK_FUNCS(rename atexit on_exit tmpnam sysinfo sigaction getpwnam)
+AC_CHECK_FUNCS(shutdown)
 AC_HEADER_TIME
 AC_HEADER_DIRENT
 AC_C_CHAR_UNSIGNED
