@@ -496,6 +496,7 @@ pl_pce_dispatch(term_t options)
   pceExistsAssoc(cToPceName("display_manager"));
 #endif
 
+#ifdef _REENTRANT
   if ( context.owner > 0 )		/* threaded environment */
   { pthread_t tid;
     pthread_attr_t attr;
@@ -505,6 +506,7 @@ pl_pce_dispatch(term_t options)
 
     pthread_create(&tid, &attr, dispatch_thread_function, &context);
   } else
+#endif
   { dispatch(&context);
   }
 

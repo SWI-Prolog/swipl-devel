@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 5.1.2 (Nov 27, 2002)
+============================
+
   * ADDED: turning thread message queues into explicit objects.
 
   * IMPL: Cleanup of thread-message queue, preparing for stand-alone

@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+
+VERSION 6.1.3, distributed with SWI-Prolog 5.1.3
+================================================
+
 * FIXED: `file<-read_line' to fail on end-of-file as advertised (but
   no longer working after a recent patch to this code to deal with
   unlimited-length lines).

@@ -35,10 +35,11 @@ CONFIG=		../../$(builddir)/config.h
 
 CPLIFLAGS=	-I$(PLINCL) -I../../$(builddir) -I../../src
 PL=     	pl
+PLLD=		plld -pl $(PL)
 ITFOBJ= 	$(addprefix $(OBJDIR)/, interface.o link.o)
 ITFSRC=		interface.c table.c dispatch.c
 SOITF=		$(OBJDIR)/so-interface.o
-OBJ=		$(ITFOBJ) -L$(PLRUNTIME) -lplmt
+OBJ=		$(ITFOBJ)
 XPCE=		$(BINDIR)/xpce
 QLF=    	$(BINDIR)/xpce.qlf
 #XLIBS=		-lXt -lX11
@@ -84,7 +85,7 @@ $(OBJDIR)/link.o:	link.c
 ################################################################
 
 $(XPCE):	$(ITFOBJ) $(libXPCE)
-		$(CC) $(LDFLAGS) $(COFLAGS) -o $@ $(OBJ) -L$(LIBDIR) -lXPCE $(LIBS)
+		$(PLLD) $(LDFLAGS) $(COFLAGS) -o $@ $(ITFOBJ) -L$(LIBDIR) -lXPCE $(LIBS)
 		echo $(PLBASE) > ../../swipl
 
 $(QLF):		$(XPCE)
@@ -113,12 +114,12 @@ $(XPCESO):	$(SOITF) $(libXPCE) $(SOEXTR)
 sopce$(XPCESO):
 		LD_RUN_PATH="$(libdir):$$LD_RUN_PATH"; \
 		export LD_RUN_PATH; \
-		$(LD) $(LDSOFLAGS) $(SOITF) -L$(LIBDIR) -lXPCE -o $(XPCESO);
+		$(PLLD) -shared $(SOITF) -L$(XLIB) -L$(LIBDIR) -lXPCE -o $(XPCESO);
 axpce$(XPCESO):
 		LD_RUN_PATH="$(libdir):$$LD_RUN_PATH"; \
 		export LD_RUN_PATH; \
-		$(LD) $(LDSOFLAGS) $(SOITF) $(SOEXTR) -L$(LIBDIR) \
-		-lXPCE $(GCCLIB) $(XLIBS) $(NETLIBS) -o $(XPCESO);
+		$(PLLD) -shared $(SOITF) $(SOEXTR) -L$(LIBDIR) \
+		-lXPCE $(GCCLIB) -L$(XLIB) $(XLIBS) $(NETLIBS) -o $(XPCESO);
 
 ################################################################$
 # QLF generation
