@@ -1698,22 +1698,53 @@ PL_unify_nil(term_t l)
   return unifyAtomic(l, ATOM_nil PASS_LD);
 }
 
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Fixed by Franklin Chen <chen@adi.com> to   compile on MkLinux, where you
-cannot assign to va_list as it is an array. Thanks!
+PL_unify_termv(term_t t, va_list args)
+
+This is really complicated. There appears to be no portable way to write
+a recursive function using va_list as   argument, each call pulling some
+arguments from the list, as va_list can  be any type, including an array
+of dynamic unspecified size. So, our only   option is to avoid recursion
+and do everything by hand. Luckily  I   was  raised in the days Dijkstra
+couldn't cope with recursion and explained you could always translate it
+into normal loops :-)
+
+Best implementation for the agenda would   be alloca(), but alloca() has
+several portability problems of its own, so we will go for using buffers
+as defined in pl-buffer.h.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-typedef struct va_list_rec {
-  va_list v;
-} va_list_rec;
+typedef struct
+{ enum
+  { w_term,				/* Agenda is a term */
+    w_list				/* agenda is a list */
+  } type;
+  union
+  { struct
+    { term_t term;			/* term for which to do work on */
+      int    arity;			/* arity of the term */
+      int    arg;			/* current argument */
+    } term;
+    struct
+    { term_t tail;			/* tail of list */
+      int    len;			/* elements left */
+    } list;
+  } value;
+} work;
 
-#define args argsRec.v
 
-static int
-unify_termVP(term_t t, va_list_rec *argsRecP)
-{ va_list_rec argsRec = *argsRecP;
+int
+PL_unify_termv(term_t t, va_list args)
+{ term_t tsave = PL_new_term_refs(0);	/* save for reclaim */
+  tmp_buffer buf;
+  int tos = 0;				/* Top-of-stack */
   int rval;
 
+  t = PL_copy_term_ref(t);
+  initBuffer(&buf);
+  
+cont:
   switch(va_arg(args, int))
   { case PL_VARIABLE:
       rval = TRUE;
@@ -1750,53 +1781,37 @@ unify_termVP(term_t t, va_list_rec *argsRecP)
       goto common_f;
     }
     case PL_FUNCTOR:
-    { term_t tmp;
-      int n;
+    { work w;
 
       ft = va_arg(args, functor_t);
       arity = arityFunctor(ft);
 
     common_f:
       if ( !PL_unify_functor(t, ft) )
-      { rval = FALSE;
-	break;
-      }
+	goto failout;
 
-      tmp = PL_new_term_ref();
-      for(n=1; n<=arity; n++)
-      {	_PL_get_arg(n, t, tmp);
-	
-	rval = unify_termVP(tmp, &argsRec);
-	if ( !rval )
-	  goto failout;
-      }
+      w.type  = w_term;
+      w.value.term.term  = PL_copy_term_ref(t);
+      w.value.term.arg   = 0;
+      w.value.term.arity = arity;
+      addBuffer(&buf, w, work);
+      tos++;
 
       rval = TRUE;
-      PL_reset_term_refs(tmp);
-      break;
-    failout:
-      rval = FALSE;
-      PL_reset_term_refs(tmp);
       break;
     }
   }
     case PL_LIST:
-    { int length = va_arg(args, int);
-      term_t tmp = PL_copy_term_ref(t);
-      term_t h   = PL_new_term_ref();
+    { work w;
+      
+      w.type = w_list;
+      w.value.list.tail = PL_copy_term_ref(t);
+      w.value.list.len  = va_arg(args, int);
 
-      for( ; length-- > 0; )
-      { PL_unify_list(tmp, h, tmp);
-	rval = unify_termVP(h, &argsRec);
-	if ( !rval )
-	  goto listfailout;
-      }
-
-      rval = PL_unify_nil(tmp);
-      PL_reset_term_refs(tmp);
-      break;
-    listfailout:
-      PL_reset_term_refs(tmp);
+      addBuffer(&buf, w, work);
+      tos++;
+      
+      rval = TRUE;
       break;
     }
     case _PL_PREDICATE_INDICATOR:
@@ -1807,38 +1822,62 @@ unify_termVP(term_t t, va_list_rec *argsRecP)
     }
     default:
       PL_warning("Format error in PL_unify_term()");
-      rval = FALSE;
+      goto failout;
   }
 
-  *argsRecP = argsRec;
-  return rval;
+  if ( rval )
+  { while( tos > 0 )
+    { work *w = &baseBuffer(&buf, work)[tos-1];
+
+      switch( w->type )
+      { case w_term:
+	  if ( w->value.term.arg < w->value.term.arity )
+	  { _PL_get_arg(++w->value.term.arg, w->value.term.term, t);
+	    goto cont;
+	  } else
+	  { tos--;
+	    seekBuffer(&buf, tos, work);
+	  }
+	case w_list:
+	{ if ( w->value.list.len > 0 )
+	  { if ( PL_unify_list(w->value.list.tail, t, w->value.list.tail) )
+	    { w->value.list.len--;
+	      goto cont;
+	    }
+	  } else if ( PL_unify_nil(w->value.list.tail) )
+	  { tos--;
+	    seekBuffer(&buf, tos, work);
+	  } else
+	    goto failout;
+	}
+      }
+    }
+
+    PL_reset_term_refs(tsave);
+    discardBuffer(&buf);
+    return TRUE;
+  }
+
+failout:
+  PL_reset_term_refs(tsave);
+  discardBuffer(&buf);
+
+  return FALSE;
 }
+
 
 int
 PL_unify_term(term_t t, ...)
-{ va_list_rec argsRec;
+{ va_list args;
   int rval;
 
   va_start(args, t);
-  rval = unify_termVP(t, &argsRec);
+  rval = PL_unify_termv(t, args);
   va_end(args);
 
   return rval;
 }
 
-
-int
-PL_unify_termv(term_t t, va_list a)
-{ va_list_rec argsRec;
-  int rval;
-
-  memcpy(&argsRec, &a, sizeof(argsRec));
-  rval = unify_termVP(t, &argsRec);
-
-  return rval;
-}
-
-#undef args
 
 int
 _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
