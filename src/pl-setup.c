@@ -477,6 +477,12 @@ unprepareSignal(int sig)
 
 
 static void
+hupHandler(int sig)
+{ PL_halt(2);
+}
+
+
+static void
 initSignals(void)
 { struct signame *sn = signames;
   
@@ -490,6 +496,10 @@ initSignals(void)
       sh->flags |= sn->flags;
     }
   }
+
+#ifdef SIGHUP
+  PL_signal(SIGHUP, hupHandler);
+#endif
 }
 
 

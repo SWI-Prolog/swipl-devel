@@ -834,9 +834,15 @@ PL_on_halt(halt_function f, Void arg)
 
 int
 PL_cleanup(int rval)
-{ OnHalt h;
+{ static int cleaning = FALSE;
+  OnHalt h;
 
   LOCK();
+  if ( cleaning )
+  { UNLOCK();
+    return FALSE;
+  }
+  cleaning = TRUE;
 
   pl_notrace();				/* avoid recursive tracing */
 #ifdef O_PLMT
@@ -898,6 +904,7 @@ PL_cleanup(int rval)
   memset(GD, 0, sizeof(*GD));
   memset(LD, 0, sizeof(*LD));
 
+  cleaning = FALSE;			/* prepare for another */
   UNLOCK();
 
   return TRUE;
