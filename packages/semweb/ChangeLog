@@ -1,3 +1,7 @@
+Oct 9, 2003
+
+  * MODIFIED: rdf_md5/2 returns a null-digest for an empty source.
+
 Oct 7, 2003
 
   * FIXED: rdf_update/[4,5].  Duplicate administration error.

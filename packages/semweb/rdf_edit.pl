@@ -35,6 +35,7 @@
 	    rdfe_assert/4,		% Sub, Pred, Obj, PayLoad
 	    rdfe_retractall/3,		% Sub, Pred, Obj
 	    rdfe_update/4,		% Sub, Pred, Obj, +Action
+	    rdfe_update/5,		% Sub, Pred, Obj, +PayLoad, +Action
 	    rdfe_load/1,		% +File
 	    rdfe_delete/1,		% +Resource
 
@@ -192,11 +193,12 @@ rdfe_update(Subject, Predicate, Object, Action) :-
 
 rdfe_update(Subject, Predicate, Object, PayLoad, Action) :-
 	rdfe_current_transaction(TID),
+	rdf_update(Subject, Predicate, Object, PayLoad, Action),
 	(   Action = source(New)
 	->  assert_action(TID, source(PayLoad, New),
 			  Subject, Predicate, Object)
-	;   throw(tbd)			% is not yet public and only
-	),				% source is used internally
+	;   throw(tbd)			% source is used internally
+	),
 	journal(update(TID, Subject, Predicate, Object, PayLoad, Action)).
 
 %	rdfe_delete(+Subject)

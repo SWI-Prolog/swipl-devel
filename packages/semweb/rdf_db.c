@@ -1649,9 +1649,13 @@ rdf_md5(term_t file, term_t md5)
 
     LOCK();
     if ( (s = lookup_source(src, FALSE)) )
-      rc = md5_unify_digest(md5, s->digest);
-    else
-      rc = FALSE;
+    { rc = md5_unify_digest(md5, s->digest);
+    } else
+    { md5_byte_t digest[16];
+
+      memset(digest, 0, sizeof(digest));
+      rc = md5_unify_digest(md5, digest);
+    }
     UNLOCK();
   } else
   { md5_byte_t digest[16];
