@@ -15,7 +15,9 @@
 :- use_module(util).
 :- require([ checkpce/0
 	   , pcedemo/0
+	   , concat/3
 	   , ignore/1
+	   , pce_help_file/2
 	   , send_list/3
 	   ]).
 
@@ -174,7 +176,9 @@ fill_dialog(D) :-
 			 message(M, start_demo),
 			 @default, @on)
 	     , menu_item('ChangeLog',
-			 message(M, changelog),
+			 message(M, changelog))
+	     , menu_item('FAQ',
+			 message(M, faq),
 			 @default, @on)
 	     ]),
 
@@ -413,6 +417,13 @@ changelog(_M) :->
 	get(string('%s/ChangeLog', Home), value, Path),
 	send(@emacs, goto_source_location, Path).
 
+faq(_M) :->
+	"Start @helper on faq-database"::
+	get(@pce, home, Home),
+	concat(Home, '/man/faq/pce.hlp', HelpFile),
+	pce_help_file(pce_faq, HelpFile),
+	send(@helper, give_help, pce_faq, main).
+
 
 		/********************************
 		*              HELP		*
@@ -420,7 +431,7 @@ changelog(_M) :->
 
 about(_M) :->
 	send(@display, inform,
-	     'PCE version %s\n\nCopyright 1992, University of Amsterdam\n\ninfo: jan@swi.psy.uva.nl\n\n',
+	     'PCE version %s\n\nCopyright 1992-1994, University of Amsterdam\n\ninfo: jan@swi.psy.uva.nl\n\n',
 	     @pce?version).
 
 

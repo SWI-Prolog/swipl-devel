@@ -507,25 +507,11 @@ possibilities  for getting help  one should introduce a separate  help
 system.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-help(Draw) :->
+:- pce_help_file(pcedraw, 'draw.hlp').
+
+help(_Draw) :->
 	"Show window with help-text"::
-	(   library_directory(Dir),
-	    concat(Dir, '/draw/draw.hlp', HelpText),
-	    new(File, file(HelpText)),
-	    send(File, exists)
-	->  new(V, view('PceDraw: help')),
-	    new(D, dialog),
-	    send(D, append, button(quit, message(V, free))),
-	    send(D, below, V),
-	    send(V, load, File),
-	    (   send(File, access, write)
-	    ->  send(V, editable, @on)
-	    ;   send(V, editable, @off)
-	    ),
-	    send(V, open),
-	    send(V, confirm_done, @off)
-	;   send(Draw, report, error, 'Can''t find help file `draw.hlp''')
-	).
+	send(@helper, give_help, pcedraw, main).
 
 
 		/********************************
