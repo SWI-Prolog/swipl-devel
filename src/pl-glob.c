@@ -446,7 +446,7 @@ expand(const char *pattern, GlobInfo info)
 	      if ( prefix[0] && plen > 0 && path[plen-1] != '/' )
 		path[plen++] = '/';
 	      strcpy(&path[plen], prefix);
-	      if ( end == 1 || ExistsFile(path) )
+	      if ( end == 1 || AccessFile(path, ACCESS_EXIST) )
 		add_path(path, info);
 	    }
 	  }
