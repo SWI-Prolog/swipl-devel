@@ -3281,6 +3281,7 @@ CvtSqlToCType(context *ctxt, SQLSMALLINT fSqlType, SQLSMALLINT plTypeID)
 	case SQL_INTEGER:
 	  return SQL_C_SLONG;
     
+	case SQL_DATE:
 	case SQL_TYPE_DATE:
 	  return SQL_C_TYPE_DATE;
 	case SQL_TIME:
