@@ -48,7 +48,7 @@ absolute_file_name/3 and open/4.  In addition, the option
 \term{tail}{Tail} is defined, forming a difference-list.
 
     \predicate{read_file_to_terms}{3}{+Spec, -Terms, +Options}
-Read a file to a list of character codes. \arg{Spec} is a
+Read a file to a list of prolog terms (see read/1). \arg{Spec} is a
 file-specification for absolute_file_name/3.  \arg{Terms} is the
 resulting list of Prolog terms.  \arg{Options} is a list of options for
 absolute_file_name/3 and open/4.  In addition, the option
