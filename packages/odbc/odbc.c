@@ -89,6 +89,7 @@ static atom_t	 ATOM_null;		/* default null atom */
 static atom_t	 ATOM_;			/* "" */
 static atom_t	 ATOM_read;
 static atom_t	 ATOM_update;
+static atom_t    ATOM_dynamic;
 
 static functor_t FUNCTOR_timestamp7;	/* timestamp/7 */
 static functor_t FUNCTOR_time3;		/* time/7 */
@@ -116,6 +117,7 @@ static functor_t FUNCTOR_null1;
 static functor_t FUNCTOR_source1;
 static functor_t FUNCTOR_column3;
 static functor_t FUNCTOR_access_mode1;
+static functor_t FUNCTOR_cursor_type1;
 
 #define SQL_PL_DEFAULT  0		/* don't change! */
 #define SQL_PL_ATOM	1		/* return as atom */
@@ -906,6 +908,16 @@ odbc_set_connection(term_t con, term_t option)
       optval = SQL_MODE_READ_WRITE;
     else
       return domain_error(val, "access_mode");
+  } else if ( PL_is_functor(option, FUNCTOR_cursor_type1) )
+  { atom_t val;
+
+    if ( !get_atom_arg_ex(1, option, &val) )
+      return FALSE;
+
+    if ( val == ATOM_dynamic )
+      optval = SQL_CURSOR_DYNAMIC;
+    else
+      return domain_error(val, "cursor_type");
   } else if ( PL_is_functor(option, FUNCTOR_null1) )
   { term_t a = PL_new_term_ref();
 
@@ -2244,6 +2256,7 @@ install_odbc4pl()
    ATOM_	      = PL_new_atom("");
    ATOM_read	      = PL_new_atom("read");
    ATOM_update	      = PL_new_atom("update");
+   ATOM_dynamic	      = PL_new_atom("dynamic");
 
    FUNCTOR_timestamp7		 = MKFUNCTOR("timestamp", 7);
    FUNCTOR_time3		 = MKFUNCTOR("time", 3);
@@ -2272,6 +2285,7 @@ install_odbc4pl()
    FUNCTOR_source1		 = MKFUNCTOR("source", 1);
    FUNCTOR_column3		 = MKFUNCTOR("column", 3);
    FUNCTOR_access_mode1		 = MKFUNCTOR("access_mode", 1);
+   FUNCTOR_cursor_type1		 = MKFUNCTOR("cursor_type", 1);
 
    DET("odbc_connect",		   3, pl_odbc_connect);
    DET("odbc_disconnect",	   1, pl_odbc_disconnect);
