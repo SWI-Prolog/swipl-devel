@@ -23,7 +23,7 @@ initialiseTree(Tree t, Node node)
 { if ( isDefault(node) )
     node = NIL;
 
-  initialiseDevice((Device) t);
+  initialiseFigure((Figure) t);
   assign(t, auto_layout, 	ON);
   assign(t, direction,		DEFAULT);
   assign(t, levelGap,		DEFAULT);
@@ -68,15 +68,24 @@ initialiseTree(Tree t, Node node)
 
 static status
 rootTree(Tree t, Node root)
-{ if ( notNil(t->root) )
-    return errorPce(t, NAME_alreadyHasRoot);
+{ if ( isNil(root) )
+  { if ( notNil(t->root) )
+    { setFlag(t, F_FREEING);		/* HACK! */
+      freeObject(t->root);
+      clearFlag(t, F_FREEING);
+      assign(t, root, NIL);
+      assign(t, displayRoot, NIL);
+    }
+  } else
+  { if ( notNil(t->root) )
+      rootTree(t, NIL);
 
-  displayTree(t, root);
-  assign(t, root, root);
-  assign(t, displayRoot, root);
-  requestComputeTree(t);
+    displayTree(t, root);
+    assign(t, root, root);
+    assign(t, displayRoot, root);
+  }
 
-  succeed;
+  return requestComputeTree(t);
 }
 
 
@@ -200,7 +209,7 @@ computeTree(Tree t)
       assign(t, request_compute, old);
     }
 
-    computeDevice(t);
+    computeFigure((Figure) t);
   }
 
   succeed;
@@ -426,7 +435,7 @@ makeClassTree(Class class)
   sendMethod(class, NAME_zoom, NAME_scroll, 1, "node",
 	     "Zoom to a particular node",
 	     zoomTree);
-  sendMethod(class, NAME_root, NAME_nodes, 1, "node",
+  sendMethod(class, NAME_root, NAME_nodes, 1, "node*",
 	     "Set root node",
 	     rootTree);
   sendMethod(class, NAME_event, DEFAULT, 1, "event",

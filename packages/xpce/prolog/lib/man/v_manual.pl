@@ -15,6 +15,7 @@
 :- use_module(util).
 :- require([ checkpce/0
 	   , pcedemo/0
+	   , auto_call/1
 	   , concat/3
 	   , ignore/1
 	   , pce_help_file/2
@@ -598,7 +599,7 @@ manual(M, Object:'class|variable|method|resource') :->
 :- pce_global(@man_classification, load_man_classification).
 
 load_man_classification(C) :-
-	library_directory(D),
+	user:library_directory(D),
 	concat(D, '/man/classification.obj', FileName),
 	new(F, file(FileName)),
 	send(F, access, read),

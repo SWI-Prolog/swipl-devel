@@ -9,41 +9,29 @@
 
 :- module(emacs_latex_mode, []).
 :- use_module(library(pce)).
-:- require([ send_list/3
+:- require([ emacs_end_mode/0
+	   , emacs_begin_mode/5
+	   , send_list/3
 	   ]).
 
-:- pce_begin_class(emacs_latex_mode, emacs_language_mode).
+:- emacs_begin_mode(latex, outline,
+		    "Mode for editing LaTeX documents",
+		    [ insert_quote      = key('"'),
+		      open_document     = key('\C-c\C-o') + button('LaTeX'),
+		      close_environment = key('\C-c\C-f') + button('LaTeX'),
+		      make_command      = key('\C-\') + button('LaTeX'),
+		      make_environment  = key('\C-cRET') + button('LaTeX')
+		    ],
+		    [ \	   = symbol,
+		      -    = symbol,
+		      '`'  = open_bracket(''''),
+		      '%'  = comment_start,
+		      '\n' + comment_end,
+		      paragraph_end(regex('\s *\(\sn\|%\|\\item\|\\tick\|\\begin\|\\end\|\\\(sub\)*section\)'))
+		    ]).
 
-:- initialization
-	new(KB, emacs_key_binding(latex, language)),
-
-	send(KB, function, '"',		insert_quote),
-	send(KB, function, '\C-c\C-o',	open_document),
-	send(KB, function, '\C-c\C-f',	close_environment),
-	send(KB, function, '\C-\',	make_command),
-	send(KB, function, '\C-cRET', 	make_environment).
-
-
-:- initialization
-	new(ST, syntax_table(latex)),
-
-	send(ST, syntax, \,    symbol),
-	send(ST, syntax, -,    symbol),
-
-	send(ST, syntax,     '`',  open_bracket, ''''),
-	send(ST, syntax,     '%',  comment_start),
-	send(ST, add_syntax, '\n', comment_end),
-
-	send(ST, paragraph_end,
-	     regex('\s *\(\sn\|%\|\\item\|\\tick\|\\begin\|\\end\|\\\(sub\)*section\)')).
-   
-:- initialization
-	new(MM, emacs_mode_menu(latex, language)),
-	send(MM, append, 'LaTeX', open_document),
-	send(MM, append, 'LaTeX', close_environment),
-	send(MM, append, 'LaTeX', make_command),
-	send(MM, append, 'LaTeX', make_environment).
-
+:- send(@class, attribute, outline_regex_list,
+	chain(regex('^\(\\\(sub\)*section{[^}]*}.*\n\)\(\(.*\n\)*\)\\\(sub\)*section{'))).
 
 :- pce_global(@latex_env_regex, new(regex('\\\(begin\|end\){\(\w+\)}'))).
 
@@ -280,4 +268,4 @@ latex_tabbing_commands(
 make_command(M, Cmd:'latex_command_name|name') :->
 	send(M, format, '\\%s', Cmd).
 
-:- pce_end_class. 
+:- emacs_end_mode. 

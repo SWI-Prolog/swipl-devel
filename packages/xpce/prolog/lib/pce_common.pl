@@ -18,6 +18,7 @@
 	  , forall/2
 	  , call/2
 	  , call/3
+	  , auto_call/1
 	  , shell/1
 	  , strip_module/3
 	  , pce_error/2
@@ -27,6 +28,7 @@
 	  , between/3
 	  , free_variables/2
 	  , term_to_atom/2
+	  , genarg/3
 	  ]).
 
 :- meta_predicate
@@ -35,6 +37,7 @@
 	sublist(:, +, +),
 	call(:, +),
 	call(:, +, +),
+	auto_call(:),
 	forall(:, :),
 	ignore(:).
 
@@ -100,6 +103,39 @@ call(Template, Arg1, Arg2) :-
 	append(List, [Arg1, Arg2], NewList),
 	NewTerm =.. NewList,
 	Module:NewTerm.
+
+
+%	auto_call(+Goal)
+%	Do :- require/1 if not defined
+
+auto_call(Template) :-
+	current_predicate(_, Template), !,
+	call(Template).
+auto_call(Template) :-
+	strip_module(Template, Module, Goal),
+	functor(Goal, Name, Arity),
+	Module:require([Name/Arity]),
+	call(Template).
+
+
+%	genarg(?Arg, +Term, ?Arg)
+%	Logic version of arg
+
+genarg(N, Term, Arg) :-
+	integer(N), !,
+	arg(N, Term, Arg).
+genarg(N, Term, Arg) :-
+	functor(Term, _, Arity),
+	genarg(1, Arity, N, Term, Arg).
+
+genarg(N, Arity, _, _, _) :-
+	N > Arity, !,
+	fail.
+genarg(N, _, N, Term, Arg) :-
+	arg(N, Term, Arg).
+genarg(N, Arity, A, Term, Arg) :-
+	NN is N + 1,
+	genarg(NN, Arity, A, Term, Arg).
 
 
 %	ignore(+Goal)

@@ -495,6 +495,7 @@ fetch_list_browser(ListBrowser lb, TextChar tc)
   tc->attributes = current_atts;
   tc->colour	 = current_colour;
   tc->background = current_background;
+  tc->index      = index;
 
   if ( pos < current_search )
   { Style s = getResourceValueObject(lb, NAME_isearchStyle);
@@ -863,7 +864,7 @@ eventListBrowser(ListBrowser lb, EventObj ev)
 	} if ( equalName(multi, NAME_double) )
 	  return openListBrowser(lb, di);
       } else				/* Multiple selection */
-      { if ( hasModifierEvent(ev, MODIFIER_shift) )
+      { if ( hasModifierEvent(ev, findGlobal(NAME_ModifierShift)) )
 	  toggleSelectionListBrowser(lb, di);
         else
 	  setSelectionListBrowser(lb, di);

@@ -47,6 +47,14 @@ typedef struct update_area *UpdateArea;	/* Window changes data  */
   Bool	     badBoundingBox;		/* BoundingBox needs recomputed */ \
   Chain	     recompute;			/* Graphicals requesting recompute */
 
+#define ABSTRACT_FIGURE \
+  ABSTRACT_DEVICE \
+  Name		status;			/* Which members are displayed? */ \
+  Image		background;		/* Pattern for background */ \
+  Int		border;			/* border around graphicals */ \
+  Int		radius;			/* radius of outline */ \
+  Elevation	elevation;		/* elevation of outline */
+
 #define ABSTRACT_DIALOGITEM \
   ABSTRACT_GRAPHICAL \
   Name	     label;			/* Label of the item */ \
@@ -89,13 +97,10 @@ NewClass(device)
   ABSTRACT_DEVICE
 End;
 
+
+
 NewClass(figure)
-  ABSTRACT_DEVICE
-  Name		status;			/* Which members are displayed? */
-  Image		background;		/* Pattern for background */
-  Int		border;			/* border around graphicals */
-  Int		radius;			/* radius of outline */
-  Elevation	elevation;		/* elevation of outline */
+  ABSTRACT_FIGURE
 End;
 
 
@@ -129,7 +134,7 @@ NewClass(tileobj)
 End;
 
 NewClass(tree)
-  ABSTRACT_DEVICE
+  ABSTRACT_FIGURE
   Node		root;			/* the real root root node */
   Node		displayRoot;		/* node displayed as root */
   Bool		auto_layout;		/* Enforce automatic layout? */

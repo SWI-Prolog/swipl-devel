@@ -143,7 +143,7 @@ getArgumentTypeMethod(Method m, Int n)
   
 
 
-#define isBinding(obj)	(ClassBinding && instanceOfObject(obj, ClassBinding))
+#define isBinding(obj)	(isObject(obj) && onFlag(obj, F_ISBINDING))
 
 Any
 invokeMethod(Method m, Name c, Any receiver, int argc, const Any argv[])

@@ -43,7 +43,6 @@ built_in(assertz(_,_)).
 built_in(atom(_)).
 built_in(atom_chars(_,_)).
 built_in(atomic(_)).
-built_in(auto_call(_)).
 built_in(bagof(_,_,_)).
 built_in(block(_)).
 built_in(break).

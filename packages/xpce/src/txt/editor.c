@@ -615,22 +615,31 @@ indexFragmentCache(FragmentCache fc, Editor e, long int i)
     ulong attributes = 0L;
 
     for( cell = fc->active; cell; cell = cell->next )
-    { attributes |= cell->style->attributes;
-      if ( notDefault(cell->style->font) )
+    { Style s = cell->style;
+
+      if ( s->attributes & TXT_HIDDEN )
+      { Fragment fr = cell->fragment;
+	
+	return indexFragmentCache(fc, e, fr->start + fr->length);
+      }
+
+      attributes |= s->attributes;
+
+      if ( notDefault(s->font) )
       { if ( isDefault(f) || cell->fragment->length < fl )
-	{ f = cell->style->font;
+	{ f = s->font;
 	  fl = cell->fragment->length;
 	}
       }
-      if ( notDefault(cell->style->colour) )
+      if ( notDefault(s->colour) )
       { if ( isDefault(c) || cell->fragment->length < cl )
-	{ c = cell->style->colour;
+	{ c = s->colour;
 	  cl = cell->fragment->length;
 	}
       }
-      if ( notDefault(cell->style->background) )
+      if ( notDefault(s->background) )
       { if ( isDefault(bg) || cell->fragment->length < bgl )
-	{ bg = cell->style->background;
+	{ bg = s->background;
 	  bgl = cell->fragment->length;
 	}
       }
@@ -711,13 +720,15 @@ out:
 
 static long
 fetch_editor(Editor e, TextChar tc)
-{ long index = e->fragment_cache->index;
+{ FragmentCache fc = e->fragment_cache;
+  long index = fc->index;
 
   tc->c          = Fetch(e, index);
-  tc->font       = e->fragment_cache->font;
-  tc->colour     = e->fragment_cache->colour;
-  tc->background = e->fragment_cache->background;
-  tc->attributes = e->fragment_cache->attributes;
+  tc->font       = fc->font;
+  tc->colour     = fc->colour;
+  tc->background = fc->background;
+  tc->attributes = fc->attributes;
+  tc->index	 = fc->index;
 
   if ( InRegion(index, e->selection_start, e->selection_end) )
   { Style s = (isisearchingEditor(e)
@@ -753,7 +764,7 @@ fetch_editor(Editor e, TextChar tc)
 
   indexFragmentCache(e->fragment_cache, e, ++index);
 
-  return index;
+  return fc->index;
 }
 
 
@@ -2053,10 +2064,7 @@ blankLineEditor(Editor e, Int where)
 
 
 static Int
-getIndentationEditor(Editor e, Int where, Regex re)	/* indentation of a line */
-         
-          
-         
+getIndentationEditor(Editor e, Int where, Regex re)
 { TextBuffer tb = e->text_buffer;
   int col;
   Int n;

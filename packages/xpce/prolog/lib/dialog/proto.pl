@@ -16,9 +16,7 @@
 	    icon/2,
 	    summary/2
 	  ]).
-:- require([ memberchk/2
-	   , pce_global/2
-	   ]).
+:- use_module(library(pce)).
 
 
 proto(reporter,		label(reporter, 'I report warnings, etc.'),

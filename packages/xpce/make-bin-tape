@@ -1,31 +1,26 @@
-#!/bin/csh -f
+#!/bin/sh
 
-if ( x$1 == x-b ) then 
-    set binonly
+if [ "x$1" = "x-b" ]; then 
+    binonly="t"
     shift
-endif
+fi
 
-set arch = $1
-set version = `cat VERSION`
-set dir = `pwd`
-set binout = $dir/xpce-$version-bin.tgz
-set libout = $dir/xpce-$version-lib.tgz
-set compress = "gzip"
+arch=$1
+version=`cat VERSION`
+dir=`pwd`
+binout=$dir/xpce-$version-bin.tgz
+libout=$dir/xpce-$version-lib.tgz
+compress="gzip"
 
-if ( ! -d $dir ) mkdir $dir
-if ( ! -d pl/library ) then
-    ( cd pl; ln -s ../../pl/library . )
-endif
-if ( ! -d pl/boot ) then
-    ( cd pl; ln -s ../../pl/boot . )
-endif
-if ( ! -d pl/include ) then
-    ( cd pl; ln -s ../../pl/include . )
-endif
+if [ ! -d $dir ]; then mkdir $dir; fi
+for d in library boot include; do
+    rm -f pl/$d
+    (cd pl; ln -s ../../pl/$d .)
+end
 
-if ( ! -x bin/xpce.base ) then
+if [ ! -r bin/xpce.base ]; then
     ( cd bin; ln -s ../pl/src/xpce.base . )
-endif
+fi
 
 cd ..
 rm -f xpce-$version
@@ -37,7 +32,7 @@ tar cvhf - \
 	xpce-$version/pl/src/pl-crt0.o \
 	| $compress > $binout
 	
-if ( ! $?binonly ) then
+if [ "$binonly" != "t"  then
     tar cvhf - \
 	xpce-$version/INSTALL xpce-$version/README.linux \
 	xpce-$version/licence \
@@ -55,7 +50,7 @@ if ( ! $?binonly ) then
 	xpce-$version/man/reference \
 	xpce-$version/man/info \
 	| $compress > $libout
-endif
+fi
 rm xpce-$version
 
 cp xpce/INFO xpce/README.* xpce/INSTALL $dir

@@ -12,6 +12,11 @@
 	    draw_end_shape/0
 	  ]).
 :- use_module(library(pce)).
+:- require([ concat/3
+	   , ensure_prefix/2
+	   , forall/2
+	   , member/2
+	   ]).
 
 
 :- pce_begin_class(draw_shape_class, class, "Handle class-level stuff").

@@ -729,7 +729,7 @@ getFindNodeNode(Node n, Graphical gr)
     answer( n );
 
   for_cell(cell, n->sons)
-    if ( (n2 = getFindNodeNode(cell->value, gr)) != FAIL )
+    if ( (n2 = getFindNodeNode(cell->value, gr)) )
       answer(n2);
 
   fail;
@@ -745,7 +745,7 @@ getFindNode(Node n, Code msg)
     answer(n);
 
   for_cell(cell, n->sons)
-    if ( (n2 = getFindNode(cell->value, msg)) != FAIL )
+    if ( (n2 = getFindNode(cell->value, msg)) )
       answer(n2);
 
   fail;

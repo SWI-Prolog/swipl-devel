@@ -425,6 +425,7 @@ lookupBootClass(Class class, Func func, int argc, ...)
 Class
 getConvertClass(Class class_class, Any obj)
 { Class class;
+  Name name;
 
   if ( instanceOfObject(obj, ClassClass) )
     return obj;
@@ -436,10 +437,11 @@ getConvertClass(Class class_class, Any obj)
       return t->context;
   }
 
-  if ( isName(obj) )
-  { Name name = obj;
-
-    if ( !(class = getMemberHashTable(classTable, name)) )
+  if ( instanceOfObject(obj, ClassClassStub) )
+    return get(obj, NAME_realise, 0);
+      
+  if ( (name = toName(obj)) )
+  { if ( !(class = getMemberHashTable(classTable, name)) )
     { exceptionPce(PCE, NAME_undefinedClass, name, 0);
       if ( !(class = getMemberHashTable(classTable, name)) )
 	fail;
@@ -451,9 +453,6 @@ getConvertClass(Class class_class, Any obj)
     return class;
   }
 
-  if ( instanceOfObject(obj, ClassClassStub) )
-    return get(obj, NAME_realise, 0);
-      
   fail;
 }
 

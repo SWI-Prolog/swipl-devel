@@ -1,3 +1,38 @@
+[VERSION 4.8.6]
+
+* MODIFIED: Class tree is now a subclass of class figure instead of class
+  device.  Allows for use of ->background, ->border and ->pen.  As figure
+  is a subclass of device, this should not have compatibility consequences.
+
+* ADDED: `tree ->root' may be used to clear the entire tree as well as to
+  assign a new root to the tree.
+
+* ADDED: PceEmacs: `Prolog/Source File' to jump to any loaded sourcefile.
+
+* ADDED: PceEmacs: outline mode.  Specification is experimental.
+  Suggestions are welcome.  Currently implemented for Prolog and C
+  modes.
+
+* ADDED: `style <->hidden' to implement `hidden' text fragments: text that
+  remains in the buffer, but is invisible to the user.
+
+* UPGRADE: Class regex has been upgraded to use version 0.12 of the GNU
+  regex library from emacs 19.28.  This appears to fix a number of bugs
+  in searching and matching.  Unfortunately the new regexes are not 100%
+  compatible to the old:
+
+  INCOMPATIBILITIES:
+
+	# prefix\(repeat\)+postfix
+	Used to return as register 1 the entire span from the first to
+	the last matched `repeat'.  Now only returns the last.  Please
+	use prefix\(\(repeat\)+\)postfix to get the desired behaviour.
+
+  FIXES:
+
+	# `regex <-registers' now really works.
+	# \(repeat\)* now appears to match very long texts
+
 [VERSION 4.8.5]
 
 * FIXED: PceEmacs: script-mode now makes menu.  Otherwise mode refinement

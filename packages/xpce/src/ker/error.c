@@ -372,8 +372,6 @@ static struct error_def errors[] =
     "%O: %O is already shown in %O" },
   { NAME_nodeNotInTree,		0,
     "%O: Node is not part of a tree" },
-  { NAME_alreadyHasRoot,	0,
-    "%O: Already has a root" },
   { NAME_alreadyHasParent,	0,
     "%O: Already has a parent" },
   { NAME_wouldBeCyclic,		0,

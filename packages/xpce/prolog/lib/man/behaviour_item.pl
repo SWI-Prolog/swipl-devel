@@ -11,8 +11,6 @@
 :- use_module(library(pce)).
 :- use_module(util).
 :- require([ forall/2
-	   , get_chain/3
-	   , member/2
 	   ]).
 
 :- pce_begin_class(behaviour_item, text_item,

@@ -12,7 +12,8 @@
 
 :- use_module(library(pce)).
 :- use_module(util).
-:- require([ send_list/3
+:- require([ forall/2
+	   , send_list/3
 	   ]).
 
 

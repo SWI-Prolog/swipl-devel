@@ -24,7 +24,7 @@
 #define TXT_HIGHLIGHTED	0x2	/* highlighted character (inverse video) */
 #define TXT_GREYED	0x4	/* greyed character */
 #define TXT_BOLDEN	0x8	/* bold character */
-#define TXT_CLOSED	0x10	/* invisible fragment */
+#define TXT_HIDDEN	0x10	/* invisible fragment */
 
 NewClass(text_buffer)
   Fragment	first_fragment;		/* first fragment */
@@ -149,6 +149,7 @@ struct text_char
   FontObj	font;			/* Font of this character */
   Colour	colour;			/* Colour of this character */
   Any		background;		/* Background for the characters */
+  long		index;			/* Index in line (relative) */
   short		x;			/* X-position in line (pixels) */
   unsigned char attributes;		/* Its attributes */
 };

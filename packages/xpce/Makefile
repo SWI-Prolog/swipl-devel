@@ -57,7 +57,7 @@ CMFLAGS=-funsigned-char -DHAVE_CONFIG_H
 # Paths for host-languages
 ################################################################
 
-PLBASE=/staff/jan/lib/pl
+PLBASE=/staff/jan/lib/pl-2.0.3
 PLARCH=sparc-sunos4.1.3
 
 SICSHOME=/staff/jan/src/sicstus2.1
@@ -73,7 +73,7 @@ ARFLAGS=ru
 ETAGS=etags
 SED=sed
 
-VERSION=4.8.5, Dec. 1994
+VERSION=4.8.6, Feb. 1995
 ARCH=sparc
 OS=sunos4.1.3
 RESOURCE_CLASS=Pce

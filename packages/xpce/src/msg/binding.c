@@ -14,6 +14,8 @@ initialiseBinding(Binding att, Any name, Any value)
 { assign(att, name, name);
   assign(att, value, value);
 
+  setFlag(att, F_ISBINDING);
+
   succeed;
 }
 

@@ -379,9 +379,10 @@ do_fill_line(TextImage ti, TextLine l, long int index)
   TextChar tc;
   short x = TXT_X_MARGIN;  
   int i;
+  long start;
 
   l->ends_because = 0;
-  l->start = index;
+  start = l->start = index;
 
   (*ti->seek)(ti->text, index);
 
@@ -392,6 +393,7 @@ do_fill_line(TextImage ti, TextLine l, long int index)
     }
 
     index = (*ti->fetch)(ti->text, tc);
+    tc->index -= start;
     tc->x = x;
 
     switch(tc->c)
@@ -919,6 +921,10 @@ line_from_y(TextImage ti, int y)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Determine the character index from a given X-pixel coordinate.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 char_from_x(TextLine tl, int x)
 { int l = 0;
@@ -943,6 +949,18 @@ char_from_x(TextLine tl, int x)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Determine the X-Y position of character   at  index `pos'.  The top-left
+corner is defined to be (1,1).
+
+In the current implementation both the Y- and X-search is linear.  These
+should be changed to binary searches someday,   but  this routine is not
+uterly time critical.
+
+In X-direction, we first do a quick   test  hoping the characters in the
+line are adjecent (i.e.  no characters are hidden).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static status
 get_xy_pos(TextImage ti, Int pos, int *x, int *y)
 { int line;
@@ -955,14 +973,30 @@ get_xy_pos(TextImage ti, Int pos, int *x, int *y)
   for(line=0; line < ti->map->length; line++)
   { TextLine l = &ti->map->lines[skip + line];
   
+					/* binary search? */
     if ( index >= l->start && index < l->end )
-    { int li = index - l->start;
+    { if ( x )
+      { int li = index - l->start;	/* X-index in line */
 
-      if ( li >= l->length )
-        li = l->length - 1;
+	if ( li > l->length || l->chars[li].index != li ) /* Quick test */
+	{ if ( l->length > 0 && li > l->chars[l->length-1].index )
+	    li = l->length - 1;
+	  else
+	  { TextChar ch = l->chars;
+	    TextChar lc = &l->chars[l->length];
+	
+					/* binary search! */
+	    while(ch < lc && ch->index < li)
+	      ch++;
+
+	    li = ch - l->chars;
+	  }
+	}
       
-      *x = li + 1;
-      *y = line + 1;
+	*x = li + 1;
+      }
+      if ( y )
+	*y = line + 1;
       succeed;
     }
   }
@@ -1011,7 +1045,7 @@ get_index_text_image(TextImage ti, int x, int y)
 
       for(i = 0; i < l->length; i++)
         if ( l->chars[i+1].x > x )
-	  return l->start + i;
+	  return l->start + l->chars[i].index; /* bsearch()! */
       
       return l->start + l->length - 1;
     }
@@ -1031,9 +1065,9 @@ getLinesTextImage(TextImage ti)
 
 static Int
 getLineTextImage(TextImage ti, Int pos)
-{ int cx, cy;
+{ int cy;
 
-  if ( get_xy_pos(ti, pos, &cx, &cy) == SUCCEED )
+  if ( get_xy_pos(ti, pos, NULL, &cy) )
     answer(toInt(cy));
 
   fail;  

@@ -367,7 +367,7 @@ extern struct name builtin_names[];	/* object-array of built-in's */
 #endif
 #include "names.ih"			/* #defines for code used names */
 
-#define isName(name)	instanceOfObject(name, ClassName)
+#define isName(name)	(isObject(name) && onFlag((name), F_ISNAME))
 #define notName(name)	(!isName(name))
 #define equalName(a, b) ((a) == (b))
 #define strName(s)	((char *)((Name)(s))->data.s_text8)
@@ -407,7 +407,9 @@ extern struct name builtin_names[];	/* object-array of built-in's */
 #define F_ITFNAME		makeFlag(16) /* Name known to itf table */
 #define F_SOLID			makeFlag(17) /* Solid graphical object */
 #define F_RESOURCES_OBTAINED	makeFlag(18) /* obtainResourcesObject() */
-#define F_TEMPLATE_METHOD	makeFlag(19) /* method <-instantiate_template */
+#define F_TEMPLATE_METHOD	makeFlag(19) /* method<-instantiate_template */
+#define F_ISBINDING		makeFlag(20) /* instanceOf(x, ClassBinding) */
+#define F_ISNAME		makeFlag(21) /* instanceOf(x, ClassName) */
 
 #define initHeaderObj(obj, cl) \
   { obj->class	      = cl; \

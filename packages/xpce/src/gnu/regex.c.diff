@@ -1,0 +1,373 @@
+*** bak/regex.c	Wed Feb 15 13:11:50 1995
+--- regex.c	Wed Feb 15 13:24:56 1995
+***************
+*** 19,24 ****
+--- 19,41 ----
+     along with this program; if not, write to the Free Software
+     Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.  */
+  
++ /* MODIFIED By Jan Wielemaker, Tue Feb 14 23:07:23 1995 to be included
++    in XPCE
++ */
++ 
++ #ifdef pce_source
++ #define string PCEstring
++ #include <h/kernel.h>
++ #undef string
++ #define Sword		AN
++ #define HASSYNTAX(c, s)	((char_flags[(unsigned int)(c)] & s) ? 1 : 0)
++ #undef fail				/* conflict */
++ #undef DEBUG				/* conflict */
++ #define SYNTAX_TABLE 1
++ #define CHAR_SET_SIZE 256
++ 
++ #else /*pce_source*/
++ 
+  /* AIX requires this to be the first thing in the file. */
+  #if defined (_AIX) && !defined (REGEX_MALLOC)
+    #pragma alloca
+***************
+*** 40,45 ****
+--- 57,64 ----
+  /* We need this for `regex.h', and perhaps for the Emacs include files.  */
+  #include <sys/types.h>
+  
++ #endif /*pce_source*/
++ 
+  /* The `emacs' switch turns on certain matching commands
+     that make sense only in Emacs. */
+  #ifdef emacs
+***************
+*** 131,140 ****
+  #endif /* not emacs */
+  
+  /* Get the interface, including the syntax bits.  */
+! #include "regex.h"
+  
+  /* isalpha etc. are used for the character classes.  */
+  #include <ctype.h>
+  
+  /* Jim Meyering writes:
+  
+--- 150,161 ----
+  #endif /* not emacs */
+  
+  /* Get the interface, including the syntax bits.  */
+! #include "gregex.h"
+  
+  /* isalpha etc. are used for the character classes.  */
++ #ifndef pce_source
+  #include <ctype.h>
++ #endif
+  
+  /* Jim Meyering writes:
+  
+***************
+*** 391,397 ****
+    wordbound,	/* Succeeds if at a word boundary.  */
+    notwordbound	/* Succeeds if not at a word boundary.  */
+  
+! #ifdef emacs
+    ,before_dot,	/* Succeeds if before point.  */
+    at_dot,	/* Succeeds if at point.  */
+    after_dot,	/* Succeeds if after point.  */
+--- 412,418 ----
+    wordbound,	/* Succeeds if at a word boundary.  */
+    notwordbound	/* Succeeds if not at a word boundary.  */
+  
+! #if defined(emacs) || defined(pce_source)
+    ,before_dot,	/* Succeeds if before point.  */
+    at_dot,	/* Succeeds if at point.  */
+    after_dot,	/* Succeeds if after point.  */
+***************
+*** 732,741 ****
+--- 753,767 ----
+  	case after_dot:
+  	  printf ("/after_dot");
+            break;
++ #endif /*emacs*/
+  
++ #if defined(emacs) || defined(pce_source)
+  	case syntaxspec:
+            printf ("/syntaxspec");
+  	  mcnt = *p++;
++ #ifdef pce_source
++ 	  mcnt |= (*p++ << 8);
++ #endif /* pce_source */
+  	  printf ("/%d", mcnt);
+            break;
+  	  
+***************
+*** 742,750 ****
+  	case notsyntaxspec:
+            printf ("/notsyntaxspec");
+  	  mcnt = *p++;
+  	  printf ("/%d", mcnt);
+  	  break;
+! #endif /* emacs */
+  
+  	case wordchar:
+  	  printf ("/wordchar");
+--- 768,779 ----
+  	case notsyntaxspec:
+            printf ("/notsyntaxspec");
+  	  mcnt = *p++;
++ #ifdef pce_source
++ 	  mcnt |= (*p++ << 8);
++ #endif /* pce_source */
+  	  printf ("/%d", mcnt);
+  	  break;
+! #endif /* emacs || pce_source */
+  
+  	case wordchar:
+  	  printf ("/wordchar");
+***************
+*** 2362,2367 ****
+--- 2391,2413 ----
+                break;
+  #endif /* emacs */
+  
++ #ifdef pce_source
++ 	    case 's':	
++ 	      laststart = b;
++ 	      PATFETCH (c);
++ 	      BUF_PUSH_3 (syntaxspec, 
++ 			  syntax_spec_code[c] & 0xff,
++ 			  (syntax_spec_code[c] >> 8) & 0xff);
++ 	      break;
++ 
++ 	    case 'S':
++ 	      laststart = b;
++ 	      PATFETCH (c);
++ 	      BUF_PUSH_3 (notsyntaxspec,
++ 			  syntax_spec_code[c] & 0xff,
++ 			  (syntax_spec_code[c] >> 8 ) & 0xff);
++ 	      break;
++ #endif /* pce_source */
+  
+              case 'w':
+                laststart = b;
+***************
+*** 2842,2848 ****
+  
+  	case wordchar:
+  	  for (j = 0; j < (1 << BYTEWIDTH); j++)
+! 	    if (SYNTAX (j) == Sword)
+  	      fastmap[j] = 1;
+  	  break;
+  
+--- 2888,2894 ----
+  
+  	case wordchar:
+  	  for (j = 0; j < (1 << BYTEWIDTH); j++)
+! 	    if ( HASSYNTAX (j, Sword))
+  	      fastmap[j] = 1;
+  	  break;
+  
+***************
+*** 2849,2855 ****
+  
+  	case notwordchar:
+  	  for (j = 0; j < (1 << BYTEWIDTH); j++)
+! 	    if (SYNTAX (j) != Sword)
+  	      fastmap[j] = 1;
+  	  break;
+  
+--- 2895,2901 ----
+  
+  	case notwordchar:
+  	  for (j = 0; j < (1 << BYTEWIDTH); j++)
+! 	    if ( !HASSYNTAX (j, Sword) )
+  	      fastmap[j] = 1;
+  	  break;
+  
+***************
+*** 2879,2885 ****
+          case syntaxspec:
+  	  k = *p++;
+  	  for (j = 0; j < (1 << BYTEWIDTH); j++)
+! 	    if (SYNTAX (j) == (enum syntaxcode) k)
+  	      fastmap[j] = 1;
+  	  break;
+  
+--- 2925,2931 ----
+          case syntaxspec:
+  	  k = *p++;
+  	  for (j = 0; j < (1 << BYTEWIDTH); j++)
+! 	    if ( HASSYNTAX (j, k) )
+  	      fastmap[j] = 1;
+  	  break;
+  
+***************
+*** 2887,2893 ****
+  	case notsyntaxspec:
+  	  k = *p++;
+  	  for (j = 0; j < (1 << BYTEWIDTH); j++)
+! 	    if (SYNTAX (j) != (enum syntaxcode) k)
+  	      fastmap[j] = 1;
+  	  break;
+  
+--- 2933,2939 ----
+  	case notsyntaxspec:
+  	  k = *p++;
+  	  for (j = 0; j < (1 << BYTEWIDTH); j++)
+! 	    if ( !HASSYNTAX (j, k) )
+  	      fastmap[j] = 1;
+  	  break;
+  
+***************
+*** 2902,2907 ****
+--- 2948,2973 ----
+            continue;
+  #endif /* not emacs */
+  
++ #ifdef pce_source
++ 	{ unsigned short k;
++ 
++ 	case syntaxspec:
++ 	  k = *p++;
++ 	  k |= (*p++ << 8);
++ 	  for (j = 0; j < (1 << BYTEWIDTH); j++)
++ 	    if ( HASSYNTAX (j, k))
++ 	      fastmap[j] = 1;
++ 	  break;
++ 
++ 	case notsyntaxspec:
++ 	  k = *p++;
++ 	  k |= (*p++ << 8);
++ 	  for (j = 0; j < (1 << BYTEWIDTH); j++)
++ 	    if ( !HASSYNTAX (j, k))
++ 	      fastmap[j] = 1;
++ 	  break;
++ 	}
++ #endif /* pce_source */
+  
+          case no_op:
+          case begline:
+***************
+*** 3261,3269 ****
+     the first character in string2; and if before the beginning of
+     string2, look at the last character in string1.  */
+  #define WORDCHAR_P(d)							\
+!   (SYNTAX ((d) == end1 ? *string2					\
+!            : (d) == string2 - 1 ? *(end1 - 1) : *(d))			\
+!    == Sword)
+  
+  /* Test if the character before D and the one at D differ with respect
+     to being word-constituent.  */
+--- 3327,3334 ----
+     the first character in string2; and if before the beginning of
+     string2, look at the last character in string1.  */
+  #define WORDCHAR_P(d)							\
+!   (HASSYNTAX (((d) == end1 ? *string2					\
+!            : (d) == string2 - 1 ? *(end1 - 1) : *(d)), Sword))
+  
+  /* Test if the character before D and the one at D differ with respect
+     to being word-constituent.  */
+***************
+*** 4502,4508 ****
+  	    break;
+            goto fail;
+  
+! #ifdef emacs
+    	case before_dot:
+            DEBUG_PRINT1 ("EXECUTING before_dot.\n");
+   	  if (PTR_CHAR_POS ((unsigned char *) d) >= point)
+--- 4567,4574 ----
+  	    break;
+            goto fail;
+  
+! #if defined(emacs) || defined(pce_source)
+! #ifndef pce_source
+    	case before_dot:
+            DEBUG_PRINT1 ("EXECUTING before_dot.\n");
+   	  if (PTR_CHAR_POS ((unsigned char *) d) >= point)
+***************
+*** 4520,4536 ****
+            if (PTR_CHAR_POS ((unsigned char *) d) <= point)
+    	    goto fail;
+    	  break;
+! #if 0 /* not emacs19 */
+! 	case at_dot:
+!           DEBUG_PRINT1 ("EXECUTING at_dot.\n");
+! 	  if (PTR_CHAR_POS ((unsigned char *) d) + 1 != point)
+! 	    goto fail;
+! 	  break;
+! #endif /* not emacs19 */
+! 
+  	case syntaxspec:
+            DEBUG_PRINT2 ("EXECUTING syntaxspec %d.\n", mcnt);
+  	  mcnt = *p++;
+  	  goto matchsyntax;
+  
+          case wordchar:
+--- 4586,4598 ----
+            if (PTR_CHAR_POS ((unsigned char *) d) <= point)
+    	    goto fail;
+    	  break;
+! #endif /*pce_source*/
+  	case syntaxspec:
+            DEBUG_PRINT2 ("EXECUTING syntaxspec %d.\n", mcnt);
+  	  mcnt = *p++;
++ #ifdef pce_source
++ 	  mcnt |= (*p++ << 8);
++ #endif /* pce_source */
+  	  goto matchsyntax;
+  
+          case wordchar:
+***************
+*** 4540,4546 ****
+  	  PREFETCH ();
+  	  /* Can't use *d++ here; SYNTAX may be an unsafe macro.  */
+  	  d++;
+! 	  if (SYNTAX (d[-1]) != (enum syntaxcode) mcnt)
+  	    goto fail;
+            SET_REGS_MATCHED ();
+  	  break;
+--- 4602,4608 ----
+  	  PREFETCH ();
+  	  /* Can't use *d++ here; SYNTAX may be an unsafe macro.  */
+  	  d++;
+! 	  if ( !HASSYNTAX (d[-1], mcnt) )
+  	    goto fail;
+            SET_REGS_MATCHED ();
+  	  break;
+***************
+*** 4548,4553 ****
+--- 4610,4618 ----
+  	case notsyntaxspec:
+            DEBUG_PRINT2 ("EXECUTING notsyntaxspec %d.\n", mcnt);
+  	  mcnt = *p++;
++ #ifdef pce_source
++ 	  mcnt |= (*p++ << 8);
++ #endif /* pce_source */
+  	  goto matchnotsyntax;
+  
+          case notwordchar:
+***************
+*** 4557,4568 ****
+  	  PREFETCH ();
+  	  /* Can't use *d++ here; SYNTAX may be an unsafe macro.  */
+  	  d++;
+! 	  if (SYNTAX (d[-1]) == (enum syntaxcode) mcnt)
+  	    goto fail;
+  	  SET_REGS_MATCHED ();
+            break;
+  
+! #else /* not emacs */
+  	case wordchar:
+            DEBUG_PRINT1 ("EXECUTING non-Emacs wordchar.\n");
+  	  PREFETCH ();
+--- 4622,4633 ----
+  	  PREFETCH ();
+  	  /* Can't use *d++ here; SYNTAX may be an unsafe macro.  */
+  	  d++;
+! 	  if ( HASSYNTAX (d[-1], mcnt) )
+  	    goto fail;
+  	  SET_REGS_MATCHED ();
+            break;
+  
+! #else /* not emacs and not pce_source */
+  	case wordchar:
+            DEBUG_PRINT1 ("EXECUTING non-Emacs wordchar.\n");
+  	  PREFETCH ();

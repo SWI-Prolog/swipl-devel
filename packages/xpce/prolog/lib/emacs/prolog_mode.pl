@@ -19,7 +19,7 @@
 	   ]).
 
 
-:- emacs_begin_mode(prolog, language,
+:- emacs_begin_mode(prolog, outline,
 		    "Mode for editing XPCE/Prolog sources",
 					% BINDINGS
 	[ indent_line		       = key('TAB'),
@@ -30,6 +30,8 @@
 	  make			       = key('\C-cRET') + button(prolog),
 	  compile_buffer	       = key('\C-c\C-b') + button(prolog),
 	  consult_selection	       = button(compile) + button(prolog),
+	  source_file		       = button(prolog,
+						@prolog?source_file_chain),
 
 	  manpce		       = key('\C-c?') + button(pce),
 	  editpce		       = key('\C-ce') + button(pce),
@@ -51,6 +53,20 @@
 	  '*'  + comment_end('/')
 	]).
 		 
+:- send(@class, attribute, outline_regex_list,
+	chain(regex(string('\\(^\\w+.*:<?->?\\)\\([^.]+\\.\\(\\s *\n\\)*\\)\\s ')))).
+
+
+source_file_chain(Ch) :-
+	new(Ch, chain),
+	forall(user_source_file(X), send(Ch, append, X)),
+	send(Ch, sort).
+
+user_source_file(F) :-
+	source_file(F),
+	\+ (user:library_directory(D),
+	    concat(D, _, F)).
+
 
 :- pce_global(@prolog_neck_regex,
 	      new(regex(':-\|-->\|:->\|:<-'))).
@@ -305,10 +321,16 @@ what_class(E, ClassName:name) :<-
 what_class(E) :->
 	"Display current class"::
 	(   get(E, what_class, ClassName)
-	->  send(E, report, inform, 'You are in XPCE class "%s"', ClassName)
+	->  send(E, report, inform, 'Caret is in XPCE class "%s"', ClassName)
 	;   send(E, report, inform,
 		 'Not between :- pce_begin_class and :- pce_end_class')
 	).
+
+
+source_file(E, F:file) :->
+	"Switch to named source_file"::
+	send(E, find_file, F).
+
 
 
 		 /*******************************

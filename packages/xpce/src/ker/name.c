@@ -228,8 +228,7 @@ initNamesPass2(void)
 
   for(n = 0, name=(Name)builtin_names; name->data.s_text != NULL; name++, n++)
   { initHeaderObj(name, ClassName);
-    setProtectedObj(name);
-    insertName(name);
+    registerName(name);
     createdObject(name, (Name)NAME_new);
   }
 
@@ -259,6 +258,7 @@ checkNames(int prt)
     if ( name != NULL )
     { cnt++;
       assert(isProperObject(name));
+      assert(isName(name));		/* checks F_ISNAME */
       assert(classOfObject(name) == ClassName);
       assert(isProtectedObj(name));
       assert(name->data.s_text != NULL);
@@ -300,7 +300,7 @@ unlinkName(Name n)
 static status
 registerName(Name n)
 { insertName(n);
-  setProtectedObj(n);
+  setFlag(n, F_PROTECTED|F_ISNAME);
 
   succeed;
 }
@@ -506,12 +506,11 @@ StringToName(String s)
   if ( inBoot )
   { Name name = alloc(sizeof(struct name));
     initHeaderObj(name, ClassName);
-    setProtectedObj(name);
 
     str_cphdr(&name->data, s);
     str_alloc(&name->data);
     str_ncpy(&name->data, 0, s, 0, s->size);
-    insertName(name);
+    registerName(name);
     createdObject(name, (Name)NAME_new);
 
     answer(name);

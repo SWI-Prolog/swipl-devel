@@ -14,11 +14,12 @@
 static status	highlightStyle(Style s, Bool on);
 static status	underlineStyle(Style s, Bool on);
 static status	greyStyle(Style s, Bool on);
+static status	hiddenStyle(Style s, Bool on);
 
 static status
 initialiseStyle(Style s, Image icon, FontObj font, Colour colour,
 		Bool highlight, Bool underline, Bool bold, Bool grey,
-		Any background)
+		Any background, Bool hidden)
 { if ( isDefault(icon) )
     icon = NIL;
 
@@ -32,6 +33,7 @@ initialiseStyle(Style s, Image icon, FontObj font, Colour colour,
   if ( notDefault(underline) ) underlineStyle(s, underline);
   if ( notDefault(bold) )      boldStyle(s, bold);
   if ( notDefault(grey) )      greyStyle(s, grey);
+  if ( notDefault(hidden) )    hiddenStyle(s, hidden);
 
   succeed;
 }
@@ -100,8 +102,8 @@ boldStyle(Style s, Bool on)
 
 
 static status
-closedStyle(Style s, Bool on)
-{ return attribute_style(s, TXT_CLOSED, on);
+hiddenStyle(Style s, Bool on)
+{ return attribute_style(s, TXT_HIDDEN, on);
 }
 
 
@@ -136,8 +138,8 @@ getBoldStyle(Style s)
 
 
 static Bool
-getClosedStyle(Style s)
-{ return get_attribute_style(s, TXT_CLOSED);
+getHiddenStyle(Style s)
+{ return get_attribute_style(s, TXT_HIDDEN);
 }
 
 
@@ -160,11 +162,11 @@ makeClassStyle(Class class)
   termClass(class, "style", 2, NAME_icon, NAME_font);
   setLoadStoreFunctionClass(class, loadStyle, storeStyle);
 
-  sendMethod(class, NAME_initialise, DEFAULT, 8,
+  sendMethod(class, NAME_initialise, DEFAULT, 9,
 	     "icon=[image]*", "font=[font]", "colour=[colour]",
 	     "highlight=[bool]", "underline=[bool]",
 	     "bold=[bool]", "grey=[bool]",
-	     "background=[colour|pixmap|elevation]",
+	     "background=[colour|pixmap|elevation]", "hidden=[bool]",
 	     "Create from icon, font, colour and attributes",
 	     initialiseStyle);
   sendMethod(class, NAME_highlight, NAME_appearance, 1, "bool",
@@ -179,9 +181,9 @@ makeClassStyle(Class class)
   sendMethod(class, NAME_bold, NAME_appearance, 1, "bool",
 	     "Bold text",
 	     boldStyle);
-  sendMethod(class, NAME_closed, NAME_appearance, 1, "bool",
+  sendMethod(class, NAME_hidden, NAME_appearance, 1, "bool",
 	     "Make text invisible",
-	     closedStyle);
+	     hiddenStyle);
 
   getMethod(class, NAME_highlight, NAME_appearance, "bool", 0,
 	    "Boolean to indicate inverse video",
@@ -195,9 +197,9 @@ makeClassStyle(Class class)
   getMethod(class, NAME_bold, NAME_appearance, "bool", 0,
 	    "Boolean to indicate bold",
 	    getBoldStyle);
-  getMethod(class, NAME_closed, NAME_appearance, "bool", 0,
-	    "Boolean to indicate closed",
-	    getClosedStyle);
+  getMethod(class, NAME_hidden, NAME_appearance, "bool", 0,
+	    "Boolean to indicate invisible text",
+	    getHiddenStyle);
 
   succeed;
 }

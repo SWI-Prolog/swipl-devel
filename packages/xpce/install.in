@@ -13,7 +13,7 @@ for d in library boot include; do
     if [ ! -d pl/$d ]; then (cd pl; $LN_S $PLBASE/$d .); fi
 done
 
-if test -r $PWD/Pce; then
+if [ -r $PWD/Pce ]; then
     PCEHOME=""
     topdirs="$HOME /usr/local /home /opt"
     for top in $topdirs; do
@@ -21,9 +21,9 @@ if test -r $PWD/Pce; then
 	    can="$PWD"
 	    topinode=`ls -di $top | awk '{print $1}'`
 	    base=""
-	    while test "$can" != "/" && test "$PCEHOME" = ""; do
+	    while [ "$can" != "/" && test "$PCEHOME" = "" ]; do
 		caninode=`ls -di $can | awk '{print $1}'`
-		if test "$caninode" = "$topinode"; then
+		if [ "$caninode" = "$topinode" ]; then
 		    PCEHOME=`echo $top/$base | sed 's@/$@@'`
 		fi
 		base=`basename $can`/$base
@@ -34,7 +34,7 @@ if test -r $PWD/Pce; then
     if test "$PCEHOME" = ""; then
 	PCEHOME="$PWD"
     else
-	if test ! -r $PCEHOME/Pce; then PCEHOME="$PWD"; fi
+	if [ ! -r $PCEHOME/Pce ]; then PCEHOME="$PWD"; fi
     fi
 else
     echo "$0 should be run from the XPCE home directory"
@@ -52,7 +52,7 @@ Using the following paths:
 
 EOF
 
-$emulator -o bin/pl.qlf -b pl/boot/init.pl -c pl/boot/load.pl
+$emulator -o bin/pl.qlf -b pl/boot/init.pl
 
 $emulator -x bin/pl.qlf -f none -g true >.plparms << _EOS_
 (   feature(save_program, V), V == true
@@ -74,8 +74,7 @@ if [ "$O_SAVE" != "yes" ]; then
     (cd $prefix/bin; rm -f $target; $LN_S $PCEHOME/bin/xpce.base $target)
     echo "Creating quick load file"
     $xpce -b $PCEHOME/pl/boot/init.pl \
-          -c $PCEHOME/pl/boot/load.pl \
-	     $PCEHOME/pl/load.pl
+          -c $PCEHOME/pl/load.pl
     echo "Done"
     rm -f bin/pl.qlf
     exit 0
@@ -83,7 +82,7 @@ fi
 
 
 
-
+rm -f $xpce				# Make sure it is gone
 $emulator -x bin/pl.qlf -f none << _EOS_
 ['prolog/boot/pce_expand'].
 use_module('prolog/boot/pce_pl').

@@ -65,6 +65,8 @@ status		makeClassDevice(Class class);
 status		makeClassEllipse(Class class);
 
 /* figure.c */
+status		initialiseFigure(Figure f);
+status		computeFigure(Figure f);
 status		makeClassFigure(Class class);
 
 /* font.c */

@@ -1653,20 +1653,22 @@ freeHypersObject(Any obj, Name hname, Code cond)
 		*        SLOT ASSIGNMENT	*
 		********************************/
 
-void
+inline void
 addRefObject(Any from, Any to)
 { if ( inBoot || classOfObject(from)->un_answer == ON )
     deleteAnswerObject(to);
 
   addRefObj(to);
 
-  addCodeReference(from);
-  changedObject(to, NAME_addReference, from, 0);
-  delCodeReference(from);
+  if ( onFlag(to, F_INSPECT) )
+  { addCodeReference(from);
+    changedObject(to, NAME_addReference, from, 0);
+    delCodeReference(from);
+  }
 }
 
 
-void
+inline void
 delRefObject(Any from, Any to)
 { if ( refsObject(to) <= 0 )
   { if ( onFlag(to, F_CREATING|F_FREEING|F_FREED) )
@@ -1685,7 +1687,7 @@ delRefObject(Any from, Any to)
       unallocObject(to);
       deferredUnalloced--;
     }
-  } else
+  } else if ( onFlag(to, F_INSPECT) )
   { addCodeReference(to);
     addCodeReference(from);
     changedObject(to, NAME_delReference, from, 0);

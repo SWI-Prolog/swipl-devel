@@ -14,7 +14,7 @@
 		*            CREATE		*
 		********************************/
 
-static status
+status
 initialiseFigure(Figure f)
 { initialiseDevice((Device) f);
   assign(f, background, NIL);
@@ -71,7 +71,7 @@ computeBoundingBoxFigure(Figure f)
 }
 
 
-static status
+status
 computeFigure(Figure f)
 { if ( notNil(f->request_compute) )
   { if ( f->pen != ZERO || notNil(f->background) )

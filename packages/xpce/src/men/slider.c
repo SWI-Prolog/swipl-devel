@@ -286,7 +286,8 @@ eventSlider(Slider s, EventObj ev)
   if ( isAEvent(ev, NAME_msLeftDown) )
     return send(s, NAME_focus, 0);
 
-  if ( isAEvent(ev, NAME_msLeft) && hasModifierEvent(ev, MODIFIER_allup) )
+  if ( isAEvent(ev, NAME_msLeft) &&
+       hasModifierEvent(ev, findGlobal(NAME_ModifierAllUp)) )
   { int ny, vx, vy, lx, ly, sx, sy, hx, hy;
     int se;
     int ex;

@@ -499,10 +499,14 @@ getWorkingDirectoryPce(Pce pce)
 
 #if HAVE_GETCWD
     if ( !getcwd(CWDdir, sizeof(CWDdir)) )
+    { errorPce(CtoName("."), NAME_ioError, getOsErrorPce(PCE));
       return NULL;
+    }
 #else
     if ( getwd(CWDdir) == 0 )
+    { errorPce(CtoName("."), NAME_ioError, getOsErrorPce(PCE));
       return NULL;
+    }
 #endif
 
 #ifdef __unix__
@@ -528,6 +532,10 @@ absolutePath(char *file)
   if ( !isAbsolutePath(file) )
   { Name cwd = getWorkingDirectoryPce(PCE);
 
+    if ( !cwd )
+    { ExpandProblem = CtoName("Cannot get working directory");
+      return NULL;
+    }
     if ( strlen(strName(cwd)) + strlen(file) + 2 >= MAXPATHLEN )
     { ExpandProblem = CtoName("Path name too long");
       return NULL;

@@ -38,7 +38,7 @@
 :- initialization new(@loading_emacs, object).
 					% SWI-Prolog extensions
 pce_ifhostproperty(prolog(swi),
-		   (:- initialization ensure_loaded(user:swi_prolog))). 
+		   (:- ensure_loaded(user:library('emacs/swi_prolog')))). 
 
 
 		 /*******************************
@@ -52,21 +52,21 @@ pce_ifhostproperty(prolog(swi),
 		 *          KERNEL FILES	*
 		 *******************************/
 
-:- initialization ensure_loaded(window).
-:- initialization ensure_loaded(buffer).
-:- initialization ensure_loaded(buffer_menu).
-:- initialization ensure_loaded(server).
-:- initialization ensure_loaded(fundamental_mode).
+:- consult(window).
+:- consult(buffer).
+:- consult(buffer_menu).
+:- consult(server).
+:- consult(fundamental_mode).
 
 
 		 /*******************************
 		 *       AUTOLOAD CLASSES	*
 		 *******************************/
 
-:- pce_autoload(emacs_hit_list,		hit_list).
-:- pce_autoload(emacs_process_buffer,	shell).
-:- pce_autoload(emacs_gdb_buffer,	gdb).
-:- pce_autoload(emacs_annotate_buffer,  annotate_mode).
+:- pce_autoload(emacs_hit_list,		library('emacs/hit_list')).
+:- pce_autoload(emacs_process_buffer,	library('emacs/shell')).
+:- pce_autoload(emacs_gdb_buffer,	library('emacs/gdb')).
+:- pce_autoload(emacs_annotate_buffer,  library('emacs/annotate_mode')).
 
 
 		 /*******************************
@@ -76,16 +76,17 @@ pce_ifhostproperty(prolog(swi),
 
 
 
-:- declare_emacs_mode(language,		language_mode).
-:- declare_emacs_mode(prolog,		prolog_mode).
-:- declare_emacs_mode(latex,		latex_mode).
-:- declare_emacs_mode(c,		c_mode).
-:- declare_emacs_mode('c++',		cpp_mode).
-:- declare_emacs_mode(script,		script_mode).
-:- declare_emacs_mode(man,		man_mode).
-:- declare_emacs_mode(text,		text_mode).
-:- declare_emacs_mode(annotate,		annotate_mode).
-:- declare_emacs_mode(gdb,		gdb).
+:- declare_emacs_mode(outline,		library('emacs/outline_mode')).
+:- declare_emacs_mode(language,		library('emacs/language_mode')).
+:- declare_emacs_mode(prolog,		library('emacs/prolog_mode')).
+:- declare_emacs_mode(latex,		library('emacs/latex_mode')).
+:- declare_emacs_mode(c,		library('emacs/c_mode')).
+:- declare_emacs_mode('c++',		library('emacs/cpp_mode')).
+:- declare_emacs_mode(script,		library('emacs/script_mode')).
+:- declare_emacs_mode(man,		library('emacs/man_mode')).
+:- declare_emacs_mode(text,		library('emacs/text_mode')).
+:- declare_emacs_mode(annotate,		library('emacs/annotate_mode')).
+:- declare_emacs_mode(gdb,		library('emacs/gdb')).
 
 
 		 /*******************************

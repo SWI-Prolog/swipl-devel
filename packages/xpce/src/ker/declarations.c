@@ -419,7 +419,7 @@ static struct class_definition classdefs[] =
   { NAME_tokeniser, NAME_object, makeClassTokeniser,
     &ClassTokeniser, "Tokenise input" },
 
-  { NAME_tree, NAME_device, makeClassTree,
+  { NAME_tree, NAME_figure, makeClassTree,
     &ClassTree, "Hierarchy of graphicals" },
 
   { NAME_tuple, NAME_object, makeClassTuple,

@@ -17,6 +17,7 @@
 :- use_module(library(pce)).
 :- require([ forall/2
 	   , member/2
+	   , strip_module/3
 	   ]).
 
 :- meta_predicate
@@ -56,7 +57,9 @@ declare_emacs_mode(Mode, File, Extensions) :-
 %
 %	Binding:
 %
-%		Selector = [key(Key)] [+ button(Button)]
+%		Selector = [key(Key)]
+%			   [+ button(Button)]
+%			   [+ button(Button, Function)]		(pullright)
 %
 %	Syntax:
 %
@@ -70,24 +73,26 @@ emacs_begin_mode(Mode0, Super, Summary, Bindings, Syntax) :-
 	new(KB, emacs_key_binding(Mode, Super)),
 	new(MM, emacs_mode_menu(Mode, Super)),
 	new(ST, syntax_table(Mode, Super)),
-	make_bindings(Bindings, KB, MM),
+	make_bindings(Bindings, Module, KB, MM),
 	make_syntax(Syntax, ST).
 
-make_bindings(Bindings, KB, MM) :-
+make_bindings(Bindings, Module, KB, MM) :-
 	forall(member((Selector = Term), Bindings),
-	       bind(Term, Selector, KB, MM)).
+	       bind(Term, Selector, Module, KB, MM)).
 
 make_syntax(Syntax, ST) :-
 	forall(member(S, Syntax), syntax(S, ST)).
 
 
-bind(key(Key), Selector, KB, _) :-
+bind(key(Key), Selector, _, KB, _) :-
 	send(KB, function, Key, Selector).
-bind(button(Button), Selector, _, MM) :-
+bind(button(Button), Selector, _, _, MM) :-
 	send(MM, append, Button, Selector).
-bind(A+B, Selector, KB, MM) :-
-	bind(A, Selector, KB, MM),
-	bind(B, Selector, KB, MM).
+bind(button(Button, Func), Selector, Module, _, MM) :-
+	Module:send(MM, append, Button, emacs_argument_item(Selector, Func)).
+bind(A+B, Selector, Module, KB, MM) :-
+	bind(A, Selector, Module, KB, MM),
+	bind(B, Selector, Module, KB, MM).
 	
 syntax(Char = Term, ST) :-
 	Term =.. [Class|Args],
@@ -97,6 +102,10 @@ syntax(Char + Term, ST) :-
 	Term =.. [Class|Args],
 	Send =.. [send, ST, add_syntax, Char, Class | Args],
 	Send.
+syntax(paragraph_end(Regex), ST) :-
+	send(ST, paragraph_end, Regex).
+syntax(sentence_end(Regex), ST) :-
+	send(ST, sentence_end, Regex).
 
 %	emacs_extend_mode(Mode, Bindings).
 %

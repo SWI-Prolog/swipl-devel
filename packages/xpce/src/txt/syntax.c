@@ -462,24 +462,28 @@ BL|EL,  0, QT,  0,  0,  0,  0,  0, OB, CB,  0,  0,  0, SY, PU,  0,
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 };
 
+#undef XL
+#undef xl
+#define XL (UC|XD)
+#define xl (LC|XD)
 
 ushort char_flags[] = {
 /* ^@  ^A  ^B  ^C  ^D  ^E  ^F  ^G  ^H  ^I  ^J  ^K  ^L  ^M  ^N  ^O    0-15 */
-   EB, BL, BL, BL, BL, BL, BL, BL, BL, BL, EL, BL, BL, BL, BL, BL, 
+   EB, CT, CT, CT, CT, CT, CT, CT, CT, BL, EL, CT, BL, BL, CT, CT, 
 /* ^P  ^Q  ^R  ^S  ^T  ^U  ^V  ^W  ^X  ^Y  ^Z  ^[  ^\  ^]  ^^  ^_   16-31 */
-   BL, BL, BL, BL, BL, BL, BL, BL, BL, BL, BL, BL, BL, BL, BL, BL, 
+   CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, 
 /* sp   !   "   #   $   %   &   '   (   )   *   +   ,   -   .   /   32-47 */
    BL, PU, QT, PU, PU, PU, PU, QT, OB, CB, PU, PU, PU, PU, PU, PU, 
 /*  0   1   2   3   4   5   6   7   8   9   :   ;   <   =   >   ?   48-63 */
    DI, DI, DI, DI, DI, DI, DI, DI, DI, DI, PU, PU, PU, PU, PU, PU, 
 /*  @   A   B   C   D   E   F   G   H   I   J   K   L   M   N   O   64-79 */
-   PU, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, 
+   PU, XL, XL, XL, XL, XL, XL, UC, UC, UC, UC, UC, UC, UC, UC, UC, 
 /*  P   Q   R   S   T   U   V   W   X   Y   Z   [   \   ]   ^   _   80-95 */
    UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, OB, PU, CB, PU, WS, 
 /*  `   a   b   c   d   e   f   g   h   i   j   k   l   m   n   o   96-111 */
-   PU, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, 
+   PU, xl, xl, xl, xl, xl, xl, LC, LC, LC, LC, LC, LC, LC, LC, LC, 
 /*  p   q   r   s   t   u   v   w   x   y   z   {   |   }   ~  ^?   112-127 */
-   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, OB, PU, CB, PU, BL, 
+   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, OB, PU, CB, PU, CT, 
 			  /* 128-255 */
    LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, 
    LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, 
@@ -489,7 +493,6 @@ ushort char_flags[] = {
    LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, 
    LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, 
    LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC };
-
 
 char char_context[] = {
 /* ^@  ^A  ^B  ^C  ^D  ^E  ^F  ^G  ^H  ^I  ^J  ^K  ^L  ^M  ^N  ^O    0-15 */

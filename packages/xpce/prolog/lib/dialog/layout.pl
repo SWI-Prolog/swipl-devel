@@ -11,7 +11,8 @@
 	  [ layout_dialog/1
 	  ]).
 :- use_module(library(pce)).
-:- require([ checklist/2
+:- require([ append/3
+	   , checklist/2
 	   , delete/3
 	   , forall/2
 	   , get_chain/3

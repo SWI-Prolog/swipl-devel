@@ -56,7 +56,12 @@ pce_reinitialise :-
 	
  
 print_exception(Excp) :-
-       format("Exception caught by hostSend/Get:~n", []),
-       prolog:puncaught(Excp).
+	Excp = existence_error(_,_,procedure,Target,_), !,
+	format("Exception caught by hostSend/Get:~n", []),
+	format("~t~8|undefined predicate: ~w~n", [Target]),
+	prolog:puncaught(Excp).
+print_exception(Excp) :-
+	format("Exception caught by hostSend/Get:~n", []),
+	prolog:puncaught(Excp).
 
 :- user:assert((term_expansion((:- initialization(Goal)), (:- (Goal))))).

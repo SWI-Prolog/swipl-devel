@@ -20,7 +20,7 @@
 :- require([ checklist/2
 	   ]).
 
-:- use_module(library('draw/draw')).
+:- consult(library('draw/draw')).
 
 pcedraw :-
 	draw.

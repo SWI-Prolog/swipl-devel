@@ -14,29 +14,27 @@
 	   , memberchk/2
 	   ]).
 
-:- pce_begin_class(emacs_c_mode, emacs_language_mode).
+:- emacs_begin_mode(c, outline,
+		    "Mode for editing C programs",
+		    [ insert_c_begin	= key('{'),
+		      prototype_mark	= key('\C-cRET'),
+		      add_prototype	= key('\C-c\C-p'),
+		      insert_NAME_	= key('\C-c\C-n'),
+		      gdb		= button(gdb)
+		    ],
+		    [ '"'  = string_quote('\'),
+		      '''' = string_quote('\'),
+		      '/'  + comment_start('*'),
+		      '*'  + comment_end('/'),
+
+		      paragraph_end(regex('\s *$\|/\*\|.*\*/'))
+		    ]).
 
 :- initialization
-	new(KB, emacs_key_binding(c, language)),
-	send(KB, function, '{',		insert_c_begin),
-	send(KB, function, '\C-cRET',	prototype_mark),
-	send(KB, function, '\C-c\C-p',	add_prototype),
-	send(KB, function, '\C-c\C-n',	insert_NAME_).
-
-:- initialization
-	new(X, syntax_table(c)),
-	send(X, syntax, '"',  string_quote, '\'),
-	send(X, syntax, '''', string_quote, '\'),
-	
-	send(X, add_syntax, '/',  comment_start, '*'),
-	send(X, add_syntax, '*',  comment_end, '/'),
-
-	send(X, paragraph_end, regex('\s *$\|/\*\|\*/')).
-
-:- initialization
-	new(MM, emacs_mode_menu(c, language)),
-	send(MM, append, gdb, gdb).
-
+	send(@class, attribute, outline_regex_list,
+	     chain(regex(string('^\\(\\w+([^)]*).*\n\\)\\({\\([^}].*\n\\)+}\\(\\s *\n\\)*\\)')),
+		   regex(string('^\\(\\w+.*\n\\)\\({\\([^}].*\n\\)+};\\(\\s *\n\\)*\\)')),
+		   regex(string('^\\(#\\s *define.*\\\\\\)\n\\(\\(.*\\\\\n\\)+.*\n\\)')))).
 
 :- pce_global(@c_indent, new(number(2))).
 :- pce_global(@c_undent_regex, new(regex('{\|else\|\w+:'))).
@@ -195,5 +193,5 @@ insert_NAME_(M) :->
 	"Insert NAME_"::
 	send(M, format, 'NAME_').
 
-:- pce_end_class.
+:- emacs_end_mode.
 

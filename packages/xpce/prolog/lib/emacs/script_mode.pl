@@ -2,29 +2,26 @@
 
     Part of XPCE
     Designed and implemented by Anjo Anjewierden and Jan Wielemaker
-    M-mail: jan@swi.psy.uva.nl
+    E-mail: jan@swi.psy.uva.nl
 
     Copyright (C) 1993 University of Amsterdam. All rights reserved.
 */
 
 :- module(emacs_script_mode, []).
 :- use_module(library(pce)).
+:- require([ emacs_end_mode/0
+	   , emacs_begin_mode/5
+	   ]).
 
-:- pce_begin_class(emacs_script_mode, emacs_language_mode).
+:- emacs_begin_mode(script, language,
+		  "Edit arbitrary scripts with # line comment",
+		  [
+		  ],
+		  [ '"'  = string_quote('\'),
+		    '''' = string_quote('\'),
+		    '#'  = comment_start,
+		    '\n' + comment_end
+		  ]).
 
-:- initialization
-	new(_KB, emacs_key_binding(script, language)).
-
-:- initialization
-	new(X, syntax_table(script)),
-	send(X, syntax, '"',  string_quote, '\'),
-	send(X, syntax, '''', string_quote, '\'),
-
-	send(X, syntax,     '#',  comment_start),
-	send(X, add_syntax, '\n', comment_end).
-
-:- initialization
-	new(_, emacs_mode_menu(script, language)).
-
-:- pce_end_class.
+:- emacs_end_mode.
 

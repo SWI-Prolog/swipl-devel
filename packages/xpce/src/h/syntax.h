@@ -36,6 +36,8 @@ End;
 #define EB	makeCFlag(12)		/* End Buffer/string */
 #define CS	makeCFlag(13)		/* Comment-start (context: 2nd char) */
 #define CE	makeCFlag(14)  		/* Comment-end (context: 2nd char) */
+#define CT	makeCFlag(15)		/* Control character */
+#define XD	makeCFlag(16)		/* Xdigit */
 
 #define AN	(LC|UC|DI|WS|SY)	/* General symbol-character */
 
@@ -83,6 +85,15 @@ extern char  char_context[];		/* Initial context table */
 				 (char_context[(unsigned int)(c1)] == (c2))
 #define isstringescape(q, e)	(Is8char(q) && \
 				 char_context[((unsigned int))(q)] == (e))
+
+					/* <ctype.h> replacements */
+
+#define isalpha(c)		HasSyntax((c), LC|UC)
+#define iscntrl(c)		HasSyntax((c), CT)
+#define isprint(c)		(!iscntrl((c)))
+#define isspace(c)		isblank((c))
+#define ispunct(c)		HasSyntax((c), PU)
+#define isxdigit(c)		HasSyntax((c), XD)
 
 		/********************************
 		*         TABLE VERSIONS	*
