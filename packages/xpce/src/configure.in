@@ -412,6 +412,7 @@ EOF
 	;;
     *darwin*)
 	LD=plld
+	LDSOFLAGS="-shared"
 	GCCLIB=""
 	CMFLAGS="$CMFLAGS -no-cpp-precomp"
 	AC_DEFINE(__unix__)
