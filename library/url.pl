@@ -12,7 +12,8 @@
 	  [ parse_url/2,		% +URL, -Parts
 	    parse_url/3,		% +BaseURL, +URL|URI, -Parts
 	    global_url/3,		% +Local, +Base, -Global
-	    http_location/2		% +Parts, -Location
+	    http_location/2,		% +Parts, -Location
+	    www_form_encode/2		% Value <-> Encoded
 	  ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -474,3 +475,82 @@ chars(Type, [C0|C]) -->
 chars(_, []) -->
 	[].
 
+
+		 /*******************************
+		 *	        FORMS		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Encoding/decoding of form-fields  using   the  popular  www-form-encoded
+encoding used with the HTTP GET.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+%	www_form_encode(+Value, -X-WWW-Form-Encoded)
+%	www_form_encode(-Value, +X-WWW-Form-Encoded)
+%
+%	En/Decode between native value and application/x-www-form-encoded
+%	Maps space to +, keeps alnum, maps anything else to %XX and newlines
+%	to %od%oa.  When decoding, newlines appear as a single newline (10)
+%	character.
+
+www_form_encode(Value, Encoded) :-
+	atomic(Value), !,
+	atom_codes(Value, Codes),
+	phrase(www_encode(EncCodes), Codes),
+	atom_codes(Encoded, EncCodes).
+www_form_encode(Value, Encoded) :-
+	atom_codes(Encoded, EncCodes),
+	phrase(www_decode(Codes), EncCodes),
+	atom_codes(Value, Codes).
+
+www_encode([0'+|T]) -->
+	" ", !,
+        www_encode(T).
+www_encode([C|T]) -->
+	alphanum(C), !,
+	www_encode(T).
+www_encode(Enc) -->
+	(   "\r\n"
+	;   "\n"
+	),
+	{ append("%0D%0A", T, Enc)
+	},
+	www_encode(T).
+www_encode([]) -->
+	[].
+
+www_encode([0'%,D1,D2|T]) -->
+	[C],
+	{ Dv1 is (C>>4 /\ 0xf),
+	  Dv2 is (C /\ 0xf),
+	  code_type(D1, xdigit(Dv1)),
+	  code_type(D2, xdigit(Dv2))
+	},
+	www_encode(T).
+	
+www_decode([0' |T]) -->
+	"+", !,
+        www_decode(T).
+www_decode([C|T]) -->
+	"%",
+	[ D1,D2 ], !,
+	{ code_type(D1, xdigit(Dv1)),
+	  code_type(D2, xdigit(Dv2)),
+	  C is ((Dv1)<<4) + Dv2
+	},
+	(   { C == 13
+	    },
+	    "%0",
+	    [D3],
+	    { code_type(D3, xdigit(10))
+	    }
+	->  { C = 10
+	    }
+	;   []
+	),
+	www_decode(T).
+www_decode([C|T]) -->
+	[C],
+	www_decode(T).
+www_decode([]) -->
+	[].
