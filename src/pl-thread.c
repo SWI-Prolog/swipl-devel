@@ -2697,27 +2697,19 @@ int
 PL_destroy_engine(PL_engine_t e)
 { int rc;
 
-  LOCK();
-  if ( e->magic != LD_MAGIC )
-  { UNLOCK();
-    return PL_warning("Not an engine: %p", e);
-  }
-
   if ( e == PL_current_engine() )
   { rc = PL_thread_destroy_engine();
   } else
   { PL_engine_t current;
     
-    if ( PL_set_engine(e, &current) )
-    { PL_thread_destroy_engine();
+    if ( PL_set_engine(e, &current) == PL_ENGINE_SET )
+    { rc = PL_thread_destroy_engine();
       PL_set_engine(current, NULL);
 
-      rc = TRUE;
     } else
       rc = FALSE;
   }
 
-  UNLOCK();
   return rc;
 }
 
