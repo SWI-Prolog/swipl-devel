@@ -65,7 +65,8 @@ error XPCE cannot be build for X version 10.  Sorry.
 typedef struct
 { Widget	widget;
   Window	busy_window;
-} frame_ws_ref;
+  int		win_gravity;
+} frame_ws_ref, *FrameWsRef;
 
 
 		 /*******************************

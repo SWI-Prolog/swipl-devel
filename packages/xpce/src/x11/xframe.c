@@ -33,25 +33,32 @@ static status   updateAreaFrame(FrameObj fr, Int border);
 		 *	    REFERENCES		*
 		 *******************************/
 
-static void
-setWidgetFrame(FrameObj fr, Widget w)
+static frame_ws_ref *
+ensureWsRefFrame(FrameObj fr)
 { if ( !fr->ws_ref )
   { fr->ws_ref = alloc(sizeof(frame_ws_ref));
-    ((frame_ws_ref *)fr->ws_ref)->busy_window = 0;
+    memset(fr->ws_ref, 0, sizeof(frame_ws_ref));
   }
 
-  ((frame_ws_ref *)fr->ws_ref)->widget = w;
+  return fr->ws_ref;
+}
+
+
+static void
+setWidgetFrame(FrameObj fr, Widget w)
+{ ensureWsRefFrame(fr)->widget = w;
+}
+
+
+static void
+setGravityFrame(FrameObj fr, int gravity)
+{ ensureWsRefFrame(fr)->win_gravity = gravity;
 }
 
 
 static void
 setBusyWindowFrame(FrameObj fr, Window w)
-{ if ( !fr->ws_ref )
-  { fr->ws_ref = alloc(sizeof(frame_ws_ref));
-    ((frame_ws_ref *)fr->ws_ref)->widget = NULL;
-  }
-
-  ((frame_ws_ref *)fr->ws_ref)->busy_window = w;
+{ ensureWsRefFrame(fr)->busy_window = w;
 }
 
 
@@ -893,7 +900,7 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
     Area a = fr->area;
     DisplayWsXref r = fr->display->ws_ref;
     Display *d = r->display_xref;
-    Window wm, me;
+    Window wm, me = XtWindow(wdg);
     int dx, dy;
 
     sprintf(def,
@@ -908,9 +915,7 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
 		     0, 0,
 		     &x, &y, &w, &h);
   
-    if ( (wm = getWMFrameFrame(fr, &dx, &dy)) &&
-	 (me = XtWindow(wdg)) &&
-	 me != wm )
+    if ( me && (wm = getWMFrameFrame(fr, &dx, &dy)) && me != wm )
     { Window root;
       int mex, mey, wmx, wmy;
       unsigned int mew, meh, wmw, wmh, mebw, wmbw;
@@ -931,12 +936,23 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
 	y -= wmh-meh-dy;
       else
 	y += dy;
-/*    The size in a geometry-specifications is the size of the client-area
-      w -= wmw-mew;
-      h -= wmh-meh;
-*/
     } else
     { DEBUG(NAME_frame, Cprintf("No WM frame yet\n"));
+    }
+
+    switch(mask & (XNegative|YNegative))
+    { case 0:
+	setGravityFrame(fr, NorthWestGravity);
+        break;
+      case XNegative|YNegative:
+	setGravityFrame(fr, SouthEastGravity);
+	break;
+      case XNegative:
+	setGravityFrame(fr, NorthEastGravity);
+	break;
+      case YNegative:
+	setGravityFrame(fr, SouthWestGravity);
+	break;
     }
 
     X = ( mask & XValue      ? toInt(x) : (Int) DEFAULT );
@@ -971,18 +987,24 @@ ws_geometry_frame(FrameObj fr, Int x, Int y, Int w, Int h)
     XtMakeGeometryRequest(wdg, &in, &out);
 
     if ( fr->kind != NAME_popup )
-    { XSizeHints hints;
+    { XSizeHints *hints = XAllocSizeHints();
+      FrameWsRef wsref  = fr->ws_ref;
       
-      hints.flags  = 0;
-      if ( notDefault(x) || notDefault(y) ) hints.flags |= USPosition;
-      if ( notDefault(w) || notDefault(h) ) hints.flags |= USSize;
+      if ( notDefault(x) || notDefault(y) ) hints->flags |= USPosition;
+      if ( notDefault(w) || notDefault(h) ) hints->flags |= USSize;
 
-      hints.x      = valInt(fr->area->x);
-      hints.y      = valInt(fr->area->y);
-      hints.width  = valInt(fr->area->w);
-      hints.height = valInt(fr->area->h);
-      
-      XSetNormalHints(r->display_xref, XtWindow(wdg), &hints);
+      hints->x      = valInt(fr->area->x);
+      hints->y      = valInt(fr->area->y);
+      hints->width  = valInt(fr->area->w);
+      hints->height = valInt(fr->area->h);
+
+      if ( wsref->win_gravity )
+      {  hints->win_gravity = wsref->win_gravity;
+	 hints->flags |= PWinGravity;
+      }
+
+      XSetWMNormalHints(r->display_xref, XtWindow(wdg), hints);
+      XFree(hints);
     }
   }
 }

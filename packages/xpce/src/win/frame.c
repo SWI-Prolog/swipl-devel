@@ -649,7 +649,7 @@ getGeometryFrame(FrameObj fr)
 
   if ( ws_frame_bb(fr, &x, &y, &w, &h) )
   { int dw, dh;
-    int xn=0, yn=0;
+    int xn=FALSE, yn=FALSE;
     Size size;
     char buf[100];
 
@@ -657,13 +657,13 @@ getGeometryFrame(FrameObj fr)
     dw = valInt(size->w);
     dh = valInt(size->h);
 
-    if ( x > dw - (x+w) )
+    if ( x > (dw - (x+w))*2 )
     { x = dw - (x+w);
-      xn++;
+      xn = TRUE;
     }
-    if ( y > dh - (y+h) )
+    if ( y > (dh - (y+h))*2 )
     { y = dh - (y+h);
-      yn++;
+      yn = TRUE;
     }
 
 					/* geometry-size denotes client area */
