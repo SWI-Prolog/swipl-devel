@@ -315,8 +315,8 @@ static const error_def errors[] =
   { NAME_noApplicationContext,	ET_FATAL,
     "%N: Failed to create X-application-context" },
 					/* Colour/Cursor/Font, etc */
-  { NAME_noNamedColour,		EF_REPORT,
-    "%N: No colour named %s" },
+  { NAME_noNamedColour,		ET_WARNING,
+    "%N: No colour named %s; using black" },
   { NAME_noNamedCursor,		EF_REPORT,
     "%N: No cursor named %s" },
   { NAME_getSelection,		EF_REPORT,

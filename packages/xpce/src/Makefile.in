@@ -5,6 +5,13 @@
 #
 # NOTE NOTE NOTE: This Makefile only works with GNU-Make!!
 #
+# Targets:
+#
+#	make			Builds shared object for SWI-Prolog
+#	make install		Installs XPCE as SWI-Prolog library
+#	make pl-static		Builds statically linked xpce holding
+#				SWI-Prolog and XPCE combined
+#
 # The XPCE project was started by Anjo Anjewierden, who developed version
 # 1 and 2.  Version 3 is result of joint effort from Anjo Anjewierden and
 # Jan Wielemaker.  Version 4 and 5 are written by Jan Wielemaker.
@@ -197,7 +204,8 @@ pl-shared:	pl
 		CANONICAL_PATHS=$(PCEHOME); export CANONICAL_PATHS; \
 		$(MAKE) soall
 
-pl-static:	pl
+static:		pl-static
+pl-static:	xpce pl
 		cd ../pl/src; \
 		CANONICAL_PATHS=$(PCEHOME); export CANONICAL_PATHS; \
 		$(MAKE) nosoall

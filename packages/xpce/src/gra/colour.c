@@ -68,12 +68,7 @@ initialiseColour(Colour c, Name name, Int r, Int g, Int b, Name model)
     assign(c, name, name);
 
   if ( isDefault(r) && isDefault(g) && isDefault(b) )
-  { DisplayObj d;
-
-    if ( (d = CurrentDisplay(NIL)) && !ws_colour_name(d, name) )
-      return errorPce(c, NAME_noNamedColour, name);
-
-    assign(c, kind, NAME_named);
+  { assign(c, kind, NAME_named);
   } else if ( notDefault(r) && notDefault(g) && notDefault(b) )
   { assign(c, kind, NAME_rgb);
 
@@ -240,7 +235,16 @@ getConvertColour(Class class, Name name)
 
 static status
 XopenColour(Colour c, DisplayObj d)
-{ return ws_create_colour(c, d);
+{ if ( c->kind == NAME_named )
+  { DisplayObj d;
+
+    if ( (d = CurrentDisplay(NIL)) && !ws_colour_name(d, c->name) )
+    { errorPce(c, NAME_noNamedColour, c->name);
+      assign(c, name, NAME_black);
+    }
+  }
+
+  return ws_create_colour(c, d);
 }
 
 
@@ -497,7 +501,12 @@ makeClassColour(Class class)
   ColourTable = globalObject(NAME_colours, ClassHashTable, toInt(32), EAV);
   assign(ColourTable, refer, NAME_none);
 
-  ws_colour_name(CurrentDisplay(NIL), NAME_black);
+/* Don't know why this is done, it cannot be here as it is the reason why
+   the X11 display is opened during XPCE's initialisation.  Possibly related
+   to the variable BLACK_COLOUR, set when opening the display
+*/
+
+/*ws_colour_name(CurrentDisplay(NIL), NAME_black);*/
 
   succeed;
 }

@@ -1,6 +1,12 @@
 			   XPCE ChangeLog
 			   ==============
 
+* MAINTAIN: Unix Makefile: fixed pl-static target to call xpce dependency
+
+* ADDED: Avoid opening the display during XPCE's initialisation.  This
+  allows for XPCE applications without doing graphics.
+
+
 VERSION 5.1.9, distributed with SWI-Prolog 4.0.10
 =================================================
 
