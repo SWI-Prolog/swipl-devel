@@ -692,7 +692,86 @@ system, the size of the program and the operating system (Unix
 vs.\ Windows).
 
 
+\subsubsection{Using PrologScript}	\label{sec:plscript}
+
+New in version 4.0.5 is the possibility to use a Prolog source file
+directly as a Unix script-file.  the same mechanism is useful to
+specify additional parameters for running a Prolog file on Windows.
+
+If the first letter of a Prolog file is \verb$#$, the first line is
+threated as comment.%
+	\footnote{The \verb$#$-sign can be the legal start of a normal
+		  Prolog clause.  In the unlikely case this is required,
+		  leave the first line blank or add a header-comment.}
+To create a Prolog script, make the first line start like this:
+
+\begin{quote}
+\verb$#!/path/to/pl$ <options> \verb$-f$
+\end{quote}
+
+Prolog recognises this starting sequence and causes the interpreter
+to receive the following argument-list:
+
+\begin{quote}
+\verb$/path/to/pl$ <options> \verb$-f$ <script> \verb$--$ <ScriptArguments>
+\end{quote}
+
+Here is a simple script doing expression evaluation:
+
+\begin{code}
+#!/usr/bin/pl -q -t main -f
+
+eval :-
+	current_prolog_flag(argv, Argv),
+	append(_, [--|Args], Argv),
+	concat_atom(Args, ' ', SingleArg),
+	term_to_atom(Term, SingleArg),
+	Val is Term,
+	format('~w~n', [Val]).
+
+main :-
+	catch(eval, E, (print_message(error, E), fail)),
+	halt.
+main :-
+	halt(1).
+\end{code}
+
+And here are two example runs:
+
+\begin{code}
+% eval 1+2
+3
+% eval foo
+ERROR: Arithmetic: `foo/0' is not a function
+%
+\end{code}
+
+\paragraph{The Windows version} supports the \verb$#!$ construct too,
+but here it serves a rather different role.  The Windows shell already
+allows the user to start Prolog source-files directly through the
+Windows file-type association.  Windows however makes it rather
+complicated to provide additional parameters, such as the required
+stack-size for an individual Prolog file.  The \verb$#!$ line provides
+for this, providing a more flexible approach then changing the global
+defaults.  The following starts Prolog with unlimited stack-size on
+the given source-file:
+
+\begin{code}
+#!/usr/bin/pl -L0 -T0 -G0 -f
+
+....
+\end{code}
+
+Note the use of \verb$/usr/bin/pl$, which specifies the interpreter.
+This argument is ignored in the Windows version, but required to ensure
+best cross-platform compatibility.
+
+
 \subsubsection{Creating a shell-script}
+
+With the introduction of \jargon{PrologScript} (see \secref{plscript}),
+using shell-scripts as explained in this section has become redundant
+for most applications.
 
 Especially on Unix systems and not-too-large applications, writing
 a shell-script that simply loads your application and calls the

@@ -565,9 +565,6 @@ stack-parameters.
 #define MAXARGV 256
 #endif
 
-#ifdef __unix__
-#include <ctype.h>
-
 static void
 script_argv(int argc, char **argv)
 { FILE *fd;
@@ -578,9 +575,14 @@ script_argv(int argc, char **argv)
 	    Sdprintf("argv[%d] = '%s'\n", i, argv[i]);
 	});
 
+#ifdef __unix__
   if ( argc >= 3 &&
        strpostfix(argv[1], "-f") &&
        (fd = fopen(argv[2], "r")) )	/* ok, this is a script invocation */
+#else
+  if ( argv >= 2 &&
+       (fd = fopen(argv[1], "r")) )
+#endif
   { char buf[MAXLINE];
     char *s;
     char *av[MAXARGV];
@@ -593,14 +595,14 @@ script_argv(int argc, char **argv)
     }
 
     for(s = &buf[2]; *s; )
-    { while( *s && isspace(*s) )
+    { while( *s && isBlank(*s) )
 	s++;
 
       if ( *s )
       { char *start = s;
 	char *o = s;
 
-	while( *s && !isspace(*s) )
+	while( *s && !isBlank(*s) )
 	{ if ( *s == '\'' || *s == '"' )
 	  { int c0 = *s++;
 
@@ -612,6 +614,13 @@ script_argv(int argc, char **argv)
 	    *o++ = *s++;
 	}
 
+#ifndef __unix__
+	if ( an == 0 )
+	{ av[an++] = argv[0];		/* the original interpreter */
+	  if ( *o != '-' )		/* The interpreter */
+	    continue;
+	}
+#endif
 	av[an] = allocHeap(o-start+1);
 	strncpy(av[an], start, o-start);
 	if ( ++an >= MAXARGV )
@@ -637,7 +646,6 @@ script_argv(int argc, char **argv)
     GD->cmdline.argv = argv;
   }
 }
-#endif
 
 
 int
