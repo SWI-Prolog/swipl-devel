@@ -2,6 +2,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.7.16
+==============
+
+  * FIXED: Heuristics for making hash-index.
+
 Version 2.7.15
 ==============
 

@@ -1102,7 +1102,7 @@ reindexDefinition(Definition def)
       def->indexPattern = 0x0;
     } else
     { def->indexPattern = 0x1;
-      if ( (cannotindex * 8 < canindex) && (canindex > 5) )
+      if ( canindex > 5 && cannotindex <= 2 )
 	do_hash = canindex / 2;
     }
   }

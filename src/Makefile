@@ -29,7 +29,7 @@
 #	  based on SWI-Prolog.  Contact prolog-request@swi.psy.uva.nl.
 ################################################################
 
-PLVERSION=2.7.11
+PLVERSION=2.7.15
 
 PL=pl
 prefix=/usr/local
@@ -44,18 +44,18 @@ lmansec=3
 lmandir=$(prefix)/man/man$(lmansec)
 
 CC=gcc
-LIBS=-ldl -ltermcap -lm 
+LIBS=-ldl -lreadline -ltermcap -lm 
 STATICLIBS=
-AWK=nawk
+AWK=gawk
 SED=sed
 ETAGS=etags
 RANLIB=ranlib
 ARCH=i686-linux
-INSTALL=/usr/gnu/bin/install -c
+INSTALL=/usr/bin/ginstall -c
 INSTALL_PROGRAM=${INSTALL}
 INSTALL_DATA=${INSTALL} -m 644
 
-COFLAGS=-g
+COFLAGS=-O2
 CWFLAGS=-Wall
 CIFLAGS=
 CMFLAGS=-funsigned-char
@@ -162,7 +162,8 @@ $(STUBC):	$(srcdir)/pl-extend.c $(INCLUDEDIR)
 parms.h:	Makefile
 		@echo "#define PLHOME       \"$(PLBASE)\""      > %$@%
 		@echo "#define DEFSTARTUP   \"$(DEFSTARTUP)\"" >> %$@%
-		@echo "#define PLVERSION    \"$(PLVERSION)\""  >> %$@%
+		@echo $(PLVERSION) | \
+		$(AWK) -F. '{ printf("#define PLVERSION %d\n", $$1 * 10000 + $$2 * 100 + $$3); }' >> %$@%
 		@echo "#define ARCH	    \"$(ARCH)\""       >> %$@%
 		@echo "#define C_LIBS	    \"$(LIBS)\""       >> %$@%
 		@echo "#define C_STATICLIBS \"$(STATICLIBS)\"" >> %$@%

@@ -898,11 +898,15 @@ SOURCE=".\pl-file.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_FI=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-ctype.h"\
 	".\pl-data.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
 	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\console.h"\
@@ -1169,11 +1173,15 @@ SOURCE=".\pl-nt.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_NT=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-ctype.h"\
 	".\pl-data.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
 	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\console.h"\

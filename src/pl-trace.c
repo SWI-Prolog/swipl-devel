@@ -672,7 +672,7 @@ traceInterception(LocalFrame frame, LocalFrame bfr, int port, Code PC)
     term_t argv = PL_new_term_refs(4);
     term_t rarg = argv+3;
     atom_t portname = NULL_ATOM;
-    functor_t portfunc;
+    functor_t portfunc = NULL;
 
     switch(port)
     { case CALL_PORT:	  portname = ATOM_call;		break;

@@ -52,7 +52,7 @@
 
 /* Define if your processor stores words with the most significant
    byte first (like Motorola and SPARC, unlike Intel and VAX).  */
-#define WORDS_BIGENDIAN 1
+/* #undef WORDS_BIGENDIAN */
 
 /* Define if BSD compatible signals (i.e. no reset when fired) */
 /* #undef BSD_SIGNALS */
@@ -220,16 +220,16 @@
 #define HAVE_SIGACTION 1
 
 /* Define if you have the sigblock function.  */
-/* #undef HAVE_SIGBLOCK */
+#define HAVE_SIGBLOCK 1
 
 /* Define if you have the siggetmask function.  */
-/* #undef HAVE_SIGGETMASK */
+#define HAVE_SIGGETMASK 1
 
 /* Define if you have the signal function.  */
 #define HAVE_SIGNAL 1
 
 /* Define if you have the sigsetmask function.  */
-/* #undef HAVE_SIGSETMASK */
+#define HAVE_SIGSETMASK 1
 
 /* Define if you have the sleep function.  */
 #define HAVE_SLEEP 1
@@ -298,7 +298,7 @@
 #define HAVE_SYS_RESOURCE_H 1
 
 /* Define if you have the <sys/select.h> header file.  */
-#define HAVE_SYS_SELECT_H 1
+/* #undef HAVE_SYS_SELECT_H */
 
 /* Define if you have the <sys/stat.h> header file.  */
 #define HAVE_SYS_STAT_H 1
@@ -334,7 +334,7 @@
 /* #undef HAVE_LIBNCURSES */
 
 /* Define if you have the readline library (-lreadline).  */
-/* #undef HAVE_LIBREADLINE */
+#define HAVE_LIBREADLINE 1
 
 /* Define if you have the termcap library (-ltermcap).  */
 #define HAVE_LIBTERMCAP 1
