@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug#27 icon directory prolog/lib/doc/icons was not installed.
+  Lourens van der Meij.
+
 * FIXED: PceEmacs: do not signal ->idle when a gesture is in progress
   (avoids re-colouring while waiting for the user to select a popup-entry).
 
