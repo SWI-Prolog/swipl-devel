@@ -3472,25 +3472,28 @@ word
 pl_break_at(term_t ref, term_t pc, term_t set)
 { Clause clause;
   int offset;
-  atom_t a;
+  int doit;
 
-  if ( !PL_get_pointer(ref, (void **)&clause) ||
-       !inCore(clause) || !isClause(clause) ||
-       !PL_get_atom(set, &a) ||
-       !PL_get_integer(pc, &offset) ||
-       offset < 0 || offset >= clause->code_size )
+  if ( !get_clause_ptr_ex(ref, &clause) )
     fail;
+  if ( !PL_get_bool_ex(set, &doit) ||
+       !PL_get_integer_ex(pc, &offset) )
+    fail;
+  if ( offset < 0 || offset >= clause->code_size )
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_pc, pc);
 
-  if ( a == ATOM_true )
-    return setBreak(clause, offset);
+  if ( doit )
+    setBreak(clause, offset);
   else
-    return clearBreak(clause, offset);
+    clearBreak(clause, offset);
+
+  succeed;
 }
 
 
 word
 pl_current_break(term_t ref, term_t pc, control_t h)
-{ TableEnum e;
+{ TableEnum e = NULL;			/* make gcc happy */
   Symbol symb;
   
   if ( !breakTable )
@@ -3506,8 +3509,7 @@ pl_current_break(term_t ref, term_t pc, control_t h)
     case FRG_CUTTED:
       e = ForeignContextPtr(h);
       freeTableEnum(e);
-    default:
-      assert(0);
+      succeed;
   }
 
   while( (symb = advanceTableEnum(e)) )

@@ -140,10 +140,11 @@ flags after running configure.
 #ifndef O_LABEL_ADDRESSES
 #if __GNUC__ == 2
 #define O_LABEL_ADDRESSES	1
-#ifndef VMCODE_IS_ADDRESS
+#endif
+#endif
+
+#if O_LABEL_ADDRESSES && !defined(VMCODE_IS_ADDRESS)
 #define VMCODE_IS_ADDRESS	1
-#endif
-#endif
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -1700,7 +1700,7 @@ will export jmp_table as the compiler  needs   to  know  this table. See
 pl-comp.c
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if O_LABEL_ADDRESSES
+#if VMCODE_IS_ADDRESS
   static void *jmp_table[] =
   { &&I_NOP_LBL,
     &&I_ENTER_LBL,
@@ -1816,7 +1816,7 @@ pl-comp.c
 				}
 #endif
 
-#else /* O_LABEL_ADDRESSES */
+#else /* VMCODE_IS_ADDRESS */
 
 code thiscode;
 
@@ -1825,7 +1825,7 @@ code thiscode;
                                   goto next_instruction; \
 				}
 
-#endif /* O_LABEL_ADDRESSES */
+#endif /* VMCODE_IS_ADDRESS */
 
 #if VMCODE_IS_ADDRESS
   if ( qid == QID_EXPORT_WAM_TABLE )
@@ -1891,7 +1891,7 @@ registers  should  hold  valid  data  and  the  machine stacks should be
 initialised properly.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if O_LABEL_ADDRESSES
+#if VMCODE_IS_ADDRESS
   NEXT_INSTRUCTION;
 #else
 next_instruction:
@@ -1928,7 +1928,7 @@ arguments.
 	  goto retry;
       }
     }
-#if O_LABEL_ADDRESSES
+#if VMCODE_IS_ADDRESS
     { void *c = (void *)replacedBreak(PC-1);
       
       goto *c;
