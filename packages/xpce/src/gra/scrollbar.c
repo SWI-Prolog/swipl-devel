@@ -329,11 +329,13 @@ compute_bubble(ScrollBar s, struct bubble_info *bi,
     else
       bi->start = (free * above) / (above + below);
   } else
-  { int bubble_prom = (len != 0 ? ((1000 * start) / len) : 0);
-    int bubble_lp   = (len != 0 ? ((1000 * valInt(s->view)) / len) : 1000);
+  { double bubble_prom = (len != 0 ? (double)start/(double)len
+			           : 0.0);
+    double bubble_lp   = (len != 0 ? (double)valInt(s->view)/(double)len
+				   : 1.0);
 
-    bi->length = (bi->bar_length * bubble_lp)/1000 + min_bubble;
-    bi->start  = ((bi->bar_length * bubble_prom) / 1000) - min_bubble/2;
+    bi->length = (int)((double)bi->bar_length * bubble_lp) + min_bubble;
+    bi->start  = (int)((double)bi->bar_length * bubble_prom) - min_bubble/2;
   }
 
   bi->start    = BOUNDS(bi->start, 0, bi->bar_length-min_bubble);

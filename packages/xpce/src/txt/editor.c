@@ -3654,7 +3654,8 @@ scrollVerticalEditor(Editor e, Name dir, Name unit, Int amount)
 	centerTextImage(e->image, toInt(cp), ONE);
 	ensureCaretInWindowEditor(e);
       } else
-      { int h = (tb->size * valInt(amount)) / 1000;
+      { long h = (long)(((double)tb->size * (double)valInt(amount)) / 1000.0);
+					/* avoid integer arithmetic overflow */
 
 	scrollToEditor(e, toInt(h));
       }

@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: scrollbar thumb handling if the scrolled object size > 2M (notably
+  large editors).  Fabien Todescato.
+
 
 VERSION 6.0.4, distributed with SWI-Prolog 5.0.4
 ================================================

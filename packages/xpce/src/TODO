@@ -5,10 +5,10 @@
 Frames and Windows
 ==================
 
-One of the annoying things at the moment is that frames are no windows
-and therefore can be nested nor embedded in other XPCE GUI stuff. I
-propose to make class frame a subclass of class Window, providing tiled
-layout of subwindows.  Other things that gets closer with this are MDI
+One of the annoying things at the moment   is that frames are no windows
+and therefore can be nested nor  embedded   in  other  XPCE GUI stuff. I
+propose to make class frame a subclass  of class Window, providing tiled
+layout of subwindows. Other things that gets   closer  with this are MDI
 and `docking' as windows can be re-parented more easily.
 
 The other toplevel (shell-widget) code of class Frame can be integrated
@@ -28,6 +28,13 @@ Consequences:
 
 	* <-frame will need an extra argument to indicate the desired frame
 	  as frames are now nested.
+
+Text handling
+=============
+
+The use of LocalString() can cause   problems.  Errors from alloca() are
+non-portable and some systems have severe limits on what you can do with
+alloca().
 
 
 		
