@@ -199,16 +199,14 @@ static int nostate = FALSE;		/* do not make a state */
 static int nolink = FALSE;		/* do not link */
 static int shared = FALSE;		/* -shared: make a shared-object/DLL */
 static char *soext;			/* extension of shared object */
-#ifdef WIN32
-static int mkdll = FALSE;		/* -dll: make Windows DLL */
-#endif
-
+static int embed_shared = FALSE;	/* -dll/-embed-shared: embed Prolog */
+					/* in a DLL/.so file */
 static int verbose = TRUE;		/* verbose operation */
 static int fake = FALSE;		/* don't really do anything */
 
 static void	removeTempFiles();
 static void	parseOptions(int argc, char **argv);
-
+static void	linkSharedObject();
 
 		 /*******************************
 		 *	       ERROR		*
@@ -597,8 +595,9 @@ usage()
 	  "       -c               only compile C/C++ files, do not link\n"
 	  "       -nostate         just relink the kernel\n"
 	  "       -shared          create target for load_foreign_library/2\n"
+	  "       -embed-shared    embed Prolog in a shared object/DLL\n"
 #ifdef WIN32
-	  "       -dll             embed Prolog in a DLL\n"
+	  "       -dll             synonym for -embed-shared\n"
 #endif
 	  "       -fpic            compile small position-independent code\n"
 	  "       -fPIC            compile large position-independent code\n"
@@ -664,10 +663,16 @@ parseOptions(int argc, char **argv)
       appendArgList(&cppoptions, opt);
     } else if ( streq(opt, "-nostate") ) 	/* -nostate */
     { nostate = TRUE;
+    } else if ( streq(opt, "-dll") ||		/* -dll */
+		streq(opt, "-embed-shared") )   /* -embed-shared */
+    { embed_shared = TRUE;
 #ifdef WIN32
-    } else if ( streq(opt, "-dll") )		/* -dll */
-    { mkdll = TRUE;
       appendArgList(&ldoptions, "/DLL");
+#else
+#ifdef SO_pic
+      appendArgList(&coptions, SO_pic);
+      appendArgList(&cppoptions, SO_pic);
+#endif
 #endif
     } else if ( streq(opt, "-shared") )		/* -shared */
     { shared = TRUE;
@@ -870,7 +875,7 @@ fillDefaultOptions()
 #endif
 #if defined(WIN32) || defined(__CYGWIN32__)
 /* Saved states have the .exe extension under Windows */
-  replaceExtension(pltmp, mkdll ? "dll" : "exe", tmp);
+  replaceExtension(pltmp, embed_shared ? "dll" : "exe", tmp);
   free(pltmp);
   pltmp = strdup(tmp);
 #endif
@@ -1117,6 +1122,13 @@ void
 linkBaseExecutable()
 { char *cout = out;
 
+#ifndef WIN32				/* bit of a hack ... */
+  if ( embed_shared )
+  { linkSharedObject();
+    return;
+  } 
+#endif
+
 #ifdef WIN32
 { char tmp[MAXPATHLEN];
   sprintf(tmp, "/out:%s", cout);
@@ -1140,7 +1152,7 @@ linkBaseExecutable()
   if ( !nostate )
   { 
 #ifdef WIN32
-    if ( !mkdll )
+    if ( !embed_shared )
     { char buf[MAXPATHLEN];
       appendArgList(&tmpfiles, replaceExtension(cout, "exp", buf));
       appendArgList(&tmpfiles, replaceExtension(cout, "lib", buf));
@@ -1200,6 +1212,8 @@ linkSharedObject()
 #endif /*SO_FORMAT_LDFLAGS*/
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
   concatArgList(&ldoptions, "-L", &libdirs);    /* library directories */
+  if ( embed_shared )
+    appendArgList(&ldoptions, pllib);		/* -lpl */
   concatArgList(&ldoptions, "-l", &libs);	/* libraries */
   concatArgList(&ldoptions, "-l", &lastlibs);	/* libraries */
 #ifdef __BEOS__
