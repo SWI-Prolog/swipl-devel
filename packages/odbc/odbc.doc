@@ -398,6 +398,15 @@ Minimum scale of the type.
     \termitem{maximum_scale}{MaxScale}
 Maximum scale of the type.
 \end{description}
+
+    \predicate{odbc_data_source}{?DSN, ?Description}
+Query the defined data sources.  It is not required to have any open
+connections before calling this predicate. \arg{DSN} is the name
+of the data source as required by odbc_connect/3. \arg{Description} is
+the name of the driver.  The driver name may be used to tailure the
+SQL statements used on the database.  Unfortunately this name depends
+on the local installing details and is therefore not universially 
+useful.
 \end{description}
 
 

@@ -107,6 +107,7 @@ static functor_t FUNCTOR_types1;
 static functor_t FUNCTOR_minus2;
 static functor_t FUNCTOR_gt2;
 static functor_t FUNCTOR_context_error3;
+static functor_t FUNCTOR_data_source2;
 
 #define SQL_PL_DEFAULT  0		/* don't change! */
 #define SQL_PL_ATOM	1		/* return as atom */
@@ -1275,6 +1276,44 @@ odbc_types(term_t dsn, term_t sqltype, term_t row, control_t handle)
 }
 
 
+static foreign_t
+odbc_data_sources(term_t list)
+{ UCHAR dsn[SQL_MAX_DSN_LENGTH];
+  UCHAR description[1024];
+  SWORD dsnlen, dlen;
+  UWORD dir = SQL_FETCH_FIRST;
+  RETCODE rc;
+  term_t tail = PL_copy_term_ref(list);
+  term_t head = PL_new_term_ref();
+  
+  if ( !henv )
+    SQLAllocEnv(&henv);		/* Allocate an environment handle */
+
+  for(;; dir=SQL_FETCH_NEXT)
+  { rc = SQLDataSources(henv,
+			dir,
+			dsn, sizeof(dsn)-1, &dsnlen,
+			description, sizeof(description)-1, &dlen);
+    switch(rc)
+    { case SQL_SUCCESS:
+      { if ( PL_unify_list(tail, head, tail) &&
+	     PL_unify_term(head, PL_FUNCTOR, FUNCTOR_data_source2,
+			           PL_NCHARS, dsnlen, dsn,
+			           PL_NCHARS, dlen, description) )
+	  continue;
+
+	return FALSE;
+      }
+      case SQL_NO_DATA_FOUND:
+	return PL_unify_nil(tail);
+      default:
+	odbc_report(henv, NULL, NULL, rc);
+        return FALSE;
+    }
+  }
+}
+
+
 		 /*******************************
 		 *	COMPILE STATEMENTS	*
 		 *******************************/
@@ -1846,6 +1885,7 @@ install_odbc4pl()
    FUNCTOR_gt2			 = MKFUNCTOR(">", 2);
    FUNCTOR_context_error3	 = MKFUNCTOR("context_error", 3);
    FUNCTOR_statements2		 = MKFUNCTOR("statements", 2);
+   FUNCTOR_data_source2		 = MKFUNCTOR("data_source", 2);
 
    DET("odbc_connect",		   3, pl_odbc_connect);
    DET("odbc_disconnect",	   1, pl_odbc_disconnect);
@@ -1862,6 +1902,7 @@ install_odbc4pl()
    NDET("odbc_tables",	           2, odbc_tables);
    NDET("odbc_column",		   3, pl_odbc_column);
    NDET("odbc_types",		   3, odbc_types);
+   DET("odbc_data_sources",	   1, odbc_data_sources);
 
    DET("$odbc_statistics",	   1, odbc_statistics);
 }

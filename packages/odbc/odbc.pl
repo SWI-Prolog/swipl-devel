@@ -54,6 +54,7 @@
 	    odbc_table_column/3,	% +Conn, ?Table, ?Column
 	    odbc_table_column/4,	% +Conn, ?Table, ?Column, ?Facet
 	    odbc_type/3,		% +Conn, ?Type, -Facet
+	    odbc_data_source/2,		% ?DSN, ?Description
 
 	    odbc_statistics/1		% -Value
 
@@ -211,6 +212,14 @@ searchable_arg(1, like_only).
 searchable_arg(2, all_except_like).
 searchable_arg(4, true).
 
+
+%	odbc_data_source(?DSN, ?Description)
+%	
+%	Enumerate the available data-sources
+
+odbc_data_source(DSN, Description) :-
+	odbc_data_sources(List),
+	member(data_source(DSN, Description), List).
 
 
 		 /*******************************

@@ -122,13 +122,12 @@ type(timestamp,				% MySQL uses POSIX stamps
 test_type(Type) :-
 	open_db,
 	type(Type, PlType=Values, AltAccess),
-	Type =.. [ODBCName|Args],
-	(   odbc_type(test, ODBCName, name(DbName))
-	->  CreateType =.. [DbName|Args],
-	    progress('Type ~w:', [Type]),
+	Type =.. [ODBCName|_Args],
+	(   odbc_type(test, ODBCName, name(_DbName))
+	->  progress('Type ~w:', [Type]),
 	    catch(odbc_query(test, 'drop table test'), _, true),
 	    odbc_query(test,
-		       'create table ~w (testval ~w)'-[test, CreateType]),
+		       'create table ~w (testval ~w)'-[test, Type]),
 	    progress(' (w)', []),
 	    insert_values(test, Type, PlType, Values),
 	    progress(' (r)', []),
