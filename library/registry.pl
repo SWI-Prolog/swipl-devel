@@ -60,7 +60,7 @@ dlldemo directory.
 shell_register_prolog(Ext) :-
 	current_prolog_flag(argv, [Me|_]),
 	concat_atom(['"', Me, '" "%1"'], OpenCommand),
-	atom_concat(Me, ',1', Icon),
+	atom_concat(Me, ',0', Icon),
 	shell_register_file_type(Ext, 'prolog.type', 'Prolog Source',
 				 OpenCommand, Icon),
 	shell_register_dde('prolog.type', consult,
