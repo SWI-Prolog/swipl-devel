@@ -64,6 +64,13 @@ excluded(Obj, InheritedFrom, _Description) :-
 fetch_description(@Obj, Description) :-
 	fetched_description(Obj, Description), !.
 fetch_description(Obj, Description) :-
+	get(Obj, '_class_name', var), !,
+	get(@manual, self, _),		% force creation
+	Obj = @Ref,
+	new(Global, man_global(Ref)),
+	fetch_description(Global, Description),
+	assert(fetched_description(Ref, Description)).
+fetch_description(Obj, Description) :-
 	get(@manual, self, _),		% force creation
 	(   get(Obj, attribute, man_description, S0)
 	;   get(Obj, man_attribute, description, S0)
@@ -319,6 +326,7 @@ context_class(Class, Name) :-
 	send(Class, instance_of, class), !,
 	get(Class, name, Name).
 context_class(Obj, Name) :-
+	send(Obj, has_get_method, context),
 	get(Obj, context, Class),
 	send(Class, instance_of, class), !,
 	get(Class, name, Name).
