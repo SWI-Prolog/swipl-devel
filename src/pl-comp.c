@@ -287,13 +287,17 @@ typedef struct
 #define mkCopiedVarTable(o) copyVarTable(alloca(sizeofVarTable(o->isize)), o)
 #define BITSPERINT (sizeof(int)*8)
 
+typedef struct
+{ int		var;			/* Variable for local cuts */
+  code		instruction;		/* Instruction to use: C_CUT/C_LCUT */
+} cutInfo;
 
 typedef struct
 { Module	module;			/* module to compile into */
   int		arity;			/* arity of top-goal */
   Clause	clause;			/* clause we are constructing */
   int		vartablesize;		/* size of the vartable */
-  int		cutvar;			/* Variable for local cuts */
+  cutInfo	cut;			/* how to compile ! */
   int		islocal;		/* Temporary local clause */
   int		subclausearg;		/* processing subclausearg */
   int		argvars;		/* islocal argument pseudo vars */
@@ -783,7 +787,8 @@ compileClause(Word head, Word body, Procedure proc, Module module ARG_LD)
   ci.module = module;
 
   analyse_variables(head, body, &ci PASS_LD);
-  ci.cutvar = 0;
+  ci.cut.var = 0;
+  ci.cut.instruction = 0;
   if ( !ci.islocal )
   { ci.used_var = alloca(sizeofVarTable(ci.vartablesize));
     clearVarTable(&ci);
@@ -1018,14 +1023,15 @@ compileBody(Word body, code call, compileInfo *ci ARG_LD)
 	{ int var = VAROFFSET(ci->clause->variables++);
 	  int tc_or, tc_jmp;
 	  int rv;
-	  int cutsave = ci->cutvar;
+	  cutInfo cutsave = ci->cut;
 
 	  Output_2(ci, hard ? C_IFTHENELSE : C_SOFTIF, var, (code)0);
 	  tc_or = PC(ci);
-	  ci->cutvar = var;		/* Cut locally in the condition */
+	  ci->cut.var = var;		/* Cut locally in the condition */
+	  ci->cut.instruction = C_LCUT;
 	  if ( (rv=compileBody(argTermP(*a0, 0), I_CALL, ci PASS_LD)) != TRUE )
 	    return rv;
-	  ci->cutvar = cutsave;
+	  ci->cut = cutsave;
 	  Output_1(ci, hard ? C_CUT : C_SOFTCUT, var);
 	  if ( (rv=compileBody(argTermP(*a0, 1), call, ci PASS_LD)) != TRUE )
 	    return rv;
@@ -1072,13 +1078,14 @@ compileBody(Word body, code call, compileInfo *ci ARG_LD)
       } else if ( fd == FUNCTOR_ifthen2 )		/* A -> B */
       { int var = VAROFFSET(ci->clause->variables++);
 	int rv;
-	int cutsave = ci->cutvar;
+	cutInfo cutsave = ci->cut;
 
 	Output_1(ci, C_MARK, var);
-	ci->cutvar = var;		/* Cut locally in the condition */
+	ci->cut.var = var;		/* Cut locally in the condition */
+	ci->cut.instruction = C_CUT;
 	if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci PASS_LD)) != TRUE )
 	  return rv;
-	ci->cutvar = cutsave;
+	ci->cut = cutsave;
 	Output_1(ci, C_CUT, var);
 	if ( (rv=compileBody(argTermP(*body, 1), call, ci PASS_LD)) != TRUE )
 	  return rv;
@@ -1096,7 +1103,7 @@ compileBody(Word body, code call, compileInfo *ci ARG_LD)
 	int tc_or;
 	VarTable vsave;
 	int rv;
-	int cutsave = ci->cutvar;
+	cutInfo cutsave = ci->cut;
 
 	if ( !ci->islocal )
 	  vsave = mkCopiedVarTable(ci->used_var);
@@ -1105,10 +1112,11 @@ compileBody(Word body, code call, compileInfo *ci ARG_LD)
 
 	Output_2(ci, C_NOT, var, (code)0);
 	tc_or = PC(ci);
-	ci->cutvar = var;
+	ci->cut.var = var;
+	ci->cut.instruction = C_LCUT;
 	if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci PASS_LD)) != TRUE )
 	  return rv;
-	ci->cutvar = cutsave;
+	ci->cut = cutsave;
 	Output_1(ci, C_CUT, var);
 	Output_0(ci, C_FAIL);
 	if ( ci->islocal )
@@ -1559,8 +1567,8 @@ re-definition.
 
   if ( isAtom(*arg) )
   { if ( *arg == ATOM_cut )
-    { if ( ci->cutvar )			/* local cut for \+ */
-	Output_1(ci, C_LCUT, ci->cutvar);
+    { if ( ci->cut.var )			/* local cut for \+ */
+	Output_1(ci, ci->cut.instruction, ci->cut.var);
       else
 	Output_0(ci, I_CUT);
     } else if ( *arg == ATOM_true )

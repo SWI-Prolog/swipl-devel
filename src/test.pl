@@ -742,14 +742,39 @@ b3.
 b4 :-
 	!(test).
 
+/* c*: tests for handling !
+*/
+
 c1 :-
 	\+ ( true, !, fail ).
+
 c2 :-
 	(   true
 	->  !, fail
 	;   true
 	).
 c2.
+
+c3 :-
+	\+ (true, !, fail).
+
+c4 :-					% ! in (A, ! -> B) must cut A
+	\+ c4_body,
+	flag(c4, 1, 0).
+c4_body :-
+	flag(c4, _, 0),
+	(   c4(_), !,
+	    flag(c4, X, X+1),
+	    fail
+	->  writeln('OOPS')
+	).
+
+c4(1).
+c4(2).
+c4(3).
+
+/* test data for variable allocation in control-structures
+*/
 
 p(f(a,d)).
 p(f(b,c)).
@@ -777,8 +802,12 @@ control(block-5) :-
 	'$get_predicate_attribute'(b3, references, 0).
 control(cut-1) :-
 	c1.
-control(cut-1) :-
+control(cut-2) :-
 	\+ c2.
+control(cut-3) :-
+	c3.
+control(cut-4) :-
+	c4.
 control(not-1) :-			% 2-nd call must generate FIRSTVAR
 	( fail ; \+ \+ p(f(X,Y)) ), p(f(X,Y)).
 control(not-2) :-			% see comments with compileBody()

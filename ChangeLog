@@ -7,9 +7,13 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Compilation of (a, ! -> b) to cut the choicepoints of a.
+    Sergey Tikhonov.
+
   * ADDED: MS-Windows: library(registry): win_flush_filetypes/0 to forward
     changes to registered types to the shell, so the proper icons are
-    displayed.
+    displayed.  Also used by the install-script to propagate the Prolog icon
+    immediately.
 
   * FIXED: Source level debugger: ERROR: Arithmetic: `very_deep/0' is
     not a function.  David Reitter.
