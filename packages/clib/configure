@@ -1439,6 +1439,7 @@ echo "${ECHO_T}\"		PLSOEXT=$PLSOEXT\"" >&6
 if test "$PLTHREADS" = "yes"; then MT=yes; fi
 else
 PLLD=../plld.sh
+PL=../pl.sh
 fi
 
 if test "$MT" = yes; then
