@@ -364,6 +364,18 @@ expand_file_search_path(Spec, Expanded) :-
 expand_file_search_path(Spec, Spec) :-
 	atomic(Spec).
 
+$expand_existing_file_search_path(Spec, Expanded) :-
+	functor(Spec, Alias, 1),
+	user:file_search_path(Alias, Exp0),
+	$expand_existing_file_search_path(Exp0, Exp1),
+	(   exists_directory(Exp1)
+	->  arg(1, Spec, Base),
+	    $make_path(Exp1, Base, Expanded)
+	;   !, fail
+	).
+$expand_existing_file_search_path(Spec, Spec) :-
+	atomic(Spec).
+
 $make_path(Dir, File, Path) :-
 	atom_concat(_, /, Dir), !,
 	atom_concat(Dir, File, Path).
@@ -469,17 +481,38 @@ $dochk_file(File, Exts, Cond, FullName) :-
 :- volatile
 	$search_path_file_cache/4.
 
+:- set_prolog_flag(verbose_file_search, false).
+
 $chk_alias_file(Spec, Exts, Cond, FullFile) :-
 	$search_path_file_cache(Spec, Cond, FullFile, Exts),
-	$file_condition(Cond, FullFile).
+	$file_condition(Cond, FullFile),
+	$search_message(file_search(cache(Spec, Cond), FullFile)).
 $chk_alias_file(Spec, Exts, Cond, FullFile) :-
-	expand_file_search_path(Spec, Expanded),
+	(   $exists_condition(Cond)
+	->  $expand_existing_file_search_path(Spec, Expanded)
+	;   expand_file_search_path(Spec, Expanded)
+	),
 	$extend_file(Expanded, Exts, LibFile),
-	$file_condition(Cond, LibFile),
-	$absolute_file_name(LibFile, FullFile),
-	\+ $search_path_file_cache(Spec, Cond, FullFile, Exts),
-	asserta($search_path_file_cache(Spec, Cond, FullFile, Exts)).
+	(   $file_condition(Cond, LibFile),
+	    $absolute_file_name(LibFile, FullFile),
+	    \+ $search_path_file_cache(Spec, Cond, FullFile, Exts),
+	    asserta($search_path_file_cache(Spec, Cond, FullFile, Exts))
+	->  $search_message(file_search(found(Spec, Cond), FullFile))
+	;   $search_message(file_search(tried(Spec, Cond), LibFile)),
+	    fail
+	).
+
+$search_message(Term) :-
+	current_prolog_flag(verbose_file_search, true), !,
+	print_message(informational, Term).
+$search_message(_).
+
+
 	
+%	$file_condition(+Condition, +Path)
+%
+%	Verify Path satisfies Condition. 
+
 $file_condition([], _) :- !.
 $file_condition([H|T], File) :- !,
 	$file_condition(H, File),
@@ -497,6 +530,18 @@ $file_condition(access([A1|AT]), File) :- !,
 $file_condition(access([]), _) :- !.
 $file_condition(access(Access), File) :- !,
 	access_file(File, Access).
+
+%	$exists_condition(+Cond)
+%
+%	Succeeds if Cond is a condition demanding the file to exists
+
+$exists_condition(access(X)) :-
+	X \== [].
+$exists_condition([H|T]) :-
+	(   $exists_condition(H)
+	->  true
+	;   $exists_condition(T)
+	).
 
 $extend_file(File, Exts, FileEx) :-
 	$ensure_extensions(Exts, File, Fs),

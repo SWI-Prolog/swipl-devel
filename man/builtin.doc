@@ -261,6 +261,9 @@ user:file_search_path(foreign, swi(lib)).
 The file_search_path/2 expansion is used by all loading predicates as
 well as by absolute_file_name/[2,3].
 
+The prolog-flag \const{verbose_file_search} can be set to \const{true}
+to help debugging Prolog's search for files.
+
     \predicate{expand_file_search_path}{2}{+Spec, -Path}
 Unifies \arg{Path} will all possible expansions of the file name
 specification \arg{Spec}.  See also absolute_file_name/3.
@@ -3865,6 +3868,9 @@ If \const{first} (default), the predicates leaves no choice-point.
 Otherwise a choice-point will be left and backtracking may yield
 more solutions.
 \end{description}
+
+The prolog-flag \const{verbose_file_search} can be set to \const{true}
+to help debugging Prolog's search for files.
 
     \predicate{is_absolute_file_name}{1}{+File}
 True if \arg{File} specifies and absolute path-name.  On Unix systems,

@@ -291,6 +291,13 @@ hidden_module(system) :- !.
 hidden_module(M) :-
 	sub_atom(M, 0, _, _, $).
 
+prolog_message(file_search(cache(Spec, _Cond), Path)) -->
+	[ 'File search: ~p --> ~p (cache)'-[Spec, Path] ].
+prolog_message(file_search(found(Spec, Cond), Path)) -->
+	[ 'File search: ~p --> ~p OK ~p'-[Spec, Path, Cond] ].
+prolog_message(file_search(tried(Spec, Cond), Path)) -->
+	[ 'File search: ~p --> ~p NO ~p'-[Spec, Path, Cond] ].
+
 		 /*******************************
 		 *	        GC		*
 		 *******************************/

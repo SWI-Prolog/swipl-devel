@@ -1,6 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Avoid absolute_file_name/[2,3] to dig indefinitely for
+    non-existing paths if there is a recursive definition in the search
+    paths (Bob Wielinga).
+
+  * ADDED: set_prolog_flag(verbose_file_search, true). to make
+    absolute_file_name/[2,3] print what it is doing.
+
   * FIXED: Avoid crash in concat_atom/2 when called with a list holding
     variables (Lourens van de Meij).
 

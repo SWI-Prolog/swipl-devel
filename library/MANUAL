@@ -1638,6 +1638,12 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          library is autoloaded.  By default this  message is suppressed.
          Intended to be used for debugging purposes.
 
+    vveerrbboossee__ffiillee__sseeaarrcchh _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
+         If  true  (default   false),  print  messages  indicating   the
+         progress   of  absolute_file_name/[2,3]  in   locating   files.
+         Intended for  debugging  complicated file-search  paths.    See
+         also file_search_path/2.
+
     ttrraaccee__ggcc _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
          If  true  (false  is  the  default),  garbage  collections  and
          stack-shifts  will  be  reported on  the  terminal.     May  be
@@ -2368,6 +2374,9 @@ ffiillee__sseeaarrcchh__ppaatthh((_+_A_l_i_a_s_, _?_P_
 
     The  file_search_path/2expansion  is used by all loading  predicates
     as well as by absolute_file_name/[2,3].
+
+    The  prolog-flag  verbose_file_search  can be  set  to true  to  help
+    debugging Prolog's search for files.
 
 
 eexxppaanndd__ffiillee__sseeaarrcchh__ppaatthh((_+_S_p_e_c_, _-_P_a_t_h))
@@ -6430,6 +6439,9 @@ aabbssoolluuttee__ffiillee__nnaammee((_+_S_p_e_c_, _+_
          If  first (default),  the  predicates leaves  no  choice-point.
          Otherwise a  choice-point  will be  left and  backtracking  may
          yield more solutions.
+
+    The  prolog-flag  verbose_file_search  can be  set  to true  to  help
+    debugging Prolog's search for files.
 
 
 iiss__aabbssoolluuttee__ffiillee__nnaammee((_+_F_i_l_e))
@@ -13002,7 +13014,7 @@ absolute_file_name/3, 53,  55, 71,     PL_strip_module(), 765
       80,  490,  491,  632,  850,      PL_succeed(), 647
       851                              PL_term_type(), 666
 absolute_file_name/[2                  PL_thread_attach_engine(), 774
-   3], 79                              PL_thread_destroy_engine(), 775
+   3], 53, 79                          PL_thread_destroy_engine(), 775
 access_file/2, 480                     PL_thread_self(), 773
 access_file/2, 53, 491                 PL_throw(), 770
 acos/1, 391                            PL_toplevel(), 811
@@ -13232,8 +13244,8 @@ file_directory_name/2, 482             stack
 file_name_extension/3, 493                memory management, 65
 file_search_path/2, 55, 79             stack_parameter/4, 574
 file_base_name/2, 482                  startup file, 31
-file_search_path/2,  31,  33,  73,     statistics/0, 561
-      79,   81,  632,  816,  829,      statistics/2, 401, 560
+file_search_path/2,  31,  33,  53,     statistics/0, 561
+      73,  79, 81, 632, 816, 829,      statistics/2, 401, 560
       832, 835                         stream_property/2, 229
 fileerrors/2, 53, 244                  stream_position/3, 224, 232, 300
 findall/3, 434, 619                    stream_property/2, 231, 233

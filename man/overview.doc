@@ -1067,6 +1067,10 @@ See \secref{autoload}.
 If \const{true} the normal consult message will be printed if a library
 is autoloaded. By default this message is suppressed. Intended to be
 used for debugging purposes.
+    \prologflagitem{verbose_file_search}{bool}{rw}
+If \const{true} (default \const{false}), print messages indicating the
+progress of absolute_file_name/[2,3] in locating files.  Intended for
+debugging complicated file-search paths.  See also file_search_path/2.
     \prologflagitem{trace_gc}{bool}{rw}
 If true (false is the default), garbage collections and stack-shifts
 will be reported on the terminal.  May be changed.
