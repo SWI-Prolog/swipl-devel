@@ -258,7 +258,8 @@ initialValueVariable(Variable var, Any value)
       initFunctionVariable(var, NIL);
 
       succeed;
-    }
+    } else
+      value = val;
   }
 
   allocValueVariable(var, NIL);
