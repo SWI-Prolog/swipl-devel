@@ -1,5 +1,4 @@
 /*  $Id$
-
     Part of XPCE --- The SWI-Prolog GUI toolkit
 
     Author:        Jan Wielemaker and Anjo Anjewierden
@@ -371,20 +370,97 @@ resizeLine(Line ln, Real xfactor, Real yfactor, Point origin)
 }
 
 
-/* (JW)	Calculate the distance between the infinite extended line through
-	(x1, y1) and (x2, y2) to the point (px, py).
- */
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+int distanceLineToPoint()
+
+Calculate the distance between the infinite   extended line through (x1,
+y1) and (x2, y2) to  the  point  (px,   py)  or,  if  extended is 0, the
+distance to the line-segment between the two points. 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+dist(int x1, int y1, int x2, int y2)
+{ double dx = (double)(x2-x1);
+  double dy = (double)(y2-y1);
+
+  return rfloat(sqrt(dx*dx+dy*dy));
+}
+
 
 int
-distanceLineToPoint(int x1, int y1, int x2, int y2, int px, int py)
+distanceLineToPoint(int x1, int y1, int x2, int y2, int px, int py,
+		    int extended)
 { float a;
 
-  if (y1 == y2)
-    return abs(y1 - py);
-  if (x1 == x2)
-    return abs(x1 - px);
+  if ( y1 == y2 )
+  { if ( extended )
+    { return abs(y1 - py);
+    } else
+    { if ( x1 < x2 )
+      { if ( px < x1 )
+	  return dist(x1, y1, px, py);
+	else if ( px > x2 )
+	  return dist(x2, y2, px, py);
+	else
+	  return abs(y1 - py);
+      } else
+      { if ( px < x2 )
+	  return dist(x2, y2, px, py);
+	else if ( px > x1 )
+	  return dist(x1, y1, px, py);
+	else
+	  return abs(y1 - py);
+      }
+    }
+  }
 
+  if ( x1 == x2 )
+  { if ( extended )
+    { return abs(x1 - px);
+    } else
+    { if ( y1 < y2 )
+      { if ( py < y1 )
+	  return dist(x1, y1, px, py);
+	else if ( py > y2 )
+	  return dist(x2, y2, px, py);
+	else
+	  return abs(x1 - px);
+      } else
+      { if ( py < y2 )
+	  return dist(x2, y2, px, py);
+	else if ( py > y1 )
+	  return dist(x1, y1, px, py);
+	else
+	  return abs(x1 - px);
+      }
+    }
+  }
+  
   a = ((float)(y2 - y1)) / ((float)(x2 - x1));
+
+  if ( !extended )
+  { int xproj = rfloat((px - a*(float)(y1-py)+a*a*(float)x1)/(1.0+a*a));
+
+    /*Cprintf("Xproj = %d\n", xproj);*/
+
+    if ( x1 < x2 )
+    { if ( xproj < x1 )
+	return dist(x1, y1, px, py);
+      else if ( xproj > x2 )
+	return dist(x2, y2, px, py);
+      else
+	goto not_extended;
+    } else
+    { if ( xproj < x2 )
+	return dist(x2, y2, px, py);
+      else if ( xproj > x1 )
+	return dist(x1, y1, px, py);
+      else
+	goto not_extended;
+    }
+  }
+
+not_extended:
   return abs(rfloat((((float)(px - x1)) * a + ((float)(y1 - py))) /
 					 sqrt(1.0 + a*a)));
 }
@@ -402,7 +478,7 @@ inEventAreaLine(Line ln, Int x, Int y)
 
   d = distanceLineToPoint(valInt(ln->start_x), valInt(ln->start_y),
 			  valInt(ln->end_x), valInt(ln->end_y),
-			  valInt(x), valInt(y));
+			  valInt(x), valInt(y), FALSE);
   if ( d < evtol )
     succeed;
   
@@ -411,13 +487,19 @@ inEventAreaLine(Line ln, Int x, Int y)
 
 
 static Int
-getDistanceLine(Line ln, Any obj)
-{ if ( instanceOfObject(obj, ClassPoint) )
+getDistanceLine(Line ln, Any obj, Bool segment)
+{ if ( instanceOfObject(obj, ClassEvent) && notNil(ln->device) )
+  { if ( !(obj = getPositionEvent((EventObj) obj, (Graphical) ln->device)) )
+      fail;
+  }
+
+  if ( instanceOfObject(obj, ClassPoint) )
   { Point pt = obj;
+    int extended = (segment != OFF);
 
     answer(toInt(distanceLineToPoint(valInt(ln->start_x), valInt(ln->start_y),
 				     valInt(ln->end_x), valInt(ln->end_y),
-				     valInt(pt->x), valInt(pt->y))));
+				     valInt(pt->x), valInt(pt->y), extended)));
   } else
   { Graphical gr2 = obj;
 
@@ -547,6 +629,8 @@ static char *T_resize[] =
 	{ "factor_x=real", "factor_y=[real]", "origin=[point]" };
 static char *T_geometry[] =
 	{ "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+static char *T_distance[] =
+	{ "to=graphical|point|event", "segment=[bool]" };
 
 /* Instance Variables */
 
@@ -600,7 +684,7 @@ static getdecl get_line[] =
      NAME_calculate, "Intersection between both infinitely extended lines"),
   GM(NAME_length, 0, "int", NULL, getLengthLine,
      NAME_calculate, "Distance between start and end-points"),
-  GM(NAME_distance, 1, "int", "graphical|point", getDistanceLine,
+  GM(NAME_distance, 2, "int", T_distance, getDistanceLine,
      NAME_calculate, "Distance between areas or to point"),
   GM(NAME_end, 0, "point", NULL, getEndLine,
      NAME_tip, "New point representing end-point"),

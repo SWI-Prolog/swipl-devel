@@ -1,6 +1,11 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: `segment' argument to `line<-distance' to compute the distance
+  from a point to the line-segment.
+
+* FIXED: `path<-distance' (yielding wrong result).
+
 * ENHANCED: Subwindow layout adjustment if actual resizing the windows is
   slow.
 

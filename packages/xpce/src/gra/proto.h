@@ -21,7 +21,7 @@ Int		getRedColour(Colour c);
 Int		getGreenColour(Colour c);
 Int		getBlueColour(Colour c);
 Colour		getHiliteColour(Colour c, Real h);
-Colour		getReduceColour(Colour c, Real r);
+Colour		getReduceColour(Colour c, Real re);
 status		makeClassColour(Class class);
 
 /* ../src/gra/connection.c */
@@ -220,7 +220,7 @@ status		computeLine(Line ln);
 status		copyLine(Line l1, Line l2);
 status		paintSelectedLine(Line ln);
 status		pointsLine(Line ln, Int sx, Int sy, Int ex, Int ey);
-int		distanceLineToPoint(int x1, int y1, int x2, int y2, int px, int py);
+int		distanceLineToPoint(int x1, int y1, int x2, int y2, int px, int py, int extended);
 Point		getIntersectionLine(Line l1, Line l2);
 Real		getAngleLine(Line ln, Point p);
 status		makeClassLine(Class class);

@@ -167,7 +167,7 @@ shared.
     db_get/3. See also db_delall/3.
 \predicate{db_delall}{3}{+DB, +Key, ?Value}
     Delete all matching key-value pairs from the database.  With unbound
-    \arg{Key} the key and all values are removed efficiently.
+    \arg{Value} the key and all values are removed efficiently.
 \predicate{db_get}{3}{+DB, ?Key, -Value}
     Query the database.  If the database allows for duplicates this
     predicate is non-deterministic.

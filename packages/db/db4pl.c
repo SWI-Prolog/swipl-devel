@@ -354,7 +354,7 @@ db_status(int rval)
     return FALSE;			/* normal failure */
   }
 
-  Sdprintf("Throwing error: %s\n", db_strerror(rval));
+  DEBUG(Sdprintf("Throwing error: %s\n", db_strerror(rval)));
   return pl_error(ERR_PACKAGE_INT, "db", rval, db_strerror(rval));
 }
 
@@ -536,6 +536,28 @@ pl_db_close(term_t handle)
 }
 
 
+static void
+db_closeall()
+{ db_list *l, *n;
+
+  for(l=dbs; l; l=n)
+  { int rval;
+
+    n = l->next;
+
+    NOSIG(rval = l->db->db->close(l->db->db, 0);
+	  l->db->magic = 0;
+	  unregister_db(l->db));
+    if ( rval )
+      Sdprintf("DB: DB close failed: %s\n", db_strerror(rval));
+  }
+
+  assert(dbs == NULL);
+
+  cleanup();
+}
+
+
 static foreign_t
 pl_db_closeall()
 { db_list *l, *n;
@@ -555,6 +577,7 @@ pl_db_closeall()
   assert(dbs == NULL);
 
   cleanup();
+
   return TRUE;
 }
 
@@ -1048,7 +1071,8 @@ cleanup(void)
   { int rval;
 
     if ( (rval=db_env->close(db_env, 0)) )
-      Sdprintf("DB: close failed: %s\n", db_strerror(rval));
+      Sdprintf("DB: ENV close failed: %s\n", db_strerror(rval));
+
     db_env = NULL;
   }
 }
@@ -1256,7 +1280,7 @@ pl_db_init(term_t option_list)
   if ( (rval=db_env->open(db_env, home, flags, 0666)) != 0 )
     return db_status(rval);
 
-  atexit(cleanup);
+  atexit(db_closeall);
 
   return TRUE;
 }

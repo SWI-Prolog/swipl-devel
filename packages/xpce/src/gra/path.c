@@ -840,7 +840,6 @@ getDistancePath(Path p, Any to)
     int bestd = PCE_MAX_INT;
     Chain ch = (p->kind == NAME_smooth ? p->interpolation : p->points);
     Cell cell;
-    int d0 = 0;				/* keep gcc happy */
     int tx = valInt(pt->x);
     int ty = valInt(pt->y);
 
@@ -852,31 +851,14 @@ getDistancePath(Path p, Any to)
     for_cell(cell, ch)
     { if ( isNil(p0) )
       { p0 = cell->value;
-	d0 = valInt(getDistancePoint(p0, pt));
       } else
       { Point p1 = cell->value;
-	int   d1 = valInt(getDistancePoint(p1, pt));
 	int   dl = distanceLineToPoint(valInt(p0->x), valInt(p0->y),
 				       valInt(p1->x), valInt(p1->y),
-				       tx, ty);
-	int d;
-
-	if ( d0 < d1 )
-	{ if ( dl >= d0 && dl <= d1 )
-	    d = dl;
-	  else
-	    d = d0;
-	} else
-	{ if ( dl >= d1 && dl <= d0 )
-	    d = dl;
-	  else
-	    d = d1;
-	}
-
-	bestd = min(bestd, d);
-	
+				       tx, ty, FALSE);
+	/*Cprintf("dl = %d\n", dl);*/
+	bestd = min(bestd, dl);
 	p0 = p1;
-	d0 = d1;
       }
     }
 

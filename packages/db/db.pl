@@ -55,3 +55,13 @@ db_delall(DB, Key, Value) :-
 	).
 
 :- at_halt(db_closeall).
+
+		 /*******************************
+		 *	       MESSAGES		*
+		 *******************************/
+
+:- multifile
+	prolog:message/3.
+
+prolog:message(error(package(db, Code), context(_, Message))) -->
+	[ 'DB: Error ~w: ~w'-[Code, Message] ].

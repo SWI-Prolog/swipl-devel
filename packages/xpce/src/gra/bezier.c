@@ -153,9 +153,9 @@ splitCubic(IPoint pts, int i, int *n)
 { pts += i;
 
   if ( distanceLineToPoint(pts[0].x, pts[0].y, pts[3].x, pts[3].y,
-			   pts[1].x, pts[1].y) > 1 ||
+			   pts[1].x, pts[1].y, TRUE) > 1 ||
        distanceLineToPoint(pts[0].x, pts[0].y, pts[3].x, pts[3].y,
-			   pts[2].x, pts[2].y) > 1 )
+			   pts[2].x, pts[2].y, TRUE) > 1 )
   { ipoint p1, p2, p12;
     
     p1 = pts[1];
