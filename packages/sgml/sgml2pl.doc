@@ -231,8 +231,8 @@ the provided DTD.  If provided as a variable, the implicitly created
 DTD is returned.  See \secref{implicitdtd}.
 
     \termitem{dialect}{+Dialect}
-Specify the parsing dialect.  Supported are \const{sgml} (default)
-and \const{xml}. See \secref{xml} for details on the differences.
+Specify the parsing dialect.  Supported are \const{sgml} (default),
+\const{xml} and \const{smlns}. See \secref{xml} for details on the differences.
 
     \termitem{file}{+Name}
 Sets the name of the file on which errors are reported. Sets the
@@ -282,6 +282,27 @@ reserved names (i.e. \const{ELEMENT}, etc.).
 In XML mode, underscores (\verb$_$) and colon (\verb$:$) are allowed in
 names.
 \end{itemlist}
+
+
+\subsubsection{XML Namespaces}			\label{sec:xmlns}
+
+Using the \jargon{dialect} \const{xmlns}, the parser will interpret XML
+namespaces.  In this case, the names of elements are returned as a term
+of the format
+
+\begin{quote}
+    \arg{URL}\const{:}\arg{LocalName}
+\end{quote}
+
+If an identifier has no namespace and there is no default namespace it
+is returned as a simple atom.  If an identifier has a namespace but this
+namespace is undeclared, the namespace name rather than the related URL
+is returned.
+
+Attributes declaring namespaces (\exam{xmlns:\arg{ns}=\arg{url}} are
+reported as if \const{xmlns} is not a defined resource.	 
+
+
 
 
 \subsection{DTD-Handling}

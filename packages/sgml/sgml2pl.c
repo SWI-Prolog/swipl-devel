@@ -105,6 +105,7 @@ static functor_t FUNCTOR_parse1;
 static functor_t FUNCTOR_source1;
 static functor_t FUNCTOR_call2;
 static functor_t FUNCTOR_charpos1;
+static functor_t FUNCTOR_ns2;		/* :/2 */
 
 static atom_t ATOM_sgml;
 static atom_t ATOM_dtd;
@@ -146,6 +147,7 @@ initConstants()
   FUNCTOR_source1      = mkfunctor("source", 1);
   FUNCTOR_call2	       = mkfunctor("call", 2);
   FUNCTOR_charpos1     = mkfunctor("charpos", 1);
+  FUNCTOR_ns2	       = mkfunctor(":", 2);
 
   ATOM_dtd  = PL_new_atom("dtd");
   ATOM_sgml = PL_new_atom("sgml");
@@ -334,6 +336,8 @@ pl_set_sgml_parser(term_t parser, term_t option)
 
     if ( streq(s, "xml") )
       set_dialect_dtd(p->dtd, DL_XML);
+    else if ( streq(s, "xmlns") )
+      set_dialect_dtd(p->dtd, DL_XMLNS);
     else if ( streq(s, "sgml") )
       set_dialect_dtd(p->dtd, DL_SGML);
     else
@@ -380,15 +384,57 @@ pl_get_sgml_parser(term_t parser, term_t option)
 }
 
 
+static void
+put_name(dtd_parser *p, term_t t, dtd_symbol *nm)
+{ const ichar *url, *local;
+
+  if ( p->dtd->dialect == DL_XMLNS )
+  { xmlns_resolve_attribute(p, nm, &local, &url);
+
+    if ( url )
+    { term_t av = PL_new_term_refs(2);
+    
+      PL_put_atom_chars(av+0, url);
+      PL_put_atom_chars(av+1, local);
+      PL_cons_functor_v(t, FUNCTOR_ns2, av);
+    } else
+      PL_put_atom_chars(t, local);
+  } else
+    PL_put_atom_chars(t, nm->name);
+}
+
+
+static void
+put_element_name(dtd_parser *p, term_t t, dtd_element *e)
+{ const ichar *url, *local;
+
+  if ( p->dtd->dialect == DL_XMLNS )
+  { assert(p->environments->element == e);
+    xmlns_resolve_element(p, &local, &url);
+
+    if ( url )
+    { term_t av = PL_new_term_refs(2);
+    
+      PL_put_atom_chars(av+0, url);
+      PL_put_atom_chars(av+1, local);
+      PL_cons_functor_v(t, FUNCTOR_ns2, av);
+    } else
+      PL_put_atom_chars(t, local);
+  } else
+    PL_put_atom_chars(t, e->name->name);
+}
+
+
 static int
-unify_attribute_list(term_t alist, int argc, sgml_attribute *argv)
+unify_attribute_list(dtd_parser *p, term_t alist,
+		     int argc, sgml_attribute *argv)
 { int i;
   term_t tail = PL_copy_term_ref(alist);
   term_t h    = PL_new_term_ref();
   term_t a    = PL_new_term_refs(2);
 
   for(i=0; i<argc; i++)
-  { PL_put_atom_chars(a+0, argv[i].definition->name->name);
+  { put_name(p, a+0, argv[i].definition->name);
 
     switch(argv[i].definition->type)
     { case AT_CDATA:
@@ -431,11 +477,12 @@ on_begin(dtd_parser *p, dtd_element *e, int argc, sgml_attribute *argv)
     term_t et	   = PL_new_term_ref();	/* element structure */
     term_t h       = PL_new_term_ref();
 
-    unify_attribute_list(alist, argc, argv);
+    put_element_name(p, h, e);
+    unify_attribute_list(p, alist, argc, argv);
     PL_unify_term(et, PL_FUNCTOR, FUNCTOR_element3,
-		    PL_CHARS, e->name->name,
-		    PL_TERM,  alist,
-		    PL_TERM,  content);
+		    PL_TERM, h,
+		    PL_TERM, alist,
+		    PL_TERM, content);
     if ( PL_unify_list(pd->tail, h, pd->tail) &&
 	 PL_unify(h, et) )
     { env *env = calloc(1, sizeof(env));
@@ -455,8 +502,8 @@ on_begin(dtd_parser *p, dtd_element *e, int argc, sgml_attribute *argv)
   { fid_t fid = PL_open_foreign_frame();
     term_t av = PL_new_term_refs(3);
 
-    PL_put_atom_chars(av+0, e->name->name);
-    unify_attribute_list(av+1, argc, argv);
+    put_element_name(p, av+0, e);
+    unify_attribute_list(p, av+1, argc, argv);
     unify_parser(av+2, p);
 
     PL_call_predicate(NULL, PL_Q_NORMAL, pd->on_begin, av);

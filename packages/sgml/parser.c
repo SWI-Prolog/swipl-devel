@@ -1,6 +1,6 @@
 /*  $Id$
 
-    Part of SWI-Prolog SGML/XML parser
+<    Part of SWI-Prolog SGML/XML parser
 
     Author:  Jan Wielemaker
     E-mail:  jan@swi.psy.uva.nl
@@ -29,7 +29,6 @@
 
 #define DEBUG(g) ((void)0)
 
-static int		gripe(dtd_error_id e, ...);
 static const ichar *	itake_name(dtd *dtd, const ichar *in, dtd_symbol **id);
 static const char *	isee_func(dtd *dtd, const ichar *in, charfunc func);
 static const ichar *	isee_text(dtd *dtd, const ichar *in, char *id);
@@ -562,64 +561,6 @@ itake_name(dtd *dtd, const ichar *in, dtd_symbol **id)
 }
 
 
-#ifdef XMLNS
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-itake_ns_name(dtd_parser *p, const ichar *in, dtd_symbol **id)
-    Gets a name from the current location and return a pointer to
-    the first non-layout character the name.  If namespaces are in
-    use and the provided name is not in a namespace and there is
-    a default namespace, the read name is brought into the namespace.
-
-    This is used to read element and attribute names in XML mode.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static const ichar *
-itake_ns_name(dtd_parser *p, const ichar *in, dtd_symbol **id)
-{ dtd *dtd = p->dtd;
-
-  if ( dtd->dialect == DL_XML )
-  { ichar wholebuf[MAXNMLEN*2];
-    ichar *buf = &wholebuf[MAXNMLEN];
-    ichar *o = buf;
-    ichar ns = dtd->charfunc->func[CF_NS];
-    int hasns = FALSE;
-    xmlns *sns;
-  
-    in = iskip_layout(dtd, in);
-    if ( !HasClass(dtd, *in, CH_NMSTART) )
-      return NULL;
-    while( HasClass(dtd, *in, CH_NAME) )
-    { if ( *in == ns )
-	hasns = TRUE;
-      *o++ = *in++;
-    }
-    *o++ = '\0';
-  
-    if ( hasns ||
-	 istreq(buf, "xmlns") ||
-	 !(sns = xmlns_find(p->environments, NULL)) )
-      *id = dtd_add_symbol(dtd, buf);
-    else
-    { ichar *s = buf-istrlen(sns->name->name)-1;
-      istrcpy(s, sns->name->name);
-      buf[-1] = ns;
-      
-      *id = dtd_add_symbol(dtd, s);
-    }
-
-    return iskip_layout(dtd, in);
-  } else
-    return itake_name(dtd, in, id);	/* SGML */
-}
-
-#else /*XMLNS*/
-
-#define itake_ns_name itake_name
-
-#endif /*XMLNS*/
-
-
 static const ichar *
 itake_nmtoken(dtd *dtd, const ichar *in, dtd_symbol **id)
 { ichar buf[MAXNMLEN];
@@ -780,6 +721,7 @@ set_dialect_dtd(dtd *dtd, dtd_dialect dialect)
       break;
     }
     case DL_XML:
+    case DL_XMLNS:
     { char **el;
 
       dtd->case_sensitive = TRUE;
@@ -1717,7 +1659,7 @@ process_attributes(dtd_parser *p, dtd_element *e, const ichar *decl,
   { dtd_symbol *nm;
     const ichar *s;
 
-    if ( (s=itake_ns_name(p, decl, &nm)) )
+    if ( (s=itake_name(dtd, decl, &nm)) )
     { decl = s;
 
       if ( (s=isee_func(dtd, decl, CF_VI)) ) /* name= */
@@ -1807,7 +1749,7 @@ process_begin_element(dtd_parser *p, const ichar *decl)
   dtd_symbol *id;
   const ichar *s;
 
-  if ( (s=itake_ns_name(p, decl, &id)) )
+  if ( (s=itake_name(dtd, decl, &id)) )
   { sgml_attribute atts[MAXATTRIBUTES];
     int natts;
     dtd_element *e = find_element(dtd, id);
@@ -1831,13 +1773,14 @@ process_begin_element(dtd_parser *p, const ichar *decl)
       gripe(ERC_SYNTAX_ERROR, "Bad attribute list", decl);
     decl=s;
 
-    if ( dtd->dialect == DL_XML )
+    if ( dtd->dialect != DL_SGML )
     { if ( (s=isee_func(dtd, decl, CF_ETAGO2)) )
       { empty = TRUE;			/* XML <tag/> */
 	decl = s;
       }
 #ifdef XMLNS
-      update_xmlns(p, natts, atts);
+      if ( dtd->dialect == DL_XMLNS )
+	update_xmlns(p, e, natts, atts);
 #endif
     }
     if ( *decl )
@@ -1951,7 +1894,14 @@ process_pi(dtd_parser *p, const ichar *decl)
   dtd *dtd = p->dtd;
 
   if ( (s=isee_identifier(dtd, decl, "xml")) ) /* <?xml version="1.0"?> */
-  { set_dialect_dtd(dtd, DL_XML);
+  { switch(dtd->dialect)
+    { case DL_SGML:
+	set_dialect_dtd(dtd, DL_XML);
+        break;
+      case DL_XML:
+      case DL_XMLNS:
+	break;
+    }
     return TRUE;
   }
 

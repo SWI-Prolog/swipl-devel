@@ -125,7 +125,8 @@ typedef enum
 
 typedef enum
 { DL_SGML,				/* Use SGML */
-  DL_XML				/* Use XML */
+  DL_XML,				/* Use XML */
+  DL_XMLNS				/* Use XML + Namespaces */
 } dtd_dialect;
 
 
