@@ -12,7 +12,7 @@
 
 #include <SWI-Stream.h>
 #include <SWI-Prolog.h>
-#include <strings.h>
+#include <string.h>
 #include <stdlib.h>
 #include "error.h"
 

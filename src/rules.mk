@@ -20,7 +20,7 @@ PLCUSTOM=$(PLBASE)\custom
 # files to the path.  In particular provide access to the jpeg and xpm
 # libraries required to build XPCE
 
-INCLUDE=$(INCLUDE);E:\jan\include;..\include
+INCLUDE=$(PLHOME)\include;$(INCLUDE);E:\jan\include
 LIB=$(LIB);E:\jan\lib
 
 # Configuration selection
@@ -36,7 +36,7 @@ BINDIR=$(PLBASE)\runtime
 # Makefile also checks whether the package directory exists.
 
 PKGS=	table cpp clib sgml sgml\RDF xpce
-PKGDIR=..\packages
+PKGDIR=$(PLHOME)\packages
 PKGDOC=$(PLBASE)\doc\packages
 
 # Define programs.  The setup here is for standard Microsoft MSVC tools
