@@ -1454,7 +1454,7 @@ ws_postscript_frame(FrameObj fr, int iscolor)
     
     ps_output("0 0 ~D ~D ~D ~N\n", iw, ih,
 	      psdepthXImage(im),
-	      iscolor ? NAME_rgbimage : NAME_greymap););
+	      iscolor ? NAME_rgbimage : NAME_greymap);
     postscriptXImage(im, 0, 0, iw, ih,
 		     r->display_xref, r->colour_map, 0, iscolor);
     ps_output("\n");
