@@ -7,8 +7,8 @@
     Copyright (C) 1999 University of Amsterdam. All rights reserved.
 */
 
-#ifndef NEW_TEXT_H_INCLUDED
-#define NEW_TEXT_H_INCLUDED
+#ifndef BOXES_H_INCLUDED
+#define BOXES_H_INCLUDED
 
 #include <h/kernel.h>
 #include <h/graphics.h>
@@ -66,6 +66,9 @@ NewClass(rubber)
   Int		stretch;		/* Get bigger */
   Int		shrink;			/* Get smaller */
   Int		level;			/* hfil/hfill/hfilll (1/2/3) */
+  Int		natural;		/* Natural desired size */
+  Int		minimum;		/* Minimum size */
+  Int		maximum;		/* Maximum size */
   Name		linebreak;		/* @nil, allow, force */
 End;
 
@@ -90,4 +93,4 @@ NewClass(lbox)
 End;
 
 
-#endif /*NEW_TEXT_H_INCLUDED*/
+#endif /*BOXES_H_INCLUDED*/

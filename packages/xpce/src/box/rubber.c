@@ -35,6 +35,7 @@ initialiseRubber(Rubber r, Int level, Int stretch, Int shrink, Name linebreak)
   assign(r, shrink,    shrink);
   assign(r, linebreak, linebreak);
   assign(r, level,     level);
+  assign(r, natural,   DEFAULT);
 
   succeed;
 }
@@ -61,6 +62,12 @@ static vardecl var_rubber[] =
      NAME_rubber, "Ease to get smaller"),
   IV(NAME_level, "1..", IV_GET,
      NAME_rubber, "Level of the rubber (TeX hfil/hfill/hfilll)"),
+  IV(NAME_natural, "[int]", IV_BOTH,
+     NAME_dimension, "Natrual size"),
+  IV(NAME_minimum, "int*", IV_BOTH,
+     NAME_dimension, "Mimimum size"),
+  IV(NAME_maximum, "int*", IV_BOTH,
+     NAME_dimension, "Maximum size"),
   IV(NAME_linebreak, "{allow,force}*", IV_GET,
      NAME_layout, "Can be use this box as a linebreak")
 };
