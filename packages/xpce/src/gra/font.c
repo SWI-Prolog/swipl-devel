@@ -51,7 +51,7 @@ initialiseFont(FontObj f, Name family, Name style, Int points, Name xname)
   assign(f, style,       style);
   assign(f, points,      points);
   assign(f, fixed_width, DEFAULT);
-  assign(f, b16,	 DEFAULT);
+  assign(f, iswide,	 DEFAULT);
   assign(f, x_name,      xname);
 
   defaultPostScriptFont(f);
@@ -294,10 +294,10 @@ getFixedWidthFont(FontObj f)
 
 Bool
 getB16Font(FontObj f)
-{ if ( isDefault(f->b16) )
+{ if ( isDefault(f->iswide) )
     XopenFont(f, CurrentDisplay(NIL));
 
-  answer(f->b16);
+  answer(f->iswide);
 }
 
 

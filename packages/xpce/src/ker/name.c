@@ -95,7 +95,7 @@ stringHashValue(String s)
 { unsigned int value = 0;
   unsigned int shift = 5;
   int size = s->size;
-  char8 *t = s->s_text8;
+  charA *t = s->s_textA;
 
   if ( isstr16(s) )
     size *= 2;
@@ -573,7 +573,7 @@ CtoKeyword(const char *s)
 char *
 saveStringName(Name n)
 { if ( isProperObject(n) && instanceOfObject(n, ClassName) )
-    return save_string((char *)n->data.s_text8);
+    return save_string((char *)n->data.s_textA);
   else
   { char buf[100];
 

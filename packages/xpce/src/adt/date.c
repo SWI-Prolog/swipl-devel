@@ -163,7 +163,7 @@ static Date
 getConvertDate(Class class, StringObj str)
 { if ( isstr8(&str->data) )
   { time_t t;
-    char *s = (char *)str->data.s_text8;
+    char *s = (char *)str->data.s_textA;
 
     if ( (t=convert_XML(s)) == (time_t)-1 )
       t = get_date(s, NULL);
@@ -213,7 +213,7 @@ setDate(Date d, Int s, Int m, Int h, Int D, Int M, Int Y)
 static status
 convertDate(Date d, CharArray s)
 { if ( isstr8(&s->data) )
-  { long t = get_date((char *)s->data.s_text8, NULL);
+  { long t = get_date((char *)s->data.s_textA, NULL);
 
     if ( t == -1 )
       return errorPce(d, NAME_syntaxError, s);

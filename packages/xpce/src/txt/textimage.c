@@ -902,19 +902,19 @@ paint_attributes(TextImage ti, TextLine l, int from, int to, Colour c)
 }
 
 
-#define PutBuf(c) if ( b16 ) \
-		   { *(char16 *) out = c; \
-		     out += sizeof(char16); \
+#define PutBuf(c) if ( iswide ) \
+		   { *(charW *) out = c; \
+		     out += sizeof(charW); \
 		   } else \
-		   { *(char8 *) out = c; \
-		     out += sizeof(char8); \
+		   { *(charA *) out = c; \
+		     out += sizeof(charA); \
 		   }
 
 static void
 paint_line(TextImage ti, Area a, TextLine l, int from, int to)
 { char buf[1000];
   char *out;
-  int b16, n, s = from, e;
+  int iswide, n, s = from, e;
   FontObj f;
   Colour c;
   Any bg;
@@ -977,7 +977,7 @@ paint_line(TextImage ti, Area a, TextLine l, int from, int to)
 
     n = 0;
     f      = l->chars[e].font;
-    b16    = (f->b16 == ON);
+    iswide    = (f->iswide == ON);
     atts   = l->chars[e].attributes;
     out    = buf;
 
@@ -1038,18 +1038,18 @@ paint_line(TextImage ti, Area a, TextLine l, int from, int to)
     if ( prt )
     { r_colour(c);
 
-      if ( b16 )
-	s_print16((char16 *)buf, e - s, l->chars[s].x, l->y + l->base, f);
+      if ( iswide )
+	s_print16((charW *)buf, e - s, l->chars[s].x, l->y + l->base, f);
       else
-	s_print8((char8 *)buf, e - s, l->chars[s].x, l->y + l->base, f);
+	s_print8((charA *)buf, e - s, l->chars[s].x, l->y + l->base, f);
 
       if ( atts & TXT_BOLDEN )
-      { if ( b16 )
-	{ s_print16((char16 *)buf, e - s, l->chars[s].x+1, l->y + l->base, f);
-	  s_print16((char16 *)buf, e - s, l->chars[s].x, l->y-1 + l->base, f);
+      { if ( iswide )
+	{ s_print16((charW *)buf, e - s, l->chars[s].x+1, l->y + l->base, f);
+	  s_print16((charW *)buf, e - s, l->chars[s].x, l->y-1 + l->base, f);
 	} else
-	{ s_print8((char8 *)buf, e - s, l->chars[s].x+1, l->y + l->base, f);
-	  s_print8((char8 *)buf, e - s, l->chars[s].x, l->y-1 + l->base, f);
+	{ s_print8((charA *)buf, e - s, l->chars[s].x+1, l->y + l->base, f);
+	  s_print8((charA *)buf, e - s, l->chars[s].x, l->y-1 + l->base, f);
 	}
       }
     }

@@ -282,7 +282,7 @@ searchRegex(Regex re, Any obj, Int start, Int end)
   } else if ( instanceOfObject(obj, ClassTextBuffer) )
   { TextBuffer tb = obj;
 
-    if ( tb->buffer.b16 )
+    if ( tb->buffer.iswide )
       return search_regex(re,
 			  (char *)&tb->tb_buffer16[0],
 			  tb->gap_start*2,
@@ -303,7 +303,7 @@ searchRegex(Regex re, Any obj, Int start, Int end)
     TextBuffer tb = frag->textbuffer;
     status rval;
 
-    if ( tb->buffer.b16 )
+    if ( tb->buffer.iswide )
       rval = search_regex(re,
 			  (char *)tb->tb_buffer16, tb->gap_start*2,
 			  (char *)&tb->tb_buffer16[tb->gap_end+1],
@@ -403,7 +403,7 @@ getMatchRegex(Regex re, Any obj, Int start, Int end)
   } else if ( instanceOfObject(obj, ClassTextBuffer) )
   { TextBuffer tb = obj;
 
-    if ( tb->buffer.b16 )
+    if ( tb->buffer.iswide )
       return match_regex(re,
 			 (char *)tb->tb_buffer16, tb->gap_start*2,
 			 (char *)&tb->tb_buffer16[tb->gap_end+1],
@@ -421,7 +421,7 @@ getMatchRegex(Regex re, Any obj, Int start, Int end)
     TextBuffer tb = frag->textbuffer;
     Int rval;
 
-    if ( tb->buffer.b16 )
+    if ( tb->buffer.iswide )
       rval = match_regex(re,
 			 (char *)tb->tb_buffer16, tb->gap_start*2,
 			 (char *)&tb->tb_buffer16[tb->gap_end+1],

@@ -62,8 +62,8 @@ NewClass(text_buffer)
   string	buffer;			/* Actual buffer (with gap) */
 End;
 
-#define tb_buffer8  buffer.text_union.text8
-#define tb_buffer16 buffer.text_union.text16
+#define tb_buffer8  buffer.text_union.textA
+#define tb_buffer16 buffer.text_union.textW
 
 #define FRAG_INCLUDES_START	0x1	/* <-start is included */
 #define FRAG_INCLUDES_END	0x2	/* <-end is included */

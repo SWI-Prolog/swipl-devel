@@ -490,7 +490,7 @@ assignAccelerators(Chain objects, Name prefix, Name label_method)
     if ( hasGetMethodObject(cell->value, label_method) &&
 	 (lbl = get(cell->value, label_method, EAV)) &&
 	 ( !instanceOfObject(lbl, ClassCharArray) ||
-	   !((CharArray)lbl)->data.b16 ) &&
+	   !((CharArray)lbl)->data.iswide ) &&
 	 (s = toCharp(lbl)) )
     { a->label = s;
       a->index = -1;

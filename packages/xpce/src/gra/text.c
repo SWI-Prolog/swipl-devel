@@ -149,16 +149,16 @@ str_format(String out, const String in, const int width, const FontObj font)
   int last_is_layout = TRUE;
 
   if ( isstr8(in) )			/* 8-bit string */
-  { char8  *s = in->s_text8;
-    char8  *e = &s[in->size];
-    char8  *o = out->s_text8;
-    char8 *lb = NULL;			/* last-break; */
+  { charA  *s = in->s_textA;
+    charA  *e = &s[in->size];
+    charA  *o = out->s_textA;
+    charA *lb = NULL;			/* last-break; */
 
     for(;; s++)
     { *o++ = *s;
 
       if ( s == e )
-      { int n = o - out->s_text8 - 1;
+      { int n = o - out->s_textA - 1;
 
 	assert(n <= out->size);
 	out->size = n;
@@ -177,7 +177,7 @@ str_format(String out, const String in, const int width, const FontObj font)
       if ( x > width )
       { if ( lb )
 	{ o = lb;
-	  s = in->s_text8 + (lb-out->s_text8);
+	  s = in->s_textA + (lb-out->s_textA);
 	  
 	  while( islayout(s[1]) )
 	    s++, o++;			/* map (<sp>*)<sp> --> \1\n */
@@ -188,16 +188,16 @@ str_format(String out, const String in, const int width, const FontObj font)
       }
     }
   } else				/* 16-bit string */
-  { char16  *s = in->s_text16;
-    char16  *e = &s[in->size];
-    char16  *o = out->s_text16;
-    char16 *lb = NULL;			/* last-break; */
+  { charW  *s = in->s_textW;
+    charW  *e = &s[in->size];
+    charW  *o = out->s_textW;
+    charW *lb = NULL;			/* last-break; */
 
     for(;; s++)
     { *o++ = *s;
 
       if ( s == e )
-      { out->size = o - out->s_text16 - 1;
+      { out->size = o - out->s_textW - 1;
 	return;
       }
 
@@ -213,7 +213,7 @@ str_format(String out, const String in, const int width, const FontObj font)
       if ( x > width )
       { if ( lb )
 	{ o = lb;
-	  s = in->s_text16 + (lb-out->s_text16);
+	  s = in->s_textW + (lb-out->s_textW);
 	  
 	  while( islayout(s[1]) )
 	    s++, o++;			/* map (<sp>*)<sp> --> \1\n */
@@ -308,7 +308,7 @@ repaintText(TextObj t, int x, int y, int w, int h)
   { LocalString(buf, s, s->size+1);
 
     DEBUG(NAME_text,
-	  Cprintf("RedrawAreaText(%s): \"%s\"\n", pp(t), s->s_text8));
+	  Cprintf("RedrawAreaText(%s): \"%s\"\n", pp(t), s->s_textA));
     str_format(buf, s, valInt(t->margin), t->font);
     if ( notNil(t->selection) )
       str_selected_string(buf, t->font, sf, st, style,

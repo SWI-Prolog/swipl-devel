@@ -81,8 +81,8 @@ toInteger(Any obj)
     { char *end;
       long i;
 
-      i = strtol((char *)s->s_text8, &end, 10);
-      if ( end == (char *)&s->s_text8[s->size] )
+      i = strtol((char *)s->s_textA, &end, 10);
+      if ( end == (char *)&s->s_textA[s->size] )
 	return toInt(i);
     }
   }
@@ -116,14 +116,14 @@ toBool(Any obj)
   }
   
   if ( toString(obj, &s) && isstr8(&s) )
-  { if       ( streq_ignore_case((char *)s.s_text8, "@on") ||
-	       streq_ignore_case((char *)s.s_text8, "true") ||
-	       streq_ignore_case((char *)s.s_text8, "yes") ||
+  { if       ( streq_ignore_case((char *)s.s_textA, "@on") ||
+	       streq_ignore_case((char *)s.s_textA, "true") ||
+	       streq_ignore_case((char *)s.s_textA, "yes") ||
 	       str_icase_eq(&s, &ON->name->data) )
       return ON;
-    else if ( streq_ignore_case((char *)s.s_text8, "@off") ||
-	      streq_ignore_case((char *)s.s_text8, "false") ||
-	      streq_ignore_case((char *)s.s_text8, "no") ||
+    else if ( streq_ignore_case((char *)s.s_textA, "@off") ||
+	      streq_ignore_case((char *)s.s_textA, "false") ||
+	      streq_ignore_case((char *)s.s_textA, "no") ||
 	      str_icase_eq(&s, &OFF->name->data) )
       return OFF;
   }

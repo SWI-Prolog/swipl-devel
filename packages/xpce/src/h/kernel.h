@@ -474,8 +474,8 @@ void	clearDFlagProgramObject(Any, unsigned long);
 
 #define LocalString(name, proto, size) \
   string _s_ ## name ## _hdr; \
-  void  *_s_ ## name ## _buf = (void *)alloca((proto)->b16 ? (size) * sizeof(char16) \
-						   : (size) * sizeof(char8)); \
+  void  *_s_ ## name ## _buf = (void *)alloca((proto)->iswide ? (size) * sizeof(charW) \
+						   : (size) * sizeof(charA)); \
   String name = str_init(&_s_ ## name ## _hdr, (proto), _s_ ## name ## _buf)
 
 #ifndef NO_BUILT_IN_DECL
@@ -486,7 +486,7 @@ extern struct name builtin_names[];	/* object-array of built-in's */
 #define isName(name)	(isObject(name) && onFlag((name), F_ISNAME))
 #define notName(name)	(!isName(name))
 #define equalName(a, b) ((a) == (b))
-#define strName(s)	((char *)((Name)(s))->data.s_text8)
+#define strName(s)	((char *)((Name)(s))->data.s_textA)
 
 #define getAppendName(n, s) \
 	((Name) getAppendCharArray((CharArray)(n), (CharArray)(s)))

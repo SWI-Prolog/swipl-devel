@@ -98,12 +98,12 @@ initialiseStringv(StringObj str, CharArray fmt, int argc, Any *argv)
 
     str_cphdr(&str->data, &v->data);
     if ( v->data.readonly )
-    { str->data.s_text8 = v->data.s_text8;
+    { str->data.s_textA = v->data.s_textA;
 
       DEBUG(NAME_readOnly, Cprintf("Shared %s\n", pp(str)));
     } else
     { str_alloc(&str->data);
-      memcpy(str->data.s_text8, v->data.s_text8, str_datasize(&v->data));
+      memcpy(str->data.s_textA, v->data.s_textA, str_datasize(&v->data));
     }
   } else
     TRY(str_writefv(&str->data, fmt, argc, argv));
@@ -120,7 +120,7 @@ bitsPerCharacterString(StringObj str, Int bits)
   { if ( !isstr8(s) )
     { string s2 = *s;
 
-      s2.b16 = FALSE;
+      s2.iswide = FALSE;
       s2.size *= 2;
       setString(str, &s2);
     }
@@ -129,7 +129,7 @@ bitsPerCharacterString(StringObj str, Int bits)
   { if ( !isstr16(s) )
     { string s2 = *s;
 
-      s2.b16 = TRUE;
+      s2.iswide = TRUE;
       s2.size /= 2;
       setString(str, &s2);
     }
@@ -172,7 +172,7 @@ Load/store a string to/from file. Format:
 static status
 storeString(StringObj s, FileObj file)
 { TRY(storeSlotsObject(s, file));
-  return storeCharpFile(file, (char *)s->data.s_text8); /* TBD: full store! */
+  return storeCharpFile(file, (char *)s->data.s_textA); /* TBD: full store! */
 }
 
 
@@ -534,7 +534,7 @@ setString(StringObj str, String s)
 	    Cprintf("Copying %s", pp(str)));
 
     str_alloc(&s2);
-    memcpy(s2.s_text8, s->s_text8, str_datasize(s));
+    memcpy(s2.s_textA, s->s_textA, str_datasize(s));
     str_unalloc(&str->data);
     str->data = s2;
   } else
@@ -556,9 +556,9 @@ CsetStringL(StringObj str, const char *txt, int l)
 
   s.size = l;
   s.encoding = ENC_ASCII;
-  s.b16 = 0;
+  s.iswide = 0;
   s.pad = 0;
-  s.s_text8 = (char8*) txt;
+  s.s_textA = (charA*) txt;
 
   return setString(str, &s);
 }
@@ -603,9 +603,9 @@ getSubString(StringObj n, Int start, Int end)
   str_cphdr(&s, &n->data);
   s.size = y-x;
   if ( isstr8(&n->data) )
-    s.s_text8 = &n->data.s_text8[x];
+    s.s_textA = &n->data.s_textA[x];
   else
-    s.s_text16 = &n->data.s_text16[x];
+    s.s_textW = &n->data.s_textW[x];
   
   answer(StringToString(&s));
 }

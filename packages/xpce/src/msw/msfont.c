@@ -294,7 +294,7 @@ ws_create_font(FontObj f, DisplayObj d)
   }
 
   wsf->widths     = alloc(FONTTABLESIZE * sizeof(cwidth));
-  assign(f, b16, OFF);
+  assign(f, iswide, OFF);
 
   hdc = GetDC(NULL);
   old = SelectObject(hdc, wsf->hfont);

@@ -37,9 +37,9 @@ initialiseCharArray(CharArray n, CharArray value)
 { str_cphdr(&n->data, &value->data);
   str_alloc(&n->data);
   if ( value->data.readonly )
-    n->data.s_text8 = value->data.s_text8;
+    n->data.s_textA = value->data.s_textA;
   else
-    memcpy(n->data.s_text8, value->data.s_text8, str_datasize(&n->data));
+    memcpy(n->data.s_textA, value->data.s_textA, str_datasize(&n->data));
 
   succeed;
 }
@@ -58,7 +58,7 @@ cloneCharArray(CharArray str, CharArray clone)
 { clonePceSlots(str, clone);
   clone->data = str->data;
   str_alloc(&clone->data);
-  memcpy(clone->data.s_text8, str->data.s_text8, str_datasize(&str->data));
+  memcpy(clone->data.s_textA, str->data.s_textA, str_datasize(&str->data));
 
   succeed;
 }
@@ -67,7 +67,7 @@ cloneCharArray(CharArray str, CharArray clone)
 static status
 storeCharArray(CharArray s, FileObj file)
 { TRY(storeSlotsObject(s, file));
-  return storeCharpFile(file, (char *)s->data.s_text8); /* TBD: full store! */
+  return storeCharpFile(file, (char *)s->data.s_textA); /* TBD: full store! */
 }
 
 
@@ -344,9 +344,9 @@ getSplitCharArray(CharArray in, CharArray br)
     while( i<=size-b->size )
     { if ( str_prefix_offset(s1, i, b) )
       { if ( isstr8(s1) )
-	  buf.s_text8 = s1->s_text8+last;
+	  buf.s_textA = s1->s_textA+last;
 	else
-	  buf.s_text16 = s1->s_text16+last;
+	  buf.s_textW = s1->s_textW+last;
 
 	buf.size = i-last;
 	appendChain(ch, ModifiedCharArray(in, &buf));
@@ -363,9 +363,9 @@ getSplitCharArray(CharArray in, CharArray br)
     while( i<size )
     { if ( islayout(str_fetch(s1, i)) )
       { if ( isstr8(s1) )
-	  buf.s_text8 = s1->s_text8+last;
+	  buf.s_textA = s1->s_textA+last;
 	else
-	  buf.s_text16 = s1->s_text16+last;
+	  buf.s_textW = s1->s_textW+last;
 
 	buf.size = i-last;
 	appendChain(ch, ModifiedCharArray(in, &buf));
@@ -381,9 +381,9 @@ getSplitCharArray(CharArray in, CharArray br)
   }
 	   
   if ( isstr8(s1) )
-    buf.s_text8 = s1->s_text8+last;
+    buf.s_textA = s1->s_textA+last;
   else
-    buf.s_text16 = s1->s_text16+last;
+    buf.s_textW = s1->s_textW+last;
 
   buf.size = size-last;
   appendChain(ch, ModifiedCharArray(in, &buf));
@@ -406,8 +406,8 @@ getAppendCharArray(CharArray n1, CharArray n2)
   int n;
 
   buf->size = s1->size + s2->size;
-  memcpy(buf->s_text8, s1->s_text8, (n=str_datasize(s1)));
-  memcpy(&buf->s_text8[n], s2->s_text8, str_datasize(s2));
+  memcpy(buf->s_textA, s1->s_textA, (n=str_datasize(s1)));
+  memcpy(&buf->s_textA[n], s2->s_textA, str_datasize(s2));
 
   answer(ModifiedCharArray(n1, buf));
 }
@@ -424,23 +424,23 @@ getAppendCharArrayv(CharArray ca, int argc, CharArray *argv)
   { LocalString(buf, &ca->data, l);
 
     if ( isstr8(&ca->data) )
-    { char8 *d = buf->s_text8;
+    { charA *d = buf->s_textA;
       
-      memcpy(d, ca->data.s_text8, ca->data.size * sizeof(char8));
+      memcpy(d, ca->data.s_textA, ca->data.size * sizeof(charA));
       d += ca->data.size;
 
       for( i=0; i<argc; i++ )
-      { memcpy(d, argv[i]->data.s_text8, argv[i]->data.size*sizeof(char8));
+      { memcpy(d, argv[i]->data.s_textA, argv[i]->data.size*sizeof(charA));
 	d += argv[i]->data.size;
       }
     } else
-    { char16 *d = buf->s_text16;
+    { charW *d = buf->s_textW;
       
-      cpdata(d, ca->data.s_text16, char16, ca->data.size);
+      cpdata(d, ca->data.s_textW, charW, ca->data.size);
       d += ca->data.size;
 
       for( i=0; i<argc; i++ )
-      { cpdata(d, argv[i]->data.s_text16, char16, argv[i]->data.size);
+      { cpdata(d, argv[i]->data.s_textW, charW, argv[i]->data.size);
 	d += argv[i]->data.size;
       }
     }
@@ -484,9 +484,9 @@ getDeletePrefixCharArray(CharArray n, CharArray s)
     str_cphdr(&buf, &n->data);
     buf.size = n->data.size - s->data.size;
     if ( isstr8(&buf) )
-      buf.s_text8 = &n->data.s_text8[s->data.size];
+      buf.s_textA = &n->data.s_textA[s->data.size];
     else
-      buf.s_text16 = &n->data.s_text16[s->data.size];
+      buf.s_textW = &n->data.s_textW[s->data.size];
 
     answer(ModifiedCharArray(n, &buf));
   }
@@ -509,9 +509,9 @@ getSubCharArray(CharArray n, Int start, Int end)
   str_cphdr(&s, &n->data);
   s.size = y-x;
   if ( isstr8(&n->data) )
-    s.s_text8 = &n->data.s_text8[x];
+    s.s_textA = &n->data.s_textA[x];
   else
-    s.s_text16 = &n->data.s_text16[x];
+    s.s_textW = &n->data.s_textW[x];
   
   answer(ModifiedCharArray(n, &s));
 }
@@ -649,9 +649,9 @@ getReadAsFileCharArray(CharArray n, Int from, Int size)
     str_cphdr(&str, &n->data);
     str.size = s;
     if ( isstr8(&n->data) )
-      str.s_text8 = &n->data.s_text8[f];
+      str.s_textA = &n->data.s_textA[f];
     else
-      str.s_text16 = &n->data.s_text16[f];
+      str.s_textW = &n->data.s_textW[f];
     
     answer((CharArray)StringToString(&str));
   }
@@ -721,8 +721,8 @@ getScanCharArray(CharArray n, CharArray fmt)
   { Any argv[SCAN_MAX_ARGS];
     Int argc;
 
-    TRY(argc = scanstr((char *)n->data.s_text8,
-		       (char *)fmt->data.s_text8,
+    TRY(argc = scanstr((char *)n->data.s_textA,
+		       (char *)fmt->data.s_textA,
 		       argv));
     
     answer(answerObjectv(ClassVector, valInt(argc), argv));
@@ -786,7 +786,7 @@ CtoScratchCharArray(const char *s)
   int n;
 
   for(n = 0; n < SCRATCH_CHAR_ARRAYS; n++, name++)
-  { if ( name->data.s_text8 == NULL )
+  { if ( name->data.s_textA == NULL )
     { str_set_n_ascii(&name->data, len, (char *)s);
 
       return name;
@@ -805,7 +805,7 @@ StringToScratchCharArray(const String s)
   int n;
 
   for(n = 0; n < SCRATCH_CHAR_ARRAYS; n++, name++)
-    if ( name->data.s_text8 == NULL )
+    if ( name->data.s_textA == NULL )
     { str_cphdr(&name->data, s);
       name->data.s_text = s->s_text;
       return name;

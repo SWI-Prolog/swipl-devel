@@ -299,9 +299,9 @@ ws_string_to_global_mem(String s)
   data = GlobalLock(mem);
 
   for(i=0; i<size; i++)
-  { if ( s->s_text8[i] == '\n' )
+  { if ( s->s_textA[i] == '\n' )
       *data++ = '\r';
-    *data++ = s->s_text8[i];
+    *data++ = s->s_textA[i];
   }
   *data = EOS;
 

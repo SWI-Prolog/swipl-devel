@@ -100,7 +100,7 @@ struct undo_change
 struct undo_buffer
 { TextBuffer	client;		/* so we know whom to talk to */
   unsigned	size;		/* size of buffer in chars */
-  int		b16;		/* 16- rather than 8-bit characters */
+  int		iswide;		/* 16- rather than 8-bit characters */
   int		undone;		/* last action was an undo */
   int		aborted;	/* sequence was too big, aborted */
   UndoCell	current;	/* current undo cell for undos */
@@ -112,27 +112,27 @@ struct undo_buffer
   UndoCell	buffer;		/* buffer storage */
 };
 
-#define istb8(tb)		((tb)->buffer.b16 == 0)
+#define istb8(tb)		((tb)->buffer.iswide == 0)
 #define Round(n, r)		(((n)+(r)-1) & (~((r)-1)))
 #define AllocRound(s)		Round(s, sizeof(UndoCell))
 #define Distance(p1, p2)	((char *)(p1) - (char *)(p2))
 #define SizeAfter(ub, size)	((size) <= ub->size - \
 				           Distance(ub->free, ub->buffer))
-#define Address(b, c, i)	((b)->b16 ? &(c)->chars[(i)*2] \
+#define Address(b, c, i)	((b)->iswide ? &(c)->chars[(i)*2] \
 					  : &(c)->chars[(i)])
-#define Chars(b, l)		((b)->b16 ? (l) * 2 : (l))
+#define Chars(b, l)		((b)->iswide ? (l) * 2 : (l))
 #define _UndoDeleteSize(len)    ((unsigned)(long) &((UndoDelete)NULL)->chars[len])
 #define _UndoChangeSize(len)    ((unsigned)(long) &((UndoChange)NULL)->chars[len])
-#define UndoDeleteSize(b, l)	_UndoDeleteSize((b)->b16 ? (l)*2 : (l))
-#define UndoChangeSize(b, l)	_UndoChangeSize((b)->b16 ? (l)*2 : (l))
+#define UndoDeleteSize(b, l)	_UndoDeleteSize((b)->iswide ? (l)*2 : (l))
+#define UndoChangeSize(b, l)	_UndoChangeSize((b)->iswide ? (l)*2 : (l))
 
 
 static UndoBuffer
-createUndoBuffer(long int size, int b16)
+createUndoBuffer(long int size, int iswide)
 { UndoBuffer ub = alloc(sizeof(struct undo_buffer));
 
-  ub->b16     = b16;
-  ub->size    = AllocRound(b16 ? size*2 : size);
+  ub->iswide     = iswide;
+  ub->size    = AllocRound(iswide ? size*2 : size);
   ub->buffer  = alloc(ub->size);
   ub->aborted = FALSE;
   ub->client  = NIL;
@@ -182,7 +182,7 @@ getUndoTextBuffer(TextBuffer tb)
 	  string s;
 	  s.size = d->len;
 	  s.s_text = (unsigned char *)d->chars;
-	  s.b16 = ub->b16;
+	  s.iswide = ub->iswide;
 	  s.encoding = ENC_ASCII;
 	  DEBUG(NAME_undo, Cprintf("Undo delete at %ld, len=%ld\n",
 				   d->where, d->len));
@@ -246,7 +246,7 @@ getUndoBufferTextBuffer(TextBuffer tb)
 
   if ( tb->undo_buffer_size != ZERO )
   { tb->undo_buffer = createUndoBuffer(valInt(tb->undo_buffer_size),
-				       tb->buffer.b16);
+				       tb->buffer.iswide);
     tb->undo_buffer->client = tb;
   }
     
@@ -476,12 +476,12 @@ register_insert_textbuffer(TextBuffer tb, long int where, long int len)
 static void
 copy_undo(TextBuffer tb, long int from, long int len, void *buf)
 { if ( istb8(tb) )
-  { char8 *to = buf;
+  { charA *to = buf;
 
     for( ; len > 0; len--, from++ )
       *to++ = fetch_textbuffer(tb, from);
   } else
-  { char16 *to = buf;
+  { charW *to = buf;
 
     for( ; len > 0; len--, from++ )
       *to++ = fetch_textbuffer(tb, from);

@@ -750,7 +750,7 @@ NewClass(fontobj)
   Int		ex;			/* Width of an x in this font */
   Name          x_name;			/* X-Name of the font */
   Bool		fixed_width;		/* Is this a fixed width font? */
-  Bool		b16;			/* Font is 16-bit font */
+  Bool		iswide;			/* Font is 16-bit font */
   Name		postscript_font;	/* Name of PostScript font */
   Int		postscript_size;	/* Size in PostScript */
 End;

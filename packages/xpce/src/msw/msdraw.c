@@ -2737,17 +2737,17 @@ String
 str_bits_as_font(String s, FontObj f, int *shift)
 { static string s2;
 
-  Bool b16 = getB16Font(f);
-  if ( b16 == ON && isstr8(s) )
+  Bool iswide = getB16Font(f);
+  if ( iswide == ON && isstr8(s) )
   { s2 = *s;
-    s2.b16 = TRUE;
+    s2.iswide = TRUE;
     s2.size /= 2;
     if ( shift )
       *shift = -1;
     return &s2;
-  } else if ( b16 != ON && !isstr8(s) )
+  } else if ( iswide != ON && !isstr8(s) )
   { s2 = *s;
-    s2.b16 = FALSE;
+    s2.iswide = FALSE;
     s2.size *= 2;
     if ( shift )
       *shift = 1;
@@ -2770,12 +2770,12 @@ s_width_(String s, int from, int to)
     int n = to-from;
 
     if ( isstr8(s) )
-    { char8 *q = &s->s_text8[from];
+    { charA *q = &s->s_textA[from];
 
       for(width = 0; n-- > 0; q++)
 	width += widths[*q];
     } else
-    { char16 *q = &s->s_text16[from];
+    { charW *q = &s->s_textW[from];
 
       for(width = 0; n-- > 0; q++)
 	width += widths[*q];
@@ -2792,16 +2792,16 @@ str_width(String s, int from, int to, FontObj f)
 
   s_font(f);
 
-  if ( f->b16 == ON && isstr8(s) )
+  if ( f->iswide == ON && isstr8(s) )
   { s2 = *s;
-    s2.b16 = TRUE;
+    s2.iswide = TRUE;
     s2.size /= 2;
     from /= 2;
     to /= 2;
     s = &s2;
-  } else if ( f->b16 != ON && !isstr8(s) )
+  } else if ( f->iswide != ON && !isstr8(s) )
   { s2 = *s;
-    s2.b16 = FALSE;
+    s2.iswide = FALSE;
     s2.size *= 2;
     from *= 2;
     to *= 2;
@@ -2829,7 +2829,7 @@ str_advance(String s, int from, int to, FontObj f)
 
 
 void
-s_print8(char8 *s, int l, int x, int y, FontObj f)
+s_print8(charA *s, int l, int x, int y, FontObj f)
 { if ( l > 0 )
   { s_font(f);
     y -= context.wsf->ascent;
@@ -2839,7 +2839,7 @@ s_print8(char8 *s, int l, int x, int y, FontObj f)
 
 
 void
-s_print16(char16 *s, int l, int x, int y, FontObj f)
+s_print16(charW *s, int l, int x, int y, FontObj f)
 { Cprintf("16-bits characters are not supported on XPCE for Windows\n");
 }
 
@@ -2847,9 +2847,9 @@ s_print16(char16 *s, int l, int x, int y, FontObj f)
 void
 s_print(String s, int x, int y, FontObj f)
 { if ( isstr8(s) )
-    s_print8(s->s_text8, s->size, x, y, f);
+    s_print8(s->s_textA, s->size, x, y, f);
   else
-    s_print16(s->s_text16, s->size, x, y, f);
+    s_print16(s->s_textW, s->size, x, y, f);
 }
 
 
@@ -2868,7 +2868,7 @@ static void
 str_text(String s, int x, int y)
 { assert(isstr8(s));
 
-  TextOut(context.hdc, x, y, s->s_text8, s->size);
+  TextOut(context.hdc, x, y, s->s_textA, s->size);
 }    
 
 
@@ -2885,11 +2885,11 @@ str_size(String s, FontObj font, int *width, int *height)
     rect.bottom = 0;
 
     s_font(font);
-    rval = DrawText(context.hdc, s->s_text8, s->size, &rect, flags);
+    rval = DrawText(context.hdc, s->s_textA, s->size, &rect, flags);
     DEBUG(NAME_font,
 	  { char buf[32];
 	    int n = min(s->size, 25);
-	    strncpy(buf, s->s_text8, n);
+	    strncpy(buf, s->s_textA, n);
 	    buf[n] = EOS;
 	    if ( s->size > 25 )
 	      strcat(buf, " ...");
@@ -3086,7 +3086,7 @@ str_string(String s, FontObj font,
   rect.bottom = rect.top + h;
 
   s_font(font);
-  DrawText(context.hdc, s->s_text8, s->size, &rect, flags);
+  DrawText(context.hdc, s->s_textA, s->size, &rect, flags);
 }
 #endif
 
@@ -3196,7 +3196,7 @@ str_stext(String s, int f, int len, Style style)
     }
 
     if ( isstr8(s) )
-    { TextOut(context.hdc, 0, 0, s->s_text8+f, len);
+    { TextOut(context.hdc, 0, 0, s->s_textA+f, len);
     } else
     { Cprintf("16-bits characters are not supported on XPCE for Windows\n");
     }

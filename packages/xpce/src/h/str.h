@@ -27,10 +27,10 @@
 
 #include <wchar.h>
 
-#undef char8				/* from pce-include.h */
+#undef charA				/* from pce-include.h */
 
-typedef unsigned char char8;		/* 8-bit character */
-typedef unsigned short char16;		/* 16-bit character */
+typedef unsigned char charA;		/* 8-bit character */
+typedef unsigned short charW;		/* wide character */
 
 #define STR_SIZE_BITS 27
 #define STR_MAX_SIZE ((1L<<STR_SIZE_BITS)-1)
@@ -38,39 +38,39 @@ typedef unsigned short char16;		/* 16-bit character */
 typedef struct _string
 { unsigned	size : STR_SIZE_BITS;	/* size indication (128 MB) */
   unsigned	encoding : 2;		/* character encoding used */
-  unsigned	b16 : 1;		/* 8- or 16-bit wide characters */
+  unsigned	iswide : 1;		/* 8- or 16-bit wide characters */
   unsigned	readonly : 1;		/* storage is externally managed */
   unsigned	pad : 1;		/* padding to word-boundary */
   union
-  { char8 *	text8;
-    char16 *	text16;
+  { charA *	textA;
+    charW *	textW;
   } text_union;
 } string;
 
-#define s_text		text_union.text8
-#define s_text8		text_union.text8
-#define s_text16	text_union.text16
+#define s_text		text_union.textA
+#define s_textA		text_union.textA
+#define s_textW	text_union.textW
 
 #define ENC_ASCII (0)			/* standard 7-bits ASCII encoding */
 #define ENC_UNICODE (1)			/* 16-bits unicode encoding */
 
-#define isstr8(s) ((s)->b16 == 0)	/* 8-bit string */
-#define isstr16(s) ((s)->b16 == 1)	/* 16-bit string */
+#define isstr8(s) ((s)->iswide == 0)	/* 8-bit string */
+#define isstr16(s) ((s)->iswide == 1)	/* 16-bit string */
 
 #define str_len(s) ((s)->size)		/* length of the string */
-#define str_wsize(s) ((((s)->b16 ? (s)->size * 2 \
+#define str_wsize(s) ((((s)->iswide ? (s)->size * 2 \
 		      	         : (s)->size) + sizeof(wint_t) - 1) \
 			/ sizeof(wint_t))
-#define str_fetch8(s, i)	(s->s_text8[(i)])
-#define str_fetch16(s, i)	(s->s_text16[(i)])
-#define str_store8(s, i, c)	(s->s_text8[(i)] = (char8)(c))
-#define str_store16(s, i, c)	(s->s_text16[(i)] = (char16)(c))
+#define str_fetch8(s, i)	(s->s_textA[(i)])
+#define str_fetch16(s, i)	(s->s_textW[(i)])
+#define str_store8(s, i, c)	(s->s_textA[(i)] = (charA)(c))
+#define str_store16(s, i, c)	(s->s_textW[(i)] = (charW)(c))
 
 #define str_cphdr(t, f) do { *(unsigned long *)(t) = *(unsigned long *)(f); \
 			   } while(0)
 #define str_inithdr(s, e) do { *(unsigned long *)(s) = 0L; \
 			       (s)->encoding = (e); \
-			       (s)->b16	     = ((e) == ENC_UNICODE ? 1 : 0); \
+			       (s)->iswide	     = ((e) == ENC_UNICODE ? 1 : 0); \
 			     } while(0)
 
 #define str_datasize(s) (isstr8(s) ? (s)->size : (s)->size * 2)
@@ -85,18 +85,18 @@ typedef struct _string
 		 *******************************/
 
 typedef struct
-{ char8 newline;
-  char8 *tolower;
-  char8 *toupper;
+{ charA newline;
+  charA *tolower;
+  charA *toupper;
 } str8_encoding, *Str8Encoding;
 
 
 typedef struct
-{ char16 newline;
+{ charW newline;
   int min_byte1;
   int max_byte1;
-  char16 **tolower;
-  char16 **toupper;
+  charW **tolower;
+  charW **toupper;
 } str16_encoding, *Str16Encoding;
 
 #endif /*_STR_H_INCLUDED*/

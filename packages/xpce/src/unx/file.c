@@ -788,7 +788,7 @@ static status
 append_file(FileObj f, String str)
 { TRY( check_file(f, NAME_write) );
   fwrite(str->s_text,
-	 isstr8(str) ? sizeof(char8) : sizeof(char16),
+	 isstr8(str) ? sizeof(charA) : sizeof(charW),
 	 str->size, 
 	 f->fd);
 
@@ -963,7 +963,7 @@ getReadFile(FileObj f, Int n)
   s->data.size = size;
   str_alloc(&s->data);
 
-  if ( (m = fread(s->data.s_text8, 1, size, f->fd)) != size )
+  if ( (m = fread(s->data.s_textA, 1, size, f->fd)) != size )
   { if ( m >= 0 )
       deleteString(s, toInt(m), DEFAULT);
     else

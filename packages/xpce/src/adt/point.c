@@ -46,7 +46,7 @@ getConvertPoint(Class class, Any obj)
     int x, y;
 
     if ( isstr8(&ca->data) &&
-	 sscanf((char *)ca->data.s_text8, "%d,%d", &x, &y) == 2 )
+	 sscanf((char *)ca->data.s_textA, "%d,%d", &x, &y) == 2 )
       answer(newObject(ClassPoint, toInt(x), toInt(y), EAV));
   }
 

@@ -2565,17 +2565,17 @@ String
 str_bits_as_font(String s, FontObj f, int *shift)
 { static string s2;
 
-  Bool b16 = getB16Font(f);
-  if ( b16 == ON && isstr8(s) )
+  Bool iswide = getB16Font(f);
+  if ( iswide == ON && isstr8(s) )
   { s2 = *s;
-    s2.b16 = TRUE;
+    s2.iswide = TRUE;
     s2.size /= 2;
     if ( shift )
       *shift = -1;
     return &s2;
-  } else if ( b16 != ON && !isstr8(s) )
+  } else if ( iswide != ON && !isstr8(s) )
   { s2 = *s;
-    s2.b16 = FALSE;
+    s2.iswide = FALSE;
     s2.size *= 2;
     if ( shift )
       *shift = 1;
@@ -2601,7 +2601,7 @@ s_width_(String s, int from, int to)
       return 0;
 
     if ( isstr8(s) )
-    { char8 *q = &s->s_text8[from];
+    { charA *q = &s->s_textA[from];
 
       width = lbearing(*q, context.gcs->font_info);
 #if 0
@@ -2613,7 +2613,7 @@ s_width_(String s, int from, int to)
 	width += widths[*q];
 #endif
     } else
-    { char16 *q = &s->s_text16[from];
+    { charW *q = &s->s_textW[from];
 
       width = lbearing(*q, context.gcs->font_info);
 #if 0
@@ -2637,16 +2637,16 @@ str_width(String s, int from, int to, FontObj f)
 
   s_font(f);
 
-  if ( f->b16 == ON && isstr8(s) )
+  if ( f->iswide == ON && isstr8(s) )
   { s2 = *s;
-    s2.b16 = TRUE;
+    s2.iswide = TRUE;
     s2.size /= 2;
     from /= 2;
     to /= 2;
     s = &s2;
-  } else if ( f->b16 != ON && !isstr8(s) )
+  } else if ( f->iswide != ON && !isstr8(s) )
   { s2 = *s;
-    s2.b16 = FALSE;
+    s2.iswide = FALSE;
     s2.size *= 2;
     from *= 2;
     to *= 2;
@@ -2677,12 +2677,12 @@ str_advance(String s, int from, int to, FontObj f)
     int n = to-from;
 
     if ( isstr8(s) )
-    { char8 *q = &s->s_text8[from];
+    { charA *q = &s->s_textA[from];
 
       for(; n-- > 0; q++)
 	width += widths[*q];
     } else
-    { char16 *q = &s->s_text16[from];
+    { charW *q = &s->s_textW[from];
 
       for(; n-- > 0; q++)
 	width += widths[*q];
@@ -2694,7 +2694,7 @@ str_advance(String s, int from, int to, FontObj f)
 
 
 void
-s_print8(char8 *s, int l, int x, int y, FontObj f)
+s_print8(charA *s, int l, int x, int y, FontObj f)
 { if ( l > 0 )
   { Translate(x, y);
     s_font(f);
@@ -2705,7 +2705,7 @@ s_print8(char8 *s, int l, int x, int y, FontObj f)
 
 
 void
-s_print16(char16 *s, int l, int x, int y, FontObj f)
+s_print16(charW *s, int l, int x, int y, FontObj f)
 { if ( l > 0 )
   { Translate(x, y);
     s_font(f);
@@ -2718,9 +2718,9 @@ s_print16(char16 *s, int l, int x, int y, FontObj f)
 void
 s_print(String s, int x, int y, FontObj f)
 { if ( isstr8(s) )
-    s_print8(s->s_text8, s->size, x, y, f);
+    s_print8(s->s_textA, s->size, x, y, f);
   else
-    s_print16(s->s_text16, s->size, x, y, f);
+    s_print16(s->s_textW, s->size, x, y, f);
 }
 
 
@@ -2733,7 +2733,7 @@ s_print_aligned(String s, int x, int y, FontObj f)
     Translate(x, y);
 
     XDrawString(context.display, context.drawable, context.gcs->workGC,
-		x, y, s->s_text8, s->size);
+		x, y, s->s_textA, s->size);
   } 
 }
 
@@ -2760,28 +2760,28 @@ str_stext(String s, int f, int len, int x, int y, Style style)
 	ofg = r_colour(style->colour);
     }
 
-    if ( context.gcs->font->b16 == ON )
+    if ( context.gcs->font->iswide == ON )
     { if ( isstr8(s) )
       { s2 = *s;
 	s2.size /= 2;
-	s2.b16 = TRUE;
+	s2.iswide = TRUE;
 	s = &s2;
 	len /= 2;
 	f /= 2;
       }
       XDrawString16(context.display, context.drawable, context.gcs->workGC,
-		    x, y, (XChar2b *)s->s_text16+f, len);
+		    x, y, (XChar2b *)s->s_textW+f, len);
     } else
     { if ( isstr16(s) )
       { s2 = *s;
 	s2.size *= 2;
-	s2.b16 = FALSE;
+	s2.iswide = FALSE;
 	s = &s2;
 	len *= 2;
 	f *= 2;
       }
       XDrawString(context.display, context.drawable, context.gcs->workGC,
-		  x, y, s->s_text8+f, len);
+		  x, y, s->s_textA+f, len);
     }
 
     if (  notNil(style) && style->attributes & TXT_UNDERLINED )
@@ -2799,26 +2799,26 @@ str_text(String s, int x, int y)
 { if ( s->size > 0 )
   { string s2;
 
-    if ( context.gcs->font->b16 == ON )
+    if ( context.gcs->font->iswide == ON )
     { if ( isstr8(s) )
       { s2 = *s;
 	s2.size /= 2;
-	s2.b16 = TRUE;
+	s2.iswide = TRUE;
 	s = &s2;
       }
       x += lbearing(str_fetch(s, 0), context.gcs->font_info);
       XDrawString16(context.display, context.drawable, context.gcs->workGC,
-		    x, y, (XChar2b *)s->s_text16, s->size);
+		    x, y, (XChar2b *)s->s_textW, s->size);
     } else
     { if ( isstr16(s) )
       { s2 = *s;
 	s2.size *= 2;
-	s2.b16 = FALSE;
+	s2.iswide = FALSE;
 	s = &s2;
       }
       x += lbearing(str_fetch(s, 0), context.gcs->font_info);
       XDrawString(context.display, context.drawable, context.gcs->workGC,
-		  x, y, s->s_text8, s->size);
+		  x, y, s->s_textA, s->size);
     }
   }
 }
@@ -2918,14 +2918,14 @@ str_size(String s, FontObj font, int *width, int *height)
 
   s_font(font);
 
-  if ( font->b16 == ON && isstr8(s) )
+  if ( font->iswide == ON && isstr8(s) )
   { s2 = *s;
-    s2.b16 = TRUE;
+    s2.iswide = TRUE;
     s2.size /= 2;
     s = &s2;
-  } else if ( font->b16 != ON && !isstr8(s) )
+  } else if ( font->iswide != ON && !isstr8(s) )
   { s2 = *s;
-    s2.b16 = FALSE;
+    s2.iswide = FALSE;
     s2.size *= 2;
     s = &s2;
   }

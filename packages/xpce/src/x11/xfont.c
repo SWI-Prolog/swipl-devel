@@ -131,9 +131,9 @@ ws_create_font(FontObj f, DisplayObj d)
 					/* 16-bit: use max-bounds */
   if ( info->min_byte1 != 0 || info->max_byte1 != 0 )
   { assign(f, ex, toInt(info->max_bounds.width));
-    assign(f, b16, ON);
+    assign(f, iswide, ON);
   } else
-    assign(f, b16, OFF);
+    assign(f, iswide, OFF);
 
   return registerXrefObject(f, d, xref);
 }

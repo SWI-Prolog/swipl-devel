@@ -250,7 +250,7 @@ pceRead(int handle, char *buf, int size)
 	 instanceOfObject(sub, ClassCharArray) )
     { chread = sub->data.size;
       assert(chread <= size);
-      memcpy(buf, sub->data.s_text8, chread);
+      memcpy(buf, sub->data.s_textA, chread);
       h->point += chread;
     } else
     { errno = EIO;

@@ -70,7 +70,7 @@ getContentsSourceSink(SourceSink ss, Int from, Int len)
     s.size = size;
     str_alloc(&s);
 
-    Sfread(s.s_text8, sizeof(char), size, fd);
+    Sfread(s.s_textA, sizeof(char), size, fd);
     ok = checkErrorSourceSink(ss, fd);
     Sclose(fd);
 

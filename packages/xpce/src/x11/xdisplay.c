@@ -650,7 +650,7 @@ convert_selection_display(Widget w,
     { String s = &ca->data;
       int data = str_datasize(s);
       char *buf = XtMalloc(data);
-      int fmt = (isstr8(s) ? sizeof(char8) : sizeof(char16)) * 8;
+      int fmt = (isstr8(s) ? sizeof(charA) : sizeof(charW)) * 8;
 
       DEBUG(NAME_selection,
 	    Cprintf("returning XA_STRING, %d characters format = %d\n",
