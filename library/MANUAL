@@ -2363,17 +2363,17 @@ flag(+Key, -Old, +New)
      Key is an atom, integer or term. Unify Old with the old value
      associated with Key. If the key is used for the first time Old is
      unified with the integer 0. Then store the value of New, which
-     should be an integer, atom or arithmetic integer expression, under
+     should be an integer, float, atom or arithmetic expression, under
      Key. flag/3 is a very fast mechanism for storing simple facts in
      the database. Example:
 
          :- module_transparent succeeds_n_times/2.
 
          succeeds_n_times(Goal, Times) :-
-                  flag(succeeds_n_times, _, 0),
+                  flag(succeeds_n_times, Old, 0),
                   Goal,
                   flag(succeeds_n_times, N, N+1),
-                  fail ; flag(succeeds_n_times, Times, Times).
+                  fail ; flag(succeeds_n_times, Times, Old).
 
 
 3.10.1  Indexing databases
