@@ -14,7 +14,7 @@ PL=@PL@@RT@
 bdir=$srcdir/../$BUILDDIR
 ldir=$srcdir/../lib/$ARCH
 
-if [ "x$@DLLIBVAR@" = "" ]; then
+if [ "x$@DLLIBVAR@" = "x" ]; then
   @DLLIBVAR@=$ldir
 else
   @DLLIBVAR@="$ldir:$@DLLIBVAR@"
