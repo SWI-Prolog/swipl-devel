@@ -27,6 +27,9 @@
 #define CH_NAME		(CH_NMSTART|CH_DIGIT)
 #define CH_BLANK	(CH_WHITE|CH_RE|CH_RS)
 
+#define CHR_BLANK	0x1		/* SHORTREF 'B' */
+#define CHR_DBLANK	0x2		/* SHORTREF 'BB' */
+
 #define SGML_DTD_MAGIC	0x7364573
 
 typedef enum
@@ -307,11 +310,27 @@ typedef struct _dtd_edef
 } dtd_edef;
 
 
+typedef struct _dtd_map
+{ ichar	       *from;			/* mapped text */
+  int		len;			/* length of mapped text */
+  dtd_symbol   *to;			/* name of symbol mapped onto */
+  struct _dtd_map *next;		/* next in shortref map */
+} dtd_map;
+
+
+typedef struct _dtd_shortref
+{ dtd_symbol	*name;			/* name of SHORTREF map */
+  dtd_map	*map;			/* implemented map */
+  struct _dtd_shortref *next;		/* next declared shortref */
+} dtd_shortref;
+
+
 typedef struct _dtd_element
 { dtd_symbol	*name;			/* its name */
   dtd_edef	*structure;		/* content structure of the element */
   dtd_attr_list *attributes;		/* defined attributes */
   dtd_space_mode space_mode;		/* How to handle white-space (SP_*) */
+  dtd_map	*map;			/* SHORTREF map */
   int		undefined;		/* Only implicitely defined */
   struct _dtd_element *next;		/* in DTD'e element list */
 } dtd_element;
@@ -343,6 +362,7 @@ typedef struct _dtd
   dtd_entity           *pentities;	/* defined parameter entities */
   dtd_entity	       *entities;	/* defined entities */
   dtd_notation	       *notations;	/* Declared notations */
+  dtd_shortref	       *shortrefs;	/* SHORTREF declarations */
   dtd_element          *elements;	/* defined elements */
   dtd_charfunc	       *charfunc;	/* CF_ --> ichar */
   dtd_charclass	       *charclass;	/* ichar -> CH_-mask */

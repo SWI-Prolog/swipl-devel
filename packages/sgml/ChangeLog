@@ -1,3 +1,8 @@
+* FIXED: Added &#RS;, &#RE;, &#TAB; and &#SPACE; (Richard O'Keefe)
+
+* FIXED: Processing instruction is now <?....[?]> (i.e. optional closing ?)
+  Q: Is this XML or SGML?  Check docs!
+
 * FIXED: Line-number info for DOCTYPE declarations holding [declaractions].
 
 * FIXED: NUMBER attribute declaration with default (skip layout afterwards)

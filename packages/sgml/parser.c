@@ -32,6 +32,9 @@
 static const ichar *	itake_name(dtd *dtd, const ichar *in, dtd_symbol **id);
 static const ichar *	itake_entity_name(dtd *dtd, const ichar *in,
 					  dtd_symbol **id);
+static const ichar *	itake_namegroup(dtd *dtd,
+					charfunc sep, const ichar *decl,
+					dtd_symbol **names, int *n);
 static const char *	isee_func(dtd *dtd, const ichar *in, charfunc func);
 static const ichar *	isee_text(dtd *dtd, const ichar *in, char *id);
 static const ichar *	iskip_layout(dtd *dtd, const ichar *in);
@@ -41,6 +44,7 @@ static void		free_model(dtd_model *m);
 static int		process_entity_declaraction(dtd *dtd,
 						    const ichar *decl);
 static void		free_notations(dtd_notation *n);
+static void		free_shortrefs(dtd_shortref *sr);
 static int		process_cdata(dtd_parser *p, int last);
 static int		emit_cdata(dtd_parser *p, int last);
 static dtd_space_mode	istr_to_space_mode(const ichar *val);
@@ -280,16 +284,49 @@ expand_pentities(dtd *dtd, const ichar *in, ichar *out, int len)
 }
 
 
+static int
+char_entity_value(const ichar *decl)
+{ if ( *decl == '#' )
+  { const ichar *s = decl+1;
+    char *end;
+    long v = strtol((char *)s, &end, 10);
+
+    if ( *end == '\0' )
+    { return (int)v;
+    } else if ( istreq(s, "RS") )
+    { return '\n';
+    } else if ( istreq(s, "RE") )
+    { return '\r';
+    } else if ( istreq(s, "TAB") )
+    { return '\t';
+    } else if ( istreq(s, "SPACE") )
+    { return ' ';
+    }
+  }
+
+  return -1;
+}
+
+
 static const ichar *
 isee_character_entity(dtd *dtd, const ichar *in, int *chr)
 { const ichar *s;
 
   if ( (s=isee_func(dtd, in, CF_ERO)) && *s == '#' )
-  { long v = strtol((char *)&s[1], (char **)&s, 10);
+  { ichar e[32];
+    ichar *o = e;
 
-    if ( (s=isee_func(dtd, s, CF_ERC)) )
-    { *chr = (int)v;
-      return s;
+    *o++ = *s++;
+    while(o < e+sizeof(e)-1 && HasClass(dtd, *s, CH_NAME))
+      *o++ = *s++;
+    if ( *s == '\0' || (s=isee_func(dtd, s, CF_ERC)) )
+    { int v;
+
+      *o = '\0';
+      if ( (v=char_entity_value(e)) >= 0 )
+      { *chr = v;
+        return s;
+      }
     }
   }
 
@@ -761,6 +798,7 @@ free_dtd(dtd *dtd)
     free_entity_list(dtd->entities);
     free_entity_list(dtd->pentities);
     free_notations(dtd->notations);
+    free_shortrefs(dtd->shortrefs);
     free_elements(dtd->elements);
     free_symbol_table(dtd->symbols);
     free(dtd->charfunc);
@@ -952,6 +990,10 @@ process_entity_declaraction(dtd *dtd, const ichar *decl)
 }
 
 
+		 /*******************************
+		 *	      NOTATIONS		*
+		 *******************************/
+
 static int
 process_notation_declaration(dtd *dtd, const ichar *decl)
 { dtd_symbol *nname;
@@ -1004,6 +1046,221 @@ free_notations(dtd_notation *n)
   }
 }
 
+		 /*******************************
+		 *	       SHORTREF		*
+		 *******************************/
+
+static void
+free_maps(dtd_map *map)
+{ dtd_map *next;
+
+  for( ; map; map=next)
+  { next = map->next;
+    if ( map->from )
+      free(map->from);
+    free(map);
+  }
+}
+
+
+static void
+free_shortrefs(dtd_shortref *sr)
+{ dtd_shortref *next;
+
+  for( ; sr; sr=next)
+  { next = sr->next;
+    free_maps(sr->map);
+    free(sr);
+  }
+}
+
+
+static const ichar *
+shortref_add_map(dtd *dtd, const ichar *decl, dtd_shortref *sr)
+{ ichar buf[MAXSTRINGLEN];
+  ichar from[MAXMAPLEN];
+  ichar *f = from;
+  dtd_symbol *to;
+  const ichar *s;
+  const ichar *end;
+  dtd_map **p;
+  dtd_map *m;
+
+  if ( !(s=itake_string(dtd, decl, buf, sizeof(buf))) )
+  { gripe(ERC_SYNTAX_ERROR, "map-string expected", decl);
+    return NULL;
+  }
+  decl = s;
+  if ( !(s=itake_name(dtd, decl, &to)) )
+  { gripe(ERC_SYNTAX_ERROR, "map-to name expected", decl);
+    return NULL;
+  }
+  end = s;
+
+  for(decl=buf; *decl;)
+  { int c;
+    const ichar *s;
+
+    if ( (s=isee_character_entity(dtd, decl, &c)) )
+    { *f++ = c;
+      decl = s;
+    } else if ( *decl == 'B' )		/* blank */
+    { if ( decl[1] == 'B' )
+      { *f++ = CHR_DBLANK;
+	decl += 2;
+        continue;
+      }
+      *f++ = CHR_BLANK;
+      decl++;
+    } else
+      *f++ = *decl++;			/* any other character */
+  }
+  *f = 0;
+
+  for(p=&sr->map; *p; p = &(*p)->next)
+    ;
+  
+  m = calloc(1, sizeof(*m));
+  m->from = istrdup(from);
+  m->len  = istrlen(from);
+  m->to   = to;
+
+  *p = m;
+
+  return end;
+}
+
+
+static int
+process_shortref_declaration(dtd *dtd, const ichar *decl)
+{ dtd_shortref *sr = calloc(1, sizeof(*sr));
+  dtd_shortref **p;
+  const ichar *s;
+
+  if ( !(s=itake_name(dtd, decl, &sr->name)) )
+    return gripe(ERC_SYNTAX_ERROR, "Name expected", decl);
+  decl = s;
+  while( *decl && (s=shortref_add_map(dtd, decl, sr)) )
+    decl = s;
+
+  if ( *decl )
+    return gripe(ERC_SYNTAX_ERROR, "Map expected", decl);
+  
+  for(p=&dtd->shortrefs; *p; p = &(*p)->next)
+  { dtd_shortref *r = *p;
+
+    if ( r->name == sr->name )
+    { gripe(ERC_REDEFINED, "shortref", r->name->name);
+
+      free_maps(r->map);
+      r->map = sr->map;
+      free(sr);
+      return TRUE;
+    }
+  }
+
+  *p = sr;
+
+  return TRUE;
+}
+
+
+static dtd_map *
+find_map(dtd *dtd, dtd_symbol *name)
+{ dtd_shortref *sr;
+
+  for( sr = dtd->shortrefs; sr; sr = sr->next )
+  { if ( sr->name == name )
+      return sr->map;
+  }
+       
+  gripe(ERC_EXISTENCE, "map", name->name);
+  return NULL;
+}
+
+
+static int
+process_usemap_declaration(dtd_parser *p, const ichar *decl)
+{ dtd *dtd = p->dtd;
+  dtd_symbol *name;
+  const ichar *s;
+  dtd_symbol *ename;
+  dtd_element *e;
+  dtd_map *map;
+
+  if ( !(s=itake_name(dtd, decl, &name)) )
+    return gripe(ERC_SYNTAX_ERROR, "map-name expected", decl);
+  decl = s;
+  map = find_map(dtd, name);
+
+  if ( isee_func(dtd, decl, CF_GRPO) )	/* ( */
+  { dtd_symbol *ng[MAXNAMEGROUP];
+    int ns;
+    int i;
+
+    if ( !(s=itake_namegroup(dtd, CF_SEQ, decl, ng, &ns)) )
+      return gripe(ERC_SYNTAX_ERROR, "Bad model", decl);
+
+    for(i=0; i<ns; i++)
+    { e = find_element(dtd, ng[i]);
+      e->map = map;
+    }
+  } else if ( (s=itake_name(dtd, decl, &ename)) )
+  { e = find_element(dtd, ename);
+    e->map = find_map(dtd, name);
+  } else if ( p->environments )
+  { p->environments->map = find_map(dtd, name);
+    p->map = p->environments->map;
+  } else
+    return gripe(ERC_SYNTAX_ERROR, "element-name expected", decl);
+
+  return TRUE;
+}
+
+
+static int
+match_map(dtd *dtd, dtd_map *map, int len, ichar *data)
+{ ichar *e = data+len-1;
+  ichar *m = map->from+map->len-1;
+
+  while( m >= map->from )
+  { if ( e < data )
+      return FALSE;
+
+    if ( *m == *e )
+    { m--;
+      e--;
+      continue;
+    }
+    if ( *m == '\r' && *e == '\n' )	/* dubious */
+    { m--;
+      e--;
+      continue;
+    }
+    if ( *m == CHR_DBLANK )
+    { if ( e>data && HasClass(dtd, *e, CH_WHITE) )
+	e--;
+      else
+	return FALSE;
+      goto blank;
+    }
+    if ( *m == CHR_BLANK )
+    { blank:
+      while( e>data && HasClass(dtd, *e, CH_WHITE) )
+	e--;
+      m--;
+      continue;
+    }
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+
+		 /*******************************
+		 *	       ELEMENTS		*
+		 *******************************/
 
 static void
 add_submodel(dtd_model *m, dtd_model *sub)
@@ -1163,7 +1420,8 @@ process_model(dtd *dtd, dtd_edef *e, const ichar *decl)
 
 
 static const ichar *
-itake_namegroup(dtd *dtd, const ichar *decl, dtd_symbol **names, int *n)
+itake_namegroup(dtd *dtd, charfunc sep, const ichar *decl,
+		dtd_symbol **names, int *n)
 { const ichar *s;
   int en = 0;
 
@@ -1173,7 +1431,7 @@ itake_namegroup(dtd *dtd, const ichar *decl, dtd_symbol **names, int *n)
       { gripe(ERC_SYNTAX_ERROR, "Name expected", s);
 	return NULL;
       }
-      if ( (s=isee_func(dtd, decl, CF_OR)) )
+      if ( (s=isee_func(dtd, decl, sep)) )
       { decl = iskip_layout(dtd, s);
 	continue;
       }
@@ -1196,7 +1454,7 @@ itake_id_or_idlist(dtd *dtd, const ichar *decl, dtd_symbol **names, int *n)
 { const ichar *s;
 
   if ( isee_func(dtd, decl, CF_GRPO) )
-  { return itake_namegroup(dtd, decl, names, n);
+  { return itake_namegroup(dtd, CF_OR, decl, names, n);
   } else
   { if ( !(s = itake_name(dtd, decl, &names[0])) )
     { gripe(ERC_SYNTAX_ERROR, "Name expected", decl);
@@ -1284,7 +1542,7 @@ process_element_declaraction(dtd *dtd, const ichar *decl)
       l = &def->included;
 
     decl++;
-    if ( (s=itake_namegroup(dtd, decl, ng, &ns)) )
+    if ( (s=itake_namegroup(dtd, CF_OR, decl, ng, &ns)) )
     { int i;
 
       decl = s;
@@ -1472,7 +1730,7 @@ process_attlist_declaraction(dtd *dtd, const ichar *decl)
 
       at->type = AT_NOTATION;
       decl=s;
-      if ( (s=itake_namegroup(dtd, decl, ng, &ns)) )
+      if ( (s=itake_namegroup(dtd, CF_OR, decl, ng, &ns)) )
       { decl = s;
 
 	for(i=0; i<ns; i++)
@@ -1637,6 +1895,7 @@ push_element(dtd_parser *p, dtd_element *e, int callback)
 				       : p->dtd->space_mode);
     env->parent = p->environments;
     p->environments = env;
+    p->map = env->map = e->map;
 
     p->first = TRUE;
     if ( callback && p->on_begin_element )
@@ -1690,6 +1949,7 @@ pop_to(dtd_parser *p, sgml_environment *to, dtd_element *e0)
     free_environment(env);
   }
   p->environments = to;
+  p->map = to->map;
   
   return TRUE;
 }
@@ -1815,6 +2075,7 @@ close_element(dtd_parser *p, dtd_element *e)
 	free_environment(env);
 	if ( ce == e )
 	{ p->environments = parent;
+	  p->map = (parent ? parent->map : NULL);
 	  return TRUE;
 	} else
 	{ if ( ce->structure && !ce->structure->omit_close )
@@ -2238,6 +2499,10 @@ process_declaration(dtd_parser *p, const ichar *decl)
       process_attlist_declaraction(dtd, s);
     else if ( (s = isee_identifier(dtd, decl, "notation")) )
       process_notation_declaration(dtd, s);
+    else if ( (s = isee_identifier(dtd, decl, "shortref")) )
+      process_shortref_declaration(dtd, s);
+    else if ( (s = isee_identifier(dtd, decl, "usemap")) )
+      process_usemap_declaration(p, s);
     else if ( (s = isee_identifier(dtd, decl, "doctype")) )
     { if ( p->dmode != DM_DTD )
 	process_doctype(p, s);
@@ -2258,7 +2523,6 @@ process_declaration(dtd_parser *p, const ichar *decl)
     { return process_begin_element(p, decl);
     }
   }
-
 
   return gripe(ERC_SYNTAX_ERROR, "Invalid declaration", decl);
 }
@@ -2632,22 +2896,19 @@ process_cdata(dtd_parser *p, int last)
 static int
 process_entity(dtd_parser *p, const ichar *name)
 { if ( name[0] == '#' )			/* #charcode: character entity */
-  { char *end;
-    int v = strtol((char *)&name[1], &end, 10);
+  { int v = char_entity_value(name);
 
-    if ( *end == '\0' )
-    { if ( v <= 0 || v >= OUTPUT_CHARSET_SIZE )
-      { if ( p->on_entity )
-	{ process_cdata(p, FALSE);
-	  (*p->on_entity)(p, NULL, v);
-	} else
-	  return gripe(ERC_REPRESENTATION, "character");
+    if ( v < 0 )
+      return gripe(ERC_SYNTAX_ERROR, "Bad character entity", name);
+
+    if ( v >= OUTPUT_CHARSET_SIZE )
+    { if ( p->on_entity )
+      { process_cdata(p, FALSE);
+	(*p->on_entity)(p, NULL, v);
       } else
-	add_ocharbuf(p->cdata, v);
-
-      return TRUE;
+	return gripe(ERC_REPRESENTATION, "character");
     } else
-      return gripe(ERC_SYNTAX_ERROR, "Bad entity value", name);
+      add_ocharbuf(p->cdata, v);
   } else
   { dtd_symbol *id;
     dtd_entity *e;
@@ -2721,6 +2982,8 @@ process_entity(dtd_parser *p, const ichar *name)
     } else
       return gripe(ERC_EXISTENCE, "entity", name);
   }
+
+  return TRUE;
 }
 
 
@@ -2733,7 +2996,7 @@ int
 end_document_dtd_parser(dtd_parser *p)
 { switch(p->state)
   { case S_PCDATA:
-    { if ( p->dmode == DM_SGML )
+    { if ( p->dmode == DM_DATA )
       { sgml_environment *env;
 
 	process_cdata(p, TRUE);
@@ -2823,11 +3086,23 @@ a single \n for Windows newline conventions.
 static void
 add_cdata(dtd_parser *p, int chr)
 { ocharbuf *buf = p->cdata;
+  dtd_map *map;
 
   if ( chr == '\n' && buf->size > 0 && buf->data[buf->size-1] == '\r' )
     buf->size--;
 
   add_ocharbuf(buf, chr);
+
+  for(map = p->map; map; map = map->next)
+  { int len;
+
+    if ( (len=match_map(p->dtd, map, p->cdata->size, (ichar *)p->cdata->data)) )
+    { p->cdata->size -= len;
+
+      process_entity(p, map->to->name);	/* TBD: optimise */
+      break;
+    }
+  }
 }
 
 
@@ -2905,7 +3180,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	  if ( !HasClass(dtd, chr, CH_BLANK) )
 	    gripe(ERC_SYNTAX_ERROR, "Character data in DTD", "");
 	  return;
-	case DM_SGML:
+	case DM_DATA:
 #ifdef UTF8
 	  if ( p->utf8_decode && ISUTF8_MB(chr) )
 	  { process_utf8(p, chr);
@@ -3075,11 +3350,14 @@ putchar_dtd_parser(dtd_parser *p, int chr)
     { add_icharbuf(p->buffer, chr);
       if ( f[CF_PRO2] == chr )		/* <? ... ? */
 	p->state = S_PI2;
+      if ( f[CF_PRC] == chr )		/* no ? is ok too (XML/SGML) */
+	goto pi;
       return;
     }
     case S_PI2:
     { if ( f[CF_PRC] == chr )
-      { process_cdata(p, FALSE);
+      { pi:
+	process_cdata(p, FALSE);
 	p->state = S_PCDATA;
 	p->buffer->size--;
 	terminate_icharbuf(p->buffer);
@@ -3190,7 +3468,7 @@ sgml_process_file(dtd_parser *p, const char *file)
   dtd_srcloc oldloc = p->location;
 
   set_file_dtd_parser(p, file);
-  p->dmode = DM_SGML;
+  p->dmode = DM_DATA;
   p->state = S_PCDATA;
 
   if ( (fd = fopen(file, "rb")) )

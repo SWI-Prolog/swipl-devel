@@ -53,6 +53,7 @@ typedef unsigned char ichar;		/* input character */
 #define MAXATTELEM		256	/* #elements in one ATTLIST */
 #define MAXNAMEGROUP		256	/* #names in a (group) */
 #define MAXATTRIBUTES		256	/* attributes per element */
+#define MAXMAPLEN		 32	/* max sequence length for SHORTREF */
 
 
 		 /*******************************

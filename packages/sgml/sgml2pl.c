@@ -1052,7 +1052,7 @@ pl_sgml_parse(term_t parser, term_t options)
     p->on_data          = on_cdata;
     p->on_error	        = on_error;
     p->on_xmlns		= on_xmlns;
-    p->dmode	        = DM_SGML;
+    p->dmode	        = DM_DATA;
     p->state	        = S_PCDATA;
   
     pd = calloc(1, sizeof(*pd));
