@@ -1364,6 +1364,45 @@ resizeTileEventFrame(FrameObj fr, EventObj ev)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Draw little marker buttons indicating places  where the subwindow layout
+may be altered by the user.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static status
+drawResizeTileButtonsFrame(FrameObj fr, TileObj t)
+{ if ( isDefault(t) )
+    return drawResizeTileButtonsFrame(fr, getTileFrame(fr));
+
+  if ( notNil(t) )
+  { if ( notNil(t->super) && getCanResizeTile(t) == ON )
+    { int cx, cy;
+
+      if ( t->super->orientation == NAME_horizontal )
+      { cx = valInt(t->area->x) + valInt(t->area->w) +
+             valInt(t->super->border)/2;
+	cy = valInt(t->area->y) + (valInt(t->area->h)*3)/4;
+      } else
+      { cx = valInt(t->area->y) + valInt(t->area->h) +
+             valInt(t->super->border)/2;
+	cx = valInt(t->area->x) + (valInt(t->area->w)*3)/4;
+      }
+
+      /* TDB: Draw button here, link to expose_frame() */
+    }
+
+    if ( notNil(t->members) )
+    { Cell cell;
+      
+      for_cell(cell, t->members)
+	drawResizeTileButtonsFrame(fr, cell->value);
+    }
+  }
+
+  succeed;
+}
+
+
 FrameObj
 blockedByModalFrame(FrameObj fr)
 { if ( !fr )

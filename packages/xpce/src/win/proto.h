@@ -67,6 +67,7 @@ void		sum_stretches(stretch *sp, int len, stretch *r);
 void		join_stretches(stretch *stretches, int len, stretch *r);
 status		setTile(TileObj t, Int x, Int y, Int w, Int h);
 status		enforceTile(TileObj t, Bool val);
+Bool		getCanResizeTile(TileObj t);
 TileObj		getSubTileToResizeTile(TileObj t, Point pos);
 status		makeClassTile(Class class);
 

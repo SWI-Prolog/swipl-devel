@@ -976,7 +976,7 @@ ICanResizeTile(TileObj t, Name dir)
 }
 
 
-static Bool
+Bool
 getCanResizeTile(TileObj t)
 { if ( isDefault(t->canResize) )
   { if ( notNil(t->super) )
@@ -1094,7 +1094,7 @@ static vardecl var_tile[] =
      NAME_resize, "Encouragement to get higher"),
   IV(NAME_verShrink, "int", IV_BOTH,
      NAME_resize, "Encouragement to get lower"),
-  IV(NAME_canResize, "[bool]", IV_BOTH,
+  IV(NAME_canResize, "[bool]", IV_SEND,
      NAME_resize, "Can be resized by user?"),
   IV(NAME_border, "int", IV_BOTH,
      NAME_appearance, "Distance between areas"),
@@ -1161,7 +1161,9 @@ static getdecl get_tile[] =
 { GM(NAME_root, 0, "tile", NULL, getRootTile,
      NAME_organisation, "Root of the tile-hierarchy"),
   GM(NAME_subTileToResize, 1, "tile", "point", getSubTileToResizeTile,
-     NAME_event, "Tile above or left-of gap at point") 
+     NAME_event, "Tile above or left-of gap at point"), 
+  GM(NAME_canResize, 0, "bool", NULL, getCanResizeTile,
+     NAME_resize, NULL)
 };
 
 /* Resources */
