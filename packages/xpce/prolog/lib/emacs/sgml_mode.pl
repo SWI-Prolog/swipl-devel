@@ -216,10 +216,11 @@ idle(M) :->
 
 setup_styles(M) :->
 	"Associate defined syntax-styles"::
-	(   get(M, attribute, styles_initialised, @on)
+	get(M, editor, E),
+	(   get(E, attribute, styles_initialised, sgml)
 	->  true
 	;   send(M, reload_styles),
-	    send(M, attribute, styles_initialised, @on)
+	    send(E, attribute, styles_initialised, sgml)
 	).
 
 set_caret_and_inform(M) :->
