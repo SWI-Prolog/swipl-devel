@@ -268,6 +268,8 @@ $runtoplevel :-
 %	Toplevel called when invoked with -c option.
 
 $compile :-
+	$run_at_initialization,
+	$load_system_init_file,
 	$set_file_search_paths,
 	catch($compile_wic, E, (print_message(error, E), halt(1))).
 

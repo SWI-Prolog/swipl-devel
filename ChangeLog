@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Handle "-F base" option in combination with -c file.pl.
+    Reported by Alok Singh.
+
   * FIXED: configure when readline could not be found.  Nide Naoyuki.
 
   * ADDED: "-F base" option to plld, allows for embedding XPCE.
