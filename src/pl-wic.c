@@ -10,30 +10,30 @@
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 
-forwards char *	getString P((FILE *));
-forwards long	getNum P((FILE *));
-forwards real	getReal P((FILE *));
-forwards bool	loadWicFd P((char *, FILE *, bool, bool));
-forwards bool	loadPredicate P((FILE *));
-forwards bool	loadExport P((FILE *));
-forwards bool	loadImport P((FILE *));
-forwards void	putString P((char *, FILE *));
-forwards void	putAtom P((Atom, FILE *));
-forwards void	putNum P((long, FILE *));
-forwards void	putReal P((real, FILE *));
-forwards void	saveWicClause P((Clause, FILE *));
-forwards void	closeProcedureWic P((void));
-forwards void	checkSource P((Atom));
-forwards bool	openWic P((char *));
-forwards bool	closeWic P((void));
-forwards bool	addClauseWic P((Word, Atom));
-forwards bool	addDirectiveWic P((word));
-forwards bool	startModuleWic P((Atom, SourceFile));
-forwards bool	exportWic P((Atom, int));
-forwards bool	importWic P((Atom, Atom, int));
-forwards word	directiveClause P((word, char *));
-forwards bool	compileFile P((char *));
-forwards bool	putStates P((FILE *));
+forwards char *	getString(FILE *);
+forwards long	getNum(FILE *);
+forwards real	getReal(FILE *);
+forwards bool	loadWicFd(char *, FILE *, bool, bool);
+forwards bool	loadPredicate(FILE *);
+forwards bool	loadExport(FILE *);
+forwards bool	loadImport(FILE *);
+forwards void	putString(char *, FILE *);
+forwards void	putAtom(Atom, FILE *);
+forwards void	putNum(long, FILE *);
+forwards void	putReal(real, FILE *);
+forwards void	saveWicClause(Clause, FILE *);
+forwards void	closeProcedureWic(void);
+forwards void	checkSource(Atom);
+forwards bool	openWic(char *);
+forwards bool	closeWic(void);
+forwards bool	addClauseWic(Word, Atom);
+forwards bool	addDirectiveWic(word);
+forwards bool	startModuleWic(Atom, SourceFile);
+forwards bool	exportWic(Atom, int);
+forwards bool	importWic(Atom, Atom, int);
+forwards word	directiveClause(word, char *);
+forwards bool	compileFile(char *);
+forwards bool	putStates(FILE *);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog can compile Prolog source files into intermediate code files, 
@@ -125,9 +125,9 @@ workstations, it normally is so fast it is hardy noticable.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if tos
-forwards void	notifyLoad P((char *file));
-forwards void	notifyLoaded P((void));
-forwards void	notifyPredicate P((char *name, int arity));
+forwards void	notifyLoad(char *file);
+forwards void	notifyLoaded(void);
+forwards void	notifyPredicate(char *name, int arity);
 
 static void
 notifyLoad(file)
@@ -159,8 +159,7 @@ int arity;
 #endif
 
 static char *
-getString(fd)
-FILE *fd;
+getString(FILE *fd)
 { static char *tmp;
   static char *tmpend;
   static int  tmpsize = 512;
@@ -188,8 +187,7 @@ FILE *fd;
 }
 
 static long
-getNum(fd)
-FILE *fd;
+getNum(FILE *fd)
 { long first = Getc(fd);
   int bytes, shift, b;
 
@@ -208,8 +206,7 @@ FILE *fd;
 }
 
 static real
-getReal(fd)
-FILE *fd;
+getReal(FILE *fd)
 { real f;
   char *s = (char *)&f;
   int n;
@@ -231,9 +228,7 @@ All wic files loaded are appended in the  right  order  to  a  chain  of
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-loadWicFile(file, toplevel, load_options)
-char *file;
-bool toplevel, load_options;
+loadWicFile(char *file, bool toplevel, bool load_options)
 { FILE *fd;
   bool rval = TRUE;
 
@@ -267,10 +262,7 @@ out:
 
 
 static bool
-loadWicFd(file, fd, toplevel, load_options)
-char *file;
-FILE *fd;
-bool toplevel, load_options;
+loadWicFd(char *file, FILE *fd, bool toplevel, bool load_options)
 { char *s;
   Char c;
   int n;
@@ -386,8 +378,7 @@ bool toplevel, load_options;
 }
 
 static bool
-loadPredicate(fd)
-FILE *fd;
+loadPredicate(FILE *fd)
 { int line, arity, n;
   char *name;
   Procedure proc;
@@ -416,7 +407,7 @@ FILE *fd;
   for(;;)
   { switch(Getc(fd) )
     { case 'X':
-      { ulong pattern = Getw(fd);
+      { unsigned long pattern = Getw(fd);
 
 	if ( def->indexPattern != pattern )
 	{ def->indexPattern = pattern;
@@ -512,8 +503,7 @@ FILE *fd;
 }
 
 static bool
-loadExport(fd)
-FILE *fd;
+loadExport(FILE *fd)
 { int arity =  (int) getNum(fd);
   char *name = getString(fd);
   FunctorDef functor = lookupFunctorDef(lookupAtom(name), arity);
@@ -525,8 +515,7 @@ FILE *fd;
 }
   
 static bool
-loadImport(fd)
-FILE *fd;
+loadImport(FILE *fd)
 { Module source = lookupModule(lookupAtom(getString(fd) ));
   int arity = (int) getNum(fd);
   char *name = getString(fd);
@@ -564,9 +553,7 @@ of a predicate together.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-putString(s, fd)
-register char *s;
-FILE *fd;
+putString(register char *s, FILE *fd)
 { while(*s)
   { Putc(*s, fd);
     s++;
@@ -576,16 +563,12 @@ FILE *fd;
 }
 
 static void
-putAtom(a, fd)
-Atom a;
-FILE *fd;
+putAtom(Atom a, FILE *fd)
 { putString(a->name, fd);
 }
 
 static void
-putNum(n, fd)
-long n;
-FILE *fd;
+putNum(long int n, FILE *fd)
 { long m = n > 0 ? n : n - 1;
 
   if ( m < (1L << 5) )
@@ -614,9 +597,7 @@ FILE *fd;
 }
 
 static void
-putReal(f, fd)
-real f;
-FILE *fd;
+putReal(real f, FILE *fd)
 { char *s = (char *)&f;
   int n;
 
@@ -626,9 +607,7 @@ FILE *fd;
 
 
 static void
-saveWicClause(clause, fd)
-Clause clause;
-FILE *fd;
+saveWicClause(Clause clause, FILE *fd)
 { Word xp;
   word xr;
   Code bp;
@@ -705,8 +684,7 @@ closeProcedureWic()
 }
 
 static void
-checkSource(file)
-Atom file;
+checkSource(Atom file)
 { SourceFile sf = lookupSourceFile(file);
 
   if (sf != currentSource)
@@ -719,8 +697,7 @@ Atom file;
 }
 
 static bool
-openWic(file)
-char *file;
+openWic(char *file)
 { char *exec;
 
   wicFile = file;
@@ -778,9 +755,7 @@ closeWic()
 }
 
 static bool
-addClauseWic(term, file)
-Word term;
-Atom file;
+addClauseWic(Word term, Atom file)
 { Clause clause;
 
   if ((clause = assert_term(term, 'z', file)) != (Clause)NULL)
@@ -801,8 +776,7 @@ Atom file;
 }
 
 static bool
-addDirectiveWic(term)
-word term;
+addDirectiveWic(word term)
 { char *s = (char *)lTop;
 #if !O_DYNAMIC_STACKS
   long n = (char *)lMax - (char *)lTop;
@@ -823,9 +797,7 @@ word term;
 }  
 
 static bool
-startModuleWic(name, file)
-Atom name;
-SourceFile file;
+startModuleWic(Atom name, SourceFile file)
 { closeProcedureWic();
 
   Putc('M', wicFd);
@@ -839,9 +811,7 @@ SourceFile file;
 }
 
 static bool
-exportWic(name, arity)
-Atom name;
-int arity;
+exportWic(Atom name, int arity)
 { closeProcedureWic();
 
   Putc('E', wicFd);
@@ -852,9 +822,7 @@ int arity;
 }
 
 static bool
-importWic(module, name, arity)
-Atom module, name;
-int arity;
+importWic(Atom module, Atom name, int arity)
 { closeProcedureWic();
 
   Putc('I', wicFd);
@@ -870,8 +838,7 @@ int arity;
 		*********************************/
 
 word
-pl_open_wic(name)
-Word name;
+pl_open_wic(Word name)
 { if (!isAtom(*name) )
     fail;
 
@@ -879,13 +846,12 @@ Word name;
 }
 
 word
-pl_close_wic()
+pl_close_wic(void)
 { return closeWic();
 }
 
 word
-pl_add_clause_wic(term, file)
-Word term, file;
+pl_add_clause_wic(Word term, Word file)
 { if (isVar(*term) || !isAtom(*file) )
     return warning("$add_clause_wic/2: instantiation fault");
 
@@ -893,8 +859,7 @@ Word term, file;
 }
 
 word
-pl_add_directive_wic(term)
-Word term;
+pl_add_directive_wic(Word term)
 { if (isVar(*term) )
     return warning("$add_directive_wic/1: directive is a variable");
 
@@ -902,8 +867,7 @@ Word term;
 }
 
 word
-pl_start_module_wic(term, file)
-Word term, file;
+pl_start_module_wic(Word term, Word file)
 { if (!isAtom(*term) || (!isAtom(*file) && !isInteger(*file)))
     return warning("$start_module_wic/1: instantiation fault");
 
@@ -913,8 +877,7 @@ Word term, file;
 }
 
 word
-pl_export_wic(name, arity)
-Word name, arity;
+pl_export_wic(Word name, Word arity)
 { if (!isAtom(*name) || !isInteger(*arity) )
     return warning("$export_wic/2: instantiation fault");
 
@@ -922,8 +885,7 @@ Word name, arity;
 }
 
 word
-pl_import_wic(module, name, arity)
-Word module, name, arity;
+pl_import_wic(Word module, Word name, Word arity)
 { if (!isAtom(*module) || !isAtom(*name) || !isInteger(*arity) )
     return warning("$import_wic/3: instantiation fault");
 
@@ -952,9 +914,7 @@ defined compiler handles as well, except:
  ** Wed Jun  8 16:12:39 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 static word
-directiveClause(clause, functor)
-word clause;
-char *functor;
+directiveClause(word clause, char *functor)
 { if (!isTerm(clause) )
     return (word) NULL;
   if (functorTerm(clause)->arity == 1 &&
@@ -985,8 +945,7 @@ char *functor;
  ** Thu Apr 28 13:44:43 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 static bool
-compileFile(file)
-char *file;
+compileFile(char *file)
 { char *path;
   word f;
   Word term = newTerm();
@@ -1033,10 +992,7 @@ char *file;
 }
 
 bool
-compileFileList(out, argc, argv)
-char *out;
-int argc;
-char **argv;
+compileFileList(char *out, int argc, char **argv)
 { newOp("$:-", OP_FX, 1200);
   TRY(openWic(out) );
   
@@ -1060,8 +1016,7 @@ char **argv;
 */
 
 bool
-appendState(name)
-char *name;
+appendState(char *name)
 { State state, st;
   char *absolute;
 
@@ -1086,8 +1041,7 @@ char *name;
 */
 
 static bool
-putStates(fd)
-FILE *fd;
+putStates(FILE *fd)
 { State st;
 
   for(st = stateList; st; st = st->next)

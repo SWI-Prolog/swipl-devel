@@ -22,6 +22,7 @@ handling times must be cleaned, but that not only holds for this module.
 #include "pl-ctype.h"
 #if unix || EMX
 #include <sys/file.h>
+#include <unistd.h>
 #endif
 
 #define MAXSTRINGNEST	20		/* tellString --- Told nesting */
@@ -68,23 +69,21 @@ static int   fold = O_FOLD;		/* default line folding */
 static int   fold = -1;			/* line folding */
 #endif
 
-forwards void	pipeHandler P((int));
-forwards void	protocol P((Char c, int mode));
-forwards bool	openStream P((word file, int mode, int fresh));
-forwards bool	flush P((void));
-forwards bool	openProtocol P((Atom, bool appnd));
-forwards bool	closeProtocol P((void));
-forwards bool	closeStream P((int));
-forwards void	updateCounts P((Char, PlFile));
-forwards bool	unifyStreamName P((Word, int));
-forwards bool	unifyStreamNo P((Word, int));
-forwards bool	setUnifyStreamNo P((Word, int));
-forwards bool	unifyStreamMode P((Word, int));
+forwards void	protocol(Char c, int mode);
+forwards bool	openStream(word file, int mode, int fresh);
+forwards bool	flush(void);
+forwards bool	openProtocol(Atom, bool appnd);
+forwards bool	closeProtocol(void);
+forwards bool	closeStream(int);
+forwards void	updateCounts(Char, PlFile);
+forwards bool	unifyStreamName(Word, int);
+forwards bool	unifyStreamNo(Word, int);
+forwards bool	setUnifyStreamNo(Word, int);
+forwards bool	unifyStreamMode(Word, int);
 
 #if PIPE
 static void
-pipeHandler(sig)
-int sig;
+pipeHandler(int sig)
 { Putf("Broken pipe\n");
   pl_abort();
 
@@ -94,7 +93,7 @@ int sig;
 #endif /* PIPE */
 
 void
-initIO()
+initIO(void)
 { int n;
 
   fileerrors = TRUE;
@@ -176,8 +175,7 @@ dieIO()
 }
 
 static bool
-closeStream(n)
-int n;
+closeStream(int n)
 { if ( n < 3 || fileTable[n].status == F_CLOSED )
     succeed;
 
@@ -195,7 +193,7 @@ int n;
 }
 
 void
-closeFiles()
+closeFiles(void)
 { int n;
 #if O_PCE
   extern int read_nesting;
@@ -212,9 +210,7 @@ closeFiles()
 }
 
 static void
-protocol(c, mode)
-register Char c;
-int mode;
+protocol(register Char c, int mode)
 { if ( mode == F_READ && ttymode >= TTY_RAW ) /* Non-echo mode: do not log */
     return;
 
@@ -252,14 +248,13 @@ returns the file descriptor.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-newLineInput()
+newLineInput(void)
 { fileTable[Input].lineno++;
   fileTable[Input].linepos = 0;
 }
 
 FILE *
-checkInput(stream)
-int stream;
+checkInput(int stream)
 { if ( inString ||
        fileTable[stream].status != F_READ ||
        stream == 0)
@@ -269,9 +264,7 @@ int stream;
 }
        
 static void
-updateCounts(c, f)
-register Char c;
-register PlFile f;
+updateCounts(register Char c, register PlFile f)
 { f->charno++;
   switch(c)
   { case '\n':  f->lineno++;
@@ -307,7 +300,7 @@ This function is normally called via the macro Get0().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Char
-get_character()
+get_character(void)
 { Char c;
 
   if ( inString )
@@ -342,7 +335,7 @@ and including the newline.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Char
-getSingleChar()
+getSingleChar(void)
 { Char c;
   int OldIn = Input;
   ttybuf buf;
@@ -382,8 +375,7 @@ and `int'
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-put_character(c)
-Char c;
+put_character(Char c)
 { if ( outStringDepth > 0 )
   { if ( outStringStack[outStringDepth].left-- <= 0 )
       fail;
@@ -447,9 +439,7 @@ va_dcl
 #endif
 
 word
-vPutf(fm, args)
-char *fm;
-va_list args;
+vPutf(char *fm, va_list args)
 { char tmp[10240];
   char *s;
 
@@ -462,9 +452,7 @@ va_list args;
 }
 
 bool
-readLine(buf, stream)
-char *buf;
-int stream;
+readLine(char *buf, int stream)
 { int oldin = Input;
   Char c;
   ttybuf tbuf;
@@ -482,15 +470,12 @@ int stream;
 }
 
 int
-currentInputLine()
+currentInputLine(void)
 { return fileTable[Input].isatty ? ttyLineNo : fileTable[Input].lineno;
 }
 
 static bool
-openStream(file, mode, fresh)
-word file;
-int mode;
-bool fresh;
+openStream(word file, int mode, bool fresh)
 { int n;
   FILE *fd;
   char *cmode;
@@ -602,9 +587,7 @@ bool fresh;
 }
 
 static bool
-unifyStreamName(f, n)
-Word f;
-int n;
+unifyStreamName(Word f, int n)
 { if ( fileTable[n].status == F_CLOSED )
     fail;
 #if PIPE
@@ -617,18 +600,14 @@ int n;
 }
 
 static bool
-unifyStreamMode(m, n)
-Word m;
-int n;
+unifyStreamMode(Word m, int n)
 { if ( fileTable[n].status == F_CLOSED )
     fail;
   return unifyAtomic(m, fileTable[n].status == F_READ ? ATOM_read : ATOM_write);
 }
 
 static bool
-unifyStreamNo(stream, n)
-Word stream;
-int n;
+unifyStreamNo(Word stream, int n)
 { switch( n )
   { case 0:	return unifyAtomic(stream, ATOM_user_input);
     case 1:	return unifyAtomic(stream, ATOM_user_output);
@@ -659,8 +638,7 @@ flush()
 }
 
 bool
-see(f)
-word f;
+see(word f)
 { return openStream(f, F_READ, FALSE);
 }
 
@@ -677,9 +655,7 @@ seen()
 }
 
 static bool
-openProtocol(f, appnd)
-Atom f;
-bool appnd;
+openProtocol(Atom f, bool appnd)
 { int out = Output;
 
   closeProtocol();
@@ -711,8 +687,7 @@ closeProtocol()
 		*********************************/
 
 bool
-seeString(s)
-char *s;
+seeString(char *s)
 { inString = s;
 
   succeed;
@@ -731,9 +706,7 @@ seenString()
 }
 
 bool
-tellString(s, n)
-char *s;
-long n;
+tellString(char *s, long int n)
 { outStringDepth++;
   if ( outStringDepth >= MAXSTRINGNEST )
   { warning("Exeeded maximum string based i/o nesting");
@@ -782,13 +755,12 @@ Word streams, available, timeout;
 #else
 
 word
-pl_wait_for_input(streams, available, timeout)
-Word streams, available, timeout;
+pl_wait_for_input(Word streams, Word available, Word timeout)
 { fd_set fds;
   struct timeval t, *to;
   real time;
   int n, max = 0;
-  extern int select();
+  extern int select(int, fd_set *, fd_set *, fd_set *, struct timeval *);
 
   FD_ZERO(&fds);
   while( isList(*streams) )
@@ -841,8 +813,7 @@ Word streams, available, timeout;
 		*********************************/
 
 word
-pl_tty_fold(old, new)
-Word old, new;
+pl_tty_fold(Word old, Word new)
 { TRY( unifyAtomic(old, consNum(fold)) );
   if ( !isInteger(*new) )
     return warning("tty_fold/2: instantiation fault");
@@ -853,8 +824,7 @@ Word old, new;
 
 
 word
-pl_put(c)
-Word c;
+pl_put(Word c)
 { Char chr;
   char *s;
 
@@ -892,14 +862,12 @@ error:
 }
 
 word
-pl_put2(stream, chr)
-Word stream, chr;
+pl_put2(Word stream, Word chr)
 { streamOutput(stream, pl_put(chr));
 }
 
 word
-pl_get(chr)
-Word chr;
+pl_get(Word chr)
 { Char c;
 
   do
@@ -911,8 +879,7 @@ Word chr;
 }
 
 word
-pl_get2(stream, chr)
-Word stream, chr;
+pl_get2(Word stream, Word chr)
 { streamInput(stream, pl_get(chr));
 }
 
@@ -924,65 +891,57 @@ pl_tty()				/* $tty/0 */
 }
 
 word
-pl_get_single_char(c)
-Word c;
+pl_get_single_char(Word c)
 { return unifyAtomic(c, consNum(getSingleChar()));
 }
 
 word
-pl_get0(c)
-Word c;
+pl_get0(Word c)
 { return unifyAtomic(c, consNum(Get0()));
 }
 
 word
-pl_get02(stream, c)
-Word stream, c;
+pl_get02(Word stream, Word c)
 { streamInput(stream, pl_get0(c))
 }
 
 word
-pl_seeing(f)
-Word f;
+pl_seeing(Word f)
 { return unifyStreamName(f, Input);
 }
 
 word
-pl_telling(f)
-Word f;
+pl_telling(Word f)
 { return unifyStreamName(f, Output);
 }
 
 word
-pl_seen()
+pl_seen(void)
 { return seen();
 }
 
 word
-pl_told()
+pl_told(void)
 { return told();
 }
 
 word
-pl_see(f)
-Word f;
+pl_see(Word f)
 { return see(*f);
 }
 
 word
-pl_tell(f)
-Word f;
+pl_tell(Word f)
 { return openStream(*f, F_WRITE, FALSE);
 }
 
 word
-pl_append(f)
-Word f;
+pl_append(Word f)
 { return openStream(*f, F_APPEND, FALSE);
 }
 
 word
-pl_ttyflush()
+pl_ttyflush(void)
 { int OldOut = Output;
   bool rval;
 
@@ -994,13 +953,12 @@ pl_ttyflush()
 }
 
 word
-pl_flush()
+pl_flush(void)
 { return flush();
 }
 
 word
-pl_protocol(file)
-Word file;
+pl_protocol(Word file)
 { if (!isAtom(*file))
     return warning("protocol/1: argument should be an atom");
 
@@ -1008,8 +966,7 @@ Word file;
 }
 
 word
-pl_protocola(file)
-Word file;
+pl_protocola(Word file)
 { if (!isAtom(*file))
     return warning("protocola/1: argument should be an atom");
 
@@ -1017,13 +974,12 @@ Word file;
 }
 
 word
-pl_noprotocol()
+pl_noprotocol(void)
 { return closeProtocol();
 }
 
 word
-pl_protocolling(file)
-Word file;
+pl_protocolling(Word file)
 { if (protocolStream >= 0)
     return unifyAtomic(file, fileTable[protocolStream].name);
 
@@ -1031,8 +987,7 @@ Word file;
 }
 
 word
-pl_prompt(old, new)
-Word old, new;
+pl_prompt(Word old, Word new)
 { TRY( unifyAtomic(old, prompt_atom) )
 
   if (!isAtom(*new) )
@@ -1045,8 +1000,7 @@ Word old, new;
 
 
 word
-pl_prompt1(prompt)
-Word prompt;
+pl_prompt1(Word prompt)
 { char *s;
 
   if ( !(s = primitiveToString(*prompt, FALSE)) &&
@@ -1063,8 +1017,7 @@ Word prompt;
 
 
 word
-pl_tab(n)
-Word n;
+pl_tab(Word n)
 { word val = evaluate(n);
   int m;
 
@@ -1092,8 +1045,7 @@ PrologPrompt()
 
 
 word
-pl_tab2(stream, n)
-Word stream, n;
+pl_tab2(Word stream, Word n)
 { streamOutput(stream, pl_tab(n));
 }
 
@@ -1102,9 +1054,7 @@ Word stream, n;
 		*********************************/
 
 static bool
-setUnifyStreamNo(stream, n)
-Word stream;
-int n;
+setUnifyStreamNo(Word stream, int n)
 { if ( isAtom(*stream) )
   { register int i;
 
@@ -1121,8 +1071,7 @@ int n;
 }
       
 word
-pl_open(file, mode, stream)
-Word file, mode, stream;
+pl_open(Word file, Word mode, Word stream)
 { int m;
 
   if ( *mode == (word) ATOM_write )
@@ -1170,8 +1119,7 @@ Word file, mode, stream;
 #endif
 
 word
-pl_open_null_stream(stream)
-Word stream;
+pl_open_null_stream(Word stream)
 { static word mode = (word) ATOM_write;
   word file = (word) lookupAtom(DEVNULL);
 
@@ -1179,9 +1127,7 @@ Word stream;
 }
 
 int
-streamNo(spec, mode)
-Word spec;
-int mode;
+streamNo(Word spec, int mode)
 { int n = -1;
   
   if ( isInteger(*spec) )
@@ -1233,8 +1179,7 @@ int mode;
 }
   
 word
-pl_close(stream)
-Word stream;
+pl_close(Word stream)
 { int n;
 
   if ( (n = streamNo(stream, F_READ|F_WRITE)) < 0 )
@@ -1250,9 +1195,7 @@ Word stream;
 }
 
 word
-pl_current_stream(file, mode, stream, h)
-Word file, mode, stream;
-word h;
+pl_current_stream(Word file, Word mode, Word stream, word h)
 { int n;
 
   switch( ForeignControl(h) )
@@ -1281,8 +1224,7 @@ word h;
 }      
 
 word
-pl_flush_output(stream)
-Word stream;
+pl_flush_output(Word stream)
 { int n;
 
   if ( (n = streamNo(stream, F_WRITE)) < 0 )
@@ -1293,11 +1235,10 @@ Word stream;
 }
 
 word
-pl_stream_position(stream, old, new)
-Word stream, old, new;
+pl_stream_position(Word stream, Word old, Word new)
 { int n;
   long oldcharno, charno, linepos, lineno;
-  extern int fseek();
+  extern int fseek(FILE *, long int, int);
 
   if ( (n = streamNo(stream, F_READ|F_WRITE)) < 0 )
     fail;
@@ -1339,8 +1280,7 @@ Word stream, old, new;
 }
 
 word
-pl_set_input(stream)
-Word stream;
+pl_set_input(Word stream)
 { int n;
 
   if ( (n = streamNo(stream, F_READ)) < 0 )
@@ -1351,8 +1291,7 @@ Word stream;
 }
 
 word
-pl_set_output(stream)
-Word stream;
+pl_set_output(Word stream)
 { int n;
 
   if ( (n = streamNo(stream, F_WRITE)) < 0 )
@@ -1363,20 +1302,17 @@ Word stream;
 }
 
 word
-pl_current_input(stream)
-Word stream;
+pl_current_input(Word stream)
 { return unifyStreamNo(stream, Input);
 }
 
 word
-pl_current_output(stream)
-Word stream;
+pl_current_output(Word stream)
 { return unifyStreamNo(stream, Output);
 }
 
 word
-pl_character_count(stream, count)
-Word stream, count;
+pl_character_count(Word stream, Word count)
 { int n;
   long c;
 
@@ -1388,8 +1324,7 @@ Word stream, count;
 }
 
 word
-pl_line_count(stream, count)
-Word stream, count;
+pl_line_count(Word stream, Word count)
 { int n;
   long c;
 
@@ -1401,8 +1336,7 @@ Word stream, count;
 }
 
 word
-pl_line_position(stream, count)
-Word stream, count;
+pl_line_position(Word stream, Word count)
 { int n;
   long c;
 
@@ -1415,8 +1349,7 @@ Word stream, count;
 
 
 word
-pl_source_location(file, line)
-Word file, line;
+pl_source_location(Word file, Word line)
 { if ( ReadingSource )
   { char *s = AbsoluteFile(stringAtom(source_file_name));
 
@@ -1437,16 +1370,13 @@ Word file, line;
 		*********************************/
 
 bool
-unifyTime(t, time)
-Word t;
-long time;
+unifyTime(Word t, long int time)
 { return unifyAtomic(t, globalReal((real)time));
 }
 
 
 word
-pl_time_file(name, t)
-Word name, t;
+pl_time_file(Word name, Word t)
 { char *n;
   long time;
 
@@ -1463,8 +1393,7 @@ Word name, t;
 
 
 word
-pl_size_file(name, len)
-Word name, len;
+pl_size_file(Word name, Word len)
 { char *n;
   long size;
 
@@ -1481,8 +1410,7 @@ Word name, len;
 
 
 word
-pl_access_file(name, mode)
-Word name, mode;
+pl_access_file(Word name, Word mode)
 { char *n;
   int md;
 
@@ -1505,8 +1433,7 @@ Word name, mode;
 
 
 word
-pl_exists_file(name)
-Word name;
+pl_exists_file(Word name)
 { char *n;
 
   if ( (n = primitiveToString(*name, FALSE)) == (char *)NULL )
@@ -1519,8 +1446,7 @@ Word name;
 
 
 word
-pl_exists_directory(name)
-Word name;
+pl_exists_directory(Word name)
 { char *n;
 
   if ( (n = primitiveToString(*name, FALSE)) == (char *)NULL )
@@ -1533,8 +1459,7 @@ Word name;
 
 
 word
-pl_tmp_file(base, name)
-Word base, name;
+pl_tmp_file(Word base, Word name)
 { char *n;
 
   if ( (n = primitiveToString(*base, FALSE)) == (char *)NULL )
@@ -1545,8 +1470,7 @@ Word base, name;
 
 
 word
-pl_delete_file(name)
-Word name;
+pl_delete_file(Word name)
 { char *n;
 
   if ( (n = primitiveToString(*name, FALSE)) == (char *)NULL )
@@ -1559,8 +1483,7 @@ Word name;
 
 
 word
-pl_same_file(file1, file2)
-Word file1, file2;
+pl_same_file(Word file1, Word file2)
 { char *n1, *n2;
 
   initAllocLocal();
@@ -1580,8 +1503,7 @@ Word file1, file2;
 
 
 word
-pl_rename_file(old, new)
-Word old, new;
+pl_rename_file(Word old, Word new)
 { char *o, *n;
 
   initAllocLocal();
@@ -1605,8 +1527,7 @@ Word old, new;
 
 
 word
-pl_fileerrors(old, new)
-Word old, new;
+pl_fileerrors(Word old, Word new)
 { TRY(unifyAtomic(old, (fileerrors ? ATOM_on : ATOM_off)) );
 
   if ( *new == (word) ATOM_on )       fileerrors = TRUE;
@@ -1618,8 +1539,7 @@ Word old, new;
 
 
 word
-pl_absolute_file_name(name, expanded)
-Word name, expanded;
+pl_absolute_file_name(Word name, Word expanded)
 { char *s = primitiveToString(*name, FALSE);
 
   if ( s == (char *) NULL || (s = AbsoluteFile(s)) == (char *) NULL)
@@ -1630,8 +1550,7 @@ Word name, expanded;
 
 
 word
-pl_chdir(dir)
-Word dir;
+pl_chdir(Word dir)
 { char *s = primitiveToString(*dir, FALSE);
 
   if ( s == (char *)NULL )
@@ -1647,8 +1566,7 @@ Word dir;
 
 
 word
-pl_file_base_name(f, b)
-Word f, b;
+pl_file_base_name(Word f, Word b)
 { if (!isAtom(*f))
     return warning("file_base_name/2: instantiation fault");
 
@@ -1657,8 +1575,7 @@ Word f, b;
 
 
 word
-pl_file_dir_name(f, b)
-Word f, b;
+pl_file_dir_name(Word f, Word b)
 { if (!isAtom(*f))
     return warning("file_dir_name/2: instantiation fault");
 

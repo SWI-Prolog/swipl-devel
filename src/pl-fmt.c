@@ -52,18 +52,17 @@ struct rubber
 
 static Table format_predicates;		/* Prolog defined fromatting */
 
-forwards int	update_column P((int, Char));
-forwards bool	do_format P((char *fmt, int argc, Word argv));
-forwards void	distribute_rubber P((struct rubber *, int, int));
-forwards void	emit_rubber P((char *buf, int, struct rubber *, int));
+forwards int	update_column(int, Char);
+forwards bool	do_format(char *fmt, int argc, Word argv);
+forwards void	distribute_rubber(struct rubber *, int, int);
+forwards void	emit_rubber(char *buf, int, struct rubber *, int);
 
 		/********************************
 		*       PROLOG CONNECTION	*
 		********************************/
 
 word
-pl_format_predicate(chr, descr)
-Word chr, descr;
+pl_format_predicate(Word chr, Word descr)
 { long c;
   Procedure proc;
   Symbol s;
@@ -95,9 +94,7 @@ Word chr, descr;
 
 
 word
-pl_format(fmt, args)
-Word fmt;
-register Word args;
+pl_format(Word fmt, register Word args)
 { Word argv;
   word rval;
   int argc = 0;
@@ -146,8 +143,7 @@ register Word args;
 }
 
 word
-pl_format3(stream, fmt, args)
-Word stream, fmt, args;
+pl_format3(Word stream, Word fmt, Word args)
 { streamOutput(stream, pl_format(fmt, args));
 }
 
@@ -201,9 +197,7 @@ va_dcl
 		********************************/
 
 static int
-update_column(col, c)
-register int col;
-register Char c;
+update_column(register int col, register Char c)
 { switch(c)
   { case '\n':	return 0;
     case '\t':	return (col + 1) | 0x7;
@@ -213,10 +207,7 @@ register Char c;
 }   
 
 static bool
-do_format(fmt, argc, argv)
-char *fmt;
-int argc;
-Word argv;
+do_format(char *fmt, int argc, Word argv)
 { char buffer[BUFSIZE];			/* to store chars with tabs */
   int index = 0;			/* index in buffer */
   int column = currentLinePosition();	/* current output column */
@@ -249,7 +240,7 @@ Word argv;
 					/* Check for user defined format */
 	  if ( format_predicates != NULL &&
 #if gould
-	       (s = lookupHTable(format_predicates, (ulong)*fmt)) != NULL )
+	       (s = lookupHTable(format_predicates, (word)*fmt)) != NULL )
 #else
 	       (s = lookupHTable(format_predicates,
 				 (Void)((long)*fmt))) != NULL )
@@ -457,10 +448,7 @@ Word argv;
 }
 
 static void
-distribute_rubber(r, rn, space)
-struct rubber *r;
-int rn;
-int space;
+distribute_rubber(struct rubber *r, int rn, int space)
 { if ( space > 0 )
   { int s = space / rn;
     int n, m;
@@ -481,11 +469,7 @@ int space;
 }
 
 static void
-emit_rubber(buf, i, r, rn)
-char *buf;
-int i;
-struct rubber *r;
-int rn;
+emit_rubber(char *buf, int i, struct rubber *r, int rn)
 { int j;
 
   for(j = 0; j <= i; j++)

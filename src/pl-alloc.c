@@ -31,7 +31,7 @@ struct chunk
 { Chunk		next;		/* next of chain */
 };
 
-forwards Chunk	allocate P((alloc_t size));
+forwards Chunk	allocate(alloc_t size);
 
 #define ALLOCSIZE	10240	/* size of allocation chunks */
 #define ALLOCFAST	512	/* big enough for all structures */
@@ -56,12 +56,11 @@ to avoid problems with 16-bit machines not supporting an ANSI compiler.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Void
-alloc_heap(n)
-register alloc_t n;
+alloc_heap(register size_t n)
 { register Chunk f;
   register alloc_t m;
   
-  DEBUG(9, printf("allocated %ld bytes at ", n));
+  DEBUG(9, printf("allocated %ld bytes at ", (unsigned long)n));
   n = ALLOCROUND(n);
   statistics.heap += n;
 
@@ -70,7 +69,8 @@ register alloc_t n;
     if ((f = freeChains[m]) != NULL)
     { freeChains[m] = f->next;
       f->next = (Chunk) NULL;
-      DEBUG(9, printf("(r) %ld (0x%lx)\n", f, f));
+      DEBUG(9, printf("(r) %ld (0x%lx)\n",
+		      (unsigned long) f, (unsigned long) f));
       return (Word) f;			/* perfect fit */
     }
     f = allocate(n);			/* allocate from core */
@@ -78,24 +78,22 @@ register alloc_t n;
     SetHBase(f);
     SetHTop((char *)f + n);
 
-    DEBUG(9, printf("(n) %ld (0x%lx)\n", f, f));
+    DEBUG(9, printf("(n) %ld (0x%lx)\n", (unsigned long)f, (unsigned long)f));
     return f;
   }
 
   f = (Chunk) Malloc(n);
-  DEBUG(9, printf("(b) %ld\n", f));
+  DEBUG(9, printf("(b) %ld\n", (unsigned long)f));
   return f;
 }
 
 void
-free_heap(mem, n)
-register Void mem;
-register alloc_t n;
+free_heap(register Void mem, register size_t n)
 { Chunk p = (Chunk) mem;
 
   n = ALLOCROUND(n);
   statistics.heap -= n;
-  DEBUG(9, printf("freed %d bytes at %ld\n", n, p));
+  DEBUG(9, printf("freed %ld bytes at %ld\n", n, (unsigned long)p));
 
   if (n <= ALLOCFAST)
   { n /= sizeof(align_type);
@@ -118,8 +116,7 @@ with other memory allocation functions.
 
 static
 Chunk
-allocate(n)
-register alloc_t n;
+allocate(register size_t n)
 { char *p;
 
   if (n <= spacefree)
@@ -147,8 +144,7 @@ register alloc_t n;
 		*********************************/
 
 volatile void
-outOf(s)
-Stack s;
+outOf(Stack s)
 { warning("Out of %s stack", s->name);
 
   pl_abort();
@@ -188,8 +184,7 @@ register alloc_t n;
 #else
 
 Void
-alloc_global(n)
-register alloc_t n;
+alloc_global(register size_t n)
 { register Word result = gTop;
 
   gTop += (n + sizeof(word)-1) / sizeof(word);
@@ -201,8 +196,7 @@ register alloc_t n;
 #endif
 
 word
-globalFunctor(def)
-register FunctorDef def;
+globalFunctor(register FunctorDef def)
 { register int arity = def->arity;
   register Functor f = allocGlobal(sizeof(FunctorDef) + sizeof(word) * arity);
   register Word a;
@@ -216,9 +210,8 @@ register FunctorDef def;
 
 #if O_STRING
 word
-globalString(s)
-register char *s;
-{ register ulong l = strlen(s) + 1;
+globalString(register char *s)
+{ register long l = strlen(s) + 1;
   register long chars = ROUND(l, sizeof(word));
   register Word gt = allocGlobal(2*sizeof(word) + chars);
 
@@ -229,9 +222,8 @@ register char *s;
 }
 
 word
-heapString(s)
-char *s;
-{ ulong l = strlen(s) + 1;
+heapString(char *s)
+{ long l = strlen(s) + 1;
   register long chars = ROUND(l, sizeof(word));
   Word gt = (Word)allocHeap(2*sizeof(word) + chars);
 
@@ -244,7 +236,7 @@ char *s;
 #endif /* O_STRING */
 
 Word
-newTerm()
+newTerm(void)
 { Word t = allocGlobal(sizeof(word));
 
   setVar(*t);
@@ -268,16 +260,14 @@ Fixed for GCC 2.2 with the help of Giovanni Malnati.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-pack_real(f, r)
-double f;
-Word r;
+pack_real(double f, Word r)
 {
 #if i386
-  ulong m64 = *((ulong *)&f + 1);
-  ulong l64 = *((ulong *)&f);
+  unsigned long m64 = *((unsigned long *)&f + 1);
+  unsigned long l64 = *((unsigned long *)&f);
 #else
-  ulong m64 = *((ulong *)&f);
-  ulong l64 = *((ulong *)&f + 1);
+  unsigned long m64 = *((unsigned long *)&f);
+  unsigned long l64 = *((unsigned long *)&f + 1);
 #endif
 
   l64 >>= 10;
@@ -297,12 +287,11 @@ Word r;
 }
 
 double
-unpack_real(p)
-Word p;
-{ ulong l64 = p[0];
-  ulong m64 = p[1];
+unpack_real(Word p)
+{ unsigned long l64 = p[0];
+  unsigned long m64 = p[1];
   double r;
-  ulong *rp = (ulong *) &r;
+  unsigned long *rp = (unsigned long *) &r;
 
 #if O_16_BITS
   m64 <<= 1;
@@ -326,30 +315,26 @@ Word p;
 
 
 void
-setReal(w, f)
-word w;
-real f;
+setReal(word w, real f)
 { Word p = (Word)unMask(w);
   pack_real((double)f, p);
 }
 
 
 word
-globalReal(f)
-real f;
+globalReal(real f)
 { Word p = gTop;
 
   gTop += 2;
   verifyStack(global);
   pack_real((double) f, p);
 
-  DEBUG(4, printf("Put REAL on global stack at 0x%x\n", p));
+  DEBUG(4, printf("Put REAL on global stack at 0x%lx\n", (unsigned long)p));
   return (word)p | INDIRECT_MASK;
 }
 
 word
-heapReal(f)
-real f;
+heapReal(real f)
 { Word p = (Word) allocHeap(sizeof(word) * 2);
 
   pack_real((double) f, p);
@@ -384,8 +369,7 @@ initAllocLocal()
 }
 
 Void
-alloc_local(n)
-register alloc_t n;
+alloc_local(register size_t n)
 { register char *mem = scratchBase;
 
   scratchBase += ROUND(n, sizeof(word));
@@ -403,8 +387,7 @@ stopAllocLocal()
 }
 
 char *
-store_string_local(s)
-register char *s;
+store_string_local(register char *s)
 { register char *copy = (char *)allocLocal(strlen(s)+1);
 
   strcpy(copy, s);
@@ -416,8 +399,7 @@ register char *s;
 		*********************************/
 
 char *
-store_string(s)
-char *s;
+store_string(char *s)
 { char *copy = (char *)allocHeap(strlen(s)+1);
 
   strcpy(copy, s);
@@ -426,8 +408,7 @@ char *s;
 
 
 void
-remove_string(s)
-char *s;
+remove_string(char *s)
 { if ( s )
     freeHeap(s, strlen(s)+1);
 }
@@ -440,9 +421,7 @@ distribution over these atoms.  Note that size equals 2^n.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-stringHashValue(s, size)
-register char *s;
-register int size;
+stringHashValue(register char *s, register int size)
 { register int value = 0;
   register int shift = 0;
 

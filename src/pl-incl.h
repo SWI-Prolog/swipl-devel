@@ -99,6 +99,10 @@ This has worked on TURBO_C not very long ago.
 				/* Probably out-of-date! */
 #endif
 
+#if defined(__unix__) && !defined(unix)
+#define unix 1
+#endif
+
 #include <stdio.h>
 #if unix || EMX
 #include <sys/types.h>
@@ -107,51 +111,38 @@ This has worked on TURBO_C not very long ago.
 
 #include <setjmp.h>
 #include <assert.h>
-
-#if ANSI
-#define PROTO 1
-#if !mips
 #include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
-#endif
-#include <stdarg.h>		/* variable arity handling */
-#endif
-
-#if !ANSI || AIX		/* AIX stdarg still broken */
-#if mips
-#include "/usr/include/varargs.h"
-#else
-#include <varargs.h>
-#endif
-#endif
+#include <stdarg.h>
 
 #if OS2 && EMX
 #include <process.h>
 #include <io.h>
 #include <strings.h>
-typedef unsigned short  ushort;
 #endif /* OS2 */
+
+#ifdef O_EXTRA_SYSTEM_TYPES
+#include O_EXTRA_SYSTEM_TYPES
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A common basis for C keywords.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if !__GNUC__
+#if !__GNUC__ || __STRICT_ANSI__
 #define volatile		/* volatile functions do not return */
 #define inline			/* inline functions are integrated in */
 				/* their caller */
 #define signed			/* some compilers don't have this. */
 #endif
 
+#if __STRICT_ANSI__
+#define O_NO_LEFT_CAST 1
+#define ASM_NOP { static int nop; nop++; }
+#endif
+
 #define forwards static		/* forwards function declarations */
-#ifndef P
-#if PROTO
-#define P(type) type
-#else
-#define P(type) ()
-#endif
-#endif
 
 #ifndef GLOBAL			/* global variables */
 #define GLOBAL extern
@@ -191,9 +182,6 @@ typedef struct sigcontext * SignalContext;
 #define fail			return FALSE
 #define TRY(goal)		{ if ((goal) == FALSE) fail; }
 
-#if !O_ULONG_PREDEFINED
-typedef unsigned long		ulong;
-#endif
 typedef char *			caddress;
 
 #define EOS			('\0')
@@ -384,7 +372,7 @@ codes.
 #if O_BLOCK
 #define I_CUT_BLOCK	((code)59)		/* !(block) */
 #define B_EXIT		((code)60)		/* exit(block, rval) */
-#endif O_BLOCK
+#endif /*O_BLOCK*/
 
 #define I_HIGHEST	((code)60)		/* largest WAM code !!! */
 
@@ -612,13 +600,13 @@ the range of integers to +- 2^25.  (Macros have to be rewritten))
 Common Prolog objects typedefs.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-typedef ulong 			word;		/* Anonimous 4 byte object */
+typedef unsigned long		word;		/* Anonimous 4 byte object */
 typedef word *			Word;		/* a pointer to anything */
 typedef unsigned short		code;		/* bytes codes */
 typedef code *			Code;		/* pointer to byte codes */
 typedef int			Char;		/* char that can pass EOF */
 typedef word			(*Func)();	/* foreign functions */
-typedef ulong			lock;		/* foreign lock */
+typedef unsigned long		lock;		/* foreign lock */
 typedef lock *			Lock;		/* pointer to a lock */
 
 typedef struct atom *		Atom;		/* atom */
@@ -865,8 +853,8 @@ struct atom
 };
 
 struct index
-{ ulong		key;		/* key of index */
-  ulong		varmask;	/* variable field mask */
+{ unsigned long key;		/* key of index */
+  unsigned long varmask;	/* variable field mask */
 };
 
 struct functorDef
@@ -888,7 +876,7 @@ struct clause
   code		XR_size;	/* size of external reference table */
   code		variables;	/* number of variables */
   code		slots;		/* # variables holding Prolog data */
-  ushort	flags;		/* Flag field holding: */
+  unsigned short	flags;		/* Flag field holding: */
 		/* ERASED	   Clause is retracted, but referenced */
 };
 
@@ -935,11 +923,11 @@ struct definition
   int		profile_redos;		/* profiler: number of redos */
   int		profile_fails;		/* profiler: number of fails */
 #endif /* O_PROFILE */
-  ulong		indexPattern;		/* indexed argument pattern */
+  unsigned long indexPattern;		/* indexed argument pattern */
   char		indexCardinality;	/* cardinality of index pattern */
   short		line_no;		/* Line number for the predicate */
   short		source_count;		/* times (re)consulted */
-  ushort	flags;			/* booleans: */
+  unsigned short	flags;			/* booleans: */
 		/*	FOREIGN		   foreign predicate? */
 		/*	PROFILE_TICKED	   has been ticked this time? */
 		/*	TRACE_ME	   is my call visible? */
@@ -966,7 +954,7 @@ struct localFrame
   Procedure	procedure;	/* Procedure we are running */
   mark		mark;		/* data backtrack mark */
   Module	context;	/* context module of frame */
-  ulong		flags;		/* packet long holding: */
+  unsigned long flags;		/* packet long holding: */
 		/*	LEVEL	   recursion level (28 bits) */
 		/*	FR_CUT     has frame been cut ? */
 		/*	FR_NODEBUG don't debug this frame ? */
@@ -1002,7 +990,7 @@ struct module
   Table		procedures;	/* predicates associated with module */
   Table		public;		/* public predicates associated */
   Module	super;		/* Import predicates from here */
-  ushort	flags;		/* booleans: */
+  unsigned short flags;		/* booleans: */
 		/*	SYSTEM	   system module */
 		/*	UNKNOWN	   trap unknown predicates */
 };
@@ -1310,8 +1298,8 @@ GLOBAL struct debuginfo
 { long		skiplevel;		/* current skip level */
   bool		tracing;		/* are we tracing? */
   bool		debugging;		/* are we debugging? */
-  ulong		leashing;		/* ports we are leashing */
-  ulong		visible;		/* ports that are visible */
+  unsigned long leashing;		/* ports we are leashing */
+  unsigned long visible;		/* ports that are visible */
   int		style;			/* print style of tracer */
   bool		showContext;		/* tracer shows context module */
   int		styleCheck;		/* source style checking */
@@ -1371,4 +1359,4 @@ extern struct functorDef functors[];
 #include "pl-atom.ih"
 #include "pl-funct.ih"
 
-#endif _PL_INCLUDE_H
+#endif /*_PL_INCLUDE_H*/

@@ -11,7 +11,7 @@
 #include "pl-buffer.h"
 
 Buffer
-newBuffer()
+newBuffer(void)
 { Buffer b = allocHeap(sizeof(buffer));
   
   initBuffer(b);
@@ -20,17 +20,14 @@ newBuffer()
 
 
 void
-freeBuffer(b)
-Buffer b;
+freeBuffer(Buffer b)
 { discardBuffer(b);
   freeHeap(b, sizeof(buffer));
 }
 
 
 void
-growBuffer(b, minfree)
-Buffer b;
-long minfree;
+growBuffer(Buffer b, long int minfree)
 { long sz = b->max - b->base;
   long top = b->top - b->base;
 

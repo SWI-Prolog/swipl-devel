@@ -33,20 +33,15 @@ This module is considerably faster when compiled  with  GCC,  using  the
 -finline-functions option.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-forwards void	startRead P((void));
-forwards void	stopRead P((void));
-forwards void	errorWarning P((char *));
-forwards void	singletonWarning P((Atom *, int));
-forwards void	clearBuffer P((void));
-forwards void	addToBuffer P((char));
-forwards void	delBuffer P((void));
-forwards void	extendBeep P((void));
-forwards void	extendDeleteEscape P((void));
-forwards void	extendDeleteEof P((void));
-forwards void	extendReprint P((bool));
-forwards Char	getchr P((void));
-forwards char *	raw_read2 P((void));
-forwards char *	raw_read P((void));
+forwards void	startRead(void);
+forwards void	stopRead(void);
+forwards void	errorWarning(char *);
+forwards void	singletonWarning(Atom *, int);
+forwards void	clearBuffer(void);
+forwards void	addToBuffer(char);
+forwards Char	getchr(void);
+forwards char *	raw_read2(void);
+forwards char *	raw_read(void);
 
 typedef struct token * Token;
 typedef struct variable * Variable;
@@ -111,7 +106,7 @@ int read_nesting = 0;		/* current nesting level */
 #endif /* O_PCE */
 
 void
-resetRead()
+resetRead(void)
 { 
 #if O_PCE
   read_nesting = 0;
@@ -120,7 +115,7 @@ resetRead()
 
 static
 void
-startRead()
+startRead(void)
 {
 #if O_PCE
   if (read_nesting >= MAX_READ_NESTING)
@@ -137,7 +132,7 @@ startRead()
 }
 
 static void
-stopRead()
+stopRead(void)
 {
 #if O_PCE
   rb_stack[read_nesting] = rb;
@@ -158,8 +153,7 @@ stopRead()
 #define syntaxError(what) { errorWarning(what); fail; }
 
 static void
-errorWarning(what)
-char *what;
+errorWarning(char *what)
 { char c = *token_start;
   
   if ( !ReadingSource )			/* not reading from a file */
@@ -197,9 +191,7 @@ char *what;
 
 
 static void
-singletonWarning(vars, nvars)
-Atom *vars;
-int nvars;
+singletonWarning(Atom *vars, int nvars)
 { word goal = globalFunctor(FUNCTOR_exception3);
   word arg;
   Word a;
@@ -265,21 +257,17 @@ clearBuffer()
 						read_nesting, rb.size) );
   rb.left = rb.size;
   base = rb.here = rb.base;
-  DEBUG(8, printf("Cleared read buffer.rb at %ld, base at %ld\n", &rb, rb.base));
+  DEBUG(8, printf("Cleared read buffer.rb at %ld, base at %ld\n",
+		  (long) &rb, (long) rb.base));
 }      
 
-#if PROTO
+
 static void
 addToBuffer(register char c)
-#else
-static void
-addToBuffer(c)
-register char c;
-#endif
 { if (rb.left-- == 0)
   { if ((rb.base = Realloc(rb.base, rb.size * 2)) == (char *)NULL)
       fatalError("%s", OsError());
-    DEBUG(8, printf("Reallocated read buffer at %ld\n", rb.base));
+    DEBUG(8, printf("Reallocated read buffer at %ld\n", (long) rb.base));
     base = rb.base;
     rb.here = rb.base + rb.size;
     rb.left = rb.size - 1;
@@ -288,17 +276,9 @@ register char c;
   *rb.here++ = c;
 }
 
-static void
-delBuffer()
-{ if ( rb.here > rb.base )
-  { rb.here--;
-    rb.left++;
-  }
-}
-
 
 static Char
-getchr()
+getchr(void)
 { register Char c;
 
   if (rb.fd == (FILE *)NULL)
@@ -327,7 +307,7 @@ getchr()
 			     }
 
 static char *
-raw_read2()
+raw_read2(void)
 { register Char c;
   bool something_read = FALSE;
   int newlines;
@@ -338,7 +318,8 @@ raw_read2()
   for(;;)
   { c = getchr();
     DEBUG(3, if ( Input == 0 ) printf("getchr() -> %d (%c)\n", c, c));
-    DEBUG(3, if ( Input == 0 ) printf("here = %d, base = %d", rb.here, rb.base));
+    DEBUG(3, if ( Input == 0 ) printf("here = %ld, base = %ld",
+				      (long) rb.here, (long) rb.base));
 #if !O_READLINE
     if ( c == ttytab.tab.c_cc[VEOF] )		/* little hack ... */
       c = EOF ;
@@ -469,7 +450,7 @@ raw_read2()
 }  
 
 static char *
-raw_read()
+raw_read(void)
 { char *s;
 
   startRead();
@@ -501,15 +482,15 @@ static char *    allocTop;		/* top of allocation */
 #endif
 static Variable* varTable;		/* hashTable for variables */
 
-forwards void	check_singletons P((void));
-forwards bool	bind_variables P((Word));
-forwards char *	alloc_var P((size_t));
-forwards char *	save_var_name P((char *));
-forwards Variable lookupVariable P((char *));
-forwards void	initVarTable P((void));
+forwards void	check_singletons(void);
+forwards bool	bind_variables(Word);
+forwards char *	alloc_var(size_t);
+forwards char *	save_var_name(char *);
+forwards Variable lookupVariable(char *);
+forwards void	initVarTable(void);
 
 static void
-check_singletons()
+check_singletons(void)
 { register Variable var;
   int n;
   Atom singletons[MAX_SINGLETONS];
@@ -533,8 +514,7 @@ check_singletons()
  ** Sat Apr 16 23:09:04 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 static bool
-bind_variables(bindings)
-Word bindings;
+bind_variables(Word bindings)
 { Variable var;
   int n;
   word binding;
@@ -557,8 +537,7 @@ Word bindings;
 }
 
 static char *
-alloc_var(n)
-register size_t n;
+alloc_var(register size_t n)
 { register char *space;
 
   n = ROUND(n, sizeof(word));
@@ -572,8 +551,7 @@ register size_t n;
 }
 
 static char *
-save_var_name(s)
-char *s;
+save_var_name(char *s)
 { char *copy = alloc_var(strlen(s) + 1);
 
   strcpy(copy, s);
@@ -582,8 +560,7 @@ char *s;
 }
 
 static Variable
-lookupVariable(s)
-char *s;
+lookupVariable(char *s)
 { int v = stringHashValue(s, VARHASHSIZE);
   Variable var;
 
@@ -594,7 +571,7 @@ char *s;
     }
   }
   var = (Variable) alloc_var((size_t) sizeof(struct variable));
-  DEBUG(9, printf("Allocated var at %ld\n", var));
+  DEBUG(9, printf("Allocated var at %ld\n", (long) var));
   var->next = varTable[v];
   varTable[v] = var;
   var->name = save_var_name(s);
@@ -605,7 +582,7 @@ char *s;
 }
 
 static void
-initVarTable()
+initVarTable(void)
 { int n;
 
   allocBase = (char *)(lTop+1) + (MAXARITY+MAXVARIABLES) * sizeof(word);
@@ -625,11 +602,11 @@ initVarTable()
 #define skipSpaces	{ while(isBlank(*here) ) here++; c = *here++; }
 #define unget_token()	{ unget = TRUE; }
 
-forwards Token	get_token P((bool));
-forwards word	build_term P((Atom, int, Word));
-forwards bool	complex_term P((char *, Word));
-forwards bool	simple_term P((bool, Word, bool *));
-forwards bool	read_term P((Word, Word, bool));
+forwards Token	get_token(bool);
+forwards word	build_term(Atom, int, Word);
+forwards bool	complex_term(char *, Word);
+forwards bool	simple_term(bool, Word, bool *);
+forwards bool	read_term(Word, Word, bool);
 
 typedef union
 { long	i;
@@ -640,11 +617,10 @@ typedef union
 #define V_REAL  1
 #define V_INT   2
 
-forwards int scan_number P((char **, int, number *));
+forwards int scan_number(char **, int, number *);
 
 word
-charpToNumber(s)
-char *s;
+charpToNumber(char *s)
 { number n;
   int type = scan_number(&s, 10, &n);
 
@@ -665,10 +641,7 @@ char *s;
 
 
 static int
-scan_number(s, b, n)
-char **s;
-int b;
-number *n;
+scan_number(char **s, int b, number *n)
 { int d;
 
   n->i = 0;
@@ -692,8 +665,7 @@ number *n;
 
 
 static Token
-get_token(must_be_op)
-bool must_be_op;
+get_token(bool must_be_op)
 { char c;
   char *start;
   char end;
@@ -951,10 +923,7 @@ nonvar terms or a reference to a variable block.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static word
-build_term(atom, arity, argv)
-Atom atom;
-int arity;
-Word argv;
+build_term(Atom atom, int arity, Word argv)
 { FunctorDef functor = lookupFunctorDef(atom, arity);
   word term;
   Word argp;
@@ -1011,10 +980,7 @@ typedef struct
 } op_entry;
 
 static bool
-isOp(atom, kind, e)
-Atom atom;
-int kind;
-op_entry *e;
+isOp(Atom atom, int kind, op_entry *e)
 { Operator op = isCurrentOperator(atom, kind);
   int pri;
 
@@ -1066,6 +1032,7 @@ op_entry *e;
 	while( out_n > 0 && side_p != NULL && (cond) ) \
 	{ int arity = (side_p->kind == OP_INFIX ? 2 : 1); \
 							  \
+ 	  if ( arity > out_n ) break; \
 	  DEBUG(1, printf("Reducing %s/%d\n", stringAtom(side_p->op), arity));\
 	  out[out_n-arity] = build_term(side_p->op, \
 					arity, \
@@ -1079,9 +1046,7 @@ op_entry *e;
 
 
 static bool
-complex_term(stop, term)
-char *stop;
-Word term;
+complex_term(char *stop, Word term)
 { word out[MAX_TERM_NESTING];
   op_entry in_op, side[MAX_TERM_NESTING];
   int out_n = 0, side_n = 0;
@@ -1114,24 +1079,30 @@ Word term;
     TRY( simple_term(rmo == 1, &in, &isname) );
 
     if ( isname )			/* Check for operators */
-    { if ( rmo == 1 && isOp((Atom) in, OP_INFIX, &in_op) )
-      {	DEBUG(1, printf("Infix op: %s\n", stringAtom((Atom) in)));
+    { DEBUG(1, printf("name %s, rmo = %d\n", stringAtom((Atom) in), rmo));
+
+      if ( isOp((Atom) in, OP_INFIX, &in_op) )
+      { DEBUG(1, printf("Infix op: %s\n", stringAtom((Atom) in)));
 
 	Modify(in_op.left_pri);
-	Reduce(in_op.left_pri > side_p->right_pri);
-	PushOp();
-	rmo--;
+	if ( rmo == 1 )
+	{ Reduce(in_op.left_pri > side_p->right_pri);
+	  PushOp();
+	  rmo--;
 
-	continue;
+	  continue;
+	}
       }
-      if ( rmo == 1 && isOp((Atom) in, OP_POSTFIX, &in_op) )
+      if ( isOp((Atom) in, OP_POSTFIX, &in_op) )
       { DEBUG(1, printf("Postfix op: %s\n", stringAtom((Atom) in)));
 
 	Modify(in_op.left_pri);
-	Reduce(in_op.left_pri > side_p->right_pri);
-	PushOp();	
+	if ( rmo == 1 )
+	{ Reduce(in_op.left_pri > side_p->right_pri);
+	  PushOp();	
 	
-	continue;
+	  continue;
+	}
       }
       if ( rmo == 0 && isOp((Atom) in, OP_PREFIX, &in_op) )
       { DEBUG(1, printf("Prefix op: %s\n", stringAtom((Atom) in)));
@@ -1170,13 +1141,10 @@ exit:
 
 
 static bool
-simple_term(must_be_op, term, name)
-bool must_be_op;
-Word term;
-bool *name;
+simple_term(bool must_be_op, Word term, bool *name)
 { Token token;
 
-  DEBUG(9, printf("simple_term(): Stack at %ld\n", &term));
+  DEBUG(9, printf("simple_term(): Stack at %ld\n", (long) &term));
 
   *name = FALSE;
 
@@ -1317,9 +1285,7 @@ bool *name;
 }
 
 static bool
-read_term(term, variables, check)
-Word term, variables;
-bool check;
+read_term(Word term, Word variables, bool check)
 { Token token;
   word result;
 
@@ -1367,8 +1333,7 @@ bool check;
 		*********************************/
 
 word
-pl_raw_read(term)
-Word term;
+pl_raw_read(Word term)
 { char *s;
   register char *top;
 
@@ -1388,39 +1353,33 @@ Word term;
 }
 
 word
-pl_read_variables(term, variables)
-Word term, variables;
+pl_read_variables(Word term, Word variables)
 { return read_term(term, variables, FALSE);
 }
 
 word
-pl_read_variables3(stream, term, variables)
-Word stream, term, variables;
+pl_read_variables3(Word stream, Word term, Word variables)
 { streamInput(stream, pl_read_variables(term, variables));
 }
 
 word
-pl_read(term)
-Word term;
+pl_read(Word term)
 { return read_term(term, (Word)NULL, FALSE);
 }
 
 word
-pl_read2(stream, term)
-Word stream, term;
+pl_read2(Word stream, Word term)
 { streamInput(stream, pl_read(term));
 }
 
 word
-pl_read_clause(term)
-Word term;
+pl_read_clause(Word term)
 { return read_term(term, (Word) NULL,
 		   debugstatus.styleCheck & SINGLETON_CHECK ? TRUE : FALSE);
 }
 
 word
-pl_read_clause2(stream, term)
-Word stream, term;
+pl_read_clause2(Word stream, Word term)
 { streamInput(stream, pl_read_clause(term));
 }
 

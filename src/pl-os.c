@@ -25,32 +25,33 @@ static long	wait_ticks;	/* clock ticks not CPU time */
 #include <sys/stat.h>
 #include <pwd.h>
 #include <sys/file.h>
+#if !sun
+#include <sys/ioctl.h>
+#endif
 #include <unistd.h>
-#include <errno.h>
 #endif
 
 #if sun
+#include <vfork.h>
 extern int fstat(/*int, struct stat **/);
 extern int stat(/*char *, struct stat**/);
 extern int unlink(/*char **/);
 extern int link(/*char **/);
 extern int select(/*int *, int*, int*, struct timeval **/);
 extern int ioctl(/*int, int, Void*/);
-extern int execl(/*char *, ... */);
-extern int srandom P((long));
-extern int random P((void));
+extern int srandom(long);
+extern int random(void);
 #endif
 
 #if OS2 && EMX
 static real initial_time;
 #endif /* OS2 */
 
-forwards void	initExpand P((void));
-forwards void	initRandom P((void));
-forwards void	initEnviron P((void));
-forwards char *	okToExec P((char *));
-forwards char *	Which P((char *));
-forwards Char	do_get_char P((void));
+forwards void	initExpand(void);
+forwards void	initRandom(void);
+forwards void	initEnviron(void);
+forwards char *	okToExec(char *);
+forwards char *	Which(char *);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module is a contraction of functions that used to be all  over  the
@@ -75,7 +76,7 @@ have to be dropped. See the header of pl-incl.h for details.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-initOs()
+initOs(void)
 { DEBUG(1, printf("OS:initExpand() ...\n"));
   initExpand();
   DEBUG(1, printf("OS:initRandom() ...\n"));
@@ -102,7 +103,7 @@ initOs()
 }
 
 
-typedef void (*halt_function) P((int, Void));
+typedef void (*halt_function)(int, Void);
 typedef struct on_halt *OnHalt;
 
 struct on_halt
@@ -114,9 +115,7 @@ struct on_halt
 static OnHalt on_halt_list;
 
 void
-PL_on_halt(f, arg)
-halt_function f;
-Void arg;
+PL_on_halt(halt_function f, Void arg)
 { OnHalt h = allocHeap(sizeof(struct on_halt));
 
   h->function = f;
@@ -127,8 +126,7 @@ Void arg;
 
 
 volatile void
-Halt(status)
-int status;
+Halt(int status)
 { OnHalt h;
 
   pl_notrace();				/* avoid recursive tracing */
@@ -153,7 +151,7 @@ int status;
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 char *
-OsError()
+OsError(void)
 { static char errmsg[64];
 
 #if unix
@@ -202,7 +200,7 @@ OsError()
 
 
 real
-CpuTime()
+CpuTime(void)
 {
 #if unix
   struct tms t;
@@ -249,8 +247,7 @@ CpuTime()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Void
-Allocate(n)
-long n;
+Allocate(long int n)
 { Void mem = Malloc(n);
 
   return (Void) mem;
@@ -343,7 +340,7 @@ unsigned char *s1, *s2;
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-initRandom()
+initRandom(void)
 {
 #ifdef SRANDOM
   SRANDOM(Time());
@@ -353,7 +350,7 @@ initRandom()
 }
 
 long
-Random()
+Random(void)
 { 
 #ifdef RANDOM
   return RANDOM();
@@ -398,8 +395,7 @@ static struct tempfile
 } *tempfiles, *temptail;		/* chain of temporary files */
 
 Atom
-TemporaryFile(id)
-char *id;
+TemporaryFile(char *id)
 { static char temp[MAXPATHLEN];
   TempFile tf = (TempFile) allocHeap(sizeof(struct tempfile));
 
@@ -437,7 +433,7 @@ char *id;
 }
 
 void
-RemoveTemporaryFiles()
+RemoveTemporaryFiles(void)
 { TempFile tf, tf2;  
 
   for(tf = tempfiles; tf; tf = tf2)
@@ -514,20 +510,24 @@ are defined here:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-GetDTableSize()
+GetDTableSize(void)
 {
 #ifdef DESCRIPTOR_TABLE_SIZE
   return DESCRIPTOR_TABLE_SIZE;
 #else
-#  if hpux || SGU
-#    include <sys/resource.h>
-     struct rlimit rlp;
-     (void) getrlimit(RLIMIT_NOFILE,&rlp);
-     return (rlp.rlim_cur);
+#  if _POSIX_SOURCE
+   return sysconf(_SC_OPEN_MAX);
 #  else
-     extern int getdtablesize P((void));
+#    if hpux || USG
+#      include <sys/resource.h>
+       struct rlimit rlp;
+       (void) getrlimit(RLIMIT_NOFILE,&rlp);
+       return (rlp.rlim_cur);
+#    else
+     extern int getdtablesize(void);
 
      return getdtablesize();
+#    endif
 #  endif
 #endif
 }
@@ -666,21 +666,18 @@ OsPath(char *unixpath)
 #endif /* OS2 */
 
 #if unix
-char *PrologPath(p)
-char *p;
+char *PrologPath(char *p)
 { return p;
 }
 
 char *
-OsPath(p)
-char *p;
+OsPath(char *p)
 { return p;
 }
 #endif
 
 long
-LastModifiedFile(f)
-char *f;
+LastModifiedFile(char *f)
 {
 #if unix || EMX
   struct stat buf;
@@ -725,8 +722,7 @@ char *f;
 
 
 bool
-ExistsFile(path)
-char *path;
+ExistsFile(char *path)
 {
 #if unix || EMX
   struct stat buf;
@@ -749,9 +745,7 @@ char *path;
 }
 
 bool
-AccessFile(path, mode)
-char *path;
-int mode;
+AccessFile(char *path, int mode)
 {
 #if unix || EMX
   int m = 0;
@@ -776,8 +770,7 @@ int mode;
 }
 
 bool
-ExistsDirectory(path)
-char *path;
+ExistsDirectory(char *path)
 {
 #if unix || EMX
   struct stat buf;
@@ -801,8 +794,7 @@ char *path;
 
 
 long
-SizeFile(path)
-char *path;
+SizeFile(char *path)
 { struct stat buf;
   if ( stat(OsPath(path), &buf) == -1 )
     return -1;
@@ -812,8 +804,7 @@ char *path;
 
 
 bool
-DeleteFile(path)
-char *path;
+DeleteFile(char *path)
 {
 #if unix || EMX
   return unlink(OsPath(path)) == 0 ? TRUE : FALSE;
@@ -826,8 +817,7 @@ char *path;
 
 
 bool
-RenameFile(old, new)
-char *old, *new;
+RenameFile(char *old, char *new)
 {
   char os_old[MAXPATHLEN];
   char os_new[MAXPATHLEN];
@@ -855,8 +845,7 @@ char *old, *new;
 
 
 bool
-SameFile(f1, f2)
-char *f1, *f2;
+SameFile(char *f1, char *f2)
 { if ( streq(f1, f2) == FALSE )
   { 
 #if unix
@@ -881,8 +870,7 @@ char *f1, *f2;
 
 
 bool
-OpenStream(fd)
-int fd;
+OpenStream(int fd)
 {
 #if unix || EMX
   struct stat buf;
@@ -897,8 +885,7 @@ int fd;
 
 
 bool
-MarkExecutable(name)
-char *name;
+MarkExecutable(char *name)
 {
 #if unix
   struct stat buf;
@@ -959,15 +946,15 @@ static struct canonical_dir
   CanonicalDir  next;			/* next in chain */
 } *canonical_dirlist = NULL;            /* initialization -- atoenne -- */
 
-forwards char	*canonisePath P((char *)); /* canonise a path-name */
-forwards char   *canoniseDir P((char *));
+forwards char	*canonisePath(char *); /* canonise a path-name */
+forwards char   *canoniseDir(char *);
 #endif
 
 static  char    CWDdir[MAXPATHLEN];	/* current directory */
 static  int     CWDlen;			/* Length of CWDdir */
 
 static void
-initExpand()
+initExpand(void)
 { 
 #if unix
   char *dir;
@@ -1006,8 +993,7 @@ initExpand()
 #if unix
 
 static char *
-canoniseDir(path)
-char *path;
+canoniseDir(char *path)
 { CanonicalDir d;
   struct stat buf;
 
@@ -1076,8 +1062,7 @@ char *path;
 
 
 static char *
-canonisePath(path)
-register char *path;
+canonisePath(register char *path)
 { register char *out = path;
   char *osave[100];
   int  osavep = 0;
@@ -1124,12 +1109,11 @@ register char *path;
 
 #include <ctype.h>
 
-forwards char	*takeWord P((char **));
-forwards int	ExpandFile P((char *, char **));
+forwards char	*takeWord(char **);
+forwards int	ExpandFile(char *, char **);
 
 static char *
-takeWord(string)
-char **string;
+takeWord(char **string)
 { static char wrd[MAXPATHLEN];
   register char *s = *string;
   register char *q = wrd;
@@ -1150,8 +1134,7 @@ char **string;
 
 
 bool
-expandVars(pattern, expanded)
-char *pattern, *expanded;
+expandVars(char *pattern, char *expanded)
 { int size = 0;
   char c;
 
@@ -1160,7 +1143,7 @@ char *pattern, *expanded;
 #if unix
     static char fred[20];
     static char fredLogin[MAXPATHLEN];
-    extern struct passwd *getpwnam();
+    extern struct passwd *getpwnam(const char *);
 #endif
     char *user;
     char *value;
@@ -1240,9 +1223,7 @@ char *pattern, *expanded;
 
 
 static int
-ExpandFile(pattern, vector)
-char *pattern;
-char **vector;
+ExpandFile(char *pattern, char **vector)
 { static char expanded[MAXPATHLEN];
   int matches = 0;
 
@@ -1256,8 +1237,7 @@ char **vector;
 
 
 char *
-ExpandOneFile(spec)
-char *spec;
+ExpandOneFile(char *spec)
 { static char file[MAXPATHLEN];
   char *vector[256];
   
@@ -1278,21 +1258,20 @@ char *spec;
 
 
 #if unix
-#if O_GETCWD || SGU && !_AIX
-char	*getcwd P((char *, size_t));
+#if O_GETCWD || USG && !_AIX
+char	*getcwd(char *, size_t);
 
 char *
-getwd(buf)
-char *buf;
+getwd(char *buf)
 { return getcwd(buf, MAXPATHLEN);
 }
 #else
-extern char *getwd P((char *));
+extern char *getwd(char *);
 #endif
 #endif
 
 #if OS2 && EMX
-char *getwd P((char *));
+char *getwd(char *);
 
 char *getwd(buf)
 char *buf;
@@ -1303,7 +1282,7 @@ char *buf;
 
 
 #if tos
-char	*getwd P((char *));
+char	*getwd(char *);
 
 char *
 getwd(buf)
@@ -1344,8 +1323,7 @@ char *buf;
 */
 
 char *
-AbsoluteFile(spec)
-char *spec;
+AbsoluteFile(char *spec)
 { static char path[MAXPATHLEN];
   char *file;  
 
@@ -1413,8 +1391,7 @@ char *spec;
 
 
 char *
-BaseName(f)
-register char *f;
+BaseName(register char *f)
 { register char *base;
 
   for(base = f; *f; f++)
@@ -1425,8 +1402,7 @@ register char *f;
 }
 
 char *
-DirName(f)
-char *f;
+DirName(char *f)
 { static char dir[MAXPATHLEN];
   char *base, *p;
 
@@ -1448,9 +1424,8 @@ char *f;
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-ChDir(path)
-char *path;
-{ extern int chdir(/*char**/);
+ChDir(char *path)
+{ extern int chdir(const char *);
   char *ospath = OsPath(path);
   char buf[MAXPATHLEN];
 
@@ -1476,7 +1451,7 @@ char *path;
 long
 getw(fd)
 register FILE *fd;
-{ register ulong r;
+{ register unsigned long r;
 
   r = getc(fd);
   r = (r << 8) | getc(fd);
@@ -1532,18 +1507,17 @@ FILE *fd;
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 struct tm *
-LocalTime(t)
-long *t;
-{ extern struct tm *localtime();
+LocalTime(long int *t)
+{ extern struct tm *localtime(const time_t *);
 
   return localtime(t);
 }
 
 long
-Time()
+Time(void)
 {
 #if !EMX
-extern long time();
+extern long time(time_t *);
 #endif
 
   return (long)time((time_t *) NULL);
@@ -1578,7 +1552,7 @@ PopTty()
 
 #if O_SAVE && !O_SAVE_STDIO
 static void
-ResetStdin()
+ResetStdin(void)
 {
 #ifdef RESET_STDIN
   RESET_STDIN;
@@ -1610,9 +1584,13 @@ int (*PL_dispatch_events)() = NULL;	/* event-dIspatching */
 #undef ESC				/* will be redefined ... */
 #include <readline/readline.h>
 #undef savestring
+extern void add_history(char *);	/* should be in readline.h */
+extern void rl_begin_undo_group(void);	/* delete when conflict arrises! */
+extern void rl_end_undo_group(void);
+
 
 static int
-event_hook()
+event_hook(void)
 { ttybuf tab;
   int rval;
 
@@ -1625,8 +1603,7 @@ event_hook()
 
 
 static char *
-xmalloc(size)
-int size;
+xmalloc(int size)
 { char *result = malloc(size);
 
   if ( !result )
@@ -1638,7 +1615,7 @@ int size;
 #define savestring(x) strcpy(xmalloc(1 + strlen(x)), (x))
 
 Char
-GetChar()
+GetChar(void)
 { static char *line;			/* read line */
   static char *line_p;			/* pointer in it */
   Atom sfn = source_file_name;		/* save over call-back */
@@ -1707,9 +1684,7 @@ GetChar()
 
 
 static void
-prolog_complete(ignore, key)
-int ignore;
-int key;
+prolog_complete(int ignore, int key)
 { if ( rl_point > 0 && rl_line_buffer[rl_point-1] != ' ' )
   { rl_begin_undo_group();
     rl_complete(ignore, key);
@@ -1722,10 +1697,8 @@ int key;
 
 
 static char **
-prolog_completion(text, start, end)
-char *text;
-int start, end;
-{ extern char *filename_completion_function P((char *, int));
+prolog_completion(char *text, int start, int end)
+{ extern char *filename_completion_function(char *, int);
   char **matches = NULL;
 
   if ( (start == 1 && rl_line_buffer[0] == '[') )	/* [file */
@@ -1742,7 +1715,7 @@ int start, end;
 
 
 void
-ResetTty()				/* used to initialise readline */
+ResetTty(void)				/* used to initialise readline */
 { ResetStdin();
 
   rl_readline_name = "Prolog";
@@ -1804,9 +1777,7 @@ ResetTty()
 #if O_TERMIOS				/* System V/POSIX termio system */
 
 bool
-PushTty(buf, mode)
-ttybuf *buf;
-int mode;
+PushTty(ttybuf *buf, int mode)
 { struct termio tio;
 
   buf->mode = ttymode;
@@ -1835,22 +1806,21 @@ int mode;
   }
 
   ioctl(0, TCSETAW, &tio);
-  ioctl(0, TCXONC, 1);
+  ioctl(0, TCXONC, (void *)1);
 
   succeed;
 }
 
 
 bool
-PopTty(buf)
-ttybuf *buf;
+PopTty(ttybuf *buf)
 { ttymode = buf->mode;
 
   if ( status.notty )
     succeed;
 
   ioctl(0, TCSETA, &buf->tab);
-  ioctl(0, TCXONC, 1);
+  ioctl(0, TCXONC, (void *)1);
 
   succeed;
 }
@@ -1909,14 +1879,12 @@ Grow the environment array by one and return the (possibly  moved)  base
 pointer to the new environment.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-forwards char	**growEnviron P((char**, int));
-forwards char	*matchName P((char *, char *));
-forwards void	setEntry P((char **, char *, char *));
+forwards char	**growEnviron(char**, int);
+forwards char	*matchName(char *, char *);
+forwards void	setEntry(char **, char *, char *);
 
 static char **
-growEnviron(e, amount)
-char **e;
-int amount;
+growEnviron(char **e, int amount)
 { static int filled;
   static int size = -1;
 
@@ -1957,7 +1925,7 @@ int amount;
 }
 
 static void
-initEnviron()
+initEnviron(void)
 {
 #if tos
   environ = mainEnv;
@@ -1967,8 +1935,7 @@ initEnviron()
 
 
 static char *
-matchName(e, name)
-register char *e, *name;
+matchName(register char *e, register char *name)
 { while( *name && *e == *name )
     e++, name++;
 
@@ -1980,9 +1947,7 @@ register char *e, *name;
 
 
 static void
-setEntry(e, name, value)      
-char **e;
-char *name, *value;
+setEntry(char **e, char *name, char *value)
 { int l = (int)strlen(name);
 
   *e = (char *) malloc(l + strlen(value) + 2);
@@ -1993,8 +1958,7 @@ char *name, *value;
 
   
 char *
-Setenv(name, value)
-char *name, *value;
+Setenv(char *name, char *value)
 { char **e;
   char *v;
   int n;
@@ -2015,8 +1979,7 @@ char *name, *value;
 
 
 char *
-Unsetenv(name)
-char *name;
+Unsetenv(char *name)
 { char **e;
   char *v;
   int n;
@@ -2064,14 +2027,15 @@ related I/O in the child process.
 #endif
 
 int
-System(cmd)
-char *cmd;
+System(char *cmd)
 { int pid;
   char *shell;
-  ttybuf buf;
   int rval;
   void (*old_int)();
   void (*old_stop)();
+#if !O_READLINE
+  ttybuf buf;
+#endif
 
   Setenv("PROLOGCHILD", "yes");
 
@@ -2097,7 +2061,7 @@ char *cmd;
     fail;
     /*NOTREACHED*/
   } else
-#if v7 || hpux || SGU
+#if v7 || hpux || USG
   { int waitstat, retstat;		/* the parent */
 
     old_int  = signal(SIGINT,  SIG_IGN);
@@ -2130,7 +2094,7 @@ char *cmd;
 
     while((n = Wait(&status)) != -1 && n != pid);
     if (n == -1)
-    { warning("Failed to execute %s: %s", cmd, OsError());
+    { warning("Failed to execute %s", cmd);
       rval = 1;
     } else if (WIFEXITED(status))
     { rval = status.w_retcode;
@@ -2263,7 +2227,7 @@ char *command;
 
 #if unix || EMX
 char *
-Symbols()
+Symbols(void)
 { return Which(PrologPath(mainArgv[0]));
 }
 #endif
@@ -2277,8 +2241,7 @@ Symbols()
 
 #if unix
 static char *
-okToExec(s)
-char *s;
+okToExec(char *s)
 { struct stat stbuff;
 #if sun
   extern int access(/*char *, int*/);
@@ -2361,8 +2324,7 @@ char *s;
 #endif /* OS2 */
 
 static char *
-Which(program)
-char *program;
+Which(char *program)
 { static char fullname[MAXPATHLEN];
   char *path, *dir;
   char *e;
@@ -2442,8 +2404,8 @@ real time;
 #else
 
 void
-Sleep(time)			/* system has select() */
-real time;
+Sleep(real time)			/* system has select() */
+          
 { struct timeval timeout;
 
   if ( time <= 0.0 )

@@ -40,14 +40,6 @@ crash.  GCC passes small structures often more efficient than the native
 compiler.  Notably the implementation of clause  indexing is improved by
 this.
 
-  ANSI
-      This flag indicates the compiler provides ANSI prototypes and  the
-      standard ANSI header files.
-
-  PROTO
-      This flag indicates the compiler accepts ANSI prototypes, but does
-      not offer the standard ANSI include files.
-
   O_NO_LEFT_CAST
       Compiler does not understand ``(cast)variable = value''.
 
@@ -228,8 +220,6 @@ this.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 			/* compiler */
-#define ANSI			1
-/*#define PROTO			0 not needed when ANSI is set*/
 #define O_NO_LEFT_CAST		0
 #define O_NO_VOID_POINTER	0
 #define O_SHORT_SYMBOLS		0

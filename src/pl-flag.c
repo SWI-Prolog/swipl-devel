@@ -19,10 +19,10 @@ struct flag
 
 static Flag flagTable[FLAGHASHSIZE];
 
-forwards Flag lookupFlag P((word));
+forwards Flag lookupFlag(word);
 
 void
-initFlags()
+initFlags(void)
 { register Flag *f;
   register int n;
 
@@ -31,8 +31,7 @@ initFlags()
 }
 
 static Flag
-lookupFlag(key)
-word key;
+lookupFlag(word key)
 { int v = pointerHashValue(key, FLAGHASHSIZE);
   Flag f;
 
@@ -50,8 +49,7 @@ word key;
 }
 
 word
-pl_flag(name, old, new)
-Word name, old, new;
+pl_flag(Word name, Word old, Word new)
 { Flag f;
   word key;
 
@@ -75,9 +73,7 @@ Word name, old, new;
 }
 
 word
-pl_current_flag(k, h)
-Word k;
-word h;
+pl_current_flag(Word k, word h)
 { Flag f;
 
   switch( ForeignControl(h) )

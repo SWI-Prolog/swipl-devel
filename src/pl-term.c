@@ -50,8 +50,8 @@ typedef struct
   word  value;				/* Value of the entry */
 } entry, *Entry;
 
-forwards bool	initTerm P((void));
-forwards Entry	lookupEntry P((Atom, Atom));
+forwards bool	initTerm(void);
+forwards Entry	lookupEntry(Atom, Atom);
 
 void
 resetTerm()
@@ -70,7 +70,7 @@ resetTerm()
 }
 
 static bool
-initTerm()
+initTerm(void)
 { static char *buf = NULL;
   static char *string_area = NULL;
 
@@ -99,8 +99,7 @@ initTerm()
 }
 
 static Entry
-lookupEntry(name, type)
-Atom name, type;
+lookupEntry(Atom name, Atom type)
 { Symbol s;
   Entry e;
 
@@ -141,8 +140,7 @@ Atom name, type;
 }
       
 word
-pl_tty_get_capability(name, type, value)
-Word name, type, value;
+pl_tty_get_capability(Word name, Word type, Word value)
 { Entry e;
 
   if ( !isAtom(*name) || !isAtom(*type) )
@@ -157,8 +155,7 @@ Word name, type, value;
 }
   
 word
-pl_tty_goto(x, y)
-Word x, y;
+pl_tty_goto(Word x, Word y)
 { Entry e;
   char *s;
 
@@ -176,9 +173,7 @@ Word x, y;
 }
 
 word
-pl_tty_put(a, affcnt)
-Word a;
-Word affcnt;
+pl_tty_put(Word a, Word affcnt)
 { char *s = primitiveToString(*a, FALSE);
 
   if ( s == NULL || !isInteger(*affcnt) )
@@ -187,8 +182,7 @@ Word affcnt;
 }
 
 word
-pl_set_tty(old, new)
-Word old, new;
+pl_set_tty(Word old, Word new)
 { TRY( unifyAtomic(old, tty_stream) );
   if ( streamNo(new, F_WRITE) < 0 )
     fail;

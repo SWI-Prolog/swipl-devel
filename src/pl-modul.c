@@ -23,8 +23,7 @@ modules import from `user' (and indirect from `system').
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Module
-lookupModule(name)
-Atom name;
+lookupModule(Atom name)
 { Symbol s;
   Module m;
 
@@ -61,8 +60,7 @@ Atom name;
 }
 
 Module
-isCurrentModule(name)
-Atom name;
+isCurrentModule(Atom name)
 { Symbol s;
 
   if ((s = lookupHTable(moduleTable, name)) != (Symbol) NULL)
@@ -72,7 +70,7 @@ Atom name;
 }
 
 void
-initModules()
+initModules(void)
 { moduleTable    = newHTable(MODULEHASHSIZE);
   modules.system = lookupModule(ATOM_system);
   modules.user   = lookupModule(ATOM_user);
@@ -87,9 +85,7 @@ remaining term.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Word
-stripModule(term, module)
-register Word term;
-Module *module;
+stripModule(register Word term, Module *module)
 { while(isTerm(*term) && functorTerm(*term) == FUNCTOR_module2)
   { register Word mp;
     mp = argTermP(*term, 0);
@@ -111,16 +107,13 @@ Module *module;
 }
 
 bool
-isPublicModule(module, proc)
-Module module;
-Procedure proc;
+isPublicModule(Module module, Procedure proc)
 { return lookupHTable(module->public, proc->functor) == (Symbol) NULL ? FALSE
 								      : TRUE;
 }
 
 bool
-isSuperModule(m, s)
-Module m, s;
+isSuperModule(Module m, Module s)
 { for( ; m; m = m->super )
     if ( m == s )
       succeed;
@@ -133,8 +126,7 @@ Module m, s;
 		*********************************/
 
 word
-pl_default_module(me, old, new)
-Word me, old, new;
+pl_default_module(Word me, Word old, Word new)
 { Module m, s;
 
   if ( isVar(*me) )
@@ -158,9 +150,7 @@ Word me, old, new;
 
 
 word
-pl_current_module(module, file, h)
-Word module, file;
-word h;
+pl_current_module(Word module, Word file, word h)
 { Module m;
   Atom f;
   Symbol symb;
@@ -197,8 +187,7 @@ word h;
 }
 
 word
-pl_strip_module(spec, module, term)
-Word spec, module, term;
+pl_strip_module(Word spec, Word module, Word term)
 { Module m = (Module) NULL;
 
   if ( (spec = stripModule(spec, &m)) == (Word) NULL )
@@ -209,8 +198,7 @@ Word spec, module, term;
 }  
 
 word
-pl_module(old, new)
-Word old, new;
+pl_module(Word old, Word new)
 { TRY(unifyAtomic(old, modules.typein->name) );
   if (!isAtom(*new) )
     return warning("module/1: argument should be an atom");
@@ -220,8 +208,7 @@ Word old, new;
 }
 
 word
-pl_set_source_module(old, new)
-Word old, new;
+pl_set_source_module(Word old, Word new)
 { TRY(unifyAtomic(old, modules.source->name) );
   if (!isAtom(*new) )
     return warning("$source_module/1: argument should be an atom");
@@ -238,8 +225,7 @@ in it are abolished.
 
 
 word
-pl_declare_module(name, file)
-Word name, file;
+pl_declare_module(Word name, Word file)
 { Module module;
   Symbol s;
   SourceFile sf;
@@ -276,8 +262,7 @@ export_list(+Module, -PublicPreds)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
-pl_export_list(modulename, list)
-Word modulename, list;
+pl_export_list(Word modulename, Word list)
 { Module module;
   Symbol s;
 
@@ -304,8 +289,7 @@ context module.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
-pl_export(head)
-Word head;
+pl_export(Word head)
 { Procedure proc;
   Module module = (Module) NULL;
 
@@ -325,7 +309,7 @@ Word head;
 }
 
 word
-pl_check_export()
+pl_check_export(void)
 { Module module = contextModule(environment_frame);
   Symbol s;
 
@@ -343,8 +327,7 @@ pl_check_export()
 }
 
 word
-pl_context_module(module)
-Word module;
+pl_context_module(Word module)
 { return unifyAtomic(module, contextModule(environment_frame)->name);
 }
 
@@ -357,8 +340,7 @@ warning is displayed, but the predicate is imported nevertheless.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
-pl_import(pred)
-Word pred;
+pl_import(Word pred)
 { Module source = (Module) NULL;
   Module destination = contextModule(environment_frame);
   Procedure proc, old;

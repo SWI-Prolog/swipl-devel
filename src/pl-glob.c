@@ -87,13 +87,13 @@ static struct out
   uchar	code[MAXCODE];
 } cbuf;
 
-forwards char	*compile_pattern P((struct out *, char *, int));
-forwards bool	match_pattern P((uchar *, char *));
-forwards int	stringCompare P((const void *, const void *));
-forwards bool	expand P((char *, char **, int *));
-forwards bool	Exists P((char *));
-forwards char	*change_string P((char *, char *));
-forwards bool	expandBag P((struct bag *));
+forwards char	*compile_pattern(struct out *, char *, int);
+forwards bool	match_pattern(uchar *, char *);
+forwards int	stringCompare(const void *, const void *);
+forwards bool	expand(char *, char **, int *);
+forwards bool	Exists(char *);
+forwards char	*change_string(char *, char *);
+forwards bool	expandBag(struct bag *);
 
 #define Output(c)	{ if ( Out->size > MAXCODE-1 ) \
 			  { warning("pattern too large"); \
@@ -104,8 +104,7 @@ forwards bool	expandBag P((struct bag *));
 #define setMap(c)	{ map[(c)/8] |= 1 << ((c) % 8); }
 
 bool
-compilePattern(p)
-char *p;
+compilePattern(char *p)
 { cbuf.size = 0;
   if ( compile_pattern(&cbuf, p, NOCURL) == (char *) NULL )
     fail;
@@ -115,10 +114,7 @@ char *p;
 
 
 static char *
-compile_pattern(Out, p, curl)
-struct out *Out;
-char *p;
-int curl;
+compile_pattern(struct out *Out, char *p, int curl)
 { char c;
 
   for(;;)
@@ -224,15 +220,12 @@ int curl;
 
 
 bool
-matchPattern(s)
-char *s;
+matchPattern(char *s)
 { return match_pattern(cbuf.code, s);
 }
 
 static bool
-match_pattern(p, s)
-register uchar *p;
-register char *s;
+match_pattern(register uchar *p, register char *s)
 { register uchar c;
 
   for(;;)
@@ -276,8 +269,7 @@ register char *s;
 
 
 word
-pl_wildcard_match(pattern, string)
-Word pattern, string;
+pl_wildcard_match(Word pattern, Word string)
 { char *p, *s;
 
   initAllocLocal();
@@ -298,8 +290,7 @@ File Name Expansion.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
-pl_expand_file_name(f, l)
-Word f, l;
+pl_expand_file_name(Word f, Word l)
 { char spec[MAXPATHLEN];
   char *s = primitiveToString(*f, FALSE);
   char *vector[MAXEXPAND];
@@ -328,8 +319,7 @@ Word f, l;
 
 #if __STDC__
 static int
-stringCompare(a1, a2)
-const void *a1, *a2;
+stringCompare(const void *a1, const void *a2)
 { return strcmp(*((char **)a1), *((char **)a2));
 }
 
@@ -343,10 +333,7 @@ register char **s1, **s2;
 #endif
 
 static bool
-expand(f, argv, argc)
-char *f;
-char **argv;
-int *argc;
+expand(char *f, char **argv, int *argc)
 { struct bag b;
 
   b.changed = b.expanded = FALSE;
@@ -377,10 +364,9 @@ int *argc;
 
 #if unix || EMX
 static bool
-Exists(path)
-char *path;
+Exists(char *path)
 { struct stat buf;
-  extern int stat();
+  extern int stat(const char *, struct stat *);
 
   if ( stat(OsPath(path), &buf) == -1 )
     fail;
@@ -407,14 +393,12 @@ char *path;
 #endif
 
 static char *
-change_string(old, new)
-char *old, *new;
+change_string(char *old, char *new)
 { return store_string(new);
 }
 
 static bool
-expandBag(b)
-struct bag *b;
+expandBag(struct bag *b)
 { int high = b->in;
 
   for( ; b->out != high; b->out = NextIndex(b->out) )
@@ -488,9 +472,9 @@ struct bag *b;
 	extern struct direct *readdir();
 #else
 	struct dirent *e;
-	extern struct dirent *readdir();
+	extern struct dirent *readdir(DIR *);
 #endif
-	extern DIR *opendir();
+	extern DIR *opendir(const char *);
 
 	if ( (d = opendir(OsPath(path))) != (DIR *)NULL )
 	{ for(e=readdir(d); e; e = readdir(d))

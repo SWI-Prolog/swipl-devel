@@ -28,8 +28,7 @@ pl_break()
 }
 
 word
-pl_break1(goal)
-Word goal;
+pl_break1(Word goal)
 { extern int Input, Output;
   bool rval;
   mark m;
@@ -71,10 +70,7 @@ break environment and thus bindings which result of the call are lost.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-callGoal(module, goal, debug)
-Module module;
-word goal;
-bool debug;
+callGoal(Module module, word goal, bool debug)
 { LocalFrame lSave   = lTop;
   Lock	     pSave   = pTop;		/* TMP */
   LocalFrame envSave = environment_frame;
@@ -147,8 +143,7 @@ interpreter with the toplevel goal.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-prolog(goal)
-volatile word goal;
+prolog(volatile word goal)
 { if (setjmp(abort_context) != 0)
   { goal = (word) ATOM_abort;
   } else
@@ -182,7 +177,7 @@ Cut (!) as called via the  meta-call  mechanism has no effect.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
-pl_metacut()
+pl_metacut(void)
 { succeed;
 }
 

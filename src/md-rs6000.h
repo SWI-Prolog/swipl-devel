@@ -40,10 +40,7 @@ Thanks to Olle Ollson at SICS for giving me access to their hardware.
 #endif
 #define etext _etext
 #define unix			1
-/* #define _BSD			1	/* BSD compatibility mode */
 #define SGU			1
-#define ANSI			1
-#define PROTO			1
 #define O_NO_LEFT_CAST		1
 #define O_NO_VOID_POINTER	0
 #define O_SHORT_SYMBOLS		0

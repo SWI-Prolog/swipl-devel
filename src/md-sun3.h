@@ -29,8 +29,6 @@ Note: From SunOs 4.1.1 this fix appears no longer necessary.
 #endif
 
 			/* compiler */
-#define ANSI			0
-#define PROTO			0
 #define O_NO_LEFT_CAST		0
 #define O_NO_VOID_POINTER	0
 #define O_SHORT_SYMBOLS		0

@@ -10,8 +10,7 @@
 #include "pl-incl.h"
 
 word
-pl_is_list(list)
-Word list;
+pl_is_list(Word list)
 { if ( isList(*list) || isNil(*list) )
     succeed;
 
@@ -19,8 +18,7 @@ Word list;
 }
 
 word
-pl_proper_list(list)
-Word list;
+pl_proper_list(Word list)
 { if ( lengthList(list) >= 0 )
     succeed;
 
@@ -28,8 +26,7 @@ Word list;
 }
 
 word
-pl_length(list, l)
-Word list, l;
+pl_length(Word list, Word l)
 { if ( isInteger(*l) )
   { long n = valNum(*l);
     if ( n < 0 )
@@ -55,8 +52,7 @@ Word list, l;
 
 
 word
-pl_memberchk(e, list)
-Word e, list;
+pl_memberchk(Word e, Word list)
 { for(;;)
   { TRY( unifyFunctor(list, FUNCTOR_dot2) );
     if ( pl_unify(e, HeadList(list)) == TRUE )
@@ -66,29 +62,17 @@ Word e, list;
   }
 }
 
-forwards int	qsort_compare_standard P((const void *, const void *));
-forwards Word	*list_to_sorted_array P((Word, int *));
+forwards int	qsort_compare_standard(const void *, const void *);
+forwards Word	*list_to_sorted_array(Word, int *);
 
-#ifdef PROTO
 static int
-qsort_compare_standard(p1, p2)
-const void *p1, *p2;
+qsort_compare_standard(const void *p1, const void *p2)
 { return compareStandard(*((Word *)p1), *((Word *)p2));
 }
 
-#else
-
-static int
-qsort_compare_standard(p1, p2)
-Word *p1, *p2;
-{ return compareStandard(*p1, *p2);
-}
-#endif
 
 static Word *
-list_to_sorted_array(list, size)
-Word list;
-int *size;
+list_to_sorted_array(Word list, int *size)
 { int n = lengthList(list);
   Word *array, *a;
 
@@ -112,8 +96,7 @@ int *size;
 
 
 word
-pl_msort(list, sorted)
-Word list, sorted;
+pl_msort(Word list, Word sorted)
 { Word *array;
   int n;
 
@@ -128,8 +111,7 @@ Word list, sorted;
 
 
 word
-pl_sort(list, sorted)
-Word list, sorted;
+pl_sort(Word list, Word sorted)
 { Word *array;
   int n, size;
 

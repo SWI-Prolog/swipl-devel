@@ -20,9 +20,7 @@ the user (normally /usr/local/bin, next to Prolog itself).
 
 char *program;
 
-main(argc, argv)
-int argc;
-char **argv;
+main(int argc, char **argv)
 { long from, to;
   char *s;
   FILE *fd;
@@ -57,7 +55,7 @@ char **argv;
   exit(0);
 }
 
-usage()
+usage(void)
 { fprintf(stderr, "usage: %s from:to file\n");
   exit(1);
 }

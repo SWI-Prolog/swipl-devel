@@ -11,23 +11,22 @@
 #include "pl-ctype.h"
 extern int Output;
 
-forwards char *	varName P((Word));
-forwards void	writePrimitive P((Word, bool));
-forwards bool	display P((Word, bool));
-forwards int	priorityOperator P((Atom));
-forwards bool	writeTerm P((Word, int, bool, Word));
-forwards word	displayStream P((Word, Word, bool));
-forwards word	writeStreamTerm P((Word, Word, int, int, Word));
+forwards char *	varName(Word);
+forwards void	writePrimitive(Word, bool);
+forwards bool	display(Word, bool);
+forwards int	priorityOperator(Atom);
+forwards bool	writeTerm(Word, int, bool, Word);
+forwards word	displayStream(Word, Word, bool);
+forwards word	writeStreamTerm(Word, Word, int, int, Word);
 
 static char *
-varName(adr)
-Word adr;
+varName(Word adr)
 { static char name[10];
 
   if (adr > (Word) lBase)
-    sprintf(name, "L%ld", adr - (Word)lBase);
+    sprintf(name, "L%ld", (long)adr - (long)lBase);
   else
-    sprintf(name, "G%ld", adr - (Word)gBase);
+    sprintf(name, "G%ld", (long)adr - (long)gBase);
 
   return name;
 }
@@ -41,8 +40,7 @@ Word adr;
 #define AT_SPECIAL	5
 
 static int
-atomType(a)
-Atom a;
+atomType(Atom a)
 { char *s = stringAtom(a);
 
   if ( isLower(*s) )
@@ -75,9 +73,7 @@ Atom a;
 
 
 static void
-writePrimitive(w, quote)
-Word w;
-bool quote;
+writePrimitive(Word w, bool quote)
 { char *s, c;
 
   DEBUG(9, printf("writing primitive at 0x%x: 0x%x\n", w, *w));
@@ -145,21 +141,18 @@ bool quote;
 }
 
 word
-pl_nl()
+pl_nl(void)
 { return Put('\n');
 }
 
 word
-pl_nl1(stream)
-Word stream;
+pl_nl1(Word stream)
 { streamOutput(stream, pl_nl());
 }
 
 
 static bool
-display(t, quote)
-Word t;
-bool quote;
+display(Word t, bool quote)
 { int n;
   int arity;
   Word arg;
@@ -193,39 +186,32 @@ bool quote;
 }
 
 word
-pl_display(term)
-Word term;
+pl_display(Word term)
 { return display(term, FALSE);
 }
 
 word
-pl_displayq(term)
-Word term;
+pl_displayq(Word term)
 { return display(term, TRUE);
 }
 
 static word
-displayStream(stream, term, quote)
-Word stream, term;
-bool quote;
+displayStream(Word stream, Word term, bool quote)
 { streamOutput(stream, display(term, quote));
 }
 
 word
-pl_display2(stream, term)
-Word stream, term;
+pl_display2(Word stream, Word term)
 { return displayStream(stream, term, FALSE);
 }
 
 word
-pl_displayq2(stream, term)
-Word stream, term;
+pl_displayq2(Word stream, Word term)
 { return displayStream(stream, term, TRUE);
 }
 
 static int
-priorityOperator(atom)
-Atom atom;
+priorityOperator(Atom atom)
 { int type, priority;
   int result = 0;
 
@@ -254,9 +240,7 @@ Atom atom;
  ** Sun Jun  5 15:37:12 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 static bool
-pl_call2(goal, arg)
-Word goal;
-Word arg;
+pl_call2(Word goal, Word arg)
 { Module mod = NULL;
   Atom name;
   int arity;
@@ -292,8 +276,7 @@ Word arg;
 
 
 static bool
-needSpace(w1, w2)
-word w1, w2;
+needSpace(word w1, word w2)
 { if ( isAtom(w1) && atomType((Atom) w1) == AT_SYMBOL &&
        ((isAtom(w2) && atomType((Atom) w2) == AT_LOWER) ||
 	isVar(w2)) )
@@ -304,11 +287,7 @@ word w1, w2;
 
 
 static bool
-writeTerm(term, prec, style, g)
-Word term;
-int prec;
-bool style;
-Word g;
+writeTerm(Word term, int prec, bool style, Word g)
 { Atom functor;
   int arity, n;
   int op_type, op_pri;
@@ -354,7 +333,7 @@ Word g;
     { if (op_pri > prec)
 	Put('(');
       writePrimitive((Word) &functor, quote);
-      if ( needSpace(functor, *arg) )
+      if ( needSpace((word) functor, *arg) )
 	Put(' ');
       writeTerm(arg, op_type == OP_FX ? op_pri-1 : op_pri, style, g);
       if (op_pri > prec)
@@ -365,7 +344,7 @@ Word g;
     { if (op_pri > prec)
 	Put('(');
       writeTerm(arg, op_type == OP_XF ? op_pri-1 : op_pri, style, g);
-      if ( needSpace(functor, *arg) )
+      if ( needSpace((word) functor, *arg) )
 	Put(' ');
       writePrimitive((Word)&functor, quote);
       if (op_pri > prec)
@@ -423,24 +402,21 @@ Word g;
 }
 
 word
-pl_write(term)
-Word term;
+pl_write(Word term)
 { writeTerm(term, 1200, PLAIN, NULL);
 
   succeed;
 }
 
 word
-pl_writeq(term)
-Word term;
+pl_writeq(Word term)
 { writeTerm(term, 1200, QUOTE_ATOMS, NULL);
 
   succeed;
 }
 
 word
-pl_print(term)
-Word term;
+pl_print(Word term)
 { word g = (word) ATOM_portray;
 
   writeTerm(term, 1200, PORTRAY, &g);
@@ -449,35 +425,29 @@ Word term;
 }
 
 word
-pl_dprint(term, g)
-Word term, g;
+pl_dprint(Word term, Word g)
 { writeTerm(term, 1200, PORTRAY, g);
 
   succeed;
 }
 
 static word
-writeStreamTerm(stream, term, prec, style, g)
-Word stream, term, g;
-int prec, style;
+writeStreamTerm(Word stream, Word term, int prec, int style, Word g)
 { streamOutput(stream, writeTerm(term, prec, style, g));
 }
 
 word
-pl_write2(stream, term)
-Word stream, term;
+pl_write2(Word stream, Word term)
 { return writeStreamTerm(stream, term, 1200, PLAIN, NULL);
 }
 
 word
-pl_writeq2(stream, term)
-Word stream, term;
+pl_writeq2(Word stream, Word term)
 { return writeStreamTerm(stream, term, 1200, QUOTE_ATOMS, NULL);
 }
 
 word
-pl_print2(stream, term)
-Word stream, term;
+pl_print2(Word stream, Word term)
 { word g = (word) ATOM_portray;
 
   return writeStreamTerm(stream, term, 1200, PORTRAY, &g);

@@ -130,7 +130,7 @@ Marking, testing marks and extracting values from GC masked words.
 #define L_POINTER 	(0x1)		/* pointer to a Word */
 #define L_WORD	  	(0x2)		/* pointer to a word */
 
-#define makeLock(a, t)	((ulong)(a) | (t)) 	 /* Create a lock */
+#define makeLock(a, t)	((unsigned long)(a) | (t)) /* Create a lock */
 #define lockTag(l)	((l) & L_MASK)		 /* Tag of the lock */
 #define lockAddress(l)	((Void) ((l) & ~L_MASK)) /* Locked address */
 
@@ -138,35 +138,37 @@ Marking, testing marks and extracting values from GC masked words.
 		 *     FUNCTION PROTOTYPES	*
 		 *******************************/
 
-forwards long		offset_cell P((Word));
-forwards Word		previous_gcell P((Word));
-forwards void		mark_variable P((Word));
-forwards void		mark_foreign P((void));
-forwards void		clear_uninitialised P((LocalFrame, Code));
-forwards LocalFrame	mark_environments P((LocalFrame));
-forwards void		mark_choicepoints P((LocalFrame));
-forwards void		mark_stacks P((LocalFrame));
-forwards void		mark_phase P((LocalFrame));
-forwards void		update_relocation_chain P((Word, Word));
-forwards void		into_relocation_chain P((Word));
-forwards void		compact_trail P((void));
-forwards void		sweep_mark P((mark *));
-forwards void		sweep_foreign P((void));
-forwards void		sweep_trail P((void));
-forwards LocalFrame	sweep_environments P((LocalFrame));
-forwards void		sweep_choicepoints P((LocalFrame));
-forwards void		sweep_stacks P((LocalFrame));
-forwards void		sweep_local P((LocalFrame));
-forwards bool		is_downward_ref P((Word));
-forwards bool		is_upward_ref P((Word));
-forwards void		compact_global P((void));
-forwards void		collect_phase P((LocalFrame));
+forwards long		offset_cell(Word);
+forwards Word		previous_gcell(Word);
+forwards void		mark_variable(Word);
+#if GC_FOREIGN
+forwards void		mark_foreign(void);
+forwards void		sweep_foreign(void);
+#endif
+forwards void		clear_uninitialised(LocalFrame, Code);
+forwards LocalFrame	mark_environments(LocalFrame);
+forwards void		mark_choicepoints(LocalFrame);
+forwards void		mark_stacks(LocalFrame);
+forwards void		mark_phase(LocalFrame);
+forwards void		update_relocation_chain(Word, Word);
+forwards void		into_relocation_chain(Word);
+forwards void		compact_trail(void);
+forwards void		sweep_mark(mark *);
+forwards void		sweep_trail(void);
+forwards LocalFrame	sweep_environments(LocalFrame);
+forwards void		sweep_choicepoints(LocalFrame);
+forwards void		sweep_stacks(LocalFrame);
+forwards void		sweep_local(LocalFrame);
+forwards bool		is_downward_ref(Word);
+forwards bool		is_upward_ref(Word);
+forwards void		compact_global(void);
+forwards void		collect_phase(LocalFrame);
 
 #if O_SECURE
-forwards int		cmp_address P((const void *, const void *));
-forwards void		check_relocation P((Word));
-forwards void		needsRelocation P((Word));
-forwards bool		scan_global P((void));
+forwards int		cmp_address(const void *, const void *);
+forwards void		check_relocation(Word);
+forwards void		needsRelocation(Word);
+forwards bool		scan_global(void);
 #endif
 		/********************************
 		*           GLOBALS             *
@@ -222,8 +224,7 @@ Word addr;
 		*********************************/
 
 static long
-offset_cell(p)
-Word p;
+offset_cell(Word p)
 { word w = get_value(p);
 
   if ( (w & DATA_TAG_MASK) == REAL_MASK )
@@ -240,8 +241,7 @@ Word p;
 }
 
 static Word
-previous_gcell(p)
-Word p;
+previous_gcell(Word p)
 { p--;
   return p - offset_cell(p);
 }
@@ -289,8 +289,7 @@ Strings and reals on the stacks complicate matters even more.
 #define BACKWARD	goto backward
 
 static void
-mark_variable(start)
-Word start;
+mark_variable(Word start)
 { register Word current;		/* current cell examined */
   register word val;			/* old value of current cell */
   register Word next;			/* cell to be examined */
@@ -402,8 +401,9 @@ backward:  				/* reversing backwards */
 References from foreign code.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#if GC_FOREIGN
 static void
-mark_foreign()
+mark_foreign(void)
 { Lock l;
 
   for( l = pBase; l < pTop; l++ )
@@ -431,6 +431,7 @@ mark_foreign()
     }
   }
 }
+#endif
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -438,9 +439,7 @@ Marking the environments.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-clear_uninitialised(fr, PC)
-LocalFrame fr;
-Code PC;
+clear_uninitialised(LocalFrame fr, Code PC)
 { if ( PC != NULL )
   { Code branch_end = NULL;
 
@@ -469,8 +468,7 @@ Code PC;
 
 
 static LocalFrame
-mark_environments(fr)
-LocalFrame fr;
+mark_environments(LocalFrame fr)
 { Code PC = NULL;
 
   if ( fr == (LocalFrame) NULL )
@@ -509,8 +507,7 @@ LocalFrame fr;
 }
 
 static void
-mark_choicepoints(bfr)
-LocalFrame bfr;
+mark_choicepoints(LocalFrame bfr)
 { TrailEntry te = tTop - 1;
 
   trailcells_deleted = 0;
@@ -539,8 +536,7 @@ LocalFrame bfr;
 }
 
 static void
-mark_stacks(fr)
-LocalFrame fr;
+mark_stacks(LocalFrame fr)
 { LocalFrame pfr;
 
   if ( (pfr = mark_environments(fr)) != NULL )
@@ -571,8 +567,7 @@ Word *p1, *p2;
 #endif
 
 static void
-mark_phase(fr)
-LocalFrame fr;
+mark_phase(LocalFrame fr)
 { total_marked = 0;
 
 #if GC_FOREIGN
@@ -623,8 +618,7 @@ chain.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-update_relocation_chain(current, dest)
-Word current, dest;
+update_relocation_chain(Word current, Word dest)
 { if ( is_first(current) )
   { Word head = current;
     word val = get_value(current);
@@ -659,8 +653,7 @@ Word current, dest;
 
 
 static void
-into_relocation_chain(current)
-Word current;
+into_relocation_chain(Word current)
 { Word head;
   word val = get_value(current);
   
@@ -697,9 +690,8 @@ Trail stack compacting.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-compact_trail()
+compact_trail(void)
 { TrailEntry dest, current;
-  Lock l;
   
 #if GC_FOREIGN
 	/* get foreign references into the relocation chains */
@@ -746,8 +738,7 @@ compact_trail()
 } 
 
 static void
-sweep_mark(m)
-mark *m;
+sweep_mark(mark *m)
 { Word gm, prev;
 
   gm = m->globaltop;
@@ -813,7 +804,7 @@ relocation chains.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-sweep_trail()
+sweep_trail(void)
 { register TrailEntry te = tTop - 1;
 
   for( ; te >= tBase; te-- )
@@ -826,8 +817,7 @@ sweep_trail()
 
 
 static LocalFrame
-sweep_environments(fr)
-LocalFrame fr;
+sweep_environments(LocalFrame fr)
 { Code PC = NULL;
 
   if ( fr == (LocalFrame) NULL )
@@ -864,8 +854,7 @@ LocalFrame fr;
 
 
 static void
-sweep_choicepoints(bfr)
-LocalFrame bfr;
+sweep_choicepoints(LocalFrame bfr)
 { for( ; bfr != (LocalFrame)NULL; bfr = bfr->backtrackFrame )
   { sweep_environments(bfr);
     sweep_mark(&bfr->mark);
@@ -873,8 +862,7 @@ LocalFrame bfr;
 }
 
 static void
-sweep_stacks(fr)
-LocalFrame fr;
+sweep_stacks(LocalFrame fr)
 { LocalFrame pfr;
 
   if ( (pfr = sweep_environments(fr)) != NULL )
@@ -885,8 +873,7 @@ LocalFrame fr;
 
 
 static void
-sweep_local(fr)
-LocalFrame fr;
+sweep_local(LocalFrame fr)
 { sweep_stacks(fr);
 
   if ( local_marked != 0 )
@@ -908,8 +895,7 @@ size.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
-is_downward_ref(p)
-Word p;
+is_downward_ref(Word p)
 { word val = get_value(p);
 
   if ( isRef(val) )
@@ -931,8 +917,7 @@ Word p;
 }
 
 static bool
-is_upward_ref(p)
-Word p;
+is_upward_ref(Word p)
 { word val = get_value(p);
 
   if ( isRef(val) )
@@ -951,7 +936,7 @@ Word p;
 }
 
 static void
-compact_global()
+compact_global(void)
 { Word dest, current;
 #if O_SECURE
   Word *v = mark_top;
@@ -1041,8 +1026,7 @@ compact_global()
 }
 
 static void
-collect_phase(fr)
-LocalFrame fr;
+collect_phase(LocalFrame fr)
 {
 #if GC_FOREIGN
   DEBUG(2, printf("Sweeping foreign references\n"));
@@ -1074,8 +1058,7 @@ static long gsmall = 200000L;
 static long tsmall = 100000L;
 
 word
-pl_collect_parms(g, t)
-Word g, t;
+pl_collect_parms(Word g, Word t)
 { if ( !isInteger(*g) || !isInteger(*t) )
     return warning("$collect_parms/2: instantiation fault");
 
@@ -1088,8 +1071,7 @@ Word g, t;
 
 #if O_DYNAMIC_STACKS
 void
-considerGarbageCollect(s)
-Stack s;
+considerGarbageCollect(Stack s)
 { if ( s->gc )
   { if ( s->top - s->base > 2 * s->gced_size + s->small )
     { DEBUG(1, printf("%s overflow: Posted garbage collect request\n",
@@ -1148,8 +1130,7 @@ scan_global()
 
 
 void
-garbageCollect(fr)
-LocalFrame fr;
+garbageCollect(LocalFrame fr)
 { long tgar, ggar;
   real t = CpuTime();
 
@@ -1216,8 +1197,7 @@ LocalFrame fr;
 }
 
 word
-pl_garbage_collect(d)
-Word d;
+pl_garbage_collect(Word d)
 { LocalFrame fr = environment_frame;
 #if O_DEBUG
   int ol = status.debugLevel;
@@ -1236,7 +1216,7 @@ Word d;
 }
 
 void
-resetGC()
+resetGC(void)
 { gc_status.requested = FALSE;
   gc_status.blocked = 0;
   gc_status.collections = gc_status.global_gained = gc_status.trail_gained = 0;
@@ -1265,8 +1245,7 @@ equal to marks kept in the choicepoints on the local stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-lockw(p)
-Word p;
+lockw(Word p)
 { Lock l = pTop++;
 
   verifyStack(lock);
@@ -1274,8 +1253,7 @@ Word p;
 }
 
 void
-lockp(ptr)
-void *ptr;
+lockp(void *ptr)
 { Lock l = pTop++;
 
   verifyStack(lock);
@@ -1283,8 +1261,7 @@ void *ptr;
 }
   
 void
-lockMark(m)
-mark *m;
+lockMark(mark *m)
 { Lock l = pTop++;
 
   verifyStack(lock);
@@ -1292,8 +1269,7 @@ mark *m;
 }
 
 void
-unlockw(p)
-Word p;
+unlockw(Word p)
 { lock l = *--pTop;
 
   if ( p != lockAddress(l) )
@@ -1302,8 +1278,7 @@ Word p;
 
 
 void
-unlockp(ptr)
-Void ptr;
+unlockp(Void ptr)
 { lock l = *--pTop;
 
   if ( ptr != lockAddress(l) )
@@ -1311,8 +1286,7 @@ Void ptr;
 }
 
 void
-unlockMark(m)
-mark *m;
+unlockMark(mark *m)
 { lock l = *--pTop;
 
   if ( m != lockAddress(l) )
@@ -1412,8 +1386,8 @@ int checked;
 		 *	      CHECKING		*
 		 *******************************/
 
-static LocalFrame unmark_environments P((LocalFrame));
-static void unmark_choicepoints P((LocalFrame));
+static LocalFrame unmark_environments(LocalFrame);
+static void unmark_choicepoints(LocalFrame);
 
 static LocalFrame
 check_environments(fr)
@@ -1497,7 +1471,7 @@ LocalFrame frame;
 		 *	   LOCAL STACK		*
 		 *******************************/
 
-static void update_choicepoints P((LocalFrame, long, long, long));
+static void update_choicepoints(LocalFrame, long, long, long);
 
 static LocalFrame
 update_environments(fr, PC, ls, gs, ts)

@@ -23,8 +23,7 @@ needed by foreign language functions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Table
-newHTable(size)
-int size;
+newHTable(int size)
 { Symbol *p;
   int n;
   Table ht;
@@ -43,9 +42,7 @@ int size;
 }
 
 Symbol
-lookupHTable(ht, name)
-Table ht;
-Void name;
+lookupHTable(Table ht, Void name)
 { register Symbol s = ht->entries[pointerHashValue(name, ht->size)];
 
   DEBUG(9, printf("lookupHTable(%ld, %ld) --> ", ht, name));
@@ -60,10 +57,7 @@ Void name;
 }
 
 bool
-addHTable(ht, name, value)
-Table ht;
-Void name;
-Void value;
+addHTable(Table ht, Void name, Void value)
 { register Symbol s;
   register int v = pointerHashValue(name, ht->size);
 
@@ -81,9 +75,7 @@ Void value;
 }  
 
 bool
-deleteHTable(ht, name)
-Table ht;
-Void name;
+deleteHTable(Table ht, Void name)
 { register int v = pointerHashValue(name, ht->size);
   register Symbol *s = &ht->entries[v];
   Symbol symb = *s;
@@ -101,9 +93,7 @@ Void name;
 }
 
 Symbol
-nextHTable(ht, s)
-Table ht;
-register Symbol s;
+nextHTable(Table ht, register Symbol s)
 { s = s->next;
   while(s != (Symbol) NULL && isRef((word)s) )
     s = *((Symbol *)unRef(s));
@@ -112,8 +102,7 @@ register Symbol s;
 }
 
 Symbol
-firstHTable(ht)
-Table ht;
+firstHTable(Table ht)
 { register Symbol s = ht->entries[0];
 
   while(s != (Symbol) NULL && isRef((word)s) )
@@ -123,8 +112,7 @@ Table ht;
 }  
 
 void
-clearHTable(ht)
-Table ht;
+clearHTable(Table ht)
 { int n;
   register Symbol s;
 
@@ -144,8 +132,7 @@ Table ht;
 		*********************************/
 
 Table
-newLocalTable(size)
-int size;
+newLocalTable(int size)
 { Symbol *p;
   int n;
   Table ht;
@@ -160,9 +147,7 @@ int size;
 }
 
 Symbol
-lookupLocalTable(ht, name)
-Table ht;
-Void name;
+lookupLocalTable(Table ht, Void name)
 { register Symbol s = ht->entries[pointerHashValue(name, ht->size)];
 
   for( ; s; s = s->next )
@@ -173,10 +158,7 @@ Void name;
 }
 
 bool
-addLocalTable(ht, name, value)
-Table ht;
-Void name;
-Void value;
+addLocalTable(Table ht, Void name, Void value)
 { register Symbol s;
   register int v = pointerHashValue(name, ht->size);
 

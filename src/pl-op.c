@@ -9,8 +9,8 @@
 
 #include "pl-incl.h"
 
-forwards int	atomToOperatorType P((Atom));
-forwards Atom	operatorTypeToAtom P((int));
+forwards int	atomToOperatorType(Atom);
+forwards Atom	operatorTypeToAtom(int);
 
 static Operator operatorTable[OPERATORHASHSIZE];
 
@@ -20,9 +20,7 @@ static Operator operatorTable[OPERATORHASHSIZE];
  ** Wed Apr 20 10:34:55 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 Operator
-isCurrentOperator(name, type)
-register Atom name;
-int type;
+isCurrentOperator(register Atom name, int type)
 { register int v = pointerHashValue(name, OPERATORHASHSIZE);
   register Operator op;
 
@@ -54,8 +52,7 @@ int type;
 
 
 static int
-atomToOperatorType(atom)
-Atom atom;
+atomToOperatorType(Atom atom)
 { if (atom == ATOM_fx)			return OP_FX;
   else if (atom == ATOM_fy)		return OP_FY;
   else if (atom == ATOM_xfx)		return OP_XFX;
@@ -69,8 +66,7 @@ Atom atom;
 }
 
 static Atom
-operatorTypeToAtom(type)
-int type;
+operatorTypeToAtom(int type)
 { switch(type)
   { case OP_FX:				return ATOM_fx;
     case OP_FY:				return ATOM_fy;
@@ -85,9 +81,7 @@ int type;
 }
 
 word
-pl_current_op(prec, type, name, h)
-Word prec, type, name;
-word h;
+pl_current_op(Word prec, Word type, Word name, word h)
 { int Prec = 0;					/* not specified */
   int Type = -1;				/* not specified */
   Atom Name = (Atom) NULL;			/* not specified */
@@ -156,9 +150,7 @@ word h;
  ** Sun Apr 17 13:25:17 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 bool
-isPrefixOperator(atom, type, priority)
-Atom atom;
-int *type, *priority;
+isPrefixOperator(Atom atom, int *type, int *priority)
 { register Operator op;
 
   if ((op = isCurrentOperator(atom, OP_PREFIX)) != (Operator) NULL)
@@ -174,9 +166,7 @@ int *type, *priority;
 }
 
 bool
-isPostfixOperator(atom, type, priority)
-Atom atom;
-int *type, *priority;
+isPostfixOperator(Atom atom, int *type, int *priority)
 { Operator op;
 
   if ((op = isCurrentOperator(atom, OP_POSTFIX)) != (Operator) NULL)
@@ -192,9 +182,7 @@ int *type, *priority;
 }
 
 bool
-isInfixOperator(atom, type, priority)
-Atom atom;
-int *type, *priority;
+isInfixOperator(Atom atom, int *type, int *priority)
 { Operator op;
 
   if ((op = isCurrentOperator(atom, OP_INFIX)) != (Operator) NULL)
@@ -215,10 +203,7 @@ int *type, *priority;
  ** Sun Apr 17 13:24:04 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 bool
-operator(name, type, priority)
-Atom name;
-int type;
-int priority;
+operator(Atom name, int type, int priority)
 { Operator op = (Operator) NULL;
 
   switch(type)
@@ -248,8 +233,7 @@ int priority;
 }
 
 word
-pl_op1(priority, type, name)
-Word priority, type, name;
+pl_op1(Word priority, Word type, Word name)
 { int t;
   int pri;
 
@@ -269,10 +253,7 @@ Word priority, type, name;
  ** Sun Apr 17 13:25:40 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 bool
-newOp(name, type, pri)
-char *name;
-int type;
-int pri;
+newOp(char *name, int type, int pri)
 { return operator(lookupAtom(name), type, pri);
 }
 
@@ -335,7 +316,7 @@ static struct operator operators[] = {
 
 
 void
-initOperators()
+initOperators(void)
 { { register Operator *op;
     register int n;
 

@@ -11,18 +11,10 @@
 #define PL_INCLUDED
 
 #ifndef PLVERSION
-#define PLVERSION "1.8.8 February 1994"
+#define PLVERSION "1.8.9 March 1994"
 #endif
 
-#ifndef P
-#if __STDC__ || PROTO
-#define P(x) x
-#else
-#define P(x) ()
-#endif
-#endif
-
-#if __GNUC__
+#if __GNUC__ && !__STRICT_ANSI__
 #define constf const			/* const function */
 #else
 #define constf
@@ -88,40 +80,40 @@ typedef struct
 
 #define PL_atomic(t)	(*(t))		/* convert term to atomic */
 
-int constf PL_is_var P((const term));
-int constf PL_is_int P((const term));
-int constf PL_is_atom P((const term));
-int constf PL_is_float P((const term));
-int constf PL_is_string P((const term));
-int constf PL_is_term P((const term));
+int constf PL_is_var(const term);
+int constf PL_is_int(const term);
+int constf PL_is_atom(const term);
+int constf PL_is_float(const term);
+int constf PL_is_string(const term);
+int constf PL_is_term(const term);
 
-int	constf PL_type P((const term));
-long	constf PL_integer_value P((const atomic));
-double	       PL_float_value P((const atomic));
-char *	       PL_string_value P((const atomic));
-char *         PL_list_string_value P((const term));
-char *	constf PL_atom_value P((const atomic));
-functor constf PL_functor P((const term));
-atomic	constf PL_functor_name P((const functor));
-int	constf PL_functor_arity P((const functor));
-term	constf PL_arg P((const term, int));
-term	constf PL_strip_module P((const term, module*));
+int	constf PL_type(const term);
+long	constf PL_integer_value(const atomic);
+double	       PL_float_value(const atomic);
+char *	       PL_string_value(const atomic);
+char *         PL_list_string_value(const term);
+char *	constf PL_atom_value(const atomic);
+functor constf PL_functor(const term);
+atomic	constf PL_functor_name(const functor);
+int	constf PL_functor_arity(const functor);
+term	constf PL_arg(const term, int);
+term	constf PL_strip_module(const term, module*);
 
 		/********************************
 		*         CONSTRUCTION          *
 		*********************************/
 
-term	PL_new_term P((void));		/* create a new term (variable) */
-atomic	PL_new_atom P((char *));	/* create an atom from a char * */
-atomic  PL_new_integer P((int));	/* create a new integer */
-atomic	PL_new_float P((double));	/* create a new float */
+term	PL_new_term(void);		/* create a new term (variable) */
+atomic	PL_new_atom(char *);		/* create an atom from a char * */
+atomic  PL_new_integer(int);		/* create a new integer */
+atomic	PL_new_float(double);		/* create a new float */
 #if O_STRING
-atomic	PL_new_string P((char *));	/* create a new string */
+atomic	PL_new_string(char *);		/* create a new string */
 #endif /* O_STRING */
-functor	PL_new_functor P((atomic, int)); /* create a new functor */
-int	PL_unify P((term, term));	/* unify two terms */
-int	PL_unify_atomic P((term, atomic));  /* unify term with atomic value */
-int	PL_unify_functor P((term, functor));/* unify term with functor */
+functor	PL_new_functor(atomic, int);	/* create a new functor */
+int	PL_unify(term, term);		/* unify two terms */
+int	PL_unify_atomic(term, atomic);  /* unify term with atomic value */
+int	PL_unify_functor(term, functor);/* unify term with functor */
 
 		/********************************
 		*    DETERMINISTIC CALL/RETURN  *
@@ -147,14 +139,14 @@ int	PL_unify_functor P((term, functor));/* unify term with functor */
 #define PL_retry(n)		return _PL_retry(n)
 #define PL_retry_address(a)	return _PL_retry((long) a)
 
-extern int	 		PL_foreign_control P((long));
-extern foreign_t		_PL_retry P((long));
-extern foreign_t		_PL_retry_address P((void *));
-extern long	 		PL_foreign_context P((long));
+extern int	 		PL_foreign_control(long);
+extern foreign_t		_PL_retry(long);
+extern foreign_t		_PL_retry_address(void *);
+extern long	 		PL_foreign_context(long);
 #ifdef __STDC__
-extern void *	 		PL_foreign_context_address P((long));
+extern void *	 		PL_foreign_context_address(long);
 #else
-extern char *	 		PL_foreign_context_address P((long));
+extern char *	 		PL_foreign_context_address(long);
 #endif
 
 		/********************************
@@ -166,7 +158,7 @@ extern char *	 		PL_foreign_context_address P((long));
 #define PL_FA_NONDETERMINISTIC	(4)	/* foreign is non-deterministic */
 #define PL_FA_GCSAVE		(8)	/* save to GC and/or shift stacks */
 
-int	PL_register_foreign P((char *, int, function, ...));
+int	PL_register_foreign(char *, int, function, ...);
 
 		/********************************
 		*        CALLING PROLOG         *
@@ -175,20 +167,20 @@ int	PL_register_foreign P((char *, int, function, ...));
 #define PL_lock(t)	_PL_lock(&(t));
 #define PL_unlock(t)	_PL_unlock(&(t));
 
-void	PL_mark P((bktrk_buf *));	/* mark global and trail stack */
-void	PL_bktrk P((bktrk_buf *));	/* backtrack global stack to mark */
-void	_PL_lock P((term *));		/* lock term variable */
-void	_PL_unlock P((term *));		/* unlock term variable */
+void	PL_mark(bktrk_buf *);		/* mark global and trail stack */
+void	PL_bktrk(bktrk_buf *);		/* backtrack global stack to mark */
+void	_PL_lock(term *);		/* lock term variable */
+void	_PL_unlock(term *);		/* unlock term variable */
 
-int	PL_call P((term, module));	/* invoke term as Prolog goal */
+int	PL_call(term, module);		/* invoke term as Prolog goal */
 
 		/********************************
 		*            MODULES            *
 		*********************************/
 
-module	PL_context P((void));		/* context module of predicate */		
-atomic	PL_module_name P((module));	/* return name of a module */
-module	PL_new_module P((atomic));	/* return module from an atom */
+module	PL_context(void);		/* context module of predicate */
+atomic	PL_module_name(module);		/* return name of a module */
+module	PL_new_module(atomic);		/* return module from an atom */
 
 
 		/********************************
@@ -198,36 +190,36 @@ module	PL_new_module P((atomic));	/* return module from an atom */
 #define PL_DISPATCH_INPUT   0		/* There is input available */
 #define PL_DISPATCH_TIMEOUT 1		/* Dispatch timeout */
 
-extern int (*PL_dispatch_events) P((void));	/* Dispatch user events */
+extern int (*PL_dispatch_events)(void);	/* Dispatch user events */
 
 
 		/********************************
 		*      INITIALISATION HOOK	*
 		********************************/
 
-extern void (*PL_foreign_reinit_function) P((int argc, char **argv));
+extern void (*PL_foreign_reinit_function)(int argc, char **argv);
 
 
 		/********************************
 		*            SIGNALS            *
 		*********************************/
 
-void (*PL_signal P((int sig, void (*func)())))(); /* signal() replacement */
+void (*PL_signal(int sig, void (*func)()))(); /* signal() replacement */
 
 
 		/********************************
 		*             ABORTS		*
 		********************************/
 
-void PL_abort_handle P((void (*func)())); /* func called by pl_abort() */
+void PL_abort_handle(void (*func)());	/* func called by pl_abort() */
 
 
 		/********************************
 		*           WARNINGS            *
 		*********************************/
 
-int	PL_warning P((char *, ...));	/* Print standard Prolog warning */
-void	PL_fatal_error P((char *, ...));	/* Print warning and die */
+int	PL_warning(char *, ...);	/* Print standard Prolog warning */
+void	PL_fatal_error(char *, ...);	/* Print warning and die */
 
 		/********************************
 		*        PROLOG ACTIONS         *
@@ -243,8 +235,8 @@ void	PL_fatal_error P((char *, ...));	/* Print warning and die */
 #define PL_ACTION_WRITE		8	/* write via Prolog i/o buffer */
 #define PL_ACTION_FLUSH		9	/* Flush Prolog i/o buffer */
 
-int	PL_action P((int, void *));	/* perform some action */
-void	PL_on_halt P((void (*)(int, void *), void *));
+int	PL_action(int, void *);		/* perform some action */
+void	PL_on_halt(void (*)(int, void *), void *);
 
 		/********************************
 		*         QUERY PROLOG          *
@@ -256,7 +248,7 @@ void	PL_on_halt P((void (*)(int, void *), void *));
 #define PL_QUERY_ORGSYMBOLFILE	4	/* symbol file before first load */
 #define PL_QUERY_GETC		5	/* Read character from terminal */
 
-long	PL_query P((int));		/* get information from Prolog */
+long	PL_query(int);			/* get information from Prolog */
 
 		/********************************
 		*        STATIC LINKING		*

@@ -17,16 +17,16 @@
 #define MARK(label)
 #endif
 
-forwards void		copyFrameArguments P((LocalFrame, LocalFrame, int));
-forwards inline bool	callForeign P((const Procedure, LocalFrame));
-forwards void		leaveForeignFrame P((LocalFrame));
-forwards inline void    Trail P((Word, LocalFrame));
+forwards void		copyFrameArguments(LocalFrame, LocalFrame, int);
+forwards inline bool	callForeign(const Procedure, LocalFrame);
+forwards void		leaveForeignFrame(LocalFrame);
+forwards inline void    Trail(Word, LocalFrame);
 
 #if COUNTING
 
-forwards void	countHeader P((void));
-forwards void	countArray P((char *, int *));
-forwards void	countOne P((char *, int));
+forwards void	countHeader(void);
+forwards void	countArray(char *, int *);
+forwards void	countOne(char *, int);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The counting code has been added while investigating the  time  critical
@@ -202,9 +202,7 @@ given as `backtrack control'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static inline bool
-callForeign(proc, frame)
-Procedure proc;
-LocalFrame frame;
+callForeign(Procedure proc, LocalFrame frame)
 { int argc = proc->functor->arity;
   word result;
   Word argv[20]; /* this must be as big as the number args we stuff in it 
@@ -331,8 +329,7 @@ LocalFrame frame;
 }
 
 static void
-leaveForeignFrame(fr)
-LocalFrame fr;
+leaveForeignFrame(LocalFrame fr)
 { if ( true(fr->procedure->definition, NONDETERMINISTIC) )
   { Procedure proc = fr->procedure;
     Func f = proc->definition->definition.function;
@@ -371,9 +368,7 @@ calling Trail()!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static inline void
-Trail(p, fr)
-Word p;
-LocalFrame fr;
+Trail(Word p, LocalFrame fr)
 { if ( fr && p > fr->mark.globaltop && p < gTop )
     return;
 
@@ -412,8 +407,7 @@ this trick saves about 10% on this function).
 #endif
 
 bool
-unify(t1, t2)
-register Word t1, t2;
+unify(register Word t1, register Word t2)
 {
 #if O_NO_LEFT_CAST
   register word w1, w2;
@@ -494,9 +488,7 @@ intended for foreign language functions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-unify_atomic(p, a)
-register Word p;
-word a;
+unify_atomic(register Word p, word a)
 { deRef(p);
 
   if (*p == a)
@@ -529,9 +521,7 @@ fails.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-unifyFunctor(term, functor)
-register Word term;
-register FunctorDef functor;
+unifyFunctor(register Word term, register FunctorDef functor)
 { if (functor->arity == 0)
     return unifyAtomic(term, functor->name);
 
@@ -566,7 +556,7 @@ findBlock(LocalFrame fr, Word block)
   return NULL;
 }
 
-#endif O_BLOCK
+#endif /*O_BLOCK*/
 
 		/********************************
 		*          INTERPRETER          *
@@ -611,10 +601,7 @@ findBlock(LocalFrame fr, Word block)
 #endif
 
 bool
-interpret(Context, Goal, debug)
-Module Context;
-word Goal;
-bool debug;
+interpret(Module Context, word Goal, bool debug)
 { register LocalFrame FR;		/* current frame */
   register Word	      ARGP;		/* current argument pointer */
   register Code	      PC;		/* program counter */
@@ -704,7 +691,7 @@ bool debug;
 #if O_BLOCK
     &&I_CUT_BLOCK_LBL,
     &&B_EXIT_LBL,
-#endif O_BLOCK
+#endif /*O_BLOCK*/
     NULL
   };
 
@@ -1331,7 +1318,7 @@ exit(Block, RVal).  First does !(Block).
 
 	NEXT_INSTRUCTION;
       }
-#endif O_BLOCK
+#endif /*O_BLOCK*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 !. Basic task is to mark the frame, telling it  is  cut  off,  restoring
@@ -1427,7 +1414,7 @@ discarded.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(C_CUT, COUNT_N(c_cut), ("c_cut %d\n", *PC)) MARK(C_CUT);
       { LocalFrame obfr = (LocalFrame) ((char *) lBase +
-					(ulong) varFrame(FR, *PC++));
+					(unsigned long) varFrame(FR, *PC++));
 					
 	LocalFrame fr;
 	register LocalFrame fr2;
@@ -1506,7 +1493,8 @@ to give the compiler a hint to put ARGP not into a register.
 	if ( ar_func_n(*PC++, 0, &argp) == FALSE )
 	  BODY_FAILED;
 	ARGP = argp;
-				DEBUG(8, printf("ARGP = 0x%x; top = ", ARGP);
+				DEBUG(8, printf("ARGP = 0x%lx; top = ",
+						(unsigned long)ARGP);
 					 pl_write(ARGP-1);
 					 printf("\n"));
 	NEXT_INSTRUCTION;
@@ -1517,7 +1505,8 @@ to give the compiler a hint to put ARGP not into a register.
 	if ( ar_func_n(*PC++, 1, &argp) == FALSE )
 	  BODY_FAILED;
 	ARGP = argp;
-				DEBUG(8, printf("ARGP = 0x%x; top = ", ARGP);
+				DEBUG(8, printf("ARGP = 0x%lx; top = ",
+						(unsigned long)ARGP);
 					 pl_write(ARGP-1);
 					 printf("\n"));
 	NEXT_INSTRUCTION;
@@ -1525,14 +1514,16 @@ to give the compiler a hint to put ARGP not into a register.
 
     VMI(A_FUNC2, COUNT_N(a_func2), ("a_func2 %d\n", *PC)) MARK(A_FUNC2);
       {	Word argp = ARGP;
-				DEBUG(8, printf("ARGP = 0x%x; top = ", ARGP);
+				DEBUG(8, printf("ARGP = 0x%lx; top = ",
+						(unsigned long)ARGP);
 					 pl_write(ARGP-2); printf(" & ");
 					 pl_write(ARGP-1);
 					 printf("\n"));
 	if ( ar_func_n(*PC++, 2, &argp) == FALSE )
 	  BODY_FAILED;
 	ARGP = argp;
-				DEBUG(8, printf("ARGP = 0x%x; top = ", ARGP);
+				DEBUG(8, printf("ARGP = 0x%lx; top = ",
+						(unsigned long)ARGP);
 					 pl_write(ARGP-1);
 					 printf("\n"));
 	NEXT_INSTRUCTION;
@@ -2397,10 +2388,7 @@ The new arguments block can contain the following types:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-copyFrameArguments(from, to, argc)
-LocalFrame from;
-LocalFrame to;
-register int argc;
+copyFrameArguments(LocalFrame from, LocalFrame to, register int argc)
 { register Word ARGD, ARGS;
   register word k;
   int argc_save;
@@ -2432,15 +2420,13 @@ register int argc;
 
 #if O_COMPILE_OR
 word
-pl_alt(skip, h)
-Word skip;
-word h;
+pl_alt(Word skip, word h)
 { switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
       SECURE( if (!isInteger(*skip)) sysError("pl_alt()") );
       ForeignRedo(valNum(*skip));
     case FRG_REDO:
-      DEBUG(8, printf("$alt/1: skipping %d codes\n", ForeignContext(h)) );
+      DEBUG(8, printf("$alt/1: skipping %ld codes\n", ForeignContext(h)) );
       environment_frame->programPointer += ForeignContext(h);
       succeed;
     case FRG_CUTTED:

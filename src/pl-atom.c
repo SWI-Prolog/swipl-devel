@@ -13,8 +13,7 @@
 static Atom atomTable[ATOMHASHSIZE];
 
 Atom
-lookupAtom(s)
-char *s;
+lookupAtom(char *s)
 { int v = stringHashValue(s, ATOMHASHSIZE);
   register Atom a;
 
@@ -34,8 +33,7 @@ char *s;
 
 
 word
-pl_atom_hashstat(i, n)
-Word i, n;
+pl_atom_hashstat(Word i, Word n)
 { int m;
   register Atom a;
 
@@ -60,7 +58,7 @@ struct atom atoms[] = {
 */
 
 void
-initAtoms()
+initAtoms(void)
 { register int n;
 
   { register Atom *a;
@@ -83,9 +81,7 @@ initAtoms()
 
 
 word
-pl_current_atom(a, h)
-Word a;
-word h;
+pl_current_atom(Word a, word h)
 { Atom atom;
 
   switch( ForeignControl(h) )
@@ -126,7 +122,7 @@ word h;
 #define ALT_MAX 256		/* maximum number of alternatives */
 #define stringMatch(m)	(stringAtom((m)->name))
 
-forwards bool 	allAlpha P((char *));
+forwards bool 	allAlpha(char *);
 
 typedef struct match
 { Atom	name;
@@ -135,8 +131,7 @@ typedef struct match
 
 
 static bool
-allAlpha(s)
-register char *s;
+allAlpha(register char *s)
 { for( ; *s; s++)
    if ( !isAlpha(*s) )
      fail;
@@ -146,9 +141,7 @@ register char *s;
 
 
 char *
-extendAtom(prefix, unique)
-char *prefix;
-bool *unique;
+extendAtom(char *prefix, bool *unique)
 { Atom a = atomTable[0];
   bool first = TRUE;
   static char common[LINESIZ];
@@ -185,8 +178,7 @@ out:
 
 
 word
-pl_complete_atom(prefix, common, unique)
-Word prefix, common, unique;
+pl_complete_atom(Word prefix, Word common, Word unique)
 { char *p, *s;
   bool u;
   char buf[LINESIZ];
@@ -205,17 +197,13 @@ Word prefix, common, unique;
 
 
 static int
-compareMatch(m1, m2)
-const void * m1, * m2;
+compareMatch(const void *m1, const void *m2)
 { return strcmp(stringMatch((Match)m1), stringMatch((Match)m2));
 }
 
 
 bool
-extend_alternatives(prefix, altv, altn)
-char *prefix;
-struct match *altv;
-int *altn;
+extend_alternatives(char *prefix, struct match *altv, int *altn)
 { Atom a = atomTable[0];
   char *as;
   int l;
@@ -246,8 +234,7 @@ int *altn;
 
 
 word
-pl_atom_completions(prefix, alts)
-Word prefix, alts;
+pl_atom_completions(Word prefix, Word alts)
 { char *p;
   char buf[LINESIZ];
   struct match altv[ALT_MAX];
@@ -273,8 +260,7 @@ Word prefix, alts;
 #if O_READLINE
 
 static char *
-xmalloc(size)
-int size;
+xmalloc(int size)
 { char *result = malloc(size);
 
   if ( !result )
@@ -286,9 +272,7 @@ int size;
 #define savestring(x) strcpy(xmalloc(1 + strlen(x)), (x))
 
 char *
-atom_generator(prefix, state)
-char *prefix;
-int state;
+atom_generator(char *prefix, int state)
 { static Atom a;
 
   if ( !state )

@@ -16,9 +16,7 @@ Functor (name/arity) handling.  A functor is a unique object (like atoms).
 static FunctorDef functorDefTable[FUNCTORHASHSIZE];
 
 FunctorDef
-lookupFunctorDef(atom, arity)
-register Atom atom;
-register int arity;
+lookupFunctorDef(register Atom atom, register int arity)
 { int v = pointerHashValue(atom, FUNCTORHASHSIZE);
   register FunctorDef f;
 
@@ -44,8 +42,7 @@ register int arity;
 
 
 int
-atomIsFunctor(atom)
-Atom atom;
+atomIsFunctor(Atom atom)
 { int v = pointerHashValue(atom, FUNCTORHASHSIZE);
   FunctorDef f;
 
@@ -59,9 +56,7 @@ Atom atom;
 
 
 FunctorDef
-isCurrentFunctor(atom, arity)
-Atom atom;
-int arity;
+isCurrentFunctor(Atom atom, int arity)
 { int v = pointerHashValue(atom, FUNCTORHASHSIZE);
   FunctorDef f;
 
@@ -75,9 +70,7 @@ int arity;
 
 
 bool
-atomIsProcedureModule(atom, m)
-Atom atom;
-Module m;
+atomIsProcedureModule(Atom atom, Module m)
 { int v = pointerHashValue(atom, FUNCTORHASHSIZE);
   FunctorDef f;
   Procedure proc;
@@ -94,8 +87,7 @@ Module m;
 
 
 bool
-atomIsProcedure(atom)
-Atom atom;
+atomIsProcedure(Atom atom)
 { Symbol s;
 
   for_table(s, moduleTable)
@@ -112,7 +104,7 @@ struct functorDef functors[] = {
 };
 
 void
-initFunctors()
+initFunctors(void)
 { register int n;
 
   { register FunctorDef *f;
@@ -162,9 +154,7 @@ checkFunctors()
 #endif
 
 word
-pl_current_functor(name, arity, h)
-Word name, arity;
-word h;
+pl_current_functor(Word name, Word arity, word h)
 { FunctorDef fdef;
 
   switch( ForeignControl(h) )

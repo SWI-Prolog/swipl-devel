@@ -26,44 +26,37 @@ is linked this way.
 		*********************************/
 
 int
-PL_is_var(t)
-register Word t;
+PL_is_var(register Word t)
 { return isVar(*t);
 }
 
 int
-PL_is_int(t)
-register Word t;
+PL_is_int(register Word t)
 { return isInteger(*t);
 }
 
 int
-PL_is_atom(t)
-register Word t;
+PL_is_atom(register Word t)
 { return isAtom(*t);
 }
 
 int
-PL_is_float(t)
-register Word t;
+PL_is_float(register Word t)
 { return isReal(*t);
 }
 
 int
-PL_is_string(t)
-register Word t;
+PL_is_string(register Word t)
 { return isString(*t);
 }
 
 int
-PL_is_term(t)
-register Word t;
+PL_is_term(register Word t)
 { return isTerm(*t);
 }
 
 int
-PL_type(t)
-register Word t;
+PL_type(register Word t)
 { if ( isVar(*t) )		return PL_VARIABLE;
   if ( isInteger(*t) )		return PL_INTEGER;
   if ( isReal(*t) )		return PL_FLOAT;
@@ -77,60 +70,50 @@ register Word t;
 }
 
 double					/* double for standard arg passing */
-PL_float_value(t)
-register word t;
+PL_float_value(register word t)
 { return valReal(t);
 }
 
 #if O_STRING
 char *
-PL_string_value(t)
-register word t;
+PL_string_value(register word t)
 { return valString(t);
 }
 #endif /* O_STRING */
 
 char *
-PL_list_string_value(t)
-register Word t;
+PL_list_string_value(register Word t)
 { deRef(t);
   return listToString(*t);
 }
 
 long
-PL_integer_value(t)
-register word t;
+PL_integer_value(register word t)
 { return valNum(t);
 }
 
 char *
-PL_atom_value(t)
-register word t;
+PL_atom_value(register word t)
 { return stringAtom(t);
 }
 
 functor
-PL_functor(t)
-register Word t;
+PL_functor(register Word t)
 { return isTerm(*t) ? (functor) functorTerm(*t) : (functor) NULL;
 }
 
 atomic
-PL_functor_name(f)
-register FunctorDef f;
+PL_functor_name(register FunctorDef f)
 { return (atomic) f->name;
 }
 
 int
-PL_functor_arity(f)
-register FunctorDef f;
+PL_functor_arity(register FunctorDef f)
 { return f->arity;
 }
 
 term
-PL_arg(t, n)
-register Word t;
-register int n;
+PL_arg(register Word t, register int n)
 { register Word a = argTermP(*t, n-1);
 
   deRef(a);
@@ -139,9 +122,7 @@ register int n;
 }
 
 term
-PL_strip_module(t, m)
-term t;
-Module *m;
+PL_strip_module(term t, Module *m)
 { return (term) stripModule(t, m);
 }
 
@@ -150,7 +131,7 @@ Module *m;
 		*********************************/
 
 term
-PL_new_term()
+PL_new_term(void)
 { register Word var = allocGlobal(sizeof(word));
 
   setVar(*var);
@@ -158,55 +139,44 @@ PL_new_term()
 }
 
 atomic
-PL_new_atom(s)
-char *s;
+PL_new_atom(char *s)
 { return (atomic) lookupAtom(s);
 }
 
 atomic
-PL_new_integer(i)
-int i;
+PL_new_integer(int i)
 { return (atomic) consNum(i);
 }
 
 #if O_STRING
 atomic
-PL_new_string(s)
-char *s;
+PL_new_string(char *s)
 { return (atomic) globalString(s);
 }
 #endif /* O_STRING */
 
 atomic
-PL_new_float(f)
-double f;
+PL_new_float(double f)
 { return (atomic) globalReal(f);
 }
 
 functor
-PL_new_functor(f, a)
-register atomic f;
-register int a;
+PL_new_functor(register atomic f, register int a)
 { return (functor) lookupFunctorDef((Atom)f, a);
 }
 
 bool
-PL_unify(t1, t2)
-register Word t1, t2;
+PL_unify(register Word t1, register Word t2)
 { return (bool) pl_unify(t1, t2);
 }
 
 bool
-PL_unify_atomic(t, w)
-register Word t;
-register word w;
+PL_unify_atomic(register Word t, register word w)
 { return unifyAtomic(t, w);
 }
 
 bool
-PL_unify_functor(t, f)
-register Word t;
-register FunctorDef f;
+PL_unify_functor(register Word t, register FunctorDef f)
 { return unifyFunctor(t, f);
 }
 
@@ -215,15 +185,13 @@ register FunctorDef f;
 		********************************/
 
 foreign_t
-_PL_retry(v)
-long v;
+_PL_retry(long int v)
 { ForeignRedo(v);
 }
 
 
 long
-PL_foreign_context(h)
-long h;
+PL_foreign_context(long int h)
 { return ForeignContext(h);
 }
 
@@ -232,15 +200,13 @@ void *
 #else
 char *
 #endif
-PL_foreign_context_address(h)
-long h;
+PL_foreign_context_address(long int h)
 { return ForeignContextAddress(h);
 }
 
 
 int
-PL_foreign_control(h)
-long h;
+PL_foreign_control(long int h)
 { return ForeignControl(h);
 }
 
@@ -249,14 +215,10 @@ long h;
 		*      REGISTERING FOREIGNS     *
 		*********************************/
 
-static bool registerForeign P((char *, int, Func, va_list));
+static bool registerForeign(char *, int, Func, va_list);
 
 static bool
-registerForeign(name, arity, f, args)
-char *name;
-int arity;
-Func f;
-va_list args;
+registerForeign(char *name, int arity, Func f, va_list args)
 { SourceFile sf;
   Procedure proc;
   Definition def;
@@ -350,23 +312,19 @@ va_dcl
 		*********************************/
 
 void
-PL_mark(buf)
-register bktrk_buf *buf;
+PL_mark(register bktrk_buf *buf)
 { Mark(*((mark *)buf));
 }
 
 
 void
-PL_bktrk(buf)
-register bktrk_buf *buf;
+PL_bktrk(register bktrk_buf *buf)
 { Undo(*((mark *)buf));
 }
 
 
 bool
-PL_call(t, m)
-Word t;
-Module m;
+PL_call(Word t, Module m)
 { deRef(t);
 
   return callGoal(m, *t, TRUE);
@@ -374,15 +332,13 @@ Module m;
 
 
 void
-_PL_lock(t)
-Word *t;
+_PL_lock(Word *t)
 { lockp(t);
 }
 
 
 void
-_PL_unlock(t)
-Word *t;
+_PL_unlock(Word *t)
 { unlockp(t);
 }
 
@@ -396,14 +352,12 @@ PL_context()
 }
 
 atomic
-PL_module_name(m)
-register Module m;
+PL_module_name(register Module m)
 { return (atomic) m->name;
 }
 
 module
-PL_new_module(name)
-register atomic name;
+PL_new_module(register atomic name)
 { return (module) lookupModule((Atom) name);
 }
 
@@ -413,9 +367,7 @@ register atomic name;
 
 #if unix || EMX
 void
-(*PL_signal(sig, func))()
-int sig;
-void (*func)();
+(*PL_signal(int sig, void (*func) (/* ??? */)))(/* ??? */)
 { void (*old)();
 
   if ( sig < 0 || sig >= MAXSIGNAL )
@@ -452,8 +404,7 @@ static struct abort_handle
 
 
 void
-PL_abort_handle(func)
-void (*func)();
+PL_abort_handle(void (*func) (/* ??? */))
 { AbortHandle h = (AbortHandle) allocHeap(sizeof(struct abort_handle));
 
   h->next = NULL;
@@ -469,7 +420,7 @@ void (*func)();
 
 
 void
-resetForeign()
+resetForeign(void)
 { AbortHandle h = abort_head;
 
   for(; h; h = h->next)
@@ -536,9 +487,7 @@ va_dcl
 		*********************************/
 
 bool
-PL_action(action, arg)
-int action;
-void * arg;
+PL_action(int action, void *arg)
 { switch(action)
   { case PL_ACTION_TRACE:
       return (bool) pl_trace();
@@ -612,8 +561,7 @@ init_c_args()
 
 
 long
-PL_query(query)
-int query;
+PL_query(int query)
 { switch(query)
   { case PL_QUERY_ARGC:
       init_c_args();

@@ -8,8 +8,7 @@
 #include "pl-incl.h"
 
 word
-pl_shell(command, status)
-Word command, status;
+pl_shell(Word command, Word status)
 { char *cmd = primitiveToString(*command, FALSE);
 
   if ( cmd == (char *) NULL )
@@ -19,8 +18,7 @@ Word command, status;
 }
 
 word
-pl_getenv(var, value)
-Word var, value;
+pl_getenv(Word var, Word value)
 { char *n, *v;
 
   if ( (n = primitiveToString(*var, FALSE)) == (char *) NULL )
@@ -33,8 +31,7 @@ Word var, value;
 }  
 
 word
-pl_setenv(var, value)
-Word var, value;
+pl_setenv(Word var, Word value)
 { char *n, *v;
 
   initAllocLocal();
@@ -51,8 +48,7 @@ Word var, value;
 }
 
 word
-pl_unsetenv(var)
-Word var;
+pl_unsetenv(Word var)
 { char *n;
 
   if ( (n = primitiveToString(*var, FALSE)) == (char *) NULL )
@@ -64,8 +60,7 @@ Word var;
 }
 
 word
-pl_argv(list)
-Word list;
+pl_argv(Word list)
 { int n;
   word w;
 
@@ -142,9 +137,7 @@ Word args;
 #endif /* LINK_THIEF */
 
 word
-pl_grep(file, search, line, h)
-Word file, search, line;
-word h;
+pl_grep(Word file, Word search, Word line, word h)
 { char *fn;
   FILE *fd;
 
@@ -194,8 +187,7 @@ word h;
 }
 
 word
-pl_convert_time(time, year, month, day, hour, minute, second, usec)
-Word time, year, month, day, hour, minute, second, usec;
+pl_convert_time(Word time, Word year, Word month, Word day, Word hour, Word minute, Word second, Word usec)
 { if ( isReal(*time) )
   { double tf = valReal(*time);
     long t    = (long) tf;
@@ -215,8 +207,7 @@ Word time, year, month, day, hour, minute, second, usec;
 }
 
 word
-pl_get_time(t)
-Word t;
+pl_get_time(Word t)
 {
   real stime;
 #if O_NOGETTIMEOFDAY
@@ -232,8 +223,7 @@ Word t;
 }
 
 word
-pl_sleep(time)
-Word time;
+pl_sleep(Word time)
 { real t;
 
   TRY( wordToReal(*time, &t) );

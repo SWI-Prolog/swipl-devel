@@ -13,17 +13,16 @@
 
 #include <sys/time.h>
 
-#if PROTO && sun
-extern int setitimer P((int, struct itimerval *,struct itimerval *));
+#if sun
+extern int setitimer(int, struct itimerval *,struct itimerval *);
 #endif
 
-forwards void profile P((int));
+forwards void profile(int);
 
 struct itimerval value, ovalue;		/* itmer controlling structures */
 
 static bool
-startProfiler(how)
-int how;
+startProfiler(int how)
 { pl_signal(SIGPROF, profile);
 
   value.it_interval.tv_sec  = 0;
@@ -39,7 +38,7 @@ int how;
 }
 
 void
-stopItimer()
+stopItimer(void)
 { value.it_interval.tv_sec  = 0;
   value.it_interval.tv_usec = 0;
   value.it_value.tv_sec  = 0;
@@ -70,8 +69,7 @@ stopProfiler()
 }
 
 word
-pl_profile(old, new)
-Word old, new;
+pl_profile(Word old, Word new)
 { int prof;
 
   TRY(unifyAtomic(old, consNum(statistics.profiling)) );
@@ -96,8 +94,7 @@ Word old, new;
 }
 	
 word
-pl_profile_count(head, calls, prom)
-Word head, calls, prom;
+pl_profile_count(Word head, Word calls, Word prom)
 { Procedure proc;
   Definition def;
 
@@ -113,8 +110,7 @@ Word head, calls, prom;
 
 
 word
-pl_profile_box(head, calls, redos, exits, fails)
-Word head, calls, redos, exits, fails;
+pl_profile_box(Word head, Word calls, Word redos, Word exits, Word fails)
 { Procedure proc;
   Definition def;
 
@@ -132,7 +128,7 @@ Word head, calls, redos, exits, fails;
 
 
 word
-pl_reset_profiler()
+pl_reset_profiler(void)
 { Module module;
   Procedure proc;
   Symbol sm, sp;
@@ -171,8 +167,7 @@ clear the flags again.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-profile(sig)
-int sig;
+profile(int sig)
 { register LocalFrame fr = environment_frame;
 
 #if _AIX

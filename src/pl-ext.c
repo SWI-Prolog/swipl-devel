@@ -337,7 +337,7 @@ static struct foreign {
 };
 
 void
-initBuildIns()
+initBuildIns(void)
 { struct foreign *f;
   register Definition def;
   PL_extension *e;

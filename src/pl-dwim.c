@@ -10,13 +10,13 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 
-forwards Atom	dwimMatch P((char *, char *));
-forwards bool	oneTypo P((char *, char *));
-forwards bool	twoTransposed P((char *, char *));
-forwards bool	oneInserted P((char *, char *));
-forwards bool	differentSeparated P((char *, char *));
-forwards char *	subWord P((char *, char *));
-forwards bool	subwordsTransposed P((char *, char *));
+forwards Atom	dwimMatch(char *, char *);
+forwards bool	oneTypo(char *, char *);
+forwards bool	twoTransposed(char *, char *);
+forwards bool	oneInserted(char *, char *);
+forwards bool	differentSeparated(char *, char *);
+forwards char *	subWord(char *, char *);
+forwards bool	subwordsTransposed(char *, char *);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Strings are supposed to be meant identical iff one of the  following  is
@@ -31,8 +31,7 @@ the case:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Atom
-dwimMatch(str1, str2)
-char *str1, *str2;
+dwimMatch(char *str1, char *str2)
 { int l1, l2;
   register char *s1 = str1;
   register char *s2 = str2;
@@ -60,8 +59,7 @@ char *str1, *str2;
 }
 
 static bool
-oneTypo(s1, s2)
-char *s1, *s2;
+oneTypo(char *s1, char *s2)
 { if (s1[1] == EOS || streq(&s1[1], &s2[1]) )
     succeed;
   fail;
@@ -69,8 +67,7 @@ char *s1, *s2;
 
 static
 bool
-twoTransposed(s1, s2)
-register char *s1, *s2;
+twoTransposed(register char *s1, register char *s2)
 { if (s1[1] != EOS && s1[0] == s2[1] && s1[1] == s2[0] &&
        (s1[2] == EOS || streq(&s1[2], &s2[2])))
     succeed;
@@ -78,16 +75,14 @@ register char *s1, *s2;
 }
 
 static bool
-oneInserted(s1, s2)
-register char *s1, *s2;
+oneInserted(register char *s1, register char *s2)
 { if (streq(s1, &s2[1]) )
     succeed;
   fail;
 }
 
 static bool
-differentSeparated(s1, s2)
-register char *s1, *s2;
+differentSeparated(register char *s1, register char *s2)
 { register char c1, c2;
 
   if ( *s1 != *s2 || *s1 == EOS )
@@ -114,8 +109,7 @@ register char *s1, *s2;
 }
 
 static char *
-subWord(s, store)
-register char *s, *store;
+subWord(register char *s, register char *store)
 { *store++ = (isUpper(*s) ? toLower(*s) : *s);
   s++;
 
@@ -137,8 +131,7 @@ register char *s, *store;
 }    
 
 static bool
-subwordsTransposed(s1, s2)
-char *s1, *s2;
+subwordsTransposed(char *s1, char *s2)
 { char sw1a[1024], sw1b[1024];
   char sw2a[1024], sw2b[1024];
 
@@ -164,8 +157,7 @@ char *s1, *s2;
 		*********************************/
 
 word
-pl_dwim_match(a1, a2, mm)
-Word a1, a2, mm;
+pl_dwim_match(Word a1, Word a2, Word mm)
 { char *s1, *s2 = NULL;		/* initialise to make gcc happy */
   bool rval;
   Atom type;
@@ -190,9 +182,7 @@ predicate head.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
-pl_dwim_predicate(term, dwim, h)
-Word term, dwim;
-word h;
+pl_dwim_predicate(Word term, Word dwim, word h)
 { FunctorDef fdef;
   Module module = (Module) NULL;
   Procedure proc;

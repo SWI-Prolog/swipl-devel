@@ -26,8 +26,8 @@ struct timeval
 		*             OS-TYPES		*
 		********************************/
 
-extern int	puti P((int, FILE *));
-extern int	geti P((FILE *));
+extern int	puti(int, FILE *);
+extern int	geti(FILE *);
 
 		/********************************
 		*        MEMORY MANAGEMENT      *
@@ -50,25 +50,25 @@ extern int	geti P((FILE *));
 #define allocGlobal(n)	alloc_global((alloc_t) (n))
 #define allocLocal(n)	alloc_local((alloc_t) (n))
 
-extern Void Allocate P((long));
+extern Void Allocate(long);
 
 		/********************************
 		*         MISCELLANEOUS         *
 		*********************************/
 
-extern char *Setenv P((char *name, char *value));
-extern char *Unsetenv P((char *name));
+extern char *Setenv(char *name, char *value);
+extern char *Unsetenv(char *name);
 
-extern long Time P((void));
-extern char *OsError P((void));
-extern bool initOs P((void));
-extern volatile void Halt P((int));
+extern long Time(void);
+extern char *OsError(void);
+extern bool initOs(void);
+extern volatile void Halt(int);
 
 		/********************************
 		*           ARITHMETIC          *
 		*********************************/
 
-extern long Random P((void));
+extern long Random(void);
 
 
 		/********************************
@@ -111,28 +111,28 @@ extern long Random P((void));
 #define Putw(w, fd)		putw((long)(w), fd)
 #define Getw(fd)		getw(fd)
 
-Char		GetChar P((void));
-Atom		TemporaryFile P((char *key));
-void		RemoveTemporaryFiles P((void));
-int		GetDTableSize P((void));
-long		LastModifiedFile P((char *name)),
-		SizeFile P((char *name));
-bool		AccessFile P((char *name, int how)),
-		ExistsFile P((char *name)),
-		ExistsDirectory P((char *name)),
-		DeleteFile P((char *name)),
-		RenameFile P((char *old, char *new)),
-		SameFile P((char *file1, char *file2)),
-		OpenStream P((int index)),
-		MarkExecutable P((char *name)),
-		expandVars P((char *pattern, char *expanded)),
-		ChDir P((char *dir));
-char 		*AbsoluteFile P((char *)),
-		*ExpandOneFile P((char *)),
-		*BaseName P((char *)),
-		*DirName P((char *)),
-		*PrologPath P((char *)),
-		*OsPath P((char *));
+Char		GetChar(void);
+Atom		TemporaryFile(char *key);
+void		RemoveTemporaryFiles(void);
+int		GetDTableSize(void);
+long		LastModifiedFile(char *name),
+		SizeFile(char *name);
+bool		AccessFile(char *name, int how),
+		ExistsFile(char *name),
+		ExistsDirectory(char *name),
+		DeleteFile(char *name),
+		RenameFile(char *old, char *new),
+		SameFile(char *file1, char *file2),
+		OpenStream(int index),
+		MarkExecutable(char *name),
+		expandVars(char *pattern, char *expanded),
+		ChDir(char *dir);
+char 		*AbsoluteFile(char *),
+		*ExpandOneFile(char *),
+		*BaseName(char *),
+		*DirName(char *),
+		*PrologPath(char *),
+		*OsPath(char *);
 
 #define ACCESS_EXECUTE	1
 #define ACCESS_READ	2
@@ -142,8 +142,8 @@ char 		*AbsoluteFile P((char *)),
 		*        TIME CONVERSION        *
 		*********************************/
 
-extern struct tm *LocalTime P((long *));
-extern real	  CpuTime P((void));
+extern struct tm *LocalTime(long *);
+extern real	  CpuTime(void);
 
 
 		/********************************
@@ -154,10 +154,9 @@ extern real	  CpuTime P((void));
 #if _AIX
 #include <sys/select.h>
 #else
-/* typedef ulong fd_set;		prior SunOs 4.0 compatibility */
-#define FD_ZERO(s)	{ *((ulong *)(s)) = (0L); }
-#define FD_SET(fd, s)	{ *((ulong *)(s)) |= (1L << (fd)); }
-#define FD_ISSET(fd, s) ( (*((ulong *)(s)) & (1L << (fd))) != 0 )
+#define FD_ZERO(s)	{ *((unsigned long *)(s)) = (0L); }
+#define FD_SET(fd, s)	{ *((unsigned long *)(s)) |= (1L << (fd)); }
+#define FD_ISSET(fd, s) ( (*((unsigned long *)(s)) & (1L << (fd))) != 0 )
 #endif
 #endif
 
@@ -195,9 +194,9 @@ extern int	ttymode;		/* Current tty mode */
 
 #define IsaTty(fd)	isatty(fd)
 
-extern bool PushTty P((ttybuf *, int mode));
-extern bool PopTty P((ttybuf *));
-extern void ResetTty P((void));
+extern bool PushTty(ttybuf *, int mode);
+extern bool PopTty(ttybuf *);
+extern void ResetTty(void);
 
 
 		/********************************
@@ -206,6 +205,6 @@ extern void ResetTty P((void));
 
 #define Wait(stat)	wait(stat)
 
-extern int System P((char *command));
-extern void Sleep P((real time));
-extern char *Symbols P((void));
+extern int System(char *command);
+extern void Sleep(real time);
+extern char *Symbols(void);

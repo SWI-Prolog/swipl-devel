@@ -30,5 +30,5 @@ typedef struct save_section
   short	flags;			/* Various flags */
 } * SaveSection;
 
-int	save P((char *, char *, int, int, SaveSection));
-int	restore P((char *, int (*allocf)(SaveSection)));
+int	save(char *, char *, int, int, SaveSection);
+int	restore(char *, int (*allocf)(SaveSection));

@@ -32,8 +32,7 @@ struct assoc
 
 Assoc bags = (Assoc) NULL;		/* chain of value pairs */
 
-forwards word appendBag P((word, word));
-forwards void freeAssoc P((Assoc, Assoc));
+forwards void freeAssoc(Assoc, Assoc);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 $record_bag(Key, Value)
@@ -43,8 +42,7 @@ variable biding for solution `Gen'.  Key is ATOM_mark for the mark.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
-pl_record_bag(key, value)
-register Word key, value;
+pl_record_bag(register Word key, register Word value)
 { register Assoc a = (Assoc) allocHeap(sizeof(struct assoc));
 
   a->next  = bags;
@@ -70,7 +68,6 @@ checkBags()
 }
 #endif
 
-#if ANSI
 word
 globalTerm(FunctorDef fdef, ...)
 { va_list args;
@@ -85,30 +82,8 @@ globalTerm(FunctorDef fdef, ...)
   return rval;
 }
 
-#else
-
 word
-globalTerm(va_alist)
-	va_dcl
-{ va_list args;
-  word rval;
-  FunctorDef fdef;
-  int n;
-  
-  va_start(args);
-  fdef = va_arg(args, FunctorDef);
-  rval = globalFunctor(fdef);
-  for(n=0; n<fdef->arity; n++)
-    argTerm(rval, n) = va_arg(args, word);
-  va_end(args);
-
-  return rval;
-}
-#endif
-
-word
-pl_collect_bag(bindings, bag)
-Word bindings, bag;
+pl_collect_bag(Word bindings, Word bag)
 { word var_term = 0;			/* v() term on global stack */
   word list = (word) ATOM_nil;		/* result list */
   register Assoc a, next;
@@ -165,8 +140,7 @@ Word bindings, bag;
 
 static
 void
-freeAssoc(prev, a)
-Assoc prev, a;
+freeAssoc(Assoc prev, Assoc a)
 { if ( prev == NULL )
     bags = a->next;
   else

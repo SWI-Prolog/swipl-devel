@@ -22,8 +22,6 @@ NOTE:  This port is not yet complete.  Known problems:
 #define M_LIBS			-lm -ltermcap
 
 #define tos			1
-#define ANSI			1
-#define PROTO			1
 #define O_NO_LEFT_CAST		0
 #define O_NO_VOID_POINTER	0
 #define O_SHORT_SYMBOLS		1

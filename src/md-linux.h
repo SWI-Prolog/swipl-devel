@@ -39,17 +39,17 @@ Wed Jun 30 22:03:41 1993
 #define M_OPTIMIZE	        -O2
 /*#define M_OPTIMIZE		-g*/
 #define M_LDFLAGS		-static
-#define M_CFLAGS		-funsigned-char
+#define M_CFLAGS		-ansi -pedantic -Wall -funsigned-char
 #define M_LIBS			-lm -ltermcap -lreadline
 
 			/* compiler */
+#define linux			1	/* -ansi provides __linux__ */
 #define ANSI			1
 #define USG			1
-#define O_NO_LEFT_CAST		0
 #define O_NO_VOID_POINTER	0
 #define O_SHORT_SYMBOLS		0
 #define O_UCHAR_PREDEFINED	0	/* type uchar is predefined */
-#define O_ULONG_PREDEFINED	1	/* type ulong is predefined */
+#define _POSIX_SOURCE		1
 
 			/* Operating system */
 #define O_PROFILE		1
@@ -73,6 +73,8 @@ Wed Jun 30 22:03:41 1993
 #define DIR_INCLUDE2		<dirent.h>
 #define TERMIO_INCLUDE		<termio.h>
 #define O_GETCWD		1
+
+#include <linux/limits.h>
 
 			/* terminal driver */
 #define O_READLINE		1

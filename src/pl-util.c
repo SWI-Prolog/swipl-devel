@@ -16,9 +16,7 @@ that are by accident integer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-wordToInteger(w, n)
-word w;
-long *n;
+wordToInteger(word w, long int *n)
 { real f;
 
   if (isInteger(w) )
@@ -40,9 +38,7 @@ long *n;
  ** Fri Jun 10 10:45:18 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 bool
-wordToReal(w, f)
-word w;
-real *f;
+wordToReal(word w, real *f)
 { if (isInteger(w) )
   { *f = (real) valNum(w);
     succeed;
@@ -59,9 +55,7 @@ real *f;
  ** Fri Jun 10 10:45:40 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 char
-digitName(n, small)
-int n;
-bool small;
+digitName(int n, bool small)
 { if (n <= 9)
     return n + '0';
   return n + (small ? 'a' : 'A') - 10;
@@ -72,15 +66,8 @@ bool small;
 
  ** Fri Jun 10 10:46:40 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
-#if PROTO
 int
 digitValue(int b, char c)
-#else
-int
-digitValue(b, c)
-int b;
-char c;
-#endif
 { DEBUG(9, printf("digitValue(%d, %c)\n", b, c));
   if (b == 0)
   { if (c & 0x80)
@@ -111,8 +98,7 @@ char c;
  ** Sun Aug 28 13:21:07 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 char *
-procedureName(proc)
-Procedure proc;
+procedureName(Procedure proc)
 { static char tmp[256];
 
   if ( proc->definition->module == MODULE_user ||
@@ -132,8 +118,7 @@ Procedure proc;
  ** Fri Sep  2 17:03:43 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 bool
-isUserSystemProcedure(proc)
-Procedure proc;
+isUserSystemProcedure(Procedure proc)
 { if ( true(proc->definition, SYSTEM) &&
        isCurrentProcedure(proc->functor, MODULE_user) != (Procedure) NULL)
     succeed;
@@ -142,9 +127,7 @@ Procedure proc;
 }
 
 word
-notImplemented(name, arity)
-char *name;
-int arity;
+notImplemented(char *name, int arity)
 { return warning("%s/%d is not implemented in this version");
 }
 
@@ -154,8 +137,7 @@ int arity;
 
 
 bool
-strprefix(string, prefix)
-register char *string, *prefix;
+strprefix(register char *string, register char *prefix)
 { while(*prefix && *string == *prefix)
     prefix++, string++;
   if (*prefix == EOS )
@@ -164,8 +146,7 @@ register char *string, *prefix;
 }
 
 bool
-strpostfix(string, postfix)
-char *string, *postfix;
+strpostfix(char *string, char *postfix)
 { long offset = strlen(string) - strlen(postfix);
 
   if ( offset < 0 )
@@ -175,8 +156,7 @@ char *string, *postfix;
 }
 
 bool
-strsub(string, sub)
-register char *string, *sub;
+strsub(register char *string, register char *sub)
 { register char *s, *sb;
 
   while( *(s = string++) )
@@ -220,8 +200,7 @@ char char_type[] = {
    LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC };
 
 void
-systemMode(accept)
-bool accept;
+systemMode(bool accept)
 { char_type[(int)'$'] = (accept ? LC : SY);
   if ( accept )
     debugstatus.styleCheck |= DOLLAR_STYLE;

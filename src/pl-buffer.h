@@ -13,9 +13,9 @@ typedef struct
   char *	max;			/* current location */
 } buffer, *Buffer;
 
-Buffer	newBuffer P((void));
-void	freeBuffer P((Buffer));
-void	growBuffer P((Buffer, long));
+Buffer	newBuffer(void);
+void	freeBuffer(Buffer);
+void	growBuffer(Buffer, long);
 
 #define addBuffer(b, obj, type) \
 	do \
@@ -29,7 +29,6 @@ void	growBuffer P((Buffer, long));
 #define topBuffer(b, type)       ((type *) (b)->top)
 #define inBuffer(b, addr)        ((char *) (addr) >= (b)->base && \
 				  (char *) (addr)  < (b)->top)
-#define offsetBuffer(b, addr, t) ((addr) - baseBuffer(b, t))
 
 #define seekBuffer(b, cnt, type) ((b)->top = sizeof(type) * (cnt) + (b)->base)
 #define sizeOfBuffer(b)          ((b)->top - (b)->base)

@@ -21,15 +21,15 @@ Hack hack hack hack ...
 #if O_STORE_PROGRAM || O_SAVE
 
 #include <sys/param.h>
+#include <unistd.h>
 #if O_STORE_PROGRAM
-int	unexec P((char *, char *, char *, unsigned, unsigned, unsigned));
+int	unexec(char *, char *, char *, unsigned, unsigned, unsigned);
 #else
 #include "pl-save.h"
 #endif
 
 word
-saveProgram(new)
-Word new;
+saveProgram(Word new)
 { char *new_name, *sym_name, *dest;
   char tmp[MAXPATHLEN];
   char old_name[MAXPATHLEN];
@@ -82,9 +82,7 @@ Word new;
 
 static
 bool
-sizeOption(i, v)
-int *i;
-word v;
+sizeOption(int *i, word v)
 { if ( !isInteger(v) )
     return warning("save_program/2: illegal option argument");
   *i = valNum(v);
@@ -94,9 +92,7 @@ word v;
 
 static
 bool
-stringOption(s, v)
-char **s;
-word v;
+stringOption(char **s, word v)
 { if ( !isAtom(v) )
     return warning("save_program/2: illegal option argument");
   *s = stringAtom(v);
@@ -106,9 +102,7 @@ word v;
 
 static
 bool
-boolOption(b, v)
-bool *b;
-word v;
+boolOption(bool *b, word v)
 { if ( v == (word) ATOM_on )
     *b = TRUE;
   else if ( v == (word) ATOM_off )
@@ -120,8 +114,7 @@ word v;
 }
 
 word
-pl_save_program(new, args)
-Word new, args;
+pl_save_program(Word new, Word args)
 { Word a;
   Word Option, Value;
   Atom option;
@@ -173,8 +166,7 @@ Word new, args;
 #if O_SAVE
 
 word
-pl_save(file, restore)
-Word file, restore;
+pl_save(Word file, Word restore)
 { char *state, *interpreter;
 #if O_DYNAMIC_STACKS
   struct save_section sections[5];
@@ -191,7 +183,8 @@ Word file, restore;
 #if O_DYNAMIC_STACKS
 #define fill_section(sec, stack) \
   { (sec)->start  = (caddr) (stack)->base; \
-    (sec)->length = (ulong) (stack)->top - (ulong) (stack)->base; \
+    (sec)->length = (unsigned long) (stack)->top - \
+ 		    (unsigned long) (stack)->base; \
     (sec)->type   = S_PLSTACK; \
     (sec)->flags  = 0; \
   }
@@ -221,8 +214,7 @@ Word file, restore;
 
 #if O_DYNAMIC_STACKS
 bool
-allocateSection(s)
-SaveSection s;
+allocateSection(SaveSection s)
 { if ( s->type == S_PLSTACK )
   { if ((stacks.local.base    == s->start &&
 	 restoreStack((Stack) &stacks.local)) ||
@@ -245,8 +237,7 @@ SaveSection s;
 #endif
 
 word
-pl_restore(file)
-Word file;
+pl_restore(Word file)
 { char *state;
 
   if ( (state = primitiveToString(*file, FALSE)) == (char *)NULL )

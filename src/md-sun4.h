@@ -29,18 +29,18 @@ and libraries.  If you are not sure, run `which cc' which should yield
 #define M_CC			gcc
 #define M_OPTIMIZE	        -O2
 #define M_LDFLAGS		-static
-#define M_CFLAGS		-funsigned-char
+#define M_CFLAGS		-ansi -pedantic -Wall -funsigned-char
 #endif
 
 /*#define M_OPTIMIZE		-g -DO_DEBUG*/
 
 #define M_LIBS			-lm -ltermcap -lreadline
 
-/* #define O_VMCODE_IS_ADDRESS	0	/* temporary */
+/* #define O_VMCODE_IS_ADDRESS	0	temporary */
 
 			/* compiler */
-#define ANSI			__GNUC__
-#define O_NO_LEFT_CAST		0
+#define sun			1
+#define ANSI			1
 #define O_NO_VOID_POINTER	0
 #define O_SHORT_SYMBOLS		0
 			/* Operating system */
@@ -55,12 +55,13 @@ and libraries.  If you are not sure, run `which cc' which should yield
 #ifndef USE_CC				/* just the default ld for cc */
 #define LD_COMMAND		"gcc"
 #endif
-#define LD_OPT_ADDR		"-T %x"
+#define LD_OPT_ADDR		"-T %lx"
 #define O_NOENTRY		0	/* ld -e doesn't work */
 #define O_SAVE			1
 #define DEFAULT_PATH		":.:/usr/ucb:/bin:/usr/bin:";
 #define SRANDOM(t)		srandom((long)t)
 #define RANDOM()		random()
+#define O_EXTRA_SYSTEM_TYPES	"sun-types.h"
 
 			/* terminal driver */
 #define O_READLINE		1

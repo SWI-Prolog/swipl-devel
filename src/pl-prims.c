@@ -11,13 +11,13 @@
 #include "pl-ctype.h"
 #include "pl-buffer.h"
 
-forwards int	pl_se P((Word, Word, Buffer));
-forwards void	resetVariables P((Word));
-forwards bool	freeVariables P((Word, Word *, bool));
-forwards char 	*prependBase P((int, char *));
-forwards bool	isPrefix P((char *, char *));
-forwards bool	boolPlease P((bool *, Word, Word));
-forwards word	copyTerm P((Word, Table));
+forwards int	pl_se(Word, Word, Buffer);
+forwards void	resetVariables(Word);
+forwards bool	freeVariables(Word, Word *, bool);
+forwards char 	*prependBase(int, char *);
+forwards bool	isPrefix(char *, char *);
+forwards bool	boolPlease(bool *, Word, Word);
+forwards word	copyTerm(Word, Table);
 
 		/********************************
 		*         TYPE CHECKING         *
@@ -25,8 +25,7 @@ forwards word	copyTerm P((Word, Table));
 
 
 word
-pl_nonvar(k)
-register Word k;
+pl_nonvar(register Word k)
 { if (isVar(*k))
     fail;
 
@@ -34,8 +33,7 @@ register Word k;
 }
 
 word
-pl_var(k)
-register Word k;
+pl_var(register Word k)
 { if (isVar(*k))
     succeed;
 
@@ -43,8 +41,7 @@ register Word k;
 }
 
 word
-pl_integer(k)
-register Word k;
+pl_integer(register Word k)
 { if (isInteger(*k))
     succeed;
 
@@ -52,8 +49,7 @@ register Word k;
 }
 
 word
-pl_float(k)
-register Word k;
+pl_float(register Word k)
 { if (isReal(*k))
     succeed;
 
@@ -62,8 +58,7 @@ register Word k;
 
 #if O_STRING
 word
-pl_string(k)
-register Word k;
+pl_string(register Word k)
 { if (isString(*k))
     succeed;;
 
@@ -72,8 +67,7 @@ register Word k;
 #endif /* O_STRING */
 
 word
-pl_number(k)
-register Word k;
+pl_number(register Word k)
 { if ( isNumber(*k) )
     succeed;
 
@@ -81,8 +75,7 @@ register Word k;
 }
 
 word
-pl_atom(k)
-register Word k;
+pl_atom(register Word k)
 { if (isAtom(*k))
     succeed;
 
@@ -90,8 +83,7 @@ register Word k;
 }
 
 word
-pl_atomic(k)
-register Word k;
+pl_atomic(register Word k)
 { if (isAtomic(*k))
     succeed;
 
@@ -99,8 +91,7 @@ register Word k;
 }
 
 word
-pl_ground(term)
-register Word term;
+pl_ground(register Word term)
 { register int arity;
 
   deRef(term);
@@ -121,8 +112,8 @@ register Word term;
 		*********************************/
 
 word
-pl_unify(t1, t2)			/* =/2 */
-register Word t1, t2;
+pl_unify(register Word t1, register Word t2)			/* =/2 */
+                     
 { mark m;
 
   DoMark(m);
@@ -135,8 +126,7 @@ register Word t1, t2;
 }
 
 word
-pl_notunify(t1, t2)
-register Word t1, t2;
+pl_notunify(register Word t1, register Word t2)
 { bool rval;
   mark m;
   
@@ -151,8 +141,8 @@ register Word t1, t2;
 }
 
 word
-pl_equal(t1, t2)			/* ==/2 */
-register Word t1, t2;
+pl_equal(register Word t1, register Word t2)			/* ==/2 */
+                     
 { int arity, n;
 
   deRef(t1);
@@ -195,8 +185,8 @@ register Word t1, t2;
 }
 
 word
-pl_nonequal(t1, t2)		/* \== */
-Word t1, t2;
+pl_nonequal(Word t1, Word t2)		/* \== */
+            
 { if (pl_equal(t1, t2) == FALSE)
     succeed;
 
@@ -230,8 +220,7 @@ Word t1, t2;
 #endif
 
 int
-compareStandard(t1, t2)
-register Word t1, t2;
+compareStandard(register Word t1, register Word t2)
 { int rval;
   int arity;
   int n;
@@ -319,8 +308,7 @@ register Word t1, t2;
 
 
 word
-pl_compare(rel, t1, t2)
-Word rel, t1, t2;
+pl_compare(Word rel, Word t1, Word t2)
 { int val = compareStandard(t1, t2);
 
   return unifyAtomic(rel, val < 0 ? ATOM_smaller :
@@ -330,32 +318,32 @@ Word rel, t1, t2;
 
 
 word
-pl_lessStandard(t1, t2)		/* @</2 */
-Word t1, t2;
+pl_lessStandard(Word t1, Word t2)		/* @</2 */
+            
 { if (compareStandard(t1, t2) < 0)
     succeed;
   fail;
 }
 
 word
-pl_lessEqualStandard(t1, t2)		/* @=</2 */
-Word t1, t2;
+pl_lessEqualStandard(Word t1, Word t2)		/* @=</2 */
+            
 { if (compareStandard(t1, t2) <= 0)
     succeed;
   fail;
 }
 
 word
-pl_greaterStandard(t1, t2)		/* @>/2 */
-Word t1, t2;
+pl_greaterStandard(Word t1, Word t2)		/* @>/2 */
+            
 { if (compareStandard(t1, t2) > 0)
     succeed;
   fail;
 }
 
 word
-pl_greaterEqualStandard(t1, t2)	/* @>=/2 */
-Word t1, t2;
+pl_greaterEqualStandard(Word t1, Word t2)	/* @>=/2 */
+            
 { if (compareStandard(t1, t2) >= 0)
     succeed;
   fail;
@@ -385,9 +373,7 @@ typedef struct
 
 
 static bool
-pl_se(t1, t2, buf)
-Word t1, t2;
-Buffer buf;
+pl_se(Word t1, Word t2, Buffer buf)
 { int arity, n;
 
   deRef(t1);
@@ -442,10 +428,8 @@ Buffer buf;
 }
 
 word
-pl_structural_equal(t1, t2)
-Word t1, t2;
-{ mark m;
-  bool rval;
+pl_structural_equal(Word t1, Word t2)
+{ bool rval;
   buffer buf;
   Reset r;
 
@@ -461,8 +445,7 @@ Word t1, t2;
 }
 
 word
-pl_structural_nonequal(t1, t2)
-Word t1, t2;
+pl_structural_nonequal(Word t1, Word t2)
 { return pl_structural_equal(t1, t2) == FALSE ? TRUE : FALSE;
 }
 
@@ -472,8 +455,7 @@ Word t1, t2;
 		*********************************/
 
 word
-pl_functor(t, f, a)
-Word t, f, a;
+pl_functor(Word t, Word f, Word a)
 { int arity;
 
   if (isVar(*t) )
@@ -499,9 +481,7 @@ Word t, f, a;
 }
 
 word
-pl_arg(n, term, arg, b)
-register Word n, term, arg;
-word b;
+pl_arg(register Word n, register Word term, register Word arg, word b)
 { switch( ForeignControl(b) )
   { case FRG_FIRST_CALL:
       if ( !isTerm(*term) )
@@ -552,8 +532,7 @@ word b;
  ** Mon Apr 18 16:29:01 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 int
-lengthList(list)
-Word list;
+lengthList(Word list)
 { int length = 0;
 
   while(!isNil(*list) )
@@ -570,8 +549,7 @@ Word list;
 }
 
 word
-pl_univ(t, l)
-Word t, l;
+pl_univ(Word t, Word l)
 { word term;
   int arity, a;
   Word argp;
@@ -621,10 +599,7 @@ Word t, l;
 }
 
 int
-numberVars(t, functor, n)
-register Word t;
-FunctorDef functor;
-int n;
+numberVars(register Word t, FunctorDef functor, int n)
 { Word argp;
   int i, arity;
 
@@ -650,8 +625,7 @@ int n;
 }
 
 word
-pl_numbervars(t, atom, start, end)
-Word t, atom, start, end;
+pl_numbervars(Word t, Word atom, Word start, Word end)
 { int n;
   FunctorDef functor;
 
@@ -666,8 +640,7 @@ Word t, atom, start, end;
 }
 
 static void
-resetVariables(t)
-register Word t;
+resetVariables(register Word t)
 { register int arity;
 
   deRef(t);
@@ -682,9 +655,7 @@ register Word t;
 }
 
 static bool
-freeVariables(t, l, e)
-register Word t, *l;
-bool e;
+freeVariables(register Word t, register Word *l, bool e)
 { int arity;
   
   deRef(t);
@@ -708,8 +679,7 @@ bool e;
 }
 
 word
-pl_free_variables(t, l)
-Word t, l;
+pl_free_variables(Word t, Word l)
 { numberVars(t, FUNCTOR_var1, 0);
   
   TRY(freeVariables(t, &l, FALSE) );
@@ -719,8 +689,7 @@ Word t, l;
 }
 
 word
-pl_e_free_variables(t, l)
-Word t, l;
+pl_e_free_variables(Word t, Word l)
 { numberVars(t, FUNCTOR_var1, 0);
   
   TRY(freeVariables(t, &l, TRUE) );
@@ -730,9 +699,7 @@ Word t, l;
 }
 
 static word
-copyTerm(f, vars)
-Word f;
-Table vars;
+copyTerm(Word f, Table vars)
 { deRef(f);
   if ( isVar(*f) )
   { Symbol s = lookupLocalTable(vars, f);
@@ -765,8 +732,7 @@ Table vars;
 
 
 word
-pl_copy_term(f, t)
-Word f, t;
+pl_copy_term(Word f, Word t)
 { Table vartable;
   word copy;
 
@@ -779,9 +745,7 @@ Word f, t;
 }
 
 bool
-unifyStringWithList(s, l)
-char *s;
-Word l;
+unifyStringWithList(char *s, Word l)
 { word w;
 
   while(*s)
@@ -794,8 +758,7 @@ Word l;
 }
 
 word
-stringToList(s)
-char *s;
+stringToList(char *s)
 { word result;
   Word arg;
   FunctorDef dot = FUNCTOR_dot2;
@@ -819,8 +782,7 @@ char *s;
 }
 
 char *
-listToString(list)
-register word list;
+listToString(register word list)
 { char *result = (char *) lTop;
   char *s = result;
   int c;
@@ -849,9 +811,7 @@ register word list;
 }
 
 char *
-primitiveToString(w, save)
-word w;
-bool save;
+primitiveToString(word w, bool save)
 { static char tmp[25];
  
   if (isAtom(w) )
@@ -874,8 +834,7 @@ bool save;
 
 
 char *
-toString(w)
-word w;
+toString(word w)
 { char *s;
   if ( (s = primitiveToString(w, FALSE)) != NULL ||
        (s = listToString(w)) != NULL )
@@ -886,8 +845,7 @@ word w;
 
 
 word
-pl_atom_length(w, n)
-Word w, n;
+pl_atom_length(Word w, Word n)
 { char *s;
 
   if ( (s = primitiveToString(*w, FALSE)) )
@@ -898,9 +856,7 @@ Word w, n;
 
 
 static char *
-prependBase(b, s)
-int b;
-char *s;
+prependBase(int b, char *s)
 { *s-- = '\'';
   while(b > 0)
   { *s-- = digitName(b % 10, TRUE);
@@ -911,8 +867,7 @@ char *s;
 }
 
 word
-pl_int_to_atom(number, base, atom)
-Word number, base, atom;
+pl_int_to_atom(Word number, Word base, Word atom)
 { long n, b;
   char result[100];
   char *s = &result[99];
@@ -957,12 +912,7 @@ Word number, base, atom;
  ** Fri Aug 19 22:26:41 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 char *
-formatInteger(split, div, radix, small, n)
-bool split;
-int div;
-int radix;
-bool small;
-long n;
+formatInteger(bool split, int div, int radix, bool small, long int n)
 { static char tmp[100];
   char *s = tmp + 99;
   int before = (div == 0);
@@ -995,8 +945,7 @@ long n;
 }	  
 
 word
-pl_format_number(format, number, string)
-Word format, number, string;
+pl_format_number(Word format, Word number, Word string)
 { char *fmt;
   int arg;
   char conv;
@@ -1049,8 +998,7 @@ Word format, number, string;
 }
 
 static bool
-isPrefix(s, q)
-register char *s, *q;
+isPrefix(register char *s, register char *q)
 { while(*s && *s == *q)
     s++, q++;
 
@@ -1058,8 +1006,7 @@ register char *s, *q;
 }
 
 word
-pl_name(atom, string)
-Word atom, string;
+pl_name(Word atom, Word string)
 { register char *s;
 
   if ((s = primitiveToString(*atom, FALSE)) != (char *)NULL)
@@ -1085,8 +1032,7 @@ Word atom, string;
 }
 
 word
-pl_concat(a1, a2, a3)
-Word a1, a2, a3;
+pl_concat(Word a1, Word a2, Word a3)
 { char *s1, *s2, *s3;
   long l1, l2, l3;
   char *tmp;
@@ -1138,8 +1084,7 @@ Word a1, a2, a3;
 }
 
 word
-pl_concat_atom(list, atom)
-Word list, atom;
+pl_concat_atom(Word list, Word atom)
 { char *tmp = (char *) lTop;
   char *base = tmp;
   Word arg;
@@ -1165,8 +1110,7 @@ Word list, atom;
 }
 
 word
-pl_apropos_match(a1, a2)
-Word a1, a2;
+pl_apropos_match(Word a1, Word a2)
 { char *s1, *s2, *q, *s;
 
   initAllocLocal();
@@ -1194,8 +1138,7 @@ Provisional String manipulation functions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
-pl_string_length(str, l)
-Word str, l;
+pl_string_length(Word str, Word l)
 { char *s;
 
   if ( isString(*str) )
@@ -1208,8 +1151,7 @@ Word str, l;
 }
 
 word
-pl_string_to_atom(str, a)
-Word str, a;
+pl_string_to_atom(Word str, Word a)
 { char *s;
 
   if ( (s = primitiveToString(*str, FALSE)) != (char *) NULL )
@@ -1221,8 +1163,7 @@ Word str, a;
 }
 
 word
-pl_string_to_list(str, list)
-Word str, list;
+pl_string_to_list(Word str, Word list)
 { char *s;
 
   if ( (s = primitiveToString(*str, FALSE)) != (char *) NULL )
@@ -1235,8 +1176,7 @@ Word str, list;
 }
 
 word
-pl_substring(str, offset, length, sub)
-Word str, offset, length, sub;
+pl_substring(Word str, Word offset, Word length, Word sub)
 { long off, l, size, end;
   char *s, c;
   word ss;
@@ -1276,8 +1216,7 @@ Word str, offset, length, sub;
 #endif /* O_STRING */
 
 word
-pl_write_on_atom(goal, atom)
-Word goal, atom;
+pl_write_on_atom(Word goal, Word atom)
 { char string[10240];
   bool rval;
 
@@ -1290,8 +1229,7 @@ Word goal, atom;
 
 #if O_STRING
 word
-pl_write_on_string(goal, string)
-Word goal, string;
+pl_write_on_string(Word goal, Word string)
 { char tmp[10240];
   bool rval;
 
@@ -1304,8 +1242,7 @@ Word goal, string;
 #endif /* O_STRING */
 
 word
-pl_write_on_list(goal, string)
-Word goal, string;
+pl_write_on_list(Word goal, Word string)
 { char tmp[10240];
   word list;
   bool rval;
@@ -1319,8 +1256,7 @@ Word goal, string;
 } 
 
 word
-pl_term_to_atom(term, atom, bindings)
-Word term, atom, bindings;
+pl_term_to_atom(Word term, Word atom, Word bindings)
 { char *s;
 
   if ( isVar(*atom) )
@@ -1358,8 +1294,7 @@ Word term, atom, bindings;
 		*********************************/
 
 word
-pl_repeat(h)
-word h;
+pl_repeat(word h)
 { switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
     case FRG_REDO:
@@ -1371,12 +1306,12 @@ word h;
 }
 
 word
-pl_fail()		/* just to define it */
+pl_fail(void)		/* just to define it */
 { fail;
 }
 
 word
-pl_halt()
+pl_halt(void)
 { Halt(0);
   /*NOTREACHED*/
   fail;
@@ -1393,8 +1328,7 @@ pl_halt()
 #define makeNum(n)	((n) < PLMAXINT ? consNum(n) : globalReal((real)n))
 
 word
-pl_statistics(k, value)
-Word k, value;
+pl_statistics(Word k, Word value)
 { word result;
   Atom key;
 
@@ -1474,21 +1408,18 @@ Word k, value;
 		*********************************/
 
 word
-pl_version(v)
-Word v;
+pl_version(Word v)
 { return unifyAtomic(v, lookupAtom(systemDefaults.version));
 }
 
 word
-pl_arch(m, os)
-Word m, os;
+pl_arch(Word m, Word os)
 { TRY(   unifyAtomic(m,  lookupAtom(systemDefaults.machine)) );
   return unifyAtomic(os, lookupAtom(systemDefaults.operating_system));
 }
 
 word
-pl_home(h)
-Word h;
+pl_home(Word h)
 { return unifyAtomic(h, lookupAtom(systemDefaults.home));
 }
 
@@ -1502,8 +1433,7 @@ Word h;
 */
 
 word
-pl_option(key, value)
-Word key, value;
+pl_option(Word key, Word value)
 { Atom result;
   Atom k;
 
@@ -1520,9 +1450,7 @@ Word key, value;
 }
 
 static bool
-boolPlease(b, old, new)
-bool *b;
-register Word old, new;
+boolPlease(bool *b, register Word old, register Word new)
 { Atom a;
 
   TRY( unifyAtomic(old, *b ? ATOM_on : ATOM_off) );
@@ -1536,8 +1464,7 @@ register Word old, new;
 }
 
 word
-pl_please(key, old, new)
-Word key, old, new;
+pl_please(Word key, Word old, Word new)
 { Atom k;
 
   if ( !isAtom(*key) )
@@ -1555,8 +1482,7 @@ Word key, old, new;
 		*********************************/
 
 word
-pl_style_check(old, new)
-Word old, new;
+pl_style_check(Word old, Word new)
 { TRY(unifyAtomic(old, consNum(debugstatus.styleCheck)) );
   if (!isInteger(*new) )
     fail;
@@ -1571,8 +1497,7 @@ Word old, new;
 		*********************************/
 
 word
-pl_novice(old, new)
-Word old, new;
+pl_novice(Word old, Word new)
 { TRY(unifyAtomic(old, novice == TRUE ? ATOM_on : ATOM_off) );
 
   if (!isAtom(*new))

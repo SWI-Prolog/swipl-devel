@@ -21,9 +21,9 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #include <sys/param.h>
 #endif
 
-forwards void	usage P((void));
-forwards char * findHome P((char *));
-forwards char *	findState P((char *));
+forwards void	usage(void);
+forwards char * findHome(char *);
+forwards char *	findState(char *);
 
 #define	optionString(s) { if (argc > 1) \
 			  { s = argv[1]; argc--; argv++; \

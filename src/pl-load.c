@@ -11,13 +11,15 @@
 /*  Implementing foreign functions for HP-PA RISC architecture  */
 
 #include "pl-incl.h"
+#include <memory.h>
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Make sure the symbolfile and  orgsymbolfile  attributes  of  the  global
 structure status are filled properly.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-getSymbols()
+getSymbols(void)
 { char *symbols, *abs_symbols;
 
   if ( loaderstatus.symbolfile != (Atom) NULL )
@@ -31,29 +33,33 @@ getSymbols()
   if ( (abs_symbols = AbsoluteFile(PrologPath(symbols))) == NULL )
     fail;
 
-  loaderstatus.symbolfile = loaderstatus.orgsymbolfile = lookupAtom(abs_symbols);
+  loaderstatus.symbolfile = loaderstatus.orgsymbolfile
+			  = lookupAtom(abs_symbols);
 
   succeed;
 }
 
 #if O_FOREIGN
 
-forwards bool create_a_out();
-forwards int  openExec();
-forwards int  sizeExec();
-forwards Func loadExec();
+forwards bool create_a_out(char *files, char *entry,
+			   char *options, char *libraries,
+			   long int base, char *outfile);
+forwards int  openExec(char *execFile);
+forwards int  sizeExec(void);
+forwards Func loadExec(int fd, unsigned long base, char *sentry);
+#if O_NOENTRY
 forwards bool scanSymbols();
 forwards char *symbolString();
+#endif
 
 #include <sys/file.h>
 #include <a.out.h>
+#include <unistd.h>
 
-#if !hpux
-extern char *sbrk(/*int*/);
-extern int lseek(/*int, long, int*/);
+#if __linux__
+#include <malloc.h>			/* valloc() prototype */
 #endif
-extern int system(/*char **/);
-extern int unlink(/*char **/);
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Load an object file and link it to the system.  The intented  schema  is
@@ -140,7 +146,7 @@ struct filehdr fileHeader;
 #endif
 
 void
-resetLoader()
+resetLoader(void)
 { loaderstatus.symbolfile = loaderstatus.orgsymbolfile = NULL;
 }
 
@@ -160,8 +166,7 @@ not.
 #endif
 
 long
-allocText(size)
-long size;
+allocText(long int size)
 {
 #if !hpux && !linux
     extern char *valloc();
@@ -183,8 +188,7 @@ long size;
 
 
 word
-pl_load_foreign(file, entry, options, libraries, size)
-Word file, entry, options, libraries, size;
+pl_load_foreign(Word file, Word entry, Word options, Word libraries, Word size)
 { char *sfile, *sentry, *soptions, *slibraries;
   int sz, nsz, n;
   Atom execName;
@@ -259,7 +263,7 @@ Create an a.out file from a .o file.
 #define LD_OPT_SFILE	"-A %s"		/* symbol file of process */
 #endif
 #ifndef LD_OPT_ADDR
-#define LD_OPT_ADDR	"-R %x"		/* Base address */
+#define LD_OPT_ADDR	"-R %lx"	/* Base address */
 #endif
 #ifndef LD_OPT_ENTRY
 #define LD_OPT_ENTRY	"-e _%s"	/* Entry-point */
@@ -272,13 +276,7 @@ Create an a.out file from a .o file.
 #endif
 
 static bool
-create_a_out(files, entry, options, libraries, base, outfile)
-char *entry;
-char *files;
-char *options;
-char *libraries;
-long base;
-char *outfile;
+create_a_out(char *files, char *entry, char *options, char *libraries, long int base, char *outfile)
 { char command[10240];
   char *s = command;
 
@@ -315,8 +313,7 @@ char *outfile;
 
 static
 int
-openExec(execFile)
-char *execFile;
+openExec(char *execFile)
 { int fd;
 
 					/* O_BINARY needed on OS2 && EMX  */
@@ -360,7 +357,7 @@ char *execFile;
 
 static
 int
-sizeExec()
+sizeExec(void)
 {
   return
 #if ! aout_800
@@ -374,10 +371,7 @@ sizeExec()
 
 
 static Func
-loadExec(fd, base, sentry)
-char *sentry;
-int fd;
-ulong base;
+loadExec(int fd, unsigned long base, char *sentry)
 { Func entry;
   long *text, text_off, text_size;
   long *data, data_off, data_size;

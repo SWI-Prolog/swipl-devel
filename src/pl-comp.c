@@ -79,10 +79,10 @@ struct code_info codeTable[] = {
   CODE(0,		NULL,		0)
 };
 
-forwards void	checkCodeTable P((void));
+forwards void	checkCodeTable(void);
 
 static void
-checkCodeTable()
+checkCodeTable(void)
 { CodeInfo ci;
   int n;
 
@@ -149,7 +149,7 @@ NOTE:	If the assert() fails, look at pl-wam.c: VMI(C_NOT, ... for
 
 #if O_VMCODE_IS_ADDRESS
 void
-initWamTable()
+initWamTable(void)
 { int n;
   int maxcoded = 0;
 
@@ -221,8 +221,8 @@ variable it's address is stored, as well  as  the  number  of  times  it
 occurred in the clause.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-forwards bool	analyse_variables P((Word, Word, int, int*));
-forwards int	analyseVariables2 P((Word, int, int, int));
+forwards bool	analyse_variables(Word, Word, int, int*);
+forwards int	analyseVariables2(Word, int, int, int);
 
 #if O_COMPILE_ARITH
 #define A_NOTARITH	0
@@ -248,9 +248,7 @@ about the :-/2 operator.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-splitClause(term, head, body)
-register Word term;
-Word *head, *body;
+splitClause(register Word term, Word *head, Word *body)
 { if (isAtom(*term) )
   { *head = term;
     *body = (Word) NULL;
@@ -296,10 +294,7 @@ are made variables again.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
-analyse_variables(head, body, arity, nv)
-Word head, body;
-int arity;
-int *nv;
+analyse_variables(Word head, Word body, int arity, int *nv)
 { int nvars = 0;
   register struct vardef * vd;
   register int n;
@@ -332,10 +327,7 @@ int *nv;
 }
 
 static int
-analyseVariables2(head, nvars, arity, argn)
-register Word head;
-int nvars, arity;
-int argn;
+analyseVariables2(register Word head, int nvars, int arity, int argn)
 { int ar;
 
   deRef(head);
@@ -432,20 +424,20 @@ Variable table operations.
 
 #define addXRtable(entry, ci)	add_xr_table((word)(entry), (ci))
 
-forwards bool	compileBody P((Word, code, compileInfo *));
-forwards int	compileArgument P((Word, int, compileInfo *));
-forwards int	add_xr_table P((word, compileInfo *));
-forwards int	addRealXRtable P((word, compileInfo *));
-forwards int	addStringXRtable P((word, compileInfo *));
-forwards bool	compileSubClause P((Word, code, compileInfo *));
-forwards bool	isFirstVar P((struct vartable *vt, int n));
-forwards void	balanceVars P((struct vartable *, struct vartable *, compileInfo *));
-forwards void	orVars P((struct vartable *, struct vartable *));
-forwards void	setVars P((Word t, struct vartable *));
-forwards Clause	compile P((Word, Module));
+forwards bool	compileBody(Word, code, compileInfo *);
+forwards int	compileArgument(Word, int, compileInfo *);
+forwards int	add_xr_table(word, compileInfo *);
+forwards int	addRealXRtable(word, compileInfo *);
+forwards int	addStringXRtable(word, compileInfo *);
+forwards bool	compileSubClause(Word, code, compileInfo *);
+forwards bool	isFirstVar(struct vartable *vt, int n);
+forwards void	balanceVars(struct vartable *, struct vartable *, compileInfo *);
+forwards void	orVars(struct vartable *, struct vartable *);
+forwards void	setVars(Word t, struct vartable *);
+forwards Clause	compile(Word, Module);
 #if O_COMPILE_ARITH
-forwards int	compileArith P((Word, compileInfo *));
-forwards bool	compileArithArgument P((Word, compileInfo *));
+forwards int	compileArith(Word, compileInfo *);
+forwards bool	compileArithArgument(Word, compileInfo *);
 #endif
 
 #define isIndexedVarTerm(var) ( functorTerm(var) == FUNCTOR_var1 ? \
@@ -455,9 +447,7 @@ forwards bool	compileArithArgument P((Word, compileInfo *));
 #define ClearVarTable(ci)	((ci)->used_var = empty_var_table)
 
 static bool
-isFirstVar(vt, n)
-struct vartable *vt;
-register int n;
+isFirstVar(struct vartable *vt, register int n)
 { register int m  = 1 << (n % BITSPERINT);
   register int *p = &vt->entry[n / BITSPERINT];
   register int result;
@@ -469,9 +459,7 @@ register int n;
 }
 
 static void
-balanceVars(valt1, valt2, ci)
-struct vartable *valt1, *valt2;
-compileInfo *ci;
+balanceVars(struct vartable *valt1, struct vartable *valt2, compileInfo *ci)
 { int *p1 = &valt1->entry[0];
   int *p2 = &valt2->entry[0];
   register int n;
@@ -490,8 +478,7 @@ compileInfo *ci;
 }
 
 static void
-orVars(valt1, valt2)
-struct vartable *valt1, *valt2;
+orVars(struct vartable *valt1, struct vartable *valt2)
 { register int *p1 = &valt1->entry[0];
   register int *p2 = &valt2->entry[0];
   register int n;
@@ -501,9 +488,7 @@ struct vartable *valt1, *valt2;
 }
 
 static void
-setVars(t, vt)
-register Word t;
-register struct vartable *vt;
+setVars(register Word t, register struct vartable *vt)
 { deRef(t);
 
   if ( isTerm(*t) )
@@ -521,9 +506,7 @@ register struct vartable *vt;
 }
 
 static Clause
-compile(term, module)
-Word term;
-Module module;
+compile(Word term, Module module)
 { compileInfo ci;			/* data base for the compiler */
   Word head, body;
   Procedure proc;
@@ -700,16 +683,8 @@ A ; B, A -> B, A -> B ; C, \+ A
     balanceVars();
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if PROTO
 static bool
 compileBody(register Word body, code call, register compileInfo *ci)
-#else
-static bool
-compileBody(body, call, ci)
-register Word body;
-code call;
-register compileInfo *ci;
-#endif
 { deRef(body);
 
   if ( isTerm(*body) )
@@ -825,10 +800,7 @@ I_ENTER or I_POP instructions.
 static int lastPopped;		/* how many contiguous pops? */
 
 static int
-compileArgument(arg, where, ci)
-register Word arg;
-register int where;
-register compileInfo *ci;
+compileArgument(register Word arg, register int where, register compileInfo *ci)
 { int index;
   bool first;
 
@@ -974,9 +946,7 @@ Non-void variables. There are many cases for this.
 
 
 static int
-add_xr_table(entry, ci)
-word entry;
-compileInfo *ci;
+add_xr_table(word entry, compileInfo *ci)
 { int n, m = entriesBuffer(&ci->XR, word);
   Word XR = baseBuffer(&ci->XR, word);
 
@@ -991,9 +961,7 @@ compileInfo *ci;
 
 
 static int
-addRealXRtable(entry, ci)
-word entry;
-compileInfo *ci;
+addRealXRtable(word entry, compileInfo *ci)
 { int n, m = entriesBuffer(&ci->XR, word);
   Word XR = baseBuffer(&ci->XR, word);
 
@@ -1009,9 +977,7 @@ compileInfo *ci;
 
 #if O_STRING
 static int
-addStringXRtable(entry, ci)
-word entry;
-compileInfo *ci;
+addStringXRtable(word entry, compileInfo *ci)
 { int n, m = entriesBuffer(&ci->XR, word);
   Word XR = baseBuffer(&ci->XR, word);
 
@@ -1033,16 +999,8 @@ an instruction to call the procedure is added.  Before doing all this it
 will check for the subclause just beeing a variable or the cut.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if PROTO
 static bool
 compileSubClause(register Word arg, code call, compileInfo *ci)
-#else
-static bool
-compileSubClause(arg, call, ci)
-register Word arg;
-code call;
-compileInfo *ci;
-#endif
 { Module tm = ci->module;
 
   deRef(arg);
@@ -1174,9 +1132,7 @@ compiler rather than the evaluation routine.
 
 #if O_COMPILE_ARITH
 static int
-compileArith(arg, ci)
-Word arg;
-register compileInfo *ci;
+compileArith(Word arg, register compileInfo *ci)
 { code a_func;
   register FunctorDef fdef = functorTerm(*arg);
 
@@ -1200,9 +1156,7 @@ register compileInfo *ci;
 
 static
 bool
-compileArithArgument(arg, ci)
-register Word arg;
-register compileInfo *ci;
+compileArithArgument(register Word arg, register compileInfo *ci)
 { int index;
 
   deRef(arg);
@@ -1289,16 +1243,8 @@ administration, checks for reconsults, etc.
 The warnings should help explain what is going on here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if PROTO
 Clause
 assert_term(Word term, char where, Atom file)
-#else
-Clause
-assert_term(term, where, file)
-Word term;
-char where;
-Atom file;
-#endif
 { Clause clause;
   Procedure proc;
   Definition def;
@@ -1432,20 +1378,17 @@ mode, the predicate is still undefined and is not dynamic or multifile.
 }
 
 word
-pl_assertz(term)
-Word term;
+pl_assertz(Word term)
 { return assert_term(term, 'z', (Atom)NULL) == (Clause)NULL ? FALSE : TRUE;
 }
 
 word
-pl_asserta(term)
-Word term;
+pl_asserta(Word term)
 { return assert_term(term, 'a', (Atom)NULL) == (Clause)NULL ? FALSE : TRUE;
 }
 
 word
-pl_assertz2(term, ref)
-Word term, ref;
+pl_assertz2(Word term, Word ref)
 { Clause clause = assert_term(term, 'z', (Atom)NULL);
 
   if (clause == (Clause)NULL)
@@ -1455,8 +1398,7 @@ Word term, ref;
 }
 
 word
-pl_asserta2(term, ref)
-Word term, ref;
+pl_asserta2(Word term, Word ref)
 { Clause clause = assert_term(term, 'a', (Atom)NULL);
 
   if (clause == (Clause)NULL)
@@ -1466,8 +1408,7 @@ Word term, ref;
 }
 
 word
-pl_record_clause(term, file)
-Word term, file;
+pl_record_clause(Word term, Word file)
 { if (!isAtom(*file) )
     fail;
 
@@ -1502,16 +1443,13 @@ typedef struct
   Word	variables[MAXVARIABLES];	/* variable table */
 } decompileInfo;
 
-forwards bool	unifyVar P((Word, Word *, int));
-forwards bool	decompile_head P((Clause, Word, decompileInfo *));
-forwards bool	decompileBody P((decompileInfo *, code, Code));
-forwards void	build_term P((FunctorDef, decompileInfo *));
+forwards bool	unifyVar(Word, Word *, int);
+forwards bool	decompile_head(Clause, Word, decompileInfo *);
+forwards bool	decompileBody(decompileInfo *, code, Code);
+forwards void	build_term(FunctorDef, decompileInfo *);
 
 static bool
-unifyVar(var, vars, i)
-register Word var;
-register Word vars[];
-register int i;
+unifyVar(register Word var, register Word *vars, register int i)
 { DEBUG(3, printf("unifyVar(%d, %d, %d)\n", var, vars, i) );
   if (vars[i] == (Word)NULL)
   { vars[i] = var;
@@ -1529,19 +1467,14 @@ different accross runs.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-decompileHead(clause, head)
-Clause clause;
-Word head;
+decompileHead(Clause clause, Word head)
 { decompileInfo di;
 
   return decompile_head(clause, head, &di);
 }
 
 static bool
-decompile_head(clause, head, di)
-Clause clause;
-Word head;
-register decompileInfo *di;
+decompile_head(Clause clause, Word head, register decompileInfo *di)
 { int arity;
   Word argp, argp0;
 
@@ -1649,9 +1582,7 @@ register decompileInfo *di;
 						? (int)unRef(w) : -1)
 
 bool
-decompile(clause, term)
-Clause clause;
-Word term;
+decompile(Clause clause, Word term)
 { decompileInfo dinfo;
   register decompileInfo *di = &dinfo;
   Word head, body;
@@ -1721,16 +1652,8 @@ The decompilation stack is located on top of the local  stack,  as  this
 area is not in use during decompilation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if PROTO
 static bool
 decompileBody(register decompileInfo *di, code end, Code until)
-#else
-static bool
-decompileBody(di, end, until)
-register decompileInfo *di;
-code end;
-Code until;
-#endif
 { int nested = 0;		/* nesting in FUNCTOR ... POP */
   int pushed = 0;		/* Subclauses pushed on the stack */
 
@@ -1898,9 +1821,7 @@ stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-build_term(f, di)
-register FunctorDef f;
-register decompileInfo *di;
+build_term(register FunctorDef f, register decompileInfo *di)
 { word term;
   int arity;
   register Word a;
@@ -1933,9 +1854,7 @@ register decompileInfo *di;
 #undef ARGP
 
 word
-pl_clause(p, term, ref, h)
-Word p, term, ref;
-word h;
+pl_clause(Word p, Word term, Word ref, word h)
 { Procedure proc;
   Clause clause;
   Module module = (Module)NULL;
@@ -2023,9 +1942,7 @@ typedef struct
 
 
 word
-pl_nth_clause(p, n, ref, h)
-Word p, n, ref;
-word h;
+pl_nth_clause(Word p, Word n, Word ref, word h)
 { Clause clause;
   Procedure proc;
   Cref cr;
@@ -2113,9 +2030,7 @@ word h;
 
 
 static bool
-unifyProcedure(t, proc)
-Word t;
-Procedure proc;
+unifyProcedure(Word t, Procedure proc)
 { if ( unifyFunctor(t, FUNCTOR_module2) )
   { deRef(t);
     if ( unifyAtomic(argTermP(*t, 0), proc->definition->module->name) &&
@@ -2128,9 +2043,7 @@ Procedure proc;
 
 
 word
-pl_xr_member(ref, term, h)
-Word ref, term;
-word h;
+pl_xr_member(Word ref, Word term, word h)
 { Clause clause;
   Word XR;
   int size, i;
@@ -2159,7 +2072,7 @@ word h;
       word xr = XR[i];
 
       if ( isAtomic(xr) )         rval = unifyAtomic(term, xr);
-      else if ( isProcedure(xr) ) rval = unifyProcedure(term, xr);
+      else if ( isProcedure(xr) ) rval = unifyProcedure(term, (Procedure)xr);
       else			  rval = unifyFunctor(term, (FunctorDef)xr);
 
       if ( rval )

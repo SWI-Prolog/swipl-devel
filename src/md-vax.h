@@ -22,8 +22,6 @@ of 1.5 is a bit different this md-file is not guarantied to work.
 #define OPERATING_SYSTEM	"ultrix"
 
 			/* Compiler */
-#define ANSI			0
-#define PROTO			0
 #define O_NO_LEFT_CAST		0
 #define O_NO_VOID_POINTER	0
 #define O_SHORT_SYMBOLS		0

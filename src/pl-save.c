@@ -111,10 +111,6 @@ PORTABILITY/OPTIONS
 #include <fcntl.h>
 #include "pl-save.h"
 
-#if sun && !solaris
-int	brk P((caddr_t));
-caddr_t sbrk P((int));
-#endif
 #if OS2 & EMX
 extern caddr _heap_base;
 extern long _heap_end;
@@ -125,7 +121,7 @@ extern char **etext;
 
 #ifndef DATA_START
 #ifndef FIRST_DATA_SYMBOL
-#define FIRST_DATA_SYMBOL environ;
+#define FIRST_DATA_SYMBOL environ
 #endif
 #define DATA_START &FIRST_DATA_SYMBOL
 #endif
@@ -234,7 +230,7 @@ best ...
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-resetIO()
+resetIO(void)
 { ResetTty();
 }
 
@@ -244,22 +240,20 @@ resetIO()
 		********************************/
 
 static caddr
-topOfCStack()
+topOfCStack(void)
 { int local;
 
   return (caddr) &local;
 }
 
 static caddr
-baseOfCStack(argc, argv, env)
-int *argc;
-char **argv, **env;
+baseOfCStack(int *argc, char **argv, char **env)
 { 
 #ifdef BASE_OF_C_STACK
   return (caddr) BASE_OF_C_STACK;
 #else
 
-  ulong base = (ulong) &argc;
+  unsigned long base = (unsigned long) &argc;
   char **p;
 
 #ifdef O_C_STACK_GROWS_UP
@@ -268,12 +262,12 @@ char **argv, **env;
 #define BoundStack(a,b) ((a) > (b) ? (a) : (b))
 #endif
 
-  base = BoundStack(base, (ulong)argv);
+  base = BoundStack(base, (unsigned long)argv);
   for(p = argv; *p; p++)
-    base = BoundStack(base, (ulong)*p);
-  base = BoundStack(base, (ulong)env);
+    base = BoundStack(base, (unsigned long)*p);
+  base = BoundStack(base, (unsigned long)env);
   for(p = env; *p; p++)
-    base = BoundStack(base, (ulong)*p);
+    base = BoundStack(base, (unsigned long)*p);
 
 # if ( O_C_STACK_GROWS_UP )		/* round-down */
   return (caddr) (base & ~(STACK_BASE_ALIGN-1));
@@ -296,15 +290,12 @@ optimise this file.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-readCStack(fd, start, length)
-int fd;
-caddr start;
-long length;
+readCStack(int fd, caddr start, long int length)
 { 
 #if O_C_STACK_GROWS_UP
-  if ( (ulong) &fd - MAXSTACKFRAMESIZE > (ulong) ( (unsigned) start + length ) )
+  if ( (unsigned long) &fd - MAXSTACKFRAMESIZE > (unsigned long) ( (unsigned) start + length ) )
 #else
-  if ( (ulong) &fd + MAXSTACKFRAMESIZE < (ulong) start )
+  if ( (unsigned long) &fd + MAXSTACKFRAMESIZE < (unsigned long) start )
 #endif
   { DEBUG(1, printf("&fd = 0x%x\n", (unsigned) &fd));
     tryRead(fd, start, length);
@@ -325,9 +316,7 @@ long length;
 #endif
 
 int
-restore(file, allocf)
-char *file;
-int (*allocf) P((SaveSection));
+restore(char *file, int (*allocf) (SaveSection))
 { int fd;
   char buf[MAXLINE1];
   int n;
@@ -456,7 +445,7 @@ SaveSection sections;
     } else if ( streq(name, ".bss") )
     { assert(hdr->sh_type == SHT_NOBITS);
       sections->start  = (caddr) hdr->sh_addr;
-      sections->length = (ulong) sbrk(0) - (ulong) sections->start;
+      sections->length = (unsigned long) sbrk(0) - (unsigned long) sections->start;
       sections->type   = S_DATA;
       sections->flags  = 0;
 
@@ -480,10 +469,7 @@ SaveSection sections;
 #endif
 
 int
-fill_c_data_sections(interpreter, nsects, sections)
-char *interpreter;
-int *nsects;
-SaveSection sections;
+fill_c_data_sections(char *interpreter, int *nsects, SaveSection sections)
 { sections[0].start	= (caddr) DATA_START;
   sections[0].length	= (long) DATA_END - (long) sections[0].start;
   sections[0].type	= S_DATA;
@@ -502,12 +488,8 @@ SaveSection sections;
 #endif /* ELF */
 
 int
-save(file, interpreter, kind, nsections, sections)
-char *file;
-char *interpreter;
-int kind;			/* RET_RETURN; RET_MAIN */
-int nsections;			/* additional sections */
-SaveSection sections;
+save(char *file, char *interpreter, int kind,
+     int nsections, SaveSection sections)
 { int fd;
   struct save_section sects[MAX_SAVE_SECTIONS];
   char buf[MAXLINE1];
@@ -530,7 +512,7 @@ SaveSection sections;
 #if OS2
   sprintf(buf, "/* Self-starting SWI-Prolog state */\r\n'@ECHO OFF'\r\nparse source . . name\r\n\"%s -r \" name arg(1)\r\nexit\r\n\032", OsPath(interpreter));
 #else
-  sprintf(buf, "#!/bin/sh\nexec %s -r $0 \"$@\"\n", OsPath(interpreter));
+  sprintf(buf, "#!/bin/sh\nexec %s -r $0 $@\n", OsPath(interpreter));
 #endif
   header_offset = strlen(buf) + 1; /* +1 to write the EOS too */
   DEBUG(1, printf("header_offset = %d\n", header_offset));
@@ -556,10 +538,12 @@ SaveSection sections;
     
 #if O_C_STACK_GROWS_UP
     stack_sect->start  = c_stack_base;
-    stack_sect->length = (ulong) topOfCStack() - (ulong) stack_sect->start;
+    stack_sect->length = (unsigned long) topOfCStack() - 
+			 (unsigned long) stack_sect->start;
 #else
     stack_sect->start  = topOfCStack();
-    stack_sect->length = (ulong) c_stack_base - (ulong) stack_sect->start;
+    stack_sect->length = (unsigned long) c_stack_base -
+			 (unsigned long) stack_sect->start;
 #endif
     stack_sect->type   = S_CSTACK;
     stack_sect->flags  = 0;
@@ -593,10 +577,7 @@ main() stub
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-main(argc, argv, env)
-int argc;
-char **argv;
-char **env;
+main(int argc, char **argv, char **env)
 { int rval;
 
   c_stack_base = baseOfCStack(&argc, argv, env);
@@ -614,7 +595,7 @@ char **env;
 
     if ( argc >= 3 && streq(argv[1], "-r") )
 #if O_DYNAMIC_STACKS
-    { extern int allocateSection P((SaveSection));
+    { extern int allocateSection(SaveSection);
 
       if ( !restore(argv[2], allocateSection) )
 	exit(1);

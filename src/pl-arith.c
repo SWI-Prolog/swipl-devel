@@ -66,8 +66,8 @@ struct arithFunction
 #endif
 };
 
-forwards int		valueExpression P((Word t, Number r));
-forwards ArithFunction	isCurrentArithFunction P((FunctorDef, Module));
+forwards int		valueExpression(Word t, Number r);
+forwards ArithFunction	isCurrentArithFunction(FunctorDef, Module);
 
 static ArithFunction arithFunctionTable[ARITHHASHSIZE];
 static code next_index;
@@ -78,9 +78,7 @@ static ArithFunction functions;
 		*********************************/
 
 word
-pl_between(l, h, n, b)
-register Word l, h, n;
-word b;
+pl_between(register Word l, register Word h, register Word n, word b)
 { switch( ForeignControl(b) )
   { case FRG_FIRST_CALL:
       { if (!isInteger(*l) || !isInteger(*h))
@@ -119,8 +117,7 @@ word b;
 }
 
 word
-pl_succ(n1, n2)
-register Word n1, n2;
+pl_succ(register Word n1, register Word n2)
 { if (isVar(*n1))
   { if (isInteger(*n2))
       return unifyAtomic(n1, consNum(valNum(*n2)-1));
@@ -146,8 +143,7 @@ register Word n1, n2;
 }
 
 word
-pl_plus(a, b, c)
-register Word a, b, c;
+pl_plus(register Word a, register Word b, register Word c)
 { if (isVar(*a) && isInteger(*b) && isInteger(*c) )
     return unifyAtomic(a, consNum(valNum(*c) - valNum(*b)) );
   if (isInteger(*a) && isVar(*b) && isInteger(*c) )
@@ -167,9 +163,7 @@ register Word a, b, c;
 		*********************************/
 
 word
-compareNumbers(n1, n2, what)
-Word n1, n2;
-int what;
+compareNumbers(Word n1, Word n2, int what)
 { int result;
   number left, right;
   int tl, tr;
@@ -210,38 +204,38 @@ int what;
 }
 
 word
-pl_lessNumbers(n1, n2)			/* </2 */
-Word n1, n2;
+pl_lessNumbers(Word n1, Word n2)			/* </2 */
+            
 { return compareNumbers(n1, n2, LT);
 }
 
 word
-pl_greaterNumbers(n1, n2)		/* >/2 */
-Word n1, n2;
+pl_greaterNumbers(Word n1, Word n2)		/* >/2 */
+            
 { return compareNumbers(n1, n2, GT);
 }
 
 word
-pl_lessEqualNumbers(n1, n2)		/* =</2 */
-Word n1, n2;
+pl_lessEqualNumbers(Word n1, Word n2)		/* =</2 */
+            
 { return compareNumbers(n1, n2, LE);
 }
 
 word
-pl_greaterEqualNumbers(n1, n2)		/* >=/2 */
-Word n1, n2;
+pl_greaterEqualNumbers(Word n1, Word n2)		/* >=/2 */
+            
 { return compareNumbers(n1, n2, GE);
 }
 
 word
-pl_nonEqualNumbers(n1, n2)		/* =\=/2 */
-Word n1, n2;
+pl_nonEqualNumbers(Word n1, Word n2)		/* =\=/2 */
+            
 { return compareNumbers(n1, n2, NE);
 }
 
 word
-pl_equalNumbers(n1, n2)			/* =:=/2 */
-Word n1, n2;
+pl_equalNumbers(Word n1, Word n2)			/* =:=/2 */
+            
 { return compareNumbers(n1, n2, EQ);
 }
 
@@ -275,9 +269,7 @@ ArithF func;
 
 static
 ArithFunction
-isCurrentArithFunction(f, m)
-register FunctorDef f;
-register Module m;
+isCurrentArithFunction(register FunctorDef f, register Module m)
 { register ArithFunction a;
   ArithFunction r = NULL;
   int level = 30000;
@@ -301,14 +293,13 @@ register Module m;
 }
 
 #if unix || EMX
+typedef void (*OsSigHandler)(int);
+
 static void
-realExceptionHandler(sig, type, scp, addr)
-int sig, type;
-SIGNAL_CONTEXT_TYPE scp;
-char *addr;
+realExceptionHandler(int sig, int type, SignalContext scp, char *addr)
 {
 #if O_SIG_AUTO_RESET
-  signal(sig, realExceptionHandler);
+  signal(sig, (OsSigHandler)realExceptionHandler);
 #endif
   if ( status.arithmetic > 0 )
   { warning("Floating point exception");
@@ -335,7 +326,7 @@ struct exception *e;
 
 #if O_PROLOG_FUNCTIONS
 
-static int prologFunction P((ArithFunction, Word, Number));
+static int prologFunction(ArithFunction, Word, Number);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Activating a Prolog predicate as function below the arithmetic functions
@@ -343,10 +334,10 @@ is/0, >, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-prologFunction(f, av, r)
-ArithFunction f;
-Word av;				/* pointer to term arguments */
-Number r;
+prologFunction(ArithFunction f, Word av, Number r)
+                
+        				/* pointer to term arguments */
+         
 { word goal;
   int arity = f->proc->functor->arity;
   int n;
@@ -409,9 +400,7 @@ Number r;
 #endif /* O_PROLOG_FUNCTIONS */
 
 static int
-valueExpression(t, r)
-register Word t;
-Number r;
+valueExpression(register Word t, Number r)
 { volatile ArithFunction f;
   volatile Word args;
   volatile FunctorDef fDef;
@@ -440,6 +429,7 @@ Number r;
     args = argTermP(*t, 0);
   } else if ( isAtom(*t) )
   { fDef = lookupFunctorDef((Atom)*t, 0);
+    args = NULL;
   } else if ( isVar(*t) )
     return warning("Unbound variable in arithmetic expression");
   else
@@ -600,9 +590,7 @@ BINAIRY_INT_FUNCTION(ar_shift_left, <<)
 BINAIRY_INT_FUNCTION(ar_xor, ^)
 
 static int
-ar_divide(n1, n2, r)
-Word n1, n2;
-Number r;
+ar_divide(Word n1, Word n2, Number r)
 { number left, right;
   int tl, tr;
 
@@ -635,9 +623,7 @@ Number r;
 }
 
 static int
-ar_times(n1, n2, r)
-Word n1, n2;
-Number r;
+ar_times(Word n1, Word n2, Number r)
 { number left, right;
   int tl, tr;
 
@@ -670,9 +656,7 @@ Number r;
 
 static
 int
-ar_pow(n1, n2, result)
-Word n1, n2;
-Number result;
+ar_pow(Word n1, Word n2, Number result)
 { number left, right;
   int tl, tr;
   real l, r;
@@ -690,9 +674,7 @@ Number result;
 
 static
 int
-ar_max(n1, n2, result)
-Word n1, n2;
-Number result;
+ar_max(Word n1, Word n2, Number result)
 { number left, right;
   int tl, tr;
 
@@ -714,9 +696,7 @@ Number result;
 
 static
 int
-ar_min(n1, n2, result)
-Word n1, n2;
-Number result;
+ar_min(Word n1, Word n2, Number result)
 { number left, right;
   int tl, tr;
 
@@ -738,9 +718,7 @@ Number result;
 
 static
 int
-ar_dot(c, nil, r)
-Word c, nil;
-Number r;
+ar_dot(Word c, Word nil, Number r)
 { long chr;
 
   if ( isInteger(*c) && isNil(*nil) )
@@ -754,9 +732,7 @@ Number r;
 
 static
 int
-ar_negation(n1, r)
-Word n1;
-Number r;
+ar_negation(Word n1, Number r)
 { number arg;
 
   switch( valueExpression(n1, &arg) )
@@ -772,9 +748,7 @@ Number r;
 
 static
 int
-ar_u_minus(n1, r)
-Word n1;
-Number r;
+ar_u_minus(Word n1, Number r)
 { number arg;
 
   switch( valueExpression(n1, &arg) )
@@ -788,9 +762,7 @@ Number r;
 
 static
 int
-ar_abs(n1, r)
-Word n1;
-Number r;
+ar_abs(Word n1, Number r)
 { number arg;
 
   switch( valueExpression(n1, &arg) )
@@ -804,9 +776,7 @@ Number r;
 
 static
 int
-ar_integer(n1, r)
-Word n1;
-Number r;
+ar_integer(Word n1, Number r)
 { number arg;
 
   switch( valueExpression(n1, &arg) )
@@ -821,9 +791,7 @@ Number r;
 
 static
 int
-ar_floor(n1, r)
-Word n1;
-Number r;
+ar_floor(Word n1, Number r)
 { number arg;
 
   switch( valueExpression(n1, &arg) )
@@ -837,9 +805,7 @@ Number r;
 
 static
 int
-ar_ceil(n1, r)
-Word n1;
-Number r;
+ar_ceil(Word n1, Number r)
 { number arg;
 
   switch( valueExpression(n1, &arg) )
@@ -855,9 +821,7 @@ Number r;
 
 static
 int
-ar_random(n1, r)
-Word n1;
-Number r;
+ar_random(Word n1, Number r)
 { number arg;
 
   switch( valueExpression(n1, &arg) )
@@ -870,8 +834,7 @@ Number r;
 
 static
 int
-ar_pi(r)
-Number r;
+ar_pi(Number r)
 { r->f = M_PI;
 
   return V_REAL;
@@ -879,8 +842,7 @@ Number r;
 
 static
 int
-ar_e(r)
-Number r;
+ar_e(Number r)
 { r->f = M_E;
 
   return V_REAL;
@@ -888,8 +850,7 @@ Number r;
 
 static
 int
-ar_cputime(r)
-Number r;
+ar_cputime(Number r)
 { r->f = CpuTime();
 
   return V_REAL;
@@ -901,8 +862,7 @@ Number r;
 		*********************************/
 
 word
-pl_is(v, e)
-Word v, e;
+pl_is(Word v, Word e)
 { number arg;
 
   switch( valueExpression(e, &arg) )
@@ -917,8 +877,7 @@ Word v, e;
 
 #if O_PROLOG_FUNCTIONS
 word
-pl_arithmetic_function(descr)
-Word descr;
+pl_arithmetic_function(Word descr)
 { Procedure proc;
   FunctorDef fd;
   register ArithFunction f;
@@ -955,9 +914,7 @@ Word descr;
 }
 
 word
-pl_current_arithmetic_function(f, h)
-Word f;
-word h;
+pl_current_arithmetic_function(Word f, word h)
 { ArithFunction a;
   Module m = NULL;
 
@@ -1062,7 +1019,7 @@ static struct arithFunction ar_functions[MAXARITHFUNCTIONS] = {
 
 
 void
-initArith()
+initArith(void)
 {
 #if unix || EMX
   pl_signal(SIGFPE, realExceptionHandler);
@@ -1104,9 +1061,7 @@ initArith()
 		*********************************/
 
 int
-indexArithFunction(fdef, m)
-register FunctorDef fdef;
-register Module m;
+indexArithFunction(register FunctorDef fdef, register Module m)
 { register ArithFunction f;
 
   if ( (f = isCurrentArithFunction(fdef, m)) == (ArithFunction) NULL )
@@ -1116,22 +1071,13 @@ register Module m;
 }
 
 FunctorDef
-functorArithFunction(n)
-int n;
+functorArithFunction(int n)
 { return functions[(int)n].functor;
 }
 
 
-#if PROTO
 bool
 ar_func_n(register code n, int argc, register Word *stack)
-#else
-bool
-ar_func_n(n, argc, stack)
-register code n;
-int argc;
-register Word *stack;
-#endif
 { number result;
   int type;
   ArithFunction f = &functions[(int)n];
@@ -1171,8 +1117,7 @@ register Word *stack;
 #endif /* O_COMPILE_ARITH */
 
 word
-evaluate(p)
-Word p;
+evaluate(Word p)
 { number result;
 
   switch( valueExpression(p, &result) )  

@@ -12,6 +12,7 @@
 #define GLOBAL				/* allocate global variables here */
 #include "pl-incl.h"
 #include <sys/stat.h>
+#include <unistd.h>
 
 #define K * 1024
 
@@ -22,10 +23,10 @@ access.   Finally  it holds the code to handle signals transparently for
 foreign language code or packages with which Prolog was linked together.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-forwards void initStacks P((long, long, long, long, long));
+forwards void initStacks(long, long, long, long, long);
 
 void
-setupProlog()
+setupProlog(void)
 { DEBUG(1, printf("Starting Heap Initialisation\n"));
 
   critical = 0;
@@ -127,10 +128,7 @@ some day.
 #if unix || EMX
 
 static void
-fatal_signal_handler(sig, type, scp, addr)
-int sig, type;
-SIGNAL_CONTEXT_TYPE scp;
-char *addr;
+fatal_signal_handler(int sig, int type, SignalContext scp, char *addr)
 { DEBUG(1, printf("Fatal signal %d\n", sig));
 
   deliverSignal(sig, type, scp, addr);
@@ -138,7 +136,7 @@ char *addr;
 
 
 void
-initSignals()
+initSignals(void)
 { int n;
 
   if ( status.dumped == FALSE )
@@ -165,9 +163,7 @@ initSignals()
 }
 
 handler_t
-pl_signal(sig, func)
-int sig;
-handler_t func;
+pl_signal(int sig, handler_t func)
 { handler_t old = signal(sig, func);
 
   signalHandlers[sig].os = func;
@@ -177,10 +173,7 @@ handler_t func;
 }
 
 void
-deliverSignal(sig, type, scp, addr)
-int sig, type;
-SIGNAL_CONTEXT_TYPE scp;
-char *addr;
+deliverSignal(int sig, int type, SignalContext scp, char *addr)
 { 
 #if O_SIG_AUTO_RESET
   signal(sig, signalHandlers[sig].os);	/* ??? */
@@ -224,8 +217,7 @@ system-V shared memory primitives (if they meet certain criteria.
 
 #include <errno.h>
 extern int errno;
-extern int getpagesize();
-extern char *sbrk();
+extern int getpagesize(void);
 
 static int size_alignment;	/* Stack sizes must be aligned to this */
 static int base_alignment;	/* Stack bases must be aligned to this */
@@ -233,14 +225,12 @@ static int base_alignment;	/* Stack bases must be aligned to this */
 #define MB (1024L * 1024L)	/* megabytes */
 
 static long
-align_size(x)
-long x;
+align_size(long int x)
 { return x % size_alignment ? (x / size_alignment + 1) * size_alignment : x;
 }
 
 static long
-align_base(x)
-long x;
+align_base(long int x)
 { return x % base_alignment ? (x / base_alignment + 1) * base_alignment : x;
 }
 
@@ -248,7 +238,7 @@ long x;
 #include <sys/mman.h>
 #include <fcntl.h>
 
-extern int munmap();
+extern int munmap(caddr_t, size_t);
 static int mapfd = -1;			/* File descriptor used for mapping */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -261,7 +251,7 @@ removed on exit.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-swap_fd()
+swap_fd(void)
 { int fd;
   static char *map = "/tmp/pl-map";
 
@@ -306,8 +296,7 @@ point to the same physical memory.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-map(s)
-Stack s;
+map(Stack s)
 { if ( s->max + size_alignment > s->base + s->maxlimit )
     outOf(s);
 
@@ -328,10 +317,9 @@ use to the OS.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-unmap(s)
-Stack s;
+unmap(Stack s)
 { caddress top  = (s->top > s->min ? s->top : s->min);
-  caddress addr = (caddress) align_size(top + 1);
+  caddress addr = (caddress) align_size((long) top + 1);
 
   if ( addr < s->max )
   { if ( munmap(addr, s->max - addr) != 0 )
@@ -342,9 +330,8 @@ Stack s;
 
 
 static void
-deallocateStack(s)
-Stack s;
-{ long len = (ulong)s->max - (ulong)s->base;
+deallocateStack(Stack s)
+{ long len = (unsigned long)s->max - (unsigned long)s->base;
 
   if ( len > 0 && munmap(s->base, len) != 0 )
     fatalError("Failed to unmap memory: %s", OsError());
@@ -352,18 +339,17 @@ Stack s;
 
 
 void
-deallocateStacks()
-{ deallocateStack(&stacks.local);
-  deallocateStack(&stacks.global);
-  deallocateStack(&stacks.trail);
-  deallocateStack(&stacks.argument);
-  deallocateStack(&stacks.lock);
+deallocateStacks(void)
+{ deallocateStack((Stack) &stacks.local);
+  deallocateStack((Stack) &stacks.global);
+  deallocateStack((Stack) &stacks.trail);
+  deallocateStack((Stack) &stacks.argument);
+  deallocateStack((Stack) &stacks.lock);
 }
 
 
 bool
-restoreStack(s)
-Stack s;
+restoreStack(Stack s)
 { caddress max;
   long len;
   struct stat statbuf;
@@ -373,7 +359,7 @@ Stack s;
     base_alignment = size_alignment = getpagesize();
   }
 
-  max = (caddress) align_size(s->top + 1);
+  max = (caddress) align_size((long) s->top + 1);
   len = max - (caddress) s->base;
 
   if ( mmap(s->base, len,
@@ -595,11 +581,10 @@ If   your   system   does   not   provide   this  information,  set  the
 O_NO_SEGV_ADDRESS flag.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+typedef void (*OsHandler)(int);
+
 static void
-segv_handler(sig, type, scp, addr)
-int sig, type;
-SIGNAL_CONTEXT_TYPE scp;
-char *addr;
+segv_handler(int sig, int type, SignalContext scp, char *addr)
 { Stack stacka = (Stack) &stacks;
   int i;
 
@@ -622,7 +607,7 @@ char *addr;
   if ( mapped )
   {
 #if O_SIG_AUTO_RESET
-    signal(SIGSEGV, segv_handler);
+    signal(SIGSEGV, (OsHandler) segv_handler);
 #endif
     return;
   }
@@ -643,9 +628,7 @@ char *addr;
 }
 
 static bool
-limit_stack(s, limit)
-Stack s;
-long limit;
+limit_stack(Stack s, long int limit)
 { if ( limit > s->maxlimit || limit <= 0 )
     limit = s->maxlimit;
   if ( limit <= s->top - s->base )
@@ -658,11 +641,7 @@ long limit;
 }
 
 static void
-init_stack(s, name, base, limit, minsize)
-Stack s;
-char *name;
-caddress base;
-long limit, minsize;
+init_stack(Stack s, char *name, caddress base, long int limit, long int minsize)
 { s->maxlimit  = limit;			/* deleted this notion */
   s->name      = name;
   s->base      = s->max = s->top = base;
@@ -714,11 +693,10 @@ machine size_alignment will do.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-initStacks(local, global, trail, argument, lck)
-long local, global, trail, argument, lck;
+initStacks(long int local, long int global, long int trail, long int argument, long int lck)
 { long heap = 0;			/* malloc() heap */
   int large = 1;
-  ulong base, top, space, large_size;
+  unsigned long base, top, space, large_size;
 
   if ( status.dumped == FALSE )
   { hBase = (char *)0x20000000L;
@@ -750,7 +728,7 @@ long local, global, trail, argument, lck;
   if ( argument == 0 ) large++;
   if ( lck      == 0 ) large++;
 
-  base  = (long) align_base(sbrk(0));
+  base  = (long) align_base((long)sbrk(0));
   top   = (long) MAX_VIRTUAL_ADDRESS;
   DEBUG(1, printf("top = 0x%x, stack at 0x%x\n", top, (unsigned) &top));
   space = top - base;
@@ -777,7 +755,7 @@ long local, global, trail, argument, lck;
 
 #define INIT_STACK(name, print, limit, minsize) \
   DEBUG(1, printf("%s stack at 0x%x; size = %ld\n", print, base, limit)); \
-  init_stack(&stacks.name, print, base, limit, minsize); \
+  init_stack((Stack) &stacks.name, print, (caddress) base, limit, minsize); \
   base += limit + STACK_SEPARATION; \
   base = align_base(base);
 #define K * 1024
@@ -796,12 +774,12 @@ long local, global, trail, argument, lck;
 		*********************************/
 
 word
-pl_trim_stacks()
-{ unmap(&stacks.local);
-  unmap(&stacks.global);
-  unmap(&stacks.trail);
-  unmap(&stacks.argument);
-  unmap(&stacks.lock);
+pl_trim_stacks(void)
+{ unmap((Stack) &stacks.local);
+  unmap((Stack) &stacks.global);
+  unmap((Stack) &stacks.trail);
+  unmap((Stack) &stacks.argument);
+  unmap((Stack) &stacks.lock);
   stacks.global.gced_size = usedStack(global);
   stacks.trail.gced_size  = usedStack(trail);
 
@@ -809,8 +787,7 @@ pl_trim_stacks()
 }
 
 word
-pl_limit_stack(s, l)
-Word s, l;
+pl_limit_stack(Word s, Word l)
 { Atom k;
   long limit;
 
@@ -820,13 +797,13 @@ Word s, l;
   limit = (*l == (word) ATOM_unlimited ? 0L : valNum(*l) * 1024L);
 
   if ( k == ATOM_local )
-    return limit_stack(&stacks.local, limit);
+    return limit_stack((Stack) &stacks.local, limit);
   else if ( k == ATOM_global )
-    return limit_stack(&stacks.global, limit);
+    return limit_stack((Stack) &stacks.global, limit);
   else if ( k == ATOM_trail )
-    return limit_stack(&stacks.trail, limit);
+    return limit_stack((Stack) &stacks.trail, limit);
   else if ( k == ATOM_argument )
-    return limit_stack(&stacks.argument, limit);
+    return limit_stack((Stack) &stacks.argument, limit);
   else
     return warning("limit_stack/2: unknown stack: %s", stringAtom(k));
 }
@@ -837,7 +814,7 @@ Word s, l;
 		*    SIMPLE STACK ALLOCATION    *
 		*********************************/
 
-forwards void init_stack P((Stack, char *, long, long, long));
+forwards void init_stack(Stack, char *, long, long, long);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 On systems that do not allow us to get access to the MMU (or that do not

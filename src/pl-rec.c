@@ -10,18 +10,18 @@
 /*#define O_SECURE 1*/
 #include "pl-incl.h"
 
-forwards RecordList lookupRecordList P((word));
-forwards RecordList isCurrentRecordList P((word));
-forwards word	   heapFunctor P((FunctorDef));
-forwards void	   copyTermToHeap2 P((Word, Record, Word));
-forwards void	   copyTermToGlobal2 P((Word, Word *, Word, Word));
-forwards void	   freeHeapTerm P((Word));
-forwards bool	   record P((Word, Word, Word, char));
+forwards RecordList lookupRecordList(word);
+forwards RecordList isCurrentRecordList(word);
+forwards word	   heapFunctor(FunctorDef);
+forwards void	   copyTermToHeap2(Word, Record, Word);
+forwards void	   copyTermToGlobal2(Word, Word *, Word, Word);
+forwards void	   freeHeapTerm(Word);
+forwards bool	   record(Word, Word, Word, char);
 
 static RecordList recordTable[RECORDHASHSIZE];
 
 void
-initRecords()
+initRecords(void)
 { register RecordList *l;
   register int n;
 
@@ -30,8 +30,7 @@ initRecords()
 }
 
 static RecordList
-lookupRecordList(key)
-register word key;
+lookupRecordList(register word key)
 { int v = pointerHashValue(key, RECORDHASHSIZE);
   register RecordList l;
 
@@ -50,8 +49,7 @@ register word key;
 }
 
 static RecordList
-isCurrentRecordList(key)
-register word key;
+isCurrentRecordList(register word key)
 { int v = pointerHashValue(key, RECORDHASHSIZE);
   register RecordList l;
 
@@ -63,8 +61,7 @@ register word key;
 }
 
 static word
-heapFunctor(def)
-FunctorDef def;
+heapFunctor(FunctorDef def)
 { Functor f;
   register int n;
   register Word a;
@@ -93,10 +90,7 @@ when copying back to the global stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-copyTermToHeap2(term, result, copy)
-register Word term;
-Word copy;
-Record result;
+copyTermToHeap2(register Word term, Record result, Word copy)
 { int arity;
 
   deRef(term);
@@ -131,8 +125,7 @@ Record result;
 }
 
 Record
-copyTermToHeap(term)
-Word term;
+copyTermToHeap(Word term)
 { mark m;
   Record result;
   register int n;
@@ -158,10 +151,7 @@ Word term;
 
 
 static void
-copyTermToGlobal2(orgvars, vars, term, copy)
-Word orgvars, *vars;
-register Word term;
-Word copy;
+copyTermToGlobal2(Word orgvars, Word *vars, register Word term, Word copy)
 { bool locked;
 
   if (isRef(*term) )
@@ -200,8 +190,7 @@ Word copy;
 }
 
 word
-copyTermToGlobal(term)
-register Record term;
+copyTermToGlobal(register Record term)
 { Word vars;
   word copy = 0;
 
@@ -228,8 +217,7 @@ register Record term;
 
 
 static void
-freeHeapTerm(term)
-register Word term;
+freeHeapTerm(register Word term)
 { int arity, n;
   Word arg;
   
@@ -258,8 +246,7 @@ register Word term;
 }
 
 bool
-freeRecord(record)
-Record record;
+freeRecord(Record record)
 { SECURE(checkData(&record->term, TRUE));
   freeHeapTerm(&record->term);
   if (record->n_vars > 0)
@@ -275,9 +262,7 @@ Record record;
 		*********************************/
 
 bool
-unifyKey(key, val)
-Word key;
-word val;
+unifyKey(Word key, word val)
 { if ( isAtom(val) || isInteger(val) )
     return unifyAtomic(key, val);
 
@@ -285,8 +270,7 @@ word val;
 }
 
 word
-getKey(key)
-register Word key;
+getKey(register Word key)
 { if (isAtom(*key) || isInteger(*key))
     return *key;
   else if (isTerm(*key))
@@ -296,9 +280,7 @@ register Word key;
 }
 
 word
-pl_current_key(k, h)
-Word k;
-word h;
+pl_current_key(Word k, word h)
 { RecordList l;
 
   switch( ForeignControl(h) )
@@ -328,15 +310,8 @@ word h;
   fail;
 }
 
-#if PROTO
 static bool
 record(Word key, Word term, Word ref, char az)
-#else
-static bool
-record(key, term, ref, az)
-Word key, term, ref;
-char az;
-#endif
 { RecordList l;
   Record copy;
   word k;
@@ -367,21 +342,17 @@ char az;
 }
 
 word
-pl_recorda(key, term, ref)
-Word key, term, ref;
+pl_recorda(Word key, Word term, Word ref)
 { return record(key, term, ref, 'a');
 }
 
 word
-pl_recordz(key, term, ref)
-Word key, term, ref;
+pl_recordz(Word key, Word term, Word ref)
 { return record(key, term, ref, 'z');
 }
 
 word
-pl_recorded(key, term, ref, h)
-Word key, term, ref;
-word h;
+pl_recorded(Word key, Word term, Word ref, word h)
 { RecordList rl;
   Record record;
   word k;
@@ -442,8 +413,7 @@ word h;
 }
 
 word
-pl_erase(ref)
-Word ref;
+pl_erase(Word ref)
 { Record record;
   Record prev, r;
   RecordList l;

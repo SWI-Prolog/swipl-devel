@@ -26,16 +26,16 @@ user to intercept and redefine the tracer.
 #define PrologRef(fr)	 consNum((Word)fr - (Word)lBase)
 #define FrameRef(w)	 ((LocalFrame)((Word)lBase + valNum(w)))
 
-forwards LocalFrame	redoFrame P((LocalFrame));
-forwards int		traceAction P((char *, int, LocalFrame, bool));
-forwards void		helpTrace P((void));
-forwards void		helpInterrupt P((void));
-forwards bool		hasAlternativesFrame P((LocalFrame));
-forwards void		alternatives P((LocalFrame));
-forwards void		listProcedure P((Procedure));
-forwards int		traceInterception P((LocalFrame, int));
-forwards bool		canUnifyTermWithGoal P((Word, LocalFrame));
-forwards int		setupFind P((char *));
+forwards LocalFrame	redoFrame(LocalFrame);
+forwards int		traceAction(char *, int, LocalFrame, bool);
+forwards void		helpTrace(void);
+forwards void		helpInterrupt(void);
+forwards bool		hasAlternativesFrame(LocalFrame);
+forwards void		alternatives(LocalFrame);
+forwards void		listProcedure(Procedure);
+forwards int		traceInterception(LocalFrame, int);
+forwards bool		canUnifyTermWithGoal(Word, LocalFrame);
+forwards int		setupFind(char *);
 
 static struct
 { int	 port;				/* Port to find */
@@ -50,8 +50,7 @@ than the redo port of some subgoal of this port.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static LocalFrame
-redoFrame(fr)
-register LocalFrame fr;
+redoFrame(register LocalFrame fr)
 { for( ; fr && false(fr, FR_SKIPPED); fr = parentFrame(fr) )
     ;
 
@@ -59,9 +58,7 @@ register LocalFrame fr;
 }
 
 static bool
-canUnifyTermWithGoal(t, fr)
-Word t;
-LocalFrame fr;
+canUnifyTermWithGoal(Word t, LocalFrame fr)
 { deRef(t);
   if ( isVar(*t) )
     succeed;
@@ -102,9 +99,7 @@ returns to the WAM interpreter how to continue the execution:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-tracePort(frame, port)
-LocalFrame frame;
-int port;
+tracePort(LocalFrame frame, int port)
 { int OldOut;
   extern int Output;
   int action = ACTION_CONTINUE;
@@ -246,8 +241,7 @@ again:
 }
 
 static int
-setupFind(buf)
-char *buf;
+setupFind(char *buf)
 { Word w;
   mark m;
   long rval;
@@ -312,11 +306,7 @@ char *buf;
 
 
 static int
-traceAction(cmd, port, frame, interactive)
-char *cmd;
-int port;
-LocalFrame frame;
-bool interactive;
+traceAction(char *cmd, int port, LocalFrame frame, bool interactive)
 { int num_arg;				/* numeric argument */
   char *s;
 
@@ -437,7 +427,7 @@ bool interactive;
 }
 
 static void
-helpTrace()
+helpTrace(void)
 { Putf("Options:\n");
   Putf("+:                 spy        -:                 no spy\n");
   Putf("/ports goal:       find       .:                 repeat find\n");
@@ -473,9 +463,7 @@ always mean influencing in computer science).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-writeFrameGoal(frame, how)
-LocalFrame frame;
-int how;
+writeFrameGoal(LocalFrame frame, int how)
 { Procedure proc = frame->procedure;
   Definition def = proc->definition;
   Word argv = argFrameP(frame, 0);
@@ -533,8 +521,7 @@ int how;
  ** Tue May 10 23:23:11 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 static bool
-hasAlternativesFrame(frame)
-register LocalFrame frame;
+hasAlternativesFrame(register LocalFrame frame)
 { register Clause clause;
 
   if ( true(frame, FR_CUT) )
@@ -548,8 +535,7 @@ register LocalFrame frame;
 }
 
 static void
-alternatives(frame)
-LocalFrame frame;
+alternatives(LocalFrame frame)
 { for(; frame; frame = frame->backtrackFrame)
   { if (hasAlternativesFrame(frame) &&
 	 (false(frame, FR_NODEBUG) || SYSTEM_MODE) )
@@ -561,8 +547,7 @@ LocalFrame frame;
 }    
 
 static void
-listProcedure(proc)
-Procedure proc;
+listProcedure(Procedure proc)
 { extern int Output;
   int OldOut = Output;
   word goal, mod, spec;
@@ -588,9 +573,7 @@ Procedure proc;
 }
 
 void
-backTrace(frame, depth)
-LocalFrame frame;
-int depth;
+backTrace(LocalFrame frame, int depth)
 { extern int Output;
   int OldOut = Output;
   LocalFrame same_proc_frame = NULL;
@@ -654,8 +637,7 @@ is responsible for the communication with the users' predicate.
 int trace_continuation;			/* how to continue? */
 
 word
-pl_trace_continuation(what)
-Word what;
+pl_trace_continuation(Word what)
 { if (isInteger(*what) )
   { trace_continuation = (int)valNum(*what);
     succeed;
@@ -665,9 +647,7 @@ Word what;
 }
 
 static int
-traceInterception(frame, port)
-LocalFrame frame;
-int port;
+traceInterception(LocalFrame frame, int port)
 { word goal;
   Word arg;
   mark m;
@@ -709,7 +689,7 @@ increment the top pointer to point above the furthest argument.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-helpInterrupt()
+helpInterrupt(void)
 { Putf("Options:\n");
   Putf("a:                 abort      b:                 break\n");
   Putf("c:                 continue   e:                 exit\n");
@@ -718,8 +698,7 @@ helpInterrupt()
 }
 
 void
-interruptHandler(sig)
-int sig;
+interruptHandler(int sig)
 { extern int Output;
   int OldOut = Output;
   LocalFrame oldltop = lTop;
@@ -778,7 +757,7 @@ again:
 }
 
 void
-initTracer()
+initTracer(void)
 { 
 #if unix || EMX
   pl_signal(SIGINT, interruptHandler);
@@ -798,7 +777,7 @@ initTracer()
 		*********************************/
 
 word
-pl_trace()
+pl_trace(void)
 { debugstatus.debugging = debugstatus.tracing = TRUE;
   debugstatus.skiplevel = VERY_DEEP;
   find.searching = FALSE;
@@ -807,19 +786,19 @@ pl_trace()
 }
 
 word
-pl_notrace()
+pl_notrace(void)
 { debugstatus.tracing = FALSE;
 
   succeed;
 }
 
 word
-pl_tracing()
+pl_tracing(void)
 { return debugstatus.tracing;
 }
 
 word
-pl_debug()
+pl_debug(void)
 { debugstatus.debugging = TRUE;
   debugstatus.skiplevel = VERY_DEEP;
 
@@ -827,7 +806,7 @@ pl_debug()
 }
 
 word
-pl_nodebug()
+pl_nodebug(void)
 { debugstatus.debugging = FALSE;
 
   succeed;
@@ -842,8 +821,7 @@ pl_debugging()
 }
 
 word
-pl_skip_level(old, new)
-Word old, new;
+pl_skip_level(Word old, Word new)
 { TRY(unifyAtomic(old, debugstatus.skiplevel == VERY_DEEP ?
 			(word) ATOM_very_deep :
 			consNum(debugstatus.skiplevel)) );
@@ -860,8 +838,7 @@ Word old, new;
 }
 
 word
-pl_spy(p)
-Word p;
+pl_spy(Word p)
 { Procedure proc;
 
   if ((proc = findProcedure(p)) == (Procedure) NULL)
@@ -872,8 +849,7 @@ Word p;
 }
 
 word
-pl_nospy(p)
-Word p;
+pl_nospy(Word p)
 { Procedure proc;
 
   if ((proc = findProcedure(p)) == (Procedure) NULL)
@@ -884,8 +860,7 @@ Word p;
 }
 
 word
-pl_leash(old, new)
-Word old, new;
+pl_leash(Word old, Word new)
 { TRY(unifyAtomic(old, consNum(debugstatus.leashing) ));
 
   if (!isInteger(*new) )
@@ -896,8 +871,7 @@ Word old, new;
 }
 
 word
-pl_visible(old, new)
-Word old, new;
+pl_visible(Word old, Word new)
 { TRY(unifyAtomic(old, consNum(debugstatus.visible) ));
 
   if (!isInteger(*new) )
@@ -908,8 +882,7 @@ Word old, new;
 }
 
 word
-pl_unknown(old, new)
-Word old, new;
+pl_unknown(Word old, Word new)
 { Module m = contextModule(environment_frame);
 
   TRY(unifyAtomic(old, true(m, UNKNOWN) ? ATOM_trace : ATOM_fail) );
@@ -924,14 +897,12 @@ Word old, new;
 }
 
 word
-pl_prolog_current_frame(fr)
-Word fr;
+pl_prolog_current_frame(Word fr)
 { return unifyAtomic(fr, PrologRef(parentFrame(environment_frame)));
 }
 
 word
-pl_prolog_frame_attribute(frame, what, value)
-Word frame, what, value;
+pl_prolog_frame_attribute(Word frame, Word what, Word value)
 { LocalFrame fr;
   Atom key;
   word result;

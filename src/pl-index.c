@@ -44,7 +44,7 @@ indexing only on the first argument as this is default.
 #define matchIndex(i1, i2)	(((i1).key & (i2).varmask) ==\
 				  ((i2).key & (i1).varmask))
 
-static ulong variable_mask[][4] =
+static unsigned long variable_mask[][4] =
   { { 0,        0,        0,        0 }, 
     { VM(1, 0), 0,        0,        0 }, 
     { VM(2, 0), VM(2, 1), 0,        0 }, 
@@ -60,7 +60,7 @@ static int mask_shift[][4] =
     { SHIFT(4, 0), SHIFT(4, 1), SHIFT(4, 2), SHIFT(4, 3) }
   };
 
-static ulong mask_mask[] =
+static unsigned long mask_mask[] =
   { 0, MASK(1), MASK(2), MASK(3), MASK(4)
   };
 
@@ -69,8 +69,7 @@ static ulong mask_mask[] =
  ** Sun Sep 11 13:19:41 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 int
-cardinalityPattern(pattern)
-register ulong pattern;
+cardinalityPattern(register unsigned long pattern)
 { register int result = 0;
 
   for(; pattern; pattern >>= 1)
@@ -81,10 +80,7 @@ register ulong pattern;
 }
 
 struct index
-getIndex(argv, pattern, card)
-register Word argv;
-register ulong pattern;
-int card;
+getIndex(register Word argv, register unsigned long pattern, int card)
 { static struct index result;
 
   if ( pattern == 0x1L )
@@ -124,11 +120,7 @@ int card;
 }
 
 Clause
-findClause(cl, argv, def, deterministic)
-register Clause cl;
-register Word argv;
-register Definition def;
-bool *deterministic;
+findClause(register Clause cl, register Word argv, register Definition def, bool *deterministic)
 { *deterministic = FALSE;
 
   if ( def->indexPattern == 0x0L )
@@ -137,7 +129,7 @@ bool *deterministic;
     { DEBUG(9, printf("Skipping erased clause.\n"));
       cl = cl->next;
     }
-    DEBUG(9, printf("Returning clause 0x%lx\n", cl));
+    DEBUG(9, printf("Returning clause 0x%lx\n", (unsigned long) cl));
     if ( cl && !cl->next )
       *deterministic = TRUE;
     return cl;
@@ -197,8 +189,7 @@ part of the stacks (e.g. backtrailing is not needed).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-reindexClause(clause)
-Clause clause;
+reindexClause(Clause clause)
 { Word head;
   Procedure proc = clause->procedure;
   mark m;
@@ -222,11 +213,9 @@ Clause clause;
 }
 
 bool
-indexPatternToTerm(proc, value)
-Procedure proc;
-Word value;
+indexPatternToTerm(Procedure proc, Word value)
 { Word argp;
-  ulong pattern = proc->definition->indexPattern;
+  unsigned long pattern = proc->definition->indexPattern;
   int n, arity = proc->functor->arity;
 
   if (pattern == 0)

@@ -14,18 +14,16 @@ General  handling  of  procedures:  creation;  adding/removing  clauses;
 finding source files, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-forwards void	resetReferencesModule P((Module));
-forwards bool	attribute P((Definition, Word, short));
-forwards bool	autoImport P((FunctorDef, Module));
+forwards void	resetReferencesModule(Module);
+forwards bool	attribute(Definition, Word, short);
+forwards bool	autoImport(FunctorDef, Module);
 
 SourceFile sourceFileTable = (SourceFile) NULL;
 SourceFile tailSourceFileTable = (SourceFile) NULL;
-SourceFile isCurrentSourceFile();
+SourceFile isCurrentSourceFile(Atom name);
 
 Procedure
-lookupProcedure(f, m)
-FunctorDef f;
-Module m;
+lookupProcedure(FunctorDef f, Module m)
 { Procedure proc;
   register Definition def;
   Symbol s;
@@ -57,8 +55,7 @@ Module m;
 }
 
 void
-resetProcedure(proc)
-Procedure proc;
+resetProcedure(Procedure proc)
 { register Definition def = proc->definition;
 
   def->flags ^= def->flags & ~SPY_ME;	/* Preserve the spy flag */
@@ -75,9 +72,7 @@ Procedure proc;
 }
 
 Procedure
-isCurrentProcedure(f, m)
-FunctorDef f;
-Module m;
+isCurrentProcedure(FunctorDef f, Module m)
 { Symbol s;
 
   if ((s = lookupHTable(m->procedures, f)) != (Symbol) NULL)
@@ -87,8 +82,7 @@ Module m;
 }
 
 bool
-isDefinedProcedure(proc)
-register Procedure proc;
+isDefinedProcedure(register Procedure proc)
 { if ( /* true(proc->definition, FOREIGN) || not needed; union */
        proc->definition->definition.clauses != (Clause) NULL ||
        true(proc->definition, DYNAMIC) )
@@ -103,8 +97,7 @@ register Procedure proc;
  ** Tue Apr 19 16:11:25 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 Procedure
-findProcedure(descr)
-Word descr;
+findProcedure(Word descr)
 { Module m = (Module) NULL;
   FunctorDef fd;
   Procedure proc;
@@ -130,8 +123,7 @@ Word descr;
 }
 
 Procedure
-findCreateProcedure(descr)
-Word descr;
+findCreateProcedure(Word descr)
 { Module m = (Module) NULL;
 
   if ((descr = stripModule(descr, &m)) == (Word) NULL)
@@ -161,9 +153,7 @@ to C.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
-pl_current_predicate(name, functor, h)
-Word name, functor;
-word h;
+pl_current_predicate(Word name, Word functor, word h)
 { Atom n;
   FunctorDef f;
   Module m = (Module) NULL;
@@ -231,16 +221,8 @@ word h;
 
  ** Fri Apr 29 12:44:08 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
-#if PROTO
 bool
 assertProcedure(Procedure proc, Clause clause, char where)
-#else
-bool
-assertProcedure(proc, clause, where)
-Procedure proc;
-Clause clause;
-char where;
-#endif
 { register Definition def = proc->definition;
 
   startCritical;
@@ -270,9 +252,7 @@ char where;
  ** Sun Apr 17 16:18:50 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 bool
-abolishProcedure(proc, module)
-Procedure proc;
-Module module;
+abolishProcedure(Procedure proc, Module module)
 { register Definition def = proc->definition;
 
   if ( def->module != module )		/* imported predicate; remove link */
@@ -308,8 +288,7 @@ Module module;
 }
 
 void
-removeClausesProcedure(proc)
-Procedure proc;
+removeClausesProcedure(Procedure proc)
 { Definition def = proc->definition;
   Clause c, next;
 
@@ -337,9 +316,7 @@ Procedure proc;
  ** Sun Apr 17 16:28:32 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 bool
-retractClauseProcedure(proc, clause)
-Procedure proc;
-Clause clause;
+retractClauseProcedure(Procedure proc, Clause clause)
 { Clause prev = (Clause) NULL;
   Clause c;
   register Definition def = proc->definition;
@@ -373,8 +350,7 @@ Clause clause;
 }
 
 void
-unallocClause(clause)
-Clause clause;
+unallocClause(Clause clause)
 { DEBUG(1, Word w = newTerm();
 	   decompile(clause, w);
 	   Putf("removing clause ");
@@ -391,8 +367,7 @@ Clause clause;
 }
 
 void
-freeClause(c)
-Clause c;
+freeClause(Clause c)
 { if (c->XR_size)
   { freeHeap(c->externals, sizeof(word) * c->XR_size);
     statistics.externals -= c->XR_size;
@@ -408,8 +383,7 @@ Clause c;
  ** Fri May 27 10:36:14 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 static void
-resetReferencesModule(m)
-Module m;
+resetReferencesModule(Module m)
 { Definition def;
   Symbol s;
   Clause clause;
@@ -428,7 +402,7 @@ Module m;
 }
 
 void
-resetReferences()
+resetReferences(void)
 { Symbol s;
 
   for_table(s, moduleTable)
@@ -448,9 +422,7 @@ error message (or link the procedure from the library via autoload).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Procedure
-resolveProcedure(f, module)
-FunctorDef f;
-Module module;
+resolveProcedure(FunctorDef f, Module module)
 { Procedure proc;
   Module m;
 
@@ -477,9 +449,7 @@ decided its not save, but can't recall why ...)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
-autoImport(f, m)
-FunctorDef f;
-Module m;
+autoImport(FunctorDef f, Module m)
 { Procedure proc, p;
 					/* Defined: no problem */
   if ( (proc = isCurrentProcedure(f, m)) != NULL &&
@@ -502,8 +472,7 @@ Module m;
 }
 
 void
-trapUndefined(proc)
-Procedure proc;
+trapUndefined(Procedure proc)
 { int retry_times = 0;
 
   retry:
@@ -560,9 +529,7 @@ Procedure proc;
 		*********************************/
 
 word
-pl_retract(term, h)
-Word term;
-word h;
+pl_retract(Word term, word h)
 { Procedure proc;
   Word head, body;
   Module m = (Module) NULL;
@@ -652,8 +619,7 @@ word h;
 		*********************************/
 
 word
-pl_abolish(atom, arity)
-Word atom, arity;
+pl_abolish(Word atom, Word arity)
 { FunctorDef f;
   Procedure proc;
   Module m = (Module) NULL;
@@ -676,8 +642,7 @@ Word atom, arity;
 }
 
 word
-pl_list_references(descr)
-Word descr;
+pl_list_references(Word descr)
 { Procedure proc;
   Clause clause;
 
@@ -697,7 +662,7 @@ Word descr;
 }
 
 word
-pl_list_active_procedures()
+pl_list_active_procedures(void)
 { Procedure proc;
   Module m;
   Clause clause;
@@ -737,16 +702,8 @@ pl_list_active_procedures()
   succeed;
 }
 
-#if PROTO
 static bool
 attribute(Definition def, Word value, short att)
-#else
-static bool
-attribute(def, value, att)
-Definition def;
-Word value;
-short att;
-#endif
 { if ( isVar(*value) )
     return unifyAtomic(value, consNum((def->flags & att) ? 1 : 0));
 
@@ -764,8 +721,7 @@ short att;
 }
 
 word
-pl_predicate_attribute(pred, what, value)
-Word pred, what, value;
+pl_predicate_attribute(Word pred, Word what, Word value)
 { Procedure proc;
   FunctorDef fd;
   Definition def;
@@ -835,8 +791,7 @@ Word pred, what, value;
 
 
 void
-reindexProcedure(proc)
-Procedure proc;
+reindexProcedure(Procedure proc)
 { register Clause cl;
 
   for(cl = proc->definition->definition.clauses; cl; cl = cl->next)
@@ -845,14 +800,13 @@ Procedure proc;
 
 
 word
-pl_index(pred)
-Word pred;
+pl_index(Word pred)
 { Procedure proc = findCreateProcedure(pred);
   Module module = (Module) NULL;
   Word head = stripModule(pred, &module);
   Word arg;
   int arity, a;
-  ulong pattern = 0x0;
+  unsigned long pattern = 0x0;
   int card = 0;
 
   if (head == (Word) NULL)
@@ -894,8 +848,7 @@ Word pred;
 		*********************************/
 
 SourceFile
-lookupSourceFile(name)
-Atom name;
+lookupSourceFile(Atom name)
 { SourceFile file;
 
   for(file=sourceFileTable; file; file=file->next)
@@ -920,8 +873,7 @@ Atom name;
 }
 
 SourceFile
-isCurrentSourceFile(name)
-Atom name;
+isCurrentSourceFile(Atom name)
 { SourceFile file;
 
   for(file=sourceFileTable; file; file=file->next)
@@ -933,7 +885,7 @@ Atom name;
 }
 
 word
-pl_make_system_source_files()
+pl_make_system_source_files(void)
 { SourceFile file;
 
   for(file=sourceFileTable; file; file=file->next)
@@ -943,8 +895,7 @@ pl_make_system_source_files()
 }
 
 word
-pl_source_file(descr, file)
-Word descr, file;
+pl_source_file(Word descr, Word file)
 { Procedure proc;
 
   if ((proc = findProcedure(descr)) == (Procedure) NULL)
@@ -956,9 +907,7 @@ Word descr, file;
 }
 
 word
-pl_time_source_file(file, time, h)
-Word file, time;
-word h;
+pl_time_source_file(Word file, Word time, word h)
 { SourceFile fr;
 
   switch( ForeignControl(h) )
@@ -989,8 +938,7 @@ word h;
 }
 
 word
-pl_start_consult(file)
-Word file;
+pl_start_consult(Word file)
 { SourceFile f;
 
   if (!isAtom(*file) )

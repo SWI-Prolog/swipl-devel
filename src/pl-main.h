@@ -10,7 +10,7 @@
 GLOBAL int	mainArgc;		/* arguments to main() */
 GLOBAL char  ** mainArgv;
 GLOBAL char  ** mainEnv;
-GLOBAL void	(*PL_foreign_reinit_function) P((int argc, char **argv));
+GLOBAL void	(*PL_foreign_reinit_function)(int argc, char **argv);
 
 		/********************************
 		*           STRUCTURES		*
