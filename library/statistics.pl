@@ -124,7 +124,7 @@ profile(Goal, Style, N) :-
 	profiler(_, off), 
 	reset_profiler, 
 	profiler(_, Style), 
-	(   catch(time(Goal), E, fail)
+	(   catch(time(Goal), E, true)
 	->  Rval = true
 	;   Rval = fail
 	),
