@@ -174,6 +174,7 @@ default_emacs_mode('.*\\.php[0-9]?~?$',	 		html).
 default_emacs_mode('.*\\.sgml~?$',	 		sgml).
 default_emacs_mode('.*\\.xml~?$',	 		xml).
 default_emacs_mode('.*\\.rdfs?~?$',	 		xml).
+default_emacs_mode('.*\\.owl~?$',	 		xml).
 default_emacs_mode('.*\\.ann~?$',	 		annotate).
 default_emacs_mode('.*\\.[ch]~?$', 			c).
 default_emacs_mode('.*\\.C$',				cpp).
