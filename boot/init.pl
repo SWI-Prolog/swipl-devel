@@ -121,8 +121,6 @@ $show_childs(Name, Arity) :-
 	block/3,
 	apply/2.
 
-true.					% this is easy!
-
 %   ->/2, ;/2, |/2 and \+/1 are normally compiled. These predicate catch them
 %   in case they are called via the meta-call predicates.
 

@@ -67,6 +67,7 @@ handy for it someone wants to add a data type to the system.
 #define O_STRING		1
 #define O_PROLOG_FUNCTIONS	1
 #define O_BLOCK			1
+#define O_INLINE_FOREIGNS	1
 #define O_PCE			1	/* doesn't depend any longer */
 
 #ifndef O_LABEL_ADDRESSES
@@ -273,8 +274,8 @@ users foreign language code.
 
 #define FIRST_CALL	(0L)
 
-#define ForeignRedo(v)		return (word) (((long)(v) & ~FRG_MASK_MASK) \
-					      | FRG_MASK)
+#define ForeignRedoVal(v) ((word) (((long)(v) & ~FRG_MASK_MASK) | FRG_MASK))
+#define ForeignRedo(v)		return ForeignRedoVal(v)
 #define ForeignControl(h)	((h) == FIRST_CALL ? FRG_FIRST_CALL : \
 				 (h) & FRG_CUT	   ? FRG_CUTTED : \
 						     FRG_REDO)
@@ -366,7 +367,13 @@ codes.
 #define B_EXIT		((code)52)		/* exit(block, rval) */
 #endif /*O_BLOCK*/
 
-#define I_HIGHEST	((code)52)		/* largest WAM code !!! */
+#if O_INLINE_FOREIGNS
+#define I_CALL_FV0	((code)53)		/* call foreign, no args */
+#define I_CALL_FV1	((code)54)		/* call foreign, 1 var arg */
+#define I_CALL_FV2	((code)55)		/* call foreign, 2 var args */
+#endif /*O_INLINE_FOREIGNS*/
+
+#define I_HIGHEST	((code)55)		/* largest WAM code !!! */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Arithmetic comparison
@@ -689,6 +696,8 @@ with one operation, it turns out to be faster as well.
 #define ERASED			(0x0001) /* clause */
 #define UNKNOWN			(0x0002) /* module */
 
+#define INLINE_F		(0x0001) /* functor */
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Handling environment (or local stack) frames.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -888,6 +897,8 @@ struct functorDef
   int		type;		/* FUNCTOR_TYPE */
   Atom		name;		/* Name of functor */
   int		arity;		/* arity of functor */
+  unsigned short	flags;		/* Flag field holding: */
+		/* INLINE_F	   Inlined foreign (system) predicate */
 };
 
 struct clause

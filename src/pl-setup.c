@@ -300,8 +300,14 @@ can  be  shared  by  many  SWI-Prolog  processes  and (therefore) is not
 removed on exit.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef HAVE_MAP_ANON
+#define get_map_fd() (-1)
+#define STACK_MAP_TYPE MAP_ANON|MAP_PRIVATE|MAP_FIXED
+#else
+#define STACK_MAP_TYPE MAP_PRIVATE|MAP_FIXED
+
 static int
-swap_fd(void)
+get_map_fd()
 { int fd;
   static char *map = "/tmp/pl-map";
 
@@ -334,6 +340,7 @@ swap_fd(void)
 
   return fd;
 }
+#endif /*MAP_ANON*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Expand stack `s' by one page.  This might not be  enough,  but  in  this
@@ -351,7 +358,7 @@ map(Stack s)
     outOf(s);
 
   if ( mmap(s->max, size_alignment,
-	    PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED,
+	    PROT_READ|PROT_WRITE, STACK_MAP_TYPE,
 	    mapfd, 0L) != s->max )
     fatalError("Failed to map memory at 0x%x for %d bytes on fd=%d: %s\n",
 	       s->max, size_alignment, mapfd, OsError());
@@ -405,7 +412,7 @@ restoreStack(Stack s)
   struct stat statbuf;
 
   if ( mapfd < 0 || fstat(mapfd, &statbuf) == -1 )
-  { mapfd = swap_fd();
+  { mapfd = get_map_fd();
     base_alignment = size_alignment = getpagesize();
   }
 
@@ -413,7 +420,7 @@ restoreStack(Stack s)
   len = max - (caddress) s->base;
 
   if ( mmap(s->base, len,
-	    PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED,
+	    PROT_READ|PROT_WRITE, STACK_MAP_TYPE,
 	    mapfd, 0L) != s->base )
     fatalError("Failed to map memory at 0x%x for %d bytes on fd=%d: %s\n",
 	       s->base, len, mapfd, OsError());
@@ -768,7 +775,7 @@ initStacks(long int local, long int global, long int trail, long int argument, l
   size_alignment = getpagesize();
 #ifdef MMAP_STACK
   base_alignment = size_alignment;
-  mapfd  = swap_fd();
+  mapfd  = get_map_fd();
 #endif
 #if O_SHARED_MEMORY
   base_alignment = SHMLBA;

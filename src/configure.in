@@ -297,8 +297,13 @@ cat test/mmap.c >> conftest.c
 eval $ac_link
 if test -s conftest && eval `./conftest`; then
     if test "$MMAP_STACK" = "1"; then
+        if test "$HAVE_MAP_ANON" = "1"; then
+	    AC_DEFINE(HAVE_MAP_ANON)
+	    AC_MSG_RESULT("Using MAP_ANON")
+	else
+	    AC_MSG_RESULT("Using MAP_PRIVATE")
+	fi
         AC_DEFINE(MMAP_STACK)
-	AC_MSG_RESULT(yes)
     else
 	AC_MSG_RESULT("mmap is not good enough")
     fi

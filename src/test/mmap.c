@@ -11,6 +11,11 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <errno.h>
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
+/*#undef MAP_ANON*/
 
 #ifndef SIGRETTYPE
 #define SIGRETTYPE void
@@ -36,27 +41,11 @@ int	provides_address = 1;		/* assume */
 
 typedef SIGRETTYPE (*handler_t)(int signal);
 
-SIGRETTYPE
-segv_handler(int s, int type, void *scp, char *sigaddr)
-{ ulong addr = RoundDown((ulong)wraddr, pagsiz);
-
-  if ( sigaddr != wraddr )
-    provides_address = 0;
-
-  if ( mmap((void *) addr, pagsiz, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED,
-	    mapfd, 0L) != (void *)addr )
-  { perror("mmap");
-    exit(1);
-  }
-#ifdef VERBOSE
-  printf("+"); fflush(stdout);
-#endif
-
-#ifndef BSD_SIGNALS
-  signal(SIGSEGV, (handler_t) segv_handler);
-#endif
-}
-
+#ifdef MAP_ANON
+#define get_map_fd() (-1)
+#define STACK_MAP_TYPE MAP_ANON|MAP_PRIVATE|MAP_FIXED
+#else
+#define STACK_MAP_TYPE MAP_PRIVATE|MAP_FIXED
 
 static int
 get_map_fd()
@@ -93,6 +82,29 @@ get_map_fd()
     perror(map);
     exit(1);
   }
+}
+#endif /*MAP_ANON*/
+
+
+SIGRETTYPE
+segv_handler(int s, int type, void *scp, char *sigaddr)
+{ ulong addr = RoundDown((ulong)wraddr, pagsiz);
+
+  if ( sigaddr != wraddr )
+    provides_address = 0;
+
+  if ( mmap((void *) addr, pagsiz, PROT_READ|PROT_WRITE, STACK_MAP_TYPE|MAP_FIXED,
+	    mapfd, 0L) != (void *)addr )
+  { perror("mmap");
+    exit(1);
+  }
+#ifdef VERBOSE
+  printf("+"); fflush(stdout);
+#endif
+
+#ifndef BSD_SIGNALS
+  signal(SIGSEGV, (handler_t) segv_handler);
+#endif
 }
 
 
@@ -176,7 +188,7 @@ main(int argc, char **argv)
 
   for(addr=low; addr<=high; addr += step)
   { if ( (ulong) mmap((void *) addr, pagsiz,
-		      PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED,
+		      PROT_READ|PROT_WRITE, STACK_MAP_TYPE,
 		      mapfd, 0L) == addr )
     { if ( addr < thelow )
 	thelow = addr;
@@ -202,8 +214,11 @@ main(int argc, char **argv)
     printf("MMAP_MAX_ADDRESS=0x%08xL;\n", thehigh);
     if ( provides_address )
       printf("SIGNAL_HANDLER_PROVIDES_ADDRESS=1;\n");
+    if ( mapfd == -1 )
+      printf("HAVE_MAP_ANON=1;\n");
 #ifdef VERBOSE
     printf("Space is %d MB\n", (thehigh-thelow)/(1 M));
+    printf("Using %s map\n", mapfd == -1 ? "MAP_ANON" : "MAP_PRIVATE");
 #endif
     exit(0);
   } else

@@ -7,7 +7,7 @@
     Purpose: load and save intermediate code files
 */
 
-#define O_DEBUG 1
+/*#define O_DEBUG 1*/
 #include "pl-incl.h"
 
 forwards char *	getString(FILE *);
@@ -197,9 +197,20 @@ int arity;
 		 *     LOADED XR ID HANDLING	*
 		 *******************************/
 
-static int   loadedXRTableId;		/* next Id */
-static Word *loadedXRTable;		/* pointer of pointers */
-static int   loadedXRTableArrays;	/* # arrays */
+typedef struct xr_table *XrTable;
+
+struct xr_table
+{ int		id;			/* next id to give out */
+  Word	       *table;			/* main table */
+  int   	tablesize;		/* # sub-arrays */
+  XrTable	previous;		/* stack */
+};
+
+static XrTable loadedXrs;		/* head pointer */
+
+#define loadedXRTableId		(loadedXrs->id)
+#define loadedXRTable		(loadedXrs->table)
+#define loadedXRTableArrays	(loadedXrs->tablesize)
 
 #define SUBENTRIES ((ALLOCSIZE)/sizeof(word))
 
@@ -212,21 +223,30 @@ references.  That will normally overflow other system limits first.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-makeXrIdTable()
-{ loadedXRTable = malloc(ALLOCSIZE);
+pushXrIdTable()
+{ XrTable t = allocHeap(sizeof(struct xr_table));
+
+  t->previous = loadedXrs;
+  loadedXrs = t;
+
+  loadedXRTable = malloc(ALLOCSIZE);
   loadedXRTableArrays = 0;
   loadedXRTableId = 0;
 }
 
 
 static void
-freeXrIdTable()
+popXrIdTable()
 { int i;
+  XrTable prev = loadedXrs->previous;
 
   for(i=0; i<loadedXRTableArrays; i++)
     free(loadedXRTable[i]);
 
   free(loadedXRTable);
+  freeHeap(loadedXrs, sizeof(struct xr_table));
+
+  loadedXrs = prev;
 }
 
 
@@ -506,7 +526,7 @@ loadWicFile(char *file, bool toplevel, bool load_options)
   notifyLoad(file);
 
   if ( toplevel && !load_options )
-  { makeXrIdTable();
+  { pushXrIdTable();
     tablealloced    = TRUE;
   }
 
@@ -525,7 +545,7 @@ out:
   if (fd != (FILE *) NULL)
     fclose(fd);
   if ( tablealloced )
-  { freeXrIdTable();
+  { popXrIdTable();
   }
 
   notifyLoaded();
@@ -593,7 +613,9 @@ loadWicFd(char *file, FILE *fd, bool toplevel, bool load_options)
 	  name = store_string(getString(fd) );
 	  if (toplevel == TRUE)
 	  { appendState(name);
+	    pushXrIdTable();		/* has it's own id table! */
 	    loadWicFile(name, FALSE, FALSE);
+	    popXrIdTable();
 	  }
 	  continue;
 	}
@@ -1281,9 +1303,9 @@ qlfLoad(char *file, Module *module)
   if ( fgetc(fd) != 'Q' )
     return qlfLoadError(fd, "qlfLoad()");
 
-  makeXrIdTable();
+  pushXrIdTable();
   rval = loadPart(fd, module);
-  freeXrIdTable();
+  popXrIdTable();
 
   fclose(fd);
 

@@ -179,6 +179,14 @@ pl_metacut(void)
 { succeed;
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Just for debugging now and then.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+trap_gdb()
+{ return 0;
+}
 
 #if O_SECURE || O_DEBUG
 
@@ -196,11 +204,6 @@ heap).
 #define onGlobal(p) onStack(global, p)
 #define onLocal(p) onStack(local, p)
 #define onHeap(p) ((char *)p >= (char *)hBase && (char *)p <= (char *)hTop)
-
-int
-trap_gdb()
-{ return 0;
-}
 
 static void
 printk(char *fm, ...)

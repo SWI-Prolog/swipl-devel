@@ -69,6 +69,11 @@ struct code_info codeTable[] = {
   CODE(I_CUT_BLOCK,	"i_cut_block",	0, 0),
   CODE(B_EXIT,		"b_exit",	0, 0),
 #endif
+#if O_INLINE_FOREIGNS
+  CODE(I_CALL_FV0,	"i_call_fv0",	1, 1),
+  CODE(I_CALL_FV1,	"i_call_fv1",	2, 1),
+  CODE(I_CALL_FV2,	"i_call_fv2",	3, 1),
+#endif
   CODE(0,		NULL,		0, 0)
 };
 
@@ -970,11 +975,40 @@ Term, not a variable and not a module call.  Compile the  arguments  and
 generate  the  call  instruction.   Note  this  codes traps the $apply/2
 operator.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    { Procedure proc;
-      int ar;
+    { FunctorDef fdef = functorTerm(*arg);
+      Procedure proc = lookupProcedure(fdef, tm);
+      int ar = fdef->arity;
 
-      proc = lookupProcedure(functorTerm(*arg), tm);
-      ar = functorTerm(*arg)->arity;
+#ifdef O_INLINE_FOREIGNS
+#define MAX_FV 2
+      if ( true(fdef, INLINE_F) && ar <= MAX_FV )
+      { int n;
+	int vars[MAX_FV];
+
+	for(n = 0; n < ar; n++)
+	{ Word a = argTermP(*arg, n);
+
+	  deRef(a);
+	  if ( isTerm(*a) && (vars[n] = isIndexedVarTerm(*a)) >= 0 )
+	    continue;
+
+	  goto non_fv;
+	}
+
+	for(n = 0; n < ar; n++)
+	{ if ( isFirstVar(&ci->used_var, vars[n]) )
+	  { Output_1(ci, C_VAR, VAROFFSET(vars[n]));
+	  }
+	}
+
+        Output_1(ci, I_CALL_FV0 + ar, (code)proc);
+	for(n=0; n<ar; n++)
+	  Output_a(ci, VAROFFSET(vars[n]));
+
+	succeed;
+      non_fv:
+      }
+#endif /*O_INLINE_FOREIGNS*/
 
       for(arg = argTermP(*arg, 0); ar > 0; ar--, arg++)
 	compileArgument(arg, BODY, ci);
@@ -999,11 +1033,18 @@ operator.
   if ( isAtom(*arg) )
   { if ( *arg == (word) ATOM_cut )
     { Output_0(ci, I_CUT);
-      succeed;
-    }
+    } else
+    { FunctorDef fdef = lookupFunctorDef((Atom)*arg, 0);
+      code cproc = (code) lookupProcedure(fdef, tm);
 
-    Output_1(ci, call,
-	     (code) lookupProcedure(lookupFunctorDef((Atom)*arg, 0), tm));
+#ifdef O_INLINE_FOREIGNS
+      if ( true(fdef, INLINE_F) )
+      { Output_1(ci, I_CALL_FV0, cproc);
+      } else
+#endif /*O_INLINE_FOREIGNS*/
+      { Output_1(ci, call, cproc);
+      }
+    }
 
     succeed;
   }
@@ -1601,9 +1642,10 @@ static bool
 decompileBody(register decompileInfo *di, code end, Code until)
 { int nested = 0;		/* nesting in FUNCTOR ... POP */
   int pushed = 0;		/* Subclauses pushed on the stack */
+  int op;
 
   for(; decode(*PC) != end && PC != until; )
-  { switch(decode(*PC++))
+  { switch((op=decode(*PC++)))
     {   case I_NOP:	    continue;
 	case B_CONST:
 			    *ARGP++ = XR(*PC++);
@@ -1689,6 +1731,24 @@ decompileBody(register decompileInfo *di, code end, Code until)
       case I_USERCALL:
 			    pushed++;
 			    continue;
+#if O_INLINE_FOREIGNS
+      case I_CALL_FV0:			/* proc */
+      case I_CALL_FV1:			/* proc, var */
+      case I_CALL_FV2:			/* proc, var, var */
+      { int vars = op - I_CALL_FV0;
+	int i;
+
+	for(i=0; i<vars; i++)
+	{ int index = PC[i+1];		/* = B_VAR <N> (never nested!) */
+	  
+	  *ARGP++ = makeRef(index);
+	}
+	build_term(((Procedure)XR(*PC))->functor, di);
+	pushed++;
+	PC += vars+1;
+	continue;
+      }
+#endif /*O_INLINE_FOREIGNS*/
 #if O_COMPILE_OR
 #define DECOMPILETOJUMP { int to_jump = (int) *PC++; \
 			  decompileBody(di, (code)-1, PC+to_jump); \
@@ -2117,7 +2177,7 @@ pl_wam_list(Word ref)
     CodeInfo ci = &codeTable[op];
     int n = 0;
 
-    Putf("\t%4d %s", bp - clause->codes, ci->name);
+    Putf("%4d %s", bp - 1 - clause->codes, ci->name);
 
     switch(op)
     { case B_FIRSTVAR:
@@ -2133,9 +2193,22 @@ pl_wam_list(Word ref)
 	break;
       case C_IFTHENELSE:		/* var, jump */
       case C_NOT:
+      { int var = VARNUM(*bp++);
+	int jmp = *bp++;
 	assert(ci->arguments == 2);
-        Putf(" var(%d), jmp(%d)", VARNUM(*bp++), *bp++);
+        Putf(" var(%d), jmp(%d)", var, jmp);
         break;
+      }
+      case I_CALL_FV1:
+      case I_CALL_FV2:
+      { int vars = op - I_CALL_FV0;
+	Procedure proc = (Procedure) *bp++;
+
+	Putf(" %s", procedureName(proc));
+	for( ; vars > 0; vars-- )
+	  Putf(", var(%d)", VARNUM(*bp++));
+        break;
+      }
       default:
 	for( ; n < codeTable[op].externals; n++ )
 	{ word xr = *bp++;

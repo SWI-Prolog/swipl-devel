@@ -1,6 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.0.2
+=============
+
+  * Fixed pl [options] -c file ...
+  * Improved VMI implementation for (if -> then ; else), \+ and (a;b).
+    Reduces overhead of these to about half.
+  * Fix for Solaris 2.4 mmap() detection.
+
+
 Version 2.0.1
 =============
 

@@ -32,6 +32,7 @@ lookupFunctorDef(register Atom atom, register int arity)
   f->type = FUNCTOR_TYPE;
   f->name = atom;
   f->arity = arity;
+  f->flags = 0;
   functorDefTable[v] = f;
   statistics.functors++;
 

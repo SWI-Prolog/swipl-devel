@@ -1311,6 +1311,11 @@ pl_fail(void)		/* just to define it */
 }
 
 word
+pl_true(void)		/* just to define it */
+{ succeed;
+}
+
+word
 pl_halt(Word code)
 { int status;
 

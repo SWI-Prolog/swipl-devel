@@ -76,8 +76,6 @@ char *argv[];
     decl[ndecl++] = "STACK_DIRECTION=1;";
   else
     decl[ndecl++] = "STACK_DIRECTION=-1;";
-  if ( (long) sub > 64 K )
-    decl[ndecl++] = "VMCODE_IS_ADDRESS=0;";
 
   if ( !malloc(200000) )
   { printf("PROBLEM: malloc(200000) fails; see \"pl-os.c\"\n");

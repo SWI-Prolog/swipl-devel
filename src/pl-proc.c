@@ -470,6 +470,22 @@ resolveProcedure(FunctorDef f, Module module)
   return lookupProcedure(f, module);
 }
 
+
+Definition
+findDefinition(FunctorDef f, Module m)
+{ Procedure proc;
+					/* Defined: no problem */
+  for(;; m = m->super)
+  { if ( (proc = isCurrentProcedure(f, m)) != NULL &&
+	 isDefinedProcedure(proc) )
+      return proc->definition;
+  
+    if ( !m->super )			/* No super: cannot import */
+      return NULL;
+  }
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 autoImport() tries to autoimport f into module `m' and  returns  success
 if this is possible.

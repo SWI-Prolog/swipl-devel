@@ -383,6 +383,7 @@ word		pl_write_on_list(Word goal, Word string);
 word		pl_term_to_atom(Word term, Word atom, Word bindings);
 word		pl_repeat(word h);
 word		pl_fail(void);
+word		pl_true(void);
 word		pl_halt(Word code);
 word		pl_statistics(Word k, Word value);
 void		setFeature(Atom name, Atom value);
@@ -439,6 +440,7 @@ word		pl_make_system_source_files(void);
 word		pl_source_file(Word descr, Word file);
 word		pl_time_source_file(Word file, Word time, word h);
 word		pl_start_consult(Word file);
+Definition	findDefinition(FunctorDef f, Module m);
 
 
 /* pl-prof.c */

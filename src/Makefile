@@ -15,11 +15,13 @@
 #
 ################################################################
 
+PLVERSION=2.0.2
+
 PL=pl
-prefix=/usr/local
+prefix=/staff/jan
 exec_prefix=${prefix}
 bindir=$(exec_prefix)/bin
-PLBASE=$(prefix)/lib/$(PL)
+PLBASE=$(prefix)/lib/$(PL)-$(PLVERSION)
 mansec=1
 mandir=$(prefix)/man/man$(mansec)
 
@@ -44,7 +46,6 @@ LDFLAGS= -static
 
 PLFOREIGN=foreign.pl
 
-PLVERSION=2.0.1
 DEFSTARTUP=.plrc
 
 PB=../boot
@@ -84,7 +85,7 @@ banner:
 		@echo "****************"
 		@echo "Making SWI-Prolog $(PLVERSION) for $(ARCH)"
 		@echo "To be installed in $(prefix)/bin/$(PL)"
-		@echo "Home (libraries) in $(prefix)/lib/$(PL)"
+		@echo "Home (libraries) in $(PLBASE)"
 		@echo "****************"
 
 $(PL):		$(ALLOBJ)
@@ -155,6 +156,9 @@ pl-funcs.h:	$(SRC)
 
 install:	idirs iboot ilib iinclude iruntime iman
 		$(INSTALL_DATA) $(STARTUPPATH) $(PLBASE)/startup/startup.$(ARCH)
+		if [ -r $(bindir)/$(PL) ]; then \
+			mv $(bindir)/$(PL) $(bindir)/$(PL).old; \
+		fi
 		$(INSTALL_PROGRAM) $(PL) $(bindir)
 		$(INSTALL_PROGRAM) pl-bite $(bindir)
 		cd $(PLBASE)/library; \
@@ -176,14 +180,7 @@ iruntime:
 		$(INSTALL_DATA) pl-extend.c $(PLBASE)/runtime
 
 idirs:
-		if [ -d $(PLBASE) ]; then \
-			if [ ! -d $(PLBASE).old ]; then \
-				mv $(PLBASE) $(PLBASE).old; \
-			else \
-				rm -r $(PLBASE); \
-			fi; \
-		fi
-		mkdir $(PLBASE)
+		-mkdir $(PLBASE)
 		for d in $(installdirs); do \
 			if [ ! -d $(PLBASE)/$$d ]; then \
 				mkdir $(PLBASE)/$$d; \

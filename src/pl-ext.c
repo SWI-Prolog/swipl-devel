@@ -181,6 +181,7 @@ static struct foreign {
 
   ADD("repeat",			0, pl_repeat,	NONDETERMINISTIC|TRACE_ME),
   ADD("fail",			0, pl_fail,			TRACE_ME),
+  ADD("true",			0, pl_true,			TRACE_ME),
   ADD("$fail",			0, pl_fail,			0),
   ADD("abort",			0, pl_abort,			TRACE_ME),
 
@@ -366,14 +367,17 @@ initBuildIns(void)
   PL_extension *e;
 
   for(f = &foreigns[0]; f->name; f++)
-  { def = lookupProcedure(lookupFunctorDef(lookupAtom(f->name), f->arity), 
-					         MODULE_system)->definition;
+  { FunctorDef fdef = lookupFunctorDef(lookupAtom(f->name), f->arity);
+
+    def = lookupProcedure(fdef, MODULE_system)->definition;
     set(def, FOREIGN|SYSTEM|LOCKED);
     clear(def, TRACE_ME);
     set(def, f->flags);
     def->definition.function = f->function;
     def->indexPattern = 0;
     def->indexCardinality = 0;
+    if ( false(def, NONDETERMINISTIC) && f->arity <= 2 )
+      set(fdef, INLINE_F);
   }
 
   PROCEDURE_alt1 = lookupProcedure(FUNCTOR_alt1, MODULE_system);

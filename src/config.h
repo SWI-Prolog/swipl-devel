@@ -62,8 +62,11 @@
 /* Define if maximum address we can map at */
 #define MMAP_MAX_ADDRESS 0x20000000L
 
-/* Define if minimum address we can map at if > sbrk(0) */
+/* Define if minimum address we can map and if > sbrk(0) */
 /* #undef MMAP_MIN_ADDRESS */
+
+/* Define if MAP_ANON is defined and works ok */
+/* #undef HAVE_MAP_ANON */
 
 /* Define if uchar is not defined in <sys/types.h> */
 #define NEED_UCHAR 1
