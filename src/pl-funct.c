@@ -55,23 +55,6 @@ isCurrentFunctor(Atom atom, int arity)
 }
 
 
-static bool
-atomIsProcedureModule(Atom atom, Module m)
-{ int v = pointerHashValue(atom, FUNCTORHASHSIZE);
-  FunctorDef f;
-  Procedure proc;
-
-  for(f = functorDefTable[v]; f && !isRef((word)f); f = f->next)
-  { if ( atom == f->name &&
-	 (proc = isCurrentProcedure(f, m)) != (Procedure)NULL &&
-	 isDefinedProcedure(proc) )
-      succeed;
-  }
-
-  fail;
-}
-
-
 struct functorDef functors[] = {
 #include "pl-funct.ic"
 { (FunctorDef)NULL,	FUNCTOR_TYPE,	(Atom) NULL, 0 }

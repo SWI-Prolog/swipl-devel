@@ -1294,9 +1294,7 @@ care of reconsult, redefinition, etc.
       return assertProcedure(proc, clause, where) ? clause : NULL;
 
     if ( def->definition.clauses )	/* i.e. is defined */
-    { Clause first;
-
-      if ( true(def, LOCKED) && !SYSTEM_MODE && false(def, DYNAMIC|MULTIFILE) )
+    { if ( true(def, LOCKED) && !SYSTEM_MODE && false(def, DYNAMIC|MULTIFILE) )
       { warning("Attempt to redefine a system predicate: %s",
 		procedureName(proc));
 	freeClause(clause);
