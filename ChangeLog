@@ -1,6 +1,22 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * MODIFIED: deleted the export of Quintus compatible statistics/2,
+    so this can now only be accessed as quintus:statistics(Key, Value).
+
+  * MODIFIED: Moved gensym/2 into the library(gensym) to avoid export
+    redefinition.
+
+  * FIXED: When using both local and global term_expansion/2
+    or goal_expansion/2 the local rule was tried twice and the
+    global not at all.
+
+  * FIXED: Handling multiple errors in compilation (exception
+    handling on load_files/2).
+
+  * FIXED: Added exceptions to export.  Don't allow exporting
+    built-in predicates.  Thanks to Nicos Angelopoulos.
+
   * FIXED: Center alignment in writef (thanks to Lyosha Ilyukhin).
 
 VERSION 3.3.9
