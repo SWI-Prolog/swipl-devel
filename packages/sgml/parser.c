@@ -2682,6 +2682,7 @@ get_attribute_value(dtd_parser *p, const ichar *decl, sgml_attribute *att)
 	if ( *s )
 	  *d++ = ' ';
       }
+      *d = 0;
     }
   } else
   { const ichar *s;
