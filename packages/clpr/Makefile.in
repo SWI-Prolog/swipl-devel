@@ -30,7 +30,7 @@ LIBPL=		clpr.pl
 EXAMPLES=	
 
 all::
-		echo "Nothing to be done for this package"
+		@echo "Nothing to be done for this package"
 
 install:	$(LIBPL)
 		mkdir -p $(DESTDIR)/$(CLPDIR)
