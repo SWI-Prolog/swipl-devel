@@ -17,6 +17,8 @@ display.system_fonts:	[ normal    := font(helvetica, roman,   12), \
 			  huge      := font(helvetica, roman,   18), \
 			  boldhuge  := font(helvetica, bold,    18), \
 			  fixed     := font(screen,    roman,   13), \
+			  tt        := font(screen,    roman,   13), \
+			  boldtt    := font(screen,    bold,    13), \
 			  symbol    := font(symbol,    roman,   12)  \
 			]
 

@@ -1,3 +1,11 @@
+* FIXED: Bounding box calculation for class parbox if floating graphicals
+  extend below the text.
+
+* FIXED: A few layout problems in the classes lbox and parbox.
+
+* ADDED: X11 version: support for masked frame-icons.  Default frame-icon is
+  now the same as for the Windows version.
+
 * ADDED: Support for loading transparent .GIF image files.
 
 * FIXED: SWI-Prolog help interface for syntax errors on `explain'.
