@@ -7,8 +7,7 @@
 */
 
 :- module($toplevel,
-	[ $init/0 			% start Prolog (does not return)
-	, $init_return/0		% initialise Prolog and return
+	[ $initialise/0			% start Prolog (does not return)
 	, $toplevel/0			% Prolog top-level (re-entrant)
 	, $abort/0 			% restart after an abort
 	, $break/0 			% live in a break
@@ -91,11 +90,7 @@ $run_at_initialisation.
 
 :- flag($banner_goal, _, $welcome).
 
-$init :-
-	$init_return,
-	$toplevel.
-
-$init_return :-
+$initialise :-
 	$check_novice, 
 	$clean_history,
 	$load_system_init_file,

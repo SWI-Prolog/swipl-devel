@@ -44,3 +44,14 @@ PL_extension PL_extensions [] =
 
   { NULL,	0, 	NULL,		0 }	/* terminating line */
 };
+
+
+int
+main(int argc, char **argv, char **env)
+{ if ( !PL_initialise(argc, argv, env) )
+    PL_halt(1);
+
+  PL_halt(PL_toplevel() ? 0 : 1);
+}
+
+

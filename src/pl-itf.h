@@ -259,6 +259,15 @@ __pl_export int		PL_call_predicate(module_t context, int debug,
 					  predicate_t pred,
 					  term_t *argv);
 
+		 /*******************************
+		 *	    EMBEDDING		*
+		 *******************************/
+
+__pl_export int		PL_initialise(int argc, char **argv, char **env);
+__pl_export int		PL_toplevel(void);
+__pl_export void	PL_halt(int status);
+
+
 		/********************************
 		*            MODULES            *
 		*********************************/

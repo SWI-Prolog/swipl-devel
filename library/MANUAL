@@ -2888,6 +2888,7 @@ op(+Precedence, +Type, +Name)
           1000   xfy   ,
           954    xfy   \\
           900    fy    \+, not
+          900    fx    ~
           700    xfx   <, =, =.., =@=, =:=, =<, ==, =\=, >,
                        >=, @<, @=<, @>, @>=, \=, \==, is
           600    xfy   :
@@ -5062,6 +5063,14 @@ modified to link the lowercase example described later in this chapter:
       { NULL,       0,      NULL,         0 }     /* terminating line */
     };
 
+    int
+    main(int argc, char **argv, char **env)
+    { if ( !PL_initialise(argc, argv, env) )
+        PL_halt(1);
+
+      PL_halt(PL_toplevel() ? 0 : 1);
+    }
+
 Now, a new executable may be created using the make(1) Makefile fragment
 below.  The correct versions for the variables may be obtained using the
 feature/2 predicate:
@@ -6055,6 +6064,51 @@ int PL_reinit_unhook(PL_reinit_hook_t)
     such hook is found, TRUE otherwise.
 
 
+5.6.15 Embedding SWI-Prolog in a C-program
+
+As of version 2.1.0, SWI-Prolog may be embedded in a C-program.  To reach
+at a compiled C-program with SWI-Prolog as an embedded application is very
+similar to creating a statically linked SWI-Prolog executable as described
+in section 5.2.3.
+
+The file pl-stub.c defines SWI-Prologs default main program:
+
+    int
+    main(int argc, char **argv, char **env)
+    { if ( !PL_initialise(argc, argv, env) )
+        PL_halt(1);
+
+      PL_halt(PL_toplevel() ? 0 : 1);
+    }
+
+This may be replaced with your own main C-program.  The interface function
+PL_initialise() must be called before any of the other SWI-Prolog foreign
+language functions described in this chapter.  PL_initialise() interprets
+all the command-line arguments, except for the -t toplevel flag that is
+interpreted by PL_toplevel().
+
+
+int PL_initialise(int argc, char **argv, char **environ)
+    Initialises the SWI-Prolog heap and stacks, restores the boot QLF
+    file, loads the system and personal initialisation initialisation
+    files, runs the at_initialisation/1 hooks and finally runs the -g
+    goal hook.
+
+    PL_initialise() returns 1 if all initialisation succeeded and 0
+    otherwise.  Various fatal errors may cause PL_initialise to call
+    PL_halt(1), preventing it from returning at all.
+
+
+int PL_toplevel()
+    Runs the goal of the -t toplevel switch (default prolog/0) and
+    returns 1 if successfull, 0 otherwise.
+
+
+void PL_halt(int status)
+     Cleanup the Prolog environment and calls exit() with the status
+     argument.
+
+
 5.7 Example of Using the Foreign Interface
 
 Below is an example showing all stages of the declaration of a foreign
@@ -6223,7 +6277,7 @@ debugging tools for Prolog.  The predicates described here should be
 handled with some care as it is easy to corrupt the consistency of the
 Prolog system by misusing them.
 
-                                574
+                                578
 
 
 6.1 Examining the Environment Stack
@@ -6748,4 +6802,4 @@ writeq/2                    Write term, insert quotes on stream
 xor/2                       Arithmetic:  exclusive or
 |/2                         Disjunction of goals
 
-                                583
+                                587

@@ -1,8 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
-Version 2.0.10
+Version 2.1.0
 ==============
+
+  * Added facilities to allow for embedding SWI-Prolog in C applications.
 
   * Fixed semantics of the cut in toplevel queries by compiling the query
     instead of using meta-call.

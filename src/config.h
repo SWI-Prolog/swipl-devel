@@ -83,14 +83,14 @@
 /* Define if (type)var = value is allowed */
 #define TAGGED_LVALUE 1
 
-/* Define as 0 if text addresses start above 40K */
+/* Define as 0 if it gives problems (shouldn't do anymore) */
 /* #undef VMCODE_IS_ADDRESS */
 
 /* Define if first data symbol not is environ */
 /* #undef FIRST_DATA_SYMBOL */
 
 /* Define if pl-save.c works */
-#define O_SAVE 1
+/* #undef O_SAVE */
 
 /* Define if symbolic links are supported by the OS */
 #define HAVE_SYMLINKS 1
@@ -127,6 +127,9 @@
 
 /* Define to make runtime version */
 /* #undef O_RUNTIME */
+
+/* Define if you don't have termio(s), but struct sgttyb */
+/* #undef HAVE_SGTTYB */
 
 /* Define if you have the access function.  */
 #define HAVE_ACCESS 1
@@ -223,6 +226,9 @@
 
 /* Define if you have the <dirent.h> header file.  */
 #define HAVE_DIRENT_H 1
+
+/* Define if you have the <mach-o/rld.h> header file.  */
+/* #undef HAVE_MACH_O_RLD_H */
 
 /* Define if you have the <malloc.h> header file.  */
 #define HAVE_MALLOC_H 1

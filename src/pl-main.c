@@ -441,13 +441,13 @@ startProlog(int argc, char **argv, char **env)
 
   DEBUG(1, Sdprintf("Starting Prolog Engine\n"));
 
-  if ( prolog(PL_new_atom(compile ? "$compile" : "$init")) == TRUE )
-    Halt(0);
-  else
-    Halt(1);
-
-  return 0;
+  if ( compile )
+  { Halt(prolog(PL_new_atom("$compile")) ? 0 : 1);
+  }
+    
+  return prolog(PL_new_atom("$initialise"));
 }
+
 
 static void
 usage()

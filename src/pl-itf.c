@@ -536,6 +536,21 @@ _PL_unlock(Word *t)
 { unlockp(t);
 }
 
+		 /*******************************
+		 *	 EMBEDDING PROLOG	*
+		 *******************************/
+
+int
+PL_toplevel(void)
+{ return prolog(PL_new_atom("$toplevel"));
+}
+
+
+void
+PL_halt(int status)
+{ Halt(status);
+}
+
 		/********************************
 		*            MODULES            *
 		*********************************/

@@ -122,10 +122,16 @@ references to `0' and finally long_jumps back to prolog().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static jmp_buf abort_context;		/* jmp buffer for abort() */
+static int can_abort;			/* embeded code can't abort */
 
 word
 pl_abort()
-{ if (critical > 0)			/* abort in critical region: delay */
+{ if ( !can_abort )
+  { warning("Embedded system, cannot abort");
+    Halt(1);
+  }
+
+  if (critical > 0)			/* abort in critical region: delay */
   { aborted = TRUE;
     succeed;
   }
@@ -154,7 +160,9 @@ interpreter with the toplevel goal.
 
 bool
 prolog(volatile word goal)
-{ if ( setjmp(abort_context) != 0 )
+{ bool rval;
+
+  if ( setjmp(abort_context) != 0 )
   { goal = (word) ATOM_abort;
   } else
   { debugstatus.debugging = FALSE;
@@ -179,7 +187,11 @@ prolog(volatile word goal)
   debugstatus.tracing      = FALSE;
   debugstatus.suspendTrace = 0;
 
-  return callGoal(MODULE_system, goal, FALSE);
+  can_abort = TRUE;
+  rval = callGoal(MODULE_system, goal, FALSE);
+  can_abort = FALSE;
+
+  return rval;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

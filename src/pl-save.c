@@ -593,7 +593,7 @@ main() stub
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-main(int argc, char **argv, char **env)
+PL_initialise(int argc, char **argv, char **env)
 { int rval;
 
   c_stack_base = baseOfCStack(&argc, argv, env);
@@ -627,30 +627,17 @@ main(int argc, char **argv, char **env)
     rval = startProlog(argc, argv, env);
   }
 
-  exit(rval);
-  return 1;
+  return(rval);
 }
 
-#else /* !O_SAVE */
-
-#ifdef __WIN32__
+#else /*O_SAVE*/
 
 int
-plmain(int argc, char **argv)
-{ exit(startProlog(argc, argv, NULL));
-  return 1;
+PL_initialise(int argc, char **argv, char **env)
+{ return startProlog(argc, argv, env));
 }
 
-#else
-
-int
-main(int argc, char **argv, char **env)
-{ exit(startProlog(argc, argv, env));
-  return 1;
-}
-#endif
-
-#endif
+#endif /*O_SAVE*/
 
 
 #ifdef TEST				/* test stand-alone */
