@@ -69,7 +69,7 @@
 
 <!ELEMENT br	   - o EMPTY>
 <!ELEMENT quote	   - - (p|%Text)*>
-<!ELEMENT fn	   - - (%Text;) -(fn)>
+<!ELEMENT fn	   - - (%Text;)* -(fn)>
 
 <!-- PARAGRAPH STRUCTURE -->
 

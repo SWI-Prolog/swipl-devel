@@ -10,11 +10,13 @@
 <center>
 
 <h1>SWI-Prolog SGML/XML parser<br>
-<font size="+0"><em>Version 1.0.15, September 2002</em></font></h1>
+<font size="+0"><em>Version 2.0, December 2004</em></font></h1>
 
 <br>
-<a href="mailto:jan@swi.psy.uva.nl"><em>Jan Wielemaker</em></a><br>
-<em>    SWI, <br>
+<a href="mailto:jan@science.uva.nl"><em>Jan Wielemaker</em></a><br>
+<em>    Human Computer-Studies (HCS),<br>
+
+    Faculty of science, <br>
 
     University of Amsterdam <br>
 
@@ -92,10 +94,9 @@ input or parsing the DTD independently of a document instance.
 
 
 <p>
-The parser described in this document is small (less than 50 kbytes
-executable on a Pentium or 80 kbytes on a SPARC), fast (between 2 and 5
-times faster than SP), provides access to the DTD, and provides flexible
-input handling.
+The parser described in this document is small (less than 100 kBytes
+executable on a Pentium), fast (between 2 and 5 times faster than SP),
+provides access to the DTD, and provides flexible input handling.
 
 
 <p>
@@ -185,9 +186,9 @@ character strings, <em>etc.</em> The first example below loads an HTML file.
 <p>
 The document is represented as a list, each element being an atom to 
 represent <a name="const:CDATA"><b><tt>CDATA</tt></b></a> or a term <code>element(Name, Attributes, Content)</code>.
-Entities (e.g. <code>&amp;lt;</code>) are returned as part of <a name="const:CDATA%2"><b><tt>CDATA</tt></b></a>, 
-unless they cannot be represented. See <a href="#load_sgml_file/2"><b>load_sgml_file/2</b></a> for
-details.
+Entities (e.g. <code>&amp;lt;</code>) are expanded and included in the 
+atom representing the element content or attribute value.
+<a href="#fn-1" name="txt:fn-1"><sup>1</sup></a>
 
 
 <p>
@@ -267,7 +268,7 @@ consistency with the representation of element content. The <var>ListOfContent</
 <dl>
 <dt>&nbsp;<br>
 <b><var>Atom</var></b><dd>
-Atoms are used to represent <a name="const:CDATA%3"><b><tt>CDATA</tt></b></a>. Note 
+Atoms are used to represent <a name="const:CDATA%2"><b><tt>CDATA</tt></b></a>. Note 
 this is possible in SWI-Prolog, as there is no length-limit on atoms and
 atom garbage collection is provided.
     
@@ -280,7 +281,7 @@ case-insensitive, all element names are returned as lowercase atoms.
 
 <p>
 <var>ListOfAttributes</var> is a list of <var>Name</var>=<var>Value</var> pairs for
-attributes. Attributes of type <a name="const:CDATA%4"><b><tt>CDATA</tt></b></a> are returned literal. Multi-valued
+attributes. Attributes of type <a name="const:CDATA%3"><b><tt>CDATA</tt></b></a> are returned literal. Multi-valued
 attributes (<a name="const:NAMES"><b><tt>NAMES</tt></b></a>, <em>etc.</em>) are returned as a list of atoms.
 Handling attributes of the types <a name="const:NUMBER"><b><tt>NUMBER</tt></b></a> and <a name="const:NUMBERS"><b><tt>NUMBERS</tt></b></a> depends on
 the setting of the <code>number(+NumberMode)</code> attribute through
@@ -288,39 +289,6 @@ the setting of the <code>number(+NumberMode)</code> attribute through
 default they are returned as atoms, but automatic conversion to Prolog
 integers is supported. <var>ListOfContent</var> defines the content for the
 element.
-    
-<dt>&nbsp;<br>
-<b>entity(<var>Code</var>)</b><dd>
-If a character-entity (e.g. <code>&amp;#913;</code>) is encoutered that 
-cannot be represented in the Prolog character set, this term is 
-returned, representing the referred character code.
-    
-<dt>&nbsp;<br>
-<b>entity(<var>Name</var>)</b><dd>
-If an entity refers to a character-entity holding a single character, 
-but this character cannot be represented in the Prolog character set, 
-this term is returned. For example, the HTML input text
-<code>&amp;Alpha; &amp;lt; &amp;Beta;</code>
-is returned as below. Please note that entity names are case sensitive
-in both SGML and XML.
-
-
-
-<p>
-<table width="90%" align="center" border="2" bgcolor="#f0f0f0">
-<tr><td>
-<pre>
-[ entity('Alpha'), ' &lt; ', entity('Beta') ]
-</pre>
-</td></tr>
-</table>
-
-
-
-
-<p>
-This is a special case of <code>entity(Code)</code>, intended to handle 
-special symbols by their name rather than character code.
     
 <dt>&nbsp;<br>
 <b>sdata(<var>Text</var>)</b><dd>
@@ -432,7 +400,7 @@ modes are:
 <dl>
 <dt>&nbsp;<br>
 <b>space(<var>sgml</var>)</b><dd>
-In SGML, newlines at the start and end of an element are removed.<a href="#fn-1" name="txt:fn-1"><sup>1</sup></a> This is the default mode for 
+In SGML, newlines at the start and end of an element are removed.<a href="#fn-2" name="txt:fn-2"><sup>2</sup></a> This is the default mode for 
 the SGML dialect. 
 
     
@@ -453,7 +421,7 @@ space.
 <dt>&nbsp;<br>
 <b>space(<var>remove</var>)</b><dd>
 In addition to <a name="const:default"><b><tt>default</tt></b></a>, all leading and trailing white-space is 
-removed from <a name="const:CDATA%5"><b><tt>CDATA</tt></b></a> objects. If, as a result, the <a name="const:CDATA%6"><b><tt>CDATA</tt></b></a> 
+removed from <a name="const:CDATA%4"><b><tt>CDATA</tt></b></a> objects. If, as a result, the <a name="const:CDATA%5"><b><tt>CDATA</tt></b></a> 
 becomes empty, nothing is passed to the application. This mode is 
 especially handy for processing `data-oriented' documents, such as RDF. 
 It is not suitable for normal text documents. Consider the HTML 
@@ -882,7 +850,7 @@ is:
 
 <p>
 Any encountered attribute is added to the attribute list with the type
-<a name="const:CDATA%7"><b><tt>CDATA</tt></b></a> and default <a name="const:#IMPLIED"><b><tt>#IMPLIED</tt></b></a>.
+<a name="const:CDATA%6"><b><tt>CDATA</tt></b></a> and default <a name="const:#IMPLIED"><b><tt>#IMPLIED</tt></b></a>.
 
 
 <p>
@@ -1277,12 +1245,6 @@ arguments: <code><var>Handler</var>(+Tag, +Parser)</code>.
 <b>cdata</b><dd>
 CDATA has been parsed. The named handler is called with two arguments: <code><var>Handler</var>(+CDATA, +Parser)</code>, where CDATA is an atom representing 
 the data. 
-    
-<dt>&nbsp;<br>
-<b>entity</b><dd>
-An entity that cannot be represented as CDATA has been parsed. The named
-handler is called with two arguments: <code><var>Handler</var>(+NameOrCode, 
-+Parser)</code>. 
     
 <dt>&nbsp;<br>
 <b>pi</b><dd>
@@ -1722,6 +1684,11 @@ standard.  He also made many suggestions for improving this document.
 
 <dl>
 <dt><a href="#txt:fn-1" name="fn-1">1</a><dd>
+Up to SWI-Prolog 5.4.x, Prolog could not represent <b><em>wide</em></b> characters
+and entities that did not fit in the Prolog characters set were emitted as
+a term <code>number(+Code)</code>.  With the introduction of wide characters
+in the 5.5 branch this is no longer needed
+<dt><a href="#txt:fn-2" name="fn-2">2</a><dd>
 In
 addition, newlines at the end of lines containing only markup should be
 deleted. This is not yet implemented.
@@ -1737,7 +1704,7 @@ deleted. This is not yet implemented.
 <li><a href="#const:/&gt;"><b><tt>/&gt;</tt></b></a>
 <li><a href="#const::"><b><tt>:</tt></b></a>
 <li><a href="#const:&lt;&gt;&amp;'&quot;"><b><tt>&lt;&gt;&amp;'&quot;</tt></b></a>
-<li><a href="#const:CDATA"><b><tt>CDATA</tt></b></a> [ <a href="#const:CDATA%2">2</a> <a href="#const:CDATA%3">3</a> <a href="#const:CDATA%4">4</a> <a href="#const:CDATA%5">5</a> <a href="#const:CDATA%6">6</a> <a href="#const:CDATA%7">7</a>]
+<li><a href="#const:CDATA"><b><tt>CDATA</tt></b></a> [ <a href="#const:CDATA%2">2</a> <a href="#const:CDATA%3">3</a> <a href="#const:CDATA%4">4</a> <a href="#const:CDATA%5">5</a> <a href="#const:CDATA%6">6</a>]
 <li><a href="#const:DOCTYPE"><b><tt>DOCTYPE</tt></b></a> [ <a href="#const:DOCTYPE%2">2</a> <a href="#const:DOCTYPE%3">3</a>]
 <li><a href="#const:NAMES"><b><tt>NAMES</tt></b></a>
 <li><a href="#const:NDATA"><b><tt>NDATA</tt></b></a>

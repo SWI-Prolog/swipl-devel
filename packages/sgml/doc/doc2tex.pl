@@ -81,6 +81,7 @@ tex(pldoc, _, Content) -->
 	  \usepackage(#url), \n,
 	  \usepackage(#a4wide), \n,
 	  \usepackage(#longtable), \n,
+	  \usepackage(#times), \n,
 	  \parskip('5pt'),
 	  \makeindex,
 	  \n,

@@ -2,8 +2,8 @@
 
 <pldoc>
 <head>
-<version>1.0.15
-<release-date>September 2002
+<version>2.0
+<release-date>December 2004
 <package>sgml2pl
 </head>
 
@@ -12,11 +12,12 @@
 <author>
   <name>Jan Wielemaker</name>
   <address>
-    SWI, <br>
+    Human Computer-Studies (HCS),<br>
+    Faculty of science, <br>
     University of Amsterdam <br>
     The Netherlands
   </address>
-  <email>jan@swi.psy.uva.nl</email>
+  <email>jan@science.uva.nl</email>
 </author>
 
 <abstract>
@@ -46,10 +47,9 @@ not provide access to the DTD, does not allow for flexible handling of
 input or parsing the DTD independently of a document instance.
 
 <p>
-The parser described in this document is small (less than 50 kbytes
-executable on a Pentium or 80 kbytes on a SPARC), fast (between 2 and 5
-times faster than SP), provides access to the DTD, and provides flexible
-input handling.
+The parser described in this document is small (less than 100 kBytes
+executable on a Pentium), fast (between 2 and 5 times faster than SP),
+provides access to the DTD, and provides flexible input handling.
 
 <p>
 The document output is equal to the output produced by <jargon/xml2pl/, 
@@ -123,9 +123,14 @@ character strings, <em>etc.</em> The first example below loads an HTML file.
 <p>
 The document is represented as a list, each element being an atom to 
 represent <c/CDATA/ or a term <term>element(Name, Attributes, Content)</term>.
-Entities (e.g. <verb>&lt;</verb>) are returned as part of <c/CDATA/, 
-unless they cannot be represented. See <pref>load_sgml_file/2</pref> for
-details.
+Entities (e.g. <verb>&lt;</verb>) are expanded and included in the 
+atom representing the element content or attribute value.
+<fn>
+Up to SWI-Prolog 5.4.x, Prolog could not represent <jargon/wide/ characters
+and entities that did not fit in the Prolog characters set were emitted as
+a term <term>number(+Code)</term>.  With the introduction of wide characters
+in the 5.5 branch this is no longer needed
+</fn>
 
 <s2>`Goodies' Predicates</title>
 
@@ -203,25 +208,6 @@ the setting of the <term>number(+NumberMode)</term> attribute through
 default they are returned as atoms, but automatic conversion to Prolog
 integers is supported. <aref/ListOfContent/ defines the content for the
 element.
-    <termitem>entity(Code)
-If a character-entity (e.g. <verb>&#913;</verb>) is encoutered that 
-cannot be represented in the Prolog character set, this term is 
-returned, representing the referred character code.
-    <termitem>entity(Name)
-If an entity refers to a character-entity holding a single character, 
-but this character cannot be represented in the Prolog character set, 
-this term is returned. For example, the HTML input text
-<verb>&Alpha; &lt; &Beta;</verb>
-is returned as below. Please note that entity names are case sensitive
-in both SGML and XML.
-
-<code>
-[ entity('Alpha'), ' < ', entity('Beta') ]
-</code>
-
-<p>
-This is a special case of <term>entity(Code)</term>, intended to handle 
-special symbols by their name rather than character code.
     <termitem>sdata(Text)
 If an entity with declared content-type <c/SDATA/ is encountered, this 
 term is returned holding the data in <aref/Text/.
@@ -927,10 +913,6 @@ arguments: <term><aref/Handler/(+Tag, +Parser)</term>.
 CDATA has been parsed. The named handler is called with two arguments: <term><aref/
 Handler/(+CDATA, +Parser)</term>, where CDATA is an atom representing 
 the data. 
-    <termitem>entity
-An entity that cannot be represented as CDATA has been parsed. The named
-handler is called with two arguments: <term><aref/Handler/(+NameOrCode, 
-+Parser)</term>. 
     <termitem>pi
 A processing instruction has been parsed. The named handler is called 
 with two arguments: <term><aref/Handler/(+Text, +Parser)</term>, where
