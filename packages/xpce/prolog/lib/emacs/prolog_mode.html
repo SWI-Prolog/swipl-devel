@@ -19,7 +19,7 @@ extension <b>.pl</b>.
 <p>
 Alternatively the editor may always be switched to Prolog mode using the
 <b>Mode</b> submenu of the <b>File</b> menu or using <b>M-x mode RET
-prolog RET</b>
+prolog RET</b>.  See also <a href="#jargon">jargon</a>.
 
 
 <h2>Using Prolog Mode</h2>
@@ -64,7 +64,8 @@ head(Arg1, Arg2) :-
   <dt><b>M-q</b><dd>
 Meta-q formats a paragraph.  If the caret is in a long comment, this
 behaviour is retained, but if the caret is in a clause all lines of
-the clause will re-indented using the same rules as used for <b>TAB</b>
+the clause will re-indented using the same rules as used for <b>TAB</b>.
+See also <a href="#jargon">jargon</a>.
 </dl>
 
 
@@ -98,7 +99,7 @@ clause stand-out.
   <dt><font color=blue><b><tt>exported head :-</tt></b></font><dd>
 The heads of clauses exported from the current file are bold-blue.
 
-  <dt><font color=blue><b><tt>unused head :-</tt></b></font><dd>
+  <dt><font color=red><b><tt>unused head :-</tt></b></font><dd>
 The heads of unused clauses are bold-red. Unused means the
 cross-referencer, only working on the current file does not find a
 reference. This might not be an error if the cross-referencer is not
@@ -143,7 +144,7 @@ rather immature. Please check the library file
 
 <p>
 This section describes the most important commands for finding your way
-around.
+around. See also <a href="#jargon">jargon</a>.
 
 <dl>
   <dt><b>M-.</b><dd>
@@ -205,7 +206,7 @@ Every file, possibly except for <tt>load.pl</tt> and <tt>run.pl</tt> is
 declared as a <b>module file</b>.  Why?  It provides <em>documentation</em>
 and <em>hiding</em> at practically no cost.  The same information makes
 PceEmacs cross-referencing work efficiently and providing the most
-relyable information.
+reliable information.
 
 <p>
 Projects generally have four files for project maintenance. These are
@@ -275,7 +276,7 @@ On Unix, the same is achieved using <tt>pl -f &lt;file&gt;</tt>.
 
 <p>
 There are three reasonable options.  The first, only applicable to
-Unix platyforms, is to start a <b>PceEmacs server</b> as part of the X11
+Unix platforms, is to start a <b>PceEmacs server</b> as part of the X11
 setup and use this as a server.  The details are in the general help
 on PceEmacs. The second option is to run <b>PceEmacs in a separate
 Prolog</b> and the final option is to use the <b>same Prolog</b> as for
@@ -283,7 +284,7 @@ debugging your application.
 
 <p>
 Running in the <b>same process</b> is attractive, as it provides PceEmacs
-access to all resources for optimal browsing and relyable
+access to all resources for optimal browsing and reliable
 cross-referencing.  Unfortunately you cannot edit if your program is
 actively running and fatal crashes of your program bring your editor
 down, loosing unsaved work, undo-information, open buffers, bookmarks,
@@ -291,9 +292,10 @@ etc.
 
 <p>
 A good alternative is to run PceEmacs is a separate Prolog that has your
-program loaded, but is not used to run it.  This provides PceEmacs with
-all required information without the risc for loosing information if you
-have to restart the Prolog holding your running program.
+program loaded as well, but is not used to run it. This provides
+PceEmacs with all required information without the risk for losing
+information if you have to restart the Prolog holding your running
+program.
 
 <p>
 Which option is best depends on the nature of your program, your
@@ -302,5 +304,27 @@ experience and discipline.
 <p>
 In any case, use the SWI-Prolog <b>make/0</b> command to update the
 system after changing the sources.
+
+<h4><a name=jargon>PceEmacs jargon</a></h4>
+
+<p>
+On this page the following jargon is used:
+
+<dl>
+<dt><b>M-&lt;key&gt;</b><dd>
+Emacs-speak for a <em>Meta</em> command.  There are two ways to activate
+the command.  One is <tt>Alt</tt>-<i>key</i> (i.e. the Alt-key together
+with the named <i>&lt;key&gt;</i>) and the other is <tt>ESC</tt> followed
+by <i>&lt;key&gt;</i>.  Many Meta commands require arguments.  If this is
+the case PceEmacs displays a dialog for entering the values.  Inside
+these dialogs, <tt>TAB</tt> tries to complete the current value.  The
+left and right-arrows allow to re-use old values for this command.  They
+are bound to <b>M-p</b> and <b>M-n</b> (previous/next).
+
+<dt><b>\C-&lt;key&gt;</b><dd>
+Emacs-speak for a <em>Control</em> command.  In other systems also mentioned
+as <b>^&lt;key&gt;</b> or <b>Control-&lt;key&gt;</b> or
+<b>Ctrl-&lt;key&gt;</b>.
+</dl>
 </body>
 </html>

@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ENHANCED: PceEmacs help-page on Prolog Mode.  Martin Sondergaard.
+
 * FIXED: X11 version: make filling monochrome context with colour-images
   work (Anjo Anjewierden).
 
