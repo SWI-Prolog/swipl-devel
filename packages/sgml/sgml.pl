@@ -211,7 +211,7 @@ load_structure(stream(In), Term, Options) :- !,
 			]),
 	set_parser_options(Parser, Options2, Options3),
 	sgml_parse(Parser,
-		  [ document(Term),
+		  [ document(TermRead),
 		    source(In)
 		  | Options3
 		  ]),
@@ -222,7 +222,8 @@ load_structure(stream(In), Term, Options) :- !,
 	    ;	true
 	    )
 	;   free_dtd(DTD)
-	).
+	),
+	Term = TermRead.
 load_structure(Stream, Term, Options) :-
 	Stream = '$stream'(_), !,
 	load_structure(stream(Stream), Term, Options).
