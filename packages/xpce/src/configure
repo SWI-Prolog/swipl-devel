@@ -1295,7 +1295,7 @@ EOF
 	      LDSOFLAGS="$LDSOFLAGS -u __builtin_new"
 	    fi
 	fi
-	if text -z "$GCC"; then
+	if test -z "$GCC"; then
 	    CMFLAGS="$CMFLAGS -K"
 	fi
 	;;
@@ -1307,7 +1307,7 @@ EOF
 	    SONAMEFLAG=""
 	    SOEXTRAOBJ=Initialize.o
 	fi
-	if text -z "$GCC"; then
+	if test -z "$GCC"; then
 	    CMFLAGS="$CMFLAGS -K"
 	fi
 	;;
@@ -1321,7 +1321,7 @@ EOF
 	    LD=ld
 	    LDSOFLAGS="-shared -expect_unresolved \*"
 	fi
-	if text -z "$GCC"; then
+	if test -z "$GCC"; then
 	    CMFLAGS="$CMFLAGS -std"
 	fi
 	cat >> confdefs.h <<\EOF

@@ -221,6 +221,14 @@ SOURCE=.\gra\box.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\box\boxes.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\box\boxes.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\win\browser.c
 # End Source File
 # Begin Source File
@@ -485,6 +493,10 @@ SOURCE=.\gra\graphical.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\box\grbox.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\gnu\gregex.c
 # End Source File
 # Begin Source File
@@ -502,6 +514,10 @@ SOURCE=.\evt\handlergroup.c
 # Begin Source File
 
 SOURCE=.\adt\hashtable.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\box\hbox.c
 # End Source File
 # Begin Source File
 
@@ -574,6 +590,10 @@ SOURCE=.\fmt\layoutitf.c
 # Begin Source File
 
 SOURCE=.\fmt\layoutmgr.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\box\lbox.c
 # End Source File
 # Begin Source File
 
@@ -737,6 +757,10 @@ SOURCE=.\msg\or.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\box\parbox.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\prg\parser.c
 # End Source File
 # Begin Source File
@@ -789,6 +813,10 @@ SOURCE=.\ker\programobject.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\box\proto.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\msg\quote.c
 # End Source File
 # Begin Source File
@@ -818,6 +846,10 @@ SOURCE=.\rel\relation.c
 # Begin Source File
 
 SOURCE=.\evt\resizegesture.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\box\rubber.c
 # End Source File
 # Begin Source File
 
@@ -914,6 +946,10 @@ SOURCE=.\fmt\tabslice.c
 # Begin Source File
 
 SOURCE=.\men\tabstack.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\box\tbox.c
 # End Source File
 # Begin Source File
 
