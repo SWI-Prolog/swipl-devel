@@ -74,11 +74,18 @@ $define_predicate(Term) :-
 
 $update_library_index :-
 	setof(Dir, indexed_directory(Dir), Dirs),
-	checklist(make_library_index, Dirs),
+	checklist(guarded_make_library_index, Dirs),
 	(   flag($modified_index, true, false)
 	->  clear_library_index
 	;   true
 	).
+
+guarded_make_library_index(Dir) :-
+	catch(make_library_index(Dir), E,
+	      print_message(error, E)), !.
+guarded_make_library_index(Dir) :-
+	print_message(warning, goal_failed(make_library_index(Dir))).
+
 
 indexed_directory(Dir) :-
 	index_file_name(IndexFile, [access(read), access(write)]),
@@ -155,9 +162,8 @@ make_library_index2(Dir) :-
 	access_file(AbsMkIndex, read), !,
 	absolute_file_name('', OldDir),
 	chdir(Dir),
-	catch(load_files(user:MkIndex, [silent(true)]),
-	      E,
-	      (chdir(OldDir), throw(E))).
+	call_cleanup(load_files(user:MkIndex, [silent(true)]),
+		     chdir(OldDir)).
 make_library_index2(Dir) :-
 	findall(Pattern, source_file_pattern(Pattern), PatternList),
 	make_library_index2(Dir, PatternList).
@@ -171,15 +177,11 @@ make_library_index2(Dir, Patterns) :-
 	expand_index_file_patterns(Patterns, Files),
 	(   library_index_out_of_date(Index, Files)
 	->  print_message(informational, make(library_index(NewDir))),
-	    catch(do_make_library_index(Index, Files),
-		  E,
-		  (   chdir(OldDir),
-		      throw(E)
-		  )),
-	    flag($modified_index, _, true)
-	;   true
-	),
-	chdir(OldDir).
+	    flag($modified_index, _, true),
+	    call_cleanup(do_make_library_index(Index, Files),
+			 chdir(OldDir))
+	;   chdir(OldDir)
+	).
 make_library_index2(Dir, _) :-
 	throw(error(permission_error(write, index_file, Dir), _)).
 
