@@ -352,10 +352,8 @@ lookupUCSAtom(const pl_wchar_t *s, unsigned int len)
 
 
 int
-get_atom_text(atom_t atom, PL_chars_t *text)
-{ Atom a = atomValue(atom);
-
-  if ( false(a->type, PL_BLOB_TEXT) )
+get_atom_ptr_text(Atom a, PL_chars_t *text)
+{ if ( false(a->type, PL_BLOB_TEXT) )
     fail;				/* non-textual atom */
   if ( a->type == &ucs_atom )
   { text->text.w   = (pl_wchar_t *) a->name;
@@ -370,6 +368,14 @@ get_atom_text(atom_t atom, PL_chars_t *text)
   text->canonical = TRUE;
 
   succeed;
+}
+
+
+int
+get_atom_text(atom_t atom, PL_chars_t *text)
+{ Atom a = atomValue(atom);
+
+  return get_atom_ptr_text(a, text);
 }
 
 

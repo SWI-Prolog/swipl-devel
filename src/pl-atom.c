@@ -1098,8 +1098,38 @@ static pthread_key_t key;
 
 #define is_signalled() (LD && LD->pending_signals != 0)
 
-char *
-PL_atom_generator(const char *prefix, int state)
+static int
+alnum_text(PL_chars_t *txt)
+{ switch(txt->encoding)
+  { case ENC_ISO_LATIN_1:
+    { const unsigned char *s = (const unsigned char *)txt->text.t;
+      const unsigned char *e = &s[txt->length];
+
+      for(; s<e; s++)
+      { if ( !isAlpha(*s) )
+	  return FALSE;
+      }
+      return TRUE;
+    }
+    case ENC_WCHAR:
+    { const pl_wchar_t *s = (const pl_wchar_t*)txt->text.w;
+      const pl_wchar_t *e = &s[txt->length];
+
+      for(; s<e; s++)
+      { if ( !isAlphaW(*s) )
+	  return FALSE;
+      }
+      return TRUE;
+    }
+    default:
+      assert(0);
+      return FALSE;
+  }
+}
+
+
+static int
+atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
 { GET_LD
   long i, mx = entriesBuffer(&atom_array, Atom);
 
@@ -1128,21 +1158,43 @@ PL_atom_generator(const char *prefix, int state)
     if ( is_signalled() )		/* Notably allow windows version */
       PL_handle_signals();		/* to break out on ^C */
 
-    if ( strprefix(a->name, prefix) &&
-	 allAlpha(a->name) &&
-	 strlen(a->name) < ALT_SIZ )
+    if ( get_atom_ptr_text(a, hit) &&
+	 hit->length < ALT_SIZ &&
+	 PL_cmp_text(prefix, 0, hit, 0, prefix->length) == 0 &&
+	 alnum_text(hit) )
     {
 #ifdef O_PLMT
       pthread_setspecific(key, (void *)(i+1));
 #else   
       LD->atoms.generator = i+1;
 #endif
-      return a->name;
+  
+      return TRUE;
     }
+  }
+
+  return FALSE;
+}
+
+
+char *
+PL_atom_generator(const char *prefix, int state)
+{ PL_chars_t txt, hit;
+
+  PL_init_text(&txt);
+  txt.text.t   = (char *)prefix;
+  txt.encoding = ENC_ISO_LATIN_1;
+  txt.length   = strlen(prefix);
+
+  while ( atom_generator(&txt, &hit, state) )
+  { if ( hit.encoding == ENC_ISO_LATIN_1 )
+      return hit.text.t;
+    state = TRUE;
   }
 
   return NULL;
 }
+
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*

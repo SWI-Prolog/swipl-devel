@@ -48,10 +48,10 @@ typedef struct
 } PL_chars_t;
 
 #define PL_init_text(txt) \
-	{ txt->text.t    = NULL; \
-	  txt->encoding  = ENC_UNKNOWN; \
-	  txt->storage   = PL_CHARS_LOCAL; \
-	  txt->canonical = FALSE; \
+	{ (txt)->text.t    = NULL; \
+	  (txt)->encoding  = ENC_UNKNOWN; \
+	  (txt)->storage   = PL_CHARS_LOCAL; \
+	  (txt)->canonical = FALSE; \
 	}
 
 int	PL_get_text(term_t l, PL_chars_t *text, int flags);
@@ -70,7 +70,7 @@ int	PL_concat_text(int n, PL_chars_t **text, PL_chars_t *result);
 void	PL_free_text(PL_chars_t *text);
 void	PL_save_text(PL_chars_t *text, int flags);
 
-atom_t	textToAtom(PL_chars_t *text);
+COMMON(atom_t)		textToAtom(PL_chars_t *text);
 
 COMMON(int)		PL_get_text_ex(term_t t, PL_chars_t *txt,
 				       unsigned int flags);
@@ -78,6 +78,7 @@ COMMON(IOSTREAM *)	Sopen_text(PL_chars_t *text, const char *mode);
 COMMON(void)		PL_text_recode(PL_chars_t *text, IOENC encoding);
 
 					/* pl-fli.c */
+COMMON(int)		get_atom_ptr_text(Atom atom, PL_chars_t *text);
 COMMON(int)		get_atom_text(atom_t atom, PL_chars_t *text);
 COMMON(int)		get_string_text(atom_t atom, PL_chars_t *text ARG_LD);
 
