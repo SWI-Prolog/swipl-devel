@@ -197,6 +197,15 @@ activateTextItem(TextItem ti, Bool val)
 
 
 static status
+selectAllTextItem(TextItem ti)
+{ send(ti->value_text, NAME_selection,
+       ZERO, getSizeCharArray(ti->value_text->string), 0);
+
+  return requestComputeGraphical(ti, DEFAULT);
+}
+
+
+static status
 statusTextItem(TextItem ti, Name stat)
 { if ( ti->status != stat )
   { int incdec = (ti->status == NAME_increment ||
@@ -948,17 +957,21 @@ eventTextItem(TextItem ti, EventObj ev)
 	{ Bool val = (completerShownDialogItem(ti) ? OFF : ON);
 
 	  send(ti, NAME_showComboBox, val, 0);
+	  succeed;
 	}
-
-	succeed;
       }
 
-      origin = getPointedTextItem(ti, getPositionEvent(ev, ti));
-      if ( origin && wasactive )
-      { send(ti->value_text, NAME_selection, NIL, 0);
-	send(ti, NAME_caret, origin, 0);
-
+      if ( getMulticlickEvent(ev) == NAME_double )
+      { send(ti, NAME_selectAll, 0);
 	succeed;
+      } else
+      { origin = getPointedTextItem(ti, getPositionEvent(ev, ti));
+	if ( origin && wasactive )
+	{ send(ti->value_text, NAME_selection, NIL, 0);
+	  send(ti, NAME_caret, origin, 0);
+
+	  succeed;
+	}
       }
     } else
       return alertGraphical((Graphical) ti);
@@ -1541,7 +1554,9 @@ static senddecl send_textItem[] =
   SM(NAME_initialise, 3, T_initialise, initialiseTextItem,
      DEFAULT, "Create from label, selection and message"),
   SM(NAME_activate, 1, "bool", activateTextItem,
-     NAME_event, "Select all/deselect"),
+     NAME_event, "Set active status of caret"),
+  SM(NAME_selectAll, 0, NULL, selectAllTextItem,
+     NAME_selection, "Select all text (double-click)"),
   SM(NAME_quitCompleter, 0, NULL, quitCompleterDialogItem,
      NAME_abort, "Remove completer"),
   SM(NAME_reset, 0, NULL, quitCompleterDialogItem,
@@ -1653,9 +1668,9 @@ static classvardecl rc_textItem[] =
      "Width of area for selection (chars)"),
   RC(NAME_pen, "int", "1",
      "Thickness of line below selection"),
-  RC(NAME_autoCopy, "bool", "@off",
+  RC(NAME_autoCopy, "bool", UXWIN("@on", "@off"),
      "Automatically copy selected text to the clipboard"),
-  RC(NAME_autoSelect, "bool", "@on",
+  RC(NAME_autoSelect, "bool", "@off",
      "Automatically select all text when ->activate'd"),
   RC(NAME_searchIgnoreCase, "bool", "@on",
      "@on: ignore case for completion"),
