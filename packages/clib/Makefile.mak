@@ -12,12 +12,15 @@ PLHOME=..\..
 !include $(PLHOME)\src\rules.mk
 PKGDLL=socket
 
-OBJ=		socket.obj error.obj
+SOCKOBJ=	socket.obj error.obj
+CGIOBJ=		error.obj form.obj cgi.obj
 
-all:		$(PKGDLL).dll
+all:		socket.dll cgi.dll
 
-$(PKGDLL).dll:	$(OBJ)
-		$(LD) /dll /out:$@ $(LDFLAGS) $(OBJ) $(PLLIB) $(LIBS)
+socket.dll:	$(SOCKOBJOBJ)
+		$(LD) /dll /out:$@ $(LDFLAGS) $(SOCKOBJ) $(PLLIB) $(LIBS)
+cgi.dll:	$(CGIOBJ)
+		$(LD) /dll /out:$@ $(LDFLAGS) $(CGIOBJ) $(PLLIB) $(LIBS)
 
 !IF "$(CFG)" == "rt"
 install:	idll
@@ -26,14 +29,18 @@ install:	idll ilib
 !ENDIF
 
 idll::
-		copy $(PKGDLL).dll $(BINDIR)
+		copy socket.dll $(BINDIR)
+		copy cgi.dll $(BINDIR)
 ilib::
 		copy socket.pl $(PLBASE)\library
+		copy cgi.pl $(PLBASE)\library
 		$(MAKEINDEX)
 
 uninstall::
-		del $(BINDIR)\$(PKGDLL).dll
+		del $(BINDIR)\socket.dll
+		del $(BINDIR)\cgi.dll
 		del $(PLBASE)\library\socket.pl
+		del $(PLBASE)\library\cgi.pl
 		$(MAKEINDEX)
 
 html-install::
@@ -43,5 +50,6 @@ clean::
 		DEL *.obj *~
 
 distclean:	clean
-		DEL $(PKGDLL).dll $(PKGDLL).lib $(PKGDLL).exp
+		DEL socket.dll socket.lib socket.exp
+		DEL cgi.dll cgi.lib cgi.exp
 

@@ -1,11 +1,14 @@
 			SWI-Prolog ChangeLog
 			====================
 			
+  * ADDED: library(cgi) from package clib is now standard part of the
+    Windows distribution.
+
   * ADDED: stream_property/2 and set_stream/2 set and query the buffer mode
     of existing streams.
 
   * MODIFIED: The sequence X=!, X doesn't cut any longer as this was
-    in conflict with the ISO standard
+    in conflict with the ISO standard (Bart Demoen).
 
   * FIXED: Memory leak when an exception is thrown from the generator
     of findall/3, bagof/3 or setof/3.  Reported by Bart Demoen.

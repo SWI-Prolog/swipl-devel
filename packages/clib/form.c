@@ -6,13 +6,22 @@
     Copyright (C) 1998 University of Amsterdam. All rights reserved.
 */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <ctype.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 #include <string.h>
 #include "form.h"
+#ifdef WIN32
+#include <io.h>
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Breaks a string holding data from a WWW form into its values.  Outputs a

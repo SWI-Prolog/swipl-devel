@@ -35,6 +35,7 @@ embedded application.
 #define PROG_CXX "cl.exe"
 #define PROG_OUT "plout.exe"
 #define LIB_PL	 "libpl.lib"
+#define LIB_PLMT "libplmt.lib"
 #define LIB_PL_DEBUG "libplD.lib"
 #define EXT_OBJ "obj"
 #define OPT_DEBUG "/DEBUG"
