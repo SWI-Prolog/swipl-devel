@@ -20,7 +20,7 @@
 	, (tg)/1
 	]).
 
-:- op(900, fy, [ls, cd, p, rm, grep, tg]).
+% :- op(900, fy, [ls, cd, p, rm, grep, tg]).
 
 /*  Shell Emulation Library
 
