@@ -19,7 +19,7 @@
 .SUFFIXES: .cxx .so
 
 PCEHOME=../..
-PCEARCH=i686-linux
+PCEARCH=sparc-sunos4.1.3
 LIBDIR=$(PCEHOME)/lib/$(PCEARCH)
 CC=gcc
 CXX=g++
@@ -28,10 +28,10 @@ LD=g++
 LDSOFLAGS=-shared -L$(LIBDIR)
 COFLAGS=-O
 CMFLAGS= -fPIC -funsigned-char
-XLIB=/usr/X11R6/lib
-XLIBS=-lXt -lX11 -lSM -lICE -ljpeg -lXpm
+XLIB=/usr/lib
+XLIBS=-lXt -lX11  -ljpeg -lXpm
 NETLIBS=
-CXXLIBHACK=-lc -Wl,-Bstatic
+CXXLIBHACK=
 
 PROGS=		view dir drawBoxes east global hello home person \
 		showinst test onexit

@@ -1,5 +1,11 @@
 [VERSION 4.9.7]
 
+* ADDED: Big warning in configure if -lXpm cannot be found.
+
+* FIXED: SunOs 4.1.x/X11R4 detection of -lXpm and -ljpeg libraries failed
+  due to a bug in SunOs ld.  Fixed by removing -lXt from the libraries to
+  test -lXpm and -ljpeg.
+
 * ADDED: Various libraries:
 
 	library(pce_arrow_item)		Show/define arrow-head

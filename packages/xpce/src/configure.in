@@ -542,6 +542,7 @@ main()
    AC_MSG_RESULT(no),
    AC_MSG_RESULT(assuming no))
 
+BEFOREXLIBS="$LIBS"
 
 AC_PATH_X
 
@@ -566,22 +567,44 @@ ac_oldlibs="$LIBS"
 if test ! -z "$x_libraries"; then
   LIBS="-L$x_libraries $LIBS"
 fi
+XSMLIBS=""
 AC_CHECK_LIB(SM, main,
-	     XLIBS="$XLIBS -lSM -lICE",
+	     XSMLIBS="-lSM -lICE",
 	     ,
 	     -lX11 -lXt -lICE)
+XLIBS="$XLIBS $XSMLIBS"
 echo "	XLIBS=$XLIBS"
 if test ! -z "$x_libraries"; then
   LIBS="-L$x_libraries $XLIBS $ac_oldlibs"
 else
   LIBS="$XLIBS $ac_oldlibs"
 fi
+dnl The SunOS 4.1.x linker is broken.  This hacks around this problem
+dnl the real linking hacks around it in yet another way ...
+case "$OS" in
+  *sunos*) LIBS="$BEFOREXLIBS -lX11 $XSMLIBS";;
+esac
 AC_CHECK_LIB(jpeg, main,
 	     [XLIBS="$XLIBS -ljpeg"]
 	     AC_DEFINE(HAVE_LIBJPEG))
 AC_CHECK_LIB(Xpm, main,
 	     [XLIBS="$XLIBS -lXpm"]
 	     AC_DEFINE(HAVE_LIBXPM))
+if test "$ac_cv_lib_Xpm_main" != "yes"; then
+cat << _EOM_
+*****************************************************************
+* Could not find library -lXpm, providing support for the XPM	*
+* coloured image format.  This support is required by many of   *
+* the XPCE tools and libraries.  Please install the XPM library,*
+* remove config.cache and rerun configure.  You can obtain a    *
+* version of the XPM library from				*
+*								*
+*     ftp://swi.psy.uva.nl/pub/xpce/util/images/xpm-3.4i.tar.gz	*
+*								*
+*****************************************************************
+_EOM_
+fi
+
 AC_CHECK_FUNCS(XtPopupSpringLoaded XmIsMotifWMRunning)
 LIBS="$ac_oldlibs"
 
