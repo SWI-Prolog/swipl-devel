@@ -429,8 +429,19 @@ term_colours(file_search_path(_,_),
 	     expanded - [ identifier,
 			  classify
 			]).
+term_colours(user:file_search_path(_,_),
+	     expanded - [ expanded,
+			  expanded - [ identifier,
+				       classify
+				     ]
+			]).
 term_colours(portray(_),
 	     expanded - [ classify
+			]).
+term_colours(user:portray(_),
+	     expanded - [ expanded,
+			  expanded - [ classify
+				     ]
 			]).
 term_colours(resource(_,_,_),
 	     expanded - [ identifier,
