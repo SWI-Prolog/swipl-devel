@@ -40,14 +40,12 @@ ilib::
 		copy sgml.pl "$(PLBASE)\library"
 		$(MAKEINDEX)
 
-idtd:		$(DTDDIR)
+idtd::
+		@if not exist "$(DTDDIR)\$(NULL)" $(MKDIR) "$(DTDDIR)"
 		@echo "Installing DTD files in $(DTDDIR)"
 		@for %f in ($(DTDFILES)) do \
 		   @copy DTD\%f "$(DTDDIR)"
 		@echo "done"
-
-$(DTDDIR):
-		mkdir "$@"
 
 uninstall::
 		del "$(PLBASE)\bin\$(PKGDLL).dll"
@@ -56,6 +54,8 @@ uninstall::
 
 html-install::
 		copy doc\sgml2pl.html "$(PKGDOC)"
+
+xpce-install::
 
 clean::
 		DEL *.obj *~

@@ -10,7 +10,7 @@
 # copy the result to wherever you want.
 
 # prefix=C:\Program Files
-HOME=E:\jan
+HOME=$(USERPROFILE)
 prefix=$(HOME)\installed
 PLBASE=$(prefix)\pl
 BINDIR=$(PLBASE)\bin
@@ -18,7 +18,7 @@ LIBDIR=$(PLBASE)\lib
 INCDIR=$(PLBASE)\include
 PLCUSTOM=$(PLBASE)\custom
 # We get pthreadVC.dll from here
-WINDIR="$(windir)\system32"
+WINDLLDIR=$(WINDIR)\system32
 
 # Setup the environment.  Use this to additional libraries and include
 # files to the path.  In particular provide access to the jpeg and xpm

@@ -22,9 +22,12 @@ install::
 		copy rdf_parser.pl "$(PLBASE)\library"
 		copy rdf_triple.pl "$(PLBASE)\library"
 		copy rewrite.pl "$(PLBASE)\library"
-		copy rdf_diagram.pl "$(PLBASE)\xpce\prolog\lib"
 		$(MAKEINDEX)
 !ENDIF
+
+xpce-install::
+		copy rdf_diagram.pl "$(PLBASE)\xpce\prolog\lib"
+		$(MAKEINDEX)
 
 html-install::
 		copy rdf2pl.html "$(PKGDOC)"

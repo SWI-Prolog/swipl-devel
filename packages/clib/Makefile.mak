@@ -67,7 +67,9 @@ uninstall::
 		$(MAKEINDEX)
 
 html-install::
-		copy clib.html $(PKGDOC)
+		copy clib.html "$(PKGDOC)"
+
+xpce-install::
 
 clean::
 		DEL *.obj *~

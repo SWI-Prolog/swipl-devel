@@ -33,7 +33,9 @@ ilib::
 		$(MAKEINDEX)
 
 html-install::
-		copy table.html $(PKGDOC)
+		copy table.html "$(PKGDOC)"
+
+xpce-install::
 
 uninstall::
 		del "$(PLBASE)\bin\$(PKGDLL).dll"

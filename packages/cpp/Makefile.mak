@@ -17,14 +17,14 @@ all:
 install::
 !ELSE
 install::
-		copy SWI-cpp.h $(PLBASE)\include
+		copy SWI-cpp.h "$(PLBASE)\include"
 !ENDIF
 
 uninstall::
-		del $(PLBASE)\include\SWI-cpp.h
+		del "$(PLBASE)\include\SWI-cpp.h"
 
 html-install::
-		copy pl2cpp.html $(PKGDOC)
+		copy pl2cpp.html "$(PKGDOC)"
 
 clean::
 		DEL *.obj *~

@@ -329,17 +329,17 @@ README=	ChangeLog \
 INSTALL=xpce-install.exe -n
 
 !IF "$(CFG)" == "rt"
-ITRG=	xpce-install.exe $(BINDIR) idll ixpce
+ITRG=	xpce-install.exe ibindir idll ixpce
 !ELSE
-ITRG=	xpce-install.exe $(BINDIR) idirs idll ilib irc iindex imanidx ireadme
+ITRG=	xpce-install.exe ibindir idirs idll ilib irc iindex imanidx ireadme
 !ENDIF
 
 install:	$(ITRG)
 		
 html-install::
 
-"$(BINDIR)":
-		mkdir "$@"
+ibindir::
+		@if not exist "$(BINDIR)\$(NULL)" mkdir "$(BINDIR)"
 
 idirs::
 		@for %d in ($(IDIRS)) do \
@@ -377,9 +377,9 @@ ireadme::
 # Manual index
 ################################################################
 
-imanidx:	$(MANINDEX)
+imanidx:	"$(MANINDEX)"
 		
-$(MANINDEX):	..\man\reference\*.doc ..\man\reference\class\*.doc
+"$(MANINDEX)":	..\man\reference\*.doc ..\man\reference\class\*.doc
 		chdir "$(IBASE)\man\reference" & \
 		"$(PLBASE)\bin\plwin.exe" \
 		  -g "[library('man/man_index')],pce_make_manual_index('index.obj')" \

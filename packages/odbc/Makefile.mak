@@ -31,6 +31,8 @@ ilib::
 		copy odbc.pl "$(PLBASE)\library"
 		$(MAKEINDEX)
 
+xpce-install::
+
 html-install::
 		copy odbc.html "$(PKGDOC)"
 

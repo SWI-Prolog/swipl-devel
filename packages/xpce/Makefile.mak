@@ -14,6 +14,9 @@ all::
 install::
 	@chdir src & $(MAKE) $@
 
+xpce-install::
+	@chdir src & $(MAKE) $@
+
 html-install::
 	@chdir src & $(MAKE) $@
 

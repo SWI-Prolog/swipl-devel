@@ -186,7 +186,7 @@ check:
 install:	$(BINDIR) iprog install_packages
 !ELSE
 install:	install-arch install-libs install-readme install_packages \
-		install-dotfiles install-demo
+		xpce_packages install-dotfiles install-demo
 !ENDIF
 
 install-arch:	idirs iprog
@@ -209,7 +209,7 @@ iprog::
 		$(INSTALL_PROGRAM) ..\bin\plterm.pdb "$(BINDIR)"
 !ENDIF
 !IF "$(MT)" == "true"
-		$(INSTALL_PROGRAM) "$(WINDIR)\pthreadVC.dll" "$(BINDIR)"
+		$(INSTALL_PROGRAM) "$(WINDLLDIR)\pthreadVC.dll" "$(BINDIR)"
 !ENDIF
 
 install-libs:	idirs iinclude iboot ilib
@@ -288,6 +288,11 @@ install_packages:
 		if exist $(PKGDIR)\index.html \
 		    copy $(PKGDIR)\index.html "$(PKGDOC)"
 !ENDIF
+
+xpce_packages:
+		@for %p in ($(PKGS)) do \
+		   @if exist "$(PKGDIR)\%p" \
+		      $(CMD) /c "chdir $(PKGDIR)\%p & $(MAKE) xpce-install"
 
 clean_packages:
 		for %p in ($(PKGS)) do \
