@@ -1105,7 +1105,7 @@ ar_e(Number r)
 
 static int
 ar_cputime(Number r)
-{ r->value.f = CpuTime();
+{ r->value.f = CpuTime(CPU_USER);
 
   r->type = V_REAL;
   succeed;

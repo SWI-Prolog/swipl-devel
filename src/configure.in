@@ -398,7 +398,7 @@ AC_CHECK_HEADERS(floatingpoint.h)
 
 AC_CHECK_FUNCS(access fchmod chmod dossleep fstat readlink getwd getcwd)
 AC_CHECK_FUNCS(getpagesize getpwnam getrlimit gettimeofday opendir sysconf)
-AC_CHECK_FUNCS(popen putenv random remove rename select fcntl)
+AC_CHECK_FUNCS(popen putenv random remove rename select fcntl getrusage)
 AC_CHECK_FUNCS(signal sigset sigprocmask sleep usleep srand srandom stat)
 AC_CHECK_FUNCS(memmove stricmp strlwr sigaction sigsetmask siggetmask sigblock)
 AC_CHECK_FUNCS(rint aint floor ceil isnan tcsetattr cfmakeraw)

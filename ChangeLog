@@ -4,6 +4,9 @@
 VERSION 4.1.0
 =============
 
+  * ADDED: statistics/2 to recognise the keys used by Quintus and SICStus,
+    for improved compatibility.
+
   * ADDED: library(main) for simple #! scripts processing the commandling.
 
   * FIXED: Make file_search_path/2 resolved paths relative to the current

@@ -1616,7 +1616,7 @@ void
 garbageCollect(LocalFrame fr, Choice ch)
 { GET_LD
   long tgar, ggar;
-  real t = CpuTime();
+  double t = CpuTime(CPU_USER);
   int verbose = trueFeature(TRACE_GC_FEATURE);
   sigset_t mask;
 
@@ -1684,7 +1684,7 @@ garbageCollect(LocalFrame fr, Choice ch)
   free(mark_base);
 #endif
 
-  t = CpuTime() - t;
+  t = CpuTime(CPU_USER) - t;
   gc_status.time += t;
   trimStacks();
   LD->stacks.global.gced_size = usedStack(global);
@@ -2091,7 +2091,7 @@ growStacks(LocalFrame fr, Choice ch, Code PC, int l, int g, int t)
     long lsize = sizeStack(local);
     long gsize = sizeStack(global);
     long tsize = sizeStack(trail);
-    real time = CpuTime();
+    double time = CpuTime(CPU_USER);
     int verbose = trueFeature(TRACE_GC_FEATURE);
     
     DEBUG(0, verbose = TRUE);
@@ -2174,7 +2174,7 @@ growStacks(LocalFrame fr, Choice ch, Code PC, int l, int g, int t)
     SetHTop(LD->stacks.local.max);
     SetHTop(LD->stacks.trail.max);
 
-    time = CpuTime() - time;
+    time = CpuTime(CPU_USER) - time;
     shift_status.time += time;
     SECURE(if ( checkStacks(NULL, NULL) != key )
 	   { Sdprintf("Stack checksum failure\n");

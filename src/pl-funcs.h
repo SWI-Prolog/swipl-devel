@@ -426,7 +426,6 @@ word		pl_builtin_op(term_t prec, term_t type, term_t name, word h);
 bool		initOs(void);
 void		cleanupOs(void);
 char *		OsError(void);
-real		CpuTime(void);
 long		Random(void);
 char *		canonisePath(char *path);
 char *		OsPath(const char *plpath, char *ospath);

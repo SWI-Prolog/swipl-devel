@@ -141,24 +141,7 @@ pl_convert_time2(term_t time, term_t string)
 
 word
 pl_get_time(term_t t)
-{ double stime;
-#ifdef HAVE_GETTIMEOFDAY
-  struct timeval tp;
-
-  gettimeofday(&tp, NULL);
-  stime = (double)tp.tv_sec + (double)tp.tv_usec/1000000.0;
-#else
-#ifdef HAVE_FTIME
-  struct timeb tb;
-
-  ftime(&tb);
-  stime = (double)tb.time + (double)tb.millitm/1000.0;
-#else
-  stime = (double)time((time_t *)NULL);
-#endif
-#endif
-
-  return PL_unify_float(t, stime);
+{ return PL_unify_float(t, WallTime());
 }
 
 

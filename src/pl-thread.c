@@ -189,7 +189,7 @@ free_prolog_thread(void *data)
 
   LOCK();
   GD->statistics.threads_finished++;
-  GD->statistics.thread_cputime += CpuTime();
+  GD->statistics.thread_cputime += CpuTime(CPU_USER);
   UNLOCK();
 
   if ( info->status == PL_THREAD_CANCELED )

@@ -133,8 +133,22 @@ extern int srandom(unsigned seed);
 		*        TIME CONVERSION        *
 		*********************************/
 
+typedef enum
+{ CPU_USER,
+  CPU_SYSTEM
+} cputime_kind;
+
+extern double	  CpuTime(cputime_kind);
+extern double	  WallTime(void);
 extern struct tm *LocalTime(long *);
-extern real	  CpuTime(void);
+
+
+		 /*******************************
+		 *	      MEMORY		*
+		 *******************************/
+
+extern unsigned long	UsedMemory(void);
+extern unsigned long	FreeMemory(void);
 
 
 		/********************************

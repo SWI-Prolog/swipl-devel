@@ -208,6 +208,7 @@ word
 lookupAtom(const char *s, unsigned int length)
 { int v0 = unboundStringHashValue(s, length);
   int v = v0 & (atom_buckets-1);
+  ulong oldheap;
   Atom a;
 
   LOCK();
@@ -225,6 +226,7 @@ lookupAtom(const char *s, unsigned int length)
       return a->atom;
     }
   }
+  oldheap = GD->statistics.heap;
   a = allocHeap(sizeof(struct atom));
   a->length = length;
   a->name = allocHeap(length+1);
@@ -249,6 +251,9 @@ lookupAtom(const char *s, unsigned int length)
     
   if ( atom_buckets * 2 < GD->statistics.atoms )
     rehashAtoms();
+
+  GD->statistics.atomspace += (GD->statistics.heap - oldheap);
+
   UNLOCK();
   
   return a->atom;
@@ -433,7 +438,9 @@ word
 pl_garbage_collect_atoms()
 { int verbose = trueFeature(TRACE_GC_FEATURE);
   long oldcollected = GD->atoms.collected;
-  real t;
+  long oldheap = GD->statistics.heap;
+  long freed;
+  double t;
 
   LOCK();
   if ( GD->atoms.gc_active )
@@ -459,17 +466,20 @@ pl_garbage_collect_atoms()
   }
 
   LOCK();
-  t = CpuTime();
+  t = CpuTime(CPU_USER);
   markAtomsOnStacks(LD);
 #ifdef O_PLMT
   threadMarkAtomsOtherThreads();
 #endif
   collectAtoms();
   GD->atoms.non_garbage = GD->statistics.atoms;
-  t = CpuTime() - t;
+  t = CpuTime(CPU_USER) - t;
   GD->atoms.gc_time += t;
   GD->atoms.gc++;
   GD->atoms.gc_active = FALSE;
+  freed = oldheap - GD->statistics.heap;
+  GD->statistics.atomspacefreed += freed;
+  GD->statistics.atomspace -= freed;
   UNLOCK();
 
   

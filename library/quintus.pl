@@ -174,32 +174,9 @@ prolog_flag(Flag, Value) :-
 		 *	    STATISTICS		*
 		 *******************************/
 
-:- recorda('$runtime', 0, _).
-:- redefine_system_predicate(statistics(_,_)).
-
-statistics(runtime, [Total, New]) :- !,
-	system:statistics(cputime, Time),
-	Total is integer(Time * 1000),
-	recorded('$runtime', Old, Ref),
-	New is Total - Old,
-	erase(Ref),
-	recorda('$runtime', Total, _).
-statistics(program, [InUse, _Free]) :- !,
-	system:statistics(heapused, InUse).
-statistics(heap, Stat) :- !,
-	statistics(program, Stat).
-statistics(global_stack, [InUse, Free]) :- !,
-	system:statistics(globalused, InUse),
-	system:statistics(globallimit, Limit),
-	Free is Limit - InUse.
-statistics(local_stack, [InUse, Free]) :- !,
-	system:statistics(localused, InUse),
-	system:statistics(locallimit, Limit),
-	Free is Limit - InUse.
-statistics(trail, [InUse]) :- !,
-	system:statistics(trailused, InUse).
-statistics(Key, Value) :-
-	system:statistics(Key, Value).
+%	Here used to be a definition of Quintus statistics/2 in traditional
+%	SWI-Prolog statistics/2.  The current built-in emulates Quintus 
+%	almost completely.
 
 
 		 /*******************************

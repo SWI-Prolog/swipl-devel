@@ -4566,7 +4566,10 @@ Name & Default & Description \\
 \begin{description}
     \predicate{statistics}{2}{+Key, -Value}
 Unify system statistics determined by \arg{Key} with \arg{Value}. The
-possible keys are given in the \tabref{statistics}.
+possible keys are given in the \tabref{statistics}.  The last part of
+the table contains keys for compatibility to other Prolog implementations
+(Quintus) for improved portability.  Note that the ISO standard does not
+define methods to collect system statistics.
 
 \begin{table}
 \begin{center}
@@ -4598,6 +4601,29 @@ codes           & Total amount of byte codes in all clauses. \\
 threads		& MT-version: number of active threads \\
 threads_created & MT-version: number of created threads \\
 threads_cputime & MT-version: seconds CPU time used by finished threads \\
+\hline
+\multicolumn{2}{|c|}{Compatibility keys} \\
+\hline
+runtime		& [ CPU time, CPU time since last ]
+		  (milliseconds) \\
+system_time	& [ System CPU time, System CPU time since last ]
+		  (milliseconds)\\
+real_time	& [ Wall time, Wall time since last ] (seconds since 1970) \\
+memory		& [ Total unshared data, free memory ]
+		  (Uses getrusage() if available, otherwise incomplete own
+		  statistics. \\
+stacks		& [ global use, local use ] \\
+program		& [ heap, 0 ] \\
+global_stack	& [ global use, global free ] \\
+local_stack	& [ local use, local free ] \\
+trail		& [ trail use, 0 ] \\
+garbage_collection & [ number of GC, bytes gained, time spent ] \\
+stack_shifts    & [ global shifts, local shifts, time spent ]
+		  (fails if no shifter in this version) \\
+atoms		& [ number, memory use, 0 ] \\
+atom_garbage_collection &
+		  [ number of AGC, bytes gained, time spent ] \\
+core		& Same as memory \\
 \hline
 \end{tabular}
 \end{center}

@@ -91,6 +91,10 @@ typedef struct
   struct
   { long	heap;			/* heap in use */
     int		atoms;			/* No. of atoms defined */
+    long	atomspace;		/* # bytes used to store atoms */
+#ifdef O_ATOMGC
+    long	atomspacefreed;		/* Freed atom-space */
+#endif
     int		functors;		/* No. of functors defined */
     int		predicates;		/* No. of predicates defined */
     int		modules;		/* No. of modules in the system */
@@ -266,6 +270,9 @@ typedef struct
     int		profiling;		/* profiler is on */
     ulong	profile_ticks;		/* profile ticks total */
 #endif /* O_PROFILE */
+    ulong	last_cputime;		/* milliseconds last CPU time */
+    ulong	last_systime;		/* milliseconds last SYSTEM time */
+    ulong	last_walltime;		/* milliseconds last Wall time */
   } statistics;
 
   struct

@@ -44,6 +44,9 @@
 #ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
 #endif
+#if defined(HAVE_SYS_RESOURCE_H)
+#include <sys/resource.h>
+#endif
 
 #include <fcntl.h>
 #ifndef __WATCOMC__			/* appears a conflict */
@@ -186,7 +189,7 @@ static char errmsg[64];
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    real CpuTime()
+    double CpuTime(cputime_kind)
 
     Returns a floating point number, representing the amount  of  (user)
     CPU-seconds  used  by the process Prolog is in.  For systems that do
@@ -213,21 +216,26 @@ static char errmsg[64];
 #endif /*HAVE_TIMES*/
 
 
-real
-CpuTime(void)
+double
+CpuTime(cputime_kind which)
 {
 #ifdef HAVE_TIMES
   struct tms t;
   static int MTOK_got_hz = FALSE;
-  static real MTOK_hz;
+  static double MTOK_hz;
 
   if ( !MTOK_got_hz )
-  { MTOK_hz = (real) Hz;
+  { MTOK_hz = (double) Hz;
     MTOK_got_hz++;
   }
   times(&t);
 
-  return (real) t.tms_utime / MTOK_hz;
+  switch( which )
+  { case CPU_USER:
+      return (double) t.tms_utime / MTOK_hz;
+    case CPU_SYSTEM:
+      return (double) t.tms_stime / MTOK_hz;
+  }
 #endif
 
 #if OS2 && EMX
@@ -243,6 +251,8 @@ CpuTime(void)
 #ifdef HAVE_CLOCK
   return (real) (clock() - clock_wait_ticks) / (real) CLOCKS_PER_SEC;
 #endif
+
+  return 0.0;
 }
 
 #endif /*__WIN32__*/
@@ -254,6 +264,68 @@ PL_clock_wait_ticks(long waited)
   clock_wait_ticks += waited;
 #endif
 }
+
+
+double
+WallTime(void)
+{ double stime;
+
+#ifdef HAVE_GETTIMEOFDAY
+  struct timeval tp;
+
+  gettimeofday(&tp, NULL);
+  stime = (double)tp.tv_sec + (double)tp.tv_usec/1000000.0;
+#else
+#ifdef HAVE_FTIME
+  struct timeb tb;
+
+  ftime(&tb);
+  stime = (double)tb.time + (double)tb.millitm/1000.0;
+#else
+  stime = (double)time((time_t *)NULL);
+#endif
+#endif
+
+  return stime;
+}
+
+		 /*******************************
+		 *	       MEMORY		*
+		 *******************************/
+
+ulong
+UsedMemory(void)
+{
+#ifdef HAVE_GETRUSAGE
+  struct rusage usage;
+
+  if ( getrusage(RUSAGE_SELF, &usage) == 0 &&
+       usage.ru_idrss )
+  { return usage.ru_idrss;		/* total unshared data */
+  }
+#endif
+
+  return (GD->statistics.heap +
+	  usedStack(global) +
+	  usedStack(local) +
+	  usedStack(trail));
+}
+
+
+ulong
+FreeMemory(void)
+{ ulong used = UsedMemory();
+
+#if defined(HAVE_GETRLIMIT) && defined(RLIMIT_DATA)
+  struct rlimit limit;
+
+  if ( getrlimit(RLIMIT_DATA, &limit) == 0 )
+    return limit.rlim_cur - used;
+#endif
+
+  return 0L;
+}
+
 
 		/********************************
 		*           ARITHMETIC          *
@@ -2191,9 +2263,6 @@ Unsetenv(char *name)
 
 #ifdef __unix__
 #define SPECIFIC_SYSTEM 1
-#if defined(HAVE_SYS_RESOURCE_H)
-#include <sys/resource.h>
-#endif
 #if defined(HAVE_SYS_WAIT_H) || defined(UNION_WAIT)
 #include <sys/wait.h>
 #endif
