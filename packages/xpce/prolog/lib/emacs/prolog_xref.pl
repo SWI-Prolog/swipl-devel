@@ -19,7 +19,8 @@
 	    xref_current_source/1,	% ?Source
 	    xref_built_in/1,		% ?Callable
 	    xref_expand/2,		% +Term, -Expanded
-	    xref_source_file/3		% +Spec, -Path, +Source
+	    xref_source_file/3,		% +Spec, -Path, +Source
+	    xref_public_list/3		% +Path, -Export, +Src
 	  ]).
 :- use_module(library(pce)).
 
@@ -337,7 +338,7 @@ process_use_module([H|T], Src) :- !,
 	process_use_module(H, Src),
 	process_use_module(T, Src).
 process_use_module(library(pce), Src) :- !,	% bit special
-	file_public_list(library(pce), Public, Src),
+	xref_public_list(library(pce), Public, Src),
 	forall(member(Name/Arity, Public),
 	       (   functor(Term, Name, Arity),
 		   \+ system_predicate(Term),
@@ -346,15 +347,15 @@ process_use_module(library(pce), Src) :- !,	% bit special
 	       ;   true
 	       )).
 process_use_module(File, Src) :-
-	(   file_public_list(File, Public, Src)
+	(   xref_public_list(File, Public, Src)
 	->  assert_import(Src, Public)
 	;   true
 	).
 
-file_public_list(File, Public, Src) :-
+xref_public_list(File, Public, Src) :-
 	xref_source_file(File, Source, Src),
 	open(Source, read, Fd),
-	read(Fd, ModuleDecl),
+	catch(read(Fd, ModuleDecl), _, fail),
 	close(Fd),
 	ModuleDecl = (:- module(_, Public)).
 
