@@ -593,7 +593,7 @@ geometryEditor(Editor e, Int x, Int y, Int w, Int h)
 					/* make sure at least line fits! */
   if ( valInt(h) - iy - fh - 2*TXT_Y_MARGIN < 0 )
     h = toInt(iy+fh+2*TXT_Y_MARGIN);
-  ih = valInt(h) - iy;
+  ih = valInt(h);
 
   sw = isNil(e->scroll_bar) ? 0 : valInt(getMarginScrollBar(e->scroll_bar));
   mw = notNil(e->margin) ? valInt(e->margin->area->w) : 0;
