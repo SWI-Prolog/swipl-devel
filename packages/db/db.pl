@@ -43,7 +43,8 @@
 	    db_transaction/1,		% :Goal
 	    db_atom/3			% +DB, ?Atom, ?Id
 	  ]).
-:- load_foreign_library(foreign(db4pl)).
+:- initialization
+   load_foreign_library(foreign(db4pl)).
 
 db_delall(DB, Key, Value) :-
 	var(Value), !,
