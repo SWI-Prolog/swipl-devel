@@ -4,6 +4,13 @@
 VERSION 4.1.0
 =============
 
+  * FIXED: Make file_search_path/2 resolved paths relative to the current
+    working directory work properly after changing CWD.  Reported by Bert
+    Bredeweg.
+
+  * ADDED: working_directory/2 to query/change working directory, providing
+    better compatibility and a non-hacky way to get the current directory.
+
   * FIXED: Another problems handling `inlined' calls for the new implementation
     of call/1.  Thanks to Lyosha Ilyukhin.
 

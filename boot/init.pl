@@ -463,9 +463,11 @@ $chk_file(Spec, Extensions, Cond, FullName) :-
 	$dochk_file(Spec, Exts, Cond, FullName).
 
 $dochk_file(Spec, Extensions, Cond, FullName) :-
+	compound(Spec),
 	functor(Spec, Alias, 1),
 	user:file_search_path(Alias, _), !,
-	$chk_alias_file(Spec, Extensions, Cond, FullName).
+	working_directory(CWD, CWD),
+	$chk_alias_file(Spec, Extensions, Cond, CWD, FullName).
 $dochk_file(Term, Ext, Cond, FullName) :-	% allow a/b, a-b, etc.
 	\+ atomic(Term), !,
 	term_to_atom(Term, Raw),
@@ -491,23 +493,23 @@ $dochk_file(File, Exts, Cond, FullName) :-
 	$absolute_file_name(Extended, FullName).
 
 :- dynamic
-	$search_path_file_cache/4.
+	$search_path_file_cache/5.
 :- volatile
-	$search_path_file_cache/4.
+	$search_path_file_cache/5.
 
 :- set_prolog_flag(verbose_file_search, false).
 
-$chk_alias_file(Spec, Exts, Cond, FullFile) :-
-	$search_path_file_cache(Spec, Cond, FullFile, Exts),
+$chk_alias_file(Spec, Exts, Cond, CWD, FullFile) :-
+	$search_path_file_cache(Spec, Cond, CWD, FullFile, Exts),
 	$file_condition(Cond, FullFile),
 	$search_message(file_search(cache(Spec, Cond), FullFile)).
-$chk_alias_file(Spec, Exts, Cond, FullFile) :-
+$chk_alias_file(Spec, Exts, Cond, CWD, FullFile) :-
 	expand_file_search_path(Spec, Expanded),
 	$extend_file(Expanded, Exts, LibFile),
 	(   $file_condition(Cond, LibFile),
 	    $absolute_file_name(LibFile, FullFile),
-	    \+ $search_path_file_cache(Spec, Cond, FullFile, Exts),
-	    asserta($search_path_file_cache(Spec, Cond, FullFile, Exts))
+	    \+ $search_path_file_cache(Spec, Cond, CWD, FullFile, Exts),
+	    asserta($search_path_file_cache(Spec, Cond, CWD, FullFile, Exts))
 	->  $search_message(file_search(found(Spec, Cond), FullFile))
 	;   $search_message(file_search(tried(Spec, Cond), LibFile)),
 	    fail

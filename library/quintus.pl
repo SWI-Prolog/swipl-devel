@@ -73,7 +73,7 @@ unix(shell) :-
 unix(access(File, 0)) :-
         access_file(File, read).
 unix(cd) :-
-	expand_file_name(~, Home),
+	expand_file_name(~, [Home]),
 	working_directory(_, Home).
 unix(cd(Dir)) :-
 	working_directory(_, Dir).

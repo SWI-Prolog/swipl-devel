@@ -147,21 +147,25 @@ rm(File) :-
 	name_to_atom(File, A),
 	delete_file(A).
 
+
 %	name_to_atom(Typed, Atom)
+%
 %	Convert a typed name into an atom
 
-name_to_atom(Atom, Atom) :-
-	atomic(Atom), !.
-name_to_atom(Term, Atom) :-
-	term_to_atom(Term, Raw),
-	name(Raw, S0),
-	sublist(non_blank, S0, S1),
-	name(Atom, S1).
-
-non_blank(C) :-
-	between(0, 32, C), !,
-	fail.
-non_blank(_).
+name_to_atom(Spec, File) :-
+	(   atomic(Spec)
+	->  S1 = Spec
+	;   sformat(S1, '~w', [Spec])
+	),
+	expand_file_name(Spec, Expanded),
+	(   Expanded = [File]
+	->  true
+	;   Expanded == []
+	->  print_message(warning, format('No match: ~w', [Spec])),
+	    fail
+	;   print_message(warning, format('Ambiguous: ~w', [Spec])),
+	    fail
+	).
 
 
 %	list_atoms(+List, +Width)
