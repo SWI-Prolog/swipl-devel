@@ -19,7 +19,7 @@
 forwards void		copyFrameArguments P((LocalFrame, LocalFrame, int));
 forwards inline bool	callForeign P((const Procedure, LocalFrame));
 forwards void		leaveForeignFrame P((LocalFrame));
-forwards inline void    Trail(Word, LocalFrame);
+forwards inline void    Trail P((Word, LocalFrame));
 
 #if COUNTING
 
