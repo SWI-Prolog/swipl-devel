@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: callable/1 for better compatibility.
+
   * FIXED: $qlf_info/4 to request information on QLF files.  Also turned
     a couple of common warnings into proper exceptions.
 

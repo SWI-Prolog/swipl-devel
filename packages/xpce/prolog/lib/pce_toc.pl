@@ -194,6 +194,33 @@ normalise_tree(TW, Id:any) :->
 
 :- pce_group(event).
 
+:- pce_global(@toc_window_recogniser,
+	      make_toc_window_recogniser).
+
+make_toc_window_recogniser(G) :-
+	new(G, key_binding(toc_window)),
+	send_list(G,
+		  [ function(page_up,
+			     message(@receiver, scroll_vertical, backwards,
+				     page, 900)),
+		    function(page_down,
+			     message(@receiver, scroll_vertical, forwards,
+				     page, 900)),
+		    function(cursor_home,
+			     message(@receiver, scroll_vertical, goto,
+				     file, 0)),
+		    function(end,
+			     message(@receiver, scroll_vertical, goto,
+				     file, 1000))
+		  ]).
+
+event(TW, Ev:event) :->
+	"Handle key-bindings"::
+	(   send_super(TW, event, Ev)
+	;   send(@toc_window_recogniser, event, Ev)
+	).
+
+
 drag_and_drop(TW, Val:bool) :->
 	"(dis)allow drag-and-drop"::
 	send(TW, slot, drag_and_drop, Val),

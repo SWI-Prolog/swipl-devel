@@ -13,8 +13,8 @@
 :- module(prolog_predicate_item, []).
 :- use_module(library(pce)).
 :- require([ atom_prefix/2
-	   , concat/3
 	   , current_functor/2
+	   , atom_concat/3
 	   ]).
 
 

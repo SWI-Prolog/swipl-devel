@@ -13,7 +13,7 @@
 :- module(prolog_locator,
 	  [
 	  ]).
-:- use_module(preditem).
+:- use_module(library(prolog_predicate_item)).
 :- use_module(util).
 :- use_module(clause).
 
@@ -97,8 +97,8 @@ tool(PL, Tool:any) :<-
 
 :- pce_group(action).
 
-spy(PL, What:sheet) :->
-	prolog_predicates_from_selection(What, Preds),
+spy(PL, What:prolog) :->
+	matching_predicates(What, Preds),
 	(   Preds == []
 	->  send(PL, report, error, 'No matching predicates'),
 	    fail
@@ -116,7 +116,7 @@ spy(PL, What:sheet) :->
 	    
 
 view(PL, What:sheet) :->
-	prolog_predicates_from_selection(What, Preds),
+	matching_predicates(What, Preds),
 	(   Preds == []
 	->  send(PL, report, error, 'No matching predicates'),
 	    fail
@@ -128,7 +128,7 @@ view(PL, What:sheet) :->
 
 
 edit(PL, What:sheet) :->
-	prolog_predicates_from_selection(What, Preds),
+	matching_predicates(What, Preds),
 	(   Preds == []
 	->  send(PL, report, error, 'No matching predicates'),
 	    fail
@@ -136,6 +136,22 @@ edit(PL, What:sheet) :->
 	    ed(Pred)
 	;   select_predicate(PL, view, Preds, Pred),
 	    ed(Pred)
+	).
+
+
+matching_predicates(Module:Name/Arity, Preds) :-
+	P = Module:Head,
+	(   var(Arity)
+	->  findall(P, current_non_imported_predicate(Name, P), Preds)
+	;   functor(Head, Name, Arity),
+	    findall(P, current_non_imported_predicate(Name, P), Preds)
+	).
+
+current_non_imported_predicate(Name, P) :-
+	current_predicate(Name, P),
+	(   predicate_property(P, imported_from(_))
+	->  predicate_property(P, built_in)
+	;   true
 	).
 
 

@@ -272,6 +272,7 @@ static const struct foreign {
   FRG("atomic",			1, pl_atomic,			TRACE_ME),
   FRG("ground",			1, pl_ground,			TRACE_ME),
   FRG("compound",		1, pl_compound,			TRACE_ME),
+  FRG("callable",		1, pl_callable,			TRACE_ME),
 
   FRG("==",			2, pl_equal,			TRACE_ME),
   FRG("\\==",			2, pl_nonequal,			TRACE_ME),

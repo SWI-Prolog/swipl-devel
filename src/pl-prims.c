@@ -94,6 +94,15 @@ pl_compound(term_t k)
 { return PL_is_compound(k);
 }
 
+
+word
+pl_callable(term_t k)
+{ if ( PL_is_atom(k) || PL_is_compound(k) )
+    succeed;
+
+  fail;
+}
+
 #ifdef O_HASHTERM
 		 /*******************************
 		 *	    HASH-TERM		*

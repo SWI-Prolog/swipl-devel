@@ -1,8 +1,14 @@
+* FIXED: Make GUI-tracer use library(prolog_predicate_item), avoiding
+  a name-clash with private variation of this library.
+
+* FIXED: Effectively block recursion handling keyboard events in
+  `window->event'.
+
 * ADDED: `window->normalise': optional mode-argument to allow normalisation
   in only one direction.
 
 * FIXED/ADDED: library(pce_toc), class toc_window: improved normalisation
-  handling.
+  handling.  Also added handling of HOME, END, PageUp and PageDown buttons.
 
 * ADDED: `tree->root' extra optional argument `relink' to allow adding a
   new root above the current one.

@@ -20,7 +20,8 @@
 	    xref_built_in/1,		% ?Callable
 	    xref_expand/2,		% +Term, -Expanded
 	    xref_source_file/3,		% +Spec, -Path, +Source
-	    xref_public_list/3		% +Path, -Export, +Src
+	    xref_public_list/3,		% +Path, -Export, +Src
+	    xref_meta/2			% +Goal, -Called
 	  ]).
 :- use_module(library(pce)).
 
@@ -226,40 +227,40 @@ process_directive(Goal, Src) :-
 	      *             BODY	      *
 	      ********************************/
 
-meta_goal(G, Meta) :-			% call user extensions
+xref_meta(G, Meta) :-			% call user extensions
 	prolog:meta_goal(G, Meta).
 
-meta_goal((A, B), 		[A, B]).
-meta_goal((A; B), 		[A, B]).
-meta_goal((A| B), 		[A, B]).
-meta_goal((A -> B),		[A, B]).
-meta_goal(findall(_V, G, _L),	[G]).
-meta_goal(setof(_V, G, _L),	[G]).
-meta_goal(bagof(_V, G, _L),	[G]).
-meta_goal(forall(A, B),		[A, B]).
-meta_goal(maplist(G, _L1, _L2),	[G+2]).
-meta_goal(checklist(G, _L),	[G+1]).
-meta_goal(sublist(G, _, _),	[G+1]).
-meta_goal(call(G),		[G]).
-meta_goal(call(G, _),		[G+1]).
-meta_goal(call(G, _, _),	[G+2]).
-meta_goal(call(G, _, _, _),	[G+3]).
-meta_goal(call(G, _, _, _, _),	[G+4]).
-meta_goal(not(G),		[G]).
-meta_goal(\+(G),		[G]).
-meta_goal(ignore(G),		[G]).
-meta_goal(once(G),		[G]).
-meta_goal(initialization(G),	[G]).
-meta_goal(phrase(G, _A),	[G+2]).
-meta_goal(phrase(G, _A, _R),	[G+2]).
-meta_goal(catch(A, _, B),	[A, B]).
-meta_goal(thread_create(A,_,_), [A]).
+xref_meta((A, B), 		[A, B]).
+xref_meta((A; B), 		[A, B]).
+xref_meta((A| B), 		[A, B]).
+xref_meta((A -> B),		[A, B]).
+xref_meta(findall(_V, G, _L),	[G]).
+xref_meta(setof(_V, G, _L),	[G]).
+xref_meta(bagof(_V, G, _L),	[G]).
+xref_meta(forall(A, B),		[A, B]).
+xref_meta(maplist(G, _L1, _L2),	[G+2]).
+xref_meta(checklist(G, _L),	[G+1]).
+xref_meta(sublist(G, _, _),	[G+1]).
+xref_meta(call(G),		[G]).
+xref_meta(call(G, _),		[G+1]).
+xref_meta(call(G, _, _),	[G+2]).
+xref_meta(call(G, _, _, _),	[G+3]).
+xref_meta(call(G, _, _, _, _),	[G+4]).
+xref_meta(not(G),		[G]).
+xref_meta(\+(G),		[G]).
+xref_meta(ignore(G),		[G]).
+xref_meta(once(G),		[G]).
+xref_meta(initialization(G),	[G]).
+xref_meta(phrase(G, _A),	[G+2]).
+xref_meta(phrase(G, _A, _R),	[G+2]).
+xref_meta(catch(A, _, B),	[A, B]).
+xref_meta(thread_create(A,_,_), [A]).
 					% XPCE meta-predicates
-meta_goal(pce_global(_, new(_)), _) :- !, fail.
-meta_goal(pce_global(_, B),     [B+1]).
-meta_goal(ifmaintainer(G),	[G]).	% used in manual
-meta_goal(listen(_, G),		[G]).	% library(broadcast)
-meta_goal(listen(_, _, G),	[G]).
+xref_meta(pce_global(_, new(_)), _) :- !, fail.
+xref_meta(pce_global(_, B),     [B+1]).
+xref_meta(ifmaintainer(G),	[G]).	% used in manual
+xref_meta(listen(_, G),		[G]).	% library(broadcast)
+xref_meta(listen(_, _, G),	[G]).
 
 process_body(Var, _) :-
 	var(Var), !.
@@ -270,7 +271,7 @@ process_body(Goal, Src) :-
 process_body(Goal, Src) :-
 	process_xpce_goal(Goal, Src), !.
 process_body(Goal, Src) :-
-	meta_goal(Goal, Metas), !,
+	xref_meta(Goal, Metas), !,
 	assert_called(Src, Goal),
 	process_called_list(Metas, Src).
 process_body(Goal, Src) :-
@@ -282,7 +283,7 @@ process_called_list([H|T], Src) :-
 	process_called_list(T, Src).
 
 process_meta(A+N, Src) :-
-	nonvar(A), !,
+	callable(A), !,
 	\+ A = _:_,
 	A =.. List,
 	length(Rest, N),
