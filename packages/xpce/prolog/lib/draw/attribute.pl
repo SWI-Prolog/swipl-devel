@@ -233,12 +233,25 @@ make_arrow_menu(Menu, _Draw, Attribute) :-
 	get_config(draw_config:resources/arrows, ArrowsChain),
 	chain_list(ArrowsChain, Arrows),
 	make_line_menu(Menu, Attribute, [@nil|Arrows]),
-	send(Menu, attribute, equal_predicate, equal_arrows).
+	send(Menu, attribute, equal_predicates,
+	     chain(equal_arrows, close_arrows)).
 
+equal_arrows(X, X) :- !.
 equal_arrows(A1, A2) :-
 	send(A1, instance_of, arrow),
 	send(A2, instance_of, arrow),
-	equal_attributes([ length, wing,
+	equal_attributes([ class_name,
+			   length, wing,
+			   pen, texture, style,
+			   fill_pattern, colour
+			 ],
+			 A1, A2).
+
+close_arrows(X, X) :- !.
+close_arrows(A1, A2) :-
+	send(A1, instance_of, arrow),
+	send(A2, instance_of, arrow),
+	equal_attributes([ class_name,
 			   pen, texture, style,
 			   fill_pattern, colour
 			 ],
@@ -246,9 +259,12 @@ equal_arrows(A1, A2) :-
 
 equal_attributes([], _, _).
 equal_attributes([A|T], O1, O2) :-
-	get(O1, A, V1),
-	get(O2, A, V2),
-	catch(send(V1, equal, V2), _, fail),
+	(   send(O1, has_get_method, A)
+	->  get(O1, A, V1),
+	    get(O2, A, V2),
+	    catch(send(V1, equal, V2), _, fail)
+	;   true
+	),
 	equal_attributes(T, O1, O2).
 
 make_fill_pattern_menu(_Draw, Menu) :-
@@ -501,7 +517,9 @@ set_selection(Menu, Value) :-
 	send(Menu, instance_of, menu), !,
 	(   get(Menu, member, Value, Item)
 	->  send(Menu, selection, Item)
-	;   get(Menu, attribute, equal_predicate, Pred),
+	;   get(Menu, attribute, equal_predicates, PredChain),
+	    chain_list(PredChain, Preds),
+	    member(Pred, Preds),
 	    get(Menu?members, find,
 		message(@prolog, Pred, @arg1?value, Value),
 		Item)

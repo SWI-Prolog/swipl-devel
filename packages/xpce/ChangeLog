@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ENHANCED: PceDraw: somewhat more tolerance in the setting-menu handling.
+
 * FIXED: PceDraw to properly cancel pending operations (notably creating a
   path).
 

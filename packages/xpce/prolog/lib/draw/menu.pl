@@ -432,12 +432,15 @@ proto(I, Proto:'graphical|link*', Image:[image]) :->
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Create the image of  the  icon.   First,  we  will paint the  outline,
-indicating the mode.  Next, we make a copy of  the  prototype (because
-we have to modify it and we should not change the original prototype),
-modify the text to `T' and the size to  fit  in the icon.  Finally, we
-draw the prototype  in the icon and  send `Object ->done' to the clone
-to inform PCE we have done with it.
+Create the image of  the  icon.  First,   we  will  paint  the  outline,
+indicating the mode. Next, we make a   copy of the prototype (because we
+have to modify it and we  should   not  change  the original prototype),
+modify the text to `T' and the size to fit in the icon. Finally, we draw
+the prototype in the icon  and  send   `Object  ->done'  to the clone to
+inform PCE we have done with it.
+
+The general case uses an  intermediate  device   to  ensure  that if the
+prototype creates additional graphicals, these are displayed correctly.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 paint_proto(MI) :->
@@ -475,14 +478,15 @@ paint_proto(MI) :->
 	    send(Clone, append, point(30,15)),
 	    send(Clone, append, point(15,21)),
 	    send(I, draw_in, Clone)
-	;   send(Proto, instance_of, bezier_curve)
+	;   send(Proto, instance_of, bezier_curve)	% Bezier curves
 	->  get(Proto, clone, Clone),
 	    send(Clone, start, point(5,23)),
 	    send(Clone, end, point(35,23)),
 	    send(Clone, control1, point(15,0)),
 	    send(Clone, control2, point(48,0)),
 	    send(I, draw_in, Clone)
-	;   get(Proto, clone, Clone),		% general case
+	;   new(D, device),		% general case
+	    get(Proto, clone, Clone),
 	    (   send(Clone, has_send_method, menu_text)
 	    ->  send(Clone, menu_text)
 	    ;   true
@@ -497,8 +501,9 @@ paint_proto(MI) :->
 		DH = 14
 	    ),
 	    send(Clone, size, size(DW, DH)),
-	    send(Clone, center, point(22, 14)),
-	    send(I, draw_in, Clone)
+	    send(D, display, Clone),
+	    send(D, center, point(22, 14)),
+	    send(I, draw_in, D)
 	),
 	send(MI, label, I).
 
