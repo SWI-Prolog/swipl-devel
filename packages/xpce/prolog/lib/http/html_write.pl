@@ -145,6 +145,10 @@ do_expand(Token, _) -->
 	{ atomic(Token)
 	}, !,
 	html_quoted(Token).
+do_expand(element(Env, Attributes, Contents), M) --> !,
+	html_begin(Env, Attributes),
+	html(Contents, M),
+	html_end(Env).
 do_expand(Term, M) -->
 	{ Term =.. [Env, Contents]
 	}, !,
@@ -178,6 +182,7 @@ html_begin(Env, Attributes) -->
 
 html_end(Env)   -->			% empty element or omited close
 	{ layout(Env, _, -)
+	; layout(Env, _, empty)
 	}, !,
 	[].
 html_end(Env)   -->
@@ -324,6 +329,7 @@ layout(body,	   1-1,	1-1).
 layout(script,	   1-1,	1-1).
 layout(select,	   1-1,	1-1).
 layout(map,	   1-1,	1-1).
+layout(html,	   1-1,	1-1).
 
 layout(tr,	   1-0,	0-1).
 layout(option,	   1-0,	0-1).
@@ -347,6 +353,8 @@ layout(input,	   0-0, empty).
 layout(frame,	   1-1, empty).
 layout(col,	   0-0, empty).
 layout(area,	   1-0, empty).
+layout(input,	   1-0, empty).
+layout(option,	   1-0, empty).
 
 layout(p,	   2-1, -).		% omited close
 layout(td,	   0-0, 0-0).
