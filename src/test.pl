@@ -373,7 +373,7 @@ meta(call-10) :-
 	flag(a, 3, Old).
 meta(call-11) :-
 	catch(call(1), E, true),
-	E =@= error(type_error(callable, 1), _).
+	error(E, type_error(callable, 1)).
 meta(apply-1) :-
 	apply(=, [a,a]).
 meta(apply-2) :-
@@ -984,7 +984,7 @@ control(softcut-2) :-
 	findall(A, softcut2(A), [1]).
 control(block-1) :-
 	catch(block(myblock, do_block, _), E, true),
-	E =@= error(existence_error(block, notmyblock), _).
+	error(E, existence_error(block, notmyblock)).
 control(block-2) :-
 	block(notmyblock, do_block, X),
 	X == ok.
@@ -1041,19 +1041,30 @@ throwit :-
 catchme :-
 	catch(throwit, _, true).
 
+undef :-
+	'this is not defined'.
+
 exception(call-1) :-
 	catch(do_exception_1, E, true),
-	E =@= error(instantiation_error, _).
+	error(E, instantiation_error).
 exception(call-2) :-
 	\+ catch(do_exception_1, _, fail).
 exception(call-3) :-
 	catch(rethrow(do_exception_1), E, true),
-	E =@= error(instantiation_error, _).
+	error(E, instantiation_error).
 exception(call-4) :-
 	catch(throwit, foo(X), X = a),
 	X = a.
 exception(call-5) :-
 	catch(throwit, _, catchme).
+
+exception(context-1) :-
+	catch(functor(_,_,_), E, true),
+	error_pred(E, functor/3).
+exception(context-2) :-
+	catch(undef, E, true),
+	error_pred(E, undef/0).
+
 
 		 /*******************************
 		 *	  RESOURCE ERRORS	*
@@ -1285,7 +1296,7 @@ avar(order-1) :-			% attributes do not change standard
 
 nogvar(Var) :-
 	catch(nb_getval(Var, _), E, true),
-	E =@= error(existence_error(variable, Var), _).
+	error(E, existence_error(variable, Var)).
 
 gvar(set-1) :-
 	nb_setval(gnu, gnat),
@@ -1905,3 +1916,23 @@ test_failed(R, Except) :-
 blocked(Reason) :-
 	throw(blocked(Reason)).
 
+
+%	error(+Exception, +Expected)
+%	
+%	Check whether the correct exception  is thrown, disregarding the
+%	2nd context argument.
+
+error(error(Ex, _Ctx), Expected) :-
+	Ex =@= Expected, !.
+error(error(Ex, _Ctx), Expected) :-
+	format('~NWrong exception: ~p (expected ~p)~n', [Ex, Expected]),
+	fail.
+
+error_pred(error(_, context(Pred, _)), Pred).
+error_pred(error(_, context(Module:Pred, _)), Pred) :-
+	hidden_module(Module).
+
+hidden_module(user) :- !.
+hidden_module(system) :- !.
+hidden_module(M) :-
+	sub_atom(M, 0, _, _, $).

@@ -26,6 +26,7 @@
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-ctype.h"
+#include "pl-utf8.h"
 #include <errno.h>
 
 #include <limits.h>
@@ -427,6 +428,12 @@ PL_unify_wchars(term_t t, int flags, unsigned int len, const pl_wchar_t *s)
   PL_free_text(&text);
 
   return rc;
+}
+
+
+unsigned int
+PL_utf8_strlen(const char *s, unsigned int len)
+{ return utf8_strlen(s, len);
 }
 
 
@@ -2388,6 +2395,23 @@ cont:
 
       rval = PL_unify_text(t, &txt,
 			   op == PL_UTF8_STRING ? PL_STRING : PL_ATOM);
+      break;
+    }
+    case PL_NUTF8_CHARS:
+    case PL_NUTF8_CODES:
+    case PL_NUTF8_STRING:
+    { PL_chars_t txt;
+
+      txt.length    = va_arg(args, unsigned int);
+      txt.text.t    = va_arg(args, char *);
+      txt.storage   = PL_CHARS_HEAP;
+      txt.encoding  = ENC_UTF8;
+      txt.canonical = FALSE;
+
+      rval = PL_unify_text(t, &txt,
+			   op == PL_NUTF8_CHARS ? PL_ATOM : 
+			         PL_NUTF8_CODES ? PL_CODE_LIST :
+			   			  PL_STRING);
       break;
     }
   { functor_t ft;

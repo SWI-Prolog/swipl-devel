@@ -1529,8 +1529,13 @@ error:
   if ( GD->bootsession )
     sysError("Undefined predicate: %s", predicateName(def));
   else if ( true(module, UNKNOWN_ERROR) )
-    PL_error(NULL, 0, NULL, ERR_UNDEFINED_PROC, def);
-  else
+  { Definition caller;
+    if ( fr->parent )
+      caller = fr->parent->predicate;
+    else
+      caller = NULL;
+    PL_error(NULL, 0, NULL, ERR_UNDEFINED_PROC, def, caller);
+  } else
   { fid_t fid = PL_open_foreign_frame();
     term_t pred = PL_new_term_ref();
 

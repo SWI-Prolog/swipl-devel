@@ -48,11 +48,17 @@ put_name_arity(term_t t, functor_t f)
 
 int
 PL_error(const char *pred, int arity, const char *msg, int id, ...)
-{ term_t except, formal, swi;
+{ Definition caller;
+  term_t except, formal, swi;
   va_list args;
   int do_throw = FALSE;
   fid_t fid;
   int rc;
+
+  if ( environment_frame )
+    caller = environment_frame->predicate;
+  else
+    caller = NULL;
 
   if ( id == ERR_FILE_OPERATION && !fileerrors )
     fail;
@@ -153,7 +159,11 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
     }
     case ERR_UNDEFINED_PROC:
     { Definition def = va_arg(args, Definition);
+      Definition clr = va_arg(args, Definition);
       term_t pred = PL_new_term_ref();
+
+      if ( clr )
+	caller = clr;
 
       unify_definition(pred, def, 0, GP_NAMEARITY);
       PL_unify_term(formal,
@@ -445,7 +455,7 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
   va_end(args);
 
 					/* build SWI-Prolog context term */
-  if ( pred || msg )
+  if ( pred || msg || caller )
   { term_t predterm = PL_new_term_ref();
     term_t msgterm  = PL_new_term_ref();
 
@@ -454,7 +464,10 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
 		    PL_FUNCTOR, FUNCTOR_divide2,
 		      PL_CHARS, pred,
 		      PL_INT, arity);
+    } else if ( caller )
+    { unify_definition(predterm, caller, 0, GP_NAMEARITY);
     }
+
     if ( msg )
     { PL_put_atom_chars(msgterm, msg);
     }

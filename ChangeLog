@@ -7,7 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
-  * FIXED: linrary(readutil): complete dispatch of options. Wim Delvaux.
+  * ENHANCED: Provide better error context.  Suggested by Paulo Moura.
+
+  * FIXED: library(readutil): complete dispatch of options. Wim Delvaux.
 
 
 VERSION 5.5.6 (Februari 11, 2005)
@@ -1932,7 +1934,7 @@ VERSION 5.0.5 (April 16, 2002)
 
   * FIXED: Various problems in the manual (rjan Johansen).
 
-  * FIXED: expand_file_name/2 handling of ~fred (�rjan Johansen).
+  * FIXED: expand_file_name/2 handling of ~fred (rjan Johansen).
 
   * DEBUGGER: Modified the trace-hooks to examine choice-points as first
     class objects.  Adjusted the GUI tracer to use the new code.  This

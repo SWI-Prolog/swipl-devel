@@ -185,6 +185,9 @@ typedef union
 #define PL_UTF8_CHARS	 (24)		/* const char * */
 #define PL_UTF8_STRING	 (25)		/* const char * */
 #define PL_INT64	 (26)		/* int64_t */
+#define PL_NUTF8_CHARS	 (27)		/* unsigned, const char * */
+#define PL_NUTF8_CODES	 (29)		/* unsigned, const char * */
+#define PL_NUTF8_STRING	 (30)		/* unsigned, const char * */
 
 
 		/********************************
@@ -445,6 +448,7 @@ PL_EXPORT(int)		PL_unify_wchars(term_t t, int type,
 PL_EXPORT(int)		PL_get_wchars(term_t l,
 				      unsigned int *length, pl_wchar_t **s,
 				      unsigned flags);
+PL_EXPORT(unsigned int)	PL_utf8_strlen(const char *s, unsigned int len);
 
 
 		 /*******************************
