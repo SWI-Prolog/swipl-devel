@@ -294,10 +294,10 @@ installdirs=	bin bin/$(ARCH) lib lib/$(ARCH) man boot library \
 
 iruntime::
 		$(INSTALL_DATA) $(RUNTIME) $(PLBASE)/runtime/$(ARCH)
+		$(RANLIB) $(PLBASE)/runtime/$(ARCH)/$(PLLIB)
 
 install-implib::
 		$(INSTALL_DATA) libplimp.a $(PLBASE)/runtime/$(ARCH)
-		$(RANLIB) $(PLBASE)/runtime/$(ARCH)/$(PLLIB)
 
 idirs::
 		if [ ! -d $(prefix)/lib  ]; then $(MKDIR) $(prefix)/lib; fi
