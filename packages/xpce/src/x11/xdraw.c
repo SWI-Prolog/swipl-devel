@@ -1051,6 +1051,8 @@ r_box(int x, int y, int w, int h, int r, Any fill)
   y += drawpen / 2;
   w -= drawpen;
   h -= drawpen;
+  if ( drawpen <= 0 )
+    drawpen = 1;			/* ensure termination */
 
   if ( notNil(fill) )
     r_fillpattern(fill, NAME_background);
