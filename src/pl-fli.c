@@ -106,10 +106,15 @@ _ld_linkVal(Word p ARG_LD)
 term_t
 wordToTermRef(Word p)
 { GET_LD
-  term_t t = PL_new_term_ref();
 
-  setHandle(t, linkVal(p));
-  return t;
+  if ( p > (Word) lBase )
+    return p - (Word)lBase;
+  else
+  { term_t t = PL_new_term_ref();
+
+    setHandle(t, linkVal(p));
+    return t;
+  }
 }
 
 

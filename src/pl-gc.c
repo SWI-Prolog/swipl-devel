@@ -151,7 +151,7 @@ char tmp[256];				/* for calling print_val(), etc. */
 
 forwards void		mark_variable(Word);
 forwards void		sweep_foreign(void);
-forwards QueryFrame	mark_environments(LocalFrame);
+forwards QueryFrame	mark_environments(LocalFrame, Code PC);
 forwards void		update_relocation_chain(Word, Word);
 forwards void		into_relocation_chain(Word, int stg);
 forwards void		alien_into_relocation_chain(void *addr,
@@ -618,10 +618,8 @@ to the parent `foreign' environment.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static QueryFrame
-mark_environments(LocalFrame fr)
-{ Code PC = NULL;
-
-  if ( !fr )
+mark_environments(LocalFrame fr, Code PC)
+{ if ( !fr )
     return NULL;
 
   for( ; ; )
@@ -668,6 +666,17 @@ Mark the choicepoints. This function walks   along the environments that
 can be reached from  the  choice-points.   In  addition,  it deletes all
 trail-references  that  will   be   overruled    by   the   choice-point
 stack-reference anyway.
+
+When using setarg/3 (O_DESTRUCTIVE_ASSIGNMENT),   destrctive assignments
+are stored on the trail-stack as  two   entries.  The first entry is the
+normal trail-pointer, while the  second   is  flagged  with TAG_TRAILVAL
+(0x1). When undoing, the tail is scanned backwards and if a tagged value
+is encountered, this value is restored  at   the  location  of the first
+trail-cell.
+
+If the has become  garbage,  we  can   destroy  both  cells.  Note  that
+mark_trail() already has marked the replaced value,  so that will not be
+garbage collected during this pass. 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static GCTrailEntry
@@ -700,7 +709,12 @@ mark_choicepoints(Choice ch, GCTrailEntry te)
 	} else if ( !marked(tard) )	/* garbage */
 	{ setVar(*tard);
 	  SECURE(assert(*tard != QID_MAGIC));
-	  SECURE(assert(ttag(te[1].address) != TAG_TRAILVAL));
+#if O_DESTRUCTIVE_ASSIGNMENT
+	  if ( ttag(te[1].address) == TAG_TRAILVAL)
+	  { te[1].address = 0;
+	    trailcells_deleted++;
+	  }
+#endif
 	  DEBUG(3, Sdprintf("Early reset of 0x%p\n", te->address));
 	  te->address = 0;
 	  trailcells_deleted++;
@@ -712,7 +726,8 @@ mark_choicepoints(Choice ch, GCTrailEntry te)
     alien_into_relocation_chain(&ch->mark.trailtop, STG_TRAIL, STG_LOCAL);
     SECURE(trailtops_marked--);
 
-    mark_environments(fr);
+    mark_environments(fr,
+		      ch->type == CHP_JUMP ? ch->value.PC : NULL);
   }
 
   return te;
@@ -739,7 +754,7 @@ mark_stacks(LocalFrame fr, Choice ch)
   trailcells_deleted = 0;
 
   for( ; fr; fr = query->saved_environment, ch = query->saved_bfr )
-  { query = mark_environments(fr);
+  { query = mark_environments(fr, NULL);
     te    = mark_choicepoints(ch, te);
 
     assert(query->magic == QID_MAGIC);
@@ -1120,9 +1135,8 @@ sweep_trail(void)
 
 
 static QueryFrame
-sweep_environments(LocalFrame fr)
+sweep_environments(LocalFrame fr, Code PC)
 { GET_LD
-  Code PC = NULL;
 
   if ( !fr )
     return NULL;
@@ -1161,7 +1175,8 @@ sweep_environments(LocalFrame fr)
 static void
 sweep_choicepoints(Choice ch)
 { for( ; ch ; ch = ch->parent)
-  { sweep_environments(ch->frame);
+  { sweep_environments(ch->frame,
+		       ch->type == CHP_JUMP ? ch->value.PC : NULL);
     sweep_mark(&ch->mark);
   }
 }
@@ -1173,7 +1188,7 @@ sweep_stacks(LocalFrame fr, Choice ch)
   QueryFrame query;
   
   for( ; fr; fr = query->saved_environment, ch = query->saved_bfr )
-  { query = sweep_environments(fr);
+  { query = sweep_environments(fr, NULL);
     sweep_choicepoints(ch);
 
     if ( !query )			/* we've been here */

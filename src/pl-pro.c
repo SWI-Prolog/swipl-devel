@@ -328,10 +328,6 @@ checkData(p) verifies p points to valid  Prolog  data  and  generates  a
 system  error  otherwise.  The checks performed are much more rigid than
 those during normal execution.  Arity of terms is limited to  100  as  a
 kind of heuristic.
-
-Note that we expect terms on the global stack.   This  is  true  in  the
-interpreter,  but  not everywere in the system (records use terms on the
-heap).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define onGlobal(p) onStack(global, p)

@@ -694,6 +694,8 @@ fillDefaultOptions()
   if ( streq(cc, "gcc") )
     defcxx = "g++";
   defaultProgram(&cxx, defcxx);
+  if ( PROG_LD == cc && cppfiles.size > 0 )
+    PROG_LD = cxx;
   defaultProgram(&ld,  PROG_LD);
 
 #ifdef WIN32
@@ -1206,3 +1208,5 @@ main(int argc, char **argv)
 
   return 0;
 }
+
+
