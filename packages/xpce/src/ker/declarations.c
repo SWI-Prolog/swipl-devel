@@ -18,6 +18,7 @@
 
 #ifdef __WIN32__
 extern Class ClassWinMF;
+extern Class ClassWinPrinter;
 #endif
 
 
@@ -481,6 +482,8 @@ static struct class_definition classdefs[] =
 #ifdef __WIN32__
   { NAME_winMetafile, NAME_graphical, makeClassWinMF,
     &ClassWinMF, "Windows .WMF based figure" },
+  { NAME_winPrinter, NAME_object, makeClassWinPrinter,
+    &ClassWinPrinter, "Windows printer interface" },
 #endif
 
   { NAME_window, NAME_device, makeClassWindow,

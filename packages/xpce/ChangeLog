@@ -1,12 +1,16 @@
 [VERSION 4.9.6]
 
+* FIXED: Installation procedure for bitmaps.  New options have been
+  added to install(.c): -d, -C and -pN to get much faster and simpler
+  installation.
+
 * FIXED: Scrollbar update for editors with incomplete last line.
 
 * FIXED: `display <-font_alias' to call makeBuiltinFonts() first to
   ensure all system fonts are defined.
 
 * FIXED: Win32 colour handling.  Properly handle colour-names case
-  insensitive.
+  insensitivly.
 
 * FIXED: 2nd argument of bitmap->initialise (transparent) was ignored.
 

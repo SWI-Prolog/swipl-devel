@@ -21,3 +21,4 @@ int	iswin32s(void);
 char *	ws_os(void);
 Name	WinStrError(int error, ...);
 status	makeClassWinMF(Class class);
+status	makeClassWinPrinter(Class class);

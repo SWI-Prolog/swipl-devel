@@ -400,10 +400,25 @@ fill_items(A, Client:chain) :->
 		Proto),
 	    get(Proto, draw_attribute, Selector, Value)
 	->  send(Menu, active, @on),
-	    send(Menu, selection, Value)
+	    set_selection(Menu, Value)
 	;   send(Menu, active, @off)
 	),
 	fail ; true.
+
+set_selection(Menu, Arrow) :-
+	object(Arrow),
+	send(Arrow, instance_of, arrow),
+	Arrow = @Ref,
+	integer(Ref), !,
+	set_selection(Menu, @draw_default_arrow).
+set_selection(Menu, Value) :-
+	send(Menu, instance_of, menu), !,
+	(   get(Menu, member, Value, Item)
+	->  send(Menu, selection, Item)
+	;   true
+	).
+set_selection(Menu, Value) :-
+	send(Menu, selection, Value).
 
 
 block(A) :->

@@ -104,8 +104,8 @@ recogniser.
 				@draw_connect_gesture,
 				@draw_shape_popup_gesture))).
 :- pce_global(@draw_text_recogniser,
-	      new(handler_group(@draw_shape_select_recogniser,
-				@draw_edit_text_recogniser,
+	      new(handler_group(@draw_edit_text_recogniser,
+				@draw_shape_select_recogniser,
 				@draw_text_paste_recogniser,
 				new(draw_resize_selection_gesture),
 				draw_move_selection_gesture(left),
@@ -113,8 +113,8 @@ recogniser.
 				@draw_connect_gesture,
 				@draw_shape_popup_gesture))).
 :- pce_global(@draw_compound_recogniser,
-	      new(handler_group(@draw_resizable_shape_recogniser,
-				@draw_compound_draw_text_recogniser))).
+	      new(handler_group(@draw_compound_draw_text_recogniser,
+				@draw_resizable_shape_recogniser))).
 :- pce_global(@draw_connection_recogniser,
 	      new(handler_group(@draw_shape_select_recogniser,
 				@draw_connect_gesture,
@@ -768,22 +768,19 @@ make_draw_edit_text_recogniser(R) :-
 	new(Canvas, Text?window),
 	new(Pointed, ?(Text, pointed, @event?position)),
 	new(R, click_gesture(left, '', single,
-			     block(message(Text, caret, Pointed),
-				   message(Canvas, keyboard_focus, Text)),
-			     Canvas?(mode) == draw_edit)).
+			     and(message(Canvas, keyboard_focus, Text),
+				 message(Text, caret, Pointed)),
+			     Text?selected == @on)).
 
 make_draw_compound_draw_text_recogniser(G) :-
 	new(Compound, @event?receiver),
-	new(Canvas, Compound?window),
 	new(R, click_gesture(left, '', single,
 			     message(Compound, start_text, @event),
-			     Canvas?(mode) == draw_edit)),
+			     Compound?selected == @on)),
 	new(K, handler(obtain_keyboard_focus,
 		       message(@receiver, start_text, @event))),
 	new(G, handler_group(R, K)).
 				
-
-	
 make_draw_text_paste_recogniser(G) :-
 	new(G, click_gesture(middle, '', single,
 			     message(@receiver, paste))),

@@ -848,8 +848,10 @@ file(Canvas, File:file*) :->
 		 *******************************/
 
 convert_old_drawing(Canvas, SaveVersion:real*) :->
-	ignore(convert_old_drawing(SaveVersion, Canvas)).
-
+	(   convert_old_drawing(SaveVersion, Canvas),
+	    fail
+	;   true
+	).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Before versions were attached to saved  figures, class draw_compound was
@@ -857,17 +859,25 @@ a subclass of class device. Now, it is   a subclass of class figure. The
 code below turns the draw_compounds into valid figures.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-convert_old_drawing(@nil, Canvas) :- !,
-	ignore(get(Canvas, find, @default,
-		   if(message(@arg1, instance_of, draw_compound),
-		      and(if(@arg1?radius == @nil,
-			     and(message(@arg1, slot, status, all_active),
-				 message(@arg1, slot, radius, 0),
-				 message(@arg1, slot, border, 0),
-				 message(@arg1, slot, pen,    0))),
-			  new(or)),
-		      new(or)),
-		   _)).
+convert_old_drawing(@nil, Canvas) :-
+	get(Canvas, find, @default,
+	    if(message(@arg1, instance_of, draw_compound),
+	       and(if(@arg1?radius == @nil,
+		      and(message(@arg1, slot, status, all_active),
+			  message(@arg1, slot, radius, 0),
+			  message(@arg1, slot, border, 0),
+			  message(@arg1, slot, pen,    0))),
+		   new(or)),
+	       new(or)),
+	    _).
+convert_old_drawing(_, Canvas) :-
+	object(@win_ansi_var),
+	get(Canvas, find, @default,
+	    and(if(and(message(@arg1, instance_of, text),
+		       @arg1?font == @win_ansi_var),
+		   message(@arg1, font, normal)),
+		new(or)),
+	    _).
 
 
 		/********************************

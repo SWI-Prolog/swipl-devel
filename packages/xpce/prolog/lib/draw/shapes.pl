@@ -826,9 +826,9 @@ start_text(C, Ev:[event]) :->
 	    message(@arg1, instance_of, text), Texts),
 	(   Ev \== @default,
 	    get(Texts, find, message(Ev, inside, @arg1), Pointed)
-	->  send(Pointed, caret, ?(Pointed, pointed,
-				   ?(Ev, position, Pointed))),
-	    send(C?window, keyboard_focus, Pointed)
+	->  send(C?window, keyboard_focus, Pointed),
+	    get(Pointed, pointed, ?(Ev, position, Pointed), Caret),
+	    send(Pointed, caret, Caret)
 	;   get(Texts, head, First)
 	->  send(First, caret, @default),
 	    send(C?window, keyboard_focus, First)

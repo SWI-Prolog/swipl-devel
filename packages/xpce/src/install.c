@@ -10,7 +10,7 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SYNOPSIS:
 	install [-v] [-c] [-m mode] from to
-	install [-v] [-c] [-m mode] file file ... dir
+	install [-v] [-c] [-m mode] [-p] file file ... dir
 
 Simple install replacement  to  be  used   for  XPCE  installation.  The
 configure install.sh script is very slow,   while  all operating systems
@@ -24,6 +24,7 @@ problem.
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #ifdef HAVE_UNISTD_H
@@ -58,6 +59,9 @@ bool	 set_mode;
 bool	 copy;
 char *	 program;
 int	 verbose=0;
+bool	 makedirs;
+bool	 strippath = -1;		/* i.e. use basename() */
+bool	 installdirs = FALSE;		/* -d */
 
 static int
 get_mode(const char *s, unsigned short *m)
@@ -71,6 +75,18 @@ get_mode(const char *s, unsigned short *m)
     return FALSE;
   
   *m = mode;
+  return TRUE;
+}
+
+
+static int
+isdir(const char *path)
+{ struct stat buf;
+
+  if ( stat(path, &buf) < 0 ||
+       (buf.st_mode & S_IFMT) != S_IFDIR )
+    return FALSE;
+
   return TRUE;
 }
 
@@ -90,6 +106,80 @@ get_file_mode(const char *name, int fd, mode_t *m)
 }
 
 
+const char *
+basename(const char *path)
+{ const char *base;
+
+  for(base=path; *path; path++)
+  { if ( *path == '/' )
+      base = path+1;
+  }
+
+  return base;
+}
+
+
+char *
+dirname(const char *path)		/* returns malloced directory name */
+{ const char *base = basename(path);
+  char *rval;
+
+  while(base > path && base[-1] == '/' )
+    base--;
+  
+  if ( !(rval = malloc(base-path+1)) )
+  { perror("malloc");
+    exit(1);
+  }
+  memcpy(rval, path, base-path);
+  rval[base-path] = '\0';
+
+  return rval;
+}
+
+
+static int
+makedir(char *path)
+{ again:
+
+  if ( mkdir(path, 0777) == 0 )
+  { free(path);
+    return TRUE;
+  }
+
+  if ( errno == ENOENT )
+  { if ( makedir(dirname(path)) )
+      goto again;
+  }
+
+  free(path);
+  return FALSE;
+}
+
+
+static char *
+str_store(const char *in)
+{ char *rval;
+
+  if ( (rval = malloc(strlen(in)+1)) )
+  { strcpy(rval, in);
+    return rval;
+  }
+
+  perror("malloc");
+  exit(1);
+}
+
+
+static int
+install_dir(const char *name)
+{ if ( !isdir(name) )
+    return makedir(str_store(name));
+
+  return TRUE; 
+}
+
+
 static int
 install_file(const char *from, const char *to)
 { int fdfrom, fdto;
@@ -97,11 +187,6 @@ install_file(const char *from, const char *to)
   int rval;
   int n;
   mode_t m;
-
-  if ( verbose == 1 )
-  { putchar('.');
-    fflush(stdout);
-  }
 
   if ( (fdfrom = open(from, O_RDONLY|O_BINARY)) < 0 )
   { perror(from);
@@ -114,8 +199,11 @@ install_file(const char *from, const char *to)
     get_file_mode(from, fdfrom, &m);
 
   unlink(to);
+  again:
   if ( (fdto = open(to, O_WRONLY|O_BINARY|O_CREAT|O_TRUNC, m)) < 0 )
-  { perror(to);
+  { if ( errno == ENOENT && makedir(dirname(to)) )
+      goto again;
+    perror(to);
     close(fdfrom);
     return FALSE;
   }
@@ -150,36 +238,38 @@ out:
 
 
 const char *
-basename(const char *path)
-{ const char *base;
+strip_path(const char *path, int strip)
+{ if ( strip < 0 )
+    return basename(path);
+  else
+  { const char *base = path;
 
-  for(base=path; *path; path++)
-  { if ( *path == '/' )
-      base = path+1;
+    while(strip-- > 0)
+    { while(*base == '/')
+	base++;
+      while(*base && *base != '/')
+	base++;
+      while(*base == '/')
+	base++;
+    }
+
+    return base;
   }
-
-  return base;
 }
 
 
 static int
 install_file_in_dir(const char *file, const char *dir)
 { char path[MAXPATHLEN];
+  const char *base = strip_path(file, strippath);
+  int rval;
 
-  sprintf(path, "%s/%s", dir, basename(file));
-  return install_file(file, path);
-}
+  sprintf(path, "%s/%s", dir, base);
 
-
-static int
-isdir(const char *path)
-{ struct stat buf;
-
-  if ( stat(path, &buf) < 0 ||
-       (buf.st_mode & S_IFMT) != S_IFDIR )
-    return FALSE;
-
-  return TRUE;
+  if ( (rval = install_file(file, path)) && verbose )
+    printf("%s\n", base);
+    
+  return rval;
 }
 
 
@@ -187,7 +277,8 @@ void
 usage()
 { fprintf(stderr, "  Usage: %s options file ... directory\n", program);
   fprintf(stderr, "     or: %s options from to\n", program);
-  fprintf(stderr, "options: [-v] [-c] [-m mode]\n");
+  fprintf(stderr, "     or: %s [-C dir] -d dir ...\n", program);
+  fprintf(stderr, "options: [-v[N]] [-c] [-p[N]] [-C dir] [-m mode]\n");
   exit(1);
 }
 
@@ -208,9 +299,34 @@ main(int argc, char **argv)
       { case 'c':
 	  copy = TRUE;
 	  break;
+	case 'p':
+	  strippath = 0;
+	  makedirs = TRUE;
+	  if ( isdigit(opts[1]) )
+	  { opts++;
+	    strippath = *opts - '0';
+	  }
+	  break;
+	case 'd':
+	  installdirs = TRUE;
+	  break;
 	case 'v':
 	  verbose++;
+	  if ( isdigit(opts[1]) )
+	  { opts++;
+	    verbose = *opts - '0';
+	  }
 	  break;
+	case 'C':
+	{ char *dir = argv[0];
+	  
+	  shift;
+	  if ( chdir(dir) != 0 )
+	  { perror(dir);
+	    exit(1);
+	  }
+	  break;
+	}
 	case 'm':
 	  if ( argc > 0 && get_mode(argv[0], &mode) )
 	  { shift;
@@ -227,16 +343,25 @@ main(int argc, char **argv)
     usage();
   out = argv[argc-1];
 
-  if ( isdir(out) )
+  if ( installdirs )
   { int i;
 
-    for(i=0; i<argc-1; i++)
-    { if ( !install_file_in_dir(argv[i], out) )
+    for(i=0; i<argc; i++)
+    { if ( !install_dir(argv[i]) )
 	errors++;
     }
   } else
-  { if ( !install_file(argv[0], out) )
-      errors++;
+  { if ( isdir(out) )
+    { int i;
+  
+      for(i=0; i<argc-1; i++)
+      { if ( !install_file_in_dir(argv[i], out) )
+	  errors++;
+      }
+    } else
+    { if ( !install_file(argv[0], out) )
+	errors++;
+    }
   }
 
   return errors ? 1 : 0;

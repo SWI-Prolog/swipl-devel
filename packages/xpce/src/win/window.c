@@ -1677,6 +1677,7 @@ mergeFramesWindow(PceWindow w1, PceWindow w2)
 static status
 relateWindow(PceWindow sw, Name how, Any to)
 { PceWindow w2 = instanceOfObject(to, ClassWindow) ? to : NIL;
+  PceWindow wto = w2;
 
   if ( notNil(sw->decoration) )
     return relateWindow(sw->decoration, how, to);
@@ -1693,6 +1694,17 @@ relateWindow(PceWindow sw, Name how, Any to)
     send(sw->frame, NAME_delete, sw, 0);
   
   tileWindow(sw, DEFAULT);
+
+  if ( isNil(wto) )
+    wto = ((TileObj)to)->object;
+
+  if ( instanceOfObject(wto, ClassWindow) && createdWindow(wto) )
+  { TileObj t = getRootTile(sw->tile);
+    Any msg = newObject(ClassMessage, Arg(1), NAME_ComputeDesiredSize, 0);
+
+    send(t, NAME_forAll, msg, 0);
+    freeObject(msg);
+  }
 
   if ( notNil(w2) )
   { TRY(send(sw->tile, how, w2->tile, 0));
