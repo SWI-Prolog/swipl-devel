@@ -4,6 +4,8 @@
 VERSION 6.2.9, distributed with SWI-Prolog 5.2.9
 ================================================
 
+* FIXED: `event->inside' for windows that are not the receiver of the event.
+
 * PORT: manual installation according to the GNU make/autoconf guidelines.
   Andreas Voegele.
 

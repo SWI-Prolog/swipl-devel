@@ -669,15 +669,10 @@ insideEvent(EventObj ev, Graphical gr)
   if ( instanceOfObject(gr, ClassWindow) )
   { int vx, vy, vw, vh; 
     PceWindow sw = (PceWindow) gr;
-    int p = valInt(sw->pen);
     int ex = valInt(x);
     int ey = valInt(y);
 
     compute_window(sw, &vx, &vy, &vw, &vh);
-#if 0
-    vx -= valInt(sw->scroll_offset->x) + p;
-    vy -= valInt(sw->scroll_offset->y) + p;
-#endif
     if ( ex >= vx && ex <= vx+vw &&
 	 ey >= vy && ey <= vy+vh )
       succeed;
