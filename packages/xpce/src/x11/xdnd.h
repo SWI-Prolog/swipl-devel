@@ -39,7 +39,7 @@ extern "C" {
 #define XDND_ENTER_TYPE(e,i)		((e)->xclient.data.l[2 + i])	/* i => (0, 1, 2) */
 
 /* XdndPosition */
-#define XDND_POSITION_SOURCE_WIN(e)	((e)->xclient.data.l[0])
+#define XDND_POSITION_SOURCE_WIN(e)	(Window)((e)->xclient.data.l[0])
 #define XDND_POSITION_ROOT_X(e)		((e)->xclient.data.l[2] >> 16)
 #define XDND_POSITION_ROOT_Y(e)		((e)->xclient.data.l[2] & 0xFFFFUL)
 #define XDND_POSITION_ROOT_SET(e,x,y)	(e)->xclient.data.l[2]  = ((x) << 16) | ((y) & 0xFFFFUL)
@@ -47,7 +47,7 @@ extern "C" {
 #define XDND_POSITION_ACTION(e)		((e)->xclient.data.l[4])
 
 /* XdndStatus */
-#define XDND_STATUS_TARGET_WIN(e)	((e)->xclient.data.l[0])
+#define XDND_STATUS_TARGET_WIN(e)	(Window)((e)->xclient.data.l[0])
 #define XDND_STATUS_WILL_ACCEPT(e)	((e)->xclient.data.l[1] & 0x1L)
 #define XDND_STATUS_WILL_ACCEPT_SET(e,b) (e)->xclient.data.l[1] = ((e)->xclient.data.l[1] & ~0x1UL) | (((b) == 0) ? 0 : 0x1UL)
 #define XDND_STATUS_WANT_POSITION(e)	((e)->xclient.data.l[1] & 0x2UL)
@@ -60,14 +60,14 @@ extern "C" {
 #define XDND_STATUS_ACTION(e)		((e)->xclient.data.l[4])
 
 /* XdndLeave */
-#define XDND_LEAVE_SOURCE_WIN(e)	((e)->xclient.data.l[0])
+#define XDND_LEAVE_SOURCE_WIN(e)	(Window)((e)->xclient.data.l[0])
 
 /* XdndDrop */
-#define XDND_DROP_SOURCE_WIN(e)		((e)->xclient.data.l[0])
+#define XDND_DROP_SOURCE_WIN(e)		(Window)((e)->xclient.data.l[0])
 #define XDND_DROP_TIME(e)		((e)->xclient.data.l[2])
 
 /* XdndFinished */
-#define XDND_FINISHED_TARGET_WIN(e)	((e)->xclient.data.l[0])
+#define XDND_FINISHED_TARGET_WIN(e)	(Window)((e)->xclient.data.l[0])
 
 struct _DndCursor {
     int width, height;

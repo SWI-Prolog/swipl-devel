@@ -34,11 +34,11 @@ make_font_char_widths(XFontStruct *info)
 { if ( info->per_char == NULL )
   { return NULL;
   } else if ( info->min_byte1 == 0 && info->max_byte1 == 0 ) /* 8-bit */
-  { int i;
-    int offset = info->min_char_or_byte2;
+  { unsigned int i;
+    unsigned int offset = info->min_char_or_byte2;
     cwidth *widths = alloc(MAX_CHAR * sizeof(cwidth));
     XCharStruct *defchar;
-    int dchr = info->default_char;
+    unsigned int dchr = info->default_char;
 
     BOUNDS(dchr, offset, info->max_char_or_byte2);
     defchar = &info->per_char[dchr - offset];
@@ -57,11 +57,11 @@ make_font_char_widths(XFontStruct *info)
     int cols = info->max_char_or_byte2 - info->min_char_or_byte2 + 1;
     cwidth *widths = alloc(MAX_CHAR * sizeof(cwidth) * MAX_CHAR);
     cwidth *cw = widths;
-    int x, y;
+    unsigned int x, y;
     XCharStruct *c = info->per_char;
     int chrs = 0;
-    int def_b1 = info->default_char / 256;
-    int def_b2 = info->default_char % 256;
+    unsigned int def_b1 = info->default_char / 256;
+    unsigned int def_b2 = info->default_char % 256;
     XCharStruct *defchar;
 
     BOUNDS(def_b1, info->min_byte1, info->max_byte1);

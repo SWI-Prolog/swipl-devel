@@ -289,7 +289,7 @@ XCheckIfEvent() removes the  matching  event.   Hence  we  always return
 FALSE, but set a flag if we find the target event.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static Bool
+static int
 is_key_event(Display *dsp, XEvent *ev, XPointer arg)
 { if ( ev->xany.type == KeyPress )
   { int *p = (int *)arg;

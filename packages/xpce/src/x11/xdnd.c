@@ -313,7 +313,7 @@ int xdnd_is_dnd_aware (DndClass * dnd, Window window, int *version, Atom * typel
     if (count > 1) {
 	result = 0;
 	for (t = typelist; *t; t++) {
-	    int j;
+	    unsigned long j;
 	    for (j = 1; j < count; j++) {
 		if (types[j] == *t) {
 		    result = 1;
@@ -340,8 +340,8 @@ void xdnd_set_type_list (DndClass * dnd, Window window, Atom * typelist)
 void xdnd_get_type_list (DndClass * dnd, Window window, Atom ** typelist)
 {
     Atom type, *a;
-    int format, i;
-    unsigned long count, remaining;
+    int format;
+    unsigned long i, count, remaining;
     unsigned char *data = NULL;
 
     *typelist = 0;
@@ -421,8 +421,8 @@ void xdnd_set_actions (DndClass * dnd, Window window, Atom * actions, char **des
 int xdnd_get_actions (DndClass * dnd, Window window, Atom ** actions, char ***descriptions)
 {
     Atom type, *a;
-    int format, i;
-    unsigned long count, dcount, remaining;
+    int format;
+    unsigned long i, count, dcount, remaining;
     unsigned char *data = 0, *r;
 
     *actions = 0;
