@@ -192,7 +192,13 @@ findExecutable(const char *module, char *exe)
 
   if ( module )
   { if ( !(hmod = GetModuleHandle(module)) )
-      hmod = GetModuleHandle("libpl.dll");
+    { hmod = GetModuleHandle("libpl.dll");
+      DEBUG(0,
+	    Sdprintf("Warning: could not find module from \"%s\"\n"
+		     "Warning: Trying %s to find home\n",
+		     module,
+		     hmod ? "\"LIBPL.DLL\"" : "executable"));
+    }
   } else
     hmod = NULL;
 

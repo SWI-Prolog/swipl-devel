@@ -7,6 +7,11 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: plld.exe -dll option to create a DLL with Prolog embedded into it.
+
+  * ADDED/FIXED/MODIFIED: Windows: PL_initialise() can now be passed the
+    name of a DLL that has a state attached.  Alan Baljeu.
+
   * FIXED: int->float conversions reading large integers.  Anjo Anjewierden.
 
   * MODIFIED: PL_get_chars() and friends always return floats in a format

@@ -97,7 +97,10 @@ typedef struct
   } cmdline;
 
   struct
-  { char *	executable;		/* running executable */
+  { char *	executable;		/* Running executable */
+#ifdef __WIN32__
+    char *	module;			/* argv[0] module passed */
+#endif
   } paths;
 
   struct

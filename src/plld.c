@@ -37,6 +37,7 @@ embedded application.
 #ifdef WIN32
 #include <process.h>
 #include <io.h>
+#define off_t long
 
 #define popen _popen
 #define pclose _pclose
@@ -198,6 +199,9 @@ static int nostate = FALSE;		/* do not make a state */
 static int nolink = FALSE;		/* do not link */
 static int shared = FALSE;		/* -shared: make a shared-object/DLL */
 static char *soext;			/* extension of shared object */
+#ifdef WIN32
+static int mkdll = FALSE;		/* -dll: make Windows DLL */
+#endif
 
 static int verbose = TRUE;		/* verbose operation */
 static int fake = FALSE;		/* don't really do anything */
@@ -573,6 +577,9 @@ usage()
 	  "usage: %s -help\n"
 	  "       %s [options] inputfile ...\n"
 	  "       %s -shared -o out inputfile ...\n"
+#ifdef WIN32
+	  "       %s -dll -o out inputfile ...\n"
+#endif
 	  "       %s -E cppargument ...\n"
 	  "\n"
 	  "options:\n"
@@ -589,7 +596,10 @@ usage()
 	  "\n"
 	  "       -c               only compile C/C++ files, do not link\n"
 	  "       -nostate         just relink the kernel\n"
-	  "       -shared          link to shared object or DLL\n"
+	  "       -shared          create target for load_foreign_library/2\n"
+#ifdef WIN32
+	  "       -dll             embed Prolog in a DLL\n"
+#endif
 	  "       -fpic            compile small position-independent code\n"
 	  "       -fPIC            compile large position-independent code\n"
 	  "\n"
@@ -654,6 +664,11 @@ parseOptions(int argc, char **argv)
       appendArgList(&cppoptions, opt);
     } else if ( streq(opt, "-nostate") ) 	/* -nostate */
     { nostate = TRUE;
+#ifdef WIN32
+    } else if ( streq(opt, "-dll") )		/* -dll */
+    { mkdll = TRUE;
+      appendArgList(&ldoptions, "/DLL");
+#endif
     } else if ( streq(opt, "-shared") )		/* -shared */
     { shared = TRUE;
       nostate = TRUE;
@@ -855,7 +870,7 @@ fillDefaultOptions()
 #endif
 #if defined(WIN32) || defined(__CYGWIN32__)
 /* Saved states have the .exe extension under Windows */
-  replaceExtension(pltmp, "exe", tmp);
+  replaceExtension(pltmp, mkdll ? "dll" : "exe", tmp);
   free(pltmp);
   pltmp = strdup(tmp);
 #endif
@@ -1100,7 +1115,7 @@ exportlibdirs()
 
 void
 linkBaseExecutable()
-{ char *cout = (nostate ? out : ctmp);
+{ char *cout = out;
 
 #ifdef WIN32
 { char tmp[MAXPATHLEN];
@@ -1123,12 +1138,12 @@ linkBaseExecutable()
 #endif
 
   if ( !nostate )
-  { appendArgList(&tmpfiles, ctmp);	/* register for deletion */
+  { 
 #ifdef WIN32
-    {					/* schedule .exp file for deletion */
-      char buf[MAXPATHLEN];
-      appendArgList(&tmpfiles, replaceExtension(ctmp, "exp", buf));
-      appendArgList(&tmpfiles, replaceExtension(ctmp, "lib", buf));
+    if ( !mkdll )
+    { char buf[MAXPATHLEN];
+      appendArgList(&tmpfiles, replaceExtension(cout, "exp", buf));
+      appendArgList(&tmpfiles, replaceExtension(cout, "lib", buf));
     }
 #endif
   }
@@ -1310,6 +1325,31 @@ copy_fd(int i, int o)
 }
 
 
+#ifdef WIN32
+void
+saveExportLib()
+{ char ibuf[MAXPATHLEN];
+  char obuf[MAXPATHLEN];
+  char *ilib, *olib;
+
+  ilib = replaceExtension(ctmp, "lib", ibuf);
+  olib = replaceExtension(out, "lib", obuf);
+  
+  if ( verbose )
+  { printf("\tren \"%s\" \"%s\"\n", ilib, olib);
+  }
+
+  if ( !fake )
+  { if ( rename(ilib, olib) != 0 )
+    { fprintf(stderr, "Could not rename export lib %s to %s: %s\n",
+	      ilib, olib, oserror());
+      error(1);
+    }
+  }
+}
+#endif /*WIN32*/
+
+
 void
 createOutput()
 { int ifd, ofd = -1;
@@ -1317,25 +1357,21 @@ createOutput()
   if ( verbose )
   {
 #ifdef WIN32
-    printf("\tcopy /b %s+%s %s\n", ctmp, pltmp, out);
+    printf("\tcopy /b %s+%s %s\n", out, pltmp, out);
 #else
-    printf("\tcat %s %s > %s\n", ctmp, pltmp, out);
+    printf("\tcat %s >> %s\n", pltmp, out);
 #endif
   }
 
   if ( !fake )
-  { if ( (ofd = open(out, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY, 0666)) < 0 )
+  { if ( (ofd = open(out, O_WRONLY|O_BINARY, 0666)) < 0 )
     { fprintf(stderr, "Could not open %s: %s\n", out, oserror());
       error(1);
     }
-    if ( (ifd = open(ctmp, O_RDONLY|O_BINARY)) < 0 )
-    { close(ofd);
-      remove(out);
-      fprintf(stderr, "Could not open %s: %s\n", ctmp, oserror());
+    if ( lseek(ofd, 0, SEEK_END) == (off_t)-1 )
+    { fprintf(stderr, "Could not seek to end of %s: %s\n", out, oserror());
       error(1);
     }
-    copy_fd(ifd, ofd);
-    close(ifd);
     if ( (ifd = open(pltmp, O_RDONLY|O_BINARY)) < 0 )
     { close(ofd);
       remove(out);
@@ -1361,7 +1397,7 @@ createOutput()
 #else
       if ( chmod(out, 0777 & ~mask) != 0 )
 #endif
-      { fprintf(stderr, "Could make %s executable: %s\n", out, oserror());
+      { fprintf(stderr, "Could not make %s executable: %s\n", out, oserror());
 	error(1);
       }
     }

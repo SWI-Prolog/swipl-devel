@@ -244,6 +244,7 @@ initPaths()
   systemDefaults.home	     = findHome(symbols);
 
 #ifdef __WIN32__			/* we want no module but the .EXE */
+  GD->paths.module	     = store_string(symbols);
   symbols = findExecutable(NULL, plp);
   DEBUG(2, Sdprintf("Executable: %s\n", symbols));
 #endif
@@ -506,9 +507,17 @@ openResourceDB(int argc, char **argv)
   char tmp[MAXPATHLEN];
   int n;
 
-  if ( !GD->bootsession && 
-       (rc = rc_open_archive(GD->paths.executable, flags)) )
-    return rc;
+  if ( !GD->bootsession )
+  { 
+#ifdef __WIN32__
+    if ( GD->paths.module &&
+	 !streq(GD->paths.module, GD->paths.executable) &&
+	 (rc = rc_open_archive(GD->paths.module, flags)) )
+      return rc;
+#endif
+    if ( (rc = rc_open_archive(GD->paths.executable, flags)) )
+      return rc;
+  }
   
   for(n=0; n<argc-1; n++)
   { if ( argv[n][0] == '-' && argv[n][2] == EOS ) /* -? */
