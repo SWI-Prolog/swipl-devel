@@ -307,12 +307,20 @@ tools.
 X = @graphical_class/class.
 \end{code}
 
-#class class_stub "class_stub(name, super, summary)"
-Class \class{class_stub} is an entry in the class-hierarchy, that is not
-a class itself.  Whenever this class is referenced, it will execute an
-associated code object to make the real class.  This mechanism is obsolete
-as just-in-time creation of classes is now based on exceptions.  See
-pce_autoload/2.
+#class class_variable "class_variable(class, name, default, type, summary)"
+
+A \class{class_variable} provides can be used to describe class
+properties as well as to provide access to the \product{}
+\file{Defaults} database.  Typically, class-variables are defined
+similar to instance-variables in the \product{}/Prolog class definition:
+
+\begin{code}
+:- pce_begin_class(title_text, text).
+
+class_variable(font, font, huge, "Default font for titles").
+
+...
+\end{code}
 
 #class click_gesture "click_gesture(button, mod, multi, execute, preview, cancel)"
 Class \class{click_gesture} is a \class{recogniser} that parses button-events
@@ -463,13 +471,6 @@ can parse various textual representations into date objects.
 	new(date)?string).
 It is now "Tue Jan 30 14:07:05 1996"
 \end{code}
-
-#class delegate_variable "delegate_variable(name, type, access, wrapper)"
-A \class{delegate_variable} is a subclass of \class{variable}, a class
-instance-variable that provides a wrapper around message delegation, so
-the original receiver of the message can `guide' the delegation process.
-Used internally.  See also delegate_to/1 (\chapref{udc}) and
-`class->delegate'.
 
 #class device "device()"
 A graphical \class{device} is a \idx{compound graphical}.  It is the
@@ -896,6 +897,14 @@ send(Dialog, append, label(reporter)),
 ...
 \end{code}
 
+#class layout_manager "layout_manager()"
+#class layout_interface "layout_interface(graphical)"
+
+A \class{layout_manager} may be attached to a graphical \class{device}
+(including a \class{window}) to manage the layout of graphicals
+displayed on the device, as well as painting the background of the
+device.  See \class{table} for a typical example.
+
 #class line "line(start_x, start_y, end_x, end_y, arrows)"
 A \class{line} is a straight line-segment with optional arrows,
 thickness and texture. Class \class{path} implements a `multi-line'.
@@ -1313,6 +1322,27 @@ Outline version of the \class{resize_gesture}, often used to resize
 objects that are expensive to resize, such as \class{editor} or
 \class{list_browser}.
 
+#class resource "resource(name, class)"
+
+A \class{resource} is data associated with the application.  It is most
+commonly used to get access to image-data.  Example:
+
+\begin{code}
+resource(splash, image, image('splash.gif')).
+
+show_splash_screen :-
+	new(W, window),
+	send(W, kind, popup),		% don't show border
+	new(I, image(resource(splash))),
+	get(I, size, size(W, H)),
+	send(W, size, size(W, H)),
+	send(W, display, bitmap(I)),
+	send(W, open_centered),
+	send(timer(2), delay),
+	send(W, destroy).
+	
+\end{code}
+
 #class scroll_bar "scroll_bar(object, orientation, message)"
 A \class{scroll_bar} is used to indicate and control the visible part
 of a large object viewed through a window.  Though possible, scroll_bars
@@ -1461,10 +1491,55 @@ displayed on a \class{dialog}.  Skeleton:
 Defines a stack of tagged sub-dialogs (\class{tab} objects) that can
 be displayed on a \class{dialog}.  See \class{tab} for an example.
 
-#class table "table(names, keys)"
-A \class{table} defines a multi-column table data object that can have
-one or more indexed {\em key} fields. They are (infrequently) used for
-storing complex relational data as \product{} objects.
+#class table "table()"
+A \class{table} defines a two-dimensional tabular layout of graphical
+objects on a graphical \class{device}.  The functionality of \product{}
+tables is modelled after HTML-3.  Example:
+
+\begin{code}
+simple_table :-
+	new(P, picture),
+	send(P, layout_manager, new(T, table)),
+	send(T, border, 1),
+	send(T, frame, box),
+	send(T, append, text('row1/col1')),
+	send(T, append, text('row1/col2')),
+	send(T, next_row),
+	send(T, append,
+	     new(C, table_cell(text(spanned, font := bold)))),
+	send(C, col_span, 2),
+	send(C, halign, center),
+	send(P, open).
+\end{code}
+
+#class table_cell "table_cell(graphical)"
+
+Provides the \class{layout_interface} to a \class{table}.  Table cells
+are automatically created if a graphical is appended to a \class{table}.
+Explicit creation can be used to manipulate spanning, background and
+other parameters of the cell.
+
+#class table_column "table_column()"
+#class table_row "table_row()"
+#class table_slice "table_slice()"
+
+These classes are used for storing row- and column information in
+\class{table} objects.  They are normally created implicitly by the
+table.  References to these objects can be used to change attributes
+or delete rows or columns from the table.  Example:
+
+\begin{code}
+	...,
+	get(Table, column, 2, @on, Column),
+	send(Column, halign, center),
+	...
+\end{code}
+
+
+#class relation_table "table(names, keys)"
+A \class{relation_table} defines a multi-column table data object that
+can have one or more indexed {\em key} fields. They are (infrequently)
+used for storing complex relational data as \product{} objects.
 
 #class text "text(string, format, font)"
 Graphical representing a string in a specified font.  Class text
@@ -1619,16 +1694,6 @@ that define the visual consists-of hierarchy as shown by the
 ->report mechanism as described in \secref{report} and defines
 `visual ->destroy' to ensure destruction of a sub-tree of the
 visual consists-of hierarchy.
-
-#class vmi "vmi(name)"
-Class \class{vmi} is a sub-class of \class{program_object} and defines
-the instances @vmi_new, @vmi_send, @vmi_get and @vmi_free.  This allows
-the tracer methods defined on class \class{program_object} to act upon
-the `virtual machine instructions'.
-
-\begin{code}
-?- send(@vmi_free, trace, @on).
-\end{code}
 
 #class when "when(condition, then, else)"
 Class \class{when} realises a function version of \class{if}. It

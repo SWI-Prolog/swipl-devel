@@ -5,6 +5,17 @@
 \usepackage{xpce}
 \usepackage{html}
 
+\htmloutput{UserGuide}				% Output directory
+\htmlmainfile{Title}				% Main document file
+\bodycolor{white}
+\linkimage{home}{home.gif}			% Images for links
+\linkimage{index}{yellow_pages.gif}
+\linkimage{contents}{index.gif}
+\linkimage{up}{up.gif}
+\linkimage{previous}{prev.gif}
+\linkimage{next}{next.gif}
+\linkimage{summary}{info.gif}
+
 \newcommand{\product}{{\sc xpce}}
 \newcommand{\productpl}{{\sc xpce/p}rolog}
 \newcommand{\productversion}{4.9.3}

@@ -19,7 +19,7 @@ PWTEX=		pwusg.tex pwinfo.tex $(COMMON)
 
 LOGO=	figs/uva.eps figs/swi.eps
 
-all:	$(XPCETEX) $(LOGO)
+all:	$(XPCETEX) $(LOGO) figs/class
 	-$(CORRECTINDEX) xpceusg.idx
 	-$(MAKEINDEX) xpceusg.idx
 	touch xpceusg.ind
@@ -44,6 +44,8 @@ figs/uva.eps:	../../TeX/figs/uva.eps
 
 figs/swi.eps:	../../TeX/figs/swi.eps
 	cp ../../TeX/figs/swi.eps figs/swi.eps
+figs/class:
+	mkdir -p $@
 
 $(TEX):	$(DOCTOTEX)
 
