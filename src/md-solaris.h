@@ -49,4 +49,3 @@ NOTE:	/lri2/jan/{lib,include} hold the GNU readline library.  Modify
 #define OPERATING_SYSTEM	"solaris"
 #define MACHINE_ID		"solaris"
 
-#define index(s, c)		strchr(s, c)

@@ -104,6 +104,4 @@ NOTE:	I've been informedby Irek Karkowski (irek@donau.et.tudelft.nl)
 			/* Interfaces */
 #define O_PCE 			0
 
-#define index(s, c)		strchr(s, (int)(c))
-
 #endif /* MAKE_SECTION */

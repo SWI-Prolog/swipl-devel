@@ -983,7 +983,7 @@ initExpand()
     while(*cpaths)
     { char *e;
 
-      if ( (e = index(cpaths, ':')) )
+      if ( (e = strchr(cpaths, ':')) )
       { int l = e-cpaths;
 
 	strncpy(buf, cpaths, l);
@@ -2366,7 +2366,7 @@ char *program;
        isDriveRelativePath(program) ||
 #endif /* OS2 */
        isRelativePath(program) ||
-       index(program, '/') )
+       strchr(program, '/') )
   { if ( (e = okToExec(program)) != NULL )
     { strcpy(fullname, e);
       

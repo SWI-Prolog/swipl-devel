@@ -299,7 +299,8 @@ word		pl_profile P((Word, Word)),
 void		stopItimer P((void));
 
 		/* pl-read.c */
-word		pl_raw_read P((Word)),
+word		charpToNumber P((char *)),
+		pl_raw_read P((Word)),
 		pl_read_variables P((Word, Word)),
 		pl_read_variables3 P((Word, Word, Word)),
 		pl_read P((Word)),

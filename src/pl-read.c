@@ -642,6 +642,28 @@ typedef union
 
 forwards int scan_number P((char **, int, number *));
 
+word
+charpToNumber(s)
+char *s;
+{ number n;
+  int type = scan_number(&s, 10, &n);
+
+  if ( *s == EOS )
+  { switch(type)
+    { case V_ERROR:
+	fail;
+      case V_INT:
+	return consNum(n.i);
+      case V_REAL:
+      default:
+	return globalReal(n.r);
+    }
+  }
+
+  fail;
+}
+
+
 static int
 scan_number(s, b, n)
 char **s;
@@ -1080,7 +1102,7 @@ Word term;
 	    goto exit;
 	  break;
 	case T_PUNCTUATION:
-	{ if ( stop != NULL && index(stop, token->value.character) )
+	{ if ( stop != NULL && strchr(stop, token->value.character) )
 	    goto exit;
 	}
       }

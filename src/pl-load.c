@@ -730,7 +730,7 @@ Word file, entry, options, libraries, size;
    if (*sfile != '\0') 
       do {
         object_filenames[stringno] = sfile; /* sub-string */
-        tmp = index(sfile,' '); /* try to find a space */
+        tmp = strchr(sfile,' '); /* try to find a space */
         if (tmp != (char *)0) /* space found */
         {  *tmp = '\0'; /* terminate previous string (replace ' ' by '\0') */
            stringno++;

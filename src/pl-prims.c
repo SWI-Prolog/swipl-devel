@@ -1062,15 +1062,15 @@ Word atom, string;
 
   if (isVar(*atom) )
   { register char *q;
-    int n;
 
     if ((s = listToString(*string)) == (char *)NULL)
       return warning("name/2: 2nd argument is not a string");
     if ( isDigit(*s) )
-    { for(q=s; *q && isDigit(*q); q++) ;
-      if (*q == EOS)
-      { n = atoi(s);
-	return unifyAtomic(atom, consNum(n));
+    { word n;
+
+      for(q=s; *q && isDigit(*q); q++) ;
+      if ( *q == EOS && (n = charpToNumber(s)) )
+      { return unifyAtomic(atom, n);
       }
     }
     return unifyAtomic(atom, lookupAtom(s) );
