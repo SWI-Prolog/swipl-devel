@@ -119,6 +119,13 @@ show_location(PB, Ev:event) :->
 	    send(PB, report, status, Text)
 	).
 
+anchor(PB, Anchor:name, Reply:tuple) :<-
+	"Find tuple(Box, Index) defining this anchor"::
+	get(PB, find,
+	    and(message(@arg1, instance_of, anchor_box),
+		@arg1?identifier == Anchor),
+	    Reply).
+
 url(PB, URL:name) :<-
 	"Represented URL"::
 	get(PB, window, Window),

@@ -89,6 +89,8 @@ blank_mode(Mode,     Mode).
 
 %	Blank handling
 
+action(Action, PB, Mode) :-
+	doc:action(Action, PB, Mode), !.
 action(ignorespaces, _, Mode) :-
 	send(Mode, ignore_blanks, leading).
 action(space(SpaceMode), _, Mode) :-
@@ -98,7 +100,10 @@ action(pre(Text), PB, Mode) :-
 
 append_pre([], _, _).
 append_pre([H|T], PB, Mode) :-
-	append_pre_atom(H, PB, Mode),
+	(   atomic(H)
+	->  append_pre_atom(H, PB, Mode)
+	;   emit([H], PB, Mode)
+	),
 	append_pre(T, PB, Mode).
 
 append_pre_atom(H, PB, Mode) :-
@@ -116,8 +121,6 @@ append_pre_atom(H, PB, Mode) :-
 
 %	Paragraphs
 
-action(Action, PB, Mode) :-
-	doc:action(Action, PB, Mode), !.
 action(par, PB, Mode) :-		% \par
 	action(parskip, PB, Mode),
 	action(parindent, PB, Mode).

@@ -383,15 +383,28 @@ file_filter(Ext, tuple(Name, Pattern)) :-
 file_filter(Ext, Pattern) :-
 	atom_concat('*.', Ext, Pattern).
 
-%	Allow the user to add rules to this
+%	Allow the user to add rules to this predicate, showing proper
+%	names to the user rather than patterns.  The collection here
+%	is rather arbitrary ...  Maybe we should read the registery
+%	for defined filetypes ...
 
 :- multifile
 	file_type/2.
 
-file_type(pl, 'Prolog file').
-file_type(pd, 'PceDraw file').
-file_type(ps, 'PostScript file').
-file_type(eps, 'Encapsulated PostScript file').
+file_type(pl,	'Prolog files').
+file_type(pd,	'PceDraw files').
+file_type(ps,	'PostScript files').
+file_type(eps,	'Encapsulated PostScript files').
+file_type(txt,	'Text files').
+file_type(jpeg,	'JPEG images').
+file_type(gif,	'GIF images').
+file_type(xpm,	'XPM images').
+file_type(ico,	'Icon files').
+file_type(cur,	'Cursor files').
+file_type(html,	'HTML documents').
+file_type(htm,	'HTML documents').
+file_type(xml,	'XML documents').
+file_type(sgml,	'SGML documents').
 
 :- pce_end_class.
 

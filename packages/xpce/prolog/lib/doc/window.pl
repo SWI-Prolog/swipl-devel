@@ -75,9 +75,7 @@ goto_label(DW, Label:name) :->
 	"Goto named label in current document"::
 	send(DW?decoration, compute),		% so layout is fine
 	get(DW, parbox, PB),
-	(   get(PB, find, and(message(@arg1, instance_of, anchor_box),
-			      @arg1?identifier == Label),
-		tuple(PB2, Index))
+	(   get(PB, anchor, Label, tuple(PB2, Index))
 %	    get(PB2, box, Index, OpenAnchor),
 %	    get(OpenAnchor, hypered, close, CloseAnchor)
 	->  get(PB2, window, Window),
