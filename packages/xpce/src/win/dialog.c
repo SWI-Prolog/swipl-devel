@@ -103,9 +103,10 @@ ComputeDesiredSizeDialog(Dialog d)
       h = sz->h;
     } else
     { Area a = d->bounding_box;
+      Size border = (notDefault(d->border) ? d->border : d->gap);
 
-      w = toInt(valInt(a->x) + valInt(a->w) + valInt(d->gap->w));
-      h = toInt(valInt(a->y) + valInt(a->h) + valInt(d->gap->h));
+      w = toInt(valInt(a->x) + valInt(a->w) + valInt(border->w));
+      h = toInt(valInt(a->y) + valInt(a->h) + valInt(border->h));
     }
 
     if ( given == NAME_width )

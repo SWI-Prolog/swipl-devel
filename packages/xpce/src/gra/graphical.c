@@ -2316,6 +2316,7 @@ typedef struct
   iarea		area;			/* its current area */
   unsigned 	update : 1;		/* update position */
   unsigned	moved : 1;		/* we moved it */
+  unsigned	fixed : 1;		/* do not move this one */
 } lg_object;
 
 
@@ -2386,7 +2387,8 @@ layoutGraphical(Graphical gr,
 		Int  argC4,		/* addaption-speed */
 		Int  argC5,		/* max iterations */
 		Area area,		/* Bounce objects in this area */
-		Chain work)		/* network to layout */
+		Chain work,		/* network to layout */
+		Chain move_only)	/* only move these */
 { lg_relation **r;	/* relation matrix */
   lg_object *objects;	/* object array */
   lg_object *op;	/* current object */
@@ -2440,6 +2442,13 @@ layoutGraphical(Graphical gr,
     op->area.h = valInt(gr->area->h);
     op->moved  = TRUE;
     op->update = FALSE;
+    if ( notDefault(move_only) )
+    { if ( memberChain(move_only, gr) )
+	op->fixed = FALSE;
+      else
+	op->fixed = TRUE;
+    } else
+      op->fixed  = FALSE;
   }
   if ( isDefault(work) )
     doneObject(network);
@@ -2510,7 +2519,12 @@ layoutGraphical(Graphical gr,
 
     moved = FALSE;
     for (i=0, op=objects; i<n; i++, op++)
-    { dx = dy = 0;
+    { if ( op->fixed )
+      { op->moved = FALSE;
+	continue;
+      }
+
+      dx = dy = 0;
       for (j=0; j<n; j++)
       { dx += r[i][j].fx;
 	dy += r[i][j].fy;
@@ -3183,7 +3197,8 @@ static char *T_layout[] =
 	{ "attract=[real]", "nominal=[real]", "repel=[real]",
 	  "adapt=[int]", "iterations=[int]",
 	  "area=[area]",
-	  "network=[chain]"
+	  "network=[chain]",
+	  "move_only=[chain]"
 	};
 static char *T_resize[] =
 	{ "factor_x=real", "factor_y=[real]", "origin=[point]" };
@@ -3395,7 +3410,7 @@ static senddecl send_graphical[] =
      NAME_layout, "Dialog item integration"),
   SM(NAME_below, 1, "graphical*", belowGraphical,
      NAME_layout, "Put me below argument"),
-  SM(NAME_layout, 7, T_layout, layoutGraphical,
+  SM(NAME_layout, 8, T_layout, layoutGraphical,
      NAME_layout, "Make graph-layout for connected graphicals"),
   SM(NAME_left, 1, "graphical*", leftGraphical,
      NAME_layout, "Put me left of argument"),
