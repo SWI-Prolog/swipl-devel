@@ -3722,43 +3722,55 @@ without testing anything.
 If `Mode' is \const{write} or \const{append}, this predicate also succeeds
 if the file does not exist and the user has write-access to the
 directory of the specified location.
+
     \predicate{exists_file}{1}{+File}
 Succeeds when \arg{File} exists. This does not imply the user has read
 and/or write permission for the file.
+
     \predicate{file_directory_name}{2}{+File, -Directory}
 Extracts the directory-part of \arg{File}. The resulting \arg{Directory}
 name ends with the directory separator character \chr{/}. If \arg{File}
 is an atom that does not contain any directory separator characters, the
 empty atom \const{''} is returned.  See also file_base_name/2.
+
     \predicate{file_base_name}{2}{+File, -BaseName}
 Extracts the filename part from a path specification. If \arg{File} does
 not contain any directory separators, \arg{File} is returned.
+
     \predicate{same_file}{2}{+File1, +File2}
 Succeeds if both filenames refer to the same physical file.  That is,
 if \arg{File1} and \arg{File2} are the same string or both names exist
 and point to the same file (due to hard or symbolic links and/or
 relative vs. absolute paths).
+
     \predicate{exists_directory}{1}{+Directory}
 Succeeds if \arg{Directory} exists. This does not imply the user has read,
 search and or write permission for the directory.
+
     \predicate{delete_file}{1}{+File}
 Remove \arg{File} from the file system.
+
     \predicate{rename_file}{2}{+File1, +File2}
 Rename \arg{File1} into \arg{File2}. Currently files cannot be moved
 across devices.
+
     \predicate{size_file}{2}{+File, -Size}
 Unify \arg{Size} with the size of \arg{File} in characters.
+
     \predicate{time_file}{2}{+File, -Time}
 Unify the last modification time of \arg{File} with \arg{Time}.
 \arg{Time} is a floating point number expressing the seconds elapsed
 since Jan~1, 1970. See also convert_time/[2,8] and get_time/1.
+
     \predicate{absolute_file_name}{2}{+File, -Absolute}
-Expand Unix file specification into an absolute path. User home
-directory expansion (\file{~} and \file{~<user>}) and
-variable expansion is done. The absolute path is canonised: references
-to \file{.} and \file{..} are deleted. SWI-Prolog uses absolute file names to
-register source files independent of the current working directory. See
-also absolute_file_name/3.
+Expand a local file-name into an absolute path. The absolute path is
+canonised: references to \file{.} and \file{..} are deleted. This
+predicate ensures that expanding a file-name it returns the same
+absolute path regardless of how the file is addressed. SWI-Prolog uses
+absolute file names to register source files independent of the current
+working directory. See also absolute_file_name/3. See also
+absolute_file_name/3 and expand_file_name/2.
+
     \predicate{absolute_file_name}{3}{+Spec, +Options, -Absolute}
 Converts the given file specification into an absolute path.
 \arg{Option} is a list of options to guide the conversion:
