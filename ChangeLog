@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.4.1 (September 28, 2004)
+==================================
+
   * FIXED: nb_setarg/3 using compound terms.
 
   * FIXED: Attributes should influence the standard order of terms for
