@@ -2574,7 +2574,8 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	}
 
         if ( debugstatus.debugging )
-	{ for( ; FR && FR > catchfr; FR = FR->parent )
+	{ blockGC(PASS_LD1);
+	  for( ; FR && FR > catchfr; FR = FR->parent )
 	  { Choice ch = findStartChoice(FR, LD->choicepoints);
 
 	    if ( ch )
@@ -2600,15 +2601,20 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 		  if ( false(DEF, DYNAMIC) )
 		    FR->generation = GD->generation;
 #endif
+  		  unblockGC(PASS_LD1);
 		  goto retry_continue;
 	      }
 
 	      *valTermRef(LD->exception.pending) = 0;
 	    }
 
+	    exception_term = 0;		/* save exception over call-back */
 	    discardChoicesAfter(FR PASS_LD);
 	    discardFrame(FR, FINISH_EXCEPT PASS_LD);
+	    *valTermRef(exception_bin) = *catcher;
+	    exception_term = exception_bin;
 	  }
+          unblockGC(PASS_LD1);
 	} else
 #endif /*O_DEBUGGER*/
 	{ for( ; FR && FR > catchfr; FR = FR->parent )

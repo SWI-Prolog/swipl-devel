@@ -351,6 +351,9 @@ Do the Prolog trace interception.
   action = traceInterception(frame, bfr, port, PC);
   if ( action >= 0 )
   { unblockGC(PASS_LD1);
+    if ( action == ACTION_ABORT )
+      pl_abort(ABORT_NORMAL);		/* return it? */
+
     return action;
   }
 
@@ -992,6 +995,10 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 	  rval = ACTION_RETRY;
 	else if ( a == ATOM_ignore )
 	  rval = ACTION_IGNORE;
+	else if ( a == ATOM_abort )
+	  rval = ACTION_ABORT;
+	else
+	  PL_warning("Unknown trace action: %s", stringAtom(a));
       } else if ( PL_is_functor(rarg, FUNCTOR_retry1) )
       { LocalFrame fr;
 	term_t arg = PL_new_term_ref();

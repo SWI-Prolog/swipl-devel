@@ -11,7 +11,7 @@
 
 
 
-A abort			"$abort"
+A abort			"abort"
 A aborted		"$aborted"
 A abs			"abs"
 A access		"access"

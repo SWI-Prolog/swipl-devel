@@ -1834,6 +1834,7 @@ Tracer communication declarations.
 #define ACTION_FAIL	2
 #define ACTION_IGNORE	3
 #define ACTION_AGAIN	4
+#define ACTION_ABORT	5		/* only for Prolog interception */
 
 #define CALL_PORT	0x001		/* port masks */
 #define EXIT_PORT	0x002

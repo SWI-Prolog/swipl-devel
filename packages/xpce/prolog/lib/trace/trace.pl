@@ -80,8 +80,7 @@ map_action(fail, _, fail) :-
 map_action(nodebug, _, nodebug).
 map_action(leap, _, continue) :-
 	notrace.
-map_action(abort, _, continue) :-
-	abort.
+map_action(abort, _, abort).
 map_action(halt, _, continue) :-
 	halt.
 map_action(finish, _, continue) :-

@@ -290,7 +290,7 @@ prologToplevel(volatile atom_t goal)
 
     if ( aborted )
     { aborted = FALSE;
-      gn = ATOM_abort;
+      gn = PL_new_atom("$abort");
     } else
       gn = goal;
 

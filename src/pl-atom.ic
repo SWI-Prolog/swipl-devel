@@ -1,4 +1,4 @@
-ATOM("$abort"),
+ATOM("abort"),
 ATOM("$aborted"),
 ATOM("abs"),
 ATOM("access"),
