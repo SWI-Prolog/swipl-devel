@@ -2,6 +2,10 @@
 			   ==============
 
 
+* FIXED: Bug#7: Get rid of maximum rows/columns in a dialog window (used
+  to be 100/100).  Holger Kanwischer.
+
+
 VERSION 6.5.4, distributed with SWI-Prolog 5.5.4
 ================================================
 

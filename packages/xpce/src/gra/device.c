@@ -1171,8 +1171,8 @@ computeFormatDevice(Device dev)
 
 static HashTable PlacedTable = NULL;	/* placed objects */
 
-#define MAX_L_ROWS	100
-#define MAXCOLLUMNS	100
+static int max_rows    = 20;		/* will be expanded as needed */
+static int max_columns = 10;		/* same */
 
 					/* flags values */
 #define DLF_STRETCH_TO_BB	0x1	/* Stretch-right to BB */
@@ -1198,18 +1198,21 @@ static unit empty_unit = { (Graphical) NIL,
 typedef struct _matrix
 { int cols;				/* actual size */
   int rows;
-  unit *units[MAXCOLLUMNS];
+  unit **units;
 } matrix, *Matrix;
 
 
 #define IsPlaced(gr)  (getMemberHashTable(PlacedTable, gr) == ON)
 #define SetPlaced(gr) (appendHashTable(PlacedTable, gr, ON))
 
-static void
+static status
 shift_x_matrix(Matrix m, int *max_x, int *max_y)
 { int x, y;
 
-  m->units[*max_x] = alloc(sizeof(unit) * MAX_L_ROWS);
+  if ( *max_x + 1 > max_columns )
+    fail;
+
+  m->units[*max_x] = alloc(sizeof(unit) * max_rows);
   for(y=0; y < *max_y; y++)
   { for(x = *max_x; x > 0; x--)
       m->units[x][y] = m->units[x-1][y];
@@ -1218,12 +1221,16 @@ shift_x_matrix(Matrix m, int *max_x, int *max_y)
   }
 
   (*max_x)++;
+  succeed;
 }
 
 
-static void
+static status
 shift_y_matrix(Matrix m, int *max_x, int *max_y)
 { int x, y;
+
+  if ( *max_y + 1 > max_rows )
+    fail;
 
   for(x=0; x < *max_x; x++)
   { for(y = *max_y; y > 0; y--)
@@ -1233,29 +1240,38 @@ shift_y_matrix(Matrix m, int *max_x, int *max_y)
   }
 
   (*max_y)++;
+  succeed;
 }
 
 
-static void
+static status
 expand_x_matrix(Matrix m, int *max_x, int *max_y)
 { int y;
 
-  m->units[*max_x] = alloc(sizeof(unit) * MAX_L_ROWS);
+  if ( *max_x + 1 > max_columns )
+    fail;
+
+  m->units[*max_x] = alloc(sizeof(unit) * max_rows);
   for(y=0; y < *max_y; y++)
     m->units[*max_x][y] = empty_unit;
 
   (*max_x)++;
+  succeed;
 }
 
 
-static void
+static status
 expand_y_matrix(Matrix m, int *max_x, int *max_y)
 { int x;
+
+  if ( *max_y + 1 > max_rows )
+    fail;
 
   for(x=0; x < *max_x; x++)
     m->units[x][*max_y] = empty_unit;
 
   (*max_y)++;
+  succeed;
 }
 
 
@@ -1264,7 +1280,7 @@ free_matrix_columns(Matrix m, int max_x)
 { int x;
 
   for(x=0; x<max_x; x++)
-    unalloc(sizeof(unit) * MAX_L_ROWS, m->units[x]);
+    unalloc(sizeof(unit) * max_rows, m->units[x]);
 }
 
 
@@ -1289,10 +1305,10 @@ placeDialogItem(Device d, Matrix m, Graphical i,
 
   DEBUG(NAME_layout, Cprintf("placing %s\n", pp(i)));
 
-  while( x < 0 ) { shift_x_matrix(m, max_x, max_y); x++; }
-  while( y < 0 ) { shift_y_matrix(m, max_x, max_y); y++; }
-  while( x >= *max_x ) expand_x_matrix(m, max_x, max_y); 
-  while( y >= *max_y ) expand_y_matrix(m, max_x, max_y); 
+  while( x < 0 ) { TRY(shift_x_matrix(m, max_x, max_y)); x++; }
+  while( y < 0 ) { TRY(shift_y_matrix(m, max_x, max_y)); y++; }
+  while( x >= *max_x ) TRY(expand_x_matrix(m, max_x, max_y)); 
+  while( y >= *max_y ) TRY(expand_y_matrix(m, max_x, max_y)); 
 
   m->units[x][y].item = i;
   m->units[x][y].alignment = get(i, NAME_alignment, EAV);
@@ -1300,13 +1316,13 @@ placeDialogItem(Device d, Matrix m, Graphical i,
     m->units[x][y].alignment = NAME_left;
 
   if ( instanceOfObject((gr = get(i, NAME_below, EAV)), ClassGraphical) )
-    placeDialogItem(d, m, gr, x, y-1, max_x, max_y);
+    TRY(placeDialogItem(d, m, gr, x, y-1, max_x, max_y));
   if ( instanceOfObject((gr = get(i, NAME_above, EAV)), ClassGraphical) )
-    placeDialogItem(d, m, gr, x, y+1, max_x, max_y);
+    TRY(placeDialogItem(d, m, gr, x, y+1, max_x, max_y));
   if ( instanceOfObject((gr = get(i, NAME_left, EAV)), ClassGraphical) )
-    placeDialogItem(d, m, gr, x+1, y, max_x, max_y);
+    TRY(placeDialogItem(d, m, gr, x+1, y, max_x, max_y));
   if ( instanceOfObject((gr = get(i, NAME_right, EAV)), ClassGraphical)  )
-    placeDialogItem(d, m, gr,  x-1, y, max_x, max_y);
+    TRY(placeDialogItem(d, m, gr,  x-1, y, max_x, max_y));
 
   succeed;
 }
@@ -1483,16 +1499,36 @@ adjustDialogItem(Any obj, Int x, Int y, Int w, Int h)
 }
 
 
+static int
+grow_max_matrix(int max_x, int max_y)
+{ if ( max_x >= max_columns )
+    max_columns *= 2;
+  if ( max_y >= max_rows )
+    max_rows *= 2;
+
+  succeed;
+}
+
+
 status
 layoutDialogDevice(Device d, Size gap, Size bb, Size border)
 { matrix m;
-  int x, y, max_x = 0, max_y = 0;
+  int x, y, max_x, max_y;
   int px, py;
   Graphical gr;
   Cell cell;
   int ln;
-  int found = 0;
-  int changed = 1;
+  int found, changed;
+  char *align_flags;
+
+retry:
+  max_x = 0, max_y = 0;
+  found = 0;
+  changed = 1;
+  if ( !(m.units = alloca(sizeof(unit*)*max_columns)) )
+  { Cprintf("Alloca(%d) failed\n", sizeof(unit*)*max_columns);
+    fail;
+  }
 
   if ( isDefault(gap) )
   { PceWindow sw = getWindowGraphical((Graphical) d);
@@ -1519,7 +1555,13 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
   for_cell(cell, d->graphicals)
   { if ( !IsPlaced(cell->value) &&
 	 get(cell->value, NAME_autoAlign, EAV) == ON )
-    { placeDialogItem(d, &m, cell->value, 0, 0, &max_x, &max_y);
+    { if ( !placeDialogItem(d, &m, cell->value, 0, 0, &max_x, &max_y) )
+      { free_matrix_columns(&m, max_x);
+	if ( grow_max_matrix(max_x, max_y) )
+	  goto retry;
+	else
+	  fail;
+      }
       found++;
       break;
     }
@@ -1530,6 +1572,7 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
 
   m.cols = max_x;
   m.rows = max_y;
+  align_flags = alloca(max_y+1);
 
   for(ln = 0; changed && ln < 4; ln++)	/* avoid endless recursion */
   { changed = 0;			/* see whether something changed */
@@ -1537,7 +1580,6 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
     for(x=0; x<max_x; x++)		/* Align labels and values */
     { int lw = -1;
       int vw = -1;
-      int align_flags[MAXCOLLUMNS];
       int chl = FALSE;
       int chv = FALSE;
 
