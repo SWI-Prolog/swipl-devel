@@ -7,20 +7,21 @@
 \subsubsection{Starting SWI-Prolog on Unix} \label{sec:startunix}
 
 By default, SWI-Prolog is installed as `pl', though some administrators
-call it `swipl' or `swi-prolog'. The commandline arguments of SWI-Prolog
-itself and its utility programs are documented using standard Unix
-\program{man} pages. SWI-Prolog is normally operated as an interactive
-application simply by starting the program:
+call it `swipl' or `swi-prolog'. The command-line arguments of
+SWI-Prolog itself and its utility programs are documented using standard
+Unix \program{man} pages. SWI-Prolog is normally operated as an
+interactive application simply by starting the program:
 
 \begin{code}
 machine% pl
-% /staff/jan/.plrc compiled, 0.00 sec, 1,016 bytes.
-Welcome to SWI-Prolog (Version 3.2.9)
-Copyright (c) 1993-1998 University of Amsterdam.  All rights reserved.
+% /staff/jan/.plrc compiled 0.00 sec, 1,260 bytes
+Welcome to SWI-Prolog (Version 3.4.0)
+Copyright (c) 1990-2000 University of Amsterdam. 
+Copy policy: GPL-2 (see www.gnu.org)
 
 For help, use ?- help(Topic). or ?- apropos(Word).
 
-?- 
+1 ?- 
 \end{code}
 
 After starting Prolog, one normally loads a program into it using 
@@ -299,10 +300,6 @@ only.
 \section{GNU Emacs Interface}
 
 \index{GNU-Emacs}\index{Emacs}
-Once upon a time, there was port of the Quintus Prolog GNU-Emacs
-package for GNU-Emacs 18.  This package has been dropped from the
-distribution because it didn't work on Emacs 19 and 20.
-
 The default Prolog mode for GNU-Emacs can be activated by adding
 the following rules to your Emacs initialisation file:
 
@@ -318,7 +315,12 @@ the following rules to your Emacs initialisation file:
 ;(setq prolog-indent-width 8)
 \end{code}
 
-If anyone has a better suggestion, please make this public.
+Unfortunately the default Prolog mode of GNU-Emacs is not very good. An
+alternative \file{prolog.el} file for GNU-Emacs 20 is available from
+\url{http://www.freesoft.cz/~pdm/software/emacs/prolog-mode/} and for
+GNU-Emacs 19 from
+\url{http://w1.858.telia.com/~u85810764/Prolog-mode/index.html}
+
 
 \section{Online Help}
 

@@ -3081,11 +3081,14 @@ pattern.
 Equivalent to member/2, but leaves no choice point.
     \predicate{delete}{3}{+List1, ?Elem, ?List2}
 Delete all members of \arg{List1} that simultaneously unify with \arg{Elem} and unify the result with \arg{List2}.
-    \predicate{select}{3}{?List1, ?Elem, ?List2}
-Select an element of \arg{List1} that unifies with \arg{Elem}. \arg{List2} is unified with the list remaining from \arg{List1} after
-deleting the selected element. Normally used with the instantiation
-pattern \arg{+List1, -Elem, -List2}, but can also be used to insert an
-element in a list using \arg{-List1, +Elem, +List2}.
+    \predicate{select}{3}{?Elem, ?List, ?Rest}
+Select \arg{Elem} from \arg{List} leaving \arg{Rest}.  It behaves as
+member/2, returning the remaining elements in \arg{Rest}.  Note that
+besides selecting elements from a list, it can also be used to insert
+elements.%
+    \bug{Upto SWI-Prolog 3.3.10, the definition of this predicate was
+	 not according to the de-facto standard. The first two arguments
+	 were in the wrong order.}
     \predicate{nth0}{3}{?Index, ?List, ?Elem}
 Succeeds when the \arg{Index}-th element of \arg{List} unifies with
 \arg{Elem}. Counting starts at 0.

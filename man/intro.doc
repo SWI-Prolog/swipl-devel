@@ -390,6 +390,29 @@ These predicates have been moved to \pllib{quintus}.
 \end{itemlist}
 
 
+\subsection{Version 3.4 Release Notes}
+
+The 3.4 release is a consolidation release. It consolidates the
+improvements and standard conformance of the 3.3 releases.  This
+version is closely compatible with the 3.3 version except for one
+important change:
+
+\begin{itemlist}
+    \item [Argument order in select/3]
+The list-processing predicate select/3 somehow got into a very early
+version of SWI-Prolog with the wrong argument order.  This has been
+fixed in 3.4.0.  The correct order is select(?Elem, ?List, ?Rest).
+
+As select/3 has no error conditions, runtime checking cannot be done.
+To simplify debugging, the library module \pllib{checkselect} will
+print references to select/3 in your source code and install a version
+of select that enters the debugger if select is called and the second
+argument is not a list.
+
+This library can be loaded explicitely or by calling check_old_select/0.
+\end{itemlist}
+
+
 \section{Acknowledgements}
 
 Some small parts of the Prolog code of SWI-Prolog are modified

@@ -1,4 +1,24 @@
+################################################################
 # Make the documentation
+#
+# Building the various versions of the documentation requires
+# a lot of software to be at the right place.  Generally, please
+# pick the required version from the SWI-Prolog home page at
+# http://www.swi.psy.uva.nl/projects/SWI-Prolog/
+#
+# If you insist building it yourself, at least check the following
+#
+#	* Setting of the $(PL) below
+#	* Path to perl in doc2tex
+#	* Installed programs
+#		- latex 2e
+#		- pdflatex
+#		- latex2html from the html subdirectory of Prolog
+#		- gcc (for ccp as well as building modified dvi2tty)
+#
+################################################################
+
+PL=		../linux/pl
 
 CP=		ln -fs
 CCCP=		gcc -E -C -P
@@ -11,7 +31,6 @@ MANUAL=		./MANUAL.dvi
 PDF=		MANUAL.pdf
 ONLINE=		../library/MANUAL
 ONLINE_INDEX=	../library/helpidx.pl
-PL=		../linux/pl
 
 TEXFILES=	doc.tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
