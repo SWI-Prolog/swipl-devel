@@ -1964,7 +1964,9 @@ allocSimpleMutex(const char *name)
   simpleMutexInit(&m->mutex);
   m->count = 0L;
   m->unlocked = 0L;
+#ifdef O_CONTENTION_STATISTICS
   m->collisions = 0L;
+#endif
   m->name = store_string(name);
   LOCK();
   m->next = GD->thread.mutexes;
