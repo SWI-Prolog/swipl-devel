@@ -62,7 +62,9 @@
 	    rdfe_open_journal/2,	% +File, +Mode
 	    rdfe_close_journal/0,
 	    rdfe_replay_journal/1,	% +File
-	    rdfe_current_journal/1	% -Path
+	    rdfe_current_journal/1,	% -Path
+
+	    rdfe_snapshot_file/1	% -File
 	  ]).
 :- use_module(rdf_db).
 :- use_module(library(broadcast)).
@@ -79,7 +81,8 @@
 	transaction_name/2,		% TID, Name
 	undo_marker/2,			% Mode, TID
 	journal/3,			% Path, Mode, Stream
-	unmodified_md5/2.		% Path, MD5
+	unmodified_md5/2,		% Path, MD5
+	snapshot_file/1.		% File
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This library provides a number of functions on top of the rdf_db module:
@@ -277,8 +280,30 @@ ensure_snapshot(Path) :-
 			  File),
 	    debug(snapshot, 'Saving snapshot for ~w to ~w', [Path, File]),
 	    rdf_save_db(File, Path)
-	).
+	),
+	assert(snapshot_file(File)).
 ensure_snapshot(_).
+
+
+%	load_snapshot(+Source, +Path)
+%	
+%	Load triples from the given snapshot   file. One of the troubles
+%	is the time-stamp to avoid rdf_make/0   from reloading the file.
+%	for the time being we use 1e12, which   is  a lot further in the
+%	future than this system is going to live.
+
+load_snapshot(Source, Path) :-
+	statistics(cputime, T0),
+	rdf_load_db(Path),
+	statistics(cputime, T1),
+	Time is T1 - T0,
+	rdf_statistics(triples_by_file(Source, Triples)),
+	rdf_md5(Source, MD5),
+					% 1e10: modified far in the future
+	assert(rdf_db:rdf_source(Source, 1e12, Triples, MD5)),
+	print_message(informational,
+		      rdf(loaded(Source, Triples, snapshot(Time)))),
+	assert(snapshot_file(Path)).
 
 
 %	snapshot_file(+Path, +MD5, +Access, -File)
@@ -293,6 +318,17 @@ snapshot_file(Path, MD5, Options, SnapShot) :-
 			   | Options
 			   ],
 			   SnapShot).
+
+
+%	rdfe_snapshot_file(-File)
+%	
+%	Enumerate the MD5 snapshot files required to restore the current
+%	journal file. Using this  call  we   can  write  a  routine that
+%	packages the journal file with all required snapshots to restore
+%	the journal on another computer.
+
+rdfe_snapshot_file(File) :-
+	snapshot_file(File).
 
 
 		 /*******************************
@@ -676,7 +712,8 @@ rdfe_reset_undo :-
 	retractall(current_transaction(_)),
 	retractall(transaction_name(_,_)),
 	retractall(undo_marker(_,_)),
-	retractall(unmodified_md5(_)).
+	retractall(unmodified_md5(_, _)),
+	retractall(snapshot_file(_)).
 
 %	close possible open journal at exit.  Using a Prolog hook
 %	guarantees closure, even for most crashes.
@@ -942,25 +979,6 @@ find_file(File, Options, Path) :-
 make_path(File, PWD, Path) :-
 	atom_concat(PWD, /, PWD2),
 	atom_concat(PWD2, Path, File).
-
-%	load_snapshot(+Source, +Path)
-%	
-%	Load triples from the given snapshot   file. One of the troubles
-%	is the time-stamp to avoid rdf_make/0   from reloading the file.
-%	for the time being we use 1e12, which   is  a lot further in the
-%	future than this system is going to live.
-
-load_snapshot(Source, Path) :-
-	statistics(cputime, T0),
-	rdf_load_db(Path),
-	statistics(cputime, T1),
-	Time is T1 - T0,
-	rdf_statistics(triples_by_file(Source, Triples)),
-	rdf_md5(Source, MD5),
-					% 1e10: modified far in the future
-	assert(rdf_db:rdf_source(Source, 1e12, Triples, MD5)),
-	print_message(informational,
-		      rdf(loaded(Source, Triples, snapshot(Time)))).
 
 
 		 /*******************************
