@@ -622,7 +622,7 @@ RedrawAreaMenu(Menu m, Area a)
     ay += y - valInt(m->area->y);
     rows_and_cols(m, &rows, &cols);
     
-    if ( z )
+    if ( z && notNil(z) )
       r_3d_box(cx, cy, w-(cx-x), h-(cy-y), 0, z, TRUE);
     cx += valInt(m->margin);
 
