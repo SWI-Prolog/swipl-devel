@@ -184,7 +184,7 @@ characterName(Any chr)
       return ev->id;
     else
     { c = valInt(ev->id);
-      ctrl = (valInt(ev->buttons) && BUTTON_control);
+      ctrl = (valInt(ev->buttons) & BUTTON_control);
     }
   } else
   { if ( !isInteger(chr) )
