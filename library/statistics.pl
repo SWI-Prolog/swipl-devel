@@ -113,8 +113,13 @@ show_profile(N) :-
 	show_profile(plain, N).
 
 show_profile(How, N) :-
+	profiler(Old, false),
+	show_profile_(How, N),
+	profiler(Old, true).
+
+show_profile_(How, N) :-
 	prolog:show_profile_hook(How, N), !.
-show_profile(How, N) :-
+show_profile_(How, N) :-
 	prof_statistics(Stat),
 	prof_statistics(time, Stat, Time),
 	sort_on(How, SortKey),
