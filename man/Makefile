@@ -67,7 +67,7 @@ distclean:	clean
 		make -C$(DVITOTTY-HOME) distclean
 
 $(PDF):		doc.tex $(TEXFILES) doc.bbl
-		runtex --pdf doc
+		./runtex --pdf doc
 		mv doc.pdf $@
 
 man:		doc.tex $(TEXFILES) doc.bbl doc.ind
