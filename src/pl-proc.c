@@ -497,7 +497,7 @@ pl_current_predicate1(term_t spec, word ctx)
     nt = PL_new_term_ref();
     at = PL_new_term_ref();
 
-    while( PL_is_functor(pi, FUNCTOR_module2) )
+    while( PL_is_functor(pi, FUNCTOR_colon2) )
     { if ( !mt )
 	mt = PL_new_term_ref();
       _PL_get_arg(1, pi, mt);

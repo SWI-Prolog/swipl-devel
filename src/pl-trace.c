@@ -680,7 +680,7 @@ put_frame_goal(term_t goal, LocalFrame frame)
   { term_t a = PL_new_term_ref();
 
     PL_put_atom(a, def->module->name);
-    PL_cons_functor(goal, FUNCTOR_module2, a, goal);
+    PL_cons_functor(goal, FUNCTOR_colon2, a, goal);
   }
 }
 
@@ -1511,7 +1511,7 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
     term_t arg = PL_new_term_ref();
     
     if (fr->predicate->module != MODULE_user)
-    { PL_put_functor(result, FUNCTOR_module2);
+    { PL_put_functor(result, FUNCTOR_colon2);
       PL_get_arg(1, result, arg);
       PL_unify_atom(arg, fr->predicate->module->name);
       PL_get_arg(2, result, arg);

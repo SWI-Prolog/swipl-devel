@@ -772,7 +772,7 @@ pl_on_signal(term_t sig, term_t name, term_t old, term_t new)
     { TRY(PL_unify_atom(old, def->functor->name));
     } else
     { TRY(PL_unify_term(old,
-			PL_FUNCTOR, FUNCTOR_module2,
+			PL_FUNCTOR, FUNCTOR_colon2,
 			   PL_ATOM, def->module->name, 
 			   PL_ATOM, def->functor->name));
     }

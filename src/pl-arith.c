@@ -1268,7 +1268,7 @@ pl_prolog_arithmetic_function(term_t f, word h)
     PL_put_functor(tmp, a->functor);
     if ( a->proc &&
 	 PL_unify_term(f,
-		       PL_FUNCTOR, FUNCTOR_module2,
+		       PL_FUNCTOR, FUNCTOR_colon2,
 		         PL_ATOM, a->module->name,
 		         PL_TERM, tmp) )
       return_next_table(ArithFunction, a, ;);

@@ -446,7 +446,7 @@ process_use_module(library(pce), Src) :- !,	% bit special
 	       ;   true
 	       )).
 process_use_module(File, Src) :-
-	(   xref_public_list(File, Path, Public, Src)
+	(   catch(xref_public_list(File, Path, Public, Src), _, fail)
 	->  assert_import(Src, Public, Path)
 	;   true
 	).
@@ -461,8 +461,7 @@ process_use_module(File, Src) :-
 xref_public_list(File, Path, Public, Src) :-
 	xref_source_file(File, Path, Src),
 	open(Path, read, Fd),
-	catch(read(Fd, ModuleDecl), _, fail),
-	close(Fd),
+	call_cleanup(read(Fd, ModuleDecl), close(Fd)),
 	ModuleDecl = (:- module(_, Public)).
 
 

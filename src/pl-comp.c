@@ -424,7 +424,7 @@ right_recursion:
 
 	return nvars;
       } else if ( false(fd, CONTROL_F) )
-      { if ( f->definition == FUNCTOR_module2 )	/* A:B --> I_USERCALL0 */
+      { if ( f->definition == FUNCTOR_colon2 )	/* A:B --> I_USERCALL0 */
 	{ ci->argvars++;
 	} else
 	{ int ar = fd->arity;
@@ -1345,7 +1345,7 @@ will use the meta-call mechanism for all these types of calls.
 
 [Tue Dec 18 2001] Now we do have I_CONTEXT.  Time to reconsider!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    if ( functor == FUNCTOR_module2 )
+    if ( functor == FUNCTOR_colon2 )
     {
   /*							SEE COMMENT ABOVE
       Word mp, g;
@@ -1871,7 +1871,7 @@ pl_record_clause(term_t term, term_t file, term_t ref)
 
   if ( PL_get_atom(file, &loc.file) )	/* just the name of the file */
   { loc.line = source_line_no;
-  } else if ( PL_is_functor(file, FUNCTOR_module2) )
+  } else if ( PL_is_functor(file, FUNCTOR_colon2) )
   { term_t arg = PL_new_term_ref();	/* file:line */
 
     PL_get_arg(1, file, arg);
@@ -2255,7 +2255,7 @@ decompile(Clause clause, term_t term, term_t bindings)
 
     if ( di->body_context )
     { Word b2 = allocGlobal(3);
-      b2[0] = FUNCTOR_module2;
+      b2[0] = FUNCTOR_colon2;
       b2[1] = di->body_context->name;
       setVar(b2[2]);
       ba = &b2[2];
@@ -2642,7 +2642,7 @@ unify_definition(term_t head, Definition def, term_t thehead, int how)
     } else
     { term_t tmp = PL_new_term_ref();
       
-      PL_unify_functor(head, FUNCTOR_module2);
+      PL_unify_functor(head, FUNCTOR_colon2);
       PL_get_arg(1, head, tmp);
       PL_unify_atom(tmp, def->module->name);
       PL_get_arg(2, head, tmp);
@@ -2658,7 +2658,7 @@ unify_definition(term_t head, Definition def, term_t thehead, int how)
 
     if ( !PL_strip_module(head, &m, h) ||
 	 !isSuperModule(def->module, m) )
-    { if ( PL_is_functor(head, FUNCTOR_module2) )
+    { if ( PL_is_functor(head, FUNCTOR_colon2) )
       {	PL_get_arg(1, head, h);
 	if ( !PL_unify_atom(h, def->module->name) )
 	  fail;
@@ -3084,7 +3084,7 @@ pl_xr_member(term_t ref, term_t term, word h)
 
 	PC = stepPC(PC);
       }
-    } else if ( PL_get_functor(term, &fd) && fd != FUNCTOR_module2 )
+    } else if ( PL_get_functor(term, &fd) && fd != FUNCTOR_colon2 )
     { while( PC < end )
       { code op = fetchop(PC);
 

@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: module(Module) argument of read_term/[2,3], fixing GUI-Tracer
+    problems when using local operator-declarations.
+
   * PORT: pl.spec (building RPMS) to follow current standards.
     By Michel Alexandre Salim
 

@@ -2122,7 +2122,7 @@ PL_strip_module(term_t raw, module_t *m, term_t plain)
   Word p = valTermRef(raw);
   
   deRef(p);
-  if ( hasFunctor(*p, FUNCTOR_module2) )
+  if ( hasFunctor(*p, FUNCTOR_colon2) )
   { p = stripModule(p, m);
     setHandle(plain, linkVal(p));
   } else

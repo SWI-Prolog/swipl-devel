@@ -2246,13 +2246,13 @@ directiveClause(term_t directive, term_t clause, const char *functor)
     fail;
 
   PL_get_arg(1, clause, d0);
-  if ( PL_get_functor(d0, &f) && f == FUNCTOR_module2 )
+  if ( PL_get_functor(d0, &f) && f == FUNCTOR_colon2 )
     PL_put_term(directive, d0);
   else
   { term_t m = PL_new_term_ref();
 
     PL_put_atom(m, LD->modules.source->name);
-    PL_cons_functor(directive, FUNCTOR_module2, m, d0);
+    PL_cons_functor(directive, FUNCTOR_colon2, m, d0);
   }
 
   succeed;

@@ -142,7 +142,7 @@ Word
 stripModule(Word term, Module *module)
 { deRef(term);
 
-  while( hasFunctor(*term, FUNCTOR_module2) )
+  while( hasFunctor(*term, FUNCTOR_colon2) )
   { Word mp;
     mp = argTermP(*term, 0);
     deRef(mp);
@@ -288,9 +288,7 @@ pl_module(term_t old, term_t new)
   { atom_t name;
 
     if ( !PL_get_atom(new, &name) )
-      return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-		      PL_new_atom("module"), /* ATOM_module = ":" */
-		      new);
+      return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_module, new);
 
     LD->modules.typein = lookupModule(name);
     succeed;
@@ -306,9 +304,7 @@ pl_set_source_module(term_t old, term_t new)
   { atom_t name;
 
     if ( !PL_get_atom(new, &name) )
-      return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-		      PL_new_atom("module"), /* ATOM_module = ":" */
-		      new);
+      return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_module, new);
 
     LD->modules.source = lookupModule(name);
     succeed;
@@ -458,9 +454,7 @@ pl_export_list(term_t modulename, term_t public)
   atom_t mname;
 
   if ( !PL_get_atom(modulename, &mname) )
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-		    PL_new_atom("module"), /* ATOM_module = ":" */
-		    modulename);
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_module, modulename);
   
   if ( !(module = isCurrentModule(mname)) )
     fail;

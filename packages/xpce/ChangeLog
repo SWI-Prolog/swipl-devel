@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: avoid loosing a file-descriptor in prolog_xref.pl if a loaded
+  file contains a syntax-error in the first term.  Affects PceEmacs in
+  Prolog mode and the GUI-Tracer.
+
 * FIXED: Added -fno-strict-aliasing to make XPCE compile correctly using
   GCC-3 (Lourens van der Meij).
 
