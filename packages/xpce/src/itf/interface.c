@@ -392,7 +392,7 @@ pceResolveSend(PceObject receiver, PceName selector,
 #define FD_SET(n, x)	{(x)->fds_bits[0] |= 1<<(n); }
 #endif
 
-#ifndef HAVE_SELECT
+#if !defined(HAVE_SELECT) && defined(HAVE_CONIO_H)
 #include <conio.h>
 #endif
 

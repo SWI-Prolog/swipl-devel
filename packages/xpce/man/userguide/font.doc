@@ -1,7 +1,7 @@
 \section{Specifying fonts}			\label{sec:font}
 
-XPCE's font specification is a two-stage process.  In the first stage,
-XPCE physical fonts are mapped to fonts of the underlying windowing
+\product{}'s font specification is a two-stage process.  In the first stage,
+\product{} physical fonts are mapped to fonts of the underlying windowing
 system. In this stage, fonts are identified by their {\em family},
 {\em style} and {\em size}.  For example
 
@@ -26,14 +26,15 @@ opened (i.e.\ its window counterpart is located and made available to
 the text-drawing functions).  This set is created from resources on
 the display object.  The first resource is {\em font_families}, which
 defines a chain with names of the font-families.  The default value is:%
-    \footnote{See section~\ref{sec:resources} for the resource syntax.}
+    \footnote{See \secref{resources} for the resource syntax.}
 
 \begin{code}
-Pce.Display.font_families: [ screen_fonts, \
-			     courier_fonts, \
-			     helvetica_fonts, \
-			     times_fonts \
-			   ]
+Pce.Display.font_families: \
+	[ screen_fonts, \
+	  courier_fonts, \
+	  helvetica_fonts, \
+	  times_fonts \
+	]
 \end{code}
 
 Each of these names refers to the name of another resource of class
@@ -42,15 +43,16 @@ default value can be examined using the online manual.  Below is the
 default value for the {\tt screen_fonts} font-set for X11:
 
 \begin{code}
-Pce.Display.screen_fonts: [ font(screen, roman, 10, "6x10"), \
-			    font(screen, roman, 12, "6x12"), \
-			    font(screen, roman, 13, "8x13"), \
-			    font(screen, roman, 14, "7x14"), \
-			    font(screen, roman, 15, "9x15"), \
-			    font(screen, bold, 13, "8x13bold"), \
-			    font(screen, bold, 14, "7x14bold"), \
-			    font(screen, bold, 15, "9x15bold") \
-			  ]
+Pce.Display.screen_fonts: \
+	[ font(screen, roman, 10, "6x10"), \
+	  font(screen, roman, 12, "6x12"), \
+	  font(screen, roman, 13, "8x13"), \
+	  font(screen, roman, 14, "7x14"), \
+	  font(screen, roman, 15, "9x15"), \
+	  font(screen, bold, 13, "8x13bold"), \
+	  font(screen, bold, 14, "7x14bold"), \
+	  font(screen, bold, 15, "9x15bold") \
+	]
 \end{code}
 
 The set of predefined physical fonts can be examined using the
@@ -71,12 +73,12 @@ determines the window-system font that will be mapped.  For example, the
 \end{code}
 
 This specification has various drawbacks.  For example, another library
-or application loaded on top of the same XPCE process may be using the
+or application loaded on top of the same \product{} process may be using the
 symbol,roman,14 specification, but bound to another window-system font.
 A user may try to run your application on an X11 environment that
 does not have this font. Part of these problems can be eliminated by
 binding the font to a logical font name. See also
-section~\ref{sec:fontalias}.
+\secref{fontalias}.
 
 \begin{code}
 :- send(@display, font_alias,
@@ -88,7 +90,7 @@ section~\ref{sec:fontalias}.
 The application will refer to this font using the font-alias.  If the
 user has other preferences or the font is not available, the user may
 specify the font using the Pce.Display.user_font resource described
-in section~\ref{sec:fontalias}.
+in \secref{fontalias}.
 
 
 \subsection{Logical fonts}		\label{sec:fontalias}.
@@ -98,7 +100,7 @@ the user or interface guidelines may prefer using a different
 font-palette. For this reason the display defines a mapping between
 logical font names and physical fonts. Applications are encouraged to
 use logical font names as much as possible and leave the assignment to
-physical fonts to the users preferences.  XPCE predefines the following
+physical fonts to the users preferences.  \product{} predefines the following
 logical font-names.  The value gives the default assignment for these
 fonts.
 
@@ -129,17 +131,18 @@ Terminal font. To be used for code fragments, code editors, etc. Should
 be easy to read.
 \end{itemize}
 
-The end-user of an XPCE application can define the resource
+The end-user of an \product{} application can define the resource
 Pce.Display.user_fonts to overrule fonts.  The example below
 re-binds the most commonly used fonts to be slightly larger and
 choose from the Times font family rather than the Helvetica
 fonts.
 
 \begin{code}
-Pce.Display.user_fonts: [ normal := font(times, roman, 14), \
-			  bold   := font(times, bold, 14), \
-			  italic := font(times, italic, 14) \
-			]
+Pce.Display.user_fonts: \
+	[ normal := font(times, roman, 14), \
+	  bold   := font(times, bold, 14), \
+	  italic := font(times, italic, 14) \
+	]
 \end{code}
 
 The mapping between logical font names and physical fonts is realised

@@ -1,10 +1,19 @@
-\documentclass[11pt]{book}
+\documentclass{book}		% ProWindows (A5)
+%\documentclass[11pt]{book}	% XPCE (A4)
 \usepackage{times}
 \usepackage{pl}
 \usepackage{xpce}
 \usepackage{html}
-\newcommand{\product}{\sc xpce}
-\renewcommand{\runningtitle}{XPCE \pceversion}
+
+\newcommand{\product}{{\sc xpce}}
+\newcommand{\productpl}{{\sc xpce/p}rolog}
+\newcommand{\productversion}{4.9.3}
+\newcommand{\quintus}{Quintus}
+\newenvironment{xpceonly}{}{}
+\excludecomment{pwonly}
+\newcommand{\productdate}{May 1997}
+
+\renewcommand{\runningtitle}{\product{} \productversion}
 \def\booktitle{Programming in XPCE/Prolog}
 \author{\email[Jan Wielemaker]{jan@swi.psy.uva.nl} \\
 	\email[Anjo Anjewierden]{anjo@swi.psy.uva.nl} \\
@@ -30,12 +39,12 @@
 \maketitle
 
 \begin{abstract}
-XPCE/Prolog is a hybrid environment integrating logic programming and
-object-oriented programming for Graphical User Interfaces.  Applications
-in XPCE/Prolog are fully compatible across the supported X11 and
-Win32 (Windows 95 and Windows NT) platforms.
+\productpl{} is a hybrid environment integrating logic programming and
+object-oriented programming for Graphical User Interfaces. Applications
+in \productpl{} are portable across the supported X11 and Win32 (Windows
+95 and Windows NT) platforms.
 
-XPCE has been connected to the following Prolog systems.
+\product{} has been connected to the following Prolog systems.
 
 \begin{itemize}
     \item \url[SWI-Prolog]{http://www.swi.psy.uva.nl/usr/jan/SWI-Prolog.html}
@@ -43,7 +52,7 @@ XPCE has been connected to the following Prolog systems.
     \item \url[SICStus Prolog]{http://www.sics.se/isl/sicstus.html}
 \end{itemize}
 
-{\it Last updated March 17, 1997 for XPCE version 4.9.2}
+{\it Last updated March 17, 1997 for \product{} version \productversion}
 
 Copyright \copyright\ 1992-1997 University of Amsterdam
 \end{abstract}
@@ -75,6 +84,7 @@ super-section, and sections that have subsections contain a
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \pagestyle{empty}
+\begin{xpceonly}
 \begin{titlepage}
 \mbox{}
 \vfil
@@ -82,19 +92,19 @@ super-section, and sections that have subsections contain a
 \vfil\vfil\vfil
 \newpage
 \titlepageheader
-\vfil\vfil
+\vfil
 
 \noindent
-{\bf Programming in XPCE/Prolog} \\[2cm]
+{\bf Programming in \productpl{}} \\[2cm]
 Jan Wielemaker \\
 Anjo Anjewierden \\[1cm]
 \email{jan@swi.psy.uva.nl} \\
 \email{anjo@swi.psy.uva.nl}
 \vfil
 \noindent
-XPCE/Prolog is a hybrid environment integrating logic programming and
+\productpl{} is a hybrid environment integrating logic programming and
 object-oriented programming for Graphical User Interfaces.  Applications
-in XPCE/Prolog are fully compatible across the supported X11 and
+in \productpl{} are fully compatible across the supported X11 and
 Win32 (Windows 95 and Windows NT) platforms.\\[10pt]
 This document also applies to ProWindows 3.1, distributed by \\[5pt]
 AI International Ltd \\
@@ -104,58 +114,16 @@ HP4 2DF, United Kingdom \\
 E-mail: \email{sales@aiil.co.uk}
 \vfil\vfil
 \noindent
-Titlepage created using XPCE 4.9.2 on Windows-NT 4.0
+Titlepage created using \product{} \productversion{} on Windows-NT 4.0
 \vfil
 \noindent
-Last updated March 17, 1997 for XPCE version 4.9.2
+Last updated March 17, 1997 for \product{} version \productversion
 \vfil
 \noindent
 Copyright \copyright\ 1992-1997 University of Amsterdam
 \end{titlepage}
+\end{xpceonly}
 
-\pagestyle{fancyplain}
-\headheight 14pt
-\renewcommand{\chaptermark}[1]{\markboth{#1}{#1}} % remember chapter title
-\renewcommand{\sectionmark}[1]{\markright{\thesection\ #1}}
-                                                % section number and title
-\lhead[\fancyplain{}{\bf\thepage}]{\fancyplain{}{\bf\rightmark}}
-\rhead[\fancyplain{}{\bf\leftmark}]{\fancyplain{}{\bf\thepage}}
-\footrulewidth 0.2pt
-\lfoot[\tiny \runningtitle]{}
-\rfoot[]{\tiny \runningtitle}
-\cfoot{}
-
-{\parskip 0pt
- \setcounter{page}{0}
- \pagenumbering{roman}
- \tableofcontents
- \cleardoublepage
-}
-
-\setcounter{page}{0}
-\pagenumbering{arabic}
-
-\include{intro}
-\include{starting}
-\include{globalarch}
-\include{online}
-\include{dialog}
-\include{graphics}
-\include{diaedit}
-\include{pceprolog}
-\include{udc}
-\include{resource}
-\include{techniques}
-\include{debug}
-\bibliographystyle{name}
-\bibliography{pce}
-\appendix
-\include{interface}
-\include{memory}
-\include{trouble}
-\include{glossary}
-\include{summary}
-
-\printindex
+\input{body.tex}
 
 \end{document}

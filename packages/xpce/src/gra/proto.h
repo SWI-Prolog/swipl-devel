@@ -43,7 +43,7 @@ CursorObj	getDisplayedCursorDevice(Device dev);
 Chain		getPointedObjectsDevice(Device dev, Any pos, Chain ch);
 status		inspectDevice(Device dev, EventObj ev);
 status		eventDevice(Any obj, EventObj ev);
-status		advanceDevice(Device dev, Graphical gr);
+status		advanceDevice(Device dev, Graphical gr, Bool propagate);
 status		requestComputeDevice(Device dev, Any val);
 status		computeGraphicalsDevice(Device dev);
 status		computeDevice(Any obj);

@@ -1,7 +1,7 @@
 \section{User defined graphicals}		\label{sec:ugraphics}
 
 This section discusses various approaches for defining new graphical
-objects. XPCE offers three approaches for defining new graphical
+objects. \product{} offers three approaches for defining new graphical
 objects:
 
 \begin{itemize}
@@ -13,8 +13,10 @@ predicate creates a `text-box':
 \begin{code}
 text_box(TB, Text, Width, Height) :-
 	new(TB, device),
-	send(TB, display, new(B, box(Width, Height))),
-	send(TB, display, new(T, text(Text, center, normal))),
+	send(TB, display,
+	     new(B, box(Width, Height))),
+	send(TB, display,
+	     new(T, text(Text, center, normal))),
 	send(T, center, B?center).
 \end{code}
 
@@ -48,7 +50,7 @@ method is below:
 
 \begin{description}
     \sendmethod{graphical}{_redraw_area}{Area:area}
-This method is called by the repaint infra-structure of XPCE.  Its task
+This method is called by the repaint infra-structure of \product{}.  Its task
 is to paint the graphical on the current graphical device.  {\em Area}
 indicates the area ---in the coordinate system of the device--- that
 needs to be repainted. This area is guaranteed to overlap with the
@@ -108,7 +110,7 @@ online manual.
 
 \subsection{Example-I: a window with a grid}
 
-XPCE built-in class window does not provide a grid.  Implementing a grid
+\product{} built-in class window does not provide a grid.  Implementing a grid
 using graphical objects is difficult.  The best approach would be to
 display a \class{device} on the window that provides the background and
 displays the lines of the grid.  The resize and scroll messages need to
@@ -124,8 +126,10 @@ the grid and then call the super-method.  The code is below.
 :- pce_begin_class(grid_picture, picture,
 		   "Graphical window with optional `grid'").
 
-variable(grid,	   '1..|size*' := 20, get, "Size of the grid").
-variable(grid_pen, pen,               get, "Pen used to draw the grid").
+variable(grid,	   '1..|size*' := 20, get,
+	 "Size of the grid").
+variable(grid_pen, pen,               get,
+	 "Pen used to draw the grid").
 
 initialise(P, Lbl:[name], Size:[size], Disp:[display]) :->
 	send(P, send_super, initialise, Lbl, Size, Disp),
@@ -210,9 +214,12 @@ text-box and replace the <->string when editing is finished.
 :- pce_begin_class(text_shape, graphical,
 		   "text with box or ellipse").
 
-variable(string,	char_array,	get, "Displayed string").
-variable(font,		font,		get, "Font used to display string").
-variable(shape,		{box,ellipse},	get, "Outline shape").
+variable(string,	char_array,	get,
+	 "Displayed string").
+variable(font,		font,		get,
+	 "Font used to display string").
+variable(shape,		{box,ellipse},	get,
+	 "Outline shape").
 
 initialise(S, Str:string=char_array, Shape:shape={box,ellipse},
 	   W:width=int, H:height=int, Font:[font]) :->
@@ -232,7 +239,9 @@ initialise(S, Str:string=char_array, Shape:shape={box,ellipse},
 	->  send(S, draw_box, X, Y, W, H)
 	;   send(S, draw_arc, X, Y, W, H)
 	),
-	send(S, draw_text, String, Font, X, Y, W, H, center, center),
+	send(S, draw_text,
+	     String, Font, X, Y, W, H,
+	     center, center),
 	send(S, unclip),
 	send(S, send_super, redraw).
 

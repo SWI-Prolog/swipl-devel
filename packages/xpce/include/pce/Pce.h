@@ -186,7 +186,7 @@ public:
   operator const Any (void)
   { return (const Any)self;
   }
-#ifdef __GNUC__
+#if defined(__GNUC__) && D__GNUC_MINOR__ > 6
   operator bool (void)
   { return self ? TRUE : FALSE;
   }

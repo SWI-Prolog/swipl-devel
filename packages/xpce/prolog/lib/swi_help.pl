@@ -127,7 +127,10 @@ fill_menu_bar(F) :->
 		  ]),
 	send_list(View, append,
 		  [ menu_item(table_of_contents,
-			      message(F, table_of_contents))
+			      message(F, table_of_contents),
+			      end_group := @on),
+		    menu_item(section,
+			      message(F, scope, section))
 		  ]),
 	send(Hist, update_message,
 	     message(F, fill_history_popup, @receiver)).
@@ -160,12 +163,13 @@ prolog_help_topic(Name) :-
 prolog_help_topic(Name) :-
 	function(Name, _, _).
 
-default_action(F, Action:name) :->
-	get(F, member, dialog, D),
+default_action(_F, _Action:name) :->
+	true.
+/*	get(F, member, dialog, D),
 	send(D?graphicals, for_all, 
 	     if(message(@arg1, instance_of, button),
 		message(@arg1, default_button,
-			when(@arg1?name == Action, @on, @off)))).
+			when(@arg1?name == Action, @on, @off)))). */
 
 add_history(F, What:name) :->
 	get(F, history, Chain),
@@ -194,6 +198,31 @@ table_of_contents(F) :->
 	    send(PT, expand_node, manual)
 	).
 
+scope(F, _Scope:name) :->
+	"Enlarge the scope"::
+	get(F?history, head, Current),
+	atom_chars(Current, Chars),
+	(   phrase(pl_function(Name), Chars)
+	->  findall(Sec, plain_function_in_section(Sec, Name), Secs)
+	;   phrase(name_and_arity(Name, Arity), Chars)
+	->  findall(Sec, plain_predicate_in_section(Sec, Name/Arity), Secs)
+	;   findall(Sec, plain_predicate_in_section(Sec, Current/_), Secs)
+	),
+	longest_list(Secs, Section),
+	concat_atom(Section, '.', Id),
+	send(F, give_help, Id).
+	
+longest_list([H|T], L) :-
+	length(H, Len),
+	longest_list(T, Len, H, L).
+longest_list([], _, L, L).
+longest_list([H|T], Len0, L0, L) :-
+	length(H, Len1),
+	(   Len1 > Len0
+	->  longest_list(T, Len1, H, L)
+	;   longest_list(T, Len0, L0, L)
+	).
+
 :- pce_end_class.
 
 
@@ -210,9 +239,12 @@ initialise(V) :->
 	send(V, setup_isearch),
 	send(Editor?text_cursor, displayed, @off),
 	get(Editor, image, Image),
-	send(Editor, style, button,  style(bold := @on)),
-	send(Editor, style, title,   style(font := bold)),
-	send(Editor, style, section, style(font := boldlarge)),
+	send(Editor, style, button,    style(bold := @on,
+					     colour := forestgreen)),
+	send(Editor, style, title,     style(font := bold)),
+	send(Editor, style, section,   style(font := boldlarge)),
+	send(Editor, style, bold,      style(bold := @on)),
+	send(Editor, style, underline, style(underline := @on)),
 	send(Image, wrap, none),
 	send(Image, recogniser,
 	     click_gesture(left, '', single,
@@ -260,9 +292,9 @@ give_help(V, What:name,
 	    append_ranges(V, F, Ranges),
 	    send(F, close),
 	    get(V, caret, End),
+	    send(V, markup, Start, End),
 	    get(V, text_buffer, TB),
 	    mark_titles(TB, Start, End),
-	    send(V, markup, Start, End),
 	    send(V?frame, add_history, What),
 	    (   ScrollToStart \== @off
 	    ->  send(V, caret, Start),
@@ -314,8 +346,8 @@ mark_titles(TB, From, To) :-
 	).
 mark_titles(TB, From, To) :-
 	get(TB, scan, From, line, 0, end, EL),
-	Len is EL - From,
-	new(_, fragment(TB, From, Len, title)),
+%	Len is EL - From,
+%	new(_, fragment(TB, From, Len, title)),
 	(   get(TB, find, EL, @pui_ff, 1, start, Idx)
 	->  mark_titles(TB, Idx, To)
 	;   true
@@ -330,6 +362,12 @@ mark_titles(TB, From, To) :-
 :- dynamic
 	regex_db/2.
 
+:- set_feature(character_escapes, true).
+:- pce_global(@ul_regex, new(regex('\\(.\\)\b.'))).
+
+regex(bold,	  '\\(\\(.\\)\b\\2\\)+').
+regex(underline,  '\\(\\(.\\)\b_\\)+').
+:- set_feature(character_escapes, false).
 regex(predicate,  '\(\w+\)/\(\sd+\)').
 regex(predicate2, '\w+/\[\sd+[-,]\sd+\]').
 regex(function,   'PL_\w+()').
@@ -358,18 +396,32 @@ markup(V, From:int, To:int) :->
 	).
 
 mark_fragment(V, Re:regex) :->
-	documented(Re, V),
-	get(Re, register_start, Start),
-	get(Re, register_size, Len),
-	new(_F, fragment(V, Start, Len, button)).
+        (   documented(Re, V, Type)
+	->  get(Re, register_start, Start),
+	    get(Re, register_size, Len),
+	    new(_F, fragment(V, Start, Len, Type))
+	;   true
+	).
 
-documented(Re, V) :-
+font_style(bold).
+font_style(underline).
+
+documented(Re, V, button) :-
 	regex_db(predicate, Re), !,
 	get(V, text_buffer, TB),
 	get(Re, register_value, TB, 1, name, Name),
 	get(Re, register_value, TB, 2, int,  Arity),
 	predicate(Name, Arity, _, _, _).
-documented(_, _).
+documented(Re, V, Style) :-
+	regex_db(Style, Re),
+        font_style(Style), !,
+        get(V, text_buffer, TB),
+        get(Re, register_value, TB, 0, String),
+	send(@ul_regex, for_all, String,
+	     message(@ul_regex, replace, String, '\1')),
+	send(Re, replace, TB, String).
+documented(_, _, button).
+
 
 jump(V, Caret:[int]) :->
 	"Jump to current fragment"::
@@ -439,17 +491,8 @@ manual_spec(From-To) -->
 	{ predicate(Name, Arity, _Summary, From, To)
 	}.
 manual_spec(From-To) -->
-	[C1|CT],
-	"()", !,
-	{ atom_chars(Name, [C1|CT]),
-	  function(Name, From, To)
-	}.
-manual_spec(From-To) -->
- 	"PL_",
-	word(S), !,
-	{ append("PL_", S, S1),
-	  atom_chars(Name, S1),
-	  function(Name, From, To)
+	pl_function(Name), !,
+	{ function(Name, From, To)
 	}.
 manual_spec(From-To) -->
 	(   "section",
@@ -498,12 +541,30 @@ name_and_arity(Name, Arity) -->
 	{ atom_chars(Name, [C1|CT])
 	}.
 
+pl_function(Name) -->
+	identifier(S),
+	"()", !,
+	{ atom_chars(Name, S)
+	}.
+pl_function(Name) -->
+	"PL_",
+	identifier(S), !,
+	{ append("PL_", S, Chars),
+	  atom_chars(Name, Chars)
+	}.
+
 
 word([C0|CT]) -->
 	[C0],
 	{ C0 > 0' }, !,
 	word(CT).
 word([]) -->
+	[].
+
+identifier([C0|CT]) -->
+	alnum(C0), !,
+	identifier(CT).
+identifier([]) -->
 	[].
 
 blanks -->
@@ -531,6 +592,14 @@ digits([]) -->
 digit(D) -->
 	[D],
 	{ between(0'0, 0'9, D)
+	}.
+
+alnum(C) -->
+	[C],
+	{ between(0'a, 0'z, C)
+	; between(0'A, 0'Z, C)
+	; between(0'0, 0'9, C)
+	; C = 0'_
 	}.
 
 

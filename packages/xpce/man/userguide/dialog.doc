@@ -1,8 +1,8 @@
 \chapter{Dialog (controller) windows}		\label{sec:controller}
 
 \index{controllers}%
-XPCE Dialog windows are normally used to display a number of
-controllers, named \class{dialog_item}{\em s} in XPCE's jargon. Class
+\product{} Dialog windows are normally used to display a number of
+controllers, named \class{dialog_item}{\em s} in \product{}'s jargon. Class
 \class{dialog} is a subclass of \class{window} with specialised methods
 for positioning controllers. Dialog items are graphical objects
 specialised for displaying and/or editing particular data.
@@ -21,12 +21,12 @@ Reading this chapter will help you understanding the dialog editor.
 
 \index{controllers,built-in}\index{dialog_item,built-in types}%
 \Tabref{diaitems} provides an overview of the built-in dialog items.
-The XPCE/Prolog library defines various additional items as Prolog
+The \productpl{} library defines various additional items as Prolog
 classes.  See the file Overview in the library directory.
 
 \begin{table}
 \begin{center}
-\begin{tabular}{|p{1.5in}|p{4in}|}
+\begin{tabularlp}{\class{dialog_group}}
 \hline
 \class{button}		& Simple \idx{push-button}.  Executes <-message
 			  when pressed. \\
@@ -68,7 +68,7 @@ classes.  See the file Overview in the library directory.
 \class{dialog_group}	& Group of dialog items, possible with border
 			  and label. \\
 \hline
-\end{tabular}
+\end{tabularlp}
 \end{center}
 \caption{Built-in dialog items}
 \label{tab:diaitems}
@@ -191,7 +191,8 @@ following code:
 \begin{pcecode}
 layoutdemo1 :-
 	new(D, dialog('Layout Demo 1')),
-	send(D, append, new(BTS, dialog_group(buttons, group))),
+	send(D, append,
+	     new(BTS, dialog_group(buttons, group))),
 	send(BTS, gap, size(0, 30)),
 	send(BTS, append, button(add)),
 	send(BTS, append, button(rename), below),
@@ -248,13 +249,17 @@ press {\sc return} or the {\sf Ok} button.
 \begin{code}
 ask_name(Name) :-
 	new(D, dialog('Prompting for name')),
-	send(D, append, new(TI, text_item(name, ''))),
-	send(D, append, button(ok, message(D, return, TI?selection))),
-	send(D, append, button(cancel, message(D, return, @nil))),
-	send(D, default_button, ok),	% make Ok, the default button
-	get(D, confirm, Answer),	% This blocks!
+	send(D, append,
+	     new(TI, text_item(name, ''))),
+	send(D, append,
+	     button(ok, message(D, return,
+				TI?selection))),
+	send(D, append,
+	     button(cancel, message(D, return, @nil))),
+	send(D, default_button, ok), % Ok: default button
+	get(D, confirm, Answer),     % This blocks!
 	send(D, destroy),
-	Answer \== @nil,		% canceled
+	Answer \== @nil,	     % canceled
 	Name = Answer.
 \end{code}
 
@@ -278,7 +283,7 @@ and change its appearance. The application is shown in \figref{wysiwyg}.
 In the previous section, we discussed dialogs for entering values.
 Another typical use of dialog windows is to modify setting of the
 application, or more in general, edit attributes of existing entities
-in the application.  These entities may both be represented as XPCE
+in the application.  These entities may both be represented as \product{}
 objects or as constructs in the host language (dynamic predicates
 or the recorded database in Prolog).
 
@@ -356,11 +361,14 @@ edit_graphical(Gr) :-
 
 attributedemo :-
 	send(new(P, picture('Attribute Demo')), open),
-	send(P, display, new(B, box(100, 100)), point(20, 20)),
-	send(P, display, new(E, ellipse(100, 50)), point(150, 20)),
+	send(P, display,
+	     new(B, box(100, 100)), point(20, 20)),
+	send(P, display,
+	     new(E, ellipse(100, 50)), point(150, 20)),
 	send_list([B, E], fill_pattern, colour(white)),
 	new(C, click_gesture(left, '', double,
-			     message(@prolog, edit_graphical, @receiver))),
+			     message(@prolog, edit_graphical,
+				     @receiver))),
 	send(B, recogniser, C),
 	send(E, recogniser, C).
 \end{pcecode}

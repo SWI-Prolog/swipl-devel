@@ -79,7 +79,7 @@ into name conflicts quickly.
 With named references, the application is responsible for destruction of
 the object.  Thus, if a window holding named objects is freed, the named
 objects will not be destroyed.  This has to be done explicitly.
-See also appendix~\ref{sec:memory}.
+See also \appref{memory}.
     \tick{No multiple instances}
 The code above cannot be called more than once to create more than one
 such frame.
@@ -93,9 +93,11 @@ recognisers, methods, images to be used as fill-patterns, etc. See
 below:
 
 \begin{code}
-:- pce_global(@center, new(spatial(xref=x+w/2, yref=y+h/2,
-				   xref=x+w/2, yref=y+h/2)).
-:- pce_global(@move_outline, new(move_outline_gesture)).
+:- pce_global(@center,
+	      new(spatial(xref=x+w/2, yref=y+h/2,
+			  xref=x+w/2, yref=y+h/2)).
+:- pce_global(@move_outline,
+	      new(move_outline_gesture)).
 \end{code}
 
 
@@ -200,10 +202,11 @@ fill_4(P) :-
 make_fill_with_current_pattern(G) :-
 	new(G, popup),
 	send(G, append,
-	     menu_item(fill, message(Gr, fill_pattern,
-				     ?(?(Gr?frame, member, dialog),
-				       member,
-				       fill_pattern)?selection))).
+	     menu_item(fill,
+		       message(Gr, fill_pattern,
+			       ?(?(Gr?frame, member, dialog),
+				 member,
+				 fill_pattern)?selection))).
 
 add_box_4(P) :-
 	send(P, display, new(B, box(100,100)), point(20,20)),
@@ -260,8 +263,9 @@ make_fillbox_recogniser(G) :-
 	Gr = @arg1,
 	new(G, popup_gesture(new(P, popup))),
 	send(P, append,
-	     menu_item(fill, message(Gr, fill_pattern,
-				     Gr?frame?current_fill_pattern))).
+	     menu_item(fill,
+		       message(Gr, fill_pattern,
+			       Gr?frame?current_fill_pattern))).
 
 event(B, Ev:event) :->
 	(   send(B, send_super, event, Ev)
@@ -297,8 +301,8 @@ better reusable.
 
 Large applications should carefully design the infra-structure to manage
 the structure of the UI components as well as the relation between UI
-objects and application entities. See \cite{Wielemaker:89}.
+objects and application entities.\ifpw{}{See \cite{Wielemaker:89}}.
 
-Hyper objects as described in section~\ref{sec:hyper} form an
+Hyper objects as described in \secref{hyper} form an
 alternative to relate objects that is suitable if dependent objects
 cannot rely on each other's existence.

@@ -82,8 +82,8 @@ unlink(S) :->
 :- pce_end_class.
 \end{pcecode}
 
-A similar schema to this is used by the XPCE manual tools described in
-section~\ref{sec:online}. Using hypers, the same relation can be
+A similar schema to this is used by the \product{} manual tools described in
+\secref{online}. Using hypers, the same relation can be
 expressed much simpler and less error-prone.
 
 The semantic relation that, if the main window is destroyed, all slaves
@@ -146,7 +146,7 @@ is being destroyed.  May be refined.
 \subsubsection{Methods on class object}
 
 Below are the two most commonly used methods dealing with hypers and
-defined on class \class{object}.  XPCE defines various other methods
+defined on class \class{object}.  \product{} defines various other methods
 for deleting and inspecting the hyper structure.  Use the online manual
 for details.
 
@@ -201,7 +201,7 @@ unlink_from(H) :->
 This hyper is demonstrated in the following application.  It defines a
 frame holding a graphical window and a dialog with a {\sf Quit} button and
 also a dialog frame for modifying the label of the first frame.  See
-figure~\ref{fig:hyperdemo}.  If the main window is destroyed, the
+\figref{hyperdemo}.  If the main window is destroyed, the
 label-editor will be destroyed automatically.
 
 \postscriptfig[width=\textwidth]{hyperdemo}{Two frames related by a hyper-link}

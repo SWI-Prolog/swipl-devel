@@ -1,20 +1,20 @@
 \chapter{Development and debugging tools}	\label{sec:debugging}
 
 This section describes various tools and techniques to help finding bugs
-in XPCE/Prolog code.  XPCE/Prolog provides an interactive program development
+in \productpl{} code.  \productpl{} provides an interactive program development
 environment: a dynamic object-oriented environment that may be
-inspected, traced and modified during execution.  Unlike Prolog, XPCE
+inspected, traced and modified during execution.  Unlike Prolog, \product{}
 almost exclusively manipulates global information.  This limits the
 possibilities for interactive manipulation of the environment.  For
-example, you cannot {\em undo} operations in XPCE, change the program and
+example, you cannot {\em undo} operations in \product{}, change the program and
 redo the goal as you can in Prolog.
 
 \section{Object-base consistency}
 
-Unlike Prolog, XPCE is not {\em secure}: if a Prolog environment traps
+Unlike Prolog, \product{} is not {\em secure}: if a Prolog environment traps
 a fatal error there is almost always a bug in the Prolog system.
 Except for violating system limits there is no Prolog program that can
-make the Prolog environment crash.  For XPCE this is different.
+make the Prolog environment crash.  For \product{} this is different.
 Consider the following example:
 
 \begin{code}
@@ -28,7 +28,7 @@ Area = @ 803438, B = @803419/box
 
 After these calls, the <-area attribute of the box has been destroyed,
 but the box is not aware of this fact.  The utility predicate
-checkpce/0 scans the XPCE object-base for various inconsistencies and
+checkpce/0 scans the \product{} object-base for various inconsistencies and
 will report that the box contains a slot referring to a freed object.
 
 \begin{code}
@@ -38,26 +38,26 @@ will report that the box contains a slot referring to a freed object.
 [PCE: Checked 13173 objects]
 \end{code}
 
-XPCE uses heuristics trying to avoid that such problems actually
+\product{} uses heuristics trying to avoid that such problems actually
 crash the system (in the example above execution continues
 normally).
 
 We advice using checkpce/0 regularly during program development to
 verify your application is not violating object consistency.  Please
-see section~\ref{sec:whoiswho} and~\ref{sec:hyper} for techniques
+see \secref{whoiswho} and \secref{hyper} for techniques
 to avoid `dangling' object references.
 
 
-\section{The XPCE tracer}
+\section{The \product{} tracer}
 
-The XPCE tracer allows both for interactive execution as for printing the
+The \product{} tracer allows both for interactive execution as for printing the
 entry and/or completion of operations. This section first introduces
-some common ways to exploit the tracer. Section~\ref{sec:tracemodel}
+some common ways to exploit the tracer. \Secref{tracemodel}
 discusses the underlying concepts. The end of this section provides
 examples of advanced queries to the tracer such as conditional trace-
 and break-points.
 
-\subsection{XPCE in trace mode}
+\subsection{\product{} in trace mode}
 
 The execution of the virtual-machine instructions may be inspected
 using:%
@@ -76,7 +76,7 @@ The tracer is switched off using notracepce/0.
 
 Full trace mode often gives an enormous amount of unreadable output and
 should be avoided.  Below we present predicates that allow for more
-fine-tuned tracing of XPCE's actions.
+fine-tuned tracing of \product{}'s actions.
 
 
 \subsection{Tracing specific methods}
@@ -93,7 +93,7 @@ Trace method: graphical ->geometry
 As \verb$->$ is a standard Prolog operator with priority over 1000,
 tracepce/1 requires two brackets.  Get-methods may be specified in
 a similar way.  \verb$<-$ is not an operator.  It is suggested to
-define \verb$<-$ as an infix operator in the XPCE initialisation
+define \verb$<-$ as an infix operator in the \product{} initialisation
 file, so this operator is available during program development:
 
 \begin{code}
@@ -109,7 +109,7 @@ The predicate notracepce/1 disables a tracepoint.
 
 \subsubsection{Breaking on certain operations}
 
-An XPCE {\em break-point} is similar to a Prolog spy-point.  Execution
+An \product{} {\em break-point} is similar to a Prolog spy-point.  Execution
 is broken and the debugger waits for further instructions. The available
 instructions are given in \secref{inspecterrors}.  The predicates to
 manipulate breakpoints are breakpce/1 and nobreakpce/1. These predicates
@@ -142,12 +142,12 @@ bug :-
 
 The error indicates a method has been invoked whose first argument
 should be a window object. The ``in:'' line shows the top of the
-goal-stack. The line starting ``[2]'' is the XPCE tracer. The following
+goal-stack. The line starting ``[2]'' is the \product{} tracer. The following
 tracer options are useful to find the context of the error:
 
 \begin{itemize}
     \tick{{\bf g[a][h] [depth]:} Goals}
-Print the stack.  By default it prints the `user' goals of XPCE's stack
+Print the stack.  By default it prints the `user' goals of \product{}'s stack
 of active messages.  With the `{\bf a}lways' modifier it also prints
 the internal (system) messages.  With the `{\bf h}ost' modifier it will
 print the Prolog stack. The optional `depth' argument specifies the
@@ -157,7 +157,7 @@ Start a recursive interactive Prolog top level (as the Prolog predicate
 break/0).  This may be used to get information on the status of the
 object base, Prolog program, etc.
     \tick{{\bf t}: Trace}
-Disable the XPCE tracer and start the Prolog tracer.  This will cause
+Disable the \product{} tracer and start the Prolog tracer.  This will cause
 execution to continue until control reaches Prolog again, after which
 the Prolog tracer may be used to examine the Prolog context of the
 error.
@@ -167,7 +167,7 @@ id}:  `i' is ignore; `w' is warning (print, but do not break); `e' is
 error (print and break), `f' is fatal (print stack and abort).
     \tick{{\bf a}: Abort}
 Abort execution and restart the Prolog top level.  Be careful with this
-option as it sometimes leaves either the X11 library or XPCE in an
+option as it sometimes leaves either the X11 library or \product{} in an
 inconsistent state.
     \tick{{\bf n}: Nodebug}
 Continue execution.  Note that the current message will fail.  Note that
@@ -178,7 +178,7 @@ cases the system will behave in an unpredictable manner.
 
 \subsection{The trace model}			\label{sec:tracemodel}
 
-All objects of XPCE's program-world (classes, methods, messages, etc.)
+All objects of \product{}'s program-world (classes, methods, messages, etc.)
 are subclasses of class \class{program_object} which defines the
 manipulation of the tracer.  Except for classes, whose role is
 explained later, all program objects represent an `operation'.  For
@@ -198,17 +198,17 @@ program-object.  A new goal is created and pushed on the {\em
 goal-stack} when the execution of a program-object is started
 (entered).  After completion of the execution this goal is popped from
 the goal-stack again.  A frame of the goal-stack stores the following
-information to facilitate the XPCE tracer:
+information to facilitate the \product{} tracer:
 
 \begin{itemize}
     \tick{object}
 The `object' of a goal is the program-object currently executed.
     \tick{receiver}
 The `receiver' of a goal is the object manipulated.  This concept
-is not clear for all program-objects.  See table~\ref{tab:goalargs}.
+is not clear for all program-objects.  See \tabref{goalargs}.
     \tick{selector}
 The `selector' is the name of the operation performed.  This too
-is not evident for all program-objects.  See table~\ref{tab:goalargs}.
+is not evident for all program-objects.  See \tabref{goalargs}.
     \tick{argument vector}
 The context arguments used to execute the program-object.
 \end{itemize}
@@ -236,7 +236,7 @@ Both trace- and break-points may be associated with a {\em condition}.
 This is a \class{code}-object that is evaluated before the trace- or
 break-point is activated.  If the code object fails the goal is not
 printed (or execution is not `broken').  The parameters passed
-to the code are listed in table~\ref{tab:goalargs}.
+to the code are listed in \tabref{goalargs}.
 
 \begin{table}
 \begin{center}
@@ -271,14 +271,14 @@ Class type	& @receiver	& Object to be converted \\
 
 \subsubsection{The virtual machine operations}	\label{sec:vmi}
 
-The basic operations of XPCE (new, send, get and free) are added to
+The basic operations of \product{} (new, send, get and free) are added to
 this model by introducing class \class{vmi} with instances @vmi_new,
 @vmi_send, @vmi_get and @vmi_free.
 
 
 \subsubsection{System and user mode of operation}
 
-XPCE distinguishes between two modes of operating a goal: system- and
+\product{} distinguishes between two modes of operating a goal: system- and
 user-mode.  This distinction allows the system to only display goals
 that have been specified by the user and to hide goals invoked by the
 system itself.   All goals are executed in system-mode with the
@@ -355,7 +355,7 @@ send-operations whose method summary-string starts with ``Test''.
 The ``Visual Hierarchy'' tool provides an overview of the consists-of
 relations between the various UI components in a tool.  It is part of
 the online manual tools and may be started from the ``Tool'' entry in
-the main dialog.  Figure~\ref{fig:vishierarchy} shows this tool examining
+the main dialog.  \Figref{vishierarchy} shows this tool examining
 the structure of the ``Ispell'' demo program.
 
 \postscriptfig[width=\textwidth]{vishierarchy}{Visual Hierarchy Tool showing ``Ispell''}

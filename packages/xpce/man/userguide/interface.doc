@@ -35,9 +35,9 @@ this.  Each of them provides the same object structure in PCE.
      new(P, picture),
      send(P, below, @icon_viewer),
      new(TI, text_item(name, '',
-		       and(message(P, display, @arg1),
-			   message(@arg1, recogniser,
-				   new(move_gesture))))),
+	       and(message(P, display, @arg1),
+		   message(@arg1, recogniser,
+			   new(move_gesture))))),
      send(TI, type, bitmap),
      send(@icon_viewer, append, TI),
      send(@icon_viewer, open).
@@ -47,9 +47,9 @@ this.  Each of them provides the same object structure in PCE.
      send(new(P, picture), below, D),
      send(D, append,
 	  new(TI, text_item(name, '',
-		            and(message(P, display, @arg1),
-			        message(@arg1, recogniser,
-				        new(move_gesture)))))),
+	            and(message(P, display, @arg1),
+		        message(@arg1, recogniser,
+			        new(move_gesture)))))),
      send(TI, type, bitmap),
      send(D, open).
 \end{code}
@@ -57,7 +57,7 @@ this.  Each of them provides the same object structure in PCE.
 Using new/2 with a variable reference argument is equivalent to
 invoking `Class <-instance: InitArgs ...'.  The arguments needed 
 to instantiate a class are defined by the ->initialise method
-of this class.  See also section~\ref{sec:classbrowser}.
+of this class.  See also \secref{classbrowser}.
 
     \predicate{send}{2}{+Receiver, +Selector, +Argument...}
 Invoke a send-method on the \arg{Receiver}.  \arg{Receiver} is
@@ -81,9 +81,9 @@ If the method accepts many arguments of which most are default, using
 the named argument convention may be preferred.  For example:
 
 \begin{code}
-	...,
-	send(Graphical, graphics_state, colour := red),
-	...,
+...,
+send(Graphical, graphics_state, colour := red),
+...,
 \end{code}
     \predicate{get}{3}{+Receiver, +Selector, +Argument..., -Result}
 Invoke a get-method on \arg{Receiver}.  \arg{Receiver}, \arg{Selector}
@@ -141,7 +141,7 @@ storing a new object object/1 will succeed, but point to another
 object than expected.  Finally, the memory may be reused by a
 non-object data structure.  In this case object/1 only applies
 heuristics to detect whether the memory holds an object.
-See also section~\ref{sec:debugging} and \ref{sec:global}
+See also \secref{debugging} and \secref{global}
     \predicate{object}{2}{+Reference, -TermDescription}
 Unify object description with the argument.  Normally only used for
 debugging purposes.  Equivalent to:
@@ -164,29 +164,31 @@ of the term and the term is called as a Prolog goal:
 
 \begin{code}
 :- pce_global(@succeed, new(and)).
-:- pce_global(@event_receiver, new(@event?receiver)).
-:- pce_global(@select_recogniser, make_select_recogniser).
+:- pce_global(@event_receiver,
+	      new(@event?receiver)).
+:- pce_global(@select_recogniser,
+	      make_select_recogniser).
 
 make_select_recogniser(R) :-
 	new(G, handler_group),
 	send_list(G, append,
 	  [ click_gesture(left, '', single,
-			  message(@event_receiver?device,
-				  selection, @event_receiver))
+		  message(@event_receiver?device,
+			  selection, @event_receiver))
 	  , click_gesture(left, s, single,
-			  message(@event_receiver,
-				  toggle_selected))
+		  message(@event_receiver,
+			  toggle_selected))
 	  ]).
 \end{code}
 
-See section~\ref{sec:pceprolog} for more examples.
+See \secref{pceprolog} for more examples.
 
 \predicate{pce_open}{3}{+Object, +Mode, -Stream}
 \index{stream,open Object as}%
 \index{read,text from object}%
 \index{write,text to object}%
 \index{open,object as stream}%
-The predicate pce_open/3 opens an XPCE object as a Prolog stream.
+The predicate pce_open/3 opens an \product{} object as a Prolog stream.
 Using this stream, the normal Prolog I/O predicates for reading
 from, or writing to the object can be used.
 	
@@ -216,17 +218,17 @@ the id of PCE error or a chain of such id's.  If one of the given
 errors occurrs the goal will silently fail and `@pce <-last_error'
 holds the id of the trapped error.  Any other error that occurs during
 the execution of \arg{Goal} will be handled by PCE's normal error
-handling mechanism.  See section~\ref{sec:errors}.
+handling mechanism.  See \secref{errors}.
 \end{description}
 
 \subsection{Portable declaration of required library predicates}
 \label{sec:require}
 
-Different Prolog implementations to which XPCE has been connected
+Different Prolog implementations to which \product{} has been connected
 provide a different library structure and offers different means for
-accessing library predicates. For this reason, XPCE introduced the
+accessing library predicates. For this reason, \product{} introduced the
 require/1 directive. This directive is the preferred way to import
-library predicates. Below is a typical declaration of an XPCE/Prolog
+library predicates. Below is a typical declaration of an \productpl{}
 module:
 
 \begin{code}
@@ -328,7 +330,8 @@ Or, using PCE's list processing:
 \begin{code}
 topmost_graphical(Dev, Pos, Gr) :-
 	get(Dev, graphicals, Grs),
-	get(Grs, find_all, message(@arg1, overlap, Pos), O),
+	get(Grs, find_all,
+	    message(@arg1, overlap, Pos), O),
 	get(O, tail, Gr),
 	send(O, done).
 \end{code}
@@ -364,7 +367,9 @@ Prints the method on which it has set the trace-point.
 Syntax note:  (\verb!->!) is a standard Prolog operator with
 $priority > 1000$.  Therefore many Prolog systems require additional
 brackets:
-\line{?- tracepce((graphical ->selected))}
+\begin{code}
+1 ?- tracepce((graphical ->selected)).
+\end{code}
 In SWI-Prolog this is not necessary.  To be able to trace get-methods
 with this predicate (\verb!<-!) must be declared as an infix operator.
     \predicate{notracepce}{1}{+Class {\tt \string<-|->|-} Selector}
@@ -393,7 +398,7 @@ Prints the values of all instance variables of \arg{Reference}:
 \end{code}
 
 A graphical tool for inspecting instance variables is described in
-section~\ref{sec:inspector}.
+\secref{inspector}.
 \end{description}
 
 \subsection{Library ``find_file''}

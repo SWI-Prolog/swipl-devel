@@ -1,32 +1,32 @@
-\chapter{The relation between XPCE and Prolog} \label{sec:pceprolog}
+\chapter{\product{} and Prolog} \label{sec:pceprolog}
 
-XPCE and Prolog are very different systems based on a very different
-programming paradigm.  XPCE objects have global state and use
-destructive assignment.  XPCE programming constructs use both
+\product{} and Prolog are very different systems based on a very different
+programming paradigm.  \product{} objects have global state and use
+destructive assignment.  \product{} programming constructs use both
 procedures (code objects and send-methods) and functions (function
-objects and get-methods).  XPCE has no notion of non-determinism as
+objects and get-methods).  \product{} has no notion of non-determinism as
 Prolog has.
 
-The hybrid XPCE/Prolog environment allows the user to express
-functionality both in Prolog and in XPCE.  This chapter discusses
+The hybrid \productpl{} environment allows the user to express
+functionality both in Prolog and in \product{}.  This chapter discusses
 representation of data and dealing with object-references in
-XPCE/Prolog.
+\productpl{}.
 
 
-\section{XPCE is not Prolog!}		\label{sec:notprolog}
+\section{\product{} is not Prolog!}		\label{sec:notprolog}
 
 Data managed by Prolog consists of logical variables, atoms, integers,
-floats and compound terms (including lists).  XPCE has natural
-counterparts for atoms (a \class{name} object), integers (a XPCE int) and
+floats and compound terms (including lists).  \product{} has natural
+counterparts for atoms (a \class{name} object), integers (a \product{} int) and
 floating point numbers (a \class{real} object).  Prolog logical variables and
-compound terms however have no direct counterpart in the XPCE
-environment.  XPCE has variables (class \class{var}), but these obey
+compound terms however have no direct counterpart in the \product{}
+environment.  \product{} has variables (class \class{var}), but these obey
 totally different scoping and binding rules.
 
 Where Prolog uses a compound term to represent data that belongs
-together (e.g.\ person(Name, Age, Address)), XPCE uses objects for this
+together (e.g.\ person(Name, Age, Address)), \product{} uses objects for this
 purpose:%
-    \footnote{This example uses XPCE user-defined classes.  The details
+    \footnote{This example uses \product{} user-defined classes.  The details
 	      of this mechanism do not matter for the argument in this
 	      section. User-defined classes are described in
 	      \chapref{udc}.}
@@ -34,9 +34,9 @@ purpose:%
 \begin{code}
 :- pce_begin_class(person(name, age, address), object).
 
-variable(name,		name,	both, "Name of the person").
-variable(age,		int,	both, "Age in years").
-variable(address,	string,	both, "Full address").
+variable(name,    name,	  both, "Name of the person").
+variable(age,     int,	  both, "Age in years").
+variable(address, string, both, "Full address").
 
 initialise(P, Name:name, Age:int, Address:string) :->
 	"Create from name, age and address"::
@@ -55,20 +55,20 @@ These two representations have very different properties:
 \begin{itemize}
     \tick{Equality}
 Prolog cannot distinguish between `{\tt person('Fred', 30, 'Long Street
-45')}' and a second instance of the same term. In XPCE two instances of
+45')}' and a second instance of the same term. In \product{} two instances of
 the same class having the same state are different entities.
     \tick{Attributes}
 Whereas an attribute (argument) of a Prolog term is either a logical
 variable or instantiated to a Prolog data object, an attribute of
 an object may be assigned to.  The assignment is destructive.
     \tick{Types}
-XPCE is a partially dynamically typed language and XPCE object attributes
+\product{} is a partially dynamically typed language and \product{} object attributes
 may have types. Prolog is untyped.
 \end{itemize}
 
 Because there is no straight-forward translation from Prolog data
-structures into XPCE objects it is not possible to pass Prolog data
-through XPCE control structures.  We will illustrate this using the
+structures into \product{} objects it is not possible to pass Prolog data
+through \product{} control structures.  We will illustrate this using the
 code object declared below:
 
 \begin{code}
@@ -84,7 +84,7 @@ followed by a newline:
 hello
 \end{code}
 
-From this example one might expect that XPCE is transparent to
+From this example one might expect that \product{} is transparent to
 Prolog data.  This is true for integers, floats and atoms as these
 have a natural representation in both languages.  However:
 
@@ -94,19 +94,19 @@ have a natural representation in both languages.  However:
 4 ?- send(@m, forward, 3 + 4).
 7
 5 ?- send(@m, forward, [hello, world]).
-[XPCE warning: new: Unknown class: .
+[\product{} warning: new: Unknown class: .
         in: new(.(world, [])) ]
 \end{code}
 
 In all these examples the argument is a Prolog compound term which
----according to the definition of send/3--- is translated into a XPCE
+---according to the definition of send/3--- is translated into a \product{}
 instance of the class of the principal functor.  In 3) this is an
 instance of class \class{chain}.  In 4) this is an instance of class
-\class{+}.  Class \class{+} however is a subclass of the XPCE class
+\class{+}.  Class \class{+} however is a subclass of the \product{} class
 \class{function} and \idx{function} objects are evaluated when given
 to a method that does not accept a function-type argument.  In 5) this
 Prolog list actually is the term .(hello,.(world,[])) (see the
-Prolog predicate display/2).  As XPCE does not define a class `.'
+Prolog predicate display/2).  As \product{} does not define a class `.'
 an error message results.
 
 Below is a very realistic example of this misconception.

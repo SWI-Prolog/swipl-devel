@@ -199,23 +199,27 @@ fi
 
 if test "$MAKE_SHARED_OBJECT" = "yes"; then
   if test ! -z "$GCC"; then
-  AC_MSG_CHECKING("Looking for -lgcc")
+    AC_MSG_CHECKING("Looking for -lgcc")
+    if GCCLIB=`${CC-cc} -print-libgcc-file-name`; then
+      AC_MSG_RESULT("$GCCLIB")
+    else
 cat > conftest.c <<EOF
 main(){}
 EOF
-    ${CC-cc} -c conftest.c
-    ${CC-cc} -v -o conftest conftest.o 2> conftest.out 1>/dev/null
-    changequote(,)dnl
-    GCCLIBDIR=`grep lgcc conftest.out | sed 's/.*-L\([^ ]*gcc[^ ]*\).*/\1/'`
-    changequote([,])dnl
-    if test -r "$GCCLIBDIR/libgcc.a"; then
-      GCCLIB="$GCCLIBDIR/libgcc.a"
-      AC_MSG_RESULT("$GCCLIB")
-    else
-      AC_MSG_RESULT("no")
+      ${CC-cc} -c conftest.c
+      ${CC-cc} -v -o conftest conftest.o 2> conftest.out 1>/dev/null
+      changequote(,)dnl
+      GCCLIBDIR=`grep lgcc conftest.out | sed 's/.*-L\([^ ]*gcc[^ ]*\).*/\1/'`
+      changequote([,])dnl
+      if test -r "$GCCLIBDIR/libgcc.a"; then
+	GCCLIB="$GCCLIBDIR/libgcc.a"
+	AC_MSG_RESULT("$GCCLIB")
+      else
+	AC_MSG_RESULT("no")
+      fi
     fi
-  rm -f conftest*
-  CMFLAGS="$CMFLAGS -fPIC"
+    rm -f conftest*
+    CMFLAGS="$CMFLAGS -fPIC"
   fi
 
   BOOTPL=${PL-pl}
@@ -234,6 +238,7 @@ EOF
 				SOWHOLEARCHIVE="-u pceSend -u pceOpen"
 				if "$GXX" != "NONE"; then
 				  LDSOFLAGS="$LDSOFLAGS -u __builtin_new"
+				fi
     				;;
     *sunos*)			LD=ld
 				LDSOFLAGS=""

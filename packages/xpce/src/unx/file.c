@@ -26,6 +26,10 @@
 #endif
 #endif
 
+#if HAVE_SYS_ACCESS_H			/* AIX 3.2.5 */
+#include <sys/access.h>
+#endif
+
 #if defined(__linux__) && !defined(PATH_MAX)
 #include <linux/limits.h>
 #endif

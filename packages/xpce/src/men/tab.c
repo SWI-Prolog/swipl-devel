@@ -324,6 +324,16 @@ flashTab(Tab t, Area a, Int time)
   succeed;
 }
 
+
+static status
+advanceTab(Tab t, Graphical gr, Bool propagate)
+{ if ( isDefault(propagate) )
+    propagate = OFF;
+
+  return advanceDevice((Device)t, gr, propagate);
+}
+
+
 		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/
@@ -334,6 +344,8 @@ static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 static char *T_flash[] =
 	{ "area=[area]", "time=[int]" };
+static char *T_advance[] =
+	{ "from=[graphical]*", "propagate=[bool]" };
 
 /* Instance Variables */
 
@@ -368,6 +380,8 @@ static senddecl send_tab[] =
      NAME_geometry, "Top-side of tab"),
   SM(NAME_compute, 0, NULL, computeTab,
      NAME_update, "Recompute area"),
+  SM(NAME_advance, 2, T_advance, advanceTab,
+     NAME_focus, "Advance keyboard focus to next item"),
   SM(NAME_ChangedLabel, 0, NULL, ChangedLabelTab,
      NAME_update, "Add label-area to the update")
 };

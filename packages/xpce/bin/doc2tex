@@ -1,26 +1,21 @@
 #!/usr/local/bin/perl
 
 sub printTeX
-{ s/`([@\w]+)\s*<->(\w+)/\\index{\l\1,\\both{\2}}`\1 \\both{\2}/g;
-  s/`([@\w]+)\s*<-(\w+)/\\index{\l\1,\\get{\2}}`\1 \\get{\2}/g;
-  s/`([@\w]+)\s*->(\w+)/\\index{\l\1,\\send{\2}}`\1 \\send{\2}/g;
+{ s/`([@\w]+)\s*<->(\w+)/\\index{\l\1,\\both{\2}}`\\classboth{\1}{\2}/g;
+  s/`([@\w]+)\s*<-(\w+)/\\index{\l\1,\\get{\2}}`\\classget{\1}{\2}/g;
+  s/`([@\w]+)\s*->(\w+)/\\index{\l\1,\\send{\2}}`\\classsend{\1}{\2}/g;
   s/<->(\w+)/\\both{\1}/g;
   s/<-(\w+)/\\get{\1}/g;
   s/->(\w+)/\\send{\1}/g;
   s/([a-z]\w+)\/((\d+|\[\d+(-|,)\d+\]))/\\index{\1\/\2}\\predref{\1}{\2}/g;
   s/(\w\.\w)\.(\s+[a-z])/\1.\\\2/g;
-  s/(^|[^\w}])@(\w+)/\1\\index{@\2}\\objectname{\2}/g;
+  s/(^|[^\w}])@([a-z]\w*)/\1\\index{@\2}\\objectname{\2}/g;
   s/<(\w[-~\w]*)>/\\bnfmeta{\1}/g;
   s/\\class{([<\\=>]*)}/\\verb!\1!/g;
   s/==>/\$\\longrightarrow\$/g;
-  s/^(\s *\\sendmethod\{.*\}) *$/\1%/;
-  s/^(\s *\\getmethod\{.*\}) *$/\1%/;
-  s/^(\s *\\bothmethod\{.*\}) *$/\1%/;
-  s/^(\s *\\predicate\{.*\}) *$/\1%/;
-  s/^(\s *\\noargpredicate\{.*\}) *$/\1%/;
-  s/^(\s *\\directive\{.*\}) *$/\1%/;
-  s/^(\s *\\expanded\{.*\}) *$/\1%/;
   s/^((\\index{[^}]+})+) *$/\1%/;
+  s/(\\index{[^}]*)\\index{[^}]*}([^}]*})/\1\2/g;
+  s/(\\class(get|send|both){)\\index{[^}]*}/\1/g;
 
   print;
 }

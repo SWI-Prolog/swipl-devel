@@ -11,11 +11,12 @@
 	  [ 
 	  ]).
 :- use_module(library(pce)).
-:- require([ term_to_atom/2
+:- require([ concat/3
+	   , term_to_atom/2
 	   ]).
 
 :- pce_global(@emacs_server, make_emacs_server).
-:- pce_global(@emacs_server_address, new(file('~/.xpce_emacs_server'))).
+:- pce_global(@emacs_server_address, make_emacs_server_address).
 :- pce_global(@emacs_server_method,
 	      new(chain(send_method(unlink_to, new(vector),
 				    and(message(@receiver?from, free),
@@ -23,6 +24,11 @@
 			send_method(unlink_from, new(vector),
 				    and(message(@receiver?to, free),
 					message(@receiver, free)))))).
+
+make_emacs_server_address(F) :-
+	get(@pce, hostname, Host),
+	concat('~/.xpce_emacs_server.', Host, Server),
+	new(F, file(Server)).
 
 
 make_emacs_server(Socket) :-

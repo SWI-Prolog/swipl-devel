@@ -5,7 +5,7 @@ There are many image formats, some for specific machines, some with
 specific goals in mind, such as optimal compression at the loss of
 accuracy or provide alternatives for different screen properties.
 
-One of XPCE's aim is to provide portability between the supported
+One of \product{}'s aim is to provide portability between the supported
 platform. Therefore, we have chosen to support a few formats across all
 platforms, in addition to the most popular formats for each individual
 platform.
@@ -41,20 +41,20 @@ can also be useful for other images.
 \hline
 \bf Format & \bf Colour & \bf HotSpot & \bf Shape &
 	     \multicolumn{2}{c}{\bf Unix/X11} &
-	     \multicolumn{2}{c}{\bf Win32} \\
+	     \multicolumn{2}{c|}{\bf Win32} \\
 	   & &&&   load	  & save	      & load & save \\
 \hline
-\multicolumn{8}{c}{Icons, Cursors and shaped images} \\
+\multicolumn{8}{|c|}{Icons, Cursors and shaped images} \\
 \hline
 XPM	   & +&+&+&  +	  &  +		      &   +  &  +   \\
 ICO	   & +&-&+&  -	  &  -		      &   +  &  -   \\
 CUR	   & +&+&+&  -	  &  -		      &   +  &  -   \\
 \hline
-\multicolumn{8}{c}{Rectangular monochrome images} \\
+\multicolumn{8}{|c|}{Rectangular monochrome images} \\
 \hline
 XBM	   & -&-&-&  +	  &  +		      &   +  &  -   \\
 \hline
-\multicolumn{8}{c}{Large rectangular images} \\
+\multicolumn{8}{|c|}{Large rectangular images} \\
 \hline
 JPEG	   & +&-&-&  -	  &  -		      &   +  &  -   \\
 GIF	   & +&-&-&  -	  &  -		      &   +  &  -   \\
@@ -96,10 +96,10 @@ found at \url{ftp://swi.psy.uva.nl/pub/xpce/util/images/}
 
 \paragraph{Windows}
 
-XPCE supports the Windows native .ICO, .CUR and .BMP formats. Any
+\product{} supports the Windows native .ICO, .CUR and .BMP formats. Any
 editor, such as the resource editors that comes with most C(++)
 development environments can be used.  When portability of the
-application becomes an issue, simply load the icons into XPCE,
+application becomes an issue, simply load the icons into \product{},
 and write them in the XPM format using the `image ->save' method.
 See the skeleton below:
 
@@ -113,11 +113,12 @@ to_xpm(In, Out) :-
 
 \subsubsection{Using Images}
 
-Images any of the formats are recognised by many of XPCE's GUI classes.
-Here is a brief list:
+Images in any of the formats are recognised by many of \product{}'s GUI
+classes.  Table \tabref{imageusage} provides a brief list:
 
+\begin{table}
 \begin{center}
-\begin{tabular}{|l|p{4in}|}
+\begin{tabularlp}{`menu_item ->selection'}
 \hline
 \class{bitmap}		& A \class{bitmap} converts an image into a first
 			  class \class{graphical} object that can be
@@ -143,6 +144,10 @@ Here is a brief list:
 			  a \class{list_browser}, as well as marking
 			  \classs{fragment} in an \class{editor}. \\
 \hline
-\end{tabular}
+\end{tabularlp}
 \end{center}
+\caption{GUI classes using \class{image} objects}
+\label{tab:imageusage}
+\end{table}
+
 

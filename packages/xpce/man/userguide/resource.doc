@@ -2,21 +2,21 @@
 
 
 With the term {\em resources} we actually refer to {\em preferences}
-similar to X11. Resources in XPCE act like class-variables for which a
+similar to X11. Resources in \product{} act like class-variables for which a
 default is specified by the application programmer. The application may
 overrule this default by specifying its value in a \idx{resource-file}.
 
-Earlier versions of the X11 version of XPCE used the X11 resource
-services.  As the syntax of XPCE resources is different from what
+Earlier versions of the X11 version of \product{} used the X11 resource
+services.  As the syntax of \product{} resources is different from what
 is handled by the Xt and related libraries, this often lead to 
-unexpected behaviour of XPCE-based applications.
+unexpected behaviour of \product{}-based applications.
 
 Therefore, recent versions of the X11 implementation use the resource
 emulator developed for the Win32 version.  The resources are read from
 the file{\$PCEHOME/Pce}, which includes \file{~/.Xpce} if present.
 
 Only if no value is found in one of the resource files, the default
-defined with the resource declaration in the XPCE class definition is
+defined with the resource declaration in the \product{} class definition is
 used. This is also the case if a value is defined, but contains syntax
 errors or is otherwise not a legal description for the resource.
 
@@ -26,7 +26,7 @@ file, emulating the Windows 95 look-and-feel.
 
 \section{Specifying xpce resources}
 
-XPCE is known by the X11 application {\tt Pce}.  An XPCE resource
+\product{} is known by the X11 application {\tt Pce}.  An \product{} resource
 specification takes the following form:
 
 \begin{quote}
@@ -45,9 +45,9 @@ The resource-class {\tt Pce} can be changed using
 
 \section{Resource-value syntax}
 
-The syntax for resource-{\em values} used by XPCE is in general not the
+The syntax for resource-{\em values} used by \product{} is in general not the
 same as the syntax used by X11.   Exceptions are integer, boolean and
-colour resources.  Resource values are specified as XPCE objects.  The
+colour resources.  Resource values are specified as \product{} objects.  The
 syntax is inspired by Prolog.  Below is a partial BNF description.
 
 \def\isa{}
@@ -84,8 +84,8 @@ syntax is inspired by Prolog.  Below is a partial BNF description.
 
 Summarising, the syntax is the same as for Prolog.  All classes that can
 be specified using Prolog operators can be specified the same way, but
-as XPCE's parser is independent of Prolog, Prolog op/3 directives do not
-influence XPCE.  XPCE has no variables, thus {\tt Fred} refers to the
+as \product{}'s parser is independent of Prolog, Prolog op/3 directives do not
+influence \product{}.  \product{} has no variables, thus {\tt Fred} refers to the
 name {\em Fred} rather then defining a variable.  If an instance has
 to be created without arguments, such as and empty \class{chain} object,
 this is specified as {\tt chain()} rather than {\tt new(chain)}.  The
@@ -102,7 +102,7 @@ preceded by a backslash.
 \section{Resources and inheritance}
 
 Resources are inherited by subclasses.  If a resource value needs to be
-obtained, XPCE will first check for the resource value given the current
+obtained, \product{} will first check for the resource value given the current
 class.  If this cannot be found, it will continue with the super-class,
 etc.  If no value can be obtained for any of these classes, the default
 value stored in the resource object will be used.  This implies that

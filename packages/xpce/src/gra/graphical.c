@@ -2028,16 +2028,14 @@ status
 disconnectGraphical(Graphical gr, Graphical gr2,
 		    Link link, Name from, Name to)
 { Chain ch;
-  Cell cell, cell2;
 
   if ( notNil(ch = gr->connections) )
-  { for_cell_save(cell, cell2, ch)
-    { Connection c = cell->value;
+  { Connection c;
 
-      if ( (isDefault(gr2) || c->to == gr2 || c->from == gr2) &&
-	   match_connection(c, link, from, to) )
-	freeObject(c);
-    }
+    for_chain(ch, c,
+	      if ( (isDefault(gr2) || c->to == gr2 || c->from == gr2) &&
+		   match_connection(c, link, from, to) )
+	        freeObject(c));
   }
 
   succeed;

@@ -1,23 +1,24 @@
 \chapter{Getting started}		\label{sec:starting}
 
-This section introduces programming the XPCE/Prolog environment: the
+This section introduces programming the \productpl{} environment: the
 entities (objects), referencing objects and manipulating objects.  Most
 of the material is introduced with examples.  A complete definition of
 the interface primitives is given in \appref{interface}.
 
-\section{Starting XPCE/Prolog}
+\section{Starting \productpl{}}
 
-XPCE can be connected to several Prolog implementations.  It is a
+\begin{xpceonly}
+\product{} can be connected to several Prolog implementations.  It is a
 normal Unix executable and is started from the Unix shell like
-any other program.  When XPCE/Prolog starts, it appears just like
+any other program.  When \productpl{} starts, it appears just like
 the Prolog system it is based on, except for the banner message.
-Below we started XPCE/SWI-Prolog.
+Below we started \product{}/SWI-Prolog.
 
 \begin{code}
 % xpce
 ~/.xpcerc compiled, 0.09 sec, 10,636 bytes.
 .plrc compiled, 0.10 sec, 11,772 bytes.
-XPCE Development system (4.8.16, Jan 1996 for i486-linux and X11R6)
+\product{} Development system (4.8.16, Jan 1996 for i486-linux and X11R6)
 Copyright 1993-1996, University of Amsterdam.  All rights reserved.
 The host-language is SWI-Prolog version 2.5.0.
 
@@ -29,20 +30,53 @@ For HELP on prolog, please type help. or apropos(topic).
 
 \index{version}%
 SWI-Prolog's prompt is ``<n> ?-'' where <n> is the
-history-number of the command. The banner indicates the XPCE version.
+history-number of the command. The banner indicates the \product{} version.
 The indicated version is 4.8 and the patch-level is 16.
+\end{xpceonly}
+
+\begin{pwonly}
+\product{} is distributed as a \quintus{} library package, called
+\file{prowindows3.1}.  This implies it may be loaded on top of the
+running \quintus{} Prolog system using:
+
+\begin{code}
+| ?- [library(pce)].
+% loading file /usr/local/quintus/prowindows3.1/library/pce.qof
+...
+\end{code}
+
+Regarding the size and loading time of \product{}, a seperate executable
+named \program{pw3} is created that contains the \product{} kernel, and
+basic development and debugging libraries.  This is the executable that
+is normally used for interactive development and debugging.
+
+\begin{code}
+% pw3
+Quintus Prolog Release 3.3 (ProWindows 3.1)
+Originally developed by Quintus Corporation, USA.
+Copyright (C) 1996, AI International Ltd.  All rights reserved.
+Castle Chambers, High Street, Berkhamsted, Herts, UK. +44 (0)1442 873873
+Email: support@aiil.co.uk    WWW: http://www.aiil.co.uk
+Licensed to University of Amsterdam
+Quintus ProWindows 3.1 (XPCE 4.9.3, April 1997) Interface
+Copyright (C) 1997, AIIL / University of Amsterdam. All Rights Reserved.
+
+| ?- 
+\end{code}
+\end{pwonly}
+
 
 \section{Prolog ... and what?}
 
 This section describes the four basic Prolog predicates used to
-control XPCE from Prolog.  These four predicates map onto the basic
-functions of XPCE's virtual machine: creating, destroying,
+control \product{} from Prolog.  These four predicates map onto the basic
+functions of \product{}'s virtual machine: creating, destroying,
 manipulating and querying {\em objects}, the basic entities of
-XPCE.
+\product{}.
 
 For those not familiar with this jargon, an object is an entity with a
 state and associated procedures, called {\em methods}. Objects may
-represent just about anything. In XPCE's world there are objects
+represent just about anything. In \product{}'s world there are objects
 representing a position in a two-dimensional plane as well as an entire
 window on your screen. Each object belongs to a {\em class}. The class
 defines the constituents of the state as well as the procedures
@@ -56,8 +90,8 @@ compute its distance to another point, etc.
 
 \index{object,reference}\index{reference, object}
 The predicate new/2 (new(?Reference,~+NewTerm)) {\em creates} an
-object in the XPCE world and either assigns the given {\em reference}
-to it or unifies the first argument with a XPCE generated reference.
+object in the \product{} world and either assigns the given {\em reference}
+to it or unifies the first argument with a \product{} generated reference.
 An (object-) reference is a unique handle used in further
 communication with the object.  Below are some examples (\verb$?-$ is
 the Prolog prompt):
@@ -71,15 +105,15 @@ P = @772024
 
 The first example creates an instance of class point from the
 arguments `10' and `20'.  The reference is represented in Prolog using
-the prefix operator \functor{@}{1}.  For XPCE generated references
-the argument of this term is a XPCE generated integer value.  These
+the prefix operator \functor{@}{1}.  For \product{} generated references
+the argument of this term is a \product{} generated integer value.  These
 integers are guaranteed to be unique.  The second example creates a
 dialog object.  A dialog is a window that is specialised for
 displaying controllers such as buttons, text-entry-fields,
 etc.  In this example we have specified the reference.  Such a
-reference must be of the form @Atom. XPCE will associate the created
+reference must be of the form @Atom. \product{} will associate the created
 object with this reference.%
-    \footnote{Normal applications use almost exclusively XPCE generated
+    \footnote{Normal applications use almost exclusively \product{} generated
 	      references.  Many of the examples in this manual are
 	      typed from the terminal and Prolog specified references
 	      are easier to type.}
@@ -88,7 +122,7 @@ As illustrated by the examples above, the second argument to new/2 is a
 term. The principal functor denotes the name of the class of which an
 instance is created and the arguments are the initialisation parameters.
 The complete transformation rules are given in
-appendix~\ref{sec:interface}.
+\appref{interface}.
 
 As stated before, an object has a state. At creation time, the initial
 state is defined by the class from which the object is created and the
@@ -126,12 +160,12 @@ opens the dialog window.
 5 ?- send(@demo, open).
 \end{code}
 
-If everything is ok, a window as shown in figure~\ref{fig:dialog}
+If everything is ok, a window as shown in \figref{dialog}
 appears on your screen. The border (in the figure this is the title-bar
 displayed above the window) is determined by the window manager you are
 using. It should look the same as any other window on your terminal. If
 an error of any kind appears, please refer to
-appendix~\ref{sec:trouble}.
+\appref{trouble}.
 
 
 \postscriptfig{dialog}{Example Dialog Window}
@@ -143,9 +177,9 @@ obtain information on the state of objects.  Again, the first two
 arguments are the reference and selector.  The last argument is
 unified with the return-value and the remaining arguments are
 treated the same as with send/[2-12].  The return value is normally
-an object reference, except for XPCE \class{name} objects, that are
-returned as a Prolog \idx{atom},  XPCE integers (\idx{int}) that are
-translated to Prolog integers and XPCE \class{real} objects, that are
+an object reference, except for \product{} \class{name} objects, that are
+returned as a Prolog \idx{atom},  \product{} integers (\idx{int}) that are
+translated to Prolog integers and \product{} \class{real} objects, that are
 translated to Prolog \idx{floating point} numbers.  Examples:
 
 \begin{code}
@@ -204,7 +238,7 @@ object appended to the dialog.  The next request obtains the
 \index{remove,objects}\index{object,remove}
 The final principal interface predicate is free/1.  Its argument is
 an object reference as returned by new/2 or get/[3-13].  It will remove
-the object from the XPCE object base.  Examples:
+the object from the \product{} object base.  Examples:
 
 \begin{code}
 12 ?- free(@772024).
@@ -214,7 +248,7 @@ No
 \end{code}
 
 The second example not only removed the dialog window object from
-the XPCE object base, it also removes the associated X-window from
+the \product{} object base, it also removes the associated X-window from
 the screen.  The last example illustrates that certain system objects
 have been protected against freeing.
 
@@ -222,10 +256,10 @@ have been protected against freeing.
 \section{Optional arguments}
 
 \index{default arguments}\index{optional arguments}\index{argument,optional}
-Arguments to XPCE methods are identified by their position.  Many
+Arguments to \product{} methods are identified by their position.  Many
 methods have both obligatory and optional arguments.  If obligatory
-arguments are omitted XPCE will generate a warning.  If optional
-arguments are omitted XPCE will fill the argument with the constant
+arguments are omitted \product{} will generate a warning.  If optional
+arguments are omitted \product{} will fill the argument with the constant
 @default.  The interpretation of @default is left to the
 implementation of the receiving method.  See also \chapref{online}.
 
@@ -266,21 +300,21 @@ The following example illustrates the usage of this method:
 \section{Argument conversion}
 
 \index{arguments,typed}\index{type}\index{type,conversion}
-Arguments to XPCE methods are {\em typed} and variables are dynamically
+Arguments to \product{} methods are {\em typed} and variables are dynamically
 typed.  This combination is used for two purposes: automatic conversion
 and raising exceptions at the earliest possible point if conversion
 is not defined.
 
 For example, the send-method `colour' on class \class{graphical}
-specifies accepts a single argument of type `colour'. A colour in XPCE
+specifies accepts a single argument of type `colour'. A colour in \product{}
 is represented by a colour {\em object}. Colour objects may be created
 from their name. The natural way to specify a box should be coloured
 `red' is:
 
 \begin{code}
-	...,
-	send(Box, colour, colour(red)),
-	...
+...,
+send(Box, colour, colour(red)),
+...
 \end{code}
 
 Because the ->colour method knows that it expects an instance of class
@@ -289,9 +323,9 @@ colour (see \secref{omsmethods}), the following message achieves the
 same goal:
 
 \begin{code}
-	...,
-	send(Box, colour, red),
-	...
+...,
+send(Box, colour, red),
+...
 \end{code}
 
 Some other examples of classes defining type conversion are
@@ -300,18 +334,18 @@ and the non-object data item {\em int}. The following messages are
 thus valid:
 
 \begin{code}
-	...,
-	send(Box, x, '10'),		% atom --> int
-	send(Box, selected, true),	% atom --> boolean
-	send(Text, font, bold),		% atom --> font
-	send(Text, string, 10),		% int  --> string
-	...
+...,
+send(Box, x, '10'),		% atom --> int
+send(Box, selected, true),	% atom --> boolean
+send(Text, font, bold),		% atom --> font
+send(Text, string, 10),		% int  --> string
+...
 \end{code}
 
 \section{Notation}
 
 \index{notation,in this manual}
-This manual, as well as all other XPCE documentation both printed and
+This manual, as well as all other \product{} documentation both printed and
 online uses some notational conventions.  Instead of speaking of
 `the send-method colour of class box', we write
 
@@ -367,7 +401,7 @@ view(F) :-
 
 The main window of the application consists of a \class{frame} holding
 two specialised \class{window} instances. A \class{frame} is a
-collection of {\em tiled} windows. Any opened window in XPCE is enclosed
+collection of {\em tiled} windows. Any opened window in \product{} is enclosed
 in a \class{frame}. The windows are positioned using the methods
 ->above, ->below, ->right and ->left. The frame ensures that its member
 windows are properly aligned and handles resizing of the frame.  See
@@ -378,10 +412,10 @@ browser is a window specialised for displaying a list of objects.
 Browsers handle very large numbers of items effectively.  Next,
 a \class{dialog} is positioned below the browser.  A dialog is
 a window specialised in handling the layout of controllers, or
-\class{dialog_item} objects as XPCE calls them.
+\class{dialog_item} objects as \product{} calls them.
 
 Line 5 adds a \class{button} to the dialog. `view' specifies the {\em
-name} of the button. XPCE defines a central mapping from `dialog_item
+name} of the button. \product{} defines a central mapping from `dialog_item
 <->name' to the label displayed. The default mapping capitalises the
 name and replaces underscores with spaces. In \secref{multi-lingual}, we
 describe how this can be used to realise multi-lingual applications. The
@@ -401,7 +435,7 @@ The argument is a term with principal functor \class{?} and defines an
 `obtainer', a dormant get-operation. It is defined as a Prolog
 infix operator of type {\tt yfx}, priority 500. This implies that
 \mbox{\tt B?selection?key} should be read as%
-    \footnote{Initial versions of XPCE lacked the obtainer.  In this
+    \footnote{Initial versions of \product{} lacked the obtainer.  In this
 	      case the browser {\em B} would be passed to the predicate
 	      view/1, which would extract the current filename from the
 	      browser.  Obtainers improve the readability and avoid the
@@ -419,7 +453,7 @@ A \class{dict_item} consists of a <-key (its identifier), a <-label
 
 Line 8 appends a second button to the dialog window.  The dialog window
 will automatically align this one to the right of the first.  The action
-sends a message directly to another XPCE object and ->destroys the
+sends a message directly to another \product{} object and ->destroys the
 frame object if the quit button is pressed.  Note that this will erase
 all UI objects associated with the frame.  The garbage collector will
 destroy all related objects.
@@ -427,7 +461,7 @@ destroy all related objects.
 Line 10 fills the \class{browser} with the files from the specified
 directory. The expression \mbox{\tt directory(Dir)?files} defines an
 obtainer operating on an instance of class \class{directory}. The
-obtainer evaluates to a \class{chain}, XPCE's notion of a list, holding
+obtainer evaluates to a \class{chain}, \product{}'s notion of a list, holding
 the names of all files in the directory. This expression is the same as:
 
 \begin{code}
@@ -459,13 +493,13 @@ Again, the type-conversion will deal with this.
 
 \section{Summary}
 
-XPCE's world consists of objects. An object is an entity with persistent
-state that belongs to a class. The XPCE/Prolog interface defines four
+\product{}'s world consists of objects. An object is an entity with persistent
+state that belongs to a class. The \productpl{} interface defines four
 basic predicates, new/2 to create objects from a description and returns
 an object reference, send/[2-12] to change the state of an object and
 succeeds if the requested change could be made, get/[3-13] to request an
 object to compute a value and return it, and free/1 to remove objects
-from the XPCE database.
+from the \product{} database.
 
 Objects of the \class{message} are `dormant' send operations.  They
 may be activated by other objects (button, text_item, ...).  In this
@@ -479,6 +513,6 @@ as:
 \end{code}
 
 The object @prolog (class \class{host}) allows calling Prolog predicates
-from the XPCE environment.
+from the \product{} environment.
 
 

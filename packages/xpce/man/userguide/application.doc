@@ -49,7 +49,7 @@ normally used for prompting.  The related method is:
     \sendmethod{frame}{transient_for}{frame}
 Make the receiver a transient window for the argument.  This notion is
 handed to the X11 window manager, but the support varies.  Therefore
-XPCE ensures that:
+\product{} ensures that:
     \begin{itemlist}
 	\item [The transient window stays on top]
 	Whenever the main window is raised, the transient window is

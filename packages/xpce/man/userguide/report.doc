@@ -6,7 +6,7 @@ Objects perform actions on behalf of the user.  Sometimes it is
 desirable to inform the application user of progress, status or
 problems.  In older applications, the action code often contained
 knowledge about the environment in which the object was embedded.  This
-harms reusability and therefore XPCE provides a generic mechanism to
+harms reusability and therefore \product{} provides a generic mechanism to
 deal with such messages.
 
 \subsection{The report interface}
@@ -18,7 +18,7 @@ Whenever an object needs to inform the user, the programmer can use the
     \sendmethod{object}{report}{type, format, argument ...}
 Inform the user.  The message is constructed from {\em format} and
 the {\em argument} list.  See `string->format' for a description of
-the C printf-like formatting syntax of XPCE.  {\em type} describes the
+the C printf-like formatting syntax of \product{}.  {\em type} describes the
 nature of the message and is used by the reporting mechanism to decide
 on the presentation-style.  See \secref{reporttypes} for the
 available types and their meaning.
@@ -50,7 +50,7 @@ find such an object (typically a \class{label}), the report is sent to
 this object.
 
 If all fails, the report will arrive at the @display object, which takes
-care of default handling.  See section~\ref{sec:reporttypes} on how
+care of default handling.  See \secref{reporttypes} on how
 the different report types are handled.
 
 
@@ -62,7 +62,7 @@ defines how it is handled.  The following report types are defined:
 \begin{itemize}
     \tick{status}
 Information on progress, status change of the system, etc. such
-information should not attract much attention. By default, XPCE will
+information should not attract much attention. By default, \product{} will
 format the message at an appropriate location. If no such location can
 be found the message is ignored.
     \tick{inform}
@@ -128,7 +128,8 @@ reportdemo :-
 	send(MD, gap, size(0,0)),
 	send(MB, append, new(File, popup(file))),
 	send_list(File, append,
-		  [ menu_item(load, message(@prolog, load, Frame),
+		  [ menu_item(load,
+			      message(@prolog, load, Frame),
 			      end_group := @on),
 		    menu_item(quit, message(Frame, destroy))
 		  ]),
@@ -148,7 +149,8 @@ file contains a word.
 
 load(Frame) :-
 	get(@finder, file, exists := @on, FileName),
-	send(Frame, report, progress, 'Loading %s ...', FileName),
+	send(Frame, report, progress,
+	     'Loading %s ...', FileName),
 	get(Frame, member, browser, Browser),
 	new(File, file(FileName)),
 	send(File, open, read),
@@ -164,6 +166,6 @@ load(Frame) :-
 	send(Frame, report, done).
 \end{pcecode}
 
-The result is shown in figure~\ref{fig:reportdemo}.
+The result is shown in \figref{reportdemo}.
 
 \postscriptfig[width=4in]{reportdemo}{The `reporter' demo}

@@ -337,7 +337,7 @@ typedDevice(Device dev, EventId id, Bool delegate)
 
 
 status
-advanceDevice(Device dev, Graphical gr)
+advanceDevice(Device dev, Graphical gr, Bool propagate)
 { Cell cell;
   int skip = TRUE;
   Graphical first = NIL;
@@ -365,7 +365,11 @@ advanceDevice(Device dev, Graphical gr)
     }
   }
   
-  if ( ((Device) sw != dev) && !(isNil(gr) && notNil(first)) )
+  if ( isDefault(propagate) )
+    propagate = ((Device) sw != dev && !(isNil(gr) && notNil(first))) ? ON
+								      : OFF;
+
+  if ( propagate == ON )
   { send(dev->device, NAME_advance, dev, 0);
   } else
   { if ( notNil(first) )
@@ -1511,7 +1515,7 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
 
     if ( (sw = getWindowGraphical((Graphical) d)) &&
 	 isNil(sw->keyboard_focus) )
-      advanceDevice(d, NIL);
+      send(d, NAME_advance, NIL, 0);
   }
       
   succeed;
@@ -1910,6 +1914,8 @@ static char *T_resize[] =
         { "x_factor=real", "y_factor=[real]", "origin=[point]" };
 static char *T_flash[] =
 	{ "area=[area]", "time=[int]" };
+static char *T_advance[] =
+	{ "from=[graphical]*", "propagate=[bool]" };
 
 /* Instance Variables */
 
@@ -1966,7 +1972,7 @@ static senddecl send_device[] =
      NAME_event, "Process an event"),
   SM(NAME_updatePointed, 1, "event", updatePointedDevice,
      NAME_event, "Update <-pointed, sending area_enter and area_exit events"),
-  SM(NAME_advance, 1, "[graphical]*", advanceDevice,
+  SM(NAME_advance, 2, T_advance, advanceDevice,
      NAME_focus, "Advance keyboard focus to next item"),
   SM(NAME_flash, 2, T_flash, flashDevice,
      NAME_report, "Alert visual by temporary inverting"),

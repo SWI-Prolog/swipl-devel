@@ -1,6 +1,6 @@
 \section{Multi-lingual applications}		\label{sec:multi-lingual}
 
-XPCE provides some support for building multi-lingual applications
+\product{} provides some support for building multi-lingual applications
 without explicitly mapping terms all the time.  This section provides
 an overview of how multi-lingual operation was realised in a simulator
 for optics.
@@ -20,9 +20,11 @@ and externally visible names:
     This method performs the mapping that ensures that the code
     \exam{text_item(user_name, '')} renders as:
 
-\begin{quote}
-    \centerline{\psfig{figure=figs/username.eps}}\mbox{}
-\end{quote}
+    \begin{center}
+    % OOPS ... fsfig doesn't appear to center properly if the
+    % figure is wider then the environment.  Hence to makeboxes.
+    \makebox[0pt][c]{\makebox[\textwidth][c]{\psfig{figure=figs/username.eps}}}
+    \end{center}
 
     This method may be redefined to return another name or image
     object, depending on the current language mapping.
@@ -89,11 +91,11 @@ set_language(Lan) :-
 	make_errors.
 
 %	message(+Term, -Translation)
-%
-%	The heart of the translator.  Map a term (normally an atom, but if
-%	can be an arbitrary Prolog term, into an image or atom.  If no
-%	translation is found, the default case and underscore translation
-%	is performed.
+%	The heart of the translator. Map a term
+%	(normally an atom, but if can be an arbitrary
+%	Prolog term, into an image or atom. If no
+%	translation is found, the default case and
+%	underscore translation is performed.
 
 message(Term, Translation) :-
 	current_language(Lan),
@@ -154,11 +156,12 @@ default_label(_MI, Id:name, Label:'name|image') :<-
 
 %	term(+Term, -Translated)
 %
-%	Term translates a term.  There are three examples here.  The
-%	first only contains the translation for an English label name
-%	into a Dutch one.  The second replaces all labels named `label'
-%	into an image.  The last is for generating a more elaborate
-%	message from an identifier.
+%	Term translates a term. There are three examples
+%	here. The first only contains the translation
+%	for an English label name into a Dutch one. The
+%	second replaces all labels named `label' into an
+%	image. The last is for generating a more
+%	elaborate message from an identifier.
 
 term(settings,
      [ dutch('Instellingen')
@@ -167,7 +170,8 @@ term(label,
      image('label.lbl')).
 term(start_named_test(Name),
      [ english(['Click "OK" to start test "', Name, '"']),
-       dutch(['Klik op "OK" om aan de toets "', Name, '" te beginnen'])
+       dutch(['Klik op "OK" om aan de toets "', Name,
+       	      '" te beginnen'])
      ]).
      
 
@@ -177,17 +181,20 @@ term(start_named_test(Name),
 
 %	error(Id, Kind, Translations)
 %
-%	Specify and create the required error messages.  An object that
-%	detects there are too many instruments directs this information
-%	to the user by
+%	Specify and create the required error messages.
+%	An object that detects there are too many
+%	instruments directs this information to the user
+%	by
 %
 %		...
 %		send(MySelf, error, max_instruments, 5),
 %		...
 
 error(max_instruments, error,
-      [ dutch('%IU kunt niet meer dan %d van deze instrumenten gebruiken'),
-	english('%IYou can not use more than %d of these instruments')
+      [ dutch('%IU kunt niet meer dan %d van deze \
+               instrumenten gebruiken'),
+	english('%IYou can not use more than %d of \
+		 these instruments')
       ]).
 
 make_errors :-

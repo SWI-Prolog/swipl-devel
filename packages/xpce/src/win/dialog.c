@@ -83,7 +83,7 @@ computeDesiredSizeDialog(Dialog d)
 { TRY(send(d, NAME_layout, 0));
 
   if ( isNil(d->keyboard_focus) )
-    advanceDevice((Device) d, NIL);	/* select first text item */
+    send(d, NAME_advance, NIL, 0);	/* select first text item */
 
   ComputeGraphical(d);
 

@@ -1050,7 +1050,7 @@ editableTextItem(TextItem ti, Bool val)
 { if ( ti->editable != val )
   { assign(ti, editable, val);
     if ( val == OFF && notNil(ti->device) )
-      advanceDevice((Device) ti->device, (Graphical) ti);
+      send(ti->device, NAME_advance, ti, 0);
     changedDialogItem(ti);
   }
 

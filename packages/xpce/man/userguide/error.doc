@@ -1,7 +1,7 @@
 \section{Errors}		\label{sec:errors}
 
 Errors are abnormalities that are detected during a programs
-execution.  Errors may be caused by internal bugs in XPCE, bugs
+execution.  Errors may be caused by internal bugs in \product{}, bugs
 in the application program and finally by the application user
 making errors in operating the application (e.g. specifying
 a protected file).
@@ -10,14 +10,14 @@ Errors may also be discriminated according to their `seriousness': If
 a certain font cannot be found it can easily be substituted by
 another.  If a method expects an integer argument but the actual
 argument is a graphical object it is impossible to carry-out the
-operation.  In such cases XPCE will normally trap the tracer. If the
+operation.  In such cases \product{} will normally trap the tracer. If the
 user decides to continue execution the method will return failure to
 its caller.  Finally, some problems are categorised as `fatal'.  When
-such a problem is encountered XPCE does not know how execution can
+such a problem is encountered \product{} does not know how execution can
 be continued.
 
-All errors (except for some that may result from XPCE bugs during
-the boot phase of XPCE) are represented by an \class{error} object.
+All errors (except for some that may result from \product{} bugs during
+the boot phase of \product{}) are represented by an \class{error} object.
 An error object has the following properties:
 
 \begin{itemize}
@@ -59,17 +59,17 @@ description of errors.
 \index{errors,catching}\index{catch,errors}%
 Sometimes the application wants to anticipate on certain errors.
 Explicit testing of all conditions is a cumbersome solution to this
-problem.  Therefore XPCE allows catching of errors by the application.
+problem.  Therefore \product{} allows catching of errors by the application.
 This is supported by the Prolog predicate pce_catch_error/2:
 
 \begin{code}
-	...,
-	pce_catch_error(backup_file, send(File, backup)),
-	...
+...,
+pce_catch_error(backup_file, send(File, backup)),
+...
 \end{code}
 
 If the indicated error occurs while the goal of the second argument is
-active the XPCE goal that raised the error will silently fail and the
+active the \product{} goal that raised the error will silently fail and the
 attribute `pce <-last_error' is filled with the id of the error
 trapped.  This may be used to determine the cause of the error.
 
@@ -77,12 +77,14 @@ trapped.  This may be used to determine the cause of the error.
 \subsection{Raising errors}
 
 The application programmer may define new (application specific)
-errors.  The error object is a normal XPCE object and may thus be
+errors.  The error object is a normal \product{} object and may thus be
 created using new/2.  An error is raised by invoking `object ->error'.
 The example below illustrates this:
 
 \begin{code}
-:- new(_, error(no_user, '%N: Unknown user: %s', warning, inform)).
+:- new(_, error(no_user,
+		'%N: Unknown user: %s',
+		warning, inform)).
 
 	...,
 	(   get(UserDatabase, user, Name)
@@ -99,10 +101,10 @@ reuse existing error-id's if possible.
 \subsection{Exceptions}
 
 \index{exception}%
-On trapping certain `repairable` errors, XPCE will first raise an {\em
+On trapping certain `repairable` errors, \product{} will first raise an {\em
 exception}.  Exceptions may be trapped by an {\em exception handler}
 which may solve the problem.  If the exception-handler fails to solve
-the problem, XPCE will raise an {\em error}.  See \secref{errors}. 
+the problem, \product{} will raise an {\em error}.  See \secref{errors}. 
 
 Exceptions are raised by invoking `@pce ->exception: id, arg ...'.
 Exception handlers are registered in the sheet `@pce ->exception_handlers',

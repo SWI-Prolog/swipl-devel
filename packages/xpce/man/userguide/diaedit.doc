@@ -15,7 +15,7 @@ menus, etc.
     \tick{Fixing the layout and size of the window}
 The layout specification for the dialog window is established. The
 Dialog Editor guesses the layout intentions of the user and translates
-these into XPCE's dialog-window symbolic layout statements.
+these into \product{}'s dialog-window symbolic layout statements.
     \tick{Specifying behaviour}
 Both internal behaviour and the link to the application may be
 established using graphics.  The dialog may be tested, while graphical
@@ -95,7 +95,7 @@ layout mechanism by positioning the items closer to the intended
 position and try again, or place the items by hand.  In the latter case,
 the generated code will express the layout using pixel-locations rather
 then a symbolic description and the result may look bad if the end-user
-runs XPCE with a different look-and-feel.  The {\sf Fit} button adjusts
+runs \product{} with a different look-and-feel.  The {\sf Fit} button adjusts
 the size of the dialog window to its content.
 
 
@@ -134,7 +134,7 @@ window using the popup menu associated with the right mouse-button.
 While hovering over the various parts of the behavioural model, the
 feedback window at the bottom describes the meaning of the current item.
 The popup menus defined on all components of the model provide
-context-sensitive access to the XPCE online manual as well as the online
+context-sensitive access to the \product{} online manual as well as the online
 documentation of the Dialog Editor.
 
 In general, the action(s) associated with a control are specified by
@@ -367,7 +367,7 @@ activation relation.
 
 The Dialog Editor provides two load/save formats.  The {\sf Load},
 {\sf Save}, {\sf Save As} and {\sf Save All} save and load the status
-of the dialog editor as an XPCE object using `object ->save_in_file'.
+of the dialog editor as an \product{} object using `object ->save_in_file'.
 This format loads quickly, but is rather vulnerable to future changes
 in the Dialog Editor or any of the graphical classes.
 

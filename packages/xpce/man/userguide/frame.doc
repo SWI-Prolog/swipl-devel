@@ -131,7 +131,8 @@ that fixed_size should not be set to @on before the frame is open.
 :- pce_begin_class(my_dynamic_frame, frame,
 		   "Add fixed_size").
 
-variable(fixed_size,	bool := @off,	both, "Do not resize on ->fit").
+variable(fixed_size, bool := @off, both,
+	 "Do not resize on ->fit").
 
 fit(F) :->
 	"Request to fit the contents"::

@@ -6,37 +6,41 @@ CORRECTINDEX=../../bin/correctindex
 MAKEINDEX=makeindex -s ../../TeX/makeindex.ist
 
 
-TEX=	xpceusg.tex \
-	intro.tex starting.tex globalarch.tex online.tex debug.tex \
-	interface.tex graphics.tex pceprolog.tex chess.tex \
-	trouble.tex memory.tex glossary.tex techniques.tex \
-	report.tex font.tex hyper.tex udc.tex dragdrop.tex \
-	dragdropdemo.tex control.tex whoiswho.tex namedref.tex \
-	ugraphics.tex code.tex resource.tex diaedit.tex dialog.tex \
-	wysiwyg.tex frame.tex error.tex application.tex images.tex \
-	mlingual.tex summary.tex
+COMMON=	intro.tex starting.tex globalarch.tex online.tex debug.tex \
+	interface.tex graphics.tex pceprolog.tex trouble.tex memory.tex \
+	glossary.tex techniques.tex report.tex font.tex hyper.tex \
+	udc.tex dragdrop.tex dragdropdemo.tex control.tex whoiswho.tex \
+	namedref.tex ugraphics.tex code.tex resource.tex diaedit.tex \
+	dialog.tex wysiwyg.tex frame.tex error.tex application.tex \
+	images.tex mlingual.tex summary.tex body.tex
+
+XPCETEX=	xpceusg.tex $(COMMON)
+PWTEX=		pwusg.tex pwinfo.tex $(COMMON)
 
 LOGO=	figs/uva.eps figs/swi.eps
 
-all:	$(TEX) $(LOGO)
+all:	$(XPCETEX) $(LOGO)
 	-$(CORRECTINDEX) xpceusg.idx
 	-$(MAKEINDEX) xpceusg.idx
 	touch xpceusg.ind
 	(TEXINPUTS=../../TeX:$$TEXINPUTS; export TEXINPUTS; latex xpceusg)
 
-html:	$(TEX)
+html:	$(XPCETEX)
 	latex2html xpceusg
-	mv xpceusg/xpceusg.html xpceusg/Title.html
 
-tex:	$(TEX)
+pwhtml:	$(PWTEX)
+	latex2html pwusg
+
+pwtex:	$(PWTEX)
+tex:	$(XPCETEX)
 
 bib:	xpceusg.aux
 	(TEXINPUTS=../../TeX:$$TEXINPUTS; \
 	 BIBINPUTS=$$TEXINPUTS; \
 	 export TEXINPUTS BIBINPUTS; bibtex xpceusg)
 
-figs/uva.ps:	../../TeX/figs/uva.ps
-	cp ../../TeX/figs/uva.ps figs/uva.ps
+figs/uva.eps:	../../TeX/figs/uva.eps
+	cp ../../TeX/figs/uva.eps figs/uva.eps
 
 figs/swi.eps:	../../TeX/figs/swi.eps
 	cp ../../TeX/figs/swi.eps figs/swi.eps
@@ -59,7 +63,8 @@ summary.tex:		summary.doc classes.pl
 	$(PLTOTEX) $*.pl > $*.tex
 
 clean:
-	rm -f $(TEX) *.dvi *.toc *.aux *.idx *.ind *.blg *.log *.ilg \
-	      *~ figs/*~ \
-	      $(LOGO) figs/class/* summary.tmp
+	rm -f $(XPCETEX) $(PWTEX) \
+		*.dvi *.toc *.aux *.idx *.ind *.blg *.log *.ilg \
+		*~ figs/*~ \
+		$(LOGO) figs/class/* summary.tmp
 	

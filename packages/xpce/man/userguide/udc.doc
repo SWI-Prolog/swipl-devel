@@ -2,29 +2,29 @@
 \label{sec:udc}
 
 The user defined class interface provides a natural way to define new
-XPCE classes. It is both used to create higher level libraries that have
-the same interface as the built-in XPCE classes as to define entire
-applications. Many of the library modules and XPCE/Prolog demo programs
+\product{} classes. It is both used to create higher level libraries that have
+the same interface as the built-in \product{} classes as to define entire
+applications. Many of the library modules and \productpl{} demo programs
 are implemented as user-defined classes. The PceDraw demo is an
 elaborate example defined entirely in user-defined classes.
 
-A user defined class lives in XPCE, just as any other XPCE class. There
+A user defined class lives in \product{}, just as any other \product{} class. There
 is no difference. Both use dynamic resolution of messages to method
 objects and then execute the method object. Both use the same
 object-management and storage facilities.
 
-XPCE/Prolog user-defined classes have their methods implemented
+\productpl{} user-defined classes have their methods implemented
 in Prolog.  This provides a neat and transparent interface between
 the two systems.%
-    \footnote{XPCE defines four implementation techniques for methods.
+    \footnote{\product{} defines four implementation techniques for methods.
     {\em C-function pointers} are used for almost all the built-in
     behaviour. {\em C++-function pointers} are used when classes are
-    defined in C++ (\cite{XPCE:cpp}). Instances of \class{c_pointer} are
-    left to the host object for interpretation and finally, \class{code}
-    objects are executed.}
+    defined in C++\ifpw{}{ (\cite{XPCE:cpp})}. Instances of
+    \class{c_pointer} are left to the host object for interpretation and
+    finally, \class{code} objects are executed.}
 
 User defined classes are defined using Prolog syntax, where some
-operators have special meaning. The definition of an XPCE/Prolog class
+operators have special meaning. The definition of an \productpl{} class
 is enclosed in
 
 \begin{code}
@@ -48,8 +48,9 @@ that may be placed anywhere and defines the group-identifier for the
 declarations that follow.  The skeleton is given in \figref{udcskeleton}.
 
 \begin{figure}
-\begin{quote}
-\parindent0pt
+\hr
+\parindent 0pt
+\parskip 1.5ex
 \newcommand{\opt}[1]{{\it [#1]}}		% optional
 \newcommand{\zom}[1]{{\it \{#1\}}}		% zero-or-more
 \newcommand{\tab}{\makebox[6ex]{}}
@@ -69,16 +70,16 @@ handle(<X>, <Y>, <Kind>, <Name>).
 
 :- pce_group(<Group>).
 
-<SendSelector>(<Rec>\zom{, <Arg>\opt{:\opt{<AName>=}<Type>}}) \verb$:->$\\
+<SendSelector>(<Receiver>\zom{, <Arg>\opt{:\opt{<AName>=}<Type>}}) \verb$:->$\\
 	\tab\opt{<Summary>::}\\
 	\tab<PrologBody>.
 
-<GetSelector>(<Rec>\zom{, <Arg>\opt{:\opt{<AName>=}<Type>}}, <RVal>\opt{:<Type>}) \verb$:<-$\\
+<GetSelector>(<Receiver>\zom{, <Arg>\opt{:\opt{<AName>=}<Type>}}, <RVal>\opt{:<Type>}) \verb$:<-$\\
 	\tab\opt{<Summary>::}\\
 	\tab<PrologBody>.
 
 :- pce_end_class.
-\end{quote}
+\hr
 \caption{Skeleton for user-defined classes}
 \label{fig:udcskeleton}
 \end{figure}
@@ -87,14 +88,14 @@ handle(<X>, <Y>, <Kind>, <Name>).
 
 \begin{description}
     \directive{pce_begin_class}{[2,3]}{+[Meta:]Class, +Super, [+Summary]}
-Start the definition of an XPCE user-defined class.  This directive can
+Start the definition of an \product{} user-defined class.  This directive can
 appear anywhere in a Prolog source file.  The definition must be closed
 using pce_end_class/0 and definitions may not be nested.  {\em Class}
 describes the class to be created.  Besides giving the class-name, the
 meta-class (class of the class) may be specified.  When omitted, 
 the meta-class of the {\em Super} will be used, which is normally
 class \class{class}.  An example of meta-class programming can be found
-in PceDraw's file {\tt shape.pl}, see \cite{XPCE:draw}.
+in PceDraw's file {\tt shape.pl}\ifpw{}{, see \cite{XPCE:draw}}.
 
 The class-name may be followed by a list of {\em TermNames} that define
 the result of object/2.  object/2 unifies its second argument
@@ -105,7 +106,7 @@ For example, \mbox{\tt point(x,y)} specifies that object(P,~T) unifies
 as arguments.  When omitted, the term-description of the super-class
 is inherited.
     \directive{use_class_template}{1}{TemplateClass}%
-Import a class template.  See section~\ref{sec:template}.
+Import a class template.  See \secref{template}.
     \directive{send}{[2-12]}{@class, ...}%
 Directives like this may be used to invoke methods on the class under
 construction. This can be used to modify the class in ways that are not
@@ -118,38 +119,40 @@ not be saved to file when the object is saved using
 :- send(@class, save_style_variable, nil).
 \end{code}
 
-See also pce_class_directive/1 and section~\ref{sec:ucdimplementation}.
+See also pce_class_directive/1 and \secref{ucdimplementation}.
     \directive{pce_class_directive}{1}{+:Goal}%
 Define {\em Goal} to be a goal that manipulates the class instance
-directly.  See section~\ref{sec:ucdimplementation}.
+directly.  See \secref{ucdimplementation}.
     \predicate{variable}{[3,4]}{Name, Type, Access, [Summary]}%
 Define a new instance variable.  {\em Name} is the name of the variable,
 which is local to the class and its subclasses.  {\em Type} defines
-the type. See section~\ref{sec:atype} and section~\ref{sec:moretypes}.
+the type. See \secref{atype} and \secref{moretypes}.
 The type may be postfixed with \mbox{{\tt := \em Value}},%
     \footnote{Value must be an int, name or \class{constant} in the
 	      current implementation.}
 in which case the instance-allocation will fill the slot with the given
-value. See also section~\ref{sec:omsmethods}. {\em Access} defines which
+value. See also \secref{omsmethods}. {\em Access} defines which
 implicit {\em universal} methods will be associated with the variable. A
 universal method is defined to be a method that reads or writes the
 slot, without performing any additional actions. See also
 \secref{slots}.
     \predicate{delegate_to}{1}{VariableName}%
 Declares the variable named {\em VariableName} to be a candidate for
-delegation.  See section~\ref{sec:delegation}.
+delegation.  See \secref{delegation}.
     \predicate{resource}{[3,4]}{Name, Type, Default, [Summary]}%
 Declare a resource for the class.  Resources are like class-variables
 that may be set from the resource file.
 The {\em Default} entry describes the default value if the resource
 is not defined in any of the standard resource locations.  It is
-a textual description (an atom) of the value in XPCE's resource
+a textual description (an atom) of the value in \product{}'s resource
 syntax (see \chapref{resources}).  As this syntax is very
 close to the Prolog syntax, a passed Prolog term will be translated
 to the default value using term_to_atom/2.
     \predicate{handle}{3,4}{X, Y, Kind, Name}%
-Equivalent to \mbox{\tt :- send(@class, handle, handle(X, Y, Kind,
-Name)).}  See also \secref{connection}.
+Equivalent to the expression below.  See also \secref{connection}.
+\begin{code}
+:- send(@class, handle, handle(X, Y, Kind, Name))}.
+\end{code}
     \directive{pce_group}{1}{GroupIdentifier}%
 Sets the `behaviour <->group' attribute of any variable or method
 definition following this directive.  Groups are used to organise
@@ -166,7 +169,10 @@ the above skeleton in more detail. The notation is an incomplete BNF
 notation.
 
 \begin{table}
-\begin{tabular}{|lrl|p{3in}|}
+\newcommand{\ttvbar}{\tt\string|}
+\newlength{\dwidth}
+\setlength{\dwidth}{\linewidth / 2}
+\begin{tabular}{|lrl|p{\dwidth}|}
 \hline
 <Meta>		\isa <Name>	&    Name of the class this class
 				     will be an instance of.  Default
@@ -184,13 +190,17 @@ notation.
 				     the online manual.  $< 40$ characters,
 				     no newlines, Prolog string \\
 <TemplateClass>	\isa <Name>	&    Import a template class.  See
-				     section~\ref{sec:template} \\
+				     \secref{template} \\
 <Selector>	\isa <Name>	&    Name of a method \\
 <X>		\isa <IntExpr>	&    See class \class{handle} \\
 <Y>		\isa <IntExpr>	&    See class \class{handle} \\
 <Kind>		\isa <Name>	&    Category indicator.  See class
 				     \class{handle} \\
-<Access>	\isa \verb$both|get|send|none$
+<Access>	\isa \parbox[t]{4em}{\raggedright
+				     \const{both} \ttvbar{}
+				     \const{get} \ttvbar{}
+				     \const{send} \ttvbar{}
+				     \const{none}}
 				&    Defines the access right to this
 				     variable \\
 <VarName>	\isa <Name>	&    Name of variable used for
@@ -200,13 +210,13 @@ notation.
 				     organise the ClassBrowser \\
 <SendSelector>	\isa <Name>	&    Name of send-method to define \\
 <GetSelector>	\isa <Name>	&    Name of get-method to define \\
-<Rec>		\isa <Variable>	&    Prolog variable bound to the receiver \\
+<Receiver>	\isa <Variable>	&    Prolog variable bound to the receiver \\
 <Arg>		\isa <Variable> &    Prolog variable bound to argument \\
 <RVal>		\isa <Variable>	&    Prolog variable that should be bound
 				     to the return value \\
-<AName>		\isa <Name>	&    XPCE name for named argument \\
-<Type>		&&		&    See section~\ref{sec:atype} and
-				     \ref{sec:moretypes} \\
+<AName>		\isa <Name>	&    \product{} name for named argument \\
+<Type>		&&		&    See \secref{atype} and
+				     \secref{moretypes} \\
 <PrologBody>	&&		&    Ordinary Prolog code \\ 
 <Value>		&&		&    Initial value for the instance variable.
 				     At this moment, only using constants
@@ -260,7 +270,7 @@ conversion is not defined or if the slot does not exist.
 
 Re(de)fining methods is a common technique in object-oriented
 programming. This section describes how methods can be re(de)fined and
-what methods have special meaning in XPCE and are commonly redefined.
+what methods have special meaning in \product{} and are commonly redefined.
 
 The method definition for a re(de)fined method is exactly the same
 as for a new method.  The redefined method will inherit its group
@@ -281,7 +291,7 @@ enforced.
 
 The most commonly redefined method is the ->initialise method.  Below
 is an example from the definition of a graphical device displaying a
-box and a centered text.  See also section~\ref{sec:omsmethods}.
+box and a centered text.  See also \secref{omsmethods}.
 
 \begin{code}
 initialise(D, W:int, H:int, Str:string) :->
@@ -358,7 +368,7 @@ If no such person exist, a new person instance is created.  Below
 is the implementation for this:
 \begin{code}
 convert(_, Name:name, P:person) :<-
-	"Convert name to person frm @persons or create a new one"::
+	"Lookup from @persons or create a new one"::
 	(   get(@persons, member, Name, P)
 	->  true
 	;   new(P, person(Name))
@@ -442,7 +452,8 @@ event(D, Ev:event) :->
 	(   (   send(Ev, is_a, button)
 	    ;   send(Ev, is_a, keyboard)
 	    )
-	->  get(D, member, text, Text),	% assumes text is named `text'
+	->  % assumes text is named `text'
+	    get(D, member, text, Text),	
 	    send(Ev, post, Text)
 	;   send(D, send_super, event, Ev)
 	).
@@ -488,18 +499,18 @@ representation and a database object linked using a \class{hyper} like
 this:
 
 \begin{code}
-	new(_, hyper(Db, Gr, controller, model))
+new(_, hyper(Db, Gr, controller, model))
 \end{code}
 
 If the database object (model) is modified, it could use the following
 to inform all associated controllers about the change:
 
 \begin{code}
-	send(Db, send_hyper, controller, request_compute)
+send(Db, send_hyper, controller, request_compute)
 \end{code}
 
-XPCE remembers that the state of this graphical is not consistent.  If
-XPCE requires the graphical to be in a consistent state, either because
+\product{} remembers that the state of this graphical is not consistent.  If
+\product{} requires the graphical to be in a consistent state, either because
 it needs to paint the graphical or because it requires information about
 the geometry of the graphical, it will invoke the method ->compute on
 the graphical.
@@ -513,7 +524,7 @@ Suppose the ->request_compute and ->compute mechanism is not available.
 It this case, multiple modifications by the program to the text would
 require this expensive process to run several times. Now, after
 modifying the text, ->request_compute is invoked on the text_image.
-Whenever XPCE has processed all pending events, it will invoke ->compute
+Whenever \product{} has processed all pending events, it will invoke ->compute
 to the text_image and then repaint it.
 
 The method below is a far to simple example, where the ->compute method
@@ -548,7 +559,7 @@ default value in the \class{type} object itself.
     \predicate{default}{3}{+Argument, +Default, -Value}
 Used to specify and compute defaults for arguments.  {\em Argument}
 is the actual argument passed to the method implementation, {\em
-Default} is any valid XPCE object description (reference, integer,
+Default} is any valid \product{} object description (reference, integer,
 real, atom or compound ground term describing an object, see
 send/[2-12]).  {\em Default} can also be the term
 \begin{code}
@@ -574,12 +585,12 @@ volume(X, Vol:[0..130]) :->
 
 \subsection{More on type declarations}		\label{sec:moretypes}
 
-The basic XPCE type-syntax is described in section~\ref{sec:atype} of
-this manual.  Types are first-class reusable XPCE objects that are
+The basic \product{} type-syntax is described in \secref{atype} of
+this manual.  Types are first-class reusable \product{} objects that are
 created from the type-declaration in arguments and variables.  The
 conversion from the textual representation to the object is performed
-by XPCE itself (together with the resource syntax, one of the few
-places where XPCE defines syntax).  All types can be specified as
+by \product{} itself (together with the resource syntax, one of the few
+places where \product{} defines syntax).  All types can be specified as
 Prolog quoted atoms.  For example:
 
 \begin{code}
@@ -589,12 +600,12 @@ mymethod(Me, A:'graphical|dict_item|0..') :->
 
 For most cases however, this is not necessary.  If the type is not an
 atom, the class-compiler will convert the Prolog term into an atom
-suitable for XPCE's type system.  Hence, {\tt [point]} will translate to
-the atom '[point]', which is interpreted by XPCE as ``an instance of
+suitable for \product{}'s type system.  Hence, {\tt [point]} will translate to
+the atom '[point]', which is interpreted by \product{} as ``an instance of
 class \class{point} or the constant @default''.  The atoms {\tt *} and
 {\tt ...} are defined as postfix operators, while {\tt ..} is an infix
 operator.  This makes `\mbox{\tt any ...}' a valid notation for ``any
-number of anything'' (see section~\ref{sec:varargs} below) and `{\tt
+number of anything'' (see \secref{varargs} below) and `{\tt
 0..5}' a valid expression for ``an integer in the range 0 to 5
 (including the boundaries).
 
@@ -666,8 +677,8 @@ Like ->send_vector, but to fetch a result.
 
 \subsubsection{Using class templates}		\label{sec:template}
 
-XPCE provides two alternatives to multiple inheritance. Delegation is
-discussed in section~\ref{sec:delegation}. See also the directive
+\product{} provides two alternatives to multiple inheritance. Delegation is
+discussed in \secref{delegation}. See also the directive
 delegate_to/1 for user-defined class definitions.  The {\em template}
 mechanism is much closer to real multiple inheritance.  A template
 is a named partial class-definition that may be included in other
@@ -763,7 +774,7 @@ event(Gr, Ev:event) :->
 
 \subsection{Implementation notes}	\label{sec:ucdimplementation}
 
-The XPCE/Prolog class-compilation is defined using the Prolog
+The \productpl{} class-compilation is defined using the Prolog
 preprocessing capabilities of term_expansion/2. While the class is
 compiled, Prolog gathers the expressions belonging to the class.
 The expansion of \mbox{\tt :- pce_end_class} emits the actual code for
@@ -796,9 +807,9 @@ send_gnus(gnats, A, B) :- ...
 \end{code}
 
 The remainder of the class specification is translated into a number of
-Prolog clauses describing the class. No XPCE class is created. If XPCE
+Prolog clauses describing the class. No \product{} class is created. If \product{}
 generates an {\tt undefined_class} exception, it will scan for the
-class-description in the Prolog database and create the XPCE
+class-description in the Prolog database and create the \product{}
 \class{class} instance.  No methods are associated with the new class.
 Instead, all method binding is again based on exception handling.
 
@@ -811,7 +822,7 @@ should be embedded in the pce_class_directive/1 directive.%
 	      \mbox{\tt :- send(@class, ...} is treated automatically
 	      as if it was embedded using pce_class_directive/1}.
 The {\em Goal} argument of pce_class_directive/1 should refer to the
-class using the XPCE \class{var} object @class.  When the class is
+class using the \product{} \class{var} object @class.  When the class is
 realised the exception system will bind @class to the current class
 while invoking {\em Goal}.  {\em Goal} is invoked as if it was called
 from the Prolog module in which the class is defined.
@@ -825,6 +836,6 @@ capabilities) stand-alone executables.
 One of the consequences of the chosen approach is that the
 class-building directives are not accessible as predicates.  There is
 no preprocessing support for the dynamic creation of classes and the
-programmer should thus fall back to raw manipulation of the XPCE class
+programmer should thus fall back to raw manipulation of the \product{} class
 objects.
 

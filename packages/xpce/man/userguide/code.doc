@@ -24,9 +24,9 @@ returns a \class{chain} object containing all grahicals currently
 selected on the device.  The implementation is:
 
 \begin{code}
-	...,
-	send(Dev?graphicals, for_all, message(@arg1, free)).
-	...
+...,
+send(Dev?graphicals, for_all, message(@arg1, free)).
+...
 \end{code}
 
 The method `chain ->for_all' will execute the argument \class{message}
@@ -84,7 +84,7 @@ These executable objects are commonly used as conditions for the
 
 \noindent
 The online manual may be used to get an overview of the other available
-code objects.  See section~\ref{sec:classhierarchy}.
+code objects.  See \secref{classhierarchy}.
 
 
 \subsection{Functions}		\label{sec:function}
@@ -116,7 +116,8 @@ The objects @arg1, ...  are the message {\em forwarding} arguments.
 Assume the following message.
 
 \begin{code}
-?- new(@m, message(@pce, format, 'Hello %s\n', @arg1)).
+?- new(@m, message(@pce, format,
+		   'Hello %s\n', @arg1)).
 \end{code}
 
 When executed, @arg1 (a \class{function}) is first evaluated.
@@ -159,7 +160,9 @@ A naive approach and common beginners mistake is to write:
 	     if(message(@arg1, instance_of, box),
 		message(F, append,
 			string('BOX %s at %d,%d\n',
-			       @arg1?name, @arg1?x, @arg1?y)))),
+			       @arg1?name,
+			       @arg1?x,
+			       @arg1?y)))),
 	send(F, close),
 	...
 \end{code}
@@ -167,7 +170,8 @@ A naive approach and common beginners mistake is to write:
 This example will yield a warning:
 
 \begin{code}
-[PCE error: get: No implementation for: @default/constant <-x
+[PCE error: get: No implementation for:
+		 	@default/constant <-x
         in: get(@default/constant, x)]
 PCE:  4 fail: get(@default/constant, x) ? 
 \end{code}
@@ -185,8 +189,11 @@ is to use:
 	send(Dev?graphicals, for_all,
 	     if(message(@arg1, instance_of, box),
 		message(F, append,
-			create(string, 'BOX %s at %d,%d\n',
-			       @arg1?name, @arg1?x, @arg1?y)))),
+			create(string,
+			       'BOX %s at %d,%d\n',
+			       @arg1?name,
+			       @arg1?x,
+			       @arg1?y)))),
 	send(F, close),
 	...
 \end{code}
@@ -205,7 +212,7 @@ dialog windows, such that the call-back predicate can concentrate on the
 real function.  We have seen an example of this in \secref{fileviewer}.
 
 \index{PostScript}%
-Below there is another example.  {\em Data} is assumed to be an XPCE
+Below there is another example.  {\em Data} is assumed to be an \product{}
 \class{string} object containing a PostScript\tm\ description of a
 graphical object as can be obtained using
 
@@ -218,11 +225,11 @@ graphical object as can be obtained using
 In this example both the internal dynamics of the dialog window (the
 label of the text-entry fields changes if the user switches from
 file to printer) and grabbing the arguments from the various
-dialog items is written using XPCE executable objects.  Prolog
+dialog items is written using \product{} executable objects.  Prolog
 will only be called to do the real work: printing the data to
 the requested destination.
 
-Note that XPCE/Prolog does not {\bf require} you to use XPCE executable
+Note that \productpl{} does not {\bf require} you to use \product{} executable
 objects this way.  It is also possible to call Prolog from both the menu
 and the buttons, passing the dialog window as argument and write all
 behaviour in Prolog.  We leave this as an exercise to the user.
@@ -234,14 +241,20 @@ postscript(Data) :-
 	  send(D, append, new(T, menu(destination, marked))),
 	  send_list(T, append, [printer, file]),
 	  send(T, layout, horizontal),
-	  send(D, append, new(A, text_item(printer_name, 'PostScript'))),
+	  send(D, append,
+	       new(A, text_item(printer_name, 'PostScript'))),
 	  send(T, message,
 	       if(T?selection == printer,
-		  message(A, label, ?(A, label_name, printer_name)),
-		  message(A, label, ?(A, label_name, file_name)))),
+		  message(A, label,
+			  ?(A, label_name, printer_name)),
+		  message(A, label,
+			  ?(A, label_name, file_name)))),
 	  send(D, append,
-	       button(ok, and(message(@prolog, print_postscript,
-				      T?selection, A?selection, Data),
+	       button(ok, and(message(@prolog,
+				      print_postscript,
+				      T?selection,
+				      A?selection,
+				      Data),
 			      message(D, destroy)))),
 	  send(D, append,
 	       button(cancel, message(D, destroy))),

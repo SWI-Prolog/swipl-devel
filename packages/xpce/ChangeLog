@@ -1,3 +1,12 @@
+[VERSION 4.9.4]
+
+* ADDED: extra argument to `device->advance'.  All internals to call
+  this as a method.  Added `tab->advance' to default the new propagate
+  argument to @off.  Causes advancing in a tab to circulate, rather
+  then to switch to the next (hidden) item.  Makes it possible to
+  define other subclasses with this same feature.
+
+
 [VERSION 4.9.3]
 
 * IMPROVED: integer range increased to +- 2**30 (was +- 2**29).

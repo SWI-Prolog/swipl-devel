@@ -1,13 +1,13 @@
 \chapter{Using the online manual}		\label{sec:online}
 
-In the previous sections we have introduced XPCE using examples and
-described the global architecture of the XPCE/Prolog environment.  The
-primitives of XPCE are simple, but XPCE as a whole is a massive library
+In the previous sections we have introduced \product{} using examples and
+described the global architecture of the \productpl{} environment.  The
+primitives of \product{} are simple, but \product{} as a whole is a massive library
 of very diverse classes with many methods.  The current system contains
 about 160 classes defining over 2700 methods.
 
 To help you finding your way around in the package as well as in
-libraries and private code loaded in XPCE, an integrated manual is
+libraries and private code loaded in \product{}, an integrated manual is
 provided.  This manual extracts all information, except for a natural
 language description of the class, method or slot from the system and
 thus guarantees exact and consistent information on available classes,
@@ -23,33 +23,32 @@ to quickly browse the environment of related material.
 \section{Overview}
 
 The online manual consists of a large set of tools to examine
-different aspects of the XPCE/Prolog environment and to navigate
+different aspects of the \productpl{} environment and to navigate
 through the available material from different view-points.
 
-\begin{itemize}
-\newcommand{\manualtool}[2]{\item\makebox[\linewidth][l]{\em #1\hfill\sf #2}}
+\begin{description}
     \manualtool{The inheritance hierarchy}{Browsers/Class Hierarchy}
 \index{class,hierarchy}%
-The `Class Hierarchy' tool allows the user to examine XPCE's class
+The `Class Hierarchy' tool allows the user to examine \product{}'s class
 hierarchy.  This tool reads the inheritance relations from the class
 objects and thus also visualises application or library classes.
-Figure~\ref{fig:classhierarchy} is created using this tool.
+\Figref{classhierarchy} is created using this tool.
     \manualtool{The structure of a class}{Browsers/Class Browser}
 \index{class,structure}%
 The most important tool is the `Class Browser'.  It provides the
 user with a view of material related to a class.  As everything in
-XPCE is an object and thus an instance of a class this tool provides
-access to everything in XPCE, except for the Prolog interface.
+\product{} is an object and thus an instance of a class this tool provides
+access to everything in \product{}, except for the Prolog interface.
     \manualtool{Search Tool}{Browsers/Search}
 This tool provides full search capabilities on the entire manual contents,
 including combined search specifications.
     \manualtool{Globally available object references}{Browsers/Global Objects}
 \index{global objects}%
-The XPCE environment provides predefined objects (@pce, @prolog, @arg1, etc.).
+The \product{} environment provides predefined objects (@pce, @prolog, @arg1, etc.).
 The tool allows the user to find these objects.
     \manualtool{Prolog interface predicates}{Browsers/Prolog Predicates}
 \index{Prolog interface}%
-This tool documents all the XPCE/Prolog predicates.
+This tool documents all the \productpl{} predicates.
     \manualtool{Instances}{Tools/Inspector}
 \index{inspecting instances}\index{object,inspecting}%
 This tool is part of the runtime support system.  It allows you to
@@ -65,21 +64,33 @@ structure.
 \index{help,on manual}%
 The manual tools are documented by itself.  Each tool has a `Help' button
 that documents the tool.
-    \manualtool{XPCE Demo programs}{File/Demo Programs}
+    \manualtool{\product{} Demo programs}{File/Demo Programs}
 \index{demo programs}%
+
 The `Demo Programs' entry of the `File' menu starts an overview of the
-available demo programs and lets you start these demos.  The sources of
-the demos may be found in \file{.../xpce/prolog/demo}, where ...
-refers to the XPCE installation directory, which may be obtained using
+available demo programs. A demo can be started by double-clicking it.
+The sources of the demos may be found in \file{<home>/prolog/demo},
+where <home> refers to the \product{} installation directory, which may
+be obtained using
+
+\begin{xpceonly}
 \begin{code}
 1 ?- get(@pce, home, Home).
 Home = '/usr/local/lib/pl-2.1.13/xpce'
 \end{code}
+\end{xpceonly}
+\begin{pwonly}
+\begin{code}
+1 ?- get(@pce, home, Home).
+Home = '/usr/local/quintus/prowindows3.1'
+\end{code}
+\end{pwonly}
+
 Note that the DemoBrowser allows to view the sources of the main file
 of a demo application immediately. Also consider using the
 VisualHierarchy and ClassBrowser to analyse the structure of the demo
 programs.
-\end{itemize}
+\end{description}
 
 
 \section{Notational conventions}
@@ -103,7 +114,7 @@ The `Formal Description' is a short description derived from the
 described object itself:
 
 \begin{center}
-\begin{tabular}{|l|p{3in}|}
+\begin{tabularlp}{{\tt M} class \url{<- }selector: type ... \url{-->}type}
 \hline
 {\tt V} class \verb$ - $selector: type
 	& Variable that cannot be accessed directly \\
@@ -120,20 +131,20 @@ described object itself:
 {\tt R} Class.attribute:   type &
 	Resource of specified class for specified attribute \\
 \hline
-\end{tabular}
+\end{tabularlp}
 \end{center}
 
 \noindent
 The same notational conventions are used in the running text of a
-card.  See section~\ref{sec:card}.
+card.  See \secref{card}.
 
 
 \subsection{Argument types}		\label{sec:atype}
 
 \index{argument,type}\index{type}
-XPCE is a partially typed language.  Types may be defined for both
+\product{} is a partially typed language.  Types may be defined for both
 method arguments and instance variables.  A type is represented by an
-instance of class \class{type}.  XPCE defines a conversion to create
+instance of class \class{type}.  \product{} defines a conversion to create
 type objects from a textual representation.  A full description of this
 conversion may be found in the online manual (method `type <-convert').
 In this document we will summarise the most important types:
@@ -141,14 +152,14 @@ In this document we will summarise the most important types:
 \begin{itemize}
 \setlength{\itemsep}{5pt}
     \tick{int}
-XPCE integer datum.
+\product{} integer datum.
     \tick{<low>..<high>, <low>.., ..<high>}
 Range of integers (including <low> and <high>). The latter two
 constructs indicate one-side-unbound integer. Both <low> and <high> can
 also be floating point numbers, indication a `real-range'.
     \tick{any}
 Both integers and objects.  Function objects will be evaluated.
-See section~\ref{sec:function}.
+See \secref{function}.
     \tick{<class-name>}
 Any instance of this class or one of its sub-classes.  Class
 \class{object} is the root of the inheritance hierarchy.  The type {\tt
@@ -185,7 +196,7 @@ omitted.
 \section{Guided tour}
 
 This section provides a `guided tour' through the manual system. If you
-have XPCE/Prolog at hand, please start it and try the examples. For each
+have \productpl{} at hand, please start it and try the examples. For each
 of the central tools of the manual we will present a screendump in a
 typical situation and explain the purpose and some common ways to use
 the tool.
@@ -302,7 +313,7 @@ likely to have `caret' as a substring.  Thus, {\bf Display} is set to
 This section describes the role of the `special' methods.  These are
 methods that are not used directly, but they define the behaviour of
 new/2, type conversion, etc.  and knowing about them is therefore
-essential for understanding an XPCE class.
+essential for understanding an \product{} class.
 
 \begin{description}
     \sendmethod{object}{initialise}{<Class-Defined>}
@@ -337,7 +348,7 @@ with this capability are: \class{name}, \class{font}, \class{colour},
 \index{type,conversion}%
 Defines what can be converted into an instance of this type.  If an instance
 of this class is requested by a type but another object is provided
-XPCE will call this method to translate the given argument into an instance
+\product{} will call this method to translate the given argument into an instance
 of this class.
     \sendmethod{object}{catch_all}{<Class-Defined>}
 \index{catch-all}%
@@ -396,8 +407,8 @@ or get-method.  Method completion considers inheritance and delegation.%
 \subsection{Search tool}		\label{sec:searchtool}
 
 The search tool is shown in \figref{searchtool}.  It allows the user to
-search through all XPCE manual cards in an efficient manner with queries
-similar to that what is found in \idx{WAIS} tools.  XPCE maintains a
+search through all \product{} manual cards in an efficient manner with queries
+similar to that what is found in \idx{WAIS} tools.  \product{} maintains a
 word index for the text off all material in the online manual and this
 tool quickly finds all cards holding a, or a combination of words.  A
 search specification is an expression formed from the following
@@ -434,15 +445,15 @@ card summaries of all matching cards.
 \postscriptfig[width=\textwidth]{hierarchy}{Class Hierachy Tool}
 
 The ``Class Hierachy'' tool shown in \figref{hierarchy} may be used to
-get an overview of XPCE's class hierarchy or to find the (inheritance)
-relations of a particular class with other classes.  Note that XPCE's
+get an overview of \product{}'s class hierarchy or to find the (inheritance)
+relations of a particular class with other classes.  Note that \product{}'s
 inheritance hierarchy has a technical foundation rather than a
 conceptual.  Super-classes are motivated by the need for code-sharing.
 
 
 \section{Summary}
 
-The online manuals integrate visualisation of XPCE's internal
+The online manuals integrate visualisation of \product{}'s internal
 structure with a hyper-text system.  This approach guarantees
 consistency between the documentation and the actual system and
 integrates overview and documentation of library and user-defined

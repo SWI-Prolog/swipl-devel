@@ -90,10 +90,13 @@
     User resources are specified in the file \verb$~/.Xdefaults$ and take the
     form `Pce.Class.instance_variable: Value'.
 \glossitem{Selector}
-    A \g{selector} is the name of a \g{send-} or \g{get-operation}.
+    A \g{selector} is the name of a \g{send-operation} or \g{get-operation}.
+\glossitem{Send Method}
+    Refinement of \class{method} that maps a \g{send-operation} onto
+    its implementation.  See also \g{Method}
 \glossitem{Send operation}
     Virtual machine operation which invokes of a \g{send-method} on
-    some object.  Started by the Prolog predicate send/[3-13], when
+    some object.  Started by the Prolog predicate send/[2-12], when
     an \g{message} is executed or from PCE's built-in functionality.
 \glossitem{Slot}
     Equivalent to \g{instance_variable}.

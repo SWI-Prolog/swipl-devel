@@ -1,6 +1,6 @@
 \chapter{Introduction}
 
-XPCE is an object-oriented library for building Graphical User
+\product{} is an object-oriented library for building Graphical User
 Interfaces (GUI's) for symbolic or strongly typed languages. It provides
 high level GUI specification primitives and dynamic modification of the
 program to allow for rapid development of interfaces. It integrates a
@@ -8,43 +8,46 @@ graphical tool for the specification of interfaces, in addition to
 powerful and uniform mechanisms to facilitate automatic generation of
 GUI's.
 
-XPCE is not a programming language in the traditional sense. Language
+\product{} is not a programming language in the traditional sense. Language
 constructs and objects of the system do not have a direct textual
 representation. The interface to the `hosting' language defines what
-XPCE looks like from the programmers point of view. As a consequence,
-the programmer will first of all experience XPCE as a {\em library}.
+\product{} looks like from the programmers point of view. As a consequence,
+the programmer will first of all experience \product{} as a {\em library}.
 
-XPCE however, does provide all semantic elements that can be found in
+\product{} however, does provide all semantic elements that can be found in
 many object-oriented programming languages: classes, objects, methods,
 instance-variables, inheritance, statements, conditions, iteration, etc.
 
 All the above primitives are represented by first-class {\em objects}
 that may be created, modified, inspected and destroyed. This allows the
-programmer to extend the XPCE object-oriented system with new methods
+programmer to extend the \product{} object-oriented system with new methods
 and classes from the host-language. In addition, procedures can be
-expressed as objects and then given to XPCE for execution.
+expressed as objects and then given to \product{} for execution.
 
-The interface between XPCE and its hosting language is small, which
-makes XPCE especially a good GUI candidate for special-purpose
+The interface between \product{} and its hosting language is small, which
+makes \product{} especially a good GUI candidate for special-purpose
 languages.
 
-The main target language for XPCE is {\em Prolog} and this document
-concentrates on XPCE/Prolog rather then XPCE/Lisp or XPCE/C++.
-XPCE/Prolog comes with a graphical programming environment that allows
-for quick browsing of the source-code, provides debugging tools
-and allows for the graphical construction of {\em dialog boxes}
-(graphical windows with {\em controllers}). XPCE's built-in editor is
+\begin{xpceonly}
+The main target language for \product{} is {\em Prolog} and this document
+concentrates on \productpl{} rather then \product{}/Lisp or \product{}/C++.
+\end{xpceonly}
+\productpl{} comes with a graphical programming environment that allows
+for quick browsing of the source-code, provides debugging tools and
+allows for the graphical construction of {\em dialog boxes} (graphical
+windows with {\em controllers}). \product{}'s built-in editor is
 modelled after the standard (GNU-)Emacs editor and can be programmed in
-XPCE/Prolog.
+\productpl{}.
 
 
-\section{Organisation of the XPCE documentation}
 
-This document describes the basics of XPCE and its relation to Prolog.
+\section{Organisation of the \product{} documentation}
+
+This document describes the basics of \product{} and its relation to Prolog.
 Besides the written version, this document is also available as an HTML
 document from the URL below.  The second URL may be used to download
 the entire WWW tree for installation on a local host.
-\begin{quote}
+\begin{quote}\small
 \url{http://swi.psy.uva.nl/projects/xpce/UserGuide/Title.html} \\
 \url{ftp://swi.psy.uva.nl/pub/xpce/HTML/UserGuide.tgz}
 \end{quote}
@@ -54,18 +57,18 @@ This document provides the background material needed to understand
 the other documentation:
 
 \begin{itemize}
-    \tick{The XPCE Reference Manual} \cite{XPCE:reference}
-The reference manual is available in two formats: printed and by
-means of the Prolog predicate manpce/0.%
-	\footnote{ProWindows-3: user_help/0} The reference manual provides
-detailed descriptions of all classes, methods, etc.\ which may be accessed
-from various viewpoints. See also \chapref{online}.
-    \tick{PceDraw: An example of using XPCE-4} \cite{XPCE:draw}
+    \tick{The \product{} Reference Manual} \ifpw{}{\cite{XPCE:reference}}
+The reference manual is available in two formats: printed and by means
+of the Prolog predicate \ifpw{user_help/0}{manpce/0}. The reference
+manual provides detailed descriptions of all classes, methods, etc.\
+which may be accessed from various viewpoints. See also
+\chapref{online}.
+    \tick{PceDraw: An example of using \product{}} \ifpw{}{\cite{XPCE:draw}}
 This document contains the annotated sources of the drawing tool PceDraw.
-It illustrates the (graphical) functionality of XPCE and is useful as
+It illustrates the (graphical) functionality of \product{} and is useful as
 a source of examples.
-    \tick{{XPCE/Prolog} Course Notes} \cite{XPCE:course}
-Course-notes, examples and exercises for programming XPCE/Prolog.  The
+    \tick{{\productpl{}} Course Notes} \ifpw{}{\cite{XPCE:course}}
+Course-notes, examples and exercises for programming \productpl{}.  The
 course-notes have a large overlap in contents with this user guide, but
 the material is more concise.  If you are familiar with object-oriented
 systems, Prolog and graphical user interfaces the course-notes might
@@ -75,17 +78,18 @@ be a quick alternative to this user guide.
 
 \section{Other sources of information}		\label{sec:faq}
 
-Various other information can be found on or through the XPCE internet
+Various other information can be found on or through the \product{} internet
 home-page:
 
-\begin{quote}
-\url{http://www.swi.psy.uva.nl/projects/xpce/xpce.html}
+\begin{quote}\small
+\ifpw{\url{http://www.swi.psy.uva.nl/projects/xpce/ProWindows.html}}{%
+      \url{http://www.swi.psy.uva.nl/projects/xpce/xpce.html}}
 \end{quote}
 
 Utility programs, recent examples, documentation, etc.\ can be found
-in the primary XPCE anonymous ftp archive:
+in the primary \product{} anonymous ftp archive:
 
-\begin{quote}
+\begin{quote}\small
 \url{ftp://swi.psy.uva.nl/pub/xpce/}
 \end{quote}
 
@@ -99,33 +103,35 @@ authors.  The address \email{xpce-bugs@swi.psy.uva.nl} should be used
 for reporting bugs.
 
 
+\begin{xpceonly}
 \section{Language interfaces}
 
-The interface between XPCE and the application (host) language is very
-small. This feature makes it easy to connect XPCE to a new language. XPCE
-fits best with dynamically typed or strongly statically typed languages
-with type-conversion facilities that can be programmed. XPCE itself is
-dynamically typed. Cooperating with languages with the named properties
-avoid the need for explicitly programmed type-conversion. For a
-dynamically typed host-language such as Prolog or Lisp, the interface
-determines the type of the host-language construct passed and translates
-it into the corresponding XPCE object. For \idx{C++}, the rules for
-translating C data structures to XPCE objects can be handled by the
-programmable type-casting mechanism of C++.
+The interface between \product{} and the application (host) language is
+very small. This feature makes it easy to connect \product{} to a new
+language. \product{} fits best with dynamically typed or strongly
+statically typed languages with type-conversion facilities that can be
+programmed. \product{} itself is dynamically typed. Cooperating with
+languages with the named properties avoid the need for explicitly
+programmed type-conversion. For a dynamically typed host-language such
+as Prolog or Lisp, the interface determines the type of the
+host-language construct passed and translates it into the corresponding
+\product{} object. For \idx{C++}, the rules for translating C data
+structures to \product{} objects can be handled by the programmable
+type-casting mechanism of C++.
 
 \begin{itemize}
     \tick{SWI-Prolog}
 \index{SWI-Prolog (binding)}%
-The combination SWI-Prolog/XPCE is the development version. As of
-XPCE version 4.8.16, the interface has been changed to use the new
+The combination SWI-Prolog/\product{} is the development version. As of
+\product{} version 4.8.16, the interface has been changed to use the new
 garbage-collection-safe SWI-Prolog foreign language interface.
     \tick{Quintus Prolog}
 \index{Quintus Prolog (binding)}%
-Distributed by AIIL (UK) under the name ProWindows-3/XPCE.  This version
+Distributed by AIIL (UK) under the name ProWindows-3/\product{}.  This version
 is commerically supported. See \secref{prowindows}.
     \tick{SICStus Prolog}\index{SICStus Prolog (binding)}%
 This binding has been implemented in close cooperation with SICS. Prolog
-libraries delivered with XPCE run on Quintus, SICStus and SWI-Prolog.
+libraries delivered with \product{} run on Quintus, SICStus and SWI-Prolog.
 See also \secref{require}.
     \tick{Lucid Common Lisp 4}
 \index{Lucid CommonLisp (binding)}%
@@ -138,19 +144,19 @@ interface is no longer maintained.
     \tick{GNU-C++ (g++)}
 \index{C++ (binding)}\index{g++ (binding)}%
 This binding is described in \cite{XPCE:cpp}.  It allows for the
-definition of both stand-alone C++/XPCE applications as well as
-mixed Prolog/C++/XPCE applications.%
-	\footnote{Mixed Lisp/SomeThing/XPCE applications are hard to handle
-		  as XPCE atoms are {\sc uppercase} when linked to Lisp.}
+definition of both stand-alone C++/\product{} applications as well as
+mixed Prolog/C++/\product{} applications.%
+	\footnote{Mixed Lisp/SomeThing/\product{} applications are hard to handle
+		  as \product{} atoms are {\sc uppercase} when linked to Lisp.}
 \end{itemize}
 
 
 \section{ProWindows-3}				\label{sec:prowindows}
 
 \index{ProWindows-3}\index{AIIL}%
-XPCE is distributed as a commercially supported system for Quintus
+\product{} is distributed as a commercially supported system for Quintus
 Prolog under the name ProWindows-3.  ProWindows-3 is identical to
-XPCE, linking the power of the best Prolog implementation with an
+\product{}, linking the power of the best Prolog implementation with an
 advanced and portable GUI toolkit.  ProWindows-3 is distributed and
 supported by AIIL.  For further information, please contact:
 
@@ -168,50 +174,56 @@ E-mail: & ~\email{sales@aiil.co.uk} \\
 WWW:	& ~\url{http://www.aiil.co.uk/prolog/frames_home.htm}
 \end{tabular}
 \end{quote}
+\end{xpceonly}
 
 
 \section{Portability}
 
-The XPCE virtual machine and built-in class library is written in
+The \product{} virtual machine and built-in class library is written in
 standard ANSI-C and is portable to any machine offering a flat,
-sufficiently large, memory model (32 or 64 bits). XPCE's graphical
-classes (including windows, etc.) interface to XPCE {\em Virtual Windows
-System} (VWS). Currently there are VWS implementations for X11 and the
-Microsoft Win32 API. Please contact the authors if you are interested
-in other implementations.
+sufficiently large, memory model (32 or 64 bits). \product{}'s graphical
+classes (including windows, etc.) interface to \product{} {\em Virtual
+Windows System} (VWS). Currently there are VWS implementations for X11
+and the Microsoft Win32 API. \ifpw{}{Please contact the authors if you
+are interested in other implementations.}
 
 
 \subsection{Unix/X-windows}
 
+\ifpw{\product{} runs on all Unix platforms supported by \quintus{}.}{
 \index{X-windows}\index{OpenWindows}\index{Motif}
-XPCE runs on most Unix/X11 platforms.  Tested platforms include SunOs,
+\product{} runs on most Unix/X11 platforms.  Tested platforms include SunOs,
 Solaris, AIX, HPUX, IRIX, OSF/1 and Linux.  Platform configuration is
-realised using GNU autoconf with an extensive test-suite.
+realised using GNU autoconf with an extensive test-suite.}
 
 
 \subsection{Win32 (Windows 95 and NT)}
 
 \index{Windows 95}\index{Windows NT}
-XPCE runs on both Windows~95 and NT.  Its functionality is very close
-to the Unix/X11 version, making applications source-code compatible
-between the two platforms.  
+The same binary version of \product{} runs on both Windows~95 and NT.
+Its functionality is very close to the Unix/X11 version, making
+applications source-code compatible between the two platforms. \ifpw{
+Quintus \fileext{qof} files are identical on Unix and Windows platforms,
+reducing the effort of porting an applicaction to relinking the
+\fileext{qof} files on the target platform}{}.
 
-XPCE does not build on top of the hosting window-systems GUI library.
+\product{} does not build on top of the hosting window-systems GUI library.
 Instead, the primitive windowing and graphics facilities of the host are
-used to implement `XPCE's Virtual Window System'. All of XPCE's
+used to implement `\product{}'s Virtual Window System'. All of \product{}'s
 graphical functionality is build on top of this `Virtual Window System'.
 This approach guarantees full portability of applications between the
 platforms.
 
 All good things come with a price-tag and portability based on a virtual
-environment is no exception to this rule. XPCE builds high-level
+environment is no exception to this rule. \product{} builds high-level
 controllers (called dialog-items in its jargon) on top of the virtual
 machine and therefore bypasses the graphical libraries of the hosting
 system.
 
-The look-and-feel of XPCE is tailured by a resource file located in
+The look-and-feel of \product{} is tailured by a resource file located in
 \file{<pcehome>/Pce}. The Win32 version is shipped with a resource file
-that makes the system look nice in the Windows'95 environment.
+that makes the system look nice in the Windows 95 and Windows-NT 4.0
+environments.
 
 
 \subsubsection{Currently unsupported features in the Win32 version}
@@ -220,7 +232,7 @@ that makes the system look nice in the Windows'95 environment.
     \item [Class socket]
 No support of file-based addressing (Unix domain sockets). Inet-domain
 sockets are provided (interfacing to WinSock). Only Windows-NT supports
-server sockets. All versions support client sockets however.
+server sockets. All versions support client sockets.
 \end{itemlist}
 
 
@@ -228,12 +240,12 @@ server sockets. All versions support client sockets however.
 
 \begin{itemlist}
     \item [DDE]		\index{DDE}%
-Not (yet) supported by XPCE. SWI-Prolog supports it though, making DDE a
-feasible interprocess communication approach.
+Not (yet) supported by \product{}. \ifpw{}{SWI-Prolog supports it
+though, making DDE a feasible interprocess communication approach.}
     \item [WinSock]		\index{WinSock}%
-On Windows-NT this can be used to connect XPCE/Prolog with other
-applications on the same machine. Not on '95 and win32s as
-server-sockets are not provided on these platforms.
+On Windows-NT this can be used to connect \productpl{} with other
+applications on the same machine. Not on Windows 95 as server-sockets
+are not provided on these platforms.
     \item [Named Pipes]		\index{named pipes}%
 Not (yet) supported.
     \item [OLE]			\index{OLE}\index{CORBA}%
@@ -241,55 +253,57 @@ Not considered yet.  We however are considering CORBA, which provides
 an open standard for object-oriented, network-transparent interprocess
 communications.  CORBA and OLE are integrated.
     \item [Drag-And-Drop]	\index{drag-and-drop}%
-XPCE can accept dropped files from other applications. Inside the
+\product{} can accept dropped files from other applications. Inside the
 application, drag-and-drop is fully compatible to the Unix version.
 See \pllib{dragdrop}.
     \item [Cut/Paste]		\index{cut-and-paste}%
 Supported for exchanging text, and pictures using the Windows MetaFile
 format.
     \item [DLL]			\index{DLL}%
-Not supported by XPCE. Both SWI-Prolog and Quintus provide it though,
-making DLL available to XPCE/Prolog applications.
+Not supported by \product{}. \ifpw{\quintus{} provides}{Both SWI-Prolog
+and \quintus{} provide} it though, making DLL available to \productpl{}
+applications.
 \end{itemlist}
 
 
 \subsubsection{Accessing Windows Graphics Resources}
 
-XPCE on Win32 defines the same cursor, colour and font-names as the
+\product{} on Win32 defines the same cursor, colour and font-names as the
 Unix/X11 version to guarantee portability. It is desirable to have
 access to all the native Windows graphical resources. This allows the
 application to maintain better look-and-feel compatibility to other
 Win32 applications. Therefore the classes colour, cursor and font
-provide access to related Window resources. The details are in the
-following sections.
-
+provide access to related Window resources.
 
 \strong{It is NOT adviced to use these objects in your application code
 directly as this will stop the application to run on the Unix/X11
-version of XPCE. We advice using these objects in the XPCE resource file
-only.}
+version of \product{}. We advice using these objects in the \product{}
+resource file (\file{<pcehome>/Pce}) only, or use conditional code using
+`pce <-window_system'.}
 
 
 \subsubsection{Accessing Windows Colours}
 
-Colours may be created from their X11   names.  The X11 name-table is in
+Colours may be created from their X11 names. The X11 name-table is in
 \file{<pcehome>/lib/rgb.txt}. In the Windows API, all colours described
-as \idx{RGB} (Red, Green, Blue) tuples. This is no problem as XPCE also
-provides RGB colors. Note however that Win32 intensity is ranged 0..255,
-where the XPCE intensity is ranged 0..65535. This is true on all XPCE's
-platforms.
+as \idx{RGB} (Red, Green, Blue) tuples. This is no problem as \product{}
+also provides RGB colors. Note however that Win32 intensity is ranged
+0..255, where the \product{} intensity is ranged 0..65535. This is true
+on all \product{}'s platforms.
 
-To provide access to the window-system colours   as they can be obtained
-using the Win32 API function GetSysColor(),  XPCE binds these colours to
-named colour objects.  These colour  objects   are  normally used in the
-XPCE resource file (\file{<pcehome>/Pce}) to colour XPCE's controller
-objects acording to the user's preferences.
+To provide access to the window-system colours as they can be obtained
+using the Win32 API function GetSysColor(), \product{} binds these
+colours to named colour objects. These colour objects are normally used
+in the \product{} resource file (\file{<pcehome>/Pce}) to colour
+\product{}'s controller objects acording to the user's preferences.
 
-If the name of the Windows API colours are COLOR_SOMETHING, the XPCE
-name is \const{win_something}. Below is the full list:
+If the name of the Windows API colours are COLOR_SOMETHING, the \product{}
+name is \const{win_something}.  The full list is in \tabref{wincolours}.
 
+\begin{table}
 \begin{center}
-\begin{tabular}{ll}
+\begin{tabularlp}{\const{win_inactivecaptiontext}}
+\hline
 \const{win_activeborder}	& Active window border.\\
 \const{win_activecaption}	& Active window caption.\\
 \const{win_appworkspace}	& Background color of (MDI) applications.\\
@@ -311,8 +325,13 @@ name is \const{win_something}. Below is the full list:
 \const{win_window}		& Window background.\\
 \const{win_windowframe}		& Window frame.\\
 \const{win_windowtext}		& Text in windows.\\
-\end{tabular}
+\hline
+\end{tabularlp}
 \end{center}
+\caption{Windows colour name mapping}
+\label{tab:wincolours}
+\end{table}
+
 
 
 \subsubsection{Accessing Windows Fonts}			\label{sec:winfont}
@@ -323,18 +342,25 @@ try to use an as close as possible equivalent Windows TrueType font for
 these.
 
 The Windows `stock' fonts as available from the GetStockObject() API are
-available under the special `family' "win".   They are listed below:
+available under the special `family' "win". They are in
+\tabref{winfonts}
 
+\begin{table}
 \begin{center}
-\begin{tabular}{ll}
+\begin{tabularlp}{\const{win_inactivecaptiontext}}
+\hline
 \tt font(win, ansi_fixed)	& Default ANSI encoded fixed font\\
 \tt font(win, ansi_var)		& Default ANSI encoded variable font\\
 \tt font(win, device_default)	& Default device font\\
 \tt font(win, oem_fixed)	& Computers `native' fixed font (PC)\\
 \tt font(win, system)		& Variable pitched system font\\
 \tt font(win, system_fixed)	& Fixed system font\\
-\end{tabular}
+\hline
+\end{tabularlp}
 \end{center}
+\caption{Windows font name mapping}
+\label{tab:winfonts}
+\end{table}
 
 
 Note that these  fonts  do  not   have  a  specified  point-size.  Their
@@ -363,28 +389,35 @@ ANSI_CHARSET) are removed. String arguments simply take the value
 between the brackets. Spaces are included in the output, case is not
 changed and there is no escape for the closing-brace.
 
-The following defaults are  set  in   the  LOGFONT  structure before the
-attribute-string in parsed:
+The default settings are in \tabref{winfontdefaults}, the attributes are
+in \tabref{winfontattributes}.
 	
+\begin{table}
 \begin{center}
-\begin{tabular}{lp{4in}}
-\const{charset}:	& ansi \\
-\const{height}:		& $<points> \times Pce.Font.scale$ \\
-\const{weigth}:		& bold if <style> is bold, normal otherwise \\
-\const{italic}:		& TRUE if <style> is italic or oblique \\
-\const{pitch}:		& fixed if <family> is screen \\
-\const{family}:		& swiss if <family> is helvetica, 
+\begin{tabularlp}{\const{win_inactivecaptiontext}}
+\hline
+\const{charset}		& ansi \\
+\const{height}		& $<points> \times Pce.Font.scale$ \\
+\const{weigth}		& bold if <style> is bold, normal otherwise \\
+\const{italic}		& TRUE if <style> is italic or oblique \\
+\const{pitch}		& fixed if <family> is screen \\
+\const{family}		& swiss if <family> is helvetica, 
 			  roman if <family> is times,
 			  modern if <family> is screen
 			  dontcare otherwise. \\
-\const{face}:		& <family> \\
-\end{tabular}
+\const{face}		& <family> \\
+\hline
+\end{tabularlp}
 \end{center}
+\caption{Windows font defaults}
+\label{tab:winfontdefaults}
+\end{table}
 
-The full list of attributes:
 
+\begin{table}
 \begin{center}
-\begin{tabular}{lp{4in}}
+\begin{tabularlp}{\const{win_inactivecaptiontext}}
+\hline
 \const{height}(int)	& point-size of the requested font \\
 \const{width}(int)	& average width of the characters \\
 \const{escapement}(int) & angle in 1/10 degrees of the baseline \\
@@ -394,61 +427,67 @@ The full list of attributes:
 \const{underline}	& underline all characters \\
 \const{strikeout}	& use strikeout-fonts \\
 \const{charset}(enum)	& character encoding
-			\nameof{ansi,oem,symbol} \\
+			  \nameof{ansi, oem, symbol} \\
 \const{outprecision}(enum)& accurate aspects
-			\nameof{character,default,string,stroke} \\
+			\nameof{character, default, string, stroke} \\
 \const{clipprecision}(enum)& how the characters clip
-			\nameof{character,default,stroke} \\
+			\nameof{character, default, stroke} \\
 \const{quality}(enum)	& Quality of output
-			\nameof{default,draft,proof} \\
+			\nameof{default, draft, proof} \\
 \const{pitch}(enum)	& Spacing attributes
-			\nameof{default,fixed,variable} \\
-\const{family}(enum)	& Style of the characters\hfill\linebreak
-		\nameof{decorative,dontcare,modern,roman,script,swiss}\\
-\const{face}(string)	& Use specific font database \\
-\end{tabular}
+			\nameof{default, fixed, variable} \\
+\const{family}(enum)	& Style of the characters
+			  \nameof{decorative, dontcare, modern,
+				  roman, script, swiss}\\
+\const{face}(string)    & Use specific font database \\
+\hline
+\end{tabularlp}
 \end{center}
+\caption{Windows font attributes}
+\label{tab:winfontattributes}
+\end{table}
 
 
-The following example binds the Windows'95 `WingDings' symbol-font:
+The following example binds the Windows `WingDings' symbol-font:
 
 \begin{code}
-	new(F, font(wingdings, roman, 20, 'charset(symbol)')).
+1 ?- new(F, font(wingdings, roman, 20, 'charset(symbol)')).
 \end{code}
 
 The following example uses this  font  to   create  an  image from such a
 character:
 
 \begin{code}
-	:- send(@display, font_alias, wingdings,
-	        font(wingdings, roman, 20, 'charset(symbol)')).
+:- send(@display, font_alias, wingdings,
+	font(wingdings, roman, 20, 'charset(symbol)')).
 
-	wingding_image(Index, Image) :-
-		new(Image, image(@nil, 32, 32)),
-		new(T, text(string('%c', Index), center, wingdings)),
-		send(T, center, point(16, 16)),
-		send(Image, draw_in, T),
-		send(T, done).
+wingding_image(Index, Image) :-
+	new(Image, image(@nil, 32, 32)),
+	new(T, text(string('%c', Index), center, wingdings)),
+	send(T, center, point(16, 16)),
+	send(Image, draw_in, T),
+	send(T, done).
 
-	test :-
-		wingding_image(60, Floppy),
-		send(label(test, Floppy), open).
+test :-
+	wingding_image(60, Floppy),
+	send(label(test, Floppy), open).
 \end{code}
 
 
 \subsubsection{Accessing Windows Cursors}
 
-The Win32 version of XPCE supports all the X11 cursors. It also supports
-the definition of cursors from images. Note that such cursors are
-generally limited to $32 \times 32$ pixels on Windows (formally there is
-no limit in X11, but many (colour) servers exhibit strange behaviour
-when given cursors larger than this size).
+The Win32 version of \product{} supports all the X11 cursors. It also
+supports the definition of cursors from images. Note that such cursors
+are generally limited to $32 \times 32$ pixels on Windows (formally
+there is no limit in X11, but many (colour) servers exhibit strange
+behaviour when given cursors larger than this size). The window cursor
+names are in \tabref{wincursors}. Use the File/Demo/Cursors entry from
+the PCE Manual to inspect all available cursors.
 
-To provide access to the  built-in   cursors  of  Windows, the following
-additional cursor names are available:
-
+\begin{table}
 \begin{center}
-\begin{tabular}{ll}
+\begin{tabularlp}{\const{win_inactivecaptiontext}}
+\hline
 \const{win_arrow}	& Default Windows arrow\\
 \const{win_ibeam}	& Like xterm\\
 \const{win_wait}	& hour-class (good replacement of `watch')\\
@@ -463,44 +502,46 @@ additional cursor names are available:
 \const{win_sizeall}	& as win_size\\
 \const{win_no}		& Stop-sign\\
 \const{win_appstarting}	& Arrow with hour-class\\
-\end{tabular}
+\hline
+\end{tabularlp}
 \end{center}
-
-Use the File/Demo/Cursors entry from the PCE Manual to inspect all
-available cursors.
+\caption{Windows cursor name mapping}
+\label{tab:wincursors}
+\end{table}
 
 The default \file{Pce} resource file assigns \const{win_arrow} as the
-default cursor under Windows. win_ibeam is the default editor cursor and
-\const{win_wait} is the default wait cursor.
+default cursor under Windows. \const{win_ibeam} is the default editor
+cursor and \const{win_wait} is the default wait cursor.
   
 
 \section{Look-and-feel}
 
-\index{look-and-feel}\index{Motif}\index{OpenWindows} XPCE is not
-implemented on top of a standard UI library such as Motif, OpenWindows,
-or Win32. Instead, it is built on top of its own VWS defining
-primitives to create and manipulate windows, draw primitives such as
-lines, circles, text and handle user-events.
+\index{look-and-feel}\index{Motif}\index{OpenWindows}%
+\product{} is not implemented on top of a standard UI library such as
+Motif, OpenWindows, or Win32. Instead, it is built on top of its own VWS
+defining primitives to create and manipulate windows, draw primitives
+such as lines, circles, text and handle user-events.
 
-As a consequence, XPCE programs are fully compatible over the available
+As a consequence, \product{} programs are fully compatible over the available
 platforms, except that some (almost exclusively obscure) features may
 have a different or have no effect on some implementations.
 
-The implementation of all of XPCE on top of its primitive graphicals
-guarantees there are no platform-specific limitations in the
-manipulation and semantics of certain controllers. XPCE defines the
-look-and-feel for each of the controllers.  As a consequence, XPCE
-controllers may not behave exactly the same as controllers of other
-applications in the same windowing environment. 
+The implementation of all of \product{} on top of its primitive
+graphicals guarantees there are no platform-specific limitations in the
+manipulation and semantics of certain controllers. \product{} defines
+the look-and-feel for each of the controllers. As a consequence,
+\product{} controllers may not behave exactly the same as controllers of
+other applications in the same windowing environment. 
 
 The visual feedback (look) and to some extend the reactions to user
-actions (feel) of the XPCE controllers is determined by XPCE's {\em
-resource} file, located in \file{<pcehome>/Pce}. The Win32 version
-contains a parser for the X11 resource files. XPCE is currently shipped
-with two resource files, one for OpenWindows and one for
-\idx{Windows'95}. Support for Motif is still rudimentary.
+actions (feel) of the \product{} controllers is determined by
+\product{}'s {\em resource} file, located in \file{<pcehome>/Pce}. The
+Win32 version contains a parser for the X11 resource files. \product{}
+is currently shipped with two resource files, one for OpenWindows and
+one for \idx{Windows 95}. Support for Motif is still rudimentary.
 
 
+\begin{xpceonly}
 \section{A brief history of (X)PCE}
 
 The ``PCE Project'' was started in 1985 by Anjo Anjewierden.  His aim
@@ -522,68 +563,91 @@ applications implemented in Prolog.  Most of these interfaces stressed
 the use of \idx{direct-manipulation} graphical interfaces. Feedback
 from these projects has made PCE generally useful and mature.
 
-This document describes version 4.9 of XPCE. Version 4 is a major
-release. During the versions 4.0 to 4.5, XPCE was moved from SunView to
+This document describes version 4.9 of \product{}. Version 4 is a major
+release. During the versions 4.0 to 4.5, \product{} was moved from SunView to
 X-windows and since 4.7 to the Win32 platform. In addition, the virtual
 machine has been made available to the application programmer, allowing
-for the definition of new XPCE classes. These versions have been used
+for the definition of new \product{} classes. These versions have been used
 mainly for small internal case-studies to validate the new approach.
 Larger-scale external usage started from version 4.6 and introduced the
 vital requirement to reduce incompatible changes to the absolute
 minimum.
+\end{xpceonly}
+
+\begin{pwonly}
+\section{A brief history of \product{}}
+
+The basic design underlying \product{} was developed for an internal
+project at the University of Amsterdam by Anjo Anjewierden. It was
+further developed in `Esprit' project P1098 (KADS-I) for the realisation
+of a workbench for knowledge engineering (Shelley).  PCE 2.0, as the
+system was called then was commercialised by Quintus as ProWindows 1.
+
+Development of PCE continued in the academic environment, producing
+XPCE-3, and later XPCE-4. In this process, the system was ported from
+SunView to X11 and Win32. Controllers and basic graphicals were unified,
+the class-system was made available to the user and user-defined classes
+were introduced. Performance, robustness and programming environment
+were improved drastically.
+
+XPCE-4 was brought to the attention of James Little (AIIL) by Paul
+Holmes-Higgin from Surrey University.  AIIL decided to commercialise
+XPCE-4 using the name `ProWindows-3', and introduce it as the portable
+Quintus GUI environment.
+\end{pwonly}
 
 
 \section{About this manual}
 
-This userguide introduces the basics of XPCE/Prolog and its development
+This userguide introduces the basics of \productpl{} and its development
 environment. \Chapref{starting} and \chapref{globalarch}, ``Getting
 Started'' and ``Global Architecture'' explain the interface and provide
-a global overview of the XPCE/Prolog hybrid environment.
+a global overview of the \productpl{} hybrid environment.
 \Chapref{online}, ``Using the online manual'' introduces the online
-documentation tools. These are introduced early, as many of the
-examples in this manual introduce classes and methods without explaining
-them. The online manual tool can be used to find the definitions of
-these constructs quickly. The \chapref{graphics} and
-\chapref{controller}, ``Dialog (controller) windows'' and ``Simple
-Graphics'' introduce the various controller and graphical primitives.
-\Chapref{dialogeditor}, ``The Dialog Editor'' introduces the tool to
-built controller windows with the mouse. 
+documentation tools. These are introduced early, as many of the examples
+in this manual introduce classes and methods without explaining them.
+The online manual tool can be used to find the definitions of these
+constructs quickly. The \chapref{graphics} and \chapref{controller},
+``Dialog (controller) windows'' and ``Simple Graphics'' introduce the
+various controller and graphical primitives. \Chapref{dialogeditor},
+``The Dialog Editor'' introduces the tool to built controller windows
+with the mouse. 
 
 With the material of the above described chapters, the user is
-sufficiently informed to create simple GUI's from predefined XPCE
+sufficiently informed to create simple GUI's from predefined \product{}
 objects.  The remaining chapters provide the background information
 and techniques that allow for the design of larger graphical systems.
 
-\Chapref{pceprolog}, ``The relation between XPCE and Prolog'' is a brief
-intermezzo, explaining the relation between XPCE and Prolog data in more
-detail. \Chapref{udc}, ``User defined classes'' explain the definition
-of new XPCE classes from Prolog and thus brings object-oriented
-programming to the user. \Chapref{resources}, ``Using resources''
-introduces the XPCE's notion of \idx{user preferences}.
-\Chapref{techniques}, ``Programming techniques'' is an assorted
-collection of hints on how XPCE can be used to solve real-world
-problems elegantly.  The proof-readers appreciated this chapter
-the most.
+\Chapref{pceprolog}, ``The relation between \product{} and Prolog'' is a
+brief intermezzo, explaining the relation between \product{} and Prolog
+data in more detail. \Chapref{udc}, ``User defined classes'' explain the
+definition of new \product{} classes from Prolog and thus brings
+object-oriented programming to the user. \Chapref{resources}, ``Using
+resources'' introduces the \product{}'s notion of \idx{user
+preferences}. \Chapref{techniques}, ``Programming techniques'' is an
+assorted collection of hints on how \product{} can be used to solve
+real-world problems elegantly.
 
 \Chapref{debugging}, ``Development and debugging tools'' introduces
-the XPCE debugger.  The current debugger is powerful, but not very
+the \product{} debugger.  The current debugger is powerful, but not very
 intuitive and requires a nice-looking front-end.
 
-Of the appendices, appendix~\ref{sec:summary} is probably the most
+Of the appendices, \appref{summary} is probably the most
 useful, providing a short description of each class and its relation
 to other classes.  Many of the classes are accompanied with a
 small example.
 
 
+\begin{xpceonly}
 \section{Acknowledgements}
 
-The development of XPCE was  started by Anjo Anjewierden.  The package
+The development of \product{} was  started by Anjo Anjewierden.  The package
 was  then called PCE.  He designed  and implemented  version  1 and 2.
 Version 3 is the result of a joint effort by Anjo Anjewierden and Jan
 Wielemaker.
 
-XPCE, offering support for X-windows and user-defined classes, has been
-implemented by Jan Wielemaker. The implementation of user-defined
+XPCE-4, offering support for X-windows and user-defined classes, has
+been implemented by Jan Wielemaker. The implementation of user-defined
 classes was initiated when Jan Wielemaker was guest at SERC (Software
 Engineering Research Centre). Gert Florijn has contributed in the
 initial discussions on user-defined classes. Frans Heeman has been the
@@ -597,12 +661,13 @@ project was realised by James Little, Mike Vines and Simon Heywood
 from AIIL.
 
 Luca Passani has bothered us with many questions, but was so kind to
-organise this material and make it available to other XPCE programmers
+organise this material and make it available to other \product{} programmers
 in the form of a FAQ.
 
-Gertjan van Heijst has commented on XPCE as well as earlier drafts of
+Gertjan van Heijst has commented on \product{} as well as earlier drafts of
 this documents.
 
 (X)PCE is used by many people. They have often been puzzled by bugs,
 incompatibilities with older versions, etc. We would like to thank them
 for their patience and remarks.
+\end{xpceonly}

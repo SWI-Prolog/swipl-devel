@@ -1,7 +1,7 @@
 \chapter{Class summary descriptions}		\label{sec:summary}
 
 This appendix provides a complete overview of all built-in classes of
-XPCE. For each class, it presents the name, arguments needed to create
+\product{}. For each class, it presents the name, arguments needed to create
 an instance, place in the inheritance and delegation hierarchies as well
 as a summary description. For many classes we added a small illustrative
 example of typical usage of the class.
@@ -59,8 +59,10 @@ and @_win_pen depending on whether or not the display is monochrome
 or colour.
 \begin{code}
 Pce.Display.initialise: \
-	and(_dialog_bg @= when(@colour_display, grey80, white), \
-	    _win_pen   @= when(@colour_display, 0, 1))
+	and(_dialog_bg @= when(@colour_display, \
+			       grey80, white), \
+	    _win_pen   @= when(@colour_display, \
+			       0, 1))
 \end{code}
 
 #class and "and(statement ...)"
@@ -74,7 +76,8 @@ send(Dialog, append,
      new(Function, text_item(function))),
 send(Dialog, append,
      button(switch_to,
-	    and(message(Frame, switch_to, Function?selection),
+	    and(message(Frame, switch_to,
+			Function?selection),
 		message(Function, clear)))),
 ...,
 \end{code}
@@ -113,7 +116,7 @@ to create fancy arrows.
 \end{code}
 
 #class assign "assign(var, value, scope)"
-Assign a value to an instance of class \class{var}, an XPCE variable.
+Assign a value to an instance of class \class{var}, an \product{} variable.
 Used to realise variables in compound executable objects.
 \begin{code}
 and(assign(new(C, var), @arg1?controller),
@@ -227,7 +230,8 @@ A button is a push-button controller. It has an associated
 mouse.  Inside a \class{dialog}, one button can be assigned as `default'
 button.
 \begin{code}
-?- new(B, button(hello, message(@pce, write_ln, hello))).
+?- new(B, button(hello,
+		 message(@pce, write_ln, hello))).
 \end{code}
 
 #class c "c(system)"
@@ -237,7 +241,7 @@ application programmer.
 
 #class c_pointer "c_pointer(print_name)"
 Class \class{c_pointer} encapsulates an anonymous C pointer ({\tt void
-*}).  It is used to register references to Prolog predicates with XPCE
+*}).  It is used to register references to Prolog predicates with \product{}
 methods.  See also \chapref{udc}.
 \begin{code}
 ?- pce_predicate_reference(gnat:gnu(_,_), X).
@@ -246,9 +250,9 @@ X = @1190997/c_pointer
 
 #class chain "chain(any...)"
 Class \class{chain} represents a single-linked list of arbitrary
-objects.  Chains are commonly used inside XPCE to represent collections.
+objects.  Chains are commonly used inside \product{} to represent collections.
 Chains have methods to find elements, sort the chain, delete elements,
-etc. The predicate chain_list/2 converts between an XPCE chain and a
+etc. The predicate chain_list/2 converts between an \product{} chain and a
 Prolog list. It also provides methods to run code on all elements of the
 list, which is generally faster than translating the chain to a Prolog
 list and using Prolog iteration.  In the example, `device<-graphicals'
@@ -281,7 +285,8 @@ insert_bold_text(Editor, Text:char_array) :->
 	get(Editor, caret, Start),
 	send(Editor, insert, Text),
 	get(Editor, caret, End),
-	new(_, fragment(Editor, Start, End-Start, bold)).
+	Len is End-Start,
+	new(_, fragment(Editor, Start, Len, bold)).
 \end{code}
 
 #class circle "circle(diameter)"
@@ -289,7 +294,7 @@ Equivalent to an ellipse with the same <-width and <-height. Not used
 frequently.
 
 #class class "class(name, super_class_name)"
-All XPCE classes are represented by an instance of class \class{class}.
+All \product{} classes are represented by an instance of class \class{class}.
 A class is a normal object and can thus be manipulated using
 send/[2-12], get/[3-13] and new/2.  Classes are normally only created
 and modified through the user-defined class layer described in
@@ -356,7 +361,7 @@ by dragging from the first to the second.  This requires two graphicals
 with \classs{handle}s attached, a \class{link} that is compatible with the
 handles and a \class{connect_gesture} associated width the graphical at
 which the connection should start.  The demo program PceDraw as well
-as the XPCE Dialog Editor described in \chapref{dialogeditor} exploit
+as the \product{} Dialog Editor described in \chapref{dialogeditor} exploit
 connections and connect_gestures.
 
 #class connection "connection(from, to, link, from_handle, to_handle)"
@@ -369,15 +374,16 @@ can be attached to a specific handle, or to any handle of the proper
 choose the `best-looking' handle.
 
 #class constant "constant(name, [summary])"
-A \class{constant} is a unique handle.  XPCE predefines the following
+A \class{constant} is a unique handle.  \product{} predefines the following
 constants: @nil, @default, and from the subclass \class{bool}, @on
 and @off.  The use can define additional constants and give them their
 own unique meaning.  The most obvious usage is to indicate a slot
 that can hold arbitrary data including @nil and @default is in
 a special state.
 \begin{code}
-?- new(@uninitialised, constant(uninitialised,
-				'Not yet initialised slot')).
+?- new(@uninitialised,
+       constant(uninitialised,
+		'Not yet initialised slot')).
 \end{code}
 
 #class constraint "constraint(from, to, relation)"
@@ -388,7 +394,7 @@ defines the relations \class{identity} (both objects have an attribute
 that has same value) and \class{spatial} (general purpose
 geometry-relation between two (graphical) objects.  It is possible
 to define new \class{relation} classes.  Constraints are getting out
-of fashion as XPCE lacks a good mechanism to detect when an object
+of fashion as \product{} lacks a good mechanism to detect when an object
 has been changed and therefore evaluates the relation far too often.
 User-defined classes, possibly combined with \class{hyper} objects
 form an attractive alternative.  The following keeps a text centered
@@ -415,7 +421,9 @@ send_methods_of_class(ClassName) :-
 	send(SendMethods, for_all,
 	     message(B, append,
 		     create(dict_item,
-			    @arg1?name, @default, @arg1))),
+			    @arg1?name,
+			    @default,
+			    @arg1))),
 	send(B, open).
 \end{code}
 
@@ -451,7 +459,8 @@ represent time-stamps in far history or future.  Class \class{date}
 can parse various textual representations into date objects.
 
 \begin{code}
-?- send(@pce, format, 'It is now "%s"\n', new(date)?string).
+?- send(@pce, format, 'It is now "%s"\n',
+	new(date)?string).
 It is now "Tue Jan 30 14:07:05 1996"
 \end{code}
 
@@ -473,8 +482,10 @@ See also class \class{figure}.
 \begin{code}
 make_icon(Icon, Image, Label) :-
 	new(Icon, device),
-	send(Icon, display, new(BM, bitmap(Image))),
-	send(Icon, display, new(T, text(Label, center))),
+	send(Icon, display,
+	     new(BM, bitmap(Image))),
+	send(Icon, display,
+	     new(T, text(Label, center))),
 	send(T, y, BM?bottom_side),
 	send(T, center_x, BM?center_x).
 \end{code}
@@ -482,7 +493,7 @@ make_icon(Icon, Image, Label) :-
 #class dialog "dialog(label)"
 A \class{dialog} is a \class{window} specialised for the layout and
 message handling required by \classs{dialog_item}, the super-class of
-the XPCE \idx{controller}s. In most cases, controller-windows are
+the \product{} \idx{controller}s. In most cases, controller-windows are
 created by simply ->append{}ing a number of controllers to a dialog
 window. The \class{frame}- and \class{dialog}-layout services take care
 of proper window sizes and layout of the controllers. Dialog windows are
@@ -494,9 +505,12 @@ keyboard accelerators, handling the default button.
 
 edit_file_dialog :-
 	new(D, dialog('Edit File')),
-	send(D, append, file_item(edit_file, '')),
-	send(D, append, button(edit, message(@prolog, emacs, @arg1))),
-	send(D, append, button(cancel, message(D, destroy))),
+	send(D, append,
+	     file_item(edit_file, '')),
+	send(D, append,
+	     button(edit, message(@prolog, emacs, @arg1))),
+	send(D, append,
+	     button(cancel, message(D, destroy))),
 	send(D, open).
 \end{code}
 
@@ -507,7 +521,7 @@ controllers, or to combine muldtiple controllers into a compound
 one for technical or layout reasons.  See also \class{tab}.
 
 #class dialog_item "dialog_item(label)"
-Class \class{dialog_item} is a super-class of all XPCE controllers. It
+Class \class{dialog_item} is a super-class of all \product{} controllers. It
 contains the code necessary to negotiate geometry with its neighbours
 and enclosing \class{dialog} window and provides default fonts for the
 label, etc. Class \class{graphical} defines similar methods to allow
@@ -528,7 +542,7 @@ from the availability of a table. A dict provides the storage for a
 Item in a \class{dict}. The {\em key} is used for lookup. {\em label} is
 the text displayed by the \class{browser} (@default uses the {\em key}).
 {\em Object} is an arbitrary object that can be associated to the dict.
-If a dict presents a set of XPCE objects, it is common practice to extract
+If a dict presents a set of \product{} objects, it is common practice to extract
 the key and or label from the object and store the object itself in the
 `dict_item <->object' slot.
 
@@ -549,7 +563,7 @@ delete directories from the file-system.
 #class display "display(address, resource_class)"
 A \class{display} represents what X11 calls a \idx{screen}, a desktop on
 which windows can be displayed with a mouse and keyboard attached to it.
-XPCE support multiple display instances under X11 and only the predefined
+\product{} support multiple display instances under X11 and only the predefined
 default display @display under Win32.  The display implements a number of
 global operations: getting the screen <-size, showing modal message
 boxes using ->inform and ->confirm, etc.
@@ -567,7 +581,7 @@ displayed by the \tool{Visual Hierarchy} tool.
 
 #class editor "editor(text_buffer, width, height, margin_width)"
 An \class{editor} is a general-purpose text editor. It is a graphical.
-Class \class{view} provides a window-based version of the editor. XPCE's
+Class \class{view} provides a window-based version of the editor. \product{}'s
 editors have commands and key-bindings that are based on
 \idx{GNU-Emacs}. Editors are fully programmable. The associated
 \class{key_binding} object parses key-strokes into commands that are
@@ -584,7 +598,7 @@ A single \class{text_buffer} can be associated with multiple
 \class{editor} objects, providing \idx{shared editing}.
 
 Editors can handle sensitive regions, different fonts, colours and
-attributes using \class{fragment} objects. All text windows in XPCE's
+attributes using \class{fragment} objects. All text windows in \product{}'s
 demo programs (PceEmacs, cards from the online help, application help,
 etc.) either use class view or class editor to display the text. 
 
@@ -620,10 +634,10 @@ references, etc.) to the terminal and start the tracer. See also
 #class event "event(receiver, name, position)"
 An \class{event} represents an action from the application user:
 pressing a key, moving the mouse, pressing a mouse-button, or entering
-or leaving an area with the mouse.  The main loop of XPCE will read
+or leaving an area with the mouse.  The main loop of \product{} will read
 window-system events from the computing environment (X11 or Win32).
 If the event concerns a repaint or similar system event, it will be
-handled appropriately.  If it can be expressed as an XPCE event, an
+handled appropriately.  If it can be expressed as an \product{} event, an
 \class{event} object will be created and send to the window for which
 the event was reported by the system using the method `event ->post'.
 
@@ -631,7 +645,7 @@ Graphical objects and windows can redefine their event handling using
 two mechanisms: by redefining the ->event method or by associating
 a \class{recogniser} object using `graphical ->recogniser'.
 
-Normally, XPCE will read and dispatch events when `there is nothing else
+Normally, \product{} will read and dispatch events when `there is nothing else
 to do'. For processing events during computation, see `graphical
 ->synchronise' and `display ->dispatch'.
 
@@ -663,7 +677,7 @@ only. See `figure ->status'. An example of the usage of figures are the
 `object cards' of the \tool{Inspector} tool.
 
 #class file "file(name)"
-An XPCE \class{file} object represents a file on the computers
+An \product{} \class{file} object represents a file on the computers
 file-system.  It can be used to specify a file, query a file for
 various attributes, read a file, etc.  See also \class{directory}.
 
@@ -681,7 +695,7 @@ send(Text, font, bold),
 ...
 \end{code}
 
-#clas format "format(direction, width, columns)"
+#class format "format(direction, width, columns)"
 A \class{format} describes the \idx{layout of graphicals} on a
 \class{device}. It can specify `\idx{tabular}' and `\idx{paragraph}'
 style layout. A format itself just specifies the parameters, `device
@@ -704,7 +718,7 @@ new(_, fragment(Editor, Start, Len, title)),
 
 #class frame "frame(label, kind, display)"
 A \class{frame} is a collection of \class{tile}{\em d} windows.  Frames
-handle the layout, resizing, etc. of its member windows. Any XPCE window
+handle the layout, resizing, etc. of its member windows. Any \product{} window
 is enclosed in a frame, though it is often not necessary to specify a
 frame explicitly.  Applications are often implemented as subclasses
 of \class{frame}.  \Secref{framelayout} describes the layout of windows
@@ -749,10 +763,14 @@ the with and height of the graphical.  The following definitions are
 encountered regulary:
 
 \begin{code}
-:- pce_global(@north_handle, new(handle(w/2, 0, link, north))).
-:- pce_global(@south_handle, new(handle(w/2, h, link, south))).
-:- pce_global(@east_handle,  new(handle(0, h/2, link, east))).
-:- pce_global(@west_handle,  new(handle(w, h/2, link, west))).
+:- pce_global(@north_handle,
+	      new(handle(w/2, 0, link, north))).
+:- pce_global(@south_handle,
+	      new(handle(w/2, h, link, south))).
+:- pce_global(@east_handle,
+	      new(handle(0, h/2, link, east))).
+:- pce_global(@west_handle,
+	      new(handle(w, h/2, link, west))).
 \end{code}
 
 #class handler "handler(event, message, region)"
@@ -766,7 +784,8 @@ refine the `graphical ->event' method, it is now rarely used.
 send(Graphical, recogniser,
      handler(area_enter,
 	     message(Graphical, report,
-		     'Hi, I''m %s', Graphical?name))),
+		     'Hi, I''m %s',
+		     Graphical?name))),
 ...
 \end{code}
 
@@ -780,8 +799,8 @@ graphical, while move gestures do not have such a limitation.
 
 \begin{code}
 :- pce_global(@move_resize_gesture,
-	      new(handler_group(new(resize_gesture),
-				new(move_gesture)))).
+      new(handler_group(new(resize_gesture),
+			new(move_gesture)))).
 \end{code}
 
 #class hash_table "hash_table(buckets)"
@@ -822,7 +841,8 @@ slider is the same as the width of the box, regardless of which of the
 two is changed.  See also \class{constraint}.
 
 \begin{code}
-new(_, constraint(Slider, Box, identity(selection, width)))
+new(_, constraint(Slider, Box,
+		  identity(selection, width)))
 \end{code}
 
 #class if "if(condition, then, else)"
@@ -842,7 +862,7 @@ send(Device?graphicals, for_all,
 #class image "image(name)"
 An \class{image} is a two-dimensional array of pixels.  Images come in
 two flavours: monochrome, where each pixel represents a boolean and
-colour, where each pixel represents a colour.  XPCE can save and load
+colour, where each pixel represents a colour.  \product{} can save and load
 both monochrome and colour images.  Images are displayed on a graphical
 device using a \class{bitmap}. They are also used to specify
 \class{cursor} objects and the icon associated with a `frame'.
@@ -889,17 +909,21 @@ The example defines the \classs{handle}, \class{link} and
 links with an error from `out' ports to `in' ports.
 
 \begin{code}
-:- pce_global(@in_handle,  new(handle(0, h/2, in, in))).
-:- pce_global(@out_handle, new(handle(w, h/2, out, out))).
-:- pce_global(@inout_link, new(link(out, in,
-				    line(arrows := second)))).
+:- pce_global(@in_handle,
+	      new(handle(0, h/2, in, in))).
+:- pce_global(@out_handle,
+	      new(handle(w, h/2, out, out))).
+:- pce_global(@inout_link,
+	      new(link(out, in,
+		       line(arrows := second)))).
 :- pce_global(@link_in_out_gesture,
 	      new(connect_gesture(left, '',
 				  @inout_link))).
 
 make_shape(S) :-
 	new(S, box(50,50)),
-	send_list(S, handle, [@in_handle, @out_handle]),
+	send_list(S, handle,
+		  [@in_handle, @out_handle]),
 	send(S, recogniser, @link_in_out_gesture).
 \end{code}
 
@@ -954,7 +978,8 @@ application.
 :- pce_begin_class(my_application, frame).
 
 initialise(F) :->
-	send(F, send_super, initialise, 'My Application'),
+	send(F, send_super, initialise,
+	     'My Application'),
 	send(F, append, new(MBD, dialog)),
 	new(V, view),
 	send(new(B, browser, left, V)),
@@ -963,7 +988,8 @@ initialise(F) :->
 	send(MB, append, new(F, popup(file))),
 	send(MB, append, new(E, popup(edit))),
 	send_list(F, append,
-		  [ menu_item(load, message(F, load)),
+		  [ menu_item(load,
+			      message(F, load)),
 		    ...
 \end{code}
 
@@ -991,7 +1017,7 @@ status of the three `modifier keys' \idx{shift}, \idx{control} and
 \idx{meta}/\idx{alt}.  Modifiers are used by class \class{gesture} and
 its sub-classes.  They are normally specified through their conversion
 method, which translates a \class{name} consisting of the letters
-{\tt s}, {\tt c} and {\tt m} into a modifier that requires the
+\const{s}, \const{c} and \const{m} into a modifier that requires the
 shift, control and/or meta-key to be down an the other modifier keys
 to be up.  The example specifies a `\idx{shift-click}' gesture.
 
@@ -1023,7 +1049,7 @@ move_gesture would be too slow.
 
 #class name "name(value)"
 A \class{name} is a unique textual constant, similar to an \idx{atom}
-in Prolog.  Whenever an atom is handed to XPCE, the interface will
+in Prolog.  Whenever an atom is handed to \product{}, the interface will
 automatically create a \class{name} for it.  There is no limit to the
 number of characters that can be stored in a name, but some Prolog
 implementations may limit the number of characters in an atom.  On
@@ -1065,13 +1091,13 @@ widest_graphical(Device, Width) :-
 \end{code}
 
 #class object "object()"
-Class \class{object} is the root of XPCE's class-inheritance hierarchy.
+Class \class{object} is the root of \product{}'s class-inheritance hierarchy.
 It defines methods for general object-management, comparison, hypers,
 attributes, etc. It is possible to create instances of class
 \class{object}, but generally not very useful.
 
 #class operator "operator(name, priority, kind)"
-Part of XPCE's resource parser.  Not (yet) available to the application
+Part of \product{}'s resource parser.  Not (yet) available to the application
 programmer.
 
 #class or "or(statement ...)"
@@ -1080,7 +1106,7 @@ statements left-to-right and terminates successfully as soon as one
 succeeds.  The empty \class{or} fails immediately.
 
 #class parser "parser(tokeniser)"
-Part of XPCE's resource parser.  Not (yet) available to the application
+Part of \product{}'s resource parser.  Not (yet) available to the application
 programmer.
 
 #class path "path(kind, radius_or_interval)"
@@ -1126,7 +1152,7 @@ A \class{pixmap} is a subclass of \class{image} that is reserved for
 colour images. All functionality of this class is in class
 \class{image}.  The main reason for its existence is that some graphical
 operations {\em require} a colour image and the introduction of a class
-for it is the only way to allow this to be specified using XPCE's type
+for it is the only way to allow this to be specified using \product{}'s type
 system.  The ->initialise method is specialised for handling colour
 images.
 
@@ -1173,7 +1199,8 @@ menu.  Popup gestures are explicitly addressed by the application
 programmer to define compound gestures involving a popup:
 
 \begin{code}
-:- pce_global(@graph_node_gesture, make_graph_node_gesture).
+:- pce_global(@graph_node_gesture,
+	      make_graph_node_gesture).
 
 make_graph_node_gesture(G) :-
 	new(P, popup),
@@ -1186,7 +1213,7 @@ make_graph_node_gesture(G) :-
 #class process "process(name)"
 A \class{process} encapsulates a stream- or terminal program to get its
 input from a graphical program and redirect its output to the same
-graphical program.  Various of the XPCE tools and demo programs exploit
+graphical program.  Various of the \product{} tools and demo programs exploit
 processes: The {\tt M-x shell}, {\tt M-x grep} and other shell commands
 of \tool{PceEmacs}, the \demo{ispell} program and the \demo{chess}
 front-end.  See also \class{socket}.
@@ -1196,15 +1223,15 @@ Code object with semantics like the LISP progn function. A \class{progn}
 executes its statements.  If all statements are successfully executed
 and the last argument is a \class{function}, execute the function and
 return the result of it or, if the last argument is not a function,
-simply return it.  Used infrequently in the XPCE/Prolog context.
+simply return it.  Used infrequently in the \productpl{} context.
 
 #class program_object "program_object()"
 The super-class of almost the entire `meta-word' of XPCE: classes,
 behaviour, attributes, types, etc.  Class \class{program_object} defines
-the XPCE tracer.  See tracepce/1 and breakpce/1.
+the \product{} tracer.  See tracepce/1 and breakpce/1.
 
 #class quote_function "quote_function(function)"
-Most of XPCE is defined to evaluate function objects at the appropriate
+Most of \product{} is defined to evaluate function objects at the appropriate
 time without the user having to worry about this. Sometimes however,
 type-checking or execution of a statement will enforce the execution of
 a function where this is not desired. In this case class
@@ -1226,12 +1253,12 @@ the function will be extracted from the quote_function.
 ...,
 send(ChainOfChains, for_all,
      message(@arg1, sort,
-	     quote_function(?(@arg1, compare, @arg2)))),
+         quote_function(?(@arg1, compare, @arg2)))),
 ...
 \end{code}
 
 #class real "real(value)"
-A \class{real} is XPCE's notion of a floating-point number.  Reals are
+A \class{real} is \product{}'s notion of a floating-point number.  Reals are
 represented using a C single-precision `\idx{float}'.  Reals define
 the same operation as class \class{number}, its integer equivalent.
 
@@ -1243,7 +1270,7 @@ be used for all events.  The main purpose of this class itself is
 to provide a type for all its sub-classes.
 
 #class regex "regex(pattern)"
-A \class{regex} is XPCE's encapsulation of the (GNU) \idx{Regular
+A \class{regex} is \product{}'s encapsulation of the (GNU) \idx{Regular
 Expression} library.  Regular expression form a powerful mechanism
 for the analysis of text.  Class \class{regex} can be used to search
 both \class{char_array} (\class{name} and  \class{string}) text and
@@ -1288,7 +1315,7 @@ objects that are expensive to resize, such as \class{editor} or
 
 #class resource "resource(name, class, type, default, context, summary)"
 A \class{resource} is the gateway to the X11 resource mechanism that
-allows XPCE's look-and-feel to be tailored to fit with its environment
+allows \product{}'s look-and-feel to be tailored to fit with its environment
 and to fit with user preferences.  Normally, resources are associated
 with classes using the resource/4 declaration as described in
 \chapref{udc}.
@@ -1340,12 +1367,12 @@ send(Done, synchronise),
 
 #class socket "socket(address)"
 Communication end-point for a \idx{TCP/IP} or Unix-domain interprocess
-communication stream.  XPCE supports both `server' and `client' sockets.
+communication stream.  \product{} supports both `server' and `client' sockets.
 On the Win32 platform, only TCP/IP sockets are provided and only
 Windows-NT supports server sockets. The \pllib{pce_server}
 provides a good starting point for defining server sockets.  The
 support executable {\tt \idx{xpce-client}} may be used to communicate
-with XPCE server sockets.  See also PceEmacs server mode as defined
+with \product{} server sockets.  See also PceEmacs server mode as defined
 in \pllib{'emacs/server'}.
 
 #class source_location "source_location(file_name, line_no)"
@@ -1403,9 +1430,11 @@ make_browser(B) :-
 	send(B, open).
 
 append_file(B, Name) :-
-	send(B, append, dict_item(Name, style := file)).
+	send(B, append,
+	     dict_item(Name, style := file)).
 append_dir(B, Name) :-
-	send(B, append, dict_item(Name, style := directory)).
+	send(B, append,
+	     dict_item(Name, style := directory)).
 \end{code}
 
 #class syntax_table "syntax_table(name)"
@@ -1442,7 +1471,7 @@ be displayed on a \class{dialog}.  See \class{tab} for an example.
 #class table "table(names, keys)"
 A \class{table} defines a multi-column table data object that can have
 one or more indexed {\em key} fields. They are (infrequently) used for
-storing complex relational data as XPCE objects.
+storing complex relational data as \product{} objects.
 
 #class text "text(string, format, font)"
 Graphical representing a string in a specified font.  Class text
@@ -1521,13 +1550,14 @@ to avoid it sending messages to a non-existing object.
 
 \begin{code}
 ...,
-new(T, timer(0.5, message(Gr, inverted, Gr?inverted?negate))),
+new(T, timer(0.5, message(Gr, inverted,
+			  Gr?inverted?negate))),
 ...
 \end{code}
 
 #class tokeniser "tokeniser(source, syntax)"
 A \class{tokeniser} returns tokens from the input source according to
-the syntax specified. It is part of the XPCE resource parser and its
+the syntax specified. It is part of the \product{} resource parser and its
 specification is not (yet) public.
 
 #class tree "tree(root)"
@@ -1556,7 +1586,7 @@ and event_id are examples). Disjunctive types can be created. See also
 
 #class var "var(value)"
 A \class{var} object is a \class{function} that yields the stored value
-when evaluated. Vars in XPCE have global existence (like any object),
+when evaluated. Vars in \product{} have global existence (like any object),
 but local, dynamically scoped, binding. Scopes are started/ended with
 the execution of (user-defined) methods, `code ->forward' and the
 execution of a \class{block}.
@@ -1576,7 +1606,7 @@ the user-defined classes preprocessor described in \chapref{udc}.
 #class vector "vector(any ...)"
 Vector of arbitrary objects.  Vectors can be dynamically expanded by
 adding objects at arbitrary indices.  Vectors are used at various places
-of XPCE's programming world: specifying the types of methods, the
+of \product{}'s programming world: specifying the types of methods, the
 instance variables of a class, to pack the arguments for
 variable-argument methods, etc.  They share a lot of behaviour with
 \class{chain} can sometimes be an attractive alternative.
@@ -1588,7 +1618,7 @@ conforming the GNU-Emacs key-bindings.  See also \tool{PceEmacs} and
 show_key_bindings/1.
 
 #class visual "visual()"
-Visual is the super-class of anything in XPCE that can `visualise'
+Visual is the super-class of anything in \product{} that can `visualise'
 things.  The class itself defines no storage.  Each subclass must
 implement the `visual <-contains' and `visual <-contained_in' methods
 that define the visual consists-of hierarchy as shown by the
@@ -1614,19 +1644,20 @@ either of the two functions. It is commonly used to define conditional
 resource values.
 
 \begin{code}
-Pce.Editor.selection_style: when(@colour_display, \
-				 style(background := yellow), \
-				 style(highlight := @on))
+Pce.Editor.selection_style: \
+	when(@colour_display, \
+	     style(background := yellow), \
+	     style(highlight := @on))
 \end{code}
 
 #class while "while(condition, body)"
 Code statement executing {\em body} as long as {\em condition} executes
-successfully.  Not used frequently.  Most iteration in XPCE uses the
+successfully.  Not used frequently.  Most iteration in \product{} uses the
 ->for_all, ->for_some, <-find and <-find_all methods defines on most
 collection classes.
 
 #class window "window(label, size, display)"
-The most generic XPCE window class.  A \class{window} is a sub-class of
+The most generic \product{} window class.  A \class{window} is a sub-class of
 \class{device} and thus capable of displaying graphical objects.
 One or more windows are normally combined in a \class{frame} as
 described in \secref{framelayout}.  The four main specialisations of

@@ -283,7 +283,7 @@ showDialogItem(DialogItem di, Bool val)
   { PceWindow sw = getWindowGraphical((Graphical) di);
 
     if ( sw != FAIL && sw->keyboard_focus == (Graphical) di )
-      advanceDevice(di->device, (Graphical) di);
+      send(di->device, NAME_advance, di, 0);
   }
 
   return DisplayedGraphical(di, val);

@@ -33,14 +33,14 @@ defined.
 This is a PCE/Prolog interface warning.  It implies the integer
 object reference given to send/[2-12], etc.\ is not valid.  The most
 common reason is that the object has already be freed, either explicitly
-or by PCE's incremental garbage collector.  See section~\ref{sec:memory}.
+or by PCE's incremental garbage collector.  See \secref{memory}.
 
     \tick{Unknown class}
 Attempt to create an instance of a non-existing class.  Apart from the
 common mistakes like mistyped class-names, etc.\ this might be caused by
 1) giving a list argument to a send- or get- operation (class `.')
 or 2) trying to pass a term through send/[2-12] or get/[3-13].  See
-section~\ref {sec:notprolog}.   
+\secref{notprolog}.   
 
     \tick{Illegal PCE object description}
 This implies a non-translatable Prolog datum was passed to the interface.

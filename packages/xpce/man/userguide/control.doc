@@ -1,4 +1,4 @@
-\section{Control-structure of XPCE/Prolog applications}	\label{sec:control}
+\section{Control-structure of \productpl{} applications}	\label{sec:control}
 
 This section deals with the control-structure of interactive
 applications written in PCE/Prolog. Interactive graphical applications
@@ -43,7 +43,8 @@ main-loop when a certain event happens.  This control-structure is
 called {\em event-driven} control.  Consider a button:
 
 \begin{code}
-1 ?- new(B, button(hello, message(@pce, write_ln, hello))),
+1 ?- new(B, button(hello,
+		   message(@pce, write_ln, hello))),
      send(B, open).
 \end{code}
 
@@ -89,7 +90,7 @@ interaction. In \secref{modal}, we have seen a simple way of programming
 this using `frame <-confirm'.  In this section, we will provide some
 other options.
 
-\paragraph{Message Queue} One possibility is to fall back to the XPCE 1
+\paragraph{Message Queue} One possibility is to fall back to the \product{} 1
 and 2 compatibility, where @prolog implements a queue of messages.
 @prolog is an instance of class \class{host}. The relevant methods are:
 
@@ -156,7 +157,7 @@ Process events and return on any of the following conditions
 \end{description}
 
 
-\subsection{XPCE and existing applications}
+\subsection{\product{} and existing applications}
 
 Due to the different control-regime described in the previous section,
 traditional terminal oriented applications are not easily transformed

@@ -87,12 +87,12 @@ already created it will rename the object using `object
 exception handler again, creating a new object according to the current
 specification. The directive prints diagnostics messages on
 redefinitions and other possible problems during compilation. See
-appendix~\ref{sec:interface} for details on pce_global/2.
+\appref{interface} for details on pce_global/2.
 
 
 \subsection{Global objects for recognisers}
 
-Recogniser objects (see section~\ref{sec:recogniser}) that make
+Recogniser objects (see \secref{recogniser}) that make
 graphical objects sensitive to mouse events are often created with
 a global reference.  Suppose an application requires box objects
 that can be moved, resized and that have a popup menu.  The recogniser

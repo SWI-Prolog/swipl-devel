@@ -370,7 +370,7 @@ eventButton(Button b, EventObj ev)
   infocus = (getKeyboardFocusGraphical((Graphical) b) == ON);
 
   if ( ev->id == toInt(9) && infocus )
-  { advanceDevice(b->device, (Graphical) b);
+  { send(b->device, NAME_advance, b, 0);
     succeed;
   }
 

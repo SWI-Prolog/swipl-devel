@@ -409,6 +409,8 @@ static char *T_initialise[] =
 
 /* Instance Variables */
 
+#define var_stream XPCE_var_stream	/* AIX 3.2.5 conflict */
+
 static vardecl var_stream[] =
 { IV(NAME_inputMessage, "code*", IV_BOTH,
      NAME_input, "Forwarded on input from the stream"),

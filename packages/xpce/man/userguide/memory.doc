@@ -35,7 +35,7 @@ deleted when the code that requested the value is done with it.
 
 PCE maintains the following information on objects to support
 garbage collection.  This information may be requested using the PCE
-inspector (see section~\ref{sec:inspector}).
+inspector (see \secref{inspector}).
 
 \begin{description}
     \tick{Protect Flag}
@@ -53,7 +53,7 @@ collector.  The lock flag is automatically set on
 any object that has a named reference.  If Prolog wants to store
 integer object references in the Prolog database locking is often
 necessary to protect the object for the PCE garbage collector.  See
-also section~\ref{sec:pceprolog}.
+also \secref{pceprolog}.
     \tick{Answer Flag}
 This flag indicates that the object has been created as an answer of
 some computation or as a result of the Prolog predicate new/2.  The

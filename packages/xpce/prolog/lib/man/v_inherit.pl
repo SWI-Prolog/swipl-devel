@@ -26,8 +26,6 @@
 
 :- pce_begin_class(man_inheritance_tree, tree).
 
-resource(inheritance_font, font,
-	 'font(helvetica, bold, 12)').
 resource(delegation_attributes, vector,
 	 'when(@colour_display,
 	       vector(colour := green),
@@ -99,12 +97,11 @@ type_to_class(Type, Class) :-
 
 
 show(IT, Class:class, Clear:[bool]) :->
-	get(IT, resource_value, inheritance_font, Font),
 	(   Clear \== @off
 	->  send(IT, clear)
 	;   true
 	),
-	get(IT, show_inheritance, Class, Font, Node),
+	get(IT, show_inheritance, Class, bold, Node),
 	send(Node, selected, @on),
 	send(IT, show_delegation, Class),
 	send(IT, slot, showed, Class?name).
@@ -129,13 +126,10 @@ scope(IT, Classes:chain) :<-
 
 :- pce_begin_class(man_inheritance_node, node).
 
-resource(active_font,	font,	'font(helvetica, oblique, 12)').
-
 initialise(N, Class:class) :->
 	"Create node for class"::
-	get(N, resource_value, active_font, Font),
 	get(Class, name, ClassName),
-	send(N, send_super, initialise, text(ClassName, left, Font)),
+	send(N, send_super, initialise, text(ClassName, left, italic)),
 	send(N, name, ClassName).
 
 
