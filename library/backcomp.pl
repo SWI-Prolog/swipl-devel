@@ -22,7 +22,8 @@
 	    read_variables/3,
 	    feature/2,
 	    set_feature/2,
-	    substring/4
+	    substring/4,
+	    flush/0
 	  ]).
 
 '$arch'(Arch, unknown) :-
@@ -89,3 +90,8 @@ atom_char(Char, Code) :-
 substring(String, Offset, Length, Sub) :-
 	Offset0 is Offset - 1,
 	sub_string(String, Offset0, Length, _After, Sub).
+
+%	flush/0
+
+flush :-
+	flush_output.

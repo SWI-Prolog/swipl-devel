@@ -172,7 +172,7 @@ suggest predicates from a keyword.
 \predicatesummary{flag}{3}{Simple global variable system}
 \predicatesummary{flatten}{2}{Transform nested list into flat list}
 \predicatesummary{float}{1}{Type check for a floating point number}
-\predicatesummary{flush}{0}{Output pending characters on current stream}
+\predicatesummary{flush_output}{0}{Output pending characters on current stream}
 \predicatesummary{flush_output}{1}{Output pending characters on specified stream}
 \predicatesummary{forall}{2}{Prove goal for all solutions of another goal}
 \predicatesummary{foreign_file}{1}{Examine loaded foreign files}

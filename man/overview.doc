@@ -926,8 +926,12 @@ SWI-Prolog behaviour.  Currently it has the following effect:
 \begin{itemize}
     \item is/2 and evaluation under flag/3 do not automatically convert
           floats to integers if the float represents an integer.
+    \item The \funcref{/}{2} (float division) {\em always} yields a
+          float, even when applied to integers that can be divided.
     \item In the standard order of terms (see \secref{standardorder}),
           all floats are before all integers.
+    \item atom_length/2 yields an instantiation error if the first
+          argument is a number.
 \end{itemize}
     \prologflagitem{optimise}{bool}{rw}
 If \const{true}, compile in optimised mode. The initial value is

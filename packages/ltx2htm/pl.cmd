@@ -14,7 +14,7 @@
 \predref{+}{-}
 \functor{+}{-}
 \compound{+}{+}
-\funcref{-}{+}
+\funcref{+}{+}
 \manref{-}{-}
 \op{+}
 
@@ -86,6 +86,14 @@
 \functionsummary{+}{-}{+}
 \opfuncsummary{+}{-}{-}{-}{+}
 \opsummary{-}{-}{+}{+}
+
+% C++
+
+\classitem{-}=item
+\constructor{-}{+}=item
+\destructor{-}=item
+\cppcast{-}{-}=item
+\nodescription
 
 % XPCE stuff
 

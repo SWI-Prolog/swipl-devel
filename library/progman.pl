@@ -227,7 +227,7 @@ string_to_atoms([C|T], M, A) :-
 %	entered line as an atom.
 
 read_line(Line) :-
-	flush,
+	flush_output,
 	prompt(O, ''),
 	read_chars(Chars),
 	prompt(_, O),

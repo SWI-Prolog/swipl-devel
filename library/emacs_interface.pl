@@ -261,5 +261,5 @@ call_emacs(Fmt) :-
 call_emacs(Fmt, Args) :-
 	concat_atom(['', Fmt, ''], F1),
 	format(F1, Args),
-	flush.
+	flush_output.
 

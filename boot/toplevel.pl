@@ -401,7 +401,7 @@ $execute_goal(Goal, Bindings) :-
 	TypeIn:asserta(($user_query(Qid, Bindings) :- Goal), Ref),
 	$set_user_goal_attributes(TypeIn),
 	(   TypeIn:$user_query(Qid, Bindings),
-	    flush,
+	    flush_output(user_output),
 	    call_expand_answer(Bindings, NewBindings),
 	    (	write_bindings(NewBindings)
 	    ->	!,
@@ -437,7 +437,7 @@ write_bindings(Bindings) :-
 
 get_respons(Action) :-
 	repeat,
-	    ttyflush,
+	    flush_output(user_output),
 	    get_single_char(Char),
 	    answer_respons(Char, Action),
 	    (   Action == again
