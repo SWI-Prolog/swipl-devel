@@ -95,6 +95,10 @@ if test -r /etc/java/java2.conf; then
   fi
 fi
 
+if test "x$JAVAC" = x; then		dnl Sofar, JPL only works with
+  JAVAC=javac				dnl Sun Java
+fi
+
 AC_PROG_JAVAC(javac)
 AC_PROG_JAR(jar)
 

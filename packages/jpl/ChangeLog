@@ -1,3 +1,8 @@
+Sep 28, 2004
+
+  * CONFIG: Force the use of javac (Sun Java) in configure if nothing is
+    specified by the user.
+
 May 27, 2004
 
   * CLEANUP: Made Test2 example stand-alone rather than relying on things
