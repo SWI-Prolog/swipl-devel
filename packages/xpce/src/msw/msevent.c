@@ -132,3 +132,25 @@ ws_init_loc_still_timer()
 { if ( !SetTimer(NULL, 0, (UINT)(250), (TIMERPROC) locStillTimer) )
     Cprintf("SetTimer() failed\n");
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Wait for 250 milliseconds to see whether another key is pressed. This is
+used to merge CUA accelerators C-x  and   C-c  with the Emacs ones. Note
+that we check for key-down as there will be an up waiting for us.
+
+In practice C-x C-x is only trick handled through this code.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+ws_wait_for_key(int maxwait)
+{ MSG msg;
+
+  msleep(maxwait);
+
+  if ( PeekMessage(&msg, NULL, WM_KEYDOWN, WM_KEYDOWN, PM_NOREMOVE) )
+  { succeed;
+  } else
+  { fail;
+  }   
+}
