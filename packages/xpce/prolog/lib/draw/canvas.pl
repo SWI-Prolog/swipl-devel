@@ -15,10 +15,12 @@
 :- require([ chain_list/2
 	   , concat/3
 	   , concat_atom/2
+	   , default/3
 	   , ignore/1
 	   , send_list/3
 	   , shell/1
 	   ]).
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Class `draw_canvas' defines  the actual drawing  area.  Representing a

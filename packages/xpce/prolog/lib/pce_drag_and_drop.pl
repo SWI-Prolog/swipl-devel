@@ -9,7 +9,8 @@
 
 :- module(drag_and_drop, []).
 :- use_module(library(pce)).
-:- require([ ignore/1
+:- require([ default/3
+	   , ignore/1
 	   ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -63,6 +63,7 @@ char *		resourceName(Name name);
 Resource	getSubResource(Resource r, Class class);
 status		resourceClass(Class class, Resource r);
 Resource	getResourceClass(Class class, Name name);
+status		resourceValueClass(Class cl, Name name, Any val);
 Any		getResourceValueClass(Class cl, Name name);
 status		attach_resource(Class cl, char *name, char *type, char *def, char *doc);
 status		refine_resource(Class cl, char *name_s, char *def);

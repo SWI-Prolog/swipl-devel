@@ -10,6 +10,7 @@
 :- module(emacs_buffer, []).
 :- use_module(library(pce)).
 :- require([ between/3
+	   , default/3
 	   , ignore/1
 	   ]).
 

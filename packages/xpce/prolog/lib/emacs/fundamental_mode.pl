@@ -10,11 +10,10 @@
 :- module(emacs_fundamental_mode, []).
 :- use_module(library(pce)).
 :- use_module(library(pce_selection)).
-:- require([ auto_call/1
-	   , between/3
+:- require([ between/3
+	   , default/3
 	   , ignore/1
 	   ]).
-
 
 :- initialization
 	new(KB, emacs_key_binding(fundamental, editor)),

@@ -357,9 +357,9 @@ invokeMethod(Method m, Name c, Any receiver, int argc, const Any argv[])
 	rval = getForwardFunctionv((Function) m->message, ntypes, av);
     } else
     { if ( c == NAME_send )
-	rval = (Any) hostCallProc(m->message, receiver, ntypes, av);
+	rval = (Any) hostCallProc(m->message, receiver, m->name, ntypes, av);
       else
-	rval = hostCallFunc(m->message, receiver, ntypes, av);
+	rval = hostCallFunc(m->message, receiver, m->name, ntypes, av);
     }
 
     RECEIVER_CLASS->value = receiver_class_save;

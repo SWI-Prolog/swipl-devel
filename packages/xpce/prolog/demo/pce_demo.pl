@@ -13,7 +13,7 @@
 
 
 :- use_module(library(pce)).
-:- use_module(contrib('contrib')).
+:- use_module(contrib(contrib)).
 :- require([ emacs/1
 	   , forall/2
 	   , member/2

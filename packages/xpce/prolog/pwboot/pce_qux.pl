@@ -13,18 +13,19 @@
 	  time_file/2,
 	  strip_module/3,
 	  pce_arg/3,
-	  pce_sublist/3,
+	  sublist/3,
 	  exists_file/1,
 	  make/0,
 	  source_warning/2,
 	  sformat/3,
 	  call_emacs/2,
+	  is_absolute_file_name/1,
 	  expand_file_name/2	% added for QP3.2
 	]).
 
 :- meta_predicate
 	ignore(:),
-	pce_sublist(:, +, ?).
+	sublist(:, +, ?).
 
 :- use_module(library(charsio), [chars_to_stream/2,
 				 with_input_from_chars/2,
@@ -60,6 +61,13 @@ source_location(File, Line) :-
 	prolog_load_context(term_position,
 		'$stream_position'(_, Line, _, _, _)).
 
+%	is_absolute_file_name(+Atom)
+%	Succeeds if Atom describes an absolute filename
+
+is_absolute_file_name(Atom) :-
+	atom_chars(Atom, [0'/|_]).
+
+
 % term_to_atom(+Term, ?Atom)
 % term_to_atom(-Term, +Atom)
 %
@@ -93,17 +101,28 @@ atom_to_term(Atom, Term, Bindings) :-
  
 atom_to_term_1(Atom, Term, Bindings) :-
         atom_chars(Atom, Chars0),
-        append(Chars0, ".", Chars),
+	(   append(Base, [0'.|Spaces], Chars0),
+	    all_spaces(Spaces)
+	->  append(Base, " .", Chars)
+	;   append(Chars0, " .", Chars)
+	),
         length(Chars, Length),
         with_input_from_chars(
                 read_term_with_count(Term0, Bindings0, Count),
                 Chars),
-        ( Count = Length ->
-                Term = Term0,
-                Bindings = Bindings0
-        ; Term = Atom,
-          Bindings = []
-        ).
+        Count == Length,
+	Term = Term0,
+	Bindings = Bindings0.
+
+all_spaces([]).
+all_spaces([H|T]) :-
+	space(H),
+	all_spaces(T).
+
+space(0' ).
+space(9).
+space(10).
+space(13).
 
 read_term_with_count(Term, Bindings, Count) :-
         current_input(Stream),
@@ -120,6 +139,9 @@ time_file(File, Time):-
 
 % concat/3
 
+concat(A,B,C) :-
+	nonvar(B), !,
+	strings:concat(A, B, C).
 concat(A,B,C) :-
 	string_append(A,B,C).
 
@@ -178,15 +200,15 @@ free_variables(Term, ListOfUnbound) :-
 pce_arg(N, Term, Arg) :-
 	genarg(N, Term, Arg).
 
-% pce_sublist/3
+% sublist/3
 
-pce_sublist(_, [], []) :- !.
-pce_sublist(M:G, [H|T], [H|R]) :-
-	call(M:G, H),
+sublist(_, [], []) :- !.
+sublist(G, [H|T], [H|R]) :-
+	call(G, H),
 	!,
-	pce_sublist(M:G, T, R).
-pce_sublist(M:G, [_|T], L) :-
-	pce_sublist(M:G, T, L).
+	sublist(G, T, R).
+sublist(G, [_|T], L) :-
+	sublist(G, T, L).
 
 % exists_file(+FileName)
 %

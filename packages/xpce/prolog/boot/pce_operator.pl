@@ -13,7 +13,6 @@
 	, pop_operators/0
 	]).
 
-:- require([maplist/3, checklist/2]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Often, one  wants to define  operators to improve  the  readibility of
@@ -42,13 +41,23 @@ hello_world World :-
 	operator_stack/1.
 
 push_operators(New) :-
-	maplist(undo_operator, New, Undo),
-	checklist(call, New),
+	undo_operators(New, Undo),
+	call_list(New),
 	asserta(operator_stack(Undo)).
 
 pop_operators :-
 	retract(operator_stack(Undo)), !,
-	checklist(call, Undo).
+	call_list(Undo).
+
+call_list([]).
+call_list([H|T]) :-
+	call(H),
+	call_list(T).
+
+undo_operators([], []).
+undo_operators([O0|T0], [U0|T]) :-
+	undo_operator(O0, U0),
+	undo_operators(T0, T).
 
 undo_operator(op(_P, T, N), op(OP, OT, N)) :-
 	current_op(OP, OT, N),

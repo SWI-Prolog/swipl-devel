@@ -11,8 +11,6 @@
 :- module(draw,
 	[ draw/0				  % Start drawing tool
 	, draw/1				  % Start editing file
-	, draw_begin_shape/4
-	, draw_end_shape/0
 	]).
 
 

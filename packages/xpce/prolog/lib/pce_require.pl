@@ -16,25 +16,23 @@
 
 :- use_module(library(pce)).
 :- consult('xref/quintus.def').		% built-in's
-:- require([ append/3
-	   , call_emacs/2
+:- require([ exists_file/1
+	   , ignore/1
+	   , is_list/1
+	   , pce_error/1
 	   , concat_atom/2
-	   , exists_file/1
 	   , expand_file_name/2
 	   , forall/2
-	   , ignore/1
 	   , member/2
-	   , pce_error/1
+	   , append/3
 	   , sformat/3
 	   ]).
-
 
 target_prolog(quintus).
 
 :- dynamic
 	called/1,			% called head
 	defined/1,			% defined head
-	compiling_class/1,			% classname
 	output_to/2,			% output is emacs buffer
 	current_require_declaration/1.	% Current declaration
 
@@ -78,7 +76,6 @@ pce_require_all(Pattern) :-
 clean :-
 	retractall(called(_)),
 	retractall(defined(_)),
-	retractall(compiling_class(_)),
 	retractall(current_require_declaration(_)).
 	
 
@@ -87,18 +84,52 @@ collect(File) :-
 	seeing(Old), see(Source),
 	repeat,
 	    read(Term),
-	    (   Term == end_of_file
+	    req_expand(Term, T),
+	    (   T == end_of_file
 	    ->  !, seen, see(Old)
-	    ;   process(Term),
+	    ;   process(T),
 		fail
 	    ).
 
 
+		 /*******************************
+		 *	     EXPANSION		*
+		 *******************************/
+
+%	req_expand(+Term, -Expanded)
+%
+%	Do the term-expansion.  We have to pass require as we need it
+%	for validation.  Otherwise we do term-expansion, handling all
+%	of the XPCE class compiler as normal Prolog afterwards.
+
+req_expand((:- require(X)), (:- require(X))) :- !.
+req_expand(Term, _) :-
+	requires_library(Term, Lib),
+	user:ensure_loaded(Lib),
+	fail.
+req_expand(Term, T) :-
+	user:term_expansion(Term, Expanded), !,
+	(   is_list(Expanded)
+	->  member(T, Expanded)
+	;   T = Expanded
+	).
+req_expand(Term, Term).
+
+
+%	requires_library(+Term, -Library)
+%
+%	known expansion hooks.  Should be more dynamic!
+
+requires_library((:- emacs_begin_mode(_,_,_,_,_)), library(emacs_extend)).
+requires_library((:- draw_begin_shape(_,_,_,_)), library(pcedraw)).
+
+
+		 /*******************************
+		 *	     PROCESS		*
+		 *******************************/
+
 process((:- Directive)) :- !,
 	process_directive(Directive), !.
-process(PceClassTerm) :-
-	compiling_class,
-	process_pce(PceClassTerm), !.
 process((Head :- Body)) :- !,
 	assert_defined(Head),
 	process_body(Body).
@@ -111,86 +142,26 @@ process(Head) :-
 
 process_directive(use_module(_Module, Import)) :-
 	assert_import(Import).
-process_directive(require(Import)) :-		% Include if report only
+process_directive(require(Import)) :-		 % Include if report only
 	assert_current_require_declaration(Import).
 process_directive(use_module(Modules)) :-
+	process_use_module(Modules).
+process_directive(consult(Modules)) :-
 	process_use_module(Modules).
 process_directive(ensure_loaded(Modules)) :-
 	process_use_module(Modules).
 process_directive(dynamic(Dynamic)) :-
 	assert_dynamic(Dynamic).
 
-						  % BEGIN/END PceEmacs mode
-process_directive(emacs_begin_mode(Mode, Super, Summary, KB, ST)) :-
-	get(string('emacs_%s_mode', Mode), value, Class),
-	get(string('emacs_%s_mode', Super), value, SuperClass),
-	process_directive(pce_begin_class(Class, SuperClass, Summary)),
-	process_body(emacs_begin_mode(Mode, Super, Summary, KB, ST)).
-process_directive(emacs_extend_mode(Mode, KB)) :-
-	get(string('emacs_%s_mode', Mode), value, Class),
-	process_directive(pce_extend_class(Class)),
-	process_body(emacs_extend_mode(Mode, KB)).
-process_directive(emacs_end_mode) :-
-	process_directive(pce_end_class),
-	process_body(emacs_end_mode).
-
-						  % BEGIN/END PceDraw shape
-process_directive(draw_begin_shape(Class, Super, Summ, Recs)) :-
-	process_directive(pce_begin_class(Class, Super, Summ)),
-	process_body(draw_begin_shape(Class, Super, Summ, Recs)).
-process_directive(draw_end_shape) :-
-	process_directive(pce_end_class),
-	process_body(draw_end_shape).
-
-						  % BEGIN/END class
-process_directive(pce_begin_class(Class, Super)) :-
-	process_directive(pce_begin_class(Class, Super, "")).
-process_directive(pce_begin_class(Class, _, _)) :-
-	functor(Class, ClassName, _),
-	asserta(compiling_class(ClassName)),
-	pce_compile:push_compile_operators.
-process_directive(pce_extend_class(ClassName)) :-
-	asserta(compiling_class(ClassName)),
-	pce_compile:push_compile_operators.
-process_directive(pce_end_class) :-
-	retractall(compiling_class(_)),
-	pce_compile:pop_compile_operators.
 process_directive(op(P, A, N)) :-
 	op(P, A, N).			% should be local ...
-process_directive(pce_compile:push_compile_operators) :-
-	pce_compile:push_compile_operators.
-process_directive(pce_compile:pop_compile_operators) :-
-	pce_compile:pop_compile_operators.
+process_directive(pce_expansion:push_compile_operators) :-
+	pce_expansion:push_compile_operators.
+process_directive(pce_expansion:pop_compile_operators) :-
+	pce_expansion:pop_compile_operators.
 process_directive(Goal) :-
 	process_body(Goal).
 
-
-	      /********************************
-	      *          PCE EXPANDED		*
-	      ********************************/
-
-:- pce_compile:push_compile_operators.
-						  % VARIABLES, RESOURCES, ETC.
-process_pce(variable(Name, Type, Access)) :-
-	process_pce(variable(Name, Type, Access, "")).
-process_pce(variable(_Name, _Type, _Access, _Doc)).
-process_pce(resource(Name, Type, Default)) :-
-	process_pce(resource(Name, Type, Default, "")).
-process_pce(resource(_Name, _Type, _Default, "")).
-process_pce(handle(X, Y, Kind)) :-
-	process_pce(handle(X, Y, Kind, @default)).
-process_pce(handle(_X, _Y, _Kind, _Name)).
-						  % METHODS
-process_pce((_Head :-> _Doc::Body)) :- !,
-	process_body(Body).
-process_pce((_Head :-> Body)) :- !,
-	process_body(Body).
-process_pce((_Head :<- _Doc::Body)) :- !,
-	process_body(Body).
-process_pce((_Head :<- Body)) :- !,
-	process_body(Body).
-
-:- pce_compile:pop_compile_operators.
 
 	      /********************************
 	      *             BODY		*
@@ -338,12 +309,13 @@ check_system_predicate(Head) :-
 	target_prolog(Prolog),
 	source_warning('Redefined ~w system predicate: ~w/~d',
 		       [Prolog, Name, Arity]).
-check_system_predicate(Head) :-
+pce_ifhostproperty(prolog(swi),
+(check_system_predicate(Head) :-
 	predicate_property(system:Head, built_in), !,
 	functor(Head, Name, Arity),
 	Prolog = 'SWI-Prolog',
 	source_warning('Redefined ~w system predicate: ~w/~d',
-		       [Prolog, Name, Arity]).
+		       [Prolog, Name, Arity]))).
 check_system_predicate(_).
 
 		/********************************
@@ -382,28 +354,33 @@ report_undefined([H|T]) :-
 		*            UTILITIES		*
 		********************************/
 
-%	compiling_class/0
-%	Succeeds if we are compiling_class some PCE class
-
-compiling_class :-
-	compiling_class(_).
-	
-
 %	find_source_file(+Spec, -File)
 %	Find named source file.
 
-find_source_file(library(Spec), Path) :- !,
+find_source_file(Spec, File) :-
+	do_find_source_file(Spec, File), !.
+find_source_file(Spec, _) :-
+	source_warning('Cannot file from ~w', [Spec]),
+	fail.
+
+do_find_source_file(Spec, File) :-
+	absolute_file_name(Spec,
+			   [ file_type(prolog),
+			     access(read),
+			     file_errors(fail)
+			   ], File), !.
+do_find_source_file(library(Spec), Path) :- !,
 	user:library_directory(Dir),
 	extension(Extension),
 	concat_atom([Dir, /, Spec, Extension], Path),
 	exists_file(Path), !.
-find_source_file(Spec, Path) :-
+do_find_source_file(Spec, Path) :-
 	atom(Spec),
 	name(Spec, [0'/|_]), !,			  % absolute path
 	extension(Extension),
 	concat_atom([Spec, Extension], Path),
 	exists_file(Path), !.
-find_source_file(Spec, Path) :-
+do_find_source_file(Spec, Path) :-
 	atom(Spec),
 	source_directory(Dir),
 	extension(Extension),

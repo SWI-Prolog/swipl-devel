@@ -12,8 +12,6 @@
 	  [ pcedraw/0			% start pcedraw
 	  , pcedraw/1			% and load a file into it
 	  , draw_toplevel/0		% toplevel when compiled
-	  , draw_begin_shape/4		% user-defined shapes
-	  , draw_end_shape/0
 	  ]).
 
 :- use_module(library(pce)).
@@ -46,7 +44,7 @@ This command can be started with
 
 
 draw_toplevel :-
-	'$argv'(Args),		% command line arguments
+	unix(argv(Args)),		% command line arguments
 	files(Args, Files),
 	(   Files = [_|_]
 	->  checklist(draw, Files)

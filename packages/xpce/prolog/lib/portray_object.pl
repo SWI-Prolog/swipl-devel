@@ -23,6 +23,7 @@
 
 :- use_module(library(pce)).
 :- require([ maplist/3
+	   , memberchk/2
 	   ]).
 
 %   Note: you may wish to incorporate portray_object/2 with the
@@ -86,7 +87,6 @@ portray_class(line(A, B, C, D), line(A, B, C, D)).
 portray_class(link(A, A, _), link(A)).
 portray_class(link(A, B, C), link(A, B, p/C)).
 portray_class(number(A), A).
-portray_class(percent(A, B), percent(p/A, p/B)).
 portray_class(node(A), node(p/A)).
 portray_class(text(A,B,C), text(p/A, B, C)).
 portray_class(button(A,B), button(A, p/B)).
@@ -103,10 +103,11 @@ portray_class(Term, NewTerm) :-
 	functor(Term, Functor, _), 
 	vararg_class(Functor), !,
 	Term =.. [Functor|Arguments], 
-	maplist(portray_object, Arguments, NewArguments), 
+	maplist(tag_p, Arguments, NewArguments), 
 	NewTerm =.. [Functor|NewArguments].
 portray_class(A, A).
 
+tag_p(X, p/X).
 
 %	global_object(+Ref)
 %	Declare commonly known objects
@@ -153,20 +154,25 @@ portray_object(Object) :-
 %   and returs this in Term.  portray_object/2 uses the rules found under
 %   portray_class/2.
 
-portray_object(@Object, @Object) :-
+portray_object(Obj, Term) :-
+	portray_object(Obj, Term, []).
+
+portray_object(@Object, @Object, _) :-
 	global_object(@Object), !.
-portray_object(@Object, Term) :-
+portray_object(Obj, '<recursive>'(Obj), Done) :-
+	memberchk(Obj, Done), !.
+portray_object(@Object, Term, Done) :-
 	object(@Object, Description), 
 	portray_class(Description, Result), 
-	portray_description(Result, Term), !.
-portray_object(Term, Term).
+	portray_description(Result, Term, [@Object|Done]), !.
+portray_object(Term, Term, _).
 
-portray_description(Result, Term) :-
+portray_description(Result, Term, Done) :-
 	Result =.. Arguments, 
-	maplist(portray_argument, Arguments, List), 
+	maplist(portray_argument(Done), Arguments, List), !,
 	Term =.. List.
-portray_description(Term, Term).
+portray_description(Term, Term, _).
 
-portray_argument(p/Object, Term) :-
-	portray_object(Object, Term).
-portray_argument(Term, Term).
+portray_argument(Done, p/Object, Term) :- !,
+	portray_object(Object, Term, Done).
+portray_argument(_, Term, Term).

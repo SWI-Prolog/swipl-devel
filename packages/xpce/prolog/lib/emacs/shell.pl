@@ -11,6 +11,7 @@
 	  []).
 :- use_module(library(pce)).
 :- require([ between/3
+	   , default/3
 	   , forall/2
 	   , ignore/1
 	   ]).

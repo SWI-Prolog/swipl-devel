@@ -22,6 +22,7 @@ PCEHOME=../../prowindows3.0
 #PCEHOME=/q/ptg3/RELEASE/prowindows3.0
 PCELIB=$(PCEHOME)/library
 PCEDEMO=$(PCEHOME)/demo
+PCECONTRIB=$(PCEHOME)/contrib
 
 .SUFFIXES: .qof .pl
 
@@ -31,7 +32,8 @@ PCEDEMO=$(PCEHOME)/demo
 
 PCESHARE=	english \
 		pce_editor.pl \
-		pce_compile.pl \
+		pce_realise.pl \
+		pce_expansion.pl \
 		pce_error.pl \
 		pce_expand.pl \
 		pce_global.pl \
@@ -45,7 +47,8 @@ PCEQOFS=	pce_boot.qof \
 		pce_error.qof \
 		pce_autoload.qof \
 		pce_global.qof \
-		pce_compile.qof \
+		pce_realise.qof \
+		pce_expansion.qof \
 		pce_operator.qof \
 		pce_editor.qof \
 		pce_utils.qof \
@@ -61,7 +64,8 @@ BOOTPLS=	pce_qux.pl \
 		QPINDEX.pl \
 		english/pce_messages.pl
 
-LIBPLS=		pce_util.pl \
+LIBPLS=		pce.pl \
+		pce_util.pl \
 		area.pl \
 		pce_emacs.pl \
 		emacs_tags.pl \
@@ -130,12 +134,13 @@ MANPLS= 	man/p_card.pl \
 		man/classmap.pl \
 		man/classification.obj
 
-CTBPLS=		contrib/README \
-		contrib/contrib.pl
-RBIKPLS=	contrib/rubik/README \
-		contrib/rubik/maplist.pl \
-		contrib/rubik/rubik.pl \
-		contrib/rubik/rubikpce.pl
+CTBPLS=		contrib.pl \
+		README
+RBIKPLS=	rubik/maplist.pl \
+		rubik/rubik.pl \
+		rubik/rubikpce.pl \
+		rubik/README
+		
 
 DRAWPLS=	draw/align.pl \
 		draw/attribute.pl \
@@ -215,14 +220,15 @@ PW2DEMOS=	pw2/README \
 		pw2/thermo.pl \
 		pw2/verb
 
+INFOFILES=	ChangeLog
 
 all:	qofs release
 
-qofs: pceshare prowindows.qof qp_pce.qof pce.qof
+qofs: pceshare pce_qpc.qof prowindows.qof qp_pce.qof pce.qof
 
-pw: prowindows.qof qp_pce.qof
-	$(QLD) -Ddv -L `pwd` -L `pwd`/../boot \
-		-L `pwd`/../lib prowindows.qof \
+#pw: prowindows.qof qp_pce.qof
+#	$(QLD) -Ddv -L `pwd` -L `pwd`/../boot \
+#		-L `pwd`/../lib prowindows.qof \
 
 rttest: $(OBJS) prowindows.qof rte_test.qof
 	$(QLD) -dv -L `pwd` -L `pwd`/../boot \
@@ -234,8 +240,9 @@ pw.qui: $(OBJS) prowindows.qof
 		$(EXTRALIBS)
 
 pce_qpc.qof: pce_qpc.pl
-	$(QPC) -c $? -o pce_qpc0.qof
-	$(QLD) -dr pce_qpc0.qof -o $@
+	$(QPC) -L . -i pce_qpc.pl -c pce_qpc.pl -o pce_qpc0.qof
+	$(QLD) -L . -dr pce_qpc0.qof -o $@
+	rm -f pce_qpc0.qof
 
 prowindows.qof: pce_qpc.qof english/pce_messages.qof
 
@@ -254,7 +261,7 @@ $(BIN)/pl-crt0.o: pl-crt0.c
 	cc $(CDEBUGFLAGS) -O -K PIC -D$(SUNOS) -c pl-crt0.c -o $@
 
 release: directories release_lib release_demo release_contrib \
-	 release_bin release_makes release_misc
+	 release_bin release_makes release_misc info_files
 	cd $(PCELIB); make
 	cd $(PCEDEMO); make
 
@@ -270,8 +277,8 @@ directories:
 	@[ -d $(PCELIB)/man ] || mkdir $(PCELIB)/man
 	@[ -d $(PCELIB)/xref ] || mkdir $(PCELIB)/xref
 	@[ -d $(PCEDEMO) ] || mkdir $(PCEDEMO)
-	@[ -d $(PCEDEMO)/contrib ] || mkdir $(PCEDEMO)/contrib
-	@[ -d $(PCEDEMO)/contrib/rubik ] || mkdir $(PCEDEMO)/contrib/rubik
+	@[ -d $(PCECONTRIB) ] || mkdir $(PCECONTRIB)
+	@[ -d $(PCECONTRIB)/rubik ] || mkdir $(PCECONTRIB)/rubik
 	@[ -d $(PCEDEMO)/dialog ] || mkdir $(PCEDEMO)/dialog
 	@[ -d $(PCEDEMO)/pw2 ] || mkdir $(PCEDEMO)/pw2
 
@@ -289,8 +296,10 @@ release_lib:		$(addprefix $(PCELIB)/, $(BOOTQOFS)) \
 release_demo:		$(addprefix $(PCEDEMO)/, $(DEMOPLS)) 
 #			$(addprefix $(PCEDEMO)/, $(PW2DEMOS))
 
-release_contrib:	$(addprefix $(PCEDEMO)/, $(CTBPLS)) \
-			$(addprefix $(PCEDEMO)/, $(RBIKPLS))
+release_contrib:	$(addprefix $(PCECONTRIB)/, $(CTBPLS)) \
+			$(addprefix $(PCECONTRIB)/, $(RBIKPLS))
+
+info_files:		$(addprefix $(PCEHOME)/, $(INFOFILES))
 
 release_bin:	$(PCELIB)/$(BIN)/libpce.a $(PCELIB)/$(BIN)/libXt.so.4.0
 
@@ -305,6 +314,9 @@ pceshare:
 		    if [ ! -r "$$f" ]; then $(LN) ../boot/$$f .; fi \
 		done
 
+$(PCELIB)/pce.pl:	../pwboot/pce.pl
+	$(CP) ../pwboot/pce.pl $(PCELIB)/pce.pl
+
 # copy - implicit rules
 
 $(PCELIB)/%: ../pwboot/%
@@ -316,7 +328,7 @@ $(PCELIB)/%: ../lib/%
 $(PCEDEMO)/dialog/%: ../lib/dialog/demo/%
 	$(CP) $< $@
 
-$(PCEDEMO)/contrib/%: ../contrib/%
+$(PCECONTRIB)/%: ../contrib/%
 	$(CP) $< $@
 
 $(PCEDEMO)/pw2/%: ../../PWdemo/%
@@ -327,7 +339,7 @@ $(PCEDEMO)/%: ../demo/%
 
 # copy specific files
 
-$(PCEHOME)/Pce:	../../Pce
+$(PCEHOME)/%:	../../%
 	$(CP) $< $@
 
 $(PCEHOME)/Makefile: install_make
@@ -367,7 +379,10 @@ $(PCEHOME)/include:
 
 $(PCEHOME)/man:
 	mkdir $@
-	$(CP) -r ../../man/* $@
+	$(CP) -r ../../man/reference $@
+	$(CP) -r ../../man/faq $@
+	$(CP) -r ../../man/xpce.1 $@
+	$(CP) -r ../../man/xpce-client.1 $@
 	rm -fr $@/CVS $@/*/CVS $@/*/*/CVS $@/*/*/*/CVS
 	rm -f $@/releasenotes/*.fm*
 
@@ -381,3 +396,4 @@ clean:
 	rm -fr $(PCEHOME)
 	rm -f $(PCEQOFS) $(BOOTQOFS)
 	rm -f $(PCESHARE)
+	rm -f pce_qpc0.qof pce_qux.qof

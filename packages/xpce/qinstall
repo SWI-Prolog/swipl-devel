@@ -5,7 +5,7 @@
 
 xpce=xpce
 
-plist="`echo $PATH | tr : ' '`"
+pllist="`echo $PATH | tr : ' '`"
 
 echo -n "Trying to locate SWI-Prolog executable ... "
 

@@ -23,13 +23,13 @@ struct zone
 #if ALLOC_DEBUG
   unsigned	in_use : 1;		/* Zone is in_use (1) or freed (0) */
   unsigned	size   : 31;		/* Size of the zone (bytes) */
+  ulong		magic;			/* Magic word */
 #endif
-  ulong start;				/* Reserved (start of zone) */
-  Zone	next;				/* Next zone of this size */
+  ulong		start;			/* Reserved (start of zone) */
+  Zone		next;			/* Next zone of this size */
 };
 
 GLOBAL Zone freeChains[ALLOCFAST/sizeof(Zone)+1];
-GLOBAL Zone tailFreeChains[ALLOCFAST/sizeof(Zone)+1];
 
 #define struct_offset(structure, field) ((int) &(((structure *)NULL)->field))
 #define MINALLOC    (sizeof(struct zone) - struct_offset(struct zone, start))

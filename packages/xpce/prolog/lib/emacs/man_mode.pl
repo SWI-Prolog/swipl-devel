@@ -30,6 +30,15 @@
 	new(MM, emacs_mode_menu(man, fundamental)),
 	send(MM, append, man, goto_man_page).
 
+		 /*******************************
+		 *	       SETUP		*
+		 *******************************/
+
+setup_mode(M) :->
+	"Associate bold and underline styles"::
+	send(M, style, underline, style(underline := @on)),
+	send(M, style, bold, style(bold := @on)).
+
 
 		 /*******************************
 		 *	       CLICKS		*
@@ -95,6 +104,10 @@ man(M, Spec:name) :->
 	).
 
 
+:- pce_global(@emacs_man_underline_fragment_regex,
+	      new(regex(string('\\(_\b.\\)+\\|\\(.\b_\\)+')))).
+:- pce_global(@emacs_man_bold_fragment_regex,
+	      new(regex(string('\\(.\b.\\)+')))).
 :- pce_global(@emacs_man_underline_regex,
 	      new(regex(string('_\b\\|\b_')))).
 :- pce_global(@emacs_man_bold_regex,
@@ -108,6 +121,16 @@ clean(M) :->
 	"Remove ^H_ from the entry"::
 	send(M, report, status, 'Cleaning ...'),
 	get(M, text_buffer, TB),
+	send(@emacs_man_underline_fragment_regex, for_all, TB,
+	     create(fragment, TB,
+		    @arg1?register_start,
+		    @arg1?register_end - @arg1?register_start,
+		    bold)),
+	send(@emacs_man_bold_fragment_regex, for_all, TB,
+	     create(fragment, TB,
+		    @arg1?register_start,
+		    @arg1?register_end - @arg1?register_start,
+		    bold)),
 	send(@emacs_man_underline_regex, for_all, TB,
 	     message(@arg1, replace, @arg2, '')),
 	send(@emacs_man_bold_regex, for_all, TB,

@@ -1,29 +1,108 @@
-index((strip_module), 3, pce_qux, pce_qux).
-index((term_to_atom), 2, pce_qux, pce_qux).
+/*  $Id$
+
+    Creator: make/0
+
+    Purpose: Provide index for autoload
+*/
+
+index((side_pattern), 3, area, area).
+index((dialog), 0, dialog, dialog).
+index((declare_emacs_mode), 2, emacs_extend, emacs_extend).
+index((declare_emacs_mode), 3, emacs_extend, emacs_extend).
+index((emacs_tag), 3, emacs_tags, emacs_tags).
+index((emacs_tag_file), 1, emacs_tags, emacs_tags).
+index((emacs_init_tags), 1, emacs_tags, emacs_tags).
+index((emacs_complete_tag), 2, emacs_tags, emacs_tags).
+index((show_key_bindings), 1, key_binding, keybinding).
+index((make_dialog), 2, pce_make_dialog, make_dialog).
+index((generate_cpp_class_header_file), 0, pce_cpp_header, pce_cxx_headers).
+index((debugpce), 0, pce_debug, pce_debug).
+index((debugpce), 1, pce_debug, pce_debug).
+index((nodebugpce), 0, pce_debug, pce_debug).
+index((nodebugpce), 1, pce_debug, pce_debug).
+index((tracepce), 0, pce_debug, pce_debug).
+index((notracepce), 0, pce_debug, pce_debug).
+index((tracepce), 1, pce_debug, pce_debug).
+index((notracepce), 1, pce_debug, pce_debug).
+index((breakpce), 1, pce_debug, pce_debug).
+index((nobreakpce), 1, pce_debug, pce_debug).
+index((spypce), 1, pce_debug, pce_debug).
+index((nospypce), 1, pce_debug, pce_debug).
+index((checkpce), 0, pce_debug, pce_debug).
+index((show_slots), 1, pce_debug, pce_debug).
+index((pcerefer), 1, pce_debug, pce_debug).
+index((pcerefer), 2, pce_debug, pce_debug).
+index((editpce), 1, pce_edit, pce_edit).
+index((emacs), 0, start_emacs, pce_emacs).
+index((emacs), 1, start_emacs, pce_emacs).
+index((start_emacs), 0, start_emacs, pce_emacs).
+index((pce_help_file), 2, pce_help_file, pce_help_file).
+index((pce_help), 2, pce_help_file, pce_help_file).
+index((pce_registered_help_file), 2, pce_help_file, pce_help_file).
+index((pce_image_directory), 1, pce_image, pce_image).
+index((manpce), 0, pce_manual, pce_manual).
+index((manpce), 1, pce_manual, pce_manual).
+index((postscript), 2, pce_postscript, pce_postscript).
+index((prompter), 2, pce_prompter, pce_prompter).
 index((atom_to_term), 2, pce_qux, pce_qux).
 index((atom_to_term), 3, pce_qux, pce_qux).
+index((term_to_atom), 2, pce_qux, pce_qux).
+index((source_location), 2, pce_qux, pce_qux).
 index((pce_error), 1, pce_qux, pce_qux).
 index((pce_warn), 1, pce_qux, pce_qux).
 index((pce_info), 1, pce_qux, pce_qux).
-index((source_location), 2, pce_qux, pce_qux).
 index((ignore), 1, pce_qux, pce_qux).
+index((concat), 3, pce_qux, pce_qux).
+index((free_variables), 2, pce_qux, pce_qux).
 index((atom_length), 2, pce_qux, pce_qux).
 index((time_file), 2, pce_qux, pce_qux).
-index((free_variables), 2, pce_qux, pce_qux).
+index((strip_module), 3, pce_qux, pce_qux).
 index((pce_arg), 3, pce_qux, pce_qux).
-index((pce_sublist), 3, pce_qux, pce_qux).
+index((sublist), 3, pce_qux, pce_qux).
 index((exists_file), 1, pce_qux, pce_qux).
 index((make), 0, pce_qux, pce_qux).
 index((source_warning), 2, pce_qux, pce_qux).
 index((sformat), 3, pce_qux, pce_qux).
 index((call_emacs), 2, pce_qux, pce_qux).
-index((concat), 3, pce_qux, pce_qux).
+index((is_absolute_file_name), 1, pce_qux, pce_qux).
+index((expand_file_name), 2, pce_qux, pce_qux).
+index((pce_renew), 1, pce_renew, pce_renew).
+index((pce_require), 1, pce_require, pce_require).
+index((pce_require), 3, pce_require, pce_require).
+index((emacs_require), 1, pce_require, pce_require).
+index((pce_require_all), 1, pce_require, pce_require).
+index((pce_server), 1, pce_server, pce_server).
+index((use_class_template), 1, pce_class_template, pce_template).
+index((use_class_template), 2, pce_class_template, pce_template).
+index((get_object), 3, pce_util, pce_util).
+index((get_object), 4, pce_util, pce_util).
+index((get_object), 5, pce_util, pce_util).
+index((get_object), 6, pce_util, pce_util).
+index((get_object), 7, pce_util, pce_util).
+index((get_object), 8, pce_util, pce_util).
+index((get_object), 9, pce_util, pce_util).
+index((get_object), 10, pce_util, pce_util).
+index((get_object), 11, pce_util, pce_util).
+index((get_object), 12, pce_util, pce_util).
+index((get_object), 13, pce_util, pce_util).
+index((send_list), 2, pce_util, pce_util).
+index((send_list), 3, pce_util, pce_util).
+index((get_chain), 3, pce_util, pce_util).
+index((chain_list), 2, pce_util, pce_util).
+index((default), 3, pce_util, pce_util).
+index((pcedraw), 0, pce_draw, pcedraw).
+index((pcedraw), 1, pce_draw, pcedraw).
+index((draw_toplevel), 0, pce_draw, pcedraw).
+index((portray_object), 1, pce_portray, portray_object).
+index((portray_object), 2, pce_portray, portray_object).
+index((scan_arguments), 2, scan_arguments, scan_arguments).
+index((scan_arguments), 3, scan_arguments, scan_arguments).
+index((show_help_hook), 2, pl_show_help, show_help).
 
-index((pce_help_file), 2, pce_helper, pce_help_file).
-index((pce_help), 2, pce_helper, pce_help_file).
-index((pce_registered_help_file), 2, pce_help_file, pce_help_file).
-index((pce_image_directory), 1, pce_image, pce_image).
 
+		 /*******************************
+		 *	 QUINTUS LIBRARY	*
+		 *******************************/
 
 index((add_portray), 1, add_portray, add_portray).
 index((del_portray), 1, add_portray, add_portray).

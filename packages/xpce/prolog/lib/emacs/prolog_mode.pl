@@ -9,13 +9,12 @@
 
 :- module(emacs_prolog_mode, []).
 :- use_module(library(pce)).
-:- require([ emacs_end_mode/0
-	   , make/0
-	   , emacs_begin_mode/5
+:- require([ make/0
+	   , concat/3
+	   , default/3
 	   , forall/2
 	   , list_to_set/2
 	   , member/2
-	   , strip_module/3
 	   ]).
 
 
@@ -371,9 +370,7 @@ pce_insert_require_directive(M) :->
 	send(M, save_if_modified),
 	get(M, file, File),
 	get(File, name, Name),
-	ensure_loaded(library(pce_require)),
-	Goal = pce_require(Name, Directive, Message), % fool xref :-)
-	Goal,
+	auto_call(pce_require(Name, Directive, Message)),
 	send(M, insert, Directive),
 	(   Message \== ''
 	->  send(M, report, status, Message)

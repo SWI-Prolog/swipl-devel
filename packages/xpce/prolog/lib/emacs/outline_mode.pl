@@ -9,10 +9,6 @@
 
 :- module(emacs_outline_mode, []).
 :- use_module(library(pce)).
-:- require([ emacs_end_mode/0
-	   , emacs_begin_mode/5
-	   ]).
-
 
 :- emacs_begin_mode(outline, language,
 		    "Mode for viewing outlines",

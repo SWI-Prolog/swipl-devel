@@ -15,7 +15,8 @@
 
 editpce(Spec) :-
 	method(Spec, Obj),
-	(   get(Obj, source, Location)
+	(   get(Obj, source, Location),
+	    Location \== @nil
 	->  use_module(library(pce_emacs)),
 	    Goal = start_emacs, Goal,	% fool xref
 	    send(@emacs, goto_source_location, Location)

@@ -518,6 +518,7 @@ listenSocket(Socket s, Code accept_message, Int backlog)
     TRY(closeFile(s->authority));
   }
 
+  openDisplay(CurrentDisplay(NIL));
   ws_listen_socket(s);
 
   succeed;
@@ -554,10 +555,53 @@ connectSocket(Socket s)
   assign(s, status, NAME_connected);
   appendChain(SocketChain, s);
 
+  openDisplay(CurrentDisplay(NIL));
   inputStream((Stream)s, DEFAULT);
 
   succeed;
 }
+
+
+static Any
+getPeerNameSocket(Socket s)
+{ if ( s->domain == NAME_unix )
+  { struct sockaddr_un *address;
+    char buf[MAX_UN_ADDRESS_LEN + sizeof(address->sun_family)];
+    int len;
+
+    address = (struct sockaddr_un *) buf;
+    len = sizeof(buf);
+
+    if ( getpeername(SocketHandle(s), (struct sockaddr *) address, &len) < 0 )
+    { errorPce(s, NAME_socket, NAME_peerName, SockError());
+      fail;
+    }
+
+    answer(CtoName(address->sun_path));
+  } else /* if ( s->domain = NAME_inet ) */
+  { struct sockaddr_in address;
+    int len = sizeof(address);
+    int port;
+    unsigned long addr;
+    char aname[3*4+4];
+
+    if ( getpeername(SocketHandle(s), (struct sockaddr *) &address, &len) < 0 )
+    { errorPce(s, NAME_socket, NAME_peerName, SockError());
+      fail;
+    }
+    
+    port = address.sin_port;
+    addr = htonl(address.sin_addr.s_addr); /* TBD */
+    sprintf(aname, "%d.%d.%d.%d",
+	    (int)((addr >> 24) & 0xff),
+	    (int)((addr >> 16) & 0xff),
+	    (int)((addr >>  8) & 0xff),
+	    (int) (addr        & 0xff));
+
+    answer(answerObject(ClassTuple, CtoName(aname), toInt(port), 0));
+  }
+}
+
 
 		 /*******************************
 		 *	    EXCEPTIONS		*
@@ -660,6 +704,9 @@ makeClassSocket(Class class)
   getMethod(class, NAME_printName, DEFAULT, "string", 0,
 	    "returns <classname>(<address>)",
 	    getPrintNameSocket);
+  getMethod(class, NAME_peerName, NAME_address, "name|tuple", 0,
+	    "Description of the other-sides address",
+	    getPeerNameSocket);
 
 #ifdef HAVE_SOCKET
   featureClass(class, NAME_unixDomain, ON);

@@ -12,10 +12,10 @@
 :- use_module(library(pce)).
 :- use_module(file_item).
 :- require([ concat/3
+	   , default/3
 	   , ignore/1
 	   , send_list/3
 	   ]).
-
 
 		 /*******************************
 		 *         CLASS FINDER		*

@@ -1,6 +1,6 @@
 ! XPCE 4.8 Resource definitions for colour and monochrome displays
 ! Author: Jan Wielemaker, University of Amsterdam
-! Last Modified: Fri Sep 30 15:44:29 1994
+! Last Modified: Tue Jun 13 21:58:19 1995
 
 ! See README.customise before changing this file.
 
@@ -19,6 +19,11 @@ Pce.*.visual_bell:		when(@colour_display, @off, @on)
 Pce.*.font:			@screen_roman_13
 Pce.*.value_font:		@helvetica_roman_12
 Pce.*.label_font:		@helvetica_bold_12
+
+! Temporary trick to get the Dialog editor ok.  Considering a new Resource
+! inheritance system related to the class inheritence system.
+
+Pce.DiaProtoButton.label_font:	@helvetica_roman_12
 
 ! Dialog Item definitions.
 
@@ -44,18 +49,19 @@ Pce.Button.popup_image:		when(@colour_display, @nil, 'ol_pulldown.bm')
 
 Pce.Slider.look:		when(@colour_display, motif, open_look)
 
-Pce.Menu.look:			when(@colour_display, motif, open_look)
-Pce.Menu.pen:			0
-Pce.Menu.elevation:		0
-Pce.Menu.item_elevation:	1
+Pce.Menu.pen:			when(@colour_display, 0, 1)
+Pce.Menu.elevation:		when(@colour_display, 0, @nil)
+Pce.Menu.item_elevation:	when(@colour_display, 1, @nil)
 Pce.Menu.cycle_indicator:	when(@colour_display, \
 				     elevation(1), 'ol_cycle.bm')
 
+Pce.Popup.look:			when(@colour_display, motif, open_look)
 Pce.Popup.format:		left
 Pce.Popup.value_font:		@helvetica_roman_12
+Pce.Popup.pen:			0
 Pce.Popup.margin:		1
-Pce.Popup.elevation:		1
-Pce.Popup.item_elevation:	0
+Pce.Popup.elevation:		when(@colour_display, 1, @nil)
+Pce.Popup.item_elevation:	when(@colour_display, 0, @nil)
 Pce.Popup.preview_elevation:	1
 Pce.Popup.border:		2
 Pce.Popup.preview_feedback:	rounded_box
@@ -106,8 +112,9 @@ Pce.Editor.selection_style:		when(@colour_display, \
 					     style(background := yellow), \
 					     style(highlight := @on))
 Pce.ListBrowser.selection_style:	when(@colour_display, \
-					     style(background:=elevation(-1)),\
-					     style(highlight := @on))
+					     style(background := black, \
+						   colour := white), \
+					     style(highlight  := @on))
 Pce.*.isearch_style:			when(@colour_display, \
 					     style(background := green), \
 					     style(background:= @grey25_image))

@@ -10,6 +10,7 @@
 :- module(pce_font_item, []).
 :- use_module(library(pce)).
 :- require([ send_list/2
+	   , default/3
 	   ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -8,30 +8,16 @@
 */
 
 :- module(dia_pretty_print,
-	  [ pretty_print/1,
-	    pretty_print/2
+	  [ pretty_print/1
 	  ]).
-:- use_module(library(pce)).
+
 :- require([ atom_length/2
 	   , between/3
 	   , forall/2
-	   , genarg/3
 	   , is_list/1
 	   , member/2
 	   , memberchk/2
 	   ]).
-
-
-pretty_print(Term, String) :-
-	get(string('/tmp/xpce-pp-%d', @pce?pid), value, TmpNam),
-	telling(Old), tell(TmpNam),
-	pretty_print(Term),
-	told, tell(Old),
-	new(F, file(TmpNam)),
-	send(F, open, read),
-	get(F, read, String),
-	send(F, remove),
-	send(F, free).
 
 
 pretty_print(Term) :-
@@ -54,6 +40,10 @@ pp('$aref'(Name), _Indent) :- !,
 	write(Name).
 pp(@Ref, _Indent) :- !,
 	write(@), writeq(Ref).
+pp(Module:Term, Indent) :-
+	atomic(Module), !,
+	writeq(Module), write(:),
+	pp(Term, Indent).
 pp(A?B, Indent) :- !,
 	pp(A, Indent), write(?), pp(B, Indent).
 pp([A1 := V1|ArgList], Indent) :-	% [] is done by `atomic'!
@@ -107,13 +97,13 @@ pp(Term, Indent) :-
 	format('~q(', Name),
 	(   term_argument_length(Term, AL),
 	    NewIndent + AL < 72
-	->  forall(genarg(I, Term, Arg),
+	->  forall(generate_arg(I, Term, Arg),
 		   (   I == 1
 		   ->  pp(Arg, NewIndent)
 		   ;   write(', '),
 		       pp(Arg, NewIndent)
 		   ))
-	;   forall(genarg(I, Term, Arg),
+	;   forall(generate_arg(I, Term, Arg),
 		   (   I == 1
 		   ->  pp(Arg, NewIndent)
 		   ;   write(','), nl,
@@ -123,6 +113,10 @@ pp(Term, Indent) :-
 	),
 	write(')').
 
+generate_arg(ArgN, Term, Arg) :-
+	functor(Term, _, Arity),
+	between(1, Arity, ArgN),
+	arg(ArgN, Term, Arg).
 
 longest_attribute([], L, L).
 longest_attribute([A := _|T], L0, L) :-

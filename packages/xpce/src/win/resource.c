@@ -374,7 +374,7 @@ getResourceClass(Class class, Name name)
 }
 
 
-static status
+status
 resourceValueClass(Class cl, Name name, Any val)
 { Resource r;
 
@@ -614,22 +614,6 @@ makeClassResource(Class class)
   getMethod(class, NAME_sub, NAME_type, "resource", 1, "class",
 	    "Refined resource when redefined by user",
 	    getSubResource);
-
-			/* MUST BE MOVED !!!! */
-
-  sendMethod(ClassClass, NAME_resource, NAME_resource, 1, "resource",
-	     "Attach a resource to a class",
-	     resourceClass);
-  sendMethod(ClassClass, NAME_resourceValue, NAME_resource, 2, "name", "any",
-	     "Set value of named resource",
-	     resourceValueClass);
-  getMethod(ClassClass, NAME_resource, NAME_resource, "resource", 1, "name",
-	    "Associated resource from name",
-	    getResourceClass);
-  getMethod(ClassClass, NAME_catchAll, NAME_resource, "value=any", 1,
-	    "resource=name",
-	    "Get resource-value",
-	    getResourceValueClass);
 
   NotObtained = globalObject(NAME_notObtained, ClassConstant,
 			     NAME_notObtained,

@@ -1,0 +1,63 @@
+#!/bin/sh
+
+arch=@ARCH@-@OS@
+RTSUFFIX=@RTSUFFIX@
+plarch=@PLARCH@
+so=@SO@
+
+version=`cat VERSION`
+
+libout=xpcelib-$version.tgz
+binout=xpcebin-$version-for-$arch.tgz
+compress="gzip -9"
+
+cat > binfiles << EOF
+./pl/$plarch/xpce4pl.$so
+./pl/$plarch/pl-crt0.o
+./src/XPCE.a
+EOF
+
+sed "s@^\./@xpce-$version/@" binfiles > tapefiles.bin
+
+libdirs="./CXX ./bitmaps ./include ./man/reference ./pl ./postscript ./prolog"
+
+if [ ! "o$1" = "o-q" ]; then
+  cp /dev/null libfiles
+  echo -n "Collecting distribution files "
+  for d in `find $libdirs -name CVS -type d -print`; do
+      echo -n "."
+      dir=`dirname $d`
+      awk -F/ '{printf("%s/%s\n", "'$dir'", $2)}' $dir/CVS/Entries >> libfiles
+  done
+cat >> libfiles << EOF
+./FAQ
+./INFO
+./Pce
+./ChangeLog
+./INSTALL
+./README
+./README.customise
+./README.font
+./README.linux
+./VERSION
+./qinstall
+./install-sh
+./licence/licence.tex
+./man/xpce-client.1
+./man/xpce.1
+./man/faq/xpce.hlp
+./prolog/lib/man/classification.obj
+EOF
+  echo "done"
+fi
+
+grep -v src/msw/ libfiles | \
+	grep -v prolog/pwboot | \
+	grep -v quintus/ | \
+	sed "s@^\./@xpce-$version/@" > tapefiles.lib
+
+cd ..
+ln -s xpce xpce-$version
+tar chvfT - xpce/tapefiles.lib | $compress > $libout
+tar chvfT - xpce/tapefiles.bin | $compress > $binout
+rm -f xpce-$version

@@ -12,15 +12,12 @@
 :- use_module(library(pce_template)).
 :- require([ between/3
 	   , chain_list/2
-	   , editpce/1
-	   , emacs/1
+	   , default/3
 	   , forall/2
 	   , ignore/1
-	   , manpce/1
 	   , member/2
 	   , memberchk/2
 	   , portray_object/2
-	   , postscript/2
 	   , random/3
 	   , send_list/3
 	   , term_to_atom/2
@@ -284,7 +281,8 @@ argument(C, Arg:any) :<-
 	"Argument of `argument' or `expansion' connection"::
 	get(C, arguments, GetArgs),
 	get(C, from, FromPort),
-	user(get(FromPort, get_vector, simulate, GetArgs, Arg)).
+	user(get(FromPort, get_vector, simulate, GetArgs, RawArg)),
+	get(@pce, convert, RawArg, any, Arg). % evaluate functions!
 
 
 fill_argument(C, ArgV:vector) :->
@@ -443,6 +441,7 @@ initialise(P, Name:[name]) :->
 	send(P, send_super, initialise, Name, left, Font),
 	send(P, name, Nm),
 	send(P, transparent, @off),
+	send(P, border, 2),
 	send(P, pen, 1).
 
 model(P, Model:msg_model) :<-
@@ -508,13 +507,13 @@ identify(P) :->
 edit(P) :->
 	"Edit implementation of port"::
 	get(P, program_object, Method),
-	editpce(Method).
+	auto_call(editpce(Method)).
 
 
 documentation(P) :->
 	"View documentation of port in manual"::
 	get(P, program_object, Method),
-	manpce(Method).
+	auto_call(manpce(Method)).
 
 
 event(P, Ev:event) :->
@@ -606,14 +605,12 @@ constrained_move(Port, EX:int, EY:int) :->
 		 *******************************/
 
 attach_port_handles(Type) :-
-	pce_compiling(ClassName),
-	get(@pce, convert, ClassName, class, Class),
-	forall(port_handle(Type, Handle), send(Class, handle, Handle)).
+	forall(port_handle(Type, Handle), send(@class, handle, Handle)).
 
 		%%% VALUE PORT
 
 :- pce_begin_class(msg_get_port, msg_port, "Port representing a get").
-:- initialization attach_port_handles(get).
+:- pce_class_directive(attach_port_handles(get)).
 type(_P, T:port_type) :<- T = get.
 
 value(P, Args:any ..., Value:any) :<-
@@ -688,7 +685,7 @@ identify(P, Id:string) :<-
 		%%% EVENT PORT
 
 :- pce_begin_class(msg_event_port, msg_port, "Port for message").
-:- initialization attach_port_handles(event).
+:- pce_class_directive(attach_port_handles(event)).
 type(_P, T:port_type) :<- T = event.
 
 enter(P) :->
@@ -762,7 +759,7 @@ identify(P, Id:string) :<-
 		%%% INIT PORT
 
 :- pce_begin_class(msg_init_port, msg_port, "Initialisation port").
-:- initialization attach_port_handles(init).
+:- pce_class_directive(attach_port_handles(init)).
 type(_P, T:port_type) :<- T = init.
 
 initialise(P, Name:[name]) :->
@@ -782,7 +779,7 @@ simulate(P) :->
 		%%% CALL PORT
 
 :- pce_begin_class(msg_send_port, msg_port, "Callable port").
-:- initialization attach_port_handles(send).
+:- pce_class_directive(attach_port_handles(send)).
 type(_P, T:port_type) :<- T = send.
 
 identify(P, Id:string) :<-
@@ -934,7 +931,7 @@ edit(P) :->
 		send(Editor, append, P?prolog_source)
 	    )
 	;   get(Self, send_method, Selector, tuple(_, Method)),
-	    editpce(Method)
+	    auto_call(editpce(Method))
 	).
 
 documentation(P) :->
@@ -945,7 +942,7 @@ documentation(P) :->
 	(   Self == @prolog
 	->  user:ed(Selector)
 	;   get(Self, send_method, Selector, tuple(_, Method)),
-	    manpce(Method)
+	    auto_call(manpce(Method))
 	).
 
 :- pce_end_class.
@@ -953,13 +950,14 @@ documentation(P) :->
 		%%% CONSTANT PORT
 
 :- pce_begin_class(msg_constant_port, msg_port, "Port for constant").
-:- initialization attach_port_handles(get).		% constant?
+:- pce_class_directive(attach_port_handles(get)). % constant?
 
 :- pce_global(@msg_no_value,
 	      new(constant(no_value,
 			   string("No value (@nil is a value here)")))).
 
-variable(value, any := @msg_no_value, none, "Represented constant values").
+variable(value, 'any|function' := @msg_no_value, none,
+	 "Represented constant values").
 
 type(_P, T:port_type) :<- T = constant.
 
@@ -984,14 +982,16 @@ relink(P) :->
 	send(P, value, Value).
 
 
-value(P, Value:any) :->
+value(P, Value:'any|function') :->
 	"Associate value (using hyper)"::
 	forall(get(P, find_hyper, msg_value, Hyper), send(Hyper, free)),
-	(   atomic(Value)		% int, atom, float
+	(   (   atomic(Value)		% int, atom, float
+	    ;   send(Value, '_instance_of', function)
+	    )
 	->  send(P, slot, value, Value)
 	;   new(_, hyper(P, Value, msg_value, msg_constant))
 	).
-value(P, Value:any) :<-
+value(P, Value:'any|function') :<-
 	"Associated object"::
 	(   get(P, slot, value, V),
 	    (   V == @msg_no_value
@@ -1000,7 +1000,7 @@ value(P, Value:any) :<-
 	    )
 	).
 	
-simulate(P, Value:any) :<-
+simulate(P, Value:'any|function') :<-
 	"Associated object (simulation)"::
 	invert(P, get(P, value, Value)).
 
@@ -1011,9 +1011,9 @@ documentation(P) :->
 	(   Value = @Atom,
 	    atom(Atom)
 	->  new(Global, man_global(Atom)),
-	    manpce(Global)
+	    auto_call(manpce(Global))
 	;   get(Value, class, Class),
-	    manpce(Class)
+	    auto_call(manpce(Class))
 	).
 
 
@@ -1058,7 +1058,7 @@ edit(O) :->
 	"Start PceEmacs on source of class"::
 	get(O, ui_object, Object),
 	get(Object, class, Class),
-	editpce(Class).
+	auto_call(editpce(Class)).
 
 
 documentation(O) :->
@@ -1067,20 +1067,20 @@ documentation(O) :->
 	->  (   Object = @Atom,
 	    atom(Atom)
 	    ->  new(Global, man_global(Atom)),
-		manpce(Global)
+		auto_call(manpce(Global))
 	    ;   get(Object, class, Class),
 		(   send(Object, has_get_method, proto)
 		->  get(Class, super_class, DocClass)
 		;   DocClass = Class
 		),
-		manpce(DocClass)
+		auto_call(manpce(DocClass))
 	    )
 	;   get(O, connections, Cs),
 	    get(Cs, find, @arg1?type == expansion, C),
 	    get(C, from, Port),
 	    get(Port, value_type, Type),
 	    class_of_type(Type, Class),
-	    manpce(Class)
+	    auto_call(manpce(Class))
 	).
 
 
@@ -1224,7 +1224,7 @@ place_x(O, MinX, MaxX, Gr) :-
 		 *******************************/
 
 :- pce_begin_class(msg_object, device, "Graphical programming object").
-:- initialization use_class_template(msg_object_template).
+:- use_class_template(msg_object_template).
 
 resource(size,		size,	'size(100,50)',	     "Default size of object").
 resource(label_font,	font,	'@helvetica_bold_10',"Default name-font").
@@ -1297,7 +1297,10 @@ make_add_port_popup(Popup, Port) :-
 update_port_menu(Popup, Port, Model) :-
 	send(Popup, clear),
 	(   get(Model, ui_object, Object)
-	->  (   send(Object, has_get_method, proto)
+	->  (   send(Object, has_get_method, dia_ports)
+	    ->	get(Object, dia_ports, Port, Ports),
+		send(Ports, for_all, message(Popup, append, @arg1))
+	    ;	send(Object, has_get_method, proto)
 	    ->  get(Object, proto, Proto),
 		forall(port(Proto, _Kind, Name, Port),
 		       send(Popup, append, Name))
@@ -1463,7 +1466,7 @@ edit(Host) :->
 	"Edit associated file"::
 	get(Host, file, File),
 	get(File, name, Name),
-	emacs(Name).
+	auto_call(emacs(Name)).
 
 
 prolog_source(Host, Source:string) :<-
@@ -1484,10 +1487,10 @@ prolog_source(Host, Source:string) :<-
 		 *******************************/
 
 :- pce_begin_class(msg_model, picture, "The model editor").
-:- initialization use_class_template(msg_object_template).
+:- use_class_template(msg_object_template).
 
 :- pce_global(@msg_editor_recogniser, make_msg_editor_recogniser).
-:- initialization free(@msg_editor_recogniser).
+:- free(@msg_editor_recogniser).
 
 make_add_popup(P, Command, Var, Goal) :-
 	Window = @arg2,
@@ -1612,7 +1615,16 @@ event(E, Ev:event) :->
 drop(E, Obj:any, Pos:point) :->
 	"Import from the model editor"::
 	(   send(Obj, instance_of, msg_object) % move models.
-	->  send(Obj, move, Pos)
+	->  (   get(Obj, device, E)
+	    ->	send(Obj, move, Pos)
+	    ;	get(Obj, ui_object, UI),
+		(   send(UI, instance_of, graphical)
+		->  send(E, report, warning, 'Cannot drop behaviour items')
+		;   get(Obj, member, text, Txt),
+		    send(E, display, new(O, msg_object(Txt?string)), Pos),
+		    send(O, ui_object, UI)
+		)
+	    )
 	;   port_type_from_object(Obj, Type)
 	->  send(E, add_port, Type, Obj?name, Pos)
 	;   (   send(Obj, instance_of, msg_port)
@@ -1638,7 +1650,7 @@ postscript_as(E) :->
 	"Write PostScript to file"::
 	PsFile = 'scratch.ps',
 	get(@finder, file, @off, '.ps', @default, PsFile, ThePsFile),
-	postscript(E, ThePsFile).
+	auto_call(postscript(E, ThePsFile)).
 
 
 relink(M) :->

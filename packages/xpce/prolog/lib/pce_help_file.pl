@@ -14,7 +14,7 @@
 	  ]).
 :- use_module(library(pce)).
 :- require([ concat_atom/2
-	   , prolog_load_context/2
+	   , is_absolute_file_name/1
 	   ]).
 
 :- pce_autoload(helper, library(pce_helper)).
@@ -41,7 +41,8 @@ declarations to load the help-system itself as soon as it is referenced.
 %	an absolute filename.  Normally used as a directive.
 
 pce_help_file(Id, FileName) :-
-	(   atom(FileName)
+	(   atom(FileName),
+	    \+ is_absolute_file_name(FileName)
 	->  prolog_load_context(directory, Cwd),
 	    concat_atom([Cwd, /, FileName], Path)
 	;   Path = FileName

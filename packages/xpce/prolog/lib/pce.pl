@@ -36,18 +36,16 @@ reexports the content of these files.
 	  , pce_autoload/2		% pce_autoload
 	  , pce_autoload_all/0
 
-	  , pce_begin_class/2		% pce_compile
-	  , pce_begin_class/3
-	  , pce_extend_class/1
-	  , pce_end_class/0
 	  , pce_predicate_reference/2
-	  , default/3
-	  , pce_group/1
 	  , pce_term_expansion/2
 	  , pce_compiling/1
+	  , pce_begin_recording/1
+	  , pce_end_recording/0
 
-	  , pce_send_method/7
-	  , pce_get_method/8
+	  , pce_register_class/1
+	  , pce_extended_class/1
+	  , pce_bind_send_method/8
+	  , pce_bind_get_method/9
 	  , pce_send_method_message/2
 	  , pce_get_method_message/2
 
@@ -64,13 +62,13 @@ reexports the content of these files.
 	  , 'pceloadcxx'/2
 	  , '$call_atom'/1
 	  , pce_error/1
-	  , pce_warning/1
+	  , pce_warn/1
 	  , pce_info/1
 	  , pce_welcome/0
 	  ]).
 
 
-:- asserta(user:(term_expansion((:- require(_)), []))).
+user:term_expansion((:- require(_)), []).
 
 		/********************************
 		*      LOAD COMMON PLATFORM	*
@@ -86,10 +84,11 @@ reexports the content of these files.
 :- [ pce_boot(pce_pl),
      pce_boot(pce_principal),
      pce_boot(pce_error),
-     pce_boot(pce_autoload),
      pce_boot(pce_operator),
      pce_boot(pce_global),
-     pce_boot(pce_compile),
+     pce_boot(pce_expansion),
+     pce_boot(pce_realise),
+     pce_boot(pce_autoload),
      pce_boot(pce_editor)
    ].
 
@@ -121,15 +120,14 @@ reexports the content of these files.
 		*       PROLOG LIBRARIES	*
 		********************************/
 
-:- assert(user:(file_search_path(demo, DemoDir) :-
+user:(file_search_path(demo, DemoDir) :-
 	get(@pce, home, Home),
 	concat(Home, '/prolog/demo', Raw),
-	absolute_file_name(Raw, DemoDir))).
-
-:- assert(user:(file_search_path(contrib, ContribDir) :-
+	absolute_file_name(Raw, DemoDir)).
+user:(file_search_path(contrib, ContribDir) :-
 	get(@pce, home, Home),
 	concat(Home, '/prolog/contrib', Raw),
-	absolute_file_name(Raw, ContribDir))).
+	absolute_file_name(Raw, ContribDir)).
 
 		/********************************
 		*            BANNER		*

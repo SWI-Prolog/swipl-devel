@@ -14,14 +14,13 @@
 :- use_module(library(pce)).
 :- use_module(util).
 :- require([ checkpce/0
-	   , auto_call/1
 	   , concat/3
+	   , default/3
 	   , ignore/1
 	   , pce_help_file/2
 	   , send_list/3
 	   ]).
 
-:- use_module(library(pce_emacs)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			    OVERALL ARCHITECTURE
@@ -447,9 +446,13 @@ changelog(_M) :->
 	"View ChangeLog"::
 	get(@pce, home, Home),
 	get(string('%s/ChangeLog', Home), value, Path),
+	auto_call(start_emacs),
 	send(@emacs, goto_source_location, Path).
 
-:- initialization pce_help_file(pce_faq, '../../../man/faq/pce.hlp').
+:- initialization
+   get(@pce, home, Home),
+   concat(Home, '/man/faq/pce.hlp', HelpFile),
+   pce_help_file(pce_faq, HelpFile).
 
 faq(_M) :->
 	"Start @helper on faq-database"::

@@ -9,6 +9,7 @@
 
 #include <h/kernel.h>
 #include <itf/c.h>
+#include <h/graphics.h>			/* resource access functions */
 
 static status	recordInstancesClass(Class class, Bool keep, Bool recursive);
 static status	fill_slots_class(Class class, Class super);
@@ -623,6 +624,25 @@ static status
 unlinkClass(Class cl)
 { assert(0);				/* classes cannot be unlinked */
   fail;
+}
+
+
+static Class
+getSubClassClass(Class super, Name name)
+{ realiseClass(super);
+
+  if ( notNil(super->sub_classes) )
+  { Cell cell;
+
+    for_cell(cell, super->sub_classes)
+    { Class sub = cell->value;
+
+      if ( sub->name == name )
+	answer(sub);
+    }
+  }
+  
+  answer(newObject(super->class, name, super, 0));
 }
 
 
@@ -1925,6 +1945,9 @@ makeClassClass(Class class)
 	     rtSourceClass);
 #endif
 
+  getMethod(class, NAME_subClass, NAME_oms, "class", 1, "name",
+	    "Create a class below this one (or return existing)",
+	    getSubClassClass);
   getMethod(class, NAME_instance, NAME_oms, "object", 1,
 	    "argument=unchecked ...",
 	    "Create instance of the class from argument",
@@ -1960,6 +1983,24 @@ makeClassClass(Class class)
   getMethod(class, NAME_feature, NAME_version, "any", 1, "feature=name",
 	    "Get value of given feature",
 	    getFeatureClass);
+
+		 /*******************************
+		 *	   RESOURCE FUNCTIONS	*
+		 *******************************/
+
+  sendMethod(class, NAME_resource, NAME_resource, 1, "resource",
+	     "Attach a resource to a class",
+	     resourceClass);
+  sendMethod(class, NAME_resourceValue, NAME_resource, 2, "name", "any",
+	     "Set value of named resource",
+	     resourceValueClass);
+  getMethod(class, NAME_resource, NAME_resource, "resource", 1, "name",
+	    "Associated resource from name",
+	    getResourceClass);
+  getMethod(class, NAME_catchAll, NAME_resource, "value=any", 1,
+	    "resource=name",
+	    "Get resource-value",
+	    getResourceValueClass);
 
   succeed;
 }

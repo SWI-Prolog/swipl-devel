@@ -10,7 +10,7 @@
 :- module(pce_help, []).
 :- use_module(library(pce)).
 :- use_module(library(pce_prompter)).
-:- require([ auto_call/1
+:- require([ default/3
 	   , forall/2
 	   , ignore/1
 	   , pce_help_file/2

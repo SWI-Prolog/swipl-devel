@@ -211,10 +211,25 @@ source_attribute(Dialog, behaviour, Behaviour) :-
 	findall(Ref := Dyns,
 		(member(Gr, Grs),
 		 \+ get(Dialog, overlay, Gr),
-		 behaviour(Gr, Dyns),
+		 get(Gr, behaviour_model, Bgr),
+		 behaviour(Bgr, Dyns),
 		 Dyns \== [],
 		 reference(Ref, Gr)),
-		Behaviour),
+		B0),
+	get(Dialog, behaviour_model, Model),
+	get_chain(Model, graphicals, BMs),
+	findall(O := Dyns,
+		(member(BM, BMs),
+		 send(BM, instance_of, msg_object),
+		 get(BM, ui_object, O),
+		 O = @Ref,
+		 atom(Ref),		% only for global references now
+		 \+ ( send(O, instance_of, graphical),
+		      get(O, device, Dialog) ),
+		 behaviour(BM, Dyns),
+		 Dyns \== []),
+		B1),
+	append(B0, B1, Behaviour),
 	Behaviour \== [].
 
 
@@ -231,8 +246,7 @@ source_attribute(Dialog, initialise, Initialise) :-
 		Initialise).
 
 
-behaviour(I, Dyns) :-
-	get(I, behaviour_model, Object),
+behaviour(Object, Dyns) :-
 	get(Object?graphicals, find_all,
 	    message(@arg1, instance_of, msg_event_port),
 	    Chain),

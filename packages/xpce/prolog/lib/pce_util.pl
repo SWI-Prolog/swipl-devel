@@ -17,6 +17,8 @@
 	  , get_chain/3
 
 	  , chain_list/2
+
+	  , default/3
 	  ]).
 
 
@@ -209,3 +211,21 @@ chain_list(Chain, List) :-
 	'chain list 2'(Chain, Rest).
 'chain list 2'(Chain, []) :-
 	\+ get(Chain, current, _).
+
+		/********************************
+		*             DEFAULTS		*
+		********************************/
+
+%	default(+Argument, +Default, -Value)
+%	default(+Argument, resource(+Object, +Name), -Value)
+%
+%	Get the default value for an argument.
+
+default(@default, resource(Obj, Name), Value) :- !, 
+	(   get(Obj, resource_value, Name, Value)
+	->  true
+	;   pce_error(get_resource_failed(Name, Obj)),
+	    fail
+	).
+default(@default, Default, Default) :- !.
+default(Value,    _Default, Value).

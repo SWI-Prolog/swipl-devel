@@ -24,7 +24,6 @@
 	   , memberchk/2
 	   , random/3
 	   , send_list/3
-	   , strip_module/3
 	   , term_to_atom/2
 	   ]).
 
@@ -165,10 +164,16 @@ random_position(Obj, point(PX, PY)) :-
 
 
 add_model_item(Model, Item) :-
-	get(Item, name, Name),
+	object_name(Item, Name), 
 	random_position(Model, Pos),
 	send(Model, display, new(Object, msg_object(Name)), Pos),
 	send(Object, ui_object, Item).
+
+object_name(Item, Name) :-
+	send(Item, has_get_method, name), !,
+	get(Item, name, Name).
+object_name(@Ref, Name) :-
+	concat(@, Ref, Name).
 
 
 add_model_item(Model, Item, EventPorts) :-

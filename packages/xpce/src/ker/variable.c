@@ -11,7 +11,8 @@
 #include <h/trace.h>
 
 static status	initialiseVariable(Variable var, Name name, Type type,
-				   Name access, StringObj doc, Name group);
+				   Name access, StringObj doc, Name group,
+				   Any initial);
 static status	typeVariable(Variable var, Type type);
 
 Variable
@@ -30,7 +31,7 @@ createVariable(Name name, Type type, Name access)
   var->init_function = NIL;
   var->alloc_value   = NIL;
 
-  TRY( initialiseVariable(var, name, type, access, DEFAULT, DEFAULT) );
+  TRY(initialiseVariable(var, name, type, access, DEFAULT, DEFAULT, DEFAULT));
   createdObject(var, NAME_new);
 
   return var;
@@ -39,7 +40,7 @@ createVariable(Name name, Type type, Name access)
 
 static status
 initialiseVariable(Variable var, Name name, Type type, Name access,
-		   StringObj doc, Name group)
+		   StringObj doc, Name group, Any initial)
 { initialiseBehaviour((Behaviour) var, name, NIL);
 
   if ( isDefault(type) )   type   = TypeAny;
@@ -53,6 +54,8 @@ initialiseVariable(Variable var, Name name, Type type, Name access,
 
   var->alloc_value = NIL;
   typeVariable(var, type);
+  if ( notDefault(initial) )
+    initialValueVariable(var, initial);
   
   succeed;
 }
@@ -494,9 +497,10 @@ makeClassVariable(Class class)
   storeMethod(class, NAME_initFunction, initFunctionVariable);
 
   sendMethod(class, NAME_initialise, DEFAULT,
-	     5, "name=name", "type=[type]", "access=[{none,send,get,both}]",
+	     6, "name=name", "type=[type]", "access=[{none,send,get,both}]",
 	     "summary=[string]*", "group=[name]",
-	     "Create from name, type, access and doc",
+	     "initial_value=[any|function]",
+	     "Create from name, type, access, doc, group and initial value",
 	     initialiseVariable);
   sendMethod(class, NAME_send, NAME_execute, 2, "receiver=object",
 	     "value=unchecked ...",
@@ -576,8 +580,8 @@ makeClassVariable(Class class)
 static status
 initialiseDelegateVariable(DelegateVariable var, Name name, Type type,
 			   Name access, Name wrapper,
-			   StringObj doc, Name group)
-{ initialiseVariable((Variable) var, name, type, access, doc, group);
+			   StringObj doc, Name group, Any initial)
+{ initialiseVariable((Variable) var, name, type, access, doc, group, initial);
 
   assign(var, wrapper, wrapper);
   succeed;
@@ -594,9 +598,10 @@ makeClassDelegateVariable(Class class)
   termClass(class, "delegate_variable",
 	    4, NAME_name, NAME_type, NAME_access, NAME_wrapper);
 
-  sendMethod(class, NAME_initialise, DEFAULT, 6,
+  sendMethod(class, NAME_initialise, DEFAULT, 7,
 	     "name=name", "type=[type]", "access=[{none,send,get,both}]",
 	     "wrapper=name", "summary=[string]*", "group=[name]*",
+	     "initial_value=[any|function]",
 	     "Create from name, type, access and doc",
 	     initialiseDelegateVariable);
 

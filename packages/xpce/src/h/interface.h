@@ -179,8 +179,8 @@ __pce_export PceObject	pceGet __P((PceObject, PceName, int, PceObject *));
 typedef struct
 { int       (*hostSend)    __P((PceObject, PceName, int, PceObject *));
   PceObject (*hostGet)     __P((PceObject, PceName, int, PceObject *));
-  int	    (*hostCallProc)__P((PceObject, PceObject, int, PceObject *));
-  PceObject (*hostCallFunc)__P((PceObject, PceObject, int, PceObject *));
+  int	    (*hostCallProc)__P((PceObject, PceObject, PceObject, int, PceObject *));
+  PceObject (*hostCallFunc)__P((PceObject, PceObject, PceObject, int, PceObject *));
   int       (*hostQuery)   __P((int, PceCValue *));
   int	    (*hostActionv) __P((int, va_list args));
   void	    (*vCprintf)	   __P((const char *fmt, va_list args));
@@ -276,10 +276,10 @@ __pce_export const char *pceOsError();
 #ifdef PCE_INCLUDED
 extern pce_callback_functions TheCallbackFunctions;
 
-#define hostCallProc(h, r, ac, av) \
-	(*TheCallbackFunctions.hostCallProc)((h), (r), (ac), (av))
-#define hostCallFunc(h, r, ac, av) \
-	(*TheCallbackFunctions.hostCallFunc)((h), (r), (ac), (av))
+#define hostCallProc(h, r, s, ac, av) \
+	(*TheCallbackFunctions.hostCallProc)((h), (r), (s), (ac), (av))
+#define hostCallFunc(h, r, s, ac, av) \
+	(*TheCallbackFunctions.hostCallFunc)((h), (r), (s), (ac), (av))
 
 int		hostSend(PceObject host, PceName selector,
 			 int argc, PceObject argv []);

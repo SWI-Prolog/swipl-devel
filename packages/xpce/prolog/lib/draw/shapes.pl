@@ -7,14 +7,12 @@
     Copyright (C) 1992 University of Amsterdam. All rights reserved.
 */
 
-:- module(draw_shapes,
-	  [ draw_begin_shape/4,
-	    draw_end_shape/0
-	  ]).
+:- module(draw_shapes, []).
 
 :- use_module(library(pce)).
 :- use_module(library(pce_template)).
-:- require([ forall/2
+:- require([ default/3
+	   , forall/2
 	   , ignore/1
 	   , member/2
 	   ]).
@@ -114,6 +112,30 @@ recogniser(Class, Recogniser:recogniser) :->
 :- pce_end_class.
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+			EXPANSION
+
+The following fragment defines compiler expansion for:
+
+	:- draw_begin_shape
+	...
+	:- draw_end_shape.
+
+:- draw_begin_shape should create an instance of call draw_shape_class
+rarther then class class.  This is achieved using the construct
+
+	:- pce_begin_class(MetaClass:Class(...), ...)
+
+Which tells pce_realise_class/1 that it  should   create  the  new class
+using the call
+
+	new(_, MetaClass(Class, Super))
+
+rather then the default
+
+	get(Super, sub_class(Class), _)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 associate_recognisers(Recognisers) :-	% qpc callback!
 	(   send(@class, has_send_method, draw_shape_template)
 	->  true
@@ -122,13 +144,15 @@ associate_recognisers(Recognisers) :-	% qpc callback!
 	forall(member(R, Recognisers),
 	       send(@class, recogniser, R)).
 
-draw_begin_shape(Name, Super, Summary, Recognisers) :-
-	new(_, draw_shape_class(Name, Super)),
-	pce_begin_class(Name, Super, Summary),
-	associate_recognisers(Recognisers).
+draw_expansion((:- draw_begin_shape(Name, Super, Summary, Recognisers)),
+	       [(:- pce_begin_class(draw_shape_class:Name, Super, Summary)),
+		(:- pce_class_directive(draw_shapes:associate_recognisers(Recognisers)))
+	       ]).
+draw_expansion((:- draw_end_shape), (:- pce_end_class)).
 
-draw_end_shape :-
-	pce_end_class.
+:- initialization
+   user:assert((pce_pre_expansion_hook(In, Out) :-
+	       		draw_shapes:draw_expansion(In, Out))).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -395,7 +419,7 @@ handle(w,   h,   link, end).
 
 :- draw_begin_shape(draw_path, path, "PceDraw editable path",
 		    [@draw_path_recogniser]).
-:- send(@class, hidden_attribute, radius).
+:- pce_class_directive(send(@class, hidden_attribute, radius)).
 
 interpolation(L, N:int) :->
 	(   N == 0

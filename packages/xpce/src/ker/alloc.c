@@ -41,6 +41,7 @@ Debugging note: This module can run at three debugging levels:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define ALLOC_MAGIC_BYTE 0xcc
+#define ALLOC_MAGIC_WORD 0xdf6556fd
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PCE allocates  memory for two purposes: for  object structures and for
@@ -64,8 +65,9 @@ allocate(int size)
     spacefree -= alloc_size;
 
 #if ALLOC_DEBUG
-    z->size = size;
+    z->size   = size;
     z->in_use = TRUE;
+    z->magic  = ALLOC_MAGIC_WORD;
 #endif
     return (Zone) &z->start;
   }
@@ -75,8 +77,9 @@ allocate(int size)
     DEBUG(NAME_allocate, Cprintf("Unalloc remainder of %d bytes\n", spacefree));
 #if ALLOC_DEBUG
     z = (Zone) spaceptr;
+    z->size   = &spaceptr[spacefree] - (char *) &z->start;
     z->in_use = TRUE;
-    z->size = &spaceptr[spacefree] - (char *) &z->start;
+    z->magic  = ALLOC_MAGIC_WORD;
     unalloc(z->size, &z->start);
     assert((z->size % ROUNDALLOC) == 0);
     assert((z->size >= MINALLOC));
@@ -107,8 +110,9 @@ allocate(int size)
 
 #if ALLOC_DEBUG
   z = (Zone) p;
-  z->size = size;
+  z->size   = size;
   z->in_use = TRUE;
+  z->magic  = ALLOC_MAGIC_WORD;
 
   return (Zone) &z->start;
 #else
@@ -131,14 +135,12 @@ alloc(register int n)
     register int m = n / sizeof(Zone);
 
     if ( (z = freeChains[m]) != NULL )	/* perfect fit */
-    { freeChains[m] = (Zone) z->next;
-      if ( freeChains[m] == NULL )
-	tailFreeChains[m] = NULL;
-
-      wastedbytes -= n;
-
+    { 
 #if ALLOC_DEBUG
       assert((long) z >= allocBase && (long) z <= allocTop);
+      assert(z->in_use == FALSE);
+      assert(z->magic  == ALLOC_MAGIC_WORD;
+
       z->in_use = TRUE;
 #endif
 
@@ -152,6 +154,9 @@ alloc(register int n)
 #else
       memset(&z->start, 0, n);
 #endif
+
+      freeChains[m] = (Zone) z->next;
+      wastedbytes -= n;
 
       return &z->start;
     }
@@ -186,8 +191,9 @@ unalloc(register int n, Any p)
     memset(p, ALLOC_MAGIC_BYTE, n);
 #endif
     z = (Zone) ((char *)z - offset(struct zone, start));
+    assert(s->magic  == ALLOC_MAGIC_WORD;
     assert(z->in_use == TRUE);
-    assert(z->size == n);
+    assert(z->size   == n);
     z->in_use = FALSE;
 #endif
 
@@ -195,8 +201,6 @@ unalloc(register int n, Any p)
     n /= sizeof(Zone);
     z->next = freeChains[n];
     freeChains[n] = z;
-    if ( !tailFreeChains[n] )
-      tailFreeChains[n] = z;
 
     DEBUG(NAME_allocate,
 	  Cprintf("unalloc for %s, m = %d\n", pp(z), n));
@@ -219,7 +223,7 @@ initAlloc(void)
   spaceptr  = NULL;
   spacefree = 0;
   for (t=ALLOCFAST/sizeof(Zone); t>=0; t--)
-    freeChains[t] = tailFreeChains[t] = NULL;
+    freeChains[t] = NULL;
 
   wastedbytes = allocbytes = 0;
   allocTop  = 0L;

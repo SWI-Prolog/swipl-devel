@@ -94,7 +94,8 @@ sendSendMethod(SendMethod m, Any receiver, int argc, const Any argv[])
 		     if ( instanceOfObject(m->message, ClassCode) )
 		     { withArgs(0, (Any *)NULL, rval=executeCode(m->message));
 		     } else
-		     { rval = hostCallProc(m->message, receiver, 0, NULL);
+		     { rval = hostCallProc(m->message,
+					   receiver, m->name, 0, NULL);
 		     });
       }
     }
@@ -146,7 +147,8 @@ sendSendMethod(SendMethod m, Any receiver, int argc, const Any argv[])
 		     if ( instanceOfObject(m->message, ClassCode) )
 		       rval = forwardCodev(m->message, 1, &arg);
 		     else
-		       rval = hostCallProc(m->message, receiver, 1, &arg));
+		       rval = hostCallProc(m->message,
+					   receiver, m->name, 1, &arg));
       }
     }
   } else

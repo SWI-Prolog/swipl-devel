@@ -12,6 +12,7 @@
 :- require([ between/3
 	   , concat/3
 	   , concat_atom/2
+	   , default/3
 	   , forall/2
 	   , ignore/1
 	   ]).

@@ -440,7 +440,8 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation z)
   else if ( mi->selected == OFF && notNil(m->off_image) )
     leftmark = m->off_image;
 
-  if ( m->look == NAME_motif && instanceOfObject(m, ClassPopup)	)
+  if ( (m->look == NAME_motif && instanceOfObject(m, ClassPopup)) ||
+       (m->look == NAME_openLook && instanceOfObject(z, ClassElevation)) )
   { int up = TRUE;
 
     if ( m->preview == mi )
@@ -467,6 +468,7 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation z)
 						    y + h - th);
       int tx = x+w-b-tw;
 
+      z = getResourceValueObject(m, NAME_elevation);
       r_3d_triangle(tx, ty+th, tx, ty, tx+tw, ty+th/2,
 		    z, m->preview != mi, 0x3);
     }
@@ -655,7 +657,8 @@ RedrawAreaMenu(Menu m, Area a)
       r_3d_box(cx, cy, w-(cx-x), h-(cy-y), 0, z, TRUE);
     cx += valInt(m->margin);
 
-    if ( m->look == NAME_motif )
+    if ( m->look == NAME_motif ||
+	 (m->look == NAME_openLook && instanceOfObject(iz, ClassElevation)) )
     { iw += gx; ih += gy;
       gx = gy = 0;
     } else if ( m->pen != ZERO )
@@ -1922,9 +1925,9 @@ makeClassMenu(Class class)
 		  "Indication of a ->kind: cycle menu");
   attach_resource(class, "margin", "0..",  "0",
 		  "Margin to the left and right");
-  attach_resource(class, "item_elevation", "elevation",  "0",
+  attach_resource(class, "item_elevation", "elevation*",  "0",
 		  "Elevation of items in the menu");
-  attach_resource(class, "preview_elevation", "elevation",  "0",
+  attach_resource(class, "preview_elevation", "elevation*",  "0",
 		  "Elevation of item in preview mode");
 
   succeed;

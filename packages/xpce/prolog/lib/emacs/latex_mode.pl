@@ -9,9 +9,7 @@
 
 :- module(emacs_latex_mode, []).
 :- use_module(library(pce)).
-:- require([ emacs_end_mode/0
-	   , emacs_begin_mode/5
-	   , send_list/3
+:- require([ send_list/3
 	   ]).
 
 :- emacs_begin_mode(latex, outline,

@@ -9,7 +9,8 @@
 
 :- module(pce_label_item, []).
 :- use_module(library(pce)).
-
+:- require([ default/3
+	   ]).
 
 :- pce_begin_class(dia_label_item, device).
 

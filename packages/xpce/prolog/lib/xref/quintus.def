@@ -32,6 +32,7 @@ built_in(abolish(_)).
 built_in(abolish(_,_)).
 built_in(abort).
 built_in(absolute_file_name(_,_)).
+built_in(absolute_file_name(_,_,_)).
 built_in(ancestors(_)).
 built_in(arg(_,_,_)).
 built_in(assert(_)).
@@ -76,6 +77,7 @@ built_in(dynamic(_)).
 built_in(ensure_loaded(_)).
 built_in(erase(_)).
 built_in(expand_term(_,_)).
+built_in(extern(_)).
 built_in(fail).
 built_in(false).
 built_in(fcompile(_)).
@@ -149,6 +151,7 @@ built_in(profile_data(_,_,_,_)).
 built_in(profile_reset(_)).
 built_in(prolog_flag(_,_)).
 built_in(prolog_flag(_,_,_)).
+built_in(prolog_load_context(_, _)).
 built_in(prompt(_,_)).
 built_in(public(_)).
 built_in(put(_)).

@@ -9,9 +9,6 @@
 
 :- module(emacs_script_mode, []).
 :- use_module(library(pce)).
-:- require([ emacs_end_mode/0
-	   , emacs_begin_mode/5
-	   ]).
 
 :- emacs_begin_mode(script, language,
 		  "Edit arbitrary scripts with # line comment",

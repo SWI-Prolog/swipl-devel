@@ -10,12 +10,15 @@
 #ifndef NDEBUG
 #define NDEBUG				/* delete assert() */
 #endif
+
 #define MODULE	1			/* Tag selector with module */
+#define PREDICATE_PER_CLASS 1		/* Single predcate for all methods */
 
 #include <SWI-Stream.h>			/* SWI-Prolog streams */
 #include <SWI-Prolog.h>			/* SWI-Prolog <-> C interface */
 #include "../../prolog/c/interface.h"	/* generic Prolog <->PCE part */
 #include <stdlib.h>			/* exit() */
+
 
 #ifdef __GNUC__
 #define AtomicVector(name, size)  atomic_t name[size]
@@ -480,9 +483,15 @@ pushObject(PceObject obj)
 }
 
 
+#ifdef PREDICATE_PER_CLASS
+#define EXCESS_ARGS 2
+#else
+#define EXCESS_ARGS 1
+#endif
+
 
 static int
-PrologCallProc(PceObject handle, PceObject rec, int argc, PceObject objv[])
+PrologCallProc(PceObject handle, PceObject rec, PceObject sel, int argc, PceObject objv[])
 { void *ptr = pcePointerToC(handle);
 
   if ( ptr != PCE_NO_POINTER )
@@ -494,12 +503,15 @@ PrologCallProc(PceObject handle, PceObject rec, int argc, PceObject objv[])
     int i, rval;
     bktrk_buf buf;
 
-    if ( argc+1 != arity )
+    if ( argc+EXCESS_ARGS != arity )
     { Warning("PrologCallProc(): inconsistent arity");
       return PCE_FAIL;
     }
 
     PL_mark(&buf);
+#ifdef PREDICATE_PER_CLASS
+    *ap++ = pushObject(sel);
+#endif
     *ap++ = pushObject(rec);
     for(i=argc; i > 0; i--)
       *ap++ = pushObject(*objv++);
@@ -517,7 +529,7 @@ PrologCallProc(PceObject handle, PceObject rec, int argc, PceObject objv[])
 
 
 static PceObject
-PrologCallFunc(PceObject handle, PceObject rec, int argc, PceObject objv[])
+PrologCallFunc(PceObject handle, PceObject rec, PceObject sel, int argc, PceObject objv[])
 { void *ptr = pcePointerToC(handle);
 
   if ( ptr != PCE_NO_POINTER )
@@ -530,12 +542,15 @@ PrologCallFunc(PceObject handle, PceObject rec, int argc, PceObject objv[])
     PceObject answer;
     bktrk_buf buf;
 
-    if ( argc+2 != arity )
+    if ( argc+1+EXCESS_ARGS != arity )
     { Warning("PrologCallFunc(): inconsistent arity");
       return PCE_FAIL;
     }
 
     PL_mark(&buf);
+#ifdef PREDICATE_PER_CLASS
+    *ap++ = pushObject(sel);
+#endif
     *ap++ = pushObject(rec);
     for(i=argc; i>0; i--)
       *ap++ = pushObject(*objv++);

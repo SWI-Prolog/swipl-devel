@@ -1,4 +1,3 @@
-% smart_put_header: /q/ptg3/xpce-4.8.6/prolog/boot %W% %G% 
 /*  $Id$
 
     Part of XPCE
@@ -26,19 +25,19 @@ PCE public predicates
 	  , pce_global/2
 	  , pce_autoload/2
 	  , pce_autoload_all/0
-	  , pce_begin_class/2, pce_begin_class/3
-	  , pce_extend_class/1
-	  , default/3
-	  , pce_end_class/0
-	  , pce_group/1
+
+	  , pce_predicate_reference/2
 	  , pce_term_expansion/2
 	  , pce_compiling/1
+	  , pce_begin_recording/1	% +- source|documentation
+	  , pce_end_recording/0
 
-	  , pce_send_method/7
-	  , pce_get_method/8
+	  , pce_register_class/1
+	  , pce_extended_class/1
+	  , pce_bind_send_method/8
+	  , pce_bind_get_method/9
 	  , pce_send_method_message/2
 	  , pce_get_method_message/2
-	  , pce_predicate_reference/2
 
 	  , pce_catch_error/2
 
@@ -74,8 +73,11 @@ pce_ifhostproperty(repeat_meta_declaraction,
 	get(+, :, +, +, +, +, +, +, +, +, +, +, -),
 
 	new(?, :),
+	pce_global(+, :),
 
-	pce_predicate_reference(:, ?))).
+	pce_predicate_reference(:, ?),
+	pce_extended_class(:),
+	pce_register_class(:))).
 
 
 		/********************************
@@ -86,6 +88,7 @@ pce_ifhostproperty(repeat_meta_declaraction,
 :- use_module(pce_error).
 :- use_module(pce_autoload).
 :- use_module(pce_global).
-:- use_module(pce_compile).
 :- use_module(pce_editor).
+:- use_module(pce_expansion).
+:- use_module(pce_realise).
 :- use_module(require).

@@ -19,9 +19,6 @@
 image_viewer :-
 	new(P, picture),
 	send(P, scrollbars, vertical),
-	send(P, background, when(@colour_display,
-				 colour(grey80),
-				 @grey12_image)),
 	send(P, format, format(horizontal, 800, @off)),
 	send(P, resize_message,
 	     message(P, format, width, @arg2?width)),
@@ -151,7 +148,13 @@ show(P, [F|R], Dir) :-
 
 	new(F2, figure),		% elevate it from the background
 	send(F2, border, 3),
-	send(F2, elevation, 1),
+	(   get(@display, visual_type, monochrome)
+	->  send(F2, elevation, elevation(image, 2,
+					  relief := @grey50_image,
+					  shadow := colour(black)))
+	;   send(F2, elevation, elevation(image, 2,
+					  colour := colour(grey80)))
+	),
 	send(F2, display, B),
 
 	new(D, device),			% put together with label

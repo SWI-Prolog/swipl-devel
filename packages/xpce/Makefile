@@ -29,7 +29,7 @@ SHELL=/bin/sh
 
 prefix=/usr/local
 exec_prefix=${prefix}
-PCEHOME=/swi03/jan/src/xpce
+PCEHOME=/staff/jan/src/xpce
 XINCLUDES=/usr/include
 XLIB=/usr/lib
 
@@ -43,7 +43,7 @@ PL=pl
 # LIBRARIES
 
 NETLIBS=
-PLLIBS=-lreadline -ltermcap -lm -ldl
+PLLIBS=-ldl -lreadline -ltermcap -lm 
 XLIBS=-lXt -lX11
 STATICLIBS=/usr/lib/libc.a
 LDFLAGS=

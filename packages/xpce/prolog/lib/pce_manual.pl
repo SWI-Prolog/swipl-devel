@@ -14,9 +14,10 @@
 	  ]).
 :- use_module(library(pce)).
 :- consult(
-	[ 'man/p_card'		% General card infra-structure
-	, 'man/p_data'		% Manual specific infra-structure
-	, 'man/v_manual'	% Top level window
+	[ 'man/util'			% Common utilities
+	, 'man/p_card'			% General card infra-structure
+	, 'man/p_data'			% Manual specific infra-structure
+	, 'man/v_manual'		% Top level window
 	]).
 :- require([ term_to_atom/2
 	   ]).

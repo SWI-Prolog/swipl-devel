@@ -455,8 +455,13 @@ requestGeometryEditor(Editor e, Int x, Int y, Int w, Int h)
 
   if ( notDefault(w) )
     w = mul(w, getExFont(e->font));
+  else if ( notNil(e->request_compute) )
+    w = mul(e->size->w, getExFont(e->font));
+
   if ( notDefault(h) )
     h = mul(h, getHeightFont(e->font));
+  else if ( notNil(e->request_compute) )
+    h = mul(e->size->h, getHeightFont(e->font));
 
   if ( instanceOfObject(v = Receiver(e), ClassWindow) )
     requestGeometryWindow(v, x, y, w, h);

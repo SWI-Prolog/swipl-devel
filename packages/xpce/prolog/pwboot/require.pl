@@ -1,5 +1,4 @@
-% smart_put_header: /home/alice/bts/xpce-sources/xpce-4.8.0/prolog/boot %W% %G% 
-/*  require.pl,v 1.1 1993/09/17 12:48:13 jan Exp
+/*  $Id$
 
     Part of XPCE
     Designed and implemented by Anjo Anjewierden and Jan Wielemaker
@@ -64,20 +63,36 @@ require(Module, Name/Arity) :-		% load from library
 	library_index(Head, _, File),
 	Module:use_module(library(File), [Name/Arity]).
 
-te_require_list([], []):-!.
-te_require_list([Name/Arity | Tail], List):-
+te_require_list(Specs, UseModules) :-
 	load_library_index,
+	map_requirements(Specs, Libs),
+	combine_use_modules(Libs, UseModules).
+
+map_requirements([], []) :- !.
+map_requirements([Name/Arity|Tail], List) :-
         functor(Head, Name, Arity),
-	(predicate_property(Head, built_in) ->
-		List = [:-(true) | ListRest ]
-	; library_index(Head, _, File) ->
-		List = [:-(use_module(library(File), [Name/Arity])) | ListRest ]
-	;
-		print_message(warning,
-			      required_predicate_not_found(Name,Arity)),
-		List = [:-(true) | ListRest ]
+	(   predicate_property(Head, built_in)
+	->  List = ListRest
+	;   library_index(Head, _, File)
+	->  List = [lib(File, Head)|ListRest]
+	;   print_message(warning, required_predicate_not_found(Name,Arity)),
+	    List = ListRest
 	),
-	te_require_list(Tail,ListRest).
+	map_requirements(Tail,ListRest).
+
+combine_use_modules([], []).
+combine_use_modules([lib(Lib, Term)|Rest],
+		    [(:- use_module(library(Lib), [Name/Ar|Ps])), RestDecl]) :-
+	functor(Term, Name, Ar),
+	collect_for_lib(Rest, Lib, Ps, [], R0),
+	combine_use_modules(R0, RestDecl).
+				  
+collect_for_lib([], _, [], R, R).
+collect_for_lib([lib(Lib, Term)|L], Lib, [Name/Arity|RH], R0, R) :- !,
+	functor(Term, Name, Arity),
+	collect_for_lib(L, Lib, RH, R0, R).
+collect_for_lib([LT|L], Lib, RH, R0, R) :-
+	collect_for_lib(L, Lib, RH, [LT|R0], R).
 
 
 		/********************************

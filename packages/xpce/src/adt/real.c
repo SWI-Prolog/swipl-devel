@@ -177,6 +177,16 @@ divideReal(Real r, Real r2)
 }
 
 
+static Name
+getCompareReal(Real r1, Real r2)
+{ if ( r1->value > r2->value )
+    answer(NAME_larger);
+  if ( r1->value < r2->value )
+    answer(NAME_smaller);
+  answer(NAME_equal);
+}
+
+
 static Real
 getCatchAllReal(Real r, Name selector, int argc, Any *argv)
 { Real result = answerObject(classOfObject(r), r, 0);
@@ -257,6 +267,10 @@ makeClassReal(Class class)
   getMethod(class, NAME_convert, DEFAULT, "real", 1, "any",
 	    "Converts int, number and char_array",
 	    getConvertReal);
+  getMethod(class, NAME_compare, NAME_compare, "{smaller,equal,larger}", 1,
+	    "real",
+	    "Compare with argument",
+	    getCompareReal);
   getMethod(class, NAME_catchAll, NAME_copy, "copy=real", 2,
 	    "selector=name", "argument=unchecked ...",
 	    "Create copy and run method on it",

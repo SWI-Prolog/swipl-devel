@@ -9,7 +9,8 @@
 
 :- module(pce_font_item, []).
 :- use_module(library(pce)).
-:- require([ send_list/2
+:- require([ default/3
+	   , send_list/2
 	   ]).
 
 :- pce_begin_class(font_item, device).

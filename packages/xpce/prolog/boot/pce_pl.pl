@@ -21,7 +21,7 @@
 	, 'pceloadcxx'/2
 	, '$call_atom'/1
 	, pce_error/1
-	, pce_warning/1
+	, pce_warn/1
 	, pce_info/1
 	]).
 
@@ -42,6 +42,7 @@
 property(prolog(swi)).			% this is SWI-Prolog
 property(file_extensions([pl])).	% list of file extensions
 property(use_predicate_references).	% use direct predicate refs in methods
+property(register_source_locations).	% register the source locations
 property(string).			% Supports string datatype
 property(runtime) :-
 	get(@(pce), is_runtime_system, @(on)).
@@ -157,7 +158,7 @@ pce_error(Term) :-
 	message_to_string(Term, Str),
         format(user_error, '[PCE/Prolog: ~w]~n', [Str]).
 
-pce_warning(Term) :-
+pce_warn(Term) :-
 	pce_error(Term).
 
 pce_info(Term) :-

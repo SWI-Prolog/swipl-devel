@@ -1,5 +1,7 @@
 :- module(n_maplist,[n_maplist/4]).
 :- meta_predicate n_maplist(+, :, ?, ?).
+:- require([ maplist/3
+	   ]).
 
 % n_maplist(+N,+FNC,?LX,?LY) will do a maplist N times.
 n_maplist(0,_,L,L):-!.

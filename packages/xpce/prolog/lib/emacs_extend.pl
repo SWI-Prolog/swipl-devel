@@ -9,22 +9,14 @@
 
 :- module(emacs_extend,
 	  [ declare_emacs_mode/2,
-	    declare_emacs_mode/3,
-	    emacs_begin_mode/5,
-	    emacs_extend_mode/2,
-	    emacs_end_mode/0,
-	    emacs_mode_bindings/3
+	    declare_emacs_mode/3
 	  ]).
-:- meta_predicate
-	emacs_begin_mode(:, +, +, +, +),
-	emacs_extend_mode(:, +),
-	emacs_mode_bindings(:, +, +).
 
 :- use_module(library(pce)).
 :- require([ concat/3
+	   , concat_atom/2
 	   , forall/2
 	   , member/2
-	   , strip_module/3
 	   ]).
 
 
@@ -46,6 +38,7 @@ declare_emacs_mode(Mode, File) :-
 special_mode(shell).
 special_mode(gdb).
 special_mode(annotate).
+
 
 %	declare_emacs_mode(+ModeName, +FileSpec, +ListOfPatterns)
 %	
@@ -70,21 +63,35 @@ declare_emacs_mode(Mode, File, Extensions) :-
 %
 %		Char [=+] Category(Args)
 
-emacs_begin_mode(Mode0, Super, Summary, Bindings, Syntax) :-
-	strip_module(Mode0, Module, Mode),
-	get(string('emacs_%s_mode', Mode), value, PceClass),
-	get(string('emacs_%s_mode', Super), value, PceSuperClass),
-	pce_begin_class(Module:PceClass, PceSuperClass, Summary),
-	emacs_mode_bindings(Mode0, Bindings, Syntax).
+emacs_expansion((:- emacs_begin_mode(Mode, Super, Summary, Bindings, Syntax)),
+		[(:- pce_begin_class(PceMode, PceSuper, Summary)),
+		 (:- pce_class_directive(emacs_extend:emacs_mode_bindings(Mode,
+							     Module,
+							     Bindings,
+							     Syntax)))
+		]) :-
+	emacs_mode_class(Mode, PceMode),
+	emacs_mode_class(Super, PceSuper),
+	prolog_load_context(module, Module).
+emacs_expansion((:- emacs_extend_mode(Mode, Bindings)),
+		[(:- pce_extend_class(PceMode)),
+		 (:- pce_class_directive(emacs_extend:emacs_mode_bindings(Mode,
+							     Module,
+							     Bindings,
+							     [])))
+		]) :-
+	emacs_mode_class(Mode, PceMode),
+	prolog_load_context(module, Module).
+emacs_expansion((:- emacs_end_mode), (:- pce_end_class)).
 
-emacs_mode_bindings(Mode0, Bindings, Syntax) :-
-	strip_module(Mode0, Module, Mode),
-	get(string('emacs_%s_mode', Mode), value, PceClass),
+%	emacs_mode_bindings(+Mode, +Module, +Bindings, +Syntax)
+
+emacs_mode_bindings(Mode, Module, Bindings, Syntax) :-
+	emacs_mode_class(Mode, PceClass),
 	get(@pce, convert, PceClass, class, ClassObject),
 	get(ClassObject, super_class, SuperClass),
 	get(SuperClass, name, SuperName),
-	concat(emacs_, M0, SuperName),
-	concat(SuperMode, '_mode', M0),
+	emacs_mode_class(SuperMode, SuperName),
 	new(KB, emacs_key_binding(Mode, SuperMode)),
 	new(MM, emacs_mode_menu(Mode, SuperMode)),
 	new(ST, syntax_table(Mode, SuperMode)),
@@ -122,24 +129,28 @@ syntax(paragraph_end(Regex), ST) :-
 syntax(sentence_end(Regex), ST) :-
 	send(ST, sentence_end, Regex).
 
-%	emacs_extend_mode(Mode, Bindings).
+
+		 /*******************************
+		 *	       UTIL		*
+		 *******************************/
+
+%	emacs_mode_class(?ModeName, ?ClassName)
 %
-%	Extend an existing emacs mode
+%	Convert between plain PceEmacs modename and the mode class.
 
-emacs_extend_mode(Mode0, Bindings) :-
-	strip_module(Mode0, Module, Mode),
-	get(string('emacs_%s_mode', Mode), value, PceClass),
-	get(@pce, convert, PceClass, class, _), % force	loading
-	pce_extend_class(PceClass),
-	get(@pce, convert, Mode, emacs_key_binding, KB),
-	get(@pce, convert, Mode, emacs_mode_menu, MM),
-	forall(member((Selector = Term), Bindings),
-	       bind(Term, Selector, Module, KB, MM)).
+emacs_mode_class(ModeName, ClassName) :-
+	atom(ModeName), !,
+	concat_atom([emacs_, ModeName, '_mode'], ClassName).
+emacs_mode_class(ModeName, ClassName) :-
+	concat(emacs_, M0, ClassName),
+	concat(ModeName, '_mode', M0).
 
 
-%	emacs_end_mode/0
-%
-%	Just for symetry right now.
+		 /*******************************
+		 *	   REGISTRATION		*
+		 *******************************/
 
-emacs_end_mode :-
-	pce_end_class.
+:- initialization
+   (user:asserta((pce_pre_expansion_hook(In, Out) :-
+			emacs_extend:emacs_expansion(In, Out)))).
+

@@ -27,7 +27,8 @@ static status
 initialiseRegex(Regex re, CharArray pattern)
 { assign(re, pattern, pattern);
 
-  re->compiled = alloc(sizeof(struct re_pattern_buffer));
+  re->registers    = NULL;
+  re->compiled     = alloc(sizeof(struct re_pattern_buffer));
   memset(re->compiled, 0, sizeof(struct re_pattern_buffer));
 
   succeed;
@@ -92,6 +93,7 @@ static status
 loadRegex(Regex re, FILE *fd, ClassDef def)
 { TRY(loadSlotsObject(re, fd, def));
 
+  re->registers	  	  = NULL;
   re->compiled 		  = alloc(sizeof(struct re_pattern_buffer));
   memset(re->compiled, 0, sizeof(struct re_pattern_buffer));
 
@@ -103,6 +105,7 @@ static status
 cloneRegex(Regex re, Regex clone)
 { clonePceSlots(re, clone);
 
+  re->registers		  = NULL;
   re->compiled 		  = alloc(sizeof(struct re_pattern_buffer));
   memset(re->compiled, 0, sizeof(struct re_pattern_buffer));
 

@@ -15,7 +15,7 @@
 
 :- use_module(library(pce)).
 :- use_module(util).
-:- use_module(classmap).
+:- consult(classmap).
 :- require([ append/3
 	   , between/3
 	   , concat/3

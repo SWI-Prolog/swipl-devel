@@ -32,7 +32,11 @@
 %	For an example, see $PCEHOME/prolog/lib/draw/shapes.pl.
 
 use_class_template(Template) :-
-	pce_compiling(Class),
+	(   pce_compiling(Class)
+	;   send(@class, instance_of, class),
+	    get(@class, name, Class)
+	;   pce_error(no_context_class_for_template(Template))
+	) ->
 	use_class_template(Class, Template).
    
 %	use_class_template(+ClassName, +TemplateClassName)

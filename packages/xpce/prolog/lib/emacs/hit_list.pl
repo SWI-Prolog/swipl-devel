@@ -9,6 +9,8 @@
 
 :- module(emacs_hit_list, []).
 :- use_module(library(pce)).
+:- require([ default/3
+	   ]).
 
 
 :- pce_begin_class(emacs_hit_list, frame).

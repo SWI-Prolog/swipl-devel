@@ -285,13 +285,14 @@ storeObject(Any obj, FileObj file)
 	storeCharFile(file, 'R');
 	return storeIdObject(obj, ref, file);
       }
-      ref = setSavedObj(obj);
 
       if ( (sref = qadGetv(obj, NAME_storageReference, 0, NULL)) )
       { storeCharFile(file, 'D');
 	storeNameFile(file, class->name);
 	return storeObject(sref, file);
       }
+
+      ref = setSavedObj(obj);
 
       TRY( classref = storeClass(class, file) );
       storeCharFile(file, 'O');

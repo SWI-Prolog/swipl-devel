@@ -9,12 +9,14 @@
 
 :- module(emacs_language_mode, []).
 :- use_module(library(pce)).
-:- require([ emacs_init_tags/1
+:- require([ default/3
+	   , emacs_init_tags/1
 	   , emacs_tag/3
 	   , emacs_tag_file/1
 	   , ignore/1
 	   , member/2
 	   ]).
+
 
 :- pce_begin_class(emacs_language_mode, emacs_fundamental_mode).
 

@@ -14,8 +14,10 @@
 	]).
 
 :- use_module(pce_principal, [get/4, send/3]).
-:- require([ concat/3
-	   , concat_atom/2
+:- use_module(pce_realise, [pce_realise_class/1]).
+:- require([ concat_atom/2
+	   , is_absolute_file_name/1
+	   , prolog_load_context/2
 	   ]).
 
 :- dynamic
@@ -62,5 +64,8 @@ pce_autoload_all.
 		  message(@prolog, call, trap_autoload, @arg1))).
 
 trap_autoload(Class) :-
+	pce_realise_class(Class), !.
+trap_autoload(Class) :-
 	autoload(Class, File),
-	user:ensure_loaded(File).
+	user:ensure_loaded(File),
+	pce_realise_class(Class).

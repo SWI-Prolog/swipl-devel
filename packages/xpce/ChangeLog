@@ -1,4 +1,67 @@
-[VERSION 4.8.11]
+[VERSION 4.8.11 (= ProWindows-3, version 1.3]
+
+* CLASSCOMPILER: The XPCE class compiler (handling :- pce_begin_class ...
+  :- pce_end_class) has been rewritten completely.  Instead of producing
+  directives, the current version produces prolog code that creates the
+  classes on the basis of XPCE exceptions.  The code is supposed to be
+  fully compatible, with the following exceptions (COMPATIBILITY)
+
+	* Wrappers around pce_begin_class/pce_end_class should use the
+	  user:pce_pre_expansion_hook/2 hook predicate.
+
+	* The class-definition predicates cannot be called directly
+	  anymore.
+
+	* Directives to the class under construction should be written
+	  as
+
+		:- pce_class_directive(Goal)
+
+	  with the exception of:
+
+	        :- send(@class, ...).
+		:- use_class_template(Template).
+
+	  which are tagged automatically (but it is not forbidden to
+	  use pce_class_directive/1 explicitely.
+
+* PROWINDOWS: Many small fixes to various parts of the code.  All the manual
+  and demo tools are working perfectly now (using Quintus Prolog 3.2).
+
+* EDITOR: Fixed ->position right after editor is created.
+
+* FIXED: Memory management problem in class regex, related to cloning
+  and destroying regex objects.  Lead to various types of errors.
+
+* ALLOC: Removed some dead code, making it a bit faster and cheaper.
+  Made checking in ALLOC_DEBUG mode more strict.
+
+* FIXED: `object ->save_in_file'.  Bug was introduced in 4.8.10.  Also
+  fixed saving windows (including their frame).
+
+* DIALOG: Various minor modifications leading to version 0.5.
+
+* FIXED: Utility predicates portray_object/[1,2] to handle recursive
+  objects.
+
+* FIXED: Handling data for sockets only works if the display is opened.
+  This is now opened automatically.
+
+* ADDED: `socket <-peer_name' to find address of socket at other end.
+
+* FIXED: SGI/IRIX autoconf generation of the LDSOFLAGS value -shared and
+  POINTER_OFFSET for all machine needing this macro.
+
+* ADDED: `real <-compare' to allow sorting chains on the value of reals.
+
+* FIXED: popup_gesture: handling of focus such that programs using
+  window?focus_event?<something> will work again.  Fixes the dialog
+  editor.
+
+* ADDED: Bold style to M-x manual_entry in PceEmacs.
+
+* FIXED: pce_image_directory/1 resulting in an undefined method when
+  used before any graphical operations.
 
 * FIXED: `directory ->scan' to include files starting with a dot if the
   pattern includes this.
@@ -485,7 +548,7 @@
 
 * CHANGED: PceDraw and PceEmacs now uses @helper to display help.
 
-* CHANGED: Many changes to the online-help library: automitic generation
+* CHANGED: Many changes to the online-help library: automatic generation
   of table of contents and concept index, menus, automatic recognition
   of @colour_display, etc.  File format and programmatic access is
   compatible.

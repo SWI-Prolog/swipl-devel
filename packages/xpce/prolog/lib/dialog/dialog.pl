@@ -29,6 +29,7 @@ standard XPCE library directory.
    ].
 :- use_module(library(pce_template)).
 :- require([ between/3
+	   , default/3
 	   , forall/2
 	   , ignore/1
 	   , maplist/3
@@ -46,7 +47,7 @@ standard XPCE library directory.
 :- pce_autoload(finder, library(find_file)).
 :- pce_global(@finder, new(finder)).
 
-dia_version('0.4').
+dia_version('0.5').
 
 :- initialization pce_help_file(dialog, 'dialog.hlp').
 :- initialization pce_image_directory(bitmaps).
@@ -599,6 +600,18 @@ fit_size(D) :->
 		 *     SOURCE CODE GENERATION	*
 		 *******************************/
 
+pretty_print(Term, String) :-
+	get(string('/tmp/xpce-pp-%d', @pce?pid), value, TmpNam),
+	telling(Old), tell(TmpNam),
+	pretty_print(Term),
+	told, tell(Old),
+	new(F, file(TmpNam)),
+	send(F, open, read),
+	get(F, read, String),
+	send(F, remove),
+	send(F, free).
+
+
 prolog_source(D, String:string) :<-
 	"Prolog source-code for dialog"::
 	source(D, Source),
@@ -789,7 +802,8 @@ fill_top_dialog(D) :-
 		    menu_item(save, message(Frame, save),
 			      condition := ?(Target,attribute,dia_save_file)),
 		    menu_item(save_as, message(Frame, save_as),
-			      condition := Target,
+			      condition := Target),
+		    menu_item(save_all, message(Frame, save_all),
 			      end_group := @on),
 		    menu_item(postscript_as, message(Frame, postscript_as),
 			      condition := Target,
@@ -842,9 +856,12 @@ mode(DE, Mode:{create,layout,action,run}) :->
 	get(Dialog, member, button_device, Dev),
 	send(Menu, selection, Mode),
 	send(Dev, clear),
-	forall(mode_button(Mode, Label, Message),
-	       send(Dev, append_dialog_item,
-		    button(Label, Message))),
+	(   mode_button(Mode, _, _)
+	->  forall(mode_button(Mode, Label, Message),
+		   send(Dev, append_dialog_item,
+			button(Label, Message)))
+	;   send(Dev, display, graphical(0, 0, 1, button(x)?height))
+	),
 	send(Dev, layout_dialog),
 	send(Dialog, layout),
 	(   get(DE, target, Target)
@@ -854,12 +871,12 @@ mode(DE, Mode:{create,layout,action,run}) :->
 
 :- pce_global(@dia_target, new(@receiver?frame?target)).
 
-mode_button(layout, layout,    message(@dia_target, fix_layout)).
+mode_button(layout, layout,      message(@dia_target, fix_layout)).
 mode_button(layout, undo_layout, message(@dia_target, restore_dialog_layout)).
-mode_button(layout, fit,       message(@dia_target, fit_size)).
+mode_button(layout, fit,         message(@dia_target, fit_size)).
 mode_button(action, behaviour_model,
-			       message(@dia_target, open_behaviour_model)).
-mode_button(run,    reset,     message(@dia_target, reset)).
+			         message(@dia_target, open_behaviour_model)).
+mode_button(run,    reset,       message(@dia_target, reset)).
 
 
 create_target(DE) :->
@@ -953,17 +970,54 @@ save(DE) :->
 	).
 	    
 
+save_all(DE, File:[file]) :->
+	"Save group of dialogs, so they stay together"::
+	(   File == @default
+	->  get(@finder, file, @off, '.dia', @default, TheFileName),
+	    new(TheFile, file(TheFileName))
+	;   TheFile = File
+	),
+	get(DE, member, browser, B),
+	new(Ch, chain),
+	send(B?dict?members, for_all, 
+	     message(DE, add_target, Ch, @arg1?key)),
+	send(Ch, save_in_file, TheFile),
+	send(Ch, done),
+	send(DE, report, status, 'Saved in %s', TheFile?base_name).
+				      
+
+add_target(DE, Ch:chain, TargetName:name) :->
+	"Add target to chain (part of ->save_all"::
+	get(DE, target, TargetName, Target),
+	(   get(Target, find_hyper, behaviour_model, Hyper)
+	->  send(Ch, append, Hyper)
+	;   send(Ch, append, Target)
+	).
+
+
 load(DE) :->
 	get(@finder, file, @on, '.dia', File),
 	get(file(File), object, Loaded),
-	(   send(Loaded, instance_of, hyper)
-	->  get(Loaded, from, Target),
-	    send(Loaded?to, relink)
-	;   Target = Loaded
-	),
-	send(Target, dia_save_file, File),
-	send(DE, target, Target),
-	send(DE, mode, Target?(mode)).
+	rebind(DE, Loaded, File).
+
+
+rebind(DE, Loaded, File) :-
+	(   send(Loaded, instance_of, chain)
+	->  send(Loaded, for_all,
+		 message(@prolog, rebind, DE, @arg1, @default))
+	;   (   send(Loaded, instance_of, hyper)
+	    ->  get(Loaded, from, Target),
+		send(Loaded?to, relink)
+	    ;   send(Loaded, instance_of, dia_target_dialog)
+	    ->  Target = Loaded
+	    ),
+	    (	File \== @default
+	    ->	send(Target, dia_save_file, File)
+	    ;	true
+	    ),
+	    send(DE, target, Target),
+	    send(DE, mode, Target?(mode))
+	).
 
 
 reload(DE) :->

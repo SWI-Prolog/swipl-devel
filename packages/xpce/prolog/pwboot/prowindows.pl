@@ -1,4 +1,4 @@
-	:- module(pce_host,
+:- module(pce_host,
 	  [ user_help/0,
 	    qui_user_help/0,
 	    xpce_loop/0,
@@ -37,6 +37,7 @@
 	pce_init,
 	prowindows_version,
         asserta(user:file_search_path(package, quintus('prowindows3.0'))),
+	asserta(user:file_search_path(contrib, package(contrib))),
         absolute_file_name(quintus('prowindows3.0'), Home),
 	pl_send(@host, name_reference, prolog, 1),
         pl_send(@pce, home, Home, 1),
@@ -269,6 +270,7 @@ property(file_extensions([qof, pl])).
 property(repeat_meta_declaraction).
 property(need_extern_declaration).
 property(use_predicate_references).
+property(register_source_locations).
 
 file_extensions([qof, pl]).
 
