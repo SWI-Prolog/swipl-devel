@@ -130,6 +130,17 @@ AC_CHECK_HEADERS(execinfo.h)
 
 AC_CHECK_FUNCS(setsid strerror setitimer utime)
 
+AC_MSG_CHECKING(_XOPEN_SOURCE)
+AC_TRY_COMPILE(
+[
+#define _XOPEN_SOURCE
+#include <unistd.h>
+],
+[ 
+], AC_DEFINE(DEFINE_XOPEN_SOURCE)
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+
 with_time=yes
 AC_ARG_WITH(time, [  --without-time		  Exclude alarm library],
 	    [case "$withval" in

@@ -9,3 +9,6 @@
 
 /* Define if socket gives errors using h_error instead of errno */
 #undef HAVE_H_ERRNO
+
+/* Define if #define _XOPEN_SOURCE is allowed */
+#undef DEFINE_XOPEN_SOURCE
