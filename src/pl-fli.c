@@ -1533,6 +1533,10 @@ PL_unify_atom_nchars(term_t t, unsigned int len, const char *chars)
 atom_t
 codeToAtom(int code)
 { atom_t a;
+
+  if ( code == EOF )
+    return ATOM_end_of_file;
+
   code &= 0xff;				/* mask for signedness */
 
   if ( !(a=GD->atoms.for_code[code]) )
