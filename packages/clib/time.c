@@ -38,14 +38,47 @@
 #include <error.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <time.h>
-#include <sys/time.h>
 #include <signal.h>
 #include <math.h>
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #endif
 #include <errno.h>
+
+#ifdef WIN32
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The WIN32 port uses the multimedia timers.   This  module must be linked
+with winmm.lib
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#include <windows.h>
+#include <sys/timeb.h>
+
+struct timeval
+{ long tv_usec;
+  long tv_sec;
+};
+
+struct timezone
+{ int zone;
+};
+
+static int
+gettimeofday(struct timeval *tv, struct timezone *tz)
+{ struct timeb tb;
+
+  ftime(&tb);
+  tv.tv_sec  = tb.time;
+  tv.tv_usec = tb.millitm * 1000;
+
+  return 0;
+}
+
+
+#else /*WIN32*/
+#include <time.h>
+#include <sys/time.h>
+#endif /*WIN32*/
 
 #ifdef O_DEBUG
 #define DEBUG(g) g
@@ -105,15 +138,19 @@ static predicate_t PREDICATE_call1;
 
 #define EV_DONE		0x0001		/* Handled this one */
 #define EV_REMOVE	0x0002		/* Automatically remove */
+#define EV_FIRED	0x0004		/* Windows: got this one */
 
 typedef struct event
 { record_t	 goal;			/* Thing to call */
   module_t	 module;		/* Module to call in */
-  struct timeval at;			/* Time to deliver */
   struct event  *next;			/* linked list for current */
   struct event  *previous;		/* idem */
   unsigned long  flags;			/* misc flags */
   long		 magic;			/* validate magic */
+  struct timeval at;			/* Time to deliver */
+#ifdef WIN32
+  UINT		 mmid;			/* MultiMedia timer id */
+#endif
 } event, *Event;
 
 typedef void (*handler_t)(int);
@@ -123,6 +160,11 @@ static Event scheduled;			/* The one we scheduled for */
 
 int signal_function_set = FALSE;	/* signal function is set */
 static handler_t signal_function;	/* Current signal function */
+
+#ifdef WIN32
+static void uninstallEvent(Event ev);
+#endif
+
 
 static Event
 allocEvent(struct timeval *at)
@@ -198,12 +240,40 @@ freeEvent(Event ev)
 
 
 static void
+callEvent(Event ev)
+{ term_t goal = PL_new_term_ref();
+
+  ev->flags |= EV_DONE;
+    
+  PL_recorded(ev->goal, goal);
+  PL_call_predicate(ev->module,
+		    PL_Q_PASS_EXCEPTION,
+		    PREDICATE_call1,
+		    goal);
+}
+
+
+
+static void
 cleanupHandler()
-{ struct itimerval v;
+{ Event ev, next;
+
+#ifndef WIN32
+  struct itimerval v;
 
   DEBUG(Sdprintf("Removed timer\n"));
   memset(&v, 0, sizeof(v));
   setitimer(ITIMER_REAL, &v, NULL);	/* restore? */
+#endif
+
+  for(ev=first; ev; ev = next)
+  {
+#ifdef WIN32
+    uninstallEvent(ev);
+#endif
+    next = ev->next;
+    freeEvent(ev);
+  }
 
   if ( signal_function_set )
   { signal_function_set = FALSE;
@@ -220,6 +290,65 @@ installHandler()
   }
 }
 
+
+#ifdef WIN32
+
+static void
+on_alarm(int sig)
+{ Event ev, next;
+
+  for(ev=first; ev; ev = next)
+  { if ( ev->flags & EV_FIRED )
+    { ev->flags &= ~EV_FIRED;
+
+      callEvent(ev);
+      ev->mmid = 0;			/* TIME_ONESHOT */
+
+      next = ev->next;
+      if ( ev->flags & EV_REMOVE )
+	freeEvent(ev);
+    } else
+      next = ev->next;
+  }
+}
+
+
+static void CALLBACK
+callEvent(UINT id, UINT msg, DWORD dwuser, DWORD dw1, DWORD dw2)
+{ Event ev = (Event)dwuser;
+
+  ev->flags |= EV_FIRED;
+  PL_raise(SIGALRM);
+}
+
+
+static void
+installEvent(Event ev, double t);
+{ MMRESULT rval;
+
+  rval = timeSetEvent((int)(t*1000),
+		      20,			/* resolution (milliseconds) */
+		      callEvent,
+		      (DWORD)ev;
+		      TIME_ONESHOT);
+
+  if ( rval )
+  { ev->mmid = rval;
+  } else
+    PL_warning("Failed to install alarm");
+}
+
+
+static void
+uninstallEvent(Event ev)
+{ if ( ev->mmid )
+  { timeKillEvent(ev->mmid);
+    ev->mmid = 0;
+  }
+}
+
+
+#else /*WIN32*/
 
 static void
 schedule()
@@ -323,17 +452,9 @@ on_alarm(int sig)
 #endif
 
   if ( (ev=scheduled) )
-  { term_t goal = PL_new_term_ref();
+  { scheduled = NULL;
 
-    scheduled = NULL;
-
-    ev->flags |= EV_DONE;
-    
-    PL_recorded(ev->goal, goal);
-    PL_call_predicate(ev->module,
-		      PL_Q_PASS_EXCEPTION,
-		      PREDICATE_call1,
-		      goal);
+    callEvent(ev);
 
     if ( ev->flags & EV_REMOVE )
       freeEvent(ev);
@@ -342,6 +463,7 @@ on_alarm(int sig)
   schedule();
 }
 
+#endif /*WIN32*/
 
 static int
 unify_timer(term_t t, Event ev)
@@ -458,7 +580,12 @@ alarm4(term_t time, term_t callable, term_t id, term_t options)
   PL_strip_module(callable, &m, callable);
   ev->module = m;
   ev->goal = PL_record(callable);
+
+#ifdef WIN32
+  installEvent(ev, t);
+#else
   schedule();
+#endif
 
   return TRUE;
 }
@@ -479,7 +606,11 @@ remove_alarm(term_t alarm)
 
   if ( scheduled == ev )
   { ev->flags |= EV_DONE;
+#ifdef WIN32
+    uninstallEvent(ev);
+#else
     schedule();
+#endif
   }
 
   freeEvent(ev);
