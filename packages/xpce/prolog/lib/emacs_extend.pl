@@ -41,6 +41,9 @@
 		*         DECLARE MODES		*
 		********************************/
 
+:- dynamic				% ensure it is restored over a state
+	emacs_mode_name/1.
+
 fix_mode_name_type :-
 	get(@pce, convert, mode_name, type, Type),
 	send(Type, name_reference, mode_name_type),
@@ -50,7 +53,9 @@ fix_mode_name_type :-
 		  [ fundamental
 		  , prolog
 		  , shell
-		  ]).
+		  ]),
+	forall(emacs_mode_name(Mode), send(Ctx, append, Mode)),
+	send(Ctx, sort, unique := @on).
 
 :- initialization fix_mode_name_type.
 
@@ -68,7 +73,8 @@ declare_emacs_mode(Mode, File) :-
 	(   \+ special_mode(Mode)
 	->  get(@mode_name_type, context, Ctx),
 	    send(Ctx, add, Mode),
-	    send(Ctx, sort)
+	    send(Ctx, sort, unique := @on),
+	    assert(emacs_mode_name(Mode))
 	;   true
 	).
 
