@@ -32,6 +32,7 @@ mkdir $arch
 cd $arch
 $ln ../src/pl-*.[ch] .
 $ln ../src/pl-*.i[ch] .
+$ln ../src/sun-types.h .
 $ln ../src/pl-export .
 $ln ../src/ATOMS ../src/defatom.awk ../src/dump .
 $ln ../src/extract.sed ../src/make.sed ../src/simpl.sed ../src/strip.sed .
