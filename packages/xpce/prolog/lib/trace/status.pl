@@ -31,8 +31,12 @@ resource(spy,	 image,	library('trace/icons/spy.xpm')).
 :- pce_begin_class(prolog_debug_status, dialog,
 		   "View/change debug_status information").
 
-initialise(D) :->
+initialise(D, App:[application]) :->
 	send_super(D, initialise('Prolog debugging')),
+	(   App \== @default
+	->  send(D, application, App)
+	;   true
+	),
 	send(D, append, new(TB, tool_bar(D))),
 	send_list(TB, append,
 		  [ tool_button(cut,
@@ -52,7 +56,8 @@ initialise(D) :->
 	send(LB, style, break, style(icon := resource(stop))),
 	send(LB, style, trace, style(icon := resource(trace))),
 	send(LB, attribute, hor_stretch, 100),
-	send(D, append, prolog_predicate_item(predicate)),
+	send(D, append, new(PI, prolog_predicate_item(predicate))),
+	send(PI, length, 30),
 	send(D, append, new(TB2, tool_bar(D)), right),
 	send(TB2, name, tb2),
 	send(TB2, alignment, right),
@@ -97,8 +102,15 @@ update(D) :->
 	    send(D, append_debug, How, Where),
 	    fail
 	;   true
+	),
+	get(D, member, mode, Mode),
+	(   tracing
+	->  send(Mode, selection, trace)
+	;   current_prolog_flag(debug, true)
+	->  send(Mode, selection, debug)
+	;   send(Mode, selection, normal)
 	).
-	
+
 append_debug(D, What:{spy,trace,break}, Where:prolog) :->
 	get(D, member, list_browser, LB),
 	name_of(Where, Label),
