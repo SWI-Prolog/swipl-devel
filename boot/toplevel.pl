@@ -318,7 +318,6 @@ $break :-
 
 $toplevel :-
 	$runtoplevel,
-	print_message(query, query(eof)),
 	print_message(informational, halt).
 
 %	Actually run the toplevel.  If there is a syntax error in the
@@ -486,7 +485,8 @@ $execute(Var, _) :-
 	var(Var), !,
 	print_message(informational, var_query(Var)),
 	fail.
-$execute(end_of_file, _) :- !.
+$execute(end_of_file, _) :- !,
+	print_message(query, query(eof)).
 $execute(Goal, Bindings) :-
 	$module(TypeIn, TypeIn), 
 	TypeIn:$dwim_correct_goal(Goal, Bindings, Corrected), !, 
