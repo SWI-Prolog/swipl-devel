@@ -2699,12 +2699,10 @@ Provisional String manipulation functions.
 
 word
 pl_string_length(term_t str, term_t l)
-{ char *s;
-  unsigned int len;
+{ PL_chars_t t;
 
-  if ( PL_get_string(str, &s, &len) ||
-       PL_get_nchars(str, &len, &s, CVT_ALL) )
-    return PL_unify_integer(l, len);
+  if ( PL_get_text(str, &t, CVT_ALL) )
+    return PL_unify_integer(l, t.length);
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_string, str);
 }
@@ -2718,13 +2716,12 @@ pl_string_concat(term_t a1, term_t a2, term_t a3, control_t h)
 
 word
 pl_string_to_atom(term_t str, term_t a)
-{ char *s;
-  unsigned int len;
+{ PL_chars_t t;
 
-  if ( PL_get_nchars(str, &len, &s, CVT_ALL) )
-    return PL_unify_atom_nchars(a, len, s);
-  if ( PL_get_nchars(a, &len, &s, CVT_ALL) )
-    return PL_unify_string_nchars(str, len, s);
+  if ( PL_get_text(str, &t, CVT_ALL) )
+    return PL_unify_text(a, &t, PL_ATOM);
+  if ( PL_get_text(a, &t, CVT_ALL) )
+    return PL_unify_text(str, &t, PL_STRING);
 
   return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
 }
@@ -2732,15 +2729,14 @@ pl_string_to_atom(term_t str, term_t a)
 
 word
 pl_string_to_list(term_t str, term_t list)
-{ char *s;
-  unsigned int len;
+{ PL_chars_t t;
 
-  if ( PL_get_nchars(str, &len, &s, CVT_ALL) )
-    return PL_unify_list_ncodes(list, len, s);
-  if ( PL_get_list_nchars(list, &len, &s, 0) )	/* string_to_list(S, []). */
-    return PL_unify_string_nchars(str, len, s);
-  if ( PL_get_nchars(list, &len, &s, CVT_ALL) )
-    return PL_unify_string_nchars(str, len, s);
+  if ( PL_get_text(str, &t, CVT_ALL) )
+    return PL_unify_text(list, &t, PL_CODE_LIST);
+  if ( PL_get_text(list, &t, CVT_STRING|CVT_LIST) )/* string_to_list(S, []). */
+    return PL_unify_text(str, &t, PL_STRING);
+  if ( PL_get_text(list, &t, CVT_ALL) )
+    return PL_unify_text(str, &t, PL_STRING);
 
   return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
 }
