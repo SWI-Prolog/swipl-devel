@@ -15,7 +15,7 @@ interactive application simply by starting the program:
 \begin{code}
 machine% pl
 % /staff/jan/.plrc compiled 0.00 sec, 1,260 bytes
-Welcome to SWI-Prolog (Version 3.4.0)
+Welcome to SWI-Prolog (Version 4.0.3)
 Copyright (c) 1990-2000 University of Amsterdam. 
 Copy policy: GPL-2 (see www.gnu.org)
 
@@ -1082,6 +1082,9 @@ Hook into the tracer to list the code associated to a particular goal
 (SWI).
     \item [prolog_trace_interception/4]
 Hook into the tracer to handle trace-events (SWI).
+    \item [prolog:debug_control_hook/1]
+Hook in spy/1, nospy/1, nospyall/0 and debugging/0 to extend these
+control-predicates to higher-level libraries.
     \item [resource/3]
 Defines a new resource (not really a hook, but similar) (SWI).    
     \item [exception/3]

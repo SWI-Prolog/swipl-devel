@@ -137,6 +137,7 @@ suggest predicates from a keyword.
 \predicatesummary{dde_poke}{3}{Win32: POKE operation on DDE server}
 \predicatesummary{dde_unregister_service}{1}{Win32: Terminate a DDE service}
 \predicatesummary{debug}{0}{Test for debugging mode}
+\predicatesummary{debug_control_hook}{1}{\hook{prolog} Extend spy/1, etc.}
 \predicatesummary{debugging}{0}{Show debugger status}
 \predicatesummary{default_module}{2}{Get the default modules of a module}
 \predicatesummary{delete}{3}{Delete all matching members from a list}
