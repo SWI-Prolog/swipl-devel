@@ -19,7 +19,6 @@
 	, concat_atom/2
 	, term_to_atom/2
 	, int_to_atom/2
-	, gensym/2
 	, dwim_match/2
 	, source_file/1
 	, prolog_load_context/2
@@ -246,13 +245,6 @@ term_to_atom(Term, Atom) :-
 
 int_to_atom(Int, Atom) :-
 	int_to_atom(Int, 10, Atom).
-
-gensym(Base, Atom) :-
-	atom_concat($gs_, Base, Key),
-	flag(Key, Old, Old),
-	succ(Old, New),
-	flag(Key, _, New),
-	atom_concat(Base, New, Atom).
 
 dwim_match(A1, A2) :-
 	dwim_match(A1, A2, _).

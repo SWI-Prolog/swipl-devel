@@ -71,9 +71,13 @@ iso_message(representation_error(What)) -->
 iso_message(permission_error(Action, built_in_procedure, Pred)) -->
 	{ user_predicate_indicator(Pred, PI)
 	},
-	[ 'No permission to ~w built-in predicate `~p'''-[Action, PI], nl,
-	  'Use :- redefine_system_predicate(+Head) if redefinition is intended'
-	].
+	[ 'No permission to ~w built-in predicate `~p'''-[Action, PI] ],
+	(   {Action \== export}
+	->  [ nl,
+	      'Use :- redefine_system_predicate(+Head) if redefinition is intended'
+	    ]
+	;   []
+	).
 iso_message(permission_error(Action, Type, Object)) -->
 	[ 'No permission to ~w ~w `~p'''-[Action, Type, Object] ].
 iso_message(evaluation_error(Which)) -->

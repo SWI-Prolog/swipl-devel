@@ -922,21 +922,24 @@ $import_all([Head|Rest], Context, Source) :-
 $export_list(_, []) :- !.
 $export_list(Module, [Name/Arity|Rest]) :-
 	functor(Term, Name, Arity), !,
-	export(Module:Term),
+	catch(export(Module:Term), E, print_message(error, E)),
 	$export_list(Module, Rest).
-$export_list(_Module, [Term|_Rest]) :-
-	throw(error(type_error(predicate_indicator, Term), _)).
+$export_list(Module, [Term|Rest]) :-
+	print_message(error, type_error(predicate_indicator, Term)),
+	$export_list(Module, Rest).
 
 %	$consult_clauses(+File)
 %
 %	Read and record all clauses until the rest of the file.
 
 $consult_clauses(File) :-
+	repeat,
 	catch($consult_clauses2(File),
 	      E,
 	      (	  print_message(error, E),
-		  $consult_clauses(File)
-	      )).
+		  fail
+	      )), !.
+
 	      
 $consult_clauses2(File) :-
 	repeat,
