@@ -18,9 +18,10 @@ Installing from the source
 ==========================
 
 There are no longer special instructions  for installing SWI-Prolog from
-the sources. To  build  XPCE  though,   you  need  the  X11  development
-environment and the XPM and JPEG libraries.   Please visit the Twiki web
-on SWI-Prolog for details:
+the sources. Of course you do need  the development environment and some
+compatibility libraries (dlcompat, readline). To   build  XPCE, you also
+need the X11 development environment  and   the  XPM and JPEG libraries.
+Please visit the Twiki web on SWI-Prolog for details:
 
 	http://gollem.swi.psy.uva.nl/twiki/pl/bin/view/Porting/MacOSX
 
