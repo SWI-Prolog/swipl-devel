@@ -643,8 +643,8 @@ DVLIBDIRS=	lib lib/compatibility lib/dialog lib/draw lib/emacs lib/man \
 		lib/xref lib/english demo contrib contrib/rubik lib/trace
 DVIMGDIRS=	lib/dialog/bitmaps lib/trace/icons
 DVBOOTDIRS=	boot
-DVMISCFILES=	ChangeLog LICENCE
-RTMISC=		Defaults RT-LICENCE README README.RT
+DVMISCFILES=	ChangeLog 
+RTMISC=		Defaults COPYING README
 
 install:	dv-install
 
@@ -731,6 +731,7 @@ dv-lib:
 		$(PL) -f none -F none -g true \
 			-t "make_library_index('$(DVHOME)/prolog/lib')"
 		$(INSTALL_DATA) ../prolog/lib/Overview $(DVHOME)/prolog/lib
+		$(INSTALL_DATA) ../prolog/lib/trace/pltracer.hlp $(DVHOME)/prolog/lib/trace
 		@for d in $(DVIMGDIRS); do \
 		    if [ ! -d $(DVHOME)/prolog/$$d ]; then \
 		        mkdir $(DVHOME)/prolog/$$d; \

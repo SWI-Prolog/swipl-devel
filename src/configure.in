@@ -805,7 +805,15 @@ echo "	CFLAGS=$CWFLAGS $COFLAGS $CIFLAGS $CMFLAGS"
 echo "	LDFLAGS=$LDFLAGS"
 echo "	LIBS=$LIBS"
 
-AC_OUTPUT(Makefile rc/Makefile README.bin pl.1)
+OutputFiles="Makefile rc/Makefile README.bin pl.1"
+
+# Prepare the package configuration if present
+
+if test -r ../packages/Makefile.in; then
+  OutputFiles="$OutputFiles ../packages/Makefile"
+fi
+
+AC_OUTPUT($OutputFiles)
 
 
 

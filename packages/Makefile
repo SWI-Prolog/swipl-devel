@@ -1,6 +1,10 @@
+# Generated automatically from Makefile.in by configure.
 ################################################################
-# Very simplistic makefile to build all relevant packages
+# This Makefile is created from Makefile.in by the main Prolog
+# configuration in .../pl/src/configure.
 ################################################################
+
+prefix=/staff/jan
 
 PKG=	clib \
 	table \
@@ -8,7 +12,7 @@ PKG=	clib \
 	sgml/RDF \
 	xpce
 
-CONFIG=	./configure --enable-mt
+CONFIG=	./configure --enable-mt --prefix=$(prefix)
 
 all:	objects
 	

@@ -1,0 +1,51 @@
+The package directory  contains  a   subdirectory  for  each  SWI-Prolog
+package. Without packages, SWI-Prolog is called SWI-Prolog/lite.
+
+Building
+--------
+
+To build these packages, first build  and install SWI-Prolog itself This
+creates Makefile, copying some of the   configuration  settings from the
+SWI-Prolog configuration options.
+
+Now edit the PKG variable  in  Makefile   to  reflect  the  packages and
+options preferred. Then run
+
+	./configure
+	./make
+	./make install
+
+Provided packages
+-----------------
+
+(*) flagged packages are installed by default
+
+	# clib (*)
+	Common Unix process management (fork, exec, etc.) and socket
+	interface based on SWI-Prolog I/O streams.
+
+	# cpp (*)
+	C++ wrapper for foreign language interface
+
+	# db
+	Experimental interface for BerkeleyDB
+
+	# jasmine
+	Experimental interface for Jasmine OO DB.  Runs on Windows only
+	
+	# mp	
+	Interface to GNU GMP library for arbitrary precission arithmetic
+	First check the GMP requirements in the package!
+
+	# sgml and sgml/RDF (*)
+	XML, SGML and RDF parsers
+
+	# table (*)
+	Quick access to tabled information.  Can be used to access
+	read-only resources such as dictionaries
+
+	# xpce (*)
+	Graphical UI toolkit.  Includes editor for Prolog source and
+	graphical tracer for Prolog.
+	
+	
