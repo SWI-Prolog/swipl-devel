@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 1.9.1.  Added: Windows DDE   interface,  Added Unix/System-V (?)
+interface to dlopen() and friends to access shared objects dynamically.
+
 Version 1.9.0.  Incorporation of various  ports: md-netbsd.h, md-mswin.h
 and  md-msdos.h.   There  is  a  binary   distribution  for  Windows  in
 win-pl.tgz of the main ftp server (swi.psy.uva.nl).  The DOS and Windows
