@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Write out-of-range floating point numbers properly (Bart Demoen).
+
 VERSION 4.0.0
 =============
 
