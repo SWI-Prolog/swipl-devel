@@ -63,6 +63,7 @@
 				     button(file, @emacs_mode?buffers),
 	  -			   = button(file),
 	  find_file		   = key('\\C-x\\C-f') + button(file),
+	  new			   = button(file),
 	  save_buffer		   = key('\\C-x\\C-s') + button(file),
 	  save_as		   = button(file),
 	  print			   = button(file),
