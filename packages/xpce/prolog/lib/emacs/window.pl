@@ -714,12 +714,16 @@ make_idle_timer(T) :-
 	     new(Msg, message(T, send_hyper, editor, editor_idle_event))),
 	send(Msg, debug_class, service). 	% non-traceable
 
+
 editor_idle_event(E) :->
 	"Editor is idle"::
 	get(E, mode, Mode),
 	Mode \== @nil,
 	send(Mode, has_send_method, idle),
-	send(Mode, idle).
+	get(E, window, Window),
+	get(Window, focus, @nil),	% only send event if no recognisers
+	send(Mode, idle).		% are active
+
 
 start_idle_timer(E, Interval:[real]) :->
 	"Reset the idle timer to timeout after the specified time"::

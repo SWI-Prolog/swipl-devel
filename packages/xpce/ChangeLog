@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: PceEmacs: do not signal ->idle when a gesture is in progress
+  (avoids re-colouring while waiting for the user to select a popup-entry).
+
 * FIXED: library(pce_style_item). Ferreira Maurizio.
 
 * ADDED: <->gap to graphical_browser (library(pce_graphical_browser)).
