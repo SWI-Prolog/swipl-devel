@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: at_end_of_stream/[0,1] to succeed if the next character to
+    read is end-of-file.  Thanks to Daniel Cote.
+
   * FIXED: Subframes when handling an exception themselves don't catch
     exceptions.
 

@@ -2074,7 +2074,9 @@ Succeeds after the last character of the current input stream has
 been read.  Also succeeds if there is no valid current input stream.
     \predicate{at_end_of_stream}{1}{+Stream}
 Succeeds after the last character of the named stream is read, or
-\arg{Stream} is not a valid input stream.
+\arg{Stream} is not a valid input stream.  The end-of-stream test
+is only available on buffered input stream (unbuffered input streams
+are rarely used, see open/4).
     \predicate{copy_stream_data}{3}{+StreamIn, +StreamOut, +Len}
 Copy \arg{Len} bytes from stream \arg{StreamIn} to \arg{StreamOut}.
     \predicate{copy_stream_data}{2}{+StreamIn, +StreamOut}

@@ -462,7 +462,24 @@ Sfwrite(const void *data, int size, int elms, IOSTREAM *s)
 
 int
 Sfeof(IOSTREAM *s)
-{ return (s->flags & SIO_FEOF) != 0;
+{ int c;
+
+  if ( s->flags & SIO_FEOF )
+    return TRUE;
+
+  if ( s->bufp < s->limitp )
+    return FALSE;
+
+  if ( s->flags & SIO_NBUF )
+  { errno = EINVAL;
+    return -1;
+  }
+
+  if ( (c=S__fillbuf(s)) == -1 )
+    return TRUE;
+
+  s->bufp--;
+  return FALSE;
 }
     
 

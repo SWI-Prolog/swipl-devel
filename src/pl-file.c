@@ -2330,7 +2330,13 @@ pl_at_end_of_stream1(term_t stream)
 { IOSTREAM *s;
 
   if ( getInputStream(stream, &s) )
-  { int rval = (Sfeof(s) ? TRUE : FALSE);
+  { int rval = Sfeof(s);
+
+    if ( rval < 0 )
+    { PL_error(NULL, 0, "not-buffered stream", ERR_PERMISSION,
+	       ATOM_end_of_stream, ATOM_stream, stream);
+      rval = FALSE;
+    }
     
     releaseStream(s);
     return rval;
