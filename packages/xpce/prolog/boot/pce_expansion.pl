@@ -244,7 +244,8 @@ pce_expandable((_Head :<- _Body)).
 %
 %	The XPCE kernel expansion.
 
-do_expand((:- pce_begin_class(Spec, Super, Doc)), []) :-
+do_expand((:- pce_begin_class(Spec, Super, Doc)),
+	  (:- pce_begin_class_definition(ClassName, MetaClass, Super, Doc))) :-
 	break_class_specification(Spec, ClassName, MetaClass, TermArgs),
 	push_class(ClassName),
 	set_attribute(ClassName, super, Super),

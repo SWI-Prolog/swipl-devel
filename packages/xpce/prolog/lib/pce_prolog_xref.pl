@@ -225,7 +225,11 @@ xref_used_class(Source, Class) :-
 
 xref_defined_class(Source, Class, local(Line, Super, Summary)) :-
 	canonical_source(Source, Src),
-	defined_class(Class, Super, Summary, Src, Line).
+	defined_class(Class, Super, Summary, Src, Line),
+	integer(Line), !.
+xref_defined_class(Source, Class, file(File)) :-
+	canonical_source(Source, Src),
+	defined_class(Class, _, _, Src, file(File)).
 
 collect(Src) :-
 	open_source(Src, Fd),
@@ -291,8 +295,6 @@ process((Head :- Body), Src) :- !,
 	process_body(Body, Head, Src).
 process('$source_location'(_File, _Line):Clause, Src) :- !,
 	process(Clause, Src).
-process(pce_principal:pce_class(Name, Meta, Super, _, _, Directs), Src) :- !,
-	assert_defined_class(Src, Name, Meta, Super, Directs).
 process(Head, Src) :-
 	assert_defined(Src, Head).
 
@@ -323,6 +325,11 @@ process_directive(multifile(Dynamic), Src) :-
 process_directive(module(Module, Export), Src) :-
 	assert_module(Src, Module),
 	assert_export(Src, Export).
+process_directive(pce_begin_class_definition(Name, Meta, Super, Doc), Src) :-
+	assert_defined_class(Src, Name, Meta, Super, Doc).
+process_directive(pce_autoload(Name, From), Src) :-
+	assert_defined_class(Src, Name, imported_from(From)).
+
 
 process_directive(op(P, A, N), _) :-
 	op(P, A, N).			% should be local ...
@@ -655,12 +662,15 @@ assert_used_class(Src, Name) :-
 
 assert_defined_class(Src, Name, _Meta, _Super, _) :-
 	defined_class(Name, _, _, Src, _), !.
-assert_defined_class(_, _, _, -, _) :- !.
-assert_defined_class(Src, Name, Meta, Super, Directives) :-
+assert_defined_class(_, _, _, -, _) :- !. 		% :- pce_extend_class
+assert_defined_class(Src, Name, Meta, Super, Summary) :-
 	flag(xref_src_line, Line, Line),
-	(   memberchk(send(@class, summary, Summary), Directives)
+	(   Summary == @default
+	->  Atom = ''
+	;   is_list(Summary)
+	->  atom_codes(Atom, Summary)
+	;   string(Summary)
 	->  atom_concat(Summary, '', Atom)
-	;   Atom = ''
 	),
 	assert(defined_class(Name, Super, Atom, Src, Line)),
 	(   Meta = @_
@@ -668,6 +678,11 @@ assert_defined_class(Src, Name, Meta, Super, Directives) :-
 	;   assert_used_class(Src, Meta)
 	),
 	assert_used_class(Src, Super).
+
+assert_defined_class(Src, Name, imported_from(_File)) :-
+	defined_class(Name, _, _, Src, _), !.
+assert_defined_class(Src, Name, imported_from(File)) :-
+	assert(defined_class(Name, _, '', Src, file(File))).
 
 
 		/********************************

@@ -50,6 +50,15 @@ prolog_edit:locate(class(ClassName), Location) :-	% class(Name)
 	get(@pce, convert, ClassName, class, Class),
 	\+ get(Class, creator, built_in),
 	source(Class, Location).
+prolog_edit:locate(SourceLoc, [file(File)|Extra]) :-
+	object(SourceLoc),
+	send(SourceLoc, instance_of, source_location),
+	get(SourceLoc, file_name, File),
+	(   get(SourceLoc, line_no, Line),
+	    Line \== @nil
+	->  Extra = [line(Line)]
+	;   Extra = []
+	).
 prolog_edit:locate(Object, Location) :-			% @reference
 	source(Object, Location).
 prolog_edit:locate(Object, Location) :-			% @reference
@@ -72,7 +81,6 @@ prolog_edit:(locate(->(Receiver, Selector), Location) :- !,
 	locate(send(Receiver, Selector), Location)).
 prolog_edit:(locate(<-(Receiver, Selector), Location) :- !,
 	locate(get(Receiver, Selector), Location)).
-
 
 source(Object, [file(Path)|T]) :-
 	object(Object),

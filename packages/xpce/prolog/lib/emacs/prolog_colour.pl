@@ -533,7 +533,7 @@ colourise_file_list([H|T], TB, [PH|PT]) :-
 %	Colourise an XPCE class.  
 
 colourise_class(ClassName, TB, Pos) :-
-	classify_class(ClassName, Classification),
+	classify_class(TB, ClassName, Classification),
 	colour_item(class(Classification, ClassName), TB, Pos).
 
 %	colourise_term_args(+Term, +TB, +Pos)
@@ -858,9 +858,12 @@ style(class(built_in,_),  style(colour	   := blue,
 				underline  := @on)).
 style(class(library(_),_),style(colour	   := navy_blue,
 				underline  := @on)).
+style(class(local(_,_,_),_),	  style(underline  := @on)).
 style(class(user(_),_),	  style(underline  := @on)).
 style(class(user,_),	  style(underline  := @on)).
 style(class(undefined,_), style(colour	   := red,
+				underline  := @on)).
+style(prolog_data,	  style(colour	   := blue,
 				underline  := @on)).
 
 style(identifier,	  style(bold       := @on)).
@@ -1045,6 +1048,10 @@ specified_item(pce_arg, new(X, T), TB,
 	specified_item(pce_new, T, TB, P2).
 specified_item(pce_arg, @Ref, TB, Pos) :- !,
 	colourise_term_arg(@Ref, TB, Pos).
+specified_item(pce_arg, prolog(Term), TB,
+	       term_position(_,_,FF,FT,[ArgPos])) :- !,
+	colour_item(prolog_data, TB, FF-FT),
+	colourise_term_arg(Term, TB, ArgPos).
 specified_item(pce_arg, Term, TB, Pos) :-
 	compound(Term),
 	Term \= [_|_], !,
@@ -1335,35 +1342,53 @@ make_prolog_mode_class_popup(G) :-
 	send_list(G, append,
 		  [ menu_item(edit,
 			      message(Fragment, edit),
-			      condition := message(Fragment, user_class)),
+			      condition := message(Fragment, has_source)),
 		    menu_item(edit_other_window,
 			      message(Fragment, edit, @on),
-			      condition := message(Fragment, user_class)),
+			      condition := message(Fragment, has_source)),
 		    gap,
 		    menu_item(documentation,
 			      message(Fragment, documentation))
 		  ]).
 
-user_class(F) :->
-	"Test if referenced class is non-builtin"::
+has_source(F) :->
+	"See if we can find the source-location"::
 	get(F, referenced_class, ClassName),
+	get(F, text_buffer, TB),
+	class_source(TB, ClassName, _Source).
+
+
+class_source(TB, ClassName, line(Line)) :-
+	xref_defined_class(TB, ClassName, local(Line, _, _)).
+class_source(_, ClassName, Source) :-
 	get(@pce, convert, ClassName, class, Class),
-	\+ get(Class, creator, built_in).
+	get(Class, source, Source),
+	Source \== @nil, !.
+class_source(_, ClassName, Source) :-
+	pce_library_class(ClassName, _, _Summary, Source).
+
 
 edit(F, NewWindow:[bool]) :->
 	"Open XPCE class [in new window]"::
 	get(F, referenced_class, ClassName),
-	(   get(@pce, convert, ClassName, class, Class)
-	->  (   get(Class, creator, built_in)
-	    ->	manpce(ClassName)
-	    ;	ensure_loaded(library(edit)),
-	        prolog_edit:locate(class(ClassName), Location),
-		memberchk(file(File), Location),
-		memberchk(line(Line), Location),
-		send(@emacs, goto_source_location,
-		     source_location(File, Line), NewWindow)
+	get(F, text_buffer, TB),
+	class_source(TB, ClassName, Source),
+	(   Source = line(Line)
+	->  (   NewWindow == @on
+	    ->	get(F, text_buffer, TB),
+		new(W2, emacs_frame(TB)),
+		send(W2?editor, goto_line, Line)
+	    ;	send(@emacs_mode, goto_line, Line)
 	    )
-	;   send(F, report, error, 'Class %s doesn''t exist', ClassName)
+	;   ensure_loaded(library(edit)),
+	    prolog_edit:locate(Source, _, Location),
+	    memberchk(file(File), Location),
+	    (	memberchk(line(Line), Location)
+	    ->	true
+	    ;	Line = @default
+	    ),
+	    send(@emacs, goto_source_location,
+		 source_location(File, Line), NewWindow)
 	).
 
 documentation(F) :->
@@ -1373,8 +1398,9 @@ documentation(F) :->
 
 identify(F) :->
 	"Provide identification"::
+	get(F, text_buffer, TB),
 	get(F, referenced_class, ClassName),
-	classify_class(ClassName, Classification),
+	classify_class(TB, ClassName, Classification),
 	identify_class(F, ClassName, Classification).
 
 identify_class(F, ClassName, built_in) :-
@@ -1382,6 +1408,10 @@ identify_class(F, ClassName, built_in) :-
 	send(F, report, status,
 	     string('XPCE system class %s: %s',
 		    ClassName, Summary)).
+identify_class(F, ClassName, local(Line, _Super, Summary)) :-
+	send(F, report, status,
+	     string('XPCE local (line %d) class %s: %s',
+		    Line, ClassName, Summary)), !.
 identify_class(F, ClassName, library(File)) :-
 	file_name_extension(Base, _, File),
 	pce_library_class(ClassName, _, Summary, _),
@@ -1412,10 +1442,12 @@ class_summary(ClassName, Summary) :-
 
 %	classify_class(+ClassName, -Classification).
 
-classify_class(Name, built_in) :-
+classify_class(_, Name, built_in) :-
 	get(@classes, member, Name, Class),
 	get(Class, creator, built_in), !.
-classify_class(Name, library(File)) :-
+classify_class(TB, Name, Class) :-
+	xref_defined_class(TB, Name, Class).
+classify_class(_, Name, library(File)) :-
 	pce_library_class(Name, _, _, FileSpec),
 	FileSpec = library(File),
 	(   get(@classes, member, Name, Class),
@@ -1426,17 +1458,17 @@ classify_class(Name, library(File)) :-
 			       File)
 	;   true
 	), !.
-classify_class(Name, user(File)) :-
+classify_class(_, Name, user(File)) :-
 	get(@classes, member, Name, Class),
 	get(Class, source, source_location(File, _Line)).
-classify_class(Name, user(File)) :-
+classify_class(_, Name, user(File)) :-
 	pce_prolog_class(Name),
 	pce_principal:pce_class(Name, _Meta, _Super, Attributes),
 	memberchk(send(@class, source, source_location(File, _Line)),
 		  Attributes), !.
-classify_class(Name, user) :-
+classify_class(_, Name, user) :-
 	get(@classes, member, Name, _), !.
-classify_class(_, undefined).
+classify_class(_, _, undefined).
 	
 :- pce_end_class(emacs_class_fragment).
 
@@ -1506,8 +1538,9 @@ identify_fragment(method(send), _, 'XPCE send method').
 identify_fragment(method(get), _, 'XPCE get method').
 identify_fragment(head(unreferenced), _, 'Unreferenced predicate').
 identify_fragment(head(exported), _, 'Exported (Public) predicate').
+identify_fragment(prolog_data, _, 'Pass Prolog term unmodified').
 identify_fragment(Class, _, Summary) :-
 	term_to_atom(Class, Summary).
 
-:- pce_end_class.
+:- pce_end_class(emacs_prolog_fragment).
 		   

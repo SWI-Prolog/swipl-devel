@@ -31,7 +31,10 @@
 
 :- module(editor_buttons, []).
 :- use_module(pce_boot(pce_principal)).
-:- use_module(pce_boot(pce_realise), [pce_register_class/1]).
+:- use_module(pce_boot(pce_realise),
+	      [ pce_register_class/1,
+		pce_begin_class_definition/4
+	      ]).
 
 make_editor_recogniser(G) :-
 	new(Editor, @event?receiver),

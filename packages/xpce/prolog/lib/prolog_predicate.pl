@@ -74,7 +74,7 @@ initialise(P, Term:prolog) :->
 
 convert(_, From:name, P:prolog_predicate) :<-
 	"Convert textual and Prolog term"::
-	term_to_atom(From, Term),
+	catch(term_to_atom(From, Term), _, fail),
 	(   (   Term = Module:Name/Arity
 	    ;	Term = Name/Arity
 	    )
@@ -95,11 +95,19 @@ print_name(P, PN:name) :<-
 	->  TheArity = '_'
 	;   TheArity = Arity
 	),
-	(   get(P, module, Module), Module \== @nil
+	(   get(P, module, Module),
+	    Module \== @nil,
+	    functor(Head, Name, Arity),
+	    \+ hidden_module(Module, Head)
 	->  concat_atom([Module, :, Name, /, TheArity], PN)
 	;   concat_atom([Name, /, TheArity], PN)
 	).
 	
+hidden_module(system, _).
+hidden_module(user, _).
+hidden_module(M, H) :-
+	predicate_property(system:H, imported_from(M)).
+
 head(P, Qualify:[bool], Head:prolog) :<-
 	"Get a head-term"::
 	get(P, module, Module),
@@ -144,6 +152,12 @@ source(P, Autoload:[bool], Loc:source_location) :<-
 	).
 	
 
+edit(P) :->
+	"Edit the predicate"::
+	get(P, head, @on, Head),
+	edit(Head).
+
+
 autoload(P, Module:[name]) :->
 	"Autoload the definition"::
 	get(P, head, @off, Term),
@@ -162,6 +176,10 @@ help(P) :->
 	get(P, head, @off, Head),
 	functor(Head, Name, Arity),
 	help(Name/Arity).
+
+has_help(P) :->
+	"See if there is help around"::
+	get(P, summary, _).
 
 summary(P, Summary:name) :<-
 	get(P, name, Name),

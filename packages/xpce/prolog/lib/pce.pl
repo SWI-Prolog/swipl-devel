@@ -68,6 +68,7 @@ reexports the content of these files.
 
 	    pce_register_class/1,
 	    pce_extended_class/1,
+	    pce_begin_class_definition/4,
 	    pce_prolog_class/1,
 	    pce_prolog_class/2,
 

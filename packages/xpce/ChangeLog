@@ -4,6 +4,9 @@
 VERSION 6.1.10, distributed with SWI-Prolog 5.1.10
 ==================================================
 
+* ENHANCED: many small changes to PceEmacs, cross-referencer and other parts
+  of the XPCE libraries dealing with Prolog itself.
+
 * MODIFIED: moved library(emacs/prolog_xref) to library(pce_prolog_xref) for
   better library structure.
 

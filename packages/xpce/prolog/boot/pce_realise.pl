@@ -33,6 +33,7 @@
 	  [ pce_register_class/1,	% +ClassName
 	    pce_extended_class/1,	% +ClassName
 	    pce_realise_class/1,	% +ClassName
+	    pce_begin_class_definition/4,% +ClassName, +Meta, +Super, +Summary
 	    pce_prolog_class/1,		% ?ClassName
 	    pce_prolog_class/2		% ?ClassName, ?SuperName
 	  ]).
@@ -65,6 +66,14 @@ pce_extended_class(ClassName) :-
 	resolve_method_message(Msg),
 	send(Class, resolve_method_message, Msg).
 pce_extended_class(_).
+
+
+%	pce_begin_class_definition(+ClassName, +Meta, +Super, +Summary)
+%	
+%	Dummy to allow cross-referencing and other tools to locates
+%	class-definitions after term-expansion.
+
+pce_begin_class_definition(_,_,_,_).
 
 
 		 /*******************************

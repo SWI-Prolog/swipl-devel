@@ -127,6 +127,11 @@ append(TD,
 	),
 	send(Table, append, TC).
 
+clear(TD) :->
+	"Delete all rows"::
+	get(TD, table, Table),
+	send(Table, delete_rows).
+
 :- pce_group(label).
 
 append_label_button(TD, Field:name) :->
