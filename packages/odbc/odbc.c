@@ -122,6 +122,7 @@ static functor_t FUNCTOR_column3;
 static functor_t FUNCTOR_access_mode1;
 static functor_t FUNCTOR_cursor_type1;
 static functor_t FUNCTOR_silent1;
+static functor_t FUNCTOR_findall2;	/* findall(Term, row(...)) */
 
 #define SQL_PL_DEFAULT  0		/* don't change! */
 #define SQL_PL_ATOM	1		/* return as atom */
@@ -134,6 +135,8 @@ static functor_t FUNCTOR_silent1;
 #define SQL_PL_TIMESTAMP 8		/* return as timestamp/7 structure */
 
 #define PARAM_BUFSIZE sizeof(double)
+
+typedef unsigned long code;
 
 typedef struct
 { SWORD        cTypeID;			/* C type of value */
@@ -162,6 +165,7 @@ typedef struct
     functor_t functor;			/* as functor */
     record_t record;			/* as term */
   } nullvalue;
+  int references;			/* reference count */
 } nulldef;				/* Prolog's representation of NULL */
 
 typedef struct connection
@@ -189,6 +193,7 @@ typedef struct
   char        *sqltext;			/* statement text */
   unsigned     flags;			/* general flags */
   nulldef     *null;			/* Prolog null value */
+  code	      *make_result;		/* compiled code to create result */
   struct context *clones;		/* chain of clones */
 } context;
 
@@ -523,13 +528,24 @@ nulldef_spec(term_t t)
     nd->nullvalue.record = PL_record(t);  
   }
 
+  nd->references = 1;
+
+  return nd;
+}
+
+
+static nulldef *
+clone_nulldef(nulldef *nd)
+{ if ( nd )
+    nd->references++;
+
   return nd;
 }
 
 
 static void
 free_nulldef(nulldef *nd)
-{ if ( nd )
+{ if ( nd && --nd->references == 0 )
   { switch(nd->nulltype)
     { case NULL_ATOM:
 	PL_unregister_atom(nd->nullvalue.atom);
@@ -602,7 +618,6 @@ is_sql_null(term_t t, nulldef *nd)
 #define MAXCODES 256
 #define ROW_ARG  1024			/* way above Prolog types */
 
-typedef unsigned long code;
 typedef struct
 { term_t row;				/* the row */
   term_t tmp;				/* scratch term */
@@ -637,8 +652,8 @@ compile(compile_info *info, term_t t)
     { int nth;
 
       if ( (nth=nth_row_arg(info, t)) )
-	ADDCODE_1(info, ROW_ARG, nth);
-      else
+      { ADDCODE_1(info, ROW_ARG, nth);
+      } else
 	ADDCODE(info, PL_VARIABLE);
       break;
     }
@@ -668,10 +683,11 @@ compile(compile_info *info, term_t t)
       PL_get_functor(t, &f);
       arity = PL_functor_arity(f);
       ADDCODE_1(info, PL_FUNCTOR, f);
-      for(i=0; i<arity; i++)
+      for(i=1; i<=arity; i++)
       { PL_get_arg(i, t, a);
 	compile(info, a);
       }
+      break;
     }
     default:
       assert(0);
@@ -693,6 +709,7 @@ compile_allspec(term_t all)
   PL_get_arg(1, all, t);
   PL_get_arg(2, all, info.row);
   PL_get_name_arity(info.row, &a, &info.columns);
+  compile(&info, t);
   
   codes = malloc(sizeof(code)*info.size);
   memcpy(codes, info.buf, sizeof(code)*info.size);
@@ -701,51 +718,49 @@ compile_allspec(term_t all)
 }
 
 
-static int
+static code *
 build_term(context *ctxt, code *PC, term_t result)
 { switch((int)*PC++)
   { case PL_VARIABLE:
-      return TRUE;
-    case ROW_ARG:
-      return pl_put_column(ctxt, (int)*PC++, result);
+      return PC;
+    case ROW_ARG:			/* 1-based column */
+    { int column = (int)*PC++;
+      if ( pl_put_column(ctxt, column-1, result) )
+	return PC;
+      return NULL;
+    }
     case PL_ATOM:
     { PL_put_atom(result, (atom_t)*PC++);
-      return TRUE;
+      return PC;
     }
     case PL_INTEGER:
     { PL_put_integer(result, (long)*PC++);
-      return TRUE;
+      return PC;
     }
     case PL_TERM:
     { PL_put_term(result, (term_t)*PC++);
-      return TRUE;
+      return PC;
     }
     case PL_FUNCTOR:
     { functor_t f = (functor_t)*PC++;
-      int i = PL_functor_arity(f);
-      term_t av = PL_new_term_refs(i);
+      int i, arity = PL_functor_arity(f);
+      term_t av = PL_new_term_refs(arity);
 
-      for(;i>0;i--)
-      { if ( !build_term(ctxt, PC, av+i) )
-	  return FALSE;
+      for(i=0;i<arity;i++)
+      { if ( !(PC=build_term(ctxt, PC, av+i)) )
+	  return NULL;
       }
 
       PL_cons_functor_v(result, f, av);
       PL_reset_term_refs(av);
+      return PC;
     }
     default:
       assert(0);
-      return FALSE;
+      return NULL;
   }
 }
 
-
-static int
-put_all_row(context ctxt, term_t result)
-{ 
-
-  return TRUE;
-}
 
 
 		 /*******************************
@@ -1325,6 +1340,8 @@ free_context(context *ctx)
     free(ctx->sqltext);
   if ( true(ctx, CTX_OWNNULL) )
     free_nulldef(ctx->null);
+  if ( ctx->make_result )		/* TBD: Clone! */
+    free(ctx->make_result);
   free(ctx);
 
   statistics.statements_freed++;
@@ -1336,7 +1353,7 @@ clone_context()
 
 Create a clone of a context, so we   can have the same statement running
 multiple times. Is there really no better   way  to handle this? Can't I
-have multiple cursors on a statement?
+have multiple cursors on one statement?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static context *
@@ -1413,6 +1430,7 @@ clone_context(context *in)
     }
   }
 
+  new->null = clone_nulldef(in->null);
 
   return new;
 }
@@ -1561,6 +1579,31 @@ odbc_row(context *ctxt, term_t trow)
     return TRUE;			/* no results defined */
   }
 
+  if ( ctxt->make_result )
+  { term_t tail = PL_copy_term_ref(trow);
+    term_t head = PL_new_term_ref();
+    term_t tmp  = PL_new_term_ref();
+
+    for(;;)
+    { ctxt->rc = SQLFetch(ctxt->hstmt);
+      
+      switch(ctxt->rc)
+      { case SQL_NO_DATA_FOUND:
+	  return PL_unify_nil(tail);
+	case SQL_SUCCESS:
+	  break;
+	default:
+	  if ( !report_status(ctxt) )
+	    return FALSE;
+      }
+      
+      if ( !PL_unify_list(tail, head, tail) ||
+	   !build_term(ctxt, ctxt->make_result, tmp) ||
+	   !PL_unify(head, tmp) )
+	return FALSE;
+    }      
+  }
+
   for(;;)
   { TRY(ctxt, SQLFetch(ctxt->hstmt));
 
@@ -1630,6 +1673,8 @@ set_statement_options(context *ctxt, term_t options)
 
 	if ( val )
 	  set(ctxt, CTX_SOURCE);
+      } else if ( PL_is_functor(head, FUNCTOR_findall2) )
+      { ctxt->make_result = compile_allspec(head);
       } else
 	return domain_error(head, "odbc_option");
     }
@@ -2473,6 +2518,7 @@ install_odbc4pl()
    FUNCTOR_access_mode1		 = MKFUNCTOR("access_mode", 1);
    FUNCTOR_cursor_type1		 = MKFUNCTOR("cursor_type", 1);
    FUNCTOR_silent1		 = MKFUNCTOR("silent", 1);
+   FUNCTOR_findall2		 = MKFUNCTOR("findall", 2);
 
    DET("odbc_connect",		   3, pl_odbc_connect);
    DET("odbc_disconnect",	   1, pl_odbc_disconnect);

@@ -316,6 +316,12 @@ same_mark(Name1, Name2) :-
 	db_mark(Name2, Mark2),
 	Mark1 == Mark2.
 
+marks(L) :-
+	open_db,
+	odbc_query(test,
+		   'select * from marks', L,
+		   [findall(mark(X,Y), row(X,Y))]).
+
 		 /*******************************
 		 *	     FEEDBACK		*
 		 *******************************/
