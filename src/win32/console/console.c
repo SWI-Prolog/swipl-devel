@@ -197,7 +197,7 @@ static void	rlc_copy(RlcData b);
 static void	rlc_destroy(RlcData b);
 static void	rlc_request_redraw(RlcData b);
 static void	rlc_redraw(RlcData b);
-static int	rlc_breakargs(TCHAR *program, TCHAR *line, TCHAR **argv);
+static int	rlc_breakargs(TCHAR *line, TCHAR **argv);
 static void	rlc_resize(RlcData b, int w, int h);
 static void	rlc_adjust_line(RlcData b, int line);
 static int	text_width(RlcData b, HDC hdc, const TCHAR *text, int len);
@@ -363,6 +363,18 @@ rlc_window_class(HICON icon)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+There are two ways to get the commandline.   It  is passed to WinMain as
+8-bit string. This version does *not* include  the command itself. It is
+also available through GetCommandLine(), which  does include the command
+itself and returns LPTSTR (Unicode/ANSI). We assume the latter.
+
+Nevertheless, for backward compatibility as well  as easy to extract the
+full pathname of the  executable,  we   replace  argv[0]  with  the long
+filename version of the current module, so argv[0] is guaranteed to be a
+full path refering to the .exe file.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 rlc_main(HANDLE hInstance, HANDLE hPrevInstance,
 	 LPTSTR lpszCmdLine, int nCmdShow,
@@ -382,13 +394,13 @@ rlc_main(HANDLE hInstance, HANDLE hPrevInstance,
 
   GetModuleFileName(hInstance, program, sizeof(program));
   rlc_long_name(program);
-  rlc_progbase(program, progbase);
+  argc = rlc_breakargs(lpszCmdLine, argv);
+  argv[0] = program;
+  rlc_progbase(argv[0], progbase);
 
   memset(&attr, 0, sizeof(attr));
   _rlc_program = attr.title = progbase;
   _rlc_stdio = b = rlc_create_console(&attr);
-
-  argc = rlc_breakargs(program, lpszCmdLine, argv);
 
   if ( mainfunc )
     return (*mainfunc)(b, argc, argv);
@@ -768,17 +780,15 @@ rlc_get_options(rlc_console_attr *attr)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Windows-'95 appears to quote names of files   (I guess because files may
-hold spaces).  rlc_breakargs()  will  pass  a   quoted  strings  as  one
-argument.  If it can't find the closing   quote, it will tread the quote
-as a normal character.
+Windows-'95 appears to quote  names  of   files  because  files may hold
+spaces. rlc_breakargs() will pass a quoted   strings as one argument. If
+it can't find the closing quote, it  will   tread  the quote as a normal
+character.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-rlc_breakargs(TCHAR *program, TCHAR *line, TCHAR **argv)
-{ int argc = 1;
-
-  argv[0] = program;
+rlc_breakargs(TCHAR *line, TCHAR **argv)
+{ int argc = 0;
 
   while(*line)
   { int q;
