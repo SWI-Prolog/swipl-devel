@@ -13,6 +13,11 @@
 		*        XMALLOC/XREALLOC	*
 		********************************/
 
+#ifdef HAVE_DMALLOC_H
+#undef xmalloc
+#undef xrealloc
+#endif
+
 void *
 xmalloc(size_t nbytes)
 { void *rval = pceMalloc(nbytes);
