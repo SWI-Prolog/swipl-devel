@@ -144,3 +144,6 @@
 
 /* we have fcntl() and it supports F_SETLKW */
 #undef FCNTL_LOCKS
+
+/* String used to prefix all symbols requested through dlsym() */
+#undef LD_SYMBOL_PREFIX

@@ -204,12 +204,27 @@ pl_call_shared_object_function(term_t plhandle, term_t name)
        !PL_get_chars_ex(name, &fname, CVT_ALL) )
     fail;
   
-  if ( !(ef = (dl_funcptr) dlsym(e->dlhandle, fname)) )
+#ifdef LD_SYMBOL_PREFIX
+  { char symname[MAXSYMBOLLEN+1];
+    
+    if ( strlen(fname)+strlen(LD_SYMBOL_PREFIX) > MAXSYMBOLLEN )
+      return PL_error(NULL, 0,
+		      "Symbol too long",
+		      ERR_REPRESENTATION,
+		      PL_new_atom("symbol"));
+
+    strcpy(symname, LD_SYMBOL_PREFIX);
+    strcat(symname, fname);
+    ef = (dl_funcptr) dlsym(e->dlhandle, symname);
+  }
+#else
+  ef = (dl_funcptr) dlsym(e->dlhandle, fname);
+#endif
+  if ( ef )
+  { (*ef)();
+    succeed;
+  } else
     fail;
-
-  (*ef)();
-
-  succeed;
 }
 
 #else /*HAVE_DLOPEN*/

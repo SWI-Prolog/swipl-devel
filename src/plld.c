@@ -171,6 +171,7 @@ static char *plld;			/* Thats me! */
 
 static char *plbase;			/* Prolog home */
 static char *plarch;			/* Prolog architecture id */
+static char *plexe;			/* Path to the executable */
 
 static char *plgoal;			/* -g goal */
 static char *pltoplevel;		/* -t goal */
@@ -918,6 +919,9 @@ getPrologOptions()
     }
 
     pclose(fd);
+
+    sprintf(buf, "%s/%s/pl", plbase, plarch);
+    defaultPath(&plexe, buf);
   } else
   { fprintf(stderr, "%s: failed to run %s: %s", plld, cmd, oserror());
     error(1);
@@ -1139,7 +1143,10 @@ linkSharedObject()
   concatArgList(&ldoptions, "-l", &libs);	/* libraries */
   concatArgList(&ldoptions, "-l", &lastlibs);	/* libraries */
 #else /*__CYGWIN32__*/
-  prependArgList(&ldoptions, SO_LDFLAGS);
+{ char tmp[MAXPATHLEN];
+  sprintf(tmp, SO_LDFLAGS, plexe);
+  prependArgList(&ldoptions, tmp);
+}
   prependArgList(&ldoptions, soout);
   prependArgList(&ldoptions, "-o");		/* -o ctmp */
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
