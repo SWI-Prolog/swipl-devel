@@ -968,6 +968,8 @@ replay_action(rdf_load(_, File, Options)) :-
 	    assert(rdf_db:rdf_source(Path, Modified, 0, MD5))
 	;   rdf_load(Path)
 	).
+replay_action(rdf_unload(_, Source)) :-
+	rdf_unload(Source).
 replay_action(ns(_, register(ID, URI))) :- !,
 	rdf_register_ns(ID, URI).
 replay_action(ns(_, unregister(ID, URI))) :-

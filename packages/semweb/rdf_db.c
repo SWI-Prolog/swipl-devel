@@ -1595,6 +1595,11 @@ md5_triple(triple *t, md5_byte_t *digest)
   md5_append(&state, tmp, 2);
   s = PL_atom_nchars(t->object, &len);
   md5_append(&state, (const md5_byte_t *)s, len);
+  if ( t->source )
+  { md5_append(&state, "S", 2);
+    s = PL_atom_nchars(t->source, &len);
+    md5_append(&state, (const md5_byte_t *)s, len);
+  }
   
   md5_finish(&state, digest);
 }
