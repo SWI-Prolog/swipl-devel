@@ -1049,6 +1049,7 @@ struct clause_ref
 #define CA1_FLOAT	5	/* next 2 are double */
 #define CA1_STRING	6	/* inlined string */
 #define CA1_MODULE	7	/* a module */
+#define CA1_VAR		8	/* a variable(-offset) */
 
 typedef struct
 { char		*name;		/* name of the code */

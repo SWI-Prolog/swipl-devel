@@ -22,10 +22,6 @@ forwards void		leaveForeignFrame(LocalFrame);
 
 #if COUNTING
 
-forwards void	countHeader(void);
-forwards void	countArray(char *, int *);
-forwards void	countOne(char *, int);
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The counting code has been added while investigating the  time  critical
 WAM  instructions.   I'm afraid it has not been updated correctly since.
@@ -33,148 +29,101 @@ Please  check  the  various  counting  macros  and  their  usage  before
 including this code.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static
-struct
-{ int i_nop;
-  int h_const_n[256];
-  int b_const_n[256];
-  int h_sint[256];
-  int b_sint[256];
-  int h_nil;
-  int h_var_n[256];
-  int b_var_n[256];
-  int b_argvar_n[256];
-  int h_firstvar_n[256];
-  int b_firstvar_n[256];
-  int b_argfirstvar_n[256];
-  int h_void;
-  int b_void;
-  int h_functor;
-  int h_list;
-  int b_functor;
-  int i_pop;
-  int i_pop_n[256];
-  int i_enter;
-#if O_BLOCK
-  int i_cut_block;
-  int b_exit;
-#endif
-  int i_cut;
-  int i_usercall0;
-  int i_usercalln[256];
-  int i_apply;
-  int i_depart;
-  int i_call;
-  int i_exit;
-  int i_exitfact;
-  int d_break;
-#if O_COMPILE_ARITH
-  int a_indirect;
-  int a_func0[256];
-  int a_func1[256];
-  int a_func2[256];
-  int a_func[256];
-  int a_lt;
-  int a_le;
-  int a_gt;
-  int a_ge;
-  int a_eq;
-  int a_ne;
-  int a_is;
-#endif /* O_COMPILE_ARITH */
-#if O_COMPILE_OR
-  int c_or[256];
-  int c_jmp[256];
-  int c_mark[256];
-  int c_cut[256];
-  int c_ifthenelse[512];
-  int c_fail;
-  int c_end;
-#endif /* O_COMPILE_OR */
-  int i_fail;
-  int i_true;
-} counting;
+typedef struct
+{ code  code;
+  int	times;
+  int  *vartimesptr;
+} count_info;
 
-forwards void countHeader();
-forwards void countOne();
-forwards void countArray();
+#define MAXVAR 8
 
-word
-pl_count()
-{ countHeader();
-  countArray("H_CONST", 	counting.h_const_n);  
-  countArray("B_CONST", 	counting.b_const_n);  
-  countArray("B_INDIRECT",	counting.b_indirect_n);  
-  countOne(  "H_NIL", 		counting.h_nil);
-  countArray("H_VAR", 		counting.h_var_n);  
-  countArray("B_VAR", 		counting.b_var_n);  
-  countArray("B_ARGVAR", 	counting.b_argvar_n);  
-  countArray("H_FIRSTVAR", 	counting.h_firstvar_n);  
-  countArray("B_FIRSTVAR", 	counting.b_firstvar_n);  
-  countArray("B_ARGFIRSTVAR", 	counting.b_argfirstvar_n);  
-  countOne(  "H_VOID", 		counting.h_void);
-  countOne(  "B_VOID", 		counting.b_void);
-  countOne(  "H_FUNCTOR", 	counting.h_functor_n);  
-  countOne(  "H_LIST", 		counting.h_list);  
-  countOne(  "B_FUNCTOR", 	counting.b_functor_n);  
-  countOne(  "I_POPF", 		counting.i_pop);
-  countOne(  "I_ENTER", 	counting.i_enter);
-  countOne(  "I_CONTEXT", 	counting.i_context);
-#if O_BLOCK
-  countOne(  "I_CUT_BLOCK",	counting.i_cut_block);
-  countOne(  "B_EXIT",		counting.b_exit);
-#endif
-  countOne(  "I_CUT", 		counting.i_cut);
-  countOne(  "I_USERCALL0", 	counting.i_usercall0);
-  countArray("I_USERCALLN",	counting.i_usercalln);
-  countOne(  "I_APPLY", 	counting.i_apply);
-  countOne(  "I_DEPART", 	counting.i_depart);
-  countOne(  "I_CALL", 		counting.i_call);
-  countOne(  "I_EXIT", 		counting.i_exit);
-  countOne(  "I_EXITFACT",	counting.i_exitfact);
-  countOne(  "D_BREAK",		countOne.d_break);
-  countOne(  "I_FAIL",		countOne.i_fail);
-  countOne(  "I_TRUE",		countOne.i_true);
+static count_info counting[I_HIGHEST];
 
-  succeed;
+static void
+count(code c, Code PC)
+{ const code_info *info = &codeTable[c];
+
+  counting[c].times++;
+  switch(info->argtype)
+  { case CA1_VAR:
+    { int v = (int)*PC;
+      
+      v -= ARGOFFSET/sizeof(word);
+      assert(v>=0);
+      if ( v >= MAXVAR )
+	v = MAXVAR-1;
+
+      if ( !counting[c].vartimesptr )
+      { int bytes = sizeof(int)*MAXVAR;
+
+	counting[c].vartimesptr = allocHeap(bytes);
+	memset(counting[c].vartimesptr, 0, bytes);
+      }
+      counting[c].vartimesptr[v]++;
+    }
+  }
 }
+
 
 static void
 countHeader()
 { int m;
+  int amax = MAXVAR;
+  char last[20];
 
-  Sdprintf("%13s: ", "Instruction");
-  for(m=0; m < 20; m++)
-    Sdprintf("%8d", m);
-  Sdprintf("\n");
-  for(m=0; m<(15+20*8); m++)
-    Sdprintf("=");
-  Sdprintf("\n");
+  Sfprintf(Scurout, "%-13s %8s ", "Instruction", "times");
+  for(m=0; m < amax-1; m++)
+    Sfprintf(Scurout, " %8d", m);
+  Ssprintf(last, ">%d", m);
+  Sfprintf(Scurout, " %8s\n", last);
+  for(m=0; m<(31+amax*8); m++)
+    Sputc('=', Scurout);
+  Sfprintf(Scurout, "\n");
 }  
 
-static void
-countArray(char *s, int *array)
-{ int n, m;
 
-  for(n=255; array[n] == 0; n--) ;
-  Sdprintf("%13s: ", s);
-  for(m=0; m <= n; m++)
-    Sdprintf("%8d", array[m]);
-  Sdprintf("\n");
+static int
+cmpcounts(const void *p1, const void *p2)
+{ const count_info *c1 = p1;
+  const count_info *c2 = p2;
+  
+  return c2->times - c1->times;
 }
 
-static void
-countOne(char *s, int i)
-{ Sdprintf("%13s: %8d\n", s, i);
+
+word
+pl_count()
+{ int i;
+  count_info counts[I_HIGHEST];
+  count_info *c;
+
+  countHeader();
+
+  memcpy(counts, counting, sizeof(counts));
+  for(i=0, c=counts; i<I_HIGHEST; i++, c++)
+    c->code = i;
+  qsort(counts, I_HIGHEST, sizeof(count_info), cmpcounts);
+
+  for(c = counts, i=0; i<I_HIGHEST; i++, c++)
+  { const code_info *info = &codeTable[c->code];
+
+    Sfprintf(Scurout, "%-13s %8d ", info->name, c->times);
+    if ( c->vartimesptr )
+    { int n, m=MAXVAR;
+
+      while(m>0 && c->vartimesptr[m-1] == 0 )
+	m--;
+      for(n=0; n<m; n++)
+	Sfprintf(Scurout, " %8d", c->vartimesptr[n]);
+    }
+    Sfprintf(Scurout, "\n");
+  }
+
+  succeed;
 }
 
-#define COUNT_N(name)  { counting.name[*PC]++; }
-#define COUNT_2N(name) { counting.name[*PC]++; counting.name[PC[1]+256]++; }
-#define COUNT(name)    { counting.name++; }
 #else /* ~COUNTING */
-#define COUNT_N(name)
-#define COUNT_2N(name)
-#define COUNT(name)
+#define count(id, pc)
 #endif /* COUNTING */
 
 
@@ -1548,7 +1497,7 @@ pl-comp.c
     NULL
   };
 
-#define VMI(Name, Count, Msg)	Name ## _LBL: Count; DEBUG(8, Sdprintf Msg);
+#define VMI(Name)	Name ## _LBL: count(Name, PC);
 #if VMCODE_IS_ADDRESS
 #define NEXT_INSTRUCTION	goto *(void *)((long)(*PC++))
 #else
@@ -1559,7 +1508,7 @@ pl-comp.c
 
 code thiscode;
 
-#define VMI(Name, Count, Msg)	case Name: Count; DEBUG(8, Sdprintf Msg);
+#define VMI(Name)	case Name: count(Name, PC);
 #define NEXT_INSTRUCTION	goto next_instruction
 
 #endif /* O_LABEL_ADDRESSES */
@@ -1671,7 +1620,7 @@ We might be in a state where  we   are  writing  the arguments above the
 current lTop, and therefore with higher this  with the maximum number of
 arguments.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(D_BREAK, COUNT(d_break), ("d_break\n"))
+    VMI(D_BREAK)
 #if O_DEBUGGER
     if ( debugstatus.debugging )
     { int action;
@@ -1698,7 +1647,7 @@ arguments.
 #endif      
 #endif /*O_DEBUGGER*/
 
-    VMI(I_NOP, COUNT(i_nop), ("i_nop\n"))
+    VMI(I_NOP)
 	NEXT_INSTRUCTION;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1708,12 +1657,12 @@ constant argument.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   { word c;
-    register Word k;					MARK(HCONST);
+    Word k;						MARK(HCONST);
 
-    VMI(H_CONST,	COUNT_N(h_const_n),	("h_const %d\n", *PC))
+    VMI(H_CONST)
 	c = (word)*PC++;
 	goto common_hconst;
-    VMI(H_NIL,		COUNT(h_nil),		("h_nil\n"))
+    VMI(H_NIL)
         c = ATOM_nil;
 
   common_hconst:
@@ -1733,7 +1682,7 @@ constant argument.
 variable, compare the numbers otherwise.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    VMI(H_INTEGER,	COUNT(h_integer), ("h_integer %s\n", *PC)) MARK(HINT)
+    VMI(H_INTEGER) MARK(HINT)
       { register Word k;
 
 	deRef2(ARGP++, k);
@@ -1752,7 +1701,7 @@ variable, compare the numbers otherwise.
       	CLAUSE_FAILED;
       }  
 
-    VMI(H_FLOAT,	COUNT(h_float), ("h_float\n")) MARK(HFLOAT)
+    VMI(H_FLOAT) MARK(HFLOAT)
       { register Word k;
 
 	deRef2(ARGP++, k);
@@ -1780,7 +1729,7 @@ variable, compare the numbers otherwise.
 General indirect in the head.  Used for strings only at the moment.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    VMI(H_INDIRECT, COUNT(h_indirect), ("h_indirect %d\n", *PC)) MARK(HINDIR);
+    VMI(H_INDIRECT) MARK(HINDIR);
       { register Word k;
 
 	deRef2(ARGP++, k);
@@ -1800,11 +1749,11 @@ pointing  to  a  not  yet  instantiated  argument  of the next frame and
 therefore can just fill the argument.  Trailing is not needed as this is
 above the stack anyway.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(B_CONST, COUNT_N(b_const_n), ("b_const %d\n", *PC)) MARK(BCONST);
+    VMI(B_CONST) MARK(BCONST);
       { *ARGP++ = (word)*PC++;
 	NEXT_INSTRUCTION;
       }
-    VMI(B_NIL, COUNT(b_nil), ("b_nil\n")) MARK(BNIL);
+    VMI(B_NIL) MARK(BNIL);
       { *ARGP++ = ATOM_nil;
         NEXT_INSTRUCTION;
       }
@@ -1814,7 +1763,7 @@ above the stack anyway.
 global stack and assign the pointer to *ARGP.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    VMI(B_INTEGER,	COUNT(b_integer), ("b_integer %s\n", *PC)) MARK(BINT)
+    VMI(B_INTEGER) MARK(BINT)
       { Word p = allocGlobal(3);
 
 	*ARGP++ = consPtr(p, TAG_INTEGER|STG_GLOBAL);
@@ -1829,7 +1778,7 @@ Double  in  the  body.  Simply  copy  to  the  global  stack.  See  also
 globalReal().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    VMI(B_FLOAT,	COUNT(b_float), ("b_float\n")) MARK(BINT)
+    VMI(B_FLOAT) MARK(BINT)
       { Word p = allocGlobal(4);
 
 	*ARGP++ = consPtr(p, TAG_FLOAT|STG_GLOBAL);
@@ -1845,7 +1794,7 @@ globalReal().
 B_INDIRECT need to copy the  value  on   the  global  stack  because the
 XR-table might be freed due to a retract.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(B_INDIRECT, COUNT_N(b_indirect), ("b_indirect %d\n", *PC)) MARK(BIDT);
+    VMI(B_INDIRECT) MARK(BIDT);
       { *ARGP++ = globalIndirectFromCode(&PC);
 	NEXT_INSTRUCTION;
       }
@@ -1859,7 +1808,7 @@ Its doubtfull whether inlining (the simple   cases)  is worthwhile. I've
 tested this on various platforms, and   the  results vary. Simplicity is
 probably worth more than the 0.001% performance to gain.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(H_VAR, COUNT_N(h_var_n), ("h_var %d\n", *PC)) MARK(HVAR);
+    VMI(H_VAR) MARK(HVAR);
       { Word p1 = varFrameP(FR, *PC++);
 	Word p2 = ARGP++;
 
@@ -1877,7 +1826,7 @@ of the reference link in case *k turns out to be variable.
 
 ARGP is pointing into the term on the global stack we are creating.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(B_ARGVAR, COUNT_N(b_argvar_n), ("b_argvar %d\n", *PC)) MARK(BAVAR);
+    VMI(B_ARGVAR) MARK(BAVAR);
       { Word k;
 
 	deRef2(varFrameP(FR, *PC++), k);	
@@ -1905,13 +1854,13 @@ above the stack.
 #define BODY_VAR(n)   { *ARGP++ = linkVal(varFrameP(FR, (n))); \
 			NEXT_INSTRUCTION; \
 		      }
-    VMI(B_VAR, COUNT_N(b_var_n), ("b_var %d\n", *PC)) MARK(BVARN);
+    VMI(B_VAR) MARK(BVARN);
       BODY_VAR(*PC++);
-    VMI(B_VAR0, COUNT(b_var_n[9]), ("b_var 9\n")) MARK(BVAR0);
+    VMI(B_VAR0) MARK(BVAR0);
       BODY_VAR(ARGOFFSET / sizeof(word));
-    VMI(B_VAR1, COUNT(b_var_n[10]), ("b_var 10\n")) MARK(BVAR1);
+    VMI(B_VAR1) MARK(BVAR1);
       BODY_VAR(1 + ARGOFFSET / sizeof(word));
-    VMI(B_VAR2, COUNT(b_var_n[11]), ("b_var 11\n")) MARK(BVAR2);
+    VMI(B_VAR2) MARK(BVAR2);
       BODY_VAR(2 + ARGOFFSET / sizeof(word));
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1921,7 +1870,7 @@ make a reference. Trailing is  not  needed   as  we  are writing in this
 frame. As ARGP is pointing in the  argument   list,  it  is on the local
 stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(H_FIRSTVAR, COUNT_N(h_firstvar_n), ("h_firstvar %d\n", *PC))
+    VMI(H_FIRSTVAR)
       MARK(HFVAR);
       { varFrame(FR, *PC++) = (isVar(*ARGP) ? makeRef(ARGP) : *ARGP);
 	ARGP++;
@@ -1933,7 +1882,7 @@ We now know both *ARGP and the variable are variables.  ARGP  points  to
 the  argument  of  a  term  on  the  global stack.  The reference should
 therefore go from k to ARGP.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(B_ARGFIRSTVAR, COUNT_N(b_argfirstvar_n), ("b_argfirstvar %d\n", *PC))
+    VMI(B_ARGFIRSTVAR)
       MARK(BAFVAR);
       { setVar(*ARGP);
 	varFrame(FR, *PC++) = makeRefG(ARGP++);
@@ -1945,7 +1894,7 @@ both  *ARGP and the variable are variables.  We set the variable to be a
 variable (it is uninitialised memory) and make a reference.  No trailing
 needed as we are writing in this and the next frame.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(B_FIRSTVAR, COUNT_N(b_firstvar_n), ("b_firstvar %d\n", *PC))
+    VMI(B_FIRSTVAR)
       MARK(BFVAR);
       { Word k = varFrameP(FR, *PC++);
 
@@ -1960,14 +1909,14 @@ head  and  encountered  for  the  first  time.   Note  that the compiler
 suppresses H_VOID when there are no other instructions before I_ENTER or
 I_EXIT.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(H_VOID, COUNT(h_void), ("h_void\n")) MARK(HVOID);
+    VMI(H_VOID) MARK(HVOID);
       { ARGP++;
 	NEXT_INSTRUCTION;
       }
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A singleton variable in the body. Ensure the argument is a variable.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(B_VOID, COUNT(b_void), ("b_void\n")) MARK(BVOID);
+    VMI(B_VOID) MARK(BVOID);
       { setVar(*ARGP++);
 	NEXT_INSTRUCTION;
       }
@@ -1981,13 +1930,13 @@ dereferencing might have caused we are now pointing in a parent frame or
 the global stack (should we check?  Saves trail! How often?).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    VMI(H_FUNCTOR, COUNT_N(h_functor_n), ("h_functor %d\n", *PC))
+    VMI(H_FUNCTOR)
       MARK(HFUNC);
       { functor_t f;
 
 	requireStack(argument, sizeof(Word));
 	*aTop++ = ARGP + 1;
-    VMI(H_RFUNCTOR, COUNT_N(h_rfunctor_n), ("h_rfunctor %d\n", *PC))
+    VMI(H_RFUNCTOR)
 	f = (functor_t) *PC++;
         deRef(ARGP);
 	if ( isVar(*ARGP) )
@@ -2018,10 +1967,10 @@ the global stack (should we check?  Saves trail! How often?).
 	}
 	CLAUSE_FAILED;	    
 
-    VMI(H_LIST, COUNT(h_list), ("h_list\n")) MARK(HLIST);
+    VMI(H_LIST) MARK(HLIST);
         requireStack(argument, sizeof(Word));
 	*aTop++ = ARGP + 1;
-    VMI(H_RLIST, COUNT(h_rlist), ("h_rlist\n")) MARK(HRLIST);
+    VMI(H_RLIST) MARK(HRLIST);
 	deRef(ARGP);
 	if ( isVar(*ARGP) )
 	{ 
@@ -2052,13 +2001,13 @@ memory  while  in  body  mode  we  just  allocate  the  term,  but don't
 initialise the arguments to variables.  Allocation is done in  place  to
 avoid a function call.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(B_FUNCTOR, COUNT(b_functor), ("b_functor %d\n", *PC)) MARK(BFUNC);
+    VMI(B_FUNCTOR) MARK(BFUNC);
       { functor_t f;
 	int arity;
 
 	requireStack(argument, sizeof(Word));
 	*aTop++ = ARGP+1;
-    VMI(B_RFUNCTOR, COUNT(b_rfunctor), ("b_rfunctor %d\n", *PC)) MARK(BRFUNC);
+    VMI(B_RFUNCTOR) MARK(BRFUNC);
 	f = (functor_t) *PC++;
 	arity = arityFunctor(f);
 	requireStack(global, sizeof(word) * (1+arity));
@@ -2070,10 +2019,10 @@ avoid a function call.
 	NEXT_INSTRUCTION;
       }
 
-    VMI(B_LIST, COUNT(b_list), ("b_list\n")) MARK(BLIST);
+    VMI(B_LIST) MARK(BLIST);
       { requireStack(argument, sizeof(Word));
 	*aTop++ = ARGP+1;
-    VMI(B_RLIST, COUNT(b_rlist), ("b_rlist %d\n", *PC)) MARK(BRLIST);
+    VMI(B_RLIST) MARK(BRLIST);
 	requireStack(global, sizeof(word) * 3);
 	*ARGP = consPtr(gTop, TAG_COMPOUND|STG_GLOBAL);
 	*gTop++ = FUNCTOR_dot2;
@@ -2087,7 +2036,7 @@ avoid a function call.
 Pop the saved argument pointer (see H_FUNCTOR and B_FUNCTOR).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    VMI(I_POPF, COUNT(i_pop), ("pop\n")) MARK(POP);
+    VMI(I_POPF) MARK(POP);
       { ARGP = *--aTop;
 	NEXT_INSTRUCTION;
       }
@@ -2105,7 +2054,7 @@ frame  immediately  on  the backtrack frame of this frame.  This however
 makes debugging much more  difficult  as  the  system  will  do  a  deep
 backtrack without showing the fail ports explicitely.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(I_ENTER, COUNT(i_enter), ("enter\n")) MARK(ENTER);
+    VMI(I_ENTER) MARK(ENTER);
       { 
 #if O_DEBUGGER
 	if ( debugstatus.debugging )
@@ -2140,7 +2089,7 @@ different  module  using  <module>:<head>  :-    <body>.  The  I_CONTEXT
 instruction immediately follows the I_ENTER. The argument is the module.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    VMI(I_CONTEXT, COUNT(i_context), ("context \n")) MARK(CONTEXT);
+    VMI(I_CONTEXT) MARK(CONTEXT);
       { Module m = (Module)*PC++;
 
 	FR->context = m;
@@ -2162,7 +2111,7 @@ the FR and lTop as it it  was   running  the  throw/3 predicate. Then it
 pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     b_throw:
-    VMI(B_THROW, COUNT(b_throw), ("b_throw")) MARK(B_THROW);
+    VMI(B_THROW) MARK(B_THROW);
       { Word catcher;
 	word except;
 	LocalFrame catchfr, fr, fr2, bfr;
@@ -2293,7 +2242,7 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 exit(Block, RVal).  First does !(Block).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(B_EXIT, COUNT(b_exit), ("b_exit")) MARK(B_EXIT);
+    VMI(B_EXIT) MARK(B_EXIT);
       { Word name, rval;
 	LocalFrame blockfr, fr, fr2;
 
@@ -2357,7 +2306,7 @@ exit(Block, RVal).  First does !(Block).
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 !(Block).  Cuts all alternatives created after entering the named block.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(I_CUT_BLOCK, COUNT(i_cut_block), ("i_cut_block\n")) MARK(CUT_BLOCK);
+    VMI(I_CUT_BLOCK) MARK(CUT_BLOCK);
       { LocalFrame cutfr, fr, fr2;
 	Word name;
 
@@ -2422,7 +2371,7 @@ than to the  backtrackframe  of  the  current  frame  to  avoid  a  long
 backtrack that makes it difficult to understand the tracer's output.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     i_cut:			/* from I_USERCALL0 */
-    VMI(I_CUT, COUNT(i_cut), ("cut frame %d\n", REL(FR))) MARK(CUT);
+    VMI(I_CUT)						MARK(CUT);
       { LocalFrame fr;
 	LocalFrame fr2;
 
@@ -2497,7 +2446,7 @@ tagged `C_'.
 C_JMP skips the amount stated in the pointed argument.   The  PC++
 could be compiled out, but this is a bit more neath.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(C_JMP, COUNT_N(c_jmp), ("c_jmp %d\n", *PC)) MARK(C_JMP);
+    VMI(C_JMP) MARK(C_JMP);
       { PC += *PC;
 	PC++;
 
@@ -2511,7 +2460,7 @@ local-frame pointer is  *not*  reserved   in  clause->variables,  so the
 garbage collector won't see it.  With the introduction of stack-shifting
 this slot has been made relative to lBase.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-   VMI(C_MARK, COUNT_N(c_mark), ("c_mark %d\n", *PC)) MARK(C_MARK);
+   VMI(C_MARK) MARK(C_MARK);
       { varFrame(FR, *PC++) = (word) BFR;
 
 	NEXT_INSTRUCTION;
@@ -2523,7 +2472,7 @@ of  the  variables  is  the  same after finishing both paths of the `or'
 wired in the clause.  Its task is to make the n-th variable slot of  the
 current frame to be a variable.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-   VMI(C_VAR, COUNT_N(c_var), ("c_var %d\n", *PC)) MARK(C_VAR);
+   VMI(C_VAR) MARK(C_VAR);
       { setVar(varFrame(FR, *PC++));
 
 	NEXT_INSTRUCTION;
@@ -2540,7 +2489,7 @@ and older than this frame.
 All frames created since what becomes now the  backtrack  point  can  be
 discarded.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(C_LCUT, {}, ("c_lcut %d\n", *PC)) MARK(C_LCUT);
+    VMI(C_LCUT)						MARK(C_LCUT);
 #if VMCODE_IS_ADDRESS
 #ifdef ASM_NOP
       ASM_NOP;
@@ -2548,7 +2497,7 @@ discarded.
       asm("nop");
 #endif
 #endif
-    VMI(C_CUT, COUNT_N(c_cut), ("c_cut %d\n", *PC)) MARK(C_CUT);
+    VMI(C_CUT) MARK(C_CUT);
       { LocalFrame obfr = (LocalFrame) varFrame(FR, *PC);
 	LocalFrame cbfr = obfr;
 	LocalFrame fr;
@@ -2584,7 +2533,7 @@ discarded.
 Handle the commit-to of A *-> B; C.  Simply mark the $alt/1 frame as cutted,
 and control will not reach C again.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(C_SOFTCUT, COUNT_N(c_softcut), ("c_softcut %d\n", *PC)) MARK(CSOFTCUT);
+    VMI(C_SOFTCUT) MARK(CSOFTCUT);
       { LocalFrame altfr = (LocalFrame) varFrame(FR, *PC);
 
 	assert(altfr->predicate == PROCEDURE_alt0->definition);
@@ -2599,14 +2548,14 @@ C_END is a dummy instruction to help the decompiler to find the end of A
 ->  B.  (Note  that  a  :-  (b  ->  c),  d == a :- (b -> c, d) as far as
 semantics.  They are different terms however.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-   VMI(C_END, COUNT(c_end), ("c_end\n")) MARK(C_END);
+   VMI(C_END) MARK(C_END);
       {	NEXT_INSTRUCTION;
       }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 C_FAIL is equivalent to fail/0. Used to implement \+/1.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-   VMI(C_FAIL, COUNT(c_fail), ("c_fail\n")) MARK(C_FAIL);
+   VMI(C_FAIL) MARK(C_FAIL);
       {	BODY_FAILED;
       }
 #endif /* O_COMPILE_OR */
@@ -2640,7 +2589,7 @@ variable.  Also, for compilers that do register allocation it is unwise
 to give the compiler a hint to put ARGP not into a register.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    VMI(A_ENTER, COUNT(a_enter), ("a_enter")) MARK(AENTER)
+    VMI(A_ENTER) MARK(AENTER)
       { 
 #ifdef DOUBLE_ALIGNMENT
 	ARGP = (Word) (((unsigned long)ARGP + (DOUBLE_ALIGNMENT-1)) &
@@ -2649,7 +2598,7 @@ to give the compiler a hint to put ARGP not into a register.
         NEXT_INSTRUCTION;
       }
 
-    VMI(A_INTEGER, COUNT(a_integer), ("a_integer %d\n", *PC)) MARK(AINT);
+    VMI(A_INTEGER) MARK(AINT);
       {	Number n = (Number)ARGP;
 
 	n->value.i = (long) *PC++;
@@ -2658,7 +2607,7 @@ to give the compiler a hint to put ARGP not into a register.
 	NEXT_INSTRUCTION;
       }
 
-    VMI(A_DOUBLE, COUNT(a_double), ("a_double %d\n", *PC)) MARK(ADOUBLE);
+    VMI(A_DOUBLE) MARK(ADOUBLE);
       {	Number n = (Number)ARGP;
 
 	n->value.w[0] = *PC++;
@@ -2668,7 +2617,7 @@ to give the compiler a hint to put ARGP not into a register.
 	NEXT_INSTRUCTION;
       }
 
-    VMI(A_VAR, COUNT_N(a_var_n), ("a_var %d\n", *PC)) MARK(AVARN);
+    VMI(A_VAR) MARK(AVARN);
     { int offset = *PC++;
       term_t v;
       Number n;
@@ -2689,13 +2638,13 @@ to give the compiler a hint to put ARGP not into a register.
 	BODY_FAILED;			/* check this */
       }
 
-    VMI(A_VAR0, COUNT(a_var0), ("a_var0\n")) MARK(AVAR0);
+    VMI(A_VAR0) MARK(AVAR0);
       offset = ARGOFFSET / sizeof(word);
       goto a_var_n;
-    VMI(A_VAR1, COUNT(a_var1), ("a_var1\n")) MARK(AVAR1);
+    VMI(A_VAR1) MARK(AVAR1);
       offset = ARGOFFSET / sizeof(word) + 1;
       goto a_var_n;
-    VMI(A_VAR2, COUNT(a_var2), ("a_var2\n")) MARK(AVAR2);
+    VMI(A_VAR2) MARK(AVAR2);
       offset = ARGOFFSET / sizeof(word) + 2;
       goto a_var_n;
     }
@@ -2703,25 +2652,25 @@ to give the compiler a hint to put ARGP not into a register.
   { int an;
     code fn;
 
-    VMI(A_FUNC0, COUNT_N(a_func0), ("a_func0 %d\n", *PC)) MARK(A_FUNC0);
+    VMI(A_FUNC0) MARK(A_FUNC0);
       {	an = 0;
 	fn = *PC++;
 	goto common_an;
       }
 
-    VMI(A_FUNC1, COUNT_N(a_func1), ("a_func1 %d\n", *PC)) MARK(A_FUNC1);
+    VMI(A_FUNC1) MARK(A_FUNC1);
       {	an = 1;
 	fn = *PC++;
 	goto common_an;
       }
 
-    VMI(A_FUNC2, COUNT_N(a_func2), ("a_func2 %d\n", *PC)) MARK(A_FUNC2);
+    VMI(A_FUNC2) MARK(A_FUNC2);
       {	an = 2;
 	fn = *PC++;
 	goto common_an;
       }
 
-    VMI(A_FUNC, COUNT_N(a_func), ("a_func %d %d\n",*PC,PC[1])) MARK(A_FUNC);
+    VMI(A_FUNC) MARK(A_FUNC);
       {	Number n;
 
 	fn = *PC++;
@@ -2756,7 +2705,7 @@ condition.  Example translation: `a(Y) :- b(X), X > Y'
     EXIT
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    VMI(A_LT, COUNT(a_lt), ("a_lt\n")) MARK(A_LT);
+    VMI(A_LT) MARK(A_LT);
       { Number n = (Number)ARGP;
 	n -= 2;
 	ARGP = (Word)n;
@@ -2766,7 +2715,7 @@ condition.  Example translation: `a(Y) :- b(X), X > Y'
 	NEXT_INSTRUCTION;
       }
 
-    VMI(A_LE, COUNT(a_le), ("a_le\n")) MARK(A_LE);
+    VMI(A_LE) MARK(A_LE);
       { Number n = (Number)ARGP;
 	n -= 2;
 	ARGP = (Word)n;
@@ -2776,7 +2725,7 @@ condition.  Example translation: `a(Y) :- b(X), X > Y'
 	NEXT_INSTRUCTION;
       }
 
-    VMI(A_GT, COUNT(a_gt), ("a_gt\n")) MARK(A_GT);
+    VMI(A_GT) MARK(A_GT);
       { Number n = (Number)ARGP;
 	n -= 2;
 	ARGP = (Word)n;
@@ -2786,7 +2735,7 @@ condition.  Example translation: `a(Y) :- b(X), X > Y'
 	NEXT_INSTRUCTION;
       }
 
-    VMI(A_GE, COUNT(a_ge), ("a_ge\n")) MARK(A_GE);
+    VMI(A_GE) MARK(A_GE);
       { Number n = (Number)ARGP;
 	n -= 2;
 	ARGP = (Word)n;
@@ -2796,7 +2745,7 @@ condition.  Example translation: `a(Y) :- b(X), X > Y'
 	NEXT_INSTRUCTION;
       }
 
-    VMI(A_EQ, COUNT(a_eq), ("a_eq\n")) MARK(A_EQ);
+    VMI(A_EQ) MARK(A_EQ);
       { Number n = (Number)ARGP;
 	n -= 2;
 	ARGP = (Word)n;
@@ -2806,7 +2755,7 @@ condition.  Example translation: `a(Y) :- b(X), X > Y'
 	NEXT_INSTRUCTION;
       }
 
-    VMI(A_NE, COUNT(a_ne), ("a_ne\n")) MARK(A_NE);
+    VMI(A_NE) MARK(A_NE);
       { Number n = (Number)ARGP;
 	n -= 2;
 	ARGP = (Word)n;
@@ -2830,7 +2779,7 @@ the result (a word) and the number holding the result.  For example:
 	I_EXIT
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    VMI(A_IS, COUNT(a_is), ("a_is\n")) MARK(A_IS);
+    VMI(A_IS) MARK(A_IS);
       { Number n = (Number)ARGP;
 	Word k;
 
@@ -2879,7 +2828,7 @@ BUG: have to find out how to proceed in case of failure (I am afraid the
 #if O_CATCHTHROW
     i_usercall0:			/* from B_THROW */
 #endif
-    VMI(I_USERCALL0, COUNT(i_usercall0), ("user_call0\n")) MARK(USRCL0);
+    VMI(I_USERCALL0) MARK(USRCL0);
       { word goal;
 	int arity;
 	Word args, a;
@@ -2972,7 +2921,7 @@ erasure as soon as the clause finishes executing.
 	}
 	goto i_usercall_common;
 
-    VMI(I_USERCALLN, COUNT_N(i_usercalln), ("user_calln %d\n", *PC)) MARK(USRCLN);
+    VMI(I_USERCALLN) MARK(USRCLN);
         callargs = *PC++;
 	next = lTop;
 	a = argFrameP(next, 0);		/* get the (now) instantiated */
@@ -3068,7 +3017,7 @@ Fast control functions. Should  set-up  normal   call  if  the  function
 doesn't exist.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    VMI(I_FAIL, COUNT(i_fail), ("i_fail\n")) MARK(I_FAIL);
+    VMI(I_FAIL) MARK(I_FAIL);
 #ifdef O_DEBUGGER
       if ( debugstatus.debugging )
       { next = lTop;
@@ -3083,7 +3032,7 @@ doesn't exist.
 #endif
       BODY_FAILED;
 
-    VMI(I_TRUE, COUNT(i_true), ("i_true\n")) MARK(I_TRUE);
+    VMI(I_TRUE) MARK(I_TRUE);
 #ifdef O_DEBUGGER
       if ( debugstatus.debugging )
       { next = lTop;
@@ -3104,7 +3053,7 @@ doesn't exist.
 A *-> B ; C is translated to C_SOFIF <A> C_SOFTCUT <B> C_JMP end <C>.  See
 pl-comp.c and C_SOFTCUT implementation for details.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(C_SOFTIF, COUNT_2N(c_softif), ("c_softif %d\n", *PC)) MARK(C_SOFTIF);
+    VMI(C_SOFTIF) MARK(C_SOFTIF);
       { varFrame(FR, *PC++) = (word) lTop; /* see C_SOFTCUT */
 
 	goto c_or;
@@ -3126,7 +3075,7 @@ same *functionality*, but a *different* address.  If your machine does't
 like nop, define the macro ASM_NOP in  your md-file to do something that
 1) has *no effect* and 2) is *not optimised* away by the compiler.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(C_NOT, {}, ("c_not %d\n", *PC)) MARK(C_NOT)
+    VMI(C_NOT)						MARK(C_NOT)
 #if VMCODE_IS_ADDRESS
 #ifdef ASM_NOP
       ASM_NOP;
@@ -3134,7 +3083,7 @@ like nop, define the macro ASM_NOP in  your md-file to do something that
       asm("nop");
 #endif
 #endif
-    VMI(C_IFTHENELSE, COUNT_2N(c_ifthenelse), ("c_ifthenelse %d\n", *PC))
+    VMI(C_IFTHENELSE)
       MARK(C_ITE);
       { varFrame(FR, *PC++) = (word) BFR; /* == C_MARK */
 
@@ -3160,7 +3109,7 @@ consequence it has lost its argument and   is  now $alt/0. We just build
 the frame for $alt/1 and then  continue   execution.  This  is ok as the
 first call of $alt/1 simply succeeds.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(C_OR, COUNT_N(c_or), ("c_or %d\n", *PC)) MARK(C_OR);
+    VMI(C_OR) MARK(C_OR);
     c_or:
       { int skip = *PC++;
 
@@ -3203,14 +3152,14 @@ The VMI for these calls are ICALL_FVN, proc, var-index ...
       Procedure fproc;
       Word v;
 
-      VMI(I_CALL_FV0, COUNT(i_call_fv0), ("i_call_fv0")) MARK(CFV0);
+      VMI(I_CALL_FV0) MARK(CFV0);
       { fproc = (Procedure) *PC++;
 	nvars = 0;
 
 	goto common_call_fv;
       }
 
-      VMI(I_CALL_FV1, COUNT(i_call_fv1), ("i_call_fv1")) MARK(CFV1);
+      VMI(I_CALL_FV1) MARK(CFV1);
       { fproc = (Procedure) *PC++;
 	nvars = 1;
 	v = varFrameP(FR, *PC++);
@@ -3218,7 +3167,7 @@ The VMI for these calls are ICALL_FVN, proc, var-index ...
 	goto common_call_fv;
       }
 
-      VMI(I_CALL_FV2, COUNT(i_call_fv2), ("i_call_fv2")) MARK(CFV2);
+      VMI(I_CALL_FV2) MARK(CFV2);
       { fproc = (Procedure) *PC++;
 	nvars = 2;
 	v = varFrameP(FR, *PC++);
@@ -3346,7 +3295,7 @@ arguments. Most comments of I_USERCALL0 apply   to I_APPLY as well. Note
 that the two arguments are copied in  local variables as they will later
 be overwritten by the arguments for the actual call.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-      VMI(I_APPLY, COUNT(i_apply), ("apply\n")) MARK(APPLY);
+      VMI(I_APPLY) MARK(APPLY);
       { atom_t functor;
 	Word lp;
 	Module module = (Module) NULL;
@@ -3430,9 +3379,7 @@ frame,  fill  the next frame and initialise the machine registers.  Then
 execution can continue at `next_instruction'
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 #define TAILRECURSION 1
-      VMI(I_DEPART,
-	  COUNT(i_depart),
-	  ("depart %s\n", procedureName((Procedure)*PC)))
+      VMI(I_DEPART)
 							 MARK(DEPART);
 #if TAILRECURSION
 	if ( true(FR, FR_CUT) && BFR <= FR
@@ -3462,10 +3409,7 @@ execution can continue at `next_instruction'
 	}
 #endif /*TAILRECURSION*/
        /*FALLTHROUGH*/
-      VMI(I_CALL,
-	  COUNT(i_call),
-	  ("call %s\n", procedureName((Procedure)*PC)))
-	  MARK(CALL);
+      VMI(I_CALL)					MARK(CALL);
         next = lTop;
         next->flags = FR->flags;
 	if ( true(DEF, HIDE_CHILDS) )		/* parent has hide_childs */
@@ -3742,7 +3686,7 @@ plain I_EXIT is first of all that the actual sequence should be I_ENTER,
 I_EXIT,  and  just  optimising   to    I_EXIT   looses   the  unify-port
 interception. Second, there should be some room for optimisation here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(I_EXITFACT, COUNT(i_exitfact), ("exitfact ")) MARK(EXITFACT);
+    VMI(I_EXITFACT) MARK(EXITFACT);
 #if O_DEBUGGER
 	if ( debugstatus.debugging )
 	{ switch(tracePort(FR, BFR, UNIFY_PORT, PC))
@@ -3753,7 +3697,7 @@ interception. Second, there should be some room for optimisation here.
 #endif /*O_DEBUGGER*/
 	/*FALLTHROUGH*/
 
-    VMI(I_EXIT, COUNT(i_exit), ("exit ")) MARK(EXIT);
+    VMI(I_EXIT) MARK(EXIT);
 	if ( false(FR, FR_CUT) )
 	{ if ( FR > BFR )			/* alternatives */
 	    SetBfr(FR);

@@ -15,7 +15,7 @@
 #define CODE(c, n, a, e)	{ n, c, a, e }
 
 const code_info codeTable[] = {
-/*     ID		name	     #args #xr */
+/*     ID		name	     #args #argtype */
   CODE(I_NOP,		"i_nop",	0, 0),
   CODE(I_ENTER,		"i_enter",	0, 0),
   CODE(I_CALL,		"i_call",	1, CA1_PROC),
@@ -26,8 +26,8 @@ const code_info codeTable[] = {
   CODE(H_FUNCTOR,	"h_functor",	1, CA1_FUNC),
   CODE(H_RFUNCTOR,	"h_rfunctor",	1, CA1_FUNC),
   CODE(I_POPF,		"i_pop",	0, 0),
-  CODE(B_VAR,		"b_var",	1, 0),
-  CODE(H_VAR,		"h_var",	1, 0),
+  CODE(B_VAR,		"b_var",	1, CA1_VAR),
+  CODE(H_VAR,		"h_var",	1, CA1_VAR),
   CODE(B_CONST,		"b_const",	1, CA1_DATA),
   CODE(H_CONST,		"h_const",	1, CA1_DATA),
   CODE(H_INDIRECT,	"h_indirect",	0, CA1_STRING),
@@ -35,12 +35,12 @@ const code_info codeTable[] = {
   CODE(H_INTEGER,	"h_integer",	1, CA1_INTEGER),
   CODE(B_FLOAT,		"b_float",	2, CA1_FLOAT),
   CODE(H_FLOAT,		"h_float",	2, CA1_FLOAT),
-  CODE(B_FIRSTVAR,	"b_firstvar",	1, 0),
-  CODE(H_FIRSTVAR,	"h_firstvar",	1, 0),
+  CODE(B_FIRSTVAR,	"b_firstvar",	1, CA1_VAR),
+  CODE(H_FIRSTVAR,	"h_firstvar",	1, CA1_VAR),
   CODE(B_VOID,		"b_void",	0, 0),
   CODE(H_VOID,		"h_void",	0, 0),
-  CODE(B_ARGFIRSTVAR,	"b_argfirstvar",1, 0),
-  CODE(B_ARGVAR,	"b_argvar",	1, 0),
+  CODE(B_ARGFIRSTVAR,	"b_argfirstvar",1, CA1_VAR),
+  CODE(B_ARGVAR,	"b_argvar",	1, CA1_VAR),
   CODE(H_NIL,		"h_nil",	0, 0),
   CODE(B_NIL,		"b_nil",	0, 0),
   CODE(H_LIST,		"h_list",	0, 0),
@@ -74,12 +74,12 @@ const code_info codeTable[] = {
   CODE(A_IS,		"a_is",		0, 0),
   CODE(C_OR,		"c_or",		1, 0),
   CODE(C_JMP,		"c_jmp",	1, 0),
-  CODE(C_MARK,		"c_mark",	1, 0),
-  CODE(C_CUT,		"c_cut",	1, 0),
-  CODE(C_IFTHENELSE,	"c_ifthenelse",	2, 0),
-  CODE(C_VAR,		"c_var",	1, 0),
+  CODE(C_MARK,		"c_mark",	1, CA1_VAR),
+  CODE(C_CUT,		"c_cut",	1, CA1_VAR),
+  CODE(C_IFTHENELSE,	"c_ifthenelse",	2, CA1_VAR),
+  CODE(C_VAR,		"c_var",	1, CA1_VAR),
   CODE(C_END,		"c_end",	0, 0),
-  CODE(C_NOT,		"c_not",	2, 0),
+  CODE(C_NOT,		"c_not",	2, CA1_VAR),
   CODE(C_FAIL,		"c_fail",	0, 0),
   CODE(B_INDIRECT,	"b_indirect",	0, CA1_STRING),
 #if O_BLOCK
@@ -94,8 +94,8 @@ const code_info codeTable[] = {
   CODE(I_FAIL,		"i_fail",	0, 0),
   CODE(I_TRUE,		"i_true",	0, 0),
 #ifdef O_SOFTCUT
-  CODE(C_SOFTIF,	"c_softif",	2, 0),
-  CODE(C_SOFTCUT,	"c_softcut",	1, 0),
+  CODE(C_SOFTIF,	"c_softif",	2, CA1_VAR),
+  CODE(C_SOFTCUT,	"c_softcut",	1, CA1_VAR),
 #endif
   CODE(I_EXITFACT,	"i_exitfact",	0, 0),
   CODE(D_BREAK,		"d_break",	0, 0),

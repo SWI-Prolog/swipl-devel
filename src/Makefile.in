@@ -148,7 +148,7 @@ $(RUNTIME):	$(OBJ) $(RCOBJ) $(DEPOBJ) $(XOBJ)
 		$(RANLIB) $@
 
 rc-lib:
-		@(cd rc && $(MAKE))
+		@(cd rc && $(MAKE) COFLAGS="$(COFLAGS)")
 
 index:
 		./$(PL) -x $(STARTUPPATH) \
