@@ -49,8 +49,9 @@ typedef struct avl_free_list
 
 typedef struct avl_tree
 { avl_node      *root;
-  avl_free_list *free_list;
   long		 size;			/* # nodes in the tree */
+  avl_free_list *free_list;
+  avl_free_list  block1;
 } avl_tree;
 
 

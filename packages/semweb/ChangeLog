@@ -1,3 +1,8 @@
+Oct 13, 2004
+
+  * FIXED: Total reorganisation of the multi-threaded access using 
+    redesigned locking which allows for one writer and multiple readers.
+
 Oct 12, 2004
 
   * INTERNAL: Preparing for seperate databases by combining all global

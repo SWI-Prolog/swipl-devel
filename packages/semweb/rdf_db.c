@@ -24,6 +24,15 @@
 
 #define WITH_MD5 1
 #define WITH_PL_MUTEX 1
+#define _GNU_SOURCE 1			/* get rwlocks from glibc */
+
+#ifdef _REENTRANT
+#ifdef WIN32
+#else
+#include <pthread.h>
+#include <errno.h>
+#endif
+#endif
 
 #include <SWI-Stream.h>
 #include <SWI-Prolog.h>
@@ -82,9 +91,9 @@ static functor_t FUNCTOR_like1;
 static functor_t FUNCTOR_symmetric1;
 static functor_t FUNCTOR_inverse_of1;
 static functor_t FUNCTOR_transitive1;
-static functor_t FUNCTOR_rdf_subject_branch_factor1; /* S --> BF*O */
+static functor_t FUNCTOR_rdf_subject_branch_factor1;    /* S --> BF*O */
 static functor_t FUNCTOR_rdf_object_branch_factor1;	/* O --> BF*S */
-static functor_t FUNCTOR_rdfs_subject_branch_factor1; /* S --> BF*O */
+static functor_t FUNCTOR_rdfs_subject_branch_factor1;	/* S --> BF*O */
 static functor_t FUNCTOR_rdfs_object_branch_factor1;	/* O --> BF*S */
 
 static functor_t FUNCTOR_searched_nodes1;
@@ -112,6 +121,452 @@ static void unlock_atoms(triple *t);
 static int  update_hash(rdf_db *db);
 static int  triple_hash(rdf_db *db, triple *t, int which);
 static unsigned long object_hash(triple *t);
+static int	permission_error(const char *op, const char *type,
+				 const char *obj, const char *msg);
+
+
+		 /*******************************
+		 *	       LOCKING		*
+		 *******************************/
+
+#ifdef _REENTRANT
+
+
+		 /*******************************
+		 *	 WINDOWS VERSION	*
+		 *******************************/
+
+#ifdef WIN32
+
+enum
+{ SIGNAL     = 0,
+  MAX_EVENTS = 1
+} win32_event_t;
+
+typedef struct
+{ HANDLE events[MAX_EVENTS];		/* events to be signalled */
+  int    waiters;			/* # waiters */
+} win32_cond_t;
+
+
+static int 
+win32_cond_init(win32_cond_t *cv)
+{ cv->events[SIGNAL]    = CreateEvent(NULL, FALSE, FALSE, NULL);
+  cv->waiters = 0;
+
+  return 0;
+}
+
+
+static int
+win32_cond_destroy(win32_cond_t *cv)
+{ CloseHandle(cv->events[SIGNAL]);
+
+  return 0;
+}
+
+
+static int 
+win32_cond_wait(win32_cond_t *cv,
+		CRITICAL_SECTION *external_mutex)
+{ int rc, last;
+
+  cv->waiters++;
+
+  LeaveCriticalSection(external_mutex);
+  rc = MsgWaitForMultipleObjects(1,
+				 cv->events,
+				 FALSE,	/* wait for either event */
+				 INFINITE,
+				 QS_ALLINPUT);
+  if ( rc == WAIT_OBJECT_0+2 )
+  { MSG msg;
+
+    while( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) )
+    { TranslateMessage(&msg);
+      DispatchMessage(&msg);
+    }
+
+    if ( LD->pending_signals )
+    { EnterCriticalSection(external_mutex);
+      return EINTR;
+    }
+  }
+
+  EnterCriticalSection(external_mutex);
+
+  cv->waiters--;
+
+  return 0;
+}
+
+
+static int 
+win32_cond_signal(win32_cond_t *cv)	/* must be holding associated mutex */
+{ if ( cv->waiters > 0 )
+    SetEvent(cv->events[SIGNAL]);
+
+  return 0;
+}
+
+
+static int
+RDLOCK(rdf_db *db)
+{ EnterCriticalSection(&db->mutex);
+
+  if ( db->writer == -1 )
+  { ok:
+
+    db->readers++;
+    db->read_by_thread[PL_thread_self()]++;
+    LeaveCriticalSection(&db->mutex);
+
+    return TRUE;
+  }
+  
+  db->waiting_readers++;
+
+  for(;;)
+  { int rc = win32_cond_wait(&db->rdcondvar, &db->mutex);
+
+    if ( rc == EINTR )
+    { if ( PL_handle_signals() < 0 )
+	return FALSE;
+      continue;
+    } else if ( rc == 0 )
+    { if ( db->writer == -1 )
+      { db->waiting_readers--;
+	goto ok;
+      }
+    } else
+    { assert(0);			/* TBD: OS errors */
+    }
+  }
+}
+
+
+static int
+WRLOCK(rdf_db *db)
+{ int self = PL_thread_self();
+
+  EnterCriticalSection(&db->mutex);
+  
+  if ( db->writer == -1 && db->readers == 0 )
+  { ok:
+
+    db->writer = self;
+    LeaveCriticalSection(&db->mutex);
+    DEBUG(3, Sdprintf("WRLOCK(%d): OK\n", self));
+
+    return TRUE;
+  }
+
+  if ( db->read_by_thread[self] > 0 )
+  { LeaveCriticalSection(&db->mutex);
+    return permission_error("write", "rdf_db", "default",
+			    "Operation would block");
+  }
+
+  db->waiting_writers++;
+  DEBUG(3, Sdprintf("WRLOCK(%d): waiting ...\n", self));
+
+  for(;;)
+  { int rc = win32_cond_wait(&db->wrcondvar, &db->mutex);
+
+    if ( rc == EINTR )
+    { if ( PL_handle_signals() < 0 )
+	return FALSE;
+      continue;
+    } else if ( rc == 0 )
+    { if ( db->writer == -1 && db->readers == 0 )
+      { db->waiting_writers--;
+	goto ok;
+      }
+    } else
+    { assert(0);			/* TBD: OS errors */
+    }
+  }     
+}
+
+
+static int
+UNLOCK(rdf_db *db)
+{ int self = PL_thread_self();
+  enum { NONE, READ, WRITE } waiting;
+
+  EnterCriticalSection(&db->mutex);
+  if ( db->writer == -1 )		/* must be a read lock */
+  { db->readers--;
+    db->read_by_thread[self]--;
+  } else
+  { db->writer = -1;
+  }
+
+  waiting = (db->waiting_writers ? WRITE :
+	     db->waiting_readers ? READ : NONE);
+
+  switch(waiting)
+  { case WRITE:
+      win32_cond_signal(&db->wrcondvar);
+      break;
+    case READ:
+      win32_cond_signal(&db->rdcondvar);
+      break;
+    default:
+      ;
+  }
+  LeaveCriticalSection(&db->mutex);	/* In our WIN32 emulation we */
+					/* must hold the associated mutex */
+  return TRUE;
+}
+
+
+static int
+LOCK_HASH(rdf_db *db)
+{ return EnterCriticalSection(&db->hash_mutex) == 0;
+}
+
+
+static int
+UNLOCK_HASH(rdf_db *db)
+{ return LeaveCriticalSection(&db->hash_mutex) == 0;
+}
+
+
+static int
+INIT_LOCK(rdf_db *db)
+{ int bytes;
+
+  if ( InitializeCriticalSection(&db->mutex) ||
+       InitializeCriticalSection(&db->hash_mutex) ||
+       !win32_cond_init(&db->wrcondvar) == 0 ||
+       !win32_cond_init(&db->rdcondvar) == 0 )
+  {					/* TBD: System error */
+    return FALSE;
+  }
+
+  db->writer = -1;
+  db->readers = 0;
+  db->waiting_readers = 0;
+  db->waiting_writers = 0;
+
+  bytes = sizeof(int)*PL_query(PL_QUERY_MAX_THREADS);
+
+  db->read_by_thread = PL_malloc(bytes);
+  memset(db->read_by_thread, 0, bytes);
+
+  return TRUE;
+}
+
+#else /*WIN32*/
+
+		 /*******************************
+		 *	   POSIX VERSION	*
+		 *******************************/
+
+static int
+RDLOCK(rdf_db *db)
+{ pthread_mutex_lock(&db->mutex);
+
+  if ( db->writer == -1 )
+  { ok:
+
+    db->readers++;
+    db->read_by_thread[PL_thread_self()]++;
+    pthread_mutex_unlock(&db->mutex);
+
+    return TRUE;
+  }
+  
+  db->waiting_readers++;
+
+  for(;;)
+  { int rc = pthread_cond_wait(&db->rdcondvar, &db->mutex);
+
+    if ( rc == EINTR )
+    { if ( PL_handle_signals() < 0 )
+	return FALSE;
+      continue;
+    } else if ( rc == 0 )
+    { if ( db->writer == -1 )
+      { db->waiting_readers--;
+	goto ok;
+      }
+    } else
+    { assert(0);			/* TBD: OS errors */
+    }
+  }
+}
+
+
+static int
+WRLOCK(rdf_db *db)
+{ int self = PL_thread_self();
+
+  pthread_mutex_lock(&db->mutex);
+  
+  if ( db->writer == -1 && db->readers == 0 )
+  { ok:
+
+    db->writer = self;
+    pthread_mutex_unlock(&db->mutex);
+    DEBUG(3, Sdprintf("WRLOCK(%d): OK\n", self));
+
+    return TRUE;
+  }
+
+  if ( db->read_by_thread[self] > 0 )
+  { pthread_mutex_unlock(&db->mutex);
+    return permission_error("write", "rdf_db", "default",
+			    "Operation would block");
+  }
+
+  db->waiting_writers++;
+  DEBUG(3, Sdprintf("WRLOCK(%d): waiting ...\n", self));
+
+  for(;;)
+  { int rc = pthread_cond_wait(&db->wrcondvar, &db->mutex);
+
+    if ( rc == EINTR )
+    { if ( PL_handle_signals() < 0 )
+	return FALSE;
+      continue;
+    } else if ( rc == 0 )
+    { if ( db->writer == -1 && db->readers == 0 )
+      { db->waiting_writers--;
+	goto ok;
+      }
+    } else
+    { assert(0);			/* TBD: OS errors */
+    }
+  }     
+}
+
+
+static int
+UNLOCK(rdf_db *db)
+{ int self = PL_thread_self();
+  enum { NONE, READ, WRITE } waiting;
+
+  pthread_mutex_lock(&db->mutex);
+  if ( db->writer == -1 )		/* must be a read lock */
+  { db->readers--;
+    db->read_by_thread[self]--;
+  } else
+  { db->writer = -1;
+  }
+  waiting = (db->waiting_writers ? WRITE :
+	     db->waiting_readers ? READ : NONE);
+  pthread_mutex_unlock(&db->mutex);
+
+  switch(waiting)
+  { case WRITE:
+      pthread_cond_signal(&db->wrcondvar);
+      break;
+    case READ:
+      pthread_cond_signal(&db->rdcondvar);
+      break;
+    default:
+      ;
+  }
+  
+  return TRUE;
+}
+
+
+static int
+LOCK_HASH(rdf_db *db)
+{ return pthread_mutex_lock(&db->hash_mutex) == 0;
+}
+
+
+static int
+UNLOCK_HASH(rdf_db *db)
+{ return pthread_mutex_unlock(&db->hash_mutex) == 0;
+}
+
+
+static int
+INIT_LOCK(rdf_db *db)
+{ int bytes;
+
+  if ( !pthread_mutex_init(&db->mutex, NULL) == 0 ||
+       !pthread_mutex_init(&db->hash_mutex, NULL) == 0 ||
+       !pthread_cond_init(&db->wrcondvar, NULL) == 0 ||
+       !pthread_cond_init(&db->rdcondvar, NULL) == 0 )
+  {					/* TBD: System error */
+    return FALSE;
+  }
+
+  db->writer = -1;
+  db->readers = 0;
+  db->waiting_readers = 0;
+  db->waiting_writers = 0;
+
+  bytes = sizeof(int)*PL_query(PL_QUERY_MAX_THREADS);
+  db->read_by_thread = PL_malloc(bytes);
+  memset(db->read_by_thread, 0, bytes);
+
+  return TRUE;
+}
+
+#endif /*WIN32*/
+
+
+#else /*_REENTRANT*/
+
+static int
+RDLOCK(rdf_db *db)
+{ db->readers++;
+
+  return TRUE;
+}
+
+static int
+WRLOCK(rdf_db *db)
+{ if ( db->readers )
+    return permission_error("write", "rdf_db", "default",
+			    "Operation would block");
+
+  db->writer = 0;
+
+  return TRUE;
+}
+
+static int
+UNLOCK(rdf_db *db)
+{ if ( db->writer == -1 )
+  { db->readers--;
+  } else
+  { db->writer = -1;
+  }
+
+  return TRUE;
+}
+
+
+static int
+LOCK_HASH(rdf_db *db)
+{ return TRUE;
+}
+
+
+static int
+UNLOCK_HASH(rdf_db *db)
+{ return TRUE;
+}
+
+
+static int
+INIT_LOCK(rdf_db *db)
+{ db->writer = -1;
+  db->readers = 0;
+
+  return TRUE;
+}
+
+#endif /*_REENTRANT*/
+
 
 
 		 /*******************************
@@ -159,7 +614,7 @@ domain_error(term_t actual, const char *expected)
 
 
 static int
-permission_error(const char *type, const char *op, const char *obj,
+permission_error(const char *op, const char *type, const char *obj,
 		 const char *msg)
 { term_t ex = PL_new_term_ref();
   term_t ctx = PL_new_term_ref();
@@ -171,8 +626,8 @@ permission_error(const char *type, const char *op, const char *obj,
 
   PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
 		      PL_FUNCTOR_CHARS, "permission_error", 3,
-		        PL_CHARS, type,
 		        PL_CHARS, op,
+		        PL_CHARS, type,
 		        PL_CHARS, obj,
 		      PL_TERM, ctx);
 
@@ -662,15 +1117,35 @@ delSubPropertyOf(rdf_db *db, predicate *sub, predicate *super)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-See whether sub is p or a subproperty   of  p. This predicate deals with
-cycles and multiple parents. A cycle is detected if the we pass the root
-(which has p->root == p) for the  second time without finding the target
-predicate.
+See whether sub is p or a subproperty of p.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
+is_sub_property_of(predicate *sub, predicate *p, avl_tree *seen)
+{ for(;;)
+  { cell *c;
+
+    if ( sub == p )
+      return TRUE;
+    if ( avl_insert(seen, p->name) != 1 )
+      return FALSE;
+
+    c = sub->subPropertyOf.head;
+    for(c=sub->subPropertyOf.head; c && c->next; c=c->next)
+    { if ( is_sub_property_of(c->value, p, seen) )
+	return TRUE;
+    }
+    if ( c )
+    { sub = c->value;
+    }
+  }
+}
+
+
+static int
 isSubPropertyOf(predicate *sub, predicate *p)
-{ int seen_root = 0;
+{ avl_tree seen;
+  int rc;
 
   DEBUG(2, Sdprintf("isSubPropertyOf(%s, %s)\n",
 		    PL_atom_chars(sub->name),
@@ -679,31 +1154,11 @@ isSubPropertyOf(predicate *sub, predicate *p)
   if ( sub->root == p )
     return TRUE;
 
-  for(;;)
-  { cell *c;
+  avl_init(&seen);
+  rc = is_sub_property_of(sub, p, &seen);
+  avl_destroy(&seen);
 
-    if ( sub == p )
-      return TRUE;
-
-    for(c=sub->subPropertyOf.head; c; c=c->next)
-    { if ( !c->next )			/* tail-recursion optimisation */
-      { sub = c->value;
-	goto next;
-      }
-
-      if ( isSubPropertyOf(c->value, p) )
-	return TRUE;
-    }
-    return FALSE;
-
-  next:
-    DEBUG(2, Sdprintf("Trying %s%s\n",
-		      PL_atom_chars(sub->name),
-		      sub->root == sub ? " (root)" : ""));
-
-    if ( sub->root == sub && ++seen_root == 2 )
-      return FALSE;			/* made a full turn */
-  }
+  return rc;
 }
 
 
@@ -964,7 +1419,7 @@ rdf_sources(term_t list)
   term_t head = PL_new_term_ref();
   rdf_db *db = DB;
 
-  LOCK(db);
+  RDLOCK(db);
   for(i=0; i<db->source_table_size; i++)
   { source *src;
 
@@ -1018,7 +1473,7 @@ new_db()
 { rdf_db *db = PL_malloc(sizeof(*db));
 
   memset(db, 0, sizeof(*db));
-  simpleMutexInit(&db->mutex);
+  INIT_LOCK(db);
   init_tables(db);
 
   return db;
@@ -1307,7 +1762,9 @@ rehash_triples(rdf_db *db)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-update_hash()
+update_hash(). Note this may be called by  readers and writers, but must
+be done only onces and certainly   not concurrently by multiple readers.
+Hence we need a seperate lock.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -1332,16 +1789,7 @@ update_hash(rdf_db *db)
     DEBUG(1, Sdprintf("rdf_db: want GC\n"));
 
   if ( db->need_update || want_gc )
-  { LOCK(db);
-
-    if ( db->active_queries )
-    { UNLOCK(db);
-
-      if ( db->need_update )
-	return permission_error("rdf_db", "update", "db", "Active queries");
-      else
-	return TRUE;			/* only GC, no worries */
-    }
+  { LOCK_HASH(db);
 
     if ( db->need_update )		/* check again */
     { if ( organise_predicates(db) )
@@ -1358,7 +1806,7 @@ update_hash(rdf_db *db)
       DEBUG(1, Sdprintf("ok\n"));
     }
 
-    UNLOCK(db);
+    UNLOCK_HASH(db);
   }
 
   return TRUE;
@@ -1723,7 +2171,7 @@ save_db(rdf_db *db, IOSTREAM *out, atom_t src)
 { triple *t;
   save_context ctx;
 
-  LOCK(db);
+  RDLOCK(db);
   init_saved(db, &ctx);
 
   Sfprintf(out, "%s", SAVE_MAGIC);
@@ -1734,7 +2182,9 @@ save_db(rdf_db *db, IOSTREAM *out, atom_t src)
     write_md5(db, out, src);
   }
   if ( Sferror(out) )
+  { UNLOCK(db);
     return FALSE;
+  }
 
   for(t = db->by_none; t; t = t->next[BY_NONE])
   { if ( !t->erased &&
@@ -1746,7 +2196,9 @@ save_db(rdf_db *db, IOSTREAM *out, atom_t src)
   }
   Sputc('E', out);
   if ( Sferror(out) )
+  { UNLOCK(db);
     return FALSE;
+  }
 
   destroy_saved(&ctx);
   UNLOCK(db);
@@ -1968,12 +2420,16 @@ load_db(rdf_db *db, IOSTREAM *in)
   
   memset(&ctx, 0, sizeof(ctx));
 
-  LOCK(db);
+  if ( !WRLOCK(db) )
+    return FALSE;
+
   while((c=Sgetc(in)) != EOF)
   { switch(c)
     { case 'T':
 	if ( !load_triple(db, in, &ctx) )
+	{ UNLOCK(db);
 	  return FALSE;
+	}
         break;
       case 'S':
 	ctx.source = lookup_source(db, load_atom(in, &ctx), TRUE);
@@ -2132,7 +2588,7 @@ rdf_md5(term_t file, term_t md5)
   if ( src )
   { source *s;
 
-    LOCK(db);
+    RDLOCK(db);
     if ( (s = lookup_source(db, src, FALSE)) )
     { rc = md5_unify_digest(md5, s->digest);
     } else
@@ -2149,7 +2605,7 @@ rdf_md5(term_t file, term_t md5)
     
     memset(&digest, 0, sizeof(digest));
 
-    LOCK(db);
+    RDLOCK(db);
 
     for(i=0,ht = db->source_table; i<db->source_table_size; i++, ht++)
     { source *s;
@@ -2739,7 +3195,11 @@ rdf_assert4(term_t subject, term_t predicate, term_t object, term_t src)
   }
 
   lock_atoms(t);
-  LOCK(db);
+  if ( !WRLOCK(db) )
+  { unlock_atoms(t);
+    PL_free(t);
+    return FALSE;
+  }
   link_triple(db, t);
   db->generation++;
   UNLOCK(db);
@@ -2768,8 +3228,11 @@ rdf(term_t subject, term_t predicate, term_t object,
       if ( !get_partial_triple(db, subject, predicate, object, src, &t) )
 	return FALSE;
 
+      RDLOCK(db);
       if ( !update_hash(db) )
+      { UNLOCK(db);
 	return FALSE;
+      }
 
     inverse:
       p = db->table[t.indexed][triple_hash(db, &t, t.indexed)];
@@ -2798,12 +3261,14 @@ rdf(term_t subject, term_t predicate, term_t object,
 	  { p = db->table[t.indexed][triple_hash(db, &t, t.indexed)];
 	    goto inv_alt;
 	  }
+	  UNLOCK(db);
           return TRUE;
 	}
       }
 
       if ( (flags & MATCH_INVERSE) && inverse_partial_triple(&t) )
 	goto inverse;
+      UNLOCK(db);
       return FALSE;
     }
     case PL_REDO:
@@ -2838,6 +3303,7 @@ rdf(term_t subject, term_t predicate, term_t object,
 
           PL_free(t);
 	  db->active_queries--;
+	  UNLOCK(db);
           return TRUE;
 	}
       }
@@ -2847,6 +3313,7 @@ rdf(term_t subject, term_t predicate, term_t object,
       }
       PL_free(t);
       db->active_queries--;
+      UNLOCK(db);
       return FALSE;
     }
     case PL_CUTTED:
@@ -2854,9 +3321,11 @@ rdf(term_t subject, term_t predicate, term_t object,
 
       db->active_queries--;
       PL_free(t);
+      UNLOCK(db);
       return TRUE;
     }
     default:
+      UNLOCK(db);
       assert(0);
       return FALSE;
   }
@@ -2915,21 +3384,28 @@ rdf_estimate_complexity(term_t subject, term_t predicate, term_t object,
 { triple t;
   long c;
   rdf_db *db = DB;
-
-  if ( !update_hash(db) )			/* or ignore this problem? */
-    return FALSE;
+  int rc;
 
   memset(&t, 0, sizeof(t));
   if ( !get_partial_triple(db, subject, predicate, object, 0, &t) )
     return FALSE;
   
+  RDLOCK(db);
+  if ( !update_hash(db) )			/* or ignore this problem? */
+  { UNLOCK(db);
+    return FALSE;
+  }
+
   if ( t.indexed == BY_NONE )
   { c = db->created - db->erased;		/* = totale triple count */
   } else
   { c = db->counts[t.indexed][triple_hash(db, &t, t.indexed)];
   }
 
-  return PL_unify_integer(complexity, c);
+  rc = PL_unify_integer(complexity, c);
+  UNLOCK(db);
+
+  return rc;
 }
 
 
@@ -2990,14 +3466,12 @@ update_triple(rdf_db *db, term_t action, triple *t)
       return FALSE;
     if ( t2.source == t->source && t2.line == t->line )
       return TRUE;
-    LOCK(db);
     if ( t->source )
       unregister_source(db, t);
     t->source = t2.source;
     t->line = t2.line;
     if ( t2.source )
       register_source(db, t);
-    UNLOCK(db);
 
     return TRUE;			/* considered no change */
   } else
@@ -3006,7 +3480,6 @@ update_triple(rdf_db *db, term_t action, triple *t)
   for(i=0; i<INDEX_TABLES; i++)
     tmp.next[i] = NULL;
 
-  LOCK(db);
   erase_triple(db, t);
   new = PL_malloc(sizeof(*new));
   memset(new, 0, sizeof(*new));
@@ -3022,7 +3495,6 @@ update_triple(rdf_db *db, term_t action, triple *t)
   lock_atoms(new);
   link_triple(db, new);
   db->generation++;
-  UNLOCK(db);
 
   return TRUE;
 }
@@ -3042,8 +3514,12 @@ rdf_update5(term_t subject, term_t predicate, term_t object, term_t src,
        !get_src(src, &t) )
     return FALSE;
   
-  if ( !update_hash(db) )
+  if ( !WRLOCK(db) )
     return FALSE;
+  if ( !update_hash(db) )
+  { UNLOCK(db);
+    return FALSE;
+  }
   p = db->table[indexed][triple_hash(db, &t, indexed)];
   for( ; p; p = p->next[indexed])
   { if ( match_triples(p, &t, MATCH_EXACT) )
@@ -3052,6 +3528,7 @@ rdf_update5(term_t subject, term_t predicate, term_t object, term_t src,
       done++;
     }
   }
+  UNLOCK(db);
 
   return done ? TRUE : FALSE;
 }
@@ -3073,20 +3550,23 @@ rdf_retractall4(term_t subject, term_t predicate, term_t object, term_t src)
   if ( !get_partial_triple(db, subject, predicate, object, src, &t) )
     return FALSE;
 
-  if ( !update_hash(db) )
+  if ( !WRLOCK(db) )
     return FALSE;
+  if ( !update_hash(db) )
+  { UNLOCK(db);
+    return FALSE;
+  }
   p = db->table[t.indexed][triple_hash(db, &t, t.indexed)];
   for( ; p; p = p->next[t.indexed])
   { if ( match_triples(p, &t, MATCH_EXACT|MATCH_SRC) )
-    { LOCK(db);
-      erase_triple(db, p);
+    { erase_triple(db, p);
       erased++;
-      UNLOCK(db);
     }
   }
 
   if ( erased )
     db->generation++;
+  UNLOCK(db);
 
   return TRUE;
 }
@@ -3808,13 +4288,8 @@ static foreign_t
 rdf_reset_db()
 { rdf_db *db = DB;
 
-  LOCK(db);
-  if ( db->active_queries )
-  { UNLOCK(db);
-
-    return permission_error("rdf_db", "update", "db", "Active queries");
-  }
-
+  if ( !WRLOCK(db) )
+    return FALSE;
   erase_triples(db);
   erase_predicates(db);
   erase_sources(db);

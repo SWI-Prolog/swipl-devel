@@ -33,31 +33,6 @@
 #define URL_subPropertyOf \
 	"http://www.w3.org/2000/01/rdf-schema#subPropertyOf"
 
-		 /*******************************
-		 *               C		*
-		 *******************************/
-
-#ifdef _REENTRANT
-#ifdef WITH_PL_MUTEX
-#define O_PLMT 1
-#include "../../src/pl-mutex.h"
-#else /*WITH_PL_MUTEX*/
-#include <pthread.h>
-typedef pthread_mutex_t simpleMutex;
-
-#define simpleMutexInit(p)	pthread_mutex_init(p, NULL)
-#define simpleMutexDelete(p)	pthread_mutex_destroy(p)
-#define simpleMutexLock(p)	pthread_mutex_lock(p)
-#define simpleMutexUnlock(p)	pthread_mutex_unlock(p)
-
-#endif /*WITH_PL_MUTEX*/
-#define LOCK(db) simpleMutexLock(&db->mutex)
-#define UNLOCK(db) simpleMutexUnlock(&db->mutex)
-#else /*_REENTRANT*/
-#define LOCK(db)
-#define UNLOCK(db)
-#endif /*_REENTRANT*/
-
 
 		 /*******************************
 		 *               C		*
@@ -175,6 +150,18 @@ typedef struct triple
 } triple;
 
 
+#if defined(_REENTRANT) && defined(WIN32)
+enum
+{ SIGNAL     = 0,
+  MAX_EVENTS = 1
+} win32_event_t;
+
+typedef struct
+{ HANDLE events[MAX_EVENTS];		/* events to be signalled */
+  int    waiters;			/* # waiters */
+} win32_cond_t;
+#endif
+
 typedef struct rdf_db
 { triple       *by_none, *by_none_tail;
   triple      **table[INDEX_TABLES];
@@ -198,8 +185,23 @@ typedef struct rdf_db
   int      	source_table_size;	/* Entries in table */
   source	*last_source;		/* last accessed source */
 #ifdef _REENTRANT
-  simpleMutex	mutex;			/* Thread synchronisation */
+#ifdef WIN32
+  CRITICAL_SECTION	mutex;
+  CRITICAL_SECTION	hash_mutex;
+  win32_cond_t		rdcondvar;
+  win32_cond_t		wrcondvar;
+#else
+  pthread_mutex_t	mutex;
+  pthread_mutex_t	hash_mutex;
+  pthread_cond_t	rdcondvar;
+  pthread_cond_t	wrcondvar;
 #endif
+  int			waiting_readers;
+  int			waiting_writers;
+  int		       *read_by_thread;
+#endif
+  int			writer;
+  int			readers;
 } rdf_db;
 
 #endif /*RDFDB_H_INCLUDED*/

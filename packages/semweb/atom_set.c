@@ -389,7 +389,8 @@ avl_new_node(avl_tree *tree)
 { avl_free_list *l;
   avl_node *n;
 
-  if ( !(l=tree->free_list) || l->left == 0 )
+  l = tree->free_list;
+  if ( l->left == 0 )
   { l = PL_malloc(sizeof(*l));
 
     l->left = FREE_CHUNK_SIZE;
@@ -406,9 +407,11 @@ avl_new_node(avl_tree *tree)
 
 void
 avl_init(avl_tree *tree)
-{ tree->root      = NULL;
-  tree->free_list = NULL;
-  tree->size      = 0L;
+{ tree->root        = NULL;
+  tree->size        = 0L;
+  tree->block1.next = NULL;
+  tree->block1.left = FREE_CHUNK_SIZE;
+  tree->free_list   = &tree->block1;
 }
 
 
@@ -416,7 +419,7 @@ void
 avl_destroy(avl_tree *tree)
 { avl_free_list *l, *n;
 
-  for(l=tree->free_list; l; l=n)
+  for(l=tree->free_list; l != &tree->block1; l=n)
   { n = l->next;
     PL_free(l);
   }
