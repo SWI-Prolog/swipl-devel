@@ -37,6 +37,7 @@
 	    show_profile/2,		% +Style, +Top
 	    show_profile/1		% +Top
 	  ]).
+:- use_module(library(lists)).
 
 :- module_transparent
 	time/1.
