@@ -111,6 +111,7 @@ struct arithFunction
 static ArithFunction	isCurrentArithFunction(functor_t, Module);
 static int		registerFunction(ArithFunction f, int index);
 static void		promoteToRealNumber(Number n);
+static int		getCharExpression(term_t t, Number r ARG_LD);
 
 
 		/********************************
@@ -444,29 +445,8 @@ valueExpression(term_t t, Number r ARG_LD)
   if ( !(f = isCurrentArithFunction(functor,
 				    contextModule(environment_frame))))
   { if ( functor == FUNCTOR_dot2 )	/* handle "a" (make function) */
-    { Word a, b, p = valTermRef(t);
-
-      deRef(p);
-      a = argTermP(*p, 0);
-      deRef(a);
-      if ( isTaggedInt(*a) )
-      { b = argTermP(*p, 1);
-	deRef(b);
-	if ( *b == ATOM_nil )
-	{ r->value.i = valInt(*a);
-	  r->type = V_INTEGER;
-	  succeed;
-	} else
-	{ term_t a2 = PL_new_term_ref();
-	  PL_get_arg(2, t, a2);
-	  return PL_error(".", 2, NULL, ERR_TYPE, ATOM_nil, a2);
-	}
-      } else
-      { term_t a1 = PL_new_term_ref();
-	PL_get_arg(1, t, a1);
-	return PL_error(".", 2, NULL, ERR_TYPE, ATOM_integer, a1);
-      }
-    } else
+      return getCharExpression(t, r PASS_LD);
+    else
       return PL_error(NULL, 0, NULL, ERR_NOT_EVALUABLE, functor);
   }
 
@@ -576,6 +556,62 @@ valueExpression(term_t t, Number r ARG_LD)
     return rval;
   }
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+int arithChar(Word p)
+    Handle arithmetic argument "x", normally appearing as [X], where X
+    is an integer or one-character atom.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+arithChar(Word p ARG_LD)
+{ int chr;
+  deRef(p);
+  
+  if ( isInteger(*p) )
+  { chr = valInt(*p);
+
+    if ( chr >= 0 && chr < 256 )
+      return chr;
+  } else if ( isAtom(*p) )
+  { Atom a = atomValue(*p);
+    
+    if ( a->length == 1 )
+      return a->name[0] & 0xff;		/* ASCII! */
+  }
+
+  PL_error(NULL, 0, NULL, ERR_TYPE,
+	   ATOM_character, wordToTermRef(p));
+
+  return EOF;
+}
+
+
+static int
+getCharExpression(term_t t, Number r ARG_LD)
+{ Word a, p = valTermRef(t);
+  int chr;
+
+  deRef(p);
+
+  a = argTermP(*p, 0);
+  if ( (chr = arithChar(a PASS_LD)) == EOF )
+    fail;
+
+  a = argTermP(*p, 1);
+  if ( !isNil(*a) )
+    return PL_error(".", 2, "\"x\" must hold one character", ERR_TYPE,
+		    ATOM_nil, wordToTermRef(a));
+
+  r->value.i = chr;
+  r->type = V_INTEGER;
+
+  succeed;
+}
+
+
+
 
 		 /*******************************
 		 *	     CONVERSION		*

@@ -201,6 +201,18 @@ arithmetic_functions(func-3) :-
 	A is mean(0, 20), A =:= 10.
 
 		 /*******************************
+		 *	     CHARACTERS		*
+		 *******************************/
+
+chars(chars-1) :-
+	A is "a",
+	A == 97.
+chars(chars-2) :-
+	A is [a],			% if "a" --> [a]
+	A == 97.
+
+
+		 /*******************************
 		 *	   META CALLING		*
 		 *******************************/
 
@@ -1178,6 +1190,7 @@ testset(syntax).
 testset(arithmetic).
 testset(arithmetic_functions).
 testset(floattest).
+testset(chars).
 testset(depth_limit) :-
 	current_predicate(_, user:call_with_depth_limit(_,_,_)).
 testset(type_test).

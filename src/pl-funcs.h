@@ -105,6 +105,7 @@ bool		ar_func_n(code n, int argc, Number *stack);
 int		valueExpression(term_t p, Number n ARG_LD);
 int		toIntegerNumber(Number n);
 void		canoniseNumber(Number n);
+int		arithChar(Word p ARG_LD);
 
 /* pl-bag.c */
 void		resetBags(void);

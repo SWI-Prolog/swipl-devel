@@ -1674,6 +1674,26 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
       return PL_error(NULL, 0, NULL, ERR_TYPE,
 		      ATOM_evaluable, wordToTermRef(arg));
 
+    if ( fdef == FUNCTOR_dot2 )		/* "char" */
+    { Word a2;
+      int chr;
+
+      deRef2(a+1, a2);
+      if ( !isNil(*a2) )
+	return PL_error(".", 2, "\"x\" must hold one character", ERR_TYPE,
+			ATOM_nil, wordToTermRef(a2));
+      deRef2(a, a2);
+      if ( !isVar(*a2) && isIndexedVarTerm(*a2 PASS_LD) < 0 )
+      { if ( (chr=arithChar(a2 PASS_LD)) == EOF )
+	  fail;
+
+	Output_1(ci, A_INTEGER, chr);
+	succeed;
+      } else
+	return PL_error(".", 2, "Cannot handle [X]",
+			ERR_INSTANTIATION);
+    }
+
     if ( (index = indexArithFunction(fdef, ci->module)) < 0 )
     { return PL_error(NULL, 0, "No such aritmetic function",
 			ERR_TYPE, ATOM_evaluable, wordToTermRef(arg));
