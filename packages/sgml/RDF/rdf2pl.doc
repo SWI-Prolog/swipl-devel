@@ -330,9 +330,9 @@ This installs the Prolog library files in \file{$PLBASE/library}, where
 
 \subsection{Windows}
 
-Copy the files \file{rdf.pl}, \file{rdf_parse.pl}, \file{rdf_triple.pl}
-and \file{rewrite.pl} to the SWI-Prolog library, start Prolog and run
-make/0 to update the library index.
+Run the file \file{setup.pl} by double clicking it.  This will install
+the required files into the SWI-Prolog directory and update the
+library directory.
 
 \end{document}
 
