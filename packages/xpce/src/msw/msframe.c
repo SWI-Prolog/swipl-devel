@@ -932,8 +932,11 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The  ->geometry  specifies  the  X,Y  of   the  outer  frame  (including
-decorations) and the size of the inner-frame (<-area, the client area).
+Resize/reposition the frame according to  the   (client)  <-area. The p*
+arguments are provided to allow passing   no-move/no-resize flags to the
+appropriate system calls.
+
+Used by `frame->set'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
@@ -946,8 +949,10 @@ ws_geometry_frame(FrameObj fr, Int px, Int py, Int pw, Int ph)
     Area a = fr->area;
 
     outer_frame_area(fr, &x, &y, &w, &h, FALSE);
+/*
     x = valInt(a->x);
     y = valInt(a->y);
+*/
 
     if ( isDefault(pw) && isDefault(ph) )
       flags |= SWP_NOSIZE;

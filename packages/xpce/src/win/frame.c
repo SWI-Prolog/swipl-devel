@@ -729,7 +729,7 @@ setFrame(FrameObj fr, Int x, Int y, Int w, Int h)
     assign(a, h, ONE);
 
   if ( createdFrame(fr) )
-  { ws_geometry_frame(fr, a->x, a->y, a->w, a->h);
+  { ws_geometry_frame(fr, x, y, w, h);
 
     if ( ow != a->w || oh != a->h )
       resizeFrame(fr);
