@@ -19,6 +19,7 @@
 	    anon_prefix/1		% Prefix for anonynmous resources
 	  ]).
 :- use_module(library(gensym)).
+:- use_module(rdf_parser).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Convert the output of xml_to_rdf/3  from   library(rdf)  into  a list of

@@ -1,3 +1,7 @@
+Oct 21, 2004
+
+  * FIXED: Bug#196: avoid need for autoloading.  Sandro Hawke.
+
 Sep 13, 2004
 
   * ADDED: namespaces(-NameSpaces) option to load_rdf/3 and process_rdf/3
