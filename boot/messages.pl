@@ -579,16 +579,20 @@ print_system_message(_, banner, _) :-
 print_system_message(Term, Level, Lines) :-
 	source_location(File, Line),
 	Term \= error(syntax_error(_), _),
-	prefix(Level, Prefix, LinePrefix, PostFix, Stream), !,
+	prefix(Level, Prefix, LinePrefix, PostFix, Wait, Stream), !,
 	format(Stream, Prefix, [File, Line]),
 	print_message_lines(Stream, LinePrefix, Lines),
-	format(Stream, PostFix, []).
+	format(Stream, PostFix, []),
+	(   Wait > 0
+	->  sleep(Wait)
+	;   true
+	).
 print_system_message(_, Level, Lines) :-
 	prefix(Level, LinePrefix, Stream), !,
 	print_message_lines(Stream, LinePrefix, Lines).
 	
-prefix(error,	      'ERROR: (~w:~d):~n',   '\t', '', user_error).
-prefix(warning,	      'Warning: (~w:~d):~n', '\t', '', user_error).
+prefix(error,	      'ERROR: (~w:~d):~n',   '\t', '', 0.5, user_error).
+prefix(warning,	      'Warning: (~w:~d):~n', '\t', '', 0,   user_error).
 
 prefix(help,	      '',          user_error).
 prefix(query,	      '',          user_error).

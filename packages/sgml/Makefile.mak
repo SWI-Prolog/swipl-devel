@@ -12,8 +12,10 @@ PLHOME=..\..
 !include ..\..\src\rules.mk
 PKGDLL=sgml2pl
 
-OBJ=		parser.obj util.obj charmap.obj catalog.obj \
-		model.obj xmlns.obj utf8.obj sgml2pl.obj error.obj
+LIBOBJ=		parser.obj util.obj charmap.obj catalog.obj \
+		model.obj xmlns.obj utf8.obj
+OBJ=		$(LIBOBJ) sgml2pl.obj error.obj
+SGMLOBJ=	$(LIBOBJ) sgml.obj
 DTDFILES=	HTML4.dcl HTML4.dtd HTML4.soc \
 		HTMLlat1.ent HTMLspec.ent HTMLsym.ent
 DTDDIR=		$(PLBASE)\library\DTD
@@ -22,6 +24,9 @@ all:		$(PKGDLL).dll
 
 $(PKGDLL).dll:	$(OBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(OBJ) $(PLLIB) $(LIBS)
+
+sgml.exe:	$(SGMLOBJ)
+		$(LD) $(LDFLAGS) /out:$@ $(SGMLOBJ) $(LIBS)
 
 !IF "$(CFG)" == "rt"
 install:	idll
