@@ -537,11 +537,7 @@ PL_initialise(int argc, char **argv)
   bool compile = FALSE;
   const char *rcpath = "<none>";
 
-#if defined(_DEBUG) && defined(WIN32)
-#if 0
-  extern void initHeapDebug(void);
-  initHeapDebug();
-#endif
+#if defined(_DEBUG) && defined(WIN32) && 0
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF|
 		 _CRTDBG_CHECK_ALWAYS_DF|
 		 _CRTDBG_CHECK_CRT_DF|

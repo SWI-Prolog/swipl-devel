@@ -3,6 +3,9 @@
 
 #define __WIN32__ 1
 
+typedef unsigned long sigset_t;		/* we don't have this */
+#define HAVE_SIGSET_T 1			/* For the future */
+
 #define NOTTYCONTROL TRUE		/* default -tty */
 #define O_ASYNC_HOOK 1
 #define NO_SEGV_HANDLING 1		/* at least, when making a DLL */
