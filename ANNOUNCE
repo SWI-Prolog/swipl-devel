@@ -1,81 +1,36 @@
-SWI-Prolog 5.0.0/XPCE 6.0.0 Summary of changes
+SWI-Prolog 5.0.2/XPCE 6.0.2 Summary of changes
 
-Organisation: License, home and plans
-=====================================
+SWI-Prolog
+==========
 
-  * LICENSE
+	* Souces compile flawlessly on MacOS X (well, on a few systems
+	  at least :-), including building shared objects and embedded
+	  executables using plld.  All standard packages build fine.
 
-    SWI-Prolog/XPCE and all our packages are now licensed according to the
-    LGPL for the C-parts and GPL + exception to allow linking into non-GPL
-    applications for the Prolog libraries.
+	  Binaries using the Flink (debian) packages are expected
+	  shortly.
 
-    The new rights make it much easier for us to integrate contributions
-    into the system as we no longer need the copyright to them.
+	* Fixed various issues in multi-threading and signal handling
 
-    The old proprietary license provided more rights.  We anticipate most
-    holders will have no problem switching to the new conditions.  If there
-    are problems, please contact jan@swi-prolog.org and we will try to find
-    a solution.  Of course you are free to stick with the old version under
-    the old proprietary license.
+	* Added library(time) to the clib package to deal with scheduled
+	  alarms on both Unix and Windows systems.
 
-  * HOME
+	* Better expansion of ~ on windows systems
 
-    The official home of SWI-Prolog is now
+	* Many fixes to the graphical tracer
 
-  	http://www.swi-prolog.org
+	* Many additions to colour-mode of the built-in editor: more
+	  categories, better handling of meta-calls, right-button menu
+	  to many fragments (jump to source/documentation) and feedback
+ 	  in the status line.
 
-    Especially the heavy used download page and pages that need facilities
-    not provide with the hosting ISP stay on the SWI site.  The above however
-    should be a once and forall stable URL, so
+XPCE
+====
 
-        PLEASE UPDATE YOUR LINKS
+	* Fixes tab-ed dialogs (broken is last release)
 
-  * PLANS
+	* Improvements in focus handling on Unix/X11 version
 
-    I have decided to try and arrange things such that I can spend much more
-    time to XPCE/SWI-Prolog.  In due time, this means the project should
-    become fully self-supporting.  The above new license agreement places
-    SWI-Prolog firmly in the Free and Open Source Initiative and therefore
-    allow us only to make money on related activities.  We are working on
-    the details, but these will include support, sponsored development and
-    general sponsoring.  Please help us build a community that is profitable
-    for all of us!
+	* Port to MacOS X (using X11).
 
-    Further announcements will follow.
-
-
-SWI-Prolog 5.0.0
-================
-
-  * BUGS FIXED
-     + sub_atom/5 crash on backtracking
-     + random/3 from Quintus compatibility library
-     + Permission problem in make/0
-     + Type-checking in code/character lists
-
-  * PORTABILITY
-     + Renamed write_ln to writeln (write_ln still in library(backcomp))
-
-  * ADDED
-     + Menus to PLWIN.EXE console
-     + Many improvements on to the development and manual tools.
-
-      
-XPCE 6.0.0
-===========
-
-  * BUGS FIXED
-     + Save images on 24 and 32 bit machines (X11)
-     + Many frame geometry management problems
-
-  * MODIFIED:
-     + Default look-and-feel now incorporates many Gtk (GNOME) elements.
-
-  * PORTABILITY:
-     + Prefer mkstemp() over tmpnam() (security).
-
-  * ADDED
-     + Library(persistent_frame) to make it easy to write applications that
-       remember their window location.  Use this for many of the standard
-       tools from the manual and Prolog environment.
-
+	* Many minor issues.
