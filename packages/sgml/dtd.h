@@ -237,7 +237,7 @@ typedef struct _dtd_srcloc
   const char *name;			/* name of the file */
   int	      line;			/* 1-based Line no */
   int	      linepos;			/* 1-based char  */
-  int	      charpos;			/* 0-based file char  */
+  long	      charpos;			/* 0-based file char  */
   struct _dtd_srcloc *parent;		/* parent location */
 } dtd_srcloc;
 

@@ -120,7 +120,7 @@ pl_error(plerrorid id, ...)
       PL_unify_term(formal,
 		    PL_FUNCTOR_CHARS, "limit_exceeded", 2,
 		    PL_CHARS, limit,
-		    PL_INTEGER, maxval);
+		    PL_LONG, maxval);
 
       break;
     }
@@ -135,7 +135,7 @@ pl_error(plerrorid id, ...)
       PL_unify_term(formal,
 		    PL_FUNCTOR_CHARS, "package", 2,
 		      PL_CHARS, pkg,
-		      PL_INTEGER, id);
+		      PL_INT, id);
       break;
     }
     default:

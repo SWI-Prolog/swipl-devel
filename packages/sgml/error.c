@@ -120,7 +120,7 @@ sgml2pl_error(plerrorid id, ...)
       PL_unify_term(formal,
 		    PL_FUNCTOR_CHARS, "limit_exceeded", 2,
 		    PL_CHARS, limit,
-		    PL_INTEGER, maxval);
+		    PL_LONG, maxval);
 
       break;
     }

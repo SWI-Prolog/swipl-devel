@@ -209,8 +209,8 @@ unify_value(term_t t, odbData data)
 
       return PL_unify_term(t, PL_FUNCTOR, FUNCTOR_decimal3,
 			   PL_CHARS, dec,
-			   PL_INTEGER, prec,
-			   PL_INTEGER, scale);
+			   PL_INT, prec,
+			   PL_INT, scale);
     }
     case ODBINT:
       return PL_unify_integer(t, odbGetInt(data));

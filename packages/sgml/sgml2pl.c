@@ -843,8 +843,8 @@ put_tag_position(dtd_parser *p, term_t pos)
 		  PL_FUNCTOR, FUNCTOR_ns2,
 		    PL_CHARS, l->name,
 		    PL_FUNCTOR, FUNCTOR_minus2,
-		      PL_INTEGER, l->charpos,
-		      PL_INTEGER, p->location.charpos);
+		      PL_LONG, l->charpos,
+		      PL_LONG, p->location.charpos);
     return TRUE;
   }
 
@@ -1017,7 +1017,7 @@ on_entity(dtd_parser *p, dtd_entity *e, int chr)
     else
       PL_unify_term(h,
 		    PL_FUNCTOR, FUNCTOR_entity1,
-		    PL_INTEGER, chr);
+		    PL_INT, chr);
 			 
     PL_reset_term_refs(h);
   }
@@ -1149,7 +1149,7 @@ on_error(dtd_parser *p, dtd_error *error)
 		  PL_FUNCTOR_CHARS, "sgml", 4,
 		    PL_TERM, parser,
 		    PL_CHARS, l->name ? l->name : "[]",
-		    PL_INTEGER, l->line,
+		    PL_INT, l->line,
 		    PL_CHARS, error->plain_message);
 
     PL_call_predicate(NULL, PL_Q_NODEBUG, pred, av);

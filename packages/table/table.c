@@ -639,8 +639,8 @@ pl_get_table_attribute(term_t handle, term_t name, term_t value)
     if ( n == ATOM_window && arity == 0 )
       return PL_unify_term(value,
 			   PL_FUNCTOR, FUNCTOR_minus2,
-			     PL_INTEGER, table->window - table->buffer,
-			     PL_INTEGER, table->window_size);
+			     PL_LONG, table->window - table->buffer,
+			     PL_LONG, table->window_size);
   }
 
 ierr2:
@@ -707,12 +707,12 @@ unify_field_info(term_t t, Field field)	/* name(Type, Flags) */
   }
   if ( field->width > 0 )
   { PL_unify_term(head, PL_FUNCTOR, PL_new_functor(ATOM_width, 1),
-			    PL_INTEGER, field->width);
+			    PL_INT, field->width);
     options++;
   }
   if ( field->arg > 0 )
   { PL_unify_term(head, PL_FUNCTOR, PL_new_functor(ATOM_arg, 1),
-			    PL_INTEGER, field->arg);
+			    PL_INT, field->arg);
     options++;
   }
 
