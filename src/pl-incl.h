@@ -89,6 +89,7 @@ This has worked on TURBO_C not very long ago.
 
 #if O_SHORT_SYMBOLS
 #include "pl-ssymb.h"		/* Redefine long symbols to avoid clashes */
+				/* Probably out-of-date! */
 #endif
 
 #include <stdio.h>
@@ -129,10 +130,12 @@ A common basis for C keywords.
 #endif
 
 #define forwards static		/* forwards function declarations */
+#ifndef P
 #if PROTO
 #define P(type) type
 #else
 #define P(type) ()
+#endif
 #endif
 
 #ifndef GLOBAL			/* global variables */

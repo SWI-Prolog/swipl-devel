@@ -56,8 +56,8 @@ sources, but not tested afterwards.
 			/* Interfaces */
 #define O_PCE 			0
 
-#define MACHINE		  "Intel-386"
-#define OPERATING_SYSTEM  "Linux"
+#define MACHINE			"Intel-386"
+#define OPERATING_SYSTEM  	"Linux"
 
 
 		/********************************

@@ -332,6 +332,7 @@ word		pl_current_module P((Word, Word, word)),
 		pl_set_source_module P((Word, Word)),
 		pl_declare_module P((Word, Word)),
 		pl_export P((Word)),
+		pl_export_list P((Word, Word)),
 		pl_check_export P((void)),
 		pl_context_module P((Word)),
 		pl_import P((Word));

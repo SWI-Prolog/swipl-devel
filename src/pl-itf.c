@@ -26,6 +26,42 @@ is linked this way.
 		*********************************/
 
 int
+PL_is_var(t)
+register Word t;
+{ return isVar(*t);
+}
+
+int
+PL_is_int(t)
+register Word t;
+{ return isInteger(*t);
+}
+
+int
+PL_is_atom(t)
+register Word t;
+{ return isAtom(*t);
+}
+
+int
+PL_is_float(t)
+register Word t;
+{ return isReal(*t);
+}
+
+int
+PL_is_string(t)
+register Word t;
+{ return isReal(*t);
+}
+
+int
+PL_is_term(t)
+register Word t;
+{ return isTerm(*t);
+}
+
+int
 PL_type(t)
 register Word t;
 { if ( isVar(*t) )		return PL_VARIABLE;
@@ -76,7 +112,7 @@ register word t;
 functor
 PL_functor(t)
 register Word t;
-{ return (functor) functorTerm(*t);
+{ return isTerm(*t) ? (functor) functorTerm(*t) : (functor) NULL;
 }
 
 atomic

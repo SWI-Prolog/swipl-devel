@@ -230,6 +230,7 @@ static struct foreign {
   ADD("import",			1, pl_import,		TRANSPARENT|TRACE_ME),
   ADD("export",			1, pl_export,		TRANSPARENT|TRACE_ME),
   ADD("$check_export",		0, pl_check_export,	TRANSPARENT|TRACE_ME),
+  ADD("export_list",		2, pl_export_list,		TRACE_ME),
   ADD("index",			1, pl_index,		TRANSPARENT|TRACE_ME),
 #if O_AIX_FOREIGN
   ADD("$load_foreign",		1, pl_load_foreign1,	TRANSPARENT|TRACE_ME),

@@ -16,7 +16,7 @@
 #endif
 
 forwards void	copyFrameArguments P((LocalFrame, LocalFrame, int));
-forwards bool	callForeign P((Procedure, LocalFrame));
+forwards inline bool	callForeign P((const Procedure, LocalFrame));
 forwards void	leaveForeignFrame P((LocalFrame));
 
 #if COUNTING
@@ -164,6 +164,154 @@ int i;
 #define COUNT_2N(name)
 #define COUNT(name)
 #endif COUNTING
+
+
+		/********************************
+		*         FOREIGN CALLS         *
+		*********************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Calling foreign predicates.  We will have to  set  `lTop',  compose  the
+argument  vector  for  the  foreign  function,  call  it and analyse the
+result.  The arguments of the frame are derefenced  here  to  avoid  the
+need for explicit dereferencing in most foreign predicates themselves.
+
+A foreign predicate can  return  either  the  constant  FALSE  to  start
+backtracking,  TRUE to indicate success without alternatives or anything
+else.  The return value is saved in the `clause' slot of the frame.   In
+this  case  the  interpreter  will  leave a backtrack point and call the
+foreign function again with  the  saved  value  as  `backtrack  control'
+argument  if  backtracking is needed.  This `backtrack control' argument
+is appended to the argument list normally given to the foreign function.
+This makes it possible for  foreign  functions  that  do  not  use  this
+mechanism  to  ignore it.  For the first call the constant FIRST_CALL is
+given as `backtrack control'.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static inline bool
+callForeign(proc, frame)
+Procedure proc;
+register LocalFrame frame;
+{ int argc = proc->functor->arity;
+  word result;
+  Word argv[10];
+  Func function;
+
+  { register Word a, *ap;
+    register int n;
+
+    a = argFrameP(frame, 0);
+    lTop = (LocalFrame) argFrameP(a, argc);
+    for(ap = argv, n = argc; n > 0; n--, a++, ap++)
+      deRef2(a, *ap)
+  }
+
+  DEBUG(7, printf("Calling built in %s\n", procedureName(proc)) );
+
+  SECURE(
+  int n;
+  for(n = 0; n < argc; n++)
+    checkData(argv[n]);
+  );
+
+  function = proc->definition->definition.function;
+
+#define A(n) argv[n]
+#define F (*function)
+#define B ((word) frame->clause)
+
+  gc_status.blocked++;
+  switch(argc)
+  { case 0:  result = F(B); break;
+    case 1:  result = F(A(0), B); break;
+    case 2:  result = F(A(0), A(1), B); break;
+    case 3:  result = F(A(0), A(1), A(2), B); break;
+    case 4:  result = F(A(0), A(1), A(2), A(3), B); break;
+    case 5:  result = F(A(0), A(1), A(2), A(3), A(4), B); break;
+    case 6:  result = F(A(0), A(1), A(2), A(3), A(4), A(5), B); break;
+    case 7:  result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), B); break;
+    case 8:  result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
+			B); break;
+    case 9:  result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
+			A(8), B); break;
+    case 10: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
+			A(8), A(9), B); break;
+#if !mips				/* MIPS doesn't handle tah many */
+    case 11: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
+			A(8), A(9), A(10), B); break;
+    case 12: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
+			A(8), A(9), A(10), A(11), B); break;
+    case 13: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
+			A(8), A(9), A(10), A(11), A(12), B); break;
+    case 14: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
+			A(8), A(9), A(10), A(11), A(12), A(13), B); break;
+    case 15: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
+			A(8), A(9), A(10), A(11), A(12), A(13), A(14),
+			B); break;
+#endif
+    default:	return sysError("Too many arguments to foreign function");
+  }
+  gc_status.blocked--;
+
+#undef B
+#undef F
+#undef A
+
+  SECURE(
+  int n;
+  for(n=0;n<argc; n++)
+    checkData(argv[n]);
+  );
+
+  if ( result == FALSE )
+  { frame->clause = NULL;
+    fail;
+  } else if ( result == TRUE )
+  { frame->clause = NULL;
+    succeed;
+  } else
+  { if ( true(proc->definition, NONDETERMINISTIC) )
+    { if ( !result & FRG_MASK )
+      { warning("Illegal return value from foreign predicate %s: 0x%x",
+				    procedureName(proc), result);
+	fail;
+      }
+      frame->clause = (Clause) result;
+      succeed;
+    }
+    warning("Deterministic foreign predicate %s returns 0x%x",
+			    procedureName(proc), result);
+    fail;
+  }
+}
+
+static void
+leaveForeignFrame(fr)
+register LocalFrame fr;
+{ if ( true(fr->procedure->definition, NONDETERMINISTIC) )
+  { register Procedure proc = fr->procedure;
+    register Func f = proc->definition->definition.function;
+    register word context = (word) fr->clause | FRG_CUT;
+
+#define U ((Word) NULL)
+    DEBUG(5, printf("Cut %s, context = 0x%lx\n", procedureName(proc), context));
+    switch(proc->functor->arity)
+    { case 0:	(*f)(context);					return;
+      case 1:	(*f)(U, context);				return;
+      case 2:	(*f)(U, U, context);				return;
+      case 3:	(*f)(U, U, U, context);				return;
+      case 4:	(*f)(U, U, U, U, context);			return;
+      case 5:	(*f)(U, U, U, U, U, context);			return;
+      case 6:	(*f)(U, U, U, U, U, U, context);		return;
+      case 7:	(*f)(U, U, U, U, U, U, U, context);		return;
+      case 8:	(*f)(U, U, U, U, U, U, U, U, context);		return;
+      case 9:	(*f)(U, U, U, U, U, U, U, U, U, context);	return;
+      case 10:	(*f)(U, U, U, U, U, U, U, U, U, U, context);	return;
+      default:	sysError("Too many arguments (%d) to leaveForeignFrame()");
+    }
+  }
+#undef U
+}
 
 
 		/********************************
@@ -1834,154 +1982,6 @@ register int argc;
   while(argc-- > 0)			/* now copy them */
     *ARGD++ = *ARGS++;  
 }
-
-		/********************************
-		*         FOREIGN CALLS         *
-		*********************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Calling foreign predicates.  We will have to  set  `lTop',  compose  the
-argument  vector  for  the  foreign  function,  call  it and analyse the
-result.  The arguments of the frame are derefenced  here  to  avoid  the
-need for explicit dereferencing in most foreign predicates themselves.
-
-A foreign predicate can  return  either  the  constant  FALSE  to  start
-backtracking,  TRUE to indicate success without alternatives or anything
-else.  The return value is saved in the `clause' slot of the frame.   In
-this  case  the  interpreter  will  leave a backtrack point and call the
-foreign function again with  the  saved  value  as  `backtrack  control'
-argument  if  backtracking is needed.  This `backtrack control' argument
-is appended to the argument list normally given to the foreign function.
-This makes it possible for  foreign  functions  that  do  not  use  this
-mechanism  to  ignore it.  For the first call the constant FIRST_CALL is
-given as `backtrack control'.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static bool
-callForeign(proc, frame)
-Procedure proc;
-register LocalFrame frame;
-{ int argc = proc->functor->arity;
-  word result;
-  Word argv[10];
-  Func function;
-
-  { register Word a, *ap;
-    register int n;
-
-    a = argFrameP(frame, 0);
-    lTop = (LocalFrame) argFrameP(a, argc);
-    for(ap = argv, n = argc; n > 0; n--, a++, ap++)
-      deRef2(a, *ap)
-  }
-
-  DEBUG(7, printf("Calling built in %s\n", procedureName(proc)) );
-
-  SECURE(
-  int n;
-  for(n = 0; n < argc; n++)
-    checkData(argv[n]);
-  );
-
-  function = proc->definition->definition.function;
-
-#define A(n) argv[n]
-#define F (*function)
-#define B ((word) frame->clause)
-
-  gc_status.blocked++;
-  switch(argc)
-  { case 0:  result = F(B); break;
-    case 1:  result = F(A(0), B); break;
-    case 2:  result = F(A(0), A(1), B); break;
-    case 3:  result = F(A(0), A(1), A(2), B); break;
-    case 4:  result = F(A(0), A(1), A(2), A(3), B); break;
-    case 5:  result = F(A(0), A(1), A(2), A(3), A(4), B); break;
-    case 6:  result = F(A(0), A(1), A(2), A(3), A(4), A(5), B); break;
-    case 7:  result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), B); break;
-    case 8:  result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
-			B); break;
-    case 9:  result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
-			A(8), B); break;
-    case 10: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
-			A(8), A(9), B); break;
-#if !mips				/* MIPS doesn't handle tah many */
-    case 11: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
-			A(8), A(9), A(10), B); break;
-    case 12: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
-			A(8), A(9), A(10), A(11), B); break;
-    case 13: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
-			A(8), A(9), A(10), A(11), A(12), B); break;
-    case 14: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
-			A(8), A(9), A(10), A(11), A(12), A(13), B); break;
-    case 15: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
-			A(8), A(9), A(10), A(11), A(12), A(13), A(14),
-			B); break;
-#endif
-    default:	return sysError("Too many arguments to foreign function");
-  }
-  gc_status.blocked--;
-
-#undef B
-#undef F
-#undef A
-
-  SECURE(
-  int n;
-  for(n=0;n<argc; n++)
-    checkData(argv[n]);
-  );
-
-  if ( result == FALSE )
-  { frame->clause = NULL;
-    fail;
-  } else if ( result == TRUE )
-  { frame->clause = NULL;
-    succeed;
-  } else
-  { if ( true(proc->definition, NONDETERMINISTIC) )
-    { if ( !result & FRG_MASK )
-      { warning("Illegal return value from foreign predicate %s: 0x%x",
-				    procedureName(proc), result);
-	fail;
-      }
-      frame->clause = (Clause) result;
-      succeed;
-    }
-    warning("Deterministic foreign predicate %s returns 0x%x",
-			    procedureName(proc), result);
-    fail;
-  }
-}
-
-static void
-leaveForeignFrame(fr)
-register LocalFrame fr;
-{ if ( true(fr->procedure->definition, NONDETERMINISTIC) )
-  { register Procedure proc = fr->procedure;
-    register Func f = proc->definition->definition.function;
-    register word context = (word) fr->clause | FRG_CUT;
-
-#define U ((Word) NULL)
-    DEBUG(5, printf("Cut %s, context = 0x%lx\n", procedureName(proc), context));
-    switch(proc->functor->arity)
-    { case 0:	(*f)(context);					return;
-      case 1:	(*f)(U, context);				return;
-      case 2:	(*f)(U, U, context);				return;
-      case 3:	(*f)(U, U, U, context);				return;
-      case 4:	(*f)(U, U, U, U, context);			return;
-      case 5:	(*f)(U, U, U, U, U, context);			return;
-      case 6:	(*f)(U, U, U, U, U, U, context);		return;
-      case 7:	(*f)(U, U, U, U, U, U, U, context);		return;
-      case 8:	(*f)(U, U, U, U, U, U, U, U, context);		return;
-      case 9:	(*f)(U, U, U, U, U, U, U, U, U, context);	return;
-      case 10:	(*f)(U, U, U, U, U, U, U, U, U, U, context);	return;
-      default:	sysError("Too many arguments (%d) to leaveForeignFrame()");
-    }
-  }
-#undef U
-}
-
 
 #if O_COMPILE_OR
 word

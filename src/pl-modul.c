@@ -272,6 +272,33 @@ Word name, file;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+export_list(+Module, -PublicPreds)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+word
+pl_export_list(modulename, list)
+Word modulename, list;
+{ Module module;
+  Symbol s;
+
+  if ( !isAtom(*modulename) )
+    return warning("export_list/2: instantiation fault");
+  
+  if ((module = isCurrentModule((Atom) *modulename)) == NULL)
+    fail;
+  
+  for_table(s, module->public)
+  { TRY(unifyFunctor(list, FUNCTOR_dot2));
+    TRY(unifyFunctor(HeadList(list), (FunctorDef)s->name));
+    list = TailList(list);
+    deRef(list);
+  }
+  
+  return unifyAtomic(list, ATOM_nil);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 pl_export() exports a procedure specified by its name and arity from the
 context module.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */

@@ -571,7 +571,7 @@ either full pathnames or 'library()' names that expand to a full pathname.
 
 #include <rld.h>
 #include <strings.h>
-#import <streams/streams.h>
+#include <streams/streams.h>
 
 extern int	unlink(const char *), mkstemp (char *template), close(int);
 extern char *mktemp(char *template);

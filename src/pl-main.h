@@ -65,13 +65,10 @@ GLOBAL struct
 		********************************/
 
 #ifndef DEFSTARTUP
-#define DEFSTARTUP ".plrc"
-#endif
-#ifndef SYSTEMSTATE
-#define SYSTEMSTATE "startup"
+#define DEFSTARTUP .plrc
 #endif
 #ifndef SYSTEMHOME
-#define SYSTEMHOME "/usr/local/lib/pl"
+#define SYSTEMHOME /usr/local/lib/pl
 #endif
 
 #ifndef MACHINE

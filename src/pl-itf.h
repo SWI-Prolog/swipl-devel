@@ -11,7 +11,7 @@
 #define PL_INCLUDED
 
 #ifndef PLVERSION
-#define PLVERSION "1.6.1, June 1992"
+#define PLVERSION "1.6.2, July 1992"
 #endif
 
 #ifndef P
@@ -77,25 +77,29 @@ typedef struct
 #define PL_ATOM		(2)
 #define PL_INTEGER	(3)
 #define PL_FLOAT	(4)
-#if O_STRING
 #define PL_STRING	(5)
-#endif O_STRING
 #define PL_TERM		(6)
 
-int 	PL_type P((term));		/* determine type of a term */
 #define PL_atomic(t)	(*(t))		/* convert term to atomic */
-long	PL_integer_value P((atomic));	/* Prolog int   -> C int */
-double	PL_float_value P((atomic));	/* Prolog float -> C float */
-#if O_STRING
-char *	PL_string_value P((atomic));	/* Prolog string -> C char * */
-#endif O_STRING
-char *  PL_list_string_value P((term));	/* Prolog list of ASCII --> C char * */
-char *	PL_atom_value P((atomic));	/* Prolog atom  -> C char * */
-functor	PL_functor P((term));		/* determine functor of complex term */
-atomic	PL_functor_name P((functor));	/* determine name (atom) of functor */
-int	PL_functor_arity P((functor));	/* determine arity of functor */
-term	PL_arg P((term, int));		/* return argument of complex term */
-term	PL_strip_module P((term, module*)); /* strip module information */
+
+int const PL_is_var P((const term));
+int const PL_is_int P((const term));
+int const PL_is_atom P((const term));
+int const PL_is_float P((const term));
+int const PL_is_string P((const term));
+int const PL_is_term P((const term));
+
+int	const PL_type P((const term));
+long	const PL_integer_value P((const atomic));
+double	      PL_float_value P((const atomic));
+char *	      PL_string_value P((const atomic));
+char *        PL_list_string_value P((const term));
+char *	const PL_atom_value P((const atomic));
+functor const PL_functor P((const term));
+atomic	const PL_functor_name P((const functor));
+int	const PL_functor_arity P((const functor));
+term	const PL_arg P((const term, int));
+term	const PL_strip_module P((const term, module*));
 
 		/********************************
 		*         CONSTRUCTION          *

@@ -33,6 +33,8 @@ save_program.  See pl-load.c and pl-dump.c
 #define FOREIGN_PL		aix_foreign.pl
 
 			/* compiler */
+#pragma alloca
+#define etext _etext
 #define unix			1
 #define _BSD			1	/* BSD compatibility mode */
 #define ANSI			1
@@ -58,7 +60,7 @@ save_program.  See pl-load.c and pl-dump.c
 #define MAX_VIRTUAL_ADDRESS	(512 * 1024 *1024) /* redundant */
 #define O_FOREIGN		0
 #define O_AIX_FOREIGN		1
-#define O_STORE_PROGRAM		1
+#define O_SAVE			1
 #define UNEXEC_SOURCE		"gnu/unexaix.c"
 #define TEXT_START		0x10000000
 #define DATA_START		0x20000000

@@ -11,10 +11,9 @@
 #   Copyright (c) 1989, University of Amsterdam
 #
 
-#include "md.h"
+#include "make.h"
 
 # The following parameters are loaded from md.h (using cpp)
-# (delete-quotes) requests to delete double-quotes from the line
 
 CC=M_CC
 OPTIMIZE=M_OPTIMIZE
@@ -22,7 +21,7 @@ CFLAGS=${OPTIMIZE} M_CFLAGS
 LDFLAGS=M_LDFLAGS
 LIBS=M_LIBS
 #ifdef UNEXEC_SOURCE
-UNEXEC=UNEXEC_SOURCE (delete-quotes)
+UNEXEC=UNEXEC_SOURCE
 #else
 UNEXEC=gnu/unexec.c
 #endif
@@ -35,7 +34,6 @@ FOREIGN=foreign.pl
 
 # paths and file names for installation
 
-#include "../config.h"
 SYSTEMHOME=M_SYSTEMHOME
 DEFSTARTUP=M_DEFSTARTUP
 PROLOG=M_PROLOG
@@ -43,9 +41,8 @@ BINDIR=M_BINDIR
 
 SYS=pl
 STARTUPDIR=../startup
-MACH=MACHINE(delete-quotes)
-STARTUPPATH=$(STARTUPDIR)/startup.$(MACH)
-RUNTIMEDIR=../runtime/$(MACH)
+STARTUPPATH=$(STARTUPDIR)/startup.MACHINE
+RUNTIMEDIR=../runtime/MACHINE
 RUNTIME=$(RUNTIMEDIR)/pl.o
 PB=../boot
 BINLIB=libPL.a
@@ -92,13 +89,13 @@ xruntime:	$(RUNTIME)
 		
 
 xmakefile:	Makefile md.h ../config.h
-		@-rm -f junk.c
+		@-rm -f junk.c make.h
+		@sed 's/"//g' md.h ../config.h > make.h
 		@sed -f make.sed Makefile > junk.c
 		@$(CPP) junk.c | \
-		sed -e 's/^[ 	]*$$//' -e 's/^ /	/' \
-		    -e 's/\(.*\)"\(.*\)"\(.*\)[ 	]*(delete-quotes)/\1\2\3/' | \
+		sed -e 's/^[ 	]*$$//' -e 's/^ /	/' | \
 		sed -n -e '/^..*$$/p' > xmakefile
-		@rm -f junk.c
+		@rm -f junk.c make.h
 
 $(SYS):		$(OBJ) $(DEPOBJ) $(EXT)
 		$(CC) $(LDFLAGS) -o $(SYS) $(OBJ) $(DEPOBJ) $(EXT) $(LIBS)
@@ -149,11 +146,7 @@ xinstall:
 #if O_STORE_PROGRAM && !O_INSTALL_DONOT_STORE
 		./dump ./$(SYS) $(BINDIR)/$(PROLOG)
 #else
-#if O_INSTALL_USING_LN
-		(me=`pwd`/$(SYS); cd $(BINDIR); ln -s $$me $(PROLOG))
-#else
 		$(INSTALL) $(SYS) $(BINDIR)/$(PROLOG)
-#endif
 #endif
 		$(INSTALL) pl-bite $(BINDIR)/pl-bite
 		chmod 755 $(BINDIR)/$(PROLOG) $(BINDIR)/pl-bite
@@ -168,9 +161,7 @@ clean:		xmakefile
 
 xclean:
 		rm -f *.o a.out core makefile pl-bite
-#if !O_INSTALL_USING_LN
 		rm $(SYS)
-#endif
 
 # GCC is buggy on this one if you haven't ran `fixincludes' (see gcc
 # distribution

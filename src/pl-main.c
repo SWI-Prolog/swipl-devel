@@ -63,14 +63,15 @@ findState(base)
 char *base;
 { char state[MAXPATHLEN];
 
-  sprintf(state, "%s.%s", base, MACHINE);
+  sprintf(state, "%s.%s", base, systemDefaults.machine);
   if ( ExistsFile(state) )
     return store_string(state);
 
   if ( ExistsFile(base) )
     return store_string(base);
 
-  sprintf(state, "%s/startup/%s.%s", systemDefaults.home, base, MACHINE);
+  sprintf(state, "%s/startup/%s.%s",
+	  systemDefaults.home, base, systemDefaults.machine);
   if ( ExistsFile(state) )
     return store_string(state);
 
@@ -107,11 +108,9 @@ char **env;
 
  /* status.debugLevel = 9; */
 
-  if ( argc == 2 && streq(argv[1], "-help") )
-    usage();
-
   if ( status.dumped == FALSE )
-  { systemDefaults.home		    = findHome(SYSTEMHOME);
+  { systemDefaults.machine	    = MACHINE;
+    systemDefaults.home		    = findHome(SYSTEMHOME);
     systemDefaults.state	    = findState("startup");
     systemDefaults.startup	    = DEFSTARTUP;
     systemDefaults.version	    = store_string(PLVERSION);
@@ -123,7 +122,6 @@ char **env;
     systemDefaults.goal		    = "'$welcome'";
     systemDefaults.toplevel	    = "prolog";
     systemDefaults.notty	    = FALSE;
-    systemDefaults.machine	    = MACHINE;
     systemDefaults.operating_system = OPERATING_SYSTEM;
 
   } else
@@ -162,15 +160,20 @@ char **env;
 
   DEBUG(1, {if (status.boot) printf("Boot session\n");});
 
+  if ( argc >= 2 && streq(argv[0], "-r") )
+  { argc -= 2, argv += 2;		/* recover; we've done this! */
+  }
+
   if ( argc >= 2 && streq(argv[0], "-x") )
   { state = argv[1];
     argc -= 2, argv += 2;
     DEBUG(1, printf("Startup file = %s\n", state));
-  } else if ( argc == 1 && argv[0][0] != '-' )
-  { state = argv[0];
-    argc--, argv++;
-    DEBUG(1, printf("Startup file = %s\n", state));
   }
+
+  if ( argc >= 1 && streq(argv[0], "-help") )
+    usage();
+
+#define K * 1024L
 
   if ( state != NULL && status.boot == FALSE )
   { DEBUG(1, printf("Scanning %s for options\n", state));
@@ -186,17 +189,16 @@ char **env;
     DEBUG(2, printf("options.initFile     = %s\n",  options.initFile));
   } else
   { options.compileOut	  = "a.out";
-    options.localSize	  = systemDefaults.local    * 1024L;
-    options.globalSize	  = systemDefaults.global   * 1024L;
-    options.trailSize	  = systemDefaults.trail    * 1024L;
-    options.argumentSize  = systemDefaults.argument * 1024L;
-    options.lockSize	  = systemDefaults.lock	    * 1024L;
+    options.localSize	  = systemDefaults.local    K;
+    options.globalSize	  = systemDefaults.global   K;
+    options.trailSize	  = systemDefaults.trail    K;
+    options.argumentSize  = systemDefaults.argument K;
+    options.lockSize	  = systemDefaults.lock	    K;
     options.goal	  = systemDefaults.goal;
     options.topLevel	  = systemDefaults.toplevel;
     options.initFile      = systemDefaults.startup;
   }
 
-#define K * 1024L
   for( ; argc > 0 && (argv[0][0] == '-' || argv[0][0] == '+'); argc--, argv++ )
   { if ( streq(&argv[0][1], "tty") )
     { status.notty = (argv[0][0] == '-');

@@ -16,7 +16,8 @@ the terminal interface does not operate properly.
 
 #define M_CC			gcc
 /*#define M_OPTIMIZE		-g -DO_DEBUG*/
-#define M_OPTIMIZE	        -O -finline-functions
+/*#define M_OPTIMIZE	        -O -finline-functions*/
+#define M_OPTIMIZE	        -O2
 #define M_LDFLAGS		-static
 #define M_CFLAGS		-Wall
 #define M_LIBS			-lm -ltermcap

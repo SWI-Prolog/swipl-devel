@@ -319,7 +319,11 @@ SaveSection sections;
     
   section_offset = sizeof(header) + sects_size;
 
+#ifdef DATA_START
+  sects[0].start	= (long) DATA_START;
+#else
   sects[0].start	= &environ;
+#endif
   sects[0].length	= (long) sbrk(0) - (long) sects[0].start;
   sects[0].type		= S_DATA;
   sects[0].flags	= 0;
@@ -389,7 +393,7 @@ char **env;
 	exit(1);
     }
 #else
-    { if ( !restore(argv[2], NULL )
+    { if ( !restore(argv[2], NULL) )
 	exit(1);
     }
 #endif

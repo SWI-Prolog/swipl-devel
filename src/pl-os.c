@@ -2253,17 +2253,29 @@ char *program;
   char *path, *dir;
   char *e;
 
+  if ( isAbsolutePath(program) ||
+       isRelativePath(program) ||
+       index(program, '/') )
+  { if ( (e = okToExec(program)) != NULL )
+    { strcpy(fullname, e);
+      
+      return fullname;
+    }
+
+    return NULL;
+  }
+
   if  ((path = getenv("PATH") ) == 0)
     path = DEFAULT_PATH;
 
   while(*path)
-  { if (*path == PATHSEP || isAbsolutePath(program) || isRelativePath(program) )
+  { if ( *path == PATHSEP )
     { if ( (e = okToExec(program)) != NULL)
       { strcpy(fullname, e);
 
         return fullname;
       } else
-        return (char *) NULL;
+        return NULL;
     } else
     { for(dir = fullname; *path && *path != PATHSEP; *dir++ = *path++)
 	;
@@ -2279,7 +2291,7 @@ char *program;
     }
   }
 
-  return (char *) NULL;
+  return NULL;
 }
 
 
