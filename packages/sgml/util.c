@@ -397,7 +397,7 @@ str_summary(char const *s, int len)
 { char *buf;
   size_t l = strlen(s);
 
-  if ( l < len )
+  if ( l < (size_t)len )
     return s;
   buf = ringallo(len + 10);
   strncpy(buf, s, len-5);
