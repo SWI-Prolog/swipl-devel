@@ -310,6 +310,11 @@ appendHashTable(HashTable ht, Any name, Any value)
   hashkey = hashKey(name, ht->buckets);
   s       = &ht->symbols[hashkey];
 
+#if O_COUNT
+  DEBUG(NAME_key, Cprintf("Key for %s in %d buckets: %d\n",
+			  pp(name), ht->buckets, hashkey));
+#endif
+
   for(;;)
   { if ( s->name == name )
     { assign_symbol_value(ht, s, value);
@@ -321,7 +326,9 @@ appendHashTable(HashTable ht, Any name, Any value)
       assign_symbol_value(ht, s, value);
       assign(ht, size, add(ht->size, ONE));
       succeed;
-    } 
+    }
+
+    COUNT(hash_shifts++);
     if ( ++hashkey == ht->buckets )
     { hashkey = 0;
       s = ht->symbols;
@@ -498,6 +505,7 @@ printStatisticsHashTable(HashTable ht)
 { Cprintf("Total hash_table statistics:\n");
   Cprintf("\t# resizes:    %d\n", hash_resizes);
   Cprintf("\t# lookups:    %d\n", hash_lookups);
+  Cprintf("\t# shifts:     %d\n", hash_shifts);
   Cprintf("\t# mismatches: %d\n", hash_cmp_failed);
 
   succeed;

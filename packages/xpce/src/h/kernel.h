@@ -1770,16 +1770,6 @@ extern char *T_report[];		/* ->report: kind, format, args... */
 #define O_COUNT 0
 #endif
 
-#if O_COUNT
-#define COUNT(g) {g;}
-
-GLOBAL int hash_cmp_failed;		/* failed comparisons for lookup */
-GLOBAL int hash_lookups;		/* Total lookups */
-GLOBAL int hash_resizes;		/* # resizes done */
-#else
-#define COUNT(g)
-#endif
-
 		/********************************
 		*             SYNTAX		*
 		********************************/
@@ -1807,11 +1797,24 @@ GLOBAL int hash_resizes;		/* # resizes done */
 		*        INLINE SUPPORT		*
 		********************************/
 
+#if O_COUNT
+#define COUNT(g) {g;}
+
+GLOBAL int hash_cmp_failed;		/* failed comparisons for lookup */
+GLOBAL int hash_lookups;		/* Total lookups */
+GLOBAL int hash_resizes;		/* # resizes done */
+GLOBAL int hash_shifts;			/* Shifts in append */
+#else
+#define COUNT(g)
+#endif
+
+#define unboundedKey(name) (isInteger(name) ? (unsigned long)(name)>>1 \
+					    : (unsigned long)(name)>>2)
 
 #if USE_PRIMES
-#define hashKey(name, buckets) ((((unsigned long)(name)) >> 2) % (buckets))
+#define hashKey(name, buckets) (unboundedKey(name) % (buckets))
 #else
-#define hashKey(name, buckets) ((((unsigned long)(name)) >> 2) & ((buckets)-1))
+#define hashKey(name, buckets) (unboundedKey(name) & ((buckets)-1))
 #endif
 
 

@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Poor hash-performance hashing a sequence of integers.  Anjo
+  Anjewierden
+
 * FIXED: Various minor problems in barchart/plotter.
 
 * FIXED: Generating PostScript from bitmaps filled with ->draw_in
