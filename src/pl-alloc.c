@@ -115,7 +115,7 @@ allocHeap(size_t n)
       }
 #endif
       UNLOCK();
-      return f;				/* perfect fit */
+      goto out;
     }
     f = allocate(n);			/* allocate from core */
     UNLOCK();
@@ -127,7 +127,7 @@ allocHeap(size_t n)
 #if ALLOC_DEBUG
     memset((char *) f, ALLOC_MAGIC, n);
 #endif
-    return f;
+    goto out;
   }
 
   if ( !(f = allocBigHeap(n)) )
@@ -144,6 +144,8 @@ allocHeap(size_t n)
 #if ALLOC_DEBUG
   memset((char *) f, ALLOC_MAGIC, n);
 #endif
+out:
+
   return f;
 }
 

@@ -1083,6 +1083,14 @@ allocStacks(long local, long global, long trail, long argument)
     fatalError("Failed to allocate stacks for %d bytes: %s",
 	       trail+argument+glsize, OsError());
 
+  /*
+  Sdprintf("Mapped:\n"
+	   "\t%p %ld bytes\n"
+	   "\t%p %ld bytes\n"
+	   "\t%p %ld bytes\n",
+	   tbase, trail+tsep, abase, argument+tsep, gbase, glsize);
+  */
+
 #define INIT_STACK(name, print, base, limit, minsize) \
   DEBUG(1, Sdprintf("%s stack at 0x%x; size = %ld\n", print, base, limit)); \
   init_stack((Stack) &LD->stacks.name, print, base, limit, minsize);
@@ -1105,7 +1113,7 @@ Free stacks for the current Prolog thread
 void
 freeStacks(PL_local_data_t *ld)
 { long lsep, tsep;
-  long len;
+  long tlen, alen, glen;
 
 #ifdef NO_SEGV_HANDLING
   lsep = tsep = 0;
@@ -1114,14 +1122,26 @@ freeStacks(PL_local_data_t *ld)
   tsep = size_alignment;
 #endif
 
-  len = (char *)ld->stacks.trail.limit - (char *)ld->stacks.trail.base;
-  munmap((char *)ld->stacks.trail.base, len+tsep);
-  len = (char *)ld->stacks.argument.limit - (char *)ld->stacks.argument.base;
-  munmap((char *)ld->stacks.argument.base, len+tsep);
-  len = ((char *)ld->stacks.global.limit - (char *)ld->stacks.global.base) +
-        ((char *)ld->stacks.local.limit - (char *)ld->stacks.local.base);
-  munmap((char *)ld->stacks.global.base, len+tsep+lsep);
+  tlen = (char *)ld->stacks.trail.limit - (char *)ld->stacks.trail.base;
+  alen = (char *)ld->stacks.argument.limit - (char *)ld->stacks.argument.base;
+  glen = ((char *)ld->stacks.global.limit - (char *)ld->stacks.global.base) +
+         ((char *)ld->stacks.local.limit - (char *)ld->stacks.local.base);
+
+  /*
+  Sdprintf("UnMapped:\n"
+	   "\t%p %ld bytes\n"
+	   "\t%p %ld bytes\n"
+	   "\t%p %ld bytes\n",
+	   ld->stacks.trail.base,    tlen+tsep,
+	   ld->stacks.argument.base, alen+tsep,
+	   ld->stacks.global.base,   glen+tsep+lsep);
+  */
+
+  munmap((char *)ld->stacks.trail.base,    tlen+tsep);
+  munmap((char *)ld->stacks.argument.base, alen+tsep);
+  munmap((char *)ld->stacks.global.base,   glen+tsep+lsep);
 }
+
 
 #endif /* MMAP_STACK */
 

@@ -845,6 +845,7 @@ PL_cleanup(int rval)
   cleaning = TRUE;
 
   pl_notrace();				/* avoid recursive tracing */
+  stopProfiler();			/* don't do profiling anymore */
 #ifdef O_PLMT
   exitPrologThreads();
 #endif
@@ -890,6 +891,9 @@ PL_cleanup(int rval)
 
   cleanupSignals();
   freeStacks(LD);
+#ifdef HAVE_DMALLOC_H
+  dmalloc_verify(0);
+#endif
   freeLocalData(LD);
   cleanupSourceFiles();
   cleanupAtoms();

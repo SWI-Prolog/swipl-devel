@@ -628,6 +628,8 @@ word		pl_profile_box(term_t head,
 			       term_t calls, term_t redos,
 			       term_t exits, term_t fails);
 word		pl_reset_profiler(void);
+bool		stopProfiler(void);
+
 
 /* pl-read.c */
 void		resetRead(void);

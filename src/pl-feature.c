@@ -734,5 +734,5 @@ setArgvFeature()
     PL_cons_list(l, e, l);
   }
 
-  defFeature("argv", FT_TERM|FF_READONLY, l);
+  defFeature("argv", FT_TERM, l);
 }

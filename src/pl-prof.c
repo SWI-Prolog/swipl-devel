@@ -60,8 +60,8 @@ stopItimer(void)
   }
 }
 
-static bool
-stopProfiler()
+bool
+stopProfiler(void)
 { if ( LD->statistics.profiling == NO_PROFILING )
     succeed;
 
