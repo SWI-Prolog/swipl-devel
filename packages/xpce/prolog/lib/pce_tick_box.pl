@@ -22,6 +22,8 @@ label. The selection is expressed as a boolean.
 
 :- pce_begin_class(tick_box, menu, "Simple boolean tick-box").
 
+variable(align_with, {left,value} := left, both, "How to align").
+
 class_variable(item_elevation, elevation*, @nil, "Elevation of the label").
 
 initialise(TB, Name:name, Value:[bool], Message:[code]*) :->
@@ -37,8 +39,12 @@ initialise(TB, Name:name, Value:[bool], Message:[code]*) :->
 
 :- pce_group(appearance).
 
-label_width(_TB, _LW:int) :->
-	true.
+label_width(TB, LW:int) :->
+	"Honour label alignment if we align with value of <-above"::
+	(   get(TB, align_with, value)
+	->  send_super(TB, label_width, LW)
+	;   true
+	).
 
 label(TB, Label:'name|image') :->
 	"Set the label"::
