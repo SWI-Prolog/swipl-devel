@@ -2045,6 +2045,7 @@ done:
     return errorPce(file, NAME_ioError, getOsErrorPce(PCE));
   }
 
+  Sclose(fd);
   size = tb->gap_start - where;
   grow = times*size;
   register_insert_textbuffer(tb, where, grow);
