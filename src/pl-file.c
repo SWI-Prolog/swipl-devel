@@ -639,7 +639,7 @@ closeStream(IOSTREAM *s)
       return streamStatus(s);
     releaseStream(s);
   } else
-  { if ( Sflush(s) < 0 )
+  { if ( !Sferror(s) && Sflush(s) < 0 )
     { streamStatus(s);
       Sclose(s);
       return FALSE;
