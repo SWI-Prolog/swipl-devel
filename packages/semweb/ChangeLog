@@ -1,3 +1,8 @@
+Oct 1, 2003
+
+  * MODIFIED: XSD namespace declaration in rdf_db.pl to 
+    http://www.w3.org/2001/XMLSchema#
+
 Sep 30, 2003
 
   * FIXED: rdfs_find: every class is supposed to be a subclass of

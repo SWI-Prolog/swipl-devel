@@ -105,7 +105,7 @@ ns(rdf,  'http://www.w3.org/1999/02/22-rdf-syntax-ns#').
 %ns(rdfs, 'http://www.w3.org/TR/1999/PR-rdf-schema-19990303#').
 ns(rdfs, 'http://www.w3.org/2000/01/rdf-schema#').
 ns(owl,  'http://www.w3.org/2002/07/owl#').
-ns(xsd,  'http://www.w3.org/2000/10/XMLSchema#').
+ns(xsd,  'http://www.w3.org/2001/XMLSchema#').
 ns(dc,   'http://purl.org/dc/elements/1.1/').
 ns(eor,  'http://dublincore.org/2000/03/13/eor#').
 
