@@ -36,7 +36,8 @@ load_rdf(File, Triples, Options) :-
 	load_structure(File,
 		       [ RDFElement
 		       ],
-		       [ dialect(xmlns)
+		       [ dialect(xmlns),
+			 space(remove)
 		       ]),
 	xml_to_rdf(RDFElement, BaseURI, Triples).
 
@@ -64,6 +65,7 @@ process_rdf(File, BaseURI, OnObject) :-
 	new_sgml_parser(Parser, []),
 	set_sgml_parser(Parser, file(File)),
 	set_sgml_parser(Parser, dialect(xmlns)),
+	set_sgml_parser(Parser, space(remove)),
 	sgml_parse(Parser,
 		   [ source(In),
 		     call(begin, rdf:on_begin),
