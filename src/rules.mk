@@ -36,6 +36,7 @@ CFG=dev
 DBG=false
 MT=false
 DBGOPT=/Od
+#DBGOPT=/O2
 
 !IF "$(CFG)" == "rt"
 CMFLAGS=/DO_RUNTIME
