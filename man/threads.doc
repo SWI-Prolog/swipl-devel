@@ -236,7 +236,13 @@ and \arg{Queue} is unified to its identifier.
 
     \predicate{message_queue_destroy}{1}{+Queue}
 Destroy a message queue created with message_queue_create/1.  It is
-\emph{not} allows to destroy the queue of a thread.
+\emph{not} allows to destroy the queue of a thread.  Neither is it
+allowed to destroy a queue other threads are waiting for or, for
+anynymous message queues, may try to wait for later.%
+	\bug{None of these constraints are properly enforced by the
+	     system in the current implementation.  It is therefore
+	     advised not to delete queues unless you are absolutely
+	     sure it is safe.}
 
     \predicate{thread_get_message}{2}{+Queue, ?Term}
 As thread_get_message/1, operating on a given queue. It is allowed (but
