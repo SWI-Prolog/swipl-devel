@@ -112,7 +112,7 @@ hiddenStyle(Style s, Bool on)
 
 static Bool
 get_attribute_style(Style s, unsigned char att)
-{ return (s->attributes && att) ? ON : OFF;
+{ return (s->attributes & att) ? ON : OFF;
 }
 
 

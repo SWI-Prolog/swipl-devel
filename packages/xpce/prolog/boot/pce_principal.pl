@@ -327,10 +327,10 @@ send_implementation(spy(Id), Args, Obj) :-
 	;   send_implementation(Id, Args, Obj)
 	).
 send_implementation(trace(Id), Args, Obj) :-
-	pce_info(trace(enter, send_implementation(Id, Args, Obj))),
+	pce_info(pce_trace(enter, send_implementation(Id, Args, Obj))),
 	(   send_implementation(Id, Args, Obj)
-	->  pce_info(trace(exit, send_implementation(Id, Args, Obj)))
-	;   pce_info(trace(fail, send_implementation(Id, Args, Obj)))
+	->  pce_info(pce_trace(exit, send_implementation(Id, Args, Obj)))
+	;   pce_info(pce_trace(fail, send_implementation(Id, Args, Obj)))
 	).
 get_implementation(true, _Args, _Obj, _Rval).
 get_implementation(fail, _Args, _Obj, _Rval) :- fail.
@@ -343,10 +343,10 @@ get_implementation(spy(Id), Args, Obj, Rval) :-
 	;   get_implementation(Id, Args, Obj, Rval)
 	).
 get_implementation(trace(Id), Args, Obj, Rval) :-
-	pce_info(trace(enter, get_implementation(Id, Args, Obj, Rval))),
+	pce_info(pce_trace(enter, get_implementation(Id, Args, Obj, Rval))),
 	(   get_implementation(Id, Args, Obj, Rval)
-	->  pce_info(trace(exit, get_implementation(Id, Args, Obj, Rval)))
-	;   pce_info(trace(fail, get_implementation(Id, Args, Obj, Rval)))
+	->  pce_info(pce_trace(exit, get_implementation(Id, Args, Obj, Rval)))
+	;   pce_info(pce_trace(fail, get_implementation(Id, Args, Obj, Rval)))
 	).
 
 %	SWI-Prolog: make thus a normal user (debug-able) predicate.

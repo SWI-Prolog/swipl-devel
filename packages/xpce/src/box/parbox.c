@@ -197,8 +197,8 @@ RedrawAreaParBox(ParBox pb, Area a)
 		 *	LOCATIONS AND EVENTS	*
 		 *******************************/
 
-static HBox
-getBoxFromEventParBox(ParBox pb, EventObj ev)
+static Cell
+getCellFromEventParBox(ParBox pb, EventObj ev)
 { Int X, Y;
 
   if ( get_xy_event(ev, pb, OFF, &X, &Y) )
@@ -208,12 +208,12 @@ getBoxFromEventParBox(ParBox pb, EventObj ev)
     int y = 0;
     parline l;
     parshape shape;
-    Cell cell;
+    Cell cell, c2;
 
     init_shape(&shape, pb, w);
 
     cell = pb->content->head;
-    while( notNil(cell) )
+    for(cell = pb->content->head; notNil(cell); cell = c2)
     { parcell *pc;
       int i;
   
@@ -221,7 +221,7 @@ getBoxFromEventParBox(ParBox pb, EventObj ev)
       l.y = y;
       l.w = w;
       l.size = MAXHBOXES;
-      cell = fill_line(cell, &l, &shape);
+      c2 = fill_line(cell, &l, &shape);
       if ( l.shape_graphicals )
 	push_shape_graphicals(&l, &shape);
 
@@ -233,7 +233,11 @@ getBoxFromEventParBox(ParBox pb, EventObj ev)
       
       for(i=0, pc = l.hbox; i<l.size; i++, pc++)
       { if ( ex > pc->x && ex <= pc->x + pc->w )
-	  answer(pc->box);
+	{ for(; notNil(c2) && c2->value != pc->box; c2 = c2->next)
+	    ;
+	  assert(notNil(c2));
+	  answer(c2);
+	}
       }
 
       fail;
@@ -242,6 +246,44 @@ getBoxFromEventParBox(ParBox pb, EventObj ev)
 
   fail;
 }
+
+
+static HBox
+getBoxFromEventParBox(ParBox pb, EventObj ev)
+{ Cell cell;
+
+  if ( (cell = getCellFromEventParBox(pb, ev)) )
+    answer(cell->value);
+
+  fail;
+}
+
+
+static HBox
+getFindBoxParBox(ParBox pb, Any from, Code cond)
+{ Cell cell;
+
+  if ( isDefault(from) )
+  { cell = pb->content->head;
+  } else if ( instanceOfObject(from, ClassEvent) )
+  { cell = getCellFromEventParBox(pb, from);
+  } else if ( instanceOfObject(from, ClassHBox) )
+  { for_cell(cell, pb->content)
+    { if ( cell->value == from )
+	break;
+    }
+  }
+
+  if ( cell )
+  { while( notNil(cell) )
+    { if ( forwardCodev(cond, 1, &cell->value) )
+	answer(cell->value);
+    }
+  }
+
+  fail;
+}
+
 
 		 /*******************************
 		 *	 PARAGRAPH-SHAPE	*
@@ -879,6 +921,8 @@ static char *T_initialise[] =
 	};
 static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+static char *T_findBox[] =
+	{ "from=[event|hbox]", "match=code" };
 
 /* Instance Variables */
 
@@ -912,7 +956,9 @@ static senddecl send_parbox[] =
 
 static getdecl get_parbox[] =
 { GM(NAME_boxFromEvent, 1, "hbox", "event", getBoxFromEventParBox,
-     NAME_event, "Find hbox from event")
+     NAME_event, "Find hbox from event"),
+  GM(NAME_findBox, 2, "hbox", T_findBox, getFindBoxParBox,
+     NAME_find, "Find hbox from matching code")
 };
 
 

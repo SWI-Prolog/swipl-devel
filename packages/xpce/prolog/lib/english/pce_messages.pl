@@ -108,9 +108,7 @@ pce_message(loaded_library_index(File)) -->
 pce_message(no_pw3_predicate(P/N)) -->
 	['XPCE/Prolog predicate ~w/~d not part of ProWindows'-[P,N],nl].
 
-pce_message(trace(Port, Goal)) -->
-	['XPCE ~w: ~p'-[Port, pce_principal:Goal],nl].
-pce_message(spy(Port, Goal)) -->
+pce_message(pce_trace(Port, Goal)) -->
 	['XPCE ~w: ~p'-[Port, pce_principal:Goal],nl].
 
 pce_message(preformatted(Fmt, Args)) -->

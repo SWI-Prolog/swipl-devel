@@ -60,7 +60,7 @@ drawTBox(TBox tb, int x, int y, int w)
     old_colour = r_colour(s->colour);
 
   s_print(&tb->text->data, x, y, f);
-  if ( s->flags & TXT_UNDERLINED )
+  if ( s->attributes & TXT_UNDERLINED )
   { r_thickness(1);
     r_dash(NAME_none);
     r_line(x, y+1, x+w, y+1);
