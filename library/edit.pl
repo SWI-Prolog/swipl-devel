@@ -231,6 +231,9 @@ merge_locations(Loc1-Spec1, Loc2-Spec2, Loc-Spec) :-
 	;   merge_specs(Spec2, Spec1, Spec)
 	;   Spec = Spec1
 	), !.
+merge_locations([file(X)]-_, Loc-Spec, Loc-Spec) :-
+	memberchk(file(X), Loc),
+	memberchk(line(_), Loc).
 
 same_location(L, L, L).
 same_location([file(F1)], [file(F2)], [file(F)]) :-
