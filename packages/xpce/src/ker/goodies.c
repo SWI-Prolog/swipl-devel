@@ -112,6 +112,13 @@ environment.
 double
 cstrtod(const char *in, char **end)
 { double rval;
+  int sign = 1;
+
+  if ( (*in == '-' || *in == '+') && cisdigit(in[1]) )
+  { if ( *in == '-' )
+      sign = -1;
+    in++;
+  }
 
   if ( cisdigit(*in) )
   { rval = digitval(*in);
@@ -159,7 +166,7 @@ cstrtod(const char *in, char **end)
       in++;
     } else
     { *end = (char *)eend;
-      return rval;
+      return rval*sign;
     }
     while(cisdigit(*in))
     { exp = exp*10+digitval(*in);
@@ -169,7 +176,7 @@ cstrtod(const char *in, char **end)
   }
 
   *end = (char *)in;
-  return rval;
+  return rval*sign;
 }
 
 
