@@ -110,7 +110,8 @@ _xos_home()				/* expansion of ~ */
   { char h[MAXPATHLEN];
 
 					/* Unix, set by user */
-    if ( GetEnvironmentVariable("HOME", h, sizeof(h)) )
+    if ( GetEnvironmentVariable("HOME", h, sizeof(h)) ||
+	 GetEnvironmentVariable("USERPROFILE", h, sizeof(h)) )
     { _xos_canonical_filename(h, home);
     } else
     { char d[100];
