@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: #2: Handle Control-C in plcon.exe (Windows console app).
+
 VERSION 5.1.5 (Jan 06, 2003)
 ============================
 

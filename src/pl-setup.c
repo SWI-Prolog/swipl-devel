@@ -332,14 +332,32 @@ There are a few possible problems:
 
 The sync-argument is TRUE  when   called  from  PL_handle_signals(), and
 FALSE otherwise.  It is used to delay signals marked with PLSIG_SYNC.
+
+If we are running in the MT environment, we may get signals from threads
+not having a Prolog engine. If there is a registered handler we call it.
+This  also  deals  with  Control-C  in  Windows  console  apps,  calling
+interruptHandler() in pl-trace.c which in   turn re-routes the interrupt
+to the main thread.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 dispatch_signal(int sig, int sync)
 { SigHandler sh = &GD->sig_handlers[sig];
   fid_t fid;
-  LocalFrame lTopSave = lTop;
-  int saved_current_signal = LD->current_signal;
+  LocalFrame lTopSave;
+  int saved_current_signal;
+
+#ifdef O_PLMT
+  if ( !LD )
+  { if ( sh->handler )
+      (*sh->handler)(sig);
+
+    return;				/* what else?? */
+  }
+#endif
+
+  lTopSave = lTop;
+  saved_current_signal = LD->current_signal;
 
   switch(sig)
   { case SIGFPE:

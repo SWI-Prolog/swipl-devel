@@ -241,6 +241,7 @@ int			attachConsole(void);
 Definition		localiseDefinition(Definition def);
 int			PL_mutex_lock(struct pl_mutex *m);
 int			PL_mutex_unlock(struct pl_mutex *m);
+int			PL_thread_raise(int tid, int sig);
 
 
 		 /*******************************

@@ -1196,6 +1196,11 @@ interruptHandler(int sig)
 
 again:
 #ifdef O_PLMT
+  if ( !LD )				/* we can't handle this; main thread */
+  { PL_thread_raise(1, sig);		/* should try to do this */
+    return;
+  }
+
   if ( LD->exit_requested )
   { term_t rval = PL_new_term_ref();
     PL_put_atom(rval, ATOM_true);

@@ -24,15 +24,16 @@
 
 #include <windows.h>
 #include "pl-itf.h"
+#include <signal.h>
 
 #if 0
-#include <signal.h>
+static DWORD main_thread_id;
 
 static BOOL
 consoleHandlerRoutine(DWORD id)
 { switch(id)
   { case CTRL_C_EVENT:
-      raise(SIGINT);
+      PL_w32thread_raise(main_thread_id, SIGINT);
       return TRUE;
   }
   
@@ -44,8 +45,9 @@ int
 main(int argc, char **argv)
 {
 #if 0
+  main_thread_id = GetCurrentThreadId();
   SetConsoleCtrlHandler((PHANDLER_ROUTINE)consoleHandlerRoutine, TRUE);
-#endif
+#endif  
 
   if ( !PL_initialise(argc, argv) )
     PL_halt(1);

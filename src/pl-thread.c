@@ -482,9 +482,7 @@ exitPrologThreads()
 	  break;
 	}
 	case PL_THREAD_RUNNING:
-	{ int rc;
-
-	  if ( t->cancel )
+	{ if ( t->cancel )
 	  { if ( (*t->cancel)(i) == TRUE )
 	      break;			/* done so */
 	  }
@@ -495,12 +493,15 @@ exitPrologThreads()
 	  PostThreadMessage(t->w32id, WM_QUIT, 0, 0);
 	  canceled++;
 #else
+	{ int rc;
+
 	  if ( (rc=pthread_cancel(t->tid)) == 0 )
 	  { t->status = PL_THREAD_CANCELED;
 	    canceled++;
 	  } else
 	  { Sdprintf("Failed to cancel thread %d: %s\n", i, ThError(rc));
 	  }
+	}
 #endif
 	  break;
 	}
@@ -643,6 +644,27 @@ PL_w32thread_raise(DWORD id, int sig)
 }
 
 #endif /*WIN32*/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+PL_thread_raise() is used  for  re-routing   interrupts  in  the Windows
+version, where the signal handler is running  from a different thread as
+Prolog.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+PL_thread_raise(int tid, int sig)
+{ LOCK();
+  if ( tid < 0 || tid >= MAX_THREADS ||
+       threads[tid].status == PL_THREAD_UNUSED )
+  { UNLOCK();
+    return FALSE;
+  }
+
+  threads[tid].thread_data->pending_signals |= (1L << (sig-1));
+  UNLOCK();
+
+  return TRUE;
+}
 
 
 const char *
