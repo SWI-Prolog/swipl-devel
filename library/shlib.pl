@@ -76,11 +76,11 @@ load_foreign_library(LibFile, Entry) :-
 load_foreign_library(LibFile, Entry) :-
 	open_goal(LibFile, Path, Handle, OpenGoal),
 	OpenGoal,
-	(   retractall(fpublic(_)),
+	(   clean_fpublic,		% safety
 	    call_goal(Handle, Entry, CallGoal),
 	    CallGoal
 	->  assert_shlib(LibFile, Entry, Path, Handle),
-	    retractall(fpublic(_))
+	    clean_fpublic
 	;   '$warning'('~w: failed to call entry point ~w', [LibFile, Entry]),
 	    close_goal(Handle, CloseGoal),
 	    CloseGoal,
@@ -107,6 +107,9 @@ unload_foreign_library(LibFile, Uninstall) :-
 
 foreign_registered(M, H) :-
 	assert(fpublic(M:H)).
+
+clean_fpublic :-
+	retractall(fpublic(_)).
 
 assert_shlib(File, Entry, Path, Handle) :-
 	findall(P, fpublic(P), Public),
