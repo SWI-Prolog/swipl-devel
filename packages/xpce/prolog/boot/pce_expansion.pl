@@ -237,10 +237,12 @@ do_expand((:- pce_extend_class(ClassName)), []) :-
 	push_class(ClassName),
 	set_attribute(ClassName, extending, true).
 do_expand((:- pce_end_class(Class)), Expansion) :-
-	pce_compiling(ClassName),
-	(   Class == ClassName
-	->  do_expand((:- pce_end_class), Expansion)
-	;   pce_error(end_class_mismatch(Class, ClassName))
+	(   pce_compiling(ClassName),
+	    (   Class == ClassName
+	    ->  do_expand((:- pce_end_class), Expansion)
+	    ;   pce_error(end_class_mismatch(Class, ClassName))
+	    )
+	;   pce_error(no_class_to_end)
 	).
 do_expand((:- pce_end_class),
 	  [ pce_principal:pce_class(ClassName, MetaClass, Super,
@@ -249,7 +251,7 @@ do_expand((:- pce_end_class),
 				    Directs),
 	    RegisterDecl
 	  ]) :-
-	pce_compiling(ClassName),
+	pce_compiling(ClassName), !,
 	findall(V, retract(attribute(ClassName, variable, V)),  Variables),
 	findall(R, retract(attribute(ClassName, classvar, R)),  Resources),
 	findall(D, retract(attribute(ClassName, directive, D)), Directs),
@@ -264,6 +266,8 @@ do_expand((:- pce_end_class),
 			RegisterDecl)
 	),
 	pop_class.
+do_expand((:- pce_end_class), []) :-
+	pce_error(no_class_to_end).
 do_expand((:- use_class_template(Template)), []) :-
 	used_class_template(Template), !.
 do_expand((:- use_class_template(Template)),
