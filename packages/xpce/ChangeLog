@@ -4,7 +4,13 @@
 VERSION 6.1.10, distributed with SWI-Prolog 5.1.10
 ==================================================
 
+* ADDED: library(pce_class_index).  Ongoing work to simplify class management.
+
+* ADDED: Support for cross-referencing class definitions and usage from
+  library('emacs/prolog_xref').
+
 * ADDED: Class keybinding reports pending keystrokes of multi-key commands.
+
 
 VERSION 6.1.9, distributed with SWI-Prolog 5.1.9
 ================================================
