@@ -1,101 +1,11 @@
 			SWI-Prolog on LINUX
 
-I received the following mail from Phil Perucci
-(E-mail: dsc3pzp@nmrdc1.nmrdc.nnmc.navy.mil).
+This  file  used  to  hold an  enthousiastic  mail from   Phil Perucci
+(dsc3pzp@nmrdc1.nmrdc.nnmc.navy.mil) describing  his linux    port  of
+version 1.6.9.  The current version  is fully integrated and  requires
+no additional README ... except for the GNU readline library.
 
-Greetings fellow SWI-Prolog/Linux users!
+This library  isn't  out for long  and the  official   GNU version 1.1
+compiles fine on Linux but runs lousy :-(.  There  is a decent version
+of this library in /pub/linux/lib/librl-1.1.tar.Z.
 
-
-Introduction:
-------------
-
-  My name is Phil Perucci.  I am your typical US Government worker, currently
-with the Navy (soon to be swallowed up by the Defense Department [DITSO]).  I
-am an avid Linux user, and VERY excited about SWI-Prolog.  I am familiar with
-a variety of hardware/software platforms (mainframe, mini, PC), although I 
-prefer Unix (Linux) on PCs and VMS on minis.
-
-  The Linux setup I use is a homebrew 486/33 with 4Mb memory and 60Mb HD.
-Clearly I need to upgrade.  But my Linux is the latest versions of kernel
-(0.99pl4), gcc (2.33), and libc (4.2).  Naturally, I run the latest version
-of SWI-Prolog, which is currently 1.6.9.  YES!  Version 1.6.9 is out!  And
-it has been modifed to compile with Linux!
-
-
-This Mail-reflector:
--------------------
-
-  This mail reflector has been established for the use of people who run
-SWI-Prolog on Linux.  To use it, simply E-mail to:
-
-                        ssb1pzp@imcvms.med.navy.mil
-
-Your E-mail will be sent to everyone on the mailing list, subject to a
-12-24 hour delay.
-
-
-SWI-Prolog Version 1.6.9:
-------------------------
-
-  It's the latest ... it's the GREATEST ... it's version 1.6.9, and it is 
-available on swi.psy.uva.nl in directory /pub/SWI-Prolog now!  To get it
-running,
-
-  1)  Untar it to your favorite source directory.  It will create a directory
-      tree rooted at ~/pl.
-
-  2)  "cd" to ~/pl and type "tcsh SETUP linux" (oh yes... you need "tcsh" -
-      you can also use "csh" if you have it)
-
-  3)  Edit ~/pl/config.h's M_SYSTEMHOME to your SWI-Prolog home directory.
-
-  4)  Make sure you have /lib/cpp.  Mine was missing so I did:
-
-      "ln -s /usr/lib/gcc-lib/i386-linux/2.3.3/cpp /lib/cpp"
-
-      If you do have one, make sure it references ~/2.3.3/cpp and not
-      an earlier version.
-
-  5)  (fixed in pl-1.6.10)
-
-  6)  cd ~/pl/linux
-
-  7)  make
-
-  8)  Compilation of "pl-main.c" will die.  To compile it, do:
-
-      i)    "make &> fix"
-      ii)   Edit fix, and delete all lines except the "gcc" line.  Notice
-            that a single space character preceeds both '\"' strings.  Delete
-            both spaces (one space before each \").
-
- gcc -c -O2 -DSYSTEMHOME=\""/philp/pl" \" -DDEFSTARTUP=\"".plrc" \" pl-main.c
-                                      ^                         ^
-                                      |                         |
-    Delete these spaces! ----------------------------------------
-
-
-      iii)  "sh -v fix"
-      iv)   "make"
-
-   9)  You should now have the latest version of SWI-Prolog!  Don't bother
-       with "make install", it won't work on Linux (yet).  Just cp "pl" and
-       "pl-bite" to your favorite bin directory (I use /usr/local/bin).  Be
-       SURE *not* to delete your source tree (~/pl).  SWI-Prolog NEEDS it.
-
-
-Life can always get better:
---------------------------
-
-  If anyone can improve on this, please E-mail here!  Either getting "O_SAVE"
-in md.h to work, or fixing the Makefile for both "pl-main.c" and "make install"
-would be a Good Thing (tm).  Hint - ~/pl/src/md-gener.h documents the "md.h"
-settings.  The defaults installed by "tcsh SETUP linux" (~pl/src/md-linux) can
-probably be improved.
-
-  If the "O_SAVE" parameter in "md.h" is made to work (it compiles, but pl
-won't run), then Linux can run under X using PCE.
-
-
---
-phil perucci

@@ -104,8 +104,8 @@ prompt_history(Prompt) :-
 	name(Prompt, SP),
 	name(This, ST),
 	(   substitute("%!", ST, SP, String)
-	->  $ttyformat('~s', [String])
-	;   $ttyformat('~a', [Prompt])
+	->  prompt1(String)
+	;   prompt1(Prompt)
 	),
 	ttyflush.
 

@@ -1,6 +1,7 @@
 		    SWI-Prolog Distribution Directory
 
 ** Last update: Fri Dec 18 13:57:18 1992 (1.6.7)
+		Mon Jun 28 14:42:06 1993 (1.7.0)
 
 AUTHOR
 ======
@@ -24,8 +25,6 @@ The SWI-Prolog source tree consists of the following directories:
 ./include	Include files.  Mostly for handling foreign-code
 ./man		Manual (LaTeX)
 ./lisp		GNU-Emacs Lisp sources for a better Prolog-mode
-./dld-3.2	Wilson Ho's `dynamic link editor' (SUN and VAX only)
-		(MODIFIED VERSION)
 
 
 BUILDING SWI-Prolog
@@ -43,11 +42,25 @@ of  GCC-2's  facilities    to deal with   label   addresses, improving
 performance with about 10%.
 
 
-Building
+INSTALLATION
+============
 
-First,  make a  directory for  the  specified machine  using the SETUP
-script.  The argument to SETUP describes the machine you  are running.
-This machine is described in the file src/md-MACHINE.h.  To get a list
+Readline
+
+The current version of SWI-Prolog uses the GNU library readline to allow
+for editing input lines.  The library itself   is  *not* part of prolog.
+It  is  available  from  may  ftp  sites   as  well  as  from  the  file
+librl-11.tar.z in the SWI-Prolog ftp distribution directory.
+
+If you don't have it, compile and  install this library according to the
+instructions there.  If it is not installed in one of the default paths,
+edit the definitions of M_LDFLAGS and M_CFLAGS in md.h.
+
+SWI-Prolog
+
+First, make a directory  for  the   specified  machine  using  the SETUP
+script.  The argument to SETUP describes   the  machine you are running.
+This machine is described in the file   src/md-MACHINE.h.  To get a list
 of architectures run SETUP without arguments.
 
 Next, edit config.h:
