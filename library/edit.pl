@@ -33,6 +33,7 @@
 	  [ edit/1,			% +Spec
 	    edit/0
 	  ]).
+:- use_module(library(lists)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module implements the generic editor  interface. It consists of two
@@ -455,18 +456,23 @@ short_filename(Path, Spec) :-
 	atom_concat(Here, Local0, Path), !,
 	remove_leading_slash(Local0, Spec).
 short_filename(Path, Spec) :-
-	setof(Id, Spec^file_search_path(Id, Spec), Ids),
-	member(Id, Ids),
-	Term =.. [Id, '.'],
-	absolute_file_name(Term,
-			   [ file_type(directory),
-			     file_errors(fail)
-			   ], Prefix),
-	atom_concat(Prefix, Local0, Path), !,
-	remove_leading_slash(Local0, Local),
-	Spec =.. [Id, Local].
+	findall(LenAlias, aliased_path(Path, LenAlias), Keyed),
+	keysort(Keyed, [_-Spec|_]).
 short_filename(Path, Path).
 	
+aliased_path(Path, Len-Spec) :-
+	setof(Alias, Spec^file_search_path(Alias, Spec), Aliases),
+	member(Alias, Aliases),
+	Term =.. [Alias, '.'],
+	absolute_file_name(Term,
+			   [ file_type(directory),
+			     file_errors(fail),
+			     solutions(all)
+			   ], Prefix),
+	atom_concat(Prefix, Local0, Path),
+	remove_leading_slash(Local0, Local),
+	atom_length(Local, Len),
+	Spec =.. [Alias, Local].
 
 remove_leading_slash(Path, Local) :-
 	atom_concat(/, Local, Path), !.

@@ -38,15 +38,19 @@
 
 :- style_check(+dollar).		% lock these predicates
 
-%	check
-%	run all consistency checks of this module
+%	check/0
+%	
+%	Run all consistency checks defined in this library
 
 check :-
-	format('PASS 1: Undefined predicates ...~n'),
+	print_message(informational,
+		      check(pass(1, 'Undefined predicates'))),
 	list_undefined,
-	format('~nPASS 2: System and global predicates ...~n'),
+	print_message(informational,
+		      check(pass(2, 'Redefined system and global predicates'))),
 	list_redefined,
-	format('~nPASS 3: Predicates that need autoloading ...~n'),
+	print_message(informational,
+		      check(pass(3, 'Predicates that need autoloading'))),
 	list_autoload.
 
 %	list_undefined/0
@@ -58,20 +62,15 @@ check :-
 list_undefined :-
 	$style_check(Old, Old), 
 	style_check(+dollar), 
-	list_undefined_, 
-	$style_check(_, Old).
+	call_cleanup(list_undefined_, $style_check(_, Old)).
 
 list_undefined_ :-
 	findall(Pred-Refs, undefined_predicate(Pred, Refs), Pairs),
 	(   Pairs == []
 	->  true
-	;   format('WARNING: The following predicates are not defined~n'),
-	    format('         If these are later defined using assert/1~n'),
-	    format('         use the :- dynamic Name/Arity ... declaration.~n~n'),
+	;   print_message(warning, check(undefined_predicates)),
 	    (	member((Module:Head)-Refs, Pairs),
-		functor(Head, Functor, Arity),
-		write_predicate(Module:Functor/Arity),
-		list_references(Refs),
+		print_message(warning, check(undefined(Module:Head, Refs))),
 		fail
 	    ;	true
 	    )
@@ -87,35 +86,6 @@ undefined_predicate(Module:Head, Refs) :-
 	\+ system_undefined(Module:Functor/Arity).
 
 system_undefined(user:prolog_trace_interception/4).
-
-write_predicate(user:Name/Arity) :- !, 
-	format('~w/~w', [Name, Arity]).
-write_predicate(Module:Name/Arity) :-
-	format('~w:~w/~w', [Module, Name, Arity]).
-
-list_references(Refs) :-
-	(   Refs == []
-	->  format(' (cannot find references)~n')
-	;   format(', which is referenced from:~n'),
-	    write_clause_refs(Refs),
-	    format('~n')
-	).
-
-write_clause_refs([]).
-write_clause_refs([H|T]) :-
-	write_clause_ref(H),
-	write_clause_refs(T).
-
-write_clause_ref(Ref) :-
-	nth_clause(M:Head, N, Ref),
-	suffix(N, Suff),
-	format('~N~t~8|~d-~w clause of ', [N, Suff]),
-	functor(Head, Name, Arity),
-	write_predicate(M:Name/Arity).
-
-suffix(1, st) :- !.
-suffix(2, nd) :- !.
-suffix(_, th).
 
 %	referenced(+Predicate, -ClauseRef)
 %
@@ -137,26 +107,29 @@ list_autoload :-
 	style_check(+dollar), 
 	current_prolog_flag(autoload, OldAutoLoad),
 	set_prolog_flag(autoload, false),
-	list_autoload_, 
-	set_prolog_flag(autoload, OldAutoLoad),
-	$style_check(_, Old).
+	call_cleanup(list_autoload_, 
+		     (	 set_prolog_flag(autoload, OldAutoLoad),
+			 $style_check(_, Old)
+		     )).
 	
 list_autoload_ :-
-	predicate_property(Module:Head, undefined), 
-	referenced(Module:Head, _),
-	\+ predicate_property(Module:Head, imported_from(_)), 
-	functor(Head, Functor, Arity), 
-	$in_library(Functor, Arity),
-	show_library(Module, Functor, Arity), 
-	fail.
-list_autoload_.
-
-show_library(Module, Name, Arity) :-
-	$find_library(Module, Name, Arity, _LoadModule, Library),
-	(   Module == user
-	->  format('~w/~w~t~30|~w~n', [Name, Arity, Library])
-	;   format('~w:~w/~w~t~30|~w~n', [Module, Name, Arity, Library])
+	(   setof(Lib-Pred, autoload_predicate(Module, Lib, Pred), Pairs),
+	    print_message(informational,
+			  check(autoload(Module, Pairs))),
+	    fail
+	;   true
 	).
+
+autoload_predicate(Module, Library, Name/Arity) :-
+	predicate_property(Module:Head, undefined), 
+	(   referenced(Module:Head, _),
+	    \+ predicate_property(Module:Head, imported_from(_)), 
+	    functor(Head, Name, Arity), 
+	    $in_library(Name, Arity),
+	    $find_library(Module, Name, Arity, _LoadModule, Library)
+	->  true
+	).
+
 
 %	list_redefined/0
 %	
@@ -165,8 +138,7 @@ show_library(Module, Name, Arity) :-
 list_redefined :-
 	$style_check(Old, Old), 
 	style_check(+dollar), 
-	list_redefined_, 
-	$style_check(_, Old).
+	call_cleanup(list_redefined_, $style_check(_, Old)).
 	
 list_redefined_ :-
 	current_module(Module),
@@ -178,19 +150,116 @@ list_redefined_ :-
 	    $syspreds:$defined_predicate(Super:Head),
 	    \+ predicate_property(Super:Head, (dynamic)),
 	    \+ predicate_property(Super:Head, imported_from(Module)),
-	    functor(Head, Functor, Arity)
-	->  show_redefined(Module, Super, Functor, Arity)
+	    functor(Head, Name, Arity)
+	->  print_message(informational,
+			  check(redefined(Module, Super, Name/Arity)))
 	),
 	fail.
 list_redefined_.
 
-show_redefined(user, system, F, A) :- !,
-	format('system predicate ~w/~w has been redefined globally.~n',
-								[F, A]).
-show_redefined(M, system, F, A) :-
-	format('system predicate ~w/~w has been redefined in module ~w.~n',
-								[F, A, M]).
-show_redefined(M, user, F, A) :- !,
-	format('global predicate ~w/~w has been redefined in module ~w.~n',
-								[F, A, M]).
 
+		 /*******************************
+		 *	      MESSAGES		*
+		 *******************************/
+
+:- multifile
+	prolog:message/3.
+
+prolog:message(check(pass(N, Comment))) -->
+	[ 'PASS ~w: ~w ...~n'-[N, Comment] ].
+prolog:message(check(undefined_predicates)) -->
+	[ 'The predicates below are not defined. If these are defined', nl,
+	  'at runtime using assert/1, use :- dynamic Name/Arity.', nl, nl
+	].
+prolog:message(check(undefined(Pred, Refs))) -->
+	predicate(Pred),
+	[ ', which is referenced by', nl ],
+	referenced_by(Refs).
+prolog:message(check(autoload(Module, Pairs))) -->
+	{ current_module(Module, Path)
+	}, !,
+	[ 'Into module ~w ('-[Module] ],
+	short_filename(Path),
+	[ ')', nl ],
+	autoload(Pairs).
+prolog:message(check(autoload(Module, Pairs))) -->
+	[ 'Into module ~w'-[Module], nl ],
+	autoload(Pairs).
+prolog:message(check(redefined(In, From, Pred))) -->
+	predicate(Pred),
+	redefined(In, From).
+
+redefined(user, system) -->
+	[ '~t~30| System predicate redefined globally' ].
+redefined(M, system) -->
+	[ '~t~30| System predicate redefined in ~w'-[M] ].
+redefined(M, user) -->
+	[ '~t~30| Global predicate redefined in ~w'-[M] ].
+
+predicate(user:Name/Arity) --> !,
+	[ '~q/~d'-[Name, Arity] ].
+predicate(Module:Name/Arity) --> !,
+	[ '~q:~q/~d'-[Module, Name, Arity] ].
+predicate(Module:Head) --> !,
+	{ functor(Head, Name, Arity)
+	},
+	predicate(Module:Name/Arity).
+predicate(Name/Arity) --> !,
+	[ '~q/~d'-[Name, Arity] ].
+
+autoload([]) -->
+	[].
+autoload([Lib-Pred|T]) -->
+	[ '    ' ],
+	predicate(Pred),
+	[ '~t~24| from ' ],
+	short_filename(Lib),
+	[ nl ],
+	autoload(T).
+
+referenced_by([]) -->
+	[].
+referenced_by([Ref|T]) -->
+	{ nth_clause(M:Head, N, Ref),
+	  suffix(N, Suff)
+	},
+	[ '        ~d-~w clause of '-[N, Suff] ],
+	predicate(M:Head),
+	[ nl ],
+	referenced_by(T).
+
+suffix(1, st) :- !.
+suffix(2, nd) :- !.
+suffix(_, th).
+
+short_filename(Path) -->
+	{ short_filename(Path, Spec)
+	},
+	[ '~q'-[Spec] ].
+
+short_filename(Path, Spec) :-
+	absolute_file_name('', Here),
+	atom_concat(Here, Local0, Path), !,
+	remove_leading_slash(Local0, Spec).
+short_filename(Path, Spec) :-
+	findall(LenAlias, aliased_path(Path, LenAlias), Keyed),
+	keysort(Keyed, [_-Spec|_]).
+short_filename(Path, Path).
+	
+aliased_path(Path, Len-Spec) :-
+	setof(Alias, Spec^file_search_path(Alias, Spec), Aliases),
+	member(Alias, Aliases),
+	Term =.. [Alias, '.'],
+	absolute_file_name(Term,
+			   [ file_type(directory),
+			     file_errors(fail),
+			     solutions(all)
+			   ], Prefix),
+	atom_concat(Prefix, Local0, Path),
+	remove_leading_slash(Local0, Local),
+	atom_length(Local, Len),
+	Spec =.. [Alias, Local].
+
+remove_leading_slash(Path, Local) :-
+	atom_concat(/, Local, Path), !.
+remove_leading_slash(Path, Path).

@@ -2720,6 +2720,7 @@ unify_functor(term_t t, functor_t fd, int how)
 int
 unify_definition(term_t head, Definition def, term_t thehead, int how)
 { GET_LD
+
   if ( PL_is_variable(head) )
   { if ( def->module == MODULE_user ||
 	 ((how&GP_HIDESYSTEM) && true(def->module, SYSTEM)) )
@@ -2740,20 +2741,25 @@ unify_definition(term_t head, Definition def, term_t thehead, int how)
 
     succeed;
   } else
-  { term_t h = PL_new_term_ref();
-    Module m = NULL;
+  { term_t h;
 
-    PL_strip_module(head, &m, h);
-    if ( isSuperModule(def->module, m) )
-    { if ( PL_is_functor(head, FUNCTOR_colon2) )
-      {	PL_get_arg(1, head, h);
-	if ( !PL_unify_atom(h, def->module->name) )
+    if ( PL_is_functor(head, FUNCTOR_colon2) )
+    { h = PL_new_term_ref();
+
+      PL_get_arg(1, head, h);
+      if ( !PL_unify_atom(h, def->module->name) )
+      { atom_t a;
+	Module m;
+
+	if ( !PL_get_atom(h, &a) ||
+	     !(m = isCurrentModule(a)) ||
+	     !isSuperModule(def->module, m) )
 	  fail;
-	PL_get_arg(2, head, h);
-      } else
-	fail;
-    }
-
+      }
+      
+      PL_get_arg(2, head, h);
+    } else
+      h = head;
 
     if ( unify_functor(h, def->functor->functor, how) )
     { if ( thehead )
