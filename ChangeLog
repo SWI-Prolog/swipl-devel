@@ -7,7 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
-  * FIXED: Handling of 0'\n and friends in character-escapes are enabled
+  * FIXED: qsave_program/[1,2] to save the thread_local attribute.
+    Mike Elston.
+
+  * FIXED: Handling of 0'\n and friends if character-escapes is enabled
     (default).  Richard O'Keefe.  Note:
 
     MODIFIED: as a consequence, 0'\ is not interpreted as the character

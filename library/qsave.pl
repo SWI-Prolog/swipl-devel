@@ -325,6 +325,7 @@ save_module(M, SaveClass) :-
 	
 pred_attrib(dynamic,       P, $set_predicate_attribute(P, dynamic,       1)).
 pred_attrib(volatile,      P, $set_predicate_attribute(P, volatile,      1)).
+pred_attrib(thread_local,  P, $set_predicate_attribute(P, thread_local,  1)).
 pred_attrib(multifile,     P, $set_predicate_attribute(P, multifile,     1)).
 pred_attrib(transparent,   P, $set_predicate_attribute(P, transparent,   1)).
 pred_attrib(discontiguous, P, $set_predicate_attribute(P, discontiguous, 1)).
