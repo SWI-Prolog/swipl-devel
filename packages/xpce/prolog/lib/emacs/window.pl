@@ -10,7 +10,7 @@
     Copyright (C) 1990-2001 SWI, University of Amsterdam. All rights reserved.
 */
 
-:- module(emacs_window, []).
+:- module(emacs_frame, []).
 :- use_module(library(pce)).
 :- require([ between/3
 	   , concat/3
@@ -34,7 +34,7 @@ various others.
 
 :- pce_global(@current_emacs_mode, new(var)).
 
-:- pce_begin_class(emacs_window, frame, "Frame for the PceEmacs editor").
+:- pce_begin_class(emacs_frame, frame, "Frame for the PceEmacs editor").
 
 :- pce_global(@emacs_image_recogniser,
 	      new(handler(button,

@@ -62,7 +62,7 @@ server_action(edit(File), Socket) :- !,
 	server_action(edit(File, []), Socket).
 server_action(edit(File, Line), Socket) :- !,
 	new(B, emacs_buffer(File)),
-	new(W, emacs_window(B)),
+	new(W, emacs_frame(B)),
 	send(W, sticky_window),
 	get(W, editor, Editor),
 	new(H, hyper(Socket, Editor, editor, server)),
@@ -83,7 +83,7 @@ server_action(gdb(File, Pid), Socket) :- !,
 	    send(X, directory, Dir)
 	;   true
 	),
-	new(W, emacs_window(X)),
+	new(W, emacs_frame(X)),
 	get(W, editor, Editor),
 	new(H, hyper(Socket, Editor, editor, server)),
 	send(H, send_method, @emacs_server_method),

@@ -279,12 +279,12 @@ start_process(B) :->
 open(B, New:[bool]) :->
 	"Create window for buffer"::
 	(   New == @on
-	->  send(new(Window, emacs_window(B)), open)
+	->  send(new(Window, emacs_frame(B)), open)
 	;   (	\+ send(B?editors, empty)
 	    ->	send(B?editors?head?frame, expose)
 	    ;	get(@emacs, free_window, B?pool, Window)
 	    ->	send(Window, buffer, B)
-	    ;	send(emacs_window(B), open)
+	    ;	send(emacs_frame(B), open)
 	    )
 	),
 	(   nonvar(Window)

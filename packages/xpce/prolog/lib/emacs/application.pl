@@ -178,11 +178,11 @@ check_saved_at_exit(BM) :->
 		 *******************************/
 :- pce_group(window).
 
-free_window(BM, Pool:[name], Frame:emacs_window) :<-
+free_window(BM, Pool:[name], Frame:emacs_frame) :<-
 	"Return the first non-sticky window"::
 	(   send(@event, instance_of, event),
 	    get(@event?receiver, frame, Frame),
-	    send(Frame, instance_of, emacs_window),
+	    send(Frame, instance_of, emacs_frame),
 	    (Pool == @default ; get(Frame, pool, Pool)),
 	    get(Frame, sticky_window, @off)
 	->  true
@@ -192,7 +192,7 @@ free_window(BM, Pool:[name], Frame:emacs_window) :<-
 		and(assign(new(B, var), @arg1?object),
 		    assign(Ed, ?(B?editors, find,
 				 and(message(@arg1?frame, instance_of,
-					     emacs_window),
+					     emacs_frame),
 				     or(@arg1?frame?pool == Pool,
 					@arg1?frame?pool == @default),
 				     @arg1?frame?sticky_window == @off)),

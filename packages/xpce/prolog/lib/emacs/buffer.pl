@@ -404,18 +404,18 @@ confirm_reload(_, File) :-
 		 *          OPEN WINDOW		*
 		 *******************************/
 
-open(B, New:[bool], Window:emacs_window) :<-
+open(B, New:[bool], Window:emacs_frame) :<-
 	"Create window for buffer"::
 	(   New == @on
-	->  send(new(Window, emacs_window(B)), open)
+	->  send(new(Window, emacs_frame(B)), open)
 	;   (   get(B?editors, find,
-		    message(@arg1?frame, instance_of, emacs_window),
+		    message(@arg1?frame, instance_of, emacs_frame),
 		    Editor)
 	    ->  get(Editor, frame, Window),
 		send(Window, expose)
 	    ;	get(@emacs, free_window, B?pool, Window)
 	    ->	send(Window, buffer, B)
-	    ;	send(new(Window, emacs_window(B)), open)
+	    ;	send(new(Window, emacs_frame(B)), open)
 	    )
 	),
 	send(B, check_modified_file).
