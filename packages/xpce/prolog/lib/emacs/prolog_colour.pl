@@ -987,9 +987,14 @@ term_colours((:- pce_group(_)),
 	     expanded - [ expanded - [ identifier
 				     ]
 			]).
+term_colours((:- pce_global(_, new(_))),
+	     expanded - [ expanded - [ identifier,
+				       pce_arg
+				     ]
+			]).
 term_colours((:- pce_global(_, _)),
 	     expanded - [ expanded - [ identifier,
-				       classify
+				       body
 				     ]
 			]).
 term_colours((:- emacs_end_mode),
