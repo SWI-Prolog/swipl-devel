@@ -1,3 +1,7 @@
+01/02/2002
+
+ * Modified copyright for compatibility with the now LGPL SWI-Prolog system
+
 07/12/2001
 
  * FIXED: memory_file_to_atom/2 and friends to return size 0, empty atom
