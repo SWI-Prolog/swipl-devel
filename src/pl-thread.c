@@ -768,8 +768,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 		     &info->trail_size,
 		     &info->argument_size,
 		     &alias,
-		     &stack,
-		     &info->detached) )
+		     &info->detached,
+		     &stack) )
   { free_thread_info(info);
     fail;
   }

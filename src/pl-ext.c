@@ -469,7 +469,7 @@ static const PL_extension foreigns[] = {
   FRG("mutex_unlock",		1, pl_mutex_unlock,		0),
   FRG("mutex_unlock_all",	0, pl_mutex_unlock_all,		0),
   FRG("current_mutex",		3, pl_current_mutex,	     NDET),
-  FRG("open_xterm",		3, pl_open_xterm,		0),
+  FRG("open_xterm",		4, pl_open_xterm,		0),
 #endif
 
   FRG("thread_self",		1, pl_thread_self,	        0),

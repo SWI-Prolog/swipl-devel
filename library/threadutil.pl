@@ -84,11 +84,11 @@ run_prolog :-
 %	it.
 
 :- dynamic
-	has_console/3.			% which thread has a console?
+	has_console/4.			% Id, In, Out, Err
 
 has_console(main).			% we assume main has one.
 has_console(Id) :-
-	has_console(Id, _, _).
+	has_console(Id, _, _, _).
 
 has_console :-
 	thread_self(Id),
@@ -107,10 +107,9 @@ attach_console :-
 	    win_open_console(Title, In, Out, Err,
 			     [ registry_key(Key)
 			     ])
-	;   open_xterm(Title, In, Out),
-	    Err = Out
+	;   open_xterm(Title, In, Out, Err)
 	),
-	assert(has_console(Id, In, Out)),
+	assert(has_console(Id, In, Out, Err)),
 	set_stream(In,  alias(user_input)),
 	set_stream(Out, alias(user_output)),
 	set_stream(Err, alias(user_error)),
@@ -123,9 +122,10 @@ regkey(Key, Key) :-
 regkey(_, 'Anonymous').
 
 detach_console(Id) :-
-	retract(has_console(Id, In, Out)),
+	retract(has_console(Id, In, Out, Err)),
 	catch(close(In), _, true),
-	catch(close(Out), _, true).
+	catch(close(Out), _, true),
+	catch(close(Err), _, true).
 
 		
 		 /*******************************

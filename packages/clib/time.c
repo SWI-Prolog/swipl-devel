@@ -44,6 +44,18 @@
 #include <malloc.h>
 #endif
 #include <errno.h>
+#include <assert.h>
+
+#ifdef _REENTRANT
+#include <pthread.h>
+
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+#define LOCK() pthread_mutex_lock(&mutex)
+#define UNLOCK() pthread_mutex_unlock(&mutex)
+#else
+#define LOCK()
+#define UNLOCK()
+#endif
 
 #ifdef WIN32
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -161,8 +173,42 @@ typedef struct event
 
 typedef void (*handler_t)(int);
 
-static Event first;			/* first of list */
-static Event scheduled;			/* The one we scheduled for */
+typedef struct
+{ Event first;				/* first in list */
+  Event scheduled;			/* The one we scheduled for */
+} schedule;
+
+#ifdef _REENTRANT
+
+static pthread_key_t key;
+
+static schedule *
+TheSchedule()
+{ schedule *s;
+
+  if ( !(s=pthread_getspecific(key)) )
+  { s = PL_malloc(sizeof(schedule));
+    memset(s, 0, sizeof(*s));
+    pthread_setspecific(key, s);
+  }
+
+  return s;
+}
+
+static void
+free_schedule(void *closure)
+{ schedule *s = closure;
+
+  PL_free(s);
+}
+
+#else _REENTRANT
+
+static schedule the_schedule;		/* the schedule */
+
+#define TheSchedule() (&the_schedule)	/* current schedule */
+
+#endif
 
 int signal_function_set = FALSE;	/* signal function is set */
 static handler_t signal_function;	/* Current signal function */
@@ -171,11 +217,15 @@ static handler_t signal_function;	/* Current signal function */
 static void uninstallEvent(Event ev);
 #endif
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Allocate the event, maintaining a time-sorted list of scheduled events.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Event
 allocEvent(struct timeval *at)
 { Event ev = malloc(sizeof(*ev));
   Event e;
+  schedule *sched = TheSchedule();
 
   if ( !ev )
   { pl_error(NULL, 0, NULL, ERR_ERRNO, errno);
@@ -188,7 +238,7 @@ allocEvent(struct timeval *at)
 
   DEBUG(Sdprintf("allocEvent(%d.%06d)\n", at->tv_sec, at->tv_usec));
 
-  for(e = first; e; e = e->next)
+  for(e = sched->first; e; e = e->next)
   { struct timeval d;
 
     d.tv_sec  = at->tv_sec  - e->at.tv_sec;
@@ -205,8 +255,8 @@ allocEvent(struct timeval *at)
 	e->previous->next = ev;
       e->previous = ev;
 
-      if ( first == e )			/* allocated as first */
-	first = ev;
+      if ( sched->first == e )			/* allocated as first */
+	sched->first = ev;
 
       return ev;
     } else
@@ -220,7 +270,7 @@ allocEvent(struct timeval *at)
     }
   }
 
-  first = ev;
+  sched->first = ev;
 
   return ev;
 }
@@ -228,10 +278,15 @@ allocEvent(struct timeval *at)
 
 static void
 freeEvent(Event ev)
-{ if ( ev->previous )
+{ schedule *sched = TheSchedule();
+
+  if ( sched->scheduled == ev )
+    sched->scheduled = NULL;
+
+  if ( ev->previous )
     ev->previous->next = ev->next;
   else
-    first = ev->next;
+    sched->first = ev->next;
 
   if ( ev->next )
     ev->next->previous = ev->previous;
@@ -290,8 +345,9 @@ installHandler()
 static void
 cleanup()
 { Event ev, next;
+  schedule *sched = TheSchedule();
 
-  for(ev=first; ev; ev = next)
+  for(ev=sched->first; ev; ev = next)
   {
 #ifdef WIN32
     uninstallEvent(ev);
@@ -310,8 +366,10 @@ static void
 on_alarm(int sig)
 { Event ev, next;
 
-  for(ev=first; ev; ev = next)
-  { if ( ev->flags & EV_FIRED )
+  for(ev=TheSchedule()->first; ev; ev = next)
+  { assert(ev->magic == EV_MAGIC);
+
+    if ( ev->flags & EV_FIRED )
     { ev->flags &= ~EV_FIRED;
 
       callEvent(ev);
@@ -339,8 +397,6 @@ static void
 installEvent(Event ev, double t)
 { MMRESULT rval;
 
-  installHandler();
-
   rval = timeSetEvent((int)(t*1000),
 		      50,			/* resolution (milliseconds) */
 		      callTimer,
@@ -366,11 +422,12 @@ uninstallEvent(Event ev)
 #else /*WIN32*/
 
 static void
-schedule()
+re_schedule()
 { struct itimerval v;
   Event ev;
+  schedule *sched = TheSchedule();
   
-  for(ev=first; ev; ev = ev->next)
+  for(ev=sched->first; ev; ev = ev->next)
   { struct timeval now;
     struct timeval left;
 
@@ -394,7 +451,7 @@ schedule()
       continue;		
     }
 
-    scheduled = ev;			/* This is the scheduled one */
+    sched->scheduled = ev;	/* This is the scheduled one */
     DEBUG(Sdprintf("Scheduled for %d.%06d\n", ev->at.tv_sec, ev->at.tv_usec));
 
     v.it_value            = left;
@@ -402,12 +459,9 @@ schedule()
     v.it_interval.tv_usec = 0;
 
     setitimer(ITIMER_REAL, &v, NULL);	/* Store old? */
-    installHandler();
 
     return;
   }
-
-  cleanupHandler();
 }
 
 
@@ -464,13 +518,15 @@ The alternative is to delay the signal to a safe place using PL_raise();
 static void
 on_alarm(int sig)
 { Event ev;
+  schedule *sched = TheSchedule();
 
 #ifdef BACKTRACE
   print_trace();
 #endif
 
-  if ( (ev=scheduled) )
-  { scheduled = NULL;
+  if ( (ev=sched->scheduled) )
+  { assert(ev->magic == EV_MAGIC);
+    sched->scheduled = NULL;
 
     callEvent(ev);
 
@@ -478,7 +534,7 @@ on_alarm(int sig)
       freeEvent(ev);
   }
 
-  schedule();
+  re_schedule();
 }
 
 #endif /*WIN32*/
@@ -602,7 +658,7 @@ alarm4(term_t time, term_t callable, term_t id, term_t options)
 #ifdef WIN32
   installEvent(ev, t);
 #else
-  schedule();
+  re_schedule();
 #endif
 
   return TRUE;
@@ -622,12 +678,12 @@ remove_alarm(term_t alarm)
   if ( !get_timer(alarm, &ev) )
     return FALSE;
 
-  if ( scheduled == ev )
+  if ( TheSchedule()->scheduled == ev )
   { ev->flags |= EV_DONE;
 #ifdef WIN32
     uninstallEvent(ev);
 #else
-    schedule();
+    re_schedule();
 #endif
   }
 
@@ -645,7 +701,7 @@ current_alarm(term_t time, term_t goal, term_t id, term_t status, control_t h)
 
   switch(PL_foreign_control(h))
   { case PL_FIRST_CALL:
-      ev = first;
+      ev = TheSchedule()->first;
       break;
     case PL_REDO:
       ev = PL_foreign_context_address(h);
@@ -663,7 +719,7 @@ current_alarm(term_t time, term_t goal, term_t id, term_t status, control_t h)
 
     if ( ev->flags & EV_DONE )
       s = ATOM_done;
-    else if ( ev == scheduled )
+    else if ( ev == TheSchedule()->scheduled )
       s = ATOM_next;
     else
       s = ATOM_scheduled;
@@ -718,10 +774,19 @@ install()
   PL_register_foreign("alarm",        3, alarm3,       PL_FA_TRANSPARENT);
   PL_register_foreign("remove_alarm", 1, remove_alarm, 0);
   PL_register_foreign("current_alarm",4, current_alarm,PL_FA_NONDETERMINISTIC);
+
+#ifdef _REENTRANT
+  pthread_key_create(&key, free_schedule);
+#endif
+  installHandler();
 }
 
 
 install_t
 uninstall()
 { cleanup();
+
+#ifdef _REENTRANT
+  pthread_key_delete(key);
+#endif
 }

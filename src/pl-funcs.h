@@ -876,7 +876,7 @@ foreign_t	pl_rc_members(term_t rc_h, term_t members);
 
 /* pl-xterm.c */
 
-foreign_t	pl_open_xterm(term_t title, term_t in, term_t out);
+foreign_t	pl_open_xterm(term_t title, term_t in, term_t out, term_t err);
 
 /* pl-ctype.c */
 

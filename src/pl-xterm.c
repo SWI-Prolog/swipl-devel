@@ -135,7 +135,7 @@ should this process be related to us?  Should it be a new session?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 foreign_t
-pl_open_xterm(term_t title, term_t in, term_t out)
+pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
 { int master, slave, pid;
   char *slavename;
   struct termios termio;
@@ -187,13 +187,16 @@ pl_open_xterm(term_t title, term_t in, term_t out)
   xt = allocHeap(sizeof(*xt));
   xt->pid   = pid;
   xt->fd    = slave;
-  xt->count = 2;
+  xt->count = 3;			/* opened 3 times */
 
   PL_unify_stream(in,  Snew(xt,
 			    SIO_INPUT|SIO_LBUF|SIO_NOFEOF,
 			    &SXtermfunctions));
   PL_unify_stream(out, Snew(xt,
-			    SIO_OUTPUT|SIO_LBUF|SIO_NOFEOF,
+			    SIO_OUTPUT|SIO_LBUF,
+			    &SXtermfunctions));
+  PL_unify_stream(err, Snew(xt,
+			    SIO_OUTPUT|SIO_NBUF,
 			    &SXtermfunctions));
 
   succeed;
@@ -202,8 +205,8 @@ pl_open_xterm(term_t title, term_t in, term_t out)
 #else /*HAVE_GRANTPT*/
 
 foreign_t
-pl_open_xterm(term_t title, term_t in, term_t out)
-{ return notImplemented("open_xterm", 3);
+pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
+{ return notImplemented("open_xterm", 4);
 }
 
 #endif /*HAVE_GRANTPT*/

@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: non-buffering user_error stream with interactor/0 on Unix/X11.
+
+  * FIXED: stack and detached option parsing in thread_create/3.
+
   * PORT: Windows, plld.exe: Add /MD to flags and /GX when compiling C++.
     Use libpl.lib, even for the MT version.  SWI-cpp.h: deal with MSVC
     if it fails to recognise throw doesn't return.
