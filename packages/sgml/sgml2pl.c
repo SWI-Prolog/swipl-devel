@@ -144,6 +144,7 @@ static atom_t ATOM_dtd;
 static atom_t ATOM_true;
 static atom_t ATOM_false;
 static atom_t ATOM_cdata;
+static atom_t ATOM_rcdata;
 static atom_t ATOM_pcdata;
 static atom_t ATOM_empty;
 static atom_t ATOM_any;
@@ -202,6 +203,7 @@ initConstants()
   ATOM_true = PL_new_atom("true");
   ATOM_false = PL_new_atom("false");
   ATOM_cdata = PL_new_atom("cdata");
+  ATOM_rcdata = PL_new_atom("rcdata");
   ATOM_pcdata = PL_new_atom("#pcdata");
   ATOM_empty = PL_new_atom("empty");
   ATOM_any = PL_new_atom("any");
@@ -1629,6 +1631,9 @@ put_content(term_t t, dtd_edef *def)
       return;
     case C_CDATA:
       PL_put_atom(t, ATOM_cdata);
+      return;
+    case C_RCDATA:
+      PL_put_atom(t, ATOM_rcdata);
       return;
     case C_ANY:
       PL_put_atom(t, ATOM_any);

@@ -213,6 +213,9 @@ prolog_print_content(dtd_element *e)
     case C_CDATA:
       printf("cdata");
       break;
+    case C_RCDATA:
+      printf("rcdata");
+      break;
     case C_ANY:
       printf("any");
       break;

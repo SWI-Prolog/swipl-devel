@@ -75,6 +75,7 @@ typedef enum
 typedef enum
 { C_CDATA,				/* pure cdata */
   C_PCDATA,				/* parsed character data */
+  C_RCDATA,				/* pure cdata + entities */
   C_EMPTY,				/* empy element */
   C_ANY					/* element may contain anything */
 } contenttype;

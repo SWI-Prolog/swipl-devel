@@ -1,3 +1,5 @@
+* ADDED: support for RCDATA declared-content elements
+
 * FIXED: SGML-mode: immediately close EMPTY elements (i.e. do not allow
   for a closing </img>).
 

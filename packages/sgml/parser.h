@@ -62,6 +62,7 @@ typedef enum
   S_UTF8,				/* Loading UTF-8 character */
 #endif
   S_CDATA,				/* non-parsed data */
+  S_RCDATA,				/* CDATA+entities */
   S_MSCDATA,				/* <![CDATA[...]]> */
   S_EMSCDATA1,				/* Seen ] in S_MSCDATA */
   S_EMSCDATA2,				/* Seen ]] in S_MSCDATA */
@@ -129,6 +130,7 @@ typedef struct _dtd_parser
 { long     magic;			/* SGML_PARSER_MAGIC */
   dtd     *dtd;				/* DTD we are building */
   dtdstate state;			/* current state */
+  dtdstate cdata_state;			/* S_CDATA/S_RCDATA */
   dtd_marked *marked;			/* marked section stack */
   marktype mark_state;			/* processing mode */
   sgml_environment *environments;	/* Open environments */

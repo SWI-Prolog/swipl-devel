@@ -690,6 +690,10 @@ The element contains non-parsed character data.  All data upto the
 matching end-tag is included in the data (<b><em>declared content</em></b>).
     
 <dt>&nbsp;<br>
+<b><a name="const:rcdata"><b><tt>rcdata</tt></b></a></b><dd>
+As <a name="const:cdata%2"><b><tt>cdata</tt></b></a>, but entity-references are expanded.
+    
+<dt>&nbsp;<br>
 <b><a name="const:any"><b><tt>any</tt></b></a></b><dd>
 The element may contain any number of any element from the DTD in
 any order.
@@ -737,7 +741,7 @@ of the element <var>Element</var>.
     
 <dt>&nbsp;<br>
 <b>attribute(<var>Element, Attribute, Type, Default</var>)</b><dd>
-Query an element. <var>Type</var> is one of <a name="const:cdata%2"><b><tt>cdata</tt></b></a>, <a name="const:entity"><b><tt>entity</tt></b></a>, <a name="const:id"><b><tt>id</tt></b></a>,
+Query an element. <var>Type</var> is one of <a name="const:cdata%3"><b><tt>cdata</tt></b></a>, <a name="const:entity"><b><tt>entity</tt></b></a>, <a name="const:id"><b><tt>id</tt></b></a>,
 <a name="const:idref"><b><tt>idref</tt></b></a>, <a name="const:name"><b><tt>name</tt></b></a>, <a name="const:nmtoken"><b><tt>nmtoken</tt></b></a>, <a name="const:notation"><b><tt>notation</tt></b></a>, <a name="const:number"><b><tt>number</tt></b></a> or
 <a name="const:nutoken"><b><tt>nutoken</tt></b></a>. For DTD types that allow for a list, the notation
 <code>list(Type)</code> is used. Finally, the DTD construct
@@ -1514,9 +1518,6 @@ The SGML SHORTTAG syntax is only partially implemented. Currently,
 <code>&lt;tag&gt;content&lt;/tag&gt;</code>, which can also be written as
 <code>&lt;tag&gt;content&lt;/&gt;</code>.
     
-<li><em>Declared content <a name="const:RCDATA"><b><tt>RCDATA</tt></b></a></em><br>
-The <b><em>declared</em></b> type <a name="const:RCDATA%2"><b><tt>RCDATA</tt></b></a> is not supported.
-    
 <li><em>SGML declaration</em><br>
 The `SGML declaration' is fixed, though most of the parameters are 
 handled through indirections in the implementation. 
@@ -1623,14 +1624,13 @@ deleted. This is not yet implemented.
 <li><a href="#const:NUMBER"><b><tt>NUMBER</tt></b></a> [ <a href="#const:NUMBER%2">2</a>]
 <li><a href="#const:NUMBERS"><b><tt>NUMBERS</tt></b></a> [ <a href="#const:NUMBERS%2">2</a>]
 <li><a href="#const:PUBLIC"><b><tt>PUBLIC</tt></b></a> [ <a href="#const:PUBLIC%2">2</a>]
-<li><a href="#const:RCDATA"><b><tt>RCDATA</tt></b></a> [ <a href="#const:RCDATA%2">2</a>]
 <li><a href="#const:SDATA"><b><tt>SDATA</tt></b></a>
 <li><a href="#const:SYSTEM"><b><tt>SYSTEM</tt></b></a>
 <li><a href="#const:amp"><b><tt>amp</tt></b></a>
 <li><a href="#const:any"><b><tt>any</tt></b></a>
 <li><a href="#const:apos"><b><tt>apos</tt></b></a>
 <li><a href="#const:begin"><b><tt>begin</tt></b></a>
-<li><a href="#const:cdata"><b><tt>cdata</tt></b></a> [ <a href="#const:cdata%2">2</a>]
+<li><a href="#const:cdata"><b><tt>cdata</tt></b></a> [ <a href="#const:cdata%2">2</a> <a href="#const:cdata%3">3</a>]
 <li><a href="#const:conref"><b><tt>conref</tt></b></a>
 <li><a href="#const:content"><b><tt>content</tt></b></a> [ <a href="#const:content%2">2</a>]
 <li><a href="#const:current"><b><tt>current</tt></b></a>
@@ -1675,6 +1675,7 @@ deleted. This is not yet implemented.
 <li><a href="#const:parse"><b><tt>parse</tt></b></a>
 <li><a href="#const:preserve"><b><tt>preserve</tt></b></a>
 <li><a href="#const:quot"><b><tt>quot</tt></b></a>
+<li><a href="#const:rcdata"><b><tt>rcdata</tt></b></a>
 <li><a href="#const:rdf"><b><tt>rdf</tt></b></a> [ <a href="#const:rdf%2">2</a>]
 <li><a href="#const:rdf-syntax"><b><tt>rdf-syntax</tt></b></a>
 <li><a href="#const:remove"><b><tt>remove</tt></b></a>

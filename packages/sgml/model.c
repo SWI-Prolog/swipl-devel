@@ -426,7 +426,7 @@ make_state_engine(dtd_element *e)
 	def->final_state   = new_dtd_state();
     
 	translate_model(def->content, def->initial_state, def->final_state);
-      } else if ( def->type == C_CDATA )
+      } else if ( def->type == C_CDATA || def->type == C_RCDATA )
       { def->initial_state = new_dtd_state();
 	def->final_state   = new_dtd_state();
 

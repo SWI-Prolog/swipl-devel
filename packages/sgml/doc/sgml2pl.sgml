@@ -488,6 +488,8 @@ The element has no content.
     <termitem><c/cdata/
 The element contains non-parsed character data.  All data upto the
 matching end-tag is included in the data (<jargon/declared content/).
+    <termitem><c/rcdata/
+As <c/cdata/, but entity-references are expanded.
     <termitem><c/any/
 The element may contain any number of any element from the DTD in
 any order.
@@ -1072,8 +1074,6 @@ The SGML SHORTTAG syntax is only partially implemented. Currently,
 <verb><tag/content/</verb> is a valid abbreviation for
 <verb><tag>content</tag></verb>, which can also be written as
 <verb><tag>content</></verb>.
-    <tag>Declared content <c/RCDATA/
-The <jargon/declared/ type <c/RCDATA/ is not supported.
     <tag>SGML declaration
 The `SGML declaration' is fixed, though most of the parameters are 
 handled through indirections in the implementation. 

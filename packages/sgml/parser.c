@@ -1744,6 +1744,10 @@ process_model(dtd *dtd, dtd_edef *e, const ichar *decl)
   { e->type = C_CDATA;
     return s;
   }
+  if ( (s = isee_identifier(dtd, decl, "rcdata")) )
+  { e->type = C_RCDATA;
+    return s;
+  }
   if ( (s = isee_identifier(dtd, decl, "any")) )
   { e->type = C_ANY;
     return s;
@@ -2272,11 +2276,16 @@ push_element(dtd_parser *p, dtd_element *e, int callback)
     p->first = TRUE;
     if ( callback && p->on_begin_element )
       (*p->on_begin_element)(p, e, 0, NULL);
-    if ( e->structure && e->structure->type == C_CDATA )
-    { p->state = S_CDATA;
-      p->etag = e->name->name;
-      p->etaglen = istrlen(p->etag);
-      sgml_cplocation(&p->startcdata, &p->location);
+
+    if ( e->structure )
+    { if ( e->structure->type == C_CDATA ||
+	   e->structure->type == C_RCDATA )
+      { p->state = (e->structure->type == C_CDATA ? S_CDATA : S_RCDATA);
+	p->cdata_state = p->state;
+	p->etag = e->name->name;
+	p->etaglen = istrlen(p->etag);
+	sgml_cplocation(&p->startcdata, &p->location);
+      }
     }
   }
 
@@ -3552,6 +3561,9 @@ end_document_dtd_parser(dtd_parser *p)
       return TRUE;
     }
     case S_CDATA:
+    case S_RCDATA:
+      return gripe(ERC_SYNTAX_ERROR,
+		   "Unexpected end-of-file in CDATA/RCDATA element", "");
     case S_ECDATA1:
     case S_ECDATA2:
     case S_EMSC1:
@@ -3663,7 +3675,7 @@ add_cdata(dtd_parser *p, int chr, int verbatim)
   { ocharbuf *buf = p->cdata;
 
     if ( chr == '\n' && buf->size > 0 )
-    { if ( p->map && buf->data[buf->size-1] != '\r' )
+    { if ( p->map && buf->data[buf->size-1] != '\r' && !verbatim )
       { add_ocharbuf(buf, '\r');
 	match_shortref(p);
       }
@@ -3676,6 +3688,32 @@ add_cdata(dtd_parser *p, int chr, int verbatim)
   
     if ( p->map && !verbatim )
       match_shortref(p);
+  }
+}
+
+
+static void
+process_rcdata_entity(dtd_parser *p)
+{ const ichar *s = (const ichar *) &p->cdata->data[p->cdata->size-2];
+  const ichar *f = (const ichar *) p->cdata->data;
+  dtd *dtd = p->dtd;
+
+  while(s>f && HasClass(dtd, *s, CH_NAME))
+    s--;
+  if ( dtd->charfunc->func[CF_ERO] == *s ) /* & */
+  { dtd_symbol *en;
+
+    itake_entity_name(dtd, s+1, &en);
+    if ( en->entity )
+    { int len, clen = s-f;
+
+      if ( (s=entity_value(p, en->entity, &len)) )
+      { p->cdata->size = clen;		/* truncate */
+	while(len-- > 0)
+	  add_cdata(p, *s++, TRUE);
+      } else
+	gripe(ERC_EXISTENCE, "entity", en->name);
+    }
   }
 }
 
@@ -3766,8 +3804,8 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	terminate_icharbuf(p->buffer);
 	if ( p->mark_state == MS_INCLUDE )
 	{ WITH_PARSER(p,
-			     process_cdata(p, TRUE);
-			     process_end_element(p, p->buffer->data));
+		      process_cdata(p, TRUE);
+		      process_end_element(p, p->buffer->data));
 	  empty_cdata(p);
 	}
 	empty_icharbuf(p->buffer);
@@ -3776,7 +3814,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
       { add_cdata(p, dtd->charmap->map[chr], TRUE);
 	if ( p->etaglen < p->buffer->size || !HasClass(dtd, chr, CH_NAME))
 	{ empty_icharbuf(p->buffer);	/* mismatch */
-	  p->state = S_CDATA;
+	  p->state = p->cdata_state;
 	} else
 	  add_icharbuf(p->buffer, chr);
       }
@@ -3788,14 +3826,17 @@ putchar_dtd_parser(dtd_parser *p, int chr)
       { empty_icharbuf(p->buffer);
 	p->state = S_ECDATA2;
       } else if ( f[CF_ETAGO1] != chr )	/* <: do not change state */
-	p->state = S_CDATA;
+	p->state = p->cdata_state;
       return;
     }
+    case S_RCDATA:
     case S_CDATA:
     { add_cdata(p, dtd->charmap->map[chr], TRUE);
       if ( f[CF_MDO1] == chr )		/* < */
       { sgml_cplocation(&p->startloc, &old);
 	p->state = S_ECDATA1;
+      } else if ( p->state == S_RCDATA && f[CF_ERC] == chr ) /* ; */
+      { WITH_PARSER(p, process_rcdata_entity(p));
       }
       return;
     }
@@ -3864,7 +3905,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
       break;
     }
     case S_ENT:				/* &entity; */
-    { if ( f[CF_ERC] == chr )
+    { if ( f[CF_ERC] == chr )		/* ; */
       { p->state = S_PCDATA;
 	terminate_icharbuf(p->buffer);
 	if ( p->mark_state == MS_INCLUDE )
