@@ -4417,6 +4417,10 @@ end_document_dtd_parser_(dtd_parser *p)
   if ( p->dmode == DM_DATA )
   { sgml_environment *env;
 
+    if ( p->cdata->size > 0 &&
+	 fetch_ocharbuf(p->cdata, p->cdata->size-1) == CR )
+      del_ocharbuf(p->cdata);
+
     process_cdata(p, TRUE);
 
     if ( (env=p->environments) )
