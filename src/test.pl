@@ -458,6 +458,19 @@ atom_handling(current-1) :-
 	length(Atoms, L),
 	L > 100.			% else something is wrong!
 
+
+		 /*******************************
+		 *	      STRINGS		*
+		 *******************************/
+
+:- set_prolog_flag(backquoted_string, true).
+
+string_handling(sub-1) :-
+	\+ sub_string(`HTTP/1.1 404 Not Found`, Start, Length, Rest, `OK`).
+
+:- set_prolog_flag(backquoted_string, false).
+
+
 		 /*******************************
 		 *	       DYNAMIC		*
 		 *******************************/
@@ -1063,6 +1076,7 @@ testset(term).
 testset(list).
 testset(sets).
 testset(atom_handling).
+testset(string_handling).
 testset(proc).
 testset(cl).
 testset(record).
