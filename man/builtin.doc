@@ -545,8 +545,10 @@ source_file(<Path>)	& Refers to a loaded source-file \\
     \predicate{edit}{1}{+Specification}
 First exploits prolog_edit:locate/3 to translate \arg{Specification}
 into a list of \jargon{Locations}. If there is more than one `hit', the
-user is allows to select from the found locations. Finally,
+user is asked to select from the locations found. Finally,
 prolog_edit:edit_source/1 is used to invoke the user's preferred editor.
+Typically, edit/1 can be handed the name of a predicate, module,
+basename of a file, XPCE class, XPCE method, etc.
 
     \predicate{edit}{0}{}
 Edit the `default' file using edit/1.  The default file is the file
