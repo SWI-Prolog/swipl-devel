@@ -43,9 +43,9 @@
 #endif
 
 \newcommand{\vmajor}{5}
-\newcommand{\vminor}{4}
-\newcommand{\vpatch}{3}
-\newcommand{\vmonth}{October}
+\newcommand{\vminor}{5}
+\newcommand{\vpatch}{0}
+\newcommand{\vmonth}{November}
 \newcommand{\vyear}{2004}
 
 \newcommand{\versionshort}{\vmajor.\vminor}

@@ -482,6 +482,13 @@ binary packages.
 Version 5.4 consolidates the 5.3.x beta series.
 
 
+\subsection{Version 5.5 Release Notes} \label{sec:rel-5.5}
+
+Version 5.5.x provides support for \jargon{wide characters} with UTF-8
+and UNICODE I/O. This version also incorporates clp(r) by Christian
+Holzbaur.
+
+
 \section{Donate to the SWI-Prolog project}	\label{sec:sponsor}
 
 If you are happy with SWI-Prolog, you care it to be around for much

@@ -187,6 +187,7 @@ suggest predicates from a keyword.
 \oppredsummary{dynamic}{1}{fx}{1150}{Indicate predicate definition may change}
 \predicatesummary{edit}{0}{Edit current script- or associated file}
 \predicatesummary{edit}{1}{Edit a file, predicate, module (extensible)}
+\predicatesummary{encoding}{1}{Define encoding inside a source file}
 \predicatesummary{ensure_loaded}{1}{Consult a file if that has not yet been done}
 \predicatesummary{erase}{1}{Erase a database record or clause}
 \predicatesummary{eval_license}{0}{Evaluate licenses of loaded modules}

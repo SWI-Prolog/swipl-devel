@@ -1051,6 +1051,10 @@ If true, SWI-Prolog is running as an \jargon{inferior process} of
 (GNU/X-)Emacs.  SWI-Prolog assumes this is the case if the environment
 variable \env{EMACS} is \const{t} and \env{INFERIOR} is \const{yes}.
 
+    \prologflagitem{encoding}{atom}{rw}
+Default encoding used for opening files.  The initial value is deduced
+from the environment.  See \secref{encoding} for details.
+
     \prologflagitem{executable}{atom}{r}
 Path-name of the running executable. Used by qsave_program/2 as
 default emulator.
@@ -1621,6 +1625,85 @@ compare/3, \predref{=..}{2}, copy_term/2, duplicate_term/2, write/1,
 dif/2, when/2, term_variables/2, numbervars/[3,4], hash_term/2,
 recorda/3, recordz/3, findall/3, bagof/3, setof/3, throw/1.
 
+
+\section{Wide character support}		\label{sec:widechars}
+
+\index{UTF-8}\index{UNICODE}\index{UCS}\index{internationalization}%
+SWI-Prolog supports \jargon{wide characters}, characters with character
+codes above 255 that cannot be represented in a single \jargon{byte}.
+\jargon{Universal Character Set} (UCS) is the ISO/IEC 10646 standard
+that specifies a unique 31-bits unsigned integer for any character in
+any language.  It is a superset of 16-bit UNICODE, which in turn is
+a superset of ISO 8859-1 (ISO Latin-1), a superset of US-ASCII.  UCS
+can handle strings holding characters from multiple languages and
+character classification (uppercase, lowercase, digit, etc.) and
+operations such as case-conversion are unambiguously defined.
+
+For this reason SWI-Prolog has two representations for atoms and string
+objects (see \secref{strings}. If the text fits in ISO Latin-1, it is
+represented as an array of 8-bit characters.  Otherwise the text is
+represented as an array of 32-bit numbers.  This representational issue
+is completely transparent to the Prolog user.  Users of the foreign
+language interface as described in \secref{foreign} sometimes need to
+be aware of these issues though.
+
+Character coding comes into view when characters of strings need to be
+read from or written to file or when they have to be communicated to
+other software components using the foreign language interface. In this
+section we only deal with I/O through streams, which includes file I/O
+as well as I/O through network sockets.
+
+
+\subsection{Wide character encodings on streams} \label{sec:encoding}
+
+Although characters are uniquely coded using the UCS standard
+internally, streams and files are byte (8-bit) oriented and there are a
+variety of ways to represent the larger UCS codes in an 8-bit octet
+stream. The most popular one, especially in the context of the web, is
+UTF-8. Bytes 0 \ldots 127 represent simply the corresponding US-ASCII
+character, while bytes 128 \ldots 255 are used for multi-byte encoding
+encoding of characters placed higher in the UCS space. Especially on
+MS-Windows the 16-bit UNICODE standard, represented by pairs of bytes is
+also popular.
+
+Prolog I/O streams have a property called \jargon{encoding} which
+specifies the used encoding that influence get_code/2 and put_code/2 as
+well as all the other text I/O predicates.
+
+The default encoding for files is derived from the Prolog flag
+\const{encoding}, which is initialised from the environment.  If the
+environment variable \const{LANG} ends in "UTF-8", this encoding is
+assumed.  Otherwise the default is ISO Latin-1.  The encoding can
+be specified explicitely in load_files/2 for loading Prolog source
+with an alternative encoding, open/4 when opening files or using
+set_stream/2 on any open stream.  For Prolog sourcefiles we also
+provide the encoding/1 directive that can be used to switch between
+UTF-8 and ISO Latin-1 inside the file.
+
+SWI-Prolog currently defines and supports the following encodings:
+
+\begin{description}
+    \termitem{ascii}{}
+7-bit encoding in 8-bit bytes.  Equivalent to \const{iso_latin_1},
+but generates errors and warnings on encountering values above
+127.
+
+    \termitem{iso_latin_1}{}
+8-bit encoding supporting many western languages.  This causes
+the stream to be read and written fully untranslated.
+
+    \termitem{utf8}{}
+Multi-byte encoding of full UCS, compatible to \const{ascii}.
+See above.
+
+    \termitem{unicode_be}
+UNICODE \jargon{Big Endian}.  Reads input in pairs of bytes, most
+significant byte first.  Can only represent 16-bit characters.
+
+    \termitem{unicode_le}
+UNICODE \jargon{Little Endian}.  Reads input in pairs of bytes, least
+significant byte first.  Can only represent 16-bit characters.
+\end{description}
 
 \section{System limits}				\label{sec:limits}
 

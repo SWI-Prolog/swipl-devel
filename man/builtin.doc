@@ -166,6 +166,11 @@ Indicate that the loaded file is derived from \arg{File}.  Used by
 make/0 to time-check and load the original file rather than the derived
 file.
 
+    \termitem{encoding}{Encoding}
+Specify the way characters are encoded in the file.  Default is taken
+from the prolog flag \const{encoding}.  See \secref{encoding} for 
+details.
+
     \termitem{expand}{Bool}
 If \const{true}, run the filenames through expand_file_name/2 and load
 the returned files.  Default is \const{false}, except for consult/1
@@ -273,6 +278,12 @@ SWI-Prolog, having autoloading, does {\bf not} load the library. Instead
 it creates a procedure header for the predicate if it does not exist.
 This will flag the predicate as `undefined'.  See also check/0 and
 autoload/0.
+
+    \predicate{encoding}{1}{+Encoding}
+This directive can appear anywhere in a sourcefile to define how
+characters are encoded in the remainder of the file.  It can be
+used in files that are encoded with a superset of US-ASCII,
+currently UTF-8 and ISO Latin-1.  See also \secref{encoding}.
 
     \predicate{make}{0}{}
 Consult all source files that have been changed since they were
@@ -2216,6 +2227,10 @@ Set end-of-file handling to one of \const{eof_code}, \const{reset} or
 Determine whether or not the stream is closed by abort/0.  By default
 streams are closed.
 
+    \termitem{encoding}{Atom}
+Defines the mapping between bytes and character codes used for the
+stream.  See \secref{encoding} for supported encodings.
+
     \termitem{timeout}{Seconds}
 This option can be used to make streams generate an exception if it
 takes longer than \arg{Seconds} before any new data arrives at the
@@ -2490,29 +2505,37 @@ Write a newline to \arg{Stream}.
 
     \predicate{put}{1}{+Char}
 Write \arg{Char} to the current output stream, \arg{Char} is either an
-integer-expression evaluating to a  character code
-($0 \leq \arg{Char} \leq 255$) or an atom of one character.
+integer-expression evaluating to a character code or an atom of one
+character.  Depreciated.  New code should use put_char/1 or put_code/1.
 
     \predicate{put}{2}{+Stream, +Char}
-Write \arg{Char} to \arg{Stream}.
+Write \arg{Char} to \arg{Stream}.  See put/1 for details.
 
     \predicate{put_byte}{1}{+Byte}
-Alias for put/1.
+Write a single byte to the output.  \arg{Byte} must be an integer
+between 0 and 255.
 
     \predicate{put_byte}{2}{+Stream, +Byte}
-Alias for put/2
+Write a single byte to a stream. \arg{Byte} must be an integer
+between 0 and 255.
 
     \predicate{put_char}{1}{+Char}
-Alias for put/1.
+Write a character to the current output, obeying the encoding defined
+for the current output stream. Note that this may raise an exception if
+the encoding of \arg{Stream} cannot represent \arg{Char}.
 
     \predicate{put_char}{2}{+Stream, +Char}
-Alias for put/2
+Write a character to \arg{Stream}, obeying the encoding defined for
+\arg{Stream}. Note that this may raise an exception if the
+encoding of \arg{Stream} cannot represent \arg{Char}.
 
     \predicate{put_code}{1}{+Code}
-Alias for put/1.
+Similar to put_char/1, but using a \jargon{character code}.  \arg{Code}
+is a non-negative integer.  Note that this may raise an exception if the
+encoding of \arg{Stream} cannot represent \arg{Code}.
 
     \predicate{put_code}{2}{+Stream, +Code}
-Alias for put/2
+Same as put_code/1 but directing \arg{Code} to \arg{Stream}.
 
     \predicate{tab}{1}{+Amount}
 Writes \arg{Amount} spaces on the current output stream.  \arg{Amount}
@@ -2539,12 +2562,13 @@ Read the current input stream and unify the next byte with \arg{Byte}
 file.
 
     \predicate{get_byte}{2}{+Stream, -Byte}
-Read the next byte from \arg{Stream}.
+Read the next byte from \arg{Stream}, returning an integer between
+0 and 255.
 
     \predicate{get_code}{1}{-Code}
 Read the current input stream and unify \arg{Code} with the character
 code of the next character. \arg{Code} is unified with -1 on end of
-file. See also get_char/1.
+file.  See also get_char/1.
 
     \predicate{get_code}{2}{+Stream, -Code}
 Read the next character-code from \arg{Stream}.
@@ -2559,10 +2583,13 @@ Unify \arg{Char} with the next character from \arg{Stream} as a
 one-character-atom.  See also get_char/2, get_byte/2 and get_code/2.
 
     \predicate{get0}{1}{-Char}
-Edinburgh version of the ISO get_byte/1 predicate.
+Edinburgh version of the ISO get_code/1 predicate. Note that Edinburgh
+prolog didn't support wide characters and therefore technically speaking
+get0/1 should have been mapped to get_byte/1.  The intention of get0/1
+however is to read character codes.
 
     \predicate{get0}{2}{+Stream, -Char}
-Edinburgh version of the ISO get_byte/2 predicate.
+Edinburgh version of the ISO get_code/2 predicate.  See also get0/1.
 
     \predicate{get}{1}{-Char}
 Read the current input stream and unify the next non-blank character
@@ -2592,22 +2619,23 @@ from the input stream.
     \predicate{peek_char}{2}{+Stream, -Char} Reads the next input
 character like get_char/2, but does not remove it from the stream.
 
-    \predicate{skip}{1}{+Char}
+    \predicate{skip}{1}{+Code}
 Read the input until \arg{Char} or the end of the file is encountered.
-A subsequent call to get0/1 will read the first character after \arg{Char}.
+A subsequent call to get_code/1 will read the first character after
+\arg{Code}.
 
-    \predicate{skip}{2}{+Stream, +Char}
+    \predicate{skip}{2}{+Stream, +Code}
 Skip input (as skip/1) on \arg{Stream}.
 
-    \predicate{get_single_char}{1}{-Char}
+    \predicate{get_single_char}{1}{-Code}
 Get a single character from input stream `user' (regardless of the
-current input stream). Unlike get0/1 this predicate does not wait for a
-return. The character is not echoed to the user's terminal. This
-predicate is meant for keyboard menu selection etc. If SWI-Prolog was
-started with the \cmdlineoption{-tty} option this predicate reads an entire
-line of input and returns the first non-blank character on this line, or
-the character code of the newline (10) if the entire line consisted
-of blank characters.
+current input stream). Unlike get_code/1 this predicate does not
+wait for a return. The character is not echoed to the user's terminal.
+This predicate is meant for keyboard menu selection etc. If SWI-Prolog
+was started with the \cmdlineoption{-tty} option this predicate reads an
+entire line of input and returns the first non-blank character on this
+line, or the character code of the newline (10) if the entire line
+consisted of blank characters.
 
     \predicate{at_end_of_stream}{0}{}
 Succeeds after the last character of the current input stream has
@@ -2621,6 +2649,8 @@ are rarely used, see open/4).
 
     \predicate{copy_stream_data}{3}{+StreamIn, +StreamOut, +Len}
 Copy \arg{Len} bytes from stream \arg{StreamIn} to \arg{StreamOut}.
+Note that the copy is done byte-by-byte and therefore encoding of
+the streams is ignored.
 
     \predicate{copy_stream_data}{2}{+StreamIn, +StreamOut}
 Copy data all (remaining) data from stream \arg{StreamIn} to
@@ -2634,7 +2664,7 @@ ending in the tail \arg{Tail}.  This predicate is intended for
 efficient unbuffered copying and filtering of input comming from
 network connections or devices.
 
-The following code fragment realises effient non-blocking copy of data
+The following code fragment realises efficient non-blocking copy of data
 from an input- to an output stream. The at_end_of_stream/1 call checks
 for end-of-stream and fills the input buffer.  Note that the use of
 a get_code/2 and put_code/2 based loop requires a flush_output/1 call
