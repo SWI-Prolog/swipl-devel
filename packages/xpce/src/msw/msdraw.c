@@ -11,6 +11,7 @@
 */
 
 #include "include.h"
+#include "mswin.h"
 #include <h/text.h>
 #include <math.h>
 #ifndef M_PI
@@ -99,6 +100,7 @@ static int		has_cmap;	/* Do we have a colourmap? */
 static wdraw_context	context; 	/* current context */
 static wdraw_context	ctx_stack[MAX_CTX_DEPTH];  /* Context stack */
 static int		ctx_stacked;	/* Saved frames */
+static os_platform	platform;	/* For platform hacks */
 
 static HDC		default_hdc;	/* Default context */
 static HBITMAP		default_hdc_hbitmap; /* Memory for default_hdc */
@@ -112,6 +114,7 @@ static void	push_context(void);
 static void	empty_brush_cache(void);
 static void	make_default_context(void);
 static HBRUSH	r_fillbrush(Any fill);
+static int	needWin95FillHack(int x, int y, Any fill);
 
 #include <gra/graphstate.c>
 
@@ -156,7 +159,8 @@ reset_context()
 
 void
 initDraw()
-{ make_default_context();
+{ platform = ws_platform();
+  make_default_context();
   if ( !TheDisplay )
     TheDisplay = CurrentDisplay(NIL);
   if ( !display_depth )
@@ -1115,55 +1119,6 @@ standardWindowsBrush(Any obj)
 }
 
 
-typedef enum
-{ WINUNKNOWN,  
-  WIN32S,
-  WIN95,
-  WIN98,
-  WINME,
-  NT
-} win_platform;
-
-static win_platform
-winPlatform()
-{ static int done = FALSE;
-  win_platform platform;
-
-  if ( !done )
-  { OSVERSIONINFO info;
-
-    info.dwOSVersionInfoSize = sizeof(info);
-    if ( GetVersionEx(&info) )
-    { switch( info.dwPlatformId )
-      { case VER_PLATFORM_WIN32s:
-	  platform = WIN32S;
-	  break;
-	case VER_PLATFORM_WIN32_WINDOWS:
-	  switch( info.dwMinorVersion )
-	  { case 0:
-	      platform = WIN95;
-	      break;
-	    case 10:
-	      platform = WIN98;
-	      break;
-	    case 90:
-	      platform = WINME;
-	      break;
-	    default:
-	      platform = WINUNKNOWN;
-	  }
-	  break;
-	case VER_PLATFORM_WIN32_NT:
-	  platform = NT;
-	  break;
-      }
-    } else
-      platform = WINUNKNOWN;
-  }
-
-  return platform;
-}
-
 static HBRUSH
 r_fillbrush(Any fill)
 { HBRUSH hbrush;
@@ -1178,10 +1133,9 @@ r_fillbrush(Any fill)
     { if ( instanceOfObject(fill, ClassImage) )
       { Image img = fill;
 	HBITMAP bm = (HBITMAP) getXrefObject(fill, context.display);     
-	win_platform platform = winPlatform();
 
 	if ( (valInt(img->size->w) < 8 || valInt(img->size->h) < 8) &&
-	     platform != NT )
+	     platform < NT )
 	{ int sw = valInt(img->size->w);
 	  int sh = valInt(img->size->h);
 	  int fw, fh;
@@ -1385,6 +1339,11 @@ r_box(int x, int y, int w, int h, int r, Any fill)
 { int maxr = min(abs(w), abs(h))/2;
 
   r = min(r, maxr);
+
+  if ( notNil(fill) && r == 0 && needWin95FillHack(x, y, fill) )
+  { r_fill(x, y, w, h, fill);
+    fill = NIL;
+  }
 
   if ( context.thickness > 0 || notNil(fill) )
   { if ( context.thickness > 0 || r > 1 )
@@ -2375,17 +2334,79 @@ r_copy(int xf, int yf, int xt, int yt, int w, int h)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Windows 95/98 and probably also ME  doesn't support filling using images
+with width or heigth > 8  pixels.  As   we  need  that for gradients, we
+patched r_fill() do the filling by hand.  This is used for boxes without
+radius that have the poin(0,0) as fill_offset.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+needWin95FillHack(int x, int y, Any fill)
+{ if ( platform < NT && instanceOfObject(fill, ClassImage) &&
+       x == context.fill_offset_x &&
+       y == context.fill_offset_y )
+  { Image img = fill;
+    int w = valInt(img->size->w);
+    int h = valInt(img->size->h);
+
+    if ( w > 8 || (8%w) != 0 ||
+	 h > 8 || (8%h) != 0 )
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 void
 r_fill(int x, int y, int w, int h, Any fill)
-{ HBRUSH hbrush = r_fillbrush(fill);
-  RECT rect;
+{ if ( needWin95FillHack(x, y, fill) )
+  { Image img = fill;
+    HBITMAP obm, bm = (HBITMAP) getXrefObject(img, context.display);
+    HDC mhdc = CreateCompatibleDC(context.hdc);
+    HPALETTE ohpal = NULL;
+    int sw = valInt(img->size->w);
+    int sh = valInt(img->size->h);
+    int cx, cy;
 
-  rect.left   = x;
-  rect.right  = x + w;
-  rect.top    = y;
-  rect.bottom = y + h;
+    DEBUG(NAME_fill, Cprintf("Filling rectangle by hand\n"));
+
+    if ( context.hpal )
+      ohpal = SelectPalette(mhdc, context.hpal, FALSE);
+    obm = ZSelectObject(mhdc, bm);
   
-  FillRect(context.hdc, &rect, hbrush);
+    for(cx=x; cx<x+w; cx += sw)
+    { if ( cx+sw > x+w )
+	sw = x+w-cx;
+
+      for(cy=y; cy<y+h; cy += sh)
+      { int bh;
+
+	if ( cy+sh > y+h )
+	  bh = y+h-cy;
+	else
+	  bh = sh;
+  
+	BitBlt(context.hdc, cx, cy, sw, bh, mhdc, 0, 0, SRCCOPY);
+      }
+    }
+
+    ZSelectObject(mhdc, obm);
+    if ( ohpal )
+      SelectPalette(mhdc, ohpal, FALSE);
+    DeleteDC(mhdc);
+  } else
+  { HBRUSH hbrush = r_fillbrush(fill);
+    RECT rect;
+
+    rect.left   = x;
+    rect.right  = x + w;
+    rect.top    = y;
+    rect.bottom = y + h;
+  
+    FillRect(context.hdc, &rect, hbrush);
+  }
 }
 
 

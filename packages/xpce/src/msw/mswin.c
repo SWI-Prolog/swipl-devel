@@ -11,6 +11,7 @@
 */
 
 #include "include.h"
+#include "mswin.h"
 #include <h/interface.h>
 
 		 /*******************************
@@ -107,11 +108,61 @@ iswin32s()
 }
 
 
-char *
-ws_os(void)
-{ return iswin32s() ? "win32s" : "win32";
+os_platform
+ws_platform(void)
+{ static int done = FALSE;
+  os_platform platform;
+
+  if ( !done )
+  { OSVERSIONINFO info;
+
+    info.dwOSVersionInfoSize = sizeof(info);
+    if ( GetVersionEx(&info) )
+    { switch( info.dwPlatformId )
+      { case VER_PLATFORM_WIN32s:
+	  platform = WIN32S;
+	  break;
+	case VER_PLATFORM_WIN32_WINDOWS:
+	  switch( info.dwMinorVersion )
+	  { case 0:
+	      platform = WIN95;
+	      break;
+	    case 10:
+	      platform = WIN98;
+	      break;
+	    case 90:
+	      platform = WINME;
+	      break;
+	    default:
+	      platform = WINUNKNOWN;
+	  }
+	  break;
+	case VER_PLATFORM_WIN32_NT:
+	  platform = NT;
+	  break;
+      }
+    } else
+      platform = WINUNKNOWN;
+  }
+
+  return platform;
 }
 
+char *
+ws_os(void)
+{ switch(ws_platform())
+  { case WINUNKNOWN:
+      return "win32";
+    case WIN32S:
+      return "win32s";
+    case WIN95:
+    case WIN98:
+    case WINME:
+      return "win95";			/* doesn't really make a difference */
+    case NT:
+      return "winnt";
+  }
+}
 
 #ifdef USE_RLC_FUNCTIONS
 
