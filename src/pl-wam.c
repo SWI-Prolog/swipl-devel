@@ -23,7 +23,6 @@
 #endif
 
 forwards inline bool	callForeign(const Definition, LocalFrame ARG_LD);
-forwards void		leaveForeignFrame(LocalFrame);
 
 #if COUNTING
 
@@ -1201,7 +1200,7 @@ environment. See also discardFrame().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-discardChoicesAfter(LocalFrame fr)
+discardChoicesAfter(LocalFrame fr ARG_LD)
 { Choice ch;
 
   for(ch = BFR; ch && ch > fr; ch = ch->backtrackFrame)
@@ -1350,7 +1349,7 @@ discard_query(QueryFrame qf)
   LocalFrame FR  = &qf->frame;
 
   set(FR, FR_CUT);			/* execute I_CUT */
-  discardChoicesAfter(FR);
+  discardChoicesAfter(FR PASS_LD);
   discardFrame(FR);
 }
 
@@ -2249,7 +2248,7 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 #endif /*O_DEBUGGER*/
 
 	for( ; FR && FR > catchfr; FR = FR->parent )
-	{ discardChoicesAfter(FR);
+	{ discardChoicesAfter(FR PASS_LD);
 
 #if O_DEBUGGER
 	  if ( debugstatus.debugging )
@@ -2343,7 +2342,7 @@ exit(Block, RVal).  First does !(Block).
 	}
 	
 	set(blockfr, FR_CUT);
-	discardChoicesAfter(blockfr);
+	discardChoicesAfter(blockfr PASS_LD);
 
 #ifdef O_DEBUGGER
         if ( debugstatus.debugging )
@@ -2413,7 +2412,7 @@ exit(Block, RVal).  First does !(Block).
 	}
 	set(cutfr, FR_CUT);
 
-	discardChoicesAfter(cutfr);
+	discardChoicesAfter(cutfr PASS_LD);
 
 	lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
 	ARGP = argFrameP(lTop, 0);
@@ -2455,7 +2454,7 @@ backtrack that makes it difficult to understand the tracer's output.
 	DEBUG(3, Sdprintf("Cutting [%ld] %s\n",
 			  levelFrame(FR),
 			  predicateName(FR->predicate)));
-	discardChoicesAfter(FR);
+	discardChoicesAfter(FR PASS_LD);
 #ifdef O_DEBUGGER
         if ( debugstatus.debugging )
 	{ SetBfr(FR->mark.trailtop != INVALID_TRAILTOP ?
@@ -2564,7 +2563,7 @@ discarded.
 	if ( cbfr < FR )
 	  cbfr = FR;
 
-	discardChoicesAfter(cbfr);
+	discardChoicesAfter(cbfr PASS_LD);
 
 	{ int nvar = (true(cbfr->predicate, FOREIGN)
 				? cbfr->predicate->functor->arity
@@ -3879,7 +3878,7 @@ retry:					MARK(RETRY);
 	   (Word)rframe - (Word)lBase,
 	   predicateName(rframe->predicate));
 
-  discardChoicesAfter(rframe);
+  discardChoicesAfter(rframe PASS_LD);
   environment_frame = FR = rframe;
   DEF = FR->predicate;
   Undo(FR->mark);

@@ -1149,6 +1149,26 @@ struct localFrame
 };  
 
 
+typedef enum
+{ CHP_JUMP,				/* A jump due to ; */
+  CHP_CLAUSE,				/* Next clause of predicate */
+  CHP_FOREIGN				/* Foreign code choicepoint */
+} choice_type;
+
+
+struct choice
+{ choice_type	type;			/* CHP_* */
+  Choice	parent;			/* Alternative if I fail */
+  mark		mark;			/* data mark for undo */
+  LocalFrame 	frame;			/* Frame I/m related to */
+  union
+  { ClauseRef	clause;			/* Next candidate clause */
+    Code	PC;			/* Next candidate program counter */
+    void       *handle;			/* foreign redo handle */
+  } value;
+};
+
+
 #define QF_NODEBUG		0x0001	/* debug-able query */
 #define QF_DETERMINISTIC	0x0002	/* deterministic success */
 #define	QF_INTERACTIVE		0x0004	/* interactive goal (prolog()) */
