@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: PL_get_chars() using CVT_WRITE.  Wim Delvaux.
+
+
 VERSION 5.5.9 (March 02, 2005)
 ==============================
 

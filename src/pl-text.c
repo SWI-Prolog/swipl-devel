@@ -169,10 +169,21 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
       if ( PL_write_term(fd, l, 1200, 0) &&
 	   Sputcode(EOS, fd) >= 0 &&
 	   Sflush(fd) >= 0 )
-      { text->length = (size/sizeof(pl_wchar_t))-1;
-	text->text.w = (pl_wchar_t *)r;
+      { text->encoding = *enc;
+	text->storage = (r == text->buf ? PL_CHARS_LOCAL : PL_CHARS_MALLOC);
+	text->canonical = TRUE;
+
+	if ( *enc == ENC_ISO_LATIN_1 )
+	{ text->length = size-1;
+	  text->text.t = r;
+	} else
+	{ text->length = (size/sizeof(pl_wchar_t))-1;
+	  text->text.w = (pl_wchar_t *)r;
+	}
+
 	Sclose(fd);
-	break;
+
+	return TRUE;
       } else
       { Sclose(fd);
 	if ( r != text->buf )
@@ -180,19 +191,7 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
       }
     }
 
-    if ( *enc != ENC_UNKNOWN )
-    { text->encoding = *enc;
-      
-      if ( r != text->buf )
-	text->storage = PL_CHARS_MALLOC;
-      else
-	text->storage = PL_CHARS_LOCAL;
-
-      text->text.t = r;
-      text->canonical = TRUE;
-    } else
-    { return FALSE;
-    }
+    fail;
   } else
   { fail;
   }
