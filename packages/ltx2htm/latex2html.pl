@@ -1766,6 +1766,11 @@ step_counter(Name, NewVal) :-
 		 *	      TABLES		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Specifying the number of columns makes Netscape make the columns equally
+width.  Thats not what we want.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 translate_table(Format, Body, HTML) :-
 	atom_chars(Format, Fmt),
 	table_frame(Fmt, Body, FrameAttributes, Fmt2, Body2),
@@ -1790,8 +1795,10 @@ translate_table(Format, Body, HTML) :-
 	->  Border = 0
 	;   Border = 2
 	),
-	sformat(Head, '<TABLE BORDER=~d COLS=~d FRAME=~w RULES=group>',
-		[Border, Ncols, FrameAttributes]).
+%	sformat(Head, '<TABLE BORDER=~d COLS=~d FRAME=~w RULES=group>',
+%		[Border, Ncols, FrameAttributes]).
+	sformat(Head, '<TABLE BORDER=~d FRAME=~w RULES=group>',
+		[Border, FrameAttributes]).
 
 %	expand_table_commands(+BodyIn, -BodyOut)
 %
@@ -2333,7 +2340,7 @@ implicit_par(html('<PRE>')).
 implicit_par(html('<XMP>')).
 implicit_par(html('<DL>')).
 implicit_par(html('<TABLE>')).
-implicit_par(html('<CENTER>')).
+%implicit_par(html('<CENTER>')).
 implicit_par(html('<BLOCKQUOTE>')).
 
 
