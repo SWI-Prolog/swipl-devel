@@ -160,7 +160,8 @@ has_property(P, Prop:prolog) :->
 help(P) :->
 	"Activate the help-system"::
 	get(P, head, @off, Head),
-	help(Head).
+	functor(Head, Name, Arity),
+	help(Name/Arity).
 
 summary(P, Summary:name) :<-
 	get(P, name, Name),
