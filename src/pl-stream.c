@@ -491,7 +491,9 @@ Sclearerr(IOSTREAM *s)
 int
 Sflush(IOSTREAM *s)
 { if ( s->buffer && (s->flags & SIO_OUTPUT) )
-    return S__flushbuf(s);
+  { if ( S__flushbuf(s) < 0 )
+      return -1;
+  }
 
   return 0;
 }

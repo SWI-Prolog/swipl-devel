@@ -1602,7 +1602,7 @@ isPrefix(char *s, char *q)		/* s is prefix of q */
 { while(*s && *s == *q)
     s++, q++;
 
-  return *s == EOS;
+  return *s == EOS ? TRUE : FALSE;
 }
 
 
@@ -1610,13 +1610,11 @@ word
 pl_atom_prefix(term_t atom, term_t prefix)
 { char *a, *p;
 
-  PL_get_chars(atom,   &a, CVT_ATOMIC|BUF_RING);
-  PL_get_chars(prefix, &p, CVT_ATOMIC|BUF_RING);
+  if ( PL_get_chars_ex(atom,   &a, CVT_ATOMIC|BUF_RING) &&
+       PL_get_chars_ex(prefix, &p, CVT_ATOMIC|BUF_RING) )
+    return isPrefix(p, a);
 
-  if ( a && p )
-    return isPrefix(p, a) ? TRUE : FALSE;
-
-  return warning("atom_prefix/2: instantiation fault");
+  return FALSE;
 }
 
 
