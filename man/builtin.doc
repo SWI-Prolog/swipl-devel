@@ -1119,7 +1119,7 @@ Next, we can define the following Prolog code:
 
 call_with_time_limit(Goal, MaxTime) :-
 	alarm(MaxTime),
-	catch(Goal, signal(alrm, _), fail), !,
+	catch(Goal, error(signal(alrm, _), _), fail), !,
 	alarm(0).
 call_with_time_limit(_, _) :-
 	alarm(0),
