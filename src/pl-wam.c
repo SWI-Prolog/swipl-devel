@@ -28,10 +28,10 @@ static Choice	newChoice(choice_type type, LocalFrame fr ARG_LD);
 #if COUNTING
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The counting code has been added while investigating the  time  critical
-WAM  instructions.   I'm afraid it has not been updated correctly since.
-Please  check  the  various  counting  macros  and  their  usage  before
-including this code.
+The counting code has been added   while investigating the time critical
+WAM  instructions.  The  current  implementation  runs  on  top  of  the
+information  provided  by  code_info   (from    pl-comp.c)   and  should
+automatically addapt to modifications in the VM instruction set.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct
@@ -236,6 +236,7 @@ Brief description of the local stack-layout.  This stack contains:
 
 	* struct localFrame structures for the Prolog stackframes.
 	* argument vectors and local variables for Prolog goals.
+	* choice-points (struct choice)
 	* term-references for foreign code.  The layout:
 
 
@@ -262,6 +263,12 @@ Brief description of the local stack-layout.  This stack contains:
 
 #undef LD
 #define LD LOCAL_LD
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+If a foreign frame is at the top   of the stack and something else needs
+to be placed on top of it, the   frame  needs to be `closed': the ->size
+must be filled with the number of term-references in the frame.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
 finish_foreign_frame(ARG1_LD)
@@ -351,16 +358,13 @@ argument  vector  for  the  foreign  function,  call  it and analyse the
 result.  The arguments of the frame are derefenced  here  to  avoid  the
 need for explicit dereferencing in most foreign predicates themselves.
 
-A foreign predicate can  return  either  the  constant  FALSE  to  start
-backtracking,  TRUE to indicate success without alternatives or anything
-else.  The return value is saved in the `clause' slot of the frame.   In
-this  case  the  interpreter  will  leave a backtrack point and call the
-foreign function again with  the  saved  value  as  `backtrack  control'
-argument  if  backtracking is needed.  This `backtrack control' argument
-is appended to the argument list normally given to the foreign function.
-This makes it possible for  foreign  functions  that  do  not  use  this
-mechanism  to  ignore it.  For the first call the constant FIRST_CALL is
-given as `backtrack control'.
+A non-deterministic foreign predicate  can   return  either the constant
+FALSE  to  start  backtracking,  TRUE    to   indicate  success  without
+alternatives or anything  else.  The  return   value  is  saved  in  the
+choice-point that is  created  after   return  of  the non-deterministic
+foreign function. On `redo', the  foreign   predicate  is  called with a
+control_t argument that indicates the context   value and the reason for
+the call-back.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define MAX_FLI_ARGS 10			/* extend switches on change */
@@ -635,6 +639,7 @@ discardForeignFrame(LocalFrame fr)
 #undef F
 }
 
+
 #if O_DEBUGGER
 static void
 frameFinished(LocalFrame fr)
@@ -652,14 +657,17 @@ frameFinished(LocalFrame fr)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Trail an assignment.  This function  is  now   local  to  this module to
-exploit inlining facilities provided  by   good  C-compilers.  Note that
--when using dynamic stacks-, the  assignment   should  be  made *before*
-calling Trail()!
+Trail  an  assignment.  Note  that  -when  using  dynamic  stacks-,  the
+assignment should be made *before* calling Trail()!
 
-The first version of Trail() is used only  by the WAM interpreter and is
-so much simpler because it is *known* that   p is either on the local or
-global stack and fr is available.
+p is a pointer into the local or   global stack. We trail any assignment
+made in the local stack. If the current   mark is from a choice-point we
+could improve here. Some marks however are created in foreign code, both
+using PL_open_foreign_frame() and directly by   calling Mark(). It would
+be a good idea to remove the latter.
+
+Mark() sets LD->mark_bar, indicating  that   any  assignment  above this
+value need not be trailed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define Trail(p) \
@@ -3987,41 +3995,18 @@ do_retry:
 }
 #endif /*O_DEBUGGER*/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The rest of this giant procedure handles backtracking.  There are  three
-different ways we can get here:
-
-  - Head unification code failed			(clause_failed)
-    In this case we should continue with the next clause of the  current
-    procedure  and  if we are out of clauses continue with the backtrack
-    frame of this frame.
-
-  - A foreign goal failed				(frame_failed)
-    In this case we can continue at the backtrack frame of  the  current
-    frame.
-
-  - Body instruction failed				(body_failed)
-    This can only occur since arithmetic is compiled.   Future  versions
-    might incorporate more WAM instructions that can fail.  In this case
-    we should continue with frame BFR.
-
-In  all  cases,  once  the  right  frame  to  continue  is  found   data
-backtracking  can be invoked, the registers can be reloaded and the main
-loop resumed.
-
-The argument stack is set back to its base as we cannot  be  sure  about
-it's current value.
-
-The `shallow_backtrack' entry is used from `deep_backtrack'  to  do  the
-common part.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+		 /*******************************
+		 *	   BACKTRACKING		*
+		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-A WAM instruction in the body wants to start backtracking.  If backtrack
-frames have been created  after  this  frame  we  want  to  resume  that
-backtrack frame.  In this case the current clause remains active.  If no
-such frames are created the current clause fails.
+The rest of this giant procedure handles   backtracking. This used to be
+very complicated, but as of pl-3.3.6, choice-points are explicit objects
+and life is a lot easier. In the old days we distinquished between three
+cases to get here. We leave that   it for documentation purposes as well
+as to investigate optimisation in the future.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 
 body_failed:				MARK(BKTRK);
 clause_failed:
