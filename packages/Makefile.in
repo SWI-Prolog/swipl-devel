@@ -80,6 +80,9 @@ rpm-install: html-install
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
         done
+	@echo "*** Forcing update of library index ***"
+	rm -f $(PLLIB)/INDEX.pl
+	$(PL) -f none -g "make_library_index('$(PLLIB)')" -t halt
 
 pdf-install::
 	for p in $(PKG); do \
