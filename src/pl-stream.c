@@ -337,8 +337,9 @@ S__fillbuf(IOSTREAM *s)
       FD_ZERO(&wait);
       FD_SET(fd, &wait);
 
-      if ( (rc=select(fd+1, &wait, NULL, NULL, &time)) < 0 )
-	goto error;
+      do
+      { rc = select(fd+1, &wait, NULL, NULL, &time);
+      } while ( rc < 0 && errno == EINTR );
 
       if ( !FD_ISSET(fd, &wait) )
       { s->flags |= (SIO_TIMEOUT|SIO_FERR);

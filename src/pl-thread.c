@@ -1458,9 +1458,12 @@ get_message(message_queue *queue, term_t msg)
 	freeHeap(msgp, sizeof(*msgp));
 	goto out;
       }
-      Undo(m);				/* reclaim term */
+      Undo(m);			/* reclaim term */
     }
-    pthread_cond_wait(&queue->cond_var, &queue->mutex);
+				/* linux docs say it may return EINTR */
+				/* does it re-lock in that case? */
+    while( pthread_cond_wait(&queue->cond_var, &queue->mutex) == EINTR )
+      ;
 
     msgp = (prev ? prev->next : queue->head);
   }
@@ -2335,9 +2338,36 @@ sync_statistics(PL_thread_info_t *info, atom_t key)
 
 #else /*WIN32*/
 
+#ifdef __linux__
+
+#include <execinfo.h>
+#include <string.h>
+
+static void
+print_trace(int frames)
+{ void *array[frames];
+  size_t size;
+  char **strings;
+  size_t i;
+     
+  size = backtrace(array, frames);
+  strings = backtrace_symbols(array, size);
+     
+  Sdprintf("Thread %d: SyncUserCPU() C-context:\n", PL_thread_self());
+  
+  for(i = 0; i < size; i++)
+  { if ( !strstr(strings[i], "checkData") )
+      Sdprintf("\t[%d] %s\n", i, strings[i]);
+  }
+       
+  free(strings);
+}
+#endif
+
 static void
 SyncUserCPU(int sig)
-{ LD->statistics.user_cputime = CpuTime(CPU_USER);
+{ //print_trace(100);
+  LD->statistics.user_cputime = CpuTime(CPU_USER);
   sem_post(&sem_mark);
 }
 
