@@ -1,5 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
+
+  * ISO: load_files/2 now throws an exception rather then printing a
+    message if a target file does not exist.
+
+  * FIXED: Initiate hash-based indexing for integers > max_tagged_integer.
+    Very important if your code uses large integers and relies in indexing!
+
+  * FIXED: recognise -p option in pl -o state -c file.pl.  Reported by
+    Lukas Faulstich.  Thanks.
+
 VERSION 3.2.4
 =============
 
