@@ -1,3 +1,13 @@
+  * FIXED: handling of propertyElt of the form
+    rdf:ID="myid" rdf:parseType="Resource" 
+
+  * For objects, map NameSpace:Local to the simple concatenation of the two.
+    This implies:
+
+	# Subjects are always atoms
+	# Predicates are NameSpace:LocalName or simply Name
+	# Objects are atoms (URI) or literal(Value)
+
   * Warn on things that cannot be converted into an RDF-object rather then
     failing silently.
 

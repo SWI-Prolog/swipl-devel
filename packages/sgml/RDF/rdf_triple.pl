@@ -104,9 +104,10 @@ triples(description(description, IdAbout, _, Props), Subject) --> !,
 	},
 	properties(Props, Subject).
 triples(description(Type, IdAbout, _, Props), Subject) -->
-	{ description_id(IdAbout, Subject)
+	{ description_id(IdAbout, Subject),
+	  name_to_type_uri(Type, TypeURI)
 	},
-	[ rdf(Subject, rdf:type, Type)
+	[ rdf(Subject, rdf:type, TypeURI)
 	],
 	properties(Props, Subject).
 triples(unparsed(Data), '__anon') -->
@@ -114,6 +115,9 @@ triples(unparsed(Data), '__anon') -->
 	},
 	[].
 
+name_to_type_uri(NS:Local, URI) :- !,
+	atom_concat(NS, Local, URI).
+name_to_type_uri(URI, URI).
 
 		 /*******************************
 		 *	    CONTAINERS		*
@@ -156,9 +160,10 @@ container_id(Type, Id) :-
 description_id(Id, Id) :-
 	var(Id), !,
 	gensym('Description__', Id).
-description_id(about(Id), Id). description_id(id(Id), Id).
-description_id(each(Id), each(Id)). description_id(prefix(Id),
-prefix(Id)).
+description_id(about(Id), Id).
+description_id(id(Id), Id).
+description_id(each(Id), each(Id)).
+description_id(prefix(Id), prefix(Id)).
 
 properties([], _) -->
 	[].

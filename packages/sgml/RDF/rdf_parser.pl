@@ -129,10 +129,10 @@ propertyElt(Id, Name, literal(Value)) ::=
 			 \?idAttr(Id)
 		       ]),
 		Value), !.
-propertyElt(_Id, Name, description(description, Id, _, Properties)) ::=
+propertyElt(_, Name, description(description, Id, _, Properties)) ::=
 	element(Name,
 		\attrs([ \parseResource,
-			 \?idAttr(Id)
+			 \?idTermAttr(Id)
 		       ]),
 		\propertyElts(Properties)), !.
 propertyElt(Id, Name, Value) ::=
@@ -153,6 +153,9 @@ propertyElt(_Id, Name, description(description, About, BagID, Properties)) ::=
 		       | \propAttrs(Properties)
 		       ]),
 		[]).
+
+idTermAttr(id(Id)) ::=
+	\idAttr(Id).
 
 idAboutAttr(id(Id)) ::=
 	\idAttr(Id), !.
@@ -208,6 +211,8 @@ globalid(Id) ::=
 	->  concat_atom([Base, A], #, Id)
 	;   Id = A
 	}.
+
+
 
 
 		 /*******************************
