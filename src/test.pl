@@ -1450,6 +1450,9 @@ popen(cat-2) :-
 					% otherwise
 	;   E = error(io_error(write, _), context(_, 'Broken pipe'))
 	->  true
+	;   E = error(io_error(write, _), _),
+	    current_prolog_flag(windows, true)
+	->  true
 	;   format(user_error, 'Wrong exception: ~p~n', [E]),
 	    fail
 	).
