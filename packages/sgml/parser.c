@@ -1171,7 +1171,7 @@ set_dialect_dtd(dtd *dtd, dtd_dialect dialect)
       dtd_parser p;
 
       dtd->case_sensitive = TRUE;
-      dtd->encoding = ENC_UTF8;
+      dtd->encoding = SGML_ENC_UTF8;
       dtd->space_mode = SP_PRESERVE;
       dtd->shorttag = FALSE;
 
@@ -3546,8 +3546,8 @@ init_decoding(dtd_parser *p)
   int decode;
   dtd *dtd = p->dtd;
 
-  if ( dtd->encoding == ENC_UTF8 &&
-       p->encoding   == ENC_ISO_LATIN1 )
+  if ( dtd->encoding == SGML_ENC_UTF8 &&
+       p->encoding   == SGML_ENC_ISO_LATIN1 )
     decode = TRUE;
   else
     decode = FALSE;
@@ -3568,9 +3568,9 @@ xml_set_encoding(dtd_parser *p, const char *enc)
 { dtd *dtd = p->dtd;
 
   if ( istrcaseeq(enc, "iso-8859-1") )
-  { dtd->encoding = ENC_ISO_LATIN1;
+  { dtd->encoding = SGML_ENC_ISO_LATIN1;
   } else if ( istrcaseeq(enc, "utf-8") )
-  { dtd->encoding = ENC_UTF8;
+  { dtd->encoding = SGML_ENC_UTF8;
   } else
     return FALSE;
 
@@ -3738,7 +3738,7 @@ new_dtd_parser(dtd *dtd)
   p->state	 = S_PCDATA;
   p->mark_state	 = MS_INCLUDE;
   p->dmode       = DM_DTD;
-  p->encoding	 = ENC_ISO_LATIN1;
+  p->encoding	 = SGML_ENC_ISO_LATIN1;
   p->buffer	 = new_icharbuf();
   p->cdata	 = new_ocharbuf();
   p->event_class = EV_EXPLICIT;

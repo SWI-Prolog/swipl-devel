@@ -33,7 +33,7 @@ UTF-8 Decoding, based on http://www.cl.cam.ac.uk/~mgk25/unicode.html
 #define VAL(i, s) ((in[i]&0x3f) << s)
 
 char *
-__utf8_get_char(const char *in, int *chr)
+sgml__utf8_get_char(const char *in, int *chr)
 { 					/* 2-byte, 0x80-0x7ff */
   if ( (in[0]&0xe0) == 0xc0 && CONT(1) )
   { *chr = ((in[0]&0x1f) << 6)|VAL(1,0);
