@@ -620,7 +620,8 @@ syntax(M) :->
 binding_name(ClassName, Name) :-
 	table_name(ClassName, Name).
 binding_name(ClassName, Name) :-
-	mode_name(ClassName, Name).
+	mode_name(ClassName, ModeName),
+	key_binding_name(ModeName, Name).
 binding_name(ClassName, Name) :-
 	get(@pce, convert, ClassName, class, Class),
 	get(Class, super_class, Super),
@@ -1001,13 +1002,30 @@ append(MM, Name:name, Action:'name|menu_item', Before:[name]) :->
 :- pce_begin_class(emacs_key_binding, key_binding,
 		   "Specialised key_binding for history").
 
+key_binding_name(@default, @default) :- !.
+key_binding_name(@nil, @nil) :- !.
+key_binding_name(KB, Name) :-
+	object(KB),
+	get(KB, name, KBName), !,
+	key_binding_name(KBName, Name).
+key_binding_name(editor, editor) :- !.
+key_binding_name(X, Internal) :-
+	concat('emacs$', X, Internal).
+
+
 initialise(KB, Name:[name]*, Super:[key_binding]) :->
 	default(Super, editor, S),
-	send(KB, send_super, initialise, Name, S).
+	key_binding_name(Name, IName),
+	key_binding_name(S, IS),
+	send(KB, send_super, initialise, IName, IS).
 
+convert(_, IName:name, KB:emacs_key_binding) :<-
+	"Handle mapped names"::
+	key_binding_name(Name, IName),
+	get(type(key_binding), convert, Name, KB).
 
-fill_arguments_and_execute(KB, Id:event_id, Receiver:emacs_mode, Selector:name,
-			   Argv:any ...) :->
+fill_arguments_and_execute(KB, Id:event_id, Receiver:emacs_mode,
+			   Selector:name, Argv:any ...) :->
 	"Open/close the argument processing"::
 	send(@current_emacs_mode, assign, Receiver),
 	(   get(Receiver, send_method, Selector, tuple(_, Impl)),

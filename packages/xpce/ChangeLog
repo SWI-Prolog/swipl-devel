@@ -1,3 +1,14 @@
+[VERSION 4.8.16]
+
+* Integrated SICStus interface and moved SWI-Prolog interface to the new
+  2.5.0 interface.  Both Prolog's now share the same interface.
+
+* PceEmacs: Added conversion of - to _ for entering M-x commands.
+
+* PceEmacs: Fixed M-P in completer field when no history was present.
+
+[VERSION 4.8.15]
+
 * PceEmacs: changed fundamental, language and text mode to use the supported
   begin_emacs_mode/end_emacs_mode rather than the low-level equivalents. This
   ensures the display is not opened when PceEmacs is compiled, enabling the

@@ -427,11 +427,25 @@ AC_TRY_COMPILE(
    AC_MSG_RESULT(no))
 
 AC_PATH_X
+
+if test "$static_x_libraries" = "yes"; then
+    XLIBS="$XLIB/libXt.a $XLIB/libX11.a"
+else
+    XLIBS="-lXt -lX11"
+fi
+
+case "$OS" in			# Linux/ELF only.  How to test?
+    *linux*)	XLIBS="$XLIBS -lSM -lICE"
+		;;
+    *)		;;
+esac
+
 ac_oldlibs="$LIBS"
-LIBS="-lXt -lX11 $LIBS"
+LIBS="$XLIBS $LIBS"
 if test ! -z "$x_libraries"; then
   LIBS="-L$x_libraries $LIBS"
 fi
+echo "	XLIBS=$LIBS"
 AC_CHECK_FUNCS(XtPopupSpringLoaded XmIsMotifWMRunning)
 LIBS="$ac_oldlibs"
 
@@ -445,17 +459,6 @@ XINCLUDES=/usr/include
 else
 XINCLUDES="$x_includes"
 fi
-if test "$static_x_libraries" = "yes"; then
-    XLIBS="$XLIB/libXt.a $XLIB/libX11.a"
-else
-    XLIBS="-lXt -lX11"
-fi
-
-case "$OS" in			# Linux/ELF only.  How to test?
-    *linux*)	XLIBS="$XLIBS -lICE -lSM"
-		;;
-    *)		;;
-esac
 
 AC_MSG_CHECKING("memory model")
 echo '#include "confdefs.h"' > conftest.c

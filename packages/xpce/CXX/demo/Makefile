@@ -19,12 +19,12 @@
 .SUFFIXES: .C .so
 
 PCEHOME=/staff/jan/src/xpce
-PCEARCH=sunos
+PCEARCH=sun4
 CC=gcc
 CXX=g++
 SO=so
 LD=ld
-LIBDIR=../../sunos
+LIBDIR=../../sun4
 LDSOFLAGS= -L$(LIBDIR)
 
 all:		pcerc.o

@@ -24,7 +24,7 @@ extern void *pceRealloc(void *p, int n);
 extern void *pceFree(void *p);
 
 #include "md.h"
-#include "system.h"
+#include <gnu/system.h>
 #include <ctype.h>
 
 #if (!defined (__STDC__) && defined (sparc)) || defined (__sparc__)

@@ -295,6 +295,7 @@ UndefinedPredicate(Atom pred, int arity, Atom module)
 #ifdef SWI
 #define O_STRING 1
 #define HAVE_PREDICATE_INFO 1
+#define HAVE_XPCEREF 1			/* _PL_put/get/unify_xpce_reference */
 
 static Functor	FUNCTOR_pce1;
 static Functor	FUNCTOR_pce2;
@@ -521,6 +522,49 @@ atomToAssoc(Atom a)
 }
 
 
+#ifdef HAVE_XPCEREF
+static PceObject
+refToObject(Term arg)
+{ xpceref_t r;
+
+  switch ( _PL_get_xpce_reference(arg, &r) )
+  { case TRUE:
+    { PceObject obj;
+
+      if ( r.type == PL_INTEGER )
+      { if ( !(obj = cToPceReference(r.value.i)) )
+	{ PceException(ATOM_badIntegerReference, 1, arg);
+
+	  return PCE_FAIL;
+	}
+      } else
+      { hostHandle handle = (hostHandle) r.value.a;
+	PceITFSymbol symbol = pceLookupHandle(0, handle);
+
+	if ( symbol && symbol->object )
+	  obj = symbol->object;
+	else if ( (obj = cToPceAssoc(AtomCharp(r.value.a))) )
+	  pceRegisterAssoc(0, handle, obj);
+	else
+	{ PceException(ATOM_unknownReference, 1, arg);
+
+	  return PCE_FAIL;
+	}
+      }
+
+      return obj;
+    }
+    case FALSE:
+      return PCE_FAIL;
+    default:
+      PceException(ATOM_badReference, 1, arg);
+      return PCE_FAIL;
+  }
+}
+
+
+#else /*HAVE_XPCEREF*/
+
 static PceObject
 referenceToObject(Term arg)
 { PceObject obj;
@@ -564,6 +608,7 @@ referenceToObject(Term arg)
   return obj;
 }
 
+#endif /*HAVE_XPCEREF*/
 
 static int
 unifyReferenceArg(Term t, int type, PceCValue value)
@@ -587,7 +632,27 @@ unifyReferenceArg(Term t, int type, PceCValue value)
 
 static int
 unifyReference(Term t, int type, PceCValue value)
-{ Term t2 = NewTerm();
+{
+#ifdef HAVE_XPCEREF
+  xpceref_t r;
+
+  if ( type == PCE_REFERENCE )
+  { r.type = PL_INTEGER;
+    r.value.i = value.integer;
+  } else
+  { PceITFSymbol symbol = value.itf_symbol;
+
+    r.type = PL_ATOM;
+    if ( symbol->handle[0] )
+      r.value.a = (Atom)symbol->handle[0];
+    else
+      r.value.a = AtomFromString(pceCharArrayToC(symbol->name));
+  }
+  return _PL_unify_xpce_reference(t, &r);
+
+#else /*HAVE_XPCEREF*/
+    
+  Term t2 = NewTerm();
   Term r  = NewTerm();
   
   if ( type == PCE_REFERENCE )
@@ -603,6 +668,7 @@ unifyReference(Term t, int type, PceCValue value)
   ConsFunctor(r, FUNCTOR_ref1, t2);
 
   return Unify(t, r);
+#endif /*HAVE_XPCEREF*/
 }
 
 
@@ -664,12 +730,16 @@ do_new(Term ref, Term t)
 }
 
 
-
 static PceObject
 termToObject(Term t, Atom assoc, int new)
 { Atom functor;
   int arity;
   PceObject rval;
+
+#ifdef HAVE_XPCEREF
+  if ( (rval = refToObject(t)) )
+    return rval;
+#endif
 
   if ( GetFunctor(t, &functor, &arity) )
   { PceName name = atomToName(functor);
@@ -678,6 +748,7 @@ termToObject(Term t, Atom assoc, int new)
     if ( arity == 0 )
       return (new ? pceNew(atomToAssoc(assoc), name, 0, NULL) : name);
 
+#ifndef HAVE_XPCEREF
 					/* @Ref */
     if ( functor == ATOM_ref && arity == 1 )
     { Term a = NewTerm();
@@ -687,6 +758,7 @@ termToObject(Term t, Atom assoc, int new)
 
       return rval;
     }
+#endif
 					/* new/[1,2] */
     if ( functor == ATOM_new )
     { if ( arity == 1 )			/* new(chain) */
@@ -1521,24 +1593,33 @@ pushObject(Term *pt, PceObject obj)
 
   switch( pcetype = pceToC(obj, &value) )
   { case PCE_REFERENCE:
-    { Term t2 = NewTerm();
+    {
+#ifdef HAVE_XPCEREF
+      _PL_put_xpce_reference_i(t, value.integer);
+#else
+      Term t2 = NewTerm();
 
       PutInteger(t2, value.integer);
       ConsFunctor(t, FUNCTOR_ref1, t2);
-
+#endif
       break;
     }
     case PCE_ASSOC:
     { PceITFSymbol symbol = value.itf_symbol;
-      Term t2 = NewTerm();
 
       if ( symbol->handle[0] != NULL )
 	avalue = (Atom) symbol->handle[0];
       else
 	avalue = AtomFromString(pceCharArrayToC(symbol->name));
 
-      PutAtom(t2, avalue);
-      ConsFunctor(t, FUNCTOR_ref1, t2);
+#ifdef HAVE_XPCEREF
+      _PL_put_xpce_reference_a(t, avalue);
+#else
+      { Term t2 = NewTerm();
+	PutAtom(t2, avalue);
+	ConsFunctor(t, FUNCTOR_ref1, t2);
+      }
+#endif
 
       break;
     }

@@ -54,11 +54,11 @@ Any		cToPceString(Name assoc, char *s);
 Any		cToPceName(const char *text);
 Any		cToPcePointer(void *ptr);
 void *		pcePointerToC(PceObject obj);
-Any		cToPceAssoc(char *s);
+Any		cToPceAssoc(const char *s);
 Any		cToPceReference(ulong val);
 int		pceExistsReference(ulong ref);
 int		pceExistsAssoc(PceName assoc);
-PceObject	cToPceTmpCharArray(char *s);
+PceObject	cToPceTmpCharArray(const char *s);
 void		donePceTmpCharArray(Any ca);
 status		pceInstanceOf(Any obj, Any classspec);
 int		pceToCReference(Any obj, PceCValue *rval);
@@ -91,6 +91,9 @@ void		Cvprintf(const char *fmt, va_list args);
 int		Cputchar(int chr);
 void		Cflush(void);
 char *		Cgetline(char *line, int size);
+void *		pceMalloc(int size);
+void *		pceRealloc(void *ptr, int size);
+void		pceFree(void *ptr);
 
 /* itf/cpointer.c */
 CPointer	CtoCPointer(void *ptr);

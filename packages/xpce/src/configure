@@ -2626,11 +2626,25 @@ else
   echo "$ac_t""libraries $x_libraries, headers $x_includes" 1>&6
 fi
 
+
+if test "$static_x_libraries" = "yes"; then
+    XLIBS="$XLIB/libXt.a $XLIB/libX11.a"
+else
+    XLIBS="-lXt -lX11"
+fi
+
+case "$OS" in			# Linux/ELF only.  How to test?
+    *linux*)	XLIBS="$XLIBS -lSM -lICE"
+		;;
+    *)		;;
+esac
+
 ac_oldlibs="$LIBS"
-LIBS="-lXt -lX11 $LIBS"
+LIBS="$XLIBS $LIBS"
 if test ! -z "$x_libraries"; then
   LIBS="-L$x_libraries $LIBS"
 fi
+echo "	XLIBS=$LIBS"
 for ac_func in XtPopupSpringLoaded XmIsMotifWMRunning
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
@@ -2638,7 +2652,7 @@ if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 2642 "configure"
+#line 2656 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -2694,17 +2708,6 @@ XINCLUDES=/usr/include
 else
 XINCLUDES="$x_includes"
 fi
-if test "$static_x_libraries" = "yes"; then
-    XLIBS="$XLIB/libXt.a $XLIB/libX11.a"
-else
-    XLIBS="-lXt -lX11"
-fi
-
-case "$OS" in			# Linux/ELF only.  How to test?
-    *linux*)	XLIBS="$XLIBS -lICE -lSM"
-		;;
-    *)		;;
-esac
 
 echo $ac_n "checking "memory model"""... $ac_c" 1>&6
 echo '#include "confdefs.h"' > conftest.c

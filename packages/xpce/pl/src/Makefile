@@ -38,7 +38,7 @@ SOITF=		$(OBJDIR)/so-interface.o
 OBJ=		$(PLRUNTIME)/$(PLOBJ) $(ITFOBJ)
 XPCE=		$(BINDIR)/xpce
 QLF=    	$(BINDIR)/xpce.qlf
-XLIBS=		-lXt -lX11
+#XLIBS=		-lXt -lX11
 XPCESO= 	$(LIBDIR)/pl2xpce.$(SO)
 SOEXTR=		$(addprefix $(OBJDIR)/, $(SOEXTRAOBJ))
 
