@@ -4,6 +4,14 @@
 Version 2.1.7
 =============
 
+  * ADDED: absolute_file_name/3: options file_type, file_errors and
+    solutions for compatibility.
+
+  * Win32: compiled (with small updates) for Win32
+
+  * ADDED: Implemented open_null_stream/1 by defining a null-stream in
+    SWI-Prologs stream-i/o package to avoid the /dev/null dependency.
+
   * ADDED: Saving current operator declarations with qsave_program/[1,2].
 
   * FIXED: Garbage-collector error.

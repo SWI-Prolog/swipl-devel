@@ -2331,6 +2331,18 @@ specified both as {\tt '.ext'} or plain {\tt 'ext'}.
 Imposes the condition access_file({\em File}, {\em Mode}).  {\em Mode}
 is on of {\tt read}, {\tt write}, {\tt append}, {\tt exist} or {\tt
 none}.  See also access_file/2.
+    \option{file_type(Type)}
+Defines extensions.  Current mapping: {\tt txt} implies {\tt ['']},
+{\tt prolog} implies {\tt ['.pl', '']}, {\tt executable} implies {\tt
+['.so', '']}, {\tt qlf} implies {\tt ['.qlf', '']} and {\tt directory}
+implies {\tt ['']}.
+    \option{file_errors(fail/true)}
+Report if the path cannot be resolved or be silent.  The default is
+to stay silent.
+    \option{solutions(first/all)}
+If {\tt first} (default), the predicates leaves no choice-point.
+Otherwise a choice-point will be left and backtracking may yield
+more solutions.
 \end{description}
 \end{quote}
 .C is_absolute_file_name 1 +File

@@ -450,7 +450,11 @@ TrailAssignment(Word p)
   verifyStack(trail);
 }
 
+#ifdef __WIN32__
+void
+#else
 inline void
+#endif
 do_undo(mark *m)
 { TrailEntry tt = tTop;
 

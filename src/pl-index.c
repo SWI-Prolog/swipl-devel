@@ -287,7 +287,7 @@ again:
     if (isVar(*argv) || isIndirect(*argv))
       goto noindex;
     ctx->key     = (nonVarIsTerm(*argv) ? (word) functorTerm(*argv) : *argv);
-    ctx->varmask = ~0x0L;
+    ctx->varmask = (unsigned long) ~0x0L;
     if ( def->hash_info )
       cref = def->hash_info->entries[ctx->key & (def->hash_info->buckets-1)].head;
     else

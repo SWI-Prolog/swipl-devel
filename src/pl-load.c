@@ -951,5 +951,11 @@ pl_call_shared_object_function(Word plhandle, Word name)
   succeed;
 }
 
+#else /*HAVE_DLOPEN*/
+
+word
+pl_open_shared_object(Word file, Word plhandle, Word flags)
+{ return warning("open_shared_object/3: not ported to this machine");
+}
 
 #endif /*HAVE_DLOPEN*/

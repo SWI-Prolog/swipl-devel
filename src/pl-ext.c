@@ -278,8 +278,8 @@ static struct foreign {
 #else
   ADD("$load_foreign",		5, pl_load_foreign,	TRANSPARENT|TRACE_ME),
 #endif
-#if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD)
   ADD("$open_shared_object",	3, pl_open_shared_object,	TRACE_ME),
+#if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD)
   ADD("close_shared_object",	1, pl_close_shared_object,	TRACE_ME),
   ADD("call_shared_object_function",
 				2, pl_call_shared_object_function,

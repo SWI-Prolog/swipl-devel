@@ -4423,6 +4423,20 @@ absolute_file_name(+Spec, +Options, -Absolute)
              Imposes the condition access_file(File,
              Mode).  Mode is on of read, write, append,
              exist or none.  See also access_file/2.
+         file_type(Type)
+             Defines extensions.  Current mapping:  txt
+             implies [''], prolog implies ['.pl', ''],
+             executable implies ['.so', ''], qlf
+             implies ['.qlf', ''] and directory implies
+             [''].
+         file_errors(fail/true)
+             Report if the path cannot be resolved or
+             be silent.  The default is to stay silent.
+         solutions(first/all)
+             If first (default), the predicates leaves
+             no choice-point.  Otherwise a choice-point
+             will be left and backtracking may yield
+             more solutions.
 
 
 is_absolute_file_name(+File)
@@ -7176,16 +7190,17 @@ qsave_program(+File, +ListOfOptions)
      of Key = Value pairs.  The available keys are
      described in table 6.1.
 
-  Key          Option     Type     Description
-  local          -L     K-bytes    Size (Limit) of local stack
-  global         -G     K-bytes    Size (Limit) of global stack
-  trail          -T     K-bytes    Size (Limit) of trail stack
-  argument       -A     K-bytes    Size (Limit) of argument stack
-  goal           -g       atom     Initialisation goal
-  toplevel       -t       atom     Prolog toplevel goal
-  init_file      -f       atom     Personal initialisation file
-  autoload                bool     If true, run autoload/0 first
-  map                     atom     File containing info on dump
+  Key          Option        Type        Description
+  local          -L        K-bytes       Size (Limit) of local stack
+  global         -G        K-bytes       Size (Limit) of global stack
+  trail          -T        K-bytes       Size (Limit) of trail stack
+  argument       -A        K-bytes       Size (Limit) of argument stack
+  goal           -g          atom        Initialisation goal
+  toplevel       -t          atom        Prolog toplevel goal
+  init_file      -f          atom        Personal initialisation file
+  autoload                   bool        If true, run autoload/0 first
+  map                        atom        File containing info on dump
+  op                    save/standard    Save operator declarations?
 
      Table 6.1:  Key = Value pairs for qsave_program/2
 

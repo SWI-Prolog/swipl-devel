@@ -329,7 +329,6 @@ initOperators(void)
   }
 
   { register Operator op;
-    register int v;
 
     for( op = operators; op->name; op++ )
       operator(op->name, op->type, op->priority);

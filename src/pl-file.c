@@ -1184,6 +1184,57 @@ pl_open(Word file, Word mode, Word stream)
   }
 }
 
+#ifndef USEDEVNULL
+
+static int
+Swrite_null(void *handle, char *buf, int size)
+{ return size;
+}
+
+
+static int
+Sread_null(void *handle, char *buf, int size)
+{ return 0;
+}
+
+
+static long
+Sseek_null(void *handle, long offset, int whence)
+{ switch(whence)
+  { case SIO_SEEK_SET:
+	return offset;
+    case SIO_SEEK_CUR:
+    case SIO_SEEK_END:
+    default:
+        return -1;
+  }
+}
+
+
+static int
+Sclose_null(void *handle)
+{ return 0;
+}
+
+
+static IOFUNCTIONS nullFunctions =
+{ Sread_null,
+  Swrite_null,
+  Sseek_null,
+  Sclose_null
+};
+
+
+word
+pl_open_null_stream(Word stream)
+{ int sflags = SIO_NBUF|SIO_RECORDPOS;
+  IOSTREAM *s = Snew((void *)NULL, sflags, &nullFunctions);
+
+  return PL_open_stream(s, stream);
+}
+
+#else /*USEDEVNULL*/
+
 #ifndef DEVNULL
 #define DEVNULL "/dev/null"
 #endif
@@ -1195,6 +1246,7 @@ pl_open_null_stream(Word stream)
 
   return pl_open(&file, &mode, stream);
 }
+#endif /*USEDEVNULL*/
 
 int
 streamNo(Word spec, int mode)

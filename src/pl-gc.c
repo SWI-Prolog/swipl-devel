@@ -93,6 +93,7 @@ Marking, testing marks and extracting values from GC masked words.
 
 #if O_SECURE
 #define recordMark(p)	{ if ( (p) < gTop ) *mark_top++ = (p); }
+#define check_relocation(p) do_check_relocation(p, __FILE__, __LINE__)
 #else
 #define recordMark(p)
 #define needsRelocation(p) { needs_relocation++; }
@@ -175,7 +176,7 @@ forwards void		collect_phase(LocalFrame);
 
 #if O_SECURE
 forwards int		cmp_address(const void *, const void *);
-forwards void		check_relocation(Word);
+forwards void		do_check_relocation(Word, char *file, int line);
 forwards void		needsRelocation(Word);
 forwards bool		scan_global(void);
 forwards word		checkStacks(LocalFrame frame);
@@ -217,24 +218,23 @@ trap_gdb()				/* intended to put a break on */
 #endif
 
 static void
-needsRelocation(addr)
-Word addr;
+needsRelocation(Word addr)
 { needs_relocation++;
 
   addHTable(check_table, addr, (Void) TRUE);
 }
 
 static void
-check_relocation(addr)
-Word addr;
+do_check_relocation(Word addr, char *file, int line)
 { Symbol s;
   if ( (s=lookupHTable(check_table, addr)) == NULL )
-  { sysError("Address 0x%lx was not supposed to be relocated", addr);
+  { sysError("%s:%d: Address 0x%lx was not supposed to be relocated",
+	     file, line, addr);
     return;
   }
 
   if ( s->value == FALSE )
-  { sysError("Relocated twice: 0x%lx", addr);
+  { sysError("%s:%d: Relocated twice: 0x%lx", file, line, addr);
     return;
   }
 
@@ -990,6 +990,7 @@ size.
 static bool
 is_downward_ref(Word p)
 { word val = get_value(p);
+  Word ptr;
 
   if ( isRef(val) )
   { DEBUG(5, if ( unRef(val) < p ) Sdprintf("REF: "));
@@ -998,34 +999,55 @@ is_downward_ref(Word p)
   if ( isVar(val) || isInteger(val) )
     fail;
   if ( isIndirect(val) )
-  { DEBUG(5, if ( (Word)unMask(val) < p ) Sdprintf("INDIRECT: "));
-    return (Word)unMask(val) < p;
+  { ptr = (Word) unMask(val);
+
+    assert(onGlobal(ptr));
+
+    if ( ptr < p )
+    { DEBUG(5, Sdprintf("INDIRECT: "));
+      succeed;
+    }
+
+    fail;
   }
 
-  DEBUG(5, if ( (Word)val < p && (Word)val >= gBase ) Sdprintf("TERM: "));
-  if ( (Word)val < p && (Word)val >= gBase && !marked((Word)val) )
-    sysError("Pointer to term should be marked (down)");
+  ptr = (Word) val;
+  if ( ptr < p && ptr >= gBase )
+  { assert(marked(ptr));
 
-  return (Word)val < p && (Word)val >= gBase;
+    succeed;
+  }
+
+  fail;
 }
 
 static bool
 is_upward_ref(Word p)
 { word val = get_value(p);
+  Word ptr;
 
   if ( isRef(val) )
     return unRef(val) > p;
   if ( isVar(val) || isInteger(val) )
     fail;
   if ( isIndirect(val) )
-    return (Word)unMask(val) > p;
+  { ptr = (Word) unMask(val);
 
-  if ( (Word)val > p && (Word)val < gTop && !marked((Word)val) )
-    sysError("Pointer to term should be marked (up) \n\
-	     p = 0x%p, val = 0x%p, *val = 0x%p, gTop = 0x%p",
-	     p, val, *((Word)val), gTop);
+    assert(onGlobal(ptr));
 
-  return (Word)val > p && (Word)val < gTop;
+    if ( ptr > p )
+      succeed;
+
+    fail;
+  }
+
+  ptr = (Word) val;
+  if ( ptr > p && ptr < gTop )
+  { assert(marked(ptr));
+    succeed;
+  }
+
+  fail;
 }
 
 static void
@@ -1151,7 +1173,7 @@ collect_phase(LocalFrame fr)
 void
 considerGarbageCollect(Stack s)
 { if ( s->gc )
-  { if ( (char *)s->top - (char *)s->base > s->factor*s->gced_size + s->small )
+  { if ( (char *)s->top - (char *)s->base > (long)(s->factor*s->gced_size + s->small) )
     { DEBUG(1, Sdprintf("%s overflow: Posted garbage collect request\n",
 			s->name));
       gc_status.requested = TRUE;

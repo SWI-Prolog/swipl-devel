@@ -39,7 +39,11 @@ bool		unify_atomic(Word p, word a);
 bool		unifyFunctor(Word term, FunctorDef functor);
 word		pl_alt(Word skip, word h);
 void		TrailAssignment(Word p);
+#ifdef __WIN32__
+void		do_undo(mark *m);
+#else
 inline void	do_undo(mark *m);
+#endif
 
 /* pl-atom.c */
 Atom		lookupAtom(char *s);
