@@ -748,11 +748,11 @@ PL_canonise_text(PL_chars_t *text)
 	  { char *to;
 
 	    text->encoding = ENC_ISO_LATIN_1;
-	    if ( n+1 < sizeof(text->buf) )
+	    if ( len+1 < sizeof(text->buf) )
 	    { text->text.t = text->buf;
 	      text->storage = PL_CHARS_LOCAL;
 	    } else
-	    { text->text.t = PL_malloc(n+1);
+	    { text->text.t = PL_malloc(len+1);
 	      text->storage = PL_CHARS_MALLOC;
 	    }
 
@@ -768,14 +768,14 @@ PL_canonise_text(PL_chars_t *text)
 	    char b2[sizeof(text->buf)];
 
 	    text->encoding = ENC_WCHAR;
-	    if ( n+1 < sizeof(text->buf)/sizeof(wchar_t) )
+	    if ( len+1 < sizeof(text->buf)/sizeof(wchar_t) )
 	    { if ( text->text.t == text->buf )
 	      { memcpy(b2, text->buf, sizeof(text->buf));
 		from = b2;
 	      }
 	      text->text.w = (wchar_t*)text->buf;
 	    } else
-	    { text->text.w = PL_malloc((n+1)*sizeof(wchar_t));
+	    { text->text.w = PL_malloc((len+1)*sizeof(wchar_t));
 	      text->storage = PL_CHARS_MALLOC;
 	    }
 
@@ -788,6 +788,7 @@ PL_canonise_text(PL_chars_t *text)
 	    *to = EOS;
 	  }
 
+	  text->length = len;
 	  text->canonical = TRUE;
 	  if ( do_free )
 	    PL_free(do_free);
