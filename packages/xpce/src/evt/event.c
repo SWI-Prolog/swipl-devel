@@ -149,6 +149,7 @@ considerLocStillEvent()
 { if ( !loc_still_posted )
   { unsigned long now = mclock();
 
+    pceMTLock(LOCK_PCE);
     if ( now - host_last_time > 700 &&
 	 instanceOfObject(last_window, ClassWindow) &&
 	 !onFlag(last_window, F_FREED|F_FREEING) )
@@ -168,6 +169,7 @@ considerLocStillEvent()
 		    rewindAnswerStack(mark, NIL);		   
 		  })
     }
+    pceMTUnlock(LOCK_PCE);
   }
 }
 

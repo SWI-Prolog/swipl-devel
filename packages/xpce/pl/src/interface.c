@@ -128,7 +128,7 @@ typedef fid_t		Fid;
 #endif /*SWI*/
 
 typedef struct
-{ atomic_t	method_id;		/* Identifier of the method */
+{ PL_atomic_t	method_id;		/* Identifier of the method */
   functor_t	functor;		/* Functor for the arguments */
   int		flags;			/* debugging, etc */
   int		argc;			/* #arguments */
@@ -2991,6 +2991,7 @@ pl_pce_init(Term a)
   if ( !initialised++ )
   { PceObject plname;
 
+    pceMTinit();
     PROLOG_INSTALL_REINIT_FUNCTION(pl_pce_init);
     PROLOG_ITF_INIT();
 

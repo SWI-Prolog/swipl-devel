@@ -84,6 +84,9 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
 	netscape.pl url.pl win_menu.pl \
 	qpforeign.pl \
 	$(PLWINLIBS)
+!IF "$(MT)" == "true"
+PLLIBS=$(PLLIBS) threadutil.pl
+!ENDIF
 
 all:	lite packages
 
@@ -250,7 +253,9 @@ install-dotfiles::
 		$(INSTALL_DATA) ..\dotfiles\README "$(PLCUSTOM)\README.TXT"
 
 install-demo::
-		$(INSTALL_DATA) ..\demo\likes.pl "$(PLBASE)\demo\likes.pl"
+		if exist ..\demo \
+		    $(INSTALL_DATA) ..\demo\likes.pl "$(PLBASE)\demo\likes.pl"
+		if exist ..\demo \
 		$(INSTALL_DATA) ..\demo\README "$(PLBASE)\demo\README.TXT"
 
 ################################################################
@@ -277,7 +282,8 @@ install_packages:
 		@for %p in ($(PKGS)) do \
 		   if exist "$(PKGDIR)\%p" \
 		      $(CMD) /c "chdir $(PKGDIR)\%p & $(MAKE) html-install"
-		copy $(PKGDIR)\index.html $(PKGDOC)
+		if exist $(PKGDIR)\index.html \
+		    copy $(PKGDIR)\index.html $(PKGDOC)
 !ENDIF
 
 clean_packages:

@@ -1179,8 +1179,10 @@ multiThreadingPce(Pce pce, Bool val)
   if ( XPCE_mt == -1 )
     return errorPce(pce, NAME_threadsInitialised);
 
-#if defined(_REENTRANT) && defined(HAVE_XINITTHREADS)
+#if defined(_REENTRANT) && (defined(HAVE_XINITTHREADS) || defined(WIN32))
   XPCE_mt = (val == ON ? TRUE : FALSE);
+  pceMTLock(LOCK_PCE);			/* we will see two unlocks .. */
+  pceMTLock(LOCK_PCE);
   succeed;
 #endif
 

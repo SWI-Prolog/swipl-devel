@@ -447,8 +447,10 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
   }
   assert(isProperObject(fr));
 
+  pceMTLock(LOCK_PCE);
   ServiceMode(service_frame(fr),
 	      rval = do_frame_wnd_proc(fr, hwnd, message, wParam, lParam));
+  pceMTUnlock(LOCK_PCE);
 
   return rval;
 }

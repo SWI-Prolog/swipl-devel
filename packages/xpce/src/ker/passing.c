@@ -22,13 +22,57 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#ifdef WIN32
+#define WINDOWS_LEAN_AND_MEAN
+#include <windows.h>
+#undef hyper				/* don't need this */
+#undef islower				/* we have these ourselves */
+#undef isupper
+#undef isdigit
+#undef isalnum
+#undef isalpha
+#undef iscntrl
+#undef isprint
+#undef isspace
+#undef ispunct
+#undef isxdigit
+#define Ellipse PceEllipse
+#define Arc PceArc
+#endif /*WIN32*/
+
 #define _GNU_SOURCE 1			/* for recursive mutexes */
 #define INLINE_UTILITIES 1
 #include <h/kernel.h>
 #include <h/trace.h>
 #include <itf/c.h>
 
-#ifdef _REENTRANT
+					/* Win32 native locking */
+#ifdef WIN32
+#undef Arc
+#undef Ellipse
+
+static CRITICAL_SECTION mutex;
+
+#define LOCK() \
+	if ( XPCE_mt == TRUE ) \
+	{ EnterCriticalSection(&mutex); \
+	}
+#define UNLOCK() \
+	if ( XPCE_mt == TRUE ) \
+	{ LeaveCriticalSection(&mutex); \
+	}
+
+void
+pceMTinit()
+{ //Cprintf("INIT\n");
+  InitializeCriticalSection(&mutex);
+}
+
+#endif /*WIN32*/
+
+/* POSIX thread based locking */
+
+#if defined(_REENTRANT) && !defined(LOCK)
 #include <pthread.h>
 
 #ifdef PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
@@ -71,11 +115,26 @@ static recursive_mutex_t mutex = RECURSIVE_MUTEX_INIT;
 	  } else \
 	    assert(0); \
 	}
-#endif
-#else /*_REENTRANT*/
+#endif /*PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP*/
+
+void
+pceMTinit()
+{ 
+}
+
+#endif /*_REENTRANT*/
+
+					/* No threading */
+#ifndef LOCK
 #define LOCK()
 #define UNLOCK()
-#endif /*_REENTRANT*/
+
+void
+pceMTinit()
+{
+}
+
+#endif
 
 void
 pceMTLock(int lock)

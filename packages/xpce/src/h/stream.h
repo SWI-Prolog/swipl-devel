@@ -1,10 +1,10 @@
 /*  $Id$
 
-    Part of XPCE --- The SWI-Prolog GUI toolkit
+    Part of SWI-Prolog
 
-    Author:        Jan Wielemaker and Anjo Anjewierden
+    Author:        Jan Wielemaker
     E-mail:        jan@swi.psy.uva.nl
-    WWW:           http://www.swi.psy.uva.nl/projects/xpce/
+    WWW:           http://www.swi-prolog.org
     Copyright (C): 1985-2002, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
@@ -79,6 +79,10 @@ stuff.
 #define NULL ((void *)0)
 #endif
 
+#if defined(__WIN32__) && !defined(EWOULDBLOCK)
+#define EWOULDBLOCK	1000		/* Needed for socket handling */
+#endif
+
 #define SIO_BUFSIZE	(4096)		/* buffering buffer-size */
 #define SIO_LINESIZE	(1024)		/* Sgets() default buffer size */
 #define SIO_MAGIC	(7212676)	/* magic number */
@@ -90,9 +94,9 @@ typedef long  (*Sseek_function)(void *handle, long pos, int whence);
 typedef int   (*Sclose_function)(void *handle);
 typedef int   (*Scontrol_function)(void *handle, int action, void *arg);
 
-#ifdef O_PLMT				/* only needed when compiling kernel */
+#if defined(O_PLMT) && defined(PL_KERNEL)
 #include "pl-mutex.h"
-typedef recursive_mutex_t IOLOCK;
+#define IOLOCK recursiveMutex
 #else
 typedef void *		IOLOCK;		/* Definition for external use */
 #endif
@@ -155,16 +159,21 @@ typedef struct io_stream
 #define SIO_APPEND	SmakeFlag(20)	/* opened in append-mode */
 #define SIO_UPDATE	SmakeFlag(21)	/* opened in update-mode */
 #define SIO_ISATTY	SmakeFlag(22)	/* Stream is a tty */
+#define SIO_CLOSING	SmakeFlag(23)	/* We are closing the stream */
 
 #define	SIO_SEEK_SET	0	/* From beginning of file.  */
 #define	SIO_SEEK_CUR	1	/* From current position.  */
 #define	SIO_SEEK_END	2	/* From end of file.  */
 
-__pl_export IOSTREAM *S__getiob(void);	/* get DLL's S__iob[] address */
+__pl_export IOSTREAM *S__getiob(void);	/* get DLL's __iob[] address */
 
 __pl_export_data IOFUNCTIONS Sfilefunctions;	/* OS file functions */
 __pl_export_data int	     Slinesize;		/* Sgets() linesize */
+#if defined(__CYGWIN32__) && !defined(PL_KERNEL)
+#define S__iob S__getiob()
+#else
 __pl_export_data IOSTREAM    S__iob[3];		/* Libs standard streams */
+#endif
 
 #define Sinput  (&S__iob[0])		/* Stream Sinput */
 #define Soutput (&S__iob[1])		/* Stream Soutput */

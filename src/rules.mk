@@ -10,7 +10,7 @@
 # copy the result to wherever you want.
 
 # prefix=C:\Program Files
-prefix=E:\jan\installed
+prefix=E:\jan\src\mt\installed
 PLBASE=$(prefix)\pl
 BINDIR=$(PLBASE)\bin
 LIBDIR=$(PLBASE)\lib
@@ -64,7 +64,7 @@ INSTALL=copy
 INSTALL_PROGRAM=$(INSTALL)
 INSTALL_DATA=$(INSTALL)
 MKDIR=mkdir
-MAKE=nmake CFG="$(CFG)" DBG="$(DBG)" /nologo /f Makefile.mak
+MAKE=nmake CFG="$(CFG)" DBG="$(DBG)" MT="$(MT)" /nologo /f Makefile.mak
 
 LIBS=user32.lib shell32.lib gdi32.lib advapi32.lib wsock32.lib
 !if "$(MT)" == "true"

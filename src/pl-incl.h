@@ -1963,6 +1963,10 @@ decrease).
 #define SECURE(g)
 #endif
 
+#ifdef _DEBUG
+#define O_MAINTENANCE
+#endif
+
 #include "pl-os.h"			/* OS dependencies */
 
 #ifdef SYSLIB_H

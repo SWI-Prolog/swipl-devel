@@ -89,7 +89,7 @@ getExistingFrameWindow(PceWindow sw)
 
 
 static int WINAPI
-window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
+do_window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 { PceWindow sw = getObjectFromHWND(hwnd);
   FrameObj fr;
   WsFrame wfr;
@@ -420,6 +420,18 @@ cascade:
 			  hwnd, message, wParam, lParam);
   else
     return DefWindowProc(hwnd, message, wParam, lParam);
+}
+
+
+static int WINAPI
+window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
+{ int rval;
+
+  pceMTLock(LOCK_PCE);
+  rval = do_window_wnd_proc(hwnd, message, wParam, lParam);
+  pceMTUnlock(LOCK_PCE);
+
+  return rval;
 }
 
 

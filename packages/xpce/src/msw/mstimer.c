@@ -41,11 +41,12 @@ setIdTimer(Timer tm, UINT id)
 
 VOID CALLBACK
 timer_proc(HWND hwnd, UINT msg, UINT id, DWORD now)
-{ DEBUG(NAME_timer, Cprintf("Fireing timer %d\n", id));
+{ DEBUG(NAME_timer, Cprintf("Firing timer %d\n", id));
 
   if ( TimerTable )
   { Timer tm;
 
+    pceMTLock(LOCK_PCE);
     if ( (tm = getMemberHashTable(TimerTable, toInt(id))) )
     { if ( tm->status != NAME_repeat )
       { KillTimer(NULL, id);
@@ -56,9 +57,11 @@ timer_proc(HWND hwnd, UINT msg, UINT id, DWORD now)
       executeTimer(tm);
 
       RedrawDisplayManager(TheDisplayManager());
+      pceMTUnlock(LOCK_PCE);
 
       return;
     }
+    pceMTUnlock(LOCK_PCE);
   }
 
   KillTimer(NULL, id);			/* Unexpected timer.  Get rid of it */

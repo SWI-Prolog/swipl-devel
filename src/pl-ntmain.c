@@ -29,6 +29,9 @@
 #include <ctype.h>
 #include <console.h>
 #include <signal.h>
+#ifdef O_PLMT
+#include <pthread.h>
+#endif
 
 #ifndef streq
 #define streq(s,q) (strcmp((s), (q)) == 0)

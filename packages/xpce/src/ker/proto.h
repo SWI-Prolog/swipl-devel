@@ -295,6 +295,7 @@ Any		loadObject(IOSTREAM *fd);
 status		loadSlotsObject(Any obj, IOSTREAM *fd, ClassDef def);
 
 /* ../src/ker/self.c */
+
 status		formatPcev(Pce pce, CharArray fmt, int argc, Any *argv);
 Name		getOsErrorPce(Pce pce);
 status		catchErrorPce(Pce pce, Any ids);

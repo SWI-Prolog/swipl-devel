@@ -924,7 +924,8 @@ equalIndirectFromCode(word a, Code *PC)
 
 char *
 store_string(const char *s)
-{ char *copy = (char *)allocHeap(strlen(s)+2);
+{ GET_LD
+  char *copy = (char *)allocHeap(strlen(s)+2);
 
   *copy++ = CHAR_INUSE;
   strcpy(copy, s);
@@ -936,7 +937,8 @@ store_string(const char *s)
 void
 remove_string(char *s)
 { if ( s )
-  { assert(s[-1] == CHAR_INUSE);
+  { GET_LD
+    assert(s[-1] == CHAR_INUSE);
     
     s[-1] = CHAR_FREED;
     freeHeap(s-1, strlen(s)+2);

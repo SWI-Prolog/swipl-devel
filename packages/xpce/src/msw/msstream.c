@@ -131,7 +131,7 @@ handleInputSocket(Socket s)
 
 
 static int WINAPI
-socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
+do_socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 { switch( message )
   { case WM_SOCKET:
     { SOCKET sock = (SOCKET) wParam;
@@ -222,6 +222,18 @@ socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
   }
   
   return DefWindowProc(hwnd, message, wParam, lParam);
+}
+
+
+static int WINAPI
+socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
+{ int rval;
+
+  pceMTLock(LOCK_PCE);
+  rval = do_socket_wnd_proc(hwnd, message, wParam, lParam);
+  pceMTUnlock(LOCK_PCE);
+
+  return rval;
 }
 
 

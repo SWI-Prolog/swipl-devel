@@ -570,11 +570,13 @@ retry:
     }
     
     RestoreLocalPtr(fid, frame);
-    RestoreLocalPtr(cid, frame);
+    RestoreLocalPtr(cid, ffr);
   }
 
   if ( exception_term )			/* EXCEPTION */
-  { if ( result )			/* No, false alarm */
+  { frame->clause = NULL;		/* no discardFrame() needed */
+
+    if ( result )			/* No, false alarm */
     { exception_term = 0;
       setVar(*valTermRef(exception_bin));
     } else
@@ -582,6 +584,7 @@ retry:
       Choice ch;
 
       fli_context = ffr->parent;
+      lTop = (LocalFrame)ffr;
       ch = newChoice(CHP_DEBUG, frame PASS_LD);
       ch->mark = m;
 
@@ -1410,7 +1413,7 @@ static void
 discardFrame(LocalFrame fr, enum finished reason ARG_LD)
 { Definition def = fr->predicate;
 
-  DEBUG(3, Sdprintf("discard #%d running %s\n",
+  DEBUG(2, Sdprintf("discard #%d running %s\n",
 		    loffset(fr),
 		    predicateName(fr->predicate)));
 
@@ -2613,9 +2616,11 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	    discardChoicesAfter(FR PASS_LD);
 	    SECURE(checkData(catcher));
 	    discardFrame(FR, FINISH_EXCEPT PASS_LD);
+	    SECURE(checkData(catcher));
 	  }
 	}
 
+        SECURE(checkData(catcher));
 
 	if ( catchfr )
 	{ static code exit_instruction;		/* may be gone otherwise */
