@@ -1047,23 +1047,42 @@ parameter to the reading and writing predicates to specify the source
 or destination of the data.
 
 .BD
-.C open 3 +SrcDest, +Mode, ?Stream
-{\em SrcDest} is either an atom, specifying a Unix file, or a term
-`pipe({\em Command})', just like see/1 and tell/1.  {\em Mode} is one
-of \tty{read}, \tty{write} or \tty{append}.  {\em Stream} is either a
-variable, in which case it is bound to a small integer identifying the
-stream, or an atom, in which case this atom will be the stream
-indentifier.  In the latter case the atom cannot be an already existing
-stream identifier.  Examples:
+.C open 4 +SrcDest, +Mode, -Stream, +Options
+ISO compliant predicate to open a stream. {\em SrcDes} is either an
+atom, specifying a Unix file, or a term `pipe({\em Command})', just like
+see/1 and tell/1. {\em Mode} is one of \tty{read}, \tty{write} or
+\tty{append}. {\em Stream} is either a variable, in which case it is
+bound to a small integer identifying the stream, or an atom, in which
+case this atom will be the stream indentifier.  The {\em Options} list
+can contain the following options:
+\begin{itemize}
+    \item {\tt type(Type)}.  Using type {\tt text} (default), Prolog
+will write a text-file in an operating-system compatible way. Using type
+{\tt binary} the bytes will be read or written without any translation.
+Note there is no difference between the two on Unix systems.
+    \item {\tt alias(Atom} gives the stream a name.  The following two
+calls are identical, but only the latter is allowed in ISO Prolog.
+\begin{code}
+?- open(foo, read, in, []).
+?- open(foo, read, S, [alias(in)]).
+\end{code}
+    \item {\tt eof_action(Action)} defines what happens if the end of the
+input stream is reached.  Action {\tt eof_code} makes get0/1 and friends
+return -1 and read/1 and friends return the atom {\tt end_of_file}.
+Repetitive reading keeps yielding the same result. Action {\tt error}
+is like {\tt eof_code}, but repetitive reading will raise an error.
+With action {\em reset}, Prolog will examine the file again and return
+more data if the file has grown.
+\end{itemize}
 
-\begin{center}\begin{tabular}{ll}
-\tt ?- open(data, read, Stream). 	& \% Open `data' for reading. \\
-\tt ?- open(pipe(lpr), write, printer).	& \% `printer' is a stream to `lpr'. \\
-\end{tabular}\end{center}
+The option {\tt reposition} is not supported in SWI-Prolog.  All streams
+connected to a file may be repositioned.
+.C open 3 +SrcDest, +Mode, ?Stream
+Equivalent to open/4 with an empty option-list.
 .C open_null_stream 1 ?Stream
-On Unix systems, this is  equivalent  to  \tty{open('/dev/null',  write,
-Stream)}.   Characters  written  to this stream are lost, but the stream
-information (see character_count/2, etc.) is maintained.
+Open a stream that produces no output.  All counting functions are
+enabled on such a stream.  An attempt to read from a null-stream will
+immediately signal end-of-file.  Similar to Unix {\tt /dev/null}.
 .C close 1 +Stream
 Close the specified stream.  If {\em Stream} is not open an error
 message is displayed.  If the closed stream is the current input or
@@ -1537,8 +1556,9 @@ all operators can be redefined by the user.
 600 & xfy & \tty{:} \\
 500 & yfx & \tty{+}, \tty{-}, \verb+/\+, \verb+\/+, \verb+xor+ \\
 500 & fx & \tty{+}, \tty{-}, \tty{?}, \verb+\+ \\
-400 & yfx & \verb+*+, \tty{/}, \tty{//}, \tty{<<}, \tty{>>} \\
-300 & xfx & \tty{mod} \\
+400 & yfx & \verb+*+, \tty{/}, \tty{//}, \tty{<<}, \tty{>>}, \tty{mod},
+	    \tty{rem} \\
+200 & xfx & \verb+**+ \\
 200 & xfy & \verb+^+ \\
 \hline
 \end{tabular}
@@ -1645,10 +1665,15 @@ ${\em Result} = {\em Expr1} \times {\em Expr2}$
 ${\em Result} = \frac{\em Expr1}{\em Expr2}$
 .I +IntExpr1 mod +IntExpr2
 ${\em Result} = {\em Expr1}~mod~{\em Expr2}$ (remainder of division).
+.I +IntExpr1 rem +IntExpr2
+${\em Result} = {\em Expr1}~rem~{\em Expr2}$ (remainder of division).
 .IT +IntExpr1 // +IntExpr2
 ${\em Result} = {\em Expr1}~div~{\em Expr2}$ (integer division).
 .C abs 1 +Expr
 Evaluate {\em Expr} and return the absolute value of it.
+.C sign 1 +Expr
+Evaluate to -1 if ${\em Expr} < 0$, 1 if ${\em Expr} > 0$ and 0 if
+${\em Expr} = 0$.
 .C max 2 +Expr1, +Expr2
 Evaluates to the largest of both {\em Expr1} and {\em Expr2}.
 .C min 2 +Expr1, +Expr2
@@ -1664,14 +1689,26 @@ the letter `a' is \tty{0'a}.
 Evaluates to a random integer {\em i} for which $0 \leq i < {\it Int}$.
 The seed of this random generator is determined by the system clock when
 SWI-Prolog was started.
-.C integer 1 +Expr
+.C round 1 +Expr
 Evaluates {\em Expr} and rounds the result to the nearest integer.
+.C integer 1 +Expr
+Same as round/1 (backward compatibility).
+.C float_fractional_part 1 +Expr
+Fractional part of a floating-point number.  Negative if {\em Expr} is
+negative, 0 if {\em Expr} is integer.
+.C float_integer_part 1 +Expr
+Integer part of floating-point number. Negative if {\em Expr} is
+negative, {\em Expr} if {\em Expr} is integer.
+.C truncate 1 +Expr
+Truncate {\em Expr} to an integer.  Same as float_integer_part/1.
 .C floor 1 +Expr
 Evaluates {\em Expr} and returns the largest integer smaller or equal
 to the result of the evaluation.
-.C ceil 1 +Expr
+.C ceiling 1 +Expr
 Evaluates {\em Expr} and returns the smallest integer larger or equal
 to the result of the evaluation.
+.C ceil 1 +Expr
+Same as ceiling/1 (backward compatibility).
 .IT +IntExpr >> +IntExpr
 Bitwise shift {\em IntExpr1} by {\em IntExpr2} bits to the right. Note
 that integers are only 27 bits.
@@ -1709,8 +1746,10 @@ ${\em Result} = \ln{{\em Expr}}$
 ${\em Result} = \lg{{\em Expr}}$
 .C exp 1 +Expr
 ${\it Result} = \pow{e}{\it Expr}$
-.IT +Expr1 ^ +Expr2
+.IT +Expr1 ** +Expr2
 ${\em Result} = \pow{\em Expr1}{\em Expr2}$
+.IT +Expr1 ^ +Expr2
+Same as **/2.  (backward compatibility).
 .C pi 0
 Evaluates to the mathematical constant $\pi$ (3.141593).
 .C e 0
@@ -2011,6 +2050,10 @@ Escape sequences to generate a single special character:
 \hline
 \end{tabular}
 \end{center}
+
+Note that \verb+\l+, \verb+\nnn+ and \verb+\\+ are interpreted
+differently when character-escapes are in effect. See
+section~\ref{sec:charescapes}.
 
 Escape sequences to include arguments from {\em Arguments}. Each time a
 \% escape sequence is found in {\em Format} the next argument from {\em

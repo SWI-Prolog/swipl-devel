@@ -15,9 +15,22 @@
 #include "pl-incl.h"
 #include <stdio.h>
 #include <stdarg.h>
-#include <stream.h>
+#include "pl-stream.h"
 #include <console.h>
 #include <process.h>
+
+word
+pl_window_title(Word old, Word new)
+{ char buf[256];
+
+  if ( !isAtom(*new) )
+    return warning("window_title/2: instantiation fault");
+
+  rlc_title(stringAtom(*new), buf, sizeof(buf));
+
+  return unifyAtomic(old, lookupAtom(buf));
+}
+
 
 void
 PlMessage(const char *fm, ...)
@@ -159,7 +172,7 @@ rlc_bind_terminal()
 		 *	       MAIN		*
 		 *******************************/
 
-extern int plmain(int argc, char **argv);
+extern int main(int argc, char **argv);
 
 int PASCAL
 WinMain(HANDLE hInstance, HANDLE hPrevInstance,
@@ -167,7 +180,7 @@ WinMain(HANDLE hInstance, HANDLE hPrevInstance,
 { rlc_bind_terminal();
 
   return rlc_main(hInstance, hPrevInstance, lpszCmdLine, nCmdShow,
-		  plmain, LoadIcon(hInstance, "SWI_Icon"));
+		  main, LoadIcon(hInstance, "SWI_Icon"));
 }
 
 #endif /*__WINDOWS__*/

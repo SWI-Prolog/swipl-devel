@@ -50,7 +50,11 @@
 
 #define char_to_int(c)	(0xff & (int)(c))
 
+#define TMPBUFSIZE 256			/* Serror bufsize for Svfprintf() */
+
 int Slinesize = SIO_LINESIZE;		/* Sgets() buffer size */
+
+static int	S__flushbuf(IOSTREAM *s);
 
 		 /*******************************
 		 *	      BUFFER		*
@@ -84,6 +88,47 @@ S__setbuf(IOSTREAM *s, char *buffer, int size)
   return s->bufsize;
 }
 
+
+static int
+S__removebuf(IOSTREAM *s)
+{ if ( s->buffer )
+  { int rval = S__flushbuf(s);
+
+    if ( !(s->flags & SIO_USERBUF) )
+      free(s->buffer);
+    s->buffer = 0;
+    s->bufsize = 0;
+
+    return rval;
+  }
+
+  return 0;
+}
+
+
+int
+Slock(IOSTREAM *s)
+{ if ( s->locks )
+    s->locks++;
+  else if ( s->flags & SIO_NBUF )
+  { s->locks = 1;
+    return S__setbuf(s, NULL, TMPBUFSIZE);
+  }
+
+  return 0;
+}
+
+
+int
+Sunlock(IOSTREAM *s)
+{ if ( s->locks )
+  { if ( --s->locks == 0 )
+      return S__removebuf(s);
+  }
+
+  return 0;
+}
+
 		 /*******************************
 		 *	     FLUSH/FILL		*
 		 *******************************/
@@ -103,20 +148,22 @@ S__flushbuf(IOSTREAM *s)
 
 static int
 S__flushbufc(int c, IOSTREAM *s)
-{ if ( s->flags & SIO_NBUF )
-  { char chr = (char)c;
-    
-    if ( (*s->functions->write)(s->handle, &chr, 1) != 1 )
+{ if ( s->buffer )
+  { if ( S__flushbuf(s) < 0 )
       return -1;
+
+    *s->bufp++ = (c & 0xff);
   } else
-  { if ( !s->buffer )
-    { if ( S__setbuf(s, NULL, 0) < 0 )
+  { if ( s->flags & SIO_NBUF )
+    { char chr = (char)c;
+    
+      if ( (*s->functions->write)(s->handle, &chr, 1) != 1 )
 	return -1;
     } else
-    { if ( S__flushbuf(s) < 0 )
+    { if ( S__setbuf(s, NULL, 0) < 0 )
 	return -1;
+      *s->bufp++ = (char)c;
     }
-    *s->bufp++ = (char)c;
   }
 
   return c;
@@ -126,7 +173,9 @@ S__flushbufc(int c, IOSTREAM *s)
 int
 S__fillbuf(IOSTREAM *s)
 { if ( s->flags & (SIO_FEOF|SIO_FERR) )
+  { s->flags |= SIO_FEOF2;		/* reading past eof */
     return -1;
+  }
 
   if ( s->flags & SIO_NBUF )
   { char chr;
@@ -335,9 +384,15 @@ Sferror(IOSTREAM *s)
 }
     
 
+int
+Sfpasteof(IOSTREAM *s)
+{ return (s->flags & (SIO_FEOF2ERR|SIO_FEOF2)) == (SIO_FEOF2ERR|SIO_FEOF2);
+}
+
+
 void
 Sclearerr(IOSTREAM *s)
-{ s->flags &= ~(SIO_FEOF|SIO_FERR);
+{ s->flags &= ~(SIO_FEOF|SIO_FERR|SIO_FEOF2);
 }
 
 
@@ -552,6 +607,10 @@ Svprintf(const char *fm, va_list args)
 int
 Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 { long printed = 0;
+  char buf[TMPBUFSIZE];
+
+  if ( s->flags & SIO_NBUF )
+    S__setbuf(s, buf, sizeof(buf));
 
   while(*fm)
   { if ( *fm == '%' )
@@ -715,6 +774,11 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
     { OUT(s, *fm);
       fm++;
     }
+  }
+
+  if ( s->flags & SIO_NBUF )
+  { if ( S__removebuf(s) < 0 )
+      return -1;
   }
 
   return printed;
@@ -1114,20 +1178,36 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
 IOSTREAM *
 Sopen_file(char *path, char *how)
 { int fd;
-  int flags;
+  int oflags = 0, flags = SIO_FILE|SIO_TEXT|SIO_RECORDPOS;
+  int op = *how++;
 
-  switch(*how)
+  for( ; *how; how++)
+  { switch(*how)
+    { case 'b':				/* binary */
+	flags &= ~SIO_TEXT;
+        oflags = O_BINARY;
+        break;
+      case 'r':				/* no record */
+	flags &= SIO_RECORDPOS;
+        break;
+      default:
+	errno = EINVAL;
+        return NULL;
+    }
+  }
+
+  switch(op)
   { case 'w':
-      fd = open(path, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY, 0666);
-      flags = SIO_FILE|SIO_OUTPUT|SIO_RECORDPOS;
+      fd = open(path, O_WRONLY|O_CREAT|O_TRUNC|oflags, 0666);
+      flags |= SIO_OUTPUT;
       break;
     case 'a':
-      fd = open(path, O_WRONLY|O_CREAT|O_APPEND|O_BINARY, 0666);
-      flags = SIO_FILE|SIO_OUTPUT|SIO_RECORDPOS;
+      fd = open(path, O_WRONLY|O_CREAT|O_APPEND|oflags, 0666);
+      flags |= SIO_OUTPUT;
       break;
     case 'r':
-      fd = open(path, O_RDONLY|O_BINARY); /* TBD */
-      flags = SIO_FILE|SIO_INPUT|SIO_RECORDPOS;
+      fd = open(path, O_RDONLY|oflags);
+      flags |= SIO_INPUT;
       break;
     default:
       errno = EINVAL;
@@ -1136,9 +1216,6 @@ Sopen_file(char *path, char *how)
 
   if ( fd < 0 )
     return NULL;
-
-  if ( how[1] == 'b' )
-    flags &= ~SIO_RECORDPOS;
 
   return Snew((void *)fd, flags, &Sfilefunctions);
 }

@@ -2306,18 +2306,17 @@ Note: we are working above `lTop' here!
 	  }	    
 	}
 #endif
-#if O_RLC				/* Windows readline console */
-	{ static int tick;
-
-	  if ( (++tick & 0x7fff) == 0 )
-	    rlc_check_intr();		/* check for interrupt (^C) */
-	}
-#endif
 	incLevel(FR);
 	clear(FR, FR_CUT|FR_SKIPPED);
 
 	statistics.inferences++;
 	DoMark(FR->mark);
+
+#if O_RLC				/* Windows readline console */
+	{ if ( (++statistics.inferences % 0x7ff) == 0 )
+	    rlc_check_intr();		/* check for interrupt (^C) */
+	}
+#endif
 
 #ifdef O_PROFILE
 	if (statistics.profiling)

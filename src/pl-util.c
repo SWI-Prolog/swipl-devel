@@ -16,7 +16,7 @@ that are by accident integer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-wordToInteger(word w, long int *n)
+wordToInteger(word w, long *n)
 { real f;
 
   if (isInteger(w) )
@@ -67,26 +67,25 @@ digitName(int n, bool small)
  ** Fri Jun 10 10:46:40 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 int
-digitValue(int b, char c)
-{ DEBUG(9, Sdprintf("digitValue(%d, %c)\n", b, c));
-  if (b == 0)
-  { if (c & 0x80)
-      return -1;
-    return c;
-  }
-  if (b == 1)
+digitValue(int b, int c)
+{ int v;
+
+  if ( b == 0 )
+    return c;				/* 0'c */
+  if ( b == 1 )
     return -1;
-  if (b <= 10)
-  { if (c - '0' < b)
-      return c - '0';
+  if ( b <= 10 )
+  { v = c - '0';
+    if ( v < b )
+      return v;
     return -1;
   }
-  if (c <= '9')
+  if ( c <= '9' )
     return c - '0';
   if (isUpper(c))
     c = toLower(c);
   c = c - 'a' + 10;
-  if (c < b)
+  if ( c < b && c >= 10 )
     return c;
   return -1;
 }
@@ -143,6 +142,108 @@ notImplemented(char *name, int arity)
 { return warning("%s/%d is not implemented in this version");
 }
 
+		 /*******************************
+		 *	       OPTIONS		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Variable argument list:
+
+	Atom	name
+	int	type	OPT_ATOM, OPT_STRING, OPT_BOOL, OPT_INT
+	pointer	value
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+bool
+scan_options(word list, int flags, OptSpec specs, ...)
+{ va_list args;
+  OptSpec s;
+
+  va_start(args, specs);
+  for( s = specs; s->name; s++ )
+    s->value.ptr = va_arg(args, void *);
+  va_end(args);
+
+  while ( isList(list) )
+  { Atom name;
+    word value;
+    word a = argTerm(list, 0);
+
+    if ( isTerm(a) )
+    { FunctorDef f = functorTerm(a);
+
+      if ( f == FUNCTOR_equals2 )
+      { word a1 = argTerm(a, 0);
+
+        if ( isAtom(a1) )
+	{ name = (Atom)a1;
+	  value = argTerm(a, 1);
+	} else
+	  fail;
+      } else if ( f->arity == 1 )
+      { name = f->name;
+        value = argTerm(a, 0);
+      } else
+	fail;
+    } else if ( isAtom(a) )
+    { name = (Atom)a;
+      value = (word) ATOM_true;
+    } else
+      fail;
+
+    for( s = specs; s->name; s++ )
+    { if ( s->name == name )
+      { switch(s->type)
+	{ case OPT_BOOL:
+	    if ( value == (word)ATOM_true ||
+		 value == (word)ATOM_on )
+	      *s->value.b = TRUE;
+	    else if ( value == (word)ATOM_false ||
+		      value == (word)ATOM_off )
+	      *s->value.b = FALSE;
+	    else
+	      fail;
+	    break;
+	  case OPT_INT:
+	    if ( !wordToInteger(value, s->value.i) )
+	      fail;
+	    break;
+	  case OPT_STRING:
+	  { char *str;
+
+	    if ( (str = toString(value)) )
+	      *s->value.s = str;
+	    else
+	      fail;
+	    break;
+	  }
+	  case OPT_ATOM:
+	  { if ( isAtom(value) )
+	      *s->value.a = (Atom) value;
+	    else
+	      fail;
+	  }
+	  break;
+	  default:
+	    fail;
+	}
+      }
+    }
+    
+    if ( !s->name && (flags & OPT_ALL) )
+      fail;
+
+    list = argTerm(list, 1);
+  }
+
+  if ( list == (word)ATOM_nil )
+    succeed;
+
+  fail;
+}
+
+
+
 		/********************************
 		*             STRING            *
 		*********************************/
@@ -169,12 +270,24 @@ strpostfix(char *string, char *postfix)
 
 
 #ifndef HAVE_STRICMP
-static bool
-stricmp(unsigned char *s1, unsigned char *s2)
+int
+stricmp(const char *s1, const char *s2)
 { while(*s1 && makeLower(*s1) == makeLower(*s2))
     s1++, s2++;
+  
+  return makeLower(*s1) - makeLower(*s2);
+}
+#endif
 
-  return *s1 - *s2;
+#ifndef HAVE_STRLWR
+char *
+strlwr(char *s)
+{ char *q;
+
+  for(q=s; *q; q++)
+    *q = makeLower(*q);
+
+  return s;
 }
 #endif
 

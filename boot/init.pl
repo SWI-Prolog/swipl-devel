@@ -315,9 +315,8 @@ $undefined_procedure(Module, Name, Arity) :-
 
 $ttyformat(Format) :-
 	$ttyformat(Format, []).
-
 $ttyformat(Format, Args) :-
-	format(user_output, Format, Args).
+	format(user_error, Format, Args).
 
 %	$confirm(Format, Args)
 %
@@ -824,9 +823,9 @@ $assert_load_context_module(File, Module) :-
 %   read as this may be the module declaraction.
 
 $load_file((?- module(Module, Public)), File, all, _, Module) :- !,
-	$load_module(Module, Public, Public, File).
+	$load_module(Module, Public, all, File).
 $load_file((:- module(Module, Public)), File, all, _, Module) :- !,
-	$load_module(Module, Public, Public, File).
+	$load_module(Module, Public, all, File).
 $load_file((?- module(Module, Public)), File, Import, _, Module) :- !,
 	$load_module(Module, Public, Import, File).
 $load_file((:- module(Module, Public)), File, Import, _, Module) :- !,

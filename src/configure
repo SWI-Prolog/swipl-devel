@@ -619,7 +619,7 @@ done
 test -n "$MAKE" || MAKE=""make""
 
 echo $ac_n "checking "whether make is GNU-make"""... $ac_c" 1>&6
-if $MAKE -v | grep GNU > /dev/null; then
+if ($MAKE -v 2>&1) | grep GNU > /dev/null; then
     echo "$ac_t""yes" 1>&6
     VPATH="vpath %.c"
 else
@@ -1890,7 +1890,7 @@ else
 fi
 done
 
-for ac_func in memmove stricmp sigaction
+for ac_func in memmove stricmp strlwr sigaction
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
 if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then

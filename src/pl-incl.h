@@ -14,7 +14,7 @@
 #define MD	     "config/win32.h"
 #define PLHOME       "c:/pl"
 #define DEFSTARTUP   ".plrc"
-#define PLVERSION    "2.1.7"
+#define PLVERSION    "2.1.10"
 #define ARCH	     "i386-win32"
 #define C_LIBS	     "-lreadline -lconsole -luxnt"
 #define C_STATICLIBS ""
@@ -1226,6 +1226,30 @@ struct symbol
   word		value;		/* associated value with name */
 };
 
+
+		 /*******************************
+		 *	   OPTION LISTS		*
+		 *******************************/
+
+#define OPT_BOOL	(0)		/* types */
+#define OPT_INT		(1)
+#define OPT_STRING	(2)
+#define OPT_ATOM	(3)
+
+#define OPT_ALL		0x1		/* flags */
+
+typedef struct
+{ Atom		name;			/* Name of option */
+  int		type;			/* Type of option */
+  union
+  { bool *b;				/* boolean value */
+    long *i;				/* integer value */
+    char **s;				/* string value */
+    Atom *a;				/* atom value */
+    void *ptr;				/* anonymous pointer */
+  } value;
+} opt_spec, *OptSpec;
+
 		 /*******************************
 		 *	     MARK/UNDO		*
 		 *******************************/
@@ -1545,6 +1569,12 @@ GLOBAL struct debuginfo
   int		styleCheck;		/* source style checking */
   int		suspendTrace;		/* tracing is suspended now */
 } debugstatus;
+
+#define CHARESCAPE_FEATURE	0x1	/* handle \ in atoms */
+
+GLOBAL struct _feature
+{ unsigned long flags;			/* the feature flags */
+} features;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Administration of loaded intermediate code files  (see  pl-wic.c).  Used

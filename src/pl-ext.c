@@ -65,6 +65,7 @@ static struct foreign {
   ADD("prolog_to_os_filename",	2, pl_prolog_to_os_filename,	TRACE_ME),
 #if defined(O_XOS) && defined(__WIN32__)
   ADD("make_fat_filemap",	1, pl_make_fat_filemap,		TRACE_ME),
+  ADD("window_title",		2, pl_window_title,		TRACE_ME),
 #endif
   ADD("fileerrors",		2, pl_fileerrors,		TRACE_ME),
   ADD("$syntaxerrors",		2, pl_syntaxerrors,		TRACE_ME),
@@ -343,6 +344,7 @@ static struct foreign {
   ADD("current_flag",		1, pl_current_flag,	NONDETERMINISTIC|TRACE_ME),
 
   ADD("open",			3, pl_open,			TRACE_ME),
+  ADD("open",			4, pl_open4,			TRACE_ME),
   ADD("open_null_stream",	1, pl_open_null_stream,		TRACE_ME),
   ADD("close",			1, pl_close,			TRACE_ME),
   ADD("current_stream",		3, pl_current_stream,	NONDETERMINISTIC|TRACE_ME),

@@ -11,6 +11,10 @@
 #define HAVE_CLOCK 1			/* clock() timing function */
 #define inline __inline
 
+/* Define if you want to associate states */
+#define ASSOCIATE_STATE ".qlx"
+#define ASSOCIATE_SRC	".pl"
+
 /* Define for the _xos_... functions */
 #define O_XOS 1
 
@@ -212,6 +216,9 @@
 
 /* Define if you have the stricmp() function. */
 #define HAVE_STRICMP 1
+
+/* Define if you have the strlwr() function */
+#define HAVE_STRLWR 1
 
 /* Define if you have the rl_insert_close function.  */
 #define HAVE_RL_INSERT_CLOSE 1

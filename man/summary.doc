@@ -247,6 +247,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
 \\ \verb"once/1"			\> Call a goal deterministicaly
 \\ \verb"op/3"				\> Declare an operator
 \\ \verb"open/3"			\> Open a file (creating a stream)
+\\ \verb"open/4"			\> Open a file (creating a stream)
 \\ \verb"open_dde_conversation/3"	\> Win32: Open DDE channel
 \\ \verb"open_null_stream/1"		\> Open a stream to discard output
 \\ \verb"open_shared_object/2"		\> UNIX: Open shared library (.so file)
@@ -405,6 +406,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
 \begin{tabbing}
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
    \verb"*  /2{yfx 400}"		\> Multiplication
+\\ \verb"** /2{xfx 200}"		\> Power function
 \\ \verb"+  /2{yfx 500}"		\> Addition
 \\ \verb"-  /1{ fx 500}"		\> Unary minus
 \\ \verb"-  /2{yfx 500}"		\> Subtraction
@@ -422,11 +424,15 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
 \\ \verb"asin/1"			\> Inverse (arc) sine
 \\ \verb"atan/1"			\> Inverse (arc) tangent
 \\ \verb"atan/2"			\> Rectangular to polar conversion
-\\ \verb"ceil/1"			\> Smallest integer larger than argument
+\\ \verb"ceil/1"			\> Smallest integer larger than arg
+\\ \verb"ceiling/1"			\> Smallest integer larger than arg
 \\ \verb"cos/1"				\> Cosine
 \\ \verb"cputime/0"			\> Get CPU time
 \\ \verb"e/0"				\> Mathematical constant
 \\ \verb"exp/1"				\> Exponent (base $e$)
+\\ \verb"float/1"			\> Explicitely convert to float
+\\ \verb"float_fractional_part/1"	\> Fractional part of a float
+\\ \verb"float_integer_part/1"		\> Integer part of a float
 \\ \verb"floor/1"			\> Largest integer below argument
 \\ \verb"integer/1"			\> Round to nearest integer
 \\ \verb"log/1"				\> Natural logarithm
@@ -435,7 +441,11 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
 \\ \verb"min/2"				\> Minimum of two numbers
 \\ \verb"mod/2{xfx 300}"		\> Remainder of division
 \\ \verb"random/1"			\> Generate random number
+\\ \verb"rem/2"				\> Remainder of division
+\\ \verb"round/1"			\> Round to nearest integer
+\\ \verb"truncate/1"			\> Truncate float to integer
 \\ \verb"pi/0"				\> Mathematical constant
+\\ \verb"sign/1"			\> Extract sign of value
 \\ \verb"sin/1"				\> Sine
 \\ \verb"sqrt/1"			\> Square root
 \\ \verb"tan/1"				\> Tangent

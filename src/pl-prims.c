@@ -992,9 +992,10 @@ pl_copy_term(Word f, Word t)
 bool
 unifyStringWithList(char *s, Word l)
 { word w;
+  unsigned char *q = (unsigned char *)s;
 
-  while(*s)
-  { w = consNum((int)*s++);
+  while(*q)
+  { w = consNum((int)*q++);
     APPENDLIST(l, &w);
   }
   CLOSELIST(l);
@@ -1007,18 +1008,19 @@ stringToList(char *s)
 { word result;
   Word arg;
   FunctorDef dot = FUNCTOR_dot2;
+  unsigned char *q = (unsigned char *)s;
 
-  if (*s == EOS)
+  if (*q == EOS)
     return (word)ATOM_nil;
 
   result = globalFunctor(dot);
   arg = argTermP(result, 0);
-  *arg++ = consNum((int)*s++);
+  *arg++ = consNum((int)*q++);
 
-  while(*s)
+  while(*q)
   { *arg = globalFunctor(dot);
     arg = argTermP(*arg, 0);
-    *arg++ = consNum((int)*s++);
+    *arg++ = consNum((int)*q++);
   }
 
   *arg = (word)ATOM_nil;
@@ -1771,23 +1773,33 @@ struct feature
   Feature next;
 };
 
-static Feature features = NULL;
+static Feature feature_list = NULL;
 
 void
 setFeature(Atom name, word value)
 { Feature f;
 
-  for(f=features; f; f = f->next)
+  for(f=feature_list; f; f = f->next)
   { if ( f->name == name )
     { f->value = value;
-      return;
+      goto hooks;
     }
   }
   f = allocHeap(sizeof(struct feature));
-  f->next = features;
+  f->next = feature_list;
   f->name = name;
   f->value = value;
-  features = f;
+  feature_list = f;
+
+hooks:					/* hooks.  Should be more general! */
+  if ( name == ATOM_character_escapes )
+  { if ( value == (word) ATOM_true ||
+	 value == (word) ATOM_on )
+    { set(&features, CHARESCAPE_FEATURE);
+    } else
+    { clear(&features, CHARESCAPE_FEATURE);
+    }
+  }
 }
 
 
@@ -1795,7 +1807,7 @@ word
 getFeature(Atom name)
 { Feature f;
 
-  for(f=features; f; f = f->next)
+  for(f=feature_list; f; f = f->next)
   { if ( f->name == name )
       return f->value;
   }
@@ -1807,7 +1819,9 @@ getFeature(Atom name)
 word
 pl_set_feature(Word key, Word value)
 { if ( isAtom(*key) && (isAtom(*value) || isInteger(*value)) )
-  { setFeature((Atom)*key, *value);
+  { Atom k = (Atom)*key;
+
+    setFeature(k, *value);
     succeed;
   } else
     return warning("set_feature/2; instantiation fault");
@@ -1827,7 +1841,7 @@ pl_feature(Word key, Word value, word h)
 	  return unifyAtomic(value, val);
 	fail;
       } else if ( isVar(*key) )
-      { here = features;
+      { here = feature_list;
 	break;
       }
     case FRG_REDO:

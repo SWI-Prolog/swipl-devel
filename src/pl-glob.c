@@ -124,7 +124,15 @@ forwards bool	expandBag(struct bag *);
 			  } \
 			  Out->code[Out->size++] = c; \
 			}
-#define setMap(c)	{ map[(c)/8] |= 1 << ((c) % 8); }
+
+static inline void
+setMap(uchar *map, int c)
+{ if ( !status.case_sensitive_files )
+    c = makeLower(c);
+
+  map[(c)/8] |= 1 << ((c) % 8);
+}
+
 
 bool
 compilePattern(char *p)
@@ -178,20 +186,20 @@ compile_pattern(struct out *Out, char *p, int curl)
 		{ warning("Unmatched '['");
 		  return (char *)NULL;
 		}
-		setMap(*p);
+		setMap(map, *p);
 		p++;
 		continue;
 	      case ']':
 		break;
 	      default:
 		if ( p[-1] != ']' && p[0] == '-' && p[1] != ']' )
-		{ register int chr;
+		{ int chr;
 
 		  for ( chr=p[-1]; chr <= p[1]; chr++ )
-		    setMap(chr);
+		    setMap(map, chr);
 		  p += 2;
 		} else
-		  setMap(c);
+		  setMap(map, c);
 		continue;
 	    }
 	    break;
@@ -232,7 +240,9 @@ compile_pattern(struct out *Out, char *p, int curl)
 	}
 	/*FALLTHROUGH*/
       default:
-	Output(c & 0x7f);
+	c &= 0x7f;
+	c = makeLower(c);
+	Output(c);
 	continue;
     }
 
@@ -248,8 +258,9 @@ matchPattern(char *s)
 }
 
 static bool
-match_pattern(register uchar *p, register char *s)
-{ register uchar c;
+match_pattern(uchar *p, char *str)
+{ uchar c;
+  uchar *s = (uchar *) str;
 
   for(;;)
   { switch( c = *p++ )
@@ -261,12 +272,18 @@ match_pattern(register uchar *p, register char *s)
 	  s++;
 	  continue;
       case ANYOF:					/* [...] */
-	  if ( p[*s / 8] & (1 << (*s % 8)) )
+        { uchar c2 = *s;
+
+	  if ( !status.case_sensitive_files )
+	    c2 = makeLower(c2);
+
+	  if ( p[c2 / 8] & (1 << (c2 % 8)) )
 	  { p += 16;
 	    s++;
 	    continue;
 	  }
 	  fail;
+	}
       case STAR:					/* * */
 	  do
 	  { if ( match_pattern(p, s) )
@@ -282,10 +299,12 @@ match_pattern(register uchar *p, register char *s)
 	  p += *p;
 	  continue;	  
       default:						/* character */
-	  if ( c != (uchar) *s )
-	    fail;
-	  s++;
-	  continue;
+	  if ( c == *s ||
+	       (!status.case_sensitive_files && c == makeLower(*s)) )
+	  { s++;
+	    continue;
+	  }
+          fail;
     }
   }
 }
@@ -343,7 +362,10 @@ pl_expand_file_name(Word f, Word l)
 
 static int
 stringCompare(const void *a1, const void *a2)
-{ return strcmp(*((char **)a1), *((char **)a2));
+{ if ( status.case_sensitive_files )
+    return strcmp(*((char **)a1), *((char **)a2));
+  else
+    return stricmp(*((char **)a1), *((char **)a2));
 }
 
 static bool

@@ -198,6 +198,8 @@ do_format(char *fmt, int argc, Word argv)
   struct rubber rub[MAXRUBBER];
   Symbol s;
 
+  LockStream();
+
   while(*fmt)
   { switch(*fmt)
     { case '~':
@@ -429,6 +431,8 @@ do_format(char *fmt, int argc, Word argv)
 
   if ( pending_rubber )			/* not closed ~t: flush out */
     emit_rubber(buffer, index, rub, 0);
+
+  UnlockStream();
 
   succeed;
 }

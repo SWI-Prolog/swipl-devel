@@ -77,6 +77,7 @@
 \def\@endcode{\endtrivlist\mbox{}\endlist}
 \let\endcode=\@endcode
 
+
 %	BOXED environment
 
 \catcode`\@=11\relax
@@ -117,7 +118,8 @@
 
 %	SPECIAL CHARACTERS
 
-\newcommand{\bsl}{$\backslash$}
+\def\ttbackslash{\makebox[1ex][l]{\tt \string\ }}
+\newcommand{\bsl}{\ttbackslash}
 \newcommand{\half}{\raisebox{3pt}{\tiny$\frac{1}{2}$}}
 \newcommand{\quarter}{\raisebox{3pt}{\tiny$\frac{1}{4}$}}
 \newcommand{\threequarter}{\raisebox{3pt}{\tiny$\frac{3}{4}$}}

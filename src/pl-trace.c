@@ -9,6 +9,9 @@
 
 #include "pl-incl.h"
 #include "pl-ctype.h"
+#ifdef O_RLC
+#include <console.h>
+#endif
 
 int trace_continuation;			/* how to continue? */
 
@@ -735,11 +738,13 @@ again:
   ResetTty();                           /* clear pending input -- atoenne -- */
   c = getSingleChar();
 
+#ifndef O_RLC
 #ifndef BSD_SIGNALS
 #ifdef SIG_ACK
   signal(SIGINT, SIG_ACK);
 #else
   signal(SIGINT, interruptHandler);	/* reinsert handler */
+#endif
 #endif
 #endif
 
@@ -782,8 +787,12 @@ again:
 void
 initTracer(void)
 { 
+#ifdef O_RLC
+  rlc_interrupt_hook(interruptHandler);
+#else
 #if defined(SIGINT) && defined(O_INTERRUPT)
   pl_signal(SIGINT, interruptHandler);
+#endif
 #endif
 
   debugstatus.visible  = CALL_PORT|FAIL_PORT|REDO_PORT|EXIT_PORT;

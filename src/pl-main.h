@@ -55,6 +55,9 @@ GLOBAL struct
   bool		io_initialised;		/* I/O initoalisation has finished */
   bool		initialised;		/* Initialisation completed */
   bool		autoload;		/* autoloading traps enabled */
+  bool		case_sensitive_files;   /* FileNames are case sensitive? */
+  bool		case_preserving_files;  /* FileNames case is preserved */
+  bool		dos_files;		/* FileNames have 8+3 convention */
 } status;
 
 
@@ -76,7 +79,7 @@ GLOBAL struct
 #define OS "unknown"
 #endif
 
-#if MMAP_STACK || O_SHARED_MEMORY || O_SHIFT_STACKS
+#if O_DYNAMIC_STACKS || O_SHIFT_STACKS
 #define DEF_DEFLOCAL	2000
 #define DEF_DEFGLOBAL	4000
 #define DEF_DEFTRAIL	4000
@@ -84,7 +87,7 @@ GLOBAL struct
 #define DEF_DEFLOCK	100
 #else					/* static stack areas */
 #define DEF_DEFLOCAL	200
-#define DEF_DEFGLOBAL	200
+#define DEF_DEFGLOBAL	400
 #define DEF_DEFTRAIL	200
 #define DEF_DEFARGUMENT 5
 #define DEF_DEFLOCK	25

@@ -292,7 +292,6 @@ exceptions.
 Added facilities to allow for embedding SWI-Prolog in C applications.
 \end{itemize}
 
-
 \section{Acknowledgements}
 
 Some small parts of the Prolog code of SWI-Prolog are modified

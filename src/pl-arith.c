@@ -658,6 +658,40 @@ BINAIRY_INT_FUNCTION(ar_shift_left, <<)
 BINAIRY_INT_FUNCTION(ar_xor, ^)
 
 static int
+ar_sign(Word n1, Number r)
+{ number left;
+  int tl;
+
+  TRY( tl = valueExpression(n1, &left) );
+  if ( tl == V_INTEGER )
+    r->i = (left.i < 0 ? -1 : left.i > 0 ? 1 : 0);
+  else
+    r->i = (left.f < 0 ? -1 : left.f > 0 ? 1 : 0);
+
+  return V_INTEGER;
+}
+
+
+static int
+ar_rem(Word n1, Word n2, Number r)
+{ number left, right;
+  int tl, tr;
+
+  TRY( tl = valueExpression(n1, &left) );
+  TRY( tr = valueExpression(n2, &right) );
+
+  if (tl == V_INTEGER && tr == V_INTEGER)
+  { real f = (real)left.i / (real)right.i;
+
+    r->f = f - (real)((int) f);
+    return V_REAL;
+  }
+
+  return warning("rem/2: arguments must be integers");
+}
+
+
+static int
 ar_divide(Word n1, Word n2, Number r)
 { number left, right;
   int tl, tr;
@@ -842,8 +876,7 @@ ar_abs(Word n1, Number r)
   }
 }
 
-static
-int
+static int
 ar_integer(Word n1, Number r)
 { number arg;
 
@@ -857,9 +890,37 @@ ar_integer(Word n1, Number r)
   }
 }
 
-static
-int
-ar_floor(Word n1, Number r)
+
+static int
+ar_float(Word n1, Number r)
+{ number arg;
+
+  switch( valueExpression(n1, &arg) )
+  { case V_INTEGER:	r->f = (real) arg.i;
+			return V_REAL;
+    case V_REAL:	r->f = arg.f;
+			return V_REAL;
+    default:		fail;
+  }
+}
+
+
+static int
+ar_float_fractional_part(Word n1, Number r)
+{ number arg;
+
+  switch( valueExpression(n1, &arg) )
+  { case V_INTEGER:	r->i = 0;
+			return V_INTEGER;
+    case V_REAL:	r->f = arg.f - (long)arg.f;
+			return V_REAL;
+    default:		fail;
+  }
+}
+
+
+static int
+ar_float_integer_part(Word n1, Number r)
 { number arg;
 
   switch( valueExpression(n1, &arg) )
@@ -871,8 +932,38 @@ ar_floor(Word n1, Number r)
   }
 }
 
-static
-int
+
+static int
+ar_floor(Word n1, Number r)
+{ number arg;
+
+  switch( valueExpression(n1, &arg) )
+  { case V_INTEGER:	r->i = arg.i;
+			return V_INTEGER;
+    case V_REAL:	r->i = (long)arg.f;
+    			if ( arg.f < 0 && (real)r->i != arg.f )
+			  r->i--;
+			return V_INTEGER;
+    default:		fail;
+  }
+}
+
+
+static int
+ar_truncate(Word n1, Number r)
+{ number arg;
+
+  switch( valueExpression(n1, &arg) )
+  { case V_INTEGER:	r->i = arg.i;
+			return V_INTEGER;
+    case V_REAL:	r->i = (long)arg.f;
+			return V_INTEGER;
+    default:		fail;
+  }
+}
+
+
+static int
 ar_ceil(Word n1, Number r)
 { number arg;
 
@@ -887,8 +978,7 @@ ar_ceil(Word n1, Number r)
   }
 }
 
-static
-int
+static int
 ar_random(Word n1, Number r)
 { number arg;
 
@@ -1049,7 +1139,9 @@ static struct arithFunction ar_functions[MAXARITHFUNCTIONS] = {
   ADD(FUNCTOR_min2,		ar_min),
 
   ADD(FUNCTOR_mod2,		ar_mod),
+  ADD(FUNCTOR_rem2,		ar_rem),
   ADD(FUNCTOR_div2,		ar_div),
+  ADD(FUNCTOR_sign1,		ar_sign),
 
   ADD(FUNCTOR_and2,		ar_conjunct),
   ADD(FUNCTOR_or2,		ar_disjunct),
@@ -1062,8 +1154,14 @@ static struct arithFunction ar_functions[MAXARITHFUNCTIONS] = {
   ADD(FUNCTOR_random1,		ar_random),
 
   ADD(FUNCTOR_integer1,		ar_integer),
+  ADD(FUNCTOR_round1,		ar_integer),
+  ADD(FUNCTOR_truncate1,	ar_truncate),
+  ADD(FUNCTOR_float1,		ar_float),
   ADD(FUNCTOR_floor1,		ar_floor),
   ADD(FUNCTOR_ceil1,		ar_ceil),
+  ADD(FUNCTOR_ceiling1,		ar_ceil),
+  ADD(FUNCTOR_float_fractional_part1, ar_float_fractional_part),
+  ADD(FUNCTOR_float_integer_part1, ar_float_integer_part),
 
   ADD(FUNCTOR_sqrt1,		ar_sqrt),
   ADD(FUNCTOR_sin1,		ar_sin),
@@ -1077,6 +1175,7 @@ static struct arithFunction ar_functions[MAXARITHFUNCTIONS] = {
   ADD(FUNCTOR_exp1,		ar_exp),
   ADD(FUNCTOR_log101,		ar_log10),
   ADD(FUNCTOR_hat2,		ar_pow),
+  ADD(FUNCTOR_doublestar2,	ar_pow),
   ADD(FUNCTOR_pi0,		ar_pi),
   ADD(FUNCTOR_e0,		ar_e),
 

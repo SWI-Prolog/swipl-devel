@@ -159,8 +159,10 @@ PL_on_halt(halt_function f, Void arg)
 volatile void
 Halt(int rval)
 { OnHalt h;
+  extern int Output;
 
   pl_notrace();				/* avoid recursive tracing */
+  Output = 1;				/* reset output stream to user */
 
   if ( !halting )
   { for(h = on_halt_list; h; h = h->next)
@@ -666,6 +668,9 @@ OsPath(const char *p)
 char *
 PrologPath(char *p, char *buf)
 { _xos_canonical_filename(p, buf);
+  if ( !status.case_sensitive_files )
+    strlwr(buf);
+
   return buf;
 }
 
@@ -862,34 +867,44 @@ RenameFile(char *old, char *new)
 
 bool
 SameFile(char *f1, char *f2)
-{ if ( !streq(f1, f2) )
-  { 
+{ if ( status.case_sensitive_files )
+  { if ( streq(f1, f2) )
+      succeed;
+  } else
+  { if ( stricmp(f1, f2) == 0 )
+      succeed;
+  }
+
 #ifdef unix				/* doesn't work on most not Unix's */
-    struct stat buf1;
+  { struct stat buf1;
     struct stat buf2;
 
     if ( stat(OsPath(f1), &buf1) != 0 || stat(OsPath(f2), &buf2) != 0 )
       fail;
     if ( buf1.st_ino == buf2.st_ino && buf1.st_dev == buf2.st_dev )
       succeed;
+  }
 #endif
 #ifdef O_XOS
-    char p1[MAXPATHLEN];
+  { char p1[MAXPATHLEN];
     char p2[MAXPATHLEN];
 
     _xos_limited_os_filename(f1, p1);
     _xos_limited_os_filename(f2, p2);
-    if ( streq(p1, p2) )
-      succeed;
-#endif
+    if ( status.case_sensitive_files )
+    { if ( streq(p1, p2) )
+	succeed;
+    } else
+    { if ( stricmp(p1, p2) == 0 )
+	succeed;
+    }
+  }
+#endif /*O_XOS*/
     /* Amazing! There is no simple way to check two files for identity. */
     /* stat() and fstat() both return dummy values for inode and device. */
     /* this is fine as OS'es not supporting symbolic links don't need this */
 
-    fail;
-  }
-
-  succeed;
+  fail;
 }
 
 
@@ -1132,7 +1147,10 @@ canoniseFileName(char *path)
 
 char *
 canonisePath(char *path)
-{ canoniseFileName(path);
+{ if ( !status.case_sensitive_files )
+    strlwr(path);
+
+  canoniseFileName(path);
 
 #ifdef O_CANONISE_DIRS
 { char *e;
@@ -1840,7 +1858,11 @@ ResetTty(void)				/* used to initialise readline */
 
   rl_readline_name = "Prolog";
   rl_attempted_completion_function = prolog_completion;
-  rl_basic_word_break_characters = ":\t\n\"\\'`@$><= [](){}+*!,-|%&?";
+#ifdef __WIN32__
+  rl_basic_word_break_characters = "\t\n\"\\'`@$><= [](){}+*!,|%&?";
+#else
+  rl_basic_word_break_characters = ":\t\n\"\\'`@$><= [](){}+*!,|%&?";
+#endif
   rl_add_defun("prolog-complete", (Function *) prolog_complete, '\t');
 #if HAVE_RL_INSERT_CLOSE
   rl_add_defun("insert-close", rl_insert_close, ')');

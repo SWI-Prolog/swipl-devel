@@ -79,6 +79,8 @@ static char *token_start;	/* start of most recent read token */
 static struct token token;	/* current token */
 static bool unget = FALSE;	/* unget_token() */
 
+#define CHARESCAPE true(&features, CHARESCAPE_FEATURE)
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The reading function (raw_read()) can  be  called  recursively  via  the
 notifier  when  running  under  notifier  based packages (like O_PCE).  To
@@ -355,6 +357,10 @@ raw_read2(void)
 		if (something_read)
 		{ rawSyntaxError("Unexpected end of file");
 		}
+		if ( Sfpasteof(ioi) )
+		{ warning("Attempt to read past end-of-file");
+		  return NULL;
+		}
 		strcpy(rb.base, "end_of_file. ");
 		return rb.base;
       case '/': c = getchr();
@@ -414,14 +420,21 @@ raw_read2(void)
 		newlines = 0;
 		addToBuffer(c);
 		while((c=getchr()) != EOF && c != '\'')
-		{ if (c == '\n' &&
-		       newlines++ > MAXNEWLINES &&
-		       (debugstatus.styleCheck & LONGATOM_CHECK))
+		{ if ( c == '\\' && CHARESCAPE )
+		  { addToBuffer(c);
+		    if ( (c = getchr()) == EOF )
+		      goto eofinquoted;
+		  } else if (c == '\n' &&
+			     newlines++ > MAXNEWLINES &&
+			     (debugstatus.styleCheck & LONGATOM_CHECK))
 		    rawSyntaxError("Atom too long");
+
 		  addToBuffer(c);
 		}
 		if (c == EOF)
+		{ eofinquoted:
 		  rawSyntaxError("End of file in quoted atom");
+		}
 		addToBuffer(c);
 		dotseen = FALSE;
 		break;
@@ -429,14 +442,20 @@ raw_read2(void)
 		newlines = 0;
 		addToBuffer(c);
 		while((c=getchr()) != EOF && c != '"')
-		{ if (c == '\n' &&
-		       newlines++ > MAXNEWLINES &&
-		       (debugstatus.styleCheck & LONGATOM_CHECK))
+		{ if ( c == '\\' && CHARESCAPE )
+		  { addToBuffer(c);
+		    if ( (c = getchr()) == EOF )
+		      goto eofinstr;
+		  } else if (c == '\n' &&
+			     newlines++ > MAXNEWLINES &&
+			     (debugstatus.styleCheck & LONGATOM_CHECK))
 		    rawSyntaxError("String too long");
 		  addToBuffer(c);
 		}
 		if (c == EOF)
+		{ eofinstr:
 		  rawSyntaxError("End of file in string");
+		}
 		addToBuffer(c);
 		dotseen = FALSE;
 		break;
@@ -708,6 +727,118 @@ scan_number(char **s, int b, number *n)
 }
 
 
+#define NEXT(v)	do { c = (v); goto next; } while(0) 
+#define AddChar(c) \
+	do \
+	{ if ( n >= bufsize ) \
+	  { if ( bufsize == 0 ) \
+	    { bufsize = 512; \
+	      buf = Malloc(bufsize); \
+	    } else \
+	    { bufsize *= 2; \
+	      buf = Realloc(buf, bufsize); \
+	    } \
+	    if ( buf == NULL ) \
+	      fatalError("%s", OsError()); \
+	  } \
+	  buf[n++] = (c); \
+	} while(0)
+		
+
+static char *
+get_string(char *in, char **end)
+{ static char *buf;
+  static int bufsize = 0;
+  int n;
+  int quote;
+  char c;
+
+  n = 0;
+  quote = *in++;
+
+  for(;;)
+  { c = *in++;
+
+    if ( c == quote )
+    { if ( *in == quote )
+      { in++;
+	NEXT(quote);
+      }
+
+      break;
+    }
+    if ( c == '\\' && CHARESCAPE )
+    { int c2;
+      int base;
+      int xdigits;
+      
+      switch((c2 = *in++))
+      { case 'a':
+	  NEXT(7);			/* 7 is ASCII BELL */
+	case 'b':
+	  NEXT('\b');
+	case 'c':
+	  while(isBlank(*in))
+	    in++;
+	  continue;
+	case 10:			/* linefeed */
+	  while(isBlank(*in) && *in != 10 )
+	    in++;
+	  continue;
+	case 'f':
+	  NEXT('\f');
+	case 'n':
+	  NEXT('\n');
+	case 'r':
+	  NEXT('\r');
+	case 't':
+	  NEXT('\t');
+	case 'v':
+	  NEXT(11);			/* 11 is ASCII Vertical Tab */
+	case 'x':
+	  c2 = *in++;
+	  if ( digitValue(16, c2) >= 0 )
+	  { base = 16;
+	    xdigits = 1;
+	    goto numchar;
+	  } else
+	    NEXT('x');
+	default:
+	  if ( c2 >= '0' && c2 <= '7' )	/* octal number */
+	  { int chr;
+	    int dv;
+
+	    base = 8;
+	    xdigits = 2;
+
+	  numchar:
+	    chr = digitValue(base, c2);
+	    c2 = *in++;
+	    while(xdigits-- > 0 &&
+		  (dv = digitValue(base, c2)) >= 0 )
+	    { chr = chr * base + dv;
+	      c2 = *in++;
+	    }
+	    if ( c2 != '\\' )
+	      in--;
+	    NEXT(chr);
+	  } else
+	    NEXT(c2);
+      }
+    }
+
+  next:
+    AddChar(c);
+  }
+
+  AddChar(EOS);
+  if ( end )
+    *end = in;
+
+  return buf;
+}  
+
+
 static Token
 get_token(bool must_be_op)
 { unsigned int c;
@@ -757,17 +888,51 @@ get_token(bool must_be_op)
     case DI:	{ number value;
 		  int tp;
 
-		  if (c == '0' && *here == '\'')		/* 0'<char> */
-		  { if (isAlpha(here[2]))
-		    { here += 2;
-		      syntaxError("Illegal number");
-		    }
-		    token.value.prolog = consNum((long)here[1] * negative);
-		    token.type = T_INTEGER;
-		    here += 2;
+		  if ( c == '0' )
+		  { int base = 0;
 
-		    DEBUG(9, Sdprintf("INT: %ld\n", valNum(token.value.prolog)));
-		    return &token;
+		    switch(*here)
+		    { case '\'':
+		      { if ( isAlpha(here[2]) )
+			{ here += 2;
+			  syntaxError("Illegal number");
+			}
+			token.value.prolog = consNum((long)here[1] * negative);
+			token.type = T_INTEGER;
+			here += 2;
+
+			DEBUG(9, Sdprintf("INT: %ld\n",
+					  valNum(token.value.prolog)));
+			return &token;
+		      }
+		      case 'b':
+			base = 2;
+		        break;
+		      case 'x':
+			base = 16;
+		        break;
+		      case 'o':
+			base = 8;
+		        break;
+		    }
+
+		    if ( base )
+		    { here++;
+		      switch(scan_number(&here, base, &value))
+		      { case V_INT:
+			  token.value.prolog = consNum(value.i);
+			  token.type = T_INTEGER;
+			  break;
+			case V_REAL:
+			  token.value.prolog = globalReal(value.r);
+			  token.type = T_REAL;
+			  break;
+			default:
+			  syntaxError("Illegal number");
+		      }
+
+		      return &token;
+		    }
 		  }
 
 		  here--;		/* start of token */
@@ -909,50 +1074,24 @@ get_token(bool must_be_op)
 
 		  return &token;
 		}
-    case SQ:	{ char *s;
+    case SQ:	{ char *s = get_string(here-1, &here);
 
-		  start = here;
-		  for(s=start;;)
-		  { if (*here == '\'')
-		    { if (here[1] != '\'')
-		      { end = *s, *s = EOS;
-			token.value.prolog = (word) lookupAtom(start);
-			*s = end;
-			token.type = (here[1] == '(' ? T_FUNCTOR : T_NAME);
-			here++;
-			DEBUG(9, Sdprintf("%s: %s\n", here[1] == '(' ? "FUNC" : "NAME", stringAtom(token.value.prolog)));
-			return &token;
-		      }
-		      here++;
-		    }
-		    *s++ = *here++;
-		  }
+		  token.value.prolog = (word) lookupAtom(s);
+		  token.type = (here[0] == '(' ? T_FUNCTOR : T_NAME);
+		  return &token;
 		}
-    case DQ:	{ char *s;
+    case DQ:	{ char *s = get_string(here-1, &here);
 
-		  start = here;
-		  for(s=start;;)
-		  { if (*here == '"')
-		    { if (here[1] != '"')
-		      { end = *s, *s = EOS;
 #if O_STRING
-			if ( debugstatus.styleCheck & STRING_STYLE )
-			  token.value.prolog = globalString(start);
-			else
-			  token.value.prolog = (word) stringToList(start);
+ 		  if ( debugstatus.styleCheck & STRING_STYLE )
+		    token.value.prolog = globalString(s);
+		  else
+		    token.value.prolog = stringToList(s);
 #else
-			token.value.prolog = (word) stringToList(start);
+ 		  token.value.prolog = stringToList(s);
 #endif /* O_STRING */
-			DEBUG(9, Sdprintf("STR: %s\n", start));
-			*s = end;
-			token.type = T_STRING;
-			here++;
-			return &token;
-		      }
-		      here++;
-		    }
-		    *s++ = *here++;
-		  }
+		  token.type = T_STRING;
+		  return &token;
 		}
     default:	{ sysError("read/1: tokeniser internal error");
     		  return &token;	/* make lint happy */

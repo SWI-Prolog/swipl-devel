@@ -629,9 +629,24 @@ Maximum integer value.  Most arithmetic operations will automatically
 convert to floats if integer values above this are returned.
     \option{min_integer}{integer}
 Minimum integer value.
+    \option{compiled_at}{atom}
+Describes when the system has been compiled. Only available if the
+C-compiler used to compile SWI-Prolog provides the __DATE__ and __TIME__
+macros.
+    \option{character_escapes}{bool}
+If true (default), read/1 interprets \verb$\$ escape sequences in quoted
+atoms and strings.  May be changed.
+    \option{max_arity}{unbounded}
+ISO feature describing there is no maximum arity to compound terms.
+    \option{integer_rounding_function}{down,toward_zero}
+ISO feature describing rounding by \verb$//$ and \verb$rem$ arithmetic
+functions. Value depends on the C-compiler used.
+    \option{bounded}{true}
+ISO feature describing integer representation is bound by
+{\tt min_integer} and {\tt min_integer}.
 \end{description}
 .C set_feature 2 +Key, +Value
-Define a new feature or change its value.  Both arguments must be atoms.
+Define a new feature or change its value. Both arguments must be atoms.
 .ED
 
 
@@ -883,6 +898,87 @@ if some code with \verb+/* ... */+ comment statements in it should be
 commented out.
 \end{itemize}
 
+\subsection{ISO Syntax Support}
+
+SWI-Prolog offers ISO compatible extensions to the Edinburgh syntax.
+
+\subsubsection{Character Escape Syntax} \label{sec:charescapes}
+
+Within quoted atoms (using single quotes: \verb$'atom'$) special
+characters are represented using escape-sequences.  An escape sequence
+is lead in by the backslash (\verb$\$) character.  The list of escape
+sequences is compatible with the ISO standard, but contains one
+extension and the interpretation of numerically specified characters
+is slightly more flexible to improve compatibility.
+
+\newcommand{\escape}[1]{\item{\ttbackslash{\tt #1}}\mbox{}\\}
+
+\begin{description}
+    \escape{a}
+Alert character.  Normally the ASCII character 7 (beep).
+    \escape{b}
+Backspace character.
+    \escape{c}
+No output.  All input characters upto but not including the first
+non-layout character are skipped.  This allows for the specification
+of pretty-looking long lines.  For compatibility with Quintus Prolog.
+Nor supported by ISO.  Example:
+\begin{code}
+	format('This is a long line that would look better if it was \c
+	        split accross multiple physical lines in the input')
+\end{code}
+    \escape{$<${\sc RETURN}$>$}
+No output.  Skips input till the next non-layout character or to the
+end of the next line.  Same intention as \verb$\c$ but ISO compatible.
+    \escape{f}
+Form-feed character.
+    \escape{n}
+Next-line character.
+    \escape{r}
+Carriage-return only (i.e.\ go back to the start of the line).
+    \escape{t}
+Horizontal tab-character.
+    \escape{v}
+Vertical tab-character (ASCII 11).
+    \escape{x23}
+Hexdecimal specification of a character. \verb$23$ is just an example.
+The `x' may be followed by a maximum of 2 hexadecimal digits.  The
+closing \verb$\$ is optional.  The code \verb$\xa\3$ emits the character
+10 (hexadecimal `a') followed by `3'.  The code \verb$\x201$ emits
+32 (hexadecimal `20') followed by `1'.  According to ISO, the closing
+\verb$\$ is obligatory and the number of digits is unlimited.  The
+SWI-Prolog definition allows for ISO compatible specification, but
+is compatible with other implementations.
+    \escape{40}
+Octal character specification.  The rules and remarks for hexadecimal
+specifications apply to octal specifications too, but the maximum
+allowed number of octal digits is 3.
+    \escape{$<$character$>$}
+Any character immediately predeced by a \verb$\$ is copied verbatim.
+Thus, \verb$'\\'$ is an atom consisting of a single \verb$\$ and
+\verb$'\''$ and \verb$''''$ both describe an atom with a single
+\verb$'$.
+\end{description}
+
+Character escaping is only available if the feature(character_espaces,
+true) is active (default). See feature/2. Character escapes conflict
+with writef/2 in two ways: \verb$\40$ is interpreted as decimal 40 by
+writef/2, but character escapes handling by read has already interpreted
+as 32 (40 octal). Also, \verb$\l$ is translated to a single `l'. Double
+the \verb$\$ (e.g.\ \verb$\\l$), use the above escape sequences or use
+format/2.
+
+\subsubsection{Syntax for Non-Decimal Numbers}
+
+SWI-Prolog implements both Edinburgh and ISO representations for
+non-decimal numbers.  According to Edinburgh syntax, such numbers
+are written as $<$radix$>$\verb$'$$<$number$>$, where $<$radix$>$
+is a number between 2 and 36.  ISO defines binary, octal and
+hexadecimal numbers using \verb$0$$<$bxo$>$$<$number$>$.  For
+example: \verb$A is 0b100 \/ 0xf00$ is a valid expression.  Such
+numbers are always unsigned.
+
+
 \section{System Limits}
 
 \subsection{Limits on Memory Areas}
@@ -906,12 +1002,10 @@ This area is dynamically enlarged at runtime on all versions of SWI-Prolog.
 \begin{minipage}{\textwidth}
 \begin{tabular}{|c|c|l|p{5cm}|}
 \hline
-Option & Default\footnote{Defaults may depend on local installation.
-The value between brackets is the default limit for machines that allow
-for dynamic stack allocation.}
+Option & Default\footnote{Defaults may depend on local installation.}
  & Area name & Description \\
 \hline
--L & 200K (2M) & \bf local stack & The local stack is used to store
+-L & 2M & \bf local stack & The local stack is used to store
 		       the execution environments of procedure
 		       invocations. The space for an environment is
 		       reclaimed when it fails, exits without leaving
@@ -919,18 +1013,18 @@ for dynamic stack allocation.}
 		       the \tty{!} predicate or no choice points have
 		       been created since the invocation and the last
 		       subclause is started (tail recursion optimisation). \\
--G & 100K (4M) & \bf global stack & The global stack is used
+-G & 4M & \bf global stack & The global stack is used
 		       to store terms created during Prolog's
 		       execution. Terms on this stack will be reclaimed
 		       by backtracking to a point before the term
 		       was created or by garbage collection (provided the
 		       term is no longer referenced). \\
--T & 50K (4M) & \bf trail stack & The trail stack is used to store
+-T & 4M & \bf trail stack & The trail stack is used to store
 		       assignments during execution.  Entries on this
 		       stack remain alive until backtracking before the
 		       point of creation or the garbage collector 
 		       determines they are nor needed any longer. \\
--A & 5K (1M) & \bf argument stack & The argument stack is used to
+-A & 1M & \bf argument stack & The argument stack is used to
 		       store one of the intermediate code interpreter's 
 		       registers. The amount of space needed on this
 		       stack is determined entirely by the depth in
@@ -965,7 +1059,7 @@ SWI-Prolog uses tagged pointers internally. This limits the number of
 available bits for addressing memory to 29 (512 Mb).
     \item[Integers]
 Integers are tagged values. Their value is limited between
-$-2^{26}$ and $2^{26} - 1$.
+$-2^{26}$ and $2^{26} - 1$.  See also feature/2.
     \item[Floats]
 Floating point numbers are C-doubles with a 12 bit reduction of the
 mantisse.  For machines using IEEE floating point format, this implies

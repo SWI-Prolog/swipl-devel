@@ -223,6 +223,9 @@
 /* Define if you have the stricmp function.  */
 #undef HAVE_STRICMP
 
+/* Define if you have the strlwr function.  */
+#undef HAVE_STRLWR
+
 /* Define if you have the tgetent function.  */
 #undef HAVE_TGETENT
 

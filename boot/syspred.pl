@@ -96,12 +96,12 @@ visible(Ports) :-
 	$map_bits($port_bit, Ports, Old, New),
 	$visible(_, New).
 
-$map_style_check(atom,     	   2'000001).
-$map_style_check(singleton, 	   2'000010).
-$map_style_check(dollar,   	   2'000100).
-$map_style_check((discontiguous),  2'001000).
-$map_style_check(string,	   2'010000).
-$map_style_check(dynamic,	   2'100000).
+$map_style_check(atom,     	    2'0000001).
+$map_style_check(singleton, 	    2'0000010).
+$map_style_check(dollar,   	    2'0000100).
+$map_style_check((discontiguous),   2'0001000).
+$map_style_check(string,	    2'0010000).
+$map_style_check(dynamic,	    2'0100000).
 
 style_check(Spec) :-
 	$style_check(Old, Old),

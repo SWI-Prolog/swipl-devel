@@ -4,6 +4,8 @@
     jan@swi.psy.uva.nl
 
     Purpose: Index online manual
+    Last Modified: 11 Octover 1995:
+		Updated for character_escapes handling
 */
 
 :- module(online,
@@ -384,7 +386,7 @@ symbols([]) -->
 
 symbol(S) -->
 	char(S),
-	{ memberchk(S, "\#$&*+-./:<=>?@^`~") }.
+	{ memberchk(S, "\\#$&*+-./:<=>?@^`~") }.
 
 single(S) -->
 	char(S),
@@ -444,6 +446,8 @@ update_offsets.
 next_index(L, N) :-
 	(    reverse(L, [Last|Tail])
 	;    reverse(L, [_,Last|Tail])
+	;    reverse(L, [_,_,Last|Tail])
+	;    reverse(L, [_,_,_,Last|Tail])
 	),
 	Next is Last + 1,
 	reverse([Next|Tail], N).
@@ -493,40 +497,40 @@ do_summary(Line) :-
 do_summary(_) :- fail.
 
 parse_summary(Name, Arity, Summary) -->
-	optional("\\"),
+	optional("\\\\"),
 	skip_blanks,
-	starts("\verb"),
+	starts("\\verb"),
 	[VC],
 	name_arity(Name, Arity),
 	string(_),
 	[VC],
 	skip_blanks,
-	starts("\>"),
+	starts("\\>"),
 	skip_blanks,
 	summary_description(S),
 	skip_blanks,
-	optional("\\"),
+	optional("\\\\"),
 	skip_blanks,
 	{ name(Summary, S) }, !.
 parse_summary(0, _, _) -->
 	(   "%"
-	;   "\chapter"
-	;   "\section"
-	;   "\begin"
-	;   "\end"
-	;   "\newcommand"
+	;   "\\chapter"
+	;   "\\section"
+	;   "\\begin"
+	;   "\\end"
+	;   "\\newcommand"
 	), !,
 	string(_).
 parse_summary(0, _, _) -->
 	string(_),
-	"\kill", !,
+	"\\kill", !,
 	string(_).
 parse_summary(0, _, _) -->
-	"\\".
+	"\\\\".
 parse_summary(0, _, _) -->		% operator descriptions
-	optional("\\"),
+	optional("\\\\"),
 	skip_blanks,
-	starts("\verb"),
+	starts("\\verb"),
 	[_],
 	skip_blanks,
 	number(_), !,
@@ -535,13 +539,13 @@ parse_summary(0, _, _) -->
 	[].
 
 summary_description(S) -->
-	"\lib{",
+	"\\lib{",
 	string(Lib),
 	"}", !,
 	summary_description(S2),
 	{flatten(["library(", Lib, "):", S2], S)}.
 summary_description(S) -->
-	"\hook{",
+	"\\hook{",
 	string(_Module),
 	"}", !,
 	summary_description(S2),

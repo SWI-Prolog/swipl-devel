@@ -85,7 +85,7 @@ pl_grep(Word file, Word search, Word line, word h)
 	  return warning("$grep/3: instantiation fault");
 	if ( (fn = ExpandOneFile(fn)) == (char *)NULL )
 	  fail;
-	if ( (fd = Fopen(fn, "r")) == (IOSTREAM *) NULL )
+	if ( (fd = Sopen_file(fn, "r")) == (IOSTREAM *) NULL )
 	  return warning("$grep/3: cannot open %s: %s", fn, OsError());
       }
       goto redo;

@@ -29,6 +29,9 @@ handling times must be cleaned, but that not only holds for this module.
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-itf.h"
+#ifdef __WIN32__
+#include <console.h>
+#endif
 
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
@@ -46,6 +49,10 @@ handling times must be cleaned, but that not only holds for this module.
 #define ST_FILE	    1			/* File bound stream */
 #define ST_PIPE	    2			/* Pipe bound stream */
 #define ST_STRING   3			/* String bound stream */
+
+					/* openStream() flags */
+#define OPEN_OPEN   0x1			/* Open for open/[3,4] */
+#define OPEN_TEXT   0x2			/* Open in text-mode */
 
 typedef struct plfile *	PlFile;
 
@@ -85,7 +92,7 @@ static struct output_context
   OutputContext previous;		/* previous context */
 } *output_context_stack = NULL;
 
-forwards bool	openStream(word file, int mode, int fresh);
+forwards bool	openStream(word file, int mode, int flags);
 forwards bool	flush(void);
 forwards bool	openProtocol(Atom, bool appnd);
 forwards bool	closeProtocol(void);
@@ -109,6 +116,18 @@ pipeHandler(int sig)
 void
 initIO(void)
 { int n;
+
+#ifdef __WIN32__
+{ int w32s = rlc_iswin32s();
+  status.case_sensitive_files = FALSE;
+  status.case_preserving_files = (w32s ? FALSE : TRUE);
+  status.dos_files = (w32s ? TRUE : FALSE);
+}
+#else
+  status.case_sensitive_files = TRUE;
+  status.case_preserving_files = TRUE;
+  status.dos_files = FALSE;
+#endif
 
   fileerrors = TRUE;
   if ( maxfiles != getdtablesize() )
@@ -396,6 +415,22 @@ readLine(char *buffer)
 
 
 bool
+LockStream()
+{ IOSTREAM *s = fileTable[Output].stream;
+
+  return (s && Slock(s) < 0) ? FALSE : TRUE;
+}
+
+
+bool
+UnlockStream()
+{ IOSTREAM *s = fileTable[Output].stream;
+
+  return (s && Sunlock(s) < 0) ? FALSE : TRUE;
+}
+
+
+bool
 Put(int c)
 { IOSTREAM *s = fileTable[Output].stream;
 
@@ -406,11 +441,17 @@ Put(int c)
 int
 Get0()
 { IOSTREAM *s = fileTable[Input].stream;
+  int c;
   
   if ( s )
-    return Sgetc(s);
+  { c = Sgetc(s);
+    
+    if ( c == EOF && Sfpasteof(s) )
+      warning("Attempt to read past end-of-file");
+  } else
+    c = EOF;
 
-  return EOF;
+  return c;
 }
 
 
@@ -478,10 +519,10 @@ PL_open_stream(IOSTREAM *s, Word handle)
 
 
 static bool
-openStream(word file, int mode, bool fresh)
+openStream(word file, int mode, int flags)
 { int n;
   IOSTREAM *stream;
-  char *cmode;
+  char cmode[3];
   Atom f;
   int type;
 
@@ -521,7 +562,7 @@ openStream(word file, int mode, bool fresh)
   } else if ( type == ST_PIPE && mode == F_APPEND )
     return warning("Cannot open a pipe in `append' mode");
     
-  if ( !fresh )				/* see/1, tell/1, append/1 */
+  if ( !(flags & OPEN_OPEN) )		/* see/1, tell/1, append/1 */
   { for( n=0; n<maxfiles; n++ )
     { if ( fileTable[n].name == f && fileTable[n].type == type )
       { if ( fileTable[n].status == mode )
@@ -544,7 +585,13 @@ openStream(word file, int mode, bool fresh)
   }
 
   DEBUG(2, Sdprintf("Starting Unix open\n"));
-  cmode = (mode == F_READ ? "r" : mode == F_WRITE ? "w" : "a");
+  cmode[0] = (mode == F_READ ? 'r' : mode == F_WRITE ? 'w' : 'a');
+  if ( flags & OPEN_TEXT )
+    cmode[1] = EOS;
+  else
+  { cmode[1] = 'b';
+    cmode[2] = EOS;
+  }
 
 #ifdef HAVE_POPEN
   if ( type == ST_PIPE )
@@ -644,7 +691,7 @@ flush()
 
 bool
 see(word f)
-{ return openStream(f, F_READ, FALSE);
+{ return openStream(f, F_READ, OPEN_TEXT);
 }
 
 bool
@@ -664,7 +711,7 @@ openProtocol(Atom f, bool appnd)
 
   closeProtocol();
 
-  if ( openStream((word)f, appnd ? F_APPEND : F_WRITE, TRUE) )
+  if ( openStream((word)f, appnd ? F_APPEND : F_WRITE, OPEN_TEXT|OPEN_OPEN) )
   { protocolStream = Output;
     Output = out;
 
@@ -993,12 +1040,12 @@ pl_see(Word f)
 
 word
 pl_tell(Word f)
-{ return openStream(*f, F_WRITE, FALSE);
+{ return openStream(*f, F_WRITE, OPEN_TEXT);
 }
 
 word
 pl_append(Word f)
-{ return openStream(*f, F_APPEND, FALSE);
+{ return openStream(*f, F_APPEND, OPEN_TEXT);
 }
 
 word
@@ -1140,10 +1187,34 @@ setUnifyStreamNo(Word stream, int n)
   return unifyStreamNo(stream, n);
 }
       
-word
-pl_open(Word file, Word mode, Word stream)
-{ int m;
 
+static opt_spec open4_options[] = 
+{ { ATOM_type,       OPT_ATOM },
+  { ATOM_reposition, OPT_BOOL },
+  { ATOM_alias,	     OPT_ATOM },
+  { ATOM_eof_action, OPT_ATOM },
+  { NULL,	     0 }
+};
+
+
+word
+pl_open4(Word file, Word mode, Word stream, Word options)
+{ int m;
+  Atom type       = ATOM_text;
+  bool reposition = FALSE;
+  Atom alias	  = NULL;
+  Atom eof_action = ATOM_eof_code;
+  int flags = OPEN_OPEN;
+
+  if ( !scan_options(*options, 0, open4_options,
+		     &type, &reposition, &alias, &eof_action) )
+    return warning("open/4: illegal option list");
+
+  if ( alias )
+    TRY(unifyAtomic(stream, alias));
+  if ( type == ATOM_text )
+    flags |= OPEN_TEXT;
+  
   if ( *mode == (word) ATOM_write )
     m = F_WRITE;
   else if ( *mode == (word) ATOM_append )
@@ -1155,9 +1226,16 @@ pl_open(Word file, Word mode, Word stream)
 
   if ( m == F_READ )
   { int in = Input;
-    if ( openStream(*file, m, TRUE) )
+    if ( openStream(*file, m, flags) )
     { if ( setUnifyStreamNo(stream, Input) )
-      { Input = in;
+      { if ( eof_action != ATOM_eof_code )
+	{ IOSTREAM *s = fileTable[Input].stream;
+	  if ( eof_action == ATOM_reset )
+	    s->flags |= SIO_NOFEOF;
+	  else if ( eof_action == ATOM_error )
+	    s->flags |= SIO_FEOF2ERR;
+	}
+	Input = in;
         succeed;
       }
       closeStream(Input);
@@ -1169,7 +1247,7 @@ pl_open(Word file, Word mode, Word stream)
     fail;
   } else
   { int out = Output;
-    if ( openStream(*file, m, TRUE) )
+    if ( openStream(*file, m, flags) )
     { if ( setUnifyStreamNo(stream, Output) )
       { Output = out;
         succeed;
@@ -1183,6 +1261,15 @@ pl_open(Word file, Word mode, Word stream)
     fail;
   }
 }
+
+
+word
+pl_open(Word file, Word mode, Word stream)
+{ word n = (word) ATOM_nil;
+
+  return pl_open4(file, mode, stream, &n);
+}
+
 
 #ifndef USEDEVNULL
 

@@ -32,7 +32,8 @@ $welcome :-
 	feature(version, Version),
 	$ttyformat('Welcome to SWI-Prolog (Version ~w)~n', [Version]),
 	$ttyformat('Copyright (c) 1993-1995 University of Amsterdam.  '),
-	$ttyformat('All rights reserved.~n~n').
+	$ttyformat('All rights reserved.~n~n'),
+	$ttyformat('For help, use ?- help(Topic). or ?- apropos(Word).~n~n').
 
 $load_init_file(none) :- !.
 $load_init_file(Base) :-
@@ -172,6 +173,25 @@ $make_alias(Chars, Alias) :-
 	atom_chars(Alias, Chars).
 
 
+		 /*******************************
+		 *   LOADING ASSIOCIATED FILES	*
+		 *******************************/
+
+$load_associated_file :-
+	feature(associate, Ext),
+	$argv([_,OsFile]),
+	prolog_to_os_filename(File, OsFile),
+	concat(_, Ext, File),
+	access_file(File, read),
+	file_directory_name(File, Dir),
+	chdir(Dir),
+	consult(user:File), !,
+	concat('SWI-Prolog -- ', File, Title),
+	call(window_title(_, Title)),
+	nl.
+$load_associated_file.
+
+
 		/********************************
 		*        TOPLEVEL GOALS         *
 		*********************************/
@@ -193,7 +213,8 @@ $initialise :-
 	->  flag($banner_goal, TheGoal, TheGoal)
 	;   TheGoal = Goal
 	),
-	ignore(user:TheGoal).
+	ignore(user:TheGoal),
+	$load_associated_file.
 
 $abort :-
 	see(user), 

@@ -1,10 +1,60 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.1.10
+==============
+
+  * ISO: added compliant open/4 predicate.
+
+  * Moved all printing of the system (banner, prompt and warnings to
+    use user_error (=stderr) rather than user_output (=stdout), so
+    it becomes easier to use Prolog's standard output.  Stderr is
+    unbuffered, several predicates that will output more than one
+    character now use a `temporary buffer' to reduce IO-load.
+
+  * ISO: Added arithmetic functions: rem/2, ** (= ^), ceiling (= ceil),
+    float/1, float_fractional_part/1, float_integer_part/1, truncate/1,
+    sign/1 and round/1 (= integer/1).
+
+  * ISO Syntax: Changed quoted atom and string syntax to support character
+    escapes, broken lines, etc.  These changes can be switched off
+    using ?- set_feature(character_escapes, false). for backward
+    compatibility.
+
+    Also, 0b110, 0xa2 and 0o70 (binary, hexadecimal and octal) number
+    representations are now recognised.
+
+  * ISO: Added features bounded, integer_rounding_function, max_arity.
+
+  * WIN32: Various changes to the console: use standard colours and
+    font, allow for changing colours.  Bind Control-Z to end-of-file
+    (alternative for Control-D, which is still valid).
+
+  * WIN32: `pl state.qlx' now assumes state.qlx is the result of a
+    qsave_program/[1,2] and automatically loads the state.  This
+    allows for associating states with the emulator.  Also, pl file.pl
+    will automatically chdir/1 to the directory containing the file
+    and load the file before entering the toplevel.
+
+  * WIN32: Fixed some filename case problems: expand_file_name/2 now
+    works case-insensitive.  Comparing files for sorting is done case
+    insenstive.
+
+  * WIN32: Command-line breaking now handles "quoted arguments".  Only
+    double quotes and no escape (I don't know the Windows'95 escape
+    conventions).
+
+  * WIN32: Fixed filename completion from console window.
+
+  * INSTALL: Fixed detection of non-gnu/gnu make
+
+  * FIXED: use_module/1, etc. to import predicates exported using the
+    export/1 directive instead of the module/2 directive.
+
 Version 2.1.9
 =============
 
-  * FIXED: Updated stach-shifter code for the changed layout of the
+  * FIXED: Updated stack-shifter code for the changed layout of the
     environment-stack frames.  This bug prevented pl-gc.c to compile
     on machines having no virtual-memory based stack allocation.
 

@@ -1223,11 +1223,12 @@ pl_get_clause_attribute(Word ref, Word att, Word value)
 		*         SOURCE FILE           *
 		*********************************/
 
+static int source_index = 0;
+static Table sourceTable = NULL;
+
 SourceFile
 lookupSourceFile(Atom name)
 { SourceFile file;
-  static int index = 0;
-  static Table sourceTable = NULL;
   Symbol s;
 
   if ( !sourceTable )
@@ -1240,7 +1241,7 @@ lookupSourceFile(Atom name)
   file->name = name;
   file->count = 0;
   file->time = 0L;
-  file->index = ++index;
+  file->index = ++source_index;
   file->system = status.boot;
   file->procedures = NULL;
   file->next = NULL;

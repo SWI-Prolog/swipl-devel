@@ -12,7 +12,7 @@
 
                  Reference Manual
 
-      Updated for version 2.1.4, August 1995
+     Updated for version 2.1.10, October 1995
 
                   Jan Wielemaker
 
@@ -1091,6 +1091,30 @@ feature(?Key, -Value)
 
      min_integer (integer)
          Minimum integer value.
+
+     compiled_at (atom)
+         Describes when the system has been compiled.  Only
+         available if the C-compiler used to compile
+         SWI-Prolog provides the __DATE__and
+         __TIME__macros.
+
+     character_escapes (bool)
+         If true (default), read/1 interprets \ escape
+         sequences in quoted atoms and strings.  May be
+         changed.
+
+     max_arity (unbounded)
+         ISO feature describing there is no maximum arity
+         to compound terms.
+
+     integer_rounding_function (down,toward_zero)
+         ISO feature describing rounding by // and rem
+         arithmetic functions.  Value depends on the
+         C-compiler used.
+
+     bounded (true)
+         ISO feature describing integer representation is
+         bound by min_integer and min_integer.
 
 
 set_feature(+Key, +Value)
@@ -1335,6 +1359,105 @@ non-common constructs that are accepted by SWI-Prolog:
      statements in it should be commented out.
 
 
+2.12.1  ISO Syntax Support
+
+SWI-Prolog offers ISO compatible extensions to the
+Edinburgh syntax.
+
+
+2.12.1.1  Character Escape Syntax
+
+Within quoted atoms (using single quotes:  'atom') special
+characters are represented using escape-sequences.  An
+escape sequence is lead in by the backslash (\) character.
+The list of escape sequences is compatible with the ISO
+standard, but contains one extension and the interpretation
+of numerically specified characters is slightly more
+flexible to improve compatibility.
+
+ \a
+     Alert character.  Normally the ASCII character 7
+     (beep).
+
+ \b
+     Backspace character.
+
+ \c
+     No output.  All input characters upto but not
+     including the first non-layout character are skipped.
+     This allows for the specification of pretty-looking
+     long lines.  For compatibility with Quintus Prolog.
+     Nor supported by ISO. Example:
+
+         format('This is a long line that would look better if it was \c
+                         split accross multiple physical lines in the input')
+
+ \<RETURN>
+     No output.  Skips input till the next non-layout
+     character or to the end of the next line.  Same
+     intention as \c but ISO compatible.
+
+ \f
+     Form-feed character.
+
+ \n
+     Next-line character.
+
+ \r
+     Carriage-return only (i.e. go back to the start of the
+     line).
+
+ \t
+     Horizontal tab-character.
+
+ \v
+     Vertical tab-character (ASCII 11).
+
+ \x23
+     Hexdecimal specification of a character.  23 is just
+     an example.  The `x' may be followed by a maximum of 2
+     hexadecimal digits.  The closing \ is optional.  The
+     code \xa\3 emits the character 10 (hexadecimal `a')
+     followed by `3'.  The code \x201 emits 32 (hexadecimal
+     `20') followed by `1'.  According to ISO, the closing
+     \ is obligatory and the number of digits is unlimited.
+     The SWI-Prolog definition allows for ISO compatible
+     specification, but is compatible with other
+     implementations.
+
+ \40
+     Octal character specification.  The rules and remarks
+     for hexadecimal specifications apply to octal
+     specifications too, but the maximum allowed number of
+     octal digits is 3.
+
+ \<character>
+     Any character immediately predeced by a \ is copied
+     verbatim.  Thus, '\\' is an atom consisting of a
+     single \ and '\'' and '''' both describe an atom with
+     a single '.
+
+Character escaping is only available if the
+feature(character_espaces, true) is active (default).  See
+feature/2.  Character escapes conflict with writef/2 in two
+ways:  \40 is interpreted as decimal 40 by writef/2, but
+character escapes handling by read has already interpreted
+as 32 (40 octal).  Also, \l is translated to a single `l'.
+Double the \ (e.g. \\l), use the above escape sequences or
+use format/2.
+
+
+2.12.1.2  Syntax for Non-Decimal Numbers
+
+SWI-Prolog implements both Edinburgh and ISO
+representations for non-decimal numbers.  According to
+Edinburgh syntax, such numbers are written as
+<radix>'<number>, where <radix> is a number between 2
+and 36.  ISO defines binary, octal and hexadecimal numbers
+using 0<bxo><number>.  For example:  A is 0b100 \/ 0xf00
+is a valid expression.  Such numbers are always unsigned.
+
+
 2.13  System Limits
 
 
@@ -1358,56 +1481,56 @@ The heap is a memory area to store atoms, clauses, records,
 flags, etc.  This area is dynamically enlarged at runtime
 on all versions of SWI-Prolog.
 
-  Option     Default    Area name         Description
-    -L      200K (2M)   local stack       The local stack is used
-                                          to store the execution
-                                          environments of
-                                          procedure invocations.
-                                          The space for an
-                                          environment is reclaimed
-                                          when it fails, exits
-                                          without leaving choice
-                                          points, the alternatives
-                                          are cut of with the !
-                                          predicate or no choice points
-                                          have been created since the
-                                          invocation and the last subclause
-                                          is started (tail recursion
-                                          optimisation).
-    -G      100K (4M)   global stack      The global stack is used
-                                          to store terms created
-                                          during Prolog's
-                                          execution.  Terms on
-                                          this stack will be
-                                          reclaimed by
-                                          backtracking to a point
-                                          before the term was
-                                          created or by garbage
-                                          collection (provided the
-                                          term is no longer referenced).
-    -T      50K (4M)    trail stack       The trail stack is used
-                                          to store assignments
-                                          during execution.
-                                          Entries on this stack
-                                          remain alive until
-                                          backtracking before the
-                                          point of creation or the
-                                          garbage collector
-                                          determines they are nor
-                                          needed any longer.
-    -A       5K (1M)    argument stack    The argument stack is
-                                          used to store one of the
-                                          intermediate code
-                                          interpreter's registers.
-                                          The amount of space
-                                          needed on this stack is
-                                          determined entirely by
-                                          the depth in which terms
-                                          are nested in the
-                                          clauses that constitute
-                                          the program.  Overflow is
-                                          most likely when using long
-                                          strings in a clause.
+  Option    Default   Area name         Description
+    -L        2M      local stack       The local stack is used
+                                        to store the execution
+                                        environments of
+                                        procedure invocations.
+                                        The space for an
+                                        environment is reclaimed
+                                        when it fails, exits
+                                        without leaving choice
+                                        points, the alternatives
+                                        are cut of with the !
+                                        predicate or no choice points
+                                        have been created since the
+                                        invocation and the last subclause
+                                        is started (tail recursion
+                                        optimisation).
+    -G        4M      global stack      The global stack is used
+                                        to store terms created
+                                        during Prolog's
+                                        execution.  Terms on
+                                        this stack will be
+                                        reclaimed by
+                                        backtracking to a point
+                                        before the term was
+                                        created or by garbage
+                                        collection (provided the
+                                        term is no longer referenced).
+    -T        4M      trail stack       The trail stack is used
+                                        to store assignments
+                                        during execution.
+                                        Entries on this stack
+                                        remain alive until
+                                        backtracking before the
+                                        point of creation or the
+                                        garbage collector
+                                        determines they are nor
+                                        needed any longer.
+    -A        1M      argument stack    The argument stack is
+                                        used to store one of the
+                                        intermediate code
+                                        interpreter's registers.
+                                        The amount of space
+                                        needed on this stack is
+                                        determined entirely by
+                                        the depth in which terms
+                                        are nested in the
+                                        clauses that constitute
+                                        the program.  Overflow is
+                                        most likely when using long
+                                        strings in a clause.
 
                   Table 2.3:  Memory areas
 
@@ -1431,7 +1554,7 @@ Address space SWI-Prolog uses tagged pointers internally.
      addressing memory to 29 (512 Mb).
 
 Integers Integers are tagged values.  Their value is
-     limited between 226 and 226 1.
+     limited between 226 and 226 1.  See also feature/2.
 
 Floats Floating point numbers are C-doubles with a 12 bit
      reduction of the mantisse.  For machines using IEEE
@@ -2755,25 +2878,53 @@ to the reading and writing predicates to specify the source
 or destination of the data.
 
 
-open(+SrcDest, +Mode, ?Stream)
-     SrcDest is either an atom, specifying a Unix file, or
-     a term `pipe(Command)', just like see/1 and tell/1.
-     Mode is one of read, write or append.  Stream is
-     either a variable, in which case it is bound to a
-     small integer identifying the stream, or an atom, in
-     which case this atom will be the stream indentifier.
-     In the latter case the atom cannot be an already
-     existing stream identifier.  Examples:
+open(+SrcDest, +Mode, -Stream, +Options)
+     ISO compliant predicate to open a stream.  SrcDes is
+     either an atom, specifying a Unix file, or a term
+     `pipe(Command)', just like see/1 and tell/1.  Mode is
+     one of read, write or append.  Stream is either a
+     variable, in which case it is bound to a small integer
+     identifying the stream, or an atom, in which case this
+     atom will be the stream indentifier.  The Options list
+     can contain the following options:
 
-       ?- open(data, read, Stream).          % Open `data' for reading.
-       ?- open(pipe(lpr), write, printer).   % `printer' is a stream to `lpr'.
+         type(Type).  Using type text (default), Prolog
+         will write a text-file in an operating-system
+         compatible way.  Using type binary the bytes will
+         be read or written without any translation.  Note
+         there is no difference between the two on Unix
+         systems.
+
+         alias(Atom gives the stream a name.  The following
+         two calls are identical, but only the latter is
+         allowed in ISO Prolog.
+
+             ?- open(foo, read, in, []).
+             ?- open(foo, read, S, [alias(in)]).
+
+         eof_action(Action) defines what happens if the end
+         of the input stream is reached.  Action eof_code
+         makes get0/1 and friends return -1 and read/1 and
+         friends return the atom end_of_file.  Repetitive
+         reading keeps yielding the same result.  Action
+         error is like eof_code, but repetitive reading
+         will raise an error.  With action reset, Prolog
+         will examine the file again and return more data
+         if the file has grown.
+
+     The option reposition is not supported in SWI-Prolog.
+     All streams connected to a file may be repositioned.
+
+
+open(+SrcDest, +Mode, ?Stream)
+     Equivalent to open/4 with an empty option-list.
 
 
 open_null_stream(?Stream)
-     On Unix systems, this is equivalent to
-     open('/dev/null', write, Stream).  Characters written
-     to this stream are lost, but the stream information
-     (see character_count/2, etc.)  is maintained.
+     Open a stream that produces no output.  All counting
+     functions are enabled on such a stream.  An attempt to
+     read from a null-stream will immediately signal
+     end-of-file.  Similar to Unix /dev/null.
 
 
 close(+Stream)
@@ -3392,8 +3543,8 @@ op(+Precedence, +Type, +Name)
      600   xfy    :
      500   yfx    +, -, /\, \/, xor
      500    fx    +, -, ?, \
-     400   yfx    *, /, //, <<, >>
-     300   xfx    mod
+     400   yfx    *, /, //, <<, >>, mod, rem
+     200   xfx    **
      200   xfy    ^
 
                 Table 3.1:  System operators
@@ -3531,12 +3682,21 @@ etc.
      Result= Expr1 mod Expr2 (remainder of division).
 
 
++IntExpr1 rem +IntExpr2
+     Result= Expr1 rem Expr2 (remainder of division).
+
+
 +IntExpr1 // +IntExpr2
      Result= Expr1 div Expr2 (integer division).
 
 
 abs(+Expr)
      Evaluate Expr and return the absolute value of it.
+
+
+sign(+Expr)
+     Evaluate to -1 if Expr < 0, 1 if Expr > 0 and 0 if
+     Expr= 0.
 
 
 max(+Expr1, +Expr2)
@@ -3563,9 +3723,28 @@ random(+Int)
      system clock when SWI-Prolog was started.
 
 
-integer(+Expr)
+round(+Expr)
      Evaluates Expr and rounds the result to the nearest
      integer.
+
+
+integer(+Expr)
+     Same as round/1 (backward compatibility).
+
+
+float_fractional_part(+Expr)
+     Fractional part of a floating-point number.  Negative
+     if Expr is negative, 0 if Expr is integer.
+
+
+float_integer_part(+Expr)
+     Integer part of floating-point number.  Negative if
+     Expr is negative, Expr if Expr is integer.
+
+
+truncate(+Expr)
+     Truncate Expr to an integer.  Same as
+     float_integer_part/1.
 
 
 floor(+Expr)
@@ -3573,9 +3752,13 @@ floor(+Expr)
      or equal to the result of the evaluation.
 
 
-ceil(+Expr)
+ceiling(+Expr)
      Evaluates Expr and returns the smallest integer larger
      or equal to the result of the evaluation.
+
+
+ceil(+Expr)
+     Same as ceiling/1 (backward compatibility).
 
 
 +IntExpr >> +IntExpr
@@ -3653,8 +3836,12 @@ exp(+Expr)
      Result= e to the power Expr
 
 
-+Expr1 ^ +Expr2
++Expr1 ** +Expr2
      Result= Expr1 to the power Expr2
+
+
++Expr1 ^ +Expr2
+     Same as **/2.  (backward compatibility).
 
 
 pi
@@ -4027,6 +4214,10 @@ writef(+Format, +Arguments)
        \nnn   where nnn is an integer (1-3 digits) the
               character with ASCII code nnn is output (NB
               : nnn is read as DECIMAL)
+
+     Note that \l, \nnn and \\ are interpreted differently
+     when character-escapes are in effect.  See
+     section 2.12.1.1.
 
      Escape sequences to include arguments from Arguments.
      Each time a % escape sequence is found in Format the
@@ -7990,6 +8181,7 @@ numbervars/4                  Enumerate unbound variables of a term using a give
 once/1                        Call a goal deterministicaly
 op/3                          Declare an operator
 open/3                        Open a file (creating a stream)
+open/4                        Open a file (creating a stream)
 open_dde_conversation/3       Win32:  Open DDE channel
 open_null_stream/1            Open a stream to discard output
 open_shared_object/2          UNIX: Open shared library (.so file)
@@ -8147,6 +8339,7 @@ writeq/2                      Write term, insert quotes on stream
 8.2  Artihmetic Functions
 
 *  /2{yfx 400}                Multiplication
+** /2{xfx 200}                Power function
 +  /2{yfx 500}                Addition
 -  /1{ fx 500}                Unary minus
 -  /2{yfx 500}                Subtraction
@@ -8164,11 +8357,15 @@ acos/1                        Inverse (arc) cosine
 asin/1                        Inverse (arc) sine
 atan/1                        Inverse (arc) tangent
 atan/2                        Rectangular to polar conversion
-ceil/1                        Smallest integer larger than argument
+ceil/1                        Smallest integer larger than arg
+ceiling/1                     Smallest integer larger than arg
 cos/1                         Cosine
 cputime/0                     Get CPU time
 e/0                           Mathematical constant
 exp/1                         Exponent (base e)
+float/1                       Explicitely convert to float
+float_fractional_part/1       Fractional part of a float
+float_integer_part/1          Integer part of a float
 floor/1                       Largest integer below argument
 integer/1                     Round to nearest integer
 log/1                         Natural logarithm
@@ -8177,7 +8374,11 @@ max/2                         Maximum of two numbers
 min/2                         Minimum of two numbers
 mod/2{xfx 300}                Remainder of division
 random/1                      Generate random number
+rem/2                         Remainder of division
+round/1                       Round to nearest integer
+truncate/1                    Truncate float to integer
 pi/0                          Mathematical constant
+sign/1                        Extract sign of value
 sin/1                         Sine
 sqrt/1                        Square root
 tan/1                         Tangent

@@ -143,6 +143,8 @@ void		newLineInput(void);
 int		currentLinePosition(void);
 Char		get_character(void);
 Char		getSingleChar(void);
+bool		LockStream(void);
+bool		UnlockStream(void);
 bool		put_character(Char c);
 word		Putf(char *fm, ...);
 word		vPutf(char *fm, va_list args);
@@ -188,6 +190,7 @@ word		pl_tab(Word n);
 char *		PrologPrompt(void);
 word		pl_tab2(Word stream, Word n);
 word		pl_open(Word file, Word mode, Word stream);
+word		pl_open4(Word file, Word mode, Word stream, Word options);
 word		pl_open_null_stream(Word stream);
 int		streamNo(Word spec, int mode);
 word		pl_close(Word stream);
@@ -585,7 +588,7 @@ word		pl_prolog_frame_attribute(Word frame, Word what, Word value);
 bool		wordToInteger(word w, long int *n);
 bool		wordToReal(word w, real *f);
 char		digitName(int n, bool small);
-int		digitValue(int b, char c);
+int		digitValue(int b, int c);
 char *		procedureName(Procedure proc);
 char *		predicateName(Definition def);
 bool		isUserSystemProcedure(Procedure proc);
@@ -596,6 +599,13 @@ bool		strpostfix(char *string, char *postfix);
 bool		stripostfix(char *string, char *postfix);
 bool		strsub(char *string, char *sub);
 void		systemMode(bool accept);
+bool		scan_options(word list, int flags, OptSpec specs, ...);
+#ifndef HAVE_STRICMP
+int		stricmp(const char *s1, const char *s2);
+#endif
+#ifndef HAVE_STRLWR
+char *		strlwr(char *s);
+#endif
 
 /* pl-wic.c */
 bool		loadWicFile(char *file, bool toplevel, bool load_options);
@@ -665,3 +675,4 @@ word		pl_call_dll_function(Word handle, Word funcname);
 /* pl-nt.c */
 
 void		PlMessage(const char *buf, ...);
+word		pl_window_title(Word old, Word new);

@@ -62,6 +62,7 @@ typedef struct io_stream
   IOPOS *		position;	/* pointer to above */
   void		       *handle;		/* function's handle */
   IOFUNCTIONS	       *functions;	/* open/close/read/write/seek */
+  int		        locks;		/* lock/unlock count */
 } IOSTREAM;
 
 #define SmakeFlag(n)	(1<<(n-1))
@@ -81,6 +82,9 @@ typedef struct io_stream
 #define SIO_FILE	SmakeFlag(13)	/* Stream refers to an OS file */
 #define SIO_PIPE	SmakeFlag(14)	/* Stream refers to an OS pipe */
 #define SIO_NOFEOF	SmakeFlag(15)	/* don't set SIO_FEOF flag */
+#define SIO_TEXT	SmakeFlag(16)	/* text-mode operation */
+#define SIO_FEOF2	SmakeFlag(17)	/* attempt to read past eof */
+#define SIO_FEOF2ERR	SmakeFlag(18)	/* Sfpasteof() */
 
 #define	SIO_SEEK_SET	0	/* From beginning of file.  */
 #define	SIO_SEEK_CUR	1	/* From current position.  */
@@ -181,6 +185,7 @@ _export int	Sgetw(IOSTREAM *s);
 _export int	Sfread(void *data, int size, int elems, IOSTREAM *s);
 _export int	Sfwrite(void *data, int size, int elems, IOSTREAM *s);
 _export int	Sfeof(IOSTREAM *s);
+_export int	Sfpasteof(IOSTREAM *s);
 _export int	Sferror(IOSTREAM *s);
 _export void	Sclearerr(IOSTREAM *s);
 _export int	Sflush(IOSTREAM *s);
@@ -199,6 +204,8 @@ _export int	Ssprintf(char *buf, const char *fm, ...);
 _export int	Svsprintf(char *buf, const char *fm, va_list args);
 _export int	Svdprintf(const char *fm, va_list args);
 _export int	Sdprintf(const char *fm, ...);
+_export int	Slock(IOSTREAM *s);
+_export int	Sunlock(IOSTREAM *s);
 _export IOSTREAM * Snew(void *handle, int flags, IOFUNCTIONS *functions);
 _export IOSTREAM * Sopen_file(char *path, char *how);
 _export IOSTREAM * Sfdopen(int fd, char *type);

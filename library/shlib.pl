@@ -12,7 +12,6 @@
 	    unload_foreign_library/1,	% +LibFile
 	    unload_foreign_library/1,	% +LibFile, +UninstallFunc
 	    current_foreign_library/2,	% ?LibFile, ?Public
-	    find_and_open_shared_object/3,
 	    reload_foreign_libraries/0
 	  ]).
 
@@ -40,9 +39,9 @@
 		 *	     DISPATCHING	*
 		 *******************************/
 
-open_goal(Lib, -, Handle, open_dll(Lib, Handle)) :-
+open_goal(Lib, Handle, open_dll(Lib, Handle)) :-
 	feature(dll, true), !.
-open_goal(Lib, Path, Handle, find_and_open_shared_object(Lib, Path, Handle)) :-
+open_goal(Lib, Handle, open_shared_object(Lib, Handle)) :-
 	feature(open_shared_object, true).
 
 call_goal(Handle, Function, call_dll_function(Handle, Function)) :-
@@ -55,23 +54,24 @@ close_goal(Handle, close_dll(Handle)) :-
 close_goal(Handle, close_shared_object(Handle)) :-
 	feature(open_shared_object, true), !.
 
+extensions(['.so']) :-
+	feature(open_shared_object, true), !.
+extensions(['.dll']) :-
+	feature(dll, true).
 
-		 /*******************************
-		 *     DLOPEN() SEARCH STUFF	*
-		 *******************************/
-
-:- module_transparent
-	find_and_open_shared_object/3.
-
-find_and_open_shared_object(Lib, Path, Handle) :-
-	absolute_file_name(Lib,
-			   [ extensions(['.so']),
-			     access(exist)
-			   ],
-			   Path), !,
-	open_shared_object(Path, Handle).
-find_and_open_shared_object(Lib, _Path, _Handle) :-
-	'$warning'('open_shared_object/2: Cannot find ~w: no such file', [Lib]),
+find_library(Spec, Lib) :-
+	extensions(Exts),
+	absolute_file_name(Spec,
+			   [ extensions(Exts),
+			     access(read)
+			   ], Lib), !.
+find_library(Spec, Spec) :-
+	atom(Spec), !.			% use machines finding schema
+find_library(foreign(Spec), Spec) :-
+	atom(Spec), !.			% use machines finding schema
+find_library(Spec, _) :-
+	'$warning'('load_foreign_library/1: Cannot find ~w: no such file',
+		   [Spec]),
 	fail.
 
 
@@ -89,7 +89,8 @@ load_foreign_library(LibFileSpec, Entry) :-
 load_foreign_library(LibFile, _Module, Entry) :-
 	current_library(LibFile, Entry, _, _, _, _), !.
 load_foreign_library(LibFile, Module, Entry) :-
-	open_goal(LibFile, Path, Handle, OpenGoal),
+	find_library(LibFile, Path),
+	open_goal(Path, Handle, OpenGoal),
 	OpenGoal,
 	(   clean_fpublic,		% safety
 	    call_goal(Handle, Entry, CallGoal),

@@ -558,7 +558,7 @@ loadWicFile(char *file, bool toplevel, bool load_options)
   bool tablealloced = FALSE;
   char *owf = wicFile;
 
-  if ((fd = Fopen(file, STREAM_OPEN_BIN_READ)) == (IOSTREAM *) NULL)
+  if ((fd = Sopen_file(file, "rbr")) == (IOSTREAM *) NULL)
   { fatalError("Can't open %s: %s", file, OsError());
     rval = FALSE;
     goto out;
@@ -1319,7 +1319,7 @@ openWic(char *file, Word args)
   wicFile = file;
 
   DEBUG(1, Sdprintf("Open compiler output file %s\n", file));
-  if ( (wicFd = Fopen(file, STREAM_OPEN_BIN_WRITE)) == (IOSTREAM *)NULL )
+  if ( (wicFd = Sopen_file(file, "wbr")) == (IOSTREAM *)NULL )
     return warning("Can't open %s: %s", file, OsError());
   mkWicFile = wicFile;
   DEBUG(1, Sdprintf("Searching for executable\n"));
@@ -1528,7 +1528,7 @@ qlfInfo(char *file, Word cversion, Word version, Word files)
 
   wicFile = file;
 
-  if ( !(s = Fopen(file, STREAM_OPEN_BIN_READ)) )
+  if ( !(s = Sopen_file(file, "rbr")) )
     return warning("Can't open %s: %s", file, OsError());
 
   if ( !(lversion = qlfVersion(s)) )
@@ -1595,7 +1595,7 @@ qlfOpen(Atom name)
   if ( !(absname = AbsoluteFile(wicFile)) )
     fail;
 
-  if ( !(wicFd = Fopen(wicFile, STREAM_OPEN_BIN_WRITE)) )
+  if ( !(wicFd = Sopen_file(wicFile, "wbr")) )
     return warning("qlf_open/1: can't open %s: %s", wicFile, OsError());
 
   mkWicFile = wicFile;
@@ -1657,7 +1657,7 @@ qlfLoad(char *file, Module *module)
   if ( !(absloadname = AbsoluteFile(wicFile)) )
     fail;
   
-  if ( !(fd = Fopen(file, STREAM_OPEN_BIN_READ)) )
+  if ( !(fd = Sopen_file(file, "rbr")) )
     return warning("$qlf_load/1: can't open %s: %s", file, OsError());
   if ( (lversion = qlfVersion(fd)) != VERSION )
   { Sclose(fd);

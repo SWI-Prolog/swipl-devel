@@ -79,10 +79,8 @@ extern long Random(void);
 
 
 #define Fflush(fd)		Sflush(fd)
-#define Fopen(path, m)		Sopen_file(OsPath(path), m)
 #define Fclose(fd)		Sclose(fd)
 #define Open(path, how, mode)	open(OsPath(path), how, mode)
-#define Close(fd)		close(fd)
 #define Read(fd, buf, size)	read(fd, buf, size)
 #define Write(fd, buf, size)	write(fd, buf, size)
 #define Getc(fd)		Sgetc(fd)

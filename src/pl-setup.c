@@ -169,14 +169,26 @@ initFeatures()
 #ifdef HAVE_POPEN
   CSetFeature("pipe",		"true");
 #endif
+#ifdef ASSOCIATE_SRC
+  CSetFeature("associate",	ASSOCIATE_SRC);
+#endif
 #ifdef O_DDE
   CSetFeature("dde",		"true");
 #endif
 #ifdef O_RUNTIME
   CSetFeature("runtime",	"true");
 #endif
+					/* ISO features */
   setFeature(lookupAtom("max_integer"), consNum(PLMAXINT));
   setFeature(lookupAtom("min_integer"), consNum(PLMININT));
+  CSetFeature("bounded",	"true");
+  if ( (-3 / 2) == -2 )
+    CSetFeature("integer_rounding_function", "down");
+  else if ( (-3 / 2) == -1 )
+    CSetFeature("integer_rounding_function", "toward_zero");
+  CSetFeature("max_arity", "unbounded");
+  CSetFeature("character_escapes", "true");
+
 #if defined(__DATE__) && defined(__TIME__)
   { char buf[100];
 
@@ -246,6 +258,12 @@ initSignals(void)
 handler_t
 pl_signal(int sig, handler_t func)
 { handler_t old = signal(sig, func);
+
+#ifdef SIG_ERR
+  if ( old == SIG_ERR )
+    warning("PL_signal(%d, 0x%x) failed: %s",
+	    sig, (unsigned long)func, OsError());
+#endif
 
   signalHandlers[sig].os = func;
   signalHandlers[sig].catched = (func == SIG_DFL ? FALSE : TRUE);

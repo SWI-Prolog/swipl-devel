@@ -82,7 +82,7 @@ progman_make_item(Group, Title, CmdLine, Dir) :-
 	;   true
 	),
 	dde_execute(DDE, '[ShowGroup("~w", 1)]', Group),
-	dde_execute(DDE, '[addItem("~w", "~w",,,,, "~w",,)]',
+	dde_execute(DDE, '[addItem(~w, "~w",,,,, "~w",,)]',
 		    [CmdLine, Title, Dir]),
 	close_dde_conversation(DDE).
 
@@ -110,43 +110,26 @@ progman_setup :-
 	feature(xpce, true), !,
 
 	explain(start),
-	program_group('XPCE/SWI-Prolog', Group),
+	program_group('XPCE & SWI-Prolog', Group),
 
-	feature(symbol_file, EXE),
-	feature(home, PlHomeDir),
-	file_directory_name(EXE, Bindir),
-	file_directory_name(Bindir, PceHomeDir),
-	concat(PlHomeDir, '/bin/pl.exe', PlExe),
+	feature(symbol_file, PlExe),
 	prolog_to_os_filename(PlExe, OsPlExe),
-	prolog_to_os_filename(EXE, OsPceExe),
-	prolog_to_os_filename(PlHomeDir, OsPlHomeDir),
-	prolog_to_os_filename(PceHomeDir, OsPceHomeDir),
 
 	progman_make_group(Group),
 	progman_make_item(Group, 'SWI-Prolog', OsPlExe, 'c:'),
-	progman_make_item(Group, 'SWI-Prolog (Boot)',
-			  'bin\pl.exe -b boot/init.pl',
-			  OsPlHomeDir),
-	progman_make_item(Group, 'XPCE/SWI-Prolog', OsPceExe, 'c:'),
-	progman_make_item(Group, 'XPCE/SWI-Prolog (Boot)',
-			  'bin\xpce.exe -g pce_host:pce_banner -b ../pl/boot/init.pl -c prolog/load.pl',
-			  OsPceHomeDir),
+	concat(OsPlExe, ' "--" "-pce"', PceCmdLine),
+	progman_make_item(Group, 'XPCE', PceCmdLine, 'c:').
 	explain(end).
 
 progman_setup :-
 	explain(start),
 
 	program_group('SWI-Prolog', Group),
-	feature(symbol_file, EXE),
-	feature(home, HomeDir),
-	prolog_to_os_filename(EXE, OsEXE),
-	prolog_to_os_filename(HomeDir, OsHomeDir),
+	feature(symbol_file, PlExe),
+	prolog_to_os_filename(PlExe, OsPlExe),
 
 	progman_make_group(Group),
-	progman_make_item(Group, 'SWI-Prolog', OsEXE, 'c:'),
-	progman_make_item(Group, 'SWI-Prolog (Boot)',
-			  'bin\pl.exe -b boot/init.pl',
-			  OsHomeDir),
+	progman_make_item(Group, 'SWI-Prolog', OsPlExe, 'c:').
 	explain(end).
 
 
@@ -161,12 +144,7 @@ explanation(start, '*******************************************************').
 explanation(start, '').
 
 explanation(end, '').
-explanation(end, 'I''ve created a program group containing the icons to').
-explanation(end, 'boot and run the system.  First you must execute the').
-explanation(end, 'icons tagged (Boot) to create the startup file.').
-explanation(end, '').
-explanation(end, 'After successfully running the boot compilation you').
-explanation(end, 'may use the normal execution icon to start the application').
+explanation(end, 'Program manager setup completed').
 explanation(end, '').
 
 explain(Id) :-
@@ -234,6 +212,10 @@ string_to_atoms([], S0,  [A]) :- !,
 	reverse(S0, S),
 	name(A, S).
 string_to_atoms([13,10|Rest], S0, [A|T]) :- !,
+	reverse(S0, S),
+	name(A, S),
+	string_to_atoms(Rest, [], T).
+string_to_atoms([10|Rest], S0, [A|T]) :- !,
 	reverse(S0, S),
 	name(A, S),
 	string_to_atoms(Rest, [], T).

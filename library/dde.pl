@@ -105,7 +105,7 @@ dde_current_connection(Service, Topic) :-
 %	Called by the DDEML XTYP_CONNECT request.  IsSelf is 0 if the
 %	connection is requested by another Prolog, 1 otherwise.
 
-'$dde_connect'(_Service, _Topic, Self) :-
+'$dde_connect'(Service, Topic, _Self) :-
 	dde_service(Service, Topic, _, _, _, _).
 
 %	$dde_connect_confirm(+Service, +Topic, +Handle)

@@ -51,7 +51,7 @@ findHome(char *symbols, char *def)
     strcpy(parent, DirName(DirName(AbsoluteFile(home))));
     Ssprintf(buf, "%s/swipl", parent);
 
-    if ( (fd = Fopen(buf, "r")) )
+    if ( (fd = Sopen_file(buf, "r")) )
     { if ( Sfgets(buf, sizeof(buf), fd) )
       { int l = strlen(buf);
 
@@ -220,6 +220,7 @@ startProlog(int argc, char **argv, char **env)
   int n;
   char *state, *symbols;
   bool compile;
+  bool explicit_state = FALSE;
   bool explicit_compile_out = FALSE;
 
   mainArgc			= argc;
@@ -279,13 +280,6 @@ startProlog(int argc, char **argv, char **env)
 
   argc--; argv++;
 
-#if O_RLC				/* MS-Windows readline console */
-  { char title[60];
-
-    Ssprintf(title, "SWI-Prolog (version %s)", PLVERSION);
-    rlc_title(title, NULL, 0);
-  }
-#endif
 					/* EMACS inferior processes */
 					/* PceEmacs inferior processes */
   if ( ((s = getenv("EMACS")) != NULL && streq(s, "t")) ||
@@ -308,13 +302,38 @@ startProlog(int argc, char **argv, char **env)
   if ( argc >= 2 && streq(argv[0], "-x") )
   { state = argv[1];
     argc -= 2, argv += 2;
+    explicit_state = TRUE;
     DEBUG(1, Sdprintf("Startup file = %s\n", state));
-  } else if ( argc >= 1 && stripostfix(argv[0], ".qlf") )
+#ifdef ASSOCIATE_STATE
+  } else if ( argc == 1 && stripostfix(argv[0], ASSOCIATE_STATE) )
   { state = argv[0];
     argc--, argv++;
+    explicit_state = TRUE;
     DEBUG(1, Sdprintf("Startup file = %s\n", state));
+#endif /*ASSOCIATE_STATE*/
   }
   
+#if O_RLC				/* MS-Windows readline console */
+  { char title[256];
+
+    if ( explicit_state )
+    {
+#if O_XOS
+    { char buf[MAXPATHLEN];
+      _xos_canonical_filename(state, buf);
+      Ssprintf(title, "%s", BaseName(buf));
+    }
+#else
+      Ssprintf(title, "%s", BaseName(state));
+#endif
+    } else
+    { Ssprintf(title, "SWI-Prolog (version %s)", PLVERSION);
+    } 
+      
+    rlc_title(title, NULL, 0);
+  }
+#endif
+
   if ( argc >= 1 && streq(argv[0], "-help") )
     usage();
   if ( argc >= 1 && streq(argv[0], "-v") )
@@ -615,13 +634,8 @@ va_list args;
     unifyAtomic(argTermP(arg, 2), globalString(message));
 
     if ( callGoal(MODULE_user, goal, FALSE) == FALSE )
-    { extern int Output;
-      int old = Output;
-    
-      Output = 2;
-      Putf("[WARNING: (%s:%d)\n\t%s]\n",
-	    stringAtom(source_file_name), source_line_no, message);
-      Output = old;
+    { Sfprintf(Serror, "[WARNING: (%s:%d)\n\t%s]\n",
+	       stringAtom(source_file_name), source_line_no, message);
     }
     Undo(m);
 
@@ -629,20 +643,9 @@ va_list args;
   }
 
 
-  if ( status.io_initialised )
-  { extern int Output;
-    int old = Output;
-    
-    Output = 2;
-    Putf("[WARNING: ");
-    vPutf(fm, args);
-    Putf("]\n");
-    Output = old;
-  } else
-  { Sfprintf(Serror, "[WARNING: ");
-    Svfprintf(Serror, fm, args);
-    Sfprintf(Serror, "]\n");
-  }
+  Sfprintf(Serror, "[WARNING: ");
+  Svfprintf(Serror, fm, args);
+  Sfprintf(Serror, "]\n");
 
   pl_trace();
 
