@@ -187,13 +187,15 @@ check_pce_database :-
 check_pce_types :-
 	get(@pce, unresolved_types, Types),
 	get(Types, find_all,
-	    message(@prolog, no_autoload_class, @arg1?context?name),
+	    message(@prolog, no_autoload_class, @arg1?context?print_name),
 	    Unresolved),
 	(   send(Unresolved, empty)
 	->  true
-	;   send(@pce, format, 'WARNING: Unresolved types:\n'),
+	;   send(@pce, format,
+		 '[PCE: WARNING: The following type(s) have no associated class:\n'),
 	    send(Unresolved, for_all,
-		 message(@pce, format, '\t%N\n', @arg1))
+		 message(@pce, format, '\t%N\n', @arg1)),
+	    send(@pce, format, ']\n')
 	).
 
 

@@ -999,21 +999,21 @@ moveAfterChain(Chain ch, Any obj1, Any obj2)
   status rval;
   
   if ( notDefault(obj2) && notNil(obj2) )
-  { if ( obj1 == obj2 || memberChain(ch, obj2) == FAIL )
+  { if ( obj1 == obj2 || !memberChain(ch, obj2) )
       fail;
     cell = ch->current->next;
     if ( notNil(cell) && cell->value == obj1 )
       succeed;				/* already true */
   } else
   { if ( obj1 == getHeadChain(ch) )
-      fail;
+      succeed;
     cell = ch->head;
   }
   
   if ( is_obj ) 
     addCodeReference(obj1);
   
-  if ( deleteChain(ch, obj1) != FAIL )
+  if ( deleteChain(ch, obj1) )
   { ch->current = cell;
     insertChain(ch, obj1);
     

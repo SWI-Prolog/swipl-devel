@@ -13,7 +13,7 @@
 	   ]).
 
 :- initialization
-	new(KB, key_binding(man, fundamental)),
+	new(KB, emacs_key_binding(man, fundamental)),
 	send(KB, function, '\C-c\C-f',	goto_man_page).
 
 :- initialization

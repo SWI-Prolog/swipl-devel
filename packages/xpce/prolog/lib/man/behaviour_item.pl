@@ -96,7 +96,9 @@ split_completion(_MI, Value:char_array, RVal:'char_array|tuple') :<-
 selection(MI, S:'behaviour|class*') :<-
 	"Get selection as behaviour or class"::
 	get(MI, get_super, selection, Text),
-	(   get(Text, size, 0)
+	(   send(type('behaviour|class*'), validate, Text)
+	->  S = Text
+	;   get(Text, size, 0)
 	->  S = @nil
 	;   new(Re, regex('\s *\(\w+\)\s *\(->\|<-\|-\)\s *\(\w+\)')),
 	    (   (   send(Re, match, Text)
@@ -123,6 +125,6 @@ selection(MI, S:'behaviour|class*') :<-
 /*
 test :-
 	send(behaviour_item(manpce, '',
-			 message(@prolog, manpce, @arg1)),
+			    message(@prolog, manpce, @arg1)),
 	     open).
 */

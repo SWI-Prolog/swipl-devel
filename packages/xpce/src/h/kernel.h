@@ -483,9 +483,10 @@ extern struct name builtin_names[];	/* object-array of built-in's */
 
 #define isProperObject(obj) \
 			(isObject(obj) && isAddress(obj) && \
-			 isObject(classOfObject(obj)) && \
-			 isAddress(classOfObject(obj)) && \
-			 classOfObject(classOfObject(obj)) == ClassClass)
+			 (classOfObject(classOfObject(obj)) == ClassClass || \
+			  (isObject(classOfObject(obj)) && \
+			   isAddress(classOfObject(obj)) && \
+			   instanceOfObject(classOfObject(obj), ClassClass))))
 #define isAddress(a)	((ulong)(a) >= allocBase && \
 			 (ulong)(a) < allocTop && \
 			 !((ulong)(a) & (sizeof(Any)-1)))

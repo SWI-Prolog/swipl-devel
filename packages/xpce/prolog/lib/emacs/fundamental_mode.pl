@@ -21,7 +21,7 @@
 
 
 :- initialization
-	new(KB, key_binding(fundamental, editor)),
+	new(KB, emacs_key_binding(fundamental, editor)),
 	send(KB, function, '\C-h',     prefix),
 	send(KB, function, '\C-hb',    show_key_bindings),
 	send(KB, function, '\C-xi',    insert_file),
@@ -58,10 +58,13 @@
 	send(MM, append, file, kill_buffer),
 	send(MM, append, file, ispell),
 	send(MM, append, file, shell),
+	send(MM, append, file,
+	     emacs_argument_item(mode, @emacs_mode?modes)),
 	send(MM, append, file, identify),
 	send(MM, append, file, quit),
 
 	send(MM, append, help, help),
+	send(MM, append, help, customise),
 	send(MM, append, help, show_key_bindings),
 	send(MM, append, help, manual_entry),
 
@@ -73,22 +76,7 @@
 	send(MM, append, browse, bookmark_line),
 	send(MM, append, browse, grep),
 
-	send(MM, append, compile, compile),
-
-	get(@mode_name_type, context, Modes),
-	get(Modes, copy, RestModes),
-	send(RestModes, delete, gdb),
-	send(RestModes, delete, shell),
-	send(RestModes, delete, man),
-	get(RestModes, map,
-	    create(menu_item,
-		   @arg1,
-		   create(message,
-			  quote_function(@emacs_mode), mode, @arg1)),
-	    Entries),
-
-	send(Entries, for_all,
-	     message(MM, append, mode, @arg1)).
+	send(MM, append, compile, compile).
 
 
 :- pce_begin_class(emacs_fundamental_mode, emacs_mode).
@@ -106,7 +94,7 @@ keyboard_quit(M) :->
 
 show_key_bindings(M) :->
 	"Display window with key-bindings"::
-	show_key_bindings(M).
+	auto_call(show_key_bindings(M)).
 
 
 quit(M) :->
@@ -128,6 +116,40 @@ sort_lines_in_region(M) :->
 	get(M, mark, Mark),
 	get(M, caret, Caret),
 	send(M, sort, Mark, Caret).
+
+
+delete_matching_lines(M, Re:regex) :->
+	"Delete lines in (point,end) matching regex"::
+	get(M, caret, Caret),
+	get(M, text_buffer, TB),
+	get(TB, scan, Caret, line, 0, start, SOL),
+	send(Re, compile, @on),
+	new(Here, number(SOL)),
+	repeat,
+	    (	get(TB, size, Size),
+		get(Here, value, PlHere),
+		PlHere >= Size
+	    ->	!
+	    ;   get(TB, scan, Here, line, 0, end, EOL),
+		(   send(Re, search, TB, Here, EOL)
+		->  send(TB, delete, Here, EOL+1-Here)
+		;   send(Here, value, EOL+1)
+		),
+		fail
+	    ).
+		
+
+/*
+delete_rectangle(M) :->
+	"Delete rectangular area (mark,caret)"::
+	get(M, mark, Mark),
+	get(M, column, Mark, MarkColumn),
+	get(M, caret, Caret),
+	get(M, column, Caret, CaretColumn),
+	min(MarkColumn, CaretColumn, FromColumn),
+	max(MarkColumn, CaretColumn, ToColumn),
+	
+*/
 
 
 cut(M) :->
@@ -155,6 +177,10 @@ paste(M) :->
 buffers(_M, Buffers:chain) :<-
 	"Chain with existing buffers"::
 	get(@emacs, buffers, Buffers).
+
+modes(_M, Modes:chain) :<-
+	"Chain with defined modes"::
+	get(@emacs, modes, Modes).
 
 
 save_text(M) :->
@@ -248,24 +274,13 @@ print(M) :->
 		 *	      REPLACE		*
 		 *******************************/
 
-query_replace_regex(M) :->
+query_replace_regex(M,
+		    From:'replace=regex',
+		    To:'into=string') :->
 	"Query replace regular expression"::
 	send(M, set_mark),
-	(   get(M, attribute, replace_search_pattern, OldFrom)
-	->  true
-	;   OldFrom = ''
-	),
-	(   get(M, attribute, replace_replace_pattern, OldTo)
-	->  true
-	;   OldTo = ''
-	),
-	get(M?frame, prompt,
-	    'Replace (regex)', OldFrom, regex, From),
 	send(M, attribute, attribute(replace_search_pattern, From)),
-	get(M?frame, prompt,
-	    string('Replace %s with', From?pattern), OldTo, string, To),
 	send(M, attribute, attribute(replace_replace_pattern, To)),
-
 	replace_find_and_mark(M),
 	send(M, focus_function, '_query_replace_regex').
 
@@ -355,19 +370,26 @@ ispell(M) :->
 		 *	  M-x PROCESSING	*
 		 *******************************/
 
-:- pce_global(@emacs_command_type, new(type(emacs_command_name,
-					    name_of, new(chain), @nil))).
-
-execute_extended_command(M, Times:[int]) :->
-	"Prompt for interactive command"::
+command_names(M, Names:chain) :<-
+	"Find all send_methods on this mode"::
 	get(M, find_all_send_methods, Chain),
-	get(@emacs_command_type, context, Ctx),
-	send(Ctx, clear),
-	send(Chain, for_all, message(Ctx, append, @arg1?name)),
-	send(Ctx, sort),
-	get(M?frame, prompt, 'Command', @default,
-	    @emacs_command_type, CmdName),
+	get(Chain, map, @arg1?name, Names).
+
+
+:- (   object(@emacs_mode_command)
+   ->  true
+   ;   new(@emacs_mode_command,
+	   type(emacs_mode_command, value_set,
+		quote_function(@current_emacs_mode?command_names),
+		@nil))
+   ).
+
+execute_extended_command(M,
+			 CmdName:'command=emacs_mode_command',
+			 Times:[int]) :->
+	"Prompt for interactive command"::
 	get(M, send_method, CmdName, tuple(_, Impl)),
+	send(M, open_history, Impl, @on),
 	new(Argv, vector),
 	between(1, 100, ArgN),
 	    (   get(Impl, argument_type, ArgN, ArgType)
@@ -385,8 +407,9 @@ execute_extended_command(M, Times:[int]) :->
 	    ;   !
 	    ),
 	result(send(M, send_vector, CmdName, Argv), YesNo),
-	(   object(M)
-	->  send(M, report, status, YesNo)
+	(   object(M)			% may be ->free'd!
+	->  send(M, close_history, Argv),
+	    send(M, report, status, YesNo)
 	;   true
 	).
 
@@ -399,20 +422,12 @@ result(_, no).
 		 *	     COMPILE		*
 		 *******************************/
 
-:- pce_global(@emacs_compile_command, new(string(make))).
 :- pce_global(@emacs_grep_command, new(string('grep -n %%s /dev/null'))).
-:- pce_global(@emacs_grep_argument, new(string)).
 
-compile(M, Command:[name], Label:[name], Pool:[name]) :->
+compile(M, Command:string, Label:[name], Pool:[name]) :->
 	"Run Unix (compilation) process in buffer"::
-	(   Command == @default
-	->  get(M, prompt, 'Compile command',
-		@emacs_compile_command, string, Cmd),
-	    send(@emacs_compile_command, value, Cmd)
-	;   Cmd = Command
-	),
-	send(@emacs, save_some_buffers),
-	default(Label, Cmd, Lbl),
+	send(M, save_some_buffers),
+	default(Label, Command, Lbl),
 	get(M, directory, Dir),
 	new(B, emacs_process_buffer(@default, string('*%s*', Lbl))),
 	(   get(B, process, OldP), OldP \== @nil,
@@ -430,12 +445,12 @@ compile(M, Command:[name], Label:[name], Pool:[name]) :->
 	    Status == ok
 	;   true
 	),
-	new(P, process('/bin/sh', '-c', Cmd)),
+	new(P, process('/bin/sh', '-c', Command)),
 	default(Pool, compile, ThePool),
 	send(B, pool, ThePool),
 	send(P, directory, Dir),
 	send(B, clear),
-	send(B, format, 'cd %s\n%s\n', Dir?path, Cmd),
+	send(B, format, 'cd %s\n%s\n', Dir?path, Command),
 	send(B, directory, Dir),
 	send(B, process, P),
 	send(B, start_process),
@@ -446,18 +461,12 @@ compile(M, Command:[name], Label:[name], Pool:[name]) :->
 		 message(@arg1, caret, @default))).
 
 
-grep(M, GrepCmd:[name]) :->
+grep(M, GrepArgs:'grep_arguments=string') :->
 	"Run Unix grep in compilation buffer"::
-	(   GrepCmd == @default
-	->  get(M, prompt, 'Grep (regex files)',
-		@emacs_grep_argument, string, Cmd),
-	    send(@emacs_grep_argument, value, Cmd)
-	;   Cmd = GrepCmd
-	),
 	send(@emacs, save_some_buffers),
 	send(M, compile,
-	     string(@emacs_grep_command, Cmd),
-	     string('grep %s', Cmd),
+	     string(@emacs_grep_command, GrepArgs),
+	     string('grep %s', GrepArgs),
 	     grep).
 
 
@@ -609,6 +618,10 @@ help(_) :->
 	"Display general help"::
 	send(@emacs, help).
 
+customise(_) :->
+	"Display customisation help"::
+	send(@emacs, customise).
+
 
 		 /*******************************
 		 *	       PCE		*
@@ -618,16 +631,43 @@ manpce(_M, Class:'behaviour|class*') :->
 	"Start XPCE manual on behaviour or class"::
 	(   Class == @nil
 	->  manpce
-	;   manpce(Class)
+	;   auto_call(manpce(Class))
 	).
 
 
 editpce(M, Class:'behaviour|class*') :->
-	"Edit pce class or class <->method"::
+	"Edit XPCE class or class <->method"::
 	(   Class == @nil
 	->  send(M, report, warning,
 		 'Enter "class" or "class->|<-|-selector"')
-	;   editpce(Class)
+	;   auto_call(editpce(Class))
+	).
+
+
+tracepce(M, Method:behaviour*) :->
+	"Put trace-point on XPCE class <->method"::
+	(   Method == @nil
+	->  send(M, report, warning,
+		 'Enter "class->|<-|-selector"')
+	;   auto_call(tracepce(Method))
+	).
+
+
+breakpce(M, Method:behaviour*) :->
+	"Put break-point on XPCE class <->method"::
+	(   Method == @nil
+	->  send(M, report, warning,
+		 'Enter "class->|<-|-selector"')
+	;   auto_call(breakpce(Method))
+	).
+
+
+spypce(M, Method:behaviour*) :->
+	"Put spy-point on XPCE class <->method"::
+	(   Method == @nil
+	->  send(M, report, warning,
+		 'Enter "class->|<-|-selector"')
+	;   auto_call(spypce(Method))
 	).
 
 

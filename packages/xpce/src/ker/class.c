@@ -19,13 +19,11 @@ static status	fill_slots_class(Class class, Class super);
 #define SlotsClass(c) \
       ((sizeof(struct c) - ((int) &((Instance) NULL)->slots[0])) / sizeof(Any))
 
-Class
-typeClass(Name name)
-{ Class class = alloc(sizeof(struct class));
-  int i;
+static void
+resetSlotsClass(Class class, Name name)
+{ int i;
   int slots = SlotsClass(class);
 
-  initHeaderObj(class, ClassClass);
   setProtectedObj(class);
 
   for(i=0; i<CLASS_PCE_SLOTS; i++)
@@ -44,6 +42,15 @@ typeClass(Name name)
   assign(class, name,	    name);
   assign(class, no_created, ZERO);
   assign(class, no_freed,   ZERO);
+}
+
+
+Class
+typeClass(Name name)
+{ Class class = alloc(sizeof(struct class));
+
+  initHeaderObj(class, ClassClass);
+  resetSlotsClass(class, name);
 
   return class;
 }
@@ -58,9 +65,9 @@ nameToTypeClass(Name name)
 	 type->vector != OFF ||
 	 notNil(type->supers) ||
 	 !instanceOfObject(type->context, ClassClass) )
-      { errorPce(type, NAME_notClassType);
-	fail;
-      }
+    { errorPce(type, NAME_notClassType);
+      fail;
+    }
     
     return type->context;
   }
@@ -509,7 +516,35 @@ care of ceating new classes.
 
 static status
 initialiseClass(Class class, Name name, Class super)
-{ fail;
+{ Type type;
+
+  if ( getMemberHashTable(classTable, name) )
+    fail;				/* failure from getLookupClass() */
+
+  resetSlotsClass(class, name);
+  appendHashTable(classTable, name, class);
+
+  type = nameToType(name);
+  if ( !isClassType(type) ||
+       type->vector != OFF ||
+       notNil(type->supers) )
+  { errorPce(type, NAME_notClassType);
+    fail;
+  }
+  assign(type, context, class);
+
+  if ( isDefault(super) )
+    super = ClassObject;
+
+  realiseClass(super);
+  fill_slots_class(class, super);
+  assign(class, creator, inBoot ? NAME_builtIn : NAME_host);
+  assign(class, no_created, ZERO);
+  assign(class, no_freed,   ZERO);
+  numberTreeClass(ClassObject, 0);
+  createdObject(class, NAME_new);
+
+  succeed;
 }
 
 
@@ -529,8 +564,13 @@ getLookupClass(Class class, Name name, Class super)
       answer(cl);
   }
 
+  fail;
+#if 0
   if ( isDefault(super) )
     super = ClassObject;
+
+  if ( !inBoot && class != ClassClass )
+    fail;				/* leave to ->initialise */
 
   TRY(cl = nameToTypeClass(name));
   realiseClass(super);
@@ -542,6 +582,7 @@ getLookupClass(Class class, Name name, Class super)
   createdObject(cl, NAME_new);
 
   answer(cl);
+#endif
 }
 
 

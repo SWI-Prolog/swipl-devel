@@ -13,7 +13,7 @@
 	   , ignore/1
 	   ]).
 
-:-	new(_KB, key_binding('c++', c)).
+:-	new(_KB, emacs_key_binding('c++', c)).
 
 :-	new(_X, syntax_table('c++', c)).
 

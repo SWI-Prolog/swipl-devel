@@ -17,54 +17,38 @@
 	   ]).
 
 
-:- initialization
-	new(KB, key_binding(prolog, language)),
-	send(KB, function, 'TAB',      indent_line),
-	send(KB, function, '\eq',      indent_clause),
-	send(KB, function, '\e.',      find_definition),
-	send(KB, function, '(',        insert_if_then_else),
-	send(KB, function, ';',        insert_if_then_else),
-	send(KB, function, '>',        insert_if_then_else),
-	send(KB, function, '\C-cRET',  make),
-	send(KB, function, '\C-c\C-r', pce_insert_require_directive),
-	send(KB, function, '\C-c\C-b', compile_buffer).
+:- emacs_begin_mode(prolog, language,
+		    "Mode for editing XPCE/Prolog sources",
+					% BINDINGS
+	[ indent_line		       = key('TAB'),
+	  indent_clause		       = key('\eq'),
+	  insert_if_then_else	       = key('(') + key(';') + key('>'),
 
-:- initialization
-	new(X, syntax_table(prolog)),
-	send(X, syntax, '"',  string_quote, '"'),
-	send(X, syntax, '''', string_quote, ''''),
-	send(X, syntax, $,    symbol),
-	send(X, syntax, @,    symbol),
+	  find_definition	       = key('\e.') + button(prolog),
+	  make			       = key('\C-cRET') + button(prolog),
+	  compile_buffer	       = key('\C-c\C-b') + button(prolog),
+	  consult_selection	       = button(compile) + button(prolog),
 
-	send(X, syntax,     '%',  comment_start),
-	send(X, add_syntax, '\n', comment_end),
-	send(X, add_syntax, '/',  comment_start, '*'),
-	send(X, add_syntax, '*',  comment_end, '/').
-
-:- initialization
-	new(MM, emacs_mode_menu(prolog, language)),
-
-	send(MM, append, help, manpce),
-
-	send(MM, append, browse, find_definition),
-
-	send(MM, append, compile, make),
-	send(MM, append, compile, compile_buffer),
-	send(MM, append, compile, consult_selection),
-
-	send(MM, append, prolog, make),
-	send(MM, append, prolog, compile_buffer),
-	send(MM, append, prolog, consult_selection),
-	send(MM, append, prolog, find_definition),
-
-	send(MM, append, pce, manpce),
-	send(MM, append, pce, editpce),
-	send(MM, append, pce, pce_check_require_directives),
-	send(MM, append, pce, pce_insert_require_directive).
-
-   
-:- pce_begin_class(emacs_prolog_mode, emacs_language_mode).
-
+	  manpce		       = key('\C-c?') + button(pce),
+	  editpce		       = key('\C-ce') + button(pce),
+	  tracepce		       = key('\C-ct') + button(pce),
+	  breakpce 		       = button(pce),
+	  spypce		       = button(pce),
+	  what_class		       = key('\C-cw') + button(pce),
+	  pce_insert_require_directive = key('\C-c\C-r') + button(pce),
+	  pce_check_require_directives = button(pce)
+	],
+					% SYNTAX TABLE
+	[ '"'  = string_quote('"'),
+	  '''' = string_quote(''''),
+	  $    = symbol,
+	  @    = symbol,
+	  '%'  = comment_start,
+	  '\n' + comment_end,
+	  '/'  + comment_end('*'),
+	  '*'  + comment_end('/')
+	]).
+		 
 
 :- pce_global(@prolog_neck_regex,
 	      new(regex(':-\|-->\|:->\|:<-'))).
@@ -148,15 +132,21 @@ indent_clause_line(E) :->
 insert_if_then_else(E, Times:[int], Char:char) :->
 	"Indent after typing (, > or ;"::
 	send(E, insert_self, Times, Char),
-	get(E, beginning_of_if_then_else, OpenPos),
 	get(E, caret, Caret),
 	get(E, text_buffer, TB),
 	get(TB, scan, Caret, line, 0, start, SOL),
-	(   (   send(regex('\s *\((\|->\|;\)$'), match, TB, SOL, Caret)
-	    ;   Caret =:= 1 + OpenPos
+	(   get(regex('\s *\((\|->\|;\)'), match, TB, SOL, L),
+	    Caret =:= SOL + L,
+	    get(E, beginning_of_if_then_else, OpenPos)
+	->  get(E, text_buffer, TB),
+	    get(TB, scan, Caret, line, 0, start, SOL),
+	    (   (   send(regex('\s *\((\|->\|;\)$'), match, TB, SOL, Caret)
+		;   Caret =:= 1 + OpenPos
+		)
+	    ->  get(E, column, OpenPos, Col),
+		send(E, align, Col+4)
+	    ;   true
 	    )
-	->  get(E, column, OpenPos, Col),
-	    send(E, align, Col+4)
 	;   true
 	).
 
@@ -297,6 +287,27 @@ locate(E, Name, Arity) :->
 	locate(TB, Name, Arity, Index),
 	send(E, caret, Index).
 
+what_class(E, ClassName:name) :<-
+	"Find current XPCE class"::
+	get(E, caret, Caret),
+	get(E, text_buffer, TB),
+	new(BG, regex(':-\s *pce_begin_class(\(\w+\)')),
+	get(BG, search, TB, Caret, 0, BeginClass),
+	(   get(regex(':-\s *pce_end_class\s *.'), search,
+		TB, Caret, 0, EndClass)
+	->  EndClass < BeginClass
+	;   true
+	),
+	get(BG, register_value, TB, 1, name, ClassName).
+
+what_class(E) :->
+	"Display current class"::
+	(   get(E, what_class, ClassName)
+	->  send(E, report, inform, 'You are in XPCE class "%s"', ClassName)
+	;   send(E, report, inform,
+		 'Not between :- pce_begin_class and :- pce_end_class')
+	).
+
 
 		 /*******************************
 		 *	   COMPILATION		*
@@ -400,5 +411,5 @@ drop(M, Obj:object) :->
 	send(M, mark_undo),
 	send(M, report, status, 'Source included').
 
-:- pce_end_class.
+:- emacs_end_mode.
 

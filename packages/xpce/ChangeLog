@@ -1,3 +1,42 @@
+[VERSION 4.8.2]
+
+* FIX: @display ->dispatch if the display is not yet opened.
+
+* CHANGED: PceDraw now exploits class templates for a much more compact
+  definition of its shape classes.  Public schema for extending PceDraw
+  has been added (prototype).
+
+* CHANGE: new/2 and friends now give a warning if the 1-st argument is
+  not of the form @<atom>, @<var> or <var>.  Traps accidental reuse of
+  already instantiated Prolog variables.  Actually also reveiled an
+  error in font-management of the online manual reader!
+
+* ADDED: `joint <-default_arrow' as an explicit method which should return
+  the default arrow to be used for `joint ->arrows' and friends.
+
+* ADDED: Function object @class, pointing to the currently compiling class.
+
+* FIX: PceDraw: Background `Select Mode' menu.
+
+* FIX: Class text positioning of centered text.
+
+* ADDED: PceEmacs argument-prompting history added.  Using
+  M-p and M-n, you can now go through the history of the current
+  command.  Special purpose prompt routines have been removed to make
+  the history accessible for all commands.
+
+  A formal PceEmacs extension protocol is added.  See Help/Customise
+  in the PceEmacs manu-bar.
+
+* FIX: `meta-class' refinement through subclassing class `class' works
+  again.
+
+* FIX: `chain->move_after: member' failed if chain holds member as it's
+  head.  Should succeed (and now does so).
+
+* HOOK: Split `key_binding ->typed' into various pieces, so it is easier
+  to specialise on this.  Used for M-x command history in PceEmacs.
+
 [VERSION 4.8.1]
 
 * ADDED: auto_call/1 to simulate an autoload call on standard Prolog
@@ -18,6 +57,10 @@
   on Irix machines.  Also fix to instantiation of X11-counterpart for
   images.  Thanks to Jan van der Steen (jansteen@cwi.nl), who also created
   new up-to-date Irix machine description files. 
+
+* CHANGED: Hyper-text help library.  Many new features added.  This library
+  is now used for an XPCE FAQ (through the manual File/Faq menu), PceEmacs,
+  PceDraw and various other demo's.
 
 * ADDED: optional `ignore_case' argument to `char_array <-compare'.
 

@@ -12,7 +12,7 @@
 
 
 :- initialization
-	new(_KB, key_binding(script, language)).
+	new(_KB, emacs_key_binding(script, language)).
 
 :- initialization
 	new(X, syntax_table(script)),

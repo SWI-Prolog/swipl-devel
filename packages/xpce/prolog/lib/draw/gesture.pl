@@ -247,7 +247,11 @@ terminate(G, Ev:event) :->
 	get(G, outline, Outline),
 	get(Ev, receiver, Canvas),
 	send(Outline, device, @nil),
-	send(Canvas, selection, ?(Canvas, inside, Outline?area)).
+	get(Canvas, inside, Outline?area, ToSelect),
+	send(ToSelect, for_all,
+	     if(not(message(@arg1?class, instance_of, draw_shape_class)),
+		message(ToSelect, delete, @arg1))),
+	send(Canvas, selection, ToSelect).
 
 :- pce_end_class.
 
@@ -272,12 +276,13 @@ make_create_proto_recogniser(R) :-
 	new(Canvas, @event?receiver),
 	new(Proto, Canvas?proto),
 	new(R, click_gesture(left, '', single,
-			     block(assign(new(Clone, var), Proto?clone),
-				   message(Canvas, display,
-					   Clone, @event?position),
-				   if(message(Clone, has_send_method,
-					      start_text),
-				      message(Clone, start_text))),
+			     and(assign(new(Clone, var), Proto?clone),
+				 message(Clone, center, @event?position),
+				 message(Canvas, display, Clone),
+				 if(message(Clone, has_send_method,
+					    start_text),
+				    message(Clone, start_text)),
+				 message(Canvas, auto_align, Clone, create)),
 			     Canvas?(mode) == draw_proto)).
 
 
@@ -968,7 +973,13 @@ verify(G, Ev:event) :->
 connect(_G, From:graphical, To:graphical, Link:link,
 	    FH:[name], TH:[name]) :->
 	"Connect the graphicals (using a draw_connection)"::
-	new(_, draw_connection(From, To, Link, FH, TH)).
+	(   get(Link, attribute, connection_class, ClassName)
+	->  true
+	;   ClassName = draw_connection
+	),
+	Term =.. [ClassName, From, To, Link, FH, TH],
+	new(C, Term),
+	send(C, start_text).
 
 :- pce_end_class.
 

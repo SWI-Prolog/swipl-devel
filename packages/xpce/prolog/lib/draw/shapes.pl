@@ -7,57 +7,227 @@
     Copyright (C) 1992 University of Amsterdam. All rights reserved.
 */
 
-:- module(draw_shapes, []).
+:- module(draw_shapes,
+	  [ draw_begin_shape/4,
+	    draw_end_shape/0
+	  ]).
 
 :- use_module(library(pce)).
+:- use_module(library('dialog/lib/template')).
 :- require([ ignore/1
 	   , memberchk/2
 	   ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This module defines  the various shapes  that can be used to construct
-the diagram.  Most  of the  shapes are  very close  the PCE's  drawing
-primitives.  Two things have to be added for each of them: handles for
+This module defines the various shapes that can be used to construct the
+diagram.   Most  of  the  shapes  are   very  close  the  PCE's  drawing
+primitives.  Two things have to be added   for each of them: handles for
 connecting lines (connections) and event-handling.
 
-Both things can be added both at the  class and at the instance level.
-I  decided to  add  them  at the class  level.   As there are normally
-multiple instances of the classe, this  approach reduces  memory cost.
-A  more important issue is kloning  and saving.  These operations work
-recursively   and therefore would   clone  and  save  the object-level
-extensions.  For saving, this has two  disadvantages.  The saved files
-would get bigger and, more important, the gestures -defining the UI of
-the tool- would be saved too.  This  leads to a  bad  separation of UI
-and the actual data manipulated.
+Programming can be done both at the class  and at the instance level.  I
+decided to add them at the class  level.  As there are normally multiple
+instances of the classe, this  approach   reduces  memory  cost.  A more
+important  issue  is  kloning  and    saving.    These  operations  work
+recursively  and  therefore  would  clone   and  save  the  object-level
+extensions.  For saving, this has two   disadvantages.   The saved files
+would get bigger and, more important, the   gestures -defining the UI of
+the tool- would be saved too.  This leads  to a bad separation of UI and
+the actual data manipulated.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 		/********************************
-		*            COMMON		*
+		*	  COMMON TEMPLATE	*
 		********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The various   shapes are subclasses   of corresponding PCE graphicals.
-Each of them has to  be expanded with ->geometry and  ->attribute.  We
-define predicates to implement these  methods  and than just  refer to
-these predicates.
+To facilate users to refine PceDraw for   their own needs, we designed a
+very simple schema for defining  new  shapes.    A  PceDraw  shape  is a
+subclass of a PCE graphical or of   another PceDraw shape.  Such classes
+are defined between the braces:
+
+	:- draw_begin_shape(Name, Super, Summary, Recognisers).
+
+	...
+
+	:- draw_end_shape.
+
+The public predicate draw_begin_shape/4 creates a  new XPCE class `Name'
+below `Super'.  The  class  object  itself   is  an  instance  of  class
+draw_shape_class, rather then of  the  normal   XPCE  class  class.  The
+reason for this is to allow for certain  definitions to be raised to the
+meta-class level.
+
+We extend the  meta-knowledge  represented   in  classes  with  `hidden'
+attributes (attributes that *can*, but *are not* edited by the attribute
+editor (see `draw_shape ->has_attribute') and recognisers.
+
+NOTE:	I consider allowing for class-level recognisers anyway, avoiding
+	the need for explicit event-handling methods in many cases.
+
+First the definition of the meta-class draw_shape_class:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-geometry(Gr, X, Y, W, H) :-
-	send(Gr, send_super, geometry, X, Y, W, H),
-	modified(Gr).
+:- pce_begin_class(draw_shape_class, class, "Handle class-level stuff").
 
-attribute(Gr, Att, Val) :-
+variable(hidden_attributes, chain,  get, "Masked attributes").
+variable(recognisers,	    chain,  get, "Event-handling recognisers").
+variable(part_attributes,   sheet*, get, "Compound attribute dispatching").
+
+initialise(Class, Name, Super) :->
+	send(Class, send_super, initialise, Name, Super),
+	(   get(Class, super_class, SuperClass),
+	    send(SuperClass, instance_of, draw_shape_class)
+	->  send(Class, slot, hidden_attributes,
+		 SuperClass?hidden_attributes?copy),
+	    send(Class, slot, recognisers,
+		 SuperClass?recognisers?copy),
+	    send(Class, slot, part_attributes,
+		 SuperClass?part_attributes?clone)
+	;   send(Class, slot, hidden_attributes, new(chain)),
+	    send(Class, slot, recognisers, new(chain))
+	).
+
+:- pce_group(attribute).
+
+hidden_attribute(Class, Attr:name) :->
+	"Register a hidden attribute"::
+	get(Class, hidden_attributes, Hidden),
+	send(Hidden, add, Attr).
+
+part_attribute(Class, Attribute:name, Part:name) :->
+	"Attribute must be manipulated on part"::
+	get(Class, part_attributes, A0),
+	(   A0 == @nil
+	->  send(Class, slot, part_attributes, new(Mapping, sheet))
+	;   Mapping = A0
+	),
+	send(Mapping, value, Attribute, Part).
+
+:- pce_group(event).
+
+recogniser(Class, Recogniser:recogniser) :->
+	"Register (prepend) a recogniser"::
+	get(Class, recognisers, Recognisers),
+	send(Recognisers, add, Recogniser).
+
+:- pce_end_class.
+
+
+draw_begin_shape(Name, Super, Summary, Recognisers) :-
+	get(@pce, convert, Super, class, SuperClass),
+	(   send(SuperClass, instance_of, draw_shape_class)
+	->  pce_begin_class(Name, Super, Summary)
+	;   new(_, draw_shape_class(Name, Super)),
+	    pce_begin_class(Name, Super, Summary),
+	    use_class_template(Name, draw_shape)
+	),
+	forall(member(R, Recognisers),
+	       send(@class, recogniser, R)).
+
+draw_end_shape :-
+	pce_end_class.
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+All shape classes need to implement a  protocol to the draw_canvas class
+(and  through  there  to   the   attribute    editor).    To   do  this,
+draw_begin_shape/4 will include the `class  template' draw_shape in each
+direct subclass of a non-PceDraw class.
+
+Including a class template  implies  that   all  methods  defined on the
+template class below class  `template'  (an   empty  class  below  class
+object)  will  be  included  into  the    current  class.   Neither  the
+implementation, nor the method/variable object   itself is copied: their
+references are simply included  in   the  `class <-send_methods', `class
+<-get_methods' or `class <-instance_variables', depending  on the object
+included.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- pce_begin_class(draw_shape, template,
+		   "Common methods for PceDraw objects").
+
+
+geometry(Gr, X:[int], Y:[int], W:[int], H:[int]) :->
+	"Like super-method, but activate ->modified"::
+	send(Gr, send_super, geometry, X, Y, W, H),
+	send(Gr, modified).
+
+:- pce_group(attribute).
+
+attribute(Gr, Att, Val) :->
+	"Modify an attribute if ->has_attribute"::
 	send(Gr, has_attribute, Att),
 	send(Gr, Att, Val),
-	modified(Gr).
+	send(Gr, modified).
+attribute(Gr, Att, Val) :<-
+	"Just completeness"::
+	get(Gr, Att, Val).
 
-modified(Gr) :-
-	get(Gr, window, Window), Window \== @nil,
-	send(Window, modified),
-	get(Gr, selected, @on),
-	send(Window, update_attribute_editor), !.
-modified(_).
-	
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+->has_attribute is used by the attribute   editor to find the attributes
+that can be manipulated on the currently selected object.
+
+A name is defined an attribute if it  can both be modified and requested
+(i.e.  there is send- and get-behaviour for   the  name).  The class (an
+instance of draw_shape_class), defines a chain   of  attributes that are
+explicitely masked.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+has_attribute(Gr, Att:name) :->
+	"Test if object defines attribute"::
+	send(Gr, has_send_method, Att),
+	send(Gr, has_get_method, Att),
+	\+ send(Gr, hidden_attribute, Att).
+
+
+hidden_attribute(Gr, Att:name) :->
+	"True if attibute is not editable"::
+	get(Gr, class, Class),
+	get(Class, hidden_attributes, Hidden),
+	send(Hidden, member, Att).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+If an object is ->modified, the modified   flag of the drawing should be
+updated and the attribute editor should be notified.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- pce_group(modified).
+
+modified(Gr) :->
+	"Inform <-window and update attribute editor"::
+	(   get(Gr, window, Window), Window \== @nil,
+	    send(Window, modified),
+	    get(Gr, selected, @on),
+	    send(Window, update_attribute_editor)
+	->  true
+	;   true
+	).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+->event just walks through the recognisers defined on the class.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- pce_group(event).
+
+event(Gr, Ev:event) :->
+	"Handle <-class recognisers"::
+	(   send(Gr, send_super, event, Ev)
+	;   get(Gr?class, recognisers, Chain),
+	    get(Chain, find,
+		message(@arg1, event, Ev),
+		_)
+	).
+
+:- pce_group(mode).
+
+mode(Gr, Mode:name) :<-
+	"Request <-window's <-mode"::
+	get(Gr, window, Window),
+	get(Window, mode, Mode).
+
+:- pce_end_class.
+
 
 		/********************************
 		*             BOX		*
@@ -67,100 +237,44 @@ modified(_).
 Box is the most prototypical example of a graphical.  Boxes in PceDraw
 have  handles  for  connections in the  middle  of  each  side.  Event
 handling      is      realised       by     the   reusable      object
-@draw_resizable_shape_recogniser.  Note that the  reference to the box
-need not be provided.  ->event is invoked  from `Event ->post' and the
-receiver slot of the event is a reference to the box.
-
-Note that draw_box is  a subclass of box rather  than an extension  of
-class box.  Extending class box might conflict with the consistency of
-PCE itself or  other  applications running in   the same PCE   process
-(never assume you are alone in the world).
+@draw_resizable_shape_recogniser.
 
 The handle/4 construct  attaches a handle with  specified  <->kind and
 <->name at the  specified position.  The   handle  is attached  to the
-class  (see `Class ->handle')   rather  than  to  the  instances  (see
-`Graphical ->handle').
+class  (see `class ->handle')   rather  than  to  the  instances  (see
+`graphical ->handle').
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- pce_begin_class(draw_box, box).
+:- draw_begin_shape(draw_box, box, "PceDraw editable box",
+		    [@draw_resizable_shape_recogniser]).
 
 handle(w/2, 0,   link, north).
 handle(w/2, h,   link, south).
 handle(0,   h/2, link, west).
 handle(w,   h/2, link, east).
 
-event(_Box, Ev:event) :->
-	send(@draw_resizable_shape_recogniser, event, Ev).
-
-geometry(B, X:[int], Y:[int], W:[int], H:[int]) :->
-	"Forward change to device"::
-	geometry(B, X, Y, W, H).
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The ->has_attribute  method tests  whether the specified  attribute of
-the shape can be set.  This  is a  bit of a  hack.  A  better solution
-would have  been  to  test  whether the  graphical  has the  specified
-method.  Unfortunately att graphicals have method <->pen, but for some
-of them, changing the value has not effect.  The same applies for some
-other attributes.  This should be changed in PCE.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-has_attribute(_B, Att:name) :->
-	"Test if object has attribute"::
-	memberchk(Att, [ pen, texture, colour, fill_pattern, radius
-		       , shadow, x, y, width, height]).
-
-attribute(B, Att:name, Val:any) :->
-	attribute(B, Att, Val).
-
-attribute(B, Att:name, Val) :<-
-	get(B, Att, Val).
-
-mode(B, Mode:name) :<-
-	get(B?device, mode, Mode).
-
-:- pce_end_class.
+:- draw_end_shape.
 
 		/********************************
 		*           ELLIPSE		*
 		********************************/
 
-:- pce_begin_class(draw_ellipse, ellipse).
+:- draw_begin_shape(draw_ellipse, ellipse, "PceDraw editable ellipse",
+		    [@draw_resizable_shape_recogniser]).
 
 handle(w/2, 0,   link, north).
 handle(w/2, h,   link, south).
 handle(0,   h/2, link, west).
 handle(w,   h/2, link, east).
 
-event(_Ellipse, Ev:event) :->
-	send(@draw_resizable_shape_recogniser, event, Ev).
-
-geometry(E, X:[int], Y:[int], W:[int], H:[int]) :->
-	"Forward change to device"::
-	geometry(E, X, Y, W, H).
-
-has_attribute(_E, Att:name) :->
-	"Test if object has attribute"::
-	memberchk(Att, [ pen, texture, colour, fill_pattern
-		       , shadow, x, y, width, height]).
-
-attribute(E, Att:name, Val:any) :->
-	attribute(E, Att, Val).
-
-attribute(E, Att:name, Val) :<-
-	get(E, Att, Val).
-
-mode(B, Mode:name) :<-
-	get(B?device, mode, Mode).
-
-:- pce_end_class.
+:- draw_end_shape.
 
 
 		/********************************
 		*            TEXT		*
 		********************************/
 
-:- pce_begin_class(draw_text, text).
+:- draw_begin_shape(draw_text, text, "PceDraw editable text", []).
 
 handle(w/2, 0,   link, north).
 handle(w/2, h,   link, south).
@@ -208,7 +322,7 @@ event(Text, Ev:event) :->
 	    ->  true
 	    ;   send(Ev, is_a, keyboard),
 		send(Text, typed, Ev),
-		modified(Text)
+		send(Text, modified)
 	    )
 	;   send(@draw_text_recogniser, event, Ev)
 	).
@@ -232,84 +346,46 @@ NOTE:	This mechanism needs some redesign and documentation.
 	"Indicate device I'm sensitive for typing"::
 	true.
 
-geometry(T, X:[int], Y:[int], W:[int], H:[int]) :->
-	"Forward change to device"::
-	geometry(T, X, Y, W, H).
+:- pce_group(menu).
 
-has_attribute(_T, Att:name) :->
-	"Test if object has attribute"::
-	memberchk(Att, [pen, font, colour, transparent, x, y, width, height]).
+menu_text(T) :->
+	"Prepare text for menu ('T')"::
+	send(T, string, 'T'),
+	get(T, font, Font),
+	get(Font, family, Family),
+	get(Font, style, Style),
+	new(S, var(value := Font)),
+	send(@fonts, for_all,
+	     if(and(@arg2?family == Family,
+		    @arg2?style == Style,
+		    @arg2?points < S?points,
+		    @arg2?points > 5),
+		assign(S, @arg2, global))),
+	send(T, font, S).
 
-attribute(T, Att:name, Val:any) :->
-	attribute(T, Att, Val).
-
-attribute(T, Att:name, Val) :<-
-	get(T, Att, Val).
-
-mode(B, Mode:name) :<-
-	get(B?device, mode, Mode).
-
-:- pce_end_class.
+:- draw_end_shape.
 
 		/********************************
 		*             LINE		*
 		********************************/
 
-:- pce_begin_class(draw_line, line).
+:- draw_begin_shape(draw_line, line, "PceDraw editable line",
+		    [@draw_line_recogniser]).
 
 handle(w/2, h/2, link, center).
 handle(0,   0,   link, start).
 handle(w,   h,   link, end).
 
-event(_L, Ev:event) :->
-	send(@draw_line_recogniser, event, Ev).
-
-geometry(L, X:[int], Y:[int], W:[int], H:[int]) :->
-	"Forward change to device"::
-	geometry(L, X, Y, W, H).
-
-has_attribute(_L, Att:name) :->
-	"Test if object has attribute"::
-	memberchk(Att, [ pen, texture, arrows, colour, x, y, width, height]).
-
-attribute(L, Att:name, Val:any) :->
-	attribute(L, Att, Val).
-
-attribute(L, Att:name, Val) :<-
-	get(L, Att, Val).
-
-mode(B, Mode:name) :<-
-	get(B?device, mode, Mode).
-
-:- pce_end_class.
+:- draw_end_shape.
 
 
 		/********************************
 		*             PATH		*
 		********************************/
 
-:- pce_begin_class(draw_path, path).
-
-event(_L, Ev:event) :->
-	send(@draw_path_recogniser, event, Ev).
-
-geometry(L, X:[int], Y:[int], W:[int], H:[int]) :->
-	"Forward change to device"::
-	geometry(L, X, Y, W, H).
-
-has_attribute(_L, Att:name) :->
-	"Test if object has attribute"::
-	memberchk(Att,
-		  [ pen, texture, colour, fill_pattern, arrows
-		  , closed, interpolation
-		  , x, y, width, height
-		  ]).
-
-attribute(L, Att:name, Val:any) :->
-	attribute(L, Att, Val).
-
-attribute(L, Att:name, Val) :<-
-	get(L, Att, Val).
+:- draw_begin_shape(draw_path, path, "PceDraw editable path",
+		    [@draw_path_recogniser]).
+:- send(@class, hidden_attribute, radius).
 
 interpolation(L, N:int) :->
 	(   N == 0
@@ -318,16 +394,14 @@ interpolation(L, N:int) :->
 	    send(L, kind, smooth)
 	).
 
+
 interpolation(L, N:int) :<-
 	(   get(L, kind, poly)
 	->  N = 0
 	;   get(L, intervals, N)
 	).
 
-mode(B, Mode:name) :<-
-	get(B?device, mode, Mode).
-
-:- pce_end_class.
+:- draw_end_shape.
 
 
 
@@ -340,27 +414,16 @@ A connection is a line between two handles on  two different graphical
 objects.  See clas handle, graphical and connection for details.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- pce_begin_class(draw_connection, connection).
+:- draw_begin_shape(draw_connection, connection, "PceDraw editable connection",
+		    [@draw_connection_recogniser]).
 
 handle(w/2, h/2, link, center).
 
-event(_C, Ev:event) :->
-	send(@draw_connection_recogniser, event, Ev).
+start_text(_C, _Ev:[event]) :->
+	"Dummy method"::
+	true.
 
-has_attribute(_C, Att:name) :->
-	"Test if object has attribute"::
-	memberchk(Att, [ pen, texture, arrows, colour, x, y, width, height]).
-
-attribute(C, Att:name, Val:any) :->
-	attribute(C, Att, Val).
-
-attribute(C, Att:name, Val) :<-
-	get(C, Att, Val).
-
-mode(B, Mode:name) :<-
-	get(B?device, mode, Mode).
-
-:- pce_end_class.
+:- draw_end_shape.
 
 
 		/********************************
@@ -371,30 +434,15 @@ mode(B, Mode:name) :<-
 Bitmaps are used to import arbitrary images into a drawing.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- pce_begin_class(draw_bitmap, bitmap).
+:- draw_begin_shape(draw_bitmap, bitmap, "PceDraw editable bitmap",
+		    [@draw_bitmap_recogniser]).
 
 handle(w/2, 0,   link, north).
 handle(w/2, h,   link, south).
 handle(0,   h/2, link, west).
 handle(w,   h/2, link, east).
 
-event(_B, Ev:event) :->
-	send(@draw_bitmap_recogniser, event, Ev).
-
-has_attribute(_C, Att:name) :->
-	"Test if object has attribute"::
-	memberchk(Att, [colour, x, y]).
-
-attribute(C, Att:name, Val:any) :->
-	attribute(C, Att, Val).
-
-attribute(C, Att:name, Val) :<-
-	get(C, Att, Val).
-
-mode(B, Mode:name) :<-
-	get(B?device, mode, Mode).
-
-:- pce_end_class.
+:- draw_end_shape.
 
 
 		/********************************
@@ -409,7 +457,8 @@ devices, compounds define distribution of  keyboard  events  to one of
 the text objects inside it and resizing the device.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- pce_begin_class(draw_compound, device).
+:- draw_begin_shape(draw_compound, device, "PceDraw editable device",
+		    [@draw_compound_recogniser]).
 
 handle(w/2, 0,   link, north).
 handle(w/2, h,   link, south).
@@ -443,12 +492,21 @@ geometry(C, X:[int], Y:[int], W:[int], H:[int]) :->
 	    send(Origin, done)
 	;   true
 	),
-	geometry(C, X, Y, W, H).
+	send(C, send_super, geometry, X, Y, W, H),
+	send(C, modified).
+
 
 resize_factor(@default, _, _, 1) :- !.
 resize_factor(W1, C, S, F) :-
 	get(C, S, W0),
 	F is W1 / W0.
+
+
+event(C, Ev:event) :->
+	"Handle <-class recognisers"::
+	get(C?class, recognisers, Chain),
+	get(Chain, find, message(@arg1, event, Ev), _).
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The method below  sets  the  string of  all text objects.  Used by the
@@ -462,9 +520,12 @@ string(C, Str:string) :->
 	     if(message(@arg1, has_send_method, string),
 		message(@arg1, string, Str))).
 
+menu_text(C) :->
+	"Set all <-graphicals to `T'"::
+	send(C?graphicals, for_all,
+	     if(message(@arg1, has_send_method, menu_text),
+		message(@arg1, menu_text))).
 
-event(_C, Ev:event) :->
-	send(@draw_compound_recogniser, event, Ev).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The  method   below is   called from  the    compound_recogniser  on a
@@ -503,34 +564,59 @@ width and height attributes should hold for  the  compound as a whole,
 while the other attributes should only hold for the parts.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+:- pce_group(attribute).
+
 geometry_selector(x).
 geometry_selector(y).
 geometry_selector(width).
 geometry_selector(height).
 
+:- pce_global(@is_draw_shape,
+	      new(message(@arg1?class, instance_of, draw_shape_class))).
+
 has_attribute(C, Att:name) :->
 	"Test if object has attribute"::
+	\+ send(C, hidden_attribute, Att),
 	(   geometry_selector(Att)
 	->  true
-	;   get(C?graphicals, find, message(@arg1, has_attribute, Att), _)
+	;   get(C?graphicals, find,
+		if(@is_draw_shape,
+		   message(@arg1, has_attribute, Att),
+		   and(message(@arg1, has_send_method, Att),
+		       message(@arg1, has_get_method, Att))),
+		_)
 	).
 
 attribute(C, Att:name, Val:any) :->
 	(   geometry_selector(Att)
 	->  send(C, Att, Val)
+	;   get(C?class, part_attributes, Sheet),  Sheet \== @nil,
+	    get(Sheet, value, Att, PartName)
+	->  get(C, member, PartName, Part),
+	    send(Part, attribute, Att, Val)
 	;   send(C?graphicals, for_some,
-		 message(@arg1, attribute, Att, Val))
+		 if(@is_draw_shape,
+		    message(@arg1, attribute, Att, Val),
+		    and(message(@arg1, has_send_method, Att),
+			message(@arg1, Att, Val),
+			message(C, modified))))
 	).
 
 attribute(C, Att:name, Val) :<-
 	(   geometry_selector(Att)
 	->  get(C, Att, Val)
-	;   get(C?graphicals, find, message(@arg1, has_attribute, Att), Shape),
+	;   get(C?class, part_attributes, Sheet),  Sheet \== @nil,
+	    get(Sheet, value, Att, PartName)
+	->  get(C, member, PartName, Part),
+	    get(Part, attribute, Att, Val)
+	;   get(C?graphicals, find,
+		if(@is_draw_shape,
+		   message(@arg1, has_attribute, Att),
+		   and(message(@arg1, has_send_method, Att),
+		       message(@arg1, has_get_method, Att))),
+		Shape),
 	    get(Shape, Att, Val)
 	).
 
-mode(B, Mode:name) :<-
-	get(B?device, mode, Mode).
-
-:- pce_end_class.
+:- draw_end_shape.
 

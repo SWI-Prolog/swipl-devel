@@ -91,7 +91,8 @@ getMethodMethodList(Any list, Name sel)
 
 
 Any
-resolveSendMethodObject(Any obj, Class class, Name sel, Any *receiver, DelegateList dlist)
+resolveSendMethodObject(Any obj, Class class, Name sel,
+			Any *receiver, DelegateList dlist)
 { Any m;
   Cell cell;
   

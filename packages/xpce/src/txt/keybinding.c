@@ -271,54 +271,22 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
       } else
 	reset |= (RESET_ARGUMENT|RESET_COLUMN);
 
-      { Any impl;
+      { ArgVector(av, argc+3);
+	int ac = 0;
+	int i=0;
 
-	if ( (impl=resolveSendMethodObject(receiver, NULL, cmd, NULL, NULL)) )
-	{ Type type;
-	  Any val;
+	av[ac++] = id;
+	av[ac++] = receiver;
+	av[ac++] = cmd;
+	for(; i < argc; i++)
+	  av[ac++] = argv[i++];
 
-	  while( (type = get(impl, NAME_argumentType, toInt(argc+1), 0)) &&
-		 argc < MAX_ARGS )
-	  { if ( includesType(type, toType(NAME_eventId)) )
-	      argv[argc++] = id;
-	    else if ( includesType(type, toType(NAME_char)) && isInteger(id))
-	      argv[argc++] = id;
-	    else if ( includesType(type, toType(NAME_int)) &&
-		      notDefault(kb->argument))
-	      argv[argc++] = kb->argument;
-	    else if ( includesType(type, toType(NAME_default)) )
-	      argv[argc++] = DEFAULT;
-	    else if ( hasGetMethodObject(receiver, NAME_interactiveArgument) )
-	    { if ( (val = get(receiver, NAME_interactiveArgument,
-			      impl, toInt(argc+1), 0)) )
-	      { if ( (val = checkType(val, type, receiver)) )
-		  argv[argc++] = val;
-		else
-		{ errorPce(kb, NAME_noArgument, toInt(argc+1), impl);
-		  goto out;
-		}
-	      } else
-		goto out;
-	    } else
-	    { errorPce(kb, NAME_noArgument, toInt(argc+1), impl);
-	      goto out;
-	    }
-	  }
-
-	  rval = sendv(receiver, cmd, argc, argv);
-	} else
-	{ if ( cmd != NAME_digitArgument &&
-	       cmd != NAME_universalArgument &&
-	       cmd != NAME_keyboardQuit &&
-	       cmd != NAME_prefix )
-	    errorPce(receiver, NAME_noTextBehaviour, cmd);
-	}
+	rval = sendv(kb, NAME_fillArgumentsAndExecute, ac, av);
       }
     } else if ( instanceOfObject(cmd, ClassCode) )
     { rval = forwardReceiverCode(cmd, receiver, kb->argument, id, 0);
     }
 
-out:
     if ( reset & RESET_COLUMN )
       assign(kb, saved_column, NIL);
     if ( reset & RESET_ARGUMENT )
@@ -334,6 +302,70 @@ out:
 }
 
 
+static status
+fillArgumentsAndExecuteKeyBinding(KeyBinding kb,
+				  EventId id, Any receiver, Name cmd,
+				  int ac, Any av[])
+{ Any impl;
+  int argc=0; Any theargv[MAX_ARGS];
+  Any *argv = &theargv[2];
+
+  theargv[0] = receiver;
+  theargv[1] = cmd;
+  for(; argc<ac; argc++)
+    argv[argc] = av[argc];
+
+  if ( (impl=resolveSendMethodObject(receiver, NULL, cmd, NULL, NULL)) )
+  { Type type;
+    Any val;
+
+    while( (type = get(impl, NAME_argumentType, toInt(argc+1), 0)) &&
+	   argc < MAX_ARGS )
+    { if ( includesType(type, toType(NAME_eventId)) ||
+	   (includesType(type, toType(NAME_char)) && isInteger(id)) )
+	argv[argc++] = id;
+      else if ( includesType(type, toType(NAME_int)) &&
+		notDefault(kb->argument))
+	argv[argc++] = kb->argument;
+      else if ( includesType(type, toType(NAME_default)) )
+	argv[argc++] = DEFAULT;
+      else if ( hasGetMethodObject(receiver, NAME_interactiveArgument) )
+      { if ( (val = get(receiver, NAME_interactiveArgument,
+			impl, toInt(argc+1), 0)) )
+	{ if ( (val = checkType(val, type, receiver)) )
+	    argv[argc++] = val;
+	  else
+	  { errorPce(kb, NAME_noArgument, toInt(argc+1), impl);
+	    fail;
+	  }
+	} else
+	  fail;
+      } else
+      { errorPce(kb, NAME_noArgument, toInt(argc+1), impl);
+	fail;
+      }
+    }
+
+    return sendv(kb, NAME_execute, argc+2, theargv);
+  } else
+  { if ( cmd != NAME_digitArgument &&
+	 cmd != NAME_universalArgument &&
+	 cmd != NAME_keyboardQuit &&
+	 cmd != NAME_prefix )
+      errorPce(receiver, NAME_noTextBehaviour, cmd);
+  }
+
+  fail;
+}
+
+
+static status
+executeKeyBinding(KeyBinding kb, Any receiver, Name cmd, int argc, Any argv[])
+{ return sendv(receiver, cmd, argc, argv);
+}
+
+
+
 status
 makeClassKeyBinding(Class class)
 { sourceClass(class, makeClassKeyBinding, __FILE__, "$Revision$");
@@ -344,14 +376,14 @@ makeClassKeyBinding(Class class)
 	     "Sheet mappings keys to functions");
   localClass(class, NAME_defaults, NAME_default, "chain", NAME_both,
 	     "Chain with key_bindings to inherit from");
-  localClass(class, NAME_defaultFunction, NAME_binding, "name|code*", NAME_both,
-	     "Default function to perform");
+  localClass(class, NAME_defaultFunction, NAME_binding, "name|code*",
+	     NAME_both, "Default function to perform");
   localClass(class, NAME_prefix, NAME_event, "name", NAME_get,
 	     "Currently parsed prefix");
   localClass(class, NAME_argument, NAME_argument, "[int]", NAME_get,
 	     "Universal (numerical) argument");
-  localClass(class, NAME_status, NAME_event, "{universal_argument}*", NAME_none,
-	     "Internal flag");
+  localClass(class, NAME_status, NAME_event, "{universal_argument}*",
+	     NAME_none, "Internal flag");
   localClass(class, NAME_savedColumn, NAME_caret, "int*", NAME_get,
 	     "Saved {next_line,previous_line} column");
   localClass(class, NAME_condition, NAME_event, "code*", NAME_both,
@@ -377,6 +409,15 @@ makeClassKeyBinding(Class class)
 	     "id=event_id", "for=[object]",
 	     "Process event-id (of keyboard event)",
 	     typedKeyBinding);
+  sendMethod(class, NAME_fillArgumentsAndExecute, NAME_event, 4,
+	     "id=event_id", "receiver=object",
+	     "selector=name", "arguments=any ...",
+	     "Collect additional arguments and ->execute",
+	     fillArgumentsAndExecuteKeyBinding);
+  sendMethod(class, NAME_execute, NAME_event, 3,
+	     "receiver=object", "selector=name", "arguments=any ...",
+	     "Invoke `selector' on `receiver' with args",
+	     executeKeyBinding);
   sendMethod(class, NAME_receiver, NAME_client, 1, "graphical*",
 	     "Client of the key_binding object",
 	     receiverKeyBinding);

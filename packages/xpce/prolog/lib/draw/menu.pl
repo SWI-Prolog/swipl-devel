@@ -70,7 +70,8 @@ initialise(M) :->
 	send(M, gap, size(0,0)),
 	send(M, ver_shrink, 100),
 	send(M, ver_stretch, 100),
-	send(M, display, new(P, menu(proto, choice, message(@arg1, activate)))),
+	send(M, display,
+	     new(P, menu(proto, choice, message(@arg1, activate)))),
 	send(P, layout, vertical),
 	send(P, show_label, @off),
 	send(M, modified, @off).
@@ -104,7 +105,16 @@ activate_select(M) :->
 	"Activate icon that does select"::
 	get(M, member, proto, Menu),
 	get(Menu?members, find, @arg1?(mode) == select, Item),
-	send(Menu, selection, Item).
+	send(Item, activate).
+
+		 /*******************************
+		 *	     STYLE  		*
+		 *******************************/
+
+columns(M, Cols:'0..') :->
+	"Set # columns in menu"::
+	get(M, member, proto, TheMenu),
+	send(TheMenu, columns, Cols).
 
 
 		/********************************
@@ -287,9 +297,23 @@ paint_proto(MI, Proto:'link|graphical*') :->
 	(   Proto == @nil
 	->  true
 	;   send(Proto, instance_of, link)
-	->  get(Proto?line, clone, Clone),
-	    send(Clone, points, 11, 10, 27, 20),
-	    send(I, draw_in, Clone)
+	->  new(Dev, device),
+	    send(Dev, display, new(B1, box(0,0)), point(11, 10)),
+	    send(Dev, display, new(B2, box(0,0)), point(27, 20)),
+	    send(B1, handle, handle(0, 0, Proto?from)),
+	    send(B2, handle, handle(0, 0, Proto?to)),
+	    (	get(Proto, attribute, connection_class, Class)
+	    ->	true
+	    ;	Class = draw_connection
+	    ),
+	    Term =.. [Class, B1, B2, Proto],
+	    new(Connection, Term),
+	    (	send(Connection, has_send_method, menu_text)
+	    ->  send(Connection, menu_text)
+	    ;   true
+	    ),
+	    send(I, draw_in, Dev),
+	    send(Dev, destroy)
 	;   send(Proto, instance_of, path),
 	    send(Proto?points, empty)
 	->  get(Proto, clone, Clone),
@@ -300,8 +324,8 @@ paint_proto(MI, Proto:'link|graphical*') :->
 	    send(Clone, append, point(15,21)),
 	    send(I, draw_in, Clone)
 	;   get(Proto, clone, Clone),
-	    (   send(Clone, has_send_method, string)
-	    ->  send(Clone, string, 'T')
+	    (   send(Clone, has_send_method, menu_text)
+	    ->  send(Clone, menu_text)
 	    ;   true
 	    ),
 	    send(Clone, size, size(30, 14)),

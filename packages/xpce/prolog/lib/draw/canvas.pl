@@ -547,7 +547,9 @@ align_selection(Canvas) :->
 align_graphical(Canvas, Gr:graphical) :->
 	"Align a single graphical"::
 	get(Canvas?graphicals, find_all,
-	    not(message(@arg1, instance_of, line)), G0),
+	    and(not(message(@arg1, instance_of, line)),
+		not(?(@arg1, hypered, supports))),
+	    G0),
 	send(G0, delete_all, Gr),
 	chain_list(G0, L0),
 	auto_adjust(resize, Gr, L0),
@@ -564,7 +566,9 @@ auto_align(Canvas, Gr:graphical, How:{create,resize,move}) :->
 
 auto_align(Canvas, Gr, How) :-
 	get(Canvas?graphicals, find_all,
-	    not(message(@arg1, instance_of, line)), G0),
+	    and(not(message(@arg1, instance_of, line)),
+		not(?(@arg1, hypered, supports))),
+	    G0),
 	send(G0, delete_all, Gr),
 	chain_list(G0, L0),
 	auto_adjust(How, Gr, L0),

@@ -292,7 +292,7 @@ open(B, New:[bool]) :->
 		 *******************************/
 
 :- initialization
-	new(KB, key_binding(shell, fundamental)),
+	new(KB, emacs_key_binding(shell, fundamental)),
 	send(KB, function, 'RET', send_input),
 	send(KB, function, '\C-c\C-c', interrupt_subjob),
 	send(KB, function, '\C-c\C-d', end_of_file),

@@ -18,7 +18,7 @@
 
 
 :- initialization
-	new(KB, key_binding(language,	fundamental)),
+	new(KB, emacs_key_binding(language,	fundamental)),
 	send(KB, function, 'TAB',	indent_line),
 	send(KB, function, 'DEL',	backward_delete_char_untabify),
 	send(KB, function, ']',		align_close_bracket),
@@ -33,7 +33,8 @@
 :- initialization
 	new(X, syntax_table(language)),
 	send(X, syntax, '"',  string_quote, '"'),
-	send(X, syntax, '''', string_quote, '''').
+	send(X, syntax, '''', string_quote, ''''),
+	send(X, paragraph_end, regex('\s *$\|/\* - - -\|- - -.*\*/$')).
 
 :- initialization
 	new(MM, emacs_mode_menu(language, fundamental)),
@@ -97,17 +98,6 @@ insert_section_header(E) :->
 		 *               C		*
 		 *******************************/
 ').
-
-
-insert_file_header(M) :->
-	"Insert standard C or Prolog file-header"::
-	send(M, format, '/*  $I'),		% avoid expansion by CVS
-	send(M, format, 'd$\n\n'),
-	send(M, format, '    Part of XPCE\n'),
-	send(M, format, '    Designed and implemented by Anjo Anjewierden and Jan Wielemaker\n'),
-	send(M, format, '    E-mail: jan@swi.psy.uva.nl\n\n'),
-	send(M, format, '    Copyright (C) %d University of Amsterdam. All rights reserved.\n', new(date)?year),
-	send(M, format, '*/\n\n').
 
 
 		 /*******************************

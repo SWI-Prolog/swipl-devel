@@ -26,17 +26,8 @@
    send(Ctx, clear),
    send_list(Ctx, append,
 	     [ fundamental
-	     , language
 	     , prolog
-	     , latex
-	     , c
-	     , 'c++'
-	     , script
-	     , text
 	     , shell
-	     , gdb
-	     , man
-	     , annotate
 	     ]).
 
 
@@ -75,16 +66,27 @@ pce_ifhostproperty(prolog(swi),
 :- pce_autoload(emacs_hit_list,		hit_list).
 :- pce_autoload(emacs_process_buffer,	shell).
 :- pce_autoload(emacs_gdb_buffer,	gdb).
-:- pce_autoload(emacs_language_mode,	language_mode).
-:- pce_autoload(emacs_prolog_mode,	prolog_mode).
-:- pce_autoload(emacs_latex_mode,	latex_mode).
-:- pce_autoload(emacs_c_mode,		c_mode).
-:- pce_autoload('emacs_c++_mode',	cpp_mode).
-:- pce_autoload(emacs_script_mode,	script_mode).
-:- pce_autoload(emacs_man_mode,		man_mode).
-:- pce_autoload(emacs_text_mode,	text_mode).
 :- pce_autoload(emacs_annotate_buffer,  annotate_mode).
-:- pce_autoload(emacs_annotate_mode,	annotate_mode).
+
+
+		 /*******************************
+		 *	      MODES		*
+		 *******************************/
+
+
+
+
+:- declare_emacs_mode(language,		language_mode).
+:- declare_emacs_mode(prolog,		prolog_mode).
+:- declare_emacs_mode(latex,		latex_mode).
+:- declare_emacs_mode(c,		c_mode).
+:- declare_emacs_mode('c++',		cpp_mode).
+:- declare_emacs_mode(script,		script_mode).
+:- declare_emacs_mode(man,		man_mode).
+:- declare_emacs_mode(text,		text_mode).
+:- declare_emacs_mode(annotate,		annotate_mode).
+:- declare_emacs_mode(gdb,		gdb).
+
 
 		 /*******************************
 		 *     EMACS GLOBAL OBJECTS	*
@@ -103,6 +105,8 @@ pce_ifhostproperty(prolog(swi),
 :- pce_global(@emacs_comment_column, new(number(40))).
 :- pce_global(@emacs_mode_list,			  % regex --> mode
 	      new(sheet(attribute(regex('.*\.pl~?$'),   	prolog),
+			attribute(regex('\.\(pl\|xpce\|pceemacs\)rc~?'),
+				  prolog),
 			attribute(regex('.*\.\(tex\|sty\)~?$'), latex),
 			attribute(regex('.*\.doc~?$'),	 	latex),
 			attribute(regex('.*\.ann~?$'),	 	annotate),
@@ -110,7 +114,8 @@ pce_ifhostproperty(prolog(swi),
 			attribute(regex('.*\.C$'),		'c++'),
 			attribute(regex('.*\.cc$'),		'c++'),
 			attribute(regex('.*\.cpp$'),		'c++'),
-			attribute(regex('[Cc]ompose\|README'),	text),
-			attribute(regex('.*'),	        	script)))).
+			attribute(regex('[Cc]ompose\|README'),	text)))).
+:- pce_global(@emacs_default_mode, new(var(value := script))).
 
 :- free(@loading_emacs).
+

@@ -16,6 +16,14 @@
 	   , ignore/1
 	   ]).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+@current_emacs_mode is a variable  pointing   to  the current emacs-mode
+object.  Pushed by `emacs_key_binding  ->fill_arguments_and_execute' and
+various others.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- pce_global(@current_emacs_mode, new(var)).
+
 :- pce_begin_class(emacs_window, frame, "Frame for the PceEmacs editor").
 
 :- pce_global(@emacs_image_recogniser,
@@ -120,7 +128,7 @@ sticky_window(F, Val:[bool]) :->
 
 :- pce_global(@emacs_nil,
 	      new(constant(emacs_nil,
-			   string('Nil that does not match @nil')))).
+			   string("Nil that does not match @nil")))).
 :- pce_global(@prompt_recogniser,
  	new(handler_group(handler('\t',
 				  message(@receiver, complete)),
@@ -255,17 +263,30 @@ ok_to_overrule(_, @nil).
 ok_to_overrule(_, status).
 ok_to_overrule(_, progress).
 ok_to_overrule(_, done).
+ok_to_overrule(warning, warning).
+ok_to_overrule(inform, _).
 ok_to_overrule(error, _).
 
+:- pce_global(@emacs_mini_window_bindings, make_emacs_mini_window_bindings).
+
+make_emacs_mini_window_bindings(B) :-
+	new(B, key_binding(emacs_mini_window)),
+	send(B, function, '\es', sticky_window),
+	send(B, function, '\en', m_x_next),
+	send(B, function, '\ep', m_x_previous).
+	      
 
 event(D, Ev:event) :->
 	"Process event"::
 	(   send(Ev, is_a, keyboard)
 	->  (   get(D, prompter, Prompter),
 	        Prompter \== @nil
-	    ->  get(D, member, reporter, Reporter),
-		send(Reporter, displayed, @off),
-		ignore(send(Ev, post, Prompter))
+	    ->  (   send(@emacs_mini_window_bindings, event, Ev)
+		->  true
+		;   get(D, member, reporter, Reporter),
+		    send(Reporter, displayed, @off),
+		    ignore(send(Ev, post, Prompter))
+		)
 	    ;   send(D, report_type, @nil),
 %		send(Ev, is_a, keyboard),
 		get(D, report_count, RC),
@@ -276,6 +297,20 @@ event(D, Ev:event) :->
 	    )
 	;   send(D, send_super, event, Ev)
 	).
+
+
+m_x_next(D) :->
+	"Handle M-n to get next value"::
+	(   get(D?frame?mode, m_x_next, NewDefault)
+	->  send(D?prompter, displayed_value, NewDefault?print_name)
+	;   send(D?prompter, restore)
+	).
+
+
+m_x_previous(D) :->
+	"Handle M-p to get previous value"::
+	get(D?frame?mode, m_x_previous, NewDefault),
+	send(D?prompter, displayed_value, NewDefault?print_name).
 
 
 prompter(D, Prompter:dialog_item*) :->
@@ -397,13 +432,93 @@ looking_at(E, Re:regex) :->
 
 :- pce_end_class.
 
+		 /*******************************
+		 *	    EMACS MODES		*
+		 *******************************/
 
-:- pce_begin_class(emacs_mode, object).
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+PceEmacs  modes  are  tricky  stuff.   We    like  to  have  comfortable
+programming, which implies we should  represent   a  PceEmacs  mode as a
+class.   This  provides  us  with  a   good  programming  interface  and
+inheritance as well as all the other goodies of OO programming.
+
+We also would like to be able to   switch PceEmacs windows from one mode
+to another.  This conflicts, as instances  cannot be migrated from class
+to class.  Therefore, PceEmacs modes are objects  that are attached to a
+emacs_editor.  An emacs_mode delegates to the   editor  in this mode and
+editors delegate to their mode (with an explicit method to avoid endless
+loops  if  the   method   is   defined    on   neither).    The   method
+`pce_editor->mode' attaches a mode to an editor.
+
+Next, we would like users to be able  to extend these classes to provide
+custom methods and possibly redefine methods.  This has been implemented
+using tricky meta-programming: class emacs_mode_class   is a subclass of
+class `class' (representing classes).   This   class  defines the method
+->load_user_extensions, which is called when an instance of the class is
+created.   The  classes  defining  emacs_modes  are  instances  of  this
+emacs_mode_class class.  To understand this, try:
+
+	?- new(X, class(myclass, class)),
+	   new(Y, myclass(myobject, object)),
+	   new(Z, myobject).
+
+and verify how the objects and classes are related.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
+:- pce_begin_class(emacs_mode_class, class,
+		   "Class for emacs modes").
+
+variable(user_extensions_loaded, bool := @off, get,
+	 "Test if extensions are loaded").
+
+load_user_extensions(C) :->
+	"Load mode extensions from ~/lib/xpce/emacs/"::
+	(   get(C, user_extensions_loaded, @on)
+	->  true
+	;   get(C, name, Name),
+	    (   concat(emacs_, Base, Name),
+		concat(Base, '.pl', FileName),
+		get(directory('~/lib/xpce/emacs'), file, FileName, File),
+		send(File, access, read)
+	    ->  get(File, absolute_path, Path),
+		ensure_loaded(Path)
+	    ;   true
+	    ),
+	    send(C, slot, user_extensions_loaded, @on),
+	    get(C, super_class, Super),
+	    (	send(Super, has_send_method, load_user_extensions)
+	    ->	send(Super, load_user_extensions)
+	    ;	true
+	    )
+	).
+
+:- pce_end_class.
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Finally, we have to explicitely create  the   first  instance of our new
+meta-class,  after  which  we  can   use  the  normal  pce_begin_class/3
+directive to define our emacs_mode classes.  This works for two reasons.
+First, pce_begin_class/3 will reuse  the  class   object  if  it already
+exists.  Second, if pce_begin_class/3 makes a subclass, it will make the
+subclass of the same meta-class as its super-class.  Thus, a subclass of
+emacs_mode will be an instance   of  class(emacs_mode_class), instead of
+class(class).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- new(_, emacs_mode_class(emacs_mode, object)).
+
+
+:- pce_begin_class(emacs_mode(name), object,
+		   "Generic PceEmacs mode class").
 
 variable(name,		  name,		get,  "Name of the mode").
 variable(syntax,	  syntax_table,	get,  "Syntax for this mode").
 variable(bindings,	  key_binding,	get,  "Key-binding table").
 variable(editor,	  editor*,	both, "Associated editor").
+variable(m_x_history,	  chain*,	both, "Current M-x command history").
+variable(m_x_index,	  int*,		both, "M-p/M-n current index").
+variable(m_x_argn,	  int*,		both, "M-p/M-n current argument").
 
 delegate_to(editor).
 
@@ -536,10 +651,56 @@ menu_item(M, Selector:name, MI:menu_item) :<-
 	).
 
 
+%:- pce_global(@c_method, new(var)).	% debugging
+
+open_history(M, Impl:behaviour, Force:[bool]) :->
+	"(Initialise) history for behaviour"::
+	(   (Force == @on ; get(M, m_x_history, @nil))
+	->  (   get(Impl, attribute, emacs_history, History)
+	    ->  true
+	    ;   send(Impl, attribute, emacs_history, new(History, chain))
+	    ),
+%	    send(@c_method, assign, Impl, global),
+	    send(M, m_x_history, History),
+	    send(M, m_x_index, @nil)
+	;   true
+	).
+
+
+close_history(M, Argv:[vector]) :->
+	"Close open history adding Argv"::
+	get(M, m_x_history, History),
+	(   Argv \== @nil, Argv \== @default
+	->  (	get(History, find,
+		    message(@prolog, same_argv, Argv, @arg1),
+		    Old)
+	    ->	send(History, move_after, Old)
+	    ;	send(History, prepend, Argv)
+	    )
+%	    send(@pce, send_vector, write_ln,
+%		 'History:', @c_method?print_name, ':', Argv)
+	;   true
+	),
+	send(M, m_x_history, @nil),
+	send(M, m_x_index, @nil).
+
+
+same_argv(V1, V2) :-
+	get(V1, size, S1),
+	get(V2, size, S1),
+	forall(between(1, S1, N),
+	       (   get(V1, element, N, E1), get(E1, print_name, P1),
+		   get(V2, element, N, E2), get(E2, print_name, P2),
+		   send(P1, equal, P2)
+	       )).
+
+
 noarg_call(M, Selector:name) :->
 	"Invoke method without arguments (prompt)"::
 	(   get(M, send_method, Selector, tuple(_, Impl))
-	->  new(Argv, vector),
+	->  send(@current_emacs_mode, assign, M),
+	    send(M, open_history, Impl, @on),
+	    new(Argv, vector),
 	    between(1, 10, ArgN),
 	    (   get(Impl, argument_type, ArgN, ArgType)
 	    ->  (   send(ArgType, includes, default)
@@ -552,14 +713,23 @@ noarg_call(M, Selector:name) :->
 		fail			% force backtracing
 	    ;   !
 	    ),
-	    send(M, send_vector, Selector, Argv),
+	    result(send(M, send_vector, Selector, Argv), YesNo),
 	    (	object(M)
-	    ->  send(M, mark_undo)
+	    ->  send(M, close_history, Argv),
+		send(M, mark_undo),
+		(   YesNo == no
+		->  send(M, report, status, '%s command failed', Selector)
+		;   true
+		)
 	    ;	true
 	    )
 	;   send(M, report, error, 'No implementation for ``%s''''', Selector)
 	).
 
+
+result(Goal, yes) :-
+	Goal, !.
+result(_, no).
 
 arg_call(M, Selector:name, Arg:any) :->
 	"Invoke method from pullright menu"::
@@ -570,9 +740,14 @@ arg_call(M, Selector:name, Arg:any) :->
 		 *           SETUP		*
 		 *******************************/
 
-setup_mode(_M) :->
-	"Initialise the mode"::
-	true.
+setup_mode(M) :->
+	"Initialise mode (->load_user_extensions)"::
+	send(M, load_user_extensions).
+
+
+load_user_extensions(M) :->
+	"Load mode extensions from ~/lib/xpce/emacs/"::
+	send(M?class, load_user_extensions).
 
 
 		/********************************
@@ -636,9 +811,16 @@ prompt_using(M, Item:graphical, Rval:any) :<-
 
 interactive_argument(M, Implementation:any, Which:int, Value:any) :<-
 	"Prompt for interactive argument of specified type"::
+	send(M, open_history, Implementation),
 	get(M, frame, EmacsWindow),
 	get(Implementation, argument_type, Which, Type),
-	(   get(M, selected, Selection),
+	send(M, m_x_argn, Which),
+	(   get(M, m_x_index, Idx), Idx \== @nil % use M-x History!
+	->  get(M, m_x_history, History),
+	    get(History, nth1, Idx, HistArgv),
+	    get(HistArgv, element, Which, DefaultValue)
+	->  true
+	;   get(M, selected, Selection),
 	    get(Type, check, Selection, DefaultValue)
 	->  true
 	;   DefaultValue = @default
@@ -649,6 +831,34 @@ interactive_argument(M, Implementation:any, Which:int, Value:any) :<-
 	),
 	get(EmacsWindow, prompt, Label, DefaultValue, Type, Value).
 
+
+m_x_previous(M, Value:any) :<-
+	"Read next value from the M-x history"::
+	get(M, m_x_index, Idx),
+	(   Idx == @nil
+	->  Nidx = 1
+	;   Nidx is Idx + 1
+	),
+	(   get(M?m_x_history, nth1, Nidx, ArgVector)
+	->  get(ArgVector, element, M?m_x_argn, Value),
+	    send(M, m_x_index, Nidx)
+	;   send(M, report, warning, 'No (more) history'),
+	    fail
+	).
+
+	
+m_x_next(M, Value:any) :<-
+	"Read previous value from the M-x history"::
+	get(M, m_x_index, Idx),
+	(   (Idx == @nil ; Idx =< 1)
+	->  send(M, report, warning, 'Back at start'),
+	    fail
+	;   Nidx is Idx - 1
+	),
+	get(M?m_x_history, nth1, Nidx, ArgVector),
+	get(ArgVector, element, M?m_x_argn, Value),
+	send(M, m_x_index, Nidx).
+	
 
 		 /*******************************
 		 *	      REPORT		*
@@ -712,6 +922,37 @@ append(MM, Name:name, Action:'name|menu_item', Before:[name]) :->
 	).
 
 :- pce_end_class.
+
+
+		 /*******************************
+		 *	   KEY-BINDINGS		*
+		 *******************************/
+
+:- pce_begin_class(emacs_key_binding, key_binding,
+		   "Specialised key_binding for history").
+
+fill_arguments_and_execute(KB, Id:event_id, Receiver:emacs_mode, Selector:name,
+			   Argv:any ...) :->
+	"Open/close the argument processing"::
+	send(@current_emacs_mode, assign, Receiver),
+	(   get(Receiver, send_method, Selector, tuple(_, Impl)),
+	    get(Impl, attribute, emacs_history, _)
+	->  send(Receiver, open_history, Impl, @on)
+	;   send(Receiver, close_history)
+	),
+	send(KB, send_super_vector,
+	     fill_arguments_and_execute, Id, Receiver, Selector, Argv).
+
+execute(KB, Receiver:emacs_mode, Selector:name, Argv:any ...) :->
+	"Push history if available"::
+	(   get(Receiver, m_x_history, @nil)
+	->  true
+	;   send(Receiver, close_history, Argv?copy)
+	),
+	send(KB, send_super_vector, execute, Receiver, Selector, Argv).
+
+:- pce_end_class.
+
 
 		 /*******************************
 		 *	   ARGUMENT ITEM	*

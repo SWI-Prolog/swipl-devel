@@ -405,7 +405,7 @@ mark_example(E, Re:regex) :->
 	get(Re, register_start, 1, Start),
 	get(Re, register_size,  1, Size),
 	get(E, text_buffer, TB),
-	new(TB, fragment(E, Start, Size, example)).
+	new(_, fragment(TB, Start, Size, example)).
 
 
 mark_object(E, Re:regex) :->

@@ -11,6 +11,8 @@
 :- module(draw,
 	[ draw/0				  % Start drawing tool
 	, draw/1				  % Start editing file
+	, draw_begin_shape/4
+	, draw_end_shape/0
 	]).
 
 
@@ -189,7 +191,7 @@ initialise(Draw) :->
 	send(new(Menu, draw_menu), left, Canvas),
 	send(new(D, dialog), above, Menu),
 	fill_dialog(D),
-	fill_menu(Menu),
+	send(Draw, fill_menu),
 	send(Menu, activate_select).
 
 
@@ -402,7 +404,9 @@ the prototype, the second the associated mode and the third the cursor
 that should be displayed in this mode.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-fill_menu(M) :-
+fill_menu(Draw) :->
+	"Fill <-menu with standard prototypes"::
+	get(Draw, menu, M),
 	send(M, proto, @nil,		   select,	   top_left_arrow),
 	send(M, proto, @nil,		   draw_edit,	   xterm),
 	send(M, proto, draw_text(''),	   draw_text,	   xterm),

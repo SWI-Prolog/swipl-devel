@@ -36,7 +36,7 @@ copyJoint(Joint jt1, Joint jt2)
 		********************************/
 
 static Arrow
-initArrowJoint(Joint jt)
+getDefaultArrowJoint(Joint jt)
 { answer(newObject(ClassArrow, 0));
 }
 
@@ -67,6 +67,17 @@ firstArrowJoint(Joint jt, Arrow arrow)
 static status
 secondArrowJoint(Joint jt, Arrow arrow)
 { return setArrowsJoint(jt, DEFAULT, arrow);
+}
+
+
+static Arrow
+initArrowJoint(Joint jt)
+{ Any rval;
+
+  if ( !(rval = qadGetv(jt, NAME_defaultArrow, 0, NULL)) )
+    rval = NIL;
+
+  return rval;
 }
 
 
@@ -140,6 +151,10 @@ makeClassJoint(Class class)
 	    "arrows={none,first,second,both}", 0,
 	    "Which arrows are defined",
 	    getArrowsJoint);
+  getMethod(class, NAME_defaultArrow, NAME_appearance,
+	    "arrow", 0,
+	    "Create default arrow for ->arrows",
+	    getDefaultArrowJoint);
 
   succeed;
 }

@@ -75,7 +75,7 @@ do_save(B, File:file) :->
 :- pce_autoload(style_item, library(pce_style_item)).
 
 :- initialization
-	new(KB, key_binding(emacs_annotate, emacs_text)),
+	new(KB, emacs_key_binding(emacs_annotate, emacs_text)),
 	send(KB, function, '\C-c\C-d', define_style).
 
 :- initialization

@@ -47,6 +47,13 @@
 	verbose/0.
 
 
+%	Function that allows you to send messages to the currently compiling
+%	class.  Should be made a var pushed/popped by pce_begin_class and
+%	pce_end_class.
+
+:- initialization
+	new(@class, var(class, class, @nil)).
+
 		/********************************
 		*           BEGIN CLASS		*
 		********************************/
@@ -143,6 +150,8 @@ start_class(ClassName, Doc) :-
 	start_class(ClassName).
 
 start_class(ClassName) :-
+	class_name(Class, ClassName),
+	send(@class, assign, Class, global),
 	asserta(compiling(ClassName)),
 	asserta(current_group_(@default)),
 	push_compile_operators.
@@ -158,6 +167,11 @@ pce_end_class :-
 	retract(load_module(_)),
 	retractall(compiling(ClassName)),
 	ignore(retractall(current_group_(_))),
+	(   compiling(Outer)
+	->  class_name(OuterClass, Outer),
+	    send(@class, assign, OuterClass, global)
+	;   true
+	),
 	pop_compile_operators,
 	feedback('Class ~w loaded~n', [ClassName]).
 

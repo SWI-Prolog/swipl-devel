@@ -26,17 +26,19 @@ initialiseSyntaxTable(SyntaxTable t, Name name, SyntaxTable def)
   if ( notDefault(def) )
   { flags = def->table;
     context = def->context;
+    assign(t, sentence_end, def->paragraph_end);
+    assign(t, paragraph_end, def->paragraph_end);
   } else
   { flags = char_flags;
     context = char_context;
+    assign(t, sentence_end,
+	   newObject(ClassRegex, CtoName("[.?!]\\s "), 0));
+    assign(t, paragraph_end,
+	   newObject(ClassRegex, CtoName("\\s *$"), 0));
   }
     
   assign(t, name, name);
   assign(t, size, toInt(256));
-  assign(t, sentence_end,
-	 newObject(ClassRegex, CtoName("[.?!]\\s "), 0));
-  assign(t, paragraph_end,
-	 newObject(ClassRegex, CtoName("\\s *$"), 0));
 
   t->table   = alloc(FLAGS_SIZE(t));
   t->context = alloc(CONTEXT_SIZE(t));

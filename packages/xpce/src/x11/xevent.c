@@ -68,7 +68,8 @@ ws_dispatch(Int FD, Int timeout)
     timeout.tv_usec = 250000;
 
     FD_ZERO(&readfds);
-    FD_SET(fd, &readfds);
+    if ( fd >= 0 )
+      FD_SET(fd, &readfds);
     if ( select(1, &readfds, NULL, NULL, &timeout) > 0 )
       succeed;
     else
@@ -76,7 +77,7 @@ ws_dispatch(Int FD, Int timeout)
   }					/* A display: dispatch until there */
 					/* is input or a timeout */
 
-  if ( fd != dfd )
+  if ( fd != dfd && fd >= 0 )
   { XtAppAddInput(ThePceXtAppContext, fd,
 		  (XtPointer) XtInputReadMask, is_pending, NULL);
     dfd = fd;

@@ -271,7 +271,7 @@ class_of(_, '').
 
 group_objects(Chain, Groups) :-
 	new(Groups, sheet),
-	Group = when(@arg1?group, @arg1?group, misceleneous),
+	Group = when(@arg1?group, @arg1?group, miscellaneous),
 	send(Chain, for_all,
 	     if(message(Groups, is_attribute, Group),
 		message(?(Groups, value, Group), append, @arg1),

@@ -159,6 +159,12 @@ getUnresolvedTypesPce(Pce pce)
 		   { Class class = t->context;
 		     if ( isNil(class->super_class) )
 		       appendChain(ch, t);
+		     if ( isName(class) )
+		     { if ( (class = getMemberHashTable(classTable, class)) )
+			 assign(t, context, class);
+		       else
+			 appendChain(ch, t);
+		     }
 		   }
 		 });
   

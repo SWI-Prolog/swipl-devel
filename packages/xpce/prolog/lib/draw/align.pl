@@ -365,5 +365,5 @@ portray_request(R) :-
 	offset_request(R, X, Y),
 	describe_request(R, D),
 	\+ \+ (ignore(X = -), ignore(Y = -),
-	       format('~t~8|~2f: ~w (~w,~w)~n', [H, D, X, Y])).
+	       format('~t~8|~2f: ~p (~w,~w)~n', [H, D, X, Y])).
 	

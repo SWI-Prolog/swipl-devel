@@ -16,7 +16,7 @@
 
 
 :- initialization
-	new(KB, key_binding(c, language)),
+	new(KB, emacs_key_binding(c, language)),
 	send(KB, function, '{',		insert_c_begin),
 	send(KB, function, '\C-cRET',	prototype_mark),
 	send(KB, function, '\C-c\C-p',	add_prototype),

@@ -51,7 +51,7 @@ initialise(B, File:file*, Name:[name]) :->
 	    (   get(@emacs_mode_list?members, find,
 		    message(@arg1?name, match, FileBaseName), Att)
 	    ->  send(B, slot, mode, Att?value)
-	    ;   send(B, slot, mode, fundamental)
+	    ;   send(B, slot, mode, @emacs_default_mode)
 	    )
 	),
 

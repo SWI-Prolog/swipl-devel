@@ -428,7 +428,16 @@ intType(Type t, Any val, Any ctx)
 
 static status
 classType(Type t, Any val, Any ctx)
-{ return instanceOfObject(val, t->context); /* realise? */
+{ if ( isName(t->context) )
+  { Class class;
+
+    if ( (class=getConvertClass(ClassClass, t->context)) )
+      assign(t, context, class);
+    else
+      fail;
+  }
+      
+  return instanceOfObject(val, t->context);
 }
 
 
@@ -624,6 +633,15 @@ getEventIdType(Type t, Any val, Any ctx)
 static Any
 getClassType(Type t, Any val, Any ctx)
 { Class class = t->context;
+
+  if ( isName(class) )
+  { if ( (class = getConvertClass(ClassClass, t->context)) )
+      assign(t, context, class);
+    else
+    { errorPce(t, NAME_unresolvedType);
+      fail;
+    }
+  }
 
   realiseClass(class);
   if ( notNil(class->convert_method) )
@@ -858,12 +876,13 @@ static Type
 createClassType(Name name)
 { Type type;
 
-  if ( (type = getMemberHashTable(TypeTable, name)) != FAIL )
-  { return type;
-  } else
-  { Class class = typeClass(name);
+  if ( (type = getMemberHashTable(TypeTable, name)) )
+    return type;
+  else
+  { Class class = inBoot ? typeClass(name)
+      		         : (Class)getMemberHashTable(classTable, name);
 
-    return createType(name, NAME_class, class);
+    return createType(name, NAME_class, class ? (Any) class : (Any) name);
   }
 }
 
@@ -879,17 +898,18 @@ Type syntax:
 			  | 'alien:' Ctype
 	SingleType	::= PrimType
 			  | SingleType '*'
-			  | SingleType '?'
 			  | '[' SingleType ']'
 			  | SingleType '|' SingleType
 	SingleType	::= 'int'
-			  | 'name'
-			  | 'object'
 			  | 'any'
 			  | 'unchecked'
 			  | ClassName
 			  | Int '...' Int
+			  | Int '..'
+			  | '..' Int
 			  | Float '...' Float
+			  | Float '..'
+			  | '..' Float
 			  | {Atom, ...}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -1217,7 +1237,7 @@ nameToType(Name name)
     { Name sn = CtoName(str.start);
       Type st;
 
-      if ( (st = nameToType(sn)) != FAIL )
+      if ( (st = nameToType(sn)) )
       { Type t2 = getCopyType(st, name);
 
 	if ( var ) superType(t2, TypeNil);

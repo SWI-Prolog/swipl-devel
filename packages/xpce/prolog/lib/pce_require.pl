@@ -118,6 +118,21 @@ process_directive(ensure_loaded(Modules)) :-
 	process_use_module(Modules).
 process_directive(dynamic(Dynamic)) :-
 	assert_dynamic(Dynamic).
+
+						  % BEGIN/END PceEmacs mode
+process_directive(emacs_begin_mode(Mode, Super, Summary, KB, ST)) :-
+	get(string('emacs_%s_mode', Mode), value, Class),
+	get(string('emacs_%s_mode', Super), value, SuperClass),
+	process_directive(pce_begin_class(Class, SuperClass, Summary)),
+	process_body(emacs_begin_mode(Mode, Super, Summary, KB, ST)).
+process_directive(emacs_extend_mode(Mode, KB)) :-
+	get(string('emacs_%s_mode', Mode), value, Class),
+	process_directive(pce_extend_class(Class)),
+	process_body(emacs_extend_mode(Mode, KB)).
+process_directive(emacs_end_mode) :-
+	process_directive(pce_end_class),
+	process_body(emacs_end_mode).
+
 						  % BEGIN/END class
 process_directive(pce_begin_class(Class, Super)) :-
 	process_directive(pce_begin_class(Class, Super, "")).

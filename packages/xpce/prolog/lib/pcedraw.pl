@@ -9,9 +9,11 @@
 
 
 :- module(pce_draw,
-	  [ pcedraw/0		% start pcedraw
-	  , pcedraw/1		% and load a file into it
-	  , draw_toplevel/0	% toplevel when compiled
+	  [ pcedraw/0			% start pcedraw
+	  , pcedraw/1			% and load a file into it
+	  , draw_toplevel/0		% toplevel when compiled
+	  , draw_begin_shape/4		% user-defined shapes
+	  , draw_end_shape/0
 	  ]).
 
 :- use_module(library(pce)).

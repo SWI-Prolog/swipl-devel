@@ -18,7 +18,8 @@
 :- pce_autoload(finder, library(find_file)).
 :- pce_global(@emacs, new(emacs_buffer_menu(@emacs_buffers))).
 
-:- pce_begin_class(emacs_buffer_menu, frame).
+:- pce_begin_class(emacs_buffer_menu, frame,
+		   "List showing all PceEmacs buffers").
 
 resource(geometry,	geometry,	'211x190+0+125').
 
@@ -64,7 +65,8 @@ initialise(BM, BufferList:dict) :->
 		  ]),
 	send(@pce, exit_message, message(BM, save_some_buffers)),
 	send(BM, create),
-	ignore(send(BM, server_start)).
+	ignore(send(BM, server_start)),
+	ignore(send(BM, load_user_init_file)).
 
 
 buffer(_BM, Name:name, B:emacs_buffer) :<-
@@ -78,14 +80,23 @@ buffers(_BM, Buffers:chain) :<-
 	get(@emacs_buffers?members, map, @arg1?object, Buffers).
 
 
+modes(_BM, ModeNames:chain) :<-
+	"Return chain with known modes"::
+	get(@mode_name_type, context, ModeNames).
+
 :- dynamic
 	help_file/1.
 
 :- pce_help_file(emacs, 'emacs.hlp').
+:- pce_help_file(emacs_customise, 'customise.hlp').
 
 help(_BM) :->
 	"Display general help"::
 	send(@helper, give_help, emacs, main).
+
+customise(_BM) :->
+	"Display customisation help"::
+	send(@helper, give_help, emacs_customise, main).
 
 
 selection(BM, B:emacs_buffer*) :->
@@ -208,9 +219,16 @@ load_user_extension(_BM, Base:name) :->
 	new(F, file(Name)),
 	(   send(file(Name), exists)
 	->  get(F, absolute_path, Path),
-	    consult(Path)
+	    ensure_loaded(Path)
 	;   true
 	).
 
+
+load_user_init_file(_BM) :->
+	"Load ~/.pceemacsrc: user extensions"::
+	(   send(file('~/.pceemacsrc'), access, read)
+	->  ignore(user:consult('~/.pceemacsrc'))
+	;   true
+	).
 
 :- pce_end_class.

@@ -362,10 +362,11 @@ initPositionText(TextObj t)
     y = valInt(t->area->y) + b;
   } else
   { x = valInt(t->area->x) + w/2;
-    y = valInt(t->area->y) + valInt(t->area->h)/2;
+    y = valInt(t->area->y) + h/2;
   }
 
   x += b;
+  y += b;				/* was missing? */
   w += 2*b;
   h += 2*b;
 

@@ -13,7 +13,7 @@
 	   ]).
 
 :- initialization
-	new(KB, key_binding(latex, language)),
+	new(KB, emacs_key_binding(latex, language)),
 
 	send(KB, function, '"',		insert_quote),
 	send(KB, function, '\C-c\C-o',	open_document),
