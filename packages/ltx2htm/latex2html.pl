@@ -22,6 +22,7 @@
 	    translate_footnote/2,	% +Text, -HTML
 	    translate_table/3,		% +Format, +BodyTokens, -HTML
 	    translate_section/4,	% +Level, -/*, +Title, -HTML
+	    translate_section/5,	% +Level, -/*, +Title, -HTML, +FileBase
 	    current_setting/1,		% +Type(-Value ...)
 	    do_float/2,			% +Float(+Number), :Goal
 	    tex_load_commands/1,	% +BaseName
@@ -33,7 +34,7 @@
 	  ]).
 :- use_module(library(quintus)).
 
-version('0.15').			% for SWI-Prolog 3.3
+version('0.95').			% for SWI-Prolog 4.1
 page_header('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">\n\n').
 
 :- dynamic			
@@ -266,7 +267,7 @@ goodbye :-
 	html_file_base(Html),
 	format(user_error, '~*t~72|~n', [0'*]),
 	format(user_error,
-	       'Tranlation completed; output written to "~w/~w.html".~n',
+	       'Translation completed; output written to "~w/~w.html".~n',
 	       [Dir, Html]),
 	format(user_error, 'Prolog statistics:~n~n', []),
 	statistics.
@@ -277,6 +278,10 @@ translate(TeX, Mode, HTML) :-
 	translate(TeX, Mode, _, HTML).
 
 translate([], Mode, Mode, []) :- !.
+translate([\(Section, -, [{Title}])|T], Mode, Mode, HTML) :-
+	trans_section(Section, Title, T, TitleHtml), !,
+	append(TitleHtml, BodyHtml, HTML),
+	translate(T, Mode, Mode, BodyHtml).
 translate([H0|T0], Mode0, Mode, [H|T]) :- !,
 	translate_1(H0, Mode0, Mode1, H),
 	translate(T0, Mode1, Mode, T).
@@ -368,7 +373,7 @@ translate_environment(Env, Mode, Mode, HTML) :-
 translate_env(Env, Mode, Mode, HTML) :-
 	tex_extension_module(M),
 	M:env(Env, HTML), !.
-translate_env(Env, []) :-
+translate_env(Env, Mode, Mode, []) :-
 	functor(Env, Name, _),
 	format(user_error,
 	       'Failed to translate \\begin{~w} ... \\end{~w}~n',
@@ -1429,15 +1434,44 @@ appendix :-
 	arg(1, Counters, Chapter),
 	asserta(appendix_section(Chapter)).
 
+%	trans_section(+SectionCmd, +TexTitle, +RestDocument, -HTML
+%
+%	Allow look-ahead for \label{}, so the label can be used to
+%	generate the section filename.
 
-%	translate_section(+Level, +Modify, +TitleTokens, -HTML)
+trans_section(Section, Title, Rest, HTML) :-
+	section_level(Section, Level),
+	ignore(find_label(Rest, Label)),
+	translate_section(Level, -, Title, HTML, Label).
+
+section_level(chapter,	     1).
+section_level(section,	     2).
+section_level(subsection,    3).
+section_level(subsubsection, 4).
+
+find_label([' '|T], Label) :- !,
+	find_label(T, Label).
+find_label(['\n'|T], Label) :- !,
+	find_label(T, Label).
+find_label([\par|T], Label) :- !,
+	find_label(T, Label).
+find_label([\(label, [{RawLabel}])|_], Label) :-
+	(   sub_atom(RawLabel, _, _, A, :)
+	->  sub_atom(RawLabel, _, A, 0, Label)
+	;   Label = RawLabel
+	).
+	
+%	translate_section(+Level, +Modify, +TitleTokens, -HTML[, +File])
+
+translate_section(Level, Mod, TexTitle, HTML) :-
+	translate_section(Level, Mod, TexTitle, HTML, _).
 
 translate_section(Level, -, TeXTitle,
 	[ Footer,
 	  Tell,
 	  Header,
 	  #h(Level, #label(RefName, [Tag, ' ', Title]))
-	]) :- !,
+	], NodeFile) :- !,
 	translate(TeXTitle, normal, Title),
 	section_tag(OldTag),
 	increment_section_counter(Level, Tag, FirstSubSection),
@@ -1445,7 +1479,10 @@ translate_section(Level, -, TeXTitle,
 	    Level =< Split
 	->  Tell = #tell(NodeFile),
 	    Header = #header(Tag),
-	    section_file(Tag, Title, NodeFile),
+	    (	var(NodeFile)
+	    ->  section_file(Tag, Title, NodeFile)
+	    ;	true
+	    ),
 	    (   FirstSubSection
 	    ->  Footer = #footer(OldTag)
 	    ;   Footer = []
@@ -1456,7 +1493,7 @@ translate_section(Level, -, TeXTitle,
 	),
 	sformat(RefName, 'sec:~w', [Tag]),
 	assert(section(Level, Tag, Title)).
-translate_section(Level, *, Title, #h(Level, +Title)).
+translate_section(Level, *, Title, #h(Level, +Title), _).
 
 h(1, '<H1>', '</H1>').
 h(2, '<H2>', '</H2>').
@@ -1466,7 +1503,7 @@ h(5, '<H5>', '</H5>').
 h(6, '<H6>', '</H6>').
 
 section_file(Tag, _, Node) :-
-	concat('sec-', Tag, Node).
+	atom_concat('sec-', Tag, Node).
 
 increment_section_counter(Level, Tag, FirstSubSection) :-
 	(   retract(section_counter_array(Old))

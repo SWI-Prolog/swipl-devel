@@ -141,7 +141,7 @@ the current session is saved in the state file.
 \end{description}
 
 
-\section{Limitations of qsave_program}
+\section{Limitations of qsave_program}	\label{sec:qsavelimits}
 
 There are three areas that require special attention when using
 qsave_program/[1,2].
@@ -164,7 +164,7 @@ are not preserved and may thus not be part of the database when saved.
 \end{itemize}
 
 
-\section{Runtimes and Foreign Code}
+\section{Runtimes and Foreign Code}	\label{sec:qsaveforeign}
 
 \label{sec:qforeign}
 Some applications may need to use the foreign language interface.
@@ -232,7 +232,7 @@ default it searches the directories \file{<home>/lib/<arch>} and
 file_search_path/2.
 
 
-\section{Using program resources}
+\section{Using program resources}	\label{sec:useresource}
 
 A \jargon{resource} is very similar to a file.  Resources however can
 be represented in two different formats: on files, as well as part of
@@ -366,7 +366,7 @@ Delete named members from the archive.
 This command is also described in the \manref{pl}{1} Unix manual page.
 
 
-\section{Finding Application files}
+\section{Finding Application files}	\label{sec:findappfile}
 
 If your application uses files that are not part of the saved program
 such as database files, configuration files, etc., the runtime version
@@ -413,7 +413,7 @@ to start gnat using the command:
 % gnat -p gnatdir=/users/bob/lib/gnat
 \end{code}
 
-\section{The Runtime Environment}
+\section{The Runtime Environment}	\label{sec:runenv}
 
 \subsection{The Runtime Emulator}
 

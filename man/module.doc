@@ -1,6 +1,6 @@
 \chapter{Using Modules}                 \label{sec:modules}
 
-\section{Why Using Modules?}
+\section{Why Using Modules?}		\label{sec:whymodules}
 
 In traditional Prolog systems the predicate space was flat.  This
 approach is not very suitable for the development of large
@@ -22,7 +22,7 @@ private purposes.  Finally, using the module information, cross
 reference programs can indicate possible problems much better.
 
 
-\section{Name-based versus Predicate-based Modules}
+\section{Name-based versus Predicate-based Modules} \label{sec:whichmodules}
 
 Two approaches to realize a module system are commonly used in Prolog
 and other languages. The first one is the \jargon{name based} module
@@ -82,7 +82,7 @@ the complexities of meta-predicates in a predicate based module
 system.
 
 
-\section{Defining a Module}
+\section{Defining a Module}		\label{dec:defmodule}
 
 Modules normally are created by loading a \jargon{module file}.  A module
 file is a file holding a module/2 directive as its first term.  The
@@ -103,7 +103,7 @@ rev([Head|List1], List2, List3) :-
 \end{code}
 
 
-\section{Importing Predicates into a Module}
+\section{Importing Predicates into a Module}	\label{sec:import}
 
 As explained before, in the predicate based approach adapted by
 SWI-Prolog, each module has it's own predicate space.  In SWI-Prolog,
@@ -169,7 +169,7 @@ use all predicates imported into \const{user} without explicitly
 importing them.
 
 
-\section{Using the Module System}
+\section{Using the Module System}	\label{sec:usemodules}
 
 The current structure of the module system has been designed with some
 specific organisations for large programs in mind.  Many large
@@ -267,7 +267,7 @@ module \arg{Module}.  It is discussed in more detail in
 \secref{metacall}.
 
 
-\section{Meta-Predicates in Modules}
+\section{Meta-Predicates in Modules}	\label{sec:metainmodule}
 
 As indicated in the introduction, the problem with a predicate based
 module system lies in the difficulty to find the correct predicate
@@ -386,7 +386,7 @@ predicates import/1 and export/1:
 \end{code}
 
 
-\section{Module Handling Predicates}
+\section{Module Handling Predicates}	\label{sec:manipmodule}
 
 This section gives the predicate definitions for the remaining
 built-in predicates that handle modules.
@@ -454,7 +454,7 @@ tex: 2 ?- listing(file_of_label/2).
 \end{code}
 \end{description}
 
-\section{Compatibility of the Module System}
+\section{Compatibility of the Module System}	\label{sec:modulecompat}
 
 The principles behind the module system of SWI-Prolog differ in a
 number of aspects from the Quintus Prolog module system.

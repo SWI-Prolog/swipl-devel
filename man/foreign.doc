@@ -19,7 +19,7 @@ C, calling Prolog, etc.  It is also possible to write the `main' in
 C and use Prolog as an embedded logical engine.
 
 
-\section{Overview of the Interface}
+\section{Overview of the Interface}		\label{sec:foreignoverview}
 
 A special include file called \file{SWI-Prolog.h} should be included
 with each C-source file that is to be loaded via the foreign interface.
@@ -42,7 +42,7 @@ categories:
 \end{shortlist}
 
 
-\section{Linking Foreign Modules}
+\section{Linking Foreign Modules}		\label{sec:foreignlink}
 
 Foreign modules may be linked to Prolog in three ways. Using 
 \jargon{static linking}, the extensions, a small description file and the basic
@@ -87,7 +87,7 @@ Note that the definition of the foreign predicates is the same, regardless
 of the linking type used.
 
 
-\section{Dynamic Linking of shared libraries}
+\section{Dynamic Linking of shared libraries}	\label{sec:dynstatic}
 
 The interface defined in this section allows the user to load shared
 libraries (\fileext{so} files on most Unix systems, \fileext{dll} files
@@ -272,7 +272,7 @@ both the extensions and the SWI-Prolog kernel. This may be done by hand,
 or using the \program{plld} utility described in secref{plld}.
 
 
-\section{Interface Data types}
+\section{Interface Data types}		\label{sec:foreigntypes}
 
 \subsection{Type \ctype{term_t}: a reference to a Prolog term}
 
@@ -429,7 +429,7 @@ Type for the install() and uninstall() functions of shared
 or dynamic link libraries.  See secref{shlib}.
 \end{description}
 
-\section{The Foreign Include File}
+\section{The Foreign Include File}	\label{sec:foreigninclude}
 
 \subsection{Argument Passing and Control}
 
@@ -2418,8 +2418,7 @@ Cleanup the Prolog environment using PL_cleanup() and calls exit() with
 the status argument.
 \end{description}
 
-\section{Linking embedded applications using plld}
-\label{sec:plld}
+\section{Linking embedded applications using plld}	\label{sec:plld}
 
 The utility program \program{plld} (Win32: plld.exe) may be used to link
 a combination of C-files and Prolog files into a stand-alone executable.
@@ -2644,13 +2643,13 @@ The file_search_path/2 alias \const{swi} is set to point to the home
 directory located.
 
 
-\section{Example of Using the Foreign Interface}
+\section{Example of Using the Foreign Interface} \label{sec:foreignxmp}
 
 Below is an example showing all stages of the declaration of a foreign
-    predicate that transforms atoms possibly holding uppercase letters
-    into an atom only holding lower case letters. \Figref{lowercase-c}
-    shows the C-source file, \figref{load-foreign} illustrates compiling
-    and loading of foreign code.
+predicate that transforms atoms possibly holding uppercase letters into
+an atom only holding lower case letters. \Figref{lowercase-c} shows the
+C-source file, \figref{load-foreign} illustrates compiling and loading
+of foreign code.
 
 \begin{figure}[htb]
 
@@ -2716,7 +2715,7 @@ Yes
 \clearpage
 
 
-\section{Notes on Using Foreign Code}
+\section{Notes on Using Foreign Code}	\label{sec:foreignnotes}
 
 \subsection{Memory Allocation}
 

@@ -1,4 +1,4 @@
-\chapter{Glossary of Terms}
+\chapter{Glossary of Terms}		\label{sec:glossary}
 
 \newcommand{\glossitem}[1]{\item [{#1}]\mbox{}\\}
 \newcommand{\g}[1]{{\em #1}}

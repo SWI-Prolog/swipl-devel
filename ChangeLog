@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ENHANCED: latex2html to use \label{} following a \*section or \chapter
+    as base for constructing a filename for that section.  Changed manual
+    sources to give all chapters and sections a label.  This gives sections
+    from the SWI-Prolog HTML manual a more stable reference.
+
   * FIXED: Problem handling `inlined' calls for the new implementation
     of call/1.  Thanks to Lourens van der Meij.
 

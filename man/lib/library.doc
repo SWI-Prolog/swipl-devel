@@ -1,4 +1,4 @@
-\chapter{The SWI-Prolog library}		\label{sec:library}
+\chapter{The SWI-Prolog library}		\label{sec:libpl}
 
 This chapter documents the SWI-Prolog library.  As SWI-Prolog provides
 auto-loading, there is little difference between library predicates

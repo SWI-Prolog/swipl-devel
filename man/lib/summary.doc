@@ -1,5 +1,5 @@
 \pagebreak
-\section{Library predicates}
+\section{Library predicates}		\label{sec:library}
 
 \subsection{\pllib{check}}
 

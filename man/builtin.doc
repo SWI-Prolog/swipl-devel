@@ -1,6 +1,6 @@
-\chapter{Built-in predicates}
+\chapter{Built-in predicates}			\label{sec:builtin}
 
-\section{Notation of Predicate Descriptions}
+\section{Notation of Predicate Descriptions}	\label{sec:preddesc}
 
 We have tried to keep the predicate descriptions clear and concise.
 First the predicate name is printed in bold face, followed by the
@@ -409,7 +409,7 @@ Old = none
 \end{code}
 \end{description}
 
-\subsection{Quick load files}
+\subsection{Quick load files}		\label{sec:qlf}
 
 SWI-Prolog supports compilation of individual or multiple Prolog
 source files into `Quick Load Files'. A `Quick Load Files' (\fileext{qlf}
@@ -569,7 +569,7 @@ true}'.
 \end{description}
 
 
-\section{Verify Type of a Term}
+\section{Verify Type of a Term}			\label{sec:typetest}
 
 \begin{description}
     \predicate{var}{1}{+Term}
@@ -691,7 +691,7 @@ order of terms. \arg{Order} is one of \const{<}, \const{>} or \const{=},
 with the obvious meaning.
 \end{description}
 
-\section{Control Predicates}
+\section{Control Predicates}		\label{sec:control}
 
 The predicates of this section implement control structures.  Normally
 these constructs are translated into virtual machine instructions by
@@ -1258,7 +1258,7 @@ critical sections are generally very short.
 \end{itemlist}
 
 
-\section{The `block' control-structure}
+\section{The `block' control-structure}		\label{sec:block3}
 
 The block/3 predicate and friends have been introduced before ISO
 compatible catch/3 exception handling for compatibility with some
@@ -1288,7 +1288,7 @@ Cut all choice-points created since the entry of the innermost
 \arg{block} which \arg{Label} unifies.
 \end{description}
 
-\section{DCG Grammar rules}
+\section{DCG Grammar rules}			\label{sec:DCG}
 
 \index{DCG}%
 Grammar rules form a comfortable interface to \jargon{difference-lists}.
@@ -1352,7 +1352,7 @@ Rest = [32, 116, 105, 109, 101, 115]
 \end{description}
 
 
-\section{Database}
+\section{Database}			\label{sec:db}
 
 SWI-Prolog offers three different database mechanisms. The first one is
 the common assert/retract mechanism for manipulating the clause
@@ -1598,7 +1598,7 @@ sub_type(horse, animal).
 \end{code}
 \end{description}
 
-\section{Examining the program}
+\section{Examining the program}		\label{sec:examineprog}
 
 \begin{description}
     \predicate{current_atom}{1}{-Atom}
@@ -1740,7 +1740,7 @@ it is referenced.
 \end{description}
 \end{description}
 
-\section{Input and output}
+\section{Input and output}		\label{sec:IO}
 
 SWI-Prolog provides two different packages for input and output.  One
 confirms to the Edinburgh standard.  This package has a notion of
@@ -2060,7 +2060,7 @@ predicates associated with streams.
 Get the current output stream.
 \end{description}
 
-\section{Status of streams}
+\section{Status of streams}		\label{sec:streamstat}
 
 \begin{description}
     \predicate{wait_for_input}{3}{+ListOfStreams, -ReadyList, +TimeOut}
@@ -2109,7 +2109,7 @@ set to \arg{New}.%
               to the old mode I think this definition is better.}
 \end{description}
 
-\section{Primitive character I/O}
+\section{Primitive character I/O}		\label{sec:chario}
 
 See \secref{chars} for an overview of supported character
 representations.
@@ -2225,7 +2225,7 @@ Copy data all (remaining) data from stream \arg{StreamIn} to
 \arg{StreamOut}.
 \end{description}
 
-\section{Term reading and writing}
+\section{Term reading and writing}		\label{sec:termrw}
 
 This section describes the basic term reading and writing predicates.
 The predicates term_to_atom/2, atom_to_term/3 and sformat/3 provide
@@ -2454,7 +2454,7 @@ Sets the prompt for the next line to be read.  Continuation lines will
 be read using the prompt defined by prompt/2.
 \end{description}
 
-\section{Analysing and Constructing Terms}
+\section{Analysing and Constructing Terms}	\label{sec:manipterm}
 
 \begin{description}
     \predicate{functor}{3}{?Term, ?Functor, ?Arity}
@@ -2542,7 +2542,7 @@ copy_term(In, Out) :-
 \end{code}
 \end{description}
 
-\section{Analysing and constructing atoms}
+\section{Analysing and Constructing Atoms}	\label{sec:manipatom}
 
 These predicates convert between Prolog constants and lists of ASCII
 values. The predicates atom_codes/2, number_codes/2 and name/2 behave
@@ -2680,7 +2680,7 @@ suffix-matching, etc.
 \end{description}
 
 
-\section{Classifying characters}
+\section{Classifying characters}		\label{sec:chartype}
 
 SWI-Prolog offers two comprehensive predicates for classifying
 characters and character-codes. These predicates are defined as built-in
@@ -2836,7 +2836,7 @@ length \arg{Length} and \arg{String} has \arg{After} characters left
 after the match.  See also sub_atom/5.
 \end{description}
 
-\section{Operators}
+\section{Operators}			\label{sec:operators}
 
 Operators are defined to improve the readibility of source-code.
 For example, without operators, to write \exam{2*3+4*5} one would have
@@ -2923,7 +2923,7 @@ Succeeds when \arg{Name} is currently defined as an operator of type \arg{Type}
 with precedence \arg{Precedence}. See also op/3.
 \end{description}
 
-\section{Character Conversion}
+\section{Character Conversion}		\label{sec:charconv}
 
 Although I wouldn't really know for what you would like to use these
 features, they are provided for ISO complicancy.
@@ -3162,7 +3162,7 @@ Evaluates to a floating point number expressing the {\sc cpu} time (in seconds)
 used by Prolog up till now. See also statistics/2 and time/1.
 \end{description}
 
-\section{Adding Arithmetic Functions}
+\section{Adding Arithmetic Functions}	\label{sec:extendarith}
 
 Prolog predicates can be given the role of arithmetic function.  The
 last argument is used to return the result, the arguments before the
@@ -3205,7 +3205,7 @@ the context module with \arg{Head}.
 \end{description}
 
 
-\section{List Manipulation}
+\section{List Manipulation}		\label{sec:maniplist}
 
 \begin{description}
     \predicate{is_list}{1}{+Term}
@@ -3268,7 +3268,7 @@ ordered list holding both the elements of \arg{List1} and \arg{List2}.
 Duplicates are {\bf not} removed.
 \end{description}
 
-\section{Set Manipulation}
+\section{Set Manipulation}		\label{sec:manipset}
 
 \begin{description}
     \predicate{is_set}{1}{+Set}
@@ -3302,7 +3302,7 @@ list without duplicates holding the union of the elements of \arg{Set1}
 and \arg{Set2}.
 \end{description}
 
-\section{Sorting Lists}
+\section{Sorting Lists}			\label{sec:sort}
 
 \begin{description}
     \predicate{sort}{2}{+List, -Sorted}
@@ -3338,7 +3338,7 @@ the same as sort/2.  See also keysort/2.%
 		  3.1.1 and 3.1.2}
 \end{description}
 
-\section{Finding all Solutions to a Goal}
+\section{Finding all Solutions to a Goal}	\label{sec:allsolutions}
 
 \begin{description}
     \predicate{findall}{3}{+Var, +Goal, -Bag}
@@ -3387,7 +3387,7 @@ Equivalent to bagof/3, but sorts the result using sort/2 to get a sorted
 list of alternatives without duplicates.
 \end{description}
 
-\section{Invoking Predicates on all Members of a List}
+\section{Invoking Predicates on all Members of a List} \label{sec:applylist}
 
 All the predicates in this section call a predicate on all members of a
 list or until the predicate called fails.  The predicate is called via
@@ -3416,7 +3416,7 @@ Unify \arg{List2} with a list of all elements of \arg{List1} to which
 \arg{Pred} applies.
 \end{description}
 
-\section{Forall}
+\section{Forall}			\label{sec:forall2}
 
 \begin{description}
     \predicate{forall}{2}{+Cond, +Action}
@@ -3429,7 +3429,7 @@ are correct. It does not say which is wrong if one proves wrong.
 \end{code}
 \end{description}
 
-\section{Formatted Write}
+\section{Formatted Write}		\label{sec:format}
 
 The current version of SWI-Prolog provides two formatted
 write predicates.  The first is writef/[1,2], which is compatible with
@@ -3675,7 +3675,7 @@ dos_newline(Arg) :-
     qualified with the definition module of the predicate.
 \end{description}
 
-\section{Terminal Control}
+\section{Terminal Control}		\label{sec:tty}
 
 The following predicates form a simple access mechanism to the Unix termcap
 library to provide terminal independent I/O for screen terminals. These
@@ -3715,7 +3715,7 @@ size at the first call and is not updated after a user-initiated
 resize of the terminal.
 \end{description}
 
-\section{Operating System Interaction}
+\section{Operating System Interaction}	\label{sec:system}
 
 \begin{description}
     \predicate{shell}{2}{+Command, -Status}
@@ -3846,7 +3846,7 @@ value is returned as a SWI-Prolog string object (see \secref{strings}).
 See also convert_time/8.
 \end{description}
 
-\section{File System Interaction}
+\section{File System Interaction}	\label{sec:files}
 
 \begin{description}
     \predicate{access_file}{2}{+File, +Mode}
@@ -4331,7 +4331,7 @@ problems are to be expected though, both dead-locks as well as
 not-thread-safe code in builtin-predicates. 
 
 
-\section{User Toplevel Manipulation}
+\section{User Toplevel Manipulation}	\label{sec:toplevel}
 
 \begin{description}
     \predicate{break}{0}{}
@@ -4398,7 +4398,7 @@ $<Name>=<Value>$ binding list from the query. \arg{ExpandedBindings}
 must be unified with the bindings the toplevel should print.
 \end{description}
 
-\section{Creating a Protocol of the User Interaction}
+\section{Creating a Protocol of the User Interaction}	\label{sec:protocol}
 
 SWI-Prolog offers the possibility to log the interaction with the user
 on a file.%
@@ -4550,7 +4550,7 @@ Name & Default & Description \\
 \end{center}
 \end{description}
 
-\section{Obtaining Runtime Statistics}
+\section{Obtaining Runtime Statistics}	\label{sec:statistics}
 
 \begin{description}
     \predicate{statistics}{2}{+Key, -Value}
@@ -4605,7 +4605,7 @@ the number of passes through the call- and redo ports of the
 theoretical 4-port model.
 \end{description}
 
-\section{Finding Performance Bottlenecks}
+\section{Finding Performance Bottlenecks}	\label{sec:profile}
 
 SWI-Prolog offers a statistical program profiler similar to Unix prof(1)
 for C and some other languages.  A profiler is used as an aid to find
@@ -4666,7 +4666,7 @@ with the relative number of counts the predicate was active
 is an integer between 0 and 1000.
 \end{description}
 
-\section{Memory Management}
+\section{Memory Management}		\label{sec:memory}
 
 Note: limit_stack/2 and trim_stacks/0 have no effect on machines that do
 not offer dynamic stack expansion.  On these machines these predicates
@@ -4866,7 +4866,7 @@ Find currently open conversations.
 \end{description}
 
 
-\section{Miscellaneous}
+\section{Miscellaneous}			\label{sec:miscpreds}
 
 \begin{description}
     \predicate{dwim_match}{2}{+Atom1, +Atom2}

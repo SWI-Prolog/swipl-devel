@@ -1,8 +1,8 @@
-\chapter{Overview}
+\chapter{Overview}			\label{sec:overview}
 
-\section{Getting started quickly}
+\section{Getting started quickly}	\label{sec:quickstart}
 
-\subsection{Starting SWI-Prolog}
+\subsection{Starting SWI-Prolog}	\label{sec:startpl}
 
 \subsubsection{Starting SWI-Prolog on Unix} \label{sec:startunix}
 
@@ -314,7 +314,7 @@ only.
 \end{description}
 
 
-\section{GNU Emacs Interface}
+\section{GNU Emacs Interface}			\label{sec:gemacs}
 
 \index{GNU-Emacs}\index{Emacs}
 The default Prolog mode for GNU-Emacs can be activated by adding
@@ -339,7 +339,7 @@ GNU-Emacs 19 from
 \url{http://w1.858.telia.com/~u85810764/Prolog-mode/index.html}
 
 
-\section{Online Help}
+\section{Online Help}				\label{sec:help}
 
 Online help provides a fast lookup and browsing facility to this
 manual. The online manual can show predicate definitions as well as
@@ -415,8 +415,7 @@ Backtracking yields further explanations.
 \end{description}
 
 
-\section{Query Substitutions}
-\label{sec:history}
+\section{Query Substitutions}			\label{sec:history}
 
 SWI-Prolog offers a query substitution mechanism similar to that of Unix
 csh (csh(1)), called `history'. The availability of this feature is
@@ -464,7 +463,7 @@ The available history commands are shown in \tabref{history}.
 \end{table}
 
 
-\subsection{Limitations of the History System}
+\subsection{Limitations of the History System}	\label{sec:histlimits}
 
 History expansion is executed after \jargon{raw-reading}. This is the
 first stage of read_term/2 and friends, reading the term into a string
@@ -666,7 +665,7 @@ debugger is in \secref{debugger}.
 
 \section{Compilation}			\label{sec:compilation}
 
-\subsection{During program development}
+\subsection{During program development}	\label{sec:develcomp}
 
 During program development, programs are normally loaded using
 consult/1, or the list abbreviation. It is common practice to organise a
@@ -695,7 +694,7 @@ directory holding \file{load.pl}.  Prolog loads \file{load.pl} before
 entering the toplevel.
 
 
-\subsection{For running the result}
+\subsection{For running the result}	\label{sec:runcomp}
 
 There are various options if you want to make your program ready
 for real usage.  The best choice depends on whether the program
@@ -782,7 +781,7 @@ This argument is ignored in the Windows version, but required to ensure
 best cross-platform compatibility.
 
 
-\subsubsection{Creating a shell-script}
+\subsubsection{Creating a shell-script}		\label{sec:shellscript}
 
 With the introduction of \jargon{PrologScript} (see \secref{plscript}),
 using shell-scripts as explained in this section has become redundant
@@ -819,7 +818,7 @@ shortcut to Prolog, passing the proper options or writing a \fileext{bat}
 file.
 
 
-\subsubsection{Creating a saved-state}
+\subsubsection{Creating a saved-state}		\label{sec:makestate}
 
 For larger programs, as well as for programs that are required to run on
 systems that do not have the SWI-Prolog development system installed,
@@ -870,7 +869,7 @@ This performs exactly the same as executing
 ?- halt.
 \end{code}
 
-\section{Environment Control (Prolog flags)}
+\section{Environment Control (Prolog flags)}	\label{sec:flags}
 
 The predicates current_prolog_flag/2 and set_prolog_flag/2 allow the
 user to examine and modify the execution environment.  It provides
@@ -1162,7 +1161,7 @@ be changed afterwards.
 \end{description}
 
 
-\section{An overview of hook predicates}
+\section{An overview of hook predicates}	\label{sec:hooks}
 
 \index{hooks}
 SWI-Prolog provides a large number of hooks, mainly to control handling
@@ -1298,14 +1297,14 @@ predicates for the XPCE package.
 \end{description}
 
 
-\section{Garbage Collection}
+\section{Garbage Collection}			\label{sec:gc}
 
 SWI-Prolog provides garbage-collection, last-call optimization and atom
 garbage collection.  These features are controlled using prolog flags
 (see current_prolog_flag/2).
 
 
-\section{Syntax Notes}
+\section{Syntax Notes}				\label{sec:syntax}
 
 SWI-Prolog uses standard `Edinburgh' syntax. A description of this
 syntax can be found in the Prolog books referenced in the introduction.
@@ -1324,7 +1323,7 @@ if some code with \exam{/* \ldots */} comment statements in it should be
 commented out.
 \end{itemlist}
 
-\subsection{ISO Syntax Support}
+\subsection{ISO Syntax Support}			\label{sec:isosyntax}
 
 SWI-Prolog offers ISO compatible extensions to the Edinburgh syntax.
 
@@ -1396,7 +1395,7 @@ insist upon using writef/2, either switch \const{character_escapes} to
 \const{false}, or use double \fmtseq{\\}, as in \verb$writef('\\l')$.
 
 
-\subsubsection{Syntax for non-decimal numbers}
+\subsubsection{Syntax for non-decimal numbers}	\label{sec:nondecsyntax}
 
 SWI-Prolog implements both Edinburgh and ISO representations for
 non-decimal numbers. According to Edinburgh syntax, such numbers are
@@ -1408,7 +1407,7 @@ a valid expression. Such numbers are always unsigned.
 
 \section{System limits}				\label{sec:limits}
 
-\subsection{Limits on memory areas}
+\subsection{Limits on memory areas}		\label{sec:memlimit}
 
 SWI-Prolog has a number of memory areas which are only enlarged to a
 certain limit. The default sizes for these areas should suffice for most
@@ -1474,7 +1473,7 @@ Option & Default & Area name & Description \\
 \end{table}
 
 
-\subsubsection{The heap}				\label{sec:heap}
+\subsubsection{The heap}			\label{sec:heap}
 
 \index{stack,memory management}%
 \index{memory,layout}%
@@ -1490,32 +1489,40 @@ and committed and released while the area grows and shrinks.  On Win32
 platform this is realised using \funcref{VirtualAlloc}{} and friends.
 On Unix systems this is realised using \funcref{mmap}{}.
 
-\subsection{Other Limits}
+\subsection{Other Limits}			\label{sec:morelimits}
 
 \begin{description}
     \item[Clauses]
-Currently the following limitations apply to clauses.  The arity may
-not be more than 1024 and the number of variables should be less than
-65536.
+The only limit on clauses is their arity (the number of arguments to
+the head), which is limited to 1024.  Raising this limit is easy and
+relatively cheap, removing it is harder.
+
     \item[Atoms and Strings]
 SWI-Prolog has no limits on the sizes of atoms and strings.  read/1 and
 its derivatives however normally limit the number of newlines in an atom
 or string to 5 to improve error detection and recovery.  This can be
 switched off with style_check/1.
+   
+The number of atoms is limited to 16777216 (16M) on 32-bit machines.  On
+64-bit machines this is virtually unlimited.  See also \secref{atomgc}.
+
     \item[Address space]
 SWI-Prolog data is packed in a 32-bit word, which contains both type
 and value information.  The size of the various memory areas is limited
 to 128 Mb for each of the areas, except for the program heap, which is
 not limited.
+
     \item[Integers]
-Integers are 32-bit to the user, but integers up to the value of the
-\const{max_tagged_integer} prolog-flag are represented more efficiently.
+Integers are 32-bit (64 on 64-bit machines) to the user, but integers up
+to the value of the \const{max_tagged_integer} prolog-flag are
+represented more efficiently.
+
     \item[Floats]
 Floating point numbers are represented as C-native double precision
 floats, 64 bit IEEE on most machines.
 \end{description}
 
-\subsection{Reserved Names}
+\subsection{Reserved Names}			\label{sec:resnames}
 
 The boot compiler (see \cmdlineoption{-b} option) does not support the module
 system.  As large parts of the system are written in Prolog itself

@@ -7,7 +7,7 @@ debugging tools for Prolog. The predicates described here should be
 handled with some care as it is easy to corrupt the consistency of the
 Prolog system by misusing them.
 
-\section{Examining the Environment Stack}
+\section{Examining the Environment Stack}	\label{sec:manipstack}
 
 \begin{description}
     \predicate{prolog_current_frame}{1}{-Frame}
@@ -71,7 +71,7 @@ parent frame.
 \end{description}
 
 
-\section{Intercepting the Tracer}
+\section{Intercepting the Tracer}		\label{sec:tracehook}
 
 \begin{description}
     \predicate{prolog_trace_interception}{4}{+Port, +Frame, +PC, -Action}
@@ -123,7 +123,7 @@ the level of this frame minus 1).
 \end{description}
 
 
-\section{Hooks using the exception/3 predicate}
+\section{Hooks using the exception/3 predicate}	\label{sec:exception3}
 
 This section describes the predicate exception/3, which may be defined
 by the user in the module \module{user} as a multifile predicate. Unlike
@@ -160,7 +160,7 @@ makes sense if the exception handler has defined the predicate.
 \end{description}
 
 
-\section{Hooks for integrating libraries}
+\section{Hooks for integrating libraries}	\label{sec:intlibs}
 
 Some libraries realise an entirely new programming paradigm on top of
 Prolog.  An example is XPCE which adds an object-system to Prolog as
@@ -219,7 +219,7 @@ Hook in apropos/1 on the topic \arg{What}.
 \end{description}
 
 
-\section{Readline Interaction}
+\section{Readline Interaction}		\label{sec:readline}
 
 The following predicates are available if
 \exam{current_prolog_flag(readline, true)} succeeds. They allow for

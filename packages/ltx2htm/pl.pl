@@ -231,7 +231,8 @@ cmd(libdoc({Name}, {Summary}),
     [HTML, #label(Name, [], Tag)]) :-
 	translate_section(2, -,
 			  ['library(', Name, '): ', Summary],
-			  HTML),
+			  HTML,
+			  Name),
 	tex:label_tag(Tag).
 
 

@@ -10,7 +10,7 @@
 % \opfuncsummary{Name}{Arity}{Associativity}{Priority}{Summary}
 % \opsummary{Priority}{Associativity}{Name}{Function}
 
-\section{Predicates}
+\section{Predicates}		\label{sec:predsummary}
 
 The predicate summary is used by the Prolog predicate apropos/1 to
 suggest predicates from a keyword.
@@ -488,7 +488,7 @@ suggest predicates from a keyword.
 \input{lib/summary.doc}
 
 \pagebreak
-\section{Arithmetic Functions}
+\section{Arithmetic Functions}		\label{sec:funcsummary}
 
 \begin{summarylist}{ll}
 \opfuncsummary{*}{2}{yfx}{400}{Multiplication}
@@ -539,7 +539,7 @@ suggest predicates from a keyword.
 \end{summarylist}
 
 \pagebreak
-\section{Operators}
+\section{Operators}		\label{sec:opsummary}
 
 \begin{summarylist}{lrD{f}{f}{-1}l}
 \opsummary{1}{fx}{$}{Bind toplevel variable}

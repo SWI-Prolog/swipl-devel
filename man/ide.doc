@@ -1,4 +1,4 @@
-\chapter{Initialising and Managing a Prolog Project}
+\chapter{Initialising and Managing a Prolog Project}	\label{sec:IDE}
 
 \index{IDE}\index{Development environment}%
 Prolog text-books give you an overview of the Prolog language. The
@@ -193,7 +193,7 @@ a module is required.  Here is a typical example from \pllib{readutil}.
 \end{code}
 
 
-\section{The test-edit-reload cycle}
+\section{The test-edit-reload cycle}		\label{sec:editreload}
 
 SWI-Prolog does not enforce the use of a particular editor for writing
 down Prolog source code.  Editors are complicated programs that must be
@@ -265,7 +265,7 @@ the toplevel and watch the files being reloaded.%
 \end{code}
 
 
-\section{Using the PceEmacs built-in editor}
+\section{Using the PceEmacs built-in editor}	\label{sec:pceemacs}
 
 \subsection{Activating PceEmacs}
 
@@ -551,7 +551,7 @@ are red if the file cannot be found and underlined blue if the file
 can be loaded.  A popup allows for opening the referenced file.
 
 
-\section{The Graphical Debugger}
+\section{The Graphical Debugger}	\label{sec:guitracer}
 
 SWI-Prolog offers two debuggers.  One is the traditional text-console
 based 4-port Prolog tracer and the other is a window-based source-level
@@ -589,7 +589,7 @@ Disable the hooks installed by guitracer/0, reverting to normal
 text-console based tracing.
 \end{description}
 
-\section{The Prolog Navigator}
+\section{The Prolog Navigator}		\label{sec:navigator}
 
 Another tool is the \jargon{Prolog Navigator}.  This tool can be started
 from PceEmacs using the command \menu{Browse/Prolog navigator}{}, from
@@ -603,7 +603,7 @@ Ensure the navigator exists and the indicated location is shown.
 \end{description}
 
 
-\section{Summary of the iDE}
+\section{Summary of the iDE}		\label{sec:idesummary}
 
 The SWI-Prolog development environment consists of a number of
 interrelated but not (yet) integrated tools.  Here is a list of the most
