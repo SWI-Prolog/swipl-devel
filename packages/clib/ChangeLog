@@ -1,3 +1,7 @@
+Dec 16, 2004
+
+  * FIXED: Socket and ssl interaction problems (Windows).  Matt Lilley.
+
 October 04, 2004
 
   * FIXED: library(socket) and library(ssl): potential crash and starvation

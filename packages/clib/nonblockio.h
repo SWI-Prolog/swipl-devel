@@ -112,7 +112,7 @@ typedef enum
 		 *	 BASIC FUNCTIONS	*
 		 *******************************/
 
-extern int	nbio_init(void);
+extern int	nbio_init(const char *module);
 extern int	nbio_cleanup(void);
 extern int	nbio_debug(int level);
 

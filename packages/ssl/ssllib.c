@@ -883,7 +883,10 @@ ssl_lib_init(void)
     /*
      * Initialize the nonblockio library
      */
-    nbio_init();
+    if ( !nbio_init("ssl4pl") )		/* DLL name */
+    { ssl_err("Could not initialise nbio module\n");
+      return -1;
+    }
 #endif
 
     return 0;

@@ -258,8 +258,12 @@ pl_open_socket(term_t Socket, term_t Read, term_t Write)
 
 static foreign_t
 pl_socket(term_t socket)
-{ int sock = nbio_socket(AF_INET, SOCK_STREAM, 0);
+{ int sock;
 
+  if ( !nbio_init("socket") )
+    return FALSE;
+
+  sock = nbio_socket(AF_INET, SOCK_STREAM, 0);
   if ( sock < 0 )
     return FALSE;
 
@@ -351,7 +355,7 @@ static foreign_t
 pl_gethostname(term_t name)
 { char buf[256];
 
-  if ( !nbio_init() )
+  if ( !nbio_init("socket") )
     return FALSE;
 
   if ( gethostname(buf, sizeof(buf)) == 0 )

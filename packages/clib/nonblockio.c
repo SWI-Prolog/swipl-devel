@@ -690,7 +690,6 @@ HiddenFrameClass()
   if ( !name )
   { char buf[50];
 
-    hinstance = GetModuleHandle("socket");
     sprintf(buf, "PlSocketWin%d", (int)hinstance);
     name = strdup(buf);
 
@@ -1131,13 +1130,15 @@ nbio_error(int code, nbio_error_map mapid)
 		 *******************************/
 
 int
-nbio_init(void)
+nbio_init(const char *module)
 { LOCK();
   if ( initialised )
   { UNLOCK();
     return TRUE;
   }
   initialised = TRUE;
+
+  hinstance = GetModuleHandle(module);
 
   FUNCTOR_module2 = PL_new_functor(PL_new_atom(":"), 2);
   FUNCTOR_ip4     = PL_new_functor(PL_new_atom("ip"), 4);
@@ -1189,8 +1190,7 @@ nbio_socket(int domain, int type, int protocol)
 { int sock;
   plsocket *s;
 	
-  if ( !nbio_init() )
-    return FALSE;
+  assert(initialised);
 
   if ( (sock = socket(domain, type , protocol)) < 0)
   { nbio_error(errno, TCP_ERRNO);
