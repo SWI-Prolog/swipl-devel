@@ -51,6 +51,7 @@ void		resetDraw(void);
 void		d_offset(int x, int y);
 void		r_offset(int x, int y);
 DisplayObj	d_display(DisplayObj d);
+void		d_ensure_display(void);
 void		d_flush(void);
 void		d_window(PceWindow sw, int x, int y, int w, int h, int clear, int limit);
 void		d_image(Image i, int x, int y, int w, int h);

@@ -279,6 +279,8 @@ port(Proto,	optional,	active,		send) :-
 	get(@pce, convert, Proto, class, Class),
 	get(Class, send_method, active, _).
 
+port(quote_function, optional,	'_forward',	get).
+
 port(_,		optional,	self,		get).
 
 		 /*******************************

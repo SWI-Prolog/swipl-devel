@@ -73,6 +73,8 @@ standard_code(@arg1 == @nil).
 standard_code(@arg1 > 0).
 standard_code(message(@arg1, instance_of, class)).
 
+standard_function(when(@arg1 == @arg2, @on, @off)).
+
 :- initialization
    (   get(@types, member, port_type, _)
    ->  true
@@ -1104,7 +1106,11 @@ identify(O, Id:string) :<-
 	(   get(O, ui_object, Self)
 	->  (	send(Self, has_get_method, proto)
 	    ->	new_term(Self, Term)
-	    ;	portray_object(Self, Term)
+	    ;	portray_object(Self, T0),
+		(   T0 = quote_function(T)
+		->  Term = T
+		;   Term = T0
+		)
 	    ),
 	    term_to_atom(Term, Atom),
 	    new(Id, string(Atom))
@@ -1255,7 +1261,10 @@ value(O, Value:name) :->
 	    send(Self, instance_of, visual) % dubious
 	->  true
 	;   name_to_object(Value, Object),
-	    send(O, ui_object, Object),
+	    (	send(Object, '_instance_of', function)
+	    ->	send(O, ui_object, quote_function(Object))
+	    ;	send(O, ui_object, Object)
+	    ),
 	    ignore(send(O, identify))
 	).
 
@@ -1510,6 +1519,8 @@ add_constant_popup(P) :-
 	make_add_popup(P, add_constant, O, standard_constant(O)).
 add_code_popup(P) :-
 	make_add_popup(P, add_code, O, standard_code(O)).
+add_function_popup(P) :-
+	make_add_popup(P, add_function, O, standard_function(O)).
 
 
 make_msg_editor_recogniser(R) :-
@@ -1529,7 +1540,9 @@ make_msg_editor_recogniser(R) :-
 		    new(CO, menu_item(add_constant,
 				      message(P, add_constant, Here))),
 		    new(PO, menu_item(add_code,
-				      message(P, add_code, Here),
+				      message(P, add_code, Here))),
+		    new(FO, menu_item(add_function,
+				      message(P, add_function, Here),
 				      end_group := @on)),
 		    new(CP, menu_item(add_send_port,
 				      message(P, add_port, send))),
@@ -1550,6 +1563,7 @@ make_msg_editor_recogniser(R) :-
 	add_object_popup(OPP),        send(OO, popup, OPP),
 	add_constant_popup(COP),      send(CO, popup, COP),
 	add_code_popup(POP),	      send(PO, popup, POP),
+	add_function_popup(FOP),      send(FO, popup, FOP),
 
 	new(R, handler_group(Popup,
 			     handler(area_enter,
@@ -1599,6 +1613,17 @@ add_code(P, Pos:point, Name:[name]) :->
 	default(Name, '', Nm),
 	send(P, display, new(Obj, msg_object(Nm)), Pos),
 	send(Obj, add_port, send, forward),
+	(   Name == @default
+	->  send(P?window, keyboard_focus, ?(Obj, member, text))
+	;   send(Obj, relink)
+	).
+
+
+add_function(P, Pos:point, Name:[name]) :->
+	"Add XPCE function object"::
+	default(Name, '', Nm),
+	send(P, display, new(Obj, msg_object(Nm)), Pos),
+	send(Obj, add_port, get, '_forward'),
 	(   Name == @default
 	->  send(P?window, keyboard_focus, ?(Obj, member, text))
 	;   send(Obj, relink)

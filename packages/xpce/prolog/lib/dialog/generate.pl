@@ -363,6 +363,7 @@ simplify(X, S) :-
 simplify(X, X).
 
 
+
 %	map message(X, forward, a, b, c).  Is this ok?  What if not
 %	all arguments are handled?
 
@@ -373,6 +374,15 @@ simplify_forward(Message, Simple) :-
 	Mapped =.. [message, Code, forward | Args],
 	\+ argleft(Mapped), !,
 	Simple = Code.
+simplify_forward(Obtainer, Simple) :-
+	Obtainer =.. [?, _F, '_forward' | Args],
+	make_mapping(Args, Mapping),
+	map_term(Mapping, Obtainer, Mapped),
+	Mapped =.. [?, Code, '_forward' | Args],
+	\+ argleft(Mapped), !,
+	(   Code = quote_function(Simple)
+	;   Simple = Code
+	).
 
 
 argleft(@Ref) :-

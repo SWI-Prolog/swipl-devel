@@ -1,5 +1,9 @@
 [VERSION 4.8.11 (= ProWindows-3, version 1.3]
 
+* FIXED: PostScript generation for class text: handle <-border correctly.
+
+* FIXED: Windows on multiple displays when displaying text objects.
+
 * CLASSCOMPILER: The XPCE class compiler (handling :- pce_begin_class ...
   :- pce_end_class) has been rewritten completely.  Instead of producing
   directives, the current version produces prolog code that creates the
@@ -39,10 +43,16 @@
 * FIXED: `object ->save_in_file'.  Bug was introduced in 4.8.10.  Also
   fixed saving windows (including their frame).
 
-* DIALOG: Various minor modifications leading to version 0.5.
+* DIALOG EDITOR: Various minor modifications leading to version 0.5.
+	* Ported to Quintus for ProWindows.
+	* Better readability of the behaviour model ports.
+	* Correct handling of the size of editors.
+	* Fixed code generation for cycle menus.
+	* Added (rudimental) support to communicate between dialogs
+	* Added handling of function objects in the behaviour model.
 
 * FIXED: Utility predicates portray_object/[1,2] to handle recursive
-  objects.
+  objects.  Also added rules for booleans, quote_function and when.
 
 * FIXED: Handling data for sockets only works if the display is opened.
   This is now opened automatically.

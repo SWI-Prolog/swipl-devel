@@ -268,7 +268,7 @@ getWidthFont(FontObj f, CharArray txt)
       txt = (CharArray) CtoName("x");
   }
 
-  d_display(DEFAULT);			/* TBD */
+  d_ensure_display();			/* TBD */
 
   answer(toInt(str_width(&txt->data, 0, txt->data.size, f)));
 }
@@ -285,7 +285,7 @@ getExFont(FontObj f)
 
 Int
 getHeightFont(FontObj f)
-{ d_display(DEFAULT);
+{ d_ensure_display();
 
   answer(toInt(s_height(f)));
 }
@@ -293,7 +293,7 @@ getHeightFont(FontObj f)
 
 Int
 getAscentFont(FontObj f)
-{ d_display(DEFAULT);
+{ d_ensure_display();
 
   answer(toInt(s_ascent(f)));
 }
@@ -301,7 +301,7 @@ getAscentFont(FontObj f)
 
 Int
 getDescentFont(FontObj f)
-{ d_display(DEFAULT);
+{ d_ensure_display();
 
   answer(toInt(s_descent(f)));
 }
@@ -333,7 +333,7 @@ getB16Font(FontObj f)
 
 static status
 memberFont(FontObj f, Int chr)
-{ d_display(DEFAULT);
+{ d_ensure_display();
 
   if ( s_has_char(f, valInt(chr)) )
     succeed;
@@ -344,7 +344,7 @@ memberFont(FontObj f, Int chr)
 
 static Int
 getDefaultCharacterFont(FontObj f)
-{ d_display(DEFAULT);
+{ d_ensure_display();
 
   answer(toInt(s_default_char(f)));
 }

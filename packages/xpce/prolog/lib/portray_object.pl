@@ -78,6 +78,7 @@ portray_class(==(A, B), ==(p/A, p/B)).
 portray_class(\==(A, B), \==(p/A, p/B)).
 portray_class(if(A,B,C), if(p/A, p/B, p/C)).
 portray_class(while(A,B), while(p/A, p/B)).
+portray_class(when(A,B,C), when(p/A, p/B, p/C)).
 portray_class(attribute(A, B), attribute(A, p/B)).
 portray_class(constraint(A, B, C), constraint(A, B, p/C)).
 portray_class(handler(A, B, C), handler(A, p/B, p/C)).
@@ -99,6 +100,7 @@ portray_class(string(A), A).
 portray_class(click_gesture(A, B, C, D, E, F),
 	      click_gesture(A, p/B, C, p/D, p/E, p/F)).
 portray_class(handle(A,B,C,D), handle(p/A, p/B, C, D)).
+portray_class(quote_function(X), quote_function(p/X)).
 portray_class(Term, NewTerm) :-
 	functor(Term, Functor, _), 
 	vararg_class(Functor), !,
@@ -138,6 +140,8 @@ global_object(@grey25_image).
 global_object(@grey50_image).
 global_object(@grey75_image).
 global_object(@black_image).
+global_object(@on).
+global_object(@off).
 
 %   portray_object(+@Object)
 %

@@ -201,6 +201,13 @@ d_display(DisplayObj d)
 
 
 void
+d_ensure_display()
+{ if ( context.pceDisplay == NULL )
+    d_display(CurrentDisplay(NIL));
+}
+
+
+void
 d_flush(void)
 { XFlush(context.display);
 }
@@ -215,7 +222,8 @@ d_window(PceWindow sw, int x, int y, int w, int h, int clear, int limit)
 { DisplayObj d = getDisplayGraphical((Graphical)sw);
 
   DEBUG(NAME_redraw,
-	Cprintf("d_window(%s, %d, %d, %d, %d)\n", pp(sw), x, y, w, h));
+	Cprintf("d_window(%s, %d, %d, %d, %d) (on %s)\n",
+		pp(sw), x, y, w, h, pp(d)));
 
   if ( env->level != 0 )
     resetDraw();			/* security measure */
@@ -2103,8 +2111,7 @@ s_default_char(FontObj font)
 
 static void
 s_font(FontObj f)
-{ if ( context.pceDisplay == NULL )	/* TBD */
-    d_display(DEFAULT);
+{ d_ensure_display();
 
   if ( context.gcs->font != f )
   { XpceFontInfo info;

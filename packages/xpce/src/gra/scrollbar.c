@@ -811,7 +811,7 @@ MotifEventScrollBar(ScrollBar s, EventObj ev)
       assign(s, status,    NAME_running);
   
       forwardScrollBar(s);	
-    } else if ( s->status, NAME_running &&
+    } else if ( s->status == NAME_running &&
 		s->drag == ON &&
 		isAEvent(ev, NAME_msMiddleDrag) )
     { assign(s, amount,    promilage_event_scrollbar(s, ev));

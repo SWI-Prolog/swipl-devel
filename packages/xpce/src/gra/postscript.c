@@ -953,17 +953,19 @@ drawPostScriptText(TextObj t)
     ps_output("gsave ~C", t);
 
   if ( s[0].size > 0 )			/* i.e. non-empty */
-  { if ( t->wrap == NAME_wrap )
+  { int b = valInt(t->border);
+
+    if ( t->wrap == NAME_wrap )
     { LocalString(buf, s, s->size + MAX_WRAP_LINES);
     
       str_format(buf, s, valInt(t->margin), t->font);
-      ps_string(buf, t->font, x, y, w, t->format);
+      ps_string(buf, t->font, x+b, y+b, w, t->format);
     } else if ( t->wrap == NAME_clip )
     { ps_output("gsave 0 ~x ~y ~w ~h 0 boxpath clip\n", t, t, t, t);
-      ps_string(s, t->font, x+valInt(t->x_offset), y, w, t->format);
+      ps_string(s, t->font, x+b+valInt(t->x_offset), y+b, w, t->format);
       ps_output("grestore\n");
     } else
-      ps_string(s, t->font, x, y, w, t->format);
+      ps_string(s, t->font, x+b, y+b, w, t->format);
   }
 
   if ( t->pen != ZERO )
