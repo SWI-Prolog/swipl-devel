@@ -848,9 +848,8 @@ $consult_file_2(Absolute, Module, Import, IsModule, What, LM) :-
 	$assert_load_context_module(Absolute, OldModule),
 
 	$style_check(OldStyle, OldStyle),	% Save style parameters
-	$open_source(Absolute, In, (		% Load the file
-	    read_clause(In, First),
-	    $load_file(First, In, Absolute, Import, IsModule, LM))),
+	$open_source(Absolute, In,
+		     $load_file(In, Absolute, Import, IsModule, LM)),
 	$style_check(_, OldStyle),		% Restore old style
 	$set_source_module(_, OldModule).	% Restore old module
 
@@ -874,10 +873,18 @@ $assert_load_context_module(File, Module) :-
 $assert_load_context_module(File, Module) :-
 	recordz($load_context_module, File/Module, _).
 
-%   $load_file(+FirstTerm, +Path, +Import, +IsModule, -Module)
+%   $load_file(+FirstTerm, +In, +Path, +Import, +IsModule, -Module)
 %
-%   $load_file5 does the actual loading. The first term has already been
+%   $load_file/6 does the actual loading. The first term has already been
 %   read as this may be the module declaraction.
+
+$load_file(In, File, Import, IsModule, Module) :-
+	(   peek_char(In, #)
+	->  skip(In, 10)
+	;   true
+	),
+	read_clause(In, First),
+	$load_file(First, In, File, Import, IsModule, Module).
 
 $load_file((?- module(Module, Public)), In, File, all, _, Module) :- !,
 	$load_module(Module, Public, all, In, File).

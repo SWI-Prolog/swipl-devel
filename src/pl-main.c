@@ -537,6 +537,96 @@ PL_is_initialised(int *argc, char ***argv)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Argument handling. This routine also takes care of a script-file launced
+with the first line
+
+#!/path/to/pl -L0 -f
+
+On Unix this is passed as below.  We   need  to break the first argument
+ourselves and we need to restore the argv[0]  path as pl might not be on
+$PATH!
+
+	{pl, '-L0 -f', <file>}
+
+On Windows this is simply passed as below.   We have to analyse the file
+ourselves. Unfortunately this needs to be done  on C as it might contain
+stack-parameters.
+
+	{plwin.exe <file>}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifndef MAXLINE
+#define MAXLINE 1024
+#endif
+#ifndef MAXARGV
+#define MAXARGV 128
+#endif
+
+#ifdef __unix__
+#include <ctype.h>
+
+static void
+break_argv(int argc, char **argv)
+{ FILE *fd;
+
+  if ( argc == 3 &&
+       strpostfix(argv[1], "-f") &&
+       (fd = fopen(argv[2], "r")) )	/* ok, this is a script invocation */
+  { char buf[MAXLINE];
+    char *s;
+    char *av[MAXARGV];
+    int  an = 0;
+
+    fgets(buf, sizeof(buf), fd);
+    if ( !strprefix(buf, "#!") )
+    { fclose(fd);
+      goto noscript;
+    }
+
+    for(s = &buf[2]; *s; )
+    { while( *s && isspace(*s) )
+	s++;
+
+      if ( *s )
+      { char *start = s;
+	char *o = s;
+
+	while( *s && !isspace(*s) )
+	{ if ( *s == '\'' || *s == '"' )
+	  { int c0 = *s++;
+
+	    while(*s && *s != c0)
+	      *o++ = *s++;
+	    if ( *s )
+	      s++;
+	  } else
+	    *o++ = *s++;
+	}
+
+	av[an] = allocHeap(o-start+1);
+	strncpy(av[an], start, o-start);
+	if ( ++an >= MAXARGV-1 )
+	  fatalError("Too many script arguments");
+      }
+    }
+
+    av[an++] = argv[2];
+    GD->cmdline.argc = an;
+    av[an++] = NULL;
+    GD->cmdline.argv = allocHeap(sizeof(char *) * an);
+    memcpy(GD->cmdline.argv, av, sizeof(char *) * an);
+
+    fclose(fd);
+  } else
+  { noscript:
+    GD->cmdline.argc = argc;
+    GD->cmdline.argv = argv;
+  }
+}
+#endif
+
+
 int
 PL_initialise(int argc, char **argv)
 { int n;
@@ -559,8 +649,10 @@ PL_initialise(int argc, char **argv)
 
   SinitStreams();			/* before anything else */
 
-  GD->cmdline.argc = argc;
-  GD->cmdline.argv = argv;
+  break_argv(argc, argv);
+  argc = GD->cmdline.argc;
+  argv = GD->cmdline.argv;
+
   GD->debug_level  = 0;			/* 1-9: debug, also -d <level> */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

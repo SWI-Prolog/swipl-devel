@@ -175,7 +175,11 @@ beginning_of_clause(E, Start:int, BOP:int) :<-
 		;   \+ send(@prolog_full_stop, search, TB, Here, 0)
 		)
 	    ->	!,
-		get(TB, skip_comment, 0, BOP)
+		(   get(TB, character, 0, 0'#) 	% Deal with #! first-line
+		->  get(TB, scan, 0, line, 1, start, BOP0)
+		;   BOP0 = 0
+		),
+		get(TB, skip_comment, BOP0, BOP)
 	    ;   get(@prolog_full_stop, register_start, SReg),
 		get(@prolog_full_stop, register_end, P0),
 		send(Here, value, SReg),
