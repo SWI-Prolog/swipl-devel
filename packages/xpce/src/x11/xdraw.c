@@ -666,6 +666,13 @@ r_thickness(int pen)
   }
 }
 
+
+int
+r_transformed(int val)
+{ return val;				/* see msdraw.c */
+}
+
+
 static struct dashpattern
 { Name	dash;
   int	line_style;

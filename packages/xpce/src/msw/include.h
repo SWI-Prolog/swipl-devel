@@ -18,6 +18,9 @@
 
 #define RedrawWindow WinRedrawWindow
 #include <windows.h>
+#ifndef WM_MOUSEWHEEL			/* sometimes not defined */
+#define WM_MOUSEWHEEL 0x020A
+#endif
 #undef RedrawWindow
 #undef hyper				/* don't need this */
 #undef islower				/* we have these ourselves */

@@ -75,6 +75,7 @@ typedef struct
   Any		device;			/* XPCE device in use */
   DisplayObj	display;		/* The XPCE display */
   int		depth;			/* # bits/pixel */
+  int		transformed;		/* A scaling-mapping is active */
 
   Elevation	elevation;		/* current elevation context */
   HPEN		relief_pen;		/* standing-edge pen */
@@ -905,6 +906,28 @@ r_and(int x, int y, int w, int h, Image pattern)
   ZDeleteObject(brush);
 }
 
+static const DWORD dotted[]	= { 1, 2 };
+static const DWORD dashed[]     = { 7, 7 };
+static const DWORD dashdot[]    = { 7, 3, 1, 7 };
+static const DWORD dashdotted[] = { 9, 3, 1, 3, 1, 3, 1, 3 };
+static const DWORD longdash[]   = { 13, 7 };
+
+static struct dashpattern
+{ Name	       dash;
+  DWORD        style;			/* non-PS_USERSTYLE style */
+  const DWORD *dash_list;
+  int 	       dash_list_length;
+} dash_patterns[] =
+{ { NAME_none,		PS_SOLID,	NULL,		0},
+  { NAME_dotted,	PS_ALTERNATE,	dotted,		2},
+  { NAME_dashed,	PS_DOT,		dashed,		2},
+  { NAME_dashdot,	PS_DASHDOT,	dashdot,	4},
+  { NAME_dashdotted,	PS_DASHDOTDOT,	dashdotted,	8},
+  { NAME_longdash,	PS_DASH,	longdash,	2},
+  { 0,			PS_SOLID,	NULL,		0},
+};
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 It appears you cannot create a NULL_PEN using CreatePen(). As we need to
 use stock pens anyway, I decided to use   one  for the very common solid
@@ -922,63 +945,73 @@ r_update_pen()
     { context.hpen = GetStockObject(NULL_PEN);
       context.stockpen = TRUE;
     } else
-    { int style;
+    { if ( context.texture == NAME_none &&
+	   context.thickness == 1 &&
+	   context.rgb == RGB(0,0,0) &&
+	   !context.transformed )
+      { context.hpen = GetStockObject(BLACK_PEN);
+	context.stockpen = TRUE;
+      } else
+      { struct dashpattern *pat;
 
-      if ( context.texture == NAME_none )
-      { if ( context.rgb == RGB(0,0,0) && context.thickness == 1 )
-	{ context.hpen = GetStockObject(BLACK_PEN);
-	  context.stockpen = TRUE;
-	  goto out;
-	} else
-	  style = PS_SOLID;
-      } else if ( context.texture == NAME_dotted )
-      { LOGBRUSH lbrush;
-#define DOT_USING_ALTERNATE 0
-#define DOT_USING_MASK      1
-#define DOT_USING_PSDOT	    2
-	static int how = DOT_USING_ALTERNATE;
+	context.stockpen = FALSE;
 
-	switch(how)
-	{ case DOT_USING_ALTERNATE:
-	    lbrush.lbStyle = BS_SOLID;
-	    lbrush.lbColor = context.rgb;
-	    lbrush.lbHatch = 0L;
-
-	    context.hpen = ZExtCreatePen(PS_COSMETIC|PS_ALTERNATE, 1,
-					 &lbrush, 0, NULL);
-	    if ( context.hpen )
-	    { context.stockpen = FALSE;
-	      goto out;
-	    }
-	    how++;
-	  case DOT_USING_MASK:
-	    lbrush.lbStyle = BS_PATTERN;
-	    lbrush.lbColor = context.rgb;
-	    lbrush.lbHatch = (LONG)getXrefObject(GREY50_IMAGE,
-						 context.display);
-	    context.hpen = ZExtCreatePen(PS_GEOMETRIC, 1, &lbrush, 0, NULL);
-	    if ( context.hpen )
-	    { context.stockpen = FALSE;
-	      goto out;
-	    }
-	    how++;
-	   default:
-	     style = PS_DOT;
+	for(pat=dash_patterns; pat->dash; pat++)
+	{ if ( pat->dash == context.texture )
+	    break;
 	}
-      } else if ( context.texture == NAME_dashed )
-	style = PS_DOT;
-      else if ( context.texture == NAME_dashdot )
-	style = PS_DASHDOT;
-      else if ( context.texture == NAME_dashdotted )
-	style = PS_DASHDOTDOT;
-      else if ( context.texture == NAME_longdash )
-	style = PS_DASH;
+
+	if ( ( context.thickness <= 1 &&
+	       !context.transformed &&
+	       pat->style != PS_ALTERNATE ) ||
+	     ( pat->style == PS_SOLID ) ||
+	     ( platform < NT && (context.thickness > 1 ||
+				 context.transformed) ) )
+	{ DEBUG(NAME_pen, Cprintf("Using CreatePen()\n"));
+	  context.hpen = ZCreatePen(pat->style,
+				    context.thickness,
+				    context.rgb);
+	} else
+	{ LOGBRUSH lbrush;
+	  int style;
       
-      context.hpen = ZCreatePen(style, context.thickness, context.rgb);
-      context.stockpen = FALSE;
+	  lbrush.lbStyle = BS_SOLID;
+	  lbrush.lbColor = context.rgb;
+	  lbrush.lbHatch = 0L;
+
+	  if ( platform < NT )
+	  { if ( pat->style == PS_ALTERNATE )
+	    { context.hpen = ZCreatePen(PS_DOT,
+					context.thickness,
+					context.rgb);
+	    } else
+	    { style = PS_COSMETIC;
+	      style |= pat->style;
+
+	      context.hpen = ZExtCreatePen(style,
+					   1,
+					   &lbrush,
+					   0,
+					   NULL);
+	    }
+	  } else
+	  { style = PS_GEOMETRIC|PS_ENDCAP_FLAT;
+
+	    if ( pat->dash_list_length )
+	      style |= PS_USERSTYLE;
+	    else
+	      style |= pat->style;
+
+	    context.hpen = ZExtCreatePen(style,
+					 context.thickness,
+					 &lbrush,
+					 pat->dash_list_length,
+					 pat->dash_list);
+	  }
+	}
+      }
     }
 
-  out:
     org = ZSelectObject(context.hdc, context.hpen);
     if ( !context.ohpen )
       context.ohpen = org;
@@ -997,6 +1030,22 @@ r_thickness(int pen)
   { context.modified_pen = TRUE;
     context.thickness = pen;
   }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Indicate there is a non-unit mapping  to   the  device.  This is used to
+avoid speedups based on  this  assumption,   for  example  the  usage of
+cosmetic pens over geometric pens.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+r_transformed(int val)
+{ int old = context.transformed;
+
+  context.transformed = (val ? TRUE : FALSE);
+
+  return old;
 }
 
 

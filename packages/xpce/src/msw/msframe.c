@@ -14,6 +14,7 @@
 
 static int WINAPI frame_wnd_proc(HWND win, UINT msg, UINT wP, LONG lP);
 static status     keyboard_event_frame(FrameObj fr, Any id,
+				       UINT wParam, LONG lParam,
 				       unsigned long bmask);
 static void       paint_icon(FrameObj fr);
 
@@ -284,7 +285,7 @@ do_frame_wnd_proc(FrameObj fr,
     { unsigned long bmask;
       Any id = messageToKeyId(message, wParam, lParam, &bmask);
 
-      if ( id && keyboard_event_frame(fr, id, bmask) )
+      if ( id && keyboard_event_frame(fr, id, wParam, lParam, bmask) )
 	return 0;
 
       break;
@@ -461,7 +462,9 @@ get_window_holding_point(FrameObj fr, POINT *pt)
 
 
 static status
-keyboard_event_frame(FrameObj fr, Any id, unsigned long bmask)
+keyboard_event_frame(FrameObj fr, Any id,
+		     UINT wParam, LONG lParam,
+		     unsigned long bmask)
 { PceWindow sw;
   POINT pt;
   EventObj ev;
@@ -488,6 +491,12 @@ keyboard_event_frame(FrameObj fr, Any id, unsigned long bmask)
   m &= ~(BUTTON_shift|BUTTON_control|BUTTON_meta);
   m |= bmask;
   assign(ev, buttons, toInt(m));
+
+  if ( id == NAME_wheel )
+  { Any angle = toInt(HIWORD(wParam));
+
+    attributeObject(ev, NAME_rotation, angle);
+  }
 
   addCodeReference(ev);
   rval = postEvent(ev, receiver, DEFAULT);

@@ -72,6 +72,7 @@ void		r_complement(int x, int y, int w, int h);
 void		r_and(int x, int y, int w, int h, Image pattern);
 void		r_thickness(int pen);
 void		r_dash(Name name);
+int		r_transformed(int val);
 void		d_pen(Pen pen);
 void		r_fillpattern(Any fill, Name which);
 void		r_arcmode(Name mode);

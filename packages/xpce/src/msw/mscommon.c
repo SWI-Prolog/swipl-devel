@@ -304,6 +304,14 @@ messageToKeyId(UINT message, UINT wParam, LONG lParam, unsigned long *bmask)
 
       break;
     }
+
+#ifdef WM_MOUSEWHEEL
+    case WM_MOUSEWHEEL:
+    { id = NAME_wheel;
+
+      break;
+    }
+#endif
   }
 
   if ( id && bmask )
@@ -435,10 +443,7 @@ messageToEvent(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       mouse_ev++;
       break;
     }
-#ifndef WM_MOUSEWHEEL
-#define WM_MOUSEWHEEL 0x020A
-#endif
-#ifdef WM_MOUSEWHEEL
+#ifdef WM_MOUSEWHEEL			/* appears to be sent to frame! */
     case WM_MOUSEWHEEL:
     { id = NAME_wheel;
       ctx_name = NAME_rotation;
