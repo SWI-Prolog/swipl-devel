@@ -764,6 +764,7 @@ word		pl_visible(term_t old, term_t new);
 word		pl_debuglevel(term_t old, term_t new);
 word		pl_prolog_current_frame(term_t fr);
 word		pl_prolog_frame_attribute(term_t fr, term_t key, term_t val);
+foreign_t	pl_prolog_choice_attribute(term_t fr, term_t key, term_t val);
 void		callEventHook(int ev, ...);
 
 /* pl-util.c */

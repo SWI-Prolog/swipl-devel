@@ -65,6 +65,27 @@ parent-goal if the parent-goal is not owned by a foreign predicate.
 refer to local variables. Fails silently if \arg{N} is out of range.
 \end{description}
 
+    \predicate{prolog_choice_attribute}{3}{+ChoicePoint, +Key, -Value}
+Extract attributes of a choice-point.  \arg{ChoicePoint} is a reference
+to a choice-point as passed to prolog_trace_interception/4 on the 3-th
+argument.  \arg{Key} specifies the requested information:
+
+\begin{description}
+    \termitem{parent}{}
+Requests a reference to the first older choice-point.
+    \termitem{frame}{}
+Requests a reference to the frame to which the choice-point refers.
+    \termitem{type}{}
+Requests the type.  Defined values are \const{clause} (the goal has
+alternative clauses), \const{foreign} (non-deterministic foreign
+predicate), \const{jump} (clause internal choicepoint), \const{top}
+(first dummy choice-point), \const{catch} (catch/3 to allow for undo),
+\const{debug} (help the debugger), or \const{none} (has been deleted).
+\end{description}
+
+This predicate is used for the graphical debugger to show the
+choicepoint stack.
+
     \predicate{deterministic}{0}{}
 Succeeds if there are no choicepoints that are more recent than the
 parent frame.
@@ -74,7 +95,7 @@ parent frame.
 \section{Intercepting the Tracer}		\label{sec:tracehook}
 
 \begin{description}
-    \predicate{prolog_trace_interception}{4}{+Port, +Frame, +PC, -Action}
+    \predicate{prolog_trace_interception}{4}{+Port, +Frame, +Choice, -Action}
 Dynamic predicate, normally not defined. This predicate is called from
 the SWI-Prolog debugger just before it would show a port. If this
 predicate succeeds the debugger assumes the trace action has been taken
@@ -124,14 +145,13 @@ debugger. to visualise the effect of the cut.
 A cut has been executed.  See \term{cut_call}{PC} for more information.
 \end{description}
 
-\arg{Frame} is an integer reference to the current local stack frame.
-\arg{PC} is the current value of the program-counter, relative to the
-start of the current clause, or 0 if it is invalid, for example because
-the current frame runs a foreign predicate, or no clause has been
-selected yet. \arg{Action} should be unified with one of the atoms
-\const{continue} (just continue execution), \const{retry} (retry the
-current goal) or \const{fail} (force the current goal to fail). Leaving
-it a variable is identical to \const{continue}.
+\arg{Frame} is a reference to the current local stack frame, which can
+be examined using prolog_frame_attribute/4. \arg{Choice} is a reference
+to the last choice-point and can be examined using
+prolog_choice_attribute/3. \arg{Action} should be unified with one of
+the atoms \const{continue} (just continue execution), \const{retry}
+(retry the current goal) or \const{fail} (force the current goal to
+fail). Leaving it a variable is identical to \const{continue}.
 
 Together with the predicates described in \secref{debugger}
 and the other predicates of this chapter this predicate enables the

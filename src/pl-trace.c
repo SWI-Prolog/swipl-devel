@@ -75,19 +75,6 @@ PL_put_frame(term_t t, LocalFrame fr)
 }
 
 
-#if 0
-static void
-PL_put_choice(term_t t, Choice ch)
-{ if ( ch )
-  { assert(ch >= (Choice)lBase && ch < (Choice)lTop);
-
-    PL_put_integer(t, (Word)ch - (Word)lBase);
-  } else
-    PL_put_atom(t, ATOM_none);
-}
-#endif
-
-
 static int
 PL_get_frame(term_t r, LocalFrame *fr)
 { long i;
@@ -107,6 +94,44 @@ PL_get_frame(term_t r, LocalFrame *fr)
   }
 
   fail;
+}
+
+
+static void
+PL_put_choice(term_t t, Choice ch)
+{ if ( ch )
+  { assert(ch >= (Choice)lBase && ch < (Choice)lTop);
+
+    PL_put_integer(t, (Word)ch - (Word)lBase);
+  } else
+    PL_put_atom(t, ATOM_none);
+}
+
+
+static int
+PL_unify_choice(term_t t, Choice ch)
+{ if ( ch )
+  { assert(ch >= (Choice)lBase && ch < (Choice)lTop);
+
+    return PL_unify_integer(t, (Word)ch - (Word)lBase);
+  } else
+    return PL_unify_atom(t, ATOM_none);
+}
+
+
+static int
+PL_get_choice(term_t r, Choice *chp)
+{ long i;
+
+  if ( PL_get_long(r, &i) )
+  { Choice ch = ((Choice)((Word)lBase + i));
+
+    assert(ch >= (Choice)lBase && ch < (Choice)lTop);
+    *chp = ch;
+
+    succeed;
+  } else
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_choice, r);
 }
 
 
@@ -948,7 +973,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
     }
 
     PL_put_frame(argv+1, frame);
-    PL_put_frame(argv+2, bfr->frame);	/* PL_put_choice() */
+    PL_put_choice(argv+2, bfr);
     PL_put_variable(rarg);
 
     qid = PL_open_query(MODULE_user, PL_Q_NODEBUG, proc, argv);
@@ -1039,11 +1064,26 @@ hasAlternativesFrame(LocalFrame frame)
 }
 
 
+#ifdef O_DEBUG
+static long
+loffset(void *p)
+{ if ( p == NULL )
+    return 0;
+
+  assert((long)p % sizeof(word) == 0);
+  return (Word)p-(Word)lBase;
+}
+
+extern char *chp_chars(Choice ch);
+#endif
+
 static LocalFrame
 alternativeFrame(LocalFrame frame)
 { QueryFrame qf;
   LocalFrame fr = environment_frame;
   Choice ch = LD->choicepoints;
+
+  DEBUG(3, Sdprintf("Looking for choice of #%d\n", loffset(frame)));
 
   for(;;)
   { for( ; ch; ch = ch->parent )
@@ -1051,14 +1091,19 @@ alternativeFrame(LocalFrame frame)
 	return NULL;
 
       if ( ch->frame == frame )
-      { for(ch = ch->parent; ch; ch = ch->parent )
+      { DEBUG(3, Sdprintf("First: %s\n", chp_chars(ch)));
+
+	for(ch = ch->parent; ch; ch = ch->parent )
 	{ if ( ch->frame == frame )
+	  { DEBUG(3, Sdprintf("\tSkipped: %s\n", chp_chars(ch)));
 	    continue;
+	  }
 
 	  switch( ch->type )
 	  { case CHP_CLAUSE:
 	    case CHP_FOREIGN:
 	    case CHP_JUMP:
+	      DEBUG(3, Sdprintf("\tReturning: %s\n", chp_chars(ch)));
 	      return ch->frame;
 	    default:
 	      break;
@@ -1511,6 +1556,42 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
   return PL_unify(value, result);
 }
 
+
+		 /*******************************
+		 *	 CHOICEPOINT STACK	*
+		 *******************************/
+
+foreign_t
+pl_prolog_choice_attribute(term_t choice, term_t what, term_t value)
+{ Choice ch;
+  atom_t key;
+
+  if ( !PL_get_choice(choice, &ch) ||
+       !PL_get_atom_ex(what, &key) )
+    fail;
+
+  if ( key == ATOM_parent )
+  { if ( ch->parent )
+      return PL_unify_choice(value, ch->parent);
+    fail;
+  } else if ( key == ATOM_frame )
+  { return PL_unify_frame(value, ch->frame);
+  } else if ( key == ATOM_type )
+  { static const atom_t types[] =
+    { ATOM_jump,
+      ATOM_clause,
+      ATOM_foreign,
+      ATOM_top,
+      ATOM_catch,
+      ATOM_debug,
+      ATOM_none
+    };
+
+    return PL_unify_atom(value, types[ch->type]);
+  } else
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_key, what);
+
+}
 
 #if O_DEBUGGER
 

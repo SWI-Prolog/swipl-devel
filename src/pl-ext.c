@@ -342,6 +342,7 @@ static const struct foreign {
 
   FRG("prolog_current_frame",	1, pl_prolog_current_frame,	TRACE_ME),
   FRG("prolog_frame_attribute",	3, pl_prolog_frame_attribute,	TRACE_ME),
+  FRG("prolog_choice_attribute",3, pl_prolog_choice_attribute,	TRACE_ME),
   FRG("prolog_skip_level",	2, pl_skip_level,		0),
 
   FRG("$write_on_string",	2, pl_write_on_string,		TRACE_ME),

@@ -1492,7 +1492,7 @@ Discard all choice-points created after  the   creation  of the argument
 environment. See also discardFrame().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if defined(O_DEBUG) || defined(SECURE_GC)
+#if defined(O_DEBUG) || defined(SECURE_GC) || defined(O_MAINTENANCE)
 char *
 chp_chars(Choice ch)
 { static char buf[256];

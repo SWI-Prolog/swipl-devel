@@ -503,6 +503,7 @@ A frame_attribute	"frame_attribute"
 A record_position	"record_position"
 A main			"main"
 A backquoted_string	"backquoted_string"
+A jump			"jump"
 
 F abs			1
 F acos			1

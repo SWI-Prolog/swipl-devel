@@ -1,6 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * DEBUGGER: Modified the trace-hooks to examine choice-points as first
+    class objects.  Adjusted the GUI tracer to use the new code.  This
+    opens the route for better handling of choice-points in the debugger.
+    for now it just avoids a crash of the GUI tracer on particular code
+    where the old view didn't work.
+
   * PORT: Allow for compiling using Compac compilers (__DECC) on Tru64
     Linux/Alpha (Sergey Tikhonov).
 

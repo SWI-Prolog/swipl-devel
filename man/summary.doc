@@ -322,6 +322,7 @@ suggest predicates from a keyword.
 \predicatesummary{profile_count}{3}{Obtain profile results on a predicate}
 \predicatesummary{profiler}{2}{Obtain/change status of the profiler}
 \predicatesummary{prolog}{0}{Run interactive toplevel}
+\predicatesummary{prolog_choice_attribute}{3}{Examine the choice-point stack}
 \predicatesummary{prolog_current_frame}{1}{Reference to goal's environment stack}
 \predicatesummary{prolog_edit:locate}{2}{Locate targets for edit/1}
 \predicatesummary{prolog_edit:locate}{3}{Locate targets for edit/1}

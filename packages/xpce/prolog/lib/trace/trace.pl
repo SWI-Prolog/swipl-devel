@@ -53,9 +53,9 @@
 	show_unify_as/2,
 	showing/1.
 
-user:prolog_trace_interception(Port, Frame, BFR, Action) :-
+user:prolog_trace_interception(Port, Frame, CHP, Action) :-
 	current_prolog_flag(gui_tracer, true),
-	notrace(intercept(Port, Frame, BFR, GuiAction)),
+	notrace(intercept(Port, Frame, CHP, GuiAction)),
 	map_action(GuiAction, Frame, Action).
 
 map_action(creep, _, continue) :-
@@ -97,23 +97,19 @@ traceall :-
 intercept(_, _, _, _) :-
 	setting(active, false), !,
 	fail.
-intercept(Port, Frame, BFR0, Action) :-
-	fix_bfr(BFR0, Frame, BFR),
+intercept(Port, Frame, CHP, Action) :-
 	send_tracer(current_break(@nil)),
-	do_intercept(Port, Frame, BFR, Action0),
+	do_intercept(Port, Frame, CHP, Action0),
 	fix_action(Port, Action0, Action),
 	send_if_tracer(report(status, '%s ...', Action)),
 	retractall(last_action(_)),
 	asserta(last_action(Action)).
 
-fix_bfr(none, FR, FR).
-fix_bfr(BFR,  _,  BFR).
-
 fix_action(fail, skip,   creep) :- !.
 fix_action(exit, skip,   creep) :- !.
 fix_action(_,    Action, Action).
 
-do_intercept(call, Frame, BFR, Action) :-
+do_intercept(call, Frame, CHP, Action) :-
 	(   (   last_action(retry)
 	    ;	prolog_frame_attribute(Frame, top, true),
 		debug('Toplevel frame~n', [])
@@ -125,10 +121,10 @@ do_intercept(call, Frame, BFR, Action) :-
 	    )
 	->  Action = into,
 	    asserta(show_unify_as(Frame, call))
-	;   show(Frame, BFR, 1, call),
+	;   show(Frame, CHP, 1, call),
 	    action(Action)
 	).
-do_intercept(exit, Frame, BFR, Action) :-
+do_intercept(exit, Frame, CHP, Action) :-
 	(   %last_action(finish)
 	    prolog_frame_attribute(Frame, goal, Goal),
 	    \+(( predicate_property(Goal, built_in)
@@ -139,13 +135,13 @@ do_intercept(exit, Frame, BFR, Action) :-
 		 prolog_frame_attribute(Frame, level, FL),
 		 FL >= L
 	      ))
-	->  show(Frame, BFR, 0, exit),
+	->  show(Frame, CHP, 0, exit),
 	    action(Action)
 	;   last_action(leap)
 	->  Action = leap
 	;   Action = creep
 	).
-do_intercept(fail, Frame, BFR, Action) :-
+do_intercept(fail, Frame, CHP, Action) :-
 	(   prolog_frame_attribute(Frame, goal, Goal),
 	    (	predicate_property(Goal, built_in)
 	    ;	predicate_property(Goal, foreign)
@@ -153,9 +149,9 @@ do_intercept(fail, Frame, BFR, Action) :-
 	->  Up = 1
 	;   Up = 0
 	),
-	show(Frame, BFR, Up, fail),
+	show(Frame, CHP, Up, fail),
 	action(Action).
-do_intercept(exception(Except), Frame, BFR, Action) :-
+do_intercept(exception(Except), Frame, CHP, Action) :-
 	(   prolog_frame_attribute(Frame, goal, Goal),
 	    (	predicate_property(Goal, built_in)
 	    ;	predicate_property(Goal, foreign)
@@ -163,25 +159,25 @@ do_intercept(exception(Except), Frame, BFR, Action) :-
 	->  Up = 1
 	;   Up = 0
 	),
-	show(Frame, BFR, Up, exception(Except)),
+	show(Frame, CHP, Up, exception(Except)),
 	action(Action).
-do_intercept(redo, Frame, _BFR, into) :-
+do_intercept(redo, Frame, _CHP, into) :-
 	prolog_frame_attribute(Frame, goal, GT),
 	debug('Redo on ~p~n', [GT]),
 	asserta(show_unify_as(Frame, redo)).
-do_intercept(unify, Frame, BFR, Action) :-
+do_intercept(unify, Frame, CHP, Action) :-
 	visible(-unify),
 	(   show_unify_as(Frame, How)
 	;   How = unify
 	), !,
 	retractall(show_unify_as(_, _)),
 	debug('Show unify port as ~w~n', [How]),
-	show(Frame, BFR, 0, unify, How),
+	show(Frame, CHP, 0, unify, How),
 	prolog_frame_attribute(Frame, goal, Goal),
 	predicate_name(user:Goal, Pred),
 	send_tracer(report(status, '%s: %s', How?label_name, Pred)),
 	action(Action).
-do_intercept(break(PC), Frame, BFR, Action) :-
+do_intercept(break(PC), Frame, CHP, Action) :-
 	prolog_frame_attribute(Frame, goal, Goal),
 	prolog_frame_attribute(Frame, clause, ClauseRef),
 	'$fetch_vm'(ClauseRef, PC, NPC, _VMI),
@@ -190,7 +186,7 @@ do_intercept(break(PC), Frame, BFR, Action) :-
 	send_tracer(current_break(tuple(ClauseRef, PC))),
 	prolog_show_frame(Frame,
 			  [ pc(NPC),
-			    bfr(BFR),
+			    choice(CHP),
 			    port(call),
 			    style(break),
 			    stack,
@@ -198,13 +194,13 @@ do_intercept(break(PC), Frame, BFR, Action) :-
 			    bindings
 			  ]),
 	action(Action).
-do_intercept(cut_call(PC), Frame, BFR, Action) :-
+do_intercept(cut_call(PC), Frame, CHP, Action) :-
 	prolog_frame_attribute(Frame, goal, Goal),
 	predicate_name(user:Goal, Pred),
 	send_tracer(report(status, 'Cut in: %s', Pred)),
 	prolog_show_frame(Frame,
 			  [ pc(PC),
-			    bfr(BFR),
+			    choice(CHP),
 			    port(call),
 			    style(call),
 			    stack,
@@ -212,10 +208,10 @@ do_intercept(cut_call(PC), Frame, BFR, Action) :-
 			    bindings
 			  ]),
 	action(Action).
-do_intercept(cut_exit(PC), Frame, BFR, Action) :-
+do_intercept(cut_exit(PC), Frame, CHP, Action) :-
 	prolog_show_frame(Frame,
 			  [ pc(PC),
-			    bfr(BFR),
+			    choice(CHP),
 			    port(exit),
 			    style(call),
 			    stack,
@@ -225,23 +221,23 @@ do_intercept(cut_exit(PC), Frame, BFR, Action) :-
 	action(Action).
 
 
-show(StartFrame, BFR, Up, exception(Except)) :-
-	show(StartFrame, BFR, Up, exception, exception),
+show(StartFrame, CHP, Up, exception(Except)) :-
+	show(StartFrame, CHP, Up, exception, exception),
 	\+ \+ (numbervars(Except, '$VAR', 0, _),
 	       term_to_atom(Except, Atom),
 	       send_tracer(report(warning, 'Exception: %s', Atom))
 	      ).
-show(StartFrame, BFR, Up, Port) :-
+show(StartFrame, CHP, Up, Port) :-
 	prolog_frame_attribute(StartFrame, goal, Goal),
 	predicate_name(user:Goal, Pred),
 	send_tracer(report(status, '%s: %s', Port?label_name, Pred)),
-	show(StartFrame, BFR, Up, Port, Port).
+	show(StartFrame, CHP, Up, Port, Port).
 
-show(StartFrame, BFR, Up, Port, Style) :-
+show(StartFrame, CHP, Up, Port, Style) :-
 	send_tracer(current_frame(StartFrame)),
 	prolog_show_frame(StartFrame,
 			  [ port(Port),
-			    bfr(BFR),
+			    choice(CHP),
 			    stack
 			  ]),
 	find_frame(Up, StartFrame, Port, PC, Frame),
@@ -408,7 +404,7 @@ show_stack(Frame, Attributes) :-
 	debug('stack ...', []),
 	attribute(Attributes, port(Port), call),
 	attribute(Attributes, pc(PC), Port),
-	attribute(Attributes, bfr(BFR), Frame),
+	attribute(Attributes, choice(CHP), Frame),
 	setting(stack_depth, Depth),
 	setting(choice_depth, MaxChoice),
 	get_tracer(member(stack), StackBrowser),
@@ -416,12 +412,9 @@ show_stack(Frame, Attributes) :-
 	stack_frames(Depth, Frame, PC, CallFrames),
 	debug('Stack frames: ~w~n', [CallFrames]),
 	level_range(CallFrames, Range),
-	debug('Levels ~w, BFR = ~w~n', [Range, BFR]),
-	(   first_alternative(BFR, CHP0)
-	->  choicepoints(MaxChoice, CHP0, Range, ChoicePoints)
-	;   ChoicePoints = []
-	),
-	display_stack(StackBrowser, CallFrames, ChoicePoints).
+	debug('Levels ~w, CHP = ~w~n', [Range, CHP]),
+	choice_frames(MaxChoice, CHP, Range, [], ChoiceFrames),
+	display_stack(StackBrowser, CallFrames, ChoiceFrames).
 show_stack(_, _).
 
 stack_frames(0, _, _, []) :- !.
@@ -441,27 +434,54 @@ stack_frames(Depth, F, PC, Frames) :-
 	;   RestFrames = []
 	).
 
-choicepoints(0, _, _, []) :- !.
-choicepoints(Max, F, Range, [frame(F, choice)|Choice]) :-
-	prolog_frame_attribute(F, hidden, false),
-	prolog_frame_attribute(F, level, Flev),
+%	choice_frames(+Max, +CHP, +MinLevel-MaxLevel, -Frames)
+
+choice_frames(_, none, _, _, []) :- !.
+choice_frames(Max, CHP, Range, Seen, [frame(Frame, choice)|Frames]) :-
+	Max > 0,
+	earlier_choice(CHP, CH),
+	visible_choice(CH),
+	prolog_choice_attribute(CHP, frame, Frame),
+	\+ memberchk(Frame, Seen),
+	prolog_frame_attribute(Frame, level, Flev),
 	in_range(Flev, Range), !,
-	(   alternative_frame(F, Alt)
-	->  NMax is Max - 1,
-	    choicepoints(NMax, Alt, Range, Choice)
-	;   Choice = []
+	NMax is Max - 1,
+	(   prolog_choice_attribute(CHP, parent, Prev)
+	->  choice_frames(NMax, Prev, Range, [Frame|Seen], Frames)
+	;   Frames = []
 	).
-choicepoints(_, _, _, []).
+choice_frames(_, _, _, _, []).
+
+%	earlier_choice(+Here, -Visible)
+%	
+%	Return earliers choices on backgtracking.
+
+earlier_choice(CHP, CHP).
+earlier_choice(CHP, Next) :-
+	prolog_choice_attribute(CHP, parent, Parent),
+	earlier_choice(Parent, Next).
+
+%	visible_choice(+CHP)
+%	
+%	A visible choice is a choice-point that realises a real choice
+%	and is created by a visible frame.
+
+visible_choice(CHP) :-
+	prolog_choice_attribute(CHP, type, Type),
+	real_choice_type(Type),
+	prolog_choice_attribute(CHP, frame, Frame),
+	prolog_frame_attribute(Frame, hidden, false).
+
+real_choice_type(clause).
+real_choice_type(foreign).
+real_choice_type(jump).
+
 
 level_range(Frames, H-L) :-
 	Frames = [F0|_],
-	last(Frames, FT),
+	last(FT, Frames),
 	flevel(F0, L),
 	flevel(FT, H).
-
-last([T], T).
-last([_|L], T) :-
-	last(L, T).
 
 flevel(frame(Frame, _), L) :-
 	prolog_frame_attribute(Frame, level, L),
@@ -473,7 +493,11 @@ in_range(Level, Low-_High) :-
 
 alternative_frame(Fr, Alt) :-
 	prolog_frame_attribute(Fr, alternative, F0),
-	debug('Choice for #~w is #~w~n', [Fr, F0]),
+	(   setting(verbose, true)
+	->  prolog_frame_attribute(F0, goal, G),
+	    debug('Choice for #~w is #~w (running ~p)~n', [Fr, F0, G])
+	;   true
+	),
 	(   prolog_frame_attribute(F0, has_alternatives, true)
 	->  Alt0 = F0
 	;   debug('   Not a real choice, looking for next~n', []),
@@ -485,11 +509,6 @@ alternative_frame(Fr, Alt) :-
 	;   Alt = Alt0
 	).
 
-first_alternative(Fr, Alt) :-
-	(   prolog_frame_attribute(Fr, has_alternatives, true)
-	->  Alt = Fr
-	;   alternative_frame(Fr, Alt)
-	).
 
 show_stack_location(Frame, PC) :-
 	get_tracer(member(stack), StackBrowser),
