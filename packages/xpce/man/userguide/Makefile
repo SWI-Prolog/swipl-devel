@@ -20,9 +20,13 @@ LOGO=	figs/uva.eps figs/swi.eps
 
 all:	$(TEX) $(LOGO)
 	-$(CORRECTINDEX) xpceusg.idx
-	-$(MAKEINDEX) xpceusg
+	-$(MAKEINDEX) xpceusg.idx
 	touch xpceusg.ind
 	(TEXINPUTS=../../TeX:$$TEXINPUTS; export TEXINPUTS; latex xpceusg)
+
+html:	$(TEX)
+	latex2html xpceusg
+	mv xpceusg/xpceusg.html xpceusg/Title.html
 
 tex:	$(TEX)
 
@@ -55,6 +59,7 @@ summary.tex:		summary.doc classes.pl
 	$(PLTOTEX) $*.pl > $*.tex
 
 clean:
-	rm -f $(TEX) *.dvi *.toc *.aux *.idx *.ind *.blg *.log *~ figs/*~ \
+	rm -f $(TEX) *.dvi *.toc *.aux *.idx *.ind *.blg *.log *.ilg \
+	      *~ figs/*~ \
 	      $(LOGO) figs/class/* summary.tmp
 	

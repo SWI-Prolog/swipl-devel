@@ -424,7 +424,7 @@ this predicate is:
 \subsection{Miscellaneous library predicates}		\label{sec:miscpreds}
 
 \begin{description}
-    \predicate*{manpce}{0}{}
+    \predicate{manpce}{0}{}
     \predicate{manpce}{1}{+ClassName}
 Starts the online manual tools. With an \arg{ClassName} argument, the
 ``Class Browser'' tool is started on the specified class.

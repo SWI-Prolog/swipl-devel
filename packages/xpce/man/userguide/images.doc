@@ -37,7 +37,8 @@ can also be useful for other images.
 \index{image,shape}%
 \index{cursor}%
 \index{icon}%
-\begin{tabular}{lccccccc}
+\begin{tabular}{|l|ccccccc|}
+\hline
 \bf Format & \bf Colour & \bf HotSpot & \bf Shape &
 	     \multicolumn{2}{c}{\bf Unix/X11} &
 	     \multicolumn{2}{c}{\bf Win32} \\
@@ -59,6 +60,7 @@ JPEG	   & +&-&-&  -	  &  -		      &   +  &  -   \\
 GIF	   & +&-&-&  -	  &  -		      &   +  &  -   \\
 BMP	   & +&-&-&  -	  &  -		      &   +  &  -   \\
 PNM	   & +&-&-&  +	  &  +		      &   +  &  -   \\
+\hline
 \end{tabular}
 \end{center}
 
