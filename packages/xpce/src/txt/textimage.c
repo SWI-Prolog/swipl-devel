@@ -721,15 +721,19 @@ dumpMapTextImage(TextImage ti)
 		********************************/
 
 static void
-t_underline(int x, int y, int w)
+t_underline(int x, int y, int w, Colour c)
 { static int ex = 0, ey = 0, ew = 0;
+  static Colour cc = NIL;
 
-  if ( x == ex+ew && y == ey )
+  if ( x == ex+ew && y == ey && c == cc )
   { ew += w;
   } else
   { if ( ew > 0 )
+    { r_colour(cc);
       r_line(ex, ey, ex+ew, ey);
+    }
     ex = x, ey = y, ew = w;
+    cc = c;
   }
 }
 
@@ -852,12 +856,12 @@ Paint a line from index `from' to index `to'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-paint_attributes(TextImage ti, TextLine l, int from, int to)
+paint_attributes(TextImage ti, TextLine l, int from, int to, Colour c)
 { unsigned char atts = l->chars[from].attributes;
   
   if ( atts & TXT_UNDERLINED )
   { t_underline(l->chars[from].x, l->y + l->h - 1,
-		l->chars[to].x - l->chars[from].x);
+		l->chars[to].x - l->chars[from].x, c);
   }
   if ( atts & TXT_HIGHLIGHTED )
   { int w = (to == l->length ? ti->w - TXT_X_MARGIN : l->chars[to].x);
@@ -927,7 +931,7 @@ paint_line(TextImage ti, Area a, TextLine l, int from, int to)
 			l->chars[e].x,
 			l->y + l->base);
         e++;
-	paint_attributes(ti, l, s, e);
+	paint_attributes(ti, l, s, e, c);
 	continue;
       case CHAR_IMAGE:
 	if ( notDefault(bg) && !instanceOfObject(bg, ClassElevation) )
@@ -941,7 +945,7 @@ paint_line(TextImage ti, Area a, TextLine l, int from, int to)
 		    l->chars[e].x,
 		    l->y + l->base);
 	e++;
-	paint_attributes(ti, l, s, e);
+	paint_attributes(ti, l, s, e, c);
         continue;
     }
 
@@ -1022,10 +1026,10 @@ paint_line(TextImage ti, Area a, TextLine l, int from, int to)
       }
     }
 
-    paint_attributes(ti, l, s, e);
+    paint_attributes(ti, l, s, e, c);
   }
 
-  t_underline(0, 0, 0);
+  t_underline(0, 0, 0, NIL);
 }
 
 

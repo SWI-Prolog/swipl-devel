@@ -49,6 +49,7 @@ initialiseTextBuffer(TextBuffer tb, CharArray ca)
   assign(tb, first_fragment, NIL);
   assign(tb, last_fragment,  NIL);
   assign(tb, editors,	     newObject(ClassChain, 0));
+  assign(tb, generation,     ZERO);
   obtainClassVariablesObject(tb);	/* dubious: subclassing? */
 
   tb->undo_buffer = NULL;
@@ -143,6 +144,7 @@ loadTextBuffer(TextBuffer tb, IOSTREAM *fd, ClassDef def)
   tb->changed_start = tb->size;
   tb->changed_end = 0;  
   CmodifiedTextBuffer(tb, OFF);
+  assign(tb, generation, ZERO);
 
   succeed;
 }
@@ -356,6 +358,9 @@ status
 CmodifiedTextBuffer(TextBuffer tb, Bool val)
 { if ( tb->modified != val )
     return sendv(tb, NAME_modified, 1, (Any *) &val);
+  
+  if ( val == ON )
+    tb->generation = toInt(valInt(tb->generation)+1);
 
   succeed;
 }
@@ -2372,6 +2377,8 @@ static vardecl var_textBuffer[] =
      NAME_modified, "Size of the undo-buffer in characters"),
   IV(NAME_syntax, "syntax_table", IV_BOTH,
      NAME_language, "Description of the used syntax"),
+  IV(NAME_generation, "0..", IV_GET,
+     NAME_modified, "Indicate change-generation"),
   IV(NAME_changedStart, "alien:int", IV_NONE,
      NAME_repaint, "Start of changes since last repaint"),
   IV(NAME_changedEnd, "alien:int", IV_NONE,
